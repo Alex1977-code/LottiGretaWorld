@@ -58,6 +58,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.blinkTimer = 0;
     this.dead = false;
     this.mount = null;            // Pflaume, wenn Pip reitet
+    this.locked = false;          // keine Eingabe (Levelende)
 
     // Blätterschirm als eigenes Sprite über Pip
     this.leaf = scene.add.sprite(x, y, 'leaf', 'leaf0').setDepth(11).setVisible(false);
@@ -211,7 +212,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.leaf.setAlpha(this.alpha);
 
     // Während des Rückstoßes (oder tot) keine Eingabe
-    const inp = (this.controlLockTimer > 0 || this.dead) ? NO_INPUT : this.ctrl;
+    const inp = (this.controlLockTimer > 0 || this.dead || this.locked) ? NO_INPUT : this.ctrl;
 
     // --- Landung erkennen ---
     if (onGround && !this.wasOnGround) this.onLand();

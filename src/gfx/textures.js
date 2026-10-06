@@ -7,6 +7,7 @@ import { PAL, SKY, POWER_COLORS } from './palette.js';
 import { PIP_FRAMES, PIP_FRAME_SIZE, LEAF_FRAMES } from './pipFrames.js';
 import { WALKER_FRAMES, HOPPER_FRAMES, CHECKPOINT_FRAMES, HEART_FRAMES } from './enemyFrames.js';
 import { PFLAUME_FRAMES, BERRY_FRAMES, FIREBALL_FRAMES } from './pflaumeFrames.js';
+import { COIN_FRAMES, COIN_HUD_FRAMES, KEY_FRAMES, GATE_FRAMES, FLAG_FRAMES, THORNS_FRAMES } from './itemFrames.js';
 import { TILE_SIZE, TILE_NAMES, drawTile } from './tiles.js';
 
 /** Zeichnet ein Pixel-Art-Raster (Array von Strings) in einen Canvas-Kontext. */
@@ -209,6 +210,12 @@ export function createAllTextures(scene, width, height) {
   makeSheet(scene, 'pflaume', PFLAUME_FRAMES, 20, 16, POWER_COLORS);
   makeSheet(scene, 'berry', BERRY_FRAMES, 8, 8, POWER_COLORS);
   makeSheet(scene, 'fireball', FIREBALL_FRAMES, 8, 8);
+  makeSheet(scene, 'coin', COIN_FRAMES, 12, 12);
+  makeSheet(scene, 'coin_hud', COIN_HUD_FRAMES, 8, 8);
+  makeSheet(scene, 'key', KEY_FRAMES, 12, 12);
+  makeSheet(scene, 'gate', GATE_FRAMES, 16, 32);
+  makeSheet(scene, 'flag', FLAG_FRAMES, 16, 32);
+  makeSheet(scene, 'thorns', THORNS_FRAMES, 16, 8);
   makeTileset(scene);
   makeSky(scene, width, height);
   makeFarHills(scene, width, height);

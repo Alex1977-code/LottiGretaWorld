@@ -53,6 +53,17 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 - Treffer beim Reiten kostet kein Herz: Pip wird abgeworfen, Pflaume flieht 3 s panisch in Gegenrichtung.
   Wer ihn in dieser Zeit berührt, sitzt wieder oben (Kraft bleibt) – sonst verschwindet er.
 
+## Level 1 „Herbstwald“
+
+`src/levels/level1.js` – ca. 2 Minuten, 300 Tiles breit. Fünf große Münzen (`o`), Checkpoint in der
+Mitte, Dornen (`^`), Pflaume mit allen drei Beeren. Normaler Ausgang: Zielfahne (`X`).
+Geheimer Ausgang: Schlüssel (`K`) in der Höhle unter dem Waldboden (Zugang per Stampfsprung durch die
+Steindecke oder über die Treppe am Höhlenende), Tor (`G`) auf der Anhöhe vor dem Ziel.
+Level per URL wählen: `?level=test` oder `?level=level1`.
+
+Speicherstand (`localStorage`, `src/systems/SaveGame.js`): pro Level „geschafft“, „geheimer Ausgang“
+und gesammelte Münzen. Bereits gespeicherte Münzen erscheinen halbtransparent.
+
 ## PWA
 
 `public/manifest.webmanifest` + `public/sw.js` (Service Worker, offline-fähig, Cache pro Build).
@@ -64,16 +75,17 @@ Icons liegen in `public/icons/` und werden mit `npm run icons` aus der Pip-Grafi
 src/
   main.js            Phaser-Konfiguration, Start
   config.js          Alle Physik-/Spielwerte zentral
-  scenes/            Boot, Play, UI (Touch-Steuerung, HUD)
-  entities/          Pip, Pflaume, Fireball, Berry, Gegner (Enemy, Walker, Hopper), Checkpoint
+  scenes/            Boot, Play, UI (Touch-Steuerung, HUD), LevelComplete
+  entities/          Pip, Pflaume, Fireball, Berry, Coin, Items (Key, Gate, Flag, Thorns), Gegner, Checkpoint
   systems/           Eingabe (Tastatur+Touch), Kamera, Effekte, Debug, Haptik, PWA, Querformat
-  levels/            ASCII→Tiled-Konverter, Levels
+  levels/            ASCII→Tiled-Konverter, Grid-Stempel, Testlevel, Level 1, Level-Register
   gfx/               Prozedurale Texturen (Pixel-Art als Strings, Tiles, Hintergrund)
   audio/             Chiptune-Synth (Etappe 7)
 tests/run.mjs        Headless-Test Tastatur (Playwright)
 tests/touch.mjs      Headless-Test Touch-Steuerung, Querformat, PWA
 tests/enemies.mjs    Headless-Test Gegner, Schaden, Tod, Checkpoint
 tests/pflaume.mjs    Headless-Test Reiten, Beeren-Kräfte, Flucht
+tests/level1.mjs     Headless-Test Level 1 (Übersichtsbild, Münzen, Schlüssel/Tor, Fahne, Speicherstand)
 tools/make-icons.mjs PWA-Icons aus der Pip-Grafik erzeugen
 ```
 

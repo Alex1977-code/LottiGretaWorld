@@ -3,14 +3,16 @@
 export const STATE_KEYS = {
   hearts: 'hearts',
   maxHearts: 'maxHearts',
-  coins: 'coins',
+  coins: 'coins',             // Array: welche der 5 Münzen in diesem Versuch gesammelt sind
+  hasKey: 'hasKey',
   power: 'power',     // aktuelle Beeren-Kraft: none/red/blue/yellow ('' = ohne Pflaume)
 };
 
 export const DEFAULTS = {
   hearts: 3,
   maxHearts: 3,
-  coins: 0,
+  coins: [false, false, false, false, false],
+  hasKey: false,
   power: '',
 };
 

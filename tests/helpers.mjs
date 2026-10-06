@@ -35,8 +35,8 @@ export async function launchBrowser(contextOpts = {}) {
 }
 
 /** Lädt das Spiel und wartet, bis die Play-Szene läuft. */
-export async function loadGame(page, port, errors, stop) {
-  await page.goto(`http://localhost:${port}/`, { waitUntil: 'load' });
+export async function loadGame(page, port, errors, stop, level = 'test') {
+  await page.goto(`http://localhost:${port}/?level=${level}`, { waitUntil: 'load' });
   try {
     await page.waitForFunction(() => window.__game && window.__game.scene.isActive('Play') && window.__game.scene.isActive('UI'), null, { timeout: 15000 });
   } catch {

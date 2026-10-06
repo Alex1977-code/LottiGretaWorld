@@ -53,6 +53,10 @@ export const PAL = {
   // Feuerball
   'F': '#ff8c2a',   // Feuer orange
   'f': '#ffd36a',   // Feuer gelb
+  // Gold (Münzen, Schlüssel)
+  'J': '#f2c230',   // Gold
+  'j': '#fff2a8',   // Gold Glanz
+  'i': '#a8761a',   // Gold dunkel
   // HUD
   'P': '#e8405a',   // Herz
   'p': '#ff9fb0',   // Herz Glanz

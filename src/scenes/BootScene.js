@@ -11,6 +11,6 @@ export class BootScene extends Phaser.Scene {
 
   create() {
     createAllTextures(this, GAME.width, GAME.height);
-    this.scene.start('Play', { level: 'test' });
+    this.scene.start('Play', { level: this.registry.get('startLevel') ?? 'level1' });
   }
 }

@@ -19,12 +19,15 @@ export class UIScene extends Phaser.Scene {
     this.createHearts();
     this.powerIcon = this.add.image(0, 8, 'berry', 'berry_none').setDepth(50).setScrollFactor(0).setVisible(false);
     this.updatePower();
+    this.createCoins();
+    this.registry.events.on(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.coins, this.updateCoins, this);
     this.registry.events.on(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.power, this.updatePower, this);
     this.registry.events.on(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.hearts, this.updateHearts, this);
     this.registry.events.on(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.maxHearts, this.createHearts, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.registry.events.off(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.hearts, this.updateHearts, this);
       this.registry.events.off(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.power, this.updatePower, this);
+      this.registry.events.off(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.coins, this.updateCoins, this);
       this.registry.events.off(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.maxHearts, this.createHearts, this);
     });
 
@@ -48,6 +51,27 @@ export class UIScene extends Phaser.Scene {
       this.hearts.push(this.add.image(8 + i * 10, 8, 'heart', 'full').setDepth(50).setScrollFactor(0));
     }
     this.updateHearts();
+  }
+
+  /** Fünf Münzplätze oben rechts. */
+  createCoins() {
+    const { width } = this.scale.gameSize;
+    this.coinIcons = [];
+    for (let i = 0; i < 5; i++) {
+      this.coinIcons.push(this.add.image(width - 8 - (4 - i) * 10, 8, 'coin_hud', 'empty').setDepth(50).setScrollFactor(0));
+    }
+    this.updateCoins();
+  }
+
+  updateCoins() {
+    const coins = this.registry.get(STATE_KEYS.coins) ?? [];
+    this.coinIcons.forEach((c, i) => {
+      const full = !!coins[i];
+      if (full !== (c.frame.name === 'full')) {
+        c.setFrame(full ? 'full' : 'empty');
+        if (full) this.tweens.add({ targets: c, scaleX: 1.6, scaleY: 1.6, duration: 120, yoyo: true });
+      }
+    });
   }
 
   /** Beeren-Kraft neben den Herzen anzeigen (nur beim Reiten). */

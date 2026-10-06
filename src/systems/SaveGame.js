@@ -1,0 +1,50 @@
+// Speicherstand in localStorage: Levelfortschritt, Münzen, gefundene Ausgänge.
+
+const KEY = 'pip-pflaume-save-v1';
+
+const EMPTY = () => ({ version: 1, levels: {}, current: 'level1' });
+
+export class SaveGame {
+  constructor() {
+    this.data = EMPTY();
+    this.load();
+  }
+
+  load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.version === 1) this.data = { ...EMPTY(), ...parsed };
+      }
+    } catch (_) { /* kein Speicher verfügbar */ }
+  }
+
+  save() {
+    try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (_) { /* ignorieren */ }
+  }
+
+  reset() {
+    this.data = EMPTY();
+    this.save();
+  }
+
+  /** Fortschritt eines Levels (legt leeren Eintrag an). */
+  level(id) {
+    if (!this.data.levels[id]) this.data.levels[id] = { done: false, secret: false, coins: [false, false, false, false, false] };
+    return this.data.levels[id];
+  }
+
+  /** Levelabschluss eintragen: Ausgang + gesammelte Münzen (nur hinzufügen, nie entfernen). */
+  completeLevel(id, exit, coins) {
+    const l = this.level(id);
+    l.done = true;
+    if (exit === 'secret') l.secret = true;
+    coins.forEach((c, i) => { if (c) l.coins[i] = true; });
+    this.save();
+  }
+
+  coinCount(id) { return this.level(id).coins.filter(Boolean).length; }
+}
+
+export const saveGame = new SaveGame();

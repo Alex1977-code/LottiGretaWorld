@@ -9,6 +9,7 @@ import { TILE_SIZE, TILE_INDEX, TILE_NAMES, groundIndex, EDGE } from '../gfx/til
 //  'P' Startpunkt Spieler  '.' leer
 //  'k' Laufkäfer  'm' hüpfender Pilz  'C' Checkpoint
 //  'F' Pflaume  'R' rote Beere  'U' blaue Beere  'Y' gelbe Beere
+//  'o' große Münze  'K' Schlüssel  'G' Tor (geheimer Ausgang)  'X' Zielfahne  '^' Dornen
 export const LEGEND = {
   GROUND: '#',
   PLATFORM: '=',
@@ -21,6 +22,11 @@ export const LEGEND = {
   BERRY_RED: 'R',
   BERRY_BLUE: 'U',
   BERRY_YELLOW: 'Y',
+  COIN: 'o',
+  KEY: 'K',
+  GATE: 'G',
+  FLAG: 'X',
+  THORNS: '^',
 };
 
 // Zeichen → Objekt (name/type); Position ist jeweils die Unterkante des Tiles
@@ -33,6 +39,11 @@ const OBJECT_CHARS = {
   [LEGEND.BERRY_RED]: { name: 'red', type: 'berry' },
   [LEGEND.BERRY_BLUE]: { name: 'blue', type: 'berry' },
   [LEGEND.BERRY_YELLOW]: { name: 'yellow', type: 'berry' },
+  [LEGEND.COIN]: { name: 'coin', type: 'coin' },
+  [LEGEND.KEY]: { name: 'key', type: 'key' },
+  [LEGEND.GATE]: { name: 'gate', type: 'gate' },
+  [LEGEND.FLAG]: { name: 'flag', type: 'flag' },
+  [LEGEND.THORNS]: { name: 'thorns', type: 'thorns' },
 };
 
 /**
@@ -49,6 +60,7 @@ export function asciiToTiled(rows, opts = {}) {
   const data = new Array(width * height).fill(0);
   const objects = [];
   let objId = 1;
+  let coinIndex = 0;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -67,9 +79,12 @@ export function asciiToTiled(rows, opts = {}) {
         gid = TILE_INDEX.brick + 1 + ((x + y) % 2);
       } else if (OBJECT_CHARS[ch]) {
         const def = OBJECT_CHARS[ch];
+        const props = [];
+        if (def.type === 'coin') props.push({ name: 'index', type: 'int', value: coinIndex++ });
         objects.push({
           id: objId++, name: def.name, type: def.type,
           x: x * TILE_SIZE, y: (y + 1) * TILE_SIZE, width: 0, height: 0, point: true, visible: true, rotation: 0,
+          properties: props,
         });
       }
       data[y * width + x] = gid;

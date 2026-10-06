@@ -3,7 +3,10 @@
 import Phaser from 'phaser';
 import { GAME, DEBUG } from '../config.js';
 import { TILE_INDEX } from '../gfx/tiles.js';
-import { buildTestLevel } from '../levels/testlevel.js';
+import { LEVELS } from '../levels/index.js';
+import { Coin } from '../entities/Coin.js';
+import { Key, Gate, Flag, Thorns } from '../entities/Items.js';
+import { saveGame } from '../systems/SaveGame.js';
 import { Pip } from '../entities/Pip.js';
 import { Walker } from '../entities/Walker.js';
 import { Hopper } from '../entities/Hopper.js';
@@ -26,13 +29,16 @@ export class PlayScene extends Phaser.Scene {
   }
 
   init(data) {
-    this.levelKey = data?.level ?? 'test';
+    this.levelKey = data?.level && LEVELS[data.level] ? data.level : 'level1';
+    this.completing = false;
   }
 
   create() {
     initGameState(this.registry);
     this.registry.set(STATE_KEYS.hearts, this.registry.get(STATE_KEYS.maxHearts));
     this.registry.set(STATE_KEYS.power, '');
+    this.registry.set(STATE_KEYS.coins, [false, false, false, false, false]);
+    this.registry.set(STATE_KEYS.hasKey, false);
 
     this.input_ = new InputManager(this);
     this.effects = new Effects(this);
@@ -68,10 +74,9 @@ export class PlayScene extends Phaser.Scene {
 
   createMap() {
     const key = `map-${this.levelKey}`;
-    if (!this.cache.tilemap.has(key)) {
-      const json = buildTestLevel();
-      this.cache.tilemap.add(key, { format: Phaser.Tilemaps.Formats.TILED_JSON, data: json });
-    }
+    // Level wird bei jedem Start neu erzeugt (zerbrochene Blöcke etc. zurücksetzen)
+    if (this.cache.tilemap.has(key)) this.cache.tilemap.remove(key);
+    this.cache.tilemap.add(key, { format: Phaser.Tilemaps.Formats.TILED_JSON, data: LEVELS[this.levelKey].build() });
     this.map = this.make.tilemap({ key });
     const tileset = this.map.addTilesetImage('tiles', 'tiles', GAME.tile, GAME.tile, 0, 0);
     this.groundLayer = this.map.createLayer('ground', tileset, 0, 0).setDepth(0);
@@ -106,9 +111,24 @@ export class PlayScene extends Phaser.Scene {
     this.mounts = this.add.group();
     this.berries = this.add.group();
     this.fireballs = this.add.group();
+    this.coins = this.add.group();
+    this.keys = this.add.group();
+    this.gates = this.add.group();
+    this.flags = this.add.group();
+    this.thorns = this.add.group();
+    const saved = saveGame.level(this.levelKey);
     const objLayer = this.map.getObjectLayer('objects');
     for (const o of objLayer?.objects ?? []) {
       const cx = o.x + GAME.tile / 2;
+      if (o.type === 'coin') {
+        const idx = o.properties?.find((p) => p.name === 'index')?.value ?? 0;
+        this.coins.add(new Coin(this, cx, o.y, idx, saved.coins[idx]));
+        continue;
+      }
+      if (o.type === 'key') { this.keys.add(new Key(this, cx, o.y)); continue; }
+      if (o.type === 'gate') { this.gates.add(new Gate(this, cx, o.y)); continue; }
+      if (o.type === 'flag') { this.flags.add(new Flag(this, cx, o.y)); continue; }
+      if (o.type === 'thorns') { this.thorns.add(new Thorns(this, cx, o.y)); continue; }
       if (o.type === 'enemy') {
         const e = o.name === 'walker' ? new Walker(this, cx, o.y, this.groundLayer) : new Hopper(this, cx, o.y, this.pip);
         this.enemies.add(e);
@@ -128,6 +148,63 @@ export class PlayScene extends Phaser.Scene {
     this.physics.add.overlap(this.pip, this.mounts, this.onPipMount, (pip, m) => m.canMount, this);
     this.physics.add.overlap(this.pip, this.berries, this.onPipBerry, (pip) => !!pip.mount, this);
     this.physics.add.overlap(this.fireballs, this.enemies, this.onFireballEnemy, (f, e) => e.alive, this);
+    this.physics.add.overlap(this.pip, this.coins, this.onCoin, (pip, c) => c.body.enable, this);
+    this.physics.add.overlap(this.pip, this.keys, this.onKey, (pip, k) => !k.collected, this);
+    this.physics.add.overlap(this.pip, this.gates, this.onGate, (pip, g) => !g.opened, this);
+    this.physics.add.overlap(this.pip, this.flags, this.onFlag, null, this);
+    this.physics.add.overlap(this.pip, this.thorns, this.onThorns, null, this);
+  }
+
+  onCoin(pip, coin) {
+    coin.collect();
+    const coins = [...this.registry.get(STATE_KEYS.coins)];
+    coins[coin.index] = true;
+    this.registry.set(STATE_KEYS.coins, coins);
+    vibrate(10);
+  }
+
+  onKey(pip, key) {
+    key.collect(pip);
+    this.registry.set(STATE_KEYS.hasKey, true);
+    vibrate(15);
+  }
+
+  onGate(pip, gate) {
+    if (!this.registry.get(STATE_KEYS.hasKey) || this.completing) return;
+    gate.open();
+    this.keys.getChildren().forEach((k) => k.setVisible(false));
+    this.completeLevel('secret');
+  }
+
+  onFlag(pip) {
+    if (this.completing) return;
+    this.completeLevel('normal');
+  }
+
+  onThorns(pip, thorns) {
+    if (pip.dead || pip.respawnLock) return;
+    if (pip.mount) {
+      if (!pip.invincible) pip.mount.panic(thorns.x);
+    } else if (pip.hurt(thorns.x)) {
+      this.loseHeart();
+    }
+  }
+
+  /** Levelende: Eingabe sperren, kurze Feier, Ergebnis speichern und anzeigen. */
+  completeLevel(exit) {
+    this.completing = true;
+    const pip = this.pip;
+    pip.locked = true;
+    pip.body.setVelocityX(0);
+    vibrate([30, 50, 30, 50, 60]);
+    this.time.addEvent({ delay: 180, repeat: 6, callback: () => this.effects.sparks(pip.x + Phaser.Math.Between(-30, 30), pip.y - Phaser.Math.Between(0, 40), 8) });
+    const coins = this.registry.get(STATE_KEYS.coins);
+    saveGame.completeLevel(this.levelKey, exit, coins);
+    this.time.delayedCall(1600, () => {
+      this.scene.pause('UI');
+      this.scene.launch('LevelComplete', { exit, coins, levelKey: this.levelKey });
+      this.scene.pause();
+    });
   }
 
   /** Pip berührt Pflaume: aufsteigen (auch während der Flucht = wieder einfangen). */
