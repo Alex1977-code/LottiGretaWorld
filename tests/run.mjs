@@ -1,41 +1,13 @@
-// Headless-Smoke-Test: lädt das Spiel in Chromium, prüft auf Konsolenfehler,
+// Headless-Smoke-Test (Tastatur): lädt das Spiel in Chromium, prüft auf Konsolenfehler,
 // steuert Pip per Tastatur und speichert Screenshots nach tests/out/.
 // Aufruf: npm run build && node tests/run.mjs
-import { createRequire } from 'node:module';
-import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
-
-const require = createRequire(import.meta.url);
-let chromium;
-try { ({ chromium } = require('playwright')); }
-catch { ({ chromium } = require('/opt/node-tools/node_modules/playwright')); }
+import { writeFileSync } from 'node:fs';
+import { startServer, launchBrowser, loadGame, pipState, logState, makeChecker, OUT } from './helpers.mjs';
 
 const PORT = 4173;
-const OUT = new URL('./out/', import.meta.url).pathname;
-mkdirSync(OUT, { recursive: true });
-
-const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'pipe', detached: true });
-const stopServer = () => { try { process.kill(-server.pid, 'SIGTERM'); } catch {} };
-process.on('exit', stopServer);
-await new Promise((res) => setTimeout(res, 1500));
-
-const errors = [];
-const browser = await chromium.launch({
-  headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'],
-});
-const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
-page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${m.type()}] ${m.text()}`); });
-page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
-
-await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'load' });
-try {
-  await page.waitForFunction(() => window.__game && window.__game.scene.isActive('Play'), null, { timeout: 15000 });
-} catch (e) {
-  console.log('Spiel startet nicht. Konsole:'); for (const x of errors) console.log('  ', x);
-  await browser.close(); stopServer(); process.exit(1);
-}
-await page.waitForTimeout(400);
+const stop = await startServer(PORT);
+const { browser, page, errors } = await launchBrowser();
+await loadGame(page, PORT, errors, stop);
 
 const info = await page.evaluate(() => ({
   renderer: window.__game.renderer.type === 2 ? 'WebGL' : 'Canvas',
@@ -43,13 +15,9 @@ const info = await page.evaluate(() => ({
 }));
 console.log('Renderer:', info.renderer, 'FPS:', info.fps.toFixed(0));
 
-const pip = () => page.evaluate(() => {
-  const s = window.__game.scene.getScene('Play');
-  const p = s.pip;
-  return { x: p.x, y: p.y, vx: p.body.velocity.x, vy: p.body.velocity.y, state: p.moveState, swoop: p.swooping, ground: p.onGround };
-});
+const pip = () => pipState(page);
 const shot = (name) => page.screenshot({ path: `${OUT}${name}.png` });
-const log = (label, s) => console.log(label.padEnd(22), `x=${s.x.toFixed(0)} y=${s.y.toFixed(0)} vx=${s.vx.toFixed(0)} vy=${s.vy.toFixed(0)} ${s.state}${s.swoop ? '+swoop' : ''} ground=${s.ground}`);
+const log = logState;
 
 // Sprite-Sheets vergrößert exportieren (zur Sichtkontrolle)
 for (const key of ['pip', 'leaf', 'tiles']) {
@@ -69,8 +37,7 @@ for (const key of ['pip', 'leaf', 'tiles']) {
 
 let s = await pip(); log('start', s);
 await shot('01_start');
-const results = [];
-const check = (name, ok) => { results.push([name, ok]); console.log(ok ? '  ✓' : '  ✗', name); };
+const { check, summary } = makeChecker();
 
 // 1) Laufen nach rechts
 await page.keyboard.down('ArrowRight');
@@ -104,7 +71,7 @@ let sawGlide = false, glideVy = 0;
 for (let i = 0; i < 40; i++) {
   await page.waitForTimeout(40);
   const p = await pip();
-  if (p.state === 'glide') { sawGlide = true; glideVy = p.vy; if (i > 20) break; }
+  if (p.state === 'glide' && p.vy > 0) { sawGlide = true; glideVy = p.vy; if (i > 20) break; }
 }
 s = await pip(); log('glide', s);
 await shot('03_glide');
@@ -162,10 +129,5 @@ const fps = await page.evaluate(() => window.__game.loop.actualFps);
 console.log('FPS am Ende:', fps.toFixed(0));
 
 await browser.close();
-stopServer();
-
-console.log('\nKonsole:', errors.length ? '' : 'keine Fehler/Warnungen');
-for (const e of errors) console.log('  ', e);
-const failed = results.filter(([, ok]) => !ok);
-console.log(`\n${results.length - failed.length}/${results.length} Prüfungen bestanden`);
-process.exit(failed.length || errors.length ? 1 : 0);
+stop();
+process.exit(summary(errors) ? 0 : 1);

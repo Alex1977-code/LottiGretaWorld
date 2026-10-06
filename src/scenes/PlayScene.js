@@ -33,6 +33,12 @@ export class PlayScene extends Phaser.Scene {
 
     this.debug = new DebugOverlay(this, this.pip, DEBUG.startEnabled);
 
+    // UI-Szene (Touch-Steuerung, HUD) über dem Spiel starten
+    this.scene.launch('UI', { ctrl: this.input_ });
+
+    // Eingabe vor dem Pip-Update einlesen (keine Frame-Verzögerung)
+    this.events.on(Phaser.Scenes.Events.PRE_UPDATE, this.input_.update, this.input_);
+
     // Fenster-Fokus verloren → keine hängenden Tasten
     this.game.events.on(Phaser.Core.Events.BLUR, () => this.input.keyboard.resetKeys());
   }
@@ -79,8 +85,6 @@ export class PlayScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    this.input_.update();
-
     if (this.input_.debugJustPressed) this.debug.toggle();
     if (this.input_.resetJustPressed) this.pip.respawn();
 

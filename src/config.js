@@ -76,9 +76,9 @@ export const CAMERA = {
 
 export const INPUT = {
   swipeThreshold: 28,     // Pixel Fingerbewegung für Wisch nach unten
-  swipeTime: 220,         // ms, in denen der Wisch passieren muss
+  swipeTime: 300,         // ms, in denen der Wisch passieren muss
   stickRadius: 28,        // Radius des virtuellen Sticks (CSS-Pixel im Spiel-Maßstab)
-  stickDeadzone: 0.18,
+  stickDeadzone: 0.15,
 };
 
 export const DEBUG = {

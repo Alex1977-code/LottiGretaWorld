@@ -4,6 +4,9 @@ import Phaser from 'phaser';
 import { GAME, PHYSICS } from './config.js';
 import { BootScene } from './scenes/BootScene.js';
 import { PlayScene } from './scenes/PlayScene.js';
+import { UIScene } from './scenes/UIScene.js';
+import { setupOrientationHint } from './systems/orientation.js';
+import { registerServiceWorker } from './systems/pwa.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -30,8 +33,11 @@ const config = {
   },
   fps: { target: 60, min: 30, smoothStep: true },
   input: { activePointers: 3 },
-  scene: [BootScene, PlayScene],
+  scene: [BootScene, PlayScene, UIScene],
 };
 
 const game = new Phaser.Game(config);
 window.__game = game; // für Debug/Tests
+
+setupOrientationHint(game);
+registerServiceWorker();
