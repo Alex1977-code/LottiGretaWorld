@@ -1,0 +1,19 @@
+{
+  "name": "pip-und-pflaume",
+  "version": "0.1.0",
+  "description": "PIP & PFLAUME – 2D-Plattformer fürs Handy (Browser/PWA)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "test": "node tests/run.mjs"
+  },
+  "dependencies": {
+    "phaser": "3.90.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.3"
+  }
+}
