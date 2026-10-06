@@ -25,7 +25,7 @@ export function buildGeneratedLevel(seed, o = {}) {
   const flatSpots = [];
   const mid = Math.floor(W / 2);
   let checkpointSet = false;
-  let pflaumeSet = false;
+  let gretaSet = false;
   let afterPit = false;
 
   while (x < W - 24) {
@@ -73,11 +73,11 @@ export function buildGeneratedLevel(seed, o = {}) {
       g.set(x + 1, FLOOR - level - 1, 'C');
       checkpointSet = true;
     }
-    // Pflaume + Beere im ersten Drittel
-    if (!pflaumeSet && x > W * 0.15 && len >= 8) {
+    // Greta + Beere im ersten Drittel
+    if (!gretaSet && x > W * 0.15 && len >= 8) {
       g.set(x + 2, FLOOR - level - 1, 'F');
       g.set(x + 5, FLOOR - level - 2, rnd.pick(['R', 'U', 'Y']));
-      pflaumeSet = true;
+      gretaSet = true;
     }
     x += len;
     segment++;

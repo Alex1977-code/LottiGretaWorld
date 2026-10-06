@@ -1,7 +1,7 @@
 // Web-Audio-Grundlage: AudioContext (wird bei der ersten Berührung freigeschaltet),
 // Lautstärke-Busse für Effekte und Musik, einfache Synth-Bausteine (Ton, Rauschen).
 
-const MUTE_KEY = 'pip-pflaume-muted';
+const MUTE_KEY = 'lotti-greta-muted';
 
 export class AudioEngine {
   constructor() {

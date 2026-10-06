@@ -16,7 +16,7 @@ export const PHYSICS = {
   hardMaxSpeed: 700,
 };
 
-export const PIP = {
+export const LOTTI = {
   // --- Hitbox (im 20x20-Frame) ---
   bodyWidth: 10,
   bodyHeight: 14,
@@ -73,29 +73,29 @@ export const ENEMIES = {
   hopperSquatTime: 220,     // Pilz: Ducken vor dem Sprung (ms)
   hopperJumpVelocity: 230,  // Pilz: Absprunggeschwindigkeit
   hopperSpeedX: 55,         // Pilz: horizontale Sprunggeschwindigkeit
-  hopperSightRange: 140,    // Pilz: ab dieser Entfernung springt er Richtung Pip
-  stompTolerance: 10,       // Pixel, die Pips Füße unter der Gegner-Oberkante sein dürfen
+  hopperSightRange: 140,    // Pilz: ab dieser Entfernung springt er Richtung Lotti
+  stompTolerance: 10,       // Pixel, die Lottis Füße unter der Gegner-Oberkante sein dürfen
   stompBounce: 210,         // Abprall nach Draufspringen
   stompBounceHeld: 320,     // Abprall, wenn Sprungtaste gehalten wird
   hitstop: 50,              // Freeze-Frame beim Besiegen (ms)
 };
 
-export const PFLAUME = {
-  bodyWidth: 14,          // Hitbox Pip+Pflaume beim Reiten
+export const GRETA = {
+  bodyWidth: 14,          // Hitbox Lotti+Greta beim Huckepack-Tragen
   bodyHeight: 26,
   bodyOffsetX: 3,
   bodyOffsetY: 6,
-  freeBodyWidth: 14,      // Hitbox Pflaume allein
-  freeBodyHeight: 12,
+  freeBodyWidth: 12,      // Hitbox Greta allein
+  freeBodyHeight: 18,
   walkSpeed: 22,          // Umherlaufen ohne Reiter
   idleTime: 1400,         // Pause zwischen Spaziergängen (ms)
   fleeSpeed: 115,         // Fluchtgeschwindigkeit
-  fleeTime: 3000,         // ms Flucht, danach verschwindet Pflaume
+  fleeTime: 3000,         // ms Flucht, danach verschwindet Greta
   fleeHopVelocity: 130,   // kleine Panik-Hüpfer
   fleeHopInterval: 260,
-  mountCooldown: 600,     // ms nach der Flucht, bevor Pip wieder aufsteigen kann
+  mountCooldown: 600,     // ms nach der Flucht, bevor Lotti wieder aufsteigen kann
   mountHop: 160,          // kleiner Hüpfer beim Aufsteigen
-  throwOffVelocityX: 90,  // Pip wird beim Treffer abgeworfen
+  throwOffVelocityX: 90,  // Lotti wird beim Treffer abgeworfen
   throwOffVelocityY: 240,
   // Rote Beere: Feuerball
   fireSpeed: 230,

@@ -1,4 +1,4 @@
-// Hüpfender Pilz: wartet, duckt sich, springt in Richtung Pip.
+// Hüpfender Pilz: wartet, duckt sich, springt in Richtung Lotti.
 
 import { Enemy } from './Enemy.js';
 import { ENEMIES } from '../config.js';
@@ -33,7 +33,7 @@ export class Hopper extends Enemy {
       case 'squat':
         this.timer -= delta;
         if (this.timer <= 0) {
-          // Richtung: zu Pip, wenn er in der Nähe ist
+          // Richtung: zu Lotti, wenn er in der Nähe ist
           if (this.target && Math.abs(this.target.x - this.x) < ENEMIES.hopperSightRange) {
             this.dir = this.target.x < this.x ? -1 : 1;
           } else {

@@ -20,22 +20,22 @@ a = await audio();
 console.log('nach Geste:', JSON.stringify(a));
 check('Geste schaltet Audio frei', a.ctx === 'running' && a.ready);
 check('Welt-Thema läuft', a.theme === 'world1');
-check('Ohne Pflaume keine Trommeln', a.drums === false);
+check('Ohne Greta keine Trommeln', a.drums === false);
 
 // Effekte auslösen: Sprung, Gleiten
 await page.keyboard.down('Space'); await page.waitForTimeout(700); await page.keyboard.up('Space');
 
 // Aufsteigen → Trommeln an
-await sc(() => { const s = window.__game.scene.getScene('Play'); const m = s.mounts.getChildren()[0]; s.pip.body.reset(m.x, m.y - 24); });
+await sc(() => { const s = window.__game.scene.getScene('Play'); const m = s.mounts.getChildren()[0]; s.lotti.body.reset(m.x, m.y - 24); });
 await page.waitForTimeout(600);
 a = await audio();
-check('Auf Pflaume kommt die Trommelspur dazu', a.drums === true);
+check('Auf Greta kommt die Trommelspur dazu', a.drums === true);
 
 // Stummschalten (M) und speichern
 await page.keyboard.press('m');
 await page.waitForTimeout(100);
 a = await audio();
-check('M schaltet stumm', a.muted === true && (await sc(() => localStorage.getItem('pip-pflaume-muted'))) === '1');
+check('M schaltet stumm', a.muted === true && (await sc(() => localStorage.getItem('lotti-greta-muted'))) === '1');
 await page.keyboard.press('m');
 await page.waitForTimeout(100);
 check('M schaltet wieder an', (await audio()).muted === false);

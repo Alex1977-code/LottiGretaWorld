@@ -1,4 +1,4 @@
-// Erzeugt die PWA-Icons aus der prozeduralen Pip-Grafik (einmalig ausführen,
+// Erzeugt die PWA-Icons aus der prozeduralen Lotti-Grafik (einmalig ausführen,
 // Ergebnis liegt in public/icons/). Aufruf: node tools/make-icons.mjs
 import { createRequire } from 'node:module';
 import { writeFileSync, readFileSync } from 'node:fs';
@@ -11,7 +11,7 @@ try { ({ chromium } = require('playwright')); }
 catch { ({ chromium } = require('/opt/node-tools/node_modules/playwright')); }
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const framesSrc = readFileSync(resolve(root, 'src/gfx/pipFrames.js'), 'utf8');
+const framesSrc = readFileSync(resolve(root, 'src/gfx/lottiFrames.js'), 'utf8');
 const paletteSrc = readFileSync(resolve(root, 'src/gfx/palette.js'), 'utf8');
 
 const browser = await chromium.launch({ headless: true });
@@ -21,8 +21,8 @@ await page.setContent('<canvas id="c"></canvas>');
 const render = async (size, maskable) => page.evaluate(async ({ size, maskable, framesSrc, paletteSrc }) => {
   const mod = (src) => import(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
   const { PAL } = await mod(paletteSrc);
-  const { PIP_FRAMES } = await mod(framesSrc);
-  const rows = PIP_FRAMES.idle0;
+  const { LOTTI_FRAMES } = await mod(framesSrc);
+  const rows = LOTTI_FRAMES.idle0;
   const c = document.getElementById('c');
   c.width = size; c.height = size;
   const ctx = c.getContext('2d');
@@ -33,7 +33,7 @@ const render = async (size, maskable) => page.evaluate(async ({ size, maskable, 
   ctx.fillStyle = grad;
   if (maskable) { ctx.fillRect(0, 0, size, size); }
   else { ctx.beginPath(); ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2); ctx.fill(); }
-  // Pip zentriert, 20px-Raster auf ~70% der Fläche (maskable: 55%, Sicherheitszone)
+  // Lotti zentriert, 20px-Raster auf ~70% der Fläche (maskable: 55%, Sicherheitszone)
   const scale = Math.floor((size * (maskable ? 0.55 : 0.72)) / 20);
   const ox = Math.round((size - 20 * scale) / 2);
   const oy = Math.round((size - 20 * scale) / 2);

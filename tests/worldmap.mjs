@@ -8,7 +8,7 @@ const { browser, page, errors } = await launchBrowser();
 const { check, summary } = makeChecker();
 const sc = (fn, arg) => page.evaluate(fn, arg);
 const active = (k) => sc((k) => window.__game.scene.isActive(k), k);
-const mapState = () => sc(() => { const m = window.__game.scene.getScene('WorldMap'); return { current: m.current, moving: m.moving, pipX: m.pip.x, unlocked: m.world.nodes.map((n) => n.key).filter((k) => m.nodeSprites[k] && window.__game.registry) }; });
+const mapState = () => sc(() => { const m = window.__game.scene.getScene('WorldMap'); return { current: m.current, moving: m.moving, lottiX: m.lotti.x, unlocked: m.world.nodes.map((n) => n.key).filter((k) => m.nodeSprites[k] && window.__game.registry) }; });
 const unlockedNodes = () => sc(() => { const m = window.__game.scene.getScene('WorldMap'); return m.world.nodes.map((n) => n.key).filter((k) => { const base = m.nodeSprites[k].list[0]; return base.fillColor === 0xf3b36a; }); });
 
 // 1) Ohne ?level → Weltkarte
@@ -27,7 +27,7 @@ check('Nur Level 1 frei', un.length === 1 && un[0] === 'level1');
 // Rechts drücken → kein Weg frei → bleibt
 await page.keyboard.press('ArrowRight');
 await page.waitForTimeout(300);
-check('Gesperrter Pfad: Pip bleibt stehen', (await mapState()).current === 'level1');
+check('Gesperrter Pfad: Lotti bleibt stehen', (await mapState()).current === 'level1');
 
 // 2) Level 1 starten
 await page.keyboard.press('Space');
@@ -36,7 +36,7 @@ await page.waitForTimeout(500);
 check('Leertaste startet Level 1', await active('Play') && (await sc(() => window.__game.scene.getScene('Play').levelKey)) === 'level1');
 
 // Zur Fahne teleportieren und abschließen
-await sc(() => { const s = window.__game.scene.getScene('Play'); const f = s.flags.getChildren()[0]; s.pip.body.reset(f.x - 20, f.y); });
+await sc(() => { const s = window.__game.scene.getScene('Play'); const f = s.flags.getChildren()[0]; s.lotti.body.reset(f.x - 20, f.y); });
 await page.keyboard.down('ArrowRight'); await page.waitForTimeout(500); await page.keyboard.up('ArrowRight');
 await page.waitForTimeout(1900);
 check('Level geschafft', await active('LevelComplete'));
@@ -50,11 +50,11 @@ await page.screenshot({ path: `${OUT}w02_unlocked.png` });
 // 3) Nach rechts laufen → Level 2
 await page.keyboard.press('ArrowRight');
 await page.waitForTimeout(300);
-check('Pip läuft los', (await mapState()).moving);
+check('Lotti läuft los', (await mapState()).moving);
 for (let i = 0; i < 60; i++) { await page.waitForTimeout(100); if (!(await mapState()).moving) break; }
 let ms = await mapState();
-check('Pip steht auf Level 2', ms.current === 'level2');
-check('Position gespeichert', (await sc(() => JSON.parse(localStorage.getItem('pip-pflaume-save-v1')).current)) === 'level2');
+check('Lotti steht auf Level 2', ms.current === 'level2');
+check('Position gespeichert', (await sc(() => JSON.parse(localStorage.getItem('lotti-greta-save-v1')).current)) === 'level2');
 await page.screenshot({ path: `${OUT}w03_level2.png` });
 
 // 4) Level 2–4 laden (generierte Levels) und Übersicht zeichnen
@@ -62,13 +62,13 @@ for (const key of ['level2', 'level3', 'level4']) {
   await loadGame(page, PORT, errors, stop, key);
   const info = await sc(() => { const s = window.__game.scene.getScene('Play'); return { coins: s.coins.getLength(), flags: s.flags.getLength(), cps: s.checkpoints.getLength(), mounts: s.mounts.getLength(), keys: s.keys.getLength(), gates: s.gates.getLength(), w: s.map.widthInPixels }; });
   console.log(key, JSON.stringify(info));
-  check(`${key}: 5 Münzen, Fahne, Checkpoint, Pflaume`, info.coins === 5 && info.flags === 1 && info.cps === 1 && info.mounts === 1);
+  check(`${key}: 5 Münzen, Fahne, Checkpoint, Greta`, info.coins === 5 && info.flags === 1 && info.cps === 1 && info.mounts === 1);
   if (key === 'level3') check('level3: Schlüssel und Tor (Geheimpfad)', info.keys === 1 && info.gates === 1);
   await renderOverview(page, key);
 }
 
 // 5) Geheimpfad: Level 1 mit geheimem Ausgang im Speicherstand → Pfad 1→3 frei
-await sc(() => { const d = JSON.parse(localStorage.getItem('pip-pflaume-save-v1')); d.levels.level1.secret = true; d.current = 'level1'; localStorage.setItem('pip-pflaume-save-v1', JSON.stringify(d)); });
+await sc(() => { const d = JSON.parse(localStorage.getItem('lotti-greta-save-v1')); d.levels.level1.secret = true; d.current = 'level1'; localStorage.setItem('lotti-greta-save-v1', JSON.stringify(d)); });
 await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__game && window.__game.scene.isActive('WorldMap'), null, { timeout: 15000 });
 await page.waitForTimeout(500);
@@ -101,7 +101,7 @@ check('„Zur Weltkarte“ verlässt das Level', await active('WorldMap') && !(a
 // 7) Spielstand löschen (zweimal tippen)
 await sc(() => { const m = window.__game.scene.getScene('WorldMap'); m.onResetTap(); m.onResetTap(); });
 await page.waitForTimeout(500);
-const cleared = await sc(() => JSON.parse(localStorage.getItem('pip-pflaume-save-v1')));
+const cleared = await sc(() => JSON.parse(localStorage.getItem('lotti-greta-save-v1')));
 check('Spielstand gelöscht', cleared.current === 'level1' && Object.keys(cleared.levels).length === 0);
 
 await browser.close();

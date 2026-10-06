@@ -1,4 +1,4 @@
-// Weltkarte: Pip läuft auf einem Pfad zwischen den Level-Punkten.
+// Weltkarte: Lotti läuft auf einem Pfad zwischen den Level-Punkten.
 // Freie Pfade sind durchgezogen, Geheimpfade golden. Tippen/Taste startet das Level.
 
 import Phaser from 'phaser';
@@ -34,10 +34,10 @@ export class WorldMapScene extends Phaser.Scene {
     this.drawPaths();
     this.drawNodes();
 
-    // Pip auf der Karte
+    // Lotti auf der Karte
     const n = this.nodeByKey[this.current];
-    this.pip = this.add.sprite(n.x, n.y - 10, 'pip', 'idle0').setDepth(10);
-    this.pip.play('pip-idle');
+    this.lotti = this.add.sprite(n.x, n.y - 10, 'lotti', 'idle0').setDepth(10);
+    this.lotti.play('lotti-idle');
 
     this.title = this.add.text(GAME.width / 2, 12, this.world.name, { fontFamily: 'monospace', fontSize: '10px', color: '#fff2a8', stroke: '#4a230a', strokeThickness: 3 }).setOrigin(0.5).setDepth(20);
     this.info = this.add.text(GAME.width / 2, GAME.height - 30, '', { fontFamily: 'monospace', fontSize: '10px', color: '#f3e7d3', stroke: '#2a1a10', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setDepth(20);
@@ -182,7 +182,7 @@ export class WorldMapScene extends Phaser.Scene {
     const nb = this.neighbors(this.current).find((n) => n.key === target);
     if (!nb || this.moving) return;
     this.moving = true;
-    this.pip.play('pip-run');
+    this.lotti.play('lotti-run');
     const pts = nb.points;
     let i = 1;
     const step = () => {
@@ -190,16 +190,16 @@ export class WorldMapScene extends Phaser.Scene {
         this.moving = false;
         this.current = target;
         saveGame.current = target;
-        this.pip.play('pip-idle');
+        this.lotti.play('lotti-idle');
         this.updateInfo();
         vibrate(8);
         sfx('step');
         return;
       }
       const p = pts[i++];
-      const d = Phaser.Math.Distance.Between(this.pip.x, this.pip.y + 10, p.x, p.y);
-      this.pip.setFlipX(p.x < this.pip.x);
-      this.tweens.add({ targets: this.pip, x: p.x, y: p.y - 10, duration: (d / WALK_SPEED) * 1000, onComplete: step });
+      const d = Phaser.Math.Distance.Between(this.lotti.x, this.lotti.y + 10, p.x, p.y);
+      this.lotti.setFlipX(p.x < this.lotti.x);
+      this.tweens.add({ targets: this.lotti, x: p.x, y: p.y - 10, duration: (d / WALK_SPEED) * 1000, onComplete: step });
     };
     step();
   }
@@ -241,8 +241,8 @@ export class WorldMapScene extends Phaser.Scene {
 
   onPointer(pointer) {
     if (this.moving) return;
-    // Tippen irgendwo: Richtung relativ zu Pip
-    const dx = pointer.worldX - this.pip.x, dy = pointer.worldY - this.pip.y;
+    // Tippen irgendwo: Richtung relativ zu Lotti
+    const dx = pointer.worldX - this.lotti.x, dy = pointer.worldY - this.lotti.y;
     if (Math.hypot(dx, dy) < 18) { this.startLevel(); return; }
     const len = Math.hypot(dx, dy);
     this.walkDirection(dx / len, dy / len);

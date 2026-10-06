@@ -1,9 +1,9 @@
-// Debug-Modus (Taste D): Hitboxen, FPS, Pip-Zustand.
+// Debug-Modus (Taste D): Hitboxen, FPS, Lotti-Zustand.
 
 export class DebugOverlay {
-  constructor(scene, pip, startEnabled = false) {
+  constructor(scene, lotti, startEnabled = false) {
     this.scene = scene;
-    this.pip = pip;
+    this.lotti = lotti;
     this.enabled = false;
 
     this.text = scene.add.text(4, 16, '', {
@@ -31,7 +31,7 @@ export class DebugOverlay {
 
   update() {
     if (!this.enabled) return;
-    const p = this.pip;
+    const p = this.lotti;
     const b = p.body;
     const fps = this.scene.game.loop.actualFps.toFixed(0);
     this.text.setText([

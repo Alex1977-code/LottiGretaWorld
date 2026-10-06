@@ -1,6 +1,6 @@
 // Speicherstand in localStorage: Levelfortschritt, Münzen, gefundene Ausgänge.
 
-const KEY = 'pip-pflaume-save-v1';
+const KEY = 'lotti-greta-save-v1';
 
 const EMPTY = () => ({ version: 1, levels: {}, current: 'level1' });
 

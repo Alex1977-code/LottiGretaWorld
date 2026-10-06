@@ -1,4 +1,4 @@
-// Spiel-Szene: Level laden, Hintergrund, Pip, Kamera, Debug.
+// Spiel-Szene: Level laden, Hintergrund, Lotti, Kamera, Debug.
 
 import Phaser from 'phaser';
 import { GAME, DEBUG } from '../config.js';
@@ -7,13 +7,13 @@ import { LEVELS } from '../levels/index.js';
 import { Coin } from '../entities/Coin.js';
 import { Key, Gate, Flag, Thorns } from '../entities/Items.js';
 import { saveGame } from '../systems/SaveGame.js';
-import { Pip } from '../entities/Pip.js';
+import { Lotti } from '../entities/Lotti.js';
 import { Walker } from '../entities/Walker.js';
 import { Hopper } from '../entities/Hopper.js';
 import { Checkpoint } from '../entities/Checkpoint.js';
-import { Pflaume } from '../entities/Pflaume.js';
+import { Greta } from '../entities/Greta.js';
 import { Berry } from '../entities/Berry.js';
-import { ENEMIES, DAMAGE, PFLAUME } from '../config.js';
+import { ENEMIES, DAMAGE, GRETA } from '../config.js';
 import { initGameState, STATE_KEYS } from '../systems/GameState.js';
 import { vibrate } from '../systems/haptics.js';
 import { sfx, music, engine as audioEngine } from '../audio/index.js';
@@ -49,11 +49,11 @@ export class PlayScene extends Phaser.Scene {
     this.createPlayer();
     this.createObjects();
 
-    this.cameraRig = new CameraRig(this, this.pip);
+    this.cameraRig = new CameraRig(this, this.lotti);
     this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
     this.cameras.main.setRoundPixels(true);
 
-    this.debug = new DebugOverlay(this, this.pip, DEBUG.startEnabled);
+    this.debug = new DebugOverlay(this, this.lotti, DEBUG.startEnabled);
 
     // UI-Szene (Touch-Steuerung, HUD) über dem Spiel starten
     this.scene.launch('UI', { ctrl: this.input_ });
@@ -68,7 +68,7 @@ export class PlayScene extends Phaser.Scene {
     music.setDrums(false);
     music.play('world1');
 
-    // Eingabe vor dem Pip-Update einlesen (keine Frame-Verzögerung)
+    // Eingabe vor dem Lotti-Update einlesen (keine Frame-Verzögerung)
     this.events.on(Phaser.Scenes.Events.PRE_UPDATE, this.input_.update, this.input_);
 
     // Fenster-Fokus verloren → keine hängenden Tasten
@@ -111,8 +111,8 @@ export class PlayScene extends Phaser.Scene {
   createPlayer() {
     const objLayer = this.map.getObjectLayer('objects');
     const start = objLayer?.objects.find((o) => o.name === 'player') ?? { x: 48, y: 200 };
-    this.pip = new Pip(this, start.x + GAME.tile / 2, start.y, this.input_, this.effects);
-    this.physics.add.collider(this.pip, this.groundLayer);
+    this.lotti = new Lotti(this, start.x + GAME.tile / 2, start.y, this.input_, this.effects);
+    this.physics.add.collider(this.lotti, this.groundLayer);
   }
 
   /** Gegner und Checkpoints aus der Objektebene erzeugen. */
@@ -141,12 +141,12 @@ export class PlayScene extends Phaser.Scene {
       if (o.type === 'flag') { this.flags.add(new Flag(this, cx, o.y)); continue; }
       if (o.type === 'thorns') { this.thorns.add(new Thorns(this, cx, o.y)); continue; }
       if (o.type === 'enemy') {
-        const e = o.name === 'walker' ? new Walker(this, cx, o.y, this.groundLayer) : new Hopper(this, cx, o.y, this.pip);
+        const e = o.name === 'walker' ? new Walker(this, cx, o.y, this.groundLayer) : new Hopper(this, cx, o.y, this.lotti);
         this.enemies.add(e);
       } else if (o.type === 'checkpoint') {
         this.checkpoints.add(new Checkpoint(this, cx, o.y));
       } else if (o.type === 'mount') {
-        this.mounts.add(new Pflaume(this, cx, o.y, this.groundLayer));
+        this.mounts.add(new Greta(this, cx, o.y, this.groundLayer));
       } else if (o.type === 'berry') {
         this.berries.add(new Berry(this, cx, o.y - GAME.tile / 2, o.name));
       }
@@ -154,19 +154,19 @@ export class PlayScene extends Phaser.Scene {
     this.physics.add.collider(this.enemies, this.groundLayer);
     this.physics.add.collider(this.mounts, this.groundLayer);
     this.physics.add.collider(this.fireballs, this.groundLayer);
-    this.physics.add.overlap(this.pip, this.enemies, this.onPipEnemy, (pip, e) => e.alive, this);
-    this.physics.add.overlap(this.pip, this.checkpoints, this.onCheckpoint, null, this);
-    this.physics.add.overlap(this.pip, this.mounts, this.onPipMount, (pip, m) => m.canMount, this);
-    this.physics.add.overlap(this.pip, this.berries, this.onPipBerry, (pip) => !!pip.mount, this);
+    this.physics.add.overlap(this.lotti, this.enemies, this.onLottiEnemy, (lotti, e) => e.alive, this);
+    this.physics.add.overlap(this.lotti, this.checkpoints, this.onCheckpoint, null, this);
+    this.physics.add.overlap(this.lotti, this.mounts, this.onLottiMount, (lotti, m) => m.canMount, this);
+    this.physics.add.overlap(this.lotti, this.berries, this.onLottiBerry, (lotti) => !!lotti.mount, this);
     this.physics.add.overlap(this.fireballs, this.enemies, this.onFireballEnemy, (f, e) => e.alive, this);
-    this.physics.add.overlap(this.pip, this.coins, this.onCoin, (pip, c) => c.body.enable, this);
-    this.physics.add.overlap(this.pip, this.keys, this.onKey, (pip, k) => !k.collected, this);
-    this.physics.add.overlap(this.pip, this.gates, this.onGate, (pip, g) => !g.opened, this);
-    this.physics.add.overlap(this.pip, this.flags, this.onFlag, null, this);
-    this.physics.add.overlap(this.pip, this.thorns, this.onThorns, null, this);
+    this.physics.add.overlap(this.lotti, this.coins, this.onCoin, (lotti, c) => c.body.enable, this);
+    this.physics.add.overlap(this.lotti, this.keys, this.onKey, (lotti, k) => !k.collected, this);
+    this.physics.add.overlap(this.lotti, this.gates, this.onGate, (lotti, g) => !g.opened, this);
+    this.physics.add.overlap(this.lotti, this.flags, this.onFlag, null, this);
+    this.physics.add.overlap(this.lotti, this.thorns, this.onThorns, null, this);
   }
 
-  onCoin(pip, coin) {
+  onCoin(lotti, coin) {
     coin.collect();
     const coins = [...this.registry.get(STATE_KEYS.coins)];
     coins[coin.index] = true;
@@ -175,14 +175,14 @@ export class PlayScene extends Phaser.Scene {
     sfx('bigCoin');
   }
 
-  onKey(pip, key) {
-    key.collect(pip);
+  onKey(lotti, key) {
+    key.collect(lotti);
     this.registry.set(STATE_KEYS.hasKey, true);
     vibrate(15);
     sfx('key');
   }
 
-  onGate(pip, gate) {
+  onGate(lotti, gate) {
     if (!this.registry.get(STATE_KEYS.hasKey) || this.completing) return;
     gate.open();
     sfx('gate');
@@ -190,16 +190,16 @@ export class PlayScene extends Phaser.Scene {
     this.completeLevel('secret');
   }
 
-  onFlag(pip) {
+  onFlag(lotti) {
     if (this.completing) return;
     this.completeLevel('normal');
   }
 
-  onThorns(pip, thorns) {
-    if (pip.dead || pip.respawnLock) return;
-    if (pip.mount) {
-      if (!pip.invincible) pip.mount.panic(thorns.x);
-    } else if (pip.hurt(thorns.x)) {
+  onThorns(lotti, thorns) {
+    if (lotti.dead || lotti.respawnLock) return;
+    if (lotti.mount) {
+      if (!lotti.invincible) lotti.mount.panic(thorns.x);
+    } else if (lotti.hurt(thorns.x)) {
       this.loseHeart();
     }
   }
@@ -207,12 +207,12 @@ export class PlayScene extends Phaser.Scene {
   /** Levelende: Eingabe sperren, kurze Feier, Ergebnis speichern und anzeigen. */
   completeLevel(exit) {
     this.completing = true;
-    const pip = this.pip;
-    pip.locked = true;
-    pip.body.setVelocityX(0);
+    const lotti = this.lotti;
+    lotti.locked = true;
+    lotti.body.setVelocityX(0);
     vibrate([30, 50, 30, 50, 60]);
     music.play('complete');
-    this.time.addEvent({ delay: 180, repeat: 6, callback: () => this.effects.sparks(pip.x + Phaser.Math.Between(-30, 30), pip.y - Phaser.Math.Between(0, 40), 8) });
+    this.time.addEvent({ delay: 180, repeat: 6, callback: () => this.effects.sparks(lotti.x + Phaser.Math.Between(-30, 30), lotti.y - Phaser.Math.Between(0, 40), 8) });
     const coins = this.registry.get(STATE_KEYS.coins);
     saveGame.completeLevel(this.levelKey, exit, coins);
     this.time.delayedCall(1600, () => {
@@ -222,15 +222,15 @@ export class PlayScene extends Phaser.Scene {
     });
   }
 
-  /** Pip berührt Pflaume: aufsteigen (auch während der Flucht = wieder einfangen). */
-  onPipMount(pip, pflaume) {
-    if (pip.dead || pip.respawnLock || pip.mount) return;
-    pflaume.mount(pip);
+  /** Lotti berührt Greta: aufsteigen (auch während der Flucht = wieder einfangen). */
+  onLottiMount(lotti, greta) {
+    if (lotti.dead || lotti.respawnLock || lotti.mount) return;
+    greta.mount(lotti);
   }
 
-  /** Beim Reiten über eine Beere: Pflaume frisst sie. */
-  onPipBerry(pip, berry) {
-    pip.mount.eat(berry.berryType);
+  /** Beim Reiten über eine Beere: Greta frisst sie. */
+  onLottiBerry(lotti, berry) {
+    lotti.mount.eat(berry.berryType);
     berry.consume();
   }
 
@@ -243,9 +243,9 @@ export class PlayScene extends Phaser.Scene {
   }
 
   /** Stampfsprung-Landung: Erschütterung, Gegner im Umkreis, Blöcke darunter zerbrechen. */
-  onStompLand(pip, pflaume) {
-    const body = pip.body;
-    this.cameras.main.shake(220, PFLAUME.stompShake);
+  onStompLand(lotti, greta) {
+    const body = lotti.body;
+    this.cameras.main.shake(220, GRETA.stompShake);
     this.effects.dust(body.left, body.bottom, 8, 1.2);
     this.effects.dust(body.right, body.bottom, 8, 1.2);
     vibrateStomp();
@@ -253,8 +253,8 @@ export class PlayScene extends Phaser.Scene {
     // Gegner am Boden im Umkreis
     for (const e of this.enemies.getChildren()) {
       if (!e.alive) continue;
-      if (Math.abs(e.x - pip.x) < PFLAUME.stompRadius && Math.abs(e.body.bottom - body.bottom) < 20) {
-        e.knockOut(Math.sign(e.x - pip.x) || 1);
+      if (Math.abs(e.x - lotti.x) < GRETA.stompRadius && Math.abs(e.body.bottom - body.bottom) < 20) {
+        e.knockOut(Math.sign(e.x - lotti.x) || 1);
       }
     }
     // Steinblöcke direkt unter den Füßen
@@ -274,28 +274,28 @@ export class PlayScene extends Phaser.Scene {
     if (broke) this.groundLayer.calculateFacesWithin();
   }
 
-  /** Pip berührt einen Gegner: von oben = besiegen, sonst Schaden. */
-  onPipEnemy(pip, enemy) {
-    if (pip.dead || pip.respawnLock) return;
-    const fromAbove = pip.body.bottom - enemy.body.top < ENEMIES.stompTolerance && pip.body.velocity.y > 0;
+  /** Lotti berührt einen Gegner: von oben = besiegen, sonst Schaden. */
+  onLottiEnemy(lotti, enemy) {
+    if (lotti.dead || lotti.respawnLock) return;
+    const fromAbove = lotti.body.bottom - enemy.body.top < ENEMIES.stompTolerance && lotti.body.velocity.y > 0;
     if (enemy.stompable && fromAbove) {
       enemy.squash();
       // Füße auf die Gegner-Oberkante setzen (verhindert Durchrutschen)
-      pip.y = enemy.body.top - (pip.body.offset.y + pip.body.height - pip.displayOriginY);
-      pip.bounce(this.input_.jumpHeld);
+      lotti.y = enemy.body.top - (lotti.body.offset.y + lotti.body.height - lotti.displayOriginY);
+      lotti.bounce(this.input_.jumpHeld);
       this.effects.sparks(enemy.x, enemy.body.top, 6);
       this.hitstop(ENEMIES.hitstop);
       sfx('stomp');
-    } else if (pip.mount) {
-      if (!pip.invincible) pip.mount.panic(enemy.x);
-    } else if (pip.hurt(enemy.x)) {
+    } else if (lotti.mount) {
+      if (!lotti.invincible) lotti.mount.panic(enemy.x);
+    } else if (lotti.hurt(enemy.x)) {
       this.loseHeart();
     }
   }
 
-  onCheckpoint(pip, cp) {
+  onCheckpoint(lotti, cp) {
     if (cp.activate()) {
-      pip.setSpawn(cp.x, cp.body.bottom);
+      lotti.setSpawn(cp.x, cp.body.bottom);
       sfx('checkpoint');
       // Herzen auffrischen
       this.registry.set(STATE_KEYS.hearts, this.registry.get(STATE_KEYS.maxHearts));
@@ -322,24 +322,24 @@ export class PlayScene extends Phaser.Scene {
     this.registry.set(STATE_KEYS.hearts, Math.max(0, hearts));
     this.cameras.main.shake(120, 0.006);
     this.cameras.main.flash(80, 255, 80, 80, false);
-    if (hearts <= 0) this.killPip();
+    if (hearts <= 0) this.killLotti();
   }
 
-  /** Pip stirbt: kurzer Moment, dann Respawn am Checkpoint mit vollen Herzen. */
-  killPip() {
-    if (this.pip.dead || this.pip.respawnLock) return;
-    this.pip.dead = true;
-    this.pip.respawnLock = true;
-    this.pip.body.setVelocity(0, -260);
-    this.pip.body.checkCollision.none = true;
-    this.pip.setAngle(0);
+  /** Lotti stirbt: kurzer Moment, dann Respawn am Checkpoint mit vollen Herzen. */
+  killLotti() {
+    if (this.lotti.dead || this.lotti.respawnLock) return;
+    this.lotti.dead = true;
+    this.lotti.respawnLock = true;
+    this.lotti.body.setVelocity(0, -260);
+    this.lotti.body.checkCollision.none = true;
+    this.lotti.setAngle(0);
     sfx('die');
     music.setDrums(false);
     this.time.delayedCall(450, () => {
       this.cameras.main.fadeOut(200, 0, 0, 0);
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-        this.pip.body.checkCollision.none = false;
-        this.pip.respawn();
+        this.lotti.body.checkCollision.none = false;
+        this.lotti.respawn();
         this.registry.set(STATE_KEYS.hearts, this.registry.get(STATE_KEYS.maxHearts));
         this.cameras.main.fadeIn(250, 0, 0, 0);
       });
@@ -348,16 +348,16 @@ export class PlayScene extends Phaser.Scene {
 
   update(time, delta) {
     if (this.input_.debugJustPressed) this.debug.toggle();
-    if (this.input_.resetJustPressed) this.pip.respawn();
+    if (this.input_.resetJustPressed) this.lotti.respawn();
 
     // In die Tiefe gefallen → Tod, zurück zum Checkpoint
-    if (this.pip.y > this.map.heightInPixels + 40 && !this.pip.respawnLock) {
-      this.pip.respawnLock = true;
+    if (this.lotti.y > this.map.heightInPixels + 40 && !this.lotti.respawnLock) {
+      this.lotti.respawnLock = true;
       sfx('die');
       music.setDrums(false);
       this.cameras.main.fadeOut(150, 0, 0, 0);
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-        this.pip.respawn();
+        this.lotti.respawn();
         this.registry.set(STATE_KEYS.hearts, this.registry.get(STATE_KEYS.maxHearts));
         this.cameras.main.fadeIn(200, 0, 0, 0);
       });
@@ -369,7 +369,7 @@ export class PlayScene extends Phaser.Scene {
 
     // Aktionsknopf nur hervorheben, wenn er etwas bewirkt
     const ui = this.scene.get('UI');
-    ui?.touchControls?.setActionAvailable(!!this.pip.mount && (this.pip.mount.power === 'red' || this.pip.mount.power === 'yellow'));
+    ui?.touchControls?.setActionAvailable(!!this.lotti.mount && (this.lotti.mount.power === 'red' || this.lotti.mount.power === 'yellow'));
   }
 
   updateParallax() {

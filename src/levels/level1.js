@@ -21,11 +21,11 @@ export function buildLevel1() {
   g.set(27, FLOOR - 6, 'o');            // Münze 1
   thorns(31, 32);
 
-  // ---------- B: Baumstümpfe & Pflaume (35-75) ----------
+  // ---------- B: Baumstümpfe & Greta (35-75) ----------
   hill(38, 40, FLOOR - 1);
   hill(41, 43, FLOOR - 2);
   hill(44, 47, FLOOR - 3);
-  g.set(46, FLOOR - 4, 'F');            // Pflaume wartet auf dem Plateau
+  g.set(46, FLOOR - 4, 'F');            // Greta wartet auf dem Plateau
   hill(48, 50, FLOOR - 2);
   hill(51, 53, FLOOR - 1);
   g.set(56, FLOOR - 2, 'R');            // rote Beere

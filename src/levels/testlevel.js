@@ -24,7 +24,7 @@ export function buildTestLevel() {
   g.set(9, FLOOR - 1, 'k');
   g.set(29, FLOOR - 1, 'm');
 
-  // Pflaume wartet auf der Treppe, Beeren dahinter
+  // Greta wartet auf der Treppe, Beeren dahinter
   g.set(21, FLOOR - 4, 'F');
   g.set(33, FLOOR - 2, 'R');
   g.set(38, FLOOR - 2, 'U');

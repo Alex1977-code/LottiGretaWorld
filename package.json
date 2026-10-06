@@ -1,14 +1,14 @@
 {
-  "name": "pip-und-pflaume",
+  "name": "lotti-und-greta",
   "version": "0.1.0",
-  "description": "PIP & PFLAUME – 2D-Plattformer fürs Handy (Browser/PWA)",
+  "description": "LOTTI & GRETA – 2D-Plattformer fürs Handy (Browser/PWA)",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host",
-    "test": "npm run build && node tests/run.mjs && node tests/touch.mjs && node tests/enemies.mjs && node tests/pflaume.mjs && node tests/level1.mjs && node tests/worldmap.mjs && node tests/audio.mjs",
+    "test": "npm run build && node tests/run.mjs && node tests/touch.mjs && node tests/enemies.mjs && node tests/greta.mjs && node tests/level1.mjs && node tests/worldmap.mjs && node tests/audio.mjs",
     "icons": "node tools/make-icons.mjs"
   },
   "dependencies": {

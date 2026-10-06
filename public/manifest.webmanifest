@@ -1,7 +1,7 @@
 {
-  "name": "Pip & Pflaume",
-  "short_name": "Pip&Pflaume",
-  "description": "2D-Jump'n'Run mit Eichhörnchen-Ritter Pip und Käfer Pflaume",
+  "name": "Lotti & Greta",
+  "short_name": "Lotti&Greta",
+  "description": "2D-Jump'n'Run mit Lotti und Greta im Herbstwald",
   "lang": "de",
   "start_url": "./",
   "scope": "./",

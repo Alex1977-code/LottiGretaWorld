@@ -1,7 +1,7 @@
 // Gegner-Test: Schaden, Draufspringen, Tod/Respawn, Checkpoint.
 // Aufruf: npm run build && node tests/enemies.mjs
 import { writeFileSync } from 'node:fs';
-import { startServer, launchBrowser, loadGame, pipState, logState, makeChecker, OUT } from './helpers.mjs';
+import { startServer, launchBrowser, loadGame, lottiState, logState, makeChecker, OUT } from './helpers.mjs';
 
 const PORT = 4178;
 const stop = await startServer(PORT);
@@ -11,7 +11,7 @@ const { check, summary } = makeChecker();
 
 const hearts = () => page.evaluate(() => window.__game.registry.get('hearts'));
 const enemies = () => page.evaluate(() => window.__game.scene.getScene('Play').enemies.getChildren().map((e) => ({ type: e.texture.key, x: e.x, y: e.y, alive: e.alive, vx: e.body.velocity.x })));
-const teleport = (x, y) => page.evaluate(([x, y]) => { const p = window.__game.scene.getScene('Play').pip; p.body.reset(x, y); }, [x, y]);
+const teleport = (x, y) => page.evaluate(([x, y]) => { const p = window.__game.scene.getScene('Play').lotti; p.body.reset(x, y); }, [x, y]);
 
 // Sprite-Sheets zur Sichtkontrolle exportieren
 for (const key of ['walker', 'hopper', 'checkpoint', 'heart']) {
@@ -43,14 +43,14 @@ let hurtSeen = false, knockVx = 0;
 for (let i = 0; i < 60; i++) {
   await page.waitForTimeout(30);
   const h = await hearts();
-  if (h < 3) { hurtSeen = true; knockVx = (await pipState(page)).vx; break; }
+  if (h < 3) { hurtSeen = true; knockVx = (await lottiState(page)).vx; break; }
 }
 await page.keyboard.up('ArrowRight');
 check('Seitliche Berührung kostet ein Herz', hurtSeen && (await hearts()) === 2);
 check('Rückstoß nach links', knockVx < -50);
 await page.screenshot({ path: `${OUT}e01_hurt.png` });
-const inv = await page.evaluate(() => window.__game.scene.getScene('Play').pip.invincible);
-check('Pip ist kurz unverwundbar', inv === true);
+const inv = await page.evaluate(() => window.__game.scene.getScene('Play').lotti.invincible);
+check('Lotti ist kurz unverwundbar', inv === true);
 await page.waitForTimeout(400);
 // Während Unverwundbarkeit erneut berühren → kein weiterer Verlust
 await page.keyboard.down('ArrowRight'); await page.waitForTimeout(300); await page.keyboard.up('ArrowRight');
@@ -65,15 +65,15 @@ let squashed = false, bounceVy = 0, bounceSeen = false;
 for (let i = 0; i < 40; i++) {
   await page.waitForTimeout(30);
   const l = await enemies();
-  const s = await pipState(page);
+  const s = await lottiState(page);
   if (s.vy < -100) { bounceSeen = true; bounceVy = s.vy; }
   if (!l.find((e) => e.x === w.x && e.alive) && l.length < list.length + 1) { squashed = true; }
   if (squashed && bounceSeen) break;
 }
 await page.screenshot({ path: `${OUT}e02_stomp.png` });
-logState('nach Stomp', await pipState(page));
+logState('nach Stomp', await lottiState(page));
 check('Käfer wird plattgedrückt', squashed || (await enemies()).filter((e) => e.type === 'walker' && e.alive).length < 3);
-check('Pip prallt nach oben ab', bounceSeen);
+check('Lotti prallt nach oben ab', bounceSeen);
 check('Draufspringen kostet kein Herz', (await hearts()) === 2);
 await page.waitForTimeout(800);
 
@@ -84,15 +84,15 @@ const m = list.find((e) => e.type === 'walker' && e.alive && e.y > 250 && e.x > 
 await teleport(m.x - 40, m.y - 2);
 await page.keyboard.down('ArrowRight');
 let died = false;
-for (let i = 0; i < 60; i++) { await page.waitForTimeout(30); if (await page.evaluate(() => window.__game.scene.getScene('Play').pip.dead)) { died = true; break; } }
+for (let i = 0; i < 60; i++) { await page.waitForTimeout(30); if (await page.evaluate(() => window.__game.scene.getScene('Play').lotti.dead)) { died = true; break; } }
 await page.keyboard.up('ArrowRight');
-check('Letztes Herz → Pip stirbt', died);
+check('Letztes Herz → Lotti stirbt', died);
 await page.screenshot({ path: `${OUT}e03_death.png` });
-// Bis zum Respawn warten und sofort messen (bevor der Käfer am Start Pip erreicht)
+// Bis zum Respawn warten und sofort messen (bevor der Käfer am Start Lotti erreicht)
 let respawned = null;
 for (let i = 0; i < 80; i++) {
   await page.waitForTimeout(30);
-  respawned = await page.evaluate(() => { const sc = window.__game.scene.getScene('Play'); const p = sc.pip; return (!p.dead && !p.respawnLock) ? { x: p.x, hearts: sc.registry.get('hearts') } : null; });
+  respawned = await page.evaluate(() => { const sc = window.__game.scene.getScene('Play'); const p = sc.lotti; return (!p.dead && !p.respawnLock) ? { x: p.x, hearts: sc.registry.get('hearts') } : null; });
   if (respawned) break;
 }
 console.log('nach Respawn', respawned);
@@ -109,7 +109,7 @@ check('Checkpoint aktiviert', cpActive);
 await page.screenshot({ path: `${OUT}e04_checkpoint.png` });
 await teleport(cp.x, 600); // in die Tiefe → Tod
 await page.waitForTimeout(1200);
-s = await pipState(page); logState('nach Checkpoint-Respawn', s);
+s = await lottiState(page); logState('nach Checkpoint-Respawn', s);
 check('Respawn am Checkpoint', Math.abs(s.x - cp.x) < 6);
 
 // 6) Debug-Ansicht mit Gegnern

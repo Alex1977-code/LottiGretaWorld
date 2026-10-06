@@ -4,9 +4,9 @@
 
 import Phaser from 'phaser';
 import { PAL, SKY, POWER_COLORS } from './palette.js';
-import { PIP_FRAMES, PIP_FRAME_SIZE, LEAF_FRAMES } from './pipFrames.js';
+import { LOTTI_FRAMES, LOTTI_FRAME_SIZE, LEAF_FRAMES } from './lottiFrames.js';
 import { WALKER_FRAMES, HOPPER_FRAMES, CHECKPOINT_FRAMES, HEART_FRAMES } from './enemyFrames.js';
-import { PFLAUME_FRAMES, BERRY_FRAMES, FIREBALL_FRAMES } from './pflaumeFrames.js';
+import { GRETA_FRAMES, BERRY_FRAMES, FIREBALL_FRAMES } from './gretaFrames.js';
 import { COIN_FRAMES, COIN_HUD_FRAMES, KEY_FRAMES, GATE_FRAMES, FLAG_FRAMES, THORNS_FRAMES } from './itemFrames.js';
 import { TILE_SIZE, TILE_NAMES, drawTile } from './tiles.js';
 
@@ -200,14 +200,14 @@ function makeParticles(scene) {
 
 /** Erzeugt alle Texturen des Spiels. Einmalig in der Boot-Szene aufrufen. */
 export function createAllTextures(scene, width, height) {
-  if (scene.textures.exists('pip')) return;
-  makeSheet(scene, 'pip', PIP_FRAMES, PIP_FRAME_SIZE, PIP_FRAME_SIZE);
+  if (scene.textures.exists('lotti')) return;
+  makeSheet(scene, 'lotti', LOTTI_FRAMES, LOTTI_FRAME_SIZE, LOTTI_FRAME_SIZE);
   makeSheet(scene, 'leaf', LEAF_FRAMES, 22, 12);
   makeSheet(scene, 'walker', WALKER_FRAMES, 16, 16);
   makeSheet(scene, 'hopper', HOPPER_FRAMES, 16, 16);
   makeSheet(scene, 'checkpoint', CHECKPOINT_FRAMES, 16, 32);
   makeSheet(scene, 'heart', HEART_FRAMES, 8, 8);
-  makeSheet(scene, 'pflaume', PFLAUME_FRAMES, 20, 16, POWER_COLORS);
+  makeSheet(scene, 'greta', GRETA_FRAMES, 20, 20, POWER_COLORS);
   makeSheet(scene, 'berry', BERRY_FRAMES, 8, 8, POWER_COLORS);
   makeSheet(scene, 'fireball', FIREBALL_FRAMES, 8, 8);
   makeSheet(scene, 'coin', COIN_FRAMES, 12, 12);

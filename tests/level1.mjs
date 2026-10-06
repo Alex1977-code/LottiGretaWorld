@@ -1,7 +1,7 @@
 // Level-1-Test: lädt „Herbstwald“, zeichnet eine Übersicht, prüft Münzen, Schlüssel, Tor, Fahne, Speicherstand.
 // Aufruf: npm run build && node tests/level1.mjs
 import { writeFileSync } from 'node:fs';
-import { startServer, launchBrowser, loadGame, pipState, logState, makeChecker, renderOverview, OUT } from './helpers.mjs';
+import { startServer, launchBrowser, loadGame, lottiState, logState, makeChecker, renderOverview, OUT } from './helpers.mjs';
 
 const PORT = 4182;
 const stop = await startServer(PORT);
@@ -9,7 +9,7 @@ const { browser, page, errors } = await launchBrowser();
 await loadGame(page, PORT, errors, stop, 'level1');
 const { check, summary } = makeChecker();
 const sc = (fn, arg) => page.evaluate(fn, arg);
-const teleport = (x, y) => sc(([x, y]) => { const p = window.__game.scene.getScene('Play').pip; p.body.reset(x, y); }, [x, y]);
+const teleport = (x, y) => sc(([x, y]) => { const p = window.__game.scene.getScene('Play').lotti; p.body.reset(x, y); }, [x, y]);
 const reg = (k) => sc((k) => window.__game.registry.get(k), k);
 
 await renderOverview(page, 'level1');
@@ -51,7 +51,7 @@ await page.waitForTimeout(1900);
 const lc = await sc(() => ({ active: window.__game.scene.isActive('LevelComplete'), paused: window.__game.scene.isPaused('Play') }));
 check('Ergebnis-Szene erscheint, Spiel pausiert', lc.active && lc.paused);
 await page.screenshot({ path: `${OUT}l1_complete_secret.png` });
-const save = await sc(() => JSON.parse(localStorage.getItem('pip-pflaume-save-v1')));
+const save = await sc(() => JSON.parse(localStorage.getItem('lotti-greta-save-v1')));
 console.log('Speicherstand:', JSON.stringify(save));
 check('Speicherstand: Level geschafft, geheimer Ausgang, Münze 1', save?.levels?.level1?.done === true && save.levels.level1.secret === true && save.levels.level1.coins[0] === true);
 

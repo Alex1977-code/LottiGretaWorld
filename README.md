@@ -1,8 +1,12 @@
-# Pip & Pflaume
+# Lotti & Greta
 
 2D-Jump'n'Run im Geist klassischer 16-Bit-Plattformer, optimiert für Smartphones im
 Querformat. Läuft im Browser, installierbar als PWA. Alle Grafiken und Sounds werden
 prozedural per Code erzeugt – keine externen Assets.
+
+**Lotti** (dunkelblond, zwei Zöpfe, blaues Kleid) ist die Heldin: Sie läuft, springt und
+gleitet mit ihrem Blätterschirm. **Greta** (hellblond, lange Haare) trägt Lotti huckepack;
+ihr Kleid nimmt die Farbe der gefressenen Beere an und verrät so die aktuelle Kraft.
 
 ## Entwicklung
 
@@ -22,7 +26,7 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 | Leertaste / ↑  | Springen (kurz tippen = kleiner Sprung)             |
 | Leertaste halten (in der Luft) | Blätterschirm: Gleiten                |
 | ↓ (beim Gleiten) | Sturzflug; loslassen → Aufschwung nach oben       |
-| X              | Aktion (Feuer/Stampfen – nur auf Pflaume)           |
+| X              | Aktion (Feuer/Stampfen – nur auf Greta)           |
 | D              | Debug-Modus (Hitboxen, FPS, Zustand)                |
 | M              | Ton an/aus                                          |
 | Esc / P        | Pause                                               |
@@ -34,31 +38,31 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
   wandert mit, wenn man über den Rand hinauszieht.
 - **Rechte Hälfte:** Tippen = Springen, Halten = Gleiten (Blätterschirm),
   beim Gleiten nach unten wischen = Sturzflug, Finger heben oder nach oben wischen = Aufschwung.
-- **Runder Knopf am rechten Rand:** Aktion (Feuer/Stampfen – nur auf Pflaume).
+- **Runder Knopf am rechten Rand:** Aktion (Feuer/Stampfen – nur huckepack auf Greta).
 - Im Hochformat erscheint ein Dreh-Hinweis und das Spiel pausiert.
 
 ## Gegner, Schaden, Checkpoint
 
 - **Laufkäfer** (`k` im ASCII-Level): läuft hin und her, dreht an Wänden und Kanten um.
-- **Hüpfender Pilz** (`m`): wartet, duckt sich, springt Richtung Pip.
+- **Hüpfender Pilz** (`m`): wartet, duckt sich, springt Richtung Lotti.
 - Draufspringen besiegt Gegner (Freeze-Frame 50 ms, Abprall – höher bei gehaltener Sprungtaste).
 - Seitliche Berührung kostet ein Herz: Rückstoß, 1,5 s Unverwundbarkeit (Blinken).
 - Drei Herzen; bei null (oder Sturz in die Tiefe) Respawn am letzten **Checkpoint** (`C`).
 
-## Pflaume (Reittier)
+## Greta (Huckepack)
 
-- Pflaume (`F`) wartet im Level; Pip springt drauf → Reiten (größere Hitbox, kein Blätterschirm).
-- Beeren (`R` rot, `U` blau, `Y` gelb) frisst Pflaume beim Drüberreiten; die Kraft steht im HUD:
+- Greta (`F`) wartet im Level; Lotti springt auf ihren Rücken → Huckepack (größere Hitbox, kein Blätterschirm).
+- Beeren (`R` rot, `U` blau, `Y` gelb) nascht Greta im Vorbeilaufen; die Kraft steht im HUD und färbt ihr Kleid:
   - **rot:** Aktion (X / Aktionsknopf) spuckt Feuerbälle, die über den Boden hüpfen und Gegner erledigen
   - **blau:** Sprungtaste in der Luft halten → 3 s Schweben (füllt sich am Boden wieder auf)
   - **gelb:** Aktion in der Luft → Stampfsprung: Erschütterung, Gegner im Umkreis, Steinblöcke darunter zerbrechen
-- Treffer beim Reiten kostet kein Herz: Pip wird abgeworfen, Pflaume flieht 3 s panisch in Gegenrichtung.
-  Wer ihn in dieser Zeit berührt, sitzt wieder oben (Kraft bleibt) – sonst verschwindet er.
+- Ein Treffer huckepack kostet kein Herz: Greta lässt Lotti fallen und rennt 3 s erschrocken in Gegenrichtung.
+  Wer sie in dieser Zeit berührt, sitzt wieder oben (Kraft bleibt) – sonst ist sie weg.
 
 ## Level 1 „Herbstwald“
 
 `src/levels/level1.js` – ca. 2 Minuten, 300 Tiles breit. Fünf große Münzen (`o`), Checkpoint in der
-Mitte, Dornen (`^`), Pflaume mit allen drei Beeren. Normaler Ausgang: Zielfahne (`X`).
+Mitte, Dornen (`^`), Greta mit allen drei Beeren. Normaler Ausgang: Zielfahne (`X`).
 Geheimer Ausgang: Schlüssel (`K`) in der Höhle unter dem Waldboden (Zugang per Stampfsprung durch die
 Steindecke oder über die Treppe am Höhlenende), Tor (`G`) auf der Anhöhe vor dem Ziel.
 Level per URL wählen: `?level=test` oder `?level=level1`.
@@ -69,10 +73,10 @@ und gesammelte Münzen. Bereits gespeicherte Münzen erscheinen halbtransparent.
 ## Weltkarte
 
 `src/scenes/WorldMapScene.js` + `src/levels/worldmap.js`: vier Level-Punkte (Herbstwald, Pilzhain,
-Wipfelpfad, Bachlauf), Pip läuft auf Punktlinien zwischen ihnen. Ein Pfad wird frei, wenn das
+Wipfelpfad, Bachlauf), Lotti läuft auf Punktlinien zwischen ihnen. Ein Pfad wird frei, wenn das
 Start-Level über den passenden Ausgang geschafft wurde; der geheime Ausgang von Level 1 öffnet den
 goldenen Pfad direkt zu Level 3. Steuerung: Pfeile/Tippen in eine Richtung = laufen, Leertaste oder
-Tippen auf Pip/den Punkt = Level starten. „Spielstand löschen“ oben rechts (zweimal tippen).
+Tippen auf Lotti/den Punkt = Level starten. „Spielstand löschen“ oben rechts (zweimal tippen).
 
 Level 2–4 kommen vorerst aus einem seed-basierten Generator (`src/levels/generated.js`) und können
 später durch handgebaute Levels ersetzt werden (gleicher Eintrag in `src/levels/index.js`).
@@ -83,7 +87,7 @@ Pause: Esc/P oder der Knopf oben in der Mitte → „Weiter“ / „Zur Weltkart
 
 Alles prozedural über die Web Audio API (`src/audio/`): `AudioEngine` (Kontext, Busse, Ton/Rauschen),
 `sfx.js` (Effekt-Rezepte), `Music.js` (Step-Sequencer mit Lookahead) und `themes.js` (Pattern-Strings
-„Note:Dauer“ je Takt). Welt 1 hat ein Grundthema; beim Reiten auf Pflaume wird die Trommelspur
+„Note:Dauer“ je Takt). Welt 1 hat ein Grundthema; huckepack auf Greta wird die Trommelspur
 eingeblendet. Audio wird bei der ersten Berührung/Taste freigeschaltet. Ton an/aus: Taste **M**,
 Knopf auf der Weltkarte oder im Pause-Menü (wird gespeichert).
 
@@ -97,7 +101,7 @@ Danach ist das Spiel unter `https://<user>.github.io/<repo>/` erreichbar und als
 ## PWA
 
 `public/manifest.webmanifest` + `public/sw.js` (Service Worker, offline-fähig, Cache pro Build).
-Icons liegen in `public/icons/` und werden mit `npm run icons` aus der Pip-Grafik erzeugt.
+Icons liegen in `public/icons/` und werden mit `npm run icons` aus der Lotti-Grafik erzeugt.
 
 ## Struktur
 
@@ -106,7 +110,7 @@ src/
   main.js            Phaser-Konfiguration, Start
   config.js          Alle Physik-/Spielwerte zentral
   scenes/            Boot, WorldMap, Play, UI (Touch-Steuerung, HUD), LevelComplete, Pause
-  entities/          Pip, Pflaume, Fireball, Berry, Coin, Items (Key, Gate, Flag, Thorns), Gegner, Checkpoint
+  entities/          Lotti, Greta, Fireball, Berry, Coin, Items (Key, Gate, Flag, Thorns), Gegner, Checkpoint
   systems/           Eingabe (Tastatur+Touch), Kamera, Effekte, Debug, Haptik, PWA, Querformat
   levels/            ASCII→Tiled-Konverter, Grid-Stempel, Testlevel, Level 1, Generator, Weltkarte, Register
   gfx/               Prozedurale Texturen (Pixel-Art als Strings, Tiles, Hintergrund)
@@ -114,11 +118,11 @@ src/
 tests/run.mjs        Headless-Test Tastatur (Playwright)
 tests/touch.mjs      Headless-Test Touch-Steuerung, Querformat, PWA
 tests/enemies.mjs    Headless-Test Gegner, Schaden, Tod, Checkpoint
-tests/pflaume.mjs    Headless-Test Reiten, Beeren-Kräfte, Flucht
+tests/greta.mjs      Headless-Test Huckepack, Beeren-Kräfte, Flucht
 tests/level1.mjs     Headless-Test Level 1 (Übersichtsbild, Münzen, Schlüssel/Tor, Fahne, Speicherstand)
 tests/worldmap.mjs   Headless-Test Weltkarte (Freischaltung, Laufen, Geheimpfad, Pause, Zurücksetzen)
-tools/make-icons.mjs PWA-Icons aus der Pip-Grafik erzeugen
+tools/make-icons.mjs PWA-Icons aus der Lotti-Grafik erzeugen
 ```
 
-Die Pixel-Art-Frames in `src/gfx/pipFrames.js` können später 1:1 durch ein echtes
-Spritesheet (gleicher Texture-Key `pip`, gleiche Frame-Namen) ersetzt werden.
+Die Pixel-Art-Frames in `src/gfx/lottiFrames.js` können später 1:1 durch ein echtes
+Spritesheet (gleicher Texture-Key `lotti`, gleiche Frame-Namen) ersetzt werden.

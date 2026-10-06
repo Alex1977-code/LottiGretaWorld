@@ -1,14 +1,14 @@
-// Pip – der Eichhörnchen-Ritter. Komplette Bewegungslogik:
+// Lotti – die Heldin (dunkelblond, zwei Zöpfe). Komplette Bewegungslogik:
 // Beschleunigen/Bremsen, variable Sprunghöhe, Coyote Time, Jump Buffer,
 // Blätterschirm (Gleiten), Sturzflug und Aufschwung.
 
 import Phaser from 'phaser';
-import { PIP, PHYSICS, ENEMIES, DAMAGE, PFLAUME } from '../config.js';
+import { LOTTI, PHYSICS, ENEMIES, DAMAGE, GRETA } from '../config.js';
 import { approach, damp, sign } from '../systems/mathUtil.js';
 import { vibrate } from '../systems/haptics.js';
 import { sfx } from '../audio/index.js';
 
-export const PipState = {
+export const LottiState = {
   GROUND: 'ground',
   AIR: 'air',
   GLIDE: 'glide',
@@ -18,7 +18,7 @@ export const PipState = {
 // Leere Eingabe (für Rückstoß/Tod)
 const NO_INPUT = Object.freeze({ axisX: 0, jumpHeld: false, jumpJustPressed: false, diveHeld: false, diveJustPressed: false, actionJustPressed: false });
 
-export class Pip extends Phaser.Physics.Arcade.Sprite {
+export class Lotti extends Phaser.Physics.Arcade.Sprite {
   /**
    * @param {Phaser.Scene} scene
    * @param {number} x Fußpunkt X
@@ -27,21 +27,21 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
    * @param {import('../systems/Effects.js').Effects} effects
    */
   constructor(scene, x, y, input, effects) {
-    super(scene, x, y - 10, 'pip', 'idle0');
+    super(scene, x, y - 10, 'lotti', 'idle0');
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
     this.ctrl = input;
     this.effects = effects;
 
-    this.body.setSize(PIP.bodyWidth, PIP.bodyHeight);
-    this.body.setOffset(PIP.bodyOffsetX, PIP.bodyOffsetY);
+    this.body.setSize(LOTTI.bodyWidth, LOTTI.bodyHeight);
+    this.body.setOffset(LOTTI.bodyOffsetX, LOTTI.bodyOffsetY);
     this.body.setMaxVelocityY(PHYSICS.hardMaxSpeed); // Sturzflug/Stampfer dürfen schneller sein als normales Fallen
     this.body.setCollideWorldBounds(true);
     this.body.onWorldBounds = false;
     this.setDepth(10);
 
-    this.moveState = PipState.GROUND;
+    this.moveState = LottiState.GROUND;
     this.facing = 1;              // 1 = rechts, -1 = links
     this.coyoteTimer = 0;         // ms
     this.jumpBufferTimer = 0;     // ms
@@ -58,10 +58,10 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.controlLockTimer = 0;    // ms ohne Steuerung (Rückstoß)
     this.blinkTimer = 0;
     this.dead = false;
-    this.mount = null;            // Pflaume, wenn Pip reitet
+    this.mount = null;            // Greta, wenn Lotti reitet
     this.locked = false;          // keine Eingabe (Levelende)
 
-    // Blätterschirm als eigenes Sprite über Pip
+    // Blätterschirm als eigenes Sprite über Lotti
     this.leaf = scene.add.sprite(x, y, 'leaf', 'leaf0').setDepth(11).setVisible(false);
 
     // Squash & Stretch nur für die Darstellung: Die Skalierung wird erst nach dem
@@ -73,40 +73,41 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.once(Phaser.GameObjects.Events.DESTROY, () => scene.events.off(Phaser.Scenes.Events.POST_UPDATE, this.applySquash, this));
 
     this.createAnimations();
-    this.play('pip-idle');
+    this.play('lotti-idle');
   }
 
   createAnimations() {
     const a = this.scene.anims;
     const mk = (key, frames, frameRate, repeat = -1) => {
       if (a.exists(key)) return;
-      a.create({ key, frames: frames.map((f) => ({ key: 'pip', frame: f })), frameRate, repeat });
+      a.create({ key, frames: frames.map((f) => ({ key: 'lotti', frame: f })), frameRate, repeat });
     };
-    mk('pip-idle', ['idle0', 'idle0', 'idle0', 'idle1'], 2);
-    mk('pip-run', ['run0', 'run1', 'run2', 'run3'], 12);
-    mk('pip-jump', ['jump'], 1, 0);
-    mk('pip-fall', ['fall'], 1, 0);
-    mk('pip-glide', ['glide'], 1, 0);
-    mk('pip-dive', ['dive'], 1, 0);
+    mk('lotti-idle', ['idle0', 'idle0', 'idle0', 'idle1'], 2);
+    mk('lotti-run', ['run0', 'run1', 'run2', 'run3'], 12);
+    mk('lotti-jump', ['jump'], 1, 0);
+    mk('lotti-fall', ['fall'], 1, 0);
+    mk('lotti-glide', ['glide'], 1, 0);
+    mk('lotti-ride', ['ride'], 1, 0);
+    mk('lotti-dive', ['dive'], 1, 0);
     if (!a.exists('leaf-sway')) {
       a.create({ key: 'leaf-sway', frames: [{ key: 'leaf', frame: 'leaf0' }, { key: 'leaf', frame: 'leaf1' }], frameRate: 5, repeat: -1 });
     }
   }
 
-  /** Setzt Pip an den Startpunkt zurück. */
+  /** Setzt Lotti an den Startpunkt zurück. */
   respawn() {
     if (this.mount) {
       const m = this.mount;
       this.mount = null;
-      this.body.setSize(PIP.bodyWidth, PIP.bodyHeight);
-      this.body.setOffset(PIP.bodyOffsetX, PIP.bodyOffsetY);
+      this.body.setSize(LOTTI.bodyWidth, LOTTI.bodyHeight);
+      this.body.setOffset(LOTTI.bodyOffsetX, LOTTI.bodyOffsetY);
       this.scene.registry.set('power', '');
       m.destroy();
     }
     this.setPosition(this.spawnPoint.x, this.spawnPoint.y - 10);
     this.body.reset(this.spawnPoint.x, this.spawnPoint.y - 10);
     this.body.setVelocity(0, 0);
-    this.moveState = PipState.AIR;
+    this.moveState = LottiState.AIR;
     this.isJumping = false;
     this.swooping = false;
     this.leaf.setVisible(false);
@@ -121,30 +122,30 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
 
   get invincible() { return this.invincibleTimer > 0; }
 
-  /** Auf Pflaume aufsteigen: größere Hitbox (Pip + Käfer), kleiner Hüpfer. */
-  setMount(pflaume) {
-    this.mount = pflaume;
+  /** Auf Gretas Rücken klettern: größere Hitbox (beide zusammen), kleiner Hüpfer. */
+  setMount(greta) {
+    this.mount = greta;
     this.leaf.setVisible(false);
-    this.moveState = PipState.AIR;
+    this.moveState = LottiState.AIR;
     this.swooping = false;
-    // Hitbox nach unten verlängern, Pip rutscht optisch nach oben
-    this.y -= PFLAUME.bodyHeight - PIP.bodyHeight;
-    this.body.setSize(PFLAUME.bodyWidth, PFLAUME.bodyHeight);
-    this.body.setOffset(PFLAUME.bodyOffsetX, PFLAUME.bodyOffsetY);
+    // Hitbox nach unten verlängern, Lotti rutscht optisch nach oben
+    this.y -= GRETA.bodyHeight - LOTTI.bodyHeight;
+    this.body.setSize(GRETA.bodyWidth, GRETA.bodyHeight);
+    this.body.setOffset(GRETA.bodyOffsetX, GRETA.bodyOffsetY);
     this.body.reset(this.x, this.y);
-    this.body.setVelocityY(-PFLAUME.mountHop);
+    this.body.setVelocityY(-GRETA.mountHop);
     this.body.setAllowGravity(true);
   }
 
-  /** Absteigen (Treffer): zurück zur normalen Hitbox, Pip wird weggeschleudert. */
+  /** Absteigen (Treffer): zurück zur normalen Hitbox, Lotti wird weggeschleudert. */
   clearMount(dirX) {
     if (!this.mount) return;
     this.mount = null;
-    this.body.setSize(PIP.bodyWidth, PIP.bodyHeight);
-    this.body.setOffset(PIP.bodyOffsetX, PIP.bodyOffsetY);
+    this.body.setSize(LOTTI.bodyWidth, LOTTI.bodyHeight);
+    this.body.setOffset(LOTTI.bodyOffsetX, LOTTI.bodyOffsetY);
     this.body.setAllowGravity(true);
-    this.body.setVelocity(dirX * PFLAUME.throwOffVelocityX, -PFLAUME.throwOffVelocityY);
-    this.moveState = PipState.AIR;
+    this.body.setVelocity(dirX * GRETA.throwOffVelocityX, -GRETA.throwOffVelocityY);
+    this.moveState = LottiState.AIR;
     this.isJumping = false;
     this.invincibleTimer = DAMAGE.invincibleTime * 0.6;
     this.controlLockTimer = DAMAGE.controlLock;
@@ -158,7 +159,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     const dir = this.x < fromX ? -1 : 1;
     this.body.setVelocity(dir * DAMAGE.knockbackX, -DAMAGE.knockbackY);
     this.body.setAllowGravity(true);
-    this.moveState = PipState.AIR;
+    this.moveState = LottiState.AIR;
     this.leaf.setVisible(false);
     this.isJumping = false;
     this.swooping = false;
@@ -174,7 +175,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
   bounce(jumpHeld) {
     this.body.setVelocityY(-(jumpHeld ? ENEMIES.stompBounceHeld : ENEMIES.stompBounce));
     this.body.setAllowGravity(true);
-    this.moveState = PipState.AIR;
+    this.moveState = LottiState.AIR;
     this.isJumping = true;       // erlaubt variable Höhe wie beim Sprung
     this.swooping = false;
     this.leaf.setVisible(false);
@@ -221,9 +222,9 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     if (!onGround) this.airTime += delta; else this.airTime = 0;
 
     // --- Blickrichtung ---
-    if (inp.axisX !== 0 && this.moveState !== PipState.DIVE) this.facing = sign(inp.axisX);
+    if (inp.axisX !== 0 && this.moveState !== LottiState.DIVE) this.facing = sign(inp.axisX);
 
-    // --- Reittier: Aktion (Feuer/Stampfen), Stampf-Sperre ---
+    // --- Huckepack auf Greta: Aktion (Feuer/Stampfen), Stampf-Sperre ---
     let locked = false;
     if (this.mount) {
       if (inp.actionJustPressed) this.mount.useAction(this);
@@ -253,8 +254,8 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     const vy = body.velocity.y;
 
     if (onGround) {
-      if (this.moveState !== PipState.GROUND) {
-        this.moveState = PipState.GROUND;
+      if (this.moveState !== LottiState.GROUND) {
+        this.moveState = LottiState.GROUND;
         this.swooping = false;
         this.isJumping = false;
       }
@@ -262,20 +263,20 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     }
 
     switch (this.moveState) {
-      case PipState.GROUND:
+      case LottiState.GROUND:
         // Kante verlassen ohne Sprung
-        this.moveState = PipState.AIR;
+        this.moveState = LottiState.AIR;
         break;
-      case PipState.AIR:
+      case LottiState.AIR:
         if (vy >= 0) this.swooping = false;
-        // Schirm öffnen: halten + fallen (nicht beim Reiten – da schwebt Pflaume)
-        if (!this.mount && inp.jumpHeld && vy > PIP.glideMinFallSpeed) this.startGlide();
+        // Schirm öffnen: halten + fallen (nicht beim Reiten – da schwebt Greta)
+        if (!this.mount && inp.jumpHeld && vy > LOTTI.glideMinFallSpeed) this.startGlide();
         break;
-      case PipState.GLIDE:
+      case LottiState.GLIDE:
         if (!inp.jumpHeld) this.stopGlide();
         else if (inp.diveJustPressed) this.startDive();
         break;
-      case PipState.DIVE:
+      case LottiState.DIVE:
         if (!inp.diveHeld) this.endDive(inp);
         break;
     }
@@ -288,15 +289,15 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     let accel, decel, maxSpeed;
 
     switch (this.moveState) {
-      case PipState.GROUND:
-        accel = PIP.groundAccel; decel = PIP.groundDecel; maxSpeed = PIP.runSpeed; break;
-      case PipState.GLIDE:
-        accel = PIP.glideAccel; decel = PIP.glideDecel; maxSpeed = PIP.glideMaxSpeed; break;
-      case PipState.DIVE:
-        accel = PIP.diveSteerAccel; decel = 0; maxSpeed = PIP.airMaxSpeed; break;
+      case LottiState.GROUND:
+        accel = LOTTI.groundAccel; decel = LOTTI.groundDecel; maxSpeed = LOTTI.runSpeed; break;
+      case LottiState.GLIDE:
+        accel = LOTTI.glideAccel; decel = LOTTI.glideDecel; maxSpeed = LOTTI.glideMaxSpeed; break;
+      case LottiState.DIVE:
+        accel = LOTTI.diveSteerAccel; decel = 0; maxSpeed = LOTTI.airMaxSpeed; break;
       default:
-        accel = PIP.airAccel; maxSpeed = PIP.airMaxSpeed;
-        decel = this.swooping ? PIP.swoopAirDecel : PIP.airDecel;
+        accel = LOTTI.airAccel; maxSpeed = LOTTI.airMaxSpeed;
+        decel = this.swooping ? LOTTI.swoopAirDecel : LOTTI.airDecel;
     }
 
     if (ax !== 0) {
@@ -304,11 +305,11 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
       const sameDir = sign(vx) === sign(ax);
       if (sameDir && Math.abs(vx) > maxSpeed) {
         // Überschuss (z.B. nach Aufschwung) nur sanft abbauen – Schwung behalten
-        vx = approach(vx, target, (this.swooping ? PIP.swoopAirDecel : decel) * dt);
+        vx = approach(vx, target, (this.swooping ? LOTTI.swoopAirDecel : decel) * dt);
       } else {
         const turning = vx !== 0 && !sameDir;
         if (turning && onGround && Math.abs(vx) > 70) this.effects?.dust(this.x - sign(vx) * 4, this.body.bottom, 2, 0.6);
-        const a = accel * (turning && onGround ? PIP.turnBoost : 1);
+        const a = accel * (turning && onGround ? LOTTI.turnBoost : 1);
         vx = approach(vx, target, a * dt);
       }
     } else {
@@ -321,37 +322,37 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     const body = this.body;
 
     // Timer: Coyote & Jump Buffer
-    if (onGround) this.coyoteTimer = PIP.coyoteTime; else this.coyoteTimer -= delta;
-    if (inp.jumpJustPressed) this.jumpBufferTimer = PIP.jumpBuffer; else this.jumpBufferTimer -= delta;
+    if (onGround) this.coyoteTimer = LOTTI.coyoteTime; else this.coyoteTimer -= delta;
+    if (inp.jumpJustPressed) this.jumpBufferTimer = LOTTI.jumpBuffer; else this.jumpBufferTimer -= delta;
 
     // Absprung (auch kurz nach Verlassen der Kante, auch kurz vor der Landung)
-    if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0 && this.moveState !== PipState.DIVE) {
+    if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0 && this.moveState !== LottiState.DIVE) {
       this.doJump();
     }
 
     let vy = body.velocity.y;
 
     switch (this.moveState) {
-      case PipState.GLIDE: {
+      case LottiState.GLIDE: {
         body.setAllowGravity(false);
         body.setGravityY(0);
         // Weich auf Gleit-Sinkgeschwindigkeit einschwingen ("Schirm öffnet sich")
-        vy = damp(vy, PIP.glideFallSpeed, PIP.glideOpenLerp, dt);
+        vy = damp(vy, LOTTI.glideFallSpeed, LOTTI.glideOpenLerp, dt);
         body.setVelocityY(vy);
         break;
       }
-      case PipState.DIVE: {
+      case LottiState.DIVE: {
         body.setAllowGravity(false);
         body.setGravityY(0);
-        vy = approach(vy, PIP.diveMaxSpeed, PIP.diveAccel * dt);
+        vy = approach(vy, LOTTI.diveMaxSpeed, LOTTI.diveAccel * dt);
         body.setVelocityY(vy);
         break;
       }
       default: {
         body.setAllowGravity(true);
         // Variable Sprunghöhe: früh loslassen kappt die Aufwärtsgeschwindigkeit
-        if (this.isJumping && !inp.jumpHeld && vy < -PIP.jumpCutVelocity) {
-          vy = -PIP.jumpCutVelocity;
+        if (this.isJumping && !inp.jumpHeld && vy < -LOTTI.jumpCutVelocity) {
+          vy = -LOTTI.jumpCutVelocity;
           body.setVelocityY(vy);
           this.isJumping = false;
         }
@@ -366,8 +367,8 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
         // Zusatz-Schwerkraft: schneller fallen, leichter am Scheitelpunkt
         let extra = 0;
         if (!onGround) {
-          if (vy > 0) extra = PHYSICS.gravity * (PIP.fallMultiplier - 1);
-          else if (Math.abs(vy) < PIP.apexThreshold && this.isJumping) extra = PHYSICS.gravity * (PIP.apexGravityMult - 1);
+          if (vy > 0) extra = PHYSICS.gravity * (LOTTI.fallMultiplier - 1);
+          else if (Math.abs(vy) < LOTTI.apexThreshold && this.isJumping) extra = PHYSICS.gravity * (LOTTI.apexGravityMult - 1);
         }
         body.setGravityY(extra);
       }
@@ -376,12 +377,12 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
 
   doJump() {
     const body = this.body;
-    body.setVelocityY(-PIP.jumpVelocity);
+    body.setVelocityY(-LOTTI.jumpVelocity);
     this.coyoteTimer = 0;
     this.jumpBufferTimer = 0;
     this.isJumping = true;
     this.swooping = false;
-    this.moveState = PipState.AIR;
+    this.moveState = LottiState.AIR;
     // Squash & Stretch: beim Absprung lang ziehen
     this.squash(0.85, 1.18);
     this.effects?.dust(this.x, this.body.bottom, 3, 0.5);
@@ -389,7 +390,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
   }
 
   startGlide() {
-    this.moveState = PipState.GLIDE;
+    this.moveState = LottiState.GLIDE;
     this.isJumping = false;
     this.swooping = false;
     this.leaf.setVisible(true).play('leaf-sway');
@@ -399,12 +400,12 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
   }
 
   stopGlide() {
-    this.moveState = PipState.AIR;
+    this.moveState = LottiState.AIR;
     this.leaf.setVisible(false);
   }
 
   startDive() {
-    this.moveState = PipState.DIVE;
+    this.moveState = LottiState.DIVE;
     this.diveStartY = this.y;
     this.leaf.setVisible(false);
     // Der Sturzflug "faltet" den Schirm zusammen – bisheriger Sinkflug wird zu Fahrt
@@ -418,13 +419,13 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
   endDive(inp) {
     const body = this.body;
     const depth = this.y - this.diveStartY;
-    if (depth >= PIP.diveMinDepth) {
-      const v = Math.min(PIP.swoopMaxVelocity, Math.sqrt(2 * PHYSICS.gravity * depth * PIP.swoopEfficiency));
+    if (depth >= LOTTI.diveMinDepth) {
+      const v = Math.min(LOTTI.swoopMaxVelocity, Math.sqrt(2 * PHYSICS.gravity * depth * LOTTI.swoopEfficiency));
       body.setVelocityY(-v);
       // Schub in Blickrichtung – Höhe wird teilweise in Weite umgesetzt
       const dir = this.facing;
-      let vx = body.velocity.x + dir * PIP.swoopSpeedBoost;
-      if (Math.abs(vx) > PIP.swoopMaxSpeed) vx = dir * PIP.swoopMaxSpeed;
+      let vx = body.velocity.x + dir * LOTTI.swoopSpeedBoost;
+      if (Math.abs(vx) > LOTTI.swoopMaxSpeed) vx = dir * LOTTI.swoopMaxSpeed;
       body.setVelocityX(vx);
       this.swooping = true;
       this.squash(0.8, 1.25);
@@ -432,7 +433,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
       vibrate(8);
       sfx('swoop');
     }
-    this.moveState = PipState.AIR;
+    this.moveState = LottiState.AIR;
     body.setAllowGravity(true);
     // Schirm bleibt zu, bis die Fallbedingung wieder greift (jumpHeld + Fallen)
   }
@@ -440,13 +441,13 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
   onLand() {
     const impact = this.prevVy;
     this.leaf.setVisible(false);
-    if (impact > PIP.hardLandSpeed) {
+    if (impact > LOTTI.hardLandSpeed) {
       this.squash(1.3, 0.7);
       this.effects?.dust(this.x, this.body.bottom, 10, 1);
       this.scene.cameras.main.shake(80, 0.004);
       vibrate(20);
       sfx('hardLand');
-    } else if (impact > PIP.landDustMinSpeed) {
+    } else if (impact > LOTTI.landDustMinSpeed) {
       this.squash(1.18, 0.84);
       this.effects?.dust(this.x, this.body.bottom, 5, 0.7);
       vibrate(6);
@@ -467,25 +468,25 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     // Animation wählen
     let anim;
     switch (this.moveState) {
-      case PipState.GROUND:
+      case LottiState.GROUND:
         if (Math.abs(vx) > 8) {
-          anim = 'pip-run';
+          anim = 'lotti-run';
           // Laufanimation an Geschwindigkeit koppeln
-          this.anims.timeScale = Phaser.Math.Clamp(Math.abs(vx) / PIP.runSpeed, 0.5, 1.3);
+          this.anims.timeScale = Phaser.Math.Clamp(Math.abs(vx) / LOTTI.runSpeed, 0.5, 1.3);
         } else {
-          anim = 'pip-idle';
+          anim = 'lotti-idle';
           this.anims.timeScale = 1;
         }
         break;
-      case PipState.GLIDE: anim = 'pip-glide'; break;
-      case PipState.DIVE: anim = 'pip-dive'; break;
-      default: anim = (vy < 0 || this.mount?.hovering) ? 'pip-jump' : 'pip-fall';
+      case LottiState.GLIDE: anim = 'lotti-glide'; break;
+      case LottiState.DIVE: anim = 'lotti-dive'; break;
+      default: anim = (vy < 0 || this.mount?.hovering) ? 'lotti-jump' : 'lotti-fall';
     }
-    if (this.mount && this.moveState === PipState.GROUND && Math.abs(vx) > 8) anim = 'pip-idle'; // sitzt still auf Pflaume
+    if (this.mount) anim = 'lotti-ride'; // sitzt huckepack auf Greta
     if (this.anims.currentAnim?.key !== anim) this.play(anim, true);
 
     // Leichte Neigung in Flugrichtung beim Gleiten/Aufschwung
-    if (this.moveState === PipState.GLIDE) this.setAngle(vx * 0.06);
+    if (this.moveState === LottiState.GLIDE) this.setAngle(vx * 0.06);
     else if (this.swooping) this.setAngle(-this.facing * 10);
     else this.setAngle(0);
 

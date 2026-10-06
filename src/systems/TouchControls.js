@@ -2,7 +2,7 @@
 //  - linke Hälfte: virtueller Analog-Stick, erscheint dort, wo der Daumen aufsetzt
 //  - rechte Hälfte: Tippen = Springen, Halten = Gleiten, nach unten wischen = Sturzflug
 //    (loslassen oder nach oben wischen = Aufschwung), Aktionsknopf am rechten Rand
-// Schreibt ausschließlich in inputManager.touch – Pip bleibt eingabe-agnostisch.
+// Schreibt ausschließlich in inputManager.touch – Lotti bleibt eingabe-agnostisch.
 
 import Phaser from 'phaser';
 import { GAME, INPUT } from '../config.js';
@@ -41,7 +41,7 @@ export class TouchControls {
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroy, this);
   }
 
-  /** Markiert, ob der Aktionsknopf gerade etwas bewirkt (auf Pflaume). */
+  /** Markiert, ob der Aktionsknopf gerade etwas bewirkt (auf Greta). */
   setActionAvailable(v) {
     if (this.actionAvailable === v) return;
     this.actionAvailable = v;

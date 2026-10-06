@@ -47,10 +47,10 @@ export async function loadGame(page, port, errors, stop, level = 'test') {
   await page.waitForTimeout(400);
 }
 
-/** Liest Pips Zustand aus. */
-export function pipState(page) {
+/** Liest Lottis Zustand aus. */
+export function lottiState(page) {
   return page.evaluate(() => {
-    const p = window.__game.scene.getScene('Play').pip;
+    const p = window.__game.scene.getScene('Play').lotti;
     return { x: p.x, y: p.y, vx: p.body.velocity.x, vy: p.body.velocity.y, state: p.moveState, swoop: p.swooping, ground: p.onGround };
   });
 }

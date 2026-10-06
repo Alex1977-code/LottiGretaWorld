@@ -2,7 +2,7 @@
 // Strategie: Grunddateien vorab cachen, alles Weitere beim ersten Abruf
 // (stale-while-revalidate). Der Cache-Name enthält die Build-Kennung, so dass
 // nach einem Deployment alte Caches aufgeräumt werden.
-const CACHE = 'pip-pflaume-__BUILD__';
+const CACHE = 'lotti-greta-__BUILD__';
 const PRECACHE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
