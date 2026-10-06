@@ -6,7 +6,7 @@ export class DebugOverlay {
     this.pip = pip;
     this.enabled = false;
 
-    this.text = scene.add.text(4, 4, '', {
+    this.text = scene.add.text(4, 16, '', {
       fontFamily: 'monospace', fontSize: '8px', color: '#ffffff',
       backgroundColor: 'rgba(0,0,0,0.5)', padding: { x: 2, y: 1 },
     }).setScrollFactor(0).setDepth(1000).setVisible(false);

@@ -5,6 +5,7 @@
 import Phaser from 'phaser';
 import { PAL, SKY } from './palette.js';
 import { PIP_FRAMES, PIP_FRAME_SIZE, LEAF_FRAMES } from './pipFrames.js';
+import { WALKER_FRAMES, HOPPER_FRAMES, CHECKPOINT_FRAMES, HEART_FRAMES } from './enemyFrames.js';
 import { TILE_SIZE, TILE_NAMES, drawTile } from './tiles.js';
 
 /** Zeichnet ein Pixel-Art-Raster (Array von Strings) in einen Canvas-Kontext. */
@@ -190,6 +191,10 @@ export function createAllTextures(scene, width, height) {
   if (scene.textures.exists('pip')) return;
   makeSheet(scene, 'pip', PIP_FRAMES, PIP_FRAME_SIZE, PIP_FRAME_SIZE);
   makeSheet(scene, 'leaf', LEAF_FRAMES, 22, 12);
+  makeSheet(scene, 'walker', WALKER_FRAMES, 16, 16);
+  makeSheet(scene, 'hopper', HOPPER_FRAMES, 16, 16);
+  makeSheet(scene, 'checkpoint', CHECKPOINT_FRAMES, 16, 32);
+  makeSheet(scene, 'heart', HEART_FRAMES, 8, 8);
   makeTileset(scene);
   makeSky(scene, width, height);
   makeFarHills(scene, width, height);

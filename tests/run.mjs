@@ -38,6 +38,8 @@ for (const key of ['pip', 'leaf', 'tiles']) {
 let s = await pip(); log('start', s);
 await shot('01_start');
 const { check, summary } = makeChecker();
+// Reiner Bewegungstest: Gegner entfernen, damit sie nicht dazwischenfunken
+await page.evaluate(() => window.__game.scene.getScene('Play').enemies.clear(true, true));
 
 // 1) Laufen nach rechts
 await page.keyboard.down('ArrowRight');

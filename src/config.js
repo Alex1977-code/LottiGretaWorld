@@ -65,6 +65,27 @@ export const PIP = {
   hardLandSpeed: 300,     // Ab hier gibt es Vibration/größeren Staub
 };
 
+export const ENEMIES = {
+  walkerSpeed: 30,          // Laufkäfer: Laufgeschwindigkeit
+  hopperIdleTime: 900,      // Pilz: Wartezeit zwischen Sprüngen (ms)
+  hopperSquatTime: 220,     // Pilz: Ducken vor dem Sprung (ms)
+  hopperJumpVelocity: 230,  // Pilz: Absprunggeschwindigkeit
+  hopperSpeedX: 55,         // Pilz: horizontale Sprunggeschwindigkeit
+  hopperSightRange: 140,    // Pilz: ab dieser Entfernung springt er Richtung Pip
+  stompTolerance: 10,       // Pixel, die Pips Füße unter der Gegner-Oberkante sein dürfen
+  stompBounce: 210,         // Abprall nach Draufspringen
+  stompBounceHeld: 320,     // Abprall, wenn Sprungtaste gehalten wird
+  hitstop: 50,              // Freeze-Frame beim Besiegen (ms)
+};
+
+export const DAMAGE = {
+  invincibleTime: 1500,     // Unverwundbarkeit nach Treffer (ms)
+  knockbackX: 150,
+  knockbackY: 220,
+  controlLock: 220,         // ms ohne Steuerung nach Treffer
+  blinkInterval: 80,
+};
+
 export const CAMERA = {
   lerpX: 0.12,
   lerpY: 0.10,

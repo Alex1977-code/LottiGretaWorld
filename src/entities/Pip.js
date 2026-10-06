@@ -3,7 +3,7 @@
 // Blätterschirm (Gleiten), Sturzflug und Aufschwung.
 
 import Phaser from 'phaser';
-import { PIP, PHYSICS } from '../config.js';
+import { PIP, PHYSICS, ENEMIES, DAMAGE } from '../config.js';
 import { approach, damp, sign } from '../systems/mathUtil.js';
 import { vibrate } from '../systems/haptics.js';
 
@@ -13,6 +13,9 @@ export const PipState = {
   GLIDE: 'glide',
   DIVE: 'dive',
 };
+
+// Leere Eingabe (für Rückstoß/Tod)
+const NO_INPUT = Object.freeze({ axisX: 0, jumpHeld: false, jumpJustPressed: false, diveHeld: false, diveJustPressed: false, actionJustPressed: false });
 
 export class Pip extends Phaser.Physics.Arcade.Sprite {
   /**
@@ -50,6 +53,10 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.leafTimer = 0;           // Blätter-Partikel beim Gleiten
     this.spawnPoint = new Phaser.Math.Vector2(x, y);
     this.respawnLock = false;
+    this.invincibleTimer = 0;     // ms Unverwundbarkeit nach Treffer
+    this.controlLockTimer = 0;    // ms ohne Steuerung (Rückstoß)
+    this.blinkTimer = 0;
+    this.dead = false;
 
     // Blätterschirm als eigenes Sprite über Pip
     this.leaf = scene.add.sprite(x, y, 'leaf', 'leaf0').setDepth(11).setVisible(false);
@@ -86,6 +93,42 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.leaf.setVisible(false);
     this.respawnLock = false;
     this.setScale(1, 1);
+    this.dead = false;
+    this.invincibleTimer = DAMAGE.invincibleTime; // kurze Schonfrist nach dem Respawn
+    this.controlLockTimer = 0;
+    this.setAlpha(1);
+    this.leaf.setAlpha(1);
+  }
+
+  get invincible() { return this.invincibleTimer > 0; }
+
+  /** Rückstoß und Unverwundbarkeit nach einem Treffer. Liefert false, wenn gerade immun. */
+  hurt(fromX) {
+    if (this.invincible || this.dead || this.respawnLock) return false;
+    const dir = this.x < fromX ? -1 : 1;
+    this.body.setVelocity(dir * DAMAGE.knockbackX, -DAMAGE.knockbackY);
+    this.body.setAllowGravity(true);
+    this.moveState = PipState.AIR;
+    this.leaf.setVisible(false);
+    this.isJumping = false;
+    this.swooping = false;
+    this.invincibleTimer = DAMAGE.invincibleTime;
+    this.controlLockTimer = DAMAGE.controlLock;
+    this.setScale(1.2, 0.8);
+    vibrate([30, 40, 30]);
+    return true;
+  }
+
+  /** Abprall nach dem Besiegen eines Gegners. */
+  bounce(jumpHeld) {
+    this.body.setVelocityY(-(jumpHeld ? ENEMIES.stompBounceHeld : ENEMIES.stompBounce));
+    this.body.setAllowGravity(true);
+    this.moveState = PipState.AIR;
+    this.isJumping = true;       // erlaubt variable Höhe wie beim Sprung
+    this.swooping = false;
+    this.leaf.setVisible(false);
+    this.setScale(0.85, 1.2);
+    vibrate(12);
   }
 
   setSpawn(x, y) { this.spawnPoint.set(x, y); }
@@ -97,9 +140,24 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
     const dt = Math.min(delta, 50) / 1000; // Schutz vor Riesensprüngen (Tab-Wechsel)
-    const inp = this.ctrl;
     const body = this.body;
     const onGround = this.onGround;
+
+    // Timer für Treffer-Rückstoß / Unverwundbarkeit
+    if (this.controlLockTimer > 0) this.controlLockTimer -= delta;
+    if (this.invincibleTimer > 0) {
+      this.invincibleTimer -= delta;
+      this.blinkTimer += delta;
+      if (this.blinkTimer >= DAMAGE.blinkInterval) {
+        this.blinkTimer = 0;
+        this.setAlpha(this.alpha < 1 ? 1 : 0.35);
+      }
+      if (this.invincibleTimer <= 0) this.setAlpha(1);
+    }
+    this.leaf.setAlpha(this.alpha);
+
+    // Während des Rückstoßes (oder tot) keine Eingabe
+    const inp = (this.controlLockTimer > 0 || this.dead) ? NO_INPUT : this.ctrl;
 
     // --- Landung erkennen ---
     if (onGround && !this.wasOnGround) this.onLand();

@@ -20,6 +20,10 @@ export function buildTestLevel() {
   g.rect(23, FLOOR - 2, 25, FLOOR - 1, '#');
   g.rect(26, FLOOR - 1, 27, FLOOR - 1, '#');
 
+  // Gegner: Laufkäfer auf der Startebene, Pilz hinter der Treppe
+  g.set(9, FLOOR - 1, 'k');
+  g.set(29, FLOOR - 1, 'm');
+
   // Steinblöcke als Hindernis (Kopfstoß testen)
   g.hline(31, 34, FLOOR - 5, 'B');
   g.set(36, FLOOR - 2, 'B');
@@ -32,6 +36,10 @@ export function buildTestLevel() {
   }
   // kleine Insel in der letzten Lücke-Reihe fürs Timing
   g.hline(x - 10, x - 8, FLOOR - 3, '=');
+  // Laufkäfer zwischen den Lücken, Checkpoint danach
+  g.set(55, FLOOR - 1, 'k');
+  g.set(x + 2, FLOOR - 1, 'C');
+  g.set(x + 6, FLOOR - 1, 'm');
 
   // Abschnitt C: Plattformen (einseitig) als Treppe nach oben
   x = 84;
@@ -41,6 +49,7 @@ export function buildTestLevel() {
   g.hline(x + 18, x + 22, FLOOR - 12, '=');
   // Hoher Turm als Absprung für lange Gleitflüge
   g.rect(x + 26, FLOOR - 15, x + 29, H - 1, '#');
+  g.set(x + 13, FLOOR - 10, 'k'); // Käfer auf Plattform (dreht an Kante um)
 
   // Abschnitt D: Große Schlucht – nur mit Gleiten/Sturzflug zu überwinden
   const pitStart = x + 30, pitEnd = x + 30 + 44;

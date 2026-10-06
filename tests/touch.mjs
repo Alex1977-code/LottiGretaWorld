@@ -7,6 +7,8 @@ const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser({ hasTouch: true, isMobile: true, viewport: { width: 960, height: 540 } });
 await loadGame(page, PORT, errors, stop);
 const { check, summary } = makeChecker();
+// Reiner Bewegungstest: Gegner entfernen, damit sie nicht dazwischenfunken
+await page.evaluate(() => window.__game.scene.getScene('Play').enemies.clear(true, true));
 // Finger werden als echte DOM-TouchEvents auf dem Canvas erzeugt (CDP-Emulation
 // vergibt bei mehreren Fingern falsche Identifier).
 await page.evaluate(() => {

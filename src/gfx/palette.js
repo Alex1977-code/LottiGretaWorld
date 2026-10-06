@@ -32,6 +32,21 @@ export const PAL = {
   'w': '#9a6b3a',   // Holz
   'v': '#6e4a25',   // Holz dunkel
   'x': '#c9955c',   // Holz hell
+  // Gegner: Laufkäfer
+  'E': '#6e1b28',   // Panzer dunkel
+  'c': '#c2383f',   // Panzer rot
+  'n': '#ec7a72',   // Panzer Glanz
+  'k': '#1c1a26',   // Beine/Kopf
+  // Gegner: hüpfender Pilz
+  'M': '#4a3580',   // Hut dunkel
+  'm': '#6f52b8',   // Hut violett
+  'Y': '#f3d35a',   // Punkte gelb
+  'S': '#e8d9b8',   // Stiel hell
+  'T': '#c9b68f',   // Stiel dunkel
+  // HUD
+  'P': '#e8405a',   // Herz
+  'p': '#ff9fb0',   // Herz Glanz
+  'Q': '#4a1a2a',   // Herz leer
 };
 
 // Himmel/Hintergrund-Farben für den Herbstwald

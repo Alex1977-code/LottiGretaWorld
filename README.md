@@ -35,6 +35,14 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 - **Runder Knopf am rechten Rand:** Aktion (Feuer/Stampfen – nur auf Pflaume).
 - Im Hochformat erscheint ein Dreh-Hinweis und das Spiel pausiert.
 
+## Gegner, Schaden, Checkpoint
+
+- **Laufkäfer** (`k` im ASCII-Level): läuft hin und her, dreht an Wänden und Kanten um.
+- **Hüpfender Pilz** (`m`): wartet, duckt sich, springt Richtung Pip.
+- Draufspringen besiegt Gegner (Freeze-Frame 50 ms, Abprall – höher bei gehaltener Sprungtaste).
+- Seitliche Berührung kostet ein Herz: Rückstoß, 1,5 s Unverwundbarkeit (Blinken).
+- Drei Herzen; bei null (oder Sturz in die Tiefe) Respawn am letzten **Checkpoint** (`C`).
+
 ## PWA
 
 `public/manifest.webmanifest` + `public/sw.js` (Service Worker, offline-fähig, Cache pro Build).
@@ -47,13 +55,14 @@ src/
   main.js            Phaser-Konfiguration, Start
   config.js          Alle Physik-/Spielwerte zentral
   scenes/            Boot, Play, UI (Touch-Steuerung, HUD)
-  entities/          Pip (Bewegung), später Pflaume, Gegner
+  entities/          Pip, Gegner (Enemy, Walker, Hopper), Checkpoint; später Pflaume
   systems/           Eingabe (Tastatur+Touch), Kamera, Effekte, Debug, Haptik, PWA, Querformat
   levels/            ASCII→Tiled-Konverter, Levels
   gfx/               Prozedurale Texturen (Pixel-Art als Strings, Tiles, Hintergrund)
   audio/             Chiptune-Synth (Etappe 7)
 tests/run.mjs        Headless-Test Tastatur (Playwright)
 tests/touch.mjs      Headless-Test Touch-Steuerung, Querformat, PWA
+tests/enemies.mjs    Headless-Test Gegner, Schaden, Tod, Checkpoint
 tools/make-icons.mjs PWA-Icons aus der Pip-Grafik erzeugen
 ```
 

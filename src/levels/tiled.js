@@ -7,11 +7,23 @@ import { TILE_SIZE, TILE_INDEX, TILE_NAMES, groundIndex, EDGE } from '../gfx/til
 // ASCII-Legende
 //  '#' Boden (Autotile)   '=' Plattform (einseitig)   'B' Steinblock
 //  'P' Startpunkt Spieler  '.' leer
+//  'k' Laufkäfer  'm' hüpfender Pilz  'C' Checkpoint
 export const LEGEND = {
   GROUND: '#',
   PLATFORM: '=',
   BRICK: 'B',
   PLAYER: 'P',
+  WALKER: 'k',
+  HOPPER: 'm',
+  CHECKPOINT: 'C',
+};
+
+// Zeichen → Objekt (name/type); Position ist jeweils die Unterkante des Tiles
+const OBJECT_CHARS = {
+  [LEGEND.PLAYER]: { name: 'player', type: 'player' },
+  [LEGEND.WALKER]: { name: 'walker', type: 'enemy' },
+  [LEGEND.HOPPER]: { name: 'hopper', type: 'enemy' },
+  [LEGEND.CHECKPOINT]: { name: 'checkpoint', type: 'checkpoint' },
 };
 
 /**
@@ -44,9 +56,10 @@ export function asciiToTiled(rows, opts = {}) {
         gid = TILE_INDEX.platform + 1;
       } else if (ch === LEGEND.BRICK) {
         gid = TILE_INDEX.brick + 1 + ((x + y) % 2);
-      } else if (ch === LEGEND.PLAYER) {
+      } else if (OBJECT_CHARS[ch]) {
+        const def = OBJECT_CHARS[ch];
         objects.push({
-          id: objId++, name: 'player', type: 'player',
+          id: objId++, name: def.name, type: def.type,
           x: x * TILE_SIZE, y: (y + 1) * TILE_SIZE, width: 0, height: 0, point: true, visible: true, rotation: 0,
         });
       }
