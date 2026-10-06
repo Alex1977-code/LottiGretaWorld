@@ -2,6 +2,7 @@
 
 import Phaser from 'phaser';
 import { GAME } from '../config.js';
+import { sfx, engine } from '../audio/index.js';
 
 export class PauseScene extends Phaser.Scene {
   constructor() {
@@ -14,6 +15,9 @@ export class PauseScene extends Phaser.Scene {
     this.add.text(w / 2, h / 2 - 40, 'Pause', { fontFamily: 'monospace', fontSize: '16px', color: '#fff2a8', stroke: '#4a230a', strokeThickness: 3 }).setOrigin(0.5);
     this.button(w / 2, h / 2, 'Weiter', () => this.resume());
     this.button(w / 2, h / 2 + 28, 'Zur Weltkarte', () => this.toMap());
+    this.muteBtn = this.button(w / 2, h / 2 + 56, '', () => { engine.toggleMuted(); this.muteBtn.setText(engine.muted ? 'Ton: aus' : 'Ton: an'); sfx('select'); });
+    this.muteBtn.setText(engine.muted ? 'Ton: aus' : 'Ton: an');
+    this.input.keyboard.on('keydown-M', () => { engine.toggleMuted(); this.muteBtn.setText(engine.muted ? 'Ton: aus' : 'Ton: an'); });
     this.input.keyboard.on('keydown-ESC', this.resume, this);
     this.input.keyboard.on('keydown-P', this.resume, this);
   }
@@ -25,6 +29,7 @@ export class PauseScene extends Phaser.Scene {
   }
 
   resume() {
+    sfx('select');
     this.scene.resume('Play');
     this.scene.resume('UI');
     this.scene.stop();

@@ -7,6 +7,7 @@ import { PFLAUME } from '../config.js';
 import { Fireball } from './Fireball.js';
 import { damp } from '../systems/mathUtil.js';
 import { vibrate } from '../systems/haptics.js';
+import { sfx, music } from '../audio/index.js';
 
 export const PflaumeState = { FREE: 'free', RIDDEN: 'ridden', FLEEING: 'fleeing' };
 
@@ -57,6 +58,8 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
     this.scene.registry.set('power', this.power);
     this.scene.effects?.dust(pip.x, pip.body.bottom, 6, 0.8);
     vibrate(10);
+    sfx('mount');
+    music.setDrums(true);
   }
 
   /** Pip wird getroffen: absteigen und panisch in Gegenrichtung fliehen. */
@@ -78,6 +81,8 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
     pip.clearMount(-this.dir);
     this.scene.registry.set('power', '');
     this.scene.effects?.dust(this.x, this.body.bottom, 8, 1);
+    sfx('panic');
+    music.setDrums(false);
   }
 
   /** Beere fressen → neue Kraft. */
@@ -87,12 +92,14 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
     this.scene.registry.set('power', this.isRidden ? type : '');
     this.scene.tweens.add({ targets: this, scaleX: 1.25, scaleY: 0.8, duration: 90, yoyo: true });
     vibrate(15);
+    sfx('berry');
   }
 
   /** Verschwindet (Flucht abgelaufen). */
   vanish() {
     this.scene.effects?.leaves(this.x, this.y, 8);
     this.scene.effects?.dust(this.x, this.y, 6, 0.6);
+    sfx('vanish');
     this.destroy();
   }
 
@@ -190,6 +197,7 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
       this.scene.fireballs.add(fb);
       this.scene.tweens.add({ targets: this, scaleX: 1.2, scaleY: 0.9, duration: 70, yoyo: true });
       vibrate(8);
+      sfx('fireball');
       return true;
     }
     if (this.power === 'yellow' && !pip.onGround && !this.stomping) {
@@ -210,7 +218,7 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
       this.hoverTimer -= delta;
       body.setAllowGravity(false);
       body.setVelocityY(damp(body.velocity.y, PFLAUME.hoverSink, PFLAUME.hoverLerp, dt));
-      if (!this.hovering) this.scene.effects?.dust(this.x, this.y + 6, 3, 0.4);
+      if (!this.hovering) { this.scene.effects?.dust(this.x, this.y + 6, 3, 0.4); sfx('hover'); }
       this.hovering = true;
       if (Math.random() < 0.3) this.scene.effects?.dust(this.x + (Math.random() - 0.5) * 10, this.y + 7, 1, 0.3);
     } else if (this.hovering) {

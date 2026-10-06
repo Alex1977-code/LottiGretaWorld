@@ -16,6 +16,7 @@ import { Berry } from '../entities/Berry.js';
 import { ENEMIES, DAMAGE, PFLAUME } from '../config.js';
 import { initGameState, STATE_KEYS } from '../systems/GameState.js';
 import { vibrate } from '../systems/haptics.js';
+import { sfx, music, engine as audioEngine } from '../audio/index.js';
 
 const vibrateStomp = () => vibrate([40, 30, 60]);
 import { InputManager } from '../systems/InputManager.js';
@@ -60,7 +61,12 @@ export class PlayScene extends Phaser.Scene {
     // Pause (Esc/P oder Knopf in der UI)
     this.input.keyboard.on('keydown-ESC', this.pauseGame, this);
     this.input.keyboard.on('keydown-P', this.pauseGame, this);
+    this.input.keyboard.on('keydown-M', () => { audioEngine.toggleMuted(); sfx('select'); });
     if (this.levelKey !== 'test') saveGame.current = this.levelKey;
+
+    // Musik: Welt-Thema; Trommeln kommen beim Reiten dazu
+    music.setDrums(false);
+    music.play('world1');
 
     // Eingabe vor dem Pip-Update einlesen (keine Frame-Verzögerung)
     this.events.on(Phaser.Scenes.Events.PRE_UPDATE, this.input_.update, this.input_);
@@ -166,17 +172,20 @@ export class PlayScene extends Phaser.Scene {
     coins[coin.index] = true;
     this.registry.set(STATE_KEYS.coins, coins);
     vibrate(10);
+    sfx('bigCoin');
   }
 
   onKey(pip, key) {
     key.collect(pip);
     this.registry.set(STATE_KEYS.hasKey, true);
     vibrate(15);
+    sfx('key');
   }
 
   onGate(pip, gate) {
     if (!this.registry.get(STATE_KEYS.hasKey) || this.completing) return;
     gate.open();
+    sfx('gate');
     this.keys.getChildren().forEach((k) => k.setVisible(false));
     this.completeLevel('secret');
   }
@@ -202,6 +211,7 @@ export class PlayScene extends Phaser.Scene {
     pip.locked = true;
     pip.body.setVelocityX(0);
     vibrate([30, 50, 30, 50, 60]);
+    music.play('complete');
     this.time.addEvent({ delay: 180, repeat: 6, callback: () => this.effects.sparks(pip.x + Phaser.Math.Between(-30, 30), pip.y - Phaser.Math.Between(0, 40), 8) });
     const coins = this.registry.get(STATE_KEYS.coins);
     saveGame.completeLevel(this.levelKey, exit, coins);
@@ -229,6 +239,7 @@ export class PlayScene extends Phaser.Scene {
     this.effects.sparks(enemy.x, enemy.y, 8);
     fireball.pop();
     this.hitstop(ENEMIES.hitstop);
+    sfx('stomp');
   }
 
   /** Stampfsprung-Landung: Erschütterung, Gegner im Umkreis, Blöcke darunter zerbrechen. */
@@ -238,6 +249,7 @@ export class PlayScene extends Phaser.Scene {
     this.effects.dust(body.left, body.bottom, 8, 1.2);
     this.effects.dust(body.right, body.bottom, 8, 1.2);
     vibrateStomp();
+    sfx('slam');
     // Gegner am Boden im Umkreis
     for (const e of this.enemies.getChildren()) {
       if (!e.alive) continue;
@@ -273,6 +285,7 @@ export class PlayScene extends Phaser.Scene {
       pip.bounce(this.input_.jumpHeld);
       this.effects.sparks(enemy.x, enemy.body.top, 6);
       this.hitstop(ENEMIES.hitstop);
+      sfx('stomp');
     } else if (pip.mount) {
       if (!pip.invincible) pip.mount.panic(enemy.x);
     } else if (pip.hurt(enemy.x)) {
@@ -283,6 +296,7 @@ export class PlayScene extends Phaser.Scene {
   onCheckpoint(pip, cp) {
     if (cp.activate()) {
       pip.setSpawn(cp.x, cp.body.bottom);
+      sfx('checkpoint');
       // Herzen auffrischen
       this.registry.set(STATE_KEYS.hearts, this.registry.get(STATE_KEYS.maxHearts));
     }
@@ -291,6 +305,7 @@ export class PlayScene extends Phaser.Scene {
   pauseGame() {
     if (this.completing || this.scene.isPaused()) return;
     this.input.keyboard.resetKeys();
+    sfx('pause');
     this.scene.pause('UI');
     this.scene.launch('Pause');
     this.scene.pause();
@@ -318,6 +333,8 @@ export class PlayScene extends Phaser.Scene {
     this.pip.body.setVelocity(0, -260);
     this.pip.body.checkCollision.none = true;
     this.pip.setAngle(0);
+    sfx('die');
+    music.setDrums(false);
     this.time.delayedCall(450, () => {
       this.cameras.main.fadeOut(200, 0, 0, 0);
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
@@ -336,6 +353,8 @@ export class PlayScene extends Phaser.Scene {
     // In die Tiefe gefallen → Tod, zurück zum Checkpoint
     if (this.pip.y > this.map.heightInPixels + 40 && !this.pip.respawnLock) {
       this.pip.respawnLock = true;
+      sfx('die');
+      music.setDrums(false);
       this.cameras.main.fadeOut(150, 0, 0, 0);
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
         this.pip.respawn();

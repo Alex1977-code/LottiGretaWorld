@@ -6,6 +6,7 @@ import Phaser from 'phaser';
 import { PIP, PHYSICS, ENEMIES, DAMAGE, PFLAUME } from '../config.js';
 import { approach, damp, sign } from '../systems/mathUtil.js';
 import { vibrate } from '../systems/haptics.js';
+import { sfx } from '../audio/index.js';
 
 export const PipState = {
   GROUND: 'ground',
@@ -165,6 +166,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.controlLockTimer = DAMAGE.controlLock;
     this.squash(1.2, 0.8);
     vibrate([30, 40, 30]);
+    sfx('hurt');
     return true;
   }
 
@@ -305,6 +307,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
         vx = approach(vx, target, (this.swooping ? PIP.swoopAirDecel : decel) * dt);
       } else {
         const turning = vx !== 0 && !sameDir;
+        if (turning && onGround && Math.abs(vx) > 70) this.effects?.dust(this.x - sign(vx) * 4, this.body.bottom, 2, 0.6);
         const a = accel * (turning && onGround ? PIP.turnBoost : 1);
         vx = approach(vx, target, a * dt);
       }
@@ -382,6 +385,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     // Squash & Stretch: beim Absprung lang ziehen
     this.squash(0.85, 1.18);
     this.effects?.dust(this.x, this.body.bottom, 3, 0.5);
+    sfx('jump');
   }
 
   startGlide() {
@@ -391,6 +395,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.leaf.setVisible(true).play('leaf-sway');
     this.leaf.setScale(0.6, 0.6);
     this.effects?.leaves(this.x, this.y - 12, 5);
+    sfx('glideOpen');
   }
 
   stopGlide() {
@@ -406,6 +411,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     const body = this.body;
     body.setVelocityY(Math.max(body.velocity.y, 80));
     this.effects?.leaves(this.x, this.y - 10, 3);
+    sfx('dive');
   }
 
   /** Beendet den Sturzflug. Je tiefer der Sturz, desto höher der Aufschwung. */
@@ -424,6 +430,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
       this.squash(0.8, 1.25);
       this.effects?.leaves(this.x, this.y, 6);
       vibrate(8);
+      sfx('swoop');
     }
     this.moveState = PipState.AIR;
     body.setAllowGravity(true);
@@ -438,10 +445,12 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
       this.effects?.dust(this.x, this.body.bottom, 10, 1);
       this.scene.cameras.main.shake(80, 0.004);
       vibrate(20);
+      sfx('hardLand');
     } else if (impact > PIP.landDustMinSpeed) {
       this.squash(1.18, 0.84);
       this.effects?.dust(this.x, this.body.bottom, 5, 0.7);
       vibrate(6);
+      sfx('land');
     }
   }
 

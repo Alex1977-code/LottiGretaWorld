@@ -7,6 +7,7 @@ import { WORLD } from '../levels/worldmap.js';
 import { LEVELS } from '../levels/index.js';
 import { saveGame } from '../systems/SaveGame.js';
 import { vibrate } from '../systems/haptics.js';
+import { sfx, music, engine } from '../audio/index.js';
 
 const WALK_SPEED = 70; // px/s auf der Karte
 
@@ -46,6 +47,14 @@ export class WorldMapScene extends Phaser.Scene {
 
     this.coinIcons = [];
     this.updateInfo();
+
+    // Ton an/aus
+    this.muteBtn = this.add.text(4, 4, '', { fontFamily: 'monospace', fontSize: '7px', color: '#d8c8b0', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setDepth(20).setInteractive({ useHandCursor: true });
+    this.muteBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.toggleMute(); });
+    this.input.keyboard.on('keydown-M', this.toggleMute, this);
+    this.updateMuteLabel();
+    music.setDrums(false);
+    music.play('map');
 
     // Eingabe (Events statt Abfrage, damit kurze Tipps nicht verloren gehen)
     const kb = this.input.keyboard;
@@ -184,6 +193,7 @@ export class WorldMapScene extends Phaser.Scene {
         this.pip.play('pip-idle');
         this.updateInfo();
         vibrate(8);
+        sfx('step');
         return;
       }
       const p = pts[i++];
@@ -238,6 +248,16 @@ export class WorldMapScene extends Phaser.Scene {
     this.walkDirection(dx / len, dy / len);
   }
 
+  toggleMute() {
+    engine.toggleMuted();
+    this.updateMuteLabel();
+    sfx('select');
+  }
+
+  updateMuteLabel() {
+    this.muteBtn.setText(engine.muted ? 'Ton: aus (M)' : 'Ton: an (M)');
+  }
+
   onResetTap() {
     this.resetTaps++;
     if (this.resetTaps === 1) {
@@ -253,6 +273,7 @@ export class WorldMapScene extends Phaser.Scene {
     if (this.moving || this.starting) return;
     this.starting = true;
     vibrate(15);
+    sfx('select');
     this.cameras.main.fadeOut(250, 0, 0, 0);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.scene.start('Play', { level: this.current });

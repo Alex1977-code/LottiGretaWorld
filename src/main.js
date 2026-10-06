@@ -11,6 +11,7 @@ import { PauseScene } from './scenes/PauseScene.js';
 import { LEVELS } from './levels/index.js';
 import { setupOrientationHint } from './systems/orientation.js';
 import { registerServiceWorker } from './systems/pwa.js';
+import { installAudioUnlock, engine as audioEngine, music } from './audio/index.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -42,6 +43,7 @@ const config = {
 
 const game = new Phaser.Game(config);
 window.__game = game; // für Debug/Tests
+window.__audio = { engine: audioEngine, music };
 
 // Level per URL wählen (?level=test), Standard: erstes Level
 const wanted = new URLSearchParams(window.location.search).get('level');
@@ -49,3 +51,4 @@ game.registry.set('startLevel', wanted && LEVELS[wanted] ? wanted : null);
 
 setupOrientationHint(game);
 registerServiceWorker();
+installAudioUnlock();

@@ -24,6 +24,8 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 | ↓ (beim Gleiten) | Sturzflug; loslassen → Aufschwung nach oben       |
 | X              | Aktion (Feuer/Stampfen – nur auf Pflaume)           |
 | D              | Debug-Modus (Hitboxen, FPS, Zustand)                |
+| M              | Ton an/aus                                          |
+| Esc / P        | Pause                                               |
 | R              | Zurück zum Start                                    |
 
 ## Steuerung (Touch, Querformat)
@@ -77,6 +79,21 @@ später durch handgebaute Levels ersetzt werden (gleicher Eintrag in `src/levels
 
 Pause: Esc/P oder der Knopf oben in der Mitte → „Weiter“ / „Zur Weltkarte“.
 
+## Sound & Musik
+
+Alles prozedural über die Web Audio API (`src/audio/`): `AudioEngine` (Kontext, Busse, Ton/Rauschen),
+`sfx.js` (Effekt-Rezepte), `Music.js` (Step-Sequencer mit Lookahead) und `themes.js` (Pattern-Strings
+„Note:Dauer“ je Takt). Welt 1 hat ein Grundthema; beim Reiten auf Pflaume wird die Trommelspur
+eingeblendet. Audio wird bei der ersten Berührung/Taste freigeschaltet. Ton an/aus: Taste **M**,
+Knopf auf der Weltkarte oder im Pause-Menü (wird gespeichert).
+
+## Deployment (GitHub Pages)
+
+`.github/workflows/deploy.yml` baut bei jedem Push auf `master` und veröffentlicht `dist/`.
+Einmalig im Repository aktivieren: **Settings → Pages → Build and deployment → Source: „GitHub Actions“**.
+Danach ist das Spiel unter `https://<user>.github.io/<repo>/` erreichbar und als PWA installierbar
+(Vite-Build mit relativem Base-Pfad, Service Worker mit Cache pro Build).
+
 ## PWA
 
 `public/manifest.webmanifest` + `public/sw.js` (Service Worker, offline-fähig, Cache pro Build).
@@ -93,7 +110,7 @@ src/
   systems/           Eingabe (Tastatur+Touch), Kamera, Effekte, Debug, Haptik, PWA, Querformat
   levels/            ASCII→Tiled-Konverter, Grid-Stempel, Testlevel, Level 1, Generator, Weltkarte, Register
   gfx/               Prozedurale Texturen (Pixel-Art als Strings, Tiles, Hintergrund)
-  audio/             Chiptune-Synth (Etappe 7)
+  audio/             Chiptune-Synth: Engine, Effekte, Sequencer, Themen
 tests/run.mjs        Headless-Test Tastatur (Playwright)
 tests/touch.mjs      Headless-Test Touch-Steuerung, Querformat, PWA
 tests/enemies.mjs    Headless-Test Gegner, Schaden, Tod, Checkpoint
