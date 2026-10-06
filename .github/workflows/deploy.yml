@@ -1,5 +1,5 @@
 # Baut das Spiel und veröffentlicht dist/ auf GitHub Pages.
-# Einmalig im Repo aktivieren: Settings → Pages → Source: "GitHub Actions".
+# Falls die automatische Aktivierung scheitert: Settings → Pages → Source: "GitHub Actions".
 name: Deploy to GitHub Pages
 
 on:
@@ -21,6 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Versucht, GitHub Pages (Quelle: Actions) automatisch zu aktivieren
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/setup-node@v4
         with:
           node-version: 22
