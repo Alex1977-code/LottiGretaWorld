@@ -39,9 +39,10 @@ export class LevelCompleteScene extends Phaser.Scene {
   }
 
   next() {
-    const play = this.scene.get('Play');
     this.scene.stop('UI');
+    this.scene.stop('Play');
     this.scene.stop();
-    play.scene.restart({ level: this.result.levelKey });
+    if (this.result.levelKey === 'test') { this.scene.start('Play', { level: 'test' }); return; }
+    this.scene.start('WorldMap', { from: this.result.levelKey, exit: this.result.exit });
   }
 }

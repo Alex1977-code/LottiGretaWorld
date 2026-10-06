@@ -45,6 +45,22 @@ export class SaveGame {
   }
 
   coinCount(id) { return this.level(id).coins.filter(Boolean).length; }
+
+  /** Aktueller Punkt auf der Weltkarte. */
+  get current() { return this.data.current; }
+  set current(v) { this.data.current = v; this.save(); }
+
+  /** Ist der Pfad (Kante) frei? */
+  edgeUnlocked(edge) {
+    const l = this.level(edge.from);
+    return edge.exit === 'secret' ? l.secret : l.done;
+  }
+
+  /** Ist ein Level-Punkt erreichbar? (Start immer, sonst über eine freie Kante) */
+  nodeUnlocked(world, key) {
+    if (key === world.start) return true;
+    return world.edges.some((e) => e.to === key && this.edgeUnlocked(e));
+  }
 }
 
 export const saveGame = new SaveGame();

@@ -20,6 +20,7 @@ export class UIScene extends Phaser.Scene {
     this.powerIcon = this.add.image(0, 8, 'berry', 'berry_none').setDepth(50).setScrollFactor(0).setVisible(false);
     this.updatePower();
     this.createCoins();
+    this.createPauseButton();
     this.registry.events.on(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.coins, this.updateCoins, this);
     this.registry.events.on(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.power, this.updatePower, this);
     this.registry.events.on(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.hearts, this.updateHearts, this);
@@ -51,6 +52,20 @@ export class UIScene extends Phaser.Scene {
       this.hearts.push(this.add.image(8 + i * 10, 8, 'heart', 'full').setDepth(50).setScrollFactor(0));
     }
     this.updateHearts();
+  }
+
+  /** Pause-Knopf (zwei Balken) oben in der Mitte. */
+  createPauseButton() {
+    const { width } = this.scale.gameSize;
+    const g = this.add.graphics().setDepth(50);
+    g.fillStyle(0xffffff, 0.35);
+    g.fillRect(width / 2 - 5, 4, 3, 9);
+    g.fillRect(width / 2 + 2, 4, 3, 9);
+    const zone = this.add.zone(width / 2, 8, 24, 20).setInteractive();
+    zone.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => {
+      ev.stopPropagation();
+      this.scene.get('Play').pauseGame();
+    });
   }
 
   /** Fünf Münzplätze oben rechts. */

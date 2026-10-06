@@ -64,6 +64,19 @@ Level per URL wählen: `?level=test` oder `?level=level1`.
 Speicherstand (`localStorage`, `src/systems/SaveGame.js`): pro Level „geschafft“, „geheimer Ausgang“
 und gesammelte Münzen. Bereits gespeicherte Münzen erscheinen halbtransparent.
 
+## Weltkarte
+
+`src/scenes/WorldMapScene.js` + `src/levels/worldmap.js`: vier Level-Punkte (Herbstwald, Pilzhain,
+Wipfelpfad, Bachlauf), Pip läuft auf Punktlinien zwischen ihnen. Ein Pfad wird frei, wenn das
+Start-Level über den passenden Ausgang geschafft wurde; der geheime Ausgang von Level 1 öffnet den
+goldenen Pfad direkt zu Level 3. Steuerung: Pfeile/Tippen in eine Richtung = laufen, Leertaste oder
+Tippen auf Pip/den Punkt = Level starten. „Spielstand löschen“ oben rechts (zweimal tippen).
+
+Level 2–4 kommen vorerst aus einem seed-basierten Generator (`src/levels/generated.js`) und können
+später durch handgebaute Levels ersetzt werden (gleicher Eintrag in `src/levels/index.js`).
+
+Pause: Esc/P oder der Knopf oben in der Mitte → „Weiter“ / „Zur Weltkarte“.
+
 ## PWA
 
 `public/manifest.webmanifest` + `public/sw.js` (Service Worker, offline-fähig, Cache pro Build).
@@ -75,10 +88,10 @@ Icons liegen in `public/icons/` und werden mit `npm run icons` aus der Pip-Grafi
 src/
   main.js            Phaser-Konfiguration, Start
   config.js          Alle Physik-/Spielwerte zentral
-  scenes/            Boot, Play, UI (Touch-Steuerung, HUD), LevelComplete
+  scenes/            Boot, WorldMap, Play, UI (Touch-Steuerung, HUD), LevelComplete, Pause
   entities/          Pip, Pflaume, Fireball, Berry, Coin, Items (Key, Gate, Flag, Thorns), Gegner, Checkpoint
   systems/           Eingabe (Tastatur+Touch), Kamera, Effekte, Debug, Haptik, PWA, Querformat
-  levels/            ASCII→Tiled-Konverter, Grid-Stempel, Testlevel, Level 1, Level-Register
+  levels/            ASCII→Tiled-Konverter, Grid-Stempel, Testlevel, Level 1, Generator, Weltkarte, Register
   gfx/               Prozedurale Texturen (Pixel-Art als Strings, Tiles, Hintergrund)
   audio/             Chiptune-Synth (Etappe 7)
 tests/run.mjs        Headless-Test Tastatur (Playwright)
@@ -86,6 +99,7 @@ tests/touch.mjs      Headless-Test Touch-Steuerung, Querformat, PWA
 tests/enemies.mjs    Headless-Test Gegner, Schaden, Tod, Checkpoint
 tests/pflaume.mjs    Headless-Test Reiten, Beeren-Kräfte, Flucht
 tests/level1.mjs     Headless-Test Level 1 (Übersichtsbild, Münzen, Schlüssel/Tor, Fahne, Speicherstand)
+tests/worldmap.mjs   Headless-Test Weltkarte (Freischaltung, Laufen, Geheimpfad, Pause, Zurücksetzen)
 tools/make-icons.mjs PWA-Icons aus der Pip-Grafik erzeugen
 ```
 

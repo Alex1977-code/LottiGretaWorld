@@ -6,7 +6,9 @@ import { BootScene } from './scenes/BootScene.js';
 import { PlayScene } from './scenes/PlayScene.js';
 import { UIScene } from './scenes/UIScene.js';
 import { LevelCompleteScene } from './scenes/LevelCompleteScene.js';
-import { DEFAULT_LEVEL, LEVELS } from './levels/index.js';
+import { WorldMapScene } from './scenes/WorldMapScene.js';
+import { PauseScene } from './scenes/PauseScene.js';
+import { LEVELS } from './levels/index.js';
 import { setupOrientationHint } from './systems/orientation.js';
 import { registerServiceWorker } from './systems/pwa.js';
 
@@ -35,7 +37,7 @@ const config = {
   },
   fps: { target: 60, min: 30, smoothStep: true },
   input: { activePointers: 3 },
-  scene: [BootScene, PlayScene, UIScene, LevelCompleteScene],
+  scene: [BootScene, WorldMapScene, PlayScene, UIScene, LevelCompleteScene, PauseScene],
 };
 
 const game = new Phaser.Game(config);
@@ -43,7 +45,7 @@ window.__game = game; // für Debug/Tests
 
 // Level per URL wählen (?level=test), Standard: erstes Level
 const wanted = new URLSearchParams(window.location.search).get('level');
-game.registry.set('startLevel', wanted && LEVELS[wanted] ? wanted : DEFAULT_LEVEL);
+game.registry.set('startLevel', wanted && LEVELS[wanted] ? wanted : null);
 
 setupOrientationHint(game);
 registerServiceWorker();

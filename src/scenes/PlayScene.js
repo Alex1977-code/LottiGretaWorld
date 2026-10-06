@@ -57,6 +57,11 @@ export class PlayScene extends Phaser.Scene {
     // UI-Szene (Touch-Steuerung, HUD) über dem Spiel starten
     this.scene.launch('UI', { ctrl: this.input_ });
 
+    // Pause (Esc/P oder Knopf in der UI)
+    this.input.keyboard.on('keydown-ESC', this.pauseGame, this);
+    this.input.keyboard.on('keydown-P', this.pauseGame, this);
+    if (this.levelKey !== 'test') saveGame.current = this.levelKey;
+
     // Eingabe vor dem Pip-Update einlesen (keine Frame-Verzögerung)
     this.events.on(Phaser.Scenes.Events.PRE_UPDATE, this.input_.update, this.input_);
 
@@ -281,6 +286,14 @@ export class PlayScene extends Phaser.Scene {
       // Herzen auffrischen
       this.registry.set(STATE_KEYS.hearts, this.registry.get(STATE_KEYS.maxHearts));
     }
+  }
+
+  pauseGame() {
+    if (this.completing || this.scene.isPaused()) return;
+    this.input.keyboard.resetKeys();
+    this.scene.pause('UI');
+    this.scene.launch('Pause');
+    this.scene.pause();
   }
 
   /** Kurzer Freeze-Frame (Physik pausiert). */

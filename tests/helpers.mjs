@@ -59,6 +59,45 @@ export function logState(label, s) {
   console.log(label.padEnd(22), `x=${s.x.toFixed(0)} y=${s.y.toFixed(0)} vx=${s.vx.toFixed(0)} vy=${s.vy.toFixed(0)} ${s.state}${s.swoop ? '+swoop' : ''} ground=${s.ground}`);
 }
 
+/** Zeichnet das aktuelle Level als Übersicht (8 px/Tile) in zwei Hälften nach tests/out/. */
+export async function renderOverview(page, name) {
+  const { writeFileSync } = await import('node:fs');
+  const halves = await page.evaluate(() => {
+    const s = window.__game.scene.getScene('Play');
+    const map = s.map, layer = s.groundLayer;
+    const first = layer.tileset[0].firstgid;
+    const z = 8, out = [];
+    const halfW = Math.ceil(map.width / 2);
+    for (let half = 0; half < 2; half++) {
+      const x0 = half * halfW, x1 = Math.min(map.width, x0 + halfW);
+      const c = document.createElement('canvas');
+      c.width = (x1 - x0) * z; c.height = map.height * z;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#2a2a4a'; ctx.fillRect(0, 0, c.width, c.height);
+      for (let ty = 0; ty < map.height; ty++) for (let tx = x0; tx < x1; tx++) {
+        const t = layer.getTileAt(tx, ty);
+        if (!t) continue;
+        const i = t.index - first;
+        ctx.fillStyle = i < 16 ? (i & 1 ? '#6a9a30' : '#8d5a2b') : i === 16 ? '#c9955c' : '#9a9aa8';
+        ctx.fillRect((tx - x0) * z, ty * z, z, z);
+      }
+      const colors = { player: '#ffffff', enemy: '#ff4040', checkpoint: '#40ff80', mount: '#c060ff', berry: '#ff80ff', coin: '#ffd040', key: '#ffff80', gate: '#80c0ff', flag: '#ff8040', thorns: '#000000' };
+      for (const o of map.getObjectLayer('objects').objects) {
+        const tx = o.x / 16, ty = o.y / 16 - 1;
+        if (tx < x0 || tx >= x1) continue;
+        ctx.fillStyle = colors[o.type] ?? '#fff';
+        ctx.fillRect((tx - x0) * z + 1, ty * z + 1, z - 2, z - 2);
+        if (o.type === 'coin') { ctx.fillStyle = '#000'; ctx.fillRect((tx - x0) * z + 3, ty * z + 3, 2, 2); }
+      }
+      ctx.fillStyle = '#ffffff'; ctx.font = '8px monospace';
+      for (let tx = Math.ceil(x0 / 10) * 10; tx < x1; tx += 10) ctx.fillText(String(tx), (tx - x0) * z, 8);
+      out.push(c.toDataURL('image/png'));
+    }
+    return out;
+  });
+  halves.forEach((d, i) => writeFileSync(`${OUT}${name}_overview_${i + 1}.png`, Buffer.from(d.split(',')[1], 'base64')));
+}
+
 export function makeChecker() {
   const results = [];
   const check = (name, ok) => { results.push([name, ok]); console.log(ok ? '  ✓' : '  ✗', name); };

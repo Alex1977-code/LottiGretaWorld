@@ -1,7 +1,7 @@
 // Level-1-Test: lädt „Herbstwald“, zeichnet eine Übersicht, prüft Münzen, Schlüssel, Tor, Fahne, Speicherstand.
 // Aufruf: npm run build && node tests/level1.mjs
 import { writeFileSync } from 'node:fs';
-import { startServer, launchBrowser, loadGame, pipState, logState, makeChecker, OUT } from './helpers.mjs';
+import { startServer, launchBrowser, loadGame, pipState, logState, makeChecker, renderOverview, OUT } from './helpers.mjs';
 
 const PORT = 4182;
 const stop = await startServer(PORT);
@@ -12,42 +12,7 @@ const sc = (fn, arg) => page.evaluate(fn, arg);
 const teleport = (x, y) => sc(([x, y]) => { const p = window.__game.scene.getScene('Play').pip; p.body.reset(x, y); }, [x, y]);
 const reg = (k) => sc((k) => window.__game.registry.get(k), k);
 
-// Übersicht des Levels (8 px pro Tile, zwei Hälften)
-const overview = await sc(() => {
-  const s = window.__game.scene.getScene('Play');
-  const map = s.map, layer = s.groundLayer;
-  const first = layer.tileset[0].firstgid;
-  const z = 8;
-  const halves = [];
-  for (let half = 0; half < 2; half++) {
-    const x0 = half * Math.ceil(map.width / 2), x1 = Math.min(map.width, x0 + Math.ceil(map.width / 2));
-    const c = document.createElement('canvas');
-    c.width = (x1 - x0) * z; c.height = map.height * z;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#2a2a4a'; ctx.fillRect(0, 0, c.width, c.height);
-    for (let ty = 0; ty < map.height; ty++) for (let tx = x0; tx < x1; tx++) {
-      const t = layer.getTileAt(tx, ty);
-      if (!t) continue;
-      const i = t.index - first;
-      ctx.fillStyle = i < 16 ? (i & 1 ? '#6a9a30' : '#8d5a2b') : i === 16 ? '#c9955c' : '#9a9aa8';
-      ctx.fillRect((tx - x0) * z, ty * z, z, z);
-    }
-    const colors = { player: '#ffffff', enemy: '#ff4040', checkpoint: '#40ff80', mount: '#c060ff', berry: '#ff80ff', coin: '#ffd040', key: '#ffff80', gate: '#80c0ff', flag: '#ff8040', thorns: '#000000' };
-    for (const o of map.getObjectLayer('objects').objects) {
-      const tx = o.x / 16, ty = o.y / 16 - 1;
-      if (tx < x0 || tx >= x1) continue;
-      ctx.fillStyle = colors[o.type] ?? '#fff';
-      ctx.fillRect((tx - x0) * z + 1, ty * z + 1, z - 2, z - 2);
-      if (o.type === 'coin') { ctx.fillStyle = '#000'; ctx.fillRect((tx - x0) * z + 3, ty * z + 3, 2, 2); }
-    }
-    // Spaltenbeschriftung alle 10 Tiles
-    ctx.fillStyle = '#ffffff'; ctx.font = '8px monospace';
-    for (let tx = Math.ceil(x0 / 10) * 10; tx < x1; tx += 10) ctx.fillText(String(tx), (tx - x0) * z, 8);
-    halves.push(c.toDataURL('image/png'));
-  }
-  return halves;
-});
-overview.forEach((d, i) => writeFileSync(`${OUT}level1_overview_${i + 1}.png`, Buffer.from(d.split(',')[1], 'base64')));
+await renderOverview(page, 'level1');
 
 const counts = await sc(() => { const s = window.__game.scene.getScene('Play'); return { coins: s.coins.getLength(), keys: s.keys.getLength(), gates: s.gates.getLength(), flags: s.flags.getLength(), thorns: s.thorns.getLength(), enemies: s.enemies.getLength(), mounts: s.mounts.getLength(), berries: s.berries.getLength(), width: s.map.widthInPixels } });
 console.log('Objekte:', JSON.stringify(counts));
@@ -90,11 +55,16 @@ const save = await sc(() => JSON.parse(localStorage.getItem('pip-pflaume-save-v1
 console.log('Speicherstand:', JSON.stringify(save));
 check('Speicherstand: Level geschafft, geheimer Ausgang, Münze 1', save?.levels?.level1?.done === true && save.levels.level1.secret === true && save.levels.level1.coins[0] === true);
 
-// Weiter → Level startet neu, gespeicherte Münze erscheint halbtransparent
+// Weiter → Weltkarte, von dort Level erneut starten: gespeicherte Münze erscheint halbtransparent
 await page.keyboard.press('Space');
-await page.waitForTimeout(800);
-const restarted = await sc(() => { const s = window.__game.scene.getScene('Play'); return { active: window.__game.scene.isActive('Play'), coin0alpha: s.coins.getChildren().find((c) => c.index === 0)?.alpha, hearts: window.__game.registry.get('hearts') }; });
-check('Neustart: Level läuft, gespeicherte Münze halbtransparent', restarted.active && restarted.coin0alpha < 1 && restarted.hearts === 3);
+await page.waitForFunction(() => window.__game.scene.isActive('WorldMap'), null, { timeout: 5000 });
+check('Nach dem Level zurück auf der Weltkarte', true);
+await page.waitForTimeout(600);
+await page.keyboard.press('Space');
+await page.waitForFunction(() => window.__game.scene.isActive('Play') && window.__game.scene.getScene('Play').coins, null, { timeout: 5000 });
+await page.waitForTimeout(500);
+const restarted = await sc(() => { const s = window.__game.scene.getScene('Play'); return { active: window.__game.scene.isActive('Play'), level: s.levelKey, coin0alpha: s.coins.getChildren().find((c) => c.index === 0)?.alpha, hearts: window.__game.registry.get('hearts') }; });
+check('Neustart: Level 1 läuft, gespeicherte Münze halbtransparent', restarted.active && restarted.level === 'level1' && restarted.coin0alpha < 1 && restarted.hearts === 3);
 
 // Fahne → normaler Ausgang
 const flag = objs.find((o) => o.type === 'flag');
