@@ -4,12 +4,14 @@ export const STATE_KEYS = {
   hearts: 'hearts',
   maxHearts: 'maxHearts',
   coins: 'coins',
+  power: 'power',     // aktuelle Beeren-Kraft: none/red/blue/yellow ('' = ohne Pflaume)
 };
 
 export const DEFAULTS = {
   hearts: 3,
   maxHearts: 3,
   coins: 0,
+  power: '',
 };
 
 /** Setzt fehlende Werte in der Registry auf die Standardwerte. */

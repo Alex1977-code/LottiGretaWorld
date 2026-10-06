@@ -43,6 +43,16 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 - Seitliche Berührung kostet ein Herz: Rückstoß, 1,5 s Unverwundbarkeit (Blinken).
 - Drei Herzen; bei null (oder Sturz in die Tiefe) Respawn am letzten **Checkpoint** (`C`).
 
+## Pflaume (Reittier)
+
+- Pflaume (`F`) wartet im Level; Pip springt drauf → Reiten (größere Hitbox, kein Blätterschirm).
+- Beeren (`R` rot, `U` blau, `Y` gelb) frisst Pflaume beim Drüberreiten; die Kraft steht im HUD:
+  - **rot:** Aktion (X / Aktionsknopf) spuckt Feuerbälle, die über den Boden hüpfen und Gegner erledigen
+  - **blau:** Sprungtaste in der Luft halten → 3 s Schweben (füllt sich am Boden wieder auf)
+  - **gelb:** Aktion in der Luft → Stampfsprung: Erschütterung, Gegner im Umkreis, Steinblöcke darunter zerbrechen
+- Treffer beim Reiten kostet kein Herz: Pip wird abgeworfen, Pflaume flieht 3 s panisch in Gegenrichtung.
+  Wer ihn in dieser Zeit berührt, sitzt wieder oben (Kraft bleibt) – sonst verschwindet er.
+
 ## PWA
 
 `public/manifest.webmanifest` + `public/sw.js` (Service Worker, offline-fähig, Cache pro Build).
@@ -55,7 +65,7 @@ src/
   main.js            Phaser-Konfiguration, Start
   config.js          Alle Physik-/Spielwerte zentral
   scenes/            Boot, Play, UI (Touch-Steuerung, HUD)
-  entities/          Pip, Gegner (Enemy, Walker, Hopper), Checkpoint; später Pflaume
+  entities/          Pip, Pflaume, Fireball, Berry, Gegner (Enemy, Walker, Hopper), Checkpoint
   systems/           Eingabe (Tastatur+Touch), Kamera, Effekte, Debug, Haptik, PWA, Querformat
   levels/            ASCII→Tiled-Konverter, Levels
   gfx/               Prozedurale Texturen (Pixel-Art als Strings, Tiles, Hintergrund)
@@ -63,6 +73,7 @@ src/
 tests/run.mjs        Headless-Test Tastatur (Playwright)
 tests/touch.mjs      Headless-Test Touch-Steuerung, Querformat, PWA
 tests/enemies.mjs    Headless-Test Gegner, Schaden, Tod, Checkpoint
+tests/pflaume.mjs    Headless-Test Reiten, Beeren-Kräfte, Flucht
 tools/make-icons.mjs PWA-Icons aus der Pip-Grafik erzeugen
 ```
 

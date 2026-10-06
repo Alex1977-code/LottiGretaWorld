@@ -3,9 +3,10 @@
 // echte Pixel-Art-Dateien (gleiche Keys/Frame-Namen) ersetzt werden können.
 
 import Phaser from 'phaser';
-import { PAL, SKY } from './palette.js';
+import { PAL, SKY, POWER_COLORS } from './palette.js';
 import { PIP_FRAMES, PIP_FRAME_SIZE, LEAF_FRAMES } from './pipFrames.js';
 import { WALKER_FRAMES, HOPPER_FRAMES, CHECKPOINT_FRAMES, HEART_FRAMES } from './enemyFrames.js';
+import { PFLAUME_FRAMES, BERRY_FRAMES, FIREBALL_FRAMES } from './pflaumeFrames.js';
 import { TILE_SIZE, TILE_NAMES, drawTile } from './tiles.js';
 
 /** Zeichnet ein Pixel-Art-Raster (Array von Strings) in einen Canvas-Kontext. */
@@ -21,18 +22,28 @@ export function drawPixels(ctx, rows, ox = 0, oy = 0, palette = PAL) {
   }
 }
 
-/** Erzeugt ein Spritesheet aus benannten Pixel-Frames (alle gleich groß). */
-function makeSheet(scene, key, frames, fw, fh) {
-  const names = Object.keys(frames);
-  const cols = Math.min(names.length, 8);
-  const rowsN = Math.ceil(names.length / cols);
+/**
+ * Erzeugt ein Spritesheet aus benannten Pixel-Frames (alle gleich groß).
+ * Mit `variants` ({ suffix: { Buchstabe: Farbe } }) entstehen umgefärbte Kopien
+ * jedes Frames unter dem Namen `<frame>_<suffix>`.
+ */
+function makeSheet(scene, key, frames, fw, fh, variants = null) {
+  const entries = [];
+  for (const [name, rows] of Object.entries(frames)) {
+    if (!variants) entries.push({ name, rows, palette: PAL });
+    else for (const [suffix, overrides] of Object.entries(variants)) {
+      entries.push({ name: `${name}_${suffix}`, rows, palette: { ...PAL, ...overrides } });
+    }
+  }
+  const cols = Math.min(entries.length, 8);
+  const rowsN = Math.ceil(entries.length / cols);
   const tex = scene.textures.createCanvas(key, cols * fw, rowsN * fh);
   const ctx = tex.getContext();
-  names.forEach((name, i) => {
+  entries.forEach((e, i) => {
     const cx = (i % cols) * fw;
     const cy = Math.floor(i / cols) * fh;
-    drawPixels(ctx, frames[name], cx, cy);
-    tex.add(name, 0, cx, cy, fw, fh);
+    drawPixels(ctx, e.rows, cx, cy, e.palette);
+    tex.add(e.name, 0, cx, cy, fw, fh);
   });
   tex.refresh();
   return tex;
@@ -195,6 +206,9 @@ export function createAllTextures(scene, width, height) {
   makeSheet(scene, 'hopper', HOPPER_FRAMES, 16, 16);
   makeSheet(scene, 'checkpoint', CHECKPOINT_FRAMES, 16, 32);
   makeSheet(scene, 'heart', HEART_FRAMES, 8, 8);
+  makeSheet(scene, 'pflaume', PFLAUME_FRAMES, 20, 16, POWER_COLORS);
+  makeSheet(scene, 'berry', BERRY_FRAMES, 8, 8, POWER_COLORS);
+  makeSheet(scene, 'fireball', FIREBALL_FRAMES, 8, 8);
   makeTileset(scene);
   makeSky(scene, width, height);
   makeFarHills(scene, width, height);

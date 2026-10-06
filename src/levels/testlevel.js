@@ -24,6 +24,12 @@ export function buildTestLevel() {
   g.set(9, FLOOR - 1, 'k');
   g.set(29, FLOOR - 1, 'm');
 
+  // Pflaume wartet auf der Treppe, Beeren dahinter
+  g.set(21, FLOOR - 4, 'F');
+  g.set(33, FLOOR - 2, 'R');
+  g.set(38, FLOOR - 2, 'U');
+  g.set(40, FLOOR - 2, 'Y');
+
   // Steinblöcke als Hindernis (Kopfstoß testen)
   g.hline(31, 34, FLOOR - 5, 'B');
   g.set(36, FLOOR - 2, 'B');

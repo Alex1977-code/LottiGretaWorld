@@ -8,8 +8,13 @@ import { Pip } from '../entities/Pip.js';
 import { Walker } from '../entities/Walker.js';
 import { Hopper } from '../entities/Hopper.js';
 import { Checkpoint } from '../entities/Checkpoint.js';
-import { ENEMIES, DAMAGE } from '../config.js';
-import { initGameState, STATE_KEYS, DEFAULTS } from '../systems/GameState.js';
+import { Pflaume } from '../entities/Pflaume.js';
+import { Berry } from '../entities/Berry.js';
+import { ENEMIES, DAMAGE, PFLAUME } from '../config.js';
+import { initGameState, STATE_KEYS } from '../systems/GameState.js';
+import { vibrate } from '../systems/haptics.js';
+
+const vibrateStomp = () => vibrate([40, 30, 60]);
 import { InputManager } from '../systems/InputManager.js';
 import { Effects } from '../systems/Effects.js';
 import { CameraRig } from '../systems/CameraRig.js';
@@ -27,6 +32,7 @@ export class PlayScene extends Phaser.Scene {
   create() {
     initGameState(this.registry);
     this.registry.set(STATE_KEYS.hearts, this.registry.get(STATE_KEYS.maxHearts));
+    this.registry.set(STATE_KEYS.power, '');
 
     this.input_ = new InputManager(this);
     this.effects = new Effects(this);
@@ -97,6 +103,9 @@ export class PlayScene extends Phaser.Scene {
   createObjects() {
     this.enemies = this.add.group();
     this.checkpoints = this.add.group();
+    this.mounts = this.add.group();
+    this.berries = this.add.group();
+    this.fireballs = this.add.group();
     const objLayer = this.map.getObjectLayer('objects');
     for (const o of objLayer?.objects ?? []) {
       const cx = o.x + GAME.tile / 2;
@@ -105,11 +114,70 @@ export class PlayScene extends Phaser.Scene {
         this.enemies.add(e);
       } else if (o.type === 'checkpoint') {
         this.checkpoints.add(new Checkpoint(this, cx, o.y));
+      } else if (o.type === 'mount') {
+        this.mounts.add(new Pflaume(this, cx, o.y, this.groundLayer));
+      } else if (o.type === 'berry') {
+        this.berries.add(new Berry(this, cx, o.y - GAME.tile / 2, o.name));
       }
     }
     this.physics.add.collider(this.enemies, this.groundLayer);
+    this.physics.add.collider(this.mounts, this.groundLayer);
+    this.physics.add.collider(this.fireballs, this.groundLayer);
     this.physics.add.overlap(this.pip, this.enemies, this.onPipEnemy, (pip, e) => e.alive, this);
     this.physics.add.overlap(this.pip, this.checkpoints, this.onCheckpoint, null, this);
+    this.physics.add.overlap(this.pip, this.mounts, this.onPipMount, (pip, m) => m.canMount, this);
+    this.physics.add.overlap(this.pip, this.berries, this.onPipBerry, (pip) => !!pip.mount, this);
+    this.physics.add.overlap(this.fireballs, this.enemies, this.onFireballEnemy, (f, e) => e.alive, this);
+  }
+
+  /** Pip berührt Pflaume: aufsteigen (auch während der Flucht = wieder einfangen). */
+  onPipMount(pip, pflaume) {
+    if (pip.dead || pip.respawnLock || pip.mount) return;
+    pflaume.mount(pip);
+  }
+
+  /** Beim Reiten über eine Beere: Pflaume frisst sie. */
+  onPipBerry(pip, berry) {
+    pip.mount.eat(berry.berryType);
+    berry.consume();
+  }
+
+  onFireballEnemy(fireball, enemy) {
+    enemy.knockOut(fireball.dir);
+    this.effects.sparks(enemy.x, enemy.y, 8);
+    fireball.pop();
+    this.hitstop(ENEMIES.hitstop);
+  }
+
+  /** Stampfsprung-Landung: Erschütterung, Gegner im Umkreis, Blöcke darunter zerbrechen. */
+  onStompLand(pip, pflaume) {
+    const body = pip.body;
+    this.cameras.main.shake(220, PFLAUME.stompShake);
+    this.effects.dust(body.left, body.bottom, 8, 1.2);
+    this.effects.dust(body.right, body.bottom, 8, 1.2);
+    vibrateStomp();
+    // Gegner am Boden im Umkreis
+    for (const e of this.enemies.getChildren()) {
+      if (!e.alive) continue;
+      if (Math.abs(e.x - pip.x) < PFLAUME.stompRadius && Math.abs(e.body.bottom - body.bottom) < 20) {
+        e.knockOut(Math.sign(e.x - pip.x) || 1);
+      }
+    }
+    // Steinblöcke direkt unter den Füßen
+    const first = this.groundLayer.tileset[0].firstgid;
+    const brickGids = [first + TILE_INDEX.brick, first + TILE_INDEX.brickAlt];
+    const y = body.bottom + 2;
+    let broke = false;
+    for (let x = body.left + 2; x <= body.right - 2; x += 8) {
+      const t = this.groundLayer.getTileAtWorldXY(x, y);
+      if (t && brickGids.includes(t.index)) {
+        this.groundLayer.removeTileAt(t.x, t.y);
+        this.effects.dust(t.getCenterX(), t.getCenterY(), 10, 1.5);
+        this.effects.sparks(t.getCenterX(), t.getCenterY(), 4);
+        broke = true;
+      }
+    }
+    if (broke) this.groundLayer.calculateFacesWithin();
   }
 
   /** Pip berührt einen Gegner: von oben = besiegen, sonst Schaden. */
@@ -123,6 +191,8 @@ export class PlayScene extends Phaser.Scene {
       pip.bounce(this.input_.jumpHeld);
       this.effects.sparks(enemy.x, enemy.body.top, 6);
       this.hitstop(ENEMIES.hitstop);
+    } else if (pip.mount) {
+      if (!pip.invincible) pip.mount.panic(enemy.x);
     } else if (pip.hurt(enemy.x)) {
       this.loseHeart();
     }
@@ -187,6 +257,10 @@ export class PlayScene extends Phaser.Scene {
     this.cameraRig.update();
     this.updateParallax();
     this.debug.update();
+
+    // Aktionsknopf nur hervorheben, wenn er etwas bewirkt
+    const ui = this.scene.get('UI');
+    ui?.touchControls?.setActionAvailable(!!this.pip.mount && (this.pip.mount.power === 'red' || this.pip.mount.power === 'yellow'));
   }
 
   updateParallax() {

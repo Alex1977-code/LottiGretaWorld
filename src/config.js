@@ -12,6 +12,8 @@ export const PHYSICS = {
   gravity: 1000,
   // Maximale Fallgeschwindigkeit ohne Schirm
   maxFallSpeed: 380,
+  // Absolute Obergrenze der Physik (Sturzflug, Stampfsprung)
+  hardMaxSpeed: 700,
 };
 
 export const PIP = {
@@ -76,6 +78,40 @@ export const ENEMIES = {
   stompBounce: 210,         // Abprall nach Draufspringen
   stompBounceHeld: 320,     // Abprall, wenn Sprungtaste gehalten wird
   hitstop: 50,              // Freeze-Frame beim Besiegen (ms)
+};
+
+export const PFLAUME = {
+  bodyWidth: 14,          // Hitbox Pip+Pflaume beim Reiten
+  bodyHeight: 26,
+  bodyOffsetX: 3,
+  bodyOffsetY: 6,
+  freeBodyWidth: 14,      // Hitbox Pflaume allein
+  freeBodyHeight: 12,
+  walkSpeed: 22,          // Umherlaufen ohne Reiter
+  idleTime: 1400,         // Pause zwischen Spaziergängen (ms)
+  fleeSpeed: 115,         // Fluchtgeschwindigkeit
+  fleeTime: 3000,         // ms Flucht, danach verschwindet Pflaume
+  fleeHopVelocity: 130,   // kleine Panik-Hüpfer
+  fleeHopInterval: 260,
+  mountCooldown: 600,     // ms nach der Flucht, bevor Pip wieder aufsteigen kann
+  mountHop: 160,          // kleiner Hüpfer beim Aufsteigen
+  throwOffVelocityX: 90,  // Pip wird beim Treffer abgeworfen
+  throwOffVelocityY: 240,
+  // Rote Beere: Feuerball
+  fireSpeed: 230,
+  fireLift: 40,           // leichter Bogen nach oben
+  fireBounce: 0.55,
+  fireCooldown: 320,      // ms
+  fireLifetime: 1300,     // ms
+  // Blaue Beere: Schweben
+  hoverTime: 3000,        // ms Schwebezeit pro Flug (füllt sich am Boden auf)
+  hoverLerp: 16,          // wie schnell das Sinken gestoppt wird (1/s)
+  hoverSink: 6,           // minimale Sinkgeschwindigkeit beim Schweben
+  // Gelbe Beere: Stampfsprung
+  stompSpeed: 540,
+  stompRadius: 40,        // Gegner in diesem Umkreis werden erwischt
+  stompShake: 0.012,
+  stompLock: 160,         // ms Steuer-Sperre nach dem Aufprall
 };
 
 export const DAMAGE = {

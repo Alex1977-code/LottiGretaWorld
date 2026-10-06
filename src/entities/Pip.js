@@ -3,7 +3,7 @@
 // Blätterschirm (Gleiten), Sturzflug und Aufschwung.
 
 import Phaser from 'phaser';
-import { PIP, PHYSICS, ENEMIES, DAMAGE } from '../config.js';
+import { PIP, PHYSICS, ENEMIES, DAMAGE, PFLAUME } from '../config.js';
 import { approach, damp, sign } from '../systems/mathUtil.js';
 import { vibrate } from '../systems/haptics.js';
 
@@ -35,7 +35,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
 
     this.body.setSize(PIP.bodyWidth, PIP.bodyHeight);
     this.body.setOffset(PIP.bodyOffsetX, PIP.bodyOffsetY);
-    this.body.setMaxVelocityY(PHYSICS.maxFallSpeed);
+    this.body.setMaxVelocityY(PHYSICS.hardMaxSpeed); // Sturzflug/Stampfer dürfen schneller sein als normales Fallen
     this.body.setCollideWorldBounds(true);
     this.body.onWorldBounds = false;
     this.setDepth(10);
@@ -57,9 +57,18 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.controlLockTimer = 0;    // ms ohne Steuerung (Rückstoß)
     this.blinkTimer = 0;
     this.dead = false;
+    this.mount = null;            // Pflaume, wenn Pip reitet
 
     // Blätterschirm als eigenes Sprite über Pip
     this.leaf = scene.add.sprite(x, y, 'leaf', 'leaf0').setDepth(11).setVisible(false);
+
+    // Squash & Stretch nur für die Darstellung: Die Skalierung wird erst nach dem
+    // Physik-Schritt gesetzt und vor dem nächsten zurückgenommen, damit die Hitbox
+    // nicht mitskaliert.
+    this.squashX = 1;
+    this.squashY = 1;
+    scene.events.on(Phaser.Scenes.Events.POST_UPDATE, this.applySquash, this);
+    this.once(Phaser.GameObjects.Events.DESTROY, () => scene.events.off(Phaser.Scenes.Events.POST_UPDATE, this.applySquash, this));
 
     this.createAnimations();
     this.play('pip-idle');
@@ -84,6 +93,14 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
 
   /** Setzt Pip an den Startpunkt zurück. */
   respawn() {
+    if (this.mount) {
+      const m = this.mount;
+      this.mount = null;
+      this.body.setSize(PIP.bodyWidth, PIP.bodyHeight);
+      this.body.setOffset(PIP.bodyOffsetX, PIP.bodyOffsetY);
+      this.scene.registry.set('power', '');
+      m.destroy();
+    }
     this.setPosition(this.spawnPoint.x, this.spawnPoint.y - 10);
     this.body.reset(this.spawnPoint.x, this.spawnPoint.y - 10);
     this.body.setVelocity(0, 0);
@@ -92,7 +109,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.swooping = false;
     this.leaf.setVisible(false);
     this.respawnLock = false;
-    this.setScale(1, 1);
+    this.squash(1, 1);
     this.dead = false;
     this.invincibleTimer = DAMAGE.invincibleTime; // kurze Schonfrist nach dem Respawn
     this.controlLockTimer = 0;
@@ -101,6 +118,37 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
   }
 
   get invincible() { return this.invincibleTimer > 0; }
+
+  /** Auf Pflaume aufsteigen: größere Hitbox (Pip + Käfer), kleiner Hüpfer. */
+  setMount(pflaume) {
+    this.mount = pflaume;
+    this.leaf.setVisible(false);
+    this.moveState = PipState.AIR;
+    this.swooping = false;
+    // Hitbox nach unten verlängern, Pip rutscht optisch nach oben
+    this.y -= PFLAUME.bodyHeight - PIP.bodyHeight;
+    this.body.setSize(PFLAUME.bodyWidth, PFLAUME.bodyHeight);
+    this.body.setOffset(PFLAUME.bodyOffsetX, PFLAUME.bodyOffsetY);
+    this.body.reset(this.x, this.y);
+    this.body.setVelocityY(-PFLAUME.mountHop);
+    this.body.setAllowGravity(true);
+  }
+
+  /** Absteigen (Treffer): zurück zur normalen Hitbox, Pip wird weggeschleudert. */
+  clearMount(dirX) {
+    if (!this.mount) return;
+    this.mount = null;
+    this.body.setSize(PIP.bodyWidth, PIP.bodyHeight);
+    this.body.setOffset(PIP.bodyOffsetX, PIP.bodyOffsetY);
+    this.body.setAllowGravity(true);
+    this.body.setVelocity(dirX * PFLAUME.throwOffVelocityX, -PFLAUME.throwOffVelocityY);
+    this.moveState = PipState.AIR;
+    this.isJumping = false;
+    this.invincibleTimer = DAMAGE.invincibleTime * 0.6;
+    this.controlLockTimer = DAMAGE.controlLock;
+    this.squash(1.2, 0.8);
+    vibrate([20, 30, 20]);
+  }
 
   /** Rückstoß und Unverwundbarkeit nach einem Treffer. Liefert false, wenn gerade immun. */
   hurt(fromX) {
@@ -114,7 +162,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.swooping = false;
     this.invincibleTimer = DAMAGE.invincibleTime;
     this.controlLockTimer = DAMAGE.controlLock;
-    this.setScale(1.2, 0.8);
+    this.squash(1.2, 0.8);
     vibrate([30, 40, 30]);
     return true;
   }
@@ -127,7 +175,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.isJumping = true;       // erlaubt variable Höhe wie beim Sprung
     this.swooping = false;
     this.leaf.setVisible(false);
-    this.setScale(0.85, 1.2);
+    this.squash(0.85, 1.2);
     vibrate(12);
   }
 
@@ -137,7 +185,13 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     return this.body.blocked.down || this.body.touching.down;
   }
 
+  /** Visuelle Verformung setzen (wirkt erst nach dem Physik-Schritt). */
+  squash(x, y) { this.squashX = x; this.squashY = y; }
+
+  applySquash() { super.setScale(this.squashX, this.squashY); }
+
   preUpdate(time, delta) {
+    super.setScale(1, 1); // Physik sieht immer Skalierung 1
     super.preUpdate(time, delta);
     const dt = Math.min(delta, 50) / 1000; // Schutz vor Riesensprüngen (Tab-Wechsel)
     const body = this.body;
@@ -166,14 +220,23 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     // --- Blickrichtung ---
     if (inp.axisX !== 0 && this.moveState !== PipState.DIVE) this.facing = sign(inp.axisX);
 
+    // --- Reittier: Aktion (Feuer/Stampfen), Stampf-Sperre ---
+    let locked = false;
+    if (this.mount) {
+      if (inp.actionJustPressed) this.mount.useAction(this);
+      locked = this.mount.updateStomp(this);
+    }
+    const ctrl = locked ? NO_INPUT : inp;
+
     // --- Zustandswechsel ---
-    this.updateState(onGround, inp, delta);
+    this.updateState(onGround, ctrl, delta);
 
     // --- Horizontal ---
-    this.updateHorizontal(onGround, inp, dt);
+    this.updateHorizontal(onGround, ctrl, dt);
 
     // --- Vertikal ---
-    this.updateVertical(onGround, inp, dt, delta);
+    if (!(this.mount && this.mount.stomping)) this.updateVertical(onGround, ctrl, dt, delta);
+    if (this.mount) this.mount.updateHover(this, ctrl, dt, delta);
 
     // --- Darstellung ---
     this.updateVisuals(onGround, dt, delta);
@@ -202,8 +265,8 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
         break;
       case PipState.AIR:
         if (vy >= 0) this.swooping = false;
-        // Schirm öffnen: halten + fallen
-        if (inp.jumpHeld && vy > PIP.glideMinFallSpeed) this.startGlide();
+        // Schirm öffnen: halten + fallen (nicht beim Reiten – da schwebt Pflaume)
+        if (!this.mount && inp.jumpHeld && vy > PIP.glideMinFallSpeed) this.startGlide();
         break;
       case PipState.GLIDE:
         if (!inp.jumpHeld) this.stopGlide();
@@ -290,6 +353,12 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
         }
         if (this.isJumping && vy >= 0) this.isJumping = false;
 
+        // Normales Fallen begrenzen (Sturzflug/Stampfer sind davon ausgenommen)
+        if (vy > PHYSICS.maxFallSpeed && !this.swooping) {
+          vy = PHYSICS.maxFallSpeed;
+          body.setVelocityY(vy);
+        }
+
         // Zusatz-Schwerkraft: schneller fallen, leichter am Scheitelpunkt
         let extra = 0;
         if (!onGround) {
@@ -310,7 +379,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     this.swooping = false;
     this.moveState = PipState.AIR;
     // Squash & Stretch: beim Absprung lang ziehen
-    this.setScale(0.85, 1.18);
+    this.squash(0.85, 1.18);
     this.effects?.dust(this.x, this.body.bottom, 3, 0.5);
   }
 
@@ -351,7 +420,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
       if (Math.abs(vx) > PIP.swoopMaxSpeed) vx = dir * PIP.swoopMaxSpeed;
       body.setVelocityX(vx);
       this.swooping = true;
-      this.setScale(0.8, 1.25);
+      this.squash(0.8, 1.25);
       this.effects?.leaves(this.x, this.y, 6);
       vibrate(8);
     }
@@ -364,12 +433,12 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     const impact = this.prevVy;
     this.leaf.setVisible(false);
     if (impact > PIP.hardLandSpeed) {
-      this.setScale(1.3, 0.7);
+      this.squash(1.3, 0.7);
       this.effects?.dust(this.x, this.body.bottom, 10, 1);
       this.scene.cameras.main.shake(80, 0.004);
       vibrate(20);
     } else if (impact > PIP.landDustMinSpeed) {
-      this.setScale(1.18, 0.84);
+      this.squash(1.18, 0.84);
       this.effects?.dust(this.x, this.body.bottom, 5, 0.7);
       vibrate(6);
     }
@@ -381,7 +450,7 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
     const vy = body.velocity.y;
 
     // Squash & Stretch zurück zur Normalform
-    this.setScale(damp(this.scaleX, 1, 14, dt), damp(this.scaleY, 1, 14, dt));
+    this.squash(damp(this.squashX, 1, 14, dt), damp(this.squashY, 1, 14, dt));
 
     this.setFlipX(this.facing < 0);
 
@@ -400,8 +469,9 @@ export class Pip extends Phaser.Physics.Arcade.Sprite {
         break;
       case PipState.GLIDE: anim = 'pip-glide'; break;
       case PipState.DIVE: anim = 'pip-dive'; break;
-      default: anim = vy < 0 ? 'pip-jump' : 'pip-fall';
+      default: anim = (vy < 0 || this.mount?.hovering) ? 'pip-jump' : 'pip-fall';
     }
+    if (this.mount && this.moveState === PipState.GROUND && Math.abs(vx) > 8) anim = 'pip-idle'; // sitzt still auf Pflaume
     if (this.anims.currentAnim?.key !== anim) this.play(anim, true);
 
     // Leichte Neigung in Flugrichtung beim Gleiten/Aufschwung

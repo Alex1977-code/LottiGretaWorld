@@ -8,6 +8,7 @@ import { TILE_SIZE, TILE_INDEX, TILE_NAMES, groundIndex, EDGE } from '../gfx/til
 //  '#' Boden (Autotile)   '=' Plattform (einseitig)   'B' Steinblock
 //  'P' Startpunkt Spieler  '.' leer
 //  'k' Laufkäfer  'm' hüpfender Pilz  'C' Checkpoint
+//  'F' Pflaume  'R' rote Beere  'U' blaue Beere  'Y' gelbe Beere
 export const LEGEND = {
   GROUND: '#',
   PLATFORM: '=',
@@ -16,6 +17,10 @@ export const LEGEND = {
   WALKER: 'k',
   HOPPER: 'm',
   CHECKPOINT: 'C',
+  PFLAUME: 'F',
+  BERRY_RED: 'R',
+  BERRY_BLUE: 'U',
+  BERRY_YELLOW: 'Y',
 };
 
 // Zeichen → Objekt (name/type); Position ist jeweils die Unterkante des Tiles
@@ -24,6 +29,10 @@ const OBJECT_CHARS = {
   [LEGEND.WALKER]: { name: 'walker', type: 'enemy' },
   [LEGEND.HOPPER]: { name: 'hopper', type: 'enemy' },
   [LEGEND.CHECKPOINT]: { name: 'checkpoint', type: 'checkpoint' },
+  [LEGEND.PFLAUME]: { name: 'pflaume', type: 'mount' },
+  [LEGEND.BERRY_RED]: { name: 'red', type: 'berry' },
+  [LEGEND.BERRY_BLUE]: { name: 'blue', type: 'berry' },
+  [LEGEND.BERRY_YELLOW]: { name: 'yellow', type: 'berry' },
 };
 
 /**

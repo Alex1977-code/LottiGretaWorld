@@ -43,6 +43,16 @@ export const PAL = {
   'Y': '#f3d35a',   // Punkte gelb
   'S': '#e8d9b8',   // Stiel hell
   'T': '#c9b68f',   // Stiel dunkel
+  // Pflaume (Reittier)
+  'V': '#3b2460',   // Panzer Umriss dunkelviolett
+  'v': '#8a4fc9',   // Panzer violett
+  'Z': '#b47fe6',   // Panzer-Flecken (wird je nach Beeren-Kraft umgefärbt)
+  'z': '#d9b8f0',   // Flecken-Glanz / Beeren-Glanz
+  'A': '#e2c8f5',   // Gesicht hell
+  'I': '#6ea8ff',   // Flügel hellblau
+  // Feuerball
+  'F': '#ff8c2a',   // Feuer orange
+  'f': '#ffd36a',   // Feuer gelb
   // HUD
   'P': '#e8405a',   // Herz
   'p': '#ff9fb0',   // Herz Glanz
@@ -57,4 +67,12 @@ export const SKY = {
   midTrees: '#8a4a5a',
   nearBush: '#5a3a2a',
   nearLeaf: '#b85a2a',
+};
+
+// Farben der Beeren-Kräfte (ersetzen 'Z'/'z' in Pflaume- und Beeren-Frames)
+export const POWER_COLORS = {
+  none:   { Z: '#b47fe6', z: '#d9b8f0' },
+  red:    { Z: '#e0393f', z: '#ff8a8a' },
+  blue:   { Z: '#3a78e0', z: '#9cc4ff' },
+  yellow: { Z: '#f0bd3a', z: '#fff0a0' },
 };

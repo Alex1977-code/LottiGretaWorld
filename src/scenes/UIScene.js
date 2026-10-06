@@ -17,10 +17,14 @@ export class UIScene extends Phaser.Scene {
   create() {
     this.touchControls = new TouchControls(this, this.ctrl);
     this.createHearts();
+    this.powerIcon = this.add.image(0, 8, 'berry', 'berry_none').setDepth(50).setScrollFactor(0).setVisible(false);
+    this.updatePower();
+    this.registry.events.on(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.power, this.updatePower, this);
     this.registry.events.on(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.hearts, this.updateHearts, this);
     this.registry.events.on(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.maxHearts, this.createHearts, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.registry.events.off(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.hearts, this.updateHearts, this);
+      this.registry.events.off(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.power, this.updatePower, this);
       this.registry.events.off(Phaser.Data.Events.CHANGE_DATA_KEY + STATE_KEYS.maxHearts, this.createHearts, this);
     });
 
@@ -44,6 +48,16 @@ export class UIScene extends Phaser.Scene {
       this.hearts.push(this.add.image(8 + i * 10, 8, 'heart', 'full').setDepth(50).setScrollFactor(0));
     }
     this.updateHearts();
+  }
+
+  /** Beeren-Kraft neben den Herzen anzeigen (nur beim Reiten). */
+  updatePower() {
+    const power = this.registry.get(STATE_KEYS.power) || '';
+    const max = this.registry.get(STATE_KEYS.maxHearts) ?? 3;
+    this.powerIcon.setX(8 + max * 10 + 4);
+    if (!power) { this.powerIcon.setVisible(false); return; }
+    this.powerIcon.setVisible(true).setFrame(`berry_${power}`);
+    this.tweens.add({ targets: this.powerIcon, scaleX: 1.6, scaleY: 1.6, duration: 120, yoyo: true });
   }
 
   updateHearts() {
