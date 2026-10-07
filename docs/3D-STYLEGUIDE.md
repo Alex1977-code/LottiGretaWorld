@@ -46,7 +46,8 @@ class MeinAvatar extends Avatar3D {
   entitäts-spezifischen Felder (siehe Kommentare in `avatars/*.js`). Keine Spiellogik im Avatar.
 - Leistung: pro Avatar ≤ ~30 Meshes, Geometrien niedrig aufgelöst (Kugeln 16x12 reichen),
   Materialien möglichst **modulweit teilen** (Cache), nur avatar-eigene Dinge `track()`-en.
-  Ziel: 60 fps auf einem Mittelklasse-Handy, Gesamtszene < 60 Zeichenaufrufe.
+  Ziel: 60 fps auf einem Mittelklasse-Handy, Gesamtszene < 100 Zeichenaufrufe (inkl. Schattenpass) und
+  < 250 k Dreiecke; fällt die Bildrate, senkt renderer.js die Auflösung stufenweise.
 - Schatten: `castShadow = true` für Körper, keine Schatten auf Kleinteilen (Augen, Glanz).
 - Animation ist **prozedural** (Sinus-Läufe, Zielposen mit `damp`), keine Frame-Sequenzen.
 

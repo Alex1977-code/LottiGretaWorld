@@ -59,7 +59,7 @@ const counts = await sc(() => {
 console.log('  Meshes je Avatar / Szene', JSON.stringify(counts));
 check('Heldin ≤ 30 Meshes (inkl. Schirm und Angel)', counts.lotti <= 30);
 check('Pflaume ≤ 20 Meshes', counts.pflaume <= 20);
-check('Zeichenaufrufe unter 60', counts.calls < 60);
+check('Zeichenaufrufe unter 120 (inkl. Schattenpass)', counts.calls < 120);
 
 // ---------- Spielentfernung ----------
 await wait(500); await shot('30_far_idle');

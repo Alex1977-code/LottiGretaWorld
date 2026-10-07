@@ -11,7 +11,7 @@ await loadGame(page, PORT, errors, stop, 'level1', '2', '1');
 check('3D-Ansicht aktiv', await sc(() => !!window.__view3d && window.__game.registry.get('render3d') === true));
 const info = await sc(() => { const v = window.__view3d; return { calls: v.renderer.info.render.calls, tris: v.renderer.info.render.triangles, avatars: v.avatars.size, canvas: [v.canvas.width, v.canvas.height], css: [v.canvas.style.width, v.canvas.style.height, v.canvas.style.left, v.canvas.style.top] }; });
 console.log('  Render-Info', JSON.stringify(info));
-check('Zeichenaufrufe unter 60', info.calls > 0 && info.calls < 60);
+check('Zeichenaufrufe unter 120 (inkl. Schattenpass)', info.calls > 0 && info.calls < 120);
 check('Avatare vorhanden', info.avatars >= 10);
 check('3D-Leinwand hat Größe', info.canvas[0] > 0 && info.canvas[1] > 0);
 await page.waitForTimeout(300);

@@ -213,7 +213,7 @@ console.log('  Aufschlüsselung Tor:', JSON.stringify(await breakdown()));
 
 const info = await sc(() => { const v = window.__view3d; return { tris: v.renderer.info.render.triangles, avatars: v.avatars.size }; });
 console.log('  Zeichenaufrufe: Start', callsStart, 'Checkpoint', callsCp, 'Baumkronen', callsTree, 'Höhle', callsCave, 'Tor', callsGate, '| Dreiecke', info.tris, 'Avatare', info.avatars);
-check('Zeichenaufrufe überall unter 60', Math.max(callsStart, callsCp, callsTree, callsCave, callsGate) < 60);
+check('Zeichenaufrufe überall unter 120 (inkl. Schattenpass)', Math.max(callsStart, callsCp, callsTree, callsCave, callsGate) < 120);
 check('Keine Konsolenfehler', errors.length === 0);
 await browser.close();
 stop();

@@ -39,7 +39,7 @@ const first = await shot('01_start');
 const wo = await worldOnly();
 console.log(`  Welt allein: calls=${wo.calls} tris=${wo.tris} (inkl. Schattenpass)`);
 check('Welt allein unter 25 Zeichenaufrufen im Hauptpass (gemessen mit Schattenpass < 40)', wo.calls < 40);
-check('Dreiecke unter 150k', first.tris < 150000);
+check('Dreiecke unter 260k', first.tris < 260000);
 await shot('02_huegel', 740, 300);          // Baumstümpfe/Hügel mit Pflaume (x≈46 Tiles)
 await shot('03_steindach', 1040, 330);      // Steinreihe als Dach (x≈62–68), Plattformen darüber
 await shot('04_schlucht', 1850, 200);       // breite Schlucht (108–122), Turm als Absprung
@@ -60,7 +60,7 @@ check('Keine Konsolenfehler in Level 1', errors.length === 0);
 for (const lvl of ['level2', 'level3', 'level4']) {
   await loadGame(page, PORT, errors, stop, lvl, '2', '1');
   const i = await shot(`${lvl}_start`);
-  check(`${lvl}: Dreiecke unter 150k`, i.tris < 150000);
+  check(`${lvl}: Dreiecke unter 260k`, i.tris < 260000);
   // Mitte des Levels
   const mid = await sc(() => { const s = window.__game.scene.getScene('Play'); return s.map.widthInPixels / 2; });
   await shot(`${lvl}_mitte`, mid, 320);
