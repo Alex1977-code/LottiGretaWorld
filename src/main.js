@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import { GAME, PHYSICS } from './config.js';
 import { RENDER } from './render.js';
+import { RENDER3D } from './render3d.js';
 import { BootScene } from './scenes/BootScene.js';
 import { PlayScene } from './scenes/PlayScene.js';
 import { UIScene } from './scenes/UIScene.js';
@@ -21,6 +22,7 @@ const config = {
   width: GAME.width * RENDER.scale,
   height: GAME.height * RENDER.scale,
   backgroundColor: '#1b1230',
+  transparent: RENDER3D.enabled, // 3D-Ansicht liegt auf einer eigenen Leinwand darunter
   pixelArt: false,
   roundPixels: false,
   antialias: true,
@@ -47,6 +49,7 @@ const game = new Phaser.Game(config);
 window.__game = game; // für Debug/Tests
 window.__audio = { engine: audioEngine, music };
 game.registry.set('renderScale', RENDER.scale);
+game.registry.set('render3d', RENDER3D.enabled);
 
 // Level per URL wählen (?level=test), Standard: erstes Level
 const wanted = new URLSearchParams(window.location.search).get('level');

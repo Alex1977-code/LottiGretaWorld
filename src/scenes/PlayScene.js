@@ -25,6 +25,8 @@ import { CameraRig } from '../systems/CameraRig.js';
 import { DebugOverlay } from '../systems/DebugOverlay.js';
 import { Parallax } from '../systems/Parallax.js';
 import { RENDER, Z, fit } from '../render.js';
+import { RENDER3D } from '../render3d.js';
+import { View3D } from '../three/View3D.js';
 
 export class PlayScene extends Phaser.Scene {
   constructor() {
@@ -44,10 +46,16 @@ export class PlayScene extends Phaser.Scene {
     this.registry.set(STATE_KEYS.hasKey, false);
 
     this.input_ = new InputManager(this);
-    this.effects = new Effects(this);
 
-    this.parallax = new Parallax(this);
     this.createMap();
+    if (RENDER3D.enabled) {
+      // 3D-Ansicht: Level, Figuren und Effekte werden in Three.js gezeichnet (eigene Leinwand)
+      this.view3d = new View3D(this);
+      this.effects = this.view3d.effects;
+    } else {
+      this.parallax = new Parallax(this);
+      this.effects = new Effects(this);
+    }
     this.createPlayer();
     this.createObjects();
 
@@ -86,17 +94,20 @@ export class PlayScene extends Phaser.Scene {
     // Logikebene (16-px-Tiles, unsichtbar): Kollision, Abfragen, Blöcke zerbrechen
     const tileset = this.map.addTilesetImage('tiles', 'tiles', GAME.tile, GAME.tile, 0, 0);
     this.groundLayer = this.map.createLayer('ground', tileset, 0, 0).setDepth(0).setVisible(false);
-    // Sichtebene: dieselben Daten mit S-fach großen Tiles, auf Weltgröße herunterskaliert (scharfe Grafik)
-    const S = RENDER.scale;
-    const visKey = `${key}-vis`;
-    if (this.cache.tilemap.has(visKey)) this.cache.tilemap.remove(visKey);
-    const vis = JSON.parse(JSON.stringify(this.cache.tilemap.get(key).data));
-    vis.tilewidth *= S; vis.tileheight *= S;
-    for (const ts of vis.tilesets) { ts.tilewidth *= S; ts.tileheight *= S; ts.imagewidth *= S; ts.imageheight *= S; }
-    this.cache.tilemap.add(visKey, { format: Phaser.Tilemaps.Formats.TILED_JSON, data: vis });
-    this.visualMap = this.make.tilemap({ key: visKey });
-    const visTileset = this.visualMap.addTilesetImage('tiles', 'tiles', GAME.tile * S, GAME.tile * S, 0, 0);
-    this.visualLayer = this.visualMap.createLayer('ground', visTileset, 0, 0).setScale(Z).setDepth(0);
+    // Sichtebene (nur 2D-Darstellung): dieselben Daten mit S-fach großen Tiles, auf Weltgröße herunterskaliert
+    this.visualLayer = null;
+    if (!RENDER3D.enabled) {
+      const S = RENDER.scale;
+      const visKey = `${key}-vis`;
+      if (this.cache.tilemap.has(visKey)) this.cache.tilemap.remove(visKey);
+      const vis = JSON.parse(JSON.stringify(this.cache.tilemap.get(key).data));
+      vis.tilewidth *= S; vis.tileheight *= S;
+      for (const ts of vis.tilesets) { ts.tilewidth *= S; ts.tileheight *= S; ts.imagewidth *= S; ts.imageheight *= S; }
+      this.cache.tilemap.add(visKey, { format: Phaser.Tilemaps.Formats.TILED_JSON, data: vis });
+      this.visualMap = this.make.tilemap({ key: visKey });
+      const visTileset = this.visualMap.addTilesetImage('tiles', 'tiles', GAME.tile * S, GAME.tile * S, 0, 0);
+      this.visualLayer = this.visualMap.createLayer('ground', visTileset, 0, 0).setScale(Z).setDepth(0);
+    }
 
     // Kollision: Boden (0..15) und Steinblöcke – Index = GID - 1 + firstgid... Phaser nutzt GIDs
     const first = tileset.firstgid;
@@ -273,7 +284,8 @@ export class PlayScene extends Phaser.Scene {
       const t = this.groundLayer.getTileAtWorldXY(x, y);
       if (t && brickGids.includes(t.index)) {
         this.groundLayer.removeTileAt(t.x, t.y);
-        this.visualLayer.removeTileAt(t.x, t.y);
+        this.visualLayer?.removeTileAt(t.x, t.y);
+        this.view3d?.world.removeTile(t.x, t.y);
         this.effects.dust(t.getCenterX(), t.getCenterY(), 10, 1.5);
         this.effects.sparks(t.getCenterX(), t.getCenterY(), 4);
         broke = true;
@@ -374,7 +386,7 @@ export class PlayScene extends Phaser.Scene {
     }
 
     this.cameraRig.update();
-    this.parallax.update(this.cameras.main);
+    this.parallax?.update(this.cameras.main);
     this.debug.update();
 
     // Aktionsknopf nur hervorheben, wenn er etwas bewirkt

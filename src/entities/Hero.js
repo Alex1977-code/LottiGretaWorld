@@ -309,7 +309,10 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
     switch (this.moveState) {
       case HeroState.GROUND:
-        accel = HERO.groundAccel; decel = HERO.groundDecel; maxSpeed = HERO.runSpeed * this.variant.speedMult; break;
+        accel = HERO.groundAccel; decel = HERO.groundDecel; maxSpeed = HERO.runSpeed * this.variant.speedMult;
+        // Auf Pflaume: die Möhre an der Angel lässt das Kaninchen schneller rennen
+        if (this.mount) { maxSpeed *= PFLAUME.rideSpeedMult; accel *= PFLAUME.rideSpeedMult; }
+        break;
       case HeroState.GLIDE:
         accel = HERO.glideAccel; decel = HERO.glideDecel; maxSpeed = HERO.glideMaxSpeed * this.variant.airSpeedMult; break;
       case HeroState.DIVE:

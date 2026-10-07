@@ -90,6 +90,7 @@ export const PFLAUME = {
   freeBodyWidth: 14,      // Hitbox Pflaume allein (mittig unten im Frame)
   freeBodyHeight: 12,
   walkSpeed: 22,          // Umherlaufen ohne Reiter
+  rideSpeedMult: 1.25,    // Tempo-Bonus beim Reiten (die Heldin hält dem Kaninchen eine Möhre an der Angel vor die Nase)
   idleTime: 1400,         // Pause zwischen Spaziergängen (ms)
   fleeSpeed: 115,         // Fluchtgeschwindigkeit
   fleeTime: 3000,         // ms Flucht, danach verschwindet Pflaume
