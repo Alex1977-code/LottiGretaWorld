@@ -82,8 +82,9 @@ export class UiButton extends Phaser.GameObjects.Container {
       g.fillRoundedRect(-w / 2 + 3, -h / 2 + 2, w - 6, h * 0.35, r - 2); // Lichtkante
     }
     this.setSize(w, h);
-    if (!this.input) this.setInteractive(new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h), Phaser.Geom.Rectangle.Contains, { useHandCursor: true });
-    else { this.input.hitArea.setTo(-w / 2, -h / 2, w, h); }
+    // Trefffläche in ursprungs-normierten Koordinaten (Phaser addiert displayOrigin): oben links = (0,0)
+    if (!this.input) this.setInteractive({ hitArea: new Phaser.Geom.Rectangle(0, 0, w, h), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true });
+    else { this.input.hitArea.setTo(0, 0, w, h); }
   }
 
   setText(str) {

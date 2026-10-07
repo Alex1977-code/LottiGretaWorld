@@ -5,7 +5,7 @@ import { startServer, launchBrowser, loadGame, makeChecker, renderOverview, OUT 
 const PORT = 4183;
 const URL_BASE = `http://localhost:${PORT + Number(process.env.PORT_BASE ?? 0)}/?scale=${process.env.RENDER_SCALE ?? '1'}`;
 const stop = await startServer(PORT);
-const { browser, page, errors } = await launchBrowser();
+const { browser, page, errors } = await launchBrowser({ hasTouch: true });
 const { check, summary } = makeChecker();
 const sc = (fn, arg) => page.evaluate(fn, arg);
 const active = (k) => sc((k) => window.__game.scene.isActive(k), k);
@@ -29,6 +29,30 @@ check('Nur Level 1 frei', un.length === 1 && un[0] === 'level1');
 await page.keyboard.press('ArrowRight');
 await page.waitForTimeout(300);
 check('Gesperrter Pfad: Hero bleibt stehen', (await mapState()).current === 'level1');
+
+// 1a) Touch-Tipps (echte DOM-TouchEvents) auf Ton-Knopf und Greta-Porträt
+await page.evaluate(() => {
+  const canvas = document.querySelector('canvas');
+  window.__tap = (wx, wy) => {
+    const r = canvas.getBoundingClientRect();
+    const x = r.left + wx * (r.width / 480), y = r.top + wy * (r.height / 270);
+    const mk = () => new Touch({ identifier: 9, target: canvas, clientX: x, clientY: y, pageX: x, pageY: y, screenX: x, screenY: y, radiusX: 8, radiusY: 8, force: 1 });
+    canvas.dispatchEvent(new TouchEvent('touchstart', { touches: [mk()], targetTouches: [mk()], changedTouches: [mk()], bubbles: true, cancelable: true }));
+    canvas.dispatchEvent(new TouchEvent('touchend', { touches: [], targetTouches: [], changedTouches: [mk()], bubbles: true, cancelable: true }));
+  };
+});
+const mutedBefore = await sc(() => window.__audio.engine.muted);
+await sc(() => { const m = window.__game.scene.getScene('WorldMap'); window.__tap(m.muteBtn.x, m.muteBtn.y); });
+await page.waitForTimeout(200);
+check('Touch auf Ton-Knopf schaltet um', (await sc(() => window.__audio.engine.muted)) === !mutedBefore);
+await sc(() => { const m = window.__game.scene.getScene('WorldMap'); window.__tap(m.muteBtn.x, m.muteBtn.y); });
+await page.waitForTimeout(200);
+await sc(() => { const m = window.__game.scene.getScene('WorldMap'); const c = m.heroPicker.greta.c; window.__tap(c.x, c.y); });
+await page.waitForTimeout(200);
+check('Touch auf Greta-Porträt wählt Greta', (await sc(() => window.__game.scene.getScene('WorldMap').heroKey)) === 'greta');
+await sc(() => { const m = window.__game.scene.getScene('WorldMap'); const c = m.heroPicker.lotti.c; window.__tap(c.x, c.y); });
+await page.waitForTimeout(200);
+check('Touch auf Lotti-Porträt wählt Lotti', (await sc(() => window.__game.scene.getScene('WorldMap').heroKey)) === 'lotti');
 
 // 1b) Figur wechseln: Tab → Greta, gespeichert, im Level verwendet
 const heroBefore = await sc(() => window.__game.scene.getScene('WorldMap').heroKey);
@@ -99,6 +123,11 @@ await page.waitForTimeout(400);
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);
 check('Esc pausiert', await active('Pause') && (await sc(() => window.__game.scene.isPaused('Play'))));
+const heroInLevel = await sc(() => window.__game.scene.getScene('Play').hero.texture.key);
+await sc(() => window.__game.scene.getScene('Pause').switchHero());
+await page.waitForTimeout(100);
+const other = heroInLevel === 'lotti' ? 'greta' : 'lotti';
+check('Pause-Menü wechselt die Figur im Level', (await sc(() => window.__game.scene.getScene('Play').hero.texture.key)) === other && (await sc(() => JSON.parse(localStorage.getItem('lotti-greta-save-v1')).hero)) === other);
 await page.screenshot({ path: `${OUT}w05_pause.png` });
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);

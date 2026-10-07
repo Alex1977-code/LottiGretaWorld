@@ -3,7 +3,7 @@
 // Blätterschirm (Gleiten), Sturzflug und Aufschwung.
 
 import Phaser from 'phaser';
-import { HERO, PHYSICS, ENEMIES, DAMAGE, PFLAUME } from '../config.js';
+import { HERO, PHYSICS, ENEMIES, DAMAGE, PFLAUME, HERO_VARIANTS } from '../config.js';
 import { approach, damp, sign } from '../systems/mathUtil.js';
 import { vibrate } from '../systems/haptics.js';
 import { sfx } from '../audio/index.js';
@@ -31,6 +31,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, heroKey, input, effects) {
     super(scene, x, y, heroKey, 'idle0');
     this.key = heroKey;
+    this.variant = HERO_VARIANTS[heroKey] ?? HERO_VARIANTS.lotti;
     fit(this);
     this.y = y - worldH(this) / 2; // Füße auf y
     scene.add.existing(this);
@@ -78,6 +79,16 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
     this.createAnimations();
     this.play(`${this.key}-idle`);
+  }
+
+  /** Figur wechseln (Lotti ↔ Greta): Textur und Animationen tauschen, Zustand bleibt. */
+  setHeroKey(key) {
+    if (key === this.key) return;
+    this.key = key;
+    this.variant = HERO_VARIANTS[key] ?? HERO_VARIANTS.lotti;
+    this.setTexture(key, 'idle0');
+    this.createAnimations();
+    this.play(`${key}-idle`, true);
   }
 
   /** Normale Hitbox: mittig, Unterkante = Frame-Unterkante. */
@@ -298,13 +309,13 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
     switch (this.moveState) {
       case HeroState.GROUND:
-        accel = HERO.groundAccel; decel = HERO.groundDecel; maxSpeed = HERO.runSpeed; break;
+        accel = HERO.groundAccel; decel = HERO.groundDecel; maxSpeed = HERO.runSpeed * this.variant.speedMult; break;
       case HeroState.GLIDE:
-        accel = HERO.glideAccel; decel = HERO.glideDecel; maxSpeed = HERO.glideMaxSpeed; break;
+        accel = HERO.glideAccel; decel = HERO.glideDecel; maxSpeed = HERO.glideMaxSpeed * this.variant.airSpeedMult; break;
       case HeroState.DIVE:
-        accel = HERO.diveSteerAccel; decel = 0; maxSpeed = HERO.airMaxSpeed; break;
+        accel = HERO.diveSteerAccel; decel = 0; maxSpeed = HERO.airMaxSpeed * this.variant.airSpeedMult; break;
       default:
-        accel = HERO.airAccel; maxSpeed = HERO.airMaxSpeed;
+        accel = HERO.airAccel; maxSpeed = HERO.airMaxSpeed * this.variant.airSpeedMult;
         decel = this.swooping ? HERO.swoopAirDecel : HERO.airDecel;
     }
 
@@ -359,8 +370,8 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
       default: {
         body.setAllowGravity(true);
         // Variable Sprunghöhe: früh loslassen kappt die Aufwärtsgeschwindigkeit
-        if (this.isJumping && !inp.jumpHeld && vy < -HERO.jumpCutVelocity) {
-          vy = -HERO.jumpCutVelocity;
+        if (this.isJumping && !inp.jumpHeld && vy < -HERO.jumpCutVelocity * this.variant.jumpMult) {
+          vy = -HERO.jumpCutVelocity * this.variant.jumpMult;
           body.setVelocityY(vy);
           this.isJumping = false;
         }
@@ -375,7 +386,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
         // Zusatz-Schwerkraft: schneller fallen, leichter am Scheitelpunkt
         let extra = 0;
         if (!onGround) {
-          if (vy > 0) extra = PHYSICS.gravity * (HERO.fallMultiplier - 1);
+          if (vy > 0) extra = PHYSICS.gravity * (HERO.fallMultiplier * this.variant.fallMult - 1);
           else if (Math.abs(vy) < HERO.apexThreshold && this.isJumping) extra = PHYSICS.gravity * (HERO.apexGravityMult - 1);
         }
         body.setGravityY(extra);
@@ -385,7 +396,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
   doJump() {
     const body = this.body;
-    body.setVelocityY(-HERO.jumpVelocity);
+    body.setVelocityY(-HERO.jumpVelocity * this.variant.jumpMult);
     this.coyoteTimer = 0;
     this.jumpBufferTimer = 0;
     this.isJumping = true;

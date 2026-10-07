@@ -64,7 +64,7 @@ await page.keyboard.up('Space');
 await page.waitForTimeout(600);
 console.log(`kurzer Sprung: ${(y0 - minYShort).toFixed(0)}px, langer Sprung: ${(y0 - minYLong).toFixed(0)}px`);
 check('variable Sprunghöhe (lang > kurz + 15px)', (y0 - minYLong) > (y0 - minYShort) + 15);
-check('langer Sprung ca. 3-4 Tiles', (y0 - minYLong) > 44 && (y0 - minYLong) < 70);
+check('langer Sprung ca. 3-4 Tiles', (y0 - minYLong) > 44 && (y0 - minYLong) < 72);
 
 // 3) Gleiten: Springen, halten → an der Spitze öffnet sich der Schirm
 await page.keyboard.down('ArrowRight');
@@ -84,7 +84,7 @@ check('Gleit-Sinkgeschwindigkeit < 60', sawGlide && glideVy < 60 && glideVy > 0)
 await page.keyboard.up('Space');
 await page.keyboard.up('ArrowRight');
 await page.waitForTimeout(800);
-await page.evaluate(() => { const p = window.__game.scene.getScene('Play').hero; p.body.reset(300, 30); });
+await page.evaluate(() => { const p = window.__game.scene.getScene('Play').hero; p.body.reset(300, 30); p.coyoteTimer = 0; p.jumpBufferTimer = 0; });
 await page.waitForTimeout(100);
 await page.keyboard.down('Space');
 await page.keyboard.down('ArrowRight');
@@ -119,6 +119,24 @@ await page.keyboard.up('ArrowRight');
 await page.waitForTimeout(2500);
 s = await lotti(); log('landed', s);
 check('wieder am Boden', s.ground);
+
+// 4b) Figuren-Eigenschaften: Lotti springt höher, Greta weiter
+const jumpStats = async (key) => {
+  await page.evaluate((k) => { const s = window.__game.scene.getScene('Play'); s.hero.setHeroKey(k); s.hero.body.reset(60, 280); s.hero.coyoteTimer = 0; s.hero.jumpBufferTimer = 0; }, key);
+  await page.waitForTimeout(400);
+  const y0 = (await lotti()).y, x0 = (await lotti()).x;
+  await page.keyboard.down('ArrowRight'); await page.keyboard.down('Space');
+  let minY = y0, landedX = x0;
+  for (let i = 0; i < 40; i++) { await page.waitForTimeout(30); const p = await lotti(); minY = Math.min(minY, p.y); if (i > 5 && p.ground) { landedX = p.x; break; } }
+  await page.keyboard.up('Space'); await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(300);
+  return { height: y0 - minY, distance: landedX - x0 };
+};
+const statsL = await jumpStats('lotti');
+const statsG = await jumpStats('greta');
+console.log(`Lotti: ${statsL.height.toFixed(0)}px hoch / ${statsL.distance.toFixed(0)}px weit · Greta: ${statsG.height.toFixed(0)}px hoch / ${statsG.distance.toFixed(0)}px weit`);
+check('Lotti springt höher als Greta', statsL.height > statsG.height + 8);
+check('Greta springt weiter als Lotti', statsG.distance > statsL.distance + 8);
 
 // 5) Debug-Overlay
 await page.keyboard.press('d');

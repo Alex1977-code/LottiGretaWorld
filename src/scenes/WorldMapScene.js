@@ -7,6 +7,7 @@ import { GAME } from '../config.js';
 import { WORLD } from '../levels/worldmap.js';
 import { LEVELS } from '../levels/index.js';
 import { saveGame } from '../systems/SaveGame.js';
+import { HERO_VARIANTS } from '../config.js';
 import { vibrate } from '../systems/haptics.js';
 import { sfx, music, engine } from '../audio/index.js';
 import { uiText, uiButton } from '../ui.js';
@@ -45,24 +46,22 @@ export class WorldMapScene extends Phaser.Scene {
 
     this.title = uiText(this, GAME.width / 2, 14, this.world.name, { size: 14, color: '#ffffff', stroke: '#3a2a6a', thickness: 4 }).setDepth(20);
     this.info = uiText(this, GAME.width / 2, GAME.height - 26, '', { size: 10, color: '#ffffff', stroke: '#2a2550', thickness: 3 }).setDepth(20);
-    this.hint = uiText(this, GAME.width / 2, GAME.height - 8, 'Punkt antippen: hinlaufen  •  Leertaste/Pfeile am PC  •  Tab: Figur wechseln', { size: 7, color: '#eef0ff', stroke: '#2a2550', thickness: 2, shadow: false }).setDepth(20).setAlpha(0.9);
+    this.hint = uiText(this, 8, GAME.height - 8, 'Punkt antippen: hinlaufen  •  PC: Pfeile + Leertaste', { size: 7, color: '#eef0ff', stroke: '#2a2550', thickness: 2, shadow: false, originX: 0 }).setDepth(20).setAlpha(0.9);
     this.resetBtn = uiButton(this, GAME.width - 44, 10, 'Spielstand löschen', { size: 7, dark: true, padX: 6, padY: 2 }).setDepth(20);
     this.resetBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.onResetTap(); });
 
     this.coinIcons = [];
     // Großer Start-Knopf (Handy): startet das Level am aktuellen Punkt
-    this.startBtn = uiButton(this, GAME.width / 2, GAME.height - 52, 'Level starten', { size: 11, color: 0x4fb833, minWidth: 150, padY: 5 }).setDepth(21);
+    this.startBtn = uiButton(this, GAME.width - 70, GAME.height - 18, 'Level starten', { size: 10, color: 0x4fb833, minWidth: 124, padY: 5 }).setDepth(21);
     this.startBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.startLevel(); });
     this.updateInfo();
 
-    // Figur wählen (Lotti / Greta)
-    this.heroBtn = uiButton(this, 42, 24, '', { size: 7, color: 0xff6b9d, padX: 6, padY: 2, minWidth: 76 }).setDepth(20);
-    this.heroBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.switchHero(); });
+    // Figur wählen: zwei Porträt-Knöpfe (Lotti / Greta), Tab am PC
+    this.createHeroPicker();
     this.input.keyboard.on('keydown-TAB', (ev) => { ev.preventDefault(); this.switchHero(); });
-    this.updateHeroLabel();
 
     // Ton an/aus
-    this.muteBtn = uiButton(this, 42, 9, '', { size: 7, dark: true, padX: 6, padY: 2, minWidth: 76 }).setDepth(20);
+    this.muteBtn = uiButton(this, 44, 11, '', { size: 8, dark: true, padX: 8, padY: 3, minWidth: 80 }).setDepth(20);
     this.muteBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.toggleMute(); });
     this.input.keyboard.on('keydown-M', this.toggleMute, this);
     this.updateMuteLabel();
@@ -128,7 +127,7 @@ export class WorldMapScene extends Phaser.Scene {
       const label = uiText(this, 0, 12, LEVELS[n.key]?.name ?? n.key, { size: 7, color: unlocked ? '#ffffff' : '#b8b0c8', stroke: '#2a2550', thickness: 2, shadow: false, originY: 0 });
       c.add(label);
       // große Trefffläche fürs Handy
-      base.setInteractive(new Phaser.Geom.Circle(0, 0, 20), Phaser.Geom.Circle.Contains, { useHandCursor: unlocked });
+      base.setInteractive({ hitArea: new Phaser.Geom.Circle(10, 10, 20), hitAreaCallback: Phaser.Geom.Circle.Contains, useHandCursor: unlocked });
       base.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.onNodeTap(n.key); });
       this.nodeSprites[n.key] = c;
     }
@@ -251,21 +250,51 @@ export class WorldMapScene extends Phaser.Scene {
     if (Math.hypot(dx, dy) < 24) this.startLevel();
   }
 
-  /** Zwischen Lotti und Greta wechseln (wird gespeichert). */
-  switchHero() {
-    if (this.moving || this.starting) return;
-    this.heroKey = this.heroKey === 'lotti' ? 'greta' : 'lotti';
-    saveGame.hero = this.heroKey;
-    this.hero.setTexture(this.heroKey, 'idle0');
-    this.hero.play(`${this.heroKey}-idle`);
+  /** Zwei runde Porträt-Knöpfe oben links; die gewählte Figur hat einen goldenen Ring. */
+  createHeroPicker() {
+    this.heroPicker = {};
+    uiText(this, 44, 28, 'Figur', { size: 7, color: '#ffffff', stroke: '#2a2550', thickness: 2, shadow: false }).setDepth(20);
+    [['lotti', 26, 'Lotti'], ['greta', 62, 'Greta']].forEach(([key, x, name]) => {
+      const c = this.add.container(x, 48).setDepth(20);
+      const ring = this.add.circle(0, 0, 15, 0xffffff, 0.9).setStrokeStyle(2.5, 0xffc21a);
+      const face = fit(this.add.image(0, 1, key, 'idle0'), 1.1).setOrigin(0.5, 0.5);
+      const label = uiText(this, 0, 19, name, { size: 7, color: '#ffffff', stroke: '#2a2550', thickness: 2, shadow: false });
+      const trait = uiText(this, 0, 27, HERO_VARIANTS[key].trait, { size: 5.5, color: '#ffe9a8', stroke: '#2a2550', thickness: 2, shadow: false });
+      c.add([ring, face, label, trait]);
+      c.setSize(36, 44);
+      // Kreis um die Container-Mitte (ursprungs-normiert: Mitte = (18, 22))
+      c.setInteractive({ hitArea: new Phaser.Geom.Circle(18, 24, 20), hitAreaCallback: Phaser.Geom.Circle.Contains, useHandCursor: true });
+      c.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.selectHero(key); });
+      this.heroPicker[key] = { c, ring };
+    });
+    this.updateHeroPicker();
+  }
+
+  updateHeroPicker() {
+    for (const [key, { ring, c }] of Object.entries(this.heroPicker)) {
+      const active = key === this.heroKey;
+      ring.setStrokeStyle(active ? 3 : 1.5, active ? 0xffc21a : 0x9a9ab0);
+      ring.setFillStyle(0xffffff, active ? 0.95 : 0.55);
+      c.setAlpha(active ? 1 : 0.8);
+    }
+  }
+
+  /** Figur wählen (wird gespeichert). */
+  selectHero(key) {
+    if (this.moving || this.starting || key === this.heroKey) return;
+    this.heroKey = key;
+    saveGame.hero = key;
+    this.hero.setTexture(key, 'idle0');
+    this.hero.play(`${key}-idle`);
     this.tweens.add({ targets: this.hero, scaleX: 1.3 * Z, scaleY: 1.3 * Z, duration: 120, yoyo: true });
-    this.updateHeroLabel();
+    this.tweens.add({ targets: this.heroPicker[key].c, scaleX: 1.15, scaleY: 1.15, duration: 100, yoyo: true });
+    this.updateHeroPicker();
     sfx('select');
   }
 
-  updateHeroLabel() {
-    const name = this.heroKey === 'lotti' ? 'Lotti' : 'Greta';
-    this.heroBtn.setText(`Figur: ${name} (Tab)`);
+  /** Tab: zur jeweils anderen Figur wechseln. */
+  switchHero() {
+    this.selectHero(this.heroKey === 'lotti' ? 'greta' : 'lotti');
   }
 
   toggleMute() {
@@ -275,7 +304,7 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   updateMuteLabel() {
-    this.muteBtn.setText(engine.muted ? 'Ton: aus (M)' : 'Ton: an (M)');
+    this.muteBtn.setText(engine.muted ? 'Ton: aus' : 'Ton: an');
   }
 
   onResetTap() {
