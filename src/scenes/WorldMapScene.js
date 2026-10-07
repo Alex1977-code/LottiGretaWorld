@@ -84,30 +84,8 @@ export class WorldMapScene extends Phaser.Scene {
   // ---------- Darstellung ----------
 
   drawBackground() {
-    const { width: w, height: h } = GAME;
-    const g = this.add.graphics().setDepth(0);
-    // Abendlicher Wald: Verlauf + Hügel + Bäume (deterministisch)
-    for (let y = 0; y < h; y++) {
-      const t = y / h;
-      const c = Phaser.Display.Color.Interpolate.ColorWithColor(new Phaser.Display.Color(43, 58, 122), new Phaser.Display.Color(60, 90, 50), h, y);
-      g.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b), 1);
-      g.fillRect(0, y, w, 1);
-    }
-    const rnd = new Phaser.Math.RandomDataGenerator(['map']);
-    g.fillStyle(0x3f6b3a, 1);
-    for (let i = 0; i < 9; i++) {
-      g.fillEllipse(rnd.between(0, w), h * 0.55 + rnd.between(0, 40), rnd.between(120, 220), rnd.between(60, 110));
-    }
-    g.fillStyle(0x2f5230, 1);
-    g.fillRect(0, h * 0.5, w, h * 0.5);
-    for (let i = 0; i < 70; i++) {
-      const x = rnd.between(0, w), y = rnd.between(h * 0.4, h - 10);
-      const r = rnd.between(5, 11);
-      g.fillStyle(rnd.pick([0xa04a3a, 0xb8702a, 0x8a4a5a, 0x6d8a2b]), 1);
-      g.fillCircle(x, y, r);
-      g.fillStyle(0x4a2a1a, 1);
-      g.fillRect(x - 1, y + r - 2, 2, 5);
-    }
+    // Pixel-Art-Karte (Abendhimmel, Berge, Waldlichtung) aus gfx/background.js – beim Start erzeugt
+    this.add.image(0, 0, 'worldmap_bg').setOrigin(0).setDepth(0);
   }
 
   /** Alle Kanten als Punktlinien; gesperrte Kanten nur angedeutet. */
