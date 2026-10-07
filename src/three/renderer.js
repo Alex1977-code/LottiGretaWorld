@@ -8,6 +8,30 @@ import { RENDER3D } from '../render3d.js';
 
 let shared = null;
 
+// Adaptive Auflösung: Fällt die Bildrate über längere Zeit, wird die Zeichenfläche stufenweise
+// verkleinert (bis 60 %). Das hält Mittelklasse-Handys bei 60 fps; der Wert gilt für alle Ansichten.
+const quality = { scale: 1, slow: 0, fast: 0 };
+const QUALITY_MIN = 0.6, QUALITY_STEP = 0.15;
+
+/**
+ * Je Frame aufrufen (delta in ms). Liefert true, wenn sich die Qualitätsstufe geändert hat und
+ * die Leinwand neu ausgelegt werden muss (layoutCanvas mit force).
+ */
+export function adaptQuality(delta) {
+  if (!RENDER3D.adaptive) return false;
+  if (delta > 1000 / 45) { quality.slow++; quality.fast = 0; } else { quality.fast++; if (quality.fast > 20) quality.slow = 0; }
+  // 90 langsame Frames in Folge (ca. 2 s bei 45 fps) → eine Stufe runter
+  if (quality.slow >= 90 && quality.scale > QUALITY_MIN) {
+    quality.scale = Math.max(QUALITY_MIN, quality.scale - QUALITY_STEP);
+    quality.slow = 0;
+    return true;
+  }
+  return false;
+}
+
+/** Aktuelle Qualitätsstufe (1 = volle Auflösung). */
+export const getQualityScale = () => quality.scale;
+
 /** Renderer und Leinwand holen (beim ersten Aufruf erzeugen). */
 export function getRenderer() {
   if (shared) return shared;
@@ -50,7 +74,7 @@ export function layoutCanvas(game, renderer, canvas, camera, state, force = fals
   st.height = `${pr.height}px`;
   // Auflösung: Gerätepixel, aber begrenzt (Füllrate auf dem Handy)
   let ratio = Math.min(window.devicePixelRatio || 1, RENDER3D.maxPixelRatio);
-  ratio = Math.min(ratio, Math.sqrt(RENDER3D.maxPixels / (pr.width * pr.height)));
+  ratio = Math.min(ratio, Math.sqrt(RENDER3D.maxPixels / (pr.width * pr.height))) * quality.scale;
   renderer.setPixelRatio(ratio);
   renderer.setSize(pr.width, pr.height, false);
   if (camera) {

@@ -13,7 +13,7 @@ import Phaser from 'phaser';
 import { GAME } from '../../config.js';
 import { RENDER3D } from '../../render3d.js';
 import { createAvatar } from '../avatars/index.js';
-import { getRenderer, mountCanvas, layoutCanvas, hideCanvas } from '../renderer.js';
+import { getRenderer, mountCanvas, layoutCanvas, hideCanvas, adaptQuality } from '../renderer.js';
 import { Island, U, CX, CZ, smoothstep, lerp } from './terrain.js';
 import { rng, scatterTrees, scatterBushes, makeTreeMeshes, makeStones, makeFlowers, makeClouds, makeMountains, makeSky, makeWater, makeGlints } from './props.js';
 import { buildPathMeshes, samplePaths, NodeMarkers, PODIUM_R } from './paths.js';
@@ -311,7 +311,8 @@ export class MapView3D {
     const dt = delta / 1000;
     this.time += dt;
     this.frame++;
-    if ((this.frame & 31) === 0) this.syncLayout();
+    if (adaptQuality(this.game.loop.delta)) this.syncLayout(true);
+    else if ((this.frame & 31) === 0) this.syncLayout();
     this.updateCamera(this.time);
     this.markers.update(dt, this.time);
     this.syncHero(dt);

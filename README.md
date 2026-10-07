@@ -1,20 +1,31 @@
 # Lotti & Greta
 
-2D-Jump'n'Run im Geist klassischer 16-Bit-Plattformer, optimiert für Smartphones im
-Querformat. Läuft im Browser, installierbar als PWA. Alle Grafiken und Sounds werden
-prozedural per Code erzeugt – keine externen Assets.
+Jump'n'Run fürs Smartphone im Querformat: klassische Side-Scroller-Spielweise, dargestellt in
+echtem 3D im Stil moderner Spielzeug-Jump'n'Runs (Vorbild in der Anmutung: Super Mario 3D World).
+Läuft im Browser, installierbar als PWA. Alle Grafiken und Sounds werden prozedural per Code erzeugt –
+keine externen Assets.
 
 Zwei spielbare Heldinnen: **Lotti** (dunkelblond, geflochtene Zöpfe, rote Schleife, blaues Kleid)
 springt höher, **Greta** (hellblond, langes Haar mit Haarreif, grünes Kleid mit Schürze) springt
 weiter (`HERO_VARIANTS` in `src/config.js`). Die Figur wird auf der Weltkarte über die Porträt-Knöpfe
 gewählt (PC: Tab) und kann auch im Pause-Menü gewechselt werden.
-**Pflaume**, ein schwarz-weißes Kaninchen mit Schlappohren, ist das Reittier; sein Halstuch nimmt die
-Farbe der gefressenen Beere an und zeigt so die aktuelle Kraft. Die Sammelmünzen sind **Bitcoins**.
+**Pflaume**, ein schwarzes Schlappohr-Kaninchen mit weißer Brust, ist das Reittier; sein Halstuch nimmt
+die Farbe der gefressenen Beere an und zeigt so die aktuelle Kraft. Beim Reiten hält die Heldin dem
+Kaninchen eine Möhre an der Angel vor die Nase – deshalb rennt es schneller (`PFLAUME.rideSpeedMult`).
+Die Sammelmünzen sind **Bitcoins**.
 
-Grafik im modernen, glatten Spielzeug-Look (Vorbild in der Anmutung: aktuelle 3D-Jump'n'Runs, eigene
-Entwürfe): alles wird als Vektorgrafik mit dem Canvas-2D-Kontext gezeichnet (Verläufe, Glanzlichter,
-weiche Schatten) und in 2- bis 3-facher Auflösung gerastert; die Spiellogik bleibt in 480x270
-Weltpixeln. Regeln und Verträge stehen in `docs/GRAFIK-STYLEGUIDE.md`.
+### Darstellung
+
+- Die Spiellogik (Phaser 3, Arcade Physics) rechnet unverändert in 480x270 Weltpixeln mit 16-px-Tiles.
+- Die 3D-Ansicht (Three.js, `src/three/`) zeichnet Welt, Figuren, Gegner, Objekte und Effekte auf einer
+  eigenen WebGL-Leinwand unter der transparenten Phaser-Leinwand; HUD, Touch-Steuerung und Menüs bleiben
+  in Phaser. Die Perspektivkamera folgt der Spielkamera und blickt leicht von oben (`src/render3d.js`).
+- Jedes Phaser-Sprite bekommt über seinen Textur-Key einen **Avatar** (`src/three/avatars/`), der den
+  Spielzustand liest und ein prozedural gebautes, prozedural animiertes 3D-Modell steuert. Die Welt
+  entsteht aus der Logik-Tilemap (`src/three/world/`), die Weltkarte ist eine 3D-Insel (`src/three/map/`).
+- Fällt die Bildrate, senkt die Ansicht stufenweise die Auflösung (`?adapt=0` schaltet das ab).
+- `?r3d=0` schaltet auf die 2D-Vektorfassung zurück (Canvas-2D-Grafik in 2- bis 3-facher Auflösung,
+  `src/gfx/`). Regeln: `docs/3D-STYLEGUIDE.md` (3D) und `docs/GRAFIK-STYLEGUIDE.md` (2D).
 
 ## Entwicklung
 
@@ -23,7 +34,7 @@ npm install
 npm run dev        # Dev-Server (http://localhost:5173)
 npm run build      # Produktions-Build nach dist/
 npm run preview    # Build lokal ansehen
-npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots → tests/out/
+npm test           # Headless-Tests (Chromium): Logik in 2D, 3D-Ansichten mit Screenshots → tests/out/
 ```
 
 ## Steuerung (PC)
@@ -42,9 +53,9 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 
 ## Steuerung (Touch, Querformat)
 
-- **Weltkarte:** Level-Punkt antippen = hinlaufen (auch über mehrere Etappen), großer Knopf
-  „Level starten“ unten rechts oder die Figur antippen = Level starten; Porträt-Knöpfe oben links
-  wählen Lotti/Greta, daneben der Ton-Knopf.
+- **Weltkarte (3D-Insel):** Level-Podest antippen = hinlaufen (auch über mehrere Etappen), großer
+  Knopf „Level starten“ unten rechts oder die Figur antippen = Level starten; Porträt-Knöpfe oben
+  links wählen Lotti/Greta, daneben der Ton-Knopf.
 - **Linke Bildschirmhälfte:** virtueller Analog-Stick – erscheint dort, wo der Daumen aufsetzt,
   wandert mit, wenn man über den Rand hinauszieht.
 - **Rechte Hälfte:** Tippen = Springen, Halten = Gleiten (Blätterschirm),

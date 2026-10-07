@@ -21,8 +21,13 @@ function pickEnabled() {
   }
 }
 
+function pickAdaptive() {
+  try { return new URLSearchParams(window.location.search).get('adapt') !== '0'; } catch (_) { return true; }
+}
+
 export const RENDER3D = {
   enabled: pickEnabled(),
+  adaptive: pickAdaptive(), // Auflösung bei niedriger Bildrate automatisch senken (?adapt=0 schaltet ab)
   fov: 30,            // vertikaler Öffnungswinkel der Kamera (Grad)
   tilt: 12,           // Kamera blickt um diesen Winkel von oben auf die Spielebene (Grad)
   zoom: 1.0,          // >1 = Kamera weiter weg (mehr Rand sichtbar)

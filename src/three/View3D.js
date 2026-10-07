@@ -15,7 +15,7 @@ import { RENDER3D } from '../render3d.js';
 import { createAvatar } from './avatars/index.js';
 import { World3D } from './world/World3D.js';
 import { Effects3D } from './Effects3D.js';
-import { getRenderer, mountCanvas, layoutCanvas, hideCanvas } from './renderer.js';
+import { getRenderer, mountCanvas, layoutCanvas, hideCanvas, adaptQuality } from './renderer.js';
 
 /** Weltpixel → 3D-Einheiten. */
 export const U = 1 / GAME.tile;
@@ -101,7 +101,8 @@ export class View3D {
     const dt = delta / 1000;
     this.time += dt;
     this.frame++;
-    if ((this.frame & 31) === 0) this.syncLayout();
+    if (adaptQuality(this.game.loop.delta)) this.syncLayout(true);
+    else if ((this.frame & 31) === 0) this.syncLayout();
     this.updateCamera();
 
     for (const [obj, av] of this.avatars) {

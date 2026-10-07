@@ -44,7 +44,7 @@ export async function loadGame(page, port, errors, stop, level = 'test', scale =
   port += Number(process.env.PORT_BASE ?? 0);
   // Logik-Tests laufen mit Render-Skalierung 1 und 2D-Darstellung (der Software-Renderer im Headless-Browser ist sonst zu langsam);
   // tests/three.mjs prüft die 3D-Ansicht gesondert
-  await page.goto(`http://localhost:${port}/?level=${level}&scale=${scale}&r3d=${r3d}`, { waitUntil: 'load' });
+  await page.goto(`http://localhost:${port}/?level=${level}&scale=${scale}&r3d=${r3d}&adapt=0`, { waitUntil: 'load' });
   try {
     await page.waitForFunction(() => window.__game && window.__game.scene.isActive('Play') && window.__game.scene.isActive('UI'), null, { timeout: 40000 });
   } catch {
