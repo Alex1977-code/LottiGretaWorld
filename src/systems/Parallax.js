@@ -28,9 +28,11 @@ export class Parallax {
 
   /** Ebenen anhand der Kameraposition verschieben (nur zwei Zuweisungen je Sprite). */
   update(camera) {
+    // worldView statt scrollX/Y: bei gezoomter Kamera ist scroll um FIXED_OFFSET versetzt
+    const vx = camera.worldView.x, vy = camera.worldView.y;
     for (const l of this.layers) {
-      l.sprite.tilePositionX = camera.scrollX * l.fx * RENDER.scale;
-      l.sprite.y = l.top - Math.min(camera.scrollY * l.fy, l.maxY);
+      l.sprite.tilePositionX = vx * l.fx * RENDER.scale;
+      l.sprite.y = l.top - Math.min(Math.max(0, vy * l.fy), l.maxY);
     }
   }
 }
