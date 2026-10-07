@@ -10,6 +10,7 @@ export function buildLevel1() {
   const hill = (x0, x1, top) => g.rect(x0, top, x1, FLOOR - 1, '#');
   const plat = (x0, x1, row) => g.hline(x0, x1, row, '=');
   const thorns = (x0, x1, row = FLOOR - 1) => g.hline(x0, x1, row, '^');
+  const deco = (x, ch, row = FLOOR - 1) => g.setIfEmpty(x, row, ch);
 
   g.rect(0, FLOOR, W - 1, H - 1, '#');
 
@@ -100,6 +101,14 @@ export function buildLevel1() {
   g.set(291, FLOOR - 1, 'm');
   g.set(295, FLOOR - 1, 'X');           // Zielfahne
   g.rect(W - 2, FLOOR - 8, W - 1, FLOOR - 1, 'B');
+
+  // Zierde auf dem Waldboden (Grasbüschel, Blumen, Pilze, Steine) – nur auf freien Zellen
+  for (const [x, ch] of [[6, '"'], [9, '*'], [12, '&'], [17, '"'], [24, '%'], [29, '"'], [35, '*'], [44, '"', FLOOR - 4], [55, '&'], [58, '"'], [63, '*'], [70, '%'], [74, '"'], [83, '*'], [91, '"'], [100, '&'], [127, '"'], [131, '*'], [136, '%'], [141, '"'], [147, '&'], [157, '*'], [169, '"'], [182, '%'], [189, '*'], [195, '"'], [200, '&'], [229, '"'], [239, '%'], [257, '"'], [270, '*'], [274, '"'], [281, '&'], [289, '"'], [293, '*']]) {
+    deco(x, ch);
+  }
+  deco(45, '*', FLOOR - 4);
+  deco(284, '"', FLOOR - 4);
+  deco(286, '*', FLOOR - 4);
 
   return asciiToTiled(g.toRows(), { name: 'Herbstwald' });
 }

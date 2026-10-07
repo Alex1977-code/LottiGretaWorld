@@ -20,6 +20,7 @@ TILE_NAMES.push('deco_grass');     // 19: Grasbüschel
 TILE_NAMES.push('deco_flowers');   // 20: Blümchen im Gras
 TILE_NAMES.push('deco_mushroom');  // 21: zwei Pilze
 TILE_NAMES.push('deco_stone');     // 22: Stein mit Moos
+TILE_NAMES.push('cave_floor');     // 23: Höhlenboden (Erde ohne Gras, mit Kontur oben)
 
 export const TILE_INDEX = {
   ground: 0,
@@ -30,6 +31,7 @@ export const TILE_INDEX = {
   decoFlowers: 20,
   decoMushroom: 21,
   decoStone: 22,
+  caveFloor: 23,
 };
 
 /** Liefert den Tile-Index für Boden mit gegebener Kantenmaske. */
@@ -200,6 +202,14 @@ function drawGround(ctx, ox, oy, mask) {
   if (bottom && right) blit(ctx, CORNER_BR, ox + 12, oy + 13);
 }
 
+// Höhlenboden: Erde mit dunkler Kontur und Schattenstreifen statt Grasnarbe
+const CAVE_TOP = [
+  'OOOOOOOOOOOOOOOO',
+  'eeedeeeeedeeeeed',
+  'DeDDDeDDDDeDDeDD',
+  '  t      t      ',
+];
+
 // ---------------------------------------------------------------- Plattform
 
 // Holzsteg: helle Oberkante, Maserung, dunkle Unterkante, Nägel; darunter Pfosten mit Streben
@@ -355,5 +365,8 @@ export function drawTile(ctx, name, ox, oy) {
     blit(ctx, DECO_MUSHROOM, ox, oy);
   } else if (name === 'deco_stone') {
     blit(ctx, DECO_STONE, ox, oy);
+  } else if (name === 'cave_floor') {
+    blit(ctx, DIRT, ox, oy);
+    blit(ctx, CAVE_TOP, ox, oy);
   }
 }

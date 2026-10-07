@@ -89,6 +89,7 @@ export class PlayScene extends Phaser.Scene {
     const first = tileset.firstgid;
     this.groundLayer.setCollisionBetween(first + TILE_INDEX.ground, first + TILE_INDEX.ground + 15);
     this.groundLayer.setCollisionBetween(first + TILE_INDEX.brick, first + TILE_INDEX.brickAlt);
+    this.groundLayer.setCollision(first + TILE_INDEX.caveFloor);
     // Einseitige Plattformen: nur von oben begehbar
     const platformGid = first + TILE_INDEX.platform;
     this.groundLayer.forEachTile((t) => {

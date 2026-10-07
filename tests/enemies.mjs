@@ -101,7 +101,8 @@ check('Herzen nach Respawn voll', !!respawned && respawned.hearts === 3);
 let s;
 
 // 5) Checkpoint: hinlaufen, aktivieren, sterben → Respawn am Checkpoint
-const cp = await page.evaluate(() => { const c = window.__game.scene.getScene('Play').checkpoints.getChildren()[0]; return { x: c.x, y: c.y, bottom: c.body.bottom }; });
+// (Pilze in Checkpoint-Nähe entfernen – ihr Sprung-Timer ist zufällig und würde den Lauf stören)
+const cp = await page.evaluate(() => { const s = window.__game.scene.getScene('Play'); const c = s.checkpoints.getChildren()[0]; s.enemies.getChildren().filter((e) => Math.abs(e.x - c.x) < 200).forEach((e) => e.destroy()); return { x: c.x, y: c.y, bottom: c.body.bottom }; });
 await teleport(cp.x - 40, cp.bottom - 12);
 await page.keyboard.down('ArrowRight'); await page.waitForTimeout(600); await page.keyboard.up('ArrowRight');
 const cpActive = await page.evaluate(() => window.__game.scene.getScene('Play').checkpoints.getChildren()[0].active_);

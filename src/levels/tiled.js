@@ -10,6 +10,7 @@ import { TILE_SIZE, TILE_INDEX, TILE_NAMES, groundIndex, EDGE } from '../gfx/til
 //  'k' Laufkäfer  'm' hüpfender Pilz  'C' Checkpoint
 //  'F' Pflaume  'R' rote Beere  'U' blaue Beere  'Y' gelbe Beere
 //  'o' große Münze  'K' Schlüssel  'G' Tor (geheimer Ausgang)  'X' Zielfahne  '^' Dornen
+//  Zier (ohne Kollision): '"' Grasbüschel  '*' Blumen  '&' Pilze  '%' Stein
 export const LEGEND = {
   GROUND: '#',
   PLATFORM: '=',
@@ -27,6 +28,17 @@ export const LEGEND = {
   GATE: 'G',
   FLAG: 'X',
   THORNS: '^',
+  DECO_GRASS: '"',
+  DECO_FLOWERS: '*',
+  DECO_MUSHROOM: '&',
+  DECO_STONE: '%',
+};
+
+const DECO_TILES = {
+  [LEGEND.DECO_GRASS]: TILE_INDEX.decoGrass,
+  [LEGEND.DECO_FLOWERS]: TILE_INDEX.decoFlowers,
+  [LEGEND.DECO_MUSHROOM]: TILE_INDEX.decoMushroom,
+  [LEGEND.DECO_STONE]: TILE_INDEX.decoStone,
 };
 
 // Zeichen → Objekt (name/type); Position ist jeweils die Unterkante des Tiles
@@ -72,9 +84,13 @@ export function asciiToTiled(rows, opts = {}) {
         if (!isGround(x + 1, y)) mask |= EDGE.RIGHT;
         if (!isGround(x, y + 1)) mask |= EDGE.BOTTOM;
         if (!isGround(x - 1, y)) mask |= EDGE.LEFT;
-        gid = groundIndex(mask) + 1;
+        // Höhlenboden: oben frei, aber innerhalb von 4 Zeilen darüber liegt wieder Boden (Decke)
+        const isCave = mask === EDGE.TOP && [1, 2, 3, 4].some((d) => y - d >= 0 && rows[y - d][x] === LEGEND.GROUND);
+        gid = (isCave ? TILE_INDEX.caveFloor : groundIndex(mask)) + 1;
       } else if (ch === LEGEND.PLATFORM) {
         gid = TILE_INDEX.platform + 1;
+      } else if (DECO_TILES[ch] !== undefined) {
+        gid = DECO_TILES[ch] + 1;
       } else if (ch === LEGEND.BRICK) {
         gid = TILE_INDEX.brick + 1 + ((x + y) % 2);
       } else if (OBJECT_CHARS[ch]) {

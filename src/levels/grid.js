@@ -12,6 +12,12 @@ export class Grid {
     this.rows[y][x] = ch;
   }
 
+  /** Setzt nur, wenn die Zelle leer ist (für Zierde). */
+  setIfEmpty(x, y, ch) {
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height) return;
+    if (this.rows[y][x] === '.') this.rows[y][x] = ch;
+  }
+
   /** Rechteck füllen (inklusive Endkoordinaten). */
   rect(x0, y0, x1, y1, ch) {
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) this.set(x, y, ch);

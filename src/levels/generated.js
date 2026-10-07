@@ -68,6 +68,10 @@ export function buildGeneratedLevel(seed, o = {}) {
       const tx = x + rnd.between(2, len - 4);
       g.hline(tx, tx + 1, FLOOR - level - 1, '^');
     }
+    // Zierde auf dem Abschnitt
+    for (let i = 0; i < Math.floor(len / 4); i++) {
+      if (rnd.frac() < 0.6) g.setIfEmpty(x + rnd.between(0, len - 1), FLOOR - level - 1, rnd.pick(['"', '"', '*', '&', '%']));
+    }
     // Checkpoint in der Mitte
     if (!checkpointSet && x >= mid) {
       g.set(x + 1, FLOOR - level - 1, 'C');
