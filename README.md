@@ -4,16 +4,17 @@
 Querformat. Läuft im Browser, installierbar als PWA. Alle Grafiken und Sounds werden
 prozedural per Code erzeugt – keine externen Assets.
 
-Zwei spielbare Heldinnen mit gleichen Fähigkeiten: **Lotti** (dunkelblond, zwei geflochtene Zöpfe,
-rote Schleife, blaues Kleid) und **Greta** (hellblond, langes Haar mit Haarreif, grünes Kleid mit
-Schürze). Die Figur wird auf der Weltkarte gewählt (Tab oder Tippen auf die Figur).
-**Pflaume**, der runde lila Käfer, ist das Reittier; seine Flecken nehmen die Farbe der gefressenen
-Beere an und zeigen so die aktuelle Kraft.
+Zwei spielbare Heldinnen: **Lotti** (dunkelblond, geflochtene Zöpfe, rote Schleife, blaues Kleid)
+springt höher, **Greta** (hellblond, langes Haar mit Haarreif, grünes Kleid mit Schürze) springt
+weiter (`HERO_VARIANTS` in `src/config.js`). Die Figur wird auf der Weltkarte über die Porträt-Knöpfe
+gewählt (PC: Tab) und kann auch im Pause-Menü gewechselt werden.
+**Pflaume**, ein schwarz-weißes Kaninchen mit Schlappohren, ist das Reittier; sein Halstuch nimmt die
+Farbe der gefressenen Beere an und zeigt so die aktuelle Kraft. Die Sammelmünzen sind **Bitcoins**.
 
-Grafik im 16-Bit-Stil (Vorbild: SNES-Plattformer, eigene Entwürfe): Figuren, Gegner, Objekte und
-Tiles als Pixel-Strings mit Outlines und 3–4 Schattierungsstufen, Hintergrund mit sechs
-Parallax-Ebenen (Himmel, Wolken, Berge, zwei Baumreihen, Unterholz). Regeln und Verträge stehen in
-`docs/GRAFIK-STYLEGUIDE.md`.
+Grafik im modernen, glatten Spielzeug-Look (Vorbild in der Anmutung: aktuelle 3D-Jump'n'Runs, eigene
+Entwürfe): alles wird als Vektorgrafik mit dem Canvas-2D-Kontext gezeichnet (Verläufe, Glanzlichter,
+weiche Schatten) und in 2- bis 3-facher Auflösung gerastert; die Spiellogik bleibt in 480x270
+Weltpixeln. Regeln und Verträge stehen in `docs/GRAFIK-STYLEGUIDE.md`.
 
 ## Entwicklung
 
@@ -41,6 +42,9 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 
 ## Steuerung (Touch, Querformat)
 
+- **Weltkarte:** Level-Punkt antippen = hinlaufen (auch über mehrere Etappen), großer Knopf
+  „Level starten“ unten rechts oder die Figur antippen = Level starten; Porträt-Knöpfe oben links
+  wählen Lotti/Greta, daneben der Ton-Knopf.
 - **Linke Bildschirmhälfte:** virtueller Analog-Stick – erscheint dort, wo der Daumen aufsetzt,
   wandert mit, wenn man über den Rand hinauszieht.
 - **Rechte Hälfte:** Tippen = Springen, Halten = Gleiten (Blätterschirm),
@@ -58,8 +62,8 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 
 ## Pflaume (Reittier)
 
-- Pflaume (`F`) wartet im Level; die Heldin springt drauf → Reiten (größere Hitbox, kein Blätterschirm).
-- Beeren (`R` rot, `U` blau, `Y` gelb) frisst Pflaume beim Drüberreiten; die Kraft steht im HUD und färbt seine Flecken:
+- Pflaume (`F`), das Schlappohr-Kaninchen, wartet im Level; die Heldin springt drauf → Reiten (größere Hitbox, kein Blätterschirm).
+- Beeren (`R` rot, `U` blau, `Y` gelb) frisst Pflaume beim Drüberreiten; die Kraft steht im HUD und färbt sein Halstuch:
   - **rot:** Aktion (X / Aktionsknopf) spuckt Feuerbälle, die über den Boden hüpfen und Gegner erledigen
   - **blau:** Sprungtaste in der Luft halten → 3 s Schweben (füllt sich am Boden wieder auf)
   - **gelb:** Aktion in der Luft → Stampfsprung: Erschütterung, Gegner im Umkreis, Steinblöcke darunter zerbrechen
@@ -68,7 +72,7 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 
 ## Level 1 „Herbstwald“
 
-`src/levels/level1.js` – ca. 2 Minuten, 300 Tiles breit. Fünf große Münzen (`o`), Checkpoint in der
+`src/levels/level1.js` – ca. 2 Minuten, 300 Tiles breit. Fünf Bitcoins (`o`), Checkpoint in der
 Mitte, Dornen (`^`), Pflaume mit allen drei Beeren. Normaler Ausgang: Zielfahne (`X`).
 Geheimer Ausgang: Schlüssel (`K`) in der Höhle unter dem Waldboden (Zugang per Stampfsprung durch die
 Steindecke oder über die Treppe am Höhlenende), Tor (`G`) auf der Anhöhe vor dem Ziel.
@@ -120,8 +124,10 @@ src/
   entities/          Hero (Lotti/Greta), Pflaume, Fireball, Berry, Coin, Items (Key, Gate, Flag, Thorns), Gegner, Checkpoint
   systems/           Eingabe (Tastatur+Touch), Kamera, Effekte, Debug, Haptik, PWA, Querformat
   levels/            ASCII→Tiled-Konverter, Grid-Stempel, Testlevel, Level 1, Generator, Weltkarte, Register
-  gfx/               Prozedurale Texturen: sprites/*.js (Pixel-Art als Strings, je Modul eigene Palette),
-                     tiles.js (Autotile-Boden), background.js (Parallax-Ebenen); Styleguide in docs/
+  gfx/               Prozedurale Vektor-Texturen: sprites/*.js (draw-Funktionen je Sheet), tiles.js
+                     (Autotile-Boden), background.js (Parallax-Ebenen, Weltkarte); Styleguide in docs/
+  render.js          Render-Skalierung (2–3x), Sprite-/Hitbox-Helfer, UI-Kamera
+  ui.js              UI-Bausteine (Schrift, Panels, Pillen-Knöpfe)
   audio/             Chiptune-Synth: Engine, Effekte, Sequencer, Themen
 tests/run.mjs        Headless-Test Tastatur (Playwright)
 tests/touch.mjs      Headless-Test Touch-Steuerung, Querformat, PWA
@@ -132,6 +138,7 @@ tests/worldmap.mjs   Headless-Test Weltkarte (Freischaltung, Laufen, Geheimpfad,
 tools/make-icons.mjs PWA-Icons aus der Lotti-Grafik erzeugen
 ```
 
-Die Pixel-Art-Frames in `src/gfx/sprites/*.js` können später 1:1 durch echte Spritesheets
+Die Vektor-Frames in `src/gfx/sprites/*.js` können später 1:1 durch echte Spritesheets
 (gleicher Texture-Key, gleiche Frame-Namen) ersetzt werden. Frame-Verträge: `docs/GRAFIK-STYLEGUIDE.md`,
-Prüfung: `node tools/check-frames.mjs`.
+Prüfung: `node tools/check-frames.mjs`. Render-Skalierung erzwingen: `?scale=1|2|3`.
+`tests/render.mjs` erzeugt Screenshots in voller Auflösung, `tests/sheets.mjs <keys>` exportiert Sheets.
