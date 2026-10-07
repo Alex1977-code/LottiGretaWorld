@@ -254,13 +254,13 @@ export class WorldMapScene extends Phaser.Scene {
   /** Zwei runde Porträt-Knöpfe oben links; die gewählte Figur hat einen goldenen Ring. */
   createHeroPicker() {
     this.heroPicker = {};
-    uiText(this, 44, 28, 'Figur', { size: 7, color: '#ffffff', stroke: '#2a2550', thickness: 2, shadow: false }).setDepth(20);
-    [['lotti', 26, 'Lotti'], ['greta', 62, 'Greta']].forEach(([key, x, name]) => {
+    uiText(this, 50, 28, 'Figur', { size: 7, color: '#ffffff', stroke: '#2a2550', thickness: 2, shadow: false }).setDepth(20);
+    [['lotti', 26, 'Lotti'], ['greta', 74, 'Greta']].forEach(([key, x, name]) => {
       const c = this.add.container(x, 48).setDepth(20);
       const ring = this.add.circle(0, 0, 15, 0xffffff, 0.9).setStrokeStyle(2.5, 0xffc21a);
       const face = fit(this.add.image(0, 1, key, 'idle0'), 1.1).setOrigin(0.5, 0.5);
       const label = uiText(this, 0, 19, name, { size: 7, color: '#ffffff', stroke: '#2a2550', thickness: 2, shadow: false });
-      const trait = uiText(this, 0, 27, HERO_VARIANTS[key].trait, { size: 5.5, color: '#ffe9a8', stroke: '#2a2550', thickness: 2, shadow: false });
+      const trait = uiText(this, 0, 27, HERO_VARIANTS[key].trait, { size: 5, color: '#ffe9a8', stroke: '#2a2550', thickness: 1.5, shadow: false });
       c.add([ring, face, label, trait]);
       c.setSize(36, 44);
       // Kreis um die Container-Mitte (ursprungs-normiert: Mitte = (18, 22))
