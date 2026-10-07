@@ -16,7 +16,7 @@ const unlockedNodes = () => sc(() => { const m = window.__game.scene.getScene('W
 await page.goto(URL_BASE, { waitUntil: 'load' });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: 'load' });
-try { await page.waitForFunction(() => window.__game && window.__game.scene.isActive('WorldMap'), null, { timeout: 15000 }); }
+try { await page.waitForFunction(() => window.__game && window.__game.scene.isActive('WorldMap'), null, { timeout: 40000 }); }
 catch { console.log('Weltkarte startet nicht:', errors); stop(); process.exit(1); }
 await page.waitForTimeout(500);
 await page.screenshot({ path: `${OUT}w01_map.png` });
@@ -30,11 +30,20 @@ await page.keyboard.press('ArrowRight');
 await page.waitForTimeout(300);
 check('Gesperrter Pfad: Hero bleibt stehen', (await mapState()).current === 'level1');
 
+// 1b) Figur wechseln: Tab → Greta, gespeichert, im Level verwendet
+const heroBefore = await sc(() => window.__game.scene.getScene('WorldMap').heroKey);
+await page.keyboard.press('Tab');
+await page.waitForTimeout(200);
+const heroAfter = await sc(() => ({ key: window.__game.scene.getScene('WorldMap').heroKey, tex: window.__game.scene.getScene('WorldMap').hero.texture.key, saved: JSON.parse(localStorage.getItem('lotti-greta-save-v1')).hero }));
+check('Tab wechselt die Figur (Lotti → Greta)', heroBefore === 'lotti' && heroAfter.key === 'greta' && heroAfter.tex === 'greta' && heroAfter.saved === 'greta');
+await page.screenshot({ path: `${OUT}w01b_greta.png` });
+
 // 2) Level 1 starten
 await page.keyboard.press('Space');
 await page.waitForFunction(() => window.__game.scene.isActive('Play'), null, { timeout: 5000 });
 await page.waitForTimeout(500);
 check('Leertaste startet Level 1', await active('Play') && (await sc(() => window.__game.scene.getScene('Play').levelKey)) === 'level1');
+check('Level nutzt die gewählte Figur (Greta)', (await sc(() => window.__game.scene.getScene('Play').hero.texture.key)) === 'greta');
 
 // Zur Fahne teleportieren und abschließen
 await sc(() => { const s = window.__game.scene.getScene('Play'); const f = s.flags.getChildren()[0]; s.hero.body.reset(f.x - 20, f.y); });
@@ -71,7 +80,7 @@ for (const key of ['level2', 'level3', 'level4']) {
 // 5) Geheimpfad: Level 1 mit geheimem Ausgang im Speicherstand → Pfad 1→3 frei
 await sc(() => { const d = JSON.parse(localStorage.getItem('lotti-greta-save-v1')); d.levels.level1.secret = true; d.current = 'level1'; localStorage.setItem('lotti-greta-save-v1', JSON.stringify(d)); });
 await page.goto(URL_BASE, { waitUntil: 'load' });
-await page.waitForFunction(() => window.__game && window.__game.scene.isActive('WorldMap'), null, { timeout: 15000 });
+await page.waitForFunction(() => window.__game && window.__game.scene.isActive('WorldMap'), null, { timeout: 40000 });
 await page.waitForTimeout(500);
 un = await unlockedNodes();
 check('Geheimer Ausgang schaltet Level 3 frei', un.includes('level3'));

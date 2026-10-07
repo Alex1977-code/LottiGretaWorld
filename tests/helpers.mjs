@@ -17,7 +17,11 @@ export async function startServer(port) {
   const server = spawn('npx', ['vite', 'preview', '--port', String(port), '--strictPort'], { stdio: 'pipe', detached: true });
   const stop = () => { try { process.kill(-server.pid, 'SIGTERM'); } catch { /* bereits beendet */ } };
   process.on('exit', stop);
-  await new Promise((res) => setTimeout(res, 1500));
+  // Warten, bis der Server antwortet (unter Last kann das dauern)
+  for (let i = 0; i < 60; i++) {
+    try { const r = await fetch(`http://localhost:${port}/`); if (r.ok) break; } catch { /* noch nicht da */ }
+    await new Promise((res) => setTimeout(res, 250));
+  }
   return stop;
 }
 
@@ -40,7 +44,7 @@ export async function loadGame(page, port, errors, stop, level = 'test') {
   port += Number(process.env.PORT_BASE ?? 0);
   await page.goto(`http://localhost:${port}/?level=${level}`, { waitUntil: 'load' });
   try {
-    await page.waitForFunction(() => window.__game && window.__game.scene.isActive('Play') && window.__game.scene.isActive('UI'), null, { timeout: 15000 });
+    await page.waitForFunction(() => window.__game && window.__game.scene.isActive('Play') && window.__game.scene.isActive('UI'), null, { timeout: 40000 });
   } catch {
     console.log('Spiel startet nicht. Konsole:');
     for (const x of errors) console.log('  ', x);

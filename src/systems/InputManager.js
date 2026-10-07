@@ -15,7 +15,7 @@ export class InputManager {
       space: KC.SPACE, x: KC.X, d: KC.D, r: KC.R,
     });
     // Browser-Standardverhalten (Scrollen) für Spieltasten unterbinden
-    kb.addCapture([KC.LEFT, KC.RIGHT, KC.UP, KC.DOWN, KC.SPACE]);
+    kb.addCapture([KC.LEFT, KC.RIGHT, KC.UP, KC.DOWN, KC.SPACE, KC.TAB]);
 
     // Vorgemerkte Flanken bis zum nächsten update()
     this.pending = { jump: false, jumpRelease: false, dive: false, action: false, debug: false, reset: false };
