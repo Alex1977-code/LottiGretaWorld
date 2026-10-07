@@ -60,6 +60,6 @@ export class Hopper extends Enemy {
         }
         break;
     }
-    this.setFlipX(this.dir > 0);
+    this.setFlipX(this.dir < 0); // Grafik blickt nach rechts
   }
 }

@@ -39,6 +39,6 @@ export class Walker extends Enemy {
     }
 
     body.setVelocityX(this.dir * this.speed);
-    this.setFlipX(this.dir > 0);
+    this.setFlipX(this.dir < 0); // Grafik blickt nach rechts
   }
 }

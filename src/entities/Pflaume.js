@@ -135,7 +135,7 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
     } else {
       body.setVelocityX(0);
     }
-    this.setFlipX(this.dir > 0);
+    this.setFlipX(this.dir < 0); // Grafik blickt nach rechts
     this.animate(delta, this.walking ? ['walk0', 'walk1'] : ['idle0', 'idle1'], this.walking ? 160 : 500);
   }
 
@@ -152,7 +152,7 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
       this.hopTimer = PFLAUME.fleeHopInterval;
       this.scene.effects?.dust(this.x, body.bottom, 2, 0.5);
     }
-    this.setFlipX(this.dir > 0);
+    this.setFlipX(this.dir < 0); // Grafik blickt nach rechts
     this.setFrame(this.frameName('panic'));
     // Blinken in der letzten Sekunde
     this.setAlpha(this.fleeTimer < 1000 && Math.floor(this.fleeTimer / 90) % 2 === 0 ? 0.4 : 1);
@@ -168,7 +168,7 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
 
     // Füße des Käfers 12 px unter den Füßen der Heldin (= Unterkante der gemeinsamen Hitbox)
     this.setPosition(Math.round(hero.x), Math.round(hero.y + hero.height / 2 + (PFLAUME.bodyHeight - HERO.bodyHeight) - this.height / 2));
-    this.setFlipX(hero.facing > 0);
+    this.setFlipX(hero.facing < 0);
     this.setAlpha(hero.alpha);
 
     let base;
