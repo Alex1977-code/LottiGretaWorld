@@ -2,13 +2,15 @@
 
 import Phaser from 'phaser';
 import { PFLAUME } from '../config.js';
+import { fit, setBodyBox } from '../render.js';
 
 export class Fireball extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, dir) {
     super(scene, x, y, 'fireball', 'fire0');
     scene.add.existing(this);
     scene.physics.add.existing(this);
-    this.body.setCircle(3, 1, 1);
+    fit(this);
+    setBodyBox(this, 6, 6, 1, 1);
     this.body.setBounce(0, PFLAUME.fireBounce);
     this.body.setVelocity(dir * PFLAUME.fireSpeed, -PFLAUME.fireLift);
     this.dir = dir;

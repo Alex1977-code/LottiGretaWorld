@@ -7,6 +7,7 @@ import { HERO, PHYSICS, ENEMIES, DAMAGE, PFLAUME } from '../config.js';
 import { approach, damp, sign } from '../systems/mathUtil.js';
 import { vibrate } from '../systems/haptics.js';
 import { sfx } from '../audio/index.js';
+import { Z, fit, setBodyBox, worldW, worldH } from '../render.js';
 
 export const HeroState = {
   GROUND: 'ground',
@@ -30,7 +31,8 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, heroKey, input, effects) {
     super(scene, x, y, heroKey, 'idle0');
     this.key = heroKey;
-    this.y = y - this.height / 2; // Füße auf y
+    fit(this);
+    this.y = y - worldH(this) / 2; // Füße auf y
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
@@ -64,7 +66,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     this.locked = false;          // keine Eingabe (Levelende)
 
     // Blätterschirm als eigenes Sprite über Hero
-    this.leaf = scene.add.sprite(x, y, 'leaf', 'leaf0').setDepth(11).setVisible(false);
+    this.leaf = fit(scene.add.sprite(x, y, 'leaf', 'leaf0')).setDepth(11).setVisible(false);
 
     // Squash & Stretch nur für die Darstellung: Die Skalierung wird erst nach dem
     // Physik-Schritt gesetzt und vor dem nächsten zurückgenommen, damit die Hitbox
@@ -80,8 +82,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
   /** Normale Hitbox: mittig, Unterkante = Frame-Unterkante. */
   applyHeroBody() {
-    this.body.setSize(HERO.bodyWidth, HERO.bodyHeight);
-    this.body.setOffset((this.width - HERO.bodyWidth) / 2, this.height - HERO.bodyHeight);
+    setBodyBox(this, HERO.bodyWidth, HERO.bodyHeight);
   }
 
   createAnimations() {
@@ -113,8 +114,8 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
       this.scene.registry.set('power', '');
       m.destroy();
     }
-    this.setPosition(this.spawnPoint.x, this.spawnPoint.y - this.height / 2);
-    this.body.reset(this.spawnPoint.x, this.spawnPoint.y - this.height / 2);
+    this.setPosition(this.spawnPoint.x, this.spawnPoint.y - worldH(this) / 2);
+    this.body.reset(this.spawnPoint.x, this.spawnPoint.y - worldH(this) / 2);
     this.body.setVelocity(0, 0);
     this.moveState = HeroState.AIR;
     this.isJumping = false;
@@ -139,8 +140,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     this.swooping = false;
     // Hitbox nach unten verlängern (Pflaume darunter), Heldin rutscht optisch nach oben
     this.y -= PFLAUME.bodyHeight - HERO.bodyHeight;
-    this.body.setSize(PFLAUME.bodyWidth, PFLAUME.bodyHeight);
-    this.body.setOffset((this.width - PFLAUME.bodyWidth) / 2, this.height - HERO.bodyHeight);
+    setBodyBox(this, PFLAUME.bodyWidth, PFLAUME.bodyHeight, (worldW(this) - PFLAUME.bodyWidth) / 2, worldH(this) - HERO.bodyHeight);
     this.body.reset(this.x, this.y);
     this.body.setVelocityY(-PFLAUME.mountHop);
     this.body.setAllowGravity(true);
@@ -200,10 +200,10 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   /** Visuelle Verformung setzen (wirkt erst nach dem Physik-Schritt). */
   squash(x, y) { this.squashX = x; this.squashY = y; }
 
-  applySquash() { super.setScale(this.squashX, this.squashY); }
+  applySquash() { super.setScale(this.squashX * Z, this.squashY * Z); }
 
   preUpdate(time, delta) {
-    super.setScale(1, 1); // Physik sieht immer Skalierung 1
+    super.setScale(Z, Z); // Physik sieht immer die Grundskalierung
     super.preUpdate(time, delta);
     const dt = Math.min(delta, 50) / 1000; // Schutz vor Riesensprüngen (Tab-Wechsel)
     const body = this.body;
@@ -402,7 +402,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     this.isJumping = false;
     this.swooping = false;
     this.leaf.setVisible(true).play('leaf-sway');
-    this.leaf.setScale(0.6, 0.6);
+    this.leaf.setScale(0.6 * Z, 0.6 * Z);
     this.effects?.leaves(this.x, this.y - 12, 5);
     sfx('glideOpen');
   }
@@ -500,8 +500,8 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
     // Blätterschirm positionieren
     if (this.leaf.visible) {
-      this.leaf.setScale(damp(this.leaf.scaleX, 1, 18, dt), damp(this.leaf.scaleY, 1, 18, dt));
-      this.leaf.setPosition(Math.round(this.x - this.facing * 1), Math.round(this.y - this.height / 2 - 5));
+      this.leaf.setScale(damp(this.leaf.scaleX, Z, 18, dt), damp(this.leaf.scaleY, Z, 18, dt));
+      this.leaf.setPosition(this.x - this.facing * 1, this.y - worldH(this) / 2 - 5);
       this.leaf.setFlipX(this.facing < 0);
       this.leaf.setAngle(vx * 0.1);
       // Blätter rieseln

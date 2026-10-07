@@ -2,6 +2,7 @@
 // Freie Pfade sind durchgezogen, Geheimpfade golden. Tippen/Taste startet das Level.
 
 import Phaser from 'phaser';
+import { RENDER, Z, fit, setupUiCamera } from '../render.js';
 import { GAME } from '../config.js';
 import { WORLD } from '../levels/worldmap.js';
 import { LEVELS } from '../levels/index.js';
@@ -29,6 +30,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.moving = false;
     this.resetTaps = 0;
 
+    setupUiCamera(this);
     this.drawBackground();
     this.pathGfx = this.add.graphics().setDepth(2);
     this.drawPaths();
@@ -37,20 +39,20 @@ export class WorldMapScene extends Phaser.Scene {
     // Heldin auf der Karte
     this.heroKey = saveGame.hero;
     const n = this.nodeByKey[this.current];
-    this.hero = this.add.sprite(n.x, n.y - 10, this.heroKey, 'idle0').setDepth(10);
+    this.hero = fit(this.add.sprite(n.x, n.y - 10, this.heroKey, 'idle0')).setDepth(10);
     this.hero.play(`${this.heroKey}-idle`);
 
-    this.title = this.add.text(GAME.width / 2, 12, this.world.name, { fontFamily: 'monospace', fontSize: '10px', color: '#fff2a8', stroke: '#4a230a', strokeThickness: 3 }).setOrigin(0.5).setDepth(20);
-    this.info = this.add.text(GAME.width / 2, GAME.height - 30, '', { fontFamily: 'monospace', fontSize: '10px', color: '#f3e7d3', stroke: '#2a1a10', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setDepth(20);
-    this.hint = this.add.text(GAME.width / 2, GAME.height - 12, 'Tippen/Leertaste: Level starten  •  Pfeile: laufen  •  Tab: Figur wechseln', { fontFamily: 'monospace', fontSize: '7px', color: '#d8c8b0' }).setOrigin(0.5).setDepth(20).setAlpha(0.8);
-    this.resetBtn = this.add.text(GAME.width - 4, 4, 'Spielstand löschen', { fontFamily: 'monospace', fontSize: '7px', color: '#d8c8b0', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setOrigin(1, 0).setDepth(20).setInteractive({ useHandCursor: true });
+    this.title = this.add.text(GAME.width / 2, 12, this.world.name, { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '10px', color: '#fff2a8', stroke: '#4a230a', strokeThickness: 3 }).setOrigin(0.5).setDepth(20);
+    this.info = this.add.text(GAME.width / 2, GAME.height - 30, '', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '10px', color: '#f3e7d3', stroke: '#2a1a10', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setDepth(20);
+    this.hint = this.add.text(GAME.width / 2, GAME.height - 12, 'Tippen/Leertaste: Level starten  •  Pfeile: laufen  •  Tab: Figur wechseln', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '7px', color: '#d8c8b0' }).setOrigin(0.5).setDepth(20).setAlpha(0.8);
+    this.resetBtn = this.add.text(GAME.width - 4, 4, 'Spielstand löschen', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '7px', color: '#d8c8b0', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setOrigin(1, 0).setDepth(20).setInteractive({ useHandCursor: true });
     this.resetBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.onResetTap(); });
 
     this.coinIcons = [];
     this.updateInfo();
 
     // Figur wählen (Lotti / Greta)
-    this.heroBtn = this.add.text(4, 16, '', { fontFamily: 'monospace', fontSize: '7px', color: '#fff2a8', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setDepth(20).setInteractive({ useHandCursor: true });
+    this.heroBtn = this.add.text(4, 16, '', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '7px', color: '#fff2a8', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setDepth(20).setInteractive({ useHandCursor: true });
     this.heroBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.switchHero(); });
     this.input.keyboard.on('keydown-TAB', (ev) => { ev.preventDefault(); this.switchHero(); });
     this.hero.setInteractive({ useHandCursor: true });
@@ -58,7 +60,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.updateHeroLabel();
 
     // Ton an/aus
-    this.muteBtn = this.add.text(4, 4, '', { fontFamily: 'monospace', fontSize: '7px', color: '#d8c8b0', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setDepth(20).setInteractive({ useHandCursor: true });
+    this.muteBtn = this.add.text(4, 4, '', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '7px', color: '#d8c8b0', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setDepth(20).setInteractive({ useHandCursor: true });
     this.muteBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.toggleMute(); });
     this.input.keyboard.on('keydown-M', this.toggleMute, this);
     this.updateMuteLabel();
@@ -85,7 +87,7 @@ export class WorldMapScene extends Phaser.Scene {
 
   drawBackground() {
     // Pixel-Art-Karte (Abendhimmel, Berge, Waldlichtung) aus gfx/background.js – beim Start erzeugt
-    this.add.image(0, 0, 'worldmap_bg').setOrigin(0).setDepth(0);
+    fit(this.add.image(0, 0, 'worldmap_bg')).setOrigin(0).setDepth(0);
   }
 
   /** Alle Kanten als Punktlinien; gesperrte Kanten nur angedeutet. */
@@ -117,9 +119,9 @@ export class WorldMapScene extends Phaser.Scene {
       const c = this.add.container(n.x, n.y).setDepth(5);
       const base = this.add.circle(0, 0, 7, unlocked ? 0xf3b36a : 0x5a4a3a).setStrokeStyle(2, 0x4a230a);
       c.add(base);
-      if (lvl.done) c.add(this.add.image(0, -14, 'flag', 'flag0').setScale(0.6).setOrigin(0.5, 0.75));
-      if (lvl.secret) c.add(this.add.image(8, -6, 'key', 'key').setScale(0.6));
-      const label = this.add.text(0, 10, LEVELS[n.key]?.name ?? n.key, { fontFamily: 'monospace', fontSize: '7px', color: unlocked ? '#fff2a8' : '#8a7a6a', stroke: '#2a1a10', strokeThickness: 2 }).setOrigin(0.5, 0);
+      if (lvl.done) c.add(this.add.image(0, -14, 'flag', 'flag0').setScale(0.6 * Z).setOrigin(0.5, 0.75));
+      if (lvl.secret) c.add(this.add.image(8, -6, 'key', 'key').setScale(0.6 * Z));
+      const label = this.add.text(0, 10, LEVELS[n.key]?.name ?? n.key, { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '7px', color: unlocked ? '#fff2a8' : '#8a7a6a', stroke: '#2a1a10', strokeThickness: 2 }).setOrigin(0.5, 0);
       c.add(label);
       base.setInteractive({ useHandCursor: unlocked });
       base.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.onNodeTap(n.key); });
@@ -134,7 +136,7 @@ export class WorldMapScene extends Phaser.Scene {
     const status = lvl.done ? (lvl.secret ? 'geschafft • geheimer Ausgang gefunden' : 'geschafft') : 'noch offen';
     this.info.setText(`${name}\n${status}`);
     this.coinIcons.forEach((c) => c.destroy());
-    this.coinIcons = lvl.coins.map((c, i) => this.add.image(GAME.width / 2 - 24 + i * 12, GAME.height - 46, 'coin_hud', c ? 'full' : 'empty').setDepth(20));
+    this.coinIcons = lvl.coins.map((c, i) => fit(this.add.image(GAME.width / 2 - 24 + i * 12, GAME.height - 46, 'coin_hud', c ? 'full' : 'empty')).setDepth(20));
   }
 
   /** Neue Pfade nach einem Levelabschluss kurz aufblitzen lassen. */
@@ -242,7 +244,7 @@ export class WorldMapScene extends Phaser.Scene {
     saveGame.hero = this.heroKey;
     this.hero.setTexture(this.heroKey, 'idle0');
     this.hero.play(`${this.heroKey}-idle`);
-    this.tweens.add({ targets: this.hero, scaleX: 1.3, scaleY: 1.3, duration: 120, yoyo: true });
+    this.tweens.add({ targets: this.hero, scaleX: 1.3 * Z, scaleY: 1.3 * Z, duration: 120, yoyo: true });
     this.updateHeroLabel();
     sfx('select');
   }

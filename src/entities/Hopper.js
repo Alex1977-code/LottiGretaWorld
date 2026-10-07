@@ -2,12 +2,14 @@
 
 import { Enemy } from './Enemy.js';
 import { ENEMIES } from '../config.js';
+import { fit, setBodyBox } from '../render.js';
 
 export class Hopper extends Enemy {
   constructor(scene, x, y, target) {
     super(scene, x, y - 8, 'hopper', 'idle');
     this.target = target;
-    this.body.setSize(12, 14).setOffset(2, 2);
+    fit(this);
+    setBodyBox(this, 12, 14);
     this.body.setCollideWorldBounds(true);
     this.phase = 'idle';
     this.timer = ENEMIES.hopperIdleTime * (0.6 + Math.random() * 0.8);

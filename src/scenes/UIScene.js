@@ -4,6 +4,8 @@
 import Phaser from 'phaser';
 import { TouchControls } from '../systems/TouchControls.js';
 import { STATE_KEYS } from '../systems/GameState.js';
+import { GAME } from '../config.js';
+import { Z, fit, setupUiCamera } from '../render.js';
 
 export class UIScene extends Phaser.Scene {
   constructor() {
@@ -15,9 +17,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   create() {
+    setupUiCamera(this);
     this.touchControls = new TouchControls(this, this.ctrl);
     this.createHearts();
-    this.powerIcon = this.add.image(0, 8, 'berry', 'berry_none').setDepth(50).setScrollFactor(0).setVisible(false);
+    this.powerIcon = fit(this.add.image(0, 8, 'berry', 'berry_none')).setDepth(50).setVisible(false);
     this.updatePower();
     this.createCoins();
     this.createPauseButton();
@@ -49,14 +52,14 @@ export class UIScene extends Phaser.Scene {
     const max = this.registry.get(STATE_KEYS.maxHearts) ?? 3;
     this.hearts = [];
     for (let i = 0; i < max; i++) {
-      this.hearts.push(this.add.image(8 + i * 10, 8, 'heart', 'full').setDepth(50).setScrollFactor(0));
+      this.hearts.push(fit(this.add.image(8 + i * 10, 8, 'heart', 'full')).setDepth(50));
     }
     this.updateHearts();
   }
 
   /** Pause-Knopf (zwei Balken) oben in der Mitte. */
   createPauseButton() {
-    const { width } = this.scale.gameSize;
+    const { width } = GAME;
     const g = this.add.graphics().setDepth(50);
     g.fillStyle(0xffffff, 0.35);
     g.fillRect(width / 2 - 5, 4, 3, 9);
@@ -70,10 +73,10 @@ export class UIScene extends Phaser.Scene {
 
   /** Fünf Münzplätze oben rechts. */
   createCoins() {
-    const { width } = this.scale.gameSize;
+    const { width } = GAME;
     this.coinIcons = [];
     for (let i = 0; i < 5; i++) {
-      this.coinIcons.push(this.add.image(width - 8 - (4 - i) * 10, 8, 'coin_hud', 'empty').setDepth(50).setScrollFactor(0));
+      this.coinIcons.push(fit(this.add.image(width - 8 - (4 - i) * 10, 8, 'coin_hud', 'empty')).setDepth(50));
     }
     this.updateCoins();
   }
@@ -84,7 +87,7 @@ export class UIScene extends Phaser.Scene {
       const full = !!coins[i];
       if (full !== (c.frame.name === 'full')) {
         c.setFrame(full ? 'full' : 'empty');
-        if (full) this.tweens.add({ targets: c, scaleX: 1.6, scaleY: 1.6, duration: 120, yoyo: true });
+        if (full) this.tweens.add({ targets: c, scaleX: 1.6 * Z, scaleY: 1.6 * Z, duration: 120, yoyo: true });
       }
     });
   }
@@ -96,7 +99,7 @@ export class UIScene extends Phaser.Scene {
     this.powerIcon.setX(8 + max * 10 + 4);
     if (!power) { this.powerIcon.setVisible(false); return; }
     this.powerIcon.setVisible(true).setFrame(`berry_${power}`);
-    this.tweens.add({ targets: this.powerIcon, scaleX: 1.6, scaleY: 1.6, duration: 120, yoyo: true });
+    this.tweens.add({ targets: this.powerIcon, scaleX: 1.6 * Z, scaleY: 1.6 * Z, duration: 120, yoyo: true });
   }
 
   updateHearts() {
@@ -105,7 +108,7 @@ export class UIScene extends Phaser.Scene {
       const full = i < n;
       if (full !== (h.frame.name === 'full')) {
         h.setFrame(full ? 'full' : 'empty');
-        if (!full) this.tweens.add({ targets: h, scaleX: 1.5, scaleY: 1.5, duration: 90, yoyo: true });
+        if (!full) this.tweens.add({ targets: h, scaleX: 1.5 * Z, scaleY: 1.5 * Z, duration: 90, yoyo: true });
       }
     });
   }

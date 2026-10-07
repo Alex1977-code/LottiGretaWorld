@@ -4,7 +4,7 @@ import { startServer, launchBrowser, loadGame, OUT } from './helpers.mjs';
 const PORT = 4185;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
-await loadGame(page, PORT, errors, stop, 'test');
+await loadGame(page, PORT, errors, stop, 'test', process.env.RENDER_SCALE ?? '2');
 for (const key of (process.argv[2] ?? 'lotti,greta,pflaume,leaf').split(',')) {
   const dataUrl = await page.evaluate((k) => {
     const src = window.__game.textures.get(k).getSourceImage();

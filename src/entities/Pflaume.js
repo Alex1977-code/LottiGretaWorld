@@ -8,18 +8,19 @@ import { Fireball } from './Fireball.js';
 import { damp } from '../systems/mathUtil.js';
 import { vibrate } from '../systems/haptics.js';
 import { sfx, music } from '../audio/index.js';
+import { Z, fit, setBodyBox, worldH } from '../render.js';
 
 export const PflaumeState = { FREE: 'free', RIDDEN: 'ridden', FLEEING: 'fleeing' };
 
 export class Pflaume extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, groundLayer) {
     super(scene, x, y, 'pflaume', 'idle0_none');
-    this.y = y - this.height / 2; // Füße auf y
+    fit(this);
+    this.y = y - worldH(this) / 2; // Füße auf y
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.groundLayer = groundLayer;
-    this.body.setSize(PFLAUME.freeBodyWidth, PFLAUME.freeBodyHeight)
-      .setOffset((this.width - PFLAUME.freeBodyWidth) / 2, this.height - PFLAUME.freeBodyHeight);
+    setBodyBox(this, PFLAUME.freeBodyWidth, PFLAUME.freeBodyHeight);
     this.body.reset(this.x, this.y);
     this.body.setCollideWorldBounds(true);
     this.setDepth(9);
@@ -75,7 +76,7 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
     this.hopTimer = 0;
     this.mountCooldown = PFLAUME.mountCooldown;
     this.rider = null;
-    this.setPosition(hero.x, hero.body.bottom - this.height / 2);
+    this.setPosition(hero.x, hero.body.bottom - worldH(this) / 2);
     this.body.enable = true;
     this.body.reset(this.x, this.y);
     this.body.setVelocity(this.dir * PFLAUME.fleeSpeed, -PFLAUME.fleeHopVelocity);
@@ -93,7 +94,7 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
     this.power = type;
     this.hoverTimer = PFLAUME.hoverTime;
     this.scene.registry.set('power', this.isRidden ? type : '');
-    this.scene.tweens.add({ targets: this, scaleX: 1.25, scaleY: 0.8, duration: 90, yoyo: true });
+    this.scene.tweens.add({ targets: this, scaleX: 1.25 * Z, scaleY: 0.8 * Z, duration: 90, yoyo: true });
     vibrate(15);
     sfx('berry');
   }
@@ -167,7 +168,7 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
     if (hero.onGround) this.hoverTimer = PFLAUME.hoverTime;
 
     // Füße des Käfers 12 px unter den Füßen der Heldin (= Unterkante der gemeinsamen Hitbox)
-    this.setPosition(Math.round(hero.x), Math.round(hero.y + hero.height / 2 + (PFLAUME.bodyHeight - HERO.bodyHeight) - this.height / 2));
+    this.setPosition(hero.x, hero.y + worldH(hero) / 2 + (PFLAUME.bodyHeight - HERO.bodyHeight) - worldH(this) / 2);
     this.setFlipX(hero.facing < 0);
     this.setAlpha(hero.alpha);
 
@@ -199,7 +200,7 @@ export class Pflaume extends Phaser.Physics.Arcade.Sprite {
       const dir = hero.facing;
       const fb = new Fireball(this.scene, this.x + dir * 10, this.y - 2, dir);
       this.scene.fireballs.add(fb);
-      this.scene.tweens.add({ targets: this, scaleX: 1.2, scaleY: 0.9, duration: 70, yoyo: true });
+      this.scene.tweens.add({ targets: this, scaleX: 1.2 * Z, scaleY: 0.9 * Z, duration: 70, yoyo: true });
       vibrate(8);
       sfx('fireball');
       return true;

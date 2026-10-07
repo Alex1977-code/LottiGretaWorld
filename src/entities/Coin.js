@@ -1,10 +1,12 @@
 // Große Sammelmünze (5 pro Level). Bereits gespeicherte Münzen erscheinen halbtransparent.
 
 import Phaser from 'phaser';
+import { Z, fit } from '../render.js';
 
 export class Coin extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, index, alreadySaved) {
     super(scene, x, y - 8, 'coin', 'coin0');
+    fit(this);
     scene.add.existing(this);
     scene.physics.add.existing(this, true);
     this.body.setSize(10, 10).setOffset(1, 1);
@@ -22,6 +24,6 @@ export class Coin extends Phaser.Physics.Arcade.Sprite {
   collect() {
     this.body.enable = false;
     this.scene.effects?.sparks(this.x, this.y, 12);
-    this.scene.tweens.add({ targets: this, y: this.y - 18, alpha: 0, scaleX: 1.4, scaleY: 1.4, duration: 350, ease: 'Quad.out', onComplete: () => this.destroy() });
+    this.scene.tweens.add({ targets: this, y: this.y - 18, alpha: 0, scaleX: 1.4 * Z, scaleY: 1.4 * Z, duration: 350, ease: 'Quad.out', onComplete: () => this.destroy() });
   }
 }

@@ -45,7 +45,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   /** Nur in Kameranähe „denken“ (Performance). */
   get nearCamera() {
-    const cam = this.scene.cameras.main;
-    return this.x > cam.scrollX - 64 && this.x < cam.scrollX + cam.width + 64;
+    const v = this.scene.cameras.main.worldView;
+    return this.x > v.x - 64 && this.x < v.right + 64;
   }
 }

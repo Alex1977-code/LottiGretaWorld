@@ -1,4 +1,5 @@
-// Prüft alle Sprite-Module: Frame-Maße, Palette vollständig, Pflicht-Frames vorhanden.
+// Prüft alle Sprite-Module: Pflicht-Frames vorhanden; bei Pixel-Sheets Frame-Maße und Palette,
+// bei Vektor-Sheets (draw) nur, dass jede Funktion existiert und ohne Fehler zeichnet.
 import { readdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
@@ -25,7 +26,18 @@ for (const f of readdirSync(dir).filter((n) => n.endsWith('.js'))) {
     seen.add(sheet.key);
     const [w, h] = SIZES[sheet.key] ?? [sheet.frameWidth, sheet.frameHeight];
     if (sheet.frameWidth !== w || sheet.frameHeight !== h) { console.log(`✗ ${sheet.key}: Größe ${sheet.frameWidth}x${sheet.frameHeight}, erwartet ${w}x${h}`); errors++; }
-    for (const name of REQUIRED[sheet.key] ?? []) if (!sheet.frames[name]) { console.log(`✗ ${sheet.key}: Frame "${name}" fehlt`); errors++; }
+    const defined = sheet.draw ?? sheet.frames ?? {};
+    for (const name of REQUIRED[sheet.key] ?? []) if (!defined[name]) { console.log(`✗ ${sheet.key}: Frame "${name}" fehlt`); errors++; }
+    if (sheet.draw) {
+      // Vektor-Sheet: jede Zeichenfunktion mit einem Attrappen-Kontext aufrufen
+      const stub = new Proxy({}, { get: (t, p) => (p === 'canvas' ? {} : typeof p === 'string' ? (() => stub) : undefined), set: () => true });
+      for (const [name, fn] of Object.entries(sheet.draw)) {
+        if (typeof fn !== 'function') { console.log(`✗ ${sheet.key}.${name}: keine Funktion`); errors++; continue; }
+        try { fn({ ctx: stub, w: sheet.frameWidth, h: sheet.frameHeight, S: 2, colors: {} }); }
+        catch (e) { console.log(`✗ ${sheet.key}.${name}: Zeichenfehler ${e.message}`); errors++; }
+      }
+      continue;
+    }
     for (const [name, rows] of Object.entries(sheet.frames)) {
       if (rows.length !== sheet.frameHeight) { console.log(`✗ ${sheet.key}.${name}: ${rows.length} Zeilen statt ${sheet.frameHeight}`); errors++; }
       rows.forEach((r, i) => {

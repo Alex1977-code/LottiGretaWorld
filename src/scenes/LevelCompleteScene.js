@@ -1,6 +1,7 @@
 // Level geschafft: Ergebnis zeigen, dann weiter (später: Weltkarte).
 
 import Phaser from 'phaser';
+import { RENDER, Z, fit, setupUiCamera } from '../render.js';
 import { GAME } from '../config.js';
 import { LEVELS } from '../levels/index.js';
 
@@ -16,18 +17,19 @@ export class LevelCompleteScene extends Phaser.Scene {
   create() {
     const { width: w, height: h } = GAME;
     const { exit, coins, levelKey } = this.result;
+    setupUiCamera(this);
     this.add.rectangle(0, 0, w, h, 0x000000, 0.55).setOrigin(0);
 
     const title = exit === 'secret' ? 'Geheimer Ausgang gefunden!' : 'Level geschafft!';
-    this.add.text(w / 2, h / 2 - 40, title, { fontFamily: 'monospace', fontSize: '16px', color: '#fff2a8', stroke: '#4a230a', strokeThickness: 3 }).setOrigin(0.5);
-    this.add.text(w / 2, h / 2 - 18, LEVELS[levelKey]?.name ?? '', { fontFamily: 'monospace', fontSize: '10px', color: '#f3e7d3' }).setOrigin(0.5);
+    this.add.text(w / 2, h / 2 - 40, title, { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '16px', color: '#fff2a8', stroke: '#4a230a', strokeThickness: 3 }).setOrigin(0.5);
+    this.add.text(w / 2, h / 2 - 18, LEVELS[levelKey]?.name ?? '', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '10px', color: '#f3e7d3' }).setOrigin(0.5);
 
     // Münzen
     coins.forEach((c, i) => {
-      this.add.image(w / 2 - 24 + i * 12, h / 2 + 6, 'coin_hud', c ? 'full' : 'empty').setScale(1.2);
+      this.add.image(w / 2 - 24 + i * 12, h / 2 + 6, 'coin_hud', c ? 'full' : 'empty').setScale(1.2 * Z);
     });
 
-    const hint = this.add.text(w / 2, h / 2 + 40, 'Tippen oder Leertaste', { fontFamily: 'monospace', fontSize: '9px', color: '#f3e7d3' }).setOrigin(0.5);
+    const hint = this.add.text(w / 2, h / 2 + 40, 'Tippen oder Leertaste', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '9px', color: '#f3e7d3' }).setOrigin(0.5);
     this.tweens.add({ targets: hint, alpha: 0.3, duration: 600, yoyo: true, repeat: -1 });
 
     // Nicht sofort weiterklicken lassen

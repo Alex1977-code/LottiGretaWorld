@@ -1,6 +1,7 @@
 // Partikel-Effekte: Staub beim Landen, Blätter beim Gleiten, Funken beim Sammeln.
 
 import Phaser from 'phaser';
+import { Z } from '../render.js';
 
 export class Effects {
   constructor(scene) {
@@ -11,7 +12,7 @@ export class Effects {
       angle: { min: 200, max: 340 },
       gravityY: 120,
       lifespan: { min: 250, max: 450 },
-      scale: { start: 1, end: 0 },
+      scale: { start: Z, end: 0 },
       alpha: { start: 0.9, end: 0 },
       quantity: 1,
       emitting: false,
@@ -24,6 +25,7 @@ export class Effects {
       gravityY: 40,
       lifespan: { min: 500, max: 900 },
       rotate: { start: 0, end: 360 },
+      scale: Z,
       alpha: { start: 1, end: 0 },
       quantity: 1,
       emitting: false,
@@ -32,7 +34,7 @@ export class Effects {
     this.sparkEmitter = scene.add.particles(0, 0, 'p_spark', {
       speed: { min: 40, max: 110 },
       lifespan: { min: 200, max: 400 },
-      scale: { start: 1.5, end: 0 },
+      scale: { start: 1.5 * Z, end: 0 },
       gravityY: 200,
       quantity: 1,
       emitting: false,

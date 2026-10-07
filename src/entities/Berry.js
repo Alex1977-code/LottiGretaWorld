@@ -1,10 +1,12 @@
 // Beere: Futter für Pflaume. Typ red/blue/yellow bestimmt die Kraft.
 
 import Phaser from 'phaser';
+import { fit } from '../render.js';
 
 export class Berry extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, type) {
     super(scene, x, y - 5, 'berry', `berry_${type}`);
+    fit(this);
     scene.add.existing(this);
     scene.physics.add.existing(this, true);
     this.berryType = type;

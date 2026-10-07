@@ -1,11 +1,13 @@
 // Kleine Level-Objekte: Schlüssel, Tor, Zielfahne, Dornen.
 
 import Phaser from 'phaser';
+import { fit } from '../render.js';
 
 /** Schlüssel für den geheimen Ausgang. Folgt Hero, sobald er eingesammelt ist. */
 export class Key extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
     super(scene, x, y - 8, 'key', 'key');
+    fit(this);
     scene.add.existing(this);
     scene.physics.add.existing(this, true);
     this.setDepth(6);
@@ -39,6 +41,7 @@ export class Key extends Phaser.Physics.Arcade.Sprite {
 export class Gate extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
     super(scene, x, y - 16, 'gate', 'closed');
+    fit(this);
     scene.add.existing(this);
     scene.physics.add.existing(this, true);
     this.body.setSize(12, 28).setOffset(2, 4);
@@ -59,6 +62,7 @@ export class Gate extends Phaser.Physics.Arcade.Sprite {
 export class Flag extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
     super(scene, x, y - 16, 'flag', 'flag0');
+    fit(this);
     scene.add.existing(this);
     scene.physics.add.existing(this, true);
     this.body.setSize(10, 30).setOffset(3, 2);
@@ -74,6 +78,7 @@ export class Flag extends Phaser.Physics.Arcade.Sprite {
 export class Thorns extends Phaser.Physics.Arcade.Image {
   constructor(scene, x, y) {
     super(scene, x, y - 4, 'thorns', 'thorns');
+    fit(this);
     scene.add.existing(this);
     scene.physics.add.existing(this, true);
     this.body.setSize(14, 5).setOffset(1, 3);

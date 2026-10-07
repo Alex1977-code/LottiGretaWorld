@@ -2,12 +2,14 @@
 
 import { Enemy } from './Enemy.js';
 import { ENEMIES } from '../config.js';
+import { fit, setBodyBox } from '../render.js';
 
 export class Walker extends Enemy {
   constructor(scene, x, y, groundLayer) {
     super(scene, x, y - 8, 'walker', 'walk0');
     this.groundLayer = groundLayer;
-    this.body.setSize(12, 9).setOffset(2, 7);
+    fit(this);
+    setBodyBox(this, 12, 9);
     this.dir = -1;
     this.speed = ENEMIES.walkerSpeed;
     this.body.setCollideWorldBounds(true);
