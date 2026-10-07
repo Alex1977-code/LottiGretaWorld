@@ -15,26 +15,12 @@ import { RENDER3D } from '../render3d.js';
 import { createAvatar } from './avatars/index.js';
 import { World3D } from './world/World3D.js';
 import { Effects3D } from './Effects3D.js';
+import { getRenderer, mountCanvas, layoutCanvas, hideCanvas } from './renderer.js';
 
 /** Weltpixel → 3D-Einheiten. */
 export const U = 1 / GAME.tile;
 export const toX = (px) => px * U;
 export const toY = (py) => -py * U;
-
-let shared = null; // Renderer und Leinwand werden einmalig pro Seite erzeugt (kein Kontext-Verschleiß)
-
-function getRenderer() {
-  if (shared) return shared;
-  const canvas = document.createElement('canvas');
-  canvas.id = 'gl3d';
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance', stencil: false });
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.NoToneMapping;
-  renderer.shadowMap.enabled = RENDER3D.shadows;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
-  shared = { renderer, canvas };
-  return shared;
-}
 
 export class View3D {
   /** @param {Phaser.Scene} scene Play-Szene (map und groundLayer müssen existieren) */
@@ -46,12 +32,12 @@ export class View3D {
     this.avatars = new Map();      // Phaser-Objekt → Avatar
     this.time = 0;
     this.frame = 0;
-    this.layoutW = 0; this.layoutH = 0;
+    this.layout = { w: 0, h: 0 };
 
     const { renderer, canvas } = getRenderer();
     this.renderer = renderer;
     this.canvas = canvas;
-    this.mountCanvas();
+    mountCanvas(this.game, canvas);
 
     this.camera = new THREE.PerspectiveCamera(RENDER3D.fov, GAME.width / GAME.height, 0.5, 300);
     this.target = new THREE.Vector3();
@@ -73,36 +59,9 @@ export class View3D {
     window.__view3d = this; // Tests/Fehlersuche
   }
 
-  /** 3D-Leinwand als Geschwister vor die Phaser-Leinwand hängen (Phaser-Leinwand liegt per CSS darüber). */
-  mountCanvas() {
-    const pc = this.game.canvas;
-    const parent = pc.parentElement;
-    if (this.canvas.parentElement !== parent) parent.insertBefore(this.canvas, pc);
-    this.canvas.style.display = 'block';
-    if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
-  }
-
   /** Lage und Größe der 3D-Leinwand an die Phaser-Leinwand angleichen. */
   syncLayout(force = false) {
-    const pc = this.game.canvas;
-    const w = pc.clientWidth, h = pc.clientHeight;
-    if (!force && w === this.layoutW && h === this.layoutH) return;
-    if (w === 0 || h === 0) return;
-    this.layoutW = w; this.layoutH = h;
-    const pr = pc.getBoundingClientRect();
-    const pp = pc.parentElement.getBoundingClientRect();
-    const st = this.canvas.style;
-    st.left = `${pr.left - pp.left}px`;
-    st.top = `${pr.top - pp.top}px`;
-    st.width = `${pr.width}px`;
-    st.height = `${pr.height}px`;
-    // Auflösung: Gerätepixel, aber begrenzt (Füllrate auf dem Handy)
-    let ratio = Math.min(window.devicePixelRatio || 1, RENDER3D.maxPixelRatio);
-    ratio = Math.min(ratio, Math.sqrt(RENDER3D.maxPixels / (pr.width * pr.height)));
-    this.renderer.setPixelRatio(ratio);
-    this.renderer.setSize(pr.width, pr.height, false);
-    this.camera.aspect = pr.width / pr.height;
-    this.camera.updateProjectionMatrix();
+    layoutCanvas(this.game, this.renderer, this.canvas, this.camera, this.layout, force);
   }
 
   /** 3D-Kamera aus dem sichtbaren Ausschnitt der Phaser-Kamera ableiten (Zoom ist herausgerechnet). */
@@ -184,10 +143,8 @@ export class View3D {
     this.effects.dispose();
     this.world.dispose();
     this.three.clear();
-    // Leinwand leeren und verstecken – die Weltkarte ist 2D
-    this.renderer.setClearColor(0x000000, 1);
-    this.renderer.clear();
-    this.canvas.style.display = 'none';
+    // Leinwand leeren und verstecken (die nächste Szene zeigt sie bei Bedarf wieder)
+    hideCanvas(this.renderer, this.canvas);
     if (window.__view3d === this) window.__view3d = null;
   }
 }
