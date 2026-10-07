@@ -58,8 +58,8 @@ un = await unlockedNodes();
 check('Zurück auf der Karte, Level 2 frei', un.includes('level2') && !un.includes('level3'));
 await page.screenshot({ path: `${OUT}w02_unlocked.png` });
 
-// 3) Nach rechts laufen → Level 2
-await page.keyboard.press('ArrowRight');
+// 3) Punkt 2 antippen (Handy) → läuft den ganzen Weg
+await sc(() => window.__game.scene.getScene('WorldMap').onNodeTap('level2'));
 await page.waitForTimeout(300);
 check('Hero läuft los', (await mapState()).moving);
 for (let i = 0; i < 60; i++) { await page.waitForTimeout(100); if (!(await mapState()).moving) break; }

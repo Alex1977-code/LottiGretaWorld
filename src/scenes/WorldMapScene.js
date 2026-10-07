@@ -44,20 +44,21 @@ export class WorldMapScene extends Phaser.Scene {
     this.hero.play(`${this.heroKey}-idle`);
 
     this.title = uiText(this, GAME.width / 2, 14, this.world.name, { size: 14, color: '#ffffff', stroke: '#3a2a6a', thickness: 4 }).setDepth(20);
-    this.info = uiText(this, GAME.width / 2, GAME.height - 30, '', { size: 10, color: '#ffffff', stroke: '#2a2550', thickness: 3 }).setDepth(20);
-    this.hint = uiText(this, GAME.width / 2, GAME.height - 10, 'Tippen/Leertaste: Level starten  •  Pfeile: laufen  •  Tab: Figur wechseln', { size: 7, color: '#eef0ff', stroke: '#2a2550', thickness: 2, shadow: false }).setDepth(20).setAlpha(0.9);
+    this.info = uiText(this, GAME.width / 2, GAME.height - 26, '', { size: 10, color: '#ffffff', stroke: '#2a2550', thickness: 3 }).setDepth(20);
+    this.hint = uiText(this, GAME.width / 2, GAME.height - 8, 'Punkt antippen: hinlaufen  •  Leertaste/Pfeile am PC  •  Tab: Figur wechseln', { size: 7, color: '#eef0ff', stroke: '#2a2550', thickness: 2, shadow: false }).setDepth(20).setAlpha(0.9);
     this.resetBtn = uiButton(this, GAME.width - 44, 10, 'Spielstand löschen', { size: 7, dark: true, padX: 6, padY: 2 }).setDepth(20);
     this.resetBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.onResetTap(); });
 
     this.coinIcons = [];
+    // Großer Start-Knopf (Handy): startet das Level am aktuellen Punkt
+    this.startBtn = uiButton(this, GAME.width / 2, GAME.height - 52, 'Level starten', { size: 11, color: 0x4fb833, minWidth: 150, padY: 5 }).setDepth(21);
+    this.startBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.startLevel(); });
     this.updateInfo();
 
     // Figur wählen (Lotti / Greta)
     this.heroBtn = uiButton(this, 42, 24, '', { size: 7, color: 0xff6b9d, padX: 6, padY: 2, minWidth: 76 }).setDepth(20);
     this.heroBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.switchHero(); });
     this.input.keyboard.on('keydown-TAB', (ev) => { ev.preventDefault(); this.switchHero(); });
-    this.hero.setInteractive({ useHandCursor: true });
-    this.hero.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.switchHero(); });
     this.updateHeroLabel();
 
     // Ton an/aus
@@ -119,13 +120,15 @@ export class WorldMapScene extends Phaser.Scene {
       const lvl = saveGame.level(n.key);
       const c = this.add.container(n.x, n.y).setDepth(5);
       c.setData('unlocked', unlocked);
-      const base = this.add.circle(0, 0, 8, unlocked ? 0xffc21a : 0x8a8aa0).setStrokeStyle(2, unlocked ? 0xffffff : 0xd0d0e0);
+      const base = this.add.circle(0, 0, 10, unlocked ? 0xffc21a : 0x8a8aa0).setStrokeStyle(2, unlocked ? 0xffffff : 0xd0d0e0);
       c.add(base);
+      c.add(uiText(this, 0, 0.5, String(this.world.nodes.indexOf(n) + 1), { size: 9, color: unlocked ? '#5a3a00' : '#e8e8f0', stroke: unlocked ? '#fff2a8' : '#5a5a70', thickness: 2, shadow: false }));
       if (lvl.done) c.add(this.add.image(0, -14, 'flag', 'flag0').setScale(0.6 * Z).setOrigin(0.5, 0.75));
       if (lvl.secret) c.add(this.add.image(8, -6, 'key', 'key').setScale(0.6 * Z));
-      const label = uiText(this, 0, 10, LEVELS[n.key]?.name ?? n.key, { size: 7, color: unlocked ? '#ffffff' : '#b8b0c8', stroke: '#2a2550', thickness: 2, shadow: false, originY: 0 });
+      const label = uiText(this, 0, 12, LEVELS[n.key]?.name ?? n.key, { size: 7, color: unlocked ? '#ffffff' : '#b8b0c8', stroke: '#2a2550', thickness: 2, shadow: false, originY: 0 });
       c.add(label);
-      base.setInteractive({ useHandCursor: unlocked });
+      // große Trefffläche fürs Handy
+      base.setInteractive(new Phaser.Geom.Circle(0, 0, 20), Phaser.Geom.Circle.Contains, { useHandCursor: unlocked });
       base.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.onNodeTap(n.key); });
       this.nodeSprites[n.key] = c;
     }
@@ -138,7 +141,7 @@ export class WorldMapScene extends Phaser.Scene {
     const status = lvl.done ? (lvl.secret ? 'geschafft • geheimer Ausgang gefunden' : 'geschafft') : 'noch offen';
     this.info.setText(`${name}\n${status}`);
     this.coinIcons.forEach((c) => c.destroy());
-    this.coinIcons = lvl.coins.map((c, i) => fit(this.add.image(GAME.width / 2 - 24 + i * 12, GAME.height - 46, 'coin_hud', c ? 'full' : 'empty')).setDepth(20));
+    this.coinIcons = lvl.coins.map((c, i) => fit(this.add.image(GAME.width / 2 - 24 + i * 12, GAME.height - 38, 'coin_hud', c ? 'full' : 'empty')).setDepth(20));
   }
 
   /** Neue Pfade nach einem Levelabschluss kurz aufblitzen lassen. */
@@ -169,10 +172,11 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   /** Läuft entlang der Punkte zum Zielknoten. */
-  walkTo(target) {
+  walkTo(target, onArrive) {
     const nb = this.neighbors(this.current).find((n) => n.key === target);
     if (!nb || this.moving) return;
     this.moving = true;
+    this.startBtn?.setVisible(false);
     this.hero.play(`${this.heroKey}-run`);
     const pts = nb.points;
     let i = 1;
@@ -185,6 +189,8 @@ export class WorldMapScene extends Phaser.Scene {
         this.updateInfo();
         vibrate(8);
         sfx('step');
+        if (onArrive) onArrive();
+        if (!this.moving) this.startBtn?.setVisible(true);
         return;
       }
       const p = pts[i++];
@@ -225,18 +231,24 @@ export class WorldMapScene extends Phaser.Scene {
       for (const n of this.neighbors(k)) if (!(n.key in prev)) { prev[n.key] = k; queue.push(n.key); }
     }
     if (!(key in prev)) return;
-    let step = key;
-    while (prev[step] !== this.current) step = prev[step];
-    this.walkTo(step);
+    // Pfad vom Ziel zurück zum Start aufsammeln und Etappe für Etappe laufen
+    const path = [];
+    for (let k = key; k !== this.current; k = prev[k]) path.unshift(k);
+    this.walkPath(path);
+  }
+
+  /** Mehrere Etappen nacheinander laufen. */
+  walkPath(path) {
+    if (!path.length) return;
+    const [next, ...rest] = path;
+    this.walkTo(next, () => this.walkPath(rest));
   }
 
   onPointer(pointer) {
     if (this.moving) return;
-    // Tippen irgendwo: Richtung relativ zu Hero
+    // Antippen der Figur startet das Level; sonst passiert nichts (Ziele sind die Punkte und der Start-Knopf)
     const dx = pointer.worldX - this.hero.x, dy = pointer.worldY - this.hero.y;
-    if (Math.hypot(dx, dy) < 18) { this.startLevel(); return; }
-    const len = Math.hypot(dx, dy);
-    this.walkDirection(dx / len, dy / len);
+    if (Math.hypot(dx, dy) < 24) this.startLevel();
   }
 
   /** Zwischen Lotti und Greta wechseln (wird gespeichert). */
