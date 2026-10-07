@@ -9,8 +9,8 @@ export const GAME = {
 
 // Unterschiede der Heldinnen (Faktoren auf die HERO-Werte)
 export const HERO_VARIANTS = {
-  lotti: { name: 'Lotti', trait: 'springt höher', jumpMult: 1.08, speedMult: 1.0, airSpeedMult: 1.0, fallMult: 1.0 },
-  greta: { name: 'Greta', trait: 'springt weiter', jumpMult: 1.0, speedMult: 1.08, airSpeedMult: 1.22, fallMult: 0.9 },
+  lotti: { name: 'Lotti', trait: 'springt höher', jumpMult: 1.08, speedMult: 1.0, airSpeedMult: 0.95, fallMult: 1.0 },
+  greta: { name: 'Greta', trait: 'springt weiter', jumpMult: 1.0, speedMult: 1.12, airSpeedMult: 1.4, fallMult: 0.75 },
 };
 
 export const PHYSICS = {

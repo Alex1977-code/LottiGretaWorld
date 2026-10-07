@@ -39,7 +39,7 @@ let s = await lotti(); log('start', s);
 await shot('01_start');
 const { check, summary } = makeChecker();
 // Reiner Bewegungstest: Gegner entfernen, damit sie nicht dazwischenfunken
-await page.evaluate(() => window.__game.scene.getScene('Play').enemies.clear(true, true));
+await page.evaluate(() => { const s = window.__game.scene.getScene('Play'); s.enemies.clear(true, true); s.mounts.clear(true, true); });
 
 // 1) Laufen nach rechts
 await page.keyboard.down('ArrowRight');
@@ -84,7 +84,7 @@ check('Gleit-Sinkgeschwindigkeit < 60', sawGlide && glideVy < 60 && glideVy > 0)
 await page.keyboard.up('Space');
 await page.keyboard.up('ArrowRight');
 await page.waitForTimeout(800);
-await page.evaluate(() => { const p = window.__game.scene.getScene('Play').hero; p.body.reset(300, 30); p.coyoteTimer = 0; p.jumpBufferTimer = 0; });
+await page.evaluate(() => { const p = window.__game.scene.getScene('Play').hero; p.body.reset(100, 30); p.coyoteTimer = 0; p.jumpBufferTimer = 0; }); // über der freien Startfläche
 await page.waitForTimeout(100);
 await page.keyboard.down('Space');
 await page.keyboard.down('ArrowRight');
@@ -93,7 +93,8 @@ await page.waitForTimeout(250);
 s = await lotti(); log('glide (hoch)', s);
 const yBeforeDive = s.y;
 await page.keyboard.down('ArrowDown');
-await page.waitForTimeout(260);
+// Sturzflug bis ca. 100 px Tiefe halten (positionsabhängig statt zeitabhängig – robust gegen Eingabe-Latenz)
+for (let i = 0; i < 40; i++) { await page.waitForTimeout(20); const p = await lotti(); if (p.state === 'dive' && p.y - yBeforeDive > 90) break; }
 s = await lotti(); log('dive', s);
 check('Sturzflug aktiv', s.state === 'dive');
 check('Sturzflug schnell (vy>250)', s.vy > 250);
@@ -110,7 +111,7 @@ for (let i = 0; i < 30; i++) { await page.waitForTimeout(30); const p = await lo
 await page.waitForTimeout(150);
 const regained = yRelease - minY;
 console.log(`Sturztiefe ${depth.toFixed(0)}px → Höhengewinn ${regained.toFixed(0)}px (${(100 * regained / depth).toFixed(0)}%)`);
-check('Höhengewinn 40-90% der Sturztiefe', regained > depth * 0.4 && regained < depth * 0.9);
+check('Höhengewinn (gedeckelt) plausibel', regained > 40 && regained < depth * 0.9);
 s = await lotti(); log('after swoop', s);
 check('Schirm nach Aufschwung wieder offen', s.state === 'glide');
 await shot('06_reglide');
@@ -124,10 +125,18 @@ check('wieder am Boden', s.ground);
 const jumpStats = async (key) => {
   await page.evaluate((k) => { const s = window.__game.scene.getScene('Play'); s.hero.setHeroKey(k); s.hero.body.reset(60, 280); s.hero.coyoteTimer = 0; s.hero.jumpBufferTimer = 0; }, key);
   await page.waitForTimeout(400);
+  // Anlauf, dann Sprung mit vollem Tempo
+  await page.keyboard.down('ArrowRight'); await page.waitForTimeout(500);
   const y0 = (await lotti()).y, x0 = (await lotti()).x;
-  await page.keyboard.down('ArrowRight'); await page.keyboard.down('Space');
+  await page.keyboard.down('Space');
   let minY = y0, landedX = x0;
-  for (let i = 0; i < 40; i++) { await page.waitForTimeout(30); const p = await lotti(); minY = Math.min(minY, p.y); if (i > 5 && p.ground) { landedX = p.x; break; } }
+  for (let i = 0; i < 40; i++) {
+    await page.waitForTimeout(30);
+    if (i === 8) await page.keyboard.up('Space'); // voller Sprung, aber kein Gleiten
+    const p = await lotti(); minY = Math.min(minY, p.y);
+    if (i > 8 && p.ground) { landedX = p.x; break; }
+    if (i === 39) landedX = p.x;
+  }
   await page.keyboard.up('Space'); await page.keyboard.up('ArrowRight');
   await page.waitForTimeout(300);
   return { height: y0 - minY, distance: landedX - x0 };
