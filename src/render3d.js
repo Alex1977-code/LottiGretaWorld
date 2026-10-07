@@ -26,4 +26,12 @@ export const RENDER3D = {
   shadows: true,
   shadowMapSize: 2048,
   shadowRadius: 20,   // halbe Breite des Schattenbereichs um die Kamera (Einheiten)
+  shadowBias: -0.0006,     // gegen Schatten-Akne …
+  shadowNormalBias: 0.035, // … und Peter-Panning (Einheiten entlang der Normale)
+  // Licht und Nebel der Welt (src/three/world): ohne Tone-Mapping bleiben die Farben satt;
+  // Sonne + Hemisphäre sind so bemessen, dass Grasdecken hell, aber nicht ausgebrannt sind.
+  sunIntensity: 3.0,
+  hemiIntensity: 1.3,
+  fogNear: 40,        // Abstand zur Kamera, ab dem der Nebel einsetzt (Einheiten)
+  fogFar: 170,        // ferne Berge laufen hier in die Himmelsfarbe aus
 };
