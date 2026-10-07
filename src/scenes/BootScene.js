@@ -11,20 +11,23 @@ export class BootScene extends Phaser.Scene {
 
   create() {
     createAllTextures(this, GAME.width, GAME.height);
-    this.createLottiAnimations();
+    this.createHeroAnimations();
     const level = this.registry.get('startLevel');
     if (level) this.scene.start('Play', { level });
     else this.scene.start('WorldMap', {});
   }
 
-  /** Lotti-Animationen werden auch auf der Weltkarte gebraucht. */
-  createLottiAnimations() {
+  /** Idle/Run-Animationen beider Heldinnen (für die Weltkarte). */
+  createHeroAnimations() {
     const a = this.anims;
-    const mk = (key, frames, frameRate, repeat = -1) => {
-      if (a.exists(key)) return;
-      a.create({ key, frames: frames.map((f) => ({ key: 'lotti', frame: f })), frameRate, repeat });
-    };
-    mk('lotti-idle', ['idle0', 'idle0', 'idle0', 'idle1'], 2);
-    mk('lotti-run', ['run0', 'run1', 'run2', 'run3'], 12);
+    for (const tex of ['lotti', 'greta']) {
+      const mk = (name, frames, frameRate, repeat = -1) => {
+        const key = `${tex}-${name}`;
+        if (a.exists(key)) return;
+        a.create({ key, frames: frames.map((f) => ({ key: tex, frame: f })), frameRate, repeat });
+      };
+      mk('idle', ['idle0', 'idle0', 'idle0', 'idle1'], 2);
+      mk('run', ['run0', 'run1', 'run2', 'run3'], 12);
+    }
   }
 }

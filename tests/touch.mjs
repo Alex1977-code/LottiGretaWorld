@@ -1,6 +1,6 @@
 // Touch-Test: simuliert Finger per CDP (Stick links, Sprung/Gleiten/Wischen rechts),
 // prüft den Querformat-Hinweis. Aufruf: npm run build && node tests/touch.mjs
-import { startServer, launchBrowser, loadGame, lottiState, logState, makeChecker, OUT } from './helpers.mjs';
+import { startServer, launchBrowser, loadGame, heroState, logState, makeChecker, OUT } from './helpers.mjs';
 
 const PORT = 4175;
 const stop = await startServer(PORT);
@@ -30,7 +30,7 @@ const move = (id, x, y) => page.evaluate(([id, x, y]) => window.__finger.move(id
 const up = (id) => page.evaluate((id) => window.__finger.up(id), id);
 const touch = () => page.evaluate(() => ({ ...window.__game.scene.getScene('Play').input_.touch }));
 
-let s = await lottiState(page); logState('start', s);
+let s = await heroState(page); logState('start', s);
 
 // 1) Stick: Finger links aufsetzen und nach rechts ziehen
 await down(1, 200, 400);
@@ -41,22 +41,22 @@ console.log('Stick axisX =', t.axisX.toFixed(2));
 check('Stick liefert vollen Ausschlag', t.axisX > 0.95);
 await page.screenshot({ path: `${OUT}t01_stick.png` });
 await page.waitForTimeout(500);
-s = await lottiState(page); logState('stick rechts', s);
-check('Lotti läuft nach rechts per Stick', s.vx > 60);
+s = await heroState(page); logState('stick rechts', s);
+check('Hero läuft nach rechts per Stick', s.vx > 60);
 // Halber Ausschlag → langsamer
 await move(1, 226, 400);
 await page.waitForTimeout(400);
-s = await lottiState(page); logState('stick halb', s);
+s = await heroState(page); logState('stick halb', s);
 check('Analog: halber Ausschlag langsamer', s.vx > 20 && s.vx < 100);
 await move(1, 290, 400); // voll
 
 // 2) Sprung: zweiter Finger rechts tippen
-const y0 = (await lottiState(page)).y;
+const y0 = (await heroState(page)).y;
 await down(2, 700, 400);
 await page.waitForTimeout(40);
 await up(2);
 let minY = y0;
-for (let i = 0; i < 14; i++) { await page.waitForTimeout(40); minY = Math.min(minY, (await lottiState(page)).y); }
+for (let i = 0; i < 14; i++) { await page.waitForTimeout(40); minY = Math.min(minY, (await heroState(page)).y); }
 console.log(`Tipp-Sprung: ${(y0 - minY).toFixed(0)}px`);
 check('Tippen springt (kurz)', y0 - minY > 10 && y0 - minY < 45);
 
@@ -64,33 +64,33 @@ check('Tippen springt (kurz)', y0 - minY > 10 && y0 - minY < 45);
 await page.waitForTimeout(500);
 await down(2, 700, 400);
 let sawGlide = false;
-for (let i = 0; i < 40; i++) { await page.waitForTimeout(40); if ((await lottiState(page)).state === 'glide') { sawGlide = true; break; } }
+for (let i = 0; i < 40; i++) { await page.waitForTimeout(40); if ((await heroState(page)).state === 'glide') { sawGlide = true; break; } }
 check('Halten öffnet den Schirm', sawGlide);
 await page.screenshot({ path: `${OUT}t02_glide.png` });
 
 // 4) Hoch teleportieren, dann Wisch nach unten → Sturzflug, Finger loslassen → Aufschwung
 await up(2); await up(1);
 await page.waitForTimeout(600);
-await page.evaluate(() => { const p = window.__game.scene.getScene('Play').lotti; p.body.reset(300, 30); });
+await page.evaluate(() => { const p = window.__game.scene.getScene('Play').hero; p.body.reset(300, 30); });
 await page.waitForTimeout(60);
 await down(1, 200, 400); await move(1, 260, 400);
 await down(2, 700, 300);
-for (let i = 0; i < 40; i++) { await page.waitForTimeout(30); if ((await lottiState(page)).state === 'glide') break; }
+for (let i = 0; i < 40; i++) { await page.waitForTimeout(30); if ((await heroState(page)).state === 'glide') break; }
 await page.waitForTimeout(200);
 // Wisch: 4 Schritte innerhalb ~100ms nach unten
 for (let i = 1; i <= 4; i++) { await move(2, 700, 300 + i * 25); await page.waitForTimeout(16); }
 await page.waitForTimeout(150);
-s = await lottiState(page); logState('swipe down', s);
+s = await heroState(page); logState('swipe down', s);
 check('Wisch nach unten → Sturzflug', s.state === 'dive');
 await page.screenshot({ path: `${OUT}t03_dive.png` });
 await page.waitForTimeout(150);
 // Wisch nach oben → hochziehen, Finger bleibt → Schirm wieder offen
 for (let i = 1; i <= 4; i++) { await move(2, 700, 400 - i * 25); await page.waitForTimeout(16); }
 await page.waitForTimeout(60);
-s = await lottiState(page); logState('swipe up', s);
+s = await heroState(page); logState('swipe up', s);
 check('Wisch nach oben → Aufschwung', s.vy < -150);
 let reglide = false;
-for (let i = 0; i < 40; i++) { await page.waitForTimeout(40); if ((await lottiState(page)).state === 'glide') { reglide = true; break; } }
+for (let i = 0; i < 40; i++) { await page.waitForTimeout(40); if ((await heroState(page)).state === 'glide') { reglide = true; break; } }
 check('Nach Aufschwung wieder Gleiten (Finger gehalten)', reglide);
 await up(2); await up(1);
 await page.waitForTimeout(100);

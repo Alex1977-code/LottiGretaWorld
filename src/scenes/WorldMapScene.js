@@ -1,4 +1,4 @@
-// Weltkarte: Lotti läuft auf einem Pfad zwischen den Level-Punkten.
+// Weltkarte: Hero läuft auf einem Pfad zwischen den Level-Punkten.
 // Freie Pfade sind durchgezogen, Geheimpfade golden. Tippen/Taste startet das Level.
 
 import Phaser from 'phaser';
@@ -34,19 +34,28 @@ export class WorldMapScene extends Phaser.Scene {
     this.drawPaths();
     this.drawNodes();
 
-    // Lotti auf der Karte
+    // Heldin auf der Karte
+    this.heroKey = saveGame.hero;
     const n = this.nodeByKey[this.current];
-    this.lotti = this.add.sprite(n.x, n.y - 10, 'lotti', 'idle0').setDepth(10);
-    this.lotti.play('lotti-idle');
+    this.hero = this.add.sprite(n.x, n.y - 10, this.heroKey, 'idle0').setDepth(10);
+    this.hero.play(`${this.heroKey}-idle`);
 
     this.title = this.add.text(GAME.width / 2, 12, this.world.name, { fontFamily: 'monospace', fontSize: '10px', color: '#fff2a8', stroke: '#4a230a', strokeThickness: 3 }).setOrigin(0.5).setDepth(20);
     this.info = this.add.text(GAME.width / 2, GAME.height - 30, '', { fontFamily: 'monospace', fontSize: '10px', color: '#f3e7d3', stroke: '#2a1a10', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setDepth(20);
-    this.hint = this.add.text(GAME.width / 2, GAME.height - 12, 'Tippen/Leertaste: Level starten  •  Pfeile/Stick: laufen', { fontFamily: 'monospace', fontSize: '7px', color: '#d8c8b0' }).setOrigin(0.5).setDepth(20).setAlpha(0.8);
+    this.hint = this.add.text(GAME.width / 2, GAME.height - 12, 'Tippen/Leertaste: Level starten  •  Pfeile: laufen  •  Tab: Figur wechseln', { fontFamily: 'monospace', fontSize: '7px', color: '#d8c8b0' }).setOrigin(0.5).setDepth(20).setAlpha(0.8);
     this.resetBtn = this.add.text(GAME.width - 4, 4, 'Spielstand löschen', { fontFamily: 'monospace', fontSize: '7px', color: '#d8c8b0', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setOrigin(1, 0).setDepth(20).setInteractive({ useHandCursor: true });
     this.resetBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.onResetTap(); });
 
     this.coinIcons = [];
     this.updateInfo();
+
+    // Figur wählen (Lotti / Greta)
+    this.heroBtn = this.add.text(4, 16, '', { fontFamily: 'monospace', fontSize: '7px', color: '#fff2a8', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setDepth(20).setInteractive({ useHandCursor: true });
+    this.heroBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.switchHero(); });
+    this.input.keyboard.on('keydown-TAB', (ev) => { ev.preventDefault(); this.switchHero(); });
+    this.hero.setInteractive({ useHandCursor: true });
+    this.hero.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.switchHero(); });
+    this.updateHeroLabel();
 
     // Ton an/aus
     this.muteBtn = this.add.text(4, 4, '', { fontFamily: 'monospace', fontSize: '7px', color: '#d8c8b0', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setDepth(20).setInteractive({ useHandCursor: true });
@@ -182,7 +191,7 @@ export class WorldMapScene extends Phaser.Scene {
     const nb = this.neighbors(this.current).find((n) => n.key === target);
     if (!nb || this.moving) return;
     this.moving = true;
-    this.lotti.play('lotti-run');
+    this.hero.play(`${this.heroKey}-run`);
     const pts = nb.points;
     let i = 1;
     const step = () => {
@@ -190,16 +199,16 @@ export class WorldMapScene extends Phaser.Scene {
         this.moving = false;
         this.current = target;
         saveGame.current = target;
-        this.lotti.play('lotti-idle');
+        this.hero.play(`${this.heroKey}-idle`);
         this.updateInfo();
         vibrate(8);
         sfx('step');
         return;
       }
       const p = pts[i++];
-      const d = Phaser.Math.Distance.Between(this.lotti.x, this.lotti.y + 10, p.x, p.y);
-      this.lotti.setFlipX(p.x < this.lotti.x);
-      this.tweens.add({ targets: this.lotti, x: p.x, y: p.y - 10, duration: (d / WALK_SPEED) * 1000, onComplete: step });
+      const d = Phaser.Math.Distance.Between(this.hero.x, this.hero.y + 10, p.x, p.y);
+      this.hero.setFlipX(p.x < this.hero.x);
+      this.tweens.add({ targets: this.hero, x: p.x, y: p.y - 10, duration: (d / WALK_SPEED) * 1000, onComplete: step });
     };
     step();
   }
@@ -241,11 +250,28 @@ export class WorldMapScene extends Phaser.Scene {
 
   onPointer(pointer) {
     if (this.moving) return;
-    // Tippen irgendwo: Richtung relativ zu Lotti
-    const dx = pointer.worldX - this.lotti.x, dy = pointer.worldY - this.lotti.y;
+    // Tippen irgendwo: Richtung relativ zu Hero
+    const dx = pointer.worldX - this.hero.x, dy = pointer.worldY - this.hero.y;
     if (Math.hypot(dx, dy) < 18) { this.startLevel(); return; }
     const len = Math.hypot(dx, dy);
     this.walkDirection(dx / len, dy / len);
+  }
+
+  /** Zwischen Lotti und Greta wechseln (wird gespeichert). */
+  switchHero() {
+    if (this.moving || this.starting) return;
+    this.heroKey = this.heroKey === 'lotti' ? 'greta' : 'lotti';
+    saveGame.hero = this.heroKey;
+    this.hero.setTexture(this.heroKey, 'idle0');
+    this.hero.play(`${this.heroKey}-idle`);
+    this.tweens.add({ targets: this.hero, scaleX: 1.3, scaleY: 1.3, duration: 120, yoyo: true });
+    this.updateHeroLabel();
+    sfx('select');
+  }
+
+  updateHeroLabel() {
+    const name = this.heroKey === 'lotti' ? 'Lotti' : 'Greta';
+    this.heroBtn.setText(`Figur: ${name} (Tab)`);
   }
 
   toggleMute() {

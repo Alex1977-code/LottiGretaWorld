@@ -1,9 +1,9 @@
-// Debug-Modus (Taste D): Hitboxen, FPS, Lotti-Zustand.
+// Debug-Modus (Taste D): Hitboxen, FPS, Hero-Zustand.
 
 export class DebugOverlay {
   constructor(scene, lotti, startEnabled = false) {
     this.scene = scene;
-    this.lotti = lotti;
+    this.hero = lotti;
     this.enabled = false;
 
     this.text = scene.add.text(4, 16, '', {
@@ -31,7 +31,7 @@ export class DebugOverlay {
 
   update() {
     if (!this.enabled) return;
-    const p = this.lotti;
+    const p = this.hero;
     const b = p.body;
     const fps = this.scene.game.loop.actualFps.toFixed(0);
     this.text.setText([

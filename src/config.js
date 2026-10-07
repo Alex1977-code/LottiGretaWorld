@@ -16,12 +16,10 @@ export const PHYSICS = {
   hardMaxSpeed: 700,
 };
 
-export const LOTTI = {
-  // --- Hitbox (im 20x20-Frame) ---
+export const HERO = {
+  // --- Hitbox (mittig unten im Frame, Füße an der Frame-Unterkante) ---
   bodyWidth: 10,
   bodyHeight: 14,
-  bodyOffsetX: 5,
-  bodyOffsetY: 6,
 
   // --- Laufen ---
   runSpeed: 125,          // Höchstgeschwindigkeit am Boden
@@ -73,29 +71,27 @@ export const ENEMIES = {
   hopperSquatTime: 220,     // Pilz: Ducken vor dem Sprung (ms)
   hopperJumpVelocity: 230,  // Pilz: Absprunggeschwindigkeit
   hopperSpeedX: 55,         // Pilz: horizontale Sprunggeschwindigkeit
-  hopperSightRange: 140,    // Pilz: ab dieser Entfernung springt er Richtung Lotti
-  stompTolerance: 10,       // Pixel, die Lottis Füße unter der Gegner-Oberkante sein dürfen
+  hopperSightRange: 140,    // Pilz: ab dieser Entfernung springt er Richtung Hero
+  stompTolerance: 10,       // Pixel, die Heros Füße unter der Gegner-Oberkante sein dürfen
   stompBounce: 210,         // Abprall nach Draufspringen
   stompBounceHeld: 320,     // Abprall, wenn Sprungtaste gehalten wird
   hitstop: 50,              // Freeze-Frame beim Besiegen (ms)
 };
 
-export const GRETA = {
-  bodyWidth: 14,          // Hitbox Lotti+Greta beim Huckepack-Tragen
+export const PFLAUME = {
+  bodyWidth: 14,          // Hitbox Heldin+Pflaume beim Reiten (Oberkante wie Heldin, reicht 12 px unter ihre Füße)
   bodyHeight: 26,
-  bodyOffsetX: 3,
-  bodyOffsetY: 6,
-  freeBodyWidth: 12,      // Hitbox Greta allein
-  freeBodyHeight: 18,
+  freeBodyWidth: 14,      // Hitbox Pflaume allein (mittig unten im Frame)
+  freeBodyHeight: 12,
   walkSpeed: 22,          // Umherlaufen ohne Reiter
   idleTime: 1400,         // Pause zwischen Spaziergängen (ms)
   fleeSpeed: 115,         // Fluchtgeschwindigkeit
-  fleeTime: 3000,         // ms Flucht, danach verschwindet Greta
+  fleeTime: 3000,         // ms Flucht, danach verschwindet Pflaume
   fleeHopVelocity: 130,   // kleine Panik-Hüpfer
   fleeHopInterval: 260,
-  mountCooldown: 600,     // ms nach der Flucht, bevor Lotti wieder aufsteigen kann
+  mountCooldown: 600,     // ms nach der Flucht, bevor Hero wieder aufsteigen kann
   mountHop: 160,          // kleiner Hüpfer beim Aufsteigen
-  throwOffVelocityX: 90,  // Lotti wird beim Treffer abgeworfen
+  throwOffVelocityX: 90,  // Hero wird beim Treffer abgeworfen
   throwOffVelocityY: 240,
   // Rote Beere: Feuerball
   fireSpeed: 230,

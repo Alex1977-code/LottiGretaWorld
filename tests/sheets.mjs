@@ -5,7 +5,7 @@ const PORT = 4185;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
 await loadGame(page, PORT, errors, stop, 'test');
-for (const key of (process.argv[2] ?? 'lotti,greta,leaf').split(',')) {
+for (const key of (process.argv[2] ?? 'lotti,greta,pflaume,leaf').split(',')) {
   const dataUrl = await page.evaluate((k) => {
     const src = window.__game.textures.get(k).getSourceImage();
     const z = 6, c = document.createElement('canvas');
@@ -16,8 +16,8 @@ for (const key of (process.argv[2] ?? 'lotti,greta,leaf').split(',')) {
   }, key);
   writeFileSync(`${OUT}sheet_${key}.png`, Buffer.from(dataUrl.split(',')[1], 'base64'));
 }
-// Szene mit Lotti auf Greta
-await page.evaluate(() => { const s = window.__game.scene.getScene('Play'); s.enemies.clear(true, true); const m = s.mounts.getChildren()[0]; s.lotti.body.reset(m.x, m.y - 24); });
+// Szene mit Hero auf Pflaume
+await page.evaluate(() => { const s = window.__game.scene.getScene('Play'); s.enemies.clear(true, true); const m = s.mounts.getChildren()[0]; s.hero.body.reset(m.x, m.y - 24); });
 await page.waitForTimeout(700);
 await page.evaluate(() => { const s = window.__game.scene.getScene('Play'); s.cameras.main.setZoom(3); });
 await page.waitForTimeout(100);

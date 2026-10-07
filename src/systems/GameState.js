@@ -5,7 +5,7 @@ export const STATE_KEYS = {
   maxHearts: 'maxHearts',
   coins: 'coins',             // Array: welche der 5 Münzen in diesem Versuch gesammelt sind
   hasKey: 'hasKey',
-  power: 'power',     // aktuelle Beeren-Kraft: none/red/blue/yellow ('' = ohne Greta)
+  power: 'power',     // aktuelle Beeren-Kraft: none/red/blue/yellow ('' = ohne Pflaume)
 };
 
 export const DEFAULTS = {

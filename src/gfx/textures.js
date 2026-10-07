@@ -1,17 +1,21 @@
 // Prozedurale Texturen: Alle Grafiken werden zur Laufzeit per Canvas erzeugt.
-// Struktur: Spritesheets bekommen benannte Frames, so dass sie später durch
-// echte Pixel-Art-Dateien (gleiche Keys/Frame-Namen) ersetzt werden können.
+// Spritesheets kommen aus src/gfx/sprites/*.js (je Modul: SHEETS mit Frames + eigener Palette),
+// Tiles aus tiles.js, Hintergrund aus background.js. Später können einzelne Sheets durch
+// echte Pixel-Art-Dateien (gleicher Key, gleiche Frame-Namen) ersetzt werden.
 
 import Phaser from 'phaser';
-import { PAL, SKY, POWER_COLORS } from './palette.js';
-import { LOTTI_FRAMES, LOTTI_FRAME_SIZE, LEAF_FRAMES } from './lottiFrames.js';
-import { WALKER_FRAMES, HOPPER_FRAMES, CHECKPOINT_FRAMES, HEART_FRAMES } from './enemyFrames.js';
-import { GRETA_FRAMES, BERRY_FRAMES, FIREBALL_FRAMES } from './gretaFrames.js';
-import { COIN_FRAMES, COIN_HUD_FRAMES, KEY_FRAMES, GATE_FRAMES, FLAG_FRAMES, THORNS_FRAMES } from './itemFrames.js';
 import { TILE_SIZE, TILE_NAMES, drawTile } from './tiles.js';
+import { createBackgroundTextures } from './background.js';
+import * as heroes from './sprites/heroes.js';
+import * as pflaume from './sprites/pflaume.js';
+import * as leaf from './sprites/leaf.js';
+import * as enemies from './sprites/enemies.js';
+import * as items from './sprites/items.js';
+
+const SPRITE_MODULES = [heroes, pflaume, leaf, enemies, items];
 
 /** Zeichnet ein Pixel-Art-Raster (Array von Strings) in einen Canvas-Kontext. */
-export function drawPixels(ctx, rows, ox = 0, oy = 0, palette = PAL) {
+export function drawPixels(ctx, rows, ox = 0, oy = 0, palette) {
   for (let y = 0; y < rows.length; y++) {
     const row = rows[y];
     for (let x = 0; x < row.length; x++) {
@@ -24,16 +28,17 @@ export function drawPixels(ctx, rows, ox = 0, oy = 0, palette = PAL) {
 }
 
 /**
- * Erzeugt ein Spritesheet aus benannten Pixel-Frames (alle gleich groß).
- * Mit `variants` ({ suffix: { Buchstabe: Farbe } }) entstehen umgefärbte Kopien
- * jedes Frames unter dem Namen `<frame>_<suffix>`.
+ * Erzeugt ein Spritesheet aus einer Sheet-Definition { key, frameWidth, frameHeight, frames, palette, variants }.
+ * Mit `variants` ({ suffix: { Buchstabe: Farbe } }) entstehen umgefärbte Kopien jedes Frames
+ * unter dem Namen `<frame>_<suffix>`.
  */
-function makeSheet(scene, key, frames, fw, fh, variants = null) {
+function makeSheet(scene, sheet) {
+  const { key, frameWidth: fw, frameHeight: fh, frames, palette, variants } = sheet;
   const entries = [];
   for (const [name, rows] of Object.entries(frames)) {
-    if (!variants) entries.push({ name, rows, palette: PAL });
+    if (!variants) entries.push({ name, rows, palette });
     else for (const [suffix, overrides] of Object.entries(variants)) {
-      entries.push({ name: `${name}_${suffix}`, rows, palette: { ...PAL, ...overrides } });
+      entries.push({ name: `${name}_${suffix}`, rows, palette: { ...palette, ...overrides } });
     }
   }
   const cols = Math.min(entries.length, 8);
@@ -57,107 +62,6 @@ function makeTileset(scene) {
   const ctx = tex.getContext();
   TILE_NAMES.forEach((name, i) => drawTile(ctx, name, i * TILE_SIZE, 0));
   tex.refresh();
-}
-
-/** Himmel-Verlauf (Bildschirmgröße, scrollt nicht). */
-function makeSky(scene, w, h) {
-  const tex = scene.textures.createCanvas('sky', w, h);
-  const ctx = tex.getContext();
-  const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, SKY.top);
-  grad.addColorStop(0.55, '#7a5a9a');
-  grad.addColorStop(1, SKY.bottom);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, w, h);
-  // Ein paar Sterne/Lichtpunkte oben
-  const rnd = new Phaser.Math.RandomDataGenerator(['sky']);
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  for (let i = 0; i < 30; i++) {
-    ctx.fillRect(rnd.between(0, w - 1), rnd.between(0, h * 0.4), 1, 1);
-  }
-  tex.refresh();
-}
-
-/** Parallax-Ebene: ferne Hügel (kachelbar in X). */
-function makeFarHills(scene, w, h) {
-  const tex = scene.textures.createCanvas('bg_far', w, h);
-  const ctx = tex.getContext();
-  ctx.fillStyle = SKY.farHills;
-  const rnd = new Phaser.Math.RandomDataGenerator(['hills']);
-  // Sanfte Hügel per Sinus, Enden passen zusammen (periodisch in w)
-  for (let x = 0; x < w; x++) {
-    const t = (x / w) * Math.PI * 2;
-    const y = h * 0.55 + Math.sin(t * 2) * 14 + Math.sin(t * 5 + 1) * 7 + Math.sin(t * 11) * 3;
-    ctx.fillRect(x, Math.round(y), 1, h - Math.round(y));
-  }
-  // Ferne Bäume als kleine Dreiecke
-  ctx.fillStyle = '#5a3c78';
-  for (let i = 0; i < 40; i++) {
-    const x = rnd.between(0, w - 1);
-    const t = (x / w) * Math.PI * 2;
-    const base = h * 0.55 + Math.sin(t * 2) * 14 + Math.sin(t * 5 + 1) * 7 + Math.sin(t * 11) * 3;
-    const th = rnd.between(6, 14);
-    for (let k = 0; k < th; k++) {
-      const half = Math.max(1, Math.round((k / th) * 3));
-      ctx.fillRect(x - half, Math.round(base) - th + k, half * 2 + 1, 1);
-    }
-  }
-  tex.refresh();
-}
-
-/** Parallax-Ebene: mittlere Baumreihe (Herbst). */
-function makeMidTrees(scene, w, h) {
-  const tex = scene.textures.createCanvas('bg_mid', w, h);
-  const ctx = tex.getContext();
-  const rnd = new Phaser.Math.RandomDataGenerator(['trees']);
-  const ground = h * 0.78;
-  // Bodenstreifen
-  ctx.fillStyle = SKY.midTrees;
-  ctx.fillRect(0, Math.round(ground), w, h - Math.round(ground));
-  // Bäume: Stamm + runde Krone
-  for (let i = 0; i < 14; i++) {
-    const x = Math.round((i / 14) * w + rnd.between(-10, 10));
-    const trunkH = rnd.between(28, 52);
-    const r = rnd.between(14, 24);
-    ctx.fillStyle = '#6a3a4a';
-    ctx.fillRect(x - 2, Math.round(ground) - trunkH, 4, trunkH);
-    ctx.fillStyle = rnd.pick(['#a04a4a', '#b3603a', '#8a4a5a']);
-    circleWrap(ctx, x, Math.round(ground) - trunkH - r * 0.6, r, w);
-    ctx.fillStyle = 'rgba(255,200,120,0.18)';
-    circleWrap(ctx, x - r * 0.3, Math.round(ground) - trunkH - r * 0.9, r * 0.5, w);
-  }
-  tex.refresh();
-}
-
-/** Parallax-Ebene: nahe Büsche/Blätter (dunkel, unten). */
-function makeNearBush(scene, w, h) {
-  const tex = scene.textures.createCanvas('bg_near', w, h);
-  const ctx = tex.getContext();
-  const rnd = new Phaser.Math.RandomDataGenerator(['bush']);
-  const base = h * 0.92;
-  ctx.fillStyle = SKY.nearBush;
-  for (let i = 0; i < 26; i++) {
-    const x = Math.round((i / 26) * w + rnd.between(-6, 6));
-    circleWrap(ctx, x, Math.round(base), rnd.between(10, 18), w);
-  }
-  ctx.fillStyle = SKY.nearLeaf;
-  for (let i = 0; i < 40; i++) {
-    const x = rnd.between(0, w - 1);
-    const y = rnd.between(Math.round(base) - 16, h - 2);
-    ctx.fillRect(x, y, 2, 2);
-  }
-  ctx.fillStyle = SKY.nearBush;
-  ctx.fillRect(0, Math.round(base), w, h - Math.round(base));
-  tex.refresh();
-}
-
-/** Kreis zeichnen, der am Rand umläuft (für kachelbare Texturen). */
-function circleWrap(ctx, x, y, r, w) {
-  for (const dx of [0, -w, w]) {
-    ctx.beginPath();
-    ctx.arc(x + dx, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
 }
 
 /** Partikel-Texturen: Staub, Blatt, Funke. */
@@ -201,25 +105,8 @@ function makeParticles(scene) {
 /** Erzeugt alle Texturen des Spiels. Einmalig in der Boot-Szene aufrufen. */
 export function createAllTextures(scene, width, height) {
   if (scene.textures.exists('lotti')) return;
-  makeSheet(scene, 'lotti', LOTTI_FRAMES, LOTTI_FRAME_SIZE, LOTTI_FRAME_SIZE);
-  makeSheet(scene, 'leaf', LEAF_FRAMES, 22, 12);
-  makeSheet(scene, 'walker', WALKER_FRAMES, 16, 16);
-  makeSheet(scene, 'hopper', HOPPER_FRAMES, 16, 16);
-  makeSheet(scene, 'checkpoint', CHECKPOINT_FRAMES, 16, 32);
-  makeSheet(scene, 'heart', HEART_FRAMES, 8, 8);
-  makeSheet(scene, 'greta', GRETA_FRAMES, 20, 20, POWER_COLORS);
-  makeSheet(scene, 'berry', BERRY_FRAMES, 8, 8, POWER_COLORS);
-  makeSheet(scene, 'fireball', FIREBALL_FRAMES, 8, 8);
-  makeSheet(scene, 'coin', COIN_FRAMES, 12, 12);
-  makeSheet(scene, 'coin_hud', COIN_HUD_FRAMES, 8, 8);
-  makeSheet(scene, 'key', KEY_FRAMES, 12, 12);
-  makeSheet(scene, 'gate', GATE_FRAMES, 16, 32);
-  makeSheet(scene, 'flag', FLAG_FRAMES, 16, 32);
-  makeSheet(scene, 'thorns', THORNS_FRAMES, 16, 8);
+  for (const mod of SPRITE_MODULES) for (const sheet of mod.SHEETS) makeSheet(scene, sheet);
   makeTileset(scene);
-  makeSky(scene, width, height);
-  makeFarHills(scene, width, height);
-  makeMidTrees(scene, width, height);
-  makeNearBush(scene, width, height);
+  createBackgroundTextures(scene, width, height);
   makeParticles(scene);
 }

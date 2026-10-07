@@ -1,5 +1,5 @@
 // Step-Sequencer mit Vorausplanung (Lookahead), spielt die Themen aus themes.js.
-// Trommelspur kann zur Laufzeit ein-/ausgeblendet werden (Greta).
+// Trommelspur kann zur Laufzeit ein-/ausgeblendet werden (Pflaume).
 
 import { engine } from './AudioEngine.js';
 import { THEMES } from './themes.js';

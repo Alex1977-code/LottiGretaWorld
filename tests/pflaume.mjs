@@ -1,26 +1,26 @@
-// Greta-Test: Aufsteigen, Beeren-Kräfte (Feuer, Schweben, Stampfen), Flucht & Einfangen.
-// Aufruf: npm run build && node tests/greta.mjs
+// Pflaume-Test: Aufsteigen, Beeren-Kräfte (Feuer, Schweben, Stampfen), Flucht & Einfangen.
+// Aufruf: npm run build && node tests/pflaume.mjs
 import { writeFileSync } from 'node:fs';
-import { startServer, launchBrowser, loadGame, lottiState, logState, makeChecker, OUT } from './helpers.mjs';
+import { startServer, launchBrowser, loadGame, heroState, logState, makeChecker, OUT } from './helpers.mjs';
 
 const PORT = 4180;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
 await loadGame(page, PORT, errors, stop);
 const { check, summary } = makeChecker();
-// Pilze stören den Ablauf (springen Lotti an) – nur Käfer bleiben
+// Pilze stören den Ablauf (springen Hero an) – nur Käfer bleiben
 await page.evaluate(() => { const s = window.__game.scene.getScene('Play'); s.enemies.getChildren().filter((e) => e.texture.key === 'hopper' && e.x < 1200).forEach((e) => e.destroy()); });
 
 const sc = (fn, arg) => page.evaluate(fn, arg);
-const teleport = (x, y) => sc(([x, y]) => { const p = window.__game.scene.getScene('Play').lotti; p.body.reset(x, y); }, [x, y]);
-const greta = () => sc(() => { const m = window.__game.scene.getScene('Play').mounts.getChildren()[0]; return m ? { x: m.x, y: m.y, state: m.state_, power: m.power, vx: m.body.velocity.x, hover: m.hoverTimer, stomping: m.stomping } : null; });
-const lottiInfo = () => sc(() => { const p = window.__game.scene.getScene('Play').lotti; return { mounted: !!p.mount, bodyH: p.body.height, bottom: p.body.bottom, x: p.x, y: p.y, vy: p.body.velocity.y, ground: p.onGround }; });
+const teleport = (x, y) => sc(([x, y]) => { const p = window.__game.scene.getScene('Play').hero; p.body.reset(x, y); }, [x, y]);
+const pflaume = () => sc(() => { const m = window.__game.scene.getScene('Play').mounts.getChildren()[0]; return m ? { x: m.x, y: m.y, state: m.state_, power: m.power, vx: m.body.velocity.x, hover: m.hoverTimer, stomping: m.stomping } : null; });
+const heroInfo = () => sc(() => { const p = window.__game.scene.getScene('Play').hero; return { mounted: !!p.mount, bodyH: p.body.height, bottom: p.body.bottom, x: p.x, y: p.y, vy: p.body.velocity.y, ground: p.onGround }; });
 const power = () => sc(() => window.__game.registry.get('power'));
 const hearts = () => sc(() => window.__game.registry.get('hearts'));
-const trace = async (label) => { const m = await greta(); const p = await lottiInfo(); console.log(`  [${label}] lotti x=${p.x.toFixed(0)} y=${p.y.toFixed(0)} mounted=${p.mounted} | greta ${m ? `${m.state} ${m.power} x=${m.x.toFixed(0)}` : 'weg'} | power=${await power()}`); };
+const trace = async (label) => { const m = await pflaume(); const p = await heroInfo(); console.log(`  [${label}] lotti x=${p.x.toFixed(0)} y=${p.y.toFixed(0)} mounted=${p.mounted} | pflaume ${m ? `${m.state} ${m.power} x=${m.x.toFixed(0)}` : 'weg'} | power=${await power()}`); };
 
 // Sprite-Sheets zur Sichtkontrolle
-for (const key of ['greta', 'berry', 'fireball']) {
+for (const key of ['pflaume', 'berry', 'fireball']) {
   const dataUrl = await sc((k) => {
     const src = window.__game.textures.get(k).getSourceImage();
     const z = 6, c = document.createElement('canvas');
@@ -32,20 +32,20 @@ for (const key of ['greta', 'berry', 'fireball']) {
   writeFileSync(`${OUT}sheet_${key}.png`, Buffer.from(dataUrl.split(',')[1], 'base64'));
 }
 
-// 1) Aufsteigen: zu Greta laufen
-let m = await greta();
-console.log('Greta bei', m.x.toFixed(0), m.y.toFixed(0), m.state);
-check('Greta wartet im Level', !!m && m.state === 'free');
+// 1) Aufsteigen: zu Pflaume laufen
+let m = await pflaume();
+console.log('Pflaume bei', m.x.toFixed(0), m.y.toFixed(0), m.state);
+check('Pflaume wartet im Level', !!m && m.state === 'free');
 await teleport(m.x, m.y - 24); // von oben draufspringen
 await page.waitForTimeout(500);
-let p = await lottiInfo(); m = await greta();
-check('Lotti sitzt auf Greta', p.mounted && m.state === 'ridden');
-console.log('Hitbox', JSON.stringify(await sc(() => { const b = window.__game.scene.getScene('Play').lotti.body; return { w: b.width, h: b.height, ox: b.offset.x, oy: b.offset.y }; })));
+let p = await heroInfo(); m = await pflaume();
+check('Hero sitzt auf Pflaume', p.mounted && m.state === 'ridden');
+console.log('Hitbox', JSON.stringify(await sc(() => { const b = window.__game.scene.getScene('Play').hero.body; return { w: b.width, h: b.height, ox: b.offset.x, oy: b.offset.y }; })));
 check('Hitbox beim Reiten höher (26)', p.bodyH === 26);
 check('HUD zeigt Kraft "none"', (await power()) === 'none');
 await page.waitForTimeout(400);
-p = await lottiInfo();
-check('Lotti+Greta stehen auf dem Boden', p.ground && p.mounted);
+p = await heroInfo();
+check('Hero+Pflaume stehen auf dem Boden', p.ground && p.mounted);
 await page.screenshot({ path: `${OUT}p01_mounted.png` });
 
 // 2) Rote Beere → Feuerball
@@ -78,15 +78,15 @@ await trace('blau');
 await teleport(blue.x, 120); // in der Luft loslassen und Sprungtaste halten
 await page.keyboard.down('Space');
 await page.waitForTimeout(600);
-p = await lottiInfo(); m = await greta();
+p = await heroInfo(); m = await pflaume();
 console.log('Schweben: vy', p.vy.toFixed(0), 'Restzeit', m.hover.toFixed(0));
 check('Schweben: kaum Sinken', !p.ground && p.vy < 25);
 check('Schwebezeit läuft ab', m.hover < 3000 && m.hover > 1500);
 await page.screenshot({ path: `${OUT}p03_hover.png` });
 await page.keyboard.up('Space');
 await page.waitForTimeout(1200);
-p = await lottiInfo();
-check('Nach Loslassen fällt Lotti', p.ground || p.vy > 100);
+p = await heroInfo();
+check('Nach Loslassen fällt Hero', p.ground || p.vy > 100);
 
 // 4) Gelbe Beere → Stampfsprung zerbricht Block
 const yellow = berries.find((b) => b.type === 'yellow');
@@ -100,7 +100,7 @@ await teleport(brick.cx, brick.top - 130);
 await page.waitForTimeout(60);
 await page.keyboard.press('x');
 await page.waitForTimeout(40);
-m = await greta(); p = await lottiInfo();
+m = await pflaume(); p = await heroInfo();
 check('Stampfsprung aktiv (schnell nach unten)', m.stomping && p.vy > 400);
 await page.waitForTimeout(600);
 const brickGone = await sc(([tx, ty]) => { const s = window.__game.scene.getScene('Play'); const t = s.groundLayer.getTileAt(tx, ty); return !t || t.index === -1; }, [brick.tx, brick.ty]);
@@ -108,39 +108,39 @@ check('Block zerbrochen', brickGone);
 await trace('nach Stampfer');
 await page.screenshot({ path: `${OUT}p04_stomp.png` });
 
-// 5) Flucht: seitlich von Gegner getroffen → Greta flieht, kein Herz verloren
+// 5) Flucht: seitlich von Gegner getroffen → Pflaume flieht, kein Herz verloren
 const h0 = await hearts();
 const hop = await sc(() => { const s = window.__game.scene.getScene('Play'); const e = s.enemies.getChildren().find((x) => x.texture.key === 'walker' && x.alive); e.body.reset(1260, 296); return { x: 1260, y: 296 }; });
 await teleport(hop.x - 60, hop.y - 14);
 await page.waitForTimeout(100);
 await page.keyboard.down('ArrowRight');
 let fled = false;
-for (let i = 0; i < 60; i++) { await page.waitForTimeout(30); m = await greta(); if (m && m.state === 'fleeing') { fled = true; break; } }
+for (let i = 0; i < 60; i++) { await page.waitForTimeout(30); m = await pflaume(); if (m && m.state === 'fleeing') { fled = true; break; } }
 await page.keyboard.up('ArrowRight');
-p = await lottiInfo();
-check('Treffer beim Reiten → Greta flieht', fled);
-check('Lotti ist abgestiegen (Hitbox 14)', !p.mounted && p.bodyH === 14);
+p = await heroInfo();
+check('Treffer beim Reiten → Pflaume flieht', fled);
+check('Hero ist abgestiegen (Hitbox 14)', !p.mounted && p.bodyH === 14);
 check('Kein Herz verloren', (await hearts()) === h0);
-check('Greta flieht vom Gegner weg (nach links)', m && m.vx < -60);
+check('Pflaume flieht vom Gegner weg (nach links)', m && m.vx < -60);
 check('Kraft-Anzeige aus', (await power()) === '');
 await page.screenshot({ path: `${OUT}p05_flee.png` });
 
 // 6) Einfangen innerhalb von 3 s → wieder aufgestiegen
 await page.waitForTimeout(500);
-m = await greta();
+m = await pflaume();
 if (m) await teleport(m.x, m.y - 4);
 let caught = false;
-for (let i = 0; i < 20; i++) { await page.waitForTimeout(30); m = await greta(); if (m && m.state === 'ridden') { caught = true; break; } }
-check('Greta wieder eingefangen', caught);
+for (let i = 0; i < 20; i++) { await page.waitForTimeout(30); m = await pflaume(); if (m && m.state === 'ridden') { caught = true; break; } }
+check('Pflaume wieder eingefangen', caught);
 check('Kraft bleibt erhalten (gelb)', (await power()) === 'yellow');
 
-// 7) Nicht einfangen → Greta verschwindet nach 3 s
-await sc(() => { const s = window.__game.scene.getScene('Play'); s.mounts.getChildren()[0]?.panic(s.lotti.x + 20); });
+// 7) Nicht einfangen → Pflaume verschwindet nach 3 s
+await sc(() => { const s = window.__game.scene.getScene('Play'); s.mounts.getChildren()[0]?.panic(s.hero.x + 20); });
 await page.waitForTimeout(200);
 await teleport(100, 280);
 await page.waitForTimeout(3300);
-m = await greta();
-check('Greta verschwindet nach 3 s Flucht', m === null);
+m = await pflaume();
+check('Pflaume verschwindet nach 3 s Flucht', m === null);
 
 await browser.close();
 stop();

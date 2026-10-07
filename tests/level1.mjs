@@ -1,7 +1,7 @@
 // Level-1-Test: lädt „Herbstwald“, zeichnet eine Übersicht, prüft Münzen, Schlüssel, Tor, Fahne, Speicherstand.
 // Aufruf: npm run build && node tests/level1.mjs
 import { writeFileSync } from 'node:fs';
-import { startServer, launchBrowser, loadGame, lottiState, logState, makeChecker, renderOverview, OUT } from './helpers.mjs';
+import { startServer, launchBrowser, loadGame, heroState, logState, makeChecker, renderOverview, OUT } from './helpers.mjs';
 
 const PORT = 4182;
 const stop = await startServer(PORT);
@@ -9,7 +9,7 @@ const { browser, page, errors } = await launchBrowser();
 await loadGame(page, PORT, errors, stop, 'level1');
 const { check, summary } = makeChecker();
 const sc = (fn, arg) => page.evaluate(fn, arg);
-const teleport = (x, y) => sc(([x, y]) => { const p = window.__game.scene.getScene('Play').lotti; p.body.reset(x, y); }, [x, y]);
+const teleport = (x, y) => sc(([x, y]) => { const p = window.__game.scene.getScene('Play').hero; p.body.reset(x, y); }, [x, y]);
 const reg = (k) => sc((k) => window.__game.registry.get(k), k);
 
 await renderOverview(page, 'level1');

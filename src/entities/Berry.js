@@ -1,4 +1,4 @@
-// Beere: Futter für Greta. Typ red/blue/yellow bestimmt die Kraft.
+// Beere: Futter für Pflaume. Typ red/blue/yellow bestimmt die Kraft.
 
 import Phaser from 'phaser';
 

@@ -20,16 +20,16 @@ a = await audio();
 console.log('nach Geste:', JSON.stringify(a));
 check('Geste schaltet Audio frei', a.ctx === 'running' && a.ready);
 check('Welt-Thema läuft', a.theme === 'world1');
-check('Ohne Greta keine Trommeln', a.drums === false);
+check('Ohne Pflaume keine Trommeln', a.drums === false);
 
 // Effekte auslösen: Sprung, Gleiten
 await page.keyboard.down('Space'); await page.waitForTimeout(700); await page.keyboard.up('Space');
 
 // Aufsteigen → Trommeln an
-await sc(() => { const s = window.__game.scene.getScene('Play'); const m = s.mounts.getChildren()[0]; s.lotti.body.reset(m.x, m.y - 24); });
+await sc(() => { const s = window.__game.scene.getScene('Play'); const m = s.mounts.getChildren()[0]; s.hero.body.reset(m.x, m.y - 24); });
 await page.waitForTimeout(600);
 a = await audio();
-check('Auf Greta kommt die Trommelspur dazu', a.drums === true);
+check('Auf Pflaume kommt die Trommelspur dazu', a.drums === true);
 
 // Stummschalten (M) und speichern
 await page.keyboard.press('m');

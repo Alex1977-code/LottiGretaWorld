@@ -1,14 +1,14 @@
-// Lotti – die Heldin (dunkelblond, zwei Zöpfe). Komplette Bewegungslogik:
+// Hero – die spielbare Heldin (Lotti oder Greta, gleiche Fähigkeiten). Komplette Bewegungslogik:
 // Beschleunigen/Bremsen, variable Sprunghöhe, Coyote Time, Jump Buffer,
 // Blätterschirm (Gleiten), Sturzflug und Aufschwung.
 
 import Phaser from 'phaser';
-import { LOTTI, PHYSICS, ENEMIES, DAMAGE, GRETA } from '../config.js';
+import { HERO, PHYSICS, ENEMIES, DAMAGE, PFLAUME } from '../config.js';
 import { approach, damp, sign } from '../systems/mathUtil.js';
 import { vibrate } from '../systems/haptics.js';
 import { sfx } from '../audio/index.js';
 
-export const LottiState = {
+export const HeroState = {
   GROUND: 'ground',
   AIR: 'air',
   GLIDE: 'glide',
@@ -18,30 +18,32 @@ export const LottiState = {
 // Leere Eingabe (für Rückstoß/Tod)
 const NO_INPUT = Object.freeze({ axisX: 0, jumpHeld: false, jumpJustPressed: false, diveHeld: false, diveJustPressed: false, actionJustPressed: false });
 
-export class Lotti extends Phaser.Physics.Arcade.Sprite {
+export class Hero extends Phaser.Physics.Arcade.Sprite {
   /**
    * @param {Phaser.Scene} scene
    * @param {number} x Fußpunkt X
    * @param {number} y Fußpunkt Y (Unterkante)
+   * @param {string} heroKey Textur-Key der Heldin ('hero' | 'greta')
    * @param {import('../systems/InputManager.js').InputManager} input
    * @param {import('../systems/Effects.js').Effects} effects
    */
-  constructor(scene, x, y, input, effects) {
-    super(scene, x, y - 10, 'lotti', 'idle0');
+  constructor(scene, x, y, heroKey, input, effects) {
+    super(scene, x, y, heroKey, 'idle0');
+    this.key = heroKey;
+    this.y = y - this.height / 2; // Füße auf y
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
     this.ctrl = input;
     this.effects = effects;
 
-    this.body.setSize(LOTTI.bodyWidth, LOTTI.bodyHeight);
-    this.body.setOffset(LOTTI.bodyOffsetX, LOTTI.bodyOffsetY);
+    this.applyHeroBody();
     this.body.setMaxVelocityY(PHYSICS.hardMaxSpeed); // Sturzflug/Stampfer dürfen schneller sein als normales Fallen
     this.body.setCollideWorldBounds(true);
     this.body.onWorldBounds = false;
     this.setDepth(10);
 
-    this.moveState = LottiState.GROUND;
+    this.moveState = HeroState.GROUND;
     this.facing = 1;              // 1 = rechts, -1 = links
     this.coyoteTimer = 0;         // ms
     this.jumpBufferTimer = 0;     // ms
@@ -58,10 +60,10 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
     this.controlLockTimer = 0;    // ms ohne Steuerung (Rückstoß)
     this.blinkTimer = 0;
     this.dead = false;
-    this.mount = null;            // Greta, wenn Lotti reitet
+    this.mount = null;            // Pflaume, wenn Hero reitet
     this.locked = false;          // keine Eingabe (Levelende)
 
-    // Blätterschirm als eigenes Sprite über Lotti
+    // Blätterschirm als eigenes Sprite über Hero
     this.leaf = scene.add.sprite(x, y, 'leaf', 'leaf0').setDepth(11).setVisible(false);
 
     // Squash & Stretch nur für die Darstellung: Die Skalierung wird erst nach dem
@@ -73,41 +75,48 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
     this.once(Phaser.GameObjects.Events.DESTROY, () => scene.events.off(Phaser.Scenes.Events.POST_UPDATE, this.applySquash, this));
 
     this.createAnimations();
-    this.play('lotti-idle');
+    this.play(`${this.key}-idle`);
+  }
+
+  /** Normale Hitbox: mittig, Unterkante = Frame-Unterkante. */
+  applyHeroBody() {
+    this.body.setSize(HERO.bodyWidth, HERO.bodyHeight);
+    this.body.setOffset((this.width - HERO.bodyWidth) / 2, this.height - HERO.bodyHeight);
   }
 
   createAnimations() {
     const a = this.scene.anims;
-    const mk = (key, frames, frameRate, repeat = -1) => {
+    const tex = this.key;
+    const mk = (name, frames, frameRate, repeat = -1) => {
+      const key = `${tex}-${name}`;
       if (a.exists(key)) return;
-      a.create({ key, frames: frames.map((f) => ({ key: 'lotti', frame: f })), frameRate, repeat });
+      a.create({ key, frames: frames.map((f) => ({ key: tex, frame: f })), frameRate, repeat });
     };
-    mk('lotti-idle', ['idle0', 'idle0', 'idle0', 'idle1'], 2);
-    mk('lotti-run', ['run0', 'run1', 'run2', 'run3'], 12);
-    mk('lotti-jump', ['jump'], 1, 0);
-    mk('lotti-fall', ['fall'], 1, 0);
-    mk('lotti-glide', ['glide'], 1, 0);
-    mk('lotti-ride', ['ride'], 1, 0);
-    mk('lotti-dive', ['dive'], 1, 0);
+    mk('idle', ['idle0', 'idle0', 'idle0', 'idle1'], 2);
+    mk('run', ['run0', 'run1', 'run2', 'run3'], 12);
+    mk('jump', ['jump'], 1, 0);
+    mk('fall', ['fall'], 1, 0);
+    mk('glide', ['glide'], 1, 0);
+    mk('ride', ['ride'], 1, 0);
+    mk('dive', ['dive'], 1, 0);
     if (!a.exists('leaf-sway')) {
       a.create({ key: 'leaf-sway', frames: [{ key: 'leaf', frame: 'leaf0' }, { key: 'leaf', frame: 'leaf1' }], frameRate: 5, repeat: -1 });
     }
   }
 
-  /** Setzt Lotti an den Startpunkt zurück. */
+  /** Setzt Hero an den Startpunkt zurück. */
   respawn() {
     if (this.mount) {
       const m = this.mount;
       this.mount = null;
-      this.body.setSize(LOTTI.bodyWidth, LOTTI.bodyHeight);
-      this.body.setOffset(LOTTI.bodyOffsetX, LOTTI.bodyOffsetY);
+      this.applyHeroBody();
       this.scene.registry.set('power', '');
       m.destroy();
     }
-    this.setPosition(this.spawnPoint.x, this.spawnPoint.y - 10);
-    this.body.reset(this.spawnPoint.x, this.spawnPoint.y - 10);
+    this.setPosition(this.spawnPoint.x, this.spawnPoint.y - this.height / 2);
+    this.body.reset(this.spawnPoint.x, this.spawnPoint.y - this.height / 2);
     this.body.setVelocity(0, 0);
-    this.moveState = LottiState.AIR;
+    this.moveState = HeroState.AIR;
     this.isJumping = false;
     this.swooping = false;
     this.leaf.setVisible(false);
@@ -122,30 +131,29 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
 
   get invincible() { return this.invincibleTimer > 0; }
 
-  /** Auf Gretas Rücken klettern: größere Hitbox (beide zusammen), kleiner Hüpfer. */
-  setMount(greta) {
-    this.mount = greta;
+  /** Auf Pflaume aufsteigen: größere Hitbox (beide zusammen), kleiner Hüpfer. */
+  setMount(pflaume) {
+    this.mount = pflaume;
     this.leaf.setVisible(false);
-    this.moveState = LottiState.AIR;
+    this.moveState = HeroState.AIR;
     this.swooping = false;
-    // Hitbox nach unten verlängern, Lotti rutscht optisch nach oben
-    this.y -= GRETA.bodyHeight - LOTTI.bodyHeight;
-    this.body.setSize(GRETA.bodyWidth, GRETA.bodyHeight);
-    this.body.setOffset(GRETA.bodyOffsetX, GRETA.bodyOffsetY);
+    // Hitbox nach unten verlängern (Pflaume darunter), Heldin rutscht optisch nach oben
+    this.y -= PFLAUME.bodyHeight - HERO.bodyHeight;
+    this.body.setSize(PFLAUME.bodyWidth, PFLAUME.bodyHeight);
+    this.body.setOffset((this.width - PFLAUME.bodyWidth) / 2, this.height - HERO.bodyHeight);
     this.body.reset(this.x, this.y);
-    this.body.setVelocityY(-GRETA.mountHop);
+    this.body.setVelocityY(-PFLAUME.mountHop);
     this.body.setAllowGravity(true);
   }
 
-  /** Absteigen (Treffer): zurück zur normalen Hitbox, Lotti wird weggeschleudert. */
+  /** Absteigen (Treffer): zurück zur normalen Hitbox, Hero wird weggeschleudert. */
   clearMount(dirX) {
     if (!this.mount) return;
     this.mount = null;
-    this.body.setSize(LOTTI.bodyWidth, LOTTI.bodyHeight);
-    this.body.setOffset(LOTTI.bodyOffsetX, LOTTI.bodyOffsetY);
+    this.applyHeroBody();
     this.body.setAllowGravity(true);
-    this.body.setVelocity(dirX * GRETA.throwOffVelocityX, -GRETA.throwOffVelocityY);
-    this.moveState = LottiState.AIR;
+    this.body.setVelocity(dirX * PFLAUME.throwOffVelocityX, -PFLAUME.throwOffVelocityY);
+    this.moveState = HeroState.AIR;
     this.isJumping = false;
     this.invincibleTimer = DAMAGE.invincibleTime * 0.6;
     this.controlLockTimer = DAMAGE.controlLock;
@@ -159,7 +167,7 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
     const dir = this.x < fromX ? -1 : 1;
     this.body.setVelocity(dir * DAMAGE.knockbackX, -DAMAGE.knockbackY);
     this.body.setAllowGravity(true);
-    this.moveState = LottiState.AIR;
+    this.moveState = HeroState.AIR;
     this.leaf.setVisible(false);
     this.isJumping = false;
     this.swooping = false;
@@ -175,7 +183,7 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
   bounce(jumpHeld) {
     this.body.setVelocityY(-(jumpHeld ? ENEMIES.stompBounceHeld : ENEMIES.stompBounce));
     this.body.setAllowGravity(true);
-    this.moveState = LottiState.AIR;
+    this.moveState = HeroState.AIR;
     this.isJumping = true;       // erlaubt variable Höhe wie beim Sprung
     this.swooping = false;
     this.leaf.setVisible(false);
@@ -222,9 +230,9 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
     if (!onGround) this.airTime += delta; else this.airTime = 0;
 
     // --- Blickrichtung ---
-    if (inp.axisX !== 0 && this.moveState !== LottiState.DIVE) this.facing = sign(inp.axisX);
+    if (inp.axisX !== 0 && this.moveState !== HeroState.DIVE) this.facing = sign(inp.axisX);
 
-    // --- Huckepack auf Greta: Aktion (Feuer/Stampfen), Stampf-Sperre ---
+    // --- Reittier: Aktion (Feuer/Stampfen), Stampf-Sperre ---
     let locked = false;
     if (this.mount) {
       if (inp.actionJustPressed) this.mount.useAction(this);
@@ -254,8 +262,8 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
     const vy = body.velocity.y;
 
     if (onGround) {
-      if (this.moveState !== LottiState.GROUND) {
-        this.moveState = LottiState.GROUND;
+      if (this.moveState !== HeroState.GROUND) {
+        this.moveState = HeroState.GROUND;
         this.swooping = false;
         this.isJumping = false;
       }
@@ -263,20 +271,20 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
     }
 
     switch (this.moveState) {
-      case LottiState.GROUND:
+      case HeroState.GROUND:
         // Kante verlassen ohne Sprung
-        this.moveState = LottiState.AIR;
+        this.moveState = HeroState.AIR;
         break;
-      case LottiState.AIR:
+      case HeroState.AIR:
         if (vy >= 0) this.swooping = false;
-        // Schirm öffnen: halten + fallen (nicht beim Reiten – da schwebt Greta)
-        if (!this.mount && inp.jumpHeld && vy > LOTTI.glideMinFallSpeed) this.startGlide();
+        // Schirm öffnen: halten + fallen (nicht beim Reiten – da schwebt Pflaume)
+        if (!this.mount && inp.jumpHeld && vy > HERO.glideMinFallSpeed) this.startGlide();
         break;
-      case LottiState.GLIDE:
+      case HeroState.GLIDE:
         if (!inp.jumpHeld) this.stopGlide();
         else if (inp.diveJustPressed) this.startDive();
         break;
-      case LottiState.DIVE:
+      case HeroState.DIVE:
         if (!inp.diveHeld) this.endDive(inp);
         break;
     }
@@ -289,15 +297,15 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
     let accel, decel, maxSpeed;
 
     switch (this.moveState) {
-      case LottiState.GROUND:
-        accel = LOTTI.groundAccel; decel = LOTTI.groundDecel; maxSpeed = LOTTI.runSpeed; break;
-      case LottiState.GLIDE:
-        accel = LOTTI.glideAccel; decel = LOTTI.glideDecel; maxSpeed = LOTTI.glideMaxSpeed; break;
-      case LottiState.DIVE:
-        accel = LOTTI.diveSteerAccel; decel = 0; maxSpeed = LOTTI.airMaxSpeed; break;
+      case HeroState.GROUND:
+        accel = HERO.groundAccel; decel = HERO.groundDecel; maxSpeed = HERO.runSpeed; break;
+      case HeroState.GLIDE:
+        accel = HERO.glideAccel; decel = HERO.glideDecel; maxSpeed = HERO.glideMaxSpeed; break;
+      case HeroState.DIVE:
+        accel = HERO.diveSteerAccel; decel = 0; maxSpeed = HERO.airMaxSpeed; break;
       default:
-        accel = LOTTI.airAccel; maxSpeed = LOTTI.airMaxSpeed;
-        decel = this.swooping ? LOTTI.swoopAirDecel : LOTTI.airDecel;
+        accel = HERO.airAccel; maxSpeed = HERO.airMaxSpeed;
+        decel = this.swooping ? HERO.swoopAirDecel : HERO.airDecel;
     }
 
     if (ax !== 0) {
@@ -305,11 +313,11 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
       const sameDir = sign(vx) === sign(ax);
       if (sameDir && Math.abs(vx) > maxSpeed) {
         // Überschuss (z.B. nach Aufschwung) nur sanft abbauen – Schwung behalten
-        vx = approach(vx, target, (this.swooping ? LOTTI.swoopAirDecel : decel) * dt);
+        vx = approach(vx, target, (this.swooping ? HERO.swoopAirDecel : decel) * dt);
       } else {
         const turning = vx !== 0 && !sameDir;
         if (turning && onGround && Math.abs(vx) > 70) this.effects?.dust(this.x - sign(vx) * 4, this.body.bottom, 2, 0.6);
-        const a = accel * (turning && onGround ? LOTTI.turnBoost : 1);
+        const a = accel * (turning && onGround ? HERO.turnBoost : 1);
         vx = approach(vx, target, a * dt);
       }
     } else {
@@ -322,37 +330,37 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
     const body = this.body;
 
     // Timer: Coyote & Jump Buffer
-    if (onGround) this.coyoteTimer = LOTTI.coyoteTime; else this.coyoteTimer -= delta;
-    if (inp.jumpJustPressed) this.jumpBufferTimer = LOTTI.jumpBuffer; else this.jumpBufferTimer -= delta;
+    if (onGround) this.coyoteTimer = HERO.coyoteTime; else this.coyoteTimer -= delta;
+    if (inp.jumpJustPressed) this.jumpBufferTimer = HERO.jumpBuffer; else this.jumpBufferTimer -= delta;
 
     // Absprung (auch kurz nach Verlassen der Kante, auch kurz vor der Landung)
-    if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0 && this.moveState !== LottiState.DIVE) {
+    if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0 && this.moveState !== HeroState.DIVE) {
       this.doJump();
     }
 
     let vy = body.velocity.y;
 
     switch (this.moveState) {
-      case LottiState.GLIDE: {
+      case HeroState.GLIDE: {
         body.setAllowGravity(false);
         body.setGravityY(0);
         // Weich auf Gleit-Sinkgeschwindigkeit einschwingen ("Schirm öffnet sich")
-        vy = damp(vy, LOTTI.glideFallSpeed, LOTTI.glideOpenLerp, dt);
+        vy = damp(vy, HERO.glideFallSpeed, HERO.glideOpenLerp, dt);
         body.setVelocityY(vy);
         break;
       }
-      case LottiState.DIVE: {
+      case HeroState.DIVE: {
         body.setAllowGravity(false);
         body.setGravityY(0);
-        vy = approach(vy, LOTTI.diveMaxSpeed, LOTTI.diveAccel * dt);
+        vy = approach(vy, HERO.diveMaxSpeed, HERO.diveAccel * dt);
         body.setVelocityY(vy);
         break;
       }
       default: {
         body.setAllowGravity(true);
         // Variable Sprunghöhe: früh loslassen kappt die Aufwärtsgeschwindigkeit
-        if (this.isJumping && !inp.jumpHeld && vy < -LOTTI.jumpCutVelocity) {
-          vy = -LOTTI.jumpCutVelocity;
+        if (this.isJumping && !inp.jumpHeld && vy < -HERO.jumpCutVelocity) {
+          vy = -HERO.jumpCutVelocity;
           body.setVelocityY(vy);
           this.isJumping = false;
         }
@@ -367,8 +375,8 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
         // Zusatz-Schwerkraft: schneller fallen, leichter am Scheitelpunkt
         let extra = 0;
         if (!onGround) {
-          if (vy > 0) extra = PHYSICS.gravity * (LOTTI.fallMultiplier - 1);
-          else if (Math.abs(vy) < LOTTI.apexThreshold && this.isJumping) extra = PHYSICS.gravity * (LOTTI.apexGravityMult - 1);
+          if (vy > 0) extra = PHYSICS.gravity * (HERO.fallMultiplier - 1);
+          else if (Math.abs(vy) < HERO.apexThreshold && this.isJumping) extra = PHYSICS.gravity * (HERO.apexGravityMult - 1);
         }
         body.setGravityY(extra);
       }
@@ -377,12 +385,12 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
 
   doJump() {
     const body = this.body;
-    body.setVelocityY(-LOTTI.jumpVelocity);
+    body.setVelocityY(-HERO.jumpVelocity);
     this.coyoteTimer = 0;
     this.jumpBufferTimer = 0;
     this.isJumping = true;
     this.swooping = false;
-    this.moveState = LottiState.AIR;
+    this.moveState = HeroState.AIR;
     // Squash & Stretch: beim Absprung lang ziehen
     this.squash(0.85, 1.18);
     this.effects?.dust(this.x, this.body.bottom, 3, 0.5);
@@ -390,7 +398,7 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
   }
 
   startGlide() {
-    this.moveState = LottiState.GLIDE;
+    this.moveState = HeroState.GLIDE;
     this.isJumping = false;
     this.swooping = false;
     this.leaf.setVisible(true).play('leaf-sway');
@@ -400,12 +408,12 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
   }
 
   stopGlide() {
-    this.moveState = LottiState.AIR;
+    this.moveState = HeroState.AIR;
     this.leaf.setVisible(false);
   }
 
   startDive() {
-    this.moveState = LottiState.DIVE;
+    this.moveState = HeroState.DIVE;
     this.diveStartY = this.y;
     this.leaf.setVisible(false);
     // Der Sturzflug "faltet" den Schirm zusammen – bisheriger Sinkflug wird zu Fahrt
@@ -419,13 +427,13 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
   endDive(inp) {
     const body = this.body;
     const depth = this.y - this.diveStartY;
-    if (depth >= LOTTI.diveMinDepth) {
-      const v = Math.min(LOTTI.swoopMaxVelocity, Math.sqrt(2 * PHYSICS.gravity * depth * LOTTI.swoopEfficiency));
+    if (depth >= HERO.diveMinDepth) {
+      const v = Math.min(HERO.swoopMaxVelocity, Math.sqrt(2 * PHYSICS.gravity * depth * HERO.swoopEfficiency));
       body.setVelocityY(-v);
       // Schub in Blickrichtung – Höhe wird teilweise in Weite umgesetzt
       const dir = this.facing;
-      let vx = body.velocity.x + dir * LOTTI.swoopSpeedBoost;
-      if (Math.abs(vx) > LOTTI.swoopMaxSpeed) vx = dir * LOTTI.swoopMaxSpeed;
+      let vx = body.velocity.x + dir * HERO.swoopSpeedBoost;
+      if (Math.abs(vx) > HERO.swoopMaxSpeed) vx = dir * HERO.swoopMaxSpeed;
       body.setVelocityX(vx);
       this.swooping = true;
       this.squash(0.8, 1.25);
@@ -433,7 +441,7 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
       vibrate(8);
       sfx('swoop');
     }
-    this.moveState = LottiState.AIR;
+    this.moveState = HeroState.AIR;
     body.setAllowGravity(true);
     // Schirm bleibt zu, bis die Fallbedingung wieder greift (jumpHeld + Fallen)
   }
@@ -441,13 +449,13 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
   onLand() {
     const impact = this.prevVy;
     this.leaf.setVisible(false);
-    if (impact > LOTTI.hardLandSpeed) {
+    if (impact > HERO.hardLandSpeed) {
       this.squash(1.3, 0.7);
       this.effects?.dust(this.x, this.body.bottom, 10, 1);
       this.scene.cameras.main.shake(80, 0.004);
       vibrate(20);
       sfx('hardLand');
-    } else if (impact > LOTTI.landDustMinSpeed) {
+    } else if (impact > HERO.landDustMinSpeed) {
       this.squash(1.18, 0.84);
       this.effects?.dust(this.x, this.body.bottom, 5, 0.7);
       vibrate(6);
@@ -468,32 +476,32 @@ export class Lotti extends Phaser.Physics.Arcade.Sprite {
     // Animation wählen
     let anim;
     switch (this.moveState) {
-      case LottiState.GROUND:
+      case HeroState.GROUND:
         if (Math.abs(vx) > 8) {
-          anim = 'lotti-run';
+          anim = `${this.key}-run`;
           // Laufanimation an Geschwindigkeit koppeln
-          this.anims.timeScale = Phaser.Math.Clamp(Math.abs(vx) / LOTTI.runSpeed, 0.5, 1.3);
+          this.anims.timeScale = Phaser.Math.Clamp(Math.abs(vx) / HERO.runSpeed, 0.5, 1.3);
         } else {
-          anim = 'lotti-idle';
+          anim = `${this.key}-idle`;
           this.anims.timeScale = 1;
         }
         break;
-      case LottiState.GLIDE: anim = 'lotti-glide'; break;
-      case LottiState.DIVE: anim = 'lotti-dive'; break;
-      default: anim = (vy < 0 || this.mount?.hovering) ? 'lotti-jump' : 'lotti-fall';
+      case HeroState.GLIDE: anim = `${this.key}-glide`; break;
+      case HeroState.DIVE: anim = `${this.key}-dive`; break;
+      default: anim = (vy < 0 || this.mount?.hovering) ? `${this.key}-jump` : `${this.key}-fall`;
     }
-    if (this.mount) anim = 'lotti-ride'; // sitzt huckepack auf Greta
+    if (this.mount) anim = `${this.key}-ride`; // sitzt auf Pflaume
     if (this.anims.currentAnim?.key !== anim) this.play(anim, true);
 
     // Leichte Neigung in Flugrichtung beim Gleiten/Aufschwung
-    if (this.moveState === LottiState.GLIDE) this.setAngle(vx * 0.06);
+    if (this.moveState === HeroState.GLIDE) this.setAngle(vx * 0.06);
     else if (this.swooping) this.setAngle(-this.facing * 10);
     else this.setAngle(0);
 
     // Blätterschirm positionieren
     if (this.leaf.visible) {
       this.leaf.setScale(damp(this.leaf.scaleX, 1, 18, dt), damp(this.leaf.scaleY, 1, 18, dt));
-      this.leaf.setPosition(Math.round(this.x - this.facing * 1), Math.round(this.y - 15));
+      this.leaf.setPosition(Math.round(this.x - this.facing * 1), Math.round(this.y - this.height / 2 - 5));
       this.leaf.setFlipX(this.facing < 0);
       this.leaf.setAngle(vx * 0.1);
       // Blätter rieseln

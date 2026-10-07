@@ -1,8 +1,8 @@
 // Headless-Smoke-Test (Tastatur): lädt das Spiel in Chromium, prüft auf Konsolenfehler,
-// steuert Lotti per Tastatur und speichert Screenshots nach tests/out/.
+// steuert Hero per Tastatur und speichert Screenshots nach tests/out/.
 // Aufruf: npm run build && node tests/run.mjs
 import { writeFileSync } from 'node:fs';
-import { startServer, launchBrowser, loadGame, lottiState, logState, makeChecker, OUT } from './helpers.mjs';
+import { startServer, launchBrowser, loadGame, heroState, logState, makeChecker, OUT } from './helpers.mjs';
 
 const PORT = 4173;
 const stop = await startServer(PORT);
@@ -15,7 +15,7 @@ const info = await page.evaluate(() => ({
 }));
 console.log('Renderer:', info.renderer, 'FPS:', info.fps.toFixed(0));
 
-const lotti = () => lottiState(page);
+const lotti = () => heroState(page);
 const shot = (name) => page.screenshot({ path: `${OUT}${name}.png` });
 const log = logState;
 
@@ -84,7 +84,7 @@ check('Gleit-Sinkgeschwindigkeit < 60', sawGlide && glideVy < 60 && glideVy > 0)
 await page.keyboard.up('Space');
 await page.keyboard.up('ArrowRight');
 await page.waitForTimeout(800);
-await page.evaluate(() => { const p = window.__game.scene.getScene('Play').lotti; p.body.reset(300, 30); });
+await page.evaluate(() => { const p = window.__game.scene.getScene('Play').hero; p.body.reset(300, 30); });
 await page.waitForTimeout(100);
 await page.keyboard.down('Space');
 await page.keyboard.down('ArrowRight');

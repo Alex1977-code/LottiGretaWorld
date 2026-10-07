@@ -1,4 +1,6 @@
-// Pixel-Art-Frames für Lotti (20x20, blickt nach rechts; links wird gespiegelt).
+// Heldinnen-Spritesheets: 'lotti' (dunkelblond) und 'greta' (hellblond).
+// Frames 24x24, Füße auf der untersten Zeile, Hitbox 10x14 mittig unten (Spalten 7-16, Zeilen 10-23).
+// Beide Figuren haben dieselben Frame-Namen; Greta nutzt die Lotti-Form mit eigener Haarfarbe (Platzhalter).
 // Dunkelblondes Mädchen mit zwei Zöpfen (Silhouette!), roter Haarspange, blauem Kleid.
 // Jeder Frame ist ein Array aus 20 Strings mit je 20 Zeichen (siehe palette.js).
 // Später können diese Daten durch ein echtes Spritesheet ersetzt werden,
@@ -120,9 +122,7 @@ function shiftUp(rows, dy) {
   return out;
 }
 
-export const LOTTI_FRAME_SIZE = 20;
-
-export const LOTTI_FRAMES = {
+const LOTTI_20 = {
   idle0: [...HEAD, ...DRESS, ...LEGS_STAND],
   idle1: [...shiftUp(HEAD, 1), E, ...DRESS, ...LEGS_STAND].slice(0, 11).concat(DRESS, LEGS_STAND),
   run0: [...HEAD_RUN, ...DRESS, ...LEGS_RUN_A],
@@ -136,34 +136,31 @@ export const LOTTI_FRAMES = {
   dive: DIVE,
 };
 
-// Blätterschirm (22x12), wird über Lotti gezeichnet
-export const LEAF_FRAMES = {
-  leaf0: [
-    '.........DDDD.........',
-    '......DDDLLLLDDD......',
-    '....DDLLLlLLLlLLDD....',
-    '..DDLLLlLLLLLLLlLLDD..',
-    '.DLLLlLLLLLGLLLLLlLLD.',
-    'DLLLLLLLLLLGLLLLLLLLLD',
-    'DLlLLLLLLLLGLLLLLLLlLD',
-    '.DDLLLLLLLLGLLLLLLLDD.',
-    '...DDDLLLLLGLLLLDDD...',
-    '......DDDDDGDDDDD.....',
-    '...........G..........',
-    '...........G..........',
-  ],
-  leaf1: [
-    '..........DDDD........',
-    '.......DDDLLLLDDD.....',
-    '.....DDLLLlLLLlLLDD...',
-    '...DDLLLlLLLLLLLlLLDD.',
-    '..DLLLlLLLLLGLLLLLlLLD',
-    '.DLLLLLLLLLLGLLLLLLLLD',
-    '.DLlLLLLLLLLGLLLLLLLlD',
-    '..DDLLLLLLLLGLLLLLLDD.',
-    '....DDDLLLLLGLLLLDDD..',
-    '.......DDDDDGDDDDD....',
-    '...........G..........',
-    '...........G..........',
-  ],
+
+/** 20x20-Frame auf 24x24 vergrößern (2 px Rand links/rechts, 4 px oben). */
+function pad24(rows) {
+  const out = ['.'.repeat(24), '.'.repeat(24), '.'.repeat(24), '.'.repeat(24)];
+  for (const r of rows) out.push('..' + r + '..');
+  return out;
+}
+const FRAMES = Object.fromEntries(Object.entries(LOTTI_20).map(([k, v]) => [k, pad24(v)]));
+
+export const HERO_FRAME = { width: 24, height: 24 };
+
+const PALETTE_LOTTI = {
+  '.': null,
+  'B': '#4a230a', 'b': '#7a3f12', 'R': '#d8333a', 'W': '#ffffff', 'K': '#120a06',
+  '1': '#b5893a', '2': '#dcb45e', '3': '#86602a',
+  '4': '#f6d3ad', '5': '#dfa884',
+  '6': '#3f7fc4', '7': '#2a5a93',
 };
+const PALETTE_GRETA = {
+  ...PALETTE_LOTTI,
+  '1': '#f3df96', '2': '#fff6cf', '3': '#d8ba6c',   // hellblond
+  '6': '#5aa84a', '7': '#3b7a32',                   // grünes Kleid
+};
+
+export const SHEETS = [
+  { key: 'lotti', frameWidth: 24, frameHeight: 24, frames: FRAMES, palette: PALETTE_LOTTI },
+  { key: 'greta', frameWidth: 24, frameHeight: 24, frames: FRAMES, palette: PALETTE_GRETA },
+];

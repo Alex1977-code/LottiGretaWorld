@@ -2,7 +2,8 @@
 
 const KEY = 'lotti-greta-save-v1';
 
-const EMPTY = () => ({ version: 1, levels: {}, current: 'level1' });
+const HEROES = ['lotti', 'greta'];
+const EMPTY = () => ({ version: 1, levels: {}, current: 'level1', hero: 'lotti' });
 
 export class SaveGame {
   constructor() {
@@ -45,6 +46,10 @@ export class SaveGame {
   }
 
   coinCount(id) { return this.level(id).coins.filter(Boolean).length; }
+
+  /** Gewählte Heldin ('lotti' | 'greta'). */
+  get hero() { return HEROES.includes(this.data.hero) ? this.data.hero : 'lotti'; }
+  set hero(v) { if (HEROES.includes(v)) { this.data.hero = v; this.save(); } }
 
   /** Aktueller Punkt auf der Weltkarte. */
   get current() { return this.data.current; }

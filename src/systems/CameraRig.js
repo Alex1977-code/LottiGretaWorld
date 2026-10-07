@@ -21,7 +21,7 @@ export class CameraRig {
 
   update() {
     const t = this.target;
-    // Ziel-Vorausschau nach Blickrichtung, nur wenn sich Lotti bewegt
+    // Ziel-Vorausschau nach Blickrichtung, nur wenn sich Hero bewegt
     const moving = Math.abs(t.body.velocity.x) > 10;
     const want = moving ? t.facing * CAMERA.lookAhead : this.lookX;
     this.lookX = Phaser.Math.Linear(this.lookX, want, CAMERA.lookAheadLerp);

@@ -13,7 +13,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(8);
   }
 
-  /** Wird vom Lotti-Sprung getroffen: plattdrücken und verschwinden. */
+  /** Wird vom Hero-Sprung getroffen: plattdrücken und verschwinden. */
   squash() {
     if (!this.alive) return;
     this.alive = false;

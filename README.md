@@ -4,9 +4,10 @@
 Querformat. Läuft im Browser, installierbar als PWA. Alle Grafiken und Sounds werden
 prozedural per Code erzeugt – keine externen Assets.
 
-**Lotti** (dunkelblond, zwei Zöpfe, blaues Kleid) ist die Heldin: Sie läuft, springt und
-gleitet mit ihrem Blätterschirm. **Greta** (hellblond, lange Haare) trägt Lotti huckepack;
-ihr Kleid nimmt die Farbe der gefressenen Beere an und verrät so die aktuelle Kraft.
+Zwei spielbare Heldinnen mit gleichen Fähigkeiten: **Lotti** (dunkelblond, zwei Zöpfe) und
+**Greta** (hellblond). Die Figur wird auf der Weltkarte gewählt (Tab oder Tippen auf die Figur).
+**Pflaume**, der runde lila Käfer, ist das Reittier; seine Flecken nehmen die Farbe der gefressenen
+Beere an und zeigen so die aktuelle Kraft.
 
 ## Entwicklung
 
@@ -26,7 +27,7 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 | Leertaste / ↑  | Springen (kurz tippen = kleiner Sprung)             |
 | Leertaste halten (in der Luft) | Blätterschirm: Gleiten                |
 | ↓ (beim Gleiten) | Sturzflug; loslassen → Aufschwung nach oben       |
-| X              | Aktion (Feuer/Stampfen – nur auf Greta)           |
+| X              | Aktion (Feuer/Stampfen – nur auf Pflaume)           |
 | D              | Debug-Modus (Hitboxen, FPS, Zustand)                |
 | M              | Ton an/aus                                          |
 | Esc / P        | Pause                                               |
@@ -38,7 +39,7 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
   wandert mit, wenn man über den Rand hinauszieht.
 - **Rechte Hälfte:** Tippen = Springen, Halten = Gleiten (Blätterschirm),
   beim Gleiten nach unten wischen = Sturzflug, Finger heben oder nach oben wischen = Aufschwung.
-- **Runder Knopf am rechten Rand:** Aktion (Feuer/Stampfen – nur huckepack auf Greta).
+- **Runder Knopf am rechten Rand:** Aktion (Feuer/Stampfen – nur auf Pflaume).
 - Im Hochformat erscheint ein Dreh-Hinweis und das Spiel pausiert.
 
 ## Gegner, Schaden, Checkpoint
@@ -49,15 +50,15 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 - Seitliche Berührung kostet ein Herz: Rückstoß, 1,5 s Unverwundbarkeit (Blinken).
 - Drei Herzen; bei null (oder Sturz in die Tiefe) Respawn am letzten **Checkpoint** (`C`).
 
-## Greta (Huckepack)
+## Pflaume (Reittier)
 
-- Greta (`F`) wartet im Level; Lotti springt auf ihren Rücken → Huckepack (größere Hitbox, kein Blätterschirm).
-- Beeren (`R` rot, `U` blau, `Y` gelb) nascht Greta im Vorbeilaufen; die Kraft steht im HUD und färbt ihr Kleid:
+- Pflaume (`F`) wartet im Level; die Heldin springt drauf → Reiten (größere Hitbox, kein Blätterschirm).
+- Beeren (`R` rot, `U` blau, `Y` gelb) frisst Pflaume beim Drüberreiten; die Kraft steht im HUD und färbt seine Flecken:
   - **rot:** Aktion (X / Aktionsknopf) spuckt Feuerbälle, die über den Boden hüpfen und Gegner erledigen
   - **blau:** Sprungtaste in der Luft halten → 3 s Schweben (füllt sich am Boden wieder auf)
   - **gelb:** Aktion in der Luft → Stampfsprung: Erschütterung, Gegner im Umkreis, Steinblöcke darunter zerbrechen
-- Ein Treffer huckepack kostet kein Herz: Greta lässt Lotti fallen und rennt 3 s erschrocken in Gegenrichtung.
-  Wer sie in dieser Zeit berührt, sitzt wieder oben (Kraft bleibt) – sonst ist sie weg.
+- Ein Treffer beim Reiten kostet kein Herz: die Heldin wird abgeworfen, Pflaume flieht 3 s panisch in Gegenrichtung.
+  Wer ihn in dieser Zeit berührt, sitzt wieder oben (Kraft bleibt) – sonst verschwindet er.
 
 ## Level 1 „Herbstwald“
 
@@ -87,7 +88,7 @@ Pause: Esc/P oder der Knopf oben in der Mitte → „Weiter“ / „Zur Weltkart
 
 Alles prozedural über die Web Audio API (`src/audio/`): `AudioEngine` (Kontext, Busse, Ton/Rauschen),
 `sfx.js` (Effekt-Rezepte), `Music.js` (Step-Sequencer mit Lookahead) und `themes.js` (Pattern-Strings
-„Note:Dauer“ je Takt). Welt 1 hat ein Grundthema; huckepack auf Greta wird die Trommelspur
+„Note:Dauer“ je Takt). Welt 1 hat ein Grundthema; beim Reiten auf Pflaume wird die Trommelspur
 eingeblendet. Audio wird bei der ersten Berührung/Taste freigeschaltet. Ton an/aus: Taste **M**,
 Knopf auf der Weltkarte oder im Pause-Menü (wird gespeichert).
 
@@ -110,19 +111,21 @@ src/
   main.js            Phaser-Konfiguration, Start
   config.js          Alle Physik-/Spielwerte zentral
   scenes/            Boot, WorldMap, Play, UI (Touch-Steuerung, HUD), LevelComplete, Pause
-  entities/          Lotti, Greta, Fireball, Berry, Coin, Items (Key, Gate, Flag, Thorns), Gegner, Checkpoint
+  entities/          Hero (Lotti/Greta), Pflaume, Fireball, Berry, Coin, Items (Key, Gate, Flag, Thorns), Gegner, Checkpoint
   systems/           Eingabe (Tastatur+Touch), Kamera, Effekte, Debug, Haptik, PWA, Querformat
   levels/            ASCII→Tiled-Konverter, Grid-Stempel, Testlevel, Level 1, Generator, Weltkarte, Register
-  gfx/               Prozedurale Texturen (Pixel-Art als Strings, Tiles, Hintergrund)
+  gfx/               Prozedurale Texturen: sprites/*.js (Pixel-Art als Strings, je Modul eigene Palette),
+                     tiles.js (Autotile-Boden), background.js (Parallax-Ebenen); Styleguide in docs/
   audio/             Chiptune-Synth: Engine, Effekte, Sequencer, Themen
 tests/run.mjs        Headless-Test Tastatur (Playwright)
 tests/touch.mjs      Headless-Test Touch-Steuerung, Querformat, PWA
 tests/enemies.mjs    Headless-Test Gegner, Schaden, Tod, Checkpoint
-tests/greta.mjs      Headless-Test Huckepack, Beeren-Kräfte, Flucht
+tests/pflaume.mjs    Headless-Test Reiten, Beeren-Kräfte, Flucht
 tests/level1.mjs     Headless-Test Level 1 (Übersichtsbild, Münzen, Schlüssel/Tor, Fahne, Speicherstand)
 tests/worldmap.mjs   Headless-Test Weltkarte (Freischaltung, Laufen, Geheimpfad, Pause, Zurücksetzen)
 tools/make-icons.mjs PWA-Icons aus der Lotti-Grafik erzeugen
 ```
 
-Die Pixel-Art-Frames in `src/gfx/lottiFrames.js` können später 1:1 durch ein echtes
-Spritesheet (gleicher Texture-Key `lotti`, gleiche Frame-Namen) ersetzt werden.
+Die Pixel-Art-Frames in `src/gfx/sprites/*.js` können später 1:1 durch echte Spritesheets
+(gleicher Texture-Key, gleiche Frame-Namen) ersetzt werden. Frame-Verträge: `docs/GRAFIK-STYLEGUIDE.md`,
+Prüfung: `node tools/check-frames.mjs`.

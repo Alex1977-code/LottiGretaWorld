@@ -1,4 +1,4 @@
-// Pixel-Art für Gegner, Checkpoint und HUD (siehe palette.js).
+// Gegner: Laufkäfer (16x16) und hüpfender Pilz (16x16). Füße auf der untersten Zeile.
 
 // Laufkäfer (16x16, blickt nach rechts)
 const WALKER_BODY = [
@@ -17,7 +17,7 @@ const WALKER_BODY = [
   '..EEccccccccEEk.',
   '...EEEEEEEEEE...',
 ];
-export const WALKER_FRAMES = {
+const WALKER_FRAMES = {
   walk0: [...WALKER_BODY, '...k..k...k.....', '..k..k.....k....'],
   walk1: [...WALKER_BODY, '....k..k..k.....', '.....k..k...k...'],
   squashed: [
@@ -33,7 +33,7 @@ export const WALKER_FRAMES = {
 };
 
 // Hüpfender Pilz (16x16)
-export const HOPPER_FRAMES = {
+const HOPPER_FRAMES = {
   idle: [
     '................',
     '................',
@@ -101,57 +101,14 @@ export const HOPPER_FRAMES = {
   ],
 };
 
-// Checkpoint-Pfosten (16x32): aus / an
-const POST_TOP = ['................', '................', '................', '................', '.......ww.......'];
-const POST_ROW = '.......wv.......';
-const POST_BASE = ['.....vwwwwv.....', '....vvvvvvvv....', '....vvvvvvvv....'];
-export const CHECKPOINT_FRAMES = {
-  off: [
-    ...POST_TOP,
-    '......xwwv......',
-    ...Array(16).fill(POST_ROW),
-    '.......wvtt.....',
-    '.......wvttt....',
-    '.......wvtttt...',
-    '.......wvttt....',
-    '.......wvtt.....',
-    POST_ROW, POST_ROW,
-    ...POST_BASE,
-  ],
-  on: [
-    ...POST_TOP,
-    '......xwwvLL....',
-    '.......wvLLLL...',
-    '.......wvLlLLL..',
-    '.......wvLLLLLL.',
-    '.......wvLlLLL..',
-    '.......wvLLLL...',
-    '.......wvLL.....',
-    ...Array(17).fill(POST_ROW),
-    ...POST_BASE,
-  ],
+
+const PALETTE = {
+  '.': null,
+  'E': '#6e1b28', 'c': '#c2383f', 'n': '#ec7a72', 'k': '#1c1a26', 'W': '#ffffff', 'K': '#120a06',
+  'M': '#4a3580', 'm': '#6f52b8', 'Y': '#f3d35a', 'S': '#e8d9b8', 'T': '#c9b68f',
 };
 
-// Herzen (8x8)
-export const HEART_FRAMES = {
-  full: [
-    '.PP..PP.',
-    'PpPPPPPP',
-    'PpPPPPPP',
-    'PPPPPPPP',
-    '.PPPPPP.',
-    '..PPPP..',
-    '...PP...',
-    '........',
-  ],
-  empty: [
-    '.QQ..QQ.',
-    'Q..QQ..Q',
-    'Q......Q',
-    'Q......Q',
-    '.Q....Q.',
-    '..Q..Q..',
-    '...QQ...',
-    '........',
-  ],
-};
+export const SHEETS = [
+  { key: 'walker', frameWidth: 16, frameHeight: 16, frames: WALKER_FRAMES, palette: PALETTE },
+  { key: 'hopper', frameWidth: 16, frameHeight: 16, frames: HOPPER_FRAMES, palette: PALETTE },
+];

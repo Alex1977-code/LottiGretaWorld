@@ -1,22 +1,22 @@
-// Farbpalette des Spiels (kräftige 16-Bit-Anmutung).
-// Buchstaben werden in den Pixel-Art-Strings verwendet.
+// Gemeinsame Farben: Tile-Palette (tiles.js) und Farben der Beeren-Kräfte.
+// Spritesheets bringen ihre eigene Palette mit (src/gfx/sprites/*.js).
 
 export const PAL = {
   '.': null,        // transparent
-  // Figuren (Lotti & Greta)
+  // Figuren (Hero & Pflaume)
   'B': '#4a230a',   // Umriss dunkelbraun
   'b': '#7a3f12',   // Stiefel braun
   'R': '#d8333a',   // Haarschleife rot
-  '1': '#b5893a',   // Lotti: Haar dunkelblond
-  '2': '#dcb45e',   // Lotti: Haar Glanz
-  '3': '#86602a',   // Lotti: Haar Schatten
+  '1': '#b5893a',   // Hero: Haar dunkelblond
+  '2': '#dcb45e',   // Hero: Haar Glanz
+  '3': '#86602a',   // Hero: Haar Schatten
   '4': '#f6d3ad',   // Haut
   '5': '#dfa884',   // Haut Schatten
-  '6': '#3f7fc4',   // Lotti: Kleid blau
-  '7': '#2a5a93',   // Lotti: Kleid dunkel
-  '8': '#f3df96',   // Greta: Haar hellblond
-  '9': '#fff6cf',   // Greta: Haar Glanz
-  '0': '#d8ba6c',   // Greta: Haar Schatten
+  '6': '#3f7fc4',   // Hero: Kleid blau
+  '7': '#2a5a93',   // Hero: Kleid dunkel
+  '8': '#f3df96',   // Pflaume: Haar hellblond
+  '9': '#fff6cf',   // Pflaume: Haar Glanz
+  '0': '#d8ba6c',   // Pflaume: Haar Schatten
   'O': '#d9742a',   // (frei) orange
   'o': '#f3b36a',   // (frei) hell-orange
   'H': '#a7b8c8',   // (frei) hellgrau
@@ -53,10 +53,10 @@ export const PAL = {
   'Y': '#f3d35a',   // Punkte gelb
   'S': '#e8d9b8',   // Stiel hell
   'T': '#c9b68f',   // Stiel dunkel
-  // Greta (trägt Lotti huckepack)
+  // Pflaume (trägt Hero huckepack)
   'V': '#3b2460',   // (frei) dunkelviolett
   'v': '#8a4fc9',   // (frei) violett
-  'Z': '#b47fe6',   // Gretas Kleid (wird je nach Beeren-Kraft umgefärbt)
+  'Z': '#b47fe6',   // Pflaumes Kleid (wird je nach Beeren-Kraft umgefärbt)
   'z': '#d9b8f0',   // Kleid-Glanz / Beeren-Glanz
   'A': '#e2c8f5',   // (frei) helles Lila
   'I': '#6ea8ff',   // Zauberflügel hellblau (blaue Beere)
@@ -73,17 +73,7 @@ export const PAL = {
   'Q': '#4a1a2a',   // Herz leer
 };
 
-// Himmel/Hintergrund-Farben für den Herbstwald
-export const SKY = {
-  top: '#2b3a7a',
-  bottom: '#f0a06a',
-  farHills: '#6a4a8a',
-  midTrees: '#8a4a5a',
-  nearBush: '#5a3a2a',
-  nearLeaf: '#b85a2a',
-};
-
-// Farben der Beeren-Kräfte (ersetzen 'Z'/'z' in Gretas Kleid und in den Beeren)
+// Farben der Beeren-Kräfte (ersetzen 'Z'/'z' in Pflaumes Kleid und in den Beeren)
 export const POWER_COLORS = {
   none:   { Z: '#b47fe6', z: '#d9b8f0' },
   red:    { Z: '#e0393f', z: '#ff8a8a' },

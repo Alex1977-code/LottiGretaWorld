@@ -1,5 +1,5 @@
 // Vereinheitlichte Eingabe: Tastatur (PC) + Touch (TouchControls schreibt in `touch`).
-// Lotti liest nur diese Flags, nie direkt Tasten/Pointer.
+// Hero liest nur diese Flags, nie direkt Tasten/Pointer.
 // Flanken (gerade gedrückt/losgelassen) kommen aus Tastatur-Events, damit auch
 // sehr kurze Tipps innerhalb eines Frames nicht verloren gehen.
 

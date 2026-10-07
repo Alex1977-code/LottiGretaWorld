@@ -2,7 +2,7 @@
 
 import Phaser from 'phaser';
 
-/** Schlüssel für den geheimen Ausgang. Folgt Lotti, sobald er eingesammelt ist. */
+/** Schlüssel für den geheimen Ausgang. Folgt Hero, sobald er eingesammelt ist. */
 export class Key extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
     super(scene, x, y - 8, 'key', 'key');
@@ -14,12 +14,12 @@ export class Key extends Phaser.Physics.Arcade.Sprite {
     scene.tweens.add({ targets: this, y: this.y - 3, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
   }
 
-  collect(lotti) {
+  collect(hero) {
     if (this.collected) return;
     this.collected = true;
     this.body.enable = false;
     this.scene.tweens.killTweensOf(this);
-    this.follow = lotti;
+    this.follow = hero;
     this.setDepth(12);
     this.scene.effects?.sparks(this.x, this.y, 10);
   }
@@ -27,7 +27,7 @@ export class Key extends Phaser.Physics.Arcade.Sprite {
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
     if (!this.follow) return;
-    // Schwebt hinter Lotti her
+    // Schwebt hinter Hero her
     const tx = this.follow.x - this.follow.facing * 12;
     const ty = this.follow.y - 14 + Math.sin(time / 200) * 2;
     this.x += (tx - this.x) * 0.15;
