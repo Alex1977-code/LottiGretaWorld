@@ -1,8 +1,12 @@
 // Weltkarte: Hero läuft auf einem Pfad zwischen den Level-Punkten.
 // Freie Pfade sind durchgezogen, Geheimpfade golden. Tippen/Taste startet das Level.
+// In der 3D-Darstellung (RENDER3D.enabled) zeichnet MapView3D Insel, Wege, Podeste und die
+// Heldin auf der 3D-Leinwand; Logik, Treffflächen und Beschriftungen bleiben hier in Phaser.
 
 import Phaser from 'phaser';
 import { RENDER, Z, fit, setupUiCamera } from '../render.js';
+import { RENDER3D } from '../render3d.js';
+import { MapView3D } from '../three/map/MapView3D.js';
 import { GAME } from '../config.js';
 import { WORLD } from '../levels/worldmap.js';
 import { LEVELS } from '../levels/index.js';
@@ -23,6 +27,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.arrived = data ?? {};   // { from, exit } nach einem Level
     this.starting = false;       // Szenen-Instanz wird wiederverwendet → zurücksetzen
     this.moving = false;
+    this.view3d = null;          // alte 3D-Ansicht wurde beim SHUTDOWN zerstört; create() legt ggf. eine neue an
   }
 
   create() {
@@ -43,6 +48,20 @@ export class WorldMapScene extends Phaser.Scene {
     const n = this.nodeByKey[this.current];
     this.hero = fit(this.add.sprite(n.x, n.y - 10, this.heroKey, 'idle0')).setDepth(10);
     this.hero.play(`${this.heroKey}-idle`);
+    if (RENDER3D.enabled) {
+      // 3D-Karte: der Hero-Avatar liest Sprite-Felder der Spielszene – auf der Karte gibt es keine
+      // Physik, deshalb bekommt das Sprite einen Ersatzkörper (Geschwindigkeit aus der Tween-Bewegung,
+      // siehe update()) und ruhige Zustände. destroy() braucht Phaser beim Zerstören des Sprites.
+      this.hero.body = { velocity: { x: 0, y: 0 }, destroy() {} };
+      this.hero.moveState = 'ground';
+      this.hero.onGround = true;
+      this.hero.mount = null;
+      this.hero.leaf = { visible: false };
+      this.hero.swooping = false;
+      this.hero.dead = false;
+      this.heroPrev = { x: this.hero.x, y: this.hero.y };
+      this.view3d = new MapView3D(this);
+    }
 
     this.title = uiText(this, GAME.width / 2, 14, this.world.name, { size: 14, color: '#ffffff', stroke: '#3a2a6a', thickness: 4 }).setDepth(20);
     this.info = uiText(this, GAME.width / 2, GAME.height - 26, '', { size: 10, color: '#ffffff', stroke: '#2a2550', thickness: 3 }).setDepth(20);
@@ -89,7 +108,7 @@ export class WorldMapScene extends Phaser.Scene {
   drawBackground() {
     // Vektor-Karte (heller Himmel, Pastellberge, sonnige Wiese mit Kugelbäumen, Teich) aus
     // gfx/background.js – beim Start in Render-Auflösung erzeugt
-    fit(this.add.image(0, 0, 'worldmap_bg')).setOrigin(0).setDepth(0);
+    this.bgImage = fit(this.add.image(0, 0, 'worldmap_bg')).setOrigin(0).setDepth(0);
   }
 
   /** Alle Kanten als Punktlinien; gesperrte Kanten nur angedeutet. */
@@ -111,6 +130,7 @@ export class WorldMapScene extends Phaser.Scene {
         }
       }
     }
+    this.view3d?.updatePaths();
   }
 
   drawNodes() {
@@ -122,11 +142,16 @@ export class WorldMapScene extends Phaser.Scene {
       c.setData('unlocked', unlocked);
       const base = this.add.circle(0, 0, 10, unlocked ? 0xffc21a : 0x8a8aa0).setStrokeStyle(2, unlocked ? 0xffffff : 0xd0d0e0);
       c.add(base);
-      c.add(uiText(this, 0, 0.5, String(this.world.nodes.indexOf(n) + 1), { size: 9, color: unlocked ? '#5a3a00' : '#e8e8f0', stroke: unlocked ? '#fff2a8' : '#5a5a70', thickness: 2, shadow: false }));
-      if (lvl.done) c.add(this.add.image(0, -14, 'flag', 'flag0').setScale(0.6 * Z).setOrigin(0.5, 0.75));
-      if (lvl.secret) c.add(this.add.image(8, -6, 'key', 'key').setScale(0.6 * Z));
+      const num = uiText(this, 0, 0.5, String(this.world.nodes.indexOf(n) + 1), { size: 9, color: unlocked ? '#5a3a00' : '#e8e8f0', stroke: unlocked ? '#fff2a8' : '#5a5a70', thickness: 2, shadow: false });
+      c.add(num);
+      const flag = lvl.done ? this.add.image(0, -14, 'flag', 'flag0').setScale(0.6 * Z).setOrigin(0.5, 0.75) : null;
+      if (flag) c.add(flag);
+      const key = lvl.secret ? this.add.image(8, -6, 'key', 'key').setScale(0.6 * Z) : null;
+      if (key) c.add(key);
       const label = uiText(this, 0, 12, LEVELS[n.key]?.name ?? n.key, { size: 7, color: unlocked ? '#ffffff' : '#b8b0c8', stroke: '#2a2550', thickness: 2, shadow: false, originY: 0 });
       c.add(label);
+      // Einzelteile merken: die 3D-Karte blendet Kreis/Fahne/Schlüssel aus, Nummer und Name bleiben
+      c.parts = { base, num, flag, key, label };
       // große Trefffläche fürs Handy
       base.setInteractive({ hitArea: new Phaser.Geom.Circle(10, 10, 20), hitAreaCallback: Phaser.Geom.Circle.Contains, useHandCursor: unlocked });
       base.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.onNodeTap(n.key); });
@@ -150,6 +175,7 @@ export class WorldMapScene extends Phaser.Scene {
     for (const e of fresh) {
       const n = this.nodeSprites[e.to];
       if (n) this.tweens.add({ targets: n, scaleX: 1.4, scaleY: 1.4, duration: 300, yoyo: true, repeat: 2, delay: 400 });
+      this.view3d?.hopNode(e.to);
     }
     if (fresh.length) this.time.delayedCall(400, () => vibrate([20, 40, 20]));
   }
@@ -246,9 +272,24 @@ export class WorldMapScene extends Phaser.Scene {
 
   onPointer(pointer) {
     if (this.moving) return;
-    // Antippen der Figur startet das Level; sonst passiert nichts (Ziele sind die Punkte und der Start-Knopf)
-    const dx = pointer.worldX - this.hero.x, dy = pointer.worldY - this.hero.y;
+    // Antippen der Figur startet das Level; sonst passiert nichts (Ziele sind die Punkte und der Start-Knopf).
+    // In 3D zählt die projizierte Position der Figur, nicht ihre logische Kartenposition.
+    const hp = this.view3d ? this.view3d.heroScreen : this.hero;
+    const dx = pointer.worldX - hp.x, dy = pointer.worldY - hp.y;
     if (Math.hypot(dx, dy) < 24) this.startLevel();
+  }
+
+  /** 3D-Karte: Geschwindigkeit des Ersatzkörpers aus der Tween-Bewegung (px/s), damit der Avatar läuft. */
+  update(time, delta) {
+    if (!this.view3d || !this.hero?.body) return;
+    // Tweens laufen auf der echten verstrichenen Zeit (rawDelta), nicht auf dem geglätteten delta
+    const dt = Math.max(1, this.game.loop.rawDelta || delta) / 1000;
+    const vx = (this.hero.x - this.heroPrev.x) / dt, vy = (this.hero.y - this.heroPrev.y) / dt;
+    this.heroPrev.x = this.hero.x; this.heroPrev.y = this.hero.y;
+    const v = this.hero.body.velocity;
+    // x trägt das Tempo in der Ebene (vorzeichenbehaftet: Laufanimation in jede Richtung), kein Fallen
+    v.x = Math.hypot(vx, vy) * (vx < 0 ? -1 : 1);
+    v.y = 0;
   }
 
   /** Zwei runde Porträt-Knöpfe oben links; die gewählte Figur hat einen goldenen Ring. */
