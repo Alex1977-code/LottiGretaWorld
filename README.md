@@ -107,11 +107,15 @@ Pause: Esc/P oder der Knopf oben in der Mitte → „Weiter“ / „Zur Weltkart
 
 ## Sound & Musik
 
-Alles prozedural über die Web Audio API (`src/audio/`): `AudioEngine` (Kontext, Busse, Ton/Rauschen),
-`sfx.js` (Effekt-Rezepte), `Music.js` (Step-Sequencer mit Lookahead) und `themes.js` (Pattern-Strings
-„Note:Dauer“ je Takt). Welt 1 hat ein Grundthema; beim Reiten auf Pflaume wird die Trommelspur
-eingeblendet. Audio wird bei der ersten Berührung/Taste freigeschaltet. Ton an/aus: Taste **M**,
-Knopf auf der Weltkarte oder im Pause-Menü (wird gespeichert).
+Alles prozedural über die Web Audio API (`src/audio/`): `AudioEngine` (Kontext, Busse, Kompressor,
+Synth-Stimmen: 909-Kick, Clap, Snare, Hats, Hoover-Lead, Stabs, Rave-Piano, Bass, Pad), `sfx.js`
+(Effekt-Rezepte), `Music.js` (Step-Sequencer mit Lookahead, Akkord-Parser, Drum-Ebenen) und `themes.js`
+(Pattern-Strings „Note:Dauer“ je Takt). Die Musik ist 90er-Eurodance als eigene Komposition: Level-Thema
+mit 140 BPM in A-Moll (Beat, Oktav-Bass, Stabs, Hoover-Riff, Rave-Piano), ruhigere Karten-Variante,
+kurze Rave-Fanfare am Levelende. Beim Reiten auf Pflaume kommt eine Energie-Ebene dazu (Lead-Doppelung,
+Offbeat-Stabs). Audio wird bei der ersten Berührung/Taste freigeschaltet. Ton an/aus: Taste **M**,
+Knopf auf der Weltkarte oder im Pause-Menü (wird gespeichert). `tests/audio.mjs` rendert die Themen
+offline, prüft Pegel, Frequenzbänder und Beat und schreibt `tests/out/world1.wav` zum Anhören.
 
 ## Deployment (GitHub Pages)
 
@@ -139,7 +143,7 @@ src/
                      (Autotile-Boden), background.js (Parallax-Ebenen, Weltkarte); Styleguide in docs/
   render.js          Render-Skalierung (2–3x), Sprite-/Hitbox-Helfer, UI-Kamera
   ui.js              UI-Bausteine (Schrift, Panels, Pillen-Knöpfe)
-  audio/             Chiptune-Synth: Engine, Effekte, Sequencer, Themen
+  audio/             Web-Audio-Synth (Eurodance): Engine und Stimmen, Effekte, Sequencer, Themen
 tests/run.mjs        Headless-Test Tastatur (Playwright)
 tests/touch.mjs      Headless-Test Touch-Steuerung, Querformat, PWA
 tests/enemies.mjs    Headless-Test Gegner, Schaden, Tod, Checkpoint
