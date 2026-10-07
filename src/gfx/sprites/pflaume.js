@@ -9,7 +9,8 @@ import { POWER_COLORS } from '../palette.js';
 const W = 24, H = 20;
 const TAU = Math.PI * 2;
 
-const FUR = ['#ffffff', '#f4f1f8', '#c3bbd2'];      // weißes Fell, kühler Schatten
+const FUR = ['#5c5a70', '#262433', '#0f0e16'];      // schwarzes Fell, kühler Glanz
+const WHITE = ['#ffffff', '#f4f1f8', '#c3bbd2'];    // weiße Brust, weißer Fuß
 const BLACK = ['#747288', '#302e3e', '#15131d'];    // schwarze Scheckung
 const PINK = ['#ffd6e2', '#ff9dbd', '#cf5f88'];     // Nase, Innenohr
 
@@ -83,9 +84,9 @@ function rabbit(g, o) {
   ctx.fillStyle = `rgba(40,20,60,${legs === 'tuck' ? 0.16 : 0.26})`;
   ctx.beginPath(); ctx.ellipse(11.5, 19.1, 9.6 + dy * 0.6, 1.2, 0, 0, TAU); ctx.fill();
   // Puschelschwanz (hinter dem Körper)
-  ball(ctx, 2.0, 10.6 + dy, 1.9, 1.9, FUR, 0.5);
+  ball(ctx, 2.0, 10.6 + dy, 1.9, 1.9, WHITE, 0.5);
   // hintere Pfoten (dunkler, hinter dem Körper)
-  const far = ['#e9e4f0', '#cfc7dc', '#9d94b2'];
+  const far = ['#3a3848', '#1c1a26', '#0a0910'];
   if (legs === 'stretch') paw(ctx, 6.0, 18.3, 2.4, 0.9, far);
   else if (legs === 'spread') paw(ctx, 9.0, 18.4, 2.2, 0.9, far);
   else if (legs !== 'tuck') paw(ctx, 8.6, 18.4, 2.2, 0.9, far);
@@ -107,17 +108,15 @@ function rabbit(g, o) {
   ctx.fillStyle = fg; body(); ctx.fill();
   ctx.strokeStyle = 'rgba(90,75,125,0.4)'; ctx.lineWidth = 0.6; body(); ctx.stroke(); // weiche Trennkante
   ctx.save(); body(); ctx.clip();
-  // schwarze Scheckung
-  ball(ctx, 8.4, 7.6, 3.4, 2.5, BLACK, 0.25);
-  ball(ctx, 3.9, 12.8, 2.5, 2.8, BLACK, 0.2);
-  ball(ctx, 13.4, 16.6, 1.3, 0.9, BLACK, 0);
+  // weiße Brust
+  ball(ctx, 17.2, 14.2, 2.6, 3.0, WHITE, 0.2);
   // Hinterlauf-Falte, Bauchschatten
   ctx.strokeStyle = 'rgba(90,70,120,0.22)'; ctx.lineWidth = 0.6;
   ctx.beginPath(); ctx.arc(6.2, 14.4, 3.2, Math.PI * 0.75, Math.PI * 1.6); ctx.stroke();
   ctx.fillStyle = 'rgba(80,60,110,0.18)';
   ctx.beginPath(); ctx.ellipse(11, 17.6, 7.5, 1.6, 0, 0, TAU); ctx.fill();
   // Glanz auf dem Rücken
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
   ctx.beginPath(); ctx.ellipse(6.0, 6.3, 2.2, 0.8, -0.35, 0, TAU); ctx.fill();
   ctx.restore();
   ctx.restore();
@@ -129,18 +128,15 @@ function rabbit(g, o) {
   else if (legs === 'tuck') { paw(ctx, 16.6, 17.6, 1.5, 0.85); paw(ctx, 18.4, 17.9, 1.4, 0.8); }
   else if (legs === 'spread') { paw(ctx, 16.0, 18.6, 1.5, 0.95); paw(ctx, 20.4, 18.7, 1.5, 0.95); }
   else { paw(ctx, 16.4, 18.5, 1.5, 0.95); paw(ctx, 18.8, 18.7, 1.5, 0.95); }
-  // nahe Hinterpfote (großer Hasenfuß)
-  if (legs === 'stretch') paw(ctx, 3.6, 18.8, 2.8, 1.0);
-  else if (legs === 'spread') paw(ctx, 4.4, 18.8, 2.8, 1.0);
-  else if (legs === 'tuck') paw(ctx, 6.4, 18.0, 2.4, 0.85);
-  else paw(ctx, 5.8, 18.8, 2.7, 1.0);
+  // nahe Hinterpfote (großer Hasenfuß, weiß)
+  if (legs === 'stretch') paw(ctx, 3.6, 18.8, 2.8, 1.0, WHITE);
+  else if (legs === 'spread') paw(ctx, 4.4, 18.8, 2.8, 1.0, WHITE);
+  else if (legs === 'tuck') paw(ctx, 6.4, 18.0, 2.4, 0.85, WHITE);
+  else paw(ctx, 5.8, 18.8, 2.7, 1.0, WHITE);
   // Kopf
   ball(ctx, hx, hy, 4.2, 4.1, FUR, 0.5);
   ctx.strokeStyle = 'rgba(90,75,125,0.4)'; ctx.lineWidth = 0.6;
   ctx.beginPath(); ctx.ellipse(hx, hy, 4.2, 4.1, 0, 0, TAU); ctx.stroke();
-  ctx.save(); ctx.beginPath(); ctx.ellipse(hx, hy, 4.2, 4.1, 0, 0, TAU); ctx.clip();
-  ball(ctx, hx + 1.7, hy - 0.7, 2.8, 2.9, BLACK, 0.2);           // schwarze Augenpartie
-  ctx.restore();
   // Halstuch (Kraftfarbe): Band um den Hals, Zipfel vor der Brust
   ctx.lineCap = 'round';
   ctx.strokeStyle = shade(Z, 0.7); ctx.lineWidth = 1.6;
@@ -170,7 +166,7 @@ function rabbit(g, o) {
   // Nase (rosa, wackelt), Mund, Wange, Schnurrhaare
   const nz = o.nose ?? 0;
   ball(ctx, hx + 3.7, hy + 0.5 - nz, 0.8 + nz * 0.3, 0.6, PINK, 0.5);
-  ctx.strokeStyle = 'rgba(90,50,70,0.7)'; ctx.lineWidth = 0.4;
+  ctx.strokeStyle = 'rgba(255,200,215,0.75)'; ctx.lineWidth = 0.4;
   if (o.mouth === 'open') {
     ctx.fillStyle = '#6a2238';
     ctx.beginPath(); ctx.ellipse(hx + 3.2, hy + 1.9, 0.8, 0.9, 0, 0, TAU); ctx.fill();
@@ -180,7 +176,7 @@ function rabbit(g, o) {
   }
   ctx.fillStyle = 'rgba(255,120,150,0.4)';
   ctx.beginPath(); ctx.ellipse(hx + 1.6, hy + 2.3, 0.9, 0.5, 0, 0, TAU); ctx.fill();
-  ctx.strokeStyle = 'rgba(60,40,70,0.45)'; ctx.lineWidth = 0.3;
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 0.3;
   ctx.beginPath(); ctx.moveTo(hx + 3.0, hy + 1.2); ctx.lineTo(hx + 4.7, hy + 0.9);
   ctx.moveTo(hx + 3.0, hy + 1.5); ctx.lineTo(hx + 4.7, hy + 2.0); ctx.stroke();
   // nahes Ohr (vor dem Kopf)

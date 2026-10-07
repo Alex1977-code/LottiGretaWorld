@@ -3,11 +3,16 @@
 // spiegelt Level, Figuren und Effekte in eine Three.js-Szene (1 Einheit = 1 Tile = 16 px).
 // ?r3d=0 schaltet auf die alte 2D-Darstellung zurück (Tests, Fehlersuche, schwache Geräte).
 
+// Standard-Darstellung. Solange die 3D-Modelle Platzhalter sind, bleibt die 2D-Fassung Standard;
+// ?r3d=1 zeigt die 3D-Ansicht.
+const DEFAULT_3D = false;
+
 function pickEnabled() {
   try {
     const p = new URLSearchParams(window.location.search).get('r3d');
     if (p === '0' || p === 'false') return false;
     if (p === '1' || p === 'true') return true;
+    if (!DEFAULT_3D) return false;
     // Ohne WebGL keine 3D-Ansicht
     const c = document.createElement('canvas');
     return !!(c.getContext('webgl2') || c.getContext('webgl'));
