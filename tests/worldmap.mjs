@@ -3,6 +3,7 @@
 import { startServer, launchBrowser, loadGame, makeChecker, renderOverview, OUT } from './helpers.mjs';
 
 const PORT = 4183;
+const URL_BASE = `http://localhost:${PORT + Number(process.env.PORT_BASE ?? 0)}/`;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
 const { check, summary } = makeChecker();
@@ -12,7 +13,7 @@ const mapState = () => sc(() => { const m = window.__game.scene.getScene('WorldM
 const unlockedNodes = () => sc(() => { const m = window.__game.scene.getScene('WorldMap'); return m.world.nodes.map((n) => n.key).filter((k) => { const base = m.nodeSprites[k].list[0]; return base.fillColor === 0xf3b36a; }); });
 
 // 1) Ohne ?level → Weltkarte
-await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'load' });
+await page.goto(URL_BASE, { waitUntil: 'load' });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: 'load' });
 try { await page.waitForFunction(() => window.__game && window.__game.scene.isActive('WorldMap'), null, { timeout: 15000 }); }
@@ -69,7 +70,7 @@ for (const key of ['level2', 'level3', 'level4']) {
 
 // 5) Geheimpfad: Level 1 mit geheimem Ausgang im Speicherstand → Pfad 1→3 frei
 await sc(() => { const d = JSON.parse(localStorage.getItem('lotti-greta-save-v1')); d.levels.level1.secret = true; d.current = 'level1'; localStorage.setItem('lotti-greta-save-v1', JSON.stringify(d)); });
-await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'load' });
+await page.goto(URL_BASE, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__game && window.__game.scene.isActive('WorldMap'), null, { timeout: 15000 });
 await page.waitForTimeout(500);
 un = await unlockedNodes();

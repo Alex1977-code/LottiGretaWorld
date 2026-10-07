@@ -63,7 +63,7 @@ npm test           # Headless-Test (Chromium): Konsole, Bewegung, Screenshots �
 ## Level 1 „Herbstwald“
 
 `src/levels/level1.js` – ca. 2 Minuten, 300 Tiles breit. Fünf große Münzen (`o`), Checkpoint in der
-Mitte, Dornen (`^`), Greta mit allen drei Beeren. Normaler Ausgang: Zielfahne (`X`).
+Mitte, Dornen (`^`), Pflaume mit allen drei Beeren. Normaler Ausgang: Zielfahne (`X`).
 Geheimer Ausgang: Schlüssel (`K`) in der Höhle unter dem Waldboden (Zugang per Stampfsprung durch die
 Steindecke oder über die Treppe am Höhlenende), Tor (`G`) auf der Anhöhe vor dem Ziel.
 Level per URL wählen: `?level=test` oder `?level=level1`.

@@ -11,8 +11,9 @@ catch { ({ chromium } = require('/opt/node-tools/node_modules/playwright')); }
 export const OUT = new URL('./out/', import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
 
-/** Startet `vite preview` und liefert eine Stop-Funktion. */
+/** Startet `vite preview` und liefert eine Stop-Funktion. PORT_BASE (Umgebungsvariable) verschiebt alle Ports (parallele Läufe). */
 export async function startServer(port) {
+  port += Number(process.env.PORT_BASE ?? 0);
   const server = spawn('npx', ['vite', 'preview', '--port', String(port), '--strictPort'], { stdio: 'pipe', detached: true });
   const stop = () => { try { process.kill(-server.pid, 'SIGTERM'); } catch { /* bereits beendet */ } };
   process.on('exit', stop);
@@ -36,6 +37,7 @@ export async function launchBrowser(contextOpts = {}) {
 
 /** Lädt das Spiel und wartet, bis die Play-Szene läuft. */
 export async function loadGame(page, port, errors, stop, level = 'test') {
+  port += Number(process.env.PORT_BASE ?? 0);
   await page.goto(`http://localhost:${port}/?level=${level}`, { waitUntil: 'load' });
   try {
     await page.waitForFunction(() => window.__game && window.__game.scene.isActive('Play') && window.__game.scene.isActive('UI'), null, { timeout: 15000 });
