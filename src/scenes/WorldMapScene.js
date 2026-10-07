@@ -60,7 +60,14 @@ export class WorldMapScene extends Phaser.Scene {
       this.hero.swooping = false;
       this.hero.dead = false;
       this.heroPrev = { x: this.hero.x, y: this.hero.y };
-      this.view3d = new MapView3D(this);
+      try {
+        this.view3d = new MapView3D(this);
+      } catch (err) {
+        // Gerät kann die 3D-Karte nicht aufbauen: für diese Sitzung 2D-Darstellung
+        console.error('3D-Karte nicht verfügbar, 2D-Darstellung wird genutzt:', err);
+        RENDER3D.enabled = false;
+        this.view3d = null;
+      }
     }
 
     this.title = uiText(this, GAME.width / 2, 14, this.world.name, { size: 14, color: '#ffffff', stroke: '#3a2a6a', thickness: 4 }).setDepth(20);

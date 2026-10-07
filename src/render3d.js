@@ -13,9 +13,9 @@ function pickEnabled() {
     if (p === '0' || p === 'false') return false;
     if (p === '1' || p === 'true') return true;
     if (!DEFAULT_3D) return false;
-    // Ohne WebGL keine 3D-Ansicht
+    // Three.js braucht WebGL2 – sonst 2D-Darstellung
     const c = document.createElement('canvas');
-    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+    return !!c.getContext('webgl2');
   } catch (_) {
     return false;
   }

@@ -48,7 +48,7 @@ check('Weltkarte in 3D aktiv', await active('WorldMap') && (await sc(() => !!win
 let info = await renderInfo();
 console.log('  Render-Info', JSON.stringify(info));
 check('3D-Leinwand sichtbar und mit Größe', info.display !== 'none' && info.canvas[0] > 0 && info.canvas[1] > 0);
-check('Zeichenaufrufe unter 30', info.calls > 0 && info.calls < 30);
+check('Zeichenaufrufe unter 60 (inkl. Schattenpass und Heldin)', info.calls > 0 && info.calls < 60);
 check('Dreiecke unter 120k', info.tris > 0 && info.tris < 120000);
 check('Bäume verteilt', info.trees >= 20);
 

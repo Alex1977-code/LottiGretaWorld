@@ -83,7 +83,12 @@ export class View3D {
       if (obj.__view3d !== undefined) continue;
       if (obj.texture) {
         // Sprite/Image/TileSprite: Avatar erzeugen (null = nur ausblenden, z. B. Blätterschirm)
-        const av = createAvatar(this, obj);
+        let av = null;
+        try { av = createAvatar(this, obj); } catch (err) {
+          console.error('3D-Avatar fehlgeschlagen, Sprite bleibt 2D:', obj.texture.key, err);
+          obj.__view3d = false;
+          continue;
+        }
         obj.__view3d = av ?? false;
         this.phaserCam.ignore(obj);
         if (av) { this.avatars.set(obj, av); this.three.add(av.root); }
@@ -115,7 +120,8 @@ export class View3D {
       if (av.textureKey !== obj.texture.key) { // Figur gewechselt (Lotti ↔ Greta)
         this.three.remove(av.root);
         av.dispose();
-        const neu = createAvatar(this, obj);
+        let neu = null;
+        try { neu = createAvatar(this, obj); } catch (err) { console.error('3D-Avatar fehlgeschlagen:', obj.texture.key, err); }
         if (neu) { this.avatars.set(obj, neu); this.three.add(neu.root); obj.__view3d = neu; }
         else { this.avatars.delete(obj); obj.__view3d = false; }
         continue;

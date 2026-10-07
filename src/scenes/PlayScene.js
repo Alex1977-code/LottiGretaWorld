@@ -48,11 +48,21 @@ export class PlayScene extends Phaser.Scene {
     this.input_ = new InputManager(this);
 
     this.createMap();
+    this.view3d = null;
     if (RENDER3D.enabled) {
       // 3D-Ansicht: Level, Figuren und Effekte werden in Three.js gezeichnet (eigene Leinwand)
-      this.view3d = new View3D(this);
-      this.effects = this.view3d.effects;
-    } else {
+      try {
+        this.view3d = new View3D(this);
+        this.effects = this.view3d.effects;
+      } catch (err) {
+        // Gerät kann die 3D-Ansicht nicht aufbauen (WebGL2, Shader, Speicher): für diese Sitzung 2D
+        console.error('3D-Ansicht nicht verfügbar, 2D-Darstellung wird genutzt:', err);
+        RENDER3D.enabled = false;
+        this.view3d = null;
+      }
+    }
+    if (!this.view3d) {
+      this.createVisualLayer();
       this.parallax = new Parallax(this);
       this.effects = new Effects(this);
     }
@@ -94,20 +104,7 @@ export class PlayScene extends Phaser.Scene {
     // Logikebene (16-px-Tiles, unsichtbar): Kollision, Abfragen, Blöcke zerbrechen
     const tileset = this.map.addTilesetImage('tiles', 'tiles', GAME.tile, GAME.tile, 0, 0);
     this.groundLayer = this.map.createLayer('ground', tileset, 0, 0).setDepth(0).setVisible(false);
-    // Sichtebene (nur 2D-Darstellung): dieselben Daten mit S-fach großen Tiles, auf Weltgröße herunterskaliert
-    this.visualLayer = null;
-    if (!RENDER3D.enabled) {
-      const S = RENDER.scale;
-      const visKey = `${key}-vis`;
-      if (this.cache.tilemap.has(visKey)) this.cache.tilemap.remove(visKey);
-      const vis = JSON.parse(JSON.stringify(this.cache.tilemap.get(key).data));
-      vis.tilewidth *= S; vis.tileheight *= S;
-      for (const ts of vis.tilesets) { ts.tilewidth *= S; ts.tileheight *= S; ts.imagewidth *= S; ts.imageheight *= S; }
-      this.cache.tilemap.add(visKey, { format: Phaser.Tilemaps.Formats.TILED_JSON, data: vis });
-      this.visualMap = this.make.tilemap({ key: visKey });
-      const visTileset = this.visualMap.addTilesetImage('tiles', 'tiles', GAME.tile * S, GAME.tile * S, 0, 0);
-      this.visualLayer = this.visualMap.createLayer('ground', visTileset, 0, 0).setScale(Z).setDepth(0);
-    }
+    this.visualLayer = null; // Sichtebene gibt es nur in der 2D-Darstellung (createVisualLayer)
 
     // Kollision: Boden (0..15) und Steinblöcke – Index = GID - 1 + firstgid... Phaser nutzt GIDs
     const first = tileset.firstgid;
@@ -124,6 +121,22 @@ export class PlayScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels + 64);
     // Unten offen lassen (Sturz in die Tiefe = Respawn), seitlich geschlossen
     this.physics.world.setBoundsCollision(true, true, true, false);
+  }
+
+  /** Sichtebene (nur 2D-Darstellung): dieselben Daten mit S-fach großen Tiles, auf Weltgröße herunterskaliert. */
+  createVisualLayer() {
+    if (this.visualLayer) return;
+    const key = `map-${this.levelKey}`;
+    const S = RENDER.scale;
+    const visKey = `${key}-vis`;
+    if (this.cache.tilemap.has(visKey)) this.cache.tilemap.remove(visKey);
+    const vis = JSON.parse(JSON.stringify(this.cache.tilemap.get(key).data));
+    vis.tilewidth *= S; vis.tileheight *= S;
+    for (const ts of vis.tilesets) { ts.tilewidth *= S; ts.tileheight *= S; ts.imagewidth *= S; ts.imageheight *= S; }
+    this.cache.tilemap.add(visKey, { format: Phaser.Tilemaps.Formats.TILED_JSON, data: vis });
+    this.visualMap = this.make.tilemap({ key: visKey });
+    const visTileset = this.visualMap.addTilesetImage('tiles', 'tiles', GAME.tile * S, GAME.tile * S, 0, 0);
+    this.visualLayer = this.visualMap.createLayer('ground', visTileset, 0, 0).setScale(Z).setDepth(0);
   }
 
   createPlayer() {
