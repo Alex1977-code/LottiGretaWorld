@@ -140,37 +140,47 @@ function leg(ctx, pts, footAng, style) {
 }
 
 // ---------------------------------------------------------------- Frisuren
-/** Lotti: dicker Zopf von (bx, by) in Richtung dir (-1 links / +1 rechts), Winkel ang (>0 = nach oben), Krümmung curl. */
-function braid(ctx, bx, by, dir, ang, curl, style) {
-  let a = ang, x = bx, y = by;
-  const segs = [1.8, 1.65, 1.5], step = [1.0, 1.6, 1.5];
+/**
+ * Lotti: geflochtener Zopf, hängt vom Ansatz (bx, by) hinter dem Ohr herab (Gesamtlänge ≈ 7,6 px, bis knapp
+ * unter die Schulter). swing = Winkel aus der Senkrechten (0 = hängt gerade, > 0 = schwingt nach hinten/oben,
+ * < 0 nach vorn), curl = zusätzliche Drehung je Glied (Nachschwingen der Spitze). Drei Flechtwülste, quer
+ * abwechselnd versetzt mit gegenläufig gekippten Flechtlinien (Fischgrät), rotes Haargummi, helle Quaste.
+ */
+function braid(ctx, bx, by, swing, curl, style) {
+  let a = swing, x = bx, y = by;
+  const r = [1.3, 1.2, 1.1], step = [1.0, 1.5, 1.4];
+  const dir = () => [-Math.sin(a), Math.cos(a)]; // Richtung Ansatz → Spitze (Bild-y zeigt nach unten)
   for (let i = 0; i < 3; i++) {
-    x += dir * Math.cos(a) * step[i]; y -= Math.sin(a) * step[i];
-    const theta = dir > 0 ? -a : Math.PI + a;
-    // Schattenkerbe zwischen den Flechtsegmenten, dann die pralle Kugel
+    const [dx, dy] = dir();
+    x += dx * step[i]; y += dy * step[i];
+    const rot = Math.atan2(dy, dx);
+    const q = (i % 2 ? 1 : -1) * 0.3, cx = x + dy * q, cy = y - dx * q; // quer versetzt
+    // Schattenkerbe zwischen den Wülsten, dann die pralle Kugel
     if (i > 0) {
       ctx.fillStyle = 'rgba(70,45,10,0.45)';
-      ctx.beginPath(); ctx.ellipse(x - dir * Math.cos(a) * step[i] * 0.5, y + Math.sin(a) * step[i] * 0.5, segs[i] * 0.95, segs[i] * 0.8, theta, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x - dx * step[i] * 0.5, y - dy * step[i] * 0.5, r[i] * 0.7, r[i] * 0.95, rot, 0, TAU); ctx.fill();
     }
-    ball(ctx, x, y, segs[i], segs[i] * 0.88, style.hair, i === 0 ? 0.5 : 0.4);
-    // schräge Flechtlinie
-    ctx.strokeStyle = 'rgba(90,60,20,0.4)'; ctx.lineWidth = 0.45; ctx.lineCap = 'round';
-    ctx.save(); ctx.translate(x, y); ctx.rotate(theta);
-    ctx.beginPath(); ctx.moveTo(-segs[i] * 0.45, -segs[i] * 0.6); ctx.quadraticCurveTo(segs[i] * 0.3, 0, -segs[i] * 0.45, segs[i] * 0.6); ctx.stroke();
+    ball(ctx, cx, cy, r[i], r[i] * 0.92, style.hair, i === 0 ? 0.5 : 0.4);
+    // schräge Flechtlinie, abwechselnd gekippt
+    ctx.strokeStyle = 'rgba(90,60,20,0.45)'; ctx.lineWidth = 0.45; ctx.lineCap = 'round';
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot + (i % 2 ? 0.55 : -0.55));
+    ctx.beginPath(); ctx.moveTo(-r[i] * 0.65, 0); ctx.lineTo(r[i] * 0.45, 0); ctx.stroke();
     ctx.restore();
     a += curl;
   }
-  // Haargummi (rot) quer zum Zopf, dann helle Quaste
-  x += dir * Math.cos(a) * 1.45; y -= Math.sin(a) * 1.45;
-  const theta = dir > 0 ? -a : Math.PI + a;
-  ctx.save(); ctx.translate(x, y); ctx.rotate(theta);
-  ball(ctx, 0, 0, 0.7, 1.2, style.bow, 0.5);
-  ctx.translate(1.6, 0);
-  ball(ctx, 0, 0, 1.25, 1.05, [style.hairTip, style.hairTip, style.hair[1]], 0.3);
+  // Haargummi (rot) quer zum Zopf, dann helle, leicht aufgefächerte Quaste
+  const [dx, dy] = dir();
+  x += dx * 1.25; y += dy * 1.25;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(Math.atan2(dy, dx));
+  ball(ctx, 0, 0, 0.6, 1.1, style.bow, 0.5);
+  ctx.translate(1.4, 0);
+  ball(ctx, 0, 0, 1.15, 0.95, [style.hairTip, style.hairTip, style.hair[1]], 0.3);
   ctx.strokeStyle = 'rgba(120,80,20,0.4)'; ctx.lineWidth = 0.4;
-  ctx.beginPath(); ctx.moveTo(0.2, -0.6); ctx.lineTo(1.0, -0.9); ctx.moveTo(0.3, 0); ctx.lineTo(1.2, 0); ctx.moveTo(0.2, 0.6); ctx.lineTo(1.0, 0.9); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0.1, -0.5); ctx.lineTo(0.9, -0.85); ctx.moveTo(0.2, 0); ctx.lineTo(1.1, 0); ctx.moveTo(0.1, 0.5); ctx.lineTo(0.9, 0.85); ctx.stroke();
   ctx.restore();
 }
+/** Zopfansätze hinter den Ohren (3/4-Ansicht: hinten links am Kopf, vorn am rechten Kopfrand). */
+const BRAID_BACK = [-4.2, 1.1], BRAID_FRONT = [5.4, 1.3];
 
 /** Lotti: rote Haarschleife auf dem Kopf. */
 function bow(ctx, bx, by, style) {
@@ -185,9 +195,10 @@ function bow(ctx, bx, by, style) {
   ball(ctx, bx, by + 0.1, 0.85, 0.8, style.bow, 0.5);
 }
 
-/** Lotti: hinterer Zopf (hinter dem Kopf). */
+/** Lotti: hinterer Zopf (hinter Kopf und Schulter); mit hair.behind auch der vordere (fliegt hinter dem Kopf). */
 function lottiBackHair(ctx, hx, hy, hair, style) {
-  braid(ctx, hx - 4.4, hy + 0.9, -1, hair.l ?? 0.15, hair.curl ?? 0, style);
+  braid(ctx, hx + BRAID_BACK[0], hy + BRAID_BACK[1], hair.l ?? 0.05, hair.curl ?? 0, style);
+  if (hair.behind) braid(ctx, hx + BRAID_FRONT[0], hy + BRAID_FRONT[1], hair.r ?? 0.05, hair.curl ?? 0, style);
 }
 
 /** Lotti: Pony mit drei Bögen, Schleife und vorderer Zopf. */
@@ -207,7 +218,7 @@ function lottiFrontHair(ctx, hx, hy, hair, style) {
   ctx.beginPath(); ctx.arc(hx - 0.4, hy - 0.4, 4.2, Math.PI * 1.12, Math.PI * 1.42); ctx.stroke();
   ctx.restore();
   bow(ctx, hx - 1.4, hy - 5.1, style);
-  braid(ctx, hx + 4.4, hy + 0.7, 1, hair.r ?? 0.15, -(hair.curl ?? 0), style);
+  if (!hair.behind) braid(ctx, hx + BRAID_FRONT[0], hy + BRAID_FRONT[1], hair.r ?? 0.05, hair.curl ?? 0, style);
 }
 
 /** Greta: lange offene Haare hinter Kopf und Schultern; flow = Richtung Wurzel → Spitze. */
@@ -376,12 +387,12 @@ function drawHero(g, style, p) {
 
 // ---------------------------------------------------------------- Posen
 const POSES = {
-  idle0: pose({ hair: { l: 0.15, r: 0.15, flow: [0.3, 9.2] } }),
-  idle1: pose({ dy: 0.35, eyes: 'blink', hair: { l: -0.05, r: -0.05, flow: [0.5, 9.5] } }),
+  idle0: pose({ hair: { l: 0.06, r: 0.06, flow: [0.3, 9.2] } }),
+  idle1: pose({ dy: 0.35, eyes: 'blink', hair: { l: 0.0, r: 0.0, flow: [0.5, 9.5] } }),
   // Lauf: Kontakt (Beine gespreizt) – hinterer Arm schwingt vor, vorderer zurück
   run0: pose({
     lean: 0.9, swing: -1.6, flare: 0.9, mouth: 'smile',
-    hair: { l: 0.5, r: 0.7, curl: -0.2, flow: [-5.5, 6.0] },
+    hair: { l: 0.65, r: 0.65, curl: 0.15, flow: [-5.5, 6.0] },
     legBack: [[11.0, 18.4], [9.0, 20.3], [8.0, 22]], footBack: -0.35,
     legFront: [[13.4, 18.4], [15.6, 20.2], [16.6, 22]], footFront: 0.3,
     armBack: [[9.2, 14.0], [13.2, 16.6], [17.4, 14.0]],
@@ -390,7 +401,7 @@ const POSES = {
   // Lauf: Durchgang (Körper hoch) – hinteres Bein angewinkelt
   run1: pose({
     dy: -1.0, lean: 0.7, swing: -1.0, flare: 0.5,
-    hair: { l: 0.1, r: 0.2, curl: 0.15, flow: [-4.5, 7.5] },
+    hair: { l: 0.5, r: 0.5, curl: 0.08, flow: [-4.5, 7.5] },
     legBack: [[11.0, 17.4], [9.6, 19.4], [10.4, 21.0]], footBack: -0.7,
     legFront: [[13.2, 17.4], [13.4, 21.0]], footFront: 0,
     armBack: [[9.1, 13.0], [8.6, 15.4], [10.4, 16.8]],
@@ -399,7 +410,7 @@ const POSES = {
   // Lauf: zweiter Kontakt – vorderer Arm angewinkelt vor, hinterer zurück
   run2: pose({
     lean: 0.9, swing: -1.6, flare: 0.9,
-    hair: { l: 0.5, r: 0.7, curl: -0.2, flow: [-5.5, 6.0] },
+    hair: { l: 0.65, r: 0.65, curl: 0.15, flow: [-5.5, 6.0] },
     legBack: [[11.0, 18.4], [13.8, 20.3], [15.2, 22]], footBack: 0.3,
     legFront: [[13.4, 18.4], [11.0, 20.3], [8.6, 22]], footFront: -0.3,
     armBack: [[9.2, 14.0], [7.6, 16.0], [6.6, 17.8]],
@@ -407,25 +418,25 @@ const POSES = {
   }),
   run3: pose({
     dy: -1.0, lean: 0.7, swing: -1.0, flare: 0.5,
-    hair: { l: 0.1, r: 0.2, curl: 0.15, flow: [-4.5, 7.5] },
+    hair: { l: 0.5, r: 0.5, curl: 0.08, flow: [-4.5, 7.5] },
     legBack: [[11.0, 17.4], [11.0, 21.0]], footBack: 0,
     legFront: [[13.4, 17.4], [15.2, 19.4], [14.6, 21.0]], footFront: -0.6,
     armBack: [[9.1, 13.0], [8.2, 15.4], [9.0, 17.2]],
     armFront: [[15.5, 13.0], [16.6, 15.2], [16.0, 17.0]],
   }),
-  // Sprung: Faust hoch, Beine angezogen, Haare hängen
+  // Sprung: Faust hoch, Beine angezogen, Zöpfe schwingen leicht nach hinten
   jump: pose({
     dy: -0.6, lean: 0.6, swing: -0.8, flare: 0.4, mouth: 'open', armsFront: true,
-    hair: { l: -0.45, r: -0.35, curl: -0.1, flow: [-1.8, 9.5] },
+    hair: { l: 0.3, r: 0.3, curl: 0.2, flow: [-1.8, 9.5] },
     legBack: [[11.0, 17.8], [9.0, 19.8], [9.8, 21.2]], footBack: -0.75,
     legFront: [[13.4, 17.8], [15.4, 19.9], [14.4, 21.4]], footFront: -0.5,
     armBack: [[9.1, 13.4], [7.6, 15.8], [6.8, 17.8]],
     armFront: [[15.5, 13.4], [16.6, 8.0], [16.4, 1.9]],
   }),
-  // Fall: Arme ausgebreitet, Haare hoch, Mund offen
+  // Fall: Arme ausgebreitet, Zöpfe fliegen nach oben-außen, Mund offen
   fall: pose({
     spread: 0.8, eyes: 'wide', mouth: 'o',
-    hair: { l: 0.95, r: 0.95, curl: 0.15, flow: [-3.6, -6.5] },
+    hair: { l: 2.45, r: -2.45, curl: 0, flow: [-3.6, -6.5] },
     legBack: [[10.9, 18.4], [9.0, 20.3], [8.4, 22]], footBack: -0.25,
     legFront: [[13.3, 18.4], [15.2, 20.3], [15.8, 22]], footFront: 0.2,
     armBack: [[9.2, 14.0], [5.6, 13.6], [3.0, 13.0]],
@@ -434,7 +445,7 @@ const POSES = {
   // Gleiten: beide Hände oben am Schirmstiel (bei x≈11, y≈1), Beine baumeln
   glide: pose({
     armsFront: true,
-    hair: { l: -0.2, r: -0.2, flow: [0.6, 9.6] },
+    hair: { l: 0.12, r: 0.12, flow: [0.6, 9.6] },
     legBack: [[10.9, 18.4], [10.4, 20.4], [10.2, 22]], footBack: -0.15,
     legFront: [[13.3, 18.4], [14.6, 20.5], [14.4, 22]], footFront: 0.15,
     armBack: [[9.2, 14.0], [7.0, 8.6], [10.6, 1.9]],
@@ -443,7 +454,7 @@ const POSES = {
   // Reiten: Beine nach vorn-unten auf Pflaume, vordere Hand hält sich fest, hintere jubelt
   ride: pose({
     swing: 0.4, spread: 1.2, mouth: 'open',
-    hair: { l: 0.35, r: 0.35, flow: [-0.6, 9.0] },
+    hair: { l: 0.35, r: 0.35, curl: 0.1, flow: [-0.6, 9.0] },
     legBack: [[11.6, 18.6], [14.6, 20.0], [16.6, 22]], footBack: 0.3,
     legFront: [[13.4, 18.8], [16.4, 20.2], [18.4, 22]], footFront: 0.35,
     armBack: [[9.2, 14.0], [6.8, 11.4], [5.8, 8.0]],
@@ -452,7 +463,7 @@ const POSES = {
   // Sturzflug: Bild senkrecht gespiegelt (Kopf unten), Körper gestreckt, Arme angelegt, Haare „nach oben“
   dive: pose({
     flipY: true, spread: 0.9, eyes: 'wide', mouth: 'o',
-    hair: { l: -0.85, r: -0.85, curl: -0.1, flow: [-4.5, 6.5] }, // gespiegelt: Haare fliegen zu den Füßen = nach oben
+    hair: { l: 0.12, r: 0.12, curl: 0, flow: [-4.5, 6.5] }, // gespiegelt: Zöpfe strömen zu den Füßen = nach oben
     legBack: [[10.9, 18.4], [10.4, 22]], footBack: -1.1,
     legFront: [[13.3, 18.4], [13.8, 22]], footFront: -1.1,
     armBack: [[9.2, 14.0], [8.0, 16.6], [8.6, 19.2]],
