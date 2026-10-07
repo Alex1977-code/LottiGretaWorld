@@ -34,9 +34,20 @@ function leaf(g, tilt) {
     ctx.beginPath(); ctx.moveTo(cx, bottom - dy); ctx.lineTo(cx - len, bottom - dy + 1.5);
     ctx.moveTo(cx, bottom - dy); ctx.lineTo(cx + len, bottom - dy + 1.5); ctx.stroke();
   }
-  // Glanz oben links
-  ctx.fillStyle = 'rgba(255, 245, 220, 0.55)';
+  // Kernschatten unten rechts (im Blattton), Glanz oben links, kleiner Zweitglanz, helle Oberkante
+  ctx.fillStyle = 'rgba(120, 30, 10, 0.18)';
+  ctx.beginPath(); ctx.ellipse(cx + 5.5, bottom - 2.2, 4.2, 1.6, 0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255, 245, 220, 0.6)';
   ctx.beginPath(); ctx.ellipse(cx - 5, top + 2.6, 3.2, 1.3, -0.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255, 245, 220, 0.35)';
+  ctx.beginPath(); ctx.ellipse(cx - 1.2, top + 1.3, 1.2, 0.5, -0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 220, 160, 0.45)';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(cx - 9.2, bottom - 2.5);
+  ctx.quadraticCurveTo(cx - 8.5, top + 2.2, cx - 4, top + 1.1);
+  ctx.quadraticCurveTo(cx, top + 0.1, cx + 4, top + 1.1);
+  ctx.stroke();
   // Stiel
   ctx.strokeStyle = '#6d8a2b';
   ctx.lineWidth = 1.4;
