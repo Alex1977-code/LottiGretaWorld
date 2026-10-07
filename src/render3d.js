@@ -5,7 +5,7 @@
 
 // Standard-Darstellung. Solange die 3D-Modelle Platzhalter sind, bleibt die 2D-Fassung Standard;
 // ?r3d=1 zeigt die 3D-Ansicht.
-const DEFAULT_3D = false;
+const DEFAULT_3D = true;
 
 function pickEnabled() {
   try {
