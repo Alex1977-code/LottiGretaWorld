@@ -9,6 +9,7 @@ import { LEVELS } from '../levels/index.js';
 import { saveGame } from '../systems/SaveGame.js';
 import { vibrate } from '../systems/haptics.js';
 import { sfx, music, engine } from '../audio/index.js';
+import { uiText, uiButton } from '../ui.js';
 
 const WALK_SPEED = 70; // px/s auf der Karte
 
@@ -42,17 +43,17 @@ export class WorldMapScene extends Phaser.Scene {
     this.hero = fit(this.add.sprite(n.x, n.y - 10, this.heroKey, 'idle0')).setDepth(10);
     this.hero.play(`${this.heroKey}-idle`);
 
-    this.title = this.add.text(GAME.width / 2, 12, this.world.name, { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '10px', color: '#fff2a8', stroke: '#4a230a', strokeThickness: 3 }).setOrigin(0.5).setDepth(20);
-    this.info = this.add.text(GAME.width / 2, GAME.height - 30, '', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '10px', color: '#f3e7d3', stroke: '#2a1a10', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setDepth(20);
-    this.hint = this.add.text(GAME.width / 2, GAME.height - 12, 'Tippen/Leertaste: Level starten  •  Pfeile: laufen  •  Tab: Figur wechseln', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '7px', color: '#d8c8b0' }).setOrigin(0.5).setDepth(20).setAlpha(0.8);
-    this.resetBtn = this.add.text(GAME.width - 4, 4, 'Spielstand löschen', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '7px', color: '#d8c8b0', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setOrigin(1, 0).setDepth(20).setInteractive({ useHandCursor: true });
+    this.title = uiText(this, GAME.width / 2, 14, this.world.name, { size: 14, color: '#ffffff', stroke: '#3a2a6a', thickness: 4 }).setDepth(20);
+    this.info = uiText(this, GAME.width / 2, GAME.height - 30, '', { size: 10, color: '#ffffff', stroke: '#2a2550', thickness: 3 }).setDepth(20);
+    this.hint = uiText(this, GAME.width / 2, GAME.height - 10, 'Tippen/Leertaste: Level starten  •  Pfeile: laufen  •  Tab: Figur wechseln', { size: 7, color: '#eef0ff', stroke: '#2a2550', thickness: 2, shadow: false }).setDepth(20).setAlpha(0.9);
+    this.resetBtn = uiButton(this, GAME.width - 44, 10, 'Spielstand löschen', { size: 7, dark: true, padX: 6, padY: 2 }).setDepth(20);
     this.resetBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.onResetTap(); });
 
     this.coinIcons = [];
     this.updateInfo();
 
     // Figur wählen (Lotti / Greta)
-    this.heroBtn = this.add.text(4, 16, '', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '7px', color: '#fff2a8', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setDepth(20).setInteractive({ useHandCursor: true });
+    this.heroBtn = uiButton(this, 42, 24, '', { size: 7, color: 0xff6b9d, padX: 6, padY: 2, minWidth: 76 }).setDepth(20);
     this.heroBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.switchHero(); });
     this.input.keyboard.on('keydown-TAB', (ev) => { ev.preventDefault(); this.switchHero(); });
     this.hero.setInteractive({ useHandCursor: true });
@@ -60,7 +61,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.updateHeroLabel();
 
     // Ton an/aus
-    this.muteBtn = this.add.text(4, 4, '', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '7px', color: '#d8c8b0', backgroundColor: 'rgba(0,0,0,0.4)', padding: { x: 3, y: 2 } }).setDepth(20).setInteractive({ useHandCursor: true });
+    this.muteBtn = uiButton(this, 42, 9, '', { size: 7, dark: true, padX: 6, padY: 2, minWidth: 76 }).setDepth(20);
     this.muteBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.toggleMute(); });
     this.input.keyboard.on('keydown-M', this.toggleMute, this);
     this.updateMuteLabel();
@@ -117,11 +118,12 @@ export class WorldMapScene extends Phaser.Scene {
       const unlocked = saveGame.nodeUnlocked(this.world, n.key);
       const lvl = saveGame.level(n.key);
       const c = this.add.container(n.x, n.y).setDepth(5);
-      const base = this.add.circle(0, 0, 7, unlocked ? 0xf3b36a : 0x5a4a3a).setStrokeStyle(2, 0x4a230a);
+      c.setData('unlocked', unlocked);
+      const base = this.add.circle(0, 0, 8, unlocked ? 0xffc21a : 0x8a8aa0).setStrokeStyle(2, unlocked ? 0xffffff : 0xd0d0e0);
       c.add(base);
       if (lvl.done) c.add(this.add.image(0, -14, 'flag', 'flag0').setScale(0.6 * Z).setOrigin(0.5, 0.75));
       if (lvl.secret) c.add(this.add.image(8, -6, 'key', 'key').setScale(0.6 * Z));
-      const label = this.add.text(0, 10, LEVELS[n.key]?.name ?? n.key, { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '7px', color: unlocked ? '#fff2a8' : '#8a7a6a', stroke: '#2a1a10', strokeThickness: 2 }).setOrigin(0.5, 0);
+      const label = uiText(this, 0, 10, LEVELS[n.key]?.name ?? n.key, { size: 7, color: unlocked ? '#ffffff' : '#b8b0c8', stroke: '#2a2550', thickness: 2, shadow: false, originY: 0 });
       c.add(label);
       base.setInteractive({ useHandCursor: unlocked });
       base.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.onNodeTap(n.key); });

@@ -4,6 +4,7 @@ import Phaser from 'phaser';
 import { RENDER, Z, fit, setupUiCamera } from '../render.js';
 import { GAME } from '../config.js';
 import { sfx, engine } from '../audio/index.js';
+import { uiText, uiPanel, uiButton } from '../ui.js';
 
 export class PauseScene extends Phaser.Scene {
   constructor() {
@@ -13,21 +14,22 @@ export class PauseScene extends Phaser.Scene {
   create() {
     const { width: w, height: h } = GAME;
     setupUiCamera(this);
-    this.add.rectangle(0, 0, w, h, 0x000000, 0.6).setOrigin(0);
-    this.add.text(w / 2, h / 2 - 40, 'Pause', { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '16px', color: '#fff2a8', stroke: '#4a230a', strokeThickness: 3 }).setOrigin(0.5);
-    this.button(w / 2, h / 2, 'Weiter', () => this.resume());
-    this.button(w / 2, h / 2 + 28, 'Zur Weltkarte', () => this.toMap());
-    this.muteBtn = this.button(w / 2, h / 2 + 56, '', () => { engine.toggleMuted(); this.muteBtn.setText(engine.muted ? 'Ton: aus' : 'Ton: an'); sfx('select'); });
+    this.add.rectangle(0, 0, w, h, 0x10102a, 0.55).setOrigin(0);
+    uiPanel(this, w / 2, h / 2 + 8, 170, 130);
+    uiText(this, w / 2, h / 2 - 40, 'Pause', { size: 20, color: '#ffffff', stroke: '#3a2a6a', thickness: 4 });
+    this.button(w / 2, h / 2 - 8, 'Weiter', () => this.resume(), 0x4fb833);
+    this.button(w / 2, h / 2 + 20, 'Zur Weltkarte', () => this.toMap(), 0x3a7bff);
+    this.muteBtn = this.button(w / 2, h / 2 + 48, '', () => { engine.toggleMuted(); this.muteBtn.setText(engine.muted ? 'Ton: aus' : 'Ton: an'); sfx('select'); }, 0xff9f1a);
     this.muteBtn.setText(engine.muted ? 'Ton: aus' : 'Ton: an');
     this.input.keyboard.on('keydown-M', () => { engine.toggleMuted(); this.muteBtn.setText(engine.muted ? 'Ton: aus' : 'Ton: an'); });
     this.input.keyboard.on('keydown-ESC', this.resume, this);
     this.input.keyboard.on('keydown-P', this.resume, this);
   }
 
-  button(x, y, label, cb) {
-    const t = this.add.text(x, y, label, { fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '11px', color: '#f3e7d3', backgroundColor: '#4a230a', padding: { x: 10, y: 5 } }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    t.on(Phaser.Input.Events.POINTER_DOWN, cb);
-    return t;
+  button(x, y, label, cb, color) {
+    const b = uiButton(this, x, y, label, { size: 10, color, minWidth: 120, padY: 4 });
+    b.on(Phaser.Input.Events.POINTER_DOWN, cb);
+    return b;
   }
 
   resume() {

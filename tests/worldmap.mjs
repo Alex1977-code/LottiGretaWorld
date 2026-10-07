@@ -10,7 +10,7 @@ const { check, summary } = makeChecker();
 const sc = (fn, arg) => page.evaluate(fn, arg);
 const active = (k) => sc((k) => window.__game.scene.isActive(k), k);
 const mapState = () => sc(() => { const m = window.__game.scene.getScene('WorldMap'); return { current: m.current, moving: m.moving, heroX: m.hero.x, unlocked: m.world.nodes.map((n) => n.key).filter((k) => m.nodeSprites[k] && window.__game.registry) }; });
-const unlockedNodes = () => sc(() => { const m = window.__game.scene.getScene('WorldMap'); return m.world.nodes.map((n) => n.key).filter((k) => { const base = m.nodeSprites[k].list[0]; return base.fillColor === 0xf3b36a; }); });
+const unlockedNodes = () => sc(() => { const m = window.__game.scene.getScene('WorldMap'); return m.world.nodes.map((n) => n.key).filter((k) => m.nodeSprites[k].getData('unlocked')); });
 
 // 1) Ohne ?level → Weltkarte
 await page.goto(URL_BASE, { waitUntil: 'load' });
@@ -50,6 +50,7 @@ await sc(() => { const s = window.__game.scene.getScene('Play'); const f = s.fla
 await page.keyboard.down('ArrowRight'); await page.waitForTimeout(500); await page.keyboard.up('ArrowRight');
 await page.waitForTimeout(1900);
 check('Level geschafft', await active('LevelComplete'));
+await page.waitForTimeout(800); // Ergebnis-Szene nimmt erst nach 600 ms Eingaben an
 await page.keyboard.press('Space');
 await page.waitForFunction(() => window.__game.scene.isActive('WorldMap'), null, { timeout: 5000 });
 await page.waitForTimeout(1200);

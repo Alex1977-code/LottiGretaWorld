@@ -6,6 +6,7 @@ import { TouchControls } from '../systems/TouchControls.js';
 import { STATE_KEYS } from '../systems/GameState.js';
 import { GAME } from '../config.js';
 import { Z, fit, setupUiCamera } from '../render.js';
+import { uiPanel } from '../ui.js';
 
 export class UIScene extends Phaser.Scene {
   constructor() {
@@ -20,7 +21,7 @@ export class UIScene extends Phaser.Scene {
     setupUiCamera(this);
     this.touchControls = new TouchControls(this, this.ctrl);
     this.createHearts();
-    this.powerIcon = fit(this.add.image(0, 8, 'berry', 'berry_none')).setDepth(50).setVisible(false);
+    this.powerIcon = fit(this.add.image(0, 11, 'berry', 'berry_none'), 1.4).setDepth(50).setVisible(false);
     this.updatePower();
     this.createCoins();
     this.createPauseButton();
@@ -51,8 +52,10 @@ export class UIScene extends Phaser.Scene {
     this.hearts?.forEach((h) => h.destroy());
     const max = this.registry.get(STATE_KEYS.maxHearts) ?? 3;
     this.hearts = [];
+    this.heartPanel?.destroy();
+    this.heartPanel = uiPanel(this, 6 + (max * 13) / 2 + 2, 11, max * 13 + 10, 16, { color: 0x1a1830, alpha: 0.45, radius: 8, shadow: false, border: 0 }).setDepth(49);
     for (let i = 0; i < max; i++) {
-      this.hearts.push(fit(this.add.image(8 + i * 10, 8, 'heart', 'full')).setDepth(50));
+      this.hearts.push(fit(this.add.image(12 + i * 13, 11, 'heart', 'full'), 1.4).setDepth(50));
     }
     this.updateHearts();
   }
@@ -61,10 +64,14 @@ export class UIScene extends Phaser.Scene {
   createPauseButton() {
     const { width } = GAME;
     const g = this.add.graphics().setDepth(50);
-    g.fillStyle(0xffffff, 0.35);
-    g.fillRect(width / 2 - 5, 4, 3, 9);
-    g.fillRect(width / 2 + 2, 4, 3, 9);
-    const zone = this.add.zone(width / 2, 8, 24, 20).setInteractive();
+    g.fillStyle(0x1a1830, 0.45);
+    g.fillCircle(width / 2, 11, 9);
+    g.lineStyle(1, 0xffffff, 0.35);
+    g.strokeCircle(width / 2, 11, 9);
+    g.fillStyle(0xffffff, 0.85);
+    g.fillRoundedRect(width / 2 - 4.5, 6.5, 3, 9, 1);
+    g.fillRoundedRect(width / 2 + 1.5, 6.5, 3, 9, 1);
+    const zone = this.add.zone(width / 2, 11, 26, 22).setInteractive();
     zone.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => {
       ev.stopPropagation();
       this.scene.get('Play').pauseGame();
@@ -75,8 +82,9 @@ export class UIScene extends Phaser.Scene {
   createCoins() {
     const { width } = GAME;
     this.coinIcons = [];
+    uiPanel(this, width - 6 - (5 * 13) / 2 - 2, 11, 5 * 13 + 10, 16, { color: 0x1a1830, alpha: 0.45, radius: 8, shadow: false, border: 0 }).setDepth(49);
     for (let i = 0; i < 5; i++) {
-      this.coinIcons.push(fit(this.add.image(width - 8 - (4 - i) * 10, 8, 'coin_hud', 'empty')).setDepth(50));
+      this.coinIcons.push(fit(this.add.image(width - 12 - (4 - i) * 13, 11, 'coin_hud', 'empty'), 1.4).setDepth(50));
     }
     this.updateCoins();
   }
@@ -87,7 +95,7 @@ export class UIScene extends Phaser.Scene {
       const full = !!coins[i];
       if (full !== (c.frame.name === 'full')) {
         c.setFrame(full ? 'full' : 'empty');
-        if (full) this.tweens.add({ targets: c, scaleX: 1.6 * Z, scaleY: 1.6 * Z, duration: 120, yoyo: true });
+        if (full) this.tweens.add({ targets: c, scaleX: 2.2 * Z, scaleY: 2.2 * Z, duration: 120, yoyo: true });
       }
     });
   }
@@ -96,10 +104,10 @@ export class UIScene extends Phaser.Scene {
   updatePower() {
     const power = this.registry.get(STATE_KEYS.power) || '';
     const max = this.registry.get(STATE_KEYS.maxHearts) ?? 3;
-    this.powerIcon.setX(8 + max * 10 + 4);
+    this.powerIcon.setX(12 + max * 13 + 6);
     if (!power) { this.powerIcon.setVisible(false); return; }
     this.powerIcon.setVisible(true).setFrame(`berry_${power}`);
-    this.tweens.add({ targets: this.powerIcon, scaleX: 1.6 * Z, scaleY: 1.6 * Z, duration: 120, yoyo: true });
+    this.tweens.add({ targets: this.powerIcon, scaleX: 2.2 * Z, scaleY: 2.2 * Z, duration: 120, yoyo: true });
   }
 
   updateHearts() {
@@ -108,7 +116,7 @@ export class UIScene extends Phaser.Scene {
       const full = i < n;
       if (full !== (h.frame.name === 'full')) {
         h.setFrame(full ? 'full' : 'empty');
-        if (!full) this.tweens.add({ targets: h, scaleX: 1.5 * Z, scaleY: 1.5 * Z, duration: 90, yoyo: true });
+        if (!full) this.tweens.add({ targets: h, scaleX: 2 * Z, scaleY: 2 * Z, duration: 90, yoyo: true });
       }
     });
   }

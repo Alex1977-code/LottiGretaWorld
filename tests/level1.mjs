@@ -56,6 +56,7 @@ console.log('Speicherstand:', JSON.stringify(save));
 check('Speicherstand: Level geschafft, geheimer Ausgang, Münze 1', save?.levels?.level1?.done === true && save.levels.level1.secret === true && save.levels.level1.coins[0] === true);
 
 // Weiter → Weltkarte, von dort Level erneut starten: gespeicherte Münze erscheint halbtransparent
+await page.waitForTimeout(800); // Ergebnis-Szene nimmt erst nach 600 ms Eingaben an
 await page.keyboard.press('Space');
 await page.waitForFunction(() => window.__game.scene.isActive('WorldMap'), null, { timeout: 5000 });
 check('Nach dem Level zurück auf der Weltkarte', true);

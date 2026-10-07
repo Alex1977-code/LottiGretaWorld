@@ -8,7 +8,7 @@ export class DebugOverlay {
     this.enabled = false;
 
     this.text = scene.add.text(FIXED_OFFSET.x + 4, FIXED_OFFSET.y + 16, '', {
-      fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '8px', color: '#ffffff',
+      fontFamily: 'monospace', resolution: RENDER.scale, fontSize: '7px', color: '#ffffff',
       backgroundColor: 'rgba(0,0,0,0.5)', padding: { x: 2, y: 1 },
     }).setScrollFactor(0).setDepth(1000).setVisible(false);
 
