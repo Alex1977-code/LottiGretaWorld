@@ -37,7 +37,8 @@ await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 await page.screenshot({ path: `${OUT}t06_pause.png` });
 await sc(() => window.__game.scene.getScene('Pause').toMap());
 await page.waitForTimeout(800);
-check('3D-Leinwand auf der Karte versteckt', await sc(() => document.getElementById('gl3d').style.display === 'none' && !window.__view3d));
+// Die Weltkarte ist selbst eine 3D-Ansicht (MapView3D) und übernimmt die gemeinsame Leinwand
+check('Karte: Levelansicht weg, 3D-Karte übernimmt die Leinwand', await sc(() => !window.__view3d && !!window.__mapView3d && document.getElementById('gl3d').style.display !== 'none'));
 await page.screenshot({ path: `${OUT}t07_map.png` });
 // Level erneut starten: Renderer wird wiederverwendet
 await sc(() => window.__game.scene.getScene('WorldMap').startLevel());
