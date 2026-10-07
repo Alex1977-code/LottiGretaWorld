@@ -81,11 +81,13 @@ await page.waitForTimeout(800);
 await page.evaluate(() => window.__game.registry.set('hearts', 1));
 list = await enemies();
 const m = list.find((e) => e.type === 'walker' && e.alive && e.y > 250 && e.x > 300);
-await teleport(m.x - 40, m.y - 2);
-await page.keyboard.down('ArrowRight');
+// Rechts vom Käfer absetzen und nach links laufen: links von ihm beginnt knapp eine Lücke (Tile 50–52),
+// an deren Kante die Heldin je nach Käferposition in die Tiefe fiel (Respawn statt Tod).
+await teleport(m.x + 30, m.y - 2);
+await page.keyboard.down('ArrowLeft');
 let died = false;
 for (let i = 0; i < 60; i++) { await page.waitForTimeout(30); if (await page.evaluate(() => window.__game.scene.getScene('Play').hero.dead)) { died = true; break; } }
-await page.keyboard.up('ArrowRight');
+await page.keyboard.up('ArrowLeft');
 check('Letztes Herz → Hero stirbt', died);
 await page.screenshot({ path: `${OUT}e03_death.png` });
 // Bis zum Respawn warten und sofort messen (bevor der Käfer am Start Hero erreicht)
