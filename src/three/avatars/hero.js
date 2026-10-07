@@ -16,9 +16,14 @@
 //    beide Augen sichtbar). Neigung (angle) und Squash & Stretch bleiben bei der Basisklasse.
 //  - Zeichenaufrufe: Alles, was sich gemeinsam bewegt und starr ist, wird zu einem vertexgefärbten Mesh
 //    verschmolzen (Kopf+Gesicht, Haare+Schleife, Oberkörper+Kragen+Ärmel, Rock+Schürze, Schirm, …).
-//    Nur Gelenke trennen Meshes. Heldin ≈ 21 Meshes (17 sichtbar), Pflaume 14.
+//    Nur Gelenke trennen Meshes. Heldin ≈ 25 Meshes (21 sichtbar, davon 6 Zopfglieder), Pflaume 14.
 //  - Angel und Möhre gehören zum Hero-Avatar (die Hand hält sie). Die Möhre pendelt physikalisch aus
 //    der Beschleunigung der Reiterin; Pflaume streckt beim Reiten die Nase nach vorn-oben.
+//  - Lottis Zöpfe hängen hinter den Ohren herab und sind je eine Kette aus drei Gliedern (je ein Mesh),
+//    die eine Verlet-Kette in Weltkoordinaten (HangChain) führt: Schwerkraft, Luftwiderstand, Trägheit
+//    aus der Bewegung der Aufhängung, Kollider für Kopf und Schultern. Keine Posenwerte, reine Physik –
+//    deshalb wehen sie beim Laufen nach hinten, fliegen beim Fallen hoch, strömen im Sturzflug zu den
+//    Füßen (Figur steht Kopf) und hüpfen beim Reiten mit.
 //  - Beim Reiten liegt der Fußpunkt der Heldin 0,75 Einheiten über Pflaumes Fußpunkt; die Reitpose senkt
 //    das Becken um 0,28, so dass die Hüfte auf Pflaumes Rücken (≈0,95 über seinen Pfoten) sitzt und die
 //    Beine seitlich am Körper herabhängen. Der Hoppel-Takt wird von der Reiterin vorgegeben
@@ -30,7 +35,8 @@ import { POWER_COLORS } from '../../gfx/palette.js';
 import { GAME, HERO } from '../../config.js';
 import {
   TAU, damp, clamp, mat, lineMat, geo, sphere, capsule, cylinder, cone, torus, unitSphere,
-  mesh, limb, placed, dirAE, mergeTinted, mergePlain, vcolMat, buildEyes, Facing, PoseBlender, Blinker,
+  mesh, limb, placed, dirAE, mergeTinted, mergePlain, mergeColored, vcolMat, buildEyes, Facing, PoseBlender, Blinker,
+  HangChain, lerp,
 } from '../lib/figures.js';
 
 const U = 1 / GAME.tile;             // Weltpixel → Einheiten
@@ -38,7 +44,10 @@ const BIAS = 0.42;                   // Drehung zur Kamera (3/4-Ansicht), für H
 const RUN_SPEED = HERO.runSpeed * U; // ≈ 7,8 Einheiten/s
 const V = (x, y, z = 0) => new THREE.Vector3(x, y, z);
 const UP = new THREE.Vector3(0, 1, 0);
+const DOWN = new THREE.Vector3(0, -1, 0);
 const _v = new THREE.Vector3();
+const _p = new THREE.Vector3(), _s = new THREE.Vector3();
+const _q = new THREE.Quaternion(), _qi = new THREE.Quaternion();
 
 /** Teil für mergeTinted: [Geometrie, Farbe, Matrix] aus Lage/Drehung/Skalierung. */
 function part(g, color, o = {}) {
@@ -102,6 +111,13 @@ function hairParts(st) {
   const parts = [part(sphere(0.325, 18, 12), st.hair, { x: HEAD_C.x - 0.055, y: HEAD_C.y + 0.025 })];
   if (st.braids) {
     parts.push(part(fringeGeo(true, Math.PI - 1.05, 2.1), st.hair, { x: HEAD_C.x, y: HEAD_C.y }));
+    // Haarzug je Seite: flache Wulst auf der Kappe vom Scheitel hinter das Ohr, darunter der Zopfansatz
+    const capC = V(HEAD_C.x - 0.055, HEAD_C.y + 0.025, 0);
+    for (const s of [1, -1]) {
+      const d = dirAE(s * 2.05, 0.3);
+      parts.push([unitSphere(), st.hair, placed(capC.clone().addScaledVector(d, 0.325 - 0.014), d, V(0.065, 0.12, 0.03))]);
+      parts.push(part(sphere(0.058, 12, 10), st.hair, { x: BRAID.anchor.x, y: BRAID.anchor.y + 0.01, z: s * BRAID.anchor.z, sy: 1.15 }));
+    }
     // Schleife: zwei Schlaufen und Knoten, oben hinten auf dem Kopf, leicht zur Kamera
     const bow = new THREE.Matrix4().compose(V(HEAD_C.x - 0.1, HEAD_C.y + 0.34, 0.1), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.3, 0, 0.1)), V(1, 1, 1));
     for (const s of [1, -1]) {
@@ -117,24 +133,74 @@ function hairParts(st) {
   return parts;
 }
 
-/** Zopf (Lotti): Lathe mit drei Flechtwülsten entlang +Y, rotes Haargummi, helle Quaste. */
-const BRAID_L = 0.34;
-function braidParts(st) {
-  const lathe = geo('braid', () => {
-    const pts = [], n = 30;
-    for (let i = 0; i <= n; i++) {
-      const t = i / n;
-      const bead = 0.5 - 0.5 * Math.cos(TAU * 3 * t);
-      const r = (0.05 + 0.05 * Math.pow(bead, 0.8)) * (1 - 0.28 * t);
-      pts.push(new THREE.Vector2(i === 0 || i === n ? 0.002 : r, t * BRAID_L));
+/**
+ * Zopf (Lotti): Kette aus drei Gliedern, hängt am Ansatz hinter dem Ohr. Die Oberfläche ist ein
+ * geflochtener Strang: zwei um 180° versetzte Wülste, die sich spiralig um die Achse drehen, mit
+ * zusätzlicher Verdickung je Strang dort, wo er vorn/hinten liegt (versetzte Flechtwülste, flache
+ * Seiten wie bei einem echten Zopf). Vertexfarben: Kämme hell, Rinnen dunkel. Das letzte Glied trägt
+ * das rote Haargummi und eine aufgefächerte Quaste aus hellen Spitzen. Maße relativ zum Glied-Drehpunkt.
+ */
+const BRAID = {
+  anchor: V(HEAD_C.x - 0.09, HEAD_C.y - 0.01, 0.29), // Ansatz hinter dem Ohr, knapp in der Kappe (z je Seite ±)
+  links: [0.12, 0.11, 0.10],   // Gliedlängen → Zopfkörper 0,33 (+ Haargummi 0,04 + Quaste ≈ 0,09)
+  r0: 0.045, r1: 0.034,        // Radius oben / am Haargummi
+  twist: 46,                   // rad je Einheit: Drehung der Wülste um die Achse
+  lobe: 0.66, q: 0.6,          // Tiefe und Rundung der Rinne zwischen den Strängen
+  bump: 0.10,                  // Verdickung je Strang vorn/hinten
+  overlap: 0.03,               // jedes Glied steckt oben im vorigen
+  tie: 0.04,                   // Haargummi
+};
+const BRAID_LEN = BRAID.links.reduce((a, b) => a + b, 0);
+
+/** Geometrie eines Zopfglieds (geteilt je Variante, Glied und Seite; side spiegelt die Drehrichtung). */
+function braidLinkGeo(st, k, side) {
+  return geo(`hero:braid:${st.hair}:${k}:${side}`, () => {
+    const len = BRAID.links[k], y0 = BRAID.links.slice(0, k).reduce((a, b) => a + b, 0);
+    const rings = 16, segs = 16, period = TAU / BRAID.twist;
+    const base = new THREE.Color(st.hair);
+    const pos = [], uv = [], col = [], idx = [];
+    for (let i = 0; i <= rings; i++) {
+      const yl = BRAID.overlap - (len + BRAID.overlap) * (i / rings); // lokal: +overlap … -len
+      const yg = y0 - yl;                                              // Abstand vom Ansatz (nach unten)
+      let R = lerp(BRAID.r0, BRAID.r1, clamp(yg / BRAID_LEN, 0, 1));
+      if (yl > 0) R *= 1 - 0.35 * (yl / BRAID.overlap);               // oben einziehen (steckt im Elternglied)
+      const psi = side * BRAID.twist * yg;
+      for (let j = 0; j < segs; j++) {
+        const th = (j / segs) * TAU;
+        const c = Math.cos(th - psi);
+        const lobe = Math.pow(Math.abs(c), BRAID.q);
+        const bump = Math.cos((TAU * yg) / period) * c;
+        const r = R * (BRAID.lobe + (1 - BRAID.lobe) * lobe) * (1 + BRAID.bump * bump);
+        pos.push(r * Math.sin(th), yl, r * Math.cos(th));
+        uv.push(j / segs, i / rings);
+        const shade = 0.74 + 0.38 * lobe + 0.12 * bump;
+        col.push(base.r * shade, base.g * shade, base.b * shade);
+      }
     }
-    return new THREE.LatheGeometry(pts, 10);
+    for (let i = 0; i < rings; i++) for (let j = 0; j < segs; j++) {
+      const a = i * segs + j, b = i * segs + ((j + 1) % segs), c = a + segs, d = b + segs;
+      idx.push(a, c, b, b, c, d);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    if (k < BRAID.links.length - 1) return g;
+    // Letztes Glied: Haargummi quer über das Zopfende, darunter die Quaste (fünf Strähnen + Mittelbüschel)
+    const yTie = -len - BRAID.tie / 2, yT = -len - BRAID.tie;
+    const parts = [[g, null, null], part(cylinder(0.044, 0.040, BRAID.tie, 12), st.accent, { y: yTie })];
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * TAU + 0.3, tilt = 0.34;
+      const d = V(Math.sin(tilt) * Math.cos(a), -Math.cos(tilt), Math.sin(tilt) * Math.sin(a));
+      parts.push([unitSphere(), st.hairTip, placed(V(0, yT + 0.005, 0).addScaledVector(d, 0.05), d, V(0.021, 0.021, 0.056))]);
+    }
+    parts.push(part(unitSphere(), st.hairTip, { y: yT - 0.035, sx: 0.03, sy: 0.05, sz: 0.03 }));
+    const merged = mergeColored(parts);
+    g.dispose();
+    return merged;
   });
-  return [
-    part(lathe, st.hair),
-    part(cylinder(0.055, 0.055, 0.05, 10), st.accent, { y: BRAID_L + 0.02 }),
-    part(sphere(0.075, 12, 10), st.hairTip, { y: BRAID_L + 0.1, sy: 1.3 }),
-  ];
 }
 
 /** Offenes langes Haar (Greta): Haarschopf hinter Kopf und Rücken, hängt von y = 0 nach unten. */
@@ -312,13 +378,39 @@ export class HeroAvatar extends Avatar3D {
 
     // Frisur
     if (st.braids) {
+      // Zöpfe: Anker hinter dem Ohr → Kette aus drei Gliedern (je ein Mesh); Lage je Bild aus der Physik.
+      // Kollider (Kopf, beide Schultern) teilen sich beide Ketten; Weltlage je Bild in updateBraids.
+      // Der Kopf-Kollider gilt erst ab dem zweiten Glied (das erste begrenzt der Wurzelkegel), sonst kann
+      // ein über den Ansatz geschlagenes Glied zwischen Kollider und Abstandsbedingung hängen bleiben.
       this.braids = [];
+      this.braidColliders = { head: { c: new THREE.Vector3(), r: 0.33, from: 1 }, shoulders: [1, -1].map(() => ({ c: new THREE.Vector3(), r: 0.125, from: 0 })) };
       for (const s of [1, -1]) {
-        const root = new THREE.Group();
-        root.position.set(HEAD_C.x - 0.03, HEAD_C.y - 0.07, s * 0.26);
-        root.add(vmesh(key('braid'), () => braidParts(st), 0.42));
-        root.side = s;
-        this.head.add(root); this.braids.push(root);
+        const anchor = new THREE.Group();
+        anchor.position.set(BRAID.anchor.x, BRAID.anchor.y, s * BRAID.anchor.z);
+        this.head.add(anchor);
+        const links = [];
+        let parent = anchor;
+        BRAID.links.forEach((len, k) => {
+          const link = new THREE.Group();
+          if (k > 0) link.position.y = -BRAID.links[k - 1];
+          const m = new THREE.Mesh(braidLinkGeo(st, k, s), vcolMat(0.45));
+          m.castShadow = true;
+          link.add(m);
+          parent.add(link); links.push(link); parent = link;
+        });
+        // Physik: Schwerkraft 32 E/s² (etwas leichter als die Spielschwerkraft → weiches Pendeln), quadratischer
+        // Luftwiderstand 0,4/E (Lauf 7,8 E/s → ~37° nach hinten; Fall ab ~9 E/s hebend, ≥ 15 E/s bis an die Waagerechte),
+        // Dämpfung 4/s (ausgependelt nach ~1 s), Feder 40/s² zur Ruhelage, Streckfeder 120/s² (Biegesteifigkeit
+        // des Strangs), Knick ≤ 40° je Gelenk. Wurzelkegel (Grenzwinkel von „unten“): nach hinten bis 16° über
+        // die Waagerechte, vorn ≤ 35°, außen ≤ 80°, nach innen (zum Kopf) ≤ 12°.
+        const chain = new HangChain(BRAID.links, {
+          gravity: 32, drag: 0.4, damping: 4, stiffness: 40, straighten: 120, maxBend: 0.7,
+          rootCone: { back: 1.85, front: 0.61, out: 1.4, inward: 0.21, zSign: s },
+        });
+        chain.colliders.push(this.braidColliders.head, ...this.braidColliders.shoulders);
+        // Ruherichtungen (kopf-lokal): oben leicht nach hinten-außen, unten senkrecht
+        const restLocal = [V(-0.12, -1, s * 0.3), V(-0.04, -1, s * 0.1), V(0, -1, s * 0.02)].map((v) => v.normalize());
+        this.braids.push({ side: s, anchor, links, chain, restLocal });
       }
     }
     if (st.mane) {
@@ -466,13 +558,7 @@ export class HeroAvatar extends Avatar3D {
     this.eyes.scale.y = ey; this.eyeHl.scale.y = ey;
     const mo = Math.max(0.001, p.mouth);
     this.mouthO.scale.set(0.045 * mo, 0.05 * mo, 0.03 * mo);
-    // Frisur
-    if (this.braids) {
-      for (const b of this.braids) {
-        _v.set(-(0.45 + 0.9 * p.hairBack), -0.3 + 0.75 * p.hairLift + 0.03 * Math.sin(t * 9 + b.side), b.side * 1.0).normalize();
-        b.quaternion.setFromUnitVectors(UP, _v);
-      }
-    }
+    // Frisur (Lottis Zöpfe laufen physikalisch in updateBraids)
     if (this.mane) {
       const back = 0.12 + 0.9 * p.hairBack + 0.8 * Math.max(0, p.hairLift) - 0.25 * Math.min(0, p.hairLift);
       this.mane.rotation.z = -back;
@@ -487,6 +573,7 @@ export class HeroAvatar extends Avatar3D {
     const { state, pose, dur, vx, mount, speed } = this.computePose(dt, t);
     const cur = this.blender.update(state, pose, dt, dur);
     this.applyPose(cur, t);
+    if (this.braids) this.updateBraids(dt);
 
     // Blätterschirm: wächst aus den Händen heraus, mit kurzem Überschwingen; kippt in Flugrichtung
     const leafVisible = !!o.leaf?.visible;
@@ -520,6 +607,35 @@ export class HeroAvatar extends Avatar3D {
       this.pendulum.rotation.z = rodAngle + sw.a;
     } else {
       this.prevVx = null; this.swing.a *= 0.9; this.swing.w = 0;
+    }
+  }
+
+  /**
+   * Zöpfe: Aufhängung und Kollider in Weltkoordinaten bestimmen (frische Matrizen nach applyPose),
+   * Kette rechnen und die Glieder im jeweiligen Elternsystem ausrichten. Schwerkraft und Luftwiderstand
+   * wirken in Weltkoordinaten – auch wenn die Figur Kopf steht (Sturzflug) oder sich umdreht.
+   */
+  updateBraids(dt) {
+    this.torso.updateWorldMatrix(true, false);
+    this.head.updateWorldMatrix(false, false);
+    const col = this.braidColliders;
+    col.head.c.set(HEAD_C.x - 0.03, HEAD_C.y + 0.03, 0).applyMatrix4(this.head.matrixWorld);
+    col.shoulders[0].c.set(0, SHOULDER_Y, SHOULDER_Z).applyMatrix4(this.torso.matrixWorld);
+    col.shoulders[1].c.set(0, SHOULDER_Y, -SHOULDER_Z).applyMatrix4(this.torso.matrixWorld);
+    for (const b of this.braids) {
+      b.anchor.updateWorldMatrix(false, false);
+      b.anchor.matrixWorld.decompose(_p, _q, _s);
+      const ch = b.chain;
+      ch.frame.copy(_q);
+      for (let i = 0; i < ch.n; i++) ch.rest[i].copy(b.restLocal[i]).applyQuaternion(_q);
+      ch.update(_p, dt);
+      // Weltrichtung je Glied → lokal zum Elternteil (dessen Weltdrehung wird mitgeführt)
+      for (let i = 0; i < ch.n; i++) {
+        _qi.copy(_q).invert();
+        _v.copy(ch.dirs[i]).applyQuaternion(_qi);
+        b.links[i].quaternion.setFromUnitVectors(DOWN, _v);
+        _q.multiply(b.links[i].quaternion);
+      }
     }
   }
 }

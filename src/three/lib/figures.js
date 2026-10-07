@@ -217,3 +217,187 @@ export class Blinker {
     return 1;
   }
 }
+
+// ------------------------------------------------------------------ Vertexfarben (gemischt)
+/**
+ * Wie mergeTinted, aber Teile mit `color === null` behalten ihre eigene Vertexfarbe (z. B. prozedural
+ * schattierte Flächen). Alle Teile brauchen position/normal/uv (und bei null bereits `color`).
+ */
+export function mergeColored(parts) {
+  const gs = parts.map(([g, c, m]) => {
+    if (c !== null && c !== undefined) return tinted(g, c, m);
+    const out = g.clone();
+    if (m) out.applyMatrix4(m);
+    return out;
+  });
+  const merged = mergeGeometries(gs, false);
+  for (const g of gs) g.dispose();
+  return merged;
+}
+
+// ------------------------------------------------------------------ Hängende Ketten (Zöpfe, Bänder)
+const _ca = new THREE.Vector3(), _cr = new THREE.Vector3(), _cv = new THREE.Vector3();
+const _cacc = new THREE.Vector3(), _cd = new THREE.Vector3(), _ct = new THREE.Vector3();
+const _cq = new THREE.Quaternion();
+
+/**
+ * Verlet-Kette in Weltkoordinaten für hängende, nachschwingende Teile (Zöpfe, Bänder, Schnüre).
+ * Die Partikel sind die Gliederenden; die Aufhängung (anchor) wird je Bild von außen gesetzt und
+ * zwischen zwei Bildern linear interpoliert. Fester Zeitschritt (stabil, bildratenunabhängig),
+ * Schwerkraft, quadratischer Luftwiderstand (Wehen bei Tempo, Hochfliegen beim Fallen – die
+ * Partikelgeschwindigkeit enthält die Bewegung der Figur, also wirkt die Trägheit von selbst),
+ * lineare Dämpfung (Ausschwingen), Feder zur Ruhelage (Steifigkeit am Ansatz) und Kugel-Kollider
+ * (Kopf, Schultern). Springt die Aufhängung weit (Teleport), wird die Kette ruhend neu abgelegt.
+ *
+ *   chain.rest[i]   Ruherichtung je Glied (Welt, normiert) – vor update() setzen
+ *   chain.dirs[i]   Ist-Richtung je Glied nach update() (Welt, normiert)
+ *   chain.frame     Weltdrehung der Aufhängung (Quaternion) – vor update() setzen, wenn rootCone genutzt wird
+ *   chain.rootCone  Grenzwinkel (rad, von „unten“ aus) für das erste Glied im Aufhängungs-System
+ *                   { back, front, out, inward, zSign } (x vor, y hoch, z·zSign außen): verhindert, dass ein
+ *                   Zopf über den Kopf klappt oder ins Gesicht schwingt
+ *   chain.maxBend   größter Knickwinkel (rad) zwischen aufeinanderfolgenden Gliedern (Steifigkeit des Strangs)
+ *   chain.addCollider(r, from) → { c: Vector3, r, from } – c je Bild auf die Weltposition setzen;
+ *                   `from` = erstes Glied, für das der Kollider gilt (Standard 0)
+ */
+export class HangChain {
+  /**
+   * @param {number[]} lengths Gliedlängen (Einheiten)
+   * @param {{gravity?:number, drag?:number, damping?:number, stiffness?:number, step?:number, maxSteps?:number,
+   *          maxBend?:number, straighten?:number, rootCone?:{back:number,front:number,out:number,inward:number,zSign?:number}}} o
+   */
+  constructor(lengths, o = {}) {
+    this.lengths = lengths.slice();
+    this.n = lengths.length;
+    this.gravity = o.gravity ?? 32;      // Einheiten/s²
+    this.drag = o.drag ?? 0.3;           // 1/Einheit – quadratischer Luftwiderstand
+    this.damping = o.damping ?? 2.5;     // 1/s – lineare Dämpfung
+    this.stiffness = o.stiffness ?? 40;  // 1/s² – Feder zur Ruhelage
+    this.step = o.step ?? 1 / 120;
+    this.maxSteps = o.maxSteps ?? 8;
+    this.maxBend = o.maxBend ?? 0;       // 0 = unbegrenzt
+    this.straighten = o.straighten ?? 0; // 1/s² – Feder, die jedes Glied in die Richtung des vorigen zieht (Biegesteifigkeit)
+    this.rootCone = o.rootCone ? { zSign: 1, ...o.rootCone } : null;
+    this.frame = new THREE.Quaternion();
+    this.pos = lengths.map(() => new THREE.Vector3());
+    this.prev = lengths.map(() => new THREE.Vector3());
+    this.dirs = lengths.map(() => new THREE.Vector3(0, -1, 0));
+    this.rest = lengths.map(() => new THREE.Vector3(0, -1, 0));
+    this.colliders = [];
+    this.anchor = new THREE.Vector3(); this.prevAnchor = new THREE.Vector3();
+    this.acc = 0; this.started = false;
+  }
+
+  addCollider(r, from = 0) { const col = { c: new THREE.Vector3(), r, from }; this.colliders.push(col); return col; }
+
+  /** Kette ruhend entlang der Ruherichtungen von der Aufhängung aus ablegen. */
+  reset(anchor) {
+    this.anchor.copy(anchor); this.prevAnchor.copy(anchor);
+    let p = anchor;
+    for (let i = 0; i < this.n; i++) {
+      this.pos[i].copy(p).addScaledVector(this.rest[i], this.lengths[i]);
+      this.prev[i].copy(this.pos[i]);
+      this.dirs[i].copy(this.rest[i]);
+      p = this.pos[i];
+    }
+    this.acc = 0; this.started = true; this.resets = (this.resets ?? 0) + 1;
+  }
+
+  /** Einen Bildschritt rechnen; anchor = Weltposition der Aufhängung, dt in Sekunden. */
+  update(anchor, dt) {
+    if (!this.started || anchor.distanceToSquared(this.prevAnchor) > 9) { this.reset(anchor); return; } // Sprung > 3 Einheiten = Teleport
+    this.anchor.copy(anchor);
+    this.acc += Math.max(0, dt);
+    let steps = Math.floor(this.acc / this.step);
+    if (steps > this.maxSteps) { steps = this.maxSteps; this.acc = 0; } else this.acc -= steps * this.step;
+    for (let s = 1; s <= steps; s++) {
+      _ca.lerpVectors(this.prevAnchor, anchor, s / steps);
+      this.substep(_ca, this.step);
+    }
+    this.prevAnchor.copy(anchor);
+    let p = anchor;
+    for (let i = 0; i < this.n; i++) {
+      _cd.subVectors(this.pos[i], p);
+      if (_cd.lengthSq() > 1e-12) this.dirs[i].copy(_cd).normalize();
+      p = this.pos[i];
+    }
+  }
+
+  substep(anchor, h) {
+    const keep = Math.max(0, 1 - this.damping * h);
+    // Kräfte und Verlet-Schritt (Ruhelage des Glieds i = Aufhängung + Summe der Ruhevektoren bis i)
+    _cr.copy(anchor);
+    for (let i = 0; i < this.n; i++) {
+      const p = this.pos[i], q = this.prev[i];
+      _cr.addScaledVector(this.rest[i], this.lengths[i]);
+      _cv.subVectors(p, q).divideScalar(h);
+      _cacc.set(0, -this.gravity, 0);
+      _cd.subVectors(_cr, p); _cacc.addScaledVector(_cd, this.stiffness);
+      if (i > 0 && this.straighten > 0) {
+        // gestreckte Lage: Ende des vorigen Glieds + dessen aktuelle Richtung · eigene Länge
+        _ct.subVectors(this.pos[i - 1], i === 1 ? anchor : this.pos[i - 2]).normalize();
+        _cd.copy(this.pos[i - 1]).addScaledVector(_ct, this.lengths[i]).sub(p);
+        _cacc.addScaledVector(_cd, this.straighten);
+      }
+      _cacc.addScaledVector(_cv, -this.drag * _cv.length());
+      _ct.copy(p);
+      p.addScaledVector(_cv, keep * h).addScaledVector(_cacc, h * h);
+      q.copy(_ct);
+    }
+    // Abstandsbedingungen von der Aufhängung aus (Richtung begrenzt: Wurzelkegel, Knickwinkel),
+    // dazwischen Kollider; zwei Durchgänge
+    const cosBend = this.maxBend > 0 ? Math.cos(this.maxBend) : -2;
+    for (let it = 0; it < 2; it++) {
+      let parent = anchor;
+      for (let i = 0; i < this.n; i++) {
+        const p = this.pos[i];
+        _cd.subVectors(p, parent);
+        const len = _cd.length();
+        if (len < 1e-6) _cd.copy(this.rest[i]); else _cd.divideScalar(len);
+        if (i === 0 && this.rootCone) this.limitRoot(_cd);
+        else if (i > 0 && cosBend > -1) {
+          // Knick zum vorigen Glied begrenzen: Richtung auf den Kegel um die Elternrichtung ziehen
+          _ct.subVectors(parent, i === 1 ? anchor : this.pos[i - 2]).normalize();
+          const c = _cd.dot(_ct);
+          if (c < cosBend) {
+            _cv.copy(_cd).addScaledVector(_ct, -c);          // Anteil quer zur Elternrichtung
+            const q = _cv.length();
+            if (q > 1e-6) _cd.copy(_ct).multiplyScalar(cosBend).addScaledVector(_cv, Math.sqrt(1 - cosBend * cosBend) / q);
+            else _cd.copy(_ct);
+          }
+        }
+        p.copy(parent).addScaledVector(_cd, this.lengths[i]);
+        for (const col of this.colliders) {
+          if (i < (col.from ?? 0)) continue;
+          _cd.subVectors(p, col.c);
+          const d2 = _cd.lengthSq();
+          if (d2 < col.r * col.r && d2 > 1e-12) p.copy(col.c).addScaledVector(_cd, col.r / Math.sqrt(d2));
+        }
+        parent = p;
+      }
+    }
+  }
+
+  /**
+   * Richtung des ersten Glieds (Welt, normiert) auf den Kegel im Aufhängungs-System begrenzen: Der größte
+   * Auslenkwinkel θmax von „unten“ hängt glatt vom Azimut ab (elliptische Mischung der vier Grenzen hinten/
+   * vorn/außen/innen) – eine sternförmige, eckenlose Grenzfläche, auf der ein Glied frei entlanggleitet
+   * (eine Box mit Ecken ließe es an einer Kante hängen bleiben). Senkrecht nach oben weicht es nach hinten aus.
+   */
+  limitRoot(d) {
+    const c = this.rootCone;
+    _cq.copy(this.frame).invert();
+    d.applyQuaternion(_cq);
+    const x = d.x, z = d.z * c.zSign; // z > 0 = außen
+    const horiz = Math.hypot(x, z);
+    let cosPhi = -1, sinPhi = 0;      // Azimut: 0 = vorn, π = hinten, +π/2 = außen
+    if (horiz > 1e-6) { cosPhi = x / horiz; sinPhi = z / horiz; }
+    const theta = Math.atan2(horiz, -d.y); // 0 = unten, π = oben
+    const tx = cosPhi > 0 ? c.front : c.back, tz = sinPhi > 0 ? c.out : c.inward;
+    const thetaMax = 1 / Math.sqrt((cosPhi * cosPhi) / (tx * tx) + (sinPhi * sinPhi) / (tz * tz));
+    if (theta > thetaMax) {
+      const s = Math.sin(thetaMax);
+      d.set(s * cosPhi, -Math.cos(thetaMax), s * sinPhi * c.zSign);
+    }
+    d.applyQuaternion(this.frame);
+  }
+}
