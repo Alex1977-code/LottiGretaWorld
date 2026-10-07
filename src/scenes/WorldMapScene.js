@@ -87,7 +87,8 @@ export class WorldMapScene extends Phaser.Scene {
   // ---------- Darstellung ----------
 
   drawBackground() {
-    // Pixel-Art-Karte (Abendhimmel, Berge, Waldlichtung) aus gfx/background.js – beim Start erzeugt
+    // Vektor-Karte (heller Himmel, Pastellberge, sonnige Wiese mit Kugelbäumen, Teich) aus
+    // gfx/background.js – beim Start in Render-Auflösung erzeugt
     fit(this.add.image(0, 0, 'worldmap_bg')).setOrigin(0).setDepth(0);
   }
 

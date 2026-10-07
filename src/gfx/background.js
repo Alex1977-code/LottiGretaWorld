@@ -1,9 +1,14 @@
-// Hintergrund-Ebenen des Herbstwalds (prozedural, Pixel für Pixel, kachelbar in X).
-// Texturen: 'sky' (fest, Bildschirmgröße), die Parallax-Ebenen aus PARALLAX_LAYERS
-// (Breite = Bildschirm, Höhe = Bildschirm + LAYER_EXTRA, damit vertikales Scrollen nicht
-// umbricht) und 'worldmap_bg' für die Weltkarte. Alles wird einmalig beim Start erzeugt.
+// Hintergrund-Ebenen des Herbstwalds im 3D-World-Look: Vektorgrafik (Canvas-2D-Pfade, Verläufe,
+// weiche Schatten), direkt in Render-Auflösung gezeichnet und kachelbar in X.
+// Texturen: 'sky' (fest, 480x270), die Parallax-Ebenen aus PARALLAX_LAYERS (Breite = Bildschirm,
+// Höhe = Bildschirm + LAYER_EXTRA für vertikales Scrollen) und 'worldmap_bg' für die Weltkarte.
+// Alles wird einmalig beim Start erzeugt (keine Per-Frame-Arbeit).
+//
+// Komposition: Bei Kamera am Levelboden (worldView.y ≈ 162) liegt die Bodenoberkante bei Bildschirm-y 190.
+// Die Ebenen rutschen dabei um worldView.y*fy nach oben, d. h. die Bodenlinie liegt in Texturzeile
+// 190 + 162*fy: fern ≈ 196, hinten ≈ 203, mitte ≈ 209, nah ≈ 230 (Verschiebung durch LAYER_EXTRA gedeckelt).
 
-import Phaser from 'phaser';
+import { RENDER } from '../render.js';
 import { WORLD } from '../levels/worldmap.js';
 
 /** Zusätzliche Höhe der Ebenen (deckt die vertikale Parallax-Verschiebung ab). */
@@ -15,20 +20,20 @@ export const LAYER_EXTRA = 50;
  * TileSprite gezeichnet (spart Füllrate); ohne "unten" bis zum Texturende.
  */
 export const PARALLAX_LAYERS = [
-  { key: 'bg_clouds', fx: 0.04, fy: 0.01, depth: -9.8, bands: [[26, 134]] },
-  { key: 'bg_far',    fx: 0.12, fy: 0.04, depth: -9,   bands: [[84]] },
-  { key: 'bg_back',   fx: 0.22, fy: 0.08, depth: -8.5, bands: [[156]] },
-  { key: 'bg_mid',    fx: 0.35, fy: 0.12, depth: -8,   bands: [[118]] },
-  { key: 'bg_near',   fx: 0.6,  fy: 0.25, depth: -7,   bands: [[0, 70], [222]] },
+  { key: 'bg_clouds', fx: 0.04, fy: 0.01, depth: -9.8, bands: [[16, 110]] },
+  { key: 'bg_far',    fx: 0.12, fy: 0.04, depth: -9,   bands: [[98]] },
+  { key: 'bg_back',   fx: 0.22, fy: 0.08, depth: -8.5, bands: [[158]] },
+  { key: 'bg_mid',    fx: 0.35, fy: 0.12, depth: -8,   bands: [[150]] },
+  { key: 'bg_near',   fx: 0.6,  fy: 0.25, depth: -7,   bands: [[214]] },
 ];
 // (Die Bänder müssen die gezeichneten Zeilen einschließen – nach Änderungen an den Zeichenroutinen prüfen.)
 
 export const SKY = {
-  top: '#1b2150',
-  bottom: '#f6b473',
+  top: '#4db6ff',
+  bottom: '#c8ecff',
 };
 
-// ---------------------------------------------------------------- Farb-Helfer
+// ---------------------------------------------------------------- Helfer
 
 const RGB = new Map();
 function rgb(hex) {
@@ -46,579 +51,474 @@ export function mix(a, b, t) {
   for (let i = 0; i < 3; i++) out += Math.round(A[i] + (B[i] - A[i]) * t).toString(16).padStart(2, '0');
   return out;
 }
-const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
-/** Geordnetes Dithering: true mit Wahrscheinlichkeit t, als festes Muster. */
-function dither(x, y, t) {
-  return t * 16 > BAYER[y & 3][((x % 4) + 4) % 4];
+
+/** Kleiner deterministischer Zufallsgenerator (mulberry32), damit der Wald bei jedem Start gleich aussieht. */
+class Rnd {
+  constructor(seed) { this.s = seed >>> 0; }
+  frac() {
+    this.s = (this.s + 0x6d2b79f5) >>> 0;
+    let t = this.s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  real(a, b) { return a + (b - a) * this.frac(); }
+  between(a, b) { return Math.floor(this.real(a, b + 1)); }
+  pick(arr) { return arr[Math.floor(this.frac() * arr.length)]; }
 }
 
-// ---------------------------------------------------------------- Pixel-Puffer
+function lin(ctx, x0, y0, x1, y1, stops) {
+  const g = ctx.createLinearGradient(x0, y0, x1, y1);
+  for (const [o, c] of stops) g.addColorStop(o, c);
+  return g;
+}
+function rad(ctx, x0, y0, r0, x1, y1, r1, stops) {
+  const g = ctx.createRadialGradient(x0, y0, r0, x1, y1, r1);
+  for (const [o, c] of stops) g.addColorStop(o, c);
+  return g;
+}
+function circle(ctx, x, y, r) {
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+}
+function ellipse(ctx, x, y, rx, ry, rot = 0) {
+  ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2); ctx.fill();
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
 
-/** Pixelpuffer mit Umlauf in X (kachelbar). Schreibt am Ende in eine Canvas-Textur. */
-class Pix {
-  constructor(w, h) {
-    this.w = w; this.h = h;
-    this.d = new Uint8ClampedArray(w * h * 4);
-  }
-  set(x, y, hex) {
-    y |= 0;
-    if (y < 0 || y >= this.h) return;
-    x = (((x | 0) % this.w) + this.w) % this.w;
-    const c = rgb(hex), i = (y * this.w + x) << 2;
-    this.d[i] = c[0]; this.d[i + 1] = c[1]; this.d[i + 2] = c[2]; this.d[i + 3] = 255;
-  }
-  /** Gepackte Farbe (r<<16|g<<8|b) oder -1, wenn transparent. */
-  get(x, y) {
-    y |= 0;
-    if (y < 0 || y >= this.h) return -1;
-    x = (((x | 0) % this.w) + this.w) % this.w;
-    const i = (y * this.w + x) << 2;
-    if (!this.d[i + 3]) return -1;
-    return (this.d[i] << 16) | (this.d[i + 1] << 8) | this.d[i + 2];
-  }
-  hline(x0, x1, y, hex) { for (let x = x0; x <= x1; x++) this.set(x, y, hex); }
-  vline(x, y0, y1, hex) { for (let y = y0; y <= y1; y++) this.set(x, y, hex); }
-  rect(x, y, w, h, hex) { for (let j = 0; j < h; j++) this.hline(x, x + w - 1, y + j, hex); }
-  disc(cx, cy, r, hex) {
-    cx = Math.round(cx); cy = Math.round(cy); r = Math.round(r);
-    for (let dy = -r; dy <= r; dy++) {
-      const half = Math.floor(Math.sqrt(r * r + r * 0.5 - dy * dy));
-      this.hline(cx - half, cx + half, cy + dy, hex);
-    }
-  }
-  ellipse(cx, cy, rx, ry, hex) {
-    cx = Math.round(cx); cy = Math.round(cy);
-    for (let dy = -ry; dy <= ry; dy++) {
-      const f = 1 - (dy * dy) / (ry * ry + ry * 0.5);
-      if (f < 0) continue;
-      const half = Math.floor(Math.sqrt(f) * (rx + 0.5));
-      this.hline(cx - half, cx + half, cy + dy, hex);
-    }
-  }
-  toTexture(scene, key) {
-    const tex = scene.textures.createCanvas(key, this.w, this.h);
-    tex.getContext().putImageData(new ImageData(this.d, this.w, this.h), 0, 0);
-    tex.refresh();
-    return tex;
-  }
+/** Kugel: radialer Verlauf mit Licht oben links. */
+function ball(ctx, cx, cy, r, [light, mid, dark], ry = r) {
+  ctx.fillStyle = rad(ctx, cx - r * 0.35, cy - ry * 0.38, r * 0.08, cx, cy, r * 1.08, [[0, light], [0.5, mid], [1, dark]]);
+  ellipse(ctx, cx, cy, r, ry);
+}
+function gloss(ctx, cx, cy, rx, ry, alpha = 0.45, rot = -0.6) {
+  ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+  ellipse(ctx, cx, cy, rx, ry, rot);
 }
 
 /**
- * Form-Maske: Vereinigung von Kreisen/Ellipsen, die danach schattiert gemalt wird.
- * Die Tonstufe eines Pixels richtet sich nach seiner Tiefe in Lichtrichtung (oben links):
- * nahe am beleuchteten Rand hell, innen/unten rechts dunkel – wie handgesetzte Pixel-Art.
+ * Ruft fn(x) auf – und zusätzlich um w verschoben, wenn das Objekt (Radius m) über den Rand ragt
+ * (Kachelung). Der Zufallsgenerator wird für jede Kopie auf denselben Stand gesetzt, damit die
+ * Randkopie identisch aussieht.
  */
-class Mask {
-  constructor(w, h) {
-    this.w = w; this.h = h;
-    this.m = new Uint8Array(w * h);
-    this.y0 = h; this.y1 = -1;
-  }
-  reset() {
-    if (this.y1 >= this.y0) this.m.fill(0, this.y0 * this.w, (this.y1 + 1) * this.w);
-    this.y0 = this.h; this.y1 = -1;
-  }
-  set(x, y) {
-    y |= 0;
-    if (y < 0 || y >= this.h) return;
-    x = (((x | 0) % this.w) + this.w) % this.w;
-    this.m[y * this.w + x] = 1;
-    if (y < this.y0) this.y0 = y;
-    if (y > this.y1) this.y1 = y;
-  }
-  has(x, y) {
-    y |= 0;
-    if (y < 0 || y >= this.h) return false;
-    x = (((x | 0) % this.w) + this.w) % this.w;
-    return this.m[y * this.w + x] === 1;
-  }
-  hline(x0, x1, y) { for (let x = x0; x <= x1; x++) this.set(x, y); }
-  disc(cx, cy, r) {
-    cx = Math.round(cx); cy = Math.round(cy); r = Math.round(r);
-    for (let dy = -r; dy <= r; dy++) {
-      const half = Math.floor(Math.sqrt(r * r + r * 0.5 - dy * dy));
-      this.hline(cx - half, cx + half, cy + dy);
-    }
-  }
-  ellipse(cx, cy, rx, ry) {
-    cx = Math.round(cx); cy = Math.round(cy);
-    for (let dy = -ry; dy <= ry; dy++) {
-      const f = 1 - (dy * dy) / (ry * ry + ry * 0.5);
-      if (f < 0) continue;
-      this.hline(cx - Math.floor(Math.sqrt(f) * (rx + 0.5)), cx + Math.floor(Math.sqrt(f) * (rx + 0.5)), cy + dy);
-    }
-  }
-  /**
-   * Malt die Maske schattiert. tones: hell → dunkel; bands: Tiefen-Grenzen je Tonstufe;
-   * (dx, dy): Richtung zur Lichtquelle; noise: Anteil Pixel mit Nachbarton (Blattstruktur).
-   */
-  paint(p, tones, dx, dy, bands, rnd, noise = 0) {
-    const maxDepth = bands[bands.length - 1];
-    for (let y = this.y0; y <= this.y1; y++) {
-      for (let x = 0; x < this.w; x++) {
-        if (!this.has(x, y)) continue;
-        let depth = 0;
-        while (depth < maxDepth && this.has(x + dx * (depth + 1), y + dy * (depth + 1))) depth++;
-        let k = 0;
-        while (k < bands.length && depth >= bands[k]) k++;
-        if (noise && rnd.frac() < noise) k += rnd.frac() < 0.5 ? -1 : 1;
-        k = Math.max(0, Math.min(tones.length - 1, k));
-        p.set(x, y, tones[k]);
-      }
-    }
-  }
+function wrapped(x, w, m, fn, rnd) {
+  const s0 = rnd?.s;
+  const call = (xx) => { if (rnd) rnd.s = s0; fn(xx); };
+  call(x);
+  if (x - m < 0) call(x + w);
+  if (x + m > w) call(x - w);
 }
 
-// ---------------------------------------------------------------- Himmel
-
-const SKY_STOPS = [
-  [0, '#1b2150'], [0.2, '#2b3a7a'], [0.45, '#6a4f8e'], [0.66, '#a86478'], [0.84, '#dd8a62'], [1, '#f6b473'],
-];
-function skyColor(t) {
-  for (let i = 1; i < SKY_STOPS.length; i++) {
-    const [ta, a] = SKY_STOPS[i - 1], [tb, b] = SKY_STOPS[i];
-    if (t <= tb) return mix(a, b, (t - ta) / (tb - ta));
-  }
-  return SKY_STOPS[SKY_STOPS.length - 1][1];
+/** Periodischer Kamm (Summe von Sinus-Wellen mit ganzzahliger Frequenz → nahtlos in w). */
+function ridgeY(x, w, base, waves) {
+  const t = (x / w) * Math.PI * 2;
+  let y = base;
+  for (const [freq, amp, phase] of waves) y += Math.sin(t * freq + phase) * amp;
+  return y;
+}
+/** Füllt die Fläche vom Kamm bis `bottom`. */
+function fillRidge(ctx, w, base, waves, bottom, style) {
+  ctx.fillStyle = style;
+  ctx.beginPath();
+  ctx.moveTo(0, ridgeY(0, w, base, waves));
+  for (let x = 2; x <= w; x += 2) ctx.lineTo(x, ridgeY(x, w, base, waves));
+  ctx.lineTo(w, bottom); ctx.lineTo(0, bottom);
+  ctx.closePath(); ctx.fill();
 }
 
-/** Himmel-Verlauf (Bildschirmgröße, scrollt nicht): Dämmerung, Sterne, Mondsichel. */
-function makeSky(scene, w, h) {
-  const p = new Pix(w, h);
-  for (let y = 0; y < h; y++) p.hline(0, w - 1, y, skyColor(y / (h - 1)));
-  const rnd = new Phaser.Math.RandomDataGenerator(['sky']);
-  for (let i = 0; i < 38; i++) {
-    const x = rnd.between(0, w - 1), y = rnd.between(2, Math.round(h * 0.42));
-    const base = skyColor(y / (h - 1)), b = rnd.frac();
-    p.set(x, y, mix(base, '#ffffff', 0.35 + b * 0.5));
-    if (b > 0.78) {
-      const c = mix(base, '#ffffff', 0.3);
-      p.set(x - 1, y, c); p.set(x + 1, y, c); p.set(x, y - 1, c); p.set(x, y + 1, c);
-    }
-  }
-  // Mondsichel oben rechts mit zartem Hof
-  const mx = Math.round(w * 0.8), my = 40;
-  p.disc(mx, my, 11, mix(skyColor(my / h), '#fff3d0', 0.18));
-  p.disc(mx, my, 9, '#f6ecc8');
-  p.disc(mx + 4, my - 2, 8, mix(skyColor(my / h), '#fff3d0', 0.18));
-  p.toTexture(scene, 'sky');
+/** Textur in Render-Auflösung anlegen; draw(ctx, w, h) zeichnet in Weltkoordinaten. */
+function makeTexture(scene, key, w, h, draw) {
+  const S = RENDER.scale;
+  const tex = scene.textures.createCanvas(key, w * S, h * S);
+  const ctx = tex.getContext();
+  ctx.save();
+  ctx.scale(S, S);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  draw(ctx, w, h);
+  ctx.restore();
+  tex.refresh();
+  return tex;
 }
 
-/** Wolkenbänder der Dämmerung: oben violett, Unterseite warm angestrahlt. */
-function makeClouds(scene, w, h) {
-  const p = new Pix(w, h), mask = new Mask(w, h);
-  const rnd = new Phaser.Math.RandomDataGenerator(['clouds']);
-  const bands = [
-    { y: 44, tones: ['#c58ca4', '#9a6f9e', '#7d5a93'], n: 3 },
-    { y: 76, tones: ['#e0a493', '#b07d9b', '#8c648f'], n: 4 },
-    { y: 112, tones: ['#f0b48e', '#c48c90', '#a07489'], n: 3 },
-  ];
-  for (const band of bands) {
-    for (let i = 0; i < band.n; i++) {
-      const x = Math.round((i / band.n) * w + rnd.between(-30, 30));
-      const y = band.y + rnd.between(-8, 8);
-      const len = rnd.between(50, 120), thick = rnd.between(3, 5);
-      mask.reset();
-      const parts = 3 + Math.round(len / 30);
-      for (let k = 0; k < parts; k++) {
-        const px = x + (k / (parts - 1)) * len;
-        mask.ellipse(px, y + rnd.between(-1, 1), len / parts * 0.9 + 4, thick - (k % 2) + rnd.between(0, 1));
-      }
-      // Licht kommt von unten (Sonne am Horizont): Tiefe nach unten messen
-      mask.paint(p, band.tones, 0, 1, [1, 3, 99], rnd, 0.04);
-    }
+// ---------------------------------------------------------------- Himmel und Wolken
+
+/** Himmel (Bildschirmgröße, scrollt nicht): klarer Verlauf, Sonne mit weichem Hof. */
+export function drawSky(ctx, w, h, sunX = w * 0.78, sunY = 46) {
+  ctx.fillStyle = lin(ctx, 0, 0, 0, h, [[0, SKY.top], [0.5, '#82d1ff'], [1, SKY.bottom]]);
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = rad(ctx, sunX, sunY, 0, sunX, sunY, 80, [[0, 'rgba(255, 250, 215, 0.6)'], [0.3, 'rgba(255, 246, 205, 0.22)'], [1, 'rgba(255, 246, 205, 0)']]);
+  ctx.fillRect(sunX - 80, sunY - 80, 160, 160);
+  ctx.fillStyle = rad(ctx, sunX - 4, sunY - 4, 1, sunX, sunY, 16, [[0, '#fffef2'], [0.6, '#fff5bd'], [1, '#ffe27a']]);
+  circle(ctx, sunX, sunY, 16);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+  circle(ctx, sunX, sunY, 20);
+}
+
+/** Flauschige Wolke: flache Basis mit Kuppeln, weiß oben, zarter Schatten unten. */
+function cloud(ctx, x, y, s, rnd, soft = 0) {
+  const puffs = [
+    [-0.55, 0.05, 0.42], [-0.15, -0.22, 0.55], [0.3, -0.1, 0.48], [0.65, 0.12, 0.36],
+  ].map(([dx, dy, r]) => [dx + rnd.real(-0.06, 0.06), dy + rnd.real(-0.05, 0.05), r + rnd.real(-0.04, 0.05)]);
+  const shape = () => {
+    ctx.beginPath();
+    roundRectPath(ctx, x - s * 0.95, y - s * 0.12, s * 1.9, s * 0.5, s * 0.25);
+    for (const [dx, dy, r] of puffs) { ctx.moveTo(x + (dx + r) * s, y + dy * s); ctx.arc(x + dx * s, y + dy * s, r * s, 0, Math.PI * 2); }
+  };
+  const top = y - s * 0.8, bottom = y + s * 0.4;
+  const white = mix('#ffffff', '#a9d3f5', soft), shade = mix('#cfe3f8', '#9fc6ec', soft);
+  shape();
+  ctx.fillStyle = lin(ctx, 0, top, 0, bottom, [[0, white], [0.55, white], [1, shade]]);
+  ctx.fill();
+  ctx.save();
+  shape(); ctx.clip();
+  // Schattenkante unten (Kuppeln werfen Schatten auf die Basis)
+  ctx.fillStyle = lin(ctx, 0, y - s * 0.05, 0, bottom, [[0, 'rgba(150, 190, 235, 0)'], [1, `rgba(150, 190, 235, ${0.55 - soft * 0.3})`]]);
+  ctx.fillRect(x - s, y - s * 0.05, s * 2, s * 0.5);
+  ctx.restore();
+  gloss(ctx, x - s * 0.3, y - s * 0.5, s * 0.3, s * 0.12, 0.6 - soft * 0.3, -0.2);
+}
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** Wolkenebene: zwei Reihen weicher Wolken, hinten kleiner und zarter. */
+function drawClouds(ctx, w) {
+  const rnd = new Rnd(11);
+  for (let i = 0; i < 4; i++) {
+    const x = (i / 4) * w + rnd.real(-20, 20), y = 38 + rnd.real(-6, 14), s = rnd.real(12, 17);
+    wrapped(x, w, s * 1.2, (xx) => cloud(ctx, xx, y, s, rnd, 0.35), rnd);
   }
-  p.toTexture(scene, 'bg_clouds');
+  for (let i = 0; i < 4; i++) {
+    const x = (i / 4) * w + 60 + rnd.real(-25, 25), y = 88 + rnd.real(-8, 10), s = rnd.real(20, 27);
+    wrapped(x, w, s * 1.2, (xx) => cloud(ctx, xx, y, s, rnd, 0), rnd);
+  }
 }
 
 // ---------------------------------------------------------------- Ferne Ebene
 
-/** Periodischer Kamm (Summe von Sinus-Wellen, nahtlos in w). */
-function ridge(x, w, base, waves) {
-  const t = (x / w) * Math.PI * 2;
-  let y = base;
-  for (const [freq, amp, phase] of waves) y += Math.sin(t * freq + phase) * amp;
-  return Math.round(y);
+/** Kleiner runder Baum als Silhouette (für ferne Hügel). */
+function farTree(ctx, x, y, r, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x - r * 0.18, y - r, r * 0.36, r + 0.5);
+  circle(ctx, x, y - r - r * 0.6, r);
+  circle(ctx, x - r * 0.55, y - r - r * 0.2, r * 0.6);
+  circle(ctx, x + r * 0.55, y - r - r * 0.25, r * 0.6);
 }
 
-/** Dunstige Berge und Hügel mit Baumsilhouetten (Luftperspektive: hell, entsättigt). */
-function makeFar(scene, w, h) {
-  const p = new Pix(w, h);
-  const rnd = new Phaser.Math.RandomDataGenerator(['far']);
-  const MOUNT = '#8777b3', MOUNT_LIT = '#9c8cc6', MOUNT_RIM = '#b3a4d6';
-  const HILL = '#6c5b9b', HILL_TREE = '#5d4d8b', MIST = '#9f8fc2', DEEP = '#574985';
-  const mWaves = [[2, 16, 0.6], [5, 9, 2.1], [13, 4, 0.3], [23, 1.5, 1.7]];
-  const hWaves = [[3, 7, 1.2], [7, 4, 0.4], [17, 2, 2.5]];
-  const fWaves = [[3, 11, 2.0], [7, 5, 0.9], [15, 2, 1.3]];
-
-  // Ganz ferne Bergkette: noch heller im Dunst
-  for (let x = 0; x < w; x++) {
-    const y = ridge(x, w, 106, fWaves);
-    p.vline(x, y, h - 1, '#9d8fc4');
-    p.set(x, y, '#b9acd9');
-    if (dither(x, y + 1, 0.5)) p.set(x, y + 1, '#b9acd9');
+/** Pastellberge mit Luftperspektive, Dunst, sanfte Hügel mit runden Baumsilhouetten. */
+function drawFar(ctx, w, h) {
+  const rnd = new Rnd(23);
+  const m1 = [[2, 14, 0.6], [5, 7, 2.1], [9, 3, 0.3]];
+  const m2 = [[3, 11, 1.4], [7, 5, 0.2], [11, 2.2, 2.4]];
+  // Hintere Bergkette: sehr hell, weiche Lichtkante oben
+  fillRidge(ctx, w, 126, m1, h, '#d9e6f8');
+  fillRidge(ctx, w, 131, m1, h, '#c2d5f0');
+  // Vordere Bergkette
+  fillRidge(ctx, w, 146, m2, h, '#c8d9f2');
+  fillRidge(ctx, w, 150, m2, h, '#aec4e6');
+  // Dunst am Fuß der Berge
+  ctx.fillStyle = lin(ctx, 0, 150, 0, 182, [[0, 'rgba(225, 238, 250, 0)'], [1, 'rgba(225, 238, 250, 0.85)']]);
+  ctx.fillRect(0, 150, w, 32);
+  // Hügel mit Bäumen
+  const h1 = [[2, 6, 1.0], [6, 3, 0.4], [13, 1, 2.0]];
+  const h2 = [[3, 5, 2.2], [8, 2.5, 1.1]];
+  fillRidge(ctx, w, 174, h1, h, '#bddcae');
+  for (let x = rnd.real(0, 8); x < w; x += rnd.real(6, 13)) {
+    const r = rnd.real(2.2, 3.6);
+    wrapped(x, w, r * 1.5, (xx) => farTree(ctx, xx, ridgeY(xx, w, 174, h1) + 1, r, '#a6cc95'), rnd);
   }
-  // Berge: Linke Flanken (zur Lichtquelle) heller, Grat mit heller Kante
-  for (let x = 0; x < w; x++) {
-    const y = ridge(x, w, 118, mWaves);
-    const prev = ridge(x - 1, w, 118, mWaves);
-    p.vline(x, y, h - 1, MOUNT);
-    const lit = y <= prev ? 7 : 2;
-    for (let k = 0; k < lit; k++) if (dither(x, y + k, 1 - k / lit)) p.set(x, y + k, MOUNT_LIT);
-    p.set(x, y, MOUNT_RIM);
+  fillRidge(ctx, w, 187, h2, h, '#a3cf90');
+  for (let x = rnd.real(0, 8); x < w; x += rnd.real(7, 15)) {
+    const r = rnd.real(2.6, 4.2);
+    wrapped(x, w, r * 1.5, (xx) => farTree(ctx, xx, ridgeY(xx, w, 187, h2) + 1, r, '#8dbd7b'), rnd);
   }
-  // Dunstband zwischen Bergen und Hügeln
-  for (let y = 142; y < 168; y++) {
-    const t = 1 - Math.abs((y - 155) / 13);
-    for (let x = 0; x < w; x++) if (dither(x, y, t * 0.8)) p.set(x, y, MIST);
-  }
-  // Hügel mit Baumsilhouetten
-  for (let x = 0; x < w; x++) {
-    const y = ridge(x, w, 168, hWaves);
-    p.vline(x, y, h - 1, HILL);
-  }
-  for (let x = rnd.between(0, 6); x < w; x += rnd.between(5, 11)) {
-    const y = ridge(x, w, 168, hWaves) + 1;
-    if (rnd.frac() < 0.6) {
-      // Nadelbaum
-      const hgt = rnd.between(8, 17);
-      for (let k = 0; k < hgt; k++) {
-        const half = Math.floor((k / hgt) * 3.6);
-        p.hline(x - half, x + half, y - hgt + k, HILL_TREE);
-      }
-    } else {
-      // Laubbaum
-      const r = rnd.between(3, 5);
-      p.disc(x, y - r - 1, r, HILL_TREE);
-      p.vline(x, y - 2, y, HILL_TREE);
-    }
-  }
-  // Nach unten langsam dunkler (zweite Hügelreihe, Dunst)
-  for (let y = 190; y < h; y++) {
-    const t = Math.min(1, (y - 190) / 40);
-    for (let x = 0; x < w; x++) if (dither(x, y, t)) p.set(x, y, DEEP);
-  }
-  p.toTexture(scene, 'bg_far');
+  // nach unten sanft dunkler
+  ctx.fillStyle = lin(ctx, 0, 200, 0, h, [[0, 'rgba(90, 140, 80, 0)'], [1, 'rgba(90, 140, 80, 0.5)']]);
+  ctx.fillRect(0, 200, w, h - 200);
 }
 
 // ---------------------------------------------------------------- Bäume
 
 /**
- * Laubbaum: Stamm mit Wurzeln, voluminöse Krone aus mehreren Kugeln (schattiert),
- * Aststummel unter der Krone, hängende Zweige mit Blattbüscheln.
+ * Laubbaum im Spielzeug-Look: dicker runder Stamm mit Wurzelansatz, Krone aus prallen Kugeln
+ * (jede mit eigenem Verlauf), Glanzpunkte oben links, Bodenschatten.
+ * palette: { crown: [hell, mitte, dunkel], trunk: [hell, mitte, dunkel] }
  */
-function tree(p, mask, rnd, cx, baseY, size, crown, trunk, opts = {}) {
-  const tw = Math.max(3, Math.round(size * 0.3));
-  const trunkH = Math.round(size * (opts.trunk ?? 1.7)) + rnd.between(-3, 3);
-  const cy = baseY - trunkH - Math.round(size * 0.35);
-
-  // Stamm: links Licht, rechts Schatten, unten Wurzelansatz
-  const x0 = cx - Math.floor(tw / 2);
-  for (let y = cy; y < baseY; y++) {
-    const flare = Math.max(0, y - (baseY - 4));
-    p.hline(x0 - flare, x0 + tw - 1 + flare, y, trunk[1]);
-    p.set(x0 - flare, y, trunk[0]);
-    p.set(x0 + tw - 1 + flare, y, trunk[2]);
-    if (tw > 4) p.set(x0 + tw - 2 + flare, y, trunk[2]);
+function tree(ctx, rnd, x, baseY, size, palette, opts = {}) {
+  const trunkH = size * (opts.trunk ?? 1.2);
+  const tw = Math.max(3.5, size * 0.42);
+  const cy = baseY - trunkH - size * 0.55;
+  // Bodenschatten
+  if (opts.shadow !== false) {
+    ctx.fillStyle = `rgba(40, 60, 30, ${opts.shadowAlpha ?? 0.22})`;
+    ellipse(ctx, x + 1, baseY - 0.5, tw * 1.6, tw * 0.45);
   }
-  // Aststummel, die in die Krone laufen
-  const crownBottom = cy + Math.round(size * 0.75);
-  for (const dir of [-1, 1]) {
-    const ay = crownBottom + rnd.between(-1, 3);
-    const len = Math.round(size * 0.5);
-    for (let k = 0; k < len; k++) p.set(cx + dir * (Math.floor(tw / 2) + k), ay - Math.round(k * 0.7), trunk[2]);
-  }
-  // Schatten der Krone auf dem Stamm
-  for (let y = crownBottom; y < crownBottom + 4; y++) p.hline(x0, x0 + tw - 1, y, trunk[2]);
-
-  // Krone: Kugelhaufen
-  mask.reset();
-  mask.disc(cx, cy, size);
-  const n = 5 + rnd.between(0, 2);
+  // Stamm (leicht ausgestellt), Licht links
+  const [tl, tm, td] = palette.trunk;
+  ctx.fillStyle = lin(ctx, x - tw / 2, 0, x + tw / 2, 0, [[0, tl], [0.45, tm], [1, td]]);
+  ctx.beginPath();
+  ctx.moveTo(x - tw * 0.9, baseY);
+  ctx.quadraticCurveTo(x - tw * 0.5, baseY - tw * 0.8, x - tw * 0.5, baseY - tw * 1.6);
+  ctx.lineTo(x - tw * 0.5, cy);
+  ctx.lineTo(x + tw * 0.5, cy);
+  ctx.lineTo(x + tw * 0.5, baseY - tw * 1.6);
+  ctx.quadraticCurveTo(x + tw * 0.5, baseY - tw * 0.8, x + tw * 0.9, baseY);
+  ctx.closePath(); ctx.fill();
+  // Kronenschatten auf dem Stamm
+  ctx.fillStyle = 'rgba(40, 20, 10, 0.3)';
+  ctx.fillRect(x - tw * 0.5, cy + size * 0.3, tw, size * 0.5);
+  // Krone: Kugelhaufen – untere/rechte zuerst, obere linke zuletzt
+  const n = opts.puffs ?? 5;
+  const puffs = [];
   for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 + rnd.realInRange(-0.3, 0.3);
-    const d = size * rnd.realInRange(0.55, 0.8);
-    mask.disc(cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.75, size * rnd.realInRange(0.42, 0.62));
+    const a = (i / n) * Math.PI * 2 + rnd.real(-0.3, 0.3);
+    const d = size * rnd.real(0.45, 0.62);
+    puffs.push([x + Math.cos(a) * d, cy + Math.sin(a) * d * 0.7, size * rnd.real(0.5, 0.64)]);
   }
-  // kleine Büschel am unteren Rand (ausgefranste Unterkante)
-  for (let i = 0; i < 3; i++) {
-    mask.disc(cx + rnd.between(-size, size), cy + size * rnd.realInRange(0.6, 0.85), size * 0.25);
-  }
-  mask.paint(p, crown, -1, -1, [2, 6, 12], rnd, opts.noise ?? 0.07);
+  puffs.push([x, cy - size * 0.1, size * 0.72]);
+  puffs.sort((p, q) => (q[1] + q[0] * 0.3) - (p[1] + p[0] * 0.3));
+  for (const [px, py, pr] of puffs) ball(ctx, px, py, pr, palette.crown);
+  for (const [px, py, pr] of puffs.slice(-2)) gloss(ctx, px - pr * 0.32, py - pr * 0.4, pr * 0.42, pr * 0.2, opts.glossAlpha ?? 0.45);
+}
 
-  // Hängende Zweige: kurzer Stiel, flaches Blattbüschel direkt unter der Krone
-  const twigs = opts.twigs ?? 2;
-  for (let i = 0; i < twigs; i++) {
-    const tx = cx + rnd.between(-size, size);
-    let ty = cy + size;
-    while (ty > cy && !mask.has(tx, ty)) ty--;
-    const len = rnd.between(2, 4);
-    p.vline(tx, ty + 1, ty + len, trunk[2]);
-    mask.reset();
-    mask.ellipse(tx, ty + len + 1, 3, 1);
-    mask.set(tx + rnd.pick([-2, 2]), ty + len + 3);
-    mask.set(tx + rnd.pick([-1, 1]), ty + len + 3);
-    mask.paint(p, crown, -1, -1, [1, 3, 99], rnd, 0);
+const TRUNK = ['#b98a5f', '#8a5a36', '#5c3a22'];
+const CROWNS = {
+  orange: ['#ffcf7a', '#f58f3a', '#c45f22'],
+  red: ['#ffa38a', '#ef5f44', '#b33a2a'],
+  gold: ['#fff0a6', '#f6c54a', '#c98d22'],
+  green: ['#b9f286', '#6cc74d', '#3d8f32'],
+};
+/** Palette aufhellen/entsättigen (Luftperspektive). */
+function hazed(colors, t, haze = '#d6e6f4') {
+  return colors.map((c) => mix(c, haze, t));
+}
+
+/** Hintere Baumreihe: im Dunst, hell und weich, kleinere Kronen. */
+function drawBackTrees(ctx, w, h) {
+  const rnd = new Rnd(37);
+  const baseY = 214;
+  const ground = ['#b8d9a4', '#a4cc90'];
+  ctx.fillStyle = lin(ctx, 0, baseY - 6, 0, h, [[0, ground[0]], [1, ground[1]]]);
+  fillRidge(ctx, w, baseY - 4, [[4, 2, 0.8], [9, 1, 2.0]], h, ctx.fillStyle);
+  const pals = ['orange', 'gold', 'red', 'green'].map((k) => ({ crown: hazed(CROWNS[k], 0.45), trunk: hazed(TRUNK, 0.45) }));
+  const n = 12;
+  for (let i = 0; i < n; i++) {
+    const x = (i / n) * w + rnd.real(-8, 8);
+    const size = rnd.real(13, 17);
+    wrapped(x, w, size * 1.4, (xx) => tree(ctx, rnd, xx, baseY + rnd.real(0, 3), size, pals[(i + rnd.between(0, 1)) % pals.length], { trunk: 1.5, shadowAlpha: 0.12, glossAlpha: 0.3 }), rnd);
   }
 }
 
-/** Grasbüschel (3-5 px) für Waldböden. */
-function tuft(p, x, y, c, big = false) {
-  p.set(x, y, c); p.set(x - 1, y - 1, c); p.set(x + 1, y - 1, c);
-  if (big) { p.set(x, y - 1, c); p.set(x - 2, y - 2, c); p.set(x + 2, y - 2, c); p.set(x, y - 2, c); }
-}
-
-/** Hintere Baumreihe: im Dunst, flacher und violett gebrochen. */
-function makeBackTrees(scene, w, h) {
-  const p = new Pix(w, h), mask = new Mask(w, h);
-  const rnd = new Phaser.Math.RandomDataGenerator(['back']);
-  const crown = ['#9f7290', '#875f80', '#704d6f', '#5b3d5f'];
-  const trunk = ['#5f4660', '#4b3650', '#3a2a42'];
-  const baseY = 240;
-  p.rect(0, baseY, w, h - baseY, '#3f2d46');
-  for (let x = 0; x < w; x++) if (dither(x, baseY, 0.5)) p.set(x, baseY, '#4e3a54');
-  const n = 11;
+/** Hauptbaumreihe: kräftige Herbstbäume mit prallen Kugelkronen, Stämme bis zum Waldboden. */
+function drawMidTrees(ctx, w, h) {
+  const rnd = new Rnd(53);
+  const baseY = 222;
+  ctx.fillStyle = lin(ctx, 0, baseY - 8, 0, h, [[0, '#8fcb6a'], [1, '#6aa84e']]);
+  fillRidge(ctx, w, baseY - 5, [[3, 2.5, 0.3], [8, 1.2, 1.7]], h, ctx.fillStyle);
+  const pals = ['orange', 'red', 'gold'].map((k) => ({ crown: hazed(CROWNS[k], 0.22), trunk: hazed(TRUNK, 0.22) }));
+  const n = 8;
   for (let i = 0; i < n; i++) {
-    const cx = Math.round((i / n) * w + rnd.between(-10, 10));
-    tree(p, mask, rnd, cx, baseY + rnd.between(0, 2), rnd.between(13, 18), crown, trunk, { trunk: 3.0, noise: 0.03, twigs: 1 });
+    const x = (i / n) * w + rnd.real(-10, 10);
+    const size = rnd.real(17, 23);
+    wrapped(x, w, size * 1.4, (xx) => tree(ctx, rnd, xx, baseY + rnd.real(0, 3), size, pals[(i + rnd.between(0, 1)) % 3], { trunk: 1.5 }), rnd);
   }
-  p.toTexture(scene, 'bg_back');
-}
-
-/** Hauptbaumreihe: kräftige Herbstbäume, Stämme bis zum Waldboden. */
-function makeMidTrees(scene, w, h) {
-  const p = new Pix(w, h), mask = new Mask(w, h);
-  const rnd = new Phaser.Math.RandomDataGenerator(['trees']);
-  const crowns = [
-    ['#ee8e62', '#cb5f47', '#a04040', '#722b3a'],   // rot
-    ['#f7b86a', '#df843c', '#b65c2c', '#80402a'],   // orange
-    ['#f8d882', '#e0ac46', '#b47f30', '#7d5628'],   // gold
-  ];
-  const trunk = ['#7d5a66', '#55363f', '#38222e'];
-  const baseY = 236;
-  // Waldboden: dunkel, mit Laubresten und Grasbüscheln
-  p.rect(0, baseY, w, h - baseY, '#3a2535');
-  for (let x = 0; x < w; x++) {
-    if (dither(x, baseY, 0.6)) p.set(x, baseY, '#5a3d48');
-    if (dither(x, baseY + 1, 0.3)) p.set(x, baseY + 1, '#4c3240');
-  }
-  for (let i = 0; i < 70; i++) {
-    const x = rnd.between(0, w - 1), y = baseY + rnd.between(1, 14);
-    p.set(x, y, rnd.pick(['#6a3a3a', '#7a4a30', '#5c3a44', '#8a5a30']));
-  }
-  // Bäume: Größen und Farben abwechseln, leicht versetzt, damit sich Kronen überlappen
-  const n = 10;
-  for (let i = 0; i < n; i++) {
-    const cx = Math.round((i / n) * w + rnd.between(-9, 9));
-    const size = rnd.between(19, 26);
-    tree(p, mask, rnd, cx, baseY + rnd.between(0, 3), size, crowns[(i + rnd.between(0, 1)) % 3], trunk, { trunk: 2.6, twigs: 2 });
-  }
-  // Ein paar kleine Bäume davor
+  // kleine Bäume davor
   for (let i = 0; i < 4; i++) {
-    const cx = Math.round(((i + 0.5) / 4) * w + rnd.between(-30, 30));
-    tree(p, mask, rnd, cx, baseY + 4, rnd.between(11, 14), crowns[rnd.between(0, 2)], trunk, { trunk: 2.0, twigs: 1 });
+    const x = ((i + 0.5) / 4) * w + rnd.real(-30, 30);
+    const size = rnd.real(10, 13);
+    wrapped(x, w, size * 1.4, (xx) => tree(ctx, rnd, xx, baseY + 5, size, { crown: hazed(CROWNS[rnd.pick(['gold', 'green', 'orange'])], 0.1), trunk: TRUNK }, { trunk: 0.9, puffs: 4 }), rnd);
   }
-  for (let i = 0; i < 40; i++) {
-    const x = rnd.between(0, w - 1);
-    tuft(p, x, baseY + rnd.between(0, 2), rnd.pick(['#6d5a3a', '#7e6a3e', '#5e5236']), rnd.frac() < 0.4);
-  }
-  p.toTexture(scene, 'bg_mid');
 }
 
 // ---------------------------------------------------------------- Nahe Ebene
 
-/** Farn: Fächer aus Wedeln mit kleinen Fiederblättchen. */
-function fern(p, rnd, x, y, c, cDark) {
-  const n = rnd.between(4, 6);
+/** Runder Busch aus Kugeln (dunkler, satter als die Bäume). */
+function bush(ctx, rnd, x, baseY, r, crown) {
+  ctx.fillStyle = 'rgba(20, 50, 20, 0.3)';
+  ellipse(ctx, x, baseY, r * 1.4, r * 0.3);
+  const puffs = [[-0.7, -0.35, 0.6], [0.7, -0.4, 0.62], [0, -0.95, 0.72], [-0.35, -0.55, 0.6], [0.4, -0.6, 0.6]]
+    .map(([dx, dy, pr]) => [x + dx * r + rnd.real(-1, 1), baseY + dy * r + rnd.real(-1, 1), pr * r + rnd.real(-0.5, 0.5)]);
+  puffs.sort((p, q) => (q[1] + q[0] * 0.3) - (p[1] + p[0] * 0.3));
+  for (const [px, py, pr] of puffs) ball(ctx, px, py, pr, crown);
+  const [px, py, pr] = puffs[puffs.length - 1];
+  gloss(ctx, px - pr * 0.3, py - pr * 0.38, pr * 0.4, pr * 0.2, 0.35);
+}
+
+/** Pilz: Stiel, Hutkuppel mit Verlauf, Punkte. */
+function mushroom(ctx, x, y, r, cap) {
+  ctx.fillStyle = 'rgba(20, 40, 15, 0.3)';
+  ellipse(ctx, x, y, r * 1.1, r * 0.3);
+  const stemH = r * 1.3, sw = r * 0.9;
+  ctx.fillStyle = lin(ctx, x - sw / 2, 0, x + sw / 2, 0, [[0, '#fff5e4'], [0.5, '#efd9b8'], [1, '#c5a680']]);
+  roundRect(ctx, x - sw / 2, y - stemH, sw, stemH, sw * 0.3); ctx.fill();
+  const cy = y - stemH + 0.5, capH = r * 0.85;
+  ctx.fillStyle = rad(ctx, x - r * 0.35, cy - capH * 0.6, r * 0.1, x, cy - capH * 0.2, r * 1.15, [[0, cap[0]], [0.55, cap[1]], [1, cap[2]]]);
+  ctx.beginPath(); ctx.ellipse(x, cy, r, capH, 0, Math.PI, 0); ctx.quadraticCurveTo(x, cy + capH * 0.3, x - r, cy); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(255, 250, 240, 0.95)';
+  circle(ctx, x - r * 0.4, cy - capH * 0.35, r * 0.2);
+  circle(ctx, x + r * 0.3, cy - capH * 0.55, r * 0.16);
+  circle(ctx, x + r * 0.5, cy - capH * 0.1, r * 0.13);
+}
+
+/** Großes Herbstblatt (liegt flach am Boden): Tropfenform mit Verlauf und Mittelader. */
+function bigLeaf(ctx, x, y, len, rot, [light, mid, dark]) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot);
+  ctx.fillStyle = 'rgba(20, 40, 15, 0.25)';
+  ellipse(ctx, 1, 1, len * 0.55, len * 0.3);
+  ctx.fillStyle = lin(ctx, -len * 0.5, -len * 0.3, len * 0.5, len * 0.3, [[0, light], [0.5, mid], [1, dark]]);
+  ctx.beginPath();
+  ctx.moveTo(-len * 0.5, 0);
+  ctx.quadraticCurveTo(-len * 0.1, -len * 0.45, len * 0.5, -len * 0.05);
+  ctx.quadraticCurveTo(len * 0.1, len * 0.45, -len * 0.5, 0);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(120, 50, 20, 0.5)'; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(-len * 0.45, 0); ctx.quadraticCurveTo(0, -len * 0.08, len * 0.45, -len * 0.04); ctx.stroke();
+  ctx.restore();
+}
+
+/** Kleine Blume: Stiel, runde Blütenblätter, Mitte. */
+function flower(ctx, x, y, h, petal, center, r) {
+  ctx.strokeStyle = '#3f9a2a'; ctx.lineWidth = 0.9;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 0.6, y - h * 0.5, x, y - h); ctx.stroke();
+  const cy = y - h;
+  ctx.fillStyle = petal;
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    circle(ctx, x + Math.cos(a) * r, cy + Math.sin(a) * r, r * 0.8);
+  }
+  ctx.fillStyle = center;
+  circle(ctx, x, cy, r * 0.7);
+}
+
+/** Grasbüschel: schlanke Halme mit Verlauf. */
+function tuft(ctx, x, y, h, color) {
+  for (const [dx, hh, lean] of [[-2.2, 0.6, -1.4], [-0.8, 0.9, -0.5], [0.6, 1, 0.6], [2, 0.7, 1.5]]) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x + dx - 0.7, y);
+    ctx.quadraticCurveTo(x + dx + lean * 0.3 - 0.7, y - h * hh * 0.6, x + dx + lean, y - h * hh);
+    ctx.quadraticCurveTo(x + dx + lean * 0.5 + 0.7, y - h * hh * 0.5, x + dx + 0.7, y);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+/** Nahe Ebene: Buschreihe über der Bodenlinie, dunkler Waldboden mit Blättern, Pilzen, Blumen. */
+function drawNear(ctx, w, h) {
+  const rnd = new Rnd(71);
+  const baseY = 244; // Buschkronen ragen ~8 px über die Bodenlinie (Texturzeile ≈ 230)
+  // Waldboden (dunkel, nach unten noch dunkler, damit Gruben Tiefe bekommen)
+  ctx.fillStyle = lin(ctx, 0, baseY - 10, 0, h, [[0, '#4f8f3c'], [0.2, '#2f6a2a'], [0.55, '#1c4420'], [1, '#12301a']]);
+  fillRidge(ctx, w, baseY - 7, [[5, 1.5, 0.4], [11, 0.8, 1.9]], h, ctx.fillStyle);
+  // Büsche, dicht und überlappend; ein paar herbstlich gefärbt
+  const greens = [['#7fd65c', '#449f36', '#256b24'], ['#6cc74d', '#3a9030', '#1f5f20']];
+  const autumn = ['#ffb86a', '#e07a2e', '#9e4c1c'];
+  const n = 15;
   for (let i = 0; i < n; i++) {
-    const a = Math.PI * (0.15 + 0.7 * (i / (n - 1))) + rnd.realInRange(-0.1, 0.1);
-    const len = rnd.between(7, 12);
-    for (let k = 1; k <= len; k++) {
-      const px = x + Math.cos(a) * k * 0.9, py = y - Math.sin(a) * k * 0.7;
-      p.set(px, py, k > len - 3 ? c : cDark);
-      if (k % 2 === 0 && k < len - 1) { p.set(px - Math.sin(a), py - Math.cos(a) * 0.5, c); p.set(px + Math.sin(a), py + Math.cos(a) * 0.5, c); }
-    }
+    const x = (i / n) * w + rnd.real(-8, 8);
+    const r = rnd.real(11, 15);
+    const crown = rnd.frac() < 0.2 ? autumn : rnd.pick(greens);
+    wrapped(x, w, r * 1.8, (xx) => bush(ctx, rnd, xx, baseY + rnd.real(0, 4), r, crown), rnd);
   }
-}
-
-/** Kleiner Pilz mit Punkten. */
-function mushroom(p, x, y, r, cap, capLit, capDark, stem) {
-  p.rect(x - 1, y - r, 2, r + 1, stem);
-  p.set(x, y, mix(stem, '#000000', 0.3));
-  for (let dy = 0; dy <= r; dy++) {
-    const half = Math.floor(Math.sqrt(r * r + r * 0.5 - dy * dy));
-    p.hline(x - half, x + half, y - r - dy, dy > r * 0.6 ? capLit : cap);
+  // Blätter am Boden
+  const leafPals = [['#ffb257', '#ff7a2d', '#c43f1b'], ['#ffd06a', '#f0a62a', '#b8701a'], ['#ff8f7a', '#e0503a', '#a0301f']];
+  for (let i = 0; i < 12; i++) {
+    const x = rnd.real(0, w), y = baseY + rnd.real(8, 40), len = rnd.real(9, 14);
+    wrapped(x, w, len, (xx) => bigLeaf(ctx, xx, y, len, rnd.real(-0.5, 0.5), rnd.pick(leafPals)), rnd);
   }
-  p.hline(x - r, x + r, y - r, capDark);
-  p.set(x - Math.round(r / 2), y - r - Math.round(r / 2), '#fff0dc');
-  p.set(x + 1, y - r - 1, '#fff0dc');
-}
-
-/** Nahe Ebene: hängendes Laubdach oben, Unterholz (Büsche, Farne, Pilze, Laubhaufen) unten. */
-function makeNear(scene, w, h) {
-  const p = new Pix(w, h), mask = new Mask(w, h);
-  const rnd = new Phaser.Math.RandomDataGenerator(['near']);
-  const canopy = ['#c9683f', '#9a4334', '#6c2a2c', '#471c25'];
-  const BRANCH = '#2c1a22', BRANCH_LIT = '#4a2e36';
-
-  // Laubdach: drei Äste ragen schräg von oben herein, verzweigen sich und tragen flache Blattklumpen
-  for (let i = 0; i < 3; i++) {
-    const x0 = Math.round((i / 3) * w + rnd.between(-20, 20));
-    const dir = rnd.pick([-1, 1]);
-    const len = rnd.between(34, 48);
-    const slope = dir * rnd.realInRange(0.5, 0.9);
-    const pts = [];
-    for (let k = 0; k < len; k++) {
-      const bx = Math.round(x0 + k * slope);
-      pts.push([bx, k]);
-      const thick = k < len * 0.5 ? 3 : 2;
-      for (let t = 0; t < thick; t++) p.set(bx + t, k, t === 0 ? BRANCH_LIT : BRANCH);
-    }
-    // Seitenäste abwechselnd nach beiden Seiten, Enden merken
-    const clumps = [];
-    for (let j = 0; j < 3; j++) {
-      const [sx, sy] = pts[Math.round(len * (0.25 + j * 0.25))];
-      const sdir = j % 2 === 0 ? -dir : dir;
-      const slen = rnd.between(10, 20);
-      for (let k = 0; k < slen; k++) p.set(sx + sdir * k, sy + Math.round(k * 0.35), BRANCH);
-      clumps.push([sx + sdir * slen, sy + Math.round(slen * 0.35), rnd.between(8, 12)]);
-    }
-    clumps.push([pts[len - 1][0], pts[len - 1][1], rnd.between(11, 14)]);
-    clumps.push([pts[Math.round(len * 0.5)][0], pts[Math.round(len * 0.5)][1], rnd.between(7, 10)]);
-    // Blattklumpen hängen unter den Astenden, breiter als hoch, ausgefranst
-    mask.reset();
-    for (const [cx, cy, r] of clumps) {
-      mask.ellipse(cx, cy + r * 0.4, r * 1.3, r * 0.8);
-      mask.disc(cx - r * 0.5, cy + r * 0.3, r * 0.6);
-      mask.disc(cx + r * 0.5, cy + r * 0.5, r * 0.65);
-      mask.disc(cx + rnd.between(-r, r) * 0.5, cy + r * 0.9, r * 0.4);
-    }
-    mask.paint(p, canopy, -1, -1, [2, 5, 10], rnd, 0.07);
-  }
-
-  // Unterholz
-  const baseY = 232;
-  const FILL = '#1e1620';
-  p.rect(0, baseY + 10, w, h - baseY - 10, FILL);
-  const bush = ['#5a7a4a', '#3e5838', '#2b3e2c', '#1e2922'];
-  // Büsche: dichte Reihe, überlappend
-  for (let i = 0; i < 16; i++) {
-    const x = Math.round((i / 16) * w + rnd.between(-8, 8));
-    const r = rnd.between(9, 14);
-    mask.reset();
-    mask.disc(x, baseY + 8 + rnd.between(0, 4), r);
-    mask.disc(x - r * 0.6, baseY + 12, r * 0.7);
-    mask.disc(x + r * 0.6, baseY + 11, r * 0.75);
-    mask.disc(x + rnd.between(-4, 4), baseY + 4 + rnd.between(0, 3), r * 0.55);
-    mask.paint(p, bush, -1, -1, [2, 5, 9], rnd, 0.08);
-  }
-  // Boden unter den Büschen: nicht ganz flach (dunkle Krümel)
-  for (let i = 0; i < 120; i++) p.set(rnd.between(0, w - 1), baseY + rnd.between(24, 60), rnd.pick(['#2a2030', '#281c26']));
-  // Laubhaufen vor den Büschen
-  for (let i = 0; i < 7; i++) {
-    const x = rnd.between(0, w - 1), y = baseY + rnd.between(19, 23);
-    mask.reset();
-    mask.ellipse(x, y, rnd.between(8, 13), rnd.between(2, 4));
-    mask.ellipse(x + rnd.between(-5, 5), y - 2, rnd.between(4, 7), 2);
-    mask.paint(p, ['#c2733f', '#964d2f', '#6a3324'], -1, -1, [1, 3, 99], rnd, 0.12);
-  }
-  // Farne und Pilze davor
-  for (let i = 0; i < 10; i++) {
-    fern(p, rnd, rnd.between(0, w - 1), baseY + rnd.between(16, 23), '#6f9a4c', '#3f6133');
-  }
+  // Pilze und Blumen vor den Büschen
   for (let i = 0; i < 6; i++) {
-    const x = rnd.between(0, w - 1), r = rnd.between(2, 4);
-    mushroom(p, x, baseY + rnd.between(16, 22), r, '#c24a4a', '#e07060', '#7a2430', '#e0cfb0');
+    const x = rnd.real(0, w), y = baseY + rnd.real(5, 14), r = rnd.real(2.6, 4);
+    wrapped(x, w, r * 2, (xx) => mushroom(ctx, xx, y, r, rnd.frac() < 0.5 ? ['#ff8a80', '#ff3b2f', '#b3221a'] : ['#ffb46e', '#ff7a2d', '#c43f1b']), rnd);
   }
-  // Bodenlinie mit Grasbüscheln
-  for (let i = 0; i < 60; i++) {
-    tuft(p, rnd.between(0, w - 1), baseY + rnd.between(18, 26), rnd.pick(['#3f5a34', '#55703f', '#2e4028']), rnd.frac() < 0.5);
+  for (let i = 0; i < 14; i++) {
+    const x = rnd.real(0, w), y = baseY + rnd.real(2, 12), hh = rnd.real(4, 7);
+    const [p, c] = rnd.pick([['#ffffff', '#ffc21a'], ['#ffe066', '#ff8c3a'], ['#ff9ec9', '#fff0c0']]);
+    wrapped(x, w, 4, (xx) => flower(ctx, xx, y, hh, p, c, 1.4), rnd);
   }
-  p.toTexture(scene, 'bg_near');
+  for (let i = 0; i < 40; i++) {
+    const x = rnd.real(0, w), y = baseY + rnd.real(0, 40);
+    const shade = Math.min(1, (y - baseY) / 40); // weiter unten dunkler
+    wrapped(x, w, 4, (xx) => tuft(ctx, xx, y, rnd.real(4, 7), mix(rnd.pick(['#5fb844', '#3f9032', '#7fd65c']), '#1c4420', shade * 0.6)), rnd);
+  }
 }
 
 // ---------------------------------------------------------------- Weltkarte
 
-/** Weltkarten-Hintergrund: Abendhimmel, ferne Berge, Waldlichtung mit Bäumen, Teich. */
-function makeWorldMap(scene, w, h) {
-  const p = new Pix(w, h), mask = new Mask(w, h);
-  const rnd = new Phaser.Math.RandomDataGenerator(['map']);
-  const horizon = 86;
-  for (let y = 0; y < horizon; y++) p.hline(0, w - 1, y, skyColor(0.1 + (y / horizon) * 0.8));
-  for (let i = 0; i < 20; i++) {
-    const x = rnd.between(0, w - 1), y = rnd.between(2, 40);
-    p.set(x, y, mix(skyColor(0.1 + (y / horizon) * 0.8), '#ffffff', 0.6));
-  }
+/** Weltkarten-Hintergrund: heller Himmel, Pastellberge, sonnige Wiese mit Bäumen, Teich. */
+function drawWorldMap(ctx, w, h) {
+  const rnd = new Rnd(97);
+  const horizon = 96;
+  drawSky(ctx, w, horizon + 20, w * 0.14, 34);
+  cloud(ctx, 110, 30, 14, rnd, 0.2);
+  cloud(ctx, 300, 44, 18, rnd, 0);
+  cloud(ctx, 420, 26, 12, rnd, 0.3);
   // Berge
-  for (let x = 0; x < w; x++) {
-    const y = ridge(x, w, 70, [[2, 10, 1.1], [5, 6, 0.3], [11, 2, 2.2]]);
-    const prev = ridge(x - 1, w, 70, [[2, 10, 1.1], [5, 6, 0.3], [11, 2, 2.2]]);
-    p.vline(x, y, horizon, '#8777b3');
-    const lit = y <= prev ? 6 : 2;
-    for (let k = 0; k < lit; k++) if (dither(x, y + k, 1 - k / lit)) p.set(x, y + k, '#9c8cc6');
-    p.set(x, y, '#b3a4d6');
+  const mw = [[2, 10, 1.1], [5, 6, 0.3], [11, 2, 2.2]];
+  fillRidge(ctx, w, 66, mw, horizon, '#d9e6f8');
+  fillRidge(ctx, w, 71, mw, horizon, '#b9cdeb');
+  ctx.fillStyle = lin(ctx, 0, 76, 0, horizon, [[0, 'rgba(225, 238, 250, 0)'], [1, 'rgba(225, 238, 250, 0.8)']]);
+  ctx.fillRect(0, 76, w, horizon - 76);
+  // Wiese: hell am Horizont, satt nach unten; weiche Hügelbänder
+  const hw = [[3, 3, 0.5], [7, 1.5, 1.4]];
+  fillRidge(ctx, w, horizon - 4, hw, h, lin(ctx, 0, horizon - 8, 0, h, [[0, '#a9e07a'], [0.35, '#74c44c'], [1, '#4f9f36']]));
+  for (const [y, amp, k, a] of [[horizon + 36, 5, 2, 0.12], [horizon + 86, 6, 3, 0.1], [horizon + 136, 5, 2, 0.1]]) {
+    fillRidge(ctx, w, y, [[k, amp, 1.3 + k], [k * 3, amp * 0.3, 0.2]], y + 14, `rgba(255, 255, 220, ${a})`);
   }
-  // Hügelkamm mit Nadelbäumen
-  for (let x = 0; x < w; x++) {
-    const y = ridge(x, w, horizon - 2, [[3, 4, 0.5], [9, 2, 1.4]]);
-    p.vline(x, y, horizon, '#5d4d8b');
+  // Baumreihe am Horizont
+  for (let x = rnd.real(0, 6); x < w; x += rnd.real(5, 10)) {
+    farTree(ctx, x, ridgeY(x, w, horizon - 4, hw) + 1, rnd.real(2.2, 3.6), rnd.frac() < 0.5 ? '#8fc47c' : '#a8cf8a');
   }
-  for (let x = 2; x < w; x += rnd.between(4, 9)) {
-    const y = ridge(x, w, horizon - 2, [[3, 4, 0.5], [9, 2, 1.4]]);
-    const hgt = rnd.between(6, 12);
-    for (let k = 0; k < hgt; k++) p.hline(x - Math.floor((k / hgt) * 3), x + Math.floor((k / hgt) * 3), y - hgt + k, '#4e3f7c');
-  }
-  // Wiese: abendliches Grün, nach unten dunkler, mit Dithering
-  const meadow = ['#5b8a34', '#4f7a2e', '#436a2a', '#375a26'];
-  for (let y = horizon; y < h; y++) {
-    const t = (y - horizon) / (h - horizon);
-    const k = Math.min(meadow.length - 2, Math.floor(t * (meadow.length - 1)));
-    const f = t * (meadow.length - 1) - k;
-    for (let x = 0; x < w; x++) p.set(x, y, dither(x, y, f) ? meadow[k + 1] : meadow[k]);
-  }
-  // Wiesen-Textur: Grasbüschel, Blümchen
-  for (let i = 0; i < 160; i++) {
-    const x = rnd.between(0, w - 1), y = rnd.between(horizon + 4, h - 2);
-    tuft(p, x, y, rnd.pick(['#6a9a3a', '#3f6a2a', '#78a845']), false);
-  }
-  for (let i = 0; i < 30; i++) {
-    p.set(rnd.between(0, w - 1), rnd.between(horizon + 10, h - 4), rnd.pick(['#f2c230', '#e85a5a', '#fff0dc']));
-  }
-  // Teich unten rechts
-  mask.reset();
-  mask.ellipse(430, 232, 34, 12);
-  mask.ellipse(405, 240, 18, 8);
-  mask.paint(p, ['#8fc4e8', '#4f8fc8', '#3769a8'], 0, -1, [1, 4, 99], rnd, 0);
-  for (let x = 400; x < 460; x += rnd.between(5, 9)) p.hline(x, x + 2, 230 + rnd.between(0, 8), '#a8d8f0');
-  // Bäume: dichter Waldsaum oben, verstreut unten – frei um die Level-Punkte
-  const crowns = [
-    ['#ee8e62', '#cb5f47', '#a04040', '#722b3a'],
-    ['#f7b86a', '#df843c', '#b65c2c', '#80402a'],
-    ['#f8d882', '#e0ac46', '#b47f30', '#7d5628'],
-    ['#a9d65a', '#74a832', '#4f7d24', '#2f5230'],
-  ];
-  const trunk = ['#7d5a66', '#55363f', '#38222e'];
-  const free = (x, y) => WORLD.nodes.every((n) => Math.hypot(n.x - x, n.y - y) > 30)
-    && WORLD.edges.every((e) => [...e.points].every((q) => Math.hypot(q.x - x, q.y - y) > 16));
+  // Teich unten rechts mit Sandufer, Verlauf und Glanz
+  const px = 428, py = 232;
+  ctx.fillStyle = '#e9dcb0'; ellipse(ctx, px, py + 1, 44, 16);
+  ctx.fillStyle = lin(ctx, 0, py - 13, 0, py + 13, [[0, '#9fdcff'], [0.5, '#4ea8ea'], [1, '#2f78c4']]);
+  ellipse(ctx, px, py, 40, 13);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+  ellipse(ctx, px - 12, py - 5, 12, 2.2, -0.1);
+  ellipse(ctx, px + 14, py + 3, 7, 1.4, 0.1);
+  // Bäume und Büsche frei um die Level-Punkte und Pfade
+  const free = (x, y) => WORLD.nodes.every((n) => Math.hypot(n.x - x, n.y - y) > 32)
+    && WORLD.edges.every((e) => e.points.every((q) => Math.hypot(q.x - x, q.y - y) > 18))
+    && !(x > 375 && y > 205);
+  const pals = ['orange', 'red', 'gold', 'green'].map((k) => ({ crown: CROWNS[k], trunk: TRUNK }));
   const spots = [];
-  for (let x = 6; x < w; x += rnd.between(16, 26)) spots.push([x + rnd.between(-4, 4), horizon + rnd.between(6, 22), rnd.between(6, 9)]);
-  for (let i = 0; i < 40; i++) spots.push([rnd.between(0, w - 1), rnd.between(horizon + 30, h - 6), rnd.between(5, 8)]);
+  for (let x = 6; x < w; x += rnd.real(16, 26)) spots.push([x + rnd.real(-4, 4), horizon + rnd.real(8, 24), rnd.real(6, 9)]);
+  for (let i = 0; i < 36; i++) spots.push([rnd.real(0, w), rnd.real(horizon + 30, h - 8), rnd.real(5, 8)]);
   spots.sort((a, b) => a[1] - b[1]);
   for (const [x, y, size] of spots) {
-    if (!free(x, y) || (x > 380 && y > 215)) continue;
-    tree(p, mask, rnd, x, y, size, crowns[rnd.between(0, 3)], trunk, { trunk: 1.2, twigs: 0, noise: 0.05 });
+    if (!free(x, y)) continue;
+    tree(ctx, rnd, x, y, size, rnd.pick(pals), { trunk: 0.8, puffs: 4, shadowAlpha: 0.2 });
   }
-  p.toTexture(scene, 'worldmap_bg');
+  // Blümchen
+  for (let i = 0; i < 40; i++) {
+    const x = rnd.real(4, w - 4), y = rnd.real(horizon + 14, h - 6);
+    if (!free(x, y)) continue;
+    ctx.fillStyle = rnd.pick(['#ffffff', '#ffe066', '#ff9ec9']);
+    circle(ctx, x, y, 1.1);
+  }
 }
 
 /** Erzeugt alle Hintergrund-Texturen (Bildschirmgröße w x h). Einmalig beim Start. */
 export function createBackgroundTextures(scene, w, h) {
   const lh = h + LAYER_EXTRA;
-  makeSky(scene, w, h);
-  makeClouds(scene, w, lh);
-  makeFar(scene, w, lh);
-  makeBackTrees(scene, w, lh);
-  makeMidTrees(scene, w, lh);
-  makeNear(scene, w, lh);
-  makeWorldMap(scene, w, h);
+  makeTexture(scene, 'sky', w, h, drawSky);
+  makeTexture(scene, 'bg_clouds', w, lh, drawClouds);
+  makeTexture(scene, 'bg_far', w, lh, drawFar);
+  makeTexture(scene, 'bg_back', w, lh, drawBackTrees);
+  makeTexture(scene, 'bg_mid', w, lh, drawMidTrees);
+  makeTexture(scene, 'bg_near', w, lh, drawNear);
+  makeTexture(scene, 'worldmap_bg', w, h, drawWorldMap);
 }
