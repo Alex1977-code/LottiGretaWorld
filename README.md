@@ -4,10 +4,16 @@
 Querformat. Läuft im Browser, installierbar als PWA. Alle Grafiken und Sounds werden
 prozedural per Code erzeugt – keine externen Assets.
 
-Zwei spielbare Heldinnen mit gleichen Fähigkeiten: **Lotti** (dunkelblond, zwei Zöpfe) und
-**Greta** (hellblond). Die Figur wird auf der Weltkarte gewählt (Tab oder Tippen auf die Figur).
+Zwei spielbare Heldinnen mit gleichen Fähigkeiten: **Lotti** (dunkelblond, zwei geflochtene Zöpfe,
+rote Schleife, blaues Kleid) und **Greta** (hellblond, langes Haar mit Haarreif, grünes Kleid mit
+Schürze). Die Figur wird auf der Weltkarte gewählt (Tab oder Tippen auf die Figur).
 **Pflaume**, der runde lila Käfer, ist das Reittier; seine Flecken nehmen die Farbe der gefressenen
 Beere an und zeigen so die aktuelle Kraft.
+
+Grafik im 16-Bit-Stil (Vorbild: SNES-Plattformer, eigene Entwürfe): Figuren, Gegner, Objekte und
+Tiles als Pixel-Strings mit Outlines und 3–4 Schattierungsstufen, Hintergrund mit sechs
+Parallax-Ebenen (Himmel, Wolken, Berge, zwei Baumreihen, Unterholz). Regeln und Verträge stehen in
+`docs/GRAFIK-STYLEGUIDE.md`.
 
 ## Entwicklung
 
