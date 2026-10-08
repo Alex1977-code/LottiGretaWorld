@@ -13,7 +13,8 @@
 // Daten: { kind: 'kickbombe', pos, path?, loop?, dir?, speed?: 1.3, behavior?: 'walk' | 'chase', sight?: 9,
 //          lit?: false (Lunte brennt schon), fuse?: 3 s, radius?: 2.5 m, kickSpeed?: 9 m/s, wake?,
 //          vel?: [vx, vy, vz] (Start im Flug, z. B. vom Endgegner geworfen; landet dann brennend),
-//          owner?: Entität (wird von ihr nicht getroffen, bis die Figur sie gekickt/geworfen hat) }
+//          owner?: Entität oder ihre id (wird von ihr nicht getroffen, bis die Figur sie gekickt/geworfen hat) }
+// onBombHit-Ziele müssen alive sein, touch !== false und nicht defeated.
 // Zustände: walk → lit → kicked | air | carried → (Explosion); flipped (entschärft).
 // Hooks: level.onExplosion?.(center, radius, bomb) nach jeder Explosion. Feld exploded, fuse (s übrig).
 // Modell 'kickbombe' (state { anim: walk|idle|lit|kicked, speed, fuse 0..1 }).
@@ -66,7 +67,7 @@ class Kickbombe extends Enemy {
     this.kickSpeed = spec.kickSpeed ?? 9;
     this.lit = false;
     this.fuse = 0;
-    this.owner = spec.owner ?? null;
+    this.owner = typeof spec.owner === 'string' ? level.named.get(spec.owner) ?? null : spec.owner ?? null;
     this.kicker = null;
     this.grace = 0;
     this.rollSpeed = 0;

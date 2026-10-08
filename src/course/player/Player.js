@@ -136,6 +136,7 @@ export class Player {
     tick('coyote'); tick('buffer'); tick('chainTimer'); tick('lockTime'); tick('hurtTime'); tick('invuln');
     tick('wallCoyote'); tick('grabCooldown'); tick('boostTime'); tick('clawTime'); tick('fireCooldown'); tick('landTime'); tick('throwTime');
     this.input = input;
+    if (this.holding?.removed) this.holding = null;   // Getragenes ist weg (z. B. in der Hand explodiert)
     if (this.attackInfo && this.time > this.attackInfo.until) this.attackInfo = null;
 
     if (this.mode === 'script') { this.updateScript(dt, input); return; }

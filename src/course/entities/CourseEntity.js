@@ -162,12 +162,13 @@ export class CourseEntity {
 
   /**
    * Getragen: Lage über dem Kopf der Figur übernehmen (player.holdPoint). Hat die Figur losgelassen (Treffer,
-   * Neustart, Teleport), wird onDrop gerufen und false geliefert.
+   * Neustart, Teleport) oder schwimmt/klettert an der Ranke/steigt in eine Röhre, wird onDrop gerufen und false
+   * geliefert.
    */
   followCarrier() {
     const p = this.carrier;
     if (!p) return false;
-    if (p.holding !== this || p.dead || this.removed) {
+    if (p.holding !== this || p.dead || this.removed || p.mode === 'script' || p.mode === 'swim' || p.mode === 'stalk') {
       this.carrier = null;
       if (p.holding === this) p.holding = null;
       this.onDrop(p);

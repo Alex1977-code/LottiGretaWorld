@@ -73,8 +73,8 @@ class Pilzlingsturm extends Enemy {
     if (this.riding && !this.defeated) this.riding.pos.set(this.pos.x, this.pos.y + this.height + 0.1, this.pos.z);
   }
 
-  /** Oberste Stufe abnehmen (platt gedrückter Pilzling als Rückmeldung). */
-  popTop(effect = 'squash') {
+  /** Oberste Stufe abnehmen: der Pilzling fliegt seitlich vom Stapel (Rückmeldung), der Turm wird niedriger. */
+  popTop(source) {
     if (this.count <= 0) return;
     const y = this.pos.y + heightOf(this.count) - 0.84;
     this.count--;
@@ -82,7 +82,14 @@ class Pilzlingsturm extends Enemy {
     const e = this.level.spawn('pilzling', { pos: [this.pos.x, y, this.pos.z], wake: 0, yaw: this.yaw });
     if (e) {
       e.markDefeated = () => { e.defeated = true; };   // zählt nicht als eigener Gegner
-      if (effect === 'squash') e.squash(); else e.flip(this.level.player);
+      e.flip(null, 5);
+      // vom Turm weg (Richtung der Quelle bzw. Blickrichtung der Figur), nicht durch den Turm hindurch
+      const p = this.level.player;
+      let ax = this.pos.x - (source?.pos?.x ?? this.pos.x), az = this.pos.z - (source?.pos?.z ?? this.pos.z);
+      let l = Math.hypot(ax, az);
+      if (l < 0.2 && p) { const f = p.facingVec(); ax = f.x; az = f.z; l = 1; }   // von oben: in Blickrichtung der Figur
+      if (l < 1e-3) { ax = 1; az = 0; l = 1; }
+      e.vel.x = (ax / l) * 2.5; e.vel.z = (az / l) * 2.5;
     }
     this.half.y = Math.max(0.2, heightOf(this.count) / 2);
     if (this.count <= 0) this.fall();
@@ -110,7 +117,7 @@ class Pilzlingsturm extends Enemy {
   onPlayer(player, contact) {
     if (this.defeated) return 'none';
     if (contact.fromAbove || contact.pound) {
-      if (this.hitCool <= 0) this.popTop();
+      if (this.hitCool <= 0) this.popTop(player);
       return 'stomp';
     }
     if (contact.dive) { this.onHit('claw', player); return 'none'; }
@@ -126,7 +133,7 @@ class Pilzlingsturm extends Enemy {
     }
     if (kind === 'pound' && source && Math.abs(source.pos.y - this.pos.y) > 0.6) return;
     if (this.hitCool > 0) return;
-    this.popTop(kind === 'pound' ? 'squash' : 'flip');
+    this.popTop(source);
   }
 
   modelState() {

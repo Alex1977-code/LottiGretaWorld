@@ -222,6 +222,9 @@ export class Enemy extends CourseEntity {
   /** squashed/flipped abarbeiten. true = erledigt (update() kann zurückkehren). */
   updateDefeat(dt) {
     if (this.state === 'squashed') {
+      // platt liegen bleiben – in der Luft (z. B. im Sprung getroffen) fällt er herunter, Plattformen tragen mit
+      this.vel.x = 0; this.vel.z = 0;
+      this.moveWithGravity(dt);
       if (this.stateT > this.squashTime) this.kill();
       return true;
     }
