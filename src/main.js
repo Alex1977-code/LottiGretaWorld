@@ -19,14 +19,24 @@ import { CourseScene } from './course/CourseScene.js';
 import { CourseUIScene } from './course/CourseUIScene.js';
 import { CoursePauseScene } from './course/CoursePauseScene.js';
 import { CourseResultScene } from './course/CourseResultScene.js';
+import { CourseMapScene } from './course/map/CourseMapScene.js';
 import { getLevel as getCourseLevel } from './course/levels/index.js';
 
-// Kurs-Modus: ?course=<id> startet ein Kurs-Level direkt (Boot erzeugt weiter alle Texturen)
+// Startfluss (Präzisierung Weltkarte):
+//   ?course=<id>   Kurs-Level direkt          ?map=1      Kurs-Weltkarte
+//   ?classic=1     Klassik-Weltkarte           ?level=<k>  Klassik-Level direkt
+//   ohne Parameter Kurs-Weltkarte – braucht die 3D-Darstellung (WebGL2), sonst Klassik-Weltkarte.
+// Der Kurs-Boot erzeugt wie der Klassik-Boot alle Texturen (die Klassik-Karte bleibt jederzeit erreichbar).
 const params = new URLSearchParams(window.location.search);
 const wantedCourse = params.get('course');
 const startCourse = wantedCourse && getCourseLevel(wantedCourse) ? wantedCourse : null;
 if (wantedCourse && !startCourse) console.warn(`[Kurs] unbekanntes Level: ${wantedCourse}`);
-const COURSE_SCENES = [CourseScene, CourseUIScene, CoursePauseScene, CourseResultScene];
+const wanted = params.get('level');
+const startLevel = wanted && LEVELS[wanted] ? wanted : null;
+const classicStart = params.has('classic') && params.get('classic') !== '0';
+const mapStart = params.get('map') === '1';
+const courseBoot = !!startCourse || (!startLevel && !classicStart && (mapStart || RENDER3D.enabled));
+const COURSE_SCENES = [CourseScene, CourseUIScene, CoursePauseScene, CourseResultScene, CourseMapScene];
 
 const config = {
   type: Phaser.AUTO,
@@ -55,7 +65,7 @@ const config = {
   },
   fps: { target: 60, min: 30, smoothStep: true },
   input: { activePointers: 3 },
-  scene: [startCourse ? CourseBootScene : BootScene, WorldMapScene, PlayScene, UIScene, LevelCompleteScene, PauseScene, ...COURSE_SCENES],
+  scene: [courseBoot ? CourseBootScene : BootScene, WorldMapScene, PlayScene, UIScene, LevelCompleteScene, PauseScene, ...COURSE_SCENES],
 };
 
 const game = new Phaser.Game(config);
@@ -64,9 +74,8 @@ window.__audio = { engine: audioEngine, music };
 game.registry.set('renderScale', RENDER.scale);
 game.registry.set('render3d', RENDER3D.enabled);
 
-// Level per URL wählen (?level=test), Standard: erstes Level
-const wanted = params.get('level');
-game.registry.set('startLevel', wanted && LEVELS[wanted] ? wanted : null);
+// Level per URL wählen (?level=test), Standard: Weltkarte
+game.registry.set('startLevel', startLevel);
 game.registry.set('startCourse', startCourse);
 
 setupOrientationHint(game);
