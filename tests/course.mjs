@@ -312,6 +312,42 @@ const turn = await sc(() => {
 console.log(`  Drehscheibe: Winkel ${f2(turn.da)} rad, Blick ${f2(turn.dyaw)} rad, Radius ${f2(turn.r)}`);
 check('Drehscheibe dreht Figur und Blickrichtung mit (Radius bleibt)', Math.abs(Math.abs(turn.da) - 0.9) < 0.08 && Math.abs(turn.dyaw - 0.9) < 0.08 && Math.abs(turn.r - 1.1) < 0.05 && turn.mode === 'ground');
 
+// ---------------------------------------------------------------- Krallen-Sturzflug, Boost-Pfeil, Förderband, Kristallblock
+const misc = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, out = {};
+  // Sturzflug: Krallen-Anzug, in der Luft mit Richtung ducken
+  t.place(t.marks.lane, { power: 'krallen' });
+  c.setInput({ y: 1, jump: true }); c.step(25);
+  c.setInput({ y: 1, crouch: true }); c.step(1);
+  out.dive = p.state; out.diveVy = p.vel.y;
+  c.setInput({ y: 1 });
+  for (let i = 0; i < 120 && p.mode !== 'ground'; i++) c.step(1);
+  out.diveLand = p.state;
+  // Boost-Pfeil
+  const bs = [...c.world.shapes.values()].find((s) => s.boost);
+  t.place([(bs.x0 + bs.x1) / 2, bs.bot + 0.1, bs.z1 + 0.6]);
+  c.setInput({ y: 0.5 }); c.step(40);
+  out.boost = Math.hypot(p.vel.x, p.vel.z);
+  // Förderband (läuft nach +X): stehen bleiben, wird getragen
+  const cv = [...c.world.shapes.values()].find((s) => s.conveyor);
+  t.place([(cv.x0 + cv.x1) / 2 - 2, cv.top + 0.05, (cv.z0 + cv.z1) / 2]);
+  const x0 = p.pos.x;
+  c.setInput({}); c.step(120);
+  out.conveyor = p.pos.x - x0;
+  // Kristallblock: Kopfstoß wirkungslos, Stampfen zerbricht
+  const cr = c.level.entities.find((e) => e.kind === 'crystal');
+  t.place([cr.pos.x, cr.pos.y + 1.05, cr.pos.z]);
+  c.setInput({ jump: true }); c.step(20); c.setInput({ crouch: true }); c.step(2); c.setInput({}); c.step(90);
+  out.crystal = !cr.alive;
+  c.setInput({});
+  return out;
+});
+console.log(`  Sturzflug ${misc.dive} (vy ${f2(misc.diveVy)}) → ${misc.diveLand}, Boost ${f2(misc.boost)} m/s, Förderband ${f2(misc.conveyor)} m/s·1 s`);
+check('Krallen-Sturzflug schräg nach unten, Landung rutscht', misc.dive === 'dive' && misc.diveVy < -5 && misc.diveLand === 'slide');
+check('Boost-Pfeil beschleunigt (> 12 m/s)', misc.boost > 12);
+check('Förderband trägt die stehende Figur (≈ 3 m/s)', misc.conveyor > 2.5 && misc.conveyor < 3.5);
+check('Kristallblock: Stampfattacke zerbricht ihn', misc.crystal);
+
 // ---------------------------------------------------------------- Bewegliche Plattform trägt die Figur
 const mv = await sc(() => { const s = [...window.__course.world.shapes.values()].find((x) => x.tag === 'mover'); return [(s.x0 + s.x1) / 2, s.top + 0.05, (s.z0 + s.z1) / 2]; });
 await T('place', mv, { settle: 12 });
