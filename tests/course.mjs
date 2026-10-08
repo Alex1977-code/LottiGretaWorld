@@ -477,8 +477,10 @@ const goal = await sc(() => {
 console.log(`  Ziel: ${goal.finished ? 'fertig' : 'nicht fertig'}, Mast ${f2(goal.result?.pole)} → ${goal.result?.points} Punkte, gespeichert ${JSON.stringify(goal.saved)}`);
 check('Zielmast beendet das Level', goal.finished && goal.result && goal.result.points > 0);
 check('Ergebnis gespeichert (done, Sterne, Bestzeit)', !!goal.saved?.done && goal.saved.stars[0] === true && goal.saved.bestTime > 0);
-await page.waitForTimeout(600);
-check('Ergebnis-Szene sichtbar', await sc(() => window.__game.scene.isActive('CourseResult')));
+// Die Ergebnis-Szene startet nach einer kurzen Siegessequenz in Spielzeit – im langsamen Headless-Renderer
+// kann das mehrere Sekunden Wanduhr dauern, daher auf den Zustand warten statt fest zu schlafen.
+const resultShown = await page.waitForFunction(() => window.__game.scene.isActive('CourseResult'), null, { timeout: 15000 }).then(() => true, () => false);
+check('Ergebnis-Szene sichtbar', resultShown);
 
 check('Keine Konsolenfehler', errors.length === 0);
 await browser.close();

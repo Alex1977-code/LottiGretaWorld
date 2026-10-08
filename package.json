@@ -8,7 +8,7 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host",
-    "test": "npm run build && node tests/run.mjs && node tests/touch.mjs && node tests/enemies.mjs && node tests/pflaume.mjs && node tests/level1.mjs && node tests/worldmap.mjs && node tests/audio.mjs && node tests/three.mjs && node tests/worldmap3d.mjs && node tests/world3d.mjs && node tests/items3d.mjs && node tests/figures3d.mjs && node tests/chain.mjs",
+    "test": "npm run build && node tests/run.mjs && node tests/touch.mjs && node tests/enemies.mjs && node tests/pflaume.mjs && node tests/level1.mjs && node tests/worldmap.mjs && node tests/audio.mjs && node tests/three.mjs && node tests/worldmap3d.mjs && node tests/world3d.mjs && node tests/items3d.mjs && node tests/figures3d.mjs && node tests/chain.mjs && node tests/course_physics.mjs && node tests/course.mjs && node tests/course_view.mjs",
     "icons": "node tools/make-icons.mjs"
   },
   "dependencies": {
