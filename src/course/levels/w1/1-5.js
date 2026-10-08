@@ -100,8 +100,10 @@ export const LEVEL = {
       { kind: 'ball', pos: [8.4, 0, 2.2], size: 0.8, solid: true },
       { kind: 'balloons', pos: [-9.4, 0, -13.3], n: 4, size: 1.6 },
     ] },
-    { type: 'wall', pos: [5.5, 0, -11], size: [2, 6.5, 4], style: 'red' },
-    { type: 'wall', pos: [9.5, 0, -11], size: [1, 9, 4], style: 'white' },
+    { type: 'deco_w1b', items: [
+      stage(5.5, 6.5, -11, 2, 4, { h: 6.5, color: 0xffc21a, skirt: ['red', 0xfff4e0], bulbs: false, inlay: false }),
+      stage(9.5, 11, -11, 1, 4, { h: 11, color: 0xffc21a, skirt: [0x2a4fd0, 0xfff4e0], bulbs: false, inlay: false }),
+    ] },
     { type: 'warpbox', id: 'box1', pos: [2, 0, -11.5], target: 'logeBox' },
     { type: 'switchtiles', id: 'feld1', tiles: [[-5, 0, -1], [0, 0, -1], [5, 0, -1], [-5, 0, -7], [0, 0, -7], [5, 0, -7]], reveal: 'steg1' },
     // Steg (erscheint, wenn alle Schaltfelder an sind)
@@ -123,6 +125,10 @@ export const LEVEL = {
     { type: 'switchtiles', id: 'feld2', tiles: [[-2.5, 0, -29.5], [2.5, 0, -29.5], [-2.5, 0, -33], [2.5, 0, -33], [-2.5, 1.5, -53], [0, 1.5, -53], [2.5, 1.5, -53]], reward: 'coins:10' },
     { type: 'mover', size: [3, 0.5, 3], path: [[-4, -0.5, -39], [4, -0.5, -39]], speed: 2.4, wait: 0.5, color: 'red' },
     { type: 'mover', size: [3, 0.5, 3], path: [[4, 0.3, -45], [-4, 0.3, -45]], speed: 2.4, wait: 0.5, color: 'yellow' },
+    { type: 'deco_w1b', items: [
+      { kind: 'ride', at: [-4, -0.5, -39], color: 0xd0302a, skirt: [0xffc21a, 0xfff4e0] },
+      { kind: 'ride', at: [4, 0.3, -45], color: 0xffa020, skirt: [0x2a4fd0, 0xfff4e0] },
+    ] },
 
     // ======================================================== 3  Checkpoint
     { type: 'deco_w1b', items: [
@@ -152,19 +158,20 @@ export const LEVEL = {
 
     // ======================================================== 6  Wechselschalter-Plattform (fährt)
     { type: 'mover', id: 'faehre', size: [12, 0.8, 12], path: [[0, 3.2, -132.2], [0, 3.2, -152]], speed: 2.2, wait: 1.6, color: 'blue' },
+    { type: 'deco_w1b', items: [{ kind: 'ride', at: [0, 3.2, -132.2], color: 0x2a4fd0, star: true, skirt: [0xd0302a, 0xffc21a] }] },
     { type: 'switchtiles', id: 'wechsel', mode: 'toggle', mover: 'faehre', tiles: [[-3.5, 0, -3.5], [3.5, 0, -3.5], [-3.5, 0, 3.5], [3.5, 0, 3.5], [0, 0, -4.5], [0, 0, 4.5]], drop: 'wackel' },
 
     // ======================================================== 7  Landebühne, Stempel-Turm, Kanone, Ziel
     { type: 'deco_w1b', items: [
       stage(-0.5, 4, -164, 15, 10, { color: 0x2a9a5a }),
       stage(0, 10, -190, 10, 10, { color: 0xffc21a, star: true }),
-      stage(-9.5, 12, -163.2, 3, 3.8, { color: 0xd0302a, h: 8, bulbs: false }),      // Stempel-Turm
+      stage(-9.5, 12, -163.2, 3, 3.8, { color: 0xd0302a, h: 8, bulbs: false, inlay: false }),      // Stempel-Turm
+      stage(-6.25, 14, -163.2, 0.5, 3.8, { h: 10, color: 0xffc21a, skirt: [0x2a4fd0, 0xfff4e0], bulbs: false, inlay: false }),   // Wandsprung-Wand
       { kind: 'pennant', pos: [-10.6, 12, -164.6], size: 2 },
       { kind: 'balloons', pos: [4.6, 10, -194], n: 6, size: 2 },
       { kind: 'drum', pos: [5.5, 4, -167.5], size: [1.6, 0.9], color: 'red' },
     ] },
     { type: 'wall', pos: [-9.5, 4, -161.2], size: [3, 8, 0.4], climbable: true },
-    { type: 'wall', pos: [-6.25, 4, -163.2], size: [0.5, 10, 3.8], style: 'white' },
     { type: 'fallplatform', id: 'wackel', pos: [-9.5, 3.4, -159.6], size: [3, 0.6, 2.8], on: 'wechsel' },
     { type: 'glasspipe', id: 'kanone', path: [[3.5, 4, -166], [3.5, 7, -166], [3.5, 9, -172], [1, 11, -180]], cannon: true, target: [0, 10, -188] },
 
@@ -177,12 +184,17 @@ export const LEVEL = {
 
     // ======================================================== Kistenraum (abseits, x ≈ 60)
     { type: 'deco_w1b', items: [
-      stage(60, 0, -87, 16, 14, { color: 0x6a3a2a, bulbs: false }),
-      { kind: 'curtain', pos: [60, 0, -94.3], size: [16, 6], color: 0xc81e2a },
+      stage(60, 0, -87, 16, 14, { color: 0x9a6a3a, bulbs: false }),
+      stage(51.5, 4, -87, 1, 14, { h: 4, color: 0xffc21a, bulbs: false, inlay: false, camIgnore: true }),
+      stage(68.5, 4, -87, 1, 14, { h: 4, color: 0xffc21a, bulbs: false, inlay: false, camIgnore: true }),
+      stage(60, 4, -94.5, 18, 1, { h: 4, color: 0xffc21a, skirt: [0x7a1aa0, 0xfff4e0], bulbs: false, inlay: false }),
+      { kind: 'curtain', pos: [60, 4, -94.2], size: [14, 4], color: 0xc81e2a },
+      { kind: 'bunting', from: [52, 4.6, -93.9], to: [68, 4.6, -93.9], sag: 0.6, n: 18 },
+      { kind: 'drum', pos: [67, 0, -82.5], size: [1.4, 0.8], color: 'blue' },
+      { kind: 'ball', pos: [53.2, 0, -82.6], size: 0.6 },
+      { kind: 'balloons', pos: [67.4, 0, -86], n: 4, size: 1.6 },
+      { kind: 'trapeze', pos: [56, 3.2, -88], size: 3 },
     ] },
-    { type: 'wall', pos: [51.5, 0, -87], size: [1, 4, 14], style: 'white', camIgnore: true },
-    { type: 'wall', pos: [68.5, 0, -87], size: [1, 4, 14], style: 'white', camIgnore: true },
-    { type: 'wall', pos: [60, 0, -94.5], size: [18, 4, 1], style: 'red' },
     { type: 'crate', id: 'sternkiste', pos: [53.2, 0, -92.8], content: 'star' },
     { type: 'crate', pos: [55, 0, -92.8] }, { type: 'crate', pos: [56.8, 0, -92.8] },
     { type: 'crate', pos: [63.2, 0, -92.8] }, { type: 'crate', pos: [65, 0, -92.8], content: 'coins:5' }, { type: 'crate', pos: [66.8, 0, -92.8] },

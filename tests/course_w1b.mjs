@@ -29,6 +29,17 @@ function installBot() {
     return { x: co * wx - si * wz, y: -si * wx - co * wz };
   };
   const step = (inp) => { c.setInput(inp); c.step(1); };
+  /** Mitte/Oberseite der bewegten Plattform (Form mit mover-Flag), deren Mitte z0 am nächsten liegt. */
+  const movers = () => [...c.world.shapes.values()].filter((sh) => sh.mover);
+  const mover = (z0, x0) => {
+    let best = null, bd = Infinity;
+    for (const sh of movers()) {
+      const cx = sh.type === 'cyl' ? sh.x : (sh.x0 + sh.x1) / 2, cz = sh.type === 'cyl' ? sh.z : (sh.z0 + sh.z1) / 2;
+      const d = Math.abs(cz - z0) + (x0 === undefined ? 0 : Math.abs(cx - x0));
+      if (d < bd) { bd = d; best = { x: cx, y: sh.top, z: cz, sh }; }
+    }
+    return best;
+  };
   const bot = {
     place(pos, o = {}) {
       const p = P();
@@ -60,8 +71,10 @@ function installBot() {
         let n = 0;
         const dead = () => p.dead || c.level.runtime.status === 'dying';
         if (a.go) {
-          const [tx, tz] = a.go, tol = a.tol ?? 0.45;
+          let [tx, tz] = a.go;
+          const tol = a.tol ?? 0.45;
           for (; n < max; n++) {
+            if (a.track !== undefined) { const m = mover(a.track); if (m) { tx = m.x + a.go[0]; tz = m.z + a.go[1]; } }
             const dx = tx - p.pos.x, dz = tz - p.pos.z;
             if (Math.hypot(dx, dz) < tol) break;
             if (a.until && a.until(p)) break;
@@ -70,11 +83,16 @@ function installBot() {
             if (dead()) break;
             if (a.stalk && p.mode === 'stalk') break;
           }
+        } else if (a.waitfor) {
+          for (; n < max; n++) { if (a.waitfor(p, c, bot)) break; step({}); if (dead()) break; }
+          if (n >= max) fail = 'Bedingung nicht erreicht';
         } else if (a.jump) {
           // Sprung jetzt drücken, dabei zum Ziel lenken bis zur Landung (nah am Ziel: Stick los)
-          const [tx, tz] = a.jump, hold = a.hold ?? 60;
+          let [tx, tz] = a.jump;
+          const hold = a.hold ?? 60;
           let air = false;
           for (; n < max; n++) {
+            if (a.track !== undefined) { const m = mover(a.track); if (m) { tx = m.x + (a.jump[0] ?? 0); tz = m.z + (a.jump[1] ?? 0); } }
             const dx = tx - p.pos.x, dz = tz - p.pos.z;
             // Wunschgeschwindigkeit zum Ziel (bremst vor dem Ziel), Stick = Richtung der Abweichung
             const k = a.gain ?? 2.2, vmax = a.vmax ?? 11;
@@ -156,6 +174,7 @@ function installBot() {
       return { fail, log, time: +(c.level.time - t0).toFixed(2), pos: [p.pos.x, p.pos.y, p.pos.z].map((v) => +v.toFixed(2)), mode: p.mode, rt: c.level.runtime.info() };
     },
   };
+  bot.mover = mover;
   window.__bot = bot;
   return true;
 }
@@ -166,6 +185,7 @@ const runRoute = (actions, o = {}) => sc(([acts, opt]) => {
     const b = { ...a };
     if (typeof a.until === 'string') b.until = new Function('p', `return (${a.until});`);
     if (typeof a.exec === 'string') b.exec = new Function('c', a.exec);
+    if (typeof a.waitfor === 'string') b.waitfor = new Function('p', 'c', 'bot', `return (${a.waitfor});`);
     if (a.wallclimb && typeof a.wallclimb.stop === 'string') b.wallclimb = { ...a.wallclimb, stop: new Function('p', 'c', `return (${a.wallclimb.stop});`) };
     return b;
   };
@@ -174,7 +194,8 @@ const runRoute = (actions, o = {}) => sc(([acts, opt]) => {
 const place = (pos, o = {}) => sc(([p, opt]) => window.__bot.place(p, opt), [pos, o]);
 
 async function load(id) {
-  await page.goto(`http://localhost:${port}/?course=${id}&scale=2&adapt=0`, { waitUntil: 'load' });
+  try { await page.goto(`http://localhost:${port}/?course=${id}&scale=2&adapt=0`, { waitUntil: 'load', timeout: 60000 }); }
+  catch { await page.waitForTimeout(2000); await page.goto(`http://localhost:${port}/?course=${id}&scale=2&adapt=0`, { waitUntil: 'load', timeout: 60000 }); }
   try {
     await page.waitForFunction(() => window.__course && window.__course.level && window.__game.scene.isActive('CourseUI'), null, { timeout: 40000 });
   } catch {
@@ -240,9 +261,35 @@ const R13 = {
 const R15 = {
   id: '1-5',
   main: [
-    { name: 'Schalter-Feld 1', start: [0, 0, 5], acts: [{ go: [0, -12], run: true }], expect: (s) => s.pos[2] < -11 },
+    { name: 'Schalter-Feld 1 → Steg', start: [0, 0, 5], acts: [
+      { go: [-1, -13.4], run: true }, { jump: [-1, -16.5], run: false }, { go: [-0.3, -17.6], tol: 0.3 }, { jump: [0, -20], run: false },
+      { go: [0.6, -21.1], tol: 0.3 }, { jump: [1, -23.5], run: false }, { go: [1, -24.6], tol: 0.3 }, { jump: [0.5, -28.5], run: false },
+    ], expect: (s) => s.pos[2] < -27.2 && Math.abs(s.pos[1]) < 0.2 },
+    { name: 'Schalter-Feld 2: fahrende Plattformen', start: [0, 0, -29], acts: [
+      { go: [0, -33] }, { waitfor: 'Math.abs(bot.mover(-39).x - p.pos.x) < 1.2 && bot.mover(-39).sh.mover.vx * (p.pos.x - bot.mover(-39).x) <= 0', max: 2000 },
+      { go: [0, -34.6], tol: 0.3 }, { jump: [0, 0], track: -39, run: false },
+      { go: [0, 1.2], track: -39, tol: 0.3 }, { waitfor: 'Math.abs(bot.mover(-45).x - p.pos.x) < 1.6', max: 2000 },
+      { go: [0, -1.2], track: -39, tol: 0.3 }, { jump: [0, 0], track: -45, run: false },
+      { go: [0, 1.2], track: -45, tol: 0.3 }, { waitfor: 'Math.abs(bot.mover(-45).x) < 0.6', max: 2000 },
+      { go: [0, -1.2], track: -45, tol: 0.3 }, { jump: [0, -52.5], run: false },
+    ], expect: (s) => s.pos[2] < -50.2 && Math.abs(s.pos[1] - 1.5) < 0.2 },
+    { name: 'Checkpoint-Trommel', start: [0, 1.5, -51], acts: [{ go: [0, -55.4] }, { jump: [0, -61], run: false }, { go: [0, -63.2] }, { wait: 10 }], expect: (s) => Math.abs(s.pos[1] - 2.5) < 0.2 && !!s.rt.checkpoint },
+    { name: 'Flatterkäfer-Zone', start: [0, 2.5, -64], acts: [
+      { go: [-2.5, -67.2], tol: 0.3 }, { jump: [-4, -73], run: false }, { go: [-1.8, -75.1], tol: 0.3 }, { jump: [3, -80], run: false },
+      { go: [2, -82.1], tol: 0.3 }, { jump: [0, -86.5], run: false }, { go: [0, -91.4] },
+    ], expect: (s) => Math.abs(s.pos[1] - 4) < 0.2 && s.pos[2] < -90 },
+    { name: 'Krabbelkäfer-Gang', start: [0, 4, -91], acts: [{ go: [0, -91.6], tol: 0.3 }, { jump: [0, -97], run: false }, { go: [0, -124.4], run: true }], expect: (s) => Math.abs(s.pos[1] - 4) < 0.2 && s.pos[2] < -123.5 },
+    { name: 'Wechselschalter-Fähre', start: [0, 4, -124.3], acts: [
+      { waitfor: 'bot.mover(-140).z > -132.6', max: 3000 }, { jump: [0, 0], track: -140, run: false },
+      { waitfor: 'bot.mover(-140).z < -151.6', max: 3000 }, { go: [0, -157.2], tol: 0.3 }, { jump: [0, -161], run: false },
+    ], expect: (s) => Math.abs(s.pos[1] - 4) < 0.2 && s.pos[2] < -159.2 },
+    { name: 'Zielbühne → Zielmast', start: [0, 10, -186.5], acts: [{ go: [0, -191.2], until: 'p.mode === "script"', max: 600 }, { wait: 60 }], expect: (s) => s.rt.status === 'goal' || s.rt.status === 'done' },
   ],
-  extras: [],
+  extras: [
+    { name: 'Stern 1 (Wandsprung neben der Warp-Box)', start: [7.75, 0, -8], acts: [{ go: [7.75, -11], tol: 0.15 }, { wait: 30 }, { wallclimb: { dir: 1, until: 7.4, z: -11, then: [5.4, -11] } }, { go: [5.5, -11.5], tol: 0.25, max: 200 }, { wait: 20 }], expect: (s) => s.rt.stars[0] },
+    { name: 'Stempel per Wandsprung', start: [-7.25, 4, -159.6], acts: [{ go: [-7.25, -163.2], tol: 0.15 }, { wait: 30 }, { wallclimb: { dir: -1, until: 12.3, z: -163.2, then: [-9.6, -163.4] } }, { go: [-9.5, -163.6], tol: 0.25, max: 200 }, { wait: 20 }], expect: (s) => s.rt.stamp },
+    { name: 'Stempel mit Krallen (Kletterwand)', start: [-9.5, 4, -159.2], power: 'krallen', acts: [{ go: [-9.5, -161.6], tol: 0.15, max: 120 }, { input: { y: 1 }, n: 240 }, { go: [-9.5, -163.4], tol: 0.3, max: 200 }, { wait: 20 }], expect: (s) => s.rt.stamp },
+  ],
 };
 
 // ------------------------------------------------------------------ Ablauf
@@ -258,7 +305,7 @@ async function testLevel(R) {
     }
     let total = 0, allOk = true;
     for (const sec of R.main) {
-      await place(sec.start, { hero });
+      await place(sec.start, { hero, power: sec.power });
       if (sec.calm !== false) await sc(() => window.__bot.calm());
       const r = await runRoute(sec.acts);
       const ok = !r.fail && sec.expect(r);
@@ -271,7 +318,7 @@ async function testLevel(R) {
     console.log(`  [${hero}] Hauptroute ${f1(total)} s Spielzeit`);
     check(`${R.id} [${hero}]: Hauptroute < 180 s (${f1(total)} s)`, total < 180);
     for (const ex of R.extras) {
-      await place(ex.start, { hero });
+      await place(ex.start, { hero, power: ex.power });
       await sc(() => window.__bot.calm());
       const r = await runRoute(ex.acts);
       const ok = !r.fail && ex.expect(r);

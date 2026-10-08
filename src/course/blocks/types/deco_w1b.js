@@ -30,6 +30,9 @@
 //   stage       Schwebende Zirkusplattform – Kollision box bzw. cyl (round). size [w, h, d] (round: w = Durchmesser),
 //               color (Decke, Standard 'blue'), skirt [Farbe1, Farbe2] (Streifen der Seiten, Standard rot/weiß),
 //               bulbs (Lichterkante, Standard true), star (Goldstern auf der Decke, Standard false), oneWay
+//               inlay (Zierrahmen auf der Decke, Standard ab 5 × 5 m), camIgnore, noCollision
+//   ride        Bühnen-Verkleidung einer bewegten Plattform (Baustein mover, muss vorher stehen): at [x, y, z] =
+//               erster Pfadpunkt (Mitte Unterseite); color, skirt, star, bulbs wie stage. Folgt der Plattform je Bild.
 //   drum        Zirkus-Podest (Trommel) – Kollision cyl. size [Durchmesser, Höhe], color
 //   ball        Gestreifter Zirkusball: size (Radius, Standard 0.8), solid (Kollision cyl, Standard false)
 //   bunting     Wimpelkette: from, to (Aufhängepunkte), sag (Durchhang, Standard 0.8), n (Wimpel)
@@ -507,7 +510,7 @@ function stage(level, it, out, glow) {
   const y1 = p.y + s.y;
   if (round) {
     const R = s.x / 2;
-    level.world.add({ type: 'cyl', x: p.x, z: p.z, r: R, y0: p.y, y1, oneWay: !!it.oneWay, tag: 'stage' });
+    if (!it.noCollision) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: R, y0: p.y, y1, oneWay: !!it.oneWay, tag: 'stage' });
     // Seiten: Streifen-Segmente
     const n = Math.max(12, Math.round(R * 6) * 2);
     for (let i = 0; i < n; i++) {
@@ -535,7 +538,7 @@ function stage(level, it, out, glow) {
     }
     return;
   }
-  level.world.add({ type: 'box', min: [p.x - s.x / 2, p.y, p.z - s.z / 2], max: [p.x + s.x / 2, y1, p.z + s.z / 2], oneWay: !!it.oneWay, tag: 'stage' });
+  if (!it.noCollision) level.world.add({ type: 'box', min: [p.x - s.x / 2, p.y, p.z - s.z / 2], max: [p.x + s.x / 2, y1, p.z + s.z / 2], oneWay: !!it.oneWay, camIgnore: !!it.camIgnore, tag: 'stage' });
   // Kern
   out.push(box(s.x - 0.08, s.y - 0.22, s.z - 0.08, p.x, p.y + (s.y - 0.22) / 2, p.z, tint(s1, -0.3), { r: 0.06, seg: 1 }));
   // Streifenschürze auf den sichtbaren Seiten (+Z, ±X; −Z ebenfalls für Rückblicke)
@@ -559,6 +562,16 @@ function stage(level, it, out, glow) {
   out.push(box(s.x + 0.1, 0.26, s.z + 0.1, p.x, y1 - 0.13, p.z, trim, { r: 0.08, seg: 1 }));
   out.push(box(s.x - 0.3, 0.04, s.z - 0.3, p.x, y1 + 0.005, p.z, top, { r: 0.02, seg: 0, topColor: tint(top, 0.1) }));
   if (it.star) starShape(out, p.x, y1 + 0.03, p.z, Math.min(s.x, s.z) * 0.3, 0, trim, true);
+  if (it.inlay ?? (s.x >= 5 && s.z >= 5)) {
+    // heller Zierrahmen 0,6 m innerhalb der Kante, Goldnieten in den Ecken
+    const fc = tint(top, 0.35), ins = 0.75, t = 0.14;
+    const w = s.x - ins * 2, d = s.z - ins * 2;
+    out.push(box(w, 0.02, t, p.x, y1 + 0.03, p.z - d / 2, fc, { r: 0, seg: 0 }));
+    out.push(box(w, 0.02, t, p.x, y1 + 0.03, p.z + d / 2, fc, { r: 0, seg: 0 }));
+    out.push(box(t, 0.02, d, p.x - w / 2, y1 + 0.03, p.z, fc, { r: 0, seg: 0 }));
+    out.push(box(t, 0.02, d, p.x + w / 2, y1 + 0.03, p.z, fc, { r: 0, seg: 0 }));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) out.push(ball(0.16, p.x + sx * w / 2, y1 + 0.04, p.z + sz * d / 2, 0xfff3b0, trim, 0xb88400, 1, 0.5, 1, 6, 3));
+  }
   // Zacken unter der Kante (vorn und seitlich)
   for (let x = p.x - s.x / 2; x < p.x + s.x / 2 - 0.1; x += 0.8) {
     out.push(tri([x, p.y + 0.02, p.z + s.z / 2 + 0.03], [Math.min(p.x + s.x / 2, x + 0.8), p.y + 0.02, p.z + s.z / 2 + 0.03], [x + 0.4, p.y - 0.45, p.z + s.z / 2 + 0.03], trim));
@@ -573,6 +586,38 @@ function stage(level, it, out, glow) {
     for (let x = p.x - s.x / 2 + 0.3; x < p.x + s.x / 2; x += 0.9) { put(x, p.z + s.z / 2 + 0.07, i++); }
     for (let z = p.z - s.z / 2 + 0.3; z < p.z + s.z / 2; z += 0.9) { put(p.x - s.x / 2 - 0.07, z, i++); put(p.x + s.x / 2 + 0.07, z, i++); }
   }
+}
+
+/** Verkleidung einer bewegten Plattform (Baustein mover): Zirkusbühnen-Optik, folgt der Kollisionsform. */
+function ride(level, it) {
+  const at = v3(it.at);
+  let shape = null;
+  level.world.forEach?.((sh) => {
+    if (shape || !sh.mover) return;
+    const cx = sh.type === 'cyl' ? sh.x : (sh.x0 + sh.x1) / 2, cz = sh.type === 'cyl' ? sh.z : (sh.z0 + sh.z1) / 2;
+    if (Math.abs(cx - at.x) < 0.6 && Math.abs(cz - at.z) < 0.6 && Math.abs(sh.bot - at.y) < 0.6) shape = sh;
+  });
+  if (!shape) { console.warn('[deco_w1b] ride: keine bewegte Plattform bei', it.at); return; }
+  if (!level.view) return;
+  const h = shape.top - shape.bot;
+  const w = (shape.type === 'cyl' ? shape.r * 2 : shape.x1 - shape.x0) + 0.08, d = (shape.type === 'cyl' ? shape.r * 2 : shape.z1 - shape.z0) + 0.08;
+  const out = [], glow = [];
+  stage(level, { ...it, pos: [0, -0.02, 0], size: [w, h + 0.03, d], round: shape.type === 'cyl', noCollision: true }, out, glow);
+  const group = new THREE.Group();
+  group.name = 'fahrbuehne';
+  const g = merge(out);
+  const m1 = new THREE.Mesh(g, level.view.mats.world);
+  m1.castShadow = true; m1.receiveShadow = true;
+  group.add(m1);
+  if (glow.length) group.add(new THREE.Mesh(merge(glow), level.view.mats.glow));
+  const place = () => {
+    const cx = shape.type === 'cyl' ? shape.x : (shape.x0 + shape.x1) / 2, cz = shape.type === 'cyl' ? shape.z : (shape.z0 + shape.z1) / 2;
+    group.position.set(cx, shape.bot, cz);
+  };
+  place();
+  // Geometrie gehört der Gruppe (Materialien sind die gemeinsamen der Ansicht → nicht freigeben)
+  for (const m of group.children) m.userData.owned = true;
+  level.view.add(group, place);
 }
 
 function drum(level, it, out) {
@@ -767,6 +812,7 @@ export function buildDecoW1b(level, spec) {
       case 'tent': tent(level, it, out, glow); cast = false; break;
       case 'stage': stage(level, it, out, glow); break;
       case 'drum': drum(level, it, out); break;
+      case 'ride': ride(level, it); break;
       case 'ball': circusBall(level, it, out); break;
       case 'bunting': bunting(it, out); cast = false; break;
       case 'bulbs': bulbs(it, glow, out); cast = false; break;
