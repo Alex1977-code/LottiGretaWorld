@@ -1,7 +1,9 @@
 // Web-Audio-Grundlage: AudioContext (wird bei der ersten Berührung freigeschaltet),
 // Busse für Effekte und Musik (Musik läuft über eine Kompressor/Limiter-Stufe) und die
-// Synth-Bausteine im Stil der 90er-Eurodance-Zeit: 909-Kick, Clap, Snare, Hi-Hats, Crash,
-// Hoover-/Supersaw-Lead, Brass-Stabs, Rave-Piano, Oktav-Bass, Pad.
+// Synth-Bausteine im Stil der 90er-Eurodance-Zeit: 909-Kick, Clap, Snare, Hi-Hats, Crash, Tom,
+// Hoover-/Supersaw-Lead, Brass-Stabs, Rave-Piano, Oktav-Bass, Pad, Rechteck-Orgel, Pluck (Arpeggien,
+// Echo-Noten) und Hoover-Riser. Optionen der Stimmen haben Standardwerte, mit denen die älteren Themen
+// unverändert klingen; die Kurs-Themen färben über sie (z.B. weiche Kick, gedämpfte Leads).
 //
 // Die Bausteine stecken in der Klasse `Voices`, die an einen beliebigen Kontext gebunden wird:
 // im Spiel an den Live-AudioContext, im Test an einen OfflineAudioContext (messbarer Mix).
@@ -157,13 +159,15 @@ export class Voices {
 
   /**
    * Einzelner Ton mit Hüllkurve.
-   * @param {object} o { type, freq, freqEnd, slideTime, duration, attack, release, volume, at, bus, detune }
+   * @param {object} o { type, freq, freqEnd, slideTime, curve ([Hz…] Tonhöhenverlauf über slideTime/Dauer),
+   *                     duration, attack, release, volume, at, bus, detune }
    */
   tone(o) {
     const t0 = o.at ?? this.now;
     const dur = o.duration ?? 0.1;
     const osc = this.osc(o.type ?? 'square', o.freq, t0, o.detune ?? 0);
-    if (o.freqEnd) osc.frequency.exponentialRampToValueAtTime(Math.max(20, o.freqEnd), t0 + (o.slideTime ?? dur));
+    if (o.curve) osc.frequency.setValueCurveAtTime(Float32Array.from(o.curve), t0 + 0.001, (o.slideTime ?? dur) - 0.002);
+    else if (o.freqEnd) osc.frequency.exponentialRampToValueAtTime(Math.max(20, o.freqEnd), t0 + (o.slideTime ?? dur));
     const g = this.gain(MIN, t0);
     this.envelope(g, t0, o.volume ?? 0.3, dur, o.attack ?? 0.005, o.release ?? 0.04);
     osc.connect(g);
@@ -190,20 +194,38 @@ export class Voices {
 
   // ---- Schlagzeug ----
 
-  /** 909-artige Kick: Sinus mit schnellem Pitch-Drop (160 → 45 Hz) plus kurzer Klick. */
+  /**
+   * 909-artige Kick: Sinus mit schnellem Pitch-Drop (160 → 45 Hz) plus kurzer Klick.
+   * @param {object} o { at, bus, volume, pitchStart, pitchEnd, decay (s), click (Anteil, 0 = ohne Klick) }
+   */
   kick909(o = {}) {
     const t = o.at ?? this.now, bus = o.bus ?? this.dest, vol = o.volume ?? 0.55;
+    const decay = o.decay ?? 0.24, click = o.click ?? 0.4;
     const osc = this.osc('sine', o.pitchStart ?? 160, t);
     osc.frequency.exponentialRampToValueAtTime(o.pitchEnd ?? 48, t + 0.06);
     const g = this.gain(vol, t);
     g.gain.exponentialRampToValueAtTime(vol * 0.4, t + 0.08);
-    g.gain.exponentialRampToValueAtTime(MIN, t + 0.24);
+    g.gain.exponentialRampToValueAtTime(MIN, t + decay);
     osc.connect(g); g.connect(bus);
-    osc.start(t); osc.stop(t + 0.26);
-    const click = this.source(this.buffers.white, t, 0.012);
-    const cg = this.gain(vol * 0.4, t);
-    cg.gain.exponentialRampToValueAtTime(MIN, t + 0.012);
-    click.connect(cg); cg.connect(bus);
+    osc.start(t); osc.stop(t + decay + 0.02);
+    if (click > 0) {
+      const src = this.source(this.buffers.white, t, 0.012);
+      const cg = this.gain(vol * click, t);
+      cg.gain.exponentialRampToValueAtTime(MIN, t + 0.012);
+      src.connect(cg); cg.connect(bus);
+    }
+    return 1;
+  }
+
+  /** 909-Tom: Sinus mit Pitch-Drop (1,5 × → 1 × freq), 0,25 s Ausklang. Für Fills (Tonhöhe je Schlag fallend). */
+  tom(o = {}) {
+    const t = o.at ?? this.now, bus = o.bus ?? this.dest, vol = o.volume ?? 0.4, f = o.freq ?? 180;
+    const osc = this.osc('sine', f * 1.5, t);
+    osc.frequency.exponentialRampToValueAtTime(f, t + 0.05);
+    const g = this.gain(vol, t);
+    g.gain.exponentialRampToValueAtTime(MIN, t + 0.25);
+    osc.connect(g); g.connect(bus);
+    osc.start(t); osc.stop(t + 0.27);
     return 1;
   }
 
@@ -306,14 +328,14 @@ export class Voices {
 
   /**
    * Brass-/Orchestra-Stab: Akkord aus Sägezähnen mit schnellem Decay, Hochpass und zufallendem Tiefpass.
-   * @param {object} o { at, bus, notes: [Hz...], duration, volume }
+   * @param {object} o { at, bus, notes: [Hz...], duration, volume, cutoff (Tiefpass-Start), cutoffEnd }
    */
   stab(o) {
     const t = o.at ?? this.now, bus = o.bus ?? this.dest;
     const dur = Math.min(0.3, Math.max(0.1, o.duration ?? 0.16)), vol = o.volume ?? 0.15;
     const hp = this.filter('highpass', 220, 0.7, t);
-    const lp = this.filter('lowpass', 6000, 1, t);
-    lp.frequency.exponentialRampToValueAtTime(1200, t + dur);
+    const lp = this.filter('lowpass', o.cutoff ?? 6000, 1, t);
+    lp.frequency.exponentialRampToValueAtTime(o.cutoffEnd ?? 1200, t + dur);
     const g = this.gain(MIN, t);
     g.gain.linearRampToValueAtTime(vol, t + 0.003);
     g.gain.exponentialRampToValueAtTime(MIN, t + dur);
@@ -329,13 +351,13 @@ export class Voices {
 
   /**
    * Rave-Piano: Akkord aus Sägezahn + Rechteck je Ton, schnelle Attack, mittleres Decay, Tiefpass.
-   * @param {object} o { at, bus, notes: [Hz...], duration, volume, oscs (1|2 je Ton) }
+   * @param {object} o { at, bus, notes: [Hz...], duration, volume, oscs (1|2 je Ton), cutoff, cutoffEnd }
    */
   ravePiano(o) {
     const t = o.at ?? this.now, bus = o.bus ?? this.dest;
     const dur = Math.max(0.12, o.duration ?? 0.4), vol = o.volume ?? 0.12, per = o.oscs ?? 2;
-    const lp = this.filter('lowpass', 5000, 0.8, t);
-    lp.frequency.exponentialRampToValueAtTime(1500, t + dur);
+    const lp = this.filter('lowpass', o.cutoff ?? 5000, 0.8, t);
+    lp.frequency.exponentialRampToValueAtTime(o.cutoffEnd ?? 1500, t + dur);
     const g = this.gain(MIN, t);
     g.gain.linearRampToValueAtTime(vol, t + 0.004);
     const decayEnd = t + Math.min(0.25, dur * 0.6);
@@ -357,13 +379,13 @@ export class Voices {
 
   /**
    * Pumpender Bass: Sägezahn durch Tiefpass (900 → 400 Hz) plus Sub-Sinus auf gleicher Tonhöhe.
-   * @param {object} o { at, bus, freq, duration, volume }
+   * @param {object} o { at, bus, freq, duration, volume, cutoff (Tiefpass-Start; Ende = 4/9 davon) }
    */
   bass(o) {
     const t = o.at ?? this.now, bus = o.bus ?? this.dest, f = o.freq;
-    const dur = Math.max(0.06, o.duration ?? 0.15), vol = o.volume ?? 0.18;
-    const lp = this.filter('lowpass', 900, 2, t);
-    lp.frequency.exponentialRampToValueAtTime(400, t + dur);
+    const dur = Math.max(0.06, o.duration ?? 0.15), vol = o.volume ?? 0.18, cut = o.cutoff ?? 900;
+    const lp = this.filter('lowpass', cut, 2, t);
+    lp.frequency.exponentialRampToValueAtTime(cut * 4 / 9, t + dur);
     const g = this.gain(MIN, t);
     this.envelope(g, t, vol, dur, 0.004, 0.04);
     lp.connect(g); g.connect(bus);
@@ -376,14 +398,14 @@ export class Voices {
 
   /**
    * Pad (Weltkarte): Dreieck je Ton plus Rechteck eine Oktave tiefer, langsamer Anschlag, Tiefpass.
-   * @param {object} o { at, bus, notes: [Hz...], duration, volume, oscs (1|2 je Ton) }
+   * @param {object} o { at, bus, notes: [Hz...], duration, volume, oscs (1|2 je Ton), bright (Faktor auf den Filterverlauf) }
    */
   pad(o) {
     const t = o.at ?? this.now, bus = o.bus ?? this.dest;
-    const dur = Math.max(0.3, o.duration ?? 1.5), vol = o.volume ?? 0.05, per = o.oscs ?? 2;
-    const lp = this.filter('lowpass', 800, 0.7, t);
-    lp.frequency.linearRampToValueAtTime(1800, t + dur * 0.5);
-    lp.frequency.linearRampToValueAtTime(900, t + dur);
+    const dur = Math.max(0.3, o.duration ?? 1.5), vol = o.volume ?? 0.05, per = o.oscs ?? 2, br = o.bright ?? 1;
+    const lp = this.filter('lowpass', 800 * br, 0.7, t);
+    lp.frequency.linearRampToValueAtTime(1800 * br, t + dur * 0.5);
+    lp.frequency.linearRampToValueAtTime(900 * br, t + dur);
     const g = this.gain(MIN, t);
     this.envelope(g, t, vol, dur, Math.min(0.5, dur * 0.3), Math.min(0.6, dur * 0.3));
     lp.connect(g); g.connect(bus);
@@ -398,6 +420,176 @@ export class Voices {
     }
     return count;
   }
+
+  /**
+   * Rechteck-Orgel (Kirmes-/House-Orgel): je Ton zwei Rechtecke (Grundton + Oktave, leicht verstimmt),
+   * Tiefpass, Orgel-Hüllkurve (kurzer Perkussions-Buckel, dann gehalten).
+   * @param {object} o { at, bus, notes: [Hz...], duration, volume, cutoff, octave (false = nur Grundton) }
+   */
+  organ(o) {
+    const t = o.at ?? this.now, bus = o.bus ?? this.dest;
+    const dur = Math.max(0.06, o.duration ?? 0.2), vol = o.volume ?? 0.05;
+    const bump = t + Math.min(0.06, dur * 0.5);
+    const lp = this.filter('lowpass', o.cutoff ?? 3200, 0.7, t);
+    const g = this.gain(MIN, t);
+    g.gain.linearRampToValueAtTime(vol * 1.5, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(vol, bump);
+    g.gain.setValueAtTime(vol, Math.max(bump, t + dur - 0.03));
+    g.gain.exponentialRampToValueAtTime(MIN, t + dur);
+    lp.connect(g); g.connect(bus);
+    let count = 0;
+    for (const f of o.notes) {
+      for (const [fr, det] of o.octave === false ? [[f, 0]] : [[f, -4], [f * 2, 4]]) {
+        const sq = this.osc('square', fr, t, det);
+        sq.connect(lp); sq.start(t + count * 0.001); sq.stop(t + dur + 0.02); count++;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * Pluck (Arpeggien, Echo-Noten, Tropfen): ein Oszillator mit schnellem Anschlag und kurzem Ausklang –
+   * zwei Knoten je Ton. Klangfarbe über `type` und den dauerhaften Spur-Tiefpass des Themas (fx.lowpass).
+   * @param {object} o { at, bus, freq, duration, volume, type ('square'|'sawtooth'|'triangle'|'sine'), decay (s), detune }
+   */
+  pluck(o) {
+    const t = o.at ?? this.now, bus = o.bus ?? this.dest;
+    const vol = o.volume ?? 0.08, decay = o.decay ?? 0.12;
+    const end = t + Math.max(0.05, Math.min(o.duration ?? decay * 2, decay * 2.5));
+    const osc = this.osc(o.type ?? 'square', o.freq, t, o.detune ?? 0);
+    const g = this.gain(MIN, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(vol * 0.3, t + Math.max(0.01, Math.min(decay, end - t - 0.01)));
+    g.gain.exponentialRampToValueAtTime(MIN, end);
+    osc.connect(g); g.connect(bus);
+    osc.start(t); osc.stop(end + 0.02);
+    return 1;
+  }
+
+  /**
+   * Hoover-Riser: drei verstimmte Sägezähne (einer eine Oktave tiefer) gleiten über die Dauer um den
+   * Faktor `glide` (2 = Oktave aufwärts, 0,5 = abwärts), der Tiefpass öffnet (bzw. schließt) mit, dazu ein
+   * Rauschfeger (Bandpass). Aufwärts schwillt er an, abwärts klingt er aus.
+   * @param {object} o { at, bus, freq, duration, volume, glide, noise (Pegel des Rauschens, 0 = ohne) }
+   */
+  riser(o) {
+    const t = o.at ?? this.now, bus = o.bus ?? this.dest, f = o.freq;
+    const dur = Math.max(0.1, o.duration ?? 1), vol = o.volume ?? 0.1, glide = o.glide ?? 2;
+    const up = glide >= 1;
+    const lp = this.filter('lowpass', up ? 600 : 5000, 2, t);
+    lp.frequency.exponentialRampToValueAtTime(up ? 6000 : 500, t + dur);
+    const g = this.gain(MIN, t);
+    if (up) {
+      g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.92);
+    } else {
+      g.gain.linearRampToValueAtTime(vol, t + 0.02);
+      g.gain.setValueAtTime(vol, t + dur * 0.4);
+    }
+    g.gain.exponentialRampToValueAtTime(MIN, t + dur);
+    lp.connect(g); g.connect(bus);
+    const parts = [[f, -12], [f, 12], [f / 2, 0]];
+    parts.forEach(([fr, d], i) => {
+      const osc = this.osc('sawtooth', fr, t, d);
+      osc.frequency.exponentialRampToValueAtTime(fr * glide, t + dur);
+      osc.connect(lp);
+      osc.start(t + i * 0.002); osc.stop(t + dur + 0.02);
+    });
+    const nv = o.noise ?? vol * 0.5;
+    if (nv > 0) {
+      const src = this.source(this.buffers.white, t, dur, true);
+      const bp = this.filter('bandpass', up ? 500 : 5000, 1.2, t);
+      bp.frequency.exponentialRampToValueAtTime(up ? 7000 : 400, t + dur);
+      const ng = this.gain(MIN, t);
+      ng.gain.exponentialRampToValueAtTime(nv, t + dur * (up ? 0.95 : 0.1));
+      ng.gain.exponentialRampToValueAtTime(MIN, t + dur);
+      src.connect(bp); bp.connect(ng); ng.connect(bus);
+    }
+    return parts.length;
+  }
+}
+
+/**
+ * Dauerhafte Effekt-Busse eines Themas (einmal je Themenstart, nicht je Note):
+ *  - `fx.lowpass: { spur: Hz }` – fester Tiefpass auf einer Spur (z.B. gedämpfte Leads in der Höhle).
+ *  - `fx.delay: { steps: [3, 4], feedback, lowpass, wet, send: { spur: Anteil } }` – Echo/Hall-Bus:
+ *    Hochpass (250 Hz) → je Abgriff eine Verzögerung (Länge in Sechzehnteln, tempo-synchron) mit
+ *    Rückkopplung über einen Tiefpass im Rückweg (jedes Echo dunkler) → Nass-Pegel → Musik-Eingang.
+ * Spuren sind die tonalen Spuren (lead, piano, arp, echo …) oder Schlagzeug-Teile (kick, clap, snare,
+ * hat, tom, crash). Ohne `fx` liefert die Funktion keine Busse – alle Stimmen gehen direkt auf `dest`.
+ * @returns {{ buses: Object<string, AudioNode>, nodes: AudioNode[], tail: number }}
+ */
+export function createThemeBus(ctx, fx, stepDur, dest) {
+  const buses = {}, nodes = [];
+  let tail = 0;
+  if (!fx) return { buses, nodes, tail };
+  const track = (name) => {
+    if (!buses[name]) {
+      const g = ctx.createGain();
+      g.connect(dest);
+      nodes.push(g);
+      buses[name] = g;
+    }
+    return buses[name];
+  };
+  for (const [name, hz] of Object.entries(fx.lowpass ?? {})) {
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = hz;
+    f.Q.value = 0.7;
+    f.connect(track(name));
+    nodes.push(f);
+    buses[name] = f; // Stimmen gehen in den Filter, der Filter in den Spur-Bus
+  }
+  const d = fx.delay;
+  if (d && d.send) {
+    const input = ctx.createBiquadFilter();
+    input.type = 'highpass';
+    input.frequency.value = 250;
+    const wet = ctx.createGain();
+    wet.gain.value = d.wet ?? 0.5;
+    wet.connect(dest);
+    nodes.push(input, wet);
+    // Mehrere Abgriffe bilden ein kleines Rückkopplungsnetz: jede Leitung speist alle Leitungen mit
+    // feedback/n zurück (Schleifenverstärkung = feedback < 1, stabil); die Echos fallen dadurch auf alle
+    // Summen der Abgriffslängen (3, 4, 6, 7, 8 … Sechzehntel) – dichter und hallartiger als ein Einzel-Echo.
+    const fb = Math.min(0.85, d.feedback ?? 0.4);
+    const taps = Array.isArray(d.steps) ? d.steps : [d.steps ?? 3];
+    const lines = taps.map((steps) => {
+      const time = steps * stepDur;
+      const line = ctx.createDelay(Math.max(1, time + 0.1));
+      line.delayTime.value = time;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = d.lowpass ?? 2000;
+      input.connect(line); line.connect(lp); lp.connect(wet);
+      nodes.push(line, lp);
+      return { line, lp, time };
+    });
+    for (const from of lines) {
+      for (const to of lines) {
+        const back = ctx.createGain();
+        back.gain.value = fb / lines.length;
+        from.lp.connect(back); back.connect(to.line);
+        nodes.push(back);
+      }
+    }
+    const avg = lines.reduce((s, l) => s + l.time, 0) / lines.length;
+    tail = avg * Math.log(0.001) / Math.log(Math.max(0.05, fb));
+    for (const [name, amount] of Object.entries(d.send)) {
+      const out = buses[name] ?? track(name);
+      const send = ctx.createGain();
+      send.gain.value = amount;
+      out.connect(send); send.connect(input);
+      nodes.push(send);
+    }
+  }
+  return { buses, nodes, tail };
+}
+
+/** Effekt-Busse eines Themas nach dem Ausklingen lösen (der Hall darf nach `stop()` noch nachklingen). */
+export function releaseThemeBus(bus) {
+  if (!bus || !bus.nodes.length) return;
+  setTimeout(() => { for (const n of bus.nodes) { try { n.disconnect(); } catch (_) { /* egal */ } } }, (Math.min(bus.tail, 6) + 0.5) * 1000);
 }
 
 export class AudioEngine {
