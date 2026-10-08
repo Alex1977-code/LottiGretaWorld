@@ -14,6 +14,19 @@ import { LEVELS } from './levels/index.js';
 import { setupOrientationHint } from './systems/orientation.js';
 import { registerServiceWorker } from './systems/pwa.js';
 import { installAudioUnlock, engine as audioEngine, music } from './audio/index.js';
+import { CourseBootScene } from './course/CourseBoot.js';
+import { CourseScene } from './course/CourseScene.js';
+import { CourseUIScene } from './course/CourseUIScene.js';
+import { CoursePauseScene } from './course/CoursePauseScene.js';
+import { CourseResultScene } from './course/CourseResultScene.js';
+import { getLevel as getCourseLevel } from './course/levels/index.js';
+
+// Kurs-Modus: ?course=<id> startet ein Kurs-Level direkt (Boot erzeugt weiter alle Texturen)
+const params = new URLSearchParams(window.location.search);
+const wantedCourse = params.get('course');
+const startCourse = wantedCourse && getCourseLevel(wantedCourse) ? wantedCourse : null;
+if (wantedCourse && !startCourse) console.warn(`[Kurs] unbekanntes Level: ${wantedCourse}`);
+const COURSE_SCENES = [CourseScene, CourseUIScene, CoursePauseScene, CourseResultScene];
 
 const config = {
   type: Phaser.AUTO,
@@ -42,7 +55,7 @@ const config = {
   },
   fps: { target: 60, min: 30, smoothStep: true },
   input: { activePointers: 3 },
-  scene: [BootScene, WorldMapScene, PlayScene, UIScene, LevelCompleteScene, PauseScene],
+  scene: [startCourse ? CourseBootScene : BootScene, WorldMapScene, PlayScene, UIScene, LevelCompleteScene, PauseScene, ...COURSE_SCENES],
 };
 
 const game = new Phaser.Game(config);
@@ -52,8 +65,9 @@ game.registry.set('renderScale', RENDER.scale);
 game.registry.set('render3d', RENDER3D.enabled);
 
 // Level per URL wählen (?level=test), Standard: erstes Level
-const wanted = new URLSearchParams(window.location.search).get('level');
+const wanted = params.get('level');
 game.registry.set('startLevel', wanted && LEVELS[wanted] ? wanted : null);
+game.registry.set('startCourse', startCourse);
 
 setupOrientationHint(game);
 registerServiceWorker();
