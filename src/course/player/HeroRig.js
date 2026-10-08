@@ -105,7 +105,8 @@ export class HeroRig {
     const speed = Math.hypot(p.vel.x, p.vel.z);
     const grounded = p.mode === 'ground';
     const c = this.proxy.course;
-    c.state = STATE_MAP[p.state] ?? p.state;
+    // Tatzenhieb und Wurf sind kurze Aktionen über dem Bewegungszustand (Präzisierung Gegner/Power-ups)
+    c.state = p.throwTime > 0 && !p.dead ? 'throw' : p.clawTime > 0 && p.state !== 'dive' && !p.dead ? 'claw' : STATE_MAP[p.state] ?? p.state;
     c.speed = p.mode === 'stalk' || p.mode === 'wall' ? 0 : speed;
     c.vy = p.vel.y;
     c.grounded = grounded;

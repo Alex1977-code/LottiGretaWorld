@@ -16,6 +16,8 @@
 //     ahead: 2.0,         Blickziel so viele m vor der Figur (Blickrichtung der Kamera) → Figur im unteren
 //                         Bilddrittel, mehr Sicht nach vorn
 //     area: [xMin, xMax]  optional: Abschnitt gilt nur in diesem X-Bereich (z. B. Bonusraum abseits) }
+// Power-ups können den Abstand vergrößern: player.powerDef.camZoom (Riesentrank 1,4) wird weich überblendet
+// (powerZoom, Präzisierung Gegner/Power-ups).
 // Zwischen Abschnitten wird über BLEND m überblendet. Die Steuerungs-Gier (controlYaw) kommt
 // unverzögert aus der Schiene + Spielerdrehung, damit die Simulation deterministisch bleibt.
 
@@ -39,6 +41,7 @@ export class CameraRig {
     this.sections = (sections ?? []).map((s) => ({ ...CAM_DEFAULT, ...s, zMin: Math.min(s.from ?? 1e9, s.to ?? -1e9), zMax: Math.max(s.from ?? 1e9, s.to ?? -1e9) }));
     this.userYaw = 0; this.userYawTarget = 0;
     this.zoomIndex = 0; this.zoom = 1;
+    this.powerZoom = 1;
     this.target = new THREE.Vector3();
     this.lead = new THREE.Vector3();
     this.anchorY = 0;
@@ -92,9 +95,10 @@ export class CameraRig {
     const r = this.railAt(player.pos.x, player.pos.z, this.cur);
     this.userYaw = this.userYawTarget;
     this.zoom = ZOOMS[this.zoomIndex];
+    this.powerZoom = player.powerDef?.camZoom ?? 1;
     const yaw = (r.yaw + this.userYaw) * DEG;
     this.target.set(this.lockedX(player.pos.x - Math.sin(yaw) * r.ahead, r), player.pos.y + r.height, player.pos.z - Math.cos(yaw) * r.ahead);
-    this.distNow = r.dist * this.zoom;
+    this.distNow = r.dist * this.zoom * this.powerZoom;
     this.place(r, 0);
   }
 
@@ -105,6 +109,7 @@ export class CameraRig {
     const r = this.railAt(p.x, p.z, this.cur);
     this.userYaw = damp(this.userYaw, this.userYawTarget, 6, dt);
     this.zoom = damp(this.zoom, ZOOMS[this.zoomIndex], 5, dt);
+    this.powerZoom = damp(this.powerZoom, player.powerDef?.camZoom ?? 1, 2.5, dt);
     const frozen = player.dead && player.deathCause === 'fall';
     if (!frozen) {
       // Vorausschau in Bewegungsrichtung (weich, begrenzt)
@@ -125,7 +130,7 @@ export class CameraRig {
     }
     // Kamera nicht in Geometrie: Strahl vom Kopf der Figur zur Wunschposition. Ist er verdeckt, rückt die
     // Kamera auf ihrer Achse näher ans Ziel, bis der Kopf wieder frei sichtbar ist (höchstens bis 3 m).
-    const want = r.dist * this.zoom;
+    const want = r.dist * this.zoom * this.powerZoom;
     let dist = want;
     if (world && !frozen) {
       const dir = this.offsetDir(r, this._a);
