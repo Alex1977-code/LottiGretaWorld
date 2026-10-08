@@ -6,8 +6,8 @@
 //
 // Kameraschiene (Präzisierung Motor), Einträge in LEVEL.camera:
 //   { from, to,           z-Bereich (Reihenfolge egal; Level verlaufen nach −Z)
-//     pitch: 50,          Neigung in Grad (Blick nach unten)
-//     dist: 14,           Abstand Kamera–Ziel in m
+//     pitch: 45,          Neigung in Grad (Blick nach unten)
+//     dist: 13,           Abstand Kamera–Ziel in m
 //     yaw: 0,             Grad; 0 = hinter der Figur (+Z) mit Blick nach −Z, positiv = Kamera nach rechts (+X)
 //     fov: 38,            vertikaler Öffnungswinkel in Grad
 //     x: null,            fester X-Wert des Blickziels (seitlich fixieren); xLock 0..1 Stärke (Standard 1)
@@ -21,7 +21,7 @@
 
 import * as THREE from 'three';
 
-export const CAM_DEFAULT = { pitch: 50, dist: 14, yaw: 0, fov: 38, x: null, xLock: 1, height: 1.0, lead: 1, ahead: 2.0 };
+export const CAM_DEFAULT = { pitch: 45, dist: 13, yaw: 0, fov: 38, x: null, xLock: 1, height: 1.0, lead: 1, ahead: 2.0 };
 const BLEND = 8;
 const USER_STEP = 15, USER_MAX = 30;
 const ZOOMS = [1, 0.74];

@@ -77,7 +77,10 @@ export class HeroRig {
     const av = this.avatar;
     this.hull.position.copy(p.pos);
     // Blickrichtung weich nachführen (Simulation dreht in Stufen von 1/120 s)
-    this.yaw += wrap(p.yaw - this.yaw) * (1 - Math.exp(-28 * dt));
+    // Wandrutschen: der Spieler blickt in der Simulation zur Wand; die Kurs-Pose des Avatars hat die Wand
+    // hinter sich (−X) und blickt von ihr weg – deshalb im Kurs-Modus um 180° gedreht darstellen.
+    const targetYaw = p.yaw + (this.courseMode && p.state === 'wallslide' ? Math.PI : 0);
+    this.yaw += wrap(targetYaw - this.yaw) * (1 - Math.exp(-28 * dt));
     this.hull.rotation.y = this.yaw;
     // Größe (Klein/Groß, Riesentrank) weich, Squash & Stretch bei Landung/Absprung
     const target = ((p.big ? 1 : 0.7) / AVATAR_H) * (p.powerDef.scale ?? 1);

@@ -385,3 +385,11 @@ Modellnamen mit Rückfall-Optik im Motor: `coin`, `star`, `stamp`, `checkpoint_f
 | `1-Burg` | boss (Baron Brummbär, Autobahn) | highway | course_boss | 3 + Stempel | 1-5 **und ≥ 10 Sterne** |
 
 Welt 1 hat damit 24 Sterne. Die Weltkarte (`course_map`) zeigt alle Eingänge; gesperrte sind sichtbar, aber zu.
+
+### Kamera-Richtwerte für Level (Hauptsitzung)
+
+Standard jetzt `pitch 45`, `dist 13`. Für Parcours-Abschnitte **pitch 40–48°, dist 11–14 m** wählen: so bleibt
+Tiefe sichtbar (Horizont/Hintergrund am oberen Bildrand), die Heldin ist auf dem Handy groß genug, und Sprünge in
+die Tiefe sind lesbar. Steiler (50–58°) nur für enge Sprungpassagen nach unten oder Arenen, flacher (35–40°) für
+Ausblicke und Rennstrecken. Wandrutschen: Simulation blickt zur Wand, HeroRig stellt die Kurs-Pose von der Wand
+weg dar.
