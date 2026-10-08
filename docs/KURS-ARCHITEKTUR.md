@@ -370,3 +370,18 @@ Modellnamen mit Rückfall-Optik im Motor: `coin`, `star`, `stamp`, `checkpoint_f
 - Tests: `tests/course.mjs` (Port 4192, Bewegungsset/Bausteine deterministisch über `step(n)`),
   `tests/course_view.mjs` (Port 4193, Screenshots `tests/out/c_*.png`, Kennzahlen). `__course.setInput({ x, y,
   jump, crouch, run, action })`, `setManual(b)`, `snapCamera()`, `stats()`, `setHero(k)`.
+
+## Welt 1 – Level-Liste und Freischaltung (Hauptsitzung)
+
+| Id | Archetyp | Thema | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `1-1` | parcours | grass | course_grass | 3 + Stempel | – (offen) |
+| `1-2` | parcours (Höhle) | cave | course_cave | 3 + Stempel | 1-1 |
+| `1-A` | arena (Gegner-Blockade, optional) | grass/Festung | course_arena | 1 | 1-2 |
+| `1-3` | parcours (vertikal) | grass | course_grass | 3 + Stempel | 1-2 |
+| `1-Schatz` | diorama (Pflaume, springt nicht) | diorama | course_diorama | 5 | 1-3 |
+| `1-4` | Reit-Level (Fluss, Pflaume auf Blatt-Floß) | river | course_river | 3 + Stempel | 1-3 |
+| `1-5` | parcours (Zirkus, Kipp-Schaltfelder) | circus | course_circus | 3 + Stempel | 1-4 |
+| `1-Burg` | boss (Baron Brummbär, Autobahn) | highway | course_boss | 3 + Stempel | 1-5 **und ≥ 10 Sterne** |
+
+Welt 1 hat damit 24 Sterne. Die Weltkarte (`course_map`) zeigt alle Eingänge; gesperrte sind sichtbar, aber zu.
