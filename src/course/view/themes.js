@@ -56,7 +56,7 @@ export const THEMES = {
     grassTop: 0x6e8f5a, grassTop2: 0x5f7f4e, grassRim: 0x86a96e, grassSide: 0x4d6b40,
     dirt: 0x7d5d4c, dirtDeep: 0x4f3a30,
     lights: [],
-    playerLight: { color: 0xffc27a, intensity: 18, distance: 10 },
+    playerLight: { color: 0xffc27a, intensity: 26, distance: 14 },
     lanternLight: { color: 0xffb44a, intensity: 22, distance: 11 },
   },
 };

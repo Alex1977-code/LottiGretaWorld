@@ -12,6 +12,8 @@
 
 import { v3, sz3, box, hex, islandParts, themeOf, addStatic, merge } from '../kit.js';
 
+const FLAT = { r: 0, seg: 0 }; // Kleinteile: schlichte Quader (12 Dreiecke)
+
 export function buildWall(level, spec) {
   const p = v3(spec.pos), s = sz3(spec.size, [6, 5, 1]);
   const th = themeOf(level);
@@ -31,12 +33,12 @@ export function buildWall(level, spec) {
     const ny = Math.floor((s.y - 0.4) / step);
     const marks = (len, fn) => { const n = Math.floor((len - 0.4) / step); for (let i = 0; i < n; i++) for (let j = 0; j < ny; j++) fn(-len / 2 + 0.2 + step * (i + 0.5) + (j % 2 ? step * 0.25 : -step * 0.25), y0 + 0.3 + step * (j + 0.5)); };
     marks(s.x, (u, y) => {
-      parts.push(box(0.28, 0.1, 0.06, p.x + u, y, z1 + 0.01, th.climbDark, { r: 0.03 }));
-      parts.push(box(0.28, 0.1, 0.06, p.x + u, y, z0 - 0.01, th.climbDark, { r: 0.03 }));
+      parts.push(box(0.28, 0.1, 0.06, p.x + u, y, z1 + 0.01, th.climbDark, FLAT));
+      parts.push(box(0.28, 0.1, 0.06, p.x + u, y, z0 - 0.01, th.climbDark, FLAT));
     });
     marks(s.z, (u, y) => {
-      parts.push(box(0.06, 0.1, 0.28, x1 + 0.01, y, p.z + u, th.climbDark, { r: 0.03 }));
-      parts.push(box(0.06, 0.1, 0.28, x0 - 0.01, y, p.z + u, th.climbDark, { r: 0.03 }));
+      parts.push(box(0.06, 0.1, 0.28, x1 + 0.01, y, p.z + u, th.climbDark, FLAT));
+      parts.push(box(0.06, 0.1, 0.28, x0 - 0.01, y, p.z + u, th.climbDark, FLAT));
     });
   } else {
     const col = style === 'stone' ? th.stoneDark : hex(style, th.stoneDark);
@@ -44,11 +46,11 @@ export function buildWall(level, spec) {
     // Fugen: waagerechte Linien auf den breiten Seiten
     for (let y = y0 + 1; y < y1 - 0.3; y += 1) {
       if (s.x >= s.z) {
-        parts.push(box(s.x - 0.1, 0.05, 0.03, p.x, y, z1 + 0.005, 0x8d909b, { r: 0.01 }));
-        parts.push(box(s.x - 0.1, 0.05, 0.03, p.x, y, z0 - 0.005, 0x8d909b, { r: 0.01 }));
+        parts.push(box(s.x - 0.1, 0.05, 0.03, p.x, y, z1 + 0.005, 0x8d909b, FLAT));
+        parts.push(box(s.x - 0.1, 0.05, 0.03, p.x, y, z0 - 0.005, 0x8d909b, FLAT));
       } else {
-        parts.push(box(0.03, 0.05, s.z - 0.1, x1 + 0.005, y, p.z, 0x8d909b, { r: 0.01 }));
-        parts.push(box(0.03, 0.05, s.z - 0.1, x0 - 0.005, y, p.z, 0x8d909b, { r: 0.01 }));
+        parts.push(box(0.03, 0.05, s.z - 0.1, x1 + 0.005, y, p.z, 0x8d909b, FLAT));
+        parts.push(box(0.03, 0.05, s.z - 0.1, x0 - 0.005, y, p.z, 0x8d909b, FLAT));
       }
     }
   }

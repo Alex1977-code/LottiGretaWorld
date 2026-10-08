@@ -138,7 +138,7 @@ export class Sky {
     const parts = [];
     const white = lin(0xffffff), shade = lin(0xd4e3f3);
     for (const [x, y, z, r] of [[0, 0, 0, 1], [-0.95, -0.12, 0.1, 0.72], [0.95, -0.1, -0.1, 0.78], [-0.35, 0.32, -0.2, 0.68], [0.45, 0.36, 0.15, 0.62]]) {
-      const s = new THREE.SphereGeometry(r, 10, 7);
+      const s = new THREE.SphereGeometry(r, 8, 6);
       s.translate(x, y, z);
       parts.push(colorize(s, (p, n, o) => mixc(shade, white, smooth(-0.7, 0.5, n.y), o)));
     }

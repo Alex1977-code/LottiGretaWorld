@@ -51,13 +51,13 @@ export function buildBridge(level, spec) {
   const np = Math.max(1, Math.floor(L / 0.5));
   for (let i = 0; i < np; i++) {
     const t = (i + 0.5) / np;
-    const g = box(0.44, 0.14, w, 0, 0, 0, plank, { r: 0.04, topColor: 0xffffff });
+    const g = box(0.44, 0.14, w, 0, 0, 0, plank, { r: 0.04, seg: 1, topColor: 0xffffff });
     g.rotateZ(pitch);
     g.translate(t * L, slope * t * L - 0.07, 0);
     parts.push(g);
   }
   for (const s of [-1, 1]) {
-    const beam = box(L + 0.2, 0.24, 0.16, 0, 0, 0, dark, { r: 0.05 });
+    const beam = box(L + 0.2, 0.24, 0.16, 0, 0, 0, dark, { r: 0.05, seg: 1 });
     beam.rotateZ(pitch);
     beam.translate(L / 2, slope * L / 2 - 0.2, s * (w / 2 - 0.08));
     parts.push(beam);
@@ -67,10 +67,10 @@ export function buildBridge(level, spec) {
     for (const s of [-1, 1]) {
       for (let i = 0; i < nPost; i++) {
         const t = i / (nPost - 1);
-        const post = box(0.14, 0.75, 0.14, t * L, slope * t * L + 0.37, s * (w / 2 - 0.06), plank, { r: 0.05 });
+        const post = box(0.14, 0.75, 0.14, t * L, slope * t * L + 0.37, s * (w / 2 - 0.06), plank, { r: 0.05, seg: 1 });
         parts.push(post);
       }
-      const rail = box(L, 0.1, 0.12, 0, 0, 0, plank, { r: 0.04, topColor: 0xffffff });
+      const rail = box(L, 0.1, 0.12, 0, 0, 0, plank, { r: 0.04, seg: 1, topColor: 0xffffff });
       rail.rotateZ(pitch);
       rail.translate(L / 2, slope * L / 2 + 0.72, s * (w / 2 - 0.06));
       parts.push(rail);

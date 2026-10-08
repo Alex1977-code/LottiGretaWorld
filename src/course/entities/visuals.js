@@ -31,8 +31,6 @@ export function model(name, fallback, opts = {}) {
   return fallback(opts);
 }
 
-const simple = (root, update) => ({ root, update: update ?? (() => {}), dispose() {} });
-
 // ------------------------------------------------------------------ Münze (Bitcoin, orange mit ₿)
 
 function btc(ctx, color, lw) {
@@ -50,13 +48,13 @@ function btc(ctx, color, lw) {
 export function coinTemplate() {
   const body = once('coin:body', () => {
     const prof = [[0, 0.055], [0.29, 0.055], [0.32, 0.068], [0.36, 0.07], [0.385, 0.055], [0.4, 0.025], [0.4, -0.025], [0.385, -0.055], [0.36, -0.07], [0.32, -0.068], [0.29, -0.055], [0, -0.055]];
-    const g = new THREE.LatheGeometry(prof.map(([x, y]) => new THREE.Vector2(x, y)), 28);
+    const g = new THREE.LatheGeometry(prof.map(([x, y]) => new THREE.Vector2(x, y)), 18);
     g.rotateX(Math.PI / 2);
     return g;
   });
   const faces = once('coin:faces', () => {
-    const a = new THREE.CircleGeometry(0.3, 28); a.translate(0, 0, 0.057);
-    const b = new THREE.CircleGeometry(0.3, 28); b.rotateY(Math.PI); b.translate(0, 0, -0.057);
+    const a = new THREE.CircleGeometry(0.3, 18); a.translate(0, 0, 0.057);
+    const b = new THREE.CircleGeometry(0.3, 18); b.rotateY(Math.PI); b.translate(0, 0, -0.057);
     const g = new THREE.BufferGeometry();
     const merge = (geos) => {
       const pos = [], nor = [], uv = [];

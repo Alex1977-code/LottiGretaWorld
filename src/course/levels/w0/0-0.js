@@ -1,14 +1,15 @@
 // Übungsplatz (0-0): ca. 165 m, alle Grund-Bausteine und Bewegungen des Kurs-Motors.
 // Abschnitte (Level verläuft nach −Z):
 //   A  Übungswiese (z 6 … −24): ?-Blöcke, Ziegel, versteckter Block (1-Up), Mehrfach-Münzblock, weiße Treppe,
-//      Pilzling. Linke Bahn (x ≈ −7,5) bleibt frei: 28 m Anlauf/Sprungfeld mit 1-m-Raster.
-//   B  Brücke + Wandsprung-Schacht (Stern 1), Trampolin zur hohen Plattform, Förderband, Kristallblöcke.
+//      sanfter Hügel, Einweg-Wolke, Pilzling. Linke Bahn (x ≈ −7,5) bleibt frei: 28 m Anlauf/Sprungfeld mit 1-m-Raster.
+//   B  Brücke + Wandsprung-Schacht (Stern 1), Stufenhügel, Trampolin zur hohen Plattform, Förderband,
+//      Kristallblöcke.
 //   C  Wasserbecken (Schwimmen), Checkpoint.
-//   D  Kletterwand (Krallen-Anzug aus dem ?-Block) oder Bohnenranke aufs Plateau; Ziegeldecke zum
+//   D  Rampe auf einen Steinsockel; Kletterwand (Krallen-Anzug aus dem ?-Block) oder Bohnenranke aufs Plateau; Ziegeldecke zum
 //      Stampfen über einer Kammer (Stern 2).
 //   E  Bewegliche Plattform über die Schlucht, Lava-Graben, Boost-Pfeil, Röhre in den Bonusraum (Stempel).
 //   F  Finale: Sprung über die Lücke, Säule für Rückwärtssalto/Dreifachsprung (Stern 3), Treppe, Zielmast.
-//   Bonusraum abseits bei x ≈ 70 (eigene Kameraschiene).
+//   Bonusraum abseits bei x ≈ 70 (eigene Kameraschiene) mit Drehscheibe und Stempel.
 
 const coinsLine = (from, to, n) => ({ kind: 'coins', from, to, n });
 
@@ -22,12 +23,12 @@ export const LEVEL = {
   timeLimit: 300,
   start: { pos: [0, 1, 3], yaw: Math.PI / 2 },
   camera: [
-    { from: 8, to: -26, pitch: 48, dist: 13.5, yaw: 0 },
-    { from: -26, to: -50, pitch: 50, dist: 14, yaw: 0 },
-    { from: -50, to: -74, pitch: 55, dist: 14, yaw: 0 },
+    { from: 8, to: -26, pitch: 46, dist: 14, yaw: 0 },
+    { from: -26, to: -50, pitch: 48, dist: 14.5, yaw: 0 },
+    { from: -50, to: -74, pitch: 54, dist: 14, yaw: 0 },
     { from: -74, to: -106, pitch: 46, dist: 15, yaw: -8 },
-    { from: -106, to: -146, pitch: 50, dist: 14, yaw: 0 },
-    { from: -146, to: -170, pitch: 46, dist: 15, yaw: 0, x: 0, xLock: 0.4 },
+    { from: -106, to: -146, pitch: 48, dist: 14, yaw: 0 },
+    { from: -146, to: -170, pitch: 45, dist: 15, yaw: 0, x: 0, xLock: 0.4 },
     { from: -80, to: -120, pitch: 52, dist: 12, yaw: 0, x: 70, xLock: 0.6, area: [55, 90] },
   ],
   segments: [
@@ -35,16 +36,19 @@ export const LEVEL = {
     { type: 'island', pos: [0, 0, -9], size: [20, 1, 30] },
     { type: 'stairs', pos: [6, 1, -8], dir: '-z', steps: 3, rise: 1, run: 1.5, width: 3 },
     { type: 'platform', pos: [6, 3.4, -14.5], size: [3, 0.6, 3], color: 'red' },
+    { type: 'platform', style: 'cloud', pos: [6, 5.4, -19.5], size: [3, 0.5, 3] },   // Einweg: von unten durchspringen
+    { type: 'mound', pos: [5.5, 1, 1], radius: 2.6, height: 0.9 },
     { type: 'deco', items: [
       { kind: 'tree', pos: [8.6, 1, 3], size: 4.6 }, { kind: 'tree', pos: [8.8, 1, -21], size: 5 },
       { kind: 'bush', pos: [-3, 1, 4.6], size: 0.7 }, { kind: 'bush', pos: [3.5, 1, -23], size: 0.8 },
-      { kind: 'flowers', pos: [3, 1, 2], size: [3, 2], n: 12 }, { kind: 'flowers', pos: [-2.5, 1, -21], size: [3, 2], n: 10 },
+      { kind: 'flowers', pos: [-3.5, 1, -1.5], size: [2.5, 2], n: 10 }, { kind: 'flowers', pos: [-2.5, 1, -21], size: [3, 2], n: 10 },
       { kind: 'rock', pos: [9, 1, -12], size: 0.5 },
       { kind: 'fence', from: [-9.6, 1, 5.6], to: [-5.6, 1, 5.6] },
     ] },
     // ---------------- B  Brücke, Wandsprung, Trampolin, Förderband
     { type: 'bridge', from: [0, 1, -24], to: [0, 1, -32], width: 3 },
     { type: 'island', pos: [0, 0, -41], size: [20, 1, 18] },
+    { type: 'hill', pos: [-6.5, 1, -34.2], radius: 2.2, height: 2, steps: 2 },
     { type: 'wall', pos: [-8.5, 1, -42], size: [1, 9, 8] },
     { type: 'wall', pos: [-4.5, 1, -42], size: [1, 6, 8] },
     { type: 'trampoline', pos: [6, 1, -36], strength: 17 },
@@ -68,6 +72,8 @@ export const LEVEL = {
     ] },
     // ---------------- D  Kletterwand, Bohnenranke, Plateau mit Ziegeldecke
     { type: 'island', pos: [0, 0, -81], size: [20, 1, 14] },
+    { type: 'ramp', pos: [-8, 1, -78.5], size: [3, 2, 5], axis: 'z', dir: -1 },
+    { type: 'platform', style: 'stone', pos: [-8, 1, -82.5], size: [3, 2, 3] },
     { type: 'wall', pos: [-3, 1, -88.5], size: [10, 6, 1], climbable: true },
     { type: 'beanstalk', pos: [7, 1, -87.3], height: 8.5 },
     { type: 'island', pos: [0, 0, -93], size: [20, 7, 8], under: 3 },
@@ -77,7 +83,7 @@ export const LEVEL = {
     { type: 'island', pos: [5.5, 0, -99], size: [3, 4, 4], top: 'stone', under: 0 },
     { type: 'deco', items: [
       { kind: 'tree', pos: [-8.5, 7, -92], size: 4.6 }, { kind: 'tree', pos: [8.6, 7, -103.5], size: 4.2 },
-      { kind: 'bush', pos: [9, 1, -78], size: 0.8 }, { kind: 'flowers', pos: [-7, 1, -80], size: [3, 3], n: 12 },
+      { kind: 'bush', pos: [9, 1, -78], size: 0.8 }, { kind: 'flowers', pos: [6, 1, -76.5], size: [3, 2], n: 10 },
     ] },
     // ---------------- E  Bewegliche Plattform, Lava, Boost, Röhre
     { type: 'mover', size: [3, 0.5, 3], path: [[0, 6.5, -107.5], [0, 6.5, -114.5]], speed: 2.5, wait: 0.6 },
@@ -94,12 +100,14 @@ export const LEVEL = {
     { type: 'stairs', pos: [0, 7, -151], dir: '-z', steps: 3, rise: 1, run: 1, width: 4 },
     { type: 'island', pos: [0, 7, -158], size: [7, 3, 8], top: 'stone', under: 0 },
     { type: 'deco', items: [{ kind: 'tree', pos: [6.5, 7, -160], size: 4.8 }, { kind: 'flowers', pos: [5, 7, -150], size: [3, 2], n: 10 }] },
+    { type: 'killplane', y: -16 },
     // ---------------- Bonusraum (abseits)
     { type: 'island', pos: [70, 0, -100], size: [14, 1, 10], top: 'stone' },
     { type: 'wall', pos: [70, 1, -105.5], size: [16, 4, 1], style: 'stone' },
     { type: 'wall', pos: [62.5, 1, -100], size: [1, 4, 10], style: 'stone', camIgnore: true },
     { type: 'wall', pos: [77.5, 1, -100], size: [1, 4, 10], style: 'stone', camIgnore: true },
     { type: 'pipe', id: 'p2', pos: [65, 1, -100], height: 1.5, target: 'p3' },
+    { type: 'mover', shape: 'cyl', size: [3.2, 0.4, 3.2], path: [[72.5, 1, -98.5]], spin: 0.9, color: 'pink' },   // Drehscheibe
   ],
   blocks: [
     { kind: 'brick', pos: [-1, 3.4, -6] },
@@ -114,8 +122,6 @@ export const LEVEL = {
     { kind: 'question', pos: [-1, 3.4, -78], content: 'coin' },
     // Ziegeldecke über der Kammer (Stampfen!)
     ...[4.5, 5.5, 6.5].flatMap((x) => [-97.5, -98.5, -99.5, -100.5].map((z) => ({ kind: 'brick', pos: [x, 6, z] }))),
-    { kind: 'brick', pos: [-2, 12.4, -156] },
-    { kind: 'question', pos: [-1, 12.4, -156], content: 'coin' },
   ],
   enemies: [
     { kind: 'pilzling', pos: [-3.5, 1, -15], path: [[-4, 1, -15], [3, 1, -15]] },
@@ -135,6 +141,9 @@ export const LEVEL = {
     { kind: 'coins', pos: [70, 1.2, -99.5], r: 2.6, n: 10 },
     coinsLine([66, 1.2, -103.5], [74, 1.2, -103.5], 5),
     coinsLine([0, 8.3, -151.5], [0, 10.3, -153.5], 3),
+    coinsLine([5.2, 6, -18.6], [6.8, 6, -20.4], 3),
+    { kind: 'coin', pos: [-8, 3.2, -82.5] },
+    { kind: 'coin', pos: [-6.5, 3.2, -34.2] },
   ],
   checkpoint: [0, 1, -70],
   stars: [[-6.5, 8.5, -42], [5.5, 4.3, -99], [-5.5, 11.7, -152]],
@@ -157,5 +166,6 @@ export const LEVEL = {
     goal: [0, 10, -156],
     pilzling: [-3.5, 1, -15],
     bonus: [70, 1, -98],
+    turntable: [73.5, 1.45, -98.5],
   },
 };

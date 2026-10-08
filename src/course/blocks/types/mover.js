@@ -51,7 +51,7 @@ export function buildMover(level, spec) {
   else {
     const parts = [box(s.x, s.y, s.z, 0, s.y / 2, 0, color, { r: 0.12, topColor: 0xfff1a8 })];
     // Pfeile/Nieten an den Seiten: kleine dunkle Punkte
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) parts.push(box(0.16, 0.16, 0.16, sx * (s.x / 2 - 0.25), s.y + 0.03, sz * (s.z / 2 - 0.25), 0xb88a12, { r: 0.06 }));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) parts.push(box(0.16, 0.16, 0.16, sx * (s.x / 2 - 0.25), s.y + 0.03, sz * (s.z / 2 - 0.25), 0xb88a12, { r: 0, seg: 0 }));
     g = merge(parts);
   }
   const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 }));

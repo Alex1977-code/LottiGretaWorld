@@ -63,9 +63,9 @@ function flower(p, color, parts) {
   const c = hex(FLOWERS[color] ?? color, 0xff5a4a);
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
-    parts.push(sphereCol(0.07, p.x + Math.cos(a) * 0.08, p.y + 0.34, p.z + Math.sin(a) * 0.08, 0xffffff, c, c, 1, 0.5, 1, 6, 4));
+    parts.push(sphereCol(0.07, p.x + Math.cos(a) * 0.08, p.y + 0.34, p.z + Math.sin(a) * 0.08, 0xffffff, c, c, 1, 0.5, 1, 5, 3));
   }
-  parts.push(sphereCol(0.05, p.x, p.y + 0.36, p.z, 0xfff6c0, 0xffc21a, 0xd99a00, 1, 1, 1, 6, 4));
+  parts.push(sphereCol(0.05, p.x, p.y + 0.36, p.z, 0xfff6c0, 0xffc21a, 0xd99a00, 1, 1, 1, 5, 3));
 }
 
 function fence(it, parts) {
@@ -74,8 +74,8 @@ function fence(it, parts) {
   const yaw = Math.atan2(-(b.z - a.z), b.x - a.x);
   const local = [];
   const n = Math.max(2, Math.round(L / 0.5) + 1);
-  for (let i = 0; i < n; i++) local.push(box(0.12, 0.8, 0.08, (i / (n - 1)) * L, 0.4, 0, 0xffffff, { r: 0.04, topColor: 0xffffff }));
-  for (const y of [0.3, 0.62]) local.push(box(L, 0.08, 0.06, L / 2, y, -0.06, 0xf2f2f2, { r: 0.02 }));
+  for (let i = 0; i < n; i++) local.push(box(0.12, 0.8, 0.08, (i / (n - 1)) * L, 0.4, 0, 0xffffff, { r: 0, seg: 0 }));
+  for (const y of [0.3, 0.62]) local.push(box(L, 0.08, 0.06, L / 2, y, -0.06, 0xf2f2f2, { r: 0, seg: 0 }));
   const g = merge(local);
   g.rotateY(yaw);
   g.translate(a.x, a.y, a.z);

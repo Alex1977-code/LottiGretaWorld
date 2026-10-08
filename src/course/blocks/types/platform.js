@@ -31,7 +31,7 @@ export function buildPlatform(level, spec) {
   addStatic(level, g);
   if (style === 'block') {
     // helle Einlage oben (Spielzeug-Block-Look)
-    const inset = box(Math.max(0.2, s.x - 0.5), 0.06, Math.max(0.2, s.z - 0.5), p.x, p.y + s.y + 0.02, p.z, mixHex(color, 0xffffff, 0.35), { r: 0.03 });
+    const inset = box(Math.max(0.2, s.x - 0.5), 0.06, Math.max(0.2, s.z - 0.5), p.x, p.y + s.y + 0.02, p.z, mixHex(color, 0xffffff, 0.35), { r: 0.03, seg: 1 });
     addStatic(level, inset, { castShadow: false });
   }
 }

@@ -9,11 +9,11 @@
 //     pitch: 50,          Neigung in Grad (Blick nach unten)
 //     dist: 14,           Abstand Kamera–Ziel in m
 //     yaw: 0,             Grad; 0 = hinter der Figur (+Z) mit Blick nach −Z, positiv = Kamera nach rechts (+X)
-//     fov: 40,            vertikaler Öffnungswinkel in Grad
+//     fov: 38,            vertikaler Öffnungswinkel in Grad
 //     x: null,            fester X-Wert des Blickziels (seitlich fixieren); xLock 0..1 Stärke (Standard 1)
-//     height: 1.2,        Blickziel über dem Fußpunkt (m)
+//     height: 1.0,        Blickziel über dem Fußpunkt (m)
 //     lead: 1,            Faktor der Vorausschau
-//     ahead: 3.2,         Blickziel so viele m vor der Figur (Blickrichtung der Kamera) → Figur im unteren
+//     ahead: 2.0,         Blickziel so viele m vor der Figur (Blickrichtung der Kamera) → Figur im unteren
 //                         Bilddrittel, mehr Sicht nach vorn
 //     area: [xMin, xMax]  optional: Abschnitt gilt nur in diesem X-Bereich (z. B. Bonusraum abseits) }
 // Zwischen Abschnitten wird über BLEND m überblendet. Die Steuerungs-Gier (controlYaw) kommt
@@ -21,7 +21,7 @@
 
 import * as THREE from 'three';
 
-export const CAM_DEFAULT = { pitch: 50, dist: 14, yaw: 0, fov: 40, x: null, xLock: 1, height: 1.2, lead: 1, ahead: 3.2 };
+export const CAM_DEFAULT = { pitch: 50, dist: 14, yaw: 0, fov: 38, x: null, xLock: 1, height: 1.0, lead: 1, ahead: 2.0 };
 const BLEND = 8;
 const USER_STEP = 15, USER_MAX = 30;
 const ZOOMS = [1, 0.74];
@@ -46,7 +46,7 @@ export class CameraRig {
     this.cur = { ...CAM_DEFAULT };
     this.shakeAmt = 0;
     this.frozen = false;
-    this._a = new THREE.Vector3(); this._b = new THREE.Vector3();
+    this._a = new THREE.Vector3(); this._b = new THREE.Vector3(); this._h = new THREE.Vector3();
   }
 
   /** Überblendete Schienenwerte an (x, z). Reine Funktion (Tests, controlYaw). */
@@ -123,14 +123,19 @@ export class CameraRig {
       this.target.y = damp(this.target.y, ty, 5, dt);
       this.target.z = damp(this.target.z, tz, 8, dt);
     }
-    // Kamera nicht in Geometrie: Strahl vom Ziel zur Wunschposition
+    // Kamera nicht in Geometrie: Strahl vom Kopf der Figur zur Wunschposition. Ist er verdeckt, rückt die
+    // Kamera auf ihrer Achse näher ans Ziel, bis der Kopf wieder frei sichtbar ist (höchstens bis 3 m).
     const want = r.dist * this.zoom;
     let dist = want;
-    if (world) {
+    if (world && !frozen) {
       const dir = this.offsetDir(r, this._a);
-      const end = this._b.copy(this.target).addScaledVector(dir, want);
-      const hit = world.raycast(this.target, end);
-      if (hit) dist = Math.max(3, want * hit.t - 0.6);
+      const head = this._h.set(p.x, p.y + player.half.y * 2 + 0.15, p.z);
+      for (let k = 0; k < 8; k++) {
+        const d = want * (1 - k * 0.11);
+        const end = this._b.copy(this.target).addScaledVector(dir, d);
+        if (!world.raycast(head, end)) { dist = d; break; }
+        dist = Math.max(3, d);
+      }
     }
     this.distNow = dist < this.distNow ? damp(this.distNow, dist, 18, dt) : damp(this.distNow, dist, 3, dt);
     this.place(r, dt);

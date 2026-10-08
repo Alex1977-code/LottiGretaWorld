@@ -163,7 +163,7 @@ export class CourseView {
     const x = Math.round(tg.x / t) * t, y = Math.round(tg.y / t) * t, z = Math.round(tg.z / t) * t;
     this.sun.target.position.set(x, y, z - 4);
     this.sun.position.set(x + this.sunDir.x * 50, y + this.sunDir.y * 50, z - 4 + this.sunDir.z * 50);
-    if (this.playerLight && player) this.playerLight.position.set(player.pos.x, player.pos.y + 1.6, player.pos.z + 0.6);
+    if (this.playerLight && player) this.playerLight.position.set(player.pos.x, player.pos.y + 3.2, player.pos.z + 1.4);
     if (this.lanternSpots?.length) this.updateLanterns(tg);
     this.sky.update(dt, this.camera);
     for (const f of this.frameFns) f.fn(dt, this.time);

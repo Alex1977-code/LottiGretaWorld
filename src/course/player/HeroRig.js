@@ -67,7 +67,6 @@ export class HeroRig {
     this.courseMode = typeof av.setCourseMode === 'function';
     av.setCourseMode?.(true);
     av.root.position.set(0, -AVATAR_H / 2, 0);
-    av.root.traverse((o) => { if (o.isMesh) o.castShadow = o.castShadow || false; });
     this.flip.add(av.root);
     this.avatar = av;
   }

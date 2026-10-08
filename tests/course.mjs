@@ -233,6 +233,85 @@ const coins1 = (await T('rt')).coins;
 const usedBlocks = await sc(() => window.__course.level.entities.filter((e) => e.kind === 'used').length);
 check('Block von unten gibt Münze und wird leer', coins1 === coins0 + 1 && usedBlocks >= 1);
 
+// ---------------------------------------------------------------- Versteckter Block, Power-ups, Klein/Groß
+const pw = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player;
+  const hb = c.level.entities.find((e) => e.kind === 'hidden');
+  const hx = hb.pos.x, hz = hb.pos.z;
+  t.place([hx, 1, hz]);
+  c.setInput({ jump: true }); c.step(12); c.setInput({}); c.step(80);
+  const revealed = hb.kind === 'question' || hb.kind === 'used';
+  const up = c.level.entities.find((e) => e.kind === 'powerup' && Math.abs(e.pos.x - hx) < 2 && Math.abs(e.pos.z - hz) < 2);
+  const lives0 = c.level.runtime.lives;
+  let gotLife = false;
+  if (up) { t.place([up.pos.x, up.pos.y + 0.1, up.pos.z], { settle: 4 }); gotLife = c.level.runtime.lives === lives0 + 1; }
+  // klein werden, Wachstumsbeere nehmen
+  t.place(t.marks.lane);
+  p.hurt({ pos: { x: p.pos.x + 1, z: p.pos.z } });
+  const small = !p.big;
+  c.step(200);
+  const berry = c.level.spawn('powerup', { pos: [p.pos.x, p.pos.y, p.pos.z], power: 'wachstumsbeere' });
+  c.step(3);
+  const big = p.big && !berry.alive;
+  // Krallen-Anzug aus dem ?-Block
+  const kb = c.level.entities.find((e) => e.kind === 'question' && e.content?.power === 'krallen');
+  t.place([kb.pos.x, 1, kb.pos.z]);
+  c.setInput({ jump: true }); c.step(12); c.setInput({}); c.step(90);
+  const suit = c.level.entities.find((e) => e.kind === 'powerup' && e.power === 'krallen');
+  if (suit) t.place([suit.pos.x, suit.pos.y + 0.1, suit.pos.z], { settle: 4, power: 'none' });
+  return { revealed, oneup: !!up && up.power === 'oneup', gotLife, small, big, suit: !!suit, power: p.power };
+});
+check('Versteckter Block erscheint von unten und gibt ein 1-Up', pw.revealed && pw.oneup && pw.gotLife);
+check('Treffer macht klein, Wachstumsbeere wieder groß', pw.small && pw.big);
+check('Krallen-Anzug aus dem ?-Block einsammeln', pw.suit && pw.power === 'krallen');
+
+// ---------------------------------------------------------------- Figurwechsel zur Laufzeit
+const swap = await sc(() => {
+  const c = window.__course;
+  c.setHero('greta'); c.step(2);
+  const a = c.player.hero, ok = !!c.rig.avatar && c.rig.key === 'greta';
+  c.setHero('lotti');
+  return { a, ok };
+});
+check('Figurwechsel Lotti ↔ Greta zur Laufzeit', swap.a === 'greta');
+
+// ---------------------------------------------------------------- Rampe, sanfter Hügel, Einweg-Wolke
+const geo = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player;
+  t.place([-8, 1, -75.3]);
+  c.setInput({ y: 1 }); c.step(150); c.setInput({});
+  const ramp = { y: p.pos.y, z: p.pos.z, mode: p.mode };
+  t.place([5.5, 1, 4.6]);
+  let top = 0;
+  c.setInput({ y: 1 });
+  for (let i = 0; i < 120; i++) { c.step(1); if (p.mode === 'ground') top = Math.max(top, p.pos.y); if (p.pos.z < 1) break; }
+  c.setInput({});
+  // Einweg-Wolke: von unten durch, oben landen
+  const cl = [...c.world.shapes.values()].find((s) => s.oneWay);
+  t.place([(cl.x0 + cl.x1) / 2, cl.bot - 0.9, (cl.z0 + cl.z1) / 2], { settle: 0 });
+  p.vel.y = 11; p.mode = 'air'; p.enterAir('jump', false);
+  let passed = false;
+  for (let i = 0; i < 160; i++) { c.step(1); if (p.pos.y > cl.top + 0.2) passed = true; if (passed && p.mode === 'ground') break; }
+  return { ramp, mound: top, cloud: { passed, y: p.pos.y, top: cl.top, mode: p.mode } };
+});
+console.log(`  Rampe: y ${f2(geo.ramp.y)} (${geo.ramp.mode}), Hügel höchste y ${f2(geo.mound)}, Wolke: durch=${geo.cloud.passed} y ${f2(geo.cloud.y)}`);
+check('Rampe hinauf auf den Sockel (ohne Springen)', geo.ramp.mode === 'ground' && geo.ramp.y > 2.9);
+check('Sanfter Hügel ohne Springen begehbar', geo.mound > 1.7);
+check('Einweg-Wolke: von unten durchspringen, oben landen', geo.cloud.passed && geo.cloud.mode === 'ground' && Math.abs(geo.cloud.y - geo.cloud.top) < 0.02);
+
+// ---------------------------------------------------------------- Drehscheibe dreht die Figur mit
+const turn = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player;
+  const tt = [...c.world.shapes.values()].find((s) => s.mover && s.type === 'cyl');
+  t.place([tt.x + 1.1, tt.top + 0.05, tt.z], { settle: 10 });
+  const a0 = Math.atan2(p.pos.z - tt.z, p.pos.x - tt.x), y0 = p.yaw;
+  c.setInput({}); c.step(120);
+  const a1 = Math.atan2(p.pos.z - tt.z, p.pos.x - tt.x);
+  return { da: a1 - a0, dyaw: p.yaw - y0, r: Math.hypot(p.pos.x - tt.x, p.pos.z - tt.z), mode: p.mode };
+});
+console.log(`  Drehscheibe: Winkel ${f2(turn.da)} rad, Blick ${f2(turn.dyaw)} rad, Radius ${f2(turn.r)}`);
+check('Drehscheibe dreht Figur und Blickrichtung mit (Radius bleibt)', Math.abs(Math.abs(turn.da) - 0.9) < 0.08 && Math.abs(turn.dyaw - 0.9) < 0.08 && Math.abs(turn.r - 1.1) < 0.05 && turn.mode === 'ground');
+
 // ---------------------------------------------------------------- Bewegliche Plattform trägt die Figur
 const mv = await sc(() => { const s = [...window.__course.world.shapes.values()].find((x) => x.tag === 'mover'); return [(s.x0 + s.x1) / 2, s.top + 0.05, (s.z0 + s.z1) / 2]; });
 await T('place', mv, { settle: 12 });

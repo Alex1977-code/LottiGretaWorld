@@ -51,7 +51,10 @@ export class CourseScene extends Phaser.Scene {
   }
 
   create() {
-    const data = getLevel(this.levelId);
+    let data = getLevel(this.levelId);
+    // ?theme=<name> überschreibt das Thema (Vorschau für Level-Bau, z. B. ?course=0-0&theme=cave)
+    const themeOverride = new URLSearchParams(window.location.search).get('theme');
+    if (data && themeOverride) data = { ...data, theme: themeOverride };
     if (!data) { console.error(`[Kurs] Level ${this.levelId} nicht gefunden`); this.scene.start(mapSceneKey(this), {}); return; }
     if (!RENDER3D.enabled) { console.error('[Kurs] Der Kurs-Modus braucht die 3D-Darstellung (WebGL2).'); this.scene.start(mapSceneKey(this), {}); return; }
     this.levelData = data;
@@ -180,7 +183,8 @@ export class CourseScene extends Phaser.Scene {
   exitToMap(data = {}) {
     const target = mapSceneKey(this);
     for (const k of ['CoursePause', 'CourseResult', 'CourseUI']) this.scene.stop(k);
-    this.scene.start(target, { from: this.levelId, ...data });
+    // Die Klassik-Karte kennt Kurs-Level nicht → ohne Übergabedaten
+    this.scene.start(target, target === 'CourseMap' ? { from: this.levelId, ...data } : {});
   }
 
   /** Von der Laufzeit nach der Siegessequenz aufgerufen. */

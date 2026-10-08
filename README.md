@@ -105,6 +105,26 @@ später durch handgebaute Levels ersetzt werden (gleicher Eintrag in `src/levels
 
 Pause: Esc/P oder der Knopf oben in der Mitte → „Weiter“ / „Zur Weltkarte“.
 
+## Kurs-Modus (3D-Kurs-Plattformer, im Aufbau)
+
+Der künftige Hauptmodus: freie Bewegung in 3D, Kamera schräg von hinten oben mit Kameraschienen, lineare
+Hindernisparcours mit 3 grünen Sternen, Stempel und Zielmast. Vertrag und Schnittstellen:
+[`docs/KURS-ARCHITEKTUR.md`](docs/KURS-ARCHITEKTUR.md) (inkl. „Präzisierung (Motor)“). Code unter
+`src/course/` (Kollisionswelt, Spielfigur, Kamera, Bausteine, Entitäten, Level-Daten).
+
+- Starten: `?course=0-0` (Übungsplatz mit allen Grund-Bausteinen und Bewegungen). Ohne Parameter startet
+  weiter die bisherige Weltkarte.
+- Tastatur: Pfeile/WASD laufen (relativ zur Kamera), **Shift** rennen (Druck = Aktion, auch **X**),
+  **Leertaste** springen (Höhe nach Haltedauer), **Strg/C** ducken/rutschen (in der Luft: Stampfattacke),
+  **Q/E** Kamera ±30°, **Z** Zoom, **Esc/P** Pause, **F2** Debug-Anzeige.
+- Touch: Stick links (ab ~85 % Auslenkung rennen), **A** springen, **B** ducken, **Y** Aktion/Rennen,
+  ⟲ ⟳ ⊕ Kamera, Pause-Knopf oben rechts (`?touch=1` erzwingt die Knöpfe am PC).
+- Bewegungen: Dreifachsprung (3 Sprünge kurz nach der Landung), Rückwärtssalto (Ducken + Sprung im Stand),
+  Seitwärtssalto (Umkehr + Sprung), Weitsprung (Rennen + Ducken + Sprung), Wandrutschen/Wandsprung,
+  Stampfattacke, Rutschen, Klettern mit Krallen-Anzug, Bohnenranke, Schwimmen.
+- Tests: `node tests/course.mjs` (Bewegungsset deterministisch über `__course.step(n)`),
+  `node tests/course_view.mjs` (Screenshots `tests/out/c_*.png`, Zeichenaufrufe/Dreiecke).
+
 ## Sound & Musik
 
 Alles prozedural über die Web Audio API (`src/audio/`): `AudioEngine` (Kontext, Busse, Kompressor,
