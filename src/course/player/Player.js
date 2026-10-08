@@ -7,7 +7,8 @@
 // Die Figur rechnet nur in festen Simulationsschritten (CourseScene, 1/120 s) und ist von der Darstellung
 // getrennt (HeroRig liest `state`, `phase`, … für den Avatar).
 //
-// Modi (`mode`): ground | air | wall | stalk | swim | script (Röhre, Zielmast, Tod).
+// Modi (`mode`): ground | air | wall | stalk | swim | script (Röhre, Zielmast, Tod, ride = gesteuerter Ablauf
+// eines Sonder-Bausteins wie Glasröhre/Kanone – siehe ride(ctl)).
 // Zustände (`state`, Vertrag HeroRig): idle walk run skid jump jump2 jump3 backflip sideflip longjump fall
 // land crouch slide groundpound wallslide walljump climb beanstalk swim pipe hurt dead victory claw
 // (+ intern 'dive' = Krallen-Sturzflug; HeroRig meldet ihn dem Avatar als 'longjump').
@@ -707,7 +708,8 @@ export class Player {
       let broke = false;
       for (const s of res.hits) {
         if (Math.abs(s.top - this.pos.y) > 0.06 && s.type !== 'ramp') continue;
-        if (s.breakable && this.state === 'groundpound') { s.owner?.onHit?.('pound', this); broke = true; }
+        // breakable: 'bomb' (graue Blockwand) hält Stampfen aus – nur Bombe/Riesentrank zerstören sie
+        if (s.breakable && s.breakable !== 'bomb' && this.state === 'groundpound') { s.owner?.onHit?.('pound', this); broke = true; }
         else { s.owner?.onPound?.(this, s); s.pound?.(this, s); }
       }
       if (broke) { this.vel.y = -MOVE.poundSpeed * 0.6; this.level.sfx('brickbreak'); return; }
@@ -905,6 +907,26 @@ export class Player {
     this.level.sfx('pipe');
   }
 
+  /**
+   * Gesteuerter Ablauf über den Skript-Modus (Glasröhre, Kanone, Wolkenkanone, Warp-Box …): der Baustein
+   * bewegt die Figur selbst. ctl = { step(player, dt, input, script) → true, wenn beendet; exit?(player) }.
+   * step setzt pos/yaw (und vel für Kamera-Vorausschau und Animation); exit setzt die Austrittsgeschwindigkeit.
+   * Danach ist die Figur in der Luft (mode 'air'). opts: { state ('pipe'), kind (Name zur Fehlersuche) }.
+   * Während des Ablaufs prüft die Laufzeit keine Berührungen (mode 'script'); Münzen im Rohr sammelt ctl.
+   */
+  ride(ctl, opts = {}) {
+    this.mode = 'script';
+    this.script = { type: 'ride', kind: opts.kind ?? 'ride', t: 0, ctl };
+    this.vel.set(0, 0, 0);
+    this.gs = 0;
+    this.setCrouch(false);
+    this.attackInfo = null;
+    this.stalk = null;
+    this.water = null;
+    this.ground = null;
+    this.setState(opts.state ?? 'pipe');
+  }
+
   /** Zielmast gepackt: herunterrutschen, Siegespose, dann runtime.finish(). */
   grabPole(goal) {
     this.mode = 'script';
@@ -953,6 +975,18 @@ export class Player {
         if (this.pos.y >= sc.exit.top) { this.pos.y = sc.exit.top; sc.phase = 'done'; }
       }
       if (sc.phase === 'done') { this.script = null; this.mode = 'air'; this.enterAir(null, false); this.setState('fall'); this.vel.set(0, 0, 0); }
+      return;
+    }
+    if (sc.type === 'ride') {
+      if (!sc.ctl.step(this, dt, input, sc)) return;
+      this.script = null;
+      this.mode = 'air';
+      this.enterAir(null, false);
+      this.setState('fall');
+      this.vel.set(0, 0, 0);
+      sc.ctl.exit?.(this);
+      this.airMax = Math.max(this.hSpeed(), MOVE.walk * this.speedMult);
+      this.updatePhase();
       return;
     }
     if (sc.type === 'goal') {

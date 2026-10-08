@@ -385,3 +385,79 @@ Modellnamen mit Rückfall-Optik im Motor: `coin`, `star`, `stamp`, `checkpoint_f
 | `1-Burg` | boss (Baron Brummbär, Autobahn) | highway | course_boss | 3 + Stempel | 1-5 **und ≥ 10 Sterne** |
 
 Welt 1 hat damit 24 Sterne. Die Weltkarte (`course_map`) zeigt alle Eingänge; gesperrte sind sichtbar, aber zu.
+
+---
+
+## Präzisierung (Sonder-Bausteine)
+
+Ergänzung des Bausteine-Agenten (Stand: Bausteinpark 0-2). Alle Sonder-Bausteine für Welt 1 sind parametrierbare
+Module; Level-Bauer setzen sie nur in Daten ein. Jede Datei dokumentiert ihre Parameter im Kopfkommentar.
+
+### Präzisierung (Sonder-Bausteine): Wo was liegt
+
+- Bausteine (`segments`, `type`): `blocks/types/` `glasspipe, switchtiles, hiddenchain, cloud, cloudcannon, fallplatform,
+  clawwheel, megawall, room, crystalfloor, appear, sign` – und `gimmicks.js`: alle Entitäts-Gimmicks sind auch als
+  `type` in `segments` erlaubt (`{ type: 'pow', … }` ≙ `{ kind: 'pow', … }`).
+- Entitäten (`items`/`blocks`/`enemies`, `kind`): `entities/kinds/` `lantern, pow, starring, timering, pswitch, bluecoin,
+  starcoin, bunny, endlessblock, rouletteblock, warpbox, task, crate, chest, spotter, pixelegg, megacolumn, itemtree`.
+- Gemeinsame Hilfen: `entities/gimmick.js` (Aktionen/Belohnungen, Basisklasse `Gimmick` mit `hidden`/`reveal()`,
+  Zeitanzeige über der Figur, Flug-Steuerung für Kanonen, `collectNear`, `visDt`).
+- Modelle: `models/kinds/gimmicks.js` (`crate, chest, push_switch, star_ring, star_coin, endless_block, roulette_block,
+  warp_box, cloud_cannon, claw_wheel, mega_block, pixel_egg, item_tree`); genutzt werden außerdem `glass_pipe_segment`
+  (Glas-Look), `switch_tile, lantern, pow_block, hidden_block, crystal_block, time_ring, coin_blue, bunny_small,
+  fairy_spotter, question_block, used_block`.
+- Übungslevel `levels/w0/0-2.js` „Bausteinpark“ (je Gimmick eine Station mit Schild, Kameraschiene, `marks`),
+  Test `tests/course_blocks.mjs` (Port 4194, Bilder `tests/out/cb_*.png`).
+
+### Präzisierung (Sonder-Bausteine): Ereignisse und Belohnungen (Aktion)
+
+Ein Format für `onAll`, `reward`, `onDone`, `onLit`, `onFull`, `onBreak`, `task.reward`, Inhalte von Kiste/Truhe/Baum:
+`{ reveal: id|[ids], hide, start|path (bewegte Plattform startet), stop, drop (Plattform stürzt), star: index |
+{ index, pos }, spawn: { kind, … } | [ … ], power: name, coins: n, sfx, pos }` – auch als Liste. Kurzformen: `'coin'`,
+`'coins:5'`, `'star:1'`, Power-up-Name, Zahl. Ziele sind benannte Objekte (`level.named`, Daten-`id`).
+Sterne, die erst durch ein Gimmick erscheinen sollen: in `LEVEL.stars` als `{ pos, hidden: true, id }` eintragen
+(Index bleibt stabil) und per `{ reveal: id }` oder `{ star: index }` zeigen; ohne Eintrag erzeugt `{ star: i }`
+den Stern am Auslöser. Jede Entität/Baustein-Entität mit `hidden: true` erscheint per `reveal`.
+
+### Präzisierung (Sonder-Bausteine): Motor-Ergänzungen
+
+- `player.ride(ctl, { state, kind })`: gesteuerter Ablauf im Skript-Modus; `ctl.step(player, dt, input) → true` am
+  Ende, danach `ctl.exit(player)` (Austrittsgeschwindigkeit), Figur ist dann in der Luft. Genutzt von Glasröhre,
+  Glasrohr-/Wolkenkanone. Berührungen ruhen im Skript-Modus → Münzen sammelt der Baustein (`collectNear`).
+- `Player.land`: Formen mit `breakable: 'bomb'` werden durch Stampfen nicht zerbrochen (graue Blockwand).
+- `coin`: `hiddenUntilLit` / `hidden` + `reveal()`/`conceal()`; `coins` reicht die Flags weiter. `star`: `hidden` +
+  `reveal(pos?)`.
+- `mover`: `id` → `level.named` `{ pm, mover, shape, origin, start(), stop() }`, `idle: true` (wartet auf Signal),
+  `once: true` (fährt einmal bis zum Ende). `deco` Baum: `climbable: true` (Stamm mit Krallen kletterbar).
+- Angriffe, auf die Gimmicks reagieren: `onHit` `'bomb'` (über `level.attackArea(pos, r, 'bomb')`, z. B. Kickbombe),
+  `'mega'` (Riesentrank), `'pound'`, `'claw'`, `'fire'`, `'bump'` (POW wirft Gegner um, `flying = true` schützt).
+
+### Präzisierung (Sonder-Bausteine): Liste mit Daten-Beispielen
+
+| Typ / Art | Kern | Wichtige Parameter | Beispiel |
+| --- | --- | --- | --- |
+| `glasspipe` | Figur gleitet durchs Glasrohr; Gabelung per Stick; Kanonen-Ende; Münzen; optional Gegner durchspülen | `path` (Catmull-Rom), `radius` 1, `speed` 12, `oneWay`, `enter`, `branches: [{ at, path, cannon?, enter? }]`, `cannon: { target, arc }`, `exitSpeed` 7, `coins`, `solid`, `flush` | `{ type: 'glasspipe', path: [[0,2,-10],[0,2,-18],[6,3,-24]], coins: 4, branches: [{ at: 1, path: [[-6,2,-22]] }], cannon: { target: [12,1,-44], arc: 6 } }` |
+| `switchtiles` | Kipp-Schaltfelder, alle an → Ereignis; Perlen-Tafel als Fortschritt; Wechselschalter; auf fahrender Plattform | `grid`/`tiles`, `pos`, `toggle`, `onAll`, `at`, `indicator`, `on` (mover-Id), `platform` (eigener mover), `id` | `{ type: 'switchtiles', pos: [0,1,-20], grid: [3,2], onAll: { reveal: 'weg1' } }` |
+| `appear` | erscheinender Weg (Teile ploppen nacheinander auf, vorher Umrisse) | `id`, `parts: [{ pos, size }]`, `style`, `delay`, `hint`, `visible` | `{ type: 'appear', id: 'weg1', parts: [{ pos: [0,1,-30], size: [2,0.5,2] }] }` |
+| `lantern` | Anfassen → Licht, zeigt Münzen mit `hiddenUntilLit` im Radius; optional Brenndauer | `radius` 6, `duration` 0, `hanging`, `lit`, `onLit` | `{ kind: 'lantern', pos: [3,0,-40], radius: 7 }` + `{ kind: 'coins', from, to, n, hiddenUntilLit: true }` |
+| `hiddenchain` | unsichtbare Blockkette: jeder Block erscheint, wenn der vorige betreten (bzw. gestoßen) wird | `blocks`, `lead: { pos, size }` (länglicher ?-Block), `trigger` 'step'/'bump', `hint`, `onDone` | `{ type: 'hiddenchain', lead: { pos: [0,1,-40], size: [3,1,1] }, blocks: [[2.5,3,-41],[4.5,5,-42]] }` |
+| `room`, `crystalfloor` | Raum mit Ausschnitt-Ansicht (Decke/Vorderwand blenden aus), Kristall-Luke (Stampfen öffnet) | `pos`, `size`, `open`, `door`, `hatch: { at, size }`, `top`, `ceiling`, `cutaway` | `{ type: 'room', pos: [0,1,-40], size: [6,3,6], top: 'grass', hatch: { size: [2,2] } }` |
+| `warpbox` | in die Box springen → Teleport (Box/Röhre/Punkt) und zurück; Rätselbox mit Aufgabe | `id`, `target`, `style` 'warp'/'mystery', `task`, `onEnter`, `hidden` | `{ kind: 'warpbox', id: 'rb1', style: 'mystery', pos: [6,1,-80], target: 'rb2' }` |
+| `task` | Aufgabe im Bereich: alle Gegner besiegt → Belohnung (Rätselbox, Arena 1-A) | `area: { min, max } \| { pos, r }`, `ids`, `star`/`reward`, `pos` | `{ kind: 'task', area: { pos: [0,1,-20], r: 11 }, star: 0 }` |
+| `pow` | Erschütterung: Gegner am Boden besiegt, Ziegel/Kisten zerbrechen, 3 Benutzungen | `uses` 3, `radius` 8, `height` 3, `onUse` | `{ kind: 'pow', pos: [2,4,-60], radius: 9 }` |
+| `cloud` | Wolkenplattform (Einweg), optional fahrend | `size`, `oneWay`, `path`, `speed`, `id`, `idle` | `{ type: 'cloud', pos: [0,4,-30], size: [3,0.6,3] }` |
+| `cloudcannon` | auf die Öffnung springen → Flug in den Münzhimmel | `target`, `arc` 4, `onFire` | `{ type: 'cloudcannon', pos: [-6,1,-90], target: [-6,40,-100] }` |
+| `starring`, `timering`, `pswitch` | Auslösen → Sternmünzen/blaue Münzen für `time` s (Zeitanzeige über der Figur); alle → Belohnung; Zeit um → Münzen weg, neuer Versuch | `coins` (Liste/Strecke/Kreis), `time` 10, `star`/`reward`, `yaw`, `retry` | `{ kind: 'starring', pos: [0,0,-20], star: 0, coins: { from: [-4,0.3,-26], to: [4,0.3,-34], n: 8 } }` |
+| `bunny` | Fang-Hase flieht mit Haken im Bereich; fangen → Belohnung; `size: 'big'` → Riesentrank | `area`, `speed`, `alert`, `star`/`reward`, `size` | `{ kind: 'bunny', pos: [8,0,-70], star: 1, area: { pos: [8,0,-70], r: 6 } }` |
+| `endlessblock` | Münzen, solange in kurzer Folge getroffen (Zeit-Perlen) | `window` 1.2, `max` 40 | `{ kind: 'endlessblock', pos: [0,3.4,-12] }` |
+| `rouletteblock` | Inhalt wechselt im Takt, Treffer gibt den gezeigten | `contents`, `period` 0.5 | `{ kind: 'rouletteblock', pos: [4,3.4,-30], contents: ['krallen','funken','oneup'] }` |
+| `fallplatform` | wackelt 0,8 s nach Betreten, fällt (trägt mit), kommt nach 4 s wieder; Signal `drop` | `size`, `delay`, `respawn`, `trigger` 'stand'/'signal', `id` | `{ type: 'fallplatform', pos: [0,4,-50], delay: 0.8, respawn: 4 }` |
+| `clawwheel` | mit Krallen hochklettern dreht das Rad → Plattformen fahren aus | `size`, `face`, `radius`, `platforms: [{ pos, size, dir, length }]`, `climb` 3, `retract`, `onFull` | `{ type: 'clawwheel', pos: [0,1,-70], size: [3,7,1], platforms: [{ pos: [0.5,4,-70], size: [2.5,0.5,1], dir: [1,0], length: 3.5 }] }` |
+| `megawall` | graue Blockwand, nur Bombe/Riesentrank (`breakable: 'bomb'`) | `size` (ganze m), `breakable`, `onBreak` | `{ type: 'megawall', pos: [4,1,-88], size: [4,3,1] }` |
+| `crate`, `chest` | Holzkiste (Feuer/Tatze/Stampfen von oben/POW/Bombe, fällt ohne Halt); Truhe (berühren öffnet) | `content`, `size`; Truhe `yaw`, `hidden` | `{ kind: 'crate', pos: [-4,0,-60], content: 'star:1' }` |
+| `itemtree` | Baum mit Versteck: Berühren → Inhalt fällt aus der Krone | `content` 'krallen', `size`, `color` | `{ kind: 'itemtree', pos: [-6,0,-62], content: 'krallenAnzug' }` |
+| `spotter` | Kobold mit Fernglas (Deko), schaut der Figur nach | `yaw`, `range`, `cheer`, `scale` | `{ kind: 'spotter', pos: [-7,4.2,-6] }` |
+| `pixelegg` | Pixel-Relief der Heldin erscheint nach `wait` s Stillstehen im Auslösebereich | `trigger: { pos, r }`, `wait` 4, `hero`, `reward` | `{ kind: 'pixelegg', pos: [0,6,-12.4], trigger: { pos: [0,6,-11], r: 2 } }` |
+| `sign` | Holzschild mit Aufschrift | `text`, `yaw`, `size`, `post` | `{ type: 'sign', pos: [-4,1,-2], text: 'Glasröhre' }` |
+
+Gemessen im Bausteinpark (scale 2): 72–108 Zeichenaufrufe inkl. Schattenpass, 160–270 k Dreiecke.
