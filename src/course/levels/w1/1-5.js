@@ -1,0 +1,259 @@
+// 1-5 „Kippfeld-Manege“ – Zirkuszelt (Welt 1), ca. 195 m nach −Z, schwebende Plattformen über drei Manegen,
+// Kipp-Schaltfelder. Thema `circus` (themes_circus.js), Zeltinneres/Plattformen aus deco_w1b.
+//
+// Abschnitte (Level verläuft nach −Z, +X = rechts im Bild):
+//   1  Schalter-Feld 1   (z 8 … −14, y 0)   6 Schaltfelder, 2 Krabbelkäfer; alle an → Steg zum Feld 2 erscheint.
+//                        Rechts Warp-Box (Abkürzung über die Zuschauerloge) und zwei Wände: Wandsprung → Stern 1.
+//   2  Schalter-Feld 2   (z −27 … −56, y 0 → 1,5)   Schaltfelder auf zwei Bühnen, zwei fahrende Plattformen (3 m
+//                        Lücken), Roulette-Block, 4 Brummer.
+//   3  Checkpoint        (z −58 … −68, y 2,5)   Trommelbühne, Krallen-Anzug.
+//   4  Flatterkäfer-Zone (z −70 … −92, y 3 → 4)   6 Flatterkäfer in zwei Reihen, 2 Brummer; Rätselbox bewacht von
+//                        2 Krabbelkäfern → Kistenraum (x ≈ 60, Stern 2 in der Kiste links in der Ecke, Funkenblüte).
+//   5  Krabbelkäfer-Gang (z −95 … −125, y 4)   gerader Laufsteg, 4 Krabbelkäfer im Gänsemarsch.
+//   6  Wechselschalter-Plattform (z −126 … −158, fährt)   12 × 12 m Fähre mit Wechsel-Schaltfeldern, Zauberkröte,
+//                        Stern 3 in der Mitte.
+//   7  Glasrohr-Kanone   (z −159 … −195)   Landebühne, Stempel-Turm (vor „alle Schalter an“ mit Krallen über die
+//                        Kletterwand von der Wackelplattform aus, danach nur per Wandsprung), Kanone zur Zielbühne.
+// Gegner: Krabbelkäfer 8, Brummer 8, Flatterkäfer 6, Zauberkröte 1.
+
+const coinsLine = (from, to, n) => ({ kind: 'coins', from, to, n });
+const arc = (a, b, h, n) => Array.from({ length: n }, (_, i) => {
+  const t = n === 1 ? 0.5 : i / (n - 1);
+  return { kind: 'coin', pos: [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t + 4 * h * t * (1 - t), a[2] + (b[2] - a[2]) * t] };
+});
+/** Zirkusbühne: Mitte x/z, Oberseite top, Größe w × d, Dicke h. */
+const stage = (x, top, z, w, d, o = {}) => ({ kind: 'stage', pos: [x, top - (o.h ?? 1), z], size: [w, o.h ?? 1, d], ...o });
+const bug = (x, y, z, o = {}) => ({ kind: 'krabbelkaefer', pos: [x, y, z], ...o });
+const bee = (x, y, z, o = {}) => ({ kind: 'brummer', pos: [x, y, z], ...o });
+const flutter = (x, y, z, o = {}) => ({ kind: 'flatterkaefer', pos: [x, y, z], ...o });
+
+export const LEVEL = {
+  id: '1-5',
+  world: 1,
+  title: 'Kippfeld-Manege',
+  archetype: 'parcours',
+  theme: 'circus',
+  music: 'course_circus',
+  timeLimit: 400,
+  killY: -7,
+  start: { pos: [0, 0, 5], yaw: Math.PI / 2 },
+  camera: [
+    { from: 10, to: -16, pitch: 46, dist: 13.5, yaw: 0 },
+    { from: -16, to: -57, pitch: 46, dist: 14, yaw: 0 },
+    { from: -57, to: -69, pitch: 44, dist: 13, yaw: 0 },
+    { from: -69, to: -94, pitch: 46, dist: 14, yaw: 0 },
+    { from: -94, to: -126, pitch: 42, dist: 13.5, yaw: 0, x: 0, xLock: 0.5 },
+    { from: -126, to: -158, pitch: 50, dist: 15, yaw: 0 },
+    { from: -158, to: -172, pitch: 45, dist: 13.5, yaw: 0 },
+    { from: -172, to: -200, pitch: 42, dist: 14, yaw: 0, x: 0, xLock: 0.4 },
+    // Zuschauerloge (abseits links) und Kistenraum (abseits, x ≈ 60)
+    { from: -10, to: -36, pitch: 46, dist: 12.5, yaw: 0, x: -20, xLock: 0.6, area: [-26, -15] },
+    { from: -76, to: -100, pitch: 52, dist: 12.5, yaw: 0, x: 60, xLock: 0.6, area: [48, 75] },
+  ],
+  segments: [
+    // ======================================================== Zelt (Kulisse)
+    { type: 'deco_w1b', items: [
+      { kind: 'tent', from: [-27, 18], to: [27, -212], y0: -14, y1: 22, peak: 42,
+        rings: [[0, -6, 11], [0, -92, 13], [0, -175, 11]], poles: [[-15, -45], [15, -45], [-15, -135], [15, -135]] },
+      { kind: 'curtain', pos: [0, -14, -208], size: [26, 30], color: 0xc81e2a },
+    ] },
+    // Scheinwerfer (Kegel + Lichtfleck) – ein Objekt
+    { type: 'deco_w1b', items: [
+      { kind: 'spotlight', pos: [-24, 21, 0], target: [-2, 0, -4], r: 3.2, color: 0xfff2c8 },
+      { kind: 'spotlight', pos: [24, 21, -20], target: [1, 0, -31], r: 3, color: 0xffd0f0 },
+      { kind: 'spotlight', pos: [-24, 21, -50], target: [0, 2.5, -63], r: 3.4, color: 0xfff2c8 },
+      { kind: 'spotlight', pos: [24, 21, -75], target: [-2, 4, -88], r: 3.2, color: 0xc8e4ff },
+      { kind: 'spotlight', pos: [-24, 21, -105], target: [0, 4, -112], r: 2.6, color: 0xfff2c8 },
+      { kind: 'spotlight', pos: [24, 21, -130], target: [0, 4, -142], r: 4.2, color: 0xffe0b0 },
+      { kind: 'spotlight', pos: [-24, 21, -170], target: [0, 10, -190], r: 3.6, color: 0xfff2c8 },
+      { kind: 'spotlight', pos: [24, 21, -150], target: [-9.5, 12, -163], r: 1.6, color: 0xffd0f0 },
+      { kind: 'spotlight', pos: [-15, 30, -92], target: [-6, -14, -92], r: 4.5, color: 0xffc8e8, strength: 0.1 },
+      { kind: 'spotlight', pos: [15, 30, -10], target: [5, -14, -6], r: 4, color: 0xc8e4ff, strength: 0.1 },
+    ] },
+    // Wimpelketten und Lichterketten seitlich der Route (kreuzen nie den Kamerablick)
+    { type: 'deco_w1b', items: [
+      { kind: 'bunting', from: [-15, 17, -45], to: [-15, 17, -135], sag: 2.5, n: 60 },
+      { kind: 'bunting', from: [15, 17, -45], to: [15, 17, -135], sag: 2.5, n: 60 },
+      { kind: 'bunting', from: [-26.5, 19, -45], to: [-15, 17, -45], sag: 1, n: 10 },
+      { kind: 'bunting', from: [15, 17, -45], to: [26.5, 19, -45], sag: 1, n: 10 },
+      { kind: 'bunting', from: [-26.5, 19, -135], to: [-15, 17, -135], sag: 1, n: 10 },
+      { kind: 'bunting', from: [15, 17, -135], to: [26.5, 19, -135], sag: 1, n: 10 },
+      { kind: 'bulbs', from: [-15, 14, 12], to: [-15, 14, -45], sag: 1.5, n: 40 },
+      { kind: 'bulbs', from: [15, 14, 12], to: [15, 14, -45], sag: 1.5, n: 40 },
+      { kind: 'bulbs', from: [-15, 14, -135], to: [-15, 14, -205], sag: 1.5, n: 46 },
+      { kind: 'bulbs', from: [15, 14, -135], to: [15, 14, -205], sag: 1.5, n: 46 },
+      { kind: 'trapeze', pos: [-11, 12, -24], size: 9 },
+      { kind: 'trapeze', pos: [11, 11, -100], size: 10 },
+      { kind: 'trapeze', pos: [-11, 13, -150], size: 8 },
+      { kind: 'balloons', pos: [-19, 5, -60], n: 6, size: 3 },
+      { kind: 'balloons', pos: [19, 3, -118], n: 5, size: 3 },
+    ] },
+
+    // ======================================================== 1  Schalter-Feld 1
+    { type: 'deco_w1b', items: [
+      stage(0, 0, -3, 20, 22, { color: 0x2a4fd0, star: true }),
+      // Wandsprung-Wände neben der Warp-Box (Stern 1 auf der breiten Wand)
+      { kind: 'pennant', pos: [-9.3, 0, 7.3], size: 2.6 },
+      { kind: 'pennant', pos: [9.3, 0, 7.3], size: 2.6, color: 'blue' },
+      { kind: 'drum', pos: [-8, 0, 3], size: [2, 1], color: 'yellow' },
+      { kind: 'ball', pos: [-8.6, 1, 3], size: 0.6 },
+      { kind: 'ball', pos: [8.4, 0, 2.2], size: 0.8, solid: true },
+      { kind: 'balloons', pos: [-9.4, 0, -13.3], n: 4, size: 1.6 },
+    ] },
+    { type: 'wall', pos: [5.5, 0, -11], size: [2, 6.5, 4], style: 'red' },
+    { type: 'wall', pos: [9.5, 0, -11], size: [1, 9, 4], style: 'white' },
+    { type: 'warpbox', id: 'box1', pos: [2, 0, -11.5], target: 'logeBox' },
+    { type: 'switchtiles', id: 'feld1', tiles: [[-5, 0, -1], [0, 0, -1], [5, 0, -1], [-5, 0, -7], [0, 0, -7], [5, 0, -7]], reveal: 'steg1' },
+    // Steg (erscheint, wenn alle Schaltfelder an sind)
+    { type: 'deco_w1b', id: 'steg1', items: [
+      stage(-1, 0, -16.5, 3, 2.6, { color: 0xffc21a, bulbs: false }),
+      stage(0, 0, -20, 3, 2.6, { color: 0xffc21a, bulbs: false }),
+      stage(1, 0, -23.5, 3, 2.6, { color: 0xffc21a, bulbs: false }),
+    ] },
+
+    // ======================================================== 2  Schalter-Feld 2
+    { type: 'deco_w1b', items: [
+      stage(0, 0, -31, 10, 8, { color: 0x8a2ad0 }),
+      stage(0, 1.5, -53, 9, 6, { color: 0x2a9a5a }),
+      { kind: 'drum', pos: [-4, 0, -28.5], size: [1.6, 0.8], color: 'red' },
+      { kind: 'pennant', pos: [4.6, 0, -34.6], size: 2.2, color: 'yellow' },
+      { kind: 'pennant', pos: [-4.1, 1.5, -55.6], size: 2.2 },
+      { kind: 'ball', pos: [3.8, 1.5, -55.3], size: 0.5 },
+    ] },
+    { type: 'switchtiles', id: 'feld2', tiles: [[-2.5, 0, -29.5], [2.5, 0, -29.5], [-2.5, 0, -33], [2.5, 0, -33], [-2.5, 1.5, -53], [0, 1.5, -53], [2.5, 1.5, -53]], reward: 'coins:10' },
+    { type: 'mover', size: [3, 0.5, 3], path: [[-4, -0.5, -39], [4, -0.5, -39]], speed: 2.4, wait: 0.5, color: 'red' },
+    { type: 'mover', size: [3, 0.5, 3], path: [[4, 0.3, -45], [-4, 0.3, -45]], speed: 2.4, wait: 0.5, color: 'yellow' },
+
+    // ======================================================== 3  Checkpoint
+    { type: 'deco_w1b', items: [
+      stage(0, 2.5, -63, 9, 9, { round: true, color: 0xd0302a, star: true, h: 1.4 }),
+      { kind: 'balloons', pos: [-3.6, 2.5, -65.6], n: 5, size: 1.8 },
+    ] },
+
+    // ======================================================== 4  Flatterkäfer-Zone, Rätselbox
+    { type: 'deco_w1b', items: [
+      stage(-4, 3, -73, 6, 5, { color: 0x2a4fd0 }),
+      stage(3, 3.5, -80, 6, 5, { color: 0xffa020 }),
+      stage(-2, 4, -88, 10, 8, { color: 0x8a2ad0 }),
+      { kind: 'drum', pos: [-6, 4, -85.5], size: [1.6, 0.9], color: 'blue' },
+      { kind: 'pennant', pos: [2.6, 4, -91.5], size: 2.3, color: 'yellow' },
+    ] },
+    { type: 'warpbox', id: 'raetsel', pos: [1.5, 4, -90], target: 'kistenEin', puzzle: true },
+
+    // ======================================================== 5  Krabbelkäfer-Gang
+    { type: 'deco_w1b', items: [
+      stage(0, 4, -110, 4, 30, { color: 0xd0302a }),
+      { kind: 'bulbs', from: [-2.2, 5.4, -95.5], to: [-2.2, 5.4, -124.5], sag: 0.4, n: 30 },
+      { kind: 'bulbs', from: [2.2, 5.4, -95.5], to: [2.2, 5.4, -124.5], sag: 0.4, n: 30 },
+      { kind: 'pole', pos: [-2.2, 4, -95.3], size: 1.6, r: 0.08 }, { kind: 'pole', pos: [2.2, 4, -95.3], size: 1.6, r: 0.08 },
+      { kind: 'pole', pos: [-2.2, 4, -110], size: 1.6, r: 0.08 }, { kind: 'pole', pos: [2.2, 4, -110], size: 1.6, r: 0.08 },
+      { kind: 'pole', pos: [-2.2, 4, -124.7], size: 1.6, r: 0.08 }, { kind: 'pole', pos: [2.2, 4, -124.7], size: 1.6, r: 0.08 },
+    ] },
+
+    // ======================================================== 6  Wechselschalter-Plattform (fährt)
+    { type: 'mover', id: 'faehre', size: [12, 0.8, 12], path: [[0, 3.2, -132.2], [0, 3.2, -152]], speed: 2.2, wait: 1.6, color: 'blue' },
+    { type: 'switchtiles', id: 'wechsel', mode: 'toggle', mover: 'faehre', tiles: [[-3.5, 0, -3.5], [3.5, 0, -3.5], [-3.5, 0, 3.5], [3.5, 0, 3.5], [0, 0, -4.5], [0, 0, 4.5]], drop: 'wackel' },
+
+    // ======================================================== 7  Landebühne, Stempel-Turm, Kanone, Ziel
+    { type: 'deco_w1b', items: [
+      stage(-0.5, 4, -164, 15, 10, { color: 0x2a9a5a }),
+      stage(0, 10, -190, 10, 10, { color: 0xffc21a, star: true }),
+      stage(-9.5, 12, -163.2, 3, 3.8, { color: 0xd0302a, h: 8, bulbs: false }),      // Stempel-Turm
+      { kind: 'pennant', pos: [-10.6, 12, -164.6], size: 2 },
+      { kind: 'balloons', pos: [4.6, 10, -194], n: 6, size: 2 },
+      { kind: 'drum', pos: [5.5, 4, -167.5], size: [1.6, 0.9], color: 'red' },
+    ] },
+    { type: 'wall', pos: [-9.5, 4, -161.2], size: [3, 8, 0.4], climbable: true },
+    { type: 'wall', pos: [-6.25, 4, -163.2], size: [0.5, 10, 3.8], style: 'white' },
+    { type: 'fallplatform', id: 'wackel', pos: [-9.5, 3.4, -159.6], size: [3, 0.6, 2.8], on: 'wechsel' },
+    { type: 'glasspipe', id: 'kanone', path: [[3.5, 4, -166], [3.5, 7, -166], [3.5, 9, -172], [1, 11, -180]], cannon: true, target: [0, 10, -188] },
+
+    // ======================================================== Zuschauerloge (abseits links)
+    { type: 'deco_w1b', items: [
+      stage(-20, 6, -22, 6, 12, { color: 0xd0302a }),
+      { kind: 'curtain', pos: [-20, 6, -28.3], size: [6, 5], color: 0x7a1aa0 },
+    ] },
+    { type: 'warpbox', id: 'logeBox', pos: [-20, 6, -26], target: [0, 0, -29] },
+
+    // ======================================================== Kistenraum (abseits, x ≈ 60)
+    { type: 'deco_w1b', items: [
+      stage(60, 0, -87, 16, 14, { color: 0x6a3a2a, bulbs: false }),
+      { kind: 'curtain', pos: [60, 0, -94.3], size: [16, 6], color: 0xc81e2a },
+    ] },
+    { type: 'wall', pos: [51.5, 0, -87], size: [1, 4, 14], style: 'white', camIgnore: true },
+    { type: 'wall', pos: [68.5, 0, -87], size: [1, 4, 14], style: 'white', camIgnore: true },
+    { type: 'wall', pos: [60, 0, -94.5], size: [18, 4, 1], style: 'red' },
+    { type: 'crate', id: 'sternkiste', pos: [53.2, 0, -92.8], content: 'star' },
+    { type: 'crate', pos: [55, 0, -92.8] }, { type: 'crate', pos: [56.8, 0, -92.8] },
+    { type: 'crate', pos: [63.2, 0, -92.8] }, { type: 'crate', pos: [65, 0, -92.8], content: 'coins:5' }, { type: 'crate', pos: [66.8, 0, -92.8] },
+    { type: 'crate', pos: [53.2, 0, -91] }, { type: 'crate', pos: [66.8, 0, -91], content: 'oneup' },
+    { type: 'warpbox', id: 'kistenEin', pos: [60, 0, -81.5] },
+    { type: 'warpbox', id: 'kistenAus', pos: [60, 0, -90], target: [0, 4, -97] },
+  ],
+  blocks: [
+    { kind: 'question', pos: [0, 3.4, 2], content: 'wachstumsbeere' },
+    { kind: 'question', pos: [-2, 3.4, -31], content: 'coin' },
+    { kind: 'rouletteblock', pos: [2, 3.4, -31] },
+    { kind: 'rouletteblock', pos: [0, 3.9, -53] },
+    { kind: 'question', pos: [-1.5, 4.9, -61], content: 'krallenAnzug' },
+    { kind: 'question', pos: [1.5, 4.9, -61], content: 'coins:5' },
+    { kind: 'question', pos: [60, 2.4, -84], content: 'funken' },
+    { kind: 'question', pos: [-2, 6.4, -164], content: 'krallenAnzug' },
+  ],
+  enemies: [
+    // Krabbelkäfer (8)
+    bug(-6, 0, -4, { path: [[-7, 0, -4], [7, 0, -4]] }), bug(6, 0, -10, { path: [[7, 0, -10], [-6, 0, -10]], color: 'red' }),
+    bug(-5, 4, -86, { path: [[-6, 4, -86], [2, 4, -86]] }), bug(2, 4, -90.5, { path: [[3, 4, -90.5], [-6, 4, -90.5]], color: 'red' }),
+    bug(0, 4, -99, { path: [[0, 4, -98], [0, 4, -123]], color: 'blue' }), bug(0, 4, -101, { path: [[0, 4, -98], [0, 4, -123]], color: 'blue' }),
+    bug(0, 4, -103, { path: [[0, 4, -98], [0, 4, -123]], color: 'blue' }), bug(0, 4, -105, { path: [[0, 4, -98], [0, 4, -123]], color: 'blue' }),
+    // Brummer (8)
+    bee(-3, 2.5, -27.5), bee(4, 2.8, -36.5), bee(-4, 3.5, -48), bee(3.5, 4, -57.5),
+    bee(5, 5.5, -76), bee(-6, 6, -82),
+    bee(5.5, 6, -160.5), bee(-3, 13.2, -186),
+    // Flatterkäfer (6) – zwei Reihen quer über die Lücken
+    flutter(-6, 5.6, -76.5, { path: [[-7, 5.6, -76.5], [7, 5.6, -76.5]] }), flutter(-4.5, 5.6, -76.5, { path: [[-7, 5.6, -76.5], [7, 5.6, -76.5]] }),
+    flutter(-3, 5.6, -76.5, { path: [[-7, 5.6, -76.5], [7, 5.6, -76.5]] }),
+    flutter(6, 6.2, -83, { path: [[7, 6.2, -83], [-7, 6.2, -83]] }), flutter(4.5, 6.2, -83, { path: [[7, 6.2, -83], [-7, 6.2, -83]] }),
+    flutter(3, 6.2, -83, { path: [[7, 6.2, -83], [-7, 6.2, -83]] }),
+    // Zauberkröte auf der Fähre
+    { kind: 'zauberkroete', pos: [0, 4, -146], area: { mover: 'faehre', r: 5.5 } },
+  ],
+  items: [
+    coinsLine([0, 0.2, 0], [0, 0.2, -10], 5),
+    arc([-1, 0.4, -14], [1, 0.4, -25.5], 1.5, 6),
+    { kind: 'coins', pos: [5.5, 6.7, -11], r: 0.9, n: 5 },
+    coinsLine([7.5, 1.5, -11], [7.5, 5.5, -11], 3),
+    arc([0, 0.4, -35.5], [-4, 0.4, -39], 1.4, 3), arc([4, 0.8, -40.5], [-2, 1.9, -50], 2, 5),
+    arc([0, 1.9, -56.5], [0, 2.9, -58.5], 1.2, 3),
+    arc([-2, 3, -67.5], [-4, 3.3, -70.5], 1.4, 3), arc([-1, 3.4, -75.5], [2, 3.8, -77.5], 1.6, 3), arc([2, 3.8, -82.5], [0, 4.3, -84], 1.4, 3),
+    coinsLine([0, 4.3, -97], [0, 4.3, -123], 10),
+    { kind: 'coins', pos: [0, 4.6, -142], r: 3, n: 10 },
+    arc([2, 4.3, -168], [1, 10.3, -186], 4, 7),
+    { kind: 'coins', pos: [-20, 6.3, -20], r: 2, n: 10 },
+    coinsLine([57, 0.3, -84], [63, 0.3, -84], 4),
+  ],
+  checkpoint: [0, 2.5, -63],
+  stars: [
+    [5.5, 6.55, -11.6],          // 1: auf der breiten Wand neben der Warp-Box (Wandsprung)
+    [53.2, 0.5, -92.8],          // 2: Kistenraum, Kiste links in der Ecke (Funkenblüte)
+    { pos: [0, 4.05, -142], mover: 'faehre' },   // 3: Mitte der Wechselschalter-Plattform
+  ],
+  stamp: [-9.5, 12.05, -164],
+  goal: { pos: [0, 10, -192], height: 8 },
+  marks: {
+    start: [0, 0, 5],
+    shaft: [7.7, 0, -11],
+    field2: [0, 0, -28],
+    movers: [0, 0, -34.5],
+    checkpoint: [0, 2.5, -63],
+    flutter: [-4, 3, -71.5],
+    puzzle: [-2, 4, -86],
+    walkway: [0, 4, -96],
+    ferry: [0, 4, -126],
+    landing: [0, 4, -160],
+    tower: [-9.5, 4, -159.6],
+    goal: [0, 10, -187],
+    loge: [-20, 6, -18],
+    crates: [60, 0, -82.5],
+  },
+};
