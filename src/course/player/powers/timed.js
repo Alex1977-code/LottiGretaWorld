@@ -2,7 +2,7 @@
 // Power-up-Agent ersetzt/ergänzt sie (eigene Dateien unter player/powers/ überschreiben nicht – Namen sind
 // eindeutig; zum Verfeinern diese Datei bearbeiten).
 //  - funken: Aktion wirft einen Feuerball, sobald es die Entität 'fireball' gibt (entities/kinds/).
-//  - riese:  10 s groß (Darstellung ×2,4), zerbricht `breakable`-Formen und besiegt Gegner bei Berührung.
+//  - riese:  10 s groß (Darstellung ×2,4), unverwundbar, zerbricht `breakable`-Formen und besiegt Gegner bei Berührung.
 //  - stern:  10 s unverwundbar, Berührung besiegt Gegner.
 
 export const POWERS = {
@@ -25,6 +25,7 @@ export const POWERS = {
     icon: 0xc04cff,
     duration: 10,
     scale: 2.4,
+    invulnerable: true,
     onGain(player) { player.level.sfx('powerup'); },
     update(player) {
       // Alles Zerbrechliche in Reichweite zertrümmern
