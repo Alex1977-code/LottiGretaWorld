@@ -401,3 +401,86 @@ export class HangChain {
     d.applyQuaternion(this.frame);
   }
 }
+
+// ------------------------------------------------------------------ Kurs-Modus: Hilfen für Posen und Kostüme
+/** Winkel auf (−π, π] falten (Salto-Rest nach einer vollen Umdrehung → 0). */
+export const wrapAngle = (a) => a - TAU * Math.round(a / TAU);
+
+/**
+ * Zwei-Gelenk-IK in der Seitenebene (x vor, y hoch): Hüfte in Höhe `hipY` über dem Boden, Knöchel-Ziel
+ * (ax, ay). Liefert Gelenkwinkel im Vorzeichen der Figuren-Posen: `thigh` (vor = positiv, relativ zum
+ * Becken, das um `lean` gekippt ist), `knee` (Beugung ≥ 0, Knie nach vorn) und `foot` (Fuß waagerecht).
+ */
+export function legIK(thighLen, shinLen, hipY, ax, ay, lean = 0) {
+  const dy = hipY - ay;
+  const D = clamp(Math.hypot(ax, dy), 0.05, thighLen + shinLen - 1e-4);
+  const phi = Math.atan2(ax, dy);
+  const alpha = Math.acos(clamp((thighLen * thighLen + D * D - shinLen * shinLen) / (2 * thighLen * D), -1, 1));
+  const inner = Math.acos(clamp((thighLen * thighLen + shinLen * shinLen - D * D) / (2 * thighLen * shinLen), -1, 1));
+  const thighW = phi + alpha, knee = Math.PI - inner;
+  return { thigh: thighW - lean, knee, foot: thighW - knee };
+}
+
+/**
+ * Skin-Gewichte für eine Zwei-Knochen-Kette entlang −Y (Oberarm → Unterarm): oberhalb `yHi` ganz Knochen 0,
+ * unterhalb `yLo` ganz Knochen 1, dazwischen weich gemischt (Gummiarm-Biegung ohne Knick).
+ */
+export function skinTwoBones(g, yHi, yLo) {
+  const pos = g.attributes.position, n = pos.count;
+  const idx = new Uint16Array(n * 4), w = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    const k = smoothstep((yHi - pos.getY(i)) / (yHi - yLo));
+    idx[i * 4] = 0; idx[i * 4 + 1] = 1;
+    w[i * 4] = 1 - k; w[i * 4 + 1] = k;
+  }
+  g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(idx, 4));
+  g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(w, 4));
+  return g;
+}
+
+/**
+ * Regenbogen-Glanz (z. B. Funkelstern): tauscht beim Einschalten die Standard-Materialien aller Meshes unter
+ * `root` gegen eigene Kopien (gleiches Shader-Programm, keine zusätzlichen Zeichenaufrufe) und lässt deren
+ * Eigenleuchten je Bild durch die Farben laufen – versetzt nach Höhe, damit ein Regenbogen über die Figur
+ * wandert. Ausschalten stellt die Originale wieder her. Unbeleuchtete Materialien (Glanzpunkte) bleiben.
+ */
+export class RainbowGlow {
+  constructor(root, { speed = 1.6, spread = 0.9, intensity = 0.55, flicker = 0.22 } = {}) {
+    this.root = root; this.on = false; this.entries = new Map();
+    this.speed = speed; this.spread = spread; this.intensity = intensity; this.flicker = flicker;
+  }
+  set(on) {
+    on = !!on;
+    if (on === this.on) return;
+    this.on = on;
+    if (on) {
+      const box = new THREE.Box3().setFromObject(this.root);
+      const h = Math.max(1e-3, box.max.y - box.min.y);
+      const wp = new THREE.Vector3();
+      this.root.traverse((o) => {
+        if (!o.isMesh || !o.material?.isMeshStandardMaterial) return;
+        let e = this.entries.get(o);
+        if (e && (o.material === e.orig || o.material === e.glow)) return;
+        if (e) e.glow.dispose();
+        o.getWorldPosition(wp);
+        const glow = o.material.clone();
+        e = { mesh: o, orig: o.material, glow, k: clamp((wp.y - box.min.y) / h, 0, 1) };
+        this.entries.set(o, e);
+      });
+    }
+    for (const e of this.entries.values()) e.mesh.material = on ? e.glow : e.orig;
+  }
+  update(t) {
+    if (!this.on) return;
+    for (const e of this.entries.values()) {
+      const hue = (((t * this.speed - e.k * this.spread) % 1) + 1) % 1;
+      e.glow.emissive.setHSL(hue, 1, 0.5);
+      e.glow.emissiveIntensity = this.intensity + this.flicker * Math.sin(t * 31 + e.k * 17);
+    }
+  }
+  dispose() {
+    this.set(false);
+    for (const e of this.entries.values()) e.glow.dispose();
+    this.entries.clear();
+  }
+}
