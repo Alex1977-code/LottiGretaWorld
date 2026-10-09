@@ -12,6 +12,10 @@
 //   spin:   rad/s Drehung um Y (Drehscheibe, nur mit shape 'cyl' sinnvoll)
 //   shape:  'box' (Standard) | 'cyl'
 //   color:  Standard 'yellow'
+//   id:     Name → level.named.get(id) = { pm, mover, shape, origin, running, start(), stop() } (Signale der
+//           Sonder-Bausteine: { start: id } / { stop: id }; Kipp-Schaltfelder fahren mit: switchtiles on: id)
+//   idle:   true → steht, bis start() (z. B. „Plattform startet“, wenn alle Schaltfelder an sind)
+//   once:   true → fährt nach start() nur einmal bis zum Pfadende und bleibt dort stehen
 // Kollision: box/cyl mit Flag mover = { dx, dy, dz, vx, vy, vz, dyaw, cx, cz } (dieser Schritt).
 // Läuft in level.onStep (vor der Figur).
 
@@ -32,11 +36,21 @@ export function buildMover(level, spec) {
   const id = level.world.add({ ...shapeOf(pm.pos), mover, tag: 'mover' });
   const shape = level.world.get(id);
   let yaw = 0;
+  const handle = {
+    pm, mover, shape, origin: { x: pm.pos.x, y: pm.pos.y, z: pm.pos.z }, running: !spec.idle,
+    start() { handle.running = true; }, stop() { handle.running = false; },
+  };
+  if (spec.id) level.named.set(spec.id, handle);
+  const zero = { dx: 0, dy: 0, dz: 0 };
   level.onStep((dt) => {
-    const d = pm.step(dt);
+    let d = zero;
+    if (handle.running) {
+      d = pm.step(dt);
+      if (spec.once && pm.mode !== 'loop' && pm.dir < 0) { pm.s = pm.length; pm.at(pm.s, pm.pos); handle.running = false; }
+    }
     mover.dx = d.dx; mover.dy = d.dy; mover.dz = d.dz;
     mover.vx = d.dx / dt; mover.vy = d.dy / dt; mover.vz = d.dz / dt;
-    mover.dyaw = spin * dt;
+    mover.dyaw = handle.running ? spin * dt : 0;
     yaw += mover.dyaw;
     mover.cx = pm.pos.x; mover.cz = pm.pos.z;
     const ns = shapeOf(pm.pos);
@@ -58,7 +72,7 @@ export function buildMover(level, spec) {
   mesh.castShadow = true; mesh.receiveShadow = true;
   mesh.position.set(pm.pos.x, pm.pos.y, pm.pos.z);
   addObject(level, mesh, () => { mesh.position.set(pm.pos.x, pm.pos.y, pm.pos.z); mesh.rotation.y = yaw; });
-  return { shape, mover, pm };
+  return handle;
 }
 
 export const TYPES = { mover: buildMover };

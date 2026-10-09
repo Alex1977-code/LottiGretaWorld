@@ -3,7 +3,8 @@
 //
 // Einzeln:  { type: 'deco', kind, pos: [x, y, z], … }   oder Liste: { type: 'deco', items: [{ kind, pos, … }, …] }
 // kind:
-//   tree     size (Höhe, Standard 4.5), color (Kronenfarbe: 'autumn'|'green'|Hex), solid (Stamm, Standard true)
+//   tree     size (Höhe, Standard 4.5), color (Kronenfarbe: 'autumn'|'green'|Hex), solid (Stamm, Standard true),
+//            climbable (Stamm mit Krallen-Anzug kletterbar, z. B. Stern im Baum 1-3)
 //   bush     size (Radius, Standard 0.8), color
 //   flower   color ('red'|'yellow'|'white'|'pink'|Hex)
 //   flowers  Beet: size [w, d], n (Anzahl, Standard 10)
@@ -43,7 +44,7 @@ function tree(level, it, parts, rnd) {
   for (const [dx, dy, dz, r] of [[0, trunkH + R * 1.1, 0, R * 1.15], [-R * 0.75, trunkH + R * 0.55, R * 0.25, R * 0.85], [R * 0.7, trunkH + R * 0.7, -R * 0.2, R * 0.9]]) {
     parts.push(sphereCol(r, p.x + dx, p.y + dy, p.z + dz, pal[0], pal[1], pal[2]));
   }
-  if (it.solid !== false) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: Math.max(0.3, rT * 1.1), y0: p.y, y1: p.y + trunkH + R * 0.6, tag: 'tree' });
+  if (it.solid !== false) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: Math.max(0.3, rT * 1.1), y0: p.y, y1: p.y + trunkH + R * 0.6, climbable: !!it.climbable, tag: 'tree' });
 }
 
 function bush(it, parts, rnd) {
