@@ -13,7 +13,11 @@
 import { getBlockType } from '../blocks/index.js';
 
 const asPos = (v) => (Array.isArray(v) && typeof v[0] === 'number' ? { pos: v } : v);
-const list = (v) => (v === undefined || v === null ? [] : Array.isArray(v) && typeof v[0] === 'number' ? [v] : v);
+const list = (v) => {
+  if (v === undefined || v === null) return [];
+  if (!Array.isArray(v)) return [v];                       // { pos, yaw }
+  return typeof v[0] === 'number' ? [v] : v;               // [x,y,z] oder Liste
+};
 
 export function buildLevel(level) {
   const d = level.data;
