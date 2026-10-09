@@ -124,10 +124,10 @@ export const LEVEL = {
       { kind: 'path', from: [-3, 9, -71.6], to: [-3, 9, -79.2], n: 7 },
     ] },
     // Nische mit Warp-Röhre (Ziegelwand davor, POW sprengt sie frei)
-    { type: 'wall', pos: [4.5, 9, -79], size: [1, 3.4, 4], style: 'stone' },
-    { type: 'wall', pos: [8.5, 9, -79], size: [1, 3.4, 4], style: 'stone' },
-    { type: 'platform', style: 'stone', pos: [6.5, 12, -79], size: [5, 0.6, 4] },
-    { type: 'pipe', id: 'zuPRaum', pos: [6.5, 9, -79.6], height: 1.2, target: 'pRaumEin' },
+    { type: 'wall', pos: [4.5, 9, -79], size: [1, 3.9, 4], style: 'stone' },
+    { type: 'wall', pos: [8.5, 9, -79], size: [1, 3.9, 4], style: 'stone' },
+    { type: 'platform', style: 'stone', pos: [6.5, 12.5, -79], size: [5, 0.6, 4] },
+    { type: 'pipe', id: 'zuPRaum', pos: [6.5, 9, -79.7], height: 0.7, target: 'pRaumEin' },
     { type: 'deco', items: [
       { kind: 'bush', pos: [-9.2, 9, -71.8], size: 0.8 },
       { kind: 'rock', pos: [9.2, 3, -49.5], size: 0.6 }, { kind: 'tree', pos: [9, 9, -72.2], size: 4.2, color: 'autumn' },

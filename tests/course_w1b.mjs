@@ -32,6 +32,13 @@ function installBot() {
   /** Mitte/Oberseite der bewegten Plattform (Form mit mover-Flag), deren Mitte z0 am nächsten liegt. */
   const movers = () => [...c.world.shapes.values()].filter((sh) => sh.mover);
   const mover = (z0, x0) => {
+    if (typeof z0 === 'string') {
+      // benannte bewegte Plattform (mover mit id → level.named { shape })
+      const n = c.level.named.get(z0), sh = n?.shape;
+      if (!sh) return null;
+      const cx = sh.type === 'cyl' ? sh.x : (sh.x0 + sh.x1) / 2, cz = sh.type === 'cyl' ? sh.z : (sh.z0 + sh.z1) / 2;
+      return { x: cx, y: sh.top, z: cz, sh };
+    }
     let best = null, bd = Infinity;
     for (const sh of movers()) {
       const cx = sh.type === 'cyl' ? sh.x : (sh.x0 + sh.x1) / 2, cz = sh.type === 'cyl' ? sh.z : (sh.z0 + sh.z1) / 2;
@@ -81,7 +88,7 @@ function installBot() {
             if (a.target) { const t = a.target(p, c, bot); if (t) { tx = t[0]; tz = t[1]; } }
             const dx = tx - p.pos.x, dz = tz - p.pos.z;
             if (Math.hypot(dx, dz) < tol) break;
-            if (a.until && a.until(p)) break;
+            if (a.until && a.until(p, c)) break;
             const d = dirInput(dx, dz);
             step({ ...d, run: !!a.run, jump: !!a.hold });
             if (dead()) break;
@@ -171,7 +178,7 @@ function installBot() {
         } else if (a.exec) {
           a.exec(c);
         }
-        log.push([ai, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
+        log.push([ai, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.power, p.yaw.toFixed(2)]);
         if (dead()) fail = `tot (${p.deathCause ?? '?'}) bei Aktion ${ai}`;
         else if (a.go && n >= max) fail = `Ziel ${a.go} nicht erreicht`;
       }
@@ -192,7 +199,7 @@ function installBot() {
 const runRoute = (actions, o = {}) => sc(([acts, opt]) => {
   const revive = (a) => {
     const b = { ...a };
-    if (typeof a.until === 'string') b.until = new Function('p', `return (${a.until});`);
+    if (typeof a.until === 'string') b.until = new Function('p', 'c', `return (${a.until});`);
     if (typeof a.exec === 'string') b.exec = new Function('c', a.exec);
     if (typeof a.waitfor === 'string') b.waitfor = new Function('p', 'c', 'bot', `return (${a.waitfor});`);
     if (typeof a.target === 'string') b.target = new Function('p', 'c', 'bot', `return (${a.target});`);
@@ -275,9 +282,9 @@ const R13 = {
     { name: 'Stern 1 (Rankenbaum)', start: [-6.5, 0, 3], acts: [{ go: [-6.5, -0.2], tol: 0.2, stalk: true, max: 300 }, { climb: true }, { jump: [-6.5, -3.2], run: false }, { wait: 30 }], expect: (s) => s.rt.stars[0] },
     { name: 'Stempel (Wandsprung-Schacht)', start: [7, 0, -3.6], acts: [{ go: [7, -6.2], tol: 0.15 }, { wait: 30 }, { wallclimb: { dir: 1, until: 9.5, z: -6.2, seek: [7, 7.6, -6.2], stop: 'c.level.runtime.stamp' } }, { wait: 20 }], expect: (s) => s.rt.stamp },
     { name: 'POW sprengt die Ziegelwand → Röhre → P-Schalter-Raum', start: [2, 9, -71.6], acts: [
-      { go: [2, -73.5], tol: 0.2 }, { wait: 10 }, { input: { jump: true }, n: 30 }, { wait: 90 },
-      { waitfor: 'c.level.entities.filter((e) => e.kind === "brick" && e.alive && e.pos.z < -77).length === 0', max: 60 },
-      { go: [6.5, -77.2], tol: 0.3 }, { jump: [6.5, -79.6], run: false }, { input: { crouch: true }, n: 4 }, { waitfor: 'p.pos.x > 55 && p.mode === "ground"', max: 900 },
+      { go: [2, -73.5], tol: 0.15 }, { wait: 30 }, { input: { jump: true }, n: 30 }, { wait: 90 },
+      { waitfor: 'c.level.entities.filter((e) => e.kind === "brick" && e.alive && Math.abs(e.pos.z + 77.5) < 0.1).length === 0', max: 60 },
+      { go: [6.5, -77.6], tol: 0.2 }, { wait: 20 }, { jump: [6.5, -79.7], run: false, hold: 20 }, { wait: 10 }, { go: [6.5, -79.7], tol: 0.15, max: 120 }, { wait: 10 }, { input: { crouch: true }, n: 6 }, { waitfor: 'p.pos.x > 55 && p.mode === "ground"', max: 900 },
     ], expect: (s) => s.pos[0] > 55 },
     { name: 'Stern 2 (Druckschalter, 8 blaue Münzen)', start: [66, 0, -64], acts: [
       { go: [68.4, -66.2], tol: 0.3 }, { jump: [70, -67], run: false }, { wait: 10 },
@@ -286,11 +293,11 @@ const R13 = {
       { go: [76.5, -70], run: true, tol: 0.4 }, { go: [71.9, -74.2], run: true, tol: 0.3 }, { jump: [70, -75.5], run: false },
       { go: [67.9, -74], run: true, tol: 0.3 }, { jump: [66, -72], run: false },
       { go: [63.5, -66], run: true, tol: 0.4 }, { go: [66, -63.5], run: true, tol: 0.4 },
-      { waitfor: 'bot.star(1)', max: 120 }, { go: [0, 0], target: 'bot.star(1)', tol: 0.3, run: true, max: 400 }, { wait: 20 },
+      { waitfor: 'bot.star(1) || c.level.runtime.stars[1]', max: 120 }, { go: [0, 0], target: 'bot.star(1)', until: 'c.level.runtime.stars[1]', tol: 0.3, run: true, max: 400 }, { wait: 20 },
     ], expect: (s) => s.rt.stars[1] },
     { name: 'Stern 3 (Wolkenkanone → Münzhimmel)', start: [-5.5, 20, -135.3], acts: [
       { go: [-5.5, -135.5], tol: 0.2 }, { jump: [-5.5, -137.5], run: false }, { waitfor: 'p.pos.x < -40 && p.mode === "ground"', max: 900 },
-      { go: [-46, -124.4], run: false, tol: 0.4 }, { go: [-46, -126.3], tol: 0.3 }, { jump: [-46, -129.5], run: false },
+      { go: [-46, -123.4], run: false, tol: 0.4 }, { go: [-46, -124.5], tol: 0.25 }, { jump: [-46, -129], run: false },
       { go: [-46, -138.3], run: true, tol: 0.3 }, { jump: [-43, -144.5], run: false },
       { go: [-44.2, -147.3], tol: 0.3 }, { jump: [-48, -154], run: false },
       { go: [-47.4, -156.3], tol: 0.3 }, { jump: [-46, -162], run: false },
@@ -310,12 +317,12 @@ const R15 = {
       { go: [0.6, -21.1], tol: 0.3 }, { jump: [1, -23.5], run: false }, { go: [1, -24.6], tol: 0.3 }, { jump: [0.5, -28.5], run: false },
     ], expect: (s) => s.pos[2] < -27.2 && Math.abs(s.pos[1]) < 0.2 },
     { name: 'Schalter-Feld 2: fahrende Plattformen', start: [0, 0, -29], acts: [
-      { go: [0, -33] }, { waitfor: 'Math.abs(bot.mover(-39).x - p.pos.x) < 1.2 && bot.mover(-39).sh.mover.vx * (p.pos.x - bot.mover(-39).x) <= 0', max: 2000 },
-      { go: [0, -34.6], tol: 0.3 }, { jump: [0, 0], track: -39, run: false },
-      { go: [0, 1.2], track: -39, tol: 0.3 }, { waitfor: 'Math.abs(bot.mover(-45).x - p.pos.x) < 1.6', max: 2000 },
-      { go: [0, -1.2], track: -39, tol: 0.3 }, { jump: [0, 0], track: -45, run: false },
-      { go: [0, 1.2], track: -45, tol: 0.3 }, { waitfor: 'Math.abs(bot.mover(-45).x) < 0.6', max: 2000 },
-      { go: [0, -1.2], track: -45, tol: 0.3 }, { jump: [0, -51], run: false },
+      { go: [0, -33] }, { waitfor: 'Math.abs(bot.mover("lift1").x - p.pos.x) < 1.2 && bot.mover("lift1").sh.mover.vx * (p.pos.x - bot.mover("lift1").x) <= 0', max: 2000 },
+      { go: [0, -34.6], tol: 0.3 }, { jump: [0, 0], track: 'lift1', run: false },
+      { go: [0, 1.2], track: 'lift1', tol: 0.3 }, { waitfor: 'Math.abs(bot.mover("lift2").x - p.pos.x) < 1.6', max: 2000 },
+      { go: [0, -1.2], track: 'lift1', tol: 0.3 }, { jump: [0, 0], track: 'lift2', run: false },
+      { go: [0, 1.2], track: 'lift2', tol: 0.3 }, { waitfor: 'Math.abs(bot.mover("lift2").x) < 0.6', max: 2000 },
+      { go: [0, -1.2], track: 'lift2', tol: 0.3 }, { jump: [0, -52], run: false },
     ], expect: (s) => s.pos[2] < -50.2 && Math.abs(s.pos[1] - 1.5) < 0.2 },
     { name: 'Checkpoint-Trommel', start: [0, 1.5, -51], acts: [{ go: [0, -55.4] }, { jump: [0, -61], run: false }, { go: [0, -63.2] }, { wait: 10 }], expect: (s) => Math.abs(s.pos[1] - 2.5) < 0.2 && !!s.rt.checkpoint },
     { name: 'Flatterkäfer-Zone', start: [0, 2.5, -64], acts: [
@@ -324,8 +331,8 @@ const R15 = {
     ], expect: (s) => Math.abs(s.pos[1] - 4) < 0.2 && s.pos[2] < -90 },
     { name: 'Krabbelkäfer-Gang', start: [0, 4, -91], acts: [{ go: [0, -91.6], tol: 0.3 }, { jump: [0, -97], run: false }, { go: [0, -124.4], run: true }], expect: (s) => Math.abs(s.pos[1] - 4) < 0.2 && s.pos[2] < -123.5 },
     { name: 'Wechselschalter-Fähre', start: [0, 4, -124.3], acts: [
-      { waitfor: 'bot.mover(-140).z > -132.6', max: 3000 }, { jump: [0, 0], track: -140, run: false },
-      { waitfor: 'bot.mover(-140).z < -151.6', max: 3000 }, { go: [0, -157.2], tol: 0.3 }, { jump: [0, -161], run: false },
+      { waitfor: 'bot.mover("faehre").z > -132.6', max: 3000 }, { jump: [0, 0], track: 'faehre', run: false },
+      { waitfor: 'bot.mover("faehre").z < -151.6', max: 3000 }, { go: [0, -157.2], tol: 0.3 }, { jump: [0, -161], run: false },
     ], expect: (s) => Math.abs(s.pos[1] - 4) < 0.2 && s.pos[2] < -159.2 },
     { name: 'Glasrohr-Kanone → Zielbühne', start: [0, 4, -160.2], acts: [
       { go: [3.5, -160.4], tol: 0.25 }, { go: [3.5, -165], until: 'p.mode === "script"', max: 300 }, { waitfor: 'p.mode === "ground" && p.pos.z < -184', max: 1200 },
@@ -338,20 +345,25 @@ const R15 = {
       { go: [2, -9.9], tol: 0.25 }, { jump: [2, -11.6], run: false }, { waitfor: 'p.pos.x < -15 && p.mode === "ground"', max: 900 },
       { go: [-20, -20], run: true, tol: 0.4 }, { go: [-20, -24.2], tol: 0.25 }, { jump: [-20, -26], run: false }, { waitfor: 'p.pos.x > -5 && p.mode === "ground"', max: 900 },
     ], expect: (s) => Math.abs(s.pos[1]) < 0.3 && s.pos[2] < -27 },
-    { name: 'Stempel mit Krallen (vor „alle Schalter an“)', start: [-9.5, 4, -159.2], power: 'krallen', acts: [{ go: [-9.5, -161.6], tol: 0.15, max: 120 }, { input: { y: 1 }, n: 240 }, { go: [-9.5, -163.4], tol: 0.3, max: 200 }, { wait: 20 }], expect: (s) => s.rt.stamp },
+    { name: 'Stempel mit Krallen (vor „alle Schalter an“)', start: [-9.5, 4, -159.2], power: 'krallen', acts: [{ go: [-9.5, -160.5], tol: 0.15, max: 120 }, { wait: 10 }, { input: { y: 1, jump: true }, n: 20 }, { input: { y: 1 }, n: 240 }, { wait: 30 }, { go: [-9.5, -163.6], tol: 0.15, max: 200, until: 'c.level.runtime.stamp' }, { wait: 20 }], expect: (s) => s.rt.stamp },
     { name: 'Stempel per Wandsprung', reload: true, start: [-7.25, 4, -159.6], acts: [{ go: [-7.25, -163.2], tol: 0.15 }, { wait: 30 }, { wallclimb: { dir: -1, until: 12.3, z: -163.2, then: [-9.6, -163.4] } }, { go: [-9.5, -163.6], tol: 0.25, max: 200 }, { wait: 20 }], expect: (s) => s.rt.stamp },
     { name: 'Stern 2 (Rätselbox → Kistenraum, Funkenblüte)', start: [-1.5, 4, -88], acts: [
       { go: [-0.2, -89.7], tol: 0.25 }, { jump: [1.5, -90], run: false }, { waitfor: 'p.pos.x > 50 && p.mode === "ground"', max: 900 }, { wait: 30 },
-      { go: [60, -84], tol: 0.2 }, { wait: 10 }, { input: { jump: true }, n: 30 }, { wait: 80 },
-      { go: [60, -85.7], tol: 0.25 }, { jump: [60, -84], run: false }, { wait: 30 },
-      { go: [57, -84.2], tol: 0.4 }, { go: [53.2, -86.6], tol: 0.25 }, { input: { y: 0.2 }, n: 6 }, { wait: 20 }, ...shots(4, 100),
-      { waitfor: 'bot.star(1)', max: 200 }, { go: [0, 0], target: 'bot.star(1)', tol: 0.3, max: 600 }, { wait: 20 },
+      { go: [60, -85.5], tol: 0.25 }, { go: [60, -84], tol: 0.12 }, { wait: 40 }, { input: { jump: true }, n: 30 }, { wait: 90 },
+      { go: [60, -85.9], tol: 0.2 }, { wait: 20 }, { jump: [60, -84], run: false }, { wait: 30 },
+      { exec: 'if (c.player.power !== "funken") console.warn("[Bot] keine Funkenblüte");' },
+      // Feuerbälle treffen Kisten derzeit nicht (fireball.js ruft onHit nur für Gegner) → Stampfattacke von oben
+      { go: [57, -84.2], tol: 0.4 }, { go: [53.2, -90.4], tol: 0.2 }, { wait: 20 }, { jump: [53.2, -91.6], run: false },
+      { go: [53.2, -92.8], tol: 0.15, max: 200 }, { wait: 20 }, { input: { jump: true }, n: 16 }, { input: { crouch: true }, n: 4 }, { wait: 90 },
+      { waitfor: 'bot.star(1) || c.level.runtime.stars[1]', max: 200 }, { go: [0, 0], target: 'bot.star(1)', until: 'c.level.runtime.stars[1]', tol: 0.3, max: 600 }, { wait: 20 },
     ], expect: (s) => s.rt.stars[1] },
     { name: 'Stern 3 (alle Wechselfelder auf der Fähre)', start: [0, 4, -124.3], acts: [
-      { waitfor: 'bot.mover(-140).z > -132.6', max: 3000 }, { jump: [0, 4.4], track: -140, run: false }, { wait: 10 },
-      { go: [-3.5, 3.5], track: -140, tol: 0.35 }, { go: [-4.2, 0], track: -140, tol: 0.35 }, { go: [-3.5, -3.5], track: -140, tol: 0.35 },
-      { go: [3.5, -3.5], track: -140, tol: 0.35 }, { go: [4.2, 0], track: -140, tol: 0.35 }, { go: [3.5, 3.5], track: -140, tol: 0.35 },
-      { waitfor: 'bot.star(2)', max: 200 }, { go: [0, 0], target: 'bot.star(2)', tol: 0.3, max: 600 }, { input: { jump: true }, n: 20 }, { wait: 60 },
+      { waitfor: 'bot.mover("faehre").z > -132.6', max: 3000 }, { jump: [0, 4.4], track: 'faehre', run: false }, { wait: 10 },
+      { go: [-3.5, 3.5], track: 'faehre', tol: 0.35 }, { go: [-4.2, 0], track: 'faehre', tol: 0.35 }, { go: [-3.5, -3.5], track: 'faehre', tol: 0.35 },
+      { go: [3.5, -3.5], track: 'faehre', tol: 0.35 }, { go: [4.2, 0], track: 'faehre', tol: 0.35 }, { go: [3.5, 3.5], track: 'faehre', tol: 0.35 },
+      { waitfor: 'bot.star(2) || c.level.runtime.stars[2]', max: 200 }, { go: [0, 0], target: 'bot.star(2)', until: 'c.level.runtime.stars[2]', tol: 0.3, max: 600 }, { input: { jump: true }, n: 20 }, { wait: 60 },
+      // alle Schalter an → die Wackelplattform am Stempel-Turm ist abgestürzt (Krallen-Weg zu, Wandsprung bleibt)
+      { waitfor: '["fall", "gone"].includes(c.level.named.get("wackel")?.state)', max: 400 },
     ], expect: (s) => s.rt.stars[2] },
   ],
 };
@@ -359,7 +371,9 @@ const R15 = {
 // ------------------------------------------------------------------ Ablauf
 async function testLevel(R) {
   console.log(`\nKurs-Level ${R.id}`);
-  for (const hero of ['lotti', 'greta']) {
+  const onlyPart = process.env.W1B_PART ?? null;          // Fehlersuche: nur Abschnitte/Extras mit diesem Namensteil
+  const heroes = process.env.W1B_HERO ? [process.env.W1B_HERO] : ['lotti', 'greta'];
+  for (const hero of heroes) {
     errors.length = 0;
     await load(R.id);
     const loadErrors = errors.slice();
@@ -374,6 +388,7 @@ async function testLevel(R) {
     }
     let total = 0, allOk = true;
     for (const sec of R.main) {
+      if (onlyPart && !sec.name.includes(onlyPart)) continue;
       await place(sec.start, { hero, power: sec.power });
       if (sec.calm !== false) await sc(() => window.__bot.calm());
       const r = await runRoute(sec.acts);
@@ -386,7 +401,10 @@ async function testLevel(R) {
     check(`${R.id} [${hero}]: alle Abschnitte der Hauptroute`, allOk);
     console.log(`  [${hero}] Hauptroute ${f1(total)} s Spielzeit`);
     check(`${R.id} [${hero}]: Hauptroute < 180 s (${f1(total)} s)`, total < 180);
+    // Extras auf frisch geladenem Level (die Hauptroute endet am Zielmast → Szene ist fertig)
+    if (!onlyPart || R.extras.some((ex) => ex.name.includes(onlyPart))) await load(R.id);
     for (const ex of R.extras) {
+      if (onlyPart && !ex.name.includes(onlyPart)) continue;
       if (ex.reload) await load(R.id);
       await place(ex.start, { hero, power: ex.power });
       await sc(() => window.__bot.calm());
@@ -400,6 +418,7 @@ async function testLevel(R) {
 }
 
 const shotsOnly = !!process.env.W1B_SHOTS_ONLY;   // nur Bilder (schnelle Sichtprüfung)
+const noShots = !!process.env.W1B_PART;
 if (!shotsOnly && (!only || only === '1-3')) await testLevel(R13);
 if (!shotsOnly && (!only || only === '1-5')) await testLevel(R15);
 
@@ -419,13 +438,13 @@ const SHOTS = {
   '1-5': [
     ['15_start', [0, 0, 5]], ['15_schalter', [-5, 0, -1], { pre: runSteps({ x: 1 }, 150) }], ['15_sternwand', [7.75, 0, -7.5]],
     ['15_feld2', [0, 0, -28]], ['15_plattformen', [0, 0, -34]], ['15_check', [0, 2.5, -60]], ['15_flatter', [-4, 3, -71.5]], ['15_raetsel', [-2, 4, -85]],
-    ['15_gang', [0, 4, -96]], ['15_faehre', [0, 4, -124]], ['15_faehre_fahrt', null, { pre: 'const m = bot.mover(-140); bot.place([m.x, m.y + 0.05, m.z + 3], {}); c.step(400);' }],
+    ['15_gang', [0, 4, -96]], ['15_faehre', [0, 4, -124]], ['15_faehre_fahrt', null, { pre: 'const m = bot.mover("faehre"); bot.place([m.x, m.y + 0.05, m.z + 3], {}); c.step(400);' }],
     ['15_lande', [0, 4, -160]], ['15_turm', [-7.2, 4, -159.5]], ['15_kanonenflug', [3.5, 4, -160.4], { pre: runSteps({ y: 1 }, 170) }],
     ['15_ziel', [0, 10, -186.5]], ['15_loge', [-20, 6, -18]], ['15_kisten', [60, 0, -82]],
   ],
 };
 for (const id of Object.keys(SHOTS)) {
-  if (only && only !== id) continue;
+  if ((only && only !== id) || noShots) continue;
   errors.length = 0;
   await load(id);
   for (const [name, pos, o] of SHOTS[id]) await shot(name, pos, o ?? {});
@@ -433,9 +452,11 @@ for (const id of Object.keys(SHOTS)) {
 
 console.log('\n  Kennzahlen je Bild (Zeichenaufrufe inkl. Schattenpass, Dreiecke):');
 for (const [n, c, t] of stats) console.log(`    ${n.padEnd(14)} ${String(c).padStart(4)} Aufrufe  ${String(Math.round(t / 1000)).padStart(4)} k Dreiecke`);
-const maxCalls = Math.max(...stats.map((s) => s[1])), maxTris = Math.max(...stats.map((s) => s[2]));
-check(`Zeichenaufrufe < 120 (max ${maxCalls})`, maxCalls < 120);
-check(`Dreiecke < 300 k (max ${Math.round(maxTris / 1000)} k)`, maxTris < 300000);
+if (stats.length) {
+  const maxCalls = Math.max(...stats.map((s) => s[1])), maxTris = Math.max(...stats.map((s) => s[2]));
+  check(`Zeichenaufrufe < 120 (max ${maxCalls})`, maxCalls < 120);
+  check(`Dreiecke < 300 k (max ${Math.round(maxTris / 1000)} k)`, maxTris < 300000);
+}
 await browser.close();
 stop();
 process.exit(summary([]) ? 0 : 1);

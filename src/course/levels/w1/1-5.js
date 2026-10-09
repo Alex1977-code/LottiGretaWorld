@@ -131,8 +131,8 @@ export const LEVEL = {
     ] },
     { type: 'switchtiles', id: 'feld2', tiles: [[-2.5, 0, -29.5], [2.5, 0, -29.5], [-2.5, 0, -33], [2.5, 0, -33], [-2.5, 1.5, -52.4], [0, 1.5, -54.4], [2.5, 1.5, -52.4]],
       onAll: { power: 'oneup', pos: [0, 1.5, -51] } },
-    { type: 'mover', size: [3, 0.5, 3], path: [[-4, -0.5, -39], [4, -0.5, -39]], speed: 2.4, wait: 0.5, color: 'red' },
-    { type: 'mover', size: [3, 0.5, 3], path: [[4, 0.3, -45], [-4, 0.3, -45]], speed: 2.4, wait: 0.5, color: 'yellow' },
+    { type: 'mover', id: 'lift1', size: [3, 0.5, 3], path: [[-4, -0.5, -39], [4, -0.5, -39]], speed: 2.4, wait: 0.5, color: 'red' },
+    { type: 'mover', id: 'lift2', size: [3, 0.5, 3], path: [[4, 0.3, -45], [-4, 0.3, -45]], speed: 2.4, wait: 0.5, color: 'yellow' },
     { type: 'deco_w1b', items: [
       { kind: 'ride', at: [-4, -0.5, -39], color: 0xd0302a, skirt: [0xffc21a, 0xfff4e0] },
       { kind: 'ride', at: [4, 0.3, -45], color: 0xffa020, skirt: [0x2a4fd0, 0xfff4e0] },
