@@ -230,15 +230,15 @@ export const LEVEL = {
     // Krabbelkäfer (8)
     bug(-6, 0, -4, { path: [[-7, 0, -4], [7, 0, -4]], color: 'yellow' }), bug(6, 0, -10, { path: [[7, 0, -10], [-6, 0, -10]], color: 'red' }),
     bug(-1, 4, -87.5, { path: [[-1, 4, -87.5], [4, 4, -87.5], [4, 4, -92], [-1, 4, -92]], count: 2, spacing: 2.2, color: 'green' }),
-    bug(0, 4, -100, { path: [[0, 4, -99], [0, 4, -123]], count: 4, spacing: 1.6, speed: 2.2, color: 'blue' }),
+    bug(0, 4, -106, { path: [[0, 4, -104], [0, 4, -123]], count: 4, spacing: 1.6, speed: 2.2, color: 'blue' }),
     // Brummer (8)
     bee(-3.5, 2.6, -27.5, { center: [-3.5, 2.6, -31], radius: 2.4 }), bee(0, 2.8, -42, { path: [[-5, 2.8, -42], [5, 2.8, -42]] }),
-    bee(-4, 3.6, -49, { center: [-1, 3.6, -48], radius: 3 }), bee(3.5, 4.2, -57.5, { path: [[4, 4.2, -56.5], [-4, 4.2, -56.5]] }),
-    bee(5, 5.8, -76, { center: [4, 5.8, -78], radius: 2.2 }), bee(-6, 6.2, -83, { path: [[-6, 6.2, -82], [-6, 6.2, -86]] }),
+    bee(-4, 3.6, -49, { center: [-1, 3.6, -48], radius: 3 }), bee(4, 3.2, -22, { center: [3.5, 3.2, -21], radius: 2 }),
+    bee(5, 7, -145, { center: [3, 7, -145], radius: 3 }), bee(-4, 2.6, -8, { center: [-4.5, 2.6, -8.5], radius: 2.2 }),
     bee(5.5, 6.2, -161, { center: [5, 6.2, -164], radius: 2.6 }), bee(-3, 12.5, -186, { path: [[-3.5, 12.5, -185.5], [3.5, 12.5, -185.5]] }),
     // Flatterkäfer (6) – zwei Reihen quer über die Lücken
-    flutter(-6, 5.8, -76.5, { path: [[-8, 5.8, -76.5], [8, 5.8, -76.5]], count: 3, spacing: 1.5 }),
-    flutter(6, 6.4, -83, { path: [[8, 6.4, -83], [-8, 6.4, -83]], count: 3, spacing: 1.5, color: 'yellow' }),
+    flutter(-6, 4.9, -69, { path: [[-8, 4.9, -69], [8, 4.9, -69]], count: 3, spacing: 1.5 }),
+    flutter(6, 6.2, -93.6, { path: [[8, 6.2, -93.6], [-8, 6.2, -93.6]], count: 3, spacing: 1.5, color: 'yellow' }),
     // Zauberkröte auf der Fähre
     { kind: 'zauberkroete', pos: [-9, 5, -137], spots: [[-9, 5, -137], [9, 5, -147], [-5.5, 4, -160.5]], sight: 18 },
   ],

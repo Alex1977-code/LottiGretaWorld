@@ -223,7 +223,7 @@ async function shot(name, pos, o = {}) {
   await sc(([p, opt]) => {
     const c = window.__course;
     if (p) window.__bot.place(p, { hero: opt.hero ?? 'lotti', settle: opt.settle ?? 20 });
-    if (opt.pre) new Function('c', opt.pre)(c);
+    if (opt.pre) new Function('c', 'bot', opt.pre)(c, window.__bot);
     if (opt.zoom !== undefined && c.view.rig.zoomIndex !== opt.zoom) c.view.rig.toggleZoom();
     c.view.rig.userYawTarget = opt.yaw ?? 0;
     c.snapCamera();
@@ -232,7 +232,8 @@ async function shot(name, pos, o = {}) {
   await page.waitForTimeout(o.wait ?? 1100);
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
-  await page.screenshot({ path: `${OUT}w1b_${name}.png` });
+  try { await page.screenshot({ path: `${OUT}w1b_${name}.png`, timeout: 90000 }); }
+  catch (e) { console.log(`    (Bild ${name} übersprungen: ${e.message.split('\n')[0]})`); }
 }
 
 // ------------------------------------------------------------------ Routen
@@ -398,26 +399,36 @@ async function testLevel(R) {
   }
 }
 
-if (!only || only === '1-3') await testLevel(R13);
-if (!only || only === '1-5') await testLevel(R15);
+const shotsOnly = !!process.env.W1B_SHOTS_ONLY;   // nur Bilder (schnelle Sichtprüfung)
+if (!shotsOnly && (!only || only === '1-3')) await testLevel(R13);
+if (!shotsOnly && (!only || only === '1-5')) await testLevel(R15);
 
 // Screenshots entlang der Route (frisch geladen, mit Gegnern)
+// Situationen: pre = Code in der Seite (c = __course, bot = __bot) nach dem Absetzen, z. B. ein paar Schritte rechnen
+const runSteps = (inp, n) => `c.setInput(${JSON.stringify(inp)}); c.step(${n}); c.setInput({});`;
 const SHOTS = {
   '1-3': [
-    ['13_start', [0, 0, 6]], ['13_baum', [-5, 0, 2]], ['13_feld', [0, 1, -21]], ['13_hang', [0, 3, -50]], ['13_nische', [3, 9, -74]],
-    ['13_ranke', [-3, 9, -77]], ['13_wolken', [0, 15, -86.5]], ['13_huegel', [1.5, 17, -127.5]], ['13_treppe', [0, 17, -152.5]],
-    ['13_bruecke', [0, 30, -175]], ['13_arena', [0, 30, -187]], ['13_gipfel', [0, 40, -205.5]], ['13_praum', [64, 0, -63]], ['13_himmel', [-46, 46, -121]],
+    ['13_start', [0, 0, 6]], ['13_baum', [-5, 0, 2]], ['13_krone', [-6.5, 7, -2.6], { yaw: 15 }], ['13_schacht', [7, 0, -3.8]],
+    ['13_feld', [0, 1, -21]], ['13_feld_mitte', [1, 1, -29]], ['13_hang', [0, 3, -50]], ['13_nische', [3, 9, -74]],
+    ['13_ranke', [-3, 9, -77]], ['13_wolken', [0, 15, -86.5]], ['13_wolkensprung', [-0.6, 15, -87.6], { pre: runSteps({ y: 1, jump: true }, 40) }],
+    ['13_huegel', [1.5, 17, -127.5]], ['13_kanone', [-5.5, 20, -134.8]], ['13_treppe', [0, 17, -152.5]],
+    ['13_treppensprung', [-1.4, 19, -157], { pre: runSteps({ x: 0.6, y: 0.5, jump: true }, 36) }],
+    ['13_bruecke', [0, 30, -175]], ['13_arena', [0, 30, -187]], ['13_boss', [0, 30, -189.5], { pre: 'c.step(90);' }],
+    ['13_gipfel', [0, 40, -205.5]], ['13_praum', [64, 0, -63]], ['13_himmel', [-46, 46, -121]], ['13_himmel_ende', [-46, 48, -160.5]],
   ],
   '1-5': [
-    ['15_start', [0, 0, 5]], ['15_feld2', [0, 0, -28]], ['15_check', [0, 2.5, -60]], ['15_flatter', [-4, 3, -71.5]], ['15_raetsel', [-2, 4, -85]],
-    ['15_gang', [0, 4, -96]], ['15_faehre', [0, 4, -124]], ['15_lande', [0, 4, -160]], ['15_ziel', [0, 10, -186.5]], ['15_loge', [-20, 6, -18]], ['15_kisten', [60, 0, -82]],
+    ['15_start', [0, 0, 5]], ['15_schalter', [-5, 0, -1], { pre: runSteps({ x: 1 }, 150) }], ['15_sternwand', [7.75, 0, -7.5]],
+    ['15_feld2', [0, 0, -28]], ['15_plattformen', [0, 0, -34]], ['15_check', [0, 2.5, -60]], ['15_flatter', [-4, 3, -71.5]], ['15_raetsel', [-2, 4, -85]],
+    ['15_gang', [0, 4, -96]], ['15_faehre', [0, 4, -124]], ['15_faehre_fahrt', null, { pre: 'const m = bot.mover(-140); bot.place([m.x, m.y + 0.05, m.z + 3], {}); c.step(400);' }],
+    ['15_lande', [0, 4, -160]], ['15_turm', [-7.2, 4, -159.5]], ['15_kanonenflug', [3.5, 4, -160.4], { pre: runSteps({ y: 1 }, 170) }],
+    ['15_ziel', [0, 10, -186.5]], ['15_loge', [-20, 6, -18]], ['15_kisten', [60, 0, -82]],
   ],
 };
 for (const id of Object.keys(SHOTS)) {
   if (only && only !== id) continue;
   errors.length = 0;
   await load(id);
-  for (const [name, pos] of SHOTS[id]) await shot(name, pos);
+  for (const [name, pos, o] of SHOTS[id]) await shot(name, pos, o ?? {});
 }
 
 console.log('\n  Kennzahlen je Bild (Zeichenaufrufe inkl. Schattenpass, Dreiecke):');

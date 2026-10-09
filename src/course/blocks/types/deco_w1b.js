@@ -1,6 +1,7 @@
 // Baustein `deco_w1b`: Zier und Sonderbauten für die Level 1-3 (Klötzchenberg) und 1-5 (Zirkuszelt).
 // Ohne Kollision, außer wo „Kollision“ steht. Alles statisch und verschmolzen (view.addStatic); nur die
-// Scheinwerferkegel einer Liste bilden ein gemeinsames additives Objekt (1 Zeichenaufruf).
+// Scheinwerferkegel einer Liste bilden ein gemeinsames additives Objekt (1 Zeichenaufruf). Die Berg-Zier wirft
+// (fast) durchweg Schatten, damit je 32-m-Abschnitt nur ein Eimer entsteht (Budget: Zeichenaufrufe).
 //
 // Einzeln: { type: 'deco_w1b', kind, … }   oder Liste: { type: 'deco_w1b', items: [{ kind, … }, …] }
 // pos = Fußpunkt bzw. Mitte der Unterseite, wenn nicht anders genannt.
@@ -16,6 +17,7 @@
 //   cloudplat   Wolkenplattform (sparsame Geometrie) – Kollision box, Einweg (oneWay Standard true): size [w, h, d]
 //   sign        Wegweiser mit Pfeil; yaw (Pfeilrichtung, Standard Math.PI / 2 = nach −Z)
 //   tufts       Grasbüschel: size [w, d], n (Standard 8)
+//   flowerbed   Blumenbeet: size [w, d], n (Standard 8), colors | color (sparsame Geometrie)
 //   mushroom    Zierpilz: size (Höhe, Standard 1.2), color (Hut, Standard 'red')
 //   flag        Fähnchen am Mast: size (Masthöhe, Standard 2.4), color
 //   rockpile    Felsbrocken-Haufen: size (Radius, Standard 1.2)
@@ -125,7 +127,8 @@ function pixelblock(level, it, out) {
   if (it.studs !== false) {
     // Pixel-Raster: je Meterzelle ein leicht erhabenes Feld (Schachbrett hell/Grundton) – 8-Bit-Look
     const light = tint(base, 0.28), dark = tint(base, -0.12);
-    const cells = (n) => Math.max(1, Math.round(n));
+    // große Flächen: gröbere Pixel (spart Dreiecke, Look bleibt)
+    const cells = (n) => Math.max(1, Math.round(n > 3.5 ? n / 1.6 : n));
     const nx = cells(s.x), ny = cells(s.y), nz = cells(s.z);
     const cw = s.x / nx, ch = s.y / ny, cd = s.z / nz, t = 0.05, k = 0.8;
     for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
@@ -235,7 +238,7 @@ function cloudpuff(it, out) {
   const p = v3(it.pos);
   const r = it.size ?? 2;
   for (const [x, y, z, k] of [[0, 0, 0, 1], [-0.95, -0.15, 0.1, 0.7], [0.95, -0.12, -0.1, 0.75], [-0.35, 0.3, -0.2, 0.65], [0.45, 0.32, 0.15, 0.6]]) {
-    out.push(ball(r * k, p.x + x * r, p.y + y * r * 0.7, p.z + z * r, 0xffffff, 0xf4f8ff, 0xc9d9ec, 1, 0.72, 1, 9, 6));
+    out.push(ball(r * k, p.x + x * r, p.y + y * r * 0.7, p.z + z * r, 0xffffff, 0xf4f8ff, 0xc9d9ec, 1, 0.72, 1, 7, 5));
   }
 }
 
@@ -298,6 +301,26 @@ function tufts(it, out, rnd) {
   }
 }
 
+/** Blumenbeet (sparsam, wirft Schatten wie die übrige Zier → kein eigener Zeichenaufruf). */
+const FLOWER_COLS = { red: 0xff5a4a, yellow: 0xffd43a, white: 0xffffff, pink: 0xff8ccc, blue: 0x6aa8ff };
+function flowerbed(it, out, rnd) {
+  const p = v3(it.pos);
+  const [w, d] = it.size ?? [2, 2];
+  const n = it.n ?? 8;
+  const cols = it.colors ?? ['red', 'yellow', 'white', 'pink'];
+  const stemC = lin(0x3f9a2a);
+  for (let i = 0; i < n; i++) {
+    const x = n === 1 ? p.x : p.x + rnd.real(-w / 2, w / 2), z = n === 1 ? p.z : p.z + rnd.real(-d / 2, d / 2);
+    const h = rnd.real(0.26, 0.4);
+    const st = new THREE.CylinderGeometry(0.022, 0.028, h, 4, 1, true);
+    st.translate(x, p.y + h / 2, z);
+    out.push(colorize(st, (pp, nn, o) => { o[0] = stemC[0]; o[1] = stemC[1]; o[2] = stemC[2]; }));
+    const c = hex(FLOWER_COLS[it.color ?? rnd.pick(cols)] ?? 0xff5a4a);
+    out.push(ball(0.13, x, p.y + h + 0.02, z, tint(c, 0.35), c, tint(c, -0.3), 1, 0.42, 1, 7, 3));
+    out.push(ball(0.05, x, p.y + h + 0.06, z, 0xfff6c0, 0xffc21a, 0xd99a00, 1, 0.8, 1, 5, 3));
+  }
+}
+
 function mushroom(it, out) {
   const p = v3(it.pos);
   const h = it.size ?? 1.2;
@@ -305,7 +328,7 @@ function mushroom(it, out) {
   const stem = new THREE.CylinderGeometry(h * 0.13, h * 0.18, h * 0.62, 8, 1, true);
   stem.translate(p.x, p.y + h * 0.31, p.z);
   out.push(solid(stem, 0xfff2d8));
-  out.push(ball(h * 0.42, p.x, p.y + h * 0.62, p.z, tint(c, 0.25), c, tint(c, -0.35), 1, 0.62, 1, 12, 7));
+  out.push(ball(h * 0.42, p.x, p.y + h * 0.62, p.z, tint(c, 0.25), c, tint(c, -0.35), 1, 0.62, 1, 10, 5));
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
     out.push(ball(h * 0.08, p.x + Math.cos(a) * h * 0.26, p.y + h * 0.78, p.z + Math.sin(a) * h * 0.26, 0xffffff, 0xffffff, 0xe0e0e0, 1, 0.5, 1, 6, 4));
@@ -935,19 +958,20 @@ export function buildDecoW1b(level, spec) {
     switch (it.kind) {
       case 'pixelblock': pixelblock(level, it, out); break;
       case 'bigtree': bigtree(level, it, out); break;
-      case 'mountain': mountain(it, out); cast = false; break;
-      case 'cloudpuff': cloudpuff(it, out); cast = false; break;
+      case 'mountain': mountain(it, out); break;
+      case 'cloudpuff': cloudpuff(it, out); break;
       case 'sign': sign(it, out); break;
       case 'cloudplat': cloudplat(level, it, out); break;
-      case 'tufts': tufts(it, out, rnd); cast = false; break;
+      case 'tufts': tufts(it, out, rnd); break;
       case 'mushroom': mushroom(it, out); break;
+      case 'flowerbed': flowerbed(it, out, rnd); break;
       case 'flag': flag(it, out); break;
       case 'pennant': flag(it, out, true); break;
       case 'rockpile': rockpile(it, out, rnd); break;
-      case 'path': path(it, out, rnd); cast = false; break;
-      case 'waterfall': waterfall(it, out, glow); cast = false; break;
+      case 'path': path(it, out, rnd); break;
+      case 'waterfall': waterfall(it, out, glow); break;
       case 'cairn': cairn(it, out); break;
-      case 'slopegrass': slopegrass(it, out, rnd); cast = false; break;
+      case 'slopegrass': slopegrass(it, out, rnd); break;
       case 'tent': tent(level, it, out, glow); cast = false; break;
       case 'stage': stage(level, it, out, glow); break;
       case 'drum': drum(level, it, out); break;
