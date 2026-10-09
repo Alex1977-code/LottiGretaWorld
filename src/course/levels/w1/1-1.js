@@ -214,8 +214,9 @@ export const LEVEL = {
     ...lawn(4, 8, -124, -136, 10.5, 9.5, { under: 3 }),
     ...lawn(-6, 8.5, -136, -146, 7, 6, { under: 3 }),
     { type: 'bridge', from: [0, 7, -146], to: [0, 7, -157], width: 3 },
-    // hinter der Brücke: Buckel aus Steinblöcken (LEVEL.blocks) über der Nische mit Stern 1; die Nische öffnet sich
-    // nach rechts (+x) zur Kletterwand über dem unteren Durchgang
+    // hinter der Brücke: Buckel aus grauen Steinblöcken (megawall, nur Riesentrank/Bombe) über der Nische mit Stern 1;
+    // die Nische öffnet sich nach rechts (+x) zur Kletterwand über dem unteren Durchgang
+    { type: 'megawall', pos: [7.5, 7, -159], size: [2, 1, 2] },
     ...lawn(-8, 6.5, -157, -174, 7, 6, { under: 3 }),
     ...lawn(6.5, 8.5, -157, -158, 7, 6, { under: 0 }),
     ...lawn(6.5, 8.5, -160, -174, 7, 6, { under: 0 }),
@@ -342,8 +343,6 @@ export const LEVEL = {
     { kind: 'brick', pos: [0, 6.4, -38.5], content: 'coins:4' },
     // 3: Münzblock vor der Wand
     { kind: 'brick', pos: [4, 6.4, -63], content: 'coins:6' },
-    // 5: Steinblöcke (nur Riesentrank) als Buckel über der Stern-Nische direkt hinter der Brücke
-    { kind: 'blockwand', pos: [7.5, 7, -159], size: [2, 1, 2] },
     // 5: Ziegelreihe über dem Weg
     ...[-3, -2, -1, 0, 1, 2, 3].map((x) => (x === 0
       ? { kind: 'question', pos: [x, 9.4, -140], content: 'wachstumsbeere' }
