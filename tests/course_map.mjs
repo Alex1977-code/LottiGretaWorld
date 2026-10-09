@@ -290,7 +290,10 @@ check('Kennzahlen im Budget (< 120 Zeichenaufrufe, < 300 k Dreiecke)', stats.cal
 // ------------------------------------------------------------------ 11) Startfluss
 await page.goto(`http://localhost:${port}/?scale=2&adapt=0`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__game && (window.__game.scene.isActive('CourseMap') || window.__game.scene.isActive('WorldMap')), null, { timeout: 60000 }).catch(() => {});
-check('Ohne Parameter startet die Kurs-Weltkarte', (await active('CourseMap')) && !(await active('WorldMap')));
+// Solange Welt 1 im Bau ist (COURSE_DEFAULT in src/main.js), bleibt die Klassik-Karte Startseite
+const courseDefault = await page.evaluate(() => window.__game.registry.get('courseDefault'));
+if (courseDefault) check('Ohne Parameter startet die Kurs-Weltkarte', (await active('CourseMap')) && !(await active('WorldMap')));
+else check('Ohne Parameter startet (noch) die Klassik-Weltkarte', (await active('WorldMap')) && !(await active('CourseMap')));
 await page.goto(`http://localhost:${port}/?classic=1&scale=2&adapt=0`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__game && (window.__game.scene.isActive('CourseMap') || window.__game.scene.isActive('WorldMap')), null, { timeout: 60000 }).catch(() => {});
 check('?classic=1 startet die Klassik-Weltkarte', (await active('WorldMap')) && !(await active('CourseMap')));
