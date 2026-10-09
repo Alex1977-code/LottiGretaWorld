@@ -49,6 +49,7 @@ async function waitMap() {
     await page.waitForFunction(() => window.__courseMap && window.__courseMap.player && window.__game.scene.isActive('CourseMap'), null, { timeout: 60000 });
   } catch { await fail('Kurs-Weltkarte startet nicht.'); }
   await sc(() => { const m = window.__courseMap; m.setManual(true); m.level.muted = true; m.setInput({}); });
+  await page.waitForTimeout(1500); // Einblenden (Software-Renderer: erste Bilder langsam)
 }
 async function waitCourse() {
   try {
@@ -101,7 +102,7 @@ await installTap();
 // ------------------------------------------------------------------ 2) Start: nur 1-1 frei
 let st = await sc(() => window.__courseMap.state());
 console.log('  Start', JSON.stringify(st.player), 'Sterne', st.stars, '/', st.starsMax);
-check('Karte lädt (CourseMap aktiv, Figur am Startpunkt)', (await active('CourseMap')) && Math.abs(st.player.z - 43) < 0.5);
+check('Karte lädt (CourseMap aktiv, Figur am Startpunkt)', (await active('CourseMap')) && Math.abs(st.player.z - 40.5) < 0.5);
 const unlockedIds = Object.entries(st.entrances).filter(([, e]) => !e.locked).map(([id]) => id);
 check('Nur 1-1 frei', unlockedIds.join() === '1-1');
 check('Alle Schranken geschlossen', Object.values(st.gates).every((g) => g === 'closed'));
@@ -117,7 +118,7 @@ await sc(() => window.__courseMap.snapCamera());
 await shot('schranke_zu');
 
 // ------------------------------------------------------------------ 3) Zum Eingang 1-1 laufen, A → Level
-await sc(() => { const m = window.__courseMap; m.teleport(2, 1, 43, Math.PI / 2); m.step(20); });
+await sc(() => { const m = window.__courseMap; m.teleport(2, 1, 40.5, Math.PI / 2); m.step(20); });
 r = await walkTo(2, 31, (s) => s.onPad === '1-1', 900);
 await sc(() => { const m = window.__courseMap; m.setInput({}); m.step(30); m.snapCamera(); });
 st = await sc(() => window.__courseMap.state());

@@ -7,10 +7,10 @@
 
 import * as THREE from 'three';
 import { getBlockType } from '../blocks/index.js';
-import { islandParts, box, lin, mixc, colorize, Rnd } from '../blocks/kit.js';
+import { islandParts, box, lin, mixc, colorize, merge, Rnd } from '../blocks/kit.js';
 import { roundedBox, SIDE } from '../../three/world/geometry.js';
 import { buildWalkGrid, gateRects } from './layout.js';
-import { hedgeGeo, fenceGeo, rockCapGeo, berryHouseGeo, itemStandGeo } from './props.js';
+import { hedgeGeo, fenceGeo, rockCapGeo, berryHouseGeo, itemStandGeo, signGeo, signTextMesh, vcol } from './props.js';
 import { EntranceView } from './entrances.js';
 import { MapGate } from './gates.js';
 import { MapScenery } from './scenery.js';
@@ -45,8 +45,9 @@ export function buildMap(level, map, host) {
   // 3) begehbarer Bereich → Hecken/Zäune (Optik) und Wände (Kollision)
   const walls = grid.walls();
   const ground = (x, z) => { const h = level.world.raycastDown(x, 80, z, 120); return h ? h.y : null; };
+  const groundBlock = (x, z) => level.world.raycastDown(x, 80, z, 120)?.shape?.mapBlock ?? null;
   const edgeParts = { hedge: [], fence: [] };
-  for (const w of walls) borderDeco(w, ground, sea, edgeParts);
+  for (const w of walls) borderDeco(w, ground, sea, edgeParts, groundBlock);
   for (const g of edgeParts.hedge) level.view?.addStatic(g, { castShadow: true });
   for (const g of edgeParts.fence) level.view?.addStatic(g, { castShadow: true });
   out.hedges = edgeParts.hedge.length;
@@ -79,6 +80,18 @@ export function buildMap(level, map, host) {
     }
     out.house = h;
   }
+
+  // 7b) Holzschilder
+  (map.signs ?? []).forEach((sg, i) => {
+    const grp = new THREE.Group();
+    const board = new THREE.Mesh(signGeo(), vcol(0.6));
+    board.castShadow = true;
+    grp.add(board, signTextMesh(sg.text, `${map.id}:${i}`));
+    grp.position.set(sg.pos[0], sg.pos[1], sg.pos[2]);
+    grp.rotation.y = sg.yaw ?? 0;
+    level.view?.add(grp);
+    level.world.add({ type: 'cyl', x: sg.pos[0], z: sg.pos[2], r: 0.2, y0: sg.pos[1], y1: sg.pos[1] + 2, tag: 'schild' });
+  });
 
   // 8) Wände (nach allen Höhenabfragen)
   for (const w of walls) {
@@ -117,7 +130,7 @@ function buildGround(level, b, base, theme, index) {
   const [x0, z0, x1, z1] = b.rect;
   const top = b.top;
   const rnd = new Rnd(0x51ab + index * 977);
-  level.world.add({ type: 'box', min: [x0, base, z0], max: [x1, top, z1], tag: b.walk ? 'karte' : 'gelaende' });
+  level.world.add({ type: 'box', min: [x0, base, z0], max: [x1, top, z1], tag: b.walk ? 'karte' : 'gelaende', mapBlock: b });
   if (!theme) return;
   const style = b.style ?? 'grass';
   if (style === 'rock') {
@@ -137,7 +150,7 @@ function buildGround(level, b, base, theme, index) {
     level.view.addStatic(cap);
     return;
   }
-  const opts = { under: 0, rnd, top: style === 'pond' ? 'sand' : 'grass' };
+  const opts = { under: 0, rnd, top: style === 'pond' || style === 'sand' ? 'sand' : 'grass' };
   for (const g of islandParts(x0, base, z0, x1, top, z1, theme, opts)) level.view.addStatic(g);
 }
 
@@ -146,8 +159,9 @@ function scatterDeco(level, map, base, grid) {
   const deco = getBlockType('deco');
   if (!deco) return;
   const items = [];
+  const light = [];
   map.ground.forEach((b, i) => {
-    if (b.walk || b.style === 'rock' || b.style === 'pond' || b.noDeco) return;
+    if (b.walk || b.style === 'rock' || b.style === 'pond' || b.style === 'sand' || b.noDeco) return;
     const [cx, cz] = [(b.rect[0] + b.rect[2]) / 2, (b.rect[1] + b.rect[3]) / 2];
     if (grid.isWalk(cx, cz)) return;
     const [x0, z0, x1, z1] = b.rect;
@@ -163,7 +177,7 @@ function scatterDeco(level, map, base, grid) {
       const x = rnd.real(x0 + 1.6, x1 - 1.6), z = rnd.real(z0 + 1.6, z1 - 1.6);
       if (tooClose(x, z, 3.0)) continue;
       pts.push([x, z]);
-      items.push({ kind: 'tree', pos: [x, b.top, z], size: rnd.real(3.8, 5.6), color: rnd.chance(0.55) ? 'autumn' : 'green', solid: false });
+      light.push(lightTree(x, b.top, z, rnd.real(3.8, 5.6), rnd));
       k++;
     }
     const nBush = Math.floor(area / (meadow ? 36 : 70));
@@ -171,7 +185,7 @@ function scatterDeco(level, map, base, grid) {
       const x = rnd.real(x0 + 1, x1 - 1), z = rnd.real(z0 + 1, z1 - 1);
       if (tooClose(x, z, 1.8)) continue;
       pts.push([x, z]);
-      items.push({ kind: 'bush', pos: [x, b.top, z], size: rnd.real(0.6, 0.95) });
+      light.push(lightBush(x, b.top, z, rnd.real(0.6, 0.95), rnd));
       k++;
     }
     const nFl = meadow ? Math.floor(area / 40) : 0;
@@ -182,7 +196,35 @@ function scatterDeco(level, map, base, grid) {
     }
   });
   if (items.length) deco(level, { type: 'deco', items });
+  for (const g of light) level.view?.addStatic(g, { castShadow: true });
   void base;
+}
+
+// Leichte Bäume/Büsche für die Streu-Deko (weniger Dreiecke als die Deko-Bausteine, gleiche Anmutung)
+const CROWNS = [[0xffcf7a, 0xf58f3a, 0xc45f22], [0xffa38a, 0xef5f44, 0xb33a2a], [0xfff0a6, 0xf6c54a, 0xc98d22], [0xb9f286, 0x6cc74d, 0x3d8f32], [0xa6ec7a, 0x58b947, 0x2f7d2a]];
+function ball(r, x, y, z, pal, ws = 8, hs = 6) {
+  const g = new THREE.SphereGeometry(r, ws, hs);
+  g.translate(x, y, z);
+  const L = lin(pal[0]), M = lin(pal[1]), D = lin(pal[2]);
+  return colorize(g, (p, n, o) => (n.y >= 0 ? mixc(M, L, Math.min(1, n.y / 0.9), o) : mixc(M, D, Math.min(1, -n.y / 0.9), o)));
+}
+function lightTree(x, y, z, h, rnd) {
+  const parts = [];
+  const trunkH = h * 0.42, rT = 0.09 * h;
+  const trunk = new THREE.CylinderGeometry(rT * 0.75, rT, trunkH, 6, 1, true);
+  trunk.translate(x, y + trunkH / 2, z);
+  const td = lin(0x5c3a22), tl = lin(0x8a5a36);
+  parts.push(colorize(trunk, (p, n, o) => mixc(td, tl, (p.y - y) / trunkH, o)));
+  const pal = CROWNS[Math.floor(rnd.frac() * CROWNS.length)];
+  const R = h * 0.26;
+  for (const [dx, dy, dz, r] of [[0, trunkH + R * 1.1, 0, R * 1.15], [-R * 0.75, trunkH + R * 0.55, R * 0.25, R * 0.85], [R * 0.7, trunkH + R * 0.7, -R * 0.2, R * 0.9]]) {
+    parts.push(ball(r, x + dx, y + dy, z + dz, pal));
+  }
+  return merge(parts);
+}
+function lightBush(x, y, z, r, rnd) {
+  const pal = CROWNS[3 + Math.floor(rnd.frac() * 2)];
+  return merge([[0, 0.55, 0, 1], [-0.7, 0.4, 0.2, 0.75], [0.65, 0.42, -0.15, 0.7]].map(([dx, dy, dz, k]) => ball(r * k, x + dx * r, y + dy * r, z + dz * r, pal, 7, 5)));
 }
 
 // ------------------------------------------------------------------ Ränder: Hecken und Zäune
@@ -193,7 +235,7 @@ function scatterDeco(level, map, base, grid) {
  *   tiefer (Land, kein Meer)          → weißer Zaun an der Kante
  *   Meer oder hohe Klippe             → nichts (natürliche Grenze)
  */
-function borderDeco(w, ground, sea, out) {
+function borderDeco(w, ground, sea, out, groundBlock) {
   const len = w.axis === 'x' ? w.z1 - w.z0 : w.x1 - w.x0;
   const n = Math.max(1, Math.round(len));
   const step = len / n;
@@ -205,7 +247,7 @@ function borderDeco(w, ground, sea, out) {
       : [u, w.z - w.side * 0.25, u, w.z + w.side * 0.75];
     const hin = ground(ix, iz), hout = ground(ox, oz);
     let c = 'none', y = 0;
-    if (hin !== null && hout !== null && hout > sea + 0.3) {
+    if (hin !== null && hout !== null && hout > sea + 0.3 && !groundBlock(ox, oz)?.noEdge) {
       const dh = hout - hin;
       if (dh > -0.45 && dh < 3.6) { c = 'hedge'; y = hout; }
       else if (dh <= -0.45) { c = 'fence'; y = hin; }

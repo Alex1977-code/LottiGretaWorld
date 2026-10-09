@@ -30,8 +30,8 @@ export const MAP = {
   music: 'course_map',
   base: -3,                       // Unterkante aller Geländeblöcke (Meer bei y 0)
   sea: 0,
-  spawn: { pos: [2, 1, 43], yaw: PI / 2 },
-  camera: [{ from: 200, to: -300, pitch: 52, dist: 17, fov: 40, ahead: 2.4, lead: 0.7, height: 1.0 }],
+  spawn: { pos: [2, 1, 40.5], yaw: PI / 2 },
+  camera: [{ from: 200, to: -300, pitch: 50, dist: 16, fov: 40, ahead: 3.6, lead: 0.7, height: 1.0 }],
 
   // Freischaltung (Vertrag: Welt 1 – Level-Liste und Freischaltung). stars/stamp = mögliche Sammelziele.
   levels: [
@@ -79,7 +79,11 @@ export const MAP = {
     g(-4, 8, 8, 22, 2.5), g(8, -8, 24, 20, 3), g(24, -8, 40, 12, 3),
     g(-30, -40, -6, -22, 6), g(-6, -48, 10, -34, 8), g(10, -46, 24, -36, 9, { style: 'rock' }),
     g(-6, -56, 16, -48, 1, { style: 'meadow' }), g(-36, -40, -30, -28, 3.5),
-    g(-18, -12, -6, 14, 6), g(-6, 8, -4, 14, 6), g(-50, -10, -40, 0, 5, { style: 'rock' }),
+    g(-18, -12, -6, 14, 4), g(-6, 8, -4, 14, 4), g(-50, -10, -40, 0, 5, { style: 'rock' }),
+    // Sandstrände (nicht begehbar, ohne Hecke/Zaun am Rand)
+    g(-12, 46, 16, 50, 0.45, { style: 'sand', noEdge: true }), g(-40, 18, -26, 34, 0.45, { style: 'sand', noEdge: true }),
+    g(40, -48, 46, 12, 0.45, { style: 'sand', noEdge: true }), g(42, -66, 47, -48, 0.45, { style: 'sand', noEdge: true }),
+    g(-30, -76, -24, -50, 0.45, { style: 'sand', noEdge: true }),
   ],
 
   // Zusätzlich begehbar (ohne eigenen Geländeblock): Strand inkl. Teich, Treppen, Brücke, Steg
@@ -93,7 +97,7 @@ export const MAP = {
 
   // Wege aus hellen Platten (Polylinien [x, z], 2 m breit; auf Treppen/Brücken entfallen sie)
   paths: [
-    [[2, 43.5], [2, 31]],
+    [[2, 44], [2, 31]],
     [[2, 31], [2, 25], [-6, 25], [-6, 16], [-34, 16], [-34, 3.5]],
     [[-20, 16], [-20, -17]],
     [[-20, -17], [-43, -17]],
@@ -143,6 +147,12 @@ export const MAP = {
     { kind: 'beeren', pos: [-21, 1, 38.2], yaw: -PI / 2, item: [-21, 1, 42.6], items: ['krallen', 'funken'] },
   ],
 
+  // Holzschilder (Text auf der Tafel, Vorderseite nach +Z gedreht um yaw)
+  signs: [
+    { pos: [-2.4, 1, 42.8], yaw: 0, text: 'Welt 1\nBlockinsel' },
+    { pos: [-17.2, 1, 44.6], yaw: 0.5, text: 'Beerenhaus' },
+  ],
+
   // Standard-Bausteine (Wasser, Brücken, Treppen, Deko)
   segments: [
     { type: 'water', pos: [9.5, -0.45, 36.5], size: [7, 1.2, 7] },
@@ -151,6 +161,12 @@ export const MAP = {
     { type: 'bridge', from: [10, 4, -22], to: [24, 1, -22], width: 4 },
     { type: 'platform', color: 0xc98a52, pos: [21.5, 0.55, -14], size: [5, 0.45, 4] },
     { type: 'stairs', pos: [0, 1, -58], dir: '-x', steps: 14, rise: 4 / 14, run: 6 / 14, width: 4 },
+    // Spielzeug-Blöcke zum Hüpfen am Startstrand und auf dem Plateau
+    { type: 'platform', pos: [-9, 1, 31], size: [2, 1, 2], color: 'red' },
+    { type: 'platform', pos: [-9, 1, 28.5], size: [2, 2, 2], color: 'yellow' },
+    { type: 'platform', pos: [-6.6, 1, 28.5], size: [1.6, 3, 1.6], color: 'blue' },
+    { type: 'platform', pos: [-4, 4, -31], size: [2, 1, 2], color: 'orange' },
+    { type: 'platform', pos: [-4, 4, -28.6], size: [2, 2, 2], color: 'purple' },
     { type: 'deco', items: [
       // Startstrand
       { kind: 'tree', pos: [-9.5, 1, 25], size: 4.6 }, { kind: 'tree', pos: [14.2, 1, 24.5], size: 4.2, color: 'green' },

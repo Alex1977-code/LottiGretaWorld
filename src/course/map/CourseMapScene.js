@@ -35,6 +35,7 @@ import { MapRoamer, MapItem, addEntity } from './entities.js';
 import * as unlock from './unlock.js';
 import { exitPoint, entranceById, ENTER_R } from './layout.js';
 import { MapHud } from './MapHud.js';
+import { MapBatcher } from './MapBatcher.js';
 
 export const DT = 1 / 120;
 const MAX_STEPS = 8;
@@ -104,6 +105,10 @@ export class CourseMapScene extends Phaser.Scene {
     this.level = new Level(this, data, { view: this.view, save: courseSave });
     this.level.runtime = new MapRuntime(this.level, courseSave, this);
 
+    // Statische Geometrie in Kacheln verschmelzen (besseres Culling auf der breiten Insel): addStatic umleiten
+    this.batcher = new MapBatcher(this.view);
+    this.view.addStatic = (g, o) => this.batcher.add(g, o);
+
     // Zustände der Eingänge (aus dem Speicherstand) und frisch zu öffnende Schranken
     this.computeStatuses();
     const fresh = [];
@@ -118,6 +123,7 @@ export class CourseMapScene extends Phaser.Scene {
     this.grid = this.built.grid;
     this.spawnRoamers();
     this.spawnBerryItem();
+    this.batcher.build();
     finalizeMap(this.level, this.built);
     this.level.killY = (map.sea ?? 0) - 1.6;
 
@@ -142,6 +148,20 @@ export class CourseMapScene extends Phaser.Scene {
     this.view.rig.snap(p);
     this.focusVec = new THREE.Vector3();
     this.focusProxy = { pos: this.focusVec, vel: new THREE.Vector3(), mode: 'ground', dead: false, half: p.half };
+    // Anflug beim Betreten der Welt (nicht nach einem Level): flacher Blick über die Insel mit Himmel und Sonne,
+    // dann Flug zur Heldin. Jede Eingabe überspringt ihn; Tests (setManual) schalten ihn ab.
+    this.intro = null;
+    if (!arrive.from && !arrive.done && !arrive.gameOver && !fresh.length && map.intro !== false) {
+      const cam = this.view.camera;
+      const i = map.intro ?? {};
+      this.intro = {
+        t: 0, dur: i.duration ?? 3.0,
+        fromPos: new THREE.Vector3(...(i.from ?? [-2, 14, 72])), fromLook: new THREE.Vector3(...(i.look ?? [-2, 5, -40])),
+        toPos: cam.position.clone(), toLook: this.view.rig.target.clone(),
+        pos: new THREE.Vector3(), look: new THREE.Vector3(),
+      };
+      this.inputLocked = true;
+    }
 
     // HUD und Tasten
     this.hud = new MapHud(this);
@@ -208,7 +228,7 @@ export class CourseMapScene extends Phaser.Scene {
       exists: !!lvl, enterable: reason === null && !!lvl, soon: reason === null && !lvl, next: rule.next ?? null,
       pathOpen: unlock.pathOpen(map, courseSave, id), done: prog.done, stars: prog.stars,
       starsMax: lvl && Array.isArray(lvl.stars) && !this.alias[id] ? lvl.stars.length : (rule.stars ?? 0),
-      hasStamp: lvl ? !!lvl.stamp : !!rule.stamp, stamp: prog.stamp, minStars: rule.minStars ?? 0, roamer,
+      hasStamp: lvl && !this.alias[id] ? !!lvl.stamp : !!rule.stamp, stamp: prog.stamp, minStars: rule.minStars ?? 0, roamer,
     };
   }
 
@@ -356,7 +376,9 @@ export class CourseMapScene extends Phaser.Scene {
     const enter = this.pendingEnter && !busy;
     this.pendingEnter = false;
     // Eingang betreten (A / Leertaste / Enter / „Los!“ auf einem freien Podest)
-    this.onPad = this.padUnder();
+    const pad = this.padUnder();
+    if (pad && pad.id !== this.onPad?.id && !busy) this.rememberPos();   // Lage merken (Neuladen der Seite)
+    this.onPad = pad;
     if (this.onPad && !busy && (use.jumpPressed || enter)) {
       const st = this.status(this.onPad.id);
       if (st?.enterable) { this.enterLevel(this.onPad.id); return; }
@@ -480,7 +502,7 @@ export class CourseMapScene extends Phaser.Scene {
     return this.leaving ? { leaving: true, lastStart: this.lastStart } : this.state();
   }
 
-  setManual(on) { this.manual = !!on; this.acc = 0; }
+  setManual(on) { this.manual = !!on; this.acc = 0; if (on) this.endIntro(); }
   setInput(o) { this.cinput.setOverride(o); }
 
   teleport(x, y, z, yaw) {
@@ -507,7 +529,10 @@ export class CourseMapScene extends Phaser.Scene {
     };
   }
 
-  stats() { return { ...this.view.stats(), shapes: this.level.world.count, walls: this.built.walls, hedges: this.built.hedges, tiles: this.built.tiles }; }
+  stats() {
+    return { ...this.view.stats(), staticMeshes: this.batcher.stats.meshes, staticParts: this.batcher.stats.parts, staticTriangles: this.batcher.stats.triangles,
+      shapes: this.level.world.count, walls: this.built.walls, hedges: this.built.hedges, tiles: this.built.tiles };
+  }
 
   // ------------------------------------------------------------------ Darstellung
 
@@ -522,8 +547,34 @@ export class CourseMapScene extends Phaser.Scene {
     this.built.scenery?.update(dt);
     let target = this.player;
     if (this.focus) { this.focusVec.set(this.focus.x, this.focus.y, this.focus.z); target = this.focusProxy; }
+    if (this.intro && this.flyIntro(dt)) target = null;   // Kamera setzt der Anflug selbst
     this.view.render(dt, target, this.level.world);
     this.hud?.update(dt);
+  }
+
+  /** Anflug: Kamera zwischen Start- und Spielansicht überblenden. true, solange er läuft. */
+  flyIntro(dt) {
+    const it = this.intro;
+    it.t += dt;
+    const k = Math.min(1, it.t / it.dur);
+    const skip = this.cinput.keys && Object.values(this.cinput.keys).some((key) => key.isDown);
+    if (k >= 1 || skip || this.input.activePointer.isDown) { this.endIntro(); return false; }
+    // erst kurz verweilen, dann weich hinfliegen
+    const u = Math.max(0, (k - 0.25) / 0.75), e = u * u * (3 - 2 * u);
+    it.pos.lerpVectors(it.fromPos, it.toPos, e);
+    it.look.lerpVectors(it.fromLook, it.toLook, e);
+    const cam = this.view.camera;
+    cam.position.copy(it.pos);
+    cam.lookAt(it.look);
+    this.view.rig.target.copy(it.look);
+    return true;
+  }
+
+  endIntro() {
+    if (!this.intro) return;
+    this.intro = null;
+    this.inputLocked = !!this.cine || !!this.hud?.confirm;
+    this.view.rig.snap(this.player);
   }
 
   cleanup() {
@@ -537,6 +588,7 @@ export class CourseMapScene extends Phaser.Scene {
     for (const g of this.built?.gates ?? []) g.dispose();
     for (const ev of this.built?.entrances?.values() ?? []) ev.dispose();
     this.built?.scenery?.dispose();
+    this.batcher?.dispose();
     this.rig?.dispose();
     this.level?.dispose();
     this.view?.dispose();

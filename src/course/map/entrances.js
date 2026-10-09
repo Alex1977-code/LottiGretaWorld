@@ -48,7 +48,7 @@ export class EntranceView {
     this.group.position.copy(this.pos);
     this.updaters = [];
     this.own = [];
-    this.anchorY = def.labelY ?? 3.1;
+    this.anchorY = def.labelY ?? 2.6;
     // Podest (nicht bei der wandernden Gegnergruppe, solange sie unterwegs ist – siehe setVisible)
     this.podium = new THREE.Mesh(podiumGeo(this.color, PODIUM_R), vcol(0.45));
     this.podium.castShadow = true; this.podium.receiveShadow = true;

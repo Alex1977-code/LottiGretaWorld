@@ -71,7 +71,10 @@ export class MapHud {
 
     // ---- Weltname
     const map = scene.map;
-    this.title = uiText(scene, 236, 15, `Welt ${map.world} · ${map.title}`, { size: 10, color: '#ffffff', stroke: '#3a2a6a', thickness: 3 }).setDepth(42);
+    // Weltname: groß beim Betreten, blendet nach ein paar Sekunden aus (oben bleibt Platz für die Beschriftungen)
+    this.title = uiText(scene, W / 2, 104, `Welt ${map.world}\n${map.title}`, { size: 17, color: '#ffffff', stroke: '#3a2a6a', thickness: 4, align: 'center' }).setDepth(70);
+    this.titleT = scene.arrive?.from ? 0 : 3.2;          // nur beim Betreten der Welt, nicht nach jedem Level
+    this.title.setVisible(this.titleT > 0);
 
     // ---- oben rechts: Ton, Klassik, Neu
     const btn = (x, label, cb, opts = {}) => {
@@ -115,7 +118,8 @@ export class MapHud {
     this.banner.add([this.bannerBg, this.bannerTitle, this.bannerStars, this.bannerStatus]);
 
     // ---- „Los!“ (Touch, auf freiem Eingang)
-    this.goBtn = uiButton(scene, W / 2, H - 70, 'Los!', { size: 15, color: 0x4fb833, minWidth: 104, padY: 7 }).setDepth(95).setVisible(false);
+    // rechts neben der Bildmitte (Daumen der rechten Hand, verdeckt weder Figur noch Podest)
+    this.goBtn = uiButton(scene, W - 112, 128, 'Los!', { size: 15, color: 0x4fb833, minWidth: 104, padY: 7 }).setDepth(95).setVisible(false);
     growHit(this.goBtn, 120, 44);
     this.goBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev?.stopPropagation?.(); scene.pressGo(); });
 
@@ -241,6 +245,11 @@ export class MapHud {
   update(dt) {
     const s = this.scene;
     this.refresh(false);
+    if (this.titleT > 0) {
+      this.titleT -= this.banner.visible ? dt * 4 : dt;   // Hinweis-Leiste hat Vorrang
+      this.title.setAlpha(Math.min(1, this.titleT / 0.8));
+      if (this.titleT <= 0) this.title.setVisible(false);
+    }
     if (this.toastT > 0) {
       this.toastT -= dt;
       this.toastText.setAlpha(Math.min(1, this.toastT / 0.4));
@@ -268,7 +277,7 @@ export class MapHud {
       const a = s.labelAnchor(id, _v);
       const dist = Math.hypot(a.x - p.x, a.z - p.z);
       const scr = s.view.project(a.x, a.y, a.z);
-      const vis = scr.visible && dist < 34 && scr.x > -40 && scr.x < GAME.width + 40 && scr.y > 26 && scr.y < GAME.height - 20 && id !== near;
+      const vis = scr.visible && dist < 34 && scr.x > -40 && scr.x < GAME.width + 40 && scr.y > 22 && scr.y < GAME.height - 20 && id !== near;
       lab.c.setVisible(vis);
       if (!vis) continue;
       lab.c.setPosition(Math.round(scr.x * 2) / 2, Math.round(scr.y * 2) / 2);

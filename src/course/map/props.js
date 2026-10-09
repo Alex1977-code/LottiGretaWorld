@@ -23,11 +23,11 @@ export function podiumGeo(color, r = 1.6, h = 0.3) {
     const b = new Build();
     const dark = mix(color, 0x1a1830, 0.35), light = mix(color, 0xffffff, 0.35);
     b.cyl(r, r + 0.08, h, { v: (x, y) => mix(dark, color, (y + h / 2) / h) }, { p: [0, h / 2, 0] }, 40);
-    b.torus(r - 0.06, 0.09, light, { p: [0, h, 0], r: [Math.PI / 2, 0, 0] }, 8, 48);
+    b.torus(r - 0.06, 0.09, light, { p: [0, h, 0], r: [Math.PI / 2, 0, 0] }, 5, 36);
     // kleine Nieten rundum
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * TAU;
-      b.sphere(0.07, 0xffffff, { p: [Math.cos(a) * (r + 0.05), h * 0.45, Math.sin(a) * (r + 0.05)] }, 6, 4);
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * TAU;
+      b.sphere(0.07, 0xffffff, { p: [Math.cos(a) * (r + 0.05), h * 0.45, Math.sin(a) * (r + 0.05)] }, 5, 3);
     }
     return b.geometry();
   });
@@ -115,10 +115,8 @@ export function lockGeo() {
 export function gateBlockGeo() {
   return cached('map:gateblock', () => {
     const b = new Build();
-    b.add(roundedBox(0.96, 0.96, 0.96, 0.12, SIDE.ALL, 0, 1), { v: (x, y, z, nx, ny, nz) => {
-      const edge = 1 - Math.max(Math.abs(nx), Math.abs(ny), Math.abs(nz));
-      return mix(ny > 0.9 ? 0xb9a58c : 0x9a8670, 0xe8dcc8, edge * 2.2);
-    } }, { p: [0, 0.48, 0] });
+    b.add(new THREE.BoxGeometry(0.96, 0.96, 0.96), (x, y, z, nx, ny) => (ny > 0.9 ? 0xc4b096 : Math.abs(nx) > 0.9 ? 0x8f7c66 : 0xa08c74), { p: [0, 0.48, 0] });
+    b.add(new THREE.BoxGeometry(0.98, 0.08, 0.98), 0xe2d4bc, { p: [0, 0.93, 0] });
     // Risse/Fugen
     b.box(0.5, 0.04, 0.02, 0x6f5f4e, { p: [-0.1, 0.62, 0.485] }, 0);
     b.box(0.03, 0.3, 0.02, 0x6f5f4e, { p: [0.18, 0.35, 0.485] }, 0);

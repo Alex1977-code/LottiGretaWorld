@@ -149,7 +149,7 @@ export class MapScenery {
     const parts = [];
     const white = lin(0xffffff), shade = lin(0xd4e3f3);
     for (const [x, y, z, r] of [[0, 0, 0, 1], [-0.95, -0.12, 0.1, 0.72], [0.95, -0.1, -0.1, 0.78], [-0.35, 0.32, -0.2, 0.68], [0.45, 0.36, 0.15, 0.62]]) {
-      const s = new THREE.SphereGeometry(r, 10, 7);
+      const s = new THREE.SphereGeometry(r, 9, 6);
       s.translate(x, y, z);
       parts.push(colorize(s, (p, n, o) => mixc(shade, white, smooth(-0.7, 0.5, n.y), o)));
     }
@@ -161,6 +161,10 @@ export class MapScenery {
       const x = rnd.real(b.min.x - 50, b.max.x + 50), z = rnd.real(b.min.z - 40, b.max.z + 30);
       if (this.distToLand(x, z) < 10) continue;
       data.push({ x, y: rnd.real(5, 11), z, s: rnd.real(2.6, 5), v: rnd.real(0.25, 0.6), xa: b.min.x - 70, xb: b.max.x + 70 });
+    }
+    // hohe Wolken am Horizont (nur beim flachen Anflug zu sehen)
+    for (let i = 0; i < 9; i++) {
+      data.push({ x: rnd.real(b.min.x - 160, b.max.x + 160), y: rnd.real(28, 60), z: b.min.z - rnd.real(90, 220), s: rnd.real(9, 18), v: rnd.real(0.5, 1.2), xa: b.min.x - 220, xb: b.max.x + 220 });
     }
     this.clouds = new THREE.InstancedMesh(this.track(g), this.track(new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x6f7f90, emissiveIntensity: 0.35 })), data.length);
     this.clouds.castShadow = true;
