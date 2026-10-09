@@ -169,6 +169,7 @@ const sc = (fn, arg) => page.evaluate(fn, arg);
 const only = process.argv[2];
 const LEVELS = only ? [only] : ['1-1', '1-2'];
 const STRICT = true;
+const SHOTS_ONLY = !!process.env.SHOTS_ONLY;   // nur Screenshots/Kennzahlen (schnelle Sichtprüfung)
 
 /** Hilfen in der Seite: Figur setzen, Bot-Fahrt, Zustand. */
 function install() {
@@ -436,8 +437,11 @@ async function load(id) {
 
 const W = (name, ...args) => sc(([n, a]) => window.__w1[n](...a), [name, args]);
 const stats = [];
-async function shot(name, wait = 1100) {
+async function shot(name, wait = 600) {
   await sc(() => window.__course.snapCamera());
+  // auf neue Bilder warten (Headless zeichnet langsam): mindestens 3 Bilder nach dem Setzen
+  const f0 = await sc(() => window.__course.view.frame);
+  await page.waitForFunction((f) => window.__course.view.frame >= f + 3, f0, { timeout: 30000 });
   await page.waitForTimeout(wait);
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
@@ -458,7 +462,7 @@ for (const id of LEVELS) {
   for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind}`, (kinds[kind] ?? 0) === n);
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
-  for (const hero of ['lotti', 'greta']) {
+  for (const hero of SHOTS_ONLY ? [] : ['lotti', 'greta']) {
     await load(id);
     await W('place', R.start, { hero, settle: 2 });
     const res = await W('drive', R.main, {});
@@ -475,7 +479,7 @@ for (const id of LEVELS) {
   }
 
   // ------------------------------------------------ Sterne und Stempel
-  for (const t of R.targets) {
+  for (const t of SHOTS_ONLY ? [] : R.targets) {
     for (const hero of t.heroes ?? ['lotti']) {
       await load(id);
       await W('place', t.from, { hero, power: t.power, settle: 10 });
@@ -491,7 +495,7 @@ for (const id of LEVELS) {
     }
   }
 
-  for (const t of R.extra ?? []) {
+  for (const t of SHOTS_ONLY ? [] : R.extra ?? []) {
     for (const hero of t.heroes ?? ['lotti', 'greta']) {
       await load(id);                   // frisches Level je Heldin (Blöcke/Power-ups unverbraucht)
       const st0 = await W('place', t.from, { hero, power: t.power, settle: 10 });
@@ -505,6 +509,9 @@ for (const id of LEVELS) {
   }
 
   // ------------------------------------------------ Screenshots je Abschnitt aus der Spielkamera
+  // frisch geladene Seite (Gegner, Blöcke und Münzen im Zustand beim Levelstart). Die Kennzahlen enthalten die
+  // fertig geladene Heldin (≈ 21 + 14 Aufrufe im Haupt- und Schattenpass).
+  loaded = null;
   await load(id);
   for (const [name, pos, steps = 0, input = null] of R.shots) {
     await W('place', pos, { settle: 10 });
