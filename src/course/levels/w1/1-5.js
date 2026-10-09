@@ -87,6 +87,13 @@ export const LEVEL = {
       { kind: 'trapeze', pos: [-11, 13, -150], size: 8 },
       { kind: 'balloons', pos: [-19, 5, -60], n: 6, size: 3 },
       { kind: 'balloons', pos: [19, 3, -118], n: 5, size: 3 },
+      // Requisiten unten in den Manegen (Blick in die Tiefe)
+      { kind: 'drum', pos: [-5, -14, -4], size: [2.4, 1.4], color: 'blue' }, { kind: 'drum', pos: [5, -14, -9], size: [2.2, 1.2], color: 'yellow' },
+      { kind: 'ball', pos: [2, -14, 1], size: 1.1 }, { kind: 'cannon', pos: [-7, -14, -88], yaw: 0.6 },
+      { kind: 'drum', pos: [6, -14, -95], size: [2.6, 1.6], color: 'red' }, { kind: 'ball', pos: [4, -14, -86], size: 1.2 },
+      { kind: 'drum', pos: [-4, -14, -172], size: [2.4, 1.4], color: 'green' }, { kind: 'ball', pos: [5, -14, -178], size: 1 },
+      { kind: 'confetti', pos: [0, -14, -6], size: [16, 16], n: 70 }, { kind: 'confetti', pos: [0, -14, -92], size: [18, 18], n: 80 },
+      { kind: 'confetti', pos: [0, -14, -175], size: [16, 16], n: 70 },
     ] },
 
     // ======================================================== 1  Schalter-Feld 1
@@ -99,6 +106,7 @@ export const LEVEL = {
       { kind: 'ball', pos: [-8.6, 1, 3], size: 0.6 },
       { kind: 'ball', pos: [8.4, 0, 2.2], size: 0.8, solid: true },
       { kind: 'balloons', pos: [-9.4, 0, -13.3], n: 4, size: 1.6 },
+      { kind: 'confetti', pos: [0, 0, 3], size: [18, 8], n: 50 },
     ] },
     { type: 'deco_w1b', items: [
       stage(5.5, 6.5, -11, 2, 4, { h: 6.5, color: 0xffc21a, skirt: ['red', 0xfff4e0], bulbs: false, inlay: false }),
@@ -178,6 +186,8 @@ export const LEVEL = {
       stage(-6.25, 14, -163.2, 0.5, 3.8, { h: 10, color: 0xffc21a, skirt: [0x2a4fd0, 0xfff4e0], bulbs: false, inlay: false }),   // Wandsprung-Wand
       { kind: 'pennant', pos: [-10.6, 12, -164.6], size: 2 },
       { kind: 'balloons', pos: [4.6, 10, -194], n: 6, size: 2 },
+      { kind: 'confetti', pos: [0, 10, -190], size: [9, 9], n: 60 },
+      { kind: 'cannon', pos: [-3.8, 10, -194], yaw: -0.4 },
       { kind: 'drum', pos: [5.5, 4, -167.5], size: [1.6, 0.9], color: 'red' },
     ] },
     { type: 'wall', pos: [-9.5, 4, -161.2], size: [3, 8, 0.4], climbable: true },

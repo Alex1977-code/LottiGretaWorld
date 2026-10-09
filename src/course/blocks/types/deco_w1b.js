@@ -45,6 +45,8 @@
 //   balloons    Luftballon-Traube: n (Standard 5), size (Schnurlänge, Standard 1.6)
 //   pennant     Zirkusfahne auf Mast (wie flag, Standard rot mit Goldspitze)
 //   trapeze     Trapez am Seil: pos (Stange), size (Seillänge, Standard 4)
+//   confetti    Konfetti-Plättchen auf einer Fläche: size [w, d], n (Standard 30)
+//   cannon      Zirkuskanone (Deko) auf Rädern: yaw
 //   curtain     Bühnenvorhang (pos = Mitte unten, size [w, h], yaw 0 = Fläche zeigt nach +Z), color
 
 import * as THREE from 'three';
@@ -815,6 +817,44 @@ function balloons(it, out, rnd) {
   }
 }
 
+/** Konfetti: kleine bunte Plättchen flach auf einer Fläche verstreut. */
+function confetti(it, out, rnd) {
+  const p = v3(it.pos);
+  const [w, d] = it.size ?? [4, 4];
+  const n = it.n ?? 30;
+  const cols = [RED, 0xffd23a, 0x2f7bff, 0x35c24a, 0xff6fb5, 0xffffff, 0xa865ff];
+  for (let i = 0; i < n; i++) {
+    const x = p.x + rnd.real(-w / 2, w / 2), z = p.z + rnd.real(-d / 2, d / 2);
+    const a = rnd.real(0, Math.PI), l = rnd.real(0.09, 0.16);
+    const ca = Math.cos(a) * l, sa = Math.sin(a) * l, cb = Math.cos(a + 1.3) * l * 0.6, sb = Math.sin(a + 1.3) * l * 0.6;
+    const y = p.y + 0.012 + rnd.real(0, 0.004);
+    out.push(quad([x - ca - cb, y, z - sa - sb], [x - ca + cb, y, z - sa + sb], [x + ca + cb, y, z + sa + sb], [x + ca - cb, y, z + sa - sb], rnd.pick(cols)));
+  }
+}
+
+/** Zirkuskanone (Deko): Rohr auf Rädern, schräg nach oben. */
+function circusCannon(it, out) {
+  const p = v3(it.pos);
+  const yaw = it.yaw ?? 0;
+  const parts = [];
+  const barrel = new THREE.CylinderGeometry(0.42, 0.55, 2.6, 14, 1, false);
+  barrel.rotateZ(-Math.PI / 2 + 0.6);
+  barrel.translate(0.2, 1.3, 0);
+  parts.push(colorize(barrel.toNonIndexed(), (pp, n, o) => { const k = Math.floor((pp.x + 2) * 2.2) & 1; const c = lin(k ? RED : 0xffd23a); o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
+  for (const sz of [-0.62, 0.62]) {
+    const wheel = new THREE.CylinderGeometry(0.62, 0.62, 0.16, 14, 1, false);
+    wheel.rotateX(Math.PI / 2);
+    wheel.translate(-0.3, 0.62, sz);
+    parts.push(solid(wheel.toNonIndexed(), 0x2f7bff));
+    parts.push(ball(0.14, -0.3, 0.62, sz * 1.16, 0xfff3b0, GOLD, 0xb88400, 1, 1, 1, 6, 4));
+  }
+  parts.push(box(1.2, 0.3, 1.0, -0.3, 0.72, 0, 0xffd23a, { r: 0.06, seg: 1 }));
+  const g = merge(parts);
+  g.rotateY(yaw);
+  g.translate(p.x, p.y, p.z);
+  out.push(g);
+}
+
 function trapeze(it, out) {
   const p = v3(it.pos);
   const L = it.size ?? 4;
@@ -919,6 +959,8 @@ export function buildDecoW1b(level, spec) {
       case 'pole': pole(it, out); if (it.solid) { const p = v3(it.pos); level.world.add({ type: 'cyl', x: p.x, z: p.z, r: it.r ?? 0.35, y0: p.y, y1: p.y + (it.size ?? 10), tag: 'pole' }); } break;
       case 'balloons': balloons(it, out, rnd); break;
       case 'trapeze': trapeze(it, out); cast = false; break;
+      case 'confetti': confetti(it, out, rnd); cast = false; break;
+      case 'cannon': circusCannon(it, out); break;
       case 'curtain': curtain(it, out); cast = false; break;
       default: console.warn(`[deco_w1b] unbekannte Art: ${it.kind}`);
     }
