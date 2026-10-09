@@ -2,17 +2,17 @@
 //
 // Abschnitte (Länge entlang z):
 //   1  Start-Wiese      z   9 … −22  (31 m) weiße Stufen hoch zur Terrasse mit Pilzling und ?-Block (Krallen-Anzug);
-//                                     rechts unten der Eingang der Glasröhre (obere Route, Stern 1).
-//   2  Röhren-Wiese     z −30 … −56  (26 m) Glasröhre endet auf der Wiese, ihr Abzweig auf dem Sims mit Stern 1;
+//                                     rechts unten der Eingang der Glasröhre (obere Route, Stern 0).
+//   2  Röhren-Wiese     z −30 … −56  (26 m) Glasröhre endet auf der Wiese, ihr Abzweig auf dem Sims mit Stern 0;
 //                                     Pilzlinge, ?-Block, zweite Glasröhre von der Hecken-Terrasse weiter.
 //   3  Kletterwand      z −59 … −92  (33 m) Pilzlinge vor der 6-m-Wand (mit Krallen kletterbar); Ausweichroute
 //                                     rechts über die Hügelkette (2-m-Stufen); Plateau mit Krallen-Pilzling und zwei
 //                                     Glasröhren (zum Checkpoint bzw. auf den großen Hügel).
 //   4  Checkpoint-Wiese z −92 … −124 (28 × 32 m) Checkpoint, Krallen-Anzug im Baum, großer Hase mit Riesentrank auf
-//                                     dem 5-m-Hügel, Teich mit kleinem Hasen (Stern) und Röhren-Insel (Stempel-Raum).
+//                                     dem 5-m-Hügel, Teich mit kleinem Hasen (Stern 2) und Röhren-Insel (Stempel-Raum).
 //   5  Brücken-Passage  z −124 … −174 (50 m) Hohlweg mit Holzkisten, Ziegelreihe, Krallen-Pilzlinge, weiße Holzbrücke;
-//                                     unten rechts ein Durchgang mit Extraleben; ein Buckel aus Steinblöcken direkt
-//                                     hinter der Brücke deckt die Nische mit Stern 3 ab (Riesentrank zertrümmert ihn –
+//                                     unten rechts ein Durchgang mit Extraleben; ein Buckel aus grauen Steinblöcken (megawall)
+//                                     direkt hinter der Brücke deckt die Nische mit Stern 1 ab (Riesentrank zertrümmert ihn –
 //                                     oder rechts hinunterfallen und mit dem Krallen-Anzug zur Nische hochklettern).
 //   6  Ziel             z −174 … −200 (26 m) Glasröhre hinauf auf die Treppe, Sprungfeder, Zielmast.
 //   Stempel-Raum abseits bei x ≈ 90 (Röhre auf der Teich-Insel hin, zweite Röhre zurück).
