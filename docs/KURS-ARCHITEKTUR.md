@@ -576,3 +576,230 @@ wählt sie. Haken der Instanz (alle optional): `createPlayer(level, opts)`, `cre
 Kamera, ersetzt `CameraRig.update`), `info()` (erscheint in `__course.state().archetype`), `dispose()`.
 `level.archetype` zeigt auf die Instanz. Sterne: `LevelRuntime` speichert jetzt `max(3, LEVEL.stars.length)`
 Sterne (Diorama 5, Arena 1 → im HUD/Ergebnis die tatsächliche Zahl zeigen).
+
+---
+
+## Präzisierung (Weltkarte)
+
+Ergänzungen des Weltkarten-Agenten (Stand: Welt 1). Nichts oben Festgelegtes wird geändert.
+
+### Präzisierung (Weltkarte): Dateien und Szene
+
+```
+src/course/map/
+  CourseMapScene.js   Phaser-Szene 'CourseMap' (Karte als besonderes Level, archetype 'map')
+  worlds/index.js     Registry der Weltkarten (import.meta.glob ./w*.js) → getWorldMap(n), listWorldMaps()
+  worlds/w1.js        Welt 1 „Grüne Blockinsel“ (reine Daten, export const MAP)
+  layout.js           Grundriss aus den Daten: begehbares Raster, Schranken-Rechtecke, Rückkehrpunkte, Erreichbarkeit
+  walkgrid.js         Raster des begehbaren Bereichs (0,5 m), Randkanten → unsichtbare Wände, Flutfüllung
+  unlock.js           Freischaltung (pathOpen, unlocked, reason, worldStars, levelProgress) – rein, Node-tauglich
+  MapBuilder.js       Kartenbau: Gelände, Standard-Bausteine, Hecken/Zäune, Wände, Platten-Wege, Eingänge, Schranken, Haus
+  MapBatcher.js       verschmilzt die statische Karten-Geometrie in 32×32-m-Kacheln (view.addStatic wird während des
+                      Kartenbaus umgeleitet – besseres Culling auf der breiten Insel, auch im Schattenpass)
+  entrances.js        Eingangs-Podest (Nummernscheibe, Schloss, Leuchtring, Fahne) + Kulisse je Art
+  gates.js            Schranke aus Steinblöcken (Kollision, Versink-Animation im Simulationstakt)
+  entities.js         MapRoamer (wandernde Gegnergruppe), MapItem (Gratis-Power-up) – ohne Entitäten-Registry
+  MapRuntime.js       Ersatz für LevelRuntime: kein Timer, keine Lebensverluste, Rückkehr zum sicheren Punkt
+  MapHud.js           Karten-HUD (Phaser) inkl. Touch-Steuerung (CourseTouch)
+  props.js            3D-Requisiten (Build-Geometrien, Canvas-Texturen)
+  scenery.js          Thema 'map' (meldet sich in THEMES an), Meer, Schaum, Glitzern, Wolken, Nachbarinseln
+```
+
+Die Karte nutzt die Level-Infrastruktur unverändert: `Level` (Kollisionswelt, Entitäten, `step`), `CourseView`
+(Renderer, Kamera-Rig mit `camera`-Schiene, Licht, Himmel, Schatten), `Player` + `HeroRig`, `CourseInput` +
+`CourseTouch`, fester Zeitschritt 1/120 s. Die Spielfigur hat auf der Karte das volle Bewegungsset.
+Standard-Bausteine aus `segments` (water, bridge, stairs, platform, deco …) werden über `getBlockType` gebaut;
+Kartenelemente baut `MapBuilder` selbst (keine Einträge in `blocks/types` oder `entities/kinds`).
+
+Test-Schnittstelle `window.__courseMap` (= Szene): `step(n)`, `setInput(o)`, `setManual(b)`, `teleport(x, y, z, yaw?)`,
+`state()` (Figur, `onPad`, `near`, Eingänge mit `locked/reason/enterable/soon/done/stars/starsMax/stamp/title`,
+Schranken `closed|opening|open`, `carryPower`, `berry`, `roamers`, Sterne, `lastStart`, `goVisible`), `enter()`
+(wie Enter), `pressGo()` („Los!“), `selectHero(k)`, `toggleMute()`, `toClassic()`, `resetSave()`, `status(id)`,
+`stats()`, `snapCamera()`; `window.__courseSave` = Speicherstand. Test: `tests/course_map.mjs` (Port 4194).
+
+### Präzisierung (Weltkarte): Weltdaten-Format (für Welt 2+)
+
+Neue Welt = neue Datei `src/course/map/worlds/w<n>.js` mit `export const MAP = { … }` (Koordinaten wie Level:
+Meter, Y oben, Kamera blickt nach −Z; der Weg führt von Süden (+Z) nach Norden (−Z)):
+
+```js
+export const MAP = {
+  id: 'karte-2', world: 2, title: 'Wüste', archetype: 'map', theme: 'map', music: 'course_map',
+  base: -3, sea: 0,                                   // Unterkante der Geländeblöcke, Meereshöhe
+  spawn: { pos: [x, y, z], yaw },                     // Startpunkt (ohne Rückkehr/gemerkte Lage)
+  camera: [{ from: 200, to: -300, pitch: 52, dist: 17, fov: 40, ahead: 2.4 }],   // Kameraschiene wie im Level
+  levels: [                                           // Freischaltung (Reihenfolge = Weg)
+    { id: '2-1', after: '1-Burg', stars: 3, stamp: true },
+    { id: '2-A', after: ['2-1'], stars: 1 },          // after: Id oder Liste (alle geschafft)
+    { id: '2-Burg', after: '2-5', minStars: 20, stars: 3, stamp: true },  // minStars: Sterne dieser Welt
+    { id: 'W3', after: '2-Burg', world: 3, label: 'Welt 3', next: 3, stars: 0 },  // Übergang (Glasröhre)
+  ],
+  ground: [{ rect: [x0, z0, x1, z1], top, walk?: true, style?: 'grass'|'rock'|'meadow'|'pond'|'sand', noDeco?, noEdge? }],
+  walk: [[x0, z0, x1, z1]],                           // zusätzlich begehbar (Brücken, Treppen, Teich, Steg)
+  paths: [[[x, z], …]],                               // helle Platten-Wege (2 m), auf Treppen/Brücken ausgelassen
+  entrances: [{ id, kind, pos: [x, y, z], decor?: [x, y, z], exit?: [x, y, z], labelY?, cage?, waterfall?, pipe? }],
+  gates: [{ for: '2-2', at: [x, z], axis: 'x'|'z' }], // Schranke quer über die Engstelle; axis = Laufrichtung
+  roamers: [{ level: '2-A', model: 'name', count: 2, from: [x, y, z], to: [x, y, z], speed }],
+  houses: [{ kind: 'beeren', pos, yaw, item: [x, y, z], items: ['krallen', 'funken'] }],
+  signs: [{ pos: [x, y, z], yaw, text: 'Welt 2\nWüste' }],      // Holzschilder
+  intro: { from: [x, y, z], look: [x, y, z], duration: 3 } | false,  // Anflug beim Betreten (Standard: von Süden)
+  segments: [ /* Standard-Bausteine wie im Level-Format */ ],
+};
+```
+
+- Nicht begehbare Grasblöcke bekommen automatisch Bäume, Büsche, Blumen (`noDeco` schaltet ab); `noEdge` an einem
+  Block unterdrückt Hecke/Zaun an angrenzenden Rändern (z. B. Sandstrand).
+- **Begehbar** ist nur die Vereinigung der Rechtecke `ground[].walk` + `walk` (achsenparallel, Raster 0,5 m). An allen
+  Rändern entstehen unsichtbare, 40 m hohe Wände (`camIgnore`, `noWallSlide`); wo daneben gleich hohes oder bis 3,5 m
+  höheres Gelände liegt, setzt der Bau eine Hecke, an Abbrüchen zu tieferem Land einen weißen Zaun, am Meer nichts.
+- **Schranken** sperren je eine Engstelle; sie müssen ihren Bereich vollständig abriegeln (geprüft per Flutfüllung in
+  `tests/course_map.mjs`: mit offenen Schranken genau zu den freien Wegen erreichbar sind genau die passenden Eingänge).
+  Bereiche gleicher Höhe dürfen sich nur über eine Engstelle mit Schranke berühren (Höhenunterschiede zählen nicht – die
+  Figur springt bis 6 m).
+- `kind` der Eingänge (Kulisse): `meadow` (Blumentor), `cave` (Höhlenmaul, `decor` an der Felswand), `arena` (Gitter
+  `cage: [[x0,z0,x1,z1], …]`), `beanstalk`, `diorama`, `river` (Blatt-Floß bei `decor`, `waterfall: { x0, x1, z, top,
+  bottom }`), `circus`, `castle` (Festung mit Baron-Flagge), `pipe` (Glasröhre, Verlauf `pipe: [[dx, dy, dz], …]`).
+- Nummer auf der Scheibe = `levels[].label ?? id`; Titel = `getLevel(id)?.title`, sonst „Bald“.
+
+### Präzisierung (Weltkarte): Freischaltungs-API
+
+`src/course/map/unlock.js` (reine Funktionen, `save` = `courseSave`):
+`pathOpen(map, save, id)` (alle `after` geschafft → Schranke weg), `reason(map, save, id)` → `null` | `'locked'` |
+`'stars'`, `unlocked(map, save, id)` (= `reason === null`), `worldStars(map, save)` (= `save.starsInWorld(map.world)`),
+`worldStarsMax(map)`, `levelProgress(save, id)` → `{ done, stars, starFlags, stamp }`.
+Ein Eingang ist **startbar**, wenn er frei ist und `getLevel(id)` existiert; sonst zeigt er „Bald“ (bzw. „Noch nicht
+frei“ / „Benötigt N Sterne (x/N)“). Frisch frei gewordene Wege: Beim nächsten Kartenbesuch schwenkt die Kamera zur
+Schranke, die Blöcke versinken, das Podest hüpft; danach steht die Id in `mapOpened` (keine zweite Animation).
+
+### Präzisierung (Weltkarte): Startfluss
+
+- Ohne Parameter startet das Spiel auf der **Kurs-Weltkarte** (`CourseBootScene` → `'CourseMap'`); ohne 3D-Darstellung
+  (`?r3d=0`, kein WebGL2) auf der Klassik-Karte. `?map=1` Kurs-Karte, `?classic=1` Klassik-Weltkarte,
+  `?course=<id>` Kurs-Level direkt, `?level=<key>` Klassik-Level direkt.
+- Karte → Level: auf einem freien Podest A / Leertaste / Enter, Touch: großer „Los!“-Knopf (erscheint nur dort) →
+  `scene.start('Course', { id })`. Die Gegnergruppe startet ihr Level bei Berührung (wenn frei).
+- Level → Karte: `scene.start('CourseMap', { from, done?, gameOver? })` (Motor). Die Figur steht vor dem Eingang
+  (`exit` bzw. 2,6 m Richtung Kamera), blickt zur Kamera; `done` zeigt „… geschafft!“, `gameOver` einen Hinweis.
+- Beim Betreten einer Welt (nicht nach einem Level) fliegt die Kamera aus einer flachen Ansicht mit Himmel, Sonne und
+  Wolken zur Heldin (≈3 s, jede Eingabe überspringt; Weltname wird eingeblendet).
+- Karten-HUD: Leben, Bitcoins, Sterne der Welt (gesammelt/möglich), Porträts Lotti/Greta (Tab), Ton (M), „Klassik“
+  (→ `'WorldMap'`), „Neu“ (Spielstand des Kurs-Modus löschen, mit Rückfrage). Die Klassik-Karte hat den Knopf „3D-Kurs“.
+- Testparameter `?mapAlias=1-1:0-0,…`: Eingang startet ein Ersatz-Level (solange es das echte noch nicht gibt); das
+  Ergebnis wird bei der Rückkehr auf den Eingang übertragen.
+
+### Präzisierung (Weltkarte): Speicherstand (additiv) und `carryPower`
+
+Neue Felder in `lotti-greta-course-v1`: `carryPower` (Power-up-Name oder `null`), `mapVisit` (Zähler der
+Kartenbesuche), `berryVisit` (Besuch der letzten Beerenhaus-Nutzung), `mapOpened` (Ids mit geöffneter Schranke),
+`mapPos = { world, pos, yaw, entrance?, level? }` (Lage auf der Karte; `entrance`/`level` = zuletzt betretener Eingang
+und das gestartete Level, damit die Rückkehr den richtigen Eingang findet). Methoden: `carryPower` (get/set),
+`takeCarryPower()`, `beginMapVisit()`, `berryAvailable()`, `useBerry()`, `mapOpened(id)`, `markMapOpened(id)`,
+`setMapPos(world, pos, yaw, extra)`, `mapPos`.
+
+**Beerenhaus:** einmal je Kartenbesuch ein Gratis-Power-up (Welt 1 abwechselnd Krallen-Anzug / Funkenblüte). Berühren
+→ `carryPower` gesetzt, die Heldin trägt es schon auf der Karte. **Levelstart:** `CourseScene.create()` ruft
+`courseSave.takeCarryPower()` und `player.setPower(name)` – das Power-up gilt im nächsten Level ab dem Start und ist
+danach verbraucht (Neustart/Tod: wie gewohnt ohne Power-up). Level, deren Archetyp eine eigene Spielfigur baut
+(`createPlayer`, z. B. Diorama mit Pflaume), lösen es nicht ein – es bleibt fürs nächste Level im Gepäck.
+
+## Präzisierung (Sonder-Bausteine)
+
+Ergänzung des Bausteine-Agenten (Stand: Bausteinpark 0-2). Alle Sonder-Bausteine für Welt 1 sind parametrierbare
+Module; Level-Bauer setzen sie nur in Daten ein. Jede Datei dokumentiert ihre Parameter im Kopfkommentar.
+
+### Präzisierung (Sonder-Bausteine): Wo was liegt
+
+- Bausteine (`segments`, `type`): `blocks/types/` `glasspipe, switchtiles, hiddenchain, cloud, cloudcannon, fallplatform,
+  clawwheel, megawall, room, crystalfloor, appear, sign, river, riverrock` – und `gimmicks.js`: alle Entitäts-Gimmicks sind auch als
+  `type` in `segments` erlaubt (`{ type: 'pow', … }` ≙ `{ kind: 'pow', … }`).
+- Entitäten (`items`/`blocks`/`enemies`, `kind`): `entities/kinds/` `lantern, pow, starring, timering, pswitch, bluecoin,
+  starcoin, bunny, endlessblock, rouletteblock, warpbox, task, crate, chest, spotter, pixelegg, megacolumn, itemtree,
+  raft, speedwave` (auch als `type` in `segments`: alle außer bluecoin/starcoin/megacolumn über `gimmicks.js`).
+- Gemeinsame Hilfen: `entities/gimmick.js` (Aktionen/Belohnungen, Basisklasse `Gimmick` mit `hidden`/`reveal()`,
+  Zeitanzeige über der Figur, Flug-Steuerung für Kanonen, `collectNear`, `visDt`).
+- Modelle: `models/kinds/gimmicks.js` (`crate, chest, push_switch, star_ring, star_coin, endless_block, roulette_block,
+  warp_box, cloud_cannon, claw_wheel, mega_block, pixel_egg, item_tree, leaf_raft`); genutzt werden außerdem
+  `glass_pipe_segment` (Glas-Look), `switch_tile, lantern, pow_block, hidden_block, crystal_block, time_ring, coin_blue,
+  bunny_small, fairy_spotter, question_block, used_block, river_rock, speed_wave` und der `PflaumeAvatar` im Kurs-Modus (`course.state` `'ride'`/`'idle'`, `course.rider`).
+- Übungslevel `levels/w0/0-2.js` „Bausteinpark“ (je Gimmick eine Station mit Schild, Kameraschiene, `marks`),
+  Test `tests/course_blocks.mjs` (Port 4195, Bilder `tests/out/cb_*.png`).
+
+### Präzisierung (Sonder-Bausteine): Ereignisse und Belohnungen (Aktion)
+
+Ein Format für `onAll`, `reward`, `onDone`, `onLit`, `onFull`, `onBreak`, `task.reward`, Inhalte von Kiste/Truhe/Baum:
+`{ reveal: id|[ids], hide, start|path (bewegte Plattform startet), stop, drop (Plattform stürzt), star: index |
+{ index, pos }, spawn: { kind, … } | [ … ], power: name, coins: n, sfx, pos }` – auch als Liste. Kurzformen: `'coin'`,
+`'coins:5'`, `'star:1'`, Power-up-Name, Zahl. Ziele sind benannte Objekte (`level.named`, Daten-`id`).
+Sterne, die erst durch ein Gimmick erscheinen sollen: in `LEVEL.stars` als `{ pos, hidden: true, id }` eintragen
+(Index bleibt stabil) und per `{ reveal: id }` oder `{ star: index }` zeigen; ohne Eintrag erzeugt `{ star: i }`
+den Stern am Auslöser. Jede Entität/Baustein-Entität mit `hidden: true` erscheint per `reveal`.
+
+### Präzisierung (Sonder-Bausteine): Motor-Ergänzungen
+
+- `player.ride(ctl, { state, kind })`: gesteuerter Ablauf im Skript-Modus; `ctl.step(player, dt, input) → true` am
+  Ende, danach `ctl.exit(player)` (Austrittsgeschwindigkeit), Figur ist dann in der Luft. Genutzt von Glasröhre,
+  Glasrohr-/Wolkenkanone. Berührungen ruhen im Skript-Modus → Münzen sammelt der Baustein (`collectNear`).
+- `Player.land`: Formen mit `breakable: 'bomb'` werden durch Stampfen nicht zerbrochen (graue Blockwand).
+- `coin`: `hiddenUntilLit` / `hidden` + `reveal()`/`conceal()`; `coins` reicht die Flags weiter. `star`: `hidden` +
+  `reveal(pos?)`.
+- `player.mount(m)` / `dismount(vx, vy, vz)`, Modus `mount` (Reittier): `m.control(player, dt, input, want)` bewegt
+  Reittier und Figur (Rückgabe false → absteigen), optional `m.bounce(input)` (Draufspringen im Sattel), `m.onDismount`.
+  Berührungen laufen normal; Treffer im Sattel kosten nur Power-up/Größe (kein Rückstoß). `HeroRig` setzt dann
+  `proxy.mount` (Reitpose der Heldin). Genutzt vom Blatt-Floß.
+- `mover`: `id` → `level.named` `{ pm, mover, shape, origin, start(), stop() }`, `idle: true` (wartet auf Signal),
+  `once: true` (fährt einmal bis zum Ende). `deco` Baum: `climbable: true` (Stamm mit Krallen kletterbar).
+- Angriffe, auf die Gimmicks reagieren: `onHit` `'bomb'` (über `level.attackArea(pos, r, 'bomb')`, z. B. Kickbombe),
+  `'mega'` (Riesentrank), `'pound'`, `'claw'`, `'fire'`, `'bump'` (POW wirft Gegner um, `flying = true` schützt).
+
+### Präzisierung (Sonder-Bausteine): Liste mit Daten-Beispielen
+
+| Typ / Art | Kern | Wichtige Parameter | Beispiel |
+| --- | --- | --- | --- |
+| `glasspipe` | Figur gleitet durchs Glasrohr; Gabelung per Stick; Kanonen-Ende; Münzen; optional Gegner durchspülen | `path` (Catmull-Rom), `radius` 1, `speed` 12, `oneWay`, `enter`, `branches: [{ at, path, cannon?, enter? }]`, `cannon: { target, arc }`, `exitSpeed` 7, `coins`, `solid`, `flush` | `{ type: 'glasspipe', path: [[0,2,-10],[0,2,-18],[6,3,-24]], coins: 4, branches: [{ at: 1, path: [[-6,2,-22]] }], cannon: { target: [12,1,-44], arc: 6 } }` |
+| `switchtiles` | Kipp-Schaltfelder, alle an → Ereignis; Perlen-Tafel als Fortschritt; Wechselschalter; auf fahrender Plattform | `grid`/`tiles`, `pos`, `toggle`, `onAll`, `at`, `indicator`, `on` (mover-Id), `platform` (eigener mover), `id` | `{ type: 'switchtiles', pos: [0,1,-20], grid: [3,2], onAll: { reveal: 'weg1' } }` |
+| `appear` | erscheinender Weg (Teile ploppen nacheinander auf, vorher Umrisse) | `id`, `parts: [{ pos, size }]`, `style`, `delay`, `hint`, `visible` | `{ type: 'appear', id: 'weg1', parts: [{ pos: [0,1,-30], size: [2,0.5,2] }] }` |
+| `lantern` | Anfassen → Licht, zeigt Münzen mit `hiddenUntilLit` im Radius; optional Brenndauer | `radius` 6, `duration` 0, `hanging`, `lit`, `onLit` | `{ kind: 'lantern', pos: [3,0,-40], radius: 7 }` + `{ kind: 'coins', from, to, n, hiddenUntilLit: true }` |
+| `hiddenchain` | unsichtbare Blockkette: jeder Block erscheint, wenn der vorige betreten (bzw. gestoßen) wird | `blocks`, `lead: { pos, size }` (länglicher ?-Block), `trigger` 'step'/'bump', `hint`, `onDone` | `{ type: 'hiddenchain', lead: { pos: [0,1,-40], size: [3,1,1] }, blocks: [[2.5,3,-41],[4.5,5,-42]] }` |
+| `room`, `crystalfloor` | Raum mit Ausschnitt-Ansicht (Decke/Vorderwand blenden aus), Kristall-Luke (Stampfen öffnet) | `pos`, `size`, `open`, `door`, `hatch: { at, size }`, `top`, `ceiling`, `cutaway` | `{ type: 'room', pos: [0,1,-40], size: [6,3,6], top: 'grass', hatch: { size: [2,2] } }` |
+| `warpbox` | in die Box springen → Teleport (Box/Röhre/Punkt) und zurück; Rätselbox mit Aufgabe | `id`, `target`, `style` 'warp'/'mystery', `task`, `onEnter`, `hidden` | `{ kind: 'warpbox', id: 'rb1', style: 'mystery', pos: [6,1,-80], target: 'rb2' }` |
+| `task` | Aufgabe im Bereich: alle Gegner besiegt → Belohnung (Rätselbox, Arena 1-A) | `area: { min, max } \| { pos, r }`, `ids`, `star`/`reward`, `pos` | `{ kind: 'task', area: { pos: [0,1,-20], r: 11 }, star: 0 }` |
+| `pow` | Erschütterung: Gegner am Boden besiegt, Ziegel/Kisten zerbrechen, 3 Benutzungen | `uses` 3, `radius` 8, `height` 3, `onUse` | `{ kind: 'pow', pos: [2,4,-60], radius: 9 }` |
+| `cloud` | Wolkenplattform (Einweg), optional fahrend | `size`, `oneWay`, `path`, `speed`, `id`, `idle` | `{ type: 'cloud', pos: [0,4,-30], size: [3,0.6,3] }` |
+| `cloudcannon` | auf die Öffnung springen → Flug in den Münzhimmel | `target`, `arc` 4, `onFire` | `{ type: 'cloudcannon', pos: [-6,1,-90], target: [-6,40,-100] }` |
+| `starring`, `timering`, `pswitch` | Auslösen → Sternmünzen/blaue Münzen für `time` s (Zeitanzeige über der Figur); alle → Belohnung; Zeit um → Münzen weg, neuer Versuch | `coins` (Liste/Strecke/Kreis), `time` 10, `star`/`reward`, `yaw`, `retry` | `{ kind: 'starring', pos: [0,0,-20], star: 0, coins: { from: [-4,0.3,-26], to: [4,0.3,-34], n: 8 } }` |
+| `bunny` | Fang-Hase flieht mit Haken im Bereich; fangen → Belohnung; `size: 'big'` → Riesentrank | `area`, `speed`, `alert`, `star`/`reward`, `size` | `{ kind: 'bunny', pos: [8,0,-70], star: 1, area: { pos: [8,0,-70], r: 6 } }` |
+| `endlessblock` | Münzen, solange in kurzer Folge getroffen (Zeit-Perlen) | `window` 1.2, `max` 40 | `{ kind: 'endlessblock', pos: [0,3.4,-12] }` |
+| `rouletteblock` | Inhalt wechselt im Takt, Treffer gibt den gezeigten | `contents`, `period` 0.5 | `{ kind: 'rouletteblock', pos: [4,3.4,-30], contents: ['krallen','funken','oneup'] }` |
+| `fallplatform` | wackelt 0,8 s nach Betreten, fällt (trägt mit), kommt nach 4 s wieder; Signal `drop` | `size`, `delay`, `respawn`, `trigger` 'stand'/'signal', `id` | `{ type: 'fallplatform', pos: [0,4,-50], delay: 0.8, respawn: 4 }` |
+| `clawwheel` | mit Krallen hochklettern dreht das Rad → Plattformen fahren aus | `size`, `face`, `radius`, `platforms: [{ pos, size, dir, length }]`, `climb` 3, `retract`, `onFull` | `{ type: 'clawwheel', pos: [0,1,-70], size: [3,7,1], platforms: [{ pos: [0.5,4,-70], size: [2.5,0.5,1], dir: [1,0], length: 3.5 }] }` |
+| `megawall` | graue Blockwand, nur Bombe/Riesentrank (`breakable: 'bomb'`) | `size` (ganze m), `breakable`, `onBreak` | `{ type: 'megawall', pos: [4,1,-88], size: [4,3,1] }` |
+| `crate`, `chest` | Holzkiste (Feuer/Tatze/Stampfen von oben/POW/Bombe, fällt ohne Halt); Truhe (berühren öffnet) | `content`, `size`; Truhe `yaw`, `hidden` | `{ kind: 'crate', pos: [-4,0,-60], content: 'star:1' }` |
+| `itemtree` | Baum mit Versteck: Berühren → Inhalt fällt aus der Krone | `content` 'krallen', `size`, `color` | `{ kind: 'itemtree', pos: [-6,0,-62], content: 'krallenAnzug' }` |
+| `spotter` | Kobold mit Fernglas (Deko), schaut der Figur nach | `yaw`, `range`, `cheer`, `scale` | `{ kind: 'spotter', pos: [-7,4.2,-6] }` |
+| `pixelegg` | Pixel-Relief der Heldin erscheint nach `wait` s Stillstehen im Auslösebereich | `trigger: { pos, r }`, `wait` 4, `hero`, `reward` | `{ kind: 'pixelegg', pos: [0,6,-12.4], trigger: { pos: [0,6,-11], r: 2 } }` |
+| `sign` | Holzschild mit Aufschrift | `text`, `yaw`, `size`, `post` | `{ type: 'sign', pos: [-4,1,-2], text: 'Glasröhre' }` |
+| `river` | Fluss mit Strömung (1-4): schwimmbares Wasser, Fließ-Streifen, Bett und Ufer auf 1-m-Raster (Kehren schließen sich), Wasserfälle; `level.rivers`, `flowAt`, `surfaceAt` | `path` (y = Oberfläche), `width` 8, `depth` 2.5, `speed` 4 / `speeds`, `bed`, `banks`, `bank` 3, `bankH` 1, `open: ['start','end']` | `{ type: 'river', id: 'fluss', path: [[0,0.6,-12],[0,0.6,-46],[12,0.6,-46],[12,-5.4,-47],[12,-5.4,-80]], open: ['start'] }` |
+| `raft` | Blatt-Floß mit Pflaume: aufspringen → reiten (Strömung trägt, Stick lenkt, Sprung hüpft, Schanzen, Wasserfall-Absturz), Strand/`exit` → absteigen; wartet ohne Reiterin; nach Neustart am nächsten Flusspunkt | `steer` 4, `jump` 9.5, `exit`, `exitR` 3, `yaw` | `{ kind: 'raft', pos: [0,0.6,-15.5] }` |
+| `speedwave` | Temposchwelle: Floß darüber → kurz schneller | `dir` (Standard Strömung), `boost` 7, `time` 1.4 | `{ kind: 'speedwave', pos: [0,0.6,-21] }` |
+| `riverrock` | Flussfelsen (Hindernis) | `size` | `{ type: 'riverrock', pos: [-2.6,0.6,-26] }` |
+
+Schanzen im Fluss: normaler `ramp`-Baustein, der aus dem Wasser steigt (das Floß fährt hinauf und hebt am Ende mit
+der Steiggeschwindigkeit ab). Fluss/Floß brauchen keinen Archetyp; ein Reit-Archetyp (1-4) kann die Figur in
+`setup()` direkt in den Sattel setzen: `player.mount(level.named.get('floss'))` (Daten-`id` des Floßes). Gemessen im Bausteinpark (scale 2): 72–108 Zeichenaufrufe inkl. Schattenpass,
+165–290 k Dreiecke.
+
+### Präzisierung (Sonder-Bausteine): Welt 1 – Gimmick → Baustein
+
+| Level | Gimmick laut Bauplan | Bausteine |
+| --- | --- | --- |
+| 1-1 | Glasrohre (obere Route, zur Zielfahne), Krallen-Anzug im Baum, großer Hase mit Riesentrank, kleiner Hase am Teich, Warp-Röhre zum Stempel-Raum, Tunnel mit Holzkisten, Steinblöcke hinter der Brücke (Riesentrank) | `glasspipe`, `itemtree`, `bunny` (`size: 'big'` / klein mit `star`), `pipe` + `room`, `crate`, `megawall` |
+| 1-2 | Laternen machen Münzen sichtbar, Kristallblöcke → versteckter Raum, Wolkenaufstieg, unsichtbare Blockkette vom länglichen ?-Block, Rätselbox (zwei Panzerkröten → Stern), Glasrohr in der Wand, Welt-Warp-Röhre | `lantern` + `hiddenUntilLit`, `room` (`hatch`) / `crystalfloor`, `cloud`, `hiddenchain` (`lead`), `warpbox` (`mystery`, `task`), `glasspipe`, `pipe` |
+| 1-A | Stern erscheint, wenn beide Rammbock-Bullen besiegt sind | `task` |
+| 1-3 | Feenwesen mit Ferngläsern, Baum hochklettern, POW-Blöcke legen eine Röhre frei, P-Schalter mit blauen Münzen, Wolkenkanone in den Münzhimmel, Warp-Box zum Ziel nach dem Zwischenboss | `spotter`, `deco` Baum `climbable`, `pow` + `brick` + `pipe`, `pswitch`, `cloudcannon` + `cloud`, `warpbox` (`hidden`, per `task` `{ reveal }`) |
+| 1-4 | Fluss mit Reittier, Temposchwellen, Sprungrampe, Zickzack-Kehren, bunter Wasserfall-Abzweig, Absturz, Strand | `river`, `raft`, `speedwave`, `ramp`, `riverrock` (Abzweig: zweiter `river` ab einer Kehre) |
+| 1-5 | Schaltfelder → Weg erscheint, Schaltfelder auf schwebenden/fahrenden Plattformen, Roulette-Block, Rätselbox → Kistenraum, Wechselschalter-Plattform, Glasrohr-Kanone zur Zielfahne, letzte Plattform stürzt ab | `switchtiles` + `appear`, `switchtiles` (`platform`/`on`, `toggle`), `rouletteblock`, `warpbox` + `room` + `crate`, `glasspipe` (`cannon`), `fallplatform` (`trigger: 'signal'`, `{ drop }`) |
+| 1-Burg | Sternenring (acht Sternmünzen), Krallenrad, graue Blockwand (Kickbombe), Easter-Egg-Pixelfigur, Warp-Box | `starring`, `clawwheel`, `megawall`, `pixelegg`, `warpbox` |
+| 1-Kapitän | fahrende Plattformen | `mover` (`idle`/`once`/`id`) |
+
+Nicht Teil der Sonder-Bausteine: Gegner, Kickbomben, Kanonen, Stampfsteine, Bosse, Pilzlingsturm (Gegner-Agent),
+„Figur springt nicht“ im Diorama und die fahrende Bossstraße.

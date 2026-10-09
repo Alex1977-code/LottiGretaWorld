@@ -2,9 +2,14 @@
 // powerup (Wachstumsbeere, Krallen-Anzug, Funkenblüte, Riesentrank, Funkelstern, 1-Up).
 //
 // coin:    { kind:'coin', pos }                       pos = Fußpunkt (Münze 0,8 m hoch)
+//          hiddenUntilLit: true  unsichtbar und nicht einsammelbar, bis eine Laterne (Entität lantern) sie im
+//          Radius sichtbar macht; hidden: true  unsichtbar bis reveal() (Sonder-Bausteine). reveal()/conceal().
 // coins:   { kind:'coins', from, to, n }              n Münzen gleichmäßig auf der Strecke
-//          { kind:'coins', pos, r, n }                 n Münzen im Kreis (Radius r) um pos
+//          { kind:'coins', pos, r, n }                 n Münzen im Kreis (Radius r) um pos (hidden/hiddenUntilLit
+//                                                      werden an jede Münze weitergegeben)
 // star:    { pos, index }                              (Loader: LEVEL.stars[i])
+//          hidden: true, id  erscheint erst per reveal() (Belohnung eines Sonder-Bausteins, Aktion
+//          { reveal: id } oder { star: index }, siehe entities/gimmick.js)
 // stamp:   { pos }                                     (Loader: LEVEL.stamp)
 // powerup: { kind:'powerup', pos, power, emerge }     power = wachstumsbeere | krallen | funken | riese | stern |
 //          oneup (Aliasse wie krallenAnzug erlaubt); emerge = steigt aus einem Block auf
@@ -23,11 +28,30 @@ class Coin extends CourseEntity {
     this.pool = level.view?.pool('coin', coinTemplate, { castShadow: false, capacity: 64 }) ?? null;
     this.idx = this.pool ? this.pool.alloc() : -1;
     this.phase = (this.pos.x * 1.7 + this.pos.z * 0.9) % 6.28;
+    this.hiddenUntilLit = !!spec.hiddenUntilLit;
+    this.hidden = !!(spec.hidden || spec.hiddenUntilLit);
+    if (this.hidden) this.touch = false;
     this.render(0, 0);
+  }
+
+  /** Versteckte Münze zeigen (Laterne, Sonder-Baustein). */
+  reveal() {
+    if (!this.hidden || !this.alive) return;
+    this.hidden = false;
+    this.touch = true;
+    this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + 0.45, z: this.pos.z }, 4);
+  }
+
+  /** Wieder verstecken (Laterne erlischt). */
+  conceal() {
+    if (this.hidden || !this.alive) return;
+    this.hidden = true;
+    this.touch = false;
   }
 
   render(dt, t) {
     if (this.idx < 0) return;
+    if (this.hidden) { this.pool.hide(this.idx); return; }
     this.pool.set(this.idx, this.pos.x, this.pos.y + Math.sin(t * 2.6 + this.phase) * 0.05, this.pos.z, t * 2.6 + this.phase);
   }
 
@@ -36,10 +60,10 @@ class Coin extends CourseEntity {
     return 'collect';
   }
 
-  onHit(kind) { if (kind === 'claw' || kind === 'mega' || kind === 'fire') this.collect(); }
+  onHit(kind) { if (!this.hidden && (kind === 'claw' || kind === 'mega' || kind === 'fire')) this.collect(); }
 
   collect() {
-    if (!this.alive) return;
+    if (!this.alive || this.hidden) return;
     this.level.addCoins(1);
     this.level.sfx('coin');
     this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + 0.45, z: this.pos.z }, 6);
@@ -59,11 +83,25 @@ class Star extends CourseEntity {
     this.index = spec.index ?? 0;
     this.half.set(0.5, 0.6, 0.5);
     this.ghost = !!level.runtime.starsSaved[this.index];
+    this.hidden = !!spec.hidden;
+    if (this.hidden) this.touch = false;
     if (level.view) this.setModel(starModel({ ghost: this.ghost }));
+    if (this.model) this.model.root.visible = !this.hidden;
+  }
+
+  /** Versteckten Stern erscheinen lassen (optional an neuer Stelle pos). */
+  reveal(pos) {
+    if (!this.alive) return;
+    if (pos) this.pos.set(pos[0], pos[1], pos[2]);
+    this.hidden = false;
+    this.touch = true;
+    if (this.model) this.model.root.visible = true;
+    this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + 0.7, z: this.pos.z }, 18);
+    this.level.sfx('powerup_appear');
   }
 
   onPlayer() {
-    if (!this.alive) return 'none';
+    if (!this.alive || this.hidden) return 'none';
     this.level.runtime.collectStar(this.index);
     this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + 0.6, z: this.pos.z }, 16);
     this.kill();
@@ -134,14 +172,15 @@ class Powerup extends CourseEntity {
 /** Mehrere Münzen auf einer Strecke oder im Kreis (erzeugt einzelne coin-Entitäten). */
 function coins(level, spec) {
   const n = spec.n ?? 5;
+  const flags = { hidden: spec.hidden, hiddenUntilLit: spec.hiddenUntilLit };
   if (spec.from && spec.to) {
     for (let i = 0; i < n; i++) {
       const t = n === 1 ? 0.5 : i / (n - 1);
-      level.spawn('coin', { pos: spec.from.map((a, k) => a + (spec.to[k] - a) * t) });
+      level.spawn('coin', { pos: spec.from.map((a, k) => a + (spec.to[k] - a) * t), ...flags });
     }
   } else {
     const p = spec.pos ?? [0, 0, 0], r = spec.r ?? 1.5;
-    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; level.spawn('coin', { pos: [p[0] + Math.cos(a) * r, p[1], p[2] + Math.sin(a) * r] }); }
+    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; level.spawn('coin', { pos: [p[0] + Math.cos(a) * r, p[1], p[2] + Math.sin(a) * r], ...flags }); }
   }
   return null;
 }

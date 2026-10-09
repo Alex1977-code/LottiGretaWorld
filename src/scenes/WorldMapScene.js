@@ -75,6 +75,11 @@ export class WorldMapScene extends Phaser.Scene {
     this.hint = uiText(this, 8, GAME.height - 8, 'Punkt antippen: hinlaufen  •  PC: Pfeile + Leertaste', { size: 7, color: '#eef0ff', stroke: '#2a2550', thickness: 2, shadow: false, originX: 0 }).setDepth(20).setAlpha(0.9);
     this.resetBtn = uiButton(this, GAME.width - 44, 10, 'Spielstand löschen', { size: 7, dark: true, padX: 6, padY: 2 }).setDepth(20);
     this.resetBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.onResetTap(); });
+    // Zurück zur Kurs-Weltkarte (3D-Kurs), sofern es die 3D-Darstellung gibt
+    if (RENDER3D.enabled && this.scene.get('CourseMap')) {
+      this.courseBtn = uiButton(this, GAME.width - 34, 31, '3D-Kurs', { size: 8, color: 0x3a7bff, padX: 8, padY: 4 }).setDepth(20);
+      this.courseBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev.stopPropagation(); this.scene.start('CourseMap', {}); });
+    }
 
     this.coinIcons = [];
     // Großer Start-Knopf (Handy): startet das Level am aktuellen Punkt

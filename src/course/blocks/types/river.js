@@ -1,20 +1,30 @@
-// Bausteine des Reit-Levels (Archetyp `ride`, Präzisierung Ritt/Diorama): Flusslauf mit Strömung, Ufern und
-// Dschungel, Felsen, Sprungrampen, Temposchwellen, Wasserfälle, Felsbogen, Zier. Physik/Abfragen: das Fluss-Netz
-// `level.river` (archetypes/RiverNet.js) – die Spielfigur des Ritts (RideController) liest nur dieses Netz, keine
-// Kollisionsformen. Kollisionsformen gibt es nur für Schatten-Blobs (Wasserflächen, Flag water, camIgnore).
+// Baustein `river` (Fluss mit Strömung) und Zubehör – EIN Baustein mit zwei Datenformen (Präzisierung Ritt/Diorama,
+// abgestimmt mit Präzisierung Sonder-Bausteine):
 //
-// river        { channels: [ { id, points: [[x, y, z, w?, v?], …], width, speed, bank: { height, out, skirt }, deco } ],
+// A) Kurvenfluss für den Reit-Archetyp `ride` (Level 1-4): { channels: [...] } – geglättete Kanäle mit Gabelungen,
+//    Kaskaden, Klippe, Dschungelufern, Wasserfällen. Physik/Abfragen über das Fluss-Netz `level.river`
+//    (archetypes/RiverNet.js); die Floß-Figur des Archetyps (RideController) liest nur dieses Netz. Kollisionsformen
+//    gibt es nur für Schatten-Blobs/Schwimmen (Wasserflächen, Flag water, camIgnore).
+// B) Rasterfluss für das Gimmick-Floß `raft` (entities/kinds/raft.js, Bausteinpark 0-2): { path: [[x, y, z], …] } –
+//    Wasser, Bett und Ufer auf einem 1-m-Raster als Kollisionsformen (das Floß fährt mit moveAABB), Fließ-Streifen.
+// Beide Formen tragen sich in `level.rivers` ein (nearest, contains, surfaceAt, flowAt, width – Vertrag des Floßes).
+//
+// river (A)    { channels: [ { id, points: [[x, y, z, w?, v?], …], width, speed, bank: { height, out, skirt }, deco } ],
 //                lowland: { y, trees }, life: { butterflies, dragonflies } }
 //              Ein Aufruf baut alle Kanäle gemeinsam (Ufer öffnen sich an Gabelungen/Mündungen automatisch, Uferstreifen
 //              enden vor dem Nachbarkanal). points: y = Wasseroberfläche (Kaskade = zwei nahe Punkte mit Höhensprung),
 //              w = Breite (Standard width), v = Strömung m/s (Standard speed). bank.height (Uferhöhe über dem Wasser,
 //              Standard 2), bank.out (Breite des Uferstreifens, 18), bank.skirt (true = Plateaukante bis lowland.y
-//              hinab, Standard true), bank.none: true = keine Ufer (Lagune mit eigenen Wänden). deco: Dichte des
-//              Dschungels 0..1 (Palmen, Farne, Büsche, Blüten, Urwaldbäume; Standard 1).
-//              lowland: Tiefland-Ebene (y, trees = Zahl ferner Urwaldbäume). life: animierte Schmetterlinge/Libellen.
-// river_rock   { pos: [x, z] | [x, y, z], r (0.9), h (Höhe über dem Wasser, 1.2) }  fest für das Floß
-// river_ramp   { pos: [x, z], yaw? (Standard: Fließrichtung), len (4.5), wid (3.2), h (1.4), kick (6 m/s) }
-// river_wave   { pos: [x, z], yaw?, len (3), wid (3), boost (4 m/s) }  Temposchwelle mit Lauflicht-Pfeilen
+//              hinab, Standard true), bank.none: true = keine Ufer. deco: Dichte des Dschungels 0..1 (Palmen, Farne,
+//              Büsche, Blüten, Urwaldbäume; Standard 1). lowland: Tiefland-Ebene (y, trees = Zahl ferner Urwaldbäume).
+//              life: animierte Schmetterlinge/Libellen.
+// river (B)    { path: [[x, y, z], …] (y = Oberfläche; steile Abschnitte = Wasserfälle), width 8, depth 2.5, speed 4 /
+//                speeds: [v0, v1, …], bed, banks, bank 3, bankH 1, open: ['start', 'end'], color, id }
+// riverrock    { pos: [x, y, z] (y = Wasseroberfläche) | [x, z], size (1) | r (0.75·size), h (0.7·size) }  Felsen:
+//              Kollisionszylinder (Gimmick-Floß, Figuren) und Netz-Felsen (Ritt), bemoost mit Schaumkranz
+// river_ramp   { pos: [x, z], yaw? (Standard: Fließrichtung), len (4.5), wid (3.2), h (1.4), kick (6 m/s) }  (Form A)
+// river_wave   { pos: [x, z], yaw?, len (3), wid (3), boost (4 m/s) }  Temposchwelle mit Lauflicht-Pfeilen (Form A;
+//              für das Gimmick-Floß gibt es die Entität `speedwave`)
 // river_fall   { from: [x, y, z] (Abbruchkante, Mitte), to: [x, y, z] (Aufprall, Mitte), width, lip (1.2), rainbow,
 //                mist (true), arc (Regenbogen-Bogen, Standard = rainbow) }  Wasserfall-Vorhang mit Gischt
 // river_arch   { pos: [x, y, z] (Wasseroberfläche, Mitte), yaw (Fließrichtung), span (Innenweite 7), height (4.5),
@@ -27,6 +37,7 @@
 import * as THREE from 'three';
 import { v3, box, hex, lin, mixc, smooth, colorize, merge, Rnd, themeOf, addStatic, addObject } from '../kit.js';
 import { RiverNet } from '../../archetypes/RiverNet.js';
+import { visDt } from '../../entities/gimmick.js';
 
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -409,10 +420,12 @@ function totemParts(x, y, z, yaw, parts) {
 // ------------------------------------------------------------------ river: Kanäle, Wasser, Ufer, Dschungel
 
 export function buildRiver(level, spec) {
+  if (!spec.channels && spec.path) return buildPathRiver(level, spec);   // Form B (Rasterfluss)
   const net = riverNet(level);
   const J = jungle(level);
   const rnd = new Rnd((level.rnd.int(0, 1e9) ^ 0x51ab) >>> 0);
   const chans = (spec.channels ?? [spec]).map((c) => ({ c, ch: net.addChannel(c) }));
+  for (const { ch } of chans) registerChannel(level, net, ch);
   const lowY = spec.lowland?.y ?? null;
   if (level.view) ensureFlowAnimation(level);
   // Wasserflächen als Kollisionsformen (nur Schatten-Blobs und Schwimmen zu Fuß)
@@ -437,6 +450,23 @@ export function buildRiver(level, spec) {
   }
   if (spec.lowland) buildLowland(level, net, spec.lowland, J, rnd);
   if (spec.life) buildLife(level, net, spec.life, rnd);
+}
+
+
+/** Kanal (Form A) in level.rivers eintragen – gleiche Abfragen wie der Rasterfluss (Vertrag des Gimmick-Floßes). */
+function registerChannel(level, net, ch) {
+  const q = {};
+  let wMax = 0;
+  for (const p of ch.S) wMax = Math.max(wMax, p.w);
+  const river = {
+    id: ch.id, channel: ch, width: wMax, depth: 2,
+    nearest(x, z) { const n = ch.nearest(x, z, q); return { i: n.i, t: 0, d: Math.max(0, n.dist - (n.w - wMax) / 2), x: n.x, y: n.y, z: n.z }; },
+    contains(x, z, margin = 0) { const n = ch.nearest(x, z, q); return Math.abs(n.lat) <= n.w / 2 + margin && n.beyond <= margin; },
+    surfaceAt(x, z) { return ch.nearest(x, z, q).y; },
+    flowAt(x, z, out = { x: 0, z: 0 }) { const n = ch.nearest(x, z, q); const ok = Math.abs(n.lat) <= n.w / 2 + 1; out.x = ok ? n.tx * n.v : 0; out.z = ok ? n.tz * n.v : 0; return out; },
+  };
+  (level.rivers ??= []).push(river);
+  if (ch.id && !level.named.has(ch.id)) level.named.set(ch.id, river);
 }
 
 /** Wasserfläche (Vertexfarben, Glanz) und Schaumstreifen (wandern mit der Strömung). */
@@ -746,6 +776,161 @@ function buildLife(level, net, life, rnd) {
   });
 }
 
+// ------------------------------------------------------------------ Form B: Rasterfluss (Gimmick-Floß, Bausteinpark)
+
+/** Nächster Punkt der Polylinie (nur XZ) → { i (Abschnitt), t (0..1), d (Abstand), x, y, z }. */
+function nearestOn(segs, x, z) {
+  let best = null;
+  for (let i = 0; i < segs.length; i++) {
+    const s = segs[i];
+    const dx = s.b.x - s.a.x, dz = s.b.z - s.a.z, l2 = dx * dx + dz * dz;
+    let t = l2 > 1e-9 ? ((x - s.a.x) * dx + (z - s.a.z) * dz) / l2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const px = s.a.x + dx * t, pz = s.a.z + dz * t;
+    const d = Math.hypot(x - px, z - pz);
+    // bei Gleichstand (Kehren: Außenecke) gewinnt der spätere Abschnitt → Strömung führt um die Kurve
+    if (!best || d <= best.d + 1e-6) best = { i, t, d, x: px, y: s.a.y + (s.b.y - s.a.y) * t, z: pz };
+  }
+  return best;
+}
+
+function buildPathRiver(level, spec) {
+  const th = themeOf(level);
+  const pts = (spec.path ?? []).map(v3);
+  if (pts.length < 2) { console.warn('[river] path braucht mindestens 2 Punkte'); return null; }
+  const W = spec.width ?? 8, depth = spec.depth ?? 2.5;
+  const segs = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1];
+    const len = Math.hypot(b.x - a.x, b.z - a.z);
+    segs.push({ a, b, len, dir: { x: (b.x - a.x) / (len || 1), z: (b.z - a.z) / (len || 1) }, speed: spec.speeds?.[i] ?? spec.speed ?? 4, fall: Math.abs(b.y - a.y) >= Math.max(1, len) });
+  }
+  const river = {
+    id: spec.id ?? null, segs, width: W, depth,
+    nearest: (x, z) => nearestOn(segs, x, z),
+    /** Liegt (x, z) im Fluss (innerhalb der halben Breite)? */
+    contains(x, z, margin = 0) { const n = nearestOn(segs, x, z); return !!n && n.d <= W / 2 + margin; },
+    surfaceAt(x, z) { const n = nearestOn(segs, x, z); return n ? n.y : null; },
+    /** Strömung (m/s) am Ort: längs des Abschnitts, nahe den Ufern ein Zug zur Mitte. */
+    flowAt(x, z, out = { x: 0, z: 0 }) {
+      const n = nearestOn(segs, x, z);
+      if (!n || n.d > W / 2 + 1) { out.x = 0; out.z = 0; return out; }
+      const s = segs[n.i];
+      out.x = s.dir.x * s.speed; out.z = s.dir.z * s.speed;
+      // Zug zur Mitte (Floß schrammt nicht dauernd am Ufer)
+      const k = Math.min(1, n.d / (W / 2)) * 1.2;
+      if (n.d > 0.3) { out.x += ((n.x - x) / n.d) * k; out.z += ((n.z - z) / n.d) * k; }
+      return out;
+    },
+  };
+  (level.rivers ??= []).push(river);
+  if (spec.id) level.named.set(spec.id, river);
+
+  // Wasser (schwimmbar), Bett und Ufer auf einem 1-m-Raster: Zelle im Abstand ≤ Breite/2 zur Linie = Rinne,
+  // bis Breite/2 + bank = Ufer. Gleiche Läufe werden zu Quadern zusammengefasst (auch über Reihen hinweg).
+  const bank = spec.banks === false ? 0 : spec.bank ?? 3, bankH = spec.bankH ?? 1;
+  const reach = W / 2 + Math.max(bank, spec.bed === false ? 0 : bank);
+  let gx0 = Infinity, gx1 = -Infinity, gz0 = Infinity, gz1 = -Infinity;
+  for (const p of pts) { gx0 = Math.min(gx0, p.x); gx1 = Math.max(gx1, p.x); gz0 = Math.min(gz0, p.z); gz1 = Math.max(gz1, p.z); }
+  gx0 = Math.floor(gx0 - reach); gx1 = Math.ceil(gx1 + reach); gz0 = Math.floor(gz0 - reach); gz1 = Math.ceil(gz1 + reach);
+  const q = (v) => Math.round(v * 20) / 20;
+  const openStart = (spec.open ?? []).includes('start'), openEnd = (spec.open ?? []).includes('end');
+  const rows = [];
+  for (let z = gz0; z < gz1; z++) {
+    const runs = [];
+    let cur = null;
+    for (let x = gx0; x < gx1; x++) {
+      const n = nearestOn(segs, x + 0.5, z + 0.5);
+      let cell = null;
+      const beyond = (openStart && n.i === 0 && n.t === 0) || (openEnd && n.i === segs.length - 1 && n.t === 1);
+      if (n.d <= W / 2) cell = { kind: 'water', top: q(n.y), bot: q(n.y - depth) };
+      else if (n.d <= W / 2 + bank && !beyond) cell = { kind: 'bank', top: q(n.y + bankH), bot: q(n.y - depth - 1) };
+      if (cur && cell && cell.kind === cur.kind && cell.top === cur.top && cell.bot === cur.bot) cur.x1 = x + 1;
+      else { if (cur) runs.push(cur); cur = cell ? { ...cell, x0: x, x1: x + 1, z0: z, z1: z + 1 } : null; }
+    }
+    if (cur) runs.push(cur);
+    rows.push(runs);
+  }
+  // Reihen zusammenfassen: gleicher Lauf in der nächsten Reihe → Quader wächst in z
+  const boxes = [];
+  let open = [];
+  for (const runs of rows) {
+    const next = [];
+    for (const r of runs) {
+      const o = open.find((b) => b.kind === r.kind && b.x0 === r.x0 && b.x1 === r.x1 && b.top === r.top && b.bot === r.bot && b.z1 === r.z0);
+      if (o) { o.z1 = r.z1; next.push(o); open.splice(open.indexOf(o), 1); }
+      else next.push(r);
+    }
+    boxes.push(...open);
+    open = next;
+  }
+  boxes.push(...open);
+  const bedParts = [];
+  for (const b of boxes) {
+    if (b.kind === 'water') {
+      level.world.add({ type: 'box', min: [b.x0, b.bot, b.z0], max: [b.x1, b.top, b.z1], water: true, solid: false, camIgnore: true, tag: 'river' });
+      if (spec.bed !== false) {
+        level.world.add({ type: 'box', min: [b.x0, b.bot - 1, b.z0], max: [b.x1, b.bot, b.z1], tag: 'river:bett' });
+        bedParts.push(box(b.x1 - b.x0, 1, b.z1 - b.z0, (b.x0 + b.x1) / 2, b.bot - 0.5, (b.z0 + b.z1) / 2, 0xd9bd78, { r: 0.02, seg: 1, topColor: 0xf3dc96 }));
+      }
+    } else {
+      // Ufer als schlichte Quader (nahtlos aneinander), Grasdecke oben
+      level.world.add({ type: 'box', min: [b.x0, b.bot, b.z0], max: [b.x1, b.top, b.z1], tag: 'river:ufer' });
+      bedParts.push(box(b.x1 - b.x0, b.top - b.bot, b.z1 - b.z0, (b.x0 + b.x1) / 2, (b.bot + b.top) / 2, (b.z0 + b.z1) / 2, th.dirt, { r: 0.02, seg: 1, topColor: th.grassTop, bottomShade: 0.6 }));
+    }
+  }
+  river.boxes = boxes.length;
+  for (const g of bedParts) addStatic(level, g);
+  if (level.view) buildSurface(level, river, spec, th);
+  return river;
+}
+
+/** Wasseroberfläche als Band entlang der Linie, Fließ-Streifen wandern flussabwärts. */
+function buildSurface(level, river, spec, th) {
+  const W = river.width;
+  const pos = [], uv = [], idx = [];
+  let v = 0, base = 0;
+  const pts = [river.segs[0].a, ...river.segs.map((s) => s.b)];
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    // Querrichtung: Mittel der Nachbar-Abschnitte (Ecken ohne Lücke)
+    const s0 = river.segs[Math.max(0, i - 1)], s1 = river.segs[Math.min(river.segs.length - 1, i)];
+    let nx = -(s0.dir.z + s1.dir.z), nz = s0.dir.x + s1.dir.x;
+    const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
+    const k = 1 / Math.max(0.5, Math.abs(nx * -s1.dir.z + nz * s1.dir.x)); // Ecke: Band verbreitern
+    if (i > 0) v += Math.hypot(p.x - pts[i - 1].x, p.y - pts[i - 1].y, p.z - pts[i - 1].z) / W;
+    pos.push(p.x + nx * W / 2 * k, p.y - 0.04, p.z + nz * W / 2 * k, p.x - nx * W / 2 * k, p.y - 0.04, p.z - nz * W / 2 * k);
+    uv.push(0, v, 1, v);
+    if (i > 0) { const a = base - 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); } // Normale nach oben
+    base += 2;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  // Fließ-Streifen (Textur, wiederholt)
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 128;
+  const ctx = c.getContext('2d');
+  const water = new THREE.Color(hex(spec.color, th.water));
+  ctx.fillStyle = `#${water.getHexString()}`;
+  ctx.fillRect(0, 0, 64, 128);
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  for (const [x, y, l] of [[10, 10, 26], [40, 40, 34], [22, 76, 22], [52, 98, 18], [6, 110, 14]]) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + l); ctx.stroke(); }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(2, 1);
+  const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, opacity: 0.84, roughness: 0.12, metalness: 0.05, depthWrite: false, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(g, mat);
+  mesh.receiveShadow = true;
+  mesh.renderOrder = 1;
+  const speed = spec.speed ?? 4;
+  const hold = {};
+  addObject(level, mesh, (dt) => { tex.offset.y -= (visDt(level, hold, dt) * speed) / W; });
+}
+
 // ------------------------------------------------------------------ Felsen, Rampen, Temposchwellen
 
 function surfaceAt(level, x, z) { return riverNet(level).sample(x, z).y ?? 0; }
@@ -754,8 +939,10 @@ export function buildRiverRock(level, spec) {
   const p = spec.pos;
   const x = p[0], z = p.length >= 3 ? p[2] : p[1];
   const y = p.length >= 3 ? p[1] : surfaceAt(level, x, z);
-  const r = spec.r ?? 0.9, h = spec.h ?? 1.2;
+  const size = spec.size ?? 1.2;
+  const r = spec.r ?? 0.75 * size, h = spec.h ?? 0.7 * size;
   riverNet(level).addRock({ x, z, r, top: y + h });
+  level.world.add({ type: 'cyl', x, z, r, y0: y - 1.5, y1: y + h, tag: 'riverrock' });
   if (!level.view) return;
   const rnd = new Rnd(((x * 73856093) ^ (z * 19349663)) >>> 0);
   const parts = [];
@@ -1085,7 +1272,7 @@ export function buildRiverDeco(level, spec) {
 
 export const TYPES = {
   river: buildRiver,
-  river_rock: buildRiverRock,
+  riverrock: buildRiverRock,
   river_ramp: buildRiverRamp,
   river_wave: buildRiverWave,
   river_fall: buildRiverFall,

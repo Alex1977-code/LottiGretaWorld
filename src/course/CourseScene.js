@@ -70,6 +70,9 @@ export class CourseScene extends Phaser.Scene {
     const popts = { hero: courseSave.hero, pos: s.pos ?? [0, 1, 0], yaw: s.yaw ?? Math.PI / 2 };
     this.player = this.arch?.createPlayer?.(this.level, popts) ?? new Player(this.level, popts);
     this.level.player = this.player;
+    // Weltkarte: Power-up aus dem Beerenhaus wird beim Levelstart eingelöst (Präzisierung Weltkarte, carryPower).
+    // Level mit eigener Spielfigur (Archetyp mit createPlayer, z. B. Diorama) heben es fürs nächste Level auf.
+    if (!this.arch?.createPlayer && courseSave.carryPower && this.player.setPower) this.player.setPower(courseSave.takeCarryPower());
     this.rig = this.arch?.createRig?.(this.view, this.player) ?? new HeroRig(this.view, this.player);
     const p = this.player;
     this.view.shadows.add({ pos: p.pos, radius: 0.5, alive: () => true, visible: () => !(p.dead && p.deathCause === 'fall') && !(p.script?.type === 'pipe') });
