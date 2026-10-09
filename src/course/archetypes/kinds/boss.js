@@ -20,6 +20,7 @@
 //                                                 eine eigene Warp-Röhre am Punkt warpPos mit Ziel warpTo
 //   warpPos: [x, y, z], warpTo: [x, y, z],
 //   frame: 0.42,                                  Kampfkamera: Blickziel so weit von der Figur zum Wagen (0..1)
+//   musicAfter: 'course_grass',                   Musik nach dem Sieg-Jingle (Weg zum Ziel)
 // }
 // info(): { started, won, speed, boss: baron.info(), hud, deaths }.
 
@@ -146,7 +147,11 @@ class Boss {
       this.hud.boss({ name: this.name, hp: b.hp, max: b.maxHp, car: b.carHits });
       if (b.state === 'gone') this.win();
     }
-    if (this.won) this.wonT += dt;
+    if (this.won) {
+      this.wonT += dt;
+      // nach dem Sieg-Jingle: ruhige Musik zum Rastplatz
+      if (this.wonT > 4.5 && !this.calm) { this.calm = true; music.play(this.cfg.musicAfter ?? 'course_grass'); }
+    }
   }
 
   win() {

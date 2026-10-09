@@ -23,7 +23,7 @@ export const LEVEL = {
   starSlots: 1,           // ein Stern, kein Stempel (HUD/Ergebnis)
   start: { pos: [0, Y, 6], yaw: Math.PI / 2 },
   // Arena: etwas steiler und weiter weg (Überblick über beide Bullen), Blick seitlich halb auf die Mitte fixiert
-  camera: [{ from: 20, to: -20, pitch: 47, dist: 17, x: 0, xLock: 0.3, ahead: 0.8, lead: 0.5 }],
+  camera: [{ from: 20, to: -20, pitch: 42, dist: 17.5, x: 0, xLock: 0.3, ahead: 1.2, lead: 0.5 }],
   arena: { enemies: 'all', star: [0, Y + 0.5, 0], starIndex: 0, crowd: 'crowd', intro: 'Besiege beide Bullen!', center: [0, Y, -1], camPull: 0.25 },
   segments: [
     // Wiese rund um die Festung
@@ -62,13 +62,13 @@ export const LEVEL = {
     { kind: 'question', pos: [-4.5, Y + 3.2, 4.5], content: 'coins:5' },
   ],
   enemies: [
-    { kind: 'rammbock_bulle', id: 'bulle_links', pos: [-5, Y, -5], dir: [0.4, 1], sight: 26 },
-    { kind: 'rammbock_bulle', id: 'bulle_rechts', pos: [5, Y, -5], dir: [-0.4, 1], sight: 26 },
+    { kind: 'rammbock_bulle', id: 'bulle_links', pos: [-4.5, Y, -4], dir: [0.4, 1], sight: 26 },
+    { kind: 'rammbock_bulle', id: 'bulle_rechts', pos: [4.5, Y, -4], dir: [-0.4, 1], sight: 26 },
   ],
   items: [
     { kind: 'coins', pos: [-6.5, Y + 0.3, -1], r: 1.4, n: 6 },
     { kind: 'coins', pos: [6.5, Y + 0.3, -1], r: 1.4, n: 6 },
   ],
   stars: [],
-  marks: { center: [0, Y, 0], start: [0, Y, 6], left: [-5, Y, -5], right: [5, Y, -5] },
+  marks: { center: [0, Y, 0], start: [0, Y, 6], left: [-4.5, Y, -4], right: [4.5, Y, -4] },
 };

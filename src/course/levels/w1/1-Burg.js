@@ -162,9 +162,9 @@ export const LEVEL = {
     { kind: 'pilzlingsturm', id: 'turm_k1', pos: [-2.5, Y, -42], count: 2 },
     { kind: 'pilzlingsturm', id: 'turm_k2', pos: [2.5, Y, -61], count: 2 },
     // 3 Gefahrenstrecke
-    { kind: 'stampfstein', id: 'stein1', pos: [-1.05, Y + 4, -68] },
-    { kind: 'stampfstein', id: 'stein2', pos: [1.05, Y + 4, -72.5] },
-    { kind: 'stampfstein', id: 'stein3', pos: [-1.05, Y + 4, -77] },
+    { kind: 'stampfstein', id: 'stein1', pos: [-1.05, Y + 4, -66.5] },
+    { kind: 'stampfstein', id: 'stein2', pos: [1.05, Y + 4, -70.3] },
+    { kind: 'stampfstein', id: 'stein3', pos: [-1.05, Y + 4, -74.1] },
     { kind: 'pilzlingsturm', id: 'turm_g1', pos: [-3, Y, -101], count: 2 },
     { kind: 'pilzlingsturm', id: 'turm_g2', pos: [9.5, Y, -97], count: 2, behavior: 'walk', path: [[8, Y, -97], [13, Y, -97]] },
     { kind: 'bomb_cannon', id: 'kanone_hof', pos: [14, Y, -96], yaw: Math.PI, aim: [12.5, Y, -105.6], range: 13, interval: 4.2, max: 1, flight: 1.0, fuse: 4.4 },

@@ -803,3 +803,119 @@ der Steiggeschwindigkeit ab). Fluss/Floß brauchen keinen Archetyp; ein Reit-Arc
 
 Nicht Teil der Sonder-Bausteine: Gegner, Kickbomben, Kanonen, Stampfsteine, Bosse, Pilzlingsturm (Gegner-Agent),
 „Figur springt nicht“ im Diorama und die fahrende Bossstraße.
+
+---
+
+## Präzisierung (Arena/Boss)
+
+Ergänzung des Kampf-Level-Agenten (Stand: 1-A und 1-Burg). Nichts oben Festgelegtes wird geändert. Beide Archetypen
+sind datengetrieben und für spätere Arenen/Bosse (2-A, 3-A …, weitere Endgegner) wiederverwendbar.
+
+### Präzisierung (Arena/Boss): Dateien
+
+```
+src/course/archetypes/kinds/arena.js   Archetyp 'arena' (Gegner zählen, Stern nach dem Sieg, Neustart der Arena)
+src/course/archetypes/kinds/boss.js    Archetyp 'boss' (Kampfbeginn, Sperre, Fahrt-Illusion, Kamera, Sieg → Warp-Box)
+src/course/archetypes/hud.js           Zusatz-HUD (hängt sich an 'CourseUI'): Boss-Lebensleiste, Restgegner, Ansagen
+src/course/entities/kinds/baron.js     Baron Brummbär im Sportwagen (Endgegner Welt 1)
+src/course/entities/kinds/bomb_cannon.js  Bombenkanone (feuert Kickbomben mit Landeanzeige) + LandingMarkers, ballistic()
+src/course/entities/kinds/fire_trail.js   Feuerspur (alle brennenden Flecken in einer Entität, 2 Zeichenaufrufe)
+src/course/entities/kinds/rescue_friend.js  befreite Figur im Käfig (Krümel, Pflaumes Kaninchen-Freund) mit Sprechblase
+src/course/blocks/types/highway.js     road, bossroad (Laufband), skyline, hwdeco (Schilder, Leitwände, Autos, Ampel …)
+src/course/blocks/types/fortress.js    arena_cage, pennants, torches, crowd (Zuschauer jubeln auf Zuruf)
+src/course/models/kinds/combat_w1.js   Modelle bomb_cannon, rescue_cage, boss_marker
+src/course/view/theme_highway.js       Thema 'highway' (Abendhimmel, Fahrbahn-Farben), registriert in themes.js
+src/course/levels/w1/1-A.js, 1-Burg.js
+tests/course_w1_combat.mjs             Port 4197, Bilder tests/out/w1c_*.png
+```
+
+### Präzisierung (Arena/Boss): Archetyp `arena`
+
+```js
+arena: {
+  enemies: 'all' | ['id', …],   // zählende Gegner (Standard: alle Gegner aus LEVEL.enemies)
+  star: [x, y, z], starIndex: 0, // Stern erscheint hier nach dem letzten Sieg (steigt aus dem Boden, Kamerafahrt)
+  reveal: 1.4,                   // s Pause nach dem letzten Sieg
+  intro: 'Besiege …!',           // Ansage beim Start ('' = keine)
+  crowd: 'crowd',                // Id der Tribünen (Baustein crowd) – jubeln bei Treffern/Sieg
+  center: [x, y, z], camPull: 0.3, // Blickziel wird zur Mitte gezogen (Überblick)
+},
+starSlots: 1,                    // HUD/Ergebnis: Zahl der Stern-Plätze (ohne LEVEL.stamp kein Stempel-Platz)
+```
+
+Zählt über `level.onEnemyDefeated` (verkettet). Stern einsammeln → Siegespose (Skript `arena-win`), `runtime.finish()`
+(Ergebnis „Arena: alle Gegner besiegt!“, Stern gespeichert, kein Zielmast). Tod → `runtime.respawn` ist umhüllt: alle
+Arena-Gegner werden frisch aus ihren Daten erzeugt (volle Treffer), ein erschienener Stern verschwindet, Timer voll.
+`info()`: `{ total, left, cleared, starShown, starTouch, won, resets, cut, hud }`.
+
+### Präzisierung (Arena/Boss): Archetyp `boss`
+
+```js
+boss: {
+  id: 'baron', name: 'Baron Brummbär',             // Endgegner-Entität (level.named) und Name der Lebensleiste
+  trigger: { min: [x, y, z], max: [x, y, z] },     // Betreten startet den Kampf
+  lock: { min, max },                              // Sperre hinter der Figur (Kollision, camIgnore) im Kampf
+  speed: 10,                                       // Fahrtempo der Laufband-Illusion (level.highway.speed, m/s)
+  frame: 0.5,                                      // Kampfkamera: Blickziel von der Figur zum Wagen (0..1)
+  warp: 'warp_sieg',                               // versteckte Warp-Box (hidden: true) → reveal() nach dem Sieg
+  warpPos: [x, y, z], warpTo: [x, y, z],           // Rückfall ohne Warp-Box: eigene Röhre
+}
+```
+
+Schnittstelle der Boss-Entität (für weitere Endgegner): `begin()`, `reset()`, `state` (`wait` … `gone`), `stateT`,
+`hp`, `maxHp`, `phase`, `visible`, `home`, `half`, `carHits`, `info()`; ruft `level.onBossHit(boss, where)` und
+`level.onBossDefeated(boss)`. Der Archetyp startet bei `trigger`, setzt `lock`, fährt die Straße an, zeigt die
+Lebensleiste, kehrt bei `state === 'gone'` zum Sieg (Warp-Box erscheint, Sperre weg). Tod im Kampf: Neustart am
+Checkpoint vor der Arena, Kampf von vorn. Eigene Darstellung der Figur (`createRig`): steht sie auf der fahrenden
+Straße mit Blick nach vorn, zeigt sie die Laufbewegung. `info()`: `{ started, won, speed, boss, hud, deaths, lock }`.
+
+**Fahrende Straße (Entscheidung):** Laufband-Illusion. Figur und Endgegner bleiben im Kampffenster (≈ 14 × 16 m);
+Markierungen, Fugen, Leitplankenpfosten, Laternen, Schilderbrücken, Überführungen, Pfeiler und die Stadt darunter
+laufen mit `level.highway.speed` auf die Kamera zu (Baustein `bossroad`, Wiederholung 96 m, Shader-Clip an den
+Straßenenden); die Stadtsilhouette zieht mit 35 % vorbei. Bomben bleiben im Fenster liegen (lesbar, kickbar); nur
+die Feuerspur wandert mit der Straße auf die Figur zu.
+
+### Präzisierung (Arena/Boss): Entitäten
+
+```js
+// Baron Brummbär: Wagen blickt zur Figur (+Z), fährt im Fenster quer (lane), wirft Kickbomben (Ausholen 0,5 s,
+// Landering am Boden) in den Bereich arena. Treffer nur durch gekickte/geworfene Kickbomben (onBombHit): vordere
+// Wagenhälfte = voller Treffer, Seite/Heck = Blechschaden (3 Blechschäden = 1 Treffer). Phasen nach Treffern:
+// 1 Einzelwürfe (3,2 s), 2 schneller + jeder zweite ein Doppelwurf, 3 Schlangenlinie mit Feuerspur im Wechsel.
+// Zielhilfe: grob auf ihn zurollende gekickte Bomben lenken leicht ein. Berührung verletzt (drauf springen: Abprall).
+{ kind: 'baron', id: 'baron', pos: [x, y, z], lane: [-4.5, 4.5], arena: { x: [x0, x1], z: [z0, z1] }, hp: 3, drift: 6.5 }
+// Bombenkanone: Ankündigung 0,8 s, Bombe im Bogen (Flugzeit flight), Landeanzeige; unzerstörbar.
+{ kind: 'bomb_cannon', id, pos, yaw?, aim: 'player' | [x, y, z] | [[…], …], interval: 3.6, first: 1.2, range: 24,
+  flight: 1.05, lead: 0.35, spread: 1.0, area?: { min: [x, z], max: [x, z] }, max: 2, fuse: 3.4, charge: 0.8 }
+// Feuerspur: emit(x, y, z); Flecken brennen life s, wandern mit drift, verletzen bei Berührung (0,7 m hoch).
+{ kind: 'fire_trail', drift: [0, 0, 6], life: 2.4, r: 0.42, zMax? }
+// Befreite Figur: Käfig öffnet sich, wenn die Figur radius m nah ist; Hase hoppelt heraus, „Danke, Lotti!“.
+{ kind: 'rescue_friend', id, pos, yaw?, name: 'Krümel', radius: 2.6 }
+```
+
+### Präzisierung (Arena/Boss): Bausteine (Kurzform; Parameter im Kopf der Dateien)
+
+- `road { from, to, width: 12, lanes: 3, deck: 1.4, rails: 'both'|'left'|'right'|'none', lamps: 24, lampSide, pillars: 24,
+  city: true, markings: true }` – Hochstraße mit Leitplanken (Kollision 0,95 m, camIgnore), Laternen, Pfeilern, Dächern.
+- `bossroad { id, from, to, width: 14, lanes: 4, period: 96 }` – wie road, Zier läuft mit `level.highway.speed`.
+- `skyline {}` – Stadtsilhouette am Horizont (folgt der Kamera, 2 Zeichenaufrufe).
+- `hwdeco { items: [{ kind: gantry|sign|barrier|cone|cones|car|lamp|bridge|tlight|block, … }] }` – Schilder aus einem
+  Textur-Atlas (`slot` 0 Burg Brummbär, 1 A 1, 2 Achtung Bomben!, 3 Baustelle, 4 Rastplatz, 5 Ausfahrt, 6 Tempo 30,
+  7 Abendstadt), `bridge.solid` (Brückenplatte fest), `block` (unsichtbare Sperre), `tlight.mode` 'start'|'blink'.
+- `arena_cage { pos, radius: 11, height: 5, floor, ceiling: 6.4, gate: π, low: 0.85 }` – im Bogen zur Kamera nur ein
+  Geländer mit durchscheinendem Maschengitter (verdeckt die Figur nicht), Kollision ringsum gleich hoch.
+- `crowd { id, stands: [{ from, to, rows, face }] }` → `level.named.get(id).cheer(stärke, dauer)`.
+- `pennants { items: [{ pos, color, h }] }`, `torches { items, h }`.
+
+### Präzisierung (Arena/Boss): Welt 1
+
+| Level | Titel | Inhalt |
+| --- | --- | --- |
+| 1-A | Hörnerkrach im Käfig | Käfig Ø 22 m auf Festungsplattform, Tribünen, Wimpel, Fackeln; 2 Rammbock-Bullen; Stern in der Mitte; 200 s |
+| 1-Burg | Brummbärs Abendautobahn | Startstraße (Ampel, Sternenring, Kickbomben, Turm, Mautmauer mit Pixel-Heldin), Kanonen-Zone, Baustelle (3 Stampfsteine, 2 bewegliche Plattformen), Turm-Hof (Krallenrad → Stern 2, graue Blockwand + Hof-Kanone → Stempel), Kurzer Weg (Checkpoint, Turm mit Stern 3), graue Steinwand mit Wand-Kanone → Warp-Box, Treppe 8 m, Bossstraße, Rastplatz mit Krümel und Zielmast; 500 s |
+
+Abweichungen vom Bauplan: graue Blockwände durchgängig mit `megawall` (Steinwand quer über die Straße 8 × 4 m zwischen
+Brückenwiderlagern, Überführung als Deckel); zwei zusätzliche Kanonen (Turm-Hof, Steinwand) liefern die Bomben
+(„Nachschub endlos“); die Treppe hat niedrige Stufen (0,25 m, ohne Springen begehbar).
+Gemessen (tests/course_w1_combat.mjs, scale 2): 1-A 60–90, 1-Burg 70–111 Zeichenaufrufe inkl. Schattenpass;
+165–269 k Dreiecke.

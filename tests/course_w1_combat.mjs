@@ -106,7 +106,7 @@ async function SHOT(name, setup, arg) {
   if (setup) await sc(setup, arg);
   const f0 = await sc(() => {
     const c = window.__course;
-    for (let i = 0; i < 24; i++) { c.rig.update(0.05, c.view.time + i * 0.05); c.view.rig.update(0.05, c.player, c.world); }
+    for (let i = 0; i < 24; i++) { c.rig.update(0.05, c.view.time + i * 0.05); c.level.render(0.05, c.view.time + i * 0.05); c.view.rig.update(0.05, c.player, c.world); }
     return c.view.frame;
   });
   await page.waitForFunction((f) => window.__course.view.frame >= f, f0 + 2, { timeout: 30000, polling: 100 }).catch(() => {});
@@ -117,155 +117,159 @@ async function SHOT(name, setup, arg) {
 
 /** Hilfen für 1-Burg (nach jedem Laden neu anlegen). */
 async function burgHelpers() {
-await sc(() => {
-  const c = window.__course, t = window.__t, L = c.level;
-  t.kickToward = (owner, tx, tz, maxWait = 2400) => {
-    const p = c.player;
-    let bomb = null, n = 0;
-    for (; n < maxWait; n++) {
-      bomb = L.entities.find((e) => e.kind === 'kickbombe' && (!owner || e.owner === owner) && e.state === 'lit' && !e.removed && !e.kicker && e.grounded);
-      if (bomb) break;
-      c.setInput({}); c.step(1);
-    }
-    if (!bomb) return { err: 'keine Bombe', n };
-    const dx = tx - bomb.pos.x, dz = tz - bomb.pos.z, d = Math.hypot(dx, dz);
-    const ux = dx / d, uz = dz / d;
-    p.reset([bomb.pos.x - ux * 1.05, bomb.pos.y, bomb.pos.z - uz * 1.05], Math.atan2(-uz, ux));
-    p.invuln = 0;
-    let kicked = false;
-    for (let m = 0; m < 60 && !kicked; m++) { c.setInput({ x: ux, y: -uz }); c.step(1); kicked = !!bomb.kicker; }
-    c.setInput({});
-    for (let k = 0; k < 300 && !bomb.removed; k++) { c.setInput({ x: -ux * 0.7, y: uz * 0.7 }); c.step(1); }
-    c.setInput({});
-    return { kicked, n, exploded: bomb.exploded, at: bomb.pos.toArray().map((v) => +v.toFixed(2)) };
-  };
-});
-
-
-await sc(() => {
-  const c = window.__course, t = window.__t, L = c.level;
-  t.crossMovers = () => {
-    const p = c.player;
-    const m1 = t.ent('plattform1'), m2 = t.ent('plattform2');
-    const out = [];
-    // warten, bis die Plattform in ~0,8 s (Flugzeit) unter der Figur ist
-    // (die Figur fährt auf einer Plattform mit und nimmt deren Schwung in den Sprung mit)
-    const waitAlign = (m) => { for (let i = 0; i < 1500; i++) { const own = p.ground?.mover?.vx ?? 0; if (Math.abs(m.pm.pos.x + m.mover.vx * 0.8 - p.pos.x - own * 0.8) < 0.5 && Math.abs(m.mover.vx) > 0.1) return true; c.step(1); } return false; };
-    // Straßenende z −80 → Plattform 1 (z −84)
-    t.place([0, 0, -79.4], { settle: 4 });
-    waitAlign(m1);
-    out.push(t.jumpTo(-84));
-    const on1 = p.ground?.mover === m1.mover;
-    // Plattform 1 → Plattform 2 (z −89,5): an die Vorderkante, dann abpassen
-    if (p.pos.z > -84.3) t.run({ y: 0.4 }, 20);
-    waitAlign(m2);
-    out.push(t.jumpTo(-89.5));
-    const on2 = p.ground?.mover === m2.mover;
-    // Plattform 2 → Straße (z −93)
-    if (p.pos.z > -89.8) t.run({ y: 0.4 }, 15);
-    out.push(t.jumpTo(-94.5));
-    t.run({ y: 0.6 }, 30);
-    return { on1, on2, end: p.info(), out: out.map((o) => [o.x, o.y, o.z]) };
-  };
-});
-
-await sc(() => {
-  const c = window.__course, t = window.__t;
-  t.climbStairs = () => {
-    const p = c.player;
-    t.place([0, 0, -299.6], { settle: 4 });
-    for (let i = 0; i < 1000 && !(p.pos.z < -318.6 && p.pos.y > 7.9); i++) { c.setInput({ y: 1 }); c.step(1); }
-    c.setInput({}); c.step(10);
-    return p.info();
-  };
-});
-
-await sc(() => {
-  const c = window.__course, t = window.__t, L = c.level;
-  t.startFight = () => {
-    const p = c.player;
-    t.place([0, 8, -319], { settle: 4 });
-    for (let i = 0; i < 400 && !t.arch().started; i++) { c.setInput({ y: 1 }); c.step(1); }
-    c.setInput({});
-    return t.arch();
-  };
-  t.fight = (opts = {}) => {
-    const b = t.ent('baron'), p = c.player;
-    p.hurt = () => false;
-    const log = { phases: new Set(), maxFire: 0, throws: [], kicks: [], doubles: 0 };
-    let lastThrows = 0, lastBombs = 0;
-    const watch = () => {
-      log.phases.add(b.phase);
-      log.maxFire = Math.max(log.maxFire, b.trail.count);
-      if (b.throws > lastThrows) { if (b.bombsThrown - lastBombs >= 2) log.doubles++; lastThrows = b.throws; lastBombs = b.bombsThrown; }
-    };
-    const stepW = (n) => { for (let i = 0; i < n; i++) { c.step(1); watch(); } };
-    for (let i = 0; i < 600 && b.state !== 'drive'; i++) stepW(1);
-    log.firstThrowAt = null;
-    for (let k = 0; k < (opts.max ?? 14) && b.hp > 0; k++) {
-      // wartet auf eine gelandete Bombe des Barons und kickt sie zum Wagen
-      let bomb = null;
-      for (let n = 0; n < 2400 && b.hp > 0; n++) {
-        bomb = L.entities.find((e) => e.kind === 'kickbombe' && e.owner === b && e.state === 'lit' && !e.removed && !e.kicker && e.grounded);
+  await sc(() => {
+    const c = window.__course, t = window.__t, L = c.level;
+    t.kickToward = (owner, tx, tz, maxWait = 2400) => {
+      const p = c.player;
+      let bomb = null, n = 0;
+      for (; n < maxWait; n++) {
+        bomb = L.entities.find((e) => e.kind === 'kickbombe' && (!owner || e.owner === owner) && e.state === 'lit' && !e.removed && !e.kicker && e.grounded);
         if (bomb) break;
-        c.setInput({}); stepW(1);
+        c.setInput({}); c.step(1);
       }
-      if (!bomb || b.hp <= 0) break;
-      if (log.firstThrowAt === null) log.firstThrowAt = b.throws;
-      const tx = b.pos.x, tz = b.pos.z + 2.4;
-      const dx = tx - bomb.pos.x, dz = tz - bomb.pos.z, d = Math.hypot(dx, dz), ux = dx / d, uz = dz / d;
+      if (!bomb) return { err: 'keine Bombe', n };
+      const dx = tx - bomb.pos.x, dz = tz - bomb.pos.z, d = Math.hypot(dx, dz);
+      const ux = dx / d, uz = dz / d;
       p.reset([bomb.pos.x - ux * 1.05, bomb.pos.y, bomb.pos.z - uz * 1.05], Math.atan2(-uz, ux));
       p.invuln = 0;
-      const hits0 = b.hits;
       let kicked = false;
-      for (let m = 0; m < 60 && !kicked; m++) { c.setInput({ x: ux, y: -uz }); stepW(1); kicked = !!bomb.kicker; }
+      for (let m = 0; m < 60 && !kicked; m++) { c.setInput({ x: ux, y: -uz }); c.step(1); kicked = !!bomb.kicker; }
       c.setInput({});
-      for (let m = 0; m < 300 && !bomb.removed; m++) { c.setInput(m < 40 ? { y: -0.5 } : {}); stepW(1); }
+      for (let k = 0; k < 300 && !bomb.removed; k++) { c.setInput({ x: -ux * 0.7, y: uz * 0.7 }); c.step(1); }
       c.setInput({});
-      // zurück in die Mitte des Kampffensters (die nächste Bombe landet vor der Figur)
-      if (p.pos.z > -334) { p.reset([p.pos.x * 0.5, 8, -335.5], Math.PI / 2); p.invuln = 0; }
-      log.kicks.push({ kicked, hit: b.hits > hits0, hp: b.hp, where: b.hitLog.at(-1)?.kind });
-      if (opts.fireCheck && b.phase === 3 && !log.fireHurt) {
-        for (let n = 0; n < 1500 && !b.trail.patches.some((q) => q.t > 0.4 && q.t < q.life - 0.8); n++) stepW(1);
-        const patch = b.trail.patches.find((q) => q.t > 0.35 && q.t < q.life - 0.7 && q.z < -332);
-        if (patch) {
-          delete p.hurt;
-          p.invuln = 0;
-          const big0 = p.big, hits0f = b.trail.hits;
-          p.reset([patch.x, patch.y + 0.05, patch.z], Math.PI / 2);
-          stepW(2);
-          log.fireHurt = { hit: b.trail.hits > hits0f, big0, big: p.big };
-          p.hurt = () => false;
-          p.big = true; p.invuln = 0;
-          t.place([0, 8, -335.5], { settle: 2 });
+      return { kicked, n, exploded: bomb.exploded, at: bomb.pos.toArray().map((v) => +v.toFixed(2)) };
+    };
+  });
+
+  await sc(() => {
+    const c = window.__course, t = window.__t, L = c.level;
+    t.crossMovers = () => {
+      const p = c.player;
+      const m1 = t.ent('plattform1'), m2 = t.ent('plattform2');
+      const out = [];
+      // warten, bis die Plattform in ~0,8 s (Flugzeit) unter der Figur ist
+      // (die Figur fährt auf einer Plattform mit und nimmt deren Schwung in den Sprung mit)
+      const waitAlign = (m) => { for (let i = 0; i < 1500; i++) { const own = p.ground?.mover?.vx ?? 0; if (Math.abs(m.pm.pos.x + m.mover.vx * 0.8 - p.pos.x - own * 0.8) < 0.5 && Math.abs(m.mover.vx) > 0.1) return true; c.step(1); } return false; };
+      // Straßenende z −80 → Plattform 1 (z −84)
+      t.place([0, 0, -79.4], { settle: 4 });
+      waitAlign(m1);
+      out.push(t.jumpTo(-84));
+      const on1 = p.ground?.mover === m1.mover;
+      // Plattform 1 → Plattform 2 (z −89,5): an die Vorderkante, dann abpassen
+      if (p.pos.z > -84.3) t.run({ y: 0.4 }, 20);
+      waitAlign(m2);
+      out.push(t.jumpTo(-89.5));
+      const on2 = p.ground?.mover === m2.mover;
+      // Plattform 2 → Straße (z −93)
+      if (p.pos.z > -89.8) t.run({ y: 0.4 }, 15);
+      out.push(t.jumpTo(-94.5));
+      t.run({ y: 0.6 }, 30);
+      return { on1, on2, end: p.info(), out: out.map((o) => [o.x, o.y, o.z]) };
+    };
+  });
+
+  await sc(() => {
+    const c = window.__course, t = window.__t;
+    t.climbStairs = () => {
+      const p = c.player;
+      t.place([0, 0, -299.6], { settle: 4 });
+      for (let i = 0; i < 1000 && !(p.pos.z < -318.6 && p.pos.y > 7.9); i++) { c.setInput({ y: 1 }); c.step(1); }
+      c.setInput({}); c.step(10);
+      return p.info();
+    };
+  });
+
+  await sc(() => {
+    const c = window.__course, t = window.__t, L = c.level;
+    t.startFight = () => {
+      const p = c.player;
+      t.place([0, 8, -319], { settle: 4 });
+      for (let i = 0; i < 400 && !t.arch().started; i++) { c.setInput({ y: 1 }); c.step(1); }
+      c.setInput({});
+      return t.arch();
+    };
+    t.fight = (opts = {}) => {
+      const b = t.ent('baron'), p = c.player;
+      p.hurt = () => false;
+      const log = { phases: new Set(), maxFire: 0, throws: [], kicks: [], doubles: 0 };
+      let lastThrows = 0, lastBombs = 0;
+      const watch = () => {
+        log.phases.add(b.phase);
+        log.maxFire = Math.max(log.maxFire, b.trail.count);
+        if (b.throws > lastThrows) { if (b.bombsThrown - lastBombs >= 2) log.doubles++; lastThrows = b.throws; lastBombs = b.bombsThrown; }
+      };
+      const stepW = (n) => { for (let i = 0; i < n; i++) { c.step(1); watch(); } };
+      for (let i = 0; i < 600 && b.state !== 'drive'; i++) stepW(1);
+      // Steht die Figur auf der fahrenden Straße, zeigt der Avatar die Laufbewegung
+      p.reset([0, 8, -335], Math.PI / 2); stepW(30);
+      c.rig.update(0.02, c.view.time);
+      log.runState = c.rig.proxy.course.state;
+      log.speed = L.highway?.speed;
+      log.firstThrowAt = null;
+      for (let k = 0; k < (opts.max ?? 14) && b.hp > 0; k++) {
+        // wartet auf eine gelandete Bombe des Barons und kickt sie zum Wagen
+        let bomb = null;
+        for (let n = 0; n < 2400 && b.hp > 0; n++) {
+          bomb = L.entities.find((e) => e.kind === 'kickbombe' && e.owner === b && e.state === 'lit' && !e.removed && !e.kicker && e.grounded);
+          if (bomb) break;
+          c.setInput({}); stepW(1);
+        }
+        if (!bomb || b.hp <= 0) break;
+        if (log.firstThrowAt === null) log.firstThrowAt = b.throws;
+        const tx = b.pos.x, tz = b.pos.z + 2.4;
+        const dx = tx - bomb.pos.x, dz = tz - bomb.pos.z, d = Math.hypot(dx, dz), ux = dx / d, uz = dz / d;
+        p.reset([bomb.pos.x - ux * 1.05, bomb.pos.y, bomb.pos.z - uz * 1.05], Math.atan2(-uz, ux));
+        p.invuln = 0;
+        const hits0 = b.hits;
+        let kicked = false;
+        for (let m = 0; m < 60 && !kicked; m++) { c.setInput({ x: ux, y: -uz }); stepW(1); kicked = !!bomb.kicker; }
+        c.setInput({});
+        for (let m = 0; m < 300 && !bomb.removed; m++) { c.setInput(m < 40 ? { y: -0.5 } : {}); stepW(1); }
+        c.setInput({});
+        // zurück in die Mitte des Kampffensters (die nächste Bombe landet vor der Figur)
+        if (p.pos.z > -334) { p.reset([p.pos.x * 0.5, 8, -335.5], Math.PI / 2); p.invuln = 0; }
+        log.kicks.push({ kicked, hit: b.hits > hits0, hp: b.hp, where: b.hitLog.at(-1)?.kind });
+        if (opts.fireCheck && b.phase === 3 && !log.fireHurt) {
+          for (let n = 0; n < 1500 && !b.trail.patches.some((q) => q.t > 0.4 && q.t < q.life - 0.8); n++) stepW(1);
+          const patch = b.trail.patches.find((q) => q.t > 0.35 && q.t < q.life - 0.7 && q.z < -332);
+          if (patch) {
+            delete p.hurt;
+            p.invuln = 0;
+            const big0 = p.big, hits0f = b.trail.hits;
+            p.reset([patch.x, patch.y + 0.05, patch.z], Math.PI / 2);
+            stepW(2);
+            log.fireHurt = { hit: b.trail.hits > hits0f, big0, big: p.big };
+            p.hurt = () => false;
+            p.big = true; p.invuln = 0;
+            t.place([0, 8, -335.5], { settle: 2 });
+          }
         }
       }
-    }
-    for (let i = 0; i < 1200 && b.state !== 'gone'; i++) stepW(1);
-    delete p.hurt;
-    return { hp: b.hp, state: b.state, hits: b.hits, throws: b.throws, bombs: b.bombsThrown, phases: [...log.phases], maxFire: log.maxFire, doubles: log.doubles, kicks: log.kicks, fireHurt: log.fireHurt ?? null, firstThrowAt: log.firstThrowAt, arch: t.arch() };
-  };
-  t.finish = () => {
-    const p = c.player, w = t.ent('warp_sieg');
-    const revealed = !w.hidden;
-    t.place([w.pos.x, w.top + 0.4, w.pos.z], { settle: 0 });
-    let arrived = null;
-    for (let i = 0; i < 600; i++) { c.step(1); if (p.mode !== 'script' && p.pos.z < -470) { arrived = p.info(); break; } }
-    c.step(30);
-    // Krümel befreien
-    const fr = t.ent('kruemel');
-    t.place([fr.pos.x + 1.2, 0, fr.pos.z + 2.2], { settle: 4 });
-    c.step(240);
-    const friend = { freed: fr.freed, state: fr.state, thanks: fr.thanks };
-    // Zielmast
-    const g = c.level.entities.find((e) => e.kind === 'goal');
-    t.place([g.pos.x + 0.9, g.pos.y + 4.5, g.pos.z], { settle: 0 });
-    for (let i = 0; i < 40 && c.level.runtime.status === 'play'; i++) { c.setInput({ x: -1 }); c.step(1); }
-    c.setInput({});
-    for (let i = 0; i < 900 && !c.finished; i++) c.step(1);
-    return { revealed, arrived, friend, finished: c.finished, res: c.lastResult, save: t.save().levels?.['1-Burg'] };
-  };
-});
+      for (let i = 0; i < 1200 && b.state !== 'gone'; i++) stepW(1);
+      delete p.hurt;
+      return { hp: b.hp, state: b.state, hits: b.hits, throws: b.throws, bombs: b.bombsThrown, phases: [...log.phases], maxFire: log.maxFire, doubles: log.doubles, kicks: log.kicks, fireHurt: log.fireHurt ?? null, firstThrowAt: log.firstThrowAt, runState: log.runState, speed: log.speed, arch: t.arch() };
+    };
+    t.finish = () => {
+      const p = c.player, w = t.ent('warp_sieg');
+      const revealed = !w.hidden;
+      t.place([w.pos.x, w.top + 0.4, w.pos.z], { settle: 0 });
+      let arrived = null;
+      for (let i = 0; i < 600; i++) { c.step(1); if (p.mode !== 'script' && p.pos.z < -470) { arrived = p.info(); break; } }
+      c.step(30);
+      // Krümel befreien
+      const fr = t.ent('kruemel');
+      t.place([fr.pos.x + 1.2, 0, fr.pos.z + 2.2], { settle: 4 });
+      c.step(240);
+      const friend = { freed: fr.freed, state: fr.state, thanks: fr.thanks };
+      // Zielmast
+      const g = c.level.entities.find((e) => e.kind === 'goal');
+      t.place([g.pos.x + 0.9, g.pos.y + 4.5, g.pos.z], { settle: 0 });
+      for (let i = 0; i < 40 && c.level.runtime.status === 'play'; i++) { c.setInput({ x: -1 }); c.step(1); }
+      c.setInput({});
+      for (let i = 0; i < 900 && !c.finished; i++) c.step(1);
+      return { revealed, arrived, friend, finished: c.finished, res: c.lastResult, save: t.save().levels?.['1-Burg'] };
+    };
+  });
 }
 
 // =====================================================================================================================
@@ -327,10 +331,18 @@ const aw = await sc(() => {
   const s = c.level.entities.find((e) => e.kind === 'star');
   t.place([s.pos.x, s.pos.y, s.pos.z + 0.3], { settle: 2 });
   const got = c.level.runtime.stars[0];
-  for (let i = 0; i < 600 && !c.finished; i++) c.step(1);
-  return { got, finished: c.finished, res: c.lastResult, save: t.save().levels?.['1-A'], state: c.player.state };
+  for (let i = 0; i < 600 && c.player.state !== 'victory'; i++) c.step(1);
+  c.step(60);
+  return { got, state: c.player.state };
 });
-check('Arena: Stern einsammeln → Siegespose, Ergebnis, Stern gespeichert', aw.got && aw.finished && aw.state === 'victory' && aw.save?.done && aw.save?.stars?.[0] === true);
+await SHOT('arena_jubel');
+const aw2 = await sc(() => {
+  const c = window.__course, t = window.__t;
+  for (let i = 0; i < 600 && !c.finished; i++) c.step(1);
+  return { finished: c.finished, res: c.lastResult, save: t.save().levels?.['1-A'] };
+});
+Object.assign(aw, aw2);
+check('Arena: Stern einsammeln → Siegespose, Ergebnis, Stern gespeichert', aw.got && aw.state === 'victory' && aw.finished && aw.save?.done && aw.save?.stars?.[0] === true);
 await SHOT('arena_sieg');
 
 // Greta: Arena ebenfalls lösbar
@@ -539,6 +551,7 @@ const fl = await sc(() => window.__t.fight({ fireCheck: true }));
 console.log(`  Kampf (Lotti): ${fl.throws} Würfe/${fl.bombs} Bomben, Treffer ${fl.hits}, Phasen ${fl.phases}, Doppelwürfe ${fl.doubles}, Feuer max ${fl.maxFire}`);
 console.log(`  Kicks: ${fl.kicks.map((k) => `${k.kicked ? 'K' : '-'}${k.hit ? `!${k.where}` : ''}`).join(' ')}; Feuer-Treffer ${JSON.stringify(fl.fireHurt)}`);
 check('Bosskampf: Baron wirft Kickbomben (Landeanzeige), Figur kickt sie zurück, onBombHit zählt Treffer', fl.throws >= 3 && fl.kicks.some((k) => k.kicked && k.hit));
+check(`Fahrende Straße: Laufband ${fl.speed?.toFixed?.(1) ?? '?'} m/s, nach dem Sieg 0; stehende Heldin zeigt Laufbewegung (${fl.runState})`, fl.runState === 'run' && fl.speed > 9 && fl.arch.speed === 0);
 check('Bosskampf: 3 Treffer → besiegt, Flucht im qualmenden Wagen (state gone)', fl.hp === 0 && fl.hits >= 3 && fl.state === 'gone');
 check('Bosskampf: Phasen steigern sich – Doppelwürfe (Phase 2) und Feuerspur (Phase 3), die verletzt', fl.phases.includes(3) && fl.doubles >= 1 && fl.maxFire >= 6 && fl.fireHurt?.hit);
 const fin = await sc(() => window.__t.finish());
@@ -636,8 +649,8 @@ await SHOT('ziel', () => {
   for (let i = 0; i < 1200 && b.state !== 'gone'; i++) c.step(1);
   c.step(60);
   const fr = t.ent('kruemel');
-  t.place([fr.pos.x + 1.5, 0, fr.pos.z + 2.6], { settle: 4 });
-  c.step(150);
+  t.place([fr.pos.x + 1.2, 0, fr.pos.z + 2.0], { settle: 4 });
+  c.step(260);
 });
 
 // Kennzahlen
