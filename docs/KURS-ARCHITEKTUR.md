@@ -396,16 +396,17 @@ Module; Level-Bauer setzen sie nur in Daten ein. Jede Datei dokumentiert ihre Pa
 ### Präzisierung (Sonder-Bausteine): Wo was liegt
 
 - Bausteine (`segments`, `type`): `blocks/types/` `glasspipe, switchtiles, hiddenchain, cloud, cloudcannon, fallplatform,
-  clawwheel, megawall, room, crystalfloor, appear, sign` – und `gimmicks.js`: alle Entitäts-Gimmicks sind auch als
+  clawwheel, megawall, room, crystalfloor, appear, sign, river, riverrock` – und `gimmicks.js`: alle Entitäts-Gimmicks sind auch als
   `type` in `segments` erlaubt (`{ type: 'pow', … }` ≙ `{ kind: 'pow', … }`).
 - Entitäten (`items`/`blocks`/`enemies`, `kind`): `entities/kinds/` `lantern, pow, starring, timering, pswitch, bluecoin,
-  starcoin, bunny, endlessblock, rouletteblock, warpbox, task, crate, chest, spotter, pixelegg, megacolumn, itemtree`.
+  starcoin, bunny, endlessblock, rouletteblock, warpbox, task, crate, chest, spotter, pixelegg, megacolumn, itemtree,
+  raft, speedwave` (auch als `type` in `segments`: alle außer bluecoin/starcoin/megacolumn über `gimmicks.js`).
 - Gemeinsame Hilfen: `entities/gimmick.js` (Aktionen/Belohnungen, Basisklasse `Gimmick` mit `hidden`/`reveal()`,
   Zeitanzeige über der Figur, Flug-Steuerung für Kanonen, `collectNear`, `visDt`).
 - Modelle: `models/kinds/gimmicks.js` (`crate, chest, push_switch, star_ring, star_coin, endless_block, roulette_block,
-  warp_box, cloud_cannon, claw_wheel, mega_block, pixel_egg, item_tree`); genutzt werden außerdem `glass_pipe_segment`
-  (Glas-Look), `switch_tile, lantern, pow_block, hidden_block, crystal_block, time_ring, coin_blue, bunny_small,
-  fairy_spotter, question_block, used_block`.
+  warp_box, cloud_cannon, claw_wheel, mega_block, pixel_egg, item_tree, leaf_raft`); genutzt werden außerdem
+  `glass_pipe_segment` (Glas-Look), `switch_tile, lantern, pow_block, hidden_block, crystal_block, time_ring, coin_blue,
+  bunny_small, fairy_spotter, question_block, used_block, river_rock, speed_wave` und der Klassik-`PflaumeAvatar`.
 - Übungslevel `levels/w0/0-2.js` „Bausteinpark“ (je Gimmick eine Station mit Schild, Kameraschiene, `marks`),
   Test `tests/course_blocks.mjs` (Port 4194, Bilder `tests/out/cb_*.png`).
 
@@ -427,6 +428,10 @@ den Stern am Auslöser. Jede Entität/Baustein-Entität mit `hidden: true` ersch
 - `Player.land`: Formen mit `breakable: 'bomb'` werden durch Stampfen nicht zerbrochen (graue Blockwand).
 - `coin`: `hiddenUntilLit` / `hidden` + `reveal()`/`conceal()`; `coins` reicht die Flags weiter. `star`: `hidden` +
   `reveal(pos?)`.
+- `player.mount(m)` / `dismount(vx, vy, vz)`, Modus `mount` (Reittier): `m.control(player, dt, input, want)` bewegt
+  Reittier und Figur (Rückgabe false → absteigen), optional `m.bounce(input)` (Draufspringen im Sattel), `m.onDismount`.
+  Berührungen laufen normal; Treffer im Sattel kosten nur Power-up/Größe (kein Rückstoß). `HeroRig` setzt dann
+  `proxy.mount` (Reitpose der Heldin). Genutzt vom Blatt-Floß.
 - `mover`: `id` → `level.named` `{ pm, mover, shape, origin, start(), stop() }`, `idle: true` (wartet auf Signal),
   `once: true` (fährt einmal bis zum Ende). `deco` Baum: `climbable: true` (Stamm mit Krallen kletterbar).
 - Angriffe, auf die Gimmicks reagieren: `onHit` `'bomb'` (über `level.attackArea(pos, r, 'bomb')`, z. B. Kickbombe),
@@ -459,5 +464,27 @@ den Stern am Auslöser. Jede Entität/Baustein-Entität mit `hidden: true` ersch
 | `spotter` | Kobold mit Fernglas (Deko), schaut der Figur nach | `yaw`, `range`, `cheer`, `scale` | `{ kind: 'spotter', pos: [-7,4.2,-6] }` |
 | `pixelegg` | Pixel-Relief der Heldin erscheint nach `wait` s Stillstehen im Auslösebereich | `trigger: { pos, r }`, `wait` 4, `hero`, `reward` | `{ kind: 'pixelegg', pos: [0,6,-12.4], trigger: { pos: [0,6,-11], r: 2 } }` |
 | `sign` | Holzschild mit Aufschrift | `text`, `yaw`, `size`, `post` | `{ type: 'sign', pos: [-4,1,-2], text: 'Glasröhre' }` |
+| `river` | Fluss mit Strömung (1-4): schwimmbares Wasser, Fließ-Streifen, Bett und Ufer auf 1-m-Raster (Kehren schließen sich), Wasserfälle; `level.rivers`, `flowAt`, `surfaceAt` | `path` (y = Oberfläche), `width` 8, `depth` 2.5, `speed` 4 / `speeds`, `bed`, `banks`, `bank` 3, `bankH` 1, `open: ['start','end']` | `{ type: 'river', id: 'fluss', path: [[0,0.6,-12],[0,0.6,-46],[12,0.6,-46],[12,-5.4,-47],[12,-5.4,-80]], open: ['start'] }` |
+| `raft` | Blatt-Floß mit Pflaume: aufspringen → reiten (Strömung trägt, Stick lenkt, Sprung hüpft, Schanzen, Wasserfall-Absturz), Strand/`exit` → absteigen; wartet ohne Reiterin; nach Neustart am nächsten Flusspunkt | `steer` 4, `jump` 9.5, `exit`, `exitR` 3, `yaw` | `{ kind: 'raft', pos: [0,0.6,-15.5] }` |
+| `speedwave` | Temposchwelle: Floß darüber → kurz schneller | `dir` (Standard Strömung), `boost` 7, `time` 1.4 | `{ kind: 'speedwave', pos: [0,0.6,-21] }` |
+| `riverrock` | Flussfelsen (Hindernis) | `size` | `{ type: 'riverrock', pos: [-2.6,0.6,-26] }` |
 
-Gemessen im Bausteinpark (scale 2): 72–108 Zeichenaufrufe inkl. Schattenpass, 160–270 k Dreiecke.
+Schanzen im Fluss: normaler `ramp`-Baustein, der aus dem Wasser steigt (das Floß fährt hinauf und hebt am Ende mit
+der Steiggeschwindigkeit ab). Gemessen im Bausteinpark (scale 2): 72–108 Zeichenaufrufe inkl. Schattenpass,
+165–290 k Dreiecke.
+
+### Präzisierung (Sonder-Bausteine): Welt 1 – Gimmick → Baustein
+
+| Level | Gimmick laut Bauplan | Bausteine |
+| --- | --- | --- |
+| 1-1 | Glasrohre (obere Route, zur Zielfahne), Krallen-Anzug im Baum, großer Hase mit Riesentrank, kleiner Hase am Teich, Warp-Röhre zum Stempel-Raum, Tunnel mit Holzkisten, Steinblöcke hinter der Brücke (Riesentrank) | `glasspipe`, `itemtree`, `bunny` (`size: 'big'` / klein mit `star`), `pipe` + `room`, `crate`, `megawall` |
+| 1-2 | Laternen machen Münzen sichtbar, Kristallblöcke → versteckter Raum, Wolkenaufstieg, unsichtbare Blockkette vom länglichen ?-Block, Rätselbox (zwei Panzerkröten → Stern), Glasrohr in der Wand, Welt-Warp-Röhre | `lantern` + `hiddenUntilLit`, `room` (`hatch`) / `crystalfloor`, `cloud`, `hiddenchain` (`lead`), `warpbox` (`mystery`, `task`), `glasspipe`, `pipe` |
+| 1-A | Stern erscheint, wenn beide Rammbock-Bullen besiegt sind | `task` |
+| 1-3 | Feenwesen mit Ferngläsern, Baum hochklettern, POW-Blöcke legen eine Röhre frei, P-Schalter mit blauen Münzen, Wolkenkanone in den Münzhimmel, Warp-Box zum Ziel nach dem Zwischenboss | `spotter`, `deco` Baum `climbable`, `pow` + `brick` + `pipe`, `pswitch`, `cloudcannon` + `cloud`, `warpbox` (`hidden`, per `task` `{ reveal }`) |
+| 1-4 | Fluss mit Reittier, Temposchwellen, Sprungrampe, Zickzack-Kehren, bunter Wasserfall-Abzweig, Absturz, Strand | `river`, `raft`, `speedwave`, `ramp`, `riverrock` (Abzweig: zweiter `river` ab einer Kehre) |
+| 1-5 | Schaltfelder → Weg erscheint, Schaltfelder auf schwebenden/fahrenden Plattformen, Roulette-Block, Rätselbox → Kistenraum, Wechselschalter-Plattform, Glasrohr-Kanone zur Zielfahne, letzte Plattform stürzt ab | `switchtiles` + `appear`, `switchtiles` (`platform`/`on`, `toggle`), `rouletteblock`, `warpbox` + `room` + `crate`, `glasspipe` (`cannon`), `fallplatform` (`trigger: 'signal'`, `{ drop }`) |
+| 1-Burg | Sternenring (acht Sternmünzen), Krallenrad, graue Blockwand (Kickbombe), Easter-Egg-Pixelfigur, Warp-Box | `starring`, `clawwheel`, `megawall`, `pixelegg`, `warpbox` |
+| 1-Kapitän | fahrende Plattformen | `mover` (`idle`/`once`/`id`) |
+
+Nicht Teil der Sonder-Bausteine: Gegner, Kickbomben, Kanonen, Stampfsteine, Bosse, Pilzlingsturm (Gegner-Agent),
+„Figur springt nicht“ im Diorama und die fahrende Bossstraße.

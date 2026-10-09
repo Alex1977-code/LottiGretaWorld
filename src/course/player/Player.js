@@ -8,7 +8,8 @@
 // getrennt (HeroRig liest `state`, `phase`, … für den Avatar).
 //
 // Modi (`mode`): ground | air | wall | stalk | swim | script (Röhre, Zielmast, Tod, ride = gesteuerter Ablauf
-// eines Sonder-Bausteins wie Glasröhre/Kanone – siehe ride(ctl)).
+// eines Sonder-Bausteins wie Glasröhre/Kanone – siehe ride(ctl)) | mount (reitet auf einem Reittier/Floß – das
+// Reittier bewegt beide, Berührungen laufen weiter; siehe mount(m)).
 // Zustände (`state`, Vertrag HeroRig): idle walk run skid jump jump2 jump3 backflip sideflip longjump fall
 // land crouch slide groundpound wallslide walljump climb beanstalk swim pipe hurt dead victory claw
 // (+ intern 'dive' = Krallen-Sturzflug; HeroRig meldet ihn dem Avatar als 'longjump').
@@ -92,6 +93,7 @@ export class Player {
     this.clawTime = 0; this.fireCooldown = 0;
     this.attackInfo = null;
     this.holding = null;
+    this.mountObj = null;
     this.phase = 0;
     this.landTime = 0;
     this.lastLandVy = 0;
@@ -164,6 +166,7 @@ export class Player {
       case 'air': this.updateAir(dt, input, want); break;
       case 'wall': this.updateWall(dt, input, want); break;
       case 'stalk': this.updateStalk(dt, input, want); return;
+      case 'mount': this.updateMount(dt, input, want); this.updatePhase(); return;
       case 'swim': this.updateSwim(dt, input, want); break;
       default: break;
     }
@@ -592,6 +595,39 @@ export class Player {
     this.updatePhase();
   }
 
+  // ------------------------------------------------------------------ Reittier (Floß im Fluss-Level)
+
+  /**
+   * Aufsitzen: m.control(player, dt, input, want) setzt pos/vel/yaw der Figur (und bewegt das Reittier); Rückgabe
+   * false → absteigen. Optional m.bounce(input) (Draufspringen auf Gegner im Sattel), m.onDismount(player).
+   * Treffer im Sattel kosten nur das Power-up/die Größe (kein Rückstoß); Berührungen laufen normal.
+   */
+  mount(m) {
+    this.mode = 'mount';
+    this.mountObj = m;
+    this.vel.set(0, 0, 0);
+    this.gs = 0;
+    this.setCrouch(false);
+    this.stalk = null; this.water = null; this.ground = null;
+    this.jumpKind = null; this.variable = false;
+    this.setState('ride');
+  }
+
+  updateMount(dt, input, want) {
+    const m = this.mountObj;
+    if (!m || m.control(this, dt, input, want) === false) this.dismount();
+  }
+
+  /** Absteigen mit Sprung (vx, vy, vz). */
+  dismount(vx = 0, vy = 7, vz = 0) {
+    const m = this.mountObj;
+    this.mountObj = null;
+    this.vel.set(vx, vy, vz);
+    this.enterAir('jump', false);
+    this.airMax = Math.max(this.hSpeed(), MOVE.walk * this.speedMult);
+    m?.onDismount?.(this);
+  }
+
   // ------------------------------------------------------------------ Wasser
 
   updateSwim(dt, input, want) {
@@ -820,6 +856,7 @@ export class Player {
     else { this.die('hit'); return true; }
     this.invuln = MOVE.invuln;
     this.hurtTime = MOVE.hurtTime;
+    if (this.mode === 'mount') { this.level.sfx('hurt'); return true; } // im Sattel: kein Rückstoß
     let ax = 0, az = 0;
     if (source?.pos) { ax = this.pos.x - source.pos.x; az = this.pos.z - source.pos.z; }
     const l = Math.hypot(ax, az) || 1;
@@ -870,6 +907,7 @@ export class Player {
 
   /** Abprall nach Draufspringen. */
   bounceOff(input) {
+    if (this.mode === 'mount') { this.mountObj?.bounce?.(input); return; }
     this.vel.y = input?.jump ? MOVE.stompBounceHeld : MOVE.stompBounce;
     if (this.mode !== 'air') this.mode = 'air';
     this.airMax = Math.max(this.hSpeed(), MOVE.walk * this.speedMult);

@@ -25,6 +25,8 @@
 //                opts { hero: 'lotti'|'greta' }  state { appear (0..1) }
 // item_tree      Baum mit Versteck in der Krone (4,5 m).  opts { size (4,5), color ('green'|'autumn') }
 //                state { shake (0..1) }  Krone wackelt
+// leaf_raft      Blatt-Floß ≈ 3 × 2,4 m: großes, leicht gewölbtes Seerosenblatt mit hellen Adern, Spitze nach +X,
+//                Stiel hinten. Oberseite (Deck) bei y ≈ 0,2.  state { tilt (rad, seitliche Neigung), bob (0..1) }
 
 import {
   THREE, TAU, Build, cached, vcol, basic, std, mesh, joint, makeModel, Clock, damp, clamp, col, mix,
@@ -616,6 +618,67 @@ function buildItemTree(opts = {}) {
   return makeModel('item_tree', root, update);
 }
 
+// =============================================================================================
+// Blatt-Floß
+// =============================================================================================
+export const LEAF_DECK = 0.2;
+function leafGeo() {
+  return cached('gm:leafRaft', () => {
+    const shape = new THREE.Shape();
+    // Blattumriss (Spitze bei +X), Kerbe hinten am Stiel
+    const L = 1.55, W = 1.2;
+    shape.moveTo(-L * 0.92, 0.12);
+    shape.bezierCurveTo(-L * 0.6, W * 1.05, L * 0.45, W * 1.0, L, 0);
+    shape.bezierCurveTo(L * 0.45, -W * 1.0, -L * 0.6, -W * 1.05, -L * 0.92, -0.12);
+    shape.lineTo(-L * 0.62, 0);
+    shape.closePath();
+    const g0 = new THREE.ExtrudeGeometry(shape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.05, bevelSegments: 2, curveSegments: 16 });
+    g0.rotateX(-Math.PI / 2); // liegt in XZ, Dicke nach +Y
+    const pos = g0.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), z = pos.getZ(i);
+      const r2 = (x / L) * (x / L) + (z / W) * (z / W);
+      pos.setY(i, pos.getY(i) + 0.05 + 0.16 * r2 * r2); // Rand aufgebogen
+    }
+    g0.computeVertexNormals();
+    const b = new Build();
+    b.add(g0, { v: (x, y, z, nx, ny) => (ny > 0.3 ? mix(0x3fb43a, 0x8fe06a, smoothstep(0.5 - Math.hypot(x / L, z / W) * 0.6)) : col(0x2a7a2a)) });
+    // Adern
+    b.box(L * 1.7, 0.03, 0.06, 0xc8f5a0, { p: [0, LEAF_DECK - 0.02, 0] }, 0.01, 1);
+    for (const sgn of [1, -1]) {
+      for (let k = 0; k < 4; k++) {
+        const x0 = -L * 0.55 + k * L * 0.42;
+        b.box(0.9 - k * 0.12, 0.025, 0.045, 0xb4ec8a, { p: [x0 + 0.25, LEAF_DECK - 0.02 + 0.02 * k, sgn * 0.32], r: [0, sgn * 0.75, 0] }, 0.01, 1);
+      }
+    }
+    // Stiel hinten (biegt sich hoch)
+    b.tube([[-L * 0.72, 0.12, 0], [-L * 1.0, 0.2, 0], [-L * 1.12, 0.45, 0]], 0.06, 0x4a9a32, null, 10, 6);
+    return b.geometry();
+  });
+}
+function buildLeafRaft() {
+  const root = new THREE.Group();
+  const tilt = joint();
+  const leaf = mesh(leafGeo(), vcol(0.55), {}, true);
+  leaf.receiveShadow = true;
+  tilt.add(leaf);
+  // Wasserring (Schaum) um das Blatt
+  const foam = mesh(cached('gm:leafFoam', () => { const g = new THREE.TorusGeometry(1.45, 0.07, 5, 40); g.rotateX(Math.PI / 2); g.scale(1.05, 1, 0.85); return g; }),
+    basic('gm:leafFoam', { color: 0xf2fbff, transparent: true, opacity: 0.6, depthWrite: false }), { p: [0, 0.03, 0] });
+  root.add(tilt, foam);
+  const clk = new Clock();
+  const update = (dt, st) => {
+    clk.tick(dt, 'idle');
+    const t = clk.t;
+    tilt.rotation.x = damp(tilt.rotation.x, (st.tilt ?? 0) + Math.sin(t * 1.7) * 0.025, 6, dt);
+    tilt.rotation.z = Math.cos(t * 1.3) * 0.02;
+    tilt.position.y = Math.sin(t * 2.1) * 0.03 * (st.bob ?? 1);
+    foam.scale.setScalar(1 + Math.sin(t * 3) * 0.03);
+    foam.visible = (st.bob ?? 1) > 0.2;
+  };
+  return makeModel('leaf_raft', root, update);
+}
+
 export const MODELS = {
   crate: buildCrate,
   chest: buildChest,
@@ -630,4 +693,5 @@ export const MODELS = {
   mega_block: buildMegaBlock,
   pixel_egg: buildPixelEgg,
   item_tree: buildItemTree,
+  leaf_raft: buildLeafRaft,
 };

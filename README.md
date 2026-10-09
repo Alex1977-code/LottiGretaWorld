@@ -114,7 +114,8 @@ Hindernisparcours mit 3 grünen Sternen, Stempel und Zielmast. Vertrag und Schni
 
 - Starten: `?course=0-0` (Übungsplatz mit allen Grund-Bausteinen und Bewegungen), `?course=0-2` (Bausteinpark:
   alle Sonder-Bausteine für Welt 1 – Glasröhre, Kipp-Schaltfelder, Laternen, Warp-Box, POW-Block, Wolkenkanone,
-  Sternenring, Fang-Hase … je mit Schild). Ohne Parameter startet weiter die bisherige Weltkarte.
+  Sternenring, Fang-Hase, Fluss mit Blatt-Floß und Pflaume … je mit Schild). Ohne Parameter startet weiter die
+  bisherige Weltkarte.
 - Tastatur: Pfeile/WASD laufen (relativ zur Kamera), **Shift** rennen (Druck = Aktion, auch **X**),
   **Leertaste** springen (Höhe nach Haltedauer), **Strg/C** ducken/rutschen (in der Luft: Stampfattacke),
   **Q/E** Kamera ±30°, **Z** Zoom, **Esc/P** Pause, **F2** Debug-Anzeige.

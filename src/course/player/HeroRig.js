@@ -22,6 +22,8 @@ const TAU = Math.PI * 2;
 const wrap = (a) => { a %= TAU; if (a > Math.PI) a -= TAU; else if (a < -Math.PI) a += TAU; return a; };
 const damp = (c, t, r, dt) => c + (t - c) * (1 - Math.exp(-r * dt));
 
+const RIDING = { hovering: false };
+
 /** Zustand der Spielfigur → Avatar-Zustand (Vertrag); interne Zustände werden abgebildet. */
 const STATE_MAP = { dive: 'longjump' };
 
@@ -113,6 +115,7 @@ export class HeroRig {
     c.climbing = p.climbing;
     const pr = this.proxy;
     pr.dead = p.dead;
+    pr.mount = p.mode === 'mount' ? (p.mountObj?.avatarMount ?? RIDING) : null; // Reitpose (Fluss-Floß mit Pflaume)
     pr.flipX = false;
     pr.onGround = grounded || p.mode === 'stalk' || p.mode === 'wall';
     pr.moveState = pr.onGround ? 'ground' : 'air';

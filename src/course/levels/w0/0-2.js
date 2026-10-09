@@ -18,6 +18,8 @@
 //   S16 Kobold, Pixel-Ei               z −322 … −338
 //   S17 Kisten, Truhe, Baum            z −338 … −354
 //   S18 Ziel                           z −354 … −370
+//   S19 Fluss (Reit-Level 1-4)         abseits x −74 … −54, z −6 … −86 (Floß mit Pflaume, Temposchwelle, Schanze,
+//                                      Felsen, Kehre, Wasserfall 6 m, Ausstieg am Ufer)
 
 const sign = (x, z, text, y = 1) => ({ type: 'sign', pos: [x, y, z], text });
 const ground = (z0, z1, w = 28, x = 0) => ({ type: 'island', pos: [x, 0, (z0 + z1) / 2], size: [w, 1, Math.abs(z1 - z0)], under: 2 });
@@ -55,6 +57,7 @@ export const LEVEL = {
     { from: -120, to: -146, pitch: 54, dist: 13, x: 80, xLock: 0.5, area: [68, 94] },
     { from: -120, to: -146, pitch: 54, dist: 13, x: 110, xLock: 0.5, area: [98, 124] },
     { from: -136, to: -162, pitch: 54, dist: 13, x: 140, xLock: 0.5, area: [128, 154] },
+    { from: -4, to: -90, pitch: 48, dist: 16, area: [-90, -45] },
   ],
   segments: [
     // ---------------- S0 Start
@@ -194,6 +197,17 @@ export const LEVEL = {
     // ---------------- S18 Ziel
     ground(-354, -370),
     { type: 'killplane', y: -14 },
+
+    // ---------------- S19 Fluss (abseits bei x ≈ −64): Floß mit Pflaume, Temposchwelle, Schanze, Felsen, Kehre,
+    // Wasserfall, Ausstieg
+    { type: 'island', pos: [-70, 0, -9.25], size: [14, 1, 6.5], top: 'stone', under: 0 },
+    sign(-74, -7, 'Fluss\nFloß mit Pflaume'),
+    { type: 'river', id: 'fluss', width: 8, depth: 2.5, speed: 4, open: ['start'],
+      path: [[-70, 0.6, -12], [-70, 0.6, -46], [-58, 0.6, -46], [-58, 0.6, -60], [-58, -5.4, -61], [-58, -5.4, -82]] },
+    { type: 'ramp', pos: [-70, -1.9, -34], size: [4, 3.3, 4], axis: 'z', dir: -1 },
+    { type: 'riverrock', pos: [-72.6, 0.6, -26], size: 1 },
+    { type: 'riverrock', pos: [-60.5, 0.6, -52], size: 0.9 },
+    { type: 'island', pos: [-58, -8, -85], size: [8, 2.9, 5], top: 'sand', under: 0 },   // Strand am Ende
   ],
   blocks: [
     { kind: 'question', pos: [-6, 3.4, -290], content: 'krallenAnzug' },
@@ -256,6 +270,12 @@ export const LEVEL = {
     { kind: 'crate', pos: [-4.5, 2, -344], content: 'wachstumsbeere' },
     { kind: 'chest', id: 'chest1', pos: [3, 1, -346], content: 'coins:5' },
     { kind: 'itemtree', id: 'tree1', pos: [8, 1, -348], content: 'krallen' },
+    // S19 Fluss
+    { kind: 'raft', id: 'floss', pos: [-70, 0.6, -15.5] },
+    { kind: 'speedwave', pos: [-70, 0.6, -21] },
+    line([-70, 1.6, -24], [-70, 1.6, -30], 4),
+    line([-66, 1.6, -46], [-61, 1.6, -46], 3),
+    line([-58, -4.4, -66], [-58, -4.4, -74], 4),
   ],
   checkpoint: [0, 1, -158],
   stars: [],
@@ -300,5 +320,8 @@ export const LEVEL = {
     chest1: [3, 1, -344.4],
     tree1: [8, 1, -345.6],
     goal: [0, 1, -361],
+    dock: [-70, 1, -11],
+    raft: [-70, 0.6, -15.5],
+    beach: [-58, -5.1, -85],
   },
 };

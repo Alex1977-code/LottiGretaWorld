@@ -101,7 +101,8 @@ async function shot(name, wait = 1600) {
   await page.waitForTimeout(wait);
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
-  await page.screenshot({ path: `${OUT}cb_${name}.png` });
+  // Software-Rendering kann unter Last sehr langsam sein: Bild verpasst ≠ Fehler der Bausteine
+  try { await page.screenshot({ path: `${OUT}cb_${name}.png`, timeout: 120000 }); } catch (err) { console.log(`  (Bild ${name} übersprungen: ${err.message.split('\n')[0]})`); }
 }
 
 console.log('Bausteinpark 0-2');
@@ -590,6 +591,84 @@ await shot('start', 1500);
   console.log(`  Truhe offen ${open} (+${c3 - c2}), Baum: Krallen-Anzug fällt auf y ${drop}`);
   check('Schatztruhe: Berühren öffnet, Inhalt springt heraus', open && c3 - c2 === 5);
   check('Baum mit Versteck: Berühren → Krallen-Anzug fällt herunter', drop.length === 1 && Math.abs(drop[0] - 1) < 0.05);
+}
+
+// ---------------------------------------------------------------- Fluss: Floß mit Pflaume (Reit-Level 1-4)
+{
+  const raft = () => sc(() => { const r = window.__t.named('floss'); return { x: +r.pos.x.toFixed(2), y: +r.pos.y.toFixed(2), z: +r.pos.z.toFixed(2), air: r.air, water: r.onWater, sp: +Math.hypot(r.vel.x, r.vel.z).toFixed(2), rider: !!r.rider }; });
+  const c0 = await T('coins');
+  await T('place', [-70, 1, -11.5]);
+  await T('play', [[{ y: 1, jump: true }, 40], [{}, 10]]);
+  for (let i = 0; i < 20 && (await T('info')).mode !== 'mount'; i++) await T('play', [[{}, 10]]);
+  const on = await T('info');
+  const r0 = await raft();
+  await T('play', [[{}, 120]]);
+  const r1 = await raft();
+  console.log(`  Floß: aufgesessen ${on.mode}, treibt ${r0.z} → ${r1.z} (${r1.sp} m/s)`);
+  check('Floß: aufspringen → Reiten (mount), Strömung trägt beide', on.mode === 'mount' && r1.rider && r0.z - r1.z > 3 && Math.abs(r1.sp - 4) < 0.6);
+  // Temposchwelle und Schanze (neutraler Stick)
+  let maxSp = 0, maxY = -99, air = false;
+  for (let i = 0; i < 18; i++) {
+    await T('play', [[{}, 20]]);
+    const r = await raft();
+    maxSp = Math.max(maxSp, r.sp); if (r.z < -33 && r.z > -42) { maxY = Math.max(maxY, r.y); air ||= r.air; }
+    if (i === 12) await shot('fluss_schanze', 600);
+  }
+  console.log(`  Temposchwelle: bis ${maxSp} m/s; Schanze: in der Luft ${air}, höchste y ${maxY}`);
+  check('Temposchwelle beschleunigt das Floß', maxSp > 8);
+  check('Schanze im Fluss: Floß springt ab', air && maxY > 1.4);
+  // Lenken nach rechts
+  const a = await raft();
+  await T('play', [[{ x: 1 }, 50], [{}, 10]]);
+  const b = await raft();
+  console.log(`  Lenken: x ${a.x} → ${b.x}`);
+  check('Floß: Stick lenkt quer zur Strömung', b.x - a.x > 0.8);
+  // Hüpfen im Sattel, Treffer im Sattel
+  const y0 = (await T('info')).y;
+  const tr = await T('play', [[{ jump: true }, 2], [{}, 40]]);
+  const hop = Math.max(...tr.map((q) => q[1])) - y0;
+  await sc(() => { const p = window.__course.player; p.invuln = 0; p.hurt({ pos: { x: p.pos.x + 1, y: p.pos.y, z: p.pos.z } }); });
+  const hurt = await T('info');
+  await sc(() => { const p = window.__course.player; p.big = true; p.updateHalf(); p.invuln = 0; });
+  console.log(`  Hüpfer im Sattel ${f2(hop)} m (${tr.filter((q) => q[3] === 'mount').length}/${tr.length} im Sattel); Treffer: ${hurt.mode}, groß ${hurt.big}`);
+  check('Floß: Sprung lässt Floß und Reiterin hüpfen', hop > 1 && tr.every((q) => q[3] === 'mount'));
+  check('Treffer im Sattel: kleiner, bleibt aber sitzen', hurt.mode === 'mount' && !hurt.big);
+  // weiter um die Kehren, den Wasserfall hinab, Absteigen am Strand
+  let fell = false, low = 99, done = null;
+  for (let i = 0; i < 70 && !done; i++) {
+    await T('play', [[{}, 30]]);
+    const r = await raft();
+    if (r.air && r.y < 0) fell = true;
+    low = Math.min(low, r.y);
+    if (i === 30) await shot('fluss_kehre', 600);
+    const p = await T('info');
+    if (p.mode !== 'mount' && i > 2) done = p;
+  }
+  await T('play', [[{}, 90]]);
+  const end = await T('info');
+  const c1 = await T('coins');
+  await shot('fluss_strand', 600);
+  console.log(`  Wasserfall: Absturz ${fell}, tiefste y ${low}; Ende ${end.x}, ${end.y}, ${end.z} (${end.mode}); Münzen +${c1 - c0}`);
+  check('Wasserfall: Floß stürzt mit der Reiterin hinab und fährt weiter', fell && low < -5);
+  check('Strand: Absteigen, Figur steht an Land', !!done && end.mode === 'ground' && end.z < -84 && end.y > -5.2);
+  check('Münzen beim Reiten eingesammelt', c1 - c0 >= 8);
+  // Floß wartet ohne Reiterin; neu aufsitzen
+  await T('place', [-58, 0.8, -50]);
+  await sc(() => { const r = window.__t.named('floss'); r.goHome({ x: -58, y: 0.55, z: -53 }); });
+  await T('place', [-58, 1.5, -53], { settle: 45 });
+  const re = await T('info');
+  await sc(() => window.__course.player.dismount(4.5, 8, 0));
+  await T('play', [[{}, 150]]);
+  const wait = await raft();
+  console.log(`  Neu aufgesessen ${re.mode}; nach dem Absteigen wartet das Floß: ${wait.sp} m/s`);
+  check('Floß: wartet ohne Reiterin, wieder aufsitzen möglich', re.mode === 'mount' && wait.sp < 0.6);
+  // Neustart am Checkpoint beim Steg: Floß legt dort an
+  await sc(() => { const c = window.__course; c.level.runtime.setCheckpoint([-70, 1.05, -9.5], Math.PI / 2); c.player.die('fall'); });
+  await T('play', [[{}, 260]]);
+  const home = await raft();
+  await sc(() => { window.__course.level.runtime.checkpoint = null; });
+  console.log(`  Nach Neustart: Floß bei ${home.x}, ${home.z}`);
+  check('Neustart am Steg: Floß wartet am nächsten Flusspunkt', Math.abs(home.x + 70) < 0.5 && home.z > -14 && !home.rider);
 }
 
 // ---------------------------------------------------------------- Ziel erreichbar, Kennzahlen
