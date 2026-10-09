@@ -259,10 +259,10 @@ export const LEVEL = {
   ],
   blocks: [
     // Startplatz: Funkenblüte (Schnappblumen!) und Münzen
-    { kind: 'brick', pos: [-1.5, 3.4, -3] },
-    { kind: 'question', pos: [-0.5, 3.4, -3], content: 'funken' },
-    { kind: 'brick', pos: [0.5, 3.4, -3] },
-    { kind: 'brick', pos: [1.5, 3.4, -3] },
+    { kind: 'brick', pos: [-1.5, 3.4, -0.8] },
+    { kind: 'question', pos: [-0.5, 3.4, -0.8], content: 'funken' },
+    { kind: 'brick', pos: [0.5, 3.4, -0.8] },
+    { kind: 'brick', pos: [1.5, 3.4, -0.8] },
     // Schnappblumenfeld
     { kind: 'question', pos: [3, 3.4, -21.5], content: 'wachstumsbeere' },
     { kind: 'pow', pos: [0, 3.5, -33], uses: 3, radius: 10, height: 3 },
