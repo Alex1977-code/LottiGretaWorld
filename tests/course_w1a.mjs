@@ -48,10 +48,10 @@ const ROUTES = {
     targets: [
       { name: 'Stern 0 über den Abzweig der Glasröhre', star: 0, from: [6.5, 1, -7.5],
         legs: [{ to: [6.5, -12], rideInput: { x: 1, y: 0.4 } }, { to: [8.5, -46.5] }], shot: 'stern0' },
-      { name: 'Stern 1 mit Krallen von unten', star: 1, from: [6, 0.5, -152.5], power: 'krallen',
-        legs: [{ to: [6, -156.1], max: 400, within: 0.25 }, { push: 160, jump: 10, to: [6, -159] }, { to: [6, -158.3], within: 0.3 }], shot: 'stern1' },
+      { name: 'Stern 1 mit Krallen von unten', star: 1, from: [11, 0.5, -152], power: 'krallen',
+        legs: [{ to: [9.3, -159], max: 400, within: 0.25 }, { push: 160, jump: 10, to: [6, -159] }, { to: [7.4, -159], within: 0.3 }], shot: 'stern1' },
       { name: 'Stern 1 mit Riesentrank vom Hügel (10 s)', star: 1, from: [8, 12, -98.5], power: 'riese',
-        legs: [{ to: [3, -104] }, { to: [0, -123] }, { to: [0, -145] }, { to: [1, -156.5] }, { to: [6, -158.2], within: 0.3 }, { wait: 60 }] },
+        legs: [{ to: [3, -104] }, { to: [0, -123] }, { to: [0, -145] }, { to: [0.5, -156.5] }, { to: [0.5, -159] }, { to: [7.4, -159], within: 0.3, autoJump: false }, { wait: 60 }] },
       { name: 'Stern 2 (kleiner Hase am Teich)', star: 2, from: [1, 7, -106], chase: 'bunny' },
       { name: 'Stempel im Raum hinter der Teich-Röhre', from: [9.2, 8.2, -115.4],
         legs: [{ crouch: 4 }, { to: [86.4, -111.2] }, { to: [87.5, -113.4], jump: 30 }, { to: [90.4, -114.9], jump: 34 }, { to: [93.5, -113.6], jump: 40 }], shot: 'stempel' },
@@ -73,7 +73,7 @@ const ROUTES = {
       ['teich', [1, 7, -110]],
       ['hohlweg', [0, 7, -122]],
       ['bruecke', [0, 7, -147]],
-      ['durchgang', [3, 0.5, -149]],
+      ['durchgang', [11, 0.5, -147]],
       ['nische', [0, 7, -160]],
       ['ziel', [0, 7, -179]],
       ['raum', [86, 1, -108]],
@@ -465,9 +465,9 @@ for (const id of LEVELS) {
   }
 
   // ------------------------------------------------ Sterne und Stempel
-  await load(id);
   for (const t of R.targets) {
     for (const hero of t.heroes ?? ['lotti']) {
+      await load(id);
       await W('place', t.from, { hero, power: t.power, settle: 10 });
       let res = null;
       if (t.legs) res = await W('drive', t.legs, {});
@@ -483,6 +483,7 @@ for (const id of LEVELS) {
 
   for (const t of R.extra ?? []) {
     for (const hero of t.heroes ?? ['lotti', 'greta']) {
+      await load(id);                   // frisches Level je Heldin (Blöcke/Power-ups unverbraucht)
       const st0 = await W('place', t.from, { hero, power: t.power, settle: 10 });
       if (t.startY !== undefined && st0.y < t.startY) { check(`${id}: ${t.name} (${hero}) – Startpunkt fehlt (y ${st0.y.toFixed(2)})`, false); continue; }
       const res = await W('drive', t.legs, {});

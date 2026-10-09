@@ -11,8 +11,9 @@
 //   4  Checkpoint-Wiese z −92 … −124 (28 × 32 m) Checkpoint, Krallen-Anzug im Baum, großer Hase mit Riesentrank auf
 //                                     dem 5-m-Hügel, Teich mit kleinem Hasen (Stern) und Röhren-Insel (Stempel-Raum).
 //   5  Brücken-Passage  z −124 … −174 (50 m) Hohlweg mit Holzkisten, Ziegelreihe, Krallen-Pilzlinge, weiße Holzbrücke;
-//                                     darunter ein Durchgang mit Extraleben; Steinblöcke direkt hinter der Brücke
-//                                     decken die Nische mit Stern 3 ab (Riesentrank – oder von unten mit Krallen).
+//                                     unten rechts ein Durchgang mit Extraleben; ein Buckel aus Steinblöcken direkt
+//                                     hinter der Brücke deckt die Nische mit Stern 3 ab (Riesentrank zertrümmert ihn –
+//                                     oder rechts hinunterfallen und mit dem Krallen-Anzug zur Nische hochklettern).
 //   6  Ziel             z −174 … −200 (26 m) Glasröhre hinauf auf die Treppe, Sprungfeder, Zielmast.
 //   Stempel-Raum abseits bei x ≈ 90 (Röhre auf der Teich-Insel hin, zweite Röhre zurück).
 // Sterne (Index): 0 Sims der oberen Route, 1 Nische unter den Steinblöcken, 2 kleiner Hase am Teich.
@@ -215,31 +216,36 @@ export const LEVEL = {
     ...lawn(4, 8, -124, -136, 10.5, 9.5, { under: 3 }),
     ...lawn(-6, 8.5, -136, -146, 7, 6, { under: 3 }),
     { type: 'bridge', from: [0, 7, -146], to: [0, 7, -157], width: 3 },
-    // Durchgang unter der Brücke (Extraleben) und Röhre zurück nach oben
-    ...lawn(-8, 8.5, -148, -157, 0.5, 3, { under: 2 }),
-    { type: 'pipe', id: 'p_low', pos: [-6.6, 0.5, -155], height: 1.2, target: 'p_high' },
-    // hinter der Brücke: Nische unter Steinblöcken (Stern 1), Kletterwand davor
-    ...lawn(-8, 8.5, -159, -174, 7, 6, { under: 3 }),
-    ...lawn(-8, 4, -157, -159, 7, 6, { under: 3 }),
-    isl(4, 5, -157, -159, 7, 6, { under: 0 }),
-    isl(7, 8.5, -157, -159, 7, 6, { under: 0 }),
-    isl(5, 7, -157, -159, 4.9, 3.9, { under: 0, top: 'stone' }),
-    { type: 'wall', pos: [6.25, 0.5, -156.8], size: [4.5, 4.4, 0.4], climbable: true },
-    { type: 'wall', pos: [4.5, 4.9, -156.8], size: [1, 2.1, 0.4], climbable: true },
-    { type: 'wall', pos: [7.75, 4.9, -156.8], size: [1.5, 2.1, 0.4], climbable: true },
+    // hinter der Brücke: Buckel aus Steinblöcken (LEVEL.blocks) über der Nische mit Stern 1; die Nische öffnet sich
+    // nach rechts (+x) zur Kletterwand über dem unteren Durchgang
+    ...lawn(-8, 6.5, -157, -174, 7, 6, { under: 3 }),
+    ...lawn(6.5, 8.5, -157, -158, 7, 6, { under: 0 }),
+    ...lawn(6.5, 8.5, -160, -174, 7, 6, { under: 0 }),
+    isl(6.5, 8.5, -158, -160, 4.9, 3.9, { under: 0, top: 'stone' }),
+    { type: 'wall', pos: [8.7, 0.5, -159.75], size: [0.4, 4.4, 5.5], climbable: true },
+    { type: 'wall', pos: [8.7, 4.9, -157.5], size: [0.4, 2.1, 1], climbable: true },
+    { type: 'wall', pos: [8.7, 4.9, -161.25], size: [0.4, 2.1, 2.5], climbable: true },
     { type: 'pipe', id: 'p_high', pos: [-6, 7, -168], height: 1.2 },
+    // unterer Durchgang rechts neben Brücke und Nische (Extraleben), Röhre zurück nach oben
+    ...lawn(8.5, 13.5, -139, -166, 0.5, 3, { under: 2 }),
+    { type: 'pipe', id: 'p_low', pos: [12, 0.5, -164], height: 1.2, target: 'p_high' },
     deco([
       { kind: 'tree', pos: [-7, 10.5, -133.4], size: 4.2, color: 'green' },
       { kind: 'tree', pos: [7, 10.5, -134.4], size: 4 },
-      { kind: 'tree', pos: [7.2, 7, -171.4], size: 4.8 },
+      { kind: 'tree', pos: [5.4, 7, -171.6], size: 4.8 },
       { kind: 'tree', pos: [-6.8, 7, -160.6], size: 3.6, color: 'green' },
+      { kind: 'tree', pos: [12.4, 0.5, -141], size: 3.8, color: 'green' },
       { kind: 'bush', pos: [-5.2, 10.5, -134], size: 0.6 }, { kind: 'bush', pos: [5.3, 10.5, -126], size: 0.6 },
       { kind: 'bush', pos: [-5.2, 7, -137.6], size: 0.7 }, { kind: 'bush', pos: [-7.4, 7, -172.6], size: 0.8 },
+      { kind: 'bush', pos: [13, 0.5, -158], size: 0.7 },
       { kind: 'flowers', pos: [-6, 10.5, -131], size: [3, 4], n: 4 },
       { kind: 'flowers', pos: [6, 10.5, -129], size: [3, 4], n: 4, colors: ['yellow', 'white'] },
-      { kind: 'rock', pos: [7.6, 0.5, -150], size: 0.6 }, { kind: 'rock', pos: [-7.5, 0.5, -149], size: 0.5 },
+      // Steine an den Kanten neben dem Buckel (kein Absprung seitlich in die Nische)
+      { kind: 'rock', pos: [8, 7, -157.5], size: 0.6, solid: true }, { kind: 'rock', pos: [8, 7, -160.6], size: 0.6, solid: true },
+      { kind: 'rock', pos: [12.8, 0.5, -150], size: 0.6 },
       ...fence([[-5.6, -136.4], [-5.6, -145.6]], 7),
       ...fence([[-7.6, -159.4], [-7.6, -173.6]], 7),
+      ...fence([[13.1, -139.4], [13.1, -147]], 0.5),
     ]),
     decoW1([
       { kind: 'arch', pos: [0, 7, -124.6], width: 7.4, height: 3.2 },
@@ -248,15 +254,16 @@ export const LEVEL = {
       { kind: 'daisies', pos: [1, 7, -141], size: [14, 8], n: 22 },
       { kind: 'daisies', pos: [-6, 10.5, -130], size: [3.6, 11], n: 14 },
       { kind: 'daisies', pos: [6, 10.5, -130], size: [3.6, 11], n: 14 },
-      { kind: 'sign', pos: [-4.4, 7, -145], arrow: 'down' },
-      { kind: 'mushrooms', pos: [5, 0.5, -150], size: 1.2, color: 'red' },
-      { kind: 'daisies', pos: [0, 0.5, -152], size: [16, 8], n: 24 },
-      { kind: 'bellflowers', pos: [6.2, 4.9, -158.6], size: [0.6, 0.6], n: 3 },
-      { kind: 'daisies', pos: [0, 7, -166], size: [16, 14], n: 30 },
-      { kind: 'tufts', pos: [0, 7, -166], size: [14, 12], n: 10 },
+      { kind: 'sign', pos: [7.6, 7, -144.6], arrow: 'right' },
+      { kind: 'mushrooms', pos: [10, 0.5, -146], size: 1.1, color: 'red' },
+      { kind: 'daisies', pos: [11, 0.5, -152], size: [4, 24], n: 30 },
+      { kind: 'bellflowers', pos: [7.2, 4.9, -158.6], size: [0.6, 0.6], n: 3 },
+      { kind: 'daisies', pos: [-1, 7, -166], size: [14, 14], n: 28 },
+      { kind: 'tufts', pos: [-1, 7, -166], size: [14, 12], n: 10 },
       { kind: 'cloudbank', pos: [-18, -1, -150], size: 5 },
-      { kind: 'cloudbank', pos: [18, -3, -140], size: 4.5 },
+      { kind: 'cloudbank', pos: [22, -5, -134], size: 4.5 },
       { kind: 'cloudbank', pos: [0, -6, -151], size: 3.6 },
+      { kind: 'cloudbank', pos: [18, -6, -160], size: 3.4 },
     ]),
 
     // =============================================================== 6  Ziel
@@ -337,8 +344,8 @@ export const LEVEL = {
     { kind: 'brick', pos: [0, 6.4, -38.5], content: 'coins:4' },
     // 3: Münzblock vor der Wand
     { kind: 'coinblock', pos: [4, 6.4, -63], count: 8 },
-    // 5: Steinblöcke (nur Riesentrank) als Dach der Stern-Nische direkt hinter der Brücke
-    { kind: 'blockwand', pos: [6, 6, -158], size: [2, 1, 2] },
+    // 5: Steinblöcke (nur Riesentrank) als Buckel über der Stern-Nische direkt hinter der Brücke
+    { kind: 'blockwand', pos: [7.5, 7, -159], size: [2, 1, 2] },
     // 5: Ziegelreihe über dem Weg
     ...[-3, -2, -1, 0, 1, 2, 3].map((x) => (x === 0
       ? { kind: 'question', pos: [x, 9.4, -140], content: 'wachstumsbeere' }
@@ -379,7 +386,8 @@ export const LEVEL = {
     // 5
     line([0, 7.3, -126.5], [0, 7.3, -129.5], 2),
     line([0, 7.6, -148], [0, 7.6, -155], 4),
-    line([-4, 0.7, -151], [4, 0.7, -151], 5),
+    line([11, 0.7, -144], [11, 0.7, -152], 4),
+    line([10, 0.7, -154.5], [9.4, 0.7, -158], 3),
     line([-3, 7.3, -167.5], [3, 7.3, -167.5], 3),
     // 6
     ...arc([0, 10.3, -187.2], [0, 9.2, -192], 3, 1.8),
@@ -395,12 +403,12 @@ export const LEVEL = {
     { kind: 'crate', pos: [-2.2, 7, -127.8], content: 'coins:3' },
     { kind: 'crate', pos: [2.2, 7, -129.4], content: 'coin' },
     { kind: 'crate', pos: [-1.4, 7, -134.6], content: 'coins:3' },
-    { kind: 'powerup', pos: [-4.5, 0.55, -152.4], power: 'oneup' },
+    { kind: 'powerup', pos: [12.2, 0.55, -155], power: 'oneup' },
   ],
   checkpoint: [-3.5, 7, -98],
   stars: [
     [8.5, 9.6, -46.5],        // 0: Sims der oberen Route (Abzweig der Glasröhre)
-    [6, 4.95, -158.3],        // 1: Nische unter den Steinblöcken hinter der Brücke
+    [7.4, 4.95, -159],        // 1: Nische unter den Steinblöcken hinter der Brücke
     //                           2: kleiner Hase am Teich (bunny star: 2)
   ],
   stamp: [93.6, 4.7, -113.6],
@@ -420,7 +428,7 @@ export const LEVEL = {
     room: [85, 2.2, -107],
     hilltop: [8, 12, -98.5],
     tree: [-10, 7, -111.6],
-    lowPass: [4, 0.5, -152],
-    niche: [6, 0.5, -155.6],
+    lowPass: [11, 0.5, -146],
+    niche: [9.6, 0.5, -159],
   },
 };
