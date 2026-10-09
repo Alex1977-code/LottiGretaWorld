@@ -28,8 +28,10 @@
 //   pebbles      Trittsteine/Kiesel: from, to, n (Standard 6), size (Radius 0.35)
 //   haybale      Heuballen (rund, liegend): yaw, size (Radius 0.6), solid (Standard true)
 //   picnic       Picknickdecke mit Korb: yaw, size [w, d] (Decke, Standard [1.6, 1.2])
+//   opening      Lichtöffnung/Höhlenausgang (leuchtender Bogen auf einer Wand): pos (Mitte unten), size [w, h], yaw
 //   butterflies  Schmetterlinge (animiert, ein Mesh): n (4), r (Flugkreis 2.5), h (Flughöhe 1.2), colors
-//   fireflies    Glühwürmchen (animiert, leuchtend, ein Mesh): n (10), size [w, h, d] (Schwebe-Kasten über pos)
+//   fireflies    Glühwürmchen (weiche Leuchtpunkte, ein Punktwolken-Objekt): n (10), size [w, h, d] (Schwebe-Kasten
+//                über pos), dot (Punktgröße 0.55 m), colors
 // Geometrie je Eintrag verschmolzen (Material world bzw. glow für Leuchtteile).
 
 import * as THREE from 'three';
@@ -90,8 +92,8 @@ function bellflowers(it, parts, rnd) {
     const lean = rnd.real(-0.25, 0.25);
     parts.push(cyl(0.018, 0.026, h, x, p.y + h / 2, z, 4, (pp, nn, o) => { o[0] = stem[0]; o[1] = stem[1]; o[2] = stem[2]; }, { open: true, rz: lean * 0.3 }));
     // Blätter am Fuß
-    parts.push(sph(0.13, x + 0.06, p.y + 0.05, z, lit(leafL, lin(0x5fbf3a), leafD), 1, 0.25, 0.5, 6, 3));
-    parts.push(sph(0.11, x - 0.06, p.y + 0.06, z + 0.03, lit(leafL, lin(0x5fbf3a), leafD), 0.5, 0.25, 1, 6, 3));
+    parts.push(sph(0.13, x + 0.06, p.y + 0.05, z, lit(leafL, lin(0x5fbf3a), leafD), 1, 0.25, 0.5, 5, 2));
+    parts.push(sph(0.11, x - 0.06, p.y + 0.06, z + 0.03, lit(leafL, lin(0x5fbf3a), leafD), 0.5, 0.25, 1, 5, 2));
     // 2–3 hängende Glocken am gebogenen Kopf
     const c = lin(hex(BELL[rnd.pick(cols)] ?? rnd.pick(cols), 0x5a7dff));
     const cl = mixc(c, [1, 1, 1], 0.45, [0, 0, 0]), cd = mixc(c, [0, 0, 0], 0.35, [0, 0, 0]);
@@ -101,8 +103,7 @@ function bellflowers(it, parts, rnd) {
       const a = rnd.real(0, Math.PI * 2);
       const bx = topX + Math.cos(a) * 0.07, bz = z + Math.sin(a) * 0.07, by = p.y + h - 0.04 - k * 0.09;
       // Glocke: Kegelstumpf (oben schmal, unten weit) mit offener Unterseite
-      parts.push(cyl(0.025, 0.065, 0.11, bx, by, bz, 6, vgrad(cd, cl, by - 0.06, by + 0.06)));
-      parts.push(cyl(0.012, 0.012, 0.06, bx, by + 0.08, bz, 3, (pp, nn, o) => { o[0] = stem[0]; o[1] = stem[1]; o[2] = stem[2]; }, { open: true }));
+      parts.push(cyl(0.025, 0.065, 0.11, bx, by, bz, 6, vgrad(cd, cl, by - 0.06, by + 0.06), { open: true }));
     }
   }
 }
@@ -322,7 +323,7 @@ function cloudbank(it, parts, rnd) {
     const t = n === 1 ? 0 : i / (n - 1) - 0.5;
     const r = s * rnd.real(0.45, 0.75) * (1 - Math.abs(t) * 0.7);
     const x = p.x + t * s * 2.4, y = p.y + rnd.real(0, 0.3) * s, z = p.z + rnd.real(-0.3, 0.3) * s;
-    parts.push(sph(r, x, y, z, (pp, nn, o) => mixc(S, W, smooth(-0.5, 0.6, nn.y), o), 1, 0.72, 1, 10, 6));
+    parts.push(sph(r, x, y, z, (pp, nn, o) => mixc(S, W, smooth(-0.5, 0.6, nn.y), o), 1, 0.72, 1, 9, 5));
   }
 }
 
@@ -491,6 +492,31 @@ function crystals(it, parts, rnd) {
   }
 }
 
+/**
+ * Lichtöffnung (Höhlenausgang ins Tageslicht): leuchtender Bogen (Halbellipse) auf einer Wand, innen fast weiß,
+ * zum Rand warm; davor schwebende Lichtstreifen. pos = Mitte unten (auf der Wandfläche), size [w, h], yaw.
+ */
+function opening(it, parts) {
+  const p = v3(it.pos);
+  const [w, h] = it.size ?? [6, 5];
+  const local = [];
+  const inner = lin(0xfffbe8), mid = lin(0xffe7a0), rim = lin(0xffb84a);
+  const g = new THREE.CircleGeometry(1, 24, 0, Math.PI);
+  g.scale(w / 2, h, 1);
+  local.push(colorize(g, (pp, nn, o) => { const d = Math.hypot(pp.x / (w / 2), pp.y / h); if (d < 0.6) mixc(inner, mid, d / 0.6, o); else mixc(mid, rim, (d - 0.6) / 0.4, o); }));
+  // Rahmen aus Licht-Strahlen (schmale Keile, die nach unten auslaufen)
+  for (let k = 0; k < 5; k++) {
+    const x = (-0.6 + k * 0.3) * w / 2;
+    const ray = new THREE.PlaneGeometry(0.22 * w / 6, h * 1.1);
+    ray.translate(x, h * 0.55, 0.06 + k * 0.01);
+    local.push(colorize(ray, (pp, nn, o) => mixc(rim, inner, smooth(0, h, pp.y) * 0.8, o)));
+  }
+  const m = merge(local);
+  if (it.yaw) m.rotateY(it.yaw);
+  m.translate(p.x, p.y, p.z);
+  parts.glow.push(m);
+}
+
 /** Deterministisches Rauschen je Weltpunkt (gleiche Ecke = gleiche Verschiebung → keine Risse). */
 function noise3(x, y, z) {
   const xi = Math.round(x * 100), yi = Math.round(y * 100), zi = Math.round(z * 100);
@@ -538,23 +564,45 @@ function rockwall(level, it, parts) {
  * Schmetterlinge: n Falter flattern auf Ellipsen um pos (Radius r, Höhe h über pos). Ein Mesh, Flügel je Bild neu.
  * Glühwürmchen: n leuchtende Punkte schweben langsam in einem Kasten size [w, h, d] um pos und pulsieren.
  */
+let GLOW_TEX = null;
+/** Weicher, runder Leuchtpunkt (Canvas-Textur, einmal je Seite). */
+function glowTexture() {
+  if (GLOW_TEX) return GLOW_TEX;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 64;
+  const g = cv.getContext('2d');
+  const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grd.addColorStop(0, 'rgba(255,255,255,1)');
+  grd.addColorStop(0.18, 'rgba(255,255,255,0.85)');
+  grd.addColorStop(0.45, 'rgba(255,255,255,0.22)');
+  grd.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 64, 64);
+  GLOW_TEX = new THREE.CanvasTexture(cv);
+  GLOW_TEX.colorSpace = THREE.SRGBColorSpace;
+  return GLOW_TEX;
+}
+
 function critters(level, it, fireflies) {
   if (!level.view) return;
   const p = v3(it.pos);
   const n = it.n ?? (fireflies ? 10 : 4);
   const rnd = new Rnd(((p.x * 73856093) ^ (p.z * 19349663) ^ n) >>> 0);
-  const per = fireflies ? 24 : 12;          // Ecken je Tier (Falter 4 Dreiecke, Glühwürmchen Kern + Schein 8)
+  const per = fireflies ? 1 : 12;           // Falter: 4 Dreiecke; Glühwürmchen: ein Leuchtpunkt
   const pos = new Float32Array(n * per * 3), col = new Float32Array(n * per * 3);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   const pal = fireflies ? (it.colors ?? [0xfff27a, 0xd8ff7a, 0xffd25a]) : (it.colors ?? [0xffd23d, 0xffffff, 0x8fd0ff, 0xff9a2e, 0xff8fd0]);
-  const mat = fireflies
-    ? new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: true })
-    : new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.frustumCulled = false;
-  mesh.renderOrder = fireflies ? 2 : 0;
+  let obj;
+  if (fireflies) {
+    const mat = new THREE.PointsMaterial({ size: it.dot ?? 0.55, map: glowTexture(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true });
+    obj = new THREE.Points(geo, mat);
+  } else {
+    obj = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+  }
+  obj.frustumCulled = false;
+  obj.renderOrder = fireflies ? 2 : 0;
   const R = it.r ?? 2.5, H = it.h ?? 1.2;
   const [bw, bh, bd] = it.size ?? [6, 3, 6];
   const bugs = [];
@@ -571,18 +619,9 @@ function critters(level, it, fireflies) {
     for (let i = 0; i < n; i++) {
       const b = bugs[i], o = i * per * 3;
       if (fireflies) {
-        const x = p.x + b.ox + Math.sin(t * 0.37 * b.fq + b.ph) * 0.9, y = p.y + b.oy + Math.sin(t * 0.53 * b.fq + b.ph * 2) * 0.45;
-        const z = p.z + b.oz + Math.cos(t * 0.31 * b.fq + b.ph) * 0.9;
-        const k = 0.3 + 0.7 * Math.max(0, Math.sin(t * 1.7 * b.fq + b.ph));
-        // Kern (hell) und Schein (groß, schwach): je zwei gekreuzte Rauten
-        for (let layer = 0; layer < 2; layer++) {
-          const s = layer ? 0.32 : 0.1, q = o + layer * 36, kk = layer ? k * 0.28 : k;
-          put(q, x - s, y, z); put(q + 3, x, y + s, z); put(q + 6, x + s, y, z);
-          put(q + 9, x - s, y, z); put(q + 12, x + s, y, z); put(q + 15, x, y - s, z);
-          put(q + 18, x, y, z - s); put(q + 21, x, y + s, z); put(q + 24, x, y, z + s);
-          put(q + 27, x, y, z - s); put(q + 30, x, y, z + s); put(q + 33, x, y - s, z);
-          for (let v = 0; v < 12; v++) { col[q + v * 3] = b.c[0] * kk; col[q + v * 3 + 1] = b.c[1] * kk; col[q + v * 3 + 2] = b.c[2] * kk; }
-        }
+        put(o, p.x + b.ox + Math.sin(t * 0.37 * b.fq + b.ph) * 0.9, p.y + b.oy + Math.sin(t * 0.53 * b.fq + b.ph * 2) * 0.45, p.z + b.oz + Math.cos(t * 0.31 * b.fq + b.ph) * 0.9);
+        const k = 0.25 + 0.75 * Math.max(0, Math.sin(t * 1.7 * b.fq + b.ph));
+        col[o] = b.c[0] * k; col[o + 1] = b.c[1] * k; col[o + 2] = b.c[2] * k;
       } else {
         const a = t * b.w + b.ph;
         const cx = p.x + Math.cos(a) * b.r, cz = p.z + Math.sin(a) * b.r * 0.7, cy = p.y + b.h + Math.sin(t * 2.3 + b.ph) * 0.25;
@@ -607,7 +646,7 @@ function critters(level, it, fireflies) {
     if (fireflies) geo.attributes.color.needsUpdate = true;
   };
   update(0);
-  addObject(level, mesh, update);
+  addObject(level, obj, update);
 }
 
 // ------------------------------------------------------------------ Aufbau
@@ -623,6 +662,7 @@ export function buildDecoW1(level, spec) {
       case 'mushrooms': mushrooms(it, parts, !!it.glow, rnd); break;
       case 'daisies': daisies(it, parts, rnd); break;
       case 'checker': checker(it, parts); break;
+      case 'opening': opening(it, parts); break;
       case 'butterflies': critters(level, it, false); break;
       case 'fireflies': critters(level, it, true); break;
       case 'sign': sign(it, parts); break;

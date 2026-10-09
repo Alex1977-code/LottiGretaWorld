@@ -268,28 +268,37 @@ export const LEVEL = {
       { kind: 'stalagmites', pos: [50, 1, -161.4], size: [16, 0.8], n: 6, len: [0.5, 1.5] },
     ]),
 
-    // =============================================================== Ziel (abseits, x ≈ 50)
-    isl(40, 60, -168, -194, 1, 3, { under: 3 }),
+    // =============================================================== Ziel (abseits, x ≈ 50): Höhlenausgang mit kleinem See
+    isl(40, 60, -168, -176, 1, 3, { under: 3 }),
+    isl(45.4, 60, -176, -186, 1, 3, { under: 3 }),
+    isl(40, 41, -176, -186, 1, 3, { under: 3 }),
+    isl(40, 60, -186, -194, 1, 3, { under: 3 }),
+    isl(41, 45.4, -176, -186, -0.4, 1.6, { top: 'sand', under: 0 }),
+    { type: 'water', pos: [43.2, -0.4, -181], size: [4.4, 1.0, 10] },
     { type: 'pipe', id: 'p_goal', pos: [50, 1, -171], height: 1.4 },
     { type: 'stairs', pos: [50, 1, -177.4], dir: '-z', steps: 3, rise: 1, run: 1.2, width: 4 },
     deco([
-      { kind: 'lantern', pos: [44, 1, -173] }, { kind: 'lantern', pos: [56, 1, -173] },
+      { kind: 'lantern', pos: [46.4, 1, -172.6] }, { kind: 'lantern', pos: [56, 1, -173] },
       { kind: 'lantern', pos: [46, 1, -189] }, { kind: 'lantern', pos: [54.5, 1, -190] },
+      { kind: 'post', pos: [44.4, 1, -183], size: 3.2 }, { kind: 'post', pos: [55.6, 1, -183], size: 3.2 },
+      { kind: 'rock', pos: [40.8, 1, -175.4], size: 0.6 },
     ]),
     decoW1([
       rock(37.5, 40, -166, -196, 1, 10), rock(60, 62.5, -166, -196, 1, 10, { color: ROCK2 }), rock(40, 60, -194, -196.5, 1, 12),
+      { kind: 'opening', pos: [50, 1, -193.6], size: [9, 7.5] },
       { kind: 'stalactites', pos: [50, 11.6, -194.4], size: [18, 1], n: 9, len: [1, 3.4] },
-      { kind: 'crystals', pos: [42, 1, -192], size: 1.6, color: 'cyan' },
+      { kind: 'crystals', pos: [41.2, 1, -188.6], size: 1.4, color: 'cyan' },
       { kind: 'crystals', pos: [58, 1, -191.5], size: 1.4, color: 'violet' },
-      { kind: 'crystals', pos: [41.6, 1, -180], size: 1, color: 'gold' },
+      { kind: 'crystals', pos: [41, -0.4, -177], size: 1, color: 'cyan' },
       { kind: 'crystals', pos: [58.4, 1, -181], size: 1, color: 'pink' },
-      { kind: 'mushrooms', pos: [43, 1, -185], size: 1, color: 'cyan', glow: true },
+      { kind: 'mushrooms', pos: [46.2, 1, -186.4], size: 0.9, color: 'cyan', glow: true },
       { kind: 'mushrooms', pos: [57, 1, -186], size: 0.9, color: 'violet', glow: true },
+      { kind: 'reeds', pos: [45.2, -0.4, -184.8], n: 6, size: 1.8 },
+      { kind: 'lilypads', pos: [43.2, 0.6, -180], size: [3, 6], n: 4 },
       { kind: 'bunting', from: [44.4, 4.2, -183], to: [55.6, 4.2, -183], sag: 0.6 },
-      { kind: 'tufts', pos: [50, 1, -186], size: [16, 14], n: 10 },
-      { kind: 'fireflies', pos: [50, 1, -182], size: [18, 6, 22], n: 18, colors: [0xfff27a, 0xffd25a, 0x9ff2ff] },
+      { kind: 'tufts', pos: [52, 1, -186], size: [12, 14], n: 10 },
+      { kind: 'fireflies', pos: [47, 0.6, -182], size: [16, 6, 20], n: 18, colors: [0xfff27a, 0xffd25a, 0x9ff2ff] },
     ]),
-    deco([{ kind: 'post', pos: [44.4, 1, -183], size: 3.2 }, { kind: 'post', pos: [55.6, 1, -183], size: 3.2 }]),
 
     // =============================================================== Goldröhren-Raum (abseits, x ≈ −60)
     isl(-70, -50, -126, -142, 1, 3, { under: 3 }),
@@ -337,8 +346,8 @@ export const LEVEL = {
     { kind: 'question', pos: [0.4, 3.4, -70.4], content: 'wachstumsbeere' },
     { kind: 'hidden', pos: [-5.2, 7.6, -75], content: 'oneup' },
     // 5: Krallen-Anzug für die Kletterwand zum Welt-Warp
-    { kind: 'question', pos: [-3, 3.4, -136.6], content: 'krallenAnzug' },
-    { kind: 'brick', pos: [-2, 3.4, -136.6], content: 'coins:4' },
+    { kind: 'question', pos: [-3, 3.1, -136.6], content: 'krallenAnzug' },
+    { kind: 'brick', pos: [-2, 3.1, -136.6], content: 'coins:4' },
   ],
   enemies: [
     // Panzerkröten (12): Start 1, Eingang 3 (eine auf dem Raumdach), Röhrenfeld 2, obere Gerade 1, Goldraum 3, Rätselbox 2

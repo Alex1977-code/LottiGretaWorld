@@ -57,6 +57,9 @@ const ROUTES = {
         legs: [{ crouch: 4 }, { to: [86.4, -111.2] }, { to: [87.5, -113.4], jump: 30 }, { to: [90.4, -114.9], jump: 34 }, { to: [93.5, -113.6], jump: 40 }], shot: 'stempel' },
     ],
     extra: [
+      { name: 'Krallen-Anzug aus dem ersten ?-Block (anstoßen, draufspringen)', from: [-4, 4, -9.6],
+        legs: [{ to: [-4, -11.6], within: 0.25, run: false }, { hop: 20 }, { wait: 90 },
+          { to: [-4, -10.3], within: 0.2, run: false }, { to: [-4, -11.6], jump: 40, delay: 22, within: 0.3 }, { wait: 30 }], expectPower: 'krallen' },
       { name: 'Kletterwand mit Krallen-Anzug (6 m)', from: [-3.5, 4, -71.5], power: 'krallen',
         legs: [{ to: [-3.5, -75.4], within: 0.25 }, { push: 150, jump: 10, to: [-3.5, -80] }, { to: [-3.5, -80] }], expectY: 9.9 },
     ],
@@ -127,6 +130,9 @@ const ROUTES = {
           { to: [-4.6, -155], jump: 20, within: 0.4 }, { to: [-7, -155], within: 0.8 }, { to: [-17.6, -155] }, { to: [-19, -155], jump: 24 }], shot: 'stempel' },
     ],
     extra: [
+      { name: 'Funkenblüte aus dem ersten ?-Block', from: [-2.6, 13.4, -2.8],
+        legs: [{ to: [-2.6, -4.6], within: 0.25, run: false }, { hop: 20 }, { wait: 90 },
+          { to: [-2.6, -3.3], within: 0.2, run: false }, { to: [-2.6, -4.6], jump: 40, delay: 22, within: 0.3 }, { wait: 30 }], expectPower: 'funken' },
       { name: 'Welt-Warp: Kletterwand mit Krallen zur Röhre', from: [2.4, 1, -155], power: 'krallen',
         legs: [{ to: [3, -155], within: 0.2 }, { push: 150, jump: 10, to: [6, -155] }, { to: [6.4, -155], jump: 26, within: 0.3 }, { crouch: 4 }], expectX: 90 },
       { name: 'Versteckter Raum: Stampfen auf die Kristallblöcke', from: [3.2, 5.7, -45.2], startY: 5.5,
@@ -204,7 +210,7 @@ function install() {
       const p = P();
       const log = [];
       const jumps = [];
-      let steps = 0;
+      let steps = 0, autoJumps = 0;
       const hold = o.invuln !== false;
       let rideInput = {};
       const tick = (inp) => {
@@ -230,6 +236,12 @@ function install() {
         if (L.wait) { for (let i = 0; i < L.wait; i++) tick({}); continue; }
         if (L.crouch) { for (let i = 0; i < L.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); log.push(['röhre', li, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
         if (L.action) { tick({ action: true }); tick({}); continue; }
+        if (L.hop) {
+          // auf der Stelle springen (z. B. Block von unten anstoßen), dann landen
+          for (let k = 0; k < L.hop; k++) tick({ jump: true });
+          for (let k = 0; k < 240 && p.mode !== 'ground'; k++) tick({});
+          continue;
+        }
         if (L.stomp) {
           // Stampfattacke: hochspringen, am Scheitel ducken
           for (let k = 0; k < 24; k++) tick({ jump: true });
@@ -260,16 +272,22 @@ function install() {
           log.push([L.name ?? `push${li}`, L.push, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
           continue;
         }
+        let best = Infinity, still = 0, auto = 0;
         for (; i < max; i++) {
           if (p.dead || c.level.runtime.status !== 'play') break;
           const dx = L.to[0] - p.pos.x, dz = L.to[1] - p.pos.z;
           const dist = Math.hypot(dx, dz);
+          // festgefahren (Stufe im Weg)? → nachspringen
+          if (dist < best - 0.05) { best = dist; still = 0; } else if (p.mode === 'ground') still++;
+          if (still > 45 && auto <= 0 && L.autoJump !== false) { auto = 26; still = 0; autoJumps++; }
           // Sprung-Etappen enden erst nach der Landung (oder im Wasser)
           const done = dist < within && (!holdJ || L.land === false || landed);
           if (done && i > 0) break;
           let mag = L.slow ?? 1;
           let st;
-          if (p.mode === 'air' && holdJ) {
+          if (L.delay && i < L.delay) {
+            st = { x: 0, y: 0 };            // erst senkrecht hoch, dann lenken (auf einen Block springen)
+          } else if (p.mode === 'air' && holdJ) {
             // in der Luft: auf eine Wunsch-Geschwindigkeit zum Ziel hin lenken (bremst vor dem Landepunkt)
             const k = 2.6, vmax = 11;
             let vx = dx * k, vz = dz * k;
@@ -281,7 +299,8 @@ function install() {
             if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
           }
-          const jump = holdJ ? (i < holdJ) : false;
+          const jump = (holdJ ? (i < holdJ) : false) || auto > 0;
+          if (auto > 0) auto--;
           tick({ ...st, run: L.run ?? true, jump });
           if (p.mode === 'air') airborne = true;
           else if (airborne) landed = true;
@@ -290,7 +309,7 @@ function install() {
         if (i >= max) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, L.to]); break; }
       }
       c.setInput({});
-      return { log, jumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: c.level.runtime.status, info: p.info(), rt: c.level.runtime.info() };
+      return { log, jumps, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: c.level.runtime.status, info: p.info(), rt: c.level.runtime.info() };
     },
     /**
      * Ist der Landepunkt (x, z) aus der Spielkamera sichtbar? Kamera wie im Spiel aus der Schiene an der Figur
@@ -399,7 +418,7 @@ for (const id of LEVELS) {
     await W('place', R.start, { hero, settle: 2 });
     const res = await W('drive', R.main, {});
     const reached = res.status === 'goal' || res.status === 'done';
-    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}`);
+    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}`);
     if (!reached) for (const l of res.log) console.log('     ', JSON.stringify(l));
     check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
     if (hero === 'lotti') {
@@ -432,9 +451,9 @@ for (const id of LEVELS) {
       if (t.startY !== undefined && st0.y < t.startY) { check(`${id}: ${t.name} (${hero}) – Startpunkt fehlt (y ${st0.y.toFixed(2)})`, false); continue; }
       const res = await W('drive', t.legs, {});
       const inR = (v, r) => (r === undefined ? true : Array.isArray(r) ? v >= r[0] && v <= r[1] : v >= r);
-      const ok = inR(res.info.x, t.expectX) && inR(res.info.y, t.expectY) && inR(res.info.z, t.expectZ) && !res.dead;
+      const ok = inR(res.info.x, t.expectX) && inR(res.info.y, t.expectY) && inR(res.info.z, t.expectZ) && !res.dead && (!t.expectPower || res.info.power === t.expectPower);
       if (!ok) for (const l of res.log) console.log('     ', JSON.stringify(l));
-      check(`${id}: ${t.name} (${hero}, bei ${res.info.x.toFixed(1)}, ${res.info.y.toFixed(1)}, ${res.info.z.toFixed(1)})`, ok);
+      check(`${id}: ${t.name} (${hero}, bei ${res.info.x.toFixed(1)}, ${res.info.y.toFixed(1)}, ${res.info.z.toFixed(1)}${t.expectPower ? ', Power ' + res.info.power : ''})`, ok);
     }
   }
 
