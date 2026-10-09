@@ -82,7 +82,9 @@ for (let i = 1; i <= 4; i++) { await move(2, 700, 300 + i * 25); await page.wait
 await page.waitForTimeout(150);
 s = await heroState(page); logState('swipe down', s);
 check('Wisch nach unten → Sturzflug', s.state === 'dive');
+await page.evaluate(() => window.__game.scene.getScene('Play').physics.world.pause()); // Bild ohne Zeitverlust (Physik steht)
 await page.screenshot({ path: `${OUT}t03_dive.png` });
+await page.evaluate(() => window.__game.scene.getScene('Play').physics.world.resume());
 await page.waitForTimeout(150);
 // Wisch nach oben → hochziehen, Finger bleibt → Schirm wieder offen
 for (let i = 1; i <= 4; i++) { await move(2, 700, 400 - i * 25); await page.waitForTimeout(16); }

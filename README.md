@@ -1,7 +1,7 @@
 # Lotti & Greta
 
-Jump'n'Run fürs Smartphone im Querformat: klassische Side-Scroller-Spielweise, dargestellt in
-echtem 3D im Stil moderner Spielzeug-Jump'n'Runs (Vorbild in der Anmutung: Super Mario 3D World).
+Jump'n'Run fürs Smartphone im Querformat: ein **3D-Kurs-Plattformer** mit frei begehbarer Weltkarte
+(Vorbild in der Anmutung: Super Mario 3D World), dazu das ursprüngliche Side-Scroller-Spiel als „Klassik“.
 Läuft im Browser, installierbar als PWA. Alle Grafiken und Sounds werden prozedural per Code erzeugt –
 keine externen Assets.
 
@@ -105,28 +105,44 @@ später durch handgebaute Levels ersetzt werden (gleicher Eintrag in `src/levels
 
 Pause: Esc/P oder der Knopf oben in der Mitte → „Weiter“ / „Zur Weltkarte“.
 
-## Kurs-Modus (3D-Kurs-Plattformer, im Aufbau)
+## Kurs-Modus (3D-Kurs-Plattformer) – Hauptspiel
 
-Der künftige Hauptmodus: freie Bewegung in 3D, Kamera schräg von hinten oben mit Kameraschienen, lineare
-Hindernisparcours mit 3 grünen Sternen, Stempel und Zielmast. Vertrag und Schnittstellen:
-[`docs/KURS-ARCHITEKTUR.md`](docs/KURS-ARCHITEKTUR.md) (inkl. „Präzisierung (Motor)“). Code unter
-`src/course/` (Kollisionswelt, Spielfigur, Kamera, Bausteine, Entitäten, Level-Daten).
+Freie Bewegung in 3D, Kamera schräg von hinten oben mit Kameraschienen, lineare Hindernisparcours mit grünen
+Sternen, Stempel und Zielmast – umgesetzt nach dem Level-Bauplan des Auftraggebers (Vorbild in der Anmutung:
+Super Mario 3D World; alle Namen, Figuren und Titel eigen). Vertrag und Schnittstellen:
+[`docs/KURS-ARCHITEKTUR.md`](docs/KURS-ARCHITEKTUR.md). Code unter `src/course/`.
 
-- Starten: `?course=0-0` (Übungsplatz mit allen Grund-Bausteinen und Bewegungen), `?course=0-2` (Bausteinpark:
-  alle Sonder-Bausteine für Welt 1 – Glasröhre, Kipp-Schaltfelder, Laternen, Warp-Box, POW-Block, Wolkenkanone,
-  Sternenring, Fang-Hase, Fluss mit Blatt-Floß und Pflaume … je mit Schild). Ohne Parameter startet weiter die
-  bisherige Weltkarte.
-- Tastatur: Pfeile/WASD laufen (relativ zur Kamera), **Shift** rennen (Druck = Aktion, auch **X**),
-  **Leertaste** springen (Höhe nach Haltedauer), **Strg/C** ducken/rutschen (in der Luft: Stampfattacke),
-  **Q/E** Kamera ±30°, **Z** Zoom, **Esc/P** Pause, **F2** Debug-Anzeige.
-- Touch: Stick links (ab ~85 % Auslenkung rennen), **A** springen, **B** ducken, **Y** Aktion/Rennen,
+**Start:** Ohne Parameter startet die frei begehbare **Kurs-Weltkarte** (Welt 1 „Grüne Blockinsel“): Zum
+Eingang laufen und **A**/Leertaste/Enter (Touch: „Los!“-Knopf). Knopf „Klassik“ bzw. `?classic=1` öffnet das
+bisherige Side-Scroller-Spiel. `?course=<id>` startet ein Level direkt, `?map=1` die Kurs-Karte.
+
+**Welt 1** (24 Sterne; die Burg braucht 10):
+
+| Id | Titel | Art |
+| --- | --- | --- |
+| 1-1 | Kraxelwiese | Wiesen-Parcours, führt den Krallen-Anzug ein |
+| 1-2 | Laternengrotte | Höhle mit Laternen und Funkenblüte |
+| 1-A | Hörnerkrach im Käfig | Arena gegen zwei Rammbock-Bullen (optional) |
+| 1-3 | Kraxelei am Klötzchenberg | vertikaler Bergaufstieg, Riesenschnappblume |
+| 1-Schatz | Pflaume und der Wolkenwürfel | Diorama: Pflaume als Schatzsucherin, springt nicht, 5 Sterne |
+| 1-4 | Pflaumes Wildwasserfahrt | Fluss-Ritt auf Pflaume im Blatt-Floß |
+| 1-5 | Kippfeld-Manege | Zirkus mit Kipp-Schaltfeldern |
+| 1-Burg | Brummbärs Abendautobahn | Bosslevel gegen Baron Brummbär im roten Sportwagen |
+
+Testlevel: `?course=0-0` (Übungsplatz), `0-1` (Gegnerpark), `0-2` (Bausteinpark).
+
+- **Tastatur:** Pfeile/WASD laufen (relativ zur Kamera), **Shift** rennen (Druck = Aktion, auch **X**:
+  Feuerball, Krallenhieb, Aufheben/Werfen), **Leertaste** springen (Höhe nach Haltedauer), **Strg/C**
+  ducken/rutschen (in der Luft: Stampfattacke), **Q/E** Kamera drehen, **Z** Zoom, **Tab** Figur (Karte),
+  **M** Ton, **Esc/P** Pause, **F2** Debug-Anzeige.
+- **Touch:** Stick links (ab ~85 % Auslenkung rennen), **A** springen, **B** ducken, **Y** Aktion/Rennen,
   ⟲ ⟳ ⊕ Kamera, Pause-Knopf oben rechts (`?touch=1` erzwingt die Knöpfe am PC).
-- Bewegungen: Dreifachsprung (3 Sprünge kurz nach der Landung), Rückwärtssalto (Ducken + Sprung im Stand),
-  Seitwärtssalto (Umkehr + Sprung), Weitsprung (Rennen + Ducken + Sprung), Wandrutschen/Wandsprung,
-  Stampfattacke, Rutschen, Klettern mit Krallen-Anzug, Bohnenranke, Schwimmen.
-- Tests: `node tests/course.mjs` (Bewegungsset deterministisch über `__course.step(n)`),
-  `node tests/course_view.mjs` (Screenshots `tests/out/c_*.png`, Zeichenaufrufe/Dreiecke),
-  `node tests/course_blocks.mjs` (Sonder-Bausteine im Bausteinpark, Screenshots `tests/out/cb_*.png`).
+- **Bewegungen:** Dreifachsprung, Rückwärtssalto (Ducken + Sprung im Stand), Seitwärtssalto (Umkehr + Sprung),
+  Weitsprung (Rennen + Ducken + Sprung), Wandrutschen/Wandsprung, Stampfattacke, Rutschen, Klettern mit
+  Krallen-Anzug, Bohnenranke, Schwimmen, Tragen/Werfen. Lotti springt höher, Greta weiter.
+- **Power-ups:** Wachstumsbeere, Krallen-Anzug, Funkenblüte, Riesentrank, Funkelstern, 1-Up.
+- **Tests:** `tests/course*.mjs` (deterministisch über `__course.step(n)`, Screenshots unter `tests/out/`),
+  alle im `npm test`-Lauf.
 
 ## Sound & Musik
 
