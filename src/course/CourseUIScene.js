@@ -34,7 +34,11 @@ export class CourseUIScene extends Phaser.Scene {
     // Panels
     uiPanel(this, 46, 15, 76, 20, { color: 0x1a1830, alpha: 0.5, radius: 10, shadow: false, border: 0 }).setDepth(40);
     uiPanel(this, 120, 15, 62, 20, { color: 0x1a1830, alpha: 0.5, radius: 10, shadow: false, border: 0 }).setDepth(40);
-    uiPanel(this, W / 2, 15, 106, 22, { color: 0x1a1830, alpha: 0.5, radius: 11, shadow: false, border: 0 }).setDepth(40);
+    // Stern-Plätze nach der Sternzahl des Levels (Diorama 5, Arena 1 → 3 Plätze), Stempel nur, wenn es einen gibt
+    this.nStars = this.course.level?.runtime?.stars?.length ?? 3;
+    this.hasStamp = this.course.levelData?.stamp !== undefined && this.course.levelData?.stamp !== null;
+    const starW = this.nStars * 20 + (this.hasStamp ? 46 : 8);
+    uiPanel(this, W / 2, 15, starW, 22, { color: 0x1a1830, alpha: 0.5, radius: 11, shadow: false, border: 0 }).setDepth(40);
     uiPanel(this, W - 66, 15, 64, 20, { color: 0x1a1830, alpha: 0.5, radius: 10, shadow: false, border: 0 }).setDepth(40);
     this.icons = this.add.graphics().setDepth(41);
     this.livesText = uiText(this, 44, 15, '×5', { size: 11, originX: 0 }).setDepth(42);
@@ -111,16 +115,18 @@ export class CourseUIScene extends Phaser.Scene {
     g.fillStyle(0xf7931a, 1); g.fillCircle(104, 15, 7);
     g.lineStyle(1, 0xffe0b0, 1); g.strokeCircle(104, 15, 6);
     // Sterne (gesammelt = grün, schon gespeichert = blass, offen = Umriss)
-    for (let i = 0; i < 3; i++) {
-      const x = W / 2 - 34 + i * 20, y = 15;
+    const n = this.nStars ?? 3, x0 = W / 2 - (n - 1) * 10 - (this.hasStamp === false ? 0 : 13);
+    for (let i = 0; i < n; i++) {
+      const x = x0 + i * 20, y = 15;
       const pts = starPoints(x, y, 8, 3.6);
       if (rt.stars[i]) { g.fillStyle(0x3ee05a, 1); g.fillPoints(pts, true); g.lineStyle(1.2, 0xeaffea, 1); g.strokePoints(pts, true); }
       else if (rt.starsSaved[i]) { g.fillStyle(0x3ee05a, 0.35); g.fillPoints(pts, true); g.lineStyle(1, 0xffffff, 0.5); g.strokePoints(pts, true); }
       else { g.fillStyle(0x000000, 0.25); g.fillPoints(pts, true); g.lineStyle(1, 0xffffff, 0.55); g.strokePoints(pts, true); }
     }
     // Stempel
-    const sx = W / 2 + 36;
-    if (rt.stamp) { g.fillStyle(0xff7ab8, 1); g.fillCircle(sx, 15, 7); g.fillStyle(0xfff4fa, 1); g.fillCircle(sx, 15, 4.5); g.fillStyle(0xe8438c, 1); g.fillCircle(sx, 16, 2.2); }
+    const sx = x0 + n * 20 + 9;
+    if (this.hasStamp === false) { /* Level ohne Stempel (Diorama) */ }
+    else if (rt.stamp) { g.fillStyle(0xff7ab8, 1); g.fillCircle(sx, 15, 7); g.fillStyle(0xfff4fa, 1); g.fillCircle(sx, 15, 4.5); g.fillStyle(0xe8438c, 1); g.fillCircle(sx, 16, 2.2); }
     else { g.fillStyle(0x000000, rt.stampSaved ? 0.1 : 0.25); g.fillCircle(sx, 15, 7); g.lineStyle(1, rt.stampSaved ? 0xff9ccc : 0xffffff, 0.55); g.strokeCircle(sx, 15, 7); }
     // Uhr
     const tx = W - 86;

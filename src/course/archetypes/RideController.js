@@ -256,6 +256,9 @@ export class RideController extends Player {
       va += (target - va) * (1 - Math.exp(-RIDE.alongRate * dt * (va > target ? 1.5 : 1)));
       const tl = lock ? 0 : RIDE.steer * this.speedMult * lat;
       vl = approach(vl, tl, (Math.abs(lat) > 0.05 && !lock ? RIDE.steerAccel : RIDE.latDrag) * dt);
+    } else if (this.plunging) {
+      va = approach(va, f.speed * 0.6, 4 * dt);          // im freien Fall bremst die Luft – Landung mitten in der Lagune
+      if (!lock) vl = approach(vl, RIDE.steer * 0.5 * lat, 4 * dt);
     } else if (!lock) {
       vl = approach(vl, RIDE.steer * lat, 7 * this.airMult * dt);
     }

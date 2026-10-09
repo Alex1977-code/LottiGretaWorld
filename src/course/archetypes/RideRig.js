@@ -13,7 +13,7 @@ import { createAvatar } from '../../three/avatars/index.js';
 import { HeroAvatar } from '../../three/avatars/hero.js';
 
 const AVATAR_H = 1.5;
-const PFL_SCALE = 1.08;          // Pflaume etwas größer: Floß ≈ 1,5 m lang
+const PFL_SCALE = 1.12;          // Pflaume etwas größer: Floß ≈ 1,55 m lang
 const TAU = Math.PI * 2;
 const wrap = (a) => { a %= TAU; if (a > Math.PI) a -= TAU; else if (a < -Math.PI) a += TAU; return a; };
 const damp = (c, t, r, dt) => c + (t - c) * (1 - Math.exp(-r * dt));
@@ -166,10 +166,12 @@ export class RideRig {
     }
     // ---- Heldin
     const heroOnRaft = onRaft;
-    if (heroOnRaft !== this.attached) {
+    if (heroOnRaft !== this.attached || this.heroShadowAv !== this.hero) {
+      if (heroOnRaft !== this.attached) { (heroOnRaft ? this.raftGroup : this.root).add(this.heroHull); this.heroYaw = p.yaw; }
       this.attached = heroOnRaft;
-      (heroOnRaft ? this.raftGroup : this.root).add(this.heroHull);
-      this.heroYaw = p.yaw;
+      // auf dem Floß ohne Sonnenschatten (Blob genügt; spart den Schattenpass der Heldin), zu Fuß wie gewohnt
+      this.heroShadowAv = this.hero;
+      this.hero?.root.traverse((o) => { if (!o.isMesh) return; if (o.userData.cs0 === undefined) o.userData.cs0 = o.castShadow; o.castShadow = heroOnRaft ? false : o.userData.cs0; });
     }
     const hs = (p.big ? 1 : 0.7) / AVATAR_H;
     const blink = p.invuln > 0 && !p.powerDef.invulnerable && Math.floor(t * 16) % 2 === 0;
@@ -207,6 +209,11 @@ export class RideRig {
     const pblink = blink && heroOnRaft;
     this.pflHull.visible = !pblink;
     try { this.pfl?.animate(dt, t); } catch (err) { console.error('Pflaume-Animation fehlgeschlagen:', err); this.pfl = null; }
+    // Pflaume (und Floß) werfen keinen Sonnenschatten – der Schatten-Blob genügt, spart ~10 Zeichenaufrufe
+    if (this.pfl && this.pflShadowKey !== (this.pfl.raft ? 2 : 1) + (this.pfl.gear ? 2 : 0)) {
+      this.pflShadowKey = (this.pfl.raft ? 2 : 1) + (this.pfl.gear ? 2 : 0);
+      this.pfl.root.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+    }
     if (this.leaf) {
       this.leaf.root.position.set(0, 0, 0);
       this.leafGroup.position.set(rp.x, rp.y + 0.02 * Math.sin(t * 1.7), rp.z);

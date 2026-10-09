@@ -31,7 +31,8 @@
 //                depth (3) }  Felsbogen über dem Kanal (Grotte hinter einem Wasserfall)
 // river_cliff  { from: [x, z], to: [x, z], y0, y1, depth (4) }  Felswand (Klippe hinter dem großen Wasserfall)
 // river_deco   { items: [{ kind, pos, size?, color?, n?, r?, yaw? }] }  kind: palm | fern | bush | bloom | rock | tree |
-//                lilies (pos [x, z], r, n – auf dem Wasser) | reeds | hut | sign (Pfeilschild, yaw) | totem
+//                lilies (pos [x, z], r, n – auf dem Wasser) | reeds | hut | sign (Pfeilschild, yaw) | totem |
+//                dock (Holzsteg: from/to = Lauffläche, achsenparallel, width; mit Kollision)
 // Alle Positionen in Metern (Weltkoordinaten), pos = Fußpunkt.
 
 import * as THREE from 'three';
@@ -187,7 +188,7 @@ function tint(g, color, shadeK = 0.25) {
 
 /** Palme: gebogener Stamm aus Ringen, 7 hängende Wedel, Kokosnüsse. h = Höhe, lean = Neigung (rad), yaw. */
 function palmParts(J, x, y, z, h, lean, yaw, rnd, parts) {
-  const segs = 7;
+  const segs = 5;
   const dirX = Math.cos(yaw), dirZ = -Math.sin(yaw);
   let px = x, py = y, pz = z;
   const tl = lin(hex(J.palmTrunk)), td = lin(hex(J.palmTrunkDark));
@@ -201,7 +202,7 @@ function palmParts(J, x, y, z, h, lean, yaw, rnd, parts) {
     const a = pts[i], b = pts[i + 1];
     const len = a.distanceTo(b);
     const r0 = 0.2 * (1 - (i / segs) * 0.45), r1 = 0.2 * (1 - ((i + 1) / segs) * 0.45);
-    const g = new THREE.CylinderGeometry(r1, r0 * 1.06, len, 7, 1, false);
+    const g = new THREE.CylinderGeometry(r1, r0 * 1.06, len, 6, 1, true);
     g.translate(0, len / 2, 0);
     const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
     g.applyQuaternion(q);
@@ -211,18 +212,18 @@ function palmParts(J, x, y, z, h, lean, yaw, rnd, parts) {
     px = b.x; py = b.y; pz = b.z;
   }
   // Kokosnüsse
-  for (let k = 0; k < 3; k++) {
-    const a = (k / 3) * TAU + rnd.real(0, 1);
+  for (let k = 0; k < 2; k++) {
+    const a = (k / 2) * TAU + rnd.real(0, 1);
     parts.push(blob(0.15, px + Math.cos(a) * 0.2, py - 0.18, pz + Math.sin(a) * 0.2, 0x8a5a2a, 0x6a4020, 0x3e2412, 1, 1, 1, 6, 4));
   }
   // Wedel: gebogene Blattstreifen mit Mittelrippe (hell) und gezackten Rändern
-  const nf = 7;
+  const nf = 6;
   const fl = lin(hex(J.frondLight)), fm = lin(hex(J.frond)), fd = lin(hex(J.frondDark));
   for (let f = 0; f < nf; f++) {
     const a = (f / nf) * TAU + rnd.real(-0.2, 0.2);
     const L = h * 0.55 + rnd.real(-0.2, 0.3);
     const ca = Math.cos(a), sa = Math.sin(a);
-    const n = 6;
+    const n = 5;
     const P = [], C = [];
     for (let i = 0; i <= n; i++) {
       const t = i / n;
@@ -245,14 +246,14 @@ function palmParts(J, x, y, z, h, lean, yaw, rnd, parts) {
 }
 
 function fernParts(J, x, y, z, s, rnd, parts) {
-  const n = 7;
+  const n = 6;
   const fl = lin(hex(J.frondLight)), fm = lin(hex(J.frond)), fd = lin(hex(J.frondDark));
   for (let f = 0; f < n; f++) {
     const a = (f / n) * TAU + rnd.real(-0.3, 0.3);
     const L = s * rnd.real(0.8, 1.15);
     const ca = Math.cos(a), sa = Math.sin(a);
     const P = [], C = [];
-    const m = 5;
+    const m = 4;
     for (let i = 0; i <= m; i++) {
       const t = i / m;
       const along = L * t * 0.9;
@@ -270,31 +271,39 @@ function fernParts(J, x, y, z, s, rnd, parts) {
 
 function bushParts(J, x, y, z, r, rnd, parts) {
   const pal = rnd.pick(J.canopy);
-  for (const [dx, dy, dz, k] of [[0, 0.55, 0, 1], [-0.7, 0.4, 0.2, 0.75], [0.65, 0.42, -0.15, 0.7], [0.1, 0.35, 0.6, 0.6]]) {
-    parts.push(blob(r * k, x + dx * r, y + dy * r, z + dz * r, pal[0], pal[1], pal[2], 1, 0.85, 1, 8, 5));
+  for (const [dx, dy, dz, k] of [[0, 0.55, 0, 1], [-0.7, 0.4, 0.2, 0.75], [0.65, 0.42, -0.15, 0.7]]) {
+    parts.push(blob(r * k, x + dx * r, y + dy * r, z + dz * r, pal[0], pal[1], pal[2], 1, 0.85, 1, 7, 5));
   }
 }
 
 function bloomParts(J, x, y, z, rnd, parts) {
-  const n = rnd.int(3, 5);
+  const n = rnd.int(2, 4);
   const stem = lin(0x3f8f2a);
   for (let i = 0; i < n; i++) {
     const a = rnd.real(0, TAU), d = rnd.real(0, 0.45);
     const bx = x + Math.cos(a) * d, bz = z + Math.sin(a) * d, h = rnd.real(0.35, 0.75);
-    const g = new THREE.CylinderGeometry(0.025, 0.03, h, 4, 1, true);
+    const g = new THREE.CylinderGeometry(0.025, 0.03, h, 3, 1, true);
     g.translate(bx, y + h / 2, bz);
     parts.push(colorize(g, (p, nn, o) => { o[0] = stem[0]; o[1] = stem[1]; o[2] = stem[2]; }));
     const c = rnd.pick(J.blooms);
-    for (let k = 0; k < 5; k++) {
-      const b = (k / 5) * TAU;
-      parts.push(blob(0.1, bx + Math.cos(b) * 0.11, y + h, bz + Math.sin(b) * 0.11, 0xffffff, c, c, 1, 0.45, 1, 5, 3));
+    // Blüte: flacher Stern aus 5 Blättern (ein Körper), gelbe Mitte
+    const bl = new THREE.CylinderGeometry(0.2, 0.06, 0.08, 10, 1, false);
+    const pos = bl.attributes.position;
+    for (let k = 0; k < pos.count; k++) {
+      const px = pos.getX(k), pz = pos.getZ(k), ang = Math.atan2(pz, px), rr = Math.hypot(px, pz);
+      const lobe = 0.55 + 0.45 * Math.abs(Math.cos(ang * 2.5));
+      pos.setXYZ(k, Math.cos(ang) * rr * lobe, pos.getY(k), Math.sin(ang) * rr * lobe);
     }
-    parts.push(blob(0.06, bx, y + h + 0.02, bz, 0xfff6c0, 0xffc21a, 0xd99a00, 1, 1, 1, 5, 3));
+    bl.computeVertexNormals();
+    bl.translate(bx, y + h, bz);
+    const cc = lin(hex(c)), cw = lin(0xffffff);
+    parts.push(colorize(bl, (p, nn, o) => mixc(cc, cw, nn.y > 0.5 ? 0.15 : 0, o)));
+    parts.push(blob(0.06, bx, y + h + 0.05, bz, 0xfff6c0, 0xffc21a, 0xd99a00, 1, 1, 1, 5, 3));
   }
   // große Blätter am Boden
-  for (let k = 0; k < 3; k++) {
+  for (let k = 0; k < 2; k++) {
     const a = rnd.real(0, TAU);
-    parts.push(blob(0.28, x + Math.cos(a) * 0.3, y + 0.06, z + Math.sin(a) * 0.3, J.frondLight, J.frond, J.frondDark, 1.4, 0.18, 0.7, 7, 4));
+    parts.push(blob(0.28, x + Math.cos(a) * 0.3, y + 0.06, z + Math.sin(a) * 0.3, J.frondLight, J.frond, J.frondDark, 1.4, 0.18, 0.7, 6, 3));
   }
 }
 
@@ -307,7 +316,7 @@ function rockParts(x, y, z, r, rnd, parts, moss = 0x5aa83a) {
   parts.push(colorize(g, (p, n, o) => { mixc(D, L, smooth(-0.5, 0.6, n.y), o); if (n.y > 0.75) mixc(o, M, 0.7, o); }));
 }
 
-function treeParts(J, x, y, z, h, rnd, parts) {
+function treeParts(J, x, y, z, h, rnd, parts, lowPoly = false) {
   const rT = 0.32 + h * 0.03;
   const trunk = new THREE.CylinderGeometry(rT * 0.7, rT * 1.25, h * 0.62, 8, 1, true);
   trunk.translate(x, y + h * 0.31, z);
@@ -325,7 +334,7 @@ function treeParts(J, x, y, z, h, rnd, parts) {
   const pal = rnd.pick(J.canopy);
   const R = h * 0.26;
   for (const [dx, dy, dz, k] of [[0, 0.72, 0, 1.15], [-0.85, 0.6, 0.3, 0.8], [0.8, 0.62, -0.25, 0.85], [0.2, 0.86, 0.5, 0.7]]) {
-    parts.push(blob(R * k, x + dx * R, y + dy * h, z + dz * R, pal[0], pal[1], pal[2], 1, 0.78, 1, 9, 6));
+    parts.push(blob(R * k, x + dx * R, y + dy * h, z + dz * R, pal[0], pal[1], pal[2], 1, 0.78, 1, lowPoly ? 6 : 8, lowPoly ? 4 : 5));
   }
   // Lianen
   for (let k = 0; k < 3; k++) {
@@ -401,6 +410,46 @@ function signParts(x, y, z, yaw, parts) {
   parts.push(g);
 }
 
+/**
+ * Holzsteg (warmes Holz, Pfähle mit Seil-Geländer): from/to = Lauffläche (achsenparallel), width. Kollision: Quader
+ * (0,3 m dick) – auch ohne Ansicht (wird in buildRiverDeco vor dem Ansichts-Test angelegt).
+ */
+function dockShape(level, it) {
+  const a = v3(it.from), b = v3(it.to), w = it.width ?? 2.4;
+  const x0 = Math.min(a.x, b.x) - (a.x === b.x ? w / 2 : 0), x1 = Math.max(a.x, b.x) + (a.x === b.x ? w / 2 : 0);
+  const z0 = Math.min(a.z, b.z) - (a.z === b.z ? w / 2 : 0), z1 = Math.max(a.z, b.z) + (a.z === b.z ? w / 2 : 0);
+  level.world.add({ type: 'box', min: [x0, a.y - 0.3, z0], max: [x1, a.y, z1], tag: 'steg' });
+}
+function dockParts(level, it, parts) {
+  const a = v3(it.from), b = v3(it.to), w = it.width ?? 2.4;
+  const L = Math.hypot(b.x - a.x, b.z - a.z), yaw = Math.atan2(-(b.z - a.z), b.x - a.x);
+  const local = [];
+  const n = Math.max(1, Math.floor(L / 0.42));
+  const cols = [0xc98a4e, 0xb97a42, 0xd49656];
+  for (let i = 0; i < n; i++) {
+    const t = (i + 0.5) / n;
+    local.push(box(L / n - 0.05, 0.14, w * (0.96 + 0.04 * Math.sin(i * 2.1)), t * L, -0.07, 0.03 * Math.sin(i * 1.7), cols[i % 3], { r: 0.035, seg: 1, topColor: 0xdca36a }));
+  }
+  for (const s of [-1, 1]) {
+    local.push(box(L + 0.1, 0.2, 0.16, L / 2, -0.22, s * (w / 2 - 0.1), 0x7a4a26, { r: 0.04, seg: 1 }));
+    const np = Math.max(2, Math.round(L / 2.4) + 1);
+    for (let i = 0; i < np; i++) {
+      const t = i / (np - 1);
+      local.push(box(0.2, 2.2, 0.2, t * L, -0.55, s * (w / 2 - 0.05), 0x6a4024, { r: 0.07, seg: 1 }));
+      local.push(box(0.26, 0.12, 0.26, t * L, 0.56, s * (w / 2 - 0.05), 0x8a5a32, { r: 0.05, seg: 1 }));
+    }
+    // Seil zwischen den Pfosten
+    const rope = new THREE.CylinderGeometry(0.035, 0.035, L, 4, 1, true);
+    rope.rotateZ(Math.PI / 2);
+    rope.translate(L / 2, 0.48, s * (w / 2 - 0.05));
+    local.push(tint(rope, 0xe8d6a8, 0.1));
+  }
+  const g = merge(local);
+  g.rotateY(yaw);
+  g.translate(a.x, a.y, a.z);
+  parts.push(g);
+}
+
 /** Geschnitzter Totempfahl (lachende Gesichter, bunt). */
 function totemParts(x, y, z, yaw, parts) {
   const local = [];
@@ -445,7 +494,7 @@ export function buildRiver(level, spec) {
   }
   if (!level.view) return;
   for (const { c, ch } of chans) {
-    buildWater(level, ch, J);
+    buildWater(level, net, ch, J);
     if (!c.bank?.none) buildBanks(level, net, ch, c, J, rnd, lowY);
   }
   if (spec.lowland) buildLowland(level, net, spec.lowland, J, rnd);
@@ -469,13 +518,15 @@ function registerChannel(level, net, ch) {
   if (ch.id && !level.named.has(ch.id)) level.named.set(ch.id, river);
 }
 
-/** Wasserfläche (Vertexfarben, Glanz) und Schaumstreifen (wandern mit der Strömung). */
-function buildWater(level, ch, J) {
+/** Wasserfläche (Vertexfarben, Glanz) und Schaumstreifen (wandern mit der Strömung). Wo ein Kanal in einem anderen
+ *  liegt (Gabelung, Mündung), liegt seine Fläche 2 cm tiefer, ohne helle Ränder und ohne eigene Schaumstreifen. */
+function buildWater(level, net, ch, J) {
   const S = ch.S;
   const lats = [-1.12, -0.9, -0.55, 0, 0.55, 0.9, 1.12];
   const nc = lats.length;
   const P = [], C = [], UV = [], PF = [], UVF = [], CF = [];
   const deep = lin(hex(J.waterDeep)), mid = lin(hex(J.water)), edge = lin(hex(J.waterEdge)), foam = lin(hex(J.foam));
+  const primary = net.channels[0] === ch;
   let v = 0;
   for (let i = 0; i < S.length; i++) {
     const q = S[i];
@@ -484,19 +535,23 @@ function buildWater(level, ch, J) {
     const white = clamp((slope - 0.15) * 2.5, 0, 0.85);
     for (let k = 0; k < nc; k++) {
       const f = lats[k], lat = f * q.w / 2;
-      P.push({ x: q.x + q.rx * lat, y: q.y, z: q.z + q.rz * lat });
+      const x = q.x + q.rx * lat, z = q.z + q.rz * lat;
+      const inner = net.insideOther(x, z, ch, q.s, q.w * 2 + 8, 0.6);
+      P.push({ x, y: q.y - (inner && !primary ? 0.02 : 0), z });
       const a = Math.abs(f);
-      const cc = a >= 0.85 ? mixc(mid, edge, 0.7, [0, 0, 0]) : a >= 0.5 ? mixc(deep, mid, 0.75, [0, 0, 0]) : deep.slice();
+      const cc = inner ? mixc(deep, mid, 0.75, [0, 0, 0]) : a >= 0.85 ? mixc(mid, edge, 0.7, [0, 0, 0]) : a >= 0.5 ? mixc(deep, mid, 0.75, [0, 0, 0]) : deep.slice();
       if (white > 0) mixc(cc, foam, white, cc);
       C.push(cc);
       UV.push([lat / 3.6, v]);
     }
     for (let k = 1; k < nc - 1; k++) {
       const f = lats[k], lat = f * q.w / 2;
-      PF.push({ x: q.x + q.rx * lat, y: q.y + 0.035, z: q.z + q.rz * lat });
+      const x = q.x + q.rx * lat, z = q.z + q.rz * lat;
+      const skip = !primary && net.insideOther(x, z, ch, q.s, q.w * 2 + 8, -0.3);
+      PF.push({ x, y: q.y + 0.035, z, skip });
       UVF.push([lat / 3.6, v]);
       const a = Math.abs(f);
-      CF.push([1, 1, 1].map((x) => x * (a > 0.8 ? 0.85 : 1)));
+      CF.push([1, 1, 1].map((x2) => x2 * (a > 0.8 ? 0.85 : 1)));
     }
   }
   const g = gridGeo(S.length, nc, P, C, UV, true);
@@ -604,7 +659,7 @@ function buildBanks(level, net, ch, c, J, rnd, lowY) {
         }
       }
       // beidseitig (Kappe ist von flussauf und flussab sichtbar)
-      addStatic(level, merge([gridGeo(pts.length, 2, P, C, null, false).toNonIndexed(), gridGeo(pts.length, 2, P, C, null, true).toNonIndexed()]), { castShadow: false });
+      addStatic(level, merge([gridGeo(pts.length, 2, P, C, null, false).toNonIndexed(), gridGeo(pts.length, 2, P, C, null, true).toNonIndexed()]), { castShadow: true });
     }
     if (density > 0) scatterJungle(level, net, ch, side, outS, open, H0, J, rnd, density, OUT);
   }
@@ -613,15 +668,18 @@ function buildBanks(level, net, ch, c, J, rnd, lowY) {
 /** Dschungel auf dem Uferstreifen: Palmen, Farne, Büsche, Blüten, Felsen, große Urwaldbäume (in Stücken). */
 function scatterJungle(level, net, ch, side, outS, open, H0, J, rnd, density, OUT) {
   const S = ch.S;
-  let parts = [];
+  let tall = [], small = [];
   let chunkStart = 0;
-  const flush = () => { if (parts.length) addStatic(level, merge(parts), { castShadow: true }); parts = []; };
+  const flush = () => {
+    if (tall.length) addStatic(level, merge(tall), { castShadow: true });
+    if (small.length) addStatic(level, merge(small), { castShadow: false });
+    tall = []; small = [];
+  };
   let s = rnd.real(1, 4);
+  let idx = 0;
   while (s < ch.length - 1) {
     const q = ch.at(s, {});
-    const i = Math.min(S.length - 1, Math.round(s));
-    const ii = S.findIndex((p) => p.s >= s);
-    const idx = ii < 0 ? S.length - 1 : ii;
+    while (idx < S.length - 1 && S[idx].s < s) idx++;
     if (s - chunkStart > CHUNK) { flush(); chunkStart = s; }
     const W = outS[idx];
     if (!open[idx] && W > 1.5) {
@@ -632,21 +690,20 @@ function scatterJungle(level, net, ch, side, outS, open, H0, J, rnd, density, OU
       const x = q.x + q.rx * side * lat, z = q.z + q.rz * side * lat;
       const y = q.y + H - 0.05;
       if (!net.insideOther(x, z, ch, s, q.w * 1.5 + 8, 1.0)) {
-        if (pick < 0.36) palmParts(J, x, y, z, rnd.real(3.6, 5.6), rnd.real(0.12, 0.3) * 1, Math.atan2(-(q.rz * -side), q.rx * -side) + rnd.real(-0.6, 0.6), rnd, parts);
-        else if (pick < 0.6) fernParts(J, x, y, z, rnd.real(0.8, 1.3), rnd, parts);
-        else if (pick < 0.78) bushParts(J, x, y, z, rnd.real(0.7, 1.1), rnd, parts);
-        else if (pick < 0.9) bloomParts(J, x, y, z, rnd, parts);
-        else rockParts(x, y, z, rnd.real(0.4, 0.8), rnd, parts);
+        if (pick < 0.38) palmParts(J, x, y, z, rnd.real(3.6, 5.6), rnd.real(0.12, 0.3), Math.atan2(-(q.rz * -side), q.rx * -side) + rnd.real(-0.6, 0.6), rnd, tall);
+        else if (pick < 0.62) fernParts(J, x, y, z, rnd.real(0.8, 1.3), rnd, small);
+        else if (pick < 0.8) bushParts(J, x, y, z, rnd.real(0.7, 1.1), rnd, small);
+        else if (pick < 0.92) bloomParts(J, x, y, z, rnd, small);
+        else rockParts(x, y, z, rnd.real(0.4, 0.8), rnd, small);
       }
       // großer Urwaldbaum weiter hinten
-      if (W > 9 && rnd.chance(0.35)) {
+      if (W > 9 && rnd.chance(0.3)) {
         const lt = hw + 6 + rnd.real(0, Math.min(W - 7, 10));
         const tx = q.x + q.rx * side * lt, tz = q.z + q.rz * side * lt;
-        if (!net.insideOther(tx, tz, ch, s, q.w * 1.5 + 14, 3)) treeParts(J, tx, q.y + H - 0.1, tz, rnd.real(6, 9), rnd, parts);
+        if (!net.insideOther(tx, tz, ch, s, q.w * 1.5 + 14, 3)) treeParts(J, tx, q.y + H - 0.1, tz, rnd.real(6, 9), rnd, tall);
       }
     }
-    s += rnd.real(2.6, 4.6) / Math.max(0.25, density);
-    void i;
+    s += rnd.real(3.0, 5.2) / Math.max(0.25, density);
   }
   flush();
 }
@@ -673,7 +730,7 @@ function buildLowland(level, net, lw, J, rnd) {
     let near = false;
     for (const ch of net.channels) { const q = ch.nearest(x, z, {}); if (q.dist < q.w / 2 + 34 && q.y > lw.y + 3) near = true; }
     if (near) continue;
-    treeParts(J, x, lw.y, z, rnd.real(8, 13), rnd, parts);
+    treeParts(J, x, lw.y, z, rnd.real(8, 13), rnd, parts, true);
   }
   if (parts.length) {
     const tm = new THREE.Mesh(merge(parts), level.view.mats.world);
@@ -1114,14 +1171,22 @@ export function buildRiverFall(level, spec) {
   curtain.renderOrder = 3;
   curtain.name = rainbow ? 'regenbogenfall' : 'wasserfall';
   addObject(level, curtain);
-  // Schaum am Aufprall
-  const ring = new THREE.CircleGeometry(1, 20);
-  ring.rotateX(-Math.PI / 2);
-  ring.scale(W * 0.7, 1, Math.max(1.5, W * 0.25));
-  ring.rotateY(Math.atan2(-fz, fx));
-  ring.translate(b.x, b.y + 0.06, b.z);
-  const fc = lin(0xffffff);
-  addStatic(level, colorize(ring, (pp, n, o) => { o[0] = fc[0]; o[1] = fc[1]; o[2] = fc[2]; }), { material: 'glow', castShadow: false });
+  // Schaum am Aufprall: weiche, durchscheinende Gischtfläche (zwei Lagen, die äußere atmet)
+  const foamMat = new THREE.MeshBasicMaterial({ map: mistTexture(), transparent: true, opacity: 0.85, depthWrite: false, color: 0xffffff });
+  const fp = new THREE.PlaneGeometry(1, 1);
+  fp.rotateX(-Math.PI / 2);
+  const foam = new THREE.Group();
+  const inner = new THREE.Mesh(fp, foamMat);
+  inner.scale.set(W * 1.1, 1, Math.max(2.4, W * 0.45));
+  const outer = new THREE.Mesh(fp.clone(), foamMat);
+  outer.scale.set(W * 1.6, 1, Math.max(3.4, W * 0.7));
+  outer.position.y = -0.01;
+  foam.add(inner, outer);
+  foam.position.set(b.x + fx * 0.3, b.y + 0.07, b.z + fz * 0.3);
+  foam.rotation.y = Math.atan2(-fz, fx) + Math.PI / 2;
+  foam.renderOrder = 2;
+  inner.renderOrder = 2; outer.renderOrder = 2;
+  addObject(level, foam, (dt, t) => { const k = 1 + 0.06 * Math.sin(t * 3.1); outer.scale.set(W * 1.6 * k, 1, Math.max(3.4, W * 0.7) * k); });
   if (spec.mist !== false) buildMist(level, b, W, H, rainbow, fx, fz);
   if (spec.arc ?? rainbow) {
     // Regenbogen-Bogen vor der Gischt
@@ -1219,25 +1284,27 @@ export function buildRiverCliff(level, spec) {
   const ux = (bx - ax) / L, uz = (bz - az) / L;
   const rnd = new Rnd(((ax * 7) ^ (bz * 13)) >>> 0);
   const parts = [];
-  const bandH = 3.2;
+  const bandH = 5.5;
+  // grobe Felsquader in versetzten Lagen (wenige Dreiecke: weit sichtbar), oben Moos
   for (let y = y0; y < y1; y += bandH) {
-    let t = rnd.real(-1, 0.5);
+    let t = rnd.real(-2, 0);
     while (t < L + 1) {
-      const w = rnd.real(2.5, 5);
+      const w = rnd.real(4.5, 7.5);
       const cx = ax + ux * (t + w / 2), cz = az + uz * (t + w / 2);
-      const hh = Math.min(bandH * rnd.real(1, 1.25), y1 - y + 0.2);
+      const hh = Math.min(bandH * rnd.real(1.05, 1.25), y1 - y + 0.2);
       const shade = rnd.pick([0x8a7e70, 0x7d7166, 0x95897a, 0x6f6459]);
-      const g = box(w, hh, D * rnd.real(0.8, 1.2), 0, 0, 0, shade, { r: 0.6, seg: 2, topColor: y + hh >= y1 - 0.5 ? 0x5fb83a : 0x8c9a6a });
+      const g = box(w, hh, D * rnd.real(0.85, 1.15), 0, 0, 0, shade, { r: 0.5, seg: 1, topColor: y + hh >= y1 - 0.5 ? 0x5fb83a : 0x8c9a6a });
       g.rotateY(Math.atan2(-uz, ux));
-      g.translate(cx, y + hh / 2, cz);
+      g.translate(cx + uz * rnd.real(-0.4, 0.4), y + hh / 2, cz - ux * rnd.real(-0.4, 0.4));
       parts.push(g);
-      t += w * rnd.real(0.75, 0.95);
+      t += w * rnd.real(0.8, 0.95);
     }
   }
   addStatic(level, merge(parts), { castShadow: true });
 }
 
 export function buildRiverDeco(level, spec) {
+  for (const it of spec.items ?? [spec]) if (it.kind === 'dock') dockShape(level, it);
   if (!level.view) return;
   const J = jungle(level);
   const net = riverNet(level);
@@ -1248,8 +1315,8 @@ export function buildRiverDeco(level, spec) {
   for (const it of items) {
     const p = it.pos;
     const water = it.kind === 'lilies';
-    const x = p[0], z = p.length >= 3 ? p[2] : p[1];
-    const y = p.length >= 3 ? p[1] : net.sample(x, z).y;
+    const x = p ? p[0] : 0, z = p ? (p.length >= 3 ? p[2] : p[1]) : (it.from?.[2] ?? 0);
+    const y = p ? (p.length >= 3 ? p[1] : net.sample(x, z).y) : 0;
     const parts = partsFor(z);
     switch (it.kind) {
       case 'palm': palmParts(J, x, y, z, it.size ?? 4.8, it.lean ?? 0.22, it.yaw ?? rnd.real(0, TAU), rnd, parts); break;
@@ -1263,6 +1330,7 @@ export function buildRiverDeco(level, spec) {
       case 'hut': hutParts(x, y, z, it.yaw ?? 0, parts); break;
       case 'sign': signParts(x, y, z, it.yaw ?? 0, parts); break;
       case 'totem': totemParts(x, y, z, it.yaw ?? 0, parts); break;
+      case 'dock': dockParts(level, it, parts); break;
       default: console.warn(`[river_deco] unbekannte Art: ${it.kind}`);
     }
     void water;

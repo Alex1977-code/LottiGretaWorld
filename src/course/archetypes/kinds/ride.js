@@ -14,7 +14,7 @@ import { RideCamera } from '../RideCamera.js';
 import { music } from '../../../audio/index.js';
 
 const BUBBLES = 48;
-const MOLE_FAR = 36;      // m: weiter entfernte Wühler werden nicht gezeichnet
+const MOLE_FAR = 27;      // m: weiter entfernte Wühler werden nicht gezeichnet
 
 class RideArchetype {
   constructor(scene) {
@@ -35,6 +35,12 @@ class RideArchetype {
     // Wühler werfen keine Schatten (Wasser ist undurchsichtig; spart Zeichenaufrufe im Schattenpass)
     for (const m of this.moles) m.model?.root.traverse((o) => { if (o.isMesh) o.castShadow = false; });
     this.checkpoints = this.level.entities.filter((e) => e.kind === 'checkpoint');
+    // Wasserfall-Vorhänge, durch die man fahren kann (Unterkante nahe der Wasseroberfläche): Gischt beim Durchfahren
+    this.curtains = (this.level.data.segments ?? []).filter((s) => s.type === 'river_fall' && Math.abs(s.from[1] - s.to[1]) < 8).map((s) => {
+      const fx = s.to[0] - s.from[0], fz = s.to[2] - s.from[2], l = Math.hypot(fx, fz) || 1;
+      const f = this.level.river.sample(s.to[0], s.to[2]);
+      return { x: s.to[0], y: s.to[1], z: s.to[2], nx: l > 0.05 ? fx / l : f.dx, nz: l > 0.05 ? fz / l : f.dz, w: s.width ?? 6, rainbow: !!s.rainbow, side: null };
+    });
     this.buildBubbles();
     this.setDrums(!!this.player.riding);
     this.level.controlYaw = this.cam.controlYaw(this.player);
@@ -54,6 +60,17 @@ class RideArchetype {
     const p = this.player;
     this.setDrums(!!p.riding && !p.dead);
     if (!p.riding || p.dead) return;
+    for (const c of this.curtains) {
+      const dx = p.pos.x - c.x, dz = p.pos.z - c.z;
+      const side = Math.sign(dx * c.nx + dz * c.nz);
+      const near = Math.abs(dx * -c.nz + dz * c.nx) < c.w / 2 + 0.5 && Math.abs(p.pos.y - c.y) < 3;
+      if (c.side !== null && side !== c.side && near) {
+        this.level.sfx('splash');
+        for (let k = 0; k < 3; k++) this.level.effects?.splash({ x: p.pos.x + (k - 1) * 0.5, y: 0, z: p.pos.z }, p.pos.y + 0.6);
+        if (c.rainbow) this.level.effects?.sparks({ x: p.pos.x, y: p.pos.y + 1.4, z: p.pos.z }, 14);
+      }
+      c.side = side;
+    }
     // Checkpoint beim Vorbeifahren (Fahne steht am Ufer): Neustart im Fluss oberhalb der Fahne
     for (const cp of this.checkpoints) {
       if (cp.active) continue;

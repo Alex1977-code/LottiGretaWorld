@@ -30,7 +30,8 @@ const SIDE = [
   [-4, -4.25, -186, 7, 5.8], [0, -4.37, -192, 8, 6.0],
 ];
 const LAGOON = [[0, -34.7, -217.4, 11, 3.6], [0, -34.7, -221.5, 19, 3.3], [0, -34.7, -232, 27, 2.8], [0, -34.7, -244, 23, 2.4], [0, -34.7, -252, 17, 2.0]];
-const LOW = -34.35;
+const LOW = -34.35;         // Strand/Ufer der Lagune
+const LOWLAND = -35.3;      // Tiefland-Ebene (unter dem Lagunenwasser)
 
 const main = new RiverChannel({ points: MAIN });
 const side = new RiverChannel({ points: SIDE });
@@ -77,16 +78,16 @@ export const LEVEL = {
   start: { pos: [0, 0.62, 12.5], yaw: Math.PI / 2 },
   ride: {
     raft: [0, 0, 5.4],
-    raftYaw: Math.PI / 2,
+    raftYaw: -Math.PI / 2,     // Pflaume schaut der Heldin entgegen, dreht beim Aufsteigen um
     dock: { min: [-30, 6.2], max: [30, 45] },
     beach: { min: [-20, -300], max: [20, -244.5], land: [0, -34.3, -251.5], raft: [0, -34.7, -246] },
     footCamYaw: 0,
   },
   camera: [
     { from: 45, to: 3, pitch: 40, dist: 11.5, ahead: 2.5, height: 1 },
-    { from: 3, to: -98, pitch: 35, dist: 13, ahead: 4.5, height: 1.1, fov: 42 },
-    { from: -98, to: -188, pitch: 43, dist: 13.5, ahead: 3.5, height: 1.1, fov: 42 },
-    { from: -188, to: -217, pitch: 34, dist: 13, ahead: 4.5, height: 1.1, fov: 42 },
+    { from: 3, to: -98, pitch: 36, dist: 11, ahead: 2.6, height: 1.0, fov: 42 },
+    { from: -98, to: -188, pitch: 42, dist: 11.5, ahead: 2.4, height: 1.0, fov: 42 },
+    { from: -188, to: -217, pitch: 36, dist: 11, ahead: 2.6, height: 1.0, fov: 42 },
     { from: -217, to: -247, pitch: 42, dist: 14, ahead: 3, height: 1.1, fov: 42 },
     { from: -247, to: -290, pitch: 41, dist: 11.5, ahead: 2, height: 1 },
   ],
@@ -97,17 +98,17 @@ export const LEVEL = {
       channels: [
         { id: 'main', points: MAIN, bank: { height: 2.1, out: 20 }, deco: 1 },
         { id: 'side', points: SIDE, bank: { height: 2.4, out: 16 }, deco: 1 },
-        { id: 'lagoon', points: LAGOON, bank: { height: 0.45, out: 16, skirt: false }, deco: 0.8 },
+        { id: 'lagoon', points: LAGOON, bank: { height: 0.45, out: 16 }, deco: 0.8 },
       ],
-      lowland: { y: LOW, trees: 70 },
+      lowland: { y: LOWLAND, trees: 36 },
       life: { butterflies: 34, dragonflies: 16 },
     },
     // ---------------- 1 Start-Steg: Bucht, Ufer hinter dem Becken, Holzsteg
     { type: 'island', pos: [0, -3, 30], size: [60, 3.62, 24], top: 'sand', under: 0 },
     { type: 'island', pos: [-17, -3, 21], size: [26, 5.1, 6], under: 0 },
     { type: 'island', pos: [17, -3, 21], size: [26, 5.1, 6], under: 0 },
-    { type: 'bridge', from: [0, 0.62, 18.5], to: [0, 0.62, 6.6], width: 2.4, rails: true },
     { type: 'river_deco', items: [
+      { kind: 'dock', from: [0, 0.62, 18.5], to: [0, 0.62, 6.6], width: 2.4 },
       { kind: 'hut', pos: [-7, 0.62, 24], yaw: 0.4 }, { kind: 'totem', pos: [4.5, 0.62, 21], yaw: -0.3 },
       { kind: 'sign', pos: [2.2, 0.62, 18.4], yaw: Math.PI / 2 },
       { kind: 'palm', pos: [-3.5, 0.62, 21.5], size: 5.2, lean: 0.25, yaw: -1.2 }, { kind: 'palm', pos: [6.5, 0.62, 25], size: 5.6, lean: 0.2, yaw: 2.4 },
@@ -122,16 +123,16 @@ export const LEVEL = {
     { type: 'river_wave', pos: XZ(main, -60, 0), len: 3.2, wid: 3.6, boost: 4 },
     { type: 'river_wave', pos: XZ(main, -84, -2), len: 3.2, wid: 3.4, boost: 4.5 },
     // Felsgasse rechts (Extraleben): Felsreihe, dahinter ein schmaler Durchlass am Ufer
-    ...[-68, -71.5, -75, -78.5].map((z) => ({ type: 'river_rock', pos: XZ(main, z, 2.2), r: 0.95, h: 1.3 })),
-    { type: 'river_rock', pos: XZ(main, -41, -3.4), r: 1.1, h: 1.5 },
-    { type: 'river_rock', pos: XZ(main, -45, 3.6), r: 0.8, h: 1.1 },
-    { type: 'river_rock', pos: XZ(main, -91, 3.2), r: 0.9, h: 1.2 },
+    ...[-68, -71.5, -75, -78.5].map((z) => ({ type: 'riverrock', pos: XZ(main, z, 2.2), r: 0.95, h: 1.3 })),
+    { type: 'riverrock', pos: XZ(main, -41, -3.4), r: 1.1, h: 1.5 },
+    { type: 'riverrock', pos: XZ(main, -45, 3.6), r: 0.8, h: 1.1 },
+    { type: 'riverrock', pos: XZ(main, -91, 3.2), r: 0.9, h: 1.2 },
     { type: 'river_deco', items: [
       { kind: 'lilies', pos: XZ(main, -8, -4.2), r: 0.9, n: 4 }, { kind: 'lilies', pos: XZ(main, -27, 4.1), r: 0.8, n: 3 },
       { kind: 'lilies', pos: XZ(main, -63, -4.2), r: 0.9, n: 4 }, { kind: 'sign', pos: BANK(main, -64, 1, 2.1, 0.6), yaw: Math.PI / 2 + 0.3 },
     ] },
     // ---------------- 3 Gabelung, Seitenarm mit buntem Wasserfall
-    { type: 'river_rock', pos: XZ(side, -112.5, 4.4), r: 1.3, h: 1.8 },
+    { type: 'riverrock', pos: XZ(side, -112.5, 4.4), r: 1.3, h: 1.8 },
     { type: 'river_deco', items: [
       { kind: 'sign', pos: BANK(main, -97, -1, 2.1, 0.6), yaw: Math.PI / 2 + 0.7 },
       { kind: 'lilies', pos: XZ(side, -146, -2.3), r: 0.8, n: 4 }, { kind: 'lilies', pos: XZ(side, -160, 2.3), r: 0.7, n: 3 },
@@ -142,7 +143,7 @@ export const LEVEL = {
     // Zickzack: Pfeile an den Kehren übernehmen die Schaumstreifen; Temposchwelle vor der Klippe
     { type: 'river_wave', pos: XZ(main, -206, 0), len: 3.4, wid: 4, boost: 3.5 },
     // ---------------- 4 Absturz: Klippe, großer Wasserfall, Lagune
-    { type: 'river_cliff', from: [-30, -216.9], to: [30, -216.9], y0: LOW - 1, y1: -4.85, depth: 2.4 },
+    { type: 'river_cliff', from: [-26, -216.9], to: [26, -216.9], y0: LOWLAND - 0.5, y1: -4.85, depth: 2.4 },
     { type: 'river_fall', from: [0, -4.72, -218.05], to: [0, -34.7, -222.5], width: 11, lip: 1.6, mist: true },
     // ---------------- 5 Strand und Ziel
     { type: 'island', pos: [0, -37, -268], size: [44, 2.65, 38], top: 'sand', under: 0 },
@@ -183,7 +184,7 @@ export const LEVEL = {
     ...coinLine(main, -27, -35, -1.5, -1.5, 4),
     ...coinLine(main, -55, -62, 0, 0, 4),
     // Felsgasse rechts mit Extraleben (Pilz schwebt, wandert nicht)
-    ...coinLine(main, -66.5, -80, 4.05, 4.05, 6),
+    ...coinLine(main, -66.5, -79, 4.05, 4.05, 5),
     { kind: 'powerup', power: 'oneup', pos: P(main, -73.25, 4.05, 0.4), speed: 0 },
     ...coinLine(main, -85, -90, -2, -2, 3),
     // Zickzack: Münzen in den Kehren (Innenkurve)
@@ -197,7 +198,6 @@ export const LEVEL = {
     // Absturz: Münzen fallen mit
     ...coinLine(main, -196, -212, 0, 0, 5),
     { kind: 'coins', pos: [0, -24, -229], r: 1.6, n: 6 },
-    { kind: 'coins', pos: [0, -14, -226], r: 1.2, n: 5 },
     // Strand
     ...[-4, -2, 2, 4].map((x) => ({ kind: 'coin', pos: [x, LOW, -258] })),
   ],
