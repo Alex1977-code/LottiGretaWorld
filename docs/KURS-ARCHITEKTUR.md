@@ -428,8 +428,8 @@ eine entschärfte Kickbombe zählen nicht), `level.onExplosion(center, radius, b
 
 `onHit(kind, source)`-Arten: `fire | claw | shell | throw | bomb | mega | star | pound | bump`. Neu: `bomb`
 (Explosion), `throw` (geworfenes Objekt ohne eigene Wirkung – reserviert für Topfpflanze/Schneeball). Standard-Konter
-(`Enemy`): draufspringen/Stampfen von oben → platt (`'stomp'` = Abprall), Krallen-Sturzflug → wegfliegen, seitlich →
-Treffer der Figur; `onHit` → wegfliegen; `pound` (Stampfwelle daneben, `attackArea` 1,4 m) → platt, wenn auf gleicher
+(`Enemy`): draufspringen → platt mit Abprall (`'stomp'`), Stampfattacke von oben → platt (ohne Abprall),
+Krallen-Sturzflug → wegfliegen, seitlich → Treffer der Figur; `onHit` → wegfliegen; `pound` (Stampfwelle daneben, `attackArea` 1,4 m) → platt, wenn auf gleicher
 Höhe. Funkelstern/Riesentrank besiegen jeden Gegner bei Berührung.
 
 | Gegner | Verhalten | besiegt durch | verletzt |
@@ -439,7 +439,7 @@ Höhe. Funkelstern/Riesentrank besiegen jeden Gegner bei Berührung.
 | pilzlingsturm | 3–5 Stufen, läuft auf die Figur zu | von oben je 1 Stufe; Feuer/Krallen/Panzer je 1; Explosion/Stern/Riese alle | seitlich |
 | panzerkroete | läuft | Sprung/Stampfen/Krallen → Panzer; Feuer/Panzer/Explosion → weg | seitlich |
 | panzer | liegt; gekickt 10 m/s, prallt an Wänden ab | Panzer, Explosion, Stern, Riese | gleitend seitlich (Rückpraller) |
-| schnappblume | schnappt im Takt (Reichweite) | Feuer, Krallen, Sturzflug, Panzer, Explosion, Stampfen **neben** ihr | von oben und Biss |
+| schnappblume | schnappt im Takt (Reichweite) | Feuer, Krallen, Sturzflug, Panzer, Explosion, Stampfen **neben** ihr (auf einer Röhre: Tatzenhieb im Sprung, Stampfen neben einer Röhre ≤ 1,2 m) | von oben und Biss |
 | riesenschnappblume | wie oben, großer Radius | dasselbe, 3 Treffer (1,1 s Pause) | von oben und Biss |
 | rammbock_bulle | scharrt 0,8 s, Sturmlauf, bremst an Kanten, Wand → benommen | 3 Treffer (Sprung, Feuer, Krallen …); Explosion/Stern/Riese sofort | seitlich (betäubt harmlos) |
 | krabbelkaefer / flatterkaefer | feste Bahn, in Reihe | Sprung, alles | seitlich |
@@ -524,15 +524,18 @@ Namen für `blocks[].content`, `items` (`{ kind: 'powerup', pos, power }`), `dro
 
 Neue `def`-Felder: `camZoom` (Kameraabstand-Faktor, CameraRig blendet weich über `rig.powerZoom`). `level.musicNow` hält
 das zuletzt vom Funkelstern gesetzte Thema. Avatar: `proxy.course.power` = Power-up-Name (Kostümfarbe),
-`proxy.course.state` meldet `'claw'` während des Tatzenhiebs (`player.clawTime > 0`) und `'throw'` 0,25 s beim Werfen
-bzw. 0,2 s beim Feuerball (`player.throwTime > 0`).
+`proxy.course.state` meldet `'claw'` während des Tatzenhiebs (`player.clawTime > 0`, 0,3 s) und `'throw'` 0,25 s beim
+Werfen bzw. 0,2 s beim Feuerball (`player.throwTime > 0`, Dauer `player.throwDur`); `proxy.course.phase` ist dann der
+Fortschritt 0..1 der Aktion (jeder Wurf beginnt von vorn).
 
 ### Präzisierung (Gegner/Power-ups): Tragen/Werfen
 
-- Entität: `carryable = true`, optional `canCarry(player) → bool`; Hooks `onPickup(player)`, `onThrow(player, { dir:
-  {x, z}, gentle })`, `onDrop(player)`. Solange `entity.carrier` gesetzt ist, ruft ihr `update()` `followCarrier()`
-  (Lage = `player.holdPoint(entity, out)`: über dem Kopf, 0,12 m vor der Figur; Riesentrank: über dem großen Kopf).
-  Getragen `touch = false`. Standard-`onThrow` (CourseEntity): Bogen 8 m/s vor, 5 m/s hoch.
+- Entität: `carryable = true`, optional `canCarry(player) → bool`, `holdStyle = 'over'` (Standard, über dem Kopf) |
+  `'front'` (vor der Brust); Hooks `onPickup(player)`, `onThrow(player, { dir: {x, z}, gentle })`, `onDrop(player)`.
+  Solange `entity.carrier` gesetzt ist, ruft ihr `update()` `followCarrier()` (Lage = `player.holdPoint(entity, out)`:
+  'over' = Fußpunkt auf dem Kopf, 0,12 m vor der Figur; 'front' = vor der Brust; Riesentrank: am großen Körper).
+  Getragen `touch = false`. Standard-`onThrow` (CourseEntity): Bogen 8 m/s vor, 5 m/s hoch. Der Avatar bekommt
+  `proxy.course.holding = holdStyle` (bzw. `false`) – HeroRig setzt das aus `player.holding`.
 - Figur: `player.holding` (Entität | null). Aktion (`actionPressed`) wirft Gehaltenes in Blickrichtung (mit gehaltenem
   Ducken: absetzen), sonst hebt sie das nächste `carryable`-Objekt ≤ 0,75 m vor der Brust auf (Höhe −0,6 … +1 m),
   sonst Power-up-Aktion. Rennen gehalten + seitliche Berührung greift Panzer/Kickbombe (`player.pickUp(e)`). Springen

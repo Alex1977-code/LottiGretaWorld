@@ -18,7 +18,7 @@ export const POWERS = {
       for (const e of level.entities) if (e.kind === 'fireball' && !e.removed && e.owner === player) n++;
       if (n >= MAX_FIREBALLS) return false;
       player.fireCooldown = 0.18;
-      player.throwTime = 0.2;
+      player.throwTime = 0.2; player.throwDur = 0.2;
       const f = player.facingVec();
       const y = player.pos.y + player.half.y * 1.1 - 0.2;
       level.spawn('fireball', { pos: [player.pos.x + f.x * 0.55, y, player.pos.z + f.z * 0.55], dir: [f.x, f.z], owner: player });

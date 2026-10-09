@@ -36,7 +36,7 @@ export const LEVEL = {
   music: 'course_grass',
   timeLimit: 999,
   start: { pos: [0, Y, 5], yaw: Math.PI / 2 },
-  camera: [{ from: 12, to: -145, pitch: 50, dist: 14, yaw: 0 }],
+  camera: [{ from: 12, to: -145, pitch: 45, dist: 13, yaw: 0 }],
   segments: [
     { type: 'island', pos: [0, 0, -65], size: [40, 1, 150] },
     { type: 'killplane', y: -16 },

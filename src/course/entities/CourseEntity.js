@@ -21,6 +21,7 @@
 //
 // Ergänzungen (Präzisierung Gegner/Power-ups, additiv):
 //   carryable    true → die Figur kann das Objekt aufheben (Aktion in Reichweite) und werfen
+//   holdStyle    'over' (Standard, über dem Kopf) | 'front' (vor der Brust) – Lage und Avatar-Arme beim Tragen
 //   carrier      Figur, die das Objekt gerade trägt (sonst null)
 //   onPickup(player), onThrow(player, { dir: {x, z}, gentle }), onDrop(player)   Trage-Hooks
 //   followCarrier()  im update() aufrufen, solange carrier gesetzt ist (Lage über dem Kopf der Figur)

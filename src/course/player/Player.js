@@ -947,7 +947,7 @@ export class Player {
     this.holding = null;
     e.carrier = null;
     const gentle = !!input?.crouch;
-    this.throwTime = 0.25;
+    this.throwTime = 0.25; this.throwDur = 0.25;
     e.onThrow?.(this, { dir: this.facingVec(), gentle });
     this.level.sfx(gentle ? 'step' : 'swoop');
   }
@@ -961,11 +961,20 @@ export class Player {
     e.onDrop?.(this);
   }
 
-  /** Fußpunkt eines getragenen Objekts: über dem Kopf der Figur, leicht vor ihr (Riesentrank: über dem großen Kopf). */
+  /**
+   * Fußpunkt eines getragenen Objekts: Standard über dem Kopf, leicht vor der Figur (e.holdStyle 'over'); mit
+   * e.holdStyle 'front' vor der Brust. Riesentrank: am großen Körper.
+   */
   holdPoint(e, out) {
     const f = this.facingVec();
-    const top = this.half.y * 2 * (this.powerDef.scale ?? 1);
-    out.set(this.pos.x + f.x * 0.12, this.pos.y + top + 0.04, this.pos.z + f.z * 0.12);
+    const k = this.powerDef.scale ?? 1;
+    const h = this.half.y * 2 * k;
+    if (e?.holdStyle === 'front') {
+      const d = (this.half.x + (e.half?.x ?? 0.3)) * k + 0.05;
+      out.set(this.pos.x + f.x * d, this.pos.y + h * 0.42 - (e.half?.y ?? 0.3), this.pos.z + f.z * d);
+    } else {
+      out.set(this.pos.x + f.x * 0.12 * k, this.pos.y + h + 0.04, this.pos.z + f.z * 0.12 * k);
+    }
     return out;
   }
 
