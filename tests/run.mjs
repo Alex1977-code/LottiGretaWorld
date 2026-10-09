@@ -98,9 +98,9 @@ for (let i = 0; i < 40; i++) { await page.waitForTimeout(20); const p = await lo
 s = await lotti(); log('dive', s);
 check('Sturzflug aktiv', s.state === 'dive');
 check('Sturzflug schnell (vy>250)', s.vy > 250);
-await page.evaluate(() => window.__game.scene.getScene('Play').physics.world.pause()); // Bild ohne Zeitverlust (Physik steht)
+await page.evaluate(() => { window.__game.scene.getScene('Play').physics.world.pause(); }); // Bild ohne Zeitverlust (Physik steht)
 await shot('04_dive');
-await page.evaluate(() => window.__game.scene.getScene('Play').physics.world.resume());
+await page.evaluate(() => { window.__game.scene.getScene('Play').physics.world.resume(); });
 const yRelease = (await lotti()).y;
 const depth = yRelease - yBeforeDive;
 await page.keyboard.up('ArrowDown');

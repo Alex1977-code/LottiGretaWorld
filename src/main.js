@@ -35,9 +35,9 @@ const wanted = params.get('level');
 const startLevel = wanted && LEVELS[wanted] ? wanted : null;
 const classicStart = params.has('classic') && params.get('classic') !== '0';
 const mapStart = params.get('map') === '1';
-// Solange Welt 1 im Bau ist, bleibt die Klassik-Karte Startseite; die Kurs-Karte gibt es mit ?map=1.
-// Wird auf true gestellt, sobald Welt 1 komplett ist.
-const COURSE_DEFAULT = false;
+// Startseite: Kurs-Weltkarte (Welt 1 komplett). Auf false gestellt, wäre die Klassik-Karte Startseite.
+// Die Klassik-Karte bleibt über ?classic=1 und den Knopf „Klassik“ erreichbar.
+const COURSE_DEFAULT = true;
 const courseBoot = !!startCourse || (!startLevel && !classicStart && (mapStart || (COURSE_DEFAULT && RENDER3D.enabled)));
 const COURSE_SCENES = [CourseScene, CourseUIScene, CoursePauseScene, CourseResultScene, CourseMapScene];
 
