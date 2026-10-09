@@ -250,7 +250,7 @@ export const LEVEL = {
     { kind: 'warpbox', id: 'raetsel', style: 'mystery', pos: [1.5, 4, -90], target: 'kistenBox' },
     { kind: 'warpbox', id: 'kistenBox', style: 'mystery', pos: [60, 0, -82], target: [0, 4, -97.5] },
     { kind: 'crate', id: 'sternkiste', pos: [53.2, 0, -92.8], content: 'star:1' },
-    { kind: 'crate', pos: [54.4, 0, -92.8] }, { kind: 'crate', pos: [53.2, 0, -91.6] }, { kind: 'crate', pos: [53.2, 1, -92.8] },
+    { kind: 'crate', pos: [54.4, 0, -92.8] }, { kind: 'crate', pos: [53.2, 0, -91.6] },
     { kind: 'crate', pos: [58, 0, -92.8], content: 'coins:3' }, { kind: 'crate', pos: [62, 0, -92.8] },
     { kind: 'crate', pos: [66.8, 0, -92.8], content: 'oneup' }, { kind: 'crate', pos: [65.6, 0, -92.8] }, { kind: 'crate', pos: [66.8, 0, -91.6], content: 'coins:5' },
     coinsLine([0, 0.2, 0], [0, 0.2, -10], 5),
