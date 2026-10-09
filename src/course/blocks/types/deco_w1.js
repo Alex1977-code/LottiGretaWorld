@@ -265,10 +265,10 @@ function arch(level, it, parts, rnd) {
   for (let k = 0; k <= 12; k++) { const a = (k / 12) * Math.PI; spots.push([Math.cos(a) * R, cy + Math.sin(a) * R * 0.55]); }
   for (const sx of [-1, 1]) for (let y = 0.6; y < cy; y += 0.55) spots.push([sx * W / 2, y]);
   for (const [x, y] of spots) {
-    local.push(sph(0.16, x + rnd.real(-0.05, 0.05), y, rnd.real(-0.06, 0.06), lit(leafL, leafM, leafD), 1, 0.8, 1, 6, 4));
+    local.push(sph(0.16, x + rnd.real(-0.05, 0.05), y, rnd.real(-0.06, 0.06), lit(leafL, leafM, leafD), 1, 0.8, 1, 5, 3));
     if (rnd.chance(0.6)) {
       const rc = lin(rnd.pick(roses));
-      local.push(sph(0.08, x + rnd.real(-0.08, 0.08), y + 0.05, rnd.frac() < 0.5 ? 0.12 : -0.12, (pp, nn, o) => mixc(mixc(rc, [0, 0, 0], 0.3, o), rc, smooth(-0.5, 0.8, nn.y), o), 1, 1, 1, 6, 4));
+      local.push(sph(0.08, x + rnd.real(-0.08, 0.08), y + 0.05, rnd.frac() < 0.5 ? 0.12 : -0.12, (pp, nn, o) => mixc(mixc(rc, [0, 0, 0], 0.3, o), rc, smooth(-0.5, 0.8, nn.y), o), 1, 1, 1, 5, 3));
     }
   }
   const g = merge(local);

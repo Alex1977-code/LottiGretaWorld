@@ -49,9 +49,9 @@ const ROUTES = {
       { name: 'Stern 0 über den Abzweig der Glasröhre', star: 0, from: [6.5, 1, -7.5],
         legs: [{ to: [6.5, -12], rideInput: { x: 1, y: 0.4 } }, { to: [8.5, -46.5] }], shot: 'stern0' },
       { name: 'Stern 1 mit Krallen von unten', star: 1, from: [11, 0.5, -152], power: 'krallen',
-        legs: [{ to: [9.3, -159], max: 400, within: 0.25 }, { push: 160, jump: 10, to: [6, -159] }, { to: [7.4, -159], within: 0.3 }], shot: 'stern1' },
+        legs: [{ to: [9.3, -159], max: 400, within: 0.12, run: false }, { wait: 30 }, { push: 160, jump: 10, dir: [-1, 0] }, { to: [7.4, -159], within: 0.3 }], shot: 'stern1' },
       { name: 'Stern 1 mit Riesentrank vom Hügel (10 s)', star: 1, from: [8, 12, -98.5], power: 'riese',
-        legs: [{ to: [3, -104] }, { to: [0, -123] }, { to: [0, -145] }, { to: [0.5, -156.5] }, { to: [0.5, -159] }, { to: [7.4, -159], within: 0.3, autoJump: false }, { wait: 60 }] },
+        legs: [{ to: [3, -104] }, { to: [0, -123] }, { to: [0, -145] }, { to: [0.5, -156.5] }, { to: [0.5, -159] }, { to: [7.4, -159], within: 0.3, autoJump: false, run: false, slow: 0.5 }, { wait: 60 }] },
       { name: 'Stern 2 (kleiner Hase am Teich)', star: 2, from: [1, 7, -106], chase: 'bunny' },
       { name: 'Stempel im Raum hinter der Teich-Röhre', from: [9.2, 8.2, -115.4],
         legs: [{ crouch: 4 }, { to: [86.4, -111.2] }, { to: [87.5, -113.4], jump: 30 }, { to: [90.4, -114.9], jump: 34 }, { to: [93.5, -113.6], jump: 40 }], shot: 'stempel' },
@@ -96,8 +96,9 @@ const ROUTES = {
       { to: [-3.5, -87.4] },
       { name: 'Wolke 1', to: [-3.5, -89.5], jump: 40 },
       { name: 'Wolke 2', to: [1.5, -93.6], jump: 40 },
-      { name: 'Wolke 3 (fährt)', to: [4.3, -98], jump: 40, within: 0.5 },
-      { name: 'Wolke 4', to: [1.5, -102.4], jump: 40 },
+      { name: 'Wolke 3 (fährt)', toNamed: 'w3', to: [4.3, -98], jump: 40, within: 0.6 },
+      { name: 'Anlauf auf Wolke 3', toNamed: 'w3', off: [-0.4, 1.0], within: 0.35, run: false },
+      { name: 'Wolke 4', to: [1.5, -102.4], jump: 40, jumpAt: 4.9 },
       { name: 'Wolke 5', to: [-3, -106.4], jump: 40 },
       { name: 'obere Gerade', to: [-1, -111.6], jump: 40 },
       { name: 'Glasröhre hinab', to: [0, -116.4], if: 'g_down', within: 0.8 },
@@ -117,8 +118,9 @@ const ROUTES = {
       { name: 'Zielmast', to: [50, -185.9], jump: 40, within: 0.3 },
     ],
     targets: [
-      { name: 'Stern 0 zwischen den Wolken', star: 0, from: [1.5, 5.3, -93.6],
-        legs: [{ to: [4.3, -98], jump: 40, within: 0.5 }, { to: [7.4, -103], jump: 40 }, { to: [7.4, -103], jump: 20 }], shot: 'stern0' },
+      { name: 'Stern 0 zwischen den Wolken', star: 0, from: [1.5, 5.3, -92.4],
+        legs: [{ toNamed: 'w3', to: [4.3, -98], jump: 40, jumpAt: 4.6, within: 0.6 }, { toNamed: 'w3', off: [0.4, 1.0], within: 0.35, run: false },
+          { to: [7.4, -103], jump: 40, jumpAt: 5.2 }, { hop: 20 }], shot: 'stern0' },
       { name: 'Stern 1 in der Rätselbox (zwei Panzerkröten)', star: 1, from: [8.3, 5.2, -138.4], power: 'funken',
         legs: [{ to: [8.3, -140.2], jump: 20, within: 0.4 }, { wait: 120 }],
         chase: 'panzerkroete', chaseOpts: { action: true, minX: 85 }, after: [{ wait: 60 }, { star: 1 }], shot: 'stern1' },
@@ -127,7 +129,7 @@ const ROUTES = {
       { name: 'Stempel über die unsichtbare Blockkette', from: [-1.8, 1, -148.2],
         legs: [{ to: [-1.8, -150.4], jump: 30, within: 0.4 }, { to: [-2.9, -152.2], jump: 34, within: 0.35 },
           { to: [-2.9, -153.8], jump: 40, within: 0.35 }, { to: [-2.9, -155.4], jump: 40, within: 0.35 },
-          { to: [-4.6, -155], jump: 20, within: 0.4 }, { to: [-7, -155], within: 0.8 }, { to: [-17.6, -155] }, { to: [-19, -155], jump: 24 }], shot: 'stempel' },
+          { to: [-6, -155], jump: 20, within: 0.4 }, { to: [-17.6, -155] }, { to: [-19, -155], jump: 24 }], shot: 'stempel' },
     ],
     extra: [
       { name: 'Funkenblüte aus dem ersten ?-Block', from: [-2.6, 13.4, -2.8],
@@ -213,7 +215,7 @@ function install() {
       const track = [];
       let steps = 0, autoJumps = 0;
       const hold = o.invuln !== false;
-      let rideInput = {};
+      let rideInput = {}, rode = false;
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
         c.setInput(inp); c.step(1); steps++;
@@ -227,6 +229,7 @@ function install() {
             c.setInput(ri); c.step(1); steps++;
           }
           log.push(['fahrt', n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          rode = true;
         }
       };
       for (let li = 0; li < legs.length; li++) {
@@ -235,6 +238,7 @@ function install() {
         if (L.if && !c.level.named.has(L.if)) continue;
         if (L.ifNot && c.level.named.has(L.ifNot)) continue;
         rideInput = L.rideInput ?? {};
+        rode = false;
         if (L.wait) { for (let i = 0; i < L.wait; i++) tick({}); continue; }
         if (L.crouch) { for (let i = 0; i < L.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); log.push(['röhre', li, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
         if (L.action) { tick({ action: true }); tick({}); continue; }
@@ -261,29 +265,35 @@ function install() {
         const within = L.within ?? 0.6;
         const holdJ = L.jump === true ? 40 : (L.jump ?? 0);
         let i = 0, airborne = false, landed = false;
-        if (holdJ && L.to && !L.push) {
+        if (holdJ && L.to && !L.push && !L.toNamed) {
           const vis = this.landingVisible(L.to[0], L.to[1]);
           jumps.push([L.name ?? `leg${li}`, vis]);
         }
         if (L.push) {
           // gegen eine Wand drücken (anspringen: jump = Halteschritte), z. B. Klettern mit dem Krallen-Anzug
           for (let k = 0; k < L.push; k++) {
-            const d = L.to ? this.stick(L.to[0] - p.pos.x, L.to[1] - p.pos.z) : { x: 0, y: 1 };
+            const d = L.dir ? this.stick(L.dir[0], L.dir[1]) : L.to ? this.stick(L.to[0] - p.pos.x, L.to[1] - p.pos.z) : { x: 0, y: 1 };
             tick({ ...d, run: false, jump: k < holdJ });
           }
           log.push([L.name ?? `push${li}`, L.push, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
           continue;
         }
         let best = Infinity, still = 0, auto = 0, j0 = L.jumpAt ? null : 0;
+        const target = () => {
+          if (L.toNamed) { const m = c.level.named.get(L.toNamed); const q = m?.pm?.pos ?? m?.pos; if (q) return [q.x + (L.off?.[0] ?? 0), q.z + (L.off?.[1] ?? 0)]; }
+          return L.to;
+        };
         for (; i < max; i++) {
           if (p.dead || c.level.runtime.status !== 'play') break;
-          const dx = L.to[0] - p.pos.x, dz = L.to[1] - p.pos.z;
+          if (rode && L.endOnRide !== false) break;          // Röhrenfahrt beendet die Etappe
+          const T = target();
+          const dx = T[0] - p.pos.x, dz = T[1] - p.pos.z;
           const dist = Math.hypot(dx, dz);
           // festgefahren (Stufe im Weg)? → nachspringen
           if (dist < best - 0.05) { best = dist; still = 0; } else if (p.mode === 'ground') still++;
           if (still > 45 && auto <= 0 && L.autoJump !== false) { auto = 26; still = 0; autoJumps++; }
           // Sprung-Etappen enden erst nach der Landung (oder im Wasser)
-          const done = dist < within && (!holdJ || L.land === false || landed);
+          const done = dist < within && (!holdJ || L.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim')));
           if (done && i > 0) break;
           let mag = L.slow ?? 1;
           let st;
@@ -309,7 +319,7 @@ function install() {
           else if (airborne) landed = true;
         }
         log.push([L.name ?? `leg${li}`, i, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
-        if (i >= max) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, L.to]); break; }
+        if (i >= max) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, L.to ?? L.toNamed]); break; }
       }
       c.setInput({});
       return { log, jumps, autoJumps, track, occluders: this.occluders(track), steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: c.level.runtime.status, info: p.info(), rt: c.level.runtime.info() };

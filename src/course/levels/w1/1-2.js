@@ -150,7 +150,7 @@ export const LEVEL = {
     ...lawn(-9, 9, -86, -112, 1, 3, { under: 2, ...MOSS }),
     { type: 'cloud', pos: [-3.5, 2.6, -89.5], size: [3, 0.6, 3] },
     { type: 'cloud', pos: [1.5, 4.6, -93.6], size: [3, 0.6, 3] },
-    { type: 'cloud', pos: [5.6, 6.6, -98], size: [3, 0.6, 3], path: [[5.6, 6.6, -98], [3, 6.6, -98]], speed: 1.2 },
+    { type: 'cloud', id: 'w3', pos: [5.6, 6.6, -98], size: [3, 0.6, 3], path: [[5.6, 6.6, -98], [3, 6.6, -98]], speed: 1.2 },
     { type: 'cloud', pos: [7.4, 8.2, -103], size: [2.2, 0.5, 2.2] },
     { type: 'cloud', pos: [1.5, 8.6, -102.4], size: [3, 0.6, 3] },
     { type: 'cloud', pos: [-3, 10.6, -106.4], size: [3, 0.6, 3] },

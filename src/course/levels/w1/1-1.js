@@ -49,7 +49,7 @@ export const LEVEL = {
     { type: 'mound', pos: [5.8, 1, 2.5], radius: 2.8, height: 0.7 },
     { type: 'stairs', pos: [-3, 1, -5], dir: '-z', steps: 3, rise: 1, run: 1.2, width: 6 },
     ...lawn(-9, 2, -8.6, -22, 4, 3, { under: 0 }),
-    { type: 'glasspipe', id: 'g_start', radius: 1, oneWay: true, coins: 4,
+    { type: 'glasspipe', id: 'g_start', radius: 1, oneWay: true, coins: 3,
       path: [[6.5, 2.05, -11], [6.5, 2.05, -17], [6.5, 6.6, -23.5], [6.5, 6.6, -29], [4.4, 5.3, -33.4], [2.4, 5.05, -35.4]],
       branches: [{ at: 3, path: [[6.5, 6.6, -29], [8, 10.4, -34.5], [8.5, 10.55, -38.4]] }] },
     { type: 'bridge', from: [-4, 4, -22], to: [-4, 4, -30], width: 3 },
@@ -95,7 +95,7 @@ export const LEVEL = {
     { type: 'mound', pos: [0.5, 4, -47.5], radius: 2.6, height: 0.6 },
     // Sims der oberen Route (Stern 0)
     ...lawn(6.5, 10.5, -39, -50, 9.5, 1.2, { under: 2 }),
-    { type: 'glasspipe', id: 'g_hedge', radius: 1, oneWay: true, coins: 3,
+    { type: 'glasspipe', id: 'g_hedge', radius: 1, oneWay: true, coins: 2,
       path: [[-6.3, 6.05, -44.5], [-6.3, 6.05, -53], [-6.3, 5.6, -58.2], [-6.3, 5.05, -63.6]] },
     deco([
       { kind: 'tree', pos: [-7, 5, -39], size: 4.4, color: 'green' },
@@ -130,9 +130,9 @@ export const LEVEL = {
     { type: 'hill', pos: [6.5, 4, -71.2], radius: 2.8, height: 2, steps: 1 },
     ...lawn(3, 10, -76, -82, 8, 7, { under: 3 }),
     ...lawn(3, 10, -82, -92, 10, 9, { under: 3 }),
-    { type: 'glasspipe', id: 'g_cp', radius: 1, oneWay: true, coins: 3,
+    { type: 'glasspipe', id: 'g_cp', radius: 1, oneWay: true, coins: 2,
       path: [[-7, 11.05, -87.6], [-7, 11.05, -92.6], [-7, 8.7, -97.6], [-7, 8.05, -101.4]] },
-    { type: 'glasspipe', id: 'g_hill', radius: 1, oneWay: true, coins: 3,
+    { type: 'glasspipe', id: 'g_hill', radius: 1, oneWay: true, coins: 2,
       path: [[6.2, 11.05, -87.6], [6.2, 11.05, -92], [7.6, 13.6, -95.8], [8, 13.1, -97.8]] },
     deco([
       { kind: 'tree', pos: [9, 4, -61.5], size: 5 },
@@ -170,7 +170,6 @@ export const LEVEL = {
     { type: 'water', pos: [7, 5, -115], size: [8, 1.6, 10] },
     isl(7.5, 10.5, -113.5, -116.5, 6.9, 1.9, { top: 'stone', under: 0 }),
     { type: 'pipe', id: 'p_pond', pos: [9.2, 6.9, -115.4], height: 1.3, target: 'p_room' },
-    { type: 'pipe', id: 'p_back', pos: [12.5, 7, -121.6], height: 1.2 },
     // großer Hügel (5 m, drei Terrassen) mit dem großen Hasen (Riesentrank)
     { type: 'hill', pos: [8, 7, -98.5], radius: 5, height: 5, steps: 3 },
     deco([
@@ -196,7 +195,6 @@ export const LEVEL = {
       { kind: 'reeds', pos: [11.6, 7, -110.4], n: 5, size: 1.1 },
       { kind: 'lilypads', pos: [5.4, 6.6, -116], size: [3, 6], n: 6 },
       { kind: 'daisies', pos: [-2, 7, -103], size: [20, 12], n: 40 },
-      { kind: 'butterflies', pos: [-4, 7, -105], n: 4, r: 3.4 },
       { kind: 'butterflies', pos: [6.6, 7, -114.6], n: 3, r: 3, h: 1.6, colors: [0x8fd0ff, 0xffffff, 0xb07aff] },
       { kind: 'daisies', pos: [8, 8.67, -98.5], size: [8, 8], n: 18, colors: ['yellow', 'white'] },
       { kind: 'bellflowers', pos: [1.8, 7, -112], size: [1.4, 3], n: 8 },
@@ -267,7 +265,7 @@ export const LEVEL = {
     ]),
 
     // =============================================================== 6  Ziel
-    { type: 'glasspipe', id: 'g_goal', radius: 1, oneWay: true, coins: 4,
+    { type: 'glasspipe', id: 'g_goal', radius: 1, oneWay: true, coins: 3,
       path: [[0, 8.05, -170.5], [0, 8.05, -176], [0, 11.2, -181.5], [0, 11.05, -184.4]] },
     ...lawn(-9, 9, -178, -200, 7, 6, { under: 3 }),
     { type: 'stairs', pos: [0, 7, -183.5], dir: '-z', steps: 3, rise: 1, run: 1.2, width: 4 },
@@ -316,9 +314,9 @@ export const LEVEL = {
     ]),
 
     // =============================================================== Stempel-Raum (abseits, x ≈ 90)
-    { type: 'room', pos: [90, 1, -111], size: [14, 4.5, 12], top: 'grass', style: 'wood' },
+    { type: 'room', pos: [90, 1, -111], size: [14, 7, 12], top: 'grass', style: 'wood' },
     { type: 'pipe', id: 'p_room', pos: [85, 1, -107], height: 1.2 },
-    { type: 'pipe', id: 'p_room_out', pos: [95.5, 1, -107], height: 1.2, target: 'p_back' },
+    { type: 'pipe', id: 'p_room_out', pos: [95.5, 1, -107], height: 1.2, target: [12.4, 7.4, -121.4] },
     { type: 'platform', pos: [87.5, 1, -113.5], size: [2, 1.2, 2], color: 'red' },
     { type: 'platform', pos: [90.5, 1, -115], size: [2, 2.4, 2], color: 'yellow' },
     { type: 'platform', pos: [93.6, 1, -113.6], size: [2, 3.6, 2], color: 'blue' },
@@ -343,7 +341,7 @@ export const LEVEL = {
     { kind: 'question', pos: [-1, 6.4, -38.5], content: 'wachstumsbeere' },
     { kind: 'brick', pos: [0, 6.4, -38.5], content: 'coins:4' },
     // 3: Münzblock vor der Wand
-    { kind: 'coinblock', pos: [4, 6.4, -63], count: 8 },
+    { kind: 'brick', pos: [4, 6.4, -63], content: 'coins:6' },
     // 5: Steinblöcke (nur Riesentrank) als Buckel über der Stern-Nische direkt hinter der Brücke
     { kind: 'blockwand', pos: [7.5, 7, -159], size: [2, 1, 2] },
     // 5: Ziegelreihe über dem Weg
@@ -369,33 +367,31 @@ export const LEVEL = {
     line([0.5, 1.2, 3], [-2.4, 1.2, -3.2], 3),
     ...arc([-3, 1.2, -4.4], [-3, 4.2, -10], 3, 1.5),
     line([-4, 4.4, -23.5], [-4, 4.4, -28.5], 3),
-    line([4.6, 1.2, -11.6], [6.5, 1.2, -13.6], 2),
     // 2
     ring([8.5, 9.8, -46.5], 1.3, 6),
-    line([-6.3, 5.3, -38.5], [-6.3, 5.3, -42], 3),
+    line([-6.3, 5.3, -39], [-6.3, 5.3, -41.5], 2),
     ...arc([-1, 4.2, -54.5], [-1, 4.2, -61.5], 4, 2.2),
     // 3
     ...column(-3.5, -75.6, 5, 9.2, 4),
     { kind: 'coin', pos: [6.5, 6.3, -71.2] }, { kind: 'coin', pos: [6.5, 8.3, -79] }, { kind: 'coin', pos: [6.5, 10.3, -85] },
-    line([-7, 10.3, -82], [-1, 10.3, -82], 3),
     // 4
     ...arc([-3.5, 10.2, -92.4], [-3.5, 7.2, -97], 3, 0.6),
     ring([8, 12.3, -98.5], 1.6, 6),
-    line([-6, 7.3, -110], [-1, 7.3, -110], 3),
+    line([-5, 7.3, -110], [-2, 7.3, -110], 2),
     ...arc([2.4, 7.2, -114.5], [7.8, 7.1, -114.8], 3, 1.4),
     // 5
     line([0, 7.3, -126.5], [0, 7.3, -129.5], 2),
     line([0, 7.6, -148], [0, 7.6, -155], 4),
     line([11, 0.7, -144], [11, 0.7, -152], 4),
     line([10, 0.7, -154.5], [9.4, 0.7, -158], 3),
-    line([-3, 7.3, -167.5], [3, 7.3, -167.5], 3),
+    line([-2, 7.3, -167.5], [2, 7.3, -167.5], 2),
     // 6
     ...arc([0, 10.3, -187.2], [0, 9.2, -192], 3, 1.8),
     // Stempel-Raum
     ...arc([86.4, 1.2, -110.4], [87.5, 2.4, -113.5], 2, 1),
     ...arc([87.5, 2.4, -113.5], [90.5, 3.6, -115], 3, 1.2),
     ...arc([90.5, 3.6, -115], [93.6, 4.8, -113.6], 3, 1.2),
-    ...column(84.2, -114.6, 1.2, 3.6, 3), ...column(96, -114.6, 1.2, 3.6, 3),
+    ...column(84.2, -114.6, 1.2, 3.6, 3),
     // Gimmicks (Sonder-Bausteine): Krallen-Anzug im Baum, Hasen, Holzkisten
     { kind: 'itemtree', pos: [-10, 7, -114], size: 6.6, color: 'autumn', content: 'krallenAnzug' },
     { kind: 'bunny', size: 'big', pos: [8, 12, -98.5], area: { pos: [8, 12, -98.5], r: 2.1 } },
