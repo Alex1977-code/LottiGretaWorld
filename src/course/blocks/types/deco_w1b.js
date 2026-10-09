@@ -22,6 +22,8 @@
 //   waterfall   Wasserfall an einer Felswand: pos (Fuß, Mitte), size [Breite, Höhe], yaw (0 = fällt zur Kamera +Z),
 //               pool (Becken-Radius am Fuß, Standard 1.6)
 //   cairn       Steinmännchen (Gipfel): size (Höhe, Standard 1.1)
+//   slopegrass  Grasraster (1 m, Schachbrett) und Büschel/Blumen auf einer Rampe: pos, size, axis, dir, low wie
+//               Baustein ramp; n (Büschel), keep [x, Halbbreite] (Laufbahn ohne Büschel)
 //   pixelblock mit backdrop: true – schwebender Kulissenblock ohne Kollision
 // Zirkus (1-5)
 //   tent        Zeltinneres als Kulisse: from [x0, z0], to [x1, z1] (Grundriss der Zeltwand), y0 (Fuß der Wand =
@@ -368,6 +370,54 @@ function waterfall(it, out, glow) {
   void glow;
 }
 
+/** Grasraster und Zier auf einer Rampe (gleiche Parameter wie Baustein ramp, Achse z oder x). */
+function slopegrass(it, out, rnd) {
+  const p = v3(it.pos), s = sz3(it.size, [4, 2, 6]);
+  const axis = it.axis ?? 'z', dir = it.dir ?? -1, low = it.low ?? 0;
+  const x0 = p.x - s.x / 2, x1 = p.x + s.x / 2, z0 = p.z - s.z / 2, z1 = p.z + s.z / 2;
+  const yAt = (x, z) => {
+    let t = axis === 'x' ? (x - x0) / (x1 - x0) : (z - z0) / (z1 - z0);
+    if (dir < 0) t = 1 - t;
+    return p.y + low + (s.y - low) * t + 0.015;
+  };
+  const a = 0x76e04a, b = 0x62cc3c;
+  const pos = [], nor = [], colr = [];
+  const N = new THREE.Vector3();
+  for (let z = z0; z < z1 - 1e-3; z += 1) {
+    for (let x = x0; x < x1 - 1e-3; x += 1) {
+      const xa = x, xb = Math.min(x1, x + 1), za = z, zb = Math.min(z1, z + 1);
+      const c = lin(((Math.floor(x) + Math.floor(z)) & 1) ? a : b);
+      const k = 0.94 + rnd.frac() * 0.1;
+      const P = [[xa, yAt(xa, za), za], [xa, yAt(xa, zb), zb], [xb, yAt(xb, zb), zb], [xb, yAt(xb, za), za]];
+      const A = new THREE.Vector3(...P[0]), B = new THREE.Vector3(...P[1]), C = new THREE.Vector3(...P[2]);
+      N.subVectors(B, A).cross(new THREE.Vector3().subVectors(C, A)).normalize();
+      for (const i of [0, 1, 2, 0, 2, 3]) { pos.push(...P[i]); nor.push(N.x, N.y, N.z); colr.push(c[0] * k, c[1] * k, c[2] * k); }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(colr, 3));
+  out.push(g);
+  // Grasbüschel und Blumen in Hanghöhe
+  for (let i = 0; i < (it.n ?? 14); i++) {
+    const x = rnd.real(x0 + 0.5, x1 - 0.5), z = rnd.real(z0 + 0.5, z1 - 0.5);
+    if (it.keep && Math.abs(x - it.keep[0]) < it.keep[1]) continue;   // Laufbahn frei lassen
+    tufts({ pos: [x, yAt(x, z) - 0.02, z], size: [0.4, 0.4], n: 1 }, out, rnd);
+    if (rnd.chance(0.45)) {
+      const fc = lin(rnd.pick([0xff5a4a, 0xffd43a, 0xffffff, 0xff8ccc]));
+      const fx = x + 0.35, fz = z + 0.2, fy = yAt(fx, fz);
+      const st = new THREE.CylinderGeometry(0.025, 0.03, 0.32, 5, 1, true);
+      st.translate(fx, fy + 0.16, fz);
+      out.push(solid(st, 0x3f9a2a));
+      const head = new THREE.SphereGeometry(0.1, 6, 4);
+      head.scale(1, 0.55, 1);
+      head.translate(fx, fy + 0.35, fz);
+      out.push(colorize(head, (pp, n, o) => { o[0] = fc[0]; o[1] = fc[1]; o[2] = fc[2]; }));
+    }
+  }
+}
+
 function cairn(it, out) {
   const p = v3(it.pos);
   const h = it.size ?? 1.1;
@@ -423,7 +473,7 @@ function tent(level, it, out, glow) {
       const xx0 = xa + (i * w) / n, xx1 = xa + ((i + 1) * w) / n;
       const c = i & 1 ? 0x24357e : NAVY;
       const a = [xx0, y0, z], b = [xx1, y0, z], c2 = [xx1, y1 + (peak - y1) * (1 - Math.abs((xx1 - cx) / ((xb - xa) / 2))), z], d = [xx0, y1 + (peak - y1) * (1 - Math.abs((xx0 - cx) / ((xb - xa) / 2))), z];
-      out.push(dirIn > 0 ? quad(a, b, c2, d, [tint(c, -0.3), tint(c, -0.3), c, c]) : quad(b, a, d, c2, [tint(c, -0.3), tint(c, -0.3), c, c]));
+      glow.push(dirIn > 0 ? quad(a, b, c2, d, [tint(c, -0.45), tint(c, -0.45), tint(c, -0.1), tint(c, -0.1)]) : quad(b, a, d, c2, [tint(c, -0.45), tint(c, -0.45), tint(c, -0.1), tint(c, -0.1)]));
     }
     // Sterne (leuchtend)
     for (let i = 0; i < 26; i++) {
@@ -431,14 +481,24 @@ function tent(level, it, out, glow) {
       starShape(glow, sx, sy, z + dirIn * 0.15, rnd.real(0.35, 0.9), dirIn, rnd.pick([0xfff2a0, 0xffffff, 0xffd84a]));
     }
   }
-  // Dach: zwei Schrägen von der Traufe zum First, Streifen in Gefällerichtung
+  // Dach (Zelthimmel): zwei Schrägen von der Traufe zum First, Streifen in Gefällerichtung, unbeleuchtet
+  // (Stoff im Halbdunkel) mit leuchtenden Sternen
   for (const [x, dirIn] of [[xa, 1], [xb, -1]]) {
     for (let z = za; z < zb - 1e-3; z += stripe) {
       const zz = Math.min(zb, z + stripe);
       const k = Math.round((z - za) / stripe) & 1;
       const c = k ? RED : CREAM;
+      const lo = tint(c, -0.45), hi = tint(c, -0.75);
       const a = [x, y1, z], b = [x, y1, zz], c2 = [cx, peak, zz], d = [cx, peak, z];
-      out.push(dirIn > 0 ? quad(a, b, c2, d, [tint(c, -0.2), tint(c, -0.2), tint(c, -0.5), tint(c, -0.5)]) : quad(a, d, c2, b, [tint(c, -0.2), tint(c, -0.5), tint(c, -0.5), tint(c, -0.2)]));
+      glow.push(dirIn > 0 ? quad(a, b, c2, d, [lo, lo, hi, hi]) : quad(a, d, c2, b, [lo, hi, hi, lo]));
+    }
+    const dx = cx - x, dy = peak - y1, dl = Math.hypot(dx, dy);
+    const nIn = dirIn > 0 ? [dy / dl, -dx / dl, 0] : [-dy / dl, dx / dl, 0];
+    if (dirIn < 0) { nIn[0] = -Math.abs(nIn[0]); nIn[1] = -Math.abs(nIn[1]); } else { nIn[0] = Math.abs(nIn[0]); nIn[1] = -Math.abs(nIn[1]); }
+    for (let i = 0; i < Math.round((zb - za) / 7); i++) {
+      const t = rnd.real(0.15, 0.85), z = rnd.real(za + 3, zb - 3);
+      const c = [x + dx * t + nIn[0] * 0.2, y1 + dy * t + nIn[1] * 0.2, z];
+      starOriented(glow, c, nIn, rnd.real(0.5, 1.1), rnd.pick([0xfff2a0, 0xffffff, 0xffd84a]));
     }
   }
   // Boden: dunkles Parkett, Manegen mit rot-weißer Bande und Sägemehl, Goldstern in der Mitte
@@ -483,6 +543,16 @@ function tent(level, it, out, glow) {
       glow.push(solid(g, (Math.round(z) & 2) ? 0xfff0a0 : 0xffb04a));
     }
   }
+}
+
+/** Fünfzackiger Stern mit beliebiger Normale (beidseitig). */
+function starOriented(out, c, n, r, color) {
+  const parts = [];
+  starShape(parts, 0, 0, 0, r, 1, color);
+  const g = merge(parts);
+  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(...n).normalize()));
+  g.translate(c[0], c[1], c[2]);
+  out.push(g);
 }
 
 /** Fünfzackiger Stern (flach), liegend (flat) oder an einer Wand (Normale ±Z = dirIn). */
@@ -809,6 +879,7 @@ export function buildDecoW1b(level, spec) {
       case 'path': path(it, out, rnd); cast = false; break;
       case 'waterfall': waterfall(it, out, glow); cast = false; break;
       case 'cairn': cairn(it, out); break;
+      case 'slopegrass': slopegrass(it, out, rnd); cast = false; break;
       case 'tent': tent(level, it, out, glow); cast = false; break;
       case 'stage': stage(level, it, out, glow); break;
       case 'drum': drum(level, it, out); break;

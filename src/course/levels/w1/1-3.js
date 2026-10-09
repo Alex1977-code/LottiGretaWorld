@@ -105,6 +105,7 @@ export const LEVEL = {
     // ======================================================== 3  POW-Hang
     plateau(-10, 10, -47, -71, 3, -9),
     { type: 'ramp', pos: [-3, 3, -62], size: [14, 6, 18], axis: 'z', dir: -1 },
+    { type: 'deco_w1b', items: [{ kind: 'slopegrass', pos: [-3, 3, -62], size: [14, 6, 18], axis: 'z', dir: -1, n: 22, keep: [-3, 1.6] }] },
     plateau(-10, 10, -71, -81, 9, -5),
     // rechte Bahn: Riesenblock-Treppe als zweiter Weg hinauf
     { type: 'deco_w1b', items: [
@@ -147,6 +148,7 @@ export const LEVEL = {
     // ======================================================== 5  Doppelhügel
     plateau(-12, 12, -126, -152, 17, 5),
     { type: 'hill', pos: [-5.5, 17, -137.5], radius: 4.5, height: 3, steps: 2 },
+    { type: 'cloudcannon', id: 'wolkenkanone', pos: [-5.5, 20, -137.5], target: [-46, 46, -121.5], arc: 6 },
     { type: 'hill', pos: [5.5, 17, -140], radius: 4.5, height: 3, steps: 2 },
     { type: 'platform', pos: [5.5, 22.2, -140], size: [2.6, 0.6, 2.6], color: 'blue' },
     { type: 'killplane', pos: [0, 8, -139.5], size: [80, 25] },
@@ -263,21 +265,22 @@ export const LEVEL = {
     { kind: 'question', pos: [1.5, 3.4, -3], content: 'coin' },
     // Schnappblumenfeld
     { kind: 'question', pos: [3, 3.4, -21.5], content: 'wachstumsbeere' },
-    { kind: 'pow', pos: [0, 3.5, -33] },
+    { kind: 'pow', pos: [0, 3.5, -33], uses: 3, radius: 10, height: 3 },
     { kind: 'hidden', pos: [-8.2, 3.4, -42.5], content: 'oneup' },
     { kind: 'coinblock', pos: [-4, 3.4, -21.5], count: 6 },
     // POW-Hang: Ziegelreihen auf dem Hang, POW-Blöcke, Ziegelwand vor der Röhren-Nische
     ...[-8, -7, -6, -2, -1, 0].map((x) => ({ kind: 'brick', pos: [x, 7.4, -58] })),
     ...[-9, -8, -4, -3, -2].map((x) => ({ kind: 'brick', pos: [x, 9.9, -65] })),
-    { kind: 'pow', pos: [-5, 7.4, -58] },
-    { kind: 'pow', pos: [2, 11.4, -73.5] },
+    { kind: 'pow', pos: [-5, 7.4, -58], uses: 3, radius: 9, height: 3.5 },
+    { kind: 'pow', pos: [2, 11.4, -73.5], uses: 3, radius: 8, height: 3 },
     ...[5.5, 6.5, 7.5].flatMap((x) => [9, 10, 11].map((y) => ({ kind: 'brick', pos: [x, y, -77.5] }))),
     { kind: 'question', pos: [-6, 12.4, -75], content: 'coins:3' },
     // Doppelhügel
     { kind: 'question', pos: [2, 20.4, -148.5], content: 'funken' },
     { kind: 'question', pos: [5.5, 25.2, -140], content: 'oneup' },
-    // vor der Gipfelbrücke
-    { kind: 'question', pos: [0, 33.4, -173.8], content: 'wachstumsbeere' },
+    // vor der Gipfelbrücke: Funkenblüte gegen die Riesenschnappblume
+    { kind: 'question', pos: [-1, 33.4, -173.8], content: 'funken' },
+    { kind: 'question', pos: [1, 33.4, -173.8], content: 'wachstumsbeere' },
   ],
   enemies: [
     // Krallen-Pilzlinge (8)
@@ -295,11 +298,8 @@ export const LEVEL = {
     snap(7.5, 16.1, -108),
     snap(9.5, 17, -130), snap(-9.8, 17, -145.5), snap(-0.5, 17, -145.5),
     snap(-5, 23, -164.5), snap(4.5, 25, -166.2),
-    // Zwischenboss
-    { kind: 'riesenschnappblume', pos: [0, 30, -196], id: 'gipfelboss', hp: 3 },
-    // Kobolde mit Fernglas
-    { kind: 'spotter', pos: [-7.6, 7, -4.2], yaw: 0.4 },
-    { kind: 'spotter', pos: [7.6, 4.4, 4.8], yaw: 2.6 },
+    // Zwischenboss (3 Treffer: Feuerbälle, Tatzenhieb oder Stampfen direkt neben ihr)
+    { kind: 'riesenschnappblume', pos: [0, 30, -196.5], id: 'gipfelboss', hp: 3, base: 'ground', yaw: Math.PI / 2 },
   ],
   items: [
     // 1 Startplatz: Münzen an der Ranke, Spur zur Brücke, Bogen im Schacht
@@ -331,12 +331,15 @@ export const LEVEL = {
     coinsLine([0, 30.3, -177], [0, 30.3, -185], 5),
     // Gipfel
     arc([-3, 40.2, -207], [3, 40.2, -207], 1.2, 5),
-    // P-Schalter-Raum: blaue Münzen (unsichtbar bis zum Schalter)
-    { kind: 'pswitch', pos: [70, 0, -66], duration: 12, coins: 'pRaum', id: 'pRaumSchalter' },
-    ...[[63.5, 0.3, -66], [66, 1.8, -72], [66, 0.3, -64], [70, 1.3, -75.5], [74, 2.8, -66], [76.5, 0.3, -69], [73, 0.3, -61], [70, 2.6, -62]]
-      .map((p) => ({ kind: 'bluecoin', pos: p, group: 'pRaum' })),
-    // Münzhimmel
-    { kind: 'cloudcannon', pos: [-5.5, 20, -137.5], target: [-46, 46, -121], id: 'wolkenkanone' },
+    // Kobolde mit Fernglas in den Bäumen (Deko mit Leben)
+    { kind: 'spotter', pos: [-7.4, 7, -4.4], yaw: -0.9 },
+    { kind: 'spotter', pos: [7.7, 4.4, 4.6], yaw: -2.2 },
+    // Gipfel: Sieg über die Riesenschnappblume → Warp-Box zum Ziel erscheint
+    { kind: 'task', type: 'defeatAll', ids: ['gipfelboss'], area: { pos: [0, 30, -193.5], r: 10 }, reward: { reveal: 'zielbox' } },
+    { kind: 'warpbox', id: 'zielbox', hidden: true, pos: [0, 30, -191], target: [0, 40, -206.2] },
+    // P-Schalter-Raum: Druckschalter → 8 blaue Münzen für 12 s, alle → Stern 2
+    { kind: 'pswitch', id: 'pRaumSchalter', pos: [70, 0, -67], time: 12, star: 1,
+      coins: [[63.5, 0.3, -66], [66, 1.8, -72], [66, 0.3, -63.5], [70, 1.3, -75.5], [74, 2.8, -66], [76.5, 0.3, -70], [73.5, 0.3, -61], [70, 2.6, -62]] },
     { kind: 'coins', pos: [-46, 46.2, -122], r: 2, n: 8 },
     coinsLine([-47.2, 46.2, -128], [-47.2, 46.2, -138], 6), coinsLine([-44.8, 46.2, -128], [-44.8, 46.2, -138], 6),
     arc([-46, 46.3, -139.5], [-43, 47.3, -144], 1.8, 4), arc([-43, 47.3, -147.5], [-48, 48.3, -153], 2, 5),
@@ -344,9 +347,9 @@ export const LEVEL = {
     { kind: 'coins', pos: [-46, 48.2, -164.5], r: 2.2, n: 10 },
   ],
   stars: [
-    [-6.5, 7.05, -3.2],          // 1: Krone des Rankenbaums links vom Start
-    [70, 1.0, -68.5],            // 2: P-Schalter-Raum (erscheint nach allen blauen Münzen)
-    [-46, 48.05, -164.5],        // 3: Ende des Münzhimmels (im Münzkreis)
+    [-6.5, 7.05, -3.2],                                    // 1: Krone des Rankenbaums links vom Start
+    { pos: [70, 0.6, -70.5], hidden: true, id: 'stern2' }, // 2: P-Schalter-Raum (erscheint nach allen blauen Münzen)
+    [-46, 48.05, -164.5],                                  // 3: Ende des Münzhimmels (im Münzkreis)
   ],
   stamp: [7, 7.4, -6.2],         // zwischen den zwei Wänden am Start (nur per Wandsprung)
   goal: { pos: [0, 40, -212], height: 8 },

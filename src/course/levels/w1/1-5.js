@@ -104,13 +104,12 @@ export const LEVEL = {
       stage(5.5, 6.5, -11, 2, 4, { h: 6.5, color: 0xffc21a, skirt: ['red', 0xfff4e0], bulbs: false, inlay: false }),
       stage(9.5, 11, -11, 1, 4, { h: 11, color: 0xffc21a, skirt: [0x2a4fd0, 0xfff4e0], bulbs: false, inlay: false }),
     ] },
-    { type: 'warpbox', id: 'box1', pos: [2, 0, -11.5], target: 'logeBox' },
-    { type: 'switchtiles', id: 'feld1', tiles: [[-5, 0, -1], [0, 0, -1], [5, 0, -1], [-5, 0, -7], [0, 0, -7], [5, 0, -7]], reveal: 'steg1' },
-    // Steg (erscheint, wenn alle Schaltfelder an sind)
-    { type: 'deco_w1b', id: 'steg1', items: [
-      stage(-1, 0, -16.5, 3, 2.6, { color: 0xffc21a, bulbs: false }),
-      stage(0, 0, -20, 3, 2.6, { color: 0xffc21a, bulbs: false }),
-      stage(1, 0, -23.5, 3, 2.6, { color: 0xffc21a, bulbs: false }),
+    { type: 'switchtiles', id: 'feld1', tiles: [[-5, 0, -1], [0, 0, -1], [5, 0, -1], [-5, 0, -7], [0, 0, -7], [5, 0, -7]], onAll: { reveal: 'steg1' } },
+    // Steg (erscheint, wenn alle Schaltfelder an sind; vorher als Umriss zu sehen)
+    { type: 'appear', id: 'steg1', style: 'block', parts: [
+      { pos: [-1, -0.5, -16.5], size: [3, 0.5, 2.6], color: 'yellow' },
+      { pos: [0, -0.5, -20], size: [3, 0.5, 2.6], color: 'red' },
+      { pos: [1, -0.5, -23.5], size: [3, 0.5, 2.6], color: 'blue' },
     ] },
 
     // ======================================================== 2  Schalter-Feld 2
@@ -122,7 +121,8 @@ export const LEVEL = {
       { kind: 'pennant', pos: [-4.1, 1.5, -55.6], size: 2.2 },
       { kind: 'ball', pos: [3.8, 1.5, -55.3], size: 0.5 },
     ] },
-    { type: 'switchtiles', id: 'feld2', tiles: [[-2.5, 0, -29.5], [2.5, 0, -29.5], [-2.5, 0, -33], [2.5, 0, -33], [-2.5, 1.5, -53], [0, 1.5, -53], [2.5, 1.5, -53]], reward: 'coins:10' },
+    { type: 'switchtiles', id: 'feld2', tiles: [[-2.5, 0, -29.5], [2.5, 0, -29.5], [-2.5, 0, -33], [2.5, 0, -33], [-2.5, 1.5, -52.4], [0, 1.5, -54.4], [2.5, 1.5, -52.4]],
+      onAll: { power: 'oneup', pos: [0, 1.5, -51] } },
     { type: 'mover', size: [3, 0.5, 3], path: [[-4, -0.5, -39], [4, -0.5, -39]], speed: 2.4, wait: 0.5, color: 'red' },
     { type: 'mover', size: [3, 0.5, 3], path: [[4, 0.3, -45], [-4, 0.3, -45]], speed: 2.4, wait: 0.5, color: 'yellow' },
     { type: 'deco_w1b', items: [
@@ -144,7 +144,7 @@ export const LEVEL = {
       { kind: 'drum', pos: [-6, 4, -85.5], size: [1.6, 0.9], color: 'blue' },
       { kind: 'pennant', pos: [2.6, 4, -91.5], size: 2.3, color: 'yellow' },
     ] },
-    { type: 'warpbox', id: 'raetsel', pos: [1.5, 4, -90], target: 'kistenEin', puzzle: true },
+
 
     // ======================================================== 5  Krabbelkäfer-Gang
     { type: 'deco_w1b', items: [
@@ -159,7 +159,16 @@ export const LEVEL = {
     // ======================================================== 6  Wechselschalter-Plattform (fährt)
     { type: 'mover', id: 'faehre', size: [12, 0.8, 12], path: [[0, 3.2, -132.2], [0, 3.2, -152]], speed: 2.2, wait: 1.6, color: 'blue' },
     { type: 'deco_w1b', items: [{ kind: 'ride', at: [0, 3.2, -132.2], color: 0x2a4fd0, star: true, skirt: [0xd0302a, 0xffc21a] }] },
-    { type: 'switchtiles', id: 'wechsel', mode: 'toggle', mover: 'faehre', tiles: [[-3.5, 0, -3.5], [3.5, 0, -3.5], [-3.5, 0, 3.5], [3.5, 0, 3.5], [0, 0, -4.5], [0, 0, 4.5]], drop: 'wackel' },
+    // Wechsel-Schaltfelder auf der Fähre (Weltkoordinaten zur Startlage, Fähren-Mitte z −132,2): alle an →
+    // Stern 3 erscheint in der Mitte, und die Wackelplattform am Stempel-Turm stürzt ab
+    { type: 'switchtiles', id: 'wechsel', toggle: true, on: 'faehre',
+      tiles: [[-3.5, 4, -135.7], [3.5, 4, -135.7], [-3.5, 4, -128.7], [3.5, 4, -128.7], [-4.2, 4, -132.2], [4.2, 4, -132.2]],
+      onAll: [{ star: 2 }, { drop: 'wackel' }] },
+    // Seitenbühnen, von denen die Zauberkröte zaubert
+    { type: 'deco_w1b', items: [
+      stage(-9, 5, -137, 3, 3, { color: 0x8a2ad0, bulbs: true, inlay: false }),
+      stage(9, 5, -147, 3, 3, { color: 0x8a2ad0, bulbs: true, inlay: false }),
+    ] },
 
     // ======================================================== 7  Landebühne, Stempel-Turm, Kanone, Ziel
     { type: 'deco_w1b', items: [
@@ -172,15 +181,16 @@ export const LEVEL = {
       { kind: 'drum', pos: [5.5, 4, -167.5], size: [1.6, 0.9], color: 'red' },
     ] },
     { type: 'wall', pos: [-9.5, 4, -161.2], size: [3, 8, 0.4], climbable: true },
-    { type: 'fallplatform', id: 'wackel', pos: [-9.5, 3.4, -159.6], size: [3, 0.6, 2.8], on: 'wechsel' },
-    { type: 'glasspipe', id: 'kanone', path: [[3.5, 4, -166], [3.5, 7, -166], [3.5, 9, -172], [1, 11, -180]], cannon: true, target: [0, 10, -188] },
+    { type: 'fallplatform', id: 'wackel', pos: [-9.5, 3.4, -159.6], size: [3, 0.6, 2.8], trigger: 'signal', respawn: 0, color: 'orange' },
+    { type: 'glasspipe', id: 'kanone', path: [[3.5, 5, -162.6], [3.5, 5, -166.5], [3.5, 8, -171], [2.2, 11, -176.5]], radius: 1, oneWay: true,
+      coins: 4, cannon: { target: [0, 10, -188.6], arc: 4 } },
 
     // ======================================================== Zuschauerloge (abseits links)
     { type: 'deco_w1b', items: [
       stage(-20, 6, -22, 6, 12, { color: 0xd0302a }),
       { kind: 'curtain', pos: [-20, 6, -28.3], size: [6, 5], color: 0x7a1aa0 },
     ] },
-    { type: 'warpbox', id: 'logeBox', pos: [-20, 6, -26], target: [0, 0, -29] },
+
 
     // ======================================================== Kistenraum (abseits, x ≈ 60)
     { type: 'deco_w1b', items: [
@@ -195,18 +205,12 @@ export const LEVEL = {
       { kind: 'balloons', pos: [67.4, 0, -86], n: 4, size: 1.6 },
       { kind: 'trapeze', pos: [56, 3.2, -88], size: 3 },
     ] },
-    { type: 'crate', id: 'sternkiste', pos: [53.2, 0, -92.8], content: 'star' },
-    { type: 'crate', pos: [55, 0, -92.8] }, { type: 'crate', pos: [56.8, 0, -92.8] },
-    { type: 'crate', pos: [63.2, 0, -92.8] }, { type: 'crate', pos: [65, 0, -92.8], content: 'coins:5' }, { type: 'crate', pos: [66.8, 0, -92.8] },
-    { type: 'crate', pos: [53.2, 0, -91] }, { type: 'crate', pos: [66.8, 0, -91], content: 'oneup' },
-    { type: 'warpbox', id: 'kistenEin', pos: [60, 0, -81.5] },
-    { type: 'warpbox', id: 'kistenAus', pos: [60, 0, -90], target: [0, 4, -97] },
+
   ],
   blocks: [
     { kind: 'question', pos: [0, 3.4, 2], content: 'wachstumsbeere' },
     { kind: 'question', pos: [-2, 3.4, -31], content: 'coin' },
-    { kind: 'rouletteblock', pos: [2, 3.4, -31] },
-    { kind: 'rouletteblock', pos: [0, 3.9, -53] },
+    { kind: 'rouletteblock', pos: [2, 3.4, -31], contents: ['krallen', 'funken', 'wachstumsbeere', 'oneup'] },
     { kind: 'question', pos: [-1.5, 4.9, -61], content: 'krallenAnzug' },
     { kind: 'question', pos: [1.5, 4.9, -61], content: 'coins:5' },
     { kind: 'question', pos: [60, 2.4, -84], content: 'funken' },
@@ -214,23 +218,31 @@ export const LEVEL = {
   ],
   enemies: [
     // Krabbelkäfer (8)
-    bug(-6, 0, -4, { path: [[-7, 0, -4], [7, 0, -4]] }), bug(6, 0, -10, { path: [[7, 0, -10], [-6, 0, -10]], color: 'red' }),
-    bug(-5, 4, -86, { path: [[-6, 4, -86], [2, 4, -86]] }), bug(2, 4, -90.5, { path: [[3, 4, -90.5], [-6, 4, -90.5]], color: 'red' }),
-    bug(0, 4, -99, { path: [[0, 4, -98], [0, 4, -123]], color: 'blue' }), bug(0, 4, -101, { path: [[0, 4, -98], [0, 4, -123]], color: 'blue' }),
-    bug(0, 4, -103, { path: [[0, 4, -98], [0, 4, -123]], color: 'blue' }), bug(0, 4, -105, { path: [[0, 4, -98], [0, 4, -123]], color: 'blue' }),
+    bug(-6, 0, -4, { path: [[-7, 0, -4], [7, 0, -4]], color: 'yellow' }), bug(6, 0, -10, { path: [[7, 0, -10], [-6, 0, -10]], color: 'red' }),
+    bug(-1, 4, -87.5, { path: [[-1, 4, -87.5], [4, 4, -87.5], [4, 4, -92], [-1, 4, -92]], count: 2, spacing: 2.2, color: 'green' }),
+    bug(0, 4, -100, { path: [[0, 4, -99], [0, 4, -123]], count: 4, spacing: 1.6, speed: 2.2, color: 'blue' }),
     // Brummer (8)
-    bee(-3, 2.5, -27.5), bee(4, 2.8, -36.5), bee(-4, 3.5, -48), bee(3.5, 4, -57.5),
-    bee(5, 5.5, -76), bee(-6, 6, -82),
-    bee(5.5, 6, -160.5), bee(-3, 13.2, -186),
+    bee(-3.5, 2.6, -27.5, { center: [-3.5, 2.6, -31], radius: 2.4 }), bee(0, 2.8, -42, { path: [[-5, 2.8, -42], [5, 2.8, -42]] }),
+    bee(-4, 3.6, -49, { center: [-1, 3.6, -48], radius: 3 }), bee(3.5, 4.2, -57.5, { path: [[4, 4.2, -56.5], [-4, 4.2, -56.5]] }),
+    bee(5, 5.8, -76, { center: [4, 5.8, -78], radius: 2.2 }), bee(-6, 6.2, -83, { path: [[-6, 6.2, -82], [-6, 6.2, -86]] }),
+    bee(5.5, 6.2, -161, { center: [5, 6.2, -164], radius: 2.6 }), bee(-3, 12.5, -186, { path: [[-3.5, 12.5, -185.5], [3.5, 12.5, -185.5]] }),
     // Flatterkäfer (6) – zwei Reihen quer über die Lücken
-    flutter(-6, 5.6, -76.5, { path: [[-7, 5.6, -76.5], [7, 5.6, -76.5]] }), flutter(-4.5, 5.6, -76.5, { path: [[-7, 5.6, -76.5], [7, 5.6, -76.5]] }),
-    flutter(-3, 5.6, -76.5, { path: [[-7, 5.6, -76.5], [7, 5.6, -76.5]] }),
-    flutter(6, 6.2, -83, { path: [[7, 6.2, -83], [-7, 6.2, -83]] }), flutter(4.5, 6.2, -83, { path: [[7, 6.2, -83], [-7, 6.2, -83]] }),
-    flutter(3, 6.2, -83, { path: [[7, 6.2, -83], [-7, 6.2, -83]] }),
+    flutter(-6, 5.8, -76.5, { path: [[-8, 5.8, -76.5], [8, 5.8, -76.5]], count: 3, spacing: 1.5 }),
+    flutter(6, 6.4, -83, { path: [[8, 6.4, -83], [-8, 6.4, -83]], count: 3, spacing: 1.5, color: 'yellow' }),
     // Zauberkröte auf der Fähre
-    { kind: 'zauberkroete', pos: [0, 4, -146], area: { mover: 'faehre', r: 5.5 } },
+    { kind: 'zauberkroete', pos: [-9, 5, -137], spots: [[-9, 5, -137], [9, 5, -147], [-5.5, 4, -160.5]], sight: 18 },
   ],
   items: [
+    // Warp-Box am Start → Zuschauerloge (Abkürzung, Münzen) → zurück aufs Schalter-Feld 2
+    { kind: 'warpbox', id: 'box1', pos: [2, 0, -11.6], target: 'logeBox' },
+    { kind: 'warpbox', id: 'logeBox', pos: [-20, 6, -26], target: [0, 0, -29.5] },
+    // Rätselbox (bewacht von Krabbelkäfern) → Kistenraum; dieselbe Box dort führt zurück auf den Laufsteg
+    { kind: 'warpbox', id: 'raetsel', style: 'mystery', pos: [1.5, 4, -90], target: 'kistenBox' },
+    { kind: 'warpbox', id: 'kistenBox', style: 'mystery', pos: [60, 0, -82], target: [0, 4, -97.5] },
+    { kind: 'crate', id: 'sternkiste', pos: [53.2, 0, -92.8], content: 'star:1' },
+    { kind: 'crate', pos: [54.4, 0, -92.8] }, { kind: 'crate', pos: [53.2, 0, -91.6] }, { kind: 'crate', pos: [53.2, 1, -92.8] },
+    { kind: 'crate', pos: [58, 0, -92.8], content: 'coins:3' }, { kind: 'crate', pos: [62, 0, -92.8] },
+    { kind: 'crate', pos: [66.8, 0, -92.8], content: 'oneup' }, { kind: 'crate', pos: [65.6, 0, -92.8] }, { kind: 'crate', pos: [66.8, 0, -91.6], content: 'coins:5' },
     coinsLine([0, 0.2, 0], [0, 0.2, -10], 5),
     arc([-1, 0.4, -14], [1, 0.4, -25.5], 1.5, 6),
     { kind: 'coins', pos: [5.5, 6.7, -11], r: 0.9, n: 5 },
@@ -246,9 +258,9 @@ export const LEVEL = {
   ],
   checkpoint: [0, 2.5, -63],
   stars: [
-    [5.5, 6.55, -11.6],          // 1: auf der breiten Wand neben der Warp-Box (Wandsprung)
-    [53.2, 0.5, -92.8],          // 2: Kistenraum, Kiste links in der Ecke (Funkenblüte)
-    { pos: [0, 4.05, -142], mover: 'faehre' },   // 3: Mitte der Wechselschalter-Plattform
+    [5.5, 6.55, -11.6],                                      // 1: auf der breiten Wand neben der Warp-Box (Wandsprung)
+    { pos: [53.2, 0.4, -92.8], hidden: true, id: 'stern2' }, // 2: Kistenraum, Kiste links in der Ecke (Funkenblüte)
+    { pos: [0, 5, -142], hidden: true, id: 'stern3' },       // 3: erscheint in der Mitte der Wechselschalter-Fähre
   ],
   stamp: [-9.5, 12.05, -164],
   goal: { pos: [0, 10, -192], height: 8 },

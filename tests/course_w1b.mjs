@@ -59,7 +59,10 @@ function installBot() {
       return p.info();
     },
     /** Gegner entfernen (reine Geometrie-Prüfung). */
-    calm() { for (const e of c.level.entities) if (e.enemy && e.alive) e.kill(); },
+    /** Gegner entfernen (reine Wege-Prüfung); Zwischenbosse bleiben (keep), der Bosskampf hat einen eigenen Abschnitt. */
+    calm(keep = ['riesenschnappblume']) { for (const e of c.level.entities) if (e.enemy && e.alive && !keep.includes(e.kind)) e.kill(); },
+    /** Anzahl der Entitäten je Art (frisch geladen). */
+    count(kind) { return c.level.entities.filter((e) => e.kind === kind).length; },
     run(actions, o = {}) {
       const log = [];
       const t0 = c.level.time;
@@ -75,6 +78,7 @@ function installBot() {
           const tol = a.tol ?? 0.45;
           for (; n < max; n++) {
             if (a.track !== undefined) { const m = mover(a.track); if (m) { tx = m.x + a.go[0]; tz = m.z + a.go[1]; } }
+            if (a.target) { const t = a.target(p, c, bot); if (t) { tx = t[0]; tz = t[1]; } }
             const dx = tx - p.pos.x, dz = tz - p.pos.z;
             if (Math.hypot(dx, dz) < tol) break;
             if (a.until && a.until(p)) break;
@@ -93,6 +97,7 @@ function installBot() {
           let air = false;
           for (; n < max; n++) {
             if (a.track !== undefined) { const m = mover(a.track); if (m) { tx = m.x + (a.jump[0] ?? 0); tz = m.z + (a.jump[1] ?? 0); } }
+            if (a.target) { const t = a.target(p, c, bot); if (t) { tx = t[0]; tz = t[1]; } }
             const dx = tx - p.pos.x, dz = tz - p.pos.z;
             // Wunschgeschwindigkeit zum Ziel (bremst vor dem Ziel), Stick = Richtung der Abweichung
             const k = a.gain ?? 2.2, vmax = a.vmax ?? 11;
@@ -104,7 +109,7 @@ function installBot() {
             if (el < 2) { d.x *= el / 2; d.y *= el / 2; }
             step({ ...d, run: a.run !== false, jump: n < hold });
             if (p.mode !== 'ground') air = true;
-            if (air && (p.mode === 'ground' || p.mode === 'stalk' || p.mode === 'wall')) break;
+            if (air && (p.mode === 'ground' || p.mode === 'stalk' || p.mode === 'wall' || p.mode === 'script')) break;
             if (dead()) break;
           }
         } else if (a.climb) {
@@ -175,6 +180,10 @@ function installBot() {
     },
   };
   bot.mover = mover;
+  /** Lage eines (sichtbaren) Sterns mit Index i bzw. einer benannten Entität. */
+  bot.star = (i) => { const e = c.level.entities.find((x) => x.kind === 'star' && x.index === i && x.alive && !x.hidden); return e ? [e.pos.x, e.pos.z, e.pos.y] : null; };
+  bot.named = (id) => c.level.named.get(id) ?? null;
+  bot.alive = (id) => { const e = c.level.named.get(id); return !!e && e.alive && !e.defeated && !e.removed; };
   window.__bot = bot;
   return true;
 }
@@ -186,6 +195,7 @@ const runRoute = (actions, o = {}) => sc(([acts, opt]) => {
     if (typeof a.until === 'string') b.until = new Function('p', `return (${a.until});`);
     if (typeof a.exec === 'string') b.exec = new Function('c', a.exec);
     if (typeof a.waitfor === 'string') b.waitfor = new Function('p', 'c', 'bot', `return (${a.waitfor});`);
+    if (typeof a.target === 'string') b.target = new Function('p', 'c', 'bot', `return (${a.target});`);
     if (a.wallclimb && typeof a.wallclimb.stop === 'string') b.wallclimb = { ...a.wallclimb, stop: new Function('p', 'c', `return (${a.wallclimb.stop});`) };
     return b;
   };
@@ -227,8 +237,10 @@ async function shot(name, pos, o = {}) {
 
 // ------------------------------------------------------------------ Routen
 // Jeder Abschnitt: start (Teleport), Aktionen, Erwartung (Endbereich). Kamera-Gier ist überall 0 → x = +X, y = −Z.
+const shots = (n, gap = 110) => Array.from({ length: n }, () => [{ input: { action: true }, n: 1 }, { wait: gap }]).flat();
 const R13 = {
   id: '1-3',
+  enemies: { krallen_pilzling: 8, schnappblume: 14, riesenschnappblume: 1 },
   main: [
     { name: 'Startplatz → Feld', start: [0, 0, 6], acts: [{ go: [0, -8], run: true }, { go: [0, -21], run: true }], expect: (s) => s.pos[2] < -20 && Math.abs(s.pos[1] - 1) < 0.2 },
     { name: 'Schnappblumenfeld → Hang', start: [0, 1, -21], acts: [{ go: [0.5, -44.3], run: true }, { jump: [0.5, -49.5] }], expect: (s) => s.pos[2] < -47.3 && Math.abs(s.pos[1] - 3) < 0.2 },
@@ -248,20 +260,51 @@ const R13 = {
       { jump: [-3.5, -155.5] }, { go: [-1.4, -157], run: true, tol: 0.3 }, { jump: [2.5, -159.5] },
       { go: [0.4, -161], run: true, tol: 0.3 }, { jump: [-3.5, -163.5] }, { go: [-1.4, -165], run: true, tol: 0.3 }, { jump: [2.5, -167.5] },
       { go: [2.5, -170.6], tol: 0.2, stalk: true, max: 400 }, { climb: true }, { jump: [2.5, -174], run: false },
-      { go: [0, -187], run: true },
+      { go: [0, -186.6], run: true },
     ], expect: (s) => s.pos[2] < -186 && Math.abs(s.pos[1] - 30) < 0.2 },
+    { name: 'Riesenschnappblume (Funkenblüte) → Warp-Box → Gipfel', start: [0, 30, -186.6], power: 'funken', keepBoss: true, acts: [
+      { go: [0, -188.6], tol: 0.25 }, { wait: 20 }, ...shots(8, 120),
+      { waitfor: '!bot.alive("gipfelboss")', max: 900 },
+      { waitfor: 'bot.named("zielbox") && !bot.named("zielbox").hidden', max: 400 },
+      { go: [0, -189.4], tol: 0.25 }, { jump: [0, -191], run: false }, { waitfor: 'p.pos.y > 39 && p.mode === "ground"', max: 900 },
+    ], expect: (s) => Math.abs(s.pos[1] - 40) < 0.3 && s.pos[2] < -204 },
     { name: 'Gipfel → Zielmast', start: [0, 40, -205.5], acts: [{ go: [0, -211.2], run: true, until: 'p.mode === "script"', max: 600 }, { wait: 60 }], expect: (s) => s.rt.status === 'goal' || s.rt.status === 'done' },
   ],
   extras: [
     { name: 'Stern 1 (Rankenbaum)', start: [-6.5, 0, 3], acts: [{ go: [-6.5, -0.2], tol: 0.2, stalk: true, max: 300 }, { climb: true }, { jump: [-6.5, -3.2], run: false }, { wait: 30 }], expect: (s) => s.rt.stars[0] },
     { name: 'Stempel (Wandsprung-Schacht)', start: [7, 0, -3.6], acts: [{ go: [7, -6.2], tol: 0.15 }, { wait: 30 }, { wallclimb: { dir: 1, until: 9.5, z: -6.2, seek: [7, 7.6, -6.2], stop: 'c.level.runtime.stamp' } }, { wait: 20 }], expect: (s) => s.rt.stamp },
+    { name: 'POW sprengt die Ziegelwand → Röhre → P-Schalter-Raum', start: [2, 9, -71.6], acts: [
+      { go: [2, -73.5], tol: 0.2 }, { wait: 10 }, { input: { jump: true }, n: 30 }, { wait: 90 },
+      { waitfor: 'c.level.entities.filter((e) => e.kind === "brick" && e.alive && e.pos.z < -77).length === 0', max: 60 },
+      { go: [6.5, -77.2], tol: 0.3 }, { jump: [6.5, -79.6], run: false }, { input: { crouch: true }, n: 4 }, { waitfor: 'p.pos.x > 55 && p.mode === "ground"', max: 900 },
+    ], expect: (s) => s.pos[0] > 55 },
+    { name: 'Stern 2 (Druckschalter, 8 blaue Münzen)', start: [66, 0, -64], acts: [
+      { go: [68.4, -66.2], tol: 0.3 }, { jump: [70, -67], run: false }, { wait: 10 },
+      { go: [70, -63.1], run: true, tol: 0.35 }, { jump: [70, -61.8], run: false },
+      { go: [73.5, -61], run: true, tol: 0.4 }, { go: [74, -63.9], run: true, tol: 0.3 }, { jump: [74, -66], run: false },
+      { go: [76.5, -70], run: true, tol: 0.4 }, { go: [71.9, -74.2], run: true, tol: 0.3 }, { jump: [70, -75.5], run: false },
+      { go: [67.9, -74], run: true, tol: 0.3 }, { jump: [66, -72], run: false },
+      { go: [63.5, -66], run: true, tol: 0.4 }, { go: [66, -63.5], run: true, tol: 0.4 },
+      { waitfor: 'bot.star(1)', max: 120 }, { go: [0, 0], target: 'bot.star(1)', tol: 0.3, run: true, max: 400 }, { wait: 20 },
+    ], expect: (s) => s.rt.stars[1] },
+    { name: 'Stern 3 (Wolkenkanone → Münzhimmel)', start: [-5.5, 20, -135.3], acts: [
+      { go: [-5.5, -135.5], tol: 0.2 }, { jump: [-5.5, -137.5], run: false }, { waitfor: 'p.pos.x < -40 && p.mode === "ground"', max: 900 },
+      { go: [-46, -124.4], run: false, tol: 0.4 }, { go: [-46, -126.3], tol: 0.3 }, { jump: [-46, -129.5], run: false },
+      { go: [-46, -138.3], run: true, tol: 0.3 }, { jump: [-43, -144.5], run: false },
+      { go: [-44.2, -147.3], tol: 0.3 }, { jump: [-48, -154], run: false },
+      { go: [-47.4, -156.3], tol: 0.3 }, { jump: [-46, -162], run: false },
+      { go: [-46, -164.5], tol: 0.3 }, { wait: 20 },
+    ], expect: (s) => s.rt.stars[2] },
   ],
 };
 
 const R15 = {
   id: '1-5',
+  enemies: { krabbelkaefer: 8, brummer: 8, flatterkaefer: 6, zauberkroete: 1 },
   main: [
-    { name: 'Schalter-Feld 1 → Steg', start: [0, 0, 5], acts: [
+    { name: 'Schalter-Feld 1 (alle Felder) → Steg', start: [0, 0, 5], acts: [
+      { go: [-5, -1], tol: 0.35 }, { go: [0, -1], tol: 0.35 }, { go: [5, -1], tol: 0.35 }, { go: [5, -7], tol: 0.35 }, { go: [0, -7], tol: 0.35 }, { go: [-5, -7], tol: 0.35 },
+      { wait: 150 },
       { go: [-1, -13.4], run: true }, { jump: [-1, -16.5], run: false }, { go: [-0.3, -17.6], tol: 0.3 }, { jump: [0, -20], run: false },
       { go: [0.6, -21.1], tol: 0.3 }, { jump: [1, -23.5], run: false }, { go: [1, -24.6], tol: 0.3 }, { jump: [0.5, -28.5], run: false },
     ], expect: (s) => s.pos[2] < -27.2 && Math.abs(s.pos[1]) < 0.2 },
@@ -271,24 +314,44 @@ const R15 = {
       { go: [0, 1.2], track: -39, tol: 0.3 }, { waitfor: 'Math.abs(bot.mover(-45).x - p.pos.x) < 1.6', max: 2000 },
       { go: [0, -1.2], track: -39, tol: 0.3 }, { jump: [0, 0], track: -45, run: false },
       { go: [0, 1.2], track: -45, tol: 0.3 }, { waitfor: 'Math.abs(bot.mover(-45).x) < 0.6', max: 2000 },
-      { go: [0, -1.2], track: -45, tol: 0.3 }, { jump: [0, -52.5], run: false },
+      { go: [0, -1.2], track: -45, tol: 0.3 }, { jump: [0, -51], run: false },
     ], expect: (s) => s.pos[2] < -50.2 && Math.abs(s.pos[1] - 1.5) < 0.2 },
     { name: 'Checkpoint-Trommel', start: [0, 1.5, -51], acts: [{ go: [0, -55.4] }, { jump: [0, -61], run: false }, { go: [0, -63.2] }, { wait: 10 }], expect: (s) => Math.abs(s.pos[1] - 2.5) < 0.2 && !!s.rt.checkpoint },
     { name: 'Flatterkäfer-Zone', start: [0, 2.5, -64], acts: [
       { go: [-2.5, -67.2], tol: 0.3 }, { jump: [-4, -73], run: false }, { go: [-1.8, -75.1], tol: 0.3 }, { jump: [3, -80], run: false },
-      { go: [2, -82.1], tol: 0.3 }, { jump: [0, -86.5], run: false }, { go: [0, -91.4] },
+      { go: [2, -82.1], tol: 0.3 }, { jump: [-1, -86.5], run: false }, { go: [-2, -91.4] },
     ], expect: (s) => Math.abs(s.pos[1] - 4) < 0.2 && s.pos[2] < -90 },
     { name: 'Krabbelkäfer-Gang', start: [0, 4, -91], acts: [{ go: [0, -91.6], tol: 0.3 }, { jump: [0, -97], run: false }, { go: [0, -124.4], run: true }], expect: (s) => Math.abs(s.pos[1] - 4) < 0.2 && s.pos[2] < -123.5 },
     { name: 'Wechselschalter-Fähre', start: [0, 4, -124.3], acts: [
       { waitfor: 'bot.mover(-140).z > -132.6', max: 3000 }, { jump: [0, 0], track: -140, run: false },
       { waitfor: 'bot.mover(-140).z < -151.6', max: 3000 }, { go: [0, -157.2], tol: 0.3 }, { jump: [0, -161], run: false },
     ], expect: (s) => Math.abs(s.pos[1] - 4) < 0.2 && s.pos[2] < -159.2 },
+    { name: 'Glasrohr-Kanone → Zielbühne', start: [0, 4, -160.2], acts: [
+      { go: [3.5, -160.4], tol: 0.25 }, { go: [3.5, -165], until: 'p.mode === "script"', max: 300 }, { waitfor: 'p.mode === "ground" && p.pos.z < -184', max: 1200 },
+    ], expect: (s) => Math.abs(s.pos[1] - 10) < 0.3 && s.pos[2] < -184 },
     { name: 'Zielbühne → Zielmast', start: [0, 10, -186.5], acts: [{ go: [0, -191.2], until: 'p.mode === "script"', max: 600 }, { wait: 60 }], expect: (s) => s.rt.status === 'goal' || s.rt.status === 'done' },
   ],
   extras: [
     { name: 'Stern 1 (Wandsprung neben der Warp-Box)', start: [7.75, 0, -8], acts: [{ go: [7.75, -11], tol: 0.15 }, { wait: 30 }, { wallclimb: { dir: 1, until: 7.4, z: -11, then: [5.4, -11] } }, { go: [5.5, -11.5], tol: 0.25, max: 200 }, { wait: 20 }], expect: (s) => s.rt.stars[0] },
-    { name: 'Stempel per Wandsprung', start: [-7.25, 4, -159.6], acts: [{ go: [-7.25, -163.2], tol: 0.15 }, { wait: 30 }, { wallclimb: { dir: -1, until: 12.3, z: -163.2, then: [-9.6, -163.4] } }, { go: [-9.5, -163.6], tol: 0.25, max: 200 }, { wait: 20 }], expect: (s) => s.rt.stamp },
-    { name: 'Stempel mit Krallen (Kletterwand)', start: [-9.5, 4, -159.2], power: 'krallen', acts: [{ go: [-9.5, -161.6], tol: 0.15, max: 120 }, { input: { y: 1 }, n: 240 }, { go: [-9.5, -163.4], tol: 0.3, max: 200 }, { wait: 20 }], expect: (s) => s.rt.stamp },
+    { name: 'Warp-Box → Zuschauerloge → zurück', start: [2, 0, -9], acts: [
+      { go: [2, -9.9], tol: 0.25 }, { jump: [2, -11.6], run: false }, { waitfor: 'p.pos.x < -15 && p.mode === "ground"', max: 900 },
+      { go: [-20, -20], run: true, tol: 0.4 }, { go: [-20, -24.2], tol: 0.25 }, { jump: [-20, -26], run: false }, { waitfor: 'p.pos.x > -5 && p.mode === "ground"', max: 900 },
+    ], expect: (s) => Math.abs(s.pos[1]) < 0.3 && s.pos[2] < -27 },
+    { name: 'Stempel mit Krallen (vor „alle Schalter an“)', start: [-9.5, 4, -159.2], power: 'krallen', acts: [{ go: [-9.5, -161.6], tol: 0.15, max: 120 }, { input: { y: 1 }, n: 240 }, { go: [-9.5, -163.4], tol: 0.3, max: 200 }, { wait: 20 }], expect: (s) => s.rt.stamp },
+    { name: 'Stempel per Wandsprung', reload: true, start: [-7.25, 4, -159.6], acts: [{ go: [-7.25, -163.2], tol: 0.15 }, { wait: 30 }, { wallclimb: { dir: -1, until: 12.3, z: -163.2, then: [-9.6, -163.4] } }, { go: [-9.5, -163.6], tol: 0.25, max: 200 }, { wait: 20 }], expect: (s) => s.rt.stamp },
+    { name: 'Stern 2 (Rätselbox → Kistenraum, Funkenblüte)', start: [-1.5, 4, -88], acts: [
+      { go: [-0.2, -89.7], tol: 0.25 }, { jump: [1.5, -90], run: false }, { waitfor: 'p.pos.x > 50 && p.mode === "ground"', max: 900 }, { wait: 30 },
+      { go: [60, -84], tol: 0.2 }, { wait: 10 }, { input: { jump: true }, n: 30 }, { wait: 80 },
+      { go: [60, -85.7], tol: 0.25 }, { jump: [60, -84], run: false }, { wait: 30 },
+      { go: [57, -84.2], tol: 0.4 }, { go: [53.2, -86.6], tol: 0.25 }, { input: { y: 0.2 }, n: 6 }, { wait: 20 }, ...shots(4, 100),
+      { waitfor: 'bot.star(1)', max: 200 }, { go: [0, 0], target: 'bot.star(1)', tol: 0.3, max: 600 }, { wait: 20 },
+    ], expect: (s) => s.rt.stars[1] },
+    { name: 'Stern 3 (alle Wechselfelder auf der Fähre)', start: [0, 4, -124.3], acts: [
+      { waitfor: 'bot.mover(-140).z > -132.6', max: 3000 }, { jump: [0, 4.4], track: -140, run: false }, { wait: 10 },
+      { go: [-3.5, 3.5], track: -140, tol: 0.35 }, { go: [-4.2, 0], track: -140, tol: 0.35 }, { go: [-3.5, -3.5], track: -140, tol: 0.35 },
+      { go: [3.5, -3.5], track: -140, tol: 0.35 }, { go: [4.2, 0], track: -140, tol: 0.35 }, { go: [3.5, 3.5], track: -140, tol: 0.35 },
+      { waitfor: 'bot.star(2)', max: 200 }, { go: [0, 0], target: 'bot.star(2)', tol: 0.3, max: 600 }, { input: { jump: true }, n: 20 }, { wait: 60 },
+    ], expect: (s) => s.rt.stars[2] },
   ],
 };
 
@@ -302,6 +365,11 @@ async function testLevel(R) {
     if (hero === 'lotti') {
       check(`${R.id}: lädt ohne Konsolenfehler`, loadErrors.length === 0);
       if (loadErrors.length) for (const x of loadErrors.slice(0, 12)) console.log('    ', x);
+      // Gegnerzahlen laut Bauplan
+      const counts = {};
+      for (const k of Object.keys(R.enemies)) counts[k] = await sc((kind) => window.__bot.count(kind), k);
+      console.log(`  Gegner: ${Object.entries(counts).map(([k, n]) => `${k} ${n}/${R.enemies[k]}`).join(', ')}`);
+      check(`${R.id}: Gegnerzahlen laut Bauplan`, Object.keys(R.enemies).every((k) => counts[k] === R.enemies[k]));
     }
     let total = 0, allOk = true;
     for (const sec of R.main) {
@@ -318,6 +386,7 @@ async function testLevel(R) {
     console.log(`  [${hero}] Hauptroute ${f1(total)} s Spielzeit`);
     check(`${R.id} [${hero}]: Hauptroute < 180 s (${f1(total)} s)`, total < 180);
     for (const ex of R.extras) {
+      if (ex.reload) await load(R.id);
       await place(ex.start, { hero, power: ex.power });
       await sc(() => window.__bot.calm());
       const r = await runRoute(ex.acts);
