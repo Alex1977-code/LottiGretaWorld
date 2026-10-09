@@ -25,7 +25,7 @@ import { getLevel as getCourseLevel } from './course/levels/index.js';
 // Startfluss (Präzisierung Weltkarte):
 //   ?course=<id>   Kurs-Level direkt          ?map=1      Kurs-Weltkarte
 //   ?classic=1     Klassik-Weltkarte           ?level=<k>  Klassik-Level direkt
-//   ohne Parameter Kurs-Weltkarte – braucht die 3D-Darstellung (WebGL2), sonst Klassik-Weltkarte.
+//   ohne Parameter Kurs-Weltkarte (wenn COURSE_DEFAULT) – braucht die 3D-Darstellung (WebGL2), sonst Klassik-Weltkarte.
 // Der Kurs-Boot erzeugt wie der Klassik-Boot alle Texturen (die Klassik-Karte bleibt jederzeit erreichbar).
 const params = new URLSearchParams(window.location.search);
 const wantedCourse = params.get('course');
@@ -35,7 +35,10 @@ const wanted = params.get('level');
 const startLevel = wanted && LEVELS[wanted] ? wanted : null;
 const classicStart = params.has('classic') && params.get('classic') !== '0';
 const mapStart = params.get('map') === '1';
-const courseBoot = !!startCourse || (!startLevel && !classicStart && (mapStart || RENDER3D.enabled));
+// Solange Welt 1 im Bau ist, bleibt die Klassik-Karte Startseite; die Kurs-Karte gibt es mit ?map=1.
+// Wird auf true gestellt, sobald Welt 1 komplett ist.
+const COURSE_DEFAULT = false;
+const courseBoot = !!startCourse || (!startLevel && !classicStart && (mapStart || (COURSE_DEFAULT && RENDER3D.enabled)));
 const COURSE_SCENES = [CourseScene, CourseUIScene, CoursePauseScene, CourseResultScene, CourseMapScene];
 
 const config = {
@@ -77,6 +80,7 @@ game.registry.set('render3d', RENDER3D.enabled);
 // Level per URL wählen (?level=test), Standard: Weltkarte
 game.registry.set('startLevel', startLevel);
 game.registry.set('startCourse', startCourse);
+game.registry.set('courseDefault', COURSE_DEFAULT);
 
 setupOrientationHint(game);
 registerServiceWorker();
