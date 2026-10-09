@@ -19,10 +19,11 @@
 //            Stempel-Gehege (x ≈ −18) hinter der Glasröhre in der linken Gangwand.
 // Sterne (Index): 0 zwischen den Wolken, 1 Rätselbox (zwei Panzerkröten besiegen), 2 im Pilzlingsturm.
 
-import { isl, line, ring, arc, column, deco, decoW1 } from './_helpers.js';
+import { isl, lawn, line, ring, arc, column, deco, decoW1 } from './_helpers.js';
 
 const CAM = { pitch: 44, dist: 13, fov: 40, area: [-35, 35] };
 const ROCK = 0x5a4458, ROCK2 = 0x4c3f5e;
+const MOSS = { checker: 0x74935e };   // Moosboden mit Feldermuster
 /** Felswand (zerklüftet, fest) über ihre Grundfläche. */
 const rock = (x0, x1, zA, zB, y0, y1, o = {}) => ({
   kind: 'rockwall', pos: [(x0 + x1) / 2, y0, (zA + zB) / 2], size: [x1 - x0, y1 - y0, Math.abs(zA - zB)], color: o.color ?? ROCK, ...o,
@@ -57,7 +58,7 @@ export const LEVEL = {
   ],
   segments: [
     // =============================================================== 1  Start-Hügel (oben, y 13)
-    isl(-8, 8, 8, -10, 13, 4, { under: 4 }),
+    ...lawn(-8, 8, 8, -10, 13, 4, { under: 4, ...MOSS }),
     { type: 'mound', pos: [-1, 13, -2.5], radius: 4, height: 1.1 },
     { type: 'pipe', id: 'p_down', pos: [4.2, 13, -6.6], height: 1.6, target: 'p_cave' },
     deco([
@@ -83,7 +84,7 @@ export const LEVEL = {
     ]),
 
     // =============================================================== 2  Höhleneingang (y 1)
-    isl(-8, 8, -26, -56, 1, 3, { under: 2 }),
+    ...lawn(-8, 8, -26, -56, 1, 3, { under: 2, ...MOSS }),
     { type: 'pipe', id: 'p_cave', pos: [0, 1, -29], height: 1.4 },
     { type: 'glasspipe', id: 'g_room', radius: 1, oneWay: true, coins: 3,
       path: [[3.2, 2.05, -32.6], [3.2, 2.05, -36.4], [3.2, 6.7, -41], [3.2, 6.65, -43.6]] },
@@ -115,7 +116,7 @@ export const LEVEL = {
     { type: 'bridge', from: [0, 1, -56], to: [0, 1, -60], width: 3 },
 
     // =============================================================== 3  Röhrenfeld
-    isl(-9, 9, -60, -86, 1, 3, { under: 2 }),
+    ...lawn(-9, 9, -60, -86, 1, 3, { under: 2, ...MOSS }),
     { type: 'pipe', pos: [-5.5, 1, -63.5], height: 1.8 },
     { type: 'pipe', pos: [-2, 1, -67.2], height: 3.0 },
     { type: 'pipe', pos: [3.6, 1, -64.4], height: 1.4 },
@@ -146,7 +147,7 @@ export const LEVEL = {
     ]),
 
     // =============================================================== 4  Wolkenaufstieg
-    isl(-9, 9, -86, -112, 1, 3, { under: 2 }),
+    ...lawn(-9, 9, -86, -112, 1, 3, { under: 2, ...MOSS }),
     { type: 'cloud', pos: [-3.5, 2.6, -89.5], size: [3, 0.6, 3] },
     { type: 'cloud', pos: [1.5, 4.6, -93.6], size: [3, 0.6, 3] },
     { type: 'cloud', pos: [5.6, 6.6, -98], size: [3, 0.6, 3], path: [[5.6, 6.6, -98], [3, 6.6, -98]], speed: 1.2 },
@@ -178,7 +179,7 @@ export const LEVEL = {
     ]),
 
     // =============================================================== 5  Dreitor-Raum
-    isl(-10, 10, -126, -146, 1, 3, { under: 2 }),
+    ...lawn(-10, 10, -126, -146, 1, 3, { under: 2, ...MOSS }),
     // drei violette Blöcke hoch zur Rätselbox
     { type: 'platform', pos: [7.2, 1, -130.4], size: [1.8, 1.4, 1.8], color: 'purple' },
     { type: 'platform', pos: [7.2, 1, -133.4], size: [1.8, 2.8, 1.8], color: 'purple' },
@@ -216,7 +217,7 @@ export const LEVEL = {
     ]),
 
     // =============================================================== 6  Gang mit Blockkette und Welt-Warp, Röhre in die Arena
-    isl(-3.5, 3.5, -146, -160, 1, 3, { under: 2 }),
+    ...lawn(-3.5, 3.5, -146, -160, 1, 3, { under: 2, ...MOSS }),
     { type: 'hiddenchain', id: 'chain', lead: { pos: [-2, 1, -150.4], size: [3, 1, 1] },
       blocks: [[-2.9, 2.4, -152.2], [-2.9, 4.4, -153.8], [-2.9, 6.4, -155.4]] },
     isl(-6.5, -3.5, -153, -157, 8, 7, { top: 'stone', under: 0 }),
@@ -253,7 +254,7 @@ export const LEVEL = {
     ]),
 
     // =============================================================== Pilzlingsarena (abseits, x ≈ 50)
-    isl(40, 60, -140, -162, 1, 3, { under: 3 }),
+    ...lawn(40, 60, -140, -162, 1, 3, { under: 3, ...MOSS }),
     { type: 'pipe', id: 'p_arena_in', pos: [50, 1, -142.6], height: 1.4 },
     { type: 'pipe', id: 'p_goalpipe', pos: [57.4, 1, -159.6], height: 1.6, target: 'p_goal' },
     deco([{ kind: 'lantern', pos: [41, 1, -141] }, { kind: 'lantern', pos: [59, 1, -141] }, { kind: 'lantern', pos: [41, 1, -161] }]),

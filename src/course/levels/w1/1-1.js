@@ -175,7 +175,7 @@ export const LEVEL = {
     deco([
       { kind: 'tree', pos: [12.6, 7, -94.8], size: 4.4, color: 'green' },
       { kind: 'tree', pos: [-12.6, 7, -95.5], size: 4.6 },
-      { kind: 'tree', pos: [-1.6, 7, -122.4], size: 3.8, color: 'green' },
+      { kind: 'tree', pos: [-11.6, 7, -121.4], size: 3.8, color: 'green' },
       { kind: 'bush', pos: [-13, 7, -104], size: 0.8 }, { kind: 'bush', pos: [13, 7, -103.4], size: 0.7 },
       { kind: 'bush', pos: [2.2, 7, -108.8], size: 0.55 },
       { kind: 'flowers', pos: [-4, 7, -116.5], size: [5, 5], n: 7 },

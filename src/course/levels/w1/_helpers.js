@@ -12,13 +12,13 @@ export function isl(x0, x1, zA, zB, top, h = 3, o = {}) {
 
 /**
  * Grasinsel mit Rasenmuster (Schachbrett-Felder, deco_w1 'checker') – Wiesen-Look von Welt 1.
- * Liefert zwei Bausteine (mit ... in segments einfügen).
+ * Liefert zwei Bausteine (mit ... in segments einfügen). o.checker = Farbe der Felder (Standard helles Wiesengrün).
  */
 export function lawn(x0, x1, zA, zB, top, h = 3, o = {}) {
   const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
   return [
     isl(x0, x1, zA, zB, top, h, o),
-    { type: 'deco_w1', kind: 'checker', pos: [(x0 + x1) / 2, top, (z0 + z1) / 2], size: [x1 - x0, z0 - z1], cell: o.cell ?? 2 },
+    { type: 'deco_w1', kind: 'checker', pos: [(x0 + x1) / 2, top, (z0 + z1) / 2], size: [x1 - x0, z0 - z1], cell: o.cell ?? 2, color: o.checker },
   ];
 }
 

@@ -59,7 +59,7 @@ const ROUTES = {
     extra: [
       { name: 'Krallen-Anzug aus dem ersten ?-Block (anstoßen, draufspringen)', from: [-4, 4, -9.6],
         legs: [{ to: [-4, -11.6], within: 0.25, run: false }, { hop: 20 }, { wait: 90 },
-          { to: [-4, -10.3], within: 0.2, run: false }, { wait: 40 }, { to: [-4, -11.6], jump: 40, delay: 44, within: 0.3 }, { wait: 30 }], expectPower: 'krallen' },
+          { to: [-4, -8.9], within: 0.2, run: false }, { wait: 40 }, { to: [-4, -11.6], jump: 40, jumpAt: 2.3, slow: 0.45, run: false, within: 0.3 }, { wait: 30 }], expectPower: 'krallen' },
       { name: 'Kletterwand mit Krallen-Anzug (6 m)', from: [-3.5, 4, -71.5], power: 'krallen',
         legs: [{ to: [-3.5, -75.4], within: 0.25 }, { push: 150, jump: 10, to: [-3.5, -80] }, { to: [-3.5, -80] }], expectY: 9.9 },
     ],
@@ -132,7 +132,7 @@ const ROUTES = {
     extra: [
       { name: 'Funkenblüte aus dem ersten ?-Block', from: [-2.6, 13.4, -2.8],
         legs: [{ to: [-2.6, -4.6], within: 0.25, run: false }, { hop: 20 }, { wait: 90 },
-          { to: [-2.6, -3.3], within: 0.2, run: false }, { wait: 40 }, { to: [-2.6, -4.6], jump: 40, delay: 44, within: 0.3 }, { wait: 30 }], expectPower: 'funken' },
+          { to: [-2.6, -1.9], within: 0.2, run: false }, { wait: 40 }, { to: [-2.6, -4.6], jump: 40, jumpAt: 2.3, slow: 0.45, run: false, within: 0.3 }, { wait: 30 }], expectPower: 'funken' },
       { name: 'Welt-Warp: Kletterwand mit Krallen zur Röhre', from: [2.4, 1, -155], power: 'krallen',
         legs: [{ to: [3, -155], within: 0.2 }, { push: 150, jump: 10, to: [6, -155] }, { to: [6.4, -155], jump: 26, within: 0.3 }, { crouch: 4 }], expectX: 90 },
       { name: 'Versteckter Raum: Stampfen auf die Kristallblöcke', from: [3.2, 5.7, -45.2], startY: 5.5,
@@ -210,12 +210,14 @@ function install() {
       const p = P();
       const log = [];
       const jumps = [];
+      const track = [];
       let steps = 0, autoJumps = 0;
       const hold = o.invuln !== false;
       let rideInput = {};
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
         c.setInput(inp); c.step(1); steps++;
+        if (steps % 24 === 0 && p.mode !== 'script') track.push([p.pos.x, p.pos.y, p.pos.z]);
         if (p.mode === 'script' && c.level.runtime.status === 'play' && !p.dead) {
           // Röhren-/Glasröhrenfahrt abwarten (rideInput: Stick an Gabelungen)
           let n = 0;
@@ -310,7 +312,7 @@ function install() {
         if (i >= max) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, L.to]); break; }
       }
       c.setInput({});
-      return { log, jumps, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: c.level.runtime.status, info: p.info(), rt: c.level.runtime.info() };
+      return { log, jumps, autoJumps, track, occluders: this.occluders(track), steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: c.level.runtime.status, info: p.info(), rt: c.level.runtime.info() };
     },
     /**
      * Ist der Landepunkt (x, z) aus der Spielkamera sichtbar? Kamera wie im Spiel aus der Schiene an der Figur
@@ -326,6 +328,38 @@ function install() {
       const land = { x, y: (g ? g.y : p.pos.y) + 1.0, z };
       const hit = c.world.raycast(cam, land);
       return !hit || hit.t > 0.97;
+    },
+    /**
+     * Baumkronen (deco 'tree', Kugel-Näherung) zwischen Kamera und Kopf der Figur entlang einer Spur → Liste der
+     * verdeckenden Bäume mit Anzahl der betroffenen Spurpunkte.
+     */
+    occluders(track) {
+      const trees = [];
+      for (const seg of c.level.data.segments ?? []) {
+        for (const it of seg.items ?? [seg]) {
+          if (it.kind !== 'tree' || !(seg.type === 'deco')) continue;
+          const h = it.size ?? 4.5, R = h * 0.26;
+          trees.push({ x: it.pos[0], y: it.pos[1] + h * 0.42 + R * 1.1, z: it.pos[2], r: R * 1.15, at: it.pos.join(','), n: 0 });
+        }
+      }
+      const rig = c.view.rig, D = Math.PI / 180;
+      for (const [px, py, pz] of track) {
+        const r = rig.railAt(px, pz, {});
+        const yaw = r.yaw * D, pitch = r.pitch * D;
+        const tx = px - Math.sin(yaw) * r.ahead, ty = py + r.height, tz = pz - Math.cos(yaw) * r.ahead;
+        const cam = [tx + Math.sin(yaw) * Math.cos(pitch) * r.dist, ty + Math.sin(pitch) * r.dist, tz + Math.cos(yaw) * Math.cos(pitch) * r.dist];
+        const head = [px, py + 1.1, pz];
+        for (const t of trees) {
+          // Abstand Kugelmitte – Strecke Kamera→Kopf
+          const d = [head[0] - cam[0], head[1] - cam[1], head[2] - cam[2]];
+          const w = [t.x - cam[0], t.y - cam[1], t.z - cam[2]];
+          const L2 = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+          const k = Math.max(0, Math.min(1, (w[0] * d[0] + w[1] * d[1] + w[2] * d[2]) / L2));
+          const q = [cam[0] + d[0] * k - t.x, cam[1] + d[1] * k - t.y, cam[2] + d[2] * k - t.z];
+          if (Math.hypot(...q) < t.r) t.n++;
+        }
+      }
+      return trees.filter((t) => t.n > 0).map((t) => `Baum ${t.at} (${t.n}×)`);
     },
     /** Welt-Richtung [dx, dz] aus { x: rechts, y: vorn } (Kamera ohne Drehung). */
     worldOf(v) { return [v.x ?? 0, -(v.y ?? 0)]; },
@@ -425,6 +459,7 @@ for (const id of LEVELS) {
     if (hero === 'lotti') {
       const hidden = res.jumps.filter((j) => !j[1]).map((j) => j[0]);
       check(`${id}: alle ${res.jumps.length} Pflichtsprünge mit sichtbarem Landepunkt${hidden.length ? ' – verdeckt: ' + hidden.join(', ') : ''}`, hidden.length === 0);
+      check(`${id}: keine Baumkrone verdeckt die Figur auf der Hauptroute (${res.track.length} Spurpunkte)${res.occluders.length ? ' – ' + res.occluders.join('; ') : ''}`, res.occluders.length === 0);
     }
     check(`${id}: ${hero} Zeit bis zum Ziel < 180 s (${res.time.toFixed(1)} s)`, reached && res.time < 180);
   }
