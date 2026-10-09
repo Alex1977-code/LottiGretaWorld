@@ -699,4 +699,5 @@ und das gestartete Level, damit die Rückkehr den richtigen Eingang findet). Met
 **Beerenhaus:** einmal je Kartenbesuch ein Gratis-Power-up (Welt 1 abwechselnd Krallen-Anzug / Funkenblüte). Berühren
 → `carryPower` gesetzt, die Heldin trägt es schon auf der Karte. **Levelstart:** `CourseScene.create()` ruft
 `courseSave.takeCarryPower()` und `player.setPower(name)` – das Power-up gilt im nächsten Level ab dem Start und ist
-danach verbraucht (Neustart/Tod: wie gewohnt ohne Power-up).
+danach verbraucht (Neustart/Tod: wie gewohnt ohne Power-up). Level, deren Archetyp eine eigene Spielfigur baut
+(`createPlayer`, z. B. Diorama mit Pflaume), lösen es nicht ein – es bleibt fürs nächste Level im Gepäck.
