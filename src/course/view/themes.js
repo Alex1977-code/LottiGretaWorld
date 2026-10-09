@@ -65,4 +65,8 @@ export const THEMES = {
   },
 };
 
+// Weitere Themen in eigenen Dateien (je eine Registrierzeile)
+import { RIVER_THEME } from './theme_river.js'; THEMES.river = RIVER_THEME;
+import { DIORAMA_THEME } from './theme_diorama.js'; THEMES.diorama = DIORAMA_THEME;
+
 export function getTheme(name) { return THEMES[name] ?? THEMES.grass; }

@@ -796,13 +796,130 @@ der Steiggeschwindigkeit ab). Fluss/Floß brauchen keinen Archetyp; ein Reit-Arc
 | 1-2 | Laternen machen Münzen sichtbar, Kristallblöcke → versteckter Raum, Wolkenaufstieg, unsichtbare Blockkette vom länglichen ?-Block, Rätselbox (zwei Panzerkröten → Stern), Glasrohr in der Wand, Welt-Warp-Röhre | `lantern` + `hiddenUntilLit`, `room` (`hatch`) / `crystalfloor`, `cloud`, `hiddenchain` (`lead`), `warpbox` (`mystery`, `task`), `glasspipe`, `pipe` |
 | 1-A | Stern erscheint, wenn beide Rammbock-Bullen besiegt sind | `task` |
 | 1-3 | Feenwesen mit Ferngläsern, Baum hochklettern, POW-Blöcke legen eine Röhre frei, P-Schalter mit blauen Münzen, Wolkenkanone in den Münzhimmel, Warp-Box zum Ziel nach dem Zwischenboss | `spotter`, `deco` Baum `climbable`, `pow` + `brick` + `pipe`, `pswitch`, `cloudcannon` + `cloud`, `warpbox` (`hidden`, per `task` `{ reveal }`) |
-| 1-4 | Fluss mit Reittier, Temposchwellen, Sprungrampe, Zickzack-Kehren, bunter Wasserfall-Abzweig, Absturz, Strand | `river`, `raft`, `speedwave`, `ramp`, `riverrock` (Abzweig: zweiter `river` ab einer Kehre) |
+| 1-4 | Fluss mit Reittier, Temposchwellen, Sprungrampe, Zickzack-Kehren, bunter Wasserfall-Abzweig, Absturz, Strand | umgesetzt mit Archetyp `ride` und Kurvenfluss `river` (`channels`), `river_wave`, `river_ramp`, `riverrock`, `river_fall` (Präzisierung Ritt/Diorama); `raft`/`speedwave` bleiben Gimmick für Parcours |
 | 1-5 | Schaltfelder → Weg erscheint, Schaltfelder auf schwebenden/fahrenden Plattformen, Roulette-Block, Rätselbox → Kistenraum, Wechselschalter-Plattform, Glasrohr-Kanone zur Zielfahne, letzte Plattform stürzt ab | `switchtiles` + `appear`, `switchtiles` (`platform`/`on`, `toggle`), `rouletteblock`, `warpbox` + `room` + `crate`, `glasspipe` (`cannon`), `fallplatform` (`trigger: 'signal'`, `{ drop }`) |
 | 1-Burg | Sternenring (acht Sternmünzen), Krallenrad, graue Blockwand (Kickbombe), Easter-Egg-Pixelfigur, Warp-Box | `starring`, `clawwheel`, `megawall`, `pixelegg`, `warpbox` |
-| 1-Kapitän | fahrende Plattformen | `mover` (`idle`/`once`/`id`) |
+| 1-Kapitän | fahrende Plattformen | `mover` (`idle`/`once`/`id`) – umgesetzt als `1-Schatz`, Archetyp `diorama` |
 
 Nicht Teil der Sonder-Bausteine: Gegner, Kickbomben, Kanonen, Stampfsteine, Bosse, Pilzlingsturm (Gegner-Agent),
 „Figur springt nicht“ im Diorama und die fahrende Bossstraße.
+
+## Präzisierung (Ritt/Diorama)
+
+Ergänzung des Pflaume-Agenten (Stand: Level `1-4` „Pflaumes Wildwasserfahrt“ und `1-Schatz` „Pflaume und der
+Wolkenwürfel“). Nichts oben Festgelegtes wird geändert. Beide Archetypen sind für spätere Welten wiederverwendbar
+(Welt 3/5 Kapitäns-Dioramen, weitere Fluss-Ritte): neue Level brauchen nur Daten.
+
+### Präzisierung (Ritt/Diorama): Dateien
+
+```
+src/course/archetypes/kinds/ride.js     Archetyp `ride`: RideController, RideRig, RideCamera, Checkpoints im Fluss,
+                                        Musik-Energie-Ebene (music.setDrums) beim Reiten, Blasen vor Wühlern
+src/course/archetypes/RiverNet.js       Fluss-Netz (reine Mathematik): Kanäle, Strömung, Ufer-Korridore, Felsen, Rampen, Wellen
+src/course/archetypes/RideController.js Spielfigur (Unterklasse von Player): zu Fuß = Player, auf dem Floß eigene Physik
+src/course/archetypes/RideRig.js        Pflaume (paddle) + Heldin (ride) auf dem Blatt-Floß; an Land hoppelt Pflaume hinterher
+src/course/archetypes/RideCamera.js     Verfolgerkamera entlang der Strömung, Seitenkamera beim Klippensturz
+src/course/archetypes/kinds/diorama.js  Archetyp `diorama`: DioramaController, PflaumeRig, OrbitCamera, Schatzstellen, Sieg
+src/course/archetypes/DioramaController.js  Pflaume als Schatzsucherin (springt nicht, 3,5 m/s)
+src/course/archetypes/PflaumeRig.js     PflaumeAvatar mit gear 'lamp' (idle/walk/run/jump/dig/victory)
+src/course/archetypes/OrbitCamera.js    frei drehbare Kamera um den Diorama-Mittelpunkt (2 Zoomstufen)
+src/course/archetypes/DioramaDeco.js    Zier der Dioramen (Häuschen, Pilze, Wimpel, Schatzkreuze, Wolkenmeer, Inselchen)
+src/course/blocks/types/river.js        Baustein `river` (zwei Formen, s. u.) + riverrock, river_ramp, river_wave, river_fall,
+                                        river_arch, river_cliff, river_deco
+src/course/view/theme_river.js, theme_diorama.js   Themen `river`, `diorama` (je eine Registrierzeile in themes.js)
+src/course/levels/w1/1-4.js, 1-Schatz.js
+tests/course_w1_pflaume.mjs             Port 4197, Bilder tests/out/w1p_*.png
+```
+
+### Präzisierung (Ritt/Diorama): ein Fluss, zwei Steuerungen (Entscheidung)
+
+Der Sonder-Bausteine-Agent hat parallel ein Gimmick-Floß gebaut. Festgelegt ist jetzt **ein** Baustein `river`
+(`blocks/types/river.js`) mit zwei Datenformen, beide tragen sich in `level.rivers` ein (`nearest, contains, surfaceAt,
+flowAt, width`):
+
+| Form | Daten | Physik | Wofür |
+| --- | --- | --- | --- |
+| Kurvenfluss | `channels: [{ id, points: [[x, y, z, w, v], …], bank, deco }]`, `lowland`, `life` | Fluss-Netz `level.river` (`RiverNet`) | **Reit-Level** (ganzes Level auf dem Floß): Archetyp `ride` |
+| Rasterfluss | `path`, `width`, `speed`/`speeds`, `depth`, `banks`, `open` | Kollisionsformen (Wasser, Bett, Ufer) | Floß als **Gimmick** in einem Parcours (Entität `raft`, `speedwave`, Bausteinpark 0-2) |
+
+Ein Reit-Level wie 1-4 nutzt den Archetyp `ride` (eigene Figur, Pflaumes Paddel-Pose, Reit-Kamera, Gabelungen, Klippe);
+`raft`/`speedwave` bleiben für kurze Floß-Passagen in normalen Leveln. `riverrock` ist für beide gemeinsam (Kollisions-
+zylinder + Netz-Felsen). Für die Kurvenform gibt es eigene Temposchwellen (`river_wave`) und Schanzen (`river_ramp`).
+
+### Präzisierung (Ritt/Diorama): Archetyp `ride` – Daten
+
+```js
+archetype: 'ride', theme: 'river', music: 'course_river', killY: -60,
+start: { pos: [0, 0.62, 12.5], yaw: Math.PI / 2 },          // zu Fuß auf dem Steg
+ride: {
+  raft: [0, 0, 5.4], raftYaw: -Math.PI / 2,                 // Pflaume wartet (schaut der Heldin entgegen)
+  dock: { min: [x0, z0], max: [x1, z1] },                   // Neustart hier = zu Fuß, Floß wartet am Steg
+  beach: { min, max, land: [x, y, z], raft?: [x, y, z] },   // Floß erreicht den Bereich → Heldin springt an Land
+  footCamYaw: 0,                                            // Kamera-Gier zu Fuß (Grad als rad: 0 = Blick nach −Z)
+},
+segments: [{ type: 'river', channels: [...], lowland: { y, trees }, life: { butterflies, dragonflies } }, …],
+checkpoint: [{ pos, yaw }],   // Fahne am Ufer: zählt beim Vorbeifahren (±2,2 m in z); Neustart 4 m flussauf im Kanal
+```
+
+- Kanalpunkte `[x, y, z, w, v]`: y = Wasseroberfläche, w = Breite, v = Strömung m/s. Kaskade = zwei Punkte im Abstand
+  ~1,5 m mit Höhensprung; Klippe = Kanalende über einem tieferen Kanal (Lagune), der 0,6 m vor der Kante beginnt (in
+  der Draufsicht überlappen, gleiche Breite an der Kante). Gabelung/Mündung: Kanal beginnt/endet auf der Mittellinie
+  eines anderen; Ufer öffnen sich automatisch, die Strömung wird nach Lage im Kanal gemischt.
+- Level-Hilfen: `new RiverChannel({ points })` liefert dieselbe Kurve wie im Spiel (`at(s)`, `nearest(x, z)`) – so
+  liegen Wühler, Münzen, Sterne, Felsen relativ zur Kurve (`riverBankHeight(base, s, side)` für Dinge auf dem Ufer).
+- Wühler im Fluss: normale Gegner-Daten (`ground: 'water'`, `path` quer zum Kanal). Der Archetyp blendet Wühler über
+  27 m Entfernung aus und lässt 0,8 s vor dem Auftauchen Blasen aufsteigen.
+
+### Präzisierung (Ritt/Diorama): RideController (Spielfigur-Schnittstelle wie Player)
+
+| Wert | Größe |
+| --- | --- |
+| Strömung | trägt mit `v` des Kanals; Stick längs ±35 % (bremsen/beschleunigen), quer 5,6 m/s (× Tempo der Heldin) |
+| Floß-Hüpfer | A: 1,6 m (Lotti ×1,08), gehalten höher; Schwerkraft 24 (gehalten) / 34 / Fallen 30 m/s² |
+| Rampe `river_ramp` | fährt hinauf, am Ende Schwung + `kick` (6 m/s, mit gehaltenem A +2,6) |
+| Welle `river_wave` | 1,15 s Schub `boost` m/s |
+| Ufer/Felsen | Kreis r 0,62 m; Abprall (Ufer 0,45, Felsen 0,6), Gischt, Kippen der Darstellung |
+| Klippe | ab 4 m Fall `plunging`: Schwerkraft 16, max. 18 m/s, Luftbremse → Landung mitten in der Lagune |
+| Treffer | Power-up → keines, groß → klein, klein → Tod; Stoß zur Seite + Hopser, bleibt auf dem Floß |
+
+Zusatzfelder für Darstellung/Tests: `riding, raftPos, raftYaw, raftMoored, dismounted, plunging, boostTime, bumpTime,
+landImpact, flow (letzte Abfrage), camYaw` (Kamera-Gier aus der mittleren Fließrichtung der nächsten 26 m, in
+Simulationsschritten geglättet → Steuerung deterministisch). `info()` ergänzt `riding, moored, dismounted, plunging,
+boost, flow, channel`. Hülle auf dem Floß 1,24 × 1,44 × 1,24 m (Floß + Pflaume + Heldin) für Berührungen.
+
+### Präzisierung (Ritt/Diorama): Archetyp `diorama` – Daten
+
+```js
+archetype: 'diorama', theme: 'diorama', music: 'course_diorama', killY: -14,
+stars: [[x, y, z] × 5],       // der 5. gefundene Stern (alle fünf) beendet das Level
+diorama: {
+  center: [0, 2.5, 0],        // Drehpunkt der Orbit-Kamera
+  camera: { yaw: 28, pitch: 46, dist: [36, 15], follow: [0.3, 0.9], fov: 40 },   // Überblick / nah (Z, ⊕)
+  props: [{ kind: 'house'|'mushroom'|'banner'|'dig'|'cloudsea'|'islet', pos, … }],  // DioramaDeco.js
+},
+```
+
+- Figur: `DioramaController` (Player ohne Sprung/Ducken/Rennen/Aktion, 3,5 m/s, Stufen ≤ 0,28 m und Rampen, fällt an
+  Kanten, sanfter Rückstoß 2,2 m/s); Treffer-Puffer klein/groß wie gewohnt; Absturz unter `killY` → Neustart.
+- Kamera: Q/E bzw. ⟲ ⟳ **gehalten** drehen stufenlos (100°/s), Wischen auf der rechten Bildhälfte (0,45°/Pixel quer,
+  Neigung 24–70° senkrecht), Z/⊕ Zoom; Steuerung relativ zur Kamera. Test: `setInput({ cam: ±1 })`,
+  `__course.arch.setOrbit(grad)`, `arch.orbit.info()`.
+- Schatzstellen (`props` `dig`): stehen bleiben (oder Aktion) → Pflaume buddelt (`dig`) 3 Bitcoins aus.
+- Sieg: alle Sterne → `player.startTreasure()` (Skript, `victory`, Kamera rückt heran) → nach 2,6 s
+  `runtime.finish()`; das Ergebnis zeigt bei `LEVEL.diorama` „Schatz: alle 5 Sterne gefunden!“ statt der Zielmast-Zeile
+  (`result.pole = null`).
+- HUD und Ergebnis (gemeinsame Regel mit „Präzisierung (Arena/Boss)“): Stern-Plätze = `LEVEL.starSlots` ??
+  max(3, Zahl der Sterne) (Diorama 5), Stempel-Platz nur mit `LEVEL.stamp`; das Stern-Panel im HUD passt seine Breite
+  der Platzzahl an (Arena 1 Platz → schmales Panel).
+
+### Präzisierung (Ritt/Diorama): Hinweise für Level-Bauer
+
+- Treppen für Figuren ohne Sprung: Stufen ≤ 0,28 m (der Bodendruck der Figur von 2 m/s·dt zählt zur Stufenhöhe;
+  0,2857 m bleibt hängen) – `stairs` mit `rise: 0.25`.
+- Bewegte Plattformen im Diorama: Spalt zu den Haltestellen ≤ 0,15 m; die Plattform fährt nie durch begehbare Fläche.
+- Budget: Archetyp `diorama` nimmt kleinen Entitäten (Käfer, Sterne, Truhen, Kobold) den Sonnenschatten (Blob bleibt),
+  der Ritt Pflaume und der Heldin auf dem Floß sowie allen Wühlern. Gemessen: 1-4 57–109, 1-Schatz 48–114
+  Zeichenaufrufe inkl. Schattenpass, höchstens 238 k Dreiecke.
 
 ---
 

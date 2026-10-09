@@ -31,11 +31,12 @@ export class CourseResultScene extends Phaser.Scene {
     uiPanel(this, w / 2, h / 2 + 6, 236, 200);
     uiText(this, w / 2, h / 2 - 78, 'Geschafft!', { size: 20, color: '#ffe066', stroke: '#3a2a6a', thickness: 4 });
     uiText(this, w / 2, h / 2 - 58, `${r.id ?? ''} · ${r.title ?? ''}`, { size: 8, color: '#5a4a7a', stroke: '#ffffff', thickness: 2, shadow: false });
-    // Level ohne Zielmast (Arena): statt der Zielmast-Zeile das Kampfergebnis; Stern-/Stempel-Plätze nach den Leveldaten
-    // (LEVEL.starSlots, LEVEL.stamp) – Präzisierung (Arena/Boss)
-    const data = this.course?.level?.data ?? {};
+    // Level ohne Zielmast: Arena → Kampfergebnis, Diorama → „Schatz“ statt der Zielmast-Zeile; Stern-/Stempel-Plätze nach den Leveldaten
+    // (LEVEL.starSlots, LEVEL.stamp) – Präzisierung (Arena/Boss) und (Ritt/Diorama)
+    const data = this.course?.level?.data ?? this.course?.levelData ?? {};
     const rows = [
-      data.goal || !data.arena ? ['Zielmast', `${Math.round((r.pole ?? 0) * 100)} %  →  ${r.points ?? 0} Punkte${r.top ? '  · Spitze! +1 Leben' : ''}`]
+      data.diorama ? ['Schatz', `alle ${data.stars?.length ?? 5} Sterne gefunden!`]
+        : data.goal || !data.arena ? ['Zielmast', `${Math.round((r.pole ?? 0) * 100)} %  →  ${r.points ?? 0} Punkte${r.top ? '  · Spitze! +1 Leben' : ''}`]
         : ['Arena', 'alle Gegner besiegt!'],
       ['Bitcoins', `${r.coins ?? 0}`],
       ['Zeit', `${fmt(r.time)}   (Bestzeit ${fmt(r.bestTime)})`],
@@ -50,17 +51,19 @@ export class CourseResultScene extends Phaser.Scene {
     // Sterne und Stempel
     const g = this.add.graphics();
     const stars = r.stars ?? [];
-    const nStars = data.starSlots ?? Math.max(3, stars.length);
-    for (let i = 0; i < nStars; i++) {
-      const cx = w / 2 - 44 + (3 - nStars) * 13 + (data.stamp || !data.arena ? 0 : 13) + i * 26, cy = y + 8;
+    // Plätze nach den Leveldaten: LEVEL.starSlots (Arena 1), sonst max(3, Sternzahl) (Diorama 5); Stempel nur mit LEVEL.stamp
+    const n = data.starSlots ?? Math.max(3, stars.length), hasStamp = !!data.stamp;
+    const x0 = w / 2 - (n - 1) * 13 - (hasStamp ? 18 : 0);
+    for (let i = 0; i < n; i++) {
+      const cx = x0 + i * 26, cy = y + 8;
       const pts = [];
       for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + (k / 10) * Math.PI * 2, rr = k % 2 ? 4.6 : 10; pts.push({ x: cx + Math.cos(a) * rr, y: cy + Math.sin(a) * rr }); }
       const got = stars[i] || r.starsSaved?.[i];
       g.fillStyle(0x3ee05a, stars[i] ? 1 : got ? 0.4 : 0.12); g.fillPoints(pts, true);
       g.lineStyle(1.2, 0x2a7a3a, 0.8); g.strokePoints(pts, true);
     }
-    const sx = w / 2 + 38;
-    if (data.stamp || !data.arena) {
+    const sx = x0 + n * 26 + 4;
+    if (hasStamp) {
       g.fillStyle(0xff7ab8, r.stamp ? 1 : r.stampSaved ? 0.4 : 0.12); g.fillCircle(sx, y + 8, 9);
       g.lineStyle(1.2, 0xb8306c, 0.8); g.strokeCircle(sx, y + 8, 9);
     }
