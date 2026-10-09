@@ -105,14 +105,18 @@ export class HeroRig {
     const speed = Math.hypot(p.vel.x, p.vel.z);
     const grounded = p.mode === 'ground';
     const c = this.proxy.course;
-    c.state = STATE_MAP[p.state] ?? p.state;
+    // Tatzenhieb und Wurf sind kurze Aktionen über dem Bewegungszustand (Präzisierung Gegner/Power-ups)
+    c.state = p.throwTime > 0 && !p.dead ? 'throw' : p.clawTime > 0 && p.state !== 'dive' && !p.dead ? 'claw' : STATE_MAP[p.state] ?? p.state;
     c.speed = p.mode === 'stalk' || p.mode === 'wall' ? 0 : speed;
     c.vy = p.vel.y;
     c.grounded = grounded;
-    c.phase = p.phase;
+    // Wurf/Tatzenhieb: Fortschritt 0..1 aus der Restzeit (jeder neue Wurf beginnt von vorn)
+    c.phase = c.state === 'throw' ? Math.min(1, Math.max(0.01, 1 - p.throwTime / (p.throwDur || 0.25)))
+      : c.state === 'claw' ? Math.min(1, Math.max(0.01, 1 - p.clawTime / 0.3)) : p.phase;
     c.power = p.power;
     c.big = p.big;
-    c.holding = p.holding;
+    // Avatar-Vertrag: holding = false | 'front' | 'over' (Haltestil der getragenen Entität, Standard über dem Kopf)
+    c.holding = p.holding ? (p.holding.holdStyle ?? 'over') : false;
     c.climbing = p.climbing;
     const pr = this.proxy;
     pr.dead = p.dead;
