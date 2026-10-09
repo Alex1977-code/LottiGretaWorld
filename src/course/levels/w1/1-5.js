@@ -98,7 +98,7 @@ export const LEVEL = {
 
     // ======================================================== 1  Schalter-Feld 1
     { type: 'deco_w1b', items: [
-      stage(0, 0, -3, 20, 22, { color: 0x2a4fd0, star: true }),
+      stage(0, 0, -3, 20, 22, { color: 0x2a4fd0 }),
       // Wandsprung-Wände neben der Warp-Box (Stern 1 auf der breiten Wand)
       { kind: 'pennant', pos: [-9.3, 0, 7.3], size: 2.6 },
       { kind: 'pennant', pos: [9.3, 0, 7.3], size: 2.6, color: 'blue' },
@@ -112,6 +112,7 @@ export const LEVEL = {
       stage(5.5, 6.5, -11, 2, 4, { h: 6.5, color: 0xffc21a, skirt: ['red', 0xfff4e0], bulbs: false, inlay: false }),
       stage(9.5, 11, -11, 1, 4, { h: 11, color: 0xffc21a, skirt: [0x2a4fd0, 0xfff4e0], bulbs: false, inlay: false }),
     ] },
+    { type: 'sign', pos: [-6.2, 0, 6.8], text: 'Manege frei!', size: [2.6, 0.9] },
     { type: 'switchtiles', id: 'feld1', tiles: [[-5, 0, -1], [0, 0, -1], [5, 0, -1], [-5, 0, -7], [0, 0, -7], [5, 0, -7]], onAll: { reveal: 'steg1' } },
     // Steg (erscheint, wenn alle Schaltfelder an sind; vorher als Umriss zu sehen)
     { type: 'appear', id: 'steg1', style: 'block', parts: [
@@ -191,6 +192,7 @@ export const LEVEL = {
       { kind: 'drum', pos: [5.5, 4, -167.5], size: [1.6, 0.9], color: 'red' },
     ] },
     { type: 'wall', pos: [-9.5, 4, -161.2], size: [3, 8, 0.4], climbable: true },
+    { type: 'sign', pos: [-12.6, 4, -158.6], text: 'Kletterkünstler\nbitte hier!', yaw: 0.35, size: [2.6, 1.0] },
     { type: 'fallplatform', id: 'wackel', pos: [-9.5, 3.4, -159.6], size: [3, 0.6, 2.8], trigger: 'signal', respawn: 0, color: 'orange' },
     { type: 'glasspipe', id: 'kanone', path: [[3.5, 5, -162.6], [3.5, 5, -166.5], [3.5, 8, -171], [2.2, 11, -176.5]], radius: 1, oneWay: true,
       coins: 4, cannon: { target: [0, 10, -188.6], arc: 4 } },
@@ -238,7 +240,7 @@ export const LEVEL = {
     bee(5.5, 6.2, -161, { center: [5, 6.2, -164], radius: 2.6 }), bee(-3, 12.5, -186, { path: [[-3.5, 12.5, -185.5], [3.5, 12.5, -185.5]] }),
     // Flatterkäfer (6) – zwei Reihen quer über die Lücken
     flutter(-6, 4.9, -69, { path: [[-8, 4.9, -69], [8, 4.9, -69]], count: 3, spacing: 1.5 }),
-    flutter(6, 6.2, -93.6, { path: [[8, 6.2, -93.6], [-8, 6.2, -93.6]], count: 3, spacing: 1.5, color: 'yellow' }),
+    flutter(6, 6.4, -99, { path: [[6, 6.4, -99], [-6, 6.4, -99]], count: 3, spacing: 1.5, color: 'yellow' }),
     // Zauberkröte auf der Fähre
     { kind: 'zauberkroete', pos: [-9, 5, -137], spots: [[-9, 5, -137], [9, 5, -147], [-5.5, 4, -160.5]], sight: 18 },
   ],

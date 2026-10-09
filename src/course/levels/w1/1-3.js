@@ -69,6 +69,7 @@ export const LEVEL = {
       { kind: 'path', from: [-1.5, 0, 0.8], to: [-5.6, 0, 0.6], n: 4 },
     ] },
     { type: 'beanstalk', pos: [-6.5, 0, -0.45], height: 8.2 },
+    { type: 'sign', pos: [-2.6, 0, 8.6], text: 'Klötzchenberg\n40 m hinauf', size: [2.6, 1.0] },
     // Wandsprung-Schacht (Stempel oben zwischen den Wänden)
     { type: 'wall', pos: [5, 0, -6.6], size: [1, 9, 3.2], style: 'stone' },
     { type: 'wall', pos: [9, 0, -6.6], size: [1, 11.5, 3.2], style: 'stone' },
@@ -226,8 +227,7 @@ export const LEVEL = {
       { kind: 'mountain', pos: [100, -48, -280], size: [60, 100] },
       { kind: 'mountain', pos: [-120, -48, -120], size: [50, 70], snow: false },
       { kind: 'mountain', pos: [125, -48, -90], size: [48, 64], snow: false },
-      { kind: 'cloudpuff', pos: [-16, 6, -30], size: 2.6 },
-      { kind: 'cloudpuff', pos: [17, 9, -60], size: 3 },
+      { kind: 'cloudpuff', pos: [-19, 6, -30], size: 2.6 },
       { kind: 'cloudpuff', pos: [-15, 11, -100], size: 2.4 },
       { kind: 'cloudpuff', pos: [12, 10, -95], size: 2.2 },
       { kind: 'cloudpuff', pos: [-18, 22, -150], size: 3.2 },
@@ -251,12 +251,17 @@ export const LEVEL = {
     { type: 'wall', pos: [60.5, 0, -68], size: [1, 4, 19], style: 'stone', camIgnore: true },
     { type: 'wall', pos: [79.5, 0, -68], size: [1, 4, 19], style: 'stone', camIgnore: true },
     { type: 'pipe', id: 'pRaumEin', pos: [64, 0, -61.5], height: 1.4 },
+    { type: 'sign', pos: [67.2, 0, -60.2], text: 'Schalter drücken,\nblaue Münzen fangen!', size: [3.2, 1.0] },
     { type: 'pipe', id: 'pRaumAus', pos: [76, 0, -74], height: 1.4, target: 'pRaumZiel' },
     { type: 'pipe', id: 'pRaumZiel', pos: [5, 15, -85.6], height: 1.2 },
     { type: 'deco_w1b', items: [
       pix(66, 0, -72, 2, 1.5, 2, 'red'),
       pix(74, 0, -66, 2, 2.5, 2, 'blue', 'star'),
       pix(70, 0, -75.5, 4, 1, 2, 'yellow'),
+      { kind: 'mushroom', pos: [62.2, 0, -75.8], size: 1.2, color: 'red' }, { kind: 'mushroom', pos: [78, 0, -75.6], size: 0.9, color: 'blue' },
+      { kind: 'flowerbed', pos: [62.4, 0, -70], size: [1.2, 4], n: 6 }, { kind: 'flowerbed', pos: [78.1, 0, -66], size: [1, 4], n: 6 },
+      { kind: 'tufts', pos: [70, 0, -63], size: [14, 6], n: 12 },
+      { kind: 'flag', pos: [61.5, 0, -59.6], size: 2, color: 'blue' }, { kind: 'flag', pos: [78.5, 0, -59.6], size: 2, color: 'red' },
     ] },
 
     // ======================================================== Münzhimmel (abseits, x ≈ −46, y ≈ 46)
@@ -284,8 +289,8 @@ export const LEVEL = {
     { kind: 'hidden', pos: [-8.2, 3.4, -42.5], content: 'oneup' },
     { kind: 'brick', pos: [-4, 3.4, -21.5], content: 'coins:6' },          // Münz-Ziegel
     // POW-Hang: Ziegelreihen auf dem Hang, POW-Blöcke, Ziegelwand vor der Röhren-Nische
-    ...[-8, -7, -6, -2, -1, 0].map((x) => ({ kind: 'brick', pos: [x, 7.4, -58] })),
-    ...[-9, -8, -4, -3, -2].map((x) => ({ kind: 'brick', pos: [x, 9.9, -65] })),
+    ...[-7, -6, -1, 0].map((x) => ({ kind: 'brick', pos: [x, 7.4, -58] })),
+    ...[-8, -3, -2].map((x) => ({ kind: 'brick', pos: [x, 9.9, -65] })),
     { kind: 'pow', pos: [-5, 7.4, -58], uses: 3, radius: 9, height: 3.5 },
     { kind: 'pow', pos: [2, 11.4, -73.5], uses: 3, radius: 8, height: 3 },
     ...[5.5, 6.5, 7.5].flatMap((x) => [9, 10, 11].map((y) => ({ kind: 'brick', pos: [x, y, -77.5] }))),

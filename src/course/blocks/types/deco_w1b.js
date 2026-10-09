@@ -316,8 +316,8 @@ function flowerbed(it, out, rnd) {
     st.translate(x, p.y + h / 2, z);
     out.push(colorize(st, (pp, nn, o) => { o[0] = stemC[0]; o[1] = stemC[1]; o[2] = stemC[2]; }));
     const c = hex(FLOWER_COLS[it.color ?? rnd.pick(cols)] ?? 0xff5a4a);
-    out.push(ball(0.13, x, p.y + h + 0.02, z, tint(c, 0.35), c, tint(c, -0.3), 1, 0.42, 1, 7, 3));
-    out.push(ball(0.05, x, p.y + h + 0.06, z, 0xfff6c0, 0xffc21a, 0xd99a00, 1, 0.8, 1, 5, 3));
+    out.push(ball(0.13, x, p.y + h + 0.02, z, tint(c, 0.35), c, tint(c, -0.3), 1, 0.42, 1, 6, 3));
+    out.push(ball(0.05, x, p.y + h + 0.06, z, 0xfff6c0, 0xffc21a, 0xd99a00, 1, 0.8, 1, 4, 2));
   }
 }
 

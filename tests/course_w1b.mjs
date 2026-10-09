@@ -438,7 +438,7 @@ const SHOTS = {
   '1-5': [
     ['15_start', [0, 0, 5]], ['15_schalter', [-5, 0, -1], { pre: runSteps({ x: 1 }, 150) }], ['15_sternwand', [7.75, 0, -7.5]],
     ['15_feld2', [0, 0, -28]], ['15_plattformen', [0, 0, -34]], ['15_check', [0, 2.5, -60]], ['15_flatter', [-4, 3, -71.5]], ['15_raetsel', [-2, 4, -85]],
-    ['15_gang', [0, 4, -96]], ['15_faehre', [0, 4, -124]], ['15_faehre_fahrt', null, { pre: 'const m = bot.mover("faehre"); bot.place([m.x, m.y + 0.05, m.z + 3], {}); c.step(400);' }],
+    ['15_gang', [0, 4, -96]], ['15_faehre', [0, 4, -124]], ['15_faehre_fahrt', [0, 4, -124.3], { pre: 'let i = 0; while (bot.mover("faehre").z < -132.6 && i++ < 3000) c.step(1); const m = bot.mover("faehre"); bot.place([m.x + 1.5, m.y + 0.05, m.z + 2], { settle: 10 }); c.step(260);' }],
     ['15_lande', [0, 4, -160]], ['15_turm', [-7.2, 4, -159.5]], ['15_kanonenflug', [3.5, 4, -160.4], { pre: runSteps({ y: 1 }, 170) }],
     ['15_ziel', [0, 10, -186.5]], ['15_loge', [-20, 6, -18]], ['15_kisten', [60, 0, -82]],
   ],
