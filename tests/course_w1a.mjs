@@ -59,7 +59,7 @@ const ROUTES = {
     extra: [
       { name: 'Krallen-Anzug aus dem ersten ?-Block (anstoßen, draufspringen)', from: [-4, 4, -9.6],
         legs: [{ to: [-4, -11.6], within: 0.25, run: false }, { hop: 20 }, { wait: 90 },
-          { to: [-4, -10.3], within: 0.2, run: false }, { to: [-4, -11.6], jump: 40, delay: 22, within: 0.3 }, { wait: 30 }], expectPower: 'krallen' },
+          { to: [-4, -10.3], within: 0.2, run: false }, { wait: 40 }, { to: [-4, -11.6], jump: 40, delay: 44, within: 0.3 }, { wait: 30 }], expectPower: 'krallen' },
       { name: 'Kletterwand mit Krallen-Anzug (6 m)', from: [-3.5, 4, -71.5], power: 'krallen',
         legs: [{ to: [-3.5, -75.4], within: 0.25 }, { push: 150, jump: 10, to: [-3.5, -80] }, { to: [-3.5, -80] }], expectY: 9.9 },
     ],
@@ -132,7 +132,7 @@ const ROUTES = {
     extra: [
       { name: 'Funkenblüte aus dem ersten ?-Block', from: [-2.6, 13.4, -2.8],
         legs: [{ to: [-2.6, -4.6], within: 0.25, run: false }, { hop: 20 }, { wait: 90 },
-          { to: [-2.6, -3.3], within: 0.2, run: false }, { to: [-2.6, -4.6], jump: 40, delay: 22, within: 0.3 }, { wait: 30 }], expectPower: 'funken' },
+          { to: [-2.6, -3.3], within: 0.2, run: false }, { wait: 40 }, { to: [-2.6, -4.6], jump: 40, delay: 44, within: 0.3 }, { wait: 30 }], expectPower: 'funken' },
       { name: 'Welt-Warp: Kletterwand mit Krallen zur Röhre', from: [2.4, 1, -155], power: 'krallen',
         legs: [{ to: [3, -155], within: 0.2 }, { push: 150, jump: 10, to: [6, -155] }, { to: [6.4, -155], jump: 26, within: 0.3 }, { crouch: 4 }], expectX: 90 },
       { name: 'Versteckter Raum: Stampfen auf die Kristallblöcke', from: [3.2, 5.7, -45.2], startY: 5.5,
@@ -272,7 +272,7 @@ function install() {
           log.push([L.name ?? `push${li}`, L.push, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
           continue;
         }
-        let best = Infinity, still = 0, auto = 0;
+        let best = Infinity, still = 0, auto = 0, j0 = L.jumpAt ? null : 0;
         for (; i < max; i++) {
           if (p.dead || c.level.runtime.status !== 'play') break;
           const dx = L.to[0] - p.pos.x, dz = L.to[1] - p.pos.z;
@@ -287,7 +287,7 @@ function install() {
           let st;
           if (L.delay && i < L.delay) {
             st = { x: 0, y: 0 };            // erst senkrecht hoch, dann lenken (auf einen Block springen)
-          } else if (p.mode === 'air' && holdJ) {
+          } else if (p.mode === 'air' && holdJ && j0 !== null) {
             // in der Luft: auf eine Wunsch-Geschwindigkeit zum Ziel hin lenken (bremst vor dem Landepunkt)
             const k = 2.6, vmax = 11;
             let vx = dx * k, vz = dz * k;
@@ -299,7 +299,8 @@ function install() {
             if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
           }
-          const jump = (holdJ ? (i < holdJ) : false) || auto > 0;
+          if (j0 === null && dist <= L.jumpAt) j0 = i;
+          const jump = (holdJ && j0 !== null ? (i - j0 < holdJ) : false) || auto > 0;
           if (auto > 0) auto--;
           tick({ ...st, run: L.run ?? true, jump });
           if (p.mode === 'air') airborne = true;

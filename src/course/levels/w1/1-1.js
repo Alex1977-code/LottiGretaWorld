@@ -224,7 +224,6 @@ export const LEVEL = {
     isl(4, 5, -157, -159, 7, 6, { under: 0 }),
     isl(7, 8.5, -157, -159, 7, 6, { under: 0 }),
     isl(5, 7, -157, -159, 4.9, 3.9, { under: 0, top: 'stone' }),
-    { type: 'megawall', pos: [6, 6, -158], size: [2, 1, 2] },
     { type: 'wall', pos: [6.25, 0.5, -156.8], size: [4.5, 4.4, 0.4], climbable: true },
     { type: 'wall', pos: [4.5, 4.9, -156.8], size: [1, 2.1, 0.4], climbable: true },
     { type: 'wall', pos: [7.75, 4.9, -156.8], size: [1.5, 2.1, 0.4], climbable: true },
@@ -328,9 +327,9 @@ export const LEVEL = {
   ],
   blocks: [
     // 1: ?-Block mit Krallen-Anzug zwischen Ziegeln über der Terrasse; versteckter Münzblock rechts unten
-    { kind: 'brick', pos: [-5, 6.1, -11.6] },
-    { kind: 'question', pos: [-4, 6.1, -11.6], content: 'krallenAnzug' },
-    { kind: 'brick', pos: [-3, 6.1, -11.6], content: 'coins:3' },
+    { kind: 'brick', pos: [-5, 5.8, -11.6] },
+    { kind: 'question', pos: [-4, 5.8, -11.6], content: 'krallenAnzug' },
+    { kind: 'brick', pos: [-3, 5.8, -11.6], content: 'coins:3' },
     { kind: 'hidden', pos: [5.4, 3.4, -10.4], content: 'coins:5' },
     // 2: Wachstumsbeere
     { kind: 'brick', pos: [-2, 6.4, -38.5] },
@@ -338,6 +337,8 @@ export const LEVEL = {
     { kind: 'brick', pos: [0, 6.4, -38.5], content: 'coins:4' },
     // 3: Münzblock vor der Wand
     { kind: 'coinblock', pos: [4, 6.4, -63], count: 8 },
+    // 5: Steinblöcke (nur Riesentrank) als Dach der Stern-Nische direkt hinter der Brücke
+    { kind: 'blockwand', pos: [6, 6, -158], size: [2, 1, 2] },
     // 5: Ziegelreihe über dem Weg
     ...[-3, -2, -1, 0, 1, 2, 3].map((x) => (x === 0
       ? { kind: 'question', pos: [x, 9.4, -140], content: 'wachstumsbeere' }

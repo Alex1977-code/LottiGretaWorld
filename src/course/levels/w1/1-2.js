@@ -346,8 +346,8 @@ export const LEVEL = {
     { kind: 'question', pos: [0.4, 3.4, -70.4], content: 'wachstumsbeere' },
     { kind: 'hidden', pos: [-5.2, 7.6, -75], content: 'oneup' },
     // 5: Krallen-Anzug für die Kletterwand zum Welt-Warp
-    { kind: 'question', pos: [-3, 3.1, -136.6], content: 'krallenAnzug' },
-    { kind: 'brick', pos: [-2, 3.1, -136.6], content: 'coins:4' },
+    { kind: 'question', pos: [-3, 2.8, -136.6], content: 'krallenAnzug' },
+    { kind: 'brick', pos: [-2, 2.8, -136.6], content: 'coins:4' },
   ],
   enemies: [
     // Panzerkröten (12): Start 1, Eingang 3 (eine auf dem Raumdach), Röhrenfeld 2, obere Gerade 1, Goldraum 3, Rätselbox 2
