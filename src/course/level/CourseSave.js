@@ -10,7 +10,10 @@ const KEY = 'lotti-greta-course-v1';
 export const START_LIVES = 5;
 const HEROES = ['lotti', 'greta'];
 
-const empty = () => ({ version: 1, hero: null, lives: START_LIVES, coins: 0, world: 1, mapPos: null, levels: {} });
+// Weltkarte (Präzisierung Weltkarte, additiv): mapPos = { world, pos: [x,y,z], yaw } (letzte Lage auf der Karte),
+// carryPower = Power-up aus dem Beerenhaus fürs nächste Level, mapVisit = Zähler der Kartenbesuche, berryVisit =
+// Besuch, in dem das Beerenhaus zuletzt genutzt wurde, mapOpened = Eingänge, deren Schranke schon geöffnet wurde.
+const empty = () => ({ version: 1, hero: null, lives: START_LIVES, coins: 0, world: 1, mapPos: null, levels: {}, carryPower: null, mapVisit: 0, berryVisit: -1, mapOpened: [] });
 
 export class CourseSave {
   constructor() {
@@ -94,6 +97,42 @@ export class CourseSave {
     if (minStars && this.starsInWorld(world ?? id.split('-')[0]) < minStars) return false;
     return true;
   }
+
+  // ------------------------------------------------------------------ Weltkarte (additiv)
+
+  /** Power-up aus dem Beerenhaus, das ins nächste Level mitgenommen wird (Name wie in player/powers). */
+  get carryPower() { return this.data.carryPower ?? null; }
+  set carryPower(v) { this.data.carryPower = v || null; this.save(); }
+
+  /** Mitgebrachtes Power-up abholen (Levelstart): liefert den Namen und löscht ihn. */
+  takeCarryPower() {
+    const p = this.data.carryPower ?? null;
+    if (p) { this.data.carryPower = null; this.save(); }
+    return p;
+  }
+
+  /** Neuer Kartenbesuch (jede Ankunft auf der Kurs-Weltkarte). */
+  beginMapVisit() { this.data.mapVisit = (this.data.mapVisit ?? 0) + 1; this.save(); return this.data.mapVisit; }
+
+  /** Beerenhaus in diesem Besuch noch nicht genutzt? */
+  berryAvailable() { return (this.data.berryVisit ?? -1) !== (this.data.mapVisit ?? 0); }
+  useBerry() { this.data.berryVisit = this.data.mapVisit ?? 0; this.save(); }
+
+  /** Schranke zum Eingang `id` schon geöffnet (Animation gesehen)? */
+  mapOpened(id) { return (this.data.mapOpened ?? []).includes(id); }
+  markMapOpened(id) {
+    if (!Array.isArray(this.data.mapOpened)) this.data.mapOpened = [];
+    if (!this.data.mapOpened.includes(id)) { this.data.mapOpened.push(id); this.save(); }
+  }
+
+  /** Lage auf der Karte merken / lesen ({ world, pos, yaw, entrance?, level? } – entrance/level: zuletzt betretener
+   *  Eingang und das dort gestartete Level, damit die Rückkehr den richtigen Eingang findet). */
+  setMapPos(world, pos, yaw, extra = {}) {
+    this.data.mapPos = { world, pos: pos.map((v) => Math.round(v * 100) / 100), yaw: Math.round(yaw * 1000) / 1000, ...extra };
+    this.data.world = world;
+    this.save();
+  }
+  get mapPos() { return this.data.mapPos ?? null; }
 }
 
 export const courseSave = new CourseSave();

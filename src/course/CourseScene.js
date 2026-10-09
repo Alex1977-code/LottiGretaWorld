@@ -26,6 +26,7 @@ import { HeroRig } from './player/HeroRig.js';
 import { courseSave } from './level/CourseSave.js';
 import { music, sfx } from '../audio/index.js';
 import { RENDER3D } from '../render3d.js';
+import { createArchetype } from './archetypes/index.js';
 
 export const DT = 1 / 120;
 const MAX_STEPS = 8;
@@ -61,15 +62,24 @@ export class CourseScene extends Phaser.Scene {
     this.cinput = new CourseInput(this);
     this.view = new CourseView(this, data);
     this.level = new Level(this, data, { view: this.view, save: courseSave });
+    // Archetyp (arena, boss, ride, diorama …) – Haken siehe archetypes/index.js; null = Standard-Parcours
+    this.arch = createArchetype(data.archetype, this);
+    this.level.archetype = this.arch;
     buildLevel(this.level);
     const s = data.start ?? {};
-    this.player = new Player(this.level, { hero: courseSave.hero, pos: s.pos ?? [0, 1, 0], yaw: s.yaw ?? Math.PI / 2 });
+    const popts = { hero: courseSave.hero, pos: s.pos ?? [0, 1, 0], yaw: s.yaw ?? Math.PI / 2 };
+    this.player = this.arch?.createPlayer?.(this.level, popts) ?? new Player(this.level, popts);
     this.level.player = this.player;
-    this.rig = new HeroRig(this.view, this.player);
+    // Weltkarte: Power-up aus dem Beerenhaus wird beim Levelstart eingelöst (Präzisierung Weltkarte, carryPower).
+    // Level mit eigener Spielfigur (Archetyp mit createPlayer, z. B. Diorama) heben es fürs nächste Level auf.
+    if (!this.arch?.createPlayer && courseSave.carryPower && this.player.setPower) this.player.setPower(courseSave.takeCarryPower());
+    this.rig = this.arch?.createRig?.(this.view, this.player) ?? new HeroRig(this.view, this.player);
     const p = this.player;
     this.view.shadows.add({ pos: p.pos, radius: 0.5, alive: () => true, visible: () => !(p.dead && p.deathCause === 'fall') && !(p.script?.type === 'pipe') });
     this.level.controlYaw = this.view.rig.controlYaw(p.pos);
     this.view.rig.snap(p);
+    this.view.rig.custom = this.arch?.camera ? (dt, player, world) => this.arch.camera(dt, player, world) : null;
+    this.arch?.setup?.();
 
     this.events.on(Phaser.Scenes.Events.RENDER, this.renderFrame, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanup, this);
@@ -106,7 +116,9 @@ export class CourseScene extends Phaser.Scene {
     if (inp.zoom) rig.toggleZoom();
     if (inp.debug) this.debug = !this.debug;
     this.level.controlYaw = rig.controlYaw(this.player.pos);
+    this.arch?.beforeStep?.(DT, inp);
     this.level.step(DT, inp);
+    this.arch?.afterStep?.(DT, inp);
   }
 
   /** n Schritte synchron rechnen (Tests). Schaltet den Echtzeit-Takt ab. */
@@ -137,6 +149,7 @@ export class CourseScene extends Phaser.Scene {
     return {
       id: this.levelId, time: +this.level.time.toFixed(3), player: this.player.info(), runtime: this.level.runtime.info(),
       camera: this.view.rig.info(), entities: this.level.entities.length, finished: this.finished,
+      archetype: this.arch?.info?.() ?? null,
     };
   }
 
@@ -150,6 +163,7 @@ export class CourseScene extends Phaser.Scene {
     const dt = paused ? 0 : Math.min(this.game.loop.delta, 50) / 1000;
     const t = this.view.time + dt;
     this.rig.update(dt, t);
+    this.arch?.render?.(dt, t);
     this.level.render(dt, t);
     this.view.render(dt, this.player, this.level.world);
   }
@@ -204,6 +218,8 @@ export class CourseScene extends Phaser.Scene {
   cleanup() {
     this.events.off(Phaser.Scenes.Events.RENDER, this.renderFrame, this);
     if (window.__course === this) window.__course = null;
+    this.arch?.dispose?.();
+    this.arch = null;
     this.rig?.dispose();
     this.level?.dispose();
     this.view?.dispose();

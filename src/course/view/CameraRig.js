@@ -105,6 +105,8 @@ export class CameraRig {
   lockedX(px, r) { return r.lockX === null || r.lockX === undefined ? px : px + (r.lockX - px) * r.lockW; }
 
   update(dt, player, world) {
+    // Archetyp mit eigener Kamera (z. B. Diorama-Orbit): setzt Kamera selbst und gibt true zurück
+    if (this.custom && this.custom(dt, player, world)) return;
     const p = player.pos;
     const r = this.railAt(p.x, p.z, this.cur);
     this.userYaw = damp(this.userYaw, this.userYawTarget, 6, dt);
