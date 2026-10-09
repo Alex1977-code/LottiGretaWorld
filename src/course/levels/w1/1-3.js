@@ -73,7 +73,7 @@ export const LEVEL = {
     { type: 'wall', pos: [5, 0, -6.6], size: [1, 9, 3.2], style: 'stone' },
     { type: 'wall', pos: [9, 0, -6.6], size: [1, 11.5, 3.2], style: 'stone' },
     { type: 'deco', items: [
-      { kind: 'flowers', pos: [-3, 0, 7.5], size: [3, 2], n: 10 }, { kind: 'flowers', pos: [3.5, 0, 0], size: [2.5, 2], n: 8 },
+      { kind: 'flowers', pos: [-3, 0, 7.5], size: [3, 2], n: 8 }, { kind: 'flowers', pos: [3.5, 0, 0], size: [2.5, 2], n: 8 },
       { kind: 'bush', pos: [-9, 0, -9.5], size: 0.8 }, { kind: 'bush', pos: [9.2, 0, 1], size: 0.7 }, { kind: 'bush', pos: [-3.5, 0, 9.5], size: 0.6 },
       { kind: 'fence', from: [-9.6, 0, 10.6], to: [-4.5, 0, 10.6] }, { kind: 'fence', from: [4.5, 0, 10.6], to: [9.6, 0, 10.6] },
       { kind: 'flower', pos: [6.2, 0, -7.6], color: 'yellow' }, { kind: 'flower', pos: [7.8, 0, -7.7], color: 'pink' },
@@ -95,7 +95,7 @@ export const LEVEL = {
       { kind: 'path', from: [2.2, 1, -38.2], to: [0.5, 1, -46.5], n: 7 },
     ] },
     { type: 'deco', items: [
-      { kind: 'flowers', pos: [6, 1, -21.5], size: [3, 2], n: 10 }, { kind: 'flowers', pos: [-6, 1, -42], size: [3, 3], n: 12 },
+      { kind: 'flowers', pos: [6, 1, -21.5], size: [3, 2], n: 8 }, { kind: 'flowers', pos: [-6, 1, -42], size: [3, 3], n: 8 },
       { kind: 'flowers', pos: [0, 1, -36.5], size: [2, 2], n: 6 },
       { kind: 'bush', pos: [9.2, 1, -27], size: 0.8 }, { kind: 'bush', pos: [-9.2, 1, -21], size: 0.7 },
       { kind: 'tree', pos: [-9, 1, -38.5], size: 4.2, color: 'green' },
@@ -136,12 +136,12 @@ export const LEVEL = {
       { kind: 'flag', pos: [-6.6, 15, -86.8], size: 2.2, color: 'red' },
       { kind: 'tufts', pos: [0, 15, -84.5], size: [10, 4], n: 10 },
     ] },
-    { type: 'platform', style: 'cloud', pos: [-1, 14.5, -92], size: [3.4, 0.6, 3] },
-    { type: 'platform', style: 'cloud', pos: [2.5, 15, -98.5], size: [3.4, 0.6, 3] },
-    { type: 'platform', style: 'cloud', pos: [-1.5, 15.5, -105], size: [3.4, 0.6, 3] },
-    { type: 'platform', style: 'cloud', pos: [1.5, 16, -111.5], size: [4.2, 0.6, 3.4] },
-    { type: 'platform', style: 'cloud', pos: [-7.5, 16.5, -101], size: [3, 0.6, 3] },    // Seitenwolke mit Münzen
-    { type: 'platform', style: 'cloud', pos: [7.5, 15.5, -108], size: [3, 0.6, 3] },     // Seitenwolke (Schnappblume)
+    { type: 'deco_w1b', kind: 'cloudplat', pos: [-1, 14.5, -92], size: [3.4, 0.6, 3] },
+    { type: 'deco_w1b', kind: 'cloudplat', pos: [2.5, 15, -98.5], size: [3.4, 0.6, 3] },
+    { type: 'deco_w1b', kind: 'cloudplat', pos: [-1.5, 15.5, -105], size: [3.4, 0.6, 3] },
+    { type: 'deco_w1b', kind: 'cloudplat', pos: [1.5, 16, -111.5], size: [4.2, 0.6, 3.4] },
+    { type: 'deco_w1b', kind: 'cloudplat', pos: [-7.5, 16.5, -101], size: [3, 0.6, 3] },    // Seitenwolke mit Münzen
+    { type: 'deco_w1b', kind: 'cloudplat', pos: [7.5, 15.5, -108], size: [3, 0.6, 3] },     // Seitenwolke (Schnappblume)
     { type: 'bridge', from: [1.5, 16.6, -116.5], to: [1.5, 17, -126], width: 3, color: 0xc98a4a },
     { type: 'killplane', pos: [0, 5, -104], size: [80, 46] },
 
@@ -165,7 +165,7 @@ export const LEVEL = {
       { kind: 'mushroom', pos: [-8, 17, -127.6], size: 0.7, color: 'yellow' },
     ] },
     { type: 'deco', items: [
-      { kind: 'flowers', pos: [0, 17, -145], size: [3, 3], n: 10 }, { kind: 'flowers', pos: [-10, 17, -131], size: [2, 3], n: 8 },
+      { kind: 'flowers', pos: [0, 17, -145], size: [3, 3], n: 8 }, { kind: 'flowers', pos: [-10, 17, -131], size: [2, 3], n: 8 },
       { kind: 'tree', pos: [10.3, 17, -136], size: 4.6, color: 'green' }, { kind: 'bush', pos: [-10.6, 17, -140], size: 0.8 },
     ] },
 
@@ -200,7 +200,7 @@ export const LEVEL = {
       { kind: 'rockpile', pos: [7.2, 30, -187], size: 0.9 },
     ] },
     { type: 'deco', items: [
-      { kind: 'flowers', pos: [3.5, 40, -214], size: [3, 3], n: 10 }, { kind: 'bush', pos: [-5.8, 40, -216], size: 0.8 },
+      { kind: 'flowers', pos: [3.5, 40, -214], size: [3, 3], n: 8 }, { kind: 'bush', pos: [-5.8, 40, -216], size: 0.8 },
       { kind: 'fence', from: [-5, 30, -175.8], to: [-2, 30, -175.8] }, { kind: 'fence', from: [2, 30, -175.8], to: [5, 30, -175.8] },
     ] },
 
@@ -245,11 +245,11 @@ export const LEVEL = {
     ] },
 
     // ======================================================== Münzhimmel (abseits, x ≈ −46, y ≈ 46)
-    { type: 'platform', style: 'cloud', pos: [-46, 45.4, -122], size: [6, 0.6, 6] },
-    { type: 'platform', style: 'cloud', pos: [-46, 45.4, -133], size: [4, 0.6, 12] },
-    { type: 'platform', style: 'cloud', pos: [-43, 46.4, -145], size: [4, 0.6, 6] },
-    { type: 'platform', style: 'cloud', pos: [-48, 47.4, -154], size: [4, 0.6, 6] },
-    { type: 'platform', style: 'cloud', pos: [-46, 47.4, -165], size: [6, 0.6, 9] },
+    { type: 'deco_w1b', kind: 'cloudplat', pos: [-46, 45.4, -122], size: [6, 0.6, 6] },
+    { type: 'deco_w1b', kind: 'cloudplat', pos: [-46, 45.4, -133], size: [4, 0.6, 12] },
+    { type: 'deco_w1b', kind: 'cloudplat', pos: [-43, 46.4, -145], size: [4, 0.6, 6] },
+    { type: 'deco_w1b', kind: 'cloudplat', pos: [-48, 47.4, -154], size: [4, 0.6, 6] },
+    { type: 'deco_w1b', kind: 'cloudplat', pos: [-46, 47.4, -165], size: [6, 0.6, 9] },
     { type: 'pipe', id: 'himmelAus', pos: [-46, 48, -168.6], height: 1.4, target: [0, 17, -154] },
     { type: 'killplane', pos: [-46, 30, -145], size: [40, 70] },
     { type: 'deco_w1b', items: [
@@ -262,7 +262,7 @@ export const LEVEL = {
     { kind: 'brick', pos: [-1.5, 3.4, -3] },
     { kind: 'question', pos: [-0.5, 3.4, -3], content: 'funken' },
     { kind: 'brick', pos: [0.5, 3.4, -3] },
-    { kind: 'question', pos: [1.5, 3.4, -3], content: 'coin' },
+    { kind: 'brick', pos: [1.5, 3.4, -3] },
     // Schnappblumenfeld
     { kind: 'question', pos: [3, 3.4, -21.5], content: 'wachstumsbeere' },
     { kind: 'pow', pos: [0, 3.5, -33], uses: 3, radius: 10, height: 3 },
@@ -274,13 +274,12 @@ export const LEVEL = {
     { kind: 'pow', pos: [-5, 7.4, -58], uses: 3, radius: 9, height: 3.5 },
     { kind: 'pow', pos: [2, 11.4, -73.5], uses: 3, radius: 8, height: 3 },
     ...[5.5, 6.5, 7.5].flatMap((x) => [9, 10, 11].map((y) => ({ kind: 'brick', pos: [x, y, -77.5] }))),
-    { kind: 'question', pos: [-6, 12.4, -75], content: 'coins:3' },
     // Doppelhügel
-    { kind: 'question', pos: [2, 20.4, -148.5], content: 'funken' },
     { kind: 'question', pos: [5.5, 25.2, -140], content: 'oneup' },
+    // Münzhimmel: Funkelstern (Bauplan: Wolkenkanone „zum Unverwundbarkeitsstern“)
+    { kind: 'question', pos: [-46, 48.6, -131], content: 'stern' },
     // vor der Gipfelbrücke: Funkenblüte gegen die Riesenschnappblume
-    { kind: 'question', pos: [-1, 33.4, -173.8], content: 'funken' },
-    { kind: 'question', pos: [1, 33.4, -173.8], content: 'wachstumsbeere' },
+    { kind: 'question', pos: [0, 33.4, -173.8], content: 'funken' },
   ],
   enemies: [
     // Krallen-Pilzlinge (8)
@@ -304,33 +303,32 @@ export const LEVEL = {
   items: [
     // 1 Startplatz: Münzen an der Ranke, Spur zur Brücke, Bogen im Schacht
     coinsLine([-6.5, 2, 0.25], [-6.5, 6, 0.25], 3),
-    coinsLine([0, 0.2, 1], [0, 0.2, -7], 4),
+    coinsLine([0, 0.2, 1], [0, 0.2, -7], 3),
     coinsLine([7, 2.6, -6.2], [7, 5.4, -6.2], 3),
     // 2 Feld
-    coinsLine([0, 0.6, -12], [0, 1.4, -18], 4),
+    coinsLine([0, 0.6, -12.5], [0, 1.3, -17.5], 3),
     coinsLine([-8.2, 1.2, -26], [-8.2, 1.2, -38], 5),
-    arc([-3, 1.2, -31.5], [3, 1.2, -31.5], 1.6, 5),
-    coinsLine([3, 1.2, -44], [5.5, 1.2, -44], 2),
+    arc([-3, 1.2, -31.5], [3, 1.2, -31.5], 1.6, 4),
     // 3 Hang
     coinsLine([7, 4.9, -55.5], [7, 9.4, -69], 4),
-    arc([-3, 4, -52], [-3, 6.5, -60], 1.4, 4),
+    arc([-3, 4, -52], [-3, 6.5, -60], 1.4, 3),
     coinsLine([-3, 9.5, -73], [-3, 13.5, -79.8], 3),
     // 4 Ranke, Wolken
-    coinsLine([-3, 11, -79.75], [-3, 15, -79.75], 3),
+    coinsLine([-3, 11.5, -79.75], [-3, 14.5, -79.75], 2),
     arc([-0.5, 15.5, -88.5], [-1, 15.5, -92], 1.2, 3),
-    arc([-0.5, 15.5, -94], [2.5, 16, -98.5], 1.6, 4),
-    arc([2, 16, -100.5], [-1.5, 16.5, -105], 1.6, 4),
-    arc([-1.5, 16.5, -107], [1.5, 17, -111.5], 1.6, 4),
-    { kind: 'coins', pos: [-7.5, 17.2, -101], r: 1, n: 6 },
+    arc([-0.5, 15.5, -94.5], [2.5, 16, -98.5], 1.6, 3),
+    arc([2, 16, -101], [-1.5, 16.5, -105], 1.6, 3),
+    arc([-1.5, 16.5, -107.5], [1.5, 17, -111.5], 1.6, 3),
+    { kind: 'coins', pos: [-7.5, 17.2, -101], r: 1, n: 5 },
     // 5 Doppelhügel
-    { kind: 'coins', pos: [-5.5, 20.3, -137.5], r: 1.6, n: 6 },
+    { kind: 'coins', pos: [-5.5, 20.3, -137.5], r: 1.7, n: 5 },
     coinsLine([1.5, 17.2, -128], [1.5, 17.2, -134], 3),
     // 6 Treppe
     coinsLine([-3.5, 19.3, -155.5], [2.5, 21.3, -159.5], 3),
-    coinsLine([2.5, 26, -170.2], [2.5, 30, -170.2], 3),
-    coinsLine([0, 30.3, -177], [0, 30.3, -185], 5),
+    coinsLine([2.5, 26.5, -170.2], [2.5, 29.5, -170.2], 2),
+    coinsLine([0, 30.3, -177.5], [0, 30.3, -184.5], 4),
     // Gipfel
-    arc([-3, 40.2, -207], [3, 40.2, -207], 1.2, 5),
+    arc([-3, 40.2, -207], [3, 40.2, -207], 1.2, 4),
     // Kobolde mit Fernglas in den Bäumen (Deko mit Leben)
     { kind: 'spotter', pos: [-7.4, 7, -4.4], yaw: -0.9 },
     { kind: 'spotter', pos: [7.7, 4.4, 4.6], yaw: -2.2 },
@@ -340,11 +338,11 @@ export const LEVEL = {
     // P-Schalter-Raum: Druckschalter → 8 blaue Münzen für 12 s, alle → Stern 2
     { kind: 'pswitch', id: 'pRaumSchalter', pos: [70, 0, -67], time: 12, star: 1,
       coins: [[63.5, 0.3, -66], [66, 1.8, -72], [66, 0.3, -63.5], [70, 1.3, -75.5], [74, 2.8, -66], [76.5, 0.3, -70], [73.5, 0.3, -61], [70, 2.6, -62]] },
-    { kind: 'coins', pos: [-46, 46.2, -122], r: 2, n: 8 },
-    coinsLine([-47.2, 46.2, -128], [-47.2, 46.2, -138], 6), coinsLine([-44.8, 46.2, -128], [-44.8, 46.2, -138], 6),
-    arc([-46, 46.3, -139.5], [-43, 47.3, -144], 1.8, 4), arc([-43, 47.3, -147.5], [-48, 48.3, -153], 2, 5),
+    { kind: 'coins', pos: [-46, 46.2, -122], r: 2, n: 6 },
+    coinsLine([-47.2, 46.2, -128.5], [-47.2, 46.2, -137.5], 5), coinsLine([-44.8, 46.2, -128.5], [-44.8, 46.2, -137.5], 5),
+    arc([-46, 46.3, -139.5], [-43, 47.3, -144], 1.8, 4), arc([-43, 47.3, -147.5], [-48, 48.3, -153], 2, 4),
     coinsLine([-48, 48.2, -154], [-48, 48.2, -157], 3), arc([-48, 48.3, -158], [-46, 48.3, -161], 1.5, 3),
-    { kind: 'coins', pos: [-46, 48.2, -164.5], r: 2.2, n: 10 },
+    { kind: 'coins', pos: [-46, 48.2, -164.5], r: 2.2, n: 8 },
   ],
   stars: [
     [-6.5, 7.05, -3.2],                                    // 1: Krone des Rankenbaums links vom Start

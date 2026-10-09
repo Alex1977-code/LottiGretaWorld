@@ -13,6 +13,7 @@
 //               size = Höhe der Kronen-Oberseite (Standard 7), r = Kronenradius (Standard 2.4), color 'green'|'autumn'
 //   mountain    Berg-Kulisse: size [Radius, Höhe], color (Wiesengrün), snow (Schneekappe, Standard true)
 //   cloudpuff   Zierwolke (pos = Mitte), size (Radius, Standard 2)
+//   cloudplat   Wolkenplattform (sparsame Geometrie) – Kollision box, Einweg (oneWay Standard true): size [w, h, d]
 //   sign        Wegweiser mit Pfeil; yaw (Pfeilrichtung, Standard Math.PI / 2 = nach −Z)
 //   tufts       Grasbüschel: size [w, d], n (Standard 8)
 //   mushroom    Zierpilz: size (Höhe, Standard 1.2), color (Hut, Standard 'red')
@@ -233,6 +234,32 @@ function cloudpuff(it, out) {
   const r = it.size ?? 2;
   for (const [x, y, z, k] of [[0, 0, 0, 1], [-0.95, -0.15, 0.1, 0.7], [0.95, -0.12, -0.1, 0.75], [-0.35, 0.3, -0.2, 0.65], [0.45, 0.32, 0.15, 0.6]]) {
     out.push(ball(r * k, p.x + x * r, p.y + y * r * 0.7, p.z + z * r, 0xffffff, 0xf4f8ff, 0xc9d9ec, 1, 0.72, 1, 9, 6));
+  }
+}
+
+/** Wolkenplattform (sparsam: wenige große Bäusche) – Kollision box, standardmäßig Einweg. */
+function cloudplat(level, it, out) {
+  const p = v3(it.pos), s = sz3(it.size, [3, 0.6, 3]);
+  level.world.add({ type: 'box', min: [p.x - s.x / 2, p.y, p.z - s.z / 2], max: [p.x + s.x / 2, p.y + s.y, p.z + s.z / 2], oneWay: it.oneWay ?? true, tag: 'cloud' });
+  const nx = Math.max(1, Math.round(s.x / 1.7)), nz = Math.max(1, Math.round(s.z / 1.7));
+  const r = Math.min(s.x / nx, s.z / nz) * 0.78;
+  for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) {
+    const x = p.x - s.x / 2 + (i + 0.5) * (s.x / nx), z = p.z - s.z / 2 + (k + 0.5) * (s.z / nz);
+    const g = new THREE.SphereGeometry(r, 9, 5);
+    g.scale(1, (s.y * 0.8) / r, 1);
+    g.translate(x, p.y + s.y * 0.5, z);
+    const W = lin(0xffffff), S = lin(0xd6e4f2);
+    out.push(colorize(g, (pp, n, o) => mixc(S, W, smooth(-0.6, 0.6, n.y), o)));
+  }
+  // kleine Bäusche am Rand (weicher Umriss)
+  const edge = 2 * (nx + nz);
+  for (let i = 0; i < edge; i++) {
+    const a = (i / edge) * Math.PI * 2;
+    const g = new THREE.SphereGeometry(r * 0.55, 7, 4);
+    g.scale(1, 0.7, 1);
+    g.translate(p.x + Math.cos(a) * (s.x / 2 - r * 0.3), p.y + s.y * 0.35, p.z + Math.sin(a) * (s.z / 2 - r * 0.3));
+    const W = lin(0xffffff), S = lin(0xd6e4f2);
+    out.push(colorize(g, (pp, n, o) => mixc(S, W, smooth(-0.6, 0.6, n.y), o)));
   }
 }
 
@@ -871,6 +898,7 @@ export function buildDecoW1b(level, spec) {
       case 'mountain': mountain(it, out); cast = false; break;
       case 'cloudpuff': cloudpuff(it, out); cast = false; break;
       case 'sign': sign(it, out); break;
+      case 'cloudplat': cloudplat(level, it, out); break;
       case 'tufts': tufts(it, out, rnd); cast = false; break;
       case 'mushroom': mushroom(it, out); break;
       case 'flag': flag(it, out); break;
