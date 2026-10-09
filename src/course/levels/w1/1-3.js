@@ -4,8 +4,8 @@
 // Abschnitte (Level verläuft nach −Z, +X = rechts im Bild):
 //   1  Startplatz      (z 10 … −11, y 0)   Zwei Kobolde mit Fernglas in Bäumen; linker Baum hat eine Ranke →
 //                      Krone mit Stern 1. Rechts zwei enge Wände (Wandsprung-Schacht) – Stempel oben dazwischen.
-//   2  Brücke und Schnappblumenfeld (z −11 … −47, y 0 → 1)   6 Schnappblumen, POW-Block, unsichtbarer 1-Up-Block
-//                      am Ende der Münzspur links.
+//   2  Brücke und Schnappblumenfeld (z −11 … −47, y 0 → 1)   3 Schnappblumen, POW-Block, Münz-Ziegel, unsichtbarer
+//                      1-Up-Block am Ende der Münzspur links.
 //   3  POW-Hang        (z −47 … −81, y 3 → 9)   Hang mit Ziegelreihen, Krallen-Pilzlinge; POW-Blöcke sprengen die
 //                      Ziegelwand vor einer Nische → Warp-Röhre in den P-Schalter-Raum (Stern 2, blaue Münzen).
 //   4  Wolkenpfad      (z −81 … −126, y 9 → 17)   Ranke an der Felswand, Wolken mit 3–3,5 m Lücken, Holzbrücke.
@@ -14,7 +14,9 @@
 //   6  Gipfelbrücke    (z −152 … −200, y 17 → 30)   Riesenblock-Treppe, Ranke, Gipfelbrücke, Riesenschnappblume
 //                      (Zwischenboss) → Warp-Box zum Ziel auf dem Gipfel (y 40).
 //   Abseits: P-Schalter-Raum bei x ≈ 70, Münzhimmel bei x ≈ −46, y ≈ 46 (eigene Kameraschienen).
-// Gegner: Krallen-Pilzling 8, Schnappblume 14, Riesenschnappblume 1.
+// Gegner: Krallen-Pilzling 8, Schnappblume 14, Riesenschnappblume 1 – über das ganze Level, den P-Schalter-Raum und
+// den Münzhimmel verteilt, damit nie zu viele gleichzeitig im Bild/Schattenbereich sind (Budget < 120 Zeichenaufrufe
+// inkl. Schattenpass; die Heldin allein kostet ≈ 35, eine Schnappblume ≈ 14).
 
 const coinsLine = (from, to, n) => ({ kind: 'coins', from, to, n });
 /** Münzbogen von a nach b mit Scheitelhöhe h (n Münzen). */
@@ -131,7 +133,7 @@ export const LEVEL = {
     { type: 'pipe', id: 'zuPRaum', pos: [6.5, 9, -79.7], height: 0.7, target: 'pRaumEin' },
     { type: 'deco', items: [
       { kind: 'bush', pos: [-9.2, 9, -71.8], size: 0.8 },
-      { kind: 'rock', pos: [9.2, 3, -49.5], size: 0.6 }, { kind: 'tree', pos: [9, 9, -72.2], size: 4.2, color: 'autumn' },
+      { kind: 'rock', pos: [9.2, 3, -49.5], size: 0.6 }, { kind: 'tree', pos: [9.3, 9, -75.6], size: 4.2, color: 'autumn' },
     ] },
     { type: 'deco_w1b', items: [
       { kind: 'flowerbed', pos: [-9, 9, -75.5], size: [1.6, 3], n: 8 },

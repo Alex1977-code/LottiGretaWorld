@@ -4,17 +4,20 @@
 // Abschnitte (Level verläuft nach −Z, +X = rechts im Bild):
 //   1  Schalter-Feld 1   (z 8 … −14, y 0)   6 Schaltfelder, 2 Krabbelkäfer; alle an → Steg zum Feld 2 erscheint.
 //                        Rechts Warp-Box (Abkürzung über die Zuschauerloge) und zwei Wände: Wandsprung → Stern 1.
-//   2  Schalter-Feld 2   (z −27 … −56, y 0 → 1,5)   Schaltfelder auf zwei Bühnen, zwei fahrende Plattformen (3 m
-//                        Lücken), Roulette-Block, 4 Brummer.
+//   2  Schalter-Feld 2   (z −27 … −56, y 0 → 1,5)   7 Schaltfelder auf zwei Bühnen (alle an → 1-Up), zwei fahrende
+//                        Plattformen (2,5–3,5 m Lücken), Roulette-Block, 4 Brummer (+1 am Start).
 //   3  Checkpoint        (z −58 … −68, y 2,5)   Trommelbühne, Krallen-Anzug.
-//   4  Flatterkäfer-Zone (z −70 … −92, y 3 → 4)   6 Flatterkäfer in zwei Reihen, 2 Brummer; Rätselbox bewacht von
-//                        2 Krabbelkäfern → Kistenraum (x ≈ 60, Stern 2 in der Kiste links in der Ecke, Funkenblüte).
+//   4  Flatterkäfer-Zone (z −67 … −99, y 3 → 4)   6 Flatterkäfer in zwei Reihen (über den Lücken); Rätselbox bewacht
+//                        von 2 Krabbelkäfern → Kistenraum (x ≈ 60, Stern 2 in der Kiste links in der Ecke: Funkenblüte
+//                        im Raum; Stampfattacke von oben bricht die Kiste ebenfalls).
 //   5  Krabbelkäfer-Gang (z −95 … −125, y 4)   gerader Laufsteg, 4 Krabbelkäfer im Gänsemarsch.
-//   6  Wechselschalter-Plattform (z −126 … −158, fährt)   12 × 12 m Fähre mit Wechsel-Schaltfeldern, Zauberkröte,
-//                        Stern 3 in der Mitte.
+//   6  Wechselschalter-Plattform (z −126 … −158, fährt)   12 × 12 m Fähre mit 6 Wechsel-Schaltfeldern; alle an →
+//                        Stern 3 erscheint in der Mitte, Wackelplattform am Stempel-Turm stürzt ab. Zauberkröte zaubert
+//                        von zwei Seitenbühnen und der Landebühne, 2 Brummer.
 //   7  Glasrohr-Kanone   (z −159 … −195)   Landebühne, Stempel-Turm (vor „alle Schalter an“ mit Krallen über die
 //                        Kletterwand von der Wackelplattform aus, danach nur per Wandsprung), Kanone zur Zielbühne.
-// Gegner: Krabbelkäfer 8, Brummer 8, Flatterkäfer 6, Zauberkröte 1.
+// Gegner: Krabbelkäfer 8, Brummer 8, Flatterkäfer 6, Zauberkröte 1 – so verteilt, dass nie zu viele gleichzeitig im
+// Bild/Schattenbereich sind (Budget < 120 Zeichenaufrufe inkl. Schattenpass; Heldin allein ≈ 35).
 
 const coinsLine = (from, to, n) => ({ kind: 'coins', from, to, n });
 const arc = (a, b, h, n) => Array.from({ length: n }, (_, i) => {
@@ -231,7 +234,7 @@ export const LEVEL = {
   enemies: [
     // Krabbelkäfer (8)
     bug(-6, 0, -4, { path: [[-7, 0, -4], [7, 0, -4]], color: 'yellow' }), bug(6, 0, -10, { path: [[7, 0, -10], [-6, 0, -10]], color: 'red' }),
-    bug(-1, 4, -87.5, { path: [[-1, 4, -87.5], [4, 4, -87.5], [4, 4, -92], [-1, 4, -92]], count: 2, spacing: 2.2, color: 'green' }),
+    bug(-0.5, 4, -87.6, { path: [[-0.5, 4, -87.6], [2.6, 4, -87.6], [2.6, 4, -91.6], [-0.5, 4, -91.6]], count: 2, spacing: 2.2, color: 'green' }),
     bug(0, 4, -106, { path: [[0, 4, -104], [0, 4, -123]], count: 4, spacing: 1.6, speed: 2.2, color: 'blue' }),
     // Brummer (8)
     bee(-3.5, 2.6, -27.5, { center: [-3.5, 2.6, -31], radius: 2.4 }), bee(0, 2.8, -42, { path: [[-5, 2.8, -42], [5, 2.8, -42]] }),
