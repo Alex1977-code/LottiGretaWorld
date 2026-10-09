@@ -37,7 +37,13 @@ class Fireball extends CourseEntity {
     const c = this.center();
     const res = this.level.world.moveAABB(c, this.half, { x: this.vel.x * dt, y: this.vel.y * dt, z: this.vel.z * dt }, { step: 0.12 });
     this.pos.set(c.x, c.y - this.half.y, c.z);
-    if (res.hitWall) { this.poof(); return; }
+    if (res.hitWall) {
+      // Feste Entitäten mit eigener Trefferreaktion (Kisten, Truhen …) bekommen den Feuertreffer
+      const o = res.wallShape?.owner;
+      if (o && o !== this && !o.enemy && typeof o.onHit === 'function') o.onHit('fire', this);
+      this.poof();
+      return;
+    }
     if (res.grounded && this.vel.y <= 0) this.vel.y = BOUNCE;
     if (res.ceiling && this.vel.y > 0) this.vel.y = 0;
     if (this.pos.y < this.level.killY) { this.kill(); return; }

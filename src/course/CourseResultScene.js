@@ -31,9 +31,13 @@ export class CourseResultScene extends Phaser.Scene {
     uiPanel(this, w / 2, h / 2 + 6, 236, 200);
     uiText(this, w / 2, h / 2 - 78, 'Geschafft!', { size: 20, color: '#ffe066', stroke: '#3a2a6a', thickness: 4 });
     uiText(this, w / 2, h / 2 - 58, `${r.id ?? ''} · ${r.title ?? ''}`, { size: 8, color: '#5a4a7a', stroke: '#ffffff', thickness: 2, shadow: false });
+    // Level ohne Zielmast: Arena → Kampfergebnis, Diorama → „Schatz“ statt der Zielmast-Zeile; Stern-/Stempel-Plätze nach den Leveldaten
+    // (LEVEL.starSlots, LEVEL.stamp) – Präzisierung (Arena/Boss) und (Ritt/Diorama)
+    const data = this.course?.level?.data ?? this.course?.levelData ?? {};
     const rows = [
-      r.pole === null ? ['Schatz', `alle ${(r.stars ?? []).length} Sterne gefunden!`]
-        : ['Zielmast', `${Math.round((r.pole ?? 0) * 100)} %  →  ${r.points ?? 0} Punkte${r.top ? '  · Spitze! +1 Leben' : ''}`],
+      data.diorama ? ['Schatz', `alle ${data.stars?.length ?? 5} Sterne gefunden!`]
+        : data.goal || !data.arena ? ['Zielmast', `${Math.round((r.pole ?? 0) * 100)} %  →  ${r.points ?? 0} Punkte${r.top ? '  · Spitze! +1 Leben' : ''}`]
+        : ['Arena', 'alle Gegner besiegt!'],
       ['Bitcoins', `${r.coins ?? 0}`],
       ['Zeit', `${fmt(r.time)}   (Bestzeit ${fmt(r.bestTime)})`],
       ['Leben', `${r.lives ?? ''}`],
@@ -47,9 +51,9 @@ export class CourseResultScene extends Phaser.Scene {
     // Sterne und Stempel
     const g = this.add.graphics();
     const stars = r.stars ?? [];
-    // so viele Sterne wie das Level hat (Diorama 5); Stempel nur, wenn das Level einen hat
-    const n = Math.max(1, stars.length || 3), hasStamp = this.course.levelData?.stamp != null;
-    const x0 = w / 2 - (n - 1) * 13 - (hasStamp ? 15 : 0);
+    // Plätze nach den Leveldaten: LEVEL.starSlots (Arena 1), sonst max(3, Sternzahl) (Diorama 5); Stempel nur mit LEVEL.stamp
+    const n = data.starSlots ?? Math.max(3, stars.length), hasStamp = !!data.stamp;
+    const x0 = w / 2 - (n - 1) * 13 - (hasStamp ? 18 : 0);
     for (let i = 0; i < n; i++) {
       const cx = x0 + i * 26, cy = y + 8;
       const pts = [];

@@ -1,6 +1,8 @@
 // Themen der Kurs-Level: Himmel, Nebel, Licht, Gelände-Farben. LEVEL.theme wählt eines; Bausteine lesen
 // die Farben über `level.view.theme` (so färbt dasselbe Level-Datum in einem anderen Thema um).
 // Farben sRGB-Hex. Präzisierung (Motor): neue Themen = neuer Eintrag hier (z. B. circus, river, highway).
+import { CIRCUS } from './themes_circus.js';
+import { HIGHWAY } from './theme_highway.js';
 
 const GRASS = {
   label: 'Wiese',
@@ -28,6 +30,8 @@ const GRASS = {
 
 export const THEMES = {
   grass: GRASS,
+  circus: { ...GRASS, ...CIRCUS },   // Zirkuszelt (1-5), Werte in themes_circus.js
+  highway: HIGHWAY,
   // Übungsplatz: heller, Raster auf den Grasdecken (1 m) zum Abschätzen von Sprungweiten
   test: {
     ...GRASS,
