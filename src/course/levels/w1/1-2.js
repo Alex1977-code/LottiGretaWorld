@@ -79,6 +79,7 @@ export const LEVEL = {
       { kind: 'mushrooms', pos: [5.6, 13, -0.8], size: 0.7, color: 'violet', glow: true },
       { kind: 'sign', pos: [2.4, 13, -5.4], arrow: 'down' },
       { kind: 'tufts', pos: [0, 13, 1], size: [12, 10], n: 10 },
+      { kind: 'fireflies', pos: [-2, 13, -1], size: [12, 3, 12], n: 12 },
     ]),
 
     // =============================================================== 2  Höhleneingang (y 1)
@@ -106,6 +107,9 @@ export const LEVEL = {
       { kind: 'mushrooms', pos: [6.8, 1, -46], size: 0.7, color: 'violet', glow: true },
       { kind: 'mushrooms', pos: [-1, 1, -54.6], size: 0.6, color: 'gold', glow: true },
       { kind: 'tufts', pos: [-2, 1, -40], size: [10, 26], n: 10 },
+      { kind: 'pebbles', from: [-0.6, 1, -31.4], to: [-2.6, 1, -42], n: 8, size: 0.45 },
+      { kind: 'fireflies', pos: [0, 1, -42], size: [14, 4, 26], n: 14 },
+      { kind: 'pebbles', from: [-2.6, 1, -43.4], to: [-0.4, 1, -55.4], n: 8, size: 0.45 },
     ]),
     // Holzsteg über die Spalte
     { type: 'bridge', from: [0, 1, -56], to: [0, 1, -60], width: 3 },
@@ -136,6 +140,9 @@ export const LEVEL = {
       { kind: 'mushrooms', pos: [-3.4, 1, -84.6], size: 0.8, color: 'violet', glow: true },
       { kind: 'mushrooms', pos: [7.6, 1, -74], size: 0.6, color: 'cyan', glow: true },
       { kind: 'tufts', pos: [0, 1, -72], size: [14, 22], n: 10 },
+      { kind: 'pebbles', from: [0, 1, -60.6], to: [0.8, 1, -65.6], n: 4, size: 0.45 },
+      { kind: 'fireflies', pos: [0, 2, -72], size: [16, 4, 24], n: 12 },
+      { kind: 'pebbles', from: [0, 1, -67.4], to: [-1.4, 1, -84.6], n: 10, size: 0.45 },
     ]),
 
     // =============================================================== 4  Wolkenaufstieg
@@ -147,7 +154,6 @@ export const LEVEL = {
     { type: 'cloud', pos: [1.5, 8.6, -102.4], size: [3, 0.6, 3] },
     { type: 'cloud', pos: [-3, 10.6, -106.4], size: [3, 0.6, 3] },
     // Felsrücken unter der oberen Geraden (trennt Aufstieg und Dreitor-Raum)
-    isl(-9, 9, -110, -112.5, 11.2, 10.2, { top: 'none', under: 0 }),
     isl(-6, 6, -109.6, -117, 13, 1.8, { top: 'stone', under: 2 }),
     { type: 'glasspipe', id: 'g_down', radius: 1, oneWay: true, coins: 4,
       path: [[0, 14.05, -115], [0, 14.05, -118.6], [0, 8.4, -123.4], [0, 2.05, -127.6], [0, 2.05, -131]] },
@@ -157,7 +163,7 @@ export const LEVEL = {
     decoW1([
       rock(-11.5, -9, -86, -118, 1, 18),
       rock(9, 11.5, -86, -118, 1, 18, { color: ROCK2 }),
-      rock(-9, 9, -112.5, -114, 1, 11.2, { solid: false }),
+      rock(-9, 9, -110, -112.5, 1, 11.2),
       { kind: 'stalactites', pos: [-9.3, 17.6, -100], size: [0.8, 30], n: 10, len: [1.2, 3.6] },
       { kind: 'stalactites', pos: [9.3, 17.6, -100], size: [0.8, 30], n: 10, len: [1.2, 3.6] },
       { kind: 'crystals', pos: [-8, 1, -96], size: 1.4, color: 'violet' },
@@ -168,6 +174,7 @@ export const LEVEL = {
       { kind: 'mushrooms', pos: [4, 1, -108], size: 0.8, color: 'gold', glow: true },
       { kind: 'stalagmites', pos: [0, 1, -100], size: [12, 14], n: 7, len: [0.6, 2.2] },
       { kind: 'sign', pos: [4.2, 13, -111], arrow: 'up' },
+      { kind: 'fireflies', pos: [0, 3, -98], size: [16, 10, 22], n: 16, colors: [0x9ff2ff, 0xd8ff7a, 0xfff27a] },
     ]),
 
     // =============================================================== 5  Dreitor-Raum
@@ -197,7 +204,6 @@ export const LEVEL = {
       { kind: 'stalactites', pos: [-10.3, 8.6, -135], size: [0.8, 20], n: 7, len: [1, 2.6] },
       { kind: 'stalactites', pos: [10.3, 8.6, -135], size: [0.8, 20], n: 7, len: [1, 2.6] },
       { kind: 'crystals', pos: [-6, 5.6, -146.8], size: 0.8, color: 'gold' },
-      { kind: 'crystals', pos: [0, 5.6, -146.8], size: 0.7, color: 'cyan' },
       { kind: 'crystals', pos: [6, 5.6, -146.8], size: 0.8, color: 'violet' },
       { kind: 'crystals', pos: [-8.6, 1, -132], size: 1.1, color: 'gold' },
       { kind: 'mushrooms', pos: [-5, 1, -129], size: 0.8, color: 'violet', glow: true },
@@ -205,6 +211,8 @@ export const LEVEL = {
       { kind: 'mushrooms', pos: [8.6, 1, -151], size: 0.6, color: 'cyan', glow: true },
       { kind: 'stalagmites', pos: [3, 1, -127.6], size: [3, 1.4], n: 3, len: [0.5, 1.4] },
       { kind: 'tufts', pos: [-2, 1, -136], size: [14, 16], n: 10 },
+      { kind: 'pebbles', from: [0, 1, -132.4], to: [0, 1, -146.6], n: 9, size: 0.5 },
+      { kind: 'fireflies', pos: [0, 1, -136], size: [18, 5, 18], n: 12 },
     ]),
 
     // =============================================================== 6  Gang mit Blockkette und Welt-Warp, Röhre in die Arena
@@ -279,6 +287,7 @@ export const LEVEL = {
       { kind: 'mushrooms', pos: [57, 1, -186], size: 0.9, color: 'violet', glow: true },
       { kind: 'bunting', from: [44.4, 4.2, -183], to: [55.6, 4.2, -183], sag: 0.6 },
       { kind: 'tufts', pos: [50, 1, -186], size: [16, 14], n: 10 },
+      { kind: 'fireflies', pos: [50, 1, -182], size: [18, 6, 22], n: 18, colors: [0xfff27a, 0xffd25a, 0x9ff2ff] },
     ]),
     deco([{ kind: 'post', pos: [44.4, 1, -183], size: 3.2 }, { kind: 'post', pos: [55.6, 1, -183], size: 3.2 }]),
 

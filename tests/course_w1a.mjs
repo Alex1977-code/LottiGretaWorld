@@ -203,6 +203,7 @@ function install() {
     drive(legs, o = {}) {
       const p = P();
       const log = [];
+      const jumps = [];
       let steps = 0;
       const hold = o.invuln !== false;
       let rideInput = {};
@@ -246,6 +247,10 @@ function install() {
         const within = L.within ?? 0.6;
         const holdJ = L.jump === true ? 40 : (L.jump ?? 0);
         let i = 0, airborne = false, landed = false;
+        if (holdJ && L.to && !L.push) {
+          const vis = this.landingVisible(L.to[0], L.to[1]);
+          jumps.push([L.name ?? `leg${li}`, vis]);
+        }
         if (L.push) {
           // gegen eine Wand drücken (anspringen: jump = Halteschritte), z. B. Klettern mit dem Krallen-Anzug
           for (let k = 0; k < L.push; k++) {
@@ -285,7 +290,22 @@ function install() {
         if (i >= max) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, L.to]); break; }
       }
       c.setInput({});
-      return { log, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: c.level.runtime.status, info: p.info(), rt: c.level.runtime.info() };
+      return { log, jumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: c.level.runtime.status, info: p.info(), rt: c.level.runtime.info() };
+    },
+    /**
+     * Ist der Landepunkt (x, z) aus der Spielkamera sichtbar? Kamera wie im Spiel aus der Schiene an der Figur
+     * (Neigung, Abstand, Gier, Vorausschau); Strahl Kamera → Landepunkt (1 m über dem Boden) gegen feste Formen.
+     */
+    landingVisible(x, z) {
+      const p = P(), rig = c.view.rig;
+      const r = rig.railAt(p.pos.x, p.pos.z, {});
+      const D = Math.PI / 180, yaw = r.yaw * D, pitch = r.pitch * D;
+      const tx = p.pos.x - Math.sin(yaw) * r.ahead, ty = p.pos.y + r.height, tz = p.pos.z - Math.cos(yaw) * r.ahead;
+      const cam = { x: tx + Math.sin(yaw) * Math.cos(pitch) * r.dist, y: ty + Math.sin(pitch) * r.dist, z: tz + Math.cos(yaw) * Math.cos(pitch) * r.dist };
+      const g = c.world.raycastDown(x, p.pos.y + 14, z, 40);
+      const land = { x, y: (g ? g.y : p.pos.y) + 1.0, z };
+      const hit = c.world.raycast(cam, land);
+      return !hit || hit.t > 0.97;
     },
     /** Welt-Richtung [dx, dz] aus { x: rechts, y: vorn } (Kamera ohne Drehung). */
     worldOf(v) { return [v.x ?? 0, -(v.y ?? 0)]; },
@@ -382,6 +402,10 @@ for (const id of LEVELS) {
     console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}`);
     if (!reached) for (const l of res.log) console.log('     ', JSON.stringify(l));
     check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
+    if (hero === 'lotti') {
+      const hidden = res.jumps.filter((j) => !j[1]).map((j) => j[0]);
+      check(`${id}: alle ${res.jumps.length} Pflichtsprünge mit sichtbarem Landepunkt${hidden.length ? ' – verdeckt: ' + hidden.join(', ') : ''}`, hidden.length === 0);
+    }
     check(`${id}: ${hero} Zeit bis zum Ziel < 180 s (${res.time.toFixed(1)} s)`, reached && res.time < 180);
   }
 

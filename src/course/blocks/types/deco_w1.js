@@ -28,10 +28,12 @@
 //   pebbles      Trittsteine/Kiesel: from, to, n (Standard 6), size (Radius 0.35)
 //   haybale      Heuballen (rund, liegend): yaw, size (Radius 0.6), solid (Standard true)
 //   picnic       Picknickdecke mit Korb: yaw, size [w, d] (Decke, Standard [1.6, 1.2])
+//   butterflies  Schmetterlinge (animiert, ein Mesh): n (4), r (Flugkreis 2.5), h (Flughöhe 1.2), colors
+//   fireflies    Glühwürmchen (animiert, leuchtend, ein Mesh): n (10), size [w, h, d] (Schwebe-Kasten über pos)
 // Geometrie je Eintrag verschmolzen (Material world bzw. glow für Leuchtteile).
 
 import * as THREE from 'three';
-import { v3, box, hex, lin, mixc, smooth, colorize, merge, Rnd, addStatic } from '../kit.js';
+import { v3, box, hex, lin, mixc, smooth, colorize, merge, Rnd, addStatic, addObject } from '../kit.js';
 
 const BELL = { blue: 0x5a7dff, violet: 0x9a62ff, white: 0xf4f2ff, pink: 0xff8fd0 };
 const CAP = {
@@ -530,6 +532,84 @@ function rockwall(level, it, parts) {
   if (it.solid !== false) level.world.add({ type: 'box', min: [p.x - w / 2, p.y, p.z - d / 2], max: [p.x + w / 2, p.y + h, p.z + d / 2], camIgnore: !!it.camIgnore, tag: 'rockwall' });
 }
 
+// ------------------------------------------------------------------ Belebte Zier (je Eintrag ein animiertes Mesh)
+
+/**
+ * Schmetterlinge: n Falter flattern auf Ellipsen um pos (Radius r, Höhe h über pos). Ein Mesh, Flügel je Bild neu.
+ * Glühwürmchen: n leuchtende Punkte schweben langsam in einem Kasten size [w, h, d] um pos und pulsieren.
+ */
+function critters(level, it, fireflies) {
+  if (!level.view) return;
+  const p = v3(it.pos);
+  const n = it.n ?? (fireflies ? 10 : 4);
+  const rnd = new Rnd(((p.x * 73856093) ^ (p.z * 19349663) ^ n) >>> 0);
+  const per = fireflies ? 24 : 12;          // Ecken je Tier (Falter 4 Dreiecke, Glühwürmchen Kern + Schein 8)
+  const pos = new Float32Array(n * per * 3), col = new Float32Array(n * per * 3);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const pal = fireflies ? (it.colors ?? [0xfff27a, 0xd8ff7a, 0xffd25a]) : (it.colors ?? [0xffd23d, 0xffffff, 0x8fd0ff, 0xff9a2e, 0xff8fd0]);
+  const mat = fireflies
+    ? new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: true })
+    : new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = fireflies ? 2 : 0;
+  const R = it.r ?? 2.5, H = it.h ?? 1.2;
+  const [bw, bh, bd] = it.size ?? [6, 3, 6];
+  const bugs = [];
+  for (let i = 0; i < n; i++) {
+    const c = lin(rnd.pick(pal));
+    bugs.push({ c, ph: rnd.real(0, 6.28), w: rnd.real(0.35, 0.7) * (rnd.chance(0.5) ? 1 : -1), r: R * rnd.real(0.5, 1), h: H + rnd.real(-0.3, 0.6),
+      ox: rnd.real(-bw / 2, bw / 2), oy: rnd.real(0.3, bh), oz: rnd.real(-bd / 2, bd / 2), fq: rnd.real(0.7, 1.4) });
+    for (let k = 0; k < per; k++) { col[(i * per + k) * 3] = c[0]; col[(i * per + k) * 3 + 1] = c[1]; col[(i * per + k) * 3 + 2] = c[2]; }
+  }
+  let t = rnd.real(0, 10);
+  const put = (o, x, y, z) => { pos[o] = x; pos[o + 1] = y; pos[o + 2] = z; };
+  const update = (dt) => {
+    t += Math.min(dt, 0.05);
+    for (let i = 0; i < n; i++) {
+      const b = bugs[i], o = i * per * 3;
+      if (fireflies) {
+        const x = p.x + b.ox + Math.sin(t * 0.37 * b.fq + b.ph) * 0.9, y = p.y + b.oy + Math.sin(t * 0.53 * b.fq + b.ph * 2) * 0.45;
+        const z = p.z + b.oz + Math.cos(t * 0.31 * b.fq + b.ph) * 0.9;
+        const k = 0.3 + 0.7 * Math.max(0, Math.sin(t * 1.7 * b.fq + b.ph));
+        // Kern (hell) und Schein (groß, schwach): je zwei gekreuzte Rauten
+        for (let layer = 0; layer < 2; layer++) {
+          const s = layer ? 0.32 : 0.1, q = o + layer * 36, kk = layer ? k * 0.28 : k;
+          put(q, x - s, y, z); put(q + 3, x, y + s, z); put(q + 6, x + s, y, z);
+          put(q + 9, x - s, y, z); put(q + 12, x + s, y, z); put(q + 15, x, y - s, z);
+          put(q + 18, x, y, z - s); put(q + 21, x, y + s, z); put(q + 24, x, y, z + s);
+          put(q + 27, x, y, z - s); put(q + 30, x, y, z + s); put(q + 33, x, y - s, z);
+          for (let v = 0; v < 12; v++) { col[q + v * 3] = b.c[0] * kk; col[q + v * 3 + 1] = b.c[1] * kk; col[q + v * 3 + 2] = b.c[2] * kk; }
+        }
+      } else {
+        const a = t * b.w + b.ph;
+        const cx = p.x + Math.cos(a) * b.r, cz = p.z + Math.sin(a) * b.r * 0.7, cy = p.y + b.h + Math.sin(t * 2.3 + b.ph) * 0.25;
+        // Flugrichtung (Ableitung der Ellipse), Seite, Flügelschlag
+        let fx = -Math.sin(a) * b.w, fz = Math.cos(a) * b.w * 0.7;
+        const fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
+        const sx = -fz, sz = fx;
+        const flap = Math.sin(t * 16 * b.fq + b.ph) * 0.95;
+        const L = 0.07, W = 0.15;
+        for (let side = 0; side < 2; side++) {
+          const sg = side ? -1 : 1;
+          const ux = sx * Math.cos(flap) * sg, uy = Math.sin(flap) + 0.15, uz = sz * Math.cos(flap) * sg;
+          const q = o + side * 18;
+          const b0 = [cx - fx * L, cy, cz - fz * L], b1 = [cx + fx * L, cy, cz + fz * L];
+          const t0 = [b0[0] + ux * W, b0[1] + uy * W, b0[2] + uz * W], t1 = [b1[0] + ux * W * 1.15, b1[1] + uy * W * 1.15, b1[2] + uz * W * 1.15];
+          put(q, ...b0); put(q + 3, ...b1); put(q + 6, ...t1);
+          put(q + 9, ...b0); put(q + 12, ...t1); put(q + 15, ...t0);
+        }
+      }
+    }
+    geo.attributes.position.needsUpdate = true;
+    if (fireflies) geo.attributes.color.needsUpdate = true;
+  };
+  update(0);
+  addObject(level, mesh, update);
+}
+
 // ------------------------------------------------------------------ Aufbau
 
 export function buildDecoW1(level, spec) {
@@ -543,6 +623,8 @@ export function buildDecoW1(level, spec) {
       case 'mushrooms': mushrooms(it, parts, !!it.glow, rnd); break;
       case 'daisies': daisies(it, parts, rnd); break;
       case 'checker': checker(it, parts); break;
+      case 'butterflies': critters(level, it, false); break;
+      case 'fireflies': critters(level, it, true); break;
       case 'sign': sign(it, parts); break;
       case 'reeds': reeds(it, parts, rnd); break;
       case 'lilypads': lilypads(it, parts, rnd); break;

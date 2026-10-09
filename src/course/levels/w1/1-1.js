@@ -68,6 +68,7 @@ export const LEVEL = {
     ]),
     decoW1([
       { kind: 'daisies', pos: [-7.2, 1.6, 1], size: [3, 10], n: 34 },
+      { kind: 'butterflies', pos: [-5.5, 1.6, 1], n: 3, r: 2.2 },
       { kind: 'daisies', pos: [2, 1, 3], size: [8, 8], n: 24, colors: ['white', 'white', 'yellow'] },
       { kind: 'daisies', pos: [-4, 4, -18], size: [9, 6], n: 22 },
       { kind: 'sign', pos: [1.9, 1, 1.6], arrow: 'up' },
@@ -108,6 +109,7 @@ export const LEVEL = {
     ]),
     decoW1([
       { kind: 'daisies', pos: [-6.2, 5, -42], size: [3, 10], n: 26, colors: ['white', 'pink', 'yellow'] },
+      { kind: 'butterflies', pos: [-5, 5, -43], n: 3, r: 2.4 },
       { kind: 'daisies', pos: [0, 4, -50], size: [8, 10], n: 22 },
       { kind: 'daisies', pos: [8.5, 9.5, -44], size: [3.4, 9], n: 16 },
       { kind: 'bellflowers', pos: [-2.4, 4, -31.6], size: [2.4, 1.2], n: 7 },
@@ -193,6 +195,8 @@ export const LEVEL = {
       { kind: 'reeds', pos: [11.6, 7, -110.4], n: 5, size: 1.1 },
       { kind: 'lilypads', pos: [5.4, 6.6, -116], size: [3, 6], n: 6 },
       { kind: 'daisies', pos: [-2, 7, -103], size: [20, 12], n: 40 },
+      { kind: 'butterflies', pos: [-4, 7, -105], n: 4, r: 3.4 },
+      { kind: 'butterflies', pos: [6.6, 7, -114.6], n: 3, r: 3, h: 1.6, colors: [0x8fd0ff, 0xffffff, 0xb07aff] },
       { kind: 'daisies', pos: [8, 8.67, -98.5], size: [8, 8], n: 18, colors: ['yellow', 'white'] },
       { kind: 'bellflowers', pos: [1.8, 7, -112], size: [1.4, 3], n: 8 },
       { kind: 'mushrooms', pos: [-11.8, 7, -117.4], color: 'red' },
@@ -226,8 +230,8 @@ export const LEVEL = {
     { type: 'wall', pos: [7.75, 4.9, -156.8], size: [1.5, 2.1, 0.4], climbable: true },
     { type: 'pipe', id: 'p_high', pos: [-6, 7, -168], height: 1.2 },
     deco([
-      { kind: 'tree', pos: [-6.4, 10.5, -127], size: 4.2, color: 'green' },
-      { kind: 'tree', pos: [6.2, 10.5, -133.6], size: 4 },
+      { kind: 'tree', pos: [-7, 10.5, -133.4], size: 4.2, color: 'green' },
+      { kind: 'tree', pos: [7, 10.5, -134.4], size: 4 },
       { kind: 'tree', pos: [7.2, 7, -171.4], size: 4.8 },
       { kind: 'tree', pos: [-6.8, 7, -160.6], size: 3.6, color: 'green' },
       { kind: 'bush', pos: [-5.2, 10.5, -134], size: 0.6 }, { kind: 'bush', pos: [5.3, 10.5, -126], size: 0.6 },
@@ -276,6 +280,7 @@ export const LEVEL = {
       { kind: 'bunting', from: [-4, 10.3, -182.4], to: [4, 10.3, -182.4], sag: 0.6 },
       { kind: 'bunting', from: [-7.4, 9.6, -196.6], to: [-1, 9.6, -193.2], sag: 0.5 },
       { kind: 'daisies', pos: [0, 7, -190], size: [16, 18], n: 36, colors: ['white', 'yellow', 'pink'] },
+      { kind: 'butterflies', pos: [-3.6, 7, -190], n: 4, r: 2.6 },
       { kind: 'sign', pos: [-2.6, 7, -179.2], arrow: 'up' },
       { kind: 'mushrooms', pos: [7.6, 7, -188.6], color: 'red' },
       { kind: 'bellflowers', pos: [3.4, 7, -180.4], size: [2, 1], n: 6 },
@@ -283,6 +288,25 @@ export const LEVEL = {
       { kind: 'cloudbank', pos: [-17, 0, -192], size: 5 },
       { kind: 'cloudbank', pos: [16, -2, -186], size: 4.5 },
       { kind: 'cloudbank', pos: [0, 2, -214], size: 7, n: 7 },
+    ]),
+
+    // =============================================================== Kulisse: kleine schwebende Inseln mit Bäumen
+    ...lawn(-24, -18, -6, -12, -1, 2, { under: 3 }),
+    ...lawn(19, 25, -54, -61, 2, 2, { under: 3 }),
+    ...lawn(-27, -20, -96, -103, 4, 2, { under: 3 }),
+    ...lawn(21, 27, -146, -152, 3, 2, { under: 3 }),
+    deco([
+      { kind: 'tree', pos: [-21, -1, -9], size: 4.4 }, { kind: 'bush', pos: [-19, -1, -7], size: 0.6 },
+      { kind: 'tree', pos: [22, 2, -57.6], size: 3.8, color: 'green' },
+      { kind: 'tree', pos: [-23.4, 4, -99.4], size: 5 }, { kind: 'bush', pos: [-21, 4, -101.8], size: 0.7 },
+      { kind: 'tree', pos: [24, 3, -149], size: 4.2 },
+    ]),
+    decoW1([
+      { kind: 'daisies', pos: [-21, -1, -9], size: [5, 5], n: 12 },
+      { kind: 'cloudbank', pos: [-21, -4.6, -9], size: 2.6, n: 5 },
+      { kind: 'cloudbank', pos: [22, -1.6, -57.6], size: 2.4, n: 5 },
+      { kind: 'cloudbank', pos: [-23.4, 0.4, -99.4], size: 2.8, n: 5 },
+      { kind: 'cloudbank', pos: [24, -0.6, -149], size: 2.4, n: 5 },
     ]),
 
     // =============================================================== Stempel-Raum (abseits, x ≈ 90)
@@ -313,7 +337,7 @@ export const LEVEL = {
     { kind: 'question', pos: [-1, 6.4, -38.5], content: 'wachstumsbeere' },
     { kind: 'brick', pos: [0, 6.4, -38.5], content: 'coins:4' },
     // 3: Münzblock vor der Wand
-    { kind: 'coinblock', pos: [1, 6.4, -63.5], count: 8 },
+    { kind: 'coinblock', pos: [4, 6.4, -63], count: 8 },
     // 5: Ziegelreihe über dem Weg
     ...[-3, -2, -1, 0, 1, 2, 3].map((x) => (x === 0
       ? { kind: 'question', pos: [x, 9.4, -140], content: 'wachstumsbeere' }
