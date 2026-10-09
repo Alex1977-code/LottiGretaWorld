@@ -6,8 +6,8 @@
 //
 // Kameraschiene (Präzisierung Motor), Einträge in LEVEL.camera:
 //   { from, to,           z-Bereich (Reihenfolge egal; Level verlaufen nach −Z)
-//     pitch: 50,          Neigung in Grad (Blick nach unten)
-//     dist: 14,           Abstand Kamera–Ziel in m
+//     pitch: 45,          Neigung in Grad (Blick nach unten)
+//     dist: 13,           Abstand Kamera–Ziel in m
 //     yaw: 0,             Grad; 0 = hinter der Figur (+Z) mit Blick nach −Z, positiv = Kamera nach rechts (+X)
 //     fov: 38,            vertikaler Öffnungswinkel in Grad
 //     x: null,            fester X-Wert des Blickziels (seitlich fixieren); xLock 0..1 Stärke (Standard 1)
@@ -16,12 +16,14 @@
 //     ahead: 2.0,         Blickziel so viele m vor der Figur (Blickrichtung der Kamera) → Figur im unteren
 //                         Bilddrittel, mehr Sicht nach vorn
 //     area: [xMin, xMax]  optional: Abschnitt gilt nur in diesem X-Bereich (z. B. Bonusraum abseits) }
+// Power-ups können den Abstand vergrößern: player.powerDef.camZoom (Riesentrank 1,4) wird weich überblendet
+// (powerZoom, Präzisierung Gegner/Power-ups).
 // Zwischen Abschnitten wird über BLEND m überblendet. Die Steuerungs-Gier (controlYaw) kommt
 // unverzögert aus der Schiene + Spielerdrehung, damit die Simulation deterministisch bleibt.
 
 import * as THREE from 'three';
 
-export const CAM_DEFAULT = { pitch: 50, dist: 14, yaw: 0, fov: 38, x: null, xLock: 1, height: 1.0, lead: 1, ahead: 2.0 };
+export const CAM_DEFAULT = { pitch: 45, dist: 13, yaw: 0, fov: 38, x: null, xLock: 1, height: 1.0, lead: 1, ahead: 2.0 };
 const BLEND = 8;
 const USER_STEP = 15, USER_MAX = 30;
 const ZOOMS = [1, 0.74];
@@ -39,6 +41,7 @@ export class CameraRig {
     this.sections = (sections ?? []).map((s) => ({ ...CAM_DEFAULT, ...s, zMin: Math.min(s.from ?? 1e9, s.to ?? -1e9), zMax: Math.max(s.from ?? 1e9, s.to ?? -1e9) }));
     this.userYaw = 0; this.userYawTarget = 0;
     this.zoomIndex = 0; this.zoom = 1;
+    this.powerZoom = 1;
     this.target = new THREE.Vector3();
     this.lead = new THREE.Vector3();
     this.anchorY = 0;
@@ -92,9 +95,10 @@ export class CameraRig {
     const r = this.railAt(player.pos.x, player.pos.z, this.cur);
     this.userYaw = this.userYawTarget;
     this.zoom = ZOOMS[this.zoomIndex];
+    this.powerZoom = player.powerDef?.camZoom ?? 1;
     const yaw = (r.yaw + this.userYaw) * DEG;
     this.target.set(this.lockedX(player.pos.x - Math.sin(yaw) * r.ahead, r), player.pos.y + r.height, player.pos.z - Math.cos(yaw) * r.ahead);
-    this.distNow = r.dist * this.zoom;
+    this.distNow = r.dist * this.zoom * this.powerZoom;
     this.place(r, 0);
   }
 
@@ -105,6 +109,7 @@ export class CameraRig {
     const r = this.railAt(p.x, p.z, this.cur);
     this.userYaw = damp(this.userYaw, this.userYawTarget, 6, dt);
     this.zoom = damp(this.zoom, ZOOMS[this.zoomIndex], 5, dt);
+    this.powerZoom = damp(this.powerZoom, player.powerDef?.camZoom ?? 1, 2.5, dt);
     const frozen = player.dead && player.deathCause === 'fall';
     if (!frozen) {
       // Vorausschau in Bewegungsrichtung (weich, begrenzt)
@@ -125,7 +130,7 @@ export class CameraRig {
     }
     // Kamera nicht in Geometrie: Strahl vom Kopf der Figur zur Wunschposition. Ist er verdeckt, rückt die
     // Kamera auf ihrer Achse näher ans Ziel, bis der Kopf wieder frei sichtbar ist (höchstens bis 3 m).
-    const want = r.dist * this.zoom;
+    const want = r.dist * this.zoom * this.powerZoom;
     let dist = want;
     if (world && !frozen) {
       const dir = this.offsetDir(r, this._a);

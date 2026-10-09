@@ -3,7 +3,8 @@
 // raft – Blatt-Floß, auf dem Pflaume steht; die Heldin reitet auf Pflaume (player.mount). Aufsitzen: auf das Floß
 //   springen. Im Sattel trägt die Strömung des Flusses (Baustein river) beide; der Stick lenkt (steer m/s quer zur
 //   Strömung), Sprung lässt Floß und Reiterin hüpfen, Rampen werden zu Sprungschanzen, Wasserfälle zu Abstürzen.
-//   Berührungen laufen normal (Münzen, Gegner); ein Treffer kostet nur das Power-up/die Größe. Fällt die Figur ins
+//   Berührungen laufen normal (Münzen, Gegner); ein Treffer kostet nur das Power-up/die Größe; aufgetauchte Wühler
+//   (Gegner-Agent, e.up) sind Hindernisse, an denen das Floß abprallt. Fällt die Figur ins
 //   Wasser, wartet das Floß; schwimmend wieder aufspringen. Am Ziel (exit) oder auf einem Strand steigt sie ab.
 //   Nach einem Neustart am Checkpoint legt das Floß am nächsten Flusspunkt an (sonst an seinem Start).
 //   { kind: 'raft', pos: [x, y, z] (y = Wasseroberfläche), yaw: π/2 (Blick, Standard flussabwärts −z),
@@ -44,9 +45,10 @@ function makePflaume(level) {
   const hull = new THREE.Group();
   hull.name = 'pflaume';
   hull.scale.setScalar(1 / AVATAR_H);
-  if (av) { av.setCourseMode?.(true); hull.add(av.root); }
+  let courseMode = false;
+  if (av) { courseMode = typeof av.setCourseMode === 'function'; av.setCourseMode?.(true); hull.add(av.root); }
   level.view.add(hull);
-  return { hull, av, proxy };
+  return { hull, av, proxy, courseMode };
 }
 
 class Raft extends Gimmick {
@@ -130,7 +132,7 @@ class Raft extends Gimmick {
     p.pos.set(this.pos.x, this.pos.y + DECK + SEAT, this.pos.z);
     p.vel.set(this.vel.x, this.air ? this.vy : 0, this.vel.z);
     p.yaw = this.yaw;
-    p.setState(this.air ? 'jump' : 'ride');
+    p.setState('ride');
     // Absteigen: am Ziel oder auf festem Land
     const atExit = this.exit && Math.hypot(this.pos.x - this.exit.x, this.pos.z - this.exit.z) <= this.exit.r && !this.air;
     if (atExit || this.landT > 0.35) {
@@ -157,6 +159,16 @@ class Raft extends Gimmick {
       if (d < 0) { this.vel.x -= n.x * d * 1.4; this.vel.z -= n.z * d * 1.4; }
     }
     this.pos.x = c.x; this.pos.z = c.z;
+    // aufgetauchte Wühler (Gegner-Agent: e.up) sind Hindernisse – Floß prallt ab, die Reiterin trifft die Berührung
+    for (const e of this.level.entities) {
+      if (e.kind !== 'wuehler' || !e.alive || !e.up || e.defeated) continue;
+      const dx = this.pos.x - e.pos.x, dz = this.pos.z - e.pos.z, d = Math.hypot(dx, dz), min = RAD * 0.8 + (e.half?.x ?? 0.3);
+      if (d >= min || d < 1e-6 || Math.abs(e.pos.y - this.pos.y) > 1.2) continue;
+      const nx = dx / d, nz = dz / d;
+      this.pos.x = e.pos.x + nx * min; this.pos.z = e.pos.z + nz * min;
+      const vn = this.vel.x * nx + this.vel.z * nz;
+      if (vn < 0) { this.vel.x -= nx * vn * 1.5; this.vel.z -= nz * vn * 1.5; }
+    }
     // senkrecht
     const f = this.floorAt(this.pos.x, this.pos.z);
     if (this.air) {
@@ -243,15 +255,19 @@ class Raft extends Gimmick {
     pf.hull.position.set(this.pos.x, this.pos.y + DECK, this.pos.z);
     pf.hull.rotation.y = this.yaw;
     const pr = pf.proxy;
-    const heroProxy = this.level.scene?.rig?.proxy ?? null;
-    pr.isRidden = !!this.rider && !!heroProxy;
-    pr.rider = pr.isRidden ? heroProxy : null;
-    const sp = Math.hypot(this.vel.x, this.vel.z);
-    pr.course.state = this.rider ? (sp > 0.5 ? 'paddle' : 'ride') : 'idle';
-    pr.course.speed = sp;
+    const rig = this.level.scene?.rig ?? null;
+    // Kurs-Modus: state 'ride' = Heldin auf dem Rücken (Takt von der Reiterin), steht still auf dem Blatt
+    // ('paddle' wäre Pflaume allein mit eigenem Floß); Klassik-Rückfall: isRidden/rider wie im Seitenspiel
+    pr.isRidden = !!this.rider && !!rig?.proxy;
+    pr.rider = pr.isRidden ? rig.proxy : null;
+    pr.course.state = this.rider ? 'ride' : 'idle';
+    pr.course.speed = 0;
+    pr.course.vy = this.air ? this.vy : 0;
+    pr.course.grounded = !this.air;
+    pr.course.rider = this.rider ? (rig?.avatar ?? null) : null;
     if (pf.av) {
       try { pf.av.animate(visDt(this.level, pf, dt), t); } catch (err) { console.error('Pflaume-Animation:', err); pf.av = null; return; }
-      pf.av.root.rotation.y = -pf.av.model.rotation.y; // 3/4-Drehung der Klassik-Ansicht ausgleichen → Blick +X
+      if (!pf.courseMode) pf.av.root.rotation.y = -pf.av.model.rotation.y; // Klassik: 3/4-Drehung ausgleichen → Blick +X
     }
   }
 

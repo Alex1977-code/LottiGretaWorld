@@ -1,9 +1,9 @@
 // Kurs-Modus, Sonder-Bausteine (Welt 1) im Bausteinpark 0-2: je Baustein die Kernfunktion deterministisch über
 // window.__course.step(n) und setInput prüfen; Sichtprüfung über Bilder tests/out/cb_*.png (Kurs-Kamera).
-// Aufruf: PORT_BASE=1700 node tests/course_blocks.mjs   (vorher npm run build; nutzt vite preview)
+// Aufruf: PORT_BASE=1700 node tests/course_blocks.mjs   (Port 4195; vorher npm run build; nutzt vite preview)
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
-const PORT = 4194;
+const PORT = 4195; // 4194 nutzt tests/course_enemies.mjs
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
 const { check, summary } = makeChecker();

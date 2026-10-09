@@ -386,6 +386,187 @@ Modellnamen mit Rückfall-Optik im Motor: `coin`, `star`, `stamp`, `checkpoint_f
 
 Welt 1 hat damit 24 Sterne. Die Weltkarte (`course_map`) zeigt alle Eingänge; gesperrte sind sichtbar, aber zu.
 
+### Kamera-Richtwerte für Level (Hauptsitzung)
+
+Standard jetzt `pitch 45`, `dist 13`. Für Parcours-Abschnitte **pitch 40–48°, dist 11–14 m** wählen: so bleibt
+Tiefe sichtbar (Horizont/Hintergrund am oberen Bildrand), die Heldin ist auf dem Handy groß genug, und Sprünge in
+die Tiefe sind lesbar. Steiler (50–58°) nur für enge Sprungpassagen nach unten oder Arenen, flacher (35–40°) für
+Ausblicke und Rennstrecken. Wandrutschen: Simulation blickt zur Wand, HeroRig stellt die Kurs-Pose von der Wand
+weg dar.
+
+---
+
+## Präzisierung (Gegner/Power-ups)
+
+Ergänzungen des Gegner-/Power-up-Agenten (Stand: Gegnerpark 0-1). Nichts oben Festgelegtes wird geändert. Level-Bauer
+schreiben nur Daten; alle Felder unten sind optional, sofern nicht anders vermerkt.
+
+### Präzisierung (Gegner/Power-ups): Dateien
+
+```
+src/course/entities/Enemy.js          Basis aller Gegner (erweitert CourseEntity): Zustandsautomat, Laufen, Patrouille,
+                                      Verfolgen, Standard-Konter, Beute – auch für Boss-/Arena-Agenten gedacht
+src/course/entities/kinds/            pilzling, krallen_pilzling, pilzlingsturm, panzerkroete (+ panzer), schnappblume
+                                      (+ riesenschnappblume), rammbock_bulle, kaefer (krabbelkaefer, flatterkaefer),
+                                      zauberkroete (+ zauberkugel), brummer, stampfstein, wuehler, kickbombe, fireball,
+                                      steinblock (+ blockwand)
+src/course/player/powers/             krallen.js, funken.js, riese.js, stern.js  (timed.js entfällt)
+src/course/levels/w0/0-1.js           Testlevel „Gegnerpark“ (alle Gegner in Gehegen, alle Power-up-Blöcke)
+tests/course_enemies.mjs              Port 4194: Verhalten + Konter je Gegner, Power-ups, Tragen/Werfen, ce_*.png
+```
+
+### Präzisierung (Gegner/Power-ups): gemeinsame Felder und Konter
+
+Gemeinsame `spec`-Felder aller Gegner: `id` (→ `level.named`), `pos` (Fußpunkt), `dir` (`[dx, dz]` oder Gier in rad)
+bzw. `yaw` (Standard: Blick zur Kamera, +Z), `path` (`[[x,y,z], …]`, Patrouille hin und her; `loop: true` = Runde),
+`wake` (m, erst ab dieser Nähe zur Figur aktiv, Standard 18), `edges` (`false` = an Kanten nicht umdrehen),
+`drop` (Beute beim Besiegen: `'coin'` | `'coins:N'` | Power-up-Name | `'star:I'`).
+
+Laufzeit-Felder: `state`, `stateT` (s seit Zustandswechsel), `defeated` (true, sobald besiegt), `dir`. Hooks, die eine
+Level-Laufzeit (z. B. Arena) setzen kann: `level.onEnemyDefeated(enemy)` (einmal je Gegner; ein zerstörter Panzer und
+eine entschärfte Kickbombe zählen nicht), `level.onExplosion(center, radius, bomb)`.
+
+`onHit(kind, source)`-Arten: `fire | claw | shell | throw | bomb | mega | star | pound | bump`. Neu: `bomb`
+(Explosion), `throw` (geworfenes Objekt ohne eigene Wirkung – reserviert für Topfpflanze/Schneeball). Standard-Konter
+(`Enemy`): draufspringen → platt mit Abprall (`'stomp'`), Stampfattacke von oben → platt (ohne Abprall),
+Krallen-Sturzflug → wegfliegen, seitlich → Treffer der Figur; `onHit` → wegfliegen; `pound` (Stampfwelle daneben, `attackArea` 1,4 m) → platt, wenn auf gleicher
+Höhe. Funkelstern/Riesentrank besiegen jeden Gegner bei Berührung.
+
+| Gegner | Verhalten | besiegt durch | verletzt |
+| --- | --- | --- | --- |
+| pilzling | läuft/patrouilliert; `behavior: 'chase'`: Hüpfer + „!“, verfolgt | Sprung, alles | seitlich |
+| krallen_pilzling | läuft; sieht Figur → „!“ (0,4 s), ducken (0,22 s), Sprung 0,5 s auf die Figur | Sprung, alles | seitlich, Sprung |
+| pilzlingsturm | 3–5 Stufen, läuft auf die Figur zu | von oben je 1 Stufe; Feuer/Krallen/Panzer je 1; Explosion/Stern/Riese alle | seitlich |
+| panzerkroete | läuft | Sprung/Stampfen/Krallen → Panzer; Feuer/Panzer/Explosion → weg | seitlich |
+| panzer | liegt; gekickt 10 m/s, prallt an Wänden ab | Panzer, Explosion, Stern, Riese | gleitend seitlich (Rückpraller) |
+| schnappblume | schnappt im Takt (Reichweite) | Feuer, Krallen, Sturzflug, Panzer, Explosion, Stampfen **neben** ihr (auf einer Röhre: Tatzenhieb im Sprung, Stampfen neben einer Röhre ≤ 1,2 m) | von oben und Biss |
+| riesenschnappblume | wie oben, großer Radius | dasselbe, 3 Treffer (1,1 s Pause) | von oben und Biss |
+| rammbock_bulle | scharrt 0,8 s, Sturmlauf, bremst an Kanten, Wand → benommen | 3 Treffer (Sprung, Feuer, Krallen …); Explosion/Stern/Riese sofort | seitlich (betäubt harmlos) |
+| krabbelkaefer / flatterkaefer | feste Bahn, in Reihe | Sprung, alles | seitlich |
+| zauberkroete | erscheint an Punkten, zaubert Kugel, verschwindet | nur sichtbar: Sprung, alles | seitlich, Zauberkugel |
+| brummer | Flugbahn/Kreis; „warn“ 0,75 s, Sturzflug | Sprung, alles | seitlich, Stich |
+| stampfstein | fällt auf die Figur darunter, liegt, fährt hoch (Oberseite begehbar) | nur Stern/Riese | darunter |
+| wuehler | taucht im Takt auf/ab (abgetaucht harmlos) | aufgetaucht: Sprung, alles | aufgetaucht seitlich |
+| kickbombe | läuft; brennt nach Berührung, explodiert nach 3 s (2,5 m) | Stern/Riese entschärfen | Explosion |
+
+### Präzisierung (Gegner/Power-ups): Gegner-Daten (exakt, mit Beispiel)
+
+```js
+enemies: [
+  // Pilzling: speed 1.6, behavior 'walk'|'patrol'|'chase', sight 7 (chase), chaseSpeed 2.6
+  { kind: 'pilzling', pos: [0, 1, -20], path: [[-4, 1, -20], [4, 1, -20]] },
+  { kind: 'pilzling', pos: [3, 1, -30], behavior: 'chase', sight: 6 },
+  // Krallen-Pilzling: speed 1.8, sight 5.5 (= größte Sprungweite), cooldown 1.4
+  { kind: 'krallen_pilzling', pos: [0, 1, -40], dir: [1, 0] },
+  // Pilzlingsturm: count 3–5 (4), speed 1.1, behavior 'chase' (Standard) | 'walk', sight 9,
+  //   carries 'star:I' (Stern I sitzt sichtbar oben, erst nach dem Fall einsammelbar; LEVEL.stars listet ihn nicht)
+  //   | 'coins:N' | Power-up-Name (erscheint beim Fall)
+  { kind: 'pilzlingsturm', pos: [0, 1, -50], count: 5, carries: 'star:2' },
+  // Panzerkröte: speed 1.4, gold (Goldpanzer), respawn (Standard true: Kröte kommt nach 8 s aus dem Panzer)
+  { kind: 'panzerkroete', pos: [0, 1, -60], path: [[-3, 1, -60], [3, 1, -60]], gold: true },
+  // Panzer allein: speed 10 (Gleiten), gold, coins 15 (Goldpanzer: je 0,3 s eine), wakeAfter 0 (s, 0 = nie)
+  { kind: 'panzer', pos: [2, 1, -62] },
+  // Schnappblume: base 'pot'|'ground'|'pipe' ('pot'), yaw (Ruhe-Blick), range 3.4, reach 1.35, pause 0.7, hp 1
+  { kind: 'schnappblume', pos: [4, 2.2, -70], base: 'pipe', yaw: -Math.PI / 2 },   // auf einer Röhre (Höhe 1,2)
+  // Riesenschnappblume: base 'ground', range 7, reach 3.3, pause 0.9, hp 3
+  { kind: 'riesenschnappblume', pos: [0, 1, -90], yaw: -Math.PI / 2 },
+  // Rammbock-Bulle: hp 3, sight 11, speed 7.5 (Sturmlauf), drop Standard 'coins:3'
+  { kind: 'rammbock_bulle', pos: [0, 1, -100], dir: [0, 1] },
+  // Käfer: path (Krabbel: y = Suchhöhe, läuft auf dem Boden; Flatter: y = Flughöhe), loop (ab 3 Punkten true),
+  //   speed 2.2 / 2.4, count 1, spacing 1.4 (m entlang der Bahn), phase 0..1, color blue|red|green|yellow|pink
+  { kind: 'krabbelkaefer', path: [[-4, 1, -110], [4, 1, -110], [4, 1, -116], [-4, 1, -116]], count: 4, spacing: 1.6 },
+  { kind: 'flatterkaefer', path: [[-3, 3.5, -112], [3, 3.5, -112], [0, 3.5, -115]], count: 3, color: 'pink' },
+  // Zauberkröte: spots (Fußpunkte, reihum; Punkt < 2,5 m an der Figur wird übersprungen), sight 16, hidden 1.4, linger 0.7
+  { kind: 'zauberkroete', spots: [[-4, 1, -120], [4, 1, -120], [0, 1, -126]] },
+  // Brummer: path (Flugbahn, y = Flughöhe) | center + radius (2.5) | pos (schwebt); speed 2.4, sight 6, dive 9, cooldown 1.8
+  { kind: 'brummer', center: [0, 3.5, -130], radius: 2 },
+  // Stampfstein: pos = Mitte der Unterseite in der oberen Ruhelage; size [1.8, 2, 1.8], fall (sonst bis zum Boden),
+  //   trigger 1.0 (m über den Fußabdruck hinaus), wait 1.2, rise 2.5
+  { kind: 'stampfstein', pos: [0, 4.5, -140] },
+  // Wühler: pos.y = Oberfläche, ground 'water'|'earth', path (Bahn, abgetaucht), speed 1.6, hide 1.6, up 1.4, phase 0..1
+  { kind: 'wuehler', pos: [0, 0.9, -150], ground: 'water', path: [[-3, 0.9, -150], [3, 0.9, -150]], phase: 0.3 },
+  // Kickbombe: speed 1.3, behavior 'walk'|'chase', sight 9, lit, fuse 3, radius 2.5, kickSpeed 9,
+  //   vel [vx,vy,vz] (startet im Flug, landet brennend), owner (Entität, die sie nicht trifft, bis die Figur kickt)
+  { kind: 'kickbombe', pos: [0, 1, -160], path: [[-3, 1, -160], [3, 1, -160]] },
+],
+```
+
+Wühler für das Floß (1-4): `e.kind === 'wuehler' && e.up` = aufgetaucht, Hindernis. Brummer, Käfer, Wühler, Blumen,
+Bulle und Stampfstein sind immer aktiv (kein `wake`). Der Stampfstein ist eine bewegte feste Form (`mover`,
+`camIgnore`); die Kamera springt nicht hinter ihn. Stehen mehrere Stampfsteine hintereinander in Kamerarichtung, kann
+der vordere die Figur kurz verdecken – lieber versetzt oder quer zur Kamera anordnen.
+
+### Präzisierung (Gegner/Power-ups): Blöcke
+
+- `steinblock` (grauer „Mega“-Block, `LEVEL.blocks`): `{ kind: 'steinblock', pos, content? }` – fest, Kollisionsform
+  mit Flag **`mega: true`** (nicht `breakable`: Stampfen, Kopfstoß, Krallen, Panzer prallen ab). Nur Riesentrank
+  (`onHit('mega')`) und Explosionen (`onHit('bomb')`) zertrümmern ihn; `content` erscheint danach.
+- `blockwand`: `{ kind: 'blockwand', pos: [x, y, z] (Mitte Unterseite), size: [w, h, d] (ganze Blöcke), block:
+  'steinblock' (Standard) | 'brick' | 'crystal' | 'used' | 'question', content? }` → w × h × d Einzelblöcke.
+- Ziegel/?-Blöcke (`entities/kinds/blocks.js`) reagieren zusätzlich auf `claw`/`shell` (Ziegel zerbricht, ?-Block gibt
+  Inhalt) und `bomb` (Ziegel/Kristall zerbrechen). Bausteine mit eigenen zerbrechlichen Formen setzen `breakable` oder
+  `mega` und `owner.onHit(kind, source, shape)` – Tatzenhieb, Riesentrank und Explosion rufen ihn.
+
+### Präzisierung (Gegner/Power-ups): Power-ups
+
+Namen für `blocks[].content`, `items` (`{ kind: 'powerup', pos, power }`), `drop`, `carries` (Aliasse in Klammern):
+`wachstumsbeere` (beere), `krallen` (krallenAnzug, claw), `funken` (funkenbluete, fire), `riese` (riesentrank, mega),
+`stern` (funkelstern, star), `oneup` (1up, extraleben).
+
+| Power-up | Wirkung | Dauer | HUD (`icon`) | sfx |
+| --- | --- | --- | --- | --- |
+| wachstumsbeere | klein → groß | – | – | powerup |
+| oneup | Leben +1 | – | – | oneup |
+| krallen | Klettern an `climbable` (~2 s), Sturzflug (Ducken in der Luft mit Richtung), **Tatzenhieb** (Aktion: 0,3 s, 1,1 m vor der Figur, Ausfallschritt; besiegt Gegner, kickt Panzer/Bomben, zerbricht Ziegel, löst ?-Blöcke) | bis Treffer | 0xffb52e | powerup, claw |
+| funken | Aktion: Feuerball (10 m/s, hüpft ≈ 0,55 m, max. 2 gleichzeitig, 1,5 s, verschwindet an Wänden/Wasser; besiegt Gegner, zündet Kickbomben, sammelt Münzen) | bis Treffer | 0xff5a2a | powerup, fireball |
+| riese | ×2,4 (nur Darstellung, Hülle bleibt), unverwundbar, zertrümmert `breakable`/`mega`/Block-Formen und Stampfsteine im Riesenkörper, besiegt Gegner, Kamera ×1,4 (`camZoom`) | 10 s, dann 1 s Blinken | 0xc04cff | powerup, powerdown |
+| stern | unverwundbar, Berührung besiegt Gegner, Tempo ×1,25, Glitzern, Musik `course_star` (danach `LEVEL.music`, auch nach Tod/Neustart) | 10 s | 0xfff04a | powerup |
+
+Neue `def`-Felder: `camZoom` (Kameraabstand-Faktor, CameraRig blendet weich über `rig.powerZoom`). `level.musicNow` hält
+das zuletzt vom Funkelstern gesetzte Thema. Avatar: `proxy.course.power` = Power-up-Name (Kostümfarbe),
+`proxy.course.state` meldet `'claw'` während des Tatzenhiebs (`player.clawTime > 0`, 0,3 s) und `'throw'` 0,25 s beim
+Werfen bzw. 0,2 s beim Feuerball (`player.throwTime > 0`, Dauer `player.throwDur`); `proxy.course.phase` ist dann der
+Fortschritt 0..1 der Aktion (jeder Wurf beginnt von vorn).
+
+### Präzisierung (Gegner/Power-ups): Tragen/Werfen
+
+- Entität: `carryable = true`, optional `canCarry(player) → bool`, `holdStyle = 'over'` (Standard, über dem Kopf) |
+  `'front'` (vor der Brust); Hooks `onPickup(player)`, `onThrow(player, { dir: {x, z}, gentle })`, `onDrop(player)`.
+  Solange `entity.carrier` gesetzt ist, ruft ihr `update()` `followCarrier()` (Lage = `player.holdPoint(entity, out)`:
+  'over' = Fußpunkt auf dem Kopf, 0,12 m vor der Figur; 'front' = vor der Brust; Riesentrank: am großen Körper).
+  Getragen `touch = false`. Standard-`onThrow` (CourseEntity): Bogen 8 m/s vor, 5 m/s hoch. Der Avatar bekommt
+  `proxy.course.holding = holdStyle` (bzw. `false`) – HeroRig setzt das aus `player.holding`.
+- Figur: `player.holding` (Entität | null). Aktion (`actionPressed`) wirft Gehaltenes in Blickrichtung (mit gehaltenem
+  Ducken: absetzen), sonst hebt sie das nächste `carryable`-Objekt ≤ 0,75 m vor der Brust auf (Höhe −0,6 … +1 m),
+  sonst Power-up-Aktion. Rennen gehalten + seitliche Berührung greift Panzer/Kickbombe (`player.pickUp(e)`). Springen
+  mit Last möglich; Treffer, Tod, Neustart, Röhre, Schwimmen und Bohnenranke lassen fallen (`player.dropHeld()` bzw.
+  `followCarrier()` → `onDrop`). API:
+  `canPickUp()`, `findCarryable()`, `pickUp(e)`, `throwHeld(input)`, `dropHeld()`, `holdPoint(e, out)`.
+- Tragbar sind `panzer` (geworfen: gleitet in Blickrichtung) und `kickbombe` (geworfen: Bogen, rollt aus, explodiert
+  beim Aufprall). Topfpflanze/Schneeball später nach demselben Muster.
+
+### Präzisierung (Gegner/Power-ups): Kickbombe und Endgegner (`onBombHit`)
+
+- Explosion (`bomb.explode()`): Radius `radius` (2,5 m, Abstand Bombenmitte → Hüllquader): `onHit('bomb', bomb)` für
+  alle Entitäten im Radius (Gegner besiegt, Blöcke zertrümmert, andere Bomben zünden mit 0,12 s Lunte), dazu
+  `owner.onHit('bomb', bomb, shape)` für Formen mit `breakable` oder `mega`; die Figur wird bis 0,9 × Radius getroffen;
+  danach `level.onExplosion(center, radius, bomb)`.
+- Eine von der Figur gekickte/geworfene Bombe (`bomb.kicker` gesetzt), die schneller als 3 m/s ist, explodiert beim
+  Aufprall an einer Wand oder einer Entität mit `enemy` oder `onBombHit`. Trifft sie eine Entität mit
+  **`onBombHit(bomb)`**, wird diese **vor** der Explosion gerufen (Endgegner: Treffer zählen; `bomb.kicker` = Figur).
+- Ziele für `onBombHit` müssen `alive`, nicht `defeated` und `touch !== false` sein (Hüllquader `pos`/`half` zählt).
+- Endgegner wirft Bomben: `level.spawn('kickbombe', { pos, vel: [vx, vy, vz], owner: boss | 'boss-id', fuse? })` – fliegt, landet
+  brennend, trifft den Werfer nicht, bis die Figur sie kickt (Berührung = Kick weg von der Figur, leicht in ihre
+  Blickrichtung; 9 m/s). Im Flug ist sie für die Figur harmlos. Der Boss kann `onHit('bomb')` (Explosion in der Nähe)
+  ignorieren, wenn nur direkte Treffer (`onBombHit`) zählen sollen.
+
+### Präzisierung (Gegner/Power-ups): Tests
+
+`tests/course_enemies.mjs` (Port 4194, `?course=0-1&scale=2&adapt=0`): 75 Prüfungen, deterministisch über `step(n)` /
+`setInput`; Hilfen in der Seite `window.__t` (`place`, `stomp`, `side`, `action`, `ent(id)`, `count`). Danach frisches
+Level und Screenshots `tests/out/ce_*.png` (je Gegner in Aktion, Riese, Stern, Feuerbälle, Tragen); gewartet wird auf
+neue Bilder (`view.frame`), nicht auf feste Zeiten.
+
 ---
 
 ## Präzisierung (Sonder-Bausteine)
@@ -408,7 +589,7 @@ Module; Level-Bauer setzen sie nur in Daten ein. Jede Datei dokumentiert ihre Pa
   `glass_pipe_segment` (Glas-Look), `switch_tile, lantern, pow_block, hidden_block, crystal_block, time_ring, coin_blue,
   bunny_small, fairy_spotter, question_block, used_block, river_rock, speed_wave` und der Klassik-`PflaumeAvatar`.
 - Übungslevel `levels/w0/0-2.js` „Bausteinpark“ (je Gimmick eine Station mit Schild, Kameraschiene, `marks`),
-  Test `tests/course_blocks.mjs` (Port 4194, Bilder `tests/out/cb_*.png`).
+  Test `tests/course_blocks.mjs` (Port 4195, Bilder `tests/out/cb_*.png`).
 
 ### Präzisierung (Sonder-Bausteine): Ereignisse und Belohnungen (Aktion)
 
