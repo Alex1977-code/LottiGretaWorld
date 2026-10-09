@@ -20,9 +20,10 @@ export const LEVEL = {
   theme: 'grass',
   music: 'course_arena',
   timeLimit: 200,
+  starSlots: 1,           // ein Stern, kein Stempel (HUD/Ergebnis)
   start: { pos: [0, Y, 6], yaw: Math.PI / 2 },
   // Arena: etwas steiler und weiter weg (Überblick über beide Bullen), Blick seitlich halb auf die Mitte fixiert
-  camera: [{ from: 20, to: -20, pitch: 44, dist: 19, x: 0, xLock: 0.3, ahead: 0.5, lead: 0.5 }],
+  camera: [{ from: 20, to: -20, pitch: 47, dist: 17, x: 0, xLock: 0.3, ahead: 0.8, lead: 0.5 }],
   arena: { enemies: 'all', star: [0, Y + 0.5, 0], starIndex: 0, crowd: 'crowd', intro: 'Besiege beide Bullen!', center: [0, Y, -1], camPull: 0.25 },
   segments: [
     // Wiese rund um die Festung

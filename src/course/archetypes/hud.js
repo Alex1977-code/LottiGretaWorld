@@ -75,7 +75,7 @@ export class ArchHud {
     o.bossName.setText(''); o.arenaText.setText('');
     const W = GAME.width;
     if (boss) {
-      const w = 150, x = W / 2, y = 42;
+      const w = 150, x = W - 90, y = 42;   // rechts unter der Uhr (die Mitte bleibt für den Endgegner frei)
       g.fillStyle(0x2a1030, 0.62); g.fillRoundedRect(x - w / 2, y - 9, w, 20, 9);
       g.lineStyle(1, 0xffc21a, 0.7); g.strokeRoundedRect(x - w / 2 + 0.5, y - 8.5, w - 1, 19, 9);
       o.bossName.setPosition(x - w / 2 + 8, y).setOrigin(0, 0.5).setText(boss.name ?? 'Boss');
