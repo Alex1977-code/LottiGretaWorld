@@ -597,7 +597,7 @@ Module; Level-Bauer setzen sie nur in Daten ein. Jede Datei dokumentiert ihre Pa
 - Modelle: `models/kinds/gimmicks.js` (`crate, chest, push_switch, star_ring, star_coin, endless_block, roulette_block,
   warp_box, cloud_cannon, claw_wheel, mega_block, pixel_egg, item_tree, leaf_raft`); genutzt werden außerdem
   `glass_pipe_segment` (Glas-Look), `switch_tile, lantern, pow_block, hidden_block, crystal_block, time_ring, coin_blue,
-  bunny_small, fairy_spotter, question_block, used_block, river_rock, speed_wave` und der Klassik-`PflaumeAvatar`.
+  bunny_small, fairy_spotter, question_block, used_block, river_rock, speed_wave` und der `PflaumeAvatar` im Kurs-Modus (`course.state` `'ride'`/`'idle'`, `course.rider`).
 - Übungslevel `levels/w0/0-2.js` „Bausteinpark“ (je Gimmick eine Station mit Schild, Kameraschiene, `marks`),
   Test `tests/course_blocks.mjs` (Port 4195, Bilder `tests/out/cb_*.png`).
 
@@ -661,7 +661,8 @@ den Stern am Auslöser. Jede Entität/Baustein-Entität mit `hidden: true` ersch
 | `riverrock` | Flussfelsen (Hindernis) | `size` | `{ type: 'riverrock', pos: [-2.6,0.6,-26] }` |
 
 Schanzen im Fluss: normaler `ramp`-Baustein, der aus dem Wasser steigt (das Floß fährt hinauf und hebt am Ende mit
-der Steiggeschwindigkeit ab). Gemessen im Bausteinpark (scale 2): 72–108 Zeichenaufrufe inkl. Schattenpass,
+der Steiggeschwindigkeit ab). Fluss/Floß brauchen keinen Archetyp; ein Reit-Archetyp (1-4) kann die Figur in
+`setup()` direkt in den Sattel setzen: `player.mount(level.named.get('floss'))` (Daten-`id` des Floßes). Gemessen im Bausteinpark (scale 2): 72–108 Zeichenaufrufe inkl. Schattenpass,
 165–290 k Dreiecke.
 
 ### Präzisierung (Sonder-Bausteine): Welt 1 – Gimmick → Baustein
