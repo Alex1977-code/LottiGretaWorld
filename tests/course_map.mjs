@@ -150,7 +150,7 @@ check('Rückkehr: Figur steht vor dem Eingang 1-1', Math.hypot(st.player.x - 2, 
 check('1-1 geschafft, 1-2 frei, 1-3 noch zu', st.entrances['1-1'].done && !st.entrances['1-2'].locked && st.entrances['1-3'].locked);
 check('Sterne gezählt (2/24) und Stempel an 1-1', st.stars === 2 && st.entrances['1-1'].stamp);
 check('Freischalt-Animation läuft (Kamera-Schwenk, Eingabe gesperrt)', st.cinematic && st.gates['1-2'] === 'closed');
-await sc(() => window.__courseMap.step(150));
+await sc(() => { const m = window.__courseMap; m.step(150); m.snapCamera(); });
 await shot('schranke_oeffnet', 1600);
 st = await sc(() => window.__courseMap.step(500));
 check('Schranke 1-2 nach der Animation weg', st.gates['1-2'] === 'open' && !st.cinematic && st.gates['1-3'] === 'closed');

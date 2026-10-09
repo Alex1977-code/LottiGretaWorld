@@ -502,7 +502,11 @@ export class CourseMapScene extends Phaser.Scene {
     return this.leaving ? { leaving: true, lastStart: this.lastStart } : this.state();
   }
 
-  setManual(on) { this.manual = !!on; this.acc = 0; if (on) this.endIntro(); }
+  setManual(on) {
+    this.manual = !!on;
+    this.acc = 0;
+    if (on) { this.endIntro(); this.cameras.main.resetFX(); this.hud?.hideTitle(); }   // Tests: ohne Anflug, Einblenden, Weltname
+  }
   setInput(o) { this.cinput.setOverride(o); }
 
   teleport(x, y, z, yaw) {
@@ -512,7 +516,11 @@ export class CourseMapScene extends Phaser.Scene {
     this.view.rig.snap(p);
   }
 
-  snapCamera() { this.view.rig.snap(this.player); }
+  /** Kamera sofort an ihr Ziel (Figur bzw. Schranke während des Schwenks). */
+  snapCamera() {
+    if (this.focus) { this.focusVec.set(this.focus.x, this.focus.y, this.focus.z); this.view.rig.snap(this.focusProxy); }
+    else this.view.rig.snap(this.player);
+  }
 
   state() {
     const gates = {};

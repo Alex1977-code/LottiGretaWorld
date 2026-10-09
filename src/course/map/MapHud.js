@@ -194,6 +194,8 @@ export class MapHud {
     this.traitText.setText(HERO_VARIANTS[hero]?.trait ?? '');
   }
 
+  hideTitle() { this.titleT = 0; this.title.setVisible(false); }
+
   pulseHero(key) {
     const p = this.heroPicker[key];
     if (p) this.scene.tweens.add({ targets: p.c, scaleX: 1.18, scaleY: 1.18, duration: 100, yoyo: true });
