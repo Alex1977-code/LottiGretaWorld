@@ -10,6 +10,8 @@
 //   crystal   Kristallblock: nur Stampfen (oder Riesentrank) zerbricht ihn.
 // Darstellung über Instanz-Pools je Optik (Modelle question_block, brick_block, used_block, crystal_block,
 // wenn vorhanden – sonst eigene Vorlage). Gegner auf einem gestoßenen Block bekommen onHit('bump').
+// onHit (Präzisierung Gegner/Power-ups): pound/mega/bomb zerbrechen Ziegel und Kristall (mega alles außer used);
+// claw/shell (Tatzenhieb, Panzer von der Seite) zerbrechen Ziegel und lösen ?-Blöcke aus.
 
 import { CourseEntity } from '../CourseEntity.js';
 import { blockTemplate } from '../visuals.js';
@@ -81,9 +83,13 @@ class Block extends CourseEntity {
   }
 
   onHit(kind) {
-    if (kind === 'pound' || kind === 'mega') {
+    if (kind === 'pound' || kind === 'mega' || kind === 'bomb') {
       if (this.kind === 'brick' || this.kind === 'crystal') this.break();
       else if (kind === 'mega' && this.kind !== 'used') this.break();
+    } else if (kind === 'claw' || kind === 'shell') {
+      // Tatzenhieb / Panzer von der Seite: Ziegel zerbrechen, ?-Blöcke geben ihren Inhalt frei
+      if (this.kind === 'brick' && !this.content) this.break();
+      else if (this.kind === 'question' || this.kind === 'coinblock' || (this.kind === 'brick' && this.content)) this.release('up');
     }
   }
 

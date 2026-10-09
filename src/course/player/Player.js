@@ -11,6 +11,10 @@
 // Zustände (`state`, Vertrag HeroRig): idle walk run skid jump jump2 jump3 backflip sideflip longjump fall
 // land crouch slide groundpound wallslide walljump climb beanstalk swim pipe hurt dead victory claw
 // (+ intern 'dive' = Krallen-Sturzflug; HeroRig meldet ihn dem Avatar als 'longjump').
+//
+// Tragen/Werfen (Präzisierung Gegner/Power-ups): Aktion in Reichweite eines `carryable`-Objekts hebt es auf
+// (`holding`), erneute Aktion wirft es in Blickrichtung (mit Ducken: absetzen); Treffer/Tod lässt es fallen.
+// Rennen gehalten + Berührung greift Panzer/Kickbombe (die Entität ruft pickUp). Siehe carryAction().
 
 import * as THREE from 'three';
 import { HERO_VARIANTS } from '../../config.js';
@@ -88,7 +92,7 @@ export class Player {
     this.crouching = false;
     this.dead = false;
     this.script = null;
-    this.clawTime = 0; this.fireCooldown = 0;
+    this.clawTime = 0; this.fireCooldown = 0; this.throwTime = 0;
     this.attackInfo = null;
     this.holding = null;
     this.phase = 0;
@@ -130,7 +134,9 @@ export class Player {
     this.prevVy = this.vel.y;
     const tick = (k) => { if (this[k] > 0) this[k] = Math.max(0, this[k] - dt); };
     tick('coyote'); tick('buffer'); tick('chainTimer'); tick('lockTime'); tick('hurtTime'); tick('invuln');
-    tick('wallCoyote'); tick('grabCooldown'); tick('boostTime'); tick('clawTime'); tick('fireCooldown'); tick('landTime');
+    tick('wallCoyote'); tick('grabCooldown'); tick('boostTime'); tick('clawTime'); tick('fireCooldown'); tick('landTime'); tick('throwTime');
+    this.input = input;
+    if (this.holding?.removed) this.holding = null;   // Getragenes ist weg (z. B. in der Hand explodiert)
     if (this.attackInfo && this.time > this.attackInfo.until) this.attackInfo = null;
 
     if (this.mode === 'script') { this.updateScript(dt, input); return; }
@@ -144,7 +150,7 @@ export class Player {
     def.update?.(this, dt, input);
 
     if (input.jumpPressed) this.buffer = MOVE.buffer;
-    if (input.actionPressed) this.powerDef.onAction?.(this, input);
+    if (input.actionPressed && !this.carryAction(input)) this.powerDef.onAction?.(this, input);
 
     // Wunschrichtung aus Stick und Kamera-Gier (Steuerung relativ zur Kamera)
     const cy = this.level.controlYaw ?? 0;
@@ -813,6 +819,7 @@ export class Player {
   /** Treffer durch Gegner/Gefahr. Groß → klein (Power-up geht verloren), klein → Tod. */
   hurt(source) {
     if (this.dead || this.mode === 'script' || this.invulnerable) return false;
+    this.dropHeld();
     if (this.power !== 'none') { this.setPower('none'); this.level.sfx('powerdown'); }
     else if (this.big) { this.big = false; this.updateHalf(); this.level.sfx('powerdown'); }
     else { this.die('hit'); return true; }
@@ -878,6 +885,7 @@ export class Player {
 
   die(cause = 'hit') {
     if (this.dead) return;
+    this.dropHeld();
     this.dead = true;
     this.deathCause = cause;
     this.mode = 'script';
@@ -886,6 +894,88 @@ export class Player {
     this.setState('dead');
     this.level.sfx('die');
     this.level.onPlayerDeath?.(cause);
+  }
+
+  // ------------------------------------------------------------------ Tragen/Werfen (Präzisierung Gegner/Power-ups)
+
+  /** Darf die Figur gerade etwas aufheben? (am Boden oder in der Luft, nicht beim Stampfen/Sturzflug/Treffer) */
+  canPickUp() {
+    return !this.holding && !this.dead && (this.mode === 'ground' || this.mode === 'air')
+      && this.state !== 'groundpound' && this.state !== 'dive' && this.state !== 'hurt';
+  }
+
+  /** Aktion: Gehaltenes werfen bzw. ein Objekt in Reichweite aufheben. true = Aktion verbraucht. */
+  carryAction(input) {
+    if (this.holding) { this.throwHeld(input); return true; }
+    if (!this.canPickUp()) return false;
+    const e = this.findCarryable();
+    if (!e) return false;
+    this.pickUp(e);
+    return true;
+  }
+
+  /** Nächstes `carryable`-Objekt vor der Figur (≤ 0,75 m vor der Brust, Höhe −0,6 … +1 m) oder null. */
+  findCarryable() {
+    const f = this.facingVec();
+    const fx = this.pos.x + f.x * 0.45, fz = this.pos.z + f.z * 0.45;
+    let best = null, bd = Infinity;
+    for (const e of this.level.entities) {
+      if (!e.carryable || !e.alive || e.removed || e.carrier || e.canCarry?.(this) === false) continue;
+      const dy = e.pos.y - this.pos.y;
+      if (dy < -0.6 || dy > 1.0) continue;
+      const d = Math.hypot(e.pos.x - fx, e.pos.z - fz) - e.half.x;
+      if (d < 0.75 && d < bd) { bd = d; best = e; }
+    }
+    return best;
+  }
+
+  /** Objekt aufheben (auch von Entitäten aus aufrufbar, z. B. Rennen + Berührung). */
+  pickUp(e) {
+    if (!e || !this.canPickUp()) return false;
+    this.holding = e;
+    e.carrier = this;
+    e.onPickup?.(this);
+    this.holdPoint(e, e.pos);
+    this.level.sfx('mount');
+    return true;
+  }
+
+  /** Gehaltenes werfen (Blickrichtung, Bogen) bzw. mit gehaltenem Ducken vor sich absetzen. */
+  throwHeld(input) {
+    const e = this.holding;
+    if (!e) return;
+    this.holding = null;
+    e.carrier = null;
+    const gentle = !!input?.crouch;
+    this.throwTime = 0.25; this.throwDur = 0.25;
+    e.onThrow?.(this, { dir: this.facingVec(), gentle });
+    this.level.sfx(gentle ? 'step' : 'swoop');
+  }
+
+  /** Gehaltenes fallen lassen (Treffer, Tod). */
+  dropHeld() {
+    const e = this.holding;
+    if (!e) return;
+    this.holding = null;
+    if (e.carrier === this) e.carrier = null;
+    e.onDrop?.(this);
+  }
+
+  /**
+   * Fußpunkt eines getragenen Objekts: Standard über dem Kopf, leicht vor der Figur (e.holdStyle 'over'); mit
+   * e.holdStyle 'front' vor der Brust. Riesentrank: am großen Körper.
+   */
+  holdPoint(e, out) {
+    const f = this.facingVec();
+    const k = this.powerDef.scale ?? 1;
+    const h = this.half.y * 2 * k;
+    if (e?.holdStyle === 'front') {
+      const d = (this.half.x + (e.half?.x ?? 0.3)) * k + 0.05;
+      out.set(this.pos.x + f.x * d, this.pos.y + h * 0.42 - (e.half?.y ?? 0.3), this.pos.z + f.z * d);
+    } else {
+      out.set(this.pos.x + f.x * 0.12 * k, this.pos.y + h + 0.04, this.pos.z + f.z * 0.12 * k);
+    }
+    return out;
   }
 
   // ------------------------------------------------------------------ Skript-Abläufe (Röhre, Zielmast, Tod)
