@@ -31,8 +31,12 @@ export class CourseResultScene extends Phaser.Scene {
     uiPanel(this, w / 2, h / 2 + 6, 236, 200);
     uiText(this, w / 2, h / 2 - 78, 'Geschafft!', { size: 20, color: '#ffe066', stroke: '#3a2a6a', thickness: 4 });
     uiText(this, w / 2, h / 2 - 58, `${r.id ?? ''} · ${r.title ?? ''}`, { size: 8, color: '#5a4a7a', stroke: '#ffffff', thickness: 2, shadow: false });
+    // Level ohne Zielmast (Arena): statt der Zielmast-Zeile das Kampfergebnis; Stern-/Stempel-Plätze nach den Leveldaten
+    // (LEVEL.starSlots, LEVEL.stamp) – Präzisierung (Arena/Boss)
+    const data = this.course?.level?.data ?? {};
     const rows = [
-      ['Zielmast', `${Math.round((r.pole ?? 0) * 100)} %  →  ${r.points ?? 0} Punkte${r.top ? '  · Spitze! +1 Leben' : ''}`],
+      data.goal || !data.arena ? ['Zielmast', `${Math.round((r.pole ?? 0) * 100)} %  →  ${r.points ?? 0} Punkte${r.top ? '  · Spitze! +1 Leben' : ''}`]
+        : ['Arena', 'alle Gegner besiegt!'],
       ['Bitcoins', `${r.coins ?? 0}`],
       ['Zeit', `${fmt(r.time)}   (Bestzeit ${fmt(r.bestTime)})`],
       ['Leben', `${r.lives ?? ''}`],
@@ -46,8 +50,9 @@ export class CourseResultScene extends Phaser.Scene {
     // Sterne und Stempel
     const g = this.add.graphics();
     const stars = r.stars ?? [];
-    for (let i = 0; i < 3; i++) {
-      const cx = w / 2 - 44 + i * 26, cy = y + 8;
+    const nStars = data.starSlots ?? Math.max(3, stars.length);
+    for (let i = 0; i < nStars; i++) {
+      const cx = w / 2 - 44 + (3 - nStars) * 13 + (data.stamp || !data.arena ? 0 : 13) + i * 26, cy = y + 8;
       const pts = [];
       for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + (k / 10) * Math.PI * 2, rr = k % 2 ? 4.6 : 10; pts.push({ x: cx + Math.cos(a) * rr, y: cy + Math.sin(a) * rr }); }
       const got = stars[i] || r.starsSaved?.[i];
@@ -55,8 +60,10 @@ export class CourseResultScene extends Phaser.Scene {
       g.lineStyle(1.2, 0x2a7a3a, 0.8); g.strokePoints(pts, true);
     }
     const sx = w / 2 + 38;
-    g.fillStyle(0xff7ab8, r.stamp ? 1 : r.stampSaved ? 0.4 : 0.12); g.fillCircle(sx, y + 8, 9);
-    g.lineStyle(1.2, 0xb8306c, 0.8); g.strokeCircle(sx, y + 8, 9);
+    if (data.stamp || !data.arena) {
+      g.fillStyle(0xff7ab8, r.stamp ? 1 : r.stampSaved ? 0.4 : 0.12); g.fillCircle(sx, y + 8, 9);
+      g.lineStyle(1.2, 0xb8306c, 0.8); g.strokeCircle(sx, y + 8, 9);
+    }
     y += 32;
     const next = uiButton(this, w / 2 - 50, y, 'Weiter', { size: 10, color: 0x4fb833, minWidth: 88, padY: 5 });
     next.on(Phaser.Input.Events.POINTER_DOWN, () => { sfx('select'); this.course.exitToMap({ done: r.id }); });

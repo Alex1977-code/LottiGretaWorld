@@ -110,9 +110,13 @@ export class CourseUIScene extends Phaser.Scene {
     // Bitcoin-Symbol
     g.fillStyle(0xf7931a, 1); g.fillCircle(104, 15, 7);
     g.lineStyle(1, 0xffe0b0, 1); g.strokeCircle(104, 15, 6);
-    // Sterne (gesammelt = grün, schon gespeichert = blass, offen = Umriss)
-    for (let i = 0; i < 3; i++) {
-      const x = W / 2 - 34 + i * 20, y = 15;
+    // Sterne (gesammelt = grün, schon gespeichert = blass, offen = Umriss). Anzahl: LEVEL.starSlots (Arena 1),
+    // sonst max(3, LEVEL.stars) – Präzisierung (Arena/Boss); ohne LEVEL.stamp kein Stempel-Platz.
+    const data = this.course.level?.data ?? {};
+    const nStars = data.starSlots ?? Math.max(3, rt.starCount ?? 3);
+    const x0 = W / 2 - 34 + (3 - nStars) * 10 + (data.stamp ? 0 : 10);
+    for (let i = 0; i < nStars; i++) {
+      const x = x0 + i * 20, y = 15;
       const pts = starPoints(x, y, 8, 3.6);
       if (rt.stars[i]) { g.fillStyle(0x3ee05a, 1); g.fillPoints(pts, true); g.lineStyle(1.2, 0xeaffea, 1); g.strokePoints(pts, true); }
       else if (rt.starsSaved[i]) { g.fillStyle(0x3ee05a, 0.35); g.fillPoints(pts, true); g.lineStyle(1, 0xffffff, 0.5); g.strokePoints(pts, true); }
@@ -120,7 +124,8 @@ export class CourseUIScene extends Phaser.Scene {
     }
     // Stempel
     const sx = W / 2 + 36;
-    if (rt.stamp) { g.fillStyle(0xff7ab8, 1); g.fillCircle(sx, 15, 7); g.fillStyle(0xfff4fa, 1); g.fillCircle(sx, 15, 4.5); g.fillStyle(0xe8438c, 1); g.fillCircle(sx, 16, 2.2); }
+    if (!data.stamp) { /* Level ohne Stempel (Arena) */ }
+    else if (rt.stamp) { g.fillStyle(0xff7ab8, 1); g.fillCircle(sx, 15, 7); g.fillStyle(0xfff4fa, 1); g.fillCircle(sx, 15, 4.5); g.fillStyle(0xe8438c, 1); g.fillCircle(sx, 16, 2.2); }
     else { g.fillStyle(0x000000, rt.stampSaved ? 0.1 : 0.25); g.fillCircle(sx, 15, 7); g.lineStyle(1, rt.stampSaved ? 0xff9ccc : 0xffffff, 0.55); g.strokeCircle(sx, 15, 7); }
     // Uhr
     const tx = W - 86;
