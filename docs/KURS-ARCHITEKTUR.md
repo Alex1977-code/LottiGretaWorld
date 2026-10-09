@@ -567,6 +567,16 @@ Fortschritt 0..1 der Aktion (jeder Wurf beginnt von vorn).
 Level und Screenshots `tests/out/ce_*.png` (je Gegner in Aktion, Riese, Stern, Feuerbälle, Tragen); gewartet wird auf
 neue Bilder (`view.frame`), nicht auf feste Zeiten.
 
+## Präzisierung (Archetypen, Hauptsitzung)
+
+Archetypen mit eigener Logik liegen unter `src/course/archetypes/kinds/<name>.js` und exportieren
+`ARCHETYPES = { name: (scene) => instance }` (Registry `archetypes/index.js`, automatisch). `LEVEL.archetype`
+wählt sie. Haken der Instanz (alle optional): `createPlayer(level, opts)`, `createRig(view, player)`, `setup()`,
+`beforeStep(dt, input)`, `afterStep(dt, input)`, `render(dt, t)`, `camera(dt, player, world) → true` (eigene
+Kamera, ersetzt `CameraRig.update`), `info()` (erscheint in `__course.state().archetype`), `dispose()`.
+`level.archetype` zeigt auf die Instanz. Sterne: `LevelRuntime` speichert jetzt `max(3, LEVEL.stars.length)`
+Sterne (Diorama 5, Arena 1 → im HUD/Ergebnis die tatsächliche Zahl zeigen).
+
 ---
 
 ## Präzisierung (Sonder-Bausteine)
