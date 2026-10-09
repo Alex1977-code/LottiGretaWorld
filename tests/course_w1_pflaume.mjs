@@ -54,7 +54,7 @@ async function load(id) {
         const p = P();
         for (let i = 0; i < max; i++) {
           const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
-          if (d < tol || c.finished) break;
+          if (d < tol || c.finished || p.treasure) break;
           const cy = c.level.controlYaw, rx = Math.cos(cy), rz = -Math.sin(cy), fx = -Math.sin(cy), fz = -Math.cos(cy);
           const k = Math.min(1, d / 0.6);
           c.setInput({ x: ((dx * rx + dz * rz) / d) * k, y: ((dx * fx + dz * fz) / d) * k, ...extra });
@@ -396,7 +396,8 @@ const route = await sc(() => {
   t.walk(6.5, -12.6); t.walk(9, -10.5); c.step(5); log.push(['s4', rt.stars[3]]);
   // 5: an den Käfern vorbei auf den Sims
   t.walk(5, -14.2); t.walk(-6.6, -14.5); safe(); t.walk(-14.4, -14.5, 1200, 0.2);
-  c.step(5);
+  p.invuln = 0;
+  c.step(70);
   log.push(['s5', rt.stars[4], p.state, p.treasure]);
   return { log, stars: rt.stars.slice(), treasure: p.treasure, y: p.pos.y };
 });
@@ -407,7 +408,7 @@ check('Stern 3 hinter dem linken Loch (Plattform 2)', route.stars[2]);
 check('Stern 4 auf dem obersten Hügel (rechtes Loch, Treppe)', route.stars[3]);
 check('Stern 5 auf dem schmalen Sims', route.stars[4]);
 check('5. Stern startet den Siegesablauf (victory)', route.treasure);
-await shot('diorama_sieg', () => { window.__course.player.invuln = 0; window.__course.step(30); });
+await shot('diorama_sieg');
 const fin = await sc(() => {
   const c = window.__course;
   for (let i = 0; i < 600 && !c.finished; i++) c.step(1);
@@ -428,12 +429,12 @@ for (const [i, deg] of [[0, 28], [1, 118], [2, -152], [3, -62]].values()) {
 }
 await shot('pflaume_lampe', () => {
   const c = window.__course;
-  c.arch.setOrbit(-150); c.arch.orbit.toggleZoom(); c.arch.orbit.tilt(-14);
-  c.teleport(-6, 0, 9); c.setInput({ x: -0.6, y: -0.6 }); c.step(30); c.setInput({}); c.step(2);
+  c.arch.setOrbit(-120); c.arch.orbit.toggleZoom(); c.arch.orbit.tilt(-16); c.arch.orbit.dists[1] = 6.5;
+  c.teleport(-6, 0, 9); c.step(20); c.setInput({ x: -0.5 }); c.step(12); c.setInput({}); c.step(2);
 });
 await shot('pflaume_buddelt', () => {
   const c = window.__course;
-  c.arch.setOrbit(20);
+  c.arch.orbit.dists[1] = 15; c.arch.setOrbit(20);
   window.__t.walk(-4.5, 7.5, 600, 0.15); c.step(170);
 });
 const dug = await sc(() => window.__course.arch.info().digs);

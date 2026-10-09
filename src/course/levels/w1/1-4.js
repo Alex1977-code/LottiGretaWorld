@@ -89,7 +89,7 @@ export const LEVEL = {
     { from: -98, to: -188, pitch: 42, dist: 11.5, ahead: 2.4, height: 1.0, fov: 42 },
     { from: -188, to: -217, pitch: 36, dist: 11, ahead: 2.6, height: 1.0, fov: 42 },
     { from: -217, to: -247, pitch: 42, dist: 14, ahead: 3, height: 1.1, fov: 42 },
-    { from: -247, to: -290, pitch: 41, dist: 11.5, ahead: 2, height: 1 },
+    { from: -247, to: -290, pitch: 30, dist: 13, ahead: 3, height: 2.2 },
   ],
   segments: [
     // ---------------- Fluss (alle Kanäle in einem Aufruf: Ufer öffnen sich an Gabelung und Mündung)
@@ -137,6 +137,9 @@ export const LEVEL = {
       { kind: 'sign', pos: BANK(main, -97, -1, 2.1, 0.6), yaw: Math.PI / 2 + 0.7 },
       { kind: 'lilies', pos: XZ(side, -146, -2.3), r: 0.8, n: 4 }, { kind: 'lilies', pos: XZ(side, -160, 2.3), r: 0.7, n: 3 },
       { kind: 'lilies', pos: XZ(main, -183, -4.2), r: 0.8, n: 3 },
+      // Strömungspfeile an den Kehren der Zickzack-Strecke und an der Gabelung (links zum bunten Wasserfall)
+      ...[-113, -125, -137, -149, -161, -172].map((z) => ({ kind: 'arrow', pos: XZ(main, z, 0), size: 0.9 })),
+      { kind: 'arrow', pos: XZ(side, -106, 0.5), size: 0.9 }, { kind: 'arrow', pos: XZ(main, -32 - 6, 0.8), size: 0.8 },
     ] },
     { type: 'river_arch', pos: P(side, -135.5), span: 6.6, height: 4.4, depth: 3.2 },
     { type: 'river_fall', from: P(side, -134.1, 0, 4.25), to: P(side, -134.4, 0, 0), width: 6.2, lip: 0.4, rainbow: true },
@@ -151,8 +154,8 @@ export const LEVEL = {
     { type: 'island', pos: [17, -37, -260], size: [10, 4.2, 22], under: 0 },
     { type: 'pipe', pos: [0, LOW, -264], height: 1.25, radius: 1.5, color: 'green' },
     { type: 'river_deco', items: [
-      { kind: 'palm', pos: [-7, LOW, -255], size: 5.6, lean: 0.3, yaw: 0.3 }, { kind: 'palm', pos: [8, LOW, -257], size: 5.2, lean: 0.25, yaw: 2.6 },
-      { kind: 'palm', pos: [-10, LOW, -270], size: 6 }, { kind: 'palm', pos: [11, LOW, -272], size: 5.4 },
+      { kind: 'palm', pos: [-11.5, LOW, -256], size: 5.6, lean: 0.3, yaw: 0.3 }, { kind: 'palm', pos: [12.5, LOW, -258], size: 5.2, lean: 0.25, yaw: 2.6 },
+      { kind: 'palm', pos: [-9, LOW, -274], size: 6 }, { kind: 'palm', pos: [10, LOW, -277], size: 5.4 },
       { kind: 'hut', pos: [7, LOW, -276], yaw: -0.5 }, { kind: 'totem', pos: [-5, LOW, -273], yaw: 0.4 },
       { kind: 'bloom', pos: [-3, LOW, -258] }, { kind: 'bloom', pos: [4, LOW, -268] }, { kind: 'fern', pos: [3.5, LOW, -254] },
       { kind: 'rock', pos: [-4.5, LOW, -262], size: 0.7 }, { kind: 'bush', pos: [-9, LOW, -264] },

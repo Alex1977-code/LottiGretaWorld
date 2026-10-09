@@ -32,7 +32,8 @@
 // river_cliff  { from: [x, z], to: [x, z], y0, y1, depth (4) }  Felswand (Klippe hinter dem großen Wasserfall)
 // river_deco   { items: [{ kind, pos, size?, color?, n?, r?, yaw? }] }  kind: palm | fern | bush | bloom | rock | tree |
 //                lilies (pos [x, z], r, n – auf dem Wasser) | reeds | hut | sign (Pfeilschild, yaw) | totem |
-//                dock (Holzsteg: from/to = Lauffläche, achsenparallel, width; mit Kollision)
+//                dock (Holzsteg: from/to = Lauffläche, achsenparallel, width; mit Kollision) | arrow (Strömungspfeil auf
+//                dem Wasser, pos [x, z], yaw Standard = Fließrichtung, size)
 // Alle Positionen in Metern (Weltkoordinaten), pos = Fußpunkt.
 
 import * as THREE from 'three';
@@ -1310,6 +1311,7 @@ export function buildRiverDeco(level, spec) {
   const net = riverNet(level);
   const items = spec.items ?? [spec];
   const rnd = new Rnd((level.rnd.int(0, 1e9) ^ items.length ^ 0x77) >>> 0);
+  let glowParts = null;
   const groups = new Map();
   const partsFor = (z) => { const k = Math.floor(-z / CHUNK); if (!groups.has(k)) groups.set(k, []); return groups.get(k); };
   for (const it of items) {
@@ -1331,11 +1333,34 @@ export function buildRiverDeco(level, spec) {
       case 'sign': signParts(x, y, z, it.yaw ?? 0, parts); break;
       case 'totem': totemParts(x, y, z, it.yaw ?? 0, parts); break;
       case 'dock': dockParts(level, it, parts); break;
+      case 'arrow': (glowParts ??= []).push(arrowGeo(level, net, x, y, z, it)); break;
       default: console.warn(`[river_deco] unbekannte Art: ${it.kind}`);
     }
     void water;
   }
   for (const parts of groups.values()) if (parts.length) addStatic(level, merge(parts), { castShadow: true });
+  if (glowParts) addStatic(level, merge(glowParts), { material: 'glow', castShadow: false });
+}
+
+/** Strömungspfeil: weißer Doppel-Winkel auf dem Wasser, zeigt in Fließrichtung (bzw. yaw), leicht schwebend. */
+function arrowGeo(level, net, x, y, z, it) {
+  const f = net.sample(x, z);
+  const yaw = it.yaw ?? Math.atan2(-f.dz, f.dx);
+  const s = it.size ?? 1;
+  const local = [];
+  for (const off of [0, 0.75]) {
+    for (const sd of [-1, 1]) {
+      const g = box(1.1 * s, 0.06, 0.24 * s, 0, 0, 0, 0xffffff, { r: 0.05, seg: 1 });
+      g.translate(-0.45 * s, 0, 0);
+      g.rotateY(sd * 0.7);
+      g.translate(off * s, 0, 0);
+      local.push(g);
+    }
+  }
+  const g = merge(local);
+  g.rotateY(yaw);
+  g.translate(x, y + 0.06, z);
+  return g;
 }
 
 export const TYPES = {

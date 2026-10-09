@@ -1,8 +1,8 @@
 // Kamera des Reit-Levels (Archetyp `ride`, Haken camera): Verfolgerkamera hinter dem Floß entlang der mittleren
 // Fließrichtung der nächsten ~26 m (RideController.camYaw, in Simulationsschritten geglättet – im Zickzack mittelt
 // sie die Kehren heraus, in Kurven schwenkt sie mit). Neigung/Abstand/Blickhöhe/Vorausschau aus LEVEL.camera
-// (CameraRig.railAt), Q/E und Zoom wie im Standard. Beim Sturz über die Klippe (player.plunging) steil von oben und
-// weiter weg, folgt der Figur senkrecht. Setzt rig.target (Sonne/Schattenbereich folgen).
+// (CameraRig.railAt), Q/E und Zoom wie im Standard. Beim Sturz über die Klippe (player.plunging) schwenkt sie um 72° zur
+// Seite, fast waagerecht, und fällt mit der Figur (Wasserfall und Lagune im Bild). Setzt rig.target (Sonne/Schatten).
 
 import * as THREE from 'three';
 
@@ -38,14 +38,15 @@ export class RideCamera {
     rig.zoom = damp(rig.zoom, ZOOMS[rig.zoomIndex], 5, dt);
     const snap = !this.inited || this.last.distanceTo(p.pos) > 9 || dt <= 0;
     this.inited = true;
-    const wantYaw = (p.camYaw ?? 0) + (r.yaw + rig.userYaw) * DEG;
+    let wantYaw = (p.camYaw ?? 0) + (r.yaw + rig.userYaw) * DEG;
     let pitch = r.pitch, dist = r.dist * rig.zoom, ahead = r.ahead;
-    if (p.plunging) { pitch = 64; dist = r.dist * 1.3; ahead = 0.5; }
+    // Absturz über die Klippe: die Kamera schwenkt zur Seite und fällt mit – Wasserfall links im Bild, Lagune unten
+    if (p.plunging) { wantYaw += 72 * DEG; pitch = 16; dist = r.dist * 1.1; ahead = 0; }
     if (snap) {
       this.yaw = wantYaw; this.pitch = pitch; this.dist = dist; this.anchorY = p.pos.y; this.lead.set(0, 0, 0);
     } else {
-      this.yaw += wrap(wantYaw - this.yaw) * (1 - Math.exp(-5 * dt));
-      this.pitch = damp(this.pitch, pitch, p.plunging ? 1.8 : 3, dt);
+      this.yaw += wrap(wantYaw - this.yaw) * (1 - Math.exp(-(p.plunging ? 4 : 5) * dt));
+      this.pitch = damp(this.pitch, pitch, p.plunging ? 4 : 3, dt);
       this.dist = damp(this.dist, dist, 2.5, dt);
     }
     // senkrecht: auf dem Wasser/zu Fuß folgen, beim Hüpfen ruhig bleiben, beim Absturz mitfallen

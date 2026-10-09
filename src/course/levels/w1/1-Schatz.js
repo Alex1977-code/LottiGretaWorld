@@ -21,7 +21,7 @@ export const LEVEL = {
   start: { pos: [-9, 0, 11], yaw: Math.PI / 2 },
   diorama: {
     center: [0, 2.5, 0],
-    camera: { yaw: 28, pitch: 46, dist: [36, 19], follow: [0.3, 0.85], fov: 40 },
+    camera: { yaw: 28, pitch: 46, dist: [36, 15], follow: [0.3, 0.9], fov: 40 },
     props: [
       // Häuschen, Pilze, Wimpel
       { kind: 'house', pos: [-11.2, 0, 3.4], yaw: 0.35, size: [3.2, 2.4, 3], roof: 0xe8483a },
