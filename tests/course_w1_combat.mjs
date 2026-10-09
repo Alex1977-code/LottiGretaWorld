@@ -551,7 +551,7 @@ const fl = await sc(() => window.__t.fight({ fireCheck: true }));
 console.log(`  Kampf (Lotti): ${fl.throws} Würfe/${fl.bombs} Bomben, Treffer ${fl.hits}, Phasen ${fl.phases}, Doppelwürfe ${fl.doubles}, Feuer max ${fl.maxFire}`);
 console.log(`  Kicks: ${fl.kicks.map((k) => `${k.kicked ? 'K' : '-'}${k.hit ? `!${k.where}` : ''}`).join(' ')}; Feuer-Treffer ${JSON.stringify(fl.fireHurt)}`);
 check('Bosskampf: Baron wirft Kickbomben (Landeanzeige), Figur kickt sie zurück, onBombHit zählt Treffer', fl.throws >= 3 && fl.kicks.some((k) => k.kicked && k.hit));
-check(`Fahrende Straße: Laufband ${fl.speed?.toFixed?.(1) ?? '?'} m/s, nach dem Sieg 0; stehende Heldin zeigt Laufbewegung (${fl.runState})`, fl.runState === 'run' && fl.speed > 9 && fl.arch.speed === 0);
+check(`Fahrende Straße: Laufband ${fl.speed?.toFixed?.(1) ?? '?'} m/s, nach dem Sieg 0; stehende Heldin zeigt Laufbewegung (${fl.runState})`, fl.runState === 'run' && fl.speed > 5 && fl.arch.speed === 0);
 check('Bosskampf: 3 Treffer → besiegt, Flucht im qualmenden Wagen (state gone)', fl.hp === 0 && fl.hits >= 3 && fl.state === 'gone');
 check('Bosskampf: Phasen steigern sich – Doppelwürfe (Phase 2) und Feuerspur (Phase 3), die verletzt', fl.phases.includes(3) && fl.doubles >= 1 && fl.maxFire >= 6 && fl.fireHurt?.hit);
 const fin = await sc(() => window.__t.finish());

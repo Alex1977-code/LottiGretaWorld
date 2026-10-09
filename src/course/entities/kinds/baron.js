@@ -259,7 +259,7 @@ class Baron extends CourseEntity {
     if (t >= run) { this.setState('drive'); this.throwCool = 0.8; this.throwCount++; }
   }
 
-  /** Zurückgekickte Bomben, die grob auf den Wagen zurollen, lenken leicht ein (max. 1,1 rad/s). */
+  /** Zurückgekickte Bomben, die grob auf den Wagen zurollen (±50°), lenken zu ihm ein (max. 2 rad/s). */
   aimAssist(dt) {
     for (const e of this.level.entities) {
       if (e.kind !== 'kickbombe' || !e.kicker || e.state !== 'kicked' || e.removed) continue;
@@ -267,9 +267,9 @@ class Baron extends CourseEntity {
       if (d > 18 || d < 0.5) continue;
       const tx = dx / d, tz = dz / d;
       const dot = e.dir.x * tx + e.dir.z * tz;
-      if (dot < 0.8) continue;
+      if (dot < 0.64) continue;
       const cross = e.dir.x * tz - e.dir.z * tx;
-      const a = Math.max(-1.1 * dt, Math.min(1.1 * dt, Math.asin(clamp(cross, -1, 1))));
+      const a = Math.max(-2 * dt, Math.min(2 * dt, Math.asin(clamp(cross, -1, 1))));
       const c = Math.cos(a), s = Math.sin(a);
       const nx = e.dir.x * c - e.dir.z * s, nz = e.dir.x * s + e.dir.z * c;
       e.dir.x = nx; e.dir.z = nz;
