@@ -123,10 +123,11 @@ export class LevelRuntime {
     if (this.status === 'done') return this.result;
     this.status = 'done';
     const d = this.level.data;
-    const entry = this.save.completeLevel(d.id, { stars: this.stars.slice(0, 3), stamp: this.stamp, time: this.elapsed, pole: this.pole ?? 0 });
+    const nStars = Math.max(3, this.starCount);   // Dioramen haben 5 Sterne, Arenen 1
+    const entry = this.save.completeLevel(d.id, { stars: this.stars.slice(0, nStars), stamp: this.stamp, time: this.elapsed, pole: this.pole ?? 0 });
     this.result = {
       id: d.id, title: d.title, world: d.world, pole: this.pole ?? 0, points: this.points, top: !!this.top,
-      coins: this.coins, stars: this.stars.slice(0, 3), starsSaved: this.starsSaved, stamp: this.stamp, stampSaved: this.stampSaved,
+      coins: this.coins, stars: this.stars.slice(0, nStars), starsSaved: this.starsSaved, stamp: this.stamp, stampSaved: this.stampSaved,
       time: this.elapsed, timeLeft: this.timeLeft, bestTime: entry.bestTime, lives: this.save.lives,
     };
     this.level.scene?.onLevelDone?.(this.result);
