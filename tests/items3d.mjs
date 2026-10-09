@@ -65,7 +65,9 @@ const meshes = await sc(() => {
   return out;
 });
 console.log('  Meshes je Avatar:', JSON.stringify(meshes));
-check('Jeder Avatar ≤ 20 Meshes', Object.values(meshes).every((n) => n <= 20));
+// Heldinnen und Pflaume haben ein eigenes Budget (tests/figures3d.mjs, Zöpfe, Kurs-Arme) – hier nur Gegner und Objekte
+const FIGURES = new Set(['lotti', 'greta', 'pflaume']);
+check('Jeder Gegner-/Objekt-Avatar ≤ 20 Meshes', Object.entries(meshes).every(([k, n]) => FIGURES.has(k) || n <= 20));
 
 const T = 16, FLOOR = 22;
 const pos = await sc(() => {
