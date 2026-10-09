@@ -315,7 +315,7 @@ export const LEVEL = {
     snap(77, 0, -62),                                                     // P-Schalter-Raum
     snap(-43.8, 48, -162), snap(-41.6, 47, -146.5),                       // Münzhimmel
     // Zwischenboss (3 Treffer: Feuerbälle, Tatzenhieb oder Stampfen direkt neben ihr)
-    { kind: 'riesenschnappblume', pos: [0, 30, -196.5], id: 'gipfelboss', hp: 3, base: 'ground', yaw: Math.PI / 2 },
+    { kind: 'riesenschnappblume', pos: [0, 30, -196.5], id: 'gipfelboss', hp: 3, base: 'ground', yaw: -Math.PI / 2 },
   ],
   items: [
     // 1 Startplatz: Münzen an der Ranke, Spur zur Brücke, Bogen im Schacht
