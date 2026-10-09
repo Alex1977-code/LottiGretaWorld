@@ -126,7 +126,8 @@ console.log('  auf 1-1 nach', r.i, 'Schritten', JSON.stringify(st.player));
 check('Laufen zum Eingang 1-1: Figur steht auf dem Podest', st.onPad === '1-1');
 await sc(() => window.__courseMap.hud.touchCtl.setVisible(true));
 await sc(() => window.__courseMap.step(1));
-await shot('eingang_11_touch', 1500);
+await page.waitForFunction(() => window.__courseMap.hud.goBtn.visible, null, { timeout: 15000 }).catch(() => {});
+await shot('eingang_11_touch', 1000);
 check('Touch: „Los!“-Knopf erscheint auf freiem Eingang', (await sc(() => window.__courseMap.state().goVisible)));
 await sc(() => window.__courseMap.hud.touchCtl.setVisible(false));
 await sc(() => window.__courseMap.setInput({ jump: true }));
@@ -185,8 +186,9 @@ await shot('beerenhaus');
 await sc(() => { const m = window.__courseMap; m.teleport(2, 1, 33.6, Math.PI / 2); m.step(10); });
 r = await walkTo(2, 31, (s) => s.onPad === '1-1', 300);
 await sc(() => { const m = window.__courseMap; m.step(20); m.hud.touchCtl.setVisible(true); m.step(1); });
-await page.waitForTimeout(800);
-r = await sc(() => { const b = window.__courseMap.hud.goBtn; return { x: b.x, y: b.y, vis: b.visible }; });
+await page.waitForFunction(() => window.__courseMap.hud.goBtn.visible, null, { timeout: 15000 }).catch(() => {});
+r = await sc(() => { const m = window.__courseMap; const b = m.hud.goBtn; return { x: b.x, y: b.y, vis: b.visible, pad: m.onPad?.id ?? null, locked: m.inputLocked, p: m.player.info() }; });
+if (!r.vis) console.log('  „Los!“ nicht sichtbar:', JSON.stringify(r));
 await sc(([x, y]) => window.__tap(x, y), [r.x, r.y]);
 await waitCourse();
 r = await sc(() => ({ id: window.__course.levelId, power: window.__course.player.power, left: window.__courseSave.carryPower }));
@@ -283,6 +285,18 @@ check('„Ja, löschen“: Spielstand leer, nur 1-1 frei', Object.entries(st.ent
 // Kennzahlen der Karte
 const stats = await sc(() => window.__courseMap.stats());
 console.log('  Kennzahlen', JSON.stringify(stats));
+check('Kennzahlen im Budget (< 120 Zeichenaufrufe, < 300 k Dreiecke)', stats.calls < 120 && stats.triangles < 300000);
+
+// ------------------------------------------------------------------ 11) Startfluss
+await page.goto(`http://localhost:${port}/?scale=2&adapt=0`, { waitUntil: 'load' });
+await page.waitForFunction(() => window.__game && (window.__game.scene.isActive('CourseMap') || window.__game.scene.isActive('WorldMap')), null, { timeout: 60000 }).catch(() => {});
+check('Ohne Parameter startet die Kurs-Weltkarte', (await active('CourseMap')) && !(await active('WorldMap')));
+await page.goto(`http://localhost:${port}/?classic=1&scale=2&adapt=0`, { waitUntil: 'load' });
+await page.waitForFunction(() => window.__game && (window.__game.scene.isActive('CourseMap') || window.__game.scene.isActive('WorldMap')), null, { timeout: 60000 }).catch(() => {});
+check('?classic=1 startet die Klassik-Weltkarte', (await active('WorldMap')) && !(await active('CourseMap')));
+await page.goto(`http://localhost:${port}/?course=0-0&scale=2&adapt=0`, { waitUntil: 'load' });
+await page.waitForFunction(() => window.__game && window.__game.scene.isActive('Course'), null, { timeout: 60000 }).catch(() => {});
+check('?course=0-0 startet das Level direkt', await active('Course'));
 
 await browser.close();
 stop();

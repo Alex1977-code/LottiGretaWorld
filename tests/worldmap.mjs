@@ -3,7 +3,7 @@
 import { startServer, launchBrowser, loadGame, makeChecker, renderOverview, OUT } from './helpers.mjs';
 
 const PORT = 4183;
-const URL_BASE = `http://localhost:${PORT + Number(process.env.PORT_BASE ?? 0)}/?scale=${process.env.RENDER_SCALE ?? '1'}&r3d=${process.env.RENDER_3D ?? '0'}&adapt=0`;
+const URL_BASE = `http://localhost:${PORT + Number(process.env.PORT_BASE ?? 0)}/?scale=${process.env.RENDER_SCALE ?? '1'}&r3d=${process.env.RENDER_3D ?? '0'}&adapt=0&classic=1`;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser({ hasTouch: true });
 const { check, summary } = makeChecker();

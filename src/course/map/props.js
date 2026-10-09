@@ -382,7 +382,7 @@ export function leafRaftGeo() {
     const b = new Build();
     const s = new THREE.Shape();
     s.moveTo(0, -1.4); s.quadraticCurveTo(1.25, -0.5, 0.9, 0.7); s.quadraticCurveTo(0.4, 1.4, 0, 1.6); s.quadraticCurveTo(-0.4, 1.4, -0.9, 0.7); s.quadraticCurveTo(-1.25, -0.5, 0, -1.4);
-    b.extrude(s, 0.12, { v: (x, y, z, nx, ny, nz) => mix(0x3fae3a, 0x7ee052, Math.abs(x) < 0.07 ? 1 : 0.3) }, { r: [-Math.PI / 2, 0, 0], p: [0, 0.06, 0] }, 0.04, 8);
+    b.extrude(s, 0.12, { v: (x) => mix(0x3fae3a, 0x7ee052, Math.abs(x) < 0.07 ? 1 : 0.3) }, { r: [-Math.PI / 2, 0, 0], p: [0, 0.06, 0] }, 0.04, 8);
     b.box(0.08, 0.05, 2.6, 0x9ee07a, { p: [0, 0.15, -0.05] }, 0);
     return b.geometry();
   });

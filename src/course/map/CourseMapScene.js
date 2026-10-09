@@ -52,7 +52,7 @@ function parseAlias() {
   try {
     const p = new URLSearchParams(window.location.search).get('mapAlias');
     if (p) for (const pair of p.split(',')) { const [a, b] = pair.split(':'); if (a && b) out[a.trim()] = b.trim(); }
-  } catch (_) { /* ohne URL */ }
+  } catch { /* ohne URL */ }
   return out;
 }
 

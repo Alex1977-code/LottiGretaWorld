@@ -16,7 +16,6 @@ import { Build, mix, cached } from '../models/lib/kit.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 import { PODIUM_R } from './layout.js';
 
-const TAU = Math.PI * 2;
 
 /** Geometrie in Weltkoordinaten kopieren (gedreht um yaw, verschoben). */
 function placed(geo, x, y, z, yaw = 0) {
@@ -303,4 +302,3 @@ function meadowGateGeo(x, y, z) {
   return b.geometry();
 }
 
-export { TAU };

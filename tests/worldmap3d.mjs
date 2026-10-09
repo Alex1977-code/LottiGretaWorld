@@ -4,7 +4,7 @@
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
 const PORT = 4189;
-const URL_BASE = `http://localhost:${PORT + Number(process.env.PORT_BASE ?? 0)}/?scale=2&r3d=1&adapt=0`;
+const URL_BASE = `http://localhost:${PORT + Number(process.env.PORT_BASE ?? 0)}/?scale=2&r3d=1&adapt=0&classic=1`;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser({ hasTouch: true });
 const { check, summary } = makeChecker();

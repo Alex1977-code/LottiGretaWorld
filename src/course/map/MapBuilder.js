@@ -7,7 +7,7 @@
 
 import * as THREE from 'three';
 import { getBlockType } from '../blocks/index.js';
-import { islandParts, box, lin, mixc, colorize, merge, Rnd } from '../blocks/kit.js';
+import { islandParts, lin, mixc, colorize, merge, Rnd } from '../blocks/kit.js';
 import { roundedBox, SIDE } from '../../three/world/geometry.js';
 import { buildWalkGrid, gateRects } from './layout.js';
 import { hedgeGeo, fenceGeo, rockCapGeo, berryHouseGeo, itemStandGeo, signGeo, signTextMesh, vcol } from './props.js';
@@ -324,4 +324,3 @@ function buildPaths(level, map, grid, ground, sea) {
   return count;
 }
 
-export { box, THREE };

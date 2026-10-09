@@ -594,6 +594,8 @@ src/course/map/
   walkgrid.js         Raster des begehbaren Bereichs (0,5 m), Randkanten → unsichtbare Wände, Flutfüllung
   unlock.js           Freischaltung (pathOpen, unlocked, reason, worldStars, levelProgress) – rein, Node-tauglich
   MapBuilder.js       Kartenbau: Gelände, Standard-Bausteine, Hecken/Zäune, Wände, Platten-Wege, Eingänge, Schranken, Haus
+  MapBatcher.js       verschmilzt die statische Karten-Geometrie in 32×32-m-Kacheln (view.addStatic wird während des
+                      Kartenbaus umgeleitet – besseres Culling auf der breiten Insel, auch im Schattenpass)
   entrances.js        Eingangs-Podest (Nummernscheibe, Schloss, Leuchtring, Fahne) + Kulisse je Art
   gates.js            Schranke aus Steinblöcken (Kollision, Versink-Animation im Simulationstakt)
   entities.js         MapRoamer (wandernde Gegnergruppe), MapItem (Gratis-Power-up) – ohne Entitäten-Registry
@@ -632,17 +634,21 @@ export const MAP = {
     { id: '2-Burg', after: '2-5', minStars: 20, stars: 3, stamp: true },  // minStars: Sterne dieser Welt
     { id: 'W3', after: '2-Burg', world: 3, label: 'Welt 3', next: 3, stars: 0 },  // Übergang (Glasröhre)
   ],
-  ground: [{ rect: [x0, z0, x1, z1], top, walk?: true, style?: 'grass'|'rock'|'meadow'|'pond', noDeco? }],
+  ground: [{ rect: [x0, z0, x1, z1], top, walk?: true, style?: 'grass'|'rock'|'meadow'|'pond'|'sand', noDeco?, noEdge? }],
   walk: [[x0, z0, x1, z1]],                           // zusätzlich begehbar (Brücken, Treppen, Teich, Steg)
   paths: [[[x, z], …]],                               // helle Platten-Wege (2 m), auf Treppen/Brücken ausgelassen
   entrances: [{ id, kind, pos: [x, y, z], decor?: [x, y, z], exit?: [x, y, z], labelY?, cage?, waterfall?, pipe? }],
   gates: [{ for: '2-2', at: [x, z], axis: 'x'|'z' }], // Schranke quer über die Engstelle; axis = Laufrichtung
   roamers: [{ level: '2-A', model: 'name', count: 2, from: [x, y, z], to: [x, y, z], speed }],
   houses: [{ kind: 'beeren', pos, yaw, item: [x, y, z], items: ['krallen', 'funken'] }],
+  signs: [{ pos: [x, y, z], yaw, text: 'Welt 2\nWüste' }],      // Holzschilder
+  intro: { from: [x, y, z], look: [x, y, z], duration: 3 } | false,  // Anflug beim Betreten (Standard: von Süden)
   segments: [ /* Standard-Bausteine wie im Level-Format */ ],
 };
 ```
 
+- Nicht begehbare Grasblöcke bekommen automatisch Bäume, Büsche, Blumen (`noDeco` schaltet ab); `noEdge` an einem
+  Block unterdrückt Hecke/Zaun an angrenzenden Rändern (z. B. Sandstrand).
 - **Begehbar** ist nur die Vereinigung der Rechtecke `ground[].walk` + `walk` (achsenparallel, Raster 0,5 m). An allen
   Rändern entstehen unsichtbare, 40 m hohe Wände (`camIgnore`, `noWallSlide`); wo daneben gleich hohes oder bis 3,5 m
   höheres Gelände liegt, setzt der Bau eine Hecke, an Abbrüchen zu tieferem Land einen weißen Zaun, am Meer nichts.
@@ -674,6 +680,8 @@ Schranke, die Blöcke versinken, das Podest hüpft; danach steht die Id in `mapO
   `scene.start('Course', { id })`. Die Gegnergruppe startet ihr Level bei Berührung (wenn frei).
 - Level → Karte: `scene.start('CourseMap', { from, done?, gameOver? })` (Motor). Die Figur steht vor dem Eingang
   (`exit` bzw. 2,6 m Richtung Kamera), blickt zur Kamera; `done` zeigt „… geschafft!“, `gameOver` einen Hinweis.
+- Beim Betreten einer Welt (nicht nach einem Level) fliegt die Kamera aus einer flachen Ansicht mit Himmel, Sonne und
+  Wolken zur Heldin (≈3 s, jede Eingabe überspringt; Weltname wird eingeblendet).
 - Karten-HUD: Leben, Bitcoins, Sterne der Welt (gesammelt/möglich), Porträts Lotti/Greta (Tab), Ton (M), „Klassik“
   (→ `'WorldMap'`), „Neu“ (Spielstand des Kurs-Modus löschen, mit Rückfrage). Die Klassik-Karte hat den Knopf „3D-Kurs“.
 - Testparameter `?mapAlias=1-1:0-0,…`: Eingang startet ein Ersatz-Level (solange es das echte noch nicht gibt); das

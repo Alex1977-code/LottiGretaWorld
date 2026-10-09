@@ -80,7 +80,7 @@ export class MapHud {
     const btn = (x, label, cb, opts = {}) => {
       const b = uiButton(scene, x, 15, label, { size: 8, dark: true, padX: 8, padY: 5, minWidth: 46, ...opts }).setDepth(44);
       growHit(b, Math.max(46, (opts.minWidth ?? 46)), 32);
-      b.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev?.stopPropagation?.(); cb(); });
+      b.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev?.stopPropagation?.(); if (!this.confirm) cb(); });
       return b;
     };
     this.resetBtn = btn(W - 24, 'Neu', () => this.askReset(), { minWidth: 40 });
@@ -99,7 +99,7 @@ export class MapHud {
       c.add([ring, face, label]);
       c.setSize(34, 40);
       c.setInteractive({ hitArea: new Phaser.Geom.Circle(17, 20, 20), hitAreaCallback: Phaser.Geom.Circle.Contains, useHandCursor: true });
-      c.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev?.stopPropagation?.(); scene.selectHero(key); });
+      c.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev?.stopPropagation?.(); if (!this.confirm) scene.selectHero(key); });
       this.heroPicker[key] = { c, ring };
     });
     this.traitText = uiText(scene, 41, 76, '', { size: 6, color: '#ffe9a8', stroke: '#2a2550', thickness: 2, shadow: false }).setDepth(44);
@@ -121,7 +121,7 @@ export class MapHud {
     // rechts neben der Bildmitte (Daumen der rechten Hand, verdeckt weder Figur noch Podest)
     this.goBtn = uiButton(scene, W - 112, 128, 'Los!', { size: 15, color: 0x4fb833, minWidth: 104, padY: 7 }).setDepth(95).setVisible(false);
     growHit(this.goBtn, 120, 44);
-    this.goBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev?.stopPropagation?.(); scene.pressGo(); });
+    this.goBtn.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev?.stopPropagation?.(); if (!this.confirm) scene.pressGo(); });
 
     // ---- Meldung
     this.toastText = uiText(scene, W / 2, 62, '', { size: 12, color: '#ffffff', stroke: '#3a2a6a', thickness: 4 }).setDepth(70).setVisible(false);
@@ -212,24 +212,32 @@ export class MapHud {
     if (!this.confirmUi) this.confirmUi = this.buildConfirm();
     this.confirmUi.c.setVisible(true);
     this.confirm = this.confirmUi;
+    this.touchWasVisible = this.touchCtl.visible;
+    this.touchCtl.releaseAll();
+    this.touchCtl.setVisible(false);
     this.scene.setInputLocked(true);
   }
 
   buildConfirm() {
     const s = this.scene, W = GAME.width, H = GAME.height;
     const c = s.add.container(0, 0).setDepth(120);
-    const shade = s.add.rectangle(0, 0, W, H, 0x10102a, 0.55).setOrigin(0).setInteractive();
-    shade.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => ev?.stopPropagation?.());
+    // Abdunkeln ohne eigene Trefffläche: Knöpfe darunter sind gesperrt (this.confirm), Touch-Steuerung ist aus
+    const shade = s.add.rectangle(0, 0, W, H, 0x10102a, 0.55).setOrigin(0);
     const panel = uiPanel(s, W / 2, H / 2, 230, 112);
     const t1 = uiText(s, W / 2, H / 2 - 30, 'Spielstand löschen?', { size: 13, color: '#3a2a6a', stroke: '#ffffff', thickness: 3, shadow: false });
     const t2 = uiText(s, W / 2, H / 2 - 10, 'Alle Sterne, Stempel und Bitcoins\ndes 3D-Kurses gehen verloren.', { size: 7.5, color: '#5a4a7a', stroke: '#ffffff', thickness: 2, shadow: false });
     const yes = uiButton(s, W / 2 - 54, H / 2 + 30, 'Ja, löschen', { size: 9, color: 0xe0453a, minWidth: 92, padY: 7 });
     const no = uiButton(s, W / 2 + 54, H / 2 + 30, 'Nein', { size: 9, color: 0x4fb833, minWidth: 92, padY: 7 });
-    growHit(yes, 100, 36); growHit(no, 100, 36);
-    yes.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev?.stopPropagation?.(); if (!this.confirm) return; this.closeConfirm(); s.resetSave(); });
-    no.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev?.stopPropagation?.(); this.closeConfirm(); });
+    // Treffer selbst prüfen (Szenen-Ereignis): unabhängig von der Reihenfolge der Phaser-Treffflächen im Container
+    yes.disableInteractive(); no.disableInteractive();
     c.add([shade, panel, t1, t2, yes, no]);
     c.setVisible(false);
+    const inside = (b, p) => Math.abs(p.worldX - b.x) <= Math.max(50, b.width / 2 + 4) && Math.abs(p.worldY - b.y) <= Math.max(18, b.height / 2 + 4);
+    s.input.on(Phaser.Input.Events.POINTER_DOWN, (p) => {
+      if (!this.confirm) return;
+      if (inside(yes, p)) { this.closeConfirm(); s.resetSave(); }
+      else if (inside(no, p)) this.closeConfirm();
+    });
     return { c, yes, no };
   }
 
@@ -237,6 +245,7 @@ export class MapHud {
     if (!this.confirm) return;
     this.confirm.c.setVisible(false);
     this.confirm = null;
+    if (this.touchWasVisible) this.touchCtl.setVisible(true);
     this.scene.setInputLocked(false);
   }
 
@@ -268,7 +277,7 @@ export class MapHud {
     const s = this.scene;
     const p = s.player.pos;
     const near = s.nearEntrance?.id ?? null;
-    for (const [id, ev] of s.entranceViews()) {
+    for (const id of s.entranceViews().keys()) {
       const st = s.status(id);
       let lab = this.labels.get(id);
       if (!lab) { lab = this.makeLabel(id); this.labels.set(id, lab); }
