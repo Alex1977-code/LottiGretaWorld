@@ -19,6 +19,7 @@
 //   warp: 'warp_sieg',                            versteckte Warp-Box (reveal() nach dem Sieg); fehlt sie, erscheint
 //                                                 eine eigene Warp-Röhre am Punkt warpPos mit Ziel warpTo
 //   warpPos: [x, y, z], warpTo: [x, y, z],
+//   frame: 0.42,                                  Kampfkamera: Blickziel so weit von der Figur zum Wagen (0..1)
 // }
 // info(): { started, won, speed, boss: baron.info(), hud, deaths }.
 
@@ -191,6 +192,17 @@ class Boss {
     rig.custom = own;
     const b = this.boss;
     if (!b || !b.visible) return true;
+    // Kampf: Blickziel zwischen Figur und Wagen (beide im Bild), weich eingeblendet
+    const fight = b.state !== 'wait' && b.state !== 'gone' && b.state !== 'flee';
+    this.frame = Math.max(0, Math.min(1, (this.frame ?? 0) + (fight ? dt : -dt) * 1.6));
+    if (this.frame > 0) {
+      const f = smooth(this.frame);
+      const front = b.home.z + b.half.z;
+      const tz = lerp(player.pos.z, front, this.cfg.frame ?? 0.42);
+      rig.target.z = lerp(rig.target.z, tz, f);
+      rig.target.x = lerp(rig.target.x, player.pos.x * 0.5, f);
+      rig.place(rig.cur, dt);
+    }
     let k = 0, tgt = null, dist = null;
     if (b.state === 'intro') {
       k = smooth(b.stateT / 0.5) * (1 - smooth((b.stateT - 1.9) / 0.5));

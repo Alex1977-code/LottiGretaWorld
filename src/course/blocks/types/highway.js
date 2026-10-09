@@ -23,7 +23,9 @@
 //   cone     Leitkegel: { pos } | cones { from, to, n }
 //   car      geparktes Kugelauto (Kollision): { pos, yaw (0 = Front nach +X), color }
 //   lamp     Laterne: { pos, side: 1 | -1 (Arm nach +X / −X) }
-//   bridge   Überführung quer über die Straße: { z, y (Unterkante), x0, x1, width: 6 } – Pfeiler mit Kollision
+//   bridge   Überführung quer über die Straße: { z, y (Unterkante), x0, x1, width: 6, solid: false } – Pfeiler mit
+//            Kollision; solid: auch die Brückenplatte ist fest (z. B. als Deckel über einer Wand)
+//   block    unsichtbare Sperre (Kollision, camIgnore): { min: [x, y, z], max: [x, y, z] }
 //   tlight   Ampel (Modell traffic_light): { pos, yaw, mode: 'start' (rot → gelb → grün) | 'blink' }
 // Kollision: Platten (box), Leitplanken (box, camIgnore, noWallSlide), Pfeiler/Pfosten außerhalb der Fahrbahn
 // (box/cyl), Leitwände, Autos.
@@ -300,9 +302,12 @@ export function buildBossRoad(level, spec) {
   // Signs-Atlas für Schilderbrücken
   const signMesh = signsMesh(level, group);
   const hw = highwayState(level);
+  const cam = view.camera;
   addObject(level, group, (dt) => {
     hw.offset += hw.speed * dt;
     group.position.z = ((hw.offset % P) + P) % P;
+    // nur zeichnen, wenn die Kamera in der Nähe ist (die Teile sind nicht nach Abschnitten zerlegt)
+    group.visible = cam.position.z < r.z0 + 80 && cam.position.z > r.z1 - 40;
   });
   // Schilderflächen (Textur) fahren mit
   if (signMesh) for (let k = 0; k * P < ze - zs; k++) {
@@ -455,14 +460,23 @@ export function buildSkyline(level, spec) {
   const cols = T(th, 'city', [0x2c2448, 0x3a2f5c, 0x47386a, 0x332a52]);
   const win = T(th, 'cityWindow', 0xffd88a);
   const front = [], frontGlow = [], side = [], sideGlow = [];
+  /** Fensterfläche (2 Dreiecke, blickt nach +Z). */
+  const pane = (x, y, z, w, h, color) => {
+    const c = lin(color);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute([x - w / 2, y - h / 2, z, x + w / 2, y - h / 2, z, x + w / 2, y + h / 2, z, x - w / 2, y - h / 2, z, x + w / 2, y + h / 2, z, x - w / 2, y + h / 2, z], 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute([...c, ...c, ...c, ...c, ...c, ...c], 3));
+    return g;
+  };
   const tower = (x, z, w, d, h, out, glow, base) => {
     const c = rnd.pick(cols);
     out.push(fb(w, h, d, x, base + h / 2, z, c));
     if (rnd.chance(0.35)) out.push(fb(w * 0.6, h * 0.18, d * 0.6, x, base + h + h * 0.09, z, c));
     if (rnd.chance(0.25)) out.push(fb(0.3, h * 0.25, 0.3, x, base + h + h * 0.12, z, 0x8a84a8));
     // Fensterreihen (Fläche zur Kamera, +Z)
-    for (let yy = base + 3; yy < base + h - 2; yy += 3.2) {
-      for (let xx = x - w / 2 + 1.2; xx < x + w / 2 - 0.8; xx += 2.2) if (rnd.chance(0.45)) glow.push(fb(1.1, 1.2, 0.1, xx, yy, z + d / 2 + 0.05, rnd.chance(0.8) ? win : 0xffa0c0));
+    for (let yy = base + 3; yy < base + h - 2; yy += 3.4) {
+      for (let xx = x - w / 2 + 1.2; xx < x + w / 2 - 0.8; xx += 2.4) if (rnd.chance(0.4)) glow.push(pane(xx, yy, z + d / 2 + 0.05, 1.1, 1.2, rnd.chance(0.8) ? win : 0xffa0c0));
     }
   };
   // Bogen voraus (relativ zur Kamera): 180 … 250 m
@@ -482,13 +496,12 @@ export function buildSkyline(level, spec) {
   }
   const group = new THREE.Group();
   group.name = 'stadtsilhouette';
-  const fMat = new THREE.MeshBasicMaterial({ vertexColors: true });
-  const gMat = new THREE.MeshBasicMaterial({ vertexColors: true });
-  const frontM = new THREE.Mesh(merge([...front]), fMat), frontW = new THREE.Mesh(merge([...frontGlow]), gMat);
-  const sideG = new THREE.Group();
-  sideG.add(new THREE.Mesh(merge(side), fMat), new THREE.Mesh(merge(sideGlow), gMat));
-  for (const m of [frontM, frontW, ...sideG.children]) { m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false; }
-  group.add(frontM, frontW, sideG);
+  // ein Mesh je Band (Körper + Fenster, unbeleuchtet, Nebel färbt sie zur Silhouette)
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true });
+  const frontM = new THREE.Mesh(merge([...front, ...frontGlow]), mat);
+  const sideG = new THREE.Mesh(merge([...side, ...sideGlow]), mat);
+  for (const m of [frontM, sideG]) { m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false; }
+  group.add(frontM, sideG);
   const hw = highwayState(level);
   const cam = level.view.camera;
   let lastCamZ = null, scroll = 0;
@@ -583,6 +596,10 @@ export function buildHwDeco(level, spec) {
       case 'bridge':
         bridgeGeo(it, th, parts, glow);
         for (const x of [it.x0 + 2.5, it.x1 - 2.5]) level.world.add({ type: 'box', min: [x - 0.7, it.y - 34, it.z - 0.7], max: [x + 0.7, it.y, it.z + 0.7], camIgnore: true, tag: 'bridgepillar' });
+        if (it.solid) { const d = (it.width ?? 6) / 2; level.world.add({ type: 'box', min: [it.x0, it.y, it.z - d], max: [it.x1, it.y + 2.1, it.z + d], camIgnore: true, tag: 'bridge' }); }
+        break;
+      case 'block':
+        level.world.add({ type: 'box', min: it.min, max: it.max, camIgnore: true, noWallSlide: true, tag: it.tag ?? 'invisible' });
         break;
       case 'tlight': {
         if (!level.view) break;

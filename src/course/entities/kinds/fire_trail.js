@@ -121,6 +121,7 @@ class FireTrail extends CourseEntity {
       this.glows.setMatrixAt(i, _m.compose(_p, _q, _s));
     }
     this.flames.count = n; this.glows.count = n;
+    this.flames.visible = this.glows.visible = n > 0;
     this.flames.instanceMatrix.needsUpdate = true;
     this.glows.instanceMatrix.needsUpdate = true;
   }

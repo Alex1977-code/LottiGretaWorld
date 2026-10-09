@@ -12,6 +12,7 @@
 // boss_marker   Landeanzeige einer geworfenen Bombe: roter Ring mit Fadenkreuz am Boden (Ø 1,6 m), pulsiert.
 //               state { k: 0..1 (wie nah der Einschlag ist) }
 
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   THREE, TAU, Build, cached, vcol, basic, mesh, joint, makeModel, Clock, damp, clamp, glowSprite, puffyStarGeo,
 } from '../lib/kit.js';
@@ -41,12 +42,18 @@ function cannonBaseGeo() {
 function cannonYokeGeo() {
   return cached('cannon:yoke', () => {
     const b = new Build();
-    for (const s of [1, -1]) b.box(0.5, 0.55, 0.12, CN.wood, { p: [0, 0.28, s * 0.42] }, 0.05, 1);
-    b.box(0.5, 0.1, 0.96, CN.wood, { p: [0, 0.05, 0] }, 0.04, 1);
-    for (const s of [1, -1]) b.cyl(0.08, 0.08, 0.06, CN.gold, { p: [0, 0.42, s * 0.5], r: [Math.PI / 2, 0, 0] }, 12);
+    const y = 1.06;   // auf dem Drehkranz (Sockel und Gabel sind ein Mesh – das ganze Modell dreht sich mit der Gier)
+    for (const s of [1, -1]) b.box(0.5, 0.55, 0.12, CN.wood, { p: [0, y + 0.28, s * 0.42] }, 0.05, 1);
+    b.box(0.5, 0.1, 0.96, CN.wood, { p: [0, y + 0.05, 0] }, 0.04, 1);
+    for (const s of [1, -1]) b.cyl(0.08, 0.08, 0.06, CN.gold, { p: [0, y + 0.42, s * 0.5], r: [Math.PI / 2, 0, 0] }, 12);
     return b.geometry();
   });
 }
+const cannonStandGeo = () => cached('cannon:stand', () => {
+  const g = mergeGeometries([cannonBaseGeo().clone(), cannonYokeGeo().clone()], false);
+  g.computeBoundingSphere();
+  return g;
+});
 function cannonBarrelGeo() {
   return cached('cannon:barrel', () => {
     const b = new Build();
@@ -70,9 +77,8 @@ const flashGeo = () => cached('cannon:flash', () => new Build().add(puffyStarGeo
 
 function buildCannon() {
   const root = new THREE.Group();
-  const base = mesh(cannonBaseGeo(), vcol(0.45), {}, true);
+  const base = mesh(cannonStandGeo(), vcol(0.45), {}, true);
   const turret = joint([0, 1.06, 0]);
-  const yoke = mesh(cannonYokeGeo(), vcol(0.6), {}, true);
   const pivot = joint([0, 0.42, 0]);
   const recoil = joint();
   const barrelMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.32, metalness: 0.25, emissive: 0x000000 });
@@ -83,7 +89,7 @@ function buildCannon() {
   const smoke = mesh(smokeGeo(), basic('cannonSmoke', { color: 0xffffff, vertexColors: true, transparent: true, opacity: 0.75, depthWrite: false }), { p: [1.4, 0, 0] });
   recoil.add(barrel, spark, flash, smoke);
   pivot.add(recoil);
-  turret.add(yoke, pivot);
+  turret.add(pivot);
   root.add(base, turret);
   const clk = new Clock();
   let aim = 0.5;
