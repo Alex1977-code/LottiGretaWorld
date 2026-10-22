@@ -1130,7 +1130,7 @@ brummer, krallen_pilzling, pilzlingsturm, rammbock_bulle, stampfstein, zauberkro
 (21 sichtbare Meshes, davon 14 mit Schattenwurf; der geschlossene Mund wird jetzt ausgeblendet). Ein Klon mit `lite` ≈ 15
 (kein Schattenwurf, Zöpfe nur oberes Glied, ohne Augen-Glanzpunkte). Klonwiese am Start: 1 Figur 77, 5 Figuren 137
 Zeichenaufrufe (Ziel < 140), je Klon ≈ 15;
-dichte Stellen (Viererlift-Turm mit 4 Figuren oben, weite Sicht) bis 151, 99–165 k Dreiecke. Vorher (ohne Sparmaßnahmen) kostete
+dichte Stellen (Viererlift-Turm mit 4 Figuren oben, weite Sicht) ≈ 150–155; 99–169 k Dreiecke. Vorher (ohne Sparmaßnahmen) kostete
 jede Figur ≈ 35 → 5 Figuren ≈ 175 + Level.
 
 ### Präzisierung (Motor Welt 2): Mehrfigur-Bausteine (Daten)
