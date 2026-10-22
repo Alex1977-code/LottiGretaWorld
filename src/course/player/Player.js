@@ -26,6 +26,18 @@
 //    Aufheben und Power-up, Ducken + Aktion setzt ihn ab, ein Treffer schlägt ihn ab (statt Schaden).
 //  - Treibsand (Baustein quicksand): `sand` (Form), `sandDepth` (m eingesunken); langsamer, schwerer Sprung,
 //    ganz eingesunken → die('sand').
+//
+// Ergänzungen (Präzisierung Motor Welt 3):
+//  - Eis (Formflag ice): wenig Reibung, Rutschen beim Anhalten/Wenden, Rennen baut sich langsamer auf (MOVE.ice*).
+//  - Gleitblatt (powers/gleitblatt.js): Schwanzhieb rundum (`tailTime`, attackInfo.around), Gleiten (`gliding`,
+//    state 'glide'), Statue (player/statue.js: mode 'script', script.type 'statue', state 'statue').
+//  - Schlittschuh (player/skating.js): `skate` (Entität), Bodenphysik skateGround, state 'skate'.
+//  - Kettenzaun (player/fencing.js): `fence` ({ obj, side, t }), mode 'wall', state 'fence', `fenceMove`, `punchTime`.
+//  - Unterwasser: `diving` (abgetaucht: ruhiges Sinken, Schwimmzüge), state 'swimUnder'; Strömung `current` der
+//    Wasserform; steigender Wasserspiegel (level.setWaterLevel) hebt die schwimmende Figur.
+//  - Stachelboden (Formflag spikes) verletzt (nicht mit Schlittschuh/als Statue); Schieben: Wandformen, deren
+//    Besitzer `onPush(player, dir, speed)` kennt, werden angeschoben (Schneeball).
+//  - Blick: facingDot(pos) (−1..1, waagerecht) – level.isFacing(fig, pos, angleDeg) baut darauf.
 
 import * as THREE from 'three';
 import { HERO_VARIANTS } from '../../config.js';
@@ -33,6 +45,9 @@ import { MOVE, HITBOX, vFor } from './moveset.js';
 import { getPower, normalizePower } from './powers.js';
 import { getHelmet, normalizeHelmet } from './helmets.js';
 import { surfaceNormal } from '../physics/shapes.js';
+import { skateGround, skateJump, leaveSkate } from './skating.js';
+import { tryGrabFence, grabFenceAction, fenceCarry, updateFence, fenceAfterMove, leaveFence, fencePunch } from './fencing.js';
+import { updateStatue } from './statue.js';
 
 /** Treibsand: Werte je Form (quicksand-Flag des Bausteins), Standard hier. */
 export const SAND = { sink: 0.3, slow: 0.5, jump: 0.75, plop: 0.06 };
@@ -125,6 +140,12 @@ export class Player {
     this.hidden = false;
     this.lostT = 0;
     this.sand = null; this.sandDepth = 0;
+    // Welt 3
+    if (this.skate) leaveSkate(this, 'gone');
+    this.skate = null;
+    this.fence = null; this.fenceMove = { x: 0, y: 0 }; this.punchTime = 0;
+    this.tailTime = 0; this.tailDur = MOVE.tailTime; this.gliding = false; this.statueCool = 0;
+    this.diving = false; this.waterCurrent = null;
     this.updateHalf();
   }
 
@@ -132,6 +153,18 @@ export class Player {
 
   center(out = this._c) { return out.set(this.pos.x, this.pos.y + this.half.y, this.pos.z); }
   facingVec(out = { x: 0, z: 0 }) { out.x = Math.cos(this.yaw); out.z = -Math.sin(this.yaw); return out; }
+  /**
+   * Blick zu einem Punkt (waagerecht): Skalarprodukt der Blickrichtung mit der Richtung zu pos, −1 (abgewandt) … 1
+   * (genau hin). pos {x,z} oder [x, y, z]; liegt pos (fast) auf der Figur, 1.
+   */
+  facingDot(pos) {
+    const px = Array.isArray(pos) ? pos[0] : pos.x, pz = Array.isArray(pos) ? pos[2] : pos.z;
+    const dx = px - this.pos.x, dz = pz - this.pos.z, l = Math.hypot(dx, dz);
+    if (l < 1e-4) return 1;
+    return (Math.cos(this.yaw) * dx - Math.sin(this.yaw) * dz) / l;
+  }
+  /** Als Statue (Gleitblatt)? */
+  get statue() { return this.mode === 'script' && this.script?.type === 'statue'; }
   hSpeed() { return Math.hypot(this.vel.x, this.vel.z); }
   get feetY() { return this.pos.y; }
   get headY() { return this.pos.y + this.half.y * 2; }
@@ -164,9 +197,13 @@ export class Player {
     tick('coyote'); tick('buffer'); tick('chainTimer'); tick('lockTime'); tick('hurtTime'); tick('invuln');
     tick('wallCoyote'); tick('grabCooldown'); tick('boostTime'); tick('clawTime'); tick('fireCooldown'); tick('landTime'); tick('throwTime');
     tick('helmetCooldown');
+    tick('tailTime'); tick('statueCool'); tick('punchTime');
     this.input = input;
     if (this.holding?.removed) this.holding = null;   // Getragenes ist weg (z. B. in der Hand explodiert)
     if (this.attackInfo && this.time > this.attackInfo.until) this.attackInfo = null;
+    // Welt 3: Zaun nur im Wand-Modus; Schlittschuh nur am Boden/in der Luft (Röhre, Tod … lassen ihn zurück)
+    if (this.fence && this.mode !== 'wall') this.fence = null;
+    if (this.skate && (this.skate.removed || (this.mode !== 'ground' && this.mode !== 'air'))) leaveSkate(this, 'gone');
 
     if (this.mode === 'script') { this.updateScript(dt, input); return; }
 
@@ -191,8 +228,9 @@ export class Player {
     if (wl > 1e-6) { wx /= wl; wz /= wl; }
     const want = { x: wx, z: wz, mag: wl > 1e-6 ? input.mag : 0 };
 
-    // Mitnahme durch bewegte Plattformen / Förderbänder
+    // Mitnahme durch bewegte Plattformen / Förderbänder (am Zaun: durch den fahrenden Zaun)
     if (this.mode === 'ground') this.applyCarry(dt);
+    else if (this.fence && this.mode === 'wall') fenceCarry(this, dt);
 
     switch (this.mode) {
       case 'ground': this.updateGround(dt, input, want); break;
@@ -205,7 +243,9 @@ export class Player {
     }
     if (this.mode === 'script') return;
     this.move(dt, input, want);
+    if (this.fence && this.mode === 'wall') fenceAfterMove(this);
     if (this.mode !== 'script') this.checkTriggers(dt, input, want);
+    if (this.mode === 'air' && this.level.fences?.length) tryGrabFence(this, input, want);
     this.updatePhase();
   }
 
@@ -235,6 +275,8 @@ export class Player {
   // ------------------------------------------------------------------ Boden
 
   updateGround(dt, input, want) {
+    // Schlittschuh: eigene Bodenphysik (player/skating.js)
+    if (this.skate) { skateGround(this, dt, input, want); return; }
     // Treibsand: langsamer, je tiefer desto zäher
     const sk = this.sand ? this.sandFactor('slow') : 1;
     const runSpeed = MOVE.run * this.speedMult * sk, walkSpeed = MOVE.walk * this.speedMult * sk;
@@ -247,6 +289,7 @@ export class Player {
     const steep = this.ground?.type === 'ramp' && this.ground.slope > MOVE.slopeSlide;
     const n = this.ground ? surfaceNormal(this.ground, this.groundNormal) : this.groundNormal;
     const downhill = Math.hypot(n.x, n.z) > 0.05;
+    const ice = !!this.ground?.ice;
 
     // Ducken / Rutschen
     if ((input.crouch || steep) && this.state !== 'land') {
@@ -278,14 +321,14 @@ export class Player {
           this.gs += MOVE.slideSlopeAccel * dl * dt;
         } else if (along < -0.3) this.gs -= MOVE.slideSlopeAccel * dl * dt;
       }
-      if (!downhill || Math.abs(along) <= 0.3) this.gs = approach(this.gs, 0, MOVE.slideDecel * dt);
+      if (!downhill || Math.abs(along) <= 0.3) this.gs = approach(this.gs, 0, (ice ? MOVE.iceSlideDecel : MOVE.slideDecel) * dt);
       this.gs = clamp(this.gs, -4, 16);
       if (this.gs < 0.5 && !steep) this.setState(input.crouch ? 'crouch' : 'idle');
       this.applyGroundVel();
       return;
     }
     if (this.state === 'crouch') {
-      this.gs = approach(this.gs, 0, MOVE.decel * dt);
+      this.gs = approach(this.gs, 0, (ice ? MOVE.iceBrake : MOVE.decel) * dt);
       if (want.mag > 0.3) this.yaw = turnToward(this.yaw, Math.atan2(-want.z, want.x), MOVE.turnSlow * dt);
       this.applyGroundVel();
       return;
@@ -303,7 +346,6 @@ export class Player {
       return;
     }
 
-    const ice = !!this.ground?.ice;
     let target = 0;
     if (want.mag > 0.05) {
       const analog = clamp(want.mag / 0.85, 0, 1);
@@ -319,11 +361,12 @@ export class Player {
       }
       const turn = (this.gs < 3 ? MOVE.turnSlow : MOVE.turnSlow + (MOVE.turnFast - MOVE.turnSlow) * clamp((this.gs - 3) / 7, 0, 1)) * dt;
       if (ice) {
-        // Eis: Geschwindigkeit als Vektor, träge
+        // Eis: Geschwindigkeit als Vektor, träge (Wenden rutscht); über dem Gehtempo baut sich Rennen langsamer auf
         const tx = want.x * target, tz = want.z * target;
         const f = this.facingVec();
         let vx = f.x * this.gs, vz = f.z * this.gs;
-        const dx = tx - vx, dz = tz - vz, dl = Math.hypot(dx, dz), mx = MOVE.iceAccel * dt;
+        const runUp = target > walkSpeed + 0.1 && this.gs >= walkSpeed - 0.1;
+        const dx = tx - vx, dz = tz - vz, dl = Math.hypot(dx, dz), mx = (runUp ? MOVE.iceAccelRun : MOVE.iceAccel) * dt;
         if (dl > mx) { vx += (dx / dl) * mx; vz += (dz / dl) * mx; } else { vx = tx; vz = tz; }
         this.gs = Math.hypot(vx, vz);
         if (this.gs > 0.05) this.yaw = Math.atan2(-vz, vx);
@@ -333,7 +376,7 @@ export class Player {
         else this.gs = approach(this.gs, target, (this.gs < walkSpeed ? MOVE.accel : MOVE.accelRun) * dt);
       }
     } else {
-      const dec = ice ? MOVE.iceAccel : this.boostTime > 0 ? MOVE.overDecel : MOVE.decel;
+      const dec = ice ? MOVE.iceBrake : this.boostTime > 0 ? MOVE.overDecel : MOVE.decel;
       this.gs = approach(this.gs, 0, dec * dt);
     }
     if (this.state !== 'land' || this.landTime <= 0) {
@@ -367,6 +410,7 @@ export class Player {
 
   /** Sprung vom Boden: wählt Rückwärtssalto, Weitsprung, Seitwärtssalto oder Kettensprung. */
   startJump(input, want) {
+    if (this.skate) { skateJump(this); return; }   // Schlittschuh: voller Schwung, keine Saltos
     const speed = Math.max(this.gs, 0);
     const pv = this.platformVel;
     let kind = 'jump';
@@ -424,6 +468,7 @@ export class Player {
     this.variable = variable;
     this.airTime = 0;
     this.ground = null;
+    this.gliding = false;
     this.setState(kind ?? 'fall');
     this.stateTime = 0;
   }
@@ -457,6 +502,12 @@ export class Player {
       return;
     }
 
+    // Gleitblatt: Gleiten, solange Sprung im Fall gehalten wird (Präzisierung Motor Welt 3)
+    const glide = !!this.powerDef.glide && this.canGlide(input);
+    if (glide) { if (this.state !== 'glide') { if (!this.gliding) this.level.sfx('glide'); this.setState('glide'); } }
+    else if (this.state === 'glide') this.setState('fall');
+    this.gliding = glide;
+
     // Luftsteuerung
     const lock = this.lockTime > 0 || this.hurtTime > 0;
     const k = this.state === 'backflip' ? 0.35 : this.state === 'sideflip' ? 0.6 : this.state === 'longjump' ? 0.25 : 1;
@@ -473,8 +524,31 @@ export class Player {
       if (s > 1e-4) { const ns = Math.max(0, s - MOVE.airDrag * dt); vx *= ns / s; vz *= ns / s; }
     }
     this.vel.x = vx; this.vel.z = vz;
+    const vyBefore = this.vel.y;
     this.applyGravity(dt, input);
+    if (this.gliding || (this.tailTime > 0 && this.powerDef.glide)) {
+      // Gleiten bzw. Schwanzhieb in der Luft: Fall auf glideFall begrenzt (schnellerer Fall wird weich abgebremst)
+      if (this.vel.y < -MOVE.glideFall) this.vel.y = vyBefore < -MOVE.glideFall ? Math.min(-MOVE.glideFall, vyBefore + MOVE.glideBrake * dt) : -MOVE.glideFall;
+      if (this.gliding) {
+        // leichte Vorwärtsfahrt in Blickrichtung
+        const f = this.facingVec();
+        const along = this.vel.x * f.x + this.vel.z * f.z;
+        if (along < MOVE.glideDrift) {
+          const a = Math.min(MOVE.glideDrift - along, MOVE.glideDriftAccel * dt);
+          this.vel.x += f.x * a; this.vel.z += f.z * a;
+        }
+      }
+    }
     if (this.vel.y < 0 && (this.state === 'jump' || this.state === 'jump2' || this.state === 'walljump') && this.stateTime > 0.1 && this.vel.y < -6) this.setState('fall');
+  }
+
+  /** Gleiten möglich? (Gleitblatt: Sprung gehalten, im Fall bzw. am Scheitel, nicht beim Stampfen/Treffer/Salto) */
+  canGlide(input) {
+    if (!input.jump || this.vel.y > 0.5 || this.hurtTime > 0) return false;
+    const st = this.state;
+    if (st === 'groundpound' || st === 'dive' || st === 'hurt') return false;
+    if (FLIPS[st] && this.stateTime < FLIPS[st]) return false;
+    return true;
   }
 
   applyGravity(dt, input) {
@@ -510,9 +584,12 @@ export class Player {
     this.level.sfx('claw');
   }
 
-  /** Angriffsbereich vor der Figur für `duration` s (Entitäten bekommen onHit(kind) einmal je Angriff). */
-  attack(kind, reach = 1, duration = 0.2) {
-    this.attackInfo = { kind, reach, until: this.time + duration, hit: new Set() };
+  /**
+   * Angriffsbereich vor der Figur für `duration` s (Entitäten bekommen onHit(kind) einmal je Angriff).
+   * extra (Präzisierung Motor Welt 3): { around: true } = rundum statt vor der Figur (Schwanzhieb), style ('tail' …).
+   */
+  attack(kind, reach = 1, duration = 0.2, extra = null) {
+    this.attackInfo = { kind, reach, until: this.time + duration, hit: new Set(), ...(extra ?? {}) };
   }
 
   // ------------------------------------------------------------------ Wand
@@ -529,6 +606,7 @@ export class Player {
   }
 
   updateWall(dt, input, want) {
+    if (this.fence) { updateFence(this, dt, input, want); return; }   // Kettenzaun (player/fencing.js)
     const n = this.wallNormal;
     if (this.buffer > 0) { this.buffer = 0; this.wallJump(); return; }
     if (input.crouchPressed) { this.leaveWall(1.5); return; }
@@ -680,14 +758,26 @@ export class Player {
 
   // ------------------------------------------------------------------ Wasser
 
+  /**
+   * Schwimmen. An der Oberfläche: Auftrieb hält die Figur oben, Sprung = Schwimmzug bzw. (nah an der Oberfläche)
+   * Aussprung. Ducken taucht ab (`diving`, Präzisierung Motor Welt 3): unter Wasser sinkt die Figur ruhig
+   * (MOVE.swimSinkSlow), Sprung = Schwimmzug (nach oben und in Stick-Richtung), Sprung gehalten = langsames Steigen,
+   * Ducken gehalten = schneller abtauchen; erreicht der Kopf die Oberfläche, schwimmt sie wieder oben. Zustand
+   * 'swimUnder', solange der Kopf deutlich unter Wasser ist. Strömung der Wasserform (`current`) versetzt in move().
+   */
   updateSwim(dt, input, want) {
     const w = this.water;
     const surface = w ? w.top : this.pos.y;
     const c = this.pos.y + this.half.y;
     const depth = surface - c;
+    const headDepth = surface - (this.pos.y + this.half.y * 2);
+    if (input.crouch) this.diving = true;
+    else if (this.diving && headDepth < 0.05 && this.vel.y >= -0.05) this.diving = false;   // aufgetaucht
     if (input.jumpPressed) {
-      if (depth < 0.45) { this.vel.y = MOVE.swimExit; this.mode = 'air'; this.enterAir('jump', true); this.water = null; this.level.sfx('jump'); this.airMax = Math.max(this.hSpeed(), MOVE.walk * this.speedMult); return; }
-      this.vel.y = MOVE.swimStroke; this.level.sfx('swim');
+      if (depth < 0.45 && (!this.diving || headDepth < 0.15)) { this.diving = false; this.vel.y = MOVE.swimExit; this.mode = 'air'; this.enterAir('jump', true); this.water = null; this.level.sfx('jump'); this.airMax = Math.max(this.hSpeed(), MOVE.walk * this.speedMult); return; }
+      this.vel.y = this.diving ? MOVE.swimStrokeUnder : MOVE.swimStroke;
+      if (want.mag > 0.2) { this.vel.x += want.x * MOVE.swimStrokePush; this.vel.z += want.z * MOVE.swimStrokePush; }
+      this.level.sfx('swim');
     }
     // Waagerecht
     const maxS = MOVE.swimSpeed * this.speedMult;
@@ -697,11 +787,12 @@ export class Player {
     if (dl > m) { vx += (dx / dl) * m; vz += (dz / dl) * m; } else { vx = tx; vz = tz; }
     this.vel.x = vx; this.vel.z = vz;
     if (want.mag > 0.1) this.yaw = turnToward(this.yaw, Math.atan2(-want.z, want.x), 8 * dt);
-    // Senkrecht: Auftrieb bis zur Oberfläche, Ducken taucht ab
+    // Senkrecht: Ducken taucht ab; getaucht ruhiges Sinken; sonst Auftrieb bis zur Oberfläche
     if (input.crouch) this.vel.y = approach(this.vel.y, -MOVE.swimSink, 12 * dt);
-    else if (depth > 0.1) this.vel.y = Math.min(this.vel.y + MOVE.buoyancy * dt, 3);
+    else if (this.diving) this.vel.y = approach(this.vel.y, input.jump ? MOVE.swimHoldRise : -MOVE.swimSinkSlow, MOVE.swimUnderDrag * dt);
+    else if (depth > 0.1) this.vel.y = Math.min(this.vel.y + MOVE.buoyancy * dt, 3, Math.max(0.5, depth * 5));   // nahe der Oberfläche sanft (kein Hinausschießen)
     else { this.vel.y = approach(this.vel.y, 0, 14 * dt); if (depth < -0.05) this.vel.y -= 20 * dt; }
-    this.setState('swim');
+    this.setState((this.diving && headDepth > 0.25) || headDepth > 0.6 ? 'swimUnder' : 'swim');
   }
 
   // ------------------------------------------------------------------ Kollision und Übergänge
@@ -709,9 +800,9 @@ export class Player {
   move(dt, input, want) {
     const c = this.center();
     const vBefore = { x: this.vel.x, z: this.vel.z };
-    // Treibsand mit Fließrichtung trägt mit (Kollision über moveAABB)
-    const flow = this.sand && this.mode === 'ground' ? this.sand.quicksand.flow : null;
-    const res = this.world.moveAABB(c, this.half, { x: (this.vel.x + (flow?.x ?? 0)) * dt, y: this.vel.y * dt, z: (this.vel.z + (flow?.z ?? 0)) * dt }, {
+    // Treibsand mit Fließrichtung bzw. Strömung der Wasserform (current) trägt mit (Kollision über moveAABB)
+    const flow = this.sand && this.mode === 'ground' ? this.sand.quicksand.flow : this.mode === 'swim' ? this.waterCurrent ?? null : null;
+    const res = this.world.moveAABB(c, this.half, { x: (this.vel.x + (flow?.x ?? 0)) * dt, y: (this.vel.y + (flow?.y ?? 0)) * dt, z: (this.vel.z + (flow?.z ?? 0)) * dt }, {
       step: this.mode === 'ground' || this.mode === 'swim' ? 0.3 : 0.32,
       snap: this.mode === 'ground' ? 0.35 : 0,
       nudge: this.mode === 'air' ? 0.16 : 0,
@@ -736,6 +827,9 @@ export class Player {
     if (res.hitWall) {
       const n = res.wallNormal;
       const d = this.vel.x * n.x + this.vel.z * n.z;
+      // Schieben (Präzisierung Motor Welt 3): Wandform eines Besitzers mit onPush (Schneeball) wird angeschoben
+      const pusher = res.wallShape?.owner;
+      if (d < -0.5 && pusher?.onPush) pusher.onPush(this, { x: -n.x, z: -n.z }, -d);
       if (d < 0) { this.vel.x -= n.x * d; this.vel.z -= n.z * d; }
       if (this.mode === 'ground') { const f = this.facingVec(); const along = this.vel.x * f.x + this.vel.z * f.z; this.gs = Math.max(0, Math.min(this.gs, along)); }
     }
@@ -744,8 +838,11 @@ export class Player {
       if (res.grounded && this.vel.y <= 0.01) { this.land(res, input); return; }
       if (this.mode === 'air' && res.hitWall && res.wallShape) this.tryWall(res, vBefore, want);
     } else if (this.mode === 'ground') {
-      if (res.grounded) { this.ground = res.ground; }
-      else {
+      if (res.grounded) {
+        this.ground = res.ground;
+        // Stachelboden (Formflag spikes): verletzt – nicht mit Schlittschuh (Präzisierung Motor Welt 3)
+        if (res.ground?.spikes && !this.skate && !this.invulnerable) this.hurt({ pos: { x: this.pos.x, y: this.pos.y - 1, z: this.pos.z }, spikes: true });
+      } else {
         // Kante verlassen: Coyote-Zeit, Schwung der Plattform mitnehmen
         this.mode = 'air';
         this.coyote = MOVE.coyote;
@@ -828,7 +925,7 @@ export class Player {
 
   tryWall(res, vBefore, want) {
     const sh = res.wallShape, n = res.wallNormal;
-    if (this.state === 'groundpound' || this.state === 'dive' || this.state === 'hurt' || sh.noWallSlide || sh.bounce) return;
+    if (this.state === 'groundpound' || this.state === 'dive' || this.state === 'hurt' || sh.noWallSlide || sh.bounce || this.skate) return;
     if (Math.abs(n.y) > 0.01 || (Math.abs(n.x) < 0.01 && Math.abs(n.z) < 0.01)) return;
     const tall = sh.top >= this.headY - 0.1 && sh.bot <= this.pos.y + 0.3;
     if (!tall || this.vel.y > 8) return;
@@ -840,6 +937,7 @@ export class Player {
   }
 
   land(res, input) {
+    this.gliding = false;
     const vy = this.prevVy ?? this.vel.y;
     this.lastLandVy = vy;
     const g = res.ground;
@@ -905,15 +1003,16 @@ export class Player {
   checkTriggers(dt, input, want) {
     const c = this.center();
     const hits = this.world.overlapAABB(c, this.half);
-    let water = null;
+    let water = null, current = null;
     for (const s of hits) {
       if (s.kill) {
         // Lava/Abgrund: Füße in der Form (Oberseite berührt reicht bei Lava)
         if (this.pos.y <= s.top + 0.02) { this.die(s.kill === 'lava' || s.lava ? 'lava' : 'fall'); return; }
       }
-      if (s.water && c.y < s.top - 0.05) water = s;
+      // Wasser: Oberfläche = höchste überlappende Wasserform; Strömung (current) aus jeder überlappenden Form
+      if (s.water && c.y < s.top - 0.05) { if (!water || s.top > water.top) water = s; if (s.current) current = s.current; }
       if (s.boost && this.mode === 'ground') this.applyBoost(s.boost);
-      if (s.beanstalk && this.grabCooldown <= 0 && this.mode !== 'stalk') {
+      if (s.beanstalk && this.grabCooldown <= 0 && this.mode !== 'stalk' && !this.skate && !this.fence) {
         if (this.mode === 'air' || this.mode === 'wall' || (this.mode === 'ground' && input.moveY > 0.5)) { this.grabStalk(s); return; }
       }
       if (s.trigger && s.onEnter) s.onEnter(this, s);
@@ -925,14 +1024,19 @@ export class Player {
     }
     if (water) {
       if (this.mode !== 'swim') {
+        if (this.skate) leaveSkate(this, 'gone');   // Schlittschuh bleibt am Ufer zurück
+        this.fence = null;
         this.mode = 'swim'; this.water = water; this.setCrouch(false);
         this.vel.y *= 0.3; this.jumpKind = null;
+        this.diving = false;
+        this.gliding = false;
         if (this.prevVy < -6) this.level.effects?.splash(this.pos, water.top);
         this.level.sfx('splash');
       }
       this.water = water;
+      this.waterCurrent = current;
     } else if (this.mode === 'swim') {
-      this.mode = 'air'; this.water = null; this.enterAir(null, false); this.setState('fall');
+      this.mode = 'air'; this.water = null; this.diving = false; this.waterCurrent = null; this.enterAir(null, false); this.setState('fall');
       this.airMax = Math.max(this.hSpeed(), MOVE.walk * this.speedMult * 0.6);
     }
   }
@@ -966,6 +1070,14 @@ export class Player {
       this.knockback(source);
       return true;
     }
+    // Schlittschuh: der Treffer wirft die Figur heraus (Schlittschuh fliegt davon, Figur bleibt heil)
+    if (this.skate) {
+      leaveSkate(this, 'hit', source);
+      this.invuln = MOVE.invuln;
+      this.hurtTime = MOVE.hurtTime;
+      this.knockback(source);
+      return true;
+    }
     // Mehrere Figuren (Spiegelfrucht): ein Treffer entfernt nur diese Figur
     if (this.level.players?.length > 1 && this.level.removeFigure?.(this, 'hit')) return true;
     if (this.power !== 'none') { this.setPower('none'); this.level.sfx('powerdown'); }
@@ -985,6 +1097,7 @@ export class Player {
     const l = Math.hypot(ax, az) || 1;
     if (this.mode === 'wall' || this.mode === 'stalk') this.mode = 'air';
     if (this.mode === 'ground') this.mode = 'air';
+    this.fence = null;
     this.vel.set((ax / l) * 5, 6.5, (az / l) * 5);
     this.airMax = 5;
     this.enterAir('hurt', false);
@@ -1001,6 +1114,15 @@ export class Player {
     if (p === 'oneup') { this.level.addLife?.(1); this.level.sfx('oneup'); return; }
     if (p === 'spiegel') {
       if (!this.level.addClone?.(this)) this.level.sfx('powerup');
+      return;
+    }
+    if (p === 'schlittschuh') {
+      // kein Kostüm: ein Schlittschuh erscheint an den Füßen und wird angezogen (Präzisierung Motor Welt 3)
+      if (!this.skate && this.level.hasKind?.('schlittschuh')) {
+        const e = this.level.spawn('schlittschuh', { pos: [this.pos.x, this.pos.y, this.pos.z], respawn: 0 });
+        if (e) e.wear?.(this);
+      }
+      this.level.sfx('powerup');
       return;
     }
     const figs = this.level.players?.length > 1 && this.level.players.includes(this) ? this.level.players : [this];
@@ -1055,6 +1177,9 @@ export class Player {
     }
     this.dropHeld();
     this.helmet = null; this.helmetFx = null;
+    if (this.skate) leaveSkate(this, 'lost');
+    this.fence = null;
+    this.gliding = false;
     this.dead = true;
     this.deathCause = cause;
     this.mode = 'script';
@@ -1073,11 +1198,17 @@ export class Player {
    * danach Aufheben eines Objekts in Reichweite, sonst die Power-up-Aktion (Feuerball, Tatzenhieb).
    */
   doAction(input) {
+    // Am Kettenzaun: Faustschlag durch den Zaun (Präzisierung Motor Welt 3)
+    if (this.fence && this.mode === 'wall') { fencePunch(this); return; }
     if (this.helmet && !this.holding) {
       if (input.crouch && this.mode === 'ground') { this.dropHelmet('off'); return; }
       if (this.helmetDef?.onAction?.(this, input)) return;
     }
+    // Schlittschuh: Aktion = aussteigen
+    if (this.skate && !this.holding && (this.mode === 'ground' || this.mode === 'air')) { leaveSkate(this, 'off'); return; }
     if (this.carryAction(input)) return;
+    // Am Boden vor einem Kettenzaun: greifen
+    if (this.mode === 'ground' && this.level.fences?.length && grabFenceAction(this)) return;
     this.powerDef.onAction?.(this, input);
   }
 
@@ -1302,6 +1433,7 @@ export class Player {
       return;
     }
     if (sc.type === 'cheer' || sc.type === 'gone') return;
+    if (sc.type === 'statue') { updateStatue(this, dt, input, sc); return; }
     if (sc.type === 'pipe') {
       const p = sc.pipe;
       if (sc.phase === 'down') {
@@ -1360,6 +1492,9 @@ export class Player {
       mode: this.mode, state: this.state, big: this.big, power: this.power, hero: this.hero,
       dead: this.dead, invuln: +this.invuln.toFixed(2), yaw: +this.yaw.toFixed(3),
       helmet: this.helmet, sand: this.sand ? +this.sandDepth.toFixed(3) : 0, clone: this.clone, hidden: this.hidden,
+      // Welt 3
+      glide: this.gliding, statue: this.statue, skate: !!this.skate, fence: this.fence ? this.fence.side : 0, diving: this.diving,
+      tail: this.tailTime > 0,
     };
   }
 }

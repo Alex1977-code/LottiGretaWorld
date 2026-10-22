@@ -22,12 +22,28 @@
 //   level.setMainFigure(f)      Figur wird Haupt-Figur (Röhre, Zielmast, Glasröhre …)
 //   level.focus(out)            Schwerpunkt der aktiven Figuren (Kamera, Steuerungs-Gier)
 // Jeder Schritt rechnet jede Figur mit derselben Eingabe; Berührungen/Angriffe/Auslöser laufen je Figur.
+//
+// Ergänzungen (Präzisierung Motor Welt 3):
+//   level.isFacing(fig, pos, angleDeg = 70)   blickt die Figur (waagerecht, ±angleDeg) zu pos? (Spuk: „schaut sie mich an?“)
+//   level.anyFacing(pos, angleDeg = 70)       blickt irgendeine aktive Figur zu pos?
+//   level.fences                              Kettenzäune (entities/kinds/kettenzaun.js) für das Zaun-Klettern
+//   level.waterAt(x, y, z)                    { shape, top, current, id } der Wasserform an diesem Punkt | null
+//   level.currentAt(x, y, z, out)             Strömung {x, y, z} (m/s) an diesem Punkt (0 außerhalb)
+//   level.setWaterLevel(id, y, speed = 1.5)   Wasserspiegel aller Wasserformen mit dieser id (waterId) auf y fahren
+//                                             (m/s; speed ≤ 0 = sofort) → Anzahl Formen; level.waterLevel(id) = aktuelle Höhe
+//   Entitäten mit floats: true (floatDepth m, Standard 0,3) schwimmen an der Oberfläche (auch bei steigendem Wasser)
+//   Angriffe mit attackInfo.around (Schwanzhieb) treffen rundum statt vor der Figur; spawn('powerup', { power:
+//   'schlittschuh' }) erzeugt die Entität schlittschuh; Berührung von oben auf dem Schlittschuh: player/skating.js.
 
 import { CollisionWorld } from '../physics/CollisionWorld.js';
 import { getEntityKind, hasEntityKind } from '../entities/index.js';
 import { LevelRuntime } from './LevelRuntime.js';
 import { Rnd } from '../../three/world/geometry.js';
 import { sfx as playSfx } from '../../audio/index.js';
+import { normalizePower } from '../player/powers.js';
+import { skateContact } from '../player/skating.js';
+
+const DEG = Math.PI / 180;
 
 export class Level {
   /**
@@ -56,6 +72,10 @@ export class Level {
     this.rnd = new Rnd(seed);
     this.runtime = new LevelRuntime(this, opts.save);
     this.muted = false;
+    // Welt 3
+    this.fences = [];
+    this.waterMoves = new Map();   // Form-Id → { shape, target, speed } (setWaterLevel)
+    this._floaters = 0;
   }
 
   get effects() { return this.view?.effects ?? null; }
@@ -123,12 +143,15 @@ export class Level {
 
   /** Entität erzeugen und anmelden. Unbekannte Art → Warnung, null. */
   spawn(kind, spec = {}) {
+    // Power-ups, die eine eigene Entität sind (Präzisierung Motor Welt 3): Schlittschuh
+    if (kind === 'powerup' && normalizePower(spec.power) === 'schlittschuh' && hasEntityKind('schlittschuh')) kind = 'schlittschuh';
     const f = getEntityKind(kind);
     if (!f) { console.warn(`[Level ${this.id}] unbekannte Entität: ${kind}`); return null; }
     const e = f(this, spec);
     if (!e) return null;
     if (!e.kind || e.kind === 'entity') e.kind = kind;
     this.entities.push(e);
+    if (e.floats) this._floaters++;
     if (spec.id) this.named.set(spec.id, e);
     if (e.shadow > 0 && this.view) {
       this.view.shadows.add({ pos: e.pos, radius: e.shadow, alive: () => !e.removed, visible: () => e.alive && e.shadowVisible !== false });
@@ -175,6 +198,8 @@ export class Level {
   step(dt, input) {
     this.time += dt;
     for (let i = 0; i < this.steppers.length; i++) this.steppers[i](dt, this.time);
+    if (this.waterMoves.size) this.moveWater(dt);
+    else if (this._waterDyLeft) { this.world.forEach((q) => { if (q.waterDy) q.waterDy = 0; }); this._waterDyLeft = false; }
     // Alle Figuren mit derselben Eingabe (Kopie der Liste: Figuren können im Schritt verschwinden/wechseln)
     const figs = this._figs;
     figs.length = 0;
@@ -190,6 +215,7 @@ export class Level {
       const e = this.entities[i];
       if (!e.removed) e.update(dt);
     }
+    if (this._floaters) this.floatEntities(dt);
     for (let i = 0; i < figs.length; i++) {
       const p = figs[i];
       if (p.removedFigure || p.dead || p.mode === 'script') continue;
@@ -226,6 +252,7 @@ export class Level {
       };
       let r;
       if (e.enemy) r = p.powerDef.onTouchEntity?.(p, e, contact);
+      if (r === undefined && p.skate) r = skateContact(p, e, contact);   // Schlittschuh: Stachel-Gegner von oben zertreten
       if (r === undefined) r = e.onPlayer(p, contact);
       if (r === 'stomp') { p.bounceOff(input); this.sfx('stomp'); }
       else if (r === 'hurt') p.hurt(e);
@@ -240,6 +267,19 @@ export class Level {
     if (!a) return;
     const f = p.facingVec();
     const reach = a.reach;
+    if (a.around) {
+      // rundum (Schwanzhieb): waagerechter Abstand Figur-Mitte → Hüllquader ≤ reach + Halbbreite der Figur
+      const px = p.pos.x, pz = p.pos.z, cy = p.pos.y + p.half.y, r = reach + p.half.x;
+      for (const e of this.entities) {
+        if (!e.alive || a.hit.has(e) || !e.onHit || e === p.holding) continue;
+        const ec = e.center();
+        const dx = Math.max(0, Math.abs(ec.x - px) - e.half.x), dz = Math.max(0, Math.abs(ec.z - pz) - e.half.z);
+        if (dx * dx + dz * dz > r * r || Math.abs(ec.y - cy) > p.half.y + e.half.y) continue;
+        a.hit.add(e);
+        e.onHit(a.kind, p);
+      }
+      return;
+    }
     const cx = p.pos.x + f.x * (p.half.x + reach * 0.5), cz = p.pos.z + f.z * (p.half.z + reach * 0.5), cy = p.pos.y + p.half.y;
     for (const e of this.entities) {
       if (!e.alive || a.hit.has(e) || !e.onHit) continue;
@@ -247,6 +287,95 @@ export class Level {
       if (Math.abs(ec.x - cx) > reach * 0.5 + 0.3 + e.half.x || Math.abs(ec.z - cz) > reach * 0.5 + 0.3 + e.half.z || Math.abs(ec.y - cy) > p.half.y + e.half.y) continue;
       a.hit.add(e);
       e.onHit(a.kind, p);
+    }
+  }
+
+  // ------------------------------------------------------------------ Welt 3: Blick, Wasser (Präzisierung Motor Welt 3)
+
+  /**
+   * Blickt die Figur zu pos? Waagerechter Blickkegel ±angleDeg um die Blickrichtung (Standard 70°). Für Geister (Spuk:
+   * erstarrt, solange die nächste Figur ihn ansieht). fig null/tot/im Skript-Modus (Röhre, Statue …) → false.
+   */
+  isFacing(fig, pos, angleDeg = 70) {
+    if (!fig || fig.dead || fig.removedFigure || fig.mode === 'script' || !pos) return false;
+    const d = fig.facingDot ? fig.facingDot(pos) : 1;
+    return d >= Math.cos(angleDeg * DEG);
+  }
+
+  /** Blickt irgendeine aktive Figur zu pos? (mehrere Figuren: Spiegelfrucht) */
+  anyFacing(pos, angleDeg = 70) {
+    for (const p of this.players) if (this.isFacing(p, pos, angleDeg)) return true;
+    return false;
+  }
+
+  /** Wasserform an (x, y, z) (höchste Oberfläche; Strömung aus jeder Form dort) → { shape, top, current, id } | null. */
+  waterAt(x, y, z) {
+    let best = null, cur = null;
+    for (const s of this.world.overlapAABB({ x, y, z }, { x: 0.01, y: 0.01, z: 0.01 }, { filter: (q) => q.water })) {
+      if (!best || s.top > best.top) best = s;
+      if (s.current) cur = s.current;
+    }
+    return best ? { shape: best, top: best.top, current: cur, id: best.waterId ?? null } : null;
+  }
+
+  /** Strömung an (x, y, z) in m/s (out {x, y, z}; 0 außerhalb von Wasser mit current). */
+  currentAt(x, y, z, out = { x: 0, y: 0, z: 0 }) {
+    const w = this.waterAt(x, y, z);
+    out.x = w?.current?.x ?? 0; out.y = w?.current?.y ?? 0; out.z = w?.current?.z ?? 0;
+    return out;
+  }
+
+  /**
+   * Wasserspiegel fahren: alle Wasserformen mit waterId === id (Baustein water mit id) steigen/sinken mit speed m/s
+   * auf die Höhe y (Oberfläche). speed ≤ 0 → sofort. Schwimmende Figuren steigen mit (Auftrieb), am Boden stehende
+   * beginnen zu schwimmen, Entitäten mit floats schwimmen oben. → Anzahl betroffener Formen.
+   */
+  setWaterLevel(id, y, speed = 1.5) {
+    let n = 0;
+    this.world.forEach((s) => {
+      if (!s.water || s.waterId !== id) return;
+      this.waterMoves.set(s.id, { shape: s, target: y, speed });
+      n++;
+    });
+    if (!n) console.warn(`[Level ${this.id}] setWaterLevel: keine Wasserform mit id „${id}“`);
+    return n;
+  }
+
+  /** Aktuelle Oberfläche der Wasserform(en) mit dieser id (höchste) oder null. */
+  waterLevel(id) {
+    let top = null;
+    this.world.forEach((s) => { if (s.water && s.waterId === id && (top === null || s.top > top)) top = s.top; });
+    return top;
+  }
+
+  /** Je Schritt (vor den Figuren): Wasserspiegel fahren. */
+  moveWater(dt) {
+    for (const [sid, m] of this.waterMoves) {
+      const s = m.shape;
+      if (!this.world.get(sid)) { this.waterMoves.delete(sid); continue; }
+      const top = s.top;
+      const d = m.target - top;
+      const step = m.speed > 0 ? m.speed * dt : Infinity;
+      const ny = Math.abs(d) <= step ? m.target : top + Math.sign(d) * step;
+      const mx = Array.isArray(s.max) ? s.max : [s.max.x, s.max.y, s.max.z];
+      const mn = Array.isArray(s.min) ? s.min : [s.min.x, s.min.y, s.min.z];
+      s.max = [mx[0], Math.max(mn[1] + 0.05, ny), mx[2]];
+      this.world.update(sid);
+      s.waterDy = s.top - top;
+      this._waterDyLeft = true;
+      if (ny === m.target) this.waterMoves.delete(sid);
+    }
+  }
+
+  /** Je Schritt (nach den Entitäten): Entitäten mit floats an der Oberfläche halten. */
+  floatEntities(dt) {
+    for (const e of this.entities) {
+      if (!e.floats || e.removed || e.carrier || !e.alive) continue;
+      const w = this.waterAt(e.pos.x, e.pos.y + 0.05, e.pos.z);
+      if (!w) continue;
+      const y = w.top - (e.floatDepth ?? 0.3);
+      if (e.pos.y < y) { e.pos.y = Math.min(y, e.pos.y + 6 * dt + Math.max(0, w.shape.waterDy ?? 0)); if (e.vel?.y < 0) e.vel.y = 0; e.floating = true; }
+      else e.floating = e.pos.y < y + 0.05;
     }
   }
 

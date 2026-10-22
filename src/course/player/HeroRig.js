@@ -23,6 +23,13 @@
 //    Avatars (avatar.head, Kopf-Oberseite ≈ 0,58 Einheiten über dem Halsgelenk; ohne Kopf-Objekt an der Hülle in
 //    Kopfhöhe), Maßstab 1,5 (Meter → Avatar-Einheiten, wächst mit Klein/Groß/Riesentrank). Je Bild
 //    model.update(dt, helmDef.state(player)). Licht-Helm: halbdurchsichtiger Lichtkegel (7 m) vor dem Kopf.
+//
+// Ergänzungen (Präzisierung Motor Welt 3) – neue Werte von proxy.course.state (Avatar fällt ohne Pose auf Bestehendes
+// zurück): 'tailswipe' (Schwanzhieb, phase 0..1), 'glide' (Gleiten), 'statue' (Statue, phase = Anteil der Höchstdauer),
+// 'fence' (am Kettenzaun; proxy.course.fenceMove = { x, y } −1..1, fencePunch 0..1 während des Faustschlags),
+// 'skate' (auf dem Schlittschuh am Boden; proxy.course.speed = Tempo, proxy.course.skates = true auch in der Luft),
+// 'swimUnder' (getaucht); proxy.course.power = 'gleitblatt' mit dem Gleitblatt. Mit Schlittschuh steht die Hülle
+// SKATE_LIFT m höher (Kufen; das Schlittschuh-Modell zeichnet die Entität an den Füßen).
 
 import * as THREE from 'three';
 import { createAvatar } from '../../three/avatars/index.js';
@@ -36,6 +43,7 @@ const wrap = (a) => { a %= TAU; if (a > Math.PI) a -= TAU; else if (a < -Math.PI
 const damp = (c, t, r, dt) => c + (t - c) * (1 - Math.exp(-r * dt));
 
 const RIDING = { hovering: false };
+const SKATE_LIFT = 0.1;        // m: Figur steht auf den Kufen
 const HELMET_K = 0.9;          // Helm-Modell (Meter) etwas kleiner als Kopfbreite × 1,25
 
 /** Zustand der Spielfigur → Avatar-Zustand (Vertrag); interne Zustände werden abgebildet. */
@@ -64,7 +72,8 @@ export class HeroRig {
       x: 0, y: 0, width: 0, height: 0, angle: 0, scaleX: 1, scaleY: 1, alpha: 1, visible: true,
       flipX: false, body: { velocity: { x: 0, y: 0 } }, moveState: 'ground', onGround: true,
       mount: null, leaf: { visible: false }, swooping: false, dead: false, locked: false,
-      course: { state: 'idle', speed: 0, vy: 0, grounded: true, phase: 0, power: 'none', big: true, holding: null, climbing: false },
+      course: { state: 'idle', speed: 0, vy: 0, grounded: true, phase: 0, power: 'none', big: true, holding: null, climbing: false,
+        fenceMove: { x: 0, y: 0 }, fencePunch: 0, skates: false },
     };
     this.avatar = null;
     this.key = null;
@@ -170,6 +179,7 @@ export class HeroRig {
     if (p.hero !== this.key) { this.build(p.hero); this.helmetKind = null; }
     const av = this.avatar;
     this.hull.position.copy(p.pos);
+    if (p.skate) this.hull.position.y += SKATE_LIFT * (p.big ? 1 : 0.7);
     // Blickrichtung weich nachführen (Simulation dreht in Stufen von 1/120 s)
     // Wandrutschen: der Spieler blickt in der Simulation zur Wand; die Kurs-Pose des Avatars hat die Wand
     // hinter sich (−X) und blickt von ihr weg – deshalb im Kurs-Modus um 180° gedreht darstellen.
@@ -204,13 +214,22 @@ export class HeroRig {
     const grounded = p.mode === 'ground';
     const c = this.proxy.course;
     // Tatzenhieb und Wurf sind kurze Aktionen über dem Bewegungszustand (Präzisierung Gegner/Power-ups)
-    c.state = p.throwTime > 0 && !p.dead ? 'throw' : p.clawTime > 0 && p.state !== 'dive' && !p.dead ? 'claw' : STATE_MAP[p.state] ?? p.state;
-    c.speed = p.mode === 'stalk' || p.mode === 'wall' ? 0 : speed;
+    // Welt 3: Schwanzhieb (Gleitblatt) wie der Tatzenhieb über dem Bewegungszustand; Statue/Zaun/Schlittschuh/getaucht
+    // kommen als Player.state ('statue', 'fence', 'skate', 'swimUnder', 'glide')
+    c.state = p.throwTime > 0 && !p.dead ? 'throw'
+      : p.tailTime > 0 && !p.dead && p.mode !== 'script' ? 'tailswipe'
+      : p.clawTime > 0 && p.state !== 'dive' && !p.dead ? 'claw' : STATE_MAP[p.state] ?? p.state;
+    c.speed = p.mode === 'stalk' || (p.mode === 'wall' && !p.fence) ? 0 : speed;
     c.vy = p.vel.y;
     c.grounded = grounded;
     // Wurf/Tatzenhieb: Fortschritt 0..1 aus der Restzeit (jeder neue Wurf beginnt von vorn)
     c.phase = c.state === 'throw' ? Math.min(1, Math.max(0.01, 1 - p.throwTime / (p.throwDur || 0.25)))
-      : c.state === 'claw' ? Math.min(1, Math.max(0.01, 1 - p.clawTime / 0.3)) : p.phase;
+      : c.state === 'claw' ? Math.min(1, Math.max(0.01, 1 - p.clawTime / 0.3))
+      : c.state === 'tailswipe' ? Math.min(1, Math.max(0.01, 1 - p.tailTime / (p.tailDur || 0.32))) : p.phase;
+    c.fenceMove.x = p.fence ? p.fenceMove.x : 0;
+    c.fenceMove.y = p.fence ? p.fenceMove.y : 0;
+    c.fencePunch = p.fence && p.punchTime > 0 ? Math.min(1, Math.max(0.01, 1 - p.punchTime / 0.28)) : 0;
+    c.skates = !!p.skate;
     c.power = p.power;
     c.big = p.big;
     // Avatar-Vertrag: holding = false | 'front' | 'over' (Haltestil der getragenen Entität, Standard über dem Kopf)
@@ -246,6 +265,7 @@ export class HeroRig {
       case 'groundpound': rz = p.poundPhase === 'spin' ? -TAU * ph : 0; break;
       case 'dive': case 'longjump': rz = -1.15; break;             // waagerecht nach vorn
       case 'swim': rz = Math.hypot(p.vel.x, p.vel.z) > 1 ? -1.2 : -0.3; break;
+      case 'swimUnder': rz = -1.2; break;
       case 'slide': rz = 0.35; break;
       default: break;
     }
