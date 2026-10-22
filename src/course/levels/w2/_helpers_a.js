@@ -55,34 +55,56 @@ export function blockRing(kind, x, y, z, contents = {}) {
 // ------------------------------------------------------------------ level-lokale Szenen (Code)
 
 /**
- * Aufbau-Haken für level-lokalen Code: eine Laterne, die beim Aufbau schon brennt – ihr onLit (Aktion als Funktion,
- * entities/gimmick.js) ruft fn(level) genau einmal auf; danach verschwindet sie (vor dem ersten Bild). hide = Punkt
- * im Inneren eines Felskörpers innerhalb des Level-Umrisses (die Laterne hat kurz eine Kollisionsform, die den
- * Umriss – Kulisse, Absturzhöhe – nicht vergrößern soll). In LEVEL.items eintragen: ...setupHook(fn, hide).
- * (Die Daten-Formate kennen sonst keinen Aufbau-Haken für Parcours-Level.)
+ * Geometrie für view.addStatic vorbereiten (wie der StaticBatcher): nicht indiziert, nur position/normal/color.
  */
-export function setupHook(fn, hide = [0, -8, 0]) {
-  return [{ kind: 'lantern', pos: hide, lit: true, onLit: (level, ctx) => { ctx?.source?.kill?.(); fn(level); } }];
+function staticReady(g) {
+  if (g.index) g = g.toNonIndexed();
+  for (const name of Object.keys(g.attributes)) if (name !== 'position' && name !== 'normal' && name !== 'color') g.deleteAttribute(name);
+  if (!g.attributes.normal) g.computeVertexNormals();
+  if (!g.attributes.color) g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 3).fill(1), 3));
+  return g;
+}
+
+/** Fertige Geometrien (Weltkoordinaten) als eigene Meshes ohne Sonnenschatten zeigen – je Material ein Mesh. */
+function shadowlessMeshes(level, list) {
+  const byMat = new Map();
+  for (const [g, o] of list) {
+    const m = o?.material ?? 'world';
+    if (!byMat.has(m)) byMat.set(m, []);
+    byMat.get(m).push(staticReady(g));
+  }
+  for (const [m, parts] of byMat) {
+    const geo = merge(parts);
+    if (!geo) continue;
+    const mesh = new THREE.Mesh(geo, level.view.mats?.[m] ?? level.view.mats?.world);
+    mesh.castShadow = false; mesh.receiveShadow = m !== 'glow';
+    mesh.matrixAutoUpdate = false; mesh.updateMatrix();
+    mesh.name = `kulisse:${m}`;
+    mesh.userData.owned = true;
+    level.view.add(mesh);
+  }
 }
 
 /**
  * Ferne Kulisse ohne Sonnenschatten: baut die Bausteine segs (Level-Format, z. B. deco_w2 mit Felstürmen und Dünen tief
- * unten) so, dass ihre statische Geometrie keinen Schatten wirft – eigener Topf im StaticBatcher, nicht im
- * Schattenpass (spart Dreiecke; die Abschnitte mit Schattenwurf bleiben klein und werden besser ausgesondert).
- * Muss beim Aufbau laufen (setupHook), bevor die statische Geometrie verschmolzen wird.
+ * unten) und zeigt ihre statische Geometrie als eigene Meshes, die keinen Schatten werfen (nicht im Schattenpass, je
+ * Baustein ein Mesh). Für LEVEL.setup gedacht (dann ist die übrige statische Geometrie schon verschmolzen); die
+ * Bausteine dürfen keine Kollision anlegen (deco_w2 ohne solid).
  */
 export function shadowless(level, segs) {
   const v = level.view;
   if (!v) return;
   const orig = v.addStatic;
-  v.addStatic = (g, o = {}) => orig.call(v, g, { ...o, castShadow: false });
-  try {
-    for (const seg of segs) getBlockType(seg.type)?.(level, seg);
-  } finally { v.addStatic = orig; }
+  for (const seg of segs) {
+    const got = [];
+    v.addStatic = (g, o) => { if (g) got.push([g, o]); };
+    try { getBlockType(seg.type)?.(level, seg); } finally { v.addStatic = orig; }
+    shadowlessMeshes(level, got);
+  }
 }
 
 /**
- * Fernsicht:Gegner-Modelle der Arten kinds, die weiter als dist m (waagerecht) von der Figur entfernt sind, werden
+ * Fernsicht: Gegner-Modelle der Arten kinds, die weiter als dist m (waagerecht) von der Figur entfernt sind, werden
  * nicht gezeichnet (im Dunst ohnehin winzig; spart Dreiecke und Zeichenaufrufe auf langen Sichtachsen). Nur
  * Darstellung – die Gegner laufen weiter.
  */
@@ -303,7 +325,7 @@ export function shootingStars(level, center, size = [80, 30, 120], opts = {}) {
 
 /**
  * Kleine Asteroiden (Kulisse): grob facettierte Brocken an den Punkten list ([[x, y, z, r], …]), statisch verschmolzen
- * ohne Sonnenschatten (im Aufbau-Haken aufrufen).
+ * ohne Sonnenschatten (1 Mesh; in LEVEL.setup aufrufen).
  */
 export function asteroids(level, list) {
   if (!level.view) return;
@@ -311,7 +333,7 @@ export function asteroids(level, list) {
   let seed = 5;
   const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const [x, y, z, r] of list) {
-    const g = new THREE.IcosahedronGeometry(1, 1).toNonIndexed();
+    const g = new THREE.IcosahedronGeometry(1, 1);   // Polyeder sind schon nicht indiziert
     const P = g.attributes.position;
     for (let i = 0; i < P.count; i++) {
       const k = 0.8 + 0.35 * Math.sin(P.getX(i) * 3.1 + x) * Math.cos(P.getZ(i) * 2.7 + z);
@@ -323,7 +345,7 @@ export function asteroids(level, list) {
     const a = lin(0x9a86c8), b = lin(0x5a4a88), c = lin(0xd8c8ff);
     parts.push(colorize(g, (p, n, o) => (n.y > 0.5 ? mixc(a, c, (n.y - 0.5) * 2, o) : mixc(b, a, (n.y + 1) / 1.5, o))));
   }
-  level.view.addStatic(merge(parts), { castShadow: false });
+  shadowlessMeshes(level, [[merge(parts), { material: 'world' }]]);
 }
 
 /**

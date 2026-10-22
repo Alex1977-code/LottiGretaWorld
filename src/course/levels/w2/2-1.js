@@ -3,15 +3,16 @@
 // tief unten liegt der Wüstenboden mit Dünen und Felstürmen.
 //
 // Abschnitte (Länge entlang z):
-//   1  Wüstenstart       z   9 … −21  (30 m) Rastplatz mit Palme, rechts ?-Block mit Krallen-Anzug, links der 6 m hohe
-//                                     Wachturm mit Kletterwand (Stern 0 oben). Hackvogel am Plateau-Ende,
-//                                     Treibsandbecken zwischen roten Felswänden: Trittsteine (links) oder bröselnde
-//                                     Sandblöcke (rechts, Brummer).
+//   1  Wüstenstart       z   9 … −21  (30 m) Sandstein-Terrasse mit Ortsschild, Rastplatz mit Palme und Picknick, ?-Block
+//                                     mit Krallen-Anzug, links der Wachturm mit 5-m-Kletterwand (Stern 0 oben), Dünen-
+//                                     kamel auf dem Felsrand. Hackvogel am Plateau-Ende, Treibsandbecken zwischen
+//                                     roten Felswänden: Trittsteine (links) oder bröselnde Sandblöcke (rechts, Brummer).
 //   2  Goldröhren-Wand   z −21 … −44  (23 m) zwei Hackvögel, links ein Ruinen-Podest, rechts eine 5,4 m hohe Wand:
 //                                     hinter dem dritten Hackvogel ein Sprungfeld hinauf zur Goldröhre (Bonusraum mit
 //                                     goldenem Schalter abseits bei x ≈ 90, z ≈ 60). Brummer, Felssäule über der Schlucht.
 //   3  Oase              z −50 … −70  (20 × 20 m) Teich mit Unterwasser-Münzen, Palmen, Schilf, Checkpoint, Hackvogel,
-//                                     Ruinen; unsichtbarer Block mit Extraleben über dem Säulenstumpf (Münzspur).
+//                                     Ruinen, Kamelmutter mit Jungtier; unsichtbarer Block mit Extraleben über dem
+//                                     Säulenstumpf (Münzspur).
 //   4  Fliesenbrücke     z −70 … −100 (30 m) erst ausweichende Fliesen (shift), Rast-Säule, dann kippende Fliesen (drop).
 //   5  Schmale Brücke    z −100 … −146 (46 m) 1 m schmale Stege; Hackvögel auf Säulen hacken im Takt auf den Steg,
 //                                     einer steht auf der Mittelinsel. Danach Plateau mit dem eingeschlossenen
@@ -23,7 +24,7 @@
 //                 2 Krümels Hackvogel besiegen. Stempel: Sims über der Sandblock-Treppe vor der verschiebenden Brücke.
 // Kulisse sparsam (Budget): Kakteen ≈ 1,3–3,8 k Dreiecke je Stück, daher wenige und nah am Weg; Felstürme/Dünen billig.
 
-import { isl, line, ring, arc, column, blockRing, figure, bubble, setupHook, farHide, shadowless, camel, tumbleweed } from './_helpers_a.js';
+import { isl, line, ring, arc, column, blockRing, figure, bubble, farHide, shadowless, camel, tumbleweed } from './_helpers_a.js';
 
 const Y = 1;           // Oberseite der Plateaus
 const CAM = { pitch: 43, dist: 13.5, fov: 40, area: [-40, 40] };
@@ -35,8 +36,8 @@ const pillar = (x0, x1, zA, zB, top = Y) => isl(x0, x1, zA, zB, top, top + 30, {
 /** Rote Schluchtwand (Kulisse). */
 const cliff = (x0, x1, zA, zB, top) => isl(x0, x1, zA, zB, top, top + 30, { under: 0 });
 /**
- * Wüstenboden tief unten mit Dünen und Felstürmen (Kulisse ohne Sonnenschatten, wird im Aufbau-Haken über shadowless
- * gebaut – drei lange Stücke = drei Zeichenaufrufe, nicht im Schattenpass).
+ * Wüstenboden tief unten mit Dünen und Felstürmen (Kulisse ohne Sonnenschatten, in LEVEL.setup über shadowless gebaut –
+ * drei lange Stücke = drei Zeichenaufrufe, nicht im Schattenpass).
  */
 const floor = (z, seed) => ({ type: 'deco_w2', items: [
   { kind: 'sandflaeche', pos: [0, -28, z], size: [160, 88], cell: 8, solid: false },
@@ -52,9 +53,8 @@ const FAR = [
 ];
 
 // ------------------------------------------------------------------ Krümels Picknick (level-lokale Szene)
-// Krümel kauert vor dem Felsen, ein Hackvogel (id 'hv_kruemel') hackt vor ihm in den Sand. Ist der Vogel besiegt,
-// jubelt Krümel und bedankt sich (die Aufgabe 'task' lässt Stern 2 über ihm erscheinen). Aufgerufen einmal beim
-// Aufbau (setupHook).
+// Krümel kauert vor einer Säulenruine, ein Hackvogel (id 'hv_kruemel') hackt vor ihm in den Sand. Ist der Vogel besiegt,
+// jubelt Krümel und bedankt sich (die Aufgabe 'task' lässt Stern 2 über ihm erscheinen). Aufgerufen aus LEVEL.setup.
 const KRUEMEL = [-7.4, Y, -171.2];
 function kruemelSzene(level) {
   let anim = 'scared', t = 0, said = false;
@@ -94,10 +94,16 @@ export const LEVEL = {
   timeLimit: 400,
   start: { pos: [0, Y, 5], yaw: Math.PI / 2 },
   killY: -12,
+  // level-lokaler Code (Level-Haken): ferne Kulisse ohne Sonnenschatten, Krümels Szene, Wüstenleben, Fernsicht für Gegner
+  setup(level) {
+    shadowless(level, FAR);
+    kruemelSzene(level);
+    wuestenLeben(level);
+    farHide(level, ['hackvogel', 'brummer'], 46);
+  },
   camera: [
-    { ...CAM, from: 12, to: -6, pitch: 40, dist: 14 },
-    { ...CAM, from: -6, to: -22 },
-    { ...CAM, from: -22, to: -46, yaw: 6 },
+    { ...CAM, from: 12, to: -22, pitch: 45 },
+    { ...CAM, from: -22, to: -46, pitch: 44.5, yaw: 6 },
     { ...CAM, from: -46, to: -70, pitch: 45 },
     { ...CAM, from: -70, to: -100, pitch: 46 },
     { ...CAM, from: -100, to: -130, pitch: 45, dist: 12.5 },
@@ -109,7 +115,7 @@ export const LEVEL = {
   ],
   segments: [
     // =============================================================== Kulisse: Wüste tief unten, Felstürme, Dünen
-    // (Wüstenboden tief unten: FAR, im Aufbau-Haken ohne Sonnenschatten gebaut)
+    // (Wüstenboden tief unten: FAR, in LEVEL.setup ohne Sonnenschatten gebaut)
 
     // =============================================================== 1  Wüstenstart
     plat(-10, 10, 9, -9),
@@ -194,9 +200,10 @@ export const LEVEL = {
     ] },
 
     // =============================================================== 4  Fliesenbrücke
-    { type: 'fliesenbruecke', id: 'fb_shift', from: [0, Y, -70], to: [0, Y, -82.6], mode: 'shift', tile: 3, shift: 2.2, stay: 2.2 },
-    pillar(-2.6, 2.6, -82.6, -86.6),
-    { type: 'fliesenbruecke', id: 'fb_drop', from: [0, Y, -86.6], to: [0, Y, -100], mode: 'drop', tile: 3, delay: 0.7, respawn: 2.6 },
+    // Fliesen 3 m mit 0,3 m Fuge: Länge = n·3 + (n−1)·0,3 (sonst verteilt der Baustein die Fliesen mit größeren Lücken)
+    { type: 'fliesenbruecke', id: 'fb_shift', from: [0, Y, -70], to: [0, Y, -82.9], mode: 'shift', tile: 3, shift: 2.2, stay: 2.2 },
+    pillar(-2.6, 2.6, -82.9, -86.6),
+    { type: 'fliesenbruecke', id: 'fb_drop', from: [0, Y, -86.6], to: [0, Y, -99.5], mode: 'drop', tile: 3, delay: 0.7, respawn: 2.6 },
     cliff(-18, -11, -70, -100, 9),
     cliff(11, 18, -70, -100, 6),
     { type: 'deco_w2', items: [
@@ -207,7 +214,7 @@ export const LEVEL = {
     ] },
 
     // =============================================================== 5  Schmale Brücke
-    plat(-5, 5, -100, -104),
+    plat(-5, 5, -99.5, -104),
     { type: 'schmale_bruecke', from: [0, Y, -104], to: [0, Y, -116] },
     pillar(0.85, 1.85, -108.4, -109.4),
     pillar(-2.4, 2.4, -116, -120.4),
@@ -243,8 +250,8 @@ export const LEVEL = {
     cliff(9, 15, -170.5, -181.5, 5.8),
     { type: 'sandblock', id: 'treppe', blocks: [[5.4, 1.6, -178.4], [6.7, 2.9, -178.4], [8, 4.2, -178.4]], respawn: 2.5 },
     // lange verschiebende Fliesenbrücke zum Ziel
-    { type: 'fliesenbruecke', id: 'fb_slide', from: [0, Y, -182], to: [0, Y, -203], mode: 'slide', tile: 3, slide: { amp: 1.4, period: 3.2, wave: 0.6 } },
-    plat(-10, 10, -203, -220),
+    { type: 'fliesenbruecke', id: 'fb_slide', from: [0, Y, -182], to: [0, Y, -201.8], mode: 'slide', tile: 3, slide: { amp: 1.4, period: 3.2, wave: 0.6 } },
+    plat(-10, 10, -201.8, -220),
     { type: 'mound', pos: [-6.2, Y, -208.6], radius: 3, height: 0.8 },
     { type: 'mound', pos: [6.8, Y, -205.4], radius: 2.4, height: 0.6 },
     cliff(-16, -10, -200, -220, 6),
@@ -352,8 +359,6 @@ export const LEVEL = {
     // Bonusraum: Sockel-Münzen
     // Gimmicks
     { kind: 'goldschalter', id: 'goldschalter', pos: [91, Y, 59], area: { pos: [91, Y, 58.4], size: [9, 7] }, time: 8, rate: 7, height: 4.6 },
-    // level-lokaler Code beim Aufbau: ferne Kulisse ohne Schatten, Krümels Szene, Fernsicht für Gegner (> 50 m)
-    ...setupHook((level) => { shadowless(level, FAR); kruemelSzene(level); wuestenLeben(level); farHide(level, ['hackvogel', 'brummer'], 50); }, [0, -9, 0]),
     { kind: 'task', area: { pos: [-5, Y, -171], r: 10 }, ids: ['hv_kruemel'], reward: { star: { index: 2, pos: [KRUEMEL[0] + 0.3, Y + 1.4, KRUEMEL[2] + 0.6] } } },
   ],
   checkpoint: { pos: [-6, Y, -57.2], yaw: Math.PI / 2 },

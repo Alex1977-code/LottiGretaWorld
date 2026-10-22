@@ -2,10 +2,10 @@
 // Propellerplattformen (Bauplan: Detail 2-2). Level verläuft nach −Z; unter den Inseln nur Sterne und Planeten.
 //
 // Abschnitte (Länge entlang z):
-//   1  Start             z   8 … −22  (30 m) Startinsel, ein großer Tastenstein hebt die Heldin auf die obere Insel
-//                                     (Schnappblumen, Rollpilze). Zwei Schwebeplattformen zum Antippen: links hebt
-//                                     sie zu einem Münzkranz, rechts gibt sie eine Röhre frei → Stempel-Raum (zwei
-//                                     Rollpilze, abseits bei x ≈ 80).
+//   1  Start             z   8 … −22  (30 m) Startinsel mit Fernrohr, ein großer Tastenstein hebt die Heldin auf die
+//                                     obere Insel (Schnappblume, Rollpilz, ?-Block). Zwei Schwebeplattformen zum
+//                                     Antippen: links hebt sie zu einer Münzsäule, rechts gibt sie eine Röhre frei →
+//                                     Stempel-Raum (zwei Rollpilze, abseits bei x ≈ 80).
 //   2  Antipp-Plattformen z −22 … −46 (24 m) Leere mit Antipp-Plattformen (erscheinen, fahren aus einer Säule,
 //                                     verschwinden nach 5 s, heben sich), Lücken 2–2,5 m; Antipp-Münzen im All.
 //   3  Kristallwand       z −46 … −88 (42 m) Insel mit Mini-Pilzlingen, Kristallstufen hinauf (2-m-Stufen), links ein
@@ -14,7 +14,8 @@
 //                                     plattform hinauf zur Warp-Box.
 //   4  Warp-Box           z −84 … −88  oben auf dem Sims; bringt die Heldin zum Plattformnetz (Leere dazwischen).
 //   5  Plattformnetz      z −100 … −172 (72 m) Propellerplattformen (Pendel, sinkend, schwebend) zur Schnappblumen-
-//                                     Insel; links ein Sternensteg, auf dem der Münzmarder flieht (einholen → Münzen);
+//                                     Insel; links ein Sternensteg (erst durchgehend, dann mit Lücken), auf dem der
+//                                     Münzmarder flieht (rennend einholen → Münzregen);
 //                                     rechts über eine Pendel-Propellerplattform zur Wolkenkanone → Münzhimmel mit
 //                                     Stern 1 am Ende.
 //   6  Ziel               z −172 … −204 (32 m) Klaviatur-Insel mit einer Tastenstein-Treppe (jede Taste ein Ton) hinauf
@@ -22,7 +23,7 @@
 // Sterne (Index): 0 Kristall-Kamin (Wandsprung), 1 Ende des Münzhimmels (Wolkenkanone), 2 unter der dritten
 //                 Kristallplatte. Stempel: Raum unter der rechten Schwebeplattform.
 
-import { isl, line, ring, arc, column, setupHook, farHide, shadowless, telescope, shootingStars, asteroids } from './_helpers_a.js';
+import { isl, line, ring, arc, column, farHide, shadowless, telescope, shootingStars, asteroids } from './_helpers_a.js';
 
 const Y = 1;
 const CAM = { pitch: 44, dist: 13.5, fov: 40, area: [-40, 40] };
@@ -75,6 +76,12 @@ export const LEVEL = {
   timeLimit: 400,
   start: { pos: [0, Y, 5], yaw: Math.PI / 2 },
   killY: -12,
+  // level-lokaler Code (Level-Haken): Planeten ohne Sonnenschatten, Sternwarte, Fernsicht für Gegner (> 40 m)
+  setup(level) {
+    shadowless(level, FAR);
+    sternwarte(level);
+    farHide(level, ['schnappblume', 'rollpilz', 'pilzling', 'muenzmarder'], 40);
+  },
   camera: [
     { ...CAM, from: 12, to: -4, pitch: 40, dist: 14 },
     { ...CAM, from: -4, to: -22 },
@@ -281,7 +288,6 @@ export const LEVEL = {
     line([4.4, 4.3, -191.8], [5.6, 4.3, -191.8], 2),
     // Stempel-Raum
     ...arc([77, 1.3, -14], [84.4, 2.9, -18.6], 4, 1.6),
-    ...setupHook((level) => { shadowless(level, FAR); sternwarte(level); farHide(level, ['schnappblume', 'rollpilz', 'pilzling', 'muenzmarder'], 40); }, [0, -1, -16]),
   ],
   checkpoint: { pos: [0, 12.5, -69.4], yaw: Math.PI / 2 },
   stars: [
@@ -312,7 +318,8 @@ export const LEVEL = {
   },
 };
 
-// Warp-Box (Bauplan 2-2 Abschnitt 4): auf dem Sims nach der steigenden Propellerplattform → Plattformnetz
+// Warp-Box (Bauplan 2-2 Abschnitt 4): auf dem Sims nach der steigenden Propellerplattform → Plattformnetz (Ankunft an
+// einem Punkt auf Insel E; keine zweite Box – spart Zeichenaufrufe auf der langen Sichtachse)
 LEVEL.items.push(
   { kind: 'warpbox', id: 'wb1', pos: [0, 18.6, -85.4], target: [2.4, Y + 0.2, -104.4] },
 );
