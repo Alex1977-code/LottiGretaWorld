@@ -284,9 +284,15 @@ export class MapHud {
       this.toastText.setAlpha(Math.min(1, this.toastT / 0.4));
       if (this.toastT <= 0) this.toastText.setVisible(false);
     }
-    this.updateLabels();
-    if (s.nearSlot || s.onSlotPad) this.updateSlotBanner();
-    else this.updateBanner();
+    // während der Glasröhren-Fahrt: keine Beschriftungen und Hinweise (freie Sicht übers Meer)
+    const riding = !!s.travel && !s.travel.done;
+    this.labelLayer.setVisible(!riding);
+    if (riding) { this.banner.setVisible(false); this.goBtn.setVisible(false); this.prev.banner = 'fahrt'; }
+    else {
+      this.updateLabels();
+      if (s.nearSlot || s.onSlotPad) this.updateSlotBanner();
+      else this.updateBanner();
+    }
     if (s.debug) {
       const st = s.view.stats(), p = s.player.info();
       this.debugText.setText(`${p.mode}/${p.state} x${p.x} y${p.y} z${p.z}  calls ${st.calls} tris ${st.triangles} fps ${Math.round(s.game.loop.actualFps)}`);

@@ -363,8 +363,8 @@ r = await sc(() => { const c = window.__course; c.setInput({ crouch: true }); c.
 console.log('  Warp', JSON.stringify(r));
 check('1-2: Welt-Warp-Röhre (Krallen-Sims) schaltet Welt 2 frei', r.warp === 2 && r.opened);
 // im Echtzeitbetrieb führt sie auf die Welt-2-Insel
-await sc(() => { window.__oldCourse = window.__course; window.__course.restartLevel(); });
-await page.waitForFunction(() => window.__course && window.__course !== window.__oldCourse && window.__course.level && window.__game.scene.isActive('Course'), null, { timeout: 120000 });
+await sc(() => { window.__oldLevel = window.__course.level; window.__course.restartLevel(); });
+await page.waitForFunction(() => window.__course && window.__course.level && window.__course.level !== window.__oldLevel && window.__game.scene.isActive('Course'), null, { timeout: 120000 });
 await sc(() => { const c = window.__course; c.level.muted = true; c.teleport(6.4, 8.3, -155); c.setInput({ crouch: true }); });
 try {
   await page.waitForFunction(() => window.__courseMap && window.__game.scene.isActive('CourseMap') && window.__courseMap.map.world === 2, null, { timeout: 120000 });
