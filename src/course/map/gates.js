@@ -2,6 +2,9 @@
 // Kollision: ein hoher, unsichtbarer Quader über die ganze Engstelle (Kamera darf hindurch, kein Wandrutschen),
 // damit niemand darüber springt. open(animate) entfernt die Kollision sofort; die Blöcke versinken nacheinander
 // im Boden (Staub, Klang) – die Animation läuft im Simulationstakt (step), also deterministisch.
+// Von hinten (def.back, siehe layout.gateSides) lässt eine geschlossene Schranke die Figur durch: Kommt sie von der
+// gesperrten Seite heran (z. B. nach der Glasröhren-Fahrt aus der nächsten Welt), sinken die Blöcke kurz ab und heben
+// sich wieder, sobald sie weitergegangen ist (state bleibt 'closed', pass = 0..1 abgesenkt).
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -23,6 +26,9 @@ export class MapGate {
     this.y = groundY;
     this.state = 'closed';      // closed | opening | open
     this.t = 0;
+    this.back = def.back ?? 0;  // gesperrte Seite entlang axis (+1/−1), 0 = nie durchlassen
+    this.pass = 0;              // 0 = oben, 1 = abgesenkt (Durchlass von hinten)
+    this.passWant = false;
     const [x0, z0, x1, z1] = def.rect;
     this.center = { x: (x0 + x1) / 2, y: groundY, z: (z0 + z1) / 2 };
     // Kollision: über die Engstelle und etwas in die Ränder hinein
@@ -30,7 +36,8 @@ export class MapGate {
     const along = def.axis; // Laufrichtung des Wegs
     const min = along === 'x' ? [x0, groundY - 1, z0 - pad] : [x0 - pad, groundY - 1, z0];
     const max = along === 'x' ? [x1, groundY + 40, z1 + pad] : [x1 + pad, groundY + 40, z1];
-    this.shapeId = level.world.add({ type: 'box', min, max, camIgnore: true, noWallSlide: true, tag: 'gate', gate: def.for });
+    this.shape = { type: 'box', min, max, camIgnore: true, noWallSlide: true, tag: 'gate', gate: def.for };
+    this.shapeId = level.world.add({ ...this.shape });
     // Darstellung
     this.group = new THREE.Group();
     this.group.name = `schranke:${def.for}`;
@@ -94,8 +101,24 @@ export class MapGate {
     this.lock.position.y = 2.35 + Math.sin(t * 2 + this.center.z) * 0.08;
   }
 
+  /**
+   * Durchlass von hinten: steht die Figur auf der gesperrten Seite nahe an der Schranke, senkt sie sich; ist die Figur
+   * weitergegangen (mehr als 3,4 m entfernt oder seitlich vorbei), hebt sie sich wieder.
+   */
+  updatePass(player) {
+    if (this.state !== 'closed' || !this.back || !player) { this.passWant = false; return; }
+    const [x0, z0, x1, z1] = this.def.rect;
+    const p = player.pos;
+    const along = this.def.axis === 'x' ? p.x - this.center.x : p.z - this.center.z;
+    const lat = this.def.axis === 'x' ? (p.z < z0 ? z0 - p.z : p.z > z1 ? p.z - z1 : 0) : (p.x < x0 ? x0 - p.x : p.x > x1 ? p.x - x1 : 0);
+    const near = lat < 1.2 && Math.abs(along) < 3.4 && Math.abs(p.y - this.y) < 4;
+    if (!this.passWant) this.passWant = near && along * this.back > 0.4;
+    else if (!near || along * this.back < -1.5) this.passWant = false;   // weg oder vorn frei hindurch
+  }
+
   /** Simulationsschritt (Animation). */
   step(dt) {
+    if (this.state === 'closed') { this.stepPass(dt); return; }
     if (this.state !== 'opening') return;
     const prev = this.t;
     this.t += dt;
@@ -119,6 +142,24 @@ export class MapGate {
     this.lock.rotation.y += dt * 14;
     this.lock.scale.setScalar(Math.max(0.001, 1.15 * (1 - Math.max(0, this.t - 0.3) / 0.5)));
     if (this.t >= this.duration()) this.finish();
+  }
+
+  stepPass(dt) {
+    const want = this.passWant ? 1 : 0;
+    if (this.pass === want) return;
+    const prev = this.pass;
+    this.pass = want > this.pass ? Math.min(1, this.pass + dt / 0.35) : Math.max(0, this.pass - dt / 0.45);
+    if (prev === 0 && this.pass > 0) {
+      if (this.shapeId !== null) { this.level.world.remove(this.shapeId); this.shapeId = null; }
+      this.level.sfx('switch');
+      this.level.effects?.dust({ x: this.center.x, y: this.y + 0.1, z: this.center.z }, 6, 1.2);
+    }
+    if (this.pass === 0 && this.shapeId === null) this.shapeId = this.level.world.add({ ...this.shape });
+    const k = this.pass;
+    for (const b of this.blocks) { b.y = b.base - k * 2.1; b.visible = k < 0.98; }
+    this.placeBlocks();
+    this.emblem.scale.setScalar(Math.max(0.001, 1 - k));
+    this.lock.visible = k < 0.5;
   }
 
   placeBlocks() {

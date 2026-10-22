@@ -1,10 +1,12 @@
 // Karten-HUD der Kurs-Weltkarte (Phaser, über der 3D-Leinwand, Logik-Koordinaten 480x270):
 //   oben links   Leben, Bitcoins, Sterne der Welt (gesammelt/möglich), darunter Figur-Porträts (Lotti/Greta, Tab)
 //                und das mitgenommene Power-up aus dem Beerenhaus
-//   oben Mitte   Weltname
+//   oben Mitte   Weltname groß beim Betreten; danach dauerhaft als kleines Schild „Welt n · Name“ mit allen gesammelten
+//                Sternen („★ gesamt“) – die Welt wechselt man nur über die Glasröhren (kein Menü)
 //   oben rechts  Ton an/aus (M), „Klassik“ (bisherige Weltkarte), „Neu“ (Spielstand löschen, mit Rückfrage)
 //   über den Eingängen  Nummer + Titel, Sterne (gesammelt/möglich), Stempel – an die 3D-Lage projiziert
-//   unten Mitte  Hinweis zum nächsten Eingang (Titel, Sterne, Status) und – auf freiem Eingang mit Touch – „Los!“
+//   unten Mitte  Hinweis zum nächsten Eingang (Titel, Sterne, Status) bzw. zum Spielautomaten im Glückshaus und – auf
+//                freiem Eingang oder der Automaten-Matte mit Touch – „Los!“
 //   Touch-Steuerung (Stick, A/B/Y, Kamera) wie im Level (CourseTouch).
 // Alle Knöpfe haben große Treffflächen (mind. 34 × 30 Logik-Pixel) und halten den Stick-Finger fern.
 
@@ -73,8 +75,15 @@ export class MapHud {
     const map = scene.map;
     // Weltname: groß beim Betreten, blendet nach ein paar Sekunden aus (oben bleibt Platz für die Beschriftungen)
     this.title = uiText(scene, W / 2, 104, `Welt ${map.world}\n${map.title}`, { size: 17, color: '#ffffff', stroke: '#3a2a6a', thickness: 4, align: 'center' }).setDepth(70);
-    this.titleT = scene.arrive?.from ? 0 : 3.2;          // nur beim Betreten der Welt, nicht nach jedem Level
+    this.titleT = scene.arrive?.from && !scene.arrive?.warpWorld ? 0 : 3.2;   // nur beim Betreten der Welt, nicht nach jedem Level
     this.title.setVisible(this.titleT > 0);
+    // kleines Weltschild oben in der Mitte: Weltname und alle gesammelten Sterne
+    this.worldPill = scene.add.container(W / 2 - 4, 15).setDepth(40);
+    this.worldPillBg = scene.add.graphics();
+    this.worldName = uiText(scene, 0, -4.5, `Welt ${map.world} · ${map.short ?? map.title}`, { size: 7.5, thickness: 2.5 });
+    this.totalIcon = scene.add.graphics();
+    this.totalText = uiText(scene, 4, 5.5, '', { size: 7, originX: 0, color: '#eaffea', thickness: 2, shadow: false });
+    this.worldPill.add([this.worldPillBg, this.worldName, this.totalIcon, this.totalText]);
 
     // ---- oben rechts: Ton, Klassik, Neu
     const btn = (x, label, cb, opts = {}) => {
@@ -150,12 +159,21 @@ export class MapHud {
   refresh(force) {
     const s = this.scene;
     const stars = s.worldStars(), max = s.worldStarsMax();
-    const key = [courseSave.lives, courseSave.coins, stars, max, s.player?.hero, courseSave.carryPower].join('|');
+    const total = s.totalStars();
+    const key = [courseSave.lives, courseSave.coins, stars, max, s.player?.hero, courseSave.carryPower, total].join('|');
     if (!force && key === this.prev.key) return;
     this.prev.key = key;
     this.livesText.setText(`×${courseSave.lives}`);
     this.coinText.setText(String(courseSave.coins));
     this.starText.setText(`${stars}/${max}`);
+    this.totalText.setText(`${total} gesamt`);
+    const pw = Math.max(this.worldName.width, this.totalText.width + 14) + 18;
+    this.worldPillBg.clear();
+    this.worldPillBg.fillStyle(0x1a1830, 0.55); this.worldPillBg.fillRoundedRect(-pw / 2, -11, pw, 22, 10);
+    this.totalText.setX(-(this.totalText.width + 11) / 2 + 11);
+    this.totalIcon.clear();
+    const tp = starPoints(this.totalText.x - 6, 5.5, 4.2, 1.9);
+    this.totalIcon.fillStyle(0x3ee05a, 1); this.totalIcon.fillPoints(tp, true);
     const g = this.icons;
     g.clear();
     g.fillStyle(0xffd6b0, 1); g.fillCircle(19, 15, 6.5);
@@ -266,8 +284,15 @@ export class MapHud {
       this.toastText.setAlpha(Math.min(1, this.toastT / 0.4));
       if (this.toastT <= 0) this.toastText.setVisible(false);
     }
-    this.updateLabels();
-    this.updateBanner();
+    // während der Glasröhren-Fahrt: keine Beschriftungen und Hinweise (freie Sicht übers Meer)
+    const riding = !!s.travel && !s.travel.done;
+    this.labelLayer.setVisible(!riding);
+    if (riding) { this.banner.setVisible(false); this.goBtn.setVisible(false); this.prev.banner = 'fahrt'; }
+    else {
+      this.updateLabels();
+      if (s.nearSlot || s.onSlotPad) this.updateSlotBanner();
+      else this.updateBanner();
+    }
     if (s.debug) {
       const st = s.view.stats(), p = s.player.info();
       this.debugText.setText(`${p.mode}/${p.state} x${p.x} y${p.y} z${p.z}  calls ${st.calls} tris ${st.triangles} fps ${Math.round(s.game.loop.actualFps)}`);
@@ -330,18 +355,19 @@ export class MapHud {
     const ne = s.nearEntrance;
     const onPad = s.onPad;
     const st = ne ? s.status(ne.id) : null;
-    const showGo = !!(onPad && s.status(onPad.id).enterable && this.touchCtl.visible && !s.inputLocked && !s.leaving);
+    const showGo = !!(onPad && s.status(onPad.id).enterable && this.touchCtl.visible && !s.inputLocked && !s.leaving && !s.travel);
     this.goBtn.setVisible(showGo);
-    const key = st ? [ne.id, st.title, st.stars, st.stamp, st.locked, st.reason, st.soon, !!onPad, s.worldStars()].join('|') : '';
+    const key = st ? [ne.id, st.title, st.stars, st.stamp, st.locked, st.reason, st.soon, !!onPad, s.gateStars()].join('|') : '';
     if (key === this.prev.banner) return;
     this.prev.banner = key;
     if (!st) { this.banner.setVisible(false); return; }
     let status;
-    if (st.reason === 'stars') status = `Benötigt ${st.minStars} Sterne (${s.worldStars()}/${st.minStars})`;
+    if (st.reason === 'stars') status = `Benötigt ${st.minStars} Sterne (${s.gateStars()}/${st.minStars})`;
     else if (st.locked) status = 'Noch nicht frei';
     else if (st.soon) status = st.next ? 'Bald – hier geht es später weiter' : 'Bald';
+    else if (onPad && st.next) status = this.touchCtl.visible ? 'A oder „Los!“ – ab durch die Glasröhre!' : 'A / Leertaste / Enter: ab durch die Glasröhre!';
     else if (onPad) status = this.touchCtl.visible ? 'A oder „Los!“ – los geht’s!' : 'A / Leertaste / Enter: Los!';
-    else status = st.roamer ? 'Lauf die Bullen an!' : 'Aufs Podest stellen';
+    else status = st.roamer ? ((s.map.roamers ?? []).find((r) => r.level === ne.id)?.hint ?? 'Lauf die Bullen an!') : 'Aufs Podest stellen';
     this.bannerTitle.setText(`${st.label}  ·  ${st.title}`);
     this.bannerStatus.setText(status);
     const starW = (st.starsMax + (st.hasStamp ? 1 : 0)) * 11;
@@ -356,6 +382,33 @@ export class MapHud {
     if (starW > 0) drawStars(this.bannerStars, x0 + starW / 2 - 5, 8, st.starsMax, st.stars, st.hasStamp, st.stamp, 4.2);
     this.bannerStatus.setPosition(x0 + starW + (starW > 0 ? 4 : 0), 8);
     this.bannerStatus.setColor(st.locked ? '#ffb0a0' : st.soon ? '#d8d8e8' : '#fff2b0');
+    this.banner.setVisible(true);
+  }
+
+  /** Hinweis-Leiste am Spielautomaten (Glückshaus) und „Los!“ auf der Matte. */
+  updateSlotBanner() {
+    const s = this.scene, slot = s.slot;
+    const can = courseSave.coins >= slot.stake;
+    const showGo = !!(s.onSlotPad && !slot.busy && this.touchCtl.visible && !s.inputLocked && !s.leaving);
+    this.goBtn.setVisible(showGo);
+    const status = slot.busy ? 'Die Walzen drehen sich …'
+      : !can ? `Einsatz ${slot.stake} Bitcoins – du hast ${courseSave.coins}`
+        : s.onSlotPad ? (this.touchCtl.visible ? `A oder „Los!“: Hebel ziehen (${slot.stake} ₿)` : `A / Leertaste / Enter: Hebel ziehen (${slot.stake} ₿)`)
+          : `Einsatz ${slot.stake} Bitcoins – auf die Matte stellen`;
+    const key = ['slot', status].join('|');
+    if (key === this.prev.banner) return;
+    this.prev.banner = key;
+    this.bannerTitle.setText('Glückshaus  ·  Spielautomat');
+    this.bannerStatus.setText(status);
+    this.bannerStars.clear();
+    const w = Math.max(this.bannerTitle.width + 28, this.bannerStatus.width + 34, 150);
+    const g = this.bannerBg;
+    g.clear();
+    g.fillStyle(0x000000, 0.25); g.fillRoundedRect(-w / 2, -17 + 2, w, 34, 12);
+    g.fillStyle(0x3a1430, 0.8); g.fillRoundedRect(-w / 2, -17, w, 34, 12);
+    g.lineStyle(1.2, 0xffd23a, 0.9); g.strokeRoundedRect(-w / 2, -17, w, 34, 12);
+    this.bannerStatus.setPosition(-this.bannerStatus.width / 2, 8);
+    this.bannerStatus.setColor(can ? '#fff2b0' : '#ffb0a0');
     this.banner.setVisible(true);
   }
 

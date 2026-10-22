@@ -1,10 +1,11 @@
 // Eingänge der Kurs-Weltkarte: rundes Podest mit Nummernscheibe (frei = farbig mit Leuchtring, gesperrt = grau mit
 // schwebendem Schloss, geschafft = Fahne), dazu je Art eine Kulisse (Wiesentor, Höhlenmaul, Arena-Gitter, Bohnenranke,
-// Diorama-Vitrine, Blatt-Floß und Wasserfall, Zirkuszelt, Festung mit Baron-Flagge, Glasröhre).
+// Diorama-Vitrine, Blatt-Floß und Wasserfall, Zirkuszelt, Festung mit Baron-Flagge, Glasröhre; Welt 2: decor_w2.js).
 // Große, unbewegte Teile gehen in die verschmolzene statische Geometrie (view.addStatic), bewegte sind eigene Objekte.
 //
 // Weltdaten je Eingang: { id, kind, pos, exit?, decor?: [x, y, z] (Lage der Kulisse), cage?: [[x0, z0, x1, z1], …],
 //   waterfall?: { x0, x1, z, top, bottom }, pipe?: [[dx, dy, dz], …] (Röhrenverlauf relativ zu decor), label? }
+// info (vom Kartenbau): { label, sign? } – sign = Aufschrift des Schilds an einer Glasröhre (z. B. „Welt 2\nWüste“).
 
 import * as THREE from 'three';
 import { getModel } from '../models/index.js';
@@ -15,6 +16,8 @@ import {
 import { Build, mix, cached } from '../models/lib/kit.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 import { PODIUM_R } from './layout.js';
+import { tubeCurve } from './travel.js';
+import { decorateW2 } from './decor_w2.js';
 
 
 /** Geometrie in Weltkoordinaten kopieren (gedreht um yaw, verschoben). */
@@ -39,6 +42,7 @@ export class EntranceView {
     this.kind = def.kind ?? 'meadow';
     this.color = ENTRANCE_COLORS[this.kind] ?? 0x4fc24a;
     this.label = info.label;
+    this.sign = info.sign ?? null;
     this.pos = new THREE.Vector3(...def.pos);
     this.state = null;
     this.hopT = 0;
@@ -169,7 +173,7 @@ export class EntranceView {
         break;
       case 'castle': this.decorateCastle(x, y, z); break;
       case 'pipe': this.decoratePipe(x, y, z); break;
-      default: break;
+      default: decorateW2(this, this.kind, x, y, z); break;
     }
   }
 
@@ -251,30 +255,32 @@ export class EntranceView {
   }
 
   decoratePipe(x, y, z) {
-    const pts = (this.def.pipe ?? [[0, 0, 0], [0, 4, 0], [0, 6.2, -2.4], [0, 7, -10], [0, 6.5, -30], [0, 5, -60]]).map(([a, b, c]) => new THREE.Vector3(x + a, y + b, z + c));
-    const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
-    const tube = new THREE.TubeGeometry(curve, 120, 1.15, 24, false);
+    const curve = tubeCurve(this.def);
+    const len0 = curve.getLength();
+    const tube = new THREE.TubeGeometry(curve, Math.min(220, Math.max(120, Math.round(len0 / 1.5))), 1.15, 16, false);
     this.own.push(tube);
     this.level.world.add({ type: 'cyl', x, z, r: 1.2, y0: y, y1: y + 4, tag: 'deko' });
     const glass = std('map:pipeglass', { color: 0xa8e4ff, transparent: true, opacity: 0.42, roughness: 0.05, metalness: 0.1, side: THREE.DoubleSide, depthWrite: false, emissive: 0x16506a });
     const m = new THREE.Mesh(tube, glass);
     m.renderOrder = 3;
     this.view.add(m);
-    // weiße Ringe entlang der Röhre
+    // weiße Ringe entlang der Röhre (nah dicht, weiter draußen seltener)
     const b = new Build();
-    const len = curve.getLength();
-    for (let s = 0; s <= len; s += 3.5) {
+    const len = len0;
+    for (let s = 0; s <= len; s += s < 40 ? 3.5 : 7) {
       const p = curve.getPointAt(Math.min(1, s / len)), tan = curve.getTangentAt(Math.min(1, s / len));
       const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), tan);
       const e = new THREE.Euler().setFromQuaternion(q);
-      b.torus(1.2, 0.13, 0xffffff, { p: [p.x, p.y, p.z], r: [e.x, e.y, e.z] }, 6, 28);
+      b.torus(1.2, 0.13, 0xffffff, { p: [p.x, p.y, p.z], r: [e.x, e.y, e.z] }, s < 40 ? 5 : 4, s < 40 ? 22 : 14);
     }
     this.addStatic(b.geometry(), { castShadow: false });
-    // Schild „Welt 2 – bald“
+    // Schild an der Röhre (Zielwelt, z. B. „Welt 2 – Wüste“ oder „Welt 3 – bald!“)
+    const text = this.sign ?? 'Welt 2\nbald!';
     const sign = new THREE.Group();
-    sign.add(new THREE.Mesh(signGeo(), vcol(0.6)), signTextMesh('Welt 2\nbald!', 'w2'));
-    sign.position.set(this.pos.x + 2.6, this.pos.y, this.pos.z + 0.6);
-    sign.rotation.y = -0.35;
+    sign.add(new THREE.Mesh(signGeo(), vcol(0.6)), signTextMesh(text, `pipe:${text.replace(/[^A-Za-z0-9]+/g, '_')}`));
+    const sp = this.def.signPos ?? [2.6, 0, 0.6];
+    sign.position.set(this.pos.x + sp[0], this.pos.y + sp[1], this.pos.z + sp[2]);
+    sign.rotation.y = this.def.signYaw ?? -0.35;
     sign.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     this.view.add(sign);
   }

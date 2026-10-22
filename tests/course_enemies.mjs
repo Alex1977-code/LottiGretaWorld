@@ -304,12 +304,18 @@ const fl = await sc(() => {
   const c = window.__course, t = window.__t, p = c.player;
   const out = {};
   const f = t.ent('blume_topf');
+  // 1,45 m vor der Blume: sie schnappt, das Maul (≈ 0,75 m) erreicht die Figur aber nicht
   t.place([7, 1, -44 + 1.45], { settle: 1, yaw: Math.PI / 2 });
   const seen = new Set();
   for (let i = 0; i < 360; i++) { c.step(1); seen.add(f.state); if (p.invuln > 0) break; }
+  out.far = { seen: [...seen], hurt: p.invuln > 0 };
+  // 0,95 m davor: im Maul
+  t.place([7, 1, -44 + 0.95], { settle: 1, yaw: Math.PI / 2 });
+  for (let i = 0; i < 360; i++) { c.step(1); seen.add(f.state); if (p.invuln > 0) break; }
   out.snap = { seen: [...seen], hurt: p.invuln > 0 };
+  p.invuln = 0;
   const s = t.stomp(f, { h: 1.0 });
-  out.above = { ...s, alive: f.alive && !f.defeated };
+  out.above = { ...s, defeated: f.defeated };
   // Stampfattacke direkt neben der Blume (Figur kurz unverwundbar, damit der Biss den Test nicht stört)
   const g = t.ent('blume_boden');
   t.place([g.pos.x + 1.25, 3.2, g.pos.z], { settle: 0, yaw: Math.PI });
@@ -326,11 +332,12 @@ const fl = await sc(() => {
   const seenR = new Set();
   for (let i = 0; i < 240; i++) { c.step(1); seenR.add(r.state); }
   out.onPipe = { y: r.pos.y, grounded: r.grounded, snap: seenR.has('snap') };
-  // Feuerball besiegt (Topf-Schnappblume, aus 3,2 m – außerhalb ihrer Reichweite)
+  // Feuerball besiegt (Boden-Schnappblume ist schon besiegt → neue Blume am selben Platz, aus 3,2 m)
+  const fb = c.level.spawn('schnappblume', { pos: [f.pos.x, f.pos.y, f.pos.z], base: 'pot' });
   t.place([f.pos.x, 1, f.pos.z + 3.2], { yaw: Math.PI / 2, power: 'funken' });
   t.action();
-  for (let i = 0; i < 120 && !f.defeated; i++) c.step(1);
-  out.fire = f.defeated && !(p.invuln > 0);
+  for (let i = 0; i < 120 && !fb.defeated; i++) c.step(1);
+  out.fire = fb.defeated && !(p.invuln > 0);
   // Riesenschnappblume: 3 Treffer
   const G = t.ent('riesenblume');
   t.place([G.pos.x, 1, G.pos.z + 6], { yaw: Math.PI / 2, power: 'funken' });
@@ -338,15 +345,42 @@ const fl = await sc(() => {
   for (let k = 0; k < 3; k++) { t.action(); c.step(150); hp.push(G.hp); }
   c.step(80);
   out.giant = { hp, defeated: G.defeated, removed: G.removed, hurt: p.invuln > 0 && !p.big };
+  // Neue Riesin am selben Platz: dreimal auf den Kopf springen (dazwischen Pause für die Unverwundbarkeit)
+  const G2 = c.level.spawn('riesenschnappblume', { pos: [G.pos.x, G.pos.y, G.pos.z], base: 'ground' });
+  t.place([G.pos.x, 1, G.pos.z + 9], { yaw: Math.PI / 2, power: 'none' });
+  c.step(20);
+  const hp2 = []; let hurt2 = false, bounced2 = 0;
+  for (let k = 0; k < 3; k++) {
+    const r2 = t.stomp(G2, { h: 1.0 });
+    hurt2 = hurt2 || r2.hurt; if (r2.bounced) bounced2++;
+    hp2.push(G2.hp);
+    t.place([G.pos.x, 1, G.pos.z + 9], { settle: 150, yaw: Math.PI / 2 });
+  }
+  c.step(80);
+  out.giantStomp = { hp: hp2, defeated: G2.defeated, hurt: hurt2, bounced: bounced2 };
+  // Schnappen der Riesin: 2,9 m vor der Mitte schnappt sie ins Leere, 1,9 m davor trifft das Maul
+  const G3 = c.level.spawn('riesenschnappblume', { pos: [G.pos.x, G.pos.y, G.pos.z], base: 'ground' });
+  t.place([G.pos.x, 1, G.pos.z + 2.9], { settle: 1, yaw: Math.PI / 2 });
+  let snapFar = false;
+  for (let i = 0; i < 400; i++) { c.step(1); if (G3.state === 'snap') snapFar = true; if (p.invuln > 0) break; }
+  out.giantFar = { snapped: snapFar, hurt: p.invuln > 0 };
+  t.place([G.pos.x, 1, G.pos.z + 1.9], { settle: 1, yaw: Math.PI / 2 });
+  let hurtNear = false;
+  for (let i = 0; i < 400; i++) { c.step(1); if (p.invuln > 0) { hurtNear = true; break; } }
+  out.giantNear = hurtNear;
   return out;
 });
 console.log(`  Schnappblume: Zustände ${fl.snap.seen.join('/')}, Biss=${fl.snap.hurt}; Riesenschnappblume hp ${fl.giant.hp.join(' → ')}`);
-check('Schnappblume schnappt nach der Figur in Reichweite', fl.snap.seen.includes('snap') && fl.snap.hurt);
-check('Schnappblume: draufspringen verletzt (nur seitlich verwundbar)', fl.above.hurt && fl.above.alive);
+check('Schnappblume schnappt, trifft aber nur im sichtbaren Maul (1,45 m davor kein Treffer)', fl.far.seen.includes('snap') && !fl.far.hurt);
+check('Schnappblume trifft im Maul (0,95 m davor)', fl.snap.hurt);
+check('Schnappblume: draufspringen besiegt (Abprall, kein Treffer)', fl.above.bounced && !fl.above.hurt && fl.above.defeated);
 check('Schnappblume: Stampfattacke daneben besiegt sie', fl.pound.defeated);
 check('Schnappblume auf der Röhre (steht, schnappt)', fl.onPipe.grounded && fl.onPipe.y > 2.1 && fl.onPipe.snap);
 check('Schnappblume: Feuerball besiegt sie', fl.fire);
 check('Riesenschnappblume braucht 3 Treffer', fl.giant.hp.join() === '2,1,0' && fl.giant.defeated && !fl.giant.hurt);
+console.log(`  Riesin draufspringen: hp ${fl.giantStomp.hp.join(' → ')}, Abpraller ${fl.giantStomp.bounced}; 2,9 m: schnappt ${fl.giantFar.snapped}, Treffer ${fl.giantFar.hurt}; 1,9 m: Treffer ${fl.giantNear}`);
+check('Riesenschnappblume: dreimal auf den Kopf springen besiegt sie (Abprall, kein Treffer)', fl.giantStomp.hp.join() === '2,1,0' && fl.giantStomp.defeated && !fl.giantStomp.hurt && fl.giantStomp.bounced === 3);
+check('Riesenschnappblume trifft nur im sichtbaren Maul (2,9 m: nein, 1,9 m: ja)', fl.giantFar.snapped && !fl.giantFar.hurt && fl.giantNear);
 
 // ================================================================ Rammbock-Bulle
 const bu = await sc(() => {
@@ -537,7 +571,7 @@ const wu = await sc(() => {
   const w = t.ent('wuehler_w');
   t.place([11, 1, -88.9]);
   let xMin = 99, xMax = -99, seen = new Set();
-  for (let i = 0; i < 720; i++) { c.step(1); seen.add(w.state); if (w.state === 'hide') { xMin = Math.min(xMin, w.pos.x); xMax = Math.max(xMax, w.pos.x); } }
+  for (let i = 0; i < 1440; i++) { c.step(1); seen.add(w.state); if (w.state === 'hide') { xMin = Math.min(xMin, w.pos.x); xMax = Math.max(xMax, w.pos.x); } }
   out.water = { xMin, xMax, seen: [...seen], y: w.pos.y };
   const e = t.ent('wuehler_e');
   e.setState('hide');
