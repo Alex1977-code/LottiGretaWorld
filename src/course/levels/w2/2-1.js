@@ -168,6 +168,9 @@ const JARS = [
   { pos: [-8.6, Y, -172.7], kind: 'krug', band: 0xffc21a, yaw: 0.5 },
   { pos: [-8.5, Y, -215.6], kind: 'amphore', yaw: 2.4 }, { pos: [-7.8, Y, -216.5], kind: 'topf', yaw: 0.2 },
   { pos: [8.4, Y, -215.6], kind: 'krug', lie: true, yaw: 1.1 },
+  // Bonusraum
+  { pos: [86.4, Y, 55.1], kind: 'amphore', yaw: 0.7 }, { pos: [93.9, Y, 55.2], kind: 'krug', lie: true, yaw: 2.6 },
+  { pos: [96.2, Y, 58.2], kind: 'topf', yaw: 1.9, band: 0xe0443a },
 ];
 const BONES = [[-5.8, Y, -8.3, 0.6], [-12.6, 3, -66.2, 1.9], [7.4, Y, -143.6, 2.5], [6.2, Y, -211.2, -0.4, 0.9]];
 const SHELLS = [
@@ -175,7 +178,10 @@ const SHELLS = [
   { pos: [-1.0, Y, -63.8], kind: 'kamm', color: 0xffd6a0, yaw: 2 }, { pos: [3.6, Y, -216.6], kind: 'schnecke', yaw: 2.2 },
   { pos: [-4.4, Y, -147.4], kind: 'kamm', yaw: 4 }, { pos: [6.6, Y, -153.6], kind: 'kamm', color: 0xffb0c8, yaw: 1.4 },
 ];
-const CLOTHS = [{ from: [-8.6, 4.55, -27.4], to: [-8.8, 5.15, -32.4], sag: 0.55, w: 0.42 }];
+const CLOTHS = [
+  { from: [-8.6, 4.55, -27.4], to: [-8.8, 5.15, -32.4], sag: 0.55, w: 0.42 },
+  { from: [84.6, 3.2, 55.3], to: [95.4, 3.2, 55.3], sag: 0.8, w: 0.36, n: 18, colors: [0xffc21a, 0x2fb8b0, 0xe0443a, 0xfff6ee] },
+];
 const SIGNPOSTS = [{ pos: [2.1, Y, -52.1], arms: [{ yaw: 2.52, color: 0x2fb8b0, y: 1.5 }, { yaw: 1.68, color: 0xe0443a, y: 1.28 }, { yaw: -1.57, color: 0xffc21a, y: 1.06 }] }];
 const STALL = { pos: [-11.9, 3, -60.8], yaw: Math.PI / 2 };
 const PARASOL = { pos: [-8.3, Y, -174.4], r: 1.0, h: 2.0, tilt: 0.12 };
