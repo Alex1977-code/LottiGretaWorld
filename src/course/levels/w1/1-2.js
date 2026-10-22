@@ -15,7 +15,8 @@
 //   6  Gang, Pilzlingsarena und Ziel  z −148 … −160 (Gang) + Arena/Ziel abseits bei x ≈ 50 (z −140 … −194):
 //                                       im Gang die unsichtbare Blockkette (Stempel) und die Kletterwand zur
 //                                       Welt-Warp-Röhre; Röhre in die Arena mit Pilzlingsturm (Stern 2); Röhre zum Ziel.
-//   Abseits: Goldröhren-Raum (x ≈ −60), Rätselbox-Raum (x ≈ 100), Welt-2-Raum „bald“ (x ≈ 100, z ≈ −40),
+//   Abseits: Goldröhren-Raum (x ≈ −60), Rätselbox-Raum (x ≈ 100), Welt-2-Röhrenstation (x ≈ 100, z ≈ −40: die Welt-Warp-
+//            Röhre p_world2 mit warpWorld: 2 schaltet Welt 2 frei und führt auf die Welt-2-Insel, map/warp.js),
 //            Stempel-Gehege (x ≈ −18) hinter der Glasröhre in der linken Gangwand.
 // Sterne (Index): 0 zwischen den Wolken, 1 Rätselbox (zwei Panzerkröten besiegen), 2 im Pilzlingsturm.
 
@@ -226,7 +227,7 @@ export const LEVEL = {
     // rechts: Kletterwand (Krallen) zum Sims mit der Welt-Warp-Röhre
     { type: 'wall', pos: [3.7, 1, -155], size: [0.4, 6, 3.2], climbable: true },
     isl(3.9, 8.5, -153.4, -156.6, 7, 6, { top: 'stone', under: 0 }),
-    { type: 'pipe', id: 'p_world2', pos: [6.4, 7, -155], height: 1.2, color: 0xa865ff, target: 'p_w2_in' },
+    { type: 'pipe', id: 'p_world2', pos: [6.4, 7, -155], height: 1.2, color: 0xa865ff, target: 'p_w2_in', warpWorld: 2 },
     { type: 'pipe', id: 'p_corr', pos: [2.4, 1, -149], height: 0.9 },
     { type: 'pipe', id: 'p_arena', pos: [0, 1, -158.4], height: 1.4, target: 'p_arena_in' },
     deco([{ kind: 'lantern', pos: [-2.8, 1, -159.2] }]),
@@ -322,11 +323,12 @@ export const LEVEL = {
       { kind: 'crystals', pos: [107, 1, -139], size: 1, color: 'violet' },
     ]),
 
-    // =============================================================== Welt-2-Raum „bald“ (abseits, x ≈ 100, z ≈ −40)
+    // =============================================================== Welt-2-Röhrenstation (abseits, x ≈ 100, z ≈ −40): Ankunft der
+    //                                                                 Welt-Warp-Röhre, gleich danach geht es zur Welt-2-Insel
     isl(92, 108, -28, -50, 1, 3, { under: 3 }),
     { type: 'pipe', id: 'p_w2_in', pos: [100, 1, -31], height: 1.2, color: 0xa865ff },
     { type: 'pipe', id: 'p_w2_out', pos: [105, 1, -47], height: 1.2, target: 'p_corr' },
-    { type: 'sign', pos: [96, 1, -46.6], text: 'Welt 2\nbald!' },
+    { type: 'sign', pos: [96, 1, -46.6], text: 'Auf nach\nWelt 2!' },
     deco([{ kind: 'lantern', pos: [93, 1, -29] }, { kind: 'lantern', pos: [107, 1, -29] }]),
     decoW1([
       rock(89.5, 92, -26, -52, 1, 6), rock(108, 110.5, -26, -52, 1, 6), rock(92, 108, -50, -52, 1, 6),

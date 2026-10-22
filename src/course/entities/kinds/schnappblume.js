@@ -3,16 +3,19 @@
 //
 // Verhalten: steht fest (Topf, Boden oder Röhre; bewegte Plattformen tragen sie mit). Kommt die Figur in Reichweite,
 // dreht sie sich zu ihr und schnappt im Takt: ausholen (Kopf zurück, Maul auf – Ankündigung) → zuschnappen nach
-// vorn (Treffer im Kopfbereich, reach m weit) → zurück → Pause. Entscheidung (dokumentiert): der Kopf ist stachelig
-// und beißt auch nach oben – Draufspringen und Stampfen *auf* die Blume verletzen die Figur. Verwundbar ist sie
-// nur seitlich bzw. aus der Ferne: Feuerball, Tatzenhieb, Krallen-Sturzflug, Panzer, Wurf, Explosion,
-// Stampfattacke direkt *neben* ihr (bis 1,6 m vom Rand), Riesentrank/Funkelstern.
+// vorn → zurück → Pause. Getroffen wird nur, wer das sichtbare Maul berührt: Kopfkugel an der vom Modell gemessenen
+// Stelle (vorgestreckt ≈ 0,36 m × Größe vor der Mitte, Radius 0,38 m × Größe; Maulspitze ≈ 0,75 m bzw. 2,1 m bei der
+// Riesin), nur solange der Kopf vorn ist (52–74 % des Zyklus), gegen die Hülle der Figur (nächster Punkt).
+// Konter (Rückmeldung Auftraggeber): Draufspringen und Stampfen *auf* den Kopf treffen (Abprall; die Riesin braucht
+// 3 Treffer, danach kurz unverwundbar – weitere Sprünge prallen nur ab). Außerdem Feuerball, Tatzenhieb,
+// Krallen-Sturzflug, Panzer, Wurf, Explosion, Stampfattacke direkt *neben* ihr (bis 1,6 m vom Rand),
+// Riesentrank/Funkelstern. Seitlich hineinlaufen verletzt weiterhin.
 //
 // Daten: { kind: 'schnappblume', pos, base?: 'pot'|'ground'|'pipe' (Standard 'pot'), yaw?|dir? (Ruhe-Blick),
-//          range?: 3.4 m (ab hier schnappt sie), reach?: 1.35 m (Kopf vor der Mitte beim Zuschnappen),
-//          pause?: 0.7 s (zwischen zwei Schnappern), hp?: 1, drop? }
-//        { kind: 'riesenschnappblume', pos, base?: 'ground', range?: 7, reach?: 3.3, pause?: 0.9, hp?: 3, drop? }
-// Zustände: idle → aim (dreht sich zur Figur, Pause) → snap (Zyklus 0,8 s bzw. 1,2 s; Treffer bei 42–62 %) →
+//          range?: 3.4 m (ab hier dreht sie sich zur Figur und schnappt), pause?: 0.7 s (zwischen zwei Schnappern),
+//          hp?: 1, drop? }
+//        { kind: 'riesenschnappblume', pos, base?: 'ground', range?: 7, pause?: 0.9, hp?: 3, drop? }
+// Zustände: idle → aim (dreht sich zur Figur, Pause) → snap (Zyklus 0,8 s bzw. 1,2 s; Treffer bei 52–74 %) →
 // aim … | hit (0,5 s zuckt, danach 0,6 s unverwundbar) | retreat (besiegt: sinkt in 0,6 s weg).
 // Modelle 'schnappblume' / 'riesenschnappblume' (opts { base }, state { anim: idle|snap|retreat|hit, progress }).
 
@@ -20,6 +23,9 @@ import { Enemy } from '../Enemy.js';
 import { getModel } from '../../models/index.js';
 
 const BASE_TOP = { pot: 0.38, ground: 0.1, pipe: 0 };
+// Kopfkugel relativ zur Stängel-Oberkante (je Meter Größe), gemessen am Modell: Ruhe vs. vorgestreckt
+const HEAD = { rest: { f: 0.06, y: 0.46 }, lunge: { f: 0.36, y: 0.27 }, r: 0.38 };
+const STRIKE = [0.52, 0.74];
 
 class Schnappblume extends Enemy {
   constructor(level, spec, giant) {
@@ -28,11 +34,10 @@ class Schnappblume extends Enemy {
     this.scale = giant ? 2.8 : 1;
     this.base = ['pot', 'ground', 'pipe'].includes(spec.base) ? spec.base : giant ? 'ground' : 'pot';
     const top = BASE_TOP[this.base] * this.scale;
-    this.headY = top + 0.62 * this.scale;            // Kopfmitte über dem Fußpunkt
-    this.headR = giant ? 0.85 : 0.36;
+    this.top = top;                                  // Stängel-Oberkante über dem Fußpunkt
+    this.headR = HEAD.r * this.scale;
     this.hp = spec.hp ?? (giant ? 3 : 1);
     this.range = spec.range ?? (giant ? 7 : 3.4);
-    this.reach = spec.reach ?? (giant ? 3.3 : 1.35);
     this.pause = spec.pause ?? (giant ? 0.9 : 0.7);
     this.cycle = giant ? 1.2 : 0.8;
     this.restYaw = this.yaw;
@@ -46,12 +51,13 @@ class Schnappblume extends Enemy {
 
   get progress() { return this.state === 'snap' ? Math.min(1, this.stateT / this.cycle) : 0; }
 
-  /** Kopfmitte (Welt), k = 0 … 1 Anteil der Vorwärts-Reichweite. */
+  /** Kopfmitte (Welt), k = 0 (Ruhe) … 1 (vorgestreckt). */
   headPos(k = 0) {
     const fx = Math.cos(this.yaw), fz = -Math.sin(this.yaw);
+    const f = (HEAD.rest.f + (HEAD.lunge.f - HEAD.rest.f) * k) * this.scale;
     const h = this._head;
-    h.x = this.pos.x + fx * this.reach * k; h.z = this.pos.z + fz * this.reach * k;
-    h.y = this.pos.y + this.headY - 0.2 * this.scale * k;
+    h.x = this.pos.x + fx * f; h.z = this.pos.z + fz * f;
+    h.y = this.pos.y + this.top + (HEAD.rest.y + (HEAD.lunge.y - HEAD.rest.y) * k) * this.scale;
     return h;
   }
 
@@ -77,7 +83,7 @@ class Schnappblume extends Enemy {
       case 'snap': {
         const p = this.progress;
         if (p < 0.4) this.facePlayer(dt, 3);       // beim Ausholen noch nachführen, dann festgelegt
-        if (p >= 0.42 && p <= 0.62) this.strike(Math.min(1, (p - 0.4) / 0.12));
+        if (p >= STRIKE[0] && p <= STRIKE[1]) this.strike();
         if (p >= 1) this.setState(this.canSee(this.range + 0.5, 3 * this.scale) ? 'aim' : 'idle');
         break;
       }
@@ -88,18 +94,24 @@ class Schnappblume extends Enemy {
     }
   }
 
-  /** Zuschnappen: Kopf vorn → Figur in Kopfnähe wird getroffen. */
-  strike(k) {
-    const p = this.level.nearestPlayer(this.pos);
-    if (!p || p.dead) return;
-    const h = this.headPos(k);
-    const c = p.center();
-    if (Math.hypot(c.x - h.x, c.y - h.y, c.z - h.z) < this.headR + 0.4) p.hurt(this);
+  /** Zuschnappen: Kopf vorn → jede Figur, deren Hülle die Kopfkugel berührt, wird getroffen. */
+  strike() {
+    const h = this.headPos(1);
+    for (const p of this.level.players ?? [this.level.player]) {
+      if (!p || p.dead || p.removedFigure) continue;
+      const c = p.center(), e = p.half;
+      const dx = Math.max(0, Math.abs(c.x - h.x) - e.x), dy = Math.max(0, Math.abs(c.y - h.y) - e.y), dz = Math.max(0, Math.abs(c.z - h.z) - e.z);
+      if (dx * dx + dy * dy + dz * dz < this.headR * this.headR) p.hurt(this);
+    }
   }
 
   onPlayer(player, contact) {
     if (this.defeated || this.state === 'retreat') return 'none';
     if (contact.dive) { this.onHit('claw', player); return 'none'; }
+    if (contact.fromAbove || contact.pound) {        // auf den Kopf springen/stampfen = Treffer, immer mit Abprall
+      if (this.invuln <= 0) this.onHit('stomp', player);
+      return 'stomp';
+    }
     return 'hurt';
   }
 

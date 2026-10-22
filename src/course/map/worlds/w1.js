@@ -25,6 +25,7 @@ export const MAP = {
   id: 'karte-1',
   world: 1,
   title: 'Grüne Blockinsel',
+  short: 'Blockinsel',
   archetype: 'map',
   theme: 'map',
   music: 'course_map',
@@ -122,7 +123,7 @@ export const MAP = {
     { id: '1-5', kind: 'circus', pos: [29, 1, -54], decor: [29, 1, -60.4], exit: [29, 1, -51] },
     { id: '1-Burg', kind: 'castle', pos: [-18, 5, -61.5], decor: [-18, 5, -67], exit: [-18, 5, -58.6] },
     { id: 'W2', kind: 'pipe', pos: [-10, 5, -88.5], decor: [-10, 5, -91.6], exit: [-10, 5, -85.5],
-      pipe: [[0, 0, 0], [0, 3.5, 0], [0.8, 5.6, -0.3], [5, 6.8, -1.2], [16, 7, -3.5], [40, 6.2, -9], [80, 5, -18]] },
+      pipe: [[0, 0, 0], [0, 3.5, 0], [0.8, 5.6, -0.3], [5, 6.8, -1.2], [16, 7, -3.5], [40, 6.2, -9], [80, 5, -18], [140, 4, -34], [205, 1.5, -50]] },
   ],
 
   // Schranken: sperren den Weg zu `for`, bis er frei ist. at = [x, z], axis = Laufrichtung des Wegs.
@@ -136,6 +137,9 @@ export const MAP = {
     { for: '1-Burg', at: [10, -58], axis: 'x' },
     { for: 'W2', at: [-10, -80], axis: 'z' },
   ],
+
+  // Nachbarwelt am Horizont: dorthin führt die Glasröhre (Welt 2, Wüste mit Pyramide)
+  neighbors: [{ world: 2, pos: [222, -150], size: [72, 50], style: 'desert' }],
 
   // Wandernde Gegnergruppe: Berührung startet das Level (wenn frei); nach dem Sieg verschwindet sie.
   roamers: [

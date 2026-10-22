@@ -439,8 +439,8 @@ Höhe. Funkelstern/Riesentrank besiegen jeden Gegner bei Berührung.
 | pilzlingsturm | 3–5 Stufen, läuft auf die Figur zu | von oben je 1 Stufe; Feuer/Krallen/Panzer je 1; Explosion/Stern/Riese alle | seitlich |
 | panzerkroete | läuft | Sprung/Stampfen/Krallen → Panzer; Feuer/Panzer/Explosion → weg | seitlich |
 | panzer | liegt; gekickt 10 m/s, prallt an Wänden ab | Panzer, Explosion, Stern, Riese | gleitend seitlich (Rückpraller) |
-| schnappblume | schnappt im Takt (Reichweite) | Feuer, Krallen, Sturzflug, Panzer, Explosion, Stampfen **neben** ihr (auf einer Röhre: Tatzenhieb im Sprung, Stampfen neben einer Röhre ≤ 1,2 m) | von oben und Biss |
-| riesenschnappblume | wie oben, großer Radius | dasselbe, 3 Treffer (1,1 s Pause) | von oben und Biss |
+| schnappblume | schnappt im Takt; trifft nur, wer das sichtbare Maul berührt (Maulspitze ≈ 0,75 m vor der Mitte) | **Draufspringen/Stampfen auf den Kopf** (Abprall), Feuer, Krallen, Sturzflug, Panzer, Explosion, Stampfen neben ihr (auf einer Röhre: Tatzenhieb im Sprung, Stampfen neben einer Röhre ≤ 1,2 m) | Biss, seitliches Hineinlaufen |
+| riesenschnappblume | wie oben, ×2,8 (Maulspitze ≈ 2,1 m) | dasselbe, 3 Treffer (1,1 s Pause; Sprünge in der Pause prallen nur ab) | Biss, seitliches Hineinlaufen |
 | rammbock_bulle | scharrt 0,8 s, Sturmlauf, bremst an Kanten, Wand → benommen | 3 Treffer (Sprung, Feuer, Krallen …); Explosion/Stern/Riese sofort | seitlich (betäubt harmlos) |
 | krabbelkaefer / flatterkaefer | feste Bahn, in Reihe | Sprung, alles | seitlich |
 | zauberkroete | erscheint an Punkten, zaubert Kugel, verschwindet | nur sichtbar: Sprung, alles | seitlich, Zauberkugel |
@@ -466,9 +466,9 @@ enemies: [
   { kind: 'panzerkroete', pos: [0, 1, -60], path: [[-3, 1, -60], [3, 1, -60]], gold: true },
   // Panzer allein: speed 10 (Gleiten), gold, coins 15 (Goldpanzer: je 0,3 s eine), wakeAfter 0 (s, 0 = nie)
   { kind: 'panzer', pos: [2, 1, -62] },
-  // Schnappblume: base 'pot'|'ground'|'pipe' ('pot'), yaw (Ruhe-Blick), range 3.4, reach 1.35, pause 0.7, hp 1
+  // Schnappblume: base 'pot'|'ground'|'pipe' ('pot'), yaw (Ruhe-Blick), range 3.4, pause 0.7, hp 1 (Biss-Zone fest am Modell gemessen)
   { kind: 'schnappblume', pos: [4, 2.2, -70], base: 'pipe', yaw: -Math.PI / 2 },   // auf einer Röhre (Höhe 1,2)
-  // Riesenschnappblume: base 'ground', range 7, reach 3.3, pause 0.9, hp 3
+  // Riesenschnappblume: base 'ground', range 7, pause 0.9, hp 3
   { kind: 'riesenschnappblume', pos: [0, 1, -90], yaw: -Math.PI / 2 },
   // Rammbock-Bulle: hp 3, sight 11, speed 7.5 (Sturmlauf), drop Standard 'coins:3'
   { kind: 'rammbock_bulle', pos: [0, 1, -100], dir: [0, 1] },
@@ -1072,6 +1072,106 @@ ein `roter_ring` mit `attach` lässt seine roten Münzen auf den Panzern erschei
 Stellen auf Panzern bereit (`panzer.helmets`, nachgelegt nach `every` s bzw. nach einem Neustart). Kombination
 `autoscroller` + `with: 'boss'`: der Level-Haken reicht `boss`/`seenPhase` des Zusatz-Archetyps durch (Ansage
 Wirbelbrocken Phase 3) und verhindert die „Feuerspur“-Ansage des Barons beim Phasenwechsel.
+
+## Präzisierung (Mehrwelten-Karte)
+
+Ergänzung des Weltkarten-Agenten (Stand: Welt 2). Nichts oben Festgelegtes wird geändert; die Karte zeigt jetzt eine
+Welt je Insel, gewechselt wird nur über Glasröhren (kein Menü).
+
+### Präzisierung (Mehrwelten-Karte): Dateien
+
+```
+src/course/map/
+  worlds/w2.js   Welt 2 „Wüste mit Sandblöcken“ (reine Daten)
+  travel.js      Glasröhren-Fahrt (Abfahrt/Ankunft) über player.ride + Verfolger-Kamera (rig.custom)
+  warp.js        Welt-Warp aus einem Level (Röhre mit warpWorld) – CourseScene ruft installWorldWarps(scene)
+  desert.js      Wüsten-Geländestile (gestapelte Sandstein-Schichten, Dünen, rosa Gras, Lavafels), sparsame Requisiten
+  decor_w2.js    Kulissen der Welt-2-Eingänge (Schluchttor, Sternenplattform, Höhle mit Lichtschein, Haus, Hügelwalze,
+                 Lava-Felsinsel mit Steinbrücke, Doppelkirsche, Panzer-Depot mit Baron-Flagge)
+  slot.js        Glückshaus mit Spielautomat (Logik + Darstellung)
+  bake.js        Modelle der Registry (Palme, Kaktus, Säulenruine, Pyramide, Blütenbaum, Panzerwagen, Sandblock …) als
+                 statische Kulisse in die Karten-Kacheln einbacken (gleiche Optik wie im Level, keine Zeichenaufrufe je Stück)
+  lod.js         Fern-Ausblendung kleiner Kartenobjekte (Eingänge, Schranken, Gegnergruppe, Schilder) jenseits von 90 m
+                 vor der Kamera – über Ebenen (layers), auch im Schattenpass; greift nur beim Anflug und bei der Ankunft.
+                 pauseShadows(view): Schattenkarte einmal zeichnen, dann ruhen lassen (gezählt, gemeinsamer Renderer)
+```
+
+### Präzisierung (Mehrwelten-Karte): Weltdaten (zusätzlich zum Format oben, alles optional)
+
+```js
+export const MAP = {
+  …, short: 'Wüste',                    // Kurzname (Weltschild im HUD, Schild an der Glasröhre)
+  theme: 'map_desert', kit: 'desert',   // Thema (scenery.js meldet 'map_desert' an) und Geländestil-Satz
+  music: 'course_world2_map', fallbackMusic: 'course_map',   // fehlt das Thema noch, spielt fallbackMusic
+  starScope: 'all',                     // minStars zählt alle gesammelten Sterne (Standard: Sterne dieser Welt)
+  edges: { hedge: 'adobe', fence: 'rope' },                  // Randdeko: 'hedge'|'adobe'|'pink' bzw. 'fence'|'rope'|'chain'
+  pathColors: [hell, mittel, Kante], // Wegplatten
+  neighbors: [{ world: 1, pos: [x, z], size: [w, d], style: 'grass'|'desert' }],  // Nachbarwelt am Horizont
+  levels: [
+    { id: 'W1', world: 1, next: 1, label: 'Welt 1', stars: 0 },                     // Glasröhre zurück (immer offen)
+    { id: 'W3', after: '2-Panzer', world: 3, next: 3, label: 'Welt 3', stars: 0 },  // ohne Karte von Welt 3: „Bald“
+  ],
+  ground: [{ rect, top, style?: 'desert'|'sandstone'|'dune'|'pink'|'grass'|'lavarock'|'basin'|'pond'|'sand', mound?,
+             edge?, fence?, walk?, noDeco?, noEdge? }],
+  entrances: [{ id, kind: 'canyon'|'space'|'glowcave'|'mystery'|'hills'|'lavaarena'|'pinkgrass'|'tankdepot'|'pipe'|…,
+                pos, decor?, exit?, steps? (space), spikes?/braziers?/bridge? (lavaarena), pipe?, signPos?, signYaw? }],
+  roamers: [{ level, model, fallback?, fallbackScale?, count, circle: [x, z, r] | from/to, y?, speed, half?, hint? }],
+  houses: [{ kind: 'beeren', … }, { kind: 'glueck', pos, yaw, machine: [x, y, z], pad: [x, y, z], stake: 10 }],
+  props: [{ kind: 'palm'|'cactus'|'column'|'arch'|'pyramid'|'pinktree'|'tank'|'sandblocks'|'sandstack'|'obelisk'|
+            'sphinx'|'pots'|'tent'|'well'|'stall'|'planter'|'tufts'|'shells'|'crates'|'sandbags'|'rock'|'shrub'|…,
+            pos, yaw?, size?, model?: false }],   // begehbarer Fuß → Kollision; Registry-Modell, sonst eigene Geometrie
+};
+```
+
+Regeln für Welt 2+: Glasröhren-Eingänge (`next: n`) sind startbar, wenn ihr Weg frei ist und es `worlds/w<n>.js` gibt
+(Titel = Name der Zielwelt), sonst „Bald“. Ihr Weg ist zusätzlich frei, sobald Welt n schon offen ist. Gelände südlich
+(zur Kamera hin) begehbarer Flächen bleibt niedrig (Faustregel: Höhe über dem Weg < 1,2 × Abstand), sonst rückt die
+Kamera an die Figur heran.
+
+### Präzisierung (Mehrwelten-Karte): Freischaltung und Speicherstand (additiv)
+
+- `unlock.worldOpen(getWorldMap, save, n)`: Welt 1 immer; sonst `save.worldOpened(n)` oder die Glasröhre der Welt n−1
+  ist frei. `unlock.gateStars(map, save)` = Sterne für minStars (`starScope`). Welt 2 ist frei nach `1-Burg`.
+- `courseSave`: `world` (aktuelle Welt, get/set; nach Neuladen wieder gezeigt), `worlds` (offene Welten),
+  `worldOpened(n)`, `openWorld(n)`, `spendCoins(n)` → false ohne genug Bitcoins, `slotSpins`/`nextSlotSpin()`.
+- `CourseMap` wählt die Welt: `{ warpWorld }` → `{ world }` → Welt des Levels aus `from` → `courseSave.world`; ist sie
+  nicht offen oder ohne Karte, Welt 1.
+
+### Präzisierung (Mehrwelten-Karte): Übergänge
+
+- **Glasröhre** (Eingang mit `next`): A/Enter/„Los!“ auf dem Podest → Hüpfer in den Röhrenfuß, Fahrt die Röhre hinauf
+  und übers Meer (3,4 s, Verfolger-Kamera, Toast „Auf zu Welt n!“), weiße Blende → `scene.start('CourseMap', { world: n,
+  via: 'tube', fromWorld })`. In Welt n startet die Figur weit draußen in der Rückweg-Röhre (Regel `next: fromWorld`),
+  saust zum Röhrenfuß (3,2 s) und hüpft vor das Podest; danach Kamera-Überblendung, frisch geöffnete Schranken werden
+  erst dann gezeigt. Alles im Simulationstakt (`step(n)`), `state().travel = { mode, phase, t, entrance, shadows }`.
+  In der ersten Sekunde der Ankunft (Röhre weit draußen, Blick über die ganze Insel) ruht die Schattenkarte
+  (`pauseShadows`, beim Ende/`dispose` zurück); ebenso beim Anflug: einmal bei der stehenden Heldin gezeichnet (dort
+  endet der Flug), dann bis `endIntro()`. `snapCamera()` rastet während der Fahrt die Verfolger-Kamera ein.
+- **Welt-Warp aus einem Level**: Röhre `{ type: 'pipe', id, target, warpWorld: n }` funktioniert wie eine Warp-Röhre;
+  beim Teleport schaltet sie Welt n frei (`openWorld`) und beendet das Level ohne Zielmast (weiße Blende →
+  `exitToMap({ warpWorld: n })` → Ankunft wie mit der Glasröhre). Im Testtakt (`setManual`) bleibt die Szene stehen und
+  meldet `state().worldWarp`. 1-2: `p_world2` (Krallen-Sims) → Welt 2 (im Vorbild schaltet sie die Welt frei).
+- **Schranken von hinten**: Kommt die Figur von der gesperrten Seite (z. B. nach dem Warp zurück in Welt 1 hinter
+  gesperrten Wegen), sinken die Blöcke kurz ab und heben sich wieder, sobald sie hindurch ist (`layout.gateSides`,
+  `MapGate.updatePass`); von vorn bleiben sie zu.
+
+### Präzisierung (Mehrwelten-Karte): Kartenelemente Welt 2
+
+- **Glückshaus**: Matte vor dem Spielautomaten, A zieht den Hebel; Einsatz 10 Bitcoins (sonst Hinweis, kein Spiel);
+  drei Walzen (Bitcoin, Herz, Funkenblüte, Krallen-Anzug, Funkelstern, Baron), halten nacheinander. 3 × Bitcoin
+  30 Bitcoins, 3 × Herz 1 Leben + 10 Bitcoins, 3 × Power-up → Power-up fürs nächste Level (wie Beerenhaus), 2 gleiche
+  Einsatz zurück. Ergebnis aus der Nummer der Drehung (deterministisch), Tests: `__courseMap.slot.force([…])`.
+- **Beerenhaus** in der Nische östlich des Strands (Funkenblüte/Krallen-Anzug im Wechsel).
+- **Gegnergruppe 2-A**: drei Großrollpilze laufen im Kreis über die Lava-Felsinsel (Modell `grossrollpilz`).
+- HUD: dauerhaftes Weltschild „Welt n · Kurzname“ mit allen gesammelten Sternen; Hinweis an Sternschranken
+  „Benötigt N Sterne (x/N)“ mit den zählenden Sternen.
+- Test: `tests/course_map_w2.mjs` (Port 4210, Screenshots `tests/out/cmap2_*.png`).
+
+Gemessen (scale 2, `tests/course_map_w2.mjs`): Kartenansichten Welt 2 71–105 Zeichenaufrufe inkl. Schattenpass,
+169–286 k Dreiecke; Ankunft durch die Glasröhre 85–100 / 225–230 k, Anflug 99 / 272 k (Budget 120 / 300 k).
+Statische Kulisse Welt 2: 51 Kachel-Meshes, ≈ 207 k Dreiecke. Welt 1 unverändert im Budget (85 / 245 k).
+
+---
 
 ## Präzisierung (Bausteine Welt 2)
 

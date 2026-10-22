@@ -13,7 +13,10 @@ const HEROES = ['lotti', 'greta'];
 // Weltkarte (Präzisierung Weltkarte, additiv): mapPos = { world, pos: [x,y,z], yaw } (letzte Lage auf der Karte),
 // carryPower = Power-up aus dem Beerenhaus fürs nächste Level, mapVisit = Zähler der Kartenbesuche, berryVisit =
 // Besuch, in dem das Beerenhaus zuletzt genutzt wurde, mapOpened = Eingänge, deren Schranke schon geöffnet wurde.
-const empty = () => ({ version: 1, hero: null, lives: START_LIVES, coins: 0, world: 1, mapPos: null, levels: {}, carryPower: null, mapVisit: 0, berryVisit: -1, mapOpened: [] });
+// Mehrwelten-Karte (Präzisierung Mehrwelten-Karte, additiv): world = aktuelle Welt der Karte, worlds = Welten, die schon
+// offen sind (über die Glasröhre bereist oder per Welt-Warp-Röhre freigeschaltet), slotSpins = Zähler der Drehungen am
+// Spielautomaten im Glückshaus (Startwert des Zufallsgenerators – deterministisch).
+const empty = () => ({ version: 1, hero: null, lives: START_LIVES, coins: 0, world: 1, mapPos: null, levels: {}, carryPower: null, mapVisit: 0, berryVisit: -1, mapOpened: [], worlds: [1], slotSpins: 0 });
 
 export class CourseSave {
   constructor() {
@@ -50,6 +53,14 @@ export class CourseSave {
   set lives(v) { this.data.lives = Math.max(0, Math.min(99, v | 0)); this.save(); }
 
   get coins() { return this.data.coins ?? 0; }
+
+  /** Münzen ausgeben (Glückshaus): false, wenn nicht genug da sind (dann bleibt alles, wie es ist). */
+  spendCoins(n) {
+    if (this.coins < n) return false;
+    this.data.coins = this.coins - n;
+    this.save();
+    return true;
+  }
 
   /** Münzen gutschreiben; je volle 100 ein Extraleben. Liefert die Zahl gewonnener Leben. */
   addCoins(n) {
@@ -133,6 +144,24 @@ export class CourseSave {
     this.save();
   }
   get mapPos() { return this.data.mapPos ?? null; }
+
+  // ------------------------------------------------------------------ Mehrwelten-Karte (additiv)
+
+  /** Aktuelle Welt der Kurs-Karte (wird beim nächsten Start/Neuladen wieder gezeigt). */
+  get world() { return Number.isFinite(this.data.world) ? this.data.world : 1; }
+  set world(n) { this.data.world = n | 0 || 1; this.save(); }
+
+  /** Welt `n` schon offen (bereist oder per Welt-Warp freigeschaltet)? Welt 1 ist immer offen. */
+  worldOpened(n) { return n === 1 || (Array.isArray(this.data.worlds) && this.data.worlds.includes(n)); }
+
+  /** Welt `n` als offen merken (Glasröhre, Welt-Warp-Röhre). */
+  openWorld(n) {
+    if (!Array.isArray(this.data.worlds)) this.data.worlds = [1];
+    if (!this.data.worlds.includes(n)) { this.data.worlds.push(n); this.data.worlds.sort((a, b) => a - b); this.save(); }
+  }
+
+  /** Nächste Drehung am Spielautomaten zählen; liefert die Nummer dieser Drehung (Startwert des Zufalls). */
+  nextSlotSpin() { const n = this.data.slotSpins ?? 0; this.data.slotSpins = n + 1; this.save(); return n; }
 }
 
 export const courseSave = new CourseSave();

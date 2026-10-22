@@ -131,6 +131,14 @@ bisherige Side-Scroller-Spiel. `?course=<id>` startet ein Level direkt, `?map=1`
 
 Testlevel: `?course=0-0` (Übungsplatz), `0-1` (Gegnerpark), `0-2` (Bausteinpark).
 
+**Welt 2 „Wüste mit Sandblöcken“** (eigene Insel, frei nach 1-Burg): Die Glasröhre hinter der Burg fährt übers Meer
+zur Wüsteninsel, eine Glasröhre am Strand führt zurück; die geheime Welt-Warp-Röhre in 1-2 schaltet Welt 2 schon früher
+frei. Auf der Insel: Schluchtweg (2-1), schwebende Sternenplattform (2-2, ab 15 Sternen), Höhle mit Lichtschein (2-3),
+geheimnisvolles Haus (2-Haus, ab 20), Hügelwalze (2-4), Lava-Felsinsel mit drei Großrollpilzen (2-A), rosa Grasland
+(2-5), Panzer-Depot von Baron Brummbär (2-Panzer, ab 30 – Sternbedarf zählt alle Sterne), Beerenhaus und
+**Glückshaus** (Spielautomat: 10 Bitcoins Einsatz, drei Walzen, Gewinne Bitcoins, Leben oder ein Power-up). Die
+zuletzt besuchte Welt wird gemerkt.
+
 - **Tastatur:** Pfeile/WASD laufen (relativ zur Kamera), **Shift** rennen (Druck = Aktion, auch **X**:
   Feuerball, Krallenhieb, Aufheben/Werfen), **Leertaste** springen (Höhe nach Haltedauer), **Strg/C**
   ducken/rutschen (in der Luft: Stampfattacke), **Q/E** Kamera drehen, **Z** Zoom, **Tab** Figur (Karte),
