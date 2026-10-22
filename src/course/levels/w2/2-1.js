@@ -258,7 +258,7 @@ export const LEVEL = {
       { kind: 'palme', pos: [-8.2, Y, -168], height: 4.4, lean: 0.35, sway: true },
       { kind: 'kaktus', pos: [3.6, Y, -164.6], variant: 'kugel', size: 0.8 },
       { kind: 'kaktus', pos: [12, 5.8, -173.4], variant: 'saeule', size: 0.8 },
-      { kind: 'felsen', pos: [-12.5, 5, -175], size: [4, 10], n: 3, height: [1.5, 4], solid: true },
+      { kind: 'ruine', pos: [-11.6, 5, -176.4], height: 2.2 },
       { kind: 'felsen', pos: [18, 3, -158], size: [4, 18], n: 3, height: [2, 6] },
       { kind: 'bogen', pos: [0, Y, -217.4], width: 7.4, height: 5.2, yaw: Math.PI / 2 },
       { kind: 'palme', pos: [-7.4, Y, -212], height: 4.6, sway: true },

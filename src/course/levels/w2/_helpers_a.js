@@ -351,6 +351,7 @@ export function bubble(level, pos, text, sub = '', life = 4) {
   sp.scale.set(2.6, 1.3, 1);
   sp.position.set(pos[0], pos[1], pos[2]);
   sp.renderOrder = 5;
+  sp.userData.owned = true;
   let t = 0;
   level.view.add(sp, (dt) => {
     t += Math.min(dt, 0.1);
