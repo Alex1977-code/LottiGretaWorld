@@ -2,8 +2,10 @@
 // Busse für Effekte und Musik (Musik läuft über eine Kompressor/Limiter-Stufe) und die
 // Synth-Bausteine im Stil der 90er-Eurodance-Zeit: 909-Kick, Clap, Snare, Hi-Hats, Crash, Tom,
 // Hoover-/Supersaw-Lead, Brass-Stabs, Rave-Piano, Oktav-Bass, Pad, Rechteck-Orgel, Pluck (Arpeggien,
-// Echo-Noten) und Hoover-Riser. Optionen der Stimmen haben Standardwerte, mit denen die älteren Themen
-// unverändert klingen; die Kurs-Themen färben über sie (z.B. weiche Kick, gedämpfte Leads).
+// Echo-Noten) und Hoover-Riser; seit Welt 2 außerdem Glocke (Glockenspiel, Piep), Pfeife/Theremin
+// (Sinus mit Vibrato), Darbuka (Doum/Tek), Uhr-Tick und Schellen. Optionen der Stimmen haben
+// Standardwerte, mit denen die älteren Themen unverändert klingen; die Kurs-Themen färben über sie
+// (z.B. weiche Kick, gedämpfte Leads).
 //
 // Die Bausteine stecken in der Klasse `Voices`, die an einen beliebigen Kontext gebunden wird:
 // im Spiel an den Live-AudioContext, im Test an einen OfflineAudioContext (messbarer Mix).
@@ -450,13 +452,16 @@ export class Voices {
   /**
    * Pluck (Arpeggien, Echo-Noten, Tropfen): ein Oszillator mit schnellem Anschlag und kurzem Ausklang –
    * zwei Knoten je Ton. Klangfarbe über `type` und den dauerhaften Spur-Tiefpass des Themas (fx.lowpass).
-   * @param {object} o { at, bus, freq, duration, volume, type ('square'|'sawtooth'|'triangle'|'sine'), decay (s), detune }
+   * @param {object} o { at, bus, freq, duration, volume, type ('square'|'sawtooth'|'triangle'|'sine'), decay (s), detune,
+   *                     glide (Tonhöhen-Faktor, z.B. 1,6 = Blubbern aufwärts), glideTime (s) }
    */
   pluck(o) {
     const t = o.at ?? this.now, bus = o.bus ?? this.dest;
     const vol = o.volume ?? 0.08, decay = o.decay ?? 0.12;
     const end = t + Math.max(0.05, Math.min(o.duration ?? decay * 2, decay * 2.5));
     const osc = this.osc(o.type ?? 'square', o.freq, t, o.detune ?? 0);
+    // Tonhöhen-Gleiten (Blubbern aufwärts, Gifttropfen abwärts): Faktor über `glideTime` (Standard: decay)
+    if (o.glide) osc.frequency.exponentialRampToValueAtTime(Math.max(20, o.freq * o.glide), t + Math.min(o.glideTime ?? decay, end - t));
     const g = this.gain(MIN, t);
     g.gain.linearRampToValueAtTime(vol, t + 0.003);
     g.gain.exponentialRampToValueAtTime(vol * 0.3, t + Math.max(0.01, Math.min(decay, end - t - 0.01)));
@@ -505,6 +510,111 @@ export class Voices {
       src.connect(bp); bp.connect(ng); ng.connect(bus);
     }
     return parts.length;
+  }
+
+  // ---- Stimmen seit Welt 2 ----
+
+  /**
+   * Glocke (Glockenspiel, Schlittenglöckchen, Piep): Sinus-Grundton plus ein Teilton im Verhältnis `ratio`
+   * (2,76 = unharmonischer Metallstab; 2 = Oktave, klarer „Piep“), der schneller verklingt. Harter Anschlag,
+   * exponentieller Ausklang über `decay` (auf −20 dB) und noch einmal so lang bis zur Stille. Vier Knoten.
+   * @param {object} o { at, bus, freq, volume, decay (s), ratio, partial (Pegel des Teiltons relativ), type (Grundton) }
+   */
+  bell(o) {
+    const t = o.at ?? this.now, bus = o.bus ?? this.dest, f = o.freq;
+    const vol = o.volume ?? 0.07, decay = Math.max(0.03, o.decay ?? 0.5), ratio = o.ratio ?? 2.76, part = o.partial ?? 0.45;
+    const end = t + decay * 2;
+    const g = this.gain(MIN, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(vol * 0.1, t + decay);
+    g.gain.exponentialRampToValueAtTime(MIN, end);
+    g.connect(bus);
+    const osc = this.osc(o.type ?? 'sine', f, t);
+    osc.connect(g); osc.start(t); osc.stop(end + 0.02);
+    const pg = this.gain(MIN, t);
+    pg.gain.linearRampToValueAtTime(part, t + 0.002);
+    pg.gain.exponentialRampToValueAtTime(MIN, t + Math.max(0.02, decay * 0.6));
+    pg.connect(g);
+    const p = this.osc('sine', f * ratio, t);
+    p.connect(pg); p.start(t); p.stop(t + decay * 0.6 + 0.02);
+    return 2;
+  }
+
+  /**
+   * Pfeife/Theremin: Sinus (oder Dreieck), gleitet aus `slide` Halbtönen darunter in den Ton, Vibrato über
+   * einen LFO auf `detune`, das verzögert einsetzt (Western-Pfiff: wenig, Spuk-Theremin: viel). Vier Knoten.
+   * @param {object} o { at, bus, freq, duration, volume, type, vibrato (Cent), rate (Hz), slide (Halbtöne), attack }
+   */
+  whistle(o) {
+    const t = o.at ?? this.now, bus = o.bus ?? this.dest, f = o.freq;
+    const dur = Math.max(0.08, o.duration ?? 0.3), vol = o.volume ?? 0.09;
+    const osc = this.osc(o.type ?? 'sine', f * Math.pow(2, -(o.slide ?? 1) / 12), t);
+    osc.frequency.exponentialRampToValueAtTime(f, t + Math.min(0.07, dur * 0.3));
+    const lfo = this.osc('sine', o.rate ?? 5.5, t);
+    const depth = this.gain(0, t);
+    depth.gain.linearRampToValueAtTime(o.vibrato ?? 15, t + Math.min(0.3, dur * 0.6));
+    lfo.connect(depth); depth.connect(osc.detune);
+    const g = this.gain(MIN, t);
+    this.envelope(g, t, vol, dur, o.attack ?? 0.03, 0.06);
+    osc.connect(g); g.connect(bus);
+    osc.start(t); osc.stop(t + dur + 0.02);
+    lfo.start(t); lfo.stop(t + dur + 0.02);
+    return 2;
+  }
+
+  /** Darbuka „Doum“: tiefer, runder Schlag in der Fellmitte – Sinus mit schnellem Tonhöhen-Fall. Zwei Knoten. */
+  doum(o = {}) {
+    const t = o.at ?? this.now, bus = o.bus ?? this.dest, vol = o.volume ?? 0.42, f = o.freq ?? 105, decay = o.decay ?? 0.3;
+    const osc = this.osc('sine', f * 2.2, t);
+    osc.frequency.exponentialRampToValueAtTime(f, t + 0.035);
+    const g = this.gain(vol, t);
+    g.gain.exponentialRampToValueAtTime(vol * 0.5, t + 0.05);
+    g.gain.exponentialRampToValueAtTime(MIN, t + decay);
+    osc.connect(g); g.connect(bus);
+    osc.start(t); osc.stop(t + decay + 0.02);
+    return 1;
+  }
+
+  /** Darbuka „Tek“: heller Randschlag – Bandpass-Rauschen (Clap-Puffer) mit kurzem Ping. Vier Knoten. */
+  tek(o = {}) {
+    const t = o.at ?? this.now, bus = o.bus ?? this.dest, vol = o.volume ?? 0.24, f = o.freq ?? 720;
+    const src = this.source(this.buffers.clap, t, 0.05);
+    const g = this.gain(vol, t);
+    g.gain.exponentialRampToValueAtTime(MIN, t + 0.05);
+    src.connect(g); g.connect(bus);
+    const osc = this.osc('triangle', f * 1.25, t);
+    osc.frequency.exponentialRampToValueAtTime(f, t + 0.012);
+    const og = this.gain(vol * 0.6, t);
+    og.gain.exponentialRampToValueAtTime(MIN, t + 0.07);
+    osc.connect(og); og.connect(bus);
+    osc.start(t); osc.stop(t + 0.09);
+    return 1;
+  }
+
+  /** Uhr-Ticken: trockener Klick (Rechteck mit sehr schnellem Tonhöhen-Fall); `tock` klingt tiefer. Zwei Knoten. */
+  tick(o = {}) {
+    const t = o.at ?? this.now, bus = o.bus ?? this.dest, vol = o.volume ?? 0.12;
+    const f = (o.freq ?? 2600) * (o.tock ? 0.72 : 1);
+    const osc = this.osc('square', f, t);
+    osc.frequency.exponentialRampToValueAtTime(f * 0.45, t + 0.014);
+    const g = this.gain(vol, t);
+    g.gain.exponentialRampToValueAtTime(MIN, t + (o.decay ?? 0.03));
+    osc.connect(g); g.connect(bus);
+    osc.start(t); osc.stop(t + (o.decay ?? 0.03) + 0.02);
+    return 1;
+  }
+
+  /** Schellen (Schlitten-/Schellenkranz): Hi-Hat-Rauschen mit weichem Anschlag und kurzem Rasseln. Zwei Knoten. */
+  jingle(o = {}) {
+    const t = o.at ?? this.now, bus = o.bus ?? this.dest, vol = o.volume ?? 0.2, dur = o.duration ?? 0.14;
+    const src = this.source(this.buffers.hat, t, dur);
+    const g = this.gain(MIN, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.007);
+    g.gain.exponentialRampToValueAtTime(vol * 0.35, t + 0.03);
+    g.gain.linearRampToValueAtTime(vol * 0.5, t + 0.045);
+    g.gain.exponentialRampToValueAtTime(MIN, t + dur);
+    src.connect(g); g.connect(bus);
+    return 0;
   }
 }
 
@@ -639,6 +749,29 @@ export class AudioEngine {
   toggleMuted() { this.setMuted(!this.muted); return this.muted; }
 
   get now() { return this.ctx ? this.ctx.currentTime : 0; }
+
+  /**
+   * Kontextzeit, die gerade aus dem Lautsprecher kommt: `currentTime` ist die Zeit des nächsten zu
+   * rechnenden Blocks, hörbar wird er erst nach Verarbeitungs- und Ausgabelatenz. Bevorzugt über
+   * `getOutputTimestamp()` (Kontextzeit ↔ performance.now() des Ausgabezeitpunkts, fortgeschrieben),
+   * sonst `currentTime − baseLatency − outputLatency`. Läuft der Kontext nicht, steht die Zeit.
+   */
+  audibleTime() {
+    const ctx = this.ctx;
+    if (!ctx) return 0;
+    const now = ctx.currentTime;
+    let t = now - (ctx.baseLatency || 0) - (ctx.outputLatency || 0);
+    if (ctx.state === 'running' && typeof ctx.getOutputTimestamp === 'function') {
+      try {
+        const ts = ctx.getOutputTimestamp();
+        if (ts && ts.contextTime > 0 && ts.performanceTime > 0) {
+          const est = ts.contextTime + (performance.now() - ts.performanceTime) / 1000;
+          if (est <= now + 0.005 && est > now - 1) t = est; // plausibel: nie vor dem Rechenstand, höchstens 1 s Latenz
+        }
+      } catch (_) { /* ältere Browser */ }
+    }
+    return Math.max(0, Math.min(now, t));
+  }
 
   /** Zähler der erzeugten Knoten/Oszillatoren (Live-Kontext, Effekte und Musik zusammen). */
   get stats() { return this.voices ? this.voices.stats : { nodes: 0, oscillators: 0 }; }

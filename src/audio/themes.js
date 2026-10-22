@@ -9,7 +9,13 @@
 //
 // Themen: world1, map, complete (Klassik-Spiel) und die Kurs-Themen course_grass, course_cave,
 // course_circus, course_river, course_boss, course_arena, course_diorama, course_map, course_clear,
-// course_star, course_gameover.
+// course_star, course_gameover. Ab Welt 2 liegen die Kurs-Themen je Welt in eigenen Dateien
+// (themes_world2.js, themes_world3.js, themes_world4.js, Bausteine in themeParts.js) und werden hier
+// in THEMES eingehängt.
+
+import { WORLD2_THEMES } from './themes_world2.js';
+import { WORLD3_THEMES } from './themes_world3.js';
+import { WORLD4_THEMES } from './themes_world4.js';
 
 // ---- Drum-Bausteine ----
 const K4 = 'k...k...k...k...';   // Four-on-the-floor
@@ -649,3 +655,6 @@ export const THEMES = {
     drums: [['k...k...k...k...', H8], ['k...............', 'r...............']],
   },
 };
+
+// Kurs-Themen ab Welt 2 (eigene Dateien je Welt)
+Object.assign(THEMES, WORLD2_THEMES, WORLD3_THEMES, WORLD4_THEMES);
