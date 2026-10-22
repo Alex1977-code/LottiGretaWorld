@@ -1868,3 +1868,141 @@ Statue werden – eigenes Kostüm), **Schlittschuh** (tragbar wie ein Reit-Schuh
 (rutschig), rollbare Schneebälle, Kettenzaun-Klettern, Geister (`spuk` folgt, wenn man wegschaut; Licht-Helm bannt).
 Wo der Bauplan den „Kapitän“ nennt (3-Zug, 3-Kapitän), tritt **Krümel** auf; „Münz-Dieb“ = **Münzmarder**;
 „Prinzessinnen-Figur“ (3-4) = Figurenschalter für **Greta** bzw. **Lotti**.
+
+## Präzisierung (Gegner Welt 3)
+
+Ergänzung des Gegner-Agenten Welt 3 (Stand: Gegnerzoo Schnee `0-10`, Schattenläuferin-Arena `0-11`, Zirkus des
+Schlangenkönigs `0-12`). Nichts oben Festgelegtes wird geändert. Level-Bauer schreiben nur Daten; alle Felder sind
+optional, sofern nicht anders vermerkt. Gemeinsame Felder und Konter aus „Präzisierung (Gegner/Power-ups)“ und
+„Präzisierung (Gegner Welt 2)“ gelten weiter (`id, pos, dir|yaw, path, loop, wake, edges, drop`; Ziel = nächste Figur,
+Lava/Absturz = besiegt, `STRONG` = cannon, bomb, mega, star).
+
+### Präzisierung (Gegner Welt 3): Dateien
+
+```
+src/course/entities/EnemyW2.js              + looksAt(level, fig, pos, deg) (level.isFacing des Motors, sonst fig.yaw),
+                                              waterAt(level, x, y, z, below) → { shape, top, bottom } (folgt dem Wasserspiegel)
+src/course/entities/kinds/  schneesaeule · pilzling_w3 (pilzling_eis, pilzling_reifen) · spuk (spuk, kreisgeist,
+                            kreisgeist_kreis + intern kreisgeist_glied) · funken_w3 (funkenlaeufer, funkenkaefer) ·
+                            huepfqualle · riesenprojektil (+ riesenkanone) · fische_w3 (flossling, stachelfisch, rammfisch) ·
+                            schattenlaeuferin (+ schatten_doppelgaenger, schatten_bumerang) · schlangenkoenig
+                            (+ dienerschlange, felsbrocken); kanone_turm: shot 'riesenprojektil'
+src/course/levels/w0/0-10.js                Gegnerzoo Schnee (8 Gehege, Spukraum, Wasserbecken mit Steg und Stachelwand, Z(r, dz))
+src/course/levels/w0/0-11.js                Schattenläuferin-Arena (Archetyp boss, Käfig r 9, Warp-Box → Ziel)
+src/course/levels/w0/0-12.js                Schlangenkönig im Zirkus (Archetyp boss, Käfig r 11,5 ohne Decke, Manege, Stern + Warp-Box)
+tests/course_w3_enemies.mjs                 Port 4231: Verhalten/Konter/Schaden je Gegner, Klone, beide Bosse, Bilder w3en_*.png
+```
+
+### Präzisierung (Gegner Welt 3): gemeinsame Regeln
+
+- **Angriffsarten:** Feuer, Wurf (`throw`, Schneeball), Biss, Stampfwelle (`pound`), Rutschen (`slide`), Kanonenkugel,
+  Krallen, Panzer, Explosion, Riesentrank, Funkelstern wie in Welt 2. **Unbekannte Arten** (z. B. der Schwanzhieb des
+  Gleitblatts) wirken wie ein normaler Treffer. Stampfen auf Reit-Oberseiten ruft `onPound(figur)` (Player.land).
+- **Licht** (`onLight(dt, figur)`, Licht-Helm) wirkt nur auf Geister (Spuk, Kreisgeist); andere Gegner ignorieren es.
+- **Blick:** Spuke fragen `level.isFacing?.(figur, punkt, look)` (Motor) bzw. rechnen mit `figur.yaw` (±look Grad).
+- **Wasser:** Reifen-Pilzling, Stachelfisch (Oberfläche) folgen dem aktuellen Wasserspiegel (Form mit `water`, auch wenn
+  der Motor sie hebt/senkt) und bleiben im Wasser vor Hindernissen in der Wasserlinie (Steg, Mauer); Flossling/Rammfisch
+  schwimmen nur, wo Wasser ist. Schwimmende Figuren werden normal getroffen.
+- **Schlittschuh:** Der Eisläufer erzeugt beim Besiegen `level.spawn('schlittschuh', { pos, drop: true })`, sobald es die
+  Entität gibt (Motor); sonst 3 Münzen als Platzhalter (`skateDrop: 'fehlt'`, einmal `console.info`).
+- **Bosse** (Schattenläuferin, Schlangenkönig) sind kein `enemy` (Stern/Riese wirken nicht), Schnittstelle wie Wirbelbrocken
+  (`begin, reset, state, stateT, hp, maxHp, phase, visible, home, half, carHits 0, info()`, `level.onBossHit`,
+  `level.onBossDefeated`) und setzen eigene Phasen-Ansagen (`arch.seenPhase`).
+
+| Gegner | Verhalten | besiegt durch | verletzt |
+| --- | --- | --- | --- |
+| schneesaeule | wandert/folgt; Segmente (3–5) | je Treffer **ein Segment** (unterstes zuerst, Kopf zuletzt): Draufspringen (Abprall), Stampfen, Krallen, Panzer, Wurf, Rutschen, Schwanzhieb …; **Feuer schmilzt** die ganze Säule, STRONG ebenso | seitlich (Stacheln) |
+| pilzling_eis | gleitet schnell in Bögen auf Eis (Kreis/Oval, Bahn, Slalom, Verfolger), daneben langsam | Draufspringen → platt + **Schlittschuh**; `ride`: man fährt oben mit, Stampfen besiegt (+ Schlittschuh); alle Angriffe | seitlich |
+| pilzling_reifen | treibt im Schwimmreifen, paddelt zur Figur (nur im Wasser) | Draufspringen, alle Angriffe | seitlich, schwimmend |
+| spuk / Großspuk (`size`) | folgt nur, wenn die Figur **wegschaut**; angesehen: versteckt sich (shy), steht still | **Licht-Helm** (0,8 s / 2,2 s Licht), Stern, Riese | jede Berührung (auch von oben) |
+| kreisgeist (+ Ring) | kreist (Ring aus count Gliedern, Bahn, Kreis) | **Licht** (0,6 s, einzeln), Stern, Riese | jede Berührung |
+| funkenlaeufer | saust an Blockkanten/Schienen/Kreis entlang, unverwundbar | nur Stern, Riese | jede Berührung |
+| funkenkaefer | fliegt; lädt auf (0,6 s) und stürzt sich auf die Figur | Draufspringen, alle Angriffe | seitlich, Sturzflug |
+| huepfqualle | hüpft im Takt (Level-Uhr), auf der Stelle/Bahn/zur Figur | Draufspringen, alle Angriffe | seitlich |
+| riesenprojektil | großes, langsames Geschoss; **Oberseite begehbar** (mitfahren, abspringen) | Stampfen auf der Oberseite, Kanone, Bombe, Riese, Stern | vorn/seitlich |
+| riesenkanone | feuert Riesenprojektile im Takt (auch unsichtbar am Bildrand) | Kanone, Bombe, Riese (sichtbar) | – |
+| flossling | Schwarm auf Bahn unter Wasser; `jump`: springt im Takt aus dem Wasser | Draufspringen (aus dem Wasser), alle Angriffe; an Land harmlos (zappelt) | Berührung |
+| stachelfisch | verfolgt an der Oberfläche; `wall`: schießt im Takt aus Wandlöchern | nur STRONG | jede Berührung (auch oben) |
+| rammfisch | patrouilliert, dreht sich zur Figur, rammt (steigt auf ihre Höhe), betäubt, dreht um | nur STRONG | Berührung (betäubt harmlos) |
+
+### Präzisierung (Gegner Welt 3): Gegner-Daten (exakt, mit Beispiel)
+
+```js
+enemies: [
+  // Schneesäule: segments 3–5 (4, Kopf mitgezählt), behavior 'walk'|'chase', speed 0.9, chaseSpeed 1.4, sight 8, path, dir
+  { kind: 'schneesaeule', pos: [0, 1, -20], segments: 5, behavior: 'chase', sight: 6 },
+  // Eisläufer: path (Runde) | center + radius 4 (+ rz Oval, cw) | dir (Slalom: slalom 1.2 rad); speed 4.2 (Eis), walk 1.4,
+  //   turn 2.2 rad/s, behavior 'skate'|'chase', sight 9, ride false (Oberseite zum Mitfahren), skate 'stomp'|'always'|false
+  { kind: 'pilzling_eis', pos: [4, 1.1, -30], center: [0, 1.1, -30], radius: 4.5 },
+  { kind: 'pilzling_eis', pos: [0, 1.1, -27.5], center: [0, 1.1, -30], radius: 2.5, ride: true, speed: 2.6 },
+  // Reifen-Pilzling: pos.y = Wasseroberfläche; speed 1.6, sight 8, path (treibt ohne Figur)
+  { kind: 'pilzling_reifen', pos: [-8, 0.8, -40] },
+  // Spuk: pos = Unterkante; size 1 (Großspuk 2.5), speed 1.5 (0.9), look 70°, sight 14, hover 0.45, fade 0.8 (2.2), shyDelay 0.15
+  { kind: 'spuk', pos: [-6, 1.4, -50] }, { kind: 'spuk', pos: [6, 1, -52], size: 2.5 },
+  // Kreisgeist einzeln: center + radius 3 | path | pos; speed 1.6 m/s, cw, phase, fade 0.6
+  { kind: 'kreisgeist', center: [0, 1.25, -60], radius: 5.6, cw: true },
+  // Kreisgeist-Ring: pos = Mitte (Unterkante), count 8 (≤ 40), radius 3, speed 1.6 m/s am Umfang, cw, phase, fade 0.6, peek 2.5
+  //   Glieder: level.named `${id}_${i}` (kind 'kreisgeist_glied'); Ring-Laufzeit: angle, mask, aliveCount, members
+  { kind: 'kreisgeist_kreis', id: 'ring', pos: [0, 1.25, -60], count: 10, radius: 4, speed: 2 },
+  // Funkenläufer: path|rail (Runde ab 3 Punkten) | block: { pos, size } (Rand der Oberseite) | center + radius; speed 3,
+  //   count 1, spacing 2, phase, wait 0, cw
+  { kind: 'funkenlaeufer', block: { pos: [-4, 1, -70], size: [3, 1.2, 3] }, speed: 2.6 },
+  // Funkenkäfer: pos | path (y = Flughöhe) | center + radius; speed 2.2, sight 6, dive 8.5, charge 0.6, cooldown 2.0
+  { kind: 'funkenkaefer', pos: [4, 4, -72] },
+  // Hüpfqualle: period 1.2 s (Takt der Level-Uhr), phase 0..1, height 1.4, hop 0 (mit dir/path 1.2), behavior 'hop'|'chase', sight 7
+  { kind: 'huepfqualle', pos: [0, 2.4, -80], period: 1.0, behavior: 'chase' },
+  // Riesenprojektil: pos = Mitte der Unterkante (Rumpfmitte y + 1,2), dir, speed 3.5, life 14, ride true
+  { kind: 'riesenprojektil', pos: [-20, 2, -90], dir: [1, 0] },
+  // Riesenkanone: height 2.6 (Rohrmitte), interval 5, first 1.5, range 40, charge 0.8, max 2, speed/life/ride, hidden, active;
+  //   setActive(b). Alternativ kanone_turm mit shot: 'riesenprojektil'.
+  { kind: 'riesenkanone', id: 'rk', pos: [18, 1, -95], dir: [-1, 0], hidden: true, interval: 6 },
+  // Flossling: mode 'swim' (path | center + radius, count, spacing 1.2, behavior 'swim'|'chase', sight 5) |
+  //   'jump' (every 2.4 s, height 2.6, dist 4 in dir, pendelt; count → nebeneinander); speed 2.2, phase, color tuerkis|koralle|gold
+  { kind: 'flossling', path: [[6, -0.9, -100], [16, -0.9, -100], [16, -0.9, -105]], count: 4 },
+  { kind: 'flossling', mode: 'jump', pos: [-2.2, 0, -110], dir: [1, 0], dist: 4.4, height: 2.4 },
+  // Stachelfisch: mode 'surface' (Standard; sight 9, speed 2.2) | 'swim' (path) | 'wall' (pos = Lochmitte, dir = Schussrichtung,
+  //   period 2.4, phase = Vorlauf im Takt, reach 3.5, shoot 9, back 4, out 0.35, size 0.45)
+  { kind: 'stachelfisch', pos: [9, 0, -112] },
+  { kind: 'stachelfisch', mode: 'wall', pos: [17.95, 0.2, -114], dir: [-1, 0], period: 2.4, phase: 0.33 },
+  // Rammfisch: pos = Unterkante (Schwimmhöhe), path | dir, speed 1.4, charge 7, sight 8 (Kegel ±35°), range 12, stun 1.3
+  { kind: 'rammfisch', pos: [-15, -1.1, -116], path: [[-17, -1.1, -116], [-6, -1.1, -116]] },
+],
+```
+
+### Präzisierung (Gegner Welt 3): Bosse
+
+**Schattenläuferin** (3-Zug, Arena am Zugende; Archetyp `boss`, im Zug mit `scroll.with: 'boss'`):
+
+```js
+{ kind: 'schattenlaeuferin', id: 'schatten', pos: [0, 2, -3.5], arena: { center: [0, 2, 0], r: 8.6 }, ring: 5, hp: 3,
+  clones: [2, 3, 5], throws: [2, 2, 3], boomerang: { speed: 7.5, range: 9 }, wakeR: 8, seed: 7 }
+boss: { id: 'schatten', name: 'Schattenläuferin', speed: 0, trigger, warp: 'warp_sieg', frame: 0.3 }
+```
+
+Ablauf: `wait` → `intro` (2 s, erscheint im Rauch) → ein Wurf → `teleport` (0,35 s) → `hidden` (0,5 s) → `appear` (0,8 s):
+sie steht auf einem von N+1 Plätzen eines Rings (r `ring`) um die Arenamitte, die **Doppelgänger** (2 / 3 / 5 je Phase)
+auf den übrigen; dann je Erscheinen `throws` Würfe, dazwischen `run` (alle huschen 60° weiter) → wieder `teleport` …
+**Wurfsterne** (`schatten_bumerang`) fliegen im Bogen zur nächsten Figur und zurück in die Pfote; es werfen das Original und
+die ersten `phase` Doppelgänger (2 / 3 / 4 Wurfsterne). **Nur das Original** (pinke Schleife, Modell `clone: false`) zählt:
+Draufspringen/Stampfen bzw. Kanonenkugel → `hit` (0,6 s), alle Doppelgänger lösen sich in Rauch auf, Teleport, nächste
+Phase. Doppelgänger: Draufspringen → Rauch (Abprall), jeder Angriff ebenso; seitliche Berührung verletzt. 3 Treffer →
+`defeated` (2,2 s) → `flee` (0,8 s) → `gone`. Laufzeit: `clones`, `cloneLog` (z. B. [2, 3, 5]), `boomerangs`, `vulnerable`.
+
+**Schlangenkönig** (3-B, Zirkuszelt-Arena; Archetyp `boss`):
+
+```js
+{ kind: 'schlangenkoenig', id: 'koenig', pos: [0, 2, 0] (Sockelmitte), arena: { center: [0, 2, 0], r: 11 }, hp: 3,
+  plate: 2.8, spots: [[x, z], …] (Standard 6 auf Ring r 6), segments: 14, claw: true, star: { pos: [0, 2.4, 6.5], index: 0 } }
+boss: { id: 'koenig', name: 'Schlangenkönig', speed: 0, trigger, warp: 'warp_sieg', frame: 0.25 }   // Arena ohne Decke (ceiling 0)!
+```
+
+Sockel: fester Zylinder (r 2,4, 1,4 m), wer daraufspringt, wird ohne Schaden heruntergeschubst. Ablauf: `wait` → `rise`
+(1 s, bricht aus dem Sockel) → `roar` → Runde: `throw` (2 / 3 / 4 Felsbrocken im Bogen auf die Figur, Landeanzeige; Aufprall
+verletzt im Umkreis 1 m) → `summon` (Diener: 3 / 3 / 4, rissig 0 / 1 / 2; jeder zweite Ruf: Krallen-Anzug auf einem heilen
+Teller) → `lean` (Fenster 7 / 6,5 / 6 s): Kopfmitte `plate + 2,7 m` über dem Teller nahe der Figur – vom Boden aus
+unerreichbar, **vom Teller aus draufspringen = Treffer**; ab Phase 2 fallen Steine von der Kuppel (alle 2,6 / 2,0 s,
+abwechselnd auf die Figur und auf einen Teller) → Treffer: `hit` → Diener versinken → `retreat` → nächste Runde; Fenster
+um: `strike` (Stoß nach der Figur, verletzt) → `gap` → nächste Runde. Kopf von unten/seitlich: harmlos (außer im Stoß).
+3 Treffer → `defeated` (2,5 s, Krone fällt) → `sink` → `gone`; `star` erscheint. Diener (`dienerschlange`, auch einzeln:
+`{ kind, pos, height 2.8, cracked, claw, up true }`): Teller = Einweg-Zylinder r 0,72 auf `height`, Körper = Kletter-Säule
+(Krallen-Anzug); rissiger Teller bricht 0,45 s nach dem Betreten, Steine zerschlagen Teller (`brokenBy 'step'|'rock'`).

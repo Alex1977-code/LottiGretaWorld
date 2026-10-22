@@ -8,7 +8,8 @@
 // (Kanonen-Helm, onHit('cannon')/onCannon), Explosion und Riesentrank.
 //
 // Daten: { kind: 'kanone_turm', id?, pos (Fußpunkt), yaw?|dir? (Rohr 0; Standard zur Kamera +Z), height?: 2,
-//          sides?: 1 | 2, shot?: 'projektilkopf' | 'suchkopf' | 'wechsel' (abwechselnd), interval?: 3.0 s,
+//          sides?: 1 | 2, shot?: 'projektilkopf' | 'suchkopf' | 'wechsel' (abwechselnd) | 'riesenprojektil' (Welt 3),
+//          interval?: 3.0 s,
 //          first?: 1.0 s, range?: 26 m, minRange?: 1.6 m, max?: 3, speed? (Kopf-Tempo), seek?/turn? (Suchkopf),
 //          ride? (Projektilkopf), track?: false, charge?: 0.5 s, active?: true, drop? }
 //   Beispiel: { kind: 'kanone_turm', pos: [6, 1, -40], dir: [-1, 0], interval: 2.5, shot: 'suchkopf' }
@@ -110,7 +111,10 @@ class KanoneTurm extends EnemyW2 {
     const m = this.muzzlePos(this.side);
     let kind = this.shot;
     if (kind === 'wechsel') kind = this.shots % 2 ? 'suchkopf' : 'projektilkopf';
-    const spec = { pos: [m.x + m.dx * 0.15, m.y - 0.33, m.z + m.dz * 0.15], dir: [m.dx, m.dz], owner: this };
+    // Riesenprojektil (Welt 3): Rumpfmitte 1,2 m über der Unterkante, Heck an der Mündung
+    const big = kind === 'riesenprojektil';
+    const ahead = big ? 2.4 : 0.15;
+    const spec = { pos: [m.x + m.dx * ahead, m.y - (big ? 1.2 : 0.33), m.z + m.dz * ahead], dir: [m.dx, m.dz], owner: this };
     for (const k of ['speed', 'seek', 'turn', 'ride', 'life']) if (this.spec[k] !== undefined) spec[k] = this.spec[k];
     const h = this.level.spawn(kind, spec);
     if (h) this.heads.push(h);
