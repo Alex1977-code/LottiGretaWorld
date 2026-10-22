@@ -22,7 +22,7 @@
 // (T9, Kanonen-Helm). Stempel: über dem Metalltor (T8, über die Kisten auf den Sturz). Gegner: Marschblock (25),
 // Projektilkopf (endlos aus 2 Kanonen), Feuer-Schnappblume (4), Wirbelbrocken.
 
-import { VW, ZP, CW0, ACCEL, DELAY, WIN_END, P, onTank, tank, panzerSetup } from './_helpers_d.js';
+import { VW, ZP, CW0, ACCEL, DELAY, WIN_END, P, onTank, tank, panzerBuild, panzerSetup } from './_helpers_d.js';
 
 const D = 2.0;                 // Deckhöhe der Panzer (über der Fahrebene y = 0)
 const DK = 2.4;                // Kommandopanzer
@@ -136,7 +136,9 @@ export const LEVEL = {
     trigger: { min: [-AR, AY - 0.5, AZ - AR], max: [AR, AY + 6, AZ + 6.6] },
     warp: 'warp_sieg', frame: 0.35, musicAfter: 'course_tank',
   },
-  // level-lokale Teile (_helpers_d.js, gebaut vom Level-Haken der ersten Laterne)
+  // Level-Haken (Präzisierung „Level-Haken“): lokale Teile, Mitfahr-Regeln, Baron-Szene (_helpers_d.js)
+  setup: panzerSetup,
+  // level-lokale Teile (_helpers_d.js)
   panzer: {
     quicksand: 'treibsand',
     luke: { id: 'luke', attach: 'TK', pos: at(T.TK, 2, 0), target: 'arena_rohr' },
@@ -155,8 +157,9 @@ export const LEVEL = {
     baron: { from: [44, 0.6, -468], stop: [16.5, 0.6, -493], away: [34, 0.6, -566] },
   },
   segments: [
-    // Level-Haken (zuerst: stellt das Abendrot ein, bevor die Kulisse gebaut wird) – zugleich Laterne am Bahnsteig
-    { type: 'lantern', id: 'laterne', pos: [-5.6, D, 4.2], lit: true, onLit: panzerSetup },
+    // Aufbau-Haken (zuerst: Abendrot-Farben und Festungspanzer, bevor die Kulisse verschmolzen wird) – zugleich
+    // Laterne am Bahnsteig
+    { type: 'lantern', id: 'laterne', pos: [-5.6, D, 4.2], lit: true, onLit: panzerBuild },
     { type: 'lantern', pos: [5.6, D, 4.2], lit: true },
     // Treibsandmeer (Oberfläche y = 0,3) bis zur Festung
     { type: 'quicksand', id: 'treibsand', pos: [0, -1.0, -205], size: [96, 1.3, 472], sink: 0.3, flow: [0, 0.25], color: 0xcf9a5c },

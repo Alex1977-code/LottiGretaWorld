@@ -3,10 +3,14 @@
 //   1) die Konvoi-Rechnung (Bildfenster und Panzer, Konvoi-Koordinate c → Weltlage beim Fahrtbeginn),
 //   2) level-lokale Entitäten (Panzerluke, Holzwand mit Baron-Gesicht, Metalltor, Wimpel, Staubfahnen,
 //      Fluchtszene des Barons) und
-//   3) den Level-Haken `panzerSetup(level)`: Ihn ruft die erste Laterne des Levels (Baustein `lantern` mit
-//      `lit: true` → Aktion `onLit` beim Aufbau, Aktionsformat „Funktion“ aus entities/gimmick.js). Er stellt das
-//      Abendrot ein, baut die lokalen Teile aus LEVEL.panzer und hängt die Welt-2-Gimmicks an die fahrenden Panzer
-//      (siehe „Mitfahr-Regeln“ unten). Es werden keine gemeinsamen Dateien verändert.
+//   3) die Haken des Levels:
+//      · `panzerBuild(level)` beim Aufbau – die erste Laterne (Baustein `lantern`, `lit: true`, Aktion `onLit` als
+//        Funktion) ruft ihn vor allen anderen Bausteinen: Abendrot (färbt Inseln, Himmel, Kulisse) und der in die
+//        statische Geometrie gebackene Festungspanzer; beides geht nach dem Verschmelzen nicht mehr,
+//      · `panzerSetup(level)` = `LEVEL.setup` (offizieller Level-Haken nach dem Aufbau, Code je Schritt über
+//        level.onStep): lokale Teile aus LEVEL.panzer, Mitfahr-Regeln für die Welt-2-Gimmicks auf den fahrenden
+//        Panzern, Luke, Ansagen, Baron-Flucht mit Kameraschwenk.
+//      Es werden keine gemeinsamen Dateien verändert.
 //
 // Konvoi-Koordinate c: Meter entlang des Panzerzugs nach vorn (−Z) ab dem Heck des ersten Panzers, gemessen beim
 // Fahrtbeginn (Weltlage z = −c). Alle Panzer fahren mit VT, das Bildfenster schneller (VW): es gleitet mit
@@ -731,10 +735,28 @@ function attachTo(e, v) {
 }
 
 /**
- * Level-Haken (aus der Laterne `onLit`, beim Aufbau vor allen weiteren Bausteinen):
- *  - Abendrot einstellen (vor dem Bau der Kulisse),
+ * Aufbau-Haken (Laterne `onLit`, beim Levelaufbau vor allen weiteren Bausteinen) – nur, was vor dem Verschmelzen der
+ * statischen Geometrie geschehen muss: das Abendrot (seine Gelände-Farben färben die Inseln, Himmel und Kulisse werden
+ * damit gebaut) und der Festungspanzer unter der Arena (als Kulisse in die statische Geometrie gebacken).
+ */
+export function panzerBuild(level) {
+  if (level._panzerBuilt) return;
+  level._panzerBuilt = true;
+  applyEvening(level);
+  // Festungspanzer (Kulisse, in die statische Geometrie verschmolzen) mit begehbarem Deck
+  const F = level.data.panzer?.fortress;
+  if (F) {
+    const [x, y, z] = F.pos;
+    bakeModel(level, 'panzer_fahrzeug', { length: F.length, width: F.width, deck: F.deck, color: F.color ?? 'rot' }, x, y, z, Math.PI / 2, 1, { speed: 0 });
+    level.world.add({ type: 'box', min: [x - F.width / 2, y, z - F.length / 2], max: [x + F.width / 2, y + F.deck, z + F.length / 2], tag: 'festungspanzer' });
+  }
+}
+
+/**
+ * Level-Haken `LEVEL.setup(level, scene)` (einmal nach Aufbau von Level, Figur, Kamera und Archetyp; Präzisierung
+ * „Level-Haken“):
  *  - lokale Teile aus LEVEL.panzer bauen (Luke, Holzwand, Metalltor, Wimpel, Staub, Baron-Szene),
- *  - Mitfahr-Regeln (je Schritt, vor den Fahrzeugen):
+ *  - Mitfahr-Regeln (je Schritt über level.onStep, vor Figur und Fahrzeugen):
  *      · Marschblock-Kolonnen mit `ride: '<Panzer>'` marschieren auf dem fahrenden Deck (Bahn wandert mit),
  *      · roter Ring mit `attach`: rote Münzen erscheinen auf den Panzern und fahren mit,
  *      · neu entstandene Dinge über einem Deck (Power-ups aus ?-Blöcken, Sterne aus Kisten, abgeworfene Helme,
@@ -746,9 +768,9 @@ function attachTo(e, v) {
  */
 export function panzerSetup(level) {
   if (level._panzer) return;
+  panzerBuild(level);              // falls die Aufbau-Laterne fehlt (Abendrot dann ohne eigene Gelände-Farben)
   const cfg = level.data.panzer ?? {};
   const st = level._panzer = { cfg, init: false, vehicles: [], seen: new WeakSet(), helmets: [], said: {}, luke: null, flucht: null, rings: [] };
-  applyEvening(level);
 
   // Phase-3-Ansage von Wirbelbrocken: liest archetype.boss/seenPhase – beim Autoscroller liegen sie im Zusatz-Archetyp
   const arch = level.archetype;
@@ -768,15 +790,7 @@ export function panzerSetup(level) {
     };
   }
 
-  // Festungspanzer (Kulisse, in die statische Geometrie verschmolzen) mit begehbarem Deck
-  const F = cfg.fortress;
-  if (F) {
-    const [x, y, z] = F.pos;
-    bakeModel(level, 'panzer_fahrzeug', { length: F.length, width: F.width, deck: F.deck, color: F.color ?? 'rot' }, x, y, z, Math.PI / 2, 1, { speed: 0 });
-    level.world.add({ type: 'box', min: [x - F.width / 2, y, z - F.length / 2], max: [x + F.width / 2, y + F.deck, z + F.length / 2], tag: 'festungspanzer' });
-  }
-
-  // Lokale Entitäten
+  // Lokale Entitäten (die Panzer lesen ihre Unterobjekte beim nächsten Schritt neu ein: `attach`)
   if (cfg.luke) st.luke = spawnLocal(level, new Luke(level, cfg.luke));
   for (const w of cfg.walls ?? []) spawnLocal(level, new BrummWand(level, w));
   for (const g of cfg.gates ?? []) spawnLocal(level, new Metalltor(level, g));
@@ -795,12 +809,13 @@ export function panzerSetup(level) {
   const prevDef = level.onBossDefeated;
   level.onBossDefeated = (b) => { prevDef?.(b); st.flucht?.start(); };
 
+  initLate(level, st);
   level.onStep((dt) => stepPanzer(level, st, dt));
-  if (level.view) level.view.onFrame((dt) => { if (!st.init) initLate(level, st); st.flucht?.render(dt); });
+  if (level.view) level.view.onFrame((dt) => st.flucht?.render(dt));
   wrapCamera(level, st);
 }
 
-/** Einmalig, sobald alle Fahrzeuge und Gegner stehen (erster Schritt bzw. erstes Bild). */
+/** Einmalig nach dem Aufbau: Mitfahr-Regeln an die gebauten Fahrzeuge, Gegner und Gimmicks hängen, Darstellung. */
 function initLate(level, st) {
   st.init = true;
   const cfg = st.cfg;
@@ -855,7 +870,6 @@ function initLate(level, st) {
 }
 
 function stepPanzer(level, st, dt) {
-  if (!st.init) initLate(level, st);
   const w = level.scroll;
   // neue Dinge über einem Deck fahren mit (Power-up aus ?-Block, Stern aus Kiste, abgeworfener Helm, 1-up)
   const ents = level.entities;
