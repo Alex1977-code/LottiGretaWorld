@@ -1868,3 +1868,161 @@ Statue werden – eigenes Kostüm), **Schlittschuh** (tragbar wie ein Reit-Schuh
 (rutschig), rollbare Schneebälle, Kettenzaun-Klettern, Geister (`spuk` folgt, wenn man wegschaut; Licht-Helm bannt).
 Wo der Bauplan den „Kapitän“ nennt (3-Zug, 3-Kapitän), tritt **Krümel** auf; „Münz-Dieb“ = **Münzmarder**;
 „Prinzessinnen-Figur“ (3-4) = Figurenschalter für **Greta** bzw. **Lotti**.
+
+---
+
+## Präzisierung (Bausteine Welt 3)
+
+Ergänzung des Bausteine-Agenten (Stand: Winterwerkstatt 0-13). Nichts oben Festgelegtes wird geändert. Alle Welt-3-
+Bausteine, Gimmicks und Themen sind parametrierbare Module; Level-Bauer setzen sie nur in Daten ein. Jede Datei
+dokumentiert ihre Parameter vollständig im Kopfkommentar; hier die Felder mit Beispielen. Aktionen (`onOpen`, `onPress`,
+`onTrick`, `onBreak`, `onFull`, `onLaunch`, `onReveal`, `reward`, `content` …) im bekannten Format (Präzisierung
+Sonder-Bausteine) – **neu: `water: { id, y | dy, speed }`** (Wasserstand, s. u.). Signale an benannte Objekte über
+`level.named` (Daten-`id`). Alle Entitäts-Gimmicks (`kind`) sind auch als `type` in `segments` erlaubt (`w3_misc.js`).
+
+### Präzisierung (Bausteine Welt 3): Dateien
+
+```
+src/course/blocks/types/w3_rails.js     schiene, schalttafel (Schienennetz mit Weichen; Schaltblock: Entität)
+src/course/blocks/types/w3_ghost.js     spuk_treppe, spuk_sofa, kronleuchter, drehraum
+src/course/blocks/types/w3_water.js     lagune, holzsteg, steg, rohrnetz, rohrteile, koralle, seetang, blasen, schiffswrack
+src/course/blocks/types/w3_race.js      boost_rampe, boost_tor, sprungfeld, pilztrampolin, bande, start_bogen, rutschhang
+src/course/blocks/types/w3_sky.js       kettenplattform, broeckelblock, wolkenlift
+src/course/blocks/types/w3_snow.js      eisflaeche, iglu, schneebloecke
+src/course/blocks/types/w3_scene.js     bahnsteig, parallelgleis, zirkuszelt, manege, zirkuspodest, seilbahn, rosa_gras,
+                                        bunter_stein, pastell_blume, hecken_hase
+src/course/blocks/types/deco_w3.js      Kulisse Welt 3 (verschmolzen; shadow: false für ferne Kulisse)
+src/course/blocks/types/w3_misc.js      Entitäts-Gimmicks auch als segments-type
+src/course/blocks/w3kit.js              sharedInstances (createInstanced je Level), wantOf, rotXZ/yawBox/snapYaw, waterTopAt,
+                                        banner, slideSlope (Rutschhang)
+src/course/blocks/water_level.js        setWaterLevel / waterTop (Aktion water; Rückfall ohne Motor-Haken)
+src/course/entities/kinds/w3_gimmicks.js  schaltblock, buecherregal, bilderrahmen, zielmast_spuk, spuk_tuer, wasserschalter,
+                                        goldring, wandriss, kurbelrad
+src/course/entities/kinds/w3_snow.js    schneeblock, eisblock, eiszapfen, schneehaufen, tanne
+src/course/view/theme_snow|skyway|ghost|plaza|fortress|water|race|autumn|train.js, backdrop_w3.js   Themen + Kulissen
+src/course/view/mood.js                 Stimmungen und Unterwasser-Stimmung (ViewMood)
+src/course/levels/w0/0-13.js            Winterwerkstatt (eine Station je Baustein, marks für den Test)
+tests/course_w3_blocks.mjs              Port 4350, Bilder tests/out/w3b_*.png (auch je Thema w3b_thema_*.png, w3b_unterwasser.png)
+```
+
+Additiv geändert: `view/themes.js` (9 Registrierzeilen, `??=`), `view/CourseView.js` (Haken `setMood`, `setUnderwater`,
+`underwater`; Stimmung je Bild, Hintergrundfarbe aus der Stimmung), `entities/gimmick.js` (Aktion `water`, 3 Zeilen),
+`entities/kinds/vehicle.js` (Zug-Stile `lok|wagen|flach` mit Modell `zug_waggon`).
+
+### Präzisierung (Bausteine Welt 3): Schnittstellen zu Motor und Ansicht
+
+- **Unterwasser (Ansicht):** `level.view.setUnderwater(on)` – `true`/`false` erzwingt die Unterwasser-Stimmung (der Motor
+  ruft es, sobald der Kopf der Figur unter die Wasseroberfläche taucht bzw. wieder auftaucht), `'auto'` (Standard) erkennt
+  sie selbst, wenn das Thema `underwater` hat: Figur `mode === 'swim'` und `pos.y + 2·half.y − 0,12 < water.top`.
+  Wirkung (weich in ≈ 0,3 s): naher türkis-blauer Nebel (Standard 2–40 m), dunklere Hintergrund-/Kuppelfarbe, kühles,
+  gedämpftes Himmels- und Sonnenlicht, Licht an der Figur ×0,8, dazu eine additive Bild-Überlagerung mit wandernden
+  Lichtflecken und Lichtstrahlen (1 Zeichenaufruf). `view.underwater` → bool, `view.mood.info()` → `{ mood, water (0..1),
+  forced, auto }`. Werte je Thema: `theme.underwater = { fog: { color, near, far }, background, hemi: { sky, ground,
+  intensity }, sun: { color, intensity }, dome, playerLight, caustics (0,45), color }` (alles optional).
+- **Stimmungen (Ansicht):** `level.view.setMood(name | null, { time: 0.8 })` blendet zur Stimmung `theme.moods[name]`
+  (gleiche Felder wie oben) bzw. zurück zur Grundstimmung. Thema `ghost`: Grundstimmung innen, `'aussen'` (Außenhof bei
+  Nacht, Mondlicht), `'innen'`. Die Spuk-Tür ruft es beim Durchgang (`mood`). Themen ohne `moods` ignorieren den Aufruf.
+- **Wasserstand:** Aktion `{ water: { id, y | dy, speed: 1.5 } }` (z. B. `wasserschalter.water`, `onAll`, Level-Haken).
+  Reihenfolge: benanntes Objekt mit `setLevel(y, speed)` (Baustein `lagune`) → `level.setWaterLevel(id, y, speed)` des
+  Motors (Rückgabe `false` = nicht gefunden) → Rückfall: Wasserformen mit `waterId`/`tag` = id bzw. `named.shape`
+  werden direkt angehoben. `waterTop(level, id)`, `waterTopAt(level, x, z)` lesen den Stand; der `holzsteg` folgt dem
+  Wasser unter sich (Strahl auf Wasserformen) und funktioniert so mit jedem Wasser.
+- **Eis:** `eisflaeche` (und `island`/`platform`/`ramp`/`rosa_gras` mit `ice: true`) setzen das Flag `ice` an der
+  Kollisionsform; der Motor liest es (träges Beschleunigen/Bremsen, kein Schleudern).
+- **Rutschhang:** Rampe mit Flag `slide: true`; der Baustein meldet dem Motor die Neigung als mindestens `slope` (0,85 >
+  `slopeSlide` 0,75) – die Figur rutscht ohne Ducken bergab (bis 16 m/s). Liest der Motor später `slide` selbst, bleibt
+  das verträglich.
+- **Kettenzaun:** `kettenplattform` hat einen Zaun mit Flag `climbable` (Krallen-Anzug); den Kletter-Modus am Zaun
+  liefert der Motor (Baustein `kettenzaun`). Die Plattform ist über `level.named.get(id)` erreichbar (`box`, `fence`,
+  `pm`, `start/stop`).
+- **Zug:** `vehicle` (Autoscroller) mit `style: 'lok' | 'wagen' | 'flach'` nutzt das Modell `zug_waggon` (Räder/Dampf
+  im Fahrzustand). Begehbare Oberkanten: Lok-Führerhaus 3,96 m (Kessel 3,2 m, Fahrgestell 1,26 m), Wagendach 3,75 m,
+  Flachwagen 1,39 m; Standardgrößen [3, 3,96, 8,5] / [2,8, 3,75, 10] / [3, 1,39, 10] (`size` = Breite, Oberkante, Länge).
+- **Geteilte Instanzen:** Schnee-/Eisblöcke, Tannen und Eiszapfen liegen je Level in einer Instanz-Gruppe
+  (`createInstanced`, 200/120 Plätze) – 1–2 Zeichenaufrufe für alle.
+- **Ansagen:** `banner(level, text, opts)` (w3kit) nutzt das Archetyp-HUD oder ein eigenes (`level.lastBanner` für Tests).
+
+### Präzisierung (Bausteine Welt 3): Liste mit Daten-Beispielen
+
+| Typ / Art | Kern | Wichtige Felder (Standard) | Beispiel |
+| --- | --- | --- | --- |
+| `schiene` | Schienenstrang; gleiche `net` = Netz, Enden verbinden sich (≤ 0,35 m), endet ein Strang auf einem anderen → Weiche; Ecken als Bögen | `net`, `path` (y = Schienen-Oberkante), `dir` 1 (Fahrt path[0] → Ende; −1 umgekehrt), `radius` 2, `posts` 0, `color`; `level.named.get(net)` = `{ sign, reverse(), toggle(), nodes, edges, boards, info() }` | `{ type: 'schiene', net: 'n1', path: [[0,0.4,-37],[0,0.4,-74]] }`, Abzweig: `{ type: 'schiene', net: 'n1', path: [[0,0.4,-50],[-6,0.4,-57],[-6,0.4,-74]], radius: 3 }` |
+| `schalttafel` | 3×3-Tafel (Oberkante Schiene + 0,75) fährt nur, solange eine Figur draufsteht (sanft an/ab), trägt; an Weichen Neigung (Stick seitlich bzw. Stellung auf der Tafel): links/rechts/geradeaus; am Strangende Halt | `net`, `at` (Start, auf die nächste Schiene gesetzt), `size` 3, `speed` 3.5, `accel` 6, `brake` 10, `tilt` 0.3, `id` → `{ box, pos, edge, s, v, tilt, stopped, lastChoice, info() }` | `{ type: 'schalttafel', id: 'tafel', net: 'n1', at: [0,0.4,-38.5] }` |
+| `schaltblock` | Kopfstoß/Stampfen kehrt die Fahrtrichtung aller Stränge des Netzes um (Signal `{ toggle: net }` ebenso) | `pos`, `net` (Name oder Liste), `id`; Laufzeit `hits` | `{ kind: 'schaltblock', pos: [4,3.6,-38], net: 'n1' }` |
+| `buecherregal` | Hineinlaufen (≥ 0,15 s gegen die Seite) schiebt entlang `slide` (1,8 m/s), Angriffe stoßen 1 m weiter; Ende des Wegs → `onOpen` einmal | `pos`, `yaw` −π/2 (90°-Raster), `width` 2, `height` 2.8, `slide` [1,0], `range` [0,2], `speed` 1.8, `onOpen`, `id`; Laufzeit `off`, `opened` | `{ kind: 'buecherregal', pos: [-6,1,-86], range: [0,2.5], onOpen: { reveal: 'stern_regal' } }` |
+| `spuk_treppe` | verschiebbare Treppe (steigt nach lokal +X) fährt aus der Versteck-Lage `from` an `pos`: bei Annäherung / Signal / im Takt | `pos` (untere Vorderkante), `yaw` 0, `steps` 4, `width` 2, `rise` 0.5, `run` 0.6, `from` [0,0,−3], `mode` 'near'\|'signal'\|'shift', `near` 5, `speed` 2, `period` 3, `back` 0, `out`, `id` (`open/close/toggle/start`) | `{ type: 'spuk_treppe', pos: [5,1,-88], from: [0,0,-3], near: 4 }` |
+| `spuk_sofa` | Sofa-Lift: Figur darauf → nach `delay` schwebt es `rise` m hoch (oder den `path`), oben wartet es, leer sinkt es nach `back` s | `pos`, `yaw` −π/2, `rise` 4, `path`, `speed` 1.6, `delay` 0.4, `back` 2.5, `id` → `{ k, y, state }` | `{ type: 'spuk_sofa', pos: [0,1,-98], rise: 4 }` |
+| `kronleuchter` | pendelnder Kronleuchter als Plattform (Ring trägt, Figur schwingt mit) | `pos` (Aufhängung), `chain` 1.2, `scale` 1.6, `axis` 'x'\|'z', `amp` 0.35, `period` 3.2, `phase`, `light`, `id` | `{ type: 'kronleuchter', pos: [-8,9,-100], axis: 'x' }` |
+| `bilderrahmen` | Gemälde verdeckt eine Wandnische (fest), Hineinspringen/Angriff/`open` klappt es auf, die Warp-Box in der Nische erscheint | `pos` (Unterkante in der Wandebene), `yaw` −π/2, `size` [1.4,1.8], `motif` 'spuk'\|'portraet'\|'landschaft', `watch`, `solid`, `warp: { id, target, style, pos }` (Standard 1 m hinter dem Bild auf `floor`), `floor`, `content`, `id` | `{ kind: 'bilderrahmen', pos: [8,1.05,-105.5], size: [1.6,2], warp: { id: 'bw', target: [60,1.2,-108] } }` (Wand mit Lücke + Rückwand baut der Level) |
+| `drehraum` | quadratischer Raum dreht sich in Vierteldrehungen um die Längsachse (Boden → Wand); Einbauten drehen mit (während der Drehung nicht fest, danach an neuer Lage); vorn offen | `id`, `pos` (Bodenmitte), `size` [s, länge] ([12,16]), `parts: [{ pos: [x,y] (Querschnitt, Mitte unten), size: [w,h], z, color }]`, `period` 4, `turn` 1.4, `dir` 1, `auto` true (Takt, sobald eine Figur drin ist), `back`, `wall` → `{ quarter, turning, turns, angle, turnNow(), start/stop/toggle }` | `{ type: 'drehraum', id: 'dreh', pos: [60,1,-110], size: [10,12], parts: [{ pos: [-2.5,0], size: [3,1.2] }] }` |
+| `zielmast_spuk` | falscher Zielmast: Berührung → „Reingelegt!“, Spukgesicht, Spuk erscheint (spawn), Mast verblasst (1,2 s) | `pos`, `height` 6, `text`, `spawn` ({ kind: 'spuk' }, falls vorhanden; false = keiner), `onTrick`, `id` | `{ kind: 'zielmast_spuk', pos: [-5,1,-122] }` |
+| `spuk_tuer` | Flügeltür (2,2 × 3 m) mit Durchgang wie `tuer` + Raumwechsel: Stimmung `mood` nach dem Durchgang | Felder von `tuer` (`id`, `pos`, `yaw`, `target`, `auto`, `locked`, `key`, `onEnter` …), `mood` ('aussen'\|'innen'\|null) | `{ kind: 'spuk_tuer', id: 'a', pos: [6,1,-128], target: 'b', mood: 'aussen' }` |
+| `lagune` | Wasserbecken mit Namen und änderbarem Stand (setLevel), türkiser Körper, Oberfläche, Sandboden | `id`, `pos` (Beckenboden), `size` [w, Tiefe, d], `bed` 1, `color`, `deep` | `{ type: 'lagune', id: 'see', pos: [0,-3.4,-166], size: [16,2.8,36] }` |
+| `wasserschalter` | Draufspringen/Stampfen → Aktion `water` + `onPress`; `toggle` stellt zurück, `back` s → Wasser sinkt | `pos`, `water: { id, y \| dy, speed }` (auch Liste), `onPress`, `toggle`, `back`, `id`; Laufzeit `pressed`, `presses` | `{ kind: 'wasserschalter', pos: [10.5,1,-158], water: { id: 'see', y: 0.9 } }` |
+| `holzsteg` | Deck schwimmt auf (folgt dem Wasser darunter, `float` m darüber) zwischen Grundlage und `hub`; ohne Wasser per Signal | `pos` (Anfang, Pfahlfuß), `yaw` 0, `length` 5, `width` 2, `hub` 2, `float` 0.1, `water` true, `speed` 2, `id` → `{ lift, deckY, open/close }` | `{ type: 'holzsteg', pos: [-6,-1.8,-172], length: 6, hub: 2.2 }` |
+| `steg` | fester Holzsteg auf Pfählen (Deck auf y + height) | `pos`, `yaw`, `length` 4, `width` 2, `height` 1.2 | `{ type: 'steg', pos: [-8,-0.6,-152], length: 5, height: 1.6 }` |
+| `rohrnetz` | Glasröhre mit Wasserfüllung und Blasen (Fahrt/Gabelung/Kanone/Münzen wie `glasspipe`) | Felder von `glasspipe` + `water` true, `waterColor` | `{ type: 'rohrnetz', path: [[4,1.6,-145],[4,1.6,-150],[4,-1.8,-156],[4,-1.8,-176],[4,2.2,-181]], coins: 4, branches: [{ at: 3, path: [[-3,-1.8,-176]] }] }` |
+| `rohrteile` | grüne Röhrenstücke (Modell 'rohrnetz') mit Quader-Kollision | `items: [{ kind: 'gerade'\|'bogen'\|'t'\|'kreuz'\|'ende', pos, yaw, length, radius, color }]`, `solid` | `{ type: 'rohrteile', items: [{ kind: 't', pos: [0,0,-20] }] }` |
+| `koralle` / `seetang` / `blasen` / `schiffswrack` | Unterwasser-Kulisse (Koralle/Seetang wiegen sich, Blasen steigen) | Koralle `kind` 'ast'\|'faecher'\|'hirn', `scale`, `sway`, `solid`; Seetang `height`, `count`, `current`; Blasen `height`, `count`; Wrack `size`, `yaw`, `shadow` | `{ type: 'seetang', pos: [6.5,-3.4,-164] }` |
+| `wandriss` | rissige Wand: nur Kanonenkugel/Bombe/Riesentrank (`breakable: 'pound'`: auch Stampfen von oben) | `pos`, `size` [3,3,1], `breakable` 'cannon'\|'pound', `onBreak`, `color`, `id` | `{ kind: 'wandriss', pos: [-6,1,-188], onBreak: { reveal: 'goldroehre' } }` |
+| `boost_rampe` | Boost-Schräge: Rampe (steigt nach lokal +X) mit Boost-Fläche | `pos` (Fußkante), `yaw` π/2, `length` 2.5, `width` 1.6, `height` 0.8, `speed` 18 | `{ type: 'boost_rampe', pos: [7,1,-197], length: 3, height: 1 }` |
+| `boost_tor` | Bogen über der Fahrbahn, Durchlaufen beschleunigt | `pos`, `yaw` π/2, `width` 4, `speed` 18, `depth` 2 | `{ type: 'boost_tor', pos: [0,1,-199] }` |
+| `sprungfeld` | Betreten schleudert in hohem Bogen **genau** auf `to` (Fußpunkt) | `pos`, `to` \| `dir` + `dist` 7, `arc` 3, `size` 1.6, `onLaunch`, `id` → `{ launches }` | `{ type: 'sprungfeld', pos: [0,1,-204.5], to: [0,1,-215] }` |
+| `pilztrampolin` | Pilz-Hut federt (Flag bounce) | `pos`, `strength` 19, `scale` 1 | `{ type: 'pilztrampolin', pos: [-6,1,-220] }` |
+| `bande` | Kart-Bande entlang einer Polylinie (fest) | `path` \| `from`/`to`, `solid` | `{ type: 'bande', path: [[12,1,-192],[12,1,-206]] }` |
+| `start_bogen` | Start-/Zielbogen, Ampel grün nach `delay` bzw. beim Durchlaufen | `pos`, `yaw` π/2, `width` 8, `delay` 2, `mode` 'time'\|'pass', `id` → `{ go }` | `{ type: 'start_bogen', pos: [0,1,-194], mode: 'pass' }` |
+| `rutschhang` | Rampe mit Flag slide: Figur rutscht ohne Ducken bergab | `pos`, `size` [w,h,d], `axis` 'z', `dir` −1, `low` 0, `slope` 0.85, `top` | `{ type: 'rutschhang', pos: [0,-3,-236], size: [10,4,16], dir: 1 }` |
+| `kettenplattform` | fahrende Himmels-Plattform mit Zaun (climbable), optional Bahn (Stahlträger) | `path` \| `pos`, `size` [4,3], `yaw` 0, `speed` 2.5, `mode` 'pingpong'\|'loop', `wait` 0.6, `phase`, `fence` true, `fenceHeight` 2.5, `climbable`, `bahn`, `idle`, `once`, `id` | `{ type: 'kettenplattform', path: [[0,-3.35,-264],[0,-3.35,-282]], bahn: true }` |
+| `kurbelrad` | Angriffe (je ≈ 0,4 Umdrehungen) bzw. Laufen daneben drehen es; `turns` Umdrehungen heben die Plattform um `rise`, ohne Drehen sinkt sie | `pos`, `yaw`, `turns` 2, `platform: { pos, size, rise 4, color }`, `back` 0.4, `range` 1.6, `onFull`, `id`; Laufzeit `angle`, `k`, `platformY` | `{ kind: 'kurbelrad', pos: [-8,-3,-250], platform: { pos: [-11.5,-3,-254], rise: 4 } }` |
+| `broeckelblock` | 1-m-Blöcke zerbröseln nach Betreten, kommen wieder | `pos` \| `blocks` \| `from`/`to` (Reihe), `delay` 0.5, `respawn` 5, `id` → `{ blocks: [{ state }], left() }` | `{ type: 'broeckelblock', from: [5,-3,-248], to: [8,-3,-248] }` |
+| `wolkenlift` | unsichtbar (begehbar, von unten durchspringbar), erscheint bei Berührung/Nähe, fährt dann den Pfad (Lift) | `pos`, `width` 2.6, `path`, `speed` 2, `reveal` 'touch'\|'near'\|'visible', `near` 3, `wait` 0.5, `loop`, `onReveal`, `id` → `{ shown, state, reveal() }` | `{ type: 'wolkenlift', pos: [-6,-3,-290], path: [[-6,2,-290]] }` |
+| `goldring` | Durchlaufen/-springen → Münzen (5) bzw. `reward` | `pos` (Ring-Mitte), `yaw` π/2, `radius` 1.1, `coins` 5, `reward`, `id` | `{ kind: 'goldring', pos: [0,-1.75,-257], radius: 1.2 }` |
+| `schneeblock` / `eisblock` | 1-m-Blöcke (Instanzen): Kopfstoß, Feuer, Tatze, Stampfen von oben … zerbrechen sie, Inhalt | `pos`, `content` 'none', `hits` 1, `id`, `hidden`; Reihen: `schneebloecke` (`kind`, `grid`, `blocks`, `contents: { 'i,j,k' }`) | `{ type: 'schneebloecke', kind: 'schneeblock', pos: [-5,3.2,-10], grid: [3,1,1], contents: { 1: 'coin' } }` |
+| `eiszapfen` | hängt (pos = Aufhängung), Figur darunter → zittert, fällt, verletzt, wächst nach | `pos`, `length` 1, `r` 0.9, `range` 9, `delay` 0.5, `respawn` 3, `id` | `{ kind: 'eiszapfen', pos: [7,5.5,-14] }` |
+| `schneehaufen` | Münzen versteckt: Stampfen/Tatze/Feuer/Hineinrutschen zerstieben ihn | `pos`, `size` 1.6, `coins` 5 \| `content`, `id` | `{ kind: 'schneehaufen', pos: [-8,1,-20] }` |
+| `tanne` | schüttelt Schnee ab (Hineinrennen ≥ 5 m/s, Angriff, Stampfen daneben), Inhalt fällt einmal | `pos`, `size` 3.5, `content`, `solid`, `yaw`, `id` | `{ kind: 'tanne', pos: [-3,1,-20], content: 'coins:3' }` |
+| `eisflaeche` | spiegelglattes Eis (Flag ice), Körper darunter | `pos`, `size` [w,h,d] ([8,1,8]), `body` 'snow'\|'rock'\|'none', `edge`, `under` | `{ type: 'eisflaeche', pos: [6,1,-27], size: [8,0.2,10], edge: true }` |
+| `iglu` | Iglu (Kuppel begehbar) | `pos`, `size` 3.4, `yaw`, `solid` | `{ type: 'iglu', pos: [-8,1,-2] }` |
+| `bahnsteig` / `parallelgleis` | Bahnsteig mit Kante, Dach, Lampen, Bank, Schild / zweites Gleis (wie `track`) versetzt | Bahnsteig `pos`, `size` [5,1.1,24], `edge` 'right'\|'left', `roof`, `sign`, `lamps`; Parallelgleis `path`, `offset` 8 (rechts +), `dy`, Felder von `track` | `{ type: 'parallelgleis', path: [[-14,-3,-302],[-14,-3,-358]], offset: -5.5 }` |
+| `zirkuszelt` / `manege` / `zirkuspodest` | Arena-Hülle (Wand optional fest, Eingangslücke), Manegenring (fest), Trommel-Podest (fest) | Zelt `radius` 12.5, `height` 12, `walls`, `door` −π/2, `doorWidth` 4; Manege `radius` 4, `floor`, `solid`; Podest `radius` 1.2, `height` 0.9 | `{ type: 'zirkuszelt', pos: [0,0,-30] }` |
+| `seilbahn` | Gondel zwischen zwei Seilpunkten (Boden 2,2 m unter dem Seil), fährt mit Figur los, am Ziel erst aussteigen | `from`, `to`, `speed` 3, `wait` 1.5, `trigger` 'stand'\|'auto', `mode` 'pingpong'\|'once', `masts`, `id` → `{ u, state, floorY }` | `{ type: 'seilbahn', from: [4,-0.7,-338], to: [4,3.2,-352] }` |
+| `rosa_gras` / `bunter_stein` / `pastell_blume` / `hecken_hase` | Pastell-Blöcke (fest, `ice` möglich), Blumen (Kulisse, `sway`), Formschnitt-Hase (fest) | Blöcke `pos`, `size` [2,1,2]; Blume `yaw`, `sway`, `scale`; Hase `yaw`, `scale`, `solid` | `{ type: 'bunter_stein', pos: [-4,-3,-346], size: [2,1.5,2] }` |
+| `endlessblock` | Endlos-Münzblock (vorhanden, Sonder-Bausteine): Münzen, solange Treffer in `window` s folgen | `window` 1.2, `max` 40 | `{ kind: 'endlessblock', pos: [-2,-0.6,-355] }` |
+| `deco_w3` | Kulisse (verschmolzen) | `items: [{ kind, pos, … }]`, Arten `tanne, tannen, schneemann, felsen, schneehuegel, schneeflaeche, iglu, laterne, laternen, herbstbaum, herbstbaeume, korallen, kerze, spinnweben`; `shadow: false` (je Eintrag oder für die Liste) | `{ type: 'deco_w3', shadow: false, items: [{ kind: 'tannen', pos: [-24,-3,-60], size: [10,110], n: 14 }] }` |
+
+### Präzisierung (Bausteine Welt 3): Themen
+
+| Thema | Stimmung | Kulisse (`buildBackdrop`) |
+| --- | --- | --- |
+| `snow` | klarer Wintertag, tiefe warme Sonne, blaues Bodenlicht (weiche blaue Schatten), Schneedecken, eisblau-grauer Fels; sparsamer Schneefall | verschneite Hügel/Berge (1 Mesh), Schneefall (1 Punkte-Objekt) |
+| `skyway` | über den Wolken, tiefblauer Zenit, kräftige Sonne | Wolkenmeer mit Wolkenbergen tief unten (1 Mesh) |
+| `ghost` | innen dunkles Violett, Kerzenlicht, Licht an der Figur, Laternen; Stimmung `aussen` = Nacht mit Mondlicht | Mond mit Schein, Sterne, kahle Bäume und Grabsteine (3 Meshes) |
+| `plaza` | Pastell-Vormittag, rosa Gras, cremefarbene Erde | mintgrüne und fliederfarbene Hügel (1 Mesh) |
+| `fortress` | tiefroter, rauchiger Abend, Lavaschein, Fackel-Licht; grauer Stein, roter Backstein | Lavasee tief unten, ferne Burgtürme mit glühenden Fenstern (2 Meshes) |
+| `water` | tropische Lagune, helles Türkis, Sand; **Unterwasser-Stimmung** automatisch | Meer bis zum Horizont (spart den Level aus) mit Inseln (2 Meshes) |
+| `race` | sonniger Alpentag | Berge mit Schneekappen, Wimpelmasten entlang der Strecke (2 Meshes) |
+| `autumn` | goldener Herbstnachmittag, Herbstgras | rostrote Hügel, Wald in Orange/Rot/Gold, fallende Blätter (2 Meshes + 1 Punkte-Objekt) |
+| `train` | Schneeebene am späten Nachmittag, Pfirsich-Horizont | Ebene, verschneite Tannenwälder, ferne Berge, leichter Schneefall |
+
+`circus` (1-5) und `diorama` (1-Schatz) bleiben unverändert und gelten für 3-B bzw. 3-Kapitän. Die Winterwerkstatt lässt
+sich mit `?course=0-13&theme=<name>` in jedem Thema ansehen.
+
+### Präzisierung (Bausteine Welt 3): Welt 3 – Gimmick → Baustein
+
+| Level | Gimmick laut Bauplan | Bausteine |
+| --- | --- | --- |
+| 3-1 | Schneelandschaft, Eisbahn, schmale Eisstege, Baumhain | `eisflaeche`, `island`/`platform` mit `ice`, `schneeblock`/`eisblock`/`schneebloecke`, `eiszapfen`, `schneehaufen`, `tanne`, `iglu`, `deco_w3` (Tannen, Schneemänner, Felsen, Laternen); Schneebälle/Schlittschuh vom Motor |
+| 3-2 | Kettenzäune als Plattformen, Wände fahren, Bröckelblöcke, Goldringe, Kurbelrad hebt Plattform, Wolkenstrecke | `kettenplattform` (+ Motor `kettenzaun`), `mover`/`vehicle` (style fence), `broeckelblock`, `goldring`, `kurbelrad`, `cloud`, Thema `skyway` |
+| 3-3 | verschiebbare Treppen/Regale, Sofa-Lift, Gemälde mit Warp-Box → Drehraum, Kronleuchter, falscher Zielmast, Türen innen/außen | `spuk_treppe`, `buecherregal`, `spuk_sofa`, `bilderrahmen` + `warpbox`, `drehraum`, `kronleuchter`, `zielmast_spuk`, `spuk_tuer` (`mood`), `deco_w3` (Kerzen, Spinnweben), Thema `ghost` |
+| 3-4 | unsichtbarer Wolkenlift hinter dem Start, Endlos-Münzblock, Pastell-Garten | `wolkenlift`, `endlessblock`, `rosa_gras`, `bunter_stein`, `pastell_blume`, `hecken_hase`, Thema `plaza` |
+| 3-A | rot vergitterte Festung | Thema `fortress`, `arena_cage` (vorhanden) |
+| 3-5 | Röhren-Netz, steigender Wasserspiegel, Wrackbucht, Wandriss mit Kanone → goldene Röhre | `rohrnetz`, `rohrteile`, `lagune` + `wasserschalter` (bzw. Aktion `water` im Level-Haken), `koralle`, `seetang`, `blasen`, `schiffswrack`, `wandriss` + `goldroehre`, Thema `water` (Unterwasser) |
+| 3-6 | Boost-Pfeile/-Schrägen, Sprungfelder über 6–8 m Lücken, Pilztrampoline, Rutschhang, Sprungfeld zum Zielmast | `boost`, `boost_rampe`, `boost_tor`, `sprungfeld` (`to`), `pilztrampolin`, `bande`, `start_bogen`, `rutschhang`, `broeckelblock`, Thema `race` |
+| 3-7 | Schalttafeln auf Schienen, Schaltblock kehrt um, Weichen (Tafel kippen), Diagonalschiene | `schiene` (Netz, beliebige Polylinien), `schalttafel`, `schaltblock`, `deco_w3` (herbstbaeume), Thema `autumn` |
+| 3-Zug | Bahnsteig, Zugwaggons, Parallelzug | `vehicle` style `lok`/`wagen`/`flach`, `track`, `parallelgleis`, `bahnsteig`, Thema `train` |
+| 3-B | Zirkuszelt-Arena, Treppe und Seilbahn | `zirkuszelt`, `manege`, `zirkuspodest`, `seilbahn`, `stairs`, Thema `circus` |
+| 3-Kapitän | Wasserstand per Schalter, Holzsteg hebt sich, Glasröhren-Netz | `lagune` + `wasserschalter` + `holzsteg`, `rohrnetz`/`glasspipe` (Gabelungen), Thema `diorama` |
+
+### Präzisierung (Bausteine Welt 3): Tests und Kennzahlen
+
+KENNZAHLEN

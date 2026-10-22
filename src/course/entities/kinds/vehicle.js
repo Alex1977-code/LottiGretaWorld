@@ -9,7 +9,9 @@
 // Daten (LEVEL.segments als `type` oder items/enemies als `kind`):
 //   { kind: 'vehicle', id: 'wagen1',
 //     style: 'cart' (Plattformwagen, Standard) | 'tank' (Panzer) | 'wagon' (Güterwagen, begehbares Dach) |
-//            'flat' (Flachwagen) | 'fence' (Kettenzaun-Plattform, schwebt) | 'plain' (einfarbiger Quader),
+//            'flat' (Flachwagen) | 'fence' (Kettenzaun-Plattform, schwebt) | 'plain' (einfarbiger Quader) |
+//            Zug Welt 3 (Modell 'zug_waggon', Bausteine Welt 3): 'lok' (Lok: Kessel 3,2 m, Führerhaus-Dach 3,96 m
+//            begehbar), 'wagen' (Personenwagen, Bogendach 3,75 m begehbar), 'flach' (Flachwagen, Holzdeck 1,39 m),
 //     size: [w, h, d]    Breite, Deckhöhe (Oberkante über der Fahrebene), Länge – Standard je Stil
 //     at: 20             m entlang des Pfads (Mitte des Fahrzeugs) beim Fahrtbeginn
 //     offset: [dx, dy]   seitlich (+ = rechts in Fahrtrichtung) und Höhe relativ zur Pfadlinie
@@ -50,6 +52,10 @@ const STYLES = {
   flat: { size: [3.4, 1.0, 10], color: 0x3d8bff, accent: 0xffd23d },
   fence: { size: [4, 0.3, 4], color: 0xbfc1cc, accent: 0x6a6d7a },
   plain: { size: [3, 1, 3], color: 0xffd23d, accent: 0xb88a12 },
+  // Zug Welt 3 (Bausteine Welt 3): Modell 'zug_waggon' (kind lok|wagen|flach), size = [Breite, begehbare Oberkante, Länge]
+  lok: { size: [3, 3.96, 8.5], color: 0xd8283a, accent: 0xffc21a, model: 'zug_waggon', kind: 'lok' },
+  wagen: { size: [2.8, 3.75, 10], color: 0x2a4ad8, accent: 0xf6e6c0, model: 'zug_waggon', kind: 'wagen' },
+  flach: { size: [3, 1.39, 10], color: 0xb86f3a, accent: 0xffc21a, model: 'zug_waggon', kind: 'flach' },
 };
 
 class Vehicle extends CourseEntity {
@@ -114,9 +120,14 @@ class Vehicle extends CourseEntity {
   buildParts() {
     const { w, h, d } = this.size, sp = this.spec;
     const parts = [];
-    if (sp.deck !== false) {
+    if (sp.deck !== false && this.style === 'lok') {
+      // Lok (Fahrtrichtung lokal −z): Fahrgestell mit Laufblech, Kessel vorn (bis 3,2 m), Führerhaus hinten (Dach h)
+      parts.push({ min: [-w / 2, 0.45, -d / 2], max: [w / 2, 1.26, d / 2], tag: 'vehicle:deck' });
+      parts.push({ min: [-1.0, 1.26, -d / 2 + 0.25], max: [1.0, 3.2, 1.0], tag: 'vehicle:kessel' });
+      parts.push({ min: [-w / 2, 1.26, 1.1], max: [w / 2, h, Math.min(d / 2, 3.9)], tag: 'vehicle:fuehrerhaus' });
+    } else if (sp.deck !== false) {
       if (this.style === 'fence') parts.push({ min: [-w / 2, h - 0.3, -d / 2], max: [w / 2, h, d / 2], tag: 'vehicle:deck' });
-      else if (this.style === 'flat') parts.push({ min: [-w / 2, h - 0.45, -d / 2], max: [w / 2, h, d / 2], tag: 'vehicle:deck' });
+      else if (this.style === 'flat' || this.style === 'flach') parts.push({ min: [-w / 2, h - 0.45, -d / 2], max: [w / 2, h, d / 2], tag: 'vehicle:deck' });
       else parts.push({ min: [-w / 2, Math.min(0.45, h - 0.2), -d / 2], max: [w / 2, h, d / 2], tag: 'vehicle:deck' });
     }
     for (const p of sp.parts ?? []) {
@@ -256,11 +267,12 @@ class Vehicle extends CourseEntity {
     const root = new THREE.Group();
     // Modell aus der Registry (Blick nach +X → um 90° in die Fahrtrichtung gedreht): Panzer = panzer_fahrzeug (Welt 2)
     const sp = this.spec, { w, h, d } = this.size;
-    const name = sp.model === false ? null : (sp.model ?? (this.style === 'tank' ? 'panzer_fahrzeug' : null));
+    const st = STYLES[this.style];
+    const name = sp.model === false ? null : (sp.model ?? (this.style === 'tank' ? 'panzer_fahrzeug' : st.model ?? null));
     let ext = null;
     if (name && hasModel(name)) {
       const color = sp.color === 'oliv' ? 'oliv' : 'rot';
-      ext = getModel(name, { length: d, width: w, deck: h, color, ...(sp.modelOpts ?? {}) });
+      ext = getModel(name, { length: d, width: w, deck: h, color, ...(st.kind ? { kind: st.kind } : {}), ...(sp.modelOpts ?? {}) });
       const holder = new THREE.Group();
       holder.rotation.y = Math.PI / 2;
       holder.add(ext.root);
@@ -288,7 +300,11 @@ class Vehicle extends CourseEntity {
     if (!this.model) return;
     this.model.root.position.copy(this.pos);
     this.model.root.rotation.y = this.rot;
-    if (this.ext) this.model.update(dt, { speed: this.reverse ? -this.speedNow : this.speedNow });
+    if (this.ext) {
+      const v = this.reverse ? -this.speedNow : this.speedNow;
+      // Zug (Modell zug_waggon): Räder/Dampf nur in der Fahrt-Animation
+      this.model.update(dt, STYLES[this.style].kind ? { anim: Math.abs(v) > 0.05 ? 'drive' : 'idle', speed: Math.abs(v) } : { speed: v });
+    }
   }
 
   /** Geometrie-Teile (lokal, Ursprung Mitte unten) je Stil; withBody = false: nur Aufbauten (Modell vorhanden). */

@@ -75,5 +75,15 @@ import { SHADOW_THEME } from './theme_shadow.js'; THEMES.shadow ??= SHADOW_THEME
 import { PINKGRASS_THEME } from './theme_pinkgrass.js'; THEMES.pinkgrass ??= PINKGRASS_THEME;
 import { LAVA_THEME } from './theme_lava.js'; THEMES.lava ??= LAVA_THEME;
 import { HOUSE_THEME } from './theme_house.js'; THEMES.house ??= HOUSE_THEME;
+// Welt 3 (Bausteine Welt 3): nur eintragen, wenn das Thema nicht schon anders registriert ist
+import { SNOW_THEME } from './theme_snow.js'; THEMES.snow ??= SNOW_THEME;
+import { SKYWAY_THEME } from './theme_skyway.js'; THEMES.skyway ??= SKYWAY_THEME;
+import { GHOST_THEME } from './theme_ghost.js'; THEMES.ghost ??= GHOST_THEME;
+import { PLAZA_THEME } from './theme_plaza.js'; THEMES.plaza ??= PLAZA_THEME;
+import { FORTRESS_THEME } from './theme_fortress.js'; THEMES.fortress ??= FORTRESS_THEME;
+import { WATER_THEME } from './theme_water.js'; THEMES.water ??= WATER_THEME;
+import { RACE_THEME } from './theme_race.js'; THEMES.race ??= RACE_THEME;
+import { AUTUMN_THEME } from './theme_autumn.js'; THEMES.autumn ??= AUTUMN_THEME;
+import { TRAIN_THEME } from './theme_train.js'; THEMES.train ??= TRAIN_THEME;
 
 export function getTheme(name) { return THEMES[name] ?? THEMES.grass; }
