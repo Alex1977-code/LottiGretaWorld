@@ -88,7 +88,7 @@ export function shineLight(p, dt) {
 export const HELMETS = {
   kanone: {
     label: 'Kanonen-Helm',
-    icon: 0x5a6078,
+    icon: 0xe0383a,
     model: 'helm_kanone',
     onWear(p) { p.helmetFx = { t: 0.3, cool: 0, recoil: 0 }; },
     update(p, dt) {
@@ -108,7 +108,7 @@ export const HELMETS = {
   },
   propeller: {
     label: 'Propeller-Helm',
-    icon: 0xffc83a,
+    icon: 0x3a8bff,
     model: 'helm_propeller',
     onWear(p) { p.helmetFx = { used: false, flying: false, spin: 3 }; },
     update(p, dt, input) {
@@ -148,7 +148,7 @@ export const HELMETS = {
   },
   licht: {
     label: 'Licht-Helm',
-    icon: 0xfff2a0,
+    icon: 0xffd23d,
     model: 'helm_licht',
     onWear(p) { p.helmetFx = { on: true, lit: 0 }; },
     update(p, dt) { shineLight(p, dt); },

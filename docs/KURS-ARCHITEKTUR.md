@@ -1109,7 +1109,7 @@ Aktion `{ power: 'spiegel' }`. Modell `powerup_spiegel` (Rückfall: zwei glänze
 | Verloren | Liegt eine Figur > 13 m (in Kamerablickrichtung) hinter der vordersten, > 11 m seitlich vom Schwerpunkt oder > 9 m unter der höchsten stehenden Figur – jeweils 0,5 s lang –, geht sie mit „Poff“ verloren (Klone zuerst). |
 | Kamera | Folgt dem Schwerpunkt aller aktiven Figuren (senkrecht an der Haupt-Figur verankert), zoomt mit der Streuung weich heraus (ab 1,5 m, bis ×1,35 bei 10,5 m; `rig.info().group/spread`). Die Steuerungs-Gier kommt aus dem Schwerpunkt. |
 | HUD | Unter dem Leben-Panel eine rosa Leiste mit je einem Köpfchen pro Figur und „×N“, sobald es mehr als eine Figur gibt; darunter das Helm-Symbol der Haupt-Figur. |
-| Darstellung | Eigener `HeroRig` je Figur (gleiche Heldin); Klone mit `lite` (kein Sonnen-Schattenwurf, der Blob bleibt; Lotti-Zöpfe nur mit dem oberen Glied), wachsen beim Entstehen aus 12 % auf volle Größe und glitzern 0,9 s. |
+| Darstellung | Eigener `HeroRig` je Figur (gleiche Heldin); Klone mit `lite` (kein Sonnen-Schattenwurf, der Blob bleibt; Lotti-Zöpfe nur mit dem oberen Glied; ohne Augen-Glanzpunkte), wachsen beim Entstehen aus 12 % auf volle Größe und glitzern 0,9 s. |
 
 API (`level`): `players`, `player` (Getter = `players[0]`; Setzen macht die Figur zur Haupt-Figur), `nearestPlayer(pos)` (nächste
 lebende, steuerbare Figur; ohne Klone `level.player`), `focus(out)` (Schwerpunkt), `addClone(src)` → Figur | null,
@@ -1127,9 +1127,11 @@ brummer, krallen_pilzling, pilzlingsturm, rammbock_bulle, stampfstein, zauberkro
 `level.player` liest, sieht nur die Haupt-Figur (Feuerspur des Barons, Warp-Box, Zeitanzeige über der Figur, Archetypen).
 
 **Kosten (gemessen, scale 2, `tests/course_w2engine.mjs`):** Heldin als Haupt-Figur ≈ 34 Zeichenaufrufe inkl. Schattenpass
-(21 sichtbare Meshes, davon 14 mit Schattenwurf; der geschlossene Mund wird jetzt ausgeblendet). Ein Klon mit `lite` ≈ 16
-(kein Schattenwurf, Zöpfe nur oberes Glied). Klonwiese am Start: 1 Figur WERT1, 5 Figuren WERT5 Zeichenaufrufe (Ziel < 140);
-dichte Stellen (Viererlift-Turm mit 4 Figuren in der Luft) bis WERTMAX.
+(21 sichtbare Meshes, davon 14 mit Schattenwurf; der geschlossene Mund wird jetzt ausgeblendet). Ein Klon mit `lite` ≈ 15
+(kein Schattenwurf, Zöpfe nur oberes Glied, ohne Augen-Glanzpunkte). Klonwiese am Start: 1 Figur WERT1, 5 Figuren WERT5
+Zeichenaufrufe (Ziel < 140), je Klon ≈ 15;
+dichte Stellen (Viererlift-Turm mit 4 Figuren oben, weite Sicht) bis 161, 91–147 k Dreiecke. Vorher (ohne Sparmaßnahmen) kostete
+jede Figur ≈ 35 → 5 Figuren ≈ 175 + Level.
 
 ### Präzisierung (Motor Welt 2): Mehrfigur-Bausteine (Daten)
 
@@ -1139,10 +1141,12 @@ auch als Liste). Alle drei funktionieren auch mit einer Figur (need 1) und sind 
 
 | Art | Kern | Parameter | Beispiel |
 | --- | --- | --- | --- |
-| `pfeld` | Druckfeld: löst aus, wenn `need` Figuren gleichzeitig darauf stehen; Felder mit gleicher `group` müssen gleichzeitig belegt sein (je Feld `need`, Standard 1; `on` an einem Feld). Anzeige „1/2“ (Figuren bzw. belegte Felder), Feld sinkt ein und wird grün | `pos` (Mitte Unterseite), `size: [w, d]` (2 × 2), `need` (2), `group`, `on`, `once` (true; false = Halten mit `on`/`off`), `off`, `color`, `id`, `hidden` | `{ kind: 'pfeld', pos: [0,1,-20], need: 2, on: { reveal: 'weg1' } }` · Paar: `{ kind: 'pfeld', pos: [-3,1,-30], group: 'paar', on: { star: 1 } }` + `{ kind: 'pfeld', pos: [3,1,-30], group: 'paar' }` |
-| `multilift` | Lift fährt nur, solange ≥ `need` Figuren darauf stehen; Tafel „2/4“ vorn an der Plattform; zu wenige → hält, nach `wait` s zurück zum Start; oben wartet er, bis alle weg sind. Trägt mit (mover) | `pos` + `rise` (6) oder `path`, `size` ([3, 0.5, 3]), `need` (4), `speed` (2.5), `back` (true), `wait` (1.0), `color`, `id` → `named { count, need, s, length, state }` | `{ type: 'multilift', pos: [0,1,-60], rise: 7, need: 4 }` |
-| `figurenschalter` | Runder Schalter mit Porträt; nur die Heldin `hero` löst aus (draufstellen), die andere bekommt „Nur für Lotti!“ + Wackeln. Heldin wechseln: Pause-Menü „Figur“ (wirkt auf alle Figuren im Level) | `pos`, `hero: 'lotti' \| 'greta'`, `on`, `once` (true), `yaw` (Porträt), `id`, `hidden` | `{ kind: 'figurenschalter', pos: [6,1,-12], hero: 'greta', on: { reveal: 'stempelweg' } }` |
+| `pfeld` | Druckfeld: löst aus, wenn `need` Figuren gleichzeitig darauf stehen; Felder mit gleicher `group` müssen gleichzeitig belegt sein (je Feld `need`, Standard 1; `on` an einem Feld). Modell `pfeld` (rund, Ø = kleinere Seite von `size`, Oberseite 0,26 m, gedrückt 0,2 m; Ziffer `need`, Lämpchen `count`, ausgelöst gold) – Kollision dann ein Zylinder; Gruppen zeigen zusätzlich das Schild „1/2“ (belegte Felder). Rückfall: eckige Platte mit Schild „1/2“ | `pos` (Mitte Unterseite), `size: [w, d]` (2 × 2), `need` (2), `group`, `on`, `once` (true; false = Halten mit `on`/`off`), `off`, `color`, `id`, `hidden` | `{ kind: 'pfeld', pos: [0,1,-20], need: 2, on: { reveal: 'weg1' } }` · Paar: `{ kind: 'pfeld', pos: [-3,1,-30], group: 'paar', on: { star: 1 } }` + `{ kind: 'pfeld', pos: [3,1,-30], group: 'paar' }` |
+| `multilift` | Lift fährt nur, solange ≥ `need` Figuren darauf stehen; zu wenige → hält, nach `wait` s zurück zum Start; oben wartet er, bis alle weg sind. Trägt mit (mover). Modell `multilift` (Oberseite 0,4 m, Tafel mit Ziffer `need` und Lämpchen `count` hinten, `go` beim Fahren); Rückfall: Plattform mit Schild „2/4“ vorn | `pos` + `rise` (6) oder `path`, `size` ([3, 0.5, 3]), `need` (4), `speed` (2.5), `back` (true), `wait` (1.0), `color`, `id` → `named { count, need, s, length, state }` | `{ type: 'multilift', pos: [0,1,-60], rise: 7, need: 4 }` |
+| `figurenschalter` | Runder Schalter mit Porträt; nur die Heldin `hero` löst aus (draufstellen), die andere bekommt „Nur für Lotti!“ + Wackeln. Heldin wechseln: Pause-Menü „Figur“ (wirkt auf alle Figuren im Level). Modell `figurenschalter` 0,2 m in den Boden gesenkt (Knopf 0,26 m über `pos`, begehbar; gedrückt −0,11 m) | `pos`, `hero: 'lotti' \| 'greta'`, `on`, `once` (true), `yaw` (Porträt), `id`, `hidden` | `{ kind: 'figurenschalter', pos: [6,1,-12], hero: 'greta', on: { reveal: 'stempelweg' } }` |
 
+Ausrichtung: Die Registry-Modelle zeigen Ziffern/Porträts mit der Oberkante nach −X; der Motor dreht sie um −90°
+(Oberkante nach −Z), damit sie aus der Standardkamera aufrecht stehen (Tafel des Viererlifts hinten).
 Hilfen für eigene Bausteine (`entities/kinds/figuren.js`): `figuresOn(level, owner, filter?)` = Zahl der Figuren, die auf
 einer Form mit diesem `owner` stehen; `new Badge(level, { w, h, color })` → `show(text, color, sub?)`, `at(x, y, z)`, `hide()`
 (Text passt sich der Breite an).
@@ -1157,9 +1161,9 @@ Aktion-Reihenfolge (`player.doAction`): Getragenes werfen → Helm absetzen (Duc
 
 | Helm | Wirkung | Werte | Modell-Zustand |
 | --- | --- | --- | --- |
-| `kanone` | feuert automatisch alle 0,6 s und sofort mit Aktion (≥ 0,2 s Abstand) eine `kanonenkugel` in Blickrichtung aus Kopfhöhe | 11 m/s geradeaus ohne Schwerkraft, 1,6 s (≈ 17 m), ≤ 3 je Figur | `helm_kanone { fire: 0..1 }` (Rückstoß) |
-| `propeller` | Aktion → steiler Aufstieg (einmal je Bodenkontakt), danach mit gehaltener Aktion/Rennen (Shift, Y-Knopf) oder Sprung langsames Sinken, volle Luftsteuerung | Aufstieg ≈ 8 m (gemessen 7,9 m), Sinken ≤ 2,6 m/s | `helm_propeller { spin: rad/s }` |
-| `licht` | Lichtkegel nach vorn; jede Entität mit **`onLight(dt, player)`** im Kegel bekommt den Aufruf je Schritt (feste Wände schatten ab) | 7 m, ±30°, 12° abwärts | `helm_licht { on: true }`; HeroRig zeichnet den Kegel |
+| `kanone` | feuert automatisch alle 0,6 s und sofort mit Aktion (≥ 0,2 s Abstand) eine `kanonenkugel` in Blickrichtung aus Kopfhöhe | 11 m/s geradeaus ohne Schwerkraft, 1,6 s (≈ 17 m), ≤ 3 je Figur | `helm_kanone { anim: 'idle' \| 'fire', progress }` |
+| `propeller` | Aktion → steiler Aufstieg (einmal je Bodenkontakt), danach mit gehaltener Aktion/Rennen (Shift, Y-Knopf) oder Sprung langsames Sinken, volle Luftsteuerung | Aufstieg ≈ 8 m (gemessen 7,9 m), Sinken ≤ 2,6 m/s | `helm_propeller { anim: 'idle' \| 'fly' (Aufstieg) \| 'spin' (Sinken), spin }` |
+| `licht` | Lichtkegel nach vorn; jede Entität mit **`onLight(dt, player)`** im Kegel bekommt den Aufruf je Schritt (feste Wände schatten ab) | 7 m, ±30°, 12° abwärts | `helm_licht { on: true }`; HeroRig zeichnet zusätzlich den langen Kegel (7 m) |
 
 Figur: `player.helmet` (`'kanone' | 'propeller' | 'licht' | null`), `helmetDef`, `helmetFx` (Zustand des Helms), `helmetCooldown`,
 `wearHelmet(name)`, `dropHelmet('off' | 'hit' | 'gone', source?)`. Registry `player/helmets.js` (`HELMETS`, `getHelmet`,
@@ -1167,13 +1171,14 @@ Figur: `player.helmet` (`'kanone' | 'propeller' | 'licht' | null`), `helmetDef`,
 update(player, dt, input), onAction(player, input) → true, state(player)`. Darstellung: `HeroRig` hängt `helmetModel(name)`
 (Registry `helm_kanone|helm_propeller|helm_licht`, sonst Rückfall) an den Kopf des Avatars (`avatar.head`, 0,44 Einheiten über dem
 Halsgelenk, Maßstab 1,35 = Meter → Avatar-Einheiten × 0,9; ohne Kopf-Objekt an der Hülle in Kopfhöhe) – `src/three/avatars` bleibt
-unverändert. Modelle: Meter, Ursprung = Mitte der Unterseite, Blick nach +X, ≈ 0,5 m breit, ≈ 0,35 m hoch.
+unverändert. Modelle (`models/kinds/items_w2.js`): Meter, Ursprung = Mitte der Unterseite, Blick nach +X, Kasten ≈ 0,5 m.
 
 **Kanonenkugel** (`kanonenkugel`, `{ pos, dir: [dx, dz], owner, speed?, life? }`): trifft sie einen Gegner → `onHit('cannon', kugel)`
 (Standard-`Enemy`: wegfliegen; eigene Wirkung über `onHit('cannon')` oder `onCannon(kugel)`); trifft sie eine Wand: Formen mit
 **`breakable: 'cannon'`** → `owner.onHit('cannon', kugel, form)`; `breakable: true` (Holzkiste, Ziegel) → `onHit('cannon')` und, steht
-die Form danach noch, `onHit('shell')` (wirkt wie ein Panzer); danach zerplatzt sie. `Player.land` stampft `breakable: 'cannon'`
-(wie `'bomb'`) nicht durch. Modell `kanonenkugel` (Rückfall: dunkle Kugel).
+die Form danach noch, `onHit('shell')` (wirkt wie ein Panzer); jeder andere getroffene Formbesitzer mit `onHit` bekommt ebenfalls
+`onHit('cannon', kugel, form)` (Kristall-/Holz-Bausteine entscheiden selbst); danach zerplatzt sie. `Player.land` stampft
+`breakable: 'cannon'` (wie `'bomb'`) nicht durch. Modell `kanonenkugel` (Ø 0,5 m → auf Ø 0,44 m skaliert, `{ anim: 'fly', speed }`).
 
 **Holzwand** (`holzwand`, auch `type`): `{ pos, size: [w, h, d] ([3, 3, 0.5]), content?, face?: true (grimmiges Bärengesicht mit
 Zylinder – Bauplan „Endgegner-Gesicht“), id?, hidden? }` – Form mit `breakable: 'cannon'`; zerlegt von `cannon`, `bomb`, `mega`;
@@ -1190,8 +1195,8 @@ nach 0,9 s Licht auf; `light`, `lightCalls`). Modell `testgeist` bzw. `spuk` (st
 Aufheben mit Aktion (Tragen-System, `holdStyle: 'front'`), Aktion wirft sie (Ducken + Aktion: absetzen). Sie schnappt im Takt
 (0,5 s) nach vorn nach Gegnern und Münzen in Reichweite – getragen in Blickrichtung der Figur, abgestellt dreht sie sich zum Ziel:
 Gegner → `onHit('bite', pflanze)` (Standard-Gegner fliegen weg, zähe zählen Treffer), Münzen → eingesammelt. Geworfen trifft sie
-Gegner im Flug (`onHit('throw')`) und bleibt liegen. Der Figur tut sie nichts. Zähler `bites`. Modell `topfpflanze` (state
-`{ anim: 'idle' | 'snap', progress, carried }`), sonst `schnappblume` (`base: 'pot'`, ×0,72) mit goldenem Topfrand.
+Gegner im Flug (`onHit('throw')`) und bleibt liegen. Der Figur tut sie nichts. Zähler `bites`. Modell `topfpflanze` (×0,8;
+state `{ anim: 'idle' | 'snap' | 'carried', progress }`), sonst `schnappblume` (`base: 'pot'`, ×0,72) mit goldenem Topfrand.
 
 Neue `onHit`-Arten: **`cannon`** (Kanonenkugel), **`bite`** (Topfpflanze); `throw` wird jetzt genutzt (geworfene Topfpflanze).
 `Enemy.onHit` behandelt unbekannte Arten wie einen Treffer (wegfliegen) – Gegner mit Sonderregeln prüfen die Art selbst.
@@ -1206,14 +1211,16 @@ kein Salto/Weitsprung; Kopf unter der Oberfläche → `die('sand')` (Klone versc
 Sand mit (Treibsand-Absturz: über eine Kante ins Nichts). Gegner (`enemy`) und Entitäten mit `sinks: true` sinken ebenso ein und
 verschwinden (`markDefeated`, Beute an der Oberfläche). Kollision: Box mit `quicksand: { sink, slow, jump, flow }`, `oneWay`,
 `camIgnore` (Gegner betreten sie, Schatten-Blobs liegen darauf; die Figur ignoriert sie und wird von `Player.sandSupport` gehalten),
-darunter ein Boden mit `quicksandFloor` (nur für Gegner/Items). Beispiele: `{ type: 'quicksand', pos: [0,-0.2,-20], size: [6,1.2,4] }`,
+darunter ein Boden mit `quicksandFloor` (nur für Gegner/Items). Darstellung: stehendes Becken mit Modell `treibsand` (Wirbel,
+Sandwall ringsum, `swirl` rad/s), fließender Sand mit einer laufenden Körnungs-Textur. Beispiele: `{ type: 'quicksand', pos: [0,-0.2,-20], size: [6,1.2,4] }`,
 `{ type: 'quicksand', pos: [0,-0.2,-60], size: [4,1.2,10], flow: [0,-1.6] }`.
 
 **`sandblock`** (Entität und Baustein): `{ kind: 'sandblock', pos, size?: 1, delay?: 0.45, respawn?: 3, once?: false, id? }` – steht
 eine Figur darauf, rieselt er `delay` s und zerbröselt (Form weg), nach `respawn` s baut er sich wieder auf (nur, wenn nichts im
 Weg ist). Stampfen, Tatzenhieb, Kanonenkugel, Bombe, Riesentrank, Panzer zerbröseln ihn sofort; Signal `{ drop: id }`. Baustein
 für mehrere: `{ type: 'sandblock', blocks: [[x,y,z], …] }`, `{ type: 'sandblock', from, to }` (Reihe/Brücke), `{ type: 'sandblock',
-pos, grid: [nx, nz] | [nx, ny, nz] }`. Alle Sandblöcke eines Levels sind Instanzen (ein Zeichenaufruf je Pool-Teil).
+pos, grid: [nx, nz] | [nx, ny, nz] }`. Darstellung: `createInstanced('sandblock', 32)` (Zustände idle → shake → crumble → gone;
+je 32 Blöcke 2 Zeichenaufrufe), ohne Registry ein eigener Instanz-Pool.
 
 ### Präzisierung (Motor Welt 2): Tests
 

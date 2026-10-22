@@ -14,8 +14,9 @@
 // Avatar Posen (inkl. Saltos über `phase`) selbst; HeroRig setzt dann nur hull.
 //
 // Ergänzungen (Präzisierung Motor Welt 2):
-//  - new HeroRig(view, player, { lite }) – `lite` für Spiegelfrucht-Klone: kein Sonnen-Schattenwurf (der Blob bleibt)
-//    und vereinfachte Zöpfe (Lotti: je Zopf nur das obere Glied) → ≈ 15 statt ≈ 35 Zeichenaufrufe je Figur.
+//  - new HeroRig(view, player, { lite }) – `lite` für Spiegelfrucht-Klone: kein Sonnen-Schattenwurf (der Blob bleibt),
+//    vereinfachte Zöpfe (Lotti: je Zopf nur das obere Glied), ohne Augen-Glanzpunkte → ≈ 15 statt ≈ 34 Zeichenaufrufe.
+//    Für alle Figuren: der geschlossene (auf ~0 skalierte) Mund wird ausgeblendet (spart einen Aufruf).
 //    setLite(on) schaltet um (wird ein Klon zur Haupt-Figur, bekommt er die volle Darstellung).
 //  - player.hidden blendet die Figur aus (reist unsichtbar mit der Haupt-Figur durch eine Röhre).
 //  - Trage-Helm: player.helmet → Modell aus helmetModel() (Registry 'helm_…' oder Rückfall) als Kind am Kopf des
@@ -111,6 +112,7 @@ export class HeroRig {
       o.castShadow = this.lite ? false : o.userData.cs0;
     });
     for (const b of av.braids ?? []) b.links?.forEach((l, k) => { if (k > 0 && l) l.visible = !this.lite; });
+    if (av.eyeHl) av.eyeHl.visible = !this.lite;   // winzige Augen-Glanzpunkte (aus der Kurskamera kaum sichtbar)
     if (this.helmet) this.helmet.root.traverse((o) => { if (o.isMesh) { if (o.userData.cs0 === undefined) o.userData.cs0 = o.castShadow; o.castShadow = this.lite ? false : o.userData.cs0; } });
   }
 
