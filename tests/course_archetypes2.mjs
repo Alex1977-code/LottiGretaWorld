@@ -375,6 +375,25 @@ await SHOT('scroll_jump', () => {
   c.setInput({ y: 1, jump: true }); c.step(26); c.setInput({ y: 1 });
 });
 
+// --- Panzer (Stil tank, Modell panzer_fahrzeug aus Welt 2) auf eigenem Pfad neben dem Gleis, fährt mit dem Fenster
+r = await sc(() => {
+  const c = window.__course, w = c.level.scroll, p = c.player;
+  const t = c.level.spawn('vehicle', { id: 'panzer', style: 'tank', path: [[6.2, 0, 10], [6.2, 0, -200]], at: 10 - w.center.z - (w.s - w.s0), speed: 'scroll' });   // at gilt beim Fahrtbeginn
+  c.step(1);
+  const deck = c.world.raycastDown(t.pos.x, 6, t.pos.z, 10);
+  const z0 = t.pos.z, wz0 = w.center.z;
+  c.step(120);
+  __t.place([t.pos.x, 2.1, t.pos.z + 1.5], { settle: 30, invuln: 999 });
+  p.yaw = Math.PI / 2;
+  return {
+    model: t.ext ? (t.ext.placeholder ? 'platzhalter' : t.ext.root.name || 'panzer_fahrzeug') : null, deck: deck?.y ?? null,
+    dz: t.pos.z - z0, dw: w.center.z - wz0, ground: p.ground?.mover?.vehicle?.spec?.id ?? null, py: p.pos.y,
+  };
+});
+check(`Panzer: Modell panzer_fahrzeug (${r.model}), Deck begehbar bei y ${r.deck}`, !!r.model && r.model !== 'platzhalter' && near(r.deck, 2, 1e-6));
+check(`Panzer mit speed 'scroll' fährt genau mit dem Fenster (${r.dz.toFixed(3)} = ${r.dw.toFixed(3)}), trägt die Figur (${r.ground})`, near(r.dz, r.dw, 1e-6) && r.ground === 'panzer' && near(r.py, 2, 0.02));
+await SHOT('scroll_tank', () => { window.__course.step(30); });
+
 // ====================================================================== Prüfungs-Haus 0-5
 console.log('\nPrüfungs-Haus 0-5 „Prüfstube“');
 await load('0-5', { fresh: true });

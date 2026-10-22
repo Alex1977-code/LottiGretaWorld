@@ -21,7 +21,10 @@
 //     stop: m            Halt an dieser Pfadlänge (Mitte), mit `brake` (3 m/s²) weich abgebremst
 //     mode: 'once' | 'loop' | 'pingpong'   eigener Pfad: einmal bis zum Ende (Standard), Runde, hin und her
 //     reverse: false     Fahrzeug blickt entgegen der Fahrtrichtung
-//     color, accent      Farben (Name/Hex)
+//     color, accent      Farben (Name/Hex); Panzer mit Modell: color 'rot' (Standard) | 'oliv'
+//     model: Name        Modell aus der Registry (Blick nach +X, wird in die Fahrtrichtung gedreht; state { speed });
+//                        Standard beim Stil 'tank': 'panzer_fahrzeug' (Welt 2; length/width/deck aus size), false = eigene
+//                        Optik; modelOpts: zusätzliche Optionen fürs Modell
 //     deck: true         Grunddeck des Stils (false = nur parts)
 //     parts: [{ pos: [x, y, z], size: [w, h, d], color, climbable, oneWay, solid, kill, visible, tag }]
 //                        Aufbauten in Fahrzeug-Koordinaten (x rechts, y oben ab Fahrebene, z nach hinten +,
@@ -35,13 +38,14 @@ import * as THREE from 'three';
 import { CourseEntity } from '../CourseEntity.js';
 import { ScrollPath } from '../../archetypes/ScrollWindow.js';
 import { box, hex, lin, mixc, colorize, merge } from '../../blocks/kit.js';
+import { hasModel, getModel } from '../../models/index.js';
 
 const TAU = Math.PI * 2;
 const wrap = (a) => { a %= TAU; if (a > Math.PI) a -= TAU; else if (a < -Math.PI) a += TAU; return a; };
 
 const STYLES = {
   cart: { size: [4, 1.2, 9], color: 0xff5a3c, accent: 0xffd23d },
-  tank: { size: [5, 2.2, 10], color: 0x7a5cc8, accent: 0x3a3450 },
+  tank: { size: [4.4, 2.0, 10], color: 0xb01e2e, accent: 0x7a1220 },
   wagon: { size: [3.6, 3.2, 12], color: 0xd2483c, accent: 0x5a3a2a },
   flat: { size: [3.4, 1.0, 10], color: 0x3d8bff, accent: 0xffd23d },
   fence: { size: [4, 0.3, 4], color: 0xbfc1cc, accent: 0x6a6d7a },
@@ -249,29 +253,52 @@ class Vehicle extends CourseEntity {
   // ------------------------------------------------------------------ Darstellung
 
   buildModel() {
-    const g = merge(this.geometry());
-    const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.05 }));
-    mesh.castShadow = true; mesh.receiveShadow = true;
-    mesh.userData.owned = true;
     const root = new THREE.Group();
-    root.add(mesh);
-    this.setModel({ root, update: () => {}, dispose: () => { g.dispose(); mesh.material.dispose(); } });
+    // Modell aus der Registry (Blick nach +X → um 90° in die Fahrtrichtung gedreht): Panzer = panzer_fahrzeug (Welt 2)
+    const sp = this.spec, { w, h, d } = this.size;
+    const name = sp.model === false ? null : (sp.model ?? (this.style === 'tank' ? 'panzer_fahrzeug' : null));
+    let ext = null;
+    if (name && hasModel(name)) {
+      const color = sp.color === 'oliv' ? 'oliv' : 'rot';
+      ext = getModel(name, { length: d, width: w, deck: h, color, ...(sp.modelOpts ?? {}) });
+      const holder = new THREE.Group();
+      holder.rotation.y = Math.PI / 2;
+      holder.add(ext.root);
+      root.add(holder);
+    }
+    this.ext = ext;
+    const parts = this.geometry(!ext);
+    const g = parts.length ? merge(parts) : null;
+    let mesh = null;
+    if (g) {
+      mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.05 }));
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      mesh.userData.owned = true;
+      root.add(mesh);
+    }
+    this.setModel({
+      root,
+      update: (dt, st) => ext?.update?.(dt, st),
+      dispose: () => { g?.dispose(); mesh?.material.dispose(); ext?.dispose?.(); },
+    });
   }
 
-  render() {
+  /** Darstellung: Lage/Drehung, Modell-Zustand { speed } (Ketten, Räder, Rauch). */
+  render(dt) {
     if (!this.model) return;
     this.model.root.position.copy(this.pos);
     this.model.root.rotation.y = this.rot;
+    if (this.ext) this.model.update(dt, { speed: this.reverse ? -this.speedNow : this.speedNow });
   }
 
-  /** Geometrie-Teile (lokal, Ursprung Mitte unten) je Stil. */
-  geometry() {
+  /** Geometrie-Teile (lokal, Ursprung Mitte unten) je Stil; withBody = false: nur Aufbauten (Modell vorhanden). */
+  geometry(withBody = true) {
     const { w, h, d } = this.size;
     const col = this.color, acc = this.accent;
     const G = [];
     const B = (bw, bh, bd, x, y, z, c, o = {}) => G.push(box(bw, bh, bd, x, y + bh / 2, z, c, { r: o.r ?? 0.08, seg: o.seg ?? 1, topColor: o.top }));
     const wheels = (r, xs, zs, c = 0x2f2c38, hub = 0xd8d8e0) => { for (const x of xs) for (const z of zs) G.push(wheel(r, 0.3, x, r, z, c, hub)); };
-    if (this.spec.deck !== false) {
+    if (this.spec.deck !== false && withBody) {
       switch (this.style) {
         case 'tank': {
           // Ketten links/rechts, Wanne, Deck mit Nietenreihe, Bug-Schräge (nur Optik)
