@@ -9,7 +9,7 @@
 // runtime.respawn) anlegen, ohne Motor-Dateien zu ändern. Die Laterne bleibt als Zier stehen (Platz bewusst wählen).
 
 import * as THREE from 'three';
-import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject } from '../../blocks/kit.js';
+import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, islandParts, themeOf } from '../../blocks/kit.js';
 
 // ------------------------------------------------------------------ Daten-Helfer
 
@@ -17,6 +17,22 @@ import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject } fr
 export function isl(x0, x1, zA, zB, top, h = 4, o = {}) {
   const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
   return { type: 'island', pos: [(x0 + x1) / 2, top - h, (z0 + z1) / 2], size: [x1 - x0, h, z0 - z1], ...o };
+}
+
+/**
+ * Inseln wie der Baustein `island` (Kollision: Quader), aber ohne Sonnenschatten-Wurf: specs im Format von isl().
+ * Spart im Schattenpass viele Dreiecke (große Verschmelz-Abschnitte liegen sonst oft im Schattenkegel); die
+ * Oberseiten empfangen weiter Schatten von Figuren, Bäumen und Hecken.
+ */
+export function flatIslands(level, specs) {
+  const th = themeOf(level);
+  for (const spec of specs) {
+    const [px, py, pz] = spec.pos, [w, h, d] = spec.size;
+    const x0 = px - w / 2, x1 = px + w / 2, z0 = pz - d / 2, z1 = pz + d / 2, y0 = py, y1 = py + h;
+    level.world.add({ type: 'box', min: [x0, y0, z0], max: [x1, y1, z1], tag: 'island' });
+    if (!level.view) continue;
+    for (const g of islandParts(x0, y0, z0, x1, y1, z1, th, { top: spec.top, under: spec.under ?? 2.5, bodyColor: spec.color, rnd: level.rnd })) addStatic(level, g, { castShadow: false });
+  }
 }
 
 /** Münzen in einer Reihe. */
@@ -103,7 +119,7 @@ export function blossomTree(level, parts, x, y, z, size = 4, seed = 0, o = {}) {
   const crownFn = (p, n, out) => mixc(pal[2], mixc(pal[1], pal[0], smooth(0.1, 0.9, n.y), out), smooth(-0.7, 0.2, n.y), out);
   const blobs = [[0, 0.35, 0, 1.0], [-0.8, 0.02, 0.32, 0.72], [0.75, 0.08, -0.25, 0.74], [0.12, 0.0, 0.78, 0.64], [0.05, 0.05, -0.78, 0.64], [-0.32, 0.82, -0.2, 0.62], [0.42, 0.76, 0.3, 0.56]];
   for (const [bx, by, bz, r] of blobs) {
-    const g = new THREE.SphereGeometry(r * S, 9, 6).toNonIndexed();
+    const g = new THREE.SphereGeometry(r * S, 7, 5).toNonIndexed();
     g.translate(x + bx * S, cy + by * S, z + bz * S);
     parts.push(colorize(g, crownFn));
   }
@@ -977,4 +993,88 @@ export function houseFinish(level, shared, clocks) {
     });
     hands.instanceMatrix.needsUpdate = true;
   });
+}
+
+// ------------------------------------------------------------------ Rosenhecken
+
+const ROSE_COLS = [0xff4a6a, 0xff8fb0, 0xffffff, 0xffc0d8, 0xd8306a];
+
+/**
+ * Rosenhecken: list = [[x0, x1, zA, zB, y, h], …] (Grundfläche, Fuß y, Höhe h). Kollision: Quader. Darstellung:
+ * Heckenkörper (Grün mit hellen Spitzen), Laubbuckel entlang der Oberkante, Rosen auf Oberseite und Flanken (ohne
+ * Schattenwurf). Je Hecke eine Geometrie (Culling je Abschnitt).
+ */
+export function hedges(level, list, o = {}) {
+  const leafA = L(0x3f9a4f), leafB = L(0x5cbf5a), leafD = L(0x2a7a3a);
+  for (const [xa, xb, zA, zB, y, h] of list) {
+    const x0 = Math.min(xa, xb), x1 = Math.max(xa, xb), z0 = Math.min(zA, zB), z1 = Math.max(zA, zB);
+    level.world.add({ type: 'box', min: [x0, y, z0], max: [x1, y + h, z1], camIgnore: !!o.camIgnore, tag: 'hecke' });
+    if (!level.view) continue;
+    const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    const parts = [];
+    const body = box(w, h - 0.15, d, cx, y + (h - 0.15) / 2, cz, 0x3f9a4f, { r: 0.18, topColor: 0x5cbf5a });
+    parts.push(body);
+    // Laubbuckel auf der Oberkante
+    const along = w > d ? 'x' : 'z', len = Math.max(w, d), n = Math.max(2, Math.round(len / 0.9));
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n;
+      const px = along === 'x' ? x0 + t * w : cx + (hash2(i, x0) - 0.5) * w * 0.3;
+      const pz = along === 'z' ? z0 + t * d : cz + (hash2(i, z0) - 0.5) * d * 0.3;
+      const r = Math.min(w, d) * 0.42 + hash2(i, 7) * 0.12;
+      parts.push(sphere(r, px, y + h - 0.2, pz, 0x4fb04f, { sy: 0.55, ws: 7, hs: 4, fn: (p, nn, out) => mixc(leafD, mixc(leafA, leafB, smooth(-0.2, 0.9, nn.y), out), smooth(-0.6, 0.1, nn.y), out) }));
+    }
+    addStatic(level, merge(parts), { castShadow: true });
+    // Rosen: Oberseite und beide Längsflanken
+    const roses = [];
+    const nr = Math.round(len * (o.density ?? 1.6));
+    for (let i = 0; i < nr; i++) {
+      const t = hash2(i, len * 3.1 + x0), side = i % 3;   // 0 oben, 1/2 Flanken
+      const c = ROSE_COLS[Math.floor(hash2(i, 9.3 + z0) * ROSE_COLS.length)];
+      let px, py, pz;
+      if (along === 'x') { px = x0 + t * w; pz = side === 0 ? cz + (hash2(i, 2) - 0.5) * d * 0.6 : side === 1 ? z1 + 0.05 : z0 - 0.05; }
+      else { pz = z0 + t * d; px = side === 0 ? cx + (hash2(i, 2) - 0.5) * w * 0.6 : side === 1 ? x1 + 0.05 : x0 - 0.05; }
+      py = side === 0 ? y + h + 0.02 : y + 0.5 + hash2(i, 4) * (h - 0.9);
+      roses.push(sphere(0.09 + hash2(i, 5) * 0.04, px, py, pz, c, { ws: 5, hs: 4 }));
+    }
+    if (roses.length) addStatic(level, merge(roses), { castShadow: false });
+  }
+}
+
+// ------------------------------------------------------------------ Zierteich (nur Optik, begehbar wie Wiese)
+
+/**
+ * Kleiner Zierteich als flache Wasserscheibe knapp über der Wiese (keine Kollision – die Figur läuft darüber wie über
+ * eine Pfütze), Kieselrand, Seerosenblätter mit Blüten, Schilf. list = [[x, y, z, rx, rz], …].
+ */
+export function ponds(level, list) {
+  if (!level.view) return;
+  const deep = L(0x2f8ae0), shallow = L(0x7ad0ff);
+  for (const [x, y, z, rx, rz] of list) {
+    const parts = [];
+    const g = new THREE.CircleGeometry(1, 28);
+    g.rotateX(-Math.PI / 2);
+    g.scale(rx, 1, rz);
+    g.translate(x, y + 0.025, z);
+    parts.push(colorize(g, (p, n, out) => mixc(deep, shallow, smooth(0.2, 1, Math.hypot((p.x - x) / rx, (p.z - z) / rz)), out)));
+    const nS = Math.round((rx + rz) * 4.2);
+    for (let i = 0; i < nS; i++) {
+      const a = (i / nS) * Math.PI * 2 + hash2(i, x) * 0.1, s = 0.16 + hash2(i, z) * 0.12;
+      const st = new THREE.DodecahedronGeometry(s, 0);
+      st.scale(1.3, 0.55, 1);
+      st.translate(x + Math.cos(a) * (rx + 0.08), y + s * 0.2, z + Math.sin(a) * (rz + 0.08));
+      parts.push(colorize(st, litFn(hash2(i, 3) < 0.5 ? 0xe8dce4 : 0xc8bcc8)));
+    }
+    for (let i = 0; i < 4; i++) {
+      const a = hash2(i, 11 + x) * Math.PI * 2, r = 0.35 + hash2(i, 12) * 0.4;
+      const px = x + Math.cos(a) * rx * r, pz = z + Math.sin(a) * rz * r, s = 0.22 + hash2(i, 13) * 0.12;
+      const pad = new THREE.CircleGeometry(s, 9, 0.5, Math.PI * 2 - 0.5);
+      pad.rotateX(-Math.PI / 2);
+      pad.rotateY(hash2(i, 14) * 6);
+      pad.translate(px, y + 0.04, pz);
+      parts.push(colorize(pad, (p, n, out) => { const c = L(0x4fb84a); out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+      if (i % 2 === 0) parts.push(sphere(0.07, px + 0.05, y + 0.09, pz, i ? 0xffffff : 0xff8fc8, { ws: 6, hs: 4, sy: 0.6 }));
+    }
+    addStatic(level, merge(parts), { castShadow: false });
+
+  }
 }

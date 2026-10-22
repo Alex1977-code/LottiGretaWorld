@@ -18,7 +18,7 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 // ------------------------------------------------------------------ Routen 2-5
 const R25 = {
   start: [0, 1, 5],
-  enemies: { marschblock: 18, rollpilz: 2, feuer_werfer: 1 },
+  enemies: { marschblock: 14, rollpilz: 2, feuer_werfer: 1 },
   main: [
     { name: 'Spiegelfrucht', to: [0, -5.6] },
     { name: 'Blütenweg', to: [1.5, -19] },
@@ -69,7 +69,7 @@ const R25 = {
   ],
   extra: [
     { name: 'Nischen-Druckfeld (zwei Figuren) → Münzen und 1-Up', from: [-1, 2.2, -66], clones: 1, yaw: Math.PI,
-      legs: [{ to: [-6.1, -66], within: 0.4, run: false, slow: 0.6, dirTo: true }, { wait: 60 }], expect: 'pf_nische' },
+      legs: [{ to: [-7.2, -66], within: 0.4, run: false, slow: 0.6 }, { wait: 60 }], expect: 'pf_nische' },
     { name: 'Druckfeld am Tor allein: Tor bleibt zu', from: [0, 2.2, -74],
       legs: [{ to: [0, -78.6], within: 0.2, run: false }, { wait: 240 }], expectNot: 'pf_tor' },
     { name: 'Spiegelfrucht-Strauch wächst nach', from: [6.2, 2.2, -46.6], legs: [{ to: [6.2, -48.6], run: false }, { to: [6.2, -45] }, { wait: 420 }], expectBush: 'strauch_tunnel' },
@@ -383,6 +383,7 @@ async function shot(name, wait = 600) {
   await sc(() => window.__course.snapCamera());
   const f0 = await sc(() => window.__course.view.frame);
   await page.waitForFunction((f) => window.__course.view.frame >= f + 3, f0, { timeout: 60000 });
+  if (wait > 1000) { const f1 = await sc(() => window.__course.view.frame); await page.waitForFunction((f) => window.__course.view.frame >= f + 4, f1, { timeout: 60000 }); }
   await page.waitForTimeout(wait);
   const s = await sc(() => window.__course.stats());
   const figs = await sc(() => window.__course.level.players.length);
@@ -478,10 +479,16 @@ async function level25() {
     await shot(`${id}_${name}`);
   }
   // Kennzahlen mit vier und fünf Figuren (Viererlift-Turm, dichteste Stelle)
+  // Klone wachsen in 0,9 s auf volle Größe und laden ihre Darstellung nach: länger warten
   await W('place', [10, 3, -214], { settle: 10, clones: 3 });
-  await shot(`${id}_vier_figuren`);
+  await sc(() => window.__course.step(150));
+  await shot(`${id}_vier_figuren`, 2500);
   await W('place', [0, 6.2, -124], { settle: 10, clones: 4 });
-  await shot(`${id}_fuenf_figuren`);
+  await sc(() => window.__course.step(150));
+  await shot(`${id}_fuenf_figuren`, 2500);
+  await W('place', [0, 6.2, -158], { settle: 10, clones: 4 });
+  await sc(() => window.__course.step(150));
+  await shot(`${id}_fuenf_gasse`, 2500);
 }
 
 // ====================================================================== 2-A
