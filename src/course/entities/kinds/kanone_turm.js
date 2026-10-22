@@ -15,7 +15,7 @@
 // Zustände: idle → charge → fire → idle …; broken. Laufzeit: shots (abgefeuert), heads (lebende), aim, setActive(b).
 // Modell 'kanone_turm' (opts { height, sides }, state { anim: idle|charge|fire, aim, progress }).
 
-import { EnemyW2, localOffset, toWorld, wrapAngle, figures, activeFigure } from '../EnemyW2.js';
+import { EnemyW2, localOffset, toWorld, wrapAngle, activeFigure } from '../EnemyW2.js';
 import { getModel } from '../../models/index.js';
 
 const FIRE = 0.6;

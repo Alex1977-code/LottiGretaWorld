@@ -6,7 +6,7 @@
 //   - Lava und Absturz besiegen (markDefeated → level.onEnemyDefeated zählt, z. B. Arena 2-A: Großrollpilze in
 //     die Lava stoßen), statt nur zu verschwinden.
 //   - Starke Treffer: STRONG = cannon (Kanonen-Helm-Kugel), bomb, mega, star.
-//   - Rutschen: rutscht eine Figur schnell (state 'slide', ≥ 3,5 m/s) seitlich in einen Welt-2-Gegner, ist das ein
+//   - Rutschen: rutscht eine Figur schnell (state 'slide', ≥ 2 m/s) seitlich in einen Welt-2-Gegner, ist das ein
 //     Angriff: onHit('slide', figur) statt Treffer der Figur (Standard: der Gegner fliegt weg). Unverwundbare
 //     (Wuschel), Stachel-/Feuerköpfe auf Kopfhöhe und Fallen überschreiben das.
 //   - Hilfen: figures(level), nearestFigure(level, pos), playerJumped(p), localOffset() (Abwurfpunkte aus den
@@ -159,7 +159,7 @@ export class EnemyW2 extends Enemy {
   /** Figur rutscht schnell seitlich hinein → Angriff (true = erledigt, Rückgabe 'none'). */
   slideAttack(player, contact) {
     if (this.defeated || contact.fromAbove || contact.pound) return false;
-    if (player.state !== 'slide' || player.hSpeed() < 3.5) return false;
+    if (player.state !== 'slide' || player.hSpeed() < 2) return false;
     this.onHit('slide', player);
     return true;
   }

@@ -4,8 +4,8 @@
 //   zerplatzt an Wänden/Boden oder nach life s. Draufspringen: Abprall (hoch mit gehaltener Sprungtaste – Sprungbrett
 //   über Lücken), der Kopf kippt mit der Nase nach unten und stürzt ab (besiegt). Mit ride: true trägt er eine
 //   Einweg-Oberseite: man landet auf ihm, reitet mit und springt von ihm ab; erst die Stampfattacke wirft ihn ab.
-//   Seitlich/vorn = Treffer. Krallen, Panzer, Wurf, Explosion, Kanonenkugel, Riesentrank, Funkelstern besiegen ihn;
-//   Feuerbälle und Stampfwellen prallen ab.
+//   Seitlich/vorn = Treffer. Krallen, Panzer, Wurf, Biss (Topfpflanze), Explosion, Kanonenkugel, Riesentrank,
+//   Funkelstern besiegen ihn; Feuerbälle, Stampfwellen und POW prallen ab.
 // suchkopf: wie projektilkopf (ohne ride), lenkt aber seek s lang zur nächsten Figur (turn rad/s, auch in der Höhe),
 //   danach geht ihm der Antrieb aus: er stürzt ab und zerplatzt am Boden.
 //
@@ -16,7 +16,7 @@
 // Zustände: fly (die ersten 0,4 s Startflamme) → fall (abgestürzt/besiegt) | burst. Laufzeit: age.
 // Modelle 'projektilkopf' / 'suchkopf' (state { anim: fly|launch|fall|seek }).
 
-import { EnemyW2, STRONG, wrapAngle, figures, activeFigure } from '../EnemyW2.js';
+import { EnemyW2, wrapAngle, activeFigure } from '../EnemyW2.js';
 import { getModel } from '../../models/index.js';
 
 const CY = 0.33;
@@ -148,7 +148,7 @@ class Projektil extends EnemyW2 {
     if (this.defeated || this.state === 'fall') return;
     if (kind === 'fire' || kind === 'pound' || kind === 'bump') return;
     this.level.effects?.sparks(this.center(), 8);
-    if (STRONG.has(kind) || kind === 'claw' || kind === 'shell' || kind === 'throw') this.startFall(true);
+    this.startFall(true);
   }
 
   modelState() {

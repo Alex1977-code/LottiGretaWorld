@@ -6,8 +6,8 @@
 // 0,5 s), danach cool s Pause. Mit mode 'timed' stößt er stattdessen im Takt (period s, phase 0..1).
 // Kollision: bewegter Quader (mover) – man kann auf ihm stehen und wird mitgenommen (auch Gegner). Er schiebt
 // Figuren vor sich her; wer dabei gegen eine Wand (feste Form) gedrückt wird, ist eingeklemmt = Treffer (er fährt
-// dann sofort zurück). Unzerstörbar (nur Riesentrank/Funkelstern zertrümmern ihn). Kein Gegner (enemy false): zählt
-// nicht für Arenen und Aufgaben.
+// dann sofort zurück). Unzerstörbar – nur der Riesentrank zertrümmert ihn (Form mit mega). Kein Gegner (enemy
+// false): zählt nicht für Arenen und Aufgaben, Funkelstern und Kanonenkugel wirken nicht.
 //
 // Daten: { kind: 'lauerblock', pos: [x, y, z] (Mitte der Unterkante der Vorderseite = Wandfläche),
 //          yaw?|dir? (Stoßrichtung; Standard zur Kamera +Z), reach?: 2 m, size?: 1 m (Würfel), hold?: 0.7 s,

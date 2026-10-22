@@ -39,8 +39,10 @@ async function load(id) {
         const p = P();
         c.setInput(null);
         c.setInput({});
+        c.squad?.clear?.();
         p.setHero(o.hero ?? 'lotti');
         p.dead = false;
+        p.removedFigure = null; p.hidden = false;
         p.holding = null;
         p.big = o.big ?? true;
         p.power = o.power ?? 'none';
@@ -380,8 +382,8 @@ check('Marschblock: seitlich = Treffer', mb.side);
 const sl = await sc(() => {
   const c = window.__course, t = window.__t, p = c.player, L = c.level;
   const out = {};
-  const m = L.spawn('huepfmaus', { pos: [0, 1, t.Z(3, 6)], wake: 1e9, speed: 0, hopEvery: 99 });
-  const r = L.spawn('rollpilz', { pos: [1.5, 1, t.Z(3, 6)], wake: 1e9, speed: 0 });
+  const m = L.spawn('huepfmaus', { pos: [0, 1, t.Z(3, 4)], wake: 1e9, speed: 0, hopEvery: 99 });
+  const r = L.spawn('rollpilz', { pos: [1.5, 1, t.Z(3, 4)], wake: 1e9, speed: 0 });
   t.place([0, 1, t.Z(3, -2)], { settle: 2 });
   let slid = false, crouch = false;
   for (let i = 0; i < 200 && !m.defeated; i++) { crouch = crouch || p.hSpeed() > 8.5; c.setInput({ y: 1, run: true, crouch }); c.step(1); if (p.state === 'slide') slid = true; }
@@ -671,6 +673,71 @@ check(`Münzmarder entkommt am Bahnende (verschwindet, ${mm.escape.t} s)`, mm.es
 check('Keine Konsolenfehler (Gegnerzoo)', errors.length === 0);
 if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
 
+// ================================================================ Klone (Spiegelfrucht): Gegner zielen auf die nächste Figur
+await load('0-6');
+const cl = await sc(() => {
+  const c = window.__course, t = window.__t, L = c.level;
+  const out = { api: typeof L.nearestPlayer === 'function' && !!c.squad && typeof L.addClone === 'function' };
+  if (!out.api) return out;
+  const clone = (pos) => { const f = L.addClone(c.player); if (f) { f.reset(pos, Math.PI / 2); f.invuln = 0; } return f; };
+  // Kanone: nur der Klon ist in Reichweite → sie feuert
+  const k1 = t.ent('kt1');
+  t.place([10, 1, -100], { settle: 1 });
+  let f = clone([-6, 1, t.Z(6, 3)]);
+  c.step(2);
+  out.kanone = { target: k1.aimTarget() === f, nearest: L.nearestPlayer(k1.pos) === f };
+  for (let i = 0; i < 300 && k1.shots === 0; i++) c.step(1);
+  out.kanone.shots = k1.shots;
+  out.kanone.figs = L.players.length;
+  k1.setActive(false);
+  for (const e of L.entities) if (e.kind === 'projektilkopf' || e.kind === 'suchkopf') e.kill();
+  // Hammer-Werfer wirft auf den Klon (die Haupt-Figur ist außer Sicht)
+  const h = t.ent('wf_hammer');
+  t.place([-6, 1, -88], { settle: 1 });
+  for (const e of L.entities) if (e.kind === 'wurf_hammer') e.kill();
+  c.step(1);
+  h.throwCool = 0.5;
+  f = clone([9, 1, -89]);
+  let ham = null;
+  for (let i = 0; i < 600 && !ham; i++) { c.step(1); ham = L.entities.find((e) => e.kind === 'wurf_hammer'); }
+  if (ham) {
+    const dx = f.pos.x - h.pos.x, dz = f.pos.z - h.pos.z, d = Math.hypot(dx, dz), v = Math.hypot(ham.vel.x, ham.vel.z);
+    out.hammer = { toClone: +((ham.vel.x * dx + ham.vel.z * dz) / (d * v)).toFixed(2) };
+  } else out.hammer = { toClone: 0 };
+  // Hüpfmaus springt mit dem Klon ab
+  const m = t.ent('hm2');
+  t.place([2, 1, -50], { settle: 1 });
+  f = clone([m.pos.x + 2, 1, m.pos.z + 2]);
+  c.step(30);
+  for (let i = 0; i < 200 && !(m.state === 'walk' && m.grounded); i++) c.step(1);
+  const j0 = m.jumps;
+  c.setInput({ jump: true }); c.step(1); c.setInput({});
+  out.maus = { jumps: m.jumps - j0, mainFar: Math.hypot(c.player.pos.x - m.pos.x, c.player.pos.z - m.pos.z) > m.sight };
+  c.step(60);
+  // Wuschel trifft den Klon → nur der Klon verschwindet
+  const w = t.ent('wu_pendel');
+  t.place([0, 1, t.Z(2, 2.5)], { settle: 1 });
+  f = clone([11, 1, t.Z(2, 2.5)]);
+  const n0 = L.players.length;
+  for (let i = 0; i < 600 && L.players.length === n0; i++) c.step(1);
+  out.wuschel = { before: n0, after: L.players.length, cloneGone: !L.players.includes(f), mainOk: c.player.big && !c.player.dead && c.player.invuln <= 0 };
+  // Münzmarder: der Klon holt ihn ein
+  const mm = t.ent('marder');
+  t.place([0, 1, t.Z(7, -1)], { settle: 1 });
+  f = clone([mm.pos.x, mm.pos.y + 0.1, mm.pos.z]);
+  c.step(3);
+  out.marder = { hits: mm.hits, rained: mm.rained };
+  return out;
+});
+console.log(`  Klone: ${JSON.stringify(cl)}`);
+check('Klone: Motor mit level.players/nearestPlayer/addClone vorhanden', cl.api);
+check('Klone: Kanone zielt auf die nächste Figur (nur Klon in Reichweite) und feuert', cl.kanone?.target && cl.kanone?.nearest && cl.kanone?.shots >= 1);
+check(`Klone: Hammer-Werfer wirft auf den Klon (Richtung ${cl.hammer?.toClone})`, cl.hammer?.toClone > 0.9);
+check('Klone: Hüpfmaus springt mit dem Klon ab (Haupt-Figur außer Sicht)', cl.maus?.jumps === 1 && cl.maus?.mainFar);
+check('Klone: Wuschel trifft den Klon – nur er verschwindet, die Haupt-Figur bleibt heil', cl.wuschel?.after === cl.wuschel?.before - 1 && cl.wuschel?.cloneGone && cl.wuschel?.mainOk);
+check('Klone: Münzmarder vom Klon eingeholt → Münzregen', cl.marder?.hits === 1 && cl.marder?.rained >= 8);
+check('Keine Konsolenfehler (Klone)', errors.length === 0);
+
 // ================================================================ Kennzahlen und Screenshots (frisches Level)
 await load('0-6');
 /** Aufbau, Kamera nachführen, auf neue Bilder warten, Screenshot. Figur unverwundbar ohne Blinken. */
@@ -909,6 +976,29 @@ const fin = await sc(() => {
 });
 console.log(`  Ziel: ${JSON.stringify(fin)}`);
 check('Warp-Box führt zum Zielplateau, Zielmast beendet das Level', !!fin.arrived && fin.finished);
+
+// Boss verfolgt die nächste Figur (Klon)
+await load('0-7');
+const bc = await sc(() => {
+  const c = window.__course, t = window.__t, L = c.level;
+  const b = L.named.get('wirbel');
+  if (typeof L.addClone !== 'function') return { api: false };
+  t.place([0, 2, 8.5], { settle: 2 });
+  for (let i = 0; i < 240 && !c.arch.started; i++) { c.setInput({ y: 0.6 }); c.step(1); }
+  c.setInput({});
+  for (let i = 0; i < 600 && b.state !== 'run'; i++) c.step(1);
+  c.player.hurt = () => false;
+  c.player.reset([-6, 2, 4], Math.PI / 2);
+  const f = L.addClone(c.player);
+  f.reset([6, 2, -2], Math.PI / 2);
+  f.hurt = () => false;
+  const d0 = Math.hypot(b.pos.x - f.pos.x, b.pos.z - f.pos.z);
+  c.step(60);
+  const d1 = Math.hypot(b.pos.x - f.pos.x, b.pos.z - f.pos.z);
+  return { api: true, d0: +d0.toFixed(2), d1: +d1.toFixed(2), target: b.player === f };
+});
+console.log(`  Boss mit Klon: ${JSON.stringify(bc)}`);
+check('Wirbelbrocken läuft auf die nächste Figur (Klon) zu', bc.api && bc.target && bc.d1 < bc.d0 - 1.5);
 
 // Tod im Kampf setzt den Kampf zurück
 await load('0-7');
