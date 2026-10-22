@@ -16,6 +16,7 @@
 //   snapCamera(), stats() (Zeichenaufrufe/Dreiecke des letzten Bildes), setHero('lotti'|'greta')
 //   squad          Figurengruppe (Spiegelfrucht-Klone, player/Squad.js); addClone(), figures() (Präzisierung Motor Welt 2)
 //   setHero wechselt die Heldin aller Figuren (Pause-Menü „Figur“), teleport sammelt die Klone um die Haupt-Figur.
+//   underwater     Unterwasser-Ansicht (player/underwater.js, Präzisierung Motor Welt 3): info() → { k, cameraUnder, … }
 
 import Phaser from 'phaser';
 import { getLevel } from './levels/index.js';
@@ -31,6 +32,7 @@ import { music, sfx } from '../audio/index.js';
 import { RENDER3D } from '../render3d.js';
 import { createArchetype } from './archetypes/index.js';
 import { installWorldWarps } from './map/warp.js';
+import { installUnderwaterView } from './player/underwater.js';
 
 export const DT = 1 / 120;
 const MAX_STEPS = 8;
@@ -90,6 +92,8 @@ export class CourseScene extends Phaser.Scene {
     this.level.controlYaw = this.view.rig.controlYaw(p.pos);
     this.view.rig.snap(p);
     this.view.rig.custom = this.arch?.camera ? (dt, player, world) => this.arch.camera(dt, player, world) : null;
+    // Unterwasser-Ansicht (Nebel/Tönung, sobald Kamera oder Figur unter Wasser ist) – Präzisierung Motor Welt 3
+    this.underwater = installUnderwaterView(this);
     this.arch?.setup?.();
     // Level-eigener Aufbau-Haken (LEVEL.setup(level, scene)): einmal nach Aufbau, Figur und Archetyp; je Schritt
     // eigenen Code über level.onStep(fn) anmelden (Präzisierung „Level-Haken“)
@@ -244,6 +248,8 @@ export class CourseScene extends Phaser.Scene {
     if (window.__course === this) window.__course = null;
     this.arch?.dispose?.();
     this.arch = null;
+    this.underwater?.dispose();
+    this.underwater = null;
     this.squad?.dispose();
     this.squad = null;
     this.rig?.dispose();
