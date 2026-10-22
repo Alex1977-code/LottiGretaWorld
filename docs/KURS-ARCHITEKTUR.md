@@ -2006,3 +2006,19 @@ um: `strike` (Stoß nach der Figur, verletzt) → `gap` → nächste Runde. Kopf
 3 Treffer → `defeated` (2,5 s, Krone fällt) → `sink` → `gone`; `star` erscheint. Diener (`dienerschlange`, auch einzeln:
 `{ kind, pos, height 2.8, cracked, claw, up true }`): Teller = Einweg-Zylinder r 0,72 auf `height`, Körper = Kletter-Säule
 (Krallen-Anzug); rissiger Teller bricht 0,45 s nach dem Betreten, Steine zerschlagen Teller (`brokenBy 'step'|'rock'`).
+
+### Präzisierung (Gegner Welt 3): Tests und Kennzahlen
+
+`tests/course_w3_enemies.mjs` (Port 4231, `?course=0-10|0-11|0-12&scale=2&adapt=0`, deterministisch über `step(n)`/`setInput`;
+Hilfen `window.__t`: `Z(r, dz)`, `place`, `stomp`, `side`, `touch`, `face`, `safe`, `count`, Bosse zusätzlich `enter`, `until`,
+`untilSafe`, `plateJump`, `plate`): je Gegner Kernverhalten, Besiegen-Weg und Schadensweg – Schneesäule verliert Segmente (Kopf
+zuletzt, Feuer schmilzt), Eisläufer auf Eis (Bögen, Slalom, Verfolger, Schlittschuh, Mitfahren + Stampfen), Spuk folgt nur bei
+abgewandtem Blick (shy beim Hinsehen), Licht-Helm löst Spuk (0,8 s) und Großspuk (2,2 s) auf, Kreisgeist-Ring (Drehung, Licht
+löst einzelne Glieder, Maske), Funkenläufer am Blockrand, Funkenkäfer-Sturzflug, Hüpfquallen im Takt (Versatz), Riesenkanone im
+Takt, Riesenprojektil (Mitfahren, Abspringen, Stampfen), Reifen-Pilzling (paddelt, bleibt vor dem Steg), Flossling-Schwarm und
+Sprung-Flossling, Stachelfisch an der Oberfläche, Stachelwand im Takt (2,4 s, Versatz), Rammfisch; Klone (Reifen-Pilzling,
+Funkenkäfer, Hüpfqualle, beide Bosse zielen auf die nächste Figur); Schattenläuferin (Bumerang hin und zurück, Doppelgänger
+2/3/5, nur das Original trifft, Salven, Ansagen, Sieg → Warp → Ziel, Tod setzt zurück); Schlangenkönig (Auftritt, Steine mit
+Landeanzeige, Diener mit Tellern auf 2,8 m, vom Boden unerreichbar, Teller-Weg = Treffer, rissiger Teller bricht, Krallen-Anzug
+und Kletter-Säule, Steinregen zerschlägt Teller, Stoß verletzt, Phase 3 mit 4 Dienern, Sieg → Stern + Warp → Ziel, Sockel
+schubst, Tod setzt zurück). Bilder `tests/out/w3en_*.png`.

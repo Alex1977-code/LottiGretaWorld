@@ -4,7 +4,8 @@
 // Ablauf (Phase = maxHp − hp + 1):
 //   wait → begin(): intro (2,0 s, erscheint im Rauch) → Runde:
 //     throw   (0,8 s) Wurfstern-Bumerang (Entität schatten_bumerang) auf die nächste Figur – Original und die ersten
-//             `phase` Doppelgänger werfen zugleich; je Erscheinen 2 / 2 / 3 Würfe, dazwischen
+//             `phase` Doppelgänger werfen zugleich; je Erscheinen 2 / 2 / 3 Würfe (vor dem Teleport fängt sie ihre
+//             Wurfsterne wieder), dazwischen
 //     run     (1,1 / 0,9 / 0,8 s) alle huschen gemeinsam im Kreis weiter (60°),
 //     teleport (0,35 s) alle verschwinden im Rauch → hidden (0,5 s) → appear (0,8 s): sie taucht an einem neuen Platz
 //             auf dem Kreis um die Arenamitte auf, **mit Doppelgängern auf den anderen Plätzen: 2 / 3 / 5**.
@@ -23,8 +24,8 @@
 //          ring?: 5 (Radius der Erscheinungsplätze), hp?: 3, clones?: [2, 3, 5], throws?: [2, 2, 3],
 //          boomerang?: { speed: 7.5, range: 9 }, wakeR?: 8, seed?: 7, drop? }
 // schatten_doppelgaenger: { owner, pos } (nur vom Boss erzeugt). schatten_bumerang: { pos (Mitte), target: [x, z],
-//   owner?, speed?: 7.5, range?: 9, curve?: ±1 } – fliegt im Bogen hinaus und kehrt zum Werfer zurück (fängt ihn),
-//   sonst nach life s weg; verletzt bei Berührung; fliegt durch Wände.
+//   owner?, speed?: 7.5, range?: 9, curve?: ±1 } – fliegt in 0,7 m Höhe im Bogen hinaus und kehrt zum Werfer zurück (fängt
+//   ihn), sonst nach life s weg; verletzt bei Berührung (darüber springen); fliegt durch Wände.
 // Modelle 'schattenlaeuferin' (opts { clone }, state { anim: idle|run|throw|teleport|clone|hit|defeated, speed,
 // progress }, model.hand()) und 'schatten_bumerang' (state { anim: spin, speed }).
 
@@ -84,15 +85,16 @@ class SchattenBumerang extends EnemyW2 {
     const o = this.owner;
     const home = o && !o.removed && !o.poofed && o.visibleNow !== false;
     if (k < 0.5 || !home) {
+      // hinaus geradewegs auf das Ziel, zurück im seitlichen Bogen
       const out = Math.sin(k * Math.PI) * this.range;
-      const side = Math.sin(k * TAU) * 1.4 * this.curve;
+      const side = k < 0.5 ? 0 : Math.sin((k - 0.5) * TAU) * 1.4 * this.curve;
       this.pos.x = this.start.x + this.d.x * out - this.d.z * side;
       this.pos.z = this.start.z + this.d.z * out + this.d.x * side;
-      this.pos.y = this.y0 + Math.sin(k * Math.PI) * 0.25;
+      this.pos.y = this.y0 + Math.sin(k * Math.PI) * 0.15;
       if (k >= 1) { this.poof(); return; }
     } else {
       // Rückweg zur Pfote des Werfers
-      const tx = o.pos.x, ty = o.pos.y + 0.9, tz = o.pos.z;
+      const tx = o.pos.x, ty = o.pos.y + 0.7, tz = o.pos.z;
       const dx = tx - this.pos.x, dy = ty - this.pos.y, dz = tz - this.pos.z, d = Math.hypot(dx, dy, dz);
       if (d < 0.6) { this.caught = true; this.kill(); return; }
       const sp = this.speed * 1.05 * dt;
@@ -132,7 +134,8 @@ class Doppelgaenger extends EnemyW2 {
     this.animT = 0;
     this.poofed = false;
     this.visibleNow = true;
-    if (level.view) { this.setModel(getModel('schattenlaeuferin', { clone: true })); this.initShadows(1); }
+    // Doppelgänger werfen keinen Sonnenschatten (nur Blob) – bis zu 5 gleichzeitig
+    if (level.view) { this.setModel(getModel('schattenlaeuferin', { clone: true })); this.initShadows(0); }
   }
 
   /** Vom Boss: Haltung setzen (Zeit läuft hier). */
@@ -221,6 +224,7 @@ class Schattenlaeuferin extends EnemyW2 {
     this.yaw = -Math.PI / 2;
     this.anim = 'idle';
     if (level.view) this.setModel(getModel('schattenlaeuferin', { clone: false }));
+    this.initShadows(2);
     this.hand = handOffset(this.model);
   }
 
@@ -258,10 +262,15 @@ class Schattenlaeuferin extends EnemyW2 {
   // ------------------------------------------------------------------ Schritt
 
   update(dt) {
+    this.stepBoss(dt);
+    // Phasen-Ansage nach dem Zustandswechsel (vor dem Archetyp, der sonst seine eigene zeigt)
+    this.syncArchPhase();
+  }
+
+  stepBoss(dt) {
     this.stateT += dt;
     this.boomerangs = this.boomerangs.filter((b) => !b.removed);
     this.clones = this.clones.filter((c) => !c.removed);
-    this.syncArchPhase();
     switch (this.state) {
       case 'wait':
         this.anim = 'idle';
@@ -299,10 +308,11 @@ class Schattenlaeuferin extends EnemyW2 {
         return;
       }
       case 'idle2':
+        // wartet, bis ihre Wurfsterne zurück sind (höchstens 3,5 s), dann Teleport
         this.anim = 'idle';
         this.faceAll(dt);
         this.poseClones('idle');
-        if (this.stateT >= PAUSE[this.phase] + 0.3) this.startTeleport();
+        if (this.stateT >= PAUSE[this.phase] + 0.3 && (!this.boomerangs.some((b) => b.owner === this) || this.stateT > 3.5)) this.startTeleport();
         return;
       case 'teleport':
         this.anim = 'teleport';
@@ -447,7 +457,8 @@ class Schattenlaeuferin extends EnemyW2 {
       if (!activeFigure(p)) continue;
       const h = toWorld(t.pos, t.yaw, this.hand.x, this.hand.y, this.hand.z, {});
       const b = this.level.spawn('schatten_bumerang', {
-        pos: [h.x, Math.max(t.pos.y + 0.75, Math.min(h.y, t.pos.y + 1.0)), h.z], target: [p.pos.x, p.pos.z], owner: t,
+        // Flughöhe 0,7 m (Mitte): trifft große und kleine Figuren, man kann darüber springen
+        pos: [h.x, t.pos.y + 0.7, h.z], target: [p.pos.x, p.pos.z], owner: t,
         speed: this.boomCfg.speed ?? 7.5, range: this.boomCfg.range ?? 9, curve: (i++ % 2) ? -1 : 1,
       });
       if (b) this.boomerangs.push(b);

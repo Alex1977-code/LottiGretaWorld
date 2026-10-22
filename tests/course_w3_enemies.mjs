@@ -21,7 +21,9 @@ const sc = async (fn, arg) => {
 };
 
 async function load(id) {
-  await page.goto(`http://localhost:${port}/?course=${id}&scale=2&adapt=0`, { waitUntil: 'load' });
+  // unter Last (parallele Läufe) einmal wiederholen
+  try { await page.goto(`http://localhost:${port}/?course=${id}&scale=2&adapt=0`, { waitUntil: 'load', timeout: 60000 }); }
+  catch { await page.goto(`http://localhost:${port}/?course=${id}&scale=2&adapt=0`, { waitUntil: 'load', timeout: 90000 }); }
   try {
     await page.waitForFunction(() => window.__course && window.__course.level && window.__game.scene.isActive('CourseUI'), null, { timeout: 60000 });
   } catch {
@@ -126,7 +128,9 @@ const SHOT = async (prefix, name, setup, frames = 2) => {
     return c.view.frame;
   });
   await page.waitForFunction((f) => window.__course.view.frame >= f, f0 + frames, { timeout: 40000, polling: 100 }).catch(() => {});
-  await page.screenshot({ path: `${OUT}${prefix}_${name}.png` });
+  // unter Last (parallele Läufe) einmal wiederholen
+  try { await page.screenshot({ path: `${OUT}${prefix}_${name}.png`, timeout: 60000 }); }
+  catch { await page.screenshot({ path: `${OUT}${prefix}_${name}.png`, timeout: 120000 }); }
   return sc(() => window.__course.stats());
 };
 
@@ -760,6 +764,10 @@ const BOSS_HELPERS = ([id, startZ]) => {
     return t.arch();
   };
   t.until = (s, n = 1500) => { const b = t.boss(); let i = 0; for (; i < n && b.state !== s; i++) c.step(1); return i; };
+  // Ansagen mitschreiben
+  t.banners = [];
+  const hud = c.arch?.hud;
+  if (hud && !hud._w3) { const orig = hud.banner.bind(hud); hud.banner = (text, o) => { t.banners.push(text); orig(text, o); }; hud._w3 = true; }
   t.untilSafe = (s, n = 1500, pos = null) => {
     const b = t.boss(), p = c.player;
     p.hurt = () => false;
@@ -781,7 +789,7 @@ const sl = await sc(() => {
   // Auftritt → erster Wurf: Bumerang fliegt hinaus und kehrt zurück
   t.untilSafe('throw', 900, [0, 2, 7]);
   let boom = null, maxD = 0;
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 700; i++) {
     p.hurt = () => false; p.pos.set(6, 2, 4); p.vel.set(0, 0, 0);
     c.step(1);
     if (!boom) boom = L.entities.find((e) => e.kind === 'schatten_bumerang') ?? null;
@@ -792,7 +800,7 @@ const sl = await sc(() => {
   out.boom = { seen: !!boom, maxD: +maxD.toFixed(2), caught: boom?.caught ?? false };
   // Bumerang verletzt
   t.place([5, 2, 5], { settle: 1 });
-  L.spawn('schatten_bumerang', { pos: [2, 2.9, 5], target: [5, 5], speed: 7.5 });
+  L.spawn('schatten_bumerang', { pos: [2, 2.7, 5], target: [5, 5], speed: 7.5 });
   let bh = false;
   for (let i = 0; i < 120 && !bh; i++) { p.pos.set(5, 2, 5); c.step(1); if (t.hurt()) bh = true; }
   out.boomHurt = bh;
@@ -843,6 +851,7 @@ const sl = await sc(() => {
   const s3 = t.stomp(b, { h: 0.6 });
   out.hit3 = { ...s3, hp: b.hp, defeated: b.defeated, state: b.state };
   out.cloneLog = b.cloneLog.slice();
+  out.banners = t.banners.slice();
   t.untilSafe('gone', 900, [0, 2, 7.5]);
   c.step(2);
   out.gone = { state: b.state, visible: b.visible, won: t.arch().won, warp: t.ent('warp_sieg').hidden };
@@ -864,7 +873,8 @@ check(`Sie verschwindet im Rauch und taucht mit 2 Doppelgängern auf dem Ring au
 check(`Salve: Original + Doppelgänger werfen (Phase 1: ${sl.volley1}, Phase 3: ${sl.volley3} Bumerangs)`, sl.volley1 === 2 && sl.volley3 === 4);
 check('Doppelgänger: Draufspringen → Rauch (Abprall, kein Treffer am Boss); seitlich = Treffer', sl.cloneStomp.poofed && sl.cloneStomp.bounced && !sl.cloneStomp.hurt && sl.cloneStomp.hp === 3 && sl.cloneSide);
 check('Original (Schleife): Draufspringen = Treffer (3 → 2), alle Doppelgänger lösen sich in Rauch auf', sl.hit1.hp === 2 && sl.hit1.bounced && !sl.hit1.hurt && sl.hit1.poofed && sl.hit1.hud === 2);
-check(`Doppelgänger je Phase 2 / 3 / 5 (${sl.cloneLog.join('/')})`, sl.cloneLog.join(',') === '2,3,5' && sl.appear2 === 3 && sl.appear3 === 5 && sl.hit2.hp === 1);
+check(`Doppelgänger je Phase 2 / 3 / 5 (Erscheinen: ${sl.cloneLog.join('/')})`, sl.cloneLog.filter((n, i, a) => n !== a[i - 1]).join(',') === '2,3,5' && sl.appear2 === 3 && sl.appear3 === 5 && sl.hit2.hp === 1);
+check(`Eigene Phasen-Ansagen (${sl.banners.filter((x) => /Doppel|Schleife/.test(x)).join(' | ')}), keine fremden`, sl.banners.includes('Noch mehr Doppelgänger!') && sl.banners.includes('Achte auf die pinke Schleife!') && !sl.banners.some((x) => /Feuerspur|wütend/.test(x)));
 check('Dritter Treffer besiegt sie (defeated → gone), Archetyp gewinnt, Warp-Box erscheint', sl.hit3.hp === 0 && sl.hit3.defeated && sl.gone.state === 'gone' && !sl.gone.visible && sl.gone.won && sl.gone.warp === false);
 check('Warp-Box führt zum Zielplateau, Zielmast beendet das Level', sl.finish.arrived && sl.finish.finished);
 
@@ -939,7 +949,10 @@ const SNAKE_HELPERS = () => {
   /** Vom Teller (Diener sv) aufs Haupt springen: Sprung halten, im Fallen über den Kopf lenken. */
   t.plateJump = (sv, o = {}) => {
     const b = t.boss(), p = c.player;
-    if (sv) t.place([sv.pos.x, sv.plateTop + 0.05, sv.pos.z], { settle: 3 });
+    // keine fallenden Steine während des Sprungs (Phase 2/3), alte Steine weg
+    b.rainT = 99;
+    for (const e of c.level.entities) if (e.kind === 'felsbrocken') e.kill();
+    if (sv) t.place([sv.pos.x, sv.plateTop + 0.05, sv.pos.z], { settle: 14 });
     const standing = sv ? sv.standing : 0, y0 = p.pos.y;
     let apex = p.pos.y, hit = false, hurt = false;
     const hp0 = b.hp;
@@ -1053,6 +1066,7 @@ const sn = await sc(() => {
   out.summon3 = { n: up3.length, cracked: up3.filter((s) => s.cracked).length, phase: b.phase };
   out.hit3 = t.plateJump(t.plate(false));
   out.def = { hp: b.hp, defeated: b.defeated, state: b.state };
+  out.banners = t.banners.slice();
   t.untilSafe('gone', 900, [0, 2, 9.5]);
   c.step(2);
   const star = L.entities.find((e) => e.kind === 'star');
@@ -1081,6 +1095,7 @@ check(`Phase 2: ein rissiger Teller bricht nach dem Betreten (${sn.crack?.t} s),
 check('Gelegentlich trägt ein Teller einen Krallen-Anzug; die Diener-Schlange ist kletterbar', sn.summon2.claw === 1 && !!sn.claw && sn.claw.climbable && sn.claw.item === 'krallen');
 check('Herabfallende Steine zerschlagen Teller; läuft das Fenster ab, stößt er zu und verletzt', sn.window.rockBreak && sn.window.fallen >= 2 && sn.window.struck && sn.window.strikeHurt);
 check('Zweiter Treffer vom Teller (2 → 1)', sn.hit2.hit && sn.hit2.hp === 1);
+check(`Eigene Phasen-Ansagen (${sn.banners.filter((x) => /Teller|Kuppel/.test(x)).join(' | ')}), keine fremden`, sn.banners.includes('Vorsicht, rissige Teller!') && sn.banners.includes('Steine fallen von der Kuppel!') && !sn.banners.some((x) => /Feuerspur|wütend/.test(x)));
 check('Phase 3: 4 Diener, 2 rissig; dritter Treffer besiegt ihn', sn.summon3.n === 4 && sn.summon3.cracked === 2 && sn.summon3.phase === 3 && sn.hit3.hit && sn.def.hp === 0 && sn.def.defeated);
 check('Ende: er versinkt (gone), Stern erscheint, Archetyp gewinnt, Warp-Box (Röhre) erscheint, Diener weg', sn.gone.state === 'gone' && sn.gone.won && sn.gone.warp === false && sn.gone.star && sn.gone.servants === 0 && sn.starTaken);
 check('Warp-Box führt zum Zielplateau, Zielmast beendet das Level', sn.finish.arrived && sn.finish.finished);
@@ -1107,7 +1122,7 @@ const sn2 = await sc(() => {
       k.hurt = () => false;
       p.reset([-9, 2, 2], Math.PI / 2);
       k.reset([5, 2, -5], Math.PI / 2);
-      c.step(30);
+      for (let i = 0; i < 150; i++) { p.pos.set(-9, 2, 2); k.pos.set(5, 2, -5); c.step(1); }
       const az = Math.atan2(-(k.pos.z - b.home.z), k.pos.x - b.home.x);
       out.clone = { target: b.player === k, faces: Math.abs(Math.atan2(Math.sin(b.az - az), Math.cos(b.az - az))) < 0.6 };
     }

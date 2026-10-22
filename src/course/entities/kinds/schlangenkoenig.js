@@ -363,7 +363,6 @@ class Schlangenkoenig extends EnemyW2 {
     this.servants = this.servants.filter((s) => !s.removed);
     this.rocks = this.rocks.filter((r) => !r.removed);
     this.markers.update(dt);
-    this.syncArchPhase();
     this.shove();
     const p = this.player;
     switch (this.state) {
@@ -461,6 +460,8 @@ class Schlangenkoenig extends EnemyW2 {
       default: break;
     }
     this.placeHead();
+    // Phasen-Ansage nach dem Zustandswechsel (vor dem Archetyp, der sonst seine eigene zeigt)
+    this.syncArchPhase();
   }
 
   /** Kopf weich auf (az, r, y) führen; rate 99 = sofort. */
