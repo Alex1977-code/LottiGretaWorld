@@ -1071,7 +1071,11 @@ ein `roter_ring` mit `attach` lässt seine roten Münzen auf den Panzern erschei
 über einem Deck (Power-up aus ?-Block, Stern aus Kiste, abgeworfener Helm, 1-up) fahren mit; Kanonen-Helme liegen an
 Stellen auf Panzern bereit (`panzer.helmets`, nachgelegt nach `every` s bzw. nach einem Neustart). Kombination
 `autoscroller` + `with: 'boss'`: der Level-Haken reicht `boss`/`seenPhase` des Zusatz-Archetyps durch (Ansage
-Wirbelbrocken Phase 3) und verhindert die „Feuerspur“-Ansage des Barons beim Phasenwechsel.
+Wirbelbrocken Phase 3) und verhindert die „Feuerspur“-Ansage des Barons beim Phasenwechsel. Budget-Kniffe (level-lokal):
+statische 32-m-Abschnitte werden je Bild per Quader gegen Sichtpyramide und Nebelweite geprüft (die Begrenzungskugel
+von Festung + Oase, ≈ 60 k Dreiecke, schneidet die flache Sicht sonst immer), während der Fahrt wirft die Kulisse keinen
+Sonnenschatten. Gemessen (scale 2, `tests/course_w2d.mjs`, 33 Prüfungen): 66–127 Zeichenaufrufe inkl. Schattenpass,
+149–265 k Dreiecke; Fahrt bis zum Zughalt ≈ 81 s, Ziel nach ≈ 124 s (Bot).
 
 ## Präzisierung (Mehrwelten-Karte)
 

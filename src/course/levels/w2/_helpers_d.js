@@ -379,7 +379,8 @@ class DustTrails {
     this.items = Array.from({ length: N }, () => ({ life: 0, max: 1, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, s: 1 }));
     this.next = 0;
     this.geo = new THREE.IcosahedronGeometry(0.5, 0);
-    this.mat = new THREE.MeshLambertMaterial({ color: 0xd08a50, transparent: true, opacity: 0.55, depthWrite: false });
+    // ungeleuchtet: die Wölkchen stehen meist auf der Schattenseite (Abendsonne von vorn) und würden sonst grau
+    this.mat = new THREE.MeshBasicMaterial({ color: 0xcf9460, transparent: true, opacity: 0.5, depthWrite: false });
     this.mesh = new THREE.InstancedMesh(this.geo, this.mat, N);
     this.mesh.frustumCulled = false; this.mesh.castShadow = false; this.mesh.receiveShadow = false;
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -543,22 +544,28 @@ class StaticCull {
       m.geometry.computeBoundingBox();
       return { m, b: m.geometry.boundingBox.clone(), cast: m.castShadow, stone: m.name === 'statisch:stone' };
     });
+    // Sichtpyramide gegen den Quader prüfen: die Begrenzungskugel großer Abschnitte (Festung + Oase ≈ 60 k Dreiecke)
+    // schneidet die Pyramide auch dann, wenn der flache Blick (40°) längst nur noch Treibsand zeigt
+    this.frustum = new THREE.Frustum();
+    this.pv = new THREE.Matrix4();
     view.onFrame(() => this.update());
   }
 
   arena() { return this.level.scroll?.state === 'done'; }
 
   update() {
-    const view = this.level.view, cam = view.camera.position, tg = view.rig.target;
+    const view = this.level.view, camera = view.camera, cam = camera.position, tg = view.rig.target;
     const far = (view.three.fog?.far ?? 300) - 30;   // dort ist alles schon fast ganz im Nebel
+    camera.updateMatrixWorld();
+    this.frustum.setFromProjectionMatrix(this.pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
     for (const it of this.items) {
       const b = it.b;
-      const dx = Math.max(b.min.x - cam.x, 0, cam.x - b.max.x), dy = Math.max(b.min.y - cam.y, 0, cam.y - b.max.y), dz = Math.max(b.min.z - cam.z, 0, cam.z - b.max.z);
-      it.m.visible = Math.hypot(dx, dy, dz) < far;
       const tx = Math.max(b.min.x - tg.x, 0, tg.x - b.max.x), tz = Math.max(b.min.z - tg.z, 0, tg.z - b.max.z);
       // während der Fahrt ist die ganze statische Geometrie Kulisse (gespielt wird auf den Panzern): kein
       // Sonnenschatten; in der Festung (nach dem Halt) wirft nur der Geschützturm (Stein: Sockel, Gitter) Schatten
       it.m.castShadow = it.cast && it.stone && this.arena() && Math.hypot(tx, tz) < 30;
+      const dx = Math.max(b.min.x - cam.x, 0, cam.x - b.max.x), dy = Math.max(b.min.y - cam.y, 0, cam.y - b.max.y), dz = Math.max(b.min.z - cam.z, 0, cam.z - b.max.z);
+      it.m.visible = Math.hypot(dx, dy, dz) < far && (it.m.castShadow || this.frustum.intersectsBox(b));
     }
   }
 }

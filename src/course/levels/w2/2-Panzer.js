@@ -27,7 +27,7 @@ import { VW, ZP, CW0, ACCEL, DELAY, WIN_END, P, onTank, tank, panzerSetup } from
 const D = 2.0;                 // Deckhöhe der Panzer (über der Fahrebene y = 0)
 const DK = 2.4;                // Kommandopanzer
 const AZ = -492, AY = 7, AR = 10.5;      // Bossarena (Mitte, Boden, Innenradius)
-const GX = 68, GZ = -491;                // Oase mit Zielmast
+const GX = 68, GZ = -493;                // Oase mit Zielmast (ganz im 32-m-Abschnitt der Festung: Sichtweite)
 
 // ---------------------------------------------------------------------- Panzer (Konvoi-Koordinaten)
 const T = {
@@ -201,7 +201,7 @@ export const LEVEL = {
       { kind: 'kakteen', pos: [GX + 7, 0.6, GZ - 12], size: [6, 6], n: 3, seed: 4 },
       { kind: 'duenen', pos: [GX + 6, 0.6, GZ + 12], size: [8, 6], n: 2, height: [0.4, 0.9], seed: 6 },
     ] },
-    { type: 'sign', pos: [GX - 13, 0.6, GZ + 14], text: 'Oase\nder Freiheit', yaw: 0.25 },
+    { type: 'sign', pos: [GX - 13, 0.6, GZ + 12.5], text: 'Oase\nder Freiheit', yaw: 0.25 },
     { type: 'pennants', items: [
       ...PENNANTS,
       { pos: [-6.2, D, 15.5], color: 0xb01e2e, h: 7 }, { pos: [6.2, D, 15.5], color: 0xb01e2e, h: 7 },
