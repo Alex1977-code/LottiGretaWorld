@@ -16,14 +16,14 @@
 //                                      verrät sie).
 //                                      Unter der Bühne (Falltür links der Riesenschnappblume) Kisten → Stempel.
 //                                      Schattenstufen hinauf aufs Podest, Tür → hinter die Kulissen.
-//   5  Hinter den Kulissen  x ≈ 112, z −18 … −74: Rätselbox, Gasse mit Lauerblöcken, Fahrplattformen über dem
+//   5  Hinter den Kulissen  x ≈ 112, z 100 … 43: Rätselbox, Gasse mit Lauerblöcken, Fahrplattformen über dem
 //                                      Schacht, Ausgangstür. Davor eine Lücke hinter dem Vorhang (links): Krümel zittert
 //                                      vor der Holz-Silhouette des Barons – umwerfen → Krümel schenkt Stern 2.
-//   6  Ausgang/Ziel      x ≈ 112, z −75 … −105: Höhlenausgang, Zielmast.
-//   Abseits: Rätselbox-Raum (x ≈ 190): Lauerblock-Gasse, Druckfeld → unsichtbare Treppe und Stern 1 erscheinen als
+//   6  Ausgang/Ziel      x ≈ 112, z 43 … 11: Höhlenausgang, Zielmast.
+//   Abseits: Rätselbox-Raum (x ≈ 260, z 56 … 19): Lauerblock-Gasse, Druckfeld → unsichtbare Treppe und Stern 1 erscheinen als
 //            Schatten auf der Leinwand.
-//   Lage: Kulissen, Ziel und Rätselbox-Raum liegen seitlich bzw. „hinter“ der Bühnenkamera (die Türen teleportieren),
-//   damit die flache Bühnenkamera sie nicht mitzeichnet.
+//   Lage: Kulissen, Ziel und Rätselbox-Raum liegen hinter dem Start (z > 0, seitlich versetzt; Türen und Rätselbox
+//   teleportieren) – keine Kamera des Hauptwegs blickt dorthin, und ihre Abschnitte werden getrennt verschmolzen.
 // Sterne (Index): 0 Schattenstern im Foyer, 1 Rätselbox (Druckfeld, Schatten), 2 Krümel hinter der Silhouette.
 // Stempel: unter der Bühne hinter zwei Kisten (Funkenblüte oder Krallen-Anzug).
 
@@ -71,7 +71,7 @@ function scene(level) {
   // Krümel winkt im Foyer und hoppelt voraus; hinter dem Vorhang zittert er vor dem Baron-Aufsteller
   new Kruemel(level, { pos: [-6.2, Y, 3.2], near: 3.4, speed: 4.4,
     flee: [[-6.2, Y, 3.2], [-3, Y, -1], [2.6, Y, -5.4], [8.8, Y, -12], [8.8, Y, -21], [7.4, Y, -25.5]] });
-  const k2 = new Kruemel(level, { pos: [100.2, Y, -66.2], yaw: Math.PI, mode: 'scared', help: 'Hilfe…', helpSub: 'Der Baron!', helpR: 7.5 });
+  const k2 = new Kruemel(level, { pos: [100.2, Y, 51.8], yaw: Math.PI, mode: 'scared', help: 'Hilfe…', helpSub: 'Der Baron!', helpR: 7.5 });
   level.named.set('kruemel2', k2);
   shadowStars(level, [0, 1]);
   cullShadowWalls(level);
@@ -92,13 +92,13 @@ function scene(level) {
   footlights(level, 46.8, 54, YC, -85.2);
   footlights(level, 59.6, 64.6, 7, -85.2);
   // Rätselbox-Raum und Kulissen hinten
-  curtain(level, { pos: [182.6, Y, -127.6], w: 1.4, h: 7.6, tie: 0.45, side: 'left' });
-  curtain(level, { pos: [197.4, Y, -127.6], w: 1.4, h: 7.6, tie: 0.45, side: 'right' });
-  valance(level, { pos: [190, 8.2, -127.4], w: 16, h: 0.9 });
-  curtain(level, { pos: [104.2, Y, -66.25], w: 2.6, h: 4.4, axis: 'z', folds: 7 });     // verdeckt die Lücke
-  valance(level, { pos: [112, 5, -73.2], w: 16, h: 0.8 });
-  curtain(level, { pos: [105.6, Y, -73.2], w: 3, h: 4, tie: 0.4, side: 'left' });
-  curtain(level, { pos: [118.4, Y, -73.2], w: 3, h: 4, tie: 0.4, side: 'right' });
+  curtain(level, { pos: [252.6, Y, 22.4], w: 1.4, h: 7.6, tie: 0.45, side: 'left' });
+  curtain(level, { pos: [267.4, Y, 22.4], w: 1.4, h: 7.6, tie: 0.45, side: 'right' });
+  valance(level, { pos: [260, 8.2, 22.6], w: 16, h: 0.9 });
+  curtain(level, { pos: [104.2, Y, 51.75], w: 2.6, h: 4.4, axis: 'z', folds: 7 });     // verdeckt die Lücke
+  valance(level, { pos: [112, 5, 44.8], w: 16, h: 0.8 });
+  curtain(level, { pos: [105.6, Y, 44.8], w: 3, h: 4, tie: 0.4, side: 'left' });
+  curtain(level, { pos: [118.4, Y, 44.8], w: 3, h: 4, tie: 0.4, side: 'right' });
   // Foyer: Läufer, Kerzenleuchter, Gemälde, Spinnweben
   carpet(level, -1.1, 1.1, 7, -6.5, Y);
   carpet(level, 1.1, 8.6, -5, -7.2, Y);
@@ -108,10 +108,10 @@ function scene(level) {
     { name: 'bilderrahmen', opts: { motif: 'portraet', size: [1.4, 1.8] }, pos: [-9.9, 2.6, -6.5], yaw: 0 },
     { name: 'bilderrahmen', opts: { motif: 'landschaft', size: [1.8, 1.4] }, pos: [9.9, 2.8, -3.5], yaw: Math.PI },
     { name: 'kerze', opts: { count: 3 }, pos: [7.2, YC + 0.8, -58.8] },
-    { name: 'spinnweben', opts: { size: 1.2 }, pos: [104.1, 4.8, -22], yaw: 0 },
-    { name: 'buecherregal', opts: { width: 2, height: 2.6 }, pos: [104.5, Y, -24.4], yaw: 0 },
-    { name: 'kerze', opts: { count: 3 }, pos: [117.6, 3.6, -36] },
-    { name: 'kerze', opts: { count: 3 }, pos: [95.6, Y + 0.8, -63.4] },
+    { name: 'spinnweben', opts: { size: 1.2 }, pos: [104.1, 4.8, 96], yaw: 0 },
+    { name: 'buecherregal', opts: { width: 2, height: 2.6 }, pos: [104.5, Y, 93.6], yaw: 0 },
+    { name: 'kerze', opts: { count: 3 }, pos: [117.6, 3.6, 82] },
+    { name: 'kerze', opts: { count: 3 }, pos: [95.6, Y + 0.8, 54.6] },
   ]);
   prop(level, { name: 'kerze', opts: { count: 1 }, pos: [7.6, YC, -70.6], state: { anim: 'on' } });
 }
@@ -133,13 +133,13 @@ export const LEVEL = {
     { ...CAM, from: -57, to: -75, pitch: 44, dist: 12.5, area: [-40, 40] },
     // Schattenbühne: frontal auf die Leinwand (Vorschlag der Schattenwand)
     { from: -84, to: -92, pitch: 14, dist: 16, height: 2.6, ahead: 0, fov: 40, area: [-10, 72] },
-    // hinter den Kulissen und Ziel (x ≈ 112, z −18 … −105: außerhalb des Blickfelds der Bühnenkamera)
-    { ...CAM, from: -17, to: -44, pitch: 46, dist: 12.5, area: [88, 135] },
-    { ...CAM, from: -44, to: -74, pitch: 44, dist: 13.5, area: [88, 135] },
-    { ...CAM, from: -75, to: -109, pitch: 42, dist: 13, area: [88, 135] },
-    // Rätselbox-Raum (x ≈ 190): Gasse, dann flacher auf die Leinwand
-    { from: -94, to: -114, pitch: 48, dist: 12, fov: 40, area: [175, 210] },
-    { from: -118, to: -130, pitch: 20, dist: 14, height: 2.2, ahead: 0, fov: 40, area: [175, 210] },
+    // hinter den Kulissen und Ziel (x ≈ 112, z 100 … 13: hinter allen Kameras des Hauptwegs)
+    { ...CAM, from: 101, to: 74, pitch: 46, dist: 12.5, area: [88, 135] },
+    { ...CAM, from: 74, to: 44, pitch: 44, dist: 13.5, area: [88, 135] },
+    { ...CAM, from: 43, to: 9, pitch: 42, dist: 13, area: [88, 135] },
+    // Rätselbox-Raum (x ≈ 260, z 56 … 19): Gasse, dann flacher auf die Leinwand
+    { from: 56, to: 36, pitch: 48, dist: 12, fov: 40, area: [245, 280] },
+    { from: 32, to: 20, pitch: 20, dist: 14, height: 2.2, ahead: 0, fov: 40, area: [245, 280] },
   ],
   segments: [
     // =============================================================== 1  Foyer
@@ -263,90 +263,90 @@ export const LEVEL = {
     ]),
     { type: 'killplane', y: -6, pos: [31, -6, -86], size: [80, 30] },
 
-    // =============================================================== 5  Hinter den Kulissen (x ≈ 112)
-    isl(104, 120, -18, -45, Y, 3, { under: 2 }),
-    { type: 'tuer', id: 'tuer_b', pos: [112, Y, -21.2], yaw: Math.PI / 2, target: 'tuer_a', style: 'holz' },
-    { type: 'sign', pos: [116.6, Y, -23], text: 'Rätselbox' },
-    // Lauerblock-Gasse (x 110,5 … 113,5)
-    ...lauerWall(110.5, -1, -28, -44, [-30, -35, -40]),
-    ...lauerWall(113.5, 1, -28, -44, [-32.5, -37.5, -42.5]),
+    // =============================================================== 5  Hinter den Kulissen (x ≈ 112, z 100 … 43)
+    isl(104, 120, 100, 73, Y, 3, { under: 2 }),
+    { type: 'tuer', id: 'tuer_b', pos: [112, Y, 96.8], yaw: Math.PI / 2, target: 'tuer_a', style: 'holz' },
+    { type: 'sign', pos: [116.6, Y, 95], text: 'Rätselbox' },
+    // Lauerblock-Gasse (x 110,5 … 113,5, z 90 … 74)
+    ...lauerWall(110.5, -1, 90, 74, [88, 83, 78]),
+    ...lauerWall(113.5, 1, 90, 74, [85.5, 80.5, 75.5]),
     // Schacht mit Fahrplattformen
     // zwei Fähren im Gegentakt: sie kreuzen sich in der Mitte – dort hinüberspringen
-    { type: 'mover', id: 'm4', path: [[107.4, 0.5, -48.6], [116.6, 0.5, -48.6]], size: [3, 0.5, 3], speed: 2.3, wait: 0.8, color: 'orange' },
-    { type: 'mover', id: 'm5', path: [[116.6, 0.5, -53.2], [107.4, 0.5, -53.2]], size: [3, 0.5, 3], speed: 2.3, wait: 0.8, color: 'red' },
-    isl(119.2, 121.6, -51.6, -55.6, 2, 3, { top: 'stone', under: 2 }),
-    isl(104, 120, -56.4, -73, Y, 3, { under: 2 }),
-    { type: 'tuer', id: 'tuer_c', pos: [112, Y, -72.2], target: 'tuer_d', style: 'stein' },
+    { type: 'mover', id: 'm4', path: [[107.4, 0.5, 69.4], [116.6, 0.5, 69.4]], size: [3, 0.5, 3], speed: 2.3, wait: 0.8, color: 'orange' },
+    { type: 'mover', id: 'm5', path: [[116.6, 0.5, 64.8], [107.4, 0.5, 64.8]], size: [3, 0.5, 3], speed: 2.3, wait: 0.8, color: 'red' },
+    isl(119.2, 121.6, 66.4, 62.4, 2, 3, { top: 'stone', under: 2 }),
+    isl(104, 120, 61.6, 45, Y, 3, { under: 2 }),
+    { type: 'tuer', id: 'tuer_c', pos: [112, Y, 45.8], target: 'tuer_d', style: 'stein' },
     // versteckte Nische hinter dem Vorhang (x 94 … 104)
-    isl(94, 104, -62, -72, Y, 3, { under: 2 }),
-    { type: 'holz_silhouette', id: 'baron', pos: [96.4, Y, -66.6], yaw: 0, onFall: [
+    isl(94, 104, 56, 46, Y, 3, { under: 2 }),
+    { type: 'holz_silhouette', id: 'baron', pos: [96.4, Y, 51.4], yaw: 0, onFall: [
       (level) => level.named.get('kruemel2')?.rescue(),
-      { star: { index: 2, pos: [100.8, Y + 0.5, -64.6] } },
+      { star: { index: 2, pos: [100.8, Y + 0.5, 53.4] } },
     ] },
     deco([
-      { kind: 'lantern', pos: [105, Y, -19] }, { kind: 'lantern', pos: [119, Y, -27] },
-      { kind: 'lantern', pos: [105, Y, -61.6] }, { kind: 'lantern', pos: [119, Y, -69] },
+      { kind: 'lantern', pos: [105, Y, 99] }, { kind: 'lantern', pos: [119, Y, 91] },
+      { kind: 'lantern', pos: [105, Y, 56.4] }, { kind: 'lantern', pos: [119, Y, 49] },
     ]),
     decoW1([
-      rock(101.5, 104, -17, -65, Y, 7.5), rock(101.5, 104, -67.5, -75, Y, 7.5),
-      rock(120, 122.5, -17, -75, -6, 8, { color: ROCK2 }),
-      rock(104, 110.5, -27.6, -28.6, Y, 3.4), rock(113.5, 120, -27.6, -28.6, Y, 3.4, { color: ROCK2 }),
-      rock(104, 108.5, -28, -44, Y, 3.6), rock(115.5, 120, -28, -44, Y, 3.6, { color: ROCK2 }),
-      rock(104, 120, -73.4, -75.4, Y, 5),
-      rock(91.5, 94, -59, -75, Y, 7.5), rock(94, 101.5, -72, -75, Y, 7.5),
-      rock(94, 101.5, -59.6, -62, Y, 3.2, { camIgnore: true }),
-      { kind: 'stalactites', pos: [104.3, 7, -48], size: [0.8, 40], n: 12, len: [1, 2.8] },
-      { kind: 'stalactites', pos: [120.3, 8, -48], size: [0.8, 40], n: 12, len: [1, 2.8] },
-      { kind: 'crystals', pos: [119, Y, -61.6], size: 0.9, color: 'gold' },
-      { kind: 'mushrooms', pos: [94.8, Y, -62.8], size: 0.7, color: 'gold', glow: true },
-      { kind: 'fireflies', pos: [112, -2, -52], size: [14, 6, 14], n: 10, colors: [0xffd27a, 0xffb050] },
-      { kind: 'bunting', from: [104.2, 5.6, -45], to: [119.8, 5.6, -45], sag: 0.7, colors: [0xd8202a, 0xffc83a, 0x3a2a6a] },
+      rock(101.5, 104, 101, 53, Y, 7.5), rock(101.5, 104, 50.5, 43, Y, 7.5),
+      rock(120, 122.5, 101, 43, -6, 8, { color: ROCK2 }),
+      rock(104, 110.5, 90.4, 89.4, Y, 3.4), rock(113.5, 120, 90.4, 89.4, Y, 3.4, { color: ROCK2 }),
+      rock(104, 108.5, 90, 74, Y, 3.6), rock(115.5, 120, 90, 74, Y, 3.6, { color: ROCK2 }),
+      rock(104, 120, 44.6, 42.6, Y, 5),
+      rock(91.5, 94, 59, 43, Y, 7.5), rock(94, 101.5, 46, 43, Y, 7.5),
+      rock(94, 101.5, 58.4, 56, Y, 3.2, { camIgnore: true }),
+      { kind: 'stalactites', pos: [104.3, 7, 70], size: [0.8, 40], n: 12, len: [1, 2.8] },
+      { kind: 'stalactites', pos: [120.3, 8, 70], size: [0.8, 40], n: 12, len: [1, 2.8] },
+      { kind: 'crystals', pos: [119, Y, 56.4], size: 0.9, color: 'gold' },
+      { kind: 'mushrooms', pos: [94.8, Y, 55.2], size: 0.7, color: 'gold', glow: true },
+      { kind: 'fireflies', pos: [112, -2, 66], size: [14, 6, 14], n: 10, colors: [0xffd27a, 0xffb050] },
+      { kind: 'bunting', from: [104.2, 5.6, 73], to: [119.8, 5.6, 73], sag: 0.7, colors: [0xd8202a, 0xffc83a, 0x3a2a6a] },
     ]),
-    { type: 'killplane', y: -7, pos: [112, -7, -53], size: [40, 20] },
+    { type: 'killplane', y: -7, pos: [112, -7, 65], size: [40, 20] },
 
     // =============================================================== 6  Ausgang und Ziel
-    isl(104, 120, -75.4, -105, Y, 3, { under: 2 }),
-    { type: 'tuer', id: 'tuer_d', pos: [112, Y, -76.4], yaw: Math.PI / 2, target: 'tuer_c', style: 'stein' },
-    { type: 'stairs', pos: [112, Y, -87], dir: '-z', steps: 2, rise: 0.8, run: 1.4, width: 6, style: 'stone' },
-    isl(104, 120, -89.8, -105, Y + 1.6, 3, { top: 'stone', under: 0 }),
-    { type: 'sign', pos: [107.4, Y, -81], text: 'Vorhang zu –\nApplaus!' },
+    isl(104, 120, 42.6, 13, Y, 3, { under: 2 }),
+    { type: 'tuer', id: 'tuer_d', pos: [112, Y, 41.6], yaw: Math.PI / 2, target: 'tuer_c', style: 'stein' },
+    { type: 'stairs', pos: [112, Y, 31], dir: '-z', steps: 2, rise: 0.8, run: 1.4, width: 6, style: 'stone' },
+    isl(104, 120, 28.2, 13, Y + 1.6, 3, { top: 'stone', under: 0 }),
+    { type: 'sign', pos: [107.4, Y, 37], text: 'Vorhang zu –\nApplaus!' },
     deco([
-      { kind: 'lantern', pos: [105.4, Y, -79] }, { kind: 'lantern', pos: [118.6, Y, -79] },
-      { kind: 'lantern', pos: [106, Y + 1.6, -101] }, { kind: 'lantern', pos: [118, Y + 1.6, -101] },
+      { kind: 'lantern', pos: [105.4, Y, 39] }, { kind: 'lantern', pos: [118.6, Y, 39] },
+      { kind: 'lantern', pos: [106, Y + 1.6, 17] }, { kind: 'lantern', pos: [118, Y + 1.6, 17] },
     ]),
     decoW1([
-      rock(101.5, 104, -75, -107, Y, 9), rock(120, 122.5, -75, -107, Y, 9, { color: ROCK2 }),
-      rock(104, 120, -105, -107.5, Y + 1.6, 12),
-      { kind: 'opening', pos: [112, Y + 1.6, -104.9], size: [8, 7.5] },
-      { kind: 'crystals', pos: [105, Y + 1.6, -103.6], size: 1.2, color: 'gold' },
-      { kind: 'crystals', pos: [119, Y + 1.6, -103.6], size: 1, color: 'pink' },
-      { kind: 'mushrooms', pos: [105.6, Y, -85], size: 0.8, color: 'gold', glow: true },
-      { kind: 'bunting', from: [104.4, 6, -91], to: [119.6, 6, -91], sag: 0.8, colors: [0xd8202a, 0xffc83a, 0xfff2d6] },
-      { kind: 'fireflies', pos: [112, Y + 1, -95], size: [14, 5, 16], n: 14, colors: [0xffd27a, 0xfff2a0] },
+      rock(101.5, 104, 43, 11, Y, 9), rock(120, 122.5, 43, 11, Y, 9, { color: ROCK2 }),
+      rock(104, 120, 13, 10.5, Y + 1.6, 12),
+      { kind: 'opening', pos: [112, Y + 1.6, 13.1], size: [8, 7.5] },
+      { kind: 'crystals', pos: [105, Y + 1.6, 14.4], size: 1.2, color: 'gold' },
+      { kind: 'crystals', pos: [119, Y + 1.6, 14.4], size: 1, color: 'pink' },
+      { kind: 'mushrooms', pos: [105.6, Y, 33], size: 0.8, color: 'gold', glow: true },
+      { kind: 'bunting', from: [104.4, 6, 27], to: [119.6, 6, 27], sag: 0.8, colors: [0xd8202a, 0xffc83a, 0xfff2d6] },
+      { kind: 'fireflies', pos: [112, Y + 1, 23], size: [14, 5, 16], n: 14, colors: [0xffd27a, 0xfff2a0] },
     ]),
 
-    // =============================================================== Rätselbox-Raum (abseits, x ≈ 190)
-    isl(182, 198, -96, -129, Y, 3, { under: 2 }),
-    ...lauerWall(188.5, -1, -104, -116, [-106, -110, -114], 2.2),
-    ...lauerWall(191.5, 1, -104, -116, [-108, -112], 2.2),
-    { type: 'schattenwand', id: 'sw_raetsel', pos: [190, Y, -128.4], size: [14, 7], depth: 9,
-      casters: [{ pos: [184.5, 6.6, -126], size: [1.4, 1.4, 1.4], shape: 'ball' }] },
+    // =============================================================== Rätselbox-Raum (abseits, x ≈ 260, z 56 … 19)
+    isl(252, 268, 54, 21, Y, 3, { under: 2 }),
+    ...lauerWall(258.5, -1, 46, 34, [44, 40, 36], 2.2),
+    ...lauerWall(261.5, 1, 46, 34, [42, 38], 2.2),
+    { type: 'schattenwand', id: 'sw_raetsel', pos: [260, Y, 21.6], size: [14, 7], depth: 9,
+      casters: [{ pos: [254.5, 6.6, 24], size: [1.4, 1.4, 1.4], shape: 'ball' }] },
     { type: 'schattenweg', id: 'weg_stern', hidden: true, hint: 0.35, parts: [
-      { pos: [188.6, 2.0, -123.4], size: [2, 0.4, 2.2] }, { pos: [191.2, 3.4, -123.4], size: [2, 0.4, 2.2] },
-      { pos: [193.8, 4.8, -123.4], size: [2, 0.4, 2.2] },
+      { pos: [258.6, 2.0, 26.6], size: [2, 0.4, 2.2] }, { pos: [261.2, 3.4, 26.6], size: [2, 0.4, 2.2] },
+      { pos: [263.8, 4.8, 26.6], size: [2, 0.4, 2.2] },
     ] },
-    { type: 'sign', pos: [184.2, Y, -118.6], text: 'Aufs Feld treten –\ndann zur Wand schauen!' },
+    { type: 'sign', pos: [254.2, Y, 31.4], text: 'Aufs Feld treten –\ndann zur Wand schauen!' },
     deco([
-      { kind: 'lantern', pos: [183, Y, -97.4] }, { kind: 'lantern', pos: [197, Y, -97.4] },
-      { kind: 'lantern', pos: [197, Y, -118] },
+      { kind: 'lantern', pos: [253, Y, 52.6] }, { kind: 'lantern', pos: [267, Y, 52.6] },
+      { kind: 'lantern', pos: [267, Y, 32] },
     ]),
     decoW1([
-      rock(179.5, 182, -94, -131, Y, 8), rock(198, 200.5, -94, -131, Y, 8, { color: ROCK2 }),
-      rock(182, 198, -94, -96, Y, 3, { camIgnore: true }),
-      rock(182, 186.5, -103.6, -116, Y, 3.4), rock(193.5, 198, -103.6, -116, Y, 3.4, { color: ROCK2 }),
-      { kind: 'crystals', pos: [183, Y, -103], size: 0.9, color: 'violet' },
-      { kind: 'crystals', pos: [197, Y, -103], size: 0.9, color: 'gold' },
-      { kind: 'mushrooms', pos: [196.6, Y, -126], size: 0.7, color: 'gold', glow: true },
+      rock(249.5, 252, 56, 19, Y, 8), rock(268, 270.5, 56, 19, Y, 8, { color: ROCK2 }),
+      rock(252, 268, 56, 54, Y, 3, { camIgnore: true }),
+      rock(252, 256.5, 46.4, 34, Y, 3.4), rock(263.5, 268, 46.4, 34, Y, 3.4, { color: ROCK2 }),
+      { kind: 'crystals', pos: [253, Y, 47], size: 0.9, color: 'violet' },
+      { kind: 'crystals', pos: [267, Y, 47], size: 0.9, color: 'gold' },
+      { kind: 'mushrooms', pos: [266.6, Y, 24], size: 0.7, color: 'gold', glow: true },
     ]),
   ],
   blocks: [
@@ -360,7 +360,7 @@ export const LEVEL = {
     { kind: 'hidden', pos: [61.2, 10.6, -87.5], content: 'oneup' },
     { kind: 'hidden', pos: [8, 6.2, -87.5], content: 'coins:5' },
     // 5: Wachstumsbeere vor der Gasse
-    { kind: 'question', pos: [108, 3.4, -24.6], content: 'wachstumsbeere' },
+    { kind: 'question', pos: [108, 3.4, 93.4], content: 'wachstumsbeere' },
   ],
   enemies: [
     // Wuschel (11)
@@ -371,36 +371,36 @@ export const LEVEL = {
     { kind: 'wuschel', path: [[14.1, 1.6, -87.5], [14.1, 7.2, -87.5]], speed: 2.4, wait: 0.2 },
     { kind: 'wuschel', path: [[22.6, 2.62, -87.5], [28.4, 2.62, -87.5]], speed: 2.2, wait: 0.3 },
     { kind: 'wuschel', path: [[56.9, 2.62, -87.5], [56.9, 7.6, -87.5]], speed: 2, wait: 0.3 },
-    { kind: 'wuschel', center: [112, 1.6, -50.9], radius: 3, speed: 2.2 },
-    { kind: 'wuschel', path: [[104.6, 1.2, -46.6], [104.6, 1.2, -55.6]], speed: 2.4, wait: 0.4 },
-    { kind: 'wuschel', path: [[109.6, 1.1, -65.4], [117.6, 1.1, -65.4]], speed: 2.2, wait: 0.2 },
-    { kind: 'wuschel', center: [190, 1.3, -100], radius: 2.2, speed: 2 },
+    { kind: 'wuschel', center: [112, 1.6, 67.1], radius: 3, speed: 2.2 },
+    { kind: 'wuschel', path: [[104.6, 1.2, 71.4], [104.6, 1.2, 62.4]], speed: 2.4, wait: 0.4 },
+    { kind: 'wuschel', path: [[109.6, 1.1, 52.6], [117.6, 1.1, 52.6]], speed: 2.2, wait: 0.2 },
+    { kind: 'wuschel', center: [260, 1.3, 50], radius: 2.2, speed: 2 },
     // Schnappblumen (3) und die Riesenschnappblume
     { kind: 'schnappblume', pos: [3.4, Y, -18.4] },
     { kind: 'schnappblume', pos: [49.4, YC, -87.5] },
-    { kind: 'schnappblume', pos: [118.4, Y, -63.6] },
+    { kind: 'schnappblume', pos: [118.4, Y, 54.4] },
     { kind: 'riesenschnappblume', id: 'riese', pos: [39.6, YC, -87.5] },
     // Feuer-Schnappblumen (4)
     { kind: 'feuer_schnappblume', pos: [-6, 2.5, -37], base: 'pot', range: 10 },
     { kind: 'feuer_schnappblume', pos: [9.1, 3.6, -47.2], base: 'pipe', range: 10 },
     { kind: 'feuer_schnappblume', pos: [51.6, 6, -89.2], base: 'pot', range: 9, pause: 1.8 },
-    { kind: 'feuer_schnappblume', pos: [120.4, 2, -53.6], base: 'pot', range: 9 },
+    { kind: 'feuer_schnappblume', pos: [120.4, 2, 64.4], base: 'pot', range: 9 },
     // Mini-Pilzlinge (3)
     { kind: 'pilzling', mini: true, pos: [-6, Y, -4], path: [[-8.4, Y, -4], [-3.4, Y, -4]] },
     { kind: 'pilzling', mini: true, pos: [6.4, Y, -15], path: [[4.4, Y, -15], [9.2, Y, -15]] },
     { kind: 'pilzling', mini: true, pos: [2.6, YC, -66], path: [[0.6, YC, -66], [4.2, YC, -66]] },
     // Lauerblöcke (11): Gasse hinter den Kulissen (6), Rätselbox-Gasse (5)
-    { kind: 'lauerblock', pos: [110.5, Y, -30], dir: [1, 0], reach: 2.5 },
-    { kind: 'lauerblock', pos: [113.5, Y, -32.5], dir: [-1, 0], reach: 2.5, mode: 'timed', period: 2.4 },
-    { kind: 'lauerblock', pos: [110.5, Y, -35], dir: [1, 0], reach: 2.5, mode: 'timed', period: 2.4, phase: 0.5 },
-    { kind: 'lauerblock', pos: [113.5, Y, -37.5], dir: [-1, 0], reach: 2.5 },
-    { kind: 'lauerblock', pos: [110.5, Y, -40], dir: [1, 0], reach: 2.5, mode: 'timed', period: 2.2, phase: 0.25 },
-    { kind: 'lauerblock', pos: [113.5, Y, -42.5], dir: [-1, 0], reach: 2.5 },
-    { kind: 'lauerblock', pos: [188.5, Y, -106], dir: [1, 0], reach: 2.5, mode: 'timed', period: 2.4 },
-    { kind: 'lauerblock', pos: [191.5, Y, -108], dir: [-1, 0], reach: 2.5 },
-    { kind: 'lauerblock', pos: [188.5, Y, -110], dir: [1, 0], reach: 2.5, mode: 'timed', period: 2.4, phase: 0.5 },
-    { kind: 'lauerblock', pos: [191.5, Y, -112], dir: [-1, 0], reach: 2.5 },
-    { kind: 'lauerblock', pos: [188.5, Y, -114], dir: [1, 0], reach: 2.5, mode: 'timed', period: 2, phase: 0.2 },
+    { kind: 'lauerblock', pos: [110.5, Y, 88], dir: [1, 0], reach: 2.5 },
+    { kind: 'lauerblock', pos: [113.5, Y, 85.5], dir: [-1, 0], reach: 2.5, mode: 'timed', period: 2.4 },
+    { kind: 'lauerblock', pos: [110.5, Y, 83], dir: [1, 0], reach: 2.5, mode: 'timed', period: 2.4, phase: 0.5 },
+    { kind: 'lauerblock', pos: [113.5, Y, 80.5], dir: [-1, 0], reach: 2.5 },
+    { kind: 'lauerblock', pos: [110.5, Y, 78], dir: [1, 0], reach: 2.5, mode: 'timed', period: 2.2, phase: 0.25 },
+    { kind: 'lauerblock', pos: [113.5, Y, 75.5], dir: [-1, 0], reach: 2.5 },
+    { kind: 'lauerblock', pos: [258.5, Y, 44], dir: [1, 0], reach: 2.5, mode: 'timed', period: 2.4 },
+    { kind: 'lauerblock', pos: [261.5, Y, 42], dir: [-1, 0], reach: 2.5 },
+    { kind: 'lauerblock', pos: [258.5, Y, 40], dir: [1, 0], reach: 2.5, mode: 'timed', period: 2.4, phase: 0.5 },
+    { kind: 'lauerblock', pos: [261.5, Y, 38], dir: [-1, 0], reach: 2.5 },
+    { kind: 'lauerblock', pos: [258.5, Y, 36], dir: [1, 0], reach: 2.5, mode: 'timed', period: 2, phase: 0.2 },
   ],
   items: [
     // Aufbau-Haken (brennende Laterne am Start): Krümel, Schattensterne, Vorhänge, Kulisse
@@ -434,27 +434,27 @@ export const LEVEL = {
     line([60.4, 7.6, -87.5], [62, 7.6, -87.5], 2),
     line([27, -0.9, -87.5], [31.6, -0.9, -87.5], 3),
     // 5: Gasse, Schacht, Spur zur Lücke hinter dem Vorhang
-    line([112, 1.6, -26.6], [112, 1.6, -44], 7),
-    ...arc([112, 1.6, -45.2], [112, 1.6, -48.6], 2, 1),
-    ...arc([112, 1.6, -50.2], [112, 1.6, -51.8], 2, 1),
-    ...arc([112, 1.6, -54.8], [112, 1.6, -57.6], 2, 1),
-    line([107.4, 1.6, -66.2], [105, 1.6, -66.2], 3),
+    line([112, 1.6, 91.4], [112, 1.6, 74], 7),
+    ...arc([112, 1.6, 72.8], [112, 1.6, 69.4], 2, 1),
+    ...arc([112, 1.6, 67.8], [112, 1.6, 66.2], 2, 1),
+    ...arc([112, 1.6, 63.2], [112, 1.6, 60.4], 2, 1),
+    line([107.4, 1.6, 51.8], [105, 1.6, 51.8], 3),
     // 6: Ziel
-    line([112, 1.6, -79], [112, 1.6, -85], 3),
+    line([112, 1.6, 39], [112, 1.6, 33], 3),
     // Rätselbox (hin und zurück)
-    { kind: 'warpbox', id: 'rb1', style: 'mystery', pos: [117, Y, -25.6], target: 'rb2' },
-    { kind: 'warpbox', id: 'rb2', style: 'mystery', pos: [190, Y, -98.8], target: 'rb1' },
-    { kind: 'pfeld', id: 'pf_licht', pos: [185.6, Y, -122.6], need: 1, on: { reveal: ['weg_stern', 'stern_raetsel'] } },
-    line([190, 1.6, -103.6], [190, 1.6, -115.6], 4),
+    { kind: 'warpbox', id: 'rb1', style: 'mystery', pos: [117, Y, 92.4], target: 'rb2' },
+    { kind: 'warpbox', id: 'rb2', style: 'mystery', pos: [260, Y, 51.2], target: 'rb1' },
+    { kind: 'pfeld', id: 'pf_licht', pos: [255.6, Y, 27.4], need: 1, on: { reveal: ['weg_stern', 'stern_raetsel'] } },
+    line([260, 1.6, 46.4], [260, 1.6, 34.4], 4),
   ],
   checkpoint: [0, YC, -62.6],
   stars: [
     [-0.6, 6.0, -16],                                                     // 0: Schattenstern im Foyer
-    { pos: [196.2, 5.9, -123.4], hidden: true, id: 'stern_raetsel' },    // 1: Rätselbox (Druckfeld)
+    { pos: [266.2, 5.9, 26.6], hidden: true, id: 'stern_raetsel' },    // 1: Rätselbox (Druckfeld)
     //                                                                      2: Krümel (Holz-Silhouette, onFall)
   ],
   stamp: [34.7, -1.5, -87.5],
-  goal: { pos: [112, Y + 1.6, -96.6], height: 9 },
+  goal: { pos: [112, Y + 1.6, 21.4], height: 9 },
   marks: {
     start: [0, Y, 5],
     foyer: [2, Y, -8],
@@ -474,15 +474,15 @@ export const LEVEL = {
     stageEnd: [52, YC, -87.5],
     podium: [61, 7, -87.5],
     door: [63.4, 7, -88.2],
-    back: [112, Y, -23],
-    lane: [112, Y, -28],
-    shaft: [112, Y, -44.6],
-    landing: [112, Y, -61.6],
-    nook: [104.6, Y, -66.2],
-    baron: [96.4, Y, -66.6],
-    exit: [112, Y, -71.4],
-    goal: [112, Y, -83],
-    mystery: [190, Y, -101],
-    hall: [188, Y, -120.5],
+    back: [112, Y, 95],
+    lane: [112, Y, 90],
+    shaft: [112, Y, 73.4],
+    landing: [112, Y, 56.4],
+    nook: [104.6, Y, 51.8],
+    baron: [96.4, Y, 51.4],
+    exit: [112, Y, 46.6],
+    goal: [112, Y, 35],
+    mystery: [260, Y, 49],
+    hall: [258, Y, 29.5],
   },
 };

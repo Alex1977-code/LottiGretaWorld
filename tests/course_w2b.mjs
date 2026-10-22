@@ -4,7 +4,7 @@
 // Schattentreppe, Holz-Silhouette umwerfen, Kisten unter der Bühne, Kletterfels, Farbfeld, Riesenräder,
 // Figurenschalter mit Heldinnen-Wechsel), weitere Mechanik-Prüfungen (Topfpflanze frisst Münzen durch die Gitter,
 // Schattenweg unsichtbar aber fest und als Schatten an der Wand, unsichtbarer Block, Lauerblock, Hügelwalze schiebt,
-// Kristallblöcke über der Röhre), Zeit bis zum Ziel < 180 s Spielzeit, Kennzahlen je Abschnitt (Zeichenaufrufe < 120
+// Kristalldeckel über der Röhre), Zeit bis zum Ziel < 180 s Spielzeit, Kennzahlen je Abschnitt (Zeichenaufrufe < 120
 // inkl. Schattenpass, Dreiecke < 300 k) und Screenshots aus der Spielkamera (tests/out/w2lv_*.png).
 // Aufruf (nach npm run build): PORT_BASE=5200 node tests/course_w2b.mjs [2-3|2-4]   (SHOTS_ONLY=1: nur Bilder)
 //
@@ -58,30 +58,30 @@ const ROUTES = {
       { name: 'Podest', to: [61, -87.5], jump: 40 },
       { name: 'zur Tür', to: [63.4, -88], within: 0.25, run: false },
       { name: 'Tür hinter die Kulissen', to: [63.4, -91], door: true, run: false },
-      { name: 'Kulissen', to: [112, -26] },
-      { name: 'Lauerblock-Gasse', to: [112, -44.6] },
+      { name: 'Kulissen', to: [112, 92] },
+      { name: 'Lauerblock-Gasse', to: [112, 73.4] },
       { waitFor: [{ id: 'm4', x: 112, r: 0.9 }] },
       { name: 'Fähre 1', toNamed: 'm4', jump: 40, within: 0.7 },
       { waitFor: [{ id: 'm4', x: 112, r: 0.3 }], ride: true },
       { name: 'Fähre 2', toNamed: 'm5', jump: 34, within: 0.7, run: false },
       { waitFor: [{ id: 'm5', x: 112, r: 0.4 }], ride: true },
-      { name: 'Landung', to: [112, -58.6], jump: 34, run: false },
-      { name: 'zur Ausgangstür', to: [112, -71], within: 0.25, run: false },
-      { name: 'Ausgangstür', to: [112, -74], door: true, run: false },
-      { name: 'Ausgang', to: [112, -86] },
-      { to: [112, -89.6], jump: 30 },
-      { name: 'Zielmast', to: [112, -96.3], jump: 40, within: 0.3 },
+      { name: 'Landung', to: [112, 59.4], jump: 34, run: false },
+      { name: 'zur Ausgangstür', to: [112, 47], within: 0.25, run: false },
+      { name: 'Ausgangstür', to: [112, 44], door: true, run: false },
+      { name: 'Ausgang', to: [112, 32] },
+      { to: [112, 28.4], jump: 30 },
+      { name: 'Zielmast', to: [112, 21.7], jump: 40, within: 0.3 },
     ],
     targets: [
       { name: 'Stern 0: Schattenstern über den Bühnenkisten', star: 0, from: [-3, 4.1, -16],
         legs: [{ to: [-0.6, -16], jump: 40, within: 0.3 }, { wait: 30 }], shot: 'stern0' },
-      { name: 'Stern 1: Rätselbox, Druckfeld, Schattentreppe', star: 1, from: [117, 1, -28],
-        legs: [{ to: [117, -25.6], jump: 30, within: 0.4 }, { wait: 30 }, { to: [190, -103] }, { to: [190, -116.4] },
-          { name: 'Druckfeld', to: [185.6, -122.6], within: 0.3 }, { wait: 40 },
-          { to: [188.6, -123.4], jump: 30, within: 0.3 }, { to: [191.2, -123.4], jump: 34, within: 0.3 },
-          { to: [193.8, -123.4], jump: 34, within: 0.3 }, { to: [196.2, -123.4], jump: 40, within: 0.4 }, { wait: 30 }], shot: 'stern1' },
-      { name: 'Stern 2: Holz-Silhouette umrennen, Krümel schenkt den Stern', star: 2, from: [107.6, 1, -66.2],
-        legs: [{ to: [97.6, -66.4], within: 0.4 }, { wait: 150 }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stern 1: Rätselbox, Druckfeld, Schattentreppe', star: 1, from: [117, 1, 90],
+        legs: [{ to: [117, 92.4], jump: 30, within: 0.4 }, { wait: 30 }, { to: [260, 47] }, { to: [260, 33.6] },
+          { name: 'Druckfeld', to: [255.6, 27.4], within: 0.3 }, { wait: 40 },
+          { to: [258.6, 26.6], jump: 30, within: 0.3 }, { to: [261.2, 26.6], jump: 34, within: 0.3 },
+          { to: [263.8, 26.6], jump: 34, within: 0.3 }, { to: [266.2, 26.6], jump: 40, within: 0.4 }, { wait: 30 }], shot: 'stern1' },
+      { name: 'Stern 2: Holz-Silhouette umrennen, Krümel schenkt den Stern', star: 2, from: [107.6, 1, 51.8],
+        legs: [{ to: [97.6, 51.6], within: 0.4 }, { wait: 150 }, { star: 2 }], shot: 'stern2' },
       { name: 'Stempel: Kisten unter der Bühne (Krallen-Anzug)', from: [28.2, -1.5, -87.5], power: 'krallen',
         legs: [{ to: [32.1, -87.5], within: 0.2, run: false }, { action: true }, { wait: 40 }, { action: true }, { wait: 60 },
           { action: true }, { wait: 40 }, { to: [34.7, -87.5], within: 0.3, run: false }, { wait: 20 }], shot: 'stempel' },
@@ -90,7 +90,7 @@ const ROUTES = {
           { wait: 70 }, { action: true }, { wait: 50 }, { to: [34.7, -87.5], within: 0.3, run: false }, { wait: 20 }] },
     ],
     extra: [
-      { name: 'Silhouette per Tatzenhieb (Krallen-Anzug)', from: [98.2, 1, -66.4], power: 'krallen', heroes: ['lotti'],
+      { name: 'Silhouette per Tatzenhieb (Krallen-Anzug)', from: [98.2, 1, 51.6], power: 'krallen', heroes: ['lotti'],
         legs: [{ face: [-1, 0] }, { action: true }, { wait: 150 }], check: 'silhouette' },
       { name: 'Topfpflanze tragen, sie frisst die Münzen im Käfig', from: [-2.75, 2.6, -64.4], heroes: ['lotti'],
         legs: [{ face: [-1, 0] }, { action: true }, { wait: 20 }, { to: [4.15, -67.4], within: 0.2, run: false }, { face: [1, 0] }, { wait: 240 }],
@@ -99,8 +99,8 @@ const ROUTES = {
         legs: [{ to: [12.3, -87.5], jump: 40, within: 0.3 }, { wait: 10 }], check: 'shadowpath' },
       { name: 'Unsichtbarer Block (nur sein Schatten) gibt Münzen', from: [8, 2.6, -87.5], heroes: ['lotti'],
         legs: [{ hop: 22 }, { wait: 40 }], check: 'hiddenblock' },
-      { name: 'Lauerblock stößt heraus, wenn man stehen bleibt', from: [112, 1, -27.2], heroes: ['lotti'],
-        legs: [{ to: [111.4, -30], within: 0.2, run: false }, { wait: 90 }], check: 'lauer' },
+      { name: 'Lauerblock stößt heraus, wenn man stehen bleibt', from: [112, 1, 90.8], heroes: ['lotti'],
+        legs: [{ to: [111.4, 88], within: 0.2, run: false }, { wait: 90 }], check: 'lauer' },
     ],
     shots: [
       ['start', [0, 1, 5]],
@@ -114,18 +114,18 @@ const ROUTES = {
       ['riesenblume', [34, 5.1, -87.5]],
       ['unterbuehne', [28.2, -1.5, -87.5]],
       ['podest', [60.6, 7.1, -87.5]],
-      ['kulissen', [112, 1, -27]],
-      ['gasse', [112, 1, -36]],
-      ['schacht', [112, 1, -44.6]],
-      ['nische', [103.4, 1, -66.2]],
-      ['ziel', [112, 1, -84]],
-      ['raetselraum', [190, 1, -110]],
-      ['raetselwand', [186, 1, -121]],
+      ['kulissen', [112, 1, 91]],
+      ['gasse', [112, 1, 82]],
+      ['schacht', [112, 1, 73.4]],
+      ['nische', [103.4, 1, 51.8]],
+      ['ziel', [112, 1, 34]],
+      ['raetselraum', [260, 1, 40]],
+      ['raetselwand', [256, 1, 29]],
     ],
   },
   '2-4': {
     start: [0, 1, 5],
-    enemies: { rollpilz: 10, huepfmaus: 7, huepfmaus_stachel: 6, pilzling: 7 },
+    enemies: { rollpilz: 10, huepfmaus: 6, huepfmaus_stachel: 6, pilzling: 5, kristallwand: 1 },
     main: [
       { name: 'Graswiese', to: [3, -6] },
       { to: [7, -13] },
@@ -166,9 +166,10 @@ const ROUTES = {
     targets: [
       { name: 'Stern 0: Kletterfels mit dem Krallen-Anzug', star: 0, from: [0, 1.1, -19.6], power: 'krallen',
         legs: [{ to: [0, -21], within: 0.15, run: false }, { push: 200, jump: 12, dir: [0, -1] }, { to: [0, -23], within: 0.3 }, { wait: 30 }], shot: 'stern0' },
-      { name: 'Stern 1: Kristallblöcke stampfen, Röhre, alle Farbfelder', star: 1, from: [1.8, -14, -290],
-        legs: [{ to: [5, -290], jump: 34, within: 0.25, delay: 6 }, { stomp: true }, { wait: 30 }, { stomp: true }, { wait: 30 },
-          { hop: 14 }, { crouch: 4 }, { wait: 30 },
+      { name: 'Stern 1: Kristalldeckel stampfen, Röhre, alle Farbfelder', star: 1, from: [1.8, -14, -290],
+        legs: [{ to: [5, -290], jump: 34, within: 0.25, delay: 6 }, { to: [5, -290], within: 0.1, run: false, slow: 0.4 }, { wait: 40 },
+          { stomp: true }, { wait: 40 },
+          { to: [5, -290], jump: 26, within: 0.2, run: false }, { wait: 10 }, { crouch: 4 }, { wait: 30 },
           ...[-287.6, -289.6, -291.6, -293.6].flatMap((z, r) => [57, 59, 61, 63].map((x) => ({ to: [r % 2 ? 63 - (x - 57) : x, z], within: 0.4, run: false }))),
           { wait: 40 }, { star: 1 }], shot: 'stern1' },
       { name: 'Stern 2: zwischen die Riesenräder fallen lassen', star: 2, from: [0, -14, -303.7],
@@ -187,7 +188,7 @@ const ROUTES = {
         legs: [{ wait: 120 }], check: 'drum' },
       { name: 'Roter Ring: acht rote Münzen → Extraleben', from: [7, 9.1, -72.4], heroes: ['lotti'],
         legs: [{ to: [7, -74.4], within: 0.3, run: false }, { to: [7, -76.2], within: 0.4 },
-          { to: [3, -79] }, { to: [-5, -76] }, { to: [-8, -70] }, { to: [-8, -82] }, { to: [-3, -82], jump: 30 }, { to: [1, -86] },
+          { to: [3, -79] }, { to: [-5, -76] }, { to: [-8, -70] }, { to: [-8, -82] }, { to: [-3, -82] }, { to: [1, -86] },
           { to: [6, -90] }, { to: [10, -84] }, { wait: 30 }], check: 'ring' },
     ],
     shots: [
@@ -464,7 +465,7 @@ function install() {
           return { ok: p.mode === 'ground' && Math.abs(p.pos.y - 3.5) < 0.05 && sh?.shape?.tag === 'schattenweg' && (w?.counts?.box ?? 0) >= 10 && w.count > 0, y: +p.pos.y.toFixed(2), tag: sh?.shape?.tag, shadows: w?.count, boxes: w?.counts?.box };
         }
         case 'hiddenblock': { const coins = L.runtime.info().coins; return { ok: coins >= 1, coins }; }
-        case 'lauer': { const lb = ents('lauerblock').find((e) => Math.abs(e.wall.z + 30) < 0.1); return { ok: (lb?.pushes ?? 0) >= 1 && p.pos.x > 111.5, pushes: lb?.pushes, x: +p.pos.x.toFixed(2) }; }
+        case 'lauer': { const lb = ents('lauerblock').find((e) => Math.abs(e.wall.z - 88) < 0.1); return { ok: (lb?.pushes ?? 0) >= 1 && p.pos.x > 111.5, pushes: lb?.pushes, x: +p.pos.x.toFixed(2) }; }
         case 'wrongHero': { const lotti = L.named.get('weg_lotti'), greta = L.named.get('weg_greta'), fs = L.named.get('fs_greta'); return { ok: !greta.want && fs.wrongCount >= 1 && !fs.done, wrong: fs.wrongCount, greta: greta.want, lotti: lotti.want }; }
         case 'drum': return { ok: p.pos.z > -35.6 || p.pos.y < 6.2, z: +p.pos.z.toFixed(2), y: +p.pos.y.toFixed(2) };
         case 'ring': { const r = L.named.get('ring'); return { ok: r?.state === 'done', state: r?.state, got: r?.got, lives: L.runtime.info().lives }; }

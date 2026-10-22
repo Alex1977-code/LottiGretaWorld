@@ -440,6 +440,7 @@ export class Hopper {
     if (!level.view) return;
     this.model = getModel('bunny_small');
     this.model.root.scale.setScalar(opts.scale ?? 1.1);
+    this.model.root.traverse((o) => { if (o.isMesh) o.castShadow = false; });   // Blob-Schatten genügt (spart den Schattenpass)
     addObject(level, this.model.root, (dt) => this.render(dt));
     this.shadowPos = new THREE.Vector3(this.x, this.y, this.z);
     level.view.shadows.add({ pos: this.shadowPos, radius: 0.26, alive: () => true, visible: () => true });

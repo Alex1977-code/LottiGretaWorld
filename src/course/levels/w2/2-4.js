@@ -12,7 +12,7 @@
 //   3  Checkpoint       z −95 … −108 Fahne neben der Hügelmühle (Windmühle), Röhre hinab ins Räderwerk.
 //   4  Untergrund       y −14, z −228 … −304: Rollpilze, Stachel-Hüpfmäuse, Mini-Pilzlinge; drei liegende
 //                                      Zahnräder (Drehteller) und ein stehendes Zahnrad über dem Schacht; grüne Röhre unter
-//                                      zwei Kristallblöcken (Stampfen) → Farbfeld-Raum.
+//                                      einem Kristalldeckel (Stampfen) → Farbfeld-Raum.
 //   5  Ausgang          z −304 … −334: zwei Riesenräder mit waagerechten Stegen; wer sich zwischen die Räder fallen
 //                                      lässt, landet auf dem Sims mit Stern 2 (Röhre zurück). Röhre hinauf zum Ziel.
 //   Ziel: Hügelkuppe y 10, z −380 … −408 (Röhre aus dem Untergrund), Zielmast.
@@ -200,6 +200,8 @@ export const LEVEL = {
     isl(UX - 8, UX + 8, -276.6, -304, YD, 3, { top: 'stone', under: 2 }),
     // grüne Röhre unter Kristallblöcken → Farbfeld-Raum; Rückweg-Röhre daneben
     { type: 'pipe', id: 'p_farbe', pos: [UX + 5, YD, -290], height: 1.2, target: 'p_farbraum' },
+    // Kristalldeckel auf der Röhre (Stampfattacke von oben zerbricht ihn)
+    { type: 'kristallwand', id: 'deckel', pos: [UX + 5, YD + 1.2, -290], size: [2, 1.4, 2], color: 'cyan', onBreak: { coins: 3 } },
     { type: 'pipe', id: 'p_farbe_back', pos: [UX + 5.6, YD, -296.6], height: 0.9 },
     { type: 'sign', pos: [UX + 1.6, YD, -287.4], text: 'Kristall: stampfen!', size: [2.4, 0.8] },
     // Ausgang: zwei Riesenräder, Sims mit Stern 2 darunter, Röhre zurück
@@ -272,8 +274,6 @@ export const LEVEL = {
     { kind: 'question', pos: [-3, YU + 2.4, -30], content: 'wachstumsbeere' },
     { kind: 'hidden', pos: [0, YU + 5.4, -62], content: 'oneup' },
     // 4: Kristallblöcke über der Röhre zum Farbfeld-Raum, Funkenblüte
-    { kind: 'crystal', pos: [UX + 5, YD + 1.2, -290] },
-    { kind: 'crystal', pos: [UX + 5, YD + 2.2, -290] },
     { kind: 'question', pos: [UX - 3, YD + 2.4, -240], content: 'funkenbluete' },
   ],
   enemies: [
@@ -288,11 +288,10 @@ export const LEVEL = {
     { kind: 'rollpilz', pos: [UX - 3, YD, -246], behavior: 'chase', sight: 6 },
     { kind: 'rollpilz', pos: [UX, YD, -284], path: [[UX - 5, YD, -284], [UX + 3, YD, -284]] },
     { kind: 'rollpilz', pos: [UX - 2, YD, -298], behavior: 'chase', sight: 6 },
-    // Hüpfmäuse (7)
+    // Hüpfmäuse (6)
     { kind: 'huepfmaus', pos: [-4, Y, -6], path: [[-7, Y, -6], [-1, Y, -6]] },
     { kind: 'huepfmaus', pos: [6, Y, -15], dir: [-1, 0] },
     { kind: 'huepfmaus', pos: [-5, YU, -29.6], path: [[-8, YU, -29.6], [-1, YU, -29.6]] },
-    { kind: 'huepfmaus', pos: [5, YU, -55.6], path: [[1, YU, -55.6], [8, YU, -55.6]] },
     { kind: 'huepfmaus', pos: [-6, YU, -76], path: [[-9, YU, -76], [-2, YU, -76]] },
     { kind: 'huepfmaus', pos: [4, YU, -84], dir: [-1, 0] },
     { kind: 'huepfmaus', pos: [0, YG, -394], path: [[-5, YG, -394], [5, YG, -394]] },
@@ -303,11 +302,9 @@ export const LEVEL = {
     { kind: 'huepfmaus_stachel', pos: [UX - 4, YD, -327], path: [[UX - 6, YD, -327], [UX + 4, YD, -327]] },
     { kind: 'huepfmaus_stachel', pos: [57, YD, -287], path: [[55, YD, -287], [65, YD, -287]] },
     { kind: 'huepfmaus_stachel', pos: [63, YD, -294], path: [[55, YD, -294.6], [65, YD, -294.6]] },
-    // Pilzlinge (2) und Mini-Pilzlinge (5)
+    // Pilzlinge (2) und Mini-Pilzlinge (3)
     { kind: 'pilzling', pos: [-3, YU, -64.6], path: [[-4.6, YU, -64.6], [4.6, YU, -64.6]] },
     { kind: 'pilzling', pos: [3, YU, -92], path: [[-4, YU, -92], [5, YU, -92]] },
-    { kind: 'pilzling', mini: true, pos: [6, YU, -34], path: [[2, YU, -32.6], [9, YU, -32.6]] },
-    { kind: 'pilzling', mini: true, pos: [-6, YU, -45.6], behavior: 'chase', sight: 5 },
     { kind: 'pilzling', mini: true, pos: [-1, YU, -79], behavior: 'chase', sight: 5 },
     { kind: 'pilzling', mini: true, pos: [UX + 4, YD, -300], behavior: 'chase', sight: 5 },
     { kind: 'pilzling', mini: true, pos: [UX - 5, YD, -331], dir: [1, 0] },
@@ -329,7 +326,7 @@ export const LEVEL = {
     ...arc([0, YU + 0.8, -46.2], [0, YU + 0.8, -51.8], 4, 2.4),
     ...arc([0, YU + 0.8, -59], [0, YU + 0.8, -65], 4, 2.8),
     { kind: 'roter_ring', id: 'ring', pos: [7, YU + 3, -74], yaw: Math.PI / 2, time: 12,
-      coins: [[-8, YU + 0.8, -70], [-5, YU + 0.8, -76], [-8, YU + 0.8, -82], [-3, YU + 2.6, -82], [1, YU + 0.8, -86], [6, YU + 0.8, -90], [10, YU + 0.8, -84], [3, YU + 0.8, -79]] },
+      coins: [[-8, YU + 0.8, -70], [-5, YU + 0.8, -76], [-8, YU + 0.8, -82], [-3, YU + 1.4, -82], [1, YU + 0.8, -86], [6, YU + 0.8, -90], [10, YU + 0.8, -84], [3, YU + 0.8, -79]] },
     line([0, YU + 0.6, -96], [0, YU + 0.6, -101], 3),
     // 4: Untergrund
     line([UX, YD + 0.6, -237], [UX, YD + 0.6, -248], 4),
