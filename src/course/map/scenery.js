@@ -70,6 +70,7 @@ export class MapScenery {
     this.buildIslets(bounds);
     if (this.kit === 'desert') this.buildMesas(bounds);
     for (const nb of map.neighbors ?? []) this.buildNeighbor(nb);
+    if (map.birds?.length) this.buildBirds(map.birds);
     view.three.add(this.group);
   }
 
@@ -88,7 +89,7 @@ export class MapScenery {
   buildSea(b) {
     const cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2;
     const w = b.max.x - b.min.x + 120, d = b.max.z - b.min.z + 120;
-    const nx = Math.ceil(w / 3.5), nz = Math.ceil(d / 3.5);
+    const nx = Math.ceil(w / 4.5), nz = Math.ceil(d / 4.5);
     const g = new THREE.PlaneGeometry(w, d, nx, nz);
     g.rotateX(-Math.PI / 2);
     g.translate(cx, this.sea, cz);
@@ -173,7 +174,7 @@ export class MapScenery {
     const parts = [];
     const white = lin(0xffffff), shade = lin(0xd4e3f3);
     for (const [x, y, z, r] of [[0, 0, 0, 1], [-0.95, -0.12, 0.1, 0.72], [0.95, -0.1, -0.1, 0.78], [-0.35, 0.32, -0.2, 0.68], [0.45, 0.36, 0.15, 0.62]]) {
-      const s = new THREE.SphereGeometry(r, 9, 6);
+      const s = new THREE.SphereGeometry(r, 8, 5);
       s.translate(x, y, z);
       parts.push(colorize(s, (p, n, o) => mixc(shade, white, smooth(-0.7, 0.5, n.y), o)));
     }
@@ -181,13 +182,13 @@ export class MapScenery {
     g.scale(1, 0.7, 1);
     const rnd = new Rnd(0xc10d);
     const data = [];
-    for (let i = 0; i < 60 && data.length < 18; i++) {
+    for (let i = 0; i < 60 && data.length < 14; i++) {
       const x = rnd.real(b.min.x - 50, b.max.x + 50), z = rnd.real(b.min.z - 40, b.max.z + 30);
       if (this.distToLand(x, z) < 10) continue;
       data.push({ x, y: rnd.real(5, 11), z, s: rnd.real(2.6, 5), v: rnd.real(0.25, 0.6), xa: b.min.x - 70, xb: b.max.x + 70 });
     }
     // hohe Wolken am Horizont (nur beim flachen Anflug zu sehen)
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 7; i++) {
       data.push({ x: rnd.real(b.min.x - 160, b.max.x + 160), y: rnd.real(28, 60), z: b.min.z - rnd.real(90, 220), s: rnd.real(9, 18), v: rnd.real(0.5, 1.2), xa: b.min.x - 220, xb: b.max.x + 220 });
     }
     this.clouds = new THREE.InstancedMesh(this.track(g), this.track(new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x6f7f90, emissiveIntensity: 0.35 })), data.length);
@@ -318,9 +319,47 @@ export class MapScenery {
     this.rects.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]);
   }
 
+  /** Segelnde Vögel (Hackvögel) über der Insel: birds = [{ c: [x, y, z], r, n }] – eine InstancedMesh für alle. */
+  buildBirds(list) {
+    const b = [];
+    const body = new THREE.SphereGeometry(0.28, 7, 5); body.scale(1.6, 0.8, 0.8);
+    const head = new THREE.SphereGeometry(0.17, 6, 4); head.translate(0.48, 0.1, 0);
+    const beak = new THREE.ConeGeometry(0.06, 0.28, 4); beak.rotateZ(-Math.PI / 2); beak.translate(0.72, 0.08, 0);
+    const wing = (s) => { const g = new THREE.BoxGeometry(0.55, 0.05, 1.5); g.translate(0, 0.08, s * 0.85); g.rotateX(s * -0.25); return g; };
+    const tail = new THREE.BoxGeometry(0.4, 0.04, 0.3); tail.translate(-0.55, 0.02, 0);
+    const purple = lin(0x5a3a7a), light = lin(0x8a6ab8), orange = lin(0xffb43a), white = lin(0xf6f0ff);
+    const paint = (g, c) => colorize(g, (p, n, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; });
+    b.push(paint(body, purple), paint(head, light), paint(beak, orange), paint(wing(1), light), paint(wing(-1), light), paint(tail, purple));
+    const g = merge(b);
+    this.birdData = [];
+    for (const { c, r, n = 2 } of list) for (let i = 0; i < n; i++) this.birdData.push({ c, r: r * (1 - i * 0.18), ph: (i / n) * Math.PI * 2, sp: 0.32 + i * 0.05 });
+    this.birds = new THREE.InstancedMesh(this.track(g), this.track(new THREE.MeshLambertMaterial({ vertexColors: true })), this.birdData.length);
+    this.birds.castShadow = true;
+    this.birds.frustumCulled = false;
+    void white;
+    this.group.add(this.birds);
+    this.placeBirds(0);
+  }
+
+  placeBirds(t) {
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), s = new THREE.Vector3(1, 1, 1);
+    this.birdData.forEach((d, i) => {
+      const a = d.ph + t * d.sp;
+      p.set(d.c[0] + Math.cos(a) * d.r, d.c[1] + Math.sin(t * 0.7 + i) * 0.6, d.c[2] + Math.sin(a) * d.r);
+      // Blick entlang der Flugbahn (gegen den Uhrzeigersinn von oben), in die Kurve gelegt
+      e.set(-0.32, Math.atan2(-Math.cos(a), -Math.sin(a)), 0.05 * Math.sin(t * 2 + i), 'YXZ');
+      q.setFromEuler(e);
+      s.set(1, 1, 1 + Math.sin(t * 3 + i) * 0.04);
+      m.compose(p, q, s);
+      this.birds.setMatrixAt(i, m);
+    });
+    this.birds.instanceMatrix.needsUpdate = true;
+  }
+
   update(dt) {
     this.time += dt;
     const t = this.time;
+    if (this.birds) this.placeBirds(t);
     if (this.foamMat) this.foamMat.opacity = 0.42 + 0.18 * Math.sin(t * 1.6);
     if (this.glints) this.placeGlints(t);
     if (this.clouds) {
@@ -333,6 +372,7 @@ export class MapScenery {
     this.group.parent?.remove(this.group);
     this.glints?.dispose();
     this.clouds?.dispose();
+    this.birds?.dispose();
     for (const x of this.own) x.dispose?.();
     this.own.length = 0;
   }

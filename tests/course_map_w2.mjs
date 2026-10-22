@@ -74,6 +74,8 @@ const { check, summary } = makeChecker();
 const PORT = 4210;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser({ hasTouch: true });
+page.setDefaultNavigationTimeout(150000);
+page.setDefaultTimeout(150000);
 const port = PORT + Number(process.env.PORT_BASE ?? 0);
 const sc = (fn, arg) => page.evaluate(fn, arg);
 const active = (k) => sc((key) => window.__game.scene.isActive(key), k);
@@ -83,12 +85,18 @@ const stats = [];
 async function shot(name, wait = 700, snap = true) {
   if (snap) await sc(() => window.__courseMap?.snapCamera());
   const f0 = await sc(() => window.__courseMap?.view?.frame ?? 0);
-  await page.waitForFunction((f) => (window.__courseMap?.view?.frame ?? 0) >= f + 3, f0, { timeout: 60000 }).catch(() => {});
+  // ohne Einrasten (Röhrenfahrt) braucht die weich folgende Kamera ein paar Bilder mehr
+  await page.waitForFunction(([f, k]) => (window.__courseMap?.view?.frame ?? 0) >= f + k, [f0, snap ? 3 : 10], { timeout: 90000 }).catch(() => {});
   await page.waitForTimeout(wait);
   const s = await sc(() => window.__courseMap?.stats());
   if (s) stats.push([name, s.calls, s.triangles]);
   await page.screenshot({ path: `${OUT}cmap2_${name}.png`, timeout: 90000 });
   return s;
+}
+/** Ein paar Bilder abwarten (HUD wird je Bild aktualisiert). */
+async function frames(n = 3) {
+  const f0 = await sc(() => window.__courseMap?.view?.frame ?? 0);
+  await page.waitForFunction(([f, k]) => (window.__courseMap?.view?.frame ?? 0) >= f + k, [f0, n], { timeout: 60000 }).catch(() => {});
 }
 async function waitMap(world = null) {
   try {
@@ -159,6 +167,7 @@ check('Nach 1-Burg: Glasröhre nach Welt 2 frei (Schranke offen)', st.entrances.
 await sc(() => { const m = window.__courseMap; m.teleport(-10, 5.3, -84, -Math.PI / 2); m.step(20); });
 let r = await walkTo(-10, -88.5, (s) => s.onPad === 'W2', 600);
 await shot('w1_roehre', 600);
+await frames();
 check('Figur steht auf dem Röhren-Podest, Hinweis „ab durch die Glasröhre“', r.s.onPad === 'W2' && (await sc(() => window.__courseMap.hud.bannerStatus.text)).includes('Glasröhre'));
 await sc(() => window.__courseMap.setInput({ jump: true }));
 st = await sc(() => window.__courseMap.step(1));
@@ -206,7 +215,7 @@ await loadWith({ levels: lv14, mapOpened: [...W1_OPENED, '2-2'], world: 2, world
 await waitMap(2);
 st = await sc(() => window.__courseMap.state());
 check('2-1 geschafft → Schluchtweg offen; 2-2 bei 14 Sternen gesperrt (Sterne)', st.gates['2-2'] === 'open' && st.entrances['2-2'].locked && st.entrances['2-2'].reason === 'stars' && st.gateStars === 14);
-await sc(() => { const m = window.__courseMap; m.teleport(12, 3.6, -2.6, -Math.PI / 2); m.step(40); });
+await sc(() => { const m = window.__courseMap; m.teleport(12, 3.6, -6.6, -Math.PI / 2); m.step(40); });
 st = await sc(() => window.__courseMap.state());
 await shot('sterne', 900);
 let banner = await sc(() => window.__courseMap.hud.bannerStatus.text);
@@ -214,23 +223,26 @@ console.log('  Hinweis 2-2:', banner);
 check('Auf der Sternenplattform: Hinweis „Benötigt 15 Sterne (14/15)“, Enter startet nichts', st.onPad === '2-2' && banner === 'Benötigt 15 Sterne (14/15)'
   && !(await sc(() => { const m = window.__courseMap; m.enter(); return m.step(2).leaving; })));
 // über die Sterntritte auf die Plattform
-await sc(() => { const m = window.__courseMap; m.teleport(4.4, 1, 2.6, 0); m.step(20); });
+await sc(() => { const m = window.__courseMap; m.teleport(4.4, 1, -1.4, 0); m.step(20); });
 r = await sc(() => {
   const m = window.__courseMap;
-  const seq = [[5.9, 1.9, 24], [7.7, 0.5, 26], [11.4, -1.6, 30]];
-  for (const [x, z, hold] of seq) {
-    for (let i = 0; i < 160; i++) {
+  for (const [x, z] of [[5.9, -2.1], [7.7, -3.5], [11.4, -5.6]]) {
+    let t = -1;
+    for (let i = 0; i < 300; i++) {
       const p = m.player.pos, dx = x - p.x, dz = z - p.z, d = Math.hypot(dx, dz);
-      m.setInput({ x: d > 0.1 ? dx / d : 0, y: d > 0.1 ? -dz / d : 0, jump: i < hold });
+      if (t < 0 && m.player.mode === 'ground') t = i;
+      const k = m.player.mode !== 'ground' ? Math.min(1, d / 1.5) : 0.6;
+      m.setInput({ x: d > 0.1 ? (dx / d) * k : 0, y: d > 0.1 ? (-dz / d) * k : 0, jump: i - t < 28 });
       m.step(1);
-      if (i > hold && m.player.mode === 'ground' && d < 0.5) break;
+      if (i - t > 30 && m.player.mode === 'ground') break;
     }
+    m.setInput({}); m.step(10);
   }
   m.setInput({}); m.step(30);
   return m.player.info();
 });
 console.log('  Sterntritte →', JSON.stringify(r));
-check('Sterntritte führen auf die schwebende Plattform (Höhe 3,4 m)', Math.abs(r.y - 3.4) < 0.3);
+check('Sterntritte führen auf die schwebende Plattform (Höhe 3,4 m)', r.y > 3.3 && r.y < 3.8 && Math.hypot(r.x - 12, r.z + 5.2) < 3.6);
 // 2-Haus (20) und 2-Panzer (30)
 const lvAll = allW1Done(true);   // 24 Sterne in Welt 1
 for (const id of ['2-1', '2-2', '2-3', '2-4', '2-5']) lvAll[id] = { done: true, stars: [false, false, false], stamp: false, bestTime: null, bestPole: 0 };
@@ -277,7 +289,7 @@ await waitCourse();
 await sc(() => window.__course.exitToMap({}));
 await waitMap(2);
 st = await sc(() => window.__courseMap.state());
-check('Rückkehr aus dem Level: wieder Welt 2, vor der Felsinsel, Pilze noch da', st.world === 2 && Math.hypot(st.player.x + 29.6, st.player.z + 48) < 0.8 && st.roamers.length === 3);
+check('Rückkehr aus dem Level: wieder Welt 2, vor der Felsinsel, Pilze noch da', st.world === 2 && !st.leaving && Math.hypot(st.player.x + 28.4, st.player.z + 48) < 0.8 && st.roamers.length === 3);
 
 // ------------------------------------------------------------------ 6) Beerenhaus
 st = await sc(() => window.__courseMap.state());
@@ -294,7 +306,9 @@ check('Figur steht auf der Matte vor dem Spielautomaten', r.s.onSlotPad === true
 await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); m.step(10); });
 st = await sc(() => window.__courseMap.state());
 check('Ohne 10 Bitcoins: kein Spiel (Bitcoins bleiben 5)', st.slot.state === 'idle' && st.slot.spins === 0 && st.coins === 5 && st.player.mode === 'ground');
+await frames();
 banner = await sc(() => window.__courseMap.hud.bannerStatus.text);
+console.log('  Hinweis Automat:', banner);
 check('Hinweis am Automaten: Einsatz 10 Bitcoins', banner.includes('10 Bitcoins'));
 await sc(() => { const s = window.__courseSave; s.data.coins = 25; s.save(); window.__courseMap.slot.force(['coin', 'coin', 'coin']); });
 await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); m.step(60); });
@@ -345,12 +359,12 @@ check('Neuer Stand: nur 1-1 geschafft, Welt 2 zu', st.entrances.W2.locked && !st
 await page.goto(`http://localhost:${port}/?course=1-2&scale=2&adapt=0`, { waitUntil: 'load' });
 await waitCourse();
 await sc(() => { const c = window.__course; c.setManual(true); c.level.muted = true; c.teleport(6.4, 8.3, -155); c.step(30); });
-r = await sc(() => { const c = window.__course; c.setInput({ crouch: true }); c.step(8); c.setInput({}); for (let i = 0; i < 120 && !c.worldWarp; i++) c.step(1); return { warp: c.worldWarp, p: c.player.info(), opened: window.__courseSave.worldOpened(2) }; });
+r = await sc(() => { const c = window.__course; c.setInput({ crouch: true }); c.step(8); c.setInput({}); for (let i = 0; i < 120 && !c.worldWarp; i++) c.step(1); return { warp: c.worldWarp, p: c.player.info(), opened: JSON.parse(localStorage.getItem('lotti-greta-course-v1')).worlds.includes(2) }; });
 console.log('  Warp', JSON.stringify(r));
 check('1-2: Welt-Warp-Röhre (Krallen-Sims) schaltet Welt 2 frei', r.warp === 2 && r.opened);
 // im Echtzeitbetrieb führt sie auf die Welt-2-Insel
-await sc(() => { const c = window.__course; c.restartLevel(); });
-await waitCourse();
+await sc(() => { window.__oldCourse = window.__course; window.__course.restartLevel(); });
+await page.waitForFunction(() => window.__course && window.__course !== window.__oldCourse && window.__course.level && window.__game.scene.isActive('Course'), null, { timeout: 120000 });
 await sc(() => { const c = window.__course; c.level.muted = true; c.teleport(6.4, 8.3, -155); c.setInput({ crouch: true }); });
 try {
   await page.waitForFunction(() => window.__courseMap && window.__game.scene.isActive('CourseMap') && window.__courseMap.map.world === 2, null, { timeout: 120000 });

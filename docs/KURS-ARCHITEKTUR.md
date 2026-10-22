@@ -1056,3 +1056,91 @@ Welt-Warp-Röhre in 1-2 führt ebenfalls zur Welt-2-Insel). Sternbedarf zählt *
 Welt 2 hat 24 Sterne. Neue Figuren-Rollen: wo der Bauplan den „Kapitän“ nennt (2-1, 2-3), tritt **Krümel**
 (Pflaumes kleiner Kaninchen-Freund aus 1-Burg) auf. Der „Münz-Dieb“ heißt **Münzmarder** (flinker Marder mit
 Münzsack). Mini-Pilzlinge: `pilzling` mit `mini: true` (halbe Größe, ein Treffer, kein Abprall-Bonus).
+
+## Präzisierung (Mehrwelten-Karte)
+
+Ergänzung des Weltkarten-Agenten (Stand: Welt 2). Nichts oben Festgelegtes wird geändert; die Karte zeigt jetzt eine
+Welt je Insel, gewechselt wird nur über Glasröhren (kein Menü).
+
+### Präzisierung (Mehrwelten-Karte): Dateien
+
+```
+src/course/map/
+  worlds/w2.js   Welt 2 „Wüste mit Sandblöcken“ (reine Daten)
+  travel.js      Glasröhren-Fahrt (Abfahrt/Ankunft) über player.ride + Verfolger-Kamera (rig.custom)
+  warp.js        Welt-Warp aus einem Level (Röhre mit warpWorld) – CourseScene ruft installWorldWarps(scene)
+  desert.js      Wüsten-Geländestile (gestapelte Sandstein-Schichten, Dünen, rosa Gras, Lavafels), sparsame Requisiten
+  decor_w2.js    Kulissen der Welt-2-Eingänge (Schluchttor, Sternenplattform, Höhle mit Lichtschein, Haus, Hügelwalze,
+                 Lava-Felsinsel mit Steinbrücke, Doppelkirsche, Panzer-Depot mit Baron-Flagge)
+  slot.js        Glückshaus mit Spielautomat (Logik + Darstellung)
+  bake.js        Modelle der Registry (Palme, Kaktus, Säulenruine, Pyramide, Blütenbaum, Panzerwagen, Sandblock …) als
+                 statische Kulisse in die Karten-Kacheln einbacken (gleiche Optik wie im Level, keine Zeichenaufrufe je Stück)
+```
+
+### Präzisierung (Mehrwelten-Karte): Weltdaten (zusätzlich zum Format oben, alles optional)
+
+```js
+export const MAP = {
+  …, short: 'Wüste',                    // Kurzname (Weltschild im HUD, Schild an der Glasröhre)
+  theme: 'map_desert', kit: 'desert',   // Thema (scenery.js meldet 'map_desert' an) und Geländestil-Satz
+  music: 'course_world2_map', fallbackMusic: 'course_map',   // fehlt das Thema noch, spielt fallbackMusic
+  starScope: 'all',                     // minStars zählt alle gesammelten Sterne (Standard: Sterne dieser Welt)
+  edges: { hedge: 'adobe', fence: 'rope' },                  // Randdeko: 'hedge'|'adobe'|'pink' bzw. 'fence'|'rope'|'chain'
+  pathColors: [hell, mittel, Kante], // Wegplatten
+  neighbors: [{ world: 1, pos: [x, z], size: [w, d], style: 'grass'|'desert' }],  // Nachbarwelt am Horizont
+  levels: [
+    { id: 'W1', world: 1, next: 1, label: 'Welt 1', stars: 0 },                     // Glasröhre zurück (immer offen)
+    { id: 'W3', after: '2-Panzer', world: 3, next: 3, label: 'Welt 3', stars: 0 },  // ohne Karte von Welt 3: „Bald“
+  ],
+  ground: [{ rect, top, style?: 'desert'|'sandstone'|'dune'|'pink'|'grass'|'lavarock'|'basin'|'pond'|'sand', mound?,
+             edge?, fence?, walk?, noDeco?, noEdge? }],
+  entrances: [{ id, kind: 'canyon'|'space'|'glowcave'|'mystery'|'hills'|'lavaarena'|'pinkgrass'|'tankdepot'|'pipe'|…,
+                pos, decor?, exit?, steps? (space), spikes?/braziers?/bridge? (lavaarena), pipe?, signPos?, signYaw? }],
+  roamers: [{ level, model, fallback?, fallbackScale?, count, circle: [x, z, r] | from/to, y?, speed, half?, hint? }],
+  houses: [{ kind: 'beeren', … }, { kind: 'glueck', pos, yaw, machine: [x, y, z], pad: [x, y, z], stake: 10 }],
+  props: [{ kind: 'palm'|'cactus'|'column'|'arch'|'pyramid'|'pinktree'|'tank'|'sandblocks'|'sandstack'|'obelisk'|
+            'sphinx'|'pots'|'tent'|'well'|'stall'|'planter'|'tufts'|'shells'|'crates'|'sandbags'|'rock'|'shrub'|…,
+            pos, yaw?, size?, model?: false }],   // begehbarer Fuß → Kollision; Registry-Modell, sonst eigene Geometrie
+};
+```
+
+Regeln für Welt 2+: Glasröhren-Eingänge (`next: n`) sind startbar, wenn ihr Weg frei ist und es `worlds/w<n>.js` gibt
+(Titel = Name der Zielwelt), sonst „Bald“. Ihr Weg ist zusätzlich frei, sobald Welt n schon offen ist. Gelände südlich
+(zur Kamera hin) begehbarer Flächen bleibt niedrig (Faustregel: Höhe über dem Weg < 1,2 × Abstand), sonst rückt die
+Kamera an die Figur heran.
+
+### Präzisierung (Mehrwelten-Karte): Freischaltung und Speicherstand (additiv)
+
+- `unlock.worldOpen(getWorldMap, save, n)`: Welt 1 immer; sonst `save.worldOpened(n)` oder die Glasröhre der Welt n−1
+  ist frei. `unlock.gateStars(map, save)` = Sterne für minStars (`starScope`). Welt 2 ist frei nach `1-Burg`.
+- `courseSave`: `world` (aktuelle Welt, get/set; nach Neuladen wieder gezeigt), `worlds` (offene Welten),
+  `worldOpened(n)`, `openWorld(n)`, `spendCoins(n)` → false ohne genug Bitcoins, `slotSpins`/`nextSlotSpin()`.
+- `CourseMap` wählt die Welt: `{ warpWorld }` → `{ world }` → Welt des Levels aus `from` → `courseSave.world`; ist sie
+  nicht offen oder ohne Karte, Welt 1.
+
+### Präzisierung (Mehrwelten-Karte): Übergänge
+
+- **Glasröhre** (Eingang mit `next`): A/Enter/„Los!“ auf dem Podest → Hüpfer in den Röhrenfuß, Fahrt die Röhre hinauf
+  und übers Meer (3,4 s, Verfolger-Kamera, Toast „Auf zu Welt n!“), weiße Blende → `scene.start('CourseMap', { world: n,
+  via: 'tube', fromWorld })`. In Welt n startet die Figur weit draußen in der Rückweg-Röhre (Regel `next: fromWorld`),
+  saust zum Röhrenfuß (3,2 s) und hüpft vor das Podest; danach Kamera-Überblendung, frisch geöffnete Schranken werden
+  erst dann gezeigt. Alles im Simulationstakt (`step(n)`), `state().travel = { mode, phase, t, entrance }`.
+- **Welt-Warp aus einem Level**: Röhre `{ type: 'pipe', id, target, warpWorld: n }` funktioniert wie eine Warp-Röhre;
+  beim Teleport schaltet sie Welt n frei (`openWorld`) und beendet das Level ohne Zielmast (weiße Blende →
+  `exitToMap({ warpWorld: n })` → Ankunft wie mit der Glasröhre). Im Testtakt (`setManual`) bleibt die Szene stehen und
+  meldet `state().worldWarp`. 1-2: `p_world2` (Krallen-Sims) → Welt 2 (im Vorbild schaltet sie die Welt frei).
+- **Schranken von hinten**: Kommt die Figur von der gesperrten Seite (z. B. nach dem Warp zurück in Welt 1 hinter
+  gesperrten Wegen), sinken die Blöcke kurz ab und heben sich wieder, sobald sie hindurch ist (`layout.gateSides`,
+  `MapGate.updatePass`); von vorn bleiben sie zu.
+
+### Präzisierung (Mehrwelten-Karte): Kartenelemente Welt 2
+
+- **Glückshaus**: Matte vor dem Spielautomaten, A zieht den Hebel; Einsatz 10 Bitcoins (sonst Hinweis, kein Spiel);
+  drei Walzen (Bitcoin, Herz, Funkenblüte, Krallen-Anzug, Funkelstern, Baron), halten nacheinander. 3 × Bitcoin
+  30 Bitcoins, 3 × Herz 1 Leben + 10 Bitcoins, 3 × Power-up → Power-up fürs nächste Level (wie Beerenhaus), 2 gleiche
+  Einsatz zurück. Ergebnis aus der Nummer der Drehung (deterministisch), Tests: `__courseMap.slot.force([…])`.
+- **Beerenhaus** in der Nische östlich des Strands (Funkenblüte/Krallen-Anzug im Wechsel).
+- **Gegnergruppe 2-A**: drei Großrollpilze laufen im Kreis über die Lava-Felsinsel (Modell `grossrollpilz`).
+- HUD: dauerhaftes Weltschild „Welt n · Kurzname“ mit allen gesammelten Sternen; Hinweis an Sternschranken
+  „Benötigt N Sterne (x/N)“ mit den zählenden Sternen.
+- Test: `tests/course_map_w2.mjs` (Port 4210, Screenshots `tests/out/cmap2_*.png`).

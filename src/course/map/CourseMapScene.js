@@ -425,7 +425,7 @@ export class CourseMapScene extends Phaser.Scene {
       const n = r.count ?? 1;
       for (let i = 0; i < n; i++) {
         const spec = r.circle
-          ? { ...r, start: i / n, dir: 1 }
+          ? { ...r, start: (i + 0.5) / n, dir: 1 }
           : { ...r, start: n > 1 ? 0.15 + (0.7 * i) / (n - 1) : 0.5, dir: i % 2 ? -1 : 1 };
         const e = new MapRoamer(this.level, spec, (ro) => this.onRoamerTouch(r.level, ro));
         addEntity(this.level, e);

@@ -24,7 +24,7 @@
 const PI = Math.PI;
 const g = (x0, z0, x1, z1, top, opts = {}) => ({ rect: [x0, z0, x1, z1], top, ...opts });
 const W = true;
-const SAND = 0xedc282, SAND2 = 0xe0ac66;
+const SAND2 = 0xe0ac66;
 
 export const MAP = {
   id: 'karte-2',
@@ -45,6 +45,7 @@ export const MAP = {
   edges: { hedge: 'adobe', fence: 'rope' },
   pathColors: [0xe8b47a, 0xdba06a, 0xb98352],
   neighbors: [{ world: 1, pos: [-262, 104], size: [72, 48], style: 'grass' }],
+  birds: [{ c: [0, 12.5, 16], r: 7, n: 2 }, { c: [-6, 8.5, -42], r: 9, n: 1 }, { c: [34, 10.5, -64], r: 9, n: 2 }],   // Hackvögel kreisen
 
   levels: [
     { id: 'W1', world: 1, next: 1, label: 'Welt 1', stars: 0 },
@@ -69,27 +70,28 @@ export const MAP = {
     g(20, 30, 34, 50, 1, { walk: W }),
     g(34, 30, 42, 50, 2.2, { style: 'dune' }),
     // ---- Schluchtweg zwischen hohen Sandstein-Klippen
-    g(-2, 6, 2, 30, 1, { walk: W }), g(-4, 14, -2, 21, 1, { walk: W }), g(2, 14, 4, 21, 1, { walk: W }),
-    g(-18, 6, -2, 14, 9.5, { style: 'sandstone' }), g(-18, 14, -4, 21, 10.5, { style: 'sandstone' }), g(-18, 21, -2, 30, 9, { style: 'sandstone' }),
-    g(2, 6, 18, 14, 8.5, { style: 'sandstone' }), g(4, 14, 18, 21, 9.5, { style: 'sandstone' }), g(2, 21, 18, 30, 8, { style: 'sandstone' }),
+    g(-2, 0, 2, 30, 1, { walk: W }), g(-4, 14, -2, 21, 1, { walk: W }), g(2, 14, 4, 21, 1, { walk: W }),
+    g(-18, 6, -2, 14, 7, { style: 'sandstone' }), g(-18, 14, -4, 21, 10.5, { style: 'sandstone' }), g(-18, 21, -2, 30, 9, { style: 'sandstone' }),
+    g(2, 6, 18, 14, 6.5, { style: 'sandstone' }), g(4, 14, 18, 21, 9.5, { style: 'sandstone' }), g(2, 21, 18, 30, 8, { style: 'sandstone' }),
     g(-34, 6, -18, 22, 5, { style: 'sandstone' }),
     g(18, 6, 42, 30, 6, { style: 'sandstone' }),
     // ---- Oasen-Platz (um den Teich gestückelt), Hof am Haus
-    g(-24, -26, 22, -6, 1, { walk: W }), g(-24, -6, -17, 3, 1, { walk: W }), g(-7, -6, 22, 3, 1, { walk: W }), g(-24, 3, 22, 6, 1, { walk: W }),
-    g(-17, -6, -7, 3, -0.45, { style: 'pond' }),
+    g(-24, -26, 22, -9, 1, { walk: W }), g(-24, -9, -17, 0, 1, { walk: W }), g(-7, -9, 22, 0, 1, { walk: W }),
+    g(-17, -9, -7, 0, -0.45, { style: 'pond' }),
+    g(-24, 0, -2, 6, 1.4, { noDeco: true }), g(2, 0, 22, 6, 1.4, { noDeco: true }),
     g(-28, -12, -24, 6, 2.2, { style: 'dune', mound: 0.8 }),
     g(-28, -16, -24, -12, 1, { walk: W }),
     g(-28, -26, -24, -16, 2.2, { style: 'dune', mound: 0.8 }),
     g(-44, -26, -28, -2, 1, { walk: W }),
     g(-50, -26, -44, -2, 2.6, { style: 'dune' }),
-    g(-50, -2, -28, 6, 3.5, { style: 'sandstone' }),
+    g(-50, -2, -28, 6, 2.2, { style: 'sandstone' }),
     g(-50, 6, -34, 22, 3, { style: 'dune' }),
     g(22, -38, 46, 6, 1.2, { noDeco: true }),
     // ---- Riegel vor dem Felsenhof (Sphinx-Wächter)
     g(-2, -32, 2, -26, 1, { walk: W }),
-    g(-24, -32, -2, -26, 2.4, { style: 'sandstone' }),
-    g(-50, -32, -24, -26, 3, { style: 'sandstone' }),
-    g(2, -32, 22, -26, 2.4, { style: 'sandstone' }),
+    g(-24, -32, -2, -26, 2, { style: 'sandstone' }),
+    g(-50, -32, -24, -26, 2.6, { style: 'sandstone' }),
+    g(2, -32, 22, -26, 2, { style: 'sandstone' }),
     // ---- Felsenhof (2-3), Lava-Felsinsel (2-A), Treppe zum Hügelland (2-4)
     g(-16, -58, 14, -32, 1, { walk: W }),
     g(-22, -50, -16, -46, 1, { walk: W }),
@@ -123,16 +125,16 @@ export const MAP = {
 
   // Zusätzlich begehbar: Teich der Oase, Brücke über die Lava
   walk: [
-    [-17, -6, -7, 3],
+    [-17, -9, -7, 0],
     [-27, -50, -22, -46],
   ],
 
   paths: [
     [[2, 47.5], [2, 38], [0, 36], [0, 34]],
     [[2, 41], [-10, 41]],
-    [[0, 34], [0, 6]],
-    [[0, 6], [0, -26], [0, -32], [0, -53]],
-    [[0, 1.5], [5, 1.5]],
+    [[0, 34], [0, 0]],
+    [[0, 0], [0, -26], [0, -32], [0, -53]],
+    [[0, -3.4], [4.6, -3.4]],
     [[0, -10], [15, -10], [15, -13]],
     [[0, -14], [-28, -14], [-36, -14], [-36, -11]],
     [[0, -48], [26, -48]],
@@ -148,11 +150,12 @@ export const MAP = {
     { id: 'W1', kind: 'pipe', pos: [-10, 1, 41], decor: [-10, 1, 37.9],
       pipe: [[0, 0, 0], [0, 3.5, 0], [-0.8, 5.6, 0.2], [-5, 6.8, 0.8], [-16, 7, 2.5], [-40, 6.4, 7], [-80, 5.5, 14], [-140, 4, 26], [-205, 1.5, 40]] },
     { id: '2-1', kind: 'canyon', pos: [0, 1, 34], decor: [0, 1, 30.4] },
-    { id: '2-2', kind: 'space', pos: [12, 3.4, -2.6], decor: [12, 1, -1.2], exit: [12, 3.4, 0.6], radius: 3.6,
-      steps: [[5.9, 1.85, 1.9], [7.7, 2.6, 0.5]] },
+    { id: '2-2', kind: 'space', pos: [12, 3.4, -6.6], decor: [12, 1, -5.2], exit: [12, 3.4, -3.4], radius: 3.6,
+      steps: [[5.9, 1.85, -2.1], [7.7, 2.6, -3.5]] },
     { id: '2-Haus', kind: 'mystery', pos: [-36, 1, -11], decor: [-36, 1, -18.5] },
     { id: '2-3', kind: 'glowcave', pos: [0, 1, -53], decor: [0, 1, -58] },
-    { id: '2-A', kind: 'lavaarena', pos: [-34.5, 1.4, -48], decor: [-34.5, 1.4, -48], exit: [-29.6, 1.4, -48],
+    { id: '2-A', kind: 'lavaarena', pos: [-34.5, 1.4, -48], decor: [-34.5, 1.4, -48], exit: [-28.4, 1.4, -48],
+      bridge: { from: [-22, 1, -48], to: [-27, 1.4, -48], width: 4 }, embers: [-49, -65, -23, -33],
       spikes: [[-40.6, -41, 2.6], [-40.2, -55, 2.2], [-28.8, -55.2, 2.4], [-29.2, -40.8, 1.8]], braziers: [[-28.4, -44.4], [-28.4, -51.6]] },
     { id: '2-4', kind: 'hills', pos: [33, 3, -54], decor: [32, 3, -62] },
     { id: '2-5', kind: 'pinkgrass', pos: [36, 3, -90], decor: [36, 3, -96.5] },
@@ -174,7 +177,7 @@ export const MAP = {
 
   // Drei Großrollpilze laufen auf der Lava-Felsinsel im Kreis (Modell vom Modell-Agenten; bis dahin Pilzling, groß)
   roamers: [
-    { level: '2-A', model: 'grossrollpilz', fallback: 'pilzling', fallbackScale: 2.0, count: 3, circle: [-34.5, -48, 4.4], y: 1.4,
+    { level: '2-A', model: 'grossrollpilz', fallback: 'pilzling', fallbackScale: 2.0, count: 3, circle: [-34.6, -48, 4.0], y: 1.4,
       speed: 1.7, half: [0.85, 1.0, 0.85], hint: 'Lauf die Großrollpilze an!' },
   ],
 
@@ -192,11 +195,14 @@ export const MAP = {
   props: [
     // Strand
     { kind: 'palm', pos: [-15, 1, 46.5], size: 5.2, lean: 1.1, yaw: 0.4 }, { kind: 'palm', pos: [13, 1, 47.5], size: 4.6, lean: 0.9, yaw: 2.4 },
-    { kind: 'palm', pos: [-15.6, 1, 32.6], size: 5.6, lean: 1.2, yaw: -0.6 }, { kind: 'palm', pos: [12.6, 1, 32.4], size: 5, lean: 0.8, yaw: 3.6 },
+    { kind: 'palm', pos: [-15.6, 1, 32.6], size: 5.6, lean: 1.2, yaw: -0.6 }, { kind: 'cactus', pos: [13.2, 1, 32.2], size: 2.4, variant: 'gruppe' },
     { kind: 'pots', pos: [-4.6, 1, 47.4], yaw: 0.3 }, { kind: 'barrel', pos: [9.4, 1, 44.4] }, { kind: 'shrub', pos: [-6, 1, 32], size: 0.5 },
     { kind: 'rock', pos: [14.2, 1, 40], size: 0.6 },
+    { kind: 'sandstack', pos: [7.8, 1, 36.6], n: 1 }, { kind: 'sandstack', pos: [9.4, 1, 37.4], n: 2 }, { kind: 'sandstack', pos: [11, 1, 38.4], n: 3 },
+    { kind: 'shells', pos: [-2, 1, 48.8], size: [22, 1.6], n: 9 }, { kind: 'tufts', pos: [-12, 1, 36], size: [8, 8], n: 7 },
+    { kind: 'tufts', pos: [10, 1, 44], size: [8, 6], n: 6 },
     // Nische mit Beerenhaus
-    { kind: 'palm', pos: [22.4, 1, 32.6], size: 5, lean: 0.9, yaw: 1.2 }, { kind: 'palm', pos: [32.4, 1, 47.4], size: 4.4, lean: 0.7, yaw: 4 },
+    { kind: 'palm', pos: [22.4, 1, 32.6], size: 5, lean: 0.9, yaw: 1.2 }, { kind: 'cactus', pos: [32.2, 1, 47.2], size: 2, variant: 'feige' },
     { kind: 'cactus', pos: [32.6, 1, 33.2], size: 2.4 }, { kind: 'barrel', pos: [21.4, 1, 46.6] },
     // Schlucht
     { kind: 'rock', pos: [-3.2, 1, 17.6], size: 0.6, solid: false }, { kind: 'shrub', pos: [3.3, 1, 15.2], size: 0.45, solid: false },
@@ -205,13 +211,20 @@ export const MAP = {
     { kind: 'column', pos: [32.8, 6, 24], size: 4.2 }, { kind: 'fallen', pos: [29, 6, 17], size: 3.2, yaw: 0.4 },
     { kind: 'arch', pos: [36.5, 6, 12], yaw: 0.3, size: 4 },
     // Oase
-    { kind: 'palm', pos: [-18.6, 1, -4.2], size: 5.4, lean: 1.0, yaw: -0.5 }, { kind: 'palm', pos: [-18.2, 1, 2.6], size: 4.8, lean: 0.8, yaw: 0.6 },
-    { kind: 'palm', pos: [-5.4, 1, 4.6], size: 5.2, lean: 1.2, yaw: 2.6 }, { kind: 'palm', pos: [-5.6, 1, -7.4], size: 4.6, lean: 0.9, yaw: 3.5 },
-    { kind: 'palm', pos: [-12.6, 1, -8.2], size: 5.8, lean: 0.6, yaw: 1.6 },
-    { kind: 'tent', pos: [-19.5, 1, -19.6], yaw: 0.35 }, { kind: 'pots', pos: [-15.2, 1, -21.6], yaw: 1 },
-    { kind: 'obelisk', pos: [-9, 1, -22.2], size: 5.6 },
-    { kind: 'column', pos: [6.6, 1, -24], size: 4, broken: true }, { kind: 'column', pos: [-21.6, 1, -10.2], size: 4 },
-    { kind: 'sandblocks', pos: [20.6, 1, 4.4], n: 3, yaw: -0.3 }, { kind: 'sandblocks', pos: [-21.6, 1, 4.6], n: 2, yaw: 0.5 },
+    { kind: 'palm', pos: [-18.8, 1, -8], size: 5.4, lean: 1.0, yaw: -0.5 }, { kind: 'palm', pos: [-18.6, 1, -1.2], size: 4.8, lean: 0.8, yaw: 0.6 },
+    { kind: 'palm', pos: [-5.6, 1, -1], size: 5.2, lean: 1.2, yaw: 2.6 }, { kind: 'cactus', pos: [-4.8, 1, -10.8], size: 2, variant: 'gruppe' },
+    { kind: 'palm', pos: [-12.6, 1, -11.2], size: 5.8, lean: 0.6, yaw: 1.6 },
+    { kind: 'well', pos: [-20.6, 1, -14.2] }, { kind: 'stall', pos: [-13.2, 1, -18.6], yaw: 0.15 },
+    { kind: 'tent', pos: [-19.5, 1, -21.6], yaw: 0.35 }, { kind: 'pots', pos: [-16.4, 1, -23.4], yaw: 1 },
+    { kind: 'obelisk', pos: [-7.6, 1, -22.6], size: 5.6 },
+    { kind: 'column', pos: [6.6, 1, -24], size: 4, broken: true }, { kind: 'column', pos: [-22, 1, -2.4], size: 4 },
+    { kind: 'planter', pos: [7, 1, -14.4], size: [3, 3] }, { kind: 'planter', pos: [-6.4, 1, -16.6], size: [2.6, 2.6] },
+    { kind: 'tufts', pos: [10, 1, -21], size: [10, 6], n: 7 }, { kind: 'tufts', pos: [-14, 1, -15], size: [8, 4], n: 5 },
+    { kind: 'tufts', pos: [4, 1, -8], size: [6, 4], n: 4 },
+    // Sandwall am Südrand des Platzes
+    { kind: 'sandblocks', pos: [19.2, 1.4, 3.2], n: 3, yaw: -0.3 }, { kind: 'sandblocks', pos: [-20.4, 1.4, 3.4], n: 2, yaw: 0.5 },
+    { kind: 'cactus', pos: [-9.6, 1.4, 3.2], size: 2.4 }, { kind: 'palm', pos: [9.4, 1.4, 3.6], size: 5.2, lean: 1.0, yaw: 0.9 },
+    { kind: 'cactus', pos: [15, 1.4, 2.4], size: 2.2, variant: 'feige' }, { kind: 'rock', pos: [-15, 1.4, 3], size: 0.7 },
     // Sphinx-Wächter am Riegel zum Felsenhof
     { kind: 'sphinx', pos: [-5.8, 2.4, -29.6], size: 0.8 }, { kind: 'sphinx', pos: [5.8, 2.4, -29.6], size: 0.8 },
     // Pyramiden
@@ -232,23 +245,18 @@ export const MAP = {
     { kind: 'pinktree', pos: [27.4, 3, -81.2], size: 4.4 }, { kind: 'pinktree', pos: [45.2, 3, -82.4], size: 4 },
     { kind: 'pinktree', pos: [26.6, 3, -101.4], size: 4.6 }, { kind: 'pinktree', pos: [45.4, 3, -100.6], size: 4.2 },
     // Panzer-Depot
-    { kind: 'tank', pos: [-10, 3, -85.2], yaw: 0.35 }, { kind: 'tank', pos: [11.6, 3, -105.4], yaw: -2.6 },
-    { kind: 'tank', pos: [-11.2, 3, -104.2], yaw: 1.2, size: 0.9 },
+    { kind: 'tank', pos: [-9.6, 3, -85.4], yaw: 0.35 },
     { kind: 'crates', pos: [11.2, 3, -84.2], yaw: 0.4 }, { kind: 'crates', pos: [-13.6, 3, -95], yaw: -0.3 },
+    { kind: 'crates', pos: [11.4, 3, -105], yaw: -0.5 }, { kind: 'sandbags', pos: [-11, 3, -104.6], size: 4, yaw: 1.3 },
     { kind: 'sandbags', pos: [-9.4, 3, -97.4], size: 4, yaw: 0.2 }, { kind: 'sandbags', pos: [13.4, 3, -95.6], size: 3.6, yaw: 1.4 },
     // Röhrenplateau
     { kind: 'cactus', pos: [-6.4, 3, -126.4], size: 2.2 }, { kind: 'rock', pos: [6.2, 3, -126.6], size: 0.6 },
   ],
 
   segments: [
-    { type: 'water', pos: [-12, -0.45, -1.5], size: [10, 1.2, 9] },
+    { type: 'water', pos: [-12, -0.45, -4.5], size: [10, 1.2, 9] },
     { type: 'stairs', pos: [20, 1, -48], dir: '+x', steps: 7, rise: 2 / 7, run: 6 / 7, width: 4, style: SAND2 },
-    { type: 'bridge', from: [-22, 1, -48], to: [-27, 1.4, -48], width: 4, color: 0x9a8a80 },
     { type: 'lava', pos: [-36, 0.35, -49], size: [28, 0.25, 34] },
-    // Sandblöcke zum Hüpfen am Strand
-    { type: 'platform', pos: [7.6, 1, 36.4], size: [1.6, 1, 1.6], color: SAND },
-    { type: 'platform', pos: [9.6, 1, 37.6], size: [1.6, 2, 1.6], color: SAND2 },
-    { type: 'platform', pos: [11.6, 1, 39.2], size: [1.6, 3, 1.6], color: SAND },
     // Hügelland: bunte Blöcke, Blumen
     { type: 'platform', pos: [29, 3, -42], size: [2, 1, 2], color: 'red' },
     { type: 'platform', pos: [29, 3, -44.4], size: [2, 2, 2], color: 'yellow' },
@@ -261,8 +269,8 @@ export const MAP = {
     { type: 'deco_w1', items: [
       { kind: 'mushrooms', pos: [-41.6, 1, -14.6], size: 1.0, color: 'violet', glow: true },
       { kind: 'mushrooms', pos: [-30.2, 1, -20.2], size: 0.8, color: 'violet', glow: true },
-      { kind: 'reeds', pos: [-8, -0.45, 1.8], n: 6, size: 1.4 }, { kind: 'reeds', pos: [-16, -0.45, -5], n: 5, size: 1.3 },
-      { kind: 'lilypads', pos: [-12, 0.75, -1], size: [6, 5], n: 5 },
+      { kind: 'reeds', pos: [-8, -0.45, -1.2], n: 6, size: 1.4 }, { kind: 'reeds', pos: [-16, -0.45, -8], n: 5, size: 1.3 },
+      { kind: 'lilypads', pos: [-12, 0.75, -4], size: [6, 5], n: 5 },
       { kind: 'daisies', pos: [36, 3, -48], size: [12, 8], n: 16 },
       { kind: 'butterflies', pos: [36, 3, -94], n: 5, r: 4, colors: [0xff8ccc, 0xffffff, 0xffd23a] },
     ] },

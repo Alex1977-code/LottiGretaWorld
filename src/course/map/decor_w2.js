@@ -14,7 +14,9 @@
 import * as THREE from 'three';
 import { mix, TAU, cached, vcol, std, basic, glowTexture, sparkleTexture, canvasTexture, starShape } from '../models/lib/kit.js';
 import { caveMouthGeo, baronFlagTexture } from './props.js';
-import { LowBuild as Build, place, bigTankGeo, sandbagsGeo, cratesGeo, cherryStatueGeo, torchStandGeo, desertRockGeo } from './desert.js';
+import { bakeModel } from './bake.js';
+import { getModel, hasModel } from '../models/index.js';
+import { LowBuild as Build, place, turretGeo, bigTankGeo, sandbagsGeo, cratesGeo, cherryStatueGeo, torchStandGeo, desertRockGeo } from './desert.js';
 
 /** Kulisse für eine Welt-2-Art bauen; false = unbekannte Art. */
 export function decorateW2(ev, kind, x, y, z) {
@@ -136,9 +138,16 @@ function spacePlatform(ev, x, y, z) {
     const ph = sx + sz;
     ev.updaters.push((dt, t) => { m.rotation.y = Math.sin(t * 0.8 + ph) * 0.25; });
   }
-  // Ringplanet über der Plattform
+  // Ringplanet über der Plattform (Modell 'planet' der Registry, sonst eigene Kugel mit Ring)
   const planet = new THREE.Group();
-  const ball = new THREE.Mesh(cached('w2:planet', () => {
+  const pm = hasModel('planet') ? getModel('planet', { radius: 0.75, color: 'violet', ring: true }) : null;
+  if (pm) {
+    pm.root.position.y = -0.75;
+    planet.add(pm.root);
+    ev.own.push(pm);
+    ev.updaters.push((dt) => pm.update(dt, {}));
+  }
+  const ball = pm ? new THREE.Object3D() : new THREE.Mesh(cached('w2:planet', () => {
     const b = new Build();
     b.sphere(1.0, { v: (px, py) => (Math.abs(Math.sin(py * 7)) > 0.7 ? 0xffb86a : mix(0xff7ab0, 0xffd28a, (py + 1) / 2)) }, null, 20, 14);
     b.torus(1.65, 0.12, 0xfff0a8, { r: [Math.PI / 2 - 0.35, 0, 0.2] }, 4, 40);
@@ -146,7 +155,7 @@ function spacePlatform(ev, x, y, z) {
   }), vcol(0.5));
   ball.castShadow = true;
   planet.add(ball);
-  planet.position.set(x - R * 0.55, top + 5.2, z - R * 0.7);
+  planet.position.set(x - R * 1.05, top + 2.8, z - R * 1.35);
   ev.view.add(planet);
   // Funkelsterne
   const spMat = new THREE.SpriteMaterial({ map: sparkleTexture(), color: 0xfff6b0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -161,7 +170,7 @@ function spacePlatform(ev, x, y, z) {
   }
   ev.updaters.push((dt, t) => {
     rimMat.opacity = 0.55 + 0.35 * (0.5 + 0.5 * Math.sin(t * 2.4));
-    planet.position.y = top + 5.2 + Math.sin(t * 0.9) * 0.25;
+    planet.position.y = top + 2.8 + Math.sin(t * 0.9) * 0.25;
     ball.rotation.y = t * 0.3;
     sparks.forEach((s, i) => s.scale.setScalar(0.25 + 0.5 * Math.max(0, Math.sin(t * 2.2 + i * 1.9))));
   });
@@ -349,6 +358,38 @@ function lavaArena(ev, x, y, z) {
   }
   // Felsbrocken am Rand
   ev.addStatic(place(desertRockGeo(0.9, 31), x - 6.2, y, z + 6.6));
+  // Glutfunken steigen aus dem Lavasee (nur Optik)
+  const lake = ev.def.embers;
+  if (lake) {
+    let next = 0;
+    ev.updaters.push((dt, t) => {
+      if (t < next) return;
+      next = t + 0.3;
+      const fx = ev.level.effects;
+      if (!fx) return;
+      const ex = lake[0] + Math.random() * (lake[2] - lake[0]), ez = lake[1] + Math.random() * (lake[3] - lake[1]);
+      if (ex > x - 8.5 && ex < x + 8.5 && ez > z - 10 && ez < z + 10) return;   // nicht auf der Insel
+      fx.sparks({ x: ex, y: 0.7, z: ez }, 3);
+    });
+  }
+  // Steinbrücke über die Lava (def.bridge = { from, to, width }, entlang x): Platten mit Fugen, glühende Unterkante
+  const br = ev.def.bridge;
+  if (br) {
+    const [ax, ay, az] = br.from, [bx, by] = br.to, w = br.width ?? 4;
+    const n = Math.max(2, Math.round(Math.abs(bx - ax) / 0.5));
+    const b2 = new Build();
+    for (let i = 0; i < n; i++) {
+      const u0 = i / n, u1 = (i + 1) / n, um = (u0 + u1) / 2;
+      const cx = ax + (bx - ax) * um, top = ay + (by - ay) * um, len = Math.abs(bx - ax) / n;
+      W.add({ type: 'box', min: [cx - len / 2, top - 0.5, az - w / 2], max: [cx + len / 2, top, az + w / 2], tag: 'bridge' });
+      b2.box(len - 0.04, 0.42, w, i % 2 ? 0x6a5a62 : 0x7a6a70, { p: [cx, top - 0.21, az] }, 0);
+    }
+    for (const s of [-1, 1]) {
+      b2.box(Math.abs(bx - ax) + 0.2, 0.3, 0.3, 0x4a3c44, { p: [(ax + bx) / 2, (ay + by) / 2 + 0.12, az + s * (w / 2 - 0.15)], r: [0, 0, Math.atan2(by - ay, bx - ax)] }, 0);
+    }
+    b2.box(Math.abs(bx - ax), 0.1, w - 0.2, 0xff8a2a, { p: [(ax + bx) / 2, (ay + by) / 2 - 0.47, az] }, 0);
+    ev.addStatic(b2.geometry());
+  }
 }
 
 // ------------------------------------------------------------------ 2-5 rosa Grasland
@@ -362,8 +403,13 @@ function pinkGrass(ev, x, y, z) {
 
 function tankDepot(ev, x, y, z) {
   const W = ev.level.world;
-  ev.addStatic(place(bigTankGeo(), x, y, z, -Math.PI / 2 + 0.25));
-  W.add({ type: 'box', min: [x - 2.2, y, z - 3.2], max: [x + 2.2, y + 3.4, z + 3.2], tag: 'panzer' });
+  // Panzerwagen des Barons (Modell der Registry, sonst eigene Geometrie), Bug zur Kamera
+  if (bakeModel((g, o) => ev.addStatic(g, o), 'panzer_fahrzeug', { length: 8, width: 4, deck: 2, color: 'rot' }, [x, y, z], -Math.PI / 2 + 0.25)) {
+    ev.addStatic(place(turretGeo(1.25), x, y + 2, z, -Math.PI / 2 + 0.25));
+  } else {
+    ev.addStatic(place(bigTankGeo(), x, y, z, -Math.PI / 2 + 0.25));
+  }
+  W.add({ type: 'box', min: [x - 3, y, z - 4.2], max: [x + 3, y + 3.4, z + 4.2], tag: 'panzer' });
   ev.addStatic(place(sandbagsGeo(3.6), x - 4.4, y, z + 2.6, 0.4));
   ev.addStatic(place(sandbagsGeo(3.6), x + 4.4, y, z + 2.6, -0.4));
   ev.addStatic(place(cratesGeo(5), x + 5.4, y, z - 1.6, 0.3));

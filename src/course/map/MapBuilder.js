@@ -17,8 +17,9 @@ import { hedgeGeo, fenceGeo, rockCapGeo, berryHouseGeo, itemStandGeo, signGeo, s
 import { EntranceView } from './entrances.js';
 import { MapGate } from './gates.js';
 import { MapScenery } from './scenery.js';
-import { desertGround, adobeWallGeo, ropeFenceGeo, tintHedgeGeo, PINK_HEDGE, propGeo, propShape, cactusGeo, barrelCactusGeo, shrubGeo, desertRockGeo, palmGeo, pinkTreeGeo, place } from './desert.js';
+import { desertGround, adobeWallGeo, ropeFenceGeo, tintHedgeGeo, PINK_HEDGE, propGeo, propShape, cactusGeo, barrelCactusGeo, shrubGeo, desertRockGeo, pinkTreeGeo, sandBlocksGeo, turretGeo, place } from './desert.js';
 import { SlotMachine } from './slot.js';
+import { bakeModel, propModel } from './bake.js';
 
 const DESERT_STYLES = new Set(['desert', 'sandstone', 'dune', 'pink', 'lavarock', 'basin']);
 
@@ -259,22 +260,49 @@ function scatterDesert(level, map, grid) {
     put(Math.max(1, Math.floor((area / 100) * k)), 2.6, (r) => cactusGeo(r.real(1.6, 2.8), r.int(1, 999)));
     put(Math.floor((area / 150) * k), 1.6, () => barrelCactusGeo(0.4));
     put(Math.floor((area / 80) * k), 1.8, (r) => (r.frac() < 0.5 ? shrubGeo(r.real(0.4, 0.6), r.int(1, 999)) : desertRockGeo(r.real(0.5, 1.0), r.int(1, 999))));
-    if (style === 'dune' && area > 120 && rnd.frac() < 0.6) put(1, 3, (r) => palmGeo(r.real(4.2, 5.6), r.real(0.4, 1.2), r.int(1, 999)));
   });
   for (const g of parts) level.view?.addStatic(g, { castShadow: true });
 }
 
 /** Requisiten aus map.props: { kind, pos, yaw?, size?, … } (desert.js propGeo); auf begehbarem Gelände mit Kollision. */
 function buildProps(level, map, grid) {
+  const add = (g, o) => level.view.addStatic(g, o);
   (map.props ?? []).forEach((it, i) => {
-    const g = level.view ? propGeo(it, 0x7a11 + i * 37) : null;
-    if (g) level.view.addStatic(place(g, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: it.shadow !== false });
+    // Modell aus der Registry (gleiche Optik wie in den Leveln), sonst eigene sparsame Geometrie
+    const pm = level.view && it.model !== false ? propModel(it) : null;
+    const baked = pm ? bakeModel(add, pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
+    if (baked && it.kind === 'tank') add(place(turretGeo(it.size ?? 1, (it.color ?? 'oliv') === 'oliv'), it.pos[0], it.pos[1] + 1.6 * (it.size ?? 1), it.pos[2], it.yaw ?? 0), { castShadow: true });
+    if (it.kind === 'sandstack') {
+      // Stapel aus 1-m-Sandblöcken zum Hüpfen (Kollision je Stapel, Optik: Modell 'sandblock')
+      const n = it.n ?? 1, [x, y, z] = it.pos;
+      level.world.add({ type: 'box', min: [x - 0.5, y, z - 0.5], max: [x + 0.5, y + n, z + 0.5], tag: 'sandblock' });
+      if (level.view) for (let k = 0; k < n; k++) if (!bakeModel(add, 'sandblock', {}, [x, y + k, z], (it.yaw ?? 0) + k * 0.05)) add(place(sandBlocksGeo(1, k + 1), x, y + k, z, it.yaw ?? 0), { castShadow: true });
+      return;
+    }
+    if (!baked && level.view && it.kind === 'sandblocks') bakeSandblocks(add, it);
+    else if (!baked) {
+      const g = level.view ? propGeo(it, 0x7a11 + i * 37) : null;
+      if (g) level.view.addStatic(place(g, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: it.shadow !== false });
+    }
     if (it.solid === false) return;
     if (it.solid || grid.isWalk(it.pos[0], it.pos[2])) {
       const sh = propShape(it);
       if (sh) level.world.add(sh);
     }
   });
+}
+
+/** Stapel aus Sandblöcken (Modell 'sandblock' der Registry, 1 m), Lage wie desert.sandBlocksGeo. */
+const SB_SPOTS = [[0, 0, 0], [1.02, 0, 0.1], [0.5, 1.0, 0.05], [-1.0, 0, -0.2], [-0.5, 1, -0.1], [0, 2, 0]];
+function bakeSandblocks(add, it) {
+  const yaw = it.yaw ?? 0, c = Math.cos(yaw), s = Math.sin(yaw);
+  let ok = false;
+  for (let k = 0; k < Math.min(it.n ?? 3, SB_SPOTS.length); k++) {
+    const [x, y, z] = SB_SPOTS[k];
+    const r = bakeModel(add, 'sandblock', {}, [it.pos[0] + x * c + z * s, it.pos[1] + y, it.pos[2] - x * s + z * c], yaw + k * 0.07);
+    ok = ok || !!r;
+  }
+  if (!ok) add(place(propGeo(it, 3), it.pos[0], it.pos[1], it.pos[2], yaw), { castShadow: true });
 }
 
 // Leichte Bäume/Büsche für die Streu-Deko (weniger Dreiecke als die Deko-Bausteine, gleiche Anmutung)

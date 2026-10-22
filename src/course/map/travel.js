@@ -169,15 +169,16 @@ export class TubeTravel {
     }
     const c = this.center;
     const d = this.dir;
-    // hinter und über der Figur, leicht seitlich (die Röhre bleibt im Bild)
-    _a.set(c.x - d.x * 9 + d.z * 2.2, c.y + 3.6 - d.y * 4, c.z - d.z * 9 - d.x * 2.2);
-    _b.set(c.x + d.x * 7, c.y + 0.4 + d.y * 3, c.z + d.z * 7);
+    // hinter und über der Figur, leicht seitlich (die Röhre bleibt im Bild, vorn das Ziel am Horizont)
+    const back = this.mode === 'depart' ? 7.5 : 9;
+    _a.set(c.x - d.x * back + d.z * 2.4, c.y + 3.4 - d.y * 4, c.z - d.z * back - d.x * 2.4);
+    _b.set(c.x + d.x * 12, c.y - 0.6 + d.y * 3, c.z + d.z * 12);
     if (!this.camPos) {
       this.camPos = this.mode === 'arrive' ? _a.clone() : cam.position.clone();
       if (this.mode === 'arrive') this.camLook.copy(_b);
       else this.camLook.copy(this.rig.target);
     }
-    const kp = 1 - Math.exp(-dt * (this.mode === 'arrive' ? 5 : 3.2));
+    const kp = 1 - Math.exp(-dt * (this.mode === 'arrive' ? 5 : this.phase === 'hop' ? 2.5 : 6.5));
     const kl = 1 - Math.exp(-dt * 6);
     this.camPos.lerp(_a, kp);
     this.camLook.lerp(_b, kl);

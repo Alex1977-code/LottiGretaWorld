@@ -23,8 +23,9 @@ const Build = LowBuild;
 // ------------------------------------------------------------------ Farben
 
 export const SAND = { top: 0xf6dc9c, top2: 0xeccb84, rim: 0xfff0c6, side: 0xe7bd78, body: [0xe0a865, 0xd39253, 0xc9874a], deep: 0x9c6436 };
-const STONE_BANDS = [0xe9b46e, 0xd99a58, 0xf0c98a, 0xcf8c4e, 0xe3a964];
-const PINK = { grassTop: 0xffa6d8, grassTop2: 0xf68cc8, grassRim: 0xffd0ea, grassSide: 0xe06ab4, dirt: 0xd59a6a, dirtDeep: 0xa86a44, checker: false };
+// kräftig gewählt: sonnenbeschienene Flächen werden im Kartenlicht deutlich heller
+const STONE_BANDS = [0xd07a3c, 0xa9552c, 0xe39a52, 0x94452a, 0xc2703a, 0xe8b070];
+const PINK = { grassTop: 0xffa8d8, grassTop2: 0xfc98d0, grassRim: 0xffd0ea, grassSide: 0xe06ab4, dirt: 0xd59a6a, dirtDeep: 0xa86a44, checker: false };
 const LAVAROCK = [0x4a3a44, 0x3c2f38, 0x564450];
 
 /** Geometrie um yaw drehen und an (x, y, z) setzen. */
@@ -54,9 +55,8 @@ export function desertGround(b, base, theme, rnd) {
   if (style === 'pond' || style === 'sand') return islandParts(x0, base, z0, x1, top, z1, theme, { under: 0, rnd, top: 'sand' });
   const parts = [];
   if (style === 'sandstone') {
-    strata(parts, x0, base, z0, x1, top - 0.35, z1, STONE_BANDS, rnd, 0.9, 0.16);
+    strata(parts, x0, base, z0, x1, top - 0.35, z1, STONE_BANDS, rnd, 0.85, 0.22);
     sandCap(parts, x0, top - 0.35, z0, x1, top, z1, rnd, 0.12, false, 4);
-    crevices(parts, x0, base, z0, x1, top - 0.4, z1, rnd);
     return parts;
   }
   if (style === 'lavarock' || style === 'basin') {
@@ -86,7 +86,7 @@ function strata(parts, x0, y0, z0, x1, y1, z1, colors, rnd, layer, jitter) {
   const lh = h / n;
   for (let i = 0; i < n; i++) {
     const inset = (i % 2 ? jitter : 0) + rnd.real(0, jitter * 0.5);
-    const c = lin(colors[(i + Math.floor(rnd.frac() * 2)) % colors.length]);
+    const c = lin(colors[(i * 2 + Math.floor(rnd.frac() * 2)) % colors.length]);
     const dark = mixc(c, [0, 0, 0], 0.18, [0, 0, 0]);
     const w = Math.max(0.2, x1 - x0 - inset * 2), d = Math.max(0.2, z1 - z0 - inset * 2);
     const g = new THREE.BoxGeometry(w, lh, d);
@@ -109,34 +109,17 @@ function sandCap(parts, x0, y0, z0, x1, y1, z1, rnd, lip, grid, cell = 2) {
   colorize(g, (p, n, o) => mixc(side, rim, smooth(0.15, 0.85, n.y), o));
   g.translate((x0 + x1) / 2, y0 + capH / 2, (z0 + z1) / 2);
   parts.push(g);
-  const a = lin(SAND.top), b2 = lin(SAND.top2), c3 = lin(0xf9e4b0);
+  const a = lin(SAND.top), b2 = lin(SAND.top2), c3 = lin(0xf9e2aa);
   const ins = r + lip * 0.5;
   const gx0 = x0 - lip + ins, gx1 = x1 + lip - ins, gz0 = z0 - lip + ins, gz1 = z1 + lip - ins;
   if (gx1 <= gx0 || gz1 <= gz0) return;
   const fn = grid
     ? (ix, iz, ax, az) => {
       const blk = (Math.floor((ax + cell / 2 + 0.01) / 2) + Math.floor((az + cell / 2 + 0.01) / 2)) & 1;
-      return mixc(blk ? a : c3, b2, rnd.frac() * 0.35, [0, 0, 0]);
+      return mixc(blk ? a : c3, b2, rnd.frac() * 0.22, [0, 0, 0]);
     }
     : () => mixc(a, b2, rnd.frac() * 0.7, [0, 0, 0]);
   parts.push(alignedGrid(gx0, gz0, gx1, gz1, y1 + 0.004, cell, fn));
-}
-
-/** Dunkle Felsspalten auf den Klippenseiten (zur Kamera +Z und seitlich). */
-function crevices(parts, x0, y0, z0, x1, y1, z1, rnd) {
-  const h = y1 - y0;
-  if (h < 2) return;
-  const b = new Build();
-  const n = Math.max(1, Math.round(((x1 - x0) + (z1 - z0)) / 7));
-  for (let i = 0; i < n; i++) {
-    const len = rnd.real(h * 0.25, h * 0.6), y = rnd.real(y0 + 0.6, y1 - len * 0.5);
-    const face = rnd.int(0, 2);
-    const col = mix(0x8a4e26, 0x6a3a1c, rnd.frac());
-    if (face === 0) b.box(0.12, len, 0.08, col, { p: [rnd.real(x0 + 0.6, x1 - 0.6), y, z1 + 0.02], r: [0, 0, rnd.real(-0.3, 0.3)] }, 0);
-    else if (face === 1) b.box(0.08, len, 0.12, col, { p: [x0 - 0.02, y, rnd.real(z0 + 0.6, z1 - 0.6)], r: [rnd.real(-0.3, 0.3), 0, 0] }, 0);
-    else b.box(0.08, len, 0.12, col, { p: [x1 + 0.02, y, rnd.real(z0 + 0.6, z1 - 0.6)], r: [rnd.real(-0.3, 0.3), 0, 0] }, 0);
-  }
-  parts.push(b.geometry());
 }
 
 /** Weiche Düne (Halbellipsoid) mit Rippeln. */
@@ -483,6 +466,22 @@ export function tankGeo(s = 1) {
   return b.geometry();
 }
 
+/** Geschützturm mit Kanone und Bärenwappen (sitzt auf dem Deck eines Panzerwagens; Kanone nach +X). */
+export function turretGeo(s = 1, olive = false) {
+  const b = new Build();
+  const S = (v) => v * s;
+  const [c0, c1, c2] = olive ? [0x4a5a32, 0x7a8a4a, 0x6a7a42] : [0x8a1c3a, 0xc4304e, 0xb8283e];
+  b.cyl(S(0.9), S(1.0), S(0.7), { v: (x, y, z, nx, ny) => mix(c0, c1, Math.max(0, ny) * 0.5 + 0.3) }, { p: [S(-0.4), S(0.35), 0] }, 14, true);
+  b.dome(S(0.9), c2, { p: [S(-0.4), S(0.7), 0] }, Math.PI / 2, 14, 4);
+  b.torus(S(0.95), S(0.06), 0xffc21a, { p: [S(-0.4), S(0.68), 0], r: [Math.PI / 2, 0, 0] }, 4, 20);
+  b.cyl(S(0.17), S(0.2), S(2.2), 0x3a3638, { p: [S(1.1), S(0.85), 0], r: [0, 0, Math.PI / 2] }, 10, true);
+  b.cyl(S(0.26), S(0.26), S(0.36), 0x2a2628, { p: [S(2.15), S(0.85), 0], r: [0, 0, Math.PI / 2] }, 10);
+  b.cyl(S(0.3), S(0.3), S(0.04), 0xffc21a, { p: [S(-0.4), S(0.8), S(0.92)], r: [Math.PI / 2, 0, 0] }, 12);
+  b.sphere(S(0.2), 0x8a5a34, { p: [S(-0.4), S(0.78), S(0.95)], s: [1, 1, 0.4] }, 8, 5);
+  b.box(S(0.26), S(0.2), S(0.05), 0x16121c, { p: [S(-0.4), S(1.02), S(0.97)] }, 0);
+  return b.geometry();
+}
+
 /** Mächtiger Panzer als Kulisse hinter dem Eingang 2-Panzer (größer, mit Antenne und Wimpel). */
 export function bigTankGeo() {
   const g = tankGeo(1.6);
@@ -515,6 +514,81 @@ export function torchStandGeo() {
   return b.geometry();
 }
 
+/** Oasen-Brunnen: runder Sandsteinring mit Wasser, Holzgestell mit Dach und Eimer. */
+export function wellGeo() {
+  const b = new Build();
+  b.cyl(1.0, 1.08, 0.8, (x, y, z) => (Math.floor(((Math.atan2(z, x) / TAU) + 1) * 12) % 2 ? 0xe0a864 : 0xeebf80), { p: [0, 0.4, 0] }, 16);
+  b.torus(0.98, 0.1, 0xf3cf94, { p: [0, 0.8, 0], r: [Math.PI / 2, 0, 0] }, 4, 18);
+  b.cyl(0.86, 0.86, 0.06, 0x3fb4ff, { p: [0, 0.62, 0] }, 16);
+  for (const s of [-1, 1]) b.box(0.14, 1.9, 0.14, 0x8a5a34, { p: [s * 0.95, 1.55, 0] }, 0);
+  b.cyl(0.07, 0.07, 2.0, 0x6a4424, { p: [0, 2.1, 0], r: [0, 0, Math.PI / 2] }, 6);
+  const roof = new THREE.Shape(); roof.moveTo(-1.35, 0); roof.lineTo(0, 0.7); roof.lineTo(1.35, 0); roof.lineTo(-1.35, 0);
+  b.extrude(roof, 1.3, (x, y, z) => (Math.floor(x * 2.5 + 10) % 2 ? 0xc84a3a : 0xe86a4a), { p: [0, 2.45, 0] }, 0, 1);
+  b.cyl(0.16, 0.13, 0.26, 0x9a6a3c, { p: [0.15, 1.55, 0] }, 8);
+  b.cyl(0.015, 0.015, 0.5, 0xd8b878, { p: [0.15, 1.9, 0] }, 3);
+  return b.geometry();
+}
+
+/** Marktstand: Tisch mit Früchten und Krügen unter gestreifter Markise (Vorderseite +Z). */
+export function stallGeo() {
+  const b = new Build();
+  for (const [x, z] of [[-1.2, -0.5], [1.2, -0.5], [-1.2, 0.5], [1.2, 0.5]]) b.cyl(0.05, 0.05, 2.2, 0x8a5a34, { p: [x, 1.1, z] }, 5);
+  b.box(2.6, 0.12, 1.2, 0xb07a44, { p: [0, 0.85, 0] }, 0);
+  b.box(2.5, 0.75, 0.08, 0x8a5a34, { p: [0, 0.42, 0.55] }, 0);
+  b.add(new THREE.BoxGeometry(2.9, 0.08, 1.7, 12, 1, 1), (x) => (Math.floor((x + 1.45) / 0.36) % 2 ? 0xfff0d0 : 0x2a8ad8), { p: [0, 2.25, 0.15], r: [0.18, 0, 0] });
+  const fruit = [[0xff8a1f, -0.8], [0xffd23a, -0.3], [0xe8305a, 0.2], [0x6cc74d, 0.7]];
+  for (const [c, x] of fruit) for (let k = 0; k < 3; k++) b.sphere(0.11, c, { p: [x + (k - 1) * 0.12, 0.98 + (k === 1 ? 0.08 : 0), 0.1 + (k % 2) * 0.12] }, 6, 4);
+  b.lathe([[0, 0], [0.16, 0], [0.2, 0.18], [0.1, 0.36], [0.12, 0.42], [0, 0.42]], 0xc8683a, { p: [1.0, 0.91, -0.25] }, 8);
+  return b.geometry();
+}
+
+/** Trockene Grasbüschel in einem Feld (size [w, d], n Büschel) – Bodendeko ohne Kollision. */
+export function tuftsGeo(size = [6, 6], n = 8, seed = 1) {
+  const b = new Build();
+  const rnd = new Rnd(seed);
+  for (let i = 0; i < n; i++) {
+    const x = rnd.real(-size[0] / 2, size[0] / 2), z = rnd.real(-size[1] / 2, size[1] / 2);
+    const c = rnd.pick([0xb8b860, 0xa8b45a, 0xd8c47a]);
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4) * TAU + rnd.real(0, 0.6);
+      b.cone(0.05, rnd.real(0.3, 0.5), c, { p: [x + Math.cos(a) * 0.08, 0.18, z + Math.sin(a) * 0.08], r: [Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35] }, 3);
+    }
+  }
+  return b.geometry();
+}
+
+/** Muscheln und Seesterne am Strand (size [w, d], n). */
+export function shellsGeo(size = [8, 3], n = 6, seed = 1) {
+  const b = new Build();
+  const rnd = new Rnd(seed);
+  for (let i = 0; i < n; i++) {
+    const x = rnd.real(-size[0] / 2, size[0] / 2), z = rnd.real(-size[1] / 2, size[1] / 2);
+    if (i % 2) b.extrude(starShape5(0.22, 0.09), 0.05, rnd.pick([0xff7a5a, 0xffa04a, 0xff6a8a]), { p: [x, 0.025, z], r: [-Math.PI / 2, 0, rnd.real(0, 6)] }, 0.015, 1);
+    else b.dome(0.14, (px, py, pz) => (Math.floor((Math.atan2(pz, px) + 4) * 2.2) % 2 ? 0xfff0e0 : 0xffc8b0), { p: [x, 0, z], s: [1, 0.55, 1.2], r: [0, rnd.real(0, 6), 0] }, Math.PI / 2, 8, 2);
+  }
+  return b.geometry();
+}
+function starShape5(R, r) {
+  const sh = new THREE.Shape();
+  for (let i = 0; i <= 10; i++) { const a = Math.PI / 2 + (i / 10) * TAU, q = i % 2 ? r : R; if (!i) sh.moveTo(Math.cos(a) * q, Math.sin(a) * q); else sh.lineTo(Math.cos(a) * q, Math.sin(a) * q); }
+  return sh;
+}
+
+/** Pflanzbeet: niedriger Sandsteinkasten (size [w, d]) mit Sand und Kugelkakteen. */
+export function planterGeo(size = [3, 3], seed = 1) {
+  const b = new Build();
+  const rnd = new Rnd(seed);
+  const [w, d] = size;
+  b.box(w, 0.6, d, { v: (x, y, z, nx, ny) => (ny > 0.5 ? 0xf3cf94 : 0xd99a58) }, { p: [0, 0.3, 0] }, 0);
+  b.box(w - 0.3, 0.06, d - 0.3, 0xf6dc9c, { p: [0, 0.61, 0] }, 0);
+  for (let i = 0; i < 3; i++) {
+    const g = barrelCactusGeo(rnd.real(0.28, 0.4));
+    g.translate(rnd.real(-w / 2 + 0.6, w / 2 - 0.6), 0.6, rnd.real(-d / 2 + 0.6, d / 2 - 0.6));
+    b.parts.push(g);
+  }
+  return b.geometry();
+}
+
 /** Geometrie einer Requisite nach Art (für map.props). */
 export function propGeo(it, seed) {
   switch (it.kind) {
@@ -539,6 +613,11 @@ export function propGeo(it, seed) {
     case 'bigtank': return bigTankGeo();
     case 'cherry': return cherryStatueGeo();
     case 'torch': return torchStandGeo();
+    case 'well': return wellGeo();
+    case 'stall': return stallGeo();
+    case 'tufts': return tuftsGeo(it.size ?? [6, 6], it.n ?? 8, seed);
+    case 'shells': return shellsGeo(it.size ?? [8, 3], it.n ?? 6, seed);
+    case 'planter': return planterGeo(it.size ?? [3, 3], seed);
     default: return null;
   }
 }
@@ -557,10 +636,18 @@ export function propShape(it) {
     case 'pots': return cyl(0.75, 0.8);
     case 'cherry': return cyl(1.1, 3.2);
     case 'pinktree': return cyl(0.3, 3);
-    case 'tank': return cyl(1.9 * (it.size ?? 1), 2.4 * (it.size ?? 1));
+    case 'tank': {
+      // Panzerwagen 6,4 × 3,4 m, um yaw gedreht: achsenparalleler Umriss
+      const k = it.size ?? 1, c = Math.abs(Math.cos(it.yaw ?? 0)), s = Math.abs(Math.sin(it.yaw ?? 0));
+      const hx = ((6.4 * c + 3.4 * s) * k) / 2, hz = ((6.4 * s + 3.4 * c) * k) / 2;
+      return { type: 'box', min: [x - hx, y - 0.2, z - hz], max: [x + hx, y + 2.6 * k, z + hz], tag: 'deko:panzer' };
+    }
     case 'tent': return cyl(1.7, 2.8);
     case 'crates': return cyl(1.1, 2);
     case 'sandblocks': return cyl(1.0, (it.n ?? 3) > 2 ? 2 : 1);
+    case 'well': return cyl(1.1, 2.6);
+    case 'stall': return { type: 'box', min: [x - 1.35, y - 0.2, z - 0.65], max: [x + 1.35, y + 1.0, z + 0.65], tag: 'deko:stand' };
+    case 'planter': { const [w, d] = it.size ?? [3, 3]; return { type: 'box', min: [x - w / 2, y - 0.2, z - d / 2], max: [x + w / 2, y + 0.6, z + d / 2], tag: 'deko:beet' }; }
     case 'sandbags': {
       // Wall der Länge size, um yaw gedreht: achsenparalleler Umriss
       const L = it.size ?? 4, c = Math.abs(Math.cos(it.yaw ?? 0)), s = Math.abs(Math.sin(it.yaw ?? 0));
