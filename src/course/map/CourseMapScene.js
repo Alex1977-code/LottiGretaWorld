@@ -43,6 +43,7 @@ import { exitPoint, entranceById, ENTER_R } from './layout.js';
 import { MapHud } from './MapHud.js';
 import { MapBatcher } from './MapBatcher.js';
 import { TubeTravel } from './travel.js';
+import { MapLod, pauseShadows } from './lod.js';
 import { THEMES as MUSIC_THEMES } from '../../audio/themes.js';
 
 export const DT = 1 / 120;
@@ -87,6 +88,8 @@ export class CourseMapScene extends Phaser.Scene {
     this.roamers = [];
     this.item = null;
     this.travel = null;
+    this.lod = null;
+    this.resumeShadows = null;
     this.pendingFresh = null;
     this.nearSlot = false;
     this.onSlotPad = false;
@@ -190,6 +193,8 @@ export class CourseMapScene extends Phaser.Scene {
         pos: new THREE.Vector3(), look: new THREE.Vector3(),
       };
       this.inputLocked = true;
+      // Blick über die ganze Insel: Schattenkarte einmal bei der (stehenden) Heldin zeichnen, dann bis zum Ende ruhen
+      this.resumeShadows = pauseShadows(this.view);
     }
 
     // HUD und Tasten
@@ -201,6 +206,10 @@ export class CourseMapScene extends Phaser.Scene {
       kb.on('keydown-TAB', this.onTabKey, this);
       kb.on('keydown-M', this.toggleMute, this);
     }
+
+    // Fern-Ausblendung kleiner Objekte (Anflug, Röhrenfahrt mit Blick über die ganze Insel)
+    const movers = [...this.roamers, this.item].filter((e) => e?.model?.root).map((e) => ({ root: e.model.root, pos: e.pos, r: 2 }));
+    this.lod = new MapLod(this.view, { exclude: [...this.batcher.meshes], movers });
 
     this.events.on(Phaser.Scenes.Events.RENDER, this.renderFrame, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanup, this);
@@ -254,6 +263,8 @@ export class CourseMapScene extends Phaser.Scene {
 
   /** Mit der Glasröhre zur nächsten/vorigen Welt fahren (Eingang id mit Regel next). */
   startTravel(id) {
+    // eine beendete Ankunft, deren Kamera noch überblendet, steht einer neuen Fahrt nicht im Weg
+    if (this.travel?.done) { this.travel.dispose(); this.travel = null; }
     if (this.leaving || this.travel) return false;
     const st = this.status(id);
     if (!st?.enterable || !st.next) return false;
@@ -685,6 +696,7 @@ export class CourseMapScene extends Phaser.Scene {
 
   /** Kamera sofort an ihr Ziel (Figur bzw. Schranke während des Schwenks). */
   snapCamera() {
+    if (this.travel?.active) { this.travel.snap(); return; }   // Verfolger-Kamera der Röhrenfahrt einrasten
     if (this.focus) { this.focusVec.set(this.focus.x, this.focus.y, this.focus.z); this.view.rig.snap(this.focusProxy); }
     else this.view.rig.snap(this.player);
   }
@@ -709,7 +721,7 @@ export class CourseMapScene extends Phaser.Scene {
 
   stats() {
     return { ...this.view.stats(), staticMeshes: this.batcher.stats.meshes, staticParts: this.batcher.stats.parts, staticTriangles: this.batcher.stats.triangles,
-      shapes: this.level.world.count, walls: this.built.walls, hedges: this.built.hedges, tiles: this.built.tiles };
+      shapes: this.level.world.count, walls: this.built.walls, hedges: this.built.hedges, tiles: this.built.tiles, lod: this.lod?.info() };
   }
 
   // ------------------------------------------------------------------ Darstellung
@@ -745,7 +757,8 @@ export class CourseMapScene extends Phaser.Scene {
     const cam = this.view.camera;
     cam.position.copy(it.pos);
     cam.lookAt(it.look);
-    this.view.rig.target.copy(it.look);
+    // Sonne/Schattenbereich bleiben bei der Heldin (dort endet der Flug; die Schattenkarte ruht währenddessen)
+    this.view.rig.target.set(this.player.pos.x, this.player.pos.y + 1, this.player.pos.z);
     return true;
   }
 
@@ -754,6 +767,8 @@ export class CourseMapScene extends Phaser.Scene {
     this.intro = null;
     this.inputLocked = !!this.cine || !!this.hud?.confirm;
     this.view.rig.snap(this.player);
+    this.resumeShadows?.();
+    this.resumeShadows = null;
   }
 
   cleanup() {
@@ -768,6 +783,10 @@ export class CourseMapScene extends Phaser.Scene {
     for (const ev of this.built?.entrances?.values() ?? []) ev.dispose();
     this.travel?.dispose();
     this.travel = null;
+    this.lod?.dispose();
+    this.lod = null;
+    this.resumeShadows?.();
+    this.resumeShadows = null;
     this.slot?.dispose();
     this.slot = null;
     this.built?.scenery?.dispose();

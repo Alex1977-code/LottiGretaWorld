@@ -1075,6 +1075,9 @@ src/course/map/
   slot.js        Glückshaus mit Spielautomat (Logik + Darstellung)
   bake.js        Modelle der Registry (Palme, Kaktus, Säulenruine, Pyramide, Blütenbaum, Panzerwagen, Sandblock …) als
                  statische Kulisse in die Karten-Kacheln einbacken (gleiche Optik wie im Level, keine Zeichenaufrufe je Stück)
+  lod.js         Fern-Ausblendung kleiner Kartenobjekte (Eingänge, Schranken, Gegnergruppe, Schilder) jenseits von 90 m
+                 vor der Kamera – über Ebenen (layers), auch im Schattenpass; greift nur beim Anflug und bei der Ankunft.
+                 pauseShadows(view): Schattenkarte einmal zeichnen, dann ruhen lassen (gezählt, gemeinsamer Renderer)
 ```
 
 ### Präzisierung (Mehrwelten-Karte): Weltdaten (zusätzlich zum Format oben, alles optional)
@@ -1124,7 +1127,10 @@ Kamera an die Figur heran.
   und übers Meer (3,4 s, Verfolger-Kamera, Toast „Auf zu Welt n!“), weiße Blende → `scene.start('CourseMap', { world: n,
   via: 'tube', fromWorld })`. In Welt n startet die Figur weit draußen in der Rückweg-Röhre (Regel `next: fromWorld`),
   saust zum Röhrenfuß (3,2 s) und hüpft vor das Podest; danach Kamera-Überblendung, frisch geöffnete Schranken werden
-  erst dann gezeigt. Alles im Simulationstakt (`step(n)`), `state().travel = { mode, phase, t, entrance }`.
+  erst dann gezeigt. Alles im Simulationstakt (`step(n)`), `state().travel = { mode, phase, t, entrance, shadows }`.
+  In der ersten Sekunde der Ankunft (Röhre weit draußen, Blick über die ganze Insel) ruht die Schattenkarte
+  (`pauseShadows`, beim Ende/`dispose` zurück); ebenso beim Anflug: einmal bei der stehenden Heldin gezeichnet (dort
+  endet der Flug), dann bis `endIntro()`. `snapCamera()` rastet während der Fahrt die Verfolger-Kamera ein.
 - **Welt-Warp aus einem Level**: Röhre `{ type: 'pipe', id, target, warpWorld: n }` funktioniert wie eine Warp-Röhre;
   beim Teleport schaltet sie Welt n frei (`openWorld`) und beendet das Level ohne Zielmast (weiße Blende →
   `exitToMap({ warpWorld: n })` → Ankunft wie mit der Glasröhre). Im Testtakt (`setManual`) bleibt die Szene stehen und

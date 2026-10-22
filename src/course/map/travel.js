@@ -9,9 +9,14 @@
 // Die Bewegung läuft im Simulationstakt über player.ride(ctl) (Skript-Modus wie in der Glasröhre der Level) – also
 // deterministisch und in Tests mit step(n) abspielbar. Die Kamera folgt als Verfolger-Kamera hinter der Figur
 // (rig.custom), nach der Ankunft wird weich auf die Kartenkamera überblendet.
+//
+// Kosten: Am Anfang der Ankunft blickt die Kamera über die ganze Insel. Solange die Röhre dort noch weit draußen über
+// dem Meer verläuft (SHADOW_FREEZE), wird die Schattenkarte nicht neu gezeichnet (der Schattenbereich folgt der
+// Kamera und enthielte nur Meer und Figur); kleine ferne Objekte blendet lod.js aus.
 
 import * as THREE from 'three';
 import { tubePoints, exitPoint } from './layout.js';
+import { pauseShadows } from './lod.js';
 
 const HOP_IN = 0.45;          // s Hüpfer vom Podest in die Röhre
 const DEPART_TIME = 3.4;      // s Gesamtdauer der Abfahrt (danach Szenenwechsel)
@@ -19,6 +24,7 @@ const ARRIVE_TIME = 3.2;      // s Fahrt in der Röhre bei der Ankunft
 const ARRIVE_LEN = 64;        // m Röhrenstrecke, die bei der Ankunft gefahren wird
 const HOP_OUT = 0.75;         // s Hüpfer aus dem Röhrenfuß vor das Podest
 const BLEND_OUT = 1.0;        // s Kamera-Überblendung nach der Ankunft
+const SHADOW_FREEZE = 1.0;    // s Ankunft: so lange kein Schattenpass (Röhre weit draußen über dem Meer)
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3();
 
@@ -75,6 +81,9 @@ export class TubeTravel {
     this.camPos = null;
     this.camLook = new THREE.Vector3();
     this.blend = null;
+    this.snapNext = false;
+    // Ankunft: Schattenkarte einmal zeichnen, dann bis SHADOW_FREEZE ruhen lassen (in dispose spätestens zurück)
+    this.resumeShadows = this.mode === 'arrive' ? pauseShadows(scene.view) : null;
     const p = scene.player;
     this.start = p.pos.clone();
     this.exit = new THREE.Vector3(...exitPoint(this.def));
@@ -92,7 +101,18 @@ export class TubeTravel {
 
   get active() { return !this.done || !!this.blend; }
 
-  info() { return { mode: this.mode, phase: this.phase, t: +this.t.toFixed(2), entrance: this.def.id }; }
+  info() { return { mode: this.mode, phase: this.phase, t: +this.t.toFixed(2), entrance: this.def.id, shadows: !this.resumeShadows }; }
+
+  /** Verfolger-Kamera beim nächsten Bild ohne Nachziehen an ihre Soll-Lage setzen (Tests, Bildvergleich). */
+  snap() {
+    if (this.blend) { this.blend = null; this.rig.custom = null; this.rig.snap(this.scene.player); return; }   // Überblendung beenden
+    this.snapNext = true;
+  }
+
+  unfreeze() {
+    this.resumeShadows?.();
+    this.resumeShadows = null;
+  }
 
   /** Simulationsschritt der Fahrt (player.ride). true = Fahrt beendet. */
   stepRide(p, dt) {
@@ -114,6 +134,7 @@ export class TubeTravel {
         if (this.t >= DEPART_TIME && !this.done) { this.done = true; this.phase = 'gone'; this.onDone?.(); }
       }
     } else if (this.phase === 'ride') {
+      if (this.resumeShadows && this.t >= SHADOW_FREEZE) this.unfreeze();
       const u = Math.min(1, this.t / ARRIVE_TIME);
       const e = 0.25 * u + 0.75 * (1 - (1 - u) ** 1.8);
       this.s = ARRIVE_LEN * (1 - e) + 0.9 * e;
@@ -173,10 +194,12 @@ export class TubeTravel {
     const back = this.mode === 'depart' ? 7.5 : 9;
     _a.set(c.x - d.x * back + d.z * 2.4, c.y + 3.4 - d.y * 4, c.z - d.z * back - d.x * 2.4);
     _b.set(c.x + d.x * 12, c.y - 0.6 + d.y * 3, c.z + d.z * 12);
-    if (!this.camPos) {
-      this.camPos = this.mode === 'arrive' ? _a.clone() : cam.position.clone();
-      if (this.mode === 'arrive') this.camLook.copy(_b);
+    if (!this.camPos || this.snapNext) {
+      const at = this.mode === 'arrive' || this.snapNext;
+      this.camPos = at ? _a.clone() : cam.position.clone();
+      if (at) this.camLook.copy(_b);
       else this.camLook.copy(this.rig.target);
+      this.snapNext = false;
     }
     const kp = 1 - Math.exp(-dt * (this.mode === 'arrive' ? 5 : this.phase === 'hop' ? 2.5 : 6.5));
     const kl = 1 - Math.exp(-dt * 6);
@@ -189,6 +212,7 @@ export class TubeTravel {
   }
 
   dispose() {
+    this.unfreeze();
     if (this.rig.custom) this.rig.custom = null;
   }
 }

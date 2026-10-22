@@ -174,20 +174,41 @@ st = await sc(() => window.__courseMap.step(1));
 await sc(() => window.__courseMap.setInput({}));
 check('A auf dem Podest startet die Röhrenfahrt (Abfahrt)', st.travel?.mode === 'depart' && !st.leaving);
 r = await stepUntil((s) => s.travel?.phase === 'ride' && s.travel.t > 1.6, 600);
-await shot('abfahrt', 400, false);
+await shot('abfahrt', 400);
 r = await stepUntil(() => false, 600);
 check('Nach der Fahrt verlässt die Karte Welt 1 (Szenenwechsel zu Welt 2)', r.s.leaving === true);
 await waitMap(2);
 st = await sc(() => window.__courseMap.state());
 console.log('  Ankunft', JSON.stringify(st.travel), JSON.stringify(st.player));
 check('Welt 2 geladen, Ankunft durch die Röhre läuft (Figur weit draußen)', st.world === 2 && st.travel?.mode === 'arrive' && Math.hypot(st.player.x + 10, st.player.z - 43.6) > 30);
+// teuerstes Bild der Karte: Anfang der Ankunft, Blick über die ganze Insel (ferne Kleinteile ausgeblendet, Schattenpass ruht)
+await shot('ankunft_weit', 300);
+r = await sc(() => ({ lod: window.__courseMap.lod.info(), travel: window.__courseMap.state().travel }));
+console.log('  Ankunft weit', JSON.stringify(r));
+check('Ankunft über dem Meer: ferne Kleinteile ausgeblendet, Schattenkarte ruht', r.lod.hidden > 10 && (r.travel.t >= 1 || r.travel.shadows === false));
 r = await stepUntil((s) => s.travel?.t > 1.4, 400);
-await shot('ankunft', 400, false);
+await shot('ankunft', 400);
 r = await stepUntil((s) => !s.travel, 900);
 await sc(() => window.__courseMap.step(40));
 st = await sc(() => window.__courseMap.state());
 console.log('  angekommen', JSON.stringify(st.player));
 check('Nach der Ankunft steht die Figur vor der Rückweg-Röhre am Start von Welt 2', Math.hypot(st.player.x + 10, st.player.z - 43.6) < 0.8 && st.player.mode === 'ground' && Math.abs(st.player.y - 1) < 0.05);
+await sc(() => window.__courseMap.snapCamera());
+await frames(3);
+// Fern-Ausblendung ändert die normale Kartenansicht nicht (ausgeblendet ist nur, was ohnehin nicht im Bild liegt –
+// höchstens ein Krümel am Horizont, der die Hüllkugel-Prüfung noch besteht)
+r = await sc(() => {
+  const m = window.__courseMap, v = m.view, rr = v.renderer;
+  const draw = () => { rr.render(v.three, v.camera); return [rr.info.render.calls, rr.info.render.triangles]; };
+  const a = draw();
+  const hid = m.lod.units.filter((u) => u.far);
+  for (const u of hid) m.lod.set(u, false);
+  const b = draw();
+  for (const u of hid) m.lod.set(u, true);
+  return { auto: rr.shadowMap.autoUpdate, a, b, hidden: hid.length };
+});
+console.log('  Fern-Ausblendung am Start', JSON.stringify(r));
+check('Danach: Schattenkarte wieder laufend; Fern-Ausblendung ändert die Kartenansicht nicht (≤ 2 Aufrufe, ≤ 500 Dreiecke)', r.auto === true && Math.abs(r.a[0] - r.b[0]) <= 2 && Math.abs(r.a[1] - r.b[1]) <= 500);
 check('Welt 2 gemerkt (offen, aktuelle Welt)', st.worlds.includes(2) && (await sc(() => JSON.parse(localStorage.getItem('lotti-greta-course-v1')).world)) === 2);
 check('HUD: Weltname „Welt 2 · Wüste“ und Sterne gesamt (24)', (await sc(() => window.__courseMap.hud.worldName.text)) === 'Welt 2 · Wüste'
   && (await sc(() => window.__courseMap.hud.totalText.text)).startsWith('24') && st.totalStars === 24 && st.stars === 0 && st.starsMax === 24);
@@ -403,6 +424,7 @@ await loadWith({ world: 2, worlds: [1, 2], mapPos: null });
 try { await page.waitForFunction(() => window.__courseMap && window.__courseMap.intro, null, { timeout: 90000 }); } catch { /* ohne Anflug */ }
 await page.waitForTimeout(500);
 await page.screenshot({ path: `${OUT}cmap2_anflug.png`, timeout: 90000 });
+{ const s = await sc(() => window.__courseMap?.intro ? window.__courseMap.stats() : null); if (s) stats.push(['anflug', s.calls, s.triangles]); }
 await waitMap(2);
 console.log('\n  Kennzahlen je Bild (Zeichenaufrufe inkl. Schattenpass, Dreiecke):');
 for (const [n, c, t] of stats) console.log(`    ${n.padEnd(18)} ${String(c).padStart(4)} Aufrufe  ${String(Math.round(t / 1000)).padStart(4)} k Dreiecke`);
