@@ -1,20 +1,30 @@
-// Step-Sequencer mit Vorausplanung (Lookahead), spielt die Themen aus themes.js.
+// Step-Sequencer mit Vorausplanung (Lookahead), spielt die Themen aus themes.js – und die Taktuhr der Musik.
 //
 // Spuren eines Themas (jede darf fehlen oder leer sein): lead (Hoover), stabs, piano, pad, bass,
 // organ (Rechteck-Orgel), arp (Pluck-Arpeggio), echo (leise Verzögerungs-Noten), riser (Hoover-Riser),
-// energy (Energie-Ebene beim Reiten) und drums. Tonale Spuren sind Takt-Strings aus Token
-// "Note:Dauer" (Dauer in Sechzehnteln), Akkorde mit "+" verkettet ("C4+Eb4+G4:2"), "-" = Pause.
-// Drums: je Takt ein String mit 16 Zeichen oder ein Array solcher Ebenen (Kick und Hat gleichzeitig):
-// k Kick, c Clap, s Snare, h Hat geschlossen, o Hat offen, r Crash, t Tom (Fill: fällt je Schlag), "." nichts.
+// bell (Glocke/Glockenspiel/Piep), whistle (Pfeife/Theremin), energy (Energie-Ebene beim Reiten) und drums.
+// Tonale Spuren sind Takt-Strings aus Token "Note:Dauer" (Dauer in Sechzehnteln), Akkorde mit "+" verkettet
+// ("C4+Eb4+G4:2"), "-" = Pause. Drums: je Takt ein String mit 16 Zeichen oder ein Array solcher Ebenen (Kick
+// und Hat gleichzeitig): k Kick, c Clap, s Snare, h Hat geschlossen, o Hat offen, r Crash, t Tom (Fill: fällt
+// je Schlag), d Darbuka-Doum (tief), p Darbuka-Tek (hell), x Uhr-Tick (Tick/Tack im Wechsel), j Schellen,
+// "." nichts.
 //
 // Klangfarbe je Thema (alles optional, ohne Angabe klingen die Stimmen wie bisher):
 //   voice: { spur: {Optionen der Stimme} }   z.B. { lead: { cutoff: 1400, voices: 3 }, arp: { type: 'triangle' } }
-//   kit:   { kick|clap|snare|hat|open|crash|tom: {Optionen} }   z.B. { kick: { pitchStart: 115, click: 0.08 } }
+//   kit:   { kick|clap|snare|hat|open|crash|tom|doum|tek|tick|jingle: {Optionen} }   z.B. { kick: { pitchStart: 115 } }
 //   fx:    { lowpass: { spur: Hz }, delay: { steps, feedback, lowpass, wet, send: { spur: Anteil } } }
 //          (siehe createThemeBus in AudioEngine.js)
+//   sync:  { switchEvery, warnBeats } – Spiel-Takt (z.B. Piep-Blöcke): Umschalten alle `switchEvery`
+//          Zählzeiten, die letzten `warnBeats` davor piept es (themeInfo(name).sync)
 //
 // Die Drums laufen im Level immer. `setDrums(on)` blendet die Energie-Ebene ein/aus (Pflaume):
 // Lead-Doppelung eine Oktave höher plus die `energy`-Spur (Offbeat-Stabs).
+//
+// Taktuhr: `music.beat()` → { bpm, beat, bar, phase, playing, … } und `music.onBeat(fn)` → Abmelden-Funktion,
+// synchron zur hörbaren Musik (Ausgabelatenz berücksichtigt). Ohne Freischaltung des AudioContext (oder wenn er
+// angehalten ist) läuft eine Ersatzuhr mit dem Tempo des angeforderten Themas über performance.now(); bei der
+// Freischaltung steigt die Musik im Takt dieser Uhr ein (die Zählzeit springt nicht). Stummschalten ändert nichts
+// an der Uhr. Testhaken: `setManualClock(true)` + `advanceClock(s)` (virtuelle, deterministische Zeit).
 //
 // Der Sequencer ist in Kontext und Zeitbasis parametrisierbar: im Spiel läuft er auf dem
 // Live-Kontext, `renderTheme()` schreibt ein Thema über einen OfflineAudioContext in einen Puffer.
@@ -25,13 +35,18 @@ import { THEMES } from './themes.js';
 const NOTE_INDEX = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 const STEPS_PER_BAR = 16;
 const MAX_OSC_PER_STEP = 10; // Polyphonie-Budget je Sechzehntel (Handy-CPU)
-const TONAL_TRACKS = ['lead', 'energy', 'stabs', 'piano', 'pad', 'bass', 'organ', 'arp', 'echo', 'riser'];
-const DRUM_KINDS = 'kcshort';
-const KIT_PARTS = ['kick', 'clap', 'snare', 'hat', 'open', 'crash', 'tom'];
+const TONAL_TRACKS = ['lead', 'energy', 'stabs', 'piano', 'pad', 'bass', 'organ', 'arp', 'echo', 'riser', 'bell', 'whistle'];
+const DRUM_KINDS = 'kcshortdpxj';
+const KIT_PARTS = ['kick', 'clap', 'snare', 'hat', 'open', 'crash', 'tom', 'doum', 'tek', 'tick', 'jingle'];
+const BEATS_PER_BAR = 4;
+const MAX_CATCHUP = 8;     // Zählzeiten, die onBeat nach einer Pause (Hintergrund-Tab) höchstens nachholt
+const BEAT_GRACE = 0.012;  // s: wer sich so kurz nach einer Zählzeit anmeldet, bekommt sie noch
+/** Sekunden der Echtzeit-Uhr (performance.now; Date als Rückfall). */
+const perfSeconds = () => ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) / 1000;
 /** Gibt es das Thema? (eigene Eigenschaft – "toString" & Co. sind keine Themen; ohne Object.hasOwn für ältere Safari) */
 const isTheme = (name) => typeof name === 'string' && Object.prototype.hasOwnProperty.call(THEMES, name);
 /** Schlagzeug-Teil → Bus-Name (offene und geschlossene Hats teilen sich einen Bus). */
-const DRUM_BUS = { k: 'kick', c: 'clap', s: 'snare', h: 'hat', o: 'hat', r: 'crash', t: 'tom' };
+const DRUM_BUS = { k: 'kick', c: 'clap', s: 'snare', h: 'hat', o: 'hat', r: 'crash', t: 'tom', d: 'doum', p: 'tek', x: 'tick', j: 'jingle' };
 
 /** "Bb4" → MIDI-Nummer (null bei ungültigem Namen). */
 export function midi(name) {
@@ -66,7 +81,10 @@ export function parseTrack(bars, where = 'Spur', report = () => {}) {
   return { events, length: step };
 }
 
-/** Trommelspur → Events {step, kind, run, off}; run = Zahl direkt vorangehender gleicher Schläge (Wirbel), off = ungerades Sechzehntel. */
+/**
+ * Trommelspur → Events {step, kind, run, off, nth}; run = Zahl direkt vorangehender gleicher Schläge (Wirbel),
+ * off = ungerades Sechzehntel, nth = laufende Nummer dieses Zeichens in seiner Ebene und seinem Takt (Tick/Tack).
+ */
 export function parseDrums(bars, where = 'drums', report = () => {}) {
   const events = [];
   bars.forEach((bar, i) => {
@@ -74,12 +92,14 @@ export function parseDrums(bars, where = 'drums', report = () => {}) {
     for (const layer of layers) {
       if (layer.length !== STEPS_PER_BAR) report(`${where}, Takt ${i + 1}: Ebene "${layer}" hat ${layer.length} statt ${STEPS_PER_BAR} Zeichen`);
       let run = 0;
+      const nth = {};
       for (let s = 0; s < layer.length; s++) {
         const ch = layer[s];
         if (ch === '.') { run = 0; continue; }
         if (!DRUM_KINDS.includes(ch)) { report(`${where}, Takt ${i + 1}: unbekanntes Zeichen "${ch}"`); run = 0; continue; }
         run = s > 0 && layer[s - 1] === ch ? run + 1 : 0;
-        events.push({ step: i * STEPS_PER_BAR + s, kind: ch, run, off: s % 2 === 1 });
+        nth[ch] = (nth[ch] ?? -1) + 1;
+        events.push({ step: i * STEPS_PER_BAR + s, kind: ch, run, off: s % 2 === 1, nth: nth[ch] });
       }
     }
   });
@@ -106,6 +126,11 @@ export function compileTheme(name, theme, report = (msg) => console.error(`[Musi
   for (const k of Object.keys(theme.kit ?? {})) if (!KIT_PARTS.includes(k)) report(`kit: unbekannter Teil "${k}"`);
   for (const k of Object.keys(theme.fx?.lowpass ?? {})) if (!busNames.includes(k)) report(`fx.lowpass: unbekannte Spur "${k}"`);
   for (const k of Object.keys(theme.fx?.delay?.send ?? {})) if (!busNames.includes(k)) report(`fx.delay.send: unbekannte Spur "${k}"`);
+  if (theme.sync) {
+    const { switchEvery: ev, warnBeats: wb } = theme.sync;
+    if (!(Number.isInteger(ev) && ev > 0 && Number.isInteger(wb) && wb >= 0 && wb < ev)) report(`sync: unplausibel (switchEvery ${ev}, warnBeats ${wb})`);
+    else if (length && (length / 4) % ev !== 0) report(`sync: Loop (${length / 4} Zählzeiten) ist kein Vielfaches von switchEvery ${ev}`);
+  }
   // Index: Schritt → Events je Spur
   const byStep = new Array(length);
   for (let s = 0; s < length; s++) byStep[s] = {};
@@ -126,6 +151,7 @@ export function compileTheme(name, theme, report = (msg) => console.error(`[Musi
     voice: theme.voice ?? {},              // Stimmen-Optionen je Spur
     kit: theme.kit ?? {},                  // Schlagzeug-Optionen je Teil
     fx: theme.fx ?? null,                  // dauerhafte Effekt-Busse (Tiefpass, Echo/Hall)
+    sync: theme.sync ?? null,              // Spiel-Takt (Piep-Blöcke): { switchEvery, warnBeats }
     tracks,
     byStep,
   };
@@ -136,12 +162,12 @@ export function compileTheme(name, theme, report = (msg) => console.error(`[Musi
  * Zeitbasis und Kontext kommen von außen (Live oder Offline).
  */
 export class Sequencer {
-  constructor({ voices, dest, energyGain, theme, startTime, energy = false, buses = {} }) {
+  constructor({ voices, dest, energyGain, theme, startTime, energy = false, buses = {}, step = 0 }) {
     this.voices = voices;
     this.dest = dest;
     this.energyGain = energyGain;
     this.theme = theme;
-    this.step = 0;
+    this.step = step; // Einstieg mitten im Stück (Taktuhr: Freischaltung im Takt der Ersatzuhr)
     this.time = startTime;
     this.energy = energy;
     this.buses = buses; // Spur → Effekt-Bus (createThemeBus); fehlende Spuren gehen direkt auf dest
@@ -182,6 +208,10 @@ export class Sequencer {
       else if (ev.kind === 'o') v.hatOpen({ ...kit.open, at: t, bus });
       else if (ev.kind === 'r') v.crash({ ...kit.crash, at: t, bus });
       else if (ev.kind === 't') oscs += v.tom({ ...kit.tom, at: t, bus, freq: (kit.tom?.freq ?? 190) * Math.pow(0.84, ev.run % 4) }); // Fill fällt
+      else if (ev.kind === 'd') oscs += v.doum({ ...kit.doum, at: t, bus });
+      else if (ev.kind === 'p') oscs += v.tek({ ...kit.tek, at: t, bus, volume: (kit.tek?.volume ?? 0.24) * (ev.off ? (kit.tek?.off ?? 0.7) : 1) }); // Zwischenschläge leiser
+      else if (ev.kind === 'x') oscs += v.tick({ ...kit.tick, at: t, bus, tock: ev.nth % 2 === 1 });
+      else if (ev.kind === 'j') v.jingle({ ...kit.jingle, at: t, bus, volume: ev.off ? (kit.jingle?.off ?? 0.12) : (kit.jingle?.volume ?? 0.2) });
     }
     for (const ev of at.bass ?? []) oscs += v.bass({ ...vo.bass, at: t, bus: out('bass'), freq: freqOf(ev.notes[0]), duration: ev.dur * sd * 0.7 });
     for (const ev of at.lead ?? []) {
@@ -201,6 +231,8 @@ export class Sequencer {
       }
     }
     for (const ev of at.riser ?? []) oscs += v.riser({ ...vo.riser, at: t, bus: out('riser'), freq: freqOf(ev.notes[0]), duration: ev.dur * sd });
+    for (const ev of at.bell ?? []) for (const n of ev.notes) oscs += v.bell({ ...vo.bell, at: t, bus: out('bell'), freq: freqOf(n) });
+    for (const ev of at.whistle ?? []) oscs += v.whistle({ ...vo.whistle, at: t, bus: out('whistle'), freq: freqOf(ev.notes[0]), duration: ev.dur * sd * (vo.whistle?.gate ?? 0.92) });
     if (this.energy) {
       for (const ev of at.energy ?? []) {
         const freqs = ev.notes.map(freqOf);
@@ -224,37 +256,74 @@ class Music {
     this.pending = null;
     this.lookahead = 0.12;    // Sekunden
     this.interval = 30;       // ms
+    // Taktuhr (beat(), onBeat()): Zählzeit = b0 + (Zeit − t0) · bpm/60 auf der Zeitbasis `src`
+    // ('audio' = hörbare Kontextzeit, 'ersatz' = performance.now() bzw. virtuelle Testzeit)
+    this.clock = null;        // { theme, bpm, loop, beats, src, t0, b0, waiting, stopped, frozen }
+    this.shownBeat = 0;       // zuletzt gemeldete Zählzeit (beat() fällt nie zurück)
+    this.firedBeat = -1;      // letzte an onBeat gemeldete ganze Zählzeit
+    this.beatListeners = new Set();
+    this.beatTimer = null;
+    this.manualTime = null;   // Testhaken: virtuelle Zeit in Sekunden (null = Echtzeit)
+    this.lastHeard = null;    // letzte Ablesung der hörbaren Uhr { perf (s), beat } – Anschluss für die Ersatzuhr
   }
 
-  /** Thema starten (Neustart nur bei Wechsel). */
+  /** Thema starten (Neustart nur bei Wechsel). Vor der Freischaltung läuft die Taktuhr als Ersatzuhr an. */
   play(name) {
-    if (!engine.ready) { this.pending = name; return; }
+    if (!engine.ready) {
+      this.pending = name;
+      const c = this.clock;
+      if (!isTheme(name)) this._stopClock();
+      else if (!c || c.theme !== name || c.stopped) this._startClock(compileTheme(name, THEMES[name], () => {}), 'ersatz', this._now(), 0, true);
+      return;
+    }
+    this.pending = null;
     if (this.current === name && this.timer) return;
-    this.stop();
-    if (!isTheme(name)) return; // unbekanntes Thema: Stille statt Fehler
-    this.theme = compileTheme(name, THEMES[name]);
+    const c = this.clock;
+    const waitingSame = !!c && c.theme === name && !c.stopped && c.waiting;
+    const join = waitingSame && this.manualTime === null; // Ersatzuhr lief schon: im Takt einsteigen
+    this._halt();
+    if (!isTheme(name)) { this._stopClock(); return; }
+    const theme = compileTheme(name, THEMES[name]);
+    let startTime = engine.now + 0.05, beat0 = 0;
+    if (join) {
+      const p = this._joinPoint();
+      if (!theme.loop && p.beat * 4 >= theme.length) return; // kurzes Stück ist auf der Ersatzuhr schon vorbei
+      startTime = p.startTime; beat0 = p.beat;
+    }
+    this.theme = theme;
     this.current = name;
     if (!this.energyGain) {
       this.energyGain = engine.ctx.createGain();
       this.energyGain.gain.value = this.drums ? 1 : 0;
       this.energyGain.connect(engine.musicIn);
     }
-    this.fx = createThemeBus(engine.ctx, this.theme.fx, this.theme.stepDur, engine.musicIn);
+    this.fx = createThemeBus(engine.ctx, theme.fx, theme.stepDur, engine.musicIn);
     engine.voices.stats.nodes += this.fx.nodes.length;
     this.seq = new Sequencer({
       voices: engine.voices,
       dest: engine.musicIn,
       energyGain: this.energyGain,
-      theme: this.theme,
-      startTime: engine.now + 0.05,
+      theme,
+      startTime,
       energy: this.drums,
       buses: this.fx.buses,
+      step: (beat0 * 4) % theme.length,
     });
+    if (join) Object.assign(this.clock, { src: 'audio', t0: startTime, b0: beat0, waiting: false });
+    else if (this.manualTime !== null) { if (!waitingSame) this._startClock(theme, 'ersatz', this.manualTime, 0); }
+    else this._startClock(theme, 'audio', startTime, 0);
     this.timer = setInterval(() => this.schedule(), this.interval);
     this.schedule();
   }
 
+  /** Musik anhalten (die Taktuhr steht dann still: playing = false). */
   stop() {
+    this._halt();
+    this._stopClock();
+  }
+
+  /** Sequencer anhalten, Taktuhr unberührt (Themenwechsel, natürliches Ende eines kurzen Stücks). */
+  _halt() {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     this.seq = null;
@@ -266,7 +335,7 @@ class Music {
   /** Namen aller Themen. */
   listThemes() { return Object.keys(THEMES); }
 
-  /** Eckdaten eines Themas (Test/Debug): Tempo, Takte, Loop, Länge in Sekunden, Spuren, Effekte. */
+  /** Eckdaten eines Themas (Test/Debug): Tempo, Takte, Loop, Länge in Sekunden, Spuren, Effekte, Spiel-Takt. */
   themeInfo(name) {
     if (!isTheme(name)) return null;
     const th = compileTheme(name, THEMES[name], () => {});
@@ -275,6 +344,7 @@ class Music {
       tracks: Object.entries(th.tracks).filter(([, t]) => t.events.length).map(([k]) => k),
       drumKinds: [...new Set(th.tracks.drums.events.map((d) => d.kind))].sort().join(''),
       fx: th.fx ? Object.keys(th.fx) : [], energy: th.tracks.energy.events.length > 0 || th.energyDouble > 0,
+      sync: th.sync ? { ...th.sync } : null,
     };
   }
 
@@ -291,8 +361,190 @@ class Music {
   }
 
   schedule() {
-    if (!engine.ready || !this.seq) return;
-    if (!this.seq.advance(engine.now + this.lookahead)) this.stop();
+    if (!this.seq) return;
+    if (!engine.ready) { this._checkSource(); return; } // Kontext angehalten: Ersatzuhr übernimmt
+    if (this.pending) { this.resumePending(); return; }  // während der Pause angefordertes Thema nachholen
+    const c = this.clock;
+    // Kontext läuft wieder (oder Testuhr aus): Musik springt an die Stelle der Uhr
+    if (c && c.src === 'ersatz' && !c.stopped && this.manualTime === null && c.theme === this.current) this._resync();
+    if (this.seq && !this.seq.advance(engine.now + this.lookahead)) this._halt();
+    if (this.clock && this.clock.src === 'audio') this._raw(); // Ablesung merken (Anschluss beim Anhalten)
+    this._pumpBeats(false);
+  }
+
+  // ---------------------------------------------------------------- Taktuhr ----
+
+  /**
+   * Taktuhr der Musik, synchron zu dem, was gerade zu hören ist (Ausgabelatenz abgezogen).
+   * @returns {{ bpm: number, beat: number, bar: number, phase: number, playing: boolean,
+   *             inBar: number, theme: string|null, loopBeats: number, source: 'audio'|'ersatz'|'none' }}
+   *   beat = fortlaufende Zählzeit (Viertel) seit Themenstart als Kommazahl, nie fallend; bar = ganze Takte (4/4);
+   *   phase = 0..1 innerhalb der Zählzeit; playing = ein Thema läuft (hörbar oder über die Ersatzuhr);
+   *   inBar = Zählzeit im Takt (0–3); loopBeats = Länge des Loops in Zählzeiten. Ohne Thema: bpm 0, playing false.
+   */
+  beat() {
+    const c = this.clock;
+    if (!c) return { bpm: 0, beat: 0, bar: 0, phase: 0, playing: false, inBar: 0, theme: null, loopBeats: 0, source: 'none' };
+    this._checkSource();
+    let b = this._shown(), playing = !c.stopped;
+    if (!c.loop && b >= c.beats) { b = c.beats; playing = false; }
+    const whole = Math.floor(b);
+    return { bpm: c.bpm, beat: b, bar: Math.floor(b / BEATS_PER_BAR), phase: b - whole, playing, inBar: whole % BEATS_PER_BAR, theme: c.theme, loopBeats: c.beats, source: c.src };
+  }
+
+  /**
+   * Rückruf je Zählzeit, wenn sie hörbar wird (bzw. auf der Ersatzuhr erreicht ist):
+   * fn({ beat, bar, inBar, bpm, theme, late }) – late = Sekunden seit der Zählzeit (Timer-Verzug).
+   * Neue Zuhörer bekommen die künftigen Zählzeiten; bei einem Themenwechsel beginnt die Zählung bei 0.
+   * Nach langen Pausen (Hintergrund-Tab) wird von vielen verpassten Zählzeiten nur die letzte nachgereicht.
+   * @returns {() => void} Abmelden
+   */
+  onBeat(fn) {
+    if (typeof fn !== 'function') return () => {};
+    const c = this.clock;
+    if (!this.beatListeners.size && c && !c.stopped) {
+      this.firedBeat = Math.max(this.firedBeat, Math.ceil(this._raw() - BEAT_GRACE * c.bpm / 60) - 1);
+    }
+    const entry = { fn };
+    this.beatListeners.add(entry);
+    this._kickTicker();
+    return () => { if (this.beatListeners.delete(entry) && !this.beatListeners.size) this._kickTicker(); };
+  }
+
+  /** Läuft die Taktuhr auf virtueller Testzeit? */
+  get manualClock() { return this.manualTime !== null; }
+
+  /**
+   * Testhaken: Taktuhr auf eine virtuelle Zeit umstellen, die nur `advanceClock()` vorrückt – deterministisch,
+   * unabhängig von Audio und Echtzeit (die hörbare Musik läuft weiter, ist aber nicht mehr maßgeblich).
+   * `false` kehrt zur Echtzeit zurück; die Zählzeit läuft stetig weiter, laufende Musik springt an ihre Stelle.
+   */
+  setManualClock(on = true) {
+    const c = this.clock;
+    if (on && this.manualTime === null) {
+      const b = c ? this._shown() : 0;
+      this.manualTime = 0;
+      if (c && !c.stopped) Object.assign(c, { src: 'ersatz', t0: 0, b0: b });
+    } else if (!on && this.manualTime !== null) {
+      const b = c ? this._shown() : 0;
+      this.manualTime = null;
+      if (c && !c.stopped) {
+        Object.assign(c, { src: 'ersatz', t0: perfSeconds(), b0: b });
+        if (engine.ready && this.seq && c.theme === this.current) this._resync();
+      }
+    }
+    this._kickTicker();
+    return this.manualTime !== null;
+  }
+
+  /** Testhaken: virtuelle Uhr um `seconds` vorspulen (schaltet sie bei Bedarf ein); meldet alle überschrittenen Zählzeiten. */
+  advanceClock(seconds) {
+    if (this.manualTime === null) this.setManualClock(true);
+    this.manualTime += Math.max(0, Number(seconds) || 0);
+    this._pumpBeats(true);
+    return this.beat();
+  }
+
+  /** Zeit der Ersatzuhr in Sekunden (virtuell im Testmodus). */
+  _now() { return this.manualTime ?? perfSeconds(); }
+
+  _startClock(theme, src, t0, b0 = 0, waiting = false) {
+    this.clock = { theme: theme.name, bpm: theme.bpm, loop: theme.loop, beats: theme.length / 4, src, t0, b0, waiting, stopped: false, frozen: 0 };
+    this.shownBeat = b0;
+    this.firedBeat = Math.ceil(b0) - 1;
+    this._kickTicker();
+  }
+
+  _stopClock() {
+    const c = this.clock;
+    if (c && !c.stopped) { c.frozen = this._shown(); c.stopped = true; }
+    this._kickTicker();
+  }
+
+  /** Zählzeit roh (ungeklemmt, darf vor dem Themenstart negativ sein). */
+  _raw() {
+    const c = this.clock;
+    if (!c) return 0;
+    if (c.stopped) return c.frozen;
+    if (c.src !== 'audio') return c.b0 + (this._now() - c.t0) * c.bpm / 60;
+    const b = c.b0 + (engine.audibleTime() - c.t0) * c.bpm / 60;
+    if (engine.ready) this.lastHeard = { perf: perfSeconds(), beat: b, clock: c };
+    return b;
+  }
+
+  /** Zählzeit für beat(): ab 0, nie fallend (glättet Zeitstempel-Zittern). */
+  _shown() {
+    const b = Math.max(0, this._raw(), this.shownBeat);
+    this.shownBeat = b;
+    return b;
+  }
+
+  /** Hörbare Uhr steht (Kontext angehalten/geschlossen): stetig auf die Ersatzuhr wechseln. */
+  _checkSource() {
+    const c = this.clock;
+    if (c && c.src === 'audio' && !c.stopped && !engine.ready) {
+      // von der letzten Ablesung der hörbaren Uhr in Echtzeit fortschreiben: der Takt bleibt stetig, auch wenn
+      // das Anhalten erst später bemerkt wird (die stehende Kontextzeit würde ihn sonst zurückhalten)
+      const h = this.lastHeard && this.lastHeard.clock === c ? this.lastHeard : null;
+      const b = Math.max(h ? h.beat + (perfSeconds() - h.perf) * c.bpm / 60 : this._raw(), this.shownBeat);
+      Object.assign(c, { src: 'ersatz', t0: this._now(), b0: b, waiting: false });
+    }
+  }
+
+  /**
+   * Einstiegspunkt für die hörbare Musik passend zur Ersatzuhr: die nächste ganze Zählzeit, die sich noch
+   * mit `minLead` Vorlauf planen lässt, und ihre Kontextzeit (so, dass sie hörbar wird, wenn die Uhr sie erreicht).
+   */
+  _joinPoint(minLead = 0.06) {
+    const c = this.clock, spb = 60 / c.bpm;
+    const audible = engine.audibleTime(), now = engine.now;
+    const b = Math.max(this._raw(), this.shownBeat);
+    const beat = Math.max(0, Math.ceil(b + (now + minLead - audible) / spb - 1e-9));
+    return { startTime: audible + (beat - b) * spb, beat };
+  }
+
+  /** Laufenden Sequencer an die Stelle der Ersatzuhr setzen und die Uhr wieder an die hörbare Zeit binden. */
+  _resync() {
+    const c = this.clock, th = this.theme, p = this._joinPoint();
+    if (!th.loop && p.beat * 4 >= th.length) { this._halt(); return; }
+    this.seq.step = (p.beat * 4) % th.length;
+    this.seq.time = p.startTime;
+    Object.assign(c, { src: 'audio', t0: p.startTime, b0: p.beat, waiting: false });
+  }
+
+  /** Erreichte ganze Zählzeiten an onBeat melden (`all`: ohne Nachhol-Grenze, für den Testhaken). */
+  _pumpBeats(all) {
+    const c = this.clock;
+    if (!c || c.stopped || !this.beatListeners.size) return;
+    this._checkSource();
+    const raw = this._raw();
+    let upto = Math.floor(raw);
+    if (!c.loop) upto = Math.min(upto, Math.ceil(c.beats) - 1);
+    if (upto <= this.firedBeat) return;
+    if (!all && upto - this.firedBeat > MAX_CATCHUP) this.firedBeat = upto - 1;
+    const spb = 60 / c.bpm;
+    while (this.firedBeat < upto) {
+      const n = ++this.firedBeat;
+      const ev = { beat: n, bar: Math.floor(n / BEATS_PER_BAR), inBar: n % BEATS_PER_BAR, bpm: c.bpm, theme: c.theme, late: Math.max(0, (raw - n) * spb) };
+      for (const l of [...this.beatListeners]) {
+        if (!this.beatListeners.has(l)) continue;
+        try { l.fn(ev); } catch (err) { setTimeout(() => { throw err; }, 0); } // Fehler melden, Takt nicht stören
+      }
+      if (this.clock !== c || c.stopped) return; // ein Zuhörer hat das Thema gewechselt oder angehalten
+    }
+  }
+
+  /** Echtzeit-Melder: Timer genau auf die nächste Zählzeit (höchstens 250 ms, damit Quellenwechsel auffallen). */
+  _kickTicker() {
+    if (this.beatTimer) { clearTimeout(this.beatTimer); this.beatTimer = null; }
+    if (this.manualTime !== null || !this.beatListeners.size || !this.clock || this.clock.stopped) return;
+    this._pumpBeats(false);
+    const c = this.clock;
+    if (this.beatTimer) { clearTimeout(this.beatTimer); this.beatTimer = null; } // ein Zuhörer hat neu gestartet
+    if (this.manualTime !== null || !this.beatListeners.size || !c || c.stopped) return;
+    if (!c.loop && this.firedBeat >= Math.ceil(c.beats) - 1) return;
+    const wait = (this.firedBeat + 1 - this._raw()) * 60 / c.bpm;
+    this.beatTimer = setTimeout(() => { this.beatTimer = null; this._kickTicker(); }, Math.max(4, Math.min(250, wait * 1000)));
   }
 
   /** Alle Themen prüfen; liefert die Fehlermeldungen (leer = alles konsistent). */

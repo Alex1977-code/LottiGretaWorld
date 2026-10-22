@@ -1,11 +1,11 @@
 // Audio-Fassade: Freischaltung bei der ersten Geste, Effekte, Musik, Stummschaltung.
 import { engine } from './AudioEngine.js';
-import { sfx, renderSfx, SFX_NAMES, COURSE_SFX } from './sfx.js';
+import { sfx, renderSfx, SFX_NAMES, COURSE_SFX, WORLD_SFX } from './sfx.js';
 import { music } from './Music.js';
 
 // Test-/Debug-Zugriff auf die Effekte (über window.__audio.engine erreichbar):
-// Namen, Kurs-Vertragsnamen, Abspielen und Offline-Rendern zum Vermessen.
-engine.effects = { play: sfx, names: SFX_NAMES, course: COURSE_SFX, render: renderSfx };
+// Namen, Kurs-Vertragsnamen (Welt 1 und Welt 2–4), Abspielen und Offline-Rendern zum Vermessen.
+engine.effects = { play: sfx, names: SFX_NAMES, course: COURSE_SFX, world: WORLD_SFX, render: renderSfx };
 
 let installed = false;
 
