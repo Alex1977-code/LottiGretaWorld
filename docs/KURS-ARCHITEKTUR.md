@@ -1057,6 +1057,39 @@ Welt 2 hat 24 Sterne. Neue Figuren-Rollen: wo der Bauplan den „Kapitän“ nen
 (Pflaumes kleiner Kaninchen-Freund aus 1-Burg) auf. Der „Münz-Dieb“ heißt **Münzmarder** (flinker Marder mit
 Münzsack). Mini-Pilzlinge: `pilzling` mit `mini: true` (halbe Größe, ein Treffer, kein Abprall-Bonus).
 
+### Welt 2 – Level-Notizen: 2-5, 2-A, 2-Haus (Level-Agent)
+
+Additiv; nichts oben Festgelegtes wird geändert. Dateien: `src/course/levels/w2/2-5.js`, `2-A.js`, `2-Haus.js`, gemeinsame
+Bausteine in `src/course/levels/w2/_helpers_c.js` (ohne `LEVEL`, die Registry überspringt die Datei), Test
+`tests/course_w2c.mjs` (`PORT_BASE=… node tests/course_w2c.mjs [2-5|2-A|2-Haus]`, Port 4402 + PORT_BASE).
+
+- **Level-Haken (Übergang, bis es ein offizielles Feld gibt):** `hook(pos, fn)` aus `_helpers_c.js` ist eine brennende
+  Laterne (`{ kind: 'lantern', lit: true, radius: 0.1, onLit }`); sie zündet im Konstruktor, also während des
+  Levelaufbaus nach Segmenten, Blöcken und Gegnern, vor `view.finalize` und vor `archetype.setup`. `fn(level)` baut
+  dort statische Zier (`addStatic`), Kollisionsformen, `level.onStep`-Funktionen und Wrapper (z. B. `runtime.respawn`).
+  Wunsch: ein Feld `LEVEL.setup(level)` mit genau diesem Zeitpunkt.
+- **2-5 „Doppelgängersteig“** (parcours, pinkgrass, course_cherry, 400 s, ≈ 235 m nach −Z): Blütenweg (Spiegelfrucht
+  mit Schild) → Kistenhof (Stern 1 versteckt in der hinteren rechten Kiste, Stampfattacke) → Rosenhecken-Gang mit
+  zwei Marschblock-Kolonnen, Nischen-Druckfeld (2 Figuren → 1-Up + Münzen), Druckfeld für 2 senkt das Tor (übersprungen:
+  öffnet sich von hinten) → Glasrohr-Platz → Blockgarten (Checkpoint; Stempel auf dem Turm links hinten über den
+  wachsenden ?-Block oder Krallen an der Kletterwand; versteckter 1-Up-Block über dem gelben Block) → Marschblock-Hügel
+  (Spiegelfrucht im Kreis einer Kolonne, roter Ring, ?-Block und versteckter Block mit Spiegelfrucht,
+  Zwillingsfelder unter dem Rosenbogen → Stern 2, Heldin + Klon gleichzeitig) → Feuer-Werfer-Gasse
+  (Einweg-Bühne; besiegt → Treppe zum Felsturm, Röhre) → Zielhügel (drei Spiegelfrüchte + Strauch; Viererlift mit
+  vier Figuren → Stern 3 auf dem Turm; Zielmast). Spiegelfrucht-Nachschub vor jedem Rätsel (Sträucher wachsen nach).
+- **2-A „Glutsee-Rempelei“** (arena, lava, course_arena, 1 Stern, 200 s): organische Felsinsel (r ≈ 10,6 m) im
+  Lavasee, Kraterwand, Vulkane, Glutfunken. Welle 1: ein Großrollpilz; Welle 2: zwei fallen vom Himmel
+  (`arenaWaves`: spätere Wellen ruhen geparkt über der Insel). Umwerfen (Draufspringen) und in die Lava stoßen;
+  Stern danach in der Inselmitte. Tod setzt Arena und Wellen zurück.
+- **2-Haus „Villa Tick-Tack“** (house, course_house, 5 Sterne, je Raum 10 s): Kinderzimmer (2 Rollpilze besiegen),
+  Bibliothek (2 Panzerkröten), Küche (8 Münzen sammeln, drei auf dem Tisch; zwei Krallen-Pilzlinge), Uhrenstube (Stern
+  auf dem Podest erreichen, vier Hackvögel im Takt), Kaminzimmer (2 Feuer-Werfer, einer auf der Einweg-Galerie).
+  Jeder Raum mit eigener Tapete, eigenem Boden, Teppich, Möbeln, Bildern (u. a. Baron-Brummbär-Steckbrief) und
+  tickenden Uhren (Minutenzeiger 1 Umdrehung je 10 s).
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 2-5 mit einer Figur ≤ 92 Aufrufe / ≤ 258 k Dreiecke, mit vier Figuren
+  116 / 194 k, mit fünf 143 / 287 k (jede weitere Figur kostet ≈ 12–16 Aufrufe; ?-Blöcke ≈ 3 k Dreiecke je Stück und
+  Pass, Münzen ≈ 0,4 k – beides wird immer gezeichnet); 2-A ≤ 75 / ≤ 82 k; 2-Haus ≤ 73 / ≤ 121 k.
+
 ## Präzisierung (Mehrwelten-Karte)
 
 Ergänzung des Weltkarten-Agenten (Stand: Welt 2). Nichts oben Festgelegtes wird geändert; die Karte zeigt jetzt eine

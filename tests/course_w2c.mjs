@@ -2,7 +2,8 @@
 //   2-5    Laden ohne Konsolenfehler, Gegnerzahlen, Routen-Bot (Lotti und Greta) Start → Zielmast mit echten Klonen
 //          (Spiegelfrucht einsammeln, Druckfeld für 2 öffnet das Tor, Glasrohr, Feuer-Werfer besiegen → Treppe,
 //          Röhre), alle drei Sterne (Kiste, Zwillingsfelder mit Klon, Viererlift mit vier Figuren), Stempel (wachsender
-//          ?-Block), Extras (Nischen-Druckfeld, roter Ring, Strauch wächst nach, Krallen-Kletterwand), Zeit < 180 s.
+//          ?-Block), Extras (Nischen-Druckfeld, Tor allein zu / übersprungen von hinten offen, roter Ring, Strauch
+//          wächst nach, Krallen-Kletterwand), Zeit < 180 s.
 //   2-A    Arena per Skript gewinnen: Großrollpilze umwerfen und in die Lava stoßen (zwei Wellen), Stern, Ergebnis;
 //          Tod setzt die Arena samt Wellen zurück.
 //   2-Haus alle fünf Räume per Skript in je < 10 s, Ergebnis 5/5 gespeichert; Zeitablauf-Fall → Teilergebnis.
@@ -381,6 +382,8 @@ async function load(id, fresh = false) {
 const W = (name, ...args) => sc(([n, a]) => window.__w2[n](...a), [name, args]);
 const stats = [];
 async function shot(name, wait = 600) {
+  // Bot-Unverwundbarkeit lässt die Figuren blinken – für das Bild abschalten
+  await sc(() => { const c = window.__course; for (const f of c.level.players) f.invuln = 0; c.step(1); });
   await sc(() => window.__course.snapCamera());
   const f0 = await sc(() => window.__course.view.frame);
   await page.waitForFunction((f) => window.__course.view.frame >= f + 3, f0, { timeout: 60000 });

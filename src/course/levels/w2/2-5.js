@@ -18,7 +18,7 @@
 //                                              wachsenden ?-Block hinauf (oder Krallen an der Kletterwand).
 //   –  Brücke über die Schlucht (z −114 … −118)
 //   5  Marschblock-Hügel  (z −118 … −150)      Spiegelfrucht auf dem Hügel, von einer Kolonne umrundet; roter Ring auf
-//                                              dem Terrassenhügel; oben links drei ?-Blöcke (Mitte: Spiegelfrucht);
+//                                              dem Terrassenhügel; oben links ?-Block mit Spiegelfrucht;
 //                                              ganz rechts unsichtbarer Block (Spiegelfrucht); Zwillingsfelder unter
 //                                              dem Rosenbogen → Stern 2 (zwei Felder gleichzeitig, mit Klon).
 //   6  Feuer-Werfer-Gasse (z −150 … −184)      Kolonne quer, Feuer-Werfer mit Einweg-Bühne; besiegt → bunte Treppe
@@ -271,9 +271,10 @@ export const LEVEL = {
     { kind: 'question', pos: [2.4, Y4 + 2.3, -94.6], content: 'krallen' },
     { kind: 'hidden', pos: [9.6, Y4 + 3 + 2.3, -101.4], content: 'oneup' },
     { kind: 'wachs_block', id: 'wachs', pos: [-9, Y4 + 2, -110], height: 5, last: 'coins:5' },
-    { kind: 'question', pos: [-12.4, Y4 + 2 + 2.3, -141], content: 'coins:3' },
+    // ?-Block mit Spiegelfrucht, links und rechts je eine Münze (?-Blöcke sind teure Instanzen: Dreiecksbudget mit fünf Figuren)
+    { kind: 'coin', pos: [-12.6, Y4 + 2 + 2.4, -141] },
     { kind: 'question', pos: [-11, Y4 + 2 + 2.3, -141], content: 'spiegel' },
-    { kind: 'question', pos: [-9.6, Y4 + 2 + 2.3, -141], content: 'coins:3' },
+    { kind: 'coin', pos: [-9.4, Y4 + 2 + 2.4, -141] },
     { kind: 'hidden', pos: [13.2, Y4 + 2.3, -139.6], content: 'spiegel' },
     { kind: 'hidden', pos: [0, Y7 + 2.3, -214.6], content: 'spiegel' },
   ],
