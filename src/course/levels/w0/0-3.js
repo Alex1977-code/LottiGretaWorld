@@ -1,6 +1,6 @@
 // Klonwiese (0-3): Testlevel der Motor-Erweiterungen für Welt 2 (tests/course_w2engine.mjs). Ein Mittelweg führt
 // nach −Z, jede Station hat ein Schild und benannte Punkte (marks):
-//   Start / Spiegelfrucht (z 6 … −20)   Spiegelfrucht am Weg, ?-Block mit Spiegelfrucht, Pilzling im Gehege
+//   Start / Spiegelfrucht (z 6 … −20)   Spiegelfrucht am Weg, ?-Block mit Spiegelfrucht, Pilzling im Gehege, Röhre (rechts)
 //   Druckfelder (−22 … −34)             Feld für 2 Figuren (→ Stern 1), Feld-Paar „gleichzeitig“ (→ Stern 2)
 //   Viererlift (−36 … −50)              Lift fährt erst mit 4 Figuren auf den Turm (Stern 3)
 //   Figurenschalter (−52 … −60)         Lotti-Schalter (→ Truhe links), Greta-Schalter (→ Truhe rechts)
@@ -48,6 +48,9 @@ export const LEVEL = {
     { type: 'sign', pos: [-10, Y, -61], text: 'Helme' },
     { type: 'sign', pos: [-9, Y, -86], text: 'Topfpflanze' },
     { type: 'sign', pos: [-9, Y, -100.5], text: 'Treibsand' },
+    // Röhre: Klone reisen mit
+    { type: 'pipe', id: 'rohr_a', pos: [10, Y, -6], height: 1.2, radius: 0.8, target: 'rohr_b' },
+    { type: 'pipe', id: 'rohr_b', pos: [10, Y, -18], height: 1.2, radius: 0.8 },
     // Gehege
     ...pen(-12, -5, -12, -19),
     ...pen(-7, 1, -91, -95),
@@ -101,7 +104,7 @@ export const LEVEL = {
   checkpoint: [0, Y, -84],
   goal: [0, Y, -132],
   marks: {
-    start: [0, Y, 4], spiegel: [0, Y, -6], block: [3, Y, -10],
+    start: [0, Y, 4], spiegel: [0, Y, -6], block: [3, Y, -10], rohr_a: [10, Y + 1.2, -6], rohr_b: [10, Y + 1.2, -18],
     pen: [-8.5, Y, -15.5], pf2: [-4, Y, -27], paar_a: [3, Y, -27], paar_b: [7, Y, -27],
     lift: [0, Y, -44], lift_top: [0, 7.5, -49],
     sw_lotti: [-3, Y, -56], sw_greta: [3, Y, -56],

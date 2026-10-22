@@ -80,7 +80,8 @@ export function buildMultilift(level, spec) {
       mesh.position.set(pos.x, pos.y, pos.z);
       const full = lift.count >= need;
       badge.show(`${Math.min(lift.count, need)}/${need}`, full ? '#5fcf6a' : '#c77dff');
-      badge.at(pos.x, pos.y + s.y + 2.0, pos.z + s.z / 2 - 0.2);
+      // vorn an der Plattform, knapp über der Kante (verdeckt die Figuren nicht)
+      badge.at(pos.x, pos.y + s.y + 0.35, pos.z + s.z / 2 + 0.45);
     });
   }
   return lift;

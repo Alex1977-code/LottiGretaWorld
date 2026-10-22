@@ -34,6 +34,7 @@ const wrap = (a) => { a %= TAU; if (a > Math.PI) a -= TAU; else if (a < -Math.PI
 const damp = (c, t, r, dt) => c + (t - c) * (1 - Math.exp(-r * dt));
 
 const RIDING = { hovering: false };
+const HELMET_K = 0.9;          // Helm-Modell (Meter) etwas kleiner als Kopfbreite × 1,25
 
 /** Zustand der Spielfigur → Avatar-Zustand (Vertrag); interne Zustände werden abgebildet. */
 const STATE_MAP = { dive: 'longjump' };
@@ -126,7 +127,7 @@ export class HeroRig {
     // Avatar-Einheiten: Kopfmitte 0,28 über dem Halsgelenk, Radius 0,30 → Helm-Unterkante knapp unter dem Scheitel
     if (head) { m.root.position.set(0.02, 0.44, 0); head.add(m.root); }
     else { m.root.position.set(0, 0.62, 0); this.flip.add(m.root); }
-    m.root.scale.setScalar(AVATAR_H);
+    m.root.scale.setScalar(AVATAR_H * HELMET_K);
     this.helmet = m;
     this.applyLite();
   }
@@ -224,6 +225,8 @@ export class HeroRig {
 
     if (!this.courseMode) this.applyFallbackPose(p, dt);
     try { av.animate(dt, t); } catch (err) { console.error('Avatar-Animation fehlgeschlagen:', err); this.avatar = null; return; }
+    // Geschlossener Mund ist auf ~0 skaliert, kostet aber einen Zeichenaufruf → dann ausblenden
+    if (av.mouthO) av.mouthO.visible = av.mouthO.scale.x > 0.004;
     // Rückfall: Facing-Drehung des Avatars (3/4-Ansicht) ausgleichen → Blick genau in Laufrichtung
     if (!this.courseMode) av.root.rotation.y = -av.model.rotation.y;
   }

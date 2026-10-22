@@ -1356,7 +1356,7 @@ export class Player {
       vx: +this.vel.x.toFixed(2), vy: +this.vel.y.toFixed(2), vz: +this.vel.z.toFixed(2),
       mode: this.mode, state: this.state, big: this.big, power: this.power, hero: this.hero,
       dead: this.dead, invuln: +this.invuln.toFixed(2), yaw: +this.yaw.toFixed(3),
-      helmet: this.helmet, sand: this.sand ? +this.sandDepth.toFixed(3) : 0, clone: this.clone,
+      helmet: this.helmet, sand: this.sand ? +this.sandDepth.toFixed(3) : 0, clone: this.clone, hidden: this.hidden,
     };
   }
 }

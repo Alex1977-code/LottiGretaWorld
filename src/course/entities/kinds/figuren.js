@@ -32,7 +32,8 @@ export class Badge {
     this.sprite = null;
     if (!level.view) return;
     this.canvas = document.createElement('canvas');
-    this.canvas.width = 192; this.canvas.height = 96;
+    // Seitenverhältnis wie das Schild (Höhe 96 px)
+    this.canvas.width = Math.round(96 * (opts.w ?? 1.1) / (opts.h ?? 0.55)); this.canvas.height = 96;
     this.tex = new THREE.CanvasTexture(this.canvas);
     this.tex.colorSpace = THREE.SRGBColorSpace;
     this.mat = new THREE.SpriteMaterial({ map: this.tex, transparent: true, depthWrite: false });
@@ -57,7 +58,10 @@ export class Badge {
       g.beginPath(); g.roundRect(6, 6, W - 12, H - 12, 24); g.fill();
       g.lineWidth = 6; g.strokeStyle = color; g.stroke();
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.font = `bold ${sub ? 40 : 52}px sans-serif`;
+      let size = sub ? 40 : 52;
+      g.font = `bold ${size}px sans-serif`;
+      const tw = g.measureText(text).width;
+      if (tw > W - 36) { size = Math.floor(size * (W - 36) / tw); g.font = `bold ${size}px sans-serif`; }
       g.lineWidth = 7; g.strokeStyle = '#1a1830';
       const ty = sub ? 38 : H / 2 + 2;
       g.strokeText(text, W / 2, ty); g.fillStyle = '#ffffff'; g.fillText(text, W / 2, ty);
@@ -258,7 +262,7 @@ class Figurenschalter extends Gimmick {
     const p = this.pos;
     this.top = p.y + SW_H;
     this.addSolid({ type: 'cyl', x: p.x, z: p.z, r: SW_R, y0: p.y, y1: this.top, tag: 'figurenschalter' });
-    this.badge = new Badge(level, { w: 1.6, h: 0.8, color: HERO[this.hero].dress });
+    this.badge = new Badge(level, { w: 2.2, h: 0.62, color: HERO[this.hero].dress });
     this.wasOn = false;
     if (level.view) this.buildView();
   }

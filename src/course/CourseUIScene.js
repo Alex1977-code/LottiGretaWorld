@@ -78,13 +78,13 @@ export class CourseUIScene extends Phaser.Scene {
   }
 
   // ------------------------------------------------------------------ Mehrfigur-HUD (Präzisierung Motor Welt 2)
-  // Figurenzahl ×N (Spiegelfrucht-Klone) unter dem Leben-Panel, nur bei mehr als einer Figur; daneben ein kleines
-  // Helm-Symbol, solange die Haupt-Figur einen Trage-Helm trägt. Eigener Grafik-Layer, unabhängig vom übrigen HUD.
+  // Figurenzahl (Spiegelfrucht-Klone) unter dem Leben-Panel, nur bei mehr als einer Figur: rosa Leiste mit je einem
+  // Köpfchen pro Figur und „×N“ (klar anders als die Lebensanzeige); darunter ein kleines Helm-Symbol, solange die
+  // Haupt-Figur einen Trage-Helm trägt. Eigener Grafik-Layer, unabhängig vom übrigen HUD.
 
   createSquadHud() {
-    this.squadPanel = uiPanel(this, 26, 36, 40, 15, { color: 0x3a1a40, alpha: 0.55, radius: 7, shadow: false, border: 0 }).setDepth(40).setVisible(false);
     this.squadG = this.add.graphics().setDepth(41);
-    this.squadText = uiText(this, 26, 36, '', { size: 9, originX: 0 }).setDepth(42).setVisible(false);
+    this.squadText = uiText(this, 0, 37, '', { size: 8, originX: 0 }).setDepth(42).setVisible(false);
     this.prevSquad = '';
     this.refreshSquadHud(true);
   }
@@ -100,20 +100,22 @@ export class CourseUIScene extends Phaser.Scene {
     const g = this.squadG;
     g.clear();
     const show = n > 1;
-    this.squadPanel.setVisible(show);
     this.squadText.setVisible(show);
     if (show) {
-      this.squadText.setText(`×${n}`);
-      // zwei versetzte Köpfchen = „mehrere Figuren“
-      for (const [dx, a] of [[-3, 0.65], [1, 1]]) {
-        const x = 14 + dx, y = 36;
-        g.fillStyle(0xffd6b0, a); g.fillCircle(x, y, 4.6);
-        g.fillStyle(HERO_HAIR[p?.hero] ?? 0xc8963c, a); g.slice(x, y - 0.6, 5, Math.PI, 0, false); g.fillPath();
+      const step = 8, x0 = 14, y = 37, w = (n - 1) * step + 30;
+      g.fillStyle(0xc0408a, 0.62); g.fillRoundedRect(6, y - 7, w, 14, 7);
+      g.lineStyle(1, 0xffb0dc, 0.8); g.strokeRoundedRect(6.5, y - 6.5, w - 1, 13, 6.5);
+      // je Figur ein Köpfchen (Haarfarbe der Heldin)
+      for (let i = 0; i < n; i++) {
+        const x = x0 + i * step;
+        g.fillStyle(0xffd6b0, 1); g.fillCircle(x, y, 3.7);
+        g.fillStyle(HERO_HAIR[p?.hero] ?? 0xc8963c, 1); g.slice(x, y - 0.5, 4.1, Math.PI, 0, false); g.fillPath();
+        g.fillStyle(0x2a2550, 1); g.fillCircle(x - 1.2, y + 0.7, 0.55); g.fillCircle(x + 1.2, y + 0.7, 0.55);
       }
-      g.fillStyle(0x2a2550, 1); g.fillCircle(13.6, 36.8, 0.7); g.fillCircle(16.4, 36.8, 0.7);
+      this.squadText.setText(`×${n}`).setPosition(x0 + (n - 1) * step + 6, y);
     }
     if (helm) {
-      const x = show ? 54 : 18, y = 36;
+      const x = 18, y = show ? 54 : 37;   // unter der Figuren-Leiste (Power-up-Name steht rechts daneben)
       g.fillStyle(0x1a1830, 0.55); g.fillRoundedRect(x - 8, y - 7, 16, 14, 4);
       g.fillStyle(getHelmet(helm)?.icon ?? 0xffffff, 1); g.fillRoundedRect(x - 5, y - 4, 10, 7, 2);
       g.lineStyle(1, 0xffffff, 0.85); g.strokeRoundedRect(x - 5, y - 4, 10, 7, 2);

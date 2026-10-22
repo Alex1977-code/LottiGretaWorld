@@ -249,6 +249,22 @@ await shot('start');
   check('Zu weit zurückgefallene Figur geht verloren (Poff)', lost.length === 1 && ll.some((e) => e.cause === 'lost') && !lost[0].dead);
 }
 
+// ---------------------------------------------------------------- Mitreisen durch eine Röhre
+{
+  const ra = marks.rohr_a, rb = marks.rohr_b;
+  await T('place', [ra[0], ra[1] + 0.2, ra[2]]);
+  await T('clone', [ra[0] - 1.6, 1, ra[2]]);
+  await T('steps', 20);
+  const tr = await T('play', [[{ crouch: true }, 4], [{}, 60]]);
+  const mid = await sc(() => window.__course.level.players.map((f) => ({ script: f.script?.type ?? null, hidden: !!f.hidden })));
+  await T('play', [[{}, 120]]);
+  const after = await T('figs');
+  const piped = tr.some((s) => s[4] === 'pipe');
+  console.log(`  Röhre: unterwegs ${JSON.stringify(mid)}, danach ${after.map((f) => `${f2(f.x)},${f2(f.y)},${f2(f.z)} ${f.mode}`).join(' | ')}`);
+  check('Röhre: Klon reist unsichtbar mit und erscheint am Ausgang neben der Haupt-Figur', piped && mid.some((m) => m.script === 'follow' && m.hidden)
+    && after.length === 2 && after.every((f) => Math.hypot(f.x - rb[0], f.z - rb[2]) < 2.5) && !after.some((f) => f.hidden));
+}
+
 // ---------------------------------------------------------------- Druckfelder
 {
   await T('resetStars');
@@ -377,8 +393,17 @@ await shot('start');
   const nAfter = (await T('ents', 'kanonenkugel')).length;
   check('Aktion feuert sofort eine Kugel', nAfter > nBefore);
   if (SHOTS) await shot('kanone', 600);
+  // Holzkiste (breakable: true) – die Kugel zerstört auch sie
+  await T('place', [-10, 1, -63], { yaw: Math.PI / 2 });
+  await sc(() => { window.__course.level.spawn('crate', { id: 'kiste', pos: [-10, 1, -67], content: 'coin' }); });
+  await sc(() => window.__course.player.wearHelmet('kanone'));
+  await T('steps', 120);
+  const crate = await T('named', 'kiste');
+  console.log(`  Kanone: Holzkiste ${crate.alive && !crate.removed ? 'steht' : 'zerstört'}`);
+  check('Kanonenkugel zerstört Holzkisten', !crate.alive || crate.removed);
+  await sc(() => window.__course.player.dropHelmet('gone'));
   // Holzwand hält Stampfen aus
-  await sc(() => window.__course.level.spawn('holzwand', { id: 'hw2', pos: [-10, 1, -68], size: [2, 1, 2] }));
+  await sc(() => { window.__course.level.spawn('holzwand', { id: 'hw2', pos: [-10, 1, -68], size: [2, 1, 2] }); });
   await T('place', [-10, 4, -68], { settle: 1 });
   await sc(() => window.__course.player.startPound());
   await T('steps', 80);
@@ -463,13 +488,13 @@ await shot('start');
   const held = await sc(() => window.__course.player.holding?.kind ?? null);
   check('Topfpflanze aufheben (Tragen-System)', held === 'topfpflanze');
   // zum Gehege laufen: die Pflanze schnappt nach dem Pilzling
-  await T('chase', [pf[0], 1, -90.3], 200, false, 0.2);
-  for (let k = 0; k < 30; k++) { await T('steps', 20); const e = await sc(() => window.__course.level.named.get('pz_pflanze')); if (!e) break; }
+  await T('chase', [pf[0], 1, -89.9], 200, false, 0.2);
+  if (SHOTS) await shot('topfpflanze', 600);
+  for (let k = 0; k < 30; k++) { await T('steps', 20); const gone = await sc(() => { const e = window.__course.level.named.get('pz_pflanze'); return !e || !!e.defeated; }); if (gone) break; }
   const pz = await sc(() => { const e = window.__course.level.named.get('pz_pflanze'); return { defeated: !!e?.defeated }; });
   const bites = await T('named', 'pflanze');
   console.log(`  Topfpflanze: Bisse ${bites.bites}, Pilzling besiegt ${pz.defeated}`);
   check('Topfpflanze besiegt den Pilzling', pz.defeated && bites.bites >= 1);
-  if (SHOTS) await shot('topfpflanze', 600);
   await T('play', [[{ action: true }, 2], [{}, 90]]);
   const thrown = await sc(() => { const e = window.__course.level.named.get('pflanze'); return { held: !!e.carrier, x: e.pos.x, z: e.pos.z, grounded: e.grounded }; });
   check('Topfpflanze werfen (liegt danach wieder)', !thrown.held && thrown.grounded);
@@ -509,7 +534,7 @@ await shot('start');
   }
   // Gegner sinken auch
   await T('place', [-8, 1, -103]);
-  await sc((p) => window.__course.level.spawn('pilzling', { id: 'pz_sand', pos: p, dir: [0, -1], wake: 40 }), [1.5, 1.05, -104]);
+  await sc((p) => { window.__course.level.spawn('pilzling', { id: 'pz_sand', pos: p, dir: [0, -1], wake: 40 }); }, [1.5, 1.05, -104]);
   await T('steps', 60);
   const ez = await sc(() => { const e = window.__course.level.named.get('pz_sand'); return { y: e.pos.y, depth: e._sandDepth ?? 0 }; });
   await T('steps', 600);
