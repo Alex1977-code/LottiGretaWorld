@@ -67,7 +67,7 @@ class KrallenPilzling extends Enemy {
 
   /** Sprung auf die vorausberechnete Stelle der Figur (Vorhalt 0,25 s), nie ins Leere. */
   startLeap() {
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     if (!p || !this.playerActive()) { this.setState('walk'); return; }
     let tx = p.pos.x + p.vel.x * 0.25 - this.pos.x, tz = p.pos.z + p.vel.z * 0.25 - this.pos.z;
     let d = Math.hypot(tx, tz);

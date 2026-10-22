@@ -170,7 +170,7 @@ class Baron extends CourseEntity {
   /** Seitliches Pendeln (folgt der Figur ein wenig), k = Tempo-Faktor. */
   drive(dt, k = 1) {
     const P = this.P;
-    const pl = this.level.player;
+    const pl = this.level.nearestPlayer(this.pos);
     const px = pl && !pl.dead ? pl.pos.x : 0;
     const want = clamp(px * P.follow + Math.sin(this.clock * P.swayW) * P.sway, this.lane[0], this.lane[1]);
     this.moveX(want, P.speed * k, dt);
@@ -186,7 +186,7 @@ class Baron extends CourseEntity {
   maybeAttack(dt) {
     this.throwCool -= dt;
     if (this.swerveCool > 0) this.swerveCool -= dt;
-    const pl = this.level.player;
+    const pl = this.level.nearestPlayer(this.pos);
     if (this.throwCool > 0 || !pl || pl.dead || pl.mode === 'script') return;
     if (this.P.swerve && this.swerveCool <= 0 && this.throwCount > 0 && this.throwCount % 2 === 0) {
       this.setState('swerve');
@@ -207,7 +207,7 @@ class Baron extends CourseEntity {
       const P = this.P;
       this.throwCount++;
       const dbl = P.double && this.throwCount % P.double === 0;
-      const pl = this.level.player;
+      const pl = this.level.nearestPlayer(this.pos);
       const base = pl ? [pl.pos.x, this.home.y, pl.pos.z] : [this.home.x, this.home.y, this.home.z + 10];
       // etwas vor die Figur (Richtung Baron) – sie kann die Bombe direkt zurückkicken
       base[2] -= 1.6;

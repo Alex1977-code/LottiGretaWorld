@@ -358,6 +358,16 @@ export function powerupModel(power, opts = {}) {
         add(new THREE.SphereGeometry(0.11, 10, 8), 0xffe066, { y: 0.07, emissive: 0x553300 });
         break;
       }
+      case 'spiegel': {
+        // Spiegelfrucht (Präzisierung Motor Welt 2): zwei gleiche, glänzende Früchte an einem Bogen-Stiel
+        for (const s of [-1, 1]) {
+          add(new THREE.SphereGeometry(0.2, 16, 12), s < 0 ? 0xff4fa3 : 0xc77dff, { x: 0, y: -0.08, z: s * 0.17, rough: 0.12, emissive: s < 0 ? 0x3a0a20 : 0x200a3a });
+          add(new THREE.SphereGeometry(0.055, 8, 6), 0xffffff, { x: 0.12, y: -0.02, z: s * 0.2 });
+          add(new THREE.CylinderGeometry(0.02, 0.025, 0.32, 6), 0x3f9a2a, { x: 0, y: 0.18, z: s * 0.09, rx: s * 0.55 });
+        }
+        add(new THREE.SphereGeometry(0.11, 10, 8), 0x5fcf6a, { x: 0.05, y: 0.34, z: 0, sx: 1.5, sy: 0.35, sz: 0.8 });
+        break;
+      }
       case 'riese': {
         add(new THREE.SphereGeometry(0.3, 16, 12), 0xc04cff, { y: -0.05, rough: 0.15, emissive: 0x200030 });
         add(new THREE.CylinderGeometry(0.09, 0.12, 0.22, 10), 0xd9c9ff, { y: 0.3 });

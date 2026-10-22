@@ -12,6 +12,16 @@
 //
 // Reihenfolge je Schritt: onStep-Funktionen (Plattformen) → Figur → Entitäten → Berührungen
 // (onPlayer) → Angriffe → Laufzeit (Timer, Absturz) → Entfernen erledigter Entitäten.
+//
+// Mehrere Spielfiguren (Präzisierung Motor Welt 2, Spiegelfrucht):
+//   level.players               Liste aller Figuren; [0] = Haupt-Figur = level.player (Altcode, Kamera-Anker)
+//   level.nearestPlayer(pos)    nächste lebende, steuerbare Figur (Gegner-KI); ohne Klone = level.player
+//   level.squad                 Figurengruppe (player/Squad.js, von CourseScene gesetzt): Klone, Darstellung
+//   level.addClone(src)         Klon neben src (Spiegelfrucht) → Figur | null (höchstens 5 Figuren)
+//   level.removeFigure(f, why)  Figur mit „Poff“ entfernen (Treffer/Absturz/verloren); die letzte nie
+//   level.setMainFigure(f)      Figur wird Haupt-Figur (Röhre, Zielmast, Glasröhre …)
+//   level.focus(out)            Schwerpunkt der aktiven Figuren (Kamera, Steuerungs-Gier)
+// Jeder Schritt rechnet jede Figur mit derselben Eingabe; Berührungen/Angriffe/Auslöser laufen je Figur.
 
 import { CollisionWorld } from '../physics/CollisionWorld.js';
 import { getEntityKind, hasEntityKind } from '../entities/index.js';
@@ -34,7 +44,9 @@ export class Level {
     this.entities = [];
     this.named = new Map();
     this.steppers = [];
-    this.player = null;
+    this.players = [];
+    this.squad = null;
+    this._figs = [];
     this.time = 0;
     this.controlYaw = 0;
     this.killY = -30;
@@ -47,6 +59,61 @@ export class Level {
   }
 
   get effects() { return this.view?.effects ?? null; }
+
+  // ------------------------------------------------------------------ Spielfiguren (eine oder mehrere)
+
+  /** Haupt-Figur (= players[0]); Altcode, Kamera, HUD. */
+  get player() { return this.players[0] ?? null; }
+
+  /** Haupt-Figur setzen: schon in der Liste → nach vorn; sonst ersetzt sie die bisherige Haupt-Figur. */
+  set player(p) {
+    const list = this.players;
+    if (!p) { list.length = 0; return; }
+    const i = list.indexOf(p);
+    if (i === 0) return;
+    if (i > 0) { list.splice(i, 1); list.unshift(p); return; }
+    if (list.length) list[0] = p; else list.push(p);
+  }
+
+  /**
+   * Nächste Figur zu pos (Gegner zielen auf sie): bevorzugt lebende, steuerbare Figuren (nicht im Skript-Modus);
+   * gibt es keine, die Haupt-Figur (wie bisher level.player – Aufrufer prüfen dead/mode selbst).
+   */
+  nearestPlayer(pos) {
+    const list = this.players;
+    if (list.length <= 1 || !pos) return list[0] ?? null;
+    let best = null, bd = Infinity;
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i];
+      if (p.dead || p.mode === 'script' || p.removedFigure) continue;
+      const dx = p.pos.x - pos.x, dy = p.pos.y - pos.y, dz = p.pos.z - pos.z;
+      const d = dx * dx + dz * dz + dy * dy * 0.5;
+      if (d < bd) { bd = d; best = p; }
+    }
+    return best ?? list[0];
+  }
+
+  /** Schwerpunkt der aktiven Figuren (ohne Skript-Modus, außer alle sind darin) → out {x,y,z}. */
+  focus(out = { x: 0, y: 0, z: 0 }) {
+    const list = this.players;
+    let n = 0, x = 0, y = 0, z = 0;
+    for (const p of list) { if (p.mode === 'script' && list.length > 1) continue; x += p.pos.x; y += p.pos.y; z += p.pos.z; n++; }
+    if (!n) { const p = list[0]; if (p) { x = p.pos.x; y = p.pos.y; z = p.pos.z; } n = 1; }
+    out.x = x / n; out.y = y / n; out.z = z / n;
+    return out;
+  }
+
+  /** Klon der Figur src (Spiegelfrucht) – nur mit Figurengruppe (CourseScene). → neue Figur | null */
+  addClone(src = this.player) { return this.squad?.addClone(src) ?? null; }
+
+  /** Figur entfernen (Treffer/Absturz/verloren) – die letzte Figur bleibt (normaler Tod über player.die). */
+  removeFigure(fig, cause = 'hit') { return this.squad?.remove(fig, cause) ?? false; }
+
+  /** Figur wird Haupt-Figur (Kamera, Röhre, Zielmast). */
+  setMainFigure(fig) {
+    if (!fig || this.players[0] === fig || !this.players.includes(fig)) return;
+    if (this.squad) this.squad.promote(fig); else this.player = fig;
+  }
 
   sfx(name) { if (!this.muted) playSfx(name); }
 
@@ -108,18 +175,26 @@ export class Level {
   step(dt, input) {
     this.time += dt;
     for (let i = 0; i < this.steppers.length; i++) this.steppers[i](dt, this.time);
-    const p = this.player;
-    if (p) {
-      p.update(dt, input);
-      if (!p.dead && p.pos.y < this.killY) p.die('fall');
+    // Alle Figuren mit derselben Eingabe (Kopie der Liste: Figuren können im Schritt verschwinden/wechseln)
+    const figs = this._figs;
+    figs.length = 0;
+    for (const f of this.players) figs.push(f);
+    for (let i = 0; i < figs.length; i++) {
+      const p = figs[i];
+      if (p.removedFigure) continue;
+      p.update(dt, this.squad ? this.squad.inputFor(p, input) : input);
+      if (!p.dead && !p.removedFigure && p.pos.y < this.killY) p.die('fall');
     }
+    this.squad?.afterFigures(dt, input);
     for (let i = 0; i < this.entities.length; i++) {
       const e = this.entities[i];
       if (!e.removed) e.update(dt);
     }
-    if (p && !p.dead && p.mode !== 'script') {
-      this.contacts(input);
-      this.attacks();
+    for (let i = 0; i < figs.length; i++) {
+      const p = figs[i];
+      if (p.removedFigure || p.dead || p.mode === 'script') continue;
+      this.contacts(input, p);
+      this.attacks(p);
     }
     this.runtime.update(dt);
     // Erledigte Entitäten entfernen
@@ -132,9 +207,9 @@ export class Level {
     this.entities.length = w;
   }
 
-  /** Berührungen Figur ↔ Entitäten (AABB) → onPlayer → Abprall oder Treffer. */
-  contacts(input) {
-    const p = this.player;
+  /** Berührungen Figur ↔ Entitäten (AABB) → onPlayer → Abprall oder Treffer. p = Figur (Standard Haupt-Figur). */
+  contacts(input, p = this.player) {
+    if (!p) return;
     const pc = p.center(), ph = p.half;
     for (let i = 0; i < this.entities.length; i++) {
       const e = this.entities[i];
@@ -154,12 +229,13 @@ export class Level {
       if (r === undefined) r = e.onPlayer(p, contact);
       if (r === 'stomp') { p.bounceOff(input); this.sfx('stomp'); }
       else if (r === 'hurt') p.hurt(e);
+      if (p.dead || p.removedFigure || p.mode === 'script') break;   // Figur weg (Klon-Treffer) oder Zielmast/Röhre
     }
   }
 
-  /** Angriffsbereich der Figur (Tatzenhieb, Sturzflug) → onHit. */
-  attacks() {
-    const p = this.player;
+  /** Angriffsbereich der Figur (Tatzenhieb, Sturzflug) → onHit. p = Figur (Standard Haupt-Figur). */
+  attacks(p = this.player) {
+    if (!p) return;
     const a = p.attackInfo;
     if (!a) return;
     const f = p.facingVec();

@@ -127,7 +127,7 @@ class RammbockBulle extends Enemy {
     }
     let past = false;
     if (this.playerActive()) {
-      const p = this.level.player;
+      const p = this.level.nearestPlayer(this.pos);
       past = (p.pos.x - this.pos.x) * this.dir.x + (p.pos.z - this.pos.z) * this.dir.z < -3;
     }
     if (this.stateT > 2.6 || past) this.setState('brake');

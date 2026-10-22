@@ -20,6 +20,11 @@
 // (powerZoom, Präzisierung Gegner/Power-ups).
 // Zwischen Abschnitten wird über BLEND m überblendet. Die Steuerungs-Gier (controlYaw) kommt
 // unverzögert aus der Schiene + Spielerdrehung, damit die Simulation deterministisch bleibt.
+//
+// Mehrere Figuren (Präzisierung Motor Welt 2, Spiegelfrucht): Hat player.level.players mehr als eine Figur,
+// folgt die Kamera dem Schwerpunkt der aktiven Figuren (Tempo = Mittel, Standhöhe/Modus von der Haupt-Figur)
+// und zoomt mit der Streuung (größter waagerechter Abstand zum Schwerpunkt) weich heraus: ab 1,5 m, bis ×1,35 bei
+// 10,5 m (groupZoom). Weiter zurückgefallene Figuren gehen in der Simulation verloren (player/Squad.js).
 
 import * as THREE from 'three';
 
@@ -49,7 +54,37 @@ export class CameraRig {
     this.cur = { ...CAM_DEFAULT };
     this.shakeAmt = 0;
     this.frozen = false;
+    this.groupZoom = 1;
+    this.spread = 0;
     this._a = new THREE.Vector3(); this._b = new THREE.Vector3(); this._h = new THREE.Vector3();
+    this._focus = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), mode: 'ground', half: null, dead: false, deathCause: null, powerDef: null };
+  }
+
+  /**
+   * Blickpunkt-Quelle: die Figur selbst oder – bei mehreren Figuren – ein Ersatzobjekt im Schwerpunkt der aktiven
+   * Figuren (pos, vel, mode, half, dead, deathCause, powerDef). Setzt this.spread (m).
+   */
+  focusOf(player) {
+    const list = player?.level?.players;
+    this.spread = 0;
+    if (!list || list.length <= 1) return player;
+    const f = this._focus;
+    f.pos.set(0, 0, 0); f.vel.set(0, 0, 0);
+    let n = 0;
+    for (const p of list) {
+      if (p.dead || p.hidden || (p.mode === 'script' && p !== player)) continue;
+      f.pos.add(p.pos); f.vel.add(p.vel); n++;
+    }
+    if (!n) return player;
+    f.pos.multiplyScalar(1 / n); f.vel.multiplyScalar(1 / n);
+    for (const p of list) {
+      if (p.dead || p.hidden || (p.mode === 'script' && p !== player)) continue;
+      this.spread = Math.max(this.spread, Math.hypot(p.pos.x - f.pos.x, p.pos.z - f.pos.z));
+    }
+    // senkrecht verankert an der Haupt-Figur (Standhöhe), nicht am Mittel der Sprünge
+    f.pos.y = player.pos.y;
+    f.mode = player.mode; f.half = player.half; f.dead = player.dead; f.deathCause = player.deathCause; f.powerDef = player.powerDef;
+    return f;
   }
 
   /** Überblendete Schienenwerte an (x, z). Reine Funktion (Tests, controlYaw). */
@@ -90,33 +125,41 @@ export class CameraRig {
 
   /** Sofort auf die Figur setzen (Start, Teleport, Neustart). */
   snap(player) {
+    const fp = this.focusOf(player);
+    const pp = fp.pos;
     this.lead.set(0, 0, 0);
-    this.anchorY = player.pos.y;
-    const r = this.railAt(player.pos.x, player.pos.z, this.cur);
+    this.anchorY = pp.y;
+    const r = this.railAt(pp.x, pp.z, this.cur);
     this.userYaw = this.userYawTarget;
     this.zoom = ZOOMS[this.zoomIndex];
     this.powerZoom = player.powerDef?.camZoom ?? 1;
+    this.groupZoom = this.groupZoomFor(this.spread);
     const yaw = (r.yaw + this.userYaw) * DEG;
-    this.target.set(this.lockedX(player.pos.x - Math.sin(yaw) * r.ahead, r), player.pos.y + r.height, player.pos.z - Math.cos(yaw) * r.ahead);
-    this.distNow = r.dist * this.zoom * this.powerZoom;
+    this.target.set(this.lockedX(pp.x - Math.sin(yaw) * r.ahead, r), pp.y + r.height, pp.z - Math.cos(yaw) * r.ahead);
+    this.distNow = r.dist * this.zoom * this.powerZoom * this.groupZoom;
     this.place(r, 0);
   }
+
+  /** Zoom-Faktor aus der Streuung der Figuren (1 … 1,35). */
+  groupZoomFor(spread) { return 1 + Math.max(0, Math.min(1, (spread - 1.5) / 9)) * 0.35; }
 
   lockedX(px, r) { return r.lockX === null || r.lockX === undefined ? px : px + (r.lockX - px) * r.lockW; }
 
   update(dt, player, world) {
     // Archetyp mit eigener Kamera (z. B. Diorama-Orbit): setzt Kamera selbst und gibt true zurück
     if (this.custom && this.custom(dt, player, world)) return;
-    const p = player.pos;
+    const fp = this.focusOf(player);   // Figur oder Schwerpunkt mehrerer Figuren
+    const p = fp.pos;
     const r = this.railAt(p.x, p.z, this.cur);
     this.userYaw = damp(this.userYaw, this.userYawTarget, 6, dt);
     this.zoom = damp(this.zoom, ZOOMS[this.zoomIndex], 5, dt);
     this.powerZoom = damp(this.powerZoom, player.powerDef?.camZoom ?? 1, 2.5, dt);
+    this.groupZoom = damp(this.groupZoom, this.groupZoomFor(this.spread), 2.5, dt);
     const frozen = player.dead && player.deathCause === 'fall';
     if (!frozen) {
       // Vorausschau in Bewegungsrichtung (weich, begrenzt)
-      const lx = Math.max(-3.2, Math.min(3.2, player.vel.x * 0.3)) * r.lead;
-      const lz = Math.max(-3.2, Math.min(3.2, player.vel.z * 0.3)) * r.lead;
+      const lx = Math.max(-3.2, Math.min(3.2, fp.vel.x * 0.3)) * r.lead;
+      const lz = Math.max(-3.2, Math.min(3.2, fp.vel.z * 0.3)) * r.lead;
       this.lead.x = damp(this.lead.x, lx, 2.2, dt);
       this.lead.z = damp(this.lead.z, lz, 2.2, dt);
       // Senkrecht: an der Standhöhe verankert, folgt nur bei deutlichem Steigen/Fallen
@@ -132,7 +175,7 @@ export class CameraRig {
     }
     // Kamera nicht in Geometrie: Strahl vom Kopf der Figur zur Wunschposition. Ist er verdeckt, rückt die
     // Kamera auf ihrer Achse näher ans Ziel, bis der Kopf wieder frei sichtbar ist (höchstens bis 3 m).
-    const want = r.dist * this.zoom * this.powerZoom;
+    const want = r.dist * this.zoom * this.powerZoom * this.groupZoom;
     let dist = want;
     if (world && !frozen) {
       const dir = this.offsetDir(r, this._a);
@@ -168,6 +211,6 @@ export class CameraRig {
   }
 
   info() {
-    return { pitch: +this.cur.pitch?.toFixed(2), dist: +this.distNow.toFixed(2), yaw: +(this.cur.yaw + this.userYaw).toFixed(2), zoom: this.zoomIndex, target: this.target.toArray().map((v) => +v.toFixed(2)) };
+    return { pitch: +this.cur.pitch?.toFixed(2), dist: +this.distNow.toFixed(2), yaw: +(this.cur.yaw + this.userYaw).toFixed(2), zoom: this.zoomIndex, target: this.target.toArray().map((v) => +v.toFixed(2)), group: +this.groupZoom.toFixed(3), spread: +this.spread.toFixed(2) };
   }
 }
