@@ -1057,6 +1057,23 @@ Welt 2 hat 24 Sterne. Neue Figuren-Rollen: wo der Bauplan den „Kapitän“ nen
 (Pflaumes kleiner Kaninchen-Freund aus 1-Burg) auf. Der „Münz-Dieb“ heißt **Münzmarder** (flinker Marder mit
 Münzsack). Mini-Pilzlinge: `pilzling` mit `mini: true` (halbe Größe, ein Treffer, kein Abprall-Bonus).
 
+**Level-Notiz 2-1 „Rieselschlucht“** (`levels/w2/2-1.js`, Test `tests/course_w2a.mjs`): Wüstenschlucht über Tafelberg-
+Plateaus, 400 s, ≈ 220 m, Checkpoint an der Oase. Sterne: 0 oben auf dem 6-m-Wachturm am Start (Krallen-Anzug aus dem
+?-Block daneben), 1 im nordöstlichen von acht grauen Steinblöcken um einen eingeschlossenen Hackvogel (`track`: er
+zerhackt den Block in Richtung der Figur – nicht besiegen), 2 Krümels Hackvogel beim Picknick besiegen (`task`).
+Stempel: Sims über einer bröselnden Sandblock-Treppe vor der verschiebenden Fliesenbrücke. Extraleben: unsichtbarer
+Block über dem Säulenstumpf der Oase. Goldröhre auf der Wand (Sprungfeld) → Raum mit goldenem Schalter (x ≈ 90, z ≈ 60).
+
+**Level-Notiz 2-2 „Sternenklavier“** (`levels/w2/2-2.js`): Weltraum-Inseln, 400 s, ≈ 200 m, Checkpoint oben auf den
+Kristallstufen. Sterne: 0 auf dem Kristall-Kamin (zwei Wandsprünge), 1 am Ende des Münzhimmels (Pendel-Propeller →
+Wolkenkanone), 2 unter der dritten von drei Kristallplatten vor dem Ziel (Stampfen). Stempel: rechte Schwebeplattform
+antippen (hebt sich) → Röhre darunter → Raum mit zwei Rollpilzen (x ≈ 80). Extraleben: Kristallblock auf dem
+Checkpoint-Plateau oben stampfen → Truhe. Münzmarder auf dem Sternensteg links (einholen → Münzregen). Ziel über eine
+Tastenstein-Treppe auf einer Klaviatur-Insel.
+Level-lokaler Code beider Level (`LEVEL.setup`, Hilfen in `levels/w2/_helpers_a.js`): ferne Kulisse ohne
+Sonnenschatten (`shadowless`), Gegner-Modelle > 40–50 m nicht zeichnen (`farHide`), Szenen-Figuren (Krümel, Dünen-
+kamele, Steppenläufer, Fernrohr, Sternschnuppen, Asteroiden).
+
 **Level-Notizen 2-3 / 2-4** (Level-Agent; Test `tests/course_w2b.mjs`, Port 4300, Bilder `tests/out/w2lv_*.png`):
 
 - `2-3` **„Scherenschnittkeller“** – Schattentheater unter der Erde; die große Bühne (Leinwand 70 × 9 m) wird frontal
