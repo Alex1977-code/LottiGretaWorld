@@ -1768,3 +1768,7 @@ Lauerblock trägt/klemmt ein/Takt, Münzmarder (Flucht, Sprung, Münzregen, Entk
 Hüpfmaus, Wuschel, Marder, Boss zielen auf die nächste Figur), Boss alle drei Phasen, Treffer nur im Fenster, Kanonenkugel,
 Sieg → Warp → Zielmast, Tod setzt den Kampf zurück. Gemessen (scale 2, inkl. Schattenpass): Gegnerzoo 66–108 Zeichenaufrufe
 (Ziel < 140), ≤ 198 k Dreiecke; Boss-Arena 48–72.
+
+## Präzisierung (Level-Haken)
+
+`LEVEL.setup(level, scene)` (optional) wird einmal aufgerufen, nachdem Level, Spielfigur, Figurengruppe, Kamera und Archetyp aufgebaut sind (`CourseScene.create`). Für Code je Simulationsschritt darin `level.onStep((dt) => …)` anmelden. So bauen Level eigene Szenen (Krümel winkt, Sonder-Rätsel) ohne Umweg über Entitäten mit Aktionen. Ältere Kniffe (z. B. Laterne mit `onLit` als Aufbau-Haken in 2-3/2-4) funktionieren weiter.
