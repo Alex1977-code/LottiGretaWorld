@@ -13,7 +13,7 @@
 //                 Schneewulst auf der +Z-Seite (≈0,45 m hoch).  opts { length (4) }  state –
 // tanne_schnee    verschneite Tanne (Standard 3,5 m): vier Nadelstufen mit Schneehauben.  opts { size (Höhe, 3,5) }
 //                 state { anim: 'idle'|'shake' }  shake: wackelt 0,7 s, Schnee stiebt.
-// schneemann      Schneemann ≈1,95 m: drei Kugeln, Kohleaugen und -knöpfe, Möhrennase, Zweigarme, rot-weißer Schal,
+// schneemann      Schneemann ≈2,2 m: drei Kugeln, Kohleaugen und -knöpfe, Möhrennase, Zweigarme, rot-weißer Schal,
 //                 blaue Bommelmütze.  state { anim: 'idle'|'hit' }  hit: Kopf wackelt, Mütze hüpft (0,8 s).
 // iglu            Iglu aus Schneeziegeln (Ø 3,4 m, 1,8 m hoch), Eingangstunnel nach +X.  opts { size (Ø, 3,4) }
 // eiszapfen       Bündel Eiszapfen. **Ursprung = Aufhängung oben**, hängt nach −Y.

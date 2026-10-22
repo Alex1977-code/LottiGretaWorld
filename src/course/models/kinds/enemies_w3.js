@@ -34,11 +34,16 @@
 // huepfqualle       Hüpfqualle ≈0,85 m: rosa Glocke mit Punkten, vier Bandfüßchen, große Augen.
 //   state { anim: 'idle'|'hop'|'squashed', progress? (0..1 im Hüpfzyklus 0,7 s, sonst Zeit) }
 //         hop: ducken – strecken – fliegen (Motor bewegt root, Modell zeigt Haltung + 0,5 m Bogen) – landen.
+// riesenprojektil   Riesenprojektil (3-Zug, vom Parallelzug abgefeuert) ≈4,6 m lang, Ø 2,4 m: pflaumenschwarzer
+//   Panzerrumpf mit genieteten Goldbändern, stumpfe Chromnase, vier rote Heckflossen, Düsenflamme; grimmige Augen
+//   unter dicken Brauen, zusammengebissene Zähne. Familie des Welt-2-'projektilkopf'. **Mitte bei y = 1,2**, fliegt
+//   nach +X.  state { anim: 'fly'|'launch'|'fall' }  launch: große Flamme, Rückstoß-Zittern (0,4 s);
+//         fall: Nase kippt nach unten, Flamme aus, Augen zu (Motor lässt root fallen).
 
 import {
   THREE, TAU, Build, cached, vcol, basic, std, mesh, joint, eyes, dizzyStars, alertMark, makeModel, Clock, Blinker,
   damp, clamp, wave, col, mix, onLathe, decals, instMesh, setInst, smoothstep, glowSprite, sparkleSprite, smoothProfile,
-  smoothNormals,
+  smoothNormals, metal,
 } from '../lib/kit.js';
 import {
   alongY, onEll, stick, snowV, PZ3, pilzStem3, pilzCap3, pilzEyes3, CAP3_PTS, PILZ3, fadeMats, setOpacity, Puffs,
@@ -763,7 +768,96 @@ function buildHuepfqualle() {
   return makeModel('huepfqualle', root, update, [], { initial: 'idle' });
 }
 
+// =============================================================================================
+// Riesenprojektil
+// =============================================================================================
+const RP = { body: 0x2a1838, bodyHi: 0x5a3a78, gold: 0xffc21a, fin: 0xe8283a, finHi: 0xff7a5a, ink: 0x120a18, tooth: 0xffffff, brow: 0x140a1e };
+const RP_R = 1.2;
+function rpBodyGeo() {
+  return cached('w3:rp:body', () => {
+    const b = new Build();
+    // Rumpf (Achse +X): Profil vom Heck zur Nasenfuge, Lathe um Y, dann Y → +X gedreht
+    const prof = [[0, -2.3], [0.8, -2.3], [1.0, -2.15], [1.15, -1.95], [RP_R, -1.7], [RP_R, 0.85], [0, 0.85]];
+    b.lathe(prof, { v: (x, y, z, nx, ny, nz) => mix(RP.body, RP.bodyHi, smoothstep(z / RP_R * 0.5 + 0.35)) }, { r: [0, 0, -Math.PI / 2] }, 32);
+    for (const x of [0.82, -1.62]) {
+      b.torus(RP_R + 0.02, 0.07, RP.gold, { p: [x, 0, 0], r: [0, Math.PI / 2, 0] }, 8, 40);
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; b.sphere(0.05, 0xfff0a0, { p: [x + (x > 0 ? -0.14 : 0.14), Math.cos(a) * (RP_R + 0.01), Math.sin(a) * (RP_R + 0.01)] }, 8, 6); }
+    }
+    // Düse hinten
+    b.cyl(0.62, 0.78, 0.3, 0x3a3a48, { p: [-2.4, 0, 0], r: [0, 0, Math.PI / 2] }, 24);
+    b.cyl(0.5, 0.5, 0.02, 0x0a0a10, { p: [-2.56, 0, 0], r: [0, 0, Math.PI / 2] }, 24);
+    // vier rote Heckflossen
+    for (let i = 0; i < 4; i++) {
+      const sh = new THREE.Shape();
+      sh.moveTo(0, 0); sh.lineTo(1.3, 0); sh.quadraticCurveTo(0.5, 0.35, -0.25, 1.05); sh.lineTo(-0.35, 0.95); sh.lineTo(0, 0);
+      const g = new THREE.ExtrudeGeometry(sh, { depth: 0.12, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 2, curveSegments: 8 });
+      g.translate(0, 0, -0.06);
+      b.add(g, { v: (x, y) => mix(RP.fin, RP.finHi, smoothstep(y / 1.0)) }, { p: [-2.0, 0, 0], r: [(i / 4) * TAU + Math.PI / 4, 0, 0], order: 'XYZ', s: [1, 1, 1] }, 0);
+    }
+    // Gesicht seitlich vorn: dicke Brauen, darunter je Seite ein breites Zähnefletsch-Grinsen
+    for (const sgn of [1, -1]) {
+      // Braue liegt auf dem Rumpf, nach vorn abfallend (grimmig)
+      b.add(new THREE.CapsuleGeometry(0.1, 0.55, 3, 8), RP.brow, alongY([0.08, 0.86, sgn * 0.9], [1, -0.32, 0], 0.55));
+      const a = -0.42, n = new THREE.Vector3(0, Math.sin(a), sgn * Math.cos(a));
+      const c = new THREE.Vector3(0.15, Math.sin(a) * RP_R, sgn * Math.cos(a) * RP_R);
+      const grin = new THREE.Shape();
+      grin.moveTo(-0.75, 0.05); grin.quadraticCurveTo(0, -0.12, 0.75, 0.22); grin.quadraticCurveTo(0.2, -0.42, -0.75, -0.12); grin.closePath();
+      const gg = new THREE.ExtrudeGeometry(grin, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 1, curveSegments: 10 });
+      if (sgn < 0) gg.scale(-1, 1, 1);
+      stick(b, { p: c, n }, RP.ink, [1, 1, 1], 0.01, gg);
+      // Zähne: obere Reihe nach unten, untere nach oben (Spitzen)
+      for (let i = 0; i < 6; i++) {
+        const u = -0.6 + i * 0.24, yTop = 0.06 - 0.17 * (1 - ((u + 0.75) / 1.5)) * 0.0 + (u > 0 ? u * 0.12 : u * 0.04);
+        const pt = c.clone().addScaledVector(n, 0.06);
+        b.cone(0.07, 0.17, RP.tooth, { p: [pt.x + u * sgn * 0 + u, pt.y + yTop - 0.06 + Math.sin(a) * 0.0, pt.z], r: [0, 0, Math.PI] }, 4);
+      }
+    }
+    return b.geometry();
+  });
+}
+const rpNoseGeo = () => cached('w3:rp:nose', () => {
+  const b = new Build();
+  b.lathe([[RP_R + 0.01, 0.85], [1.16, 1.2], [1.02, 1.55], [0.76, 1.85], [0.4, 2.03], [0, 2.08]], 0xffffff, { r: [0, 0, -Math.PI / 2] }, 32, 2);
+  return b.geometry();
+});
+const rpFlameGeo = () => cached('w3:rp:flame', () => {
+  const b = new Build();
+  b.add(new THREE.ConeGeometry(0.55, 1.4, 18, 1, true), { v: (x, y) => mix(0xfff6b0, 0xff5a1a, smoothstep(0.5 - y / 1.4)) }, alongY([-2.55, 0, 0], [-1, 0, 0], 1.4));
+  b.add(new THREE.ConeGeometry(0.32, 0.9, 14, 1, true), 0xffffff, alongY([-2.55, 0, 0], [-1, 0, 0], 0.9));
+  return b.geometry();
+});
+function buildRiesenprojektil() {
+  const root = new THREE.Group();
+  const body = joint([0, 1.2, 0]);
+  const hull = mesh(rpBodyGeo(), vcol(0.3, { metalness: 0.15 }, 'w3rp'), {}, true);
+  const nose = mesh(rpNoseGeo(), metal('w3:chromeNose', { color: 0xe6ebf4, metalness: 0.85, roughness: 0.18 }, 1.2), {}, true);
+  const eye = eyes([{ p: [0.42, 0.45, 1.02], r: 0.32, sy: 0.8, dir: [0.45, 0.3, 0.84] }, { p: [0.42, 0.45, -1.02], r: 0.32, sy: 0.8, dir: [0.45, 0.3, -0.84] }],
+    { key: 'w3:rp2', iris: 0xff5a1a, pupil: 0.5, depth: 0.45 });
+  const flame = mesh(rpFlameGeo(), basic('w3:rpflame', { vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }));
+  const glow = glowSprite(0xffa040, 2.4, 0.7); glow.position.set(-2.9, 0, 0);
+  body.add(hull, nose, eye, flame, glow);
+  root.add(body);
+  const clk = new Clock(), blink = new Blinker();
+  let tilt = 0, fl = 1;
+  const update = (dt, st) => {
+    const anim = st.anim ?? 'fly';
+    clk.tick(dt, anim);
+    const t = clk.t, age = clk.age;
+    const fall = anim === 'fall', launch = anim === 'launch' && age < 0.4;
+    fl = damp(fl, fall ? 0 : launch ? 1.8 : 1, 10, dt);
+    flame.visible = fl > 0.05; glow.visible = flame.visible;
+    flame.scale.set(fl * (1 + Math.sin(t * 37) * 0.12), fl * (1 + Math.sin(t * 29) * 0.1), fl * (1 + Math.cos(t * 31) * 0.1));
+    glow.scale.setScalar(2.4 * fl);
+    tilt = damp(tilt, fall ? -0.9 : 0, 3, dt);
+    body.rotation.set(Math.sin(t * 1.7) * 0.03, 0, tilt + Math.sin(t * 2.3) * 0.02);
+    body.position.set(launch ? Math.sin(t * 60) * 0.05 : 0, 1.2 + (fall ? 0 : Math.sin(t * 3) * 0.04), launch ? Math.cos(t * 53) * 0.05 : 0);
+    eye.userData.blink(fall ? 0.1 : blink.update(dt));
+  };
+  return makeModel('riesenprojektil', root, update, [], { initial: 'fly' });
+}
+
 export const MODELS = {
+  riesenprojektil: buildRiesenprojektil,
   schneesaeule: buildSchneesaeule,
   pilzling_eis: buildPilzlingEis,
   pilzling_reifen: buildPilzlingReifen,

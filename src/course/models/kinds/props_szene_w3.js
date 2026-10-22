@@ -3,10 +3,10 @@
 //
 // zug_waggon      Spielzeug-Zug, Breite 3 m. **Ursprung = Schienen-Oberkante unter der Wagenmitte**, fährt nach +X.
 //                 opts { kind: 'lok'|'wagen'|'flach' (Standard 'wagen'), length (lok 8,5 / sonst 10) }
-//                   lok: roter Kessel mit Goldringen, Schornstein, Dampfdom, Führerhaus (Dach y = 3,95), Kuhfänger,
+//                   lok: roter Kessel mit Goldringen, Schornstein, Dampfdom, Führerhaus (Dach y = 3,96), Kuhfänger,
 //                        Laterne, drei große Treibräder je Seite mit Kuppelstangen, Dampfwolken;
 //                   wagen: königsblauer Personenwagen mit Cremestreifen, gelb erleuchteten Fenstern, Bogendach (y = 3,75);
-//                   flach: Flachwagen mit Holzdeck (y = 1,42) und Rungen.
+//                   flach: Flachwagen mit Holzdeck (y = 1,39) und Rungen.
 //                 state { anim: 'idle'|'drive', speed (m/s, Räder; drive Standard 6) }
 //                 root.userData.top → begehbare Oberkante (Dach bzw. Deck), root.userData.length → Länge.
 // zirkuszelt      Zirkuszelt als Arena-Hülle (innen und außen sichtbar): rot-weiße Bahnen, Zackenbehang, Mast mit
@@ -167,7 +167,7 @@ function buildZugWaggon(opts = {}) {
     root.add(bogies);
   }
   root.add(body);
-  root.userData.top = kind === 'lok' ? 3.95 : kind === 'wagen' ? 3.75 : 1.42;
+  root.userData.top = kind === 'lok' ? 3.96 : kind === 'wagen' ? 3.75 : 1.39;
   root.userData.length = L;
   const clk = new Clock();
   let ang = 0, emit = 0;

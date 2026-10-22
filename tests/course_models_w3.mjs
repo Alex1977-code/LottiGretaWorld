@@ -31,6 +31,7 @@ const ENEMIES = [
   ['flossling', {}, 'swim', ['swim', 'jump', 'flop', 'defeated']],
   ['stachelfisch', {}, 'swim', ['swim', 'chase', 'puff', 'defeated']],
   ['rammfisch', {}, 'swim', ['swim', 'charge', 'turn', 'stunned']],
+  ['riesenprojektil', {}, 'fly', ['fly', 'launch', 'fall']],
 ];
 const GROUPS = [
   ['kreisgeist_kreis', { count: 8, radius: 2.2 }, 'circle', ['circle', 'peek', { anim: 'circle', alive: [true, false, true, true, false, true, true, true] }]],
@@ -348,6 +349,12 @@ const props = await sc(() => {
   if (cm.reg.hasModel('schlangenkoenig')) out.snake = [box('schlangenkoenig', { segments: 8 }, 'idle').y, box('schlangenkoenig', { segments: 14 }, 'idle').y, box('schlangenkoenig', {}, 'defeated').y];
   if (cm.reg.hasModel('kettenzaun')) { const s = box('kettenzaun', { width: 4, height: 2 }, 'idle'); out.zaun = [s.z, s.y]; }
   if (cm.reg.hasModel('pilzling_eis')) { const s = box('pilzling_eis', {}, 'idle'); out.eis = [s.y]; }
+  if (cm.reg.hasModel('dienerschlange')) {
+    const m = cm.reg.getModel('dienerschlange', { height: 2.2 }); cm.stage.add(m.root);
+    for (let i = 0; i < 60; i++) m.update(1 / 30, 'idle');
+    out.diener = [m.root.userData.plateHeight, +cm.bounds(m.root).max.y.toFixed(3)];
+    m.dispose();
+  }
   if (cm.reg.hasModel('zug_waggon')) out.zug = ['lok', 'wagen', 'flach'].map((k) => { const s = box('zug_waggon', { kind: k }, 'idle'); return [+s.x.toFixed(2), +s.y.toFixed(2), +s.z.toFixed(2)]; });
   return out;
 });
@@ -357,6 +364,7 @@ if (props.spuk) check('Spuk: opts.size 2,5 ≈ 2,5-fache Höhe', Math.abs(props.
 if (props.ball) check('Schneeball: state.size lässt ihn wachsen', props.ball[1] > props.ball[0] * 1.8);
 if (props.snake) check('Schlangenkönig: mehr Segmente → höher; besiegt flacher', props.snake[1] > props.snake[0] && props.snake[2] < props.snake[0]);
 if (props.zaun) check('Kettenzaun: opts.width/height', Math.abs(props.zaun[0] - 4) < 0.35 && Math.abs(props.zaun[1] - 2) < 0.35);
+if (props.diener) check('Diener-Schlange: Tellerrand ≈ userData.plateHeight', Math.abs(props.diener[1] - props.diener[0]) < 0.15);
 if (props.eis) check('Eisläufer-Pilzling ≈ 0,8–1,0 m', props.eis[0] > 0.75 && props.eis[0] < 1.05);
 
 // Instanz-Helfer (neue Arten + Rückwärtskompatibilität)

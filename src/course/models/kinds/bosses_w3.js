@@ -552,7 +552,7 @@ function buildDienerschlange(opts = {}) {
     let k = 1;
     if (anim === 'rise') k = st.progress !== undefined ? clamp(st.progress, 0, 1) : clamp(age / 0.6, 0, 1);
     if (anim === 'sink') k = 1 - (st.progress !== undefined ? clamp(st.progress, 0, 1) : clamp(age / 0.6, 0, 1));
-    const headY = Hp - 0.45;
+    const headY = Hp - 0.3;   // Tellermitte (Oberseite) liegt genau auf Hp
     HP.set(0.1 + Math.sin(t * 1.3) * 0.08, base.y + (headY - base.y) * smoothstep(k), Math.sin(t * 0.9) * 0.1);
     P1.set(0, base.y + (HP.y - base.y) * 0.4, 0);
     P2.set(Math.sin(t * 1.1) * 0.25 - 0.1, base.y + (HP.y - base.y) * 0.75, Math.cos(t * 1.1) * 0.15);
@@ -569,7 +569,7 @@ function buildDienerschlange(opts = {}) {
     head.visible = HP.y > -0.1;
     head.rotation.set(0, Math.sin(t * 0.6) * 0.3, hit ? Math.sin(t * 40) * 0.2 : 0);
     // Teller bleibt waagerecht über dem Kopf
-    plate.position.set(HP.x - 0.05, HP.y + 0.24, HP.z);
+    plate.position.set(HP.x - 0.05, HP.y + 0.24, HP.z);   // Teller-Oberseite (Mitte) = HP.y + 0,30
     plate.visible = head.visible;
     plate.rotation.set(Math.sin(t * 1.7) * 0.02, t * 0.2, Math.cos(t * 1.4) * 0.02);
     flash = damp(flash, hit ? 1 : 0, 20, dt);
