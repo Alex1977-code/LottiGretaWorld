@@ -61,7 +61,7 @@ class Stampfstein extends Enemy {
     this.stateT += dt;
     if (this.cool > 0) this.cool -= dt;
     // Funkelstern/Riesentrank: Berührung zertrümmert ihn
-    const pl = this.level.player;
+    const pl = this.level.nearestPlayer(this.pos);
     if (pl && !pl.dead && pl.powerDef.invulnerable && this.touchesPlayer(0.08)) { this.smash(); return; }
     const y0 = this.pos.y;
     switch (this.state) {
@@ -97,7 +97,7 @@ class Stampfstein extends Enemy {
   }
 
   touchesPlayer(pad) {
-    const p = this.level.player, h = this.half, ph = p.half;
+    const p = this.level.nearestPlayer(this.pos), h = this.half, ph = p.half;
     return Math.abs(p.pos.x - this.pos.x) < h.x + ph.x + pad && Math.abs(p.pos.z - this.pos.z) < h.z + ph.z + pad
       && p.pos.y < this.pos.y + this.size.y + pad && p.pos.y + ph.y * 2 > this.pos.y - pad;
   }
@@ -105,7 +105,7 @@ class Stampfstein extends Enemy {
   /** Figur unter dem Stein (Fußabdruck + trigger, Füße unterhalb der Unterkante, nicht tiefer als der Boden)? */
   playerBelow() {
     if (!this.playerActive()) return false;
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     const t = this.trigger;
     return Math.abs(p.pos.x - this.pos.x) < this.half.x + t && Math.abs(p.pos.z - this.pos.z) < this.half.z + t
       && p.pos.y < this.pos.y - 0.2 && p.pos.y > this.groundY - 1.5;
@@ -113,7 +113,7 @@ class Stampfstein extends Enemy {
 
   /** Beim Fallen: Figur darunter → Treffer und seitlich hinaus; Unverwundbare (Stern/Riese) zertrümmern ihn. */
   crushCheck(newY) {
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     if (!p || p.dead || p.mode === 'script') return;
     const h = this.half, ph = p.half;
     const ox = h.x + ph.x - Math.abs(p.pos.x - this.pos.x), oz = h.z + ph.z - Math.abs(p.pos.z - this.pos.z);

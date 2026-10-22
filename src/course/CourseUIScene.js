@@ -9,6 +9,7 @@ import { setupUiCamera } from '../render.js';
 import { uiText, uiPanel } from '../ui.js';
 import { CourseTouch } from './input/CourseTouch.js';
 import { getPower } from './player/powers.js';
+import { getHelmet } from './player/helmets.js';
 
 const HERO_HAIR = { lotti: 0xc8963c, greta: 0xf3d97a };
 
@@ -50,6 +51,7 @@ export class CourseUIScene extends Phaser.Scene {
     this.powerText = uiText(this, 90, 34, '', { size: 7, thickness: 2, originX: 0.5 }).setDepth(42);
     this.msg = uiText(this, W / 2, GAME.height * 0.36, '', { size: 18, thickness: 4, stroke: '#3a2a6a' }).setDepth(60).setVisible(false);
     this.debugText = uiText(this, 6, GAME.height - 6, '', { size: 6, thickness: 2, originX: 0, originY: 1, shadow: false, align: 'left' }).setDepth(80);
+    this.createSquadHud();
 
     // Pause-Knopf oben rechts
     const px = W - 16, py = 15;
@@ -72,6 +74,52 @@ export class CourseUIScene extends Phaser.Scene {
 
   update() {
     this.refresh(false);
+    this.refreshSquadHud(false);
+  }
+
+  // ------------------------------------------------------------------ Mehrfigur-HUD (Präzisierung Motor Welt 2)
+  // Figurenzahl (Spiegelfrucht-Klone) unter dem Leben-Panel, nur bei mehr als einer Figur: rosa Leiste mit je einem
+  // Köpfchen pro Figur und „×N“ (klar anders als die Lebensanzeige); darunter ein kleines Helm-Symbol, solange die
+  // Haupt-Figur einen Trage-Helm trägt. Eigener Grafik-Layer, unabhängig vom übrigen HUD.
+
+  createSquadHud() {
+    this.squadG = this.add.graphics().setDepth(41);
+    this.squadText = uiText(this, 0, 37, '', { size: 8, originX: 0 }).setDepth(42).setVisible(false);
+    this.prevSquad = '';
+    this.refreshSquadHud(true);
+  }
+
+  refreshSquadHud(force) {
+    const c = this.course, L = c?.level;
+    if (!L) return;
+    const n = L.players?.length ?? 1;
+    const p = c.player, helm = p?.helmet ?? null;
+    const key = `${n}|${helm}|${p?.hero}`;
+    if (!force && key === this.prevSquad) return;
+    this.prevSquad = key;
+    const g = this.squadG;
+    g.clear();
+    const show = n > 1;
+    this.squadText.setVisible(show);
+    if (show) {
+      const step = 8, x0 = 14, y = 37, w = (n - 1) * step + 30;
+      g.fillStyle(0xc0408a, 0.62); g.fillRoundedRect(6, y - 7, w, 14, 7);
+      g.lineStyle(1, 0xffb0dc, 0.8); g.strokeRoundedRect(6.5, y - 6.5, w - 1, 13, 6.5);
+      // je Figur ein Köpfchen (Haarfarbe der Heldin)
+      for (let i = 0; i < n; i++) {
+        const x = x0 + i * step;
+        g.fillStyle(0xffd6b0, 1); g.fillCircle(x, y, 3.7);
+        g.fillStyle(HERO_HAIR[p?.hero] ?? 0xc8963c, 1); g.slice(x, y - 0.5, 4.1, Math.PI, 0, false); g.fillPath();
+        g.fillStyle(0x2a2550, 1); g.fillCircle(x - 1.2, y + 0.7, 0.55); g.fillCircle(x + 1.2, y + 0.7, 0.55);
+      }
+      this.squadText.setText(`×${n}`).setPosition(x0 + (n - 1) * step + 6, y);
+    }
+    if (helm) {
+      const x = 18, y = show ? 54 : 37;   // unter der Figuren-Leiste (Power-up-Name steht rechts daneben)
+      g.fillStyle(0x1a1830, 0.55); g.fillRoundedRect(x - 8, y - 7, 16, 14, 4);
+      g.fillStyle(getHelmet(helm)?.icon ?? 0xffffff, 1); g.fillRoundedRect(x - 5, y - 4, 10, 7, 2);
+      g.lineStyle(1, 0xffffff, 0.85); g.strokeRoundedRect(x - 5, y - 4, 10, 7, 2);
+    }
   }
 
   refresh(force) {

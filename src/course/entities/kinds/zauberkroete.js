@@ -47,7 +47,7 @@ class Zauberkroete extends Enemy {
   /** Nächster Auftrittspunkt (reihum; nicht dort, wo die Figur steht). */
   pickSpot() {
     const n = this.spots.length;
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     for (let k = 1; k <= n; k++) {
       const i = (this.spot + k) % n;
       const s = this.spots[i];
@@ -101,7 +101,7 @@ class Zauberkroete extends Enemy {
   }
 
   castOrb() {
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     const f = { x: Math.cos(this.yaw), z: -Math.sin(this.yaw) };
     const sx = this.pos.x + f.x * 0.55, sy = this.pos.y + 0.85, sz = this.pos.z + f.z * 0.55;
     const target = p ? [p.pos.x, p.pos.y + p.half.y, p.pos.z] : [sx + f.x, sy, sz + f.z];
@@ -167,7 +167,7 @@ class Zauberkugel extends CourseEntity {
     this.age += dt;
     if (this.age > this.life) { this.pop(); return; }
     // leicht nachlenken (0,9 rad/s)
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     if (p && !p.dead) {
       const c = this.center();
       const tx = p.pos.x - c.x, ty = p.pos.y + p.half.y - c.y, tz = p.pos.z - c.z;

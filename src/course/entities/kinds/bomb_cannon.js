@@ -108,7 +108,7 @@ class BombCannon extends CourseEntity {
     const a = this.aimSpec;
     let t;
     if (a === 'player') {
-      const p = this.level.player;
+      const p = this.level.nearestPlayer(this.pos);
       t = [p.pos.x + p.vel.x * this.lead, p.pos.y, p.pos.z + p.vel.z * this.lead];
       const r = this.rnd.real(0, this.spread), ang = this.rnd.real(0, Math.PI * 2);
       t[0] += Math.cos(ang) * r; t[2] += Math.sin(ang) * r;
@@ -135,7 +135,7 @@ class BombCannon extends CourseEntity {
     this.stateT += dt;
     this.bombs = this.bombs.filter((b) => !b.removed);
     this.markers.update(dt);
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     const near = this.active && p && !p.dead && p.mode !== 'script' && Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) < this.range;
     // Rohr ausrichten (auf das aktuelle Ziel bzw. die Figur)
     const aimAt = this.target ?? (near ? [p.pos.x, p.pos.y, p.pos.z] : null);

@@ -277,7 +277,7 @@ class Kickbombe extends Enemy {
       done.add(o);
       o.onHit?.('bomb', this, s);
     }
-    const p = lv.player;
+    const p = lv.nearestPlayer(this.pos);
     if (p && !p.dead) {
       const pc = p.center();
       const dx = Math.max(0, Math.abs(pc.x - c.x) - p.half.x), dy = Math.max(0, Math.abs(pc.y - c.y) - p.half.y), dz = Math.max(0, Math.abs(pc.z - c.z) - p.half.z);
