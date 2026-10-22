@@ -7,7 +7,11 @@
 //          dir?: [dx, dz] | yaw (rad) Laufrichtung (Standard: zur Kamera, +Z)
 //          speed?: 1.6 m/s, edges?: true (an Kanten umdrehen), wake?: 18 m (erst ab dieser Nähe zur Figur aktiv)
 //          behavior?: 'walk' (Standard) | 'patrol' (= walk mit path) | 'chase'
-//          sight?: 7 m (chase: ab dieser Nähe bemerkt er die Figur), chaseSpeed?: 2.6 m/s, drop? (siehe Enemy.js) }
+//          sight?: 7 m (chase: ab dieser Nähe bemerkt er die Figur), chaseSpeed?: 2.6 m/s, drop? (siehe Enemy.js),
+//          mini?: true  Mini-Pilzling (Welt 2): halbe Größe (Modell 'pilzling_mini', Hülle 0,42 m), schneller
+//                       (speed 2.4, chaseSpeed 3.4), ein Treffer; Draufspringen macht ihn platt, aber ohne
+//                       Abprall (die Figur landet einfach) }
+//   Beispiel: { kind: 'pilzling', mini: true, pos: [2, 1, -30], path: [[0, 1, -30], [4, 1, -30]] }
 //
 // Zustandsautomat: idle (schläft außer Reichweite) → walk → [chase: alert (0,5 s Hüpfer mit „!“) → chase (verfolgt,
 // bleibt an Kanten stehen; verliert die Figur ab 1,8 × sight → walk)] → squashed (0,6 s platt, dann weg) |
@@ -19,13 +23,21 @@ import { getModel } from '../../models/index.js';
 class Pilzling extends Enemy {
   constructor(level, spec) {
     super(level, spec, 'pilzling');
-    this.half.set(0.42, 0.42, 0.42);
-    this.shadow = 0.5;
-    this.speed = spec.speed ?? 1.6;
+    this.mini = !!spec.mini;
+    const k = this.mini ? 0.5 : 1;
+    this.half.set(0.42 * k, 0.42 * k, 0.42 * k);
+    this.shadow = 0.5 * k;
+    this.speed = spec.speed ?? (this.mini ? 2.4 : 1.6);
     this.behavior = spec.behavior ?? (spec.chase ? 'chase' : 'walk');
     this.sight = spec.sight ?? 7;
-    this.chaseSpeed = spec.chaseSpeed ?? 2.6;
-    if (level.view) this.setModel(getModel('pilzling', { size: [0.9, 0.85, 0.9] }));
+    this.chaseSpeed = spec.chaseSpeed ?? (this.mini ? 3.4 : 2.6);
+    if (level.view) this.setModel(this.mini ? getModel('pilzling_mini') : getModel('pilzling', { size: [0.9, 0.85, 0.9] }));
+  }
+
+  /** Mini-Pilzling: draufspringen macht platt, ohne Abprall. */
+  onPlayer(player, contact) {
+    if (this.mini && !this.defeated && contact.fromAbove && !contact.pound) { this.onStomp(player, false); this.level.sfx('stomp'); return 'none'; }
+    return super.onPlayer(player, contact);
   }
 
   update(dt) {
@@ -40,7 +52,7 @@ class Pilzling extends Enemy {
         this.walk(dt, this.speed);
         if (this.behavior === 'chase' && this.grounded && this.canSee(this.sight, 2)) {
           this.setState('alert');
-          this.vel.y = 4.5; // kleiner Hüpfer
+          this.vel.y = this.mini ? 3.2 : 4.5; // kleiner Hüpfer
           this.grounded = false;
         }
         break;
