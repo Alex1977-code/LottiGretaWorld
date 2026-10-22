@@ -15,7 +15,8 @@
 //   accel: 6                m/s² Anfahren/Tempowechsel (abgebremst wird weich bis genau `end`)
 //   delay: 1                s nach Levelstart (bzw. nach dem Auslöser) bis zur Abfahrt
 //   trigger: { min, max }   optional: Abfahrt erst, wenn die Figur diesen Quader betritt
-//   frame: { back: 5, front: 9, side: null,   Grenzen (m) hinter/vor der Fenstermitte, seitlich ± (null = frei)
+//   frame: { back: 5, front: 8, side: null,   Grenzen (m) hinter/vor der Fenstermitte, seitlich ± (null = frei);
+//            back + front ≤ 13 (Spiegelfrucht: weiter auseinander gehen Klone „verloren“, Squad.LOST_BEHIND)
 //            soft: 1.5,      m vor der vorderen Grenze wird gebremst (sanft)
 //            crush: 0.35,    m – so weit darf die Figur hinter der hinteren Grenze festhängen, dann Tod
 //            backMode: 'push' (Standard) | 'kill' (senkrechte Fahrt: unten raus = Tod)
@@ -47,13 +48,13 @@ class Autoscroller {
     this.scene = scene;
     const data = scene.levelData ?? scene.level?.data ?? {};
     this.cfg = data.scroll ?? {};
-    this.frame = { back: 5, front: 9, side: null, soft: 1.5, crush: 0.35, backMode: 'push', ahead: 0, followX: 0.3, followY: 1, turn: true, ...(this.cfg.frame ?? {}) };
+    this.frame = { back: 5, front: 8, side: null, soft: 1.5, crush: 0.35, backMode: 'push', ahead: 0, followX: 0.3, followY: 1, turn: true, ...(this.cfg.frame ?? {}) };
     this.win = new ScrollWindow(this.cfg, data.start?.pos ?? [0, 0, 0]);
     // Fahrzeuge lesen das Fenster schon beim Levelaufbau (vor setup)
     if (scene.level) scene.level.scroll = this.win;
     this.hud = new ArchHud(scene);
     this.sub = this.cfg.with ? createArchetype(this.cfg.with, scene) : null;
-    this.inh = { x: 0, z: 0 };       // geerbtes Fahrzeugtempo in der Luft (Sprünge zwischen fahrenden Fahrzeugen)
+    this.figState = new WeakMap();   // je Figur: geerbtes Fahrzeugtempo in der Luft (inh), Modus vor dem Schritt (prev)
     this.camK = 1;                   // 1 = Kamera am Fenster, 0 = normale Verfolgung (nach dem Ende)
     this.pushes = 0;
     this.crushed = 0;
@@ -81,16 +82,26 @@ class Autoscroller {
   /** Neustart: Fenster auf die Lage beim Checkpoint (bzw. Anfang), Fahrzeuge folgen im nächsten Schritt. */
   onRespawn() {
     this.win.restore(this.snap);
-    this.inh.x = 0; this.inh.z = 0;
+    for (const f of this.level.players) this.fstate(f).inh = { x: 0, z: 0 };
     this.ended = this.win.state === 'done';
     this.camK = this.ended ? 0 : 1;
   }
 
+  /** Zustand je Figur (Spiegelfrucht-Klone: jede Figur erbt ihr eigenes Fahrzeugtempo). */
+  fstate(f) {
+    let s = this.figState.get(f);
+    if (!s) { s = { inh: { x: 0, z: 0 }, prev: f.mode }; this.figState.set(f, s); }
+    return s;
+  }
+
+  /** Alle Figuren im Spiel (Haupt-Figur zuerst; entfernte Klone nicht). */
+  figures() { return this.level.players.filter((f) => !f.removedFigure); }
+
   // ------------------------------------------------------------------ Schritt
 
   beforeStep(dt, input) {
-    const level = this.level, p = level.player, w = this.win;
-    if (w.step(dt, p)) this.onEnd();
+    const level = this.level, w = this.win;
+    if (w.step(dt, level.player)) this.onEnd();
     // Steuerungs-Gier: aus der Kamera am Fenster (deterministisch, wie CameraRig.controlYaw)
     if (this.camK > 0) {
       const rig = this.scene.view.rig;
@@ -99,15 +110,17 @@ class Autoscroller {
     }
     // In der Luft: Bewegung relativ zum geerbten Fahrzeugtempo rechnen (Luftsteuerung/Luftwiderstand der Figur
     // wirken dann relativ zum Fahrzeug – Springen auf fahrenden Wagen fühlt sich wie im Stand an)
-    this.prevMode = p.mode;
-    if ((p.mode === 'air' || p.mode === 'wall') && (this.inh.x || this.inh.z)) {
-      p.vel.x -= this.inh.x; p.vel.z -= this.inh.z;
+    for (const p of this.figures()) {
+      const st = this.fstate(p), inh = st.inh;
+      st.prev = p.mode;
+      if ((p.mode !== 'air' && p.mode !== 'wall') || (!inh.x && !inh.z)) continue;
+      p.vel.x -= inh.x; p.vel.z -= inh.z;
       const cc = { x: p.pos.x, y: p.pos.y + p.half.y, z: p.pos.z };
-      const res = level.world.moveAABB(cc, p.half, { x: this.inh.x * dt, y: 0, z: this.inh.z * dt }, { step: 0.32 });
+      const res = level.world.moveAABB(cc, p.half, { x: inh.x * dt, y: 0, z: inh.z * dt }, { step: 0.32 });
       p.pos.set(cc.x, cc.y - p.half.y, cc.z);
       if (res.hitWall) {
-        const n = res.wallNormal, d = this.inh.x * n.x + this.inh.z * n.z;
-        if (d < 0) { this.inh.x -= n.x * d; this.inh.z -= n.z * d; }
+        const n = res.wallNormal, d = inh.x * n.x + inh.z * n.z;
+        if (d < 0) { inh.x -= n.x * d; inh.z -= n.z * d; }
       }
       p.platformVel.set(0, 0, 0);        // Coyote-Sprung soll das Tempo nicht doppelt aufschlagen
     }
@@ -115,33 +128,36 @@ class Autoscroller {
   }
 
   afterStep(dt, input) {
-    const level = this.level, p = level.player;
-    this.inherit(p);
-    if (!this.ended) this.constrain(dt, p);
+    for (const p of this.figures()) this.inherit(p);
+    if (!this.ended) { for (const p of this.figures()) this.constrain(dt, p); }
     else this.camK = Math.max(0, this.camK - dt / 1.1);
     this.sub?.afterStep?.(dt, input);
   }
 
   /** Geerbtes Tempo nach dem Schritt fortschreiben (siehe beforeStep). */
   inherit(p) {
-    const was = this.prevMode, now = p.mode;
+    const st = this.fstate(p), inh = st.inh;
+    const was = st.prev, now = p.mode;
     const inAir = now === 'air' || now === 'wall';
-    if (!inAir) { this.inh.x = 0; this.inh.z = 0; return; }
+    if (!inAir) { inh.x = 0; inh.z = 0; return; }
     if (was === 'ground') {
       // gerade abgesprungen/abgegangen: Sprung und Kante haben das Plattformtempo schon aufgeschlagen,
       // der Rückstoß eines Treffers nicht
       const pv = p.platformVel;
-      this.inh.x = pv.x; this.inh.z = pv.z;
+      inh.x = pv.x; inh.z = pv.z;
       if (p.state === 'hurt') { p.vel.x += pv.x; p.vel.z += pv.z; }
       return;
     }
-    if (was === 'air' || was === 'wall') { p.vel.x += this.inh.x; p.vel.z += this.inh.z; return; }
-    this.inh.x = 0; this.inh.z = 0;
+    if (was === 'air' || was === 'wall') { p.vel.x += inh.x; p.vel.z += inh.z; return; }
+    inh.x = 0; inh.z = 0;
   }
 
-  /** Grenzen des Fensters: vorne bremsen, hinten schieben, Einklemmen = Tod; seitlich optional. */
+  /**
+   * Grenzen des Fensters für eine Figur: vorne bremsen, hinten schieben, Einklemmen = Tod; seitlich optional.
+   * Klone: Einklemmen bzw. unten hinaus (backMode 'kill') entfernt nur diesen Klon (player.die → level.removeFigure).
+   */
   constrain(dt, p) {
-    if (p.dead || !FREE.has(p.mode)) return;
+    if (p.dead || p.removedFigure || !FREE.has(p.mode)) return;
     const w = this.win, f = this.frame, world = this.level.world;
     const L = w.local(p.pos, this._l);
     const d = w.dir;
@@ -255,7 +271,7 @@ class Autoscroller {
     return {
       ...this.win.info(), ended: this.ended, camK: +this.camK.toFixed(3),
       player: L ? { along: +L.along.toFixed(3), across: +L.across.toFixed(3) } : null,
-      pushes: this.pushes, crushed: this.crushed, inherit: [+this.inh.x.toFixed(3), +this.inh.z.toFixed(3)],
+      pushes: this.pushes, crushed: this.crushed, inherit: p ? [+this.fstate(p).inh.x.toFixed(3), +this.fstate(p).inh.z.toFixed(3)] : null, figures: this.level?.players.length ?? 0,
       frame: { back: this.frame.back, front: this.frame.front, side: this.frame.side },
       sub: this.sub?.info?.() ?? null, hud: this.hud.state(),
     };

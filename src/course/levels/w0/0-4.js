@@ -26,7 +26,7 @@ export const LEVEL = {
     start: 11, end: 121,
     speed: 4, speeds: [{ from: 40, speed: 3.4 }],
     delay: 2,
-    frame: { back: 5, front: 9 },
+    frame: { back: 5, front: 8 },
     startBanner: 'Los geht\'s!',
   },
   camera: [

@@ -153,6 +153,8 @@ class House {
       p.dead = false;
       p.reset(r.start.pos, r.start.yaw);
       p.invuln = 0;
+      // Spiegelfrucht-Klone reisen mit: im Kreis um die Heldin am Raumstart
+      if (level.players.length > 1) level.squad?.gather(p);
     }
     this.freeze('idle');
     level.controlYaw = this.scene.view.rig.controlYaw(p.pos);
@@ -164,8 +166,11 @@ class House {
     if (title) this.queueTitle = title;
   }
 
-  freeze(state) {
-    const p = this.level.player;
+  /** Alle Figuren (Heldin und Spiegelfrucht-Klone) anhalten: Überblendung, Jubel, Zeit um. */
+  freeze(state) { for (const p of this.level.players) this.freezeOne(p, state); }
+
+  freezeOne(p, state) {
+    if (p.removedFigure || p.dead) return;
     p.dropHeld?.();
     p.mode = 'script';
     p.script = { type: 'house', t: 0 };
@@ -175,12 +180,13 @@ class House {
   }
 
   release() {
-    const p = this.level.player;
-    if (p.mode !== 'script' || p.script?.type !== 'house') return;
-    p.script = null;
-    p.mode = 'air';
-    p.ground = null;
-    p.setState('fall');
+    for (const p of this.level.players) {
+      if (p.mode !== 'script' || p.script?.type !== 'house') continue;
+      p.script = null;
+      p.mode = 'air';
+      p.ground = null;
+      p.setState('fall');
+    }
   }
 
   setPhase(ph) { this.phase = ph; this.phaseT = 0; }
@@ -310,9 +316,12 @@ class House {
   }
 
   updateClear() {
-    const p = this.level.player;
-    // erst landen, dann Siegespose
-    if (p.mode !== 'script' && !p.dead && (p.mode === 'ground' || this.phaseT > 0.8)) { this.freeze('victory'); this.level.sfx('victory'); }
+    // erst landen, dann Siegespose (je Figur, Klone auch)
+    for (const p of this.level.players) {
+      if (p.mode === 'script' || p.dead || p.removedFigure || !(p.mode === 'ground' || this.phaseT > 0.8)) continue;
+      this.freezeOne(p, 'victory');
+      if (p === this.level.player) this.level.sfx('victory');
+    }
     if (this.phaseT >= this.cheer && !this.flying) {
       if (this.i + 1 < this.rooms.length) { this.next = this.i + 1; this.setPhase('fadeout'); }
       else { this.setPhase('final'); music.play('course_clear'); }

@@ -157,8 +157,8 @@ r = await sc(() => {
   c.setInput({});
   return { maxAlong, along: a.player.along, state: a.state, vz: p.vel.z, gs: p.gs, mode: p.mode, z: p.pos.z, dead: p.dead };
 });
-check(`vorne gebremst: Figur bleibt an der Vordergrenze (max along ${r.maxAlong.toFixed(2)} ≤ 9,05)`, r.maxAlong <= 9.05 && r.maxAlong > 8.5 && !r.dead);
-check(`sanft gebremst: kurz vor der Grenze nur noch Schritttempo (gs ${r.gs.toFixed(2)} bei along ${r.along.toFixed(2)})`, r.state === 'wait' && r.gs < 2 && r.gs <= (9 - r.along) * 4 + 0.35);
+check(`vorne gebremst: Figur bleibt an der Vordergrenze (max along ${r.maxAlong.toFixed(2)} ≤ 8,05)`, r.maxAlong <= 8.05 && r.maxAlong > 7.5 && !r.dead);
+check(`sanft gebremst: kurz vor der Grenze nur noch Schritttempo (gs ${r.gs.toFixed(2)} bei along ${r.along.toFixed(2)})`, r.state === 'wait' && r.gs < 2 && r.gs <= (8 - r.along) * 4 + 0.35);
 
 // --- Fenster fährt mit speed, Kamera folgt dem Fenster
 r = await sc(() => {
@@ -277,6 +277,35 @@ r = await sc(() => {
   return { state: w.state, s: w.s, p: p.info(), w1: __t.ent('wagen1').pos.z, lives: c.level.runtime.lives };
 });
 check(`Neustart ohne Checkpoint: Fenster von vorn (state ${r.state}, s ${r.s.toFixed(2)}), Wagen zurück (z ${r.w1.toFixed(2)})`, r.state === 'wait' && near(r.s, 11, 1e-6) && near(r.w1, 10 - 18.8, 1e-3) && near(r.p.z, 4, 0.3));
+
+// --- Spiegelfrucht-Klon: wird ebenfalls geschoben; eingeklemmt verschwindet nur der Klon (kein Leben weg)
+r = await sc(() => {
+  const c = window.__course, w = c.level.scroll, p = c.player, L = c.level, w1 = __t.ent('wagen1'), k2 = __t.ent('kanone');
+  __t.place([0.6, 1.25, w1.pos.z + 3.6], { settle: 4, invuln: 1e9 });
+  const clone = c.addClone();
+  if (!clone) return { clone: false };
+  clone.invuln = 1e9;
+  c.step(10);
+  const pushes0 = __t.arch().pushes;
+  let n = 0;
+  while (__t.arch().pushes === pushes0 && n < 120 * 20) { c.step(1); n++; }
+  let minAlong = 1e9;
+  for (let i = 0; i < 120; i++) { c.step(1); for (const f of L.players) minAlong = Math.min(minAlong, w.local(f.pos).along); }
+  const both = L.players.length;
+  // Klon direkt hinter die Kanone, die Heldin sicher vor die Kanone (beide „geparkt“, bis die Grenze naht)
+  for (const f of L.players) { f.mode = 'script'; f.script = { type: 'test', t: 0 }; }
+  const spot = () => k2.pos.z + 0.85 + 0.32;
+  let k = 0;
+  while (w.center.z + 5 - spot() > 1.5 && k < 120 * 40) { c.step(1); k++; }
+  clone.reset([k2.pos.x, 1.25, spot()], Math.PI / 2);
+  p.reset([-1.2, 1.25, k2.pos.z - 2.5], Math.PI / 2);
+  const lives0 = L.runtime.lives;
+  let m = 0;
+  while (!clone.removedFigure && m < 120 * 6) { c.step(1); m++; }
+  return { clone: true, both, minAlong, removed: clone.removedFigure ?? null, figs: L.players.length, mainAlive: !p.dead, lives: L.runtime.lives - lives0, crushed: __t.arch().crushed, secs: m / 120 };
+});
+check(`Klon wird mitgeschoben (2 Figuren, min along ${r.minAlong?.toFixed(3)} ≥ −5,05)`, r.clone && r.both === 2 && r.minAlong >= -5.05);
+check(`eingeklemmter Klon verschwindet (${r.removed} nach ${r.secs?.toFixed(2)} s), Heldin bleibt, kein Leben weg`, r.removed === 'crush' && r.figs === 1 && r.mainAlive && r.lives === 0);
 
 // --- Checkpoint auf Wagen 2 (attach): Neustart mit der Fensterlage von damals
 await load('0-4');
@@ -590,6 +619,26 @@ r = await sc(() => {
   return { a: __t.arch(), stars: c.level.runtime.stars.slice(), lives: c.level.runtime.lives };
 });
 check(`Tod im Jubel: Stern gezählt, weiter in Raum ${r.a.room + 1} (geschafft ${r.a.cleared}, resets ${r.a.resets})`, r.stars[0] && r.a.room === 1 && r.a.cleared === 1 && r.a.resets === 0);
+
+// Spiegelfrucht-Klon reist mit in den nächsten Raum (eingefroren während der Überblendung, danach frei)
+await load('0-5');
+r = await sc(() => {
+  const c = window.__course, L = c.level;
+  while (__t.arch().phase !== 'play') c.step(1);
+  const clone = c.addClone();
+  if (!clone) return { clone: false };
+  c.step(20);
+  c.arch.clear(c.arch.room);
+  let n = 0;
+  while (!(__t.arch().room === 1 && __t.arch().phase === 'fadein') && n < 900) { c.step(1); n++; }
+  const inFade = { figs: L.players.length, frozen: L.players.every((f) => f.mode === 'script'), dist: Math.hypot(clone.pos.x - c.player.pos.x, clone.pos.z - c.player.pos.z), cx: clone.pos.x };
+  let m = 0;
+  while (__t.arch().phase !== 'play' && m < 300) { c.step(1); m++; }
+  c.step(30);
+  return { clone: true, inFade, free: L.players.every((f) => f.mode !== 'script'), figs: L.players.length };
+});
+check(`Klon reist mit in Raum 2 (${r.inFade?.figs} Figuren, Abstand ${r.inFade?.dist?.toFixed(2)} m, x ${r.inFade?.cx?.toFixed(1)}), eingefroren, danach frei`,
+  r.clone && r.inFade.figs === 2 && r.inFade.frozen && r.inFade.dist < 1.5 && near(r.inFade.cx, 40, 1.5) && r.free && r.figs === 2);
 
 // Bilder Haus: Raum 2 und 3, Überblendung
 await load('0-5');
