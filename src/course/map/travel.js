@@ -81,7 +81,7 @@ export class TubeTravel {
     if (this.mode === 'arrive') {
       pointAt(this.track, ARRIVE_LEN, this.center);
       p.pos.set(this.center.x, this.center.y - p.half.y, this.center.z);
-    }
+    } else this.center.set(p.pos.x, p.pos.y + p.half.y, p.pos.z);
     this.ctl = { step: (pl, dt) => this.stepRide(pl, dt), exit: (pl) => { pl.vel.set(0, 0, 0); } };
     p.ride(this.ctl, { state: this.mode === 'depart' ? 'jump' : 'pipe', kind: 'glasroehre' });
     scene.level.sfx('pipe');

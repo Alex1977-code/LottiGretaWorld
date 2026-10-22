@@ -252,9 +252,8 @@ export class MapScenery {
     const mesa = (x, z, r, h) => {
       const n = Math.max(2, Math.round(h / 4));
       for (let i = 0; i < n; i++) {
-        const g = new THREE.CylinderGeometry(r * (1 - (i + 1) * 0.05), r * (1 - i * 0.05), h / n, 9, 1);
         const c = bands[(i + Math.floor(x)) & 3];
-        colorize(g, (p, nn, o) => { const k = nn.y > 0.5 ? 1.12 : 1; o[0] = c[0] * k; o[1] = c[1] * k; o[2] = c[2] * k; });
+        const g = colorize(new THREE.CylinderGeometry(r * (1 - (i + 1) * 0.05), r * (1 - i * 0.05), h / n, 9, 1), (p, nn, o) => { const k = nn.y > 0.5 ? 1.12 : 1; o[0] = c[0] * k; o[1] = c[1] * k; o[2] = c[2] * k; });
         g.translate(x, -2 + (h / n) * (i + 0.5), z);
         parts.push(g);
       }
@@ -322,11 +321,11 @@ export class MapScenery {
   /** Segelnde Vögel (Hackvögel) über der Insel: birds = [{ c: [x, y, z], r, n }] – eine InstancedMesh für alle. */
   buildBirds(list) {
     const b = [];
-    const body = new THREE.SphereGeometry(0.28, 7, 5); body.scale(1.6, 0.8, 0.8);
-    const head = new THREE.SphereGeometry(0.17, 6, 4); head.translate(0.48, 0.1, 0);
-    const beak = new THREE.ConeGeometry(0.06, 0.28, 4); beak.rotateZ(-Math.PI / 2); beak.translate(0.72, 0.08, 0);
-    const wing = (s) => { const g = new THREE.BoxGeometry(0.55, 0.05, 1.5); g.translate(0, 0.08, s * 0.85); g.rotateX(s * -0.25); return g; };
-    const tail = new THREE.BoxGeometry(0.4, 0.04, 0.3); tail.translate(-0.55, 0.02, 0);
+    const body = new THREE.SphereGeometry(0.17, 7, 5); body.scale(1.6, 0.8, 0.8);
+    const head = new THREE.SphereGeometry(0.11, 6, 4); head.translate(0.3, 0.07, 0);
+    const beak = new THREE.ConeGeometry(0.04, 0.18, 4); beak.rotateZ(-Math.PI / 2); beak.translate(0.45, 0.05, 0);
+    const wing = (s) => { const g = new THREE.ConeGeometry(0.22, 0.95, 3); g.rotateX(s * Math.PI / 2); g.scale(1, 0.25, 1); g.translate(-0.02, 0.06, s * 0.5); g.rotateX(s * -0.3); return g; };
+    const tail = new THREE.ConeGeometry(0.12, 0.3, 3); tail.rotateZ(Math.PI / 2); tail.scale(1, 0.3, 1); tail.translate(-0.36, 0.01, 0);
     const purple = lin(0x5a3a7a), light = lin(0x8a6ab8), orange = lin(0xffb43a), white = lin(0xf6f0ff);
     const paint = (g, c) => colorize(g, (p, n, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; });
     b.push(paint(body, purple), paint(head, light), paint(beak, orange), paint(wing(1), light), paint(wing(-1), light), paint(tail, purple));

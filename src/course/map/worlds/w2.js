@@ -45,7 +45,7 @@ export const MAP = {
   edges: { hedge: 'adobe', fence: 'rope' },
   pathColors: [0xe8b47a, 0xdba06a, 0xb98352],
   neighbors: [{ world: 1, pos: [-262, 104], size: [72, 48], style: 'grass' }],
-  birds: [{ c: [0, 12.5, 16], r: 7, n: 2 }, { c: [-6, 8.5, -42], r: 9, n: 1 }, { c: [34, 10.5, -64], r: 9, n: 2 }],   // Hackvögel kreisen
+  birds: [{ c: [0, 11.5, 16], r: 6, n: 2 }, { c: [-8, 6, -44], r: 8, n: 1 }, { c: [36, 8, -64], r: 8, n: 2 }, { c: [-10, 6, -14], r: 9, n: 1 }],   // Hackvögel kreisen
 
   levels: [
     { id: 'W1', world: 1, next: 1, label: 'Welt 1', stars: 0 },

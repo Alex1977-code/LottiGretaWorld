@@ -89,8 +89,7 @@ function strata(parts, x0, y0, z0, x1, y1, z1, colors, rnd, layer, jitter) {
     const c = lin(colors[(i * 2 + Math.floor(rnd.frac() * 2)) % colors.length]);
     const dark = mixc(c, [0, 0, 0], 0.18, [0, 0, 0]);
     const w = Math.max(0.2, x1 - x0 - inset * 2), d = Math.max(0.2, z1 - z0 - inset * 2);
-    const g = new THREE.BoxGeometry(w, lh, d);
-    colorize(g, (p, nn, o) => {
+    const g = colorize(new THREE.BoxGeometry(w, lh, d), (p, nn, o) => {
       if (nn.y < -0.5) { o[0] = dark[0] * 0.8; o[1] = dark[1] * 0.8; o[2] = dark[2] * 0.8; return; }
       const k = Math.abs(nn.x) > 0.5 ? 0.92 : 1;    // Seiten nach ±X etwas dunkler (Kanten lesbar)
       o[0] = c[0] * k; o[1] = c[1] * k; o[2] = c[2] * k;
