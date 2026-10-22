@@ -92,7 +92,7 @@ export function buildQuicksand(level, spec) {
       if (e._sandDepth >= e.half.y * 2 * 0.95) {
         e._sandOf = null;
         level.effects?.dust({ x: e.pos.x, y: top, z: e.pos.z }, 6, 0.8);
-        level.sfx('sand');
+        level.sfx('quicksand');
         if (!e.defeated) { e.pos.y = top; e.markDefeated?.(); }
         e.kill();
       }

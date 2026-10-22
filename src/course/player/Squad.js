@@ -104,7 +104,6 @@ export class Squad {
     const cc = c.center();
     L.effects?.sparks(cc, 18);
     L.effects?.sparks(src.center(), 8);
-    L.sfx('powerup');
     L.sfx('clone');
     this.note('clone', src.clone ? 'klon' : 'haupt');
     return c;
@@ -156,8 +155,7 @@ export class Squad {
       L.effects?.dust({ x: c.x, y: c.y - 0.3, z: c.z }, 12, 1.4);
       L.effects?.sparks(c, 10);
     }
-    L.sfx(cause === 'fall' ? 'fall' : 'poff');
-    if (cause === 'hit') L.sfx('hurt');
+    if (cause !== 'clear') L.sfx('clone_lost');
     const rig = this.rigs.get(fig);
     this.rigs.delete(fig);
     if (i === 0) this.adoptMain(L.players[0]);

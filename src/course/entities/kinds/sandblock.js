@@ -120,7 +120,7 @@ class Sandblock extends Gimmick {
     const c = this.center();
     this.level.effects?.debris(c, 0xe8c070, 6);
     this.level.effects?.dust({ x: c.x, y: this.pos.y, z: c.z }, 6, 0.9);
-    this.level.sfx('brickbreak');
+    this.level.sfx('sand_crumble');
     if (this.once) this.kill();
   }
 

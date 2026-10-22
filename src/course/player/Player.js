@@ -797,6 +797,7 @@ export class Player {
       this.sandDepth = Math.max(0, Math.min(depth, q.plop ?? SAND.plop));
       this.sand = s;
       if (this.prevVy < -5) this.level.effects?.dust(this.pos, 5, 0.8);
+      this.level.sfx('quicksand');
     } else {
       this.sandDepth += (q.sink ?? SAND.sink) * dt;
     }
@@ -1088,7 +1089,8 @@ export class Player {
     this.helmet = k;
     this.helmetFx = {};
     getHelmet(k).onWear?.(this);
-    this.level.sfx('powerup');
+    this.level.sfx('helm_on');
+    if (k === 'licht') this.level.sfx('light');
     this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + this.half.y * 2 + 0.2, z: this.pos.z }, 8);
     return true;
   }
@@ -1112,8 +1114,8 @@ export class Player {
       if (source?.pos) { ax = this.pos.x - source.pos.x; az = this.pos.z - source.pos.z; }
       const l = Math.hypot(ax, az) || 1;
       vx = (ax / l) * 3; vz = (az / l) * 3; vy = 7;
-      this.level.sfx('powerdown');
-    } else this.level.sfx('step');
+    }
+    this.level.sfx('helm_off');
     const e = this.level.spawn(`helm_${k}`, { pos: [this.pos.x + f.x * (how === 'off' ? 0.7 : 0), this.pos.y + this.half.y * 2, this.pos.z + f.z * (how === 'off' ? 0.7 : 0)], vel: [vx, vy, vz], dropped: true });
     return e;
   }

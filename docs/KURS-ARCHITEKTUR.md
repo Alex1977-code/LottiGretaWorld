@@ -1222,6 +1222,9 @@ für mehrere: `{ type: 'sandblock', blocks: [[x,y,z], …] }`, `{ type: 'sandblo
 pos, grid: [nx, nz] | [nx, ny, nz] }`. Darstellung: `createInstanced('sandblock', 32)` (Zustände idle → shake → crumble → gone;
 je 32 Blöcke 2 Zeichenaufrufe), ohne Registry ein eigener Instanz-Pool.
 
+Effekte (Präzisierung Audio Welten 2–4): `clone` (Klon entsteht), `clone_lost` (Figur weg), `helm_on`/`helm_off`, `cannon`,
+`propeller`, `light` (Licht-Helm auf), `quicksand` (in Treibsand), `sand_crumble` (Sandblock), `ghost` (Testgeist löst sich auf).
+
 ### Präzisierung (Motor Welt 2): Tests
 
 `tests/course_w2engine.mjs` (Port 4199, `?course=0-3&scale=2&adapt=0`, deterministisch über `step(n)`/`setInput`, Hilfen
@@ -1231,3 +1234,18 @@ Feld-Paar, Viererlift (3 nein, 4 ja, zurück), Figurenschalter (Wechsel über da
 Stampfen hält, Treffer/Ducken+Aktion), Propeller (Aufstieg, Sinken, 8-m-Sims), Licht (onLight, Auflösen), Topfpflanze (Pilzling,
 Werfen), Treibsand (Einsinken, Tempo, Sprung, Tod, Gegner, Klon, Fließen), Sandblock (bröselt, kommt wieder), Zielmast mit Klon,
 Kennzahlen mit 1 und 5 Figuren. Bilder `tests/out/w2e_*.png`.
+
+---
+
+## Präzisierung (Audio Welten 2–4, Taktuhr)
+
+**Neue Themen** (`music.play(name)`): Welt 2 `course_desert`, `course_space`, `course_shadow`, `course_hills`, `course_cherry`, `course_tank`, `course_house` · Welt 3 `course_snow`, `course_ghost`, `course_plaza`, `course_water`, `course_race`, `course_autumn`, `course_train`, `course_skyway` · Welt 4 `course_canyon`, `course_poison`, `course_beep`, `course_bounce`, `course_ruins`, `course_lavacastle` · Karten `course_world2_map`, `course_world3_map`, `course_world4_map`. Dateien: `src/audio/themes_world2.js` … `themes_world4.js`, Bausteine in `themeParts.js`.
+
+**Neue Effekte** (`sfx(name)`): `clone`, `clone_lost`, `helm_on`, `helm_off`, `cannon`, `propeller`, `light`, `quicksand`, `sand_crumble`, `peck`, `bullet`, `boss_hit`, `boss_spin`, `house_tick`, `room_clear`, `ice_slide`, `snowball`, `ghost`, `splash_big`, `train_whistle`, `beep`, `beep_switch`.
+
+**Taktuhr** (für Piep-Blöcke u. ä.):
+- `music.beat()` → `{ bpm, beat, bar, phase, playing, inBar, theme, loopBeats, source }` – `beat` = fortlaufende Viertel seit Themenstart (Kommazahl, fällt nie), `bar = floor(beat/4)`, `phase` 0..1, `inBar` 0–3, `source` `'audio'|'ersatz'|'none'`. Ohne Thema `bpm 0`, `playing false`.
+- `music.onBeat(fn)` → Abmelden-Funktion; `fn({ beat, bar, inBar, bpm, theme, late })` einmal je ganzer Zählzeit, synchron zur **hörbaren** Musik (Ausgabelatenz berücksichtigt). Ersatzuhr über `performance.now()`, solange Audio nicht freigeschaltet/angehalten ist; Stummschalten ändert die Uhr nicht.
+- Themenwechsel setzt `beat` auf 0 zurück → in Piep-Levels die Musik nicht wechseln (z. B. kein Funkelstern-Thema) oder eigene Phase führen.
+- `themeInfo('course_beep').sync = { switchEvery: 8, warnBeats: 3 }`: Umschalt-Piep auf Zählzeit 0, 8, 16 …, Warn-Pieps auf den Zählzeiten 5, 6, 7 jedes Achterblocks.
+- Testhaken: `music.setManualClock(true|false)`, `music.advanceClock(sekunden)` (meldet überschrittene Zählzeiten synchron), `music.manualClock`.

@@ -278,7 +278,7 @@ class Testgeist extends Enemy {
     this.setState('vanish');
     this.touch = false;
     this.level.effects?.sparks(this.center(), 18);
-    this.level.sfx('powerdown');
+    this.level.sfx('ghost');
     this.markDefeated();
   }
 

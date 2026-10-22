@@ -173,3 +173,14 @@ export function createInstanced(name, count, opts = {}) {
   };
   return api;
 }
+
+// ------------------------------------------------------------------ Erweiterung (Welt 3 ff.)
+// Weitere Instanz-Arten liefern Module lib/instanced_*.js mit `export const INSTANCED = { name: (count, ...) => api }`
+// (gleiche API wie oben), z. B. instanced_w3.js: 'schneeblock' | 'eisblock' | 'tanne_schnee' | 'eiszapfen'.
+// Rein angehängt: createInstanced wird um diese Arten ergänzt, alles Bisherige bleibt unverändert.
+const EXTRA_KINDS = Object.assign({}, ...Object.values(import.meta.glob('./instanced_*.js', { eager: true })).map((m) => m.INSTANCED ?? {}));
+const createInstancedBase = createInstanced;
+// eslint-disable-next-line no-func-assign
+createInstanced = function createInstancedExt(name, count, ...rest) {
+  return EXTRA_KINDS[name] ? EXTRA_KINDS[name](count, ...rest) : createInstancedBase(name, count, ...rest);
+};
