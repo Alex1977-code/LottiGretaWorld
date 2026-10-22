@@ -38,6 +38,10 @@ const ALIASES = {
   oneup: 'oneup', '1up': 'oneup', '1-up': 'oneup', extraleben: 'oneup',
   // Spiegelfrucht (Präzisierung Motor Welt 2): kein Kostüm – Player.collectPowerup erzeugt einen Klon (Squad)
   spiegel: 'spiegel', spiegelfrucht: 'spiegel', klon: 'spiegel',
+  // Welt 3 (Präzisierung Motor Welt 3): Gleitblatt (Kostüm); Schlittschuh ist kein Kostüm – Level.spawn macht aus
+  // einem Power-up 'schlittschuh' die Entität `schlittschuh`, Player.collectPowerup zieht ihn direkt an
+  gleitblatt: 'gleitblatt', 'gleit-blatt': 'gleitblatt', blatt: 'gleitblatt', leaf: 'gleitblatt',
+  schlittschuh: 'schlittschuh', schlittschuhe: 'schlittschuh', skate: 'schlittschuh', skates: 'schlittschuh',
 };
 export function normalizePower(name) {
   if (!name) return null;
