@@ -5,11 +5,12 @@
 //   `depth`) wirft einen flachen, dunklen Schatten auf die Wand: die Figur (Scherenschnitt-Puppe mit Zöpfen bzw.
 //   Pferdeschwanz, Arme/Beine bewegt), Entitäten (Kugel/Quader/Stern je nach Art), Kollisionsformen (Quader,
 //   Zylinder; auch bewegte) und zusätzliche Schattenformen ohne Körper (casters). Projektion parallel entlang `dir`
-//   (Standard leicht von oben) – so zeigt die Wand eine 2D-Seitenansicht; mit `light` (Punkt oder Id eines
-//   scheinwerfer) werden Schatten näher am Licht größer. Günstig fürs Handy: 1 Wandfläche + höchstens 4
-//   Instanz-Meshes, kein zusätzlicher Schattenpass, Schatten an den Wandrand geschnitten.
+//   (Standard waagerecht, leicht schräg von rechts) – so zeigt die Wand eine 2D-Seitenansicht mit echten Höhen; mit
+//   `light` (Punkt oder Id eines scheinwerfer) werden Schatten näher am Licht größer. Günstig fürs Handy: 1 Wandfläche
+//   + höchstens 4 Instanz-Meshes, kein zusätzlicher Schattenpass, Schatten an den Wandrand geschnitten.
 //   { type: 'schattenwand', id, pos: [x, y, z] (Mitte der Unterkante), size: [w, h] ([16, 8]), depth: 12,
-//     dir: [0.06, -0.1, -1] (Lichtrichtung zur Wand), light: [x, y, z] | 'scheinwerfer-id' (optional, Punktlicht),
+//     dir: [0.05, 0, -1] (Lichtrichtung zur Wand; y < 0 = Licht von oben, Schatten fallen mit Abstand tiefer),
+//     light: [x, y, z] | 'scheinwerfer-id' (optional, Punktlicht),
 //     color: '#fff1d6' (Wand), shade: '#2c1f2a' (Schatten), frame: true (Holzrahmen), solid: true (dünne feste Wand
 //     hinter der Fläche), player: true, entities: true, shapes: true (Kollisionsformen der Zone),
 //     casters: [{ pos: [x, y, z] (Mitte), size: [w, h, d], shape: 'box'|'ball'|'star'|'cyl', id?, hidden? }] }
@@ -67,7 +68,7 @@ export function buildSchattenwand(level, spec) {
   const zw = p.z;
   const x0 = p.x - W / 2, x1 = p.x + W / 2, y0 = p.y, y1 = p.y + H;
   const zone = { x0, x1, y0: y0 - 3, y1: y1 + 6, z0: zw, z1: zw + depth };
-  const dv = spec.dir ?? [0.06, -0.1, -1];
+  const dv = spec.dir ?? [0.05, 0, -1];
   const dir = new THREE.Vector3(dv[0], dv[1], dv[2]).normalize();
   if (dir.z > -0.2) dir.z = -0.2;
   const handle = {

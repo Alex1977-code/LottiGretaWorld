@@ -497,11 +497,12 @@ if (errors.length) for (const e of errors.slice(0, 10)) console.log('   ', e);
 
 // ---------------------------------------------------------------- Themen (Stimmung), je ein Bild
 if (SHOTS) {
-  const themes = [['desert', [0, 1, -60]], ['space', [0, 1, -12]], ['shadow', [0, 1, -258]], ['pinkgrass', [0, 1, -150]], ['lava', [0, 1, -76]], ['house', [0, 1, -228]]];
+  const themes = [['desert', [0, 1, -40]], ['space', [0, 1, -8]], ['shadow', [0, 1, -262]], ['pinkgrass', [0, 1, -150]], ['lava', [0, 1, -66]], ['house', [0, 1, -222]]];
   const tstats = [];
   for (const [th, pos] of themes) {
     await load(`&theme=${th}`);
-    await sc((p) => { const c = window.__course; c.player.reset(p, Math.PI / 2); c.step(60); c.snapCamera(); }, pos);
+    // flachere Kamera (nur für das Bild), damit Himmel und Kulisse des Themas zu sehen sind
+    await sc((p) => { const c = window.__course; for (const s of c.view.rig.sections) { s.pitch = Math.min(s.pitch, 24); s.dist = 15; } c.player.reset(p, Math.PI / 2); c.step(60); c.snapCamera(); }, pos);
     await page.waitForTimeout(1800);
     const s = await sc(() => window.__course.stats());
     tstats.push([th, s.calls, s.triangles]);

@@ -1,5 +1,6 @@
 // Wüstenwerkstatt (0-8): jeder Welt-2-Baustein in einer eigenen Station mit Schild, Kameraschiene und benannten
-// Punkten (marks) für tests/course_w2_blocks.mjs. Sandstein-Plateaus (Oberseite y = 1) über einer Sandebene (y = −3),
+// Punkten (marks) für tests/course_w2_blocks.mjs. Plateaus (Oberseite y = 1, Decke in Themenfarbe – im Thema desert Sand)
+// über einer Sandebene (y = −3),
 // Level verläuft nach −Z.
 //   S0  Start (Sandsteinbogen)              z    6 …   −6
 //   S1  Tastensteine (Treppe, Melodie)      z   −6 …  −26
@@ -17,7 +18,7 @@
 //   S13 Schattenspiel                       z −246 … −274
 //   S14 Ziel                                z −274 … −294
 
-const plateau = (z0, z1, w = 26, x = 0) => ({ type: 'island', pos: [x, -3, (z0 + z1) / 2], size: [w, 4, Math.abs(z1 - z0)], top: 'sand', under: 0 });
+const plateau = (z0, z1, w = 26, x = 0) => ({ type: 'island', pos: [x, -3, (z0 + z1) / 2], size: [w, 4, Math.abs(z1 - z0)], under: 0 });
 const sign = (x, z, text) => ({ type: 'sign', pos: [x, 1, z], text });
 
 export const LEVEL = {

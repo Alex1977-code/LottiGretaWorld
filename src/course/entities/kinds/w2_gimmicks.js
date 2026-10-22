@@ -38,8 +38,9 @@
 //   kommt an der Zieltür (oder am Punkt) wieder heraus.
 //   { kind: 'tuer', id, pos: [x, y, z] (Mitte der Schwelle), yaw: −π/2 (Vorderseite zur Kamera +Z; Durchgang entlang
 //     der Blickrichtung), width: 1.6, height: 2.4, style: 'holz' | 'stein', locked: false, open: false (beginnt offen),
-//     auto: true, autoClose: true, target: Id einer Tür | [x, y, z] (Absetzpunkt), onEnter: Aktion }
-//   Laufzeit: openK (0..1), locked, open(), close().
+//     auto: true, autoClose: true, target: Id einer Tür | [x, y, z] (Absetzpunkt), onEnter: Aktion,
+//     key: Id | [Ids] (Schlüssel: sind diese benannten Objekte eingesammelt/besiegt, öffnet sich die verschlossene Tür) }
+//   Laufzeit: openK (0..1), locked, open(), close(). Hinweis: der Flügel schwingt zur Vorderseite (Modell 'tuer').
 //
 // holz_silhouette – Sperrholz-Aufsteller mit der Silhouette von Baron Brummbär (2-3): Tatzenhieb, Feuerball, Panzer,
 //   Bombe, Riesentrank, Stampfwelle daneben oder Hineinrennen (≥ 6,5 m/s) werfen ihn nach hinten um; dahinter z. B.
@@ -83,23 +84,46 @@ function crystalGeo(s, colors) {
   const parts = [];
   const nx = Math.max(1, Math.round(s.x)), ny = Math.max(1, Math.round(s.y)), nz = Math.max(1, Math.round(s.z));
   const cx = s.x / nx, cy = s.y / ny, cz = s.z / nz;
+  const facet = (g, x, y, z) => {
+    const pos = g.attributes.position, nor = g.attributes.normal;
+    const col = new Float32Array(pos.count * 3);
+    for (let v = 0; v < pos.count; v++) {
+      // Licht von oben links vorn: helle Facetten oben, dunklere unten
+      const k = Math.max(0, Math.min(1, 0.5 + nor.getY(v) * 0.45 - nor.getX(v) * 0.25 + nor.getZ(v) * 0.2));
+      const o = mixc(mid, hi, k, [0, 0, 0]);
+      col[v * 3] = o[0]; col[v * 3 + 1] = o[1]; col[v * 3 + 2] = o[2];
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.deleteAttribute('uv');
+    g.translate(x, y, z);
+    return g;
+  };
   for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) for (let k = 0; k < nz; k++) {
     const x = -s.x / 2 + (i + 0.5) * cx, y = (j + 0.5) * cy, z = -s.z / 2 + (k + 0.5) * cz;
-    const g = box(cx - 0.04, cy - 0.04, cz - 0.04, x, y, z, 0xffffff, { r: 0.1, seg: 1 });
-    const pos = g.attributes.position, col = g.attributes.color;
+    const g = box(cx - 0.05, cy - 0.05, cz - 0.05, x, y, z, 0xffffff, { r: 0.07, seg: 1 });
+    const pos = g.attributes.position, col = g.attributes.color, nor = g.attributes.normal;
     for (let v = 0; v < pos.count; v++) {
       const ly = (pos.getY(v) - y) / cy + 0.5;              // 0 unten … 1 oben
-      const lx = (pos.getX(v) - x) / cx + 0.5;
       const o = [0, 0, 0];
-      mixc(lo, mid, Math.min(1, ly * 1.4), o);
-      // diagonale Facette (heller Streifen)
-      const f = Math.abs(lx - ly);
-      if (f < 0.18) mixc(o, hi, 0.75 * (1 - f / 0.18), o);
+      mixc(lo, mid, Math.min(1, ly * 1.2), o);
+      if (nor.getY(v) > 0.6) mixc(o, hi, 0.35, o);
       col.setXYZ(v, o[0], o[1], o[2]);
     }
     parts.push(g);
-    // Glanz-Kante oben vorn
-    parts.push(box(cx * 0.55, 0.05, 0.05, x - cx * 0.1, y + cy * 0.36, z + cz / 2 - 0.02, colors[0], { r: 0, seg: 0 }));
+    // geschliffene Facetten (flacher Oktaeder) vorn, hinten und oben je Zelle
+    const r = Math.min(cx, cy) * 0.36;
+    for (const sz of [1, -1]) {
+      if ((sz > 0 && k === nz - 1) || (sz < 0 && k === 0)) {
+        const o = new THREE.OctahedronGeometry(r, 0);
+        o.scale(1, 1, 0.32);
+        parts.push(facet(o, x, y, z + sz * (cz / 2 - 0.01)));
+      }
+    }
+    if (j === ny - 1) {
+      const o = new THREE.OctahedronGeometry(Math.min(cx, cz) * 0.34, 0);
+      o.scale(1, 0.3, 1);
+      parts.push(facet(o, x, y + cy / 2 - 0.01, z));
+    }
   }
   return merge(parts);
 }
@@ -515,6 +539,11 @@ class Tuer extends Gimmick {
 
   update(dt) {
     if (this.cool > 0) this.cool -= dt;
+    // Schlüssel: alle genannten Objekte eingesammelt/besiegt (nicht mehr da) → Tür geht auf
+    if (this.locked && this.spec.key && this.want === 0) {
+      const ids = Array.isArray(this.spec.key) ? this.spec.key : [this.spec.key];
+      if (ids.every((id) => { const o = this.level.named.get(id); return !o || o.alive === false || o.removed; })) this.open();
+    }
     const pl = this.level.player;
     const f = this.front;
     let near = false, dFront = 99, along = 99;
