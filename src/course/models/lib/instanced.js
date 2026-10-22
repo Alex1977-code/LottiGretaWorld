@@ -18,9 +18,18 @@
 // Ein erneutes setState(i, 'bump') startet den Stoß neu. Nicht gesetzte Plätze sind unsichtbar.
 // Münzen: Mitte bei y = 0,45 über pos, Blöcke: pos = Mitte der Unterseite.
 // Leistung: Münze ≈ 300 Dreiecke (statt ≈ 1000 im Einzelmodell), Block ≈ 600–900.
+//
+// Welt 2 (lib/instancedW2.js, gleiche API, optionaler dritter Parameter opts):
+//   createInstanced('marschblock', n, { colors, notes, stagger })  'march'|'idle'|'panic'|'squashed'|'hidden'
+//                                                                   + api.setColor(i, farbe)
+//   createInstanced('sandblock', n)                                 'idle'|'shake'|'crumble'|'gone'|'hidden'|{ crumble }
+//   createInstanced('kaktus', n, { variant })                       'idle'|'hidden'
+//   createInstanced('wuschel', n)                                   'idle'|'move'|'hidden'
+//   Einzelheiten im Kopfkommentar von lib/instancedW2.js.
 
 import { THREE, TAU, instMesh, coinMaterials, coinBodyGeo, coinFacesGeo } from './kit.js';
 import { questionGeo, usedGeo, brickGeo, brickMat, brickChunkGeo, blockMat } from './blockGeos.js';
+import { W2_KINDS, createInstancedW2 } from './instancedW2.js';
 
 const KINDS = ['coin', 'coin_blue', 'question_block', 'brick_block', 'used_block'];
 const isCoinKind = (k) => k === 'coin' || k === 'coin_blue';
@@ -34,10 +43,12 @@ function bigBounds(m) {
 }
 
 /**
- * @param {'coin'|'coin_blue'|'question_block'|'brick_block'|'used_block'} name
+ * @param {'coin'|'coin_blue'|'question_block'|'brick_block'|'used_block'|'marschblock'|'sandblock'|'kaktus'|'wuschel'} name
  * @param {number} count Kapazität
+ * @param {object} [opts] nur Welt-2-Arten (siehe lib/instancedW2.js)
  */
-export function createInstanced(name, count) {
+export function createInstanced(name, count, opts = {}) {
+  if (W2_KINDS.includes(name)) return createInstancedW2(name, count, opts);
   if (!KINDS.includes(name)) throw new Error(`createInstanced: unbekannter Typ ${name}`);
   const n = Math.max(1, count | 0);
   const root = new THREE.Group();
