@@ -2,11 +2,32 @@
 // Meer mit Farbverlauf (flach am Ufer türkis, draußen tiefblau), Schaumkanten an den Inselblöcken, Glitzern,
 // treibende Wolken über dem Meer und kleine Nachbarinseln. Ferne Hügel/Berge liefert der Himmel des Motors
 // (backdrop 'hills').
+// Welt 2 (map.kit 'desert'): Thema 'map_desert' (warmes Licht, sandiger Horizont), Sand-Inselchen mit Palmen und
+// ferne Tafelberge statt grüner Hügel. map.neighbors: [{ world, pos: [x, z], size, style: 'grass'|'desert' }] legt die
+// Nachbarwelt als ferne Insel an den Horizont (dorthin führt die Glasröhre).
 
 import * as THREE from 'three';
 import { THEMES } from '../view/themes.js';
 import { colorize, lin, mixc, smooth, merge, Rnd } from '../../three/world/geometry.js';
 import { islandParts } from '../blocks/kit.js';
+import { palmGeo, pyramidGeo, place } from './desert.js';
+
+// Thema der Wüsteninsel (Welt 2): warmes Sonnenlicht, blasser, sandiger Horizont, Nebel ins Goldene.
+if (!THEMES.map_desert) {
+  THEMES.map_desert = {
+    ...THEMES.grass,
+    label: 'Weltkarte Wüste',
+    sky: [[1, 0x2f86e0], [0.45, 0x58b2f4], [0.15, 0x9fd8f6], [0.04, 0xe8ecd8], [0, 0xfbe6c2], [-0.1, 0xead1a4], [-1, 0xc8ae84]],
+    background: 0xf2e2c4,
+    fog: { color: 0xf1e3c8, near: 80, far: 300 },
+    hemi: { sky: 0xfff0d6, ground: 0xc89a5a, intensity: 1.3 },
+    sun: { color: 0xfff0cc, intensity: 2.8, dir: [-0.5, 1, 0.42] },
+    ground: null,
+    clouds: false,
+    backdrop: 'none',
+    dirt: 0xd9a060, dirtDeep: 0xa86a3a, rockDeep: 0x7a4a2a,
+  };
+}
 
 // Thema der Karte: wie 'grass', aber ohne tiefe Wiese (Meer statt Boden), weiterer Nebel, eigene Wolken.
 if (!THEMES.map) {
@@ -44,8 +65,11 @@ export class MapScenery {
     this.buildSea(bounds);
     this.buildFoam();
     this.buildGlints(bounds);
+    this.kit = map.kit ?? 'grass';
     this.buildClouds(bounds);
     this.buildIslets(bounds);
+    if (this.kit === 'desert') this.buildMesas(bounds);
+    for (const nb of map.neighbors ?? []) this.buildNeighbor(nb);
     view.three.add(this.group);
   }
 
@@ -195,6 +219,13 @@ export class MapScenery {
       const w = rnd.real(4, 9), d = rnd.real(4, 8);
       if (this.distToLand(x, z) < 18 + Math.max(w, d)) continue;
       const top = rnd.real(0.6, 2.2);
+      if (this.kit === 'desert') {
+        for (const g of islandParts(x - w / 2, -2, z - d / 2, x + w / 2, top, z + d / 2, theme, { under: 0, rnd, top: 'sand' })) parts.push(g);
+        parts.push(place(palmGeo(rnd.real(3.6, 4.8), rnd.real(0.5, 1.3), rnd.int(1, 999)), x + rnd.real(-1, 1), top, z + rnd.real(-1, 1), rnd.real(0, 6)));
+        this.rects.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]);
+        n++;
+        continue;
+      }
       for (const g of islandParts(x - w / 2, -2, z - d / 2, x + w / 2, top, z + d / 2, theme, { under: 0, rnd })) parts.push(g);
       // Baum
       const th = rnd.real(3, 4.5);
@@ -210,6 +241,81 @@ export class MapScenery {
       n++;
     }
     for (const g of parts) this.view.addStatic(g, { castShadow: true });
+  }
+
+  /** Ferne Tafelberge und Dünen hinter dem Meer (Wüstenwelt, statt grüner Hügel). */
+  buildMesas(b) {
+    const rnd = new Rnd(0x3e5a);
+    const parts = [];
+    const bands = [0xe9b46e, 0xd99a58, 0xf0c98a, 0xcf8c4e].map(lin);
+    const mesa = (x, z, r, h) => {
+      const n = Math.max(2, Math.round(h / 4));
+      for (let i = 0; i < n; i++) {
+        const g = new THREE.CylinderGeometry(r * (1 - (i + 1) * 0.05), r * (1 - i * 0.05), h / n, 9, 1);
+        const c = bands[(i + Math.floor(x)) & 3];
+        colorize(g, (p, nn, o) => { const k = nn.y > 0.5 ? 1.12 : 1; o[0] = c[0] * k; o[1] = c[1] * k; o[2] = c[2] * k; });
+        g.translate(x, -2 + (h / n) * (i + 0.5), z);
+        parts.push(g);
+      }
+    };
+    for (let x = b.min.x - 160; x < b.max.x + 160; x += rnd.real(34, 52)) mesa(x, b.min.z - rnd.real(150, 210), rnd.real(14, 24), rnd.real(16, 30));
+    for (const side of [-1, 1]) {
+      for (let z = b.max.z + 40; z > b.min.z - 120; z -= rnd.real(40, 60)) {
+        const x = side < 0 ? b.min.x - rnd.real(130, 170) : b.max.x + rnd.real(130, 170);
+        mesa(x, z, rnd.real(12, 20), rnd.real(12, 24));
+      }
+    }
+    const g = merge(parts);
+    if (!g) return;
+    const m = new THREE.Mesh(this.track(g), this.view.mats.world);
+    m.matrixAutoUpdate = false; m.updateMatrix();
+    m.name = 'tafelberge';
+    this.group.add(m);
+  }
+
+  /** Nachbarwelt als ferne Insel (Ziel der Glasröhre): grüne Blockinsel mit Burg oder Sandinsel mit Pyramide. */
+  buildNeighbor(nb) {
+    const [x, z] = nb.pos;
+    const [w, d] = nb.size ?? [60, 40];
+    const theme = this.view.theme;
+    const rnd = new Rnd(0x4e1b + (nb.world ?? 0) * 17);
+    const parts = [];
+    const desert = nb.style === 'desert';
+    const blocks = [[-0.5, -0.5, 0.5, 0.5, 2.5], [-0.35, -0.42, 0.1, 0.1, 6], [0.05, -0.3, 0.38, 0.2, 4.5]];
+    for (const [a, c, e, f, top] of blocks) {
+      const g = islandParts(x + a * w, -3, z + c * d, x + e * w, top, z + f * d, desert ? { ...theme, dirt: 0xd9a060, dirtDeep: 0xa86a3a } : THEMES.grass, { under: 0, rnd, top: desert ? 'sand' : 'grass', cell: 4 });
+      parts.push(...g);
+    }
+    if (desert) {
+      parts.push(place(pyramidGeo(18, 13, 6), x - 0.12 * w, 6, z - 0.15 * d));
+      for (let i = 0; i < 4; i++) parts.push(place(palmGeo(5, 0.8, i + 3), x + rnd.real(-0.4, 0.4) * w, 2.5, z + rnd.real(0.25, 0.45) * d, rnd.real(0, 6)));
+    } else {
+      for (let i = 0; i < 6; i++) {
+        const tx = x + rnd.real(-0.45, 0.45) * w, tz = z + rnd.real(0.15, 0.45) * d;
+        const crown = new THREE.SphereGeometry(rnd.real(1.8, 2.6), 9, 6);
+        crown.translate(tx, 2.5 + 3.2, tz);
+        const cl = lin(rnd.frac() < 0.5 ? 0xffb347 : 0x6cc74d);
+        parts.push(colorize(crown, (p, nn, o) => mixc(mixc(cl, [0, 0, 0], 0.35, [0, 0, 0]), cl, smooth(-0.6, 0.8, nn.y), o)));
+      }
+      // kleine Burg mit rotem Dach (Baron Brummbär) auf dem Hochplateau
+      const keep = new THREE.BoxGeometry(6, 6, 5);
+      keep.translate(x - 0.12 * w, 6 + 3, z - 0.16 * d);
+      const st = lin(0x6e6683);
+      parts.push(colorize(keep, (p, nn, o) => { o[0] = st[0]; o[1] = st[1]; o[2] = st[2]; }));
+      const roof = new THREE.ConeGeometry(4.2, 4, 4);
+      roof.rotateY(Math.PI / 4);
+      roof.translate(x - 0.12 * w, 6 + 8, z - 0.16 * d);
+      const rc = lin(0xc4304e);
+      parts.push(colorize(roof, (p, nn, o) => { o[0] = rc[0]; o[1] = rc[1]; o[2] = rc[2]; }));
+    }
+    for (const g of parts) { g.deleteAttribute?.('uv'); }
+    const g = merge(parts);
+    if (!g) return;
+    const m = new THREE.Mesh(this.track(g), this.view.mats.world);
+    m.matrixAutoUpdate = false; m.updateMatrix();
+    m.name = `nachbarwelt:${nb.world}`;
+    this.group.add(m);
+    this.rects.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]);
   }
 
   update(dt) {

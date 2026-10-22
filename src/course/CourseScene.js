@@ -27,6 +27,7 @@ import { courseSave } from './level/CourseSave.js';
 import { music, sfx } from '../audio/index.js';
 import { RENDER3D } from '../render3d.js';
 import { createArchetype } from './archetypes/index.js';
+import { installWorldWarps } from './map/warp.js';
 
 export const DT = 1 / 120;
 const MAX_STEPS = 8;
@@ -49,6 +50,7 @@ export class CourseScene extends Phaser.Scene {
     this.finished = false;
     this.level = null;
     this.debug = false;
+    this.worldWarp = null;
   }
 
   create() {
@@ -66,6 +68,7 @@ export class CourseScene extends Phaser.Scene {
     this.arch = createArchetype(data.archetype, this);
     this.level.archetype = this.arch;
     buildLevel(this.level);
+    installWorldWarps(this);   // Röhren mit warpWorld (Welt-Warp, z. B. 1-2 → Welt 2): Präzisierung (Mehrwelten-Karte)
     const s = data.start ?? {};
     const popts = { hero: courseSave.hero, pos: s.pos ?? [0, 1, 0], yaw: s.yaw ?? Math.PI / 2 };
     this.player = this.arch?.createPlayer?.(this.level, popts) ?? new Player(this.level, popts);
@@ -149,7 +152,7 @@ export class CourseScene extends Phaser.Scene {
     return {
       id: this.levelId, time: +this.level.time.toFixed(3), player: this.player.info(), runtime: this.level.runtime.info(),
       camera: this.view.rig.info(), entities: this.level.entities.length, finished: this.finished,
-      archetype: this.arch?.info?.() ?? null,
+      archetype: this.arch?.info?.() ?? null, worldWarp: this.worldWarp ?? null,
     };
   }
 

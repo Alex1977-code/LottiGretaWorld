@@ -1,11 +1,13 @@
 // Entitäten der Kurs-Weltkarte (eigene Klassen, nicht in der Entitäten-Registry – sie gehören nur zur Karte):
-//   MapRoamer  wandernde Gegnerfigur (z. B. Rammbock-Bulle für 1-A): läuft auf einem Wegstück hin und her, schaut
-//              die Heldin an, wenn sie näher kommt; Berührung → onTouch(roamer) (startet das Level, wenn frei).
+//   MapRoamer  wandernde Gegnerfigur (z. B. Rammbock-Bulle für 1-A): läuft auf einem Wegstück hin und her (from/to)
+//              oder im Kreis (circle: [x, z, r], Welt 2: Großrollpilze auf der Lava-Felsinsel), schaut die Heldin an,
+//              wenn sie näher kommt; Berührung → onTouch(roamer) (startet das Level, wenn frei).
+//              Fehlt das Modell (model) noch, nimmt sie fallback (z. B. 'pilzling', vergrößert um fallbackScale).
 //   MapItem    schwebendes Gratis-Power-up (Beerenhaus): Berührung → onCollect(item).
 // Beide nutzen CourseEntity (Schwerkraft, Kollision, Modell) und werden mit addEntity() angemeldet.
 
 import { CourseEntity } from '../entities/CourseEntity.js';
-import { getModel } from '../models/index.js';
+import { getModel, hasModel } from '../models/index.js';
 
 /** Entität ohne Registry anmelden (wie Level.spawn: Liste, Schatten-Blob). */
 export function addEntity(level, e) {
@@ -26,9 +28,18 @@ export class MapRoamer extends CourseEntity {
    */
   constructor(level, spec, onTouch) {
     const t = spec.start ?? 0;
-    const pos = spec.from.map((v, i) => v + (spec.to[i] - v) * t);
+    let pos;
+    if (spec.circle) {
+      const [cx, cz, r] = spec.circle;
+      const a = t * Math.PI * 2;
+      pos = [cx + Math.cos(a) * r, spec.y ?? 1, cz + Math.sin(a) * r];
+    } else pos = spec.from.map((v, i) => v + (spec.to[i] - v) * t);
     super(level, { ...spec, pos }, 'map_roamer');
-    this.half.set(0.55, 0.8, 0.55);
+    const hs = spec.half ?? [0.55, 0.8, 0.55];
+    this.half.set(hs[0], hs[1], hs[2]);
+    this.circle = spec.circle ?? null;
+    this.ang = t * Math.PI * 2;
+    this.wobble = 0;
     this.shadow = 0.75;
     this.enemy = false;
     this.onTouch = onTouch;
@@ -38,13 +49,29 @@ export class MapRoamer extends CourseEntity {
     this.anim = 'walk';
     this.pause = 0;
     this.cool = 0;
-    this.setModel(getModel(spec.model ?? 'rammbock_bulle'));
+    const name = spec.model ?? 'rammbock_bulle';
+    const useFallback = !hasModel(name) && spec.fallback && hasModel(spec.fallback);
+    this.setModel(getModel(useFallback ? spec.fallback : name, spec.modelOpts ?? {}));
+    const sc = useFallback ? (spec.fallbackScale ?? 1) : (spec.scale ?? 1);
+    if (sc !== 1 && this.model?.root) this.model.root.scale.setScalar(sc);
+    this.fallbackUsed = !!useFallback;
+  }
+
+  /** Ziel auf dem Kreis: ein Stück voraus in Laufrichtung (mit kleinem Schlenker). */
+  circleTarget(dt) {
+    const [cx, cz, r] = this.circle;
+    this.ang += (this.dir * this.speed * dt) / r;
+    this.wobble += dt;
+    const rr = r + Math.sin(this.wobble * 0.9 + this.spec.start * 9) * 0.6;
+    const a = this.ang + this.dir * 0.35;
+    return [cx + Math.cos(a) * rr, 0, cz + Math.sin(a) * rr];
   }
 
   update(dt) {
     if (this.cool > 0) this.cool -= dt;
     const p = this.level.player;
-    const target = this.dir > 0 ? this.b : this.a;
+    const near0 = p && !p.dead && Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) < 4.2;
+    const target = this.circle ? (this.pause > 0 || near0 ? [this.pos.x, 0, this.pos.z] : this.circleTarget(dt)) : (this.dir > 0 ? this.b : this.a);
     let dx = target[0] - this.pos.x, dz = target[2] - this.pos.z;
     const d = Math.hypot(dx, dz);
     const near = p && !p.dead && Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) < 4.2 && Math.abs(p.pos.y - this.pos.y) < 2;
@@ -58,9 +85,11 @@ export class MapRoamer extends CourseEntity {
       this.anim = 'idle';
       const want = Math.atan2(-(p.pos.z - this.pos.z), p.pos.x - this.pos.x);
       this.yaw += wrap(want - this.yaw) * Math.min(1, dt * 6);
-    } else if (d < 0.15) {
+    } else if (d < 0.15 && !this.circle) {
       this.dir = -this.dir;
       this.pause = 0.7;
+    } else if (d < 0.05) {
+      this.vel.x = this.vel.z = 0;
     } else {
       dx /= d; dz /= d;
       this.vel.x = dx * this.speed; this.vel.z = dz * this.speed;

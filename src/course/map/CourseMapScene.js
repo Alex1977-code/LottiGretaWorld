@@ -13,7 +13,13 @@
 // URL: ?map=1 (Karte direkt), ?mapAlias=1-1:0-0,… (Testparameter: Eingang startet ein anderes Level).
 // Test-Schnittstelle window.__courseMap (= diese Szene): step(n), setInput(o), setManual(b), teleport(x,y,z),
 //   state(), enter() (Enter-Taste), pressGo() (Touch „Los!“), selectHero(k), toggleMute(), toClassic(),
-//   resetSave(), status(id), snapCamera().
+//   resetSave(), status(id), snapCamera(), slot (Spielautomat im Glückshaus: force([…]), info()).
+//
+// Mehrwelten (Präzisierung Mehrwelten-Karte): Die Karte zeigt die aktuelle Welt (courseSave.world, nach Neuladen
+// wieder). Glasröhren-Eingänge (Regel mit next: n) führen zur Welt n: Fahrt durch die Röhre übers Meer (travel.js),
+// dann scene.start('CourseMap', { world: n, via: 'tube', fromWorld }) – die Figur kommt in Welt n durch deren
+// Rückweg-Röhre (Regel next: fromWorld) an. Welt-Warp aus einem Level (Röhre mit warpWorld, map/warp.js):
+// { warpWorld: n } → Ankunft wie mit der Glasröhre. Gesperrte Welten (worldOpen) fallen auf Welt 1 zurück.
 
 import Phaser from 'phaser';
 import * as THREE from 'three';
@@ -36,6 +42,8 @@ import * as unlock from './unlock.js';
 import { exitPoint, entranceById, ENTER_R } from './layout.js';
 import { MapHud } from './MapHud.js';
 import { MapBatcher } from './MapBatcher.js';
+import { TubeTravel } from './travel.js';
+import { THEMES as MUSIC_THEMES } from '../../audio/themes.js';
 
 export const DT = 1 / 120;
 const MAX_STEPS = 8;
@@ -78,6 +86,10 @@ export class CourseMapScene extends Phaser.Scene {
     this.safe = null;
     this.roamers = [];
     this.item = null;
+    this.travel = null;
+    this.pendingFresh = null;
+    this.nearSlot = false;
+    this.onSlotPad = false;
   }
 
   create() {
@@ -89,10 +101,12 @@ export class CourseMapScene extends Phaser.Scene {
     this.alias = parseAlias();
     this.reverseAlias = Object.fromEntries(Object.entries(this.alias).map(([a, b]) => [b, a]));
     const arrive = this.translateArrival(this.arrive);
-    const worldNo = arrive.world ?? (arrive.from ? this.worldOfLevel(arrive.from) : null) ?? courseSave.data.world ?? 1;
-    this.map = getWorldMap(worldNo) ?? getWorldMap(1);
+    this.map = this.chooseWorld(arrive);
     const map = this.map;
+    if (arrive.via === 'tube' && arrive.world !== map.world) arrive.via = null;   // Zielwelt gesperrt → normal ankommen
+    this.arriveInfo = arrive;
     courseSave.data.world = map.world;
+    if (map.world !== 1) courseSave.openWorld(map.world);
     courseSave.beginMapVisit();
 
     // Level-Objekt der Karte (gleiche Infrastruktur wie ein Kurs-Level)
@@ -102,6 +116,7 @@ export class CourseMapScene extends Phaser.Scene {
       camera: map.camera, start: map.spawn, timeLimit: 0,
     };
     this.view = new CourseView(this, data);
+    this.slot = null;
     this.level = new Level(this, data, { view: this.view, save: courseSave });
     this.level.runtime = new MapRuntime(this.level, courseSave, this);
 
@@ -113,7 +128,7 @@ export class CourseMapScene extends Phaser.Scene {
     this.computeStatuses();
     const fresh = [];
     this.built = buildMap(this.level, map, {
-      entranceInfo: (def) => ({ label: this.labelOf(def.id) }),
+      entranceInfo: (def) => ({ label: this.labelOf(def.id), sign: this.signOf(def.id) }),
       gateClosed: (g) => {
         if (!unlock.pathOpen(map, courseSave, g.for)) return true;
         if (!courseSave.mapOpened(g.for)) { fresh.push(g.for); return true; }
@@ -121,6 +136,8 @@ export class CourseMapScene extends Phaser.Scene {
       },
     });
     this.grid = this.built.grid;
+    this.slot = this.built.slot;
+    if (this.slot) this.slot.onPrize = (prize) => this.onSlotPrize(prize);
     this.spawnRoamers();
     this.spawnBerryItem();
     this.batcher.build();
@@ -148,10 +165,22 @@ export class CourseMapScene extends Phaser.Scene {
     this.view.rig.snap(p);
     this.focusVec = new THREE.Vector3();
     this.focusProxy = { pos: this.focusVec, vel: new THREE.Vector3(), mode: 'ground', dead: false, half: p.half };
+    // Ankunft durch die Glasröhre (andere Welt oder Welt-Warp): Fahrt aus dem Meer bis vor das Podest; frisch
+    // geöffnete Schranken danach
+    if (arrive.via === 'tube') {
+      const ent = this.tubeEntranceTo(arrive.fromWorld);
+      if (ent) {
+        this.travel = new TubeTravel(this, { mode: 'arrive', entrance: ent, onDone: () => this.onArrived() });
+        this.inputLocked = true;
+        this.pendingFresh = fresh.length ? fresh.slice() : null;
+        fresh.length = 0;
+        this.rememberPos(exitPoint(ent), FACE_CAMERA);
+      }
+    }
     // Anflug beim Betreten der Welt (nicht nach einem Level): flacher Blick über die Insel mit Himmel und Sonne,
     // dann Flug zur Heldin. Jede Eingabe überspringt ihn; Tests (setManual) schalten ihn ab.
     this.intro = null;
-    if (!arrive.from && !arrive.done && !arrive.gameOver && !fresh.length && map.intro !== false) {
+    if (!this.travel && !arrive.from && !arrive.done && !arrive.gameOver && !fresh.length && map.intro !== false) {
       const cam = this.view.camera;
       const i = map.intro ?? {};
       this.intro = {
@@ -175,7 +204,7 @@ export class CourseMapScene extends Phaser.Scene {
 
     this.events.on(Phaser.Scenes.Events.RENDER, this.renderFrame, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanup, this);
-    music.play(map.music ?? 'course_map');
+    music.play(this.musicName());
     window.__courseMap = this;
     window.__courseSave = courseSave; // Tests/Fehlersuche
 
@@ -183,7 +212,123 @@ export class CourseMapScene extends Phaser.Scene {
     if (arrive.gameOver) this.hud.toast('Spiel vorbei – du hast wieder 5 Leben!', 3);
     else if (arrive.done) this.hud.toast(`${this.labelOf(arrive.done)} geschafft!`, 2.4);
     if (fresh.length) this.startGateCinematic(fresh);
-    this.cameras.main.fadeIn(280, 0, 0, 0);
+    if (this.travel) this.cameras.main.fadeIn(420, 255, 255, 255);
+    else this.cameras.main.fadeIn(280, 0, 0, 0);
+  }
+
+  // ------------------------------------------------------------------ Welten
+
+  /** Welt der Karte: Welt-Warp, Glasröhren-Ziel, Welt des Levels, gemerkte Welt – nur wenn offen, sonst Welt 1. */
+  chooseWorld(arrive) {
+    let n;
+    if (arrive.warpWorld) {
+      n = arrive.warpWorld;
+      arrive.world = n; arrive.via = 'tube'; arrive.fromWorld = arrive.fromWorld ?? n - 1;
+      arrive.from = null; arrive.done = null;
+    } else if (arrive.world) n = arrive.world;
+    else if (arrive.from) n = this.worldOfLevel(arrive.from);
+    else n = courseSave.world;
+    if (!Number.isFinite(n) || !getWorldMap(n) || !unlock.worldOpen(getWorldMap, courseSave, n)) n = 1;
+    return getWorldMap(n) ?? getWorldMap(1);
+  }
+
+  /** Eingang dieser Welt, dessen Glasröhre zur Welt n führt (Rückweg bei der Ankunft). */
+  tubeEntranceTo(n) {
+    const rule = this.map.levels.find((l) => l.next === n) ?? this.map.levels.find((l) => l.next);
+    return rule ? entranceById(this.map, rule.id) : null;
+  }
+
+  /** Musik der Welt (fehlt das Thema noch, Rückfall auf map.fallbackMusic bzw. course_map). */
+  musicName() {
+    const m = this.map.music ?? 'course_map';
+    return Object.prototype.hasOwnProperty.call(MUSIC_THEMES, m) ? m : (this.map.fallbackMusic ?? 'course_map');
+  }
+
+  /** Aufschrift des Schilds an einer Glasröhre. */
+  signOf(id) {
+    const rule = unlock.levelRule(this.map, id);
+    if (!rule?.next) return null;
+    const m = getWorldMap(rule.next);
+    return `Welt ${rule.next}\n${m ? (m.short ?? m.title) : 'bald!'}`;
+  }
+
+  /** Mit der Glasröhre zur nächsten/vorigen Welt fahren (Eingang id mit Regel next). */
+  startTravel(id) {
+    if (this.leaving || this.travel) return false;
+    const st = this.status(id);
+    if (!st?.enterable || !st.next) return false;
+    const ent = entranceById(this.map, id);
+    if (!ent) return false;
+    const target = st.next, from = this.map.world;
+    courseSave.openWorld(target);
+    this.rememberPos(exitPoint(ent), FACE_CAMERA, { entrance: id });
+    this.lastStart = { entrance: id, world: target };
+    this.inputLocked = true;
+    sfx('select');
+    vibrate(15);
+    this.hud?.toast(`Auf zu Welt ${target}!`, 2.4);
+    this.travel = new TubeTravel(this, {
+      mode: 'depart', entrance: ent,
+      onDone: () => {
+        this.leaving = true;
+        const go = () => this.scene.start('CourseMap', { world: target, via: 'tube', fromWorld: from });
+        if (this.manual) { go(); return; }
+        this.cameras.main.fadeOut(380, 255, 255, 255);
+        this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, go);
+      },
+    });
+    return true;
+  }
+
+  /** Ankunft beendet (Figur steht vor dem Podest): Eingabe frei, frisch geöffnete Schranken zeigen. */
+  onArrived() {
+    this.inputLocked = false;
+    const p = this.player;
+    this.safe = { pos: [p.pos.x, p.pos.y, p.pos.z], yaw: p.yaw };
+    if (this.pendingFresh?.length) this.startGateCinematic(this.pendingFresh);
+    this.pendingFresh = null;
+  }
+
+  // ------------------------------------------------------------------ Glückshaus
+
+  /** Hebel des Spielautomaten ziehen (A auf der Matte). */
+  pullSlot() {
+    const s = this.slot;
+    if (!s || s.busy) return;
+    const r = s.pull(courseSave);
+    if (r === 'poor') { this.hud?.toast(`Einsatz ${s.stake} Bitcoins – du hast ${courseSave.coins}`, 2); return; }
+    vibrate(12);
+    this.hud?.refresh(true);
+  }
+
+  onSlotPrize(prize) {
+    const s = this.slot;
+    if (prize.kind === 'coins') {
+      courseSave.addCoins(prize.n);
+      for (let i = 0; i < Math.min(6, Math.ceil(prize.n / 5)); i++) this.level.effects?.coinPop({ x: s.pos.x + (i - 2.5) * 0.18, y: s.pos.y + 0.7, z: s.pos.z + 0.9 });
+      this.level.sfx('coin');
+    } else if (prize.kind === 'life') {
+      courseSave.lives = courseSave.lives + prize.n;
+      if (prize.coins) courseSave.addCoins(prize.coins);
+      this.level.sfx('oneup');
+    } else if (prize.kind === 'power') {
+      // Power-up springt aus der Schale auf die Matte (eingesammelt wie im Beerenhaus)
+      const it = addEntity(this.level, new MapItem(this.level, { pos: [s.pad.x, s.pad.y + 0.5, s.pad.z], power: normalizePower(prize.power) }, (item) => this.onSlotItem(item)));
+      this.level.effects?.sparks({ x: s.pos.x, y: s.pos.y + 1.2, z: s.pos.z + 0.9 }, 16);
+      this.level.sfx('powerup_appear');
+      void it;
+    } else this.level.sfx('bump');
+    if (prize.text) this.hud?.toast(prize.text, 2.4);
+    this.hud?.refresh(true);
+  }
+
+  onSlotItem(item) {
+    courseSave.carryPower = item.power;
+    this.player.setPower(item.power);
+    sfx('powerup');
+    vibrate([15, 30, 15]);
+    const def = getPower(item.power);
+    this.hud?.toast(`${def.label ?? item.power} gewonnen – für das nächste Level!`, 2.8);
   }
 
   // ------------------------------------------------------------------ Daten
@@ -220,12 +365,14 @@ export class CourseMapScene extends Phaser.Scene {
     const id = rule.id, map = this.map;
     const target = this.alias[id] ?? id;
     const lvl = rule.next ? null : getLevel(target);
+    const nextMap = rule.next ? getWorldMap(rule.next) : null;
+    const exists = rule.next ? !!nextMap : !!lvl;
     const reason = unlock.reason(map, courseSave, id);
     const prog = unlock.levelProgress(courseSave, id);
     const roamer = (map.roamers ?? []).some((r) => r.level === id) && !prog.done;
     return {
-      id, target, label: rule.label ?? id, title: lvl?.title ?? 'Bald', reason, locked: reason !== null,
-      exists: !!lvl, enterable: reason === null && !!lvl, soon: reason === null && !lvl, next: rule.next ?? null,
+      id, target, label: rule.label ?? id, title: (rule.next ? nextMap?.title : lvl?.title) ?? 'Bald', reason, locked: reason !== null,
+      exists, enterable: reason === null && exists, soon: reason === null && !exists, next: rule.next ?? null,
       pathOpen: unlock.pathOpen(map, courseSave, id), done: prog.done, stars: prog.stars,
       starsMax: lvl && Array.isArray(lvl.stars) && !this.alias[id] ? lvl.stars.length : (rule.stars ?? 0),
       hasStamp: lvl && !this.alias[id] ? !!lvl.stamp : !!rule.stamp, stamp: prog.stamp, minStars: rule.minStars ?? 0, roamer,
@@ -234,6 +381,9 @@ export class CourseMapScene extends Phaser.Scene {
 
   status(id) { return this.statuses.get(id) ?? null; }
   worldStars() { return unlock.worldStars(this.map, courseSave); }
+  /** Sterne, die für Sternschranken zählen (Welt 2+: alle gesammelten). */
+  gateStars() { return unlock.gateStars(this.map, courseSave); }
+  totalStars() { return courseSave.totalStars(); }
   worldStarsMax() { return unlock.worldStarsMax(this.map); }
   entranceViews() { return this.built?.entrances ?? new Map(); }
 
@@ -253,6 +403,10 @@ export class CourseMapScene extends Phaser.Scene {
   /** Startpunkt: vor dem Eingang des letzten Levels, sonst gemerkte Lage, sonst Startpunkt der Welt. */
   arrivalPoint(arrive) {
     const map = this.map;
+    if (arrive.via === 'tube') {
+      const te = this.tubeEntranceTo(arrive.fromWorld);
+      if (te) return { pos: exitPoint(te), yaw: FACE_CAMERA };
+    }
     const ent = arrive.from ? entranceById(map, arrive.from) : null;
     if (ent) return { pos: exitPoint(ent), yaw: FACE_CAMERA };
     const mp = courseSave.mapPos;
@@ -270,7 +424,9 @@ export class CourseMapScene extends Phaser.Scene {
       if (!st || st.done) continue;
       const n = r.count ?? 1;
       for (let i = 0; i < n; i++) {
-        const spec = { ...r, start: n > 1 ? 0.15 + (0.7 * i) / (n - 1) : 0.5, dir: i % 2 ? -1 : 1 };
+        const spec = r.circle
+          ? { ...r, start: i / n, dir: 1 }
+          : { ...r, start: n > 1 ? 0.15 + (0.7 * i) / (n - 1) : 0.5, dir: i % 2 ? -1 : 1 };
         const e = new MapRoamer(this.level, spec, (ro) => this.onRoamerTouch(r.level, ro));
         addEntity(this.level, e);
         this.roamers.push(e);
@@ -371,10 +527,16 @@ export class CourseMapScene extends Phaser.Scene {
     if (inp.camRight) rig.rotate(1);
     if (inp.zoom) rig.toggleZoom();
     if (inp.debug) this.debug = !this.debug;
-    const busy = this.stepCinematic(DT) || this.inputLocked;
-    const use = busy ? NEUTRAL : inp;
+    const busy = this.stepCinematic(DT) || this.inputLocked || (!!this.travel && !this.travel.done) || !!this.slot?.busy;
+    let use = busy ? NEUTRAL : inp;
     const enter = this.pendingEnter && !busy;
     this.pendingEnter = false;
+    // Spielautomat im Glückshaus: A / Enter auf der Matte zieht den Hebel (kein Sprung)
+    this.onSlotPad = !!this.slot && this.slot.onPad(this.player);
+    if (this.onSlotPad && !busy && (use.jumpPressed || enter)) {
+      this.pullSlot();
+      use = { ...use, jump: false, jumpPressed: false };
+    }
     // Eingang betreten (A / Leertaste / Enter / „Los!“ auf einem freien Podest)
     const pad = this.padUnder();
     if (pad && pad.id !== this.onPad?.id && !busy) this.rememberPos();   // Lage merken (Neuladen der Seite)
@@ -386,7 +548,10 @@ export class CourseMapScene extends Phaser.Scene {
     }
     this.level.controlYaw = rig.controlYaw(this.player.pos);
     this.level.step(DT, use);
-    for (const g of this.built.gates) g.step(DT);
+    if (this.leaving) return;
+    for (const g of this.built.gates) { g.updatePass(this.player); g.step(DT); }
+    this.slot?.step(DT);
+    if (this.travel && !this.travel.active) { this.travel.dispose(); this.travel = null; }
     // sicherer Punkt (Rückkehr nach einem Sturz)
     const p = this.player;
     if (p.mode === 'ground' && !p.dead && this.grid.isWalk(p.pos.x, p.pos.z)) {
@@ -394,6 +559,7 @@ export class CourseMapScene extends Phaser.Scene {
       this.safe.pos[0] = p.pos.x; this.safe.pos[1] = p.pos.y; this.safe.pos[2] = p.pos.z; this.safe.yaw = p.yaw;
     }
     this.nearEntrance = this.findNear();
+    this.nearSlot = !!this.slot && !this.nearEntrance && this.slot.near(this.player);
   }
 
   /** Freies oder gesperrtes Podest unter der Figur (stehend). */
@@ -457,11 +623,12 @@ export class CourseMapScene extends Phaser.Scene {
     courseSave.setMapPos(this.map.world, pos ?? [p.pos.x, p.pos.y, p.pos.z], yaw ?? p.yaw, extra);
   }
 
-  /** Level starten (Eingang `id`); false, wenn es (noch) nicht geht. */
+  /** Level starten (Eingang `id`; Glasröhre → Fahrt in die andere Welt); false, wenn es (noch) nicht geht. */
   enterLevel(id) {
     if (this.leaving) return false;
     const st = this.status(id);
     if (!st?.enterable) return false;
+    if (st.next) return this.startTravel(id);
     const target = st.target;
     if (!getLevel(target)) return false;
     this.leaving = true;
@@ -529,7 +696,10 @@ export class CourseMapScene extends Phaser.Scene {
     const entrances = {};
     for (const [id, st] of this.statuses) entrances[id] = { locked: st.locked, reason: st.reason, enterable: st.enterable, soon: st.soon, done: st.done, stars: st.stars, starsMax: st.starsMax, stamp: st.stamp, title: st.title };
     return {
-      world: this.map.world, player: this.player.info(), onPad: this.onPad?.id ?? null, near: this.nearEntrance?.id ?? null,
+      world: this.map.world, title: this.map.title, worlds: (courseSave.data.worlds ?? [1]).slice(),
+      travel: this.travel && !this.travel.done ? this.travel.info() : null,
+      slot: this.slot?.info() ?? null, onSlotPad: this.onSlotPad, nearSlot: this.nearSlot, totalStars: this.totalStars(), gateStars: this.gateStars(),
+      player: this.player.info(), onPad: this.onPad?.id ?? null, near: this.nearEntrance?.id ?? null,
       entrances, gates, cinematic: !!this.cine, carryPower: courseSave.carryPower, berry: !!this.item?.alive,
       roamers: this.roamers.filter((r) => r.alive).map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]),
       stars: this.worldStars(), starsMax: this.worldStarsMax(), lives: courseSave.lives, coins: courseSave.coins,
@@ -552,6 +722,7 @@ export class CourseMapScene extends Phaser.Scene {
     this.level.render(dt, t);
     for (const ev of this.built.entrances.values()) ev.update(dt, t);
     for (const g of this.built.gates) g.render(dt, t);
+    this.slot?.render(dt, t);
     this.built.scenery?.update(dt);
     let target = this.player;
     if (this.focus) { this.focusVec.set(this.focus.x, this.focus.y, this.focus.z); target = this.focusProxy; }
@@ -595,6 +766,10 @@ export class CourseMapScene extends Phaser.Scene {
     this.hud = null;
     for (const g of this.built?.gates ?? []) g.dispose();
     for (const ev of this.built?.entrances?.values() ?? []) ev.dispose();
+    this.travel?.dispose();
+    this.travel = null;
+    this.slot?.dispose();
+    this.slot = null;
     this.built?.scenery?.dispose();
     this.batcher?.dispose();
     this.rig?.dispose();
