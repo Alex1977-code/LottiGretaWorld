@@ -1169,8 +1169,9 @@ Projektion standardmäßig waagerecht (Schatten zeigen die echten Höhen → Ste
 | 2-Panzer | roter Ring auf dem Panzer | `roter_ring` (auf fahrenden Panzern muss der Autoscroller-Archetyp Ring/Münzen mitführen) |
 | 2-Haus | 5 Räume à 10 s mit Türen | Thema `house`, `tuer` |
 
-Gemessen in der Wüstenwerkstatt (scale 2, Kurs-Kamera): 76–118 Zeichenaufrufe inkl. Schattenpass, 219–326 k Dreiecke;
-Themen-Bilder 94–100 Aufrufe.
+Gemessen in der Wüstenwerkstatt (scale 2, Kurs-Kamera): 75–119 Zeichenaufrufe inkl. Schattenpass, 220–361 k Dreiecke;
+Themen-Bilder (flachere Kamera, Pitch ≤ 24°) 88–133 Aufrufe. Einzelkosten: Schattenwand 1 Fläche + ≤ 4 Instanz-Meshes,
+Fliesenbrücke/Farbfeld/rote Münzen je 1–2 Instanz-Meshes, Kulisse `deco_w2` 0 (verschmolzen).
 
 ---
 

@@ -65,7 +65,9 @@ export const LEVEL = {
       { kind: 'ruinen', pos: [-21, -3, -200], size: [8, 40], n: 6 },
       { kind: 'ruinen', pos: [21, -3, -250], size: [8, 30], n: 4 },
       { kind: 'bluetenbaum', pos: [-21, -3, -150] },
+      { kind: 'bluetenbaeume', pos: [21, -3, -175], size: [8, 16], n: 3 },
       { kind: 'planet', pos: [-30, 14, -40], radius: 3, color: 'violet' },
+      { kind: 'planeten', pos: [0, 34, -160], size: [90, 8, 160], n: 3, radius: [3, 5] },
     ] },
 
     // ---------------- S0 Start
