@@ -702,3 +702,279 @@ export function rockStumps(level, list, o = {}) {
   }
   if (parts.length) addStatic(level, merge(parts), { castShadow: false });
 }
+
+// ------------------------------------------------------------------ Prüfungs-Haus 2-Haus: Tapeten, Bilder, Uhren, Möbel
+
+/** Kanvas-Kachel (size px) mit Zeichenfunktion → wiederholbare Textur. */
+function tileTexture(size, draw, repeat = true) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 4;
+  return t;
+}
+
+/** Tapetenmuster (128-px-Kachel, Breite 1 m an der Wand). */
+const WALLPAPER = {
+  wolken(g, S) {   // Kinderzimmer: hellblau mit Wölkchen und Sternen
+    g.fillStyle = '#a8d8ff'; g.fillRect(0, 0, S, S);
+    g.fillStyle = '#ffffff';
+    for (const [x, y, r] of [[30, 34, 13], [44, 30, 15], [58, 36, 11], [96, 92, 12], [108, 88, 14], [120, 95, 10]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+    g.fillStyle = '#ffe066';
+    const star = (x, y, r) => { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.45 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.fill(); };
+    star(96, 30, 9); star(26, 96, 8); star(70, 70, 5);
+  },
+  buecher(g, S) {  // Bibliothek: dunkelgrün mit goldenen Streifen und Lilienpunkten
+    g.fillStyle = '#2f6a4a'; g.fillRect(0, 0, S, S);
+    g.fillStyle = '#3f7d5a'; g.fillRect(0, 0, S / 2, S);
+    g.fillStyle = '#d8b04a'; g.fillRect(S / 2 - 3, 0, 6, S); g.fillRect(S - 3, 0, 3, S); g.fillRect(0, 0, 3, S);
+    g.fillStyle = 'rgba(216,176,74,0.8)';
+    for (const [x, y] of [[S / 4, S / 4], [S / 4, (3 * S) / 4], [(3 * S) / 4, S / 2], [(3 * S) / 4, 0], [(3 * S) / 4, S]]) { g.beginPath(); g.ellipse(x, y, 5, 9, 0, 0, 7); g.fill(); }
+  },
+  kacheln(g, S) {  // Küche: weiße Kacheln mit blauen Ornamenten
+    g.fillStyle = '#f4f2ea'; g.fillRect(0, 0, S, S);
+    g.strokeStyle = '#c8c4b8'; g.lineWidth = 3;
+    for (let i = 0; i <= 2; i++) { g.beginPath(); g.moveTo(i * S / 2, 0); g.lineTo(i * S / 2, S); g.stroke(); g.beginPath(); g.moveTo(0, i * S / 2); g.lineTo(S, i * S / 2); g.stroke(); }
+    g.strokeStyle = '#3a6ad0'; g.lineWidth = 3;
+    for (const [x, y] of [[S / 4, S / 4], [(3 * S) / 4, (3 * S) / 4]]) { g.beginPath(); g.arc(x, y, 14, 0, 7); g.stroke(); g.beginPath(); g.moveTo(x - 9, y); g.lineTo(x + 9, y); g.moveTo(x, y - 9); g.lineTo(x, y + 9); g.stroke(); }
+    g.fillStyle = '#3a6ad0';
+    for (const [x, y] of [[(3 * S) / 4, S / 4], [S / 4, (3 * S) / 4]]) { g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); }
+  },
+  uhren(g, S) {    // Uhrenstube: weinrot mit goldenen Rauten und kleinen Zifferblättern
+    g.fillStyle = '#7a2440'; g.fillRect(0, 0, S, S);
+    g.strokeStyle = 'rgba(232,190,90,0.85)'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(S / 2, 0); g.lineTo(S, S / 2); g.lineTo(S / 2, S); g.lineTo(0, S / 2); g.closePath(); g.stroke();
+    g.fillStyle = '#f6e8c8';
+    g.beginPath(); g.arc(S / 2, S / 2, 14, 0, 7); g.fill();
+    g.strokeStyle = '#5a2030'; g.lineWidth = 2.5;
+    g.beginPath(); g.moveTo(S / 2, S / 2); g.lineTo(S / 2, S / 2 - 9); g.moveTo(S / 2, S / 2); g.lineTo(S / 2 + 7, S / 2); g.stroke();
+  },
+  kamin(g, S) {    // Kaminzimmer: warmes Rot mit goldenen Ranken-Punkten
+    g.fillStyle = '#b8483a'; g.fillRect(0, 0, S, S);
+    g.fillStyle = '#c85a48'; for (let i = 0; i < 4; i++) g.fillRect(i * S / 4, 0, S / 8, S);
+    g.fillStyle = '#f0c060';
+    for (const [x, y] of [[S / 8, S / 4], [S / 8 + S / 2, (3 * S) / 4], [S / 8 + S / 4, S / 2 + 6], [S / 8 + (3 * S) / 4, 6]]) { g.beginPath(); g.arc(x, y, 4, 0, 7); g.fill(); }
+  },
+};
+
+/** Bilder-Atlas (512 × 512, 4 × 4 Felder à 128 px): Motive für Bilderrahmen, Zifferblätter, Teppiche, Fenster. */
+const MOTIFS = ['huegel', 'pflaume', 'blumen', 'meer', 'gesucht', 'berg', 'lottigreta', 'haus', 'uhr', 'teppich_rund', 'teppich_bunt', 'teppich_rot', 'fenster', 'kuchen', 'globus', 'teppich_gruen'];
+let houseAtlas = null;
+function drawMotif(g, name) {
+  const S = 128;
+  const sky = (top, bot) => { const gr = g.createLinearGradient(0, 0, 0, S); gr.addColorStop(0, top); gr.addColorStop(1, bot); g.fillStyle = gr; g.fillRect(0, 0, S, S); };
+  const circ = (x, y, r, col) => { g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+  switch (name) {
+    case 'huegel': sky('#7cc8ff', '#d8f0ff'); circ(98, 30, 14, '#ffe066'); g.fillStyle = '#5ac85a'; g.beginPath(); g.ellipse(40, 128, 70, 46, 0, 0, 7); g.fill(); g.fillStyle = '#3fa84a'; g.beginPath(); g.ellipse(110, 128, 60, 36, 0, 0, 7); g.fill(); break;
+    case 'pflaume': sky('#ffd6ea', '#fff0f6'); g.fillStyle = '#f2e6f0'; g.beginPath(); g.ellipse(48, 40, 10, 28, -0.2, 0, 7); g.ellipse(80, 40, 10, 28, 0.2, 0, 7); g.fill(); circ(64, 78, 32, '#f2e6f0'); circ(52, 72, 4, '#3a2a3a'); circ(76, 72, 4, '#3a2a3a'); circ(64, 84, 4, '#ff8fb0'); circ(44, 86, 6, 'rgba(255,140,180,0.5)'); circ(84, 86, 6, 'rgba(255,140,180,0.5)'); break;
+    case 'blumen': sky('#fff6e0', '#ffe8c8'); g.fillStyle = '#5a8ad0'; g.fillRect(48, 82, 32, 40); for (const [x, y, c] of [[50, 50, '#ff5a8a'], [72, 42, '#ffd23d'], [86, 60, '#ff8fcc'], [40, 66, '#b07aff'], [64, 62, '#ffffff']]) { g.strokeStyle = '#3f9a3f'; g.lineWidth = 3; g.beginPath(); g.moveTo(64, 84); g.lineTo(x, y); g.stroke(); circ(x, y, 9, c); circ(x, y, 3, '#ffe27a'); } break;
+    case 'meer': sky('#ffd8a8', '#ffb8c8'); circ(64, 70, 22, '#ff9a5a'); g.fillStyle = '#3a8ad8'; g.fillRect(0, 74, S, 54); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(40, 86); g.lineTo(76, 86); g.lineTo(70, 96); g.lineTo(46, 96); g.fill(); g.beginPath(); g.moveTo(58, 84); g.lineTo(58, 56); g.lineTo(74, 82); g.fill(); break;
+    case 'gesucht': g.fillStyle = '#f0dcae'; g.fillRect(0, 0, S, S); g.fillStyle = '#6a3a1a'; g.font = 'bold 20px sans-serif'; g.textAlign = 'center'; g.fillText('GESUCHT', 64, 22); circ(64, 70, 30, '#8a5a3a'); circ(42, 46, 10, '#8a5a3a'); circ(86, 46, 10, '#8a5a3a'); circ(64, 80, 14, '#c89a6a'); circ(54, 64, 4, '#1a1010'); g.strokeStyle = '#d8b040'; g.lineWidth = 2; g.beginPath(); g.arc(76, 64, 7, 0, 7); g.stroke(); circ(64, 76, 5, '#1a1010'); g.fillStyle = '#1a1a1a'; g.fillRect(44, 24, 40, 14); g.fillRect(36, 36, 56, 5); g.font = 'bold 13px sans-serif'; g.fillStyle = '#6a3a1a'; g.fillText('Baron Brummbär', 64, 118); break;
+    case 'berg': sky('#8ac8ff', '#e0f4ff'); g.fillStyle = '#7a6aa8'; g.beginPath(); g.moveTo(10, 120); g.lineTo(60, 30); g.lineTo(118, 120); g.fill(); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(46, 56); g.lineTo(60, 30); g.lineTo(75, 57); g.lineTo(66, 52); g.lineTo(58, 60); g.fill(); g.fillStyle = '#5ac85a'; g.fillRect(0, 110, S, 18); break;
+    case 'lottigreta': g.fillStyle = '#ffffff'; g.fillRect(0, 0, S, S); g.lineWidth = 4; for (const [x, c, hair] of [[42, '#ff5a5a', '#e8b040'], [88, '#5a8aff', '#8a4a2a']]) { circ(x, 44, 14, '#ffd8b8'); g.strokeStyle = hair; g.beginPath(); g.moveTo(x - 14, 40); g.lineTo(x - 22, 64); g.moveTo(x + 14, 40); g.lineTo(x + 22, 64); g.stroke(); g.fillStyle = c; g.beginPath(); g.moveTo(x, 58); g.lineTo(x - 16, 100); g.lineTo(x + 16, 100); g.fill(); g.strokeStyle = '#3a2a2a'; g.beginPath(); g.moveTo(x - 6, 100); g.lineTo(x - 8, 118); g.moveTo(x + 6, 100); g.lineTo(x + 8, 118); g.stroke(); } circ(64, 18, 9, '#ffd23d'); break;
+    case 'haus': g.fillStyle = '#fffef6'; g.fillRect(0, 0, S, S); g.fillStyle = '#ff7a5a'; g.beginPath(); g.moveTo(24, 62); g.lineTo(64, 24); g.lineTo(104, 62); g.fill(); g.fillStyle = '#ffd23d'; g.fillRect(32, 62, 64, 50); g.fillStyle = '#8a5a3a'; g.fillRect(56, 82, 16, 30); g.fillStyle = '#7ac8ff'; g.fillRect(38, 70, 12, 12); g.fillRect(78, 70, 12, 12); g.fillStyle = '#5ac85a'; g.fillRect(0, 112, S, 16); break;
+    case 'uhr': { circ(64, 64, 62, '#c89a40'); circ(64, 64, 55, '#fbf4e2'); g.fillStyle = '#3a2a2a'; g.font = 'bold 16px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; for (let i = 1; i <= 12; i++) { const a = (i / 12) * Math.PI * 2 - Math.PI / 2; g.fillText(String(i), 64 + Math.cos(a) * 43, 64 + Math.sin(a) * 43); } for (let i = 0; i < 60; i++) { const a = (i / 60) * Math.PI * 2; g.fillRect(64 + Math.cos(a) * 52 - 1, 64 + Math.sin(a) * 52 - 1, 2, 2); } break; }
+    case 'teppich_rund': for (let r = 64, i = 0; r > 0; r -= 9, i++) circ(64, 64, r, ['#e85a7a', '#ffd23d', '#5ab8e8', '#ffffff', '#b07aff', '#5ac85a', '#ff9a4a', '#e85a7a'][i % 8]); break;
+    case 'teppich_bunt': for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { g.fillStyle = ['#ff7a7a', '#ffd23d', '#7ad87a', '#7ab8ff', '#c89aff'][(x + y * 2) % 5]; g.fillRect(x * 32, y * 32, 32, 32); } g.strokeStyle = '#ffffff'; g.lineWidth = 4; g.strokeRect(4, 4, 120, 120); break;
+    case 'teppich_rot': g.fillStyle = '#9a2a2a'; g.fillRect(0, 0, S, S); g.strokeStyle = '#e8c070'; g.lineWidth = 5; g.strokeRect(8, 8, 112, 112); g.lineWidth = 2; g.strokeRect(16, 16, 96, 96); g.fillStyle = '#2a4a8a'; g.beginPath(); g.moveTo(64, 28); g.lineTo(100, 64); g.lineTo(64, 100); g.lineTo(28, 64); g.fill(); g.fillStyle = '#e8c070'; g.beginPath(); g.moveTo(64, 44); g.lineTo(84, 64); g.lineTo(64, 84); g.lineTo(44, 64); g.fill(); break;
+    case 'teppich_gruen': g.fillStyle = '#3f7a4a'; g.fillRect(0, 0, S, S); g.strokeStyle = '#f0e0a8'; g.lineWidth = 4; g.strokeRect(6, 6, 116, 116); for (let i = 0; i < 4; i++) { g.strokeStyle = i % 2 ? '#f0e0a8' : '#c8a04a'; g.beginPath(); g.arc(64, 64, 14 + i * 11, 0, 7); g.stroke(); } break;
+    case 'fenster': sky('#1a2a6a', '#4a3a8a'); circ(92, 34, 14, '#fff6c8'); circ(98, 30, 12, '#1a2a6a'); g.fillStyle = '#ffffff'; for (let i = 0; i < 14; i++) g.fillRect((i * 37) % 120 + 4, (i * 53) % 90 + 6, 2, 2); g.fillStyle = '#2a1a4a'; g.beginPath(); g.ellipse(30, 128, 60, 26, 0, 0, 7); g.fill(); break;
+    case 'kuchen': sky('#fff0e0', '#ffe0d0'); g.fillStyle = '#c88a5a'; g.fillRect(28, 64, 72, 40); g.fillStyle = '#ffb8d0'; g.fillRect(28, 56, 72, 12); for (let i = 0; i < 5; i++) circ(36 + i * 14, 56, 6, '#ffb8d0'); circ(64, 46, 8, '#e83a4a'); break;
+    case 'globus': sky('#e8dcc0', '#d8c8a0'); circ(64, 60, 40, '#3a8ad8'); g.fillStyle = '#5ac85a'; g.beginPath(); g.ellipse(52, 48, 16, 12, 0.4, 0, 7); g.ellipse(80, 74, 12, 16, -0.3, 0, 7); g.fill(); g.fillStyle = '#8a5a3a'; g.fillRect(58, 102, 12, 16); break;
+    default: g.fillStyle = '#888'; g.fillRect(0, 0, S, S);
+  }
+}
+function atlasTexture() {
+  if (houseAtlas) return houseAtlas;
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+  const g = c.getContext('2d');
+  MOTIFS.forEach((m, i) => { g.save(); g.translate((i % 4) * 128, Math.floor(i / 4) * 128); g.beginPath(); g.rect(0, 0, 128, 128); g.clip(); drawMotif(g, m); g.restore(); });
+  houseAtlas = new THREE.CanvasTexture(c);
+  houseAtlas.colorSpace = THREE.SRGBColorSpace;
+  houseAtlas.anisotropy = 4;
+  return houseAtlas;
+}
+const motifUV = (name) => { const i = Math.max(0, MOTIFS.indexOf(name)); const u0 = (i % 4) / 4, v1 = 1 - Math.floor(i / 4) / 4; return [u0 + 0.004, v1 - 0.25 + 0.004, u0 + 0.25 - 0.004, v1 - 0.004]; };
+
+/** Rechteck (Weltkoordinaten) als zwei Dreiecke mit UV; Normale n ('+z' Wand hinten zeigt nach +z, 'y' Boden …). */
+function quad(posA, uvA, x, y, z, w, h, face, uv) {
+  // face: '+z' (Fläche zeigt nach +z, steht in der Ebene z), '+x', '-x', 'y' (liegt, zeigt nach oben)
+  let c;
+  if (face === '+z') c = [[x - w / 2, y, z], [x + w / 2, y, z], [x + w / 2, y + h, z], [x - w / 2, y + h, z]];
+  else if (face === '+x') c = [[x, y, z + w / 2], [x, y, z - w / 2], [x, y + h, z - w / 2], [x, y + h, z + w / 2]];
+  else if (face === '-x') c = [[x, y, z - w / 2], [x, y, z + w / 2], [x, y + h, z + w / 2], [x, y + h, z - w / 2]];
+  else c = [[x - w / 2, y, z + h / 2], [x + w / 2, y, z + h / 2], [x + w / 2, y, z - h / 2], [x - w / 2, y, z - h / 2]];
+  const [u0, v0, u1, v1] = uv;
+  const t = [[u0, v0], [u1, v0], [u1, v1], [u0, v1]];
+  for (const k of [0, 1, 2, 0, 2, 3]) { posA.push(...c[k]); uvA.push(...t[k]); }
+}
+
+/** Möbel in lokalen Koordinaten (Fußpunkt 0, Vorderseite +z) bauen; liefert { parts, solids: [[x0,y0,z0,x1,y1,z1]] }. */
+const FURN = {
+  bett(o) { const p = [], s = []; const c = o.color ?? 0x5a8ad8;
+    p.push(block(1.6, 0.45, 2.4, 0, 0, 0, 0xb07a4a), block(1.5, 0.25, 2.3, 0, 0.45, 0, 0xffffff), block(1.5, 0.12, 1.6, 0, 0.7, 0.35, c), block(0.9, 0.18, 0.5, 0, 0.7, -0.85, 0xfff4e0), block(1.6, 1.1, 0.12, 0, 0, -1.24, 0x9a6a3a));
+    s.push([-0.8, 0, -1.3, 0.8, 0.82, 1.2]); return { p, s }; },
+  kiste(o) { const p = [], s = []; p.push(block(1.2, 0.7, 0.7, 0, 0, 0, o.color ?? 0xe85a5a), block(1.26, 0.12, 0.76, 0, 0.7, 0, 0xffd23d)); for (const [x, c] of [[-0.25, 0x5ab8e8], [0.2, 0x7ad87a]]) p.push(sphere(0.16, x, 0.92, 0, c)); s.push([-0.6, 0, -0.35, 0.6, 0.82, 0.35]); return { p, s }; },
+  bausteine(o) { const p = []; const cols = [0xff5a5a, 0xffd23d, 0x5ab8e8, 0x7ad87a, 0xc89aff]; let k = 0; for (const [x, y, z] of [[0, 0, 0], [0.42, 0, 0.05], [0.2, 0.4, 0.02], [-0.45, 0, 0.3]]) p.push(block(0.4, 0.4, 0.4, x, y, z, cols[(k++ + (o.seed ?? 0)) % 5], { r: 0.05 })); return { p, s: [] }; },
+  tisch(o) { const p = [], s = []; const w = o.w ?? 2.2, d = o.d ?? 1.2, h = o.h ?? 0.9; p.push(block(w, 0.1, d, 0, h - 0.1, 0, o.color ?? 0xb07a4a)); for (const [x, z] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) p.push(block(0.1, h - 0.1, 0.1, x * (w / 2 - 0.12), 0, z * (d / 2 - 0.12), 0x8a5a32)); if (o.cloth) p.push(block(w * 0.7, 0.02, d + 0.06, 0, h, 0, o.cloth)); s.push([-w / 2, h - 0.12, -d / 2, w / 2, h, d / 2]); return { p, s }; },
+  stuhl(o) { const p = []; const c = o.color ?? 0x9a6a3a; p.push(block(0.5, 0.06, 0.5, 0, 0.45, 0, c), block(0.5, 0.6, 0.06, 0, 0.5, -0.22, c)); for (const [x, z] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) p.push(block(0.05, 0.45, 0.05, x * 0.2, 0, z * 0.2, 0x7a4a2a)); return { p, s: [[-0.25, 0, -0.25, 0.25, 0.5, 0.25]] }; },
+  regal(o) { const p = [], s = []; const w = o.w ?? 2, h = o.h ?? 2.4, d = 0.45; p.push(block(w, h, 0.05, 0, 0, -d / 2 + 0.03, 0x6a4022), block(0.08, h, d, -w / 2, 0, 0, 0x7a4a2a), block(0.08, h, d, w / 2, 0, 0, 0x7a4a2a));
+    const cols = [0xc83a3a, 0x3a6ad0, 0x3fa84a, 0xe8b040, 0x8a4ac8, 0xe86a2a, 0x2a8a8a];
+    for (let k = 0; k < 4; k++) { const y = (k * h) / 4; p.push(block(w, 0.05, d, 0, y, 0, 0x7a4a2a)); let x = -w / 2 + 0.08; let i = k * 3 + (o.seed ?? 0); while (x < w / 2 - 0.15) { const bw = 0.08 + ((i * 37) % 7) * 0.012, bh = h / 4 * (0.6 + ((i * 13) % 5) * 0.06); p.push(block(bw, bh, 0.3, x + bw / 2, y + 0.05, 0.02, cols[i % cols.length], { r: 0.01 })); x += bw + 0.01; i++; } }
+    p.push(block(w + 0.1, 0.06, d + 0.05, 0, h, 0, 0x7a4a2a)); s.push([-w / 2, 0, -d / 2, w / 2, h, d / 2]); return { p, s }; },
+  sofa(o) { const p = [], s = []; const c = o.color ?? 0x8a3a6a, w = o.w ?? 2.4; p.push(block(w, 0.45, 0.9, 0, 0, 0, c), block(w, 0.55, 0.25, 0, 0.45, -0.32, c), block(0.25, 0.3, 0.9, -w / 2 + 0.12, 0.45, 0, c), block(0.25, 0.3, 0.9, w / 2 - 0.12, 0.45, 0, c)); for (const x of [-w / 4, w / 4]) p.push(block(w / 2 - 0.3, 0.12, 0.6, x, 0.45, 0.08, 0xf0d8e0, { r: 0.06 })); s.push([-w / 2, 0, -0.45, w / 2, 0.57, 0.45]); return { p, s }; },
+  sessel(o) { return FURN.sofa({ ...o, w: 1.1 }); },
+  kamin(o) { const p = [], s = []; const w = o.w ?? 2.6; p.push(block(w, 1.6, 0.6, 0, 0, 0, 0xc86a4a), block(w + 0.3, 0.15, 0.75, 0, 1.6, 0.05, 0xf0e0c8), block(1.4, 1.0, 0.1, 0, 0.1, 0.27, 0x2a1a14)); for (let k = 0; k < 3; k++) p.push(block(0.9, 0.12, 0.12, 0, 0.12 + k * 0.1, 0.18 + (k % 2) * 0.05, 0x6a3a1a)); p.push(cone(0.28, 0.6, -0.2, 0.25, 0.25, 0xff8a2a, 6), cone(0.22, 0.48, 0.25, 0.25, 0.22, 0xffd060, 6)); s.push([-w / 2, 0, -0.3, w / 2, 1.6, 0.3]); return { p, s, glow: [cone(0.18, 0.4, 0.02, 0.25, 0.28, 0xffe080, 6)] }; },
+  pflanze(o) { const p = []; const S = o.size ?? 1; p.push(cyl(0.22 * S, 0.16 * S, 0.4 * S, 0, 0, 0, o.pot ?? 0xd8784a, 8)); for (const [x, y, z, r] of [[0, 0.75, 0, 0.32], [-0.18, 0.6, 0.1, 0.24], [0.17, 0.62, -0.08, 0.25], [0.02, 0.98, -0.05, 0.22]]) p.push(sphere(r * S, x * S, y * S, z * S, 0x4fb84a, { ws: 7, hs: 5 })); p.push(cyl(0.03 * S, 0.04 * S, 0.5 * S, 0, 0.35 * S, 0, 0x6a4a2a, 5)); return { p, s: [[-0.22 * S, 0, -0.22 * S, 0.22 * S, 0.4 * S, 0.22 * S]] }; },
+  stehlampe(o) { const p = []; p.push(cyl(0.2, 0.22, 0.05, 0, 0, 0, 0x5a4a3a, 8), cyl(0.03, 0.03, 1.6, 0, 0.05, 0, 0x5a4a3a, 5), cyl(0.18, 0.32, 0.36, 0, 1.6, 0, o.color ?? 0xfff0b0, 10)); return { p, s: [] }; },
+  standuhr(o) { const p = [], s = []; p.push(block(0.7, 2.3, 0.45, 0, 0, 0, 0x6a3a1a), block(0.8, 0.2, 0.5, 0, 2.3, 0, 0x8a4a22), block(0.5, 1.0, 0.04, 0, 0.5, 0.23, 0x3a2010), cyl(0.07, 0.07, 0.02, 0, 0.75, 0.25, 0xe8c050, 10, { rx: Math.PI / 2, center: true })); s.push([-0.35, 0, -0.22, 0.35, 2.5, 0.22]); return { p, s }; },
+  herd(o) { const p = [], s = []; p.push(block(1.2, 0.9, 0.7, 0, 0, 0, 0xf0f0f0), block(1.2, 0.04, 0.7, 0, 0.9, 0, 0x3a3a3a), block(0.9, 0.5, 0.04, 0, 0.18, 0.35, 0x2a2a2a)); for (const x of [-0.3, 0.3]) p.push(cyl(0.18, 0.18, 0.02, x, 0.94, 0, 0x8a2a2a, 10)); p.push(cyl(0.22, 0.2, 0.3, 0.3, 0.96, 0, 0xb0b0b8, 10)); s.push([-0.6, 0, -0.35, 0.6, 0.94, 0.35]); return { p, s }; },
+  schrank(o) { const p = [], s = []; const w = o.w ?? 2.4, h = o.h ?? 0.9; p.push(block(w, h, 0.65, 0, 0, 0, o.color ?? 0xf0d8a8), block(w + 0.05, 0.06, 0.7, 0, h, 0, 0xc8a070)); for (let i = 0; i < Math.round(w / 0.6); i++) p.push(block(0.04, 0.12, 0.04, -w / 2 + 0.3 + i * 0.6, h * 0.7, 0.34, 0x8a6a4a)); s.push([-w / 2, 0, -0.33, w / 2, h + 0.06, 0.33]); return { p, s }; },
+  kuehlschrank() { const p = []; p.push(block(0.8, 1.9, 0.7, 0, 0, 0, 0xe8f0f8), block(0.04, 0.4, 0.04, 0.3, 1.2, 0.36, 0x9aa0a8), block(0.04, 0.3, 0.04, 0.3, 0.5, 0.36, 0x9aa0a8), block(0.78, 0.02, 0.02, 0, 1.0, 0.355, 0xb8c0c8)); return { p, s: [[-0.4, 0, -0.35, 0.4, 1.9, 0.35]] }; },
+  globus() { const p = []; p.push(cyl(0.25, 0.3, 0.06, 0, 0, 0, 0x6a4022, 8), cyl(0.04, 0.05, 0.7, 0, 0.06, 0, 0x6a4022, 5), sphere(0.35, 0, 1.05, 0, 0x3a8ad8, { ws: 12, hs: 8 })); return { p, s: [] }; },
+  kronleuchter(o) { const p = []; const h = o.h ?? 1.2; p.push(cyl(0.02, 0.02, h, 0, -h, 0, 0x8a7a40, 4), cyl(0.5, 0.35, 0.12, 0, -h - 0.1, 0, 0xd8b040, 10)); for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; p.push(cyl(0.05, 0.05, 0.16, Math.cos(a) * 0.45, -h + 0.02, Math.sin(a) * 0.45, 0xfff4d8, 5)); } return { p, s: [], glow: Array.from({ length: 6 }, (_, i) => { const a = (i / 6) * Math.PI * 2; return sphere(0.06, Math.cos(a) * 0.45, -h + 0.22, Math.sin(a) * 0.45, 0xffe8a0, { ws: 5, hs: 4 }); }) }; },
+  topf(o) { const p = []; p.push(cyl(0.2, 0.18, 0.22, 0, 0, 0, o.color ?? 0x9aa0a8, 10), block(0.3, 0.03, 0.04, 0.3, 0.15, 0, 0x3a3a3a)); return { p, s: [] }; },
+  galerie(o) { const p = [], s = []; const w = o.w ?? 6, d = o.d ?? 2.4, h = o.h ?? 2.8;   // Holzgalerie (Einweg-Fläche baut das Level)
+    for (let i = 0; i <= Math.round(w / 0.5); i++) p.push(block(0.06, 0.7, 0.06, -w / 2 + i * (w / Math.round(w / 0.5)), h, d / 2 - 0.05, 0xf0e0c8));
+    p.push(block(w, 0.08, 0.1, 0, h + 0.7, d / 2 - 0.05, 0xc89a60)); for (const x of [-w / 2 + 0.15, w / 2 - 0.15]) p.push(block(0.2, h, 0.2, x, 0, d / 2 - 0.15, 0xa87a4a)); return { p, s }; },
+};
+
+/**
+ * Raum-Ausstattung des Prüfungs-Hauses: Parkett, Sockelleiste/Täfelung, Tapete (je Raum ein Muster, Kanvas-Kachel),
+ * Bilder mit Rahmen und Wanduhren (gemeinsamer Bilder-Atlas, Uhrzeiger animiert), Teppiche, Möbel (statisch, mit
+ * Kollision je Möbelstück). room: { x, z, w (Innenbreite), d (Innentiefe), h (Wandhöhe), y (Boden), paper, floor:
+ * [Farbe1, Farbe2], wood, pictures: [{ wall: 'back'|'left'|'right', at, y, w, h, motif }], clocks: [{ wall, at, y, r }],
+ * rugs: [{ x, z, w, d, motif }], furniture: [{ kind, x, z, yaw, … }] } (x/z relativ zur Raummitte).
+ * Liefert { clocks } für die Animation (houseClocks).
+ */
+export function houseRoom(level, room, shared) {
+  const { x: cx, z: cz, w, d, h = 4, y = 1 } = room;
+  const x0 = cx - w / 2, x1 = cx + w / 2, z0 = cz - d / 2;
+  const parts = [], glow = [];
+  // Parkett: Dielen (2 Dreiecke je Diele, Farbe je Diele), leicht über dem Boden
+  const [fa, fb] = (room.floor ?? [0xd8a868, 0xc89458]).map(L);
+  const plank = 0.32, len = 2.2;
+  const fp = [], fc = [];
+  for (let r = 0; r * plank < d; r++) {
+    const za = z0 + r * plank, zb = Math.min(cz + d / 2, za + plank - 0.012);
+    let xs = x0 - ((r * 0.73) % 1) * len;
+    for (let k = 0; xs < x1; k++, xs += len) {
+      const xa = Math.max(x0, xs), xb = Math.min(x1, xs + len - 0.012);
+      if (xb <= xa) continue;
+      const t = hash2(r, k), col = [0, 0, 0];
+      mixc(fa, fb, t, col);
+      const q = [[xa, za], [xb, za], [xb, zb], [xa, zb]];
+      for (const i of [0, 3, 2, 0, 2, 1]) { fp.push(q[i][0], y + 0.006, q[i][1]); fc.push(col[0], col[1], col[2]); }
+    }
+  }
+  const gF = new THREE.BufferGeometry();
+  gF.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3));
+  gF.setAttribute('color', new THREE.Float32BufferAttribute(fc, 3));
+  gF.computeVertexNormals();
+  addStatic(level, gF, { castShadow: false });
+  // Täfelung (1 m) und Sockelleiste an Rück- und Seitenwänden
+  const wood = room.wood ?? 0x8a5a3a;
+  parts.push(block(w, 1.0, 0.08, cx, y, z0 + 0.04, wood), block(w, 0.08, 0.14, cx, y + 1.0, z0 + 0.07, 0xf0e0c8));
+  for (const sx of [-1, 1]) parts.push(block(0.08, 1.0, d, cx + sx * (w / 2 - 0.04), y, cz, wood), block(0.14, 0.08, d, cx + sx * (w / 2 - 0.07), y + 1.0, cz, 0xf0e0c8));
+  // Möbel
+  for (const f of room.furniture ?? []) {
+    const mk = FURN[f.kind];
+    if (!mk) continue;
+    const { p, s, glow: gl } = mk(f);
+    const yaw = f.yaw ?? 0, fx = cx + (f.x ?? 0), fz = cz + (f.z ?? 0), fy = y + (f.y ?? 0);
+    for (const g of p) { g.rotateY(yaw); g.translate(fx, fy, fz); parts.push(g); }
+    for (const g of gl ?? []) { g.rotateY(yaw); g.translate(fx, fy, fz); glow.push(g); }
+    if (f.solid !== false) for (const b of s) {
+      const c = Math.cos(yaw), sn = Math.sin(yaw);
+      const xs = [b[0], b[3]].flatMap((px) => [b[2], b[5]].map((pz) => px * c + pz * sn));
+      const zs = [b[0], b[3]].flatMap((px) => [b[2], b[5]].map((pz) => -px * sn + pz * c));
+      level.world.add({ type: 'box', min: [fx + Math.min(...xs), fy + b[1], fz + Math.min(...zs)], max: [fx + Math.max(...xs), fy + b[4], fz + Math.max(...zs)], camIgnore: true, tag: `moebel:${f.kind}` });
+    }
+  }
+  // Bilderrahmen (Geometrie) – die Bildflächen kommen in den gemeinsamen Atlas-Mesh
+  const wallPos = (wall, at, yy) => (wall === 'back' ? [cx + at, y + yy, z0 + 0.1, '+z'] : wall === 'left' ? [x0 + 0.1, y + yy, cz + at, '+x'] : [x1 - 0.1, y + yy, cz + at, '-x']);
+  for (const pic of room.pictures ?? []) {
+    const [px, py, pz, face] = wallPos(pic.wall, pic.at, pic.y ?? 1.9);
+    const fw = pic.w ?? 1.2, fh = pic.h ?? 1.0, fr = pic.frame ?? 0xc89a40;
+    if (face === '+z') parts.push(block(fw + 0.16, fh + 0.16, 0.06, px, py - 0.08, pz - 0.02, fr));
+    else parts.push(block(0.06, fh + 0.16, fw + 0.16, px + (face === '+x' ? -0.02 : 0.02), py - 0.08, pz, fr));
+    quad(shared.pos, shared.uv, px + (face === '+x' ? 0.02 : face === '-x' ? -0.02 : 0), py, pz + (face === '+z' ? 0.02 : 0), fw, fh, face, motifUV(pic.motif));
+  }
+  for (const r of room.rugs ?? []) quad(shared.pos, shared.uv, cx + r.x, y + 0.012, cz + r.z, r.w, r.d, 'y', motifUV(r.motif));
+  const clocks = [];
+  for (const ck of room.clocks ?? []) {
+    const [px, py, pz, face] = wallPos(ck.wall, ck.at, ck.y ?? 2.6);
+    const r = ck.r ?? 0.45;
+    const nx = face === '+x' ? 1 : face === '-x' ? -1 : 0, nz = face === '+z' ? 1 : 0;
+    const rim = new THREE.CylinderGeometry(r + 0.06, r + 0.06, 0.08, 18);
+    rim.rotateX(Math.PI / 2);
+    if (face !== '+z') rim.rotateY(Math.PI / 2);
+    rim.translate(px - nx * 0.01, py, pz - nz * 0.01);
+    parts.push(colorize(rim, litFn(0x8a5a2a)));
+    quad(shared.pos, shared.uv, px + nx * 0.035, py - r, pz + nz * 0.035, 2 * r, 2 * r, face, motifUV('uhr'));
+    clocks.push({ x: px + nx * 0.05, y: py, z: pz + nz * 0.05, r, face, speed: ck.speed ?? 1, room: room.id });
+  }
+  if (parts.length) addStatic(level, merge(parts), { castShadow: true });
+  if (glow.length) addStatic(level, merge(glow), { material: 'glow', castShadow: false });
+  // Tapete: Rück- und Seitenwände oberhalb der Täfelung (eigener Mesh je Raum, Kachel 1 m)
+  if (level.view && typeof document !== 'undefined' && WALLPAPER[room.paper]) {
+    const tex = tileTexture(128, WALLPAPER[room.paper]);
+    const posA = [], uvA = [];
+    const hh = h - 1.08;
+    quad(posA, uvA, cx, y + 1.08, z0 + 0.012, w, hh, '+z', [0, 0, w, hh]);
+    quad(posA, uvA, x0 + 0.012, y + 1.08, cz, d, hh, '+x', [0, 0, d, hh]);
+    quad(posA, uvA, x1 - 0.012, y + 1.08, cz, d, hh, '-x', [0, 0, d, hh]);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(posA, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uvA, 2));
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
+    m.receiveShadow = true;
+    m.name = `tapete:${room.id}`;
+    addObject(level, m);
+  }
+  return clocks;
+}
+
+/** Gemeinsamer Mesh für Bilder, Teppiche und Zifferblätter (ein Zeichenaufruf) und animierte Uhrzeiger. */
+export function houseFinish(level, shared, clocks) {
+  if (!level.view || typeof document === 'undefined') return;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(shared.pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(shared.uv, 2));
+  g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: atlasTexture(), roughness: 0.85 }));
+  m.receiveShadow = true;
+  m.name = 'bilder';
+  addObject(level, m);
+  // Zeiger: je Uhr Minuten- und Stundenzeiger (Instanzen eines dünnen Quaders, Drehpunkt am Ende)
+  const n = clocks.length * 2;
+  if (!n) return;
+  const hg = new THREE.BoxGeometry(1, 1, 1);
+  hg.translate(0, 0.5, 0);
+  const hands = new THREE.InstancedMesh(hg, new THREE.MeshStandardMaterial({ color: 0x2a1a14, roughness: 0.6 }), n);
+  hands.name = 'uhrzeiger';
+  hands.frustumCulled = false;
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3(), E = new THREE.Euler();
+  let t = 0;
+  addObject(level, hands, (dt) => {
+    t += Math.min(dt, 0.1);
+    clocks.forEach((c, i) => {
+      for (let k = 0; k < 2; k++) {
+        const len = c.r * (k ? 0.55 : 0.85), ang = -(t * c.speed * (k ? 0.08 : 1) + (k ? 1.3 : 0)) * Math.PI * 2 / (k ? 1 : 10);
+        // Drehung in der Wandebene: Wand +z → um z; Seitenwände → um x
+        if (c.face === '+z') E.set(0, 0, ang); else E.set(c.face === '+x' ? -ang : ang, 0, 0);
+        Q.setFromEuler(E);
+        S.set(c.face === '+z' ? (k ? 0.05 : 0.035) : 0.02, len, c.face === '+z' ? 0.02 : (k ? 0.05 : 0.035));
+        P.set(c.x, c.y, c.z);
+        M.compose(P, Q, S);
+        hands.setMatrixAt(i * 2 + k, M);
+      }
+    });
+    hands.instanceMatrix.needsUpdate = true;
+  });
+}

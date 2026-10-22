@@ -161,6 +161,10 @@ function install() {
       let steps = 0, autoJumps = 0;
       const hold = o.invuln !== false;
       let rode = false;
+      // Prüfungs-Haus: Raumwechsel beendet die Fahrt (die Figur steht dann im nächsten Raum)
+      const roomOf = () => (L().house ? c.arch?.info?.()?.room : undefined);
+      const room0 = roomOf();
+      const moved = () => room0 !== undefined && roomOf() !== room0;
       const tick = (inp) => {
         if (hold) for (const f of L().players) f.invuln = Math.max(f.invuln, 5);
         c.setInput(inp); c.step(1); steps++;
@@ -179,7 +183,7 @@ function install() {
       for (let li = 0; li < legs.length; li++) {
         const Lg = legs[li];
         const pl = L().player;
-        if (pl.dead || L().runtime.status !== 'play') break;
+        if (pl.dead || L().runtime.status !== 'play' || moved()) break;
         rode = false;
         if (Lg.wait) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
         if (Lg.figs !== undefined) { log.push(['figuren', L().players.length, JSON.stringify(this.figInfo())]); continue; }
@@ -234,7 +238,7 @@ function install() {
         let best = Infinity, still = 0, auto = 0, j0 = Lg.jumpAt ? null : 0;
         for (; i < max; i++) {
           const m = L().player;
-          if (m.dead || L().runtime.status !== 'play') break;
+          if (m.dead || L().runtime.status !== 'play' || moved()) break;
           if (rode) break;
           const T = Lg.to;
           const dx = T[0] - m.pos.x, dz = T[1] - m.pos.z;
@@ -300,7 +304,9 @@ function install() {
         const dy = e.pos.y - p.pos.y;
         const jump = ((n % 48) < 20 && dist < 2.4) || (dy > 0.8 && (n % 48) < 30);
         for (const f of L().players) f.invuln = Math.max(f.invuln, 5);
-        c.setInput({ ...st, run: dist > 1.5, jump, action: !!o.action && (n % 24) === 0 });
+        // Stampfattacke: in der Luft über dem Ziel ducken
+        const crouch = !!o.pound && p.mode === 'air' && dist < 0.7 && p.pos.y > e.pos.y + e.half.y * 2;
+        c.setInput({ ...(crouch ? {} : st), run: dist > 1.5, jump: jump && !crouch, crouch, action: !!o.action && (n % 24) === 0 });
         c.step(1);
         if (p.mode === 'script' && p.script?.type !== 'house') { let k = 0; while (L().player.mode === 'script' && k++ < 1200) { c.setInput({}); c.step(1); } }
       }
@@ -313,12 +319,12 @@ function install() {
     arch: () => c.arch?.info?.() ?? null,
     save: () => JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}'),
     /** Haupt-Figur fällt von oben auf einen Gegner (Draufspringen) – bis er reagiert. */
-    stompOn(id, field = 'state', want = 'back') {
+    stompOn(id, field = 'state', want = 'back', pound = false) {
       const p = P(), e = L().named.get(id);
       p.reset([e.pos.x, e.pos.y + e.half.y * 2 + 1.2, e.pos.z], Math.PI / 2);
       p.invuln = 999;
       for (let i = 0; i < 150; i++) {
-        c.setInput({}); c.step(1);
+        c.setInput(pound ? { crouch: true } : {}); c.step(1);
         if (p.mode === 'air' && p.vel.y <= 0) { p.pos.x = e.pos.x; p.pos.z = e.pos.z; }
         if (e[field] === want || e.defeated) break;
       }
@@ -557,9 +563,118 @@ async function levelA() {
   }
 }
 
+// ====================================================================== 2-Haus
+async function levelHaus() {
+  const id = '2-Haus';
+  console.log(`\nLevel ${id}`);
+  if (!(await load(id, true))) { check(`${id} lädt`, false); return; }
+  const loadErrors = errors.slice();
+  const meta = await sc(() => { const d = window.__course.level.data; return { title: d.title, theme: d.theme, music: d.music, arch: d.archetype, rooms: d.house.rooms.map((r) => [r.goal, r.time]) }; });
+  const kinds = await W('kinds');
+  console.log(`  „${meta.title}“ (${meta.arch}, ${meta.theme}, ${meta.music}), Räume ${JSON.stringify(meta.rooms)}, Entitäten: ${JSON.stringify(kinds)}`);
+  check(`${id}: lädt ohne Konsolenfehler/-warnungen`, loadErrors.length === 0);
+  for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
+  check(`${id}: Haus, Thema house, Musik course_house, 5 Räume à 10 s, Gegner laut Bauplan`, meta.arch === 'house' && meta.theme === 'house' && meta.music === 'course_house' && meta.rooms.length === 5 && meta.rooms.every((r) => r[1] === 10)
+    && kinds.rollpilz === 2 && kinds.panzerkroete === 2 && kinds.krallen_pilzling === 2 && kinds.hackvogel === 4 && kinds.feuer_werfer === 2);
+
+  // Skript für alle fünf Räume (je Raum: warten bis „play“, Ziel erfüllen, Restzeit messen)
+  const solve = () => {
+    const c = window.__course, L = c.level, W2 = window.__w2, p = c.player;
+    const A = () => c.arch.info();
+    const waitPlay = (room) => { let n = 0; while (!(A().room === room && A().phase === 'play') && n++ < 1200) { c.setInput({}); c.step(1); } return n; };
+    const out = [];
+    // Restzeit beim Erfüllen je Raum (Schritt-Haken: Phase „clear“ hält 1,5 s)
+    const rec = {};
+    L.onStep(() => { const a = A(); if (a.phase === 'clear' && rec[a.room] === undefined) rec[a.room] = +(10 - a.time).toFixed(2); });
+    const settle = () => { let n = 0; while (A().phase === 'play' && n++ < 1300) { p.invuln = Math.max(p.invuln, 2); c.setInput({}); c.step(1); } };
+    const finish = (room, ok) => {
+      const a = A();
+      if (rec[room] === undefined && a.room === room && a.phase === 'clear') rec[room] = +(10 - a.time).toFixed(2);
+      out.push({ room, ok, cleared: rec[room] !== undefined, used: rec[room] ?? null, now: a.phase });
+    };
+    const R = (i) => L.data.house.rooms[i];
+    const rel = (i, x, z) => [R(i).start.pos[0] + x, R(i).start.pos[2] - 4.6 + z];
+    // 1 Kinderzimmer: Stampfattacke auf beide Rollpilze
+    waitPlay(0);
+    W2.chase('rollpilz', { filter: (e) => e.spec.roomId === 'r1', pound: true, max: 1200 });
+    settle();
+    finish(0);
+    // 2 Bibliothek: auf beide Panzerkröten springen
+    waitPlay(1);
+    W2.chase('panzerkroete', { filter: (e) => e.spec.roomId === 'r2', max: 1200 });
+    settle();
+    finish(1);
+    // 3 Küche: Münzen am Boden ablaufen, dann auf den Tisch
+    waitPlay(2);
+    const coinsLeft = () => L.entities.filter((e) => e.kind === 'coin' && e.spec.roomId === 'r3' && !e.removed && e.alive);
+    const floor = coinsLeft().filter((e) => e.pos.y < 2).sort((a, b) => a.pos.z - b.pos.z);
+    const legs = [];
+    for (const e of floor.sort((a, b) => Math.atan2(a.pos.z - (R(2).start.pos[2] - 4.6), a.pos.x - R(2).start.pos[0]) - Math.atan2(b.pos.z - (R(2).start.pos[2] - 4.6), b.pos.x - R(2).start.pos[0]))) legs.push({ to: [e.pos.x, e.pos.z], within: 0.4 });
+    W2.drive([{ to: rel(2, 0, 3.4), within: 0.4 }, { to: rel(2, 5, 2.4), within: 0.4 }, { to: rel(2, 5, -1.6), within: 0.4 }, { to: rel(2, -5, -1.6), within: 0.4 }, { to: rel(2, -5, 2.4), within: 0.4 },
+      { to: rel(2, -0.9, 1.9) }, { to: rel(2, -0.9, 0.4), jump: 40, within: 0.4 }, { to: rel(2, 0.95, 0.4), within: 0.3, run: false }]);
+    settle();
+    finish(2, coinsLeft().length === 0);
+    // 4 Uhrenstube: am rechten Rand des Uhrengangs vorbei, aufs Podest zum Stern
+    waitPlay(3);
+    W2.drive([{ to: rel(3, 1.9, 3.2) }, { to: rel(3, 1.9, -3.6) }, { to: rel(3, 0.6, -4.1), run: false }, { to: rel(3, 0, -5.1), jump: 40, within: 0.35, run: false }]);
+    settle();
+    finish(3);
+    // 5 Kaminzimmer: beide Feuer-Werfer (einer auf der Galerie)
+    waitPlay(4);
+    W2.chase('feuer_werfer', { filter: (e) => e.spec.roomId === 'r5', max: 1200 });
+    settle();
+    finish(4);
+    for (let i = 0; i < 900 && !c.finished; i++) { c.setInput({}); c.step(1); }
+    return { out, finished: c.finished, res: c.lastResult, a: A(), save: W2.save().levels?.['2-Haus'] ?? null };
+  };
+  for (const hero of want('Räume') ? ['lotti', 'greta'] : []) {
+    await load(id, true);
+    await sc((h) => { const c = window.__course; c.setHero?.(h); c.player.setHero?.(h); }, hero);
+    const r = await sc(solve);
+    for (const o of r.out) {
+      const name = ['Kinderzimmer (Rollpilze)', 'Bibliothek (Panzerkröten)', 'Küche (8 Münzen)', 'Uhrenstube (Stern erreichen)', 'Kaminzimmer (Feuer-Werfer)'][o.room];
+      check(`${id}: ${hero} Raum ${o.room + 1} ${name} in ${o.used} s geschafft (< 10 s)`, o.cleared && o.used < 10 && o.ok !== false);
+    }
+    check(`${id}: ${hero} Ergebnis 5/5 gespeichert (${(r.res?.stars ?? []).map(Number).join('')})`, r.finished && r.res?.stars?.filter(Boolean).length === 5 && r.save?.stars?.filter(Boolean).length === 5 && !r.a.exited);
+    if (!r.finished || r.out.some((o) => !o.cleared)) console.log("     ", JSON.stringify(r.out));
+  }
+  if (want('Zeit')) {
+    await load(id, true);
+    const r = await sc(() => {
+      const c = window.__course, W2 = window.__w2;
+      const A = () => c.arch.info();
+      let n = 0;
+      while (!(A().room === 0 && A().phase === 'play') && n++ < 600) c.step(1);
+      W2.stompOn('r1a', 'defeated', true, true); W2.stompOn('r1b', 'defeated', true, true);
+      n = 0;
+      while (!(A().room === 1 && A().phase === 'play') && n++ < 1200) { c.setInput({}); c.step(1); }
+      // Raum 2: nichts tun (unverwundbar), bis die Zeit abläuft
+      n = 0;
+      while (A().phase === 'play' && n++ < 1500) { c.player.invuln = 999; c.setInput({}); c.step(1); }
+      const a = A();
+      for (let i = 0; i < 900 && !c.finished; i++) { c.player.invuln = 999; c.step(1); }
+      return { a, after: A(), finished: c.finished, res: c.lastResult, save: W2.save().levels?.['2-Haus'] ?? null };
+    });
+    check(`${id}: Zeit abgelaufen in Raum 2 → Haus verlassen, Teilergebnis 1/5 gespeichert (${(r.res?.stars ?? []).map(Number).join('')})`, r.a.phase === 'timeout' && r.finished && r.after.exited && r.res?.stars?.filter(Boolean).length === 1 && r.save?.stars?.[0] === true);
+    await page.waitForFunction(() => window.__game.scene.isActive('CourseResult'), null, { timeout: 10000 }).catch(() => {});
+    const texts = await sc(() => window.__game.scene.getScene('CourseResult').children.list.map((o) => o.text).filter(Boolean));
+    check(`${id}: Ergebnis-Szene „Prüfungs-Haus: 1 von 5 Sternen“ (${texts.filter((t) => /Haus|Stern/.test(t)).join(' | ')})`, texts.includes('Prüfungs-Haus: 1 von 5 Sternen'));
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${OUT}w2c_${id}_ergebnis_teil.png` });
+  }
+  if (want('Bilder')) {
+    await load(id, true);
+    for (let i = 0; i < 5; i++) {
+      await sc((i) => { const c = window.__course; if (i > 0) c.arch.enterRoom(i); let n = 0; while (c.arch.info().phase !== 'play' && n++ < 300) c.step(1); c.step(60); c.player.invuln = 0; }, i);
+      await shot(`${id}_raum${i + 1}`);
+    }
+  }
+}
+
 for (const id of LEVELS) {
   if (id === '2-5') await level25();
   if (id === '2-A') await levelA();
+  if (id === '2-Haus') await levelHaus();
 }
 
 console.log('\n  Kennzahlen je Bild (Zeichenaufrufe inkl. Schattenpass, Dreiecke, Figuren):');
