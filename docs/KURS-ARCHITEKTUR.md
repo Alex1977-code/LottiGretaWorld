@@ -439,8 +439,8 @@ Höhe. Funkelstern/Riesentrank besiegen jeden Gegner bei Berührung.
 | pilzlingsturm | 3–5 Stufen, läuft auf die Figur zu | von oben je 1 Stufe; Feuer/Krallen/Panzer je 1; Explosion/Stern/Riese alle | seitlich |
 | panzerkroete | läuft | Sprung/Stampfen/Krallen → Panzer; Feuer/Panzer/Explosion → weg | seitlich |
 | panzer | liegt; gekickt 10 m/s, prallt an Wänden ab | Panzer, Explosion, Stern, Riese | gleitend seitlich (Rückpraller) |
-| schnappblume | schnappt im Takt (Reichweite) | Feuer, Krallen, Sturzflug, Panzer, Explosion, Stampfen **neben** ihr (auf einer Röhre: Tatzenhieb im Sprung, Stampfen neben einer Röhre ≤ 1,2 m) | von oben und Biss |
-| riesenschnappblume | wie oben, großer Radius | dasselbe, 3 Treffer (1,1 s Pause) | von oben und Biss |
+| schnappblume | schnappt im Takt; trifft nur, wer das sichtbare Maul berührt (Maulspitze ≈ 0,75 m vor der Mitte) | **Draufspringen/Stampfen auf den Kopf** (Abprall), Feuer, Krallen, Sturzflug, Panzer, Explosion, Stampfen neben ihr (auf einer Röhre: Tatzenhieb im Sprung, Stampfen neben einer Röhre ≤ 1,2 m) | Biss, seitliches Hineinlaufen |
+| riesenschnappblume | wie oben, ×2,8 (Maulspitze ≈ 2,1 m) | dasselbe, 3 Treffer (1,1 s Pause; Sprünge in der Pause prallen nur ab) | Biss, seitliches Hineinlaufen |
 | rammbock_bulle | scharrt 0,8 s, Sturmlauf, bremst an Kanten, Wand → benommen | 3 Treffer (Sprung, Feuer, Krallen …); Explosion/Stern/Riese sofort | seitlich (betäubt harmlos) |
 | krabbelkaefer / flatterkaefer | feste Bahn, in Reihe | Sprung, alles | seitlich |
 | zauberkroete | erscheint an Punkten, zaubert Kugel, verschwindet | nur sichtbar: Sprung, alles | seitlich, Zauberkugel |
@@ -466,9 +466,9 @@ enemies: [
   { kind: 'panzerkroete', pos: [0, 1, -60], path: [[-3, 1, -60], [3, 1, -60]], gold: true },
   // Panzer allein: speed 10 (Gleiten), gold, coins 15 (Goldpanzer: je 0,3 s eine), wakeAfter 0 (s, 0 = nie)
   { kind: 'panzer', pos: [2, 1, -62] },
-  // Schnappblume: base 'pot'|'ground'|'pipe' ('pot'), yaw (Ruhe-Blick), range 3.4, reach 1.35, pause 0.7, hp 1
+  // Schnappblume: base 'pot'|'ground'|'pipe' ('pot'), yaw (Ruhe-Blick), range 3.4, pause 0.7, hp 1 (Biss-Zone fest am Modell gemessen)
   { kind: 'schnappblume', pos: [4, 2.2, -70], base: 'pipe', yaw: -Math.PI / 2 },   // auf einer Röhre (Höhe 1,2)
-  // Riesenschnappblume: base 'ground', range 7, reach 3.3, pause 0.9, hp 3
+  // Riesenschnappblume: base 'ground', range 7, pause 0.9, hp 3
   { kind: 'riesenschnappblume', pos: [0, 1, -90], yaw: -Math.PI / 2 },
   // Rammbock-Bulle: hp 3, sight 11, speed 7.5 (Sturmlauf), drop Standard 'coins:3'
   { kind: 'rammbock_bulle', pos: [0, 1, -100], dir: [0, 1] },
@@ -1627,3 +1627,123 @@ Kennzahlen mit 1 und 5 Figuren. Bilder `tests/out/w2e_*.png`.
 - Themenwechsel setzt `beat` auf 0 zurück → in Piep-Levels die Musik nicht wechseln (z. B. kein Funkelstern-Thema) oder eigene Phase führen.
 - `themeInfo('course_beep').sync = { switchEvery: 8, warnBeats: 3 }`: Umschalt-Piep auf Zählzeit 0, 8, 16 …, Warn-Pieps auf den Zählzeiten 5, 6, 7 jedes Achterblocks.
 - Testhaken: `music.setManualClock(true|false)`, `music.advanceClock(sekunden)` (meldet überschrittene Zählzeiten synchron), `music.manualClock`.
+
+---
+
+## Präzisierung (Gegner Welt 2)
+
+Ergänzung des Gegner-Agenten Welt 2 (Stand: Gegnerzoo `0-6`, Wirbelbrocken-Arena `0-7`). Nichts oben Festgelegtes wird
+geändert. Level-Bauer schreiben nur Daten; alle Felder sind optional, sofern nicht anders vermerkt. Die gemeinsamen Felder
+und Konter aus „Präzisierung (Gegner/Power-ups)“ gelten weiter (`id, pos, dir|yaw, path, loop, wake, edges, drop`).
+
+### Präzisierung (Gegner Welt 2): Dateien
+
+```
+src/course/entities/EnemyW2.js              Basis der Welt-2-Gegner (erweitert Enemy): Ziel = nächste Figur
+                                            (level.nearestPlayer), Lava/Absturz = besiegt (zählt für Arenen), Rutsch-Angriff,
+                                            STRONG-Treffer, Schatten-Stufen, sharedSlot (Instanz-Gruppen), localOffset
+src/course/entities/kinds/  hackvogel, rollpilz (+ grossrollpilz), wuschel, huepfmaus (+ huepfmaus_stachel), marschblock,
+                            feuer_werfer (+ hammer_werfer, bumerang_werfer), geschosse (feuerkugel, wurf_hammer,
+                            wurf_bumerang), projektilkopf (+ suchkopf), kanone_turm, feuer_schnappblume, lauerblock,
+                            muenzmarder (+ muenze_flug), wirbelbrocken; pilzling.js: Option mini
+src/course/levels/w0/0-6.js                 Gegnerzoo Wüste (14 Gehege mit Schildern, Z(r, dz) für Tests)
+src/course/levels/w0/0-7.js                 Wirbelbrocken-Arena (Archetyp boss, Käfig-Rundplattform, Warp-Box → Ziel)
+tests/course_w2_enemies.mjs                 Port 4199: Verhalten/Konter/Schaden je Gegner, Klone, Boss, Bilder w2en_*.png
+```
+
+### Präzisierung (Gegner Welt 2): gemeinsame Regeln
+
+- **Ziel = nächste Figur** (`level.nearestPlayer(pos)`, ohne Klon-Motor `level.player`); Gegner, Kanonen, Würfe, Suchköpfe,
+  Hüpfmaus-Mitsprung, Lauerblock-Bahn und Münzmarder beachten **jede** Figur (Klone).
+- **Lava** (Form `kill: 'lava'`) und Absturz unter `killY` besiegen Welt-2-Gegner (`markDefeated`, `level.onEnemyDefeated`).
+  Treibsand (Motor) zieht stehende Gegner hinab.
+- **Starke Treffer** `cannon` (Kanonen-Helm-Kugel), `bomb`, `mega`, `star` besiegen sofort (Ausnahmen in der Tabelle); alle
+  anderen Arten (`fire, claw, shell, throw, bite`, Stampfwelle `pound` daneben …) wie in Welt 1. **Rutschen**: rutscht eine
+  Figur (state `slide`, ≥ 2 m/s) seitlich in einen Welt-2-Gegner, ist das ein Angriff (`onHit('slide')`) statt eines Treffers.
+- **Schatten**: Welt-2-Modelle werfen den Sonnenschatten nur mit ihren größten Teilen und nur ≤ 18 m (bzw. 1,35 ×
+  Kameraabstand) vom Blickziel der Kamera; der Blob bleibt immer. Kolonnen (Marschblock, Wuschel) teilen sich je Level eine
+  Instanz-Gruppe (ganz weit weg unsichtbar).
+- Geschosse (`feuerkugel`, `wurf_hammer`, `wurf_bumerang`) und Köpfe verletzen bei Berührung; Geschosse sind keine Gegner.
+
+| Gegner | Verhalten | besiegt durch | verletzt |
+| --- | --- | --- | --- |
+| hackvogel | hackt im Takt nach vorn (wind 0,35 s → peck → stuck 0,8 s → pull), zerhackt Blöcke an der Schnabelspitze | Draufspringen bei steckendem Schnabel oder von hinten (von vorn nur Abprall), Stampfen, alles | Schnabelhieb, seitlich |
+| rollpilz | läuft; Draufspringen → Rücken (tragbar, nicht besiegt); geworfen/gekickt rollt er und besiegt Gegner (zerplatzt dabei); steht nach 6 s auf | Stampfen auf den Liegenden, Feuer, alles; Wurf in Gegner | seitlich (stehend) |
+| grossrollpilz | ×2,6, hp 3; Draufspringen wirft um (−1 hp); liegend lässt er sich stoßen (laufen 5–9, rutschen 9, Tatze 8 m/s) | 3 Treffer, Lava/Absturz (stoßen), Kanone/Bombe/Riese/Stern sofort | seitlich (stehend) |
+| wuschel | fährt Bahn/Kreis, unverwundbar | nur Funkelstern/Riesentrank | jede Berührung |
+| huepfmaus | läuft mit kleinen Hüpfern, springt mit, wenn eine Figur in 8 m abspringt | Draufspringen, alles, Rutschen | seitlich |
+| huepfmaus_stachel | wie oben, Stachelhelm | Feuer, Wurf, Biss, Panzer, Tatze, Stampfwelle daneben, Rutschen, Kanone … | auch von oben |
+| marschblock | Kolonne im Gleichschritt auf einer Bahn; Gefahr → Panik, dann zurück in die Reihe | Draufspringen, alles | seitlich |
+| feuer_werfer | tänzelt, wirft Salven (Feuer hüpft / Hammer im Bogen / Bumerang kehrt zurück), springt zwischen zwei Ebenen | Draufspringen, alles | seitlich, Geschosse |
+| projektilkopf | fliegt geradeaus (optional reitbar) | Draufspringen (Abprall, stürzt ab), Tatze, Panzer, Wurf, Biss, Kanone … (nicht Feuer) | seitlich/vorn |
+| suchkopf | lenkt `seek` s zur nächsten Figur, dann Absturz | wie Projektilkopf | seitlich/vorn |
+| kanone_turm | feuert alle `interval` s einen Kopf (Ankündigung 0,5 s) | nur Kanonenkugel, Bombe, Riesentrank | – (begehbar) |
+| feuer_schnappblume | zielt, spuckt gerade Feuerkugeln (bei 50 % von spit) | Feuer, Wurf, Biss, Stampfwelle daneben, Tatze, Panzer, Kanone … | Kopf (auch von oben), Feuerkugel |
+| lauerblock | fährt aus der Wand, wenn eine Figur in der Bahn ist (oder im Takt); trägt, schiebt | nur Riesentrank (Falle, kein `enemy`) | eingeklemmt gegen eine Wand |
+| muenzmarder | flieht über seinen Pfad, springt über Lücken, wartet frech, entkommt am Ende | einholen/berühren/angreifen: je Treffer Münzregen, der letzte besiegt | nie |
+| pilzling `mini` | halbe Größe, schneller | Draufspringen (platt, ohne Abprall), alles | seitlich |
+| wirbelbrocken | Boss: run → spin (Fäuste 1,4 m) → stunned → Treffer → Panzerkugel; 3 Phasen | Draufspringen/Stampfen nur in stunned; Kanonenkugel (nicht als Kugel) | Fäuste, Kugel, seitlich |
+
+### Präzisierung (Gegner Welt 2): Gegner-Daten (exakt, mit Beispiel)
+
+```js
+enemies: [
+  // Hackvogel: speed 1.2 (path), period 2.0 (Takt, ≥ Hieb + 0,3 s), stuck 0.8, phase 0..1, track false (in der Pause zur
+  //   Figur drehen), sight 9 (hackt nur, wenn eine Figur so nah ist; 0 = immer). Laufzeit: pecks, beakTip()
+  { kind: 'hackvogel', pos: [0, 1, -20], dir: [0, 1], sight: 0 },
+  { kind: 'hackvogel', pos: [0, 1, -30], path: [[-4, 1, -30], [4, 1, -30]], period: 3.2 },
+  // Rollpilz / Großrollpilz: speed 1.5 / 1.1, behavior 'walk'|'chase', sight 6 / 8, chaseSpeed 2.2 / 1.6, up 6 (s auf dem
+  //   Rücken), hp 1 / 3. Tragen über das Tragen-System (Aktion), Rennen + Berühren hebt auf, Ducken + Aktion setzt ab.
+  { kind: 'rollpilz', pos: [2, 1, -40], path: [[0, 1, -40], [6, 1, -40]] },
+  { kind: 'grossrollpilz', id: 'gr1', pos: [0, 2.2, -60], behavior: 'chase' },
+  // Wuschel: path (y = Unterkante) | center + radius 2.5 (+ cw), loop (ab 3 Punkten), speed 2.5, count 1, spacing 1.4,
+  //   phase 0..1, wait 0 (Pendel-Pause), size 1
+  { kind: 'wuschel', path: [[-4, 1.2, -70], [4, 1.2, -70]], speed: 3 },
+  { kind: 'wuschel', center: [0, 1.3, -80], radius: 3, count: 4, spacing: 4.7 },
+  // Hüpfmaus / Stachel-Hüpfmaus: speed 1.4, jump 1.6 (Mitsprung-Höhe), sight 8, hopEvery 0.55
+  { kind: 'huepfmaus', pos: [0, 1, -90], path: [[-4, 1, -90], [4, 1, -90]] },
+  { kind: 'huepfmaus_stachel', pos: [3, 1, -95], dir: [-1, 0] },
+  // Marschblock: path (für Kolonnen; ohne: 6 m in dir), loop (ab 3 Punkten), count 4, spacing 1.3, speed 1.5,
+  //   phase 0..1, colors ['red','blue','yellow','green'] (auch 'orange','purple', Hex), bpm 120, panic 2.5
+  { kind: 'marschblock', id: 'mb', path: [[-6, 1, -100], [6, 1, -100], [6, 1, -106], [-6, 1, -106]], count: 6 },
+  // Werfer: weapon 'feuer'|'hammer'|'bumerang' (Kurzform kind 'hammer_werfer'/'bumerang_werfer'), axis [1, 0], pace 1.2,
+  //   speed 1.2, sight 12, interval 2.0, volley (2 / 3 / 1), first 1.0, jumpEvery 3.4, heights [unten, oben], hop 1.3
+  { kind: 'feuer_werfer', weapon: 'hammer', pos: [0, 1, -110], heights: [1, 3.8] },   // + Einweg-Plattform oben (oneWay)
+  // Projektil-/Suchkopf (meist von der Kanone): pos (Unterkante), dir, speed 5.5 / 4.2, life 10 / 8, seek 4, turn 1.8,
+  //   ride false (reitbare Oberseite), owner
+  { kind: 'projektilkopf', pos: [-10, 2, -120], dir: [1, 0], ride: true, speed: 4 },
+  // Kanonenturm: height 2, sides 1|2, shot 'projektilkopf'|'suchkopf'|'wechsel', interval 3.0, first 1.0, range 26,
+  //   minRange 1.6, max 3, charge 0.5, track false, active true, dazu speed/seek/turn/ride/life für die Köpfe; setActive(b)
+  { kind: 'kanone_turm', id: 'k1', pos: [6, 1, -130], dir: [-1, 0], interval: 2.5, shot: 'suchkopf' },
+  // Feuer-Schnappblume: base 'pot'|'ground'|'pipe', yaw (Ruhe-Blick), range 9, pause 1.4, burst 1, speed 5.5, hp 1
+  { kind: 'feuer_schnappblume', pos: [3, 2.2, -140], base: 'pipe', range: 10 },
+  // Lauerblock: pos = Mitte der Unterkante der Vorderseite (Wandfläche), dir = Stoßrichtung, reach 2, size 1, hold 0.7,
+  //   cool 0.8, mode 'sense'|'timed', period 3, phase 0..1, sense reach + 0.6. Wand mit Öffnung (size × size, Tiefe size).
+  { kind: 'lauerblock', pos: [-4, 1, -150], dir: [1, 0], reach: 2.5 },
+  // Münzmarder: path (Fluchtweg; Lücken überspringt er), speed 7, sight 7, lead 12, hp 2, coins 30
+  { kind: 'muenzmarder', path: [[0, 1, -160], [0, 1, -180], [8, 1, -186], [8, 1, -210]] },
+  // Mini-Pilzling: Pilzling-Felder + mini (speed 2.4, chaseSpeed 3.4)
+  { kind: 'pilzling', mini: true, pos: [2, 1, -170], behavior: 'chase', sight: 5 },
+  // Wirbelbrocken (Boss): id, pos (Start), arena { center, r: 10 } (Kampffläche), hp 3, wakeR 9 (ohne Boss-Archetyp), drop
+  { kind: 'wirbelbrocken', id: 'wirbel', pos: [0, 2, -3], arena: { center: [0, 2, 0], r: 10.6 } },
+],
+// Boss-Archetyp dazu (siehe „Präzisierung (Arena/Boss)“): speed 0 = keine Fahr-Illusion
+boss: { id: 'wirbel', name: 'Wirbelbrocken', speed: 0, trigger: { min, max }, warp: 'warp_sieg', frame: 0.35 },
+```
+
+Wirbelbrocken je Phase (hp 3 → 1): Lauf 4,5 / 5,5 / 6,5 m/s (1,6 / 1,3 / 1,0 s), Wirbel 1 / 2 / 3 (je 2,2 / 1,9 / 1,7 s, dazwischen
+0,5 s Lauf), Schwindel 1,6 / 1,5 / 1,4 s, Panzerkugel 7 / 9 / 11 m/s (2,6 / 3,0 / 3,4 s, prallt an der Arenagrenze `r − 0,8` und an
+Wänden ab). Treffer → `hit` 0,6 s → Kugel; dritter Treffer → `defeated` 2 s → `flee` 1,2 s → `gone` (Archetyp: Sieg, Warp-Box).
+Schnittstelle wie Baron: `begin(), reset(), state, stateT, hp, maxHp, phase, visible, home, half, carHits (0), info()`,
+`level.onBossHit(boss, 'stomp'|'cannon')`, `level.onBossDefeated(boss)`; Phase 3 zeigt eine eigene Ansage statt „Feuerspur“.
+Ohne Boss-Archetyp beginnt der Kampf bei Annäherung (`wakeR`), und `drop` erscheint nach `gone` in der Arenamitte.
+
+### Präzisierung (Gegner Welt 2): Tests und Kennzahlen
+
+`tests/course_w2_enemies.mjs` (Port 4199, `?course=0-6|0-7&scale=2&adapt=0`, deterministisch über `step(n)`/`setInput`; Hilfen
+`window.__t`: `Z(r, dz)`, `place`, `stomp`, `side`, `action`, `count`, `hurt`): je Gegner Kernverhalten, Besiegen-Weg und
+Schadensweg, Rollpilz tragen/werfen besiegt eine Zielscheibe, Großrollpilz in die Lava, Kanone im 3-s-Takt, Reit- und Suchkopf,
+Lauerblock trägt/klemmt ein/Takt, Münzmarder (Flucht, Sprung, Münzregen, Entkommen), Rutschen, Klone (Kanone, Werfer,
+Hüpfmaus, Wuschel, Marder, Boss zielen auf die nächste Figur), Boss alle drei Phasen, Treffer nur im Fenster, Kanonenkugel,
+Sieg → Warp → Zielmast, Tod setzt den Kampf zurück. Gemessen (scale 2, inkl. Schattenpass): Gegnerzoo 66–108 Zeichenaufrufe
+(Ziel < 140), ≤ 198 k Dreiecke; Boss-Arena 48–72.
