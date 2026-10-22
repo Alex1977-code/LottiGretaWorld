@@ -7,10 +7,40 @@
 //     once?: false (true = kommt nicht wieder), id?, hidden? }
 //   Mehrere als Baustein: { type: 'sandblock', pos?, blocks: [[x, y, z], …] | from/to (Reihe) | grid: [nx, nz] … }
 //   (blocks/types/w2engine.js). Signal { drop: id } zerbröselt ihn.
+// Darstellung: Instanz-Modell createInstanced('sandblock', 32) aus der Modell-Registry (Zustände idle | shake |
+// crumble | gone | hidden; je 32 Blöcke 2 Zeichenaufrufe), sonst eigener Instanz-Pool (Rückfall).
 
 import * as THREE from 'three';
 import { Gimmick, visDt } from '../gimmick.js';
 import { roundedBox, colorize, lin, mixc, smooth, SIDE } from '../../../three/world/geometry.js';
+import { createInstanced } from '../../models/lib/instanced.js';
+
+const GROUP = 32;
+
+/** Platz in einer gemeinsamen Instanz-Gruppe des Levels (oder null → Rückfall-Pool). */
+function allocSlot(level) {
+  if (!level.view) return null;
+  const m = level._sandInst ?? (level._sandInst = { groups: [], free: [], used: 0, ok: true });
+  if (!m.ok) return null;
+  if (!m.free.length) {
+    let g;
+    try { g = createInstanced('sandblock', GROUP); } catch (err) { m.ok = false; return null; }
+    level.view.add(g.root);
+    level.view.onFrame((dt) => g.update(dt));
+    m.groups.push(g);
+    for (let i = GROUP - 1; i >= 0; i--) m.free.push({ g, i });
+  }
+  m.used++;
+  return m.free.pop();
+}
+
+function releaseSlot(level, slot) {
+  const m = level._sandInst;
+  if (!m || !slot) return;
+  slot.g.setState(slot.i, 'hidden');
+  m.free.push(slot);
+  if (--m.used <= 0) { for (const g of m.groups) g.dispose(); level._sandInst = null; }
+}
 
 const CRUMBLE = new Set(['pound', 'claw', 'cannon', 'bomb', 'mega', 'shell']);
 
@@ -46,7 +76,10 @@ class Sandblock extends Gimmick {
     this.pop = 1;
     const p = this.pos, s = this.size;
     this.addSolid({ type: 'box', min: [p.x - s / 2, p.y, p.z - s / 2], max: [p.x + s / 2, p.y + s, p.z + s / 2], breakable: true, tag: 'sandblock' });
-    this.pool = level.view?.pool('sandblock', sandTemplate, { capacity: 32 }) ?? null;
+    this.slot = allocSlot(level);
+    this.visKey = '';
+    this.goneT = 0;
+    this.pool = !this.slot ? level.view?.pool('sandblock', sandTemplate, { capacity: 32 }) ?? null : null;
     this.idx = this.pool ? this.pool.alloc() : -1;
     if (this.hidden && this.pool) this.pool.hide(this.idx);
   }
@@ -99,6 +132,7 @@ class Sandblock extends Gimmick {
   }
 
   render(dt, t) {
+    if (this.slot) { this.renderInstanced(dt); return; }
     if (this.idx < 0) return;
     if (this.hidden || this.state === 'gone') { this.pool.hide(this.idx); return; }
     const vd = visDt(this.level, this, dt);
@@ -110,7 +144,25 @@ class Sandblock extends Gimmick {
     if (this.state === 'crumble' && Math.random() < dt * 14) this.level.effects?.dust({ x: this.pos.x + (Math.random() - 0.5) * this.size, y: this.pos.y + 0.05, z: this.pos.z + (Math.random() - 0.5) * this.size }, 1, 0.3);
   }
 
+  /** Registry-Instanz: idle (mit Aufbau-Plopp) → shake (rieselt) → crumble (0,6 s) → gone; versteckt: hidden. */
+  renderInstanced(dt) {
+    const { g, i } = this.slot;
+    const vd = visDt(this.level, this, dt);
+    let st;
+    if (this.hidden) st = 'hidden';
+    else if (this.state === 'gone') { this.goneT += vd; st = this.goneT < 0.6 ? 'crumble' : 'gone'; }
+    else { this.goneT = 0; st = this.state === 'crumble' ? 'shake' : 'idle'; }
+    if (st === 'idle' && this.pop < 1) this.pop = Math.min(1, this.pop + vd * 3);
+    const k = this.pop < 1 ? Math.max(0.05, Math.sin(this.pop * Math.PI * 0.5) + Math.sin(this.pop * Math.PI) * 0.12) : 1;
+    const key = `${st}|${k.toFixed(3)}`;
+    if (key === this.visKey) return;
+    const first = this.visKey === '' || this.visKey.split('|')[0] !== st;
+    this.visKey = key;
+    if (first || k < 1) g.setAt(i, [this.pos.x, this.pos.y + (this.size - this.size * k) / 2, this.pos.z], 0, this.size * k, st);
+  }
+
   dispose() {
+    if (this.slot) { releaseSlot(this.level, this.slot); this.slot = null; }
     if (this.idx >= 0) this.pool.release(this.idx);
     this.idx = -1;
     super.dispose();

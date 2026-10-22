@@ -13,7 +13,8 @@
 //   slow:  0.5   Lauftempo-Faktor an der Oberfläche
 //   jump:  0.75  Sprung-Faktor (Absprunggeschwindigkeit) an der Oberfläche
 //   flow:  [fx, fz]  m/s Fließrichtung (Standard keine)
-//   color: Sandfarbe (Standard 0xe8c26e)
+//   color: Sandfarbe (Standard 0xe8c26e; Körnungs-Textur)
+//   swirl: 0.7   rad/s Wirbel des Beckens (Modell 'treibsand', nur ohne flow; mit flow fließt eine Körnungs-Textur)
 // Das Becken braucht ein Loch im Boden ringsum (Inseln daneben, nicht darunter) – die Ränder baut der Baustein nicht.
 // Kollision: Box mit Flags `quicksand: { sink, slow, jump, flow }`, `oneWay`, `camIgnore` (Gegner stehen zuerst auf der
 // Oberfläche, Schatten-Blobs liegen darauf; die Figur ignoriert sie und wird von Player.sandSupport gehalten).
@@ -24,6 +25,7 @@
 
 import * as THREE from 'three';
 import { v3, sz3, hex, box, addStatic } from '../kit.js';
+import { hasModel, getModel } from '../../models/index.js';
 
 function sandTexture(color) {
   const c = document.createElement('canvas');
@@ -101,6 +103,14 @@ export function buildQuicksand(level, spec) {
     const color = hex(spec.color, 0xe8c26e);
     // Sandkörper-Seiten (sichtbar, wo der Rand offen ist) – verschmolzen
     addStatic(level, box(s.x, s.y - 0.02, s.z, p.x, p.y + (s.y - 0.02) / 2, p.z, 0xc9a050, { r: 0.04, topColor: color }), { material: 'world', castShadow: false, receiveShadow: true });
+    // Stehendes Becken: Registry-Modell 'treibsand' (Wirbel zur Mitte, Sandwall ringsum), sonst Körnungs-Textur
+    if (!flow && hasModel('treibsand')) {
+      const m = getModel('treibsand', { size: [s.x, s.z], depth: 0 });
+      m.root.position.set(p.x, top - 0.025, p.z);
+      level.view.add(m.root, (dt) => m.update?.(dt, { speed: spec.swirl ?? 0.7 }));
+      owner.mesh = m.root;
+      return owner;
+    }
     // Oberfläche mit Körnung, fließt bei flow
     const tex = sandTexture(color);
     tex.repeat.set(s.x / 2.5, s.z / 2.5);

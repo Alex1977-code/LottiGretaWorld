@@ -15,10 +15,10 @@
 // Helme:
 //   kanone     feuert alle 0,6 s (und sofort mit Aktion, ≥ 0,2 s Abstand) eine Kanonenkugel (Entität
 //              `kanonenkugel`, entities/kinds/helme.js) in Blickrichtung; höchstens 3 je Figur unterwegs.
-//              Modell-Zustand { fire: 0..1 } (Rückstoß, 1 = gerade gefeuert).
+//              Modell-Zustand { anim: 'idle'|'fire', progress: 0..1, fire: 0..1 } (Rückstoß, 1 = gerade gefeuert).
 //   propeller  Aktion → steiler Aufstieg ≈ 8 m (einmal je Bodenkontakt), danach – solange Aktion/Rennen (Shift,
 //              Y-Knopf) oder Sprung gehalten – langsames Sinken (≤ 2,6 m/s), volle Luftsteuerung.
-//              Modell-Zustand { spin: rad/s } (Propellerdrehung).
+//              Modell-Zustand { anim: 'idle'|'spin'|'fly', spin: rad/s } (fly = Aufstieg, spin = gehaltenes Sinken).
 //   licht      Lichtkegel nach vorn (7 m, ±30°, leicht abwärts; feste Wände schatten ab): jede Entität mit
 //              `onLight(dt, player)` im Kegel bekommt den Aufruf je Schritt (Geister lösen sich auf – Welt 3;
 //              Teststub `testgeist`). Modell-Zustand { on: true }. HeroRig zeichnet den Kegel.
@@ -103,7 +103,8 @@ export const HELMETS = {
       if (s.cool <= 0 && fireCannon(p)) s.t = CANNON.interval;
       return true;
     },
-    state(p) { return { fire: p.helmetFx?.recoil ?? 0 }; },
+    // Modell helm_kanone: { anim: 'idle'|'fire', progress } (Rückfall liest fire)
+    state(p) { const r = p.helmetFx?.recoil ?? 0; return { anim: r > 0 ? 'fire' : 'idle', progress: 1 - r, fire: r }; },
   },
   propeller: {
     label: 'Propeller-Helm',
@@ -139,7 +140,11 @@ export const HELMETS = {
       p.level.sfx('propeller');
       return true;
     },
-    state(p) { return { spin: p.helmetFx?.spin ?? 3 }; },
+    // Modell helm_propeller: { anim: 'idle'|'spin'|'fly', spin }
+    state(p) {
+      const s = p.helmetFx;
+      return { anim: s?.flying && p.mode === 'air' ? (p.vel.y > 0 ? 'fly' : 'spin') : 'idle', spin: s?.spin ?? 3 };
+    },
   },
   licht: {
     label: 'Licht-Helm',

@@ -7,7 +7,7 @@
 // Parameter:
 //   pos:   [x, y, z]  Mitte der Unterseite (Start);  path: [[x, y, z], …] statt pos (Start = erster Punkt)
 //   rise:  m  (ohne path: Ziel = pos + [0, rise, 0], Standard 6)
-//   size:  [w, h, d] Standard [3, 0.5, 3]
+//   size:  [w, h, d] Standard [3, 0.5, 3] (mit Registry-Modell 'multilift' ist die Höhe 0,4)
 //   need:  4         Figuren gleichzeitig
 //   speed: 2.5 m/s,  back: true,  wait: 1.0 s,  color: 'purple'
 //   id:    Name → level.named.get(id) = { count, need, s, length, state ('wait'|'up'|'stop'|'down'|'top'), shape }
@@ -16,11 +16,15 @@
 import * as THREE from 'three';
 import { v3, sz3, box, hex, merge, addObject } from '../kit.js';
 import { Badge, figuresOn } from '../../entities/kinds/figuren.js';
+import { hasModel, getModel } from '../../models/index.js';
 
 export function buildMultilift(level, spec) {
   const p0 = v3(spec.path?.[0] ?? spec.pos);
   const pts = spec.path?.length >= 2 ? spec.path.map(v3) : [p0, { x: p0.x, y: p0.y + (spec.rise ?? 6), z: p0.z }];
+  // Registry-Modell 'multilift': Oberseite 0,4 m, Anzeigetafel hinten (Modell −X → gedreht nach −Z, zur Kamera lesbar)
+  const reg = hasModel('multilift');
   const s = sz3(spec.size, [3, 0.5, 3]);
+  if (reg) s.y = 0.4;
   const need = Math.max(1, spec.need ?? 4);
   const speed = spec.speed ?? 2.5, back = spec.back !== false, wait = spec.wait ?? 1.0;
   const segs = [];
@@ -66,8 +70,15 @@ export function buildMultilift(level, spec) {
       level.world.update(id);
     }
   });
-  // Darstellung: Plattform mit Figur-Punkten, Tafel „n/need“
-  if (level.view) {
+  // Darstellung: Registry-Modell (Tafel mit Ziffer need und Lämpchen count) oder Plattform mit Figur-Punkten + Schild
+  if (level.view && reg) {
+    const m = getModel('multilift', { need, size: [s.z, s.x] });
+    m.root.rotation.y = -Math.PI / 2;
+    addObject(level, m.root, (dt) => {
+      m.root.position.set(pos.x, pos.y, pos.z);
+      m.update?.(dt, { count: lift.count, anim: lift.state === 'up' ? 'go' : 'wait' });
+    });
+  } else if (level.view) {
     const col = hex(spec.color ?? 'purple', 0xa865ff);
     const parts = [box(s.x, s.y, s.z, 0, s.y / 2, 0, col, { r: 0.12, topColor: 0xd8b8ff })];
     const n = need, stepX = Math.min(0.6, (s.x - 0.5) / n);

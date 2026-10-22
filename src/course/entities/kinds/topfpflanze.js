@@ -8,14 +8,15 @@
 //
 // Daten: { kind: 'topfpflanze', pos: [x, y, z] (Fußpunkt), reach?: 1.7 (m vor dem Kopf), pause?: 0.35 (s zwischen
 //          zwei Bissen), yaw?, respawn?: 0, id? }
-// Modell 'topfpflanze' aus der Registry (state { anim: 'idle'|'snap', progress, carried }), sonst die
-// Schnappblume im Topf (getModel('schnappblume', { base: 'pot' })) mit goldenem Topfrand als Kennzeichen.
+// Modell 'topfpflanze' aus der Registry (×0,8; state { anim: 'idle'|'snap'|'carried', progress }), sonst die
+// Schnappblume im Topf (getModel('schnappblume', { base: 'pot' }), ×0,72) mit goldenem Topfrand als Kennzeichen.
 
 import * as THREE from 'three';
 import { Gimmick } from '../gimmick.js';
 import { hasModel, getModel } from '../../models/index.js';
 
-const SCALE = 0.72;            // Darstellung (Schnappblumen-Modell ≈ 1 m → ≈ 0,72 m)
+const SCALE = 0.72;            // Rückfall: Schnappblumen-Modell ≈ 1 m → ≈ 0,72 m
+const SCALE_REG = 0.8;         // Registry-Modell topfpflanze ≈ 0,9 m → ≈ 0,72 m
 const SNAP = 0.5;              // s je Biss (Ausholen → Zuschnappen → zurück)
 const COLLECT = new Set(['coin', 'bluecoin', 'starcoin']);
 
@@ -42,12 +43,13 @@ class Topfpflanze extends Gimmick {
   }
 
   makeModel() {
-    if (hasModel('topfpflanze')) return getModel('topfpflanze');
-    const m = getModel('schnappblume', { base: 'pot' });
+    const reg = hasModel('topfpflanze');
+    const m = reg ? getModel('topfpflanze') : getModel('schnappblume', { base: 'pot' });
     const inner = new THREE.Group();
-    inner.scale.setScalar(SCALE);
+    inner.scale.setScalar(reg ? SCALE_REG : SCALE);
     while (m.root.children.length) inner.add(m.root.children[0]);
     m.root.add(inner);
+    if (reg) return m;
     // goldener Topfrand: zahm, tragbar
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.045, 8, 20), new THREE.MeshStandardMaterial({ color: 0xffc83a, roughness: 0.3, metalness: 0.5 }));
     ring.rotation.x = Math.PI / 2;
@@ -193,7 +195,8 @@ class Topfpflanze extends Gimmick {
   }
 
   modelState() {
-    return this.snapT >= 0 ? { anim: 'snap', progress: Math.min(1, this.snapT / SNAP), carried: !!this.carrier } : { anim: 'idle', carried: !!this.carrier };
+    if (this.snapT >= 0) return { anim: 'snap', progress: Math.min(1, this.snapT / SNAP), carried: !!this.carrier };
+    return { anim: this.carrier ? 'carried' : 'idle', carried: !!this.carrier };
   }
 }
 

@@ -96,11 +96,19 @@ class HelmItem extends Gimmick {
 
 // ------------------------------------------------------------------ Kanonenkugel
 
-const BALL_R = 0.2;
+const BALL_R = 0.22;
 let ballTemplate = null;
 
 function ballModel() {
-  if (hasModel('kanonenkugel')) return getModel('kanonenkugel');
+  if (hasModel('kanonenkugel')) {
+    // Registry-Modell: Ø 0,5 m, Mitte bei y = 0,25 → auf die Trefferkugel (Ø 0,44 m) skaliert
+    const m = getModel('kanonenkugel');
+    const inner = new THREE.Group();
+    inner.scale.setScalar((BALL_R * 2) / 0.5);
+    while (m.root.children.length) inner.add(m.root.children[0]);
+    m.root.add(inner);
+    return m;
+  }
   if (!ballTemplate) {
     ballTemplate = {
       geo: new THREE.SphereGeometry(BALL_R, 16, 12),
@@ -172,19 +180,20 @@ class Kanonenkugel extends Gimmick {
     }
   }
 
-  /** Wand/Form getroffen: Holzwände ('cannon') und Zerbrechliches (true) zerstören, dann zerplatzen. */
+  /**
+   * Wand/Form getroffen: jeder Besitzer mit onHit bekommt onHit('cannon', kugel, form) (Holzwand 'cannon' zerbricht,
+   * Gegner fliegen weg, Kristall-/Holzbausteine entscheiden selbst); Zerbrechliches (breakable: true – Kiste, Ziegel),
+   * das danach noch steht, zusätzlich onHit('shell'). Dann zerplatzt die Kugel.
+   */
   impact(hits) {
     const w = this.level.world;
     const done = new Set();
     for (const s of hits ?? []) {
       const o = s.owner;
-      if (!o || done.has(o)) continue;
+      if (!o || done.has(o) || typeof o.onHit !== 'function') continue;
       done.add(o);
-      if (s.breakable === 'cannon' || s.breakable === true) {
-        o.onHit?.('cannon', this, s);
-        // Kisten/Ziegel kennen 'cannon' nicht: steht die Form noch, wirkt die Kugel wie ein Panzer
-        if (s.breakable === true && w.get(s.id) === s) o.onHit?.('shell', this, s);
-      } else if (o.enemy) o.onHit?.('cannon', this);
+      o.onHit('cannon', this, s);
+      if (s.breakable === true && w.get(s.id) === s) o.onHit('shell', this, s);
     }
     this.burst(true);
   }
@@ -199,7 +208,9 @@ class Kanonenkugel extends Gimmick {
 
   render(dt, t) {
     this.syncModel();
-    if (this.model) this.model.root.rotation.y = this.yaw;
+    if (!this.model) return;
+    this.model.root.rotation.y = this.yaw;
+    this.model.update?.(dt, { anim: 'fly', speed: this.speed });
   }
 }
 

@@ -26,6 +26,7 @@
 import * as THREE from 'three';
 import { createAvatar } from '../../three/avatars/index.js';
 import { helmetModel, getHelmet, LIGHT } from './helmets.js';
+import { hasModel } from '../models/index.js';
 
 const AVATAR_H = 1.5;          // Höhe der Heldin in Avatar-Einheiten
 const PX = 16;                 // Avatar-Rückfall: Weltpixel je Einheit
@@ -147,7 +148,8 @@ export class HeroRig {
       const geo = new THREE.ConeGeometry(r, len, 24, 1, true);
       geo.translate(0, -len / 2, 0);       // Spitze im Ursprung, öffnet nach −Y …
       geo.rotateZ(Math.PI / 2);            // … gedreht: öffnet nach +X (Blickrichtung)
-      const mat = new THREE.MeshBasicMaterial({ color: 0xfff3a0, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: true });
+      // Das Registry-Modell helm_licht hat selbst einen kurzen Kegel (2,6 m) – dann den langen etwas zarter
+      const mat = new THREE.MeshBasicMaterial({ color: 0xfff3a0, transparent: true, opacity: hasModel('helm_licht') ? 0.1 : 0.16, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: true });
       this.cone = new THREE.Mesh(geo, mat);
       this.cone.name = 'lichtkegel';
       this.cone.renderOrder = 3;

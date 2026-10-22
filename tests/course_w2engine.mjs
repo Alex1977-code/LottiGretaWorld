@@ -93,7 +93,7 @@ await sc(() => {
       return max;
     },
     ents: (kind) => L().entities.filter((e) => e.kind === kind && !e.removed).map((e) => ({ x: +e.pos.x.toFixed(2), y: +e.pos.y.toFixed(2), z: +e.pos.z.toFixed(2), alive: e.alive, defeated: !!e.defeated, hidden: !!e.hidden, state: e.state })),
-    named: (id) => { const e = L().named.get(id); return e ? { alive: e.alive !== false, removed: !!e.removed, hidden: !!e.hidden, defeated: !!e.defeated, state: e.state, done: e.done, count: e.count, s: e.s, wrong: e.wrongCount, fired: e.fired, light: e.light, lightCalls: e.lightCalls, bites: e.bites, crumbles: e.crumbles, knocks: e.knocks, x: e.pos?.x, y: e.pos?.y, z: e.pos?.z, badge: e.badge?.key ?? null, prog: e.progress?.() ?? null } : null; },
+    named: (id) => { const e = L().named.get(id); return e ? { alive: e.alive !== false, removed: !!e.removed, hidden: !!e.hidden, defeated: !!e.defeated, state: e.state, done: e.done, count: e.count, s: e.s, wrong: e.wrongCount, fired: e.fired, light: e.light, lightCalls: e.lightCalls, bites: e.bites, crumbles: e.crumbles, knocks: e.knocks, need: e.need, x: e.pos?.x, y: e.pos?.y, z: e.pos?.z, badge: e.badge?.key ?? null, prog: e.progress?.() ?? null } : null; },
     spawn(kind, spec) { const e = L().spawn(kind, spec); return !!e; },
     starHidden: (index) => { const s = L().entities.find((e) => e.kind === 'star' && e.index === index && !e.removed); return s ? s.hidden : null; },
     resetStars() { L().runtime.stars = L().runtime.stars.map(() => false); },
@@ -274,7 +274,7 @@ await shot('start');
   const one = await T('named', 'pf2');
   await frame();
   const oneB = await T('named', 'pf2');
-  check('Druckfeld: eine Figur reicht nicht (Anzeige 1/2)', one.count === 1 && !one.done && (await T('starHidden', 0)) === true && String(oneB.badge).startsWith('1/2'));
+  check('Druckfeld: eine Figur reicht nicht (Anzeige 1/2)', one.count === 1 && !one.done && (await T('starHidden', 0)) === true && oneB.prog?.[0] === 1 && oneB.prog?.[1] === 2);
   await T('clone', [pf[0] + 0.45, 1.4, pf[2]]);
   await T('steps', 60);
   const two = await T('named', 'pf2');
@@ -303,13 +303,13 @@ await shot('start');
   await frame();
   const l3 = await T('named', 'vierer');
   console.log(`  Viererlift mit 3: count ${l3.count}, Weg ${f2(l3.s)} m, Anzeige ${l3.badge}`);
-  check('Viererlift fährt mit 3 Figuren nicht (Anzeige 3/4)', l3.count === 3 && l3.s < 0.01 && String(l3.badge).startsWith('3/4'));
+  check('Viererlift fährt mit 3 Figuren nicht (Anzeige 3/4)', l3.count === 3 && l3.s < 0.01 && l3.need === 4);
   await T('clone', [lp[0] + 0.8, 1.6, lp[2] - 0.8]);
   await T('steps', 330);
   const l4 = await T('named', 'vierer');
   const ys = (await T('figs')).map((f) => f.y);
   console.log(`  Viererlift mit 4: count ${l4.count}, Weg ${f2(l4.s)} m, Figuren y ${ys.map(f2).join(', ')}`);
-  check('Viererlift fährt mit 4 Figuren nach oben und trägt alle mit', l4.s > 5.9 && ys.every((y) => y > 7.3));
+  check('Viererlift fährt mit 4 Figuren nach oben und trägt alle mit', l4.s > 5.9 && ys.every((y) => y > 7.2));
   if (SHOTS) await shot('viererlift');
   // runter: alle weg → fährt zurück
   await T('place', [6, 1, -40]);
@@ -401,10 +401,10 @@ await shot('start');
   const crate = await T('named', 'kiste');
   console.log(`  Kanone: Holzkiste ${crate.alive && !crate.removed ? 'steht' : 'zerstört'}`);
   check('Kanonenkugel zerstört Holzkisten', !crate.alive || crate.removed);
-  await sc(() => window.__course.player.dropHelmet('gone'));
+  await sc(() => { const c = window.__course; c.player.dropHelmet('gone'); for (const e of c.level.entities) if (e.kind === 'kanonenkugel') e.kill(); });
   // Holzwand hält Stampfen aus
-  await sc(() => { window.__course.level.spawn('holzwand', { id: 'hw2', pos: [-10, 1, -68], size: [2, 1, 2] }); });
-  await T('place', [-10, 4, -68], { settle: 1 });
+  await sc(() => { window.__course.level.spawn('holzwand', { id: 'hw2', pos: [11, 1, -76], size: [2, 1, 2] }); });
+  await T('place', [11, 4, -76], { settle: 1 });
   await sc(() => window.__course.player.startPound());
   await T('steps', 80);
   const hw2 = await T('named', 'hw2');

@@ -21,6 +21,11 @@
 import * as THREE from 'three';
 import { Gimmick, runAction, LIST } from '../gimmick.js';
 import { box, disc, merge } from '../../blocks/kit.js';
+import { hasModel, getModel } from '../../models/index.js';
+
+// Registry-Modelle zeigen Ziffern/Porträts mit der Oberkante nach −X → um −90° gedreht lesen sie sich von der
+// Standardkamera (blickt nach −Z) aufrecht.
+const READ_YAW = -Math.PI / 2;
 
 // ------------------------------------------------------------------ Anzeige-Schild (Canvas-Sprite)
 
@@ -116,8 +121,15 @@ class PField extends Gimmick {
     this.fired = 0;
     this.press = 0;           // Darstellung 0..1
     const p = this.pos;
-    this.top = p.y + PLATE_H;
-    this.shape = this.addSolid({ type: 'box', min: [p.x - this.w / 2, p.y, p.z - this.d / 2], max: [p.x + this.w / 2, this.top, p.z + this.d / 2], tag: 'pfeld' });
+    // Registry-Modell 'pfeld': rund (Ø = kleinere Seite), Oberseite 0,26 m, gedrückt 0,2 m
+    this.reg = hasModel('pfeld');
+    this.plateH = this.reg ? 0.26 : PLATE_H;
+    this.pressH = this.reg ? 0.06 : PRESS;
+    this.top = p.y + this.plateH;
+    if (this.reg) {
+      this.R = Math.min(this.w, this.d) / 2;
+      this.shape = this.addSolid({ type: 'cyl', x: p.x, z: p.z, r: this.R + 0.12, y0: p.y, y1: this.top, tag: 'pfeld' });
+    } else this.shape = this.addSolid({ type: 'box', min: [p.x - this.w / 2, p.y, p.z - this.d / 2], max: [p.x + this.w / 2, this.top, p.z + this.d / 2], tag: 'pfeld' });
     if (this.group) {
       const groups = level._pfeldGroups ?? (level._pfeldGroups = new Map());
       if (!groups.has(this.group)) groups.set(this.group, []);
@@ -128,6 +140,13 @@ class PField extends Gimmick {
   }
 
   buildView(spec) {
+    if (this.reg) {
+      const m = getModel('pfeld', { need: this.need, size: this.R * 2 });
+      m.root.rotation.y = READ_YAW;
+      this.setModel(m);
+      this.yaw = READ_YAW;
+      return;
+    }
     const col = spec.color ?? 0xffc83a;
     const parts = [box(this.w, PLATE_H, this.d, 0, PLATE_H / 2, 0, col, { r: 0.06, topColor: 0xffe27a })];
     // Figur-Punkte: so viele weiße Kreise wie Figuren nötig
@@ -177,12 +196,21 @@ class PField extends Gimmick {
     return [Math.min(this.count, this.need), this.need];
   }
 
+  modelState() { return { count: this.count, on: this.done || this.active }; }
+
   render(dt, t) {
     super.render(dt, t);
+    if (this.reg && !this.hidden) {
+      // Modell zeigt Ziffer (need) und Lämpchen (count); das Schild nur für Gruppen (belegte Felder)
+      const [a, b] = this.progress();
+      if (this.done || this.groupMembers().length < 2 || a === 0) this.badge.hide();
+      else { this.badge.show(`${a}/${b}`, a >= b ? '#5fcf6a' : '#ffd23d'); this.badge.at(this.pos.x, this.top + 1.6, this.pos.z); }
+      return;
+    }
     if (!this.mesh || this.hidden) { this.badge.hide(); return; }
     const down = this.done || this.active || this.pressed;
     this.press += ((down ? 1 : 0) - this.press) * Math.min(1, dt * 14);
-    this.mesh.position.y = this.pos.y - PRESS * this.press;
+    this.mesh.position.y = this.pos.y - this.pressH * this.press;
     const lit = this.done || this.active;
     this.mat.color.setRGB(lit ? 0.62 : 1, lit ? 1 : 1, lit ? 0.62 : 1);
     const [a, b] = this.progress();
@@ -194,9 +222,10 @@ class PField extends Gimmick {
   // Kollisionsform folgt dem Eindrücken (Figuren sinken mit)
   syncShapeY() {
     const s = this.shape;
-    const y = this.top - (this.done || this.active || this.pressed ? PRESS : 0);
-    if (Math.abs(s.max[1] - y) < 1e-4) return;
-    s.max[1] = y;
+    const y = this.top - (this.done || this.active || this.pressed ? this.pressH : 0);
+    const cur = s.type === 'cyl' ? s.y1 : s.max[1];
+    if (Math.abs(cur - y) < 1e-4) return;
+    if (s.type === 'cyl') s.y1 = y; else s.max[1] = y;
     if (this.shapes[0]) this.level.world.update(this.shapes[0]);
   }
 
@@ -245,6 +274,7 @@ function portraitTexture(hero) {
 }
 
 const SW_R = 0.85, SW_H = 0.22;
+const SW_REG_H = 0.46, SW_SINK = 0.2;
 
 class Figurenschalter extends Gimmick {
   constructor(level, spec) {
@@ -260,14 +290,22 @@ class Figurenschalter extends Gimmick {
     this.press = 0;
     this.yawP = spec.yaw ?? 0;
     const p = this.pos;
-    this.top = p.y + SW_H;
-    this.addSolid({ type: 'cyl', x: p.x, z: p.z, r: SW_R, y0: p.y, y1: this.top, tag: 'figurenschalter' });
+    // Registry-Modell: Sockel Ø 1,36 m, Knopf-Oberseite 0,46 m → 0,2 m in den Boden gesenkt (begehbar wie eine Stufe)
+    this.reg = hasModel('figurenschalter');
+    this.top = p.y + (this.reg ? SW_REG_H - SW_SINK : SW_H);
+    this.addSolid({ type: 'cyl', x: p.x, z: p.z, r: this.reg ? 0.68 : SW_R, y0: p.y, y1: this.top, tag: 'figurenschalter' });
     this.badge = new Badge(level, { w: 2.2, h: 0.62, color: HERO[this.hero].dress });
     this.wasOn = false;
     if (level.view) this.buildView();
   }
 
   buildView() {
+    if (this.reg) {
+      const m = getModel('figurenschalter', { hero: this.hero });
+      this.setModel(m);
+      this.yaw = READ_YAW + this.yawP;
+      return;
+    }
     const root = new THREE.Group();
     const geo = merge([disc(0, 0, 0, SW_R, SW_H, 0xf6f4ef, 0xd9c7a8, 32), disc(0, SW_H, 0, SW_R * 0.92, 0.02, 0x1a1830, 0x1a1830, 32)]);
     this.baseMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 });
@@ -293,6 +331,7 @@ class Figurenschalter extends Gimmick {
     const any = figuresOn(this.level, this);
     if (right > 0 && !this.done) {
       this.done = true;
+      if (this.reg && this.shapes[0]) { const sh = this.solids[0]; sh.y1 = this.top - 0.11; this.level.world.update(this.shapes[0]); }
       this.level.sfx('switch');
       this.level.effects?.sparks({ x: this.pos.x, y: this.top + 0.3, z: this.pos.z }, 16);
       runAction(this.level, this.action, { pos: [this.pos.x, this.top + 0.3, this.pos.z], source: this });
@@ -306,14 +345,21 @@ class Figurenschalter extends Gimmick {
     this.wasOn = any > 0;
   }
 
+  modelState() { return { anim: this.done ? 'pressed' : 'idle' }; }
+
   render(dt, t) {
     super.render(dt, t);
     if (!this.model || this.hidden) { this.badge.hide(); return; }
     this.press += ((this.done ? 1 : 0) - this.press) * Math.min(1, dt * 12);
     const wob = this.wrongT > 0 ? Math.sin(t * 38) * 0.05 * Math.min(1, this.wrongT) : 0;
-    this.model.root.position.y = this.pos.y - 0.1 * this.press;
-    this.model.root.rotation.z = wob;
-    this.faceMat.emissiveIntensity = this.done ? 0.45 + Math.sin(t * 4) * 0.1 : 0.12;
+    if (this.reg) {
+      this.model.root.position.y = this.pos.y - SW_SINK;
+      this.model.root.rotation.z = wob;
+    } else {
+      this.model.root.position.y = this.pos.y - 0.1 * this.press;
+      this.model.root.rotation.z = wob;
+      this.faceMat.emissiveIntensity = this.done ? 0.45 + Math.sin(t * 4) * 0.1 : 0.12;
+    }
     if (this.wrongT > 0) { this.badge.show(`Nur für ${HERO[this.hero].name}!`, HERO[this.hero].dress); this.badge.at(this.pos.x, this.top + 1.9, this.pos.z); }
     else this.badge.hide();
   }
