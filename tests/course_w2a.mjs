@@ -100,27 +100,27 @@ const ROUTES = {
   },
   '2-2': {
     start: [0, 1, 5],
-    enemies: { schnappblume: 6, rollpilz: 4, pilzling: 4, muenzmarder: 1 },
+    enemies: { schnappblume: 4, rollpilz: 4, pilzling: 4, muenzmarder: 1 },
     main: [
-      { name: 'Tastenstein', to: [0, -7.6], jump: 30, within: 0.3, run: false },
+      { name: 'Tastenstein', to: [0, -7.6], jump: 30, jumpAt: 1.9, within: 0.3, run: false },
       { name: 'Tastenstein hebt', wait: 200 },
       { name: 'obere Insel', to: [0, -10.6], jump: 16, run: false },
       { to: [0.6, -21] },
       { name: 'Antippen 1', tap: 'ap1' },
-      { to: [0, -25.3], jump: 30, within: 0.5 },
+      { to: [0, -25.3], jump: 30, jumpAt: 3.4, within: 0.5 },
       { tap: 'ap2' },
-      { name: 'Antipp 2', to: [2.6, -30], jump: 30, within: 0.5 },
+      { name: 'Antipp 2', to: [2.6, -30], jump: 30, jumpAt: 3.8, within: 0.5 },
       { tap: 'ap3', after: 90 },
-      { name: 'Antipp 3 (ausgefahren)', to: [-0.8, -35], jump: 30, within: 0.5 },
+      { name: 'Antipp 3 (ausgefahren)', to: [-0.8, -35], jump: 30, jumpAt: 3.8, within: 0.5 },
       { tap: 'ap4' },
-      { name: 'Antipp 4 (Zeit)', to: [0.4, -40], jump: 30, within: 0.5 },
-      { name: 'Antipp 5', to: [0, -44.4], jump: 24, within: 0.4 },
+      { name: 'Antipp 4 (Zeit)', to: [0.4, -40], jump: 30, jumpAt: 3.8, within: 0.5 },
+      { name: 'Antipp 5', to: [0, -44.4], jump: 24, jumpAt: 3.6, within: 0.4 },
       { tap: 'ap5', after: 120 },
       { name: 'Insel B', to: [0, -48], run: false },
       { to: [1.8, -55.6] },
-      { name: 'Kristallstufe 1', to: [1.8, -58.6], jump: 40, within: 0.5 },
-      { name: 'Kristallstufe 2', to: [-1, -62], jump: 40, within: 0.5 },
-      { name: 'Kristallstufe 3', to: [1.8, -65.4], jump: 40, within: 0.5 },
+      { name: 'Kristallstufe 1', to: [1.6, -58.6], jump: 40, within: 0.5 },
+      { name: 'Kristallstufe 2', to: [-0.8, -61.9], jump: 40, within: 0.5 },
+      { name: 'Kristallstufe 3', to: [1.2, -65], jump: 40, within: 0.5 },
       { name: 'Checkpoint', to: [0, -69.4] },
       { name: 'Propeller-Lift', to: [0, -79.6], within: 0.3, run: false },
       { wait: 420 },
@@ -134,28 +134,26 @@ const ROUTES = {
       { name: 'Insel F', to: [0.6, -124.4], jump: 30 },
       { to: [1, -131.2] },
       { name: 'sinkender Propeller', to: [1, -135.4], jump: 30, within: 0.6 },
-      { name: 'schwebender Propeller', to: [-1.2, -140.4], jump: 34, within: 0.6 },
+      { name: 'schwebender Propeller', to: [-1, -139.6], jump: 34, within: 0.6 },
       { name: 'Insel G', to: [-1, -145.6], jump: 30 },
       { name: 'Schnappblumen-Feld', to: [0.6, -158] },
       { to: [0.6, -171.4] },
-      { name: 'Taste 1', to: [0, -174.8], jump: 30, within: 0.35, run: false },
-      { wait: 40 },
-      { name: 'Taste 2', to: [0, -177.4], jump: 26, within: 0.35, run: false },
+      { name: 'Taste 1', to: [0, -176.4], jump: 30, jumpAt: 1.8, within: 0.35, run: false },
       { wait: 50 },
-      { name: 'Taste 3', to: [0, -180], jump: 26, within: 0.35, run: false },
-      { wait: 60 },
-      { name: 'Taste 4', to: [0, -182.6], jump: 26, within: 0.35, run: false },
-      { wait: 70 },
+      { name: 'Taste 2', to: [0, -179.6], jump: 30, within: 0.35, run: false },
+      { wait: 100 },
+      { name: 'Taste 3', to: [0, -182.8], jump: 30, within: 0.35, run: false },
+      { wait: 170 },
       { name: 'Zielinsel', to: [0, -186], run: false },
       { name: 'Zielmast', to: [0, -198.3], within: 0.2 },
     ],
     targets: [
       { name: 'Stern 0: Kristall-Kamin per Wandsprung', star: 0, from: [-7.3, 6.5, -58.6],
-        legs: [{ wallJumps: { a: -1, b: 1, top: 16.4, ledge: [-9.8, -58.6], n: 10 } }, { wait: 30 }], shot: 'stern0' },
-      { name: 'Stern 1: Pendel-Propeller → Wolkenkanone → Ende des Münzhimmels', star: 1, from: [5, 1, -127.2],
-        legs: [{ untilNamed: 'pp_k', axis: 'x', lt: 9.4 }, { toNamed: 'pp_k', to: [8.8, -127.2], jump: 30, within: 0.5 }, { toNamed: 'pp_k', within: 0.3, run: false },
+        legs: [{ wallJumps: { a: -1, b: 1, top: 13.6, ledge: [-9.8, -58.6], n: 8 } }, { wait: 30 }], shot: 'stern0' },
+      { name: 'Stern 1: Pendel-Propeller → Wolkenkanone → Ende des Münzhimmels', star: 1, from: [4, 1, -127.2],
+        legs: [{ untilNamed: 'pp_k', axis: 'x', gt: 10 }, { untilNamed: 'pp_k', axis: 'x', lt: 9.2 }, { toNamed: 'pp_k', to: [8.8, -127.2], jump: 30, jumpAt: 3.2, within: 0.5 }, { toNamed: 'pp_k', within: 0.3, run: false },
           { untilNamed: 'pp_k', axis: 'x', gt: 14, ride: 'pp_k' }, { to: [17.4, -127.4], jump: 30 }, { to: [18.6, -127.6], jump: 30, within: 0.25, run: false }, { wait: 30 },
-          { to: [16, -134], within: 0.6 }, { to: [14, -139.4], jump: 34 }, { to: [11, -144.6], jump: 34 }, { to: [8, -149.8], jump: 34 }, { to: [5, -155], jump: 34, within: 0.3 }], shot: 'stern1' },
+          { to: [16, -133.6], within: 0.4, run: false }, { to: [14, -139.4], jump: 34, jumpAt: 3.6 }, { to: [11, -144.6], jump: 34, jumpAt: 3.6 }, { to: [8, -149.8], jump: 34, jumpAt: 3.6 }, { to: [5, -155], jump: 34, jumpAt: 3.6, within: 0.3 }], shot: 'stern1' },
       { name: 'Stern 2: unter der dritten Kristallplatte (stampfen)', star: 2, from: [3.6, 5.6, -195.6],
         legs: [{ to: [5, -195.6], within: 0.2, run: false }, { stomp: true }, { wait: 60 }, { to: [5, -195.6], within: 0.2, run: false }], shot: 'stern2' },
       { name: 'Stempel: rechte Schwebeplattform antippen, Röhre darunter → Raum mit zwei Rollpilzen', from: [5.5, 5, -12.2],
@@ -163,10 +161,13 @@ const ROUTES = {
           { to: [82.6, -17.6] }, { to: [84.4, -18.6], jump: 30, within: 0.3, run: false }], shot: 'stempel' },
     ],
     extra: [
-      { name: 'Münzmarder einholen (Sternensteg)', from: [-6, 1, -104], heroes: ['lotti'],
-        legs: [{ chaseKind: 'muenzmarder', run: true }, { wait: 120 }], expectCoins: 10, expectDefeated: 'marder' },
+      { name: 'Münzmarder einholen (Sternensteg, rennend) und Münzregen einsammeln', from: [-6, 1, -104], heroes: ['lotti', 'greta'],
+        legs: [{ to: [-10.4, -108] }, { to: [-11, -112] }, { to: [-11, -115], run: false, within: 0.5 },
+          { collectKind: 'muenze_flug', radius: 10, max: 700, xr: [-12.2, -9.8], zr: [-117.4, -102] },
+          { to: [-11, -110], run: false, within: 0.5 }, { collectKind: 'muenze_flug', radius: 10, max: 400, xr: [-12.2, -7], zr: [-117.4, -102] }],
+        expectCoins: 10, expectDefeated: 'marder' },
       { name: 'Kristallblock-Geheimnis: oben stampfen → Truhe mit Extraleben', from: [-5.4, 12.5, -71.6], heroes: ['lotti'],
-        legs: [{ to: [-5.4, -74.4], jump: 30, within: 0.3, run: false }, { stomp: true }, { wait: 40 }, { to: [-5.4, -74.6], within: 0.3, run: false }, { wait: 60 }], expectLives: 1 },
+        legs: [{ to: [-5.4, -74.4], jump: 30, within: 0.3, run: false }, { stomp: true }, { wait: 40 }, { to: [-5.4, -73.2], within: 0.3, run: false }, { wait: 40 }, { chaseKind: 'powerup' }, { wait: 30 }], expectLives: 1 },
       { name: 'Linke Schwebeplattform hebt die Figur zum Münzkranz', from: [-5.5, 5, -12.4], heroes: ['lotti'],
         legs: [{ to: [-5.5, -15.6], jump: 26, within: 0.3, run: false }, { tap: 'schwebe_l', after: 150 }, { hop: 30 }], expectCoins: 3 },
       { name: 'Tastenstein auch per Antippen (aus der Ferne)', from: [0, 1, -3], heroes: ['lotti'],
@@ -264,9 +265,13 @@ function install() {
       let steps = 0, autoJumps = 0;
       const hold = o.invuln !== false;
       let rideInput = {}, rode = false;
+      const hist = [];
+      let deadLogged = false;
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
         c.setInput(inp); c.step(1); steps++;
+        if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]); if (hist.length > 12) hist.shift(); }
+        if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
         if (steps % 24 === 0 && p.mode !== 'script') track.push([p.pos.x, p.pos.y, p.pos.z]);
         if (p.mode === 'script' && c.level.runtime.status === 'play' && !p.dead) {
           let n = 0;
@@ -353,7 +358,7 @@ function install() {
           const W = L.wallJumps;
           let dir = W.a, k = 0, jumps = 0, hold = 0, prevJ = false;
           for (; k < 1600 && jumps < (W.n ?? 10); k++) {
-            if (p.pos.y > W.top) break;
+            if (p.pos.y > W.top && dir === W.a && p.vel.y > 0) break;
             let jmp = false;
             if (hold > 0) { jmp = true; hold--; }
             else if (p.mode === 'wall' && !prevJ) { jmp = true; hold = 10; dir = -dir; jumps++; }
@@ -368,6 +373,28 @@ function install() {
             tick({ ...this.stick(dx, dz, Math.min(1, d)), jump: p.mode === 'wall', run: false });
           }
           log.push(['wandsprünge', jumps, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
+          continue;
+        }
+        if (L.collectKind) {
+          // liegende Münzen einer Art in der Nähe einsammeln (Münzregen des Münzmarders …)
+          let k = 0;
+          for (; k < (L.max ?? 600); k++) {
+            let e = null, best = Infinity;
+            for (const x of c.level.entities) {
+              if (x.kind !== L.collectKind || !x.alive || x.removed) continue;
+              if (L.xr && (x.pos.x < L.xr[0] || x.pos.x > L.xr[1])) continue;
+              if (L.zr && (x.pos.z < L.zr[0] || x.pos.z > L.zr[1])) continue;
+              // nur Münzen über festem Boden (nicht über der Lücke)
+              let solid = true;
+              for (const [ox, oz] of [[0, 0], [0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]]) if (!c.world.raycastDown(x.pos.x + ox, x.pos.y + 0.5, x.pos.z + oz, 3)) solid = false;
+              if (!solid) continue;
+              const d = Math.hypot(x.pos.x - p.pos.x, x.pos.z - p.pos.z);
+              if (d < best && d < (L.radius ?? 12) && Math.abs(x.pos.y - p.pos.y) < 2.5) { best = d; e = x; }
+            }
+            if (!e) break;
+            tick({ ...this.stick(e.pos.x - p.pos.x, e.pos.z - p.pos.z, Math.min(1, 0.35 + best * 0.4)), run: false });
+          }
+          log.push(['eingesammelt', L.collectKind, k]);
           continue;
         }
         if (L.collectRain) {
@@ -449,7 +476,7 @@ function install() {
           const T = target();
           const dx = T[0] - p.pos.x, dz = T[1] - p.pos.z;
           const dist = Math.hypot(dx, dz);
-          const fd = Math.hypot(L.to[0] - p.pos.x, L.to[1] - p.pos.z);
+          const fd = L.to ? Math.hypot(L.to[0] - p.pos.x, L.to[1] - p.pos.z) : dist;
           if (fd < best - 0.05) { best = fd; still = 0; } else if (p.mode === 'ground') still++;
           if (still > 45 && auto <= 0 && L.autoJump !== false) { auto = 26; still = 0; autoJumps++; }
           const done = fd < within && (!holdJ || L.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim')));

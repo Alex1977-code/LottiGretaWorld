@@ -23,7 +23,7 @@
 //                 2 Krümels Hackvogel besiegen. Stempel: Sims über der Sandblock-Treppe vor der verschiebenden Brücke.
 // Kulisse sparsam (Budget): Kakteen ≈ 1,3–3,8 k Dreiecke je Stück, daher wenige und nah am Weg; Felstürme/Dünen billig.
 
-import { isl, line, ring, arc, column, blockRing, figure, bubble, setupHook, farHide, shadowless } from './_helpers_a.js';
+import { isl, line, ring, arc, column, blockRing, figure, bubble, setupHook, farHide, shadowless, camel, tumbleweed } from './_helpers_a.js';
 
 const Y = 1;           // Oberseite der Plateaus
 const CAM = { pitch: 43, dist: 13.5, fov: 40, area: [-40, 40] };
@@ -74,6 +74,16 @@ function kruemelSzene(level) {
   });
 }
 
+// ------------------------------------------------------------------ Wüstenleben (level-lokale Kulisse)
+// Dünenkamele auf den Felsrändern (kauen, heben ab und zu den Kopf) und Steppenläufer, die über die Plateaus rollen.
+function wuestenLeben(level) {
+  camel(level, [13.4, 3.5, 2.2], { yaw: 2.5, phase: 0 });
+  camel(level, [14.6, 4.5, -57.4], { yaw: Math.PI - 0.4, phase: 1.7 });
+  camel(level, [15.2, 4.5, -60.4], { yaw: Math.PI + 0.3, scale: 0.6, phase: 3.1, blanket: [0xffc21a, 0x7a46d0] });
+  tumbleweed(level, [-9.6, Y, -31], [9.6, Y, -26], { speed: 3, pause: 5 });
+  tumbleweed(level, [-8.6, Y, -147.6], [8.6, Y, -153.6], { speed: 3.4, pause: 6, phase: 2 });
+}
+
 export const LEVEL = {
   id: '2-1',
   world: 2,
@@ -118,7 +128,7 @@ export const LEVEL = {
     isl(0.8, 2.8, -14, -16, 1.6, 2.2, { top: 'stone' }),
     isl(-3.2, -1.2, -17.6, -19.6, 1.6, 2.2, { top: 'stone' }),
     { type: 'sandblock', id: 'sandsteg', from: [4.6, 0.6, -9.6], to: [4.6, 0.6, -20.4], respawn: 3 },
-    { type: 'sign', pos: [-4.4, Y, -6.6], text: 'Vorsicht,\nTreibsand!' },
+    { type: 'sign', pos: [-2.6, Y, -7.2], text: 'Vorsicht,\nTreibsand!' },
     { type: 'deco_w2', items: [
       { kind: 'palme', pos: [8.4, 1.8, 5.6], height: 4.8, lean: 0.3, sway: true },
       { kind: 'kaktus', pos: [-8.6, Y, 7.2], variant: 'saeule', size: 1.1 },
@@ -239,6 +249,7 @@ export const LEVEL = {
       { kind: 'felsen', pos: [-12, 4, -152], size: [4, 10], n: 3, height: [1.2, 3.5], solid: true },
       { kind: 'kaktus', pos: [7.6, Y, -148.6], variant: 'gruppe' },
       { kind: 'ruine', pos: [-7.8, Y, -164.2], height: 2.8 },
+      { kind: 'ruine', pos: [-8.3, Y, -170.2], height: 1.6 },
       { kind: 'palme', pos: [-8.2, Y, -168], height: 4.4, lean: 0.35, sway: true },
       { kind: 'kaktus', pos: [3.6, Y, -164.6], variant: 'kugel', size: 0.8 },
       { kind: 'kaktus', pos: [12, 5.8, -173.4], variant: 'saeule', size: 0.8 },
@@ -251,7 +262,6 @@ export const LEVEL = {
     ] },
     { type: 'deco_w1', items: [
       { kind: 'picnic', pos: [-6.6, Y, -173.6], yaw: 0.3 },
-      { kind: 'rockwall', pos: [-8.3, Y, -171.2], size: [1.2, 2.6, 3.4], color: 0xc8703e },
       { kind: 'sign', pos: [3.4, Y, -180.8], arrow: 'up' },
       { kind: 'bunting', from: [-3.3, 6, -217.4], to: [3.3, 6, -217.4], sag: 0.6 },
       { kind: 'bunting', from: [-7.4, 4.2, -212], to: [-1.4, 4.6, -209.6], sag: 0.5 },
@@ -314,7 +324,7 @@ export const LEVEL = {
     line([-7.2, 7.4, -3.6], [-5.6, 7.4, -3.6], 2),
     // 2
     line([0, 1.4, -24], [0, 1.4, -30], 3),
-    column(3.4, -36.6, 3.4, 6.4, 3),
+    ...column(3.4, -36.6, 3.4, 6.4, 3),
     ring([8.2, 8.6, -33.2], 1.4, 5),
     ...arc([0, 1.3, -43.4], [0, 1.3, -50.4], 3, 1.6),
     // 3: Teich (unter Wasser) und Spur zum Säulenstumpf
@@ -338,7 +348,7 @@ export const LEVEL = {
     // Gimmicks
     { kind: 'goldschalter', id: 'goldschalter', pos: [91, Y, 59], area: { pos: [91, Y, 58.4], size: [9, 7] }, time: 8, rate: 7, height: 4.6 },
     // level-lokaler Code beim Aufbau: ferne Kulisse ohne Schatten, Krümels Szene, Fernsicht für Gegner (> 50 m)
-    ...setupHook((level) => { shadowless(level, FAR); kruemelSzene(level); farHide(level, ['hackvogel', 'brummer'], 50); }, [0, -9, 0]),
+    ...setupHook((level) => { shadowless(level, FAR); kruemelSzene(level); wuestenLeben(level); farHide(level, ['hackvogel', 'brummer'], 50); }, [0, -9, 0]),
     { kind: 'task', area: { pos: [-5, Y, -171], r: 10 }, ids: ['hv_kruemel'], reward: { star: { index: 2, pos: [KRUEMEL[0] + 0.3, Y + 1.4, KRUEMEL[2] + 0.6] } } },
   ],
   checkpoint: { pos: [-6, Y, -57.2], yaw: Math.PI / 2 },

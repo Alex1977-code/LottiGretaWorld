@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { modelObject } from '../../blocks/w2kit.js';
 import { getBlockType } from '../../blocks/index.js';
+import { hex, lin, mixc, colorize, merge } from '../../blocks/kit.js';
 
 /**
  * Insel über ihre Grundfläche: x0..x1, zA..zB (Reihenfolge egal), Oberseite top, Höhe h (Unterkante top − h).
@@ -107,6 +108,110 @@ export function farHide(level, kinds, dist = 50) {
  */
 export function figure(level, name, pos, yaw, state, opts = {}) {
   return modelObject(level, name, opts, pos[0], pos[1], pos[2], yaw, state);
+}
+
+// ------------------------------------------------------------------ kleine Kulissen-Tiere (Wüste)
+
+/** Einfarbige Kugel/Ellipsoid (Mitte x, y, z; Halbachsen rx, ry, rz) mit Licht von oben, Weltkoordinaten lokal. */
+function blob(rx, ry, rz, x, y, z, color, seg = 10) {
+  const g = new THREE.SphereGeometry(1, seg, Math.max(5, Math.round(seg * 0.6)));
+  g.scale(rx, ry, rz); g.translate(x, y, z);
+  const c = lin(hex(color)), dk = [c[0] * 0.72, c[1] * 0.72, c[2] * 0.72], lt = [Math.min(1, c[0] * 1.15), Math.min(1, c[1] * 1.15), Math.min(1, c[2] * 1.15)];
+  return colorize(g.toNonIndexed(), (p, n, o) => (n.y >= 0 ? mixc(c, lt, n.y, o) : mixc(c, dk, -n.y, o)));
+}
+/** Schräger Zylinder (Stab) von a nach b (lokal), Radius r0 → r1. */
+function stick(a, b, r0, r1, color, seg = 7) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz);
+  const g = new THREE.CylinderGeometry(r1, r0, L, seg, 1);
+  g.translate(0, L / 2, 0);
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(dx / L, dy / L, dz / L));
+  g.applyQuaternion(q); g.translate(a[0], a[1], a[2]);
+  const c = lin(hex(color)), dk = [c[0] * 0.75, c[1] * 0.75, c[2] * 0.75];
+  return colorize(g.toNonIndexed(), (p, n, o) => mixc(dk, c, 0.5 + n.y * 0.5, o));
+}
+
+/**
+ * Dünenkamel (Kulisse, ohne Kollision): stehendes Wüstenkamel mit zwei Höckern und bunter Decke, Blick nach +X.
+ * Zwei Teile (Körper, Kopf/Hals nickt beim Kauen) – 2 Zeichenaufrufe, kein Sonnenschatten (Blob am Boden).
+ * opts: scale (1), yaw, color, blanket [Farbe1, Farbe2], phase.
+ */
+export function camel(level, pos, opts = {}) {
+  if (!level.view) return null;
+  const C = opts.color ?? 0xd8a25e, D = 0xb07a3e, L = 0xf0c888;
+  const [b1, b2] = opts.blanket ?? [0xe0443a, 0x2fb8b0];
+  const body = [
+    blob(0.78, 0.4, 0.38, 0, 1.38, 0, C, 12),
+    blob(0.3, 0.3, 0.28, -0.3, 1.72, 0, L, 10), blob(0.28, 0.3, 0.26, 0.26, 1.7, 0, L, 10),
+    blob(0.55, 0.12, 0.42, -0.02, 1.62, 0, b1, 10), blob(0.5, 0.08, 0.44, -0.02, 1.55, 0, b2, 10),
+    stick([0.55, 1.15, 0.2], [0.58, 0, 0.22], 0.1, 0.07, D), stick([0.55, 1.15, -0.2], [0.5, 0, -0.22], 0.1, 0.07, D),
+    stick([-0.5, 1.15, 0.2], [-0.56, 0, 0.22], 0.1, 0.07, D), stick([-0.5, 1.15, -0.2], [-0.46, 0, -0.22], 0.1, 0.07, D),
+    blob(0.09, 0.05, 0.09, 0.58, 0.04, 0.22, 0x7a5028, 6), blob(0.09, 0.05, 0.09, 0.5, 0.04, -0.22, 0x7a5028, 6),
+    blob(0.09, 0.05, 0.09, -0.56, 0.04, 0.22, 0x7a5028, 6), blob(0.09, 0.05, 0.09, -0.46, 0.04, -0.22, 0x7a5028, 6),
+    stick([-0.76, 1.42, 0], [-0.92, 0.95, 0], 0.04, 0.03, D, 5), blob(0.05, 0.1, 0.05, -0.93, 0.92, 0, 0x6a4020, 5),
+  ];
+  const head = [
+    stick([0, 0, 0], [0.32, 0.55, 0], 0.13, 0.1, C),
+    blob(0.24, 0.15, 0.15, 0.42, 0.62, 0, C, 10), blob(0.13, 0.11, 0.12, 0.62, 0.57, 0, L, 8),
+    blob(0.04, 0.05, 0.04, 0.47, 0.72, 0.12, 0x2a1a10, 5), blob(0.04, 0.05, 0.04, 0.47, 0.72, -0.12, 0x2a1a10, 5),
+    blob(0.04, 0.07, 0.03, 0.32, 0.78, 0.1, D, 5), blob(0.04, 0.07, 0.03, 0.32, 0.78, -0.1, D, 5),
+  ];
+  const mat = level.view.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 });
+  const root = new THREE.Group();
+  const mb = new THREE.Mesh(merge(body), mat);
+  const hg = new THREE.Group(); hg.position.set(0.62, 1.42, 0);
+  hg.add(new THREE.Mesh(merge(head), mat));
+  root.add(mb, hg);
+  const s = opts.scale ?? 1;
+  root.scale.setScalar(s);
+  root.position.set(pos[0], pos[1], pos[2]);
+  root.rotation.y = opts.yaw ?? 0;
+  root.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = true; o.userData.owned = true; } });
+  let t = opts.phase ?? 0;
+  level.view.add(root, (dt) => {
+    t += Math.min(dt, 0.1);
+    // kauen und nicken, ab und zu den Kopf heben
+    const look = Math.max(0, Math.sin(t * 0.35)) ** 6;
+    hg.rotation.z = -0.15 + Math.sin(t * 2.4) * 0.04 + look * 0.35;
+    hg.rotation.y = Math.sin(t * 0.5) * 0.25 * look;
+    mb.position.y = Math.sin(t * 1.2) * 0.01;
+  });
+  level.view.shadows?.add({ pos: { x: pos[0], y: pos[1], z: pos[2] }, radius: 0.9 * s, alive: () => true, visible: () => true });
+  return root;
+}
+
+/**
+ * Steppenläufer: ein Knäuel aus trockenen Zweigen rollt im Wind über die Fläche (path: [[x, y, z], [x, y, z]]
+ * Bodenpunkte), springt dabei leicht und beginnt nach pause s von vorn. 1 Zeichenaufruf, nur Darstellung.
+ */
+export function tumbleweed(level, from, to, opts = {}) {
+  if (!level.view) return null;
+  const parts = [];
+  const col = [0xb88a4a, 0xa0763c, 0xc89c58];
+  for (let i = 0; i < 7; i++) {
+    const g = new THREE.TorusGeometry(0.36 - i * 0.02, 0.022, 4, 14);
+    g.rotateX(i * 0.9); g.rotateY(i * 1.37); g.rotateZ(i * 0.53);
+    const c = lin(col[i % 3]);
+    parts.push(colorize(g.toNonIndexed(), (p, n, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
+  }
+  const mesh = new THREE.Mesh(merge(parts), level.view.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true }));
+  mesh.castShadow = false; mesh.userData.owned = true;
+  const speed = opts.speed ?? 3.2, pause = opts.pause ?? 4, L = Math.hypot(to[0] - from[0], to[2] - from[2]);
+  let t = opts.phase ?? 0;
+  const pos = { x: from[0], y: from[1], z: from[2] };
+  level.view.add(mesh, (dt) => {
+    t += Math.min(dt, 0.1);
+    const cycle = L / speed + pause, u = (t % cycle) * speed;
+    const k = Math.min(1, u / L);
+    pos.x = from[0] + (to[0] - from[0]) * k; pos.z = from[2] + (to[2] - from[2]) * k;
+    const hop = Math.abs(Math.sin(u * 1.3)) * 0.35 * (k < 1 ? 1 : 0);
+    pos.y = from[1] + (to[1] - from[1]) * k + 0.36 + hop;
+    mesh.position.set(pos.x, pos.y, pos.z);
+    mesh.rotation.z = -u / 0.36;
+    mesh.rotation.y = Math.atan2(-(to[2] - from[2]), to[0] - from[0]);
+    mesh.visible = k < 1;
+  });
+  level.view.shadows?.add({ pos, radius: 0.3, alive: () => true, visible: () => mesh.visible });
+  return mesh;
 }
 
 /**

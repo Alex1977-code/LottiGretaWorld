@@ -105,21 +105,22 @@ export const LEVEL = {
     // =============================================================== 3  Kristallwand und Checkpoint
     fl(-10, 8, -46, -66, 6.5, { h: 3 }),
     // Kristallstufen hinauf (2 m je Stufe)
-    step(1.8, -58.6, 8.5, 'cyan', 3, 3, 6.5),
-    step(-1, -62, 10.5, 'violet', 3, 3, 6.5),
-    step(1.8, -65.4, 12.5, 'pink', 3, 3, 6.5),
+    step(1.6, -58.6, 8.5, 'cyan', 3.6, 3, 6.5),
+    step(-0.8, -61.9, 10.5, 'violet', 4, 3.2, 6.5),
+    step(1.2, -65, 12.5, 'pink', 5, 3.2, 6.5),
     fl(-10, 8, -66, -78, 12.5, { h: 3 }),
     // Kamin aus zwei Kristallwänden (links): Wandsprung hinauf zu Stern 0
-    { type: 'wall', pos: [-9.2, 6.5, -58.6], size: [1, 9.6, 5], style: 0x8a6ae0 },
-    { type: 'wall', pos: [-5.9, 6.5, -58.6], size: [0.8, 8, 5], style: 0x9a7af0 },
-    fl(-11, -8.7, -56.4, -60.8, 16.1, { h: 1, under: 0, top: 'stone' }),
+    { type: 'wall', pos: [-9.2, 6.5, -58.6], size: [1, 7.6, 5], style: 0x8a6ae0 },
+    { type: 'wall', pos: [-5.9, 6.5, -58.6], size: [0.8, 10, 5], style: 0x9a7af0 },
+    fl(-12.4, -8.7, -56.4, -60.8, 14.1, { h: 1.4, under: 2, top: 'stone' }),
+    { type: 'wall', pos: [-12.2, 14.1, -58.6], size: [0.4, 0.8, 4.4], style: 0x9a7af0 },
     // steigende Propellerplattform hinauf zum Warp-Sims
     { type: 'propellerplattform', id: 'pp_lift', pos: [0, 12.1, -79.6], size: [3, 3], mode: 'rise', height: 6, climb: 1.8 },
     fl(-4, 4, -81.4, -89, 18.6, { h: 2, under: 3, top: 'stone' }),
     { type: 'deco_w1', items: [
       { kind: 'crystals', pos: [-7.6, 6.5, -49], size: 1.2, color: 'violet' },
       { kind: 'crystals', pos: [6.8, 6.5, -52], size: 0.9, color: 'cyan' },
-      { kind: 'crystals', pos: [-9.6, 16.1, -57], size: 0.7, color: 'pink' },
+      { kind: 'crystals', pos: [-10.2, 14.1, -57], size: 0.7, color: 'pink' },
       { kind: 'crystals', pos: [6.4, 12.5, -76.4], size: 1, color: 'gold' },
       { kind: 'crystals', pos: [-8.4, 12.5, -70], size: 1.1, color: 'cyan' },
       { kind: 'crystals', pos: [3, 18.6, -87.8], size: 0.8, color: 'violet' },
@@ -131,11 +132,11 @@ export const LEVEL = {
     { type: 'propellerplattform', id: 'pp1', pos: [0, 0.6, -112.6], mode: 'path', path: [[0, 0.6, -112.6], [0, 0.6, -120.4]], speed: 2.2, wait: 0.8 },
     fl(-4, 6, -122.4, -132, Y, { h: 3 }),
     { type: 'propellerplattform', id: 'pp2', pos: [1, 0.6, -135.4], mode: 'sink', sink: 0.7, drop: 4 },
-    { type: 'propellerplattform', id: 'pp3', pos: [-1.2, 0.6, -140.4], mode: 'float' },
+    { type: 'propellerplattform', id: 'pp3', pos: [-1, 0.6, -139.6], mode: 'float' },
     // Sternensteg links (Münzmarder flieht hier entlang): kleine Inseln mit Lücken
-    fl(-13, -6, -101, -111, Y, { h: 2 }),
-    fl(-13, -9, -113, -119, Y, { h: 2 }),
-    fl(-13, -9, -121.2, -127, Y, { h: 2 }),
+    fl(-13, -6, -101, -110, Y, { h: 2 }),
+    fl(-13, -9, -110, -118, Y, { h: 2 }),
+    fl(-13, -9, -120.2, -127, Y, { h: 2 }),
     fl(-13, -9, -129.2, -135, Y, { h: 2 }),
     fl(-13, -9, -137.2, -143, Y, { h: 2 }),
     // Abzweig rechts: Pendel-Propeller zur Wolkenkanone, Münzhimmel hoch oben
@@ -163,15 +164,15 @@ export const LEVEL = {
     fl(-4, 4, -172, -184, Y, { h: 2.4 }),
     ...keys(-4, 4, -172, -184, Y),
     { type: 'taststeine', id: 'treppe', speed: 3,
-      stones: [{ pos: [0, Y, -174.8], rise: 0.6 }, { pos: [0, Y, -177.4], rise: 1.6 }, { pos: [0, Y, -180], rise: 2.6 }, { pos: [0, Y, -182.6], rise: 3.6 }],
+      stones: [{ pos: [0, Y, -176.4], rise: 0.9, note: 0 }, { pos: [0, Y, -179.6], rise: 2.3, note: 2 }, { pos: [0, Y, -182.8], rise: 3.6, note: 4 }],
       onAll: { coins: 5 } },
     // Zielinsel mit drei Kristallplatten im Boden (darunter Mulden; unter der dritten Stern 2)
-    fl(-9, 3.6, -184, -204, 5.6, { h: 3 }),
-    fl(6.4, 9, -184, -204, 5.6, { h: 3 }),
-    fl(3.6, 6.4, -184, -186.6, 5.6, { h: 3 }),
+    fl(-9, 3.6, -184, -204, 5.6, { h: 5 }),
+    fl(6.4, 9, -184, -204, 5.6, { h: 5 }),
+    fl(3.6, 6.4, -184, -186.6, 5.6, { h: 5 }),
     fl(3.6, 6.4, -189.4, -190.4, 5.6, { h: 3 }),
     fl(3.6, 6.4, -193.2, -194.2, 5.6, { h: 3 }),
-    fl(3.6, 6.4, -197, -204, 5.6, { h: 3 }),
+    fl(3.6, 6.4, -197, -204, 5.6, { h: 5 }),
     fl(3.6, 6.4, -186.6, -197, 3.9, { h: 1.3, under: 0, top: 'stone' }),
     { type: 'kristallwand', id: 'kp1', pos: [5, 5, -188], size: [2.8, 0.6, 2.8], color: 'cyan' },
     { type: 'kristallwand', id: 'kp2', pos: [5, 5, -191.8], size: [2.8, 0.6, 2.8], color: 'violet' },
@@ -190,26 +191,22 @@ export const LEVEL = {
   ],
   blocks: [
     { kind: 'question', pos: [-2.6, 7.4, -13], content: 'wachstumsbeere' },
-    { kind: 'brick', pos: [-1.6, 7.4, -13], content: 'coins:4' },
-    { kind: 'brick', pos: [3, 9, -50.6], content: 'coins:5' },
   ],
   enemies: [
     // 1: obere Startinsel
     { kind: 'schnappblume', pos: [-3.6, 5, -19.4], base: 'pot' },
-    { kind: 'schnappblume', pos: [3.4, 5, -11.6], base: 'pot' },
     { kind: 'rollpilz', id: 'rp1', pos: [0, 5, -16.4], path: [[-2.4, 5, -16.4], [2.6, 5, -16.4]] },
     // 3
     { kind: 'pilzling', id: 'mini1', mini: true, pos: [-2, 6.5, -50], path: [[-5, 6.5, -50], [3, 6.5, -50]] },
     { kind: 'pilzling', id: 'mini2', mini: true, pos: [3, 6.5, -54.4], behavior: 'chase', sight: 5 },
     { kind: 'rollpilz', id: 'rp2', pos: [2, 12.5, -72], path: [[-3, 12.5, -72], [4, 12.5, -72]] },
     // 5
-    { kind: 'muenzmarder', id: 'marder', path: [[-10.4, Y, -104], [-10.6, Y, -116], [-11, Y, -124], [-11, Y, -132], [-11, Y, -140], [-8, Y, -149], [-2, Y, -152]], coins: 30, sight: 6 },
+    { kind: 'muenzmarder', id: 'marder', path: [[-10.4, Y, -104], [-10.6, Y, -116], [-11, Y, -124], [-11, Y, -132], [-11, Y, -140], [-8, Y, -149], [-1, Y, -151], [5, Y, -147]], coins: 30, sight: 6, speed: 6, lead: 10 },
     { kind: 'pilzling', id: 'mini3', mini: true, pos: [1, Y, -126], path: [[-2.4, Y, -126], [4.4, Y, -126]] },
     { kind: 'pilzling', id: 'mini4', mini: true, pos: [2, Y, -148], behavior: 'chase', sight: 5 },
     // Schnappblumen-Feld
     { kind: 'schnappblume', pos: [-3.6, Y, -160], base: 'pot' },
     { kind: 'schnappblume', pos: [3.6, Y, -162], base: 'pot' },
-    { kind: 'schnappblume', pos: [-2, Y, -167.4], base: 'pot' },
     { kind: 'schnappblume', pos: [4.6, Y, -168.6], base: 'pot' },
     // Stempel-Raum: zwei Rollpilze
     { kind: 'rollpilz', id: 'rp_raum1', pos: [78, Y, -16], path: [[76, Y, -16], [82, Y, -16]] },
@@ -218,8 +215,8 @@ export const LEVEL = {
   items: [
     // 1
     line([0, 1.4, 2.4], [0, 1.4, -3.6], 3),
-    column(0, -7.6, 3, 5.4, 3),
-    ring([-5.5, 10.2, -15.6], 1.2, 6),
+    ...column(0, -7.6, 3, 5.4, 3),
+    ...column(-5.5, -15.6, 10.4, 12.2, 3),
     // 2
     ...arc([0, 5.4, -22.4], [0, 5.4, -25.3], 2, 0.5),
     ...arc([0, 5.4, -25.3], [2.6, 5.4, -30], 3, 1),
@@ -229,19 +226,20 @@ export const LEVEL = {
     { kind: 'antipp_muenze', pos: [-7, 7.2, -41] }, { kind: 'antipp_muenze', pos: [6.4, 4.8, -43] },
     // 3
     line([0, 6.9, -47.4], [0, 6.9, -54], 3),
-    { kind: 'coin', pos: [1.8, 9, -58.6] }, { kind: 'coin', pos: [-1, 11, -62] }, { kind: 'coin', pos: [1.8, 13, -65.4] },
-    ...column(-7.5, -58.6, 8, 14.6, 4),
-    { kind: 'antipp_block', pos: [5.6, 6.5, -49.4], content: 'coins:3' },
+    { kind: 'coin', pos: [1.6, 9, -58.6] }, { kind: 'coin', pos: [-0.8, 11, -61.9] }, { kind: 'coin', pos: [1.2, 13, -65] },
+    ...column(-7.5, -58.6, 8.6, 12.6, 3),
+    { kind: 'antipp_block', pos: [5.6, 6.5, -49.4], content: 'coins:3', look: 'question' },
+    { kind: 'antipp_block', pos: [3, 9, -50.6], content: 'coins:5', look: 'question' },
     { kind: 'antipp_block', pos: [-6.4, 12.5, -68], content: 'coins:2', look: 'question' },
     // Kristallblock mit Geheimnis: oben stampfen → Truhe mit Extraleben
     { kind: 'kristallwand', id: 'kw_geheim', pos: [-5.4, 12.5, -74.4], size: [2.4, 2, 2.4], color: 'violet', onBreak: { reveal: 'truhe_1up' } },
     { kind: 'chest', id: 'truhe_1up', hidden: true, pos: [-5.4, 12.5, -74.4], content: 'oneup' },
-    column(0, -79.6, 13.6, 18, 3),
+    ...column(0, -79.6, 13.6, 18, 3),
     // 5
     line([0, 1.4, -102], [0, 1.4, -108], 3),
     line([0, 1.5, -113], [0, 1.5, -120], 3),
     line([-10.6, 1.4, -107], [-11, 1.4, -142], 9),
-    line([1, 1.5, -135.4], [-1.2, 1.5, -140.4], 2),
+    line([1, 1.5, -135.4], [-1, 1.5, -139.6], 2),
     ...arc([9.4, 1.6, -127.2], [14.2, 1.6, -127.2], 3, 1),
     // Münzhimmel
     line([16, 24.8, -132.6], [5, 24.8, -156], 12),
@@ -255,11 +253,11 @@ export const LEVEL = {
     line([4.4, 4.3, -191.8], [5.6, 4.3, -191.8], 2),
     // Stempel-Raum
     ...arc([77, 1.3, -14], [84.4, 2.9, -18.6], 4, 1.6),
-    ...setupHook((level) => { shadowless(level, FAR); farHide(level, ['schnappblume', 'rollpilz', 'pilzling', 'muenzmarder'], 48); }, [0, -1, -16]),
+    ...setupHook((level) => { shadowless(level, FAR); farHide(level, ['schnappblume', 'rollpilz', 'pilzling', 'muenzmarder'], 40); }, [0, -1, -16]),
   ],
   checkpoint: { pos: [0, 12.5, -69.4], yaw: Math.PI / 2 },
   stars: [
-    [-9.8, 16.6, -58.6],        // 0: oben auf dem Kristall-Kamin (Wandsprung)
+    [-9.8, 14.6, -58.6],        // 0: oben auf dem Kristall-Kamin (Wandsprung)
     [5, 24.8, -155],            // 1: Ende des Münzhimmels (Wolkenkanone)
     [5, 4.3, -195.6],           // 2: unter der dritten Kristallplatte
   ],
@@ -288,6 +286,5 @@ export const LEVEL = {
 
 // Warp-Box (Bauplan 2-2 Abschnitt 4): auf dem Sims nach der steigenden Propellerplattform → Plattformnetz
 LEVEL.items.push(
-  { kind: 'warpbox', id: 'wb1', pos: [0, 18.6, -85.4], target: 'wb2' },
-  { kind: 'warpbox', id: 'wb2', pos: [3.6, Y, -104.6], target: 'wb1' },
+  { kind: 'warpbox', id: 'wb1', pos: [0, 18.6, -85.4], target: [2.4, Y + 0.2, -104.4] },
 );
