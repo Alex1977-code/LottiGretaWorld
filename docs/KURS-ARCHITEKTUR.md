@@ -1151,6 +1151,10 @@ Kamera an die Figur heran.
   „Benötigt N Sterne (x/N)“ mit den zählenden Sternen.
 - Test: `tests/course_map_w2.mjs` (Port 4210, Screenshots `tests/out/cmap2_*.png`).
 
+Gemessen (scale 2, `tests/course_map_w2.mjs`): Kartenansichten Welt 2 71–105 Zeichenaufrufe inkl. Schattenpass,
+169–286 k Dreiecke; Ankunft durch die Glasröhre 85–100 / 225–230 k, Anflug 99 / 272 k (Budget 120 / 300 k).
+Statische Kulisse Welt 2: 51 Kachel-Meshes, ≈ 207 k Dreiecke. Welt 1 unverändert im Budget (85 / 245 k).
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
