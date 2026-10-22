@@ -1123,14 +1123,14 @@ sammelt die Klone um die Haupt-Figur, `state().figures` = Anzahl. Konstanten in 
 **Gegner-KI:** neue Gegner zielen mit `this.level.nearestPlayer(this.pos)` statt `this.level.player`. `Enemy` nutzt das in
 `player`, `playerActive()`, `playerDist()`, `canSee()`, `toPlayer()`, `poundLandedNear()`; umgestellt (je eine Zeile) sind außerdem
 brummer, krallen_pilzling, pilzlingsturm, rammbock_bulle, stampfstein, zauberkroete/zauberkugel, schnappblume, bomb_cannon
-(`aim: 'player'`), baron. Gimmick-Hilfe `playerOn(level, owner)` zählt jede Figur, `playerDist` die nächste. Was weiter nur
+(`aim: 'player'`), baron, kickbombe (Explosion trifft die nächste Figur). Gimmick-Hilfe `playerOn(level, owner)` zählt jede Figur, `playerDist` die nächste. Was weiter nur
 `level.player` liest, sieht nur die Haupt-Figur (Feuerspur des Barons, Warp-Box, Zeitanzeige über der Figur, Archetypen).
 
 **Kosten (gemessen, scale 2, `tests/course_w2engine.mjs`):** Heldin als Haupt-Figur ≈ 34 Zeichenaufrufe inkl. Schattenpass
 (21 sichtbare Meshes, davon 14 mit Schattenwurf; der geschlossene Mund wird jetzt ausgeblendet). Ein Klon mit `lite` ≈ 15
-(kein Schattenwurf, Zöpfe nur oberes Glied, ohne Augen-Glanzpunkte). Klonwiese am Start: 1 Figur WERT1, 5 Figuren WERT5
+(kein Schattenwurf, Zöpfe nur oberes Glied, ohne Augen-Glanzpunkte). Klonwiese am Start: 1 Figur 77, 5 Figuren 137
 Zeichenaufrufe (Ziel < 140), je Klon ≈ 15;
-dichte Stellen (Viererlift-Turm mit 4 Figuren oben, weite Sicht) bis 161, 91–147 k Dreiecke. Vorher (ohne Sparmaßnahmen) kostete
+dichte Stellen (Viererlift-Turm mit 4 Figuren oben, weite Sicht) bis 151, 99–165 k Dreiecke. Vorher (ohne Sparmaßnahmen) kostete
 jede Figur ≈ 35 → 5 Figuren ≈ 175 + Level.
 
 ### Präzisierung (Motor Welt 2): Mehrfigur-Bausteine (Daten)
