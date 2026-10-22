@@ -214,6 +214,118 @@ export function tumbleweed(level, from, to, opts = {}) {
   return mesh;
 }
 
+// ------------------------------------------------------------------ Weltraum-Kulisse
+
+/**
+ * Fernrohr auf Dreibein (Kulisse, ohne Kollision): blickt in Richtung yaw schräg nach oben zu den Planeten und
+ * schwenkt langsam hin und her. 1 Zeichenaufruf (+ Blob-Schatten).
+ */
+export function telescope(level, pos, yaw = 0) {
+  if (!level.view) return null;
+  const legs = [
+    stick([0, 1.15, 0], [0.42, 0, 0.24], 0.04, 0.03, 0x8a5a2a, 5), stick([0, 1.15, 0], [-0.42, 0, 0.24], 0.04, 0.03, 0x8a5a2a, 5),
+    stick([0, 1.15, 0], [0, 0, -0.48], 0.04, 0.03, 0x8a5a2a, 5), blob(0.09, 0.07, 0.09, 0, 1.18, 0, 0xd8b04a, 8),
+  ];
+  const tube = [
+    stick([-0.55, 0, 0], [0.75, 0, 0], 0.11, 0.15, 0x3a5ad8, 10), stick([0.72, 0, 0], [0.86, 0, 0], 0.17, 0.17, 0xffc21a, 10),
+    stick([-0.7, 0, 0], [-0.55, 0, 0], 0.06, 0.06, 0x2a2a3a, 6), stick([-0.1, 0, 0], [0.2, 0, 0], 0.125, 0.135, 0xffc21a, 10),
+    stick([0.05, 0.12, 0], [0.4, 0.26, 0], 0.035, 0.035, 0x6a7ad8, 6),
+  ];
+  const mat = level.view.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true });
+  const root = new THREE.Group();
+  root.add(new THREE.Mesh(merge(legs), mat));
+  const head = new THREE.Group(); head.position.y = 1.2;
+  const tm = new THREE.Mesh(merge(tube), mat); tm.rotation.z = 0.55;
+  head.add(tm); root.add(head);
+  root.position.set(pos[0], pos[1], pos[2]); root.rotation.y = yaw;
+  root.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.userData.owned = true; } });
+  let t = 0;
+  level.view.add(root, (dt) => { t += Math.min(dt, 0.1); head.rotation.y = Math.sin(t * 0.3) * 0.35; tm.rotation.z = 0.5 + Math.sin(t * 0.21) * 0.08; });
+  level.view.shadows?.add({ pos: { x: pos[0], y: pos[1], z: pos[2] }, radius: 0.5, alive: () => true, visible: () => true });
+  return root;
+}
+
+/**
+ * Sternschnuppen: alle paar Sekunden zieht ein leuchtender Schweif durch den Himmel über dem Bereich (center ± size).
+ * Ein Objekt (1 Zeichenaufruf), additiv, ohne Schatten.
+ */
+export function shootingStars(level, center, size = [80, 30, 120], opts = {}) {
+  if (!level.view) return null;
+  const n = opts.n ?? 3;
+  const pos = new Float32Array(n * 6 * 3), col = new Float32Array(n * 6 * 3);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.frustumCulled = false; mesh.userData.owned = true; mesh.renderOrder = 1;
+  let seed = 11;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const st = [];
+  for (let i = 0; i < n; i++) st.push({ t: -i * 2.3 - 1, dur: 1.2, a: [0, 0, 0], d: [0, 0, 0] });
+  const spawn = (s) => {
+    s.a = [center[0] + (rnd() - 0.5) * size[0], center[1] + size[1] * 0.5 + rnd() * size[1] * 0.5, center[2] + (rnd() - 0.5) * size[2]];
+    const ang = rnd() * Math.PI * 2;
+    s.d = [Math.cos(ang) * 34, -10 - rnd() * 8, Math.sin(ang) * 12];
+    s.t = 0; s.dur = 0.9 + rnd() * 0.6;
+  };
+  level.view.add(mesh, (dt) => {
+    dt = Math.min(dt, 0.1);
+    const cam = level.view.camera;
+    for (let i = 0; i < n; i++) {
+      const s = st[i];
+      s.t += dt;
+      if (s.t > s.dur + 2.5 + i) spawn(s);
+      const k = Math.max(0, Math.min(1, s.t / s.dur));
+      const on = s.t >= 0 && s.t <= s.dur;
+      const head = [s.a[0] + s.d[0] * k, s.a[1] + s.d[1] * k, s.a[2] + s.d[2] * k];
+      const tl = 0.28, tail = [head[0] - s.d[0] * tl, head[1] - s.d[1] * tl, head[2] - s.d[2] * tl];
+      // Band quer zur Blickrichtung
+      const vx = head[0] - tail[0], vy = head[1] - tail[1], vz = head[2] - tail[2];
+      const cx = head[0] - cam.position.x, cy = head[1] - cam.position.y, cz = head[2] - cam.position.z;
+      let px = vy * cz - vz * cy, py = vz * cx - vx * cz, pz = vx * cy - vy * cx;
+      const pl = Math.hypot(px, py, pz) || 1, w = 0.35;
+      px = (px / pl) * w; py = (py / pl) * w; pz = (pz / pl) * w;
+      const quad = [[head[0] + px, head[1] + py, head[2] + pz], [head[0] - px, head[1] - py, head[2] - pz], [tail[0], tail[1], tail[2]]];
+      const fade = on ? Math.sin(k * Math.PI) : 0;
+      const verts = [quad[0], quad[1], quad[2], quad[2], quad[1], quad[0]];
+      for (let v = 0; v < 6; v++) {
+        const o = (i * 6 + v) * 3;
+        pos[o] = verts[v][0]; pos[o + 1] = verts[v][1]; pos[o + 2] = verts[v][2];
+        const tip = v === 2 || v === 3 ? 0 : 1;
+        col[o] = fade * (0.6 + 0.4 * tip); col[o + 1] = fade * (0.7 + 0.3 * tip); col[o + 2] = fade;
+      }
+    }
+    geo.attributes.position.needsUpdate = true; geo.attributes.color.needsUpdate = true;
+  });
+  return mesh;
+}
+
+/**
+ * Kleine Asteroiden (Kulisse): grob facettierte Brocken an den Punkten list ([[x, y, z, r], …]), statisch verschmolzen
+ * ohne Sonnenschatten (im Aufbau-Haken aufrufen).
+ */
+export function asteroids(level, list) {
+  if (!level.view) return;
+  const parts = [];
+  let seed = 5;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  for (const [x, y, z, r] of list) {
+    const g = new THREE.IcosahedronGeometry(1, 1).toNonIndexed();
+    const P = g.attributes.position;
+    for (let i = 0; i < P.count; i++) {
+      const k = 0.8 + 0.35 * Math.sin(P.getX(i) * 3.1 + x) * Math.cos(P.getZ(i) * 2.7 + z);
+      P.setXYZ(i, P.getX(i) * k * r, P.getY(i) * k * r * 0.8, P.getZ(i) * k * r);
+    }
+    g.rotateY(rnd() * 6); g.rotateX(rnd() * 2);
+    g.computeVertexNormals();
+    g.translate(x, y, z);
+    const a = lin(0x9a86c8), b = lin(0x5a4a88), c = lin(0xd8c8ff);
+    parts.push(colorize(g, (p, n, o) => (n.y > 0.5 ? mixc(a, c, (n.y - 0.5) * 2, o) : mixc(b, a, (n.y + 1) / 1.5, o))));
+  }
+  level.view.addStatic(merge(parts), { castShadow: false });
+}
+
 /**
  * Sprechblase über einem Punkt (Sprite mit Leinwand-Text), blendet nach life s aus. Liefert das Sprite.
  */

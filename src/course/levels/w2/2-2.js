@@ -22,7 +22,7 @@
 // Sterne (Index): 0 Kristall-Kamin (Wandsprung), 1 Ende des Münzhimmels (Wolkenkanone), 2 unter der dritten
 //                 Kristallplatte. Stempel: Raum unter der rechten Schwebeplattform.
 
-import { isl, line, ring, arc, column, setupHook, farHide, shadowless } from './_helpers_a.js';
+import { isl, line, ring, arc, column, setupHook, farHide, shadowless, telescope, shootingStars, asteroids } from './_helpers_a.js';
 
 const Y = 1;
 const CAM = { pitch: 44, dist: 13.5, fov: 40, area: [-40, 40] };
@@ -54,6 +54,17 @@ const FAR = [
   ] },
 ];
 
+// ------------------------------------------------------------------ Sternwarte (level-lokale Kulisse)
+// Fernrohr am Rand der Startinsel (schwenkt zu den Planeten), Sternschnuppen über dem ganzen Level, Asteroiden.
+function sternwarte(level) {
+  telescope(level, [-4.4, Y, 2.4], 2.2);
+  shootingStars(level, [0, 26, -100], [90, 30, 200], { n: 3 });
+  asteroids(level, [
+    [-16, 2, -20, 1.2], [14, -2, -40, 0.8], [-18, 8, -64, 1.5], [17, 6, -96, 1.1], [-20, -4, -122, 0.9],
+    [26, 10, -150, 1.4], [-16, 3, -188, 1], [15, -6, -178, 0.7], [-24, 14, -100, 0.6], [12, 16, -18, 0.5],
+  ]);
+}
+
 export const LEVEL = {
   id: '2-2',
   world: 2,
@@ -65,7 +76,8 @@ export const LEVEL = {
   start: { pos: [0, Y, 5], yaw: Math.PI / 2 },
   killY: -12,
   camera: [
-    { ...CAM, from: 12, to: -22 },
+    { ...CAM, from: 12, to: -4, pitch: 40, dist: 14 },
+    { ...CAM, from: -4, to: -22 },
     { ...CAM, from: -22, to: -46, pitch: 46 },
     { ...CAM, from: -46, to: -66 },
     { ...CAM, from: -66, to: -94, pitch: 42, dist: 14 },
@@ -77,7 +89,8 @@ export const LEVEL = {
   ],
   segments: [
     // =============================================================== 1  Start
-    fl(-8, 8, 8, -9.4, Y, { h: 3 }),
+    fl(-6.5, 6.5, 8, -9.4, Y, { h: 3, under: 4 }),
+    { type: 'mound', pos: [4.2, Y, 4.6], radius: 2.2, height: 0.5 },
     { type: 'taststein', id: 'ts_start', pos: [0, Y, -7.6], rise: 3.4, note: 0 },
     fl(-8, 8, -9, -22, 5, { h: 3 }),
     // Schwebeplattformen zum Antippen: links (Münzkranz oben), rechts über der Röhre zum Stempel-Raum
@@ -87,8 +100,10 @@ export const LEVEL = {
     { type: 'antipp', id: 'schwebe_r', pos: [5.5, 5.9, -15.6], size: [2.6, 0.5, 2.6], mode: 'lift', length: 2.4, color: 'pink' },
     { type: 'sign', pos: [-3.4, Y, -2.4], text: 'Tastenstein:\ndrauftreten!' },
     { type: 'deco_w1', items: [
-      { kind: 'crystals', pos: [-6.6, Y, 5.6], size: 1.1, color: 'violet' },
-      { kind: 'crystals', pos: [6.8, Y, -6.6], size: 0.8, color: 'cyan' },
+      { kind: 'crystals', pos: [-5.4, Y, 6], size: 1.1, color: 'violet' },
+      { kind: 'crystals', pos: [5.4, Y, -6.8], size: 0.8, color: 'cyan' },
+      { kind: 'crystals', pos: [4.2, 1.5, 4.6], size: 0.6, color: 'pink' },
+      { kind: 'crystals', pos: [-6.6, 5, -10.4], size: 0.9, color: 'gold' },
       { kind: 'crystals', pos: [6.6, 5, -20.6], size: 0.9, color: 'pink' },
       { kind: 'fireflies', pos: [0, Y, 0], size: [16, 4, 16], n: 12, colors: [0xfff6c8, 0xc8e8ff, 0xffd0f0] },
     ] },
@@ -103,12 +118,15 @@ export const LEVEL = {
     { type: 'antipp', id: 'ap5', pos: [0, 3.2, -44.4], size: [2.6, 0.5, 2.6], mode: 'lift', length: 2.6 },
 
     // =============================================================== 3  Kristallwand und Checkpoint
-    fl(-10, 8, -46, -66, 6.5, { h: 3 }),
+    fl(-10, 8, -46, -66, 6.5, { h: 3, under: 4 }),
+    { type: 'mound', pos: [6, 6.5, -61.6], radius: 2, height: 0.6 },
+    { type: 'mound', pos: [-4.6, 6.5, -48.6], radius: 2, height: 0.5 },
     // Kristallstufen hinauf (2 m je Stufe)
     step(1.6, -58.6, 8.5, 'cyan', 3.6, 3, 6.5),
     step(-0.8, -61.9, 10.5, 'violet', 4, 3.2, 6.5),
     step(1.2, -65, 12.5, 'pink', 5, 3.2, 6.5),
-    fl(-10, 8, -66, -78, 12.5, { h: 3 }),
+    fl(-10, 8, -66, -78, 12.5, { h: 3, under: 4 }),
+    { type: 'mound', pos: [5.2, 12.5, -72.6], radius: 2.2, height: 0.6 },
     // Kamin aus zwei Kristallwänden (links): Wandsprung hinauf zu Stern 0
     { type: 'wall', pos: [-9.2, 6.5, -58.6], size: [1, 7.6, 5], style: 0x8a6ae0 },
     { type: 'wall', pos: [-5.9, 6.5, -58.6], size: [0.8, 10, 5], style: 0x9a7af0 },
@@ -122,6 +140,9 @@ export const LEVEL = {
       { kind: 'crystals', pos: [6.8, 6.5, -52], size: 0.9, color: 'cyan' },
       { kind: 'crystals', pos: [-10.2, 14.1, -57], size: 0.7, color: 'pink' },
       { kind: 'crystals', pos: [6.4, 12.5, -76.4], size: 1, color: 'gold' },
+      { kind: 'crystals', pos: [6, 7.1, -61.6], size: 0.8, color: 'pink' },
+      { kind: 'crystals', pos: [-9.4, 14.1, -60.2], size: 0.8, color: 'cyan' },
+      { kind: 'crystals', pos: [-5.9, 16.5, -57], size: 0.6, color: 'violet' },
       { kind: 'crystals', pos: [-8.4, 12.5, -70], size: 1.1, color: 'cyan' },
       { kind: 'crystals', pos: [3, 18.6, -87.8], size: 0.8, color: 'violet' },
     ] },
@@ -130,7 +151,8 @@ export const LEVEL = {
     fl(-6, 6, -100, -110, Y, { h: 3 }),
     // Hauptweg: Pendel-Propeller → Insel F → sinkende und schwebende Propellerplattform → Insel G
     { type: 'propellerplattform', id: 'pp1', pos: [0, 0.6, -112.6], mode: 'path', path: [[0, 0.6, -112.6], [0, 0.6, -120.4]], speed: 2.2, wait: 0.8 },
-    fl(-4, 6, -122.4, -132, Y, { h: 3 }),
+    fl(-4, 6, -122.4, -132, Y, { h: 3, under: 4 }),
+    { type: 'mound', pos: [-2, Y, -130], radius: 1.8, height: 0.45 },
     { type: 'propellerplattform', id: 'pp2', pos: [1, 0.6, -135.4], mode: 'sink', sink: 0.7, drop: 4 },
     { type: 'propellerplattform', id: 'pp3', pos: [-1, 0.6, -139.6], mode: 'float' },
     // Sternensteg links (Münzmarder flieht hier entlang): kleine Inseln mit Lücken
@@ -149,7 +171,9 @@ export const LEVEL = {
     { type: 'cloud', pos: [8, 23.8, -149.8], size: [3, 0.6, 3] },
     { type: 'cloud', pos: [5, 23.8, -155], size: [3.4, 0.6, 3.4] },
     // Insel G und Schnappblumen-Insel H
-    fl(-13, 8, -143.4, -156, Y, { h: 3 }),
+    fl(-13, 8, -143.4, -156, Y, { h: 3, under: 4 }),
+    { type: 'mound', pos: [5, Y, -152.6], radius: 2.4, height: 0.6 },
+    { type: 'mound', pos: [-10, Y, -154], radius: 2, height: 0.5 },
     fl(-8, 8, -156, -172, Y, { h: 3 }),
     { type: 'deco_w1', items: [
       { kind: 'crystals', pos: [-4.6, Y, -102], size: 0.9, color: 'cyan' },
@@ -157,6 +181,10 @@ export const LEVEL = {
       { kind: 'crystals', pos: [19.6, Y, -129.4], size: 0.7, color: 'pink' },
       { kind: 'crystals', pos: [6.6, Y, -146], size: 1, color: 'gold' },
       { kind: 'crystals', pos: [-6.6, Y, -170.4], size: 1.1, color: 'violet' },
+      { kind: 'crystals', pos: [5, 1.6, -152.6], size: 0.8, color: 'cyan' },
+      { kind: 'crystals', pos: [-6.6, Y, -158.4], size: 0.7, color: 'pink' },
+      { kind: 'crystals', pos: [6.6, Y, -164.6], size: 0.8, color: 'gold' },
+      { kind: 'crystals', pos: [-3, Y, -124.2], size: 0.7, color: 'pink' },
       { kind: 'fireflies', pos: [10, 23.8, -144], size: [12, 3, 24], n: 10, colors: [0xfff6c8, 0xc8e8ff] },
     ] },
 
@@ -253,7 +281,7 @@ export const LEVEL = {
     line([4.4, 4.3, -191.8], [5.6, 4.3, -191.8], 2),
     // Stempel-Raum
     ...arc([77, 1.3, -14], [84.4, 2.9, -18.6], 4, 1.6),
-    ...setupHook((level) => { shadowless(level, FAR); farHide(level, ['schnappblume', 'rollpilz', 'pilzling', 'muenzmarder'], 40); }, [0, -1, -16]),
+    ...setupHook((level) => { shadowless(level, FAR); sternwarte(level); farHide(level, ['schnappblume', 'rollpilz', 'pilzling', 'muenzmarder'], 40); }, [0, -1, -16]),
   ],
   checkpoint: { pos: [0, 12.5, -69.4], yaw: Math.PI / 2 },
   stars: [

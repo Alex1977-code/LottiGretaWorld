@@ -77,7 +77,7 @@ function kruemelSzene(level) {
 // ------------------------------------------------------------------ Wüstenleben (level-lokale Kulisse)
 // Dünenkamele auf den Felsrändern (kauen, heben ab und zu den Kopf) und Steppenläufer, die über die Plateaus rollen.
 function wuestenLeben(level) {
-  camel(level, [13.4, 3.5, 2.2], { yaw: 2.5, phase: 0 });
+  camel(level, [12.8, 3.5, -3.2], { yaw: 2.3, phase: 0 });
   camel(level, [14.6, 4.5, -57.4], { yaw: Math.PI - 0.4, phase: 1.7 });
   camel(level, [15.2, 4.5, -60.4], { yaw: Math.PI + 0.3, scale: 0.6, phase: 3.1, blanket: [0xffc21a, 0x7a46d0] });
   tumbleweed(level, [-9.6, Y, -31], [9.6, Y, -26], { speed: 3, pause: 5 });
@@ -95,7 +95,8 @@ export const LEVEL = {
   start: { pos: [0, Y, 5], yaw: Math.PI / 2 },
   killY: -12,
   camera: [
-    { ...CAM, from: 12, to: -22 },
+    { ...CAM, from: 12, to: -6, pitch: 40, dist: 14 },
+    { ...CAM, from: -6, to: -22 },
     { ...CAM, from: -22, to: -46, yaw: 6 },
     { ...CAM, from: -46, to: -70, pitch: 45 },
     { ...CAM, from: -70, to: -100, pitch: 46 },
@@ -112,7 +113,9 @@ export const LEVEL = {
 
     // =============================================================== 1  Wüstenstart
     plat(-10, 10, 9, -9),
-    // Rastplatz rechts (eine Stufe höher) mit Palme
+    // Sandstein-Terrasse links vor dem Wachturm, Rastplatz rechts (je eine Stufe höher) mit Palme
+    plat(-10, -4.4, 9, -1.6, 1.8),
+    { type: 'sign', pos: [-7, 1.8, 6.6], text: 'Rieselschlucht' },
     plat(6.4, 10, 9, 1.4, 1.8),
     // Wachturm (6 m) mit Kletterwand vorn – Stern 0 oben
     cliff(-10, -4.4, -1.6, -9, 7),
@@ -127,11 +130,11 @@ export const LEVEL = {
     isl(-4, -2, -10.4, -12.4, 1.6, 2.2, { top: 'stone' }),
     isl(0.8, 2.8, -14, -16, 1.6, 2.2, { top: 'stone' }),
     isl(-3.2, -1.2, -17.6, -19.6, 1.6, 2.2, { top: 'stone' }),
-    { type: 'sandblock', id: 'sandsteg', from: [4.6, 0.6, -9.6], to: [4.6, 0.6, -20.4], respawn: 3 },
+    { type: 'sandblock', id: 'sandsteg', blocks: [[4.6, 0.6, -10.2], [4.6, 0.6, -11.2], [4.6, 0.6, -13.6], [4.6, 0.6, -14.6], [4.6, 0.6, -17], [4.6, 0.6, -18], [4.6, 0.6, -20]], respawn: 3 },
     { type: 'sign', pos: [-2.6, Y, -7.2], text: 'Vorsicht,\nTreibsand!' },
     { type: 'deco_w2', items: [
       { kind: 'palme', pos: [8.4, 1.8, 5.6], height: 4.8, lean: 0.3, sway: true },
-      { kind: 'kaktus', pos: [-8.6, Y, 7.2], variant: 'saeule', size: 1.1 },
+      { kind: 'kaktus', pos: [-8.8, 1.8, 3.4], variant: 'saeule', size: 1.1 },
       { kind: 'kaktus', pos: [8.4, Y, -6.8], variant: 'feige' },
       { kind: 'ruine', pos: [-7.4, 7, -7.4], height: 1.6 },
       { kind: 'felsen', pos: [-14, 5, 0], size: [5, 16], n: 3, height: [1.5, 4], solid: true },
@@ -191,9 +194,9 @@ export const LEVEL = {
     ] },
 
     // =============================================================== 4  Fliesenbrücke
-    { type: 'fliesenbruecke', id: 'fb_shift', from: [0, Y, -70], to: [0, Y, -82.6], mode: 'shift', tile: 2.6, shift: 2.2, stay: 2.2 },
+    { type: 'fliesenbruecke', id: 'fb_shift', from: [0, Y, -70], to: [0, Y, -82.6], mode: 'shift', tile: 3, shift: 2.2, stay: 2.2 },
     pillar(-2.6, 2.6, -82.6, -86.6),
-    { type: 'fliesenbruecke', id: 'fb_drop', from: [0, Y, -86.6], to: [0, Y, -100], mode: 'drop', tile: 2.6, delay: 0.7, respawn: 2.6 },
+    { type: 'fliesenbruecke', id: 'fb_drop', from: [0, Y, -86.6], to: [0, Y, -100], mode: 'drop', tile: 3, delay: 0.7, respawn: 2.6 },
     cliff(-18, -11, -70, -100, 9),
     cliff(11, 18, -70, -100, 6),
     { type: 'deco_w2', items: [
@@ -240,8 +243,10 @@ export const LEVEL = {
     cliff(9, 15, -170.5, -181.5, 5.8),
     { type: 'sandblock', id: 'treppe', blocks: [[5.4, 1.6, -178.4], [6.7, 2.9, -178.4], [8, 4.2, -178.4]], respawn: 2.5 },
     // lange verschiebende Fliesenbrücke zum Ziel
-    { type: 'fliesenbruecke', id: 'fb_slide', from: [0, Y, -182], to: [0, Y, -203], mode: 'slide', tile: 2.6, slide: { amp: 1.4, period: 3.2, wave: 0.6 } },
+    { type: 'fliesenbruecke', id: 'fb_slide', from: [0, Y, -182], to: [0, Y, -203], mode: 'slide', tile: 3, slide: { amp: 1.4, period: 3.2, wave: 0.6 } },
     plat(-10, 10, -203, -220),
+    { type: 'mound', pos: [-6.2, Y, -208.6], radius: 3, height: 0.8 },
+    { type: 'mound', pos: [6.8, Y, -205.4], radius: 2.4, height: 0.6 },
     cliff(-16, -10, -200, -220, 6),
     cliff(10, 16, -200, -220, 4),
     cliff(15, 21, -146, -170, 3),
@@ -320,7 +325,7 @@ export const LEVEL = {
     ...arc([-3, 1.7, -9.4], [-3, 2.2, -11.4], 2, 0.6),
     ...arc([-3, 2.2, -11.4], [1.8, 2.2, -15], 3, 1.2),
     ...arc([1.8, 2.2, -15], [-2.2, 2.2, -18.6], 3, 1.2),
-    line([4.6, 2.1, -11], [4.6, 2.1, -19], 3),
+    line([4.6, 2.1, -10.7], [4.6, 2.1, -17.5], 3),
     line([-7.2, 7.4, -3.6], [-5.6, 7.4, -3.6], 2),
     // 2
     line([0, 1.4, -24], [0, 1.4, -30], 3),
