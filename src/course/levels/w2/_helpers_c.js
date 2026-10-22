@@ -350,3 +350,355 @@ export function embers(level, o = {}) {
   });
   return pts;
 }
+
+// ------------------------------------------------------------------ Arena 2-A: Felsinsel, Lavasee, Kraterwand, Vulkane
+
+/** Weiche Pseudo-Zufallsfunktion (deterministisch) für Gelände-Farben. */
+const hash2 = (x, z) => { const v = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453; return v - Math.floor(v); };
+function vnoise(x, z) {
+  const xi = Math.floor(x), zi = Math.floor(z), xf = x - xi, zf = z - zi;
+  const u = xf * xf * (3 - 2 * xf), v = zf * zf * (3 - 2 * zf);
+  const a = hash2(xi, zi), b = hash2(xi + 1, zi), c = hash2(xi, zi + 1), d = hash2(xi + 1, zi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+
+/** Umriss-Radius der Felsinsel in Richtung a (rad). */
+export function islandRadius(o, a) {
+  const R = o.R ?? 10.5, k = o.wobble ?? [0.08, 0.05, 0.035], ph = o.phase ?? [0.4, 1.7, 2.9];
+  return R * (1 + k[0] * Math.sin(3 * a + ph[0]) + k[1] * Math.sin(5 * a + ph[1]) + k[2] * Math.sin(2 * a + ph[2]));
+}
+
+/**
+ * Organische Felsinsel (Oberseite top, flach): Draufsicht als welliger Kreis, Fels mit Flecken und Rissen, glühender
+ * Fuß, Randsteine. Kollision: Kreis-Vereinigung (Mitte + Randzylinder, folgt dem Umriss auf ≈ 0,15 m genau).
+ * o: center [x, z], top, R, depth (5), wobble, phase, N (48), lavaY.
+ */
+export function rockIsland(level, o) {
+  const [cx, cz] = o.center ?? [0, 0];
+  const top = o.top ?? 2, depth = o.depth ?? 5, N = o.N ?? 48;
+  const rad = (a) => islandRadius(o, a);
+  let rMin = Infinity;
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2, r = rad(a), rr = 1.4;
+    rMin = Math.min(rMin, r);
+    level.world.add({ type: 'cyl', x: cx + Math.cos(a) * (r - rr), z: cz + Math.sin(a) * (r - rr), r: rr, y0: top - depth, y1: top, tag: 'felsinsel' });
+  }
+  level.world.add({ type: 'cyl', x: cx, z: cz, r: rMin - 1.0, y0: top - depth, y1: top, tag: 'felsinsel' });
+  if (!level.view) return;
+  const rockA = L(0x8c7a70), rockB = L(0x6e5e57), rockC = L(0xa6948a), crack = L(0x3a2a26), rim = L(0xb8a294);
+  const topCol = (x, z, edge) => {
+    const n = vnoise(x * 0.35, z * 0.35), m = vnoise(x * 1.3 + 7, z * 1.3 - 3);
+    const out = [0, 0, 0];
+    mixc(rockB, rockA, smooth(0.25, 0.7, n), out);
+    mixc(out, rockC, smooth(0.65, 0.95, m) * 0.6, out);
+    if (Math.abs(vnoise(x * 0.6 + 20, z * 0.6) - 0.5) < 0.035) mixc(out, crack, 0.7, out);
+    mixc(out, rim, smooth(0.75, 1, edge) * 0.5, out);
+    return out;
+  };
+  const RINGS = 6;
+  const posA = [], colA = [];
+  const P = (k, i) => { const a = (i / N) * Math.PI * 2, r = rad(a) * (k / RINGS); return [cx + Math.cos(a) * r, top, cz + Math.sin(a) * r, k / RINGS]; };
+  const push = (q) => { posA.push(q[0], q[1], q[2]); const c = topCol(q[0], q[2], q[3]); colA.push(c[0], c[1], c[2]); };
+  for (let k = 0; k < RINGS; k++) {
+    for (let i = 0; i < N; i++) {
+      const a0 = P(k, i), a1 = P(k, i + 1), b0 = P(k + 1, i), b1 = P(k + 1, i + 1);
+      if (k === 0) { push(a0); push(b1); push(b0); continue; }
+      push(a0); push(b1); push(b0);
+      push(a0); push(a1); push(b1);
+    }
+  }
+  const gTop = new THREE.BufferGeometry();
+  gTop.setAttribute('position', new THREE.Float32BufferAttribute(posA, 3));
+  gTop.setAttribute('color', new THREE.Float32BufferAttribute(colA, 3));
+  gTop.computeVertexNormals();
+  addStatic(level, gTop, { castShadow: false });
+  const sp = [], scol = [];
+  const glowY = o.lavaY ?? -0.5;
+  const sideCol = (y, x, z) => {
+    const out = [0, 0, 0];
+    const n = vnoise(x * 0.8, y * 1.2 + z * 0.8);
+    mixc(rockB, rockA, n, out);
+    mixc(out, L(0x40241c), smooth(top, glowY - 0.3, y) * 0.8, out);
+    if (y < glowY + 0.8) mixc(out, L(0xff7a2a), smooth(glowY + 0.8, glowY - 0.1, y) * 0.9, out);
+    return out;
+  };
+  const LAY = [[0, 0], [0.9, 0.04], [2.4, 0.1], [depth, 0.2]];
+  for (let i = 0; i < N; i++) {
+    for (let l = 0; l < LAY.length - 1; l++) {
+      const v = [];
+      for (const [ii, ll] of [[i, l], [i + 1, l], [i, l + 1], [i + 1, l + 1]]) {
+        const a = (ii / N) * Math.PI * 2, r = rad(a) * (1 - LAY[ll][1]) + (vnoise(ii * 0.7, ll * 3.1) - 0.5) * 0.35 * (ll > 0 ? 1 : 0);
+        v.push([cx + Math.cos(a) * r, top - LAY[ll][0], cz + Math.sin(a) * r]);
+      }
+      for (const q of [v[0], v[2], v[1], v[1], v[2], v[3]]) { sp.push(q[0], q[1], q[2]); const c = sideCol(q[1], q[0], q[2]); scol.push(c[0], c[1], c[2]); }
+    }
+  }
+  const gSide = new THREE.BufferGeometry();
+  gSide.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
+  gSide.setAttribute('color', new THREE.Float32BufferAttribute(scol, 3));
+  gSide.computeVertexNormals();
+  addStatic(level, gSide, { castShadow: true });
+  const parts = [];
+  for (let i = 0; i < N; i += 2) {
+    if (hash2(i, 3) < 0.35) continue;
+    const a = ((i + hash2(i, 5)) / N) * Math.PI * 2, r = rad(a) - 0.25;
+    const s = 0.25 + hash2(i, 9) * 0.3;
+    const g = new THREE.DodecahedronGeometry(s, 0);
+    g.scale(1.2, 0.6, 1);
+    g.rotateY(hash2(i, 11) * 3);
+    g.translate(cx + Math.cos(a) * r, top + s * 0.15, cz + Math.sin(a) * r);
+    parts.push(colorize(g, litFn(hash2(i, 13) < 0.5 ? 0x7a6a62 : 0x958278)));
+  }
+  if (parts.length) addStatic(level, merge(parts), { castShadow: false });
+}
+
+let lavaTex = null;
+function lavaTexture() {
+  if (lavaTex) return lavaTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#c8320e';
+  g.fillRect(0, 0, 256, 256);
+  const rnd = (i) => { const v = Math.sin(i * 91.17) * 43758.5453; return v - Math.floor(v); };
+  for (let k = 0; k < 3; k++) {
+    for (let i = 0; i < 26; i++) {
+      const x = rnd(i * 3 + k * 101) * 256, y = rnd(i * 7 + k * 53) * 256, r = 10 + rnd(i * 11 + k) * 24;
+      for (const [dx, dy] of [[0, 0], [256, 0], [-256, 0], [0, 256], [0, -256]]) {
+        const grd = g.createRadialGradient(x + dx, y + dy, r * 0.2, x + dx, y + dy, r);
+        if (k === 0) { grd.addColorStop(0, 'rgba(255,232,120,0.95)'); grd.addColorStop(1, 'rgba(255,140,30,0)'); }
+        else if (k === 1) { grd.addColorStop(0, 'rgba(90,20,8,0.75)'); grd.addColorStop(1, 'rgba(120,30,10,0)'); }
+        else { grd.addColorStop(0, 'rgba(255,160,40,0.7)'); grd.addColorStop(1, 'rgba(255,100,20,0)'); }
+        g.fillStyle = grd;
+        g.beginPath(); g.arc(x + dx, y + dy, r, 0, Math.PI * 2); g.fill();
+      }
+    }
+  }
+  lavaTex = new THREE.CanvasTexture(c);
+  lavaTex.colorSpace = THREE.SRGBColorSpace;
+  lavaTex.wrapS = lavaTex.wrapT = THREE.RepeatWrapping;
+  return lavaTex;
+}
+
+/**
+ * Lavasee: tödliche Fläche (kill 'lava', besiegt Welt-2-Gegner) als Quader unter der Oberfläche y und eine große,
+ * langsam fließende Glutfläche (Kanvas-Textur, unbeleuchtet, 2 Dreiecke je Lage). o: center [x, z], size, y.
+ */
+export function lavaLake(level, o = {}) {
+  const [cx, cz] = o.center ?? [0, 0], S = o.size ?? 120, y = o.y ?? -0.5;
+  level.world.add({ type: 'box', min: [cx - S / 2, y - 6, cz - S / 2], max: [cx + S / 2, y - 0.12, cz + S / 2], kill: 'lava', solid: false, camIgnore: true, tag: 'lavasee' });
+  if (!level.view || typeof document === 'undefined') return;
+  const tex = lavaTexture();
+  const mk = (rep, op, yy) => {
+    const t = tex.clone();
+    t.needsUpdate = true;
+    t.repeat.set(rep, rep);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(S, S), new THREE.MeshBasicMaterial({ map: t, transparent: op < 1, opacity: op, depthWrite: op >= 1, fog: true }));
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(cx, yy, cz);
+    m.name = 'lavasee';
+    return m;
+  };
+  const a = mk(S / 14, 1, y - 0.05), b = mk(S / 22, 0.45, y - 0.02);
+  b.material.blending = THREE.AdditiveBlending;
+  let t = 0;
+  addObject(level, a, (dt) => { t += Math.min(dt, 0.1); a.material.map.offset.set(t * 0.012, t * 0.007); });
+  addObject(level, b, () => { b.material.map.offset.set(-t * 0.009, t * 0.013); b.material.opacity = 0.35 + Math.sin(t * 1.7) * 0.1; });
+}
+
+/**
+ * Kraterwand rund um den Lavasee (zackige Felszähne, oben dunkler, unten glühend) – Kulisse ohne Kollision.
+ * o: center [x, z], r0 (Innenradius 30), r1 (Außenradius 44), n (Zähne 26), h [min, max], y (Lavahöhe), gap [a0, a1]
+ * (Winkelbereich ohne Zähne, z. B. zur Kamera hin).
+ */
+export function calderaWall(level, o = {}) {
+  if (!level.view) return;
+  const [cx, cz] = o.center ?? [0, 0];
+  const r0 = o.r0 ?? 30, r1 = o.r1 ?? 44, n = o.n ?? 26, [h0, h1] = o.h ?? [6, 16], y = o.y ?? -0.5;
+  const parts = [];
+  const dark = L(0x2e201c), mid = L(0x5a443c), hot = L(0xff6a24);
+  for (let i = 0; i < n; i++) {
+    const a = ((i + hash2(i, 1) * 0.6) / n) * Math.PI * 2;
+    if (o.gap && a > o.gap[0] && a < o.gap[1]) continue;
+    const r = r0 + hash2(i, 2) * (r1 - r0) * 0.4, h = h0 + hash2(i, 3) * (h1 - h0), w = 4 + hash2(i, 4) * 5;
+    const g = new THREE.ConeGeometry(w, h + 2, 6, 3);
+    g.translate(0, (h + 2) / 2, 0);
+    g.scale(1, 1, 0.7 + hash2(i, 6) * 0.5);
+    g.rotateY(-a);
+    g.translate(cx + Math.cos(a) * (r + w * 0.6), y - 2, cz + Math.sin(a) * (r + w * 0.6));
+    parts.push(colorize(g, (p, nn, out) => {
+      const t = (p.y - y) / h;
+      mixc(mid, dark, smooth(0.1, 0.9, t), out);
+      if (p.y < y + 0.9) mixc(out, hot, smooth(y + 0.9, y, p.y) * 0.85, out);
+    }));
+  }
+  addStatic(level, merge(parts), { castShadow: false });
+}
+
+/**
+ * Vulkane (Kulisse): Kegel mit Krater, glühende Lavarinnen, Rauch (gemeinsames Punkte-Objekt). list = [[x, y, z, r, h], …].
+ */
+export function volcanoes(level, list) {
+  if (!level.view || typeof document === 'undefined') return;
+  const rock = L(0x3a2622), rockT = L(0x5a3a30), glow = L(0xff7a22), glowH = L(0xffd060);
+  const smokes = [];
+  for (const [x, y, z, r, h] of list) {
+    const rt = r * 0.22;
+    const g = new THREE.CylinderGeometry(rt, r, h, 14, 5, true);
+    g.translate(x, y + h / 2, z);
+    addStatic(level, colorize(g, (p, n, out) => {
+      const t = (p.y - y) / h;
+      mixc(rock, rockT, smooth(0.3, 1, t), out);
+      const a = Math.atan2(p.z - z, p.x - x);
+      const vein = Math.max(0, Math.cos(a * 3 + 0.6)) ** 8;
+      if (t > 0.35) mixc(out, glow, vein * smooth(0.35, 0.9, t), out);
+    }), { castShadow: false });
+    const c = new THREE.CircleGeometry(rt * 0.95, 14);
+    c.rotateX(-Math.PI / 2);
+    c.translate(x, y + h - 0.3, z);
+    addStatic(level, colorize(c, (p, n, out) => mixc(glowH, glow, smooth(0, rt, Math.hypot(p.x - x, p.z - z)), out)), { material: 'glow', castShadow: false });
+    smokes.push([x, y + h, z, rt]);
+  }
+  const n = smokes.length * 10;
+  const pos = new Float32Array(n * 3), seed = [];
+  for (let i = 0; i < n; i++) seed.push({ v: smokes[Math.floor(i / 10)], ph: (i % 10) / 10 + hash2(i, 2) * 0.05, dx: hash2(i, 3) - 0.5, dz: hash2(i, 4) - 0.5 });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({ size: 9, map: glowTexture(), color: 0x6a5a58, transparent: true, opacity: 0.55, depthWrite: false, sizeAttenuation: true, fog: true });
+  const pts = new THREE.Points(geo, mat);
+  pts.frustumCulled = false;
+  pts.name = 'vulkanrauch';
+  let t = 0;
+  addObject(level, pts, (dt) => {
+    t += Math.min(dt, 0.1);
+    for (let i = 0; i < n; i++) {
+      const s = seed[i], k = (t * 0.08 + s.ph) % 1, [x, y, z, rt] = s.v;
+      pos[i * 3] = x + s.dx * rt * 2 + k * 10;
+      pos[i * 3 + 1] = y + k * 22;
+      pos[i * 3 + 2] = z + s.dz * rt * 2 + k * 3;
+    }
+    geo.attributes.position.needsUpdate = true;
+  });
+}
+
+/** Blubbernde Lavablasen auf dem See (eine Instanz-Gruppe): o: center [x, z], r0, r1, n, y. */
+export function lavaBubbles(level, o = {}) {
+  if (!level.view) return;
+  const [cx, cz] = o.center ?? [0, 0], n = o.n ?? 14, y = o.y ?? -0.5;
+  const geo = new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffa040 });
+  const mesh = new THREE.InstancedMesh(geo, mat, n);
+  mesh.name = 'lavablasen';
+  mesh.frustumCulled = false;
+  const b = [];
+  for (let i = 0; i < n; i++) {
+    const a = hash2(i, 21) * Math.PI * 2, r = (o.r0 ?? 12) + hash2(i, 22) * ((o.r1 ?? 26) - (o.r0 ?? 12));
+    b.push({ x: cx + Math.cos(a) * r, z: cz + Math.sin(a) * r, ph: hash2(i, 23), sp: 0.35 + hash2(i, 24) * 0.3, s: 0.25 + hash2(i, 25) * 0.35 });
+  }
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new THREE.Vector3(), pv = new THREE.Vector3();
+  let t = 0;
+  addObject(level, mesh, (dt) => {
+    t += Math.min(dt, 0.1);
+    for (let i = 0; i < n; i++) {
+      const B = b[i], k = (t * B.sp + B.ph) % 1;
+      const s = k < 0.8 ? B.s * smooth(0, 0.8, k) : B.s * (1 + (k - 0.8) * 3) * (1 - smooth(0.8, 1, k));
+      sv.set(s + 1e-4, s * 0.8 + 1e-4, s + 1e-4);
+      pv.set(B.x, y - 0.06, B.z);
+      m.compose(pv, q, sv);
+      mesh.setMatrixAt(i, m);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+}
+
+/**
+ * Wellen für die Arena (level-lokal): Gegner mit den Ids aus waves[1..] warten unsichtbar und ohne Wirkung, bis alle
+ * Gegner der vorigen Welle besiegt sind; dann fallen sie nach pause s vom Himmel an ihren Startpunkt (Staub, Beben,
+ * Ansage). Der Arena-Archetyp zählt alle Wellen von Anfang an (HUD „noch N“). Nach einem Tod setzt die Arena alle Gegner
+ * neu (runtime.respawn) – die Wellen beginnen dann wieder bei 1. Muss beim Aufbau laufen (vor arena.setup), damit die
+ * Arena unsere Hülle von runtime.respawn umhüllt (ihre neuen Gegner entstehen vor unserem Parken).
+ * waves = [['id1'], ['id2', 'id3']]; o: pause (1.6 s), drop (12 m), banner(level, welle), id ('wellen').
+ */
+export function arenaWaves(level, waves, o = {}) {
+  const st = { wave: 0, timer: -1, dropping: [], log: [], landed: 0 };
+  const ent = (id) => level.named.get(id);
+  const park = (e) => {
+    if (!e || e.parked) return;
+    e.parked = { update: e.update, home: e.pos.clone(), touch: e.touch };
+    e.update = () => {};
+    e.touch = false;
+    e.shadowVisible = false;
+    e.pos.set(e.parked.home.x, e.parked.home.y + 60, e.parked.home.z);
+    e.vel?.set(0, 0, 0);
+    if (e.model) e.model.root.visible = false;
+  };
+  const release = (e) => {
+    if (!e?.parked) return;
+    const P = e.parked;
+    delete e.update;                       // Methode der Klasse wieder sichtbar
+    if (e.update !== P.update) e.update = P.update;
+    e.touch = P.touch ?? true;
+    e.shadowVisible = true;
+    e.pos.set(P.home.x, P.home.y + (o.drop ?? 12), P.home.z);
+    e.vel?.set(0, -2, 0);
+    e.grounded = false;
+    e.wake = Math.max(e.wake ?? 0, 60);
+    if (e.state === 'idle') e.setState?.('walk');
+    if (e.model) e.model.root.visible = true;
+    e.parked = null;
+    st.dropping.push(e);
+  };
+  const reset = () => {
+    st.wave = 0; st.timer = -1; st.dropping = [];
+    for (let w = 1; w < waves.length; w++) for (const id of waves[w]) park(ent(id));
+  };
+  const rt = level.runtime;
+  const respawn = rt.respawn.bind(rt);
+  rt.respawn = () => { reset(); respawn(); };
+  reset();
+  level.onStep((dt) => {
+    for (const e of st.dropping.slice()) {
+      if (e.removed || e.defeated) { st.dropping.splice(st.dropping.indexOf(e), 1); continue; }
+      if (e.grounded) {
+        st.dropping.splice(st.dropping.indexOf(e), 1);
+        st.landed++;
+        level.effects?.dust(e.pos, 10, 2.2);
+        level.shake?.(0.35);
+        level.sfx('groundpound');
+      }
+    }
+    if (st.wave + 1 >= waves.length) return;
+    const cur = waves[st.wave].map(ent);
+    const down = cur.every((e) => !e || e.defeated || e.removed || !e.alive);
+    if (down && st.timer < 0) st.timer = o.pause ?? 1.6;
+    if (st.timer >= 0) {
+      st.timer -= dt;
+      if (st.timer <= 0) {
+        st.timer = -1;
+        st.wave++;
+        for (const id of waves[st.wave]) release(ent(id));
+        st.log.push({ wave: st.wave + 1, t: +level.time.toFixed(2) });
+        o.banner?.(level, st.wave + 1);
+      }
+    }
+  });
+  level.named.set(o.id ?? 'wellen', st);
+  return st;
+}
+
+/** Felsstümpfe im Lavasee (pos = Oberseite-Mitte), fest; unten glühend. o: r (0.8), lavaY. */
+export function rockStumps(level, list, o = {}) {
+  const r = o.r ?? 0.8, ly = o.lavaY ?? -0.5;
+  const parts = [];
+  for (const [x, y, z] of list) {
+    level.world.add({ type: 'cyl', x, z, r, y0: ly - 3, y1: y, tag: 'felsstumpf' });
+    if (!level.view) continue;
+    const g = new THREE.CylinderGeometry(r * 0.85, r * 1.25, y - ly + 1.2, 7, 2);
+    g.translate(x, (y + ly - 1.2) / 2, z);
+    parts.push(colorize(g, (p, n, out) => {
+      mixc(L(0x4a3830), L(0x7a665c), smooth(ly, y, p.y), out);
+      if (p.y < ly + 0.6) mixc(out, L(0xff6a24), smooth(ly + 0.6, ly - 0.2, p.y) * 0.85, out);
+    }));
+  }
+  if (parts.length) addStatic(level, merge(parts), { castShadow: false });
+}

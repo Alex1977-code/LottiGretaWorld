@@ -311,6 +311,37 @@ function install() {
     info: () => P().info(),
     kinds: () => { const m = {}; for (const e of L().entities) m[e.kind] = (m[e.kind] ?? 0) + 1; return m; },
     arch: () => c.arch?.info?.() ?? null,
+    save: () => JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}'),
+    /** Haupt-Figur fällt von oben auf einen Gegner (Draufspringen) – bis er reagiert. */
+    stompOn(id, field = 'state', want = 'back') {
+      const p = P(), e = L().named.get(id);
+      p.reset([e.pos.x, e.pos.y + e.half.y * 2 + 1.2, e.pos.z], Math.PI / 2);
+      p.invuln = 999;
+      for (let i = 0; i < 150; i++) {
+        c.setInput({}); c.step(1);
+        if (p.mode === 'air' && p.vel.y <= 0) { p.pos.x = e.pos.x; p.pos.z = e.pos.z; }
+        if (e[field] === want || e.defeated) break;
+      }
+      for (let i = 0; i < 40 && p.mode !== 'ground'; i++) { c.setInput({}); c.step(1); }
+      return { state: e.state, hp: e.hp, defeated: !!e.defeated };
+    },
+    /** Liegenden Großrollpilz von der Inselmitte weg (Richtung Rand) in die Lava stoßen: anlaufen und hineinrennen. */
+    pushOut(id) {
+      const p = P(), e = L().named.get(id);
+      let dx = e.pos.x, dz = e.pos.z;
+      const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+      p.reset([e.pos.x - dx * 4, e.pos.y, e.pos.z - dz * 4], Math.atan2(-dz, dx));
+      p.invuln = 999;
+      L().controlYaw = c.view.rig.controlYaw(p.pos);
+      let i = 0, pushed = false;
+      for (; i < 240 && !e.defeated; i++) {
+        if (e.state === 'pushed') pushed = true;
+        c.setInput(pushed ? {} : { ...this.stick(dx, dz), run: true }); c.step(1);
+      }
+      const at = [+e.pos.x.toFixed(2), +e.pos.y.toFixed(2), +e.pos.z.toFixed(2)];
+      for (let k = 0; k < 360 && !e.defeated; k++) { c.setInput({}); c.step(1); }
+      return { pushed, defeated: !!e.defeated, at, pushes: e.pushes, player: [+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)], dead: p.dead };
+    },
   };
   window.__w2 = W;
   return Object.keys(W);
@@ -447,8 +478,88 @@ async function level25() {
   await shot(`${id}_fuenf_figuren`);
 }
 
+// ====================================================================== 2-A
+async function levelA() {
+  const id = '2-A';
+  console.log(`\nLevel ${id}`);
+  if (!(await load(id, true))) { check(`${id} lädt`, false); return; }
+  const loadErrors = errors.slice();
+  const meta = await sc(() => { const d = window.__course.level.data; return { title: d.title, timeLimit: d.timeLimit, theme: d.theme, music: d.music, arch: d.archetype }; });
+  const kinds = await W('kinds');
+  console.log(`  „${meta.title}“ (${meta.arch}, ${meta.theme}, ${meta.music}), Zeitlimit ${meta.timeLimit} s, Entitäten: ${JSON.stringify(kinds)}`);
+  check(`${id}: lädt ohne Konsolenfehler/-warnungen`, loadErrors.length === 0);
+  for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
+  check(`${id}: Arena, Thema lava, Musik course_arena, 200 s, 3 Großrollpilze`, meta.arch === 'arena' && meta.theme === 'lava' && meta.music === 'course_arena' && meta.timeLimit === 200 && kinds.grossrollpilz === 3);
+  if (want('Bilder')) { await W('place', [0, 2, 7], { settle: 30 }); await shot(`${id}_start`); }
+  for (const hero of ['lotti', 'greta']) {
+    if (!want('Sieg')) break;
+    await load(id, true);
+    await W('place', [0, 2, 7], { hero, settle: 30 });
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W2 = window.__w2;
+      const info = (id) => { const e = L.named.get(id); return { parked: !!e.parked, touch: e.touch, visible: e.model?.root.visible, y: +e.pos.y.toFixed(1), state: e.state }; };
+      const a0 = W2.arch(), w0 = { g1: info('grp1'), g2: info('grp2'), g3: info('grp3') };
+      // Welle 1: draufspringen, dann in die Lava stoßen
+      const s1 = W2.stompOn('grp1');
+      const p1 = W2.pushOut('grp1');
+      const a1 = W2.arch();
+      // Welle 2 fällt vom Himmel
+      let n = 0;
+      while (L.named.get('wellen').landed < 2 && n++ < 900) { c.setInput({}); c.player.invuln = 999; c.step(1); }
+      const w2 = { g2: info('grp2'), g3: info('grp3'), wave: L.named.get('wellen').wave, landed: L.named.get('wellen').landed, steps: n };
+      const s2 = W2.stompOn('grp2'), p2 = W2.pushOut('grp2');
+      const s3 = W2.stompOn('grp3'), p3 = W2.pushOut('grp3');
+      const a2 = W2.arch();
+      // Stern erscheint in der Mitte und wird eingesammelt
+      c.player.reset([0, 2, 3], Math.PI / 2);
+      let k = 0;
+      while (!W2.arch().starTouch && k++ < 600) { c.setInput({}); c.step(1); }
+      const got = W2.chase('star', { max: 900 });
+      for (let i = 0; i < 900 && !c.finished; i++) { c.setInput({}); c.step(1); }
+      return { a0, w0, s1, p1, a1, w2, s2, p2, s3, p3, a2, won: W2.arch().won, finished: c.finished, res: c.lastResult, save: W2.save().levels?.['2-A'] ?? null };
+    });
+    if (hero === 'lotti') {
+      check(`${id}: Welle 1 – ein Großrollpilz, die beiden anderen warten unsichtbar (HUD noch ${r.a0.left}/${r.a0.total})`, r.a0.total === 3 && r.a0.left === 3 && !r.w0.g1.parked && r.w0.g2.parked && r.w0.g3.parked && r.w0.g2.visible === false && r.w0.g2.touch === false);
+      check(`${id}: Draufspringen wirft ihn um (${r.s1.state}, hp ${r.s1.hp}), Hineinlaufen stößt ihn in die Lava (gestoßen ${r.p1.pushed}, besiegt ${r.p1.defeated}, noch ${r.a1.left})`, r.s1.state === 'back' && r.s1.hp === 2 && r.p1.pushed && r.p1.defeated && r.a1.left === 2 && !r.p1.dead);
+      check(`${id}: Welle 2 – zwei Großrollpilze fallen vom Himmel und landen (${r.w2.landed} gelandet nach ${(r.w2.steps / 120).toFixed(1)} s, sichtbar ${r.w2.g2.visible}/${r.w2.g3.visible})`, r.w2.wave === 1 && r.w2.landed === 2 && r.w2.g2.visible && r.w2.g3.visible && !r.w2.g2.parked && r.w2.g2.touch);
+    }
+    check(`${id}: ${hero} stößt alle drei Großrollpilze in die Lava (${[r.p1, r.p2, r.p3].map((p) => p.defeated).join('/')}), Stern erscheint`, r.p1.defeated && r.p2.defeated && r.p3.defeated && r.a2.left === 0 && r.a2.cleared);
+    check(`${id}: ${hero} sammelt den Stern → Sieg, Ergebnis, Stern gespeichert`, r.won && r.finished && r.save?.done && r.save?.stars?.[0] === true);
+    if (!(r.won && r.finished)) console.log('     ', JSON.stringify(r));
+  }
+  if (want('Neustart')) {
+    await load(id, true);
+    await W('place', [0, 2, 7], { settle: 30 });
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W2 = window.__w2, p = c.player;
+      W2.stompOn('grp1'); W2.pushOut('grp1');
+      let n = 0;
+      while (L.named.get('wellen').landed < 2 && n++ < 900) { c.setInput({}); p.invuln = 999; c.step(1); }
+      const before = { wave: L.named.get('wellen').wave, left: W2.arch().left };
+      p.invuln = 0;
+      p.die('lava');
+      let k = 0;
+      while ((p.dead || L.runtime.status !== 'play') && k++ < 900) c.step(1);
+      c.step(30);
+      const e2 = L.named.get('grp2'), e1 = L.named.get('grp1');
+      return { before, after: W2.arch(), wave: L.named.get('wellen').wave, g2: { parked: !!e2.parked, visible: e2.model?.root.visible }, g1: { parked: !!e1.parked, defeated: !!e1.defeated, visible: e1.model?.root.visible }, alive: L.entities.filter((e) => e.kind === 'grossrollpilz' && !e.removed && !e.defeated).length, lives: L.runtime.info().lives };
+    });
+    check(`${id}: Tod → Arena von vorn (vorher Welle ${r.before.wave + 1}, noch ${r.before.left}; danach noch ${r.after.left}/${r.after.total}, ${r.alive} Großrollpilze, Welle ${r.wave + 1}, Welle-2 wartet wieder unsichtbar)`, r.before.wave === 1 && r.after.left === 3 && r.after.resets >= 1 && r.alive === 3 && r.wave === 0 && r.g2.parked && r.g2.visible === false && !r.g1.parked && !r.g1.defeated);
+  }
+  if (want('Bilder')) {
+    await load(id, true);
+    await W('place', [0, 2, 2], { settle: 30 });
+    await shot(`${id}_kampf`);
+    await sc(() => { const W2 = window.__w2; W2.stompOn('grp1'); const c = window.__course; c.player.reset([0, 2, 3], Math.PI / 2); c.step(20); });
+    await shot(`${id}_umgeworfen`);
+    await sc(() => { const W2 = window.__w2, c = window.__course; W2.pushOut('grp1'); for (let i = 0; i < 300; i++) { c.player.invuln = 999; c.setInput({}); c.step(1); if (c.level.named.get('grp2').pos.y < 8 && c.level.named.get('grp2').pos.y > 4) break; } });
+    await shot(`${id}_welle2`);
+  }
+}
+
 for (const id of LEVELS) {
   if (id === '2-5') await level25();
+  if (id === '2-A') await levelA();
 }
 
 console.log('\n  Kennzahlen je Bild (Zeichenaufrufe inkl. Schattenpass, Dreiecke, Figuren):');
