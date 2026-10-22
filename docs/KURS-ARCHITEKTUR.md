@@ -1057,6 +1057,23 @@ Welt 2 hat 24 Sterne. Neue Figuren-Rollen: wo der Bauplan den „Kapitän“ nen
 (Pflaumes kleiner Kaninchen-Freund aus 1-Burg) auf. Der „Münz-Dieb“ heißt **Münzmarder** (flinker Marder mit
 Münzsack). Mini-Pilzlinge: `pilzling` mit `mini: true` (halbe Größe, ein Treffer, kein Abprall-Bonus).
 
+**Level-Notiz 2-1 „Rieselschlucht“** (`levels/w2/2-1.js`, Test `tests/course_w2a.mjs`): Wüstenschlucht über Tafelberg-
+Plateaus, 400 s, ≈ 220 m, Checkpoint an der Oase. Sterne: 0 oben auf dem 6-m-Wachturm am Start (Krallen-Anzug aus dem
+?-Block daneben), 1 im nordöstlichen von acht grauen Steinblöcken um einen eingeschlossenen Hackvogel (`track`: er
+zerhackt den Block in Richtung der Figur – nicht besiegen), 2 Krümels Hackvogel beim Picknick besiegen (`task`).
+Stempel: Sims über einer bröselnden Sandblock-Treppe vor der verschiebenden Fliesenbrücke. Extraleben: unsichtbarer
+Block über dem Säulenstumpf der Oase. Goldröhre auf der Wand (Sprungfeld) → Raum mit goldenem Schalter (x ≈ 90, z ≈ 60).
+
+**Level-Notiz 2-2 „Sternenklavier“** (`levels/w2/2-2.js`): Weltraum-Inseln, 400 s, ≈ 200 m, Checkpoint oben auf den
+Kristallstufen. Sterne: 0 auf dem Kristall-Kamin (zwei Wandsprünge), 1 am Ende des Münzhimmels (Pendel-Propeller →
+Wolkenkanone), 2 unter der dritten von drei Kristallplatten vor dem Ziel (Stampfen). Stempel: rechte Schwebeplattform
+antippen (hebt sich) → Röhre darunter → Raum mit zwei Rollpilzen (x ≈ 80). Extraleben: Kristallblock auf dem
+Checkpoint-Plateau oben stampfen → Truhe. Münzmarder auf dem Sternensteg links (einholen → Münzregen). Ziel über eine
+Tastenstein-Treppe auf einer Klaviatur-Insel.
+Level-lokaler Code beider Level (`LEVEL.setup`, Hilfen in `levels/w2/_helpers_a.js`): ferne Kulisse ohne
+Sonnenschatten (`shadowless`), Gegner-Modelle > 40–50 m nicht zeichnen (`farHide`), Szenen-Figuren (Krümel, Dünen-
+kamele, Steppenläufer, Fernrohr, Sternschnuppen, Asteroiden).
+
 **Level-Notizen 2-3 / 2-4** (Level-Agent; Test `tests/course_w2b.mjs`, Port 4300, Bilder `tests/out/w2lv_*.png`):
 
 - `2-3` **„Scherenschnittkeller“** – Schattentheater unter der Erde; die große Bühne (Leinwand 70 × 9 m) wird frontal
@@ -1105,6 +1122,28 @@ Münzsack). Mini-Pilzlinge: `pilzling` mit `mini: true` (halbe Größe, ein Tref
 - **Kennzahlen** (scale 2, inkl. Schattenpass): 2-5 mit einer Figur ≤ 92 Aufrufe / ≤ 263 k Dreiecke, mit vier Figuren
   115 / 193 k, mit fünf 144 / 286 k (jede weitere Figur kostet ≈ 12–16 Aufrufe; ?-Blöcke ≈ 3 k Dreiecke je Stück und
   Pass, Münzen ≈ 0,4 k – beides wird immer gezeichnet); 2-A ≤ 76 / ≤ 82 k; 2-Haus ≤ 72 / ≤ 121 k.
+
+**Level-Notiz 2-Panzer „Brummbärs Panzerparade“** (`levels/w2/2-Panzer.js`, Hilfen `levels/w2/_helpers_d.js`, Test
+`tests/course_w2d.mjs`): 14 Panzer (`panzer_fahrzeug`) fahren mit 3 m/s durchs Treibsandmeer (Baustein `quicksand`,
+Oberfläche 0,3 m: wer fällt, versinkt), das Bildfenster gleitet mit 5,2 m/s am Zug entlang (Konvoi-Rechnung mit
+`ScrollWindow` beim Laden: Fenster und Panzer halten gemeinsam über dem Kommandopanzer). Abendrot als lokale Variante
+des Themas `desert` (Himmel, Licht, Nebel, Gelände-Farben, Tafelberg-Kulisse; das gemeinsame Thema bleibt
+unverändert). Zwei Haken, keine Änderung gemeinsamer Dateien: beim Aufbau die erste Laterne (`lantern`, `lit: true`,
+Aktion `onLit` = Funktion) – nur Abendrot und der in die statische Geometrie gebackene Festungspanzer unter der Arena,
+beides muss vor dem Verschmelzen geschehen; alles Übrige im offiziellen `LEVEL.setup` (Präzisierung „Level-Haken“,
+je Schritt `level.onStep`): Panzerluke (öffnet beim Halt → Bossarena), Holzwand mit Baron-Gesicht (Modell
+`holzwand_boss`, drei Kanonenkugeln), Metalltor (Modell `metalltor`, Kanonenkugel öffnet), Baron-Wimpel und
+Staubfahnen an den Panzern, Fluchtszene des Barons im Sportwagen mit Kameraschwenk. **Mitfahr-Regeln** (für spätere
+Panzer-/Zug-Level wiederverwendbar): Marschblock-Kolonnen mit `ride: '<Panzer>'` marschieren auf dem fahrenden Deck;
+ein `roter_ring` mit `attach` lässt seine roten Münzen auf den Panzern erscheinen und mitfahren; neu entstandene Dinge
+über einem Deck (Power-up aus ?-Block, Stern aus Kiste, abgeworfener Helm, 1-up) fahren mit; Kanonen-Helme liegen an
+Stellen auf Panzern bereit (`panzer.helmets`, nachgelegt nach `every` s bzw. nach einem Neustart). Kombination
+`autoscroller` + `with: 'boss'`: der Level-Haken reicht `boss`/`seenPhase` des Zusatz-Archetyps durch (Ansage
+Wirbelbrocken Phase 3) und verhindert die „Feuerspur“-Ansage des Barons beim Phasenwechsel. Budget-Kniffe (level-lokal):
+statische 32-m-Abschnitte werden je Bild per Quader gegen Sichtpyramide und Nebelweite geprüft (die Begrenzungskugel
+von Festung + Oase, ≈ 60 k Dreiecke, schneidet die flache Sicht sonst immer), während der Fahrt wirft die Kulisse keinen
+Sonnenschatten. Gemessen (scale 2, `tests/course_w2d.mjs`, 33 Prüfungen): 66–127 Zeichenaufrufe inkl. Schattenpass,
+149–265 k Dreiecke; Fahrt bis zum Zughalt ≈ 81 s, Ziel nach ≈ 124 s (Bot).
 
 ## Präzisierung (Mehrwelten-Karte)
 
