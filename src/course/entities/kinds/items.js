@@ -172,7 +172,8 @@ class Powerup extends CourseEntity {
 /** Mehrere Münzen auf einer Strecke oder im Kreis (erzeugt einzelne coin-Entitäten). */
 function coins(level, spec) {
   const n = spec.n ?? 5;
-  const flags = { hidden: spec.hidden, hiddenUntilLit: spec.hiddenUntilLit };
+  // roomId (Prüfungs-Haus: Sammelziel) und attach (fährt auf einem Fahrzeug mit) gelten für jede Münze
+  const flags = { hidden: spec.hidden, hiddenUntilLit: spec.hiddenUntilLit, roomId: spec.roomId, attach: spec.attach };
   if (spec.from && spec.to) {
     for (let i = 0; i < n; i++) {
       const t = n === 1 ? 0.5 : i / (n - 1);

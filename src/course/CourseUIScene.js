@@ -37,16 +37,25 @@ export class CourseUIScene extends Phaser.Scene {
     // Stern-Plätze nach den Leveldaten: LEVEL.starSlots (Arena 1), sonst max(3, Sternzahl) (Diorama 5); Stempel-Platz
     // nur mit LEVEL.stamp – Präzisierung (Arena/Boss) und (Ritt/Diorama). Das Panel passt sich der Platzzahl an.
     const data = this.course.level?.data ?? this.course.levelData ?? {};
-    this.nStars = data.starSlots ?? Math.max(3, Array.isArray(data.stars) ? data.stars.length : 3);
+    // Prüfungs-Haus (Präzisierung Autoscroller/Haus): ein Stern je Raum, großer Raum-Timer statt der Level-Uhr
+    this.houseMode = !!data.house;
+    this.nStars = data.starSlots ?? (data.house ? Math.max(1, data.house.rooms?.length ?? 1) : Math.max(3, Array.isArray(data.stars) ? data.stars.length : 3));
+    this.compactStars = this.nStars > 10;          // viele Sterne (K-Haus 30): ein Stern + „n/N“
     this.hasStamp = !!data.stamp;
-    const starW = this.nStars * 20 + (this.hasStamp ? 46 : 8);
+    const starW = this.compactStars ? 66 : this.nStars * 20 + (this.hasStamp ? 46 : 8);
     uiPanel(this, W / 2, 15, starW, 22, { color: 0x1a1830, alpha: 0.5, radius: 11, shadow: false, border: 0 }).setDepth(40);
-    uiPanel(this, W - 66, 15, 64, 20, { color: 0x1a1830, alpha: 0.5, radius: 10, shadow: false, border: 0 }).setDepth(40);
+    if (!this.houseMode) uiPanel(this, W - 66, 15, 64, 20, { color: 0x1a1830, alpha: 0.5, radius: 10, shadow: false, border: 0 }).setDepth(40);
     this.icons = this.add.graphics().setDepth(41);
     this.livesText = uiText(this, 44, 15, '×5', { size: 11, originX: 0 }).setDepth(42);
     this.coinText = uiText(this, 116, 15, '0', { size: 11, originX: 0 }).setDepth(42);
     uiText(this, 104, 15.5, '₿', { size: 9, thickness: 0, shadow: false, color: '#fff8ee' }).setDepth(43);
-    this.timeText = uiText(this, W - 50, 15, '000', { size: 11, originX: 1 }).setDepth(42);
+    this.timeText = uiText(this, W - 50, 15, '000', { size: 11, originX: 1 }).setDepth(42).setVisible(!this.houseMode);
+    this.starCount = this.compactStars ? uiText(this, W / 2 + 4, 15, '', { size: 10, originX: 0 }).setDepth(42) : null;
+    if (this.houseMode) {
+      this.houseRoom = uiText(this, W / 2, 32, '', { size: 7, thickness: 2, color: '#e8e0ff' }).setDepth(45);
+      this.houseTime = uiText(this, W / 2, 50, '', { size: 22, thickness: 4, stroke: '#3a2a6a' }).setDepth(45);
+      this.houseFade = this.add.rectangle(0, 0, W, GAME.height, 0x120a1e, 1).setOrigin(0).setDepth(70).setAlpha(0);
+    }
     this.powerText = uiText(this, 90, 34, '', { size: 7, thickness: 2, originX: 0.5 }).setDepth(42);
     this.msg = uiText(this, W / 2, GAME.height * 0.36, '', { size: 18, thickness: 4, stroke: '#3a2a6a' }).setDepth(60).setVisible(false);
     this.debugText = uiText(this, 6, GAME.height - 6, '', { size: 6, thickness: 2, originX: 0, originY: 1, shadow: false, align: 'left' }).setDepth(80);
@@ -90,6 +99,7 @@ export class CourseUIScene extends Phaser.Scene {
       this.powerText.setText(p.power !== 'none' ? `${def.label ?? p.power}${def.duration ? ` ${Math.ceil(p.powerTime)}` : ''}` : '');
       this.drawIcons(rt, p, def);
     }
+    if (this.houseMode) this.refreshHouse(c.level.house);
     if (c.debug) {
       const s = c.state();
       const st = c.view.stats();
@@ -98,6 +108,27 @@ export class CourseUIScene extends Phaser.Scene {
     const status = rt.status;
     const m = status === 'gameover' ? 'Spiel vorbei' : status === 'goal' ? 'Ziel!' : p.dead && rt.status === 'dying' && p.deathCause === 'time' ? 'Zeit abgelaufen' : '';
     if (m !== this.prev.msg) { this.prev.msg = m; this.msg.setText(m).setVisible(!!m); }
+  }
+
+  /** Prüfungs-Haus: großer Raum-Countdown (letzte 3 s rot und pulsierend, geschafft grün), Raumzahl, Überblendung. */
+  refreshHouse(h) {
+    if (!h) return;
+    const t = Math.max(0, Math.ceil(h.time - 1e-6));
+    const won = h.phase === 'clear' || h.phase === 'final';
+    const key = `${t}|${won}|${h.phase === 'timeout'}|${h.room}`;
+    if (key !== this.prev.house) {
+      const last = this.prev.houseT;
+      this.prev.house = key;
+      this.prev.houseT = t;
+      this.houseTime.setText(String(t)).setColor(won ? '#7dffa0' : t <= 3 ? '#ff6a5a' : '#ffffff');
+      this.houseRoom.setText(`Raum ${h.room + 1}/${h.rooms}`);
+      if (!won && t <= 3 && t !== last && h.phase === 'play') {
+        this.tweens.killTweensOf(this.houseTime);
+        this.houseTime.setScale(1.45);
+        this.tweens.add({ targets: this.houseTime, scale: 1, duration: 320, ease: 'Back.Out' });
+      }
+    }
+    this.houseFade.setAlpha(Math.max(0, Math.min(1, h.fade ?? 0)));
   }
 
   drawIcons(rt, p, def) {
@@ -118,7 +149,14 @@ export class CourseUIScene extends Phaser.Scene {
     g.lineStyle(1, 0xffe0b0, 1); g.strokeCircle(104, 15, 6);
     // Sterne (gesammelt = grün, schon gespeichert = blass, offen = Umriss), Anzahl/Stempel siehe create()
     const n = this.nStars ?? 3, x0 = W / 2 - (n - 1) * 10 - (this.hasStamp ? 14 : 0);
-    for (let i = 0; i < n; i++) {
+    if (this.compactStars) {
+      // ein Stern + „gesammelt/N“ (viele Räume)
+      const got = rt.stars.slice(0, n).filter(Boolean).length;
+      const pts = starPoints(W / 2 - 16, 15, 8, 3.6);
+      g.fillStyle(0x3ee05a, got ? 1 : 0.35); g.fillPoints(pts, true); g.lineStyle(1.2, 0xeaffea, 1); g.strokePoints(pts, true);
+      this.starCount?.setText(`${got}/${n}`);
+    }
+    for (let i = 0; i < (this.compactStars ? 0 : n); i++) {
       const x = x0 + i * 20, y = 15;
       const pts = starPoints(x, y, 8, 3.6);
       if (rt.stars[i]) { g.fillStyle(0x3ee05a, 1); g.fillPoints(pts, true); g.lineStyle(1.2, 0xeaffea, 1); g.strokePoints(pts, true); }
@@ -127,10 +165,11 @@ export class CourseUIScene extends Phaser.Scene {
     }
     // Stempel
     const sx = x0 + n * 20 + 10;
-    if (!this.hasStamp) { /* Level ohne Stempel (Arena, Diorama) */ }
+    if (!this.hasStamp || this.compactStars) { /* Level ohne Stempel (Arena, Diorama, Haus) */ }
     else if (rt.stamp) { g.fillStyle(0xff7ab8, 1); g.fillCircle(sx, 15, 7); g.fillStyle(0xfff4fa, 1); g.fillCircle(sx, 15, 4.5); g.fillStyle(0xe8438c, 1); g.fillCircle(sx, 16, 2.2); }
     else { g.fillStyle(0x000000, rt.stampSaved ? 0.1 : 0.25); g.fillCircle(sx, 15, 7); g.lineStyle(1, rt.stampSaved ? 0xff9ccc : 0xffffff, 0.55); g.strokeCircle(sx, 15, 7); }
-    // Uhr
+    // Uhr (nicht im Prüfungs-Haus: dort zählt der große Raum-Timer)
+    if (this.houseMode) return;
     const tx = W - 86;
     g.fillStyle(0xffffff, 0.95); g.fillCircle(tx, 15, 6.5);
     g.lineStyle(1.4, 0x2a2550, 1); g.strokeCircle(tx, 15, 6.5);

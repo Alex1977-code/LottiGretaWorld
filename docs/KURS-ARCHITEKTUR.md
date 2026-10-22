@@ -1056,3 +1056,155 @@ Welt-Warp-Röhre in 1-2 führt ebenfalls zur Welt-2-Insel). Sternbedarf zählt *
 Welt 2 hat 24 Sterne. Neue Figuren-Rollen: wo der Bauplan den „Kapitän“ nennt (2-1, 2-3), tritt **Krümel**
 (Pflaumes kleiner Kaninchen-Freund aus 1-Burg) auf. Der „Münz-Dieb“ heißt **Münzmarder** (flinker Marder mit
 Münzsack). Mini-Pilzlinge: `pilzling` mit `mini: true` (halbe Größe, ein Treffer, kein Abprall-Bonus).
+
+---
+
+## Präzisierung (Autoscroller/Haus)
+
+Ergänzung des Gameplay-Agenten (Stand: Testlevel 0-4 „Rollband“ und 0-5 „Prüfstube“). Nichts oben Festgelegtes wird
+geändert. Beide Archetypen sind datengetrieben und für Welt 2 und spätere Welten gedacht (Autoscroller: 2-Panzer,
+3-2, 3-Zug, 5-Zug, 6-Panzer, 8-Zug; Prüfungs-Haus: 2-Haus, 4-Haus, 6-Haus, 8-Haus, K-Haus).
+
+### Präzisierung (Autoscroller/Haus): Dateien
+
+```
+src/course/archetypes/ScrollWindow.js       Bildfenster (reine Mathematik, Node-tauglich): ScrollPath, ScrollWindow, parseScroll
+src/course/archetypes/kinds/autoscroller.js Archetyp 'autoscroller' (Fenster, Grenzen, Kamera, Ende, Neustart, Kombination `with`)
+src/course/archetypes/kinds/house.js        Archetyp 'house' (Räume, Raum-Timer, Sterne, Überblendung, Zeitablauf, Ergebnis)
+src/course/entities/kinds/vehicle.js        Entität 'vehicle' (Panzer, Plattformwagen, Waggon, Flachwagen, Kettenzaun) + attach
+src/course/blocks/types/vehicle.js          dieselbe als Baustein ({ type: 'vehicle' } in segments)
+src/course/blocks/types/track.js            Baustein 'track' (Gleis mit Schwellen, Gerüst-Brücke, Prellbock)
+src/course/levels/w0/0-4.js, 0-5.js         Testlevel „Rollband“ (Autoscroller) und „Prüfstube“ (Haus)
+tests/course_archetypes2.mjs                Port 4209, Bilder tests/out/ca2_*.png
+```
+
+Kleine Ergänzungen: `CourseUIScene.js` (Haus: großer Raum-Timer, Raumzahl, Überblendung, Level-Uhr aus; ab 11 Sternen
+kompakte Anzeige „★ n/N“), `CourseResultScene.js` (Haus: Zeile „Prüfungs-Haus: n von N Sternen“, Überschrift „Haus
+verlassen“ bei Teilergebnis; ab 9 Sternen kompakt), `entities/kinds/items.js` (`coins` reicht `roomId` und `attach` an
+jede Münze weiter).
+
+### Präzisierung (Autoscroller/Haus): Archetyp `autoscroller`
+
+Ein **Bildfenster** fährt mit konstantem (abschnittsweise wechselndem) Tempo entlang eines Pfads; die Kamera folgt dem
+Fenster, nicht der Figur. Die Figur bewegt sich frei im Fenster; an der **vorderen** Grenze wird sie sanft gebremst
+(in den letzten `soft` m höchstens Fenstertempo + 4 m/s je m Abstand, an der Grenze hart), an der **hinteren** Grenze
+**mitgeschoben** (Bewegung mit Kollision). Kommt sie dabei nicht weiter (Hindernis davor), wird sie nach `crush` m
+**zerquetscht** (`player.die('crush')`). Am `end` hält das Fenster (weich abgebremst, genau auf `end`), die Grenzen
+fallen weg, die Kamera gleitet in 1,1 s zur normalen Verfolgung, die Figur läuft frei weiter (z. B. zur Röhre).
+
+```js
+archetype: 'autoscroller',
+scroll: {
+  path: [[0, 0, 10], [0, 0, -150]],   // Fensterlinie (Mitte des Fensters); y = Fahrebene der Fahrzeuge (Schienenoberkante)
+  // oder: axis: '-z', line: [x, y], start/end/speeds.from als Koordinate auf der Achse (z. B. start: 0, end: -120)
+  start: 11, end: 121,                // Pfadlänge (m) der Fenstermitte am Anfang/Ende (Standard 0 / Pfadlänge)
+  speed: 4, speeds: [{ from: 40, speed: 3.4 }],   // m/s; ab Pfadlänge `from` gilt `speed`
+  accel: 6,                           // m/s² Anfahren/Tempowechsel
+  delay: 2,                           // s nach Levelstart (bzw. nach dem Auslöser) bis zur Abfahrt
+  trigger: { min: [x, y, z], max: [x, y, z] },   // optional: Abfahrt erst, wenn die Figur hineingeht
+  frame: { back: 5, front: 9, side: null, soft: 1.5, crush: 0.35, backMode: 'push' /* | 'kill' */,
+           ahead: 0, followX: 0.3, followY: 1, turn: true },
+  with: 'boss',                       // optional: zweiter Archetyp (z. B. Bossarena nach der Fahrt, 2-Panzer)
+  startBanner: "Los geht's!", endBanner: 'Endstation!',   // Ansagen ('' = keine)
+},
+camera: [{ from: 14, to: -150, pitch: 41, dist: 15, yaw: 0, fov: 40 }],   // ausgewertet an der Fenstermitte
+```
+
+- `frame`: Grenzen in m hinter/vor der Fenstermitte, `side` seitlich ± (null = frei). `backMode: 'kill'` für senkrechte
+  Fahrten (6-7: unten aus dem Bild = Tod). Kamera: Blickziel = Fenstermitte (+ `ahead` m), seitlich `followX`,
+  senkrecht `followY` (1 = Standhöhe der Figur wie üblich); `turn` dreht die Kamera mit der Fahrtrichtung (Kurven),
+  `LEVEL.camera`-yaw kommt hinzu. Die Steuerungs-Gier kommt aus derselben Rechnung (deterministisch).
+- **Bildausschnitt passend wählen:** mit `pitch 41, dist 15, fov 40` liegt `back 5` am unteren Bildrand und
+  `front 9` knapp unter der HUD-Leiste – steilere/nähere Kameras brauchen kleinere Werte.
+- **Springen auf fahrenden Fahrzeugen:** In der Luft rechnet der Archetyp die Bewegung relativ zum geerbten
+  Fahrzeugtempo (Luftsteuerung und Luftwiderstand der Figur wirken relativ zum Wagen; seitlich mit Kollision
+  mitgenommen). Ein Sprung auf der Stelle landet wieder an derselben Stelle des Wagens.
+- **Neustart:** Ein Checkpoint (auch eine Fahne auf einem Fahrzeug, `attach`) speichert die Fensterlage; nach einem Tod
+  geht es dort mit derselben Fensterlage weiter (Fahrzeuge springen zurück, ihre Lage ist eine reine Funktion der
+  Fahrt-Uhr). Ohne Checkpoint: Fahrt von vorn. Checkpoints müssen beim Berühren im Fenster liegen.
+- **Kombination:** `with: '<archetyp>'` erzeugt einen zweiten Archetyp, dessen Haken (`setup`, `beforeStep`,
+  `afterStep`, `render`, `createRig`, `createPlayer`, `info`, `dispose`) mitlaufen; seine Kamera übernimmt nach dem
+  Ende der Fahrt. Beide umhüllen `runtime.respawn` (verkettet).
+- `level.scroll` = ScrollWindow: `state` (`wait` | `run` | `done`), `s`, `speed`, `clock` (s seit Abfahrt, läuft nach dem
+  Ende weiter), `center`, `dir`, `side`, `path` (ScrollPath: `at(s)`, `dirAt(s)`, `headingYaw(s)`), `local(p)` →
+  `{ along, across, up }`, `snapshot()`/`restore(snap)`. `info()` des Archetyps: `{ state, s, speed, clock, center,
+  dir, ended, camK, player: { along, across }, pushes, crushed, inherit, frame, sub, hud }`.
+- Effekte: `switch` beim Halt; Tod durch Einklemmen `die('crush')` (Todesanimation wie bei Treffern).
+
+### Präzisierung (Autoscroller/Haus): Fahrzeug `vehicle` und Unterobjekte (`attach`)
+
+```js
+// als Baustein (segments) oder Entität (enemies/items): { type|kind: 'vehicle', … }
+{ type: 'vehicle', id: 'wagen2', style: 'cart',   // cart (Plattformwagen) | tank (Panzer) | wagon (Güterwagen, Dach
+                                                   //  begehbar) | flat (Flachwagen) | fence (Kettenzaun-Plattform) | plain
+  size: [4, 1.2, 9],          // Breite, Deckhöhe über der Fahrebene, Länge (Standard je Stil)
+  at: 30.8,                   // Pfadlänge der Fahrzeugmitte bei Fahrtbeginn (Standardpfad: der des Fensters)
+  speed: 2.5,                 // m/s eigenes Tempo (negativ = rückwärts) | 'scroll' (genau mit dem Fenster; Standard im
+                              //  Autoscroller) – ohne Autoscroller Standard 0
+  delay: 1, stop: 102.8, brake: 3,   // Abfahrt s nach Fahrtbeginn; Halt bei Pfadlänge (weich gebremst, m/s²)
+  offset: [dx, dy],           // seitlich (rechts +) und Höhe zur Pfadlinie
+  path: [[x,y,z], …], mode: 'once' | 'loop' | 'pingpong',   // eigener Pfad (Kettenzäune am Himmel, Gegenverkehr)
+  pos: [x,y,z], dir: [dx, dz],                             // ohne Pfad und ohne Autoscroller: gerade Strecke
+  reverse: false, color, accent, deck: true,
+  parts: [{ pos: [x, y, z], size: [w, h, d], color, climbable, oneWay, solid, kill, visible, tag }],
+}
+// Unterobjekte: jede Entität mit attach fährt mit (Lage, Gier, Kollisionsformen; ihre Formen tragen dann ebenfalls)
+{ kind: 'bomb_cannon', attach: 'wagen2', pos: [1, 1.2, -18.2] },
+{ kind: 'coins', attach: 'wagen1', from, to, n },  checkpoint: { pos, attach: 'wagen2' },  stars: [{ pos, attach }]
+```
+
+- Fahrzeug-Koordinaten der `parts`: x rechts, y oben ab Fahrebene, z nach hinten (+), `pos` = Mitte der Unterseite.
+  Alle Teile sind Kollisionsquader mit gemeinsamem `mover` (`camIgnore`); Figur und Gegner werden mitgenommen
+  (Drehung in Kurven über `mover.dyaw`). In Kurven bleiben die Quader achsenparallel (Hüllquader) – Fahrzeuge fahren
+  am besten gerade oder im 90°-Raster.
+- Die Lage eines Fahrzeugs ist eine reine Funktion der Fahrt-Uhr bzw. der Fensterlage (`speed: 'scroll'`) – Neustarts
+  setzen sie zurück. Bewegung in `level.onStep` (vor der Figur). Gegner mit `attach`, die auf dem Fahrzeug stehen,
+  nimmt ihr eigenes `moveWithGravity` mit; in der Luft hält `attach` sie beim Fahrzeug. Gegner-`path` ist in
+  Weltkoordinaten – auf Fahrzeugen ohne `path` laufen lassen (Kantenumkehr).
+- `level.named.get(id)` = Fahrzeug mit `s`, `speedNow`, `mover`, `attached` (Set), `info()`.
+
+`track` (Optik, statisch): `{ type: 'track', path | from/to, gauge: 2.4, sleepers: 0.9, trestle: { bottom: -36, every: 8,
+width } | false, buffer: 'end' | 'start' | 'both', solid: false, from/upto (Pfadbereich), color }`.
+
+### Präzisierung (Autoscroller/Haus): Archetyp `house` (Prüfungs-Haus)
+
+```js
+archetype: 'house',
+house: {
+  fail: 'exit',               // Zeit abgelaufen: Haus verlassen (Standard, wie im Vorbild) | 'retry' (Raum von vorn)
+  time: 10, cheer: 1.5, fade: 0.35,   // Standard-Raumzeit, Jubel (s), Überblendung je Richtung (s)
+  rooms: [
+    { id: 'r1', goal: 'defeatAll', area: { min: [-7, -1, -7], max: [7, 9, 7] },   // oder [x0, z0, x1, z1]
+      start: { pos: [0, 1, 4.5], yaw: Math.PI / 2 }, star: [0, 2.6, -1.5], time: 10,
+      camera: { pitch: 52, dist: 16, fov: 40, center: [0, 1, -0.5], pull: 0.65 }, title: 'Besiege alle Gegner!' },
+    { id: 'r2', goal: 'collect', count: 8, … },   // Gegenstände mit roomId: 'r2' (z. B. { kind: 'coins', roomId: 'r2', … })
+    { id: 'r3', goal: 'reach', star: [80, 4.3, -4], … },   // Stern von Anfang an sichtbar; berühren = geschafft
+  ],
+},
+enemies: [{ kind: 'pilzling', roomId: 'r1', pos: [-3, 1, -2.5], behavior: 'chase' }],   // ohne roomId: Fußpunkt in area
+```
+
+- Ablauf je Raum: Überblendung herein (Figur eingefroren) → Countdown (großer Timer im HUD, `sfx('house_tick')` bei 3,
+  2 und 1 s) → Ziel erfüllt: Timer steht, `sfx('room_clear')`, der Stern erscheint am `star`-Punkt und fliegt zur Figur
+  (zählt, Index = Raumnummer; `grab: true` = er muss noch berührt werden, Zeit läuft weiter), Siegespose, Jubel →
+  Überblendung in den nächsten Raum. Nach dem letzten Raum Ergebnis.
+- Zeit abgelaufen: Ansage, `sfx('house_timeup')`; `fail: 'exit'` → `runtime.finish()` mit den bisherigen Sternen
+  (gespeichert, Level gilt als gespielt), Ergebnis „Haus verlassen“ / „Prüfungs-Haus: n von N Sternen“.
+  `fail: 'retry'` → derselbe Raum von vorn. Tod in einem Raum: Leben −1, Raum von vorn (Gegner/Gegenstände frisch).
+- Ziele: `defeatAll` über `level.onEnemyDefeated` (verkettet; heruntergefallene Gegner zählen auch), `collect` über
+  Entitäten mit `spec.roomId` (alle bzw. `count`), `reach` über den Stern. Kamera je Raum: Abschnitt der Kameraschiene
+  im X-Bereich von `area` (Räume nebeneinander entlang X legen, ≥ 20 m Abstand); `center` + `pull` ziehen den Blick
+  zur Raummitte. Das Gesamtzeit-Limit des Levels ruht. Sterne: N = Zahl der Räume (LevelRuntime bekommt N Plätze).
+- HUD-Zustand `level.house = { room, rooms, time, limit, phase, fade, cleared, stars }` (CourseUIScene liest ihn);
+  `phase` ∈ `fadein | play | clear | timeout | fadeout | final | exit`. `info()`: `{ room, rooms, id, goal, phase,
+  time, fade, left, cleared, stars, timeouts, resets, ticks, exited, done, flying, hud }`.
+
+### Präzisierung (Autoscroller/Haus): Tests
+
+`tests/course_archetypes2.mjs` (Port 4209): Bildfenster in Node (Achsen-Form, speeds, Halt genau bei `end`,
+Auslöser, snapshot/restore, Kurve), Autoscroller 0-4 (vorne gebremst, delay, Tempo, Kamera am Fenster und nicht an
+der Figur, Wagen tragen Figur/Kanone/Pilzling, Sprung auf der Stelle und über die Lücke, hinten geschoben,
+Einklemmen = Tod, Neustart von vorn bzw. am Wagen-Checkpoint, speeds, Halt von Fenster und Wagen, freie Bewegung
+danach, Kamera zurück, Röhre → Zielmast) und Haus 0-5 (Überblendung, Countdown, HUD, Ziele defeatAll/collect/reach,
+Stern-Flug, Raumwechsel, Raumkamera, Ticks, Zeitablauf → Teilergebnis gespeichert, Ergebnis-Szene, Tod → Raum neu,
+`retry`, 3/3). Gemessen (scale 2): 0-4 67–75, 0-5 30–42 Zeichenaufrufe inkl. Schattenpass, höchstens 94 k Dreiecke.
