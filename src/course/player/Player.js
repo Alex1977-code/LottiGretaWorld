@@ -96,6 +96,7 @@ export class Player {
     this.state = 'fall';
     this.stateTime = 0;
     this.time = 0;
+    this.skidTurnTime = 0;             // sonst wird nach Neustart/Teleport jeder Sprung zum Seitwärtssalto
     this.airTime = 0;
     this.jumpKind = null;
     this.variable = false;
