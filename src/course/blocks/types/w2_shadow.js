@@ -31,7 +31,7 @@
 
 import * as THREE from 'three';
 import { v3, sz3, box, hex, merge, addStatic, addObject } from '../kit.js';
-import { modelObject } from '../w2kit.js';
+import { modelObject, figures } from '../w2kit.js';
 
 const MAXI = { ball: 96, box: 96, star: 8, cyl: 24 };
 
@@ -180,7 +180,7 @@ export function buildSchattenwand(level, spec) {
   };
 
   // Scherenschnitt-Puppe der Figur (lokal: +X = Blickrichtung)
-  const puppet = { phase: 0, lastX: 0, lastZ: 0 };
+  const puppets = new Map();   // Lauf-Phase je Figur
   const _pm = new THREE.Matrix4(), _lm = new THREE.Matrix4();
   const part = (pm, lx, ly, lz, rx, ry, rz, rotZ = 0, rotX = 0) => {
     _e.set(rotX, 0, rotZ, 'XYZ'); _q.setFromEuler(_e);
@@ -193,8 +193,11 @@ export function buildSchattenwand(level, spec) {
     if (!pl || pl.dead || pl.script?.type === 'pipe') return;
     const P = pl.pos;
     if (!inZone(P.x, P.y + 0.5, P.z, 0.6)) return;
+    if (pl.hidden) return;
     const k = pl.big ? 1 : 0.7;
     const sp = Math.hypot(pl.vel.x, pl.vel.z);
+    let puppet = puppets.get(pl);
+    if (!puppet) { puppet = { phase: 0 }; puppets.set(pl, puppet); }
     if (pl.mode === 'ground') puppet.phase += sp * dt * 2.6;
     const air = pl.mode === 'air' || pl.mode === 'wall';
     const st = pl.state;
@@ -226,7 +229,7 @@ export function buildSchattenwand(level, spec) {
   const cands = [];
   const shadowFrame = (dt) => {
     for (const k of Object.keys(counts)) counts[k] = 0;
-    if (spec.player !== false) drawPlayer(level.player, dt);
+    if (spec.player !== false) for (const f of figures(level)) drawPlayer(f, dt);
     if (spec.entities !== false) {
       for (const e of level.entities) {
         if (!e.alive || e.removed || e.hidden || e.shadowProxy === false || e.kind === 'checkpoint' || e.kind === 'goal') continue;
@@ -307,9 +310,8 @@ export function buildSchattenweg(level, spec) {
     const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xfff0d0, transparent: true, opacity: 0, depthWrite: false }));
     mesh.renderOrder = 2;
     addObject(level, mesh, () => {
-      const pl = level.player;
       let near = 99;
-      if (pl) for (const q of parts) near = Math.min(near, Math.hypot(pl.pos.x - q.p.x, pl.pos.z - q.p.z) - Math.max(q.s.x, q.s.z) / 2);
+      for (const pl of figures(level)) for (const q of parts) near = Math.min(near, Math.hypot(pl.pos.x - q.p.x, pl.pos.z - q.p.z) - Math.max(q.s.x, q.s.z) / 2);
       mesh.material.opacity = h.shown ? hint * 0.35 * Math.max(0, Math.min(1, 1 - near / 3)) : 0;
       mesh.visible = mesh.material.opacity > 0.005;
     });

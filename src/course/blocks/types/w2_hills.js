@@ -36,7 +36,7 @@
 
 import * as THREE from 'three';
 import { v3, hex, box, addObject } from '../kit.js';
-import { MovingBox, circleSlices, modelObject } from '../w2kit.js';
+import { MovingBox, circleSlices, modelObject, figures } from '../w2kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
 import { PathMover } from '../../level/PathMover.js';
 
@@ -139,10 +139,9 @@ export function buildRollwalze(level, spec) {
       else q.bx.still();
     }
     // Rollende Walze: seitliche Berührung verletzt
-    const pl = level.player;
-    if (pm && spec.hurt !== false && vRoll > 0.3 && pl && !pl.dead && pl.mode !== 'script') {
-      const onTop = parts.some((q) => q.bx.carries(pl));
-      if (!onTop) {
+    if (pm && spec.hurt !== false && vRoll > 0.3) {
+      for (const pl of figures(level)) {
+        if (pl.mode === 'script' || parts.some((q) => q.bx.carries(pl))) continue;
         const hx = axis === 'x' ? len / 2 : R, hz = axis === 'x' ? R : len / 2;
         const dx = Math.abs(pl.pos.x - h.pos.x), dz = Math.abs(pl.pos.z - h.pos.z);
         const feet = pl.pos.y, top = h.pos.y + 2 * R;
@@ -237,12 +236,13 @@ export function buildFarbfeld(level, spec) {
   group.reset = () => { for (const t of group.tiles) t.on = false; group.count = 0; group.done = false; board?.draw(0, n, false); };
   if (spec.id) level.named.set(spec.id, group);
   board?.draw(0, n, false);
-  let prev = null;
+  const prev = new Map();   // je Figur (auch Klone) das zuletzt betretene Feld
   level.onStep(() => {
-    const p = level.player;
-    const cur = p && !p.dead && p.mode === 'ground' && p.ground?.owner?.group === group ? p.ground.owner : null;
-    if (cur && cur !== prev) step(cur);
-    prev = cur;
+    for (const p of figures(level)) {
+      const cur = p.mode === 'ground' && p.ground?.owner?.group === group ? p.ground.owner : null;
+      if (cur && cur !== prev.get(p)) step(cur);
+      prev.set(p, cur);
+    }
   });
   if (level.view) {
     const geo = box(cell - gap, TH, cell - gap, 0, 0, 0, 0xffffff, { r: 0.04, seg: 1, topColor: 0xffffff, bottomShade: 0.6 });

@@ -61,6 +61,7 @@ import { getModel } from '../../models/index.js';
 import { coinTemplate, blockTemplate } from '../visuals.js';
 import { tapTargets } from '../tap.js';
 import { box, merge, lin, mixc } from '../../blocks/kit.js';
+import { figures } from '../../blocks/w2kit.js';
 
 const sz3 = (a, d) => (Array.isArray(a) ? { x: a[0] ?? d[0], y: a[1] ?? d[1], z: a[2] ?? d[2] } : { x: d[0], y: d[1], z: d[2] });
 
@@ -139,9 +140,9 @@ class Kristallwand extends Gimmick {
     this.hp = spec.hits ?? 1;
     this.broken = false;
     const p = this.pos;
-    // Form-Flag: true = Stampfen bricht (Player.land ruft onHit('pound')); 'bomb' = Stampfen prallt ab (wie die graue
-    // Blockwand) – Kanonenkugel, Bombe und Riesentrank rufen owner.onHit für jede Form mit breakable
-    this.addSolid({ type: 'box', min: [p.x - s.x / 2, p.y, p.z - s.z / 2], max: [p.x + s.x / 2, p.y + s.y, p.z + s.z / 2], breakable: this.mode === 'cannon' ? 'bomb' : true, climbable: !!spec.climbable, tag: 'kristallwand' });
+    // Form-Flag: true = Stampfen bricht (Player.land ruft onHit('pound')); 'cannon' = Stampfen prallt ab, die Kanonenkugel
+    // (Präzisierung Motor Welt 2) ruft owner.onHit('cannon', kugel, form); Bombe und Riesentrank rufen onHit für beide
+    this.addSolid({ type: 'box', min: [p.x - s.x / 2, p.y, p.z - s.z / 2], max: [p.x + s.x / 2, p.y + s.y, p.z + s.z / 2], breakable: this.mode === 'cannon' ? 'cannon' : true, climbable: !!spec.climbable, tag: 'kristallwand' });
     this.colors = CRYSTAL[spec.color ?? 'cyan'] ?? CRYSTAL.cyan;
     if (level.view) {
       const mesh = new THREE.Mesh(crystalGeo(s, this.colors), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.18, metalness: 0.1, emissive: new THREE.Color(this.colors[2]).multiplyScalar(0.25) }));
@@ -544,14 +545,15 @@ class Tuer extends Gimmick {
       const ids = Array.isArray(this.spec.key) ? this.spec.key : [this.spec.key];
       if (ids.every((id) => { const o = this.level.named.get(id); return !o || o.alive === false || o.removed; })) this.open();
     }
-    const pl = this.level.player;
     const f = this.front;
-    let near = false, dFront = 99, along = 99;
-    if (pl && !pl.dead) {
+    let near = false;
+    const rel = (pl) => {
       const dx = pl.pos.x - this.pos.x, dz = pl.pos.z - this.pos.z;
-      dFront = dx * f.x + dz * f.z;                         // + vor der Tür
-      along = Math.abs(-dx * f.z + dz * f.x);               // seitlich in der Türebene
-      near = Math.abs(dFront) < 2.4 && along < this.w / 2 + 0.9 && Math.abs(pl.pos.y - this.pos.y) < 1.6;
+      return { front: dx * f.x + dz * f.z, along: Math.abs(-dx * f.z + dz * f.x) };   // + vor der Tür / seitlich
+    };
+    for (const pl of figures(this.level)) {
+      const r = rel(pl);
+      if (Math.abs(r.front) < 2.4 && r.along < this.w / 2 + 0.9 && Math.abs(pl.pos.y - this.pos.y) < 1.6) near = true;
     }
     if (!this.locked && this.spec.auto !== false) {
       if (near) this.want = 1;
@@ -562,10 +564,13 @@ class Tuer extends Gimmick {
     else if (this.want < this.openK) this.openK = Math.max(this.want, this.openK - dt * 2.2);
     if (k0 < 0.05 && this.openK >= 0.05) this.level.sfx('step');
     this.setLeaf(this.openK < 0.6);
-    // Durchgang mit Ziel: vor der Tür auf sie zu laufen
-    if (this.spec.target !== undefined && this.openK > 0.8 && this.cool <= 0 && pl && !pl.dead && pl.mode === 'ground') {
-      const into = -(pl.vel.x * f.x + pl.vel.z * f.z);
-      if (dFront > 0 && dFront < 0.75 && along < this.w / 2 - 0.2 && into > 0.8) this.enter(pl);
+    // Durchgang mit Ziel: vor der Tür auf sie zu laufen (jede Figur; Klone reisen mit der Haupt-Figur mit)
+    if (this.spec.target !== undefined && this.openK > 0.8 && this.cool <= 0) {
+      for (const pl of figures(this.level)) {
+        if (pl.mode !== 'ground') continue;
+        const r = rel(pl), into = -(pl.vel.x * f.x + pl.vel.z * f.z);
+        if (r.front > 0 && r.front < 0.75 && r.along < this.w / 2 - 0.2 && into > 0.8) { this.enter(pl); break; }
+      }
     }
   }
 
@@ -716,8 +721,10 @@ class Goldschalter extends Gimmick {
 
   update(dt) {
     if (this.state === 'idle') {
+      // eine Figur (auch ein Klon) landet mit Schwung auf dem Knopf
       const on = playerOn(this.level, this);
-      if (on && !this.wasOn && this.level.player.lastLandVy < -2) this.press();
+      const hard = figures(this.level).some((p) => p.mode === 'ground' && p.ground?.owner === this && p.lastLandVy < -2 && p.stateTime < 0.1);
+      if (hard) this.press();
       this.wasOn = on;
       return;
     }

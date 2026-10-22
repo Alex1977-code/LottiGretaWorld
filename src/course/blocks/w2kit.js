@@ -6,6 +6,7 @@
 //   modelObject    Modell aus der Registry als animiertes Objekt (Zeitschritt folgt der Simulation)
 //   bakeModel      Modell in statische Geometrie verschmelzen (Kulisse: 0 zusätzliche Zeichenaufrufe)
 //   yawOf          Gier aus einer Richtung (dx, dz)
+//   figures        aktive Spielfiguren (Haupt-Figur + Klone der Spiegelfrucht, Präzisierung Motor Welt 2)
 
 import * as THREE from 'three';
 import { getModel } from '../models/index.js';
@@ -13,6 +14,13 @@ import { addObject, addStatic } from './kit.js';
 import { visDt } from '../entities/gimmick.js';
 
 export const yawOf = (dx, dz) => Math.atan2(-dz, dx);
+
+/** Aktive Spielfiguren (lebend, nicht entfernt) – mit Klonen alle, sonst nur level.player. */
+export function figures(level) {
+  const out = [];
+  for (const p of level.players ?? [level.player]) if (p && !p.dead && !p.removedFigure) out.push(p);
+  return out;
+}
 
 /** Bewegter Quader: pos = Mitte der Unterseite, size = [w, h, d]; Kollisionsform mit mover (owner optional). */
 export class MovingBox {
@@ -67,6 +75,9 @@ export class MovingBox {
 
   /** Steht die Figur auf dieser Form? */
   carries(player) { return !!player && !player.dead && player.mode === 'ground' && player.ground === this.shape; }
+
+  /** Zahl der Figuren (auch Klone), die darauf stehen. */
+  carried(level) { let n = 0; for (const p of figures(level)) if (this.carries(p)) n++; return n; }
 }
 
 /**

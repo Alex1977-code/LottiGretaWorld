@@ -40,7 +40,7 @@
 
 import * as THREE from 'three';
 import { v3, box, hex, lin, mixc, colorize, merge, themeOf, addStatic, addObject, islandParts, Rnd } from '../kit.js';
-import { MovingBox, modelObject, yawOf, bakeModel } from '../w2kit.js';
+import { MovingBox, modelObject, yawOf, bakeModel, figures } from '../w2kit.js';
 import { getModel } from '../../models/index.js';
 import { buildWater } from './water.js';
 
@@ -78,8 +78,7 @@ function makeTile(level, x, y, z, lx, lz, yaw, ax, az, thick, cfg, i, pool) {
 
 function stepTile(level, t, cfg, dt, time) {
   const bx = t.box;
-  const pl = level.player;
-  const on = bx.carries(pl);
+  const on = bx.carried(level) > 0;
   t.t += dt;
   let off = t.off, y = t.y;
   switch (cfg.mode) {
@@ -148,12 +147,12 @@ function buildTiles(level, spec, list) {
   let buildT = 0;
   level.onStep((dt, time) => {
     if (cfg.mode === 'build') {
-      const pl = level.player;
+      const figs = figures(level);
       let cur = -1;
-      tiles.forEach((t, i) => { if (t.box.carries(pl)) cur = i; });
-      if (!h.started && pl && !pl.dead && tiles.length) {
+      tiles.forEach((t, i) => { if (t.box.carried(level) > 0) cur = i; });
+      if (!h.started && tiles.length) {
         const t0 = tiles[0];
-        const near = Math.hypot(pl.pos.x - t0.x, pl.pos.z - t0.z) < (cfg.trigger ?? 3) + Math.max(t0.box.size.x, t0.box.size.z) / 2 && Math.abs(pl.pos.y - (t0.y + thick)) < 2.5;
+        const near = figs.some((pl) => Math.hypot(pl.pos.x - t0.x, pl.pos.z - t0.z) < (cfg.trigger ?? 3) + Math.max(t0.box.size.x, t0.box.size.z) / 2 && Math.abs(pl.pos.y - (t0.y + thick)) < 2.5);
         if (near) h.started = true;
       }
       if (h.started) {
@@ -165,7 +164,7 @@ function buildTiles(level, spec, list) {
       if (vanish > 0) {
         for (let i = 0; i < tiles.length; i++) {
           const t = tiles[i];
-          if (t.state !== 'idle' || i >= cur || cur < 0) { if (t.box.carries(pl)) t.t = 0; continue; }
+          if (t.state !== 'idle' || i >= cur || cur < 0) { if (t.box.carried(level) > 0) t.t = 0; continue; }
           if (t.t > vanish) { t.state = 'hidden'; t.box.setSolid(false); level.sfx('vanish'); }
         }
       }

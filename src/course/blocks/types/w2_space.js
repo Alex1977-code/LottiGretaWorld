@@ -148,7 +148,7 @@ export function buildPropeller(level, spec) {
   if (spec.id) level.named.set(spec.id, h);
   level.onStep((dt) => {
     t += dt;
-    const on = bx.carries(level.player);
+    const on = bx.carried(level) > 0;
     let base = { x: p.x, y: p.y, z: p.z };
     if (mode === 'path' && pm) {
       if (h.running) pm.step(dt);

@@ -231,11 +231,14 @@ console.log('Wüstenwerkstatt 0-8');
   await T('place', [marks.kw2_top[0], 4.3, marks.kw2_top[2]], { settle: 20 });
   const pd2 = await T('pound');
   const kw2a = await sc(() => { const e = window.__t.named('kw2'); e.onHit('pound', window.__course.player); e.onHit('claw'); return e.broken; });
-  await sc(() => window.__t.named('kw2').onHit('cannon', { pos: { x: 5, y: 2, z: -70 } }));
-  await T('play', [[{}, 30]]);
+  // echte Kanonenkugel: Kanonen-Helm aufsetzen, vor der Wand feuern (Präzisierung Motor Welt 2)
+  await T('place', [5, 1, -71.4], { settle: 10 });
+  const helm = await sc(() => { const p = window.__course.player; p.wearHelmet?.('kanone'); return p.helmet ?? null; });
+  await T('play', [[{ action: true }, 2], [{}, 60]]);
+  await sc(() => { const p = window.__course.player; p.dropHelmet?.('gone'); });
   const kw2b = await sc(() => ({ broken: window.__t.named('kw2').broken, chest: !window.__t.named('truhe_kw').hidden }));
-  console.log(`  Kristallwand (Kanone): nach Stampfen ${pd2.mode}/${pd2.state} bei y ${pd2.y}, heil ${!kw2a}; onHit('cannon') → ${kw2b.broken}, Truhe sichtbar ${kw2b.chest}`);
-  check('Kristallwand breakable cannon: Stampfen prallt ab (keine Endlosschleife), Kanonenkugel zerbricht sie', !kw2a && pd2.mode === 'ground' && pd2.y > 3.9 && kw2b.broken && kw2b.chest);
+  console.log(`  Kristallwand (Kanone): nach Stampfen ${pd2.mode}/${pd2.state} bei y ${pd2.y}, heil ${!kw2a}; Kanonen-Helm (${helm}) feuert → zerbrochen ${kw2b.broken}, Truhe sichtbar ${kw2b.chest}`);
+  check('Kristallwand breakable cannon: Stampfen prallt ab (keine Endlosschleife), echte Kanonenkugel zerbricht sie', !kw2a && pd2.mode === 'ground' && pd2.y > 3.9 && helm === 'kanone' && kw2b.broken && kw2b.chest);
   const climb = await sc(() => { const e = window.__t.named('kw3'); const s = window.__course.level.world.get(e.shapes[0]); return !!s?.climbable; });
   check('Kristallwand climbable: Kletterwand-Flag gesetzt', climb);
   await T('place', [0, 1, -76], { settle: 10 });
@@ -482,7 +485,51 @@ console.log('Wüstenwerkstatt 0-8');
   const c1 = await T('coins');
   console.log(`  Holz-Silhouette: ${hs}, Münzen +${c1 - c0}`);
   check('Holz-Silhouette: Stampfen daneben wirft sie um, dahinter Belohnung (onFall)', hs === 'down' && c1 - c0 >= 5);
+  await T('place', [8, 1, -248.6], { settle: 10 });
+  await sc(() => window.__course.player.wearHelmet?.('kanone'));
+  await T('play', [[{ action: true }, 2], [{}, 150]]);
+  await sc(() => window.__course.player.dropHelmet?.('gone'));
+  const hs2 = await sc(() => window.__t.named('hs2').state);
+  console.log(`  Holz-Silhouette 2 (Kanonenkugel): ${hs2}`);
+  check('Holz-Silhouette: Kanonenkugel (Kanonen-Helm) wirft sie um', hs2 === 'down');
   await shot('silhouette', 1200);
+}
+
+// ---------------------------------------------------------------- Klone (Spiegelfrucht): Taststein, Farbfeld, roter Ring
+{
+  const clone = (pos) => sc((q) => {
+    const c = window.__course;
+    const f = c.level.addClone?.(c.player);
+    if (!f) return false;
+    f.reset(q); f.skidTurnTime = 0;
+    return true;
+  }, pos);
+  const clear = () => sc(() => { const L = window.__course.level; for (const f of (L.players ?? []).slice(1)) L.removeFigure(f, 'clear'); window.__course.step(30); return L.players?.length ?? 1; });
+  await sc(() => { window.__t.named('melodie').reset(); window.__t.named('ff1').reset(); window.__course.step(90); });   // Steine fahren erst herunter
+  // Taststein: der Klon steht auf dem ersten Melodie-Stein, die Haupt-Figur daneben
+  await T('place', [0, 1, -14], { settle: 10 });
+  const made = await clone([3, 2.3, -12]);
+  await T('play', [[{}, 60]]);
+  const ts = await sc(() => ({ on: window.__t.named('melodie').stones[0].on, n: window.__course.level.players?.length ?? 1 }));
+  await clear();
+  // Farbfeld: Klon auf einem Feld
+  const tile = await sc(() => { const t = window.__t.named('ff1').tiles[0]; return [t.x, t.y + 0.4, t.z]; });
+  await T('place', [6, 1, -184], { settle: 10 });
+  await clone(tile);
+  await T('play', [[{}, 40]]);
+  const ff = await sc(() => window.__t.named('ff1').count);
+  await clear();
+  // roter Ring: nur der Klon läuft hindurch, sammelt eine rote Münze
+  await T('place', [10.5, 1, -205.5], { settle: 10 });
+  await clone([7, 1, -205.5]);
+  await T('play', [[{ y: 1 }, 50], [{}, 10]]);
+  const rr = await sc(() => window.__t.named('rr2').state);
+  const coin = await sc(() => { const L = window.__course.level; const m = L.entities.find((e) => e.kind === 'rote_muenze' && e.owner === L.named.get('rr2') && !e.removed); const f = L.players[1]; if (!m || !f) return null; f.reset([m.pos.x, m.pos.y, m.pos.z]); return true; });
+  await T('play', [[{}, 20]]);
+  const got = await sc(() => window.__t.named('rr2').got);
+  const left = await clear();
+  console.log(`  Klone: erzeugt ${made} (${ts.n} Figuren); Taststein durch Klon ${ts.on}; Farbfeld durch Klon ${ff}/9; roter Ring durch Klon ${rr}, rote Münze ${got} (${coin}); danach ${left} Figur(en)`);
+  check('Klone (Spiegelfrucht): Taststein, Farbfeld und roter Ring reagieren auch auf Klone', made && ts.n === 2 && ts.on && ff === 1 && rr === 'active' && got === 1);
 }
 
 // ---------------------------------------------------------------- Ziel, Kennzahlen

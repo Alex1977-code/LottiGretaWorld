@@ -24,6 +24,7 @@
 import * as THREE from 'three';
 import { GAME } from '../../config.js';
 import { TOUCH_LAYOUT } from '../input/CourseTouch.js';
+import { figures } from '../blocks/w2kit.js';
 
 const TAP_MAX_T = 450;   // ms
 const TAP_MAX_D = 14;    // Logik-Pixel
@@ -136,21 +137,25 @@ class TapTargets {
       const q = this.queue.splice(0);
       for (const it of q) if (it.target.enabled()) { this.hits++; it.target.onTap?.(it.via); }
     }
-    const p = this.level.player;
-    if (!p || p.dead || p.mode === 'script' || !p.input?.actionPressed || p.holding) return;
-    const c = p.center();
-    const f = p.facingVec();
+    // Aktionstaste: alle Figuren bekommen dieselbe Eingabe – das beste Ziel in Reichweite irgendeiner Figur löst aus
+    const main = this.level.player;
+    if (!main?.input?.actionPressed) return;
     let best = null, bd = Infinity;
-    for (const t of this.targets) {
-      if (!(t.reach > 0) || !t.enabled()) continue;
-      const b = t.box();
-      const dx = Math.max(b.min[0] - c.x, 0, c.x - b.max[0]), dy = Math.max(b.min[1] - c.y, 0, c.y - b.max[1]), dz = Math.max(b.min[2] - c.z, 0, c.z - b.max[2]);
-      const d = Math.hypot(dx, dy, dz);
-      if (d > t.reach) continue;
-      // Ziele vor der Figur bevorzugen
-      const mx = (b.min[0] + b.max[0]) / 2 - c.x, mz = (b.min[2] + b.max[2]) / 2 - c.z, ml = Math.hypot(mx, mz) || 1;
-      const score = d - 0.8 * ((mx * f.x + mz * f.z) / ml);
-      if (score < bd) { bd = score; best = t; }
+    for (const p of figures(this.level)) {
+      if (p.mode === 'script' || p.holding) continue;
+      const c = p.center();
+      const f = p.facingVec();
+      for (const t of this.targets) {
+        if (!(t.reach > 0) || !t.enabled()) continue;
+        const b = t.box();
+        const dx = Math.max(b.min[0] - c.x, 0, c.x - b.max[0]), dy = Math.max(b.min[1] - c.y, 0, c.y - b.max[1]), dz = Math.max(b.min[2] - c.z, 0, c.z - b.max[2]);
+        const d = Math.hypot(dx, dy, dz);
+        if (d > t.reach) continue;
+        // Ziele vor der Figur bevorzugen
+        const mx = (b.min[0] + b.max[0]) / 2 - c.x, mz = (b.min[2] + b.max[2]) / 2 - c.z, ml = Math.hypot(mx, mz) || 1;
+        const score = d - 0.8 * ((mx * f.x + mz * f.z) / ml);
+        if (score < bd) { bd = score; best = t; }
+      }
     }
     if (best) { this.hits++; best.onTap?.('action'); }
   }

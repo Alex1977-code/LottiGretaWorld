@@ -151,6 +151,7 @@ export const LEVEL = {
     plateau(-204, -222),
     sign(-10, -206, 'Roter Ring'),
     { type: 'roter_ring', id: 'rr1', pos: [0, 1, -208], coins: { pos: [0, 1.3, -215], r: 3, n: 8 }, time: 12, reward: { star: { index: 2, pos: [0, 1.3, -215] } } },
+    { type: 'roter_ring', id: 'rr2', pos: [7, 1, -208], coins: { pos: [7.5, 1.3, -215], r: 2, n: 8 }, time: 12, reward: { coins: 5 } },
 
     // ---------------- S11 Kistenfeld
     plateau(-222, -234),
@@ -175,6 +176,7 @@ export const LEVEL = {
       { pos: [-4, 2.3, -264], size: [2.2, 0.4, 2] }, { pos: [-1, 3.7, -264], size: [2.2, 0.4, 2] }, { pos: [2, 5.1, -264], size: [2.2, 0.4, 2] }] },
     { type: 'platform', pos: [5.6, 6.2, -264], size: [2.6, 0.4, 2.6], style: 'stone' },
     { type: 'holz_silhouette', id: 'hs1', pos: [-8, 1, -251], onFall: { coins: 5 } },
+    { type: 'holz_silhouette', id: 'hs2', pos: [8, 1, -251], onFall: { coins: 3 } },
 
     // ---------------- S14 Ziel
     plateau(-274, -294),
