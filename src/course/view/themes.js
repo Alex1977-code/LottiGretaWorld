@@ -68,5 +68,12 @@ export const THEMES = {
 // Weitere Themen in eigenen Dateien (je eine Registrierzeile)
 import { RIVER_THEME } from './theme_river.js'; THEMES.river = RIVER_THEME;
 import { DIORAMA_THEME } from './theme_diorama.js'; THEMES.diorama = DIORAMA_THEME;
+// Welt 2 (Bausteine Welt 2): nur eintragen, wenn das Thema nicht schon anders registriert ist
+import { DESERT_THEME } from './theme_desert.js'; THEMES.desert ??= DESERT_THEME;
+import { SPACE_THEME } from './theme_space.js'; THEMES.space ??= SPACE_THEME;
+import { SHADOW_THEME } from './theme_shadow.js'; THEMES.shadow ??= SHADOW_THEME;
+import { PINKGRASS_THEME } from './theme_pinkgrass.js'; THEMES.pinkgrass ??= PINKGRASS_THEME;
+import { LAVA_THEME } from './theme_lava.js'; THEMES.lava ??= LAVA_THEME;
+import { HOUSE_THEME } from './theme_house.js'; THEMES.house ??= HOUSE_THEME;
 
 export function getTheme(name) { return THEMES[name] ?? THEMES.grass; }
