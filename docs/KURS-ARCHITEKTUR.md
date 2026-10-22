@@ -1057,6 +1057,22 @@ Welt 2 hat 24 Sterne. Neue Figuren-Rollen: wo der Bauplan den „Kapitän“ nen
 (Pflaumes kleiner Kaninchen-Freund aus 1-Burg) auf. Der „Münz-Dieb“ heißt **Münzmarder** (flinker Marder mit
 Münzsack). Mini-Pilzlinge: `pilzling` mit `mini: true` (halbe Größe, ein Treffer, kein Abprall-Bonus).
 
+**Level-Notizen 2-3 / 2-4** (Level-Agent; Test `tests/course_w2b.mjs`, Port 4300, Bilder `tests/out/w2lv_*.png`):
+
+- `2-3` **„Scherenschnittkeller“** – Schattentheater unter der Erde; die große Bühne (Leinwand 70 × 9 m) wird frontal
+  gespielt (2D, Kamera-Vorschlag der Schattenwand). Sterne: 0 Schattenstern über den drei Bühnenkisten im Foyer (nur sein
+  Schatten ist zu sehen), 1 Rätselbox hinter den Kulissen → Druckfeld → Schattentreppe zum unsichtbaren Stern,
+  2 Lücke hinter dem Vorhang links vor der Ausgangstür: Holz-Silhouette des Barons umwerfen, Krümel schenkt den Stern.
+  Stempel unter der Bühne hinter zwei Kisten (Falltür links der Riesenschnappblume). Extraleben im unsichtbaren Block
+  über dem Bühnenpodest (sein Schatten verrät ihn). Checkpoint vor der Seitenbühne; Türen führen hinter die Kulissen.
+- `2-4` **„Hügelmühle“** – Rollhügel mit Hügelwalzen und Windmühle, darunter das Räderwerk. Sterne: 0 Kletterfels
+  zwischen den Glasröhren (Krallen-Anzug), 1 Farbfeld-Raum (Röhre unter zwei Kristallblöcken – stampfen), 2 zwischen den
+  Riesenrädern fallen lassen. Stempel auf dem Turm am Start: Lotti- **und** Greta-Schalter lassen die Stufen erscheinen
+  (Schild: Heldin über Pause → Figur wechseln). Extraleben: roter Ring auf dem Stufenhügel, unsichtbarer Block über der
+  dritten Walze. Checkpoint mit Röhre in den Untergrund (Licht dort gedämpft).
+- Level-lokale Szenen (Krümel, Vorhänge, Rampenlichter, Windmühle, Kaninchen, Schattensterne, Untergrund-Licht) liegen in
+  `src/course/levels/w2/_helpers_b.js`; Aufbau-Haken = brennende Laterne (`lantern` mit `lit: true`, `onLit: fn`).
+
 ## Präzisierung (Bausteine Welt 2)
 
 Ergänzung des Bausteine-Agenten (Stand: Wüstenwerkstatt 0-8). Nichts oben Festgelegtes wird geändert. Alle Welt-2-
