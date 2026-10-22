@@ -1057,6 +1057,22 @@ Welt 2 hat 24 Sterne. Neue Figuren-Rollen: wo der Bauplan den „Kapitän“ nen
 (Pflaumes kleiner Kaninchen-Freund aus 1-Burg) auf. Der „Münz-Dieb“ heißt **Münzmarder** (flinker Marder mit
 Münzsack). Mini-Pilzlinge: `pilzling` mit `mini: true` (halbe Größe, ein Treffer, kein Abprall-Bonus).
 
+**Level-Notiz 2-Panzer „Brummbärs Panzerparade“** (`levels/w2/2-Panzer.js`, Hilfen `levels/w2/_helpers_d.js`, Test
+`tests/course_w2d.mjs`): 14 Panzer (`panzer_fahrzeug`) fahren mit 3 m/s durchs Treibsandmeer (Baustein `quicksand`,
+Oberfläche 0,3 m: wer fällt, versinkt), das Bildfenster gleitet mit 5,2 m/s am Zug entlang (Konvoi-Rechnung mit
+`ScrollWindow` beim Laden: Fenster und Panzer halten gemeinsam über dem Kommandopanzer). Abendrot als lokale Variante
+des Themas `desert` (Himmel, Licht, Nebel, Tafelberg-Kulisse; das gemeinsame Thema bleibt unverändert). Level-lokale
+Teile (ohne Änderung gemeinsamer Dateien) baut ein Level-Haken – die erste Laterne (`lantern`, `lit: true`, Aktion
+`onLit` = Funktion): Panzerluke (öffnet beim Halt → Bossarena), Holzwand mit Baron-Gesicht (Modell `holzwand_boss`,
+drei Kanonenkugeln), Metalltor (Modell `metalltor`, Kanonenkugel öffnet), Baron-Wimpel und Staubfahnen an den Panzern,
+Fluchtszene des Barons im Sportwagen, Festungspanzer (verschmolzen) unter der Arena. **Mitfahr-Regeln** (für spätere
+Panzer-/Zug-Level wiederverwendbar): Marschblock-Kolonnen mit `ride: '<Panzer>'` marschieren auf dem fahrenden Deck;
+ein `roter_ring` mit `attach` lässt seine roten Münzen auf den Panzern erscheinen und mitfahren; neu entstandene Dinge
+über einem Deck (Power-up aus ?-Block, Stern aus Kiste, abgeworfener Helm, 1-up) fahren mit; Kanonen-Helme liegen an
+Stellen auf Panzern bereit (`panzer.helmets`, nachgelegt nach `every` s bzw. nach einem Neustart). Kombination
+`autoscroller` + `with: 'boss'`: der Level-Haken reicht `boss`/`seenPhase` des Zusatz-Archetyps durch (Ansage
+Wirbelbrocken Phase 3) und verhindert die „Feuerspur“-Ansage des Barons beim Phasenwechsel.
+
 ## Präzisierung (Bausteine Welt 2)
 
 Ergänzung des Bausteine-Agenten (Stand: Wüstenwerkstatt 0-8). Nichts oben Festgelegtes wird geändert. Alle Welt-2-
