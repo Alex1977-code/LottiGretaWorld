@@ -30,7 +30,7 @@
 // Level-Haken (Laterne am Start, _helpers_c.js): Inseln, Hecken, Teiche, Bäume, Beete, Gartenleuchten, fallende
 // Blütenblätter, Spiegelfrucht-Sträucher, sitzende Kaninchen, Tor-Rückseite.
 
-import { isl, line, ring, arc, hook, fruitBush, petals, blossomTrees, flowerBeds, hedges, ponds, flatIslands, gardenLamps } from './_helpers_c.js';
+import { isl, line, ring, arc, hook, fruitBush, petals, blossomTrees, flowerBeds, hedges, ponds, flatIslands, gardenLamps, roseVines } from './_helpers_c.js';
 import { bakeModel } from '../../blocks/w2kit.js';
 
 const Y1 = 1, Y2 = 2.2, Y4 = 6.2, Y7 = 3;
@@ -126,6 +126,8 @@ function setup(level) {
     bakeModel(level, 'bunny_small', {}, x, y, z, yaw, 1, { anim: 'idle' });
   }
   gardenLamps(level, [[3.4, Y1, 6.6], [-3.4, Y4, -96.8], [1.6, Y7, -222]]);
+  // Kletterrosen am Felsturm (Vorderseite und linke Flanke)
+  roseVines(level, [[4.7, Y4, -178, 6.6, 0, 1], [6.3, Y4, -178, 5.2, 0, 1], [7.5, Y4, -178, 6.2, 0, 1], [4, Y4, -178.8, 4.6, -1, 0], [4, Y4, -181.4, 6.4, -1, 0]]);
   // Tor-Rückseite: wer das Tor überspringt (Rückwärtssalto vom Pflanzkasten), dem öffnet es sich – sonst stünde die
   // Kamera hinter dem Tor
   const tor = level.named.get('tor');

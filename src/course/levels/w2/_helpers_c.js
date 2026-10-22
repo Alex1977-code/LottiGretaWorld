@@ -1102,3 +1102,36 @@ export function gardenLamps(level, list) {
     ]), { castShadow: true });
   }
 }
+
+// ------------------------------------------------------------------ Kletterrosen an Wänden (nur Optik)
+
+/**
+ * Kletterrosen-Ranken an einer senkrechten Wand: list = [[x, y0, z, h, nx, nz], …] – Fußpunkt auf der Wand, Höhe h,
+ * Wandnormale (nx, nz). Geschwungener Stängel aus Blattbüscheln, Rosen dazwischen; je Liste eine Geometrie, kein
+ * Schattenwurf.
+ */
+export function roseVines(level, list) {
+  if (!level.view) return;
+  const leafA = L(0x3f9a4f), leafB = L(0x6ccf5e);
+  const parts = [];
+  list.forEach(([x, y0, z, h, nx, nz], k) => {
+    const tx = -nz, tz = nx;                 // Richtung entlang der Wand
+    const n = Math.max(4, Math.round(h / 0.45));
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1), y = y0 + 0.2 + t * (h - 0.4);
+      const sway = Math.sin(t * 7 + k * 1.7) * 0.35 + (hash2(i, k + 3) - 0.5) * 0.15;
+      const px = x + tx * sway + nx * 0.08, pz = z + tz * sway + nz * 0.08;
+      const r = 0.2 + hash2(i, k + 9) * 0.1;
+      parts.push(sphere(r, px, y, pz, 0x4fb04f, {
+        ws: 6, hs: 4, sx: Math.abs(nx) > 0.5 ? 0.45 : 1, sz: Math.abs(nz) > 0.5 ? 0.45 : 1,
+        fn: (p, nn, out) => mixc(leafA, leafB, smooth(-0.3, 0.9, nn.y * 0.6 + hash2(i, 5) * 0.4), out),
+      }));
+      if (hash2(i, k + 17) < 0.55) {
+        const c = ROSE_COLS[Math.floor(hash2(i, k + 23) * ROSE_COLS.length)];
+        const side = hash2(i, k + 29) < 0.5 ? -1 : 1;
+        parts.push(sphere(0.1, px + tx * side * 0.18 + nx * 0.14, y + 0.08, pz + tz * side * 0.18 + nz * 0.14, c, { ws: 5, hs: 4 }));
+      }
+    }
+  });
+  if (parts.length) addStatic(level, merge(parts), { castShadow: false });
+}
