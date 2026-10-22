@@ -5,7 +5,8 @@
 //   Eis (−36 … −60)               links Gras, rechts Eisbahn (Bremsweg), Pilzling auf dem Eis
 //   Schlittschuh (−62 … −110)     Schlittschuh, Graspiste links mit Stachelboden und Pilzling, Eispiste rechts
 //   Schneeball (−112 … −150)      Schneefeld, Schneeball mit Münzen, Pilzling im Weg, Mauer; großer Ball zum Draufstehen
-//   Kettenzaun (−152 … −190)      fester Zaun mit Pilzling dahinter (Faustschlag), fahrender Zaun, Kettenplattform
+//   Kettenzaun (−152 … −190)      fester Zaun mit Pilzling dahinter (Faustschlag), fahrender Zaun, Kettenplattform,
+//                                 Zaun auf einem Fahrzeug (attach)
 //   Unterwasser (−192 … −230)     tiefes Becken (7,6 m, id 'see' – Wasserspiegel), Strömungsfeld nach +X
 //   Ziel (−232 … −246)
 
@@ -57,6 +58,9 @@ export const LEVEL = {
     { type: 'kettenzaun', id: 'zaun_fest', pos: [-6, Y, -158], size: [5, 4] },
     { type: 'kettenzaun', id: 'zaun_fahrt', pos: [6, Y, -166], size: [4, 3.5], path: [[3.5, Y, -166], [8.5, Y, -166]], speed: 1.5, wait: 0.3 },
     { type: 'kettenplattform', id: 'plattform', pos: [0, 4, -182], size: [5, 3], path: [[-6, 4, -182], [6, 4, -182]], speed: 2 },
+    // Zaun auf einem Fahrzeug (attach – wie im Autoscroller 3-2)
+    { type: 'vehicle', id: 'zaunwagen', style: 'fence', size: [3, 0.3, 4], path: [[-7, 1, -187], [7, 1, -187]], mode: 'pingpong', speed: 1.5, color: 'blue' },
+    { type: 'kettenzaun', id: 'zaun_wagen', attach: 'zaunwagen', pos: [-7, 1.3, -188.3], size: [3.6, 2.5] },
     // Unterwasser: Becken (Boden y −8 … −7, Wände bis 4,5), Wasser bis 0,6
     { type: 'island', pos: [0, -9, -211], size: [24, 2, 34], top: 'stone', under: 0 },
     { type: 'island', pos: [-11, -7, -211], size: [2, 11.5, 30], top: 'stone', under: 0 },
@@ -109,7 +113,7 @@ export const LEVEL = {
     grass: [-6, Y, -40], ice: [6, Y, -40], pz_ice: [6, Y, -55],
     skate: [-6, Y, -66], skate_grass: [-6, Y, -70], skate_ice: [7.5, Y, -66], spikes: [-6, Y, -80], pz_skate: [-6, Y, -98],
     ball: [0, Y, -117], pz_ball: [0, Y, -130], ball_wall: [0, Y, -147], ball_gross: [-8, Y, -121],
-    zaun: [-6, Y, -158], pz_zaun: [-6, Y, -158.8], zaun_fahrt: [6, Y, -166], plattform: [0, 4, -182],
+    zaun: [-6, Y, -158], pz_zaun: [-6, Y, -158.8], zaun_fahrt: [6, Y, -166], plattform: [0, 4, -182], zaunwagen: [-7, 1.3, -187],
     pool: [0, Y, -198], pool_mid: [0, -2, -211], current: [5, -3, -205], pf_see: [7, Y, -192], goal: [0, Y, -241],
   },
 };

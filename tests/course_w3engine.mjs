@@ -113,7 +113,7 @@ console.log(`  Arten: ${kinds.join(', ')}`);
 check('Level geladen (Schneeball, Schlittschuh, Kettenzaun, Kettenplattform, Gleitblatt-Item)', ['schneeball', 'schlittschuh', 'kettenzaun', 'kettenplattform', 'powerup'].every((k) => kinds.includes(k)));
 const shapes = await sc(() => { const W = window.__course.level.world; let ice = 0, snow = 0, spikes = 0, water = 0; W.forEach((s) => { if (s.ice) ice++; if (s.snow) snow++; if (s.spikes) spikes++; if (s.water) water++; }); return { ice, snow, spikes, water, fences: window.__course.level.fences.length }; });
 console.log(`  Formen: ${JSON.stringify(shapes)}`);
-check('Bausteine: Eisbahn (ice), Schneefeld (snow), Stachelboden (spikes), Wasser, 3 Zäune', shapes.ice >= 2 && shapes.snow >= 4 && shapes.spikes === 1 && shapes.water === 2 && shapes.fences === 3);
+check('Bausteine: Eisbahn (ice), Schneefeld (snow), Stachelboden (spikes), Wasser, 4 Zäune', shapes.ice >= 2 && shapes.snow >= 4 && shapes.spikes === 1 && shapes.water === 2 && shapes.fences === 4);
 check('Keine Konsolenfehler beim Laden', errors.length === 0);
 await shot('start');
 
@@ -546,6 +546,24 @@ await shot('start');
   check('Kettenplattform: Deck trägt mit, Zaun an der Rückseite greifbar', plat.stand && plat.still && plat.path >= 1 && plat.maxErr < 0.05 && plat.fence);
   await shot('plattform', 600);
   await T('play', [[{ crouch: true }, 2], [{}, 30]]);
+  // Zaun auf einem Fahrzeug (attach): kletternde Figur fährt mit dem Wagen
+  const veh = await sc(() => {
+    const c = window.__course, p = c.player, L = c.level, w = L.named.get('zaunwagen'), f = L.named.get('zaun_wagen');
+    c.step(2);
+    const P = f.plane;
+    p.reset([P.x, w.pos.y + 0.32, P.z + 0.7], Math.PI / 2); p.invuln = 0; c.step(20);
+    const onDeck = p.ground?.mover === w.mover;
+    c.setInput({ action: true }); c.step(1); c.setInput({}); c.step(2);
+    const on = !!p.fence && p.fence.obj === f;
+    const wx0 = w.pos.x, px0 = p.pos.x;
+    let maxErr = 0, path = 0, lx = w.pos.x;
+    for (let k = 0; k < 180; k++) { c.step(1); path += Math.abs(w.pos.x - lx); lx = w.pos.x; maxErr = Math.max(maxErr, Math.abs((p.pos.x - px0) - (w.pos.x - wx0))); }
+    const r = { onDeck, on, still: !!p.fence, path: +path.toFixed(2), maxErr: +maxErr.toFixed(3), fx: +(f.pos.x - P.x).toFixed(2) };
+    c.setInput({ crouch: true }); c.step(2); c.setInput({}); c.step(30);
+    return r;
+  });
+  console.log(`  Zaun auf dem Fahrzeug: ${JSON.stringify(veh)}`);
+  check('Zaun auf einem Fahrzeug (attach): Figur klettert und fährt mit dem Wagen', veh.on && veh.still && veh.path > 1 && veh.maxErr < 0.05);
 }
 
 // ================================================================ Unterwasser
@@ -614,16 +632,20 @@ await shot('start');
     c.step(240);
     return { y: +c.player.pos.y.toFixed(2), top: L.waterLevel('see'), boje: +L.named.get('boje').pos.y.toFixed(2) };
   });
-  const n = await sc(() => window.__course.level.setWaterLevel('see', 3.6, 2));
+  const n = await sc(() => {
+    const L = window.__course.level, b = L.named.get('boje');
+    b.wl = 0; b.onWaterLevel = (shape, top, dy) => { if (dy > 0) b.wl++; };
+    return L.setWaterLevel('see', 3.6, 2);
+  });
   const w1 = await sc(() => {
     const c = window.__course, L = c.level;
     const tr = [];
     for (let k = 0; k < 300; k++) { c.step(1); if (k % 60 === 0) tr.push(+c.player.pos.y.toFixed(2)); }
-    return { y: +c.player.pos.y.toFixed(2), top: L.waterLevel('see'), mode: c.player.mode, tr, boje: +L.named.get('boje').pos.y.toFixed(2) };
+    return { y: +c.player.pos.y.toFixed(2), top: L.waterLevel('see'), mode: c.player.mode, tr, boje: +L.named.get('boje').pos.y.toFixed(2), wl: L.named.get('boje').wl };
   });
   console.log(`  Wasserspiegel: ${w0.top} → ${w1.top} (${n} Form), Figur y ${w0.y} → ${w1.y} (${w1.tr.join(' ')}), Boje ${w0.boje} → ${w1.boje}`);
   check('Wasserspiegel steigt (setWaterLevel) und hebt die schwimmende Figur', n === 1 && Math.abs(w1.top - 3.6) < 0.01 && w1.y - w0.y > 2.7 && w1.mode === 'swim');
-  check('Schwimmende Gegenstände (floats) treiben oben und steigen mit', Math.abs(w0.boje - (0.6 - 0.12)) < 0.05 && Math.abs(w1.boje - (3.6 - 0.12)) < 0.05);
+  check('Schwimmende Gegenstände (floats) treiben oben und steigen mit; onWaterLevel meldet den Anstieg', Math.abs(w0.boje - (0.6 - 0.12)) < 0.05 && Math.abs(w1.boje - (3.6 - 0.12)) < 0.05 && w1.wl > 100);
   await shot('wasserspiegel', 700);
   // Absenken sofort, Druckfeld am Beckenrand startet den Anstieg (Signal start)
   const sw = await sc(() => {

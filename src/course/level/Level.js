@@ -31,7 +31,8 @@
 //   level.currentAt(x, y, z, out)             Strömung {x, y, z} (m/s) an diesem Punkt (0 außerhalb)
 //   level.setWaterLevel(id, y, speed = 1.5)   Wasserspiegel aller Wasserformen mit dieser id (waterId) auf y fahren
 //                                             (m/s; speed ≤ 0 = sofort) → Anzahl Formen; level.waterLevel(id) = aktuelle Höhe
-//   Entitäten mit floats: true (floatDepth m, Standard 0,3) schwimmen an der Oberfläche (auch bei steigendem Wasser)
+//   Entitäten mit floats: true (floatDepth m, Standard 0,3) schwimmen an der Oberfläche (auch bei steigendem Wasser);
+//   Entitäten mit onWaterLevel(form, top, dy) erfahren jeden Schritt, in dem sich ein Wasserspiegel bewegt
 //   Angriffe mit attackInfo.around (Schwanzhieb) treffen rundum statt vor der Figur; spawn('powerup', { power:
 //   'schlittschuh' }) erzeugt die Entität schlittschuh; Berührung von oben auf dem Schlittschuh: player/skating.js.
 
@@ -364,6 +365,11 @@ export class Level {
       s.waterDy = s.top - top;
       this._waterDyLeft = true;
       if (ny === m.target) this.waterMoves.delete(sid);
+      // Entitäten, die selbst reagieren wollen (z. B. Fische halten sich im Wasser): onWaterLevel(form, oberfläche, dy)
+      for (let i = 0; i < this.entities.length; i++) {
+        const e = this.entities[i];
+        if (e.onWaterLevel && !e.removed) e.onWaterLevel(s, s.top, s.waterDy);
+      }
     }
   }
 

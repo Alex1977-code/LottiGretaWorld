@@ -46,7 +46,7 @@ import { getPower, normalizePower } from './powers.js';
 import { getHelmet, normalizeHelmet } from './helmets.js';
 import { surfaceNormal } from '../physics/shapes.js';
 import { skateGround, skateJump, leaveSkate } from './skating.js';
-import { tryGrabFence, grabFenceAction, fenceCarry, updateFence, fenceAfterMove, leaveFence, fencePunch } from './fencing.js';
+import { tryGrabFence, grabFenceAction, fenceCarry, updateFence, fenceAfterMove, fencePunch } from './fencing.js';
 import { updateStatue } from './statue.js';
 
 /** Treibsand: Werte je Form (quicksand-Flag des Bausteins), Standard hier. */

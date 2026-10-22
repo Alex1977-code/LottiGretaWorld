@@ -57,6 +57,7 @@ export function skateGround(p, dt, input, want) {
   const f = p.facingVec();
   let along = vx * f.x + vz * f.z;
   let lx = vx - f.x * along, lz = vz - f.z * along;
+  if (p.boostTime > 0 && p.gs > along) { along = p.gs; lx *= 0.5; lz *= 0.5; }   // Boost-Pfeil (applyBoost hob gs)
   // Quergeschwindigkeit (Driften) baut sich langsam ab
   const lat = Math.hypot(lx, lz);
   if (lat > 1e-5) { const nl = Math.max(0, lat - (ice ? MOVE.skateGripIce : MOVE.skateGrip) * dt); lx *= nl / lat; lz *= nl / lat; }

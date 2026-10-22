@@ -116,7 +116,8 @@ class Skate extends Gimmick {
     if (player.skate === this) player.skate = null;
     this._touch = true;
     this.cool = how === 'hit' ? 1.2 : 0.7;
-    this.pos.copy(player.pos);
+    // 'gone' (Neustart/Teleport/Röhre): bleibt, wo er zuletzt war (folgte den Füßen) – sonst an den Füßen
+    if (how !== 'gone') this.pos.copy(player.pos);
     this.grounded = false;
     if (how === 'hit') {
       // fliegt im Bogen davon (weg von der Gefahr)
