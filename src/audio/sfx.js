@@ -25,6 +25,23 @@
 //   claw / fireball        Krallenhieb / Feuerball
 //   stomp / hurt / die     Gegner zertreten / Treffer / Tod
 //   switch / bounce        Schalter gedrückt / Sprungfeder, Trampolin, Pilz-Kissen
+//
+// Welt 2–4:
+//   clone / clone_lost     Spiegelfrucht-Klon entsteht / Klon geht verloren
+//   helm_on / helm_off     Trage-Helm aufgesetzt / abgelegt
+//   cannon                 Schuss des Kanonen-Helms
+//   propeller              Propeller-Helm: Aufstieg (kurzer Schwirr-Klang, darf wiederholt ausgelöst werden)
+//   light                  Licht-Helm/Lichtbox an
+//   quicksand / sand_crumble  Einsinken im Treibsand / Sandblock zerbröselt
+//   peck                   Hackvogel hackt (drei schnelle Schläge)
+//   bullet                 Projektilkopf wird abgefeuert
+//   boss_hit / boss_spin   Endgegner getroffen / Endgegner wirbelt
+//   house_tick / room_clear  Prüfungs-Haus: Tick je Sekunde in den letzten 3 s / Raum geschafft
+//   ice_slide / snowball   Rutschen auf Eis / Schneeball (rollt an, prallt)
+//   ghost                  Spuk erscheint („Huuu“)
+//   splash_big             großes Platschen (Sprung ins Wasser, Wasserspiegel)
+//   train_whistle          Dampfpfeife des Zuges
+//   beep / beep_switch     Piep-Block-Warnton / Piep-Blöcke schalten um (klingt wie die Pieps in course_beep)
 
 import { engine, Voices } from './AudioEngine.js';
 
@@ -39,6 +56,26 @@ function hz(name) {
   return 440 * Math.pow(SEMI, n - 69);
 }
 const chord = (...names) => names.map(hz);
+
+/** Schwirr-Kurve (Propeller): steigt von `from` nach `to`, schnell wackelnd (`rate` Hz über `dur` s). */
+function whirrCurve(from, to, rate, dur, n = 96) {
+  const c = [];
+  for (let i = 0; i < n; i++) {
+    const x = i / (n - 1);
+    c.push((from + (to - from) * x) * (1 + 0.12 * Math.sin(2 * Math.PI * rate * dur * x)));
+  }
+  return c;
+}
+
+/** Wirbel-Kurve (Boss dreht sich): `turns` Bögen zwischen `lo` und `hi`, zum Ende hin höher. */
+function spinCurve(lo, hi, turns, n = 96) {
+  const c = [];
+  for (let i = 0; i < n; i++) {
+    const x = i / (n - 1);
+    c.push(lo * (1 + 0.3 * x) + (hi - lo) * (0.5 - 0.5 * Math.cos(2 * Math.PI * turns * x)));
+  }
+  return c;
+}
 
 /** Federnde Tonhöhenkurve (Boing): steigt von `from` nach `to`, überlagert von gedämpftem Wackeln. */
 function springCurve(from, to, wobble, n = 48) {
@@ -228,7 +265,156 @@ const SFX = {
     e.tone({ type: 'triangle', freq: 150, curve: springCurve(150, 620, 70), duration: 0.34, volume: 0.28, release: 0.12 });
     e.tone({ type: 'square', freq: 75, curve: springCurve(75, 310, 35), duration: 0.22, volume: 0.05 });
   },
+
+  // ---- Kurs Welt 2–4 ----
+  // Klon entsteht: zwei helle Töne (Quinte), dann ihr „Klon“ eine Oktave höher und leiser, Glitzer-Rauschen
+  clone: (e) => {
+    const t = e.now;
+    e.noise({ duration: 0.28, filterType: 'bandpass', filterFreq: 1200, filterEnd: 5000, volume: 0.09 });
+    [['C6', 0], ['G6', 0.06]].forEach(([n, d]) => {
+      e.tone({ type: 'triangle', freq: hz(n), duration: 0.09, volume: 0.22, at: t + d });
+      e.tone({ type: 'square', freq: hz(n) * 2, duration: 0.08, volume: 0.06, at: t + d + 0.13 });
+    });
+    e.bell({ at: t + 0.13, freq: hz('C7'), volume: 0.12, decay: 0.25, ratio: 2, partial: 0.3 });
+  },
+  // Klon verloren: das Quint-Paar fällt, kurzes „Puff“
+  clone_lost: (e) => {
+    const t = e.now;
+    e.tone({ type: 'triangle', freq: hz('G5'), freqEnd: hz('C5'), duration: 0.2, volume: 0.24 });
+    e.tone({ type: 'square', freq: hz('E5'), freqEnd: hz('A4'), duration: 0.18, volume: 0.07, at: t + 0.05 });
+    e.noise({ at: t + 0.12, duration: 0.2, filterType: 'bandpass', filterFreq: 3000, filterEnd: 600, volume: 0.16 });
+  },
+  // Helm auf: metallisches Einrasten (Tek-Klick und dumpfer Schlag), zwei steigende Bestätigungstöne
+  helm_on: (e) => {
+    const t = e.now;
+    e.tek({ freq: 900, volume: 0.4 });
+    e.tone({ type: 'sine', freq: 160, freqEnd: 90, duration: 0.08, volume: 0.28 });
+    e.tone({ type: 'square', freq: hz('E5'), duration: 0.07, volume: 0.12, at: t + 0.07 });
+    e.tone({ type: 'square', freq: hz('A5'), duration: 0.14, volume: 0.12, at: t + 0.14 });
+  },
+  // Helm ab: Klick, dann zwei fallende Töne
+  helm_off: (e) => {
+    const t = e.now;
+    e.tek({ freq: 700, volume: 0.46 });
+    e.tone({ type: 'square', freq: hz('A5'), duration: 0.07, volume: 0.15, at: t + 0.04 });
+    e.tone({ type: 'square', freq: hz('E5'), freqEnd: hz('A4'), duration: 0.16, volume: 0.15, at: t + 0.11 });
+  },
+  // Kanonen-Helm: tiefer Knall (Kick mit langem Fall), Pulverdampf-Rauschen, heller Abschuss-Zischer
+  cannon: (e) => {
+    e.kick909({ volume: 0.5, pitchStart: 170, pitchEnd: 38, decay: 0.4, click: 0.7 });
+    e.noise({ duration: 0.35, filterFreq: 2400, filterEnd: 150, volume: 0.32 });
+    e.noise({ duration: 0.12, filterType: 'bandpass', filterFreq: 4000, filterEnd: 1500, volume: 0.12 });
+  },
+  // Propeller: Schwirren (Sägezahn mit schnell wackelnder, steigender Tonhöhe), steigender Luftzug, Dreieck hinauf
+  propeller: (e) => {
+    e.tone({ type: 'sawtooth', freq: 180, curve: whirrCurve(180, 420, 16, 0.55), slideTime: 0.55, duration: 0.6, volume: 0.16, attack: 0.04, release: 0.15 });
+    e.noise({ duration: 0.6, filterType: 'bandpass', filterFreq: 500, filterEnd: 2500, volume: 0.26 });
+    e.tone({ type: 'triangle', freq: 300, freqEnd: 900, duration: 0.5, volume: 0.19, at: e.now + 0.05 });
+  },
+  // Licht an: heller Glockenschlag, Dur-Arpeggio, Glanz (offene Hat) über warmem Grundton
+  light: (e) => {
+    const t = e.now;
+    e.bell({ freq: hz('E7'), volume: 0.12, decay: 0.4 });
+    ['C6', 'E6', 'G6', 'C7'].forEach((n, i) => e.tone({ type: 'triangle', freq: hz(n), duration: 0.12, volume: 0.13, at: t + 0.03 + i * 0.045 }));
+    e.hatOpen({ at: t + 0.05, volume: 0.1, duration: 0.5 });
+    e.tone({ type: 'sine', freq: hz('C5'), duration: 0.5, volume: 0.1, attack: 0.08, release: 0.3 });
+  },
+  // Treibsand: dumpfes Einsinken (Tiefpass-Rauschen und Sinus fallen), drei Blubberblasen
+  quicksand: (e) => {
+    const t = e.now;
+    e.noise({ duration: 0.7, filterFreq: 700, filterEnd: 110, volume: 0.36 });
+    e.tone({ type: 'sine', freq: 220, freqEnd: 60, duration: 0.65, volume: 0.26, attack: 0.04 });
+    [0.12, 0.3, 0.46].forEach((d, i) => e.pluck({ at: t + d, freq: 300 - i * 50, type: 'sine', volume: 0.16, decay: 0.06, glide: 0.5 }));
+  },
+  // Sandblock zerbröselt: dumpfer Schlag, dann rieselnde Rauschkörner mit sinkendem Tiefpass
+  sand_crumble: (e) => {
+    const t = e.now;
+    e.tone({ type: 'sine', freq: 150, freqEnd: 70, duration: 0.12, volume: 0.28 });
+    [0, 0.05, 0.11, 0.16, 0.24, 0.3].forEach((d, i) => e.noise({ at: t + d, duration: 0.07, filterFreq: 2200 - i * 260, volume: 0.26 - i * 0.025 }));
+  },
+  // Hackvogel: drei schnelle, trockene Holzschläge (Tek mit fallendem Ping)
+  peck: (e) => {
+    const t = e.now;
+    [0, 0.055, 0.11].forEach((d, i) => e.tek({ at: t + d, freq: 1500 - i * 120, volume: 0.9 }));
+  },
+  // Projektilkopf abgefeuert: dumpfer Abschuss und anschwellendes Vorbeizischen
+  bullet: (e) => {
+    e.kick909({ volume: 0.42, pitchStart: 130, pitchEnd: 45, decay: 0.3, click: 0.5 });
+    e.noise({ duration: 0.45, filterType: 'bandpass', filterFreq: 400, filterEnd: 2200, volume: 0.24 });
+    e.tone({ type: 'sawtooth', freq: 90, freqEnd: 140, duration: 0.4, volume: 0.07, attack: 0.05 });
+  },
+  // Endgegner getroffen: Kick mit Klick, reibender Stab (kleine Sekunde), Krachen, fallender Rechteck-Ton
+  boss_hit: (e) => {
+    const t = e.now;
+    e.kick909({ volume: 0.45, pitchStart: 220, pitchEnd: 50, decay: 0.3, click: 0.8 });
+    e.stab({ notes: chord('C4', 'C#4', 'G4', 'C5'), duration: 0.22, volume: 0.13 });
+    e.noise({ duration: 0.25, filterFreq: 3500, filterEnd: 300, volume: 0.24 });
+    e.tone({ type: 'square', freq: 520, freqEnd: 130, duration: 0.3, volume: 0.1, at: t + 0.04 });
+  },
+  // Endgegner wirbelt: Sägezahn in drei Bögen auf und ab, drei Luft-Wirbel
+  boss_spin: (e) => {
+    const t = e.now;
+    e.tone({ type: 'sawtooth', freq: 160, curve: spinCurve(160, 480, 3), duration: 0.8, volume: 0.27, attack: 0.03, release: 0.2 });
+    [0, 0.27, 0.54].forEach((d) => e.noise({ at: t + d, duration: 0.26, filterType: 'bandpass', filterFreq: 700, filterEnd: 3200, volume: 0.42 }));
+  },
+  // Prüfungs-Haus, letzte 3 s: trockener Uhr-Tick mit kurzem hohem Piep (je Sekunde auslösen)
+  house_tick: (e) => {
+    e.tick({ volume: 0.6 });
+    e.tone({ type: 'square', freq: hz('A6'), duration: 0.06, volume: 0.18, at: e.now + 0.005 });
+  },
+  // Raum geschafft: C-Dur-Stab, Rechteck-Arpeggio hinauf, Piano-Akkord mit Glockenton
+  room_clear: (e) => {
+    const t = e.now;
+    e.stab({ notes: chord('C4', 'E4', 'G4', 'C5'), duration: 0.12, volume: 0.17 });
+    ['E5', 'G5', 'C6'].forEach((n, i) => e.tone({ type: 'square', freq: hz(n), duration: 0.07, volume: 0.15, at: t + i * 0.07 }));
+    e.ravePiano({ at: t + 0.21, notes: chord('C5', 'E5', 'G5', 'C6'), duration: 0.4, volume: 0.11, oscs: 1 });
+    e.bell({ at: t + 0.21, freq: hz('G6'), volume: 0.14, decay: 0.35 });
+  },
+  // Eis-Rutschen: helles Kratzen (hohes Bandpass-Rauschen fällt), leiser Pfeifton und Eis-Glöckchen
+  ice_slide: (e) => {
+    e.noise({ duration: 0.45, filterType: 'bandpass', filterFreq: 6000, filterEnd: 2500, volume: 0.42 });
+    e.tone({ type: 'triangle', freq: 1800, freqEnd: 1200, duration: 0.4, volume: 0.1, attack: 0.03 });
+    e.bell({ freq: hz('B6'), volume: 0.1, decay: 0.25 });
+  },
+  // Schneeball: weiches „Poff“ (Tiefpass-Rauschen und Sinus-Plumps), Schnee rieselt (Schellen)
+  snowball: (e) => {
+    e.noise({ duration: 0.18, filterFreq: 1600, filterEnd: 250, volume: 0.38 });
+    e.tone({ type: 'sine', freq: 190, freqEnd: 85, duration: 0.14, volume: 0.3 });
+    e.jingle({ at: e.now + 0.03, volume: 0.12, duration: 0.2 });
+  },
+  // Spuk: „Huuu“ – zwei Theremin-Stimmen mit weitem Vibrato, gleiten von unten herein, hauchiges Rauschen
+  ghost: (e) => {
+    e.whistle({ freq: hz('E5'), duration: 0.75, volume: 0.17, vibrato: 70, rate: 6, slide: 5, attack: 0.12 });
+    e.noise({ duration: 0.7, filterType: 'bandpass', filterFreq: 800, filterEnd: 1600, volume: 0.07 });
+    e.whistle({ at: e.now + 0.1, freq: hz('B5'), duration: 0.6, volume: 0.07, vibrato: 60, rate: 5.3, slide: 7, attack: 0.15 });
+  },
+  // Großes Platschen: breites Bandpass-Rauschen, Gischt, tiefer Plumps, aufsteigende Blasen
+  splash_big: (e) => {
+    const t = e.now;
+    e.noise({ duration: 0.7, filterType: 'bandpass', filterFreq: 1800, filterEnd: 350, volume: 0.42 });
+    e.noise({ duration: 0.3, filterFreq: 5000, filterEnd: 1500, volume: 0.14 });
+    e.tone({ type: 'sine', freq: 140, freqEnd: 50, duration: 0.3, volume: 0.28 });
+    [0.15, 0.26, 0.38, 0.5].forEach((d, i) => e.pluck({ at: t + d, freq: 400 + i * 90, type: 'sine', volume: 0.1, decay: 0.05, glide: 1.8, glideTime: 0.05 }));
+  },
+  // Dampfpfeife: verminderter Dreiklang aus Sinus-Pfeifen, gleitet hinein, Dampf-Rauschen
+  train_whistle: (e) => {
+    chord('B5', 'D6', 'F6').forEach((f) => e.whistle({ freq: f, duration: 0.85, volume: 0.105, vibrato: 6, rate: 4.5, slide: 2, attack: 0.06 }));
+    e.noise({ duration: 0.85, filterType: 'bandpass', filterFreq: 2500, filterEnd: 2000, volume: 0.13 });
+  },
+  // Piep-Block-Warnton: klarer Sinus-Piep (C6 mit Oktave) – derselbe Klang wie die Warn-Pieps in course_beep
+  beep: (e) => e.bell({ freq: hz('C6'), volume: 0.38, decay: 0.09, ratio: 2, partial: 0.3 }),
+  // Piep-Blöcke schalten um: höherer Piep (G6, wie in course_beep), kurzer Kipp-Sweep und Klick
+  beep_switch: (e) => {
+    e.bell({ freq: hz('G6'), volume: 0.31, decay: 0.12, ratio: 2, partial: 0.3 });
+    e.tone({ type: 'square', freq: 400, freqEnd: 1300, duration: 0.09, volume: 0.1 });
+    e.noise({ duration: 0.05, filterType: 'highpass', filterFreq: 3000, volume: 0.2 });
+  },
 };
+
+/** Effekt-Namen für Welt 2–4 (Kurs-Vertrag, Abschnitt Audio). */
+export const WORLD_SFX = ['clone', 'clone_lost', 'helm_on', 'helm_off', 'cannon', 'propeller', 'light', 'quicksand',
+  'sand_crumble', 'peck', 'bullet', 'boss_hit', 'boss_spin', 'house_tick', 'room_clear', 'ice_slide', 'snowball', 'ghost',
+  'splash_big', 'train_whistle', 'beep', 'beep_switch'];
 
 /** Effekt-Namen aus dem Kurs-Vertrag (docs/KURS-ARCHITEKTUR.md). */
 export const COURSE_SFX = ['jump', 'jump2', 'jump3', 'backflip', 'longjump', 'walljump', 'groundpound', 'slide', 'land',
