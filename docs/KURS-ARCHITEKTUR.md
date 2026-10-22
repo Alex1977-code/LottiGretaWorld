@@ -1066,12 +1066,12 @@ Münzsack). Mini-Pilzlinge: `pilzling` mit `mini: true` (halbe Größe, ein Tref
   Stempel unter der Bühne hinter zwei Kisten (Falltür links der Riesenschnappblume). Extraleben im unsichtbaren Block
   über dem Bühnenpodest (sein Schatten verrät ihn). Checkpoint vor der Seitenbühne; Türen führen hinter die Kulissen.
 - `2-4` **„Hügelmühle“** – Rollhügel mit Hügelwalzen und Windmühle, darunter das Räderwerk. Sterne: 0 Kletterfels
-  zwischen den Glasröhren (Krallen-Anzug), 1 Farbfeld-Raum (Röhre unter zwei Kristallblöcken – stampfen), 2 zwischen den
-  Riesenrädern fallen lassen. Stempel auf dem Turm am Start: Lotti- **und** Greta-Schalter lassen die Stufen erscheinen
+  zwischen den Glasröhren (Krallen-Anzug), 1 Farbfeld-Raum (Röhre unter einem Kristalldeckel – Stampfattacke), 2 zwischen
+  den Riesenrädern fallen lassen. Stempel auf dem Turm am Start: Lotti- **und** Greta-Schalter lassen die Stufen erscheinen
   (Schild: Heldin über Pause → Figur wechseln). Extraleben: roter Ring auf dem Stufenhügel, unsichtbarer Block über der
   dritten Walze. Checkpoint mit Röhre in den Untergrund (Licht dort gedämpft).
-- Level-lokale Szenen (Krümel, Vorhänge, Rampenlichter, Windmühle, Kaninchen, Schattensterne, Untergrund-Licht) liegen in
-  `src/course/levels/w2/_helpers_b.js`; Aufbau-Haken = brennende Laterne (`lantern` mit `lit: true`, `onLit: fn`).
+- Level-lokale Szenen (Krümel, Vorhänge, Rampenlichter, Münzkäfig, Windmühle, Kaninchen, Schattensterne, Mühlenkeller-
+  Dielen und -Pfosten, Untergrund-Licht) liegen in `src/course/levels/w2/_helpers_b.js`; Aufbau-Haken = brennende Laterne (`lantern` mit `lit: true`, `onLit: fn`).
 
 ## Präzisierung (Bausteine Welt 2)
 

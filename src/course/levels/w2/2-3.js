@@ -29,7 +29,7 @@
 
 import {
   isl, line, ring, arc, column, deco, decoW1, hook, Kruemel, shadowStars, cullShadowWalls, curtain, valance, footlights, carpet, bake,
-  prop,
+  prop, cage,
 } from './_helpers_b.js';
 
 const Y = 1;            // Foyer, Hinter den Kulissen, Ziel
@@ -95,10 +95,17 @@ function scene(level) {
   curtain(level, { pos: [252.6, Y, 22.4], w: 1.4, h: 7.6, tie: 0.45, side: 'left' });
   curtain(level, { pos: [267.4, Y, 22.4], w: 1.4, h: 7.6, tie: 0.45, side: 'right' });
   valance(level, { pos: [260, 8.2, 22.6], w: 16, h: 0.9 });
-  curtain(level, { pos: [104.2, Y, 51.75], w: 2.6, h: 4.4, axis: 'z', folds: 7 });     // verdeckt die Lücke
+  curtain(level, { pos: [104.2, Y, 53.25], w: 5.5, h: 4.4, axis: 'z', folds: 11 });    // verdeckt die Lücke
   valance(level, { pos: [112, 5, 44.8], w: 16, h: 0.8 });
   curtain(level, { pos: [105.6, Y, 44.8], w: 3, h: 4, tie: 0.4, side: 'left' });
   curtain(level, { pos: [118.4, Y, 44.8], w: 3, h: 4, tie: 0.4, side: 'right' });
+  // Ziel: „Vorhang zu“ – Portal am Höhlenausgang, roter Läufer zum Zielmast, Rampenlichter an der Kante
+  curtain(level, { pos: [107.2, Y + 1.6, 13.6], w: 1.8, h: 6.6, tie: 0.45, side: 'left' });
+  curtain(level, { pos: [116.8, Y + 1.6, 13.6], w: 1.8, h: 6.6, tie: 0.45, side: 'right' });
+  valance(level, { pos: [112, Y + 7.6, 13.7], w: 11, h: 0.9 });
+  carpet(level, 110.6, 113.4, 28, 22.6, Y + 1.6);
+  footlights(level, 104.4, 109, Y + 1.6, 28.1);
+  footlights(level, 115, 119.6, Y + 1.6, 28.1);
   // Foyer: Läufer, Kerzenleuchter, Gemälde, Spinnweben
   carpet(level, -1.1, 1.1, 7, -6.5, Y);
   carpet(level, 1.1, 8.6, -5, -7.2, Y);
@@ -114,6 +121,7 @@ function scene(level) {
     { name: 'kerze', opts: { count: 3 }, pos: [95.6, Y + 0.8, 54.6] },
   ]);
   prop(level, { name: 'kerze', opts: { count: 1 }, pos: [7.6, YC, -70.6], state: { anim: 'on' } });
+  cage(level, { pos: [5.6, YC, -67.4], yaw: Math.PI });                         // Münzkäfig, Schloss zur Topfpflanze
 }
 
 export const LEVEL = {
@@ -136,7 +144,7 @@ export const LEVEL = {
     // hinter den Kulissen und Ziel (x ≈ 112, z 100 … 13: hinter allen Kameras des Hauptwegs)
     { ...CAM, from: 101, to: 74, pitch: 46, dist: 12.5, area: [88, 135] },
     { ...CAM, from: 74, to: 44, pitch: 44, dist: 13.5, area: [88, 135] },
-    { ...CAM, from: 43, to: 9, pitch: 42, dist: 13, area: [88, 135] },
+    { ...CAM, from: 43, to: 9, pitch: 40, dist: 13, ahead: 4, area: [88, 135] },
     // Rätselbox-Raum (x ≈ 260, z 56 … 19): Gasse, dann flacher auf die Leinwand
     { from: 56, to: 36, pitch: 48, dist: 12, fov: 40, area: [245, 280] },
     { from: 32, to: 20, pitch: 20, dist: 14, height: 2.2, ahead: 0, fov: 40, area: [245, 280] },
@@ -288,14 +296,14 @@ export const LEVEL = {
       { kind: 'lantern', pos: [105, Y, 56.4] }, { kind: 'lantern', pos: [119, Y, 49] },
     ]),
     decoW1([
-      rock(101.5, 104, 101, 53, Y, 7.5), rock(101.5, 104, 50.5, 43, Y, 7.5),
+      rock(101.5, 104, 101, 59.5, Y, 7.5), rock(101.5, 104, 50.5, 43, Y, 7.5),
       rock(120, 122.5, 101, 43, -6, 8, { color: ROCK2 }),
       rock(104, 110.5, 90.4, 89.4, Y, 3.4), rock(113.5, 120, 90.4, 89.4, Y, 3.4, { color: ROCK2 }),
       rock(104, 108.5, 90, 74, Y, 3.6), rock(115.5, 120, 90, 74, Y, 3.6, { color: ROCK2 }),
       rock(104, 120, 44.6, 42.6, Y, 5),
       rock(91.5, 94, 59, 43, Y, 7.5), rock(94, 101.5, 46, 43, Y, 7.5),
-      rock(94, 101.5, 58.4, 56, Y, 3.2, { camIgnore: true }),
-      { kind: 'stalactites', pos: [104.3, 7, 70], size: [0.8, 40], n: 12, len: [1, 2.8] },
+      rock(94, 104, 59.5, 56, -6, Y + 0.9, { camIgnore: true }),
+      { kind: 'stalactites', pos: [104.3, 7, 78], size: [0.8, 24], n: 8, len: [1, 2.8] },
       { kind: 'stalactites', pos: [120.3, 8, 70], size: [0.8, 40], n: 12, len: [1, 2.8] },
       { kind: 'crystals', pos: [119, Y, 56.4], size: 0.9, color: 'gold' },
       { kind: 'mushrooms', pos: [94.8, Y, 55.2], size: 0.7, color: 'gold', glow: true },
@@ -429,7 +437,7 @@ export const LEVEL = {
     { kind: 'coin', pos: [12.3, 4.2, -87.5] }, { kind: 'coin', pos: [15.9, 5.5, -87.5] }, { kind: 'coin', pos: [19.5, 4.3, -87.5] },
     line([23, YC + 0.6, -87.5], [28, YC + 0.6, -87.5], 3),
     { kind: 'coin', pos: [37.3, 7.3, -87.5] }, { kind: 'coin', pos: [41.7, 7.3, -87.5] },
-    line([47.6, YC + 0.6, -87.5], [53.2, YC + 0.6, -87.5], 3),
+    line([47.8, YC + 0.6, -87.5], [53, YC + 0.6, -87.5], 2),
     { kind: 'coin', pos: [55.6, 5, -87.5] }, { kind: 'coin', pos: [58.2, 6.4, -87.5] },
     line([60.4, 7.6, -87.5], [62, 7.6, -87.5], 2),
     line([27, -0.9, -87.5], [31.6, -0.9, -87.5], 3),

@@ -10,9 +10,10 @@
 //                                      rollender Baumstamm, Hüpfmäuse, Rollpilze, Pilzlinge; Stufenhügel mit dem roten
 //                                      Ring (acht rote Münzen → Extraleben); unsichtbarer Block über der dritten Walze.
 //   3  Checkpoint       z −95 … −108 Fahne neben der Hügelmühle (Windmühle), Röhre hinab ins Räderwerk.
-//   4  Untergrund       y −14, z −228 … −304: Rollpilze, Stachel-Hüpfmäuse, Mini-Pilzlinge; drei liegende
-//                                      Zahnräder (Drehteller) und ein stehendes Zahnrad über dem Schacht; grüne Röhre unter
-//                                      einem Kristalldeckel (Stampfen) → Farbfeld-Raum.
+//   4  Untergrund       y −14, z −228 … −304 (Mühlenkeller: Dielen, Pfosten, Mehlsäcke): Rollpilze, Stachel-
+//                                      Hüpfmäuse, Mini-Pilzlinge; drei liegende Zahnräder (Drehteller) und ein stehendes
+//                                      Zahnrad über dem Schacht; grüne Röhre unter einem Kristalldeckel (Stampfen) →
+//                                      Farbfeld-Raum.
 //   5  Ausgang          z −304 … −334: zwei Riesenräder mit waagerechten Stegen; wer sich zwischen die Räder fallen
 //                                      lässt, landet auf dem Sims mit Stern 2 (Röhre zurück). Röhre hinauf zum Ziel.
 //   Ziel: Hügelkuppe y 10, z −380 … −408 (Röhre aus dem Untergrund), Zielmast.
@@ -23,7 +24,7 @@
 // Stempel: auf dem Turm am Start (Lotti- und Greta-Schalter).
 
 import {
-  isl, lawn, line, ring, arc, column, deco, decoW1, fence, hook, windmill, Hopper, dimZone, bake,
+  isl, lawn, line, ring, arc, column, deco, decoW1, fence, hook, windmill, Hopper, dimZone, bake, planks, millCellar,
 } from './_helpers_b.js';
 
 const Y = 1;            // Graswiese
@@ -52,6 +53,17 @@ function scene(level) {
   new Hopper(level, { pos: [-9, YU, -86], r: 2.2, seed: 11 });
   new Hopper(level, { pos: [4, YG, -397], r: 2.4, seed: 5 });
   dimZone(level, { inside: (x, y) => y < -6, hemi: 0.42, sun: 0.3, fog: 0x1c1a2a });
+  // Mühlenkeller: Dielenböden (das Farbfeld bleibt frei)
+  planks(level, UX - 7.5, UX + 7.5, -230.5, -249.5, YD);
+  planks(level, UX - 7.5, UX + 7.5, -277.1, -303.5, YD);
+  planks(level, UX - 7.5, UX + 7.5, -324.1, -333.5, YD);
+  planks(level, UX - 2.6, UX + 2.6, -312.8, -314.8, YD - 6, { along: 'x' });
+  planks(level, 52.5, 67.5, -280.5, -299.5, YD, { skip: [[55.8, 64.2, -294.8, -286.4]] });
+  // Pfosten und Längsbalken vor den Felswänden, Mehlsäcke in den Ecken
+  millCellar(level, { xs: [UX - 7.95, UX + 7.95], y: YD, posts: [-237, -244], sacks: [[UX - 6.4, -247.8, 0.4, 3], [UX + 6.2, -231.6, -0.3, 2]] });
+  millCellar(level, { xs: [UX - 7.95, UX + 7.95], y: YD, posts: [-284.5, -291, -297.5], sacks: [[UX - 5.6, -278.4, 0.2, 3], [UX + 6.6, -285.8, -0.5, 2]] });
+  millCellar(level, { xs: [UX - 7.95, UX + 7.95], y: YD, posts: [-326.6, -331.6], sacks: [[UX + 5.6, -332.6, 0.6, 4]] });
+  millCellar(level, { y: YD, sacks: [[66, -281.6, 0, 2], [53.8, -298.4, 1, 3]] });
   bake(level, [
     { name: 'pastell_blume', pos: [-10.6, Y, 6], scale: 1.1 },
     { name: 'pastell_blume', pos: [10.8, Y, -1], scale: 0.9 },
@@ -76,7 +88,7 @@ export const LEVEL = {
     { ...CAM, from: 12, to: -22, pitch: 42, area: [-40, 40] },
     { ...CAM, from: -24, to: -94, pitch: 44, area: [-40, 40] },
     { ...CAM, from: -95, to: -110, pitch: 46, dist: 13, area: [-40, 40] },
-    // Untergrund (x ≈ 120)
+    // Untergrund (z −228 … −336, hinter der Oberwelt)
     { ...CAM, from: -228, to: -278, pitch: 46, dist: 13, area: [-30, 30] },
     { ...CAM, from: -278, to: -304, pitch: 47, dist: 12.5, area: [-30, 30] },
     // Riesenräder schräg von der Seite (die Räder stehen in Laufrichtung, frontal von hinten sähe man sie nur als Strich)
@@ -302,9 +314,9 @@ export const LEVEL = {
     { kind: 'huepfmaus_stachel', pos: [UX - 4, YD, -327], path: [[UX - 6, YD, -327], [UX + 4, YD, -327]] },
     { kind: 'huepfmaus_stachel', pos: [57, YD, -287], path: [[55, YD, -287], [65, YD, -287]] },
     { kind: 'huepfmaus_stachel', pos: [63, YD, -294], path: [[55, YD, -294.6], [65, YD, -294.6]] },
-    // Pilzlinge (2) und Mini-Pilzlinge (3)
+    // Pilzlinge (2: Hügel und Mühlenkeller) und Mini-Pilzlinge (3)
     { kind: 'pilzling', pos: [-3, YU, -64.6], path: [[-4.6, YU, -64.6], [4.6, YU, -64.6]] },
-    { kind: 'pilzling', pos: [3, YU, -92], path: [[-4, YU, -92], [5, YU, -92]] },
+    { kind: 'pilzling', pos: [UX - 4, YD, -281], path: [[UX - 6, YD, -281], [UX - 1, YD, -281]] },
     { kind: 'pilzling', mini: true, pos: [-1, YU, -79], behavior: 'chase', sight: 5 },
     { kind: 'pilzling', mini: true, pos: [UX + 4, YD, -300], behavior: 'chase', sight: 5 },
     { kind: 'pilzling', mini: true, pos: [UX - 5, YD, -331], dir: [1, 0] },

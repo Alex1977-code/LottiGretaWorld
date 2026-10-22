@@ -117,7 +117,7 @@ const ROUTES = {
       ['kulissen', [112, 1, 91]],
       ['gasse', [112, 1, 82]],
       ['schacht', [112, 1, 73.4]],
-      ['nische', [103.4, 1, 51.8]],
+      ['nische', [101.2, 1, 52.4]],
       ['ziel', [112, 1, 34]],
       ['raetselraum', [260, 1, 40]],
       ['raetselwand', [256, 1, 29]],
@@ -553,7 +553,10 @@ for (const id of LEVELS) {
       const ok = t.star !== undefined ? rt.stars[t.star] : rt.stamp;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
       check(`${id}: ${t.name} (${hero})`, !!ok);
-      if (t.shot) await shot(`${id}_${t.shot}`);
+      if (t.shot) {
+        await sc(() => { window.__course.player.invuln = 0; });       // nicht mitten im Blinken fotografieren
+        await shot(`${id}_${t.shot}`);
+      }
     }
   }
 

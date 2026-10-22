@@ -10,6 +10,7 @@
 //   shadowStars(level, idx)  Sterne, die man nur als Schatten sieht: Modell unsichtbar (der Schatten auf der
 //                            Schattenwand bleibt), funkelt erst, wenn eine Figur ganz nah ist.
 //   curtain / valance / footlights / carpet / bake   statische Theater-Kulisse (wird mit dem Abschnitt verschmolzen)
+//   planks / cage            Dielenboden (Mühlenkeller 2-4), schlichter Goldkäfig (Münzkäfig 2-3), statisch
 //   windmill                 Windmühle mit drehenden Flügeln (2-4)
 //   cullShadowWalls          Schatten der Schattenwände nur zeichnen, wenn die Wand im Blickfeld ist
 //   Hopper                   Deko-Kaninchen am Rand (hoppeln umher, flüchten vor der Figur)
@@ -333,6 +334,144 @@ export function carpet(level, x0, x1, zA, zB, y, color = 0xa8182a) {
   parts.push(box(0.12, 0.05, d, x0 + 0.12, y + 0.025, (z0 + z1) / 2, GOLD, FLAT));
   parts.push(box(0.12, 0.05, d, x1 - 0.12, y + 0.025, (z0 + z1) / 2, GOLD, FLAT));
   addStatic(level, merge(parts));
+}
+
+/**
+ * Dielenboden (Mühlenkeller): versetzt gestoßene Bretter längs z (o.along 'x': längs x) auf einer dunklen Unterlage,
+ * Rechteck x0..x1 × zA..zB auf Höhe y (nur Optik, 2 cm stark – Kreisschatten liegen darüber).
+ * o.skip: [[x0, x1, z0, z1], …] bleibt frei (z. B. Farbfelder); o.colors: Brettfarben.
+ */
+export function planks(level, x0, x1, zA, zB, y, o = {}) {
+  if (!level.view) return;
+  const z0 = Math.min(zA, zB), z1 = Math.max(zA, zB);
+  const alongZ = (o.along ?? 'z') === 'z';
+  const W = o.w ?? 0.64, GAP = 0.05, CUT = 0.06, LEN = o.len ?? 3.4;
+  const cols = o.colors ?? [0x8a5a34, 0x7a4c2a, 0x966438, 0x6e4426, 0x845530];
+  const skip = o.skip ?? [];
+  const free = (ax, az, bx, bz) => !skip.some(([sx0, sx1, sz0, sz1]) => ax < sx1 && bx > sx0 && az < sz1 && bz > sz0);
+  const parts = [];
+  const pushBox = (ax, bx, az, bz, yy, h, c) => {
+    if (bx - ax < 0.05 || bz - az < 0.05 || !free(ax, az, bx, bz)) return;
+    parts.push(box(bx - ax, h, bz - az, (ax + bx) / 2, yy + h / 2, (az + bz) / 2, c, { ...FLAT, topColor: c }));
+  };
+  const A0 = alongZ ? x0 : z0, A1 = alongZ ? x1 : z1, L0 = alongZ ? z0 : x0, L1 = alongZ ? z1 : x1;
+  let i = 0;
+  for (let a = A0; a < A1 - 0.1; a += W, i++) {
+    const a1 = Math.min(a + W, A1) - GAP / 2, a0 = a + GAP / 2;
+    let l = L0, k = 0;
+    let next = L0 + 0.8 + ((i * 1.37) % 1) * (LEN - 0.8);          // erste Stoßfuge versetzt
+    while (l < L1 - 0.05) {
+      const e = Math.min(next, L1);
+      const c = cols[(i * 3 + k * 2 + (i >> 1)) % cols.length];
+      // Brett an freien Bereichen kappen (längs teilen)
+      let segs = [[l + CUT / 2, e - CUT / 2]];
+      for (const [sx0, sx1, sz0, sz1] of skip) {
+        const [c0, c1, d0, d1] = alongZ ? [sx0, sx1, sz0, sz1] : [sz0, sz1, sx0, sx1];
+        if (a1 <= c0 || a0 >= c1) continue;
+        segs = segs.flatMap(([s0, s1]) => (s1 <= d0 || s0 >= d1 ? [[s0, s1]] : [[s0, Math.min(s1, d0)], [Math.max(s0, d1), s1]]));
+      }
+      for (const [s0, s1] of segs) {
+        if (alongZ) pushBox(a0, a1, s0, s1, y + 0.01, 0.012, c);
+        else pushBox(s0, s1, a0, a1, y + 0.01, 0.012, c);
+      }
+      l = e; next = e + LEN; k++;
+    }
+  }
+  // dunkle Unterlage (Fugen), um die freien Bereiche herum gestückelt
+  const base = o.gap ?? 0x3a2414;
+  const edgesX = [x0, x1, ...skip.flatMap((s) => [s[0], s[1]])].filter((v) => v >= x0 && v <= x1).sort((p, q) => p - q);
+  const edgesZ = [z0, z1, ...skip.flatMap((s) => [s[2], s[3]])].filter((v) => v >= z0 && v <= z1).sort((p, q) => p - q);
+  for (let xi = 0; xi < edgesX.length - 1; xi++) {
+    for (let zi = 0; zi < edgesZ.length - 1; zi++) pushBox(edgesX[xi], edgesX[xi + 1], edgesZ[zi], edgesZ[zi + 1], y, 0.01, base);
+  }
+  if (parts.length) addStatic(level, merge(parts));
+}
+
+/**
+ * Mühlenkeller-Ausbau (statisch, nur Optik): Holzpfosten vor den Seitenwänden (x = xs[0] bzw. xs[1], Pfosten bei den
+ * z-Werten posts) mit Längsbalken und Kopfbändern; Mehlsäcke als kleine Stapel sacks: [[x, z, yaw, n]].
+ * o: { xs: [xLinks, xRechts], y (Boden), h (5.4), posts: [z…], sacks }
+ */
+export function millCellar(level, o) {
+  if (!level.view) return;
+  const y = o.y, h = o.h ?? 5.4;
+  const WOOD = 0x7a4a26, WOOD_HI = 0x9a6234, parts = [];
+  const zs = o.posts ?? [];
+  if (zs.length) {
+    const zMin = Math.min(...zs), zMax = Math.max(...zs);
+    for (const x of o.xs ?? []) {
+      const inward = x < 0 ? 0.2 : -0.2;
+      for (const z of zs) {
+        parts.push(box(0.36, h, 0.36, x, y + h / 2, z, WOOD, { ...FLAT, topColor: WOOD_HI }));
+        parts.push(box(0.5, 0.18, 0.5, x, y + 0.09, z, 0x5a3418, FLAT));        // Fußplatte
+        for (const s of [-1, 1]) {                                               // Kopfbänder zum Längsbalken
+          const g = box(0.16, 1.5, 0.16, 0, 0, 0, WOOD, FLAT);
+          g.rotateX(s * 0.72);
+          g.translate(x + inward * 0.2, y + h - 0.75, z + s * 0.5);
+          parts.push(g);
+        }
+      }
+      parts.push(box(0.42, 0.42, zMax - zMin + 2.4, x, y + h + 0.1, (zMin + zMax) / 2, WOOD, { ...FLAT, topColor: WOOD_HI }));
+    }
+  }
+  const sackBase = lin(0xe0c490), sackHi = lin(0xfff6e0), tie = lin(0xa0602a);
+  for (const [sx, sz, yaw = 0, n = 3] of o.sacks ?? []) {
+    const spots = [[0, 0, 0], [0.62, 0, 0.1], [0.3, 0.62, -0.05], [-0.5, 0, 0.35]].slice(0, n);
+    for (const [dx, dy, dz] of spots) {
+      const sack = new THREE.SphereGeometry(1, 7, 5).toNonIndexed();
+      sack.scale(0.34, 0.42, 0.3);
+      sack.translate(dx, 0.4 + dy, dz);
+      colorize(sack, (p, nn, out) => mixc(sackBase, sackHi, smooth(-0.3, 0.9, nn.y * 0.7 + nn.z * 0.3), out));
+      const neck = new THREE.ConeGeometry(0.1, 0.22, 5).toNonIndexed();
+      neck.translate(dx, 0.86 + dy, dz);
+      colorize(neck, (p, nn, out) => { out[0] = tie[0]; out[1] = tie[1]; out[2] = tie[2]; });
+      for (const g of [sack, neck]) { g.rotateY(yaw); g.translate(sx, y, sz); parts.push(g); }
+    }
+  }
+  if (parts.length) addStatic(level, merge(parts));
+}
+
+/**
+ * Schlichter Goldkäfig (statisch, ≈ 900 Dreiecke): Sockel, Stäbe, Bügelkuppel, Vorhängeschloss.
+ * o: { pos (Fußpunkt), r (0.72), h (Stablänge 1.35), yaw (Schloss zeigt nach +X, gedreht um yaw) }.
+ */
+export function cage(level, o) {
+  if (!level.view) return;
+  const [x, y, z] = o.pos;
+  const r = o.r ?? 0.72, h = o.h ?? 1.35;
+  const gold = lin(hex(GOLD)), goldLo = lin(hex(GOLD_LO));
+  const shade = (g, a, b) => { colorize(g, (p, n, out) => mixc(a, b, smooth(-0.6, 0.8, n.y * 0.6 + n.z * 0.4), out)); return g; };
+  const parts = [];
+  const sock = new THREE.CylinderGeometry(r + 0.2, r + 0.26, 0.32, 14).toNonIndexed();
+  sock.translate(0, 0.16, 0);
+  parts.push(shade(sock, lin(0x5a2a6a), lin(0xa05ab0)));
+  for (const yy of [0.36, 0.36 + h]) {
+    const ringG = new THREE.TorusGeometry(r, 0.045, 4, 18).toNonIndexed();
+    ringG.rotateX(Math.PI / 2); ringG.translate(0, yy, 0);
+    parts.push(shade(ringG, goldLo, gold));
+  }
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * TAU;
+    const bar = new THREE.CylinderGeometry(0.03, 0.03, h, 4, 1, true).toNonIndexed();
+    bar.translate(Math.cos(a) * r, 0.36 + h / 2, Math.sin(a) * r);
+    parts.push(shade(bar, goldLo, gold));
+  }
+  for (let i = 0; i < 3; i++) {
+    const arcG = new THREE.TorusGeometry(r, 0.035, 4, 10, Math.PI).toNonIndexed();
+    arcG.rotateY((i / 3) * Math.PI); arcG.translate(0, 0.36 + h, 0);
+    parts.push(shade(arcG, goldLo, gold));
+  }
+  const loop = new THREE.TorusGeometry(0.14, 0.035, 4, 10).toNonIndexed();
+  loop.translate(0, 0.36 + h + r + 0.1, 0);
+  parts.push(shade(loop, goldLo, gold));
+  parts.push(box(0.22, 0.24, 0.14, r + 0.06, 0.36 + h * 0.5, 0, 0xffd84a, FLAT));
+  const shackle = new THREE.TorusGeometry(0.07, 0.022, 4, 8, Math.PI).toNonIndexed();
+  shackle.rotateY(Math.PI / 2); shackle.translate(r + 0.06, 0.36 + h * 0.5 + 0.12, 0);
+  parts.push(shade(shackle, lin(0x8890a0), lin(0xc8d0dc)));
+  const m = merge(parts);
+  m.rotateY(o.yaw ?? 0);
+  m.translate(x, y, z);
+  addStatic(level, m);
 }
 
 /** Mehrere Registry-Modelle in die statische Kulisse verschmelzen: [{ name, pos, yaw?, scale?, opts?, state? }]. */
