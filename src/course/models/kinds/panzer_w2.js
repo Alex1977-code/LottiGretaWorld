@@ -14,8 +14,8 @@
 // metalltor        Stahltor mit Pfeilern und Sturz (Tatzen-Wappen); Torblatt fährt beim Öffnen in den Boden.
 //                  Durchgang entlang ±X, Breite entlang Z.  opts { width (4), height (4) }
 //                  state { open (0..1), anim?: 'shake' }
-// holz_silhouette  Sperrholz-Aufsteller mit dunkler Silhouette von Baron Brummbär (≈2,8 m, mit Zylinder),
-//                  Fußbrettern; kippt um die hintere Unterkante nach hinten (−X) um.
+// holz_silhouette  Sperrholz-Aufsteller mit dunkler Silhouette von Baron Brummbär (≈2,9 m, mit Zylinder),
+//                  auf Fußbrettern (bleiben stehen); kippt um deren hintere Kante (x = −0,45) nach hinten (−X) um.
 //                  state { anim: 'idle'|'wobble', fall (0..1; 1 = liegt flach) }
 
 import {
@@ -346,13 +346,18 @@ function buildSilhouette() {
     // Monokel-Glanz (Goldring) und Hutband als Farbtupfer auf der Silhouette
     b.torus(0.11, 0.022, 0xffc21a, { p: [0.065, 1.88, -0.18], r: [0, Math.PI / 2, 0] }, 6, 18);
     b.box(0.02, 0.1, 0.68, 0x8a1a1a, { p: [0.062, 2.36, 0] }, 0, 1);
-    // Fußbretter
-    for (const s of [1, -1]) b.box(0.9, 0.08, 0.16, 0xc48a4a, { p: [0, 0.04, s * 0.55] }, 0.02, 1);
     return b.geometry();
   }), vcol(0.7), {}, true);
   tip.add(board);
   board.position.x = 0.45;
-  root.add(tip);
+  // Fußbretter bleiben stehen (Kippkante = ihr hinteres Ende)
+  const feet = mesh(cached('w2:silh:feet', () => {
+    const b = new Build();
+    for (const s of [1, -1]) b.box(0.9, 0.08, 0.16, 0xc48a4a, { p: [0, 0.04, s * 0.55] }, 0.02, 1);
+    b.box(0.12, 0.1, 1.26, 0xa8703a, { p: [-0.4, 0.05, 0] }, 0.02, 1);
+    return b.geometry();
+  }), vcol(0.7), {}, true);
+  root.add(tip, feet);
   const clk = new Clock();
   let f = 0;
   const update = (dt, st) => {

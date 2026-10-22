@@ -55,6 +55,8 @@ const ITEMS = [
   ['kanonenkugel', {}, 'idle', ['idle', { anim: 'roll', speed: 5 }]],
   ['topfpflanze', {}, 'idle', ['idle', 'snap', 'carried']],
   ['kruemel', {}, 'scared', ['idle', 'scared', 'cheer', 'hop']],
+  ['roter_ring', {}, 'idle', ['idle', 'active', 'done']],
+  ['rote_muenze', {}, 'idle', ['idle', 'collected']],
 ];
 const DESERT = [
   ['sandblock', {}, 'idle', ['idle', 'shake', { crumble: 0.5 }, 'crumble', 'gone']],
@@ -87,6 +89,7 @@ const GIMMICKS = [
   ['push_switch_gold', {}, 'idle', ['idle', 'pressed']],
   ['scheinwerfer', {}, { on: true }, [{ on: false }, { on: true }]],
   ['tuer', {}, { open: 0.3 }, [{ open: 0 }, { open: 1 }]],
+  ['goldroehre', { height: 1.6 }, 'idle', ['idle']],
 ];
 const LARGE = [
   ['holzwand_boss', {}, 'idle', ['idle', 'hit', { damage: 0.6 }, 'break']],
@@ -430,6 +433,8 @@ const courseView = async (nm, list, cols = 6, dx = 2.6, dz = 3.0, ground = 'sand
 await courseView('course_enemies', ENEMIES.concat(WERFER.slice(0, 7), BIG.slice(0, 1)), 6, 2.6, 2.8);
 await courseView('course_items', ITEMS.concat(DESERT.slice(0, 8)), 6, 2.6, 3.0);
 await courseView('course_gimmicks', GIMMICKS.slice(0, 12), 4, 4.2, 4.6, 'grass', 16);
+await courseView('course_decor', DESERT.slice(6, 12), 3, 6.5, 7, 'sand', 20);
+await courseView('course_large', LARGE, 2, 9, 8, 'sand', 22);
 
 // Instanz-Kolonne aus der Kurs-Kamera: 3 Reihen Marschblöcke, Sandblock-Feld, Kakteen, Wuschel
 if (want('course_instanced') || want('course')) {

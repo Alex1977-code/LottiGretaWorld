@@ -6,8 +6,9 @@
 //                    Runen an den Seiten. Oberkante bei y = 1,0 + rise·opts.rise.
 //                    opts { rise (Hubhöhe in m, Standard 1) }  state { anim: 'off'|'on', rise (0..1) }
 //                    on: Runen und Stern leuchten türkis, Funkeln.
-// propellerplattform Schwebeplattform mit Propeller darunter: weiße Platte mit türkisem Rand und Goldbolzen, roter
-//                    Motor, vier gelbe Rotorblätter (bis y ≈ −0,7). Oberseite bei y = thick.
+// propellerplattform Schwebeplattform mit Propeller darunter: weiße Platte mit türkisem Rand, Goldbolzen, gelbem
+//                    Landefeld-Ring mit Propeller-Stern oben; roter Motor, vier gelbe Rotorblätter darunter (bis
+//                    y ≈ −0,7). Oberseite bei y = thick.
 //                    opts { size: [x, z] | n (Standard [3, 3]), thick (0,4) }  state { spin (rad/s, Standard 16) }
 // zahnradplattform   Zahnrad-Drehplattform (Bronze/Gold, Nabe mit Bolzen). Ursprung = Mitte des Zahnrads.
 //                    opts { radius (2,5), teeth (12), thick (0,6), axis: 'y' (liegt flach, Oberseite y = thick/2) |
@@ -25,21 +26,25 @@
 //                    opts { height (4, Endhöhe der Blockunterkante) }
 //                    state { grow (0..1), anim: 'idle'|'bump', n? }  Blockunterkante bei y = grow·height.
 // pfeld              Druckfeld (P-Feld) Ø size: braucht `need` Figuren gleichzeitig; große Ziffer, Lämpchen im Kreis.
+//                    Oberseite y ≈ 0,26 (ausgelöst 0,2).
 //                    opts { need (2), size (2) }  state { count (Figuren darauf), on (true = ausgelöst) }
 //                    aus: blau, Lämpchen zeigen count; on: gold, gedrückt, Häkchen-Stern statt Ziffer.
 // multilift          Viererlift: Plattform (Oberseite y = 0,4) mit Anzeigetafel hinten (−X), Ziffer need und
 //                    Lämpchen für count. opts { need (4), size: [x, z] ([3, 3]) }
 //                    state { count, anim: 'wait'|'go' }  go: Tafel zeigt grünen Pfeil, Lämpchen blinken.
 // figurenschalter    Schalter mit Porträt der Heldin auf dem Knopf (Lotti blau, Greta grün), Sockel Ø 1,3 m.
-//                    opts { hero: 'lotti'|'greta' }  state { anim: 'idle'|'pressed' }
-// push_switch_gold   goldener Druckschalter 1 m (wie push_switch, Knopf aus Gold mit weißem Funkel).
+//                    Knopf-Oberseite y = 0,46 (gedrückt 0,35).  opts { hero: 'lotti'|'greta' }
+//                    state { anim: 'idle'|'pressed' }
+// push_switch_gold   goldener Druckschalter 1 m (wie push_switch, Knopf aus Gold mit weißem Funkel, bis y ≈ 0,55).
 //                    state { anim: 'idle'|'pressed' }
 // scheinwerfer       Licht für die Schattenwand: Bühnenscheinwerfer auf Dreibein, Kopf zeigt nach +X.
 //                    opts { height (1,8), cone (true: sichtbarer Lichtkegel), length (6) }
 //                    state { on (true), aim (Neigung in rad, negativ = nach unten) }
 // tuer               Tür mit Rahmen: Holzflügel mit Eisenbändern und goldenem Stern, Angel bei z = −width/2,
 //                    öffnet nach −X. opts { width (1,6), height (2,4), style: 'holz'|'stein' }  state { open (0..1) }
-// kruemel            Krümel, Pflaumes kleiner Kaninchen-Freund (dasselbe Modell wie bunny_small, ≈0,5 m).
+// goldroehre         goldene Warp-Röhre (2-1, Raum mit goldenem Druckschalter): wie pipe, Goldmetall, Funkeln.
+//                    opts { height (2), radius (0,9) }  Oberkante bei y = height.  state –
+// kruemel            Krümel, Pflaumes kleiner Kaninchen-Freund (dasselbe Modell wie bunny_small, ≈0,5 m); Alias 'krümel'.
 //                    state { anim: 'idle'|'scared'|'cheer'|'hop'|'caught' }  scared: zittert geduckt, Ohren angelegt,
 //                    große Augen, Angstschweiß; cheer: hüpft jubelnd, Ohren hoch, Funkeln.
 
@@ -91,7 +96,13 @@ function buildTaststein(opts = {}) {
   }), glowMat, {}, false);
   const sp = sparkleSprite(0xaaffff, 0.6); sp.position.y = 1.3;
   lift.add(stone, runes, sp);
-  root.add(ring, lift);
+  // Schaft unter dem gehobenen Stein (wächst mit)
+  const shaft = mesh(cached('w2:ts:shaft', () => {
+    const b = new Build();
+    b.cyl(0.66, 0.66, 1, { v: (x, y, z, nx) => (Math.floor((Math.atan2(z, x) / TAU + 1) * 16) % 2 ? col(TS.ring) : col(TS.ringHi)) }, { p: [0, 0.5, 0] }, 16, true);
+    return b.geometry();
+  }), vcol(0.6), {}, true);
+  root.add(ring, shaft, lift);
   const clk = new Clock();
   let g = 0;
   const update = (dt, st) => {
@@ -102,6 +113,8 @@ function buildTaststein(opts = {}) {
     g = damp(g, on ? 1 : 0, 6, dt);
     const rise = clamp(st.rise ?? (on ? 1 : 0), 0, 1);
     lift.position.y = damp(lift.position.y, rise * riseH, 10, dt);
+    shaft.visible = lift.position.y > 0.01;
+    shaft.scale.y = Math.max(0.001, lift.position.y + 0.1);
     const p = g * (0.75 + Math.sin(t * 4) * 0.25);
     glowMat.emissive.setRGB(p * 0.25, p * 0.85, p * 0.95);
     const k = Math.pow(Math.max(0, Math.sin(t * 2.6)), 6) * g;
@@ -122,6 +135,14 @@ function buildPropellerplattform(opts = {}) {
     const b = new Build();
     b.box(sz[0], th, sz[1], { v: (x, y, z, nx, ny) => (ny > 0.9 ? col(PP.top) : ny < -0.9 ? col(PP.side) : mix(PP.rim, 0x6ae0ea, smoothstep(y / th + 0.5))) }, { p: [0, th / 2, 0] }, 0.1, 2);
     for (const sx of [1, -1]) for (const sz2 of [1, -1]) b.sphere(0.09, PP.bolt, { p: [sx * (sz[0] / 2 - 0.25), th, sz2 * (sz[1] / 2 - 0.25)], s: [1, 0.45, 1] }, 10, 6);
+    // Landefeld-Markierung oben: gelber Ring mit türkisem Propeller-Stern
+    const rr = Math.min(sz[0], sz[1]) * 0.32;
+    b.torus(rr, 0.05, 0xffc21a, { p: [0, th + 0.005, 0], r: [Math.PI / 2, 0, 0], s: [1, 1, 0.3] }, 4, 40);
+    for (let i = 0; i < 4; i++) {
+      const g = new THREE.SphereGeometry(1, 12, 4); g.scale(rr * 0.42, 0.012, rr * 0.13); g.translate(rr * 0.42, 0, 0);
+      b.add(g, PP.rim, { p: [0, th + 0.004, 0], r: [0, (i / 4) * TAU + Math.PI / 4, 0] });
+    }
+    b.sphere(1, PP.motor, { p: [0, th + 0.01, 0], s: [rr * 0.18, 0.02, rr * 0.18] }, 12, 4);
     // Motor unten, Gehäuse
     b.cyl(0.32, 0.26, 0.32, { v: (x, y, z, nx, ny) => mix(0xa8141c, PP.motor, smoothstep(nx * 0.5 + 0.5)) }, { p: [0, -0.15, 0] }, 18);
     b.cyl(0.12, 0.12, 0.2, PP.hub, { p: [0, -0.38, 0] }, 12);
@@ -625,6 +646,28 @@ function buildTuer(opts = {}) {
 }
 
 // =============================================================================================
+// Goldröhre (Warp-Röhre aus props.js mit Goldmetall)
+// =============================================================================================
+function buildGoldroehre(opts = {}) {
+  const base = W1PROPS.pipe({ ...opts, color: 0xffc21a });
+  const root = new THREE.Group();
+  root.add(base.root);
+  const body = base.root.children.find((c) => c.isMesh && c.material && c.material.name?.startsWith('std:pipe'));
+  if (body) body.material = gold();
+  const sp = sparkleSprite(0xffffff, 0.5);
+  const h = Math.max(0.6, Number(opts.height ?? 2));
+  sp.position.set(0.5, h + 0.1, 0.5);
+  root.add(sp);
+  const clk = new Clock();
+  const update = (dt) => {
+    clk.tick(dt, 'idle');
+    const k = Math.pow(Math.max(0, Math.sin(clk.t * 2.0)), 8);
+    sp.visible = k > 0.03; sp.scale.setScalar(Math.max(0.001, k * 0.6));
+  };
+  return makeModel('goldroehre', root, update, [base]);
+}
+
+// =============================================================================================
 // Krümel (bunny_small aus props.js mit zusätzlichen Gefühlen)
 // =============================================================================================
 function buildKruemel() {
@@ -681,4 +724,6 @@ export const MODELS = {
   scheinwerfer: buildScheinwerfer,
   tuer: buildTuer,
   kruemel: buildKruemel,
+  'krümel': buildKruemel,          // Alias (Schreibweise aus dem Auftrag)
+  goldroehre: buildGoldroehre,
 };

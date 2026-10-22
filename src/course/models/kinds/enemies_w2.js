@@ -8,7 +8,7 @@
 //   dünne orange Beine.
 //   state { anim: 'idle'|'walk'|'wind'|'peck'|'stuck'|'squashed', speed (walk), progress? }
 //         wind: lehnt sich in 0,35 s zurück (Ausholen) und zittert; peck: hackt in 0,1 s nach vorn-unten, die
-//         Schnabelspitze trifft genau den Boden (y = 0, ≈ 1,1 m vor dem Fußpunkt) und bleibt dort, solange peck;
+//         Schnabelspitze trifft genau den Boden (y = 0, ≈ 1,0 m vor dem Fußpunkt) und bleibt dort, solange peck;
 //         stuck: Schnabel steckt 0,12 m im Boden, Vogel zerrt und zappelt; squashed: platt.
 //   model.beakTip(out?: Vector3) → Weltposition der Schnabelspitze (Trefferpunkt, z. B. für Block-Zerhacken).
 // rollpilz          ≈0,8 m  runde Pilzkugel: türkise Zipfelkappe mit Cremepunkten, helles Gesicht mit Kulleraugen,
@@ -23,7 +23,7 @@
 //   opts  { size (Faktor, Standard 1) }   state { anim: 'idle'|'move', speed (m/s, Wirbeln) }
 //   (unverwundbar: kein squashed). Viele gleiche → createInstanced('wuschel', n) (lib/instanced.js).
 // huepfmaus         ≈0,7 m  apricotfarbene Maus mit Riesenohren (innen rosa), Schnurrhaaren, Schwanz mit Herzspitze.
-// huepfmaus_stachel ≈0,75 m violette Maus mit Stahlhelm voller weißgoldener Stacheln und finsteren Brauen.
+// huepfmaus_stachel ≈0,8 m violette Maus mit Stahlhelm voller weißgoldener Stacheln, rote Augen.
 //   state { anim: 'idle'|'walk'|'hop'|'land'|'squashed'|'stunned', speed, progress? }
 //         hop: Sprungpose (gestreckt, Ohren nach hinten, Füße angezogen; der Motor bewegt root, progress 0..1
 //         = Flugphase → Pose von Absprung bis Landung); land: Aufsetzen 0,18 s (Stauchung).
@@ -33,7 +33,7 @@
 //   state { anim: 'march'|'idle'|'panic'|'squashed', speed (m/s), beat? (0..1 Taktphase, für Gleichschritt) }
 //   Kolonnen → createInstanced('marschblock', n, { colors }) (lib/instanced.js).
 // pilzling_mini     ≈0,4 m  Pilzling in halber Größe (gleiches Modell ×0,5).  state wie pilzling.
-// muenzmarder       ≈0,95 m lang  flinker Schoko-Marder mit schwarzer Räubermaske, Ringelschwanz und prallem
+// muenzmarder       ≈1,1 m lang, 0,8 m hoch  flinker Schoko-Marder mit schwarzer Räubermaske, Ringelschwanz und prallem
 //   Münzsack (₿-Flicken) auf dem Rücken.
 //   state { anim: 'idle'|'run'|'hit'|'defeated', speed (m/s; run Standard 7) }
 //         hit: springt erschrocken hoch, Münzen spritzen aus dem Sack (0,7 s); defeated: kippt um, Sack leer.
@@ -272,7 +272,7 @@ function buildRollpilz(big) {
       flip = damp(flip, onBack ? 1 : 0, 9, dt);
       if (anim === 'thrown') roll -= dt * 14; else roll = damp(roll, Math.round(roll / TAU) * TAU, 8, dt);
       const rock = anim === 'flipped' ? Math.sin(t * 3.2) * 0.22 : 0;
-      ball.rotation.z = roll - flip * 1.95 + rock;
+      ball.rotation.z = roll + flip * 1.95 + rock;
       ball.rotation.x = walking ? Math.sin(phase) * 0.08 : 0;
       ball.position.y = RP_C + (walking ? Math.abs(Math.sin(phase)) * 0.04 : 0) - flip * 0.04;
       sq = damp(sq, anim === 'squashed' ? 1 : 0, 25, dt);
@@ -320,7 +320,7 @@ function buildWuschel(opts = {}) {
     clk.tick(dt, anim);
     const t = clk.t;
     const moving = anim === 'move';
-    wob = damp(wob, moving ? 1 : 0.4, 4, dt);
+    wob = damp(wob, moving ? clamp(0.7 + (st.speed ?? 1.5) * 0.2, 0.7, 1.5) : 0.4, 4, dt);
     // Wuschelig zittern, pulsieren, leicht kippen
     const p = 1 + Math.sin(t * 9) * 0.035 * wob;
     inner.scale.set(p, 2 - p, p);
@@ -357,15 +357,17 @@ function hmBodyGeo(P, spiky) {
     b.tube([[-0.2, 0.18, 0], [-0.34, 0.16, 0], [-0.42, 0.28, 0], [-0.38, 0.42, 0]], 0.018, P.tail, null, 16, 6);
     b.extrude(heartShape(0.06), 0.035, HM.heart, { p: [-0.38, 0.47, 0], r: [0, Math.PI / 2, 0.2] }, 0.012, 6, 2);
     if (spiky) {
-      // Stahlhelm mit Goldband und fünf Stacheln, finstere Brauen
-      b.dome(1, { v: (x, y, z, nx, ny) => mix(P.helmet, P.helmetHi, smoothstep(ny)) }, { p: [0.07, 0.53, 0], s: [0.22, 0.2, 0.22], r: [0, 0, 0.18] }, Math.PI / 2, 22, 8);
-      b.torus(0.21, 0.025, P.band, { p: [0.07, 0.535, 0], r: [Math.PI / 2, 0.18, 0], order: 'YXZ', s: [1, 1.03, 1] }, 6, 24);
+      // Stahlhelm (vorn hochgeschoben, damit die Augen frei bleiben) mit Goldband und sieben Stacheln
+      const HC = [0.05, 0.59, 0], tilt = 0.28;
+      b.dome(1, { v: (x, y, z, nx, ny) => mix(P.helmet, P.helmetHi, smoothstep(ny)) }, { p: HC, s: [0.215, 0.19, 0.215], r: [0, 0, tilt] }, Math.PI / 2, 22, 8);
+      b.torus(0.212, 0.026, P.band, { p: [HC[0], HC[1] + 0.003, 0], r: [Math.PI / 2, 0, tilt], order: 'ZYX', s: [1, 1.03, 1] }, 6, 24);
+      const rot = new THREE.Matrix4().makeRotationZ(tilt);
       for (const d of [[0.1, 1, 0], [0.75, 0.55, 0], [-0.55, 0.75, 0], [0.15, 0.6, 0.7], [0.15, 0.6, -0.7], [-0.6, 0.35, 0.55], [-0.6, 0.35, -0.55]]) {
         const v = new THREE.Vector3(...d).normalize();
+        const q = new THREE.Vector3(v.x * 0.2, v.y * 0.18, v.z * 0.2).applyMatrix4(rot);
         const g = new THREE.ConeGeometry(0.045, 0.15, 8); g.rotateX(Math.PI / 2); g.translate(0, 0, 0.075);
-        b.add(g, P.spike, placedM([0.07 + v.x * 0.2, 0.53 + v.y * 0.19, v.z * 0.21], v));
+        b.add(g, P.spike, placedM([HC[0] + q.x, HC[1] + q.y, q.z], v.clone().applyMatrix4(rot)));
       }
-      for (const s of [1, -1]) b.capsule(0.018, 0.075, P.ink, { p: [0.255, 0.555, s * 0.075], r: [Math.PI / 2 - s * 0.55, -s * 0.5, 0], order: 'YXZ' }, 3, 6);
     }
     return b.geometry();
   });
@@ -391,7 +393,8 @@ function buildHuepfmaus(spiky) {
     const root = new THREE.Group();
     const pose = joint();
     const bodyM = mesh(hmBodyGeo(P, spiky), vcol(0.42), {}, true);
-    const eye = eyes([{ p: [0.235, 0.52, 0.085], r: 0.068, sy: 1.3, dir: [1, 0.1, 0.55] }, { p: [0.235, 0.52, -0.085], r: 0.068, sy: 1.3, dir: [1, 0.1, -0.55] }],
+    const ey = spiky ? 0.505 : 0.52;
+    const eye = eyes([{ p: [0.235, ey, 0.085], r: 0.068, sy: 1.3, dir: [1, 0.1, 0.55] }, { p: [0.235, ey, -0.085], r: 0.068, sy: 1.3, dir: [1, 0.1, -0.55] }],
       { key: `w2:hm:${spiky}`, iris: spiky ? 0xd02a4a : 0x4a2a14, pupil: 0.6, depth: 0.55 });
     const ears = [1, -1].map((s) => joint([0.04, spiky ? 0.6 : 0.62, s * 0.15], mesh(hmEarGeo(P, spiky), vcol(0.45), {}, true)));
     const dizzy = dizzyStars(0.26, 0.065); dizzy.position.y = spiky ? 0.9 : 0.85;
@@ -564,10 +567,12 @@ const mmSackGeo = () => cached('w2:mm:sack', () => {
   return b.geometry();
 });
 const MM_LEGS = [[0.2, 1], [0.2, -1], [-0.18, 1], [-0.18, -1]];
+const MM_SCALE = 1.15;
 
 function buildMuenzmarder() {
   const root = new THREE.Group();
   const pose = joint();
+  pose.scale.setScalar(MM_SCALE);
   const body = joint([0, 0.3, 0]);
   const flash = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, emissive: 0x000000 });
   const torso = mesh(mmBodyGeo(), flash, { p: [0, -0.3, 0] }, true);
@@ -603,9 +608,9 @@ function buildMuenzmarder() {
     else if (anim === 'hit') { const k = clamp(age / 0.5, 0, 1); y = Math.sin(k * Math.PI) * 0.35; rz = 0.3 * Math.sin(k * Math.PI); }
     if (anim !== 'idle') body.rotation.y = damp(body.rotation.y, 0, 10, dt);
     fall = damp(fall, anim === 'defeated' ? 1 : 0, 6, dt);
-    pose.position.y = y + fall * 0.05;
+    pose.position.y = y + fall * 0.7;
     body.rotation.z = rz;
-    pose.rotation.x = fall * 2.6;
+    pose.rotation.x = fall * Math.PI;
     MM_LEGS.forEach(([x, s], i) => {
       const front = x > 0;
       let sw = run ? (front ? g : -g) * 0.9 : 0;

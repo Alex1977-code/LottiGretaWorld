@@ -18,6 +18,10 @@
 // topfpflanze      ≈0,9 m  tragbare Schnappblume im bemalten Tontopf (violetter Kopf mit gelben Punkten, weißes
 //                  Zickzack am Topf). state { anim: 'idle'|'snap'|'carried', progress? }
 //                  snap: beißt nach vorn (0,5 s, wiederholt); carried: lehnt sich nach vorn, Maul halb offen, zappelt.
+// roter_ring       Ø 2,2 m  roter Ring (senkrecht, Durchlaufrichtung ±X, Mitte bei y = 1,15) mit Goldrändern und acht
+//                  weißen Sternen; startet die Jagd nach roten Münzen.  state { anim: 'idle'|'active'|'done' }
+// rote_muenze      Ø 0,8 m  rote Münze mit Goldrand und hellem Stern, Mitte bei y = 0,45, Flächen nach ±Z, dreht sich.
+//                  state { anim: 'idle'|'collected' }  collected: schnellt hoch, dreht schnell, verschwindet in 0,35 s.
 
 import {
   THREE, TAU, Build, cached, vcol, std, basic, mesh, joint, eyes, makeModel, Clock, Blinker, damp, clamp, col, mix,
@@ -338,7 +342,75 @@ function buildTopfpflanze() {
   return makeModel('topfpflanze', root, update, [], { initial: 'idle' });
 }
 
+// =============================================================================================
+// Roter Ring und rote Münzen (2-4, 2-5, 2-Panzer)
+// =============================================================================================
+const RR = { ring: 0xe8202e, ringHi: 0xff6a5a, gold: 0xffc21a, gem: 0xff3a4a, coin: 0xe8202e, coinRim: 0xffc21a, star: 0xffe0e0 };
+function redRingGeo() {
+  return cached('w2:redring', () => {
+    const b = new Build();
+    b.torus(1.0, 0.12, { v: (x, y, z, nx, ny) => mix(RR.ring, RR.ringHi, smoothstep(ny * 0.6 + 0.4)) }, { r: [0, Math.PI / 2, 0] }, 12, 48);
+    for (const s of [1, -1]) b.torus(1.0, 0.035, RR.gold, { p: [s * 0.1, 0, 0], r: [0, Math.PI / 2, 0] }, 6, 48);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU;
+      b.add(puffyStarGeo(0.2, 0.09, 0.08, 0.025), 0xffffff, { p: [0, Math.sin(a) * 1.0, Math.cos(a) * 1.0], r: [a, Math.PI / 2, 0], order: 'XYZ' });
+    }
+    return b.geometry();
+  });
+}
+function buildRoterRing() {
+  const root = new THREE.Group();
+  const ringJ = joint([0, 1.15, 0]);
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.25, metalness: 0.25, emissive: 0x000000 });
+  const ring = mesh(redRingGeo(), m, {}, true);
+  ringJ.add(ring);
+  const glow = glowSprite(0xff8a7a, 2.6, 0.35); glow.position.y = 1.15;
+  root.add(ringJ, glow);
+  const clk = new Clock();
+  const update = (dt, st) => {
+    const anim = st.anim ?? 'idle';
+    clk.tick(dt, anim);
+    const t = clk.t;
+    const active = anim === 'active', done = anim === 'done';
+    ring.rotation.x = t * (active ? 2.8 : 0.5);
+    ringJ.scale.setScalar(1 + Math.sin(t * (active ? 9 : 2.2)) * (active ? 0.04 : 0.02));
+    m.emissive.setRGB(active ? 0.45 + Math.sin(t * 9) * 0.15 : 0.1, active ? 0.08 : 0.02, active ? 0.05 : 0.01);
+    m.transparent = done; m.opacity = done ? 0.35 : 1; m.depthWrite = !done;
+    glow.visible = !done;
+    glow.scale.setScalar(active ? 3.0 : 2.4 + Math.sin(t * 2) * 0.15);
+  };
+  return makeModel('roter_ring', root, update, [m], { initial: 'idle' });
+}
+function redCoinGeo() {
+  return cached('w2:redcoin', () => {
+    const b = new Build();
+    b.lathe([[0, 0.06], [0.33, 0.06], [0.38, 0.05], [0.4, 0], [0.38, -0.05], [0.33, -0.06], [0, -0.06]], { v: (x, y, z, nx, ny) => (Math.abs(ny) > 0.9 ? col(RR.coin) : col(RR.coinRim)) }, { r: [Math.PI / 2, 0, 0] }, 28);
+    for (const s of [1, -1]) b.add(puffyStarGeo(0.22, 0.1, 0.03, 0.022), RR.star, { p: [0, 0, s * 0.065], r: [0, s > 0 ? 0 : Math.PI, 0] });
+    return b.geometry();
+  });
+}
+function buildRoteMuenze() {
+  const root = new THREE.Group();
+  const spin = joint([0, 0.45, 0], mesh(redCoinGeo(), vcol(0.25, { emissive: 0x3a0606 }, 'redcoin'), {}, true));
+  root.add(spin);
+  const clk = new Clock();
+  let up = 0;
+  const update = (dt, st) => {
+    const anim = st.anim ?? 'idle';
+    clk.tick(dt, anim);
+    const col1 = anim === 'collected';
+    spin.rotation.y = clk.t * (col1 ? 14 : 2.4);
+    up = col1 ? Math.min(1, clk.age / 0.35) : 0;
+    spin.position.y = 0.45 + Math.sin(up * Math.PI * 0.6) * 0.8;
+    spin.scale.setScalar(Math.max(0.001, 1 - up * up));
+    spin.visible = up < 0.999;
+  };
+  return makeModel('rote_muenze', root, update, [], { initial: 'idle' });
+}
+
 export const MODELS = {
+  roter_ring: buildRoterRing,
+  rote_muenze: buildRoteMuenze,
   powerup_spiegel: buildSpiegel,
   helm_kanone: buildHelmKanone,
   helm_propeller: buildHelmPropeller,
