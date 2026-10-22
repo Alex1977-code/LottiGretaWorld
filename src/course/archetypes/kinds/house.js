@@ -322,7 +322,7 @@ class House {
   timeUp() {
     this.timeouts++;
     this.setPhase('timeout');
-    this.level.sfx('house_timeup');
+    this.level.sfx('timewarn');
     this.freeze('idle');
     this.hud.banner('Zeit abgelaufen!', { hold: 1.4, color: '#ffb0a0' });
   }

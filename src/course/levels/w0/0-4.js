@@ -17,7 +17,7 @@ export const LEVEL = {
   title: 'Rollband',
   archetype: 'autoscroller',
   theme: 'grass',
-  music: 'course_grass',
+  music: 'course_train',
   timeLimit: 200,
   killY: -8,
   start: { pos: [0, DECK, 4], yaw: Math.PI / 2 },

@@ -490,10 +490,10 @@ r = await sc(() => {
   const a = __t.arch();
   let q = 0;
   while (!c.finished && q < 600) { c.step(1); q++; }
-  return { ticksAt, a, timeup: __t.sfxCount('house_timeup'), finished: c.finished, result: c.lastResult, after: __t.arch(), save: __t.save().levels?.['0-5'] ?? null };
+  return { ticksAt, a, timeup: __t.sfxCount('timewarn'), finished: c.finished, result: c.lastResult, after: __t.arch(), save: __t.save().levels?.['0-5'] ?? null };
 });
 check(`letzte 3 s: sfx('house_tick') bei ${r.ticksAt.join(' / ')} s`, r.ticksAt.length === 3 && near(r.ticksAt[0], 3, 0.01) && near(r.ticksAt[2], 1, 0.01));
-check(`Zeit abgelaufen → Phase timeout (${r.a.phase}), danach Haus verlassen`, r.a.phase === 'timeout' && r.finished && r.after.exited && r.after.timeouts === 1);
+check(`Zeit abgelaufen → Phase timeout (${r.a.phase}, sfx timewarn ${r.timeup}×), danach Haus verlassen`, r.a.phase === 'timeout' && r.finished && r.after.exited && r.after.timeouts === 1 && r.timeup === 1);
 check(`Teilergebnis: 2 von 3 Sternen (${(r.result?.stars ?? []).map(Number).join('')})`, r.result && r.result.stars.filter(Boolean).length === 2 && r.result.stars.length === 3);
 check(`Ergebnis gespeichert (Sterne ${(r.save?.stars ?? []).map(Number).join('')})`, !!r.save && r.save.stars[0] && r.save.stars[1] && !r.save.stars[2]);
 await page.waitForFunction(() => window.__game.scene.isActive('CourseResult'), null, { timeout: 10000 }).catch(() => {});

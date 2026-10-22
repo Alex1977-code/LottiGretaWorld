@@ -14,7 +14,7 @@ export const LEVEL = {
   title: 'Prüfstube',
   archetype: 'house',
   theme: 'cave',
-  music: 'course_arena',
+  music: 'course_house',
   timeLimit: 300,
   start: { pos: [0, Y, 4.5], yaw: Math.PI / 2 },
   house: {
