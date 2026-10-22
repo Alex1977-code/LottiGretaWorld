@@ -85,10 +85,16 @@ async function load(extra = '') {
 const T = (name, ...args) => sc(([n, a]) => window.__t[n](...a), [name, args]);
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]);
 const stats = [];
+/** Auf neue Bilder warten (Software-Rendering ist langsam: Kennzahlen erst nach frischen Bildern lesen). */
+async function freshFrames(n = 3, timeout = 30000) {
+  const f0 = await sc(() => window.__course.view.frame);
+  try { await page.waitForFunction((f) => window.__course.view.frame >= f, f0 + n, { timeout }); } catch { /* weiter */ }
+}
 async function shot(name, wait = 1600) {
   if (!SHOTS) return;
   await sc(() => window.__course.snapCamera());
   await page.waitForTimeout(wait);
+  await freshFrames();
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
   try { await page.screenshot({ path: `${OUT}w2b_${name}.png`, timeout: 120000 }); } catch (err) { console.log(`  (Bild ${name} übersprungen: ${err.message.split('\n')[0]})`); }
@@ -504,6 +510,7 @@ if (SHOTS) {
     // flachere Kamera (nur für das Bild), damit Himmel und Kulisse des Themas zu sehen sind
     await sc((p) => { const c = window.__course; for (const s of c.view.rig.sections) { s.pitch = Math.min(s.pitch, 24); s.dist = 15; } c.player.reset(p, Math.PI / 2); c.step(60); c.snapCamera(); }, pos);
     await page.waitForTimeout(1800);
+    await freshFrames();
     const s = await sc(() => window.__course.stats());
     tstats.push([th, s.calls, s.triangles]);
     try { await page.screenshot({ path: `${OUT}w2b_thema_${th}.png`, timeout: 120000 }); } catch (err) { console.log(`  (Bild ${th} übersprungen)`); }

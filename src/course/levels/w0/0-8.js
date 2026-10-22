@@ -27,7 +27,7 @@ export const LEVEL = {
   title: 'Wüstenwerkstatt',
   archetype: 'parcours',
   theme: 'desert',
-  music: 'course_grass',
+  music: 'course_desert',
   timeLimit: 999,
   start: { pos: [0, 1, 3], yaw: Math.PI / 2 },
   camera: [

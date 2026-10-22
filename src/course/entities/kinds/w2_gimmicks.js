@@ -224,7 +224,7 @@ class AntippBlock extends Gimmick {
     const p = this.pos;
     const col = this.look === 'sand' ? 0xf0c878 : this.look === 'brick' ? 0xd8743a : this.look === 'question' ? 0xffc21a : 0x9fe8ff;
     this.level.effects?.debris({ x: p.x, y: p.y + 0.4, z: p.z }, col, 8);
-    this.level.sfx('brickbreak');
+    this.level.sfx(this.look === 'sand' ? 'sand_crumble' : 'brickbreak');
     runAction(this.level, this.content, { pos: [p.x, p.y + 1, p.z], source: this, via });
     if (this.look === 'sand') this.crumble = 0; else this.kill();
   }
