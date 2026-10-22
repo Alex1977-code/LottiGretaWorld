@@ -694,7 +694,7 @@ export class CourseMapScene extends Phaser.Scene {
     for (const g of this.built.gates) gates[g.for] = g.state;
     for (const gt of this.map.gates ?? []) if (!gates[gt.for]) gates[gt.for] = 'open';
     const entrances = {};
-    for (const [id, st] of this.statuses) entrances[id] = { locked: st.locked, reason: st.reason, enterable: st.enterable, soon: st.soon, done: st.done, stars: st.stars, starsMax: st.starsMax, stamp: st.stamp, title: st.title };
+    for (const [id, st] of this.statuses) entrances[id] = { locked: st.locked, reason: st.reason, enterable: st.enterable, exists: st.exists, soon: st.soon, done: st.done, stars: st.stars, starsMax: st.starsMax, stamp: st.stamp, title: st.title };
     return {
       world: this.map.world, title: this.map.title, worlds: (courseSave.data.worlds ?? [1]).slice(),
       travel: this.travel && !this.travel.done ? this.travel.info() : null,
