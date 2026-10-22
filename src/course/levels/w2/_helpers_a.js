@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { modelObject } from '../../blocks/w2kit.js';
+import { getBlockType } from '../../blocks/index.js';
 
 /**
  * Insel über ihre Grundfläche: x0..x1, zA..zB (Reihenfolge egal), Oberseite top, Höhe h (Unterkante top − h).
@@ -51,6 +52,54 @@ export function blockRing(kind, x, y, z, contents = {}) {
 }
 
 // ------------------------------------------------------------------ level-lokale Szenen (Code)
+
+/**
+ * Aufbau-Haken für level-lokalen Code: eine Laterne, die beim Aufbau schon brennt – ihr onLit (Aktion als Funktion,
+ * entities/gimmick.js) ruft fn(level) genau einmal auf; danach verschwindet sie (vor dem ersten Bild). hide = Punkt
+ * im Inneren eines Felskörpers innerhalb des Level-Umrisses (die Laterne hat kurz eine Kollisionsform, die den
+ * Umriss – Kulisse, Absturzhöhe – nicht vergrößern soll). In LEVEL.items eintragen: ...setupHook(fn, hide).
+ * (Die Daten-Formate kennen sonst keinen Aufbau-Haken für Parcours-Level.)
+ */
+export function setupHook(fn, hide = [0, -8, 0]) {
+  return [{ kind: 'lantern', pos: hide, lit: true, onLit: (level, ctx) => { ctx?.source?.kill?.(); fn(level); } }];
+}
+
+/**
+ * Ferne Kulisse ohne Sonnenschatten: baut die Bausteine segs (Level-Format, z. B. deco_w2 mit Felstürmen und Dünen tief
+ * unten) so, dass ihre statische Geometrie keinen Schatten wirft – eigener Topf im StaticBatcher, nicht im
+ * Schattenpass (spart Dreiecke; die Abschnitte mit Schattenwurf bleiben klein und werden besser ausgesondert).
+ * Muss beim Aufbau laufen (setupHook), bevor die statische Geometrie verschmolzen wird.
+ */
+export function shadowless(level, segs) {
+  const v = level.view;
+  if (!v) return;
+  const orig = v.addStatic;
+  v.addStatic = (g, o = {}) => orig.call(v, g, { ...o, castShadow: false });
+  try {
+    for (const seg of segs) getBlockType(seg.type)?.(level, seg);
+  } finally { v.addStatic = orig; }
+}
+
+/**
+ * Fernsicht:Gegner-Modelle der Arten kinds, die weiter als dist m (waagerecht) von der Figur entfernt sind, werden
+ * nicht gezeichnet (im Dunst ohnehin winzig; spart Dreiecke und Zeichenaufrufe auf langen Sichtachsen). Nur
+ * Darstellung – die Gegner laufen weiter.
+ */
+export function farHide(level, kinds, dist = 50) {
+  if (!level.view) return;
+  const set = new Set(kinds);
+  const hidden = new Set();
+  level.view.onFrame(() => {
+    const p = level.player;
+    if (!p) return;
+    for (const e of level.entities) {
+      if (!set.has(e.kind) || !e.model?.root) continue;
+      const far = !e.removed && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > dist;
+      if (far) { if (e.model.root.visible) { e.model.root.visible = false; hidden.add(e); } }
+      else if (hidden.has(e)) { e.model.root.visible = true; hidden.delete(e); }
+    }
+  });
+}
 
 /**
  * Hilfsfigur mit Modell (z. B. Krümel): steht an pos, Blick yaw, Zustand über state() (je Bild). Liefert das Modell.

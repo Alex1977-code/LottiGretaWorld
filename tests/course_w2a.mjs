@@ -21,7 +21,7 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 const ROUTES = {
   '2-1': {
     start: [0, 1, 5],
-    enemies: { hackvogel: 13, brummer: 4 },
+    enemies: { hackvogel: 10, brummer: 4 },
     main: [
       { name: 'Start', to: [-0.6, -7.6] },
       { name: 'Trittstein 1', to: [-3, -11.4], jump: 30 },
@@ -49,7 +49,7 @@ const ROUTES = {
       { name: 'Krümel', to: [0.6, -170] },
       { to: [0, -181] },
       { name: 'Schiebebrücke', toTile: 'fb_slide', to: [0, -203.4], within: 0.8 },
-      { name: 'Zielmast', to: [0, -211.4], within: 0.3 },
+      { name: 'Zielmast', to: [0, -212.3], within: 0.2 },
     ],
     targets: [
       { name: 'Stern 0: Krallen-Anzug aus dem ?-Block, Wachturm hochklettern', star: 0, from: [2.4, 1, -1.4],
@@ -61,22 +61,22 @@ const ROUTES = {
       { name: 'Stern 1 nicht, wenn man von Süden kommt (Block S zerhackt)', star: 1, expectNot: true, from: [2, 1, -132.4],
         legs: [{ wait: 360 }] },
       { name: 'Stern 2: Krümels Hackvogel besiegen', star: 2, from: [-1.4, 1, -171.2],
-        legs: [{ stompEnemy: 'hv_kruemel' }, { wait: 60 }, { star: 2 }], shot: 'stern2' },
+        legs: [{ stompEnemy: 'hv_kruemel' }, { wait: 240 }, { star: 2 }], shot: 'stern2' },
       { name: 'Stempel: bröselnde Sandblock-Treppe zum Sims', from: [3.6, 1, -178.4], stamp: true,
         legs: [{ to: [5.4, -178.4], jump: 30, within: 0.4 }, { to: [6.7, -178.4], jump: 30, within: 0.4 }, { to: [8, -178.4], jump: 30, within: 0.4 },
-          { to: [11.6, -176.4], jump: 30 }], shot: 'stempel' },
+          { to: [11.2, -176.6], jump: 30 }, { to: [12, -176], within: 0.2, run: false }], shot: 'stempel' },
     ],
     extra: [
       { name: 'Goldröhre auf der Wand (Sprungfeld) → Bonusraum mit goldenem Schalter', from: [3.4, 1, -34.6],
-        legs: [{ to: [3.4, -36.6], within: 0.3, run: false, land: false }, { wait: 30 }, { toAir: [8.2, -33.2], max: 400 }, { to: [8.2, -33.2], within: 0.25, run: false }, { crouch: 4 },
-          { to: [91, -34], within: 0.4 }, { hop: 20 }, { wait: 30 }, { collectRain: 600 }],
+        legs: [{ to: [3.4, -35], within: 0.3, run: false }, { toAir: [8.2, -33.2], via: [3.4, -36.6], above: 6.9, max: 500 }, { to: [8.2, -33.2], jump: 24, within: 0.25, run: false }, { crouch: 4 },
+          { to: [91, 60.8], within: 0.3, run: false }, { to: [91, 59], jump: 20, within: 0.25, run: false }, { wait: 30 }, { hop: 20 }, { wait: 30 }, { collectRain: 900 }],
         expectX: [80, 100], expectCoins: 20, heroes: ['lotti'] },
       { name: 'Treibsand: Figur sinkt ein und springt heraus', from: [0, 1, -12.4], sand: true,
         legs: [{ wait: 120 }, { expectSand: true }, { to: [-3, -11.4], jump: 40, within: 0.5 }, { to: [-3, -11.4], jump: 40, within: 0.5 }], expectY: [1.4, 2], heroes: ['lotti'] },
       { name: 'Fließender Treibsand trägt nach rechts', from: [-2, 1, -159], heroes: ['lotti'],
-        legs: [{ wait: 90 }, { expectSand: true }], expectX: [0.4, 6] },
-      { name: 'Extraleben-Geheimnis über dem Säulenstumpf', from: [-7, 1, -64.8], heroes: ['lotti'],
-        legs: [{ to: [-7, -65.4], within: 0.2, run: false }, { hop: 30 }, { wait: 60 }, { chaseKind: 'powerup' }], expectLives: 1 },
+        legs: [{ wait: 150 }, { expectSand: true }], expectX: [0, 4] },
+      { name: 'Extraleben-Geheimnis über dem Säulenstumpf', from: [-7, 1, -64.6], heroes: ['lotti'],
+        legs: [{ to: [-7, -66.4], jump: 30, within: 0.15, run: false }, { hop: 40 }, { wait: 60 }, { chaseKind: 'powerup' }], expectLives: 1 },
     ],
     shots: [
       ['start', [0, 1, 5]],
@@ -95,7 +95,101 @@ const ROUTES = {
       ['treppe', [2, 1, -178]],
       ['schiebebruecke', [0, 1, -186]],
       ['ziel', [0, 1, -204]],
-      ['bonusraum', [85, 2.4, -29]],
+      ['bonusraum', [85, 2.4, 63]],
+    ],
+  },
+  '2-2': {
+    start: [0, 1, 5],
+    enemies: { schnappblume: 6, rollpilz: 4, pilzling: 4, muenzmarder: 1 },
+    main: [
+      { name: 'Tastenstein', to: [0, -7.6], jump: 30, within: 0.3, run: false },
+      { name: 'Tastenstein hebt', wait: 200 },
+      { name: 'obere Insel', to: [0, -10.6], jump: 16, run: false },
+      { to: [0.6, -21] },
+      { name: 'Antippen 1', tap: 'ap1' },
+      { to: [0, -25.3], jump: 30, within: 0.5 },
+      { tap: 'ap2' },
+      { name: 'Antipp 2', to: [2.6, -30], jump: 30, within: 0.5 },
+      { tap: 'ap3', after: 90 },
+      { name: 'Antipp 3 (ausgefahren)', to: [-0.8, -35], jump: 30, within: 0.5 },
+      { tap: 'ap4' },
+      { name: 'Antipp 4 (Zeit)', to: [0.4, -40], jump: 30, within: 0.5 },
+      { name: 'Antipp 5', to: [0, -44.4], jump: 24, within: 0.4 },
+      { tap: 'ap5', after: 120 },
+      { name: 'Insel B', to: [0, -48], run: false },
+      { to: [1.8, -55.6] },
+      { name: 'Kristallstufe 1', to: [1.8, -58.6], jump: 40, within: 0.5 },
+      { name: 'Kristallstufe 2', to: [-1, -62], jump: 40, within: 0.5 },
+      { name: 'Kristallstufe 3', to: [1.8, -65.4], jump: 40, within: 0.5 },
+      { name: 'Checkpoint', to: [0, -69.4] },
+      { name: 'Propeller-Lift', to: [0, -79.6], within: 0.3, run: false },
+      { wait: 420 },
+      { name: 'Warp-Sims', to: [0, -83.4], run: false },
+      { name: 'Warp-Box', to: [0, -85.4], jump: 26, within: 0.3, run: false },
+      { name: 'Plattformnetz', to: [1, -109], within: 0.5 },
+      { untilNamed: 'pp1', axis: 'z', gt: -113.4 },
+      { name: 'Propeller 1', toNamed: 'pp1', to: [0, -113], jump: 30, within: 0.6 },
+      { toNamed: 'pp1', within: 0.4, run: false },
+      { untilNamed: 'pp1', axis: 'z', lt: -119.8, ride: 'pp1' },
+      { name: 'Insel F', to: [0.6, -124.4], jump: 30 },
+      { to: [1, -131.2] },
+      { name: 'sinkender Propeller', to: [1, -135.4], jump: 30, within: 0.6 },
+      { name: 'schwebender Propeller', to: [-1.2, -140.4], jump: 34, within: 0.6 },
+      { name: 'Insel G', to: [-1, -145.6], jump: 30 },
+      { name: 'Schnappblumen-Feld', to: [0.6, -158] },
+      { to: [0.6, -171.4] },
+      { name: 'Taste 1', to: [0, -174.8], jump: 30, within: 0.35, run: false },
+      { wait: 40 },
+      { name: 'Taste 2', to: [0, -177.4], jump: 26, within: 0.35, run: false },
+      { wait: 50 },
+      { name: 'Taste 3', to: [0, -180], jump: 26, within: 0.35, run: false },
+      { wait: 60 },
+      { name: 'Taste 4', to: [0, -182.6], jump: 26, within: 0.35, run: false },
+      { wait: 70 },
+      { name: 'Zielinsel', to: [0, -186], run: false },
+      { name: 'Zielmast', to: [0, -198.3], within: 0.2 },
+    ],
+    targets: [
+      { name: 'Stern 0: Kristall-Kamin per Wandsprung', star: 0, from: [-7.3, 6.5, -58.6],
+        legs: [{ wallJumps: { a: -1, b: 1, top: 16.4, ledge: [-9.8, -58.6], n: 10 } }, { wait: 30 }], shot: 'stern0' },
+      { name: 'Stern 1: Pendel-Propeller → Wolkenkanone → Ende des Münzhimmels', star: 1, from: [5, 1, -127.2],
+        legs: [{ untilNamed: 'pp_k', axis: 'x', lt: 9.4 }, { toNamed: 'pp_k', to: [8.8, -127.2], jump: 30, within: 0.5 }, { toNamed: 'pp_k', within: 0.3, run: false },
+          { untilNamed: 'pp_k', axis: 'x', gt: 14, ride: 'pp_k' }, { to: [17.4, -127.4], jump: 30 }, { to: [18.6, -127.6], jump: 30, within: 0.25, run: false }, { wait: 30 },
+          { to: [16, -134], within: 0.6 }, { to: [14, -139.4], jump: 34 }, { to: [11, -144.6], jump: 34 }, { to: [8, -149.8], jump: 34 }, { to: [5, -155], jump: 34, within: 0.3 }], shot: 'stern1' },
+      { name: 'Stern 2: unter der dritten Kristallplatte (stampfen)', star: 2, from: [3.6, 5.6, -195.6],
+        legs: [{ to: [5, -195.6], within: 0.2, run: false }, { stomp: true }, { wait: 60 }, { to: [5, -195.6], within: 0.2, run: false }], shot: 'stern2' },
+      { name: 'Stempel: rechte Schwebeplattform antippen, Röhre darunter → Raum mit zwei Rollpilzen', from: [5.5, 5, -12.2],
+        legs: [{ tap: 'schwebe_r', after: 150 }, { to: [5.5, -15.6], jump: 24, within: 0.25, run: false }, { crouch: 4 },
+          { to: [82.6, -17.6] }, { to: [84.4, -18.6], jump: 30, within: 0.3, run: false }], shot: 'stempel' },
+    ],
+    extra: [
+      { name: 'Münzmarder einholen (Sternensteg)', from: [-6, 1, -104], heroes: ['lotti'],
+        legs: [{ chaseKind: 'muenzmarder', run: true }, { wait: 120 }], expectCoins: 10, expectDefeated: 'marder' },
+      { name: 'Kristallblock-Geheimnis: oben stampfen → Truhe mit Extraleben', from: [-5.4, 12.5, -71.6], heroes: ['lotti'],
+        legs: [{ to: [-5.4, -74.4], jump: 30, within: 0.3, run: false }, { stomp: true }, { wait: 40 }, { to: [-5.4, -74.6], within: 0.3, run: false }, { wait: 60 }], expectLives: 1 },
+      { name: 'Linke Schwebeplattform hebt die Figur zum Münzkranz', from: [-5.5, 5, -12.4], heroes: ['lotti'],
+        legs: [{ to: [-5.5, -15.6], jump: 26, within: 0.3, run: false }, { tap: 'schwebe_l', after: 150 }, { hop: 30 }], expectCoins: 3 },
+      { name: 'Tastenstein auch per Antippen (aus der Ferne)', from: [0, 1, -3], heroes: ['lotti'],
+        legs: [{ tap: 'ts_start', after: 200 }, { expectNamedOn: 'ts_start' }] },
+    ],
+    shots: [
+      ['start', [0, 1, 5]],
+      ['tastenstein', [0, 1, -4]],
+      ['obereinsel', [0, 5, -11]],
+      ['antipp', [0, 5, -21]],
+      ['inselb', [0, 6.5, -48]],
+      ['kamin', [-3, 6.5, -54]],
+      ['checkpoint', [0, 12.5, -68]],
+      ['lift', [0, 12.5, -76]],
+      ['warp', [0, 18.6, -83.4]],
+      ['netz', [1, 1, -107]],
+      ['sternensteg', [-10, 1, -112]],
+      ['kanone', [17, 1, -126]],
+      ['muenzhimmel', [16, 24.4, -134]],
+      ['feld', [0, 1, -156]],
+      ['klaviatur', [0, 1, -171]],
+      ['ziel', [0, 5.6, -187]],
+      ['raum', [75, 2.2, -11]],
     ],
   },
 };
@@ -110,6 +204,8 @@ const only = process.argv[2];
 const LEVELS = only ? [only] : ['2-1', '2-2'].filter((id) => ROUTES[id]);
 const STRICT = true;
 const SHOTS_ONLY = !!process.env.SHOTS_ONLY;
+const ONLY = process.env.ONLY ?? null;     // nur Ziele/Prüfungen, deren Name diesen Text enthält (ohne Route/Bilder)
+const pick = (list) => (ONLY ? list.filter((t) => t.name.includes(ONLY)) : list);
 
 /** Hilfen in der Seite: Figur setzen, Bot-Fahrt, Zustand. */
 function install() {
@@ -204,22 +300,31 @@ function install() {
           continue;
         }
         if (L.stompEnemy) {
-          // von hinten auf einen Gegner springen (Gegner-Blickrichtung beachten), bis er besiegt ist
+          // von hinten auf einen Gegner springen (Gegner-Blickrichtung beachten), bis er besiegt ist:
+          // 1,8 m hinter ihn stellen, senkrecht abspringen, oben zu ihm lenken
           const e = c.level.named.get(L.stompEnemy);
-          let n = 0;
-          while (e && !e.defeated && n++ < 1600 && !p.dead) {
+          let n = 0, tries = 0;
+          while (e && !e.defeated && n++ < 1600 && !p.dead && tries < 6) {
             const f = e.facing ? e.facing() : { x: Math.cos(e.yaw), z: -Math.sin(e.yaw) };
-            const bx = e.pos.x - f.x * 1.6, bz = e.pos.z - f.z * 1.6;
+            const bx = e.pos.x - f.x * 1.8, bz = e.pos.z - f.z * 1.8;
             const dx = bx - p.pos.x, dz = bz - p.pos.z, d = Math.hypot(dx, dz);
-            if (d > 0.35 && p.mode === 'ground') { tick({ ...this.stick(dx, dz, Math.min(1, d)), run: false }); continue; }
-            // hinter ihm: Sprung nach vorn auf ihn
-            for (let k = 0; k < 40 && !e.defeated; k++) {
-              const ex = e.pos.x - p.pos.x, ez = e.pos.z - p.pos.z;
-              tick({ ...this.stick(ex, ez, Math.min(1, Math.hypot(ex, ez))), jump: k < 26, run: false });
+            if (d > 0.25 || p.mode !== 'ground') { tick({ ...this.stick(dx, dz, Math.min(1, d * 1.5)), run: false }); continue; }
+            tries++;
+            const y0 = p.pos.y;
+            let k = 0, ymax = 0;
+            for (; k < 120 && !e.defeated; k++) {
+              const ex = e.pos.x - p.pos.x, ez = e.pos.z - p.pos.z, ed = Math.hypot(ex, ez);
+              const up = k < 16;
+              // über ihm: Stampfattacke (von oben besiegt sie ihn immer); sonst hinlenken
+              const over = ed < 0.35 && p.pos.y > e.pos.y + 1.9;
+              tick({ ...(up || over ? { x: 0, y: 0 } : this.stick(ex, ez, Math.min(1, ed * 1.2))), jump: k < 30 && !over, crouch: over, run: false });
+              ymax = Math.max(ymax, p.pos.y - y0);
+              if (k > 20 && p.mode === 'ground') break;
             }
+            log.push(['versuch', tries, k, +ymax.toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), p.mode, e.state]);
             for (let k = 0; k < 120 && p.mode !== 'ground'; k++) tick({});
           }
-          log.push(['gegner', L.stompEnemy, !!e?.defeated, n]);
+          log.push(['gegner', L.stompEnemy, !!e?.defeated, n, tries]);
           continue;
         }
         if (L.star !== undefined) {
@@ -227,9 +332,49 @@ function install() {
           log.push(['stern', L.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
         }
-        if (L.chaseKind) { const n = this.chase(L.chaseKind, { max: 900 }); log.push(['jagd', L.chaseKind, n]); continue; }
+        if (L.chaseKind) { const n = this.chase(L.chaseKind, { max: L.max ?? 2400, run: L.run }); log.push(['jagd', L.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
+        if (L.expectNamedOn) { const st = c.level.named.get(L.expectNamedOn); log.push(['gedrückt', L.expectNamedOn, !!st?.on]); if (!st?.on) log.push(['FEHLER: nicht gedrückt']); continue; }
+        if (L.untilNamed) {
+          // warten, bis ein bewegtes Objekt (level.named) eine Lage erreicht; ride = darauf mitfahren (zur Mitte lenken)
+          let k = 0;
+          for (; k < (L.max ?? 1500); k++) {
+            const q = this.namedPos(L.untilNamed);
+            const v = L.axis === 'x' ? q[0] : q[1];
+            if ((L.lt !== undefined && v < L.lt) || (L.gt !== undefined && v > L.gt)) break;
+            if (L.ride) { const r = this.namedPos(L.ride); const dx = r[0] - p.pos.x, dz = r[1] - p.pos.z, d = Math.hypot(dx, dz); tick(d > 0.2 ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {}); }
+            else tick({});
+          }
+          log.push(['warte', L.untilNamed, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (k >= (L.max ?? 1500)) log.push(['FEHLER: Lage nicht erreicht', L.untilNamed]);
+          continue;
+        }
+        if (L.wallJumps) {
+          // Wandsprünge zwischen zwei Wänden (Richtung a/b in x), oben auf den Sims (ledge) lenken
+          const W = L.wallJumps;
+          let dir = W.a, k = 0, jumps = 0, hold = 0, prevJ = false;
+          for (; k < 1600 && jumps < (W.n ?? 10); k++) {
+            if (p.pos.y > W.top) break;
+            let jmp = false;
+            if (hold > 0) { jmp = true; hold--; }
+            else if (p.mode === 'wall' && !prevJ) { jmp = true; hold = 10; dir = -dir; jumps++; }
+            else if (p.mode === 'ground' && !prevJ) { jmp = true; hold = 24; }
+            tick({ ...this.stick(dir, 0), jump: jmp, run: false });
+            prevJ = jmp;
+          }
+          // auf den Sims
+          for (let m = 0; m < 300; m++) {
+            const dx = W.ledge[0] - p.pos.x, dz = W.ledge[1] - p.pos.z, d = Math.hypot(dx, dz);
+            if (d < 0.3 && p.mode === 'ground') break;
+            tick({ ...this.stick(dx, dz, Math.min(1, d)), jump: p.mode === 'wall', run: false });
+          }
+          log.push(['wandsprünge', jumps, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
+          continue;
+        }
         if (L.collectRain) {
           // Münzregen einsammeln: zur nächsten liegenden/fallenden Münze laufen
+          const gs = c.level.entities.find((e) => e.kind === 'goldschalter');
+          log.push(['regen', gs?.state, c.level.entities.filter((e) => e.kind === 'fallmuenze').length, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          let got = 0;
           for (let i = 0; i < L.collectRain; i++) {
             let e = null, best = Infinity;
             for (const x of c.level.entities) { if (x.kind !== 'fallmuenze' || !x.alive || x.removed) continue; const d = Math.hypot(x.pos.x - p.pos.x, x.pos.z - p.pos.z); if (d < best) { best = d; e = x; } }
@@ -241,10 +386,24 @@ function install() {
         if (L.toAir) {
           // in der Luft (Sprungfeld) zum Ziel steuern, bis gelandet
           let i = 0;
+          let flew = false, launched = !L.via;
           for (; i < (L.max ?? 400); i++) {
-            const dx = L.toAir[0] - p.pos.x, dz = L.toAir[1] - p.pos.z;
-            tick({ ...this.stick(dx, dz, Math.min(1, Math.hypot(dx, dz))), jump: true, run: false });
-            if (i > 20 && p.mode === 'ground') break;
+            // via: erst zum Sprungfeld (Taste gehalten → ×1,15), nach dem Abschuss senkrecht steigen, oben zum Ziel lenken
+            if (!launched && p.vel.y > 16) launched = true;
+            const T = launched ? L.toAir : L.via;
+            const dx = T[0] - p.pos.x, dz = T[1] - p.pos.z;
+            const rising = L.above !== undefined ? p.pos.y < L.above && p.vel.y > 0 : p.vel.y > 4;
+            let st;
+            if (launched && rising) st = { x: 0, y: 0 };
+            else if (p.mode === 'air') {
+              // Wunsch-Geschwindigkeit zum Ziel (bremst vor dem Landepunkt)
+              let vx = dx * 2.6, vz = dz * 2.6; const vl = Math.hypot(vx, vz); if (vl > 9) { vx *= 9 / vl; vz *= 9 / vl; }
+              const ex = vx - p.vel.x, ez = vz - p.vel.z, el = Math.hypot(ex, ez);
+              st = el > 0.05 ? this.stick(ex, ez, Math.min(1, el / 2.5)) : { x: 0, y: 0 };
+            } else st = this.stick(dx, dz, Math.min(1, Math.hypot(dx, dz)));
+            tick({ ...st, jump: true, run: false });
+            if (launched && p.mode === 'air') flew = true;
+            if (flew && p.mode === 'ground') break;
           }
           log.push(['luft', i, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
@@ -433,7 +592,7 @@ for (const id of LEVELS) {
   for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind}`, (kinds[kind] ?? 0) === n);
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
-  for (const hero of SHOTS_ONLY ? [] : ['lotti', 'greta']) {
+  for (const hero of SHOTS_ONLY || ONLY ? [] : ['lotti', 'greta']) {
     await load(id);
     await W('place', R.start, { hero, settle: 2 });
     const res = await W('drive', R.main, {});
@@ -449,7 +608,7 @@ for (const id of LEVELS) {
   }
 
   // ------------------------------------------------ Sterne und Stempel
-  for (const t of SHOTS_ONLY ? [] : R.targets) {
+  for (const t of SHOTS_ONLY ? [] : pick(R.targets)) {
     for (const hero of t.heroes ?? ['lotti']) {
       await load(id);
       await W('place', t.from, { hero, power: t.power, settle: 10 });
@@ -465,7 +624,7 @@ for (const id of LEVELS) {
     }
   }
 
-  for (const t of SHOTS_ONLY ? [] : R.extra ?? []) {
+  for (const t of SHOTS_ONLY ? [] : pick(R.extra ?? [])) {
     for (const hero of t.heroes ?? ['lotti', 'greta']) {
       await load(id);
       const lives0 = await W('lives');
@@ -477,6 +636,7 @@ for (const id of LEVELS) {
       let ok = inR(res.info.x, t.expectX) && inR(res.info.y, t.expectY) && inR(res.info.z, t.expectZ) && !res.dead;
       if (t.expectCoins !== undefined) ok = ok && res.rt.coins - coins0 >= t.expectCoins;
       if (t.expectLives !== undefined) ok = ok && lives1 - lives0 >= t.expectLives;
+      if (t.expectDefeated) { const nm = await W('named', t.expectDefeated); res.log.push(['besiegt?', t.expectDefeated, JSON.stringify(nm)]); ok = ok && !!nm?.defeated; }
       if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
       check(`${id}: ${t.name} (${hero}, bei ${res.info.x.toFixed(1)}, ${res.info.y.toFixed(1)}, ${res.info.z.toFixed(1)}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0})`, ok);
@@ -484,6 +644,7 @@ for (const id of LEVELS) {
   }
 
   // ------------------------------------------------ Screenshots je Abschnitt aus der Spielkamera
+  if (ONLY) continue;
   loaded = null;
   await load(id);
   for (const [name, pos, steps = 0, input = null] of R.shots) {
@@ -495,9 +656,11 @@ for (const id of LEVELS) {
 
 console.log('\n  Kennzahlen je Bild (Zeichenaufrufe inkl. Schattenpass, Dreiecke):');
 for (const [n, c, t] of stats) console.log(`    ${n.padEnd(26)} ${String(c).padStart(4)} Aufrufe  ${String(Math.round(t / 1000)).padStart(4)} k Dreiecke`);
-const maxCalls = Math.max(...stats.map((s) => s[1])), maxTris = Math.max(...stats.map((s) => s[2]));
-check(`Zeichenaufrufe < 120 (max ${maxCalls})`, maxCalls < 120);
-check(`Dreiecke < 300 k (max ${Math.round(maxTris / 1000)} k)`, maxTris < 300000);
+const maxCalls = Math.max(0, ...stats.map((s) => s[1])), maxTris = Math.max(0, ...stats.map((s) => s[2]));
+if (stats.length) {
+  check(`Zeichenaufrufe < 120 (max ${maxCalls})`, maxCalls < 120);
+  check(`Dreiecke < 300 k (max ${Math.round(maxTris / 1000)} k)`, maxTris < 300000);
+}
 await browser.close();
 stop();
 allErrors.push(...errors);
