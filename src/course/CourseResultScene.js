@@ -29,13 +29,18 @@ export class CourseResultScene extends Phaser.Scene {
     setupUiCamera(this);
     this.add.rectangle(0, 0, w, h, 0x10102a, 0.35).setOrigin(0);
     uiPanel(this, w / 2, h / 2 + 6, 236, 200);
-    uiText(this, w / 2, h / 2 - 78, 'Geschafft!', { size: 20, color: '#ffe066', stroke: '#3a2a6a', thickness: 4 });
-    uiText(this, w / 2, h / 2 - 58, `${r.id ?? ''} · ${r.title ?? ''}`, { size: 8, color: '#5a4a7a', stroke: '#ffffff', thickness: 2, shadow: false });
     // Level ohne Zielmast: Arena → Kampfergebnis, Diorama → „Schatz“ statt der Zielmast-Zeile; Stern-/Stempel-Plätze nach den Leveldaten
-    // (LEVEL.starSlots, LEVEL.stamp) – Präzisierung (Arena/Boss) und (Ritt/Diorama)
+    // (LEVEL.starSlots, LEVEL.stamp) – Präzisierung (Arena/Boss) und (Ritt/Diorama); Prüfungs-Haus → „n von N Sternen“
+    // (Präzisierung Autoscroller/Haus)
     const data = this.course?.level?.data ?? this.course?.levelData ?? {};
+    const houseN = data.house ? (data.house.rooms?.length ?? 0) : 0;
+    const houseGot = data.house ? (r.stars ?? []).slice(0, houseN).filter(Boolean).length : 0;
+    const head = data.house && houseGot < houseN ? 'Haus verlassen' : 'Geschafft!';
+    uiText(this, w / 2, h / 2 - 78, head, { size: 20, color: '#ffe066', stroke: '#3a2a6a', thickness: 4 });
+    uiText(this, w / 2, h / 2 - 58, `${r.id ?? ''} · ${r.title ?? ''}`, { size: 8, color: '#5a4a7a', stroke: '#ffffff', thickness: 2, shadow: false });
     const rows = [
-      data.diorama ? ['Schatz', `alle ${data.stars?.length ?? 5} Sterne gefunden!`]
+      data.house ? ['', `Prüfungs-Haus: ${houseGot} von ${houseN} Sternen`]          // eine Zeile über beide Spalten
+        : data.diorama ? ['Schatz', `alle ${data.stars?.length ?? 5} Sterne gefunden!`]
         : data.goal || !data.arena ? ['Zielmast', `${Math.round((r.pole ?? 0) * 100)} %  →  ${r.points ?? 0} Punkte${r.top ? '  · Spitze! +1 Leben' : ''}`]
         : ['Arena', 'alle Gegner besiegt!'],
       ['Bitcoins', `${r.coins ?? 0}`],
@@ -44,6 +49,7 @@ export class CourseResultScene extends Phaser.Scene {
     ];
     let y = h / 2 - 36;
     for (const [k, v] of rows) {
+      if (!k) { uiText(this, w / 2, y, v, { size: 10, color: '#2a2550', stroke: '#ffffff', thickness: 2, shadow: false }); y += 17; continue; }
       uiText(this, w / 2 - 100, y, k, { size: 9, color: '#3a2a6a', stroke: '#ffffff', thickness: 2, shadow: false, originX: 0 });
       uiText(this, w / 2 - 38, y, v, { size: 9, color: '#2a2550', stroke: '#ffffff', thickness: 2, shadow: false, originX: 0 });
       y += 17;
@@ -52,17 +58,20 @@ export class CourseResultScene extends Phaser.Scene {
     const g = this.add.graphics();
     const stars = r.stars ?? [];
     // Plätze nach den Leveldaten: LEVEL.starSlots (Arena 1), sonst max(3, Sternzahl) (Diorama 5); Stempel nur mit LEVEL.stamp
-    const n = data.starSlots ?? Math.max(3, stars.length), hasStamp = !!data.stamp;
-    const x0 = w / 2 - (n - 1) * 13 - (hasStamp ? 18 : 0);
-    for (let i = 0; i < n; i++) {
+    const n = data.starSlots ?? (houseN || Math.max(3, stars.length)), hasStamp = !!data.stamp;
+    const compact = n > 8;                         // viele Räume: ein Stern + „n / N“
+    const x0 = compact ? w / 2 - 20 : w / 2 - (n - 1) * 13 - (hasStamp ? 18 : 0);
+    if (compact) uiText(this, w / 2 - 6, y + 8, `${stars.slice(0, n).filter(Boolean).length} / ${n}`, { size: 11, color: '#2a2550', stroke: '#ffffff', thickness: 2, shadow: false, originX: 0 });
+    for (let i = 0; i < (compact ? 1 : n); i++) {
       const cx = x0 + i * 26, cy = y + 8;
       const pts = [];
       for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + (k / 10) * Math.PI * 2, rr = k % 2 ? 4.6 : 10; pts.push({ x: cx + Math.cos(a) * rr, y: cy + Math.sin(a) * rr }); }
-      const got = stars[i] || r.starsSaved?.[i];
-      g.fillStyle(0x3ee05a, stars[i] ? 1 : got ? 0.4 : 0.12); g.fillPoints(pts, true);
+      const on = compact ? stars.slice(0, n).some(Boolean) : stars[i];
+      const got = on || (!compact && r.starsSaved?.[i]);
+      g.fillStyle(0x3ee05a, on ? 1 : got ? 0.4 : 0.12); g.fillPoints(pts, true);
       g.lineStyle(1.2, 0x2a7a3a, 0.8); g.strokePoints(pts, true);
     }
-    const sx = x0 + n * 26 + 4;
+    const sx = compact ? x0 + 76 : x0 + n * 26 + 4;
     if (hasStamp) {
       g.fillStyle(0xff7ab8, r.stamp ? 1 : r.stampSaved ? 0.4 : 0.12); g.fillCircle(sx, y + 8, 9);
       g.lineStyle(1.2, 0xb8306c, 0.8); g.strokeCircle(sx, y + 8, 9);

@@ -1147,6 +1147,290 @@ Kamera an die Figur heran.
 
 ---
 
+## Präzisierung (Bausteine Welt 2)
+
+Ergänzung des Bausteine-Agenten (Stand: Wüstenwerkstatt 0-8). Nichts oben Festgelegtes wird geändert. Alle Welt-2-
+Bausteine und -Gimmicks sind parametrierbare Module; Level-Bauer setzen sie nur in Daten ein. Jede Datei dokumentiert
+ihre Parameter vollständig im Kopfkommentar; hier die Felder mit Beispielen. Aktionen (`onAll`, `onBreak`, `onFall`,
+`onTap`, `reward`, `last` …) im bekannten Format `{ reveal, hide, start|path, stop, drop, open, star, spawn, power,
+coins, sfx, pos }` (Präzisierung Sonder-Bausteine); Signale an benannte Objekte über `level.named` (Daten-`id`).
+
+### Präzisierung (Bausteine Welt 2): Dateien
+
+```
+src/course/blocks/types/w2_space.js     taststein, taststeine, propellerplattform, antipp
+src/course/blocks/types/w2_desert.js    fliese, fliesenbruecke, schmale_bruecke, goldroehre, oase, kistenfeld
+src/course/blocks/types/w2_hills.js     zahnradplattform, rollwalze, drehrad, farbfeld
+src/course/blocks/types/w2_shadow.js    schattenwand, schattenweg, scheinwerfer
+src/course/blocks/types/w2_misc.js      Entitäts-Gimmicks auch als segments-type (wie gimmicks.js)
+src/course/blocks/types/deco_w2.js      Kulisse Welt 2 (Modelle in statische Geometrie verschmolzen)
+src/course/blocks/w2kit.js              MovingBox (bewegter Quader mit mover), circleSlices, modelObject, bakeModel
+src/course/entities/kinds/w2_gimmicks.js  kristallwand, antipp_block, antipp_muenze, wachs_block, roter_ring,
+                                        rote_muenze, tuer, holz_silhouette, goldschalter, fallmuenze
+src/course/entities/tap.js              Antipp-Ziele: Tipp → Strahl von der Kurs-Kamera; Aktionstaste in Reichweite
+src/course/view/theme_desert|space|shadow|pinkgrass|lava|house.js, backdrop_w2.js   Themen + Kulissen
+src/course/levels/w0/0-8.js             Wüstenwerkstatt (eine Station je Baustein, marks für den Test)
+tests/course_w2_blocks.mjs              Port 4340, Bilder tests/out/w2b_*.png (auch je Thema w2b_thema_*.png)
+```
+
+Additiv geändert: `view/themes.js` (6 Registrierzeilen, `??=` – nur wenn das Thema noch fehlt), `view/Sky.js` (2 Zeilen:
+Haken `theme.buildBackdrop(sky, bounds, rnd, yBase)` und `theme.updateBackdrop(sky, dt, camera)` für eigene Kulissen).
+`CourseScene.js` bleibt unverändert (Antippen hängt sich an `level.scene.input`).
+
+### Präzisierung (Bausteine Welt 2): Antippen (Touch) – Schnittstelle
+
+`tapTargets(level)` (= `level.taps`, `entities/tap.js`): Ein kurzer Tipp (≤ 0,45 s, ≤ 14 Logik-Pixel bewegt, nicht auf
+A/B/Y/Kamera/Pause) auf die 3D-Leinwand wird zum Strahl von `view.camera`; getroffen wird das nächste freigegebene Ziel
+(Hüllquader, Finger-Toleranz 0,55 m bzw. 20 Logik-Pixel um die Zielmitte). Ohne Touch: **Aktionstaste** (Shift/X,
+Touch-Y) löst das nächste Ziel in `reach` m aus (vor der Figur bevorzugt). Ausgeführt wird im nächsten Simulationsschritt
+(deterministisch). Ziele zeigen ein pulsierendes Tipp-Symbol (ein Punkte-Objekt für alle). Eigene Ziele:
+`taps.add({ owner, box: () => ({ min, max }), enabled: () => bool, reach: 4.5, hint: true, onTap(via) })`, via =
+`'touch' | 'action'`. Tests: `taps.tapScreen(x, y)` (Logik 480×270), `taps.tapTarget(t)`, `taps.screenPos(t)`, `taps.info()`.
+
+### Präzisierung (Bausteine Welt 2): Liste mit Daten-Beispielen
+
+| Typ / Art | Kern | Wichtige Felder (Standard) | Beispiel |
+| --- | --- | --- | --- |
+| `taststein` | Tastenstein (Ø 1,6 m, Oberkante y + 1): Betreten/Antippen → leuchtet, fährt um `rise` hoch, trägt | `pos` (Fußpunkt), `rise` 1, `speed` 2.5, `group`, `note`, `tap` true, `reach` 3, `stay` true / `back` 1.5, `id` | `{ type: 'taststein', pos: [0,1,-10], rise: 2, group: 'g1' }` |
+| `taststeine` | Gruppe (Melodie/Treppe), alle gedrückt → `onAll` | `id`, `stones: [{ pos, rise }]`, `order` false (true = Reihenfolge, falscher Stein setzt zurück), `onAll`, `at`, `stay`, `speed` | `{ type: 'taststeine', id: 'treppe', stones: [{ pos: [-6,1,-11], rise: 0.5 }, { pos: [-6,1,-14], rise: 1.5 }], onAll: { star: 0 } }` |
+| `propellerplattform` | Schwebeplattform (Oberseite y + thick) | `pos` (Unterseite), `size` [3,3], `thick` 0.4, `mode` 'sink'\|'rise'\|'path'\|'float', `sink` 0.8, `drop` 6, `back` 1.2, `climb` 1.6, `height` 6, `path`, `speed` 2, `wait` 0.8, `loop`, `bob` 0.06, `idle`, `id` | `{ type: 'propellerplattform', pos: [0,3,-40], mode: 'path', path: [[0,3,-40],[0,3,-52]] }` |
+| `antipp` | Antipp-Plattform (Touch-Tipp / Aktionstaste) | `pos`, `size` [2.5,0.5,2.5], `mode` 'appear'\|'slide'\|'lift', `dir` [1,0], `length` 3, `speed` 6, `time` 0 (s, 0 = bleibt), `toggle`, `reach` 4.5, `color` 'cyan', `onTap`, `id` | `{ type: 'antipp', pos: [0,0.5,-36], mode: 'appear', time: 6 }` |
+| `antipp_block` / `antipp_muenze` | Block zerbricht beim Antippen (Inhalt) / Münze aus der Ferne antippen | `content` 'coin', `look` 'crystal'\|'brick'\|'sand'\|'question', `reach` 4.5 / Münze `reach` 0 | `{ kind: 'antipp_block', pos: [2,1,-30], content: 'coins:3' }` |
+| `kristallwand` | zerbrechliche Kristallwand → Geheimnis | `pos`, `size` [3,3,1], `breakable` 'pound' (Stampfen von oben, Kanone, Bombe, Riesentrank) \| 'cannon' (nur Kanone/Bombe/Riesentrank; Stampfen prallt ab), `hits` 1, `climbable`, `color` 'cyan'\|'violet'\|'pink'\|'gold', `onBreak`, `id` | `{ kind: 'kristallwand', pos: [5,1,-74], size: [3,3,1], breakable: 'cannon', onBreak: { reveal: 'truhe' } }` |
+| `fliesenbruecke` | Brücke aus Fliesen (Modell 'fliese') | `from`, `to` (Lauffläche), `width` 2, `tile` 2, `gap` 0.3, `thick` 0.4, `mode` 'slide'\|'shift'\|'drop'\|'build'\|'static', `slide: { amp 1.5, period 3, wave 0.7 }`, `shift` 2, `alternate` true, `delay`, `speed` 4, `stay` 2.5, `respawn` 3, `ahead` 2, `trigger` 3, `vanish` 0, `id` | `{ type: 'fliesenbruecke', from: [0,1,-86], to: [0,1,-101], mode: 'slide' }` |
+| `fliese` | einzelne Fliese, Modi wie oben | `pos` (Unterseite), `size` [2,2], `axis` [1,0], `yaw` | `{ type: 'fliese', pos: [-6,0.6,-112], mode: 'drop' }` |
+| `schmale_bruecke` | 1-m-Steg | `from`, `to`, `width` 1, `style` 'sandstein'\|'holz'\|'stein', `posts` | `{ type: 'schmale_bruecke', from: [0,1,-106], to: [0,1,-118] }` |
+| `goldroehre` | goldene Warp-Röhre (wie `pipe`) | `id`, `pos`, `height` 2, `radius` 0.9, `target` (Röhren-Id \| [x,y,z]) | `{ type: 'goldroehre', id: 'g1', pos: [-7,1,-131], target: 'g2' }` |
+| `goldschalter` | goldener Druckschalter → Münzregen (`fallmuenze`) | `area: { pos, size: [w,d] } \| { pos, r }` (r 5 um den Schalter), `time` 8, `rate` 7, `height` 9, `life` 7 | `{ kind: 'goldschalter', pos: [80,1,-131], area: { pos: [82,1,-133], size: [8,6] } }` |
+| `oase` | Teich mit Sandrand, Palmen, Schilf | `pos` (Mitte, y = Oberkante Rand), `size` [6,5] (Wasser), `depth` 1.6, `rim` 2, `base` 1, `palms` 3 \| [[x,z,h]], `reeds` | `{ type: 'oase', pos: [7,1,-132], size: [5,4], base: 2.4 }` |
+| `kistenfeld` | Gitter aus Holzkisten (`crate`) | `pos`, `grid` [c,r] \| [c,r,l], `size` 1, `gap` 0.05, `fill` 'coin', `contents: { 'c,r[,l]': Inhalt }`, `id` (→ `{ crates, left }`) | `{ type: 'kistenfeld', pos: [0,1,-228], grid: [4,3], contents: { '1,1': 'funken' } }` |
+| `zahnradplattform` | Zahnrad: `axis` 'y' Drehteller (nimmt mit), 'x'/'z' stehendes Rad (Oberfläche läuft) | `pos` (Mitte), `radius` 2.5, `teeth` 12, `thick` 0.6 (bei x/z = begehbare Breite), `speed` 0.6 rad/s, `idle`, `id` | `{ type: 'zahnradplattform', pos: [6,3.7,-147], axis: 'x', thick: 2.2 }` |
+| `rollwalze` | rollender Hügel/Stamm: Laufband-Oberfläche bzw. mit `path` rollendes Hindernis | `pos` (Auflage), `radius` 2, `length` 6, `axis` 'x'\|'z', `speed` 2 m/s (+ = Oberseite nach +Z/+X), `style` 'gras'\|'holz', `path`, `rollSpeed` 3, `loop`, `wait`, `hurt` true, `id` | `{ type: 'rollwalze', pos: [0,1,-158], radius: 2, length: 7, speed: 2 }` |
+| `drehrad` | Riesenrad, Stege bleiben waagerecht und tragen | `pos` (Nabe), `radius` 3, `platforms` 4, `plank` [1.6,1.1], `speed` 0.5 (x: oben nach −Z), `axis` 'x'\|'z', `phase`, `idle`, `id` | `{ type: 'drehrad', pos: [6,6.3,-169], radius: 3.4, plank: [2,1.2] }` |
+| `farbfeld` | Platten färben sich beim Betreten, alle → `onAll` | `pos`, `grid` [4,4], `cell` 1.8, `gap` 0.1, `tiles`, `toggle`, `colors`, `off`, `onAll`, `at`, `indicator`, `id` | `{ type: 'farbfeld', pos: [0,1,-185], grid: [3,3], onAll: { star: 1 } }` |
+| `wachs_block` | wachsender ?-Block: Kopfstoß (oder Stampfen) → wächst um `step`, trägt, Münzen; oben `last` | `pos` (Unterkante, schwebend), `height` 4, `step` 1, `coins` 1, `last` 'coins:5', `pound` true, `speed` 5, `id` | `{ kind: 'wachs_block', pos: [-3,3.3,-198], height: 4, last: 'krallen' }` |
+| `roter_ring` / `rote_muenze` | Ring durchlaufen → 8 rote Münzen auf Zeit → Belohnung | `yaw` π/2, `coins` (Liste \| { from, to, n } \| { pos, r, n }), `time` 10, `reward` ({ power: 'oneup' }) \| `star`, `retry` true, `id` | `{ kind: 'roter_ring', pos: [0,1,-208], coins: { pos: [0,1.3,-215], r: 3 }, reward: { star: 2 } }` |
+| `tuer` | Tür: öffnet bei Annäherung / per `{ open: id }` / mit `key`; mit `target` Durchgang (Teleport) | `pos` (Schwelle), `yaw` −π/2 (Vorderseite +Z), `width` 1.6, `height` 2.4, `style` 'holz'\|'stein', `locked`, `open`, `auto`, `autoClose`, `target` (Tür-Id \| [x,y,z]), `key` (Id-Liste), `onEnter` | `{ kind: 'tuer', id: 'a', pos: [-4,1,-242], target: 'b' }` |
+| `holz_silhouette` | Aufsteller fällt nach hinten um (Tatze, Feuer, Panzer, Bombe, Riesentrank, Stampfwelle, Hineinrennen ≥ 6,5 m/s) | `yaw` −π/2, `onFall`, `push` true, `id` | `{ kind: 'holz_silhouette', pos: [-8,1,-251], onFall: { star: 2 } }` |
+| `schattenwand` | Wand mit Schatten aller Objekte der Zone davor (Figur als Scherenschnitt-Puppe) | `pos` (Unterkante Mitte, Vorderseite +Z), `size` [16,8], `depth` 12, `dir` [0.05,0,−1], `light` ([x,y,z] \| scheinwerfer-Id), `color`, `shade`, `frame`, `solid`, `player`/`entities`/`shapes` true, `casters: [{ pos, size, shape: 'box'\|'ball'\|'star'\|'cyl', id }]`, `id` | `{ type: 'schattenwand', id: 'sw', pos: [0,1,-272], size: [20,8], depth: 14 }` |
+| `schattenweg` | unsichtbare feste Platten – nur ihr Schatten ist zu sehen | `parts: [{ pos, size }]`, `hint` 0, `hidden`, `id` (reveal/hide) | `{ type: 'schattenweg', parts: [{ pos: [-4,2.3,-264], size: [2.2,0.4,2] }] }` |
+| `scheinwerfer` | Bühnenscheinwerfer (Licht für die Schattenwand) | `yaw` π/2 (leuchtet nach −Z), `aim` −0.15, `height` 1.8, `cone`, `length` 6, `on`, `solid`, `id` (toggle) | `{ type: 'scheinwerfer', id: 'lampe', pos: [10,1,-256] }` |
+| `deco_w2` | Kulisse (statisch verschmolzen) | `items: [{ kind, pos, … }]`, Arten `kaktus, kakteen, palme, palmen, ruine, ruinen, pyramide, bogen, bluetenbaum, bluetenbaeume, planet, planeten, duenen, felsen, sandflaeche` (Streuungen: `size`, `n`, `gap`, `avoid`, `seed`) | `{ type: 'deco_w2', items: [{ kind: 'kakteen', pos: [-22,-3,-40], size: [10,60], n: 10 }] }` |
+
+Alle Entitäts-Gimmicks (`kind`) sind auch als `type` in `segments` erlaubt. Kollision: bewegte Teile sind Quader mit
+`mover` (Figur und Gegner fahren mit), Walzen/Räder sind Scheiben-Quader mit `conveyor` (Laufband-Prinzip), Kristallwand
+`breakable` (true bzw. 'cannon' bei `breakable: 'cannon'` – Stampfen prallt dann ab), Schattenweg-Platten `camIgnore`.
+
+**Kanonenkugel (Präzisierung Motor Welt 2):** sie ruft `owner.onHit('cannon', kugel, form)` für jede getroffene Form –
+Kristallwand (beide Modi), Antipp-Block und Holz-Silhouette zerbrechen bzw. fallen um (im Test mit dem echten Kanonen-Helm).
+
+**Mehrere Figuren (Spiegelfrucht):** alle Bausteine zählen jede Figur (`level.players`, Helfer `figures(level)` in
+`blocks/w2kit.js`, `playerOn`): Tastenstein, Farbfeld (je Figur ein Feld), Propeller-/Fliesen-Plattformen (sinken/kippen,
+wenn irgendeine Figur darauf steht), Goldschalter, Tür (Annäherung, Durchgang), rollende Walze (trifft jede Figur),
+Aktionstaste (Reichweite irgendeiner Figur), Schattenwand (jede Figur als Scherenschnitt); roter Ring, Holz-Silhouette und
+Münzen über die Berührungen je Figur.
+
+**Schattenspiel – Kamera:** in der Schattenzone frontal auf die Wand schauen, z. B. LEVEL.camera-Eintrag
+`{ from: z + depth, to: z, pitch: 14, dist: 16, height: 2.6, ahead: 0 }` (steht auch in `level.named.get(id).camera`).
+Projektion standardmäßig waagerecht (Schatten zeigen die echten Höhen → Steuern über die 2D-Ansicht).
+
+### Präzisierung (Bausteine Welt 2): Themen
+
+| Thema | Stimmung | Kulisse (`buildBackdrop`) |
+| --- | --- | --- |
+| `desert` | heißer Mittag, Himmel tiefblau → sandgelb, kräftige Sonne, Sanddunst; Decken = Sand, Körper = roter Sandstein, türkises Wasser; `theme.sand` (Farben für Treibsand/Sandblock) | Dünen und geschichtete Tafelberge (1 Mesh) |
+| `space` | fast schwarzer violetter Himmel, kühles Sternenlicht, kein Boden; lavendel Decken, tiefviolette Körper | Sternenfeld, 3 Nebel, 4 Ringplaneten in der Kuppel (3 Meshes, folgen der Kamera) |
+| `shadow` | unterirdisch dunkel-warm, Nebel nah, Licht an der Figur, Laternen; Lehmboden | warme Lichtkegel von oben (1 additives Mesh) |
+| `pinkgrass` | heller Frühlingshimmel mit rosa Horizont; rosa Grasdecken | rosa Hügel, lila Berge mit Schneekappen (1 Mesh) |
+| `lava` | glühend roter Himmel, Rauchdunst; dunkler Fels mit roter Kante | glühender Lavasee tief unten, Vulkankegel (2 Meshes) |
+| `house` | Innenraum: kein Himmel, dunkles Violett, warmes Licht, Holzdielen, Licht an der Figur | – |
+
+`grass` bleibt für 2-4. Die Wüstenwerkstatt lässt sich mit `?course=0-8&theme=<name>` in jedem Thema ansehen.
+
+### Präzisierung (Bausteine Welt 2): Welt 2 – Gimmick → Baustein
+
+| Level | Gimmick laut Bauplan | Bausteine |
+| --- | --- | --- |
+| 2-1 | Wüstenschlucht, Goldröhre oben auf der Wand → Raum mit goldenem Schalter, Oase, Fliesenbrücke, schmale Brücke, verschiebende Brücke zum Ziel | `goldroehre` + `goldschalter`, `oase`, `fliesenbruecke` (`slide`/`shift`), `schmale_bruecke`, `deco_w2` (Kakteen, Palmen, Ruinen, Dünen, Felsen); Treibsand/Sandblöcke vom Motor (`quicksand`, `sandblock`) |
+| 2-2 | Taststeine (heben sich), Antipp-Plattformen, Kristallwand, steigende/pendelnde Propellerplattformen, Kristallplattformen | `taststein(e)`, `antipp`, `antipp_block`, `kristallwand`, `propellerplattform` (`rise`/`path`) |
+| 2-3 | Schattenspiel: Schatten zeigt Stern/versteckten Weg, Türen, Holz-Silhouette des Endgegners | `schattenwand` (+ `casters`), `scheinwerfer`, `schattenweg`, `tuer` (`target`), `holz_silhouette` (`onFall`), Krümel = Modell `kruemel` |
+| 2-4 | rollende Hügelwalzen, roter Ring, Zahnrad-Drehplattformen, rotierende Räder, Farbfeld-Raum | `rollwalze`, `roter_ring`, `zahnradplattform`, `drehrad`, `farbfeld` |
+| 2-5 | Kistenfeld, wachsender ?-Block, roter Ring | `kistenfeld`, `wachs_block`, `roter_ring` |
+| 2-Panzer | roter Ring auf dem Panzer | `roter_ring` (auf fahrenden Panzern muss der Autoscroller-Archetyp Ring/Münzen mitführen) |
+| 2-Haus | 5 Räume à 10 s mit Türen | Thema `house`, `tuer` |
+
+Gemessen in der Wüstenwerkstatt (scale 2, Kurs-Kamera): 75–119 Zeichenaufrufe inkl. Schattenpass, 220–361 k Dreiecke;
+Themen-Bilder (flachere Kamera, Pitch ≤ 24°) 88–133 Aufrufe. Einzelkosten: Schattenwand 1 Fläche + ≤ 4 Instanz-Meshes,
+Fliesenbrücke/Farbfeld/rote Münzen je 1–2 Instanz-Meshes, Kulisse `deco_w2` 0 (verschmolzen).
+
+---
+
+## Präzisierung (Autoscroller/Haus)
+
+Ergänzung des Gameplay-Agenten (Stand: Testlevel 0-4 „Rollband“ und 0-5 „Prüfstube“). Nichts oben Festgelegtes wird
+geändert. Beide Archetypen sind datengetrieben und für Welt 2 und spätere Welten gedacht (Autoscroller: 2-Panzer,
+3-2, 3-Zug, 5-Zug, 6-Panzer, 8-Zug; Prüfungs-Haus: 2-Haus, 4-Haus, 6-Haus, 8-Haus, K-Haus).
+
+### Präzisierung (Autoscroller/Haus): Dateien
+
+```
+src/course/archetypes/ScrollWindow.js       Bildfenster (reine Mathematik, Node-tauglich): ScrollPath, ScrollWindow, parseScroll
+src/course/archetypes/kinds/autoscroller.js Archetyp 'autoscroller' (Fenster, Grenzen, Kamera, Ende, Neustart, Kombination `with`)
+src/course/archetypes/kinds/house.js        Archetyp 'house' (Räume, Raum-Timer, Sterne, Überblendung, Zeitablauf, Ergebnis)
+src/course/entities/kinds/vehicle.js        Entität 'vehicle' (Panzer, Plattformwagen, Waggon, Flachwagen, Kettenzaun) + attach
+src/course/blocks/types/vehicle.js          dieselbe als Baustein ({ type: 'vehicle' } in segments)
+src/course/blocks/types/track.js            Baustein 'track' (Gleis mit Schwellen, Gerüst-Brücke, Prellbock)
+src/course/levels/w0/0-4.js, 0-5.js         Testlevel „Rollband“ (Autoscroller) und „Prüfstube“ (Haus)
+tests/course_archetypes2.mjs                Port 4209, Bilder tests/out/ca2_*.png
+```
+
+Kleine Ergänzungen: `CourseUIScene.js` (Haus: großer Raum-Timer oben rechts statt der Level-Uhr, darunter „Raum n/N“,
+letzte 3 s rot und pulsierend, geschafft grün; Überblendung als Vollbild-Abdunklung; ab 11 Sternen
+kompakte Anzeige „★ n/N“), `CourseResultScene.js` (Haus: Zeile „Prüfungs-Haus: n von N Sternen“, Überschrift „Haus
+verlassen“ bei Teilergebnis; ab 9 Sternen kompakt), `entities/kinds/items.js` (`coins` reicht `roomId` und `attach` an
+jede Münze weiter).
+
+### Präzisierung (Autoscroller/Haus): Archetyp `autoscroller`
+
+Ein **Bildfenster** fährt mit konstantem (abschnittsweise wechselndem) Tempo entlang eines Pfads; die Kamera folgt dem
+Fenster, nicht der Figur. Die Figur bewegt sich frei im Fenster; an der **vorderen** Grenze wird sie sanft gebremst
+(in den letzten `soft` m höchstens Fenstertempo + 4 m/s je m Abstand, an der Grenze hart), an der **hinteren** Grenze
+**mitgeschoben** (Bewegung mit Kollision). Kommt sie dabei nicht weiter (Hindernis davor), wird sie nach `crush` m
+**zerquetscht** (`player.die('crush')`). Am `end` hält das Fenster (weich abgebremst, genau auf `end`), die Grenzen
+fallen weg, die Kamera gleitet in 1,1 s zur normalen Verfolgung, die Figur läuft frei weiter (z. B. zur Röhre).
+
+```js
+archetype: 'autoscroller',
+scroll: {
+  path: [[0, 0, 10], [0, 0, -150]],   // Fensterlinie (Mitte des Fensters); y = Fahrebene der Fahrzeuge (Schienenoberkante)
+  // oder: axis: '-z', line: [x, y], start/end/speeds.from als Koordinate auf der Achse (z. B. start: 0, end: -120)
+  start: 11, end: 121,                // Pfadlänge (m) der Fenstermitte am Anfang/Ende (Standard 0 / Pfadlänge)
+  speed: 4, speeds: [{ from: 40, speed: 3.4 }],   // m/s; ab Pfadlänge `from` gilt `speed`
+  accel: 6,                           // m/s² Anfahren/Tempowechsel
+  delay: 2,                           // s nach Levelstart (bzw. nach dem Auslöser) bis zur Abfahrt
+  trigger: { min: [x, y, z], max: [x, y, z] },   // optional: Abfahrt erst, wenn die Figur hineingeht
+  frame: { back: 5, front: 8, side: null, soft: 1.5, crush: 0.35, backMode: 'push' /* | 'kill' */,
+           ahead: 0, followX: 0.3, followY: 1, turn: true },
+  with: 'boss',                       // optional: zweiter Archetyp (z. B. Bossarena nach der Fahrt, 2-Panzer)
+  startBanner: "Los geht's!", endBanner: 'Endstation!',   // Ansagen ('' = keine)
+},
+camera: [{ from: 14, to: -150, pitch: 41, dist: 15, yaw: 0, fov: 40 }],   // ausgewertet an der Fenstermitte
+```
+
+- `frame`: Grenzen in m hinter/vor der Fenstermitte, `side` seitlich ± (null = frei). `backMode: 'kill'` für senkrechte
+  Fahrten (6-7: unten aus dem Bild = Tod). Kamera: Blickziel = Fenstermitte (+ `ahead` m), seitlich `followX`,
+  senkrecht `followY` (1 = Standhöhe der Figur wie üblich); `turn` dreht die Kamera mit der Fahrtrichtung (Kurven),
+  `LEVEL.camera`-yaw kommt hinzu. Die Steuerungs-Gier kommt aus derselben Rechnung (deterministisch).
+- **Bildausschnitt passend wählen:** mit `pitch 41, dist 15, fov 40` liegt `back 5` am unteren Bildrand und
+  `front 8` gut unter der HUD-Leiste – steilere/nähere Kameras brauchen kleinere Werte. `back + front` höchstens 13 m
+  (sonst können weit auseinander stehende Spiegelfrucht-Klone als „verloren“ gelten, `Squad.LOST_BEHIND`).
+- **Spiegelfrucht (Präzisierung Motor Welt 2):** Grenzen, Schieben, Einklemmen und das geerbte Fahrzeugtempo gelten
+  für **jede** Figur in `level.players`. Ein eingeklemmter bzw. unten hinausgefallener Klon verschwindet (über
+  `player.die` → `level.removeFigure(fig, 'crush' | 'fall')`, kein Leben weg); erst die letzte Figur stirbt normal.
+  Fahrzeuge tragen alle Figuren (Kollisionswelt). Kamera und Steuerungs-Gier bleiben am Fenster.
+- **Springen auf fahrenden Fahrzeugen:** In der Luft rechnet der Archetyp die Bewegung relativ zum geerbten
+  Fahrzeugtempo (Luftsteuerung und Luftwiderstand der Figur wirken relativ zum Wagen; seitlich mit Kollision
+  mitgenommen). Ein Sprung auf der Stelle landet wieder an derselben Stelle des Wagens.
+- **Neustart:** Ein Checkpoint (auch eine Fahne auf einem Fahrzeug, `attach`) speichert die Fensterlage; nach einem Tod
+  geht es dort mit derselben Fensterlage weiter (Fahrzeuge springen zurück, ihre Lage ist eine reine Funktion der
+  Fahrt-Uhr). Ohne Checkpoint: Fahrt von vorn. Checkpoints müssen beim Berühren im Fenster liegen.
+- **Kombination:** `with: '<archetyp>'` erzeugt einen zweiten Archetyp, dessen Haken (`setup`, `beforeStep`,
+  `afterStep`, `render`, `createRig`, `createPlayer`, `info`, `dispose`) mitlaufen; seine Kamera übernimmt nach dem
+  Ende der Fahrt. Beide umhüllen `runtime.respawn` (verkettet).
+- `level.scroll` = ScrollWindow: `state` (`wait` | `run` | `done`), `s`, `speed`, `clock` (s seit Abfahrt, läuft nach dem
+  Ende weiter), `center`, `dir`, `side`, `path` (ScrollPath: `at(s)`, `dirAt(s)`, `headingYaw(s)`), `local(p)` →
+  `{ along, across, up }`, `snapshot()`/`restore(snap)`. `info()` des Archetyps: `{ state, s, speed, clock, center,
+  dir, ended, camK, player: { along, across }, pushes, crushed, inherit, frame, sub, hud }`.
+- Effekte: `switch` beim Halt; Tod durch Einklemmen `die('crush')` (Todesanimation wie bei Treffern).
+
+### Präzisierung (Autoscroller/Haus): Fahrzeug `vehicle` und Unterobjekte (`attach`)
+
+```js
+// als Baustein (segments) oder Entität (enemies/items): { type|kind: 'vehicle', … }
+{ type: 'vehicle', id: 'wagen2', style: 'cart',   // cart (Plattformwagen) | tank (Panzer) | wagon (Güterwagen, Dach
+                                                   //  begehbar) | flat (Flachwagen) | fence (Kettenzaun-Plattform) | plain
+  size: [4, 1.2, 9],          // Breite, Deckhöhe über der Fahrebene, Länge (Standard je Stil)
+  at: 30.8,                   // Pfadlänge der Fahrzeugmitte bei Fahrtbeginn (Standardpfad: der des Fensters)
+  speed: 2.5,                 // m/s eigenes Tempo (negativ = rückwärts) | 'scroll' (genau mit dem Fenster; Standard im
+                              //  Autoscroller) – ohne Autoscroller Standard 0
+  delay: 1, stop: 102.8, brake: 3,   // Abfahrt s nach Fahrtbeginn; Halt bei Pfadlänge (weich gebremst, m/s²)
+  offset: [dx, dy],           // seitlich (rechts +) und Höhe zur Pfadlinie
+  path: [[x,y,z], …], mode: 'once' | 'loop' | 'pingpong',   // eigener Pfad (Kettenzäune am Himmel, Gegenverkehr)
+  pos: [x,y,z], dir: [dx, dz],                             // ohne Pfad und ohne Autoscroller: gerade Strecke
+  reverse: false, color, accent, deck: true,
+  model: 'panzer_fahrzeug', modelOpts: {},   // Modell aus der Registry (Blick +X, state { speed }); Stil 'tank' nutzt
+                                             //  standardmäßig panzer_fahrzeug (size → length/width/deck, color 'rot'|'oliv')
+  parts: [{ pos: [x, y, z], size: [w, h, d], color, climbable, oneWay, solid, kill, visible, tag }],
+}
+// Unterobjekte: jede Entität mit attach fährt mit (Lage, Gier, Kollisionsformen; ihre Formen tragen dann ebenfalls)
+{ kind: 'bomb_cannon', attach: 'wagen2', pos: [1, 1.2, -18.2] },
+{ kind: 'coins', attach: 'wagen1', from, to, n },  checkpoint: { pos, attach: 'wagen2' },  stars: [{ pos, attach }]
+```
+
+- Fahrzeug-Koordinaten der `parts`: x rechts, y oben ab Fahrebene, z nach hinten (+), `pos` = Mitte der Unterseite.
+  Alle Teile sind Kollisionsquader mit gemeinsamem `mover` (`camIgnore`); Figur und Gegner werden mitgenommen
+  (Drehung in Kurven über `mover.dyaw`). In Kurven bleiben die Quader achsenparallel (Hüllquader) – Fahrzeuge fahren
+  am besten gerade oder im 90°-Raster.
+- Die Lage eines Fahrzeugs ist eine reine Funktion der Fahrt-Uhr bzw. der Fensterlage (`speed: 'scroll'`) – Neustarts
+  setzen sie zurück. Bewegung in `level.onStep` (vor der Figur). Gegner mit `attach`, die auf dem Fahrzeug stehen,
+  nimmt ihr eigenes `moveWithGravity` mit; in der Luft hält `attach` sie beim Fahrzeug. Gegner-`path` ist in
+  Weltkoordinaten – auf Fahrzeugen ohne `path` laufen lassen (Kantenumkehr).
+- `level.named.get(id)` = Fahrzeug mit `s`, `speedNow`, `mover`, `attached` (Set), `info()`.
+
+`track` (Optik, statisch): `{ type: 'track', path | from/to, gauge: 2.4, sleepers: 0.9, trestle: { bottom: -36, every: 8,
+width } | false, buffer: 'end' | 'start' | 'both', solid: false, from/upto (Pfadbereich), color }`.
+
+### Präzisierung (Autoscroller/Haus): Archetyp `house` (Prüfungs-Haus)
+
+```js
+archetype: 'house',
+house: {
+  fail: 'exit',               // Zeit abgelaufen: Haus verlassen (Standard, wie im Vorbild) | 'retry' (Raum von vorn)
+  time: 10, cheer: 1.5, fade: 0.35,   // Standard-Raumzeit, Jubel (s), Überblendung je Richtung (s)
+  rooms: [
+    { id: 'r1', goal: 'defeatAll', area: { min: [-7, -1, -7], max: [7, 9, 7] },   // oder [x0, z0, x1, z1]
+      start: { pos: [0, 1, 4.5], yaw: Math.PI / 2 }, star: [0, 2.6, -1.5], time: 10,
+      camera: { pitch: 52, dist: 16, fov: 40, center: [0, 1, -0.5], pull: 0.65 }, title: 'Besiege alle Gegner!' },
+    { id: 'r2', goal: 'collect', count: 8, … },   // Gegenstände mit roomId: 'r2' (z. B. { kind: 'coins', roomId: 'r2', … })
+    { id: 'r3', goal: 'reach', star: [80, 4.3, -4], … },   // Stern von Anfang an sichtbar; berühren = geschafft
+  ],
+},
+enemies: [{ kind: 'pilzling', roomId: 'r1', pos: [-3, 1, -2.5], behavior: 'chase' }],   // ohne roomId: Fußpunkt in area
+```
+
+- Ablauf je Raum: Überblendung herein (Figur eingefroren) → Countdown (großer Timer im HUD, `sfx('house_tick')` bei 3,
+  2 und 1 s) → Ziel erfüllt: Timer steht, `sfx('room_clear')`, der Stern erscheint am `star`-Punkt und fliegt zur Figur
+  (zählt, Index = Raumnummer; `grab: true` = er muss noch berührt werden, Zeit läuft weiter), Siegespose, Jubel →
+  Überblendung in den nächsten Raum. Nach dem letzten Raum Ergebnis.
+- Zeit abgelaufen: Ansage, `sfx('timewarn')`; `fail: 'exit'` → `runtime.finish()` mit den bisherigen Sternen
+  (gespeichert, Level gilt als gespielt), Ergebnis „Haus verlassen“ / „Prüfungs-Haus: n von N Sternen“.
+  `fail: 'retry'` → derselbe Raum von vorn. Tod in einem Raum: Leben −1, Raum von vorn (Gegner/Gegenstände frisch);
+  war der Raum schon geschafft (Tod im Jubel), zählt sein Stern und es geht im nächsten Raum weiter.
+- Spiegelfrucht-Klone reisen mit: beim Raumwechsel stehen sie im Kreis um die Heldin am Raumstart (`squad.gather`),
+  Überblendung/Jubel/Zeitablauf frieren alle Figuren ein (Siegespose je Figur nach der Landung). Ein getroffener Klon
+  verschwindet wie gewohnt; nach einem Tod (Leben −1) gibt es keine Klone mehr (`LevelRuntime.respawn`).
+- Ziele: `defeatAll` über `level.onEnemyDefeated` (verkettet; heruntergefallene Gegner zählen auch), `collect` über
+  Entitäten mit `spec.roomId` (alle bzw. `count`), `reach` über den Stern. Kamera je Raum: Abschnitt der Kameraschiene
+  im X-Bereich von `area` (Räume nebeneinander entlang X legen, ≥ 20 m Abstand); `center` + `pull` ziehen den Blick
+  zur Raummitte. Das Gesamtzeit-Limit des Levels ruht. Sterne: N = Zahl der Räume (LevelRuntime bekommt N Plätze).
+- HUD-Zustand `level.house = { room, rooms, time, limit, phase, fade, cleared, stars }` (CourseUIScene liest ihn);
+  `phase` ∈ `fadein | play | clear | timeout | fadeout | final | exit`. `info()`: `{ room, rooms, id, goal, phase,
+  time, fade, left, cleared, stars, timeouts, resets, ticks, exited, done, flying, hud }`.
+
+### Präzisierung (Autoscroller/Haus): Tests
+
+`tests/course_archetypes2.mjs` (Port 4209): Bildfenster in Node (Achsen-Form, speeds, Halt genau bei `end`,
+Auslöser, snapshot/restore, Kurve), Autoscroller 0-4 (vorne gebremst, delay, Tempo, Kamera am Fenster und nicht an
+der Figur, Wagen tragen Figur/Kanone/Pilzling, Sprung auf der Stelle und über die Lücke, hinten geschoben,
+Einklemmen = Tod, Neustart von vorn bzw. am Wagen-Checkpoint, Klon geschoben und eingeklemmt entfernt, speeds, Halt
+von Fenster und Wagen, freie Bewegung danach, Kamera zurück, Röhre → Zielmast, Panzer mit Modell panzer_fahrzeug fährt
+mit dem Fenster und trägt) und Haus 0-5 (Überblendung, Countdown, HUD, Ziele defeatAll/collect/reach, Stern-Flug,
+Raumwechsel, Raumkamera, Ticks, Zeitablauf → Teilergebnis gespeichert, Ergebnis-Szene, Tod → Raum neu, Tod im Jubel
+→ nächster Raum, Klon reist mit, `retry`, 3/3) – 70 Prüfungen.
+Gemessen (scale 2): 0-4 67–84 (mit Panzer), 0-5 15–42 Zeichenaufrufe inkl. Schattenpass, höchstens 122 k Dreiecke.
+
+---
+
 ## Präzisierung (Motor Welt 2)
 
 Ergänzung des Motor-Agenten (Stand: Testlevel `0-3` „Klonwiese“). Nichts oben Festgelegtes wird geändert; hier steht,
