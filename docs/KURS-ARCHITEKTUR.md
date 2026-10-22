@@ -1070,9 +1070,26 @@ Wolkenkanone), 2 unter der dritten von drei Kristallplatten vor dem Ziel (Stampf
 antippen (hebt sich) → Röhre darunter → Raum mit zwei Rollpilzen (x ≈ 80). Extraleben: Kristallblock auf dem
 Checkpoint-Plateau oben stampfen → Truhe. Münzmarder auf dem Sternensteg links (einholen → Münzregen). Ziel über eine
 Tastenstein-Treppe auf einer Klaviatur-Insel.
-Level-lokaler Code beider Level (`levels/w2/_helpers_a.js`): Aufbau-Haken über eine sofort brennende Laterne
-(`setupHook`), ferne Kulisse ohne Sonnenschatten (`shadowless`), Gegner-Modelle > 40–50 m nicht zeichnen (`farHide`),
-Szenen-Figuren (Krümel, Dünenkamele, Steppenläufer, Fernrohr, Sternschnuppen, Asteroiden).
+Level-lokaler Code beider Level (`LEVEL.setup`, Hilfen in `levels/w2/_helpers_a.js`): ferne Kulisse ohne
+Sonnenschatten (`shadowless`), Gegner-Modelle > 40–50 m nicht zeichnen (`farHide`), Szenen-Figuren (Krümel, Dünen-
+kamele, Steppenläufer, Fernrohr, Sternschnuppen, Asteroiden).
+
+**Level-Notizen 2-3 / 2-4** (Level-Agent; Test `tests/course_w2b.mjs`, Port 4300, Bilder `tests/out/w2lv_*.png`):
+
+- `2-3` **„Scherenschnittkeller“** – Schattentheater unter der Erde; die große Bühne (Leinwand 70 × 9 m) wird frontal
+  gespielt (2D, Kamera-Vorschlag der Schattenwand). Sterne: 0 Schattenstern über den drei Bühnenkisten im Foyer (nur sein
+  Schatten ist zu sehen), 1 Rätselbox hinter den Kulissen → Druckfeld → Schattentreppe zum unsichtbaren Stern,
+  2 Lücke hinter dem Vorhang links vor der Ausgangstür: Holz-Silhouette des Barons umwerfen, Krümel schenkt den Stern.
+  Stempel unter der Bühne hinter zwei Kisten (Falltür links der Riesenschnappblume). Extraleben im unsichtbaren Block
+  über dem Bühnenpodest (sein Schatten verrät ihn). Checkpoint vor der Seitenbühne; Türen führen hinter die Kulissen.
+- `2-4` **„Hügelmühle“** – Rollhügel mit Hügelwalzen und Windmühle, darunter das Räderwerk. Sterne: 0 Kletterfels
+  zwischen den Glasröhren (Krallen-Anzug), 1 Farbfeld-Raum (Röhre unter einem Kristalldeckel – Stampfattacke), 2 zwischen
+  den Riesenrädern fallen lassen. Stempel auf dem Turm am Start: Lotti- **und** Greta-Schalter lassen die Stufen erscheinen
+  (Schild: Heldin über Pause → Figur wechseln). Extraleben: roter Ring auf dem Stufenhügel, unsichtbarer Block über der
+  dritten Walze. Checkpoint mit Röhre in den Untergrund (Licht dort gedämpft).
+- Level-lokale Szenen (Krümel, Vorhänge, Rampenlichter, Münzkäfig, Windmühle, Kaninchen, Schattensterne, Mühlenkeller-
+  Dielen und -Pfosten, Untergrund-Licht) liegen in `src/course/levels/w2/_helpers_b.js`; Aufbau-Haken = brennende
+  Laterne (`lantern` mit `lit: true`, `onLit: fn`).
 
 ## Präzisierung (Mehrwelten-Karte)
 
@@ -1768,3 +1785,7 @@ Lauerblock trägt/klemmt ein/Takt, Münzmarder (Flucht, Sprung, Münzregen, Entk
 Hüpfmaus, Wuschel, Marder, Boss zielen auf die nächste Figur), Boss alle drei Phasen, Treffer nur im Fenster, Kanonenkugel,
 Sieg → Warp → Zielmast, Tod setzt den Kampf zurück. Gemessen (scale 2, inkl. Schattenpass): Gegnerzoo 66–108 Zeichenaufrufe
 (Ziel < 140), ≤ 198 k Dreiecke; Boss-Arena 48–72.
+
+## Präzisierung (Level-Haken)
+
+`LEVEL.setup(level, scene)` (optional) wird einmal aufgerufen, nachdem Level, Spielfigur, Figurengruppe, Kamera und Archetyp aufgebaut sind (`CourseScene.create`). Für Code je Simulationsschritt darin `level.onStep((dt) => …)` anmelden. So bauen Level eigene Szenen (Krümel winkt, Sonder-Rätsel) ohne Umweg über Entitäten mit Aktionen. Ältere Kniffe (z. B. Laterne mit `onLit` als Aufbau-Haken in 2-3/2-4) funktionieren weiter.
