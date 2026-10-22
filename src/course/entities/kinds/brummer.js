@@ -64,7 +64,7 @@ class Brummer extends Enemy {
       return;
     }
     if (this.updateDefeat(dt)) return;
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     switch (this.state) {
       case 'fly': {
         const ox = this.pos.x, oz = this.pos.z;
@@ -105,7 +105,7 @@ class Brummer extends Enemy {
   }
 
   startDive() {
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     if (!p || !this.playerActive()) { this.setState('back'); return; }
     const c = this.center();
     this.aim.set(p.pos.x - c.x, p.pos.y + p.half.y - c.y, p.pos.z - c.z);

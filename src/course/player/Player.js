@@ -17,12 +17,27 @@
 // Tragen/Werfen (Präzisierung Gegner/Power-ups): Aktion in Reichweite eines `carryable`-Objekts hebt es auf
 // (`holding`), erneute Aktion wirft es in Blickrichtung (mit Ducken: absetzen); Treffer/Tod lässt es fallen.
 // Rennen gehalten + Berührung greift Panzer/Kickbombe (die Entität ruft pickUp). Siehe carryAction().
+//
+// Ergänzungen (Präzisierung Motor Welt 2):
+//  - Mehrere Figuren (Spiegelfrucht, player/Squad.js): `clone` (true bei Klonen), `hidden` (unsichtbar mitreisend),
+//    `removedFigure` (entfernt: Grund). Mit mehr als einer Figur entfernt ein Treffer bzw. Absturz nur diese Figur
+//    (level.removeFigure); Power-ups wirken auf alle; Röhre/Glasröhre/Zielmast machen die Figur zur Haupt-Figur.
+//  - Trage-Helme (player/helmets.js): `helmet`, `helmetFx`, wearHelmet(name), dropHelmet(how); Aktion → Helm vor
+//    Aufheben und Power-up, Ducken + Aktion setzt ihn ab, ein Treffer schlägt ihn ab (statt Schaden).
+//  - Treibsand (Baustein quicksand): `sand` (Form), `sandDepth` (m eingesunken); langsamer, schwerer Sprung,
+//    ganz eingesunken → die('sand').
 
 import * as THREE from 'three';
 import { HERO_VARIANTS } from '../../config.js';
 import { MOVE, HITBOX, vFor } from './moveset.js';
 import { getPower, normalizePower } from './powers.js';
+import { getHelmet, normalizeHelmet } from './helmets.js';
 import { surfaceNormal } from '../physics/shapes.js';
+
+/** Treibsand: Werte je Form (quicksand-Flag des Bausteins), Standard hier. */
+export const SAND = { sink: 0.3, slow: 0.5, jump: 0.75, plop: 0.06 };
+const IGNORE_SAND = (s) => !!(s.quicksand || s.quicksandFloor);
+const IS_SAND = (s) => !!s.quicksand;
 
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -51,6 +66,11 @@ export class Player {
     this.powerPrev = 'none';
     this.powerTime = 0;
     this.lives = 0;            // Anzeige: runtime verwaltet die Leben
+    this.clone = false;        // Spiegelfrucht-Klon (Squad)
+    this.removedFigure = null; // entfernt (Grund) – Level.step überspringt die Figur
+    this.helmet = null;        // Trage-Helm ('kanone' | 'propeller' | 'licht')
+    this.helmetFx = null;
+    this.helmetCooldown = 0;
     this.reset(opts.pos ?? [0, 1, 0], opts.yaw ?? Math.PI / 2);
   }
 
@@ -101,6 +121,9 @@ export class Player {
     this.phase = 0;
     this.landTime = 0;
     this.lastLandVy = 0;
+    this.hidden = false;
+    this.lostT = 0;
+    this.sand = null; this.sandDepth = 0;
     this.updateHalf();
   }
 
@@ -112,6 +135,7 @@ export class Player {
   get feetY() { return this.pos.y; }
   get headY() { return this.pos.y + this.half.y * 2; }
   get powerDef() { return getPower(this.power); }
+  get helmetDef() { return this.helmet ? getHelmet(this.helmet) : null; }
   get invulnerable() { return this.invuln > 0 || !!this.powerDef.invulnerable; }
   get climbing() { return this.state === 'climb' || this.state === 'beanstalk'; }
   get grounded() { return this.mode === 'ground'; }
@@ -138,6 +162,7 @@ export class Player {
     const tick = (k) => { if (this[k] > 0) this[k] = Math.max(0, this[k] - dt); };
     tick('coyote'); tick('buffer'); tick('chainTimer'); tick('lockTime'); tick('hurtTime'); tick('invuln');
     tick('wallCoyote'); tick('grabCooldown'); tick('boostTime'); tick('clawTime'); tick('fireCooldown'); tick('landTime'); tick('throwTime');
+    tick('helmetCooldown');
     this.input = input;
     if (this.holding?.removed) this.holding = null;   // Getragenes ist weg (z. B. in der Hand explodiert)
     if (this.attackInfo && this.time > this.attackInfo.until) this.attackInfo = null;
@@ -151,9 +176,10 @@ export class Player {
       if (this.powerTime <= 0) this.endTimedPower();
     }
     def.update?.(this, dt, input);
+    this.helmetDef?.update?.(this, dt, input);
 
     if (input.jumpPressed) this.buffer = MOVE.buffer;
-    if (input.actionPressed && !this.carryAction(input)) this.powerDef.onAction?.(this, input);
+    if (input.actionPressed) this.doAction(input);
 
     // Wunschrichtung aus Stick und Kamera-Gier (Steuerung relativ zur Kamera)
     const cy = this.level.controlYaw ?? 0;
@@ -208,7 +234,9 @@ export class Player {
   // ------------------------------------------------------------------ Boden
 
   updateGround(dt, input, want) {
-    const runSpeed = MOVE.run * this.speedMult, walkSpeed = MOVE.walk * this.speedMult;
+    // Treibsand: langsamer, je tiefer desto zäher
+    const sk = this.sand ? this.sandFactor('slow') : 1;
+    const runSpeed = MOVE.run * this.speedMult * sk, walkSpeed = MOVE.walk * this.speedMult * sk;
     // Sprung (auch vorgemerkt) – nicht während der Landestarre nach der Stampfattacke
     if (this.buffer > 0 && !(this.state === 'land' && this.poundLanded && this.landTime > 0)) {
       this.buffer = 0;
@@ -341,6 +369,19 @@ export class Player {
     const speed = Math.max(this.gs, 0);
     const pv = this.platformVel;
     let kind = 'jump';
+    if (this.sand) {
+      // Treibsand: nur ein schwacher Sprung (je tiefer eingesunken, desto niedriger)
+      const k = this.sandFactor('jump');
+      const f = this.facingVec();
+      this.setCrouch(false);
+      this.vel.set(f.x * speed, vFor(MOVE.jump1 * this.jumpMult) * k, f.z * speed);
+      this.airMax = Math.max(speed, MOVE.walk * this.speedMult * 0.6);
+      this.enterAir('jump', true);
+      this.coyote = 0;
+      this.level.sfx('jump');
+      this.level.effects?.dust(this.pos, 4, 0.7);
+      return;
+    }
     if (this.state === 'crouch' && speed < 2) kind = 'backflip';
     else if ((this.state === 'slide' || this.state === 'crouch') && speed >= 4) kind = 'longjump';
     else if (this.state === 'skid' || (this.skidTurnTime && this.time - this.skidTurnTime < 0.12)) kind = 'sideflip';
@@ -609,6 +650,7 @@ export class Player {
    * Treffer im Sattel kosten nur das Power-up/die Größe (kein Rückstoß); Berührungen laufen normal.
    */
   mount(m) {
+    this.level.setMainFigure?.(this);
     this.dropHeld?.();
     this.mode = 'mount';
     this.mountObj = m;
@@ -666,13 +708,18 @@ export class Player {
   move(dt, input, want) {
     const c = this.center();
     const vBefore = { x: this.vel.x, z: this.vel.z };
-    const res = this.world.moveAABB(c, this.half, { x: this.vel.x * dt, y: this.vel.y * dt, z: this.vel.z * dt }, {
+    // Treibsand mit Fließrichtung trägt mit (Kollision über moveAABB)
+    const flow = this.sand && this.mode === 'ground' ? this.sand.quicksand.flow : null;
+    const res = this.world.moveAABB(c, this.half, { x: (this.vel.x + (flow?.x ?? 0)) * dt, y: this.vel.y * dt, z: (this.vel.z + (flow?.z ?? 0)) * dt }, {
       step: this.mode === 'ground' || this.mode === 'swim' ? 0.3 : 0.32,
       snap: this.mode === 'ground' ? 0.35 : 0,
       nudge: this.mode === 'air' ? 0.16 : 0,
+      ignore: this.world.hasQuicksand ? IGNORE_SAND : null,
     });
     this.pos.set(c.x, c.y - this.half.y, c.z);
     this.lastMove = res;
+    this.sandSupport(res, dt);
+    if (this.mode === 'script') return;
 
     // Kopfstoß (Blöcke von unten)
     if (res.ceiling && this.vel.y > 0) {
@@ -714,6 +761,56 @@ export class Player {
     }
   }
 
+  // ------------------------------------------------------------------ Treibsand (Baustein quicksand)
+
+  /** Wert der Sandform (Baustein-Parameter) mit Tiefen-Abschwächung: 'slow' (Lauftempo) | 'jump' (Sprung-v). */
+  sandFactor(kind) {
+    const q = this.sand?.quicksand ?? {};
+    const deep = Math.min(1, this.sandDepth / (this.half.y * 2));
+    if (kind === 'slow') return (q.slow ?? SAND.slow) * (1 - deep * 0.5);
+    return (q.jump ?? SAND.jump) * (1 - deep * 0.5);
+  }
+
+  /**
+   * Nach der Bewegung: Füße in einer Treibsand-Form → Halt auf (Oberfläche − sandDepth), sandDepth wächst langsam
+   * (sink m/s) → die Figur sinkt ein; ganz eingesunken (Kopf unter der Oberfläche) → die('sand'). Beim Steigen
+   * (Sprung) kein Halt; fester Boden (Stufe am Rand, Plattform) beendet den Sand. Setzt res.grounded/ground.
+   */
+  sandSupport(res, dt) {
+    if (!this.world.hasQuicksand) return;
+    if (this.mode !== 'ground' && this.mode !== 'air') { this.sand = null; this.sandDepth = 0; return; }
+    const hits = this.world.overlapAABB({ x: this.pos.x, y: this.pos.y + 0.05, z: this.pos.z }, { x: this.half.x * 0.5, y: 0.05, z: this.half.z * 0.5 }, { filter: IS_SAND });
+    const s = hits[0];
+    if (!s || (res.grounded && res.ground && !res.ground.quicksand)) { this.sand = null; this.sandDepth = 0; return; }
+    const top = s.top;
+    const depth = top - this.pos.y;
+    if (depth < -0.001) { this.sand = null; this.sandDepth = 0; return; }
+    const q = s.quicksand;
+    if (this.vel.y > 0.01 && this.mode === 'air') {
+      // steigt (Sprung): kein Halt; Tiefe merken, damit ein zu schwacher Sprung nicht tiefer zurückfällt
+      this.sand = s;
+      this.sandDepth = Math.max(0, depth);
+      return;
+    }
+    if (this.sand !== s) {
+      // Eintauchen: leichtes „Plopp“ an der Oberfläche
+      this.sandDepth = Math.max(0, Math.min(depth, q.plop ?? SAND.plop));
+      this.sand = s;
+      if (this.prevVy < -5) this.level.effects?.dust(this.pos, 5, 0.8);
+      this.level.sfx('quicksand');
+    } else {
+      this.sandDepth += (q.sink ?? SAND.sink) * dt;
+    }
+    const floor = top - this.sandDepth;
+    if (this.pos.y <= floor + 1e-4 || this.mode === 'ground') {
+      this.pos.y = floor;
+      res.grounded = true;
+      res.ground = s;
+      if (this.vel.y < 0 && this.mode === 'ground') this.vel.y = -2;
+    }
+    if (this.sandDepth >= this.half.y * 2 * 0.96) { this.die('sand'); }
+  }
+
   /** Bei mehreren Formen über dem Kopf: die mit dem Mittelpunkt am nächsten zur Figur. */
   pickCeiling(res) {
     let best = res.ceilingShape, bd = Infinity;
@@ -751,8 +848,9 @@ export class Player {
       let broke = false;
       for (const s of res.hits) {
         if (Math.abs(s.top - this.pos.y) > 0.06 && s.type !== 'ramp') continue;
-        // breakable: 'bomb' (graue Blockwand) hält Stampfen aus – nur Bombe/Riesentrank zerstören sie
-        if (s.breakable && s.breakable !== 'bomb' && this.state === 'groundpound') { s.owner?.onHit?.('pound', this); broke = true; }
+        // breakable: 'bomb' (graue Blockwand) hält Stampfen aus – nur Bombe/Riesentrank zerstören sie;
+        // 'cannon' (Holzwand) nur Kanonenkugel, Bombe, Riesentrank
+        if (s.breakable && s.breakable !== 'bomb' && s.breakable !== 'cannon' && this.state === 'groundpound') { s.owner?.onHit?.('pound', this); broke = true; }
         else { s.owner?.onPound?.(this, s); s.pound?.(this, s); }
       }
       if (broke) { this.vel.y = -MOVE.poundSpeed * 0.6; this.level.sfx('brickbreak'); return; }
@@ -859,12 +957,28 @@ export class Player {
   hurt(source) {
     if (this.dead || this.mode === 'script' || this.invulnerable) return false;
     this.dropHeld();
+    // Trage-Helm fängt den Treffer ab (fliegt davon, Figur bleibt heil)
+    if (this.helmet) {
+      this.dropHelmet('hit', source);
+      this.invuln = MOVE.invuln;
+      this.hurtTime = MOVE.hurtTime;
+      this.knockback(source);
+      return true;
+    }
+    // Mehrere Figuren (Spiegelfrucht): ein Treffer entfernt nur diese Figur
+    if (this.level.players?.length > 1 && this.level.removeFigure?.(this, 'hit')) return true;
     if (this.power !== 'none') { this.setPower('none'); this.level.sfx('powerdown'); }
     else if (this.big) { this.big = false; this.updateHalf(); this.level.sfx('powerdown'); }
     else { this.die('hit'); return true; }
     this.invuln = MOVE.invuln;
     this.hurtTime = MOVE.hurtTime;
-    if (this.mode === 'mount') { this.level.sfx('hurt'); return true; } // im Sattel: kein Rückstoß
+    this.knockback(source);
+    return true;
+  }
+
+  /** Rückstoß nach einem Treffer (im Sattel keiner). */
+  knockback(source) {
+    if (this.mode === 'mount') { this.level.sfx('hurt'); return; }
     let ax = 0, az = 0;
     if (source?.pos) { ax = this.pos.x - source.pos.x; az = this.pos.z - source.pos.z; }
     const l = Math.hypot(ax, az) || 1;
@@ -875,19 +989,25 @@ export class Player {
     this.enterAir('hurt', false);
     this.setState('hurt');
     this.level.sfx('hurt');
-    return true;
   }
 
-  /** Power-up einsammeln: wachstumsbeere | krallen | funken | riese | stern | oneup (Aliasse erlaubt). */
+  /**
+   * Power-up einsammeln: wachstumsbeere | krallen | funken | riese | stern | oneup | spiegel (Aliasse erlaubt).
+   * Mit mehreren Figuren wirkt es auf alle; die Spiegelfrucht erzeugt einen Klon (level.addClone).
+   */
   collectPowerup(name) {
     const p = normalizePower(name);
     if (p === 'oneup') { this.level.addLife?.(1); this.level.sfx('oneup'); return; }
-    if (p === 'wachstumsbeere') {
-      if (!this.big) { this.big = true; this.updateHalf(); }
-      this.level.sfx('powerup');
+    if (p === 'spiegel') {
+      if (!this.level.addClone?.(this)) this.level.sfx('powerup');
       return;
     }
-    this.setPower(p);
+    const figs = this.level.players?.length > 1 && this.level.players.includes(this) ? this.level.players : [this];
+    for (const f of figs) {
+      if (f.dead || f.removedFigure) continue;
+      if (p === 'wachstumsbeere') { if (!f.big) { f.big = true; f.updateHalf(); } }
+      else f.setPower(p);
+    }
     this.level.sfx('powerup');
   }
 
@@ -926,15 +1046,104 @@ export class Player {
 
   die(cause = 'hit') {
     if (this.dead) return;
+    // Mehrere Figuren: Treffer/Absturz/Treibsand entfernen nur diese Figur; Zeit um → alle (normaler Tod)
+    if (this.level.players?.length > 1) {
+      if (cause !== 'time' && this.level.removeFigure?.(this, cause)) return;
+      if (cause === 'time') this.level.squad?.clear();
+      if (this.level.players.length > 1 && this.level.players[0] !== this) this.level.setMainFigure?.(this);
+    }
     this.dropHeld();
+    this.helmet = null; this.helmetFx = null;
     this.dead = true;
     this.deathCause = cause;
     this.mode = 'script';
     this.script = { type: 'dead', t: 0, cause };
-    this.vel.set(0, cause === 'fall' ? 0 : 10, 0);
+    // Absturz und Treibsand: kein Hochspringen (Treibsand: die Figur versinkt ganz)
+    this.vel.set(0, cause === 'fall' || cause === 'sand' ? 0 : 10, 0);
     this.setState('dead');
     this.level.sfx('die');
     this.level.onPlayerDeath?.(cause);
+  }
+
+  // ------------------------------------------------------------------ Aktion (Y / X / Shift)
+
+  /**
+   * Aktion: Gehaltenes werfen; mit Helm: Ducken + Aktion setzt ihn ab, sonst Helm-Aktion (Kanone, Propeller);
+   * danach Aufheben eines Objekts in Reichweite, sonst die Power-up-Aktion (Feuerball, Tatzenhieb).
+   */
+  doAction(input) {
+    if (this.helmet && !this.holding) {
+      if (input.crouch && this.mode === 'ground') { this.dropHelmet('off'); return; }
+      if (this.helmetDef?.onAction?.(this, input)) return;
+    }
+    if (this.carryAction(input)) return;
+    this.powerDef.onAction?.(this, input);
+  }
+
+  // ------------------------------------------------------------------ Trage-Helme (player/helmets.js)
+
+  /** Helm aufsetzen ('kanone' | 'propeller' | 'licht' bzw. 'helm_…'). false, wenn schon einer sitzt. */
+  wearHelmet(name) {
+    const k = normalizeHelmet(name);
+    if (!k || this.helmet || this.dead) return false;
+    this.helmet = k;
+    this.helmetFx = {};
+    getHelmet(k).onWear?.(this);
+    this.level.sfx('helm_on');
+    if (k === 'licht') this.level.sfx('light');
+    this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + this.half.y * 2 + 0.2, z: this.pos.z }, 8);
+    return true;
+  }
+
+  /**
+   * Helm abnehmen: how 'off' (Ducken + Aktion: vor sich absetzen), 'hit' (Treffer: fliegt im Bogen weg), 'gone'
+   * (ohne Entität). Liefert die neue Helm-Entität (aufhebbar) oder null.
+   */
+  dropHelmet(how = 'off', source = null) {
+    const k = this.helmet;
+    if (!k) return null;
+    getHelmet(k)?.onRemove?.(this);
+    this.helmet = null;
+    this.helmetFx = null;
+    this.helmetCooldown = how === 'hit' ? 1.0 : 0.6;
+    if (how === 'gone' || !this.level.hasKind?.(`helm_${k}`)) return null;
+    const f = this.facingVec();
+    let vx = f.x * 1.5, vz = f.z * 1.5, vy = 3;
+    if (how === 'hit') {
+      let ax = -f.x, az = -f.z;
+      if (source?.pos) { ax = this.pos.x - source.pos.x; az = this.pos.z - source.pos.z; }
+      const l = Math.hypot(ax, az) || 1;
+      vx = (ax / l) * 3; vz = (az / l) * 3; vy = 7;
+    }
+    this.level.sfx('helm_off');
+    const e = this.level.spawn(`helm_${k}`, { pos: [this.pos.x + f.x * (how === 'off' ? 0.7 : 0), this.pos.y + this.half.y * 2, this.pos.z + f.z * (how === 'off' ? 0.7 : 0)], vel: [vx, vy, vz], dropped: true });
+    return e;
+  }
+
+  // ------------------------------------------------------------------ Mehrere Figuren (Squad)
+
+  /** Unsichtbar mit der Haupt-Figur reisen (Röhre/Glasröhre); Squad setzt die Figur danach neben sie. */
+  startFollow(leader) {
+    this.dropHeld();
+    this.mode = 'script';
+    this.script = { type: 'follow', leader, t: 0 };
+    this.hidden = true;
+    this.vel.set(0, 0, 0);
+    this.gs = 0;
+    this.setCrouch(false);
+    this.attackInfo = null;
+    this.sand = null; this.sandDepth = 0;
+  }
+
+  /** Jubeln am Ziel (Klone, sobald sie stehen). */
+  cheer() {
+    if (this.mode === 'script') return;
+    this.mode = 'script';
+    this.script = { type: 'cheer', t: 0 };
+    this.vel.set(0, 0, 0);
+    this.gs = 0;
+    this.yaw = -Math.PI / 2;
+    this.setState('victory');
   }
 
   // ------------------------------------------------------------------ Tragen/Werfen (Präzisierung Gegner/Power-ups)
@@ -1026,6 +1235,7 @@ export class Player {
    * Ablauf: 0,55 s hinab → Teleport (Kamera springt) → 0,55 s aus der Zielröhre hinauf.
    */
   enterPipe(pipe) {
+    this.level.setMainFigure?.(this);   // mehrere Figuren: die anderen reisen mit (Squad)
     this.mode = 'script';
     this.script = { type: 'pipe', phase: 'down', t: 0, pipe };
     this.vel.set(0, 0, 0);
@@ -1044,6 +1254,7 @@ export class Player {
    * Während des Ablaufs prüft die Laufzeit keine Berührungen (mode 'script'); Münzen im Rohr sammelt ctl.
    */
   ride(ctl, opts = {}) {
+    this.level.setMainFigure?.(this);   // mehrere Figuren: die anderen reisen mit (Squad)
     this.dropHeld?.();
     this.mode = 'script';
     this.script = { type: 'ride', kind: opts.kind ?? 'ride', t: 0, ctl };
@@ -1059,6 +1270,7 @@ export class Player {
 
   /** Zielmast gepackt: herunterrutschen, Siegespose, dann runtime.finish(). */
   grabPole(goal) {
+    this.level.setMainFigure?.(this);   // mehrere Figuren: Kamera/Siegespose bei dieser Figur, die anderen jubeln
     this.mode = 'script';
     this.script = { type: 'goal', phase: 'slide', t: 0, goal };
     this.vel.set(0, 0, 0);
@@ -1074,13 +1286,21 @@ export class Player {
     if (!sc) { this.mode = 'air'; return; }
     sc.t += dt;
     if (sc.type === 'dead') {
-      if (sc.cause !== 'fall' && sc.t > 0.4) {
+      if (sc.cause === 'sand') this.pos.y -= 0.45 * dt;   // versinkt ganz
+      else if (sc.cause !== 'fall' && sc.t > 0.4) {
         this.vel.y -= 32 * dt;
         this.pos.y += this.vel.y * dt;
       }
-      if (sc.t >= (sc.cause === 'fall' ? 1.1 : 1.9) && !sc.done) { sc.done = true; this.level.onPlayerDeathDone?.(sc.cause); }
+      if (sc.t >= (sc.cause === 'fall' ? 1.1 : sc.cause === 'sand' ? 1.5 : 1.9) && !sc.done) { sc.done = true; this.level.onPlayerDeathDone?.(sc.cause); }
       return;
     }
+    if (sc.type === 'follow') {
+      // reist unsichtbar mit der Haupt-Figur (Röhre, Glasröhre) – Squad setzt sie danach neben sie
+      const l = sc.leader;
+      if (l) { this.pos.copy(l.pos); this.vel.copy(l.vel); this.yaw = l.yaw; }
+      return;
+    }
+    if (sc.type === 'cheer' || sc.type === 'gone') return;
     if (sc.type === 'pipe') {
       const p = sc.pipe;
       if (sc.phase === 'down') {
@@ -1138,6 +1358,7 @@ export class Player {
       vx: +this.vel.x.toFixed(2), vy: +this.vel.y.toFixed(2), vz: +this.vel.z.toFixed(2),
       mode: this.mode, state: this.state, big: this.big, power: this.power, hero: this.hero,
       dead: this.dead, invuln: +this.invuln.toFixed(2), yaw: +this.yaw.toFixed(3),
+      helmet: this.helmet, sand: this.sand ? +this.sandDepth.toFixed(3) : 0, clone: this.clone, hidden: this.hidden,
     };
   }
 }

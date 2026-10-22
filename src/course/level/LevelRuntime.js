@@ -92,6 +92,7 @@ export class LevelRuntime {
   }
 
   respawn() {
+    this.level.squad?.clear();   // Spiegelfrucht-Klone gibt es nach einem Tod nicht mehr
     const p = this.level.player;
     const r = this.respawnPoint();
     p.dead = false;

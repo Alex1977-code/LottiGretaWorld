@@ -84,7 +84,7 @@ class Pilzlingsturm extends Enemy {
       e.markDefeated = () => { e.defeated = true; };   // zählt nicht als eigener Gegner
       e.flip(null, 5);
       // vom Turm weg (Richtung der Quelle bzw. Blickrichtung der Figur), nicht durch den Turm hindurch
-      const p = this.level.player;
+      const p = this.level.nearestPlayer(this.pos);
       let ax = this.pos.x - (source?.pos?.x ?? this.pos.x), az = this.pos.z - (source?.pos?.z ?? this.pos.z);
       let l = Math.hypot(ax, az);
       if (l < 0.2 && p) { const f = p.facingVec(); ax = f.x; az = f.z; l = 1; }   // von oben: in Blickrichtung der Figur

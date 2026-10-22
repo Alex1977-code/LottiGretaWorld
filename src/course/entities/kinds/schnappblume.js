@@ -62,7 +62,7 @@ class Schnappblume extends Enemy {
     if (this.state === 'retreat') { if (this.stateT > 0.6) this.kill(); return; }
     if (this.state === 'flipped') { this.state = 'retreat'; this.stateT = 0; return; }
     // Stampfattacke direkt neben der Blume
-    if (this.poundLandedNear(1.6)) this.onHit('pound', this.level.player);
+    if (this.poundLandedNear(1.6)) this.onHit('pound', this.level.nearestPlayer(this.pos));
     if (this.state === 'retreat') return;
     switch (this.state) {
       case 'idle':
@@ -90,7 +90,7 @@ class Schnappblume extends Enemy {
 
   /** Zuschnappen: Kopf vorn → Figur in Kopfnähe wird getroffen. */
   strike(k) {
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     if (!p || p.dead) return;
     const h = this.headPos(k);
     const c = p.center();

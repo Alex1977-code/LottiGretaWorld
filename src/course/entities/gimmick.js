@@ -106,15 +106,15 @@ export function runAction(level, action, ctx = {}) {
   if (typeof action.fn === 'function') action.fn(level, ctx);
 }
 
-/** Steht die Figur (am Boden) auf einer Form dieses Besitzers? */
+/** Steht eine Figur (am Boden) auf einer Form dieses Besitzers? (alle Figuren, Spiegelfrucht-Klone eingeschlossen) */
 export function playerOn(level, owner) {
-  const p = level.player;
-  return !!p && !p.dead && p.mode === 'ground' && p.ground?.owner === owner;
+  for (const p of level.players ?? [level.player]) if (p && !p.dead && p.mode === 'ground' && p.ground?.owner === owner) return true;
+  return false;
 }
 
-/** Abstand Figur-Mitte ↔ Punkt (xyz). */
+/** Abstand Figur-Mitte ↔ Punkt (xyz) – nächste Figur. */
 export function playerDist(level, x, y, z) {
-  const p = level.player;
+  const p = level.nearestPlayer?.({ x, y, z }) ?? level.player;
   if (!p) return Infinity;
   return Math.hypot(p.pos.x - x, p.pos.y + p.half.y - y, p.pos.z - z);
 }

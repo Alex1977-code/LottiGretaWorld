@@ -14,6 +14,8 @@
 //   teleport(x, y, z)   Figur versetzen (Kamera springt mit)
 //   state()        Kurzinfo { id, time, player, runtime, camera, entities }
 //   snapCamera(), stats() (Zeichenaufrufe/Dreiecke des letzten Bildes), setHero('lotti'|'greta')
+//   squad          Figurengruppe (Spiegelfrucht-Klone, player/Squad.js); addClone(), figures() (Präzisierung Motor Welt 2)
+//   setHero wechselt die Heldin aller Figuren (Pause-Menü „Figur“), teleport sammelt die Klone um die Haupt-Figur.
 
 import Phaser from 'phaser';
 import { getLevel } from './levels/index.js';
@@ -23,6 +25,7 @@ import { Level } from './level/Level.js';
 import { buildLevel } from './level/LevelLoader.js';
 import { Player } from './player/Player.js';
 import { HeroRig } from './player/HeroRig.js';
+import { Squad } from './player/Squad.js';
 import { courseSave } from './level/CourseSave.js';
 import { music, sfx } from '../audio/index.js';
 import { RENDER3D } from '../render3d.js';
@@ -78,7 +81,12 @@ export class CourseScene extends Phaser.Scene {
     if (!this.arch?.createPlayer && courseSave.carryPower && this.player.setPower) this.player.setPower(courseSave.takeCarryPower());
     this.rig = this.arch?.createRig?.(this.view, this.player) ?? new HeroRig(this.view, this.player);
     const p = this.player;
-    this.view.shadows.add({ pos: p.pos, radius: 0.5, alive: () => true, visible: () => !(p.dead && p.deathCause === 'fall') && !(p.script?.type === 'pipe') });
+    this.view.shadows.add({ pos: p.pos, radius: 0.5, alive: () => !p.removedFigure, visible: () => !(p.dead && p.deathCause === 'fall') && !(p.script?.type === 'pipe') && !p.hidden });
+    // Figurengruppe (Spiegelfrucht): weitere Figuren kommen über level.addClone hinzu
+    this.squad = new Squad(this);
+    this.squad.attachMain(this.player, this.rig);
+    this.level.squad = this.squad;
+    this._focus = { x: 0, y: 0, z: 0 };
     this.level.controlYaw = this.view.rig.controlYaw(p.pos);
     this.view.rig.snap(p);
     this.view.rig.custom = this.arch?.camera ? (dt, player, world) => this.arch.camera(dt, player, world) : null;
@@ -118,7 +126,8 @@ export class CourseScene extends Phaser.Scene {
     if (inp.camRight) rig.rotate(1);
     if (inp.zoom) rig.toggleZoom();
     if (inp.debug) this.debug = !this.debug;
-    this.level.controlYaw = rig.controlYaw(this.player.pos);
+    // Steuerungs-Gier am Kamera-Blickpunkt (eine Figur: ihre Lage; mehrere: Schwerpunkt)
+    this.level.controlYaw = rig.controlYaw(this.level.players.length > 1 ? this.level.focus(this._focus) : this.player.pos);
     this.arch?.beforeStep?.(DT, inp);
     this.level.step(DT, inp);
     this.arch?.afterStep?.(DT, inp);
@@ -137,22 +146,30 @@ export class CourseScene extends Phaser.Scene {
   teleport(x, y, z) {
     const p = this.player;
     p.reset([x, y, z], p.yaw);
+    this.squad?.gather(p);
     this.level.controlYaw = this.view.rig.controlYaw(p.pos);
     this.view.rig.snap(p);
   }
+
+  /** Klon der Haupt-Figur (wie Spiegelfrucht einsammeln) – Tests/Fehlersuche. */
+  addClone() { return this.level.addClone(this.player); }
+
+  /** Kurzinfo aller Figuren (Tests). */
+  figures() { return this.level.players.map((f) => f.info()); }
 
   snapCamera() { this.view.rig.snap(this.player); }
 
   setHero(key) {
     courseSave.hero = key;
-    this.player.setHero(courseSave.hero);
+    // alle Figuren (Spiegelfrucht-Klone sind dieselbe Heldin); HeroRig baut den Avatar neu
+    for (const f of this.level?.players ?? [this.player]) f.setHero(courseSave.hero);
   }
 
   state() {
     return {
       id: this.levelId, time: +this.level.time.toFixed(3), player: this.player.info(), runtime: this.level.runtime.info(),
       camera: this.view.rig.info(), entities: this.level.entities.length, finished: this.finished,
-      archetype: this.arch?.info?.() ?? null, worldWarp: this.worldWarp ?? null,
+      archetype: this.arch?.info?.() ?? null, figures: this.level.players.length, worldWarp: this.worldWarp ?? null,
     };
   }
 
@@ -166,6 +183,7 @@ export class CourseScene extends Phaser.Scene {
     const dt = paused ? 0 : Math.min(this.game.loop.delta, 50) / 1000;
     const t = this.view.time + dt;
     this.rig.update(dt, t);
+    this.squad?.render(dt, t);
     this.arch?.render?.(dt, t);
     this.level.render(dt, t);
     this.view.render(dt, this.player, this.level.world);
@@ -223,6 +241,8 @@ export class CourseScene extends Phaser.Scene {
     if (window.__course === this) window.__course = null;
     this.arch?.dispose?.();
     this.arch = null;
+    this.squad?.dispose();
+    this.squad = null;
     this.rig?.dispose();
     this.level?.dispose();
     this.view?.dispose();
