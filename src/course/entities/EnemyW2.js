@@ -1,0 +1,272 @@
+// Gemeinsame Grundlage der Welt-2-Gegner (Präzisierung Gegner Welt 2). Erweitert Enemy (Welt 1) additiv:
+//
+//   - Ziel ist immer die **nächste Figur**: level.nearestPlayer?.(pos) ?? level.player (Spiegelfrucht-Klone;
+//     ohne Klone wie bisher die Heldin). Alle Ziel-Hilfen von Enemy (player, playerActive, playerDist, canSee,
+//     toPlayer, facePlayer, chase, poundLandedNear) laufen darüber.
+//   - Lava und Absturz besiegen (markDefeated → level.onEnemyDefeated zählt, z. B. Arena 2-A: Großrollpilze in
+//     die Lava stoßen), statt nur zu verschwinden.
+//   - Starke Treffer: STRONG = cannon (Kanonen-Helm-Kugel), bomb, mega, star.
+//   - Rutschen: rutscht eine Figur schnell (state 'slide', ≥ 3,5 m/s) seitlich in einen Welt-2-Gegner, ist das ein
+//     Angriff: onHit('slide', figur) statt Treffer der Figur (Standard: der Gegner fliegt weg). Unverwundbare
+//     (Wuschel), Stachel-/Feuerköpfe auf Kopfhöhe und Fallen überschreiben das.
+//   - Hilfen: figures(level), nearestFigure(level, pos), playerJumped(p), localOffset() (Abwurfpunkte aus den
+//     Modellen, einmal vermessen → deterministisch), toWorld(), sharedSlot() (eine Instanz-Gruppe je Level für
+//     Kolonnen aus createInstanced: Marschblöcke, Wuschel).
+//   - Schatten-Stufen (nur Darstellung): initShadows(keep) lässt nur die keep größten Teile des Modells einen
+//     Sonnenschatten werfen (Blob bleibt immer); weiter als SHADOW_NEAR m (bzw. 1,35 × Kameraabstand) vom Blickziel
+//     der Kamera wirft das Modell keinen Sonnenschatten (spart Zeichenaufrufe im Schattenpass ±22 m).
+//
+// Wie Enemy: state, stateT, defeated, dir; Konter-Standard: draufspringen → platt, seitlich → Treffer.
+
+import * as THREE from 'three';
+import { Enemy, spawnLoot, wrapAngle, clamp } from './Enemy.js';
+import { createInstanced } from '../models/lib/instanced.js';
+
+export { spawnLoot, wrapAngle, clamp };
+
+/** Starke Treffer (besiegen auch zähe Gegner bzw. mehrere Trefferpunkte auf einmal). */
+export const STRONG = new Set(['cannon', 'bomb', 'mega', 'star']);
+/** Sprung-Zustände der Figur (Hüpfmaus springt mit). */
+export const JUMP_STATES = new Set(['jump', 'jump2', 'jump3', 'backflip', 'sideflip', 'longjump', 'walljump']);
+
+/** Alle Figuren des Levels (mit Klonen level.players, sonst [level.player]). */
+export function figures(level) {
+  if (level.players?.length) return level.players;
+  return level.player ? [level.player] : [];
+}
+
+/** Nächste Figur zu pos – funktioniert mit und ohne Klon-Motor. */
+export function nearestFigure(level, pos) {
+  return level.nearestPlayer?.(pos) ?? level.player ?? null;
+}
+
+/** Figur aktiv (lebt, nicht im Skript-Modus, kein entfernter Klon)? */
+export function activeFigure(p) {
+  return !!p && !p.dead && p.mode !== 'script' && !p.removedFigure;
+}
+
+/** Hat die Figur in diesem Schritt abgesprungen? (Zustandswechsel in einen Sprung, steigt) */
+export function playerJumped(p) {
+  return activeFigure(p) && JUMP_STATES.has(p.state) && p.stateTime < 1e-6 && p.vel.y > 3;
+}
+
+/** Lokaler Punkt (x vorn, y oben, z rechts) → Weltpunkt bei Gier yaw. */
+export function toWorld(pos, yaw, lx, ly, lz, out = {}) {
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  out.x = pos.x + lx * c + lz * s;
+  out.y = pos.y + ly;
+  out.z = pos.z - lx * s + lz * c;
+  return out;
+}
+
+const OFFSETS = new Map();
+/**
+ * Lokaler Versatz eines Modellpunkts (z. B. feuer_werfer.hand() bei throw-progress 0,5), einmal je Schlüssel
+ * vermessen: Pose mit großen Zeitschritten einschwingen lassen, Weltpunkt ohne Lage/Gier der Wurzel ablesen. So hängt
+ * die Simulation nicht vom Zeichnen ab (deterministisch, auch bei step(n) ohne Bild). fallback ohne Modell.
+ */
+export function localOffset(key, model, state, getter, fallback) {
+  if (OFFSETS.has(key)) return OFFSETS.get(key);
+  let v = fallback;
+  if (model && typeof getter === 'function') {
+    try {
+      const r = model.root;
+      const p0 = r.position.clone(), ry = r.rotation.y, sc = r.scale.clone();
+      r.position.set(0, 0, 0); r.rotation.y = 0; r.scale.set(1, 1, 1);
+      for (let i = 0; i < 8; i++) model.update(0.5, state);
+      const w = getter(new THREE.Vector3());
+      r.position.copy(p0); r.rotation.y = ry; r.scale.copy(sc);
+      if (w && Number.isFinite(w.x)) v = { x: w.x, y: w.y, z: w.z };
+    } catch (_) { /* Rückfall */ }
+  }
+  OFFSETS.set(key, v);
+  return v;
+}
+
+/** Sonnenschatten nur bis zu diesem Abstand (m) vom Blickziel der Kamera. */
+export const SHADOW_NEAR = 18;
+
+/** Schatten werfen? (Abstand zum Blickziel der Kamera, waagerecht) */
+export function shadowNear(level, x, z, extra = 0) {
+  const rig = level.view?.rig;
+  if (!rig?.target) return true;
+  const r = Math.max(SHADOW_NEAR, (rig.distNow ?? 13) * 1.35) + extra;
+  return Math.hypot(x - rig.target.x, z - rig.target.z) < r;
+}
+
+export class EnemyW2 extends Enemy {
+  constructor(level, spec = {}, kind = 'enemy') {
+    super(level, spec, kind);
+    this.fellOut = false;
+    this.shadowMeshes = null;
+    this.shadowOn = true;
+  }
+
+  /** Nur die keep größten Modellteile werfen Sonnenschatten (Rest: nur Blob). */
+  initShadows(keep = 1) {
+    if (!this.model) return;
+    const list = [];
+    this.model.root.traverse((o) => { if (o.isMesh && o.castShadow) list.push(o); });
+    const size = (o) => o.geometry?.attributes?.position?.count ?? 0;
+    list.sort((a, b) => size(b) - size(a));
+    for (const m of list.slice(keep)) m.castShadow = false;
+    this.shadowMeshes = list.slice(0, keep);
+  }
+
+  render(dt, t) {
+    super.render(dt, t);
+    const list = this.shadowMeshes;
+    if (!list?.length) return;
+    const on = shadowNear(this.level, this.pos.x, this.pos.z);
+    if (on !== this.shadowOn) { this.shadowOn = on; for (const m of list) m.castShadow = on; }
+  }
+
+  // ------------------------------------------------------------------ Ziel: nächste Figur
+
+  get player() { return nearestFigure(this.level, this.pos); }
+
+  playerActive() { return activeFigure(this.player); }
+
+  playerDist() {
+    const p = this.player;
+    if (!p) return Infinity;
+    return Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z);
+  }
+
+  canSee(range, dy = 2.5) {
+    const p = this.player;
+    if (!activeFigure(p)) return false;
+    return Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) < range && Math.abs(p.pos.y - this.pos.y) < dy;
+  }
+
+  toPlayer(out = {}) {
+    const p = this.player;
+    const dx = p.pos.x - this.pos.x, dz = p.pos.z - this.pos.z, d = Math.hypot(dx, dz) || 1e-6;
+    out.x = dx / d; out.z = dz / d; out.d = d;
+    return out;
+  }
+
+  /** Stampfattacke irgendeiner Figur gerade neben diesem Gegner gelandet? → Figur oder null. */
+  poundLandedNear(radius) {
+    for (const p of figures(this.level)) {
+      if (!p || p.dead || p.state !== 'land' || !p.poundLanded || p.stateTime > 0.004) continue;
+      if (Math.abs(p.pos.y - this.pos.y) > 1.2) continue;
+      if (this.distanceTo(p.pos.x, this.pos.y + this.half.y, p.pos.z) < radius) return p;
+    }
+    return null;
+  }
+
+  /** Figur rutscht schnell seitlich hinein → Angriff (true = erledigt, Rückgabe 'none'). */
+  slideAttack(player, contact) {
+    if (this.defeated || contact.fromAbove || contact.pound) return false;
+    if (player.state !== 'slide' || player.hSpeed() < 3.5) return false;
+    this.onHit('slide', player);
+    return true;
+  }
+
+  onPlayer(player, contact) {
+    if (this.slideAttack(player, contact)) return 'none';
+    return super.onPlayer(player, contact);
+  }
+
+  /** Blickrichtung als Einheitsvektor. */
+  facing(out = {}) { out.x = Math.cos(this.yaw); out.z = -Math.sin(this.yaw); return out; }
+
+  // ------------------------------------------------------------------ Lava und Absturz besiegen
+
+  moveWithGravity(dt, opts = {}) {
+    const res = super.moveWithGravity(dt, opts);
+    if (this.removed) { if (!this.defeated) this.fallOut('fall'); return res; }
+    this.checkLava();
+    return res;
+  }
+
+  /** In einer Lava-Form (kill: 'lava') → verglüht. true = erledigt. */
+  checkLava() {
+    if (this.removed || this.fellOut) return false;
+    const c = this.center();
+    for (const s of this.level.world.overlapAABB(c, this.half)) {
+      if (s.kill === 'lava' && this.pos.y < s.top + 0.02) { this.fallOut('lava'); return true; }
+    }
+    return false;
+  }
+
+  /** Absturz/Lava: zählt als besiegt (Arena), Effekt, weg. */
+  fallOut(cause) {
+    if (this.fellOut) return;
+    this.fellOut = true;
+    if (cause === 'lava') {
+      this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + 0.3, z: this.pos.z }, 12);
+      this.level.effects?.dust(this.pos, 6, 1.2);
+      this.level.sfx('burn');
+    }
+    if (this.carrier) { const p = this.carrier; this.carrier = null; if (p.holding === this) p.holding = null; }
+    this.touch = false;
+    this.markDefeated();
+    this.kill();
+  }
+}
+
+// ------------------------------------------------------------------ Gemeinsame Instanz-Gruppen (Kolonnen)
+
+const SHARED = new WeakMap();
+
+/**
+ * Eine createInstanced-Gruppe je Level und Art (z. B. alle Marschblöcke des Levels: 5 Zeichenaufrufe statt 5 je
+ * Block). alloc() → { set(pos, yaw, scale, state), state(st), release() } oder null (ohne Darstellung).
+ * Weitere Gruppen werden angelegt, wenn eine voll ist (chunk Plätze je Gruppe).
+ */
+export function sharedSlot(level, name, opts = {}, chunk = 48) {
+  if (!level.view) return null;
+  let byName = SHARED.get(level);
+  if (!byName) { byName = new Map(); SHARED.set(level, byName); }
+  let groups = byName.get(name);
+  if (!groups) { groups = []; byName.set(name, groups); }
+  let g = groups.find((x) => x.free.length > 0);
+  if (!g) {
+    const inst = createInstanced(name, chunk, opts);
+    const free = [];
+    for (let i = chunk - 1; i >= 0; i--) free.push(i);
+    g = { inst, free, used: 0, off: null, pos: [], shadow: true };
+    const view = level.view;
+    const casters = inst.meshes.filter((m) => m.castShadow);
+    const gr = g;
+    view.add(inst.root, (dt) => {
+      // Gruppe ganz weit weg: nicht zeichnen; außerhalb der Schattenreichweite: kein Sonnenschatten
+      let near = false, vis = false;
+      for (const p of gr.pos) {
+        if (!p) continue;
+        if (!near && shadowNear(level, p.x, p.z)) near = true;
+        if (!vis && shadowNear(level, p.x, p.z, 22)) vis = true;
+        if (near) break;
+      }
+      inst.root.visible = vis;
+      if (near !== gr.shadow) { gr.shadow = near; for (const m of casters) m.castShadow = near; }
+      if (vis) inst.update(dt);
+    });
+    g.off = () => { view.remove(inst.root); inst.dispose(); };
+    groups.push(g);
+  }
+  const i = g.free.pop();
+  g.used++;
+  const inst = g.inst;
+  return {
+    index: i,
+    inst,
+    set(pos, yaw = 0, scale = 1, state = 'idle') { g.pos[i] = pos; inst.setAt(i, pos, yaw, scale, state); },
+    state(st) { inst.setState(i, st); },
+    getState() { return inst.getState(i); },
+    color(c) { inst.setColor?.(i, c); },
+    release() {
+      inst.setState(i, 'hidden');
+      g.pos[i] = null;
+      g.free.push(i);
+      g.used--;
+      if (g.used <= 0) {
+        g.off();
+        const k = groups.indexOf(g);
+        if (k >= 0) groups.splice(k, 1);
+      }
+    },
+  };
+}
