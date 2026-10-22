@@ -36,6 +36,8 @@ const ALIASES = {
   funkelstern: 'stern', stern: 'stern', star: 'stern',
   wachstumsbeere: 'wachstumsbeere', beere: 'wachstumsbeere', grow: 'wachstumsbeere',
   oneup: 'oneup', '1up': 'oneup', '1-up': 'oneup', extraleben: 'oneup',
+  // Spiegelfrucht (Präzisierung Motor Welt 2): kein Kostüm – Player.collectPowerup erzeugt einen Klon (Squad)
+  spiegel: 'spiegel', spiegelfrucht: 'spiegel', klon: 'spiegel',
 };
 export function normalizePower(name) {
   if (!name) return null;

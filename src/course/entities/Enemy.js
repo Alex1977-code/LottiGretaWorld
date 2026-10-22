@@ -74,17 +74,17 @@ export class Enemy extends CourseEntity {
 
   setState(s) { this.state = s; this.stateT = 0; }
 
-  get player() { return this.level.player; }
+  get player() { return this.level.nearestPlayer(this.pos); }
 
   /** Figur lebt und ist steuerbar (keine Röhre/Ziel/Tod)? */
   playerActive() {
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     return !!p && !p.dead && p.mode !== 'script';
   }
 
   /** Waagerechter Abstand zur Figur (Infinity ohne aktive Figur). */
   playerDist() {
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     if (!p) return Infinity;
     return Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z);
   }
@@ -92,13 +92,13 @@ export class Enemy extends CourseEntity {
   /** Figur in Sichtweite (waagerecht < range, Höhenunterschied < dy)? */
   canSee(range, dy = 2.5) {
     if (!this.playerActive()) return false;
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     return this.playerDist() < range && Math.abs(p.pos.y - this.pos.y) < dy;
   }
 
   /** Richtung zur Figur (Einheitsvektor in out.x/out.z, out.d = Abstand). */
   toPlayer(out = {}) {
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     const dx = p.pos.x - this.pos.x, dz = p.pos.z - this.pos.z, d = Math.hypot(dx, dz) || 1e-6;
     out.x = dx / d; out.z = dz / d; out.d = d;
     return out;
@@ -261,7 +261,7 @@ export class Enemy extends CourseEntity {
 
   /** Stampfattacke der Figur gerade neben diesem Gegner gelandet (eigener, größerer Radius als attackArea)? */
   poundLandedNear(radius) {
-    const p = this.level.player;
+    const p = this.level.nearestPlayer(this.pos);
     // stateTime ist im Schritt der Landung genau 0 (setState in Player.land) → nur einmal je Stampfattacke
     if (!p || p.dead || p.state !== 'land' || !p.poundLanded || p.stateTime > 0.004) return false;
     if (Math.abs(p.pos.y - this.pos.y) > 1.2) return false;

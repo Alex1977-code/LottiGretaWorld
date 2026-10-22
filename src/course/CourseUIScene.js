@@ -9,6 +9,7 @@ import { setupUiCamera } from '../render.js';
 import { uiText, uiPanel } from '../ui.js';
 import { CourseTouch } from './input/CourseTouch.js';
 import { getPower } from './player/powers.js';
+import { getHelmet } from './player/helmets.js';
 
 const HERO_HAIR = { lotti: 0xc8963c, greta: 0xf3d97a };
 
@@ -50,6 +51,7 @@ export class CourseUIScene extends Phaser.Scene {
     this.powerText = uiText(this, 90, 34, '', { size: 7, thickness: 2, originX: 0.5 }).setDepth(42);
     this.msg = uiText(this, W / 2, GAME.height * 0.36, '', { size: 18, thickness: 4, stroke: '#3a2a6a' }).setDepth(60).setVisible(false);
     this.debugText = uiText(this, 6, GAME.height - 6, '', { size: 6, thickness: 2, originX: 0, originY: 1, shadow: false, align: 'left' }).setDepth(80);
+    this.createSquadHud();
 
     // Pause-Knopf oben rechts
     const px = W - 16, py = 15;
@@ -72,6 +74,50 @@ export class CourseUIScene extends Phaser.Scene {
 
   update() {
     this.refresh(false);
+    this.refreshSquadHud(false);
+  }
+
+  // ------------------------------------------------------------------ Mehrfigur-HUD (Präzisierung Motor Welt 2)
+  // Figurenzahl ×N (Spiegelfrucht-Klone) unter dem Leben-Panel, nur bei mehr als einer Figur; daneben ein kleines
+  // Helm-Symbol, solange die Haupt-Figur einen Trage-Helm trägt. Eigener Grafik-Layer, unabhängig vom übrigen HUD.
+
+  createSquadHud() {
+    this.squadPanel = uiPanel(this, 26, 36, 40, 15, { color: 0x3a1a40, alpha: 0.55, radius: 7, shadow: false, border: 0 }).setDepth(40).setVisible(false);
+    this.squadG = this.add.graphics().setDepth(41);
+    this.squadText = uiText(this, 26, 36, '', { size: 9, originX: 0 }).setDepth(42).setVisible(false);
+    this.prevSquad = '';
+    this.refreshSquadHud(true);
+  }
+
+  refreshSquadHud(force) {
+    const c = this.course, L = c?.level;
+    if (!L) return;
+    const n = L.players?.length ?? 1;
+    const p = c.player, helm = p?.helmet ?? null;
+    const key = `${n}|${helm}|${p?.hero}`;
+    if (!force && key === this.prevSquad) return;
+    this.prevSquad = key;
+    const g = this.squadG;
+    g.clear();
+    const show = n > 1;
+    this.squadPanel.setVisible(show);
+    this.squadText.setVisible(show);
+    if (show) {
+      this.squadText.setText(`×${n}`);
+      // zwei versetzte Köpfchen = „mehrere Figuren“
+      for (const [dx, a] of [[-3, 0.65], [1, 1]]) {
+        const x = 14 + dx, y = 36;
+        g.fillStyle(0xffd6b0, a); g.fillCircle(x, y, 4.6);
+        g.fillStyle(HERO_HAIR[p?.hero] ?? 0xc8963c, a); g.slice(x, y - 0.6, 5, Math.PI, 0, false); g.fillPath();
+      }
+      g.fillStyle(0x2a2550, 1); g.fillCircle(13.6, 36.8, 0.7); g.fillCircle(16.4, 36.8, 0.7);
+    }
+    if (helm) {
+      const x = show ? 54 : 18, y = 36;
+      g.fillStyle(0x1a1830, 0.55); g.fillRoundedRect(x - 8, y - 7, 16, 14, 4);
+      g.fillStyle(getHelmet(helm)?.icon ?? 0xffffff, 1); g.fillRoundedRect(x - 5, y - 4, 10, 7, 2);
+      g.lineStyle(1, 0xffffff, 0.85); g.strokeRoundedRect(x - 5, y - 4, 10, 7, 2);
+    }
   }
 
   refresh(force) {
