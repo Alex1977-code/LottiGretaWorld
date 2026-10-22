@@ -1843,3 +1843,28 @@ Sieg → Warp → Zielmast, Tod setzt den Kampf zurück. Gemessen (scale 2, inkl
 ## Präzisierung (Level-Haken)
 
 `LEVEL.setup(level, scene)` (optional) wird einmal aufgerufen, nachdem Level, Spielfigur, Figurengruppe, Kamera und Archetyp aufgebaut sind (`CourseScene.create`). Für Code je Simulationsschritt darin `level.onStep((dt) => …)` anmelden. So bauen Level eigene Szenen (Krümel winkt, Sonder-Rätsel) ohne Umweg über Entitäten mit Aktionen. Ältere Kniffe (z. B. Laterne mit `onLit` als Aufbau-Haken in 2-3/2-4) funktionieren weiter.
+
+## Welt 3 – Level-Liste und Freischaltung (Hauptsitzung)
+
+Welt 3 „Schnee und Eis“ wird nach Sieg über `2-Panzer` frei (Glasröhre am Ende der Welt-2-Insel, bisher „Bald“).
+Sternbedarf zählt **alle** gesammelten Sterne (Welt 1 + 2 bieten zusammen ≈ 48).
+
+| Id | Archetyp | Thema | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `3-1` | parcours (Schneefeld, Eisbahn, Schneebälle, Schlittschuh) | snow | course_snow | 3 + Stempel | Welt 3 offen |
+| `3-2` | autoscroller (Himmel, Kettenzäune zum Klettern) | skyway | course_skyway | 3 + Stempel | 3-1 **und ≥ 35 Sterne** |
+| `3-3` | parcours (Spukhaus, verschiebbare Treppen/Regale, Licht-Helm) | ghost | course_ghost | 3 + Stempel | 3-2 |
+| `3-Kapitän` | diorama (See-Diorama, Wasserstand, Glasröhren-Netz) | diorama | course_diorama | 5 | 3-3 |
+| `3-4` | parcours (kurzer Pastell-Garten, 100 s) | plaza | course_plaza | 3 + Stempel | 3-3 |
+| `3-A` | arena (rote Käfig-Festung, 3 Zauberkröten) | fortress | course_arena | 1 | 3-4 |
+| `3-5` | parcours (Lagune, Röhren-Netz, Unterwasser) | water | course_water | 3 + Stempel | 3-4 |
+| `3-6` | parcours (Bergrennen: Boost-Pfeile, Sprungfelder) | race | course_race | 3 + Stempel | 3-5 **und ≥ 45 Sterne** |
+| `3-B` | boss (Zirkuszelt-Arena, Schlangenkönig) | circus | course_boss | 1 | 3-6 |
+| `3-7` | parcours (Herbstwald, Schalttafeln auf Schienen, Wasserfall) | autumn | course_autumn | 3 + Stempel | 3-6 |
+| `3-Zug` | autoscroller + boss (Zugfahrt, Schattenläuferin) | train | course_train | 3 + Stempel | 3-7 **und ≥ 55 Sterne** |
+
+Welt 3 hat 32 Sterne. Neu: Power-up **Gleitblatt** (`gleitblatt`: Schwanzhieb, Gleiten bei gehaltenem Sprung, kurz zur
+Statue werden – eigenes Kostüm), **Schlittschuh** (tragbar wie ein Reit-Schuh: schnelles Gleiten auf Eis), Eis-Flächen
+(rutschig), rollbare Schneebälle, Kettenzaun-Klettern, Geister (`spuk` folgt, wenn man wegschaut; Licht-Helm bannt).
+Wo der Bauplan den „Kapitän“ nennt (3-Zug, 3-Kapitän), tritt **Krümel** auf; „Münz-Dieb“ = **Münzmarder**;
+„Prinzessinnen-Figur“ (3-4) = Figurenschalter für **Greta** bzw. **Lotti**.
