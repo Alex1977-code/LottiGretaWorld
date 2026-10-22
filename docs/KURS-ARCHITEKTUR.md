@@ -2083,6 +2083,7 @@ Schwanzhieb rundum gegen Pilzling und Ziegel, 8-m-Lücke ohne/mit Gleiten, Fall 
 einen Pilzling, unverwundbar, Jäger ignoriert sie, Ende nach 3 s bzw. beim Loslassen, Treffer → normal groß), Eis (Bremsweg,
 Wenden, Anlauf, Gegner rutschen), Schlittschuh (Einsteigen, 12,5/16 m/s, Kurven, Sprung, Stachelboden, Treffer wirft heraus,
 Aussteigen, ?-Block), Schneeball (schieben, wachsen, Pilzling, Mauer + Münzen, draufstehen, Schwanzhieb), Kettenzaun (greifen,
-klettern, Faustschlag, abspringen, mitfahren, Kettenplattform), Unterwasser (abtauchen, sinken, Schwimmzug, auftauchen,
-Kamera-Haken an/aus, Strömung, Wasserspiegel, Druckfeld, floats), isFacing, alle HeroRig-Zustände – 65 Prüfungen.
-Gemessen im Schneegarten (scale 2, inkl. Schattenpass): 64–94 Zeichenaufrufe, 93–127 k Dreiecke.
+klettern, Faustschlag, abspringen, mitfahren, Kettenplattform, Zaun auf einem Fahrzeug), Unterwasser (abtauchen, sinken,
+Schwimmzug, auftauchen, Kamera-Haken an/aus, Strömung, Wasserspiegel, onWaterLevel, Druckfeld, floats), isFacing, alle
+HeroRig-Zustände – 66 Prüfungen. Gemessen im Schneegarten (scale 2, inkl. Schattenpass): 63–94 Zeichenaufrufe, 93–127 k
+Dreiecke (die Eisbahn mit dem Modell eisflaeche kostet ≈ 250 Dreiecke/m² – große Bahnen deshalb als flache Platte).
