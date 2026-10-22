@@ -30,6 +30,36 @@ export function gateRects(map, grid) {
   });
 }
 
+/**
+ * Rückseite jeder Schranke: die Seite, die vom Startpunkt aus nicht erreichbar ist, wenn alle anderen Schranken offen
+ * sind (back = +1/−1 entlang axis). Von hinten lässt eine Schranke die Figur durch (sie kam z. B. mit der Glasröhre aus
+ * der nächsten Welt hinter gesperrte Wege und muss zurück zum Start finden). 0 = keine eindeutige Seite.
+ */
+export function gateSides(map, grid) {
+  const gates = gateRects(map, grid);
+  const [sx, , sz] = map.spawn.pos;
+  return gates.map((gt) => {
+    const [x0, z0, x1, z1] = gt.rect;
+    const blocked = new Set();
+    for (let x = x0 + grid.cell / 2; x < x1; x += grid.cell) for (let z = z0 + grid.cell / 2; z < z1; z += grid.cell) blocked.add(grid.cellOf(x, z));
+    const seen = grid.flood(sx, sz, (k) => blocked.has(k));
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, off = GATE_DEPTH / 2 + 0.75;
+    const side = (sg) => seen.has(gt.axis === 'x' ? grid.cellOf(cx + sg * off, cz) : grid.cellOf(cx, cz + sg * off));
+    const plus = side(1), minus = side(-1);
+    return { ...gt, back: plus && !minus ? -1 : minus && !plus ? 1 : 0 };
+  });
+}
+
+/**
+ * Verlauf der Glasröhre eines Eingangs (Art 'pipe') in Weltkoordinaten: Fuß bei decor (Standard 3,2 m hinter dem
+ * Podest), dann die Punkte aus def.pipe (relativ zum Fuß). Erster Punkt = Fuß am Boden.
+ */
+export const DEFAULT_PIPE = [[0, 0, 0], [0, 4, 0], [0, 6.2, -2.4], [0, 7, -10], [0, 6.5, -30], [0, 5, -60]];
+export function tubePoints(def) {
+  const [x, y, z] = def.decor ?? [def.pos[0], def.pos[1], def.pos[2] - 3.2];
+  return (def.pipe ?? DEFAULT_PIPE).map(([a, b, c]) => [x + a, y + b, z + c]);
+}
+
 /** Rückkehrpunkt vor einem Eingang (Standard: 2,6 m Richtung Kamera, +Z). */
 export function exitPoint(entrance) {
   if (entrance.exit) return entrance.exit.slice();
@@ -62,7 +92,8 @@ export function reachable(map, grid, open = new Set()) {
   }
   for (const r of map.roamers ?? []) {
     if (out.includes(r.level)) continue;
-    if ([r.from, r.to].some(([x, , z]) => seen.has(grid.cellOf(x, z)))) out.push(r.level);
+    const pts = r.circle ? [[r.circle[0], 0, r.circle[1]], [r.circle[0] + r.circle[2], 0, r.circle[1]]] : [r.from, r.to];
+    if (pts.some(([x, , z]) => seen.has(grid.cellOf(x, z)))) out.push(r.level);
   }
   return { ids: out, cells: seen };
 }
