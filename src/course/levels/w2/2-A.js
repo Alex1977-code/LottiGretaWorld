@@ -5,15 +5,15 @@
 // Dreimal draufspringen geht auch. Sind alle besiegt, steigt der Stern in der Mitte auf; Einsammeln beendet das Level.
 // Zeitlimit 200 s. Kulisse: Feuerschalen am Rand, Glutkristalle, aufsteigende Glutfunken, blubbernde Lavablasen.
 // Geheimnisse: keine (Bauplan). Ein ?-Block mit Krallen-Anzug (Tatzenhieb stößt Liegende) und zwei Münzkreise.
-// Level-Haken (Laterne am Startrand, _helpers_c.js): Felsinsel, Lavasee, Kraterwand, Vulkane, Funken, Blasen, Wellen.
+// Level-Haken (LEVEL.setup, _helpers_c.js): Felsinsel, Lavasee, Kraterwand, Vulkane, Funken, Blasen, Wellen.
 
-import { hook, rockIsland, islandRadius, lavaLake, calderaWall, volcanoes, lavaBubbles, embers, arenaWaves, rockStumps } from './_helpers_c.js';
+import { levelSetup, rockIsland, islandRadius, lavaLake, calderaWall, volcanoes, lavaBubbles, embers, arenaWaves, rockStumps } from './_helpers_c.js';
 
 const Y = 2;          // Oberseite der Insel
 const LAVA = -0.5;    // Lavaspiegel
 
 const ISLAND = { center: [0, 0], top: Y, R: 10.6, depth: 5, lavaY: LAVA };
-/** Felsstümpfe im Lavasee knapp vor dem Inselrand (Feuerschalen, Laterne) – auf der Insel würden sie Stöße bremsen. */
+/** Felsstümpfe im Lavasee knapp vor dem Inselrand (Feuerschalen) – auf der Insel würden sie Stöße bremsen. */
 const STUMP_A = [-2.2, -0.95, -2.75, -0.4, 2.65, 0.6, 1.15];
 const stump = (a, d = 4.4) => { const r = islandRadius(ISLAND, a) + d; return [Math.cos(a) * r, 0.3, Math.sin(a) * r]; };
 
@@ -44,11 +44,12 @@ export const LEVEL = {
   timeLimit: 200,
   starSlots: 1,
   killY: -8,
+  setup: levelSetup(setup),
   start: { pos: [0, Y, 7], yaw: Math.PI / 2 },
   camera: [{ from: 30, to: -30, pitch: 52, dist: 19.5, x: 0, xLock: 0.35, ahead: 1, lead: 0.5 }],
   arena: { enemies: 'all', star: [0, Y + 0.6, -1], starIndex: 0, intro: 'Stoß die Großrollpilze in die Lava!', center: [0, Y, -1], camPull: 0.3 },
   segments: [
-    { type: 'torches', h: 1.5, items: STUMP_A.slice(0, 6).map((a) => stump(a)) },
+    { type: 'torches', h: 1.5, items: STUMP_A.map((a) => stump(a)) },
     { type: 'deco_w1', items: [
       { kind: 'crystals', pos: at(-1.6, 9.6), size: 1.1, n: 5, color: 'gold' },
       { kind: 'crystals', pos: at(3.4, 9.3), size: 0.9, n: 4, color: 'gold' },
@@ -66,7 +67,6 @@ export const LEVEL = {
   items: [
     { kind: 'coins', pos: [-6, Y + 0.4, 2], r: 1.4, n: 6 },
     { kind: 'coins', pos: [6, Y + 0.4, 2], r: 1.4, n: 6 },
-    hook(stump(STUMP_A[6]), setup),
   ],
   stars: [],
   marks: { center: [0, Y, 0], start: [0, Y, 7], grp1: [0, Y, -4], grp2: [-5, Y, -3], grp3: [5, Y, -3] },

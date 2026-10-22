@@ -27,10 +27,10 @@
 //                                              viert“; Viererlift auf den Turm → Stern 3 (oder Krallen); Zielmast
 //                                              auf dem Hügel.
 // Gegner: Marschblock 14 (3 + 3 Gang, 5 Hügel, 3 Gasse), Rollpilz 2, Feuer-Werfer 1.
-// Level-Haken (Laterne am Start, _helpers_c.js): Inseln, Hecken, Teiche, Bäume, Beete, Gartenleuchten, fallende
+// Level-Haken (LEVEL.setup, _helpers_c.js): Inseln, Hecken, Teiche, Bäume, Beete, Gartenleuchten, fallende
 // Blütenblätter, Spiegelfrucht-Sträucher, sitzende Kaninchen, Tor-Rückseite.
 
-import { isl, line, ring, arc, hook, fruitBush, petals, blossomTrees, flowerBeds, hedges, ponds, flatIslands, gardenLamps, roseVines } from './_helpers_c.js';
+import { isl, line, ring, arc, levelSetup, fruitBush, petals, blossomTrees, flowerBeds, hedges, ponds, flatIslands, gardenLamps, roseVines } from './_helpers_c.js';
 import { bakeModel } from '../../blocks/w2kit.js';
 
 const Y1 = 1, Y2 = 2.2, Y4 = 6.2, Y7 = 3;
@@ -125,7 +125,7 @@ function setup(level) {
   for (const [x, y, z, yaw] of [[8.4, Y1, 1.2, 2.4], [12.4, Y7, -208, 3.8]]) {
     bakeModel(level, 'bunny_small', {}, x, y, z, yaw, 1, { anim: 'idle' });
   }
-  gardenLamps(level, [[3.4, Y1, 6.6], [-3.4, Y4, -96.8], [1.6, Y7, -222]]);
+  gardenLamps(level, [[-3.4, Y1, 7.2], [3.4, Y1, 6.6], [-3.4, Y4, -96.8], [1.6, Y7, -222]]);
   // Kletterrosen am Felsturm (Vorderseite und linke Flanke)
   roseVines(level, [[4.7, Y4, -178, 6.6, 0, 1], [6.3, Y4, -178, 5.2, 0, 1], [7.5, Y4, -178, 6.2, 0, 1], [4, Y4, -178.8, 4.6, -1, 0], [4, Y4, -181.4, 6.4, -1, 0]]);
   // Tor-Rückseite: wer das Tor überspringt (Rückwärtssalto vom Pflanzkasten), dem öffnet es sich – sonst stünde die
@@ -147,6 +147,8 @@ export const LEVEL = {
   theme: 'pinkgrass',
   music: 'course_cherry',
   timeLimit: 400,
+  killY: -17,
+  setup: levelSetup(setup),
   start: { pos: [0, Y1, 5], yaw: Math.PI / 2 },
   camera: [
     { from: 12, to: -26, pitch: 44, dist: 13 },
@@ -328,8 +330,6 @@ export const LEVEL = {
     line([-2, Y7 + 0.4, -211], [-2, Y7 + 0.4, -216], 2),
     { kind: 'coins', pos: [10, 11, -222], r: 1.3, n: 4 },
     line([-4, Y7 + 1.4, -221], [-4, Y7 + 2.4, -223], 2),
-    // Level-Haken (brennende Laterne am Start)
-    hook([-3.4, Y1, 7.2], setup),
   ],
   checkpoint: { pos: [0, Y4, -98.6], yaw: Math.PI / 2 },
   stars: [

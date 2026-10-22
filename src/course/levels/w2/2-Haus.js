@@ -8,9 +8,9 @@
 //   4 Uhrenstube     vier Hackvögel            – den Stern auf dem Podest am Ende des Uhrengangs erreichen
 //   5 Kaminzimmer    zwei Feuer-Werfer         – alle besiegen (einer tänzelt auf der Holzgalerie)
 // Zeit abgelaufen → Haus verlassen mit den bisherigen Sternen (fail 'exit'). Thema house, Musik course_house.
-// Level-Haken (Laterne hinter der Rückwand von Raum 1, unsichtbar, _helpers_c.js): Ausstattung aller Räume.
+// Level-Haken (LEVEL.setup, _helpers_c.js): Ausstattung aller Räume.
 
-import { isl, hook, houseRoom, houseFinish } from './_helpers_c.js';
+import { isl, levelSetup, houseRoom, houseFinish } from './_helpers_c.js';
 
 const Y = 1, W = 14, D = 12, H = 4;
 const RX = (i) => i * 40, RZ = (i) => -64 * i - 16;
@@ -91,6 +91,7 @@ export const LEVEL = {
   theme: 'house',
   music: 'course_house',
   timeLimit: 300,
+  setup: levelSetup(setup),
   start: start(0),
   house: {
     fail: 'exit',
@@ -137,7 +138,6 @@ export const LEVEL = {
     { kind: 'coins', roomId: 'r3', from: at(2, -5, -1.6, Y + 0.4), to: at(2, -5, 2.4, Y + 0.4), n: 2 },
     { kind: 'coins', roomId: 'r3', from: at(2, 5, -1.6, Y + 0.4), to: at(2, 5, 2.4, Y + 0.4), n: 2 },
     { kind: 'coin', roomId: 'r3', pos: at(2, 0, 2.6, Y + 0.4) },
-    hook(at(0, 0, -8.5), setup),
   ],
   marks: { r1: start(0).pos, r2: start(1).pos, r3: start(2).pos, r4: start(3).pos, r5: start(4).pos, podest: at(3, 0, -5.1, Y + 1.2) },
 };

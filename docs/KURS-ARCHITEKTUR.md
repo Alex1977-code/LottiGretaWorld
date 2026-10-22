@@ -1074,17 +1074,16 @@ Münzsack). Mini-Pilzlinge: `pilzling` mit `mini: true` (halbe Größe, ein Tref
   Dielen und -Pfosten, Untergrund-Licht) liegen in `src/course/levels/w2/_helpers_b.js`; Aufbau-Haken = brennende
   Laterne (`lantern` mit `lit: true`, `onLit: fn`).
 
-### Welt 2 – Level-Notizen: 2-5, 2-A, 2-Haus (Level-Agent)
+**Level-Notizen 2-5 / 2-A / 2-Haus** (Level-Agent; gemeinsame Bausteine `src/course/levels/w2/_helpers_c.js` ohne
+`LEVEL`; Test `tests/course_w2c.mjs [2-5|2-A|2-Haus]`, Port 4402 + PORT_BASE, Bilder `tests/out/w2c_*.png`):
 
-Additiv; nichts oben Festgelegtes wird geändert. Dateien: `src/course/levels/w2/2-5.js`, `2-A.js`, `2-Haus.js`, gemeinsame
-Bausteine in `src/course/levels/w2/_helpers_c.js` (ohne `LEVEL`, die Registry überspringt die Datei), Test
-`tests/course_w2c.mjs` (`PORT_BASE=… node tests/course_w2c.mjs [2-5|2-A|2-Haus]`, Port 4402 + PORT_BASE).
-
-- **Level-Haken (Übergang, bis es ein offizielles Feld gibt):** `hook(pos, fn)` aus `_helpers_c.js` ist eine brennende
-  Laterne (`{ kind: 'lantern', lit: true, radius: 0.1, onLit }`); sie zündet im Konstruktor, also während des
-  Levelaufbaus nach Segmenten, Blöcken und Gegnern, vor `view.finalize` und vor `archetype.setup`. `fn(level)` baut
-  dort statische Zier (`addStatic`), Kollisionsformen, `level.onStep`-Funktionen und Wrapper (z. B. `runtime.respawn`).
-  Wunsch: ein Feld `LEVEL.setup(level)` mit genau diesem Zeitpunkt.
+- **Level-Haken:** alle drei nutzen `LEVEL.setup = levelSetup(fn)` (Präzisierung „Level-Haken“). `fn(level)` baut
+  statische Zier (`addStatic`), Kollisionsformen, `level.onStep`-Funktionen und Hüllen (z. B. `runtime.respawn`, außen
+  um die Hülle des Archetyps). Weil der Haken nach `view.finalize` läuft, verschmilzt `levelSetup` die neuen Teile
+  (`view.static.build()`) und hängt sie an das vorhandene Mesh gleichen Materials/Schattenwurfs im selben 32-m-Abschnitt
+  an (sonst + 1–2 Zeichenaufrufe je Abschnitt); danach `level.computeBounds()` (Absturzhöhe mit den eigenen Inseln).
+  Der Himmel/Hintergrund wird mit dem Umriss **ohne** die Haken-Formen ausgelegt – wo das zählt, `killY` im Level setzen.
+  Wunsch an den Motor: `addStatic` im Haken direkt in die Abschnitts-Meshes (oder ein `setup` vor `finalize`).
 - **2-5 „Doppelgängersteig“** (parcours, pinkgrass, course_cherry, 400 s, ≈ 235 m nach −Z): Blütenweg (Spiegelfrucht
   mit Schild) → Kistenhof (Stern 1 versteckt in der hinteren rechten Kiste, Stampfattacke) → Rosenhecken-Gang mit
   zwei Marschblock-Kolonnen, Nischen-Druckfeld (2 Figuren → 1-Up + Münzen), Druckfeld für 2 senkt das Tor (übersprungen:
@@ -1103,9 +1102,9 @@ Bausteine in `src/course/levels/w2/_helpers_c.js` (ohne `LEVEL`, die Registry ü
   auf dem Podest erreichen, vier Hackvögel im Takt), Kaminzimmer (2 Feuer-Werfer, einer auf der Einweg-Galerie).
   Jeder Raum mit eigener Tapete, eigenem Boden, Teppich, Möbeln, Bildern (u. a. Baron-Brummbär-Steckbrief) und
   tickenden Uhren (Minutenzeiger 1 Umdrehung je 10 s).
-- **Kennzahlen** (scale 2, inkl. Schattenpass): 2-5 mit einer Figur ≤ 92 Aufrufe / ≤ 258 k Dreiecke, mit vier Figuren
-  116 / 194 k, mit fünf 143 / 287 k (jede weitere Figur kostet ≈ 12–16 Aufrufe; ?-Blöcke ≈ 3 k Dreiecke je Stück und
-  Pass, Münzen ≈ 0,4 k – beides wird immer gezeichnet); 2-A ≤ 75 / ≤ 82 k; 2-Haus ≤ 73 / ≤ 121 k.
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 2-5 mit einer Figur ≤ 92 Aufrufe / ≤ 263 k Dreiecke, mit vier Figuren
+  115 / 193 k, mit fünf 144 / 286 k (jede weitere Figur kostet ≈ 12–16 Aufrufe; ?-Blöcke ≈ 3 k Dreiecke je Stück und
+  Pass, Münzen ≈ 0,4 k – beides wird immer gezeichnet); 2-A ≤ 76 / ≤ 82 k; 2-Haus ≤ 72 / ≤ 121 k.
 
 ## Präzisierung (Mehrwelten-Karte)
 

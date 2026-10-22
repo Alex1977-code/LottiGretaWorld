@@ -2,11 +2,11 @@
 // überspringt dieses Modul). Neben reinen Daten-Helfern (Inseln, Münzspuren) liegt hier die level-lokale Kulisse, die
 // es als Baustein nicht gibt (Blütenblätter, nachwachsende Spiegelfrucht, Glutfunken, Vulkane, Möbel …).
 //
-// Level-Haken: `hook(pos, fn)` liefert eine brennende Laterne ({ kind: 'lantern', lit: true, onLit }) – die Laterne
-// zündet schon im Konstruktor und ruft dabei onLit(level) auf, also während des Levelaufbaus (nach segments, blocks,
-// enemies und den items davor, vor dem Verschmelzen der statischen Geometrie). So kann ein Level eigene Geometrie
-// (view.addStatic), animierte Objekte (view.add), Schritt-Funktionen (level.onStep) und Haken (level.onEnemyDefeated,
-// runtime.respawn) anlegen, ohne Motor-Dateien zu ändern. Die Laterne bleibt als Zier stehen (Platz bewusst wählen).
+// Level-Haken: `LEVEL.setup = levelSetup(fn)` (Präzisierung „Level-Haken“) ruft fn(level, scene) einmal nach dem
+// Aufbau von Level, Figur, Kamera und Archetyp. Dort legt ein Level eigene Geometrie (view.addStatic), animierte
+// Objekte (view.add), Kollisionsformen, Schritt-Funktionen (level.onStep) und Haken (level.onEnemyDefeated,
+// runtime.respawn) an, ohne Motor-Dateien zu ändern; levelSetup verschmilzt danach die neue statische Zier und
+// berechnet den Level-Umriss (Absturzhöhe) mit den neuen Formen neu.
 
 import * as THREE from 'three';
 import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, islandParts, themeOf } from '../../blocks/kit.js';
@@ -49,9 +49,37 @@ export function arc(a, b, n, h = 2) {
   return out;
 }
 
-/** Level-Haken beim Aufbau (siehe Kopfkommentar). */
-export function hook(pos, fn, o = {}) {
-  return { kind: 'lantern', pos, lit: true, radius: 0.1, hanging: !!o.hanging, onLit: (level) => fn(level) };
+/**
+ * Level-Haken (siehe Kopfkommentar): `LEVEL.setup = levelSetup((level, scene) => { … })`. Die statische Geometrie ist
+ * zum Zeitpunkt des Hakens schon verschmolzen: neue Teile (addStatic) fasst der Batcher hier zu eigenen Meshes je
+ * Abschnitt zusammen; levelSetup hängt jedes davon an das vorhandene Mesh gleichen Materials/Schattenwurfs im selben
+ * Abschnitt an (sonst kostete jede Abschnittsgruppe einen Zeichenaufruf mehr, mit Schatten zwei). Danach wird der
+ * Umriss (level.bounds, killY) mit den neuen Kollisionsformen neu berechnet.
+ */
+export function levelSetup(fn) {
+  return (level, scene) => {
+    const sb = level.view?.static;
+    const before = new Set(sb?.meshes ?? []);
+    fn(level, scene);
+    if (sb) {
+      sb.build();
+      const sec = (m) => { const g = m.geometry; if (!g.boundingBox) g.computeBoundingBox(); return Math.floor(-(g.boundingBox.min.z + g.boundingBox.max.z) / 2 / 32); };
+      for (const m of sb.meshes.filter((x) => !before.has(x))) {
+        let host = null;
+        for (const h of before) {
+          if (h.material === m.material && h.castShadow === m.castShadow && h.receiveShadow === m.receiveShadow && sec(h) === sec(m)) { host = h; break; }
+        }
+        if (!host) continue;
+        const old = host.geometry;
+        host.geometry = merge([old, m.geometry]);
+        host.geometry.computeBoundingBox();
+        m.parent?.remove(m);
+        sb.meshes.splice(sb.meshes.indexOf(m), 1);
+        sb.stats.meshes--;
+      }
+    }
+    level.computeBounds();
+  };
 }
 
 // ------------------------------------------------------------------ kleine Geometrie-Bausteine (Weltkoordinaten)
@@ -631,8 +659,8 @@ export function lavaBubbles(level, o = {}) {
  * Wellen für die Arena (level-lokal): Gegner mit den Ids aus waves[1..] warten unsichtbar und ohne Wirkung, bis alle
  * Gegner der vorigen Welle besiegt sind; dann fallen sie nach pause s vom Himmel an ihren Startpunkt (Staub, Beben,
  * Ansage). Der Arena-Archetyp zählt alle Wellen von Anfang an (HUD „noch N“). Nach einem Tod setzt die Arena alle Gegner
- * neu (runtime.respawn) – die Wellen beginnen dann wieder bei 1. Muss beim Aufbau laufen (vor arena.setup), damit die
- * Arena unsere Hülle von runtime.respawn umhüllt (ihre neuen Gegner entstehen vor unserem Parken).
+ * neu (runtime.respawn) – die Wellen beginnen dann wieder bei 1. Läuft im Level-Haken (nach arena.setup): unsere Hülle
+ * von runtime.respawn liegt außen und parkt erst nach dem Neuaufbau der Arena (deren frische Gegner).
  * waves = [['id1'], ['id2', 'id3']]; o: pause (1.6 s), drop (12 m), banner(level, welle), id ('wellen').
  */
 export function arenaWaves(level, waves, o = {}) {
@@ -670,7 +698,7 @@ export function arenaWaves(level, waves, o = {}) {
   };
   const rt = level.runtime;
   const respawn = rt.respawn.bind(rt);
-  rt.respawn = () => { reset(); respawn(); };
+  rt.respawn = () => { respawn(); reset(); };
   reset();
   level.onStep((dt) => {
     for (const e of st.dropping.slice()) {
