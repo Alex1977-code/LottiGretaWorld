@@ -79,8 +79,8 @@ function setup(level) {
 }
 
 const area = (i) => ({ min: [RX(i) - 7.5, Y - 2, RZ(i) - 6.5], max: [RX(i) + 7.5, Y + 8, RZ(i) + 6.5] });
-const cam = (i, o = {}) => ({ pitch: o.pitch ?? 50, dist: o.dist ?? 18, yaw: 0, fov: 40, center: [RX(i), Y, RZ(i) - 1.6], pull: o.pull ?? 0.6, ahead: 0 });
-const start = (i) => ({ pos: [RX(i), Y, RZ(i) + 4.6], yaw: Math.PI / 2 });
+const cam = (i, o = {}) => ({ pitch: o.pitch ?? 50, dist: o.dist ?? 18, yaw: 0, fov: 40, center: [RX(i), Y, RZ(i) - 1.6], pull: o.pull ?? 0.5, ahead: 0 });
+const start = (i) => ({ pos: [RX(i), Y, RZ(i) + 4.2], yaw: Math.PI / 2 });
 const at = (i, x, z, y = Y) => [RX(i) + x, y, RZ(i) + z];
 
 export const LEVEL = {
@@ -136,7 +136,7 @@ export const LEVEL = {
     { kind: 'coins', roomId: 'r3', from: at(2, -0.9, 0.4, Y + 1.3), to: at(2, 0.9, 0.4, Y + 1.3), n: 3 },
     { kind: 'coins', roomId: 'r3', from: at(2, -5, -1.6, Y + 0.4), to: at(2, -5, 2.4, Y + 0.4), n: 2 },
     { kind: 'coins', roomId: 'r3', from: at(2, 5, -1.6, Y + 0.4), to: at(2, 5, 2.4, Y + 0.4), n: 2 },
-    { kind: 'coin', roomId: 'r3', pos: at(2, 0, 3.4, Y + 0.4) },
+    { kind: 'coin', roomId: 'r3', pos: at(2, 0, 2.6, Y + 0.4) },
     hook(at(0, 0, -8.5), setup),
   ],
   marks: { r1: start(0).pos, r2: start(1).pos, r3: start(2).pos, r4: start(3).pos, r5: start(4).pos, podest: at(3, 0, -5.1, Y + 1.2) },

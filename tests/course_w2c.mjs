@@ -71,7 +71,8 @@ const R25 = {
     { name: 'Nischen-Druckfeld (zwei Figuren) → Münzen und 1-Up', from: [-1, 2.2, -66], clones: 1, yaw: Math.PI,
       legs: [{ to: [-7.2, -66], within: 0.4, run: false, slow: 0.6 }, { wait: 60 }], expect: 'pf_nische' },
     { name: 'Druckfeld am Tor allein: Tor bleibt zu', from: [0, 2.2, -74],
-      legs: [{ to: [0, -78.6], within: 0.2, run: false }, { wait: 240 }], expectNot: 'pf_tor' },
+      legs: [{ to: [0, -78.6], within: 0.2, run: false }, { wait: 240 }], expectNot: 'pf_tor', gate: 'tor' },
+    { name: 'Tor übersprungen: öffnet sich von hinten (Kamera bleibt frei)', from: [0, 2.2, -81.4], legs: [{ wait: 320 }], expectOpen: 'tor' },
     { name: 'Spiegelfrucht-Strauch wächst nach', from: [6.2, 2.2, -46.6], legs: [{ to: [6.2, -48.6], run: false }, { to: [6.2, -45] }, { wait: 420 }], expectBush: 'strauch_tunnel' },
     { name: 'Roter Ring: acht rote Münzen in 12 s → Münzen + Spiegelfrucht', from: [7, 6.2, -124.2], ring: true },
     { name: 'Kletterwand am Stempel-Turm mit Krallen', from: [-8.6, 6.2, -108.6], power: 'krallen',
@@ -83,7 +84,7 @@ const R25 = {
     ['kistenhof', [0, 2.2, -32]],
     ['tunnel', [0, 2.2, -62]],
     ['tor', [0, 2.2, -75]],
-    ['glasrohr', [0, 2.2, -81.5]],
+    ['glasrohr', [0, 2.2, -81.5], { settle: 320 }],   // Tor öffnet sich von hinten
     ['blockgarten', [-2, 6.2, -100]],
     ['huegel', [0, 6.2, -124]],
     ['zwilling', [6, 6.2, -139]],
@@ -141,7 +142,7 @@ function install() {
     },
     figs: () => L().players.length,
     figInfo: () => L().players.map((f) => [+f.pos.x.toFixed(2), +f.pos.y.toFixed(2), +f.pos.z.toFixed(2), f.mode, !!f.clone]),
-    named: (id) => { const e = L().named.get(id); return e ? { fired: e.fired ?? null, done: e.done ?? null, count: e.count ?? null, state: e.state ?? null, s: e.s ?? null, grown: e.grown ?? null, alive: e.alive ?? null, defeated: e.defeated ?? null, running: e.running ?? null, shown: e.shown ?? null } : null; },
+    named: (id) => { const e = L().named.get(id); return e ? { fired: e.fired ?? null, done: e.done ?? null, count: e.count ?? null, state: e.state ?? null, s: e.s ?? e.pm?.s ?? null, grown: e.grown ?? null, alive: e.alive ?? null, defeated: e.defeated ?? null, running: e.running ?? null, shown: e.shown ?? null } : null; },
     /** Stick-Eingabe für eine Welt-Richtung (dx, dz) relativ zur Steuerungs-Gier. */
     stick(dx, dz, mag = 1) {
       const l = Math.hypot(dx, dz) || 1;
@@ -465,6 +466,8 @@ async function level25() {
     let ok = true, note = '';
     if (t.expect) { const n = await W('named', t.expect); ok = n?.fired >= 1; note = `ausgelöst ${n?.fired}, Figuren ${res.figs}`; }
     if (t.expectNot) { const n = await W('named', t.expectNot); ok = !(n?.fired >= 1); note = `ausgelöst ${n?.fired}`; }
+    if (t.gate) { const g = await W('named', t.gate); ok &&= g?.s < 0.05; note += `, Tor s=${g?.s?.toFixed(2)}`; }
+    if (t.expectOpen) { const g = await W('named', t.expectOpen); ok = g?.s > 4.7; note = `Tor s=${g?.s?.toFixed(2)}`; }
     if (t.expectBush) { const n = await W('named', t.expectBush); ok = n?.grown >= 2 && res.figs >= 2; note = `gewachsen ${n?.grown}×, Figuren ${res.figs}`; }
     if (t.expectY !== undefined) { ok = res.info.y >= t.expectY - 0.05; note = `y ${res.info.y.toFixed(2)}`; }
     if (!ok) for (const l of res.log) console.log('     ', JSON.stringify(l));

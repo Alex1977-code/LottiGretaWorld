@@ -1078,3 +1078,27 @@ export function ponds(level, list) {
 
   }
 }
+
+// ------------------------------------------------------------------ Gartenleuchten
+
+/**
+ * Gartenleuchte: heller Pfosten mit Sockel, leuchtende Glaskugel unter einem rosa Hütchen (die Engine-Laterne aus
+ * `deco` ist bei Tag ein dunkler Kasten). Kollision: schmaler Zylinder. list = [[x, y, z], …]; je Leuchte eine
+ * Geometrie (Culling je Abschnitt).
+ */
+export function gardenLamps(level, list) {
+  const glow = L(0xffe6a0);
+  const lampFn = (p, n, out) => { out[0] = glow[0] * 1.5; out[1] = glow[1] * 1.45; out[2] = glow[2] * 1.3; };
+  for (const [x, y, z] of list) {
+    level.world.add({ type: 'cyl', x, z, r: 0.16, y0: y, y1: y + 2.3, tag: 'leuchte' });
+    if (!level.view) continue;
+    addStatic(level, merge([
+      cyl(0.2, 0.26, 0.24, x, y, z, 0xd8c8d4, 8),
+      cyl(0.055, 0.07, 1.9, x, y + 0.24, z, 0xf4e8f0, 8),
+      cyl(0.16, 0.1, 0.08, x, y + 2.1, z, 0xd8c8d4, 8),
+      sphere(0.24, x, y + 2.38, z, 0xffe6a0, { ws: 10, hs: 7, fn: lampFn }),
+      cone(0.3, 0.26, x, y + 2.56, z, 0xff8fbf, 10),
+      sphere(0.05, x, y + 2.86, z, 0xff8fbf, { ws: 6, hs: 4 }),
+    ]), { castShadow: true });
+  }
+}

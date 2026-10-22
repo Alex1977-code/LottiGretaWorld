@@ -7,9 +7,11 @@
 //                                              garten, Picknick mit Kaninchen; Glasrohr links hinauf zum Kistenhof.
 //   2  Kistenhof          (z −28 … −52, y 2,2)  Kistenfeld (Stern 1 in der hinteren rechten Kiste, eine Spiegelfrucht),
 //                                              ganz rechts ?-Block mit Funkenblüte; Spiegelfrucht-Strauch (wächst nach).
-//   3  Marschblock-Tunnel (z −52 … −80, y 2,2)  Erdtunnel mit Grasdach, zwei Marschblock-Kolonnen; Nische links:
-//                                              Druckfeld für 2 → 1-Up und Münzen; am Ende Druckfeld für 2 → das Tor
-//                                              versinkt. Davor: unsichtbarer Block mit Spiegelfrucht (Platz).
+//   3  Marschblock-Gang   (z −52 … −80, y 2,2)  Rosenhecken-Gang (statt Erdtunnel: Figuren bleiben sichtbar), zwei
+//                                              Marschblock-Kolonnen; Nische links: Druckfeld für 2 → 1-Up und Münzen;
+//                                              am Ende Druckfeld für 2 → das Tor versinkt (wer es überspringt, dem
+//                                              öffnet es sich von hinten). Dahinter: unsichtbarer Block mit
+//                                              Spiegelfrucht (Platz).
 //   3b Glasrohr-Platz     (z −80 … −88)        zwei verbundene Glasrohre mit Münzen hinauf zum Blockgarten.
 //   4  Bunter Blockgarten (z −88 … −114, y 6,2) Checkpoint, bunte Riesenblöcke (versteckter 1-Up-Block über dem gelben),
 //                                              ?-Block mit Krallen-Anzug; linke hintere Ecke: Stempel-Turm – mit dem
@@ -25,9 +27,10 @@
 //                                              viert“; Viererlift auf den Turm → Stern 3 (oder Krallen); Zielmast
 //                                              auf dem Hügel.
 // Gegner: Marschblock 14 (3 + 3 Gang, 5 Hügel, 3 Gasse), Rollpilz 2, Feuer-Werfer 1.
-// Level-Haken (Laterne am Start, _helpers_c.js): fallende Blütenblätter, Spiegelfrucht-Sträucher, sitzende Kaninchen.
+// Level-Haken (Laterne am Start, _helpers_c.js): Inseln, Hecken, Teiche, Bäume, Beete, Gartenleuchten, fallende
+// Blütenblätter, Spiegelfrucht-Sträucher, sitzende Kaninchen, Tor-Rückseite.
 
-import { isl, line, ring, arc, hook, fruitBush, petals, blossomTrees, flowerBeds, hedges, ponds, flatIslands } from './_helpers_c.js';
+import { isl, line, ring, arc, hook, fruitBush, petals, blossomTrees, flowerBeds, hedges, ponds, flatIslands, gardenLamps } from './_helpers_c.js';
 import { bakeModel } from '../../blocks/w2kit.js';
 
 const Y1 = 1, Y2 = 2.2, Y4 = 6.2, Y7 = 3;
@@ -122,6 +125,16 @@ function setup(level) {
   for (const [x, y, z, yaw] of [[8.4, Y1, 1.2, 2.4], [12.4, Y7, -208, 3.8]]) {
     bakeModel(level, 'bunny_small', {}, x, y, z, yaw, 1, { anim: 'idle' });
   }
+  gardenLamps(level, [[3.4, Y1, 6.6], [-3.4, Y4, -96.8], [1.6, Y7, -222]]);
+  // Tor-Rückseite: wer das Tor überspringt (Rückwärtssalto vom Pflanzkasten), dem öffnet es sich – sonst stünde die
+  // Kamera hinter dem Tor
+  const tor = level.named.get('tor');
+  if (tor) {
+    level.onStep(() => {
+      if (tor.running || tor.pm.s > 0.01) return;
+      if ((level.players ?? [level.player]).some((p) => p && p.pos.z < -81 && p.pos.z > -84 && Math.abs(p.pos.x) < 5.2)) tor.start();
+    });
+  }
 }
 
 export const LEVEL = {
@@ -151,7 +164,6 @@ export const LEVEL = {
     { type: 'deco', items: [
       { kind: 'bush', pos: [-8.8, Y1, 6.5], size: 0.8 }, { kind: 'bush', pos: [7.4, Y1, -25.4], size: 0.7 },
       { kind: 'fence', from: [-12.6, Y1, -12.6], to: [-5.8, Y1, -12.6] }, { kind: 'fence', from: [-12.6, Y1, -20.6], to: [-5.8, Y1, -20.6] },
-      { kind: 'lantern', pos: [3.4, Y1, 6.6] },
     ] },
     { type: 'deco_w1', items: [
       { kind: 'picnic', pos: [9, Y1, 2], yaw: 0.3, size: [2, 1.5] },
@@ -199,7 +211,6 @@ export const LEVEL = {
     { type: 'wall', pos: [-9.8, Y4, -110], size: [0.4, 6, 4], climbable: true },
     { type: 'platform', pos: [-6.4, Y4, -110], size: [1.6, 1.6, 1.6], style: 'block', color: 'orange' },
     sign(-5.4, Y4, -103.6, 'Wachsender Block:\nstampfen – er wächst!', { size: [3.2, 1.1] }),
-    { type: 'deco', items: [{ kind: 'lantern', pos: [-3.4, Y4, -96.8] }] },
     { type: 'deco_w1', items: [{ kind: 'tufts', pos: [0, Y4, -101], size: [26, 22], n: 10 }, { kind: 'butterflies', pos: [4, Y4, -96], n: 3, r: 2, h: 1.4 }] },
     // Brücke über die Schlucht
     { type: 'bridge', from: [0, Y4, -113.6], to: [0, Y4, -118.4], width: 4 },
@@ -243,7 +254,7 @@ export const LEVEL = {
     // Zielhügel
     { type: 'hill', pos: [-4, Y7, -226], radius: 5.5, height: 2, steps: 2 },
     { type: 'deco', items: [
-      { kind: 'fence', from: [-13, Y7, -219], to: [-9, Y7, -219] }, { kind: 'lantern', pos: [1.6, Y7, -222] },
+      { kind: 'fence', from: [-13, Y7, -219], to: [-9, Y7, -219] },
     ] },
     { type: 'deco_w1', items: [
       { kind: 'daisies', pos: [0, Y7, -218], size: [28, 28], n: 22 }, { kind: 'tufts', pos: [0, Y7, -218], size: [28, 28], n: 10 },
