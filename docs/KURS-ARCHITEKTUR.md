@@ -1036,3 +1036,23 @@ Brückenwiderlagern, Überführung als Deckel); zwei zusätzliche Kanonen (Turm-
 („Nachschub endlos“); die Treppe hat niedrige Stufen (0,25 m, ohne Springen begehbar).
 Gemessen (tests/course_w1_combat.mjs, scale 2): 1-A 60–90, 1-Burg 70–111 Zeichenaufrufe inkl. Schattenpass;
 165–269 k Dreiecke.
+
+## Welt 2 – Level-Liste und Freischaltung (Hauptsitzung)
+
+Welt 2 „Wüste mit Sandblöcken“ wird nach Sieg über 1-Burg frei (Glasröhre am Ende der Welt-1-Insel; die
+Welt-Warp-Röhre in 1-2 führt ebenfalls zur Welt-2-Insel). Sternbedarf zählt **alle** gesammelten Sterne.
+
+| Id | Archetyp | Thema | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `2-1` | parcours (Wüstenschlucht, Treibsand) | desert | course_desert | 3 + Stempel | Welt 2 offen |
+| `2-2` | parcours (Weltraum, Tastensteine) | space | course_space | 3 + Stempel | 2-1 **und ≥ 15 Sterne** |
+| `2-3` | parcours (Schattenspiel, unterirdisch) | shadow | course_shadow | 3 + Stempel | 2-2 |
+| `2-Haus` | house (Prüfungs-Haus, 5 Räume à 10 s) | house | course_house | 5 | 2-2 **und ≥ 20 Sterne** |
+| `2-4` | parcours (Rollhügel + Untergrund) | grass | course_hills | 3 + Stempel | 2-3 |
+| `2-A` | arena (Großrollpilze, Felsinsel im Lavasee) | lava | course_arena | 1 | 2-3 |
+| `2-5` | parcours (Spiegelfrucht, rosa Grasland) | pinkgrass | course_cherry | 3 + Stempel | 2-4 |
+| `2-Panzer` | autoscroller + boss (Panzerzug, Wirbelbrocken) | desert | course_tank | 3 + Stempel | 2-5 **und ≥ 30 Sterne** |
+
+Welt 2 hat 24 Sterne. Neue Figuren-Rollen: wo der Bauplan den „Kapitän“ nennt (2-1, 2-3), tritt **Krümel**
+(Pflaumes kleiner Kaninchen-Freund aus 1-Burg) auf. Der „Münz-Dieb“ heißt **Münzmarder** (flinker Marder mit
+Münzsack). Mini-Pilzlinge: `pilzling` mit `mini: true` (halbe Größe, ein Treffer, kein Abprall-Bonus).
