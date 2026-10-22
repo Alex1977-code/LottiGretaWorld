@@ -90,6 +90,7 @@ export class Sky {
       this.group.add(mesh);
     }
     if (th.backdrop === 'hills') this.buildHills(bounds, rnd, yBase);
+    else if (typeof th.buildBackdrop === 'function') th.buildBackdrop(this, bounds, rnd, yBase);   // eigene Kulisse (Welt-2-Themen)
     if (th.clouds) this.buildClouds(bounds, rnd);
   }
 
@@ -177,6 +178,7 @@ export class Sky {
 
   update(dt, camera) {
     this.domeGroup.position.copy(camera.position);
+    this.theme.updateBackdrop?.(this, dt, camera);   // eigene Kulisse animieren (Welt-2-Themen)
     if (this.clouds) {
       for (const c of this.cloudData) { c.x += c.v * dt; if (c.x > c.xb) c.x = c.xa; }
       this.placeClouds();
