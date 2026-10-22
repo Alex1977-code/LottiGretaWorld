@@ -4,10 +4,14 @@
 //
 // Schnittstelle (über CourseView):
 //   view.setMood(name | null, { time: 0.8 })   benannte Stimmung des Themas (null = Grundstimmung), überblendet in time s
-//   view.setUnderwater(on)                     true/false erzwingt die Unterwasser-Stimmung (Motor: Kopf der Figur unter
-//                                              der Wasseroberfläche), 'auto' (Standard) = selbst erkennen, sofern das
-//                                              Thema `underwater` hat: Figur schwimmt und der Kopf ist unter Wasser
-//   view.underwater → bool, view.mood.info() → { mood, water (0..1), forced, auto }
+//   view.setUnderwater(on)                     true/false erzwingt die Unterwasser-Stimmung, 'auto' (Standard) = selbst
+//                                              erkennen, sofern das Thema `underwater` hat: Unterwasser-Ansicht des Motors
+//                                              (player/underwater.js, scene.underwater.state.k ≥ 0,3: Kamera im Wasser
+//                                              bzw. Figur getaucht) oder Figur schwimmt mit dem Kopf unter Wasser
+//   view.underwater → bool, view.mood.info() → { mood, water (0..1), forced, auto, motorK }
+// Arbeitsteilung mit player/underwater.js (läuft je Bild nach dieser Stimmung): der Motor färbt Nebel/Hintergrund und
+// legt die Tönung vor die Kamera; hier kommen Himmelslicht, Sonne, Kuppel-Farbton, Figurenlicht und die Lichtflecken/
+// -strahlen dazu. Erzwungen (setUnderwater(true)) setzt diese Stimmung auch Nebel/Hintergrund (Motor-Ansicht aus).
 // Thema-Felder (alle optional, sonst Standardwerte unten):
 //   moods: { name: { fog: { color, near, far }, background, hemi: { sky, ground, intensity }, sun: { color, intensity },
 //                    dome (Farbton der Himmelskuppel), playerLight (Faktor) } }
@@ -137,7 +141,7 @@ export class ViewMood {
     return player.pos.y + player.half.y * 2 - 0.12 < player.water.top;
   }
 
-  info() { return { mood: this.moodName, water: +this.water.toFixed(3), forced: this.forced, auto: this.auto }; }
+  info() { return { mood: this.moodName, water: +this.water.toFixed(3), forced: this.forced, auto: this.auto, motorK: this.motorK ?? null }; }
 
   ensureOverlay() {
     if (this.overlay) return this.overlay;
@@ -173,7 +177,9 @@ export class ViewMood {
       }
     }
     // Unterwasser
-    const under = this.forced ?? (this.auto ? this.detect(player) : false);
+    const uw = player?.level?.scene?.underwater?.state;
+    this.motorK = uw ? +(uw.k ?? 0).toFixed(3) : null;
+    const under = this.forced ?? (this.auto ? ((uw?.k ?? 0) >= 0.3 || this.detect(player)) : false);
     const w0 = this.water;
     this.water = under ? Math.min(1, this.water + d * 3.2) : Math.max(0, this.water - d * 3.2);
     const o = lerpInto(this.out, this.cur, this.uw, this.water);

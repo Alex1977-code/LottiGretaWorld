@@ -152,7 +152,8 @@ export const LEVEL = {
     { type: 'kurbelrad', id: 'kurbel', pos: [-8, -3, -250], platform: { pos: [-11.5, -3, -254], size: [2.5, 0.5, 2.5], rise: 4 } },
     { type: 'broeckelblock', id: 'bb', from: [5, -3, -248], to: [8, -3, -248], delay: 0.5, respawn: 3 },
     { type: 'goldring', id: 'ring', pos: [0, -1.75, -257], yaw: Math.PI / 2, radius: 1.2 },
-    { type: 'kettenplattform', id: 'kp', path: [[0, -3.35, -264], [0, -3.35, -282]], size: [4, 3], fence: true, bahn: true },
+    { type: 'kettenplattform', id: 'kp', path: [[0, -3.35, -264], [0, -3.35, -282]], size: [4, 3], speed: 2.5, wait: 0.6 },
+    { type: 'kettenbahn', path: [[0, -3.35, -264], [0, -3.35, -282]] },
     plat(-284, -300, -3),
     { type: 'wolkenlift', id: 'wl', pos: [-6, -3, -290], path: [[-6, 2, -290]] },
 

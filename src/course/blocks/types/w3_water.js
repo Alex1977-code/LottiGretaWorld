@@ -3,12 +3,15 @@
 // und Wandriss sind Entitäten (entities/kinds/w3_gimmicks.js).
 //
 // lagune – Wasserbecken mit Namen, dessen Stand sich ändern lässt (Aktion { water: { id, y, speed } } bzw.
-//   handle.setLevel(y, speed)): Wasser zum Schwimmen (Flag water), türkiser Körper und bewegte Oberfläche, optional
-//   Sandboden. Der Motor-Haken level.setWaterLevel wird für Lagunen nicht gebraucht (die Lagune hebt sich selbst).
+//   handle.setLevel(y, speed) bzw. Motor level.setWaterLevel(id, y, speed)): Wasser zum Schwimmen (Form mit Flag water
+//   und waterId = id), türkiser Körper mit Oberfläche (folgt shape.top), Lichtflecken auf dem Sandboden. Den Stand
+//   fährt der Motor (level.setWaterLevel: Auftrieb, floats, onWaterLevel); ohne Motor-Haken hebt sich die Lagune selbst.
 //   { type: 'lagune', id, pos: [x, y, z] (Mitte des Beckenbodens), size: [w, h, d] (h = Tiefe, Oberfläche y + h),
 //     bed: 1 (Sandboden-Dicke unter pos.y, 0 = keiner), color, deep, caustics: 0.4 (Lichtflecken auf dem Boden,
-//     false = keine) }
-//   level.named.get(id) = { top, level0, target, moving, shape, setLevel(y, speed), info() }
+//     false = keine), current: [x, y, z] (Strömung m/s wie beim Motor-Baustein water), rise: { to, speed: 1.5,
+//     auto: false } (Signal start fährt auf rise.to) }
+//   level.named.get(id) = { top, level0, target, moving, shape, setLevel(y, speed), start(), stop(), info() }
+//   Ein Becken ohne Sandboden/Lichtflecken liefert auch der Motor-Baustein `water` (mit id, current, rise).
 //
 // holzsteg – Holzsteg mit Hub (Modell 'holzsteg'): das Deck schwimmt auf (folgt dem Wasserstand unter dem Steg, float m
 //   über der Oberfläche) zwischen Grundlage und hub m darüber; ohne Wasser per Signal { start|open: id } (hebt) bzw.
@@ -42,7 +45,8 @@ import { visDt } from '../../entities/gimmick.js';
 export function buildLagune(level, spec) {
   const p = v3(spec.pos), s = sz3(spec.size, [12, 3, 12]);
   const th = themeOf(level);
-  const shape = { type: 'box', min: [p.x - s.x / 2, p.y, p.z - s.z / 2], max: [p.x + s.x / 2, p.y + s.y, p.z + s.z / 2], water: true, solid: false, camIgnore: true, tag: 'water', waterId: spec.id ?? null };
+  const cur = Array.isArray(spec.current) ? { x: spec.current[0] ?? 0, y: spec.current[1] ?? 0, z: spec.current[2] ?? 0 } : null;
+  const shape = { type: 'box', min: [p.x - s.x / 2, p.y, p.z - s.z / 2], max: [p.x + s.x / 2, p.y + s.y, p.z + s.z / 2], water: true, solid: false, camIgnore: true, tag: 'water', waterId: spec.id ?? null, current: cur };
   const id = level.world.add(shape);
   const bed = spec.bed ?? 1;
   if (bed > 0) {
@@ -52,21 +56,34 @@ export function buildLagune(level, spec) {
       addStatic(level, g);
     }
   }
+  // Motor-Haken: level.setWaterLevel fährt alle Formen mit waterId (vor den Figuren, mit Auftrieb/floats)
+  const motor = spec.id != null && typeof level.setWaterLevel === 'function';
+  const rise = spec.rise ?? null;
+  let own = p.y + s.y;
   const h = {
-    id: spec.id ?? null, shape, top: p.y + s.y, level0: p.y + s.y, target: p.y + s.y, speed: 1.5, moving: false,
-    setLevel(y, speed = 1.5) { h.target = Math.max(p.y + 0.05, y); h.speed = speed; },
-    info() { return { top: +h.top.toFixed(3), target: +h.target.toFixed(3), moving: h.moving }; },
+    id: spec.id ?? null, shape, level0: p.y + s.y, target: p.y + s.y, speed: 1.5,
+    get top() { return motor ? shape.top : own; },
+    get moving() { return Math.abs(h.target - h.top) > 1e-6; },
+    setLevel(y, speed = 1.5) {
+      h.target = Math.max(p.y + 0.05, y); h.speed = speed;
+      if (motor) level.setWaterLevel(spec.id, h.target, speed);
+    },
+    start() { if (rise) h.setLevel(rise.to, rise.speed ?? 1.5); },
+    stop() { h.setLevel(h.top, 0); },
+    info() { return { top: +h.top.toFixed(3), target: +h.target.toFixed(3), moving: h.moving, motor }; },
   };
   if (spec.id) level.named.set(spec.id, h);
-  level.onStep((dt) => {
-    const d = h.target - h.top;
-    h.moving = Math.abs(d) > 1e-6;
-    if (!h.moving) return;
-    const st = h.speed * dt;
-    h.top = Math.abs(d) <= st ? h.target : h.top + Math.sign(d) * st;
-    shape.max = [shape.x1, h.top, shape.z1];
-    level.world.update(id);
-  });
+  if (!motor) {
+    level.onStep((dt) => {
+      const d = h.target - own;
+      if (Math.abs(d) <= 1e-6) return;
+      const st = h.speed > 0 ? h.speed * dt : Infinity;
+      own = Math.abs(d) <= st ? h.target : own + Math.sign(d) * st;
+      shape.max = [shape.x1, own, shape.z1];
+      level.world.update(id);
+    });
+  }
+  if (rise?.auto) h.start();
   if (!level.view) return h;
   const group = new THREE.Group();
   const deep = new THREE.MeshStandardMaterial({ color: hex(spec.deep, th.waterDeep), transparent: true, opacity: 0.42, roughness: 0.2, depthWrite: false });

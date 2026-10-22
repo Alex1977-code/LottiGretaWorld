@@ -5,12 +5,13 @@
 // schaltblock – Schaltblock 1 m (3-7): Kopfstoß (oder Stampfen) kehrt die Fahrtrichtung aller Schienen des Netzes um.
 //   { kind: 'schaltblock', pos (Mitte der Unterseite), net: 'n1' | ['n1', 'n2'], id }   Laufzeit: hits
 //
-// buecherregal – verschiebbares Bücherregal (3-3): Hineinlaufen (Stick gegen die Seite, ≈ 0,15 s) schiebt es entlang
-//   `slide` (1,8 m/s), Angriffe (Tatze, Feuer, Panzer, Stampfwelle, Bombe, Riesentrank, Kanone) stoßen es 1 m weiter.
+// buecherregal – verschiebbares Bücherregal (3-3): Hineinlaufen schiebt es entlang `slide` (1,8 m/s) – sofort über die
+//   Schiebe-Schnittstelle des Motors (Wandform-Besitzer mit onPush(player, dir, speed)), danach hält die eigene Anlage-
+//   Erkennung (Stick gegen die Seite, ≈ 0,15 s) das Schieben; Angriffe (Tatze, Feuer, Panzer, Stampfwelle, Bombe, Riesentrank, Kanone) stoßen es 1 m weiter.
 //   Erreicht es das Ende seines Wegs, löst es einmal `onOpen` aus (z. B. Stern dahinter).
 //   { kind: 'buecherregal', pos (Mitte der Unterseite), yaw: −π/2 (Bücher zur Kamera +Z; 90°-Raster), width: 2,
 //     height: 2.8, slide: [1, 0] (erlaubte Schieberichtung, Welt-xz; beide Richtungen), range: [0, 2] (m entlang
-//     slide, Start 0), speed: 1.8, onOpen: Aktion, id }   Laufzeit: off (m), moving, opened
+//     slide, Start 0), speed: 1.8, onOpen: Aktion, id }   Laufzeit: off (m), moving, opened, pushes (onPush-Meldungen)
 //
 // bilderrahmen – Spuk-Gemälde (3-3), das eine Wandnische verdeckt; in der Nische liegt eine Warp-Box (oder Belohnung):
 //   Angriff (Tatze, Feuer …), Hineinspringen (Figur in der Luft berührt das Bild = Kopfstoß) oder Signal { open: id }
@@ -145,6 +146,16 @@ class Buecherregal extends Gimmick {
     this.nudge(d >= 0 ? 1 : -1, 1);
   }
 
+  /** Schiebe-Schnittstelle des Motors (Player.move: Figur läuft mit speed m/s in Richtung dir gegen die Wandform). */
+  onPush(player, dir, speed) {
+    if (this.hidden || !(speed > 0)) return;
+    const along = dir.x * this.dir.x + dir.z * this.dir.z;
+    if (Math.abs(along) < 0.6) return;
+    this.pushSig = along > 0 ? 1 : -1;
+    this.pushAt = this.level.time;
+    this.pushes = (this.pushes ?? 0) + 1;
+  }
+
   /** Um m Meter in Richtung sign (±1) entlang slide schieben (weich). */
   nudge(sign, m) {
     const t = Math.max(this.range[0], Math.min(this.range[1], (this.target ?? this.off) + sign * m));
@@ -176,9 +187,12 @@ class Buecherregal extends Gimmick {
       const gap = sg > 0 ? lo - (pc + ph) : (pc - ph) - hi;
       if (gap > -0.05 && gap < 0.12) push = sg;
     }
+    // Motor-Meldung (onPush) schiebt sofort; die eigene Anlage-Erkennung hält das Schieben bei gedrücktem Stick
+    const viaMotor = this.pushAt !== undefined && this.level.time - this.pushAt < 0.12;
+    if (!push && viaMotor) push = this.pushSig;
     if (push) this.pushT += dt; else this.pushT = 0;
     let v = 0;
-    if (push && this.pushT > 0.15) {
+    if (push && (this.pushT > 0.15 || viaMotor)) {
       const lim = push > 0 ? this.range[1] : this.range[0];
       if ((push > 0 && this.off < lim) || (push < 0 && this.off > lim)) { v = push * this.speed; this.target = null; }
     } else if (this.target !== null) {

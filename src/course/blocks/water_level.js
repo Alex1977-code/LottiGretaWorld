@@ -2,8 +2,9 @@
 // types/ (die Registry sammelt nur types/*.js) und importiert nichts aus entities/ (gimmick.js nutzt es).
 //
 //   setWaterLevel(level, { id, y, speed = 1.5, dy })  →  true, wenn ein Ziel gefunden wurde
-//     1) benanntes Objekt mit setLevel(y, speed) (Baustein `lagune`, blocks/types/w3_water.js) – hebt Form und Optik
-//     2) level.setWaterLevel(id, y, speed) (Motor) – Wasserbecken des Motors
+//     1) benanntes Objekt mit setLevel(y, speed) (Baustein `lagune`, Motor-Baustein `water` mit id) – beide fahren über
+//        den Motor-Haken level.setWaterLevel, sofern vorhanden
+//     2) level.setWaterLevel(id, y, speed) (Motor) – alle Wasserformen mit waterId = id
 //     3) Rückfall: benanntes Objekt mit Wasserform (`shape`) bzw. Wasserformen mit waterId/tag = id werden direkt
 //        angehoben (Oberkante gleitet mit speed m/s auf y; nur die Kollisionsform – die Optik bleibt)
 //   dy statt y: relativ zur aktuellen Oberkante.
@@ -22,7 +23,7 @@ function waterShapes(level, id) {
 export function waterTop(level, id) {
   const o = level.named.get(id);
   if (typeof o?.top === 'number') return o.top;
-  if (typeof level.getWaterLevel === 'function') { const y = level.getWaterLevel(id); if (typeof y === 'number') return y; }
+  if (typeof level.waterLevel === 'function') { const y = level.waterLevel(id); if (typeof y === 'number') return y; }
   const sh = waterShapes(level, id);
   return sh.length ? Math.max(...sh.map((s) => s.top)) : null;
 }
@@ -36,9 +37,8 @@ export function setWaterLevel(level, w) {
   const y = w.y ?? (cur !== null ? cur + (w.dy ?? 0) : null);
   if (y === null || y === undefined) { console.warn(`[Wasserstand] Ziel „${id}“ fehlt`); return false; }
   if (typeof o?.setLevel === 'function') { o.setLevel(y, speed); return true; }
-  if (typeof level.setWaterLevel === 'function') {
-    const r = level.setWaterLevel(id, y, speed);
-    if (r !== false) return true;
+  if (typeof level.setWaterLevel === 'function' && level.waterLevel?.(id) != null) {
+    if (level.setWaterLevel(id, y, speed)) return true;
   }
   const shapes = waterShapes(level, id);
   if (!shapes.length) { console.warn(`[Wasserstand] Wasser „${id}“ fehlt`); return false; }

@@ -227,10 +227,11 @@ console.log('Winterwerkstatt 0-13');
   const r0 = await sc(() => window.__t.ent('regal').off);
   await T('place', marks.regal_push, { yaw: 0, settle: 10 });
   await T('play', [[{ x: 1 }, 260], [{}, 20]]);
-  const r1 = await sc(() => { const e = window.__t.ent('regal'); return { off: e.off, opened: e.opened }; });
+  const r1 = await sc(() => { const e = window.__t.ent('regal'); return { off: e.off, opened: e.opened, pushes: e.pushes ?? 0 }; });
   const st0 = await T('starsAlive', 0);
-  console.log(`  Bücherregal: Versatz ${f2(r0)} → ${f2(r1.off)} (Ende erreicht ${r1.opened}), Stern 0 ${JSON.stringify(st0)}`);
+  console.log(`  Bücherregal: Versatz ${f2(r0)} → ${f2(r1.off)} (Ende erreicht ${r1.opened}, onPush-Meldungen ${r1.pushes}), Stern 0 ${JSON.stringify(st0)}`);
   check('Bücherregal: Hineinlaufen schiebt es bis ans Ende, onOpen zeigt den Stern', r1.off > 2.49 && r1.opened && st0.length === 1);
+  check('Bücherregal: Schiebe-Schnittstelle des Motors (onPush) meldet das Hineinlaufen', r1.pushes > 0);
   // Angriff (Tatze) von der rechten Seite stößt es 1 m zurück
   await sc(() => { const e = window.__t.ent('regal'); window.__t.regalX = e.pos.x; });
   const rx = await sc(() => window.__t.regalX);
@@ -529,7 +530,7 @@ if (SHOTS) {
       // tauchen: Figur unter die Wasseroberfläche der Lagune → Unterwasser-Stimmung automatisch
       await sc(() => { const c = window.__course; c.setManual(true); c.player.reset([-1, -2.6, -164], Math.PI / 2); c.setInput({ crouch: true }); c.step(90); c.snapCamera(); });
       await freshFrames(4);
-      const u = await sc(() => ({ ...window.__course.view.mood.info(), mode: window.__course.player.mode, under: window.__course.view.underwater }));
+      const u = await sc(() => ({ ...window.__course.view.mood.info(), mode: window.__course.player.mode, state: window.__course.player.state, under: window.__course.view.underwater, motor: window.__course.underwater?.info?.() ?? null }));
       console.log(`  Thema water, getaucht: ${JSON.stringify(u)}`);
       check('Thema water: Kopf unter Wasser → Unterwasser-Stimmung automatisch', u.mode === 'swim' && u.under);
       try { await page.screenshot({ path: `${OUT}w3b_unterwasser.png`, timeout: 120000 }); } catch { /* weiter */ }

@@ -2,12 +2,14 @@
 // Interaktive Einzelteile (Schnee-/Eisblock, Eiszapfen, Schneehaufen, Tanne) sind Entitäten (entities/kinds/w3_snow.js,
 // auch als segments-type über w3_misc.js); die Kulisse (Tannen, Schneemänner, Felsen …) liefert deco_w3.
 //
-// eisflaeche – spiegelglatte Eisfläche: Kollision mit Flag `ice` (der Motor liest es: träges Beschleunigen/Bremsen,
-//   kein Schleudern). Oberseite y + h; darunter ein Körper (Schnee mit Eiskante bzw. Fels) bis pos.y.
+// eisflaeche – Eisfläche auf einem Sockel: oben die Motor-Eisbahn (blocks/types/w3engine.js `eisbahn`: Kollision mit
+//   Flag `ice`, Modell eisflaeche bis 48 m², sonst glatte Platte), darunter ein Körper (Schnee mit Eiskante bzw. Fels,
+//   feste Form ohne ice) bis pos.y und optional Schneewulst-Kanten. Oberseite pos.y + h.
 //   { type: 'eisflaeche', pos: [x, y, z] (Mitte der Unterseite), size: [w, h, d] ([8, 1, 8]; h ≥ 0,2),
-//     body: 'snow' (Standard) | 'rock' | 'none', edge: false (Schneewulst-Kanten 'eiskante' ringsum, nur Optik),
-//     under: 0 (verjüngter Unterbau, m), tag }
+//     body: 'snow' (Standard) | 'rock' | 'none' (dann eine reine eisbahn der Höhe h), edge: false (Schneewulst-Kanten
+//     'eiskante' ringsum, nur Optik), under: 0 (verjüngter Unterbau, m), model / snow (an die eisbahn weitergereicht) }
 //   Beispiel: { type: 'eisflaeche', pos: [0, 0, -40], size: [10, 1, 16], edge: true }
+//   Ohne Sockel und Kanten genügt der Motor-Baustein `eisbahn`.
 //
 // iglu – Iglu aus Schneeziegeln (Ø size, 1,8 m hoch bei 3,4), Eingang nach +X lokal (yaw). Kuppel begehbar.
 //   { type: 'iglu', pos (Fußpunkt Mitte), size: 3.4, yaw: 0, solid: true }
@@ -17,18 +19,22 @@
 //     grid: [nx, ny, nz] ([3, 1, 1]), blocks: [[x, y, z], …] (statt grid), content: 'none' (für alle),
 //     contents: { 'i,j,k': Inhalt }, hits, id }   level.named.get(id) = { blocks, left() }
 
-import { v3, sz3, islandParts, themeOf, addStatic, addObject, hex } from '../kit.js';
+import { v3, sz3, islandParts, themeOf, addStatic, hex } from '../kit.js';
 import { bakeModel } from '../w3kit.js';
-import { getModel } from '../../models/index.js';
+import { TYPES as ENGINE } from './w3engine.js';
 
 export function buildEisflaeche(level, spec) {
   const p = v3(spec.pos), s = sz3(spec.size, [8, 1, 8]);
   const h = Math.max(0.2, s.y);
   const x0 = p.x - s.x / 2, x1 = p.x + s.x / 2, z0 = p.z - s.z / 2, z1 = p.z + s.z / 2;
-  level.world.add({ type: 'box', min: [x0, p.y, z0], max: [x1, p.y + h, z1], ice: true, tag: spec.tag ?? 'eisflaeche' });
+  const plain = spec.body === 'none' || h <= 0.21;
+  const plate = plain ? h : 0.2;
+  // Eisbahn des Motors (Kollision ice, Optik); darunter fester Sockel ohne ice
+  ENGINE.eisbahn(level, { pos: [p.x, p.y + h - plate, p.z], size: [s.x, plate, s.z], model: spec.model, snow: spec.snow });
+  if (!plain) level.world.add({ type: 'box', min: [x0, p.y, z0], max: [x1, p.y + h - plate, z1], tag: 'eisflaeche:sockel' });
   if (!level.view) return;
   const th = themeOf(level);
-  if (h > 0.21 && spec.body !== 'none') {
+  if (!plain) {
     const rock = spec.body === 'rock';
     const parts = islandParts(x0 + 0.04, p.y, z0 + 0.04, x1 - 0.04, p.y + h - 0.18, z1 - 0.04, th, {
       top: 'grass', under: spec.under ?? 0, rnd: level.rnd, capH: 0.3,
@@ -36,9 +42,6 @@ export function buildEisflaeche(level, spec) {
     });
     for (const g of parts) addStatic(level, g);
   }
-  const m = getModel('eisflaeche', { size: [s.x, s.z] });
-  m.root.position.set(p.x, p.y + h - 0.2, p.z);
-  addObject(level, m.root);
   if (spec.edge) {
     const y = p.y + h - 0.02;
     const sides = [
