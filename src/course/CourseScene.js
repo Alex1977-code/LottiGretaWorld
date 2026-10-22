@@ -91,6 +91,9 @@ export class CourseScene extends Phaser.Scene {
     this.view.rig.snap(p);
     this.view.rig.custom = this.arch?.camera ? (dt, player, world) => this.arch.camera(dt, player, world) : null;
     this.arch?.setup?.();
+    // Level-eigener Aufbau-Haken (LEVEL.setup(level, scene)): einmal nach Aufbau, Figur und Archetyp; je Schritt
+    // eigenen Code über level.onStep(fn) anmelden (Präzisierung „Level-Haken“)
+    data.setup?.(this.level, this);
 
     this.events.on(Phaser.Scenes.Events.RENDER, this.renderFrame, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanup, this);
