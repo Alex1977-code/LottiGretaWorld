@@ -113,7 +113,17 @@ class House {
     const prev = level.onEnemyDefeated;
     level.onEnemyDefeated = (e) => { prev?.(e); this.onDefeated(e); };
     const respawn = rt.respawn.bind(rt);
-    rt.respawn = () => { this.resetRoom(this.room); this.resets++; respawn(); this.enterRoom(this.i, { respawn: true }); };
+    rt.respawn = () => {
+      // Raum schon geschafft (Tod während des Jubels, z. B. Absturz vor der Landung): weiter im nächsten Raum
+      if (this.room?.done) {
+        if (this.flying) { this.flying.t = 1; this.updateFlight(0); }     // fliegender Stern zählt sofort
+        respawn();
+        if (this.i + 1 < this.rooms.length) this.enterRoom(this.i + 1);
+        else { this.freeze('victory'); this.setPhase('final'); }
+        return;
+      }
+      this.resetRoom(this.room); this.resets++; respawn(); this.enterRoom(this.i, { respawn: true });
+    };
     level.house = this.ui = { room: 0, rooms: N, time: 10, limit: 10, phase: 'fadein', fade: 1, cleared: 0, stars: N };
     if (N) this.enterRoom(0, { first: true });
   }
@@ -273,6 +283,7 @@ class House {
   clear(r) {
     const level = this.level, rt = level.runtime;
     this.setPhase('clear');
+    r.done = true;
     level.sfx('room_clear');
     if (!rt.stars[r.index]) {
       // Stern erscheint am Sternpunkt und fliegt zur Figur

@@ -1078,7 +1078,8 @@ src/course/levels/w0/0-4.js, 0-5.js         Testlevel „Rollband“ (Autoscroll
 tests/course_archetypes2.mjs                Port 4209, Bilder tests/out/ca2_*.png
 ```
 
-Kleine Ergänzungen: `CourseUIScene.js` (Haus: großer Raum-Timer, Raumzahl, Überblendung, Level-Uhr aus; ab 11 Sternen
+Kleine Ergänzungen: `CourseUIScene.js` (Haus: großer Raum-Timer oben rechts statt der Level-Uhr, darunter „Raum n/N“,
+letzte 3 s rot und pulsierend, geschafft grün; Überblendung als Vollbild-Abdunklung; ab 11 Sternen
 kompakte Anzeige „★ n/N“), `CourseResultScene.js` (Haus: Zeile „Prüfungs-Haus: n von N Sternen“, Überschrift „Haus
 verlassen“ bei Teilergebnis; ab 9 Sternen kompakt), `entities/kinds/items.js` (`coins` reicht `roomId` und `attach` an
 jede Münze weiter).
@@ -1146,6 +1147,8 @@ camera: [{ from: 14, to: -150, pitch: 41, dist: 15, yaw: 0, fov: 40 }],   // aus
   path: [[x,y,z], …], mode: 'once' | 'loop' | 'pingpong',   // eigener Pfad (Kettenzäune am Himmel, Gegenverkehr)
   pos: [x,y,z], dir: [dx, dz],                             // ohne Pfad und ohne Autoscroller: gerade Strecke
   reverse: false, color, accent, deck: true,
+  model: 'panzer_fahrzeug', modelOpts: {},   // Modell aus der Registry (Blick +X, state { speed }); Stil 'tank' nutzt
+                                             //  standardmäßig panzer_fahrzeug (size → length/width/deck, color 'rot'|'oliv')
   parts: [{ pos: [x, y, z], size: [w, h, d], color, climbable, oneWay, solid, kill, visible, tag }],
 }
 // Unterobjekte: jede Entität mit attach fährt mit (Lage, Gier, Kollisionsformen; ihre Formen tragen dann ebenfalls)
@@ -1190,7 +1193,8 @@ enemies: [{ kind: 'pilzling', roomId: 'r1', pos: [-3, 1, -2.5], behavior: 'chase
   Überblendung in den nächsten Raum. Nach dem letzten Raum Ergebnis.
 - Zeit abgelaufen: Ansage, `sfx('house_timeup')`; `fail: 'exit'` → `runtime.finish()` mit den bisherigen Sternen
   (gespeichert, Level gilt als gespielt), Ergebnis „Haus verlassen“ / „Prüfungs-Haus: n von N Sternen“.
-  `fail: 'retry'` → derselbe Raum von vorn. Tod in einem Raum: Leben −1, Raum von vorn (Gegner/Gegenstände frisch).
+  `fail: 'retry'` → derselbe Raum von vorn. Tod in einem Raum: Leben −1, Raum von vorn (Gegner/Gegenstände frisch);
+  war der Raum schon geschafft (Tod im Jubel), zählt sein Stern und es geht im nächsten Raum weiter.
 - Ziele: `defeatAll` über `level.onEnemyDefeated` (verkettet; heruntergefallene Gegner zählen auch), `collect` über
   Entitäten mit `spec.roomId` (alle bzw. `count`), `reach` über den Stern. Kamera je Raum: Abschnitt der Kameraschiene
   im X-Bereich von `area` (Räume nebeneinander entlang X legen, ≥ 20 m Abstand); `center` + `pull` ziehen den Blick
@@ -1205,6 +1209,7 @@ enemies: [{ kind: 'pilzling', roomId: 'r1', pos: [-3, 1, -2.5], behavior: 'chase
 Auslöser, snapshot/restore, Kurve), Autoscroller 0-4 (vorne gebremst, delay, Tempo, Kamera am Fenster und nicht an
 der Figur, Wagen tragen Figur/Kanone/Pilzling, Sprung auf der Stelle und über die Lücke, hinten geschoben,
 Einklemmen = Tod, Neustart von vorn bzw. am Wagen-Checkpoint, speeds, Halt von Fenster und Wagen, freie Bewegung
-danach, Kamera zurück, Röhre → Zielmast) und Haus 0-5 (Überblendung, Countdown, HUD, Ziele defeatAll/collect/reach,
-Stern-Flug, Raumwechsel, Raumkamera, Ticks, Zeitablauf → Teilergebnis gespeichert, Ergebnis-Szene, Tod → Raum neu,
-`retry`, 3/3). Gemessen (scale 2): 0-4 67–75, 0-5 30–42 Zeichenaufrufe inkl. Schattenpass, höchstens 94 k Dreiecke.
+danach, Kamera zurück, Röhre → Zielmast, Panzer mit Modell panzer_fahrzeug fährt mit dem Fenster und trägt) und
+Haus 0-5 (Überblendung, Countdown, HUD, Ziele defeatAll/collect/reach, Stern-Flug, Raumwechsel, Raumkamera, Ticks,
+Zeitablauf → Teilergebnis gespeichert, Ergebnis-Szene, Tod → Raum neu, Tod im Jubel → nächster Raum, `retry`, 3/3).
+Gemessen (scale 2): 0-4 67–84 (mit Panzer), 0-5 15–42 Zeichenaufrufe inkl. Schattenpass, höchstens 122 k Dreiecke.

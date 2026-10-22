@@ -22,14 +22,14 @@ export const LEVEL = {
     rooms: [
       { id: 'r1', goal: 'defeatAll', area: area(0), start: { pos: [0, Y, 4.5], yaw: Math.PI / 2 }, camera: cam(0), star: [0, Y + 1.6, -1.5], time: 10 },
       { id: 'r2', goal: 'collect', area: area(40), start: { pos: [40, Y, 4.5], yaw: Math.PI / 2 }, camera: cam(40), star: [40, Y + 2.2, -2], time: 10 },
-      { id: 'r3', goal: 'reach', area: area(80), start: { pos: [80, Y, 4.5], yaw: Math.PI / 2 }, camera: cam(80, 50, -3, 0.8), star: [80, Y + 3.3, -4], time: 10 },
+      { id: 'r3', goal: 'reach', area: area(80), start: { pos: [80, Y, 4.5], yaw: Math.PI / 2 }, camera: cam(80, 50), star: [80, Y + 3.3, -2.2], time: 10 },
     ],
   },
   segments: [
     room(0, 0x8a6ad0), room(40, 0x4f9ad8), room(80, 0xd0805a),
     // Raum 3: Stufen zum Sternpodest
-    { type: 'platform', pos: [80, Y, -0.5], size: [3, 1.2, 2.4], style: 'block', color: 'yellow' },
-    { type: 'platform', pos: [80, Y, -4], size: [3, 2.4, 3], style: 'block', color: 'orange' },
+    { type: 'platform', pos: [80, Y, 1.2], size: [3, 1.2, 2.4], style: 'block', color: 'yellow' },
+    { type: 'platform', pos: [80, Y, -2.2], size: [3, 2.4, 3], style: 'block', color: 'orange' },
     // Raum 2: kleine Insel in der Mitte (Münzen darauf)
     { type: 'platform', pos: [40, Y, -2.5], size: [3, 1, 3], style: 'block', color: 'cyan' },
     { type: 'deco', items: [
@@ -46,5 +46,5 @@ export const LEVEL = {
     { kind: 'coins', roomId: 'r2', pos: [40, Y + 0.4, 0.5], r: 4.2, n: 6 },
     { kind: 'coins', roomId: 'r2', from: [39.4, Y + 1.5, -2.5], to: [40.6, Y + 1.5, -2.5], n: 2 },
   ],
-  marks: { r1: [0, Y, 4.5], r2: [40, Y, 4.5], r3: [80, Y, 4.5], podest: [80, Y + 2.4, -4] },
+  marks: { r1: [0, Y, 4.5], r2: [40, Y, 4.5], r3: [80, Y, 4.5], podest: [80, Y + 2.4, -2.2] },
 };

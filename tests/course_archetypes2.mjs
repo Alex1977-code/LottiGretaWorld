@@ -549,15 +549,15 @@ r = await sc(() => {
   wait(1);
   for (const e of c.level.entities.filter((x) => x.kind === 'coin' && x.spec.roomId === 'r2' && !x.removed)) { __t.place([e.pos.x, e.pos.y - 0.3, e.pos.z], { invuln: 999 }); c.step(2); }
   wait(2);
-  // Raum 3: zwei Stufen hinauf zum Stern auf dem Podest (Stufe 1: z −1,7 … 0,7, Oberkante 2,2; Podest: z −5,5 … −2,5,
-  // Oberkante 3,4; Stern bei z −4, y 4,3) – laufen und an den Kanten springen
+  // Raum 3: zwei Stufen hinauf zum Stern auf dem Podest (Stufe 1: z 0 … 2,4, Oberkante 2,2; Podest: z −3,7 … −0,7,
+  // Oberkante 3,4; Stern bei z −2,2, y 4,3) – laufen und an den Kanten springen
   const p0 = p.info();
   let hold = 0, jumps = 0, k = 0;
   while (__t.arch().phase === 'play' && k < 900) {
     const ground = p.mode === 'ground';
     if (hold > 0) hold--;
-    else if (ground && ((p.pos.y < 1.5 && p.pos.z < 2.2) || (p.pos.y > 2 && p.pos.y < 2.6 && p.pos.z < -0.9))) { hold = 24; jumps++; }
-    const fwd = p.pos.z > -3.8 ? 1 : 0;
+    else if (ground && ((p.pos.y < 1.5 && p.pos.z < 3.4) || (p.pos.y > 2 && p.pos.y < 2.6 && p.pos.z < 0.6))) { hold = 24; jumps++; }
+    const fwd = p.pos.z > -2.0 ? 1 : 0;
     c.setInput({ y: fwd, jump: hold > 0 });
     c.step(1); k++;
   }
@@ -567,13 +567,29 @@ r = await sc(() => {
   while (!c.finished && q < 1200) { c.step(1); q++; }
   return { p0, a3, p3, jumps, p: p.info(), finished: c.finished, result: c.lastResult, save: __t.save().levels?.['0-5'] ?? null, a: __t.arch() };
 });
-check(`Raum 3 (reach): Stern auf dem Podest erreicht (Phase ${r.a3.phase}, Figur y ${r.p3.y}, ${r.jumps} Sprünge)`, r.a3.phase === 'clear' && r.p3.y > 2.6 && r.p3.z < -2);
+check(`Raum 3 (reach): Stern auf dem Podest erreicht (Phase ${r.a3.phase}, Figur y ${r.p3.y}, ${r.jumps} Sprünge)`, r.a3.phase === 'clear' && r.p3.y > 2.6 && r.p3.z < -0.4);
 check(`alle Räume → Ergebnis 3 von 3 (${(r.result?.stars ?? []).map(Number).join('')}), gespeichert`, r.finished && r.result?.stars.filter(Boolean).length === 3 && r.save?.stars?.filter(Boolean).length === 3 && !r.a.exited);
 await page.waitForFunction(() => window.__game.scene.isActive('CourseResult'), null, { timeout: 10000 }).catch(() => {});
 r = await sc(() => window.__game.scene.getScene('CourseResult').children.list.map((o) => o.text).filter(Boolean));
 check(`Ergebnis-Szene: „Geschafft!“ und „3 von 3 Sternen“`, r.includes('Geschafft!') && r.includes('Prüfungs-Haus: 3 von 3 Sternen'));
 await page.waitForTimeout(300);
 await page.screenshot({ path: `${OUT}ca2_house_result_full.png` });
+
+// Tod während des Jubels (Raum schon geschafft): Stern zählt, weiter im nächsten Raum, kein doppeltes Zählen
+await load('0-5');
+r = await sc(() => {
+  const c = window.__course, p = c.player;
+  while (__t.arch().phase !== 'play') c.step(1);
+  c.arch.clear(c.arch.room);
+  c.step(10);
+  p.mode = 'air'; p.script = null;
+  p.die('fall');
+  let n = 0;
+  while (p.dead && n < 600) { c.step(1); n++; }
+  c.step(2);
+  return { a: __t.arch(), stars: c.level.runtime.stars.slice(), lives: c.level.runtime.lives };
+});
+check(`Tod im Jubel: Stern gezählt, weiter in Raum ${r.a.room + 1} (geschafft ${r.a.cleared}, resets ${r.a.resets})`, r.stars[0] && r.a.room === 1 && r.a.cleared === 1 && r.a.resets === 0);
 
 // Bilder Haus: Raum 2 und 3, Überblendung
 await load('0-5');

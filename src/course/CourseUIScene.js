@@ -52,8 +52,9 @@ export class CourseUIScene extends Phaser.Scene {
     this.timeText = uiText(this, W - 50, 15, '000', { size: 11, originX: 1 }).setDepth(42).setVisible(!this.houseMode);
     this.starCount = this.compactStars ? uiText(this, W / 2 + 4, 15, '', { size: 10, originX: 0 }).setDepth(42) : null;
     if (this.houseMode) {
-      this.houseRoom = uiText(this, W / 2, 32, '', { size: 7, thickness: 2, color: '#e8e0ff' }).setDepth(45);
-      this.houseTime = uiText(this, W / 2, 50, '', { size: 22, thickness: 4, stroke: '#3a2a6a' }).setDepth(45);
+      // oben rechts (statt der Level-Uhr), die Bildmitte bleibt für Raum und Stern frei
+      this.houseTime = uiText(this, W - 54, 22, '', { size: 22, thickness: 4, stroke: '#3a2a6a' }).setDepth(45);
+      this.houseRoom = uiText(this, W - 54, 44, '', { size: 7, thickness: 2, color: '#e8e0ff' }).setDepth(45);
       this.houseFade = this.add.rectangle(0, 0, W, GAME.height, 0x120a1e, 1).setOrigin(0).setDepth(70).setAlpha(0);
     }
     this.powerText = uiText(this, 90, 34, '', { size: 7, thickness: 2, originX: 0.5 }).setDepth(42);
