@@ -26,13 +26,16 @@
 // Wüstenzier (LEVEL.setup, nur Optik, keine neue Kollision): Sanddecken mit weichen Flecken, Windstreifen und Rippeln,
 // Sandstein-Schichten an allen sichtbaren Wänden, Geröll und Grasbüschel am Wandfuß, Tierspuren, Tonkrüge, Knochen,
 // Muscheln, Stoffbahn, Wegweiser, Marktstand-Rest, Sonnenschirm, Wimpelmast, Vogelnest, Trittplatten, nasses Oasenufer
-// ohne Nahtlinien (Fugen-Abdeckungen), Echsen an den Wänden; statische Meshes je Bild per Quader ausgeblendet.
+// ohne Nahtlinien (Fugen-Abdeckungen), Hacklöcher und Federn der Hackvögel, Felstürme in Schichtfarben, Echsen an den
+// Wänden, ein Pillendreher am Ziel, Sandfall am Treibsand-Absturz; statische Meshes und die Fliesen-/Sandblock-
+// Instanzen je Bild per Quader ausgeblendet (Fern-Ausblendung, auch im Schattenpass).
 
 import {
   isl, line, ring, arc, column, blockRing, figure, bubble, farHide, shadowless, camel, tumbleweed,
-  islandBoxes, desertTops, strataParts, rubbleParts, stoneParts, tuftParts, tuftSpots, rippleParts, rippleFields, trackParts,
-  seamParts, bankParts, jarParts, boneParts, shellParts, clothParts, signpostParts, stallParts, parasolParts, pennantParts,
-  flagstoneParts, reedParts, nestParts, featherParts, cacti, lizard, beetle, sandfall, bakeDeco, cullStatic,
+  islandBoxes, desertTops, recolorRocks, strataParts, rubbleParts, stoneParts, tuftParts, tuftSpots, rippleParts,
+  rippleFields, trackParts, peckParts, featherParts, seamParts, bankParts, jarParts, boneParts, shellParts, clothParts,
+  signpostParts, stallParts, parasolParts, pennantParts, flagstoneParts, reedParts, nestParts, cacti, lizard, beetle,
+  sandfall, bakeDeco, cullStatic,
 } from './_helpers_a.js';
 
 const Y = 1;           // Oberseite der Plateaus
@@ -187,6 +190,8 @@ const STALL = { pos: [-11.9, 3, -60.8], yaw: Math.PI / 2 };
 const PARASOL = { pos: [-8.3, Y, -174.4], r: 1.0, h: 2.0, tilt: 0.12 };
 const PENNANT = { pos: [-9.5, 7, -2.2], h: 1.8, yaw: 0.4 };
 const NEST = { pos: [-11.6, 7, -108.6], eggs: 3 };
+// Hackvögel, vor deren Schnabel Hacklöcher im Sand liegen (nicht auf den schmalen Säulen und im Steinring)
+const PECKERS = ['hv1', 'hv2', 'hv3', 'hv4', 'hv7', 'hv_kruemel', 'hv10'];
 // verlorene Hackvogel-Federn [x, y, z, Gier, Größe?, Farbe?]
 const FEATHERS = [
   [6.9, Y, -4.4, 0.3], [3.3, Y, -68.9, 2.0, 0.9], [4.1, Y, -134.5, 0.6], [-0.5, Y, -140.3, 2.2, 0.9],
@@ -222,12 +227,13 @@ function wuestenZier(level) {
   const boxes = islandBoxes(LEVEL.segments, EXTRA_BOXES);
   const ctx = { boxes, pools: [POOL], mounds: MOUNDS };
   desertTops(level, ctx);
+  recolorRocks(level, ctx, [[-5, -219.2, 5, -215.6]]);     // ohne den Sandsteinbogen am Ziel
   const { parts: schichten, bases } = strataParts(boxes);
   const flach = {
     schichten,
     buesche: tuftParts([...tuftSpots(bases, { avoid: AVOID, boxes }), ...TUFTS]),
     rippel: rippleParts(rippleFields(ctx, { avoid: AVOID }), ctx),
-    spuren: [...trackParts(TRACKS, ctx), ...featherParts(FEATHERS)],
+    spuren: [...trackParts(TRACKS, ctx), ...featherParts(FEATHERS), ...peckParts(LEVEL.enemies.filter((e) => PECKERS.includes(e.id)), ctx)],
     ufer: [...seamParts(SEAMS, ctx), ...bankParts(POOL, ctx)],
     platten: flagstoneParts(FLAGSTONES),
   };

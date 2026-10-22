@@ -397,12 +397,16 @@ export function bubble(level, pos, text, sub = '', life = 4) {
 //                   Grasflecken) – nur die Vertexfarben der vorhandenen Raster, 0 Dreiecke mehr
 //   strataParts     Sandstein-Schichten in drei Rottönen (Welt-Höhen, gewellt, über die Schlucht hinweg gleich) auf den
 //                   sichtbaren Seitenflächen; meldet die Wandfüße (für Geröll und Grasbüschel)
+//   recolorRocks    Felstürme (deco_w2 felsen, auch die fernen) in Schichtfarben mit Sanddeckel
 //   rubbleParts     Geröll und Kiesel an den Wandfüßen;  tuftParts  trockene Grasbüschel
 //   rippleParts     Windrippel (heller Kamm, dunkle Mulde) als flache Streifen
-//   trackParts      Tierspuren (Hackvogel, Kamel, Echse);  seamParts  Fugen-Abdeckungen (Oase)
-//   Requisiten      jar, bone, shell, cloth, signpost, stall, parasol, pennant, flagstones, shoreStones, reeds …
-//   cacti           Kakteen mit wenig Dreiecken (Kollision wie deco_w2)
+//   trackParts      Tierspuren (Hackvogel, Kamel, Echse); peckParts Hacklöcher; featherParts verlorene Federn
+//   seamParts       Fugen-Abdeckungen;  bankParts  nasses Teichufer mit Böschung
+//   Requisiten      jarParts, boneParts, shellParts, clothParts, signpostParts, stallParts, parasolParts,
+//                   pennantParts, flagstoneParts, reedParts, nestParts, stoneParts
+//   cacti           Kakteen mit wenig Dreiecken (Kollision wie deco_w2, über colliderOnly)
 //   lizard          Echse an einer Wand (Liegestütze, Kopfdrehen, kurzer Sprint) – ein Zeichenaufruf in der Nähe
+//   beetle          Pillendreher mit Sandkugel (zwei Aufrufe in der Nähe);  sandfall  rieselnder Sandvorhang
 //   bakeDeco        Teile an die Abschnitts-Meshes hängen (mit Schattenwurf, 0 Zeichenaufrufe mehr) bzw. flache Zier
 //                   als schattenlose Stücke je 64 m (ein Aufruf je sichtbarem Stück, nicht im Schattenpass)
 //   cullStatic      je Bild: statische Meshes per Quader gegen Kamera- und Schatten-Sichtkörper prüfen (Fern-
@@ -542,6 +546,46 @@ export function desertTops(level, ctx) {
   return n;
 }
 
+/**
+ * Felstürme der Kulisse (deco_w2 `felsen`, auch die fernen ohne Schatten) an die Schluchtwände angleichen: Seiten in den
+ * Schichtfarben nach Welt-Höhe, Deckel in Sandfarben statt Orange. Erkennt die Türme an ihren Baustein-Farben;
+ * exclude: [[x0, z0, x1, z1], …] (z. B. der Sandsteinbogen mit derselben Rotfarbe). Nur Vertexfarben.
+ */
+export function recolorRocks(level, ctx, exclude = []) {
+  const v = level.view;
+  if (!v) return 0;
+  const sides = [0xd8743a, 0xc0582c, 0xe89a5a, 0xa84a26].map(C), cap = C(0xf0b070);
+  const same = (a, Col, i) => Math.abs(a[0] - Col[i]) < 1e-5 && Math.abs(a[1] - Col[i + 1]) < 1e-5 && Math.abs(a[2] - Col[i + 2]) < 1e-5;
+  const out = [0, 0, 0], haze = C(0xf3d8a6);
+  const meshes = [...v.static.meshes, ...v.three.children.filter((m) => m.isMesh && m.name.startsWith('kulisse:'))];
+  let n = 0;
+  for (const m of meshes) {
+    const g = m.geometry, P = g.attributes.position.array, N = g.attributes.normal.array, Col = g.attributes.color.array;
+    const far = m.name.startsWith('kulisse:');
+    let touched = false;
+    for (let i = 0; i < P.length; i += 3) {
+      const x = P[i], y = P[i + 1], z = P[i + 2];
+      if (exclude.some((e) => x > e[0] && x < e[2] && z > e[1] && z < e[3])) continue;
+      if (same(cap, Col, i)) {
+        sandAt(x, z, y, ctx, out);
+        mixc(out, SAND.shade, 0.4, out);                   // etwas wärmer als der Sand ringsum (Umriss bleibt lesbar)
+        const k = N[i + 1] > 0.7 ? 0.95 : 0.84;
+        Col[i] = out[0] * k; Col[i + 1] = out[1] * k; Col[i + 2] = out[2] * k;
+        touched = true; n++;
+      } else if (sides.some((s) => same(s, Col, i))) {
+        const K = Math.floor((y - layerWob(0, x + z)) / STRATA_SUM) * 9 + STRATA_Y.findLastIndex((h) => h <= (((y - layerWob(0, x + z)) % STRATA_SUM) + STRATA_SUM) % STRATA_SUM);
+        const c = STRATA_C[((K % 9) + 9) % 9], k0 = 0.94 + 0.1 * hash1(K);
+        out[0] = c[0] * k0; out[1] = c[1] * k0; out[2] = c[2] * k0;
+        if (far) mixc(out, haze, 0.18, out);
+        Col[i] = out[0]; Col[i + 1] = out[1]; Col[i + 2] = out[2];
+        touched = true; n++;
+      }
+    }
+    if (touched) g.attributes.color.needsUpdate = true;
+  }
+  return n;
+}
+
 // ------------------------------------------------------------------ Sandstein-Schichten an den Seitenflächen
 
 // Schichtfolge (Dicke m, Farbe) – wiederholt sich alle ≈ 6,2 m; Grenzen in Welt-Höhe, damit die Schichten über die
@@ -598,9 +642,10 @@ function strataColumn(acc, A, B, lo, hi, info) {
 
 /**
  * Sandstein-Schichten auf den Seitenflächen der Quader mit faces: true. Gezeichnet werden nur Flächen zur Kamera (+Z)
- * und zur Schluchtmitte (±X); verdeckt ist, was ein Nachbarquader abdeckt (Fläche erst über dessen Oberkante). Liefert
- * { parts, bases } – bases = Wandfüße [{ a: [x, z], b: [x, z], y, n: [nx, nz] }] für Geröll/Grasbüschel.
- * o: depth (Schichten bis so tief unter die Oberkante, 11), mid (Grenze der ±X-Flächen, 4)
+ * und ±X-Flächen, die zur Schlucht hin liegen (|x| < mid); verdeckt ist, was ein Nachbarquader abdeckt (Fläche erst über
+ * dessen Oberkante). Liefert { parts, bases } – bases = Wandfüße [{ a: [x, z], b: [x, z], y, n: [nx, nz] }] für
+ * Geröll/Grasbüschel. o: depth (Schichten bis so tief unter die Oberkante, 11), deep (hohe Wände ≥ 20 m, 16),
+ * step (Spaltenbreite m, 2.5), mid (12)
  */
 export function strataParts(boxes, o = {}) {
   const mid = o.mid ?? 12, off = 0.025, step = o.step ?? 2.5;
@@ -770,9 +815,9 @@ export function rippleParts(fields, ctx, o = {}) {
       const off = (j - (nl - 1) / 2) * 0.46 + rnd.real(-0.06, 0.06);
       const L = 2 * R * Math.sqrt(Math.max(0.15, 1 - (off / (R * 0.9)) ** 2)) * rnd.real(0.65, 1);
       const c0 = rnd.real(-0.4, 0.4);
-      const K = 5, pts = [];
+      const K = 6, pts = [];
       for (let k = 0; k <= K; k++) {
-        const t = (k / K - 0.5) * L + c0, wv = 0.13 * Math.sin(t * 1.5 + phase + j * 0.7);
+        const t = (k / K - 0.5) * L + c0, wv = 0.12 * Math.sin(t * 2.1 + phase + j * 0.7) + 0.05 * Math.sin(t * 3.7 + phase * 2 - j);
         pts.push([fx + ux * t + vx * (off + wv), fz + uz * t + vz * (off + wv), (k / K) * 2 - 1]);
       }
       if (!pts.every((p) => onTop(p[0], p[1], fy))) continue;
@@ -870,6 +915,34 @@ export function trackParts(list, ctx) {
           acc.flat(p0[0] - dz * hw, p0[1] + dx * hw, p0[0] + dz * hw, p0[1] - dx * hw, p1[0] + dz * hw, p1[1] - dx * hw, y, dk);
           acc.flat(p0[0] - dz * hw, p0[1] + dx * hw, p1[0] + dz * hw, p1[1] - dx * hw, p1[0] - dz * hw, p1[1] + dx * hw, y, dk);
         }
+      }
+    }
+  }
+  const g = acc.geometry();
+  return g ? [g] : [];
+}
+
+/**
+ * Hacklöcher: wo Hackvögel in den Sand hacken, ein paar kleine Löcher mit aufgeworfenem Rand vor dem Schnabel.
+ * list [{ pos: [x, y, z], dir: [dx, dz] }] (wie die Gegner-Daten), n Löcher je Vogel.
+ */
+export function peckParts(list, ctx, n = 5) {
+  const acc = new Tris(), sc = [0, 0, 0], rim = [0, 0, 0], hole = [0, 0, 0];
+  const rnd = rng(23);
+  for (const H of list) {
+    const [x0, y, z0] = H.pos, l = Math.hypot(H.dir[0], H.dir[1]) || 1, dx = H.dir[0] / l, dz = H.dir[1] / l;
+    for (let i = 0; i < n; i++) {
+      const f = rnd.real(0.75, 1.35), sd = rnd.real(-0.45, 0.45);
+      const x = x0 + dx * f - dz * sd, z = z0 + dz * f + dx * sd, r = rnd.real(0.045, 0.075);
+      sandAt(x, z, y, ctx, sc);
+      rim[0] = Math.min(1, sc[0] * 1.08); rim[1] = Math.min(1, sc[1] * 1.08); rim[2] = Math.min(1, sc[2] * 1.12);
+      hole[0] = sc[0] * 0.42; hole[1] = sc[1] * 0.36; hole[2] = sc[2] * 0.3;
+      for (let k = 0; k < 6; k++) {
+        const a0 = (k / 6) * 6.283, a1 = ((k + 1) / 6) * 6.283;
+        const R = r * 1.9;
+        acc.flat(x + Math.cos(a0) * r, z + Math.sin(a0) * r, x + Math.cos(a0) * R, z + Math.sin(a0) * R, x + Math.cos(a1) * R, z + Math.sin(a1) * R, y + 0.01, rim);
+        acc.flat(x + Math.cos(a0) * r, z + Math.sin(a0) * r, x + Math.cos(a1) * R, z + Math.sin(a1) * R, x + Math.cos(a1) * r, z + Math.sin(a1) * r, y + 0.01, rim);
+        acc.flat(x, z, x + Math.cos(a0) * r, z + Math.sin(a0) * r, x + Math.cos(a1) * r, z + Math.sin(a1) * r, y + 0.012, hole);
       }
     }
   }
