@@ -1,7 +1,10 @@
 // Kartenbau: aus den Weltdaten (worlds/w<n>.js) entsteht im Level-Objekt der Karte die Insel – mit denselben
 // Bausteinen wie die Kurs-Level (island-Optik, water, bridge, stairs, platform, deco …) und den Kartenelementen:
 //   Gelände-Blöcke → unsichtbare Begrenzung des begehbaren Bereichs (+ Hecken/Zäune, wo man sie sehen soll)
-//   → Wege aus hellen Platten → Eingänge → Schranken → Beerenhaus → wandernde Gegnergruppe → Meer/Wolken.
+//   → Wege aus hellen Platten → Eingänge → Schranken → Beerenhaus/Glückshaus → wandernde Gegnergruppe → Meer/Wolken.
+// Mehrwelten (Präzisierung Mehrwelten-Karte): map.kit = 'desert' wählt die Wüsten-Geländestile (desert.js) als
+// Standard, map.edges die Randdeko ({ hedge: 'hedge'|'adobe'|'pink', fence: 'fence'|'rope'|'chain' }, je Block
+// überschreibbar mit edge/fence), map.pathColors die Wegplatten, map.props Requisiten (Palmen, Pyramiden …).
 // Reihenfolge wichtig: Höhen für Hecken/Platten werden vom Gelände abgefragt, bevor Wände/Schranken entstehen;
 // erst am Ende wird die statische Geometrie verschmolzen (view.finalize).
 
@@ -9,11 +12,16 @@ import * as THREE from 'three';
 import { getBlockType } from '../blocks/index.js';
 import { islandParts, lin, mixc, colorize, merge, Rnd } from '../blocks/kit.js';
 import { roundedBox, SIDE } from '../../three/world/geometry.js';
-import { buildWalkGrid, gateRects } from './layout.js';
+import { buildWalkGrid, gateSides } from './layout.js';
 import { hedgeGeo, fenceGeo, rockCapGeo, berryHouseGeo, itemStandGeo, signGeo, signTextMesh, vcol } from './props.js';
 import { EntranceView } from './entrances.js';
 import { MapGate } from './gates.js';
 import { MapScenery } from './scenery.js';
+import { desertGround, adobeWallGeo, ropeFenceGeo, tintHedgeGeo, PINK_HEDGE, propGeo, propShape, cactusGeo, barrelCactusGeo, shrubGeo, desertRockGeo, pinkTreeGeo, sandBlocksGeo, turretGeo, place } from './desert.js';
+import { SlotMachine } from './slot.js';
+import { bakeModel, propModel } from './bake.js';
+
+const DESERT_STYLES = new Set(['desert', 'sandstone', 'dune', 'pink', 'lavarock', 'basin']);
 
 const WALL_T = 0.5;          // Dicke der unsichtbaren Begrenzung
 const WALL_TOP = 40;         // so hoch, dass kein Sprung darüber reicht
@@ -24,13 +32,13 @@ const WALL_TOP = 40;         // so hoch, dass kein Sprung darüber reicht
  * @param {{ entranceInfo(def): { label: string }, gateClosed(gate): boolean }} host
  */
 export function buildMap(level, map, host) {
-  const out = { grid: null, entrances: new Map(), gates: [], scenery: null, walls: 0, hedges: 0, tiles: 0, house: null };
+  const out = { grid: null, entrances: new Map(), gates: [], scenery: null, walls: 0, hedges: 0, tiles: 0, house: null, slot: null };
   const base = map.base ?? -3;
   const sea = map.sea ?? 0;
   const theme = level.view?.theme;
 
   // 1) Gelände
-  map.ground.forEach((b, i) => buildGround(level, b, base, theme, i));
+  map.ground.forEach((b, i) => buildGround(level, b, base, theme, i, map));
   // 2) Standard-Bausteine (Wasser, Brücken, Treppen, Plattformen, Deko)
   for (const seg of map.segments ?? []) {
     const build = getBlockType(seg.type);
@@ -39,7 +47,9 @@ export function buildMap(level, map, host) {
   }
   const grid = buildWalkGrid(map);
   out.grid = grid;
-  scatterDeco(level, map, base, grid);
+  if (map.kit === 'desert') scatterDesert(level, map, grid);
+  else scatterDeco(level, map, base, grid);
+  buildProps(level, map, grid);
   const bounds = level.computeBounds();
 
   // 3) begehbarer Bereich → Hecken/Zäune (Optik) und Wände (Kollision)
@@ -47,7 +57,7 @@ export function buildMap(level, map, host) {
   const ground = (x, z) => { const h = level.world.raycastDown(x, 80, z, 120); return h ? h.y : null; };
   const groundBlock = (x, z) => level.world.raycastDown(x, 80, z, 120)?.shape?.mapBlock ?? null;
   const edgeParts = { hedge: [], fence: [] };
-  for (const w of walls) borderDeco(w, ground, sea, edgeParts, groundBlock);
+  for (const w of walls) borderDeco(w, ground, sea, edgeParts, groundBlock, map.edges);
   for (const g of edgeParts.hedge) level.view?.addStatic(g, { castShadow: true });
   for (const g of edgeParts.fence) level.view?.addStatic(g, { castShadow: true });
   out.hedges = edgeParts.hedge.length;
@@ -64,8 +74,9 @@ export function buildMap(level, map, host) {
     out.entrances.set(def.id, new EntranceView(level, def, info));
   }
 
-  // 7) Beerenhaus
+  // 7) Beerenhaus, Glückshaus
   for (const h of map.houses ?? []) {
+    if (h.kind === 'glueck') { out.slot = new SlotMachine(level, h); continue; }
     const [x, y, z] = h.pos;
     const g = berryHouseGeo().clone();
     if (h.yaw) g.rotateY(h.yaw + Math.PI / 2);
@@ -108,7 +119,7 @@ export function buildMap(level, map, host) {
   }
 
   // 9) Schranken (nur geschlossene bauen; die Szene öffnet frisch freigeschaltete mit Animation)
-  for (const gr of gateRects(map, grid)) {
+  for (const gr of gateSides(map, grid)) {
     if (!host.gateClosed(gr)) continue;
     const [x0, z0, x1, z1] = gr.rect;
     const y = ground((x0 + x1) / 2, (z0 + z1) / 2) ?? 1;
@@ -126,13 +137,17 @@ export function finalizeMap(level, out) {
 
 // ------------------------------------------------------------------ Gelände
 
-function buildGround(level, b, base, theme, index) {
+function buildGround(level, b, base, theme, index, map) {
   const [x0, z0, x1, z1] = b.rect;
   const top = b.top;
   const rnd = new Rnd(0x51ab + index * 977);
   level.world.add({ type: 'box', min: [x0, base, z0], max: [x1, top, z1], tag: b.walk ? 'karte' : 'gelaende', mapBlock: b });
   if (!theme) return;
-  const style = b.style ?? 'grass';
+  const style = b.style ?? (map.kit === 'desert' ? 'desert' : 'grass');
+  if (map.kit === 'desert' || DESERT_STYLES.has(style)) {
+    for (const g of desertGround({ ...b, style }, base, theme, rnd)) level.view.addStatic(g);
+    return;
+  }
   if (style === 'rock') {
     const h = top - base;
     const g = roundedBox(x1 - x0, h, z1 - z0, 0.35, SIDE.ALL, SIDE.NY, 2);
@@ -200,6 +215,96 @@ function scatterDeco(level, map, base, grid) {
   void base;
 }
 
+/**
+ * Wüsten-Streudeko auf nicht begehbaren Blöcken (deterministisch): Kakteen, Kugelkakteen, Trockenbüsche, Felsen; auf
+ * rosa Gras Blütenbäume, auf grünem Gras Bäume und Büsche. Lavafels, Becken, Teich und noDeco bleiben frei.
+ */
+function scatterDesert(level, map, grid) {
+  const parts = [];
+  map.ground.forEach((b, i) => {
+    const style = b.style ?? 'desert';
+    if (b.walk || b.noDeco || ['lavarock', 'basin', 'pond', 'sand'].includes(style)) return;
+    const [x0, z0, x1, z1] = b.rect;
+    const w = x1 - x0, d = z1 - z0;
+    if (w < 2.5 || d < 2.5) return;
+    const [cx, cz] = [(x0 + x1) / 2, (z0 + z1) / 2];
+    if (grid.isWalk(cx, cz)) return;
+    const rnd = new Rnd(0xd5e7 + i * 131);
+    const pts = [];
+    const tooClose = (x, z, r) => pts.some((p) => Math.hypot(p[0] - x, p[1] - z) < r);
+    const area = w * d;
+    // Düne: Deko nur am Fuß (die Kuppe bleibt glatt)
+    const inner = (x, z) => style !== 'dune' || Math.abs(x - cx) / (w / 2) > 0.62 || Math.abs(z - cz) / (d / 2) > 0.62;
+    const y = b.top;
+    const put = (n, minD, make) => {
+      for (let k = 0, tries = 0; k < n && tries < n * 12; tries++) {
+        const x = rnd.real(x0 + 1.2, x1 - 1.2), z = rnd.real(z0 + 1.2, z1 - 1.2);
+        if (tooClose(x, z, minD) || !inner(x, z)) continue;
+        pts.push([x, z]);
+        const g = make(rnd);
+        if (g) parts.push(place(g, x, y, z, rnd.real(0, Math.PI * 2)));
+        k++;
+      }
+    };
+    if (style === 'pink') {
+      put(Math.max(1, Math.floor(area / 40)), 3, (r) => pinkTreeGeo(r.real(3.4, 4.8), r.int(1, 999)));
+      put(Math.floor(area / 50), 1.6, (r) => shrubGeo(r.real(0.4, 0.6), r.int(1, 999)));
+      return;
+    }
+    if (style === 'grass' || style === 'meadow') {
+      put(Math.max(1, Math.floor(area / 45)), 3, (r) => lightTree(0, 0, 0, r.real(3.8, 5.4), r));
+      put(Math.floor(area / 60), 1.8, (r) => lightBush(0, 0, 0, r.real(0.6, 0.9), r));
+      return;
+    }
+    const k = style === 'sandstone' ? 0.5 : 1;
+    put(Math.max(1, Math.floor((area / 100) * k)), 2.6, (r) => cactusGeo(r.real(1.6, 2.8), r.int(1, 999)));
+    put(Math.floor((area / 150) * k), 1.6, () => barrelCactusGeo(0.4));
+    put(Math.floor((area / 80) * k), 1.8, (r) => (r.frac() < 0.5 ? shrubGeo(r.real(0.4, 0.6), r.int(1, 999)) : desertRockGeo(r.real(0.5, 1.0), r.int(1, 999))));
+  });
+  for (const g of parts) level.view?.addStatic(g, { castShadow: true });
+}
+
+/** Requisiten aus map.props: { kind, pos, yaw?, size?, … } (desert.js propGeo); auf begehbarem Gelände mit Kollision. */
+function buildProps(level, map, grid) {
+  const add = (g, o) => level.view.addStatic(g, o);
+  (map.props ?? []).forEach((it, i) => {
+    // Modell aus der Registry (gleiche Optik wie in den Leveln), sonst eigene sparsame Geometrie
+    const pm = level.view && it.model !== false ? propModel(it) : null;
+    const baked = pm ? bakeModel(add, pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
+    if (baked && it.kind === 'tank') add(place(turretGeo(it.size ?? 1, (it.color ?? 'oliv') === 'oliv'), it.pos[0], it.pos[1] + 1.6 * (it.size ?? 1), it.pos[2], it.yaw ?? 0), { castShadow: true });
+    if (it.kind === 'sandstack') {
+      // Stapel aus 1-m-Sandblöcken zum Hüpfen (Kollision je Stapel, Optik: Modell 'sandblock')
+      const n = it.n ?? 1, [x, y, z] = it.pos;
+      level.world.add({ type: 'box', min: [x - 0.5, y, z - 0.5], max: [x + 0.5, y + n, z + 0.5], tag: 'sandblock' });
+      if (level.view) for (let k = 0; k < n; k++) if (!bakeModel(add, 'sandblock', {}, [x, y + k, z], (it.yaw ?? 0) + k * 0.05)) add(place(sandBlocksGeo(1, k + 1), x, y + k, z, it.yaw ?? 0), { castShadow: true });
+      return;
+    }
+    if (!baked && level.view && it.kind === 'sandblocks') bakeSandblocks(add, it);
+    else if (!baked) {
+      const g = level.view ? propGeo(it, 0x7a11 + i * 37) : null;
+      if (g) level.view.addStatic(place(g, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: it.shadow !== false });
+    }
+    if (it.solid === false) return;
+    if (it.solid || grid.isWalk(it.pos[0], it.pos[2])) {
+      const sh = propShape(it);
+      if (sh) level.world.add(sh);
+    }
+  });
+}
+
+/** Stapel aus Sandblöcken (Modell 'sandblock' der Registry, 1 m), Lage wie desert.sandBlocksGeo. */
+const SB_SPOTS = [[0, 0, 0], [1.02, 0, 0.1], [0.5, 1.0, 0.05], [-1.0, 0, -0.2], [-0.5, 1, -0.1], [0, 2, 0]];
+function bakeSandblocks(add, it) {
+  const yaw = it.yaw ?? 0, c = Math.cos(yaw), s = Math.sin(yaw);
+  let ok = false;
+  for (let k = 0; k < Math.min(it.n ?? 3, SB_SPOTS.length); k++) {
+    const [x, y, z] = SB_SPOTS[k];
+    const r = bakeModel(add, 'sandblock', {}, [it.pos[0] + x * c + z * s, it.pos[1] + y, it.pos[2] - x * s + z * c], yaw + k * 0.07);
+    ok = ok || !!r;
+  }
+  if (!ok) add(place(propGeo(it, 3), it.pos[0], it.pos[1], it.pos[2], yaw), { castShadow: true });
+}
+
 // Leichte Bäume/Büsche für die Streu-Deko (weniger Dreiecke als die Deko-Bausteine, gleiche Anmutung)
 const CROWNS = [[0xffcf7a, 0xf58f3a, 0xc45f22], [0xffa38a, 0xef5f44, 0xb33a2a], [0xfff0a6, 0xf6c54a, 0xc98d22], [0xb9f286, 0x6cc74d, 0x3d8f32], [0xa6ec7a, 0x58b947, 0x2f7d2a]];
 function ball(r, x, y, z, pal, ws = 8, hs = 6) {
@@ -235,7 +340,7 @@ function lightBush(x, y, z, r, rnd) {
  *   tiefer (Land, kein Meer)          → weißer Zaun an der Kante
  *   Meer oder hohe Klippe             → nichts (natürliche Grenze)
  */
-function borderDeco(w, ground, sea, out, groundBlock) {
+function borderDeco(w, ground, sea, out, groundBlock, edges = {}) {
   const len = w.axis === 'x' ? w.z1 - w.z0 : w.x1 - w.x0;
   const n = Math.max(1, Math.round(len));
   const step = len / n;
@@ -246,31 +351,33 @@ function borderDeco(w, ground, sea, out, groundBlock) {
       ? [w.x - w.side * 0.25, u, w.x + w.side * 0.75, u]
       : [u, w.z - w.side * 0.25, u, w.z + w.side * 0.75];
     const hin = ground(ix, iz), hout = ground(ox, oz);
-    let c = 'none', y = 0;
+    let c = 'none', y = 0, st = '';
     if (hin !== null && hout !== null && hout > sea + 0.3 && !groundBlock(ox, oz)?.noEdge) {
       const dh = hout - hin;
-      if (dh > -0.45 && dh < 3.6) { c = 'hedge'; y = hout; }
-      else if (dh <= -0.45) { c = 'fence'; y = hin; }
+      if (dh > -0.45 && dh < 3.6) { c = 'hedge'; y = hout; st = groundBlock(ox, oz)?.edge ?? groundBlock(ix, iz)?.edge ?? edges.hedge ?? 'hedge'; }
+      else if (dh <= -0.45) { c = 'fence'; y = hin; st = groundBlock(ix, iz)?.fence ?? edges.fence ?? 'fence'; }
     }
-    cls.push({ c, y, u });
+    cls.push({ c, y, u, st });
   }
   // gleiche Abschnitte zusammenfassen
   let i = 0;
   while (i < n) {
     const c = cls[i].c, y = cls[i].y;
     let j = i;
-    while (j + 1 < n && cls[j + 1].c === c && Math.abs(cls[j + 1].y - y) < 0.05) j++;
+    const st = cls[i].st;
+    while (j + 1 < n && cls[j + 1].c === c && cls[j + 1].st === st && Math.abs(cls[j + 1].y - y) < 0.05) j++;
     if (c !== 'none') {
       const a = (w.axis === 'x' ? w.z0 : w.x0) + i * step, b = (w.axis === 'x' ? w.z0 : w.x0) + (j + 1) * step;
       const L = b - a, mid = (a + b) / 2;
       let g;
       if (c === 'hedge') {
-        g = hedgeGeo(L + 0.2, 1.1, 0.9, Math.floor(mid * 7 + 13) >>> 0);
-        const off = w.side * 0.45;
+        const seed = Math.floor(mid * 7 + 13) >>> 0;
+        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : hedgeGeo(L + 0.2, 1.1, 0.9, seed);
+        const off = w.side * (st === 'adobe' ? 0.35 : 0.45);
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
       } else {
-        g = fenceGeo(L);
+        g = st === 'rope' || st === 'chain' ? ropeFenceGeo(L, st === 'chain') : fenceGeo(L);
         const off = w.side * 0.12;
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
@@ -302,7 +409,8 @@ function buildPaths(level, map, grid, ground, sea) {
   }
   if (!level.view) return tiles.size;
   const rnd = new Rnd(0x9a7e);
-  const a = lin(0xf6e7c1), b2 = lin(0xead6a6), edge = lin(0xd9c28e);
+  const pc = map.pathColors ?? [0xf6e7c1, 0xead6a6, 0xd9c28e];
+  const a = lin(pc[0]), b2 = lin(pc[1]), edge = lin(pc[2]);
   const parts = [];
   let count = 0;
   for (const [i, j] of tiles.values()) {

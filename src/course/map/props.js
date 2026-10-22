@@ -12,6 +12,9 @@ import { roundedBox, SIDE } from '../../three/world/geometry.js';
 export const ENTRANCE_COLORS = {
   meadow: 0x4fc24a, cave: 0xb07a4a, arena: 0xf2c230, beanstalk: 0x3fbf6a, diorama: 0x4aa8ff,
   river: 0x35b8e8, circus: 0xff5a5a, castle: 0x8a5ad8, pipe: 0x7fd8ff,
+  // Welt 2
+  canyon: 0xe8913a, space: 0x5a5ae0, glowcave: 0xd88a2a, mystery: 0x9a5ad8, hills: 0x4fc24a, lavaarena: 0xff6a2a,
+  pinkgrass: 0xff7ac0, tankdepot: 0x6a8a3a,
 };
 export const LOCKED_COLOR = 0x9a9cab;
 
