@@ -464,9 +464,10 @@ function pumpkinParts(level, list) {
       loc.sphere(s * 0.62, i % 2 ? 0xe8781a : 0xf08a24, { p: [Math.cos(a) * s * 0.32, s * 0.62, Math.sin(a) * s * 0.32], s: [0.8, 1, 0.8] }, 8, 5);
     }
     loc.cyl(s * 0.07, s * 0.1, s * 0.3, 0x5a7a2a, { p: [0, s * 1.3, 0], r: [0, 0, 0.3] }, 6);
-    const fx = s * 0.93;
-    for (const sz of [-1, 1]) lg.add(new THREE.CircleGeometry(s * 0.14, 3), 0xffe070, { p: [fx, s * 0.84, sz * s * 0.22], r: [0, Math.PI / 2, 0] });
-    lg.add(new THREE.CircleGeometry(s * 0.3, 10, Math.PI, Math.PI), 0xffc040, { p: [fx, s * 0.56, 0], r: [0, Math.PI / 2, 0] });
+    // Gesicht etwas nach oben gekippt (die Kamera schaut schräg von oben): Augen oben auf der Wölbung, Mund darunter
+    const face = (g, tilt, x, y, z) => g.rotateX(-tilt).rotateY(Math.PI / 2).translate(x, y, z);
+    for (const sz of [-1, 1]) lg.add(face(new THREE.CircleGeometry(s * 0.15, 3).rotateZ(Math.PI / 2), 0.55, s * 0.78, s * 1.0, sz * s * 0.22), 0xffe070);
+    lg.add(face(new THREE.CircleGeometry(s * 0.3, 10, Math.PI, Math.PI), 0.2, s * 0.88, s * 0.7, 0), 0xffc040);
     const a = loc.geometry(), g = lg.geometry();
     for (const q of [a, g]) { q.rotateY((pk.yaw ?? 0) - Math.PI / 2); q.translate(x, y, z); }
     body.push(a); glow.push(g);
@@ -644,6 +645,21 @@ export function ghostMoods(level, zones) {
   };
   apply(true);
   level.onStep(() => apply(false));
+}
+
+/**
+ * Kamera durch Einbauten hindurch (Simulationstakt): feste Formen mit `tag` im Rechteck min/max (x, z) bekommen
+ * camIgnore – z. B. die Bretter im Drehraum, die nach jeder Drehung neu entstehen. Sonst zöge die Kamera-Abstandsprüfung
+ * die Kamera unter ein Brett über der Figur ganz nah heran.
+ */
+export function camThrough(level, tag, min, max) {
+  const out = [];
+  level.onStep(() => {
+    const p = level.player;
+    if (!p || p.pos.x < min[0] - 8 || p.pos.x > max[0] + 8 || p.pos.z < min[1] - 20 || p.pos.z > max[1] + 20) return;
+    out.length = 0;
+    for (const s of level.world.candidates(min[0], min[1], max[0], max[1], out)) if (s.tag === tag) s.camIgnore = true;
+  });
 }
 
 // =====================================================================================================================

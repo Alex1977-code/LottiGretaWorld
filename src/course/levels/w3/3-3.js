@@ -31,7 +31,7 @@
 
 import {
   hook, line, ring, arc, hauntWall, hauntFloor, cobweb, moonWindow, clock, sideTable, bookShelf, nightLawn, flagstones,
-  graves, pumpkins, deadTree, ironFence, fountain, facade, ghostMoods, roomCull, bake, prop, solid, PAL, readingNook, armchair,
+  graves, pumpkins, deadTree, ironFence, fountain, facade, ghostMoods, roomCull, camThrough, bake, prop, solid, PAL, readingNook, armchair,
 } from './_helpers_c.js';
 
 const Y = 1;
@@ -95,7 +95,7 @@ function scene(level) {
   cobweb(level, [-7.38, Y + 3.3, 0.42], 0, 0.8);
 
   // ================================================================ D  Drehraum (Hülle baut der Baustein)
-  lamp(-60, 5, 49);
+  lamp(-60, 7.5, 47);
 
   // ================================================================ B  Bibliothek
   const pg = PAL.gruen;
@@ -120,7 +120,8 @@ function scene(level) {
   bookShelf(level, { pos: [54, Y, -53.3], yaw: FRONT, w: 4, h: 5, seed: 7 });
   for (const z of [-36, -38.4]) bookShelf(level, { pos: [52.3, Y, z], yaw: 0, w: 2.3, h: 3.2, seed: z + 1 });
   for (const z of [-58.4, -60.8]) bookShelf(level, { pos: [52.3, Y, z], yaw: 0, w: 2.3, h: 3.2, seed: z + 2 });
-  for (const x of [57.8, 60.2]) bookShelf(level, { pos: [x, Y + 4, -62.7], yaw: FRONT, w: 2.3, h: 3, seed: x + 3 });
+  // Galerie: Regale links und rechts neben der Tür zum Außenhof
+  for (const [x, w] of [[57.35, 1.6], [61.65, 1.9]]) bookShelf(level, { pos: [x, Y + 4, -62.7], yaw: FRONT, w, h: 3, seed: x + 3 });
   bookShelf(level, { pos: [67.7, Y, -51.8], yaw: R, w: 2.2, h: 3.4, seed: 11 });
   // Mittelpodest (y 3) und Galerie (y 5) im Treppenbereich
   hauntFloor(level, { x0: 63.5, x1: 67.6, zA: -55, zB: -59, y: Y + 2, depth: 2 });
@@ -157,7 +158,7 @@ function scene(level) {
     { pos: [126.4, Y, -86.2], yaw: 0.3, kind: 'herz' }, { pos: [111.4, Y, -100.6], yaw: 0, kind: 'rund' },
   ]);
   pumpkins(level, [
-    { pos: [110.2, Y, -75.4], yaw: -0.4 }, { pos: [118.6, Y, -69.6], yaw: 0.2, size: 0.55 }, { pos: [130.4, Y, -75], yaw: -0.3 },
+    { pos: [110.2, Y, -75.4], yaw: 0.45 }, { pos: [118.6, Y, -69.6], yaw: 0.2, size: 0.55 }, { pos: [130.4, Y, -75], yaw: -0.3 },
     { pos: [123.8, Y, -86.6], yaw: 0.5, size: 0.38 }, { pos: [116.4, Y, -98.6], yaw: 0.3 }, { pos: [124.4, Y, -98.4], yaw: -0.5, size: 0.5 },
   ]);
   deadTree(level, { pos: [130, Y, -68.6], size: 1.1, yaw: 2.4 });
@@ -200,17 +201,19 @@ function scene(level) {
   nightLawn(level, { x0: 228, x1: 252, zA: -190, zB: -215, y: Y, depth: 4 });
   nightLawn(level, { x0: 228, x1: 252, zA: -215, zB: -223, y: Y + 6.6, depth: 10 });
   facade(level, { face: '+x', at: 228, from: -159, to: -215, y: Y, h: 10, windows: [-164, -173, -196, -207] });
-  facade(level, { face: '+z', at: -223, from: 227.2, to: 252.8, y: Y + 6.6, h: 9, windows: [231.5, 248.5] });
+  facade(level, { face: '+z', at: -223, from: 227.2, to: 252.8, y: Y + 6.6, h: 9, windows: [231.5, 236.4, 243.6, 248.5] });
   flagstones(level, [[230, -167], [238, -167], [240, -179]], Y, 2);
   flagstones(level, [[240, -191], [240, -202], [240, -207]], Y, 2.4);
+  flagstones(level, [[240, -215.4], [240, -219.2]], Y + 6.6, 3);
+  flagstones(level, [[231.5, -219.6], [248.5, -219.6]], Y + 6.6, 1.3);
   graves(level, [
     { pos: [233, Y, -177], yaw: 0.3, kind: 'kreuz' }, { pos: [246.5, Y, -165.5], yaw: -0.2, kind: 'herz' },
     { pos: [233.6, Y, -193.4], yaw: 0.2, kind: 'rund', tilt: 0.07 }, { pos: [249.2, Y, -205], yaw: -0.4, kind: 'rund' },
     { pos: [246.6, Y, -193], yaw: 0.1, kind: 'herz' },
   ]);
   pumpkins(level, [
-    { pos: [231, Y, -170.4], yaw: -0.3 }, { pos: [249.6, Y, -171.4], yaw: 0.2, size: 0.55 }, { pos: [233.2, Y, -203.4], yaw: 0.2 },
-    { pos: [246.8, Y, -203.2], yaw: -0.5 }, { pos: [235.6, Y + 6.6, -217], yaw: 0.4, size: 0.5 }, { pos: [244.4, Y + 6.6, -217], yaw: 0.6, size: 0.5 },
+    { pos: [231, Y, -170.4], yaw: 0.35 }, { pos: [249.6, Y, -171.4], yaw: -0.3, size: 0.55 }, { pos: [233.2, Y, -203.4], yaw: 0.2 },
+    { pos: [246.8, Y, -203.2], yaw: -0.5 }, { pos: [235.6, Y + 6.6, -217], yaw: 0.45, size: 0.5 }, { pos: [244.4, Y + 6.6, -217], yaw: -0.45, size: 0.5 },
   ]);
   deadTree(level, { pos: [240, Y, -172.5], size: 1.2, yaw: 1.2 });
   deadTree(level, { pos: [249, Y, -178.4], size: 0.9, yaw: 2.6, lantern: false });
@@ -237,6 +240,8 @@ export const LEVEL = {
   // (nur den Blob am Boden – passt zu Gespenstern und spart den Schattenpass)
   setup: (level) => {
     roomCull(level, ROOMS, { far: { spuk: 17, kreisgeist_kreis: 26, kreisgeist: 22 } });
+    // Drehraum: Kamera nicht an den Brettern über der Figur hängen lassen
+    camThrough(level, 'drehraum:teil', [-66, 39], [-54, 53]);
     for (const e of level.entities) if (GHOSTS.has(e.kind)) e.model?.root.traverse((m) => { if (m.isMesh) m.castShadow = false; });
     // Spuk-Treppen (viele Stufen, oft halb versunken) ohne Sonnenschatten – Budget
     for (const o of level.view?.three.children ?? []) if (o.name === 'modell:spuk_treppe') o.traverse((m) => { if (m.isMesh) m.castShadow = false; });
@@ -274,7 +279,7 @@ export const LEVEL = {
 
     // ---------------- D: Drehraum
     { type: 'drehraum', id: 'dreh', pos: [-60, Y, 46], size: [10, 12], period: 4, turn: 1.4,
-      parts: [{ pos: [-2.2, 0], size: [2.4, 1.4], color: 0x8a5a3a }, { pos: [1.0, 2.2], size: [2.8, 0.5], color: 0xc89a5a }] },
+      parts: [{ pos: [-2.2, 0], size: [2.4, 1.4], color: 0x6a3f26 }, { pos: [1.0, 2.2], size: [2.8, 0.5], color: 0x9a6438 }] },
 
     // ---------------- B: Schieberegale, Spuk-Treppen, Kronleuchter, Tür
     { type: 'spuk_tuer', id: 'tuerB', pos: [67.75, Y, -37], yaw: R, target: 'tuerA' },
@@ -300,7 +305,7 @@ export const LEVEL = {
     { type: 'spuk_treppe', id: 'treppe_e1', pos: [176, Y, -138], yaw: Math.PI / 2, steps: 16, width: 2.4, rise: 0.25, run: 0.25, from: [0, -4.1, 0], mode: 'shift', period: 3.5, speed: 5 },
     { type: 'spuk_treppe', id: 'treppe_e2', pos: [184, Y, -138], yaw: Math.PI / 2, steps: 16, width: 2.4, rise: 0.25, run: 0.25, from: [0, -4.1, 0], mode: 'shift', period: 3.5, speed: 5, out: true },
     { type: 'spuk_treppe', id: 'treppe_e3', pos: [180, Y + 4, -146], yaw: Math.PI / 2, steps: 16, width: 2.6, rise: 0.25, run: 0.25, from: [0, -4.1, 0], mode: 'shift', period: 3.2, speed: 5 },
-    { type: 'kronleuchter', id: 'leuchter_e', pos: [180, Y + 13, -139], chain: 1.6, scale: 1.5, axis: 'z', amp: 0.2, period: 3.4 },
+    { type: 'kronleuchter', id: 'leuchter_e', pos: [186.2, Y + 13, -136.5], chain: 1.6, scale: 1.5, axis: 'z', amp: 0.2, period: 3.4 },
     { type: 'spuk_tuer', id: 'tuerE2', pos: [180, Y + 8, -157.75], yaw: FRONT, target: 'tuerF' },
 
     // ---------------- F: Außenhof 2 – Steinbrücke, falscher Zielmast, versteckte Treppe zum echten Ziel
@@ -313,7 +318,7 @@ export const LEVEL = {
   blocks: [
     { kind: 'question', pos: [-2.4, Y + 3.4, 4], content: 'coins:3' },
     { kind: 'question', pos: [61, Y + 3.4, -37.6], content: 'wachstumsbeere' },
-    { kind: 'question', pos: [176, Y + 3.4, -132.6], content: 'coins:3' },
+    { kind: 'question', pos: [179, Y + 3.4, -134.8], content: 'coins:3' },
   ],
   enemies: [
     // A: Spuke und ein Großspuk
