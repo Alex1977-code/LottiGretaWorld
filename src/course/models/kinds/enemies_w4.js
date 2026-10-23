@@ -3,7 +3,7 @@
 // ein String sein ('walk' ≙ { anim: 'walk' }). Unbekannte anim → wie 'idle'. progress (0..1) überschreibt bei
 // Einmal-/Zyklus-Animationen die Zeit seit dem Zustandswechsel.
 //
-// ameisensoldat       ≈0,95 m lang, 0,7 m hoch  Soldaten-Ameise auf sechs Beinen: kobaltblauer Lackpanzer mit hellen
+// ameisensoldat       ≈1,2 m lang (Hinterleib bis Kieferzangen), Helm-Oberkante 0,72 m, Fühlerkugeln ≈0,9 m  Soldaten-Ameise auf sechs Beinen: kobaltblauer Lackpanzer mit hellen
 //   Ringen am Hinterleib, roter Uniformkragen mit Goldknöpfen, sonnengelber Helm mit rotem Band und weißem Stern,
 //   große Augen, cremefarbene Kieferzangen, Fühler mit gelben Kugeln, dunkle Stiefelchen. Läuft waagerecht auf den
 //   Beinen (Rücken oben); an Wänden/Decken richtet der Motor root aus (lokales +Y = Flächennormale, +X = Laufrichtung).
@@ -14,7 +14,7 @@
 // ameisensoldat_horn  wie ameisensoldat, aber roter Helm mit großem weiß-silbernem Stachelhorn (Goldring am Fuß, zwei
 //   Seitendornen) – nicht von oben besiegbar.  state wie ameisensoldat.  Höhe mit Horn ≈1,0 m.
 //   Viele Ameisen → createInstanced('ameisensoldat' | 'ameisensoldat_horn', n) (lib/instanced_w4.js).
-// riesenameise        ≈3,4 m lang (mit Kieferhörnern), Deck 1,25 m hoch  Riesenameise als Laufuntergrund: mahagonirote
+// riesenameise        ≈3,4 m lang (mit Kieferhörnern; mit Fühlern ≈3,8 m), Beine ≈2,5 m breit, Deck 1,25 m hoch  Riesenameise als Laufuntergrund: mahagonirote
 //   Ameise, auf dem Rücken ein flaches, sandfarbenes Lastdeck (2,15 × 1,35 m, Riffelstreifen, Terrakotta-Rand, flache Nieten),
 //   große Kieferhörner, schläfrig-freundliche Augen mit Lidern, lange Fühler, sechs lange Beine.
 //   state { anim: 'walk'|'idle'|'carry', speed (m/s; Standard 2) }  carry wie walk (Deck schwankt etwas weniger).

@@ -526,7 +526,8 @@ if (part('views')) {
       cm.cam([0, 0.4, -3.2], 45 * Math.PI / 180, 13, 45);
     }, [ENEMIES.concat(GIMMICKS.slice(0, 1), GIMMICKS.slice(6, 9)).map(([n, o, s]) => [n, o, s]),
       [['felsnadel', { height: 5 }, 'idle', -9.5, -8, 0], ['tafelberg', { radius: 3, height: 4 }, 'idle', 10, -10, 1], ['ameisenhuegel', { size: 2 }, 'idle', 8.5, -1, -2.2],
-        ['ruinen_saeule', { height: 3 }, 'idle', -9, -1.5, 0.6], ['giftwasser', { size: [5, 3] }, 'idle', 0, -9.5, 0], ['giftpilz', { height: 1.6 }, 'idle', -6.5, 3, 0], ['ruinen_saeule', { height: 2.2, broken: true }, 'idle', 7, 3, 0]]]);
+        ['ruinen_saeule', { height: 3 }, 'idle', -9, -1.5, 0.6], ['giftwasser', { size: [5, 3] }, 'idle', 0, -9.5, 0], ['giftpilz', { height: 1.6 }, 'idle', -6.5, 3, 0], ['ruinen_saeule', { height: 2.2, broken: true }, 'idle', 7, 3, 0],
+        ['ruinen_treppe', { steps: 4, width: 2.5 }, 'idle', -5, -8.5, Math.PI / 2], ['ameisenhoehle', { width: 3.2 }, 'idle', 5.5, -11, Math.PI / 2 + 0.3]]]);
     if (ONLY && !ONLY.includes('course')) ONLY.push('course');
     await shot('course');
     await sc(() => { const cm = window.__cm; cm.cam([0, 0.4, -3.2], 45 * Math.PI / 180, 16, 45); for (const m of cm.live) m.label = null; });

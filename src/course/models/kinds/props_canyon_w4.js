@@ -229,6 +229,10 @@ function hoehleGeo(W, Hh) {
     for (const s of [1, -1]) tg.box(tl, hs, 0.05, { v: (x) => mix(HO.dark, 0x3a1a0c, smoothstep((x + tl / 2) / tl)) }, { p: [-tl / 2 - 0.05, hs / 2, s * hw * 0.98] }, 0, 1);
     tg.box(0.05, Hh + 0.2, W + 0.2, HO.dark, { p: [-tl - 0.05, Hh / 2, 0] }, 0, 1);
     b.parts.push(tg.geometry());
+    // Felsbuckel hinter der Wand, der den Gang umschließt (von hinten kein schwarzer Kasten)
+    const bl = tl + 0.45 - D + 0.2;
+    b.add(displace(new THREE.BoxGeometry(bl, Hh + 0.6, W + 1.2, 3, 4, 4), 0.12, 1.4, W + 3, false),
+      (x, y, z, nx, ny) => (ny > 0.75 ? CANYON.grass : strataColor(y + (Hh + 0.6) / 2, x, z, { band: 0.6, seed: 2 })), { p: [-D + 0.1 - bl / 2, (Hh + 0.6) / 2, 0] });
     // Stollen-Holzrahmen vorn
     const woodV = { v: (x, y, z, nx, ny) => mix(HO.woodDark, HO.wood, smoothstep(nx * 0.5 + 0.5)) };
     for (const s of [1, -1]) b.box(0.28, hs + 0.2, 0.28, woodV, { p: [0.32, (hs + 0.2) / 2, s * (hw - 0.05)] }, 0.04, 1);
