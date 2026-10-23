@@ -85,5 +85,12 @@ import { WATER_THEME } from './theme_water.js'; THEMES.water ??= WATER_THEME;
 import { RACE_THEME } from './theme_race.js'; THEMES.race ??= RACE_THEME;
 import { AUTUMN_THEME } from './theme_autumn.js'; THEMES.autumn ??= AUTUMN_THEME;
 import { TRAIN_THEME } from './theme_train.js'; THEMES.train ??= TRAIN_THEME;
+// Welt 4 (Bausteine Welt 4): nur eintragen, wenn das Thema nicht schon anders registriert ist
+import { CANYON_THEME } from './theme_canyon.js'; THEMES.canyon ??= CANYON_THEME;
+import { POISON_THEME } from './theme_poison.js'; THEMES.poison ??= POISON_THEME;
+import { BEEP_THEME } from './theme_beep.js'; THEMES.beep ??= BEEP_THEME;
+import { BOUNCE_THEME } from './theme_bounce.js'; THEMES.bounce ??= BOUNCE_THEME;
+import { RUINS_THEME } from './theme_ruins.js'; THEMES.ruins ??= RUINS_THEME;
+import { LAVACASTLE_THEME } from './theme_lavacastle.js'; THEMES.lavacastle ??= LAVACASTLE_THEME;
 
 export function getTheme(name) { return THEMES[name] ?? THEMES.grass; }
