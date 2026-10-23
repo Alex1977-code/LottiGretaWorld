@@ -29,7 +29,9 @@
 //     parts: [{ pos: [x, y] (Mitte unten im Querschnitt, x −s/2…s/2, y 0…s), size: [w, h], z: [z0, z1] (lokal,
 //     Standard ganze Länge), color }], period: 4 (s Pause), turn: 1.4 (s Drehung), dir: 1 (+1 gegen den Uhrzeigersinn
 //     von vorn), auto: true (dreht im Takt, sobald eine Figur im Raum ist) | false (nur per Signal start/toggle),
-//     back: true (Rückwand), wall: 'tapete' }
+//     back: true (Rückwand), wall: 'tapete', camThrough: true }
+//   Hülle und Einbauten setzen camIgnore selbst (camThrough: false schaltet ab): sonst zöge die Abstandsprüfung der Kamera
+//   sie unter ein Brett über der Figur ganz nah heran (Präzisierung „Leistung und Level-Haken 2“).
 //   level.named.get(id) = { quarter (0..3), turning, turns, angle, start(), stop(), toggle(), turnNow() }
 
 import * as THREE from 'three';
@@ -265,7 +267,8 @@ export function buildDrehraum(level, spec) {
   ];
   if (spec.back !== false) shell.push({ min: [cx - S / 2 - T, p.y - T, z0 - T], max: [cx + S / 2 + T, p.y + S + T, z0] });
   if (spec.front !== false) shell.push({ min: [cx - S / 2 - T, p.y - T, z1], max: [cx + S / 2 + T, p.y + S + T, z1 + T], camIgnore: true, noWallSlide: true });
-  for (const b of shell) level.world.add({ type: 'box', ...b, tag: 'drehraum' });
+  const cam = spec.camThrough !== false;
+  for (const b of shell) level.world.add({ type: 'box', ...b, tag: 'drehraum', ...(cam ? { camIgnore: true } : {}) });
   // Einbauten: lokaler Querschnitt (Mitte unten), Rechteck um die Achse gedreht (Viertel q)
   const parts = (spec.parts ?? []).map((pt) => {
     const [px, py] = pt.pos, [w, h] = pt.size ?? [2, 0.5];
@@ -286,7 +289,7 @@ export function buildDrehraum(level, spec) {
       const q = rot(r, st.quarter * dir);
       const min = [cx + q.x0, cy + q.y0, r.z0], max = [cx + q.x1, cy + q.y1, r.z1];
       if (r.id) level.world.remove(r.id);
-      r.id = level.world.add({ type: 'box', min, max, tag: 'drehraum:teil' });
+      r.id = level.world.add({ type: 'box', min, max, tag: 'drehraum:teil', ...(cam ? { camIgnore: true } : {}) });
       // eine Figur, die darin steckt, obendrauf setzen
       for (const f of figures(level)) {
         const c = f.pos;

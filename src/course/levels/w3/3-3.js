@@ -31,7 +31,7 @@
 
 import {
   hookLamp, line, ring, arc, hauntWall, hauntFloor, cobweb, moonWindow, clock, sideTable, bookShelf, nightLawn, flagstones,
-  graves, pumpkins, deadTree, ironFence, fountain, facade, ghostMoods, roomCull, camThrough, bake, prop, solid, PAL, readingNook, armchair,
+  graves, pumpkins, deadTree, ironFence, fountain, facade, ghostMoods, roomCull, bake, prop, solid, PAL, readingNook, armchair,
 } from './_helpers_c.js';
 
 const Y = 1;
@@ -242,8 +242,7 @@ export const LEVEL = {
   // (nur den Blob am Boden – passt zu Gespenstern und spart den Schattenpass)
   setup: (level) => {
     roomCull(level, ROOMS, { far: { spuk: 17, kreisgeist_kreis: 26, kreisgeist: 22 } });
-    // Drehraum: Kamera nicht an den Brettern oder der Decke hängen lassen (sie bleibt vor der offenen Stirnseite)
-    camThrough(level, ['drehraum:teil', 'drehraum'], [-66, 39], [-54, 53]);
+    // Drehraum: Kamera geht durch Bretter und Decke (camIgnore setzt der Baustein drehraum selbst)
     for (const e of level.entities) if (GHOSTS.has(e.kind)) e.model?.root.traverse((m) => { if (m.isMesh) m.castShadow = false; });
     // Spuk-Treppen (viele Stufen, oft halb versunken) ohne Sonnenschatten – Budget
     for (const o of level.view?.three.children ?? []) if (o.name === 'modell:spuk_treppe') o.traverse((m) => { if (m.isMesh) m.castShadow = false; });
