@@ -1268,7 +1268,7 @@ export function baronSzene(level, cfg) {
   const sc = new BaronSzeneLava(level, cfg);
   const rt = level.runtime, respawn = rt.respawn.bind(rt);
   rt.respawn = (...a) => { respawn(...a); if (!level.archetype?.won) sc.reset(); };
-  // Kamera erst einhängen, wenn der Archetyp steht (der Level-Haken läuft vor dessen setup)
+  // Kamera beim ersten Schritt einhängen (unabhängig davon, wann der Archetyp seine Kamera bekommt)
   let wrapped = false;
   const wrapCam = () => {
     const arch = level.archetype;

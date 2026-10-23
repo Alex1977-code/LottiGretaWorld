@@ -2836,6 +2836,60 @@ c = Bilder je Abschnitt, je < 10 min –, Port 4630 + PORT_BASE, Bilder `tests/o
   bzw. ≈ 3000 Dreiecke je Stück). Wünsche: `cell` für die Piep-Rutsche, Fern-Detailstufe für Registry-Käfer in
   `flatterkaefer_rad`.
 
+**Level-Notizen 4-Burg / 4-Haus** (Level-Agent; Hilfen `src/course/levels/w4/_helpers_d.js` ohne `LEVEL`; Test
+`tests/course_w4d.mjs <Teil> …` nach `npm run build`, Port 4612 + PORT_BASE, Teile je < 10 min: `burg-route` (Laden,
+Daten, Gegner, Routen Lotti + Greta bis in den Thronsaal, Lavafunke verletzt, Lava tötet), `burg-sterne` (Sterne 1–3,
+Stempel, unsichtbarer Block, Lavaschlot, roter Ring), `burg-boss` (ein Lauf mit allen Sternen + Stempel, Tod im Kampf,
+3 Würfe, Baron-Szene, Warp-Box, Zielmast, Speicherstand), `burg-bilder`, `haus` (alle zehn Räume per Skript, Lotti und
+Greta, je < 10 s ohne Treffer, Ergebnis 10/10), `haus-extra` (Raumuhr, Zeitablauf → 1/10, Tod → Raum neu, Riesenprojektil,
+Stampfstein, Bröckelblöcke, Bilder), `haus-raum` (Fehlersuche: `RAUM=n`, `PRE=Schritte`, `HERO`, `LEGS=<JSON>`);
+`ONLY=<RegExp>`, `VERBOSE=1`, `TRACE=1`; Bilder `tests/out/w4d_*.png`):
+
+- **4-Burg „Glutburg des Felsenkönigs“** (parcours + boss, lavacastle, course_lavacastle, 400 s, ≈ 215 m + Thronsaal, nach
+  −Z; Lava y 0): Zinnenterrasse (y 10, ?-Block Wachstumsbeere, Münzblock) → Hang hinab (Lavabrocken, Ziegel) → Vorhof
+  (y 4; Pilzlingsturm, Lavabrocken, Lavaschlot liefert nach) mit zwei Druckfeldern einer Gruppe: **Stern 1** = Lavabrocken
+  auf das eine Feld werfen, selbst aufs andere → Ketten reißen, die **Fallbrücke** kracht über den Graben zum Sternturm →
+  Treppe → drei **Drehplattformen** über der Lava (Balken, Dreistern, Kreuz; Lavafunken an den Armen), **roter Ring** auf
+  der Insel dazwischen (8 rote Münzen) → Kontrollpunkt → **Lavarohr** (Glasröhre durch den See) → Rohrhof: links
+  ?-Block mit Krallen-Anzug, Kletterwand → **Stempel** auf der Mauerkrone (ohne Krallen unerreichbar); rechts drei
+  Druckfelder: zwei Lavabrocken + die Figur öffnen das Fallgitter der Nische → **Stern 2** → langer Burgpfad (Pilzlingstürme,
+  Lavabrocken, Warp-Box zum Turmbalkon x ≈ 30: Lavabrocken von der Kante aufs Druckfeld werfen → Trittsteine steigen aus
+  der Lava → **Stern 3** auf dem Podest, Warp-Box zurück) → Lavafunken-Reihe (vier Reihen über Trittsteinen) → Kontrollpunkt
+  → rote Boss-Röhre (dahinter **unsichtbarer Block** mit Wachstumsbeere) → **Thronsaal** (Käfig r 11,5, Stimmung `innen`):
+  Lavafelsen-König, nur geworfene Lavabrocken treffen (3 Treffer) → er zerfällt → **Baron Brummbär** braust über die
+  Burgbrücke heran („Mein Felsenkönig! Das bekommt ihr zurück!“, Kamera schwenkt zum Wagen), flieht, „Welt 4 geschafft!“
+  → Warp-Box → Burgtor-Terrasse (Teppich, gestürzte Baron-Statue) → Zielmast. Gegner: Lavabrocken 9, Pilzlingsturm 3,
+  Lavafunken 14, König 1. Route (Bot) ≈ 30 s bis zur Röhre, voller Lauf mit allem ≈ 53 s.
+- **4-Haus „Haus Sausewind“** (house, house, course_house, 10 Räume à 10 s, je ein Stern, `fail: 'exit'`; Räume bei x 0,
+  z 0 / −64 / … / −576, 36–44 m lang, 14 m breit, je Raum eigene Kamera): 1 **Bauklotz-Zimmer** – zwei Sprungfelder
+  schleudern über Schluchten auf Riesen-Bauklotz-Klippen (y 4,5 / 7); 2 **Sandkasten-Diele** – Sandweg, vier Bahnen
+  Hörner-Ameisen marschieren aus Wandröhren quer (Strom, alle 3,4 s); 3 **Ahnengalerie** – enger Galeriegang (3 m), 0,6 s
+  nach dem Start schießt ein Riesenprojektil (8,2 m/s) durch die Öffnung der Vorderwand hinterher, drei Samtkordeln
+  überspringen; 4 **Backstube** – fünf Walzenwerfer auf den Backtheken werfen quer über den Weg (Takt ab Raumstart);
+  5 **Seiltänzer-Saal** – 1-m-Steg in drei Stücken über dem Abgrund, Münzblock darüber; 6 **Maschinenhalle** – zwei
+  Boost-Pfeile unter acht Stampfsteinen (versetzt im 4-m-Gang, Auslöser 0,3 m: wer langsam ist, wird getroffen);
+  7 **Schaukelzimmer** – drei gegenläufige Schaukeln (Periode 2,5 s) über dem Abgrund; 8 **Pilzlingsparade** – vier Reihen
+  Pilzlinge marschieren heran, vier Mini-Pilzlinge jagen; 9 **Kanonengang** – 1,6-m-Steg, fünf Kanonen auf den Simsen
+  feuern Suchköpfe gestaffelt ab Raumstart; 10 **Dachboden** – zwei Reihen Bröckelblöcke (26 m) über dem Abgrund, vom Ende
+  rollen Stachelwalzen heran. Jeder Raum: eigene Tapete (10 Leinwand-Muster), eigener Boden, Möbel, Bilder (Atlas mit 16
+  Motiven), tickende Wanduhren, große **Raumuhr** über dem Ausgang (roter Zeiger = Restzeit, kleiner Zeiger = Raumnummer),
+  Wimpelketten. Raumstart (`raumHaken`): Walzen/Suchköpfe weg, Werfer und Kanonen im festen Takt, Bröckelblöcke zurück,
+  Riesenprojektil neu – jeder Versuch beginnt gleich. Bot: 2,4–4,5 s je Raum, Schaukeln 6,7–8,2 s.
+- **Level-Haken** (`LEVEL.setup` = `levelSetup` + `cullStatic`): Burg – `lavaSee` (Shader, tödlich), `lavaFaelle`,
+  `glutSaum`, `burgBoden` (Glutrisse), `burgMauer` (Zinnen, Schießscharten), `tuerme`, `fackeln`, `banner` (Brummbär-Wappen,
+  wehend), `ketten`, `funkenFlug`, `thronSaal`, `baronStatue`, `teppich`, `fallBruecke`, `brockenQuelle` (Lavaschlote),
+  `stimmung` (Zone → `innen`), `baronSzene`; Haus – `hausRaum` (Hülle, Täfelung, Tapete, Böden `floors`, Bilder, Uhren,
+  Hausrat), `hausFertig` (Bilder-Atlas, Uhrzeiger als Instanzen), `schaukeln`, `wimpel`, `raumHaken`. Budget:
+  `teileInstanzen` (Modellteile mehrerer Gegner als Instanzen, auch später erzeugte; `near` = nur in der Nähe),
+  `heroShadowDiet`, `farHide`.
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 4-Burg 22 Bilder 65–98 Zeichenaufrufe, 143–239 k Dreiecke; 4-Haus 14 Bilder
+  40–73 / 139–271 k (Pilzlingsparade am meisten: 18 Pilzlinge).
+- **Hinweise/Wünsche**: Kamerafahrten über `archetype.camera` (z. B. `baronSzene`) wirken je Schritt – Testbilder davon
+  ohne `snapCamera()` aufnehmen. `islandParts` mit `top: 'none'` hat keine Oberseite – Böden darüber legen (`hausRaum`
+  `floors`). Stampfsteine hintereinander in Blickrichtung verdecken die Figur – versetzt
+  anordnen. Wünsche: Haus-Archetyp mit Raum-Ereignissen (`onRoomStart`/`onRoomLeave`) statt Abfrage von `level.house`;
+  `walzenwerfer`/`kanone_turm` mit `reset()` (Takt neu) für Räume mit Neustart.
+
 ---
 
 ## Präzisierung (Bausteine Welt 4)
