@@ -205,8 +205,8 @@ export class CourseView {
     this.effects.update(dt);
     this.renderer.setClearColor(this.mood?.clear ?? this.theme.background, 1);
     if (this.static.built && this.static.pending) this.static.build();   // spätes addStatic (Haken, Laufzeit)
-    this.proxies.update();
     this.culling.begin();
+    this.proxies.update();                // nach begin(): Figur-Bündel prüfen Teile gegen die Kamera-Pyramide
     this.instancer.update(this.scene.level, this.culling);
     for (const p of this.pools.values()) p.flush?.(this.culling);
     this.renderer.render(this.three, this.camera);

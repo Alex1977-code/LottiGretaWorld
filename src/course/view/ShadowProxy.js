@@ -168,7 +168,7 @@ class Bundle {
     this.view = view;
     this.root = root;
     this.sig = '';
-    this.groups = [];        // { mesh, bones, skeleton, parts, any }
+    this.groups = [];        // { mesh, bones, skeleton, parts, on, any }
     this.dead = false;
   }
 
@@ -228,7 +228,7 @@ class Bundle {
       sm.receiveShadow = ms[0].receiveShadow;
       sm.matrixAutoUpdate = false;
       sm.frustumCulled = true;
-      const view = this.view, G = { mesh: sm, bones, skeleton: sk, parts: ms, any: false };
+      const view = this.view, G = { mesh: sm, bones, skeleton: sk, parts: ms, on: ms.map(() => false), any: false };
       sm.intersectsFrustum = (f) => !!view.optimize && f !== view.culling.sunFrustum && G.any;
       sm.userData.owned = false;          // Material gehört der Figur; Geometrie gibt clear() frei
       view.three.add(sm);
@@ -250,15 +250,22 @@ class Bundle {
     let vis = true;
     for (let q = root; q; q = q.parent) if (!q.visible) { vis = false; break; }
     root.updateWorldMatrix(true, true);
-    const token = this.view.frame;
+    const token = this.view.frame, fr = this.view.culling.camFrustum;
     for (const g of this.groups) {
-      g.any = false;
+      let n = 0;
       g.parts.forEach((m, b) => {
         let on = vis;
         if (on) for (let q = m; q && q !== root; q = q.parent) if (!q.visible) { on = false; break; }
         if (on && !similar(m.matrixWorld.elements)) on = false;     // zeichnet in diesem Bild selbst
+        if (on && !fr.intersectsObject(m)) on = false;              // außerhalb des Bildes: fiele ohnehin weg
+        g.on[b] = on;
+        if (on) n++;
+      });
+      g.any = n >= 2;                                               // ein einzelnes Teil zeichnet selbst
+      g.parts.forEach((m, b) => {
+        const on = g.any && g.on[b];
         g.bones[b].matrixWorld.copy(on ? m.matrixWorld : ZERO);
-        if (on) { m.__merged = token; g.any = true; }
+        if (on) m.__merged = token;
       });
     }
   }

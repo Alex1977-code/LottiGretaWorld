@@ -11,6 +11,8 @@
 // Präzisierung (Leistung und Level-Haken 2): addStatic nach finalize (LEVEL.setup, Archetyp, Laufzeit) wird beim
 // nächsten build() bzw. spätestens vor dem nächsten Bild in die vorhandenen Meshes derselben Zelle verschmolzen
 // (kein zusätzlicher Zeichenaufruf). Geprüft wird je Mesh mit dem Quader (mesh.cullBox, view/Culling.js).
+// Dioramen (Archetyp diorama; sonst `LEVEL.staticSplit: false`) sieht die Kamera ganz – dort bleiben große Teile ungeteilt
+// in ihrem Abschnitt (Zellen kosteten nur Zeichenaufrufe).
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -70,6 +72,12 @@ export class StaticBatcher {
     this.built = false;
   }
 
+  /** Ganze Szene im Bild (Diorama) bzw. LEVEL.staticSplit === false: große Teile nicht auf Zellen verteilen. */
+  get compact() {
+    const d = this.view.data;
+    return d?.staticSplit === false || (d?.staticSplit === undefined && d?.archetype === 'diorama');
+  }
+
   /** Teile, die noch nicht verschmolzen sind (nach finalize: beim nächsten Bild). */
   get pending() { return this.buckets.size > 0; }
 
@@ -92,7 +100,7 @@ export class StaticBatcher {
     const cast = opts.castShadow !== false;
     const recv = opts.receiveShadow !== false;
     const tail = `${mat}|${cast ? 1 : 0}|${recv ? 1 : 0}`;
-    const big = bb.max.z - bb.min.z > BIG_Z || bb.max.x - bb.min.x > BIG_X;
+    const big = !this.compact && (bb.max.z - bb.min.z > BIG_Z || bb.max.x - bb.min.x > BIG_X);
     if (big && g.attributes.position.count >= BIG_TRIS * 3) {
       for (const [cell, q] of splitByCells(g)) this.put(`groß|${cell}|${tail}`, mat, cast, recv, q);
       g.dispose();

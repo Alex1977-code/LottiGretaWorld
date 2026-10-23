@@ -2,7 +2,7 @@
 // Vorlage (Object3D mit Meshes – eigene Geometrie oder ein Modell aus getModel) wird je Mesh eine
 // InstancedMesh; jede Instanz hat Lage, Gier, Maßstab und optional Kippen. Die Vorlage wird nicht
 // animiert (model.update entfällt) – für Animiertes einzelne Modelle nutzen.
-// Wächst bei Bedarf (Kapazität ×2). frustumCulled = false (Instanzen liegen übers ganze Level verteilt).
+// Wächst bei Bedarf (Kapazität ×2). Kein Kugel-Test der InstancedMesh (Instanzen liegen übers ganze Level verteilt).
 //
 // Auswahl je Bild (Präzisierung „Leistung und Level-Haken 2“, view.optimize): flush(culling) vor dem Zeichnen schreibt
 // nur die Instanzen in die InstancedMeshes, die im Bild liegen bzw. (castShadow, eigene InstancedMeshes nur für den
@@ -86,7 +86,11 @@ export class InstancePool {
             // nur Schattenpass (Auswahl: Exemplare, deren Schatten ins Bild fallen kann); im Hauptpass nie
             im.frustumCulled = true;
             im.intersectsFrustum = (f) => f === this.sunFrustum && im.count > 0;
-          } else im.frustumCulled = false;
+          } else {
+            // Instanzen liegen übers ganze Level verteilt (Auswahl in flush); leere Stufen kosten keinen Aufruf
+            im.frustumCulled = true;
+            im.intersectsFrustum = () => im.count > 0;
+          }
           if (old) { im.visible = old.visible; this.parent.remove(old); old.dispose(); }
           this.parent.add(im);
           return im;
