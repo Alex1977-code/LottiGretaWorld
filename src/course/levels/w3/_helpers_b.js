@@ -380,6 +380,18 @@ export function shadowRange(level, o = {}) {
   return st;
 }
 
+/** Modelle einer Art werfen nur mit ihren `keep` größten Teilen Sonnenschatten (spart Aufrufe im Schattenpass). */
+export function trimShadows(level, kind, keep = 1) {
+  for (const e of level.entities) {
+    if (e.kind !== kind || !e.model?.root) continue;
+    const list = [];
+    e.model.root.traverse((ob) => { if (ob.isMesh && ob.castShadow) list.push(ob); });
+    const tri = (ob) => (ob.geometry.index ? ob.geometry.index.count : ob.geometry.attributes.position.count);
+    list.sort((a, b) => tri(b) - tri(a));
+    list.slice(keep).forEach((ob) => { ob.castShadow = false; });
+  }
+}
+
 /** Netz-Teile der Kettenzäune werfen keinen Sonnenschatten (der Schatten wäre eine volle Platte; spart Aufrufe). */
 export function fenceShadows(level) {
   for (const e of level.entities) {

@@ -21,7 +21,7 @@
 //                                           unten schleudert zur Zielinsel mit Zielbogen und Zielmast
 // Gegner: Schnappblume (5), Flatterkäfer (28), Pilzling (3).
 
-import { levelSetup, flatIslands, isl, line, ring, arc, road, grandstand, marmots, almHut, cow, tireStack, hayBale, flagPole, finishBanner, checkerLine, pennantLine, plate, cyl, sphere, bugSwarm, kartBande, addStaticParts, shadowRange, meadow, bush, ovalTrack, cloudRim, rainbow, poly4 } from './_helpers_b.js';
+import { levelSetup, flatIslands, isl, line, ring, arc, road, grandstand, marmots, almHut, cow, tireStack, hayBale, flagPole, finishBanner, checkerLine, pennantLine, plate, cyl, sphere, bugSwarm, kartBande, addStaticParts, shadowRange, meadow, bush, ovalTrack, cloudRim, rainbow, poly4, trimShadows } from './_helpers_b.js';
 import { addStatic, merge } from '../../blocks/kit.js';
 
 const PI = Math.PI;
@@ -365,5 +365,6 @@ function buildRace(level) {
   marmots(level, [[-8.2, 0, -30, 0.1], [8.6, 0, -40, 0.45], [-9.4, 0, -6, 0.7], [-2.2, 6, -92, 0.3], [2, 6, -110, 0.8],
     [-9, YH, -165.6, 0.2], [9.4, YH, -204, 0.6], [-9.6, YS, -229.4, 0.9], [8.6, YG, -300.6, 0.4]]);
   bugSwarm(level, { dist: 32 });
+  trimShadows(level, 'schnappblume', 2);
   shadowRange(level, { dist: 30 });
 }
