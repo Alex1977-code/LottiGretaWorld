@@ -38,6 +38,7 @@ if (!THREE.Mesh.prototype.__kursCulling) {
   THREE.Mesh.prototype.intersectsFrustum = function (frustum) {
     const c = ACTIVE;
     if (!c) return base.call(this, frustum);
+    if (this.__inst === c.view.frame) return false;                     // zeichnet als Instanz (EntityInstancer.js)
     if (this.shadowProxied && frustum === c.sunFrustum) return false;   // Schatten zeichnet der Stellvertreter (ShadowProxy.js)
     if (this.cullBox) return c.boxTest(this, frustum);
     if (!base.call(this, frustum)) return false;
@@ -134,6 +135,14 @@ export class ViewCulling {
     _sphere.center.set(x, y, z); _sphere.radius = r;
     if (this.camFrustum.intersectsSphere(_sphere)) return true;
     if (!cast || !this.view.sun.castShadow) return false;
+    if (!this.sunFrustum.intersectsSphere(_sphere)) return false;
+    return !this.shadowCull || this.sweptSphereInView(x, y, z, r);
+  }
+
+  /** Nur Schatten: liegt die Kugel im Schattenkörper und kann ihr Schatten ins Bild fallen? */
+  shadowVisible(x, y, z, r) {
+    if (!this.view.sun.castShadow) return false;
+    _sphere.center.set(x, y, z); _sphere.radius = r;
     if (!this.sunFrustum.intersectsSphere(_sphere)) return false;
     return !this.shadowCull || this.sweptSphereInView(x, y, z, r);
   }

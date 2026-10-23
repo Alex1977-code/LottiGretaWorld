@@ -37,6 +37,7 @@ import { ViewMood } from './mood.js';
 import { ViewCulling } from './Culling.js';
 import { poolLod } from './lod.js';
 import { ShadowProxies } from './ShadowProxy.js';
+import { EntityInstancer } from './EntityInstancer.js';
 
 const SHADOW_R = 22;
 const MAX_LANTERNS = 4;
@@ -80,6 +81,7 @@ export class CourseView {
     this.optimize = new URLSearchParams(window.location.search).get('optimize') !== '0';
     this.culling = new ViewCulling(this);
     this.proxies = new ShadowProxies(this);
+    this.instancer = new EntityInstancer(this);
     this.shadows = new BlobShadows(this);
     this.effects = new CourseEffects(this);
     // Stimmungen/Unterwasser (Bausteine Welt 3): nur bei Themen mit moods/underwater, sonst erst beim ersten Aufruf
@@ -203,6 +205,7 @@ export class CourseView {
     if (this.static.built && this.static.pending) this.static.build();   // spätes addStatic (Haken, Laufzeit)
     this.proxies.update();
     this.culling.begin();
+    this.instancer.update(this.scene.level, this.culling);
     for (const p of this.pools.values()) p.flush?.(this.culling);
     this.renderer.render(this.three, this.camera);
     this.culling.end();
@@ -234,6 +237,7 @@ export class CourseView {
     for (const p of this.pools.values()) p.dispose();
     this.pools.clear();
     this.proxies.dispose();
+    this.instancer.dispose();
     this.static.dispose();
     this.shadows.dispose();
     this.effects.dispose();

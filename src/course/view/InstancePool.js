@@ -5,7 +5,8 @@
 // Wächst bei Bedarf (Kapazität ×2). frustumCulled = false (Instanzen liegen übers ganze Level verteilt).
 //
 // Auswahl je Bild (Präzisierung „Leistung und Level-Haken 2“, view.optimize): flush(culling) vor dem Zeichnen schreibt
-// nur die Instanzen in die InstancedMeshes, die im Bild liegen oder (castShadow) ihren Schatten ins Bild werfen –
+// nur die Instanzen in die InstancedMeshes, die im Bild liegen bzw. (castShadow, eigene InstancedMeshes nur für den
+// Schattenpass) ihren Schatten ins Bild werfen –
 // früher wurden alle Instanzen jedes Levels immer gezeichnet (Münzen ≈ 430 Dreiecke je Stück). Mit `lod` zeichnen
 // ferne Instanzen (Abstand zur Kamera > dist m) eine sparsame Vorlage (eigene InstancedMeshes):
 //   view.pool(name, makeTemplate, { lod: { dist: 26, make: (vorlage) => template } })   (oder Liste; lod: false = keine)
@@ -74,17 +75,24 @@ export class InstancePool {
   build() {
     for (const lv of this.levels) {
       for (const part of lv.parts) {
-        const old = part.mesh;
-        const im = new THREE.InstancedMesh(part.geometry, part.material, this.capacity);
-        im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        im.frustumCulled = false;
-        im.castShadow = this.castShadow;
-        im.receiveShadow = this.receiveShadow;
-        im.name = `${this.name}`;
-        im.count = 0;
-        if (old) { im.visible = old.visible; this.parent.remove(old); old.dispose(); }
-        this.parent.add(im);
-        part.mesh = im;
+        const make = (old, shadow) => {
+          const im = new THREE.InstancedMesh(part.geometry, part.material, this.capacity);
+          im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+          im.castShadow = this.castShadow;
+          im.receiveShadow = this.receiveShadow;
+          im.name = `${this.name}`;
+          im.count = 0;
+          if (shadow) {
+            // nur Schattenpass (Auswahl: Exemplare, deren Schatten ins Bild fallen kann); im Hauptpass nie
+            im.frustumCulled = true;
+            im.intersectsFrustum = (f) => f === this.sunFrustum && im.count > 0;
+          } else im.frustumCulled = false;
+          if (old) { im.visible = old.visible; this.parent.remove(old); old.dispose(); }
+          this.parent.add(im);
+          return im;
+        };
+        part.mesh = make(part.mesh, false);
+        if (this.castShadow) part.smesh = make(part.smesh, true);
       }
     }
     if (this.roots.length < this.capacity * 16) {
@@ -153,6 +161,8 @@ export class InstancePool {
       for (let l = 0; l < this.levels.length; l++) {
         for (const part of this.levels[l].parts) {
           const im = part.mesh;
+          im.castShadow = this.castShadow;
+          if (part.smesh) part.smesh.count = 0;
           if (l > 0) { im.count = 0; continue; }
           for (let i = 0; i < this.count; i++) {
             if (this.shown[i]) { _m.fromArray(this.roots, i * 16); _m2.multiplyMatrices(_m, part.local); im.setMatrixAt(i, _m2); } else im.setMatrixAt(i, ZERO);
@@ -166,30 +176,42 @@ export class InstancePool {
     }
     this.mode = 'pick';
     this.dirty = false;
+    this.sunFrustum = culling.sunFrustum;
     const L = this.levels, nL = L.length, cast = this.castShadow;
-    const fill = this._fill ?? (this._fill = []);
-    for (let l = 0; l < nL; l++) fill[l] = 0;
+    const fill = this._fill ?? (this._fill = []), sfill = this._sfill ?? (this._sfill = []);
+    for (let l = 0; l < nL; l++) { fill[l] = 0; sfill[l] = 0; }
     const cam = culling.camPos;
     let drawn = 0;
     for (let i = 0; i < this.count; i++) {
       if (!this.shown[i]) continue;
       const o = i * 4, x = this.bound[o], y = this.bound[o + 1], z = this.bound[o + 2], r = this.bound[o + 3];
-      if (!culling.sphereVisible(x, y, z, r, cast)) continue;
+      const inCam = culling.sphereVisible(x, y, z, r, false);
+      const inSh = cast && culling.shadowVisible(x, y, z, r);
+      if (!inCam && !inSh) continue;
       let l = 0;
       if (nL > 1) {
         const dx = x - cam.x, dy = y - cam.y, dz = z - cam.z, d2 = dx * dx + dy * dy + dz * dz;
         while (l + 1 < nL && d2 > L[l + 1].dist * L[l + 1].dist) l++;
       }
-      const j = fill[l]++;
       _m.fromArray(this.roots, i * 16);
-      for (const part of L[l].parts) { _m2.multiplyMatrices(_m, part.local); part.mesh.setMatrixAt(j, _m2); }
-      drawn++;
+      const j = inCam ? fill[l]++ : -1, k = inSh ? sfill[l]++ : -1;
+      for (const part of L[l].parts) {
+        _m2.multiplyMatrices(_m, part.local);
+        if (j >= 0) part.mesh.setMatrixAt(j, _m2);
+        if (k >= 0) part.smesh.setMatrixAt(k, _m2);
+      }
+      if (inCam) drawn++;
     }
-    for (let l = 0; l < nL; l++) for (const part of L[l].parts) { part.mesh.count = fill[l]; part.mesh.instanceMatrix.needsUpdate = true; }
+    for (let l = 0; l < nL; l++) {
+      for (const part of L[l].parts) {
+        part.mesh.count = fill[l]; part.mesh.castShadow = false; part.mesh.instanceMatrix.needsUpdate = true;
+        if (part.smesh) { part.smesh.count = sfill[l]; part.smesh.instanceMatrix.needsUpdate = true; }
+      }
+    }
     this.drawn = drawn;
   }
 
   dispose() {
-    for (const lv of this.levels) for (const part of lv.parts) { if (part.mesh) { this.parent.remove(part.mesh); part.mesh.dispose(); } }
+    for (const lv of this.levels) for (const part of lv.parts) for (const m of [part.mesh, part.smesh]) if (m) { this.parent.remove(m); m.dispose(); }
   }
 }
