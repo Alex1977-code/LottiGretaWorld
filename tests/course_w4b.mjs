@@ -219,11 +219,11 @@ const R44 = {
     { name: 'Zielmast', to: [0, -223.6], within: 0.2 },
   ],
   targets: [
-    { name: 'Stern 1: Wandloch – Springklotz als Feder', star: 0, from: [-7.6, 1, -7.3],
-      legs: [{ to: [-8.6, -7.3], run: false, within: 0.2 }, { to: [-10.2, -7.3], untilBounce: true, jump: 14 }, { to: [-13.6, -7.3], jump: 1, within: 0.5 }, { star: 0 }], shot: 'stern1' },
+    { name: 'Stern 1: Wandloch – Springklotz als Feder', star: 0, from: [-8, 1, -7.6],
+      legs: [{ to: [-8, -9.2], run: false, within: 0.2 }, { to: [-8, -10.8], untilBounce: true, jump: 14 }, { to: [-8, -14.6], jump: 1, within: 0.5 }, { star: 0 }], shot: 'stern1' },
     { name: 'Stern 1: Wandloch – Krallen-Anzug aus dem ?-Block', star: 0, from: [-5, 1, 2.6], expectPower: 'krallen',
       legs: [{ to: [-5, 1], run: false, within: 0.15 }, { hop: 20 }, { wait: 50 }, { chaseKind: 'powerup', max: 900 }, { wait: 10 },
-        { to: [-11.2, -7.3], run: false, within: 0.25 }, { push: 260, jump: 10, dir: [-1, 0] }, { to: [-13.4, -7.3], run: false, within: 0.4 }, { star: 0 }] },
+        { to: [-8, -12.5], run: false, within: 0.25 }, { push: 260, jump: 10, dir: [0, -1] }, { to: [-8, -14.6], run: false, within: 0.4 }, { star: 0 }] },
     { name: 'Stern 2: hinter der Treppe über zwei Pilztrampoline', star: 1, from: [-6, 13, -78],
       legs: [{ to: [-8.5, -80], untilBounce: true, jump: 10 }, { to: [-11, -85], untilBounce: true }, { to: [-10.5, -91], jump: 1, within: 0.5 }, { star: 1 }], shot: 'stern2' },
     { name: 'Stempel: während der Fahrt zwischen zwei Flatterkäfer-Rädern (getimter Sprung)', stamp: true, from: [0, 13, -95.2],
@@ -247,7 +247,7 @@ const R44 = {
   ],
   shots: [
     ['start', [0, 1, 6]],
-    ['wandloch', [-7, 1, -4]],
+    ['wandloch', [-6, 1, -6]],
     ['schlucht', [0, 1, -13]],
     ['terrasseB', [0, 3, -33]],
     ['federn', [0, 3, -45]],

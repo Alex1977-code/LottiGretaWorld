@@ -586,73 +586,131 @@ export function modelDiet(level, names, o = {}) {
 const ROCK_COLS = [0xb8b0a4, 0xa8a094, 0xc8c0b2, 0x9a9284];
 
 /**
- * Felswand (achsenparallel, x0..x1, z0..z1, Fuß y, Höhe h) mit Wandloch (Nische) an der Seite face (+1 = Wand zeigt
- * nach +X): hole = { z0, z1, y0, y1, depth }. Kollision aus Quadern; climbable: Vorderseite mit Krallen kletterbar.
- * Optik: geschichteter Fels mit Moos oben, Nische dunkel.
+ * Felswand (achsenparallel, x0..x1, z0..z1, Fuß y, Höhe h). Vorderseite: axis 'x' (Standard; face +1 = Wand zeigt nach
+ * +X) bzw. axis 'z' (face +1 = nach +Z, zur Kamera). Wandloch (Nische) hole = { a0, a1 (Bereich entlang der Wand: z bei
+ * axis 'x', x bei axis 'z'; alt: z0/z1), y0, y1, depth }. Kollision aus Quadern; climbable: Vorderseite mit Krallen
+ * kletterbar. Optik: geschichteter Fels mit Moos oben, Griffmulden, Felsbrocken am Fuß.
  */
 export function rockWall(level, o) {
-  const { x0, x1, y, h } = o;
-  const zA = Math.max(o.z0, o.z1), zB = Math.min(o.z0, o.z1);
-  const hole = o.hole;
+  const { y, h } = o;
+  const ax = o.axis === 'z' ? 'z' : 'x';
   const face = o.face ?? 1;
-  const xf = face > 0 ? x1 : x0;                       // Vorderseite
-  const add = (ax0, ax1, ay0, ay1, az0, az1, climb) => level.world.add({ type: 'box', min: [ax0, ay0, az0], max: [ax1, ay1, az1], climbable: !!climb, tag: 'felswand' });
-  if (!hole) add(x0, x1, y, y + h, zB, zA, o.climbable);
+  // u = quer zur Wand (Achse der Vorderseite), v = entlang
+  const U0 = ax === 'x' ? o.x0 : Math.min(o.z0, o.z1), U1 = ax === 'x' ? o.x1 : Math.max(o.z0, o.z1);
+  const V0 = ax === 'x' ? Math.min(o.z0, o.z1) : o.x0, V1 = ax === 'x' ? Math.max(o.z0, o.z1) : o.x1;
+  const W = (u0, u1, y0, y1, v0, v1) => (ax === 'x' ? { min: [u0, y0, v0], max: [u1, y1, v1] } : { min: [v0, y0, u0], max: [v1, y1, u1] });
+  const hole = o.hole;
+  const add = (u0, u1, y0, y1, v0, v1, climb) => level.world.add({ type: 'box', ...W(u0, u1, y0, y1, v0, v1), climbable: !!climb, tag: 'felswand' });
+  const boxes = [];
+  if (!hole) boxes.push([U0, U1, y, y + h, V0, V1, o.climbable]);
   else {
-    const hz0 = Math.min(hole.z0, hole.z1), hz1 = Math.max(hole.z0, hole.z1);
-    const back = face > 0 ? x1 - hole.depth : x0 + hole.depth;
-    add(x0, x1, y, hole.y0, zB, zA, o.climbable);                       // unten
-    add(x0, x1, hole.y1, y + h, zB, zA, o.climbable);                   // oben
-    add(x0, x1, hole.y0, hole.y1, zB, hz0, o.climbable);                // links/rechts der Nische
-    add(x0, x1, hole.y0, hole.y1, hz1, zA, o.climbable);
-    if (face > 0) add(x0, back, hole.y0, hole.y1, hz0, hz1); else add(back, x1, hole.y0, hole.y1, hz0, hz1);
+    const h0 = Math.min(hole.a0 ?? hole.z0, hole.a1 ?? hole.z1), h1 = Math.max(hole.a0 ?? hole.z0, hole.a1 ?? hole.z1);
+    const back = face > 0 ? U1 - hole.depth : U0 + hole.depth;
+    boxes.push([U0, U1, y, hole.y0, V0, V1, o.climbable], [U0, U1, hole.y1, y + h, V0, V1, o.climbable]);
+    boxes.push([U0, U1, hole.y0, hole.y1, V0, h0, o.climbable], [U0, U1, hole.y0, hole.y1, h1, V1, o.climbable]);
+    boxes.push(face > 0 ? [U0, back, hole.y0, hole.y1, h0, h1, false] : [back, U1, hole.y0, hole.y1, h0, h1, false]);
   }
+  for (const b of boxes) add(...b);
   if (!level.view) return;
   const parts = [];
-  const rnd = new Rnd(Math.floor(Math.abs(x0 * 7 + zA * 13)) + 3);
+  const rnd = new Rnd(Math.floor(Math.abs(U0 * 7 + V1 * 13)) + 3);
   const strata = (p, n, out) => {
     if (n.y > 0.7) { mixc(L(0x6ab84a), L(0x8ad05a), 0.5 + 0.5 * Math.sin(p.x * 2 + p.z * 3), out); return; }
-    const b = L(ROCK_COLS[Math.abs(Math.floor((p.y - y) / 0.9 + Math.sin(p.z * 0.7) * 0.6)) % ROCK_COLS.length]);
-    const k = 0.78 + 0.22 * smooth(-0.6, 0.8, n.x * face * 0.6 + n.z * 0.4 + n.y * 0.3);
+    const along = ax === 'x' ? p.z : p.x, nu = ax === 'x' ? n.x : n.z;
+    const b = L(ROCK_COLS[Math.abs(Math.floor((p.y - y) / 0.9 + Math.sin(along * 0.7) * 0.6)) % ROCK_COLS.length]);
+    const k = 0.78 + 0.22 * smooth(-0.6, 0.8, nu * face * 0.6 + 0.25 + n.y * 0.3);
     out[0] = b[0] * k; out[1] = b[1] * k; out[2] = b[2] * k;
   };
-  // Körper aus gestuften Blöcken (leicht unregelmäßig)
-  const seg = (ax0, ax1, ay0, ay1, az0, az1) => {
-    if (ax1 - ax0 < 0.05 || ay1 - ay0 < 0.05 || az1 - az0 < 0.05) return;
-    const g = new THREE.BoxGeometry(ax1 - ax0, ay1 - ay0, az1 - az0, 2, Math.max(1, Math.round((ay1 - ay0) / 1.5)), Math.max(1, Math.round((az1 - az0) / 1.5))).toNonIndexed();
+  for (const [u0, u1, y0, y1, v0, v1] of boxes) {
+    if (u1 - u0 < 0.05 || y1 - y0 < 0.05 || v1 - v0 < 0.05) continue;
+    const { min, max } = W(u0, u1, y0, y1, v0, v1);
+    const sx = max[0] - min[0], sy = max[1] - min[1], sz = max[2] - min[2];
+    const g = new THREE.BoxGeometry(sx, sy, sz, Math.max(1, Math.round(sx / 1.5)), Math.max(1, Math.round(sy / 1.5)), Math.max(1, Math.round(sz / 1.5))).toNonIndexed();
     const Pp = g.attributes.position;
     for (let i = 0; i < Pp.count; i++) {
       const px = Pp.getX(i), py = Pp.getY(i), pz = Pp.getZ(i);
-      const j = Math.sin(py * 3.1 + pz * 2.3) * 0.12 + Math.sin(pz * 5.7 + py * 1.3) * 0.06;
-      if (Math.abs(px) > (ax1 - ax0) / 2 - 0.01) Pp.setX(i, px + Math.sign(px) * j);
+      const j = Math.sin(py * 3.1 + (px + pz) * 2.3) * 0.12 + Math.sin((px + pz) * 5.7 + py * 1.3) * 0.06;
+      if (ax === 'x' && Math.abs(px) > sx / 2 - 0.01) Pp.setX(i, px + Math.sign(px) * j);
+      if (ax === 'z' && Math.abs(pz) > sz / 2 - 0.01) Pp.setZ(i, pz + Math.sign(pz) * j);
     }
     g.computeVertexNormals();
-    g.translate((ax0 + ax1) / 2, (ay0 + ay1) / 2, (az0 + az1) / 2);
+    g.translate((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2);
     parts.push(colorize(g, strata));
-  };
-  if (!hole) seg(x0, x1, y, y + h, zB, zA);
-  else {
-    const hz0 = Math.min(hole.z0, hole.z1), hz1 = Math.max(hole.z0, hole.z1);
-    const back = face > 0 ? x1 - hole.depth : x0 + hole.depth;
-    seg(x0, x1, y, hole.y0, zB, zA); seg(x0, x1, hole.y1, y + h, zB, zA);
-    seg(x0, x1, hole.y0, hole.y1, zB, hz0); seg(x0, x1, hole.y0, hole.y1, hz1, zA);
-    if (face > 0) seg(x0, back, hole.y0, hole.y1, hz0, hz1); else seg(back, x1, hole.y0, hole.y1, hz0, hz1);
-    // dunkler Nischenboden mit Gras, kleines Holzschild
-    parts.push(plate(hole.depth - 0.1, 0.06, hz1 - hz0 - 0.1, face > 0 ? x1 - hole.depth / 2 : x0 + hole.depth / 2, hole.y0, (hz0 + hz1) / 2, 0x5aa83a, { r: 0 }));
   }
-  // Moospolster und Grasbüschel oben, kleine Felsbrocken am Fuß
-  for (let i = 0; i < Math.round((zA - zB) / 1.6); i++) {
-    parts.push(sphere(rnd.real(0.35, 0.6), rnd.real(x0 + 0.3, x1 - 0.3), y + h + 0.05, rnd.real(zB + 0.3, zA - 0.3), 0x5ab03a, { ws: 6, hs: 4, sy: 0.45 }));
-    parts.push(sphere(rnd.real(0.25, 0.5), xf + face * rnd.real(0.2, 0.7), y + 0.1, rnd.real(zB, zA), ROCK_COLS[i % 4], { ws: 6, hs: 4, sy: 0.7 }));
+  const at = (u, yy, v) => (ax === 'x' ? [u, yy, v] : [v, yy, u]);
+  const uf = face > 0 ? U1 : U0;
+  if (hole) {
+    const h0 = Math.min(hole.a0 ?? hole.z0, hole.a1 ?? hole.z1), h1 = Math.max(hole.a0 ?? hole.z0, hole.a1 ?? hole.z1);
+    const [cx, , cz] = at(uf - face * hole.depth / 2, 0, (h0 + h1) / 2);
+    parts.push(plate(ax === 'x' ? hole.depth - 0.1 : h1 - h0 - 0.1, 0.06, ax === 'x' ? h1 - h0 - 0.1 : hole.depth - 0.1, cx, hole.y0, cz, 0x5aa83a, { r: 0 }));
+  }
+  // Moospolster oben, Felsbrocken am Fuß
+  for (let i = 0; i < Math.round((V1 - V0) / 1.6); i++) {
+    const [mx, , mz] = at(rnd.real(U0 + 0.3, U1 - 0.3), 0, rnd.real(V0 + 0.3, V1 - 0.3));
+    parts.push(sphere(rnd.real(0.35, 0.6), mx, y + h + 0.05, mz, 0x5ab03a, { ws: 6, hs: 4, sy: 0.45 }));
+    const [bx, , bz] = at(uf + face * rnd.real(0.2, 0.7), 0, rnd.real(V0, V1));
+    parts.push(sphere(rnd.real(0.25, 0.5), bx, y + 0.1, bz, ROCK_COLS[i % 4], { ws: 6, hs: 4, sy: 0.7 }));
   }
   if (o.climbable) {
     // Kletterspuren: helle Griffmulden an der Vorderseite
-    for (let yy = y + 0.8; yy < y + h - 0.4; yy += 0.9) for (let zz = zB + 0.6; zz < zA - 0.4; zz += 1.3) {
-      if (hole && yy > hole.y0 - 0.3 && yy < hole.y1 + 0.3 && zz > Math.min(hole.z0, hole.z1) - 0.3 && zz < Math.max(hole.z0, hole.z1) + 0.3) continue;
-      parts.push(sphere(0.12, xf + face * 0.03, yy + ((zz * 3) % 0.4), zz, 0xe8e0cc, { ws: 5, hs: 3, sx: 0.5 }));
+    for (let yy = y + 0.8; yy < y + h - 0.4; yy += 0.9) for (let vv = V0 + 0.6; vv < V1 - 0.4; vv += 1.3) {
+      if (hole && yy > hole.y0 - 0.3 && yy < hole.y1 + 0.3 && vv > Math.min(hole.a0 ?? hole.z0, hole.a1 ?? hole.z1) - 0.3 && vv < Math.max(hole.a0 ?? hole.z0, hole.a1 ?? hole.z1) + 0.3) continue;
+      const [gx, , gz] = at(uf + face * 0.03, 0, vv);
+      parts.push(sphere(0.12, gx, yy + ((vv * 3) % 0.4), gz, 0xe8e0cc, { ws: 5, hs: 3, sx: ax === 'x' ? 0.5 : 1, sz: ax === 'z' ? 0.5 : 1 }));
     }
   }
   addStatic(level, merge(parts));
+}
+
+/**
+ * Wolkenmeer: flache, weiße Wolkenballen in einem Band (x0..x1, z0..z1) um die Höhe y – zeigt die Tiefe unter der
+ * Riesentrampolin-Fahrt und den Schluchten (statt der Talwiese weit unten). Statisch je 32-m-Abschnitt verschmolzen,
+ * ohne Schatten, keine Kollision. o: n (Ballen), r [min, max], seed, skip [[x, z, r], …] (frei lassen).
+ */
+export function cloudSea(level, o) {
+  if (!level.view) return;
+  const rnd = new Rnd(o.seed ?? 7);
+  const parts = [];
+  const [r0, r1] = o.r ?? [1.6, 3.4];
+  const zA = Math.max(o.z0, o.z1), zB = Math.min(o.z0, o.z1);
+  for (let i = 0; i < (o.n ?? 40); i++) {
+    const x = rnd.real(o.x0, o.x1), z = rnd.real(zB, zA);
+    if ((o.skip ?? []).some(([sx, sz, sr]) => Math.hypot(x - sx, z - sz) < sr)) continue;
+    const r = rnd.real(r0, r1), y = o.y + rnd.real(-0.8, 0.8);
+    for (let k = 0; k < 3; k++) {
+      const rr = r * (k ? 0.65 : 1), a = k * 2.3 + i;
+      parts.push(sphere(rr, x + (k ? Math.cos(a) * r * 0.8 : 0), y + (k ? r * 0.15 : 0), z + (k ? Math.sin(a) * r * 0.6 : 0), 0xffffff,
+        { ws: 9, hs: 5, sy: 0.42, fn: (p, n, out) => { const c = 0.82 + 0.18 * smooth(-0.6, 0.9, n.y); out[0] = c * 0.96; out[1] = c * 0.98; out[2] = c; } }));
+    }
+  }
+  addStaticParts(level, parts, { castShadow: false, receiveShadow: false });
+}
+
+/**
+ * Holzrahmen mit kleinem rotem Dach um eine Wandnische – nur Optik. Achse 'z' (Standard 'x'): Vorderseite bei u (x bzw.
+ * z), Öffnung entlang a0..a1 (z bzw. x), Höhe y0..y1, Wand zeigt nach +u.
+ */
+export function nicheFrame(level, u, a0, a1, y0, y1, axis = 'x') {
+  const P = [];
+  const wood = 0x9a6a3a, roof = 0xd8483a;
+  const ac = (a0 + a1) / 2, w = Math.abs(a1 - a0);
+  const lo = Math.min(a0, a1), hi = Math.max(a0, a1);
+  P.push(block(0.22, y1 - y0 + 0.3, 0.22, u + 0.1, y0 - 0.1, lo - 0.05, wood), block(0.22, y1 - y0 + 0.3, 0.22, u + 0.1, y0 - 0.1, hi + 0.05, wood));
+  P.push(block(0.24, 0.22, w + 0.6, u + 0.1, y1, ac, wood));
+  for (const sg of [-1, 1]) {
+    const g = block(1.1, 0.1, w / 2 + 0.6, 0, 0, 0, roof, { r: 0 });
+    g.translate(0, 0, sg * (w / 4 + 0.3));
+    g.rotateX(sg * 0.45);
+    g.translate(u + 0.4, y1 + 0.55, ac);
+    P.push(g);
+  }
+  P.push(sphere(0.12, u + 0.28, y1 + 0.95, ac, 0xffd23a, { ws: 6, hs: 4 }));
+  const g = merge(P);
+  if (axis === 'z') {
+    // lokal gebaut wie Achse x (Vorderseite +X bei x = u, entlang z) → um −90° drehen: +X → +Z
+    g.translate(-u, 0, -ac); g.rotateY(-Math.PI / 2); g.translate(ac, 0, u);
+  }
+  addStatic(level, g);
 }
 
 /** Schaf-Geometrie (Ursprung Fußpunkt, Blick +X): Wollwolke, schwarzer Kopf und Beine. */

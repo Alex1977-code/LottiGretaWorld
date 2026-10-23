@@ -4,7 +4,7 @@
 // Bergfichten, ein Drachen über der Startwiese, Heißluftballons und Wolkeninseln entlang der Fahrt.
 //
 // Abschnitte (Level verläuft nach −Z, +X = rechts im Bild):
-//   1 Bergwiese            (z 10 … −96)     Startwiese (Felswand links mit **Wandloch – Stern 1**: Springklotz als Feder
+//   1 Bergwiese            (z 10 … −96)     Startwiese (Felswand hinten links mit **Wandloch – Stern 1**: Springklotz als Feder
 //                                          oder Krallen-Anzug aus dem ?-Block; Krabbelkäfer, hüpfender Springklotz) →
 //                                          Schlucht mit zwei Pilztrampolinen auf Felssäulen → Terrasse B (Stachelpanzer,
 //                                          Krabbelkäfer, drei Springklötze als Federn auf die 6-m-Stufe) → Terrasse C
@@ -23,7 +23,7 @@
 
 import {
   isl, line, ring, arc, column, levelSetup, flatIslands, cullStatic, instanceEnemies, farHide, modelDiet,
-  rockWall, sheep, kite, bees, wheelSwarm, bugSwarm, cow, almHut, hayBale, addStaticParts, balloon, ropeFence, stonePath, smoke,
+  rockWall, sheep, kite, bees, wheelSwarm, bugSwarm, cloudSea, nicheFrame, cow, almHut, hayBale, addStaticParts, balloon, ropeFence, stonePath, smoke,
 } from './_helpers_b.js';
 
 const PI = Math.PI;
@@ -55,12 +55,16 @@ const ISLANDS = [
 function setup(level) {
   flatIslands(level, ISLANDS);
   // Felswand links der Startwiese mit Wandloch (Nische 6 m hoch) – Vorderseite kletterbar (Krallen-Anzug)
-  rockWall(level, { x0: -16, x1: -12, z0: -1, z1: -13, y: YA, h: 10.5, face: 1, climbable: true, hole: { z0: -6, z1: -8.6, y0: YA + 6, y1: YA + 9.2, depth: 2.6 } });
+  rockWall(level, { axis: 'z', x0: -12, x1: -4, z0: -13, z1: -16, y: YA, h: 10.5, face: 1, climbable: true, hole: { a0: -9.3, a1: -6.7, y0: YA + 6, y1: YA + 9.2, depth: 2.6 } });
+  nicheFrame(level, -13, -9.3, -6.7, YA + 6, YA + 9.2, 'z');
   rockWall(level, { x0: -16, x1: -12, z0: 10, z1: -1, y: YA, h: 6.5, face: 1 });
-  rockWall(level, { x0: -16, x1: -12, z0: -13, z1: -16, y: YA, h: 7.5, face: 1 });
+  rockWall(level, { x0: -16, x1: -12, z0: -1, z1: -16, y: YA, h: 8.5, face: 1 });
   // Felssäulen unter den Pilztrampolinen der Schlucht
   rockWall(level, { x0: -2.8, x1: -0.2, z0: -19.2, z1: -21.8, y: -12, h: 10.5, face: 1 });
   rockWall(level, { x0: 0.2, x1: 2.8, z0: -24.2, z1: -26.8, y: -12, h: 10.5, face: 1 });
+  // Wolken unter der Schlucht und ein Wolkenmeer unter der Riesentrampolin-Fahrt (zeigt die Tiefe)
+  cloudSea(level, { x0: -14, x1: 14, z0: -16.5, z1: -29, y: -7, n: 10, seed: 3, r: [1.4, 2.6] });
+  cloudSea(level, { x0: -34, x1: 34, z0: -98, z1: -206, y: 2, n: 90, seed: 11, r: [2.2, 4.4] });
   // Bergwiesen-Kulisse (statisch, je 32-m-Abschnitt verschmolzen)
   const parts = [];
   almHut(parts, 8.6, YA, 5.4, 1, -0.3);
@@ -73,6 +77,8 @@ function setup(level) {
   ropeFence(parts, [-11.4, YD, -76], [-11.4, YD, -80]);
   stonePath(parts, [0, YA, 8], [0, YA, -15]); stonePath(parts, [0, YB, -30], [0, YB, -48]); stonePath(parts, [0, YD, -75], [0, YD, -94]);
   stonePath(parts, [0, YZ, -207], [0, YZ, -223]);
+  ropeFence(parts, [KX - 16.6, 10, KZ + 10.6], [KX + 16.6, 10, KZ + 10.6]); ropeFence(parts, [KX - 16.6, 10, KZ + 10.6], [KX - 16.6, 10, KZ - 10.6]);
+  ropeFence(parts, [KX + 16.6, 10, KZ + 10.6], [KX + 16.6, 10, KZ - 10.6]);
   addStaticParts(level, parts);
   smoke(level, [9.9, YA + 5.2, 4.9]);
   sheep(level, [
@@ -109,14 +115,14 @@ export const LEVEL = {
     { from: 14, to: -16, pitch: 44, dist: 13 },
     { from: -16, to: -30, pitch: 46, dist: 13 },                       // Schlucht mit Pilztrampolinen
     { from: -30, to: -96, pitch: 44, dist: 13 },
-    { from: -96, to: -206, pitch: 40, dist: 14, height: 1.6 },         // Riesentrampolin-Fahrt: flacher, Himmel sichtbar
+    { from: -96, to: -206, pitch: 40, dist: 14, height: 2.4, ahead: 3 },   // Riesentrampolin-Fahrt: Blick voraus auf die Räder
     { from: -206, to: -234, pitch: 44, dist: 13 },
     { from: KZ + 16, to: KZ - 16, pitch: 24, dist: 15, height: 2, area: [KX - 24, KX + 24] },   // Kletterzaun-Raum (frontal)
   ],
   segments: [
     // ======================================================== 1  Bergwiese
     { type: 'sign', pos: [-4.6, YA, 6.6], text: 'Trampolin-Alm', size: [2.8, 1.0], yaw: 0.2 },
-    { type: 'sign', pos: [-6.6, YA, -3.6], text: 'Ein Loch in der Wand?\nSpringklotz als Feder!', size: [3.2, 1.1], yaw: 0.4 },
+    { type: 'sign', pos: [-9.4, YA, -4.6], text: 'Ein Loch in der Wand?\nSpringklotz als Feder!', size: [3.2, 1.1], yaw: 0.3 },
     { type: 'deco_w4', items: [
       { kind: 'windrad', pos: [-8.8, YA, 7.4], height: 7, yaw: -PI / 2, speed: 0.35 },
       { kind: 'wiesenblumen', pos: [-6, YA, 3], size: [6, 8], n: 30 },
@@ -133,7 +139,7 @@ export const LEVEL = {
       { kind: 'bergfichten', pos: [-11, YB, -47], size: [2, 6], n: 2, scale: [0.9, 1.2] },
       { kind: 'zaun', from: [-11.6, YB, -31], to: [-11.6, YB, -37] },
     ] },
-    { type: 'sign', pos: [7.6, YB, -47.6], text: 'Springklotz:\ndrauf und hoch!', size: [2.8, 1.0], yaw: -0.3 },
+    { type: 'sign', pos: [-7.4, YB, -46.4], text: 'Springklotz:\ndrauf und hoch!', size: [2.8, 1.0], yaw: 0.3 },
     { type: 'trampolin_orange', id: 'to_b', pos: [9, YB, -49.6], strength: 21, size: 2 },
     { type: 'deco_w4', items: [
       { kind: 'wiesenblumen', pos: [0, YC, -59], size: [20, 10], n: 34 },
@@ -177,7 +183,8 @@ export const LEVEL = {
     { type: 'deco_w4', items: [
       { kind: 'wiesenblumen', pos: [KX, 10, KZ + 6], size: [30, 6], n: 30 },
       { kind: 'heuballen', pos: [KX + 13, 10, KZ + 8.6], yaw: 0.4 },
-      { kind: 'windrad', pos: [KX + 15, 10, KZ - 9], height: 8, yaw: -PI / 2, speed: 0.4 },
+      { kind: 'windrad', pos: [KX - 15, 10, KZ - 9], height: 8, yaw: -PI / 2, speed: 0.4 },
+      { kind: 'bergfichten', pos: [KX - 14, 10, KZ + 2], size: [3, 10], n: 3, scale: [0.8, 1.1] },
     ] },
 
     // ======================================================== 3  Zielinsel
@@ -198,9 +205,9 @@ export const LEVEL = {
   ],
   enemies: [
     // Startwiese
-    { kind: 'springklotz', id: 'sk_wand', pos: [-10.2, YA, -7.3] },
+    { kind: 'springklotz', id: 'sk_wand', pos: [-8, YA, -10.8] },
     { kind: 'springklotz', id: 'sk_wiese', pos: [4, YA, -10.6], hop: true, dir: [-1, 0], every: 1.6 },
-    { kind: 'krabbelkaefer', id: 'kk_a', path: [[-8, YA, -13.4], [8, YA, -13.4]], count: 2, spacing: 2.2, color: 'red' },
+    { kind: 'krabbelkaefer', id: 'kk_a', path: [[-2.6, YA, -12], [9, YA, -12]], count: 2, spacing: 2.2, color: 'red' },
     // Terrasse B
     { kind: 'stachelpanzer', id: 'sp_b1', pos: [-5, YB, -36], path: [[-9, YB, -36], [-1.5, YB, -36]] },
     { kind: 'stachelpanzer', id: 'sp_b2', pos: [5, YB, -42], path: [[2, YB, -42], [9, YB, -42]] },
@@ -218,10 +225,10 @@ export const LEVEL = {
     { kind: 'springklotz', id: 'sk_d', pos: [7.6, YD, -79.4] },
     // Fahrt: Räder aus Flatterkäfern
     { kind: 'flatterkaefer_rad', id: 'rad1', center: [-7, 19.5, -112], count: 8, radius: 3, speed: 1.8 },
-    { kind: 'flatterkaefer_rad', id: 'rad2', center: [-2.5, 22, -129], count: 8, radius: 4.8, plane: 'xz', speed: 2.2, color: 'pink' },
+    { kind: 'flatterkaefer_rad', id: 'rad2', center: [-2.5, 23, -129], count: 8, radius: 4.8, plane: 'xz', speed: 2.2, color: 'pink' },
     { kind: 'flatterkaefer_rad', id: 'rad3', center: [-5.4, 24, -144], count: 8, radius: 3, speed: 1.8, cw: true },
     { kind: 'flatterkaefer_rad', id: 'rad4', center: [5.4, 24, -144], count: 8, radius: 3, speed: 1.8 },
-    { kind: 'flatterkaefer_rad', id: 'rad5', center: [8, 20.5, -159], count: 8, radius: 3, speed: 1.8, cw: true },
+    { kind: 'flatterkaefer_rad', id: 'rad5', center: [10, 20.5, -159], count: 8, radius: 3, speed: 1.8, cw: true },
     { kind: 'flatterkaefer_rad', id: 'rad6', center: [7, 18, -189], count: 8, radius: 3, plane: 'zy', speed: 1.8 },
     { kind: 'flatterkaefer', id: 'fk_z', count: 4, spacing: 2.6, path: [[-8, YZ + 3.4, -209], [8, YZ + 3.4, -209], [8, YZ + 3.4, -217], [-8, YZ + 3.4, -217]], loop: true, speed: 2 },
     // Zielinsel
@@ -231,7 +238,7 @@ export const LEVEL = {
   items: [
     // 1
     line([0, YA + 0.6, 3], [0, YA + 0.6, -12], 6),
-    { kind: 'coins', pos: [-13.3, YA + 6.6, -7.3], r: 0.7, n: 3 },
+    { kind: 'coins', pos: [-8, YA + 6.6, -14.4], r: 0.7, n: 3 },
     arc([-1.5, 1, -17], [-1.5, 2, -22], 3, 3), arc([1.5, 2, -24], [1.5, YB + 1, -29], 3, 3),
     line([0, YB + 0.6, -31], [0, YB + 0.6, -46], 6),
     column(0, -50.3, YB + 3.6, YB + 6.6, 3),
@@ -251,14 +258,14 @@ export const LEVEL = {
   ],
   checkpoint: { pos: [3, YD, -76], yaw: PI / 2 },
   stars: [
-    [-13.4, YA + 6.2, -7.3],                       // 1: Wandloch in der Felswand am Start
+    [-8, YA + 6.2, -14.5],                         // 1: Wandloch in der Felswand am Start
     [-10.5, 24.2, -91],                            // 2: Felssims hinter der Treppe (zwei Pilztrampoline)
     [-94.6, 22.8, -165],                           // 3: Kletterzaun-Raum
   ],
   stamp: [0, 25.0, -144],                          // zwischen zwei Flatterkäfer-Rädern über der Fahrt
   goal: { pos: [0, YZ, -224], height: 9 },
   marks: {
-    start: [0, YA, 6], wandloch: [-13.4, YA + 6, -7.3], schlucht: [0, YA, -15], terrasseB: [0, YB, -32], federn: [0, YB, -48],
+    start: [0, YA, 6], wandloch: [-8, YA + 6, -14.5], schlucht: [0, YA, -15], terrasseB: [0, YB, -32], federn: [0, YB, -48],
     terrasseC: [0, YC, -56], treppe: [0, YC, -65], checkpoint: [3, YD, -76], stern2: [-10.5, 24, -91], start_fahrt: [0, YD, -94],
     stempel: [0, 25, -144], wolke: [-9.5, 14.9, -174], zaunraum: [KX, 10, KZ], ziel: [0, YZ, -224],
   },
