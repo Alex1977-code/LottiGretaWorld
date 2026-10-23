@@ -352,6 +352,14 @@ const rs = await sc(() => {
   const gFar = h.grow;
   t.place([12, 1, t.Z(2, 8.5)], { settle: 240 });
   out.hang = { far: +gFar.toFixed(2), near: +h.grow.toFixed(2), headY: +h.headC.y.toFixed(2), rootY: +h.root.y.toFixed(2) };
+  // großer Rankenschnapper mit eigenem Pfad und 3 Treffern
+  const big = L.spawn('rankenschnapper', { pos: [2.5, 1, t.Z(2, -3)], path: [[2.5, 1, t.Z(2, -3)], [2.5, 3, t.Z(2, -3)], [4.5, 3.4, t.Z(2, -4)], [8, 3.4, t.Z(2, -4)]], size: 1.6, hp: 3, mode: 'static' });
+  c.step(2);
+  big.onHit('fire', p); const hp1 = big.hp, st1 = big.state;
+  c.step(70); big.onHit('claw', p); c.step(70);
+  const hp2 = big.hp;
+  big.onHit('fire', p);
+  out.big = { hp1, st1, hp2, defeated: big.defeated, segs: big.segments, L: +big.L.toFixed(2), headY: +big.headC.y.toFixed(2) };
   return out;
 });
 console.log(`  Rankenschnapper: ${JSON.stringify(rs)}`);
@@ -362,6 +370,7 @@ check('Rankenschnapper schnappt nach einer nahen Figur; Kopf seitlich = Biss', r
 check('Rankenschnapper: auf den Kopf springen = Abprall ohne Schaden', rs.bounce.bounced && !rs.bounce.hurt && !rs.bounce.defeated && rs.bounce.bounces >= 1);
 check('Rankenschnapper: Stampfattacke auf den Kopf besiegt (welkt, verschwindet)', rs.pound.defeated && rs.gone);
 check('Rankenschnapper als Stufe (fest): Figur steht darauf; Feuer besiegt', rs.step.on && !rs.step.hurt && rs.fire);
+check(`Großer Rankenschnapper (size 1,6, eigener Pfad ${rs.big.L} m, Kopf auf ${rs.big.headY} m) braucht 3 Treffer`, rs.big.hp1 === 2 && rs.big.st1 === 'hit' && rs.big.hp2 === 1 && rs.big.defeated && rs.big.headY > 3);
 check(`Hängender Rankenschnapper wächst nur bei naher Figur (${rs.hang.far} → ${rs.hang.near}), Kopf unter der Decke`, rs.hang.far < 0.2 && rs.hang.near > 0.95 && rs.hang.headY < rs.hang.rootY - 0.8);
 
 // ================================================================ Lavabrocken

@@ -2868,6 +2868,179 @@ Griff `open()`/`close()`/`toggle()`/`start()` für Aktionen, geschlossen fest), 
 | 4-5 | Ruinenstadt, bewegliche Plattformen, drehende Stachelstangen auf Plattformen, schwankende Plattform (Stern 3) | `stachelstange` (`attach`), `mover`, `schwankplattform`, `deco_w4` (Ruinen), Thema `ruins` |
 | 4-Burg | Hang, Druckfelder lassen Brücke fallen, 3 Drehplattformen über Lava, roter Ring, Glasrohr durch die Lava, Lavafälle | `drehplattform` (`style: 'lava'`), `lava`, `lavafall`, `lavarohr`, `roter_ring`, `fallplatform`/`switchtiles`, `deco_w4` (Lavaburg), Thema `lavacastle` (`setMood('innen')`) |
 
+## Präzisierung (Gegner Welt 4)
+
+Ergänzung des Gegner-Agenten Welt 4 (Stand: Gegnerzoo Canyon `0-15`, Thronsaal des Lavafelsen-Königs `0-16`). Nichts
+oben Festgelegtes wird geändert. Level-Bauer schreiben nur Daten; alle Felder sind optional, sofern nicht anders
+vermerkt. Gemeinsame Felder und Konter aus „Präzisierung (Gegner/Power-ups)“, „(Gegner Welt 2)“ und „(Gegner Welt 3)“
+gelten weiter (`id, pos, dir|yaw, path, loop, wake, edges, drop`; Ziel = nächste Figur, Lava/Absturz = besiegt,
+`STRONG` = cannon, bomb, mega, star; Schwanzhieb = `claw` mit `attackInfo.style 'tail'`; Statue ist für Gegner
+unsichtbar; Giftwasser lässt Gegner versinken – Baustein `giftwasser`).
+
+### Präzisierung (Gegner Welt 4): Dateien
+
+```
+src/course/entities/EnemyW2.js              + modelInstances(level, name, opts, n) (n Kopien eines Registry-Modells als
+                                              Instanzen, gleiche Pose), sharedModelSlot(level, name, opts, state) (ein
+                                              Platz je Gegner in einer gemeinsamen Gruppe je Level)
+src/course/entities/kinds/ameisen_w4.js     ameisensoldat, ameisensoldat_horn, riesenameise (+ intern …_strom = Spawner)
+src/course/entities/kinds/rankenschnapper.js
+src/course/entities/kinds/lava_w4.js        lavabrocken, lavafunke
+src/course/entities/kinds/walzen_w4.js      walzenwerfer, stachelwalze, stachelpanzer, springklotz
+src/course/entities/kinds/kaefer_rad.js     flatterkaefer_rad (Glieder = gewöhnliche flatterkaefer)
+src/course/entities/kinds/lavafelsen_koenig.js  lavafelsen_koenig (Boss), feuerbrocken
+src/course/entities/kinds/figuren.js        + weightsOn(level, owner): Gegenstände mit `weight` (Lavabrocken) zählen
+                                              auf Druckfeldern (pfeld) wie Figuren (eine Zeile in PField.update)
+src/course/levels/w0/0-15.js                Gegnerzoo Canyon (10 Gehege, Ameisenwand mit ameisenweg, Stachelfeld,
+                                              Giftwasser-Tümpel, Lavabecken, Druckfeld; Z(r, dz))
+src/course/levels/w0/0-16.js                Lavafelsen-König-Arena (Archetyp boss, Käfig r 11, Stern + Warp-Box → Ziel)
+tests/course_w4_enemies.mjs                 Port 4262 (W4_PART=zoo|boss), Bilder tests/out/w4en_*.png
+```
+
+Ameisenpfade kommen aus `blocks/antpath.js` (Bausteine Welt 4): `resolveAntPath`, `antPathAt`, `antOrient`.
+
+### Präzisierung (Gegner Welt 4): gemeinsame Regeln
+
+- **Tragen (Ameisen, Riesenameise):** Rücken bzw. Deck sind Einweg-Quader mit `mover` (wie bewegte Plattformen): wer
+  darauf steht, fährt mit – auch die Wand hinauf (an der Wand ist die Oberseite das obere Körperende, 0,62 m tief) und
+  über Kanten. Die Riesenameise dreht Mitfahrer an Pfadecken mit (`dyaw`). Gegner können ebenfalls mitfahren.
+- **Landen statt Draufspringen:** Eine Figur, die auf einem Reit-Quader landet (Zustand `land` in diesem Schritt), löst
+  den Konter des Gegners aus (Ameisensoldat am Boden: platt + Abprall; Hörner-Ameise am Boden: Horn verletzt); wer schon
+  draufsteht oder an Wänden landet, fährt mit. Stampfattacke auf den Rücken ruft `onPound` (Motor).
+- **Werfen (Lavabrocken):** Tragen-System wie Rollpilz (`carryable`, `canCarry`, `onPickup`, `onThrow`, `onDrop`);
+  geworfen trifft er Gegner (`onHit('throw', brocken)`) und Endgegner mit `boss: true` (dieselbe Art, Quelle
+  `kind === 'lavabrocken'`), leichte Zielhilfe (≤ 25°) zu einem Endgegner in ≤ 11 m im 35°-Kegel.
+- **Druckfelder:** `pfeld` zählt Figuren + `weightsOn` (Entitäten mit `weight > 0`, am Boden auf dem Feld, nicht
+  getragen). Ein Lavabrocken auf einem Druckfeld bleibt betäubt liegen, bis man ihn aufhebt.
+- **Giftwasser/Lava:** Rankenschnapper, Lavafunke, Riesenameise, Stachelwalze tragen `flying = true` (versinken nicht
+  im Giftwasser); der Lavafelsen-König ist lavafest; alle anderen werden besiegt (versinken bzw. verglühen).
+- **Instanzen:** Ameisen (je Art eine Instanz-Gruppe, Lage als Quaternion), Riesenameisen (`sharedModelSlot`),
+  Flatterkäfer-Räder (`modelInstances`, ein besiegtes Glied bekommt für den Absturz sein Modell zurück), Feuerbrocken
+  (eine Instanz-Gruppe je Level). Gruppen weit weg (> Schattenreichweite + 22 m) werden nicht gezeichnet.
+
+| Gegner | Verhalten | besiegt durch | verletzt |
+| --- | --- | --- | --- |
+| ameisensoldat | marschiert auf Ameisenpfad (Boden/Wand/Decke, Kolonnen, Strom) oder frei; trägt Figuren | Draufspringen am Boden (Abprall), Stampfattacke, alle Angriffe, Lava/Gift | seitlich, von unten |
+| ameisensoldat_horn | wie oben, Horn | **nicht von oben** (Horn verletzt; an Wänden: mitfahren), Feuer, Wurf, Krallen/Schwanzhieb, Panzer, Biss, Faust, Stampfwelle daneben, Rutschen, STRONG | seitlich, von oben (Boden) |
+| riesenameise | Laufuntergrund (Deck 1,25 m), Strom aus einer Höhle | unbesiegbar, harmlos | – |
+| rankenschnapper | Ranke wächst über den Weg und zurück (Zyklus/fest/bei Nähe), Kopf schnappt; **Körper begehbar**, **Kopf von oben = Abprall** | **Stampfattacke auf den Kopf**, Feuer, Krallen/Schwanzhieb, Wurf, Panzer, Biss, Faust, STRONG (hp) | Kopf seitlich (Biss) |
+| lavabrocken | watschelt/folgt, holt aus (0,45 s), stürmt (5 m/s); **betäubt tragbar/werfbar** | betäubt + Stampfattacke, Wurf, STRONG, Lava/Gift; Krallen/Faust/Rutschen/Panzer/Biss/Stampfwelle betäuben; **Feuer prallt ab** | seitlich (wach) |
+| lavafunke | springt im Takt aus der Lava (Reihen versetzt) | nur Stern/Riese/Explosion | jede Berührung in der Luft |
+| walzenwerfer | (auf Säule) holt Stachelwalze aus dem Maul, wirft im Takt; zielt auf die Figur oder fest | Draufspringen, Stampfattacke, alle Angriffe (Säule bleibt) | seitlich |
+| stachelwalze | rollt, hangabwärts schneller (lenkt bergab), zerbricht an Wänden/Lava/Gift/nach life | nur STRONG (**Stampfattacke nicht**) | jede Berührung |
+| stachelpanzer | läuft/folgt | Feuer, Wurf, Panzer, Biss, STRONG; Stampfwelle daneben → Rücken, dann jede Berührung | seitlich und **von oben** |
+| springklotz | federnder Klotz (Sprungfeder, optional hüpfend) | Feuer, Krallen, Wurf, Panzer, Faust, Biss, STRONG | – (stößt seitlich weg) |
+| flatterkaefer_rad | count Flatterkäfer auf einem drehenden Kreis | je Glied wie Flatterkäfer (Draufspringen, alles) | Glieder seitlich |
+
+### Präzisierung (Gegner Welt 4): Gegner-Daten (exakt, mit Beispiel)
+
+```js
+segments: [
+  // Ameisenpfad als Baustein (Spur), Ameisen lesen ihn per Id – Format siehe „Präzisierung (Bausteine Welt 4)“
+  { type: 'ameisenweg', id: 'wand1', over: { pos: [11.5, 1, -16], size: [6, 4, 2] }, along: 'z', at: 13 },
+],
+enemies: [
+  // Ameisensoldat / Hörner-Ameise: antpath | path ([[x,y,z,nx,ny,nz], …] | { path, loop } | 'id' eines ameisenweg),
+  //   loop (für Listen), mode 'pingpong' (Standard) | 'loop' (Rundweg) | 'once' (am Ende verschwinden), speed 1.5,
+  //   phase 0..1, back false (startet rückwärts), count 1, spacing 1.5 (m entlang des Pfads), ride 'wall' | true | false,
+  //   ohne Pfad: pos + dir (läuft frei, Umkehr an Kanten/Wänden),
+  //   spawner { every 2.5, max 6, first 0, prefill true } (Strom: neue Ameisen am Pfadanfang, mode 'once')
+  { kind: 'ameisensoldat', antpath: 'wand1', speed: 1.5 },
+  { kind: 'ameisensoldat', id: 'kolonne', count: 4, spacing: 1.7, antpath: { loop: true, path: [[-16,1,-11], [-7,1,-11], [-7,1,-17], [-16,1,-17]] } },
+  { kind: 'ameisensoldat_horn', antpath: [[-16, 1, -14], [-7, 1, -14]], speed: 1.3 },
+  { kind: 'ameisensoldat', ride: true, antpath: [[-16, 1, -20], [-7, 1, -20]] },          // Träger-Ameise
+  { kind: 'ameisensoldat_horn', spawner: { every: 1.5, max: 4 }, antpath: [[0, 1, -40], [0, 1, -52]], speed: 2 },  // aus einer Röhre
+  // Riesenameise: path [[x,y,z], …] (y = Boden), speed 2, loop, mode 'pingpong' | 'loop' | 'once', phase, wait 0.4;
+  //   Strom: spawner true | { every 3.5, max 8, first 0, prefill true } (verschwindet am Pfadende in 0,8 s)
+  { kind: 'riesenameise', spawner: { every: 3.6, max: 6 }, path: [[-5.6, 1, -35], [-18, 1, -35]], speed: 2 },
+  // Rankenschnapper: pos = Wurzel; path [[x,y,z], …] (Welt, ab der Wurzel) | dir + length 4.5 + height 1.45 (+ hang),
+  //   mode 'cycle' | 'static' | 'sense' (sight 7), grow { out 1.4, hold 2.4, back 1.2, wait 1.6 } | [out, hold, back, wait],
+  //   min 0.12, phase 0..1, reach 2.2, walk true, size 1, hp 1
+  { kind: 'rankenschnapper', pos: [6.2, 1, -31], dir: [1, 0], length: 7.5 },
+  { kind: 'rankenschnapper', pos: [9.5, 1, -39], dir: [1, 0], length: 2.8, height: 1.7, mode: 'static' },   // Stufe
+  { kind: 'rankenschnapper', pos: [16.5, 4.6, -35], hang: true, dir: [-1, 0], length: 3.8, height: 1.2, mode: 'sense' },
+  { kind: 'rankenschnapper', pos: [0, 1, -60], path: [[0, 1, -60], [0, 3, -60], [2, 3.4, -62], [6, 3.4, -62]], size: 1.6, hp: 3 },
+  // Lavabrocken: behavior 'chase' | 'walk', speed 1.2, chaseSpeed 1.8, sight 7, charge true, chargeSpeed 5, stun 6,
+  //   vel [vx,vy,vz] (startet im Flug), owner, path/loop/dir/wake/edges/drop
+  { kind: 'lavabrocken', pos: [-9, 1, -57] },
+  // Lavafunke: pos = Lava-Oberfläche, height 4, period 2.6 (s, Level-Uhr), phase 0..1, count 1, spacing 1.6, dir [1, 0],
+  //   stagger 0.12 (Takt-Versatz je Glied)
+  { kind: 'lavafunke', pos: [7, 1.3, -75], count: 5, spacing: 2.1, height: 3.4, period: 2.4, stagger: 0.14 },
+  // Walzenwerfer: pos = Fuß der Säule, pillar 0 (Säulenhöhe, fest + begehbar), dir|yaw, aim 'player' | 'dir', sight 16,
+  //   interval 2.2, first 0.8, walze 0.85 (Größe), speed 3.5 (Walze), throwSpeed 4.5, life 12, max 3
+  { kind: 'walzenwerfer', pos: [11.5, 1, -60], pillar: 2.6, dir: [0, 1], aim: 'dir', interval: 2.6 },
+  // Stachelwalze (auch einzeln, z. B. 4-Haus „Bröckelblöcke mit rollenden Walzen“): pos (Boden), dir, size 0.85,
+  //   speed 3.5, vel, life 12, owner
+  { kind: 'stachelwalze', pos: [0, 4, -90], dir: [0, 1], size: 1.2 },
+  // Stachelpanzer: speed 1.2, behavior 'walk' | 'chase', sight 6, chaseSpeed 1.8, up 4, path/dir
+  { kind: 'stachelpanzer', pos: [-15, 1, -72], path: [[-16, 1, -72], [-10, 1, -72]] },
+  // Springklotz: strength 18 (Abprall m/s; ≈ 6 m über der Oberkante), hop false, every 1.8, hopDist 1.2, dir
+  { kind: 'springklotz', pos: [-6.5, 1, -76] },
+  // Flatterkäfer-Rad: center|pos, count 8, radius 3, speed 1.8 (m/s am Umfang), cw, plane 'xy' | 'zy' | 'xz', phase,
+  //   color 'pink'; Glieder level.named `${id}_${i}`
+  { kind: 'flatterkaefer_rad', id: 'rad', center: [-11.5, 5.2, -95], count: 8, radius: 3 },
+  // Vorhandene im Welt-4-Einsatz: feuer_werfer weapon 'bumerang' (4-3), pilzlingsturm, rollpilz, stampfstein, suchkopf
+  //   (kanone_turm shot 'suchkopf'), riesenprojektil – Felder wie in den Präzisierungen Welt 1–3
+],
+items: [
+  { kind: 'pfeld', pos: [-14.5, 1, -59], need: 1, on: { coins: 3 } },   // Lavabrocken daraufwerfen löst aus
+],
+```
+
+### Präzisierung (Gegner Welt 4): Lavafelsen-König
+
+```js
+{ kind: 'lavafelsen_koenig', id: 'koenig', pos: [0, 2, -3] (Start), arena: { center: [0, 2, 0], r: 10.4 }, hp: 3,
+  roll: [5, 6, 7], rollTime: [2.6, 2.8, 3.0], rest: [1.8, 1.5, 1.2], summon: [2, 2, 3], max: [3, 3, 4],
+  sparks: [6, 8, 10] (je Treffer), spin: 2.0, burn: 2.6, star: { pos: [0, 2.4, 6.5], index: 0 }, wakeR: 9, drop }
+boss: { id: 'koenig', name: 'Lavafelsen-König', speed: 0, trigger, warp: 'warp_sieg', warpPos, warpTo, frame: 0.3 }
+```
+
+Ablauf: `wait` → `intro` (2,2 s, Brüllen) → Runde: `summon` (1,4 s; bei 0,6 s springen Lavabrocken aus dem Boden – 2 / 2
+/ 3, aufgefüllt bis 3 / 3 / 4 gleichzeitig: **endlos**) → `roll` (2,6 / 2,8 / 3,0 s Felskugel 5 / 6 / 7 m/s auf die
+nächste Figur zu, lenkt ≤ 1,6 rad/s, prallt an der Arenagrenze r − 1,15 und an Wänden ab) → `rest` (1,8 / 1,5 / 1,2 s)
+→ `summon` … **Schaden nur durch einen geworfenen Lavabrocken** in `summon`/`roll`/`rest`: `hit` (0,6 s) → `spin`
+(2 s, Fäuste verletzen im Umkreis 1,7 m, verstreut 6 / 8 / 10 **Feuerbrocken**, die landen, 2,6 s brennen und
+verlöschen) → nächste Runde. Draufspringen = Abprall ohne Schaden; Feuer, Kanonenkugel, Bombe, Stern, Riese, andere
+Würfe zählen nicht; Berührung (außer von oben) verletzt. 3 Treffer → `defeated` (2,6 s) → `gone` (gerufene Brocken und
+Feuerbrocken zerfallen, Stern erscheint; Archetyp: Warp-Box). Ansagen: „Wirf Lavabrocken auf ihn!“ (erster Ruf),
+„Er rollt schneller!“ (Phase 2), „Jetzt wird es heiß!“ (Phase 3); die Standardtexte des Archetyps werden ersetzt.
+Tod im Kampf: Neustart, König 3/3 am Start, Brocken/Feuerbrocken weg. Schnittstelle wie Wirbelbrocken (`begin, reset,
+state, stateT, hp, maxHp, phase, visible, home, half, carHits 0, vulnerable, info()`, `level.onBossHit(boss,
+'brocken')`, `level.onBossDefeated`), `boss: true`, kein `enemy`.
+
+### Präzisierung (Gegner Welt 4): Hinweise für Level-Bauer
+
+- Wände für Ameisen achsenparallel bauen (`ameisenweg` `over`/`around` oder eigene Listen mit Normalen); die Reit-Quader
+  sind achsenparallele Hüllen – Diagonalen funktionieren, sind aber breiter. Auf Decken (Normale −Y) tragen Ameisen nicht.
+- Riesenameisen-Strom: Pfad in einer Höhle beginnen und enden lassen (Erscheinen 0,6 s, Verschwinden 0,8 s); das Deck
+  ist 2,15 × 1,35 m, Oberkante 1,25 m über dem Pfad – Abstand der Tiere = speed · every.
+- Rankenschnapper: Lauf-Quader nur auf flachen Rankenstücken (Steigung < 0,8); als Stufen `mode: 'static'` mit
+  verschiedenen `height`. Wurzel darf im Giftwasser/Wasser stehen.
+- Walzen rollen hangabwärts (Rampen) und zerbrechen an Wänden ≥ Stufenhöhe; eine Mauer am Hangfuß begrenzt sie.
+- Lavabrocken-Rätsel (4-Burg Stern 1/2): `pfeld` mit `group` – ein Brocken auf einem Feld hält es, die Figur drückt das
+  andere. 4-A: Arena mit `lavabrocken` (Brocken in die Lava stoßen/werfen zählt als besiegt).
+
+### Präzisierung (Gegner Welt 4): Tests und Kennzahlen
+
+`tests/course_w4_enemies.mjs` (Port 4262, `?course=0-15|0-16&scale=2&adapt=0`, deterministisch über `step(n)`/`setInput`;
+Hilfen `window.__t`: `Z(r, dz)`, `place`, `stomp`, `side`, `touch`, `moveTo`, `action`, `face`, `safe`, Boss: `enter`,
+`untilSafe`, `grab`, `throwAtBoss`): Ameisen (Kolonne auf Rundweg mit 1,7 m Abstand, freie Ameise, seitlich = Treffer,
+Draufspringen besiegt, Hörner von oben verletzt/Feuer besiegt, Träger-Ameise trägt, Stampfattacke besiegt, Strom aus
+einer Röhre), **Ameise trägt die Figur die Wand hinauf** (1,8 → 5,9 m) und über die Kante, Hörner-Ameise an der Wand
+trägt, Riesenameisen-Strom (gefüllt, endlos, trägt die Figur über das Stachelfeld ohne Schaden), Rankenschnapper (wächst
+0,12 → 1 und zurück, wurzelt im Giftwasser, begehbar, Figur fällt beim Zurückziehen, schnappt, Biss, Abprall vom Kopf,
+Stampfattacke besiegt, Stufe, Feuer, hängend bei Nähe), Lavabrocken (verfolgt, holt aus, stürmt, betäubt, Feuer prallt
+ab, aufheben/werfen besiegt eine Zielscheibe, aufs Druckfeld geworfen löst es aus und bleibt liegen, Stampfattacke,
+Lava), Giftwasser (Brocken und Ameise versinken), Walzenwerfer (Takt, Walze rollt hangabwärts schneller und zerbricht an
+der Mauer, Stampfattacke zerstört sie nicht, Kanonenkugel schon, zielt auf die Figur, besiegt, Säule bleibt),
+Stachelpanzer, Springklotz (≈ 7 m hoch), Lavafunken (Takt 2,4 s, Versatz 0,14 Takt, Höhe 3,4 m), Flatterkäfer-Rad
+(Drehung, Glieder auf dem Kreis, besiegtes Glied fällt), Bumerang-Werfer, Klone (Brocken, Werfer, Träger-Ameise,
+Rankenschnapper, Boss), Boss vollständig (Ruf, Rollen, nur geworfene Brocken treffen, nicht im Wirbel, Feuerbrocken
+6 + 8 + 10, Ansagen, Sieg → Stern + Warp → Ziel, Tod setzt zurück) – 73 Prüfungen. Gemessen (scale 2, inkl.
+Schattenpass, Thema canyon/lavacastle): Gegnerzoo 82–116 Zeichenaufrufe je Station (≤ 331 k Dreiecke), Boss-Arena
+54–104; Simulation im Zoo (≈ 51 Entitäten) ≈ 0,14 ms je Schritt.
+
 ---
 
 ## Musik-Richtlinie (Auftraggeber, verbindlich für alle Welten)
