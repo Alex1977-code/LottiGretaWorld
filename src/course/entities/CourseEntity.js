@@ -26,6 +26,12 @@
 //   onPickup(player), onThrow(player, { dir: {x, z}, gentle }), onDrop(player)   Trage-Hooks
 //   followCarrier()  im update() aufrufen, solange carrier gesetzt ist (Lage über dem Kopf der Figur)
 //   overlaps(other), distanceTo(x, y, z)   AABB-Hilfen (Berührung, Explosionsradius)
+//
+// Darstellung (Präzisierung „Leistung und Level-Haken 2“, alles optional, auch als spec-Feld):
+//   farHide      m – weiter von der Figur entfernt wird das Modell nicht gezeichnet (Gegner: Standard LEVEL.farHide)
+//   instancing   false = Modell nie als Instanzen zeichnen; 'all' = auch durchsichtige Teile (view/EntityInstancer.js)
+//   lod          false = keine Detailstufe; { dist, make(entity), anchor(root), keep(mesh) } = eigene (view/lod.js)
+//   lodDist      m – Kameraabstand, ab dem die Detailstufe zeichnet
 
 import * as THREE from 'three';
 import { iceSlide, iceAfterMove } from './ice.js';
@@ -53,6 +59,9 @@ export class CourseEntity {
     this.shapes = [];
     this.carryable = false;
     this.carrier = null;
+    if (spec.farHide !== undefined) this.farHide = spec.farHide;
+    if (spec.instancing !== undefined) this.instancing = spec.instancing;
+    if (spec.lodDist !== undefined) this.lodDist = spec.lodDist;
     this._c = new THREE.Vector3();
   }
 
