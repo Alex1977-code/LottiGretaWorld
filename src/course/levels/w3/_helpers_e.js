@@ -2533,43 +2533,54 @@ function wasserturmG(x, y, z) {
   return P;
 }
 
-/** Krümel wartet am Zielbahnsteig (nur wenn befreit) und jubelt, wenn die Heldin kommt. */
+/** Krümel wartet am Zielbahnsteig (nur wenn befreit) und jubelt, wenn die Heldin kommt (Simulationstakt). */
 class KruemelZiel {
   constructor(level, pos, freed) {
     this.level = level;
     this.pos = pos;
     this.freed = freed;
     this.t = 0;
+    this.on = false;
+    this.cheer = false;
     this.said = false;
+    this.bubbleT = 0;
+    level.onStep((dt) => this.step(dt));
     if (!level.view) return;
     this.model = getModel('kruemel');
     this.root = new THREE.Group();
+    this.root.name = 'kruemel-ziel';
     this.root.add(this.model.root);
     this.model.root.scale.setScalar(1.35);
     this.root.position.set(...pos);
+    this.root.visible = false;
     addObject(level, this.root, (dt) => this.render(dt));
-    level.view.shadows.add({ pos: new THREE.Vector3(...pos), radius: 0.32, alive: () => true, visible: () => this.root.visible });
+    level.view.shadows.add({ pos: new THREE.Vector3(...pos), radius: 0.32, alive: () => true, visible: () => this.on });
+  }
+
+  step(dt) {
+    this.t += dt;
+    this.on = !!this.freed();
+    if (this.bubbleT > 0) this.bubbleT -= dt;
+    if (!this.on) return;
+    const p = this.level.player;
+    const d = p ? Math.hypot(p.pos.x - this.pos[0], p.pos.z - this.pos[2]) : 99;
+    this.cheer = d < 8;
+    if (this.cheer && !this.said) { this.said = true; this.bubbleT = 4; this.level.sfx('coin'); }
   }
 
   render(dt) {
-    this.t += dt || 0;
-    const on = !!this.freed();
-    this.root.visible = on;
-    if (!on) return;
-    const p = this.level.player;
-    const d = p ? Math.hypot(p.pos.x - this.pos[0], p.pos.z - this.pos[2]) : 99;
-    const cheer = d < 8;
-    if (cheer && !this.said) {
-      this.said = true;
+    this.root.visible = this.on;
+    if (!this.on) return;
+    if (this.said && !this.bubble) {
       this.bubble = bubbleSprite('Juhu, Schneetal!', 'Danke fürs Mitnehmen!');
       this.bubble.position.set(0, 1.6, 0);
       this.root.add(this.bubble);
-      this.bubbleT = 4;
     }
-    if (this.bubble) { this.bubbleT -= dt || 0; this.bubble.visible = this.bubbleT > 0; }
-    this.root.position.y = this.pos[1] + (cheer ? Math.abs(Math.sin(this.t * 6)) * 0.35 : 0);
+    if (this.bubble) this.bubble.visible = this.bubbleT > 0;
+    this.root.position.y = this.pos[1] + (this.cheer ? Math.abs(Math.sin(this.t * 6)) * 0.35 : 0);
+    const p = this.level.player;
     if (p) this.model.root.rotation.y = Math.atan2(-(p.pos.z - this.pos[2]), p.pos.x - this.pos[0]);
-    this.model.update(Math.min(0.1, dt || 0), { anim: cheer ? 'cheer' : 'idle' });
+    this.model.update(Math.min(0.1, dt || 0), { anim: this.cheer ? 'cheer' : 'idle' });
   }
 }
 

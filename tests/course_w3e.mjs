@@ -520,6 +520,16 @@ const TRAIN_HELPERS = () => {
     return t.place([X, (hit?.y ?? 4) + 0.05, Z], o);
   };
   t.ground = () => P().ground?.mover?.vehicle?.spec?.id ?? P().ground?.tag ?? null;
+  /** Tempo einer Entität (m/s, x und z) über einen Schritt gemessen. */
+  t.velOf = (e) => { const x0 = e.pos.x, z0 = e.pos.z, t0 = L.time; c.step(1); const d = Math.max(1e-6, L.time - t0); return [(e.pos.x - x0) / d, (e.pos.z - z0) / d]; };
+  /** Figur in der Luft über einem fahrenden Ziel absetzen: sie erbt dessen Tempo (wie nach einem Absprung). */
+  t.placeMoving = (pos, vel, o = {}) => {
+    t.place(pos, { ...o, settle: 0 });
+    const st = c.arch.fstate(P());
+    st.inh.x = vel[0]; st.inh.z = vel[1]; st.prev = 'air';
+    if (o.settle) c.step(o.settle);
+    return P().info();
+  };
   const laneAt = (lane, cc) => {
     if (cc <= lane[0][0]) return lane[0][1];
     for (let i = 1; i < lane.length; i++) if (cc <= lane[i][0]) { const [c0, x0] = lane[i - 1], [c1, x1] = lane[i]; return x0 + (x1 - x0) * ((cc - c0) / (c1 - c0)); }
@@ -698,11 +708,13 @@ if (want('3-Zug')) {
     out.star0 = !!L.runtime.stars[0];
     // Riesenprojektil: auf einem landen und mitfahren
     t.waitWin(25);
+    t.placeC(t.cw(), 0, { settle: 2, invuln: 1e9 });
     let b = null;
-    for (let i = 0; i < 120 * 14 && !b; i++) { c.step(1); b = L.entities.find((e) => e.kind === 'riesenprojektil' && !e.removed && e.state === 'fly' && e.pos.x < -6.5); }
+    for (let i = 0; i < 120 * 14 && !b; i++) { c.step(1); b = L.entities.find((e) => e.kind === 'riesenprojektil' && !e.removed && e.state === 'fly' && e.pos.x < -4.2); }
     out.bullet = !!b;
     if (b) {
-      t.place([b.pos.x, b.pos.y + 2.45, b.pos.z], { invuln: 1e9 });
+      const bv = t.velOf(b);
+      t.placeMoving([b.pos.x, b.pos.y + 2.4, b.pos.z], bv, { invuln: 1e9 });
       const x0 = p.pos.x, bx0 = b.pos.x;
       let on = 0;
       for (let i = 0; i < 70; i++) { c.setInput({}); c.step(1); if (p.ground && (p.ground.tag === 'riesenprojektil' || p.ground.owner === b)) on++; }
@@ -710,7 +722,7 @@ if (want('3-Zug')) {
       // Treffer: das nächste Projektil fliegt in die Figur auf dem Wagendach
       let b2 = null;
       t.placeC(t.cw(), 0, { settle: 4, invuln: 1e9 });
-      for (let i = 0; i < 120 * 10 && !b2; i++) { c.step(1); b2 = L.entities.find((e) => e !== b && e.kind === 'riesenprojektil' && !e.removed && e.state === 'fly' && e.pos.x < -7.5); }
+      for (let i = 0; i < 120 * 10 && !b2; i++) { c.step(1); b2 = L.entities.find((e) => e !== b && e.kind === 'riesenprojektil' && !e.removed && e.state === 'fly' && e.pos.x < -4.5); }
       if (b2) {
         let hurt = false;
         p.invuln = 0;
@@ -728,7 +740,7 @@ if (want('3-Zug')) {
     const turm = t.ent('turm');
     out.turm = { count0: turm.count, stomps: [] };
     for (let k = 0; k < 7 && !turm.defeated && turm.count > 0; k++) {
-      t.place([turm.pos.x, turm.pos.y + (turm.height ?? turm.half.y * 2) + 0.9, turm.pos.z], { invuln: 1e9 });
+      t.placeMoving([turm.pos.x, turm.pos.y + (turm.height ?? turm.half.y * 2) + 0.9, turm.pos.z], t.velOf(t.car('F2')), { invuln: 1e9 });
       for (let i = 0; i < 160; i++) {
         c.setInput({}); c.step(1);
         if (p.mode === 'air' && p.vel.y <= 0) { p.pos.x = turm.pos.x; p.pos.z = turm.pos.z; }
@@ -741,7 +753,7 @@ if (want('3-Zug')) {
     c.step(60);
     const s1 = L.entities.find((e) => e.kind === 'star' && e.index === 1 && !e.removed);
     out.turm.star = !!s1;
-    if (s1) for (let i = 0; i < 40 && !L.runtime.stars[1]; i++) { t.place([s1.pos.x, s1.pos.y - 0.4, s1.pos.z], { invuln: 1e9 }); c.step(3); }
+    if (s1) for (let i = 0; i < 40 && !L.runtime.stars[1]; i++) { t.place([s1.pos.x, s1.pos.y - 0.4, s1.pos.z], { invuln: 1e9 }); c.step(2); }
     out.star1 = !!L.runtime.stars[1];
     // Kontrollpunkt auf dem Dach von W5
     const cp = L.entities.find((e) => e.kind === 'checkpoint' && e.spec.attach === 'W5');
@@ -767,14 +779,17 @@ if (want('3-Zug')) {
     // Geheimröhre auf F3 → Brummbär-Zug (PX), Krümel befreien, Rückröhre → Dach von W6
     t.waitWin(79.05);
     const hin = t.ent('roehre_hin'), px = t.ent('roehre_px'), rueck = t.ent('roehre_rueck'), w6 = t.ent('roehre_w6');
-    t.place([hin.pos.x, hin.pos.y + hin.H + 0.3, hin.pos.z], { settle: 30, invuln: 1e9 });
+    const vt = t.velOf(t.car('F3'));
+    t.placeMoving([hin.pos.x, hin.pos.y + hin.H + 0.05, hin.pos.z], vt, { settle: 30, invuln: 1e9 });
+    out.onPipe = t.ground();
     c.setInput({ crouch: true }); c.step(3); c.setInput({});
+    out.modeAfter = p.mode;
     let arrived = null;
     for (let i = 0; i < 900; i++) { c.step(1); if (p.mode !== 'script' && Math.abs(p.pos.x - px.pos.x) < 2.5) { c.step(30); arrived = t.ground(); break; } }
     out.px = arrived;
     const kiste = t.ent('kiste_kruemel'), k = L._zugScene.kruemel;
     out.kruemel0 = k.state;
-    t.place([kiste.pos.x, kiste.pos.y + 1.3 + 1.2, kiste.pos.z], { invuln: 1e9 });
+    t.placeMoving([kiste.pos.x, kiste.pos.y + 1.3 + 1.2, kiste.pos.z], t.velOf(t.car('PX')), { invuln: 1e9 });
     c.setInput({ crouch: true }); c.step(60); c.setInput({}); c.step(20);
     out.crate = !!(kiste.removed || !kiste.alive);
     for (let i = 0; i < 240 && k.state !== 'cheer'; i++) c.step(1);
@@ -782,9 +797,9 @@ if (want('3-Zug')) {
     c.step(20);
     const s2 = L.entities.find((e) => e.kind === 'star' && e.index === 2 && !e.removed);
     out.star = !!s2;
-    if (s2) for (let i = 0; i < 40 && !L.runtime.stars[2]; i++) { t.place([s2.pos.x, s2.pos.y - 0.4, s2.pos.z], { invuln: 1e9 }); c.step(3); }
+    if (s2) for (let i = 0; i < 40 && !L.runtime.stars[2]; i++) { t.place([s2.pos.x, s2.pos.y - 0.4, s2.pos.z], { invuln: 1e9 }); c.step(2); }
     out.star2 = !!L.runtime.stars[2];
-    t.place([rueck.pos.x, rueck.pos.y + rueck.H + 0.3, rueck.pos.z], { settle: 30, invuln: 1e9 });
+    t.placeMoving([rueck.pos.x, rueck.pos.y + rueck.H + 0.05, rueck.pos.z], t.velOf(t.car('PX')), { settle: 30, invuln: 1e9 });
     c.setInput({ crouch: true }); c.step(3); c.setInput({});
     let back = null;
     for (let i = 0; i < 900; i++) { c.step(1); if (p.mode !== 'script' && Math.abs(p.pos.x - w6.pos.x) < 2.5) { c.step(30); back = t.ground(); break; } }
@@ -803,8 +818,10 @@ if (want('3-Zug')) {
     // Postwagen: durch die Dachluke hinein, Stempel neben dem Feuer-Werfer
     t.waitWin(100.6);
     const TR = L.data.train, g1 = t.car('G1');
-    const [hx, , hz] = t.at(TR.G1.cc - 2.5, 0, 0);
-    t.place([hx, g1.pos.y + 4.3, hz], { invuln: 1e9 });
+    t.placeC(TR.G1.cc - 0.6, 0, { settle: 20, invuln: 1e9 });
+    out.roof = t.ground();
+    for (let i = 0; i < 240 && p.pos.y > g1.pos.y + 3.0; i++) { c.setInput({ y: -0.6 }); c.step(1); }
+    c.setInput({});
     for (let i = 0; i < 120; i++) { c.step(1); if (p.mode === 'ground') break; }
     c.step(10);
     out.post = { inside: L._zugScene.post.inside, y: +(p.pos.y - g1.pos.y).toFixed(2), werfer: !!t.ent('post_werfer')?.alive };
@@ -820,19 +837,21 @@ if (want('3-Zug')) {
     out.potion = !!pu;
     if (pu) for (let i = 0; i < 40 && p.power !== 'riese'; i++) { t.place([pu.pos.x, pu.pos.y + 0.2, pu.pos.z], { invuln: 1e9, keepPower: true }); c.step(3); }
     out.riese = p.power;
-    const n0 = t.count('steinblock');
-    for (let i = 0; i < 240 && t.count('steinblock') > 0; i++) { c.setInput({ y: 1 }); c.step(1); }
+    t.placeC(TR.F4.cc - 1.2, 0, { settle: 6, invuln: 1e9, keepPower: true });
+    const n0 = t.count('steinblock'), c0 = t.cOf(p.pos.z);
+    for (let i = 0; i < 480 && t.count('steinblock') > 0; i++) { c.setInput({ y: 1, x: -p.pos.x }); c.step(1); }
     c.setInput({}); c.step(20);
     out.blocks = n0 - t.count('steinblock');
+    out.giant = { c0: +c0.toFixed(1), c1: +t.cOf(p.pos.z).toFixed(1), power: p.power, blocksAt: L.entities.filter((e) => e.kind === 'steinblock' && e.alive).map((e) => +t.cOf(e.pos.z).toFixed(1)) };
     // Bonuswagen: acht Kisten (sieben Münzen, ein Extraleben)
-    t.waitWin(133.5);
+    t.waitWin(130.5);
     if (p.power === 'riese') p.setPower('none');
     const coins0 = L.runtime.coins, lives0 = L.runtime.livesGained;
     for (let i = 0; i < 8; i++) {
       const k = t.ent(`bonus${i}`);
       if (!k || k.removed || !k.alive) continue;
-      t.place([k.pos.x, k.pos.y + 1 + 1.2, k.pos.z], { invuln: 1e9 });
-      c.setInput({ crouch: true }); c.step(50); c.setInput({}); c.step(8);
+      t.placeMoving([k.pos.x, k.pos.y + 1 + 1.0, k.pos.z], t.velOf(t.car('B1')), { invuln: 1e9 });
+      c.setInput({ crouch: true }); c.step(45); c.setInput({}); c.step(4);
     }
     out.bonus = [0, 1, 2, 3, 4, 5, 6, 7].filter((i) => { const k = t.ent(`bonus${i}`); return !k || k.removed || !k.alive; }).length;
     for (let j = 0; j < 3; j++) {
@@ -853,9 +872,11 @@ if (want('3-Zug')) {
 
   // Halt, Lok-Röhre → Drehscheibe
   r = await sc(() => {
-    const c = window.__course, t = window.__t, p = c.player;
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
     const out = {};
     t.waitWin(999);
+    const TR = L.data.train;
+    t.placeC(TR.T1.cc, 0, { settle: 4, invuln: 1e9 });
     c.step(260);
     const luke = t.ent('luke');
     out.luke = { open: luke.open, banner: t.banners.includes('Ab durch die Röhre auf der Lok!') };
@@ -878,6 +899,7 @@ if (want('3-Zug')) {
     out.started = t.enter();
     for (let k = 0; k < 3; k++) {
       t.untilSafe('throw', 2400, home);
+      for (let j = 0; j < 4 && t.count('schatten_doppelgaenger') === 0; j++) { t.untilSafe('teleport', 1500, home); t.untilSafe('throw', 1500, home); }
       out.phases.push({ phase: b.phase, clones: t.count('schatten_doppelgaenger'), hp: b.hp });
       const hp0 = b.hp;
       t.noShots();
@@ -906,14 +928,14 @@ if (want('3-Zug')) {
     const c = window.__course, t = window.__t, p = c.player, L = c.level;
     const out = {};
     const w = t.ent('warp_sieg');
-    t.place([w.pos.x, w.pos.y + 0.2, w.pos.z], { settle: 2, invuln: 1e9 });
+    t.place([w.pos.x, (w.top ?? w.pos.y + 1.2) + 0.4, w.pos.z], { settle: 0, invuln: 1e9 });
     let arrived = null;
     for (let i = 0; i < 600; i++) { c.step(1); if (Math.abs(p.pos.x - 4.6) < 3 && p.mode === 'ground') { arrived = [+p.pos.x.toFixed(1), +p.pos.z.toFixed(1)]; break; } }
     out.arrived = arrived;
     const g = L.data.goal.pos;
     t.go(g[0] - 0.4, g[2] + 3, { max: 900 });
     const kz = L._zugScene.land?.kruemelZiel;
-    out.kruemelZiel = { visible: !!kz?.root?.visible, said: !!kz?.said };
+    out.kruemelZiel = { visible: !!kz?.on, said: !!kz?.said };
     return out;
   });
   console.log(`  Ziel 1: ${JSON.stringify(r)}`);
