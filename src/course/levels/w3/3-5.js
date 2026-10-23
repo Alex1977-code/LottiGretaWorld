@@ -24,7 +24,7 @@
 // Level-Haken (LEVEL.setup, _helpers_d.js): Meer zwischen den Becken, Felsen, Strandzier, Leuchttürme, Möwen,
 // Krabben, Fischschwärme, Wandlöcher, Flutkammer (steigendes Wasser, Neustart setzt es zurück).
 
-import { isl, line, ring, arc, levelSetup, seaFill, leuchtturm, strand, felsen, wandloecher, fischschwaerme, moewen, krabbe, flutKammer, farHide } from './_helpers_d.js';
+import { isl, line, ring, arc, levelSetup, cullStatic, seaFill, leuchtturm, strand, felsen, wandloecher, fischschwaerme, moewen, krabbe, flutKammer, gegnerSicht } from './_helpers_d.js';
 
 const Y = 1;        // Land
 const W = 0;        // Wasseroberfläche
@@ -85,8 +85,8 @@ function setup(level) {
     muscheln: [[-3, Y, 6, 6, 3], [8, Y, -2, 5, 2.5], [-10, Y, -30, 5, 2], [6, Y, -32, 4, 2], [-12, Y, -146, 5, 2.5], [3, Y, -160, 5, 2], [-4, Y, -229, 4, 2], [0, 5, -238, 4, 3]],
     ringe: [[12, Y, 2, -0.6], [-5.6, Y, -132.4, 0.4]],
     palmen: [[-12.6, Y, 9, 4.6, 0.35, 0.8], [12.4, Y, -3.4, 4.2, 0.3, -0.9], [-11, Y, -36.4, 4.4, 0.3, 1.2], [11.2, Y, -29, 3.8, 0.25, -1],
-      [-6.4, Y, -137.4, 4.2, 0.3, 0.6], [-9.2, Y, -156, 4.4, 0.35, 1.4], [-9.4, Y, -160.4, 3.6, 0.25, 1.9], [7.4, Y, -137, 3.8, 0.3, -0.7],
-      [-17.6, Y, -137, 4.6, 0.3, 1.0], [16.4, Y, -145, 4, 0.3, -1.2], [-6.6, 5, -250, 4.4, 0.3, 0.7], [6.6, Y, -230.6, 3.6, 0.25, -0.5],
+      [-6.4, Y, -137.4, 4.2, 0.3, 0.6], [-7, Y, -158.4, 4.4, 0.35, 1.4], [-7.2, Y, -164, 3.6, 0.25, 1.9], [7.4, Y, -137, 3.8, 0.3, -0.7],
+      [-17.6, Y, -137, 4.6, 0.3, 1.0], [16.4, Y, -147.4, 4, 0.3, -1.2], [-6.6, 5, -250, 4.4, 0.3, 0.7], [6.6, Y, -230.6, 3.6, 0.25, -0.5],
       [66, 0.4, -143, 3.8, 0.3, 0.6], [79, 0.4, -156, 4.2, 0.3, -2.2]],
   });
   // Leuchttürme: groß auf der Zielinsel (vom Start aus sichtbar), klein auf dem Felsen neben dem Strand
@@ -113,8 +113,16 @@ function setup(level) {
   flutKammer(level, { id: 'flut', from: W, to: FLUT, speed: 1.1, area: { min: [-5, -9, -107.8], max: [5, 6, -95] }, resetBefore: -150 });
   // Meeresfläche zwischen den Becken bis zum Kulissen-Meer
   seaFill(level, Object.values(POOLS), { path: [-20, 20] });
-  farHide(level, ['flossling', 'stachelfisch', 'pilzling_reifen', 'muenzmarder'], 46);
+  // Fische werfen keinen Sonnenschatten (unter Wasser), versteckte Lochschützen und ferne Gegner werden nicht gezeichnet
+  gegnerSicht(level, {
+    flossling: { dist: 24, shadow: false }, stachelfisch: { dist: 26, shadow: false, hide: (e) => e.hidden },
+    pilzling_reifen: { dist: 34 }, muenzmarder: { dist: 34 },
+  });
 }
+
+/** Haken: Aufbau, danach Fern-/Schatten-Ausblendung der statischen Abschnitte. */
+const build = levelSetup(setup);
+function hook(level, scene) { build(level, scene); cullStatic(level, { floorY: -9 }); }
 
 export const LEVEL = {
   id: '3-5',
@@ -125,7 +133,7 @@ export const LEVEL = {
   music: 'course_water',
   timeLimit: 500,
   killY: -16,
-  setup: levelSetup(setup),
+  setup: hook,
   start: { pos: [0, Y, 8], yaw: Math.PI / 2 },
   camera: [
     { from: 16, to: -36, pitch: 44, dist: 13 },
@@ -140,10 +148,10 @@ export const LEVEL = {
   segments: [
     // ======================================================== Becken
     lagune('strand', POOLS.strand, -2, { caustics: 0.5 }),
-    lagune('tief', POOLS.tief, -8, { caustics: 0.35 }),
-    lagune('flut', POOLS.flut, -8, { caustics: 0.3 }),
+    lagune('tief', POOLS.tief, -8, { caustics: false }),
+    lagune('flut', POOLS.flut, -8, { caustics: false }),
     lagune('bucht', POOLS.bucht, -3, { caustics: 0.45 }),
-    lagune('kanal', POOLS.kanal, -6, { caustics: 0.35 }),
+    lagune('kanal', POOLS.kanal, -6, { caustics: false }),
 
     // ======================================================== 1  Strand
     sand(-14, 14, 12, -5, Y, 3),
@@ -168,12 +176,11 @@ export const LEVEL = {
 
     // ======================================================== 2  Tiefwasser
     { type: 'deco_w3', shadow: false, items: [
-      { kind: 'korallen', pos: [-6, -8, -50], size: [8, 14], n: 7, gap: 2, scale: [0.9, 1.6] },
-      { kind: 'korallen', pos: [6, -8, -68], size: [8, 16], n: 7, gap: 2, scale: [0.9, 1.6] },
-      { kind: 'korallen', pos: [-3, -8, -86], size: [12, 8], n: 6, gap: 2, scale: [0.8, 1.4] },
+      { kind: 'korallen', pos: [-6, -8, -50], size: [8, 14], n: 4, gap: 2.5, scale: [1, 1.7] },
+      { kind: 'korallen', pos: [6, -8, -68], size: [8, 16], n: 4, gap: 2.5, scale: [1, 1.7] },
+      { kind: 'korallen', pos: [-3, -8, -86], size: [12, 8], n: 4, gap: 2.5, scale: [0.9, 1.5] },
     ] },
-    { type: 'seetang', pos: [7.5, -8, -48], height: 4.5, count: 4 },
-    { type: 'seetang', pos: [-8, -8, -72], height: 5, count: 4 },
+    { type: 'seetang', pos: [-8, -8, -66], height: 5, count: 3 },
     { type: 'blasen', pos: [3, -8, -82], height: 7.5, count: 12 },
     { type: 'koralle', pos: [0, -8, -58], kind: 'hirn', scale: 1.6 },
     // versunkene Kiste mit Münzen (Kulisse) und Wegweiser unter Wasser
@@ -189,8 +196,7 @@ export const LEVEL = {
     sand(-8, 20, -146, -164, Y, 4),
     { type: 'steg', pos: [0, -0.2, -137.6], yaw: Math.PI / 2, length: 8.8, width: 2, height: 1.2 },
     { type: 'schiffswrack', pos: [-25, -3, -150], yaw: 0.7, size: 1.6, shadow: false },
-    { type: 'deco_w3', shadow: false, items: [{ kind: 'korallen', pos: [-20, -3, -128], size: [14, 10], n: 6, gap: 2.5 }, { kind: 'korallen', pos: [16, -3, -136], size: [10, 8], n: 4, gap: 2.5 }] },
-    { type: 'seetang', pos: [-12, -3, -126], height: 2.6, count: 3 },
+    { type: 'deco_w3', shadow: false, items: [{ kind: 'korallen', pos: [-20, -3, -128], size: [14, 10], n: 4, gap: 3 }, { kind: 'korallen', pos: [16, -3, -136], size: [10, 8], n: 3, gap: 3 }] },
     sign(4.2, Y, -129.6, 'Kanonen-Helm:\nder Riss hält nicht ewig!', { size: [3.2, 1.1] }),
     // Wandriss vor der Kerbe im Rissfels, dahinter die goldene Röhre
     { type: 'wandriss', id: 'riss', pos: [11.5, Y, -149.5], size: [3, 3.4, 1] },
@@ -206,10 +212,9 @@ export const LEVEL = {
 
     // ======================================================== 4  Stachelwand
     ...PILLARS.map(([x, z]) => ({ type: 'island', pos: [x, -6, z], size: [2.4, PH + 6, 2.4], top: 'stone', under: 0, color: 0xa89078 })),
-    { type: 'deco_w3', shadow: false, items: [{ kind: 'korallen', pos: [0, -6, -190], size: [14, 50], n: 10, gap: 3, scale: [0.8, 1.5] }] },
-    { type: 'seetang', pos: [-6.5, -6, -198], height: 4, count: 3 },
+    { type: 'deco_w3', shadow: false, items: [{ kind: 'korallen', pos: [0, -6, -190], size: [14, 50], n: 6, gap: 4, scale: [0.9, 1.6] }] },
+    { type: 'seetang', pos: [-6.5, -6, -198], height: 4, count: 2 },
     { type: 'blasen', pos: [6, -6, -172], height: 6, count: 10 },
-    sign(-6.4, Y, -163, 'Stachelwand:\nauf den Takt achten!', { size: [3, 1.1] }),
     // unsichtbare Blöcke über der dritten Säule → Hochfels mit dem versteckten Raum
     { type: 'hiddenchain', id: 'kette', blocks: [[-1, 3.4, -210], [1.6, 5.2, -211], [4.2, 7, -212]] },
     { type: 'room', pos: [12, 8.4, -214], size: [5, 3, 6], top: 'grass', style: 0xb89a78, door: { side: '-x', w: 2, h: 2.4 } },
@@ -219,7 +224,6 @@ export const LEVEL = {
     { type: 'rohrnetz', id: 'rohr_ziel', radius: 1, coins: 3, oneWay: true,
       path: [[0, 2.05, -227], [0, 2.05, -230], [0, 3.6, -232.4]], cannon: { target: [0, 5, -240.5], arc: 4.5 } },
     isl(-9, 9, -234, -253, 5, 8, { top: 'grass', under: 0 }),
-    sign(-4.4, 5, -237, 'Ziel in Sicht!'),
   ],
   blocks: [
     { kind: 'question', pos: [2.6, Y + 2.4, 2.4], content: 'gleitblatt' },
@@ -240,15 +244,15 @@ export const LEVEL = {
     { kind: 'stachelfisch', id: 'sT1', pos: [6, W, -52], sight: 6, speed: 1.8 },
     { kind: 'stachelfisch', id: 'sT2', pos: [-6, W, -78], sight: 6, speed: 1.8 },
     // 3 Wrackbucht
-    { kind: 'flossling', id: 'fJ1', mode: 'jump', pos: [-3.2, 0, -141.6], dir: [1, 0], dist: 6.4, height: 2.6, every: 2.6, color: 'koralle' },
-    { kind: 'flossling', id: 'fJ2', mode: 'jump', pos: [3.2, 0, -144], dir: [-1, 0], dist: 6.4, height: 2.6, every: 2.6, phase: 0.5, color: 'gold' },
+    { kind: 'flossling', id: 'fJ1', mode: 'jump', pos: [-3.2, -0.8, -141.6], dir: [1, 0], dist: 6.4, height: 2.6, every: 2.6, color: 'koralle' },
+    { kind: 'flossling', id: 'fJ2', mode: 'jump', pos: [3.2, -0.8, -144], dir: [-1, 0], dist: 6.4, height: 2.6, every: 2.6, phase: 0.5, color: 'gold' },
     { kind: 'pilzling_reifen', id: 'rf4', pos: [-9, W, -122] },
     { kind: 'pilzling_reifen', id: 'rf5', pos: [12, W, -132], path: [[10, W, -128], [14, W, -136]] },
     { kind: 'stachelfisch', id: 'sB', pos: [13, W, -141], sight: 5, speed: 1.6 },
     { kind: 'muenzmarder', id: 'm3', path: [[-11, Y, -139], [-18, Y, -141], [-17, Y, -148], [-10, Y, -148.6]], speed: 6, sight: 5.5, lead: 9 },
     // 4 Stachelwand
-    { kind: 'flossling', id: 'fK', path: [[-6, -3.6, -167], [6, -3.6, -167], [6, -3.6, -175], [-6, -3.6, -175]], count: 2, spacing: 2, color: 'tuerkis' },
-    { kind: 'stachelfisch', id: 'sK', pos: [5, W, -168], sight: 5, speed: 1.6 },
+    { kind: 'flossling', id: 'fK', path: [[-6, -3.6, -186], [6, -3.6, -186], [6, -3.6, -192], [-6, -3.6, -192]], count: 2, spacing: 2, color: 'tuerkis' },
+    { kind: 'stachelfisch', id: 'sK', pos: [5, W, -172], sight: 5, speed: 1.6 },
     ...WALL_FISH.map(([x, y, z, dx], i) => ({ kind: 'stachelfisch', id: `sW${i + 1}`, mode: 'wall', pos: [x, y, z], dir: [dx, 0], period: 2.4, phase: (i * 0.29) % 1, reach: 3.4 })),
     ...PILLAR_FISH.map(([x, y, z, dx], i) => ({ kind: 'stachelfisch', id: `sP${i + 1}`, mode: 'wall', pos: [x, y, z], dir: [dx, 0], period: 2.4, phase: 0.15 + i * 0.33, reach: 3.2 })),
     // 5 Ausgang
@@ -256,21 +260,18 @@ export const LEVEL = {
   ],
   items: [
     // 1
-    line([0, Y + 0.5, 4], [0, Y + 0.5, -2], 3),
+    line([0, Y + 0.5, 3], [0, Y + 0.5, -1], 2),
     line([-2.4, 1.7, -6], [-2.4, 1.7, -12.6], 4),
     arc([-2.4, 1.7, -13.4], [1.8, 1.9, -17], 3, 1.4),
     line([1.8, 1.9, -18.6], [1.8, 1.9, -25], 4),
-    ring([9, 1.5, -14.2], 0.8, 3),
-    line([0, Y + 0.5, -30], [0, Y + 0.5, -35], 3),
     // 2 (unter Wasser)
     ring([0, -2.5, -46], 1.4, 6),
-    line([-7, -6.4, -62], [-3, -6.4, -62], 3),
     ring([5, -5, -70], 1.2, 5),
     line([0, -6.6, -88], [0, -6.6, -93], 3),
-    ring([0, 2.4, -101], 1.2, 5),
+    ring([0, 2.4, -101], 1.2, 4),
     // 3
     line([0, 2.3, -139.4], [0, 2.3, -145.6], 3),
-    { kind: 'coins', pos: [-14, Y + 0.5, -143], r: 1.2, n: 4 },
+    { kind: 'coins', pos: [-14, Y + 0.5, -143], r: 1.2, n: 3 },
     { kind: 'helm_kanone', id: 'helm', pos: [3.6, Y, -134.6], respawn: 3 },
     // Goldraum
     { kind: 'goldschalter', id: 'goldschalter', pos: [72, 1.4, -147.6], area: { pos: [72, 1.4, -149], size: [10, 7] }, time: 8, rate: 7, height: 4 },

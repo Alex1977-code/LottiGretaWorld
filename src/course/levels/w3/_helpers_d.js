@@ -19,7 +19,7 @@ import { CourseEntity } from '../../entities/CourseEntity.js';
 import { banner } from '../../blocks/w3kit.js';
 
 export { isl, line, ring, arc, levelSetup, cyl, sphere, cone, block } from '../w2/_helpers_c.js';
-export { farHide } from '../w2/_helpers_a.js';
+export { farHide, cullStatic } from '../w2/_helpers_a.js';
 
 const L = (c) => lin(hex(c));
 const TAU = Math.PI * 2;
@@ -391,7 +391,7 @@ function fishGeo(color, size = 0.32) {
   const tail = new THREE.BufferGeometry();
   tail.setAttribute('position', new THREE.Float32BufferAttribute([-size * 0.6, 0, 0, -size * 1.05, size * 0.32, 0, -size * 1.05, -size * 0.32, 0, -size * 0.6, 0, 0, -size * 1.05, -size * 0.32, 0, -size * 1.05, size * 0.32, 0], 3));
   tail.computeVertexNormals();
-  const c = L(color), cl = [Math.min(1, c[0] * 1.6 + 0.2), Math.min(1, c[1] * 1.6 + 0.2), Math.min(1, c[2] * 1.6 + 0.2)];
+  const cl = L(color), c = [cl[0] * 0.55, cl[1] * 0.55, cl[2] * 0.6];
   const g = mrg([body.toNonIndexed(), tail]);
   return colorize(g, (p, n, out) => mixc(c, cl, smooth(-0.1, 0.1, p.y), out));
 }
@@ -403,31 +403,27 @@ function fishGeo(color, size = 0.32) {
 export function fischschwaerme(level, schools) {
   if (!level.view || !schools.length) return;
   const total = schools.reduce((a, s) => a + (s.n ?? 8), 0);
-  const colors = [...new Set(schools.map((s) => s.color ?? 0xffa030))];
-  const meshes = colors.map((c) => {
-    const n = schools.filter((s) => (s.color ?? 0xffa030) === c).reduce((a, s) => a + (s.n ?? 8), 0);
-    const m = new THREE.InstancedMesh(fishGeo(c, 0.3), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.15 }), n);
-    m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false;
-    m.name = 'zier:fische';
-    return m;
-  });
-  const grp = new THREE.Group();
-  for (const m of meshes) grp.add(m);
+  // eine Instanz-Gruppe für alle Schwärme: weiße Grundfarbe, Farbe je Instanz (instanceColor)
+  const mesh = new THREE.InstancedMesh(fishGeo(0xffffff, 0.3), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.15 }), total);
+  mesh.frustumCulled = false; mesh.castShadow = false; mesh.receiveShadow = false;
+  mesh.name = 'zier:fische';
   const fish = [];
+  const col = new THREE.Color();
   for (const s of schools) {
-    const mi = colors.indexOf(s.color ?? 0xffa030);
     const n = s.n ?? 8;
-    for (let i = 0; i < n; i++) fish.push({ s, mesh: meshes[mi], idx: 0, ph: (i / n) * TAU * (s.spread ?? 0.35), off: [Math.sin(i * 2.7) * 0.5, Math.cos(i * 1.9) * 0.35, Math.sin(i * 3.3) * 0.4], sc: 0.8 + ((i * 37) % 10) / 25 });
+    for (let i = 0; i < n; i++) {
+      col.setHex(s.color ?? 0xffa030);
+      mesh.setColorAt(fish.length, col);
+      fish.push({ s, ph: (i / n) * TAU * (s.spread ?? 0.35), off: [Math.sin(i * 2.7) * 0.5, Math.cos(i * 1.9) * 0.35, Math.sin(i * 3.3) * 0.4], sc: 0.8 + ((i * 37) % 10) / 25 });
+    }
   }
-  const used = new Map();
-  for (const f of fish) { const k = used.get(f.mesh) ?? 0; f.idx = k; used.set(f.mesh, k + 1); }
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
   let t = 0;
   const holder = {};
-  void total;
-  addObject(level, grp, (dt) => {
+  addObject(level, mesh, (dt) => {
     t += visDt(level, holder, dt);
-    for (const f of fish) {
+    fish.forEach((f, i) => {
       const s = f.s, R = s.radius ?? 3, w = (s.speed ?? 1.2) / R, a = t * w * (s.cw ? -1 : 1) + f.ph;
       const rz = s.rz ?? R;
       v.set(s.center[0] + Math.cos(a) * (R + f.off[0]), s.center[1] + f.off[1] + Math.sin(t * 1.3 + f.ph * 3) * 0.15, s.center[2] - Math.sin(a) * (rz + f.off[2]));
@@ -436,9 +432,9 @@ export function fischschwaerme(level, schools) {
       q.setFromEuler(e);
       sc.setScalar((s.size ?? 1) * f.sc);
       m4.compose(v, q, sc);
-      f.mesh.setMatrixAt(f.idx, m4);
-    }
-    for (const m of meshes) m.instanceMatrix.needsUpdate = true;
+      mesh.setMatrixAt(i, m4);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
   });
 }
 
@@ -496,6 +492,33 @@ export function krabbe(level, a, b, o = {}) {
     const u = 0.5 - 0.5 * Math.cos((t * (o.speed ?? 0.5) * TAU) / (len / 1.2) * 0.5);
     mesh.position.set(a[0] + dx * u, a[1] + Math.abs(Math.sin(t * 14)) * 0.02, a[2] + dz * u);
     mesh.rotation.set(0, yaw + Math.sin(t * 3) * 0.1, Math.sin(t * 14) * 0.05);
+  });
+}
+
+// =====================================================================================================================
+// Sparsame Darstellung der Gegner (Zeichenaufrufe)
+// =====================================================================================================================
+
+/**
+ * Gegner-Modelle nur zeichnen, wenn nötig (nur Darstellung, die Gegner laufen weiter): rules = { art: { dist, shadow,
+ * hide(e) } } – weiter als dist m (waagerecht) von der Haupt-Figur weg bzw. hide(e) → unsichtbar; shadow: false → wirft
+ * nie Sonnenschatten (Fische unter Wasser: der Schatten fiele auf den Grund und kostet je Teil einen Aufruf).
+ */
+export function gegnerSicht(level, rules) {
+  if (!level.view) return;
+  const off = (e) => { e.shadowMeshes = []; e.model?.root.traverse((o) => { if (o.isMesh) o.castShadow = false; }); };
+  for (const e of level.entities) if (rules[e.kind]?.shadow === false) off(e);
+  level.view.onFrame(() => {
+    const p = level.player;
+    if (!p) return;
+    for (const e of level.entities) {
+      const r = rules[e.kind];
+      if (!r || !e.model?.root) continue;
+      if (r.shadow === false && e.shadowMeshes?.length) off(e);
+      const far = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > (r.dist ?? 45);
+      const vis = !e.removed && !far && !(r.hide && r.hide(e));
+      if (e.model.root.visible !== vis) e.model.root.visible = vis;
+    }
   });
 }
 
