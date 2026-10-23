@@ -2898,7 +2898,11 @@ je Teil < 10 min; Port 4610 + PORT_BASE, Bilder `tests/out/w4c_*.png`; `ONLY=<Te
   Insel mit großer Stachelstange, Insel mit zwei gegenläufigen; links die **Schwankplattform – Stern 2**) → **Zielhang**
   (Zielplateau mit Brunnen, Zielmast, **versiegelte blaue Röhre** mit Gitterdeckel und Schild „Werfer-Festung (über die
   Weltkarte)“ – Ducken darauf zeigt die Ansage; 4-B selbst ist auf der Karte erreichbar). **Stern 0**: Schalterraum
-  (x ≈ 80, eigene Kameraschiene `area`) – Farbfeld 4 × 4 färben, Röhre zurück auf den Säulenplatz. **Extraleben (3)**: oben
+  (x ≈ 80, z ≈ +50 hinter dem Start – eigener 32-m-Abschnitt des Batchers, sonst zählte seine Zier beim Säulenplatz
+  mit; eigene Kameraschiene `area`) – Farbfeld 4 × 4 färben, Röhre zurück auf den Säulenplatz. Zier: Mosaikpflaster,
+  drei Hasenbrunnen mit Wasserstrahl (einer trocken), Ranken, Rampenpflaster mit Mittelstreifen, gemauerte Hangwände,
+  fahrende Plattformen mit Mosaik-Deckblatt (`moverTops`, Instanzen), Dschungelbäume, Dschungeltal tief im Abgrund,
+  Vögel, Schmetterlinge. **Extraleben (3)**: oben
   auf der Mauer rechts neben dem Turm – Spiegelfrucht auf dem 1,2 m schmalen Balken nehmen (seitlich kein Boden → der Klon
   erscheint **hinter** der Figur), im Gänsemarsch weiter: die vordere Figur fällt in den Graben (0,8 m) vor dem glatten
   Sockel, die hintere läuft ihr auf den Kopf → **Räuberleiter** (`raeuberleiter`, level-lokal: Hochwurf 19,5 m/s, frische
@@ -2919,7 +2923,7 @@ je Teil < 10 min; Port 4610 + PORT_BASE, Bilder `tests/out/w4c_*.png`; `ONLY=<Te
   zwischen Bühne und Boden; Wappen-Mosaik (blauer Ring, goldene Flamme), Außenmauern mit blauem Band, Ecktürme mit blauen
   Kegeldächern und wehenden blauen Fahnen, Banner, Steckbrief „Gesucht: Lotti & Greta“, Lager (Fässer, Kisten,
   Feuerkugel-Vorrat), Feuerschalen, Wimpel. Bot (echte Eingabe, draufspringen) gewinnt in ≈ 24 s.
-- **Kennzahlen** (scale 2, inkl. Schattenpass): 4-5 (23 Abschnittsbilder) 73–108 Zeichenaufrufe, 190–275 k Dreiecke
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 4-5 (23 Abschnittsbilder) 76–110 Zeichenaufrufe, 162–268 k Dreiecke
   (Walzenwerfer-Modell ≈ 10,5 k Dreiecke: Instanzgruppe ohne Sonnenschatten; Münzen ≈ 33 k werden immer gezeichnet);
   4-A 68–83 / 73–94 k; 4-B 66–112 / 139–177 k. Rampen bekommen level-lokal `camIgnore` (der Kamerastrahl prüft Hüllquader,
   auf der Rampe steckt der Kopf darin), ebenso die 1-Up-Mauer. Wünsche an den Motor: `camIgnore`-Parameter im Baustein
