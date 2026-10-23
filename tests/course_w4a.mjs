@@ -787,7 +787,7 @@ for (const id of LEVELS) {
       if (t.expectLives !== undefined) ok = ok && lives1 - lives0 >= t.expectLives;
       if (t.expectBelow !== undefined) ok = ok && res.pos[1] < t.expectBelow;
       if (t.expectWarp !== undefined) ok = ok && (await W('worldWarp')) === t.expectWarp;
-      if (t.expectAlive) ok = ok && !res.dead;
+      if (t.expectAlive !== false) ok = ok && !res.dead;   // Extras: Figur muss überleben (sonst blieben Erwartungen ungeprüft)
       if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
       check(`${id}: ${t.name} (${hero}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}, Ende y ${res.pos[1].toFixed(1)})`, ok);
