@@ -22,7 +22,7 @@
 
 import {
   isl, snow, rink, steg, line, ring, arc, column, starHere, levelSetup, farHide, sled, footprints, sledTrack,
-  icicleFringe, bench, birdhouse, snowAngel, snowTree, crystals, penguins, seals, smoke, farFirs, snowFirs, snowDrifts, frostBushes, iceFall, wallLedges, instanceEnemies, cullStatic,
+  icicleFringe, bench, birdhouse, snowAngel, snowTree, crystals, penguins, seals, smoke, farFirs, snowFirs, snowballPile, snowDrifts, frostBushes, iceFall, wallLedges, instanceEnemies, cullStatic,
 } from './_helpers_a.js';
 
 const Y = 1;
@@ -48,6 +48,11 @@ function scene(level) {
   footprints(level, [[-6.4, 3.4], [-4.6, 2.6], [-2.8, 2.6], [-1.6, 3.6]], Y, { size: 0.8 });
   footprints(level, [[10.4, -3], [11.2, -6.2], [10.6, -9]], Y, { kind: 'pfote', size: 0.9, step: 0.45 });
   snowAngel(level, -3.2, Y, 9.2, 0.3);
+  snowballPile(level, -9.4, Y + 1.6, -21.8, { color: 0x3a8aff });
+  snowballPile(level, 9.6, Y, -37.4);
+  footprints(level, [[-6.6, 1.6], [-5.4, -3], [-6.2, -8.4], [-7.4, -12.6]], Y, { size: 0.75, step: 0.5 });
+  sled(level, -10.6, Y, -26.4, 1.2, { color: 0x3aa86a });
+  sledTrack(level, [[-10.2, -24.8], [-9.6, -23.4]], Y);
   bench(level, -9.2, Y, -6.6, Math.PI / 2 - 0.2);
   birdhouse(level, 10.8, Y, 0.8, -0.6);
   penguins(level, [
@@ -127,11 +132,15 @@ function scene(level) {
   instanceEnemies(level, ['flatterkaefer', 'krabbelkaefer', 'pilzling', 'schneesaeule', 'pilzling_eis'], { noShadow: ['flatterkaefer'] });
 }
 
-// ferne Tannen auf den Hängen links und rechts (in LEVEL.setup über farFirs)
+// ferne Tannen auf den Hängen links und rechts (in LEVEL.setup über farFirs); nicht unter Inseln und Felsen
+const AVOID_FIRS = [
+  [-18.5, -108, 9], [-19.5, -122, 4], [-19.5, -132.5, 5.5], [-13.5, -132.5, 3.5], [-13, -172, 5], [-14, -184, 5], [-14, -196, 5],
+  [15, -66, 4], [15, -74, 4], [15, -82, 4], [15, -91, 4], [-14, -230, 5], [14, -230, 5], [-14, -258, 5], [14, -258, 5],
+];
 const FIRS = [];
 for (const [z, d, seed] of [[-20, 64, 3], [-84, 64, 13], [-148, 64, 23], [-212, 64, 33], [-260, 40, 43]]) {
-  FIRS.push({ pos: [-23, -3.5, z], size: [16, d - 4], n: Math.round(d / 5), scale: [3.5, 6.5], gap: 2.8, seed });
-  FIRS.push({ pos: [23, -3.5, z], size: [16, d - 4], n: Math.round(d / 5), scale: [3.5, 6.5], gap: 2.8, seed: seed + 1 });
+  FIRS.push({ pos: [-23, -3.5, z], size: [16, d - 4], n: Math.round(d / 5), scale: [3.5, 6.5], gap: 2.8, seed, avoid: AVOID_FIRS });
+  FIRS.push({ pos: [23, -3.5, z], size: [16, d - 4], n: Math.round(d / 5), scale: [3.5, 6.5], gap: 2.8, seed: seed + 1, avoid: AVOID_FIRS });
 }
 
 // ferne Kulisse (Tannenhänge tief unter dem Pfad, ohne Sonnenschatten)
@@ -155,7 +164,8 @@ export const LEVEL = {
   setup(level, sc) { levelSetup(scene)(level, sc); cullStatic(level); },
   camera: [
     { ...CAM, from: 14, to: -44 },
-    { ...CAM, from: -44, to: -66, pitch: 45 },
+    { ...CAM, from: -44, to: -54, pitch: 45 },
+    { ...CAM, from: -57, to: -64, pitch: 52, dist: 12.5 },
     { ...CAM, from: -68, to: -88, pitch: 43, dist: 13.5, yaw: -12 },
     { ...CAM, from: -90, to: -114, pitch: 45 },
     { ...CAM, from: -114, to: -140, pitch: 46, dist: 13.5 },
@@ -181,6 +191,7 @@ export const LEVEL = {
     ] },
     { type: 'deco_w1b', items: [{ kind: 'bulbs', from: [-3.7, Y + 2.75, 0.6], to: [3.7, Y + 2.75, 0.6], sag: 0.6, n: 12 }] },
     { type: 'sign', pos: [-2.6, Y, -6.6], text: 'Schneebälle\nrollen!', size: [2.2, 0.8] },
+    { type: 'sign', pos: [-5.6, Y, -58.4], text: 'Spalte –\nspringen!', size: [2, 0.8] },
     // Felsriegel links (der Schneeball zerschellt daran), Hügel für die Abwechslung
     isl(-11.5, -3.6, -21, -22.6, Y + 1.6, 1.6, { top: 'grass' }),
     { type: 'mound', pos: [-7.2, Y, -32], radius: 3.2, height: 0.8 },

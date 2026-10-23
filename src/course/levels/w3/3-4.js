@@ -18,7 +18,7 @@
 import {
   lawn, line, ring, arc, starHere, levelSetup, farHide, pavilion, fountain, candyTrees, ballBushes, marzipanPigs,
   gardenBench, flowerArch, mosaic, blossomTrees, flowerBeds, gardenLamps, hedges, petals, instanceEnemies, cullStatic,
-  shadowless, isl, noModelShadow, balustrade,
+  shadowless, isl, noModelShadow, balustrade, rainbow,
 } from './_helpers_a.js';
 
 const Y = 1;
@@ -55,6 +55,7 @@ function scene(level) {
   ballBushes(level, [[-5, Y, -67.2, 0.5], [12.8, Y, -71, 0.5], [6, Y, -90.2, 0.45]]);
   flowerBeds(level, [[-3.4, Y, -70.4, 3, 1.4, 8], [11.4, Y, -65.2, 3, 1, 7], [2.2, Y, -94.8, 3, 1.2, 8]]);
   blossomTrees(level, [[12.8, Y, -65, 3.2]]);
+  rainbow(level, 1, YH - 3, -108, 9);
   // ---------------- Zieltreppe
   balustrade(level, -3.8, -96, -105.6, Y, 6, 0.7);
   balustrade(level, 3.8, -96, -105.6, Y, 6, 0.7, { cap: 0xb8a0ff });

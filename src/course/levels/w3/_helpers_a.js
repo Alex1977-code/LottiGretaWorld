@@ -208,6 +208,23 @@ export function frostBushes(level, list) {
   addStatic(level, merge(P));
 }
 
+/** Schneeball-Vorrat (Pyramide aus Schneebällen, nur Optik) mit Fähnchen. */
+export function snowballPile(level, x, y, z, o = {}) {
+  const P = [], r = o.r ?? 0.28;
+  for (const [i, k, j] of [[-1, 0, 0], [1, 0, 0], [0, 0, 1.7], [-0.5, 1, 0.55], [0.5, 1, 0.55], [0, 2, 0.35]]) {
+    P.push(blob(r, r * 0.92, r, x + i * r, y + r * 0.9 + k * r * 1.5, z + (j - 0.6) * r, 0xffffff, { ws: 8, hs: 6, fn: (p, n, out) => mixc(L(0xc4d6f0), L(0xffffff), smooth(-0.5, 0.7, n.y + n.z * 0.3), out) }));
+  }
+  if (o.flag !== false) {
+    P.push(rod([x + 0.5, y, z - 0.4], [x + 0.5, y + 1.5, z - 0.4], 0.025, 0.02, 0x8a5a32, 5));
+    const f = new THREE.BufferGeometry();
+    f.setAttribute('position', new THREE.Float32BufferAttribute([x + 0.5, y + 1.5, z - 0.4, x + 0.5, y + 1.15, z - 0.4, x + 1.0, y + 1.32, z - 0.4, x + 0.5, y + 1.15, z - 0.4, x + 0.5, y + 1.5, z - 0.4, x + 1.0, y + 1.32, z - 0.4], 3));
+    f.computeVertexNormals();
+    const c = L(o.color ?? 0xff4a5a);
+    P.push(colorize(f, (p, n, out) => { out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+  }
+  addStatic(level, merge(P));
+}
+
 /** Holzbank mit Schneehaube (Fußpunkt Mitte, Gier yaw: Sitzfläche entlang X lokal, Lehne nach −Z lokal). */
 export function bench(level, x, y, z, yaw = 0, o = {}) {
   const P = [];
@@ -870,6 +887,21 @@ export function balustrade(level, x, z0, z1, y0, steps, rise, o = {}) {
     }
   }
   addStatic(level, merge(P));
+}
+
+/** Regenbogen (Halbkreis aus sechs Farbbändern, leuchtend, ohne Schatten): Mitte (x, y, z), Radius r, Gier yaw. */
+export function rainbow(level, x, y, z, r = 8, o = {}) {
+  const cols = [0xff6a6a, 0xffae5a, 0xffe66a, 0x7ae08a, 0x6ab8ff, 0xb88aff];
+  const w = o.band ?? 0.45, P = [];
+  cols.forEach((c, i) => {
+    const g = new THREE.TorusGeometry(r - i * w, w * 0.5, 3, 40, Math.PI).toNonIndexed();
+    g.scale(1, 1, 0.3);
+    if (o.yaw) g.rotateY(o.yaw);
+    g.translate(x, y, z);
+    const cc = L(c);
+    P.push(colorize(g, (p, n, out) => { out[0] = cc[0] * 1.05; out[1] = cc[1] * 1.05; out[2] = cc[2] * 1.05; }));
+  });
+  addStatic(level, merge(P), { material: 'glow', castShadow: false });
 }
 
 /** Schachbrett-Pflaster (bunte Steinplatten, flach auf y) über x0..x1, z0..z1. */
