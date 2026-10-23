@@ -641,6 +641,23 @@ export function meadow(parts, x0, x1, z0, z1, y, o = {}) {
   }
 }
 
+/** Regenbogen (Halbbogen in der XY-Ebene, Mitte unten x, y, z, Außenradius r). */
+export function rainbow(parts, x, y, z, r = 3) {
+  [0xff4a4a, 0xffa23a, 0xffe14a, 0x5ad05a, 0x4a9aff, 0x9a6aff].forEach((c, i) => {
+    const g = new THREE.TorusGeometry(r - i * 0.3, 0.16, 4, 22, Math.PI).toNonIndexed();
+    g.translate(x, y, z);
+    parts.push(colorize(g, fillc(L(c))));
+  });
+}
+
+/** Wolkenkranz (flache weiße Kugeln) um eine Ellipse (Mitte x, y, z; Halbachsen rx, rz). */
+export function cloudRim(parts, x, y, z, rx, rz, n = 12) {
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * TAU, s = 0.9 + ((i * 7) % 5) * 0.12;
+    parts.push(sphere(s, x + Math.cos(a) * rx, y, z + Math.sin(a) * rz, 0xffffff, { ws: 8, hs: 5, sy: 0.55 }));
+  }
+}
+
 /** Bäumchen (Stamm, zwei Kronenkugeln) – Fußpunkt (x, y, z), Größe s. */
 export function tree(parts, x, y, z, s = 1, color = 0x4fb83a) {
   parts.push(cyl(0.12 * s, 0.17 * s, 1.3 * s, x, y, z, 0x8a5a32, 6));
@@ -856,6 +873,30 @@ export function kartBande(level, paths) {
     }
   }
   addStaticParts(level, parts, { castShadow: true });
+}
+
+/** Waagrechtes Viereck aus vier Ecken [x, z] auf Höhe y, Normale nach oben. */
+function quadP(a, b, c, d, y) {
+  const uz = b[1] - a[1], ux = b[0] - a[0], vz = c[1] - a[1], vx = c[0] - a[0];
+  const order = uz * vx - ux * vz > 0 ? [a, b, c, a, c, d] : [a, c, b, a, d, c];
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(order.flatMap(([x, z]) => [x, y, z]), 3));
+  g.computeVertexNormals();
+  return g;
+}
+
+/** Ringförmige Rennbahn (Bonus-Oval): Asphalt rIn..rOut, rot-weiße Randsteine innen und außen, Mittelstriche. */
+export function ovalTrack(parts, cx, cz, y, rIn, rOut, n = 48) {
+  const P = (r, a) => [cx + Math.cos(a) * r, cz + Math.sin(a) * r];
+  const asph = [L(0x4a4c56), L(0x54565f)], curb = [L(0xe8283a), L(0xf6f4ef)], white = L(0xf6f4ef);
+  const rm = (rIn + rOut) / 2;
+  for (let i = 0; i < n; i++) {
+    const a0 = (i / n) * TAU, a1 = ((i + 1) / n) * TAU, am = (a0 + a1) / 2;
+    parts.push(colorize(quadP(P(rIn, a0), P(rOut, a0), P(rOut, a1), P(rIn, a1), y + 0.012), fillc(asph[i % 2])));
+    parts.push(colorize(quadP(P(rIn - 0.45, a0), P(rIn, a0), P(rIn, a1), P(rIn - 0.45, a1), y + 0.016), fillc(curb[i % 2])));
+    parts.push(colorize(quadP(P(rOut, a0), P(rOut + 0.45, a0), P(rOut + 0.45, a1), P(rOut, a1), y + 0.016), fillc(curb[i % 2])));
+    if (i % 2 === 0) parts.push(colorize(quadP(P(rm - 0.08, a0), P(rm + 0.08, a0), P(rm + 0.08, am), P(rm - 0.08, am), y + 0.018), fillc(white)));
+  }
 }
 
 /** Schachbrettfläche (Start-/Ziellinie) quer über die Fahrbahn bei z. */

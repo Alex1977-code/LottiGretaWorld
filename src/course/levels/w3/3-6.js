@@ -21,7 +21,7 @@
 //                                           unten schleudert zur Zielinsel mit Zielbogen und Zielmast
 // Gegner: Schnappblume (5), Flatterkäfer (28), Pilzling (3).
 
-import { levelSetup, flatIslands, isl, line, ring, arc, road, grandstand, marmots, almHut, cow, tireStack, hayBale, flagPole, finishBanner, checkerLine, pennantLine, plate, cyl, sphere, bugSwarm, kartBande, addStaticParts, shadowRange, meadow, bush } from './_helpers_b.js';
+import { levelSetup, flatIslands, isl, line, ring, arc, road, grandstand, marmots, almHut, cow, tireStack, hayBale, flagPole, finishBanner, checkerLine, pennantLine, plate, cyl, sphere, bugSwarm, kartBande, addStaticParts, shadowRange, meadow, bush, ovalTrack, cloudRim, rainbow } from './_helpers_b.js';
 import { addStatic, merge } from '../../blocks/kit.js';
 
 const PI = Math.PI;
@@ -271,7 +271,10 @@ function buildRace(level) {
   const parts = [];
   checkerLine(parts, 0, 10, -2.5, 0, 1.2);        // Startlinie
   checkerLine(parts, 0, 8, -290.5, YG, 1.2);      // Ziellinie
-  // Bonus-Oval: Fahrbahnring um den Hügel
+  // Bonus-Oval: Fahrbahnring um den Hügel (die vier Boost-Pfeile liegen darauf), ohne Sonnenschatten wie die Fahrbahn
+  const oval = [];
+  ovalTrack(oval, BX, BZ, 0, 10.2, 13.8);
+  addStaticParts(level, oval, { castShadow: false });
   // Tribüne links am Start (Tierchen mit La-Ola), Dach begehbar
   level._race = { stand: grandstand(level, { x: -7.2, z0: 12, z1: -10, y: 0, side: -1, rows: 3 }) };
   grandstand(level, { x: 8.9, z0: -291, z1: -302, y: YG, side: 1, rows: 2 });
@@ -323,7 +326,10 @@ function buildRace(level) {
   meadow(parts, -14, 13, -228, -242, YS, { n: 14, band: 2, skip: [[-5.4, 5.4, -227, -243], [-15, -11, -233, -237.5]] });
   meadow(parts, -11, 11, -288, -304, YG, { n: 12, band: 2.5, skip: [[-4.4, 20, -287, -305]] });
   meadow(parts, BX - 15, BX + 15, BZ + 15, BZ - 15, 0, { n: 30, band: 1.6, skip: [[BX - 12.5, BX - 7.5, BZ + 7.5, BZ + 12.5], [BX + 6.5, BX + 12, BZ, BZ - 10]] });
-  for (const [x, z] of [[-45.5, -230.5], [-38.5, -240]]) bush(parts, x, 32, z, 0.9);
+  for (const [x, z] of [[-45.5, -230.5], [-38.3, -231.2]]) bush(parts, x, 32, z, 0.9);
+  // Wolkenterrasse: Wolkenkranz am Rand, Regenbogen hinter dem Stern
+  cloudRim(parts, -42, 31.8, -235, 5.4, 6.4, 14);
+  rainbow(parts, -42, 32, -240.3, 3.4);
   // Felsbogen-Deko (Stern 1): Moos und Steinchen
   parts.push(plate(7.2, 0.2, 1.6, 8.5, 4.2, -87, 0x6cd844, { r: 0.08 }));
   // Bonus-Oval: Hügel in der Mitte, Fahnenkranz, Stempel-Plattformen
