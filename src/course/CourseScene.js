@@ -50,8 +50,10 @@ export class CourseScene extends Phaser.Scene {
 
   init(data) {
     this.levelId = data?.id ?? this.registry.get('startCourse') ?? '0-0';
-    // ?still=1 (Messungen, tests/course_perf.mjs): Simulation steht von Anfang an (wie setManual(true))
-    this.manual = new URLSearchParams(window.location.search).has('still');
+    // ?still=1 (Messungen, tests/course_perf.mjs): Simulation steht von Anfang an (wie setManual(true)), die
+    // Darstellungszeit läuft nicht (dt = 0) – Bilder sind so über Builds hinweg vergleichbar
+    this.still = new URLSearchParams(window.location.search).has('still');
+    this.manual = this.still;
     this.acc = 0;
     this.finished = false;
     this.level = null;
@@ -188,7 +190,7 @@ export class CourseScene extends Phaser.Scene {
   renderFrame() {
     if (!this.level) return;
     const paused = this.sys.isPaused();
-    const dt = paused ? 0 : Math.min(this.game.loop.delta, 50) / 1000;
+    const dt = paused || this.still ? 0 : Math.min(this.game.loop.delta, 50) / 1000;
     const t = this.view.time + dt;
     this.rig.update(dt, t);
     this.squad?.render(dt, t);

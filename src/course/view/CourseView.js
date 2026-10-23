@@ -190,6 +190,7 @@ export class CourseView {
     if (world) this.shadows.update(world);
     this.effects.update(dt);
     this.renderer.setClearColor(this.mood?.clear ?? this.theme.background, 1);
+    if (this.static.built && this.static.pending) this.static.build();   // spätes addStatic (Haken, Laufzeit)
     this.culling.begin();
     for (const p of this.pools.values()) p.flush?.(this.culling);
     this.renderer.render(this.three, this.camera);

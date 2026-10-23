@@ -41,6 +41,8 @@ const stop = await startServer(PORT);
 const port = PORT + Number(process.env.PORT_BASE ?? 0);
 const { browser, page, errors } = await launchBrowser();
 const sc = (fn, arg) => page.evaluate(fn, arg);
+// gleiche Zufallsfolge bei jedem Laden (Modelle wählen Phasen mit Math.random) → Bilder vergleichbar
+await page.addInitScript(() => { let s = 12345; Math.random = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; });
 
 // ------------------------------------------------------------------ im Browser: Punkte, Messung, Aufschlüsselung
 function install() {
