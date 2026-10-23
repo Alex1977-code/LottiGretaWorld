@@ -76,7 +76,7 @@ const MAIN = [
 const TARGETS = [
   { name: 'Stern 0: Röhre in den Schalterraum, alle 16 Felder färben', star: 0, from: [12.6, Y1 + 1.5, -32.8], shot: 'stern0',
     legs: [{ to: [12.6, -35], jump: 22, within: 0.3, run: false }, { wait: 20 }, { crouch: 8 }, { wait: 60 },
-      ...[-38, -36, -34, -32].flatMap((z, i) => (i % 2 ? [83, 81, 79, 77] : [77, 79, 81, 83]).map((x) => ({ to: [XS - 80 + x, z], within: 0.35, run: false }))),
+      ...[46, 48, 50, 52].flatMap((z, i) => (i % 2 ? [83, 81, 79, 77] : [77, 79, 81, 83]).map((x) => ({ to: [XS - 80 + x, z], within: 0.35, run: false }))),
       { wait: 80 }, { star: 0 }] },
   { name: 'Stern 1: Krallen-Anzug aus dem ?-Block, Rundturm hinauf', star: 1, from: [-5.4, Y2, -87.0], shot: 'stern1', heroes: ['lotti', 'greta'],
     legs: [{ to: [-5.4, -88.6], within: 0.2, run: false }, { hop: 20 }, { wait: 90 }, { to: [-5.4, -86.4], within: 0.15, run: false }, { to: [-5.4, -87.45], within: 0.1, run: false, slow: 0.4 }, { wait: 30 }, { to: [-5.4, -88.6], jump: 40, airDelay: 30, within: 0.45, run: false }, { wait: 10 },
@@ -124,7 +124,7 @@ const SHOTS = [
   ['insel4', [7, Y4, -214.4]],
   ['zielhang', [5, Y4, -238]],
   ['ziel', [7, Y5, -254.6]],
-  ['schalterraum', [XS, Y0, -28.2]],
+  ['schalterraum', [XS, Y0, 55.8]],
 ];
 
 const stop = await startServer(PORT);
@@ -589,7 +589,7 @@ if (P45.length) {
       // Röhre hin und zurück: Schalterraum-Ausgang führt auf den Säulenplatz
       r = await sc(() => {
         const c = window.__course, t = window.__w4;
-        t.place([86.5, 1 + 1.1, -27.6], { settle: 30 });
+        t.place([86.5, 1 + 1.1, 56.4], { settle: 30 });
         for (let i = 0; i < 8; i++) { c.setInput({ crouch: true }); c.step(1); }
         for (let i = 0; i < 400 && c.player.mode === 'script'; i++) { c.setInput({}); c.step(1); }
         c.step(60);

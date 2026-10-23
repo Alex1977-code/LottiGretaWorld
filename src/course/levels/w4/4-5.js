@@ -33,7 +33,7 @@ const Y2 = 6;       // Kante, Checkpoint-Insel, Plattformfahrt unten
 const Y3 = 9;       // Landung nach der Plattformfahrt
 const Y4 = 12;      // Plateau, Stachelstangen
 const Y5 = 14.5;    // Zielplateau
-const XS = 80;      // Schalterraum (abseits)
+const XS = 80;      // Schalterraum (abseits: x ≈ 80, hinter dem Start z ≈ +50 – eigener 32-m-Abschnitt des Batchers)
 
 // 1-Up-Mauer (Räuberleiter): Balken (2 Stücke), Graben, Mauer
 const M = {
@@ -94,6 +94,7 @@ function scene(level) {
   jungleTrees(level, [[12.4, Y4, -158.4, 6.2], [12.8, Y4, -164.6, 5.6]]);
   // =============================================================== 4 Stachelstangen
   ruinMosaic(level, 3, 11, -186, -194, Y4, { cell: 0.5 });
+  ruinMosaic(level, 5.6, 8.4, -213.4, -220.6, Y4, { rosette: false, border: 1 });
   mossTufts(level, [[1.6, Y4, -185.6, 1.0, 4], [12.4, Y4, -195, 1.0, 4], [4, Y4, -218.6, 0.8, 3]]);
   // =============================================================== 5 Zielhang
   ruinMosaic(level, 3, 11, -254, -263, Y5, { cell: 0.5 });
@@ -102,8 +103,14 @@ function scene(level) {
   sealedPipe(level, { pos: [11.4, Y5, -257.8], id: 'festung_roehre', text: 'Zur Werfer-Festung geht es über die Weltkarte!' });
   mossTufts(level, [[12, Y5, -255, 1.0, 5], [1.8, Y4, -244, 1.0, 4]]);
   // =============================================================== Schalterraum
-  switchHall(level, { x0: XS - 9, x1: XS + 9, z0: -43, z1: -25.4, y: Y0, h: 5, open: '+z' });
-  mossTufts(level, [[XS - 7.6, Y0, -41.6, 0.8, 4], [XS + 7.4, Y0, -41.4, 0.8, 4]]);
+  switchHall(level, { x0: XS - 9, x1: XS + 9, z0: 41, z1: 58.6, y: Y0, h: 5, open: '+z' });
+  // Mosaikrahmen um das Farbfeld (in Streifen, das Feld selbst bleibt frei) und Mosaikweg zwischen den Röhren
+  ruinMosaic(level, XS - 5.5, XS + 5.5, 43.5, 44.8, Y0, { rosette: false, border: 0 });
+  ruinMosaic(level, XS - 5.5, XS + 5.5, 53.2, 54.5, Y0, { rosette: false, border: 0 });
+  ruinMosaic(level, XS - 5.5, XS - 4.2, 44.8, 53.2, Y0, { rosette: false, border: 0 });
+  ruinMosaic(level, XS + 4.2, XS + 5.5, 44.8, 53.2, Y0, { rosette: false, border: 0 });
+  ruinMosaic(level, XS - 5.5, XS + 5.5, 55.4, 57.4, Y0, { rosette: false, border: 1 });
+  mossTufts(level, [[XS - 7.6, Y0, 42.4, 0.8, 4], [XS + 7.4, Y0, 42.6, 0.8, 4], [XS - 7.8, Y0, 56.8, 0.6, 3]]);
   // Leben
   birds(level, { center: [0, Y1 + 13, -30], r: 11, n: 6, speed: 0.28 });
   birds(level, { center: [8, Y4 + 12, -200], r: 12, n: 6, speed: 0.32 });
@@ -165,7 +172,7 @@ export const LEVEL = {
     { ...CAM, from: -168, to: -236, pitch: 47, dist: 12.5 },
     { ...CAM, from: -236, to: -270, pitch: 42, dist: 13.5 },
     // Schalterraum (abseits)
-    { from: -18, to: -50, pitch: 52, dist: 13, fov: 40, area: [60, 100] },
+    { from: 64, to: 36, pitch: 52, dist: 13, fov: 40, area: [60, 100] },
   ],
   segments: [
     // =============================================================== 1 Ruinenstart
@@ -281,11 +288,22 @@ export const LEVEL = {
     { type: 'deco_w1', items: [{ kind: 'butterflies', pos: [2.6, Y5, -261.2], n: 4, r: 2, colors: [0xffd23d, 0xff8cc0, 0xffffff] }] },
 
     // =============================================================== Schalterraum (abseits)
-    isl(XS - 10, XS + 10, -24, -44, Y0, 4, { top: 'stone', under: 2 }),
-    { type: 'pipe', id: 'p_raum', pos: [XS - 6.5, Y0, -27.6], height: 1.1 },
-    { type: 'farbfeld', id: 'farbe', pos: [XS, Y0, -35], grid: [4, 4], cell: 2, onAll: { reveal: 'stern_farbe' }, indicator: [XS, Y0 + 3.4, -42] },
-    { type: 'pipe', id: 'p_raus', pos: [XS + 6.5, Y0, -27.6], height: 1.1, target: 'p_back' },
-    { type: 'sign', pos: [XS - 6.6, Y0, -31.2], text: 'Alle Felder\nfärben!', size: [2, 0.8] },
+    isl(XS - 10, XS + 10, 60, 40, Y0, 4, { top: 'stone', under: 2 }),
+    { type: 'pipe', id: 'p_raum', pos: [XS - 6.5, Y0, 56.4], height: 1.1 },
+    { type: 'farbfeld', id: 'farbe', pos: [XS, Y0, 49], grid: [4, 4], cell: 2, onAll: { reveal: 'stern_farbe' }, indicator: [XS, Y0 + 3.4, 42] },
+    { type: 'pipe', id: 'p_raus', pos: [XS + 6.5, Y0, 56.4], height: 1.1, target: 'p_back' },
+    { type: 'sign', pos: [XS - 6.6, Y0, 52.8], text: 'Alle Felder\nfärben!', size: [2, 0.8] },
+    { type: 'deco_w4', items: [
+      { kind: 'statue', pos: [XS - 6.4, Y0, 42.8], size: 2.4, yaw: Math.PI / 2 - 0.5 },
+      { kind: 'statue', pos: [XS + 6.4, Y0, 42.8], size: 2.4, yaw: Math.PI / 2 + 0.5 },
+      { kind: 'saeule', pos: [XS - 7.4, Y0, 50], height: 4.6 }, { kind: 'saeule', pos: [XS + 7.4, Y0, 50], height: 3.2, broken: true },
+    ] },
+    { type: 'deco_w1', items: [
+      { kind: 'crystals', pos: [XS - 8.2, Y0, 41.8], size: 1.1, n: 5, color: 'cyan' },
+      { kind: 'crystals', pos: [XS + 8.2, Y0, 41.8], size: 1.0, n: 5, color: 'cyan' },
+      { kind: 'crystals', pos: [XS + 8.3, Y0, 57.6], size: 0.8, n: 4, color: 'gold' },
+      { kind: 'fireflies', pos: [XS, Y0, 50], size: [16, 4, 14], n: 10, colors: [0x9ff2ff, 0xfff27a] },
+    ] },
     { type: 'killplane', y: -14 },
   ],
   blocks: [
@@ -348,7 +366,7 @@ export const LEVEL = {
     // Zielhang
     line([4.4, Y4 + 0.9, -242.6], [4.4, Y5 + 0.4, -250.6], 4),
     // Schalterraum
-    line([XS - 3, Y0 + 0.4, -28.6], [XS + 3, Y0 + 0.4, -28.6], 4),
+    line([XS - 3, Y0 + 0.4, 55.4], [XS + 3, Y0 + 0.4, 55.4], 4),
     // 1-Ups auf der Mauer (stehen still)
     { kind: 'powerup', pos: [9.0, M.wall.top, -96.5], power: 'oneup', speed: 0 },
     { kind: 'powerup', pos: [9.0, M.wall.top, -97.3], power: 'oneup', speed: 0 },
@@ -356,7 +374,7 @@ export const LEVEL = {
   ],
   checkpoint: { pos: [0, Y2, -81.6], yaw: Math.PI / 2 },
   stars: [
-    { pos: [XS, Y0 + 1.2, -35], hidden: true, id: 'stern_farbe' },   // 0: Schalterraum
+    { pos: [XS, Y0 + 1.2, 49], hidden: true, id: 'stern_farbe' },   // 0: Schalterraum
     [-10, Y2 + 7 + 0.9, -95],                                        // 1: Rundturm (gewölbte Wand, Krallen)
     [-6.6, Y4 + 1.0, -190],                                          // 2: Schwankplattform
   ],
@@ -367,6 +385,6 @@ export const LEVEL = {
     hang2: [0, Y1, -44], kante: [0, Y2, -58], checkpoint: [0, Y2, -81.6], turm: [-10, Y2, -91.6], balken: [9, Y2, -89],
     graben: [9, M.moatY, -95.35], mauer: [9, M.wall.top, -97.2], fahrt: [-2, Y2, -104], landung: [7, Y3, -142.6],
     plateau: [7, Y4, -160], insel3: [7, Y4, -186], schwank: [-4.4, Y4, -190], insel4: [7, Y4, -214], ziel: [7, Y5, -256],
-    raum: [XS, Y0, -30],
+    raum: [XS, Y0, 54],
   },
 };
