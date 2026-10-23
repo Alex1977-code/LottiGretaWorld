@@ -813,7 +813,7 @@ async function test36b() {
   check('3-6: Krallen-Anzug fällt aus dem Baum an der Boxengasse', r.tree >= 0);
   check('3-6 Stern 3: Felsturm nur mit Krallen-Anzug (ohne: kein Weg hinauf) → letzte Warp-Box → Wolkenterrasse → Stern', !r.noClaw && r.climb > 0 && r.terrace && r.star3);
   check(`3-6 Stern 3 (zweiter Weg): Gleitblatt aus dem ?-Block am Checkpoint (${r.leaf}), damit vom Gipfel-Trampolin auf den Felsturm gleiten – ohne Gleitblatt zu kurz`, r.leafPopped && r.leaf === 'gleitblatt' && r.glide && !r.noGlide);
-  check(`3-6 1-Up: Pilztrampolin hinter der Tribüne → Dach → Extraleben`, r.oneup >= 1);
+  check(`3-6 1-Up: von der Strecke über die Bande aufs Pilztrampolin am Tribünen-Südende → Dach (${r.roof}) → Extraleben`, r.oneup >= 1);
   await SHOT('36_a4_terrasse', () => {
     const t = window.__t;
     t.place([-40, 32, -233], { invuln: 1e9, settle: 4 });

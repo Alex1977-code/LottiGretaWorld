@@ -335,7 +335,7 @@ function buildRace(level) {
   }
   for (const zc of [-250, -258, -266]) {
     for (const s of [-1, 1]) {
-      const A = [s * 1.3, 0, zc + 0.9], B = [0, 0, zc], B2 = [0, 0, zc + 0.5], A2 = [s * 1.3, 0, zc + 1.4];
+      const A = [s * 1.7, 0, zc + 1.3], B = [0, 0, zc], B2 = [0, 0, zc + 0.9], A2 = [s * 1.7, 0, zc + 2.2];
       poly4(parts, ...[A, B, B2, A2].map(([x, , z]) => [x, ys(z), z]), 0xffd23d);
     }
   }

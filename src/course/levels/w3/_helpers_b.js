@@ -13,8 +13,10 @@
 //                                      Grenze getragen zu werden). Nach dem Halt gilt wieder LEVEL.camera.
 //   towerBack, digits7, balloon, zeppelin, birds, windmill, pipeLid, pennantLine, slotStrip   Kulisse (3-2)
 // 3-6 (Bergrennen):
-//   road, curbs, grandstand (Tribüne mit Tierchen, La-Ola), marmots (Murmeltiere schauen aus dem Bau),
-//   almHut, cows, tireStack, hayBale, flagLine, finishBanner, checkerBoard   Kulisse (3-6)
+//   road, kartBande, ovalTrack, grandstand (Tribüne mit Tierchen, La-Ola), marmots (Murmeltiere schauen aus dem Bau),
+//   almHut, cow, tireStack, hayBale, flagPole, finishBanner, checkerLine, poly4 (Aufmalung am Hang)   Kulisse (3-6)
+// beide: meadow, tree, bush, stonePath, ropeFence, cloudRim, rainbow (Kulisse); Budget: bugSwarm (Käfer als Instanzen
+//   mit Detailstufe), shadowRange (Schatten nur in der Nähe), trimShadows, fenceShadows, addStaticParts (je Abschnitt)
 
 import * as THREE from 'three';
 import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
