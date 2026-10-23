@@ -33,6 +33,10 @@ export async function launchBrowser(contextOpts = {}) {
   });
   const context = await browser.newContext({ viewport: { width: 960, height: 540 }, ...contextOpts });
   const page = await context.newPage();
+  // Großzügige Wartezeiten: unter hoher Rechnerlast (mehrere Testläufe parallel, Software-WebGL) brauchen Laden und
+  // Bildschirmfotos oft länger als die 30-s-Vorgabe von Playwright
+  page.setDefaultNavigationTimeout(120000);
+  page.setDefaultTimeout(90000);
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${m.type()}] ${m.text()}`); });
   page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
