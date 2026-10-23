@@ -195,7 +195,7 @@ async function SHOT(name, setup, arg) {
     window.__t.cam(12);
     return c.view.frame;
   });
-  await page.waitForFunction((f) => window.__course.view.frame >= f, f0 + 2, { timeout: 60000, polling: 100 }).catch(() => {});
+  await page.waitForFunction((f) => window.__course.view.frame >= f, f0 + 8, { timeout: 60000, polling: 100 }).catch(() => {});
   await page.screenshot({ path: `${OUT}w3lb_${name}.png` });
   const s = await sc(() => { const c = window.__course; c.player.invuln = window.__shotInv ?? 0; return c.stats(); });
   stats.push([name, s.calls, s.triangles]);
@@ -243,13 +243,13 @@ function route32() {
   r = t.hop(-0.6); M('k5', { fence: r.fence });
   r = t.climb(-0.4, 37.95, { max: 120 * 30 });
   t.until(() => w.center.y + t.arch().frame.front > p.pos.y + 3.6, { y: 1 }, 120 * 10);
-  r = t.jumpTo(3.5, -65.5, { hold: 30, max: 200 }); M('gipfel', { ok: r.ok, y: p.pos.y });
+  r = t.jumpTo(3.5, -65.5, { hold: 30, max: 200 }); M('gipfel', { ok: r.ok, y: +p.pos.y.toFixed(2) });
   // 3 Glasrohr, Wolkenstrecke
   r = t.go(4.6, -65.5);
   t.until(() => w.s >= 116.2, {}, 120 * 25);
   r = t.until(() => p.mode === 'script', { x: 1 }, 240);
   t.until(() => p.mode !== 'script', {}, 600);
-  t.until(() => p.mode === 'ground', {}, 300); M('glasrohr', { y: p.pos.y });
+  t.until(() => p.mode === 'ground', {}, 300); M('glasrohr', { y: +p.pos.y.toFixed(2) });
   r = t.go(16, -65.5);
   room(26.3); r = t.go(26.3, -65.6);
   room(30.5); r = t.jumpTo(29.6, -66, { hold: 30 });
@@ -604,7 +604,7 @@ function route36(upper) {
   M('sf2', { z: p.pos.z });
   if (upper) {
     t.past(-8.5, -58); t.past(-8.5, -64); t.past(-8.5, -122.5);
-    M('oben', { y: p.pos.y });
+    M('oben', { y: +p.pos.y.toFixed(2) });
   } else {
     t.past(4.5, -56); t.past(8.5, -64); t.past(8.5, -92.6);
     M('unten', { star1: !!L.runtime.stars[0] });
@@ -613,24 +613,24 @@ function route36(upper) {
     route([[8.5, -117.6]]);
     t.jumpTo(8.5, -119.4, { hold: 20 });
     t.until(() => p.mode !== 'script', {}, 400); t.step({}, 20);
-    M('warp', { y: p.pos.y });
+    M('warp', { y: +p.pos.y.toFixed(2) });
   }
   r = route([[0, -138], [-3, -153.0]]);
   M('checkpoint', { cp: !!L.runtime.checkpoint });
   route([[0, -152]]);
   t.past(0, -159.5);
   t.jumpTo(0, -170.5, { hold: 30 });
-  M('boostschraege', { z: p.pos.z, y: p.pos.y });
+  M('boostschraege', { z: +p.pos.z.toFixed(2), y: +p.pos.y.toFixed(2) });
   route([[0, -171]]); t.launch(0, -174.4); t.fly();
   M('sf3', { z: p.pos.z });
   route([[-2, -189]]); t.launch(-2, -192.4); t.fly();
   M('sf4', { z: p.pos.z });
   r = route([[0, -212], [0, -228], [0, -241]]);
-  M('gipfel', { y: p.pos.y });
+  M('gipfel', { y: +p.pos.y.toFixed(2) });
   r = route([[0, -276]]);
-  M('rutschhang', { y: p.pos.y });
+  M('rutschhang', { y: +p.pos.y.toFixed(2) });
   t.launch(0, -279); t.fly();
-  M('sfZiel', { z: p.pos.z, y: p.pos.y });
+  M('sfZiel', { z: +p.pos.z.toFixed(2), y: +p.pos.y.toFixed(2) });
   route([[0, -297.6]]);
   t.step({}, 240);
   M('ziel', { finished: c.finished });

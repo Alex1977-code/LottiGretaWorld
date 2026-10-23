@@ -299,6 +299,51 @@ export function bugSwarm(level, o = {}) {
   return st;
 }
 
+/**
+ * Sonnenschatten nur in der Nähe: Modelle (Entitäten und Baustein-Modelle `modell:*`) weiter als `dist` m von der Figur
+ * entfernt werfen keinen Schatten – der Schattenpass zeichnete sonst alle Modelle des Levels (lange Strecken: viele
+ * Trampoline, Warp-Boxen, Schnappblumen). Instanzen (Münzen, Blöcke) bleiben unberührt. Prüft jedes 6. Bild.
+ */
+export function shadowRange(level, o = {}) {
+  if (!level.view?.three) return null;
+  const dist = o.dist ?? 30;
+  const items = [];
+  const seen = new Set();
+  const addRoot = (root, posOf) => {
+    if (!root || seen.has(root)) return;
+    seen.add(root);
+    const meshes = [];
+    root.traverse((ob) => { if (ob.isMesh && !ob.isInstancedMesh && ob.castShadow) meshes.push(ob); });
+    if (meshes.length) items.push({ root, meshes, posOf, near: true });
+  };
+  for (const e of level.entities) if (e.model?.root) addRoot(e.model.root, () => e.pos);
+  const _v = new THREE.Vector3();
+  const scan = (node) => {
+    for (const ob of node.children) {
+      if ((ob.name ?? '').startsWith('modell:')) addRoot(ob, () => { ob.updateMatrixWorld(); return _v.setFromMatrixPosition(ob.matrixWorld); });
+      else if (!ob.isMesh) scan(ob);
+    }
+  };
+  scan(level.view.three);
+  let k = 0;
+  const st = { items: items.length, near: items.length };
+  level.view.onFrame(() => {
+    if (k++ % 6) return;
+    const pl = level.player;
+    if (!pl) return;
+    let n = 0;
+    for (const it of items) {
+      const p = it.posOf();
+      const near = Math.hypot(p.x - pl.pos.x, p.y - pl.pos.y, p.z - pl.pos.z) < dist;
+      if (near) n++;
+      if (near !== it.near) { it.near = near; for (const m of it.meshes) m.castShadow = near; }
+    }
+    st.near = n;
+  });
+  level._shadowRange = st;
+  return st;
+}
+
 /** Netz-Teile der Kettenzäune werfen keinen Sonnenschatten (der Schatten wäre eine volle Platte; spart Aufrufe). */
 export function fenceShadows(level) {
   for (const e of level.entities) {

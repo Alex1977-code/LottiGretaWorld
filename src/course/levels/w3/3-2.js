@@ -23,7 +23,7 @@
 // 3 nach dem Glasrohr: Kurbelrad drehen, Plattform hoch, Zaun hinaufklettern. Stempel: Krallenwand + Zaun hinter dem
 // Glasrohr-Eingang. 1-Up: Kurbelrad auf der Zielinsel → Wolke. Gegner: Krabbelkäfer (4), Flatterkäfer (7).
 
-import { levelSetup, isl, line, ring, arc, column, scrollDirector, clockSync, towerBack, slotStrip, pennantLine, balloon, zeppelin, birds, windmill, pipeLid, plate, cyl, sphere, bugSwarm, fenceShadows, addStaticParts } from './_helpers_b.js';
+import { levelSetup, isl, line, ring, arc, column, scrollDirector, clockSync, towerBack, slotStrip, pennantLine, balloon, zeppelin, birds, windmill, pipeLid, plate, cyl, sphere, bugSwarm, fenceShadows, addStaticParts, shadowRange } from './_helpers_b.js';
 
 const PI = Math.PI;
 const ZC = -68;          // Fensterlinie (Kletterturm, Wolkenstrecke)
@@ -277,6 +277,7 @@ function buildSky(level, scene) {
   skyDeco(level);
   bugSwarm(level, { dist: 32 });
   fenceShadows(level);
+  shadowRange(level, { dist: 30 });
 }
 
 /** Kulisse (statisch verschmolzen bzw. wenige animierte Objekte): Turm, Schlitze, Wimpel, Windräder, Ballons, Zeppelin, Vögel. */

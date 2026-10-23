@@ -21,7 +21,7 @@
 //                                           unten schleudert zur Zielinsel mit Zielbogen und Zielmast
 // Gegner: Schnappblume (5), Flatterkäfer (28), Pilzling (3).
 
-import { levelSetup, flatIslands, isl, line, ring, arc, road, grandstand, marmots, almHut, cow, tireStack, hayBale, flagPole, finishBanner, checkerLine, pennantLine, plate, cyl, sphere, bugSwarm, kartBande, addStaticParts } from './_helpers_b.js';
+import { levelSetup, flatIslands, isl, line, ring, arc, road, grandstand, marmots, almHut, cow, tireStack, hayBale, flagPole, finishBanner, checkerLine, pennantLine, plate, cyl, sphere, bugSwarm, kartBande, addStaticParts, shadowRange } from './_helpers_b.js';
 import { addStatic, merge } from '../../blocks/kit.js';
 
 const PI = Math.PI;
@@ -215,7 +215,7 @@ export const LEVEL = {
     { kind: 'itemtree', id: 'krallenbaum', pos: [7.4, 0, 1.0], size: 4.6, content: 'krallen' },
     // 1-Up auf dem Tribünendach
     { kind: 'powerup', pos: [-9.5, 4.42, -4], power: 'oneup', speed: 0 },
-    line([-10.4, 5.0, 6], [-10.4, 5.0, -2], 4),
+    line([-10.4, 5.0, 6], [-10.4, 5.0, -2], 3),
     // Warp-Boxen
     { kind: 'warpbox', id: 'warp_unten', pos: [8.5, 0, -119.4], target: [5, YU + 0.05, -133] },
     { kind: 'warpbox', id: 'warp_bonus', pos: [10.8, YH + 4, -190], target: 'warp_bonus_zurueck' },
@@ -225,22 +225,22 @@ export const LEVEL = {
     // Hase im Bonus-Oval (Stern 2)
     { kind: 'bunny', id: 'hase', pos: [BX + 6, 0, BZ - 8], star: 1, area: { min: [BX - 13, BZ - 13], max: [BX + 13, BZ + 13] }, speed: 6 },
     // Münzspuren
-    line([0, 0.9, 4], [0, 0.9, -6], 4),
-    ...arc([0, 1.2, -17.6], [0, 1.2, -30.4], 5, 3.2),
+    line([0, 0.9, 4], [0, 0.9, -6], 3),
+    ...arc([0, 1.2, -17.6], [0, 1.2, -30.4], 4, 3.2),
     line([2.6, 0.9, -28], [2.6, 0.9, -33.5], 3),
-    ...arc([2.6, 1.2, -35.6], [2.6, 1.2, -48.6], 5, 3.4),
+    ...arc([2.6, 1.2, -35.6], [2.6, 1.2, -48.6], 4, 3.4),
     ring([0, 0.9, -52.5], 1.6, 5),
     line([-8.5, YU + 0.9, -76], [-8.5, YU + 0.9, -120], 6),
-    line([8.5, 0.9, -66], [8.5, 0.9, -72], 3),
+    line([8.5, 0.9, -66], [8.5, 0.9, -72], 2),
     line([8.5, 1.6, -75], [8.5, 1.6, -79], 3),
     line([8.5, 1.6, -95], [8.5, 1.6, -99], 3),
     line([8.5, 0.9, -103], [8.5, 0.9, -116], 3),
     line([0, YU + 0.9, -124], [0, YU + 0.9, -128], 2),
-    line([0, YU + 1.6, -138], [0, YH + 0.9, -149], 5),
-    ...arc([0, YH + 1.4, -158], [0, YH + 1.4, -169], 5, 3.2),
+    line([0, YU + 1.6, -138], [0, YH + 0.9, -149], 4),
+    ...arc([0, YH + 1.4, -158], [0, YH + 1.4, -169], 4, 3.2),
     ...arc([0, YH + 1.2, -174.4], [0, YH + 1.2, -185], 4, 3),
     ...arc([-2, YH + 1.2, -192.4], [-2, YH + 1.2, -203], 4, 3),
-    ring([10.8, YH + 4.9, -190], 1.6, 6),
+    ring([10.8, YH + 4.9, -190], 1.6, 5),
     line([0, YH + 1.6, -213], [0, YS + 0.9, -227], 4),
     line([0, YS + 0.9, -244], [0, YB + 1.2, -272], 5),
     ...arc([0, YB + 1.4, -279], [0, YG + 1.2, -294.5], 5, 5),
@@ -316,4 +316,5 @@ function buildRace(level) {
   marmots(level, [[-8.2, 0, -30, 0.1], [8.6, 0, -40, 0.45], [-9.4, 0, -6, 0.7], [-2.2, 6, -92, 0.3], [2, 6, -110, 0.8],
     [-9, YH, -165.6, 0.2], [9.4, YH, -204, 0.6], [-9.6, YS, -229.4, 0.9], [8.6, YG, -300.6, 0.4]]);
   bugSwarm(level, { dist: 32 });
+  shadowRange(level, { dist: 30 });
 }
