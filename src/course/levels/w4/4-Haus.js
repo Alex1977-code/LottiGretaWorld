@@ -268,8 +268,8 @@ function setup(level) {
 const area = (i) => ({ min: [-W / 2 - 0.5, BOT - 3, zu(i, RAEUME[i].len) - 0.5], max: [W / 2 + 0.5, Y + 14, Z0(i) + 1.5] });
 const cam = (i, o = {}) => ({ pitch: o.pitch ?? 41, dist: o.dist ?? 13.5, yaw: 0, fov: o.fov ?? 44, x: 0, xLock: o.xLock ?? 0.55, ahead: o.ahead ?? 3.2, height: o.height ?? 1.0 });
 const start = (i) => ({ pos: P(i, 0, 2.5), yaw: Math.PI / 2 });
-const CAMS = [cam(0, { pitch: 44, dist: 15 }), cam(1), cam(2, { pitch: 44, dist: 12.5, xLock: 0.8 }), cam(3), cam(4, { pitch: 40 }), cam(5, { pitch: 48, dist: 13 }),
-  cam(6, { pitch: 37, dist: 14.5 }), cam(7), cam(8, { pitch: 42 }), cam(9, { pitch: 40 })];
+const CAMS = [cam(0, { pitch: 44, dist: 14 }), cam(1), cam(2, { pitch: 44, dist: 12.5, xLock: 0.8 }), cam(3), cam(4, { pitch: 40 }), cam(5, { pitch: 48, dist: 13 }),
+  cam(6, { pitch: 40, dist: 14 }), cam(7), cam(8, { pitch: 42 }), cam(9, { pitch: 40 })];
 
 export const LEVEL = {
   id: '4-Haus',

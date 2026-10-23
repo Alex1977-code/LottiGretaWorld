@@ -180,11 +180,11 @@ export const LEVEL = {
   setup: (level, scene) => { levelSetup(setup)(level, scene); cullStatic(level); },
   camera: [
     { from: 14, to: -19, pitch: 42, dist: 14, ahead: 2.6, area: CAM_MAIN },
-    { from: -19, to: -42, pitch: 46, dist: 15, ahead: 2, area: CAM_MAIN },
+    { from: -19, to: -42, pitch: 46, dist: 14, ahead: 2, area: CAM_MAIN },
     { from: -42, to: -104, pitch: 50, dist: 13.5, ahead: 2.4, area: CAM_MAIN },
     { from: -104, to: -151, pitch: 46, dist: 14, ahead: 2.2, area: CAM_MAIN },
     { from: -151, to: -216, pitch: 46, dist: 13.5, ahead: 2.6, area: CAM_MAIN },
-    { from: -150, to: -200, pitch: 52, dist: 15, ahead: 3, area: [18, 46] },
+    { from: -150, to: -200, pitch: 52, dist: 14, ahead: 3, area: [18, 46] },
     { from: -220, to: -262, pitch: 41, dist: 18.5, x: 0, xLock: 0.35, ahead: 0.5, lead: 0.4, height: 1.6 },
     { from: -270, to: -306, pitch: 42, dist: 12.5, ahead: 2 },
   ],

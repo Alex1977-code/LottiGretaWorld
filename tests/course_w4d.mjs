@@ -983,12 +983,17 @@ async function hausExtra() {
   console.log(`\n${id}: Zeitablauf, Tod, Gimmicks, Bilder`);
   if (want('Zeit') && (await load(id, { fresh: true }))) {
     await sc(installHaus);
-    const r = await sc(() => {
+    // große Raumuhr: roter Zeiger läuft die 10 s ab (die Zeiger stellt das Zeichnen – erst ein paar Bilder abwarten)
+    await sc(() => {
       const c = window.__course, L = c.level, Hs = window.__haus;
       Hs.waitPlay(0);
-      // große Raumuhr: roter Zeiger läuft die 10 s ab
       for (let i = 0; i < 480; i++) { L.player.invuln = 999; Hs.step({}); }
-      const uhr = { angle: L.named.get('haus_uhren')?.bigAngle?.[0] ?? null, time: c.arch.info().time };
+    });
+    const f0 = await sc(() => window.__course.view.frame);
+    await page.waitForFunction((f) => window.__course.view.frame >= f + 3, f0, { timeout: 60000 });
+    const uhr = await sc(() => ({ angle: window.__course.level.named.get('haus_uhren')?.bigAngle?.[0] ?? null, time: window.__course.arch.info().time }));
+    const r = await sc((uhr) => {
+      const c = window.__course, L = c.level, Hs = window.__haus;
       Hs.solve(0);
       Hs.waitPlay(1);
       let n = 0;
@@ -996,7 +1001,7 @@ async function hausExtra() {
       const a = c.arch.info();
       for (let i = 0; i < 900 && !c.finished; i++) { L.player.invuln = 999; c.step(1); }
       return { uhr, a, after: c.arch.info(), finished: c.finished, res: c.lastResult ?? null, save: window.__w4.save().levels?.['4-Haus'] ?? null };
-    });
+    }, uhr);
     check(`Große Raumuhr zeigt die Restzeit (nach 4 s: Zeiger ${r.uhr.angle?.toFixed(2)} rad ≈ −0,4·2π, Rest ${r.uhr.time.toFixed(2)} s)`, r.uhr.angle !== null && Math.abs(r.uhr.angle + (10 - r.uhr.time) / 10 * 2 * Math.PI) < 0.02 && r.uhr.time > 5.9 && r.uhr.time < 6.1);
     check(`Zeit abgelaufen in Raum 2 → Haus verlassen, Teilergebnis 1/10 gespeichert (${(r.res?.stars ?? []).map(Number).join('')})`, r.a.phase === 'timeout' && r.finished && r.after.exited && r.res?.stars?.filter(Boolean).length === 1 && r.save?.stars?.[0] === true);
     await page.waitForFunction(() => window.__game.scene.isActive('CourseResult'), null, { timeout: 10000 }).catch(() => {});
