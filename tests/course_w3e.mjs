@@ -516,7 +516,7 @@ const TRAIN_HELPERS = () => {
   /** Figur auf Zug-Koordinate cc, seitlich x setzen (Höhe: Deck/Dach darunter). */
   t.placeC = (cc, x, o = {}) => {
     const [X, , Z] = t.at(cc, x, 0);
-    const hit = c.world.raycastDown(X, 12, Z, 14);
+    const hit = c.world.raycastDown(X, 12, Z, 14, { ignore: (s) => s.tag === 'riesenprojektil' || s.quicksand });
     return t.place([X, (hit?.y ?? 4) + 0.05, Z], o);
   };
   t.ground = () => P().ground?.mover?.vehicle?.spec?.id ?? P().ground?.tag ?? null;
@@ -722,8 +722,11 @@ if (want('3-Zug')) {
       // Treffer: das nächste Projektil fliegt in die Figur auf dem Wagendach
       let b2 = null;
       t.placeC(t.cw(), 0, { settle: 4, invuln: 1e9 });
-      for (let i = 0; i < 120 * 10 && !b2; i++) { c.step(1); b2 = L.entities.find((e) => e !== b && e.kind === 'riesenprojektil' && !e.removed && e.state === 'fly' && e.pos.x < -4.5); }
+      // nächstes Projektil, das über ein Wagendach (nicht über einen Flachwagen) fliegen wird
+      const roofAt = (z) => (c.world.raycastDown(0, 12, z, 14, { ignore: (sh) => sh.tag === 'riesenprojektil' || sh.quicksand })?.y ?? 0) > 3;
+      for (let i = 0; i < 120 * 14 && !b2; i++) { c.step(1); b2 = L.entities.find((e) => e !== b && e.kind === 'riesenprojektil' && !e.removed && e.state === 'fly' && e.pos.x < -4.5 && roofAt(e.pos.z)); }
       if (b2) {
+        t.place([0, 3.8, b2.pos.z], { settle: 0, invuln: 1e9 });
         let hurt = false;
         p.invuln = 0;
         for (let i = 0; i < 120 * 4 && !hurt && !b2.removed; i++) {
@@ -732,6 +735,7 @@ if (want('3-Zug')) {
           hurt = p.invuln > 0.2 || p.dead;
         }
         out.bulletHurt = hurt;
+        out.hurtInfo = { y: +p.pos.y.toFixed(2), by: +b2.pos.y.toFixed(2), bx: +b2.pos.x.toFixed(2), px: +p.pos.x.toFixed(2), ground: t.ground(), big: p.big };
         p.invuln = 1e9;
       }
     }
@@ -837,8 +841,9 @@ if (want('3-Zug')) {
     out.potion = !!pu;
     if (pu) for (let i = 0; i < 40 && p.power !== 'riese'; i++) { t.place([pu.pos.x, pu.pos.y + 0.2, pu.pos.z], { invuln: 1e9, keepPower: true }); c.step(3); }
     out.riese = p.power;
+    const n0 = t.count('steinblock');
     t.placeC(TR.F4.cc - 1.2, 0, { settle: 6, invuln: 1e9, keepPower: true });
-    const n0 = t.count('steinblock'), c0 = t.cOf(p.pos.z);
+    const c0 = t.cOf(p.pos.z);
     for (let i = 0; i < 480 && t.count('steinblock') > 0; i++) { c.setInput({ y: 1, x: -p.pos.x }); c.step(1); }
     c.setInput({}); c.step(20);
     out.blocks = n0 - t.count('steinblock');
