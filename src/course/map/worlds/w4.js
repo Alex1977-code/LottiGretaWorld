@@ -50,7 +50,7 @@ export const MAP = {
   seaColors: [0x5ad8e6, 0x249ed6, 0x1666b8],
   // Kacheln der statischen Geometrie wie Welt 3: 32 m (Ursprung so, dass die Inseln in wenige Kacheln fallen), Teile
   // ohne Schattenwurf (Deckschichten, Wege, Ränder) in 64-m-Kacheln
-  batch: { tile: 32, origin: [16, 16], freeTile: 64, freeOrigin: [0, 0] },
+  batch: { tile: 48, origin: [8, 8], freeTile: 96, freeOrigin: [-16, -16] },
   // Nachbarwelt am Horizont: Welt 3 (Schneeinsel) im Südwesten – dorthin führt die Rückweg-Röhre
   neighbors: [{ world: 3, pos: [-262, 112], size: [80, 54], style: 'snow' }],
   birds: [{ c: [-8, 13, 18], r: 7, n: 2 }, { c: [20, 14, -52], r: 9, n: 2 }, { c: [40, 15, -104], r: 8, n: 1 }],   // Geier kreisen
@@ -194,7 +194,7 @@ export const MAP = {
     { id: '4-Burg', kind: 'lavacastle', pos: [38, 6, -122.5], decor: [38, 6, -134], labelY: 2.8,
       lavafalls: [[15.6, 18.2, -141.94, 10], [20.6, 23.6, -141.94, 10]] },
     { id: 'W5', kind: 'pipe', pos: [64, 6, -124], decor: [64, 6, -127.1],
-      pipe: [[0, 0, 0], [0, 3.5, 0], [0.3, 5.6, -0.8], [1.5, 6.8, -5], [5, 7, -15], [14, 6.4, -37], [30, 5.5, -72], [52, 3.5, -110], [72, 1.5, -140]], pipeDetail: 'low' },
+      pipe: [[0, 0, 0], [0, 3.5, 0], [0.8, 5.6, -0.3], [5, 7.2, -1.2], [16, 7.6, -3.5], [40, 6.4, -9], [80, 5, -18], [140, 4, -34], [205, 1.5, -50]], pipeDetail: 'low' },
   ],
 
   gates: [
@@ -213,9 +213,9 @@ export const MAP = {
   // blau vergitterte Festung. Fehlt ein Modell noch, springt ein Stellvertreter ein (standIn, decor_w4.js).
   roamers: [
     { level: '4-A', model: 'lavabrocken', standIn: 'lavabrocken', count: 3, circle: [-52, -1, 4.6], y: 1.4, speed: 1.7,
-      half: [0.6, 0.7, 0.6], castShadow: false, hint: 'Lauf die Lavabrocken an!' },
+      half: [0.6, 0.7, 0.6], castShadow: false, instance: true, hint: 'Lauf die Lavabrocken an!' },
     { level: '4-B', model: 'feuer_werfer', standIn: 'feuer_werfer', count: 3, circle: [70, -81, 4.4], y: 5, speed: 1.5,
-      half: [0.5, 0.8, 0.5], castShadow: false, hint: 'Lauf die Feuer-Werfer an!' },
+      half: [0.5, 0.8, 0.5], castShadow: false, instance: true, hint: 'Lauf die Feuer-Werfer an!' },
   ],
 
   houses: [

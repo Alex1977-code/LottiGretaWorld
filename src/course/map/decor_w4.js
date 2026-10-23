@@ -61,6 +61,7 @@ function instanced(ev, geo, n, opts = {}) {
   m.frustumCulled = false;
   m.castShadow = !!opts.shadow;
   m.receiveShadow = false;
+  m.name = `w4:${opts.name ?? opts.key ?? 'instanzen'}`;
   ev.view.add(m);
   ev.own.push(m);
   return m;
@@ -88,6 +89,7 @@ function fallPlane(ev, wf, key, draw, foamColor, opts = {}) {
   ev.own.push(plane.geometry);
   plane.position.set((wf.x0 + wf.x1) / 2, (wf.bottom ?? 0) + h / 2, wf.z + 0.05);
   if (opts.yaw) plane.rotation.y = opts.yaw;
+  plane.name = 'w4:fall';
   ev.view.add(plane);
   const foam = new THREE.Mesh(cached(`w4m:foam:${foamColor}`, () => {
     const b = new Build();
@@ -96,6 +98,7 @@ function fallPlane(ev, wf, key, draw, foamColor, opts = {}) {
   }), vcol(0.9, { transparent: true, opacity: 0.85 }, `w4foam:${foamColor}`));
   foam.position.set((wf.x0 + wf.x1) / 2, wf.bottom ?? 0, wf.z + 0.6);
   foam.scale.set(w / 5, 1, 1);
+  foam.name = 'w4:gischt';
   ev.view.add(foam);
   ev.updaters.push((dt, t) => {
     t2.offset.y = (t * (opts.speed ?? 0.9)) % 1;
@@ -227,6 +230,7 @@ function poisonWood(ev, x, y, z) {
   const hx = x + 1.6 * Math.cos(0.3) + 0.6 * Math.sin(0.3), hz = z - 1.6 * Math.sin(0.3) + 0.6 * Math.cos(0.3);
   head.position.set(hx, y + 5.6, hz);
   head.rotation.y = -0.6;
+  head.name = 'w4:rankenkopf';
   ev.view.add(head);
   ev.updaters.push((dt, t) => {
     const snap = Math.max(0, Math.sin(t * 1.7)) ** 6;
@@ -248,7 +252,7 @@ function poisonWood(ev, x, y, z) {
   // Giftblasen steigen aus dem Sumpf (Instanz-Kugeln, platzen oben)
   const N = 9;
   const bubbles = instanced(ev, cached('w4m:bubble', () => new THREE.SphereGeometry(0.22, 8, 6)),
-    N, { material: new THREE.MeshStandardMaterial({ color: 0xd890ff, emissive: 0x4a1a6a, transparent: true, opacity: 0.8, roughness: 0.2 }) });
+    N, { name: 'giftblasen', material: new THREE.MeshStandardMaterial({ color: 0xd890ff, emissive: 0x4a1a6a, transparent: true, opacity: 0.8, roughness: 0.2 }) });
   ev.own.push(bubbles.material);
   const spots = [];
   for (let i = 0; i < N; i++) spots.push([x - 9 + ((i * 7.3) % 18), z - 5 + ((i * 3.7) % 10), i * 0.37]);
@@ -379,10 +383,12 @@ function beepTower(ev, x, y, z) {
     return b.geometry();
   }), vcol(0.35, {}, 'w4cones'));
   cones.position.set(x, y + H + 1.8, z + 1.22);
+  cones.name = 'w4:lautsprecher';
   ev.view.add(cones);
   const lampMat = glowMat(ev, 0xff3a3a);
   const lamp = new THREE.Mesh(cached('w4m:antlamp', () => new THREE.SphereGeometry(0.16, 8, 6)), lampMat);
   lamp.position.set(x + 1.6, y + H + 6.6, z - 0.4);
+  lamp.name = 'w4:blinklicht';
   ev.view.add(lamp);
   const scrMat = glowMat(ev, 0x5ae0ff);
   const screens = new THREE.Mesh(cached('w4m:screens', () => {
@@ -391,6 +397,7 @@ function beepTower(ev, x, y, z) {
     return b.geometry();
   }), scrMat);
   screens.position.set(x, y, z);
+  screens.name = 'w4:bildschirme';
   ev.view.add(screens);
   // Schallringe vor den Lautsprechern (durchscheinend, wachsen je Zählzeit)
   const ringMat = new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.5, depthWrite: false, fog: true, side: THREE.DoubleSide });
@@ -401,6 +408,7 @@ function beepTower(ev, x, y, z) {
     return b.geometry();
   }), ringMat);
   rings.position.set(x, y + H + 1.8, z + 1.5);
+  rings.name = 'w4:schallringe';
   ev.view.add(rings);
 
   // Piep-Blöcke: Satz A (rosa) und Satz B (blau) auf Ringen um den Turm; fester Satz = Vertexfarben, der andere als
@@ -416,8 +424,8 @@ function beepTower(ev, x, y, z) {
   const solidMats = [vcol(0.35, { emissive: 0x3a0a2a }, 'w4beepA'), vcol(0.35, { emissive: 0x0a1a4a }, 'w4beepB')];
   const ghostMats = [0xff6ac8, 0x4a9aff].map((c) => { const m = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.55, depthWrite: false, fog: true }); ev.own.push(m); return m; });
   const sets = [
-    instanced(ev, beepBlockGeo(0xff4ab0, 0xffd0ee), spots[0].length, { material: solidMats[0], shadow: true }),
-    instanced(ev, beepBlockGeo(0x2a7aff, 0xc8e0ff), spots[1].length, { material: solidMats[1], shadow: true }),
+    instanced(ev, beepBlockGeo(0xff4ab0, 0xffd0ee), spots[0].length, { name: 'piep:a', material: solidMats[0], shadow: true }),
+    instanced(ev, beepBlockGeo(0x2a7aff, 0xc8e0ff), spots[1].length, { name: 'piep:b', material: solidMats[1], shadow: true }),
   ];
   const ghostGeo = beepGhostGeo();
   const solidGeos = [sets[0].geometry, sets[1].geometry];
@@ -507,6 +515,7 @@ function mysteryClock(ev, x, y, z) {
     return b.geometry();
   }), vcol(0.4, {}, 'w4hand'));
   hand.position.set(x + 0.2, y + 6.1, z + 1.72);
+  hand.name = 'w4:zeiger';
   ev.view.add(hand);
   const winMat = glowMat(ev, 0xffe07a);
   const win = new THREE.Mesh(cached('w4m:clockwin', () => {
@@ -515,6 +524,7 @@ function mysteryClock(ev, x, y, z) {
     return b.geometry();
   }), winMat);
   win.position.set(x, y, z);
+  win.name = 'w4:fenster';
   ev.view.add(win);
   const q = new THREE.Mesh(cached('w2:qmark', () => {
     const b = new Build();
@@ -525,6 +535,7 @@ function mysteryClock(ev, x, y, z) {
   }), vcol(0.35, { emissive: 0x6a4a00 }, 'qmark'));
   q.position.set(x - 2.6, y + 6.6, z + 1.2);
   q.castShadow = true;
+  q.name = 'w4:fragezeichen';
   ev.view.add(q);
   ev.updaters.push((dt, t) => {
     hand.rotation.z = -((t % 10) / 10) * TAU;
@@ -568,6 +579,7 @@ function bounceMeadow(ev, x, y, z) {
   giant.position.set(x, y, z);
   giant.scale.set(2.3, 2.0, 2.3);
   giant.castShadow = true;
+  giant.name = 'w4:riesentrampolin';
   ev.view.add(giant);
   const giantOwner = { squash: 0, onBounce() { this.squash = 1; } };
   W.add({ type: 'cyl', x, z, r: 2.5, y0: y, y1: y + 1.9, bounce: 19, owner: giantOwner, tag: 'trampoline' });
@@ -757,6 +769,7 @@ function lavaCastle(ev, x, y, z) {
     return b.geometry();
   }), winMat);
   win.position.set(x, y, z);
+  win.name = 'w4:fenster';
   ev.view.add(win);
   // Lavafälle von der Basaltwand hinter dem Graben (def.lavafalls: [[x0, x1, z, top], …]), Baron-Brummbär-Banner
   for (const [fx0, fx1, fz, top] of ev.def.lavafalls ?? []) {

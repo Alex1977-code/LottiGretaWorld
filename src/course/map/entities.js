@@ -6,7 +6,9 @@
 //              bzw. – Welt 4 – einen Stellvertreter (spec.makeStandIn(): { root, update, dispose }).
 //   MapItem    schwebendes Gratis-Power-up (Beerenhaus): Berührung → onCollect(item).
 // Beide nutzen CourseEntity (Schwerkraft, Kollision, Modell) und werden mit addEntity() angemeldet.
+// instanceRoamers (Welt 4): gleiche Gegnermodelle einer Gruppe als Instanzen zeichnen (weniger Zeichenaufrufe).
 
+import * as THREE from 'three';
 import { CourseEntity } from '../entities/CourseEntity.js';
 import { getModel, hasModel } from '../models/index.js';
 
@@ -151,4 +153,83 @@ export class MapItem extends CourseEntity {
     this.kill();
     return 'collect';
   }
+}
+
+/**
+ * Gegnergruppe instanziert zeichnen (Welt 4: drei Feuer-Werfer ≈ 9 statt 27 Zeichenaufrufe): Roamer mit gleichem
+ * Modell (gleiche Geometrien/Materialien je Teil) werden als je eine InstancedMesh pro Modellteil gezeichnet. Die
+ * Roamer rechnen und animieren ihre Modelle weiter; je Bild werden die Weltmatrizen der Teile übernommen und die
+ * Einzelmodelle ausgeblendet (wie instanceEnemies der Welt-3-Level). Sprites der Modelle entfallen dabei.
+ * Ferne Roamer (> far m vor der Kamera, wie lod.js) und solche außerhalb des Bildes werden nicht gezeichnet.
+ * @returns {{ dispose(): void, groups: number } | null}
+ */
+export function instanceRoamers(view, roamers, o = {}) {
+  if (!view || roamers.length < 2) return null;
+  const groups = new Map();
+  for (const e of roamers) {
+    if (!e.model?.root) continue;
+    const meshes = [];
+    let ok = true;
+    e.model.root.traverse((m) => { if (m.isSkinnedMesh || (m.isMesh && Array.isArray(m.material))) ok = false; else if (m.isMesh) meshes.push(m); });
+    if (!ok || !meshes.length) continue;
+    const key = meshes.map((m) => `${m.geometry.uuid}:${m.material.uuid}:${m.isInstancedMesh ? m.count : 1}`).join(',');
+    if (!groups.has(key)) groups.set(key, { ents: [], parts: meshes.map((m) => ({ geo: m.geometry, mat: m.material, cast: m.castShadow, recv: m.receiveShadow, n: m.isInstancedMesh ? m.count : 1 })) });
+    groups.get(key).ents.push({ e, meshes });
+  }
+  const live = [];
+  const added = [];
+  for (const G of groups.values()) {
+    if (G.ents.length < 2) continue;
+    G.inst = G.parts.map((pt) => {
+      const im = new THREE.InstancedMesh(pt.geo, pt.mat, G.ents.length * pt.n);
+      im.castShadow = pt.cast; im.receiveShadow = pt.recv;
+      im.frustumCulled = false;
+      im.count = 0;
+      im.visible = false;
+      im.name = 'instanzen:gegnergruppe';
+      view.three.add(im);
+      added.push(im);
+      return im;
+    });
+    live.push(G);
+  }
+  if (!live.length) return null;
+  const far = o.far ?? 90;
+  const vis = (m, root) => { for (let q = m; q && q !== root; q = q.parent) if (!q.visible) return false; return true; };
+  const M = new THREE.Matrix4(), Mi = new THREE.Matrix4(), F = new THREE.Frustum(), S = new THREE.Sphere();
+  const off = view.onFrame(() => {
+    const cam = view.camera;
+    cam.updateMatrixWorld();
+    F.setFromProjectionMatrix(M.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    for (const G of live) {
+      const fill = G.inst.map(() => 0);
+      for (const { e, meshes } of G.ents) {
+        const root = e.model?.root;
+        if (!root) continue;
+        S.center.set(e.pos.x, e.pos.y + 0.8, e.pos.z); S.radius = o.radius ?? 2;
+        const show = e.alive && !e.removed && root.parent && cam.position.distanceTo(S.center) - S.radius < far && F.intersectsSphere(S);
+        if (show) {
+          root.visible = true;
+          root.updateMatrixWorld(true);
+          meshes.forEach((m, k) => {
+            if (!vis(m, root)) return;
+            const im = G.inst[k];
+            if (m.isInstancedMesh) {
+              for (let j = 0; j < Math.min(m.count, G.parts[k].n); j++) { m.getMatrixAt(j, Mi); im.setMatrixAt(fill[k]++, M.multiplyMatrices(m.matrixWorld, Mi)); }
+            } else im.setMatrixAt(fill[k]++, m.matrixWorld);
+          });
+        }
+        root.visible = false;
+      }
+      G.inst.forEach((im, k) => { im.count = fill[k]; im.visible = fill[k] > 0; im.instanceMatrix.needsUpdate = true; });
+    }
+  });
+  return {
+    groups: live.length,
+    dispose() {
+      off();
+      for (const im of added) { im.parent?.remove(im); im.dispose(); }
+      for (const G of live) for (const { e } of G.ents) if (e.model?.root) e.model.root.visible = true;
+    },
+  };
 }

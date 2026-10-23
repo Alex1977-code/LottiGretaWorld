@@ -41,7 +41,7 @@ import { RENDER3D } from '../../render3d.js';
 import { getWorldMap } from './worlds/index.js';
 import { buildMap, finalizeMap } from './MapBuilder.js';
 import { MapRuntime } from './MapRuntime.js';
-import { MapRoamer, MapItem, addEntity } from './entities.js';
+import { MapRoamer, MapItem, addEntity, instanceRoamers } from './entities.js';
 import * as unlock from './unlock.js';
 import { exitPoint, entranceById, ENTER_R } from './layout.js';
 import { MapHud } from './MapHud.js';
@@ -91,6 +91,7 @@ export class CourseMapScene extends Phaser.Scene {
     this.nearEntrance = null;
     this.safe = null;
     this.roamers = [];
+    this.roamerInst = [];
     this.item = null;
     this.travel = null;
     this.lod = null;
@@ -465,6 +466,7 @@ export class CourseMapScene extends Phaser.Scene {
       const st = this.status(r.level);
       if (!st || st.done) continue;
       const n = r.count ?? 1;
+      const group = [];
       for (let i = 0; i < n; i++) {
         const spec = r.circle
           ? { ...r, start: (i + 0.5) / n, dir: 1 }
@@ -473,7 +475,10 @@ export class CourseMapScene extends Phaser.Scene {
         const e = new MapRoamer(this.level, spec, (ro) => this.onRoamerTouch(r.level, ro));
         addEntity(this.level, e);
         this.roamers.push(e);
+        group.push(e);
       }
+      // Welt 4 (r.instance): gleiche Modelle der Gruppe als Instanzen zeichnen (weniger Zeichenaufrufe)
+      if (r.instance) { const inst = instanceRoamers(this.view, group); if (inst) this.roamerInst.push(inst); }
     }
   }
 
@@ -836,6 +841,8 @@ export class CourseMapScene extends Phaser.Scene {
     this.travel = null;
     this.lod?.dispose();
     this.lod = null;
+    for (const ri of this.roamerInst ?? []) ri.dispose();
+    this.roamerInst = [];
     this.resumeShadows?.();
     this.resumeShadows = null;
     this.slot?.dispose();
