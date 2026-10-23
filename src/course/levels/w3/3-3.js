@@ -55,7 +55,7 @@ function scene(level) {
   hauntFloor(level, { x0: -7.6, x1: 5.6, zA: 12, zB: -31.6, y: Y, depth: 3, rug: [-1.1, 1.1, 10, -23, 0x6a1a3a] });
   hauntWall(level, { face: '+x', at: -5, from: 12, to: 2.8, y: Y, h: 8, pal: pv });
   hauntWall(level, { face: '+x', at: -5, from: 0.4, to: -31.6, y: Y, h: 8, pal: pv });
-  hauntWall(level, { face: '+x', at: -5, from: 0.4, to: 2.8, y: Y + 2.6, h: 5.4, pal: pv });          // Sturz über der Nische
+  hauntWall(level, { face: '+x', at: -5, from: 0.4, to: 2.8, y: Y + 2.6, h: 5.4, below: 0, pal: pv });          // Sturz über der Nische
   hauntWall(level, { face: '+x', at: -7.4, from: 0.4, to: 2.8, y: Y, h: 2.6, pal: PAL.rot });          // Nischen-Rückwand
   hauntWall(level, { face: '-z', at: 2.8, from: -7.4, to: -5.6, y: Y, h: 2.6, t: 0.3, visual: false });
   hauntWall(level, { face: '+z', at: 0.4, from: -7.4, to: -5.6, y: Y, h: 2.6, t: 0.3, visual: false });
@@ -63,7 +63,7 @@ function scene(level) {
   hauntWall(level, { face: '+z', at: -31, from: -5.6, to: 5.6, y: Y, h: 8, pal: pv });
   // Empore rechts (y 8): Rückkehr aus dem Drehraum, Sofa mit dem Stempel; Brüstung bis zum Sofa
   hauntFloor(level, { x0: 3, x1: 5, zA: 6.4, zB: -2, y: Y + 7, depth: 0.4 });
-  hauntWall(level, { face: '-x', at: 3.02, from: 6.4, to: 3.4, y: Y + 7, h: 0.9, t: 0.1, pal: pv });
+  hauntWall(level, { face: '-x', at: 3.02, from: 6.4, to: 3.4, y: Y + 7, h: 0.9, t: 0.1, below: 0, pal: pv });
   // Sims links am Flurende (y 7,6) für die falsche Röhre
   hauntFloor(level, { x0: -5, x1: -3, zA: -22.2, zB: -24.6, y: Y + 6.6, depth: 0.4 });
   // Podest vor der Tür (y 3)
@@ -102,7 +102,7 @@ function scene(level) {
   hauntFloor(level, { x0: 49.4, x1: 68.6, zA: -34, zB: -63.6, y: Y, depth: 3, rug: [59.5, 66.5, -35.5, -41.5, 0x2a4a7a] });
   hauntWall(level, { face: '+x', at: 52, from: -34, to: -49.2, y: Y, h: 8, pal: pg });
   hauntWall(level, { face: '+x', at: 52, from: -51.2, to: -63.6, y: Y, h: 8, pal: pg });
-  hauntWall(level, { face: '+x', at: 52, from: -49.2, to: -51.2, y: Y + 2.8, h: 5.2, pal: pg });     // Sturz über der Nische
+  hauntWall(level, { face: '+x', at: 52, from: -49.2, to: -51.2, y: Y + 2.8, h: 5.2, below: 0, pal: pg });     // Sturz über der Nische
   hauntWall(level, { face: '+x', at: 49.6, from: -48.6, to: -51.8, y: Y, h: 2.8, pal: PAL.rot });    // Nische (Rückwand)
   hauntWall(level, { face: '-z', at: -48.6, from: 49.4, to: 51.4, y: Y, h: 2.8, t: 0.3, visual: false });
   hauntWall(level, { face: '+z', at: -51.8, from: 49.4, to: 51.4, y: Y, h: 2.8, t: 0.3, visual: false });
@@ -268,6 +268,7 @@ export const LEVEL = {
     // Empore: Sofa mit Stempel schwebt hinunter in den Flur
     { type: 'spuk_sofa', id: 'sofa_stempel', pos: [3.9, Y + 7, 1.4], yaw: R, path: [[2.2, Y + 7.2, -0.2], [0.6, Y + 4, -2.6], [0, Y, -4.6]], speed: 1.8, back: 4 },
     { type: 'sign', pos: [-2.6, Y, 9.6], text: 'Mondscheinvilla\nSpuke mögen\nkein Licht!', yaw: 0.25 },
+    { type: 'sign', pos: [-3.3, Y, -0.6], text: 'Dieses Bild\nhat Tiefgang …', yaw: 0.6, size: [1.3, 0.7] },
 
     // ---------------- D: Drehraum
     { type: 'drehraum', id: 'dreh', pos: [-60, Y, 46], size: [10, 12], period: 4, turn: 1.4,
@@ -340,7 +341,7 @@ export const LEVEL = {
     // Aufbau-Haken: Gartenlaterne am Eingang von Außenhof 1 baut Wände, Böden, Möbel und Kulisse aller Räume
     hook([110.6, Y, -68.4], scene),
     // Drehraum: Warp-Box zurück auf die Empore (und von dort wieder hinein)
-    { kind: 'warpbox', id: 'dreh_warp', pos: [-57.4, Y, 50.4], target: 'gal_warp' },
+    { kind: 'warpbox', id: 'dreh_warp', pos: [-60, Y, 41.6], target: 'gal_warp' },
     { kind: 'warpbox', id: 'gal_warp', pos: [4, Y + 7, 4.6], target: 'dreh_warp' },
     // Licht-Helme (Bauplan „Lichtbox“): Spukflur, Außenhof 1, Stufenhalle, Außenhof 2
     { kind: 'helm_licht', id: 'licht_a', pos: [2.6, Y, 6.2], respawn: 6 },
@@ -383,7 +384,7 @@ export const LEVEL = {
   goal: { pos: [240, Y + 6.6, -220], height: 9 },
   marks: {
     start: [0, Y, 8], helm: [2.6, Y, 6.2], gemaelde: [-4.2, Y, 1.6], sofaLift: [-4.4, Y + 0.8, -21], sims: [-4, Y + 6.6, -22.8],
-    treppeA: [0, Y, -23.6], tuerA: [0, Y + 2, -29.6], dreh: [-60, Y, 50.4], drehWarp: [-57.4, Y, 50.4], empore: [4, Y + 7, 4.6],
+    treppeA: [0, Y, -23.6], tuerA: [0, Y + 2, -29.6], dreh: [-60, Y, 50.4], drehWarp: [-60, Y, 41.6], empore: [4, Y + 7, 4.6],
     bib: [65, Y, -37], regalWeg: [62.2, Y, -41.8], checkpoint: [65.5, Y, -46.6], gasse: [54, Y, -45], nische: [50.6, Y, -50.2],
     treppeB1: [65.4, Y, -51.6], podestB: [65.4, Y + 2, -55.6], galerie: [62, Y + 4, -61], tuerB2: [59.5, Y + 4, -61.6],
     hof1: [110, Y, -74], brunnen: [116.4, Y, -78.5], graben: [120, Y, -87.6], tuerC2: [120, Y, -102.4],

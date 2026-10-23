@@ -74,15 +74,16 @@ const FACE_YAW = { '+z': 0, '+x': Math.PI / 2, '-x': -Math.PI / 2, '-z': Math.PI
 /**
  * Wand eines Innenraums. face = Richtung, in die die Innenseite zeigt ('+x' linke Wand, '-x' rechte Wand, '+z'
  * Rückwand mit Blick zur Kamera, '-z'), at = Lage der Innenfläche (x bzw. z), from..to = Ausdehnung entlang der Wand,
- * y = Boden, h = Höhe, t = Dicke (nach außen). pal = PAL.violett … Kollision: ein Quader.
+ * y = Boden, h = Höhe, t = Dicke (nach außen), below = Wandfuß unter y (0,5; Stürze 0). pal = PAL.violett … Kollision: ein Quader.
  */
 export function hauntWall(level, o) {
   const face = o.face ?? '+z', h = o.h ?? 6, t = o.t ?? 0.6, y = o.y ?? 1, pal = o.pal ?? PAL.violett;
   const a = Math.min(o.from, o.to), c = Math.max(o.from, o.to), len = c - a, mid = (a + c) / 2;
   const sx = face === '+x' ? -1 : face === '-x' ? 1 : 0, sz = face === '+z' ? -1 : face === '-z' ? 1 : 0;
   // Kollision (Wandkörper liegt hinter der Innenfläche)
-  if (sx) solid(level, o.at, o.at + sx * t, y - 0.5, y + h, a, c, { tag: 'spukwand' });
-  else solid(level, a, c, y - 0.5, y + h, o.at, o.at + sz * t, { tag: 'spukwand' });
+  const below = o.below ?? 0.5;            // Wandfuß reicht etwas unter den Boden (Stürze/Fensterbögen: below 0)
+  if (sx) solid(level, o.at, o.at + sx * t, y - below, y + h, a, c, { tag: 'spukwand' });
+  else solid(level, a, c, y - below, y + h, o.at, o.at + sz * t, { tag: 'spukwand' });
   if (!level.view || o.visual === false) return;
   // lokal: Wand entlang x (−len/2 … len/2), Innenfläche bei z = 0 (zeigt nach +z), Körper bei z < 0
   const b = new Build();

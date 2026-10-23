@@ -70,15 +70,15 @@ const ROUTE_33 = {
     { name: 'Zielmast', to: [240, -219.6], within: 0.3 },
   ],
   targets: [
-    { name: 'Stern 0: ins Spuk-Gemälde springen, Warp-Box, Drehraum', star: 0, from: [-3.4, Y, 1.6],
-      legs: [{ face: [-1, 0] }, { to: [-4.7, 1.6], jump: 24, within: 0.6, land: false }, { wait: 60 },
+    { name: 'Stern 0: ins Spuk-Gemälde springen, Warp-Box, Drehraum', star: 0, from: [-0.4, Y, 1.6],
+      legs: [{ name: 'Anlauf, Sprung ins Gemälde', to: [-5.3, 1.6], jump: 14, jumpAt: 1.7, within: 0.3, land: false, max: 200 }, { wait: 60 },
         { name: 'Warp-Box in der Nische', to: [-6, 1.6], jump: 30, within: 0.3, endOnRide: true }, { wait: 30 },
         { dreh: true }, { wait: 40 }], shot: 'stern0' },
-    { name: 'Stempel: nach Stern 0 Warp-Box auf die Empore, Sofa', stamp: true, from: [-57.4, Y, 47.4],
-      legs: [{ name: 'Warp-Box im Drehraum', to: [-57.4, 50.4], jump: 30, within: 0.3, endOnRide: true }, { wait: 40 },
+    { name: 'Stempel: nach Stern 0 Warp-Box auf die Empore, Sofa', stamp: true, from: [-60, Y, 44.6],
+      legs: [{ name: 'Warp-Box im Drehraum', to: [-60, 41.6], jump: 30, within: 0.3, endOnRide: true }, { wait: 40 },
         { to: [4, 3], run: false, within: 0.3 }, { name: 'aufs Sofa', to: [3.9, 1.4], jump: 20, within: 0.3 }, { wait: 300 }], shot: 'stempel' },
     { name: 'Stern 1: Regal in der Regalgasse zurückschieben, Nische', star: 1, from: [54, Y, -45],
-      legs: [{ name: 'Regal schieben', to: [54, -52.6], run: false, within: 0.3, max: 1400 }, { to: [53.2, -50.2], run: false, within: 0.3 },
+      legs: [{ name: 'Regal schieben', to: [54, -51.3], run: false, within: 0.3, max: 1400 }, { to: [53.2, -50.2], run: false, within: 0.3 },
         { name: 'in die Nische', to: [50.6, -50.2], run: false, within: 0.4 }, { wait: 20 }], shot: 'stern1' },
     { name: 'Stern 2: Sofa-Lift zur falschen Röhre', star: 2, from: [-2.6, Y, -19.4],
       legs: [{ name: 'aufs Sofa', to: [-4.3, -21], jump: 20, within: 0.25 }, { waitNamed: { id: 'sofa_lift', key: 'state', eq: 'top' } },
@@ -208,7 +208,7 @@ function install() {
         const max = L.max ?? 900;
         const within = L.within ?? 0.6;
         const holdJ = L.jump ?? 0;
-        let i = 0, airborne = false, landed = false, best = Infinity, still = 0;
+        let i = 0, airborne = false, landed = false, best = Infinity, still = 0, j0 = L.jumpAt ? null : 0;
         if (holdJ && L.to) jumps.push([L.name ?? `leg${li}`, this.landingVisible(L.to[0], L.to[1])]);
         for (; i < max; i++) {
           if (p.dead || c.level.runtime.status !== 'play') break;
@@ -220,7 +220,7 @@ function install() {
           const done = !L.door && dist < within && (!holdJ || L.land === false || (landed && p.mode === 'ground'));
           if (done && i > 0) break;
           let st;
-          if (p.mode === 'air' && holdJ) {
+          if (p.mode === 'air' && holdJ && j0 !== null) {
             const k = 2.6, vmax = 11;
             let vx = dx * k, vz = dz * k;
             const vl = Math.hypot(vx, vz);
@@ -232,7 +232,8 @@ function install() {
             if (dist < 1.2 && !holdJ && !L.door) mag = Math.max(0.2, Math.min(1, dist / 1.2));
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
           }
-          const jump = holdJ ? i < holdJ : (still > 60 && still < 86 && !L.door && L.autoJump !== false);
+          if (j0 === null && dist <= L.jumpAt) j0 = i;
+          const jump = holdJ ? (j0 !== null && i - j0 < holdJ) : (still > 60 && still < 86 && !L.door && L.autoJump !== false);
           tick({ ...st, run: L.run ?? true, jump });
           if (p.mode === 'air') airborne = true;
           else if (airborne) landed = true;
