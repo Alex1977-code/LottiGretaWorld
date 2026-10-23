@@ -1,0 +1,741 @@
+// Welt 4: Finale 4-Burg „Glutburg des Felsenkönigs“ und Prüfungs-Haus 4-Haus „Haus Sausewind“ deterministisch prüfen
+// (Simulation nur über window.__course.step(n) / setInput; Teleport erlaubt). Aufruf (nach npm run build):
+//   PORT_BASE=5600 node tests/course_w4d.mjs <Teil> [<Teil> …]
+// Teile (je < 10 min):
+//   burg-route    Laden ohne Konsolenfehler, Daten (Thema, Musik, Zeit, Sterne/Stempel), Gegnerzahlen, Routen-Bot Lotti
+//                 und Greta vom Start bis zur Boss-Röhre (Hang, Vorhof, drei Drehplattformen, Lavarohr, Burgpfad,
+//                 Lavafunken-Reihe, Röhre → Thronsaal); Lavafunken verletzen, Lava tötet
+//   burg-sterne   Stern 1 (Lavabrocken aufs Druckfeld werfen, selbst aufs andere → Fallbrücke), Stern 2 (zwei Brocken auf
+//                 zwei Felder, Figur auf das dritte → Fallgitter), Stern 3 (Warp-Box → Turmbalkon, Brocken von der Kante
+//                 aufs Druckfeld → Trittsteine), Stempel (Krallen-Anzug aus dem ?-Block, Kletterwand), unsichtbarer Block
+//                 hinter der Boss-Röhre, Lavaschlot liefert nach, roter Ring
+//   burg-boss     ein Lauf: alle Sterne + Stempel, Röhre, Kampf (3 Treffer mit geworfenen Lavabrocken), Baron-Szene, Warp-Box,
+//                 Zielmast, Speicherstand; Tod im Kampf setzt zurück
+//   burg-bilder   Bilder je Abschnitt (tests/out/w4d_burg_*.png) und Kennzahlen
+//   haus          alle zehn Räume per Skript in je < 10 s (Lotti und Greta), Ergebnis 10/10 gespeichert
+//   haus-extra    Zeitablauf → Teilergebnis, Tod → Raum neu, Bilder je Raum (tests/out/w4d_haus_*.png), Kennzahlen
+// Umgebung: ONLY=<RegExp> (nur passende Prüfungen), VERBOSE=1 (Fahrtprotokolle).
+import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
+
+const PORT = 4612;
+const PARTS = process.argv.slice(2);
+const part = (n) => !PARTS.length || PARTS.includes(n);
+const ONLY = process.env.ONLY ? new RegExp(process.env.ONLY) : null;
+const want = (name) => !ONLY || ONLY.test(name);
+const VERBOSE = !!process.env.VERBOSE;
+const stop = await startServer(PORT);
+const { browser, page, errors } = await launchBrowser();
+const { check, summary } = makeChecker();
+const port = PORT + Number(process.env.PORT_BASE ?? 0);
+const sc = (fn, arg) => page.evaluate(fn, arg);
+const SAVE = 'lotti-greta-course-v1';
+const stats = [];
+const allErrors = [];
+
+// ====================================================================== Seiten-Hilfen
+/** In der Seite: window.__w4 mit place, stick, drive (Wegpunkte), chase, Lavabrocken greifen/werfen, Drehplattformen. */
+function install() {
+  const c = window.__course;
+  c.setManual(true);
+  c.level.muted = true;
+  window.__game.scene.getScene('CourseUI')?.touchCtl?.setVisible(false);
+  const P = () => c.player;
+  const L = () => c.level;
+  const W = {
+    ent: (id) => L().named.get(id),
+    rt: () => L().runtime.info(),
+    info: () => P().info(),
+    arch: () => c.arch?.info?.() ?? null,
+    save: () => JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}'),
+    kinds: () => { const m = {}; for (const e of L().entities) m[e.kind] = (m[e.kind] ?? 0) + 1; return m; },
+    count: (kind, f = () => true) => L().entities.filter((e) => e.kind === kind && e.alive && !e.removed && f(e)).length,
+    /** Figur setzen (groß, ohne Power-up, nichts in der Hand) und landen lassen. */
+    place(pos, o = {}) {
+      const p = P();
+      c.setInput(null); c.setInput({});
+      c.squad?.clear?.();
+      if (p.holding) { const e = p.holding; p.holding = null; e.carrier = null; }
+      if (o.hero) p.setHero(o.hero);
+      p.dead = false; p.removedFigure = null; p.hidden = false;
+      p.big = o.big ?? true;
+      p.power = 'none'; p.powerTime = 0;
+      p.reset(pos, o.yaw ?? Math.PI / 2);
+      p.updateHalf?.();
+      p.invuln = o.invuln ?? 0;
+      if (o.power) p.setPower(o.power);
+      if (L().runtime.status === 'dying') L().runtime.status = 'play';
+      L().controlYaw = c.view.rig.controlYaw(p.pos);
+      c.view.rig.snap?.(p);
+      c.step(o.settle ?? 20);
+      return p.info();
+    },
+    /** Stick-Eingabe für eine Welt-Richtung (dx, dz) relativ zur Steuerungs-Gier. */
+    stick(dx, dz, mag = 1) {
+      const l = Math.hypot(dx, dz) || 1;
+      const wx = dx / l, wz = dz / l;
+      const cy = L().controlYaw ?? 0, co = Math.cos(cy), si = Math.sin(cy);
+      return { x: (co * wx - si * wz) * mag, y: (-si * wx - co * wz) * mag };
+    },
+    face(x, z) { const p = P(); p.yaw = Math.atan2(-(z - p.pos.z), x - p.pos.x); },
+    action(o = {}) { c.setInput({ action: true, ...o }); c.step(1); c.setInput({}); c.step(1); },
+    hurt: () => { const p = P(); return p.invuln > 0.2 || !p.big || p.dead; },
+    /**
+     * Wegpunkte abfahren: { to: [x, z], jump: Haltedauer, jumpAt: m vor dem Ziel abspringen, within, run, slow, max } |
+     * { wait: n } | { crouch: n } | { stomp: true } | { dreh: id, c: [x, z], out: [x, z], arms, speed, len } (Nabe einer
+     * Drehplattform anspringen, warten, bis ein Arm zum Ziel zeigt, den Arm entlang und hinüber) | { star: Index }.
+     */
+    drive(legs, o = {}) {
+      const log = [];
+      let steps = 0, autoJumps = 0;
+      const hold = o.invuln !== false;
+      let rode = false;
+      const room0 = L().house ? c.arch?.info?.()?.room : undefined;
+      const moved = () => room0 !== undefined && c.arch?.info?.()?.room !== room0;
+      const tick = (inp) => {
+        if (hold) for (const f of L().players) f.invuln = Math.max(f.invuln, 5);
+        c.setInput(inp); c.step(1); steps++;
+        const m = L().player;
+        if (m.mode === 'script' && L().runtime.status === 'play' && !m.dead && m.script?.type !== 'house') {
+          let n = 0;
+          while (L().player.mode === 'script' && n++ < 2400 && !L().player.dead && L().runtime.status === 'play') {
+            if (hold) for (const f of L().players) f.invuln = Math.max(f.invuln, 5);
+            c.setInput({}); c.step(1); steps++;
+          }
+          const q = L().player;
+          log.push(['fahrt', n, +q.pos.x.toFixed(2), +q.pos.y.toFixed(2), +q.pos.z.toFixed(2)]);
+          rode = true;
+        }
+      };
+      const go = (Lg, li) => {
+        const max = Lg.max ?? 900;
+        const within = Lg.within ?? 0.6;
+        const holdJ = Lg.jump === true ? 40 : (Lg.jump ?? 0);
+        let i = 0, airborne = false, landed = false, best = Infinity, still = 0, auto = 0, j0 = Lg.jumpAt ? null : 0;
+        for (; i < max; i++) {
+          const m = L().player;
+          if (m.dead || L().runtime.status !== 'play' || moved()) break;
+          if (rode) break;
+          const T = Lg.to;
+          const dx = T[0] - m.pos.x, dz = T[1] - m.pos.z;
+          const dist = Math.hypot(dx, dz);
+          if (dist < best - 0.05) { best = dist; still = 0; } else if (m.mode === 'ground') still++;
+          if (still > 45 && auto <= 0 && Lg.autoJump !== false) { auto = 26; still = 0; autoJumps++; }
+          const done = dist < within && (!holdJ || (landed && m.mode === 'ground'));
+          if (done && i > 0) break;
+          let mag = Lg.slow ?? 1;
+          let st;
+          if (m.mode === 'air' && holdJ && j0 !== null) {
+            const k = 2.6, vmax = Lg.vmax ?? 11;
+            let vx = dx * k, vz = dz * k;
+            const vl = Math.hypot(vx, vz);
+            if (vl > vmax) { vx *= vmax / vl; vz *= vmax / vl; }
+            const ex = vx - m.vel.x, ez = vz - m.vel.z, el = Math.hypot(ex, ez);
+            st = el > 0.05 ? this.stick(ex, ez, Math.min(1, el / 2.5)) : { x: 0, y: 0 };
+          } else {
+            if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
+            st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
+          }
+          if (j0 === null && dist <= Lg.jumpAt) j0 = i;
+          const jump = (holdJ && j0 !== null ? i - j0 < holdJ : false) || auto > 0;
+          if (auto > 0) auto--;
+          tick({ ...st, run: Lg.run ?? true, jump });
+          if (m.mode === 'air') airborne = true;
+          else if (airborne) landed = true;
+        }
+        const m = L().player;
+        log.push([Lg.name ?? `leg${li}`, i, +m.pos.x.toFixed(2), +m.pos.y.toFixed(2), +m.pos.z.toFixed(2), m.mode]);
+        return i < max;
+      };
+      for (let li = 0; li < legs.length; li++) {
+        const Lg = legs[li];
+        const pl = L().player;
+        if (pl.dead || L().runtime.status !== 'play' || moved()) break;
+        rode = false;
+        if (Lg.wait) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
+        if (Lg.crouch) { for (let i = 0; i < Lg.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); log.push(['ducken', li, +L().player.pos.x.toFixed(1), +L().player.pos.y.toFixed(1), +L().player.pos.z.toFixed(1)]); continue; }
+        if (Lg.stomp) {
+          for (let k = 0; k < 24; k++) tick({ jump: true });
+          for (let k = 0; k < 90 && L().player.mode !== 'ground'; k++) tick({ crouch: true });
+          for (let k = 0; k < 20; k++) tick({});
+          continue;
+        }
+        if (Lg.star !== undefined) {
+          const n = this.chase('star', { filter: (e) => e.index === Lg.star && !e.hidden, max: 900 });
+          log.push(['stern', Lg.star, n]);
+          continue;
+        }
+        if (Lg.dreh) {
+          // 1) auf die Nabe springen
+          if (!go({ to: Lg.c, jump: 40, jumpAt: Lg.jumpAt ?? 6.4, within: 0.5, name: `${Lg.dreh}:nabe` }, li)) { log.push(['FEHLER: Nabe', Lg.dreh]); break; }
+          // 2) warten, bis ein Arm zum Ziel zeigt (mit Vorhalt)
+          const h = L().named.get(Lg.dreh);
+          const want = Math.atan2(-(Lg.out[1] - Lg.c[1]), Lg.out[0] - Lg.c[0]);
+          const lead = (Lg.speed ?? 0) * (Lg.lead ?? 0.32);
+          let w = 0;
+          for (; w < 1600; w++) {
+            let ok = false;
+            for (let k = 0; k < (Lg.arms ?? 2); k++) {
+              const a = h.angle + (k / (Lg.arms ?? 2)) * Math.PI * 2 + lead;
+              const d = Math.atan2(Math.sin(a - want), Math.cos(a - want));
+              if (Math.abs(d) < (Lg.tol ?? 0.07)) ok = true;
+            }
+            if (ok) break;
+            // auf der Nabe bleiben (Mitte halten)
+            const m = L().player, dx = Lg.c[0] - m.pos.x, dz = Lg.c[1] - m.pos.z, dd = Math.hypot(dx, dz);
+            tick(dd > 0.15 ? { ...this.stick(dx, dz, Math.min(0.5, dd)), run: false } : {});
+          }
+          log.push([`${Lg.dreh}:warten`, w, +h.angle.toFixed(2)]);
+          // 3) den Arm entlang und hinüber
+          if (!go({ to: Lg.out, jump: 40, jumpAt: Lg.jumpAt2 ?? 3.4, within: 0.7, name: `${Lg.dreh}:hinueber` }, li)) { log.push(['FEHLER: hinüber', Lg.dreh]); break; }
+          continue;
+        }
+        if (!go(Lg, li)) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, Lg.to]); break; }
+      }
+      c.setInput({});
+      const m = L().player;
+      return { log, autoJumps, steps, time: steps / 120, pos: [m.pos.x, m.pos.y, m.pos.z], dead: m.dead, status: L().runtime.status, info: m.info(), rt: L().runtime.info() };
+    },
+    /** Auf Entitäten einer Art zulaufen (springen, wenn nah), bis keine passende mehr lebt. */
+    chase(kind, o = {}) {
+      let n = 0;
+      const max = o.max ?? 3600;
+      const match = (x) => x.kind === kind && x.alive && !x.removed && !x.defeated && (!o.filter || o.filter(x));
+      for (; n < max; n++) {
+        const p = L().player;
+        if (p.dead || L().runtime.status !== 'play') break;
+        let e = null, best = Infinity;
+        for (const x of L().entities) { if (!match(x)) continue; const d = Math.hypot(x.pos.x - p.pos.x, x.pos.z - p.pos.z); if (d < best) { best = d; e = x; } }
+        if (!e) break;
+        const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, dist = Math.hypot(dx, dz);
+        const st = this.stick(dx, dz);
+        const dy = e.pos.y - p.pos.y;
+        const jump = ((n % 48) < 20 && dist < 2.4) || (dy > 0.8 && (n % 48) < 30);
+        if (o.safe !== false) for (const f of L().players) f.invuln = Math.max(f.invuln, 5);
+        const crouch = !!o.pound && p.mode === 'air' && dist < 0.7 && p.pos.y > e.pos.y + e.half.y * 2;
+        c.setInput({ ...(crouch ? {} : st), run: dist > 1.5, jump: jump && !crouch, crouch });
+        c.step(1);
+        if (p.mode === 'script' && p.script?.type !== 'house') { let k = 0; while (L().player.mode === 'script' && k++ < 1200) { c.setInput({}); c.step(1); } }
+      }
+      c.setInput({});
+      return n;
+    },
+    /** Von oben auf e fallen (x/z folgen e), bis Abprall oder Landung. */
+    stomp(e, o = {}) {
+      const p = P();
+      const top = e.pos.y + e.half.y * 2;
+      p.reset([e.pos.x, top + (o.h ?? 1.0), e.pos.z], p.yaw);
+      p.invuln = 0;
+      let bounced = false;
+      for (let i = 0; i < 150; i++) {
+        c.setInput({}); c.step(1);
+        if (p.mode === 'air' && p.vel.y <= 0) { p.pos.x = e.pos.x; p.pos.z = e.pos.z; }
+        if (i > 2 && p.mode === 'air' && p.vel.y > 5) { bounced = true; break; }
+        if (p.mode === 'ground') break;
+      }
+      for (let i = 0; i < 90 && p.mode !== 'ground'; i++) { c.setInput({}); c.step(1); }
+      c.step(4);
+      return bounced;
+    },
+    /** Nächsten (wachen oder betäubten) Lavabrocken nahe (x, z) betäuben und aufheben → Brocken | null. */
+    grab(x, z, o = {}) {
+      const p = P();
+      const list = L().entities.filter((e) => e.kind === 'lavabrocken' && !e.removed && !e.defeated && e.state !== 'burst' && !e.carrier && e.grounded && (!o.filter || o.filter(e)))
+        .sort((a, b) => Math.hypot(a.pos.x - x, a.pos.z - z) - Math.hypot(b.pos.x - x, b.pos.z - z));
+      const br = list[0];
+      if (!br || Math.hypot(br.pos.x - x, br.pos.z - z) > (o.r ?? 14)) return null;
+      const safe = p.hurt; p.hurt = () => false;
+      if (br.state !== 'stunned') this.stomp(br);
+      if (br.state !== 'stunned' && br.state !== 'getup') { p.hurt = safe; return null; }
+      // daneben stellen (Seite zur Figur hin) und aufheben
+      const ax = (o.from?.[0] ?? p.pos.x) - br.pos.x, az = (o.from?.[1] ?? p.pos.z) - br.pos.z, al = Math.hypot(ax, az) || 1;
+      p.reset([br.pos.x + (ax / al) * 0.85, br.pos.y + 0.05, br.pos.z + (az / al) * 0.85], p.yaw);
+      p.vel.set(0, 0, 0);
+      c.step(6);
+      this.face(br.pos.x, br.pos.z);
+      this.action();
+      delete p.hurt; if (safe) p.hurt = safe;
+      return p.holding === br ? br : null;
+    },
+    /**
+     * Getragenen Brocken auf (tx, tz) werfen: Figur in dist m Abstand (Richtung from) hinstellen, zum Ziel drehen,
+     * werfen; warten, bis er liegt → { thrown, state, onPlate, x, z }.
+     */
+    throwTo(tx, tz, o = {}) {
+      const p = P(), br = p.holding;
+      if (!br) return { thrown: false };
+      const dist = o.dist ?? 4.5;
+      const fx = o.dir?.[0] ?? 0, fz = o.dir?.[1] ?? 1, fl = Math.hypot(fx, fz) || 1;
+      if (!o.here) {
+        p.pos.set(tx + (fx / fl) * dist, o.y ?? p.pos.y, tz + (fz / fl) * dist); p.vel.set(0, 0, 0); p.mode = 'air';
+        c.setInput({}); c.step(30);
+      }
+      this.face(tx, tz);
+      c.step(1);
+      this.action();
+      const thrown = br.state === 'thrown';
+      for (let i = 0; i < 160 && br.state === 'thrown' && !br.removed; i++) c.step(1);
+      c.step(20);
+      return { thrown, state: br.state, onPlate: !!br.onPlate, removed: !!br.removed, x: +br.pos.x.toFixed(2), y: +br.pos.y.toFixed(2), z: +br.pos.z.toFixed(2) };
+    },
+  };
+  window.__w4 = W;
+  return Object.keys(W);
+}
+
+let loaded = null;
+async function load(id, { fresh = false, hero = 'lotti', newPage = false } = {}) {
+  allErrors.push(...errors);
+  errors.length = 0;
+  if (loaded === id && !fresh && !newPage) {
+    await sc(() => { window.__oldLevel = window.__course.level; window.__course.restartLevel(); });
+    await page.waitForFunction(() => window.__course && window.__course.level && window.__course.level !== window.__oldLevel && window.__game.scene.isActive('CourseUI'), null, { timeout: 90000 });
+  } else {
+    const go = async (url) => { try { await page.goto(url, { waitUntil: 'load', timeout: 120000 }); } catch { await page.goto(url, { waitUntil: 'load', timeout: 180000 }); } };
+    if (fresh) {
+      await go(`http://localhost:${port}/?course=0-0&scale=2&adapt=0`);
+      await page.evaluate((k) => localStorage.removeItem(k), SAVE);
+    }
+    await go(`http://localhost:${port}/?course=${id}&scale=2&adapt=0`);
+    try {
+      await page.waitForFunction(() => window.__course && window.__course.level && window.__game.scene.isActive('CourseUI'), null, { timeout: 90000 });
+    } catch {
+      console.log(`Level ${id} startet nicht. Konsole:`);
+      for (const x of errors) console.log('  ', x);
+      return false;
+    }
+    loaded = id;
+  }
+  await page.waitForTimeout(300);
+  await sc(install);
+  await sc((h) => { const c = window.__course; c.setHero(h); c.level.runtime.save.lives = 9; }, hero);
+  return true;
+}
+
+const W = (name, ...args) => sc(([n, a]) => window.__w4[n](...a), [name, args]);
+
+async function shot(name, setup, o = {}) {
+  if (setup) await sc(setup, o.arg);
+  await sc(() => { const c = window.__course; for (const f of c.level.players) f.invuln = 0; c.step(1); c.snapCamera(); });
+  const f0 = await sc(() => window.__course.view.frame);
+  await page.waitForFunction((f) => window.__course.view.frame >= f + 3, f0, { timeout: 60000 });
+  await page.waitForTimeout(o.wait ?? 400);
+  const s = await sc(() => window.__course.stats());
+  stats.push([name, s.calls, s.triangles]);
+  try { await page.screenshot({ path: `${OUT}w4d_${name}.png`, timeout: 60000 }); } catch { await page.screenshot({ path: `${OUT}w4d_${name}.png`, timeout: 120000 }); }
+  return s;
+}
+
+// ====================================================================== 4-Burg: Route
+const BURG_ROUTE = [
+  { name: 'Hang', to: [0, -2] },
+  { to: [0, -17] },
+  { name: 'Vorhof', to: [-1.5, -26] },
+  { to: [-1.5, -39] },
+  { name: 'Treppe', to: [0, -45.5] },
+  { name: 'Drehplattform 1', dreh: 'dreh1', c: [0, -54], out: [0, -61.6], arms: 2, speed: 0.7 },
+  { name: 'Drehplattform 2', dreh: 'dreh2', c: [0, -69], out: [0, -76.6], arms: 3, speed: -0.65 },
+  { name: 'Drehplattform 3', dreh: 'dreh3', c: [0, -84], out: [0, -92], arms: 4, speed: 0.8 },
+  { name: 'Kontrollpunkt', to: [0, -96] },
+  { name: 'Lavarohr', to: [0, -104], within: 0.4, max: 400 },
+  { name: 'Rohrhof', to: [0, -134] },
+  { to: [0, -150] },
+  { name: 'Burgpfad', to: [0, -162] },
+  { to: [-1.5, -176] },
+  { to: [0, -187.6], within: 0.4 },
+  { name: 'Funken 1', to: [0, -190.8], jump: 30, within: 0.5, run: false },
+  { name: 'Funken 2', to: [0, -194.8], jump: 30, within: 0.5, run: false },
+  { name: 'Funken 3', to: [0, -198.8], jump: 30, within: 0.5, run: false },
+  { name: 'Funken 4', to: [0, -203.2], jump: 30, within: 0.5, run: false },
+  { name: 'vor der Röhre', to: [0, -206.6], within: 0.4, run: false },
+  { name: 'auf die Röhre', to: [0, -209], jump: 30, within: 0.3, run: false },
+  { crouch: 4 },
+];
+
+async function burgRoute() {
+  const id = '4-Burg';
+  console.log(`\n${id}: Laden, Daten, Routen`);
+  if (!(await load(id, { fresh: true }))) { check(`${id} lädt`, false); return; }
+  const loadErrors = errors.slice();
+  const meta = await sc(() => { const d = window.__course.level.data; return { title: d.title, theme: d.theme, music: d.music, time: d.timeLimit, arch: d.archetype, stars: d.stars.length, stamp: !!d.stamp, boss: d.boss?.name }; });
+  const kinds = await W('kinds');
+  console.log(`  „${meta.title}“ (${meta.arch}, ${meta.theme}, ${meta.music}, ${meta.time} s), Entitäten: ${JSON.stringify(kinds)}`);
+  check(`${id}: lädt ohne Konsolenfehler/-warnungen`, loadErrors.length === 0);
+  for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
+  check(`${id}: boss, Thema lavacastle, Musik course_lavacastle, 400 s, 3 Sterne + Stempel, Lavafelsen-König`, meta.arch === 'boss' && meta.theme === 'lavacastle' && meta.music === 'course_lavacastle' && meta.time === 400 && meta.stars === 3 && meta.stamp && meta.boss === 'Lavafelsen-König');
+  check(`${id}: Gegner laut Bauplan (Lavabrocken ${kinds.lavabrocken}, Pilzlingstürme ${kinds.pilzlingsturm}, Lavafunken ${kinds.lavafunke}, König ${kinds.lavafelsen_koenig})`, kinds.lavabrocken >= 8 && kinds.pilzlingsturm === 3 && kinds.lavafunke >= 12 && kinds.lavafelsen_koenig === 1 && kinds.pfeld === 6 && kinds.roter_ring === 1);
+  for (const hero of want('Route') ? ['lotti', 'greta'] : []) {
+    await load(id, { hero });
+    await W('place', [0, 10, 5], { hero, settle: 2 });
+    const res = await W('drive', BURG_ROUTE, {});
+    await sc(() => { const c = window.__course; for (let i = 0; i < 240 && c.player.mode === 'script'; i++) c.step(1); c.step(30); });
+    const after = await sc(() => { const c = window.__course, p = c.player; return { x: p.pos.x, y: p.pos.y, z: p.pos.z, started: c.arch.info().started, dead: p.dead }; });
+    const pipe = res.log.filter((l) => l[0] === 'fahrt');
+    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Nachsprünge ${res.autoJumps}, Glasrohr ${JSON.stringify(pipe[0] ?? null)}, danach z ${after.z.toFixed(1)} y ${after.y.toFixed(1)}`);
+    if (VERBOSE || after.z > -226) for (const l of res.log) console.log('     ', JSON.stringify(l));
+    check(`${id}: ${hero} fährt vom Start durch Drehplattformen und Lavarohr bis zur Boss-Röhre in den Thronsaal (${res.time.toFixed(1)} s)`, !res.dead && after.z < -226 && after.z > -232 && Math.abs(after.y - 2) < 0.6 && pipe.length >= 1);
+  }
+  if (want('Gefahren')) {
+    await load(id);
+    const r = await sc(() => {
+      const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
+      const out = {};
+      // Lavafunke an der Spitze von Drehbalken 1 verletzt beim Hochspringen
+      const f = L.entities.find((e) => e.kind === 'lavafunke' && Math.abs(e.base.z + 54) < 0.1 && e.base.x < 0);
+      W4.place([f.base.x, 2.2, f.base.z + 4], { settle: 4 });
+      let hurt = false;
+      for (let i = 0; i < 400 && !hurt; i++) { p.pos.set(f.base.x, 2.6, f.base.z); p.vel.set(0, 0, 0); p.mode = 'air'; c.step(1); hurt = W4.hurt(); }
+      out.funke = { hurt, state: f.state };
+      // Lava tötet
+      W4.place([0, 4, -50.5], { settle: 0 });
+      p.pos.set(-8, 1.5, -50); p.vel.set(0, -2, 0); p.mode = 'air';
+      for (let i = 0; i < 240 && !p.dead; i++) c.step(1);
+      out.lava = { dead: p.dead, cause: p.deathCause };
+      for (let i = 0; i < 600 && L.runtime.status !== 'play'; i++) c.step(1);
+      c.step(30);
+      out.respawn = { x: +p.pos.x.toFixed(1), z: +p.pos.z.toFixed(1), status: L.runtime.status };
+      return out;
+    });
+    check(`${id}: Lavafunke an der Drehplattform verletzt (${JSON.stringify(r.funke)})`, r.funke.hurt);
+    check(`${id}: Lava tötet (${r.lava.cause}), Neustart am Start`, r.lava.dead && r.lava.cause === 'lava' && r.respawn.status === 'play');
+  }
+}
+
+// ====================================================================== 4-Burg: Sterne, Stempel, Extras
+async function burgSterne() {
+  const id = '4-Burg';
+  console.log(`\n${id}: Sterne, Stempel, Extras`);
+  if (!(await load(id, { fresh: true }))) { check(`${id} lädt`, false); return; }
+  if (want('Stern 1')) {
+    const r = await sc(() => {
+      const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
+      const out = {};
+      W4.place([0, 4.2, -24], { settle: 10 });
+      const br = W4.grab(-3, -24.5, { from: [0, -24] });
+      out.grab = !!br;
+      // Brocken aufs Druckfeld 1 werfen (von +z, 4,5 m)
+      out.wurf = W4.throwTo(-5, -27.4, { dist: 4.6, dir: [0, 1], y: 4.2 });
+      c.step(30);
+      out.feld1 = { count: W4.ent('pf_bruecke1').count, pressed: W4.ent('pf_bruecke1').pressed };
+      out.bridge0 = W4.ent('fallbruecke').state;
+      // selbst aufs zweite Feld
+      const d = W4.drive([{ to: [-5, -34.6], within: 0.25, run: false, slow: 0.6 }, { wait: 60 }], { invuln: true });
+      out.feld2 = { pressed: W4.ent('pf_bruecke2').pressed, d: d.pos };
+      for (let i = 0; i < 240 && W4.ent('fallbruecke').state !== 'liegt'; i++) c.step(1);
+      out.bridge = W4.ent('fallbruecke').info();
+      // über die Brücke zum Sternturm
+      const g = W4.drive([{ to: [-7, -31] }, { name: 'Brücke', to: [-18, -31] }, { to: [-24.5, -31] }, { star: 0 }]);
+      out.walk = { pos: g.pos.map((v) => +v.toFixed(1)), dead: g.dead };
+      out.star = L.runtime.stars[0];
+      return out;
+    });
+    console.log(`  Stern 1: ${JSON.stringify(r)}`);
+    check('Stern 1: Lavabrocken gegriffen und aufs Druckfeld geworfen – er bleibt darauf liegen', r.grab && r.wurf.thrown && r.wurf.onPlate && r.feld1.pressed && r.bridge0 === 'haengt');
+    check('Stern 1: Figur aufs zweite Druckfeld → Ketten reißen, Fallbrücke kracht herunter', r.feld2.pressed && r.bridge.state === 'liegt' && Math.abs(r.bridge.y - 4) < 0.01);
+    check('Stern 1: über die Fallbrücke zum Sternturm, Stern eingesammelt', !r.walk.dead && r.star === true);
+  }
+  if (want('Stern 2')) {
+    const r = await sc(() => {
+      const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
+      const out = { throws: [] };
+      W4.place([0, 2.2, -136], { settle: 10 });
+      // zwei Lavabrocken nacheinander auf Feld 1 und 2 werfen
+      for (const [tx, tz] of [[1.5, -144], [4.5, -144]]) {
+        let br = null;
+        for (let k = 0; k < 4 && !br; k++) {
+          br = W4.grab(4, -142, { from: [tx, tz + 4], filter: (e) => !e.onPlate && e.pos.z > -151 && e.pos.z < -125 });
+          if (!br) c.step(240);   // Lavaschlot liefert nach
+        }
+        out.throws.push(br ? W4.throwTo(tx, tz, { dist: 4.6, dir: [0, 1], y: 2.2 }) : { thrown: false });
+        c.step(20);
+      }
+      out.plates = ['pf_drei1', 'pf_drei2', 'pf_drei3'].map((id) => W4.ent(id).pressed);
+      out.gitter0 = W4.ent('gitter2').openK;
+      const d = W4.drive([{ to: [7.5, -140] }, { to: [7.5, -144], within: 0.25, run: false, slow: 0.6 }, { wait: 90 }], { invuln: true });
+      out.plates2 = ['pf_drei1', 'pf_drei2', 'pf_drei3'].map((id) => W4.ent(id).pressed);
+      for (let i = 0; i < 240 && W4.ent('gitter2').openK < 1; i++) c.step(1);
+      out.gitter = W4.ent('gitter2').openK;
+      const g = W4.drive([{ to: [9, -144] }, { to: [11.6, -144] }, { star: 1 }]);
+      out.star = L.runtime.stars[1];
+      out.schlot = W4.ent('schlot2').info();
+      return out;
+    });
+    console.log(`  Stern 2: ${JSON.stringify(r)}`);
+    check('Stern 2: zwei Lavabrocken auf zwei Druckfelder geworfen (bleiben liegen), Fallgitter noch zu', r.throws.every((t) => t.thrown && t.onPlate) && r.plates[0] && r.plates[1] && !r.plates[2] && r.gitter0 === 0);
+    check('Stern 2: Figur aufs dritte Feld → Fallgitter öffnet, Stern in der Nische eingesammelt', r.plates2.every(Boolean) && r.gitter === 1 && r.star === true);
+  }
+  if (want('Stern 3')) {
+    const r = await sc(() => {
+      const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
+      const out = {};
+      // Warp-Box auf dem Burgpfad → Turmbalkon
+      W4.place([7.6, 2.2, -166], { settle: 10 });
+      const w = W4.drive([{ to: [7.6, -169], jump: 30, within: 0.3, run: false }, { wait: 60 }]);
+      out.warp = { x: +p.pos.x.toFixed(1), y: +p.pos.y.toFixed(1), z: +p.pos.z.toFixed(1) };
+      // Brocken greifen, an die Kante, hinunter aufs Druckfeld werfen
+      let br = null;
+      for (let k = 0; k < 4 && !br; k++) { br = W4.grab(30, -165, { from: [30, -163] }); if (!br) c.step(300); }
+      out.grab = !!br;
+      W4.drive([{ to: [30, -169.4], within: 0.25, run: false, slow: 0.5 }], { invuln: true });
+      out.wurf = W4.throwTo(30, -178.2, { here: true });
+      c.step(60);
+      out.feld = W4.ent('pf_balkon').pressed;
+      out.weg = L.named.get('weg3')?.shown ?? null;
+      c.step(120);
+      // hinunter auf die Trittsteine, zum Podest, Stern
+      const g = W4.drive([{ to: [30, -172.6], jump: 20, within: 0.6, run: false }, { to: [27.2, -175.8], jump: 30, within: 0.6, run: false },
+        { to: [27.2, -179.6], jump: 30, within: 0.6, run: false }, { to: [28.6, -183], jump: 30, within: 0.6, run: false }, { to: [30, -187], jump: 30, within: 0.6 }, { star: 2 }]);
+      out.walk = { pos: g.pos.map((v) => +v.toFixed(1)), dead: g.dead, log: g.log };
+      out.star = L.runtime.stars[2];
+      // Warp-Box zurück auf den Burgpfad
+      W4.drive([{ to: [32.6, -192], jump: 30, within: 0.3, run: false }, { wait: 60 }]);
+      out.back = { x: +p.pos.x.toFixed(1), z: +p.pos.z.toFixed(1) };
+      return out;
+    });
+    console.log(`  Stern 3: ${JSON.stringify({ ...r, walk: { ...r.walk, log: undefined } })}`);
+    if (VERBOSE || !r.star) for (const l of r.walk.log) console.log('     ', JSON.stringify(l));
+    check('Stern 3: Warp-Box führt auf den Turmbalkon', Math.abs(r.warp.x - 30) < 3 && Math.abs(r.warp.y - 7) < 0.6);
+    check('Stern 3: Lavabrocken von der Kante aufs Druckfeld geworfen → Trittsteine steigen aus der Lava', r.grab && r.wurf.thrown && r.wurf.onPlate && r.feld);
+    check('Stern 3: über die Trittsteine zum Podest, Stern eingesammelt, Warp-Box zurück', !r.walk.dead && r.star === true && Math.abs(r.back.x - 7.6) < 2.5);
+  }
+  if (want('Stempel')) {
+    const r = await sc(() => {
+      const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
+      const out = {};
+      W4.place([-4.5, 2.2, -130], { settle: 10 });
+      // ?-Block von unten stoßen → Krallen-Anzug, einsammeln
+      W4.drive([{ to: [-4.5, -131.5], within: 0.2, run: false, slow: 0.5 }]);
+      for (let i = 0; i < 30; i++) { c.setInput({ jump: i < 20 }); c.step(1); }
+      for (let i = 0; i < 90 && p.mode !== 'ground'; i++) { c.setInput({}); c.step(1); }
+      c.step(60);
+      out.pu = L.entities.filter((e) => e.kind === 'powerup' && !e.removed).map((e) => [e.spec.power ?? e.power, +e.pos.y.toFixed(1)]);
+      const pu = L.entities.find((e) => e.kind === 'powerup' && !e.removed);
+      if (pu) { p.pos.set(pu.pos.x, pu.pos.y + 0.2, pu.pos.z); p.vel.set(0, 0, 0); p.mode = 'air'; c.step(60); }
+      out.power = p.power;
+      // Kletterwand: anlaufen, springen, hochklettern
+      W4.place([-5.8, 2.2, -135], { settle: 6, power: out.power === 'krallen' ? 'krallen' : undefined });
+      for (let i = 0; i < 360; i++) { c.setInput({ ...W4.stick(-1, 0), jump: i < 14 || (i > 120 && i < 134) }); c.step(1); if (p.pos.y > 8.8 && p.mode === 'ground') break; }
+      c.setInput({});
+      out.top = { y: +p.pos.y.toFixed(2), x: +p.pos.x.toFixed(2), mode: p.mode };
+      W4.drive([{ to: [-8.5, -135], within: 0.3, run: false }, { wait: 30 }]);
+      out.stamp = L.runtime.stamp;
+      // ohne Krallen kommt man nicht hinauf
+      W4.place([-5.8, 2.2, -135], { settle: 6 });
+      let maxY = 0;
+      for (let i = 0; i < 300; i++) { c.setInput({ ...W4.stick(-1, 0), jump: i % 60 < 20 }); c.step(1); maxY = Math.max(maxY, p.pos.y); }
+      c.setInput({});
+      out.noClaw = +maxY.toFixed(2);
+      return out;
+    });
+    console.log(`  Stempel: ${JSON.stringify(r)}`);
+    check('Stempel: ?-Block gibt den Krallen-Anzug', r.power === 'krallen');
+    check(`Stempel: mit Krallen die Kletterwand links nach dem Lavarohr hinauf (y ${r.top.y}), Stempel eingesammelt; ohne Krallen nicht (max. y ${r.noClaw})`, r.top.y > 8.8 && r.stamp === true && r.noClaw < 8.5);
+  }
+  if (want('Extras')) {
+    const r = await sc(() => {
+      const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
+      const out = {};
+      // unsichtbarer Block hinter der Boss-Röhre → Wachstumsbeere
+      W4.place([0, 2.2, -211.8], { settle: 10 });
+      for (let i = 0; i < 30; i++) { c.setInput({ jump: i < 20 }); c.step(1); }
+      for (let i = 0; i < 120 && p.mode !== 'ground'; i++) { c.setInput({}); c.step(1); }
+      const blk = W4.ent('geheim_beere');
+      out.hidden = { used: blk?.used ?? null, look: blk?.look ?? null, pu: L.entities.filter((e) => e.kind === 'powerup' && !e.removed).map((e) => e.power ?? e.spec.power) };
+      // Lavaschlot im Vorhof liefert Lavabrocken nach, wenn sie in die Lava fallen
+      const s0 = W4.ent('schlot1').spawned;
+      for (const e of L.entities) if (e.kind === 'lavabrocken' && e.pos.z < -18 && e.pos.z > -42 && e.pos.y > 3) e.kill();
+      W4.place([0, 4.2, -30], { settle: 2 });
+      for (let i = 0; i < 1400; i++) { p.invuln = 5; c.step(1); }
+      out.schlot = { before: s0, after: W4.ent('schlot1').spawned, here: W4.ent('schlot1').count() };
+      // roter Ring: durchlaufen → acht rote Münzen auf Zeit (Münzen an Testpunkte holen)
+      W4.place([0, 2.2, -59.8], { settle: 5 });
+      W4.drive([{ to: [0, -63], within: 0.4 }]);
+      const ring = W4.ent('ring');
+      out.ring0 = ring.state;
+      const reds = L.entities.filter((e) => e.kind === 'rote_muenze' && !e.removed);
+      for (const m of reds) { p.pos.set(m.pos.x, m.pos.y - 0.4, m.pos.z); p.vel.set(0, 0, 0); p.mode = 'air'; p.invuln = 5; c.step(3); }
+      c.step(30);
+      out.ring = { state: ring.state, got: ring.got, reds: reds.length };
+      return out;
+    });
+    console.log(`  Extras: ${JSON.stringify(r)}`);
+    check('Unsichtbarer Block hinter der Boss-Röhre gibt eine Wachstumsbeere', r.hidden.pu.includes('wachstumsbeere') || r.hidden.used === true);
+    check(`Lavaschlot liefert Lavabrocken nach (${r.schlot.before} → ${r.schlot.after}, jetzt ${r.schlot.here})`, r.schlot.after > r.schlot.before && r.schlot.here >= 2);
+    check(`Roter Ring: acht rote Münzen → Belohnung (${JSON.stringify(r.ring)})`, r.ring0 === 'active' && r.ring.reds === 8 && r.ring.state === 'done');
+  }
+}
+
+// ====================================================================== 4-Burg: ganzer Lauf mit Bosskampf
+async function burgBoss() {
+  const id = '4-Burg';
+  console.log(`\n${id}: Sterne + Stempel, Bosskampf, Baron-Szene, Ziel`);
+  if (!(await load(id, { fresh: true }))) { check(`${id} lädt`, false); return; }
+  // Sterne und Stempel schnell (Teleport), damit das Ergebnis alles enthält
+  const pre = await sc(() => {
+    const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
+    for (const [i, pos] of [[0, [-25, 4.2, -31]], [1, [12, 2.2, -144]]]) { W4.place(pos, { settle: 30 }); }
+    W4.ent('pf_balkon') && L.named.get('stern3')?.reveal?.();
+    const s3 = L.entities.find((e) => e.kind === 'star' && e.index === 2);
+    if (s3) { s3.reveal?.(); W4.place([s3.pos.x, s3.pos.y - 0.6, s3.pos.z], { settle: 30 }); }
+    W4.place([-8.5, 9.2, -135], { settle: 30 });
+    return { stars: L.runtime.stars.slice(0, 3), stamp: L.runtime.stamp };
+  });
+  check(`Vorbereitung: drei Sterne und Stempel im selben Lauf (${JSON.stringify(pre)})`, pre.stars.every(Boolean) && pre.stamp);
+  // Tod im Kampf setzt zurück
+  const dead = await sc(() => {
+    const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
+    W4.place([0, 2.2, -206], { settle: 5 });
+    W4.drive([{ to: [0, -209], jump: 30, within: 0.3, run: false }, { crouch: 4 }]);
+    for (let i = 0; i < 240 && p.mode === 'script'; i++) c.step(1);
+    for (let i = 0; i < 240 && !c.arch.started; i++) { c.setInput(W4.stick(0, -1, 0.6)); c.step(1); }
+    c.setInput({});
+    const b = W4.ent('koenig');
+    for (let i = 0; i < 600 && b.state !== 'summon'; i++) c.step(1);
+    const started = c.arch.started;
+    p.die('lava');
+    for (let i = 0; i < 600 && L.runtime.status !== 'play'; i++) c.step(1);
+    c.step(30);
+    return { started, after: { started: c.arch.started, state: b.state, hp: b.hp, deaths: c.arch.deaths, z: +p.pos.z.toFixed(1) } };
+  });
+  check(`Tod im Kampf: Neustart am Kontrollpunkt vor der Röhre, König wieder 3/3 und wartet (${JSON.stringify(dead)})`, dead.started && !dead.after.started && dead.after.state === 'wait' && dead.after.hp === 3 && Math.abs(dead.after.z + 204.5) < 2);
+  const r = await sc(() => {
+    const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
+    const out = { hits: [] };
+    const banners = [];
+    const hud = c.arch.hud;
+    const orig = hud.banner.bind(hud);
+    hud.banner = (t, o) => { banners.push(t); return orig(t, o); };
+    // Röhre → Thronsaal
+    W4.place([0, 2.2, -206], { settle: 5 });
+    W4.drive([{ to: [0, -209], jump: 30, within: 0.3, run: false }, { crouch: 4 }]);
+    for (let i = 0; i < 240 && p.mode === 'script'; i++) c.step(1);
+    c.step(20);
+    out.arrive = { x: +p.pos.x.toFixed(1), y: +p.pos.y.toFixed(1), z: +p.pos.z.toFixed(1), mood: L.moodNow };
+    for (let i = 0; i < 240 && !c.arch.started; i++) { c.setInput(W4.stick(0, -1, 0.6)); c.step(1); }
+    c.setInput({});
+    const b = W4.ent('koenig');
+    out.start = { started: c.arch.started, state: b.state, hud: c.arch.info().hud?.boss?.hp ?? null };
+    const AZ = -240;
+    const safeStep = (n, pos) => { p.hurt = () => false; for (let i = 0; i < n; i++) { if (pos) { p.pos.set(pos[0], pos[1], pos[2]); p.vel.set(0, 0, 0); } c.step(1); } delete p.hurt; };
+    const until = (s, n, pos) => { p.hurt = () => false; let i = 0; for (; i < n && b.state !== s; i++) { if (pos) { p.pos.set(pos[0], pos[1], pos[2]); p.vel.set(0, 0, 0); } c.step(1); } delete p.hurt; return i; };
+    for (let k = 0; k < 3; k++) {
+      // gerufenen Lavabrocken greifen
+      until('roll', 1500, [0, 2, AZ + 9]);
+      until('rest', 1500, [0, 2, AZ + 9]);
+      let br = null;
+      for (let t = 0; t < 6 && !br; t++) {
+        p.hurt = () => false;
+        const list = L.entities.filter((e) => e.kind === 'lavabrocken' && e.owner === b && !e.removed && !e.defeated && e.grounded);
+        if (list.length) br = W4.grab(list[0].pos.x, list[0].pos.z, { from: [0, AZ] });
+        delete p.hurt;
+        if (!br) safeStep(120, [0, 2, AZ + 9]);
+      }
+      // warten, bis er keucht (rest), aus 4 m werfen
+      p.hurt = () => false;
+      for (let i = 0; i < 3000 && b.state !== 'rest'; i++) { p.vel.set(0, 0, 0); c.step(1); }
+      const hp0 = b.hp;
+      const ax = -b.pos.x, az = AZ - b.pos.z, al = Math.hypot(ax, az) || 1;
+      p.pos.set(b.pos.x + (ax / al) * 4, b.pos.y + 0.2, b.pos.z + (az / al) * 4); p.vel.set(0, 0, 0); p.mode = 'air';
+      c.step(12);
+      W4.face(b.pos.x, b.pos.z); c.step(1); W4.action();
+      for (let i = 0; i < 120 && br && !br.removed && br.state === 'thrown'; i++) c.step(1);
+      delete p.hurt;
+      out.hits.push({ grabbed: !!br, hp0, hp: b.hp, state: b.state });
+      until('summon', 900, [0, 2, AZ + 9.5]);
+    }
+    out.defeated = { hp: b.hp, defeated: b.defeated, feuer: b.feuer };
+    until('gone', 1500, [0, 2, AZ + 9.5]);
+    out.gone = { state: b.state, won: c.arch.info().won };
+    // Baron-Szene
+    const bz = L._baron;
+    out.baron0 = bz?.info?.() ?? null;
+    safeStep(120 * 10, null);
+    out.baron = bz?.info?.() ?? null;
+    out.banners = banners;
+    out.warp = W4.ent('warp_sieg').hidden;
+    // Warp-Box → Burgtor → Zielmast
+    const w = W4.ent('warp_sieg');
+    W4.place([w.pos.x, w.pos.y + 1.4, w.pos.z], { settle: 0 });
+    let arrived = false;
+    for (let i = 0; i < 800; i++) { c.step(1); if (p.pos.z < -270 && p.mode !== 'script') { arrived = true; break; } }
+    out.arrived = { arrived, z: +p.pos.z.toFixed(1), mood: L.moodNow };
+    W4.drive([{ to: [0, -294.5] }], { invuln: true });
+    for (let i = 0; i < 2400 && !c.finished; i++) { c.setInput({}); c.step(1); }
+    out.finish = { finished: c.finished, res: c.lastResult ?? null };
+    out.save = W4.save().levels?.['4-Burg'] ?? null;
+    return out;
+  });
+  console.log(`  Kampf: ${JSON.stringify({ ...r, banners: undefined })}`);
+  console.log(`  Ansagen: ${r.banners.join(' | ')}`);
+  check(`Röhre führt in den Thronsaal (Stimmung innen), Kampf beginnt beim ersten Schritt (Lebensleiste 3)`, r.arrive.z < -226 && r.arrive.mood === 'innen' && r.start.started && r.start.hud === 3);
+  check(`Drei Treffer mit geworfenen Lavabrocken (${r.hits.map((h) => `${h.hp0}→${h.hp}`).join(', ')})`, r.hits.length === 3 && r.hits.every((h) => h.grabbed && h.hp === h.hp0 - 1) && r.defeated.defeated);
+  check(`König besiegt (Feuerbrocken ${r.defeated.feuer}), Archetyp gewinnt, Warp-Box erscheint`, r.gone.state === 'gone' && r.gone.won && r.warp === false);
+  check(`Baron-Szene: Baron braust heran, schimpft und flieht (${r.baron?.log?.join(' → ')}), „Welt 4 geschafft!“`, r.baron && r.baron.log.join(',') === 'in,stop,away,gone' && r.banners.some((t) => /Baron Brummbär/.test(t)) && r.banners.includes('Welt 4 geschafft!'));
+  check('Warp-Box führt zum Burgtor (Stimmung außen), Zielmast beendet das Level', r.arrived.arrived && r.arrived.mood === null && r.finish.finished);
+  check(`Speicherstand: 4-Burg geschafft, drei Sterne und Stempel (${JSON.stringify(r.save)})`, r.save?.done === true && r.save?.stars?.filter(Boolean).length === 3 && r.save?.stamp === true);
+}
+
+// ====================================================================== 4-Burg: Bilder
+async function burgBilder() {
+  const id = '4-Burg';
+  console.log(`\n${id}: Bilder und Kennzahlen`);
+  if (!(await load(id, { fresh: true }))) { check(`${id} lädt`, false); return; }
+  const at = (pos, o = {}) => ({ pos, ...o });
+  const views = [
+    ['start', at([0, 10, 5])], ['hang', at([0, 8, -8])], ['vorhof', at([1, 4, -27])], ['sternturm', at([-20, 4, -31], { drop: true })],
+    ['dreh1', at([0, 2, -47])], ['dreh2', at([0, 2, -62])], ['dreh3', at([0, 2, -77])], ['kontrollpunkt', at([0, 2, -97])],
+    ['lavarohr', at([0, 2, -101])], ['rohrhof', at([0, 2, -132])], ['dreifeld', at([4, 2, -140])], ['kletterwand', at([-5, 2, -133])],
+    ['burgpfad', at([0, 2, -158])], ['warpbox', at([5, 2, -168])], ['balkon', at([30, 7, -166])], ['podest', at([30, 2, -188], { reveal: true })],
+    ['funkenreihe', at([0, 2, -187])], ['roehre', at([0, 2, -205])], ['thronsaal', at([0, 2, -230])], ['ziel', at([0, 2, -282])],
+  ];
+  for (const [name, o] of views) {
+    await shot(`burg_${name}`, (o) => {
+      const c = window.__course, W4 = window.__w4, L = c.level;
+      if (o.drop) { const h = L.named.get('fallbruecke'); if (h.state === 'haengt') { h.drop(); c.step(200); } }
+      if (o.reveal) { L.named.get('weg3')?.reveal?.(); L.named.get('stern3')?.reveal?.(); c.step(90); }
+      W4.place(o.pos, { settle: 40, invuln: 999 });
+      c.player.invuln = 0;
+    }, { arg: o });
+  }
+  // Kampf (Auftritt) und Baron
+  await shot('burg_kampf', () => {
+    const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
+    W4.place([0, 2, -229], { settle: 5, invuln: 999 });
+    for (let i = 0; i < 240 && !c.arch.started; i++) { c.setInput(W4.stick(0, -1, 0.6)); c.step(1); }
+    c.setInput({});
+    p.hurt = () => false;
+    const b = L.named.get('koenig');
+    for (let i = 0; i < 1500 && b.state !== 'roll'; i++) c.step(1);
+    c.step(60);
+    delete p.hurt;
+  });
+  await shot('burg_baron', () => {
+    const c = window.__course, L = c.level, p = c.player;
+    const b = L.named.get('koenig');
+    p.hurt = () => false;
+    b.hp = 1; b.takeHit('brocken');
+    for (let i = 0; i < 2400 && b.state !== 'gone'; i++) { p.pos.set(0, 2, -231); p.vel.set(0, 0, 0); c.step(1); }
+    for (let i = 0; i < 2400 && L._baron?.state !== 'stop'; i++) c.step(1);
+    c.step(80);
+    delete p.hurt;
+  }, { wait: 300 });
+}
+
+// ====================================================================== Ablauf
+for (const p of PARTS.length ? PARTS : ['burg-route', 'burg-sterne', 'burg-boss', 'burg-bilder']) {
+  if (p === 'burg-route') await burgRoute();
+  if (p === 'burg-sterne') await burgSterne();
+  if (p === 'burg-boss') await burgBoss();
+  if (p === 'burg-bilder') await burgBilder();
+}
+
+if (stats.length) {
+  console.log('\n  Kennzahlen je Bild (Zeichenaufrufe inkl. Schattenpass, Dreiecke):');
+  for (const [n, c, t] of stats) console.log(`    ${n.padEnd(26)} ${String(c).padStart(4)} Aufrufe  ${String(Math.round(t / 1000)).padStart(4)} k Dreiecke`);
+  const maxCalls = Math.max(...stats.map((s) => s[1])), maxTris = Math.max(...stats.map((s) => s[2]));
+  check(`Zeichenaufrufe < 130 (max ${maxCalls})`, maxCalls < 130);
+  check(`Dreiecke < 300 k (max ${Math.round(maxTris / 1000)} k)`, maxTris < 300000);
+}
+await browser.close();
+stop();
+allErrors.push(...errors);
+process.exit(summary(allErrors) ? 0 : 1);
