@@ -267,7 +267,9 @@ export const MAP = {
     { kind: 'ruincolumn', pos: [27.6, 5, -67.6], size: 3.4, broken: true }, { kind: 'ruincolumn', pos: [48.4, 5, -67.6], size: 4.2 },
     { kind: 'ruincolumn', pos: [48.4, 5, -94.4], size: 3.0, broken: true }, { kind: 'ruinwall', pos: [29, 5, -94.2], size: 5, yaw: 0 },
     { kind: 'fallen', pos: [39.6, 5, -69.4], size: 3, yaw: 0.4, solid: false },
-    // H Festung (Kulisse in decor_w4)
+    // H Festung (Kulisse in decor_w4): Fackeln in den Hofecken, Kisten und Kabelrolle
+    { kind: 'torch', pos: [63.6, 5, -72.4] }, { kind: 'torch', pos: [76.4, 5, -72.4] },
+    { kind: 'crates_lo', pos: [76, 5, -88.8] }, { kind: 'spool', pos: [64.2, 5, -89] },
     // I Lava-Burg: Fackeln am Weg
     { kind: 'torch', pos: [40.6, 6, -112.4] }, { kind: 'torch', pos: [47.8, 6, -112.4] },
     // J Röhren-Insel
