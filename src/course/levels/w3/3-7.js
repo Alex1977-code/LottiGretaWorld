@@ -62,7 +62,7 @@ function setup(level) {
     { pos: [-12.2, Y, -106], spots: [[-12.2, Y, -106], [-13.4, Y, -109], [-11.6, Y, -111]], yaw: 0.6 },
     { pos: [3, Y, -231], spots: [[3, Y, -231], [6.4, Y, -228.6], [1.4, Y, -233.6]], yaw: 2 },
   ]);
-  zeitUhren(level, [[5.8, 3, -79], [7, 3, -79], [8.2, 3, -79]], { id: 'uhren' });
+  zeitUhren(level, [[4.6, 3, -79.4], [5.8, 3, -79.4], [7, 3, -79.4]], { id: 'uhren' });
   // Fallraum: hohler Baum mit Baumpilz-Simsen
   hohlerBaum(level, { x: 80, z: -80, r: 5.4, y0: 1, y1: 44, shelves: [[-0.9, 30, 2.4], [1.0, 22, 2.2], [-1.1, 12, 2.4], [0.9, 6, 2]] });
   // Wolken der Kulisse unter den Inseln würden in der Klamm wie Schneeflecken wirken: tiefer legen (unter den Boden)
@@ -137,8 +137,8 @@ export const LEVEL = {
     { type: 'schaltblock', id: 'sb3a', pos: [2.6, Y + 2.4, -53.4], net: 'n3' },
     { type: 'schaltblock', id: 'sb3b', pos: [0, T + 2.75, -89.6], net: 'n3' },
     // Plattform mit Zeit-Uhren und Röhre zum Fallraum
-    land(5, 9.6, -76.4, -81.6, 2.2, 3),
-    { type: 'pipe', id: 'p_fall', pos: [8.2, 2.2, -77.4], height: 1.2, radius: 0.85, target: [76.6, 40.4, -80.6] },
+    land(3.6, 8.4, -76.4, -81.6, 2.2, 3),
+    { type: 'pipe', id: 'p_fall', pos: [7.3, 2.2, -77.4], height: 1.2, radius: 0.85, target: [76.6, 40.4, -80.6] },
     // Checkpoint-Insel
     land(-15, -4, -101.6, -112),
     { type: 'deco_w3', items: [{ kind: 'herbstbaum', pos: [-14, Y, -111], size: 4.2 }, { kind: 'herbstbaum', pos: [-5, Y, -111.2], size: 3.4 }] },
@@ -245,7 +245,7 @@ export const LEVEL = {
   goal: { pos: [-2.6, Y + 1.4, -227], height: 9 },
   marks: {
     start: [0, Y, 8], steig: [0, Y, -4.6], t1: [0, T, -7.8], t2: [0.5, T, -30.6], f1: [0, Y, -50], t3: [0, T, -58],
-    uhren: [7, 2.2, -79], fall: [76.4, 40, -80], checkpoint: [-9.5, Y, -106], t4: [-9.5, T, -114], umstieg: [13, Y, -138],
+    uhren: [5.8, 2.2, -79], fall: [76.4, 40, -80], checkpoint: [-9.5, Y, -106], t4: [-9.5, T, -114], umstieg: [13, Y, -138],
     t5: [13, T, -144], z1: [12, Y, -191], t6: [12, T, -197], ziel: [0, Y, -214], stempel: [20.6, -1.6, -214.4], goal: [-2.6, Y + 1.4, -227],
   },
 };
