@@ -2827,7 +2827,7 @@ c = Bilder je Abschnitt, je < 10 min –, Port 4630 + PORT_BASE, Bilder `tests/o
   Flatterkäfer-Räder als sparsame Käfer (≈ 520 statt ≈ 4500 Dreiecke, zwei Zeichenaufrufe für alle Räder; ersetzt dazu
   `rad.inst` – ändert sich `kaefer_rad.js`, hier nachziehen), `bugSwarm`/`instanceEnemies` für die übrigen Gegner,
   `farHide`, `modelDiet` (Kulissen-Modelle ohne Schatten, fern ausgeblendet), Roboter nur in der Nähe; große Piep-Felder
-  mit `cell: 2` (vier statt sechzehn Zellen je 2 × 2 m), Piep-Rutsche 4 m breit.
+  mit `cell: 2` (vier statt sechzehn Zellen je 2 × 2 m).
 - **Kennzahlen** (scale 2, inkl. Schattenpass): 4-3 22 Abschnittsbilder 70–111 Zeichenaufrufe, 135–243 k Dreiecke; mit
   vier Figuren am Stempel-Sims 143 Aufrufe / 247 k; 4-4 19 Bilder 70–103 / 148–220 k. Piep-Treppen mit `run: 1.49`
   (eine Zelle je Stufe in Laufrichtung statt zwei), Rundweg-Steine `cell: 2`, Rutsche 3,4 m breit.
