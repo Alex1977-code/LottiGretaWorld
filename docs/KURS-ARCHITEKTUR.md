@@ -1989,6 +1989,50 @@ extra,shots`, Heldinnen über `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS_ONLY=1
   Dreiecke (Fallraum 74, Funkenzone 96). Bot-Zeiten bis zum Zielmast: 3-5 Lotti 49,6 s / Greta 45,9 s, 3-7 Lotti
   82,2 s / Greta 81,4 s.
 
+**Level-Notizen 3-3 / 3-Kapitän** (Level-Agent; Hilfen `src/course/levels/w3/_helpers_c.js` ohne `LEVEL`; Test
+`tests/course_w3c.mjs [3-3|3-Kapitän]`, Port 4460 + PORT_BASE, Bilder `tests/out/w3c_*.png`; Teile über `PARTS=route,
+targets,extra,shots`, `HERO=lotti|greta`, `ONLY=<Text>`, `VERBOSE=1` – je Lauf ≤ 10 min):
+
+- **3-3 „Die Mondscheinvilla“** (parcours, ghost, course_ghost, 500 s): Räume hinter Spuk-Türen liegen nebeneinander in x
+  und je in eigenen 32-m-Abschnitten (z) des Batchers. **A Spukflur** (violette Tapete, Läufer, Kerzentischchen,
+  Spuke, ein Großspuk, Licht-Helm am Start; Spuk-Treppe zur Tür) → **B Bibliothek** (Schieberegal „Bitte nicht
+  schieben!“, Checkpoint, Spuk-Treppen im Takt zu Podest und Galerie, Kronleuchter, Lese-Ecke mit Globus) → **C Außenhof 1**
+  (Stimmung `aussen`, Brunnen mit Kreisgeister-Ring, Gräber, Kürbisse, Graben mit Steinplatten, Tür zurück ins Haus) →
+  **E Stufenhalle** (drei Spuk-Treppen steigen versetzt aus dem Boden bis zur oberen Tür) → **F Außenhof 2** (Steinbrücke,
+  Kreisgeister-Ringe, Großspuke, **falscher Zielmast** „Ziel! (ganz ehrlich)“: spielt den Streich, ein Spuk taucht auf, die
+  versteckte Treppe steigt) → **G** Terrasse mit dem echten Zielmast (y 7,6). **Stern 0**: Spuk-Gemälde links am Start
+  (Schild „Dieses Bild hat Tiefgang …“) – mit Anlauf hineinspringen → Warp-Box → **Drehraum** (Vierteldrehungen,
+  Kreisgeister-Ring; Stern über den Brettern, Kamera flach entlang der Drehachse); **Stempel**: nach Stern 0 die Warp-Box
+  im Drehraum → Empore über dem Flur, schwebendes Sofa trägt zum Stempel; **Stern 1**: Bibliothek ganz links, Regal in der
+  Regalgasse zurückschieben, Nische mit Lesesessel; **Stern 2**: Sofa-Lift im Flur zum Sims mit der falschen Röhre
+  („Außer Betrieb“). Licht-Helme in A, C, E, F. Gegner: Spuk 12 (+1 vom falschen Zielmast), Großspuk 3, Kreisgeister 38
+  (Ringe 6/10/8/8, einzeln 6). Bot-Zeiten bis zum echten Zielmast: Lotti 50,3 s, Greta 42,8 s.
+- **3-Kapitän „Krümel und der Röhrensee“** (diorama, course_diorama, 400 s, ≈ 26 × 26 m): unten der See (Wasser −1,4)
+  mit zwei Holzstegen (ohne Schalter tief im Wasser), oben die Wiese mit Seewärter-Häuschen und **Seewarte** (Turm mit
+  Dachterrasse, Fernrohr, Fahne), Glasröhren-Netz `roehre`: Einstieg nur am **Mauseloch** unter der Seewarte →
+  Gabelung 1 nach oben auf die Dachterrasse, Kreuzung 2 geradeaus ins Wasser, rechts in die **Glaskuppel** (links nur
+  Ausgang); `roehre2` Kuppel ↔ rechtes Ufer. Der **Wasserschalter** in der Kuppel hebt See und Stege (−1,4 → −0,1).
+  Sterne: **1** gegenüber dem Start (hinten links), **2** Dachterrasse, **3** an der Kreuzung geradeaus im Wasser, **4** in
+  der Kuppel (erscheint mit dem Schalter), **5** Leuchtturm-Inselchen über den gehobenen Steg (beendet das Level).
+  Gegner: ein Rammfisch (dreht sich zum Schwimmer und rammt). Zier: Strand-Rampe mit Sonnenschirm, Leuchtturm,
+  Ruderboot, Seerosen, Entenfamilie, Picknickdecke, Schild „Röhren-Bahnhof“.
+- **Krümel als Spielfigur ohne Archetyp-Änderung**: `LEVEL.setup` ruft `useKruemel(level, scene)`; das ersetzt
+  `scene.rig` und den Eintrag in `scene.squad.rigs` durch `KruemelRig` (Registry-Modell `kruemel` × 1,35 mit
+  Kapitänsmütze, Rucksack mit Kartenrolle, rot-weißem Schwimmring beim Schwimmen; Animationen idle/hop/cheer/scared,
+  swim/pipe/dig; `rig.info()` für Tests). Steuerung bleibt `DioramaController` (kein Sprung, 3,5 m/s). Krümel schwimmt
+  nur an der Oberfläche und taucht nicht: Wasser ist Spielelement über Strand-Rampe, Glasröhren und Schalter.
+- **Level-Haken und Budget** (level-lokal): statische Zier wird im Aufbau-Haken `hook(pos, fn)` (Laterne mit `onLit`)
+  gebaut, damit sie in den Abschnitt ihres Raums fällt; `roomCull(level, rooms, { far })` blendet statische Meshes und
+  Modelle anderer Räume (x-Bereiche) sowie ferne Geister aus; Geister und Spuk-Treppen ohne Sonnenschatten (Blob);
+  `camThrough(level, tags, min, max)` setzt `camIgnore` auf Drehraum-Bretter und -Hülle (sonst zieht die
+  Kamera-Abstandsprüfung die Kamera unter ein Brett über der Figur); Bücher, Tapetenbahnen, Dielen als Flächen;
+  `ghostMoods` schaltet die Stimmung `aussen` in den Höfen. 3-Kapitän: Holzstege, Schalter, Laterne und Krümels Kleinteile
+  ohne Sonnenschatten; Übersicht mit `center [-0.5, 4, -4]`, `dist [46, 15]`, damit die Seewarte ganz im Bild bleibt.
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 3-3 (19 Abschnitts-, 4 Stern-/Stempel-, 2 Mechanik-Bilder) 54–99
+  Zeichenaufrufe, 127–278 k Dreiecke (Steinbrücke in F 278 k); 3-Kapitän (9 Bilder) 36–99 / 179–243 k. Wünsche an den
+  Motor: Drehraum-Teile mit `camIgnore` im Baustein selbst; offizielle Figurwahl im Diorama (`LEVEL.diorama.figure`)
+  statt Rig-Tausch im Haken; Spuke mit gemeinsamem Material (Deckkraft je Instanz), damit sie instanziert werden können.
+
 ---
 
 ## Präzisierung (Motor Welt 3)
