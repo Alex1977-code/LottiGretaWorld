@@ -1,443 +1,416 @@
 // Kurs-Themen Welt 2 „Wüste mit Sandblöcken“ – eigene Kompositionen im Stil des 90er-Eurodance
 // (Stil ja, Zitat nein). Format und Spuren siehe themes.js / Music.js, Bausteine in themeParts.js.
+//
+// Analyse der ersten Fassung (Rückmeldung des Auftraggebers: „nicht melodisch“): Die Themen bauten auf
+// Modi und Farbskalen statt auf Dur/Moll-Harmonik (Wüste D-Hidschas mit übermäßiger Sekunde, Weltraum
+// E-Lydisch, Karte mit phrygischer bII), auf Motiven und Ostinati statt auf Liedmelodien (Wüsten-Rufmotiv,
+// Pizzicato-Ostinato im Schattenspiel, Uhr-Ostinato im Haus) und auf Satztechnik statt Hook (Spiegelfrucht als
+// vierstimmiger Kanon, Schatten-Melodie mit Echo-Stimme). Der Lead spielte meist nur 4–8 von 16 Takten, oft in
+// großen Sprüngen (Glocken in Dezimen, Oktavsprung-Hook) oder liegenden Einzeltönen; einen wiederkehrenden,
+// singbaren Refrain gab es kaum.
+//
+// Neufassung nach der Musik-Richtlinie (docs/KURS-ARCHITEKTUR.md), Maßstab Welt 1: jedes Thema ist ein Lied in
+// Dur oder Moll – Intro (Riff = Refrain-Hook auf Piano/Glocke/Stabs) → Strophe (tiefer, ruhiger) → Refrain
+// (höher, zweitaktige Hook A A' A A'') → Überleitung (Breakdown, lange Lead-Töne, Riser) –, Akkordfolgen der
+// Eurodance-Zeit, Lead-Synth (Supersaw ohne Hoover-Brummen) trägt die Melodie fast durchgehend, Off-Beat-Stabs,
+// Rave-Piano, Pad, Oktav-Bass, Four-on-the-floor. Der Welt-Charakter kommt nur aus Klangfarben und Percussion.
 
-import { dr, K4, KH, CL, HH, H8, H8O, HUP, CR, rep, rest, mel, hit, pat, tr, shift, pump, gallop, bounce, walk, offbeat, p332 } from './themeParts.js';
+import {
+  dr, K4, KH, CL, HH, H8, H8O, CR, rep, rest, tr, octaves, chordBar, bassBar, padBar, pat, voicing,
+  B_BOUNCE, B_PUMP, B_GALLOP, B_HALF, form, bySection, groove,
+} from './themeParts.js';
 
-// ---------------------------------------------------------------- Wüste ----
-// D-Hidschas (D Es Fis G A B C – übermäßige Sekunde Es–Fis): Akkorde D, Es (bII), c-Moll, g-Moll.
-const dD = 'D4+F#4+A4', dEb = 'Eb4+G4+Bb4', dCm = 'C4+Eb4+G4', dGm = 'D4+G4+Bb4';
-const callD = mel('D5 Eb5 D5 F#5 G5 F#5 A5 G5 F#5 Eb5 D5', 'xxx. xxx. x_xx x_x_');
-const callEb = mel('Eb5 F#5 Eb5 G5 A5 G5 Bb5 A5 G5 F#5 Eb5', 'xxx. xxx. x_xx x_x_');
-const callCm = mel('C5 Eb5 C5 G5 F#5 G5 Bb5 A5 G5 F#5 Eb5', 'xxx. xxx. x_xx x_x_');
-const callEnd = mel('A5 G5 F#5 Eb5 D5 C5 D5', 'xxxx x_.. x.x_ ____');
-const desBass = {
-  D: mel('D2 D3 D2 Eb2 D2 A1 C2', 'x_xx ..x_ x_.x x___'),
-  Eb: mel('Eb2 Eb3 Eb2 D2 Eb2 Bb1 D2', 'x_xx ..x_ x_.x x___'),
-  Cm: mel('C2 C3 C2 D2 C2 G1 Bb1', 'x_xx ..x_ x_.x x___'),
-  Gm: mel('G1 G2 G1 A1 G1 D2 F#2', 'x_xx ..x_ x_.x x___'),
-  CmD: mel('C2 C3 C2 D2 D3 A1 C2', 'x_xx ..x_ x_.x x___'),
-};
-const DARB = [K4, CL, dr('...d ..d. ...d ..d.'), dr('..p. ...p ..p. .p.p'), dr('..j. ..j. ..j. ..jj')];
-const DARB_FILL = [K4, CL, dr('...d ..d. .... ....'), dr('..p. ...p pppp pppp'), dr('..j. ..j. .... ....')];
+// Lead-Synth: Supersaw ohne Oktave darunter, kaum Tonhöhen-Slide (der Hoover bleibt Akzent: Riser)
+const SYNTH = { sub: false, bend: 0.985, detune: 10 };
+// Begleit-Raster
+const OFF = '..x_ ..x_ ..x_ ..x_';      // Akkorde auf jeder „und“
+const P332 = 'x__x __x_ x__x __x_';     // Rave-Piano 3-3-2
+const ST24 = '.... ..x_ .... ..x_';     // Stabs auf 2+ und 4+
+const LONG = 'x_______ x_______';       // Breakdown: halbe Noten
+const SONG = form({ intro: 4, verse: 8, chorus: 8, bridge: 4 });
 
-// ---------------------------------------------------------------- Weltraum ----
-// E-Lydisch (Ais statt A): Emaj7, Fis/E (Lydische II über liegendem E), cis-Moll9, gis-Moll7, Amaj7 (geborgt), H.
-const spArp = {
-  E: ['E5', 'G#5', 'B5', 'D#6'], Fs: ['F#5', 'A#5', 'C#6', 'E6'], Cs: ['C#5', 'E5', 'G#5', 'D#6'],
-  Gs: ['G#5', 'B5', 'D#6', 'F#6'], A: ['A5', 'C#6', 'E6', 'G#6'], B: ['B5', 'E6', 'F#6', 'B6'],
-};
-const sparkle = (n) => pat(n, '0123 2103 1230 3210');
-const spPad = ['E3+G#3+B3+D#4:16', 'E3+A#3+C#4+F#4:16', 'E3+G#3+B3+D#4:16', 'E3+A#3+C#4+F#4:16',
-  'C#3+G#3+B3+D#4:16', 'F#3+G#3+B3+D#4:16', 'E3+G#3+A3+C#4:16', 'E3+F#3+B3:8 D#3+F#3+B3:8'];
-const spBass = {
-  E: mel('E2 B1', 'x___ __.. x___ __..'), Cs: mel('C#2 G#1', 'x___ __.. x___ __..'),
-  Gs: mel('G#1 D#2', 'x___ __.. x___ __..'), A: mel('A1 E2', 'x___ __.. x___ __..'),
-  B: mel('B1 F#2', 'x___ __.. x___ __..'),
-};
-const SPACE = [KH, CL, dr('h.h. h.h. h.h. h.o.')];
-
-// ---------------------------------------------------------------- Schattenspiel ----
-// g-Moll; Pizzicato-Ostinato (gebrochene Akkorde, Achtel staccato), die Melodie hat einen „Schatten“:
-// dieselben Töne eine Achtel später, leiser und dunkler (echo-Spur, Hall).
-const shOst = (n) => pat(n, '0.1. 2.1. 3.1. 2.1.');
-const shGm = ['G4', 'Bb4', 'D5', 'G5'], shEb = ['G4', 'Bb4', 'Eb5', 'G5'], shD = ['F#4', 'A4', 'D5', 'F#5'], shCm = ['G4', 'C5', 'Eb5', 'G5'];
-const shMelody = [
-  mel('G4 Bb4 D5 C#5 D5 Bb4 G4 A4 Bb4', 'x.x. x.xx ..x. x.xx'),
-  mel('C5 Eb5 G5 F#5 G5 Eb5 C5 D5 Eb5', 'x.x. x.xx ..x. x.xx'),
-  mel('Bb4 Eb5 G5 Bb5 A5 G5 F5 Eb5', 'x.x. x.x. xxx. x...'),
-  mel('D5 C5 Bb4 A4 F#4 G4 A4', 'x.x. x.x. x... x.x.'),
+// ================================================================ Wüste ====
+// h-Moll, 136 BPM. Intro Hm G D A | Strophe Hm A G Fis ×2 | Refrain Hm G D A | Hm G Em Fis | Überleitung G A Hm Fis.
+const desProg = ['Bm', 'G', 'D', 'A', ...rep(2, ['Bm', 'A', 'G', 'F#']).flat(), 'Bm', 'G', 'D', 'A', 'Bm', 'G', 'Em', 'F#', 'G', 'A', 'Bm', 'F#'];
+// Hook: 3-3-2-Abstieg, Pause, Achtel-Aufstieg („Ha – ha – ho, da da da“)
+const desHook = [
+  'B5:3 A5:3 F#5:2 -:2 D5:2 E5:2 F#5:2', 'G5:3 F#5:3 D5:2 -:2 B4:2 D5:2 E5:2',
+  'A5:3 G5:3 F#5:2 -:2 D5:2 E5:2 F#5:2', 'E5:3 C#5:3 A4:2 -:2 C#5:2 E5:2 A5:2',
 ];
-const shLead = [
-  mel('C5 Eb5 G5 F5 Eb5', 'x__x __x_ x_x_ ____'),
-  mel('D5 Bb4 G4 A4 Bb4', 'x__x __x_ x_x_ ____'),
-  mel('C5 Eb5 Ab5 G5 F5 Eb5', 'x__x __x_ x_x_ x_._'),
-  mel('D5 F#5 A5 C6 Bb5 A5', 'x__x __x_ x___ x_x_'),
+const desChorus = [...desHook, desHook[0], desHook[1], 'G5:3 F#5:3 E5:2 -:2 B4:2 C#5:2 D5:2', 'F#5:6 E5:2 C#5:4 A#4:4'];
+const desV = ['D5:2 C#5:2 D5:2 F#5:4 E5:2 D5:2 C#5:2', 'E5:4 C#5:2 A4:4 -:2 B4:2 C#5:2', 'D5:2 B4:2 D5:2 G5:4 F#5:2 E5:2 D5:2'];
+const desVerse = [...desV, 'C#5:4 A#4:2 F#4:6 -:2 C#5:1 D5:1', ...desV, 'A#4:2 C#5:2 E5:2 F#5:6 -:2 A5:2'];
+const desBridge = ['G5:6 F#5:2 E5:8', 'F#5:6 E5:2 C#5:8', 'D5:6 C#5:2 B4:8', 'A#4:4 C#5:4 F#5:4 -:4'];
+// Darbuka (Doum/Tek) statt Hi-Hats, Schellenkranz im Refrain
+const DOUM = dr('...d ..d. ...d ..d.'), TEK = dr('..p. ...p ..p. .p.p');
+const DES = [K4, CL, DOUM, TEK];
+const DES_C = [K4, CL, DOUM, TEK, dr('..j. ..j. ..j. ..j.')];
+const DES_FILL = [K4, CL, dr('...d ..d. .... ....'), dr('..p. ...p pp.p pppp')];
+
+// ================================================================ Weltraum ====
+// E-Dur, 132 BPM. Intro E H cis A (Glocken spielen die Hook) | Strophe cis A E H ×2 | Refrain E H cis A | E H A H |
+// Überleitung cis A E H.
+const spProg = ['E', 'B', 'C#m', 'A', ...rep(2, ['C#m', 'A', 'E', 'B']).flat(), 'E', 'B', 'C#m', 'A', 'E', 'B', 'A', 'B', 'C#m', 'A', 'E', 'B'];
+// Hook: Aufschwung zum langen Ton, sanfter Abstieg („schwerelos“)
+const spHook = ['E5:2 F#5:2 G#5:6 B5:2 G#5:2 F#5:2', 'F#5:2 G#5:2 F#5:4 D#5:4 B4:4', 'E5:2 F#5:2 G#5:6 C#6:2 B5:2 G#5:2', 'A5:4 G#5:2 F#5:2 E5:8'];
+const spChorus = [...spHook, spHook[0], spHook[1], 'A5:2 B5:2 C#6:6 B5:2 A5:2 G#5:2', 'F#5:4 G#5:2 A5:2 B5:8'];
+const spV = ['C#5:3 B4:1 C#5:2 E5:2 -:2 C#5:2 B4:2 G#4:2', 'A4:3 G#4:1 A4:2 C#5:2 -:2 E5:2 C#5:2 A4:2', 'G#4:3 F#4:1 G#4:2 B4:2 -:2 E5:2 D#5:2 B4:2'];
+const spVerse = [...spV, 'D#5:6 C#5:2 B4:4 F#4:4', ...spV, 'B4:2 C#5:2 D#5:2 E5:2 F#5:4 -:2 D#5:2'];
+const spBridge = ['G#5:8 E5:8', 'A5:8 C#6:8', 'B5:8 G#5:8', 'F#5:12 -:4'];
+const spSpark = (c) => pat(voicing(c, 'E5').split('+'), '0.1. 2.1. 0.1. 2.1.');
+const SPACE = [K4, CL, H8O];
+const SPACE_C = [K4, CL, HH];
+
+// ================================================================ Schattenspiel ====
+// g-Moll, 134 BPM. Intro g c F B | Strophe g Es F D ×2 | Refrain g c F B | g c D D | Überleitung Es F g D.
+// Hook auf Zehenspitzen: „tipp . tipp . tapp tapp“, dieselbe Figur tiefer als Antwort; der „Schatten“ ist ein Echo
+// (punktierte Achtel) auf dem gedämpften Lead.
+const shProg = ['Gm', 'Cm', 'F', 'Bb', ...rep(2, ['Gm', 'Eb', 'F', 'D']).flat(), 'Gm', 'Cm', 'F', 'Bb', 'Gm', 'Cm', 'D', 'D', 'Eb', 'F', 'Gm', 'D'];
+const shHook = [
+  'G5:1 -:1 G5:1 -:1 F5:2 D5:2 Bb4:1 -:1 Bb4:1 -:1 C5:2 D5:2', 'Eb5:1 -:1 Eb5:1 -:1 D5:2 C5:2 G4:1 -:1 G4:1 -:1 A4:2 Bb4:2',
+  'F5:1 -:1 F5:1 -:1 Eb5:2 C5:2 A4:1 -:1 A4:1 -:1 Bb4:2 C5:2', 'D5:3 C5:1 Bb4:2 D5:2 F5:6 -:2',
 ];
+const shChorus = [...shHook, shHook[0], shHook[1], 'F#5:1 -:1 F#5:1 -:1 G5:2 A5:2 D5:1 -:1 D5:1 -:1 C5:2 A4:2', 'D5:4 A4:4 F#4:4 -:2 G4:1 A4:1'];
+const shV = ['D5:4 Bb4:2 G4:2 A4:2 Bb4:2 C5:2 D5:2', 'Eb5:4 D5:2 C5:2 Bb4:4 G4:4', 'C5:4 A4:2 F4:2 G4:2 A4:2 Bb4:2 C5:2'];
+const shVerse = [...shV, 'D5:4 C5:2 A4:2 F#4:8', ...shV, 'A4:2 C5:2 D5:2 F#5:2 A5:4 -:2 F#5:2'];
+const shBridge = ['Bb4:6 C5:2 Eb5:8', 'C5:6 D5:2 F5:8', 'D5:6 F5:2 G5:8', 'F#5:8 A5:4 -:4'];
 const SHADOW = [K4, CL, H8O];
 
-// ---------------------------------------------------------------- Rollhügel ----
-// F-Dur, hüpfend: punktierte Hoover-Hook mit Oktavsprüngen, Tom-Rollen am Phrasenende, Glockenspiel.
-const hF = 'A3+C4+F4', hC = 'G3+C4+E4', hDm = 'A3+D4+F4', hBb = 'Bb3+D4+F4';
-const hFH = 'A4+C5+F5', hCH = 'G4+C5+E5', hDmH = 'A4+D5+F5', hBbH = 'Bb4+D5+F5';
-const offPush = (ch) => hit(ch, '..x_ ..x_ ..x_ .xx_');
+// ================================================================ Rollhügel ====
+// F-Dur, 144 BPM. Intro F C d B (Glockenspiel spielt die Hook) | Strophe d B F C ×2 | Refrain F C d B | F C B C |
+// Überleitung B C d C. Hüpfende, punktierte Hook; Tom-Rollen am Phrasenende („rollende Hügel“).
+const hiProg = ['F', 'C', 'Dm', 'Bb', ...rep(2, ['Dm', 'Bb', 'F', 'C']).flat(), 'F', 'C', 'Dm', 'Bb', 'F', 'C', 'Bb', 'C', 'Bb', 'C', 'Dm', 'C'];
+const hiHook = ['C5:3 F5:1 -:2 F5:2 G5:3 A5:1 -:2 F5:2', 'G5:3 E5:1 -:2 C5:2 D5:3 E5:1 -:2 C5:2', 'A5:3 F5:1 -:2 D5:2 E5:3 F5:1 -:2 A5:2', 'Bb5:3 A5:1 G5:2 F5:2 D5:4 -:2 C5:2'];
+const hiChorus = [...hiHook, hiHook[0], hiHook[1], 'D5:3 F5:1 -:2 Bb5:2 A5:3 G5:1 -:2 F5:2', 'G5:3 A5:1 G5:2 E5:2 C5:6 -:2'];
+const hiV = ['D5:2 E5:2 F5:2 E5:2 D5:4 A4:4', 'Bb4:2 C5:2 D5:2 C5:2 Bb4:4 F4:4', 'C5:2 D5:2 E5:2 F5:2 G5:4 A5:4'];
+const hiVerse = [...hiV, 'G5:6 F5:2 E5:4 C5:4', ...hiV, 'E5:2 F5:2 G5:2 A5:2 Bb5:4 G5:4'];
+const hiBridge = ['F5:6 D5:2 Bb4:8', 'G5:6 E5:2 C5:8', 'A5:6 F5:2 D5:8', 'G5:6 A5:2 Bb5:4 C6:4'];
 const ROLL = (fill) => [K4, CL, dr('hhoh hhoh hhoh hh..'), dr(fill)];
 
-// ---------------------------------------------------------------- Spiegelfrucht ----
-// A-Dur, Kanon über einer zweitaktigen Harmonie (A E/Gis | fis D E): vier zweitaktige Phrasen, die
-// zueinander passen; jede neue Stimme ist ein „Klon“, der zwei Takte später dieselbe Folge spielt.
-const P1 = [mel('C#5 B4', 'x___ ____ x___ ____'), mel('A4 F#4 G#4', 'x___ ____ x___ x___')];
-const P2 = [mel('E5 C#5 B4 E5', 'x___ x___ x___ x___'), mel('C#5 A4 F#5 E5', 'x___ x___ x___ x___')];
-const P3 = [mel('A5 G#5 A5 E5 G#5 F#5 E5 B4', 'x_x_ x_x_ x_x_ x_x_'), mel('C#5 E5 A5 F#5 D5 F#5 E5 G#5', 'x_x_ x_x_ x_x_ x_x_')];
-const P4 = [mel('C#6 B5 A5 B5 C#6 E6 B5 A5 G#5 A5 B5 E5', 'xxxx x_x_ xxxx x_x_'), mel('A5 G#5 F#5 G#5 A5 C#6 D6 C#6 B5 A5 G#5 B5', 'xxxx x_x_ xxxx x_x_')];
-const canon = [...P1, ...P2, ...P3, ...P4, ...P1, ...P2, ...P3, ...P4];
-const chBassA = mel('A1 A2 A1 A2 G#1 G#2 G#1 G#2', 'x_x_ x_x_ x_x_ x_x_');
-const chBassB = mel('F#1 F#2 F#1 F#2 D2 D3 E2 E3', 'x_x_ x_x_ x_x_ x_x_');
+// ================================================================ Spiegelfrucht ====
+// A-Dur, 138 BPM. Intro D E cis fis | Strophe A fis D E ×2 | Refrain D E cis fis | D E A A (IV–V–iii–vi) |
+// Überleitung fis D E E: der Lead singt, das Glockenspiel antwortet als „Klon“ mit derselben Phrase.
+const chProg = ['D', 'E', 'C#m', 'F#m', ...rep(2, ['A', 'F#m', 'D', 'E']).flat(), 'D', 'E', 'C#m', 'F#m', 'D', 'E', 'A', 'A', 'F#m', 'D', 'E', 'E'];
+const chHook = ['F#5:1 A5:1 D6:2 C#6:2 A5:2 -:2 B5:2 A5:2 F#5:2', 'E5:1 G#5:1 B5:2 A5:2 G#5:2 -:2 A5:2 G#5:2 E5:2',
+  'C#5:1 E5:1 G#5:2 B5:2 C#6:2 -:2 B5:2 G#5:2 E5:2', 'F#5:1 A5:1 C#6:2 B5:2 A5:2 G#5:2 F#5:2 E5:4'];
+const chChorus = [...chHook, chHook[0], chHook[1], 'C#6:1 D6:1 E6:2 C#6:2 A5:2 -:2 B5:2 C#6:2 A5:2', 'A5:8 E5:4 C#5:4'];
+const chV = ['C#5:2 E5:2 A5:2 G#5:2 A5:4 E5:4', 'C#5:2 F#5:2 A5:2 G#5:2 F#5:4 C#5:4', 'D5:2 F#5:2 A5:2 B5:2 A5:2 F#5:2 D5:2 F#5:2'];
+const chVerse = [...chV, 'E5:4 G#5:4 B5:6 -:2', ...chV, 'B5:4 G#5:2 E5:2 F#5:2 G#5:2 A5:2 -:2'];
+const chCall = ['C#6:4 A5:4 F#5:8', 'B5:4 G#5:4 E5:8'];
 
-// ---------------------------------------------------------------- Panzerzug ----
-// f-Moll, Marsch: punktierte Hoover-Melodie, harte Blech-Stabs, Marschtrommel-Rudimente auf der Snare.
-const tFm = 'F3+Ab3+C4+F4', tDb = 'F3+Ab3+Db4+F4', tEb = 'G3+Bb3+Eb4+G4', tC = 'G3+C4+E4+G4', tBbm = 'F3+Bb3+Db4+F4', tAb = 'Ab3+C4+Eb4+Ab4';
-const march = (ch) => hit(ch, 'x__x x... x__x x.x.');
-const marchHard = (ch) => hit(ch, 'x.xx .x.x x.xx .xxx');
-const MARCH = [K4, CL, HUP, dr('s..s s.s. s..s ss.s')];
+// ================================================================ Panzerzug ====
+// f-Moll, 140 BPM. Intro f Des As Es (Blech-Stabs im Hook-Rhythmus, Marschtrommel) | Strophe f b Es As | f b Es C |
+// Refrain f Des As Es | f Des Es C | Überleitung Des Es f C. Punktierte Marsch-Hook.
+const taProg = ['Fm', 'Db', 'Ab', 'Eb', 'Fm', 'Bbm', 'Eb', 'Ab', 'Fm', 'Bbm', 'Eb', 'C', 'Fm', 'Db', 'Ab', 'Eb', 'Fm', 'Db', 'Eb', 'C', 'Db', 'Eb', 'Fm', 'C'];
+const taHook = ['C5:2 F5:2 F5:3 G5:1 Ab5:4 G5:2 F5:2', 'Ab5:2 F5:2 Db5:3 Eb5:1 F5:4 Eb5:2 Db5:2', 'Eb5:2 Ab5:2 Ab5:3 Bb5:1 C6:4 Bb5:2 Ab5:2', 'Bb5:3 G5:1 Eb5:2 G5:2 Bb5:4 -:4'];
+const taChorus = [...taHook, taHook[0], taHook[1], 'Eb5:2 G5:2 G5:3 Ab5:1 Bb5:4 Ab5:2 G5:2', 'G5:4 E5:4 C5:4 -:2 C5:1 C5:1'];
+const taV = ['F4:2 Ab4:2 C5:4 Bb4:2 Ab4:2 F4:4', 'F4:2 Bb4:2 Db5:4 C5:2 Bb4:2 F4:4', 'G4:2 Bb4:2 Eb5:4 F5:2 Eb5:2 Bb4:4'];
+const taVerse = [...taV, 'Eb5:3 Db5:1 C5:2 Bb4:2 Ab4:4 -:4', ...taV, 'C5:2 E5:2 G5:4 F5:2 E5:2 C5:4'];
+const taBridge = ['Ab5:8 F5:8', 'Bb5:8 G5:8', 'C6:8 Ab5:8', 'G5:4 E5:4 C5:8'];
+const MARCH = [K4, CL, dr('..h. ..h. ..h. ..h.'), dr('s..s s.s. s..s ss.s')];
+const MARCH_C = [K4, CL, HH, dr('.... s... .... s...')]; // Refrain: Snare zum Clap auf 2 und 4
 
-// ---------------------------------------------------------------- Prüfungs-Haus ----
-// b-Moll, 4 Takte, hektisch: Uhr-Ticken (Tick/Tack in Achteln), Sägezahn-Ostinato, Alarm-Hoover.
-const hoBbm = 'F3+Bb3+Db4', hoGb = 'Gb3+Bb3+Db4', hoEbm = 'Gb3+Bb3+Eb4', hoF = 'F3+A3+C4+Eb4';
+// ================================================================ Prüfungs-Haus ====
+// d-Moll, 172 BPM, 8 Takte (ein Raum = 10 s): d B C A | d B g A – rennende Achtel-Melodie über Uhr-Ticken.
+const hoProg = ['Dm', 'Bb', 'C', 'A', 'Dm', 'Bb', 'Gm', 'A'];
+const hoLead = [
+  'D5:2 E5:2 F5:2 D5:2 A5:4 G5:2 F5:2', 'D5:2 E5:2 F5:2 G5:2 Bb5:4 A5:2 G5:2', 'E5:2 F5:2 G5:2 A5:2 C6:4 Bb5:2 A5:2', 'C#6:2 Bb5:2 A5:2 G5:2 F5:2 E5:2 C#5:2 E5:2',
+  'D5:2 E5:2 F5:2 D5:2 A5:4 G5:2 F5:2', 'D5:2 E5:2 F5:2 G5:2 Bb5:4 A5:2 G5:2', 'Bb5:2 A5:2 G5:2 D5:2 Bb4:2 D5:2 G5:2 Bb5:2', 'A5:4 E5:2 C#5:2 A4:4 -:4',
+];
 const TICK = dr('x.x. x.x. x.x. x.x.');
 
-// ---------------------------------------------------------------- Karte Welt 2 ----
-// G-Dur mit einem Hauch Wüste (As-Dur als phrygische bII), leise Darbuka.
-const W2MAP = [KH, CL, dr('...d .... ...d ....'), dr('..p. ..p. ..p. .pp.'), H8O];
+// ================================================================ Karte Welt 2 ====
+// G-Dur, 128 BPM, 16 Takte, ruhige Eurodance-Ballade: Strophe G D e C | G D C D (Piano-Melodie) |
+// Refrain e C G D | e C a D (weicher Lead). Kick auf 1 und 3, leise Darbuka.
+const m2Prog = ['G', 'D/F#', 'Em', 'C', 'G', 'D', 'C', 'D', 'Em', 'C', 'G', 'D', 'Em', 'C', 'Am', 'D'];
+const m2Piano = [
+  'B4:2 D5:2 G5:4 F#5:2 E5:2 D5:4', 'A4:2 D5:2 F#5:4 E5:2 D5:2 A4:4', 'B4:2 E5:2 G5:4 F#5:2 E5:2 B4:4', 'C5:2 E5:2 G5:4 A5:2 G5:2 E5:4',
+  'B4:2 D5:2 G5:4 F#5:2 E5:2 D5:4', 'A4:2 D5:2 F#5:4 A5:2 G5:2 F#5:4', 'G5:2 E5:2 C5:4 E5:2 D5:2 C5:4', 'D5:4 E5:2 F#5:2 A5:8',
+];
+const m2Lead = ['B5:6 A5:2 G5:4 E5:4', 'G5:6 F#5:2 E5:4 C5:4', 'D5:2 G5:2 B5:4 A5:2 G5:2 D5:4', 'F#5:6 E5:2 D5:4 A4:4',
+  'B5:6 A5:2 G5:4 E5:4', 'G5:6 F#5:2 E5:4 C5:4', 'C5:2 E5:2 A5:4 G5:2 E5:2 C5:4', 'D5:4 F#5:4 A5:8'];
+const W2MAP = [KH, CL, dr('d... .... d... ....'), dr('..p. ..p. ..p. .pp.'), H8O];
 
 export const WORLD2_THEMES = {
-  // Wüstenschlucht (2-1): 136 BPM, D-Hidschas (orientalisch: kleine Sekunde Es und übermäßige Sekunde Es–Fis), 16 Takte.
-  // Form: 4 Takte Darbuka-Groove (Doum/Tek zwischen der Four-on-the-floor-Kick) über liegendem D–A-Bordun,
-  //       Oud-artiger Sägezahn-Pluck mit Ruf-Motiv (D Es D C–D) und Hidschas-Bass-Riff | 8 Takte
-  //       Schlangenbeschwörer-Hoover (D Es D c–D | D Es g D), Stabs auf 2+ und 4+ | 4 Takte Stabs in
-  //       Synkopen über Es D c D, Ruf-Motiv kehrt zurück, Darbuka-Wirbel und Riser in den Loop.
+  // Wüstenschlucht (2-1): 136 BPM, h-Moll, 24 Takte. Intro: das Piano spielt die Refrain-Hook eine Oktave tiefer
+  // über Stabs und Oktav-Pump | Strophe (Hm A G Fis, andalusische Kadenz): Lead in der Mittellage, eine Oud-artige
+  // Sägezahn-Zupfe spielt gebrochene Akkorde auf der „und“ | Refrain (Hm G D A | Hm G Em Fis): Hook im
+  // 3-3-2-Rhythmus, Stabs auf 2+ und 4+, Rave-Piano 3-3-2, Schellenkranz | Überleitung: lange Lead-Töne, Riser.
+  // Wüstenfarbe nur über Darbuka (Doum/Tek statt Hi-Hats), Oud-Zupfe und Schellen.
   course_desert: {
     bpm: 136,
     voice: {
-      lead: { cutoff: 4200 },
-      arp: { type: 'sawtooth', volume: 0.06, decay: 0.13 },
-      pad: { volume: 0.05, bright: 0.8 },
+      lead: { ...SYNTH, cutoff: 4200, volume: 0.16 },
+      piano: { volume: 0.1 },
+      arp: { type: 'sawtooth', volume: 0.055, decay: 0.13 },
+      stabs: { volume: 0.12 },
+      pad: { volume: 0.045, bright: 0.8 },
       bass: { cutoff: 760 },
-      stabs: { volume: 0.13 },
       riser: { volume: 0.08 },
     },
-    kit: { doum: { volume: 0.34, freq: 98 }, tek: { volume: 0.2, off: 0.75 }, jingle: { volume: 0.26, off: 0.2 }, clap: { volume: 0.32 } },
+    kit: { doum: { volume: 0.34, freq: 98 }, tek: { volume: 0.2, off: 0.75 }, jingle: { volume: 0.2, off: 0.14 }, clap: { volume: 0.32 } },
     fx: {
-      lowpass: { arp: 2800 },
-      delay: { steps: 3, feedback: 0.35, lowpass: 2400, wet: 0.35, send: { arp: 0.5, lead: 0.25, tek: 0.15 } },
+      lowpass: { arp: 2600 },
+      delay: { steps: 3, feedback: 0.3, lowpass: 2500, wet: 0.3, send: { arp: 0.45, lead: 0.2, tek: 0.15 } },
     },
-    arp: [callD, callEb, callD, callEnd, ...rest(8), callEb, callD, callCm, callEnd],
-    lead: [
-      ...rest(4),
-      mel('D5 Eb5 F#5 G5 F#5 Eb5 D5 A4 C5', 'x_xx x_xx x___ ..xx'),
-      mel('Eb5 D5 Eb5 F#5 G5 F#5 Eb5', 'x__x x_x_ x___ x_x_'),
-      mel('A5 Bb5 A5 G5 F#5 G5 A5 F#5 G5', 'x_xx x_x_ x_x_ ..xx'),
-      mel('A5 G5 F#5 Eb5 D5', 'x__x x_x_ x___ ___.'),
-      mel('D5 Eb5 F#5 G5 F#5 Eb5 D5 A4 C5', 'x_xx x_xx x___ ..xx'),
-      mel('Eb5 D5 Eb5 F#5 A5 Bb5 A5', 'x__x x_x_ x___ x_x_'),
-      mel('Bb5 A5 G5 F#5 G5 A5 Bb5 A5', 'x__x x_x_ x_x_ x_x_'),
-      mel('F#5 Eb5 D5 C5 D5', 'x_x_ x_x_ x___ ___.'),
-      ...rest(4),
-    ],
-    stabs: [
-      ...rest(4),
-      ...[dD, dEb, dD].map((c) => hit(c, '.... ..x_ .... ..x_')), mel(`${dCm} ${dD}`, '.... ..x_ .... ..x_'),
-      ...[dD, dEb, dGm, dD].map((c) => hit(c, '.... ..x_ .... ..x_')),
-      ...[dEb, dD, dCm].map((c) => hit(c, 'x..x ..x. .x.. x.x.')), hit(dD, 'x..x ..x. .... ....'),
-    ],
-    pad: [
-      ...rep(4, 'D3+A3:16'),
-      'D3+F#3+A3:16', 'Eb3+G3+Bb3:16', 'D3+F#3+A3:16', 'C3+Eb3+G3:8 D3+F#3+A3:8',
-      'D3+F#3+A3:16', 'Eb3+G3+Bb3:16', 'D3+G3+Bb3:16', 'D3+F#3+A3:16',
-      'Eb3+G3+Bb3:16', 'D3+F#3+A3:16', 'C3+Eb3+G3:16', 'D3+A3:16',
-    ],
-    riser: [...rest(15), 'A3:16'],
-    bass: [
-      desBass.D, desBass.Eb, desBass.D, desBass.CmD,
-      desBass.D, desBass.Eb, desBass.D, desBass.CmD,
-      desBass.D, desBass.Eb, desBass.Gm, desBass.D,
-      desBass.Eb, desBass.D, desBass.Cm, mel('D2 D3 D2 Eb2', 'x_xx ..x_ .... ....'),
-    ],
+    lead: [...rest(4), ...desVerse, ...desChorus, ...desBridge],
+    piano: bySection(desProg, SONG, {
+      intro: (c, i) => octaves(tr(desHook, -12))[i],
+      chorus: (c) => chordBar(c, P332, 'F#4'),
+      bridge: (c) => chordBar(c, LONG, 'F#4'),
+    }),
+    arp: bySection(desProg, SONG, { verse: (c) => pat(voicing(c, 'F#4').split('+'), '..0. ..1. ..2. ..1.') }),
+    stabs: bySection(desProg, SONG, { intro: (c) => chordBar(c, '...x ..x_ ...x ....'), chorus: (c) => chordBar(c, ST24) }),
+    pad: bySection(desProg, SONG, { verse: (c) => padBar(c, 'D3'), chorus: (c) => padBar(c, 'D3'), bridge: (c) => padBar(c, 'D3') }),
+    riser: [...rest(23), 'F#3:16'],
+    bass: bySection(desProg, SONG, {
+      intro: (c) => bassBar(c, B_PUMP),
+      verse: (c) => bassBar(c, B_BOUNCE),
+      chorus: (c) => bassBar(c, B_PUMP),
+      bridge: (c, i) => bassBar(c, i < 3 ? B_HALF : 'L_H_ L_H_ ____ ____'),
+    }),
     drums: [
-      [...DARB, CR], DARB, DARB, DARB_FILL,
-      [...DARB, CR], DARB, DARB, DARB_FILL,
-      [...DARB, CR], DARB, DARB, DARB_FILL,
-      [...DARB, CR], DARB, DARB, [K4, dr('.... c... .... ....'), dr('pppp pppp pppp pppp')],
+      ...groove(4, DES, DES_FILL), ...groove(4, DES, DES_FILL), ...groove(4, DES, DES_FILL, false),
+      ...groove(4, DES_C, DES_FILL), ...groove(4, DES_C, DES_FILL, false),
+      [K4, CL, DOUM, CR], [K4, CL, DOUM], [K4, CL, DOUM, TEK], [K4, dr('.... c... .... ....'), dr('.... .... ssss ssss')],
     ],
   },
 
-  // Weltraum (2-2): 124 BPM, E-Lydisch (schwebend), 16 Takte, halbes Tempo-Gefühl (Kick auf 1 und 3).
-  // Form: 4 Takte Pads (Emaj7 Fis/E – die lydische Quarte Ais leuchtet) mit Sinus-Arpeggien im langen Hall |
-  //       4 Takte Glocken-Melodie in großen Sprüngen (cis9 gis7 Amaj7 Hsus–H) | 4 Takte Glocken und Arpeggien
-  //       über Emaj7 Fis/E | 4 Takte gefilterter Hoover in langen Tönen, Riser in den Loop.
-  //       Hall: zwei Abgriffe (punktierte Achtel und Halbe), lange Rückkopplung.
+  // Weltraum (2-2): 132 BPM, E-Dur, 24 Takte. Intro: Glocken spielen die Hook über E H cis A | Strophe (cis A E H):
+  // Lead in der Mittellage, Piano auf der „und“ | Refrain (E H cis A | E H A H, I–V–vi–IV): Hook mit Aufschwung
+  // zum langen Ton, leise Dreieck-Arpeggien und Glocken-Hall im Hintergrund | Überleitung: lange, hohe Lead-Töne.
+  // Weltraumfarbe über Glocken, Arpeggien und den langen Hall (punktierte Achtel + punktierte Viertel).
   course_space: {
-    bpm: 124,
+    bpm: 132,
     voice: {
-      arp: { type: 'triangle', volume: 0.07, decay: 0.16 },
-      bell: { volume: 0.075, decay: 0.8, ratio: 2.76, partial: 0.35 },
-      pad: { volume: 0.06, bright: 1.2 },
-      lead: { cutoff: 1900, voices: 3, volume: 0.15 },
-      bass: { cutoff: 520, volume: 0.22 },
+      lead: { ...SYNTH, cutoff: 4000, volume: 0.16 },
+      bell: { volume: 0.1, decay: 0.7, ratio: 2.76, partial: 0.3 },
+      arp: { type: 'triangle', volume: 0.06, decay: 0.14 },
+      piano: { volume: 0.095, cutoff: 4200 },
+      pad: { volume: 0.055, bright: 1.2 },
+      stabs: { volume: 0.11 },
+      bass: { cutoff: 700 },
       riser: { volume: 0.07 },
     },
-    kit: { kick: { pitchStart: 130, click: 0.12, volume: 0.55 }, clap: { volume: 0.3 }, hat: { volume: 0.26, off: 0.18 }, open: { volume: 0.18 } },
-    fx: {
-      lowpass: { lead: 2400 },
-      delay: { steps: [6, 8], feedback: 0.55, lowpass: 3200, wet: 0.5, send: { arp: 0.55, bell: 0.7, pad: 0.2, clap: 0.35, lead: 0.3 } },
-    },
-    arp: [
-      sparkle(spArp.E), sparkle(spArp.Fs), sparkle(spArp.E), sparkle(spArp.Fs),
-      ...rest(4),
-      sparkle(spArp.E), sparkle(spArp.Fs), sparkle(spArp.E), sparkle(spArp.Fs),
-      sparkle(spArp.Cs), sparkle(spArp.Gs), sparkle(spArp.A), pat(spArp.B, '0123 2103 1230 ....'),
-    ],
-    bell: [
-      ...rest(4),
-      mel('G#5 D#6 E6 C#6', 'x___ x___ x_x_ ____'),
-      mel('B5 F#6 D#6', 'x___ x___ x___ ____'),
-      mel('C#6 E6 G#6 E6', 'x___ x___ x_x_ ____'),
-      mel('F#6 E6 D#6', 'x___ ____ x___ x___'),
-      mel('G#6 F#6 E6 D#6 B5', 'x___ x_x_ x___ x___'),
-      mel('A#5 C#6 F#6 E6', 'x___ x___ x_x_ ____'),
-      mel('D#6 B5 G#5 B5', 'x___ x___ x_x_ ____'),
-      mel('C#6 A#5 F#5', 'x___ ____ x___ x___'),
-      ...rest(4),
-    ],
-    lead: [...rest(12), 'E5:16', 'D#5:16', 'C#5:8 E5:8', 'F#5:8 D#5:8'],
-    pad: [...spPad, ...spPad],
-    riser: [...rest(15), 'B3:16'],
-    bass: [
-      spBass.E, spBass.E, spBass.E, spBass.E, spBass.Cs, spBass.Gs, spBass.A, spBass.B,
-      spBass.E, spBass.E, spBass.E, spBass.E, spBass.Cs, spBass.Gs, spBass.A, mel('B1 B1', 'x___ __.. x___ __..'),
-    ],
+    kit: { clap: { volume: 0.32 }, hat: { volume: 0.26, off: 0.17 }, open: { volume: 0.18 } },
+    fx: { delay: { steps: [3, 6], feedback: 0.45, lowpass: 3200, wet: 0.4, send: { bell: 0.6, arp: 0.5, lead: 0.22, pad: 0.2, clap: 0.2 } } },
+    lead: [...rest(4), ...spVerse, ...spChorus, ...spBridge],
+    bell: [...tr(spHook, 12), ...rest(20)],
+    arp: bySection(spProg, SONG, { chorus: spSpark, bridge: spSpark }),
+    piano: bySection(spProg, SONG, { intro: (c) => chordBar(c, OFF, 'G#4'), verse: (c) => chordBar(c, OFF, 'G#4'), chorus: (c) => chordBar(c, P332, 'G#4') }),
+    stabs: bySection(spProg, SONG, { chorus: (c) => chordBar(c, ST24) }),
+    pad: bySection(spProg, SONG, { intro: (c) => padBar(c), verse: (c) => padBar(c), chorus: (c) => padBar(c), bridge: (c) => padBar(c) }),
+    riser: [...rest(23), 'B3:16'],
+    bass: bySection(spProg, SONG, {
+      intro: (c) => bassBar(c, B_HALF),
+      verse: (c) => bassBar(c, B_BOUNCE),
+      chorus: (c) => bassBar(c, B_PUMP),
+      bridge: (c, i) => bassBar(c, i < 3 ? B_HALF : 'L_H_ L_H_ ____ ____'),
+    }),
     drums: [
-      [...SPACE, CR], SPACE, SPACE, SPACE, [...SPACE, CR], SPACE, SPACE, [KH, CL, dr('h.h. h.h. hhhh hhhh')],
-      [...SPACE, CR], SPACE, SPACE, SPACE, [...SPACE, CR], SPACE, SPACE, [KH, dr('.... .... .... ....'), dr('h.h. h.h. h.h. o...')],
+      ...groove(4, SPACE, [K4, CL, dr('h.h. h.h. hhhh hhhh')]), ...groove(4, SPACE, [K4, CL, H8O, dr('.... .... .... .ttt')]),
+      ...groove(4, SPACE, [K4, CL, dr('h.h. h.h. h.h. ....'), dr('.... .... .... ssss')], false),
+      ...groove(4, SPACE_C, [K4, CL, HH, dr('.... .... .... .ttt')]), ...groove(4, SPACE_C, [K4, CL, dr('hhoh hhoh hhoh ....'), dr('.... .... .... tttt')], false),
+      [KH, CL, H8O, CR], [KH, CL, H8O], [K4, CL, H8O], [K4, dr('.... c... .... ....'), dr('.... .... ssss ssss')],
     ],
   },
 
-  // Schattenspiel (2-3, unterirdisch): 126 BPM, g-Moll, 16 Takte, gedämpft.
-  // Form: 4 Takte Pizzicato-Ostinato (kurze Dreieck-Plucks, g g Es D) über gestoßenem Lauf-Bass, weicher Kick |
-  //       4 Takte Pizzicato-Melodie auf Zehenspitzen (g c Es D) mit ihrem Schatten eine Achtel später |
-  //       4 Takte gedämpfter Hoover (Tiefpass ~1,3 kHz) mit Schatten (c g As=bII D7) | 4 Takte Ostinato,
-  //       gedämpfte Offbeat-Stabs (g Es c D), Tom-Fill.
+  // Schattenspiel (2-3, unterirdisch): 134 BPM, g-Moll, 24 Takte. Intro: das Piano spielt die Hook staccato eine
+  // Oktave tiefer | Strophe (g Es F D): Lead in der Mittellage, Pizzicato-Zupfer auf der „und“ | Refrain (g c F B |
+  // g c D D, i–iv–VII–III): Hook auf Zehenspitzen mit „Schatten“ (Echo eine punktierte Achtel später) | Überleitung
+  // (Es F g D): aufsteigende lange Töne. Gedämpfte Klangfarben (Tiefpass), die Melodie bleibt vorn.
   course_shadow: {
-    bpm: 126,
+    bpm: 134,
     voice: {
-      arp: { type: 'triangle', volume: 0.11, decay: 0.07 },
-      echo: { type: 'triangle', volume: 0.05, decay: 0.07 },
-      lead: { cutoff: 1300, voices: 3, volume: 0.17, q: 2 },
-      bass: { cutoff: 520, volume: 0.22 },
-      pad: { volume: 0.045, bright: 0.6 },
-      stabs: { volume: 0.12, cutoff: 2600, cutoffEnd: 900 },
+      lead: { ...SYNTH, cutoff: 2600, volume: 0.18, q: 2 },
+      piano: { volume: 0.11, cutoff: 3200, cutoffEnd: 1100 },
+      arp: { type: 'triangle', volume: 0.09, decay: 0.07 },
+      stabs: { volume: 0.12, cutoff: 3000, cutoffEnd: 900 },
+      pad: { volume: 0.045, bright: 0.65 },
+      bass: { cutoff: 600, volume: 0.2 },
+      riser: { volume: 0.07 },
     },
-    kit: {
-      kick: { pitchStart: 110, pitchEnd: 44, click: 0.05, volume: 0.5, decay: 0.28 },
-      clap: { volume: 0.22 },
-      hat: { volume: 0.22, off: 0.14 },
-      open: { volume: 0.15 },
-      tom: { freq: 130, volume: 0.32 },
-    },
+    kit: { kick: { pitchStart: 120, click: 0.1, volume: 0.52 }, clap: { volume: 0.26 }, hat: { volume: 0.24, off: 0.15 }, tom: { freq: 130, volume: 0.32 } },
     fx: {
-      lowpass: { lead: 1300, stabs: 1700, echo: 1800 },
-      delay: { steps: 3, feedback: 0.4, lowpass: 1500, wet: 0.45, send: { arp: 0.25, echo: 0.6, clap: 0.45, lead: 0.3 } },
+      lowpass: { stabs: 1900 },
+      delay: { steps: 3, feedback: 0.3, lowpass: 1800, wet: 0.4, send: { lead: 0.35, arp: 0.3, clap: 0.35 } },
     },
-    arp: [shOst(shGm), shOst(shGm), shOst(shEb), shOst(shD), ...shMelody, ...rest(4), shOst(shGm), shOst(shEb), shOst(shCm), shOst(shD)],
-    echo: [...rest(4), ...shift([...shMelody, ...shLead], 2, false), ...rest(4)],
-    lead: [...rest(8), ...shLead, ...rest(4)],
-    stabs: [...rest(12), ...['G3+Bb3+D4', 'G3+Bb3+Eb4', 'G3+C4+Eb4', 'F#3+A3+D4'].map((c) => hit(c, '..x. ..x. ..x. ..x.'))],
-    pad: [
-      'G2+D3+G3:16', 'G2+D3+Bb3:16', 'G2+Eb3+Bb3:16', 'F#2+D3+A3:16',
-      'G2+D3+Bb3:16', 'G2+C3+Eb3:16', 'G2+Eb3+Bb3:16', 'F#2+D3+A3:16',
-      'G2+C3+Eb3:16', 'G2+D3+Bb3:16', 'Ab2+C3+Eb3:16', 'F#2+C3+D3:16',
-      'G2+D3+Bb3:16', 'G2+Eb3+Bb3:16', 'G2+C3+Eb3:16', 'F#2+D3+A3:16',
-    ],
-    bass: [
-      walk('G1', 'D2', 'Bb1', 'D2'), walk('G1', 'D2', 'Bb1', 'A1'), walk('Eb2', 'Bb1', 'G1', 'Bb1'), walk('D2', 'A1', 'F#1', 'A1'),
-      walk('G1', 'D2', 'Bb1', 'D2'), walk('C2', 'G1', 'Eb2', 'G1'), walk('Eb2', 'Bb1', 'G1', 'Bb1'), walk('D2', 'A1', 'F#1', 'A1'),
-      walk('C2', 'G1', 'Eb2', 'G1'), walk('G1', 'D2', 'Bb1', 'D2'), walk('Ab1', 'Eb2', 'C2', 'Eb2'), walk('D2', 'A1', 'C2', 'F#1'),
-      walk('G1', 'D2', 'Bb1', 'D2'), walk('Eb2', 'Bb1', 'G1', 'Bb1'), walk('C2', 'G1', 'Eb2', 'G1'), mel('D2 A1 D2', 'x_.. x_.. x___ ....'),
-    ],
+    lead: [...rest(4), ...shVerse, ...shChorus, ...shBridge],
+    piano: bySection(shProg, SONG, {
+      intro: (c, i) => octaves(tr(shHook, -12))[i],
+      chorus: (c) => chordBar(c, P332, 'F4'),
+      bridge: (c) => chordBar(c, LONG, 'F4'),
+    }),
+    arp: bySection(shProg, SONG, { verse: (c) => pat(voicing(c, 'G4').split('+'), '..0. ..1. ..2. ..1.') }),
+    stabs: bySection(shProg, SONG, { intro: (c) => chordBar(c, '..x. ..x. ..x. ..x.'), chorus: (c) => chordBar(c, ST24) }),
+    pad: bySection(shProg, SONG, { verse: (c) => padBar(c, 'D3'), chorus: (c) => padBar(c, 'D3'), bridge: (c) => padBar(c, 'D3') }),
+    riser: [...rest(23), 'D4:16'],
+    bass: bySection(shProg, SONG, {
+      intro: (c) => bassBar(c, 'L_.. H_.. L_.. H_..'),
+      verse: (c) => bassBar(c, B_BOUNCE),
+      chorus: (c) => bassBar(c, B_PUMP),
+      bridge: (c, i) => bassBar(c, i < 3 ? B_HALF : 'L_H_ L_H_ ____ ____'),
+    }),
     drums: [
-      [...SHADOW, CR], SHADOW, SHADOW, [K4, CL, dr('h.h. h.h. h.h. ....'), dr('.... .... .... .ttt')],
-      [...SHADOW, CR], SHADOW, SHADOW, [K4, CL, dr('h.h. h.h. h.h. ....'), dr('.... .... .... tttt')],
-      [...SHADOW, CR], SHADOW, SHADOW, [K4, CL, dr('h.h. h.h. h.h. ....'), dr('.... .... .... .ttt')],
-      [...SHADOW, CR], SHADOW, SHADOW, [K4, dr('.... c... .... ....'), dr('h.h. h.h. .... ....'), dr('.... .... ssss ssss')],
+      ...groove(4, SHADOW, [K4, CL, dr('h.h. h.h. h.h. ....'), dr('.... .... .... .ttt')]),
+      ...groove(4, SHADOW, [K4, CL, H8O, dr('.... .... .... tttt')]), ...groove(4, SHADOW, [K4, CL, dr('h.h. h.h. h.h. ....'), dr('.... .... .... .ttt')], false),
+      ...groove(4, [K4, CL, HH], [K4, CL, dr('hhoh hhoh hhoh ....'), dr('.... .... .... tttt')]), ...groove(4, [K4, CL, HH], [K4, CL, dr('hhoh hhoh hh.. ....'), dr('.... .... ..tt tttt')], false),
+      [K4, CL, H8O, CR], [K4, CL, H8O], [K4, CL, H8O], [K4, dr('.... c... .... ....'), dr('.... .... ssss ssss')],
     ],
   },
 
-  // Rollhügel (2-4): 144 BPM, F-Dur, 16 Takte, fröhlich-hüpfend.
-  // Form: 4 Takte Piano-Offbeats mit Schubs, hüpfender Oktav-Bass (F C/E d B) | 8 Takte punktierte Hoover-Hook
-  //       mit Oktavsprüngen (F C/E d B | F C B C), Stabs auf 2+ und 4+, Tom-Rollen am Phrasenende („rollende
-  //       Hügel“) | 4 Takte Rave-Piano 3-3-2 mit Glockenspiel-Gegenstimme (d B F/A–g C), Snare-Wirbel.
+  // Rollhügel (2-4): 144 BPM, F-Dur, 24 Takte, fröhlich-hüpfend. Intro: Glockenspiel spielt die Hook (F C d B) über
+  // Piano-Offbeats | Strophe (d B F C): Lead in Achteln, Piano 3-3-2 | Refrain (F C d B | F C B C): punktierte
+  // Hook („hüpf – hüpf“), Stabs auf 2+ und 4+, Tom-Rollen am Phrasenende | Überleitung: lange Töne, Riser.
   course_hills: {
     bpm: 144,
     voice: {
-      lead: { cutoff: 5000 },
-      piano: { volume: 0.11 },
-      bell: { volume: 0.06, decay: 0.35, ratio: 2.76, partial: 0.4 },
-      stabs: { volume: 0.13 },
+      lead: { ...SYNTH, cutoff: 5000, volume: 0.16 },
+      bass: { volume: 0.16 },
+      piano: { volume: 0.1 },
+      bell: { volume: 0.1, decay: 0.35, ratio: 2.76, partial: 0.4 },
+      stabs: { volume: 0.12 },
+      pad: { volume: 0.045 },
+      riser: { volume: 0.08 },
     },
-    kit: { tom: { freq: 230, volume: 0.36 } },
-    lead: [
-      ...rest(3),
-      mel('F4 G4 A4 Bb4', '.... .... x_x_ x_x_'),
-      mel('C5 F5 A5 G5 F5 C5', 'x__x ..x_ x__x ..x_'),
-      mel('C5 E5 G5 C6 Bb5 A5 G5', 'x__x ..x_ x__x x_x_'),
-      mel('D5 F5 A5 D6 C6 A5 F5', 'x__x ..x_ x__x x_x_'),
-      mel('Bb4 D5 F5 Bb5 A5 G5 F5 G5', 'x__x x_x_ x_x_ x_x_'),
-      mel('C5 F5 A5 G5 F5 C5', 'x__x ..x_ x__x ..x_'),
-      mel('E5 G5 C6 E6 D6 C6 G5', 'x__x ..x_ x__x x_x_'),
-      mel('D5 F5 Bb5 D6 C6 Bb5 F5', 'x__x ..x_ x__x x_x_'),
-      mel('G5 A5 Bb5 C6 C5', 'x___ x_x_ x___ ..x_'),
-      ...rest(4),
-    ],
-    piano: [
-      offPush(hFH), offPush(hCH), offPush(hDmH), offbeat(hBbH),
-      ...rest(8),
-      p332(hDmH), p332(hBbH), mel(`${hFH} ${hFH} ${hFH} ${'Bb4+D5+G5'} ${'Bb4+D5+G5'} ${'Bb4+D5+G5'}`, 'x__x __x_ x__x __x_'), hit(hCH, 'x__x __x_ x___ ____'),
-    ],
-    bell: [...rest(12), mel('A6 F6 D6 F6 A6 C7', 'x.x. x.x. x___ x___'), mel('D7 Bb6 F6 D6', 'x.x. x.x_ ____ ____'), mel('C7 A6 F6 A6 G6 Bb6', 'x.x. x.x. x___ x___'), mel('C7 G6 E6 C6', 'x.x. x.x_ ____ ____')],
-    stabs: [...rest(4), ...[hF, hC, hDm, hBb, hF, hC, hBb, hC].map((c) => hit(c, '.... ..x_ .... ..x_')), ...rest(4)],
-    pad: [
-      'F3+A3+C4:16', 'E3+G3+C4:16', 'D3+F3+A3:16', 'D3+F3+Bb3:16',
-      ...rest(8),
-      'D3+F3+A3:16', 'D3+F3+Bb3:16', 'C3+F3+A3:8 D3+G3+Bb3:8', 'E3+G3+C4:16',
-    ],
-    bass: [
-      bounce('F1', 'F2'), bounce('E1', 'E2'), bounce('D2', 'D3'), bounce('Bb1', 'Bb2'),
-      bounce('F1', 'F2'), bounce('E1', 'E2'), bounce('D2', 'D3'), bounce('Bb1', 'Bb2'),
-      bounce('F1', 'F2'), bounce('C2', 'C3'), bounce('Bb1', 'Bb2'), mel('C2 C3 C2 C3 C2 C3 D2 E2', 'x__x x_x_ x_x_ x_x_'),
-      bounce('D2', 'D3'), bounce('Bb1', 'Bb2'), mel('A1 A2 A1 A2 G1 G2 G1 G2', 'x__x x_x_ x__x x_x_'), mel('C2 C3 C2 C3', 'x__x x_x_ .... ....'),
-    ],
+    kit: { kick: { volume: 0.5 }, clap: { volume: 0.3 }, tom: { freq: 230, volume: 0.36 } },
+    lead: [...rest(4), ...hiVerse, ...hiChorus, ...hiBridge],
+    bell: [...tr(hiHook, 12), ...rest(20)],
+    piano: bySection(hiProg, SONG, { intro: (c) => chordBar(c, '..x_ ..x_ ..x_ .xx_', 'F4'), verse: (c) => chordBar(c, P332, 'F4'), chorus: (c) => chordBar(c, OFF, 'F4'), bridge: (c) => chordBar(c, LONG, 'F4') }),
+    stabs: bySection(hiProg, SONG, { chorus: (c) => chordBar(c, ST24) }),
+    pad: bySection(hiProg, SONG, { verse: (c) => padBar(c), chorus: (c) => padBar(c), bridge: (c) => padBar(c) }),
+    riser: [...rest(23), 'C4:16'],
+    bass: bySection(hiProg, SONG, {
+      intro: (c) => bassBar(c, B_BOUNCE), verse: (c) => bassBar(c, B_BOUNCE), chorus: (c) => bassBar(c, B_BOUNCE),
+      bridge: (c, i) => bassBar(c, i < 3 ? B_HALF : 'L__H L_H_ ____ ____'),
+    }),
     drums: [
-      [K4, CL, HH, CR], [K4, CL, HH], [K4, CL, HH], ROLL('.... .... .... ..tt'),
-      [K4, CL, HH, CR], [K4, CL, HH], [K4, CL, HH], ROLL('.... .... .... tttt'),
-      [K4, CL, HH, CR], [K4, CL, HH], [K4, CL, HH], ROLL('.... .... .... tttt'),
-      [K4, CL, HH, CR], [K4, CL, HH], [K4, CL, HH], [K4, dr('.... c... .... ....'), dr('h.h. h.h. .... ....'), dr('.... .... ssss ssss')],
+      ...groove(4, [K4, CL, HH], ROLL('.... .... .... ..tt')), ...groove(4, [K4, CL, HH], ROLL('.... .... .... tttt')),
+      ...groove(4, [K4, CL, HH], ROLL('.... .... .... tttt'), false), ...groove(4, [K4, CL, HH], ROLL('.... .... t.t. tttt')),
+      ...groove(4, [K4, CL, HH], ROLL('.... .... .... tttt'), false),
+      [K4, CL, H8, CR], [K4, CL, H8], [K4, CL, H8], [K4, dr('.... c... .... ....'), dr('h.h. h.h. .... ....'), dr('.... .... ssss ssss')],
     ],
   },
 
-  // Spiegelfrucht-Pass (2-5, rosa Grasland): 132 BPM, A-Dur, 16 Takte, verspielt – ein Kanon, dessen Stimmen
-  // sich „klonen“: über der zweitaktigen Harmonie A E/Gis | fis D E spielt das Piano vier zueinander passende
-  // Phrasen (Halbe, Viertel, Achtel, Sechzehntel); zwei Takte später setzt das Glockenspiel als Klon eine
-  // Oktave höher mit derselben Folge ein, nach vier Takten die Orgel eine Oktave tiefer; ab Takt 13 singt
-  // der Hoover die Viertel-Phrase dazu. Zum Loop-Anfang verschwinden die Klone wieder.
+  // Spiegelfrucht-Pass (2-5, rosa Grasland): 138 BPM, A-Dur, 24 Takte, verspielt. Intro: das Piano spielt die Hook
+  // (D E cis fis) | Strophe (A fis D E): Lead mit Dreiklang-Aufgängen, Orgel auf der „und“ | Refrain (D E cis fis |
+  // D E A A, IV–V–iii–vi): Hook mit Sechzehntel-Auftakt | Überleitung: der Lead singt eine Phrase, das Glockenspiel
+  // antwortet als „Klon“ mit derselben Phrase (Spiegelfrucht).
   course_cherry: {
-    bpm: 132,
-    voice: {
-      piano: { volume: 0.12, oscs: 1, cutoff: 4500 },
-      bell: { volume: 0.06, decay: 0.4, ratio: 2.76, partial: 0.3 },
-      organ: { volume: 0.04, cutoff: 2400, octave: false, gate: 0.8 },
-      lead: { voices: 3, volume: 0.13, cutoff: 3800 },
-      pad: { volume: 0.04 },
-      stabs: { volume: 0.1 },
-    },
-    kit: { tom: { freq: 240, volume: 0.3 }, hat: { volume: 0.28, off: 0.17 } },
-    fx: { delay: { steps: 3, feedback: 0.25, lowpass: 3500, wet: 0.25, send: { bell: 0.4, piano: 0.2 } } },
-    piano: canon,
-    bell: shift(tr(canon, 12), 32, false),
-    organ: shift(tr(canon, -12), 64, false),
-    lead: [...rest(12), ...P2, ...P2],
-    stabs: [...rest(8), ...rep(2, [mel('A3+C#4+E4 G#3+B3+E4', '.... ..x. .... ..x.'), mel('F#3+A3+C#4 G#3+B3+E4', '.... ..x. .... ..x.')]).flat(),
-      ...rep(2, [mel('A3+C#4+E4 A3+C#4+E4 G#3+B3+E4 G#3+B3+E4', '..x. ..x. ..x. ..x.'), mel('F#3+A3+C#4 F#3+A3+C#4 F#3+A3+D4 G#3+B3+E4', '..x. ..x. ..x. ..x.')]).flat()],
-    pad: rep(8, ['A3+C#4+E4:8 G#3+B3+E4:8', 'F#3+A3+C#4:8 F#3+A3+D4:4 G#3+B3+E4:4']).flat(),
-    bass: rep(8, [chBassA, chBassB]).flat(),
-    drums: [
-      [K4, CL, H8, CR], [K4, CL, H8], [K4, CL, HH], [K4, CL, HH, dr('.... .... .... ..tt')],
-      [K4, CL, HH, CR], [K4, CL, HH], [K4, CL, HH], [K4, CL, HH, dr('.... .... .... tttt')],
-      [K4, CL, HH, CR], [K4, CL, HH], [K4, CL, HH], [K4, CL, HH, dr('.... .... .... .ttt')],
-      [K4, CL, HH, CR], [K4, CL, HH], [K4, CL, HH], [K4, dr('.... c... .... ....'), dr('hhoh hhoh .... ....'), dr('.... .... ssss ssss')],
-    ],
-  },
-
-  // Panzerzug (2-Panzer, Autoscroller + Boss Wirbelbrocken): 138 BPM, f-Moll, 16 Takte, marschierend.
-  // Form: 4 Takte Marsch: harte Vierklang-Stabs im Marschrhythmus (f Des Es C), Marschtrommel-Rudimente |
-  //       8 Takte punktierte Hoover-Marschmelodie (f Des b C | f As Des C), Stabs auf den Vierteln |
-  //       4 Takte Stabs in Sechzehntel-Synkopen (Des Es f C), anschwellender Wirbel und Riser in den Loop.
-  course_tank: {
     bpm: 138,
     voice: {
-      stabs: { volume: 0.16, cutoff: 7000, cutoffEnd: 2000 },
-      lead: { cutoff: 4600 },
+      lead: { ...SYNTH, cutoff: 5200, volume: 0.15 },
+      piano: { volume: 0.1, cutoff: 4500 },
+      bell: { volume: 0.075, decay: 0.45, ratio: 2.76, partial: 0.3 },
+      organ: { volume: 0.035, cutoff: 2600 },
+      stabs: { volume: 0.11 },
+      pad: { volume: 0.045 },
+      riser: { volume: 0.07 },
+    },
+    kit: { tom: { freq: 240, volume: 0.3 }, hat: { volume: 0.28, off: 0.17 } },
+    fx: { delay: { steps: 3, feedback: 0.28, lowpass: 3500, wet: 0.28, send: { bell: 0.45, lead: 0.15 } } },
+    lead: [...rest(4), ...chVerse, ...chChorus, chCall[0], '-:16', chCall[1], '-:16'],
+    bell: [...rest(21), chCall[0], '-:16', chCall[1].replace('E5:8', 'E5:4 -:4')],
+    piano: bySection(chProg, SONG, {
+      intro: (c, i) => octaves(tr(chHook, -12))[i],
+      chorus: (c) => chordBar(c, P332, 'F#4'),
+      bridge: (c) => chordBar(c, LONG, 'F#4'),
+    }),
+    organ: bySection(chProg, SONG, { verse: (c) => chordBar(c, OFF, 'G#4') }),
+    stabs: bySection(chProg, SONG, { intro: (c) => chordBar(c, ST24), chorus: (c) => chordBar(c, ST24) }),
+    pad: bySection(chProg, SONG, { verse: (c) => padBar(c), chorus: (c) => padBar(c), bridge: (c) => padBar(c) }),
+    riser: [...rest(23), 'E4:16'],
+    bass: bySection(chProg, SONG, {
+      intro: (c) => bassBar(c, B_PUMP), verse: (c) => bassBar(c, B_BOUNCE), chorus: (c) => bassBar(c, B_PUMP),
+      bridge: (c, i) => bassBar(c, i < 3 ? B_HALF : 'L_H_ L_H_ ____ ____'),
+    }),
+    drums: [
+      ...groove(4, [K4, CL, H8], [K4, CL, H8, dr('.... .... .... ..tt')]), ...groove(4, [K4, CL, HH], [K4, CL, HH, dr('.... .... .... tttt')]),
+      ...groove(4, [K4, CL, HH], [K4, CL, HH, dr('.... .... .... .ttt')], false), ...groove(4, [K4, CL, HH], [K4, CL, HH, dr('.... .... .... tttt')]),
+      ...groove(4, [K4, CL, HH], [K4, CL, dr('hhoh hhoh hhoh ....'), dr('.... .... .... ssss')], false),
+      [K4, CL, H8, CR], [K4, CL, H8], [K4, CL, H8], [K4, dr('.... c... .... ....'), dr('h.h. h.h. .... ....'), dr('.... .... ssss ssss')],
+    ],
+  },
+
+  // Panzerzug (2-Panzer, Autoscroller + Boss Wirbelbrocken): 140 BPM, f-Moll, 24 Takte, marschierend. Intro:
+  // Blech-Stabs im Rhythmus der Hook, Marschtrommel | Strophe (f b Es As | f b Es C): Lead in Dreiklängen |
+  // Refrain (f Des As Es | f Des Es C, i–VI–III–VII): punktierte Marsch-Hook („ta-ta taaa-ta“), Stabs auf den Vierteln
+  // | Überleitung (Des Es f C): lange Töne über Marschtrommel, Hoover-Riser in den Loop.
+  course_tank: {
+    bpm: 140,
+    voice: {
+      lead: { ...SYNTH, cutoff: 4600, volume: 0.16 },
+      bass: { volume: 0.16 },
+      stabs: { volume: 0.14, cutoff: 6500, cutoffEnd: 1800 },
+      piano: { volume: 0.095 },
+      pad: { volume: 0.045 },
       riser: { volume: 0.09 },
     },
-    kit: { snare: { volume: 0.15 }, tom: { freq: 150, volume: 0.42 }, clap: { volume: 0.34 } },
-    lead: [
-      ...rest(4),
-      mel('C5 C5 F5 Ab5 G5 F5', 'x__x x___ x__x x___'),
-      mel('F5 Eb5 Db5 Ab4 Ab4 Bb4', 'x__x x___ x___ ..xx'),
-      mel('Bb4 Db5 F5 Bb5 Ab5 F5', 'x__x x___ x__x x___'),
-      mel('G5 F5 E5 C5 E5 G5', 'x__x x___ x_x_ x___'),
-      mel('C5 C5 F5 Ab5 G5 F5', 'x__x x___ x__x x___'),
-      mel('C5 Eb5 Ab5 C6 Bb5 Ab5', 'x__x x___ x__x x___'),
-      mel('Ab5 F5 Db5 F5 Ab5 Db6', 'x__x x___ x_x_ x___'),
-      mel('C6 Bb5 G5 E5 G5', 'x___ x_x_ x___ x___'),
-      ...rest(4),
-    ],
-    stabs: [
-      march(tFm), march(tDb), march(tEb), march(tC),
-      ...[tFm, tDb, tBbm, tC, tFm, tAb, tDb, tC].map((c) => hit(c, 'x... x... x... x...')),
-      marchHard(tDb), marchHard(tEb), marchHard(tFm), hit(tC, 'x.xx .x.x .... ....'),
-    ],
-    riser: [...rest(15), 'C4:16'],
-    bass: [
-      pump('F1', 'F2'), pump('Db2', 'Db3'), pump('Eb2', 'Eb3'), pump('C2', 'C3'),
-      pump('F1', 'F2'), pump('Db2', 'Db3'), pump('Bb1', 'Bb2'), pump('C2', 'C3'),
-      pump('F1', 'F2'), pump('Ab1', 'Ab2'), pump('Db2', 'Db3'), pump('C2', 'C3'),
-      gallop('Db2', 'Db3'), gallop('Eb2', 'Eb3'), gallop('F1', 'F2'), mel('C2 C3 C2 C3', 'x.x_ x.x_ .... ....'),
-    ],
+    kit: { kick: { volume: 0.5 }, snare: { volume: 0.13 }, tom: { freq: 150, volume: 0.4 }, clap: { volume: 0.28 } },
+    lead: [...rest(4), ...taVerse, ...taChorus, ...taBridge],
+    stabs: bySection(taProg, SONG, {
+      intro: (c) => chordBar(c, 'x_x_ x__x x___ x_x_', 'F3'),
+      verse: (c) => chordBar(c, '.... x... .... x...', 'F3'),
+      chorus: (c) => chordBar(c, 'x... x... x... x...', 'F3'),
+      bridge: (c) => chordBar(c, 'x__x x... x__x x.x.', 'F3'),
+    }),
+    piano: bySection(taProg, SONG, { verse: (c) => chordBar(c, OFF, 'F4'), chorus: (c) => chordBar(c, OFF, 'F4') }),
+    pad: bySection(taProg, SONG, { verse: (c) => padBar(c), chorus: (c) => padBar(c), bridge: (c) => padBar(c) }),
+    riser: [...rest(23), 'C4:16'],
+    bass: bySection(taProg, SONG, {
+      intro: (c) => bassBar(c, B_GALLOP), verse: (c) => bassBar(c, B_PUMP), chorus: (c) => bassBar(c, B_PUMP),
+      bridge: (c, i) => bassBar(c, i < 3 ? B_GALLOP : 'L.H_ L.H_ .... ....'),
+    }),
     drums: [
-      [...MARCH, CR], MARCH, MARCH, [K4, CL, HUP, dr('s..s s.s. ssss ssss')],
-      [...MARCH, CR], MARCH, MARCH, [K4, CL, HUP, dr('s..s s.s. s.ss ssss')],
-      [...MARCH, CR], MARCH, MARCH, [K4, CL, HUP, dr('s..s s.s. tttt tttt')],
+      ...groove(4, MARCH, [K4, CL, dr('..h. ..h. .... ....'), dr('s..s s.s. ssss ssss')]),
+      ...groove(4, MARCH, [K4, CL, dr('..h. ..h. ..h. ..h.'), dr('s..s s.s. s.ss ssss')]),
+      ...groove(4, MARCH, [K4, CL, dr('..h. ..h. ..h. ..h.'), dr('s..s s.s. tttt tttt')], false),
+      ...groove(4, MARCH_C, [K4, CL, HH, dr('.... s... ssss ssss')]),
+      ...groove(4, MARCH_C, [K4, CL, HH, dr('.... s... tttt tttt')], false),
       [...MARCH, CR], MARCH, [K4, CL, HH, dr('s.s. s.s. s.s. ssss')], [K4, dr('.... c... .... ....'), dr('ssss ssss ssss ssss')],
     ],
   },
 
-  // Prüfungs-Haus (2-Haus, 5 Räume à 10 s): 168 BPM, b-Moll, 4 Takte, kurz und hektisch.
-  // Form: b Ges es F – Uhr-Ticken in Achteln (Tick/Tack), pochendes Sägezahn-Ostinato hinter Tiefpass,
-  //       Alarm-Hoover (kleine Sekunde F–Ges), Stabs in Synkopen, Galopp-Bass; Takt 4 Riser und Wirbel.
+  // Prüfungs-Haus (2-Haus, 5 Räume à 10 s): 172 BPM, d-Moll, 8 Takte – schnell und hektisch, aber mit Melodie:
+  // rennende Achtel-Hook (d B C A | d B g A) über Uhr-Ticken (Tick/Tack in Achteln), Galopp-Bass, Stabs auf der „und“.
   course_house: {
-    bpm: 168,
+    bpm: 172,
     voice: {
-      arp: { type: 'sawtooth', volume: 0.06, decay: 0.06 },
-      lead: { voices: 3, volume: 0.15, cutoff: 4200 },
-      stabs: { volume: 0.13 },
+      lead: { ...SYNTH, voices: 3, cutoff: 4600, volume: 0.19 },
+      stabs: { volume: 0.11 },
+      pad: { volume: 0.04 },
       riser: { volume: 0.07 },
     },
-    kit: { tick: { volume: 0.14 }, hat: { volume: 0.22 }, snare: { volume: 0.22 } },
-    fx: { lowpass: { arp: 2200 } },
-    arp: [
-      pat(['Bb4', 'F5', 'Db5', 'C5'], '0010 2010 0010 3020'),
-      pat(['Bb4', 'Gb5', 'Db5', 'C5'], '0010 2010 0010 3020'),
-      pat(['Bb4', 'Gb5', 'Eb5', 'Db5'], '0010 2010 0010 3020'),
-      pat(['A4', 'F5', 'C5', 'Eb5'], '0010 2010 0010 3020'),
-    ],
-    lead: [
-      mel('F5 Gb5 F5 Gb5 F5 Db5', 'x_x_ x_x_ x___ x___'),
-      mel('F5 Gb5 F5 Gb5 Bb5 Db6', 'x_x_ x_x_ x___ x___'),
-      mel('Eb5 Gb5 Bb5 Gb5 Eb5 Db5', 'x_x_ x_x_ x___ x___'),
-      mel('C5 Eb5 F5 A5', 'x___ x___ x___ x___'),
-    ],
-    stabs: [hit(hoBbm, 'x..x ..x. .... ....'), hit(hoGb, 'x..x ..x. .... ....'), hit(hoEbm, 'x..x ..x. .... ....'), hit(hoF, 'x... x... x... ....')],
-    riser: ['-:16', '-:16', '-:16', 'F3:13 -:3'],
-    bass: [gallop('Bb1', 'Bb2'), gallop('Gb1', 'Gb2'), gallop('Eb2', 'Eb3'), gallop('F1', 'F2')],
-    drums: [[K4, CL, TICK, CR], [K4, CL, TICK, dr('.... .... .... ..o.')], [K4, CL, TICK], [K4, CL, TICK, dr('.... .... .sss ssss')]],
+    kit: { tick: { volume: 0.13 }, snare: { volume: 0.22 } },
+    lead: hoLead,
+    stabs: hoProg.map((c) => chordBar(c, '..x. ..x. ..x. ..x.')),
+    pad: hoProg.map((c) => padBar(c)),
+    riser: [...rest(7), 'A3:13 -:3'],
+    bass: hoProg.map((c) => bassBar(c, B_GALLOP)),
+    drums: [[K4, CL, TICK, CR], [K4, CL, TICK], [K4, CL, TICK], [K4, CL, TICK, dr('.... .... .... ..o.')],
+      [K4, CL, TICK, CR], [K4, CL, TICK], [K4, CL, TICK], [K4, CL, TICK, dr('.... .... .sss ssss')]],
   },
 
-  // Weltkarte Welt 2: 120 BPM, G-Dur mit Wüstenfarbe (As-Dur als bII), 8 Takte, ruhig und freundlich –
-  // Kick auf 1 und 3, Clap auf 2 und 4, leise Darbuka (Doum/Tek).
-  // Form: Pads (G e C D | G As C–D G), Piano-Melodie in Vierteln, im 6. Takt die orientalische Wendung über As.
+  // Weltkarte Welt 2: 128 BPM, G-Dur, 16 Takte, ruhige Eurodance-Ballade. Strophe (G D/Fis e C | G D C D): Piano-
+  // Melodie in Dreiklang-Bögen mit leichtem Echo | Refrain (e C G D | e C a D): weicher Lead singt, Piano auf der „und“.
+  // Kick auf 1 und 3, Clap auf 2 und 4, leise Darbuka (Doum/Tek) als Wüstenfarbe.
   course_world2_map: {
-    bpm: 120,
+    bpm: 128,
     voice: {
+      lead: { ...SYNTH, voices: 3, cutoff: 3000, volume: 0.17 },
       piano: { volume: 0.12, cutoff: 4000 },
       pad: { volume: 0.05 },
       bass: { cutoff: 650 },
     },
     kit: { doum: { volume: 0.26, freq: 100 }, tek: { volume: 0.14, off: 0.7 }, hat: { volume: 0.3, off: 0.2 }, open: { volume: 0.2 } },
-    fx: { delay: { steps: 3, feedback: 0.3, lowpass: 3000, wet: 0.3, send: { piano: 0.3, tek: 0.2 } } },
-    piano: [
-      mel('D5 G5 B5 A5 G5', 'x___ x___ x_x_ x___'),
-      mel('E5 G5 B5 A5 G5', 'x___ x___ x_x_ x___'),
-      mel('E5 G5 C6 B5 A5', 'x___ x___ x_x_ x___'),
-      mel('F#5 A5 D6 C6', 'x___ x___ x___ x___'),
-      mel('B5 D6 G6 F#6 D6', 'x___ x___ x_x_ x___'),
-      mel('C6 Eb6 Ab5 G5', 'x___ x___ x___ x___'),
-      mel('E5 G5 F#5 A5', 'x___ x___ x___ x___'),
-      mel('G5 D5 B4', 'x___ ____ x___ x___'),
-    ],
-    pad: ['G3+B3+D4:16', 'G3+B3+E4:16', 'G3+C4+E4:16', 'F#3+A3+D4:16', 'G3+B3+D4:16', 'Ab3+C4+Eb4:16', 'G3+C4+E4:8 F#3+A3+D4:8', 'G3+B3+D4:16'],
-    bass: [
-      mel('G1 D2', 'x___ __.. x___ __..'), mel('E2 B1', 'x___ __.. x___ __..'), mel('C2 G1', 'x___ __.. x___ __..'), mel('D2 A1', 'x___ __.. x___ __..'),
-      mel('G1 D2', 'x___ __.. x___ __..'), mel('Ab1 Eb2', 'x___ __.. x___ __..'), mel('C2 D2', 'x___ __.. x___ __..'), mel('G1 D2', 'x___ __.. x___ __..'),
-    ],
-    drums: [[...W2MAP, CR], W2MAP, W2MAP, [KH, CL, dr('...d .... ...d ....'), dr('..p. ..p. pppp pppp'), H8], W2MAP, W2MAP, W2MAP, [KH, CL, dr('...d .... ...d ....'), dr('..p. ..p. ..p. pppp'), H8]],
+    fx: { delay: { steps: 3, feedback: 0.3, lowpass: 3000, wet: 0.3, send: { piano: 0.3, lead: 0.2, tek: 0.2 } } },
+    piano: [...m2Piano, ...m2Prog.slice(8).map((c) => chordBar(c, '..x_ ..x_ ..x_ ..x_', 'E4'))],
+    lead: [...rest(8), ...m2Lead],
+    pad: m2Prog.map((c) => padBar(c)),
+    bass: m2Prog.map((c) => bassBar(c, B_HALF)),
+    drums: [[...W2MAP, CR], W2MAP, W2MAP, [KH, CL, dr('d... .... d... ....'), dr('..p. ..p. pppp pppp'), H8],
+      W2MAP, W2MAP, W2MAP, [KH, CL, dr('d... .... d... ....'), dr('..p. ..p. ..p. pppp'), H8],
+      [...W2MAP, CR], W2MAP, W2MAP, [KH, CL, dr('d... .... d... ....'), dr('..p. ..p. pppp pppp'), H8],
+      W2MAP, W2MAP, W2MAP, [KH, CL, dr('d... .... d... ....'), dr('..p. ..p. ..p. pppp'), H8]],
   },
 };
