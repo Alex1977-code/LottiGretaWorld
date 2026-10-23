@@ -904,26 +904,49 @@ if (want('3-Zug')) {
   await SHOT('zug_arena', () => { window.__course.step(30); });
 
   // Schattenläuferin in drei Phasen, danach Baron Brummbär
-  r = await sc(() => {
-    const c = window.__course, t = window.__t, p = c.player, L = c.level;
-    const out = { phases: [], hits: [] };
+  const FIGHT = (ks) => {
+    const c = window.__course, t = window.__t;
+    const out = window.__boss ??= { phases: [], hits: [] };
     const b = t.boss(), home = [30, 1.6, -735.15];
-    out.started = t.enter();
-    for (let k = 0; k < 3; k++) {
+    if (out.started === undefined) out.started = t.enter();
+    for (const k of ks) {
       t.untilSafe('throw', 2400, home);
       for (let j = 0; j < 4 && t.count('schatten_doppelgaenger') === 0; j++) { t.untilSafe('teleport', 1500, home); t.untilSafe('throw', 1500, home); }
       out.phases.push({ phase: b.phase, clones: t.count('schatten_doppelgaenger'), hp: b.hp });
+      if (k === 'zeigen') return out;
       const hp0 = b.hp;
       t.noShots();
       const s = t.stomp(b, { invuln: 1e9 });
       out.hits.push({ hit: b.hp < hp0, bounced: s.bounced });
       t.place(home, { settle: 2, invuln: 1e9 });
     }
+    return out;
+  };
+  await sc(FIGHT, [1, 2]);
+  await SHOT('zug_kampf', FIGHT, ['zeigen']);
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    const out = window.__boss;
+    const b = t.boss(), home = [30, 1.6, -735.15];
+    const hp0 = b.hp;
+    t.noShots();
+    const s = t.stomp(b, { invuln: 1e9 });
+    out.hits.push({ hit: b.hp < hp0, bounced: s.bounced });
+    t.place(home, { settle: 2, invuln: 1e9 });
     out.def = ['defeated', 'flee', 'gone'].includes(b.state) || !!b.defeated;
     t.untilSafe('gone', 900, home);
     const zs = L._zugScene;
     c.step(30);
     out.baron = { active: !!zs.baron.active, state: zs.baron.state };
+    for (let i = 0; i < 120 * 16 && zs.baron.active && zs.baron.state !== 'stop'; i++) { p.pos.set(...home); c.step(1); }
+    c.step(60);
+    out.baronStop = zs.baron.state;
+    return out;
+  });
+  await SHOT('zug_baron', () => {});
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    const out = window.__boss, zs = L._zugScene, home = [30, 1.6, -735.15];
     for (let i = 0; i < 120 * 16 && zs.baron.active; i++) { p.pos.set(...home); c.step(1); }
     out.baronEnd = zs.baron.state;
     out.banners = t.banners.slice(-6);
@@ -934,7 +957,7 @@ if (want('3-Zug')) {
   console.log(`  Boss: ${JSON.stringify(r)}`);
   check(`3-Zug: Kampf beginnt auf der Drehscheibe, Doppelgänger je Phase ${r.phases.map((x) => x.clones).join(' / ')}`, r.started && r.phases.map((x) => x.clones).join() === '2,3,5');
   check(`3-Zug: drei Treffer auf das Original mit Schleife (${r.hits.map((h) => (h.hit ? '✓' : '✗')).join('')}), Schattenläuferin besiegt`, r.hits.every((h) => h.hit) && r.def);
-  check(`3-Zug: Baron Brummbär braust heran, schimpft und flieht (${r.baron.state} → ${r.baronEnd}), „Welt 3 geschafft!“, Warp-Box`, r.baron.active && r.banners.includes('Welt 3 geschafft!') && r.warp);
+  check(`3-Zug: Baron Brummbär braust heran, schimpft und flieht (${r.baron.state} → ${r.baronStop} → ${r.baronEnd}), „Welt 3 geschafft!“, Warp-Box`, r.baron.active && r.baronStop === 'stop' && r.baronEnd === 'gone' && r.banners.includes('Welt 3 geschafft!') && r.warp);
 
   r = await sc(() => {
     const c = window.__course, t = window.__t, p = c.player, L = c.level;

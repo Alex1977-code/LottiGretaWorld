@@ -1955,6 +1955,22 @@ export function zugSetup(level) {
     Object.defineProperty(arch, 'boss', { get: () => arch.sub.boss, configurable: true });
     Object.defineProperty(arch, 'seenPhase', { get: () => arch.sub.seenPhase, set: (v) => { arch.sub.seenPhase = v; }, configurable: true });
   }
+  // Kampf-Kamera des Boss-Archetyps rahmt zwischen Figur und x = 0 (Arenen in der Levelmitte); die Drehscheibe liegt
+  // seitlich (x = arena.x): Blickziel um denselben Anteil zur Arena-Mitte hin verschieben
+  const sub = arch?.sub;
+  if (sub?.camera && cfg.arena?.x && level.view) {
+    const subCam = sub.camera.bind(sub);
+    sub.camera = (dt, player, world) => {
+      const r = subCam(dt, player, world);
+      const b = sub.boss, f = sub.frame ?? 0;
+      if (f > 0 && b && !['intro', 'defeated', 'flee'].includes(b.state)) {
+        const rig = level.view.rig;
+        rig.target.x += f * f * (3 - 2 * f) * cfg.arena.x * 0.5;
+        rig.place(rig.cur, dt);
+      }
+      return r;
+    };
+  }
   // Baron-Szene nach dem Sieg
   if (cfg.baron) {
     sc.baron = new BaronSzene(level, cfg.baron);
