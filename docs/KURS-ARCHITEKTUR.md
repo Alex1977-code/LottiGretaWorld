@@ -1942,6 +1942,59 @@ Wo der Bauplan den „Kapitän“ nennt (3-Zug, 3-Kapitän), tritt **Krümel** a
   Dreiecke; 3-4 72–99 / 128–209 k. Wunsch an den Motor: Zeitwarnung (`timewarn`) auch bei Zeitlimits ≤ 120 s (3-4 hat
   100 s; die Warnung bei 100 s Rest entfällt dort, eine bei z. B. 30 s Rest wäre hilfreich).
 
+**Level-Notizen 3-2 / 3-6** (Level-Agent; Hilfen `src/course/levels/w3/_helpers_b.js` ohne `LEVEL`; Test
+`tests/course_w3b.mjs [3-2|3-6|all]` bzw. Teilläufe `3-2a` (Laden, Fenster, Routen Lotti + Greta), `3-2b` (Sterne,
+Stempel, Einklemmen, Checkpoint, 1-Up), `3-2c` (Bilder je Abschnitt), ebenso `3-6a/b/c` – je < 10 min; Port 4740 +
+PORT_BASE, Bilder `tests/out/w3lb_*.png`):
+
+- **3-2 „Gitterbahn über den Wolken“** (autoscroller, skyway, course_skyway, 400 s): Fensterpfad mit drei Richtungen,
+  A (0, 0, 6) → B (0, 0, −68) bei s 74 → C (0, 40, −68) bei s 114 → nach +X, Halt bei s 186. **1 Zaunbahn** (−Z,
+  Kamera 42°/15 m): Start-Insel, Schiebeplattform P1, links die Ringbahn (Kettenplattform, fährt erst los, wenn man
+  aufspringt, durch zwei Goldringe; **Stern 1** hoch über der Bahn nur per Sprung vom Plattformzaun), Insel mit Hubzaun
+  (senkt sich, wenn man ankommt, und fährt wieder hoch, kurz bevor die hintere Grenze ihn erreicht – wer trödelt, wird
+  eingeklemmt), Bröckelbrücke, ganz rechts die Hubzaun-Gasse (vier Zäune machen nacheinander Platz → **Stern 2**),
+  Querplattform P2, Torinsel mit Gittertor (die Warp-Box erscheint, wenn das Fenster ankommt; wer sie auslässt, wird am
+  Tor eingeklemmt). **2 Kletteraufstieg** (senkrecht nach oben, Frontalansicht 17°/17 m; unten aus dem Bild = Absturz):
+  Checkpoint-Insel (?-Block mit Krallen-Anzug), Zäune K1, K2 (gleitet waagrecht), K3, K4 (fährt senkrecht), K5 →
+  Gipfelsims; hinter dem Glasrohr-Eingang Krallenwand mit Zaun → **Stempel**; das Glasrohr öffnet, wenn das Fenster
+  oben abbiegt. **3 Wolkenstrecke** (+X, Seitenansicht 27°/15,5 m): Kurbelrad hebt eine Plattform → Zaun → **Stern 3**;
+  Wolken, Hebewolke, Bröckelblöcke, Schiebezäune SZ1–SZ3 (hinten anspringen, mitfahren, nach vorn ab), Endstation mit
+  Warp-Box beim Halt. **4 Zielinsel** (frei begehbar: Trittsteinweg, Bäume, Seilzaun, Windrad, Wetterhäuschen):
+  Kurbelrad → Plattform → Wolke mit **Extraleben**; Zielmast. Kulisse: Kletterturm-Rückwand mit Höhenmarken,
+  Ballons, Zeppelin von Baron Brummbär, Möwen, Windräder, Wimpelketten. Gegner: Krabbelkäfer 4, Flatterkäfer 7.
+  Route ≈ 128 s (Fahrt).
+- **3-6 „Gipfelflitzer-Rennen“** (parcours, race, course_race, 400 s, ≈ 300 m nach −Z): **Rennstart** (Startaufstellung,
+  Start-Ziel-Bogen mit Ampel – grün nach 3 s –, Tribüne mit 54 Tierchen (La-Ola), Krallen-Anzug im Baum an der
+  Boxengasse, Boost-Pfeile, Sprungfelder über 7- und 8-m-Lücken, unten Pilztrampoline zum Herausspringen) →
+  **Gabelung** (bemalter Trennrücken; oben fünf Schnappblumen in Töpfen, unten Bröckelbrücken, Felsbogen mit
+  **Stern 1**, Flatterkäfer, Warp-Box hinauf zum Hang) → **Hang** (Ziegelreihe mit Münzblock, Checkpoint mit
+  Gleitblatt-Block, Boost-Schräge und zwei Sprungfelder über Gruben; rechts Treppe aufs Plateau zur Warp-Box, bewacht
+  von neun Flatterkäfern → Bonus-Oval mit Rennbahnring und vier Boost-Pfeilen: Hase fangen → **Stern 2** auf dem
+  Siegertreppchen; über zwei Pilztrampoline → **Stempel**; Warp-Box zurück) → **Schlussabfahrt** (Boost-Tore am
+  Aufstieg zum Gipfel; Felsturm mit der letzten Warp-Box – mit Krallen hinauf oder mit dem Gleitblatt vom
+  Gipfel-Pilztrampolin hinübergleiten – → Wolkenterrasse mit Regenbogen und **Stern 3**; bemalter Rutschhang,
+  Sprungfeld auf die Zielinsel, Zielbogen, zweite Tribüne, Zielmast). **Extraleben** auf dem Tribünendach (über die
+  Bande aufs Pilztrampolin am Südende der Tribüne). Gegner: Schnappblume 5, Flatterkäfer 28, Pilzling 3. Route ≈ 32 s
+  (unten, Lotti) bzw. ≈ 34 s (oben, Greta).
+- **Autoscroller 3-2 ohne Änderung gemeinsamer Dateien** (Level-Haken, `_helpers_b.js`): `scrollDirector` legt
+  `rig.railAt` während der Fahrt auf eine Tabelle über die Pfadlänge s (bei senkrechter und seitlicher Fahrt bleibt z
+  gleich, z-Abschnitte könnten die Kameras nicht trennen), setzt Fenstergrenzen je s, schaltet bei Fahrt nach oben
+  `backMode 'kill'`, nullt das geerbte Fahrzeugtempo für Figuren am Zaun, öffnet das Glasrohr und zeigt Warp-Boxen bei
+  s bzw. beim Halt, deckelt die Höhe im Kletteraufstieg und lässt auf der Wolkenstrecke Gefallene abstürzen.
+  `clockSync` legt fahrende Zäune auf die Fahrt-Uhr (`scroll.clock` + Versatz je Zaun): nach einem Checkpoint-Neustart
+  stehen sie wie damals, der Takt passt immer zum Fenster.
+- **Budget-Kniffe** (level-lokal): `bugSwarm` (Käfer als Instanzen; bis 9 m das Registry-Modell, weiter weg eine
+  sparsame Nachbildung mit ≈ 650 statt ≈ 4500 Dreiecken), `shadowRange` (Modelle weiter als 30 m ohne Sonnenschatten),
+  `trimShadows` (Schnappblume: nur die zwei größten Teile werfen Schatten), `fenceShadows` (Zaun-Netze ohne Schatten),
+  `kartBande` (Optik und Kollision wie `bande`, ≈ 40 statt ≈ 320 Dreiecke je Meter), `addStaticParts` (Kulisse je
+  32-m-Abschnitt statt eines levelweiten Meshes), Inseln/Fahrbahn ohne Sonnenschatten.
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 3-2 18 Bilder 58–101 Zeichenaufrufe, 193–241 k Dreiecke; 3-6 16 Bilder
+  74–97 / 189–259 k.
+- **Hinweise**: Power-ups, die nicht laufen (Krallen-Anzug, Gleitblatt), bleiben oben auf dem ?-Block liegen – solche
+  Blöcke höchstens 2 m hoch setzen (Sprunghöhe 3,5 m), sonst erreicht man sie nur mit dem Kettensprung. Teuer auf langen
+  Strecken: Registry-Käfer (≈ 4500 Dreiecke), Baustein `bande` (≈ 320 Dreiecke/m), Münzen (alle Instanzen werden
+  immer gezeichnet, ≈ 430 Dreiecke je Münze) – Detailstufen im Motor wären hilfreich.
+
 **Level-Notizen 3-5 / 3-7** (Level-Agent; Hilfen `src/course/levels/w3/_helpers_d.js` ohne `LEVEL`; Test
 `tests/course_w3d.mjs [3-5|3-7]`, Port 4384 + PORT_BASE, Bilder `tests/out/w3d_*.png`; Teile über `PARTS=route,targets,
 extra,shots`, Heldinnen über `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS_ONLY=1` – je Lauf ≤ 10 min):
