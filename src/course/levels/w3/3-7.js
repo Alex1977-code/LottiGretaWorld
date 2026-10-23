@@ -21,7 +21,7 @@
 // Münzmarder 1. Level-Haken (LEVEL.setup, _helpers_d.js): Wasserfall, Teich tief unten, Laubhaufen, Kürbisse,
 // Fliegenpilze, Eichhörnchen, Zeit-Uhren.
 
-import { isl, line, ring, arc, levelSetup, felsen, laubhaufen, kuerbisse, fliegenpilze, eichhoernchen, wasserfall, teich, zeitUhren, instanceEnemies } from './_helpers_d.js';
+import { isl, line, ring, arc, levelSetup, felsen, laubhaufen, kuerbisse, fliegenpilze, eichhoernchen, wasserfall, teich, zeitUhren, instanceEnemies, hohlerBaum } from './_helpers_d.js';
 
 const Y = 1;        // Inseln
 const R = 0.25;     // Schienen-Oberkante (Tafel-Oberkante 1,0)
@@ -63,6 +63,10 @@ function setup(level) {
     { pos: [3, Y, -231], spots: [[3, Y, -231], [6.4, Y, -228.6], [1.4, Y, -233.6]], yaw: 2 },
   ]);
   zeitUhren(level, [[5.8, 3, -79], [7, 3, -79], [8.2, 3, -79]], { id: 'uhren' });
+  // Fallraum: hohler Baum mit Baumpilz-Simsen
+  hohlerBaum(level, { x: 80, z: -80, r: 5.4, y0: 1, y1: 44, shelves: [[-0.9, 30, 2.4], [1.0, 22, 2.2], [-1.1, 12, 2.4], [0.9, 6, 2]] });
+  // Wolken der Kulisse unter den Inseln würden in der Klamm wie Schneeflecken wirken: tiefer legen (unter den Boden)
+  for (const c of level.view?.sky?.cloudData ?? []) if (c.y < 0) c.y = -60;
   // gleiche Gegner-Modelle als Instanzen (Brummer, Funkenkäfer, Funkenläufer)
   instanceEnemies(level, ['brummer', 'funkenkaefer', 'funkenlaeufer'], { far: 46 });
 }
@@ -135,19 +139,15 @@ export const LEVEL = {
     // Rail für den querenden Funkenläufer (Zier) und Plattform mit Zeit-Uhren und Röhre zum Fallraum
     { type: 'schiene', net: 'deko', path: [[-4.6, 1.02, -82], [4.6, 1.02, -82]], radius: 0, color: 0x8a6a4a },
     land(5, 9.6, -76.4, -81.6, 2.2, 3),
-    { type: 'pipe', id: 'p_fall', pos: [8.2, 2.2, -77.4], height: 1.2, radius: 0.85, target: [76.4, 40.4, -80] },
+    { type: 'pipe', id: 'p_fall', pos: [8.2, 2.2, -77.4], height: 1.2, radius: 0.85, target: [76.6, 40.4, -80.6] },
     // Checkpoint-Insel
     land(-15, -4, -101.6, -112),
     { type: 'deco_w3', items: [{ kind: 'herbstbaum', pos: [-14, Y, -111], size: 4.2 }, { kind: 'herbstbaum', pos: [-5, Y, -111.2], size: 3.4 }] },
 
-    // ======================================================== Fallraum (abseits, x 80)
-    land(72.6, 87.4, -72.6, -87.4, 1, 3),
-    { type: 'wall', pos: [80, 1, -87], size: [15, 44, 0.8], style: 0xa8866a },
-    { type: 'wall', pos: [73, 1, -80], size: [0.8, 44, 13.2], style: 0xa8866a },
-    { type: 'wall', pos: [87, 1, -80], size: [0.8, 44, 13.2], style: 0xa8866a },
-    { type: 'platform', pos: [76.4, 39.6, -80], size: [3, 0.4, 4], style: 'wood' },
-    { type: 'platform', pos: [83.6, 22, -80], size: [2.6, 0.4, 3], style: 'wood', oneWay: true },
-    { type: 'pipe', id: 'p_fall_aus', pos: [84, 1, -83.6], height: 1.2, radius: 0.85, target: [-7, Y + 0.4, -108] },
+    // ======================================================== Fallraum (abseits, x 80): hohler Baum (Stamm im Level-Haken)
+    land(73, 87, -73, -87, 1, 3),
+    { type: 'platform', pos: [76.6, 39.6, -80.6], size: [2.6, 0.4, 3], style: 'wood' },
+    { type: 'pipe', id: 'p_fall_aus', pos: [83, 1, -83], height: 1.2, radius: 0.85, target: [-7, Y + 0.4, -108] },
 
     // ======================================================== 3  Wasserfall
     rail('n4', [[-9.5, -112.4], [-9.5, -119], [-6, -124.6], [10, -124.6], [13, -128], [13, -133]]),
@@ -180,7 +180,7 @@ export const LEVEL = {
   ],
   blocks: [
     { kind: 'question', pos: [3, Y + 2.4, 3], content: 'funken' },
-    { kind: 'question', pos: [-9.5, Y + 2.6, -104.6], content: 'coins:5' },
+    { kind: 'question', pos: [-13, Y + 2.6, -106.6], content: 'coins:5' },
   ],
   enemies: [
     // Brummer (10)

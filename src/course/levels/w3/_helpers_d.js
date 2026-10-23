@@ -958,6 +958,66 @@ export function eichhoernchen(level, list) {
   }
 }
 
+/** Nicht indizierte Geometrie nach innen kehren (Umlauf tauschen, Normalen umdrehen). */
+function inward(g) {
+  g = g.index ? g.toNonIndexed() : g;
+  const P = g.attributes.position.array, N = g.attributes.normal.array;
+  for (let i = 0; i < P.length; i += 9) {
+    for (let k = 0; k < 3; k++) { const a = P[i + 3 + k]; P[i + 3 + k] = P[i + 6 + k]; P[i + 6 + k] = a; const b = N[i + 3 + k]; N[i + 3 + k] = N[i + 6 + k]; N[i + 6 + k] = b; }
+  }
+  for (let i = 0; i < N.length; i++) N[i] = -N[i];
+  return g;
+}
+
+/**
+ * Hohler Baum als Fallschacht (3-7 Fallraum): innen Rinde mit Längsrillen und Jahresringen, vorn (zur Kamera, +Z) offen,
+ * Baumpilze als Einweg-Simse (shelves: [[Winkel, y, Breite]], Winkel 0 = hinten), oben ein Kranz Herbstlaub.
+ * Kollision: drei Wände (hinten, links, rechts) als Quader innerhalb des Stamms, Simse oneWay. o: x, z, r, y0, y1.
+ */
+export function hohlerBaum(level, o) {
+  const { x, z, r = 5.5, y0 = 1, y1 = 44 } = o;
+  const H = y1 - y0, gap = Math.PI * 0.5;
+  const bark = L(0x6a4428), barkD = L(0x3a2414), barkL = L(0x8a5a34), wood = L(0xc8945a);
+  const parts = [];
+  // Innenseite
+  const inner = new THREE.CylinderGeometry(r, r, H, 28, Math.max(2, Math.round(H / 3)), true, gap / 2, Math.PI * 2 - gap);
+  const gi = inward(inner.toNonIndexed());
+  colorize(gi, (p, n, out) => { const a = Math.atan2(p.x, p.z); const groove = Math.abs(Math.sin(a * 14 + Math.sin(p.y * 0.3) * 0.6)); mixc(barkD, wood, 0.25 + 0.45 * groove * (0.7 + 0.3 * Math.sin(p.y * 0.9)), out); });
+  gi.translate(x, y0 + H / 2, z);
+  parts.push(gi);
+  // Außenseite (Rinde) und Schnittkanten (helles Holz)
+  const outer = new THREE.CylinderGeometry(r + 0.7, r + 0.9, H, 28, Math.max(2, Math.round(H / 3)), true, gap / 2, Math.PI * 2 - gap);
+  parts.push(place(outer, (p, n, out) => { const a = Math.atan2(p.x, p.z); mixc(barkD, barkL, 0.3 + 0.5 * Math.abs(Math.sin(a * 22 + p.y * 0.2)), out); }, x, y0 + H / 2, z));
+  for (const sg of [-1, 1]) {
+    const th = sg * (gap / 2);
+    const g = new THREE.BoxGeometry(0.9, H, 0.25);
+    g.rotateY(th - Math.PI / 2);
+    parts.push(place(g, (p, n, out) => mixc(wood, barkL, 0.3 + 0.3 * Math.sin(p.y * 2), out), x + Math.sin(th) * (r + 0.4), y0 + H / 2, z + Math.cos(th) * (r + 0.4)));
+  }
+  // Baumpilze (Simse) und Laubkranz oben
+  for (const [a, y, w = 2.2] of o.shelves ?? []) {
+    const sx = x + Math.sin(a + Math.PI) * (r - 0.6), sz = z + Math.cos(a + Math.PI) * (r - 0.6);
+    const g = new THREE.CylinderGeometry(w / 2, w / 2 * 0.9, 0.3, 14, 1, false, 0, Math.PI * 2);
+    g.scale(1, 1, 0.7);
+    parts.push(place(g, (p, n, out) => mixc(L(0xb8642a), L(0xf0c070), smooth(-0.2, 0.9, n.y) * (0.6 + 0.4 * Math.sin(Math.hypot(p.x, p.z) * 9)), out), sx, y - 0.15, sz, a));
+    level.world.add({ type: 'box', min: [sx - w * 0.4, y - 0.3, sz - w * 0.3], max: [sx + w * 0.4, y, sz + w * 0.3], oneWay: true, tag: 'baumpilz' });
+  }
+  const cs = LEAF_COLS.map(L);
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    if (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < 1.5) continue;   // vorn frei (Kamera)
+    const g = new THREE.IcosahedronGeometry(1.6 + (i % 3) * 0.4, 0);
+    const c = cs[i % cs.length];
+    parts.push(place(g, (p, n, out) => mixc([c[0] * 0.55, c[1] * 0.45, c[2] * 0.4], c, smooth(-0.5, 0.8, n.y), out), x + Math.sin(a) * (r + 0.9), y1 + 1.4 + (i % 2) * 0.6, z + Math.cos(a) * (r + 0.9)));
+  }
+  for (let i = 0; i < parts.length; i += 12) addStatic(level, mrg(parts.slice(i, i + 12)), { castShadow: false });
+  // Kollision: Rückwand und Seitenwände innerhalb des Stamms (die Front bleibt offen)
+  const w = r * 0.86, t = 0.6;
+  level.world.add({ type: 'box', min: [x - w, y0, z - w - t], max: [x + w, y1, z - w], tag: 'baum:wand' });
+  level.world.add({ type: 'box', min: [x - w - t, y0, z - w], max: [x - w, y1, z + w * 0.7], tag: 'baum:wand' });
+  level.world.add({ type: 'box', min: [x + w, y0, z - w], max: [x + w + t, y1, z + w * 0.7], tag: 'baum:wand' });
+}
+
 /**
  * Wasserfall: durchscheinender, fließender Vorhang (Shader mit wandernden Streifen) von top bis bottom über x0..x1 bei z,
  * Gischtwolke am Fuß (Punktwolke) und Abrisskante oben. 2 Zeichenaufrufe. Nur Darstellung.
@@ -971,23 +1031,24 @@ export function wasserfall(level, o) {
   for (let i = 0; i < P.count; i++) { const y = P.getY(i); const u = (h / 2 - y) / h; P.setZ(i, Math.sqrt(u) * (o.bulge ?? 1.2) + Math.sin(P.getX(i) * 1.7) * 0.08); }
   g.computeVertexNormals();
   const mat = new THREE.ShaderMaterial({
-    uniforms: { t: { value: 0 }, a: { value: new THREE.Color(o.light ?? 0xe8faff) }, b: { value: new THREE.Color(o.color ?? 0x58b8f0) }, op: { value: o.opacity ?? 0.62 }, fogColor: { value: new THREE.Color(0xf4e0c2) }, fogNear: { value: 60 }, fogFar: { value: 235 } },
+    uniforms: { t: { value: 0 }, a: { value: new THREE.Color(o.light ?? 0xd8f6ff) }, b: { value: new THREE.Color(o.color ?? 0x2a90e0) }, op: { value: o.opacity ?? 0.42 }, fogColor: { value: new THREE.Color(0xf4e0c2) }, fogNear: { value: 60 }, fogFar: { value: 235 } },
     vertexShader: 'varying vec2 vUv; varying float vD; void main() { vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0); vD = -mv.z; gl_Position = projectionMatrix * mv; }',
     fragmentShader: `uniform float t; uniform vec3 a; uniform vec3 b; uniform float op; uniform vec3 fogColor; uniform float fogNear; uniform float fogFar;
       varying vec2 vUv; varying float vD;
       float h(float x) { return fract(sin(x * 127.1) * 43758.5453); }
       void main() {
-        float col = floor(vUv.x * 46.0);
+        float col = floor(vUv.x * 90.0);
         float sp = 0.9 + h(col) * 0.7;
         float s = fract(vUv.y * 5.0 + t * sp + h(col + 3.0));
         float streak = smoothstep(0.0, 0.25, s) * (1.0 - smoothstep(0.55, 1.0, s));
         float edge = smoothstep(0.0, 0.04, vUv.x) * smoothstep(1.0, 0.96, vUv.x);
-        vec3 c = mix(b, a, 0.35 + streak * 0.65);
+        vec3 c = mix(b, a, 0.12 + streak * 0.6);
         float foam = smoothstep(0.12, 0.0, vUv.y) + smoothstep(0.93, 1.0, vUv.y) * 0.6;
         c = mix(c, vec3(1.0), clamp(foam, 0.0, 1.0));
         float alpha = (op * (0.55 + 0.45 * streak) + foam * 0.3) * edge;
         float f = smoothstep(fogNear, fogFar, vD);
         gl_FragColor = vec4(mix(c, fogColor, f), alpha);
+        #include <colorspace_fragment>
       }`,
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
   });
