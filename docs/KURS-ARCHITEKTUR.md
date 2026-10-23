@@ -2836,6 +2836,99 @@ c = Bilder je Abschnitt, je < 10 min –, Port 4630 + PORT_BASE, Bilder `tests/o
   bzw. ≈ 3000 Dreiecke je Stück). Wünsche: `cell` für die Piep-Rutsche, Fern-Detailstufe für Registry-Käfer in
   `flatterkaefer_rad`.
 
+**Level-Notizen 4-1 / 4-2** (Level-Agent; Hilfen `src/course/levels/w4/_helpers_a.js` ohne `LEVEL`; Test
+`tests/course_w4a.mjs [4-1|4-2]`, Port 4412 + PORT_BASE, Bilder `tests/out/w4a_*.png`; `PARTS=route,sweep,targets,extra,shots`
+(je Lauf ≤ 10 min, einzeln aufrufbar), `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS_ONLY=1`, `VERBOSE=1`):
+
+- **4-1 „Kribbelkrabbel-Schlucht“** (parcours, canyon, course_canyon, 400 s, ≈ 250 m nach −Z): Wüstenstart (Sandplateau,
+  Ameisenhügel mit marschierender Kolonne, Lagerfeuer der Ameisen mit Zelten und Kochtopf, Kakteen mit Blüten, Geier auf
+  Felsnadeln, Kuhschädel, Steppenläufer, Gecko, Wimpelkette; niedriger Felsblock als Einführung „Ameisen laufen auch an
+  Wänden“) → **Ameisenhöhle** (dunkle Höhlen-Stimmung, Fackeln, Leuchtkristalle, Tropfsteine; **Ameisenwand** 6,4 m – nur
+  auf dem Rücken einer Ameise hinauf; **Stempelturm** 10,5 m, Ameisen tragen hinauf, **Stempel** darüber; **Ameisen-Fähre**:
+  Ameisen laufen waagerecht an den Seitenwänden und tragen 14 m über die Schlucht; Ameisenspuren an allen Wänden zeigen
+  die Wege) → Hörnerreihen (gleich nach der Höhle links der ?-Block mit Krallen-Anzug und die Kletterwand zum Sims mit
+  **Stern 0**; Checkpoint; Reihen von Hörner-Ameisen, ein Wall mit gewöhnlichen Ameisen, **Funkelstern** auf der
+  Plattform, zwei Mauern mit Hörner-Ameisen) → **Stachelfeld** (aus der Höhle rechts kommen endlos Riesenameisen und tragen
+  auf ihrem Lastdeck zur Höhle links; Felsinsel mit **Röhre in den Ameisenraum**: Vorratskammer mit Zuckerwürfeln,
+  Krümeln, Ameiseneiern, Ameisen tragen auf den Vorratsturm → **Stern 1**, Rückweg per Röhre aufs Endsims; am Ende des
+  Felds die Felssäule mit **Stern 2**, vom Deck aus) → Endsims mit Zielröhre → Zieltafel (Ameisen-Ehrenrunde,
+  Wimpelkette, Zielmast). Extraleben: unsichtbarer Block über dem großen Ameisenhügel am Start. Gegner: Ameisensoldat 41,
+  Hörner-Ameisensoldat 23, Riesenameise (Strom, `every 3 s`, höchstens 12). Bot-Zeit ≈ 96 s.
+- **4-2 „Das Lila Nebelmoor“** (parcours, poison, course_poison, 400 s, ≈ 260 m): Giftpfad (gewundener Moospfad,
+  Sumpfhütte auf Stelzen, Nebelbänke, Libellen, Frösche, Seerosen, Schilf, Giftpilze; Rankenschnapper wachsen im Takt
+  über den Weg, Funkenblüten; ein Rankenschnapper liegt auf einer Röhre – Stampfattacke auf den Kopf → Röhre frei →
+  Moorkeller mit **Extraleben**) → Höhle (Rankenschnapper hängen von der Decke; im Giftbecken **vier Rankenschnapper als
+  Stufen** zum Sims, dort die **Warp-Box zwischen zwei hängenden** → Sternkammer, **Stern 0**) → Rückkehr (Checkpoint, die
+  schmale Brücke, über die der **große Rankenschnapper** wächst – Kopf ruht über der Brücke, drei Stampfattacken besiegen
+  ihn, sonst den Rückzug abpassen) → Wasserzone (klarer, sicherer Moorsee mit Grasinseln; **Stern 1 ganz unten im See**;
+  vom Kopf eines Rankenschnappers im Wasser **abprallen** → versteckter Münzpfad über Felssimse zum **Stempel**; Röhre
+  hinauf) → Oberland mit **Roulette-Block**, paarweise im Takt fahrende Plattformen über Gift (Brummer), Sternring-Insel
+  (**Stern 2**: acht Sternmünzen in 10 s), Zielröhre → Zielinsel. **Welt-Warp**: Krallen-Anzug aus dem Roulette-Block →
+  bewachsene Felswand links hinauf → versteckte Plattform → zwei Plattformen → hinter dem Giftwasserfall (Vorhang ohne
+  Schaden) die goldene Röhre `warpWorld: 5`. Gegner: Rankenschnapper 26, Brummer 3. Bot-Zeit ≈ 67 s.
+- **Level-Haken** (`LEVEL.setup = levelSetupLate(setup, late)`): wie `levelSetup` (w2), danach `late` – Sichtprüfungen,
+  die die Abschnitts-Meshes vermessen (`cullStatic`, `fernAus`), laufen erst **nach** dem Verschmelzen. `addStatic` der
+  Hilfen teilt Geometrie je Dreieck nach Abschnitt (32 m) auf – sonst landet eine Streuung über das ganze Level (Kiesel,
+  Grasbüschel …) als Ganzes im Abschnitt ihrer Mitte und wird mit dessen Sichtprüfung aus- und eingeblendet.
+  `rockLids`/`lidParts`: Felsdeckel für `island` mit `top: 'none'` (der Baustein zeichnet dann **keine** Oberseite).
+  `xrayWalls`: hohe Felsblöcke (`camIgnore`), werden durchscheinend, wenn sie die Figur verdecken. `areaMoods`: Stimmung
+  je Bereich (Höhle, Ameisenraum, Sternkammer). Budget: `cullInstances` (Instanz-Gruppen der Ameisen, Riesenameisen,
+  Münzen: nah mit Schatten, fern ohne, außerhalb aus), `creeperInstances` (Rankenschnapper als gemeinsame
+  Instanz-Gruppen, blitzende Köpfe einzeln), `chunkBackdrop` (Himmels-Kulisse in Kacheln mit Sichtprüfung), `spikeField`
+  (sparsame Stacheln), `heroShadowDiet`, `gegnerSicht`.
+- **Kennzahlen** (scale 2, inkl. Schattenpass; Abschnittsbilder 18 bzw. 21, dazu Messgang alle ~7 m entlang der Route):
+  4-1 42–92 Zeichenaufrufe, 83–253 k Dreiecke; 4-2 40–101 / 95–247 k.
+- **Wünsche an den Motor**: `island` mit `top: 'none'` sollte eine Felsoberseite zeichnen (oder ein Stil `top: 'rock'`);
+  StaticBatcher könnte große Geometrien selbst je Abschnitt teilen; `xrayWalls` (Durchsicht hoher Blöcke) als Baustein;
+  Instanzen/Fern-Ausblendung der Ameisen-, Riesenameisen- und Münz-Gruppen im Motor (hier level-lokal); nach einer
+  Stampfattacke auf einen Rankenschnapper-Kopf ein kleiner Abprall (über Gift fällt die Figur sonst hinein).
+
+**Level-Notizen 4-5 / 4-A / 4-B** (Level-Agent; Hilfen `src/course/levels/w4/_helpers_c.js` ohne `LEVEL`; Test
+`tests/course_w4c.mjs [4-5a|4-5b|4-5c|4-5d|4-A|4-B]` – Laden + Routen, Sterne/Stempel/Extraleben, Mechanik, Bilder, Arenen;
+je Teil < 10 min; Port 4610 + PORT_BASE, Bilder `tests/out/w4c_*.png`; `ONLY=<Text|Text>`, `VERBOSE=1`):
+
+- **4-5 „Säulenstadt der Stachelwalzen“** (parcours, ruins, course_ruins, 400 s, ≈ 265 m nach −Z; Höhen 1 → 3,5 → 6 → 9 → 12
+  → 14,5): **Ruinenstart** (Mosaik-Rosette, Hasenbrunnen mit Wasserstrahl, Torbogen; links die **schrägen Stufen – Stempel**
+  oben; Hang 1 mit Walzenwerfer oben – Walzen rollen herab und zerschellen an einer Prellmauer am Hangfuß; Säulenplatz mit
+  trockenem Brunnen, rechts auf dem Sims die **Röhre in den Schalterraum**; Hang 2 mit zwei Walzenwerfern; Kante →
+  bewegliche Plattform zum Checkpoint) → **Checkpoint-Insel** (?-Block mit Krallen-Anzug, links der **Rundturm** = gewölbte
+  Kletterwand, **Stern 1** oben; rechts die L-förmige **Balkenbrücke** mit Spiegelfrucht-Strauch zur hohen Mauer) →
+  **Plattformfahrt** (längs, quer, schräg aufwärts, dazwischen Rast-Säulen; Aufstieg über Hang 3 mit Walzenwerfer) →
+  **Stachelstangen** (drei fahrende Plattformen mit drehenden Stachelstangen – einarmig schnell, im Finale zweiarmig;
+  Insel mit großer Stachelstange, Insel mit zwei gegenläufigen; links die **Schwankplattform – Stern 2**) → **Zielhang**
+  (Zielplateau mit Brunnen, Zielmast, **versiegelte blaue Röhre** mit Gitterdeckel und Schild „Werfer-Festung (über die
+  Weltkarte)“ – Ducken darauf zeigt die Ansage; 4-B selbst ist auf der Karte erreichbar). **Stern 0**: Schalterraum
+  (x ≈ 80, z ≈ +50 hinter dem Start – eigener 32-m-Abschnitt des Batchers, sonst zählte seine Zier beim Säulenplatz
+  mit; eigene Kameraschiene `area`) – Farbfeld 4 × 4 färben, Röhre zurück auf den Säulenplatz. Zier: Mosaikpflaster,
+  drei Hasenbrunnen mit Wasserstrahl (einer trocken), Ranken, Rampenpflaster mit Mittelstreifen, gemauerte Hangwände,
+  fahrende Plattformen mit Mosaik-Deckblatt (`moverTops`, Instanzen), Dschungelbäume, Dschungeltal tief im Abgrund,
+  Vögel, Schmetterlinge. **Extraleben (3)**: oben
+  auf der Mauer rechts neben dem Turm – Spiegelfrucht auf dem 1,2 m schmalen Balken nehmen (seitlich kein Boden → der Klon
+  erscheint **hinter** der Figur), im Gänsemarsch weiter: die vordere Figur fällt in den Graben (0,8 m) vor dem glatten
+  Sockel, die hintere läuft ihr auf den Kopf → **Räuberleiter** (`raeuberleiter`, level-lokal: Hochwurf 19,5 m/s, frische
+  Kletterzeit) → mit Krallen-Anzug das Rankenband (7–8 m über dem Balken, kletterbar) hinauf. Ohne Klon unerreichbar
+  (Sockel `noWallSlide`, Dreifachsprung endet 0,5 m darunter), ohne Krallen wirft der Klon nur hoch. Gegner: Walzenwerfer
+  10, Rollpilz 8; Stachelstangen 6. Bot-Zeit bis zum Zielmast Lotti 91,0 s / Greta 90,7 s; ohne Unverwundbarkeit
+  (Ausweichen per Sprung) Start → Plateau ohne Treffer, Stachelplattform 1 mit Ecken-Taktik (die Kugeln reichen nicht in
+  die Plattformecken) ohne Treffer.
+- **4-A „Glutbrocken-Gerangel“** (arena, lava, course_arena, 200 s, 1 Stern): Basaltinsel (r ≈ 11,6 m) mit glühenden Rissen
+  und Basaltwaben, Basaltsäulen-Gruppen im See, Kraterwand mit zwei Lavafällen, Vulkane, Lavablasen, Glutfunken,
+  Dampfschwaden, Glutkristalle, Hinweisschild „Draufspringen, aufheben, werfen!“. Welle 1: ein Lavabrocken; ist er besiegt,
+  **springen drei aus der Lava** im Bogen auf die Insel (`lavaWaves`, Ansage). Besiegen: draufspringen → betäubt →
+  aufheben → in die Lava werfen oder gegen einen anderen Brocken (beide zerplatzen). ?-Block Krallen-Anzug (Tatzenhieb
+  betäubt), Münzblock. Tod setzt Arena und Wellen zurück.
+- **4-B „Blaugitter-Bastion der Feuer-Werfer“** (arena, fortress, course_arena, **100 s**, 1 Stern): Festungshof 22 × 22 m,
+  blaue Rautengitter (Modell `festungsgitter`, drei Wände zu je einem Mesh pro Material verschmolzen: `mergeModels`), vorn
+  Brüstung; Galerie (Einweg, 2,6 m) und zwei Seitenbühnen (2,2 m) – die drei Feuer-Werfer starten oben und springen
+  zwischen Bühne und Boden; Wappen-Mosaik (blauer Ring, goldene Flamme), Außenmauern mit blauem Band, Ecktürme mit blauen
+  Kegeldächern und wehenden blauen Fahnen, Banner, Steckbrief „Gesucht: Lotti & Greta“, Lager (Fässer, Kisten,
+  Feuerkugel-Vorrat), Feuerschalen, Wimpel. Bot (echte Eingabe, draufspringen) gewinnt in ≈ 24 s.
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 4-5 (23 Abschnittsbilder) 76–110 Zeichenaufrufe, 162–268 k Dreiecke
+  (Walzenwerfer-Modell ≈ 10,5 k Dreiecke: Instanzgruppe ohne Sonnenschatten; Münzen ≈ 33 k werden immer gezeichnet);
+  4-A 68–83 / 73–94 k; 4-B 66–112 / 139–177 k. Rampen bekommen level-lokal `camIgnore` (der Kamerastrahl prüft Hüllquader,
+  auf der Rampe steckt der Kopf darin), ebenso die 1-Up-Mauer. Wünsche an den Motor: `camIgnore`-Parameter im Baustein
+  `ramp`; Räuberleiter (Figur auf Figur) als Motor-Regel für Klone; Detailstufe für Münzen und Walzenwerfer.
+
 **Level-Notizen 4-Burg / 4-Haus** (Level-Agent; Hilfen `src/course/levels/w4/_helpers_d.js` ohne `LEVEL`; Test
 `tests/course_w4d.mjs <Teil> …` nach `npm run build`, Port 4612 + PORT_BASE, Teile je < 10 min: `burg-route` (Laden,
 Daten, Gegner, Routen Lotti + Greta bis in den Thronsaal, Lavafunke verletzt, Lava tötet), `burg-sterne` (Sterne 1–3,
