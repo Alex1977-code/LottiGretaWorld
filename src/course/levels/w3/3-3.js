@@ -240,8 +240,8 @@ export const LEVEL = {
   // (nur den Blob am Boden – passt zu Gespenstern und spart den Schattenpass)
   setup: (level) => {
     roomCull(level, ROOMS, { far: { spuk: 17, kreisgeist_kreis: 26, kreisgeist: 22 } });
-    // Drehraum: Kamera nicht an den Brettern über der Figur hängen lassen
-    camThrough(level, 'drehraum:teil', [-66, 39], [-54, 53]);
+    // Drehraum: Kamera nicht an den Brettern oder der Decke hängen lassen (sie bleibt vor der offenen Stirnseite)
+    camThrough(level, ['drehraum:teil', 'drehraum'], [-66, 39], [-54, 53]);
     for (const e of level.entities) if (GHOSTS.has(e.kind)) e.model?.root.traverse((m) => { if (m.isMesh) m.castShadow = false; });
     // Spuk-Treppen (viele Stufen, oft halb versunken) ohne Sonnenschatten – Budget
     for (const o of level.view?.three.children ?? []) if (o.name === 'modell:spuk_treppe') o.traverse((m) => { if (m.isMesh) m.castShadow = false; });
@@ -251,7 +251,7 @@ export const LEVEL = {
     { ...CAM, from: 16, to: -18, pitch: 44, dist: 13, area: [-20, 20] },
     { ...CAM, from: -18, to: -35, pitch: 46, dist: 12.5, area: [-20, 20] },
     // D Drehraum (frontal, flacher)
-    { from: 58, to: 34, pitch: 30, dist: 15, x: -60, xLock: 0.8, fov: 40, area: [-75, -45] },
+    { from: 58, to: 34, pitch: 21, dist: 14.5, x: -60, xLock: 0.8, fov: 40, area: [-75, -45] },
     // B Bibliothek
     { ...CAM, from: -30, to: -52, pitch: 46, dist: 13, area: [40, 80] },
     { ...CAM, from: -52, to: -66, pitch: 44, dist: 13.5, area: [40, 80] },

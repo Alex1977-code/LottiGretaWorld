@@ -648,17 +648,17 @@ export function ghostMoods(level, zones) {
 }
 
 /**
- * Kamera durch Einbauten hindurch (Simulationstakt): feste Formen mit `tag` im Rechteck min/max (x, z) bekommen
+ * Kamera durch Einbauten hindurch (Simulationstakt): feste Formen mit `tag` (oder einem der Tags) im Rechteck min/max (x, z) bekommen
  * camIgnore – z. B. die Bretter im Drehraum, die nach jeder Drehung neu entstehen. Sonst zöge die Kamera-Abstandsprüfung
  * die Kamera unter ein Brett über der Figur ganz nah heran.
  */
 export function camThrough(level, tag, min, max) {
-  const out = [];
+  const out = [], tags = new Set([tag].flat());
   level.onStep(() => {
     const p = level.player;
     if (!p || p.pos.x < min[0] - 8 || p.pos.x > max[0] + 8 || p.pos.z < min[1] - 20 || p.pos.z > max[1] + 20) return;
     out.length = 0;
-    for (const s of level.world.candidates(min[0], min[1], max[0], max[1], out)) if (s.tag === tag) s.camIgnore = true;
+    for (const s of level.world.candidates(min[0], min[1], max[0], max[1], out)) if (tags.has(s.tag)) s.camIgnore = true;
   });
 }
 
