@@ -30,7 +30,7 @@ const KC = { gold: 0xffc21a, goldHi: 0xfff0a0, goldLow: 0xc88a10, ruby: 0xe8203a
 function kingBodyGeo() {
   return cached('w4:king:body', () => {
     const b = new Build();
-    b.add(lumpyEllipsoid(KB.rad, KB.amp, KB.freq, KB.seed, 40, 30), { v: (x, y, z, nx, ny) => {
+    b.add(lumpyEllipsoid(KB.rad, KB.amp, KB.freq, KB.seed, 36, 26), { v: (x, y, z, nx, ny) => {
       const ash = noise3(x * 2.4 + 9, y * 2.4, z * 2.4) > 0.64;
       const base = mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.45));
       return ash ? mix(base, LAVA.ash, 0.55) : base;
@@ -78,10 +78,10 @@ function kingGlowGeo() {
       // dichte Kugelkette entlang einer Kurve (Azimut u, Höhe v, Dicke r) → glatte, gezwirbelte Wurst
       const ctrl = [[0.02, -0.1, 0.13], [0.16, -0.14, 0.12], [0.32, -0.12, 0.1], [0.44, -0.05, 0.08], [0.5, 0.04, 0.06], [0.46, 0.09, 0.045], [0.41, 0.06, 0.035]];
       const curve = new THREE.CatmullRomCurve3(ctrl.map(([u, v, r]) => new THREE.Vector3(u, v, r)));
-      for (let i = 0; i <= 26; i++) {
-        const q = curve.getPoint(i / 26);
+      for (let i = 0; i <= 18; i++) {
+        const q = curve.getPoint(i / 18);
         const h = lumpyPoint(KB.rad, KB.amp, KB.freq, KB.seed, s * q.x, q.y, q.z * 0.45);
-        b.sphere(q.z * 0.85, { v: (x, y) => mix(LAVA.hot, LAVA.white, smoothstep(y / q.z * 0.6 + 0.35)) }, { p: h.p.toArray(), s: [0.75, 0.8, 1] }, 10, 8);
+        b.sphere(q.z * 0.92, { v: (x, y) => mix(LAVA.hot, LAVA.white, smoothstep(y / q.z * 0.6 + 0.35)) }, { p: h.p.toArray(), s: [0.75, 0.8, 1] }, 9, 6);
       }
     }
     // glühendes Grinsen
@@ -162,17 +162,17 @@ function capeGeo() {
 function fistGeo() {
   return cached('w4:king:fist', () => {
     const b = new Build();
-    b.add(lumpyEllipsoid([0.3, 0.27, 0.27], 0.025, 5, 8.1, 20, 14), { v: (x, y, z, nx, ny) => mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.5)) });
-    for (let i = 0; i < 4; i++) b.sphere(0.075, LAVA.rock, { p: [0.24, 0.1 - i * 0.0, -0.15 + i * 0.1], s: [0.9, 0.8, 0.9] }, 10, 8);
-    b.sphere(0.09, LAVA.rock, { p: [0.12, -0.05, 0.22] }, 10, 8);
+    b.add(lumpyEllipsoid([0.3, 0.27, 0.27], 0.025, 5, 8.1, 16, 11), { v: (x, y, z, nx, ny) => mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.5)) });
+    for (let i = 0; i < 4; i++) b.sphere(0.075, LAVA.rock, { p: [0.24, 0.1 - i * 0.0, -0.15 + i * 0.1], s: [0.9, 0.8, 0.9] }, 8, 6);
+    b.sphere(0.09, LAVA.rock, { p: [0.12, -0.05, 0.22] }, 8, 6);
     return b.geometry();
   });
 }
 function kingFootGeo() {
   return cached('w4:king:foot', () => {
     const b = new Build();
-    b.add(lumpyEllipsoid([0.42, 0.2, 0.32], 0.03, 4, 6.3, 20, 12), { v: (x, y, z, nx, ny) => mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.5)) }, { p: [0, 0.18, 0] });
-    for (const z of [-0.16, 0, 0.16]) b.sphere(0.1, LAVA.rock, { p: [0.36, 0.1, z] }, 10, 8);
+    b.add(lumpyEllipsoid([0.42, 0.2, 0.32], 0.03, 4, 6.3, 16, 10), { v: (x, y, z, nx, ny) => mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.5)) }, { p: [0, 0.18, 0] });
+    for (const z of [-0.16, 0, 0.16]) b.sphere(0.1, LAVA.rock, { p: [0.36, 0.1, z] }, 8, 6);
     return b.geometry();
   });
 }

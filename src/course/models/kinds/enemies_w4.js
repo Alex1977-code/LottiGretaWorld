@@ -131,10 +131,10 @@ function giantBodyGeo() {
     b.sphere(1, { v: (x, y, z, nx, ny) => {
       const base = mix(GA.bodyLow, GA.bodyHi, smoothstep(ny * 0.6 + 0.45));
       return Math.abs(x + 0.35) < 0.12 || Math.abs(x - 0.25) < 0.1 ? mix(base, 0xe08060, 0.45) : base;
-    } }, { p: [-0.85, 0.82, 0], s: [0.7, 0.38, 0.56] }, 28, 18);
+    } }, { p: [-0.85, 0.82, 0], s: [0.7, 0.38, 0.56] }, 22, 14);
     b.sphere(0.16, GA.bodyLow, { p: [-0.12, 0.78, 0] }, 14, 10);
     // Brust
-    b.sphere(1, lak, { p: [0.35, 0.8, 0], s: [0.52, 0.3, 0.42] }, 24, 16);
+    b.sphere(1, lak, { p: [0.35, 0.8, 0], s: [0.52, 0.3, 0.42] }, 18, 12);
     // Deck: flache Platte, sandfarben mit Riffelstreifen quer, Terrakotta-Rand, flache Nieten
     const dl = DECK.x1 - DECK.x0, dc = (DECK.x0 + DECK.x1) / 2;
     b.box(dl, DECK.th, DECK.w, (x, y, z, nx, ny) => {
@@ -156,7 +156,7 @@ function giantBodyGeo() {
 function giantHeadGeo() {
   return cached('w4:giant:head', () => {
     const b = new Build();
-    b.sphere(1, { v: (x, y, z, nx, ny) => mix(GA.bodyLow, GA.bodyHi, smoothstep(ny * 0.55 + 0.55)) }, { s: [0.44, 0.38, 0.42] }, 26, 18);
+    b.sphere(1, { v: (x, y, z, nx, ny) => mix(GA.bodyLow, GA.bodyHi, smoothstep(ny * 0.55 + 0.55)) }, { s: [0.44, 0.38, 0.42] }, 22, 16);
     // große, gebogene Kieferhörner
     for (const s of [1, -1]) {
       b.tube([[0.32, -0.16, s * 0.18], [0.5, -0.2, s * 0.24], [0.66, -0.17, s * 0.17], [0.74, -0.13, s * 0.06]], 0.045, GA.jaw, null, 14, 7);
@@ -175,13 +175,13 @@ function giantLegGeo() {
     const hip = new THREE.Vector3(0, 0, 0.05), knee = new THREE.Vector3(0, 0.24, 0.58), foot = new THREE.Vector3(0, -0.78, 1.0);
     const seg = (a, c, r) => {
       const d = c.clone().sub(a), L = d.length();
-      b.add(new THREE.CapsuleGeometry(r, L, 3, 9), { v: (x, y, z, nx, ny) => mix(GA.bodyLow, GA.body, smoothstep(ny * 0.5 + 0.5)) },
+      b.add(new THREE.CapsuleGeometry(r, L, 2, 7), { v: (x, y, z, nx, ny) => mix(GA.bodyLow, GA.body, smoothstep(ny * 0.5 + 0.5)) },
         new THREE.Matrix4().compose(a.clone().add(c).multiplyScalar(0.5), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()), new THREE.Vector3(1, 1, 1)));
     };
     seg(hip, knee, 0.1);
     seg(knee, foot, 0.082);
-    b.sphere(0.125, GA.body, { p: knee.toArray() }, 12, 9);
-    b.sphere(1, GA.claw, { p: [0.05, -0.76, 1.0], s: [0.13, 0.06, 0.09] }, 12, 8);
+    b.sphere(0.125, GA.body, { p: knee.toArray() }, 10, 7);
+    b.sphere(1, GA.claw, { p: [0.05, -0.76, 1.0], s: [0.13, 0.06, 0.09] }, 10, 6);
     return b.geometry();
   });
 }

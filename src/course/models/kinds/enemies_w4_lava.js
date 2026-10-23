@@ -253,7 +253,7 @@ const WW_PTS = [[0, 0.02], [0.3, 0.03], [0.42, 0.12], [0.47, 0.3], [0.45, 0.5], 
 function wwBodyGeo() {
   return cached('w4:ww:body', () => {
     const b = new Build();
-    b.lathe(WW_PTS, { v: (x, y, z, nx, ny) => mix(WW.bodyLow, WW.bodyHi, smoothstep(ny * 0.45 + 0.35 + y * 0.35)) }, null, 32, 2);
+    b.lathe(WW_PTS, { v: (x, y, z, nx, ny) => mix(WW.bodyLow, WW.bodyHi, smoothstep(ny * 0.45 + 0.35 + y * 0.35)) }, null, 26, 2);
     // Bauch (Creme) vorn
     stick(b, onLathe(WW_PTS, 0.32, 0, -0.05), WW.belly, [0.3, 0.27, 0.05], 0.4);
     for (let i = 0; i < 3; i++) stick(b, onLathe(WW_PTS, 0.32, 0, -0.32 + i * 0.22), 0xf2dcae, [0.2 - Math.abs(i - 1) * 0.04, 0.012, 0.03], 0.2);
@@ -262,10 +262,10 @@ function wwBodyGeo() {
       const el = Math.atan2(y - 0.5, 0.4);
       const h = onLathe(WW_PTS, 0.5, Math.PI, el);
       if (!h) return;
-      b.add(new THREE.SphereGeometry(1, 14, 10), { v: (x, yy, z, nx, ny) => mix(WW.plate, WW.plateHi, smoothstep(ny * 0.6 + 0.4)) }, placed(h.p.clone().addScaledVector(h.n, r * 0.45), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0.05, r, r * 0.9)).multiply(new THREE.Matrix4().makeRotationZ(0)));
+      b.add(new THREE.SphereGeometry(1, 10, 8), { v: (x, yy, z, nx, ny) => mix(WW.plate, WW.plateHi, smoothstep(ny * 0.6 + 0.4)) }, placed(h.p.clone().addScaledVector(h.n, r * 0.45), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0.05, r, r * 0.9)).multiply(new THREE.Matrix4().makeRotationZ(0)));
     });
     // Stirnband mit Knoten hinten
-    b.torus(0.3, 0.04, WW.band, { p: [-0.015, 0.92, 0], r: [Math.PI / 2, 0.12, 0], s: [1.04, 1.04, 1] }, 6, 32);
+    b.torus(0.3, 0.04, WW.band, { p: [-0.015, 0.92, 0], r: [Math.PI / 2, 0.12, 0], s: [1.04, 1.04, 1] }, 5, 26);
     b.sphere(0.06, WW.band, { p: [-0.32, 0.9, 0] }, 10, 8);
     for (const s of [1, -1]) b.sphere(1, WW.band, { p: [-0.42, 0.82, s * 0.05], s: [0.12, 0.04, 0.05], r: [0, s * 0.3, 0.7] }, 10, 6);
     // Brauen (dick, verschmitzt)
@@ -305,8 +305,8 @@ function wwJawGeo() {
 function wwArmGeo() {
   return cached('w4:ww:arm', () => {
     const b = new Build();
-    b.capsule(0.07, 0.2, { v: (x, y, z, nx, ny) => mix(WW.bodyLow, WW.body, smoothstep(nx * 0.5 + 0.5)) }, { p: [0, -0.17, 0] }, 4, 10);
-    b.sphere(0.09, WW.hand, { p: [0, -0.34, 0] }, 14, 10);
+    b.capsule(0.07, 0.2, { v: (x, y, z, nx, ny) => mix(WW.bodyLow, WW.body, smoothstep(nx * 0.5 + 0.5)) }, { p: [0, -0.17, 0] }, 3, 9);
+    b.sphere(0.09, WW.hand, { p: [0, -0.34, 0] }, 12, 8);
     for (const a of [-0.6, 0, 0.6]) b.cone(0.022, 0.06, WW.claw, { p: [Math.sin(a) * 0.06 + 0.02, -0.42, Math.cos(a) * 0.0 + a * 0.05], r: [0, 0, Math.PI + a * 0.4] }, 6);
     return b.geometry();
   });

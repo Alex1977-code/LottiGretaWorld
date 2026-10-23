@@ -356,8 +356,8 @@ if (part('checks')) {
   }, PATH);
   for (const k of Object.keys(props)) for (const x of Object.values(props[k])) if (x && typeof x === 'object' && x.m) delete x.m;
   console.log('  Eigenschaften:', JSON.stringify(props));
-  if (props.ant) check('Ameisensoldat ≈0,8–1,1 m lang, 0,55–0,85 m hoch, Füße am Boden; platt viel flacher; Horn höher', props.ant[0] > 0.75 && props.ant[0] < 1.15 && props.ant[1] > 0.55 && props.ant[1] < 0.9 && props.ant[2] < props.ant[1] * 0.6 && props.ant[3] > props.ant[1] + 0.15 && props.ant[4] > -0.06);
-  if (props.giant) check('Riesenameise: Deck-Oberkante ≈ userData.deck.y (Strahl von oben), 2,8–3,8 m lang', props.giant[1] !== null && Math.abs(props.giant[1] - props.giant[0]) < 0.04 && props.giant[2] > 2.8 && props.giant[2] < 3.8);
+  if (props.ant) check('Ameisensoldat ≈1,1–1,4 m lang (mit Beinen/Zangen), 0,7–0,95 m hoch (Fühler), Füße am Boden; platt viel flacher; Horn höher', props.ant[0] > 1.0 && props.ant[0] < 1.45 && props.ant[1] > 0.7 && props.ant[1] < 0.95 && props.ant[2] < props.ant[1] * 0.6 && props.ant[3] > props.ant[1] + 0.1 && props.ant[4] > -0.06);
+  if (props.giant) check('Riesenameise: Deck-Oberkante ≈ userData.deck.y (Strahl von oben), 3–4 m lang (mit Fühlern)', props.giant[1] !== null && Math.abs(props.giant[1] - props.giant[0]) < 0.04 && props.giant[2] > 3 && props.giant[2] < 4);
   if (props.creeper) check('Rankenschnapper: grow wächst die Ranke, path biegt sie (z-Ausdehnung), head() am Pfadende', props.creeper[1] > props.creeper[0] + 2 && props.creeper[2] > 1 && props.creeperHead && Math.abs(props.creeperHead[2] - 1.0) < 0.8);
   if (props.spring) check('Springklotz: Oberkante ≈1,3 m, squash drückt deutlich', Math.abs(props.spring[0] - 1.3) < 0.12 && props.spring[1] < props.spring[0] - 0.2);
   if (props.piep) check('Piep-Block: an ≈ 1 m-Würfel, aus ≈ gleicher Umriss', Math.abs(props.piep[0] - 1) < 0.12 && Math.abs(props.piep[1] - 1) < 0.12 && Math.abs(props.piep[2] - 1) < 0.15);
@@ -365,7 +365,7 @@ if (part('checks')) {
   if (props.walze) check('Stachelwalze Ø ≈1 m, opts.size skaliert, liegt auf dem Boden', Math.abs(props.walze[0] - 1) < 0.15 && props.walze[1] > props.walze[0] * 1.8 && Math.abs(props.walze[2]) < 0.05);
   if (props.werfer) check('Walzenwerfer auf Säule: Walze über dem Kopf (hand), Maul vorn (mouth)', props.werfer[0] > 3.2 && props.werfer[1] > 2.4 && props.werfer[2] > 0.2);
   if (props.schwank) check('Schwankplattform: Neigung hebt eine Kante, Breite ≈ size', props.schwank[1] > props.schwank[0] + 0.2 && Math.abs(props.schwank[2] - 3) < 0.5);
-  if (props.tramp) check('Riesentrampolin Ø ≈ 2·radius', Math.abs(props.tramp[0] - 6) < 1.2);
+  if (props.tramp) check('Riesentrampolin Ø ≈ 2·radius + Ballons (≈ 7,8 m bei radius 3)', Math.abs(props.tramp[0] - 7.8) < 0.6);
 
   // Instanz-Helfer (neue Arten + Rückwärtskompatibilität)
   const instInfo = await sc((kinds) => {

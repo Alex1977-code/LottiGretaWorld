@@ -183,12 +183,12 @@ export function antBodyGeo(lo = false) {
       const ring = Math.abs(x + 0.12) < 0.09 || Math.abs(x - 0.32) < 0.08;
       const base = mix(ANT.bodyLow, ANT.bodyHi, smoothstep(ny * 0.6 + 0.45));
       return ring ? mix(base, ANT.band, 0.55) : base;
-    } }, { p: g.c, s: g.r }, n(26), n(18));
+    } }, { p: g.c, s: g.r }, n(22), n(14));
     // Stachel-Spitzchen hinten (rund, harmlos)
     b.sphere(0.06, ANT.bodyLow, { p: [g.c[0] - g.r[0] * 0.98, g.c[1] - 0.02, 0], s: [1.3, 0.9, 0.9] }, n(10), n(8));
     // Taille und Brust
     b.sphere(0.075, ANT.bodyLow, { p: [-0.07, 0.31, 0] }, n(12), n(8));
-    b.sphere(1, { v: (x, y, z, nx, ny) => mix(ANT.bodyLow, ANT.bodyHi, smoothstep(ny * 0.6 + 0.45)) }, { p: AG.thorax.c, s: AG.thorax.r }, n(20), n(14));
+    b.sphere(1, { v: (x, y, z, nx, ny) => mix(ANT.bodyLow, ANT.bodyHi, smoothstep(ny * 0.6 + 0.45)) }, { p: AG.thorax.c, s: AG.thorax.r }, n(16), n(10));
     // Uniform-Kragen (rot mit Goldknöpfen) zwischen Brust und Kopf
     b.add(new THREE.TorusGeometry(0.105, 0.034, n(8), n(20)), ANT.helmetBand, placed(new THREE.Vector3(0.16, 0.37, 0), new THREE.Vector3(0.94, 0.35, 0), new THREE.Vector3(1, 1, 1)));
     for (const s of [1, -1]) b.sphere(0.022, ANT.helmet, { p: [0.17, 0.33, s * 0.075] }, 8, 6);
@@ -202,7 +202,7 @@ export function antHeadGeo(horn = false, lo = false) {
     const q = lo ? 0.6 : 1, n = (k) => Math.max(6, Math.round(k * q));
     const R = AG.head.r;
     // Kopf (Ursprung = Kopfmitte)
-    b.sphere(R, { v: (x, y, z, nx, ny) => mix(ANT.bodyLow, ANT.face, smoothstep(ny * 0.5 + 0.6)) }, { s: [1.02, 0.96, 1] }, n(24), n(18));
+    b.sphere(R, { v: (x, y, z, nx, ny) => mix(ANT.bodyLow, ANT.face, smoothstep(ny * 0.5 + 0.6)) }, { s: [1.02, 0.96, 1] }, n(22), n(14));
     // Schnauze/Kieferzangen (creme, gebogen)
     for (const s of [1, -1]) {
       // kurze, nach innen gebogene Zangen: Kegel nach vorn, Spitzen zueinander
@@ -217,9 +217,9 @@ export function antHeadGeo(horn = false, lo = false) {
     const tilt = { p: [-0.02, 0.035, 0], r: [0, 0, 0.32] };
     const hm = new THREE.Matrix4().compose(new THREE.Vector3(...tilt.p), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, tilt.r[2])), new THREE.Vector3(1, 1, 1));
     const hb = new Build();
-    hb.dome(R * 1.13, { v: (x, y, z, nx, ny) => mix(hc, hh, smoothstep(ny * 0.8)) }, { s: [1.04, 0.92, 1.04] }, Math.PI * 0.5, n(26), n(8));
-    hb.torus(R * 1.16, 0.03, hc, { r: [Math.PI / 2, 0, 0], s: [1.03, 1.03, 1] }, n(6), n(28));
-    hb.torus(R * 1.12, 0.018, horn ? 0xffffff : ANT.helmetBand, { p: [0, 0.05, 0], r: [Math.PI / 2, 0, 0], s: [1.0, 1.0, 1] }, n(5), n(28));
+    hb.dome(R * 1.13, { v: (x, y, z, nx, ny) => mix(hc, hh, smoothstep(ny * 0.8)) }, { s: [1.04, 0.92, 1.04] }, Math.PI * 0.5, n(22), n(7));
+    hb.torus(R * 1.16, 0.03, hc, { r: [Math.PI / 2, 0, 0], s: [1.03, 1.03, 1] }, n(5), n(24));
+    hb.torus(R * 1.12, 0.018, horn ? 0xffffff : ANT.helmetBand, { p: [0, 0.05, 0], r: [Math.PI / 2, 0, 0], s: [1.0, 1.0, 1] }, n(4), n(24));
     if (horn) {
       // großes Stachelhorn, leicht nach vorn, Goldring am Fuß, zwei kleine Seitendornen
       hb.cyl(0.075, 0.09, 0.05, ANT.hornRing, { p: [0.03, R * 1.0, 0] }, n(14));
@@ -240,18 +240,18 @@ export function antHeadGeo(horn = false, lo = false) {
 export function antLegGeo(lo = false) {
   return cached(`w4:ant:leg:${lo}`, () => {
     const b = new Build();
-    const rs = lo ? 5 : 7;
+    const rs = lo ? 4 : 6;
     const hip = new THREE.Vector3(0, 0, 0.02), knee = new THREE.Vector3(0, 0.09, 0.2), foot = new THREE.Vector3(0, -0.29, 0.34);
     const seg = (a, c, r) => {
       const d = c.clone().sub(a), L = d.length();
       const m = new THREE.Matrix4().compose(a.clone().add(c).multiplyScalar(0.5), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()), new THREE.Vector3(1, 1, 1));
-      b.add(new THREE.CapsuleGeometry(r, L, 2, rs), ANT.bodyLow, m);
+      b.add(new THREE.CapsuleGeometry(r, L, 1, rs), ANT.bodyLow, m);
     };
     seg(hip, knee, 0.036);
     seg(knee, foot, 0.031);
-    b.sphere(0.047, ANT.body, { p: knee.toArray() }, rs + 1, rs);
+    b.sphere(0.047, ANT.body, { p: knee.toArray() }, rs + 1, lo ? 3 : rs);
     // Stiefel (dunkel, vorn rund)
-    b.sphere(1, ANT.boot, { p: [0.025, -0.27, 0.35], s: [0.075, 0.045, 0.052] }, rs + 3, rs);
+    b.sphere(1, ANT.boot, { p: [0.025, -0.27, 0.35], s: [0.075, 0.045, 0.052] }, rs + 3, lo ? 4 : rs);
     return b.geometry();
   });
 }
@@ -314,7 +314,7 @@ export function antLegPose(k, phase, amp, lift, splay, hipY, scale, out) {
 // =============================================================================================
 // Piep-Block (1 m, Ursprung = Mitte der Unterseite)
 // =============================================================================================
-function waveIconParts(b, color, face) {
+function waveIconParts(b, color, face, lo = false) {
   // „Schallwellen“-Zeichen: Punkt + drei Bögen, auf Fläche face (Normale)
   const n = new THREE.Vector3(...face);
   const c = n.clone().multiplyScalar(0.5).add(new THREE.Vector3(0, 0.5, 0));
@@ -325,11 +325,11 @@ function waveIconParts(b, color, face) {
     g.translate(c.x + off.x, c.y + off.y, c.z + off.z);
     b.add(g, color);
   };
-  const dot = new THREE.CylinderGeometry(0.07, 0.07, 0.04, 14); dot.rotateX(Math.PI / 2);
+  const dot = new THREE.CylinderGeometry(0.07, 0.07, 0.04, lo ? 8 : 14); dot.rotateX(Math.PI / 2);
   put(dot, -0.2, 0);
   for (let i = 0; i < 3; i++) {
     const r = 0.13 + i * 0.1;
-    const arc = new THREE.TorusGeometry(r, 0.032, 5, 12, Math.PI * 0.55);
+    const arc = new THREE.TorusGeometry(r, 0.032, lo ? 3 : 5, lo ? 7 : 12, Math.PI * 0.55);
     arc.rotateZ(-Math.PI * 0.275);
     arc.scale(1, 1, 0.6);
     put(arc, -0.2, 0);
@@ -347,8 +347,8 @@ export function piepSolidGeo(color = 'rot', lo = false) {
       return edge >= 2 ? mix(base, C.hi, 0.35) : base;
     } }, { p: [0, 0.5, 0] });
     // Oberseite: eingelassenes helleres Feld
-    b.box(0.72, 0.03, 0.72, C.hi, { p: [0, 1.0, 0] }, 0.04, 1);
-    for (const f of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]]) waveIconParts(b, 0xffffff, f);
+    b.box(0.72, 0.03, 0.72, C.hi, { p: [0, 1.0, 0] }, lo ? 0 : 0.04, 1);
+    for (const f of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]]) waveIconParts(b, 0xffffff, f, lo);
     return b.geometry();
   });
 }
@@ -361,14 +361,14 @@ export function piepOutlineGeo() {
       for (let k = -1; k <= 1; k++) {
         const pp = [...p]; pp[axis] += k * 0.34;
         const s = [t, t, t]; s[axis] = 0.2;
-        b.box(s[0], s[1], s[2], 0xffffff, { p: [pp[0], pp[1] + 0.5, pp[2]] }, 0.015, 1);
+        b.box(s[0], s[1], s[2], 0xffffff, { p: [pp[0], pp[1] + 0.5, pp[2]] }, 0, 1);
       }
     };
     for (const a of [-h, h]) for (const c of [-h, h]) {
       dash([0, a, c], 0); dash([a, 0, c], 1); dash([a, c, 0], 2);
     }
-    // Eck-Kugeln
-    for (const x of [-h, h]) for (const y of [-h, h]) for (const z of [-h, h]) b.sphere(0.045, 0xffffff, { p: [x, y + 0.5, z] }, 8, 6);
+    // Eck-Knoten
+    for (const x of [-h, h]) for (const y of [-h, h]) for (const z of [-h, h]) b.add(new THREE.OctahedronGeometry(0.06, 0), 0xffffff, { p: [x, y + 0.5, z] });
     return b.geometry();
   });
 }
@@ -481,7 +481,7 @@ export function walzeGeo(lo = false) {
     const R = 0.34, L = 0.78;
     // fassförmiger Körper (Profil um Y, danach Achse → Z)
     const prof = [[0, -L / 2], [0.22, -L / 2], [0.3, -L / 2 + 0.03], [R, -L / 2 + 0.1], [R + 0.02, 0], [R, L / 2 - 0.1], [0.3, L / 2 - 0.03], [0.22, L / 2], [0, L / 2]];
-    const bod = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), lo ? 14 : 22);
+    const bod = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), lo ? 14 : 28);
     bod.rotateX(Math.PI / 2);
     b.add(bod, { v: (x, y, z, nx, ny) => mix(WALZE.body, WALZE.bodyHi, smoothstep(ny * 0.5 + 0.5)) });
     // orange Mittelband und Endkappen-Nieten
@@ -499,7 +499,7 @@ export function walzeGeo(lo = false) {
         const d = new THREE.Vector3(Math.cos(a), Math.sin(a), 0);
         const p = d.clone().multiplyScalar(R * 0.92); p.z = z;
         const m = new THREE.Matrix4().compose(p.addScaledVector(d, 0.09), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d), new THREE.Vector3(1, 1, 1));
-        b.add(new THREE.ConeGeometry(0.065, 0.2, lo ? 6 : 8), { v: (x, y) => mix(WALZE.spikeLow, WALZE.spike, smoothstep(y / 0.2 + 0.5)) }, m);
+        b.add(new THREE.ConeGeometry(0.065, 0.2, lo ? 6 : 10, lo ? 1 : 2), { v: (x, y) => mix(WALZE.spikeLow, WALZE.spike, smoothstep(y / 0.2 + 0.5)) }, m);
       }
     });
     return b.geometry();
