@@ -98,6 +98,19 @@ export function figuresOn(level, owner, filter) {
   return n;
 }
 
+/**
+ * Präzisierung (Gegner Welt 4): Gegenstände mit `weight` (z. B. Lavabrocken), die auf einer Form dieses Besitzers
+ * liegen/stehen (grounded, nicht getragen), zählen auf Druckfeldern wie Figuren.
+ */
+export function weightsOn(level, owner) {
+  let n = 0;
+  for (const e of level.entities) {
+    if (!(e.weight > 0) || !e.alive || e.removed || e.carrier || !e.grounded || e.ground?.owner !== owner) continue;
+    n += e.weight;
+  }
+  return n;
+}
+
 // ------------------------------------------------------------------ Druckfeld
 
 const PLATE_H = 0.2, PRESS = 0.09;
@@ -163,7 +176,7 @@ class PField extends Gimmick {
 
   update(dt) {
     if (this.hidden) return;
-    this.count = figuresOn(this.level, this);
+    this.count = figuresOn(this.level, this) + weightsOn(this.level, this);   // + Gewichte (Gegner Welt 4)
     this.pressed = this.count >= this.need;
     this.syncShapeY();
     const members = this.groupMembers();
