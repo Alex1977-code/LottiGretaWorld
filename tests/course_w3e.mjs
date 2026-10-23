@@ -9,6 +9,9 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 const PORT = 4740;
 const ONLY = process.argv.slice(2);
 const want = (id) => !ONLY.length || ONLY.includes(id);
+// Teilprüfungen 3-Zug (ZUG=basis,lotti,greta,sterne,boss): zum schnellen Nachprüfen einzelner Teile
+const ZPARTS = (process.env.ZUG ?? '').split(',').filter(Boolean);
+const zpart = (n) => !ZPARTS.length || ZPARTS.includes(n);
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
 const { check, summary } = makeChecker();
@@ -495,6 +498,179 @@ if (want('3-B')) {
     t.place([52 - 4, 7.3, -64 + 3], { settle: 60, invuln: 1e9 });
   });
   check('3-B: keine Konsolenfehler', errors.length === 0);
+}
+
+// ====================================================================================================== 3-Zug
+/** Zug-Hilfen (nach jedem Laden): Zug-Koordinate c, Fensterlage, Parken, Routen-Bot. */
+const TRAIN_HELPERS = () => {
+  const c = window.__course, t = window.__t, L = c.level, P = () => c.player;
+  const TR = L.data.train;
+  const ref = L.named.get('W1');
+  t.cOf = (z) => TR.W1.cc - (z - ref.pos.z);
+  t.at = (cc, x, y) => [x, y, ref.pos.z - (cc - TR.W1.cc)];
+  t.cw = () => t.cOf(L.scroll.center.z);
+  t.car = (id) => L.named.get(id);
+  t.park = () => { const p = P(); p.invuln = 1e9; p.mode = 'script'; p.script = { type: 'test', t: 0 }; };
+  /** bis die Fenstermitte bei Zug-Koordinate cc steht (Figur geparkt). */
+  t.waitWin = (cc, max = 120 * 200) => { t.park(); let k = 0; while (t.cw() < cc && L.scroll.state !== 'done' && k < max) { c.step(1); k++; } return k; };
+  /** Figur auf Zug-Koordinate cc, seitlich x setzen (Höhe: Deck/Dach darunter). */
+  t.placeC = (cc, x, o = {}) => {
+    const [X, , Z] = t.at(cc, x, 0);
+    const hit = c.world.raycastDown(X, 12, Z, 14);
+    return t.place([X, (hit?.y ?? 4) + 0.05, Z], o);
+  };
+  t.ground = () => P().ground?.mover?.vehicle?.spec?.id ?? P().ground?.tag ?? null;
+  const laneAt = (lane, cc) => {
+    if (cc <= lane[0][0]) return lane[0][1];
+    for (let i = 1; i < lane.length; i++) if (cc <= lane[i][0]) { const [c0, x0] = lane[i - 1], [c1, x1] = lane[i]; return x0 + (x1 - x0) * ((cc - c0) / (c1 - c0)); }
+    return lane[lane.length - 1][1];
+  };
+  const SOLID = (s) => s.solid !== false && !s.oneWay && !s.trigger && !s.quicksand && !s.water && !s.kill && s.tag !== 'riesenprojektil';
+  const groundAhead = (p, d, x = p.pos.x) => {
+    const h = c.world.raycastDown(x, p.pos.y + 0.6, p.pos.z - d, 4.5, { ignore: (s) => s.tag === 'riesenprojektil' });
+    return !!h && !h.shape.quicksand && !h.shape.kill && h.y > p.pos.y - 2.6;
+  };
+  const wallAhead = (p, d) => c.world.overlapAABB({ x: p.pos.x, y: p.pos.y + 0.6, z: p.pos.z - d }, { x: 0.22, y: 0.32, z: 0.12 }, { filter: SOLID }).length > 0;
+  const farSide = (p) => { for (let d = 1.0; d < 6.5; d += 0.25) if (groundAhead(p, d)) return d; return Infinity; };
+  /**
+   * Routen-Bot über den fahrenden Zug bis zum Halt: lane = [[c, x], …], lead = Sollabstand vor der Fenstermitte.
+   * Springt über Lücken und an Wagenstirnen hinauf, weicht Riesenprojektilen per Sprung aus.
+   */
+  t.bot = (lane, o = {}) => {
+    const p = P(), w = L.scroll;
+    const log = { jumps: 0, climbs: 0, dodges: 0, cars: [], deaths: 0, steps: 0, done: false, hurt: 0, maxC: -1e9 };
+    let jumpHold = 0, prevJump = false, commit = false;
+    const max = o.max ?? 120 * 160;
+    const trace = [];
+    for (let i = 0; i < max; i++) {
+      log.steps = i;
+      if (i % 30 === 0) { trace.push([+t.cOf(p.pos.z).toFixed(1), +p.pos.x.toFixed(1), +p.pos.y.toFixed(2), p.mode, p.state, t.ground(), +(t.cw()).toFixed(1)].join(' ')); if (trace.length > 24) trace.shift(); }
+      if (p.dead) { log.deaths++; log.deathAt = +t.cOf(p.pos.z).toFixed(1); log.cause = p.deathCause; log.trace = trace; break; }
+      const cp = t.cOf(p.pos.z), cw = t.cw();
+      log.maxC = Math.max(log.maxC, cp);
+      if (w.state === 'done' && p.mode === 'ground' && cp >= (o.stopC ?? 147)) { log.done = true; break; }
+      const id = t.ground();
+      if (id && log.cars[log.cars.length - 1] !== id && /^[A-Z]/.test(id)) log.cars.push(id);
+      const lx = laneAt(lane, cp + 0.8);
+      const inp = { x: Math.max(-1, Math.min(1, (lx - p.pos.x) * 1.6)) };
+      const ahead = cw + (o.lead ?? 1.6);
+      let jump = false;
+      if (p.mode === 'ground') {
+        commit = false;
+        let edge = Infinity;
+        for (let d = 0.5; d < 3.4; d += 0.25) if (!groundAhead(p, d)) { edge = d; break; }
+        let far = Infinity;
+        if (edge < Infinity) { const pz = p.pos.z; p.pos.z -= edge - 0.25; far = farSide(p) + edge - 0.25; p.pos.z = pz; }
+        const ready = far < 7.5 && cp + far + 1.2 < cw + 7.4;
+        // Riesenprojektil im Anflug auf Figurenhöhe → hochspringen
+        const bullet = L.entities.find((e) => e.kind === 'riesenprojektil' && !e.removed && e.state !== 'fall' && Math.abs(e.pos.z - p.pos.z) < 2.9 && e.pos.x < p.pos.x + 0.5 && p.pos.x - e.pos.x < 5.2 && p.pos.y + 1 > e.pos.y && p.pos.y < e.pos.y + 2.4);
+        if (bullet && !o.noDodge) { jump = true; log.dodges++; inp.y = 0; }
+        else if (edge <= 0.75) {
+          if (ready && p.gs > 2.5) { jump = true; inp.y = 1; commit = true; log.jumps++; }
+          else inp.y = -0.5;
+        } else if (wallAhead(p, 0.55) && cp < ahead + 4) { jump = true; inp.y = 1; commit = true; log.climbs++; }
+        else if (edge < 1.4) inp.y = ready ? 1 : 0;
+        else if (edge < 3.4) inp.y = ready ? 1 : (cp < ahead ? 0.5 : 0);
+        else if (cp < ahead) inp.y = 1;
+        if (o.stopC !== undefined && cp >= o.stopC && edge > 0.75) inp.y = 0;
+      } else if (commit) inp.y = 1;
+      if (jump && !prevJump) jumpHold = 34;
+      inp.jump = jumpHold > 0;
+      if (jumpHold > 0) jumpHold--;
+      prevJump = inp.jump;
+      c.setInput(inp);
+      c.step(1);
+      if (p.invuln > 0 && p.invuln < 1e8) log.hurt++;
+    }
+    c.setInput({});
+    log.finalC = +t.cOf(p.pos.z).toFixed(1);
+    log.stars = [...(L.runtime.stars ?? [])];
+    log.stamp = !!L.runtime.stamp;
+    log.cp = !!L.runtime.checkpoint;
+    return log;
+  };
+};
+
+// Spur der Bots: [c, x] – Stamm-Spur x 0.9 (an Röhren vorbei), durch den Postwagen in der Mitte
+const LANE = [[0, 0.3], [70, 0.3], [75, 0.9], [96.5, 0.9], [97.6, 0], [107.5, 0], [108.5, 0.9], [140, 0.6], [147, 0], [160, 0]];
+
+if (want('3-Zug')) {
+  console.log('\n3-Zug „Volldampf durchs Schneetal“');
+  await load('3-Zug', { fresh: true });
+  check('3-Zug: Laden ohne Konsolenfehler/Warnungen', errors.length === 0);
+  await sc(TRAIN_HELPERS);
+  let r;
+  if (zpart('basis')) {
+  r = await sc(() => {
+    const c = window.__course, L = c.level, d = L.data;
+    const kinds = {};
+    for (const e of L.entities) kinds[e.kind] = (kinds[e.kind] ?? 0) + 1;
+    return {
+      title: d.title, arch: d.archetype, sub: d.scroll.with, theme: d.theme, music: d.music, time: d.timeLimit, kinds,
+      cars: L.entities.filter((e) => e.kind === 'vehicle').map((e) => `${e.spec.id}:${e.style}`), stars: d.stars.length, stamp: !!d.stamp,
+      ride: { T: +d.zug.ride.T.toFixed(1), D: +d.zug.ride.D.toFixed(1) },
+    };
+  });
+  console.log(`  Arten: ${JSON.stringify(r.kinds)}  Fahrt ${JSON.stringify(r.ride)}`);
+  check(`3-Zug: „${r.title}“, autoscroller + ${r.sub}, Thema ${r.theme}, Musik ${r.music}, ${r.time} s`, r.arch === 'autoscroller' && r.sub === 'boss' && r.theme === 'train' && r.music === 'course_train' && r.time === 400);
+  check(`3-Zug: Schneetal-Express (Lok + 14 Wagen) und Brummbär-Zug (11 Wagen) mit Modell zug_waggon`, r.cars.length === 26 && r.cars.filter((x) => x.endsWith(':lok')).length === 2);
+  check(`3-Zug: Gegner – Hüpfquallen ${r.kinds.huepfqualle}, Riesenkanonen ${r.kinds.riesenkanone}, Suchkopf-Kanone ${r.kinds.kanone_turm}, Pilzlingsturm, Feuer-Werfer ${r.kinds.feuer_werfer}, Schattenläuferin`, r.kinds.huepfqualle >= 5 && r.kinds.riesenkanone === 4 && r.kinds.kanone_turm === 1 && r.kinds.pilzlingsturm === 1 && r.kinds.feuer_werfer === 3 && r.kinds.schattenlaeuferin === 1);
+  check(`3-Zug: 3 Sterne (Wagenkante, Pilzlingsturm, Krümel) + Stempel, Röhren und Krümel`, r.stars === 1 && r.stamp && r.kinds.zugroehre === 5 && r.kinds.star >= 2);
+  await SHOT('zug_bahnsteig', () => { window.__course.step(30); });
+
+  // Nicht aufgesprungen = Leben verloren
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    let n = 0, t0 = null;
+    for (; n < 120 * 30 && !p.dead; n++) { c.setInput({}); c.step(1); if (t0 === null && L.scroll.state === 'run') t0 = L.time; }
+    return { dead: p.dead, cause: p.deathCause, depart: t0, secs: +(n / 120).toFixed(1), z: +p.pos.z.toFixed(1) };
+  });
+  check(`3-Zug: Abfahrt nach 3,5 s (${r.depart?.toFixed(2)}); wer auf dem Bahnsteig bleibt, wird ans Ende geschoben und stürzt ab (${r.cause} nach ${r.secs} s)`, near(r.depart, 3.5, 0.05) && r.dead && r.cause === 'fall');
+
+  // Aufspringen und Stern 0 an der Hinterkante des letzten Wagens
+  await load('3-Zug');
+  await sc(TRAIN_HELPERS);
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    const out = {};
+    // vom Bahnsteig quer aufs Dach von W1 springen
+    for (let i = 0; i < 90; i++) { c.setInput({ x: -1, jump: i < 30, run: false }); c.step(1); if (p.mode === 'ground' && i > 10) break; }
+    c.setInput({}); c.step(4);
+    out.board = { ground: t.ground(), y: +p.pos.y.toFixed(2), time: +L.time.toFixed(2) };
+    // nach hinten zur Wagenkante laufen (Stern 0)
+    for (let i = 0; i < 400 && !L.runtime.stars[0]; i++) { c.setInput({ y: -1, x: (0 - p.pos.x) }); c.step(1); }
+    c.setInput({});
+    out.star = !!L.runtime.stars[0];
+    out.at = { c: +t.cOf(p.pos.z).toFixed(2), time: +L.time.toFixed(2), state: L.scroll.state };
+    return out;
+  });
+  check(`3-Zug: vom Bahnsteig aufs Wagendach (${r.board.ground}), Stern 0 an der Hinterkante (c ${r.at.c}, ${r.at.time} s, Fenster ${r.at.state})`, r.board.ground === 'W1' && r.star);
+  }
+
+  // Routen-Bot Lotti
+  if (zpart('lotti')) {
+  await load('3-Zug');
+  await sc(TRAIN_HELPERS);
+  const botL = await sc((lane) => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    t.place([3.2, 1.15, p.pos.z], { settle: 2, invuln: 1e9 });
+    // aufspringen: quer aufs Dach
+    for (let i = 0; i < 90; i++) { c.setInput({ x: -1, jump: i < 30 }); c.step(1); if (p.mode === 'ground' && i > 10) break; }
+    c.setInput({});
+    const log = t.bot(lane, { lead: 1.4 });
+    log.bullets = ['rk1', 'rk2', 'rk3', 'rk4'].map((id) => t.ent(id)?.shots ?? 0);
+    log.heads = t.ent('suchkanone')?.shots ?? 0;
+    log.state = L.scroll.state;
+    log.pushes = t.arch().pushes;
+    return log;
+  }, LANE);
+  console.log(`  Bot Lotti: ${JSON.stringify(botL)}`);
+  check(`3-Zug Lotti: Route bis zum Zughalt ohne Tod (c ${botL.finalC}, ${botL.jumps} Lückensprünge, ${botL.climbs} Kletter-Sprünge, ${botL.dodges} Ausweichsprünge)`, botL.done && botL.deaths === 0 && botL.state === 'done');
+  check(`3-Zug Lotti: trägt jeder Wagen des Express (${botL.cars.join(' → ')})`, ['W1', 'W2', 'F1', 'W3', 'W4', 'F2', 'W5', 'F3', 'W6', 'G1', 'F4', 'W7', 'B1', 'T1', 'L1'].every((id) => botL.cars.includes(id)));
+  check(`3-Zug: Riesenkanonen feuern (${botL.bullets.join('/')}), Suchkopf-Kanone (${botL.heads})`, botL.bullets.every((n) => n >= 1) && botL.heads >= 2);
+  await SHOT('zug_halt', () => { window.__course.step(60); });
+  }
+  check('3-Zug: keine Konsolenfehler', errors.length === 0);
 }
 
 // ====================================================================================================== Abschluss

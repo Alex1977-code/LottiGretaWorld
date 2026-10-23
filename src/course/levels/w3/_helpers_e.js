@@ -14,8 +14,9 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd, islandParts } from '../../blocks/kit.js';
 import { bakeModel } from '../../blocks/w3kit.js';
 import { pipeGeo } from '../../blocks/types/pipe.js';
-import { Gimmick } from '../../entities/gimmick.js';
+import { Gimmick, runAction } from '../../entities/gimmick.js';
 import { getModel } from '../../models/index.js';
+import { ScrollWindow } from '../../archetypes/ScrollWindow.js';
 
 // ====================================================================== 1) Grundlagen
 
@@ -269,6 +270,7 @@ export class WavingFlags {
     this.m = new THREE.Matrix4(); this.q = new THREE.Quaternion(); this.s = new THREE.Vector3(); this.p = new THREE.Vector3(); this.e = new THREE.Euler();
     this.near = o.near ?? null;      // (x, z) → bool: nur in Kameranähe zeichnen
     owned(this.poles); owned(this.cloth);
+    this.poles.name = 'fahnenmasten'; this.cloth.name = 'fahnen';
     if (!this.staticPoles) level.view.add(this.poles);
     level.view.add(this.cloth, (dt, t) => this.update(dt, t));
     this.update(0, 0);
@@ -1052,4 +1054,1855 @@ export function circusArena(level, cfg) {
     sg.attributes.position.needsUpdate = true;
   });
   return st;
+}
+
+// ====================================================================== 4) Zug (3-Zug)
+//
+// Zug-Koordinate c: Meter entlang des Zugs nach vorn (−Z) ab dem Heck des letzten Wagens, gemessen beim Fahrtbeginn
+// (Weltlage z = ZR − c). Haupt- und Parallelzug fahren gleich schnell (VT); das Bildfenster fährt etwas schneller und
+// gleitet so am Zug entlang nach vorn (Fahrplan in Zug-Koordinaten: Abschnitte mit Gleit-Tempo r und Halte-Pausen, in
+// denen das Fenster genau mit dem Zug fährt). Am Ende halten Fenster und Züge gemeinsam (Fenstermitte bei c_end).
+
+export const ZUG = { VT: 6, ZP: 30, ZR: 14, XW: -3, ACCEL: 6, BRAKE: 3, GAP: 0.8 };
+/** Weltpunkt (Fahrtbeginn) zu Zug-Koordinate c, seitlich x, Höhe y. */
+export const Pz = (c, x = 0, y = 0) => [x, y, ZUG.ZR - c];
+/** Pfadlänge des Fensterpfads (x = XW, Start bei z = ZP) zu Zug-Koordinate c beim Fahrtbeginn. */
+export const Sz = (c) => ZUG.ZP - (ZUG.ZR - c);
+
+/**
+ * Fahrplan → Bildfenster: plan = [{ to: c, r } | { hold: s }], letzter Eintrag { to: cEnd, r } (Halt).
+ * Rechnet mit demselben Tempo-Gesetz wie ScrollWindow (Anfahren accel, Bremsen 1,5 × accel) die Pfadlängen, an denen
+ * das Tempo wechselt, und sucht das Fensterende so, dass die Fenstermitte nach dem gemeinsamen Halt genau über cEnd
+ * steht (die Züge bremsen mit BRAKE und halten gleichzeitig mit dem Fenster). Liefert { start, end, speed, speeds,
+ * D (Fahrstrecke der Züge bis zum Halt), T (s Fahrt), marks: [{ i, s, t, c }] }.
+ */
+export function solveTrainRide(o) {
+  const { VT, ZP, ZR, ACCEL, BRAKE } = { ...ZUG, ...o };
+  const cw0 = o.cw0, plan = o.plan;
+  const s0 = ZP - (ZR - cw0);
+  const dt = 1 / 120;
+  const speeds = [], marks = [];
+  let s = s0, v = 0, t = 0, k = 0, holdT = 0;
+  const rOf = (it) => (it.hold !== undefined ? 0 : it.r);
+  const base = VT + rOf(plan[0]);
+  let target = base;
+  const cNow = () => cw0 + (s - s0) - VT * t;
+  // Wechselpunkte bis zum letzten Abschnitt
+  for (let n = 0; n < 120 * 900 && k < plan.length - 1; n++) {
+    const it = plan[k];
+    const done = it.hold !== undefined ? holdT >= it.hold : cNow() >= it.to;
+    if (done) {
+      k++;
+      holdT = 0;
+      target = VT + rOf(plan[k]);
+      speeds.push({ from: +s.toFixed(4), speed: target });
+      marks.push({ i: k, s: +s.toFixed(2), t: +t.toFixed(2), c: +cNow().toFixed(2) });
+      continue;
+    }
+    if (it.hold !== undefined) holdT += dt;
+    t += dt;
+    v = v < target ? Math.min(target, v + ACCEL * dt) : Math.max(target, v - ACCEL * dt * 1.5);
+    s += v * dt;
+  }
+  // Fensterende so wählen, dass die Mitte nach dem Halt bei cEnd steht (Züge halten zugleich)
+  const last = plan[plan.length - 1];
+  const tail = last.to - cNow();
+  let end = s + tail * (VT + last.r) / Math.max(0.2, last.r);
+  let T = 0, D = 0;
+  for (let it = 0; it < 10; it++) {
+    const w = new ScrollWindow({ path: [[0, 0, ZP], [0, 0, -6000]], start: s0, end, speed: base, speeds, accel: ACCEL, delay: 0 }, [0, 0, 0]);
+    let n = 0;
+    while (w.state !== 'done' && n < 120 * 900) { w.step(dt); n++; }
+    T = w.clock;
+    D = VT * Math.max(0, T - VT / (2 * BRAKE));
+    const cEnd = cw0 + (end - s0) - D;
+    end += last.to - cEnd;
+  }
+  return { start: s0, end, speed: base, speeds, D, T, marks };
+}
+
+/**
+ * Wagenreihe von hinten nach vorn: cars = [{ id, style, len, w?, top?, x?, gap?, parts?, model?, color? }] ab c0.
+ * Liefert { list: [{ …car, c0, c1, cc }], byId } (Zug-Koordinaten).
+ */
+export function lineUp(cars, c0 = 0) {
+  const list = [];
+  let c = c0;
+  for (const car of cars) {
+    const len = car.len ?? (car.style === 'lok' ? 8.5 : 10);
+    const it = { ...car, len, c0: c, c1: c + len, cc: c + len / 2 };
+    list.push(it);
+    c += len + (car.gap ?? ZUG.GAP);
+  }
+  return { list, byId: Object.fromEntries(list.map((x) => [x.id, x])) };
+}
+
+/**
+ * Gleis in 32-m-Stücken (je Stück ein eigener Baustein `track` – so landet jedes Stück in seinem Abschnitt und wird
+ * einzeln gekappt), Gerüst-Joche nur über den Schluchten. { x, z0, z1 (z0 > z1), gauge 2.1, gorges: [[zHoch, zTief]],
+ * bottom: −40, buffer: 'end', start: false (Prellbock auch am Anfang) }
+ */
+export function trackChunks(o) {
+  const out = [];
+  const inGorge = (za, zb) => (o.gorges ?? []).some(([g0, g1]) => za <= g0 + 1e-6 && zb >= g1 - 1e-6);
+  const cuts = new Set([o.z0, o.z1]);
+  for (let z = Math.floor(o.z0 / 32) * 32; z > o.z1; z -= 32) if (z < o.z0) cuts.add(z);
+  for (const [g0, g1] of o.gorges ?? []) { if (g0 < o.z0 && g0 > o.z1) cuts.add(g0); if (g1 < o.z0 && g1 > o.z1) cuts.add(g1); }
+  const zs = [...cuts].sort((a, b) => b - a);
+  for (let i = 0; i < zs.length - 1; i++) {
+    const za = zs[i], zb = zs[i + 1];
+    out.push({
+      type: 'track', path: [[o.x, 0, za], [o.x, 0, zb]], gauge: o.gauge ?? 2.1,
+      trestle: inGorge(za, zb) ? { bottom: o.bottom ?? -40, every: 8 } : false,
+      buffer: zs.length === 2 && o.start ? 'both' : i === zs.length - 2 ? (o.buffer ?? 'end') : i === 0 && o.start ? 'start' : null,
+    });
+  }
+  return out;
+}
+
+/** Teil auf einem Wagen (Wagen-Koordinaten dc vorn, dx rechts, y über der Schiene) → vehicle-part. */
+export const part = (car, dc, dx, y, size, o = {}) => ({ pos: [dx, y, -dc], size, ...o });
+/** Weltlage (Fahrtbeginn) eines Punkts auf einem Wagen. */
+export const onCar = (car, dc, dx, y) => Pz(car.cc + dc, (car.x ?? 0) + dx, y);
+
+/** Wagen → Baustein vehicle (fährt mit VT, hält nach D Metern). */
+export function carSegment(car, ride, next = null) {
+  const STY = { lok: [3, 3.96], wagen: [2.8, 3.75], flach: [3, 1.39], plain: [3, 1.39] };
+  const [w, top] = STY[car.style] ?? [3, 1.39];
+  const at = Sz(car.cc);
+  // Übergang zum nächsten Wagen: unsichtbare Platte über die Kupplungslücke auf Höhe der niedrigeren Oberkante (Dach
+  // an Dach, Deck an Deck, Dach → Deck) – man fällt nicht hindurch, und an einer hohen Wagenstirn ragt nichts über den
+  // Kopf (Hinaufspringen bleibt frei). Zwischen zwei Personenwagen zusätzlich ein Faltenbalg (sichtbar).
+  const L2 = car.len / 2, gap = car.gap ?? ZUG.GAP;
+  const parts = [...(car.parts ?? [])];
+  if (next && (next.x ?? 0) === (car.x ?? 0)) {
+    const TOP = { wagen: [3.75, 2.2], lok: [1.26, 2.4], flach: [1.39, 2.6] };   // Oberkante am hinteren Ende, Breite (roof: Postwagen-Dach)
+    const a = car.roof ? TOP.wagen : TOP[car.style] ?? TOP.flach, b = next.roof ? TOP.wagen : TOP[next.style] ?? TOP.flach;
+    const y = Math.min(car.style === 'lok' ? 3.96 : a[0], b[0]), wd = Math.min(a[1], b[1]);
+    parts.push({ pos: [0, y - 0.15, -(L2 + gap / 2)], size: [wd, 0.15, gap + 0.06], visible: false, tag: 'uebergang' });
+  }
+  if (car.style === 'wagen' && next?.style === 'wagen' && (next.x ?? 0) === (car.x ?? 0)) {
+    parts.push({ pos: [0, 1.3, -(L2 + (car.gap ?? ZUG.GAP) / 2)], size: [2.1, 2.3, (car.gap ?? ZUG.GAP) + 0.06], color: 0x3a3a48, solid: false, tag: 'balg' });
+  }
+  return {
+    type: 'vehicle', id: car.id, style: car.style, size: [car.w ?? w, car.top ?? top, car.len], at, speed: ZUG.VT,
+    stop: at + ride.D, brake: ZUG.BRAKE, offset: [(car.x ?? 0) - ZUG.XW, 0], parts,
+    ...(car.model !== undefined ? { model: car.model } : {}), ...(car.deck !== undefined ? { deck: car.deck } : {}),
+    ...(car.color ? { color: car.color } : {}),
+  };
+}
+
+// ------------------------------------------------------------------ fahrende Röhre (auf einem Wagen)
+
+/**
+ * Röhre auf einem Wagen (attach): Ducken darauf → hinab und aus der Zielröhre (auch auf einem anderen fahrenden
+ * Wagen) wieder heraus. `closed` = Deckel zu (öffnet per open(), z. B. beim Zughalt). Die Figur fährt im Rohr mit
+ * dem Wagen mit (Mitfahr-Regel im Level-Haken), beim Austritt erbt sie das Wagentempo.
+ * { id, pos, attach, target: Id | [x, y, z], height 1.1, radius 0.85, color, closed, lid }
+ */
+export class ZugRoehre extends Gimmick {
+  constructor(level, spec) {
+    super(level, spec, 'zugroehre');
+    this.R = spec.radius ?? 0.85;
+    this.H = spec.height ?? 1.1;
+    this.touch = false;
+    this.open = !spec.closed;
+    this.openK = this.open ? 1 : 0;
+    this.knock = 0;
+    this.uses = 0;
+    const self = this;
+    this.info = {
+      pipe: true, enterRadius: this.R * 0.7, zug: this,
+      get x() { return self.pos.x; }, get z() { return self.pos.z; }, get top() { return self.pos.y + self.H; },
+      enter: (pl) => self.enter(pl),
+    };
+    const p = this.pos;
+    this.addSolid({ type: 'cyl', x: p.x, z: p.z, r: this.R + 0.08, y0: p.y, y1: p.y + this.H, pipe: this.info, tag: 'zugroehre' });
+    if (level.view) this.buildView(hex(spec.color ?? 0x2fbf4a));
+  }
+
+  get vehicle() { return this.spec.attach ? this.level.named.get(this.spec.attach) : null; }
+
+  buildView(color) {
+    const root = new THREE.Group();
+    root.name = 'zugroehre';
+    const g = pipeGeo(0, 0, 0, this.H, this.R, color);
+    const body = new THREE.Mesh(g, this.level.view.mats.stone);
+    body.castShadow = false;
+    root.add(body);
+    if (this.spec.lid) {
+      this.lid = new THREE.Group();
+      this.lid.position.set(0, this.H + 0.02, -this.R * 0.92);
+      const disk = new THREE.Mesh(new THREE.CylinderGeometry(this.R * 0.98, this.R * 0.98, 0.12, 24), new THREE.MeshStandardMaterial({ color: 0xffc21a, roughness: 0.3, metalness: 0.7 }));
+      disk.position.set(0, 0.06, this.R * 0.92);
+      this.lid.add(disk);
+      root.add(this.lid);
+    }
+    const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffe066 });
+    this.arrow = new THREE.Group();
+    const coneG = new THREE.ConeGeometry(0.3, 0.45, 4).toNonIndexed();
+    coneG.rotateX(Math.PI);
+    const stemG = new THREE.BoxGeometry(0.16, 0.38, 0.16).toNonIndexed();
+    stemG.translate(0, 0.38, 0);
+    for (const gg of [coneG, stemG]) gg.deleteAttribute('uv');
+    this.arrow.add(new THREE.Mesh(mergeGeometries([coneG, stemG], false), arrowMat));
+    this.arrow.visible = false;
+    root.add(this.arrow);
+    owned(root);
+    this.setModel({ root, update: () => {}, dispose: () => g.dispose() });
+  }
+
+  setOpen(on) {
+    if (this.open === on) return;
+    this.open = on;
+    if (on) { this.level.sfx('gate'); this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + this.H + 0.4, z: this.pos.z }, 14); }
+  }
+
+  enter(pl) {
+    if (!this.open) { if (this.knock <= 0) { this.knock = 0.5; this.level.sfx('blockhit'); } return; }
+    const t = this.spec.target;
+    const o = typeof t === 'string' ? this.level.named.get(t) : null;
+    const exit = o?.info ?? (o?.pipe ? o : null);
+    this.uses++;
+    pl.enterPipe({ x: this.pos.x, z: this.pos.z, top: this.pos.y + this.H, zug: this, exit: exit ?? { pos: Array.isArray(t) ? t : [this.pos.x, this.pos.y + 3, this.pos.z] } });
+  }
+
+  update(dt) { if (this.knock > 0) this.knock -= dt; }
+
+  render(dt, t) {
+    if (!this.model) return;
+    this.syncModel();
+    this.openK += ((this.open ? 1 : 0) - this.openK) * Math.min(1, (dt || 0) * 6);
+    if (this.lid) this.lid.rotation.x = -this.openK * 1.9;
+    this.arrow.visible = this.open && (!!this.spec.arrow || !!this.spec.lid) && this.openK > 0.5;
+    this.arrow.position.set(0, this.H + 1.2 + Math.abs(Math.sin(t * 4)) * 0.35, 0);
+    this.arrow.rotation.y = t * 1.5;
+  }
+
+  info() { return { open: this.open, uses: this.uses, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2) }; }
+}
+
+// ------------------------------------------------------------------ Sprechblase, Krümel
+
+function bubbleSprite(text, sub) {
+  const tex = canvasTex(512, 256, (g) => {
+    const r = 46;
+    g.fillStyle = '#ffffff'; g.strokeStyle = '#3a2a6a'; g.lineWidth = 10;
+    g.beginPath();
+    g.moveTo(30 + r, 20); g.lineTo(482 - r, 20); g.quadraticCurveTo(482, 20, 482, 20 + r); g.lineTo(482, 180 - r);
+    g.quadraticCurveTo(482, 180, 482 - r, 180); g.lineTo(290, 180); g.lineTo(240, 238); g.lineTo(236, 180); g.lineTo(30 + r, 180);
+    g.quadraticCurveTo(30, 180, 30, 180 - r); g.lineTo(30, 20 + r); g.quadraticCurveTo(30, 20, 30 + r, 20); g.closePath();
+    g.fill(); g.stroke();
+    g.fillStyle = '#3a2a6a'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = 'bold 60px "Nunito", "Arial Rounded MT Bold", Arial, sans-serif';
+    g.fillText(text, 256, sub ? 82 : 100);
+    if (sub) { g.font = 'bold 34px "Nunito", "Arial Rounded MT Bold", Arial, sans-serif'; g.fillStyle = '#d0402a'; g.fillText(sub, 256, 142); }
+  });
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
+  sp.scale.set(1.9, 0.95, 1);
+  sp.renderOrder = 12;
+  return sp;
+}
+
+const HERO_NAME = { lotti: 'Lotti', greta: 'Greta' };
+
+/**
+ * Krümel (Pflaumes kleiner Kaninchen-Freund) – fährt auf einem Wagen mit (Lage = Wagen + Versatz), steckt anfangs in
+ * einer Kiste des Brummbär-Zugs (unsichtbar, ruft „Hilfe!“), springt beim Befreien heraus, jubelt, schenkt den Stern und
+ * hüpft danach in die Rückfahr-Röhre (fährt mit uns weiter – am Ziel wartet er). opts: { veh (Fahrzeug-Id), dc, dx, y,
+ * state: 'crate' | 'wave', pipe: Id der Röhre, in die er hüpft }. Methoden: free(). Laufzeit: state, x, y, z.
+ */
+export class KruemelZug {
+  constructor(level, o) {
+    this.level = level;
+    this.o = o;
+    this.state = o.state ?? 'crate';
+    this.t = 0;
+    this.bubbleT = 0;
+    this.off = { x: o.dx ?? 0, y: o.y ?? 1.39, z: -(o.dc ?? 0) };
+    this.x = 0; this.y = 0; this.z = 0;
+    this.yaw = -Math.PI / 2;
+    this.hop = 0;
+    level.onStep((dt) => this.step(dt));
+    if (!level.view) return;
+    this.model = getModel('kruemel');
+    this.root = new THREE.Group();
+    this.root.name = 'kruemel-zug';
+    this.root.add(this.model.root);
+    this.model.root.scale.setScalar(o.scale ?? 1.35);
+    addObject(level, this.root, (dt) => this.render(dt));
+    this.shadowPos = new THREE.Vector3();
+    level.view.shadows.add({ pos: this.shadowPos, radius: 0.32, alive: () => true, visible: () => this.root.visible });
+  }
+
+  get veh() { return this.level.named.get(this.o.veh); }
+
+  say(text, sub, time = 3) {
+    if (!this.root) return;
+    if (this.bubble && this.bubbleText !== text + sub) { this.root.remove(this.bubble); this.bubble.material.map?.dispose(); this.bubble.material.dispose(); this.bubble = null; }
+    if (!this.bubble) { this.bubble = bubbleSprite(text, sub); this.bubble.position.set(0, 1.6, 0); this.root.add(this.bubble); }
+    this.bubbleText = text + sub;
+    this.bubbleT = time;
+  }
+
+  free() {
+    if (this.state !== 'crate') return;
+    this.state = 'out';
+    this.t = 0;
+    this.level.sfx('jump');
+  }
+
+  step(dt) {
+    this.t += dt;
+    if (this.bubbleT > 0) this.bubbleT -= dt;
+    const v = this.veh;
+    if (v) { this.x = v.pos.x + this.off.x; this.y = v.pos.y + this.off.y; this.z = v.pos.z + this.off.z; }
+    const p = this.level.player;
+    const d = p ? Math.hypot(p.pos.x - this.x, p.pos.z - this.z) : 99;
+    if (this.state === 'crate') {
+      if (d < 7 && this.bubbleT <= 0) this.say('Hilfe!', 'Ich stecke in der Kiste!', 2.6);
+    } else if (this.state === 'out') {
+      // Sprung aus der Kiste (Bogen 1,6 m hoch) und Freudensprünge
+      this.hop = Math.max(0, Math.sin(Math.min(1, this.t / 0.7) * Math.PI)) * 1.6;
+      if (this.t > 0.7) {
+        this.state = 'cheer'; this.t = 0;
+        this.say(`Danke, ${HERO_NAME[p?.hero] ?? 'Lotti'}!`, 'Hier, für dich!', 4);
+        this.level.sfx('victory');
+        this.o.onFree?.(this);
+      }
+    } else if (this.state === 'cheer') {
+      this.hop = Math.abs(Math.sin(this.t * 6)) * 0.35;
+      if (p) this.yaw = Math.atan2(-(p.pos.z - this.z), p.pos.x - this.x);
+      if (this.t > 4.2 && this.o.pipe) { this.state = 'pipe'; this.t = 0; this.say('Ich fahr mit euch!', '', 2); }
+    } else if (this.state === 'pipe') {
+      // hüpft zur Röhre und verschwindet darin
+      const pp = this.level.named.get(this.o.pipe);
+      if (pp) {
+        const tx = pp.pos.x - (v?.pos.x ?? 0), tz = pp.pos.z - (v?.pos.z ?? 0);
+        const dx = tx - this.off.x, dz = tz - this.off.z, l = Math.hypot(dx, dz);
+        const sp = 3 * dt;
+        if (l > 0.2) { this.off.x += (dx / l) * Math.min(sp, l); this.off.z += (dz / l) * Math.min(sp, l); this.yaw = Math.atan2(-dz, dx); this.hop = Math.abs(Math.sin(this.t * 9)) * 0.3; }
+        else { this.hop = Math.max(0, 1.4 - this.t * 0.5) ; this.off.y = Math.max(pp.pos.y - (v?.pos.y ?? 0) - 0.6, this.off.y - dt * 2.5); if (this.off.y < pp.pos.y - (v?.pos.y ?? 0)) { this.state = 'gone'; this.level.sfx('pipe'); } }
+      } else this.state = 'gone';
+    }
+  }
+
+  render(dt) {
+    if (!this.root) return;
+    this.root.visible = this.state !== 'crate' && this.state !== 'gone';
+    if (this.bubble) { this.bubble.visible = this.bubbleT > 0; this.bubble.position.y = 1.6 + Math.sin(this.t * 3) * 0.04; }
+    // In der Kiste: nur die Sprechblase (am Kistenort) zeigen
+    if (this.state === 'crate') {
+      this.root.visible = this.bubbleT > 0;
+      this.model.root.visible = false;
+    } else this.model.root.visible = true;
+    this.root.position.set(this.x, this.y + this.hop, this.z);
+    this.model.root.rotation.y = this.yaw;
+    this.shadowPos.set(this.x, this.y, this.z);
+    const anim = this.state === 'cheer' || this.state === 'out' ? 'cheer' : this.state === 'pipe' ? 'hop' : 'idle';
+    this.model.update(Math.min(0.1, dt || 0), { anim });
+  }
+}
+
+// ------------------------------------------------------------------ Postwagen mit Ausschnitt
+
+/**
+ * Teile (Kollision) eines begehbaren Postwagens auf Flachwagen-Basis (Deck 1,39): Seitenwände, Stirnwand hinten,
+ * Stirnwand vorn mit Tür, Dach (3,6–3,75) mit Dachluke hinten. Alle Teile unsichtbar (Optik: postwagenBody).
+ * { len 10, hatch: [dcVorn, dcHinten] (Wagen-Koordinaten), door: 1.2 }
+ */
+export function postwagenParts(o = {}) {
+  const L2 = (o.len ?? 10) / 2, D = 1.39, T = 3.6, R = 3.75, w = 1.4;
+  const [h0, h1] = o.hatch ?? [1.6, 3.4];          // Luke von dc −h1 … −h0 (hinten)
+  const dw = (o.door ?? 1.3) / 2;
+  const P = (pos, size, tag) => ({ pos, size, visible: false, tag });
+  return [
+    P([-w + 0.08, D, 0], [0.16, T - D, 2 * L2], 'post:wand'),
+    P([w - 0.08, D, 0], [0.16, T - D, 2 * L2], 'post:wand'),
+    P([0, D, L2 - 0.08], [2 * w, T - D, 0.16], 'post:wand'),
+    P([-(w + dw) / 2, D, -L2 + 0.08], [w - dw, T - D, 0.16], 'post:wand'),
+    P([(w + dw) / 2, D, -L2 + 0.08], [w - dw, T - D, 0.16], 'post:wand'),
+    P([0, D + 1.85, -L2 + 0.08], [2 * dw, T - D - 1.85, 0.16], 'post:wand'),
+    // Dach: vorn bis zur Luke, hinter der Luke, Streifen neben der Luke
+    P([0, T, (-L2 + h0) / 2], [2 * w, R - T, L2 + h0], 'post:dach'),
+    P([0, T, (h1 + L2) / 2], [2 * w, R - T, L2 - h1], 'post:dach'),
+    P([-(w + 0.8) / 2, T, (h0 + h1) / 2], [w - 0.8, R - T, h1 - h0], 'post:dach'),
+    P([(w + 0.8) / 2, T, (h0 + h1) / 2], [w - 0.8, R - T, h1 - h0], 'post:dach'),
+  ];
+}
+
+/**
+ * Optik des Postwagens (am Modell des Fahrzeugs, fährt mit): blaue Wände mit Cremestreifen und leuchtenden Fenstern,
+ * Innenraum mit Holzboden, Postsäcken, Regal; Bogendach mit offener Luke. Ist eine Figur im Wagen, werden Dach und
+ * Rückwand durchsichtig (Ausschnitt-Ansicht). Rückgabe { inside() } für Tests.
+ */
+export function postwagenBody(level, vehId, o = {}) {
+  const veh = level.named.get(vehId);
+  if (!veh) return null;
+  const L2 = (o.len ?? 10) / 2, D = 1.39, T = 3.6, w = 1.4;
+  const [h0, h1] = o.hatch ?? [1.6, 3.4];
+  const st = { k: 0, inside: false };
+  const isInside = () => {
+    const p = level.player;
+    if (!p) return false;
+    const lx = p.pos.x - veh.pos.x, lz = p.pos.z - veh.pos.z, ly = p.pos.y - veh.pos.y;
+    return Math.abs(lx) < w && Math.abs(lz) < L2 + 0.2 && ly > D - 0.3 && ly < T - 0.2;
+  };
+  level.onStep((dt) => { st.inside = isInside(); st.k = st.inside ? Math.min(1, st.k + dt / 0.35) : Math.max(0, st.k - dt / 0.35); });
+  if (!level.view || !veh.model) return st;
+  const solid = [], fade = [], glow = [];
+  const blue = 0x2a4ac8, blueDk = 0x1a2a88, cream = 0xfff2d6, gold = 0xffc21a;
+  // Seitenwände mit Fenstern (Fenster leuchten), Cremestreifen
+  for (const s of [-1, 1]) {
+    solid.push(blockG(0.14, 0.9, 2 * L2, s * (w - 0.07), D, 0, blue, { r: 0.02, seg: 0 }));
+    solid.push(blockG(0.15, 0.12, 2 * L2, s * (w - 0.07), D + 0.9, 0, cream, { r: 0, seg: 0 }));
+    fade.push(blockG(0.14, T - D - 1.02, 2 * L2, s * (w - 0.07), D + 1.02, 0, blue, { r: 0.02, seg: 0 }));
+    for (let i = 0; i < 4; i++) glow.push(blockG(0.16, 0.7, 1.2, s * (w - 0.07), D + 1.2, -L2 + 1.5 + i * 2.35, 0xffd27a, { r: 0, seg: 0 }));
+  }
+  // Stirnwände (vorn mit Tür), Rückwand blendet aus
+  for (const s of [-1, 1]) solid.push(blockG(w - 0.65, T - D, 0.14, s * (w + 0.65) / 2, D, -L2 + 0.07, blueDk, { r: 0.02, seg: 0 }));
+  solid.push(blockG(1.3, T - D - 1.85, 0.14, 0, D + 1.85, -L2 + 0.07, blueDk, { r: 0.02, seg: 0 }));
+  fade.push(blockG(2 * w, T - D, 0.14, 0, D, L2 - 0.07, blueDk, { r: 0.02, seg: 0 }));
+  // Innen: Holzboden, Postsäcke, Paketregal, Laterne
+  solid.push(blockG(2 * w - 0.3, 0.02, 2 * L2 - 0.3, 0, D + 0.005, 0, 0x8a5a36, { r: 0, seg: 0 }));
+  for (const [x, z, s] of [[-0.9, 3.8, 0.5], [-0.95, 3.0, 0.42], [0.95, 4.2, 0.46]]) solid.push(sphereG(s, x, D + s * 0.8, z, 0xd8c8a0, { sy: 0.8, ws: 8, hs: 6 }));
+  solid.push(blockG(0.5, 1.6, 2.4, -1.05, D, -1.0, 0x6a4028, { r: 0.03, seg: 0 }));
+  for (const [y, z, c] of [[0.1, -1.6, 0xc8783a], [0.1, -0.5, 0xd8a050], [0.65, -1.2, 0xb86a3a], [1.2, -0.7, 0xe0b060]]) solid.push(blockG(0.42, 0.42, 0.55, -1.0, D + y, z, c, { r: 0.04, seg: 0 }));
+  // Dach (Bogen) mit Luke: Teile vor/hinter der Luke und neben ihr
+  const roof = (z0, z1, x0, x1) => {
+    const len = z1 - z0, cx = (x0 + x1) / 2, ww = x1 - x0;
+    const g = new THREE.CylinderGeometry(1.6, 1.6, len, 16, 1, false, -Math.asin(Math.min(1, ww / 3.2)), 2 * Math.asin(Math.min(1, ww / 3.2))).toNonIndexed();
+    g.rotateX(Math.PI / 2);
+    g.translate(cx, T - 1.42, (z0 + z1) / 2);
+    return colorize(g, (p, n, out) => mixc(L(0x6a6e7e), L(0xa8acba), smooth(0, 1, n.y), out));
+  };
+  fade.push(roof(-L2, h0, -w, w), roof(h1, L2, -w, w));
+  fade.push(blockG(w - 0.8, 0.12, h1 - h0, -(w + 0.8) / 2, T + 0.02, (h0 + h1) / 2, 0x8a8e9e, { r: 0, seg: 0 }), blockG(w - 0.8, 0.12, h1 - h0, (w + 0.8) / 2, T + 0.02, (h0 + h1) / 2, 0x8a8e9e, { r: 0, seg: 0 }));
+  // Lukenrahmen (Gold) und offene Klappe
+  solid.push(blockG(1.8, 0.1, 0.12, 0, T + 0.12, h0, gold, { r: 0, seg: 0 }), blockG(1.8, 0.1, 0.12, 0, T + 0.12, h1, gold, { r: 0, seg: 0 }));
+  const flap = blockG(1.6, 0.08, 1.7, 0, 0, -0.85, 0x5a5e6e, { r: 0.02, seg: 0 });
+  flap.rotateX(-1.9); flap.translate(0, T + 0.15, h0);
+  solid.push(flap);
+  const mk = (parts, mat) => { const m = new THREE.Mesh(merge(parts), mat); m.castShadow = true; m.receiveShadow = true; m.userData.owned = true; veh.model.root.add(m); return m; };
+  mk(solid, level.view.mats.world);
+  const fadeMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, transparent: true, opacity: 1 });
+  const fm = mk(fade, fadeMat);
+  const gm = mk(glow, level.view.mats.glow);
+  gm.castShadow = false;
+  level.view.onFrame(() => {
+    fadeMat.opacity = 1 - 0.85 * ease(st.k);
+    fadeMat.depthWrite = st.k < 0.5;
+    fm.castShadow = false;
+  });
+  return st;
+}
+
+// ------------------------------------------------------------------ Mitfahr-Regeln und Zug-Haken
+
+/** Fahrzeug, über dessen Grundfläche p liegt (Höhe Deck − below … Deck + 9), sonst null. */
+function vehicleUnder(vehicles, p, below = 1.2) {
+  let best = null, bd = Infinity;
+  for (const v of vehicles) {
+    if (v.removed) continue;
+    const hx = v.size.w / 2 + 0.6, hz = v.size.d / 2 + 0.6;
+    if (Math.abs(p.x - v.pos.x) > hx || Math.abs(p.z - v.pos.z) > hz) continue;
+    const top = v.pos.y + v.size.h;
+    if (p.y < v.pos.y - below || p.y > top + 9) continue;
+    const d = Math.abs(p.y - top);
+    if (d < bd) { bd = d; best = v; }
+  }
+  return best;
+}
+
+/**
+ * Level-Haken 3-Zug (in LEVEL.setup aufrufen). Regeln je Schritt (level.onStep, nach den Fahrzeugen, vor der Figur):
+ *  · Neu entstehende Dinge auf/über einem Wagen fahren mit (Power-ups, Sterne, Münzen, Feuerkugeln, Suchköpfe,
+ *    vom Turm gefallene Pilzlinge …): `attach` an den Wagen darunter bzw. an den Wagen ihres Schützen (owner.spec.attach).
+ *  · Riesenprojektile vom Parallelzug fliegen relativ zum Zug quer; reitet man auf einem, trägt seine Oberseite mit
+ *    Wagen- und Flugbewegung (gemeinsamer mover).
+ *  · Tänzelnde Gegner (Feuer-Werfer) tänzeln um einen Punkt, der mit dem Wagen fährt (home folgt dem Wagen).
+ *  · Röhren auf Wagen: die Figur fährt im Rohr mit, beim Austritt erbt sie das Wagentempo.
+ * Rückgabe: Zustand { vehicles, adopted, pipeRides } (level._zug).
+ */
+export function zugRules(level) {
+  const st = level._zug = { vehicles: [], seen: new WeakSet(), adopted: 0, pipeRides: 0, pipeVeh: null, wasPipe: false, combo: new Map() };
+  let init = false;
+  const attachTo = (e, v) => {
+    if (!v || !e.spec) return;
+    e.spec.attach = v.spec.id;
+    v.scanned = -1;
+    st.adopted++;
+  };
+  level.onStep(() => {
+    if (!init) {
+      init = true;
+      st.vehicles = level.entities.filter((e) => e.kind === 'vehicle' && e.spec?.id);
+      // beim Aufbau entstandene Sterne (Pilzlingsturm trägt einen) gehören zum Wagen darunter
+      for (const e of level.entities) {
+        st.seen.add(e);
+        if (e.kind === 'star' && !e.spec?.attach) attachTo(e, vehicleUnder(st.vehicles, e.pos));
+      }
+    }
+    const ents = level.entities;
+    // neue Entitäten übernehmen
+    for (let i = ents.length - 1; i >= 0; i--) {
+      const e = ents[i];
+      if (st.seen.has(e)) continue;
+      st.seen.add(e);
+      if (e.kind === 'vehicle' || e.spec?.attach || e.removed || e.spec?.noAttach) continue;
+      const ow = e.spec?.owner ?? e.owner;
+      const ov = ow?.spec?.attach ? level.named.get(ow.spec.attach) : null;
+      attachTo(e, ov ?? vehicleUnder(st.vehicles, e.pos));
+    }
+    // home tänzelnder Gegner fährt mit; Riesenprojektile: gemeinsamer mover (Wagen + Flug)
+    for (const v of st.vehicles) {
+      const m = v.mover;
+      if (!m || (!m.dx && !m.dz && !m.dy)) continue;
+      for (const e of v.attached) {
+        if (e.home?.isVector3 && e.kind !== 'vehicle') { e.home.x += m.dx; e.home.y += m.dy; e.home.z += m.dz; }
+        if (e.kind === 'riesenprojektil' && e.mover && e.shapeId !== null && e.shapeId !== undefined) {
+          const sh = level.world.get(e.shapeId);
+          if (!sh) continue;
+          let c = st.combo.get(e);
+          if (!c) { c = { dx: 0, dy: 0, dz: 0, vx: 0, vy: 0, vz: 0, dyaw: 0, cx: 0, cz: 0 }; st.combo.set(e, c); }
+          const own = e.mover;
+          c.dx = m.dx + own.dx; c.dy = m.dy + own.dy; c.dz = m.dz + own.dz;
+          c.vx = m.vx + own.vx; c.vy = m.vy + own.vy; c.vz = m.vz + own.vz;
+          sh.mover = c;
+        }
+      }
+    }
+    // Figur im Rohr einer fahrenden Röhre: mit dem Wagen mitnehmen; beim Austritt Wagentempo erben
+    const p = level.player;
+    if (!p) return;
+    const sc = p.script;
+    if (p.mode === 'script' && sc?.type === 'pipe') {
+      const pipe = sc.phase === 'up' ? sc.exit : sc.pipe;
+      const veh = pipe?.zug?.vehicle ?? null;
+      if (veh?.mover) { const m = veh.mover; p.pos.x += m.dx; p.pos.y += m.dy; p.pos.z += m.dz; }
+      st.pipeVeh = sc.phase === 'up' ? veh : (sc.exit?.zug?.vehicle ?? null);
+      if (!st.wasPipe) st.pipeRides++;
+      st.wasPipe = true;
+    } else if (st.wasPipe) {
+      st.wasPipe = false;
+      const veh = st.pipeVeh;
+      st.pipeVeh = null;
+      const arch = level.archetype;
+      if (veh?.mover && p.mode === 'air' && arch?.fstate) {
+        const inh = arch.fstate(p).inh;
+        inh.x = veh.mover.vx; inh.z = veh.mover.vz;
+      }
+    }
+  });
+  return st;
+}
+
+/**
+ * Budget auf der langen Strecke: Wagen und alles, was auf ihnen mitfährt (attach), wird nur in der Nähe des Blickziels
+ * gezeichnet (|dz| < show, |dx| < 40; die Kamera sieht ≈ 30 m voraus) und wirft den Sonnenschatten nur nahe am
+ * Blickziel (|dz| < shadow). Je Bild nach den Entitäten (deren render setzt die Sichtbarkeit selbst nicht zurück).
+ */
+/** Ersatzkörper für ferne Wagen (wenige Dreiecke, Vertexfarben; lokal: Ursprung Schiene unter der Mitte, vorn −z). */
+function carProxyGeo(style, L) {
+  const P = [];
+  const bog = (y = 0.28) => { for (const s of [-1, 1]) P.push(box(2.2, 0.5, 1.7, 0, y, s * (L / 2 - 1.9), 0x1a1a22, { r: 0, seg: 0 })); };
+  if (style === 'lok') {
+    P.push(box(2.6, 0.8, L - 0.3, 0, 0.85, 0, 0x2a2a34, { r: 0, seg: 0 }));
+    P.push(cylG(1.0, 1.0, 4.6, 0, 2.2, -1.2, 0xd8283a, 10, { rx: Math.PI / 2, center: true }));
+    P.push(cylG(1.04, 1.04, 0.8, 0, 2.2, -3.6, 0x1a1a22, 10, { rx: Math.PI / 2, center: true }));
+    P.push(cylG(0.42, 0.3, 1.15, 0, 3.0, -3.4, 0x1a1a22, 7));
+    P.push(box(2.6, 2.6, 2.7, 0, 2.45, 2.4, 0xd8283a, { r: 0.06, seg: 0 }), box(2.9, 0.25, 3.0, 0, 3.84, 2.4, 0x1a1a22, { r: 0, seg: 0 }));
+    bog(0.4);
+  } else if (style === 'flach') {
+    P.push(box(2.5, 0.6, L - 0.4, 0, 0.75, 0, 0x2a2a34, { r: 0, seg: 0 }), box(3, 0.34, L, 0, 1.22, 0, 0xb86f3a, { r: 0, seg: 0, topColor: 0xc88a50 }));
+    bog();
+  } else {
+    const body = style === 'post' ? 0xa8282a : 0x2a4ad8;
+    P.push(box(2.5, 0.55, L - 0.6, 0, 0.75, 0, 0x2a2a34, { r: 0, seg: 0 }));
+    P.push(box(2.8, 2.3, L - 0.2, 0, 2.1, 0, body, { r: 0, seg: 0 }));
+    if (style !== 'post') P.push(box(2.84, 0.55, L - 1.0, 0, 2.35, 0, 0xffd27a, { r: 0, seg: 0 }));
+    P.push(box(2.86, 0.2, L - 0.25, 0, 1.6, 0, 0xf6e6c0, { r: 0, seg: 0 }));
+    P.push(box(2.7, 0.52, L, 0, 3.49, 0, 0x5e5e6c, { r: 0.2, seg: 1 }));
+    bog();
+  }
+  return merge(P);
+}
+
+/**
+ * Zug-Budget je Bild: Wagen und mitfahrende Entitäten außerhalb der Sichtpyramide (plus Schattenlänge) ausblenden,
+ * Sonnenschatten nur nahe am Blickziel, Räder/Stangen nur nahe an der Kamera; ferne Wagen (> far m) als Ersatzkörper
+ * (eine Instanzgruppe je Bauart statt eines Modells je Wagen). o = { shadow: 20, wheels: 24, far: 32 }
+ */
+export function trainCull(level, o = {}) {
+  if (!level.view) return null;
+  const shadow = o.shadow ?? 20, wheels = o.wheels ?? 24, farLod = o.far ?? 32;
+  const allowed = new WeakMap();
+  const st = { hidden: 0, wheelsOff: 0, proxies: 0 };
+  const fr = new THREE.Frustum(), pv = new THREE.Matrix4(), sph = new THREE.Sphere(), M = new THREE.Matrix4(), Z = new THREE.Matrix4().makeScale(0, 0, 0);
+  const post = level.data.zug?.post;
+  const kind = (e) => (e.spec?.id === post ? 'post' : e.style === 'lok' ? 'lok' : e.style === 'flach' ? 'flach' : 'wagen');
+  let proxy = null;
+  const build = () => {
+    proxy = {};
+    const vehs = level.entities.filter((e) => e.kind === 'vehicle' && e.model);
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 });
+    for (const k of ['wagen', 'flach', 'lok', 'post']) {
+      const list = vehs.filter((e) => kind(e) === k);
+      if (!list.length) continue;
+      const m = new THREE.InstancedMesh(carProxyGeo(k, list[0].size.d), mat, list.length);
+      m.name = `zug-ersatz:${k}`;
+      m.frustumCulled = false;
+      m.castShadow = false;
+      for (let i = 0; i < list.length; i++) { m.setMatrixAt(i, Z); list[i]._proxy = { m, i }; }
+      addObject(level, owned(m));
+      proxy[k] = m;
+    }
+  };
+  level.view.onFrame(() => {
+    if (!proxy) build();
+    const view = level.view, cam = view.camera, tg = view.rig.target, cp = cam.position;
+    cam.updateMatrixWorld();
+    fr.setFromProjectionMatrix(pv.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    let hidden = 0, off = 0, px = 0;
+    for (const e of level.entities) {
+      if (!e.model || !(e.kind === 'vehicle' || e.spec?.attach)) continue;
+      const root = e.model.root;
+      const veh = e.kind === 'vehicle';
+      // Sichtpyramide (+ Schattenlänge der tief stehenden Sonne)
+      sph.center.set(e.pos.x, e.pos.y + (veh ? 2 : 0.8), e.pos.z);
+      sph.radius = (veh ? Math.hypot(e.size.d / 2, 2.4) : 1.6) + 4;
+      const half = veh ? e.size.d / 2 : 0;
+      const dc = Math.max(0, Math.hypot(e.pos.x - cp.x, e.pos.z - cp.z) - half);
+      // mitfahrende Entitäten (Gegner, Kisten, Röhren) weit oben im Bild: erst ab o.attached m zeichnen
+      const out = !fr.intersectsSphere(sph) || Math.abs(e.pos.x - tg.x) > 45 || (!veh && dc > (o.attached ?? 1e9));
+      const lod = veh && !out && dc > farLod && e._proxy;
+      if (veh && e._proxy) {
+        if (lod) { M.makeTranslation(e.pos.x, e.pos.y, e.pos.z); e._proxy.m.setMatrixAt(e._proxy.i, M); px++; } else e._proxy.m.setMatrixAt(e._proxy.i, Z);
+      }
+      if (out || lod) { if (root.visible) e._culled = true; root.visible = false; hidden++; continue; }
+      if (e._culled) { e._culled = false; root.visible = e.hidden !== true; }
+      const dz = Math.max(0, Math.abs(e.pos.z - tg.z) - half), dx = Math.abs(e.pos.x - tg.x);
+      const near = dz < shadow && dx < 26;
+      root.traverse((m) => {
+        if (!m.isMesh) return;
+        let a = allowed.get(m);
+        if (a === undefined) { a = m.castShadow; allowed.set(m, a); }
+        m.castShadow = a && near;
+      });
+      // Räder und Stangen (Instanzen unter dem Wagenkasten) nur nah an der Kamera
+      if (veh) {
+        if (!e._inst) { e._inst = []; root.traverse((m) => { if (m.isInstancedMesh && m.count > 1) e._inst.push(m); }); }
+        const show = dc < wheels;
+        for (const m of e._inst) m.visible = show;
+        if (!show) off++;
+      }
+    }
+    for (const m of Object.values(proxy)) { m.instanceMatrix.needsUpdate = true; m.visible = px > 0; }
+    st.hidden = hidden;
+    st.wheelsOff = off;
+    st.proxies = px;
+  });
+  return st;
+}
+
+/**
+ * Schattenpass der Heldin: kleine Teile (Hände, Schuhe, Knöpfe, Augen – Kugelradius < minR) werfen keinen eigenen
+ * Sonnenschatten (liegen ohnehin im Schatten des Körpers); spart ≈ 10 Zeichenaufrufe. Je Bild (Kostümwechsel).
+ */
+export function heroShadowDiet(level, minR = 0.12) {
+  if (!level.view) return;
+  let hero = null;
+  const sc = new THREE.Vector3();
+  level.view.onFrame(() => {
+    if (!hero || !hero.parent) hero = level.view.three.getObjectByName('heldin');
+    if (!hero) return;
+    hero.traverse((m) => {
+      if (!m.isMesh || !m.castShadow) return;
+      const g = m.geometry;
+      if (!g.boundingSphere) g.computeBoundingSphere();
+      m.getWorldScale(sc);
+      if (g.boundingSphere.radius * Math.max(sc.x, sc.y, sc.z) < minR) m.castShadow = false;
+    });
+  });
+}
+
+/**
+ * Himmel-Kulisse (Bergkranz, Waldkranz, Wolken: je ≥ 4000 Dreiecke) nur zeichnen, wenn der obere Bildrand über den
+ * Horizont reicht – bei der steilen Zugkamera liegt der Horizont außerhalb des Bildes (spart ≈ 58 k Dreiecke).
+ */
+export function skyDiet(level, o = {}) {
+  if (!level.view) return null;
+  let heavy = null;
+  const dir = new THREE.Vector3();
+  const st = { hidden: false };
+  level.view.onFrame(() => {
+    const view = level.view, cam = view.camera;
+    if (!heavy) {
+      heavy = [];
+      view.three.getObjectByName('himmel')?.traverse((m) => {
+        if (!m.isMesh || !m.geometry) return;
+        const g = m.geometry, n = (g.index ? g.index.count : g.attributes.position.count) / 3 * (m.isInstancedMesh ? m.count : 1);
+        if (n >= (o.min ?? 4000)) heavy.push({ m, vis: m.visible });
+        // Bodenebene des Themas (y −8) verdeckte die tieferen Schluchten: das Gelände deckt alles Sichtbare ab
+        if (o.ground !== false && n <= 2 && m.material?.isMeshStandardMaterial) m.visible = false;
+      });
+    }
+    cam.getWorldDirection(dir);
+    const top = Math.asin(Math.max(-1, Math.min(1, dir.y))) * 180 / Math.PI + cam.fov / 2;
+    const hide = top < (o.margin ?? -3);
+    if (hide !== st.hidden) { st.hidden = hide; for (const h of heavy) h.m.visible = hide ? false : h.vis; }
+  });
+  return st;
+}
+
+// ------------------------------------------------------------------ Kulisse: Statik nur nah zeichnen (Budget)
+
+/**
+ * Statische Abschnitte entlang der langen Strecke: je Bild nur zeichnen, was vor der Kamera und nicht im Nebel liegt
+ * (Quader gegen Sichtpyramide), Sonnenschatten nur nahe am Blickziel (±28 m). Wie levels/w2/_helpers_d.js (StaticCull).
+ */
+export class StaticCullE {
+  constructor(level, o = {}) {
+    this.level = level;
+    this.o = o;
+    const view = level.view;
+    this.range = o.shadowRange ?? 28;
+    // erst im ersten Bild erfassen: levelSetupE verschmilzt die im Haken gebauten Teile erst nach dem Haken
+    this.items = null;
+    this.frustum = new THREE.Frustum();
+    this.pv = new THREE.Matrix4();
+    view.onFrame(() => this.update());
+  }
+
+  collect() {
+    const sb = this.level.view.static;
+    // Abschnitts-Meshes gleichen Materials zu einem verschmelzen (Schattenwerfer und Nicht-Schattenwerfer): ein
+    // Zeichenaufruf je Abschnitt und Material; Sonnenschatten nur in den Abschnitten, die shadowKeep(Quader) wünscht
+    if (sb && this.o.merge) {
+      const groups = new Map();
+      for (const m of sb.meshes) {
+        if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+        const b = m.geometry.boundingBox, key = `${Math.floor(-(b.min.z + b.max.z) / 2 / 32)}|${m.material.uuid}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(m);
+      }
+      for (const list of groups.values()) {
+        const host = list[0];
+        if (list.length > 1) {
+          const g = mergeGeometries(list.map((m) => m.geometry), false);
+          if (!g) continue;
+          for (const m of list) m.geometry.dispose();
+          host.geometry = g;
+          for (const m of list.slice(1)) { m.parent?.remove(m); sb.meshes.splice(sb.meshes.indexOf(m), 1); if (sb.stats) sb.stats.meshes--; }
+        }
+        host.geometry.computeBoundingBox();
+        host.geometry.computeBoundingSphere();
+        const keep = this.o.shadowKeep ? this.o.shadowKeep(host.geometry.boundingBox) : true;
+        host.castShadow = keep && !host.material.isMeshBasicMaterial;
+        host.receiveShadow = true;
+      }
+    }
+    this.items = (sb?.meshes ?? []).map((m) => {
+      m.geometry.computeBoundingBox();
+      return { m, b: m.geometry.boundingBox.clone(), cast: m.castShadow };
+    });
+  }
+
+  update() {
+    if (!this.items) this.collect();
+    const view = this.level.view, camera = view.camera, cam = camera.position, tg = view.rig.target;
+    const far = (view.three.fog?.far ?? 300) - 20;
+    camera.updateMatrixWorld();
+    this.frustum.setFromProjectionMatrix(this.pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+    for (const it of this.items) {
+      const b = it.b;
+      const tx = Math.max(b.min.x - tg.x, 0, tg.x - b.max.x), tz = Math.max(b.min.z - tg.z, 0, tg.z - b.max.z);
+      it.m.castShadow = it.cast && Math.hypot(tx, tz) < this.range;
+      const dx = Math.max(b.min.x - cam.x, 0, cam.x - b.max.x), dy = Math.max(b.min.y - cam.y, 0, cam.y - b.max.y), dz = Math.max(b.min.z - cam.z, 0, cam.z - b.max.z);
+      it.m.visible = Math.hypot(dx, dy, dz) < far && Math.hypot(dx, dz) < (this.o.maxDist ?? 1e9) && (it.m.castShadow || this.frustum.intersectsBox(b));
+    }
+  }
+}
+
+// ------------------------------------------------------------------ Baron-Szene nach dem Sieg (3-Zug)
+
+/**
+ * Nach dem Sieg über die Schattenläuferin braust Baron Brummbär im roten Sportwagen über den verschneiten Bahnhofsplatz
+ * heran, gerät auf dem Eis ins Schleudern (eine ganze Drehung), bleibt am Käfig stehen, schimpft – und flieht mit
+ * aufstiebendem Schnee. Rein darstellerisch (Simulationstakt, deterministisch); die Kamera schwenkt mit.
+ * cfg = { from, stop, away: [x, y, z] }
+ */
+class BaronSzene {
+  constructor(level, cfg) {
+    this.level = level;
+    this.cfg = cfg;
+    this.state = 'wait';
+    this.t = 0;
+    this.pos = new THREE.Vector3(...cfg.from);
+    this.yaw = 0;
+    this.spin = 0;
+    this.speed = 0;
+    this.said = false;
+    if (level.view) {
+      this.model = getModel('baron_brummbaer', { withCar: true });
+      this.model.root.visible = false;
+      level.view.add(owned(this.model.root));
+    }
+  }
+
+  get active() { return this.state === 'in' || this.state === 'spin' || this.state === 'stop' || this.state === 'away'; }
+
+  start() { if (this.state === 'wait') { this.state = 'in'; this.t = 0; this.level.sfx('swoop'); } }
+
+  reset() { this.state = 'wait'; this.t = 0; this.said = false; }
+
+  step(dt) {
+    if (!this.active) return;
+    this.t += dt;
+    const { from, stop, away } = this.cfg;
+    const dir = (a, b) => Math.atan2(-(b[2] - a[2]), b[0] - a[0]);
+    const snow = (n) => { if (this.level.view && Math.random() < 0.7) this.level.effects?.dust({ x: this.pos.x, y: this.pos.y, z: this.pos.z }, n, 1.6); };
+    if (this.state === 'in') {
+      const k = Math.min(1, this.t / 2.0);
+      const e = 1 - (1 - k) * (1 - k);
+      this.pos.set(from[0] + (stop[0] - from[0]) * e, from[1] + (stop[1] - from[1]) * e, from[2] + (stop[2] - from[2]) * e);
+      this.yaw = dir(from, stop);
+      this.speed = 14 * (1 - k * 0.6);
+      snow(1);
+      if (k >= 1) { this.state = 'spin'; this.t = 0; this.level.sfx('skid'); }
+    } else if (this.state === 'spin') {
+      // Schleudern auf dem Eis: eine ganze Drehung, rutscht noch ein Stück
+      const k = Math.min(1, this.t / 1.3);
+      this.spin = ease(k) * TAU;
+      this.speed = 6 * (1 - k);
+      snow(2);
+      if (k >= 1) { this.state = 'stop'; this.t = 0; this.spin = 0; }
+    } else if (this.state === 'stop') {
+      this.speed = 0;
+      if (!this.said && this.t > 0.3) {
+        this.said = true;
+        const hud = this.level.archetype?.hud;
+        hud?.banner?.('Baron Brummbär: „Mein schöner Kanonenzug! Das bekommt ihr zurück!“', { hold: 2.6, size: 11, color: '#ffb0a0', y: 0.22 });
+        this.level.sfx('panic');
+      }
+      const want = dir(stop, away);
+      if (this.t > 1.6) this.yaw += Math.atan2(Math.sin(want - this.yaw), Math.cos(want - this.yaw)) * Math.min(1, dt * 4);
+      if (this.t > 2.8) { this.state = 'away'; this.t = 0; this.level.sfx('swoop'); }
+    } else if (this.state === 'away') {
+      const k = Math.min(1, this.t / 2.6);
+      this.pos.set(stop[0] + (away[0] - stop[0]) * k * k, stop[1] + (away[1] - stop[1]) * k * k, stop[2] + (away[2] - stop[2]) * k * k);
+      this.yaw = dir(stop, away);
+      this.speed = 4 + k * 24;
+      snow(3);
+      if (k >= 1) {
+        this.state = 'gone';
+        this.level.archetype?.hud?.banner?.('Welt 3 geschafft!', { hold: 2.6, size: 18, color: '#7dffa0' });
+        this.level.sfx('victory');
+      }
+    }
+  }
+
+  render(dt) {
+    if (!this.model) return;
+    const r = this.model.root;
+    r.visible = this.active;
+    if (!r.visible) return;
+    r.position.copy(this.pos);
+    r.rotation.y = this.yaw + this.spin;
+    this.model.update(Math.min(dt || 0, 0.1), { anim: this.state === 'stop' ? 'stunned' : 'drive', speed: this.speed, steer: this.state === 'spin' ? 1 : 0 });
+  }
+}
+
+// ------------------------------------------------------------------ Level-Haken 3-Zug
+
+/**
+ * `LEVEL.setup` von 3-Zug: Mitfahr-Regeln, Röhren auf Wagen (Geheimröhre zum Brummbär-Zug und zurück, Röhre auf der
+ * Lok → Arena, öffnet beim Halt), Krümel in der Kiste, Postwagen mit Ausschnitt, Abfahrt-Ansage, Phasen-Ansagen der
+ * Schattenläuferin im Autoscroller, Baron-Szene nach dem Sieg, Fahnen am Brummbär-Zug, Budget-Kniffe.
+ * Daten aus LEVEL.zug = { main, par (Wagenlisten mit c0/c1/cc/x), ride, delay, lokZ, arena, goal, pipes, kruemel }.
+ */
+export function zugSetup(level) {
+  if (level._zugScene) return level._zugScene;
+  const cfg = level.data.zug ?? {};
+  const sc = level._zugScene = { said: {}, luke: null, kruemel: null, post: null, baron: null, pipes: {} };
+  zugRules(level);
+  // Landschaft (Gelände, Tiefschnee, Kulisse, Herde, Dampf) – vor dem Verschmelzen und der Abschnitts-Sichtprüfung
+  if (cfg.land) sc.land = schneetalSzene(level, cfg.land);
+  const byId = Object.fromEntries([...(cfg.main ?? []), ...(cfg.par ?? [])].map((c) => [c.id, c]));
+  // Röhren auf Wagen
+  for (const p of cfg.pipes ?? []) {
+    const car = byId[p.car];
+    if (!car) continue;
+    const e = spawnLocal(level, new ZugRoehre(level, { id: p.id, attach: car.id, pos: onCar(car, p.dc, p.dx ?? 0, p.y), target: p.target, height: p.h ?? 1.1, color: p.color, closed: !!p.closed, lid: !!p.lid, arrow: !!p.arrow }));
+    sc.pipes[p.id] = e;
+  }
+  sc.luke = sc.pipes.luke ?? null;
+  // Krümel in der Kiste auf dem Brummbär-Zug
+  const kc = cfg.kruemel;
+  if (kc) {
+    const car = byId[kc.car];
+    sc.kruemel = new KruemelZug(level, {
+      veh: kc.car, dc: kc.dc, dx: kc.dx ?? 0, y: car?.style === 'wagen' ? 3.75 : 1.39, pipe: kc.pipe,
+      onFree: (k) => runAction(level, { star: { index: kc.star ?? 2, pos: [k.x, k.y + 1.7, k.z] } }, { pos: [k.x, k.y, k.z] }),
+    });
+    sc.freeKruemel = () => sc.kruemel.free();
+  }
+  // Postwagen (Ausschnitt-Ansicht, Optik am Fahrzeug)
+  if (cfg.post) sc.post = postwagenBody(level, cfg.post, { len: 10 });
+  // Phasen-Ansagen der Schattenläuferin im Autoscroller (sie liest archetype.boss / seenPhase)
+  const arch = level.archetype;
+  if (arch?.sub && !Object.prototype.hasOwnProperty.call(arch, 'boss')) {
+    Object.defineProperty(arch, 'boss', { get: () => arch.sub.boss, configurable: true });
+    Object.defineProperty(arch, 'seenPhase', { get: () => arch.sub.seenPhase, set: (v) => { arch.sub.seenPhase = v; }, configurable: true });
+  }
+  // Baron-Szene nach dem Sieg
+  if (cfg.baron) {
+    sc.baron = new BaronSzene(level, cfg.baron);
+    const prevDef = level.onBossDefeated;
+    level.onBossDefeated = (b) => { prevDef?.(b); sc.baron.start(); };
+    const rt = level.runtime, respawn = rt.respawn.bind(rt);
+    rt.respawn = (...a) => { respawn(...a); if (!arch?.sub?.won) sc.baron.reset(); };
+    if (level.view) level.view.onFrame((dt) => sc.baron.render(dt));
+    // Kamera: Blickziel schwenkt zum Wagen des Barons
+    if (arch?.camera) {
+      const cam = arch.camera.bind(arch);
+      let k = 0;
+      arch.camera = (dt, player, world) => {
+        const r = cam(dt, player, world);
+        const b = sc.baron;
+        const want = b.active && b.state !== 'away' ? 0.65 : b.state === 'away' && b.t < 1.6 ? 0.5 : 0;
+        k += (want - k) * Math.min(1, dt * 2.5);
+        if (!b.active && Math.hypot(player.pos.x - b.cfg.stop[0], player.pos.z - b.cfg.stop[2]) > 30) k = 0;
+        if (k > 0.01) {
+          const rig = level.view.rig;
+          rig.target.set(rig.target.x + (b.pos.x - rig.target.x) * k, rig.target.y + (b.pos.y + 1.5 - rig.target.y) * k, rig.target.z + (b.pos.z - rig.target.z) * k);
+          rig.distNow += (21 - rig.distNow) * k;
+          rig.place(rig.cur, dt);
+        }
+        return r;
+      };
+    }
+  }
+  // je Schritt: Abfahrt-Ansage, Luke beim Halt, Baron-Szene
+  level.onStep((dt) => {
+    const w = level.scroll, hud = level.archetype?.hud;
+    if (w && w.state === 'run' && !sc.said.go) { sc.said.go = true; hud?.banner?.('Abfahrt!', { hold: 1.2, size: 18, color: '#ffe066' }); level.sfx('pfiff'); level.sfx('switch'); }
+    if (sc.luke) {
+      const open = !!w && w.state === 'done';
+      if (open !== sc.luke.open) sc.luke.setOpen(open);
+      if (open && !sc.said.luke && (sc.lukeT = (sc.lukeT ?? 0) + dt) > 1.8) {
+        sc.said.luke = true;
+        const p = level.player;
+        if (p && Math.abs(p.pos.z - sc.luke.pos.z) < 30) hud?.banner?.('Ab durch die Röhre auf der Lok!', { hold: 2.0, size: 13, y: 0.38, color: '#ffe066' });
+      }
+    }
+    sc.baron?.step(dt);
+  });
+  // Fahnen am Brummbär-Zug, Budget
+  if (level.view) {
+    const flags = [];
+    for (const f of cfg.flags ?? []) {
+      const v = level.named.get(f.car);
+      if (!v) continue;
+      flags.push({ h: f.h ?? 2.2, yaw: -0.8, at: () => ({ x: v.pos.x + (f.dx ?? 0), y: v.pos.y + (f.y ?? v.size.h), z: v.pos.z - (f.dc ?? 0), rot: 0 }) });
+    }
+    if (flags.length) {
+      sc.flags = new WavingFlags(level, flags, { w: 1.5, h: 1.0, near: (x, z) => { const tg = level.view.rig.target; return Math.abs(z - tg.z) < 40 && Math.abs(x - tg.x) < 40; } });
+    }
+    // Räder/Stangen der Wagen (Instanzen unter dem Aufbau) werfen keinen Sonnenschatten
+    for (const v of level.entities) if (v.kind === 'vehicle') v.model?.root.traverse((o) => { if (o.isInstancedMesh) o.castShadow = false; });
+    shadowDiet(level, ['pilzlingsturm']);
+    shadowDiet(level, ['huepfqualle', 'feuer_werfer', 'suchkopf', 'riesenprojektil', 'riesenkanone', 'kanone_turm', 'crate', 'checkpoint_flag', 'steinblock'], 0);
+    const sz = cfg.shadowZones ?? [];
+    sc.cull = new StaticCullE(level, { shadowRange: 30, maxDist: 95, merge: true, shadowKeep: (b) => sz.some(([z0, z1]) => b.max.z > z1 && b.min.z < z0) });
+    sc.trainCull = trainCull(level, { shadow: 20, wheels: 18, far: 28, attached: 38 });
+    sc.sky = skyDiet(level);
+    heroShadowDiet(level, 0.12);
+    // leichter Dunst über dem Schneetal: Fernes verblasst (spart nichts, verdeckt aber das Ausblenden der Wagen)
+    const fog = level.view.three.fog;
+    if (fog) { fog.near = 55; fog.far = 200; }
+  }
+  return sc;
+}
+
+// ====================================================================== 5) Schneetal-Landschaft (3-Zug)
+//
+// Sichtfeld der Zugfahrt: Die Kamera blickt steil (40°) von hinten auf den Zug – sichtbar ist nur ein Streifen von
+// rund ±45 m um das Gleis und gut 40 m voraus. Die Landschaft ist darum nah am Gleis dicht gestaltet (Tiefschnee mit
+// Verwehungen, Schluchten mit Gerüstbrücken, Telegrafenmasten, Rentierherde, Bahnwärterhaus am Bahnübergang,
+// Bahnhöfe), ferne Wälder sind sparsam. Alle statischen Teile werden je 32-m-Abschnitt verschmolzen (Abschnitts-Culling).
+
+/** Geometrien nach 32-m-Abschnitten getrennt verschmelzen (jedes Stück landet im eigenen Abschnitt). */
+export function bakeSections(level, parts, opts) {
+  const groups = new Map();
+  for (const g of parts) {
+    if (!g) continue;
+    if (!g.boundingBox) g.computeBoundingBox();
+    const k = Math.floor(-(g.boundingBox.min.z + g.boundingBox.max.z) / 2 / 32);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(g);
+  }
+  for (const list of groups.values()) bake(level, list, opts);
+}
+
+/** Verschneite Fichte (niedrig aufgelöst, ≈ 95 Dreiecke): Stamm, drei Nadelstufen mit Schneehauben. */
+export function firG(x, y, z, h, rnd, lite = false) {
+  const parts = [];
+  const green = L(rnd.pick([0x1d5238, 0x24603f, 0x2c6a48, 0x1a4a36])), dark = L(0x10301f), snow = L(0xf6f9ff), snowSh = L(0xcfdcf0);
+  if (!lite) parts.push(cylG(h * 0.035, h * 0.055, h * 0.24, x, y - 0.15, z, 0x5a3a26, 5, { open: true }));
+  for (let i = 0; i < 3; i++) {
+    const r = h * (0.36 - i * 0.09), th = h * (0.44 - i * 0.07), y0 = y + h * (0.14 + i * 0.25);
+    const g = new THREE.ConeGeometry(r, th, lite ? 6 : 7, lite ? 1 : 2, true).toNonIndexed();
+    g.rotateY(rnd.real(0, 1));
+    g.translate(x, y0 + th / 2, z);
+    parts.push(colorize(g, (p, n, o) => {
+      const up = (p.y - y0) / th;
+      mixc(dark, green, smooth(-0.3, 0.7, n.y + up * 0.4), o);
+      if (up > (lite ? 0.9 : 0.4)) mixc(o, n.x + n.z > 0.3 ? snowSh : snow, 0.92, o);
+    }));
+  }
+  return merge(parts);
+}
+
+/** Satteldach-Haus (lokal: Breite w quer = x, Tiefe d = z, Traufe h, First +rh), gedreht um yaw. → { solid, glow } */
+function houseG(x, y, z, o) {
+  const w = o.w ?? 5, d = o.d ?? 6, h = o.h ?? 3.2, rh = o.rh ?? 2.2, yaw = o.yaw ?? 0;
+  const wall = o.wall ?? 0xa04a3a, trim = o.trim ?? 0xf4eee0, roof = o.roof ?? 0x6a2a2a, base = o.base ?? 0x7a7a8a;
+  const S = [], G = [];
+  const put = (g) => { g.rotateY(yaw); g.translate(x, y, z); return g; };
+  S.push(put(box(w + 0.2, 0.5, d + 0.2, 0, 0.25, 0, base, { r: 0.05, seg: 1 })));
+  S.push(put(box(w, h - 0.5, d, 0, 0.5 + (h - 0.5) / 2, 0, wall, { r: 0.04, seg: 1 })));
+  // Giebel (Dreiecksprisma längs z)
+  const sh = new THREE.Shape();
+  sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0); sh.lineTo(0, rh); sh.lineTo(-w / 2, 0);
+  const gab = new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: false });
+  gab.translate(0, h, -d / 2);
+  S.push(put(colorize(gab, litFn(o.gable ?? wall))));
+  // Dachflächen mit Schnee
+  const ang = Math.atan2(rh, w / 2), len = Math.hypot(w / 2, rh) + 0.55;
+  for (const s of [-1, 1]) {
+    const g = box(len, 0.2, d + 0.7, 0, 0, 0, roof, { r: 0.04, seg: 1, topColor: 0xf6f9ff });
+    g.rotateZ(-s * ang);
+    g.translate(s * (w / 4 + 0.08), h + rh / 2 + 0.12, 0);
+    S.push(put(g));
+  }
+  S.push(put(box(0.24, 0.22, d + 0.75, 0, h + rh + 0.12, 0, 0xf6f9ff, { r: 0.08, seg: 1 })));
+  // Schornstein
+  if (o.chimney !== false) {
+    const cx = o.chimneyX ?? w * 0.22, cz = o.chimneyZ ?? -d * 0.2;
+    S.push(put(box(0.55, rh + 1.1, 0.55, cx, h + (rh + 1.1) / 2, cz, 0x8a5048, { r: 0.04, seg: 1, topColor: 0xf6f9ff })));
+  }
+  // Fenster (Rahmen + warmes Licht) an beiden Langseiten und Giebelseiten
+  const win = (lx, ly, lz, ry) => {
+    const f = box(0.95, 1.15, 0.12, 0, 0, 0, trim, { r: 0.03, seg: 1 }); f.rotateY(ry); f.translate(lx, ly, lz); S.push(put(f));
+    const gl = box(0.7, 0.9, 0.14, 0, 0, 0, 0xffcf6a, { r: 0.01, seg: 0 }); gl.rotateY(ry); gl.translate(lx, ly, lz); G.push(put(gl));
+    const bar = box(0.06, 0.9, 0.16, 0, 0, 0, trim, { r: 0, seg: 0 }); bar.rotateY(ry); bar.translate(lx, ly, lz); S.push(put(bar));
+  };
+  for (const s of [-1, 1]) {
+    const n = Math.max(1, Math.floor(d / 2.6));
+    for (let i = 0; i < n; i++) win(s * (w / 2 + 0.02), 1.75, -d / 2 + (i + 0.5) * (d / n), Math.PI / 2);
+    if (o.upper) for (let i = 0; i < n; i++) win(s * (w / 2 + 0.02), 3.7, -d / 2 + (i + 0.5) * (d / n), Math.PI / 2);
+  }
+  win(0.9, 1.75, d / 2 + 0.02, 0); win(0, h + rh * 0.38, d / 2 + 0.02, 0);
+  // Tür (Giebelseite +z lokal) mit Vordach
+  if (o.door !== false) {
+    S.push(put(box(1.0, 1.9, 0.14, -0.9, 0.5 + 0.95, d / 2 + 0.03, o.doorColor ?? 0x2a5a3a, { r: 0.03, seg: 1 })));
+    S.push(put(box(1.5, 0.12, 0.9, -0.9, 2.62, d / 2 + 0.4, roof, { r: 0.03, seg: 1, topColor: 0xf6f9ff })));
+  }
+  return { solid: S, glow: G };
+}
+
+/** Bahnwärter (Mantel, Mütze mit rotem Band, weißer Schnurrbart); Arm mit Signalkelle getrennt (winkt). */
+function waerterG(o = {}) {
+  const coat = 0x23345e, skin = 0xf2c6a0, P = [], A = [];
+  P.push(cylG(0.12, 0.13, 0.75, -0.13, 0, 0, 0x1e1e26, 8), cylG(0.12, 0.13, 0.75, 0.13, 0, 0, 0x1e1e26, 8));
+  P.push(cylG(0.3, 0.4, 0.95, 0, 0.7, 0, coat, 12));
+  P.push(sphereG(0.31, 0, 1.62, 0, coat, { ws: 12, hs: 8, sy: 0.7 }));
+  for (const s of [-1, 1]) P.push(sphereG(0.03, s * 0.1, 1.2, -0.37, 0xffd23a, { ws: 6, hs: 4 }));   // Knöpfe
+  P.push(sphereG(0.21, 0, 1.92, 0, skin, { ws: 12, hs: 9 }));
+  P.push(sphereG(0.06, 0, 1.9, -0.21, 0xe8a080, { ws: 8, hs: 6 }));                                     // Nase
+  P.push(sphereG(0.09, -0.07, 1.82, -0.17, 0xffffff, { ws: 8, hs: 5, sx: 1.2, sy: 0.5 }), sphereG(0.09, 0.07, 1.82, -0.17, 0xffffff, { ws: 8, hs: 5, sx: 1.2, sy: 0.5 }));
+  for (const s of [-1, 1]) P.push(sphereG(0.028, s * 0.08, 1.98, -0.19, 0x1a1a22, { ws: 6, hs: 4 }));
+  P.push(cylG(0.2, 0.22, 0.2, 0, 2.03, 0, coat, 12), cylG(0.222, 0.222, 0.07, 0, 2.06, 0, 0xd8283a, 12));
+  P.push(blockG(0.36, 0.04, 0.2, 0, 2.03, -0.22, 0x1a1a26, { r: 0.02 }));
+  P.push(cylG(0.08, 0.09, 0.62, -0.36, 1.05, 0, coat, 8, { rz: -0.2 }));               // linker Arm hängt
+  // rechter Arm (Drehpunkt Schulter = Ursprung), hält die Signalkelle
+  A.push(cylG(0.08, 0.09, 0.62, 0, -0.6, 0, coat, 8));
+  A.push(sphereG(0.08, 0, -0.62, 0, skin, { ws: 8, hs: 6 }));
+  A.push(cylG(0.025, 0.025, 0.55, 0, -0.62, -0.05, 0x3a2a1a, 6, { rx: Math.PI }));
+  A.push(cylG(0.2, 0.2, 0.03, 0, -1.22, -0.05, 0xffffff, 16, { rx: Math.PI / 2, center: true }));
+  A.push(cylG(0.13, 0.13, 0.035, 0, -1.22, -0.05, 0x2fb04a, 16, { rx: Math.PI / 2, center: true }));
+  return { body: merge(P), arm: merge(A), shoulder: [0.38, 1.5, 0] };
+}
+
+/** Rentier (eigene Gestaltung): Rumpf mit hellem Bauch und Spiegel, Hals mit Mähne, Kopf, Geweih. Blick −z. */
+function rentierG() {
+  const brown = L(0x8a5a3a), cream = L(0xf2e6cc), dark = L(0x5a3826);
+  const fur = (p, n, o) => { mixc(brown, cream, smooth(-0.15, -0.75, n.y), o); if (n.z > 0.55 && p.z > 0.5) mixc(o, cream, 0.85, o); mixc(o, dark, smooth(0.3, 0.95, n.y) * 0.25, o); };
+  const B = [];
+  B.push(sphereG(1, 0, 1.15, 0, 0x8a5a3a, { sx: 0.42, sy: 0.44, sz: 0.86, ws: 10, hs: 7, fn: fur }));
+  B.push(cylG(0.17, 0.24, 0.8, 0, 1.55, -0.78, 0x8a5a3a, 8, { rx: -0.75, center: true, fn: fur }));
+  B.push(sphereG(0.24, 0, 1.38, -0.88, 0xf2e6cc, { sy: 1.4, sz: 0.8, ws: 6, hs: 4 }));
+  B.push(sphereG(0.22, 0, 1.92, -1.12, 0x8a5a3a, { sx: 0.85, sy: 0.85, sz: 1.35, ws: 8, hs: 6, fn: fur }));
+  B.push(sphereG(0.13, 0, 1.86, -1.38, 0x9a6a4a, { sz: 1.2, ws: 6, hs: 4 }));
+  B.push(sphereG(0.065, 0, 1.88, -1.52, 0x2a1a14, { ws: 5, hs: 3 }));
+  for (const s of [-1, 1]) {
+    B.push(sphereG(0.035, s * 0.13, 1.99, -1.24, 0x14100c, { ws: 4, hs: 3 }));
+    B.push(sphereG(0.075, s * 0.2, 2.03, -1.0, 0x8a5a3a, { sx: 1.8, sy: 0.55, sz: 0.8, ws: 5, hs: 3 }));
+    // Geweih: Stange schräg nach oben/außen/hinten, zwei Enden nach vorn
+    B.push(cylG(0.028, 0.045, 0.8, s * 0.27, 2.4, -0.98, 0xeadcc0, 5, { rz: -s * 0.55, rx: 0.35, center: true }));
+    B.push(cylG(0.02, 0.03, 0.38, s * 0.33, 2.42, -1.12, 0xeadcc0, 5, { rx: -0.9, rz: -s * 0.2, center: true }));
+    B.push(cylG(0.02, 0.03, 0.34, s * 0.46, 2.68, -0.98, 0xeadcc0, 5, { rx: -0.7, rz: -s * 0.4, center: true }));
+  }
+  B.push(sphereG(0.11, 0, 1.32, 0.86, 0xffffff, { ws: 5, hs: 4 }));
+  const leg = (z) => {
+    const P = [];
+    for (const s of [-1, 1]) {
+      P.push(cylG(0.055, 0.075, 0.95, s * 0.2, -0.95, 0, 0x6a4430, 6));
+      P.push(cylG(0.075, 0.08, 0.1, s * 0.2, -1.0, 0, 0x2a2420, 6));
+    }
+    return merge(P);
+  };
+  return { body: merge(B), front: leg(), hind: leg(), pivots: [[0, 1.03, -0.52], [0, 1.03, 0.55]] };
+}
+
+/**
+ * Rentierherde, die neben dem Zug durch den Schnee galoppiert: weidet, bis das Bildfenster herankommt (wake), läuft
+ * dann voraus neben dem Gleis her (Lauflinie x, gestaffelt) und bleibt am Ziel (stop, z. B. Seeufer) stehen.
+ * Instanzen: Rumpf, Vorder- und Hinterbeine (3 Zeichenaufrufe). Rein darstellerisch (Simulationstakt).
+ * o = { n: 7, x: 10.5, z: −104 (Weide), wake: −80 (Fenster-z), stop: −226, ground: (x, z) => y }
+ */
+export class Rentiere {
+  constructor(level, o) {
+    this.level = level;
+    this.o = o;
+    const rnd = new Rnd(o.seed ?? 31);
+    this.list = [];
+    for (let i = 0; i < (o.n ?? 7); i++) {
+      const ox = rnd.real(-0.6, 3.0), oz = i * 2.3 + rnd.real(-0.8, 0.8);
+      this.list.push({ ox, oz, x: o.x + ox, z: o.z + oz, ph: rnd.real(0, 6), v: 0, yaw: rnd.real(-0.6, 0.6) + Math.PI, graze: rnd.real(0, 6), s: rnd.real(0.85, 1.05) });
+    }
+    this.state = 'graze';
+    this.lead = o.z;
+    this.v = 0;
+    this.t = 0;
+    level.onStep((dt) => this.step(dt));
+    if (!level.view) return;
+    const g = rentierG();
+    this.pivots = g.pivots;
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
+    const n = this.list.length;
+    this.body = new THREE.InstancedMesh(g.body, mat, n);
+    this.front = new THREE.InstancedMesh(g.front, mat, n);
+    this.hind = new THREE.InstancedMesh(g.hind, mat, n);
+    this.group = new THREE.Group();
+    this.group.name = 'rentiere';
+    for (const m of [this.body, this.front, this.hind]) { m.castShadow = true; m.frustumCulled = false; this.group.add(m); }
+    this.front.castShadow = this.hind.castShadow = false;
+    this.M = new THREE.Matrix4(); this.T = new THREE.Matrix4(); this.R = new THREE.Matrix4();
+    addObject(level, owned(this.group), () => this.render());
+  }
+
+  step(dt) {
+    this.t += dt;
+    const w = this.level.scroll, o = this.o;
+    const wz = w?.center?.z ?? 1e9;
+    if (this.state === 'graze' && wz < o.wake) this.state = 'run';
+    if (this.state === 'run') {
+      const want = Math.max(o.stop, wz - 5);
+      const dv = want < this.lead ? 9.5 : 0;
+      this.v += Math.max(-6 * dt, Math.min(4 * dt, dv - this.v));
+      if (this.lead - want < 1.5) this.v = Math.min(this.v, Math.max(0, (this.lead - want) * 2));
+      this.lead -= this.v * dt;
+      if (this.lead <= o.stop + 0.05 && this.v < 0.2) this.state = 'stand';
+    }
+    for (const a of this.list) {
+      const tz = this.lead + a.oz, tx = o.x + a.ox + Math.sin(this.t * 0.6 + a.oz) * (this.v > 1 ? 0.5 : 0);
+      const dx = tx - a.x, dz = tz - a.z, l = Math.hypot(dx, dz);
+      const sp = Math.min(l * 3, this.v * 1.1 + 1.2);
+      a.v = l > 0.05 ? sp : 0;
+      if (l > 0.05) { a.x += (dx / l) * sp * dt; a.z += (dz / l) * sp * dt; }
+      if (a.v > 0.6) { const want = Math.atan2(dx, dz); let d = want - a.yaw; d = ((d + Math.PI * 3) % (Math.PI * 2)) - Math.PI; a.yaw += d * Math.min(1, dt * 5); }
+      a.ph += dt * (a.v > 0.6 ? 2.2 + a.v * 0.55 : 0);
+    }
+  }
+
+  render() {
+    if (!this.group) return;
+    const cam = this.level.view.camera.position;
+    const near = this.list.some((a) => Math.abs(a.z - cam.z) < 75);
+    this.group.visible = near;
+    if (!near) return;
+    const ground = this.o.ground;
+    this.list.forEach((a, i) => {
+      const run = Math.min(1, a.v / 3);
+      const bob = Math.abs(Math.sin(a.ph)) * 0.16 * run, pitch = Math.sin(a.ph * 2) * 0.07 * run;
+      const grazing = run < 0.1 ? Math.max(0, Math.sin(this.t * 0.4 + a.graze)) * 0.28 : 0;
+      const y = ground ? ground(a.x, a.z) : 0;
+      this.M.makeRotationY(a.yaw + Math.PI).setPosition(a.x, y + bob, a.z);
+      this.R.makeRotationX(pitch + grazing);
+      this.M.multiply(this.R);
+      this.T.makeScale(a.s, a.s, a.s); this.M.multiply(this.T);
+      this.body.setMatrixAt(i, this.M);
+      for (const [k, m] of [[0, this.front], [1, this.hind]]) {
+        const pv = this.pivots[k];
+        const sw = Math.sin(a.ph + (k ? Math.PI * 0.85 : 0)) * 0.75 * run;
+        this.T.makeTranslation(pv[0], pv[1], pv[2]);
+        this.R.makeRotationX(sw);
+        const MM = this.M.clone().multiply(this.T).multiply(this.R);
+        m.setMatrixAt(i, MM);
+      }
+    });
+    for (const m of [this.body, this.front, this.hind]) m.instanceMatrix.needsUpdate = true;
+  }
+}
+
+/**
+ * Dampfschwaden der Loks: große, langsame Wolken aus dem Schornstein (bleiben in der Welt stehen → ziehen beim Fahren
+ * als Fahne nach hinten), im Stand zusätzlich Zischen an den Treibrädern. Eine Instanzgruppe (1 Zeichenaufruf).
+ * emitters: [{ veh: Id, at: [dx, y, dz] (Schornstein, dz nach vorn), hiss: true }]
+ */
+export class Dampf {
+  constructor(level, emitters, o = {}) {
+    this.level = level;
+    this.em = emitters.map((e) => ({ ...e, acc: 0 }));
+    this.n = o.n ?? 64;
+    this.items = Array.from({ length: this.n }, () => ({ life: 0, age: 1, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, s0: 1, s1: 2 }));
+    this.next = 0;
+    this.rnd = new Rnd(o.seed ?? 77);
+    if (!level.view) return;
+    const g = new THREE.IcosahedronGeometry(1, 1);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x8a8a96, roughness: 1, transparent: true, opacity: 0.82, depthWrite: false });
+    this.mesh = new THREE.InstancedMesh(g, mat, this.n);
+    this.mesh.frustumCulled = false;
+    this.mesh.name = 'dampf';
+    this.mesh.renderOrder = 4;
+    this.M = new THREE.Matrix4();
+    this.Z = new THREE.Matrix4().makeScale(0, 0, 0);
+    for (let i = 0; i < this.n; i++) this.mesh.setMatrixAt(i, this.Z);
+    addObject(level, owned(this.mesh), (dt) => this.render(dt));
+  }
+
+  spawn(x, y, z, o) {
+    const it = this.items[this.next];
+    this.next = (this.next + 1) % this.n;
+    const r = this.rnd;
+    Object.assign(it, { x, y, z, vx: (o.vx ?? 0) + r.real(-0.3, 0.3), vy: o.vy ?? r.real(1.2, 1.9), vz: (o.vz ?? 0) + r.real(-0.3, 0.3), age: 0, life: o.life ?? r.real(2.2, 3.2), s0: o.s0 ?? 0.5, s1: o.s1 ?? r.real(1.6, 2.3) });
+  }
+
+  render(dt) {
+    dt = Math.min(dt || 0, 0.1);
+    const cam = this.level.view.camera.position;
+    for (const e of this.em) {
+      const v = this.level.named.get(e.veh);
+      if (!v) continue;
+      const moving = dt > 0 && Math.abs(v.pos.z - (e.lastZ ?? v.pos.z)) / dt > 0.5;
+      e.lastZ = v.pos.z;
+      if (Math.abs(v.pos.z - cam.z) > 70) continue;
+      e.acc += dt;
+      const every = moving ? 0.16 : 0.42;
+      while (e.acc > every) {
+        e.acc -= every;
+        this.spawn(v.pos.x + e.at[0], v.pos.y + e.at[1], v.pos.z - e.at[2], { vy: moving ? 1.6 : 1.1, vz: moving ? 0.6 : 0 });
+        if (!moving && e.hiss && this.rnd.chance(0.5)) {
+          const s = this.rnd.chance(0.5) ? 1 : -1;
+          this.spawn(v.pos.x + s * 1.7, v.pos.y + 0.4, v.pos.z - e.at[2] + this.rnd.real(0, 3), { vx: s * 1.4, vy: 0.5, s0: 0.3, s1: 1.1, life: 1.4 });
+        }
+      }
+    }
+    for (let i = 0; i < this.n; i++) {
+      const it = this.items[i];
+      if (it.age >= it.life) { this.mesh.setMatrixAt(i, this.Z); continue; }
+      it.age += dt;
+      it.x += it.vx * dt; it.y += it.vy * dt; it.z += it.vz * dt;
+      it.vy *= 1 - dt * 0.35;
+      const k = it.age / it.life;
+      const s = (it.s0 + (it.s1 - it.s0) * Math.sqrt(k)) * (k > 0.7 ? Math.max(0.01, 1 - (k - 0.7) / 0.3) : 1);
+      this.M.makeScale(s, s * 0.85, s).setPosition(it.x, it.y, it.z);
+      this.mesh.setMatrixAt(i, this.M);
+    }
+    this.mesh.instanceMatrix.needsUpdate = true;
+  }
+}
+
+/**
+ * Gelände des Schneetals: Höhenfeld je 32-m-Abschnitt (Tiefschnee mit Verwehungen, Hänge zu den Seiten, Schluchten
+ * mit Felswänden und gefrorenem Bach), Gleisbett (Schotter) unter den Gleisen, Tiefschnee als Treibsand-Form
+ * (wer vom Zug fällt, versinkt). Liefert H(x, z) (Bodenhöhe) für Kulisse und Herde.
+ * cfg = { z0, z1, x0, x1, gorges: [[zHoch, zTief]], floor: −30, islands: [{ x0, x1, z0, z1, y }], tracks: [x…],
+ *         flats: [{ x, z, rx, rz, y }], deep: { x0, x1, sink } }
+ */
+export function schneetalGelaende(level, cfg) {
+  const yD = cfg.y ?? -0.45, FL = cfg.floor ?? -30;
+  const gorges = cfg.gorges ?? [], islands = cfg.islands ?? [], flats = cfg.flats ?? [];
+  const X0 = cfg.x0 ?? -72, X1 = cfg.x1 ?? 70;
+  const edge = (x, a) => 0.6 + 1.3 * (1 + Math.sin(x * 0.19 + a * 0.7)) + 0.8 * (1 + Math.sin(x * 0.067 - a));
+  const gorgeK = (x, z) => {
+    let k = 0;
+    for (const [a, b] of gorges) {
+      const za = a - edge(x, a), zb = b + edge(x, b);
+      const t = Math.min(smooth(za, za - 5.5, z), smooth(zb, zb + 5.5, z));
+      if (t > k) k = t;
+    }
+    return k;
+  };
+  const inGorge = (z, m = 0) => gorges.some(([a, b]) => z < a + m && z > b - m);
+  const hillR = cfg.hillR ?? 19, hillL = cfg.hillL ?? -27;
+  const trk = cfg.tracks ?? [0];
+  const base = (x, z) => {
+    // Verwehungen (am Gleisbett flach), Windrippen
+    const dT = Math.min(...trk.map((t) => Math.abs(x - t)));
+    const drift = 0.3 * Math.sin(x * 0.33 + z * 0.11) * Math.sin(z * 0.17 - x * 0.05) + 0.1 * Math.sin(z * 0.8 + x * 0.35);
+    let y = yD - 0.05 + (0.17 + drift) * smooth(1.9, 3.6, dT);
+    const n = 0.55 + 0.45 * Math.sin(z * 0.031 + 1.3) * Math.sin(z * 0.013 + x * 0.02);
+    y += smooth(hillR, hillR + 30, x) * (8 * n + 2.5) + smooth(hillL, hillL - 28, x) * (9 * n + 3);
+    for (const f of flats) {
+      const d = Math.hypot((x - f.x) / f.rx, (z - f.z) / f.rz);
+      if (d < 1.6) y += ((f.y ?? yD) - y) * smooth(1.6, 1.0, d);
+    }
+    for (const s of islands) {
+      const dx = Math.max(s.x0 - x, 0, x - s.x1), dz = Math.max(s.z1 - z, 0, z - s.z0);
+      const d = Math.hypot(dx, dz);
+      if (d < 6) y += (Math.min(y, s.y - 0.3) - y) * smooth(6, 0.5, d);
+    }
+    return y;
+  };
+  const H = (x, z) => {
+    const y = base(x, z), k = gorgeK(x, z);
+    if (k <= 0) return y;
+    const fl = FL + 1.0 * Math.sin(x * 0.11 + z * 0.07) + 2.5 * smooth(8, 40, Math.abs(x - 2));
+    return y + (fl - y) * k;
+  };
+  const minusG = (za, zb) => {
+    let list = [[za, zb]];
+    for (const [a, b] of gorges) list = list.flatMap(([p, q]) => (q >= a || p <= b ? [[p, q]] : [[p, Math.max(q, a)], [Math.min(p, b), q]].filter(([u, v]) => u - v > 0.4)));
+    return list;
+  };
+  const out = { H, yD, gorgeK, inGorge, minus: minusG };
+  if (!level.view) return out;
+
+  // ---- Höhenfeld je Abschnitt
+  const xs = [];
+  for (let x = X0; x < -32; x += 8) xs.push(x);
+  for (let x = -32; x < 26; x += 2) xs.push(x);
+  for (let x = 26; x <= X1; x += 8) xs.push(x);
+  if (xs[xs.length - 1] < X1) xs.push(X1);
+  const snowA = L(0xe4ecf8), snowB = L(0xaec2e2), snowC = L(0xffffff), rock = L(0x6e6676), rockD = L(0x3e3848), ice = L(0x9fd2ee);
+  const k0 = Math.floor(-cfg.z0 / 32), k1 = Math.floor(-cfg.z1 / 32);
+  const terrain = [];
+  for (let k = k0; k <= k1; k++) {
+    const zTop = -32 * k, zBot = -32 * (k + 1);
+    const nz = 16, nx = xs.length;
+    const pos = new Float32Array(nx * (nz + 1) * 3);
+    for (let j = 0; j <= nz; j++) {
+      const z = zTop + (zBot - zTop) * (j / nz);
+      for (let i = 0; i < nx; i++) {
+        const q = (j * nx + i) * 3;
+        pos[q] = xs[i]; pos[q + 1] = H(xs[i], z); pos[q + 2] = z;
+      }
+    }
+    const idx = [];
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx - 1; i++) {
+      const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
+      idx.push(a, c, b, b, c, d);
+    }
+    let g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    g = g.toNonIndexed();
+    terrain.push(colorize(g, (p, n, o) => {
+      // Schatten der Verwehungen (Sonne von links): von der Sonne abgewandte Hänge bläulich
+      const lit = n.x * -0.6 + n.y * 0.7 + n.z * 0.3;
+      const v = Math.sin(p.x * 0.37 + p.z * 0.21) * 0.5 + Math.sin(p.x * 0.11 - p.z * 0.29 + 1.7) * 0.5;
+      mixc(snowA, snowB, Math.min(1, smooth(0.78, 0.55, lit) * 0.9 + smooth(0.2, 1, v) * 0.25), o);
+      const steep = smooth(0.8, 0.45, n.y);
+      if (steep > 0) {
+        const band = 0.5 + 0.5 * Math.sin(p.y * 1.7 + Math.sin(p.x * 0.3) * 1.5);
+        const r2 = mixc(rockD, rock, band, [0, 0, 0]);
+        mixc(o, r2, steep, o);
+      }
+      if (p.y < FL + 3.2 && n.y > 0.7) mixc(o, ice, smooth(FL + 3.2, FL + 1.2, p.y) * 0.8, o);
+      const s = Math.sin(p.x * 3.1 + p.z * 2.3) * Math.sin(p.x * 1.7 - p.z * 2.9);
+      if (s > 0.86 && steep < 0.3) mixc(o, snowC, 0.8, o);
+    }));
+  }
+  bakeSections(level, terrain, { castShadow: false, receiveShadow: true });
+
+  // ---- Gleisbett (Schotter mit Schneeresten) außerhalb der Schluchten
+  const minus = minusG;
+  const bed = [];
+  for (const tx of cfg.tracks ?? [0]) {
+    const z0 = cfg.trackFrom?.[String(tx)] ?? cfg.z0, z1 = cfg.z1;
+    for (let k = Math.floor(-z0 / 32); k <= Math.floor(-z1 / 32); k++) {
+      for (const [za, zb] of minus(Math.min(z0, -32 * k), Math.max(z1, -32 * (k + 1)))) {
+        if (za - zb < 0.5) continue;
+        bed.push(blockG(3.4, 0.36, za - zb, tx, -0.68, (za + zb) / 2, 0x7a7080, { r: 0.12, seg: 1, top: 0x9a90a0 }));
+        bed.push(blockG(2.6, 0.05, za - zb, tx, -0.32, (za + zb) / 2, 0x8a8090, { r: 0, seg: 0, top: 0xb4acb8 }));
+      }
+    }
+  }
+  bakeSections(level, bed, { castShadow: false });
+
+  // ---- Tiefschnee (Kollision): überall außer Schluchten und Bahnhofsinseln
+  const Q = { sink: cfg.sink ?? 0.5, slow: 0.45, jump: 0.75, plop: 0.06, flow: null };
+  const dx0 = cfg.deep?.x0 ?? -40, dx1 = cfg.deep?.x1 ?? 34;
+  const addDeep = (x0, x1, za, zb) => {
+    if (x1 - x0 < 0.5 || za - zb < 0.5) return;
+    const shape = { type: 'box', min: [x0, yD - 1.4, zb], max: [x1, yD, za], oneWay: true, camIgnore: true, noWallSlide: true, quicksand: Q, tag: 'tiefschnee' };
+    shape.owner = { quicksand: true, shape, top: yD };
+    level.world.add(shape);
+    level.world.add({ type: 'box', min: [x0, yD - 1.9, zb], max: [x1, yD - 1.4, za], quicksandFloor: true, tag: 'tiefschnee-boden' });
+  };
+  const cuts = [cfg.z0, cfg.z1];
+  for (const [a, b] of gorges) cuts.push(a, b);
+  for (const s of islands) cuts.push(s.z0, s.z1);
+  const zs = [...new Set(cuts)].sort((a, b) => b - a);
+  for (let i = 0; i < zs.length - 1; i++) {
+    const za = zs[i], zb = zs[i + 1], zm = (za + zb) / 2;
+    if (inGorge(zm)) continue;
+    const isl = islands.find((s) => zm < s.z0 && zm > s.z1);
+    if (isl) { addDeep(dx0, isl.x0, za, zb); addDeep(isl.x1, dx1, za, zb); } else addDeep(dx0, dx1, za, zb);
+  }
+  level.world.hasQuicksand = true;
+  return out;
+}
+
+/** Dünner Quader von a nach b (Drähte, Streben). */
+function rodG(a, b, r, color) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], len = Math.hypot(dx, dy, dz);
+  const g = box(r * 2, r * 2, len, 0, 0, 0, color, { r: 0, seg: 0 });
+  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(dx / len, dy / len, dz / len)));
+  g.translate((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2);
+  return g;
+}
+
+/** Ellipse am Boden (Eisfläche, Teich). */
+function ellipseG(x, y, z, rx, rz, fn, seg = 36) {
+  const g = new THREE.CircleGeometry(1, seg).toNonIndexed();
+  g.rotateX(-Math.PI / 2);
+  g.scale(rx, 1, rz);
+  g.translate(x, y, z);
+  return colorize(g, fn);
+}
+
+/** Rotweiße Schranke (Arm längs z über die Straße) mit Gegengewicht. */
+function schrankeG(x, y, z0, z1) {
+  const P = [];
+  P.push(blockG(0.34, 1.15, 0.34, x, y, z0, 0x3a3a46, { r: 0.04 }));
+  P.push(blockG(0.5, 0.36, 0.5, x, y + 0.75, z0 + Math.sign(z0 - z1) * 0.55, 0x3a3a46, { r: 0.06 }));
+  const n = Math.round(Math.abs(z1 - z0) / 0.55), dz = (z1 - z0) / n;
+  for (let i = 0; i < n; i++) P.push(blockG(0.12, 0.14, Math.abs(dz) + 0.01, x, y + 0.92, z0 + dz * (i + 0.5), i % 2 ? 0xffffff : 0xd8283a, { r: 0, seg: 0 }));
+  return P;
+}
+
+/** Andreaskreuz (rot-weiß) auf Pfosten, Kreuz quer zur Straße (yaw). */
+function andreaskreuzG(x, y, z, yaw) {
+  const P = [blockG(0.12, 2.6, 0.12, x, y, z, 0x5a5a66, { r: 0.02 })];
+  for (const s of [-1, 1]) {
+    for (const [w, h, c, off] of [[1.36, 0.24, 0xd8283a, 0], [1.2, 0.12, 0xffffff, 0.02]]) {
+      const g = box(w, h, 0.05, 0, 0, 0, c, { r: 0, seg: 0 });
+      g.rotateZ(s * Math.PI / 4); g.translate(0, 0, off); g.rotateY(yaw); g.translate(x, y + 2.3, z);
+      P.push(g);
+    }
+  }
+  return P;
+}
+
+/** Formsignal (Fahrt frei): Gittermast, Flügel schräg hoch, Laterne. */
+function signalG(x, y, z) {
+  const P = [blockG(0.2, 6.2, 0.2, x, y, z, 0x4a4a56, { r: 0.02 }), blockG(0.6, 0.3, 0.6, x, y, z, 0x7a7a86, { r: 0.04 })];
+  for (let k = 0.6; k < 6; k += 0.7) P.push(rodG([x - 0.1, y + k, z + 0.1], [x + 0.1, y + k + 0.6, z + 0.1], 0.025, 0x4a4a56));
+  const arm = box(1.5, 0.26, 0.06, 0, 0, 0, 0xd8283a, { r: 0.02, seg: 0 });
+  const band = box(1.0, 0.12, 0.07, 0.15, 0, 0, 0xffffff, { r: 0, seg: 0 });
+  for (const g of [arm, band]) { g.translate(0.75, 0, 0); g.rotateZ(0.75); g.translate(x + 0.1, y + 5.6, z + 0.15); P.push(g); }
+  P.push(blockG(0.32, 0.4, 0.3, x - 0.25, y + 4.9, z + 0.15, 0x2a2a30, { r: 0.04 }));
+  return P;
+}
+
+/** Wasserturm: Ziegelsockel, Holzbottich mit Bändern, Kegeldach mit Schnee, Leiter. */
+function wasserturmG(x, y, z) {
+  const P = [];
+  P.push(cylG(1.7, 1.9, 5.2, x, y, z, 0xa0523a, 14));
+  P.push(cylG(1.95, 1.95, 0.3, x, y + 5.2, z, 0x8a8a96, 14));
+  P.push(cylG(2.3, 2.3, 2.6, x, y + 5.5, z, 0x8a5a36, 16));
+  for (const yy of [5.9, 6.8, 7.7]) P.push(cylG(2.34, 2.34, 0.12, x, y + yy, z, 0x3a3a44, 16, { open: true }));
+  P.push(coneG(2.7, 1.6, x, y + 8.1, z, 0x5a3a3a, 16, { fn: (p, n, o) => mixc(L(0xc8d6ea), L(0xffffff), smooth(0.2, 0.7, n.y), o) }));
+  for (const s of [-1, 1]) P.push(blockG(0.06, 8, 0.06, x + 2.0, y, z + s * 0.25, 0x3a3a44, { r: 0, seg: 0 }));
+  for (let k = 0.4; k < 8; k += 0.45) P.push(blockG(0.05, 0.05, 0.5, x + 2.0, y + k, z, 0x3a3a44, { r: 0, seg: 0 }));
+  return P;
+}
+
+/** Krümel wartet am Zielbahnsteig (nur wenn befreit) und jubelt, wenn die Heldin kommt. */
+class KruemelZiel {
+  constructor(level, pos, freed) {
+    this.level = level;
+    this.pos = pos;
+    this.freed = freed;
+    this.t = 0;
+    this.said = false;
+    if (!level.view) return;
+    this.model = getModel('kruemel');
+    this.root = new THREE.Group();
+    this.root.add(this.model.root);
+    this.model.root.scale.setScalar(1.35);
+    this.root.position.set(...pos);
+    addObject(level, this.root, (dt) => this.render(dt));
+    level.view.shadows.add({ pos: new THREE.Vector3(...pos), radius: 0.32, alive: () => true, visible: () => this.root.visible });
+  }
+
+  render(dt) {
+    this.t += dt || 0;
+    const on = !!this.freed();
+    this.root.visible = on;
+    if (!on) return;
+    const p = this.level.player;
+    const d = p ? Math.hypot(p.pos.x - this.pos[0], p.pos.z - this.pos[2]) : 99;
+    const cheer = d < 8;
+    if (cheer && !this.said) {
+      this.said = true;
+      this.bubble = bubbleSprite('Juhu, Schneetal!', 'Danke fürs Mitnehmen!');
+      this.bubble.position.set(0, 1.6, 0);
+      this.root.add(this.bubble);
+      this.bubbleT = 4;
+    }
+    if (this.bubble) { this.bubbleT -= dt || 0; this.bubble.visible = this.bubbleT > 0; }
+    this.root.position.y = this.pos[1] + (cheer ? Math.abs(Math.sin(this.t * 6)) * 0.35 : 0);
+    if (p) this.model.root.rotation.y = Math.atan2(-(p.pos.z - this.pos[2]), p.pos.x - this.pos[0]);
+    this.model.update(Math.min(0.1, dt || 0), { anim: cheer ? 'cheer' : 'idle' });
+  }
+}
+
+/**
+ * Kulisse 3-Zug aus level.data.zug.land: Gelände (schneetalGelaende), Wälder, Telegrafenleitung, Schneezäune, Signale,
+ * Bahnübergang mit Bahnwärterhaus (Wärter winkt, Schornstein raucht, Warnlichter blinken), gefrorener See mit Iglu
+ * und Eisangler-Hütte, gefrorener Wasserfall und Eisbäche in den Schluchten, Bahnhöfe Tannenruh und Schneetal
+ * (Empfangsgebäude, Wasserturm, Lokschuppen um die Drehscheiben-Arena), Dorf Schneetal, Rentierherde, Dampfschwaden,
+ * Krümel am Ziel. Gegner, die in den Tiefschnee fallen, versinken.
+ */
+export function schneetalSzene(level, cfg) {
+  const land = schneetalGelaende(level, cfg);
+  const H = land.H;
+  const rnd = new Rnd(cfg.seed ?? 2024);
+  const sc = { land };
+  // Gegner im Tiefschnee versinken
+  level.onStep(() => {
+    for (const e of level.entities) {
+      if (!e.enemy || !e.alive || e.removed || !e.grounded || e.ground?.tag !== 'tiefschnee') continue;
+      level.effects?.dust?.({ x: e.pos.x, y: e.pos.y, z: e.pos.z }, 6, 0.8);
+      if (!e.defeated) e.markDefeated?.();
+      e.kill();
+    }
+  });
+  if (!level.view) return sc;
+  const S = [], N = [], G = [];          // Schatten werfend, ohne Schatten, leuchtend
+  const free = (x, z) => !(cfg.keepOut ?? []).some((k) => x > k[0] && x < k[1] && z < k[2] && z > k[3]);
+
+  // ---- Wälder (Bänder links/rechts), einzelne Bäume näher am Gleis
+  for (const band of cfg.forest ?? []) {
+    const [x0, x1] = band.x, n = Math.round(((x1 - x0) * (cfg.z0 - cfg.z1)) / (band.per ?? 40));
+    for (let i = 0; i < n; i++) {
+      const x = rnd.real(x0, x1), z = rnd.real(cfg.z1, cfg.z0);
+      if (!free(x, z) || land.gorgeK(x, z) > 0.05) continue;
+      N.push(firG(x, H(x, z), z, rnd.real(band.h?.[0] ?? 3.2, band.h?.[1] ?? 6.5), rnd, true));
+    }
+  }
+  for (const [x, z, h] of cfg.trees ?? []) S.push(firG(x, H(x, z), z, h, rnd));
+  // Schluchtgrund: kleine Fichten, Felsen
+  for (const [a, b] of cfg.gorges ?? []) {
+    for (let i = 0; i < 70; i++) {
+      const x = rnd.real(-50, 50), z = rnd.real(b + 4, a - 4);
+      if (land.gorgeK(x, z) < 0.97 || Math.abs(z - (a + b) / 2) < 3.6) continue;
+      N.push(firG(x, H(x, z), z, rnd.real(2.6, 5.5), rnd, true));
+    }
+  }
+
+  // ---- Kleinkram im Schnee nah am Gleis: verschneite Steine, trockene Grasbüschel, Sträucher, Baumstümpfe
+  if (cfg.clutter) {
+    const o = cfg.clutter, n = Math.round(((o.x[1] - o.x[0]) * (cfg.z0 - cfg.z1)) / (o.per ?? 26));
+    const rockA = L(0x5e5866), rockB = L(0x8a8494), snowT = L(0xf2f6fc), grass = [0xc8a060, 0xa88448, 0xd8b878];
+    const tracks = cfg.tracks ?? [0];
+    for (let i = 0; i < n; i++) {
+      const x = rnd.real(o.x[0], o.x[1]), z = rnd.real(cfg.z1, cfg.z0);
+      if (tracks.some((t) => Math.abs(x - t) < 2.4) || !free(x, z) || land.gorgeK(x, z) > 0.02 || land.inGorge(z, 6)) continue;
+      const y = H(x, z), k = rnd.frac();
+      if (k < 0.34) {
+        const r = rnd.real(0.25, 0.75);
+        N.push(sphereG(r, x, y - r * 0.25, z, 0x6a6474, { sx: rnd.real(1, 1.5), sy: rnd.real(0.55, 0.8), ws: 7, hs: 5, ry: rnd.real(0, 3), fn: (p, nn, out) => { mixc(rockA, rockB, smooth(-0.4, 0.5, nn.y - nn.x * 0.4), out); if (nn.y > 0.55) mixc(out, snowT, smooth(0.55, 0.8, nn.y), out); } }));
+      } else if (k < 0.7) {
+        for (let j = 0; j < 5; j++) N.push(coneG(0.035, rnd.real(0.35, 0.7), x + rnd.real(-0.25, 0.25), y - 0.1, z + rnd.real(-0.25, 0.25), rnd.pick(grass), 3));
+      } else if (k < 0.88) {
+        const r = rnd.real(0.4, 0.75);
+        N.push(sphereG(r, x, y - 0.05, z, 0x3a5a3a, { sy: 0.7, ws: 7, hs: 5, fn: (p, nn, out) => mixc(L(0x2a4a32), snowT, smooth(0.35, 0.75, nn.y), out) }));
+      } else {
+        const r = rnd.real(0.18, 0.3);
+        N.push(cylG(r, r * 1.15, rnd.real(0.3, 0.6), x, y - 0.1, z, 0x6a4a30, 7, { fn: (p, nn, out) => mixc(L(0x5a3e28), snowT, smooth(0.5, 0.9, nn.y), out) }));
+      }
+    }
+  }
+
+  // ---- Telegrafenleitung
+  if (cfg.poles) {
+    const o = cfg.poles, zs = [];
+    for (let z = o.z0; z > o.z1; z -= o.every) zs.push(land.inGorge(z, 4) ? null : z);
+    for (let i = 0; i < zs.length; i++) {
+      const z = zs[i];
+      if (z === null) continue;
+      const y = H(o.x, z) - 0.2;
+      S.push(cylG(0.1, 0.14, 6.6, o.x, y, z, 0x5a4030, 6));
+      N.push(blockG(1.7, 0.12, 0.12, o.x, y + 6.0, z, 0x5a4030, { r: 0, seg: 0 }), blockG(1.3, 0.12, 0.12, o.x, y + 5.45, z, 0x5a4030, { r: 0, seg: 0 }));
+      for (const [dx, yy] of [[-0.7, 6.12], [0.7, 6.12], [-0.5, 5.57], [0.5, 5.57]]) N.push(cylG(0.04, 0.05, 0.16, o.x + dx, y + yy, z, 0xeef0f4, 5));
+      const z2 = zs[i + 1];
+      if (z2 === null || z2 === undefined) continue;
+      const y2 = H(o.x, z2) - 0.2;
+      for (const [dx, yy] of [[-0.7, 6.28], [0.7, 6.28], [-0.5, 5.73], [0.5, 5.73]]) {
+        const a = [o.x + dx, y + yy, z], b = [o.x + dx, y2 + yy, z2], m = [o.x + dx, (a[1] + b[1]) / 2 - 0.5, (z + z2) / 2];
+        N.push(rodG(a, m, 0.022, 0x2a2a30), rodG(m, b, 0.022, 0x2a2a30));
+      }
+    }
+  }
+
+  // ---- Schneezäune (Bretter mit Schneekappe)
+  for (const f of cfg.fences ?? []) {
+    for (let z = f.z0; z > f.z1; z -= 2.5) {
+      if (land.inGorge(z, 2)) continue;
+      const y = H(f.x, z);
+      N.push(cylG(0.06, 0.07, 1.7, f.x, y - 0.2, z, 0x6a4a30, 5));
+      for (const yy of [0.45, 0.85, 1.25]) N.push(blockG(0.06, 0.22, 2.5, f.x, y + yy - 0.2, z - 1.25, 0x8a5a36, { r: 0, seg: 0, top: 0xf6f9ff }));
+    }
+  }
+
+  // ---- Signale
+  for (const [x, z] of cfg.signals ?? []) S.push(...signalG(x, H(x, z) - 0.1, z));
+
+  // ---- Bahnübergang mit Bahnwärterhaus
+  const cr = cfg.crossing;
+  if (cr) {
+    const zc = cr.z, w = cr.w ?? 6, tracks = cfg.tracks ?? [0];
+    // Straße (festgefahrener Schnee, Fahrspuren), über den Gleisen Bohlen
+    const rows = 4, xsR = [];
+    for (let x = -56; x <= 56; x += 2) xsR.push(x);
+    const road = [];
+    const tyAt = (x) => { const d = Math.min(...tracks.map((t) => Math.abs(x - t))); return Math.max(H(x, zc), -0.06 - Math.max(0, d - 1.8) * 0.12); };
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < xsR.length - 1; i++) {
+        const za = zc + w / 2 - (j / rows) * w, zb = zc + w / 2 - ((j + 1) / rows) * w, xa = xsR[i], xb = xsR[i + 1];
+        for (const [x, z] of [[xa, za], [xa, zb], [xb, za], [xb, za], [xa, zb], [xb, zb]]) road.push(x, Math.max(tyAt(x), H(x, z)) + 0.04, z);
+      }
+    }
+    const rg = new THREE.BufferGeometry();
+    rg.setAttribute('position', new THREE.Float32BufferAttribute(road, 3));
+    rg.computeVertexNormals();
+    const rutA = L(0xc4b8ae), rutB = L(0x7e6e64), snowR = L(0xe4ecf8);
+    N.push(colorize(rg, (p, n, o) => { const u = Math.abs(Math.abs(p.z - zc) - 1.2); mixc(rutB, rutA, smooth(0.15, 0.6, u), o); if (Math.abs(p.z - zc) > w / 2 - 0.5) mixc(o, snowR, 0.7, o); }));
+    for (const t of tracks) {
+      for (const s of [-1.6, -0.5, 0.5, 1.6]) N.push(blockG(Math.abs(s) > 1 ? 0.7 : 0.95, 0.12, w, t + s * 0.62, -0.16, zc, 0x8a6a48, { r: 0.02, seg: 0, top: 0xa88660 }));
+    }
+    // Schranken (Arm über die Straße), Andreaskreuze, Warnlichter (blinken)
+    const ex = Math.max(...tracks) + 3.9, wx = Math.min(...tracks) - 3.9;
+    S.push(...schrankeG(ex, H(ex, zc - w / 2 - 0.4), zc - w / 2 - 0.4, zc + w / 2 - 0.2));
+    S.push(...schrankeG(wx, H(wx, zc + w / 2 + 0.4), zc + w / 2 + 0.4, zc - w / 2 + 0.2));
+    S.push(...andreaskreuzG(ex + 0.7, H(ex + 0.7, zc + w / 2 + 0.7), zc + w / 2 + 0.7, Math.PI / 2));
+    S.push(...andreaskreuzG(wx - 0.7, H(wx - 0.7, zc - w / 2 - 0.7), zc - w / 2 - 0.7, Math.PI / 2));
+    const lamps = [];
+    for (const [x, z] of [[ex + 0.7, zc + w / 2 + 0.7], [wx - 0.7, zc - w / 2 - 0.7]]) {
+      const y = H(x, z) + 1.55;
+      for (const s of [-1, 1]) lamps.push(blockG(0.08, 0.26, 0.26, x + (x > 0 ? 0.1 : -0.1), y, z + s * 0.24, 0xff2a1a, { r: 0.04, seg: 0 }));
+      N.push(blockG(0.12, 0.34, 0.8, x, y - 0.04, z, 0x1a1a22, { r: 0.04, seg: 0 }));
+    }
+    const lm = new THREE.Mesh(merge(lamps), new THREE.MeshBasicMaterial({ vertexColors: true }));
+    lm.name = 'warnlicht';
+    let tl = 0;
+    addObject(level, owned(lm), (dt) => { tl += dt || 0; lm.visible = Math.abs(level.view.camera.position.z - zc) < 80 && Math.sin(tl * 7) > 0; });
+    // Bahnwärterhaus mit Garten
+    if (cr.house) {
+      const [hx, hz] = cr.house, hy = H(hx, hz);
+      const hs = houseG(hx, hy, hz, { w: 4.6, d: 5.6, h: 3.1, rh: 2.6, wall: 0xb0503a, roof: 0x4a3a44, gable: 0xf0e6d0, trim: 0xf6f0e0, chimneyX: -1.0, chimneyZ: -1.2 });
+      S.push(...hs.solid); G.push(...hs.glow);
+      // Zaun, Holzstapel, Bank, Glocke, Lampe, Schneemann
+      for (let x = hx - 4; x <= hx + 4.01; x += 0.8) N.push(blockG(0.09, 0.85, 0.09, x, hy - 0.1, hz - 4.6, 0xf6f4ee, { r: 0.02, seg: 0 }));
+      for (let z = hz - 4.6; z <= hz + 3.2; z += 0.8) N.push(blockG(0.09, 0.85, 0.09, hx + 4, hy - 0.1, z, 0xf6f4ee, { r: 0.02, seg: 0 }));
+      N.push(blockG(8, 0.08, 0.06, hx, hy + 0.5, hz - 4.6, 0xf6f4ee, { r: 0, seg: 0 }), blockG(0.06, 0.08, 7.8, hx + 4, hy + 0.5, hz - 0.7, 0xf6f4ee, { r: 0, seg: 0 }));
+      S.push(blockG(1.0, 1.1, 2.6, hx + 2.9, hy - 0.05, hz - 1.6, 0x7a4e2e, { r: 0.08, top: 0xf6f9ff }));
+      for (let i = 0; i < 6; i++) N.push(cylG(0.16, 0.16, 0.06, hx + 2.38, hy + 0.2 + (i % 3) * 0.33, hz - 2.6 + Math.floor(i / 3) * 0.6 + (i % 2) * 0.2, 0xd8b080, 7, { rz: Math.PI / 2, center: true }));
+      S.push(blockG(1.6, 0.12, 0.5, hx - 2.9, hy + 0.42, hz + 1.4, 0x8a5a36, { r: 0.03 }), blockG(1.6, 0.5, 0.08, hx - 3.1, hy + 0.5, hz + 1.4, 0x8a5a36, { r: 0.03 }));
+      S.push(cylG(0.06, 0.07, 2.4, hx - 3.0, hy, hz + 3.2, 0x4a4a56, 6), cylG(0.22, 0.3, 0.35, hx - 3.0, hy + 2.2, hz + 3.2, 0xd8b040, 10));
+      G.push(blockG(0.26, 0.34, 0.26, hx - 0.9, hy + 2.75, hz + 3.0, 0xffd27a, { r: 0.05, seg: 0 }));
+      bakeModel(level, 'schneemann', {}, hx + 2.2, hy, hz + 2.4, -Math.PI / 2 - 0.4, 0.9, {}, { castShadow: true });
+      sc.smoke = particles(level, { center: [hx - 1.0, hy + 3.1 + 2.6 + 1.3, hz - 1.2], r0: 0, r1: 0.25, n: 16, h: 5, dot: 1.1, colors: [0xe8e8f0, 0xd0d0dc, 0xf4f4f8], speed: [0.6, 1.0], sway: 1.2, additive: false, opacity: 0.55, name: 'kaminrauch' });
+      if (sc.smoke) level.view.onFrame(() => { sc.smoke.visible = Math.abs(level.view.camera.position.z - hz) < 80; });
+    }
+    // Bahnwärter winkt mit der Kelle, solange der Zug vorbeifährt
+    if (cr.keeper) {
+      const [kx, kz] = cr.keeper, ky = H(kx, kz) + 0.02, yaw = Math.PI / 2;
+      const wg = waerterG();
+      wg.body.rotateY(yaw); wg.body.translate(kx, ky, kz);
+      S.push(wg.body);
+      const arm = new THREE.Mesh(wg.arm, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }));
+      const pivot = new THREE.Group();
+      pivot.name = 'waerter';
+      pivot.add(arm);
+      const sh = new THREE.Vector3(...wg.shoulder).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+      pivot.position.set(kx + sh.x, ky + sh.y, kz + sh.z);
+      pivot.rotation.set(0, yaw, 0);
+      arm.castShadow = true;
+      sc.keeper = { pivot, arm, waving: false };
+      let tw = 0;
+      addObject(level, owned(pivot), (dt) => {
+        tw += dt || 0;
+        pivot.visible = Math.abs(level.view.camera.position.z - kz) < 80;
+        const wz = level.scroll?.center?.z ?? 1e9;
+        sc.keeper.waving = Math.abs(wz - kz) < 45;
+        arm.rotation.z = sc.keeper.waving ? 2.45 + Math.sin(tw * 6.5) * 0.4 : 0.15;
+      });
+    }
+  }
+
+  // ---- gefrorener See mit Iglu und Eisangler-Hütte
+  if (cfg.lake) {
+    const { x, z, rx, rz } = cfg.lake, y = land.yD + 0.05;
+    const iceA = L(0xc6e8f8), iceB = L(0x9fd2ee), white = L(0xffffff);
+    N.push(ellipseG(x, y, z, rx, rz, (p, n, o) => { const v = Math.sin(p.x * 0.8 + p.z * 0.3) * Math.sin(p.z * 0.5 - p.x * 0.2); mixc(iceB, iceA, 0.5 + 0.5 * v, o); if (Math.abs(Math.sin(p.x * 1.3 - p.z * 0.9)) < 0.05) mixc(o, white, 0.7, o); }, 40));
+    for (let a = 0; a < Math.PI * 2; a += 0.22) N.push(sphereG(rnd.real(0.6, 1.1), x + Math.cos(a) * (rx + 0.3), y - 0.15, z + Math.sin(a) * (rz + 0.3), 0xf6f9ff, { sy: 0.45, ws: 8, hs: 5, half: true }));
+    const hx = x + rx * 0.35, hz = z - rz * 0.2;
+    const hs = houseG(hx, y, hz, { w: 1.8, d: 2.0, h: 1.7, rh: 0.9, wall: 0xc83a2a, roof: 0x5a3a3a, gable: 0xc83a2a, trim: 0xffffff, door: false, chimney: false });
+    S.push(...hs.solid); G.push(...hs.glow);
+    N.push(ellipseG(hx - 1.8, y + 0.01, hz + 0.6, 0.45, 0.45, (p, n, o) => { o[0] = 0.02; o[1] = 0.06; o[2] = 0.1; }, 14));
+    N.push(rodG([hx - 1.3, y + 0.05, hz + 0.9], [hx - 2.1, y + 1.2, hz + 0.5], 0.02, 0x6a4430), rodG([hx - 2.1, y + 1.2, hz + 0.5], [hx - 1.8, y, hz + 0.6], 0.006, 0xeeeeee));
+    S.push(cylG(0.2, 0.16, 0.34, hx - 1.0, y, hz + 1.2, 0x4a7ad8, 10));
+    bakeModel(level, 'iglu', { size: 3.4 }, x - rx * 0.55, land.yD, z + rz * 0.75, 0.6, 1, {}, { castShadow: true });
+    bakeModel(level, 'schneemann', {}, x - rx * 0.9, land.yD, z - rz * 0.6, -Math.PI / 2, 1, {}, { castShadow: true });
+  }
+
+  // ---- gefrorener Wasserfall an der Schluchtwand, Eisbäche auf dem Schluchtgrund
+  for (const f of cfg.waterfalls ?? []) {
+    for (let y = land.yD - 0.3; y > (cfg.floor ?? -30) + 1; y -= 1.3) {
+      let za = f.zTop, zb = f.zTop + f.dir * 14;
+      for (let k = 0; k < 24; k++) { const zm = (za + zb) / 2; if (H(f.x, zm) > y) za = zm; else zb = zm; }
+      for (const dx of [-1.4, 0, 1.4]) {
+        const r = rnd.real(0.8, 1.4);
+        N.push(sphereG(r, f.x + dx + rnd.real(-0.4, 0.4), y, za + f.dir * (0.2 + rnd.real(0, 0.4)), 0xcfeeff, { sz: 0.55, sy: 1.3, ws: 8, hs: 6, fn: litFn(rnd.chance(0.5) ? 0xd8f2ff : 0xa8dcf6, 0.8, 1.2) }));
+      }
+    }
+  }
+  for (const [a, b] of cfg.gorges ?? []) {
+    const zc = (a + b) / 2, pos = [];
+    for (let x = -56; x < 56; x += 2) {
+      for (const [xx, dz] of [[x, -2.4], [x, 2.4], [x + 2, -2.4], [x + 2, -2.4], [x, 2.4], [x + 2, 2.4]]) {
+        const zz = zc + dz + Math.sin(xx * 0.15) * 1.2;
+        pos.push(xx, H(xx, zz) + 0.08, zz);
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.computeVertexNormals();
+    const iA = L(0xbfe8fa), iB = L(0x8ccbea);
+    N.push(colorize(g, (p, n, o) => mixc(iB, iA, 0.5 + 0.5 * Math.sin(p.x * 0.7 + p.z), o)));
+  }
+
+  // ---- Bahnhöfe
+  for (const st of cfg.stations ?? []) {
+    if (st.house) {
+      const hs = houseG(st.house[0], st.house[1], st.house[2], { w: st.w ?? 6.4, d: st.d ?? 14, h: 5.8, rh: 3.0, wall: 0xe6c27a, base: 0x8a8a96, roof: 0x4a4a62, gable: 0xe6c27a, trim: 0xf6f0e0, upper: true, doorColor: 0x2a4a7a, chimneyX: 1.4, chimneyZ: -3.5 });
+      S.push(...hs.solid); G.push(...hs.glow);
+      // Uhr am Giebel
+      const cx = st.house[0], cz = st.house[2] + (st.d ?? 14) / 2 + 0.06, cy = st.house[1] + 5.8 + 1.2;
+      N.push(cylG(0.62, 0.62, 0.1, cx, cy, cz, 0x3a3a46, 20, { rx: Math.PI / 2, center: true }), cylG(0.52, 0.52, 0.12, cx, cy, cz + 0.02, 0xfffbf0, 20, { rx: Math.PI / 2, center: true }));
+      N.push(blockG(0.06, 0.38, 0.04, cx, cy, cz + 0.1, 0x1a1a22, { r: 0, seg: 0 }), blockG(0.28, 0.06, 0.04, cx + 0.12, cy + 0.02, cz + 0.1, 0x1a1a22, { r: 0, seg: 0 }));
+    }
+    if (st.tower) S.push(...wasserturmG(...st.tower));
+    for (const t of st.trees ?? []) S.push(firG(t[0], H(t[0], t[1]), t[1], t[2], rnd));
+    for (const t of st.lights ?? []) {
+      // geschmückte Tanne mit Lichterkette und Stern
+      const ty = t[3] ?? H(t[0], t[1]);
+      S.push(firG(t[0], ty, t[1], t[2], rnd));
+      for (let i = 0; i < 22; i++) {
+        const k = i / 22, a = k * Math.PI * 7, r = t[2] * (0.34 - k * 0.28);
+        G.push(sphereG(0.09, t[0] + Math.cos(a) * r, ty + t[2] * (0.2 + k * 0.7), t[1] + Math.sin(a) * r, [0xffd23a, 0xff4a3a, 0x4ad8ff, 0x7aff6a][i % 4], { ws: 5, hs: 4 }));
+      }
+      const star = starG(0.4, 0.17, 0, 0, 0, 0xffd23a);
+      star.rotateX(Math.PI / 2); star.translate(t[0], ty + t[2] * 1.0, t[1]);
+      G.push(star);
+    }
+    for (const s of st.snowmen ?? []) bakeModel(level, 'schneemann', {}, s[0], s[1], s[2], s[3] ?? -Math.PI / 2, 1, {}, { castShadow: true });
+    for (const c of st.carts ?? []) {
+      const [x, y, z] = c;
+      S.push(blockG(1.2, 0.12, 2.2, x, y + 0.45, z, 0x5a6a7a, { r: 0.03 }), blockG(0.06, 0.6, 0.06, x, y + 0.45, z + 1.1, 0x3a3a46, { r: 0 }));
+      for (const s of [-1, 1]) for (const t of [-0.7, 0.7]) N.push(cylG(0.2, 0.2, 0.08, x + s * 0.62, y + 0.2, z + t, 0x2a2a30, 10, { rz: Math.PI / 2, center: true }));
+      S.push(blockG(0.8, 0.5, 0.6, x - 0.1, y + 0.57, z - 0.5, 0x8a3a2a, { r: 0.06 }), blockG(0.7, 0.42, 0.5, x + 0.05, y + 0.57, z + 0.3, 0x3a5a8a, { r: 0.06 }), blockG(0.6, 0.36, 0.45, x, y + 1.07, z - 0.4, 0xc8a050, { r: 0.06 }));
+    }
+    for (const c of st.coal ?? []) S.push(sphereG(c[3] ?? 2, c[0], c[1], c[2], 0x2a2630, { sy: 0.45, ws: 10, hs: 6, half: true, fn: (p, n, o) => mixc(L(0x1e1c24), L(0xf2f6ff), smooth(0.75, 0.95, n.y), o) }));
+  }
+
+  // ---- Lokschuppen (Halbrund hinter der Drehscheibe), Gleise zu den Ständen, Drehscheiben-Brücke
+  if (cfg.lokschuppen) {
+    const o = cfg.lokschuppen, [cx, cy, cz] = o.center, r0 = o.r0 ?? 13, r1 = o.r1 ?? 21, n = o.stalls ?? 5;
+    const a0 = o.from ?? Math.PI + 0.32, a1 = o.to ?? Math.PI * 2 - 0.32, da = (a1 - a0) / n, Hh = 5.2;
+    const place = (g, r, a, y, tang) => { g.rotateY(tang ? -a - Math.PI / 2 : -a); g.translate(cx + Math.cos(a) * r, y, cz + Math.sin(a) * r); return g; };
+    for (let i = 0; i <= n; i++) {
+      const a = a0 + i * da;
+      S.push(place(box(r1 - r0, Hh, 0.5, 0, Hh / 2, 0, 0xa0503a, { r: 0.04, seg: 1 }), (r0 + r1) / 2, a, cy, false));
+      S.push(place(box(0.8, Hh + 0.4, 0.8, 0, (Hh + 0.4) / 2, 0, 0x9a96a6, { r: 0.05, seg: 1, topColor: 0xf6f9ff }), r0, a, cy, false));
+    }
+    for (let i = 0; i < n; i++) {
+      const a = a0 + (i + 0.5) * da, chord0 = 2 * r0 * Math.sin(da / 2), chord1 = 2 * r1 * Math.sin(da / 2);
+      S.push(place(box(chord1, Hh, 0.5, 0, Hh / 2, 0, 0xa0503a, { r: 0.04, seg: 1 }), r1, a, cy, true));
+      S.push(place(box(chord0 - 0.6, 1.0, 0.55, 0, Hh - 0.5, 0, 0x9a96a6, { r: 0.04, seg: 1 }), r0, a, cy, true));
+      // Tor: zwei Flügel mit weißem Kreuz (mittlerer Stand offen, drinnen eine kleine Rangierlok)
+      if (i !== Math.floor(n / 2)) {
+        const lw = chord0 / 2 - 0.5;
+        for (const s of [-1, 1]) {
+          const leaf = merge([box(lw, Hh - 1.1, 0.12, 0, (Hh - 1.1) / 2, 0, 0x2a5a3a, { r: 0.02, seg: 0 }), rodG([-lw / 2 + 0.1, 0.2, 0.08], [lw / 2 - 0.1, Hh - 1.3, 0.08], 0.06, 0xf4f0e0), rodG([lw / 2 - 0.1, 0.2, 0.08], [-lw / 2 + 0.1, Hh - 1.3, 0.08], 0.06, 0xf4f0e0)]);
+          leaf.translate(s * (lw / 2 + 0.05), 0, 0);
+          S.push(place(leaf, r0 + 0.1, a, cy, true));
+        }
+      } else {
+        N.push(place(box(chord0 - 0.7, Hh - 1.1, 0.1, 0, (Hh - 1.1) / 2, 0, 0x1a1820, { r: 0, seg: 0 }), r0 + 3.5, a, cy, true));
+        const lok = merge([cylG(0.7, 0.7, 2.6, 0, 1.6, 0, 0x2a7a4a, 14, { rx: Math.PI / 2, center: true }), blockG(1.8, 0.5, 3.8, 0, 0.4, 0.3, 0x2a2a30), blockG(1.7, 1.9, 1.3, 0, 0.9, 1.5, 0x2a7a4a, { top: 0x1a1a22 }), cylG(0.22, 0.26, 0.7, 0, 2.2, -0.9, 0x1a1a22, 8), sphereG(0.18, 0, 1.6, -1.35, 0xffe9a0, { ws: 8, hs: 6 })]);
+        lok.rotateY(Math.PI / 2);
+        S.push(place(lok, r0 + 2.0, a, cy, false));
+      }
+      // Dach (fällt nach hinten ab) mit Schnee, Rauchabzug
+      const roof = box(r1 - r0 + 1.2, 0.3, chord1 + 0.3, 0, 0, 0, 0x5a5466, { r: 0.04, seg: 1, topColor: 0xf6f9ff });
+      roof.rotateZ(-0.1);
+      roof.translate(0, Hh + 0.55, 0);
+      S.push(place(roof, (r0 + r1) / 2, a, cy, false));
+      S.push(place(box(0.7, 1.4, 0.7, 0, Hh + 1.2, 0, 0x3a3a44, { r: 0.04, seg: 1, topColor: 0xf6f9ff }), (r0 + r1) / 2, a, cy, false));
+      // Gleis vom Stand zur Drehscheibe
+      const ri = o.rail ?? 10.4;
+      for (const s of [-0.62, 0.62]) S.push(place(box(r0 + 1 - ri, 0.1, 0.1, 0, 0, s, 0x8a8fa8, { r: 0, seg: 0 }), (ri + r0 + 1) / 2, a, cy - 0.28, false));
+    }
+    // Drehscheiben-Brücke auf dem Arenaboden
+    if (o.bridge) {
+      const [bx, by, bz, R] = o.bridge;
+      N.push(ringG(R - 0.7, 0.12, bx, by + 0.03, bz, 0x4a4656, 48, { tube: 4 }));
+      for (const s of [-0.62, 0.62]) N.push(blockG(2 * (R - 1.0), 0.04, 0.12, bx, by + 0.01, bz + s, 0xb8bccc, { r: 0, seg: 0 }));
+      for (let x = -R + 1.4; x < R - 1.2; x += 0.9) N.push(blockG(0.32, 0.02, 1.9, bx + x, by + 0.005, bz, 0x9a7a58, { r: 0, seg: 0 }));
+    }
+  }
+
+  // ---- Dorf Schneetal (warm erleuchtete Häuser am Hang), Kapelle
+  for (const h of cfg.village ?? []) {
+    const [x, z, yaw, col] = h;
+    const hs = houseG(x, H(x, z), z, { w: 4.4, d: 5.6, h: 3.0, rh: 2.4, wall: col ?? 0xd8a060, roof: 0x5a3a44, gable: col ?? 0xd8a060, yaw: yaw ?? 0 });
+    S.push(...hs.solid); G.push(...hs.glow);
+  }
+  if (cfg.chapel) {
+    const [x, z] = cfg.chapel, y = H(x, z);
+    const hs = houseG(x, y, z, { w: 4.4, d: 7, h: 3.6, rh: 2.8, wall: 0xf2ece0, roof: 0x7a2a2a, gable: 0xf2ece0, chimney: false, doorColor: 0x7a4a2a });
+    S.push(...hs.solid); G.push(...hs.glow);
+    S.push(blockG(1.8, 6.4, 1.8, x, y, z + 3.9, 0xf2ece0, { r: 0.04 }));
+    S.push(coneG(1.5, 3.4, x, y + 6.4, z + 3.9, 0x7a2a2a, 4, { ry: Math.PI / 4 }));
+    G.push(blockG(0.5, 0.8, 0.1, x, y + 4.6, z + 4.82, 0xffd27a, { r: 0.04, seg: 0 }));
+  }
+
+  bakeSections(level, S, { castShadow: true });
+  bakeSections(level, N, { castShadow: false });
+  bakeSections(level, G, { material: 'glow', castShadow: false });
+
+  // ---- Rentierherde, Dampf, Krümel am Ziel
+  if (cfg.herd) sc.herd = new Rentiere(level, { ...cfg.herd, ground: H });
+  if (cfg.steam) sc.steam = new Dampf(level, cfg.steam);
+  if (cfg.kruemelZiel) sc.kruemelZiel = new KruemelZiel(level, cfg.kruemelZiel, () => ['pipe', 'gone'].includes(level._zugScene?.kruemel?.state));
+  return sc;
 }
