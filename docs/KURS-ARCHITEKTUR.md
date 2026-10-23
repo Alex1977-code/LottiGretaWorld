@@ -1944,9 +1944,14 @@ Detailstufen ferner Münzen/Blöcke/Käfer), die Routen-Bots laufen unverändert
 src/course/view/Culling.js          Sicht-/Schattenprüfung (Mesh.intersectsFrustum während CourseView.render)
 src/course/view/EntityInstancer.js  gleiche Modellteile mehrerer Entitäten als Instanzen (Haupt-/Schattenpass getrennt)
 src/course/view/ShadowProxy.js      Schatten-Stellvertreter: Figur aus vielen Teilen wirft ihren Schatten in 1 Aufruf
+src/course/view/GroupCuller.js      Instanz-Gruppen (sharedSlot/modelInstances) je Bild auswählen, LEVEL.instances
+src/course/view/Xray.js             Durchsicht hoher Blöcke zwischen Kamera und Figur (view.xray, island xray)
 src/course/view/lod.js              Detailstufen: Münze, ?-/Ziegel-/benutzte Blöcke (Pools), Käfer (Entitäten)
 src/course/view/InstancePool.js     + Auswahl je Bild (nur sichtbare Instanzen), Detailstufen, Schatten-Instanzen
-src/course/view/StaticBatcher.js    + spätes addStatic verschmilzt in vorhandene Abschnitte, sehr große Teile in Zellen
+src/course/view/StaticBatcher.js    + spätes addStatic verschmilzt in vorhandene Abschnitte, sehr große Teile in Zellen,
+                                      Teile über Abschnittsgrenzen je Abschnitt
+src/course/blocks/types/island.js   + top 'rock' (Felsdeckel), xray (Durchsicht)
+src/course/entities/EnemyW2.js      + sharedSlot/modelInstances melden ihre Gruppen beim GroupCuller an
 src/course/view/Sky.js              + Wolken je Level (LEVEL.sky), je Bild nur Wolken im Bild
 src/course/level/LevelLoader.js     + LEVEL.prebuild / LEVEL.build, segments shadow: false
 src/course/level/Level.js           + Fern-Ausblendung (farHide) in render()
@@ -1978,7 +1983,9 @@ verschmilzt der Batcher vor dem nächsten Bild in das vorhandene Mesh derselben 
   `.shadowVisible(…)`, `.boxVisible(box, cast)`, `.camFrustum`, `.camPos` für eigene Auswahl.
 - **Statische Geometrie**: sehr große Teile (länger als 80 m oder breiter als 120 m – lange Strecken wie `track`, große
   Böden, Kulissen-Ringe) blähen die Abschnitte nicht mehr auf: mit ≥ 2000 Dreiecken dreiecksweise auf eigene Zellen
-  (32 m × 64 m, dünn besetzte Zellen gröber zusammengefasst), sparsame gemeinsam in einem Mesh je Material. Dioramen
+  (32 m × 64 m, dünn besetzte Zellen gröber zusammengefasst), sparsame gemeinsam in einem Mesh je Material. Kleinere
+  Teile, die über eine Abschnittsgrenze reichen (Streuungen, Kulisse über mehrere Abschnitte), werden dreiecksweise je
+  Abschnitt verteilt – die Quader der Abschnitte bleiben eng (Hilfen müssen nicht mehr selbst teilen). Dioramen
   (Archetyp `diorama`, sonst `LEVEL.staticSplit: false`) teilen nicht – die Kamera sieht sie ganz.
 - **Instanz-Pools** (`view.pool`): je Bild nur Instanzen im Bild bzw. mit Schatten ins Bild (Schatten über eigene
   Instanzgruppen nur im Schattenpass); Detailstufe ferner Exemplare über `opts.lod = { dist, make(vorlage) }`
@@ -1994,6 +2001,13 @@ verschmilzt der Batcher vor dem nächsten Bild in das vorhandene Mesh derselben 
 - **Detailstufen ferner Entitäten** (`view/lod.js`, nach Art): Flatter-/Krabbelkäfer ab 22 m Kameraabstand als sparsame
   Nachbildung (≈ 650 statt ≈ 4500 Dreiecke, Flügel des Modells bleiben). Entität `lod: false` schaltet ab, `lodDist`
   ändert den Abstand, `lod = { dist, make(entity), anchor(root), keep(mesh), all }` setzt eine eigene.
+- **Instanz-Gruppen** (`view/GroupCuller.js`, automatisch): gemeinsame InstancedMeshes vieler Exemplare (EnemyW2
+  `sharedSlot` – z. B. Ameisensoldaten –, `modelInstances`/`sharedModelSlot` – z. B. Riesenameisen) zeichnen je Bild nur
+  die Exemplare im Bild bzw. mit Schatten ins Bild (zwei Spiegel-InstancedMeshes; die Quelle bleibt Datenquelle). Regeln
+  je Gruppe und für Pools (Münzen …) über `LEVEL.instances` (`farHide`, `shadowDist`, `shadow: false`) bzw.
+  `view.instanceRule(name, rule)`; eigene Gruppen meldet `view.groupCull(instancedMesh, name)` an.
+- **Durchsicht** (`view/Xray.js`): `view.xray(mesh, box, { min })` – der Block wird weich durchscheinend, solange er
+  zwischen Kamera und Figur steht; Baustein `island` mit `xray: true` baut das selbst (Kollision mit `camIgnore`).
 - **Fern-Ausblendung**: Entität/spec `farHide: m` – weiter als m (waagerecht) von der Haupt-Figur wird das Modell nicht
   gezeichnet (läuft weiter); `LEVEL.farHide: m` gilt für alle Gegner.
 - **Schatten-Stellvertreter und Figur-Bündel** (`view/ShadowProxy.js`): Heldin, Ritt (1-4) und Pflaume werfen ihren
@@ -2025,6 +2039,13 @@ farHide: 50,                                                 // LEVEL: alle Gegn
 // Drehraum setzt camIgnore auf Hülle und Einbauten selbst (camThrough: false schaltet ab)
 // Statische Geometrie: große Teile nicht auf Zellen verteilen (Standard nur im Archetyp diorama)
 staticSplit: false,
+// Instanz-Gruppen und Pools: Regeln je Name (Gruppen aus EnemyW2 sharedSlot/modelInstances, Pools wie 'coin')
+instances: { ameisensoldat: { farHide: 34, shadowDist: 14 }, riesenameise: { farHide: 44, shadowDist: 18 },
+  coin: { farHide: 40, shadow: false } },
+// Insel mit Felsdeckel (statt top: 'none' + rockLids; Farben Standard theme.rock/theme.dirt) und Durchsicht
+{ type: 'island', pos: [0, 0, -40], size: [4, 8, 4], top: 'rock', topColor: 0xd89a68, sideColor: 0xb4643e, xray: true, id: 'wand' },
+// Piep-Rutsche mit gröberen Zellen (wie piep_block cell)
+{ type: 'piep_rutsche', pos: [0, 2, -60], size: [3.4, 4, 16], cell: 2 },
 ```
 
 ### Präzisierung (Leistung und Level-Haken 2): Archetypen
@@ -2054,7 +2075,11 @@ staticSplit: false,
 - Gleiche Gegner kosten jetzt kaum mehr als einer; Modelle mit eigenem Material je Exemplar bleiben einzeln (z. B. Spuke
   mit eigener Deckkraft). Statt level-lokaler Instanz-/Fernhilfen genügen die Daten-Felder oben; die Level-Helfer
   `instanceEnemies`, `instanceModels`, `bugSwarm`, `farHide` setzen nur noch diese Felder.
-- Lange statische Strecken (Gleise, Banden, Böden) müssen nicht mehr gestückelt werden.
+- Lange statische Strecken (Gleise, Banden, Böden) und Streuungen über mehrere Abschnitte müssen nicht mehr gestückelt
+  werden.
+- `cullStatic` (w2-Hilfe) und `fernAus` (w3-Hilfe) vermessen die Abschnitte neu, sobald sie neue Geometrie bekommen
+  (spätes `addStatic`, `levelSetup`) – vorher galten die alten Grenzen, und Kulisse über mehrere Abschnitte verschwand
+  zeitweise. `levelSetupLate` ist dafür nicht mehr nötig (schadet nicht).
 - Zöpfe/Haar der Heldin rechnen im Kurs in Avatar-Einheiten (vorher 1,5× zu lang, Kollider zu groß – die Zöpfe standen ab).
 
 ### Präzisierung (Leistung und Level-Haken 2): Messung
@@ -3013,7 +3038,8 @@ c = Bilder je Abschnitt, je < 10 min –, Port 4630 + PORT_BASE, Bilder `tests/o
 - **Hinweise/Wünsche**: Eine Piep-Zelle kostet ≈ 750 Dreiecke (fest) bzw. ≈ 600 (Umriss + Füllung) – große Felder nur mit
   `cell: 2`; `piep_rutsche` kennt kein `cell` (eine Zelle je m²). Münzen und ?-Blöcke werden immer gezeichnet (≈ 400
   bzw. ≈ 3000 Dreiecke je Stück). Wünsche: `cell` für die Piep-Rutsche, Fern-Detailstufe für Registry-Käfer in
-  `flatterkaefer_rad`.
+  `flatterkaefer_rad`. (Inzwischen zeichnen Münz-/Block-Pools nur Sichtbares, ferne in Detailstufe; `piep_rutsche`
+  kennt `cell` – Präzisierung „Leistung und Level-Haken 2“.)
 
 **Level-Notizen 4-1 / 4-2** (Level-Agent; Hilfen `src/course/levels/w4/_helpers_a.js` ohne `LEVEL`; Test
 `tests/course_w4a.mjs [4-1|4-2]`, Port 4412 + PORT_BASE, Bilder `tests/out/w4a_*.png`; `PARTS=route,sweep,targets,extra,shots`
@@ -3061,6 +3087,9 @@ c = Bilder je Abschnitt, je < 10 min –, Port 4630 + PORT_BASE, Bilder `tests/o
   StaticBatcher könnte große Geometrien selbst je Abschnitt teilen; `xrayWalls` (Durchsicht hoher Blöcke) als Baustein;
   Instanzen/Fern-Ausblendung der Ameisen-, Riesenameisen- und Münz-Gruppen im Motor (hier level-lokal); nach einer
   Stampfattacke auf einen Rankenschnapper-Kopf ein kleiner Abprall (über Gift fällt die Figur sonst hinein).
+  (Umgesetzt bis auf den Abprall – Präzisierung „Leistung und Level-Haken 2“: `top: 'rock'`, Teilung je Abschnitt,
+  `island xray`/`view.xray`, `LEVEL.instances`; 4-1/4-2 nutzen `LEVEL.instances` statt `cullInstances`, `xrayWalls`
+  über `view.xray`.)
 
 ---
 

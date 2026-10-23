@@ -24,7 +24,8 @@
 // piep_rutsche – Rutsche aus Piep-Blöcken (Rampe mit Flag slide: die Figur rutscht ohne Ducken; Streifen wechseln die Farbe):
 //   { type: 'piep_rutsche', pos (Mitte der Unterseite des Umrisses), size: [w, h, d] (h = Höhenunterschied), axis: 'z',
 //     dir: 1 (Oberseite steigt nach +axis; die Figur rutscht nach −dir), band: 2 (m je Farbstreifen), thick: 0.6,
-//     colors: 'wechsel' | 'rot' | 'blau', slope: 0.85, phase, every, warn, id }
+//     colors: 'wechsel' | 'rot' | 'blau', slope: 0.85, cell: 1 (Zellgröße der Optik; 2 = ein Viertel der Zellen), phase,
+//     every, warn, id }
 //
 // Laufzeit: level.named.get(id) = { groups, boxes, info() } (info: [{ color, on, warn, solid, pending }]); level.piep =
 // System { clock, groups, boxes, switches, pushes, info() }. Darstellung: Modell 'piep_block' der Registry
@@ -554,8 +555,9 @@ export function buildPiepRutsche(level, spec) {
   const a0 = axis === 'x' ? p.x - s.x / 2 : p.z - s.z / 2;
   // Höhe der Oberseite an der Achsenkoordinate u (absolut)
   const topU = (u) => { let t = (u - a0) / len; if (dir < 0) t = 1 - t; return p.y + s.y * t; };
-  const cellW = Math.max(0.5, Math.min(1, wid)), nw = Math.max(1, Math.round(wid / cellW)), cw = wid / nw;
-  const nAlong = Math.max(1, Math.round(bl / Math.min(1, bl))), ca = bl / nAlong;
+  const cell = Math.max(0.5, spec.cell ?? 1);
+  const cellW = Math.max(0.5, Math.min(cell, wid)), nw = Math.max(1, Math.round(wid / cellW)), cw = wid / nw;
+  const nAlong = Math.max(1, Math.round(bl / Math.min(cell, bl))), ca = bl / nAlong;
   for (let i = 0; i < nb; i++) {
     const g = sys.group(cols[i], spec.phase ?? 0, spec.every, spec.warn);
     if (!groups.includes(g)) groups.push(g);
