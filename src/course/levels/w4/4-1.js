@@ -29,7 +29,7 @@
 import { islandParts, merge, addStatic } from '../../blocks/kit.js';
 import {
   isl, rock, wallBox, line, ring, arc, column, levelSetupLate, cullStatic, antOver, antWallLane, antLoop, areaMoods, campfire,
-  vultures, cacti, skulls, antFlags, stalactites, glowCrystals, antPantry, tumbleweed, lizard, beetle, fernAus, cullInstances,
+  vultures, cacti, skulls, antFlags, stalactites, glowCrystals, antPantry, tumbleweed, lizard, beetle, fernAus,
   spikeField, chunkBackdrop, xrayWalls, pebbles, tufts, cracks, wallHoles, roots, bunting, heroShadowDiet, rockLids,
 } from './_helpers_a.js';
 
@@ -199,13 +199,7 @@ function setup(level) {
   // ---------------- 4 Stachelfeld (Kollision wie stachelboden, sparsame Spitzen)
   spikeField(level, [0, PIT.floor, (PIT.z0 + PIT.z1) / 2], [20, 0.25, PIT.z0 - PIT.z1]);
 
-  // ---------------- Budget: Instanz-Gruppen nur nahe und im Bild; ferne Abschnitte aus
-  cullInstances(level, {
-    'instanzen:ameisensoldat': { far: 34, radius: 1.2, shadowNear: 14 },
-    'instanzen:ameisensoldat_horn': { far: 34, radius: 1.2, shadowNear: 14 },
-    'instanzen:riesenameise': { far: 44, radius: 3, shadowNear: 18 },
-    coin: { far: 40, radius: 0.8, shadow: false },
-  });
+  // ---------------- Budget: Instanz-Gruppen nur nahe und im Bild (Motor: LEVEL.instances); ferne Abschnitte aus
   chunkBackdrop(level, { far: 260, chunk: 64 });
   heroShadowDiet(level, 0.16);
 }
@@ -220,6 +214,13 @@ export const LEVEL = {
   timeLimit: 400,
   start: { pos: [0, Y, 8], yaw: Math.PI / 2 },
   killY: -8,
+  // Instanz-Gruppen und Münz-Pool nur nahe der Figur, ferne ohne Sonnenschatten (view/GroupCuller.js, InstancePool)
+  instances: {
+    ameisensoldat: { farHide: 34, shadowDist: 14 },
+    ameisensoldat_horn: { farHide: 34, shadowDist: 14 },
+    riesenameise: { farHide: 44, shadowDist: 18 },
+    coin: { farHide: 40, shadow: false },
+  },
   setup: levelSetupLate(setup, (level) => {
     cullStatic(level);
     fernAus(level, 140);

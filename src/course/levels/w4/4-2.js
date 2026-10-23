@@ -24,7 +24,7 @@
 // Gegner: Rankenschnapper 26, Brummer 3.
 
 import {
-  isl, rock, wallBox, line, ring, arc, column, levelSetupLate, cullStatic, areaMoods, cullInstances, creeperInstances,
+  isl, rock, wallBox, line, ring, arc, column, levelSetupLate, cullStatic, areaMoods, creeperInstances,
   fogBanks, dragonflies, lilies, reeds, logs, swampHut, frogs, fireflies, glowCrystals, stalactites, tintWater, gegnerSicht,
   chunkBackdrop, heroShadowDiet, rockLids,
 } from './_helpers_a.js';
@@ -135,7 +135,6 @@ function setup(level) {
   chunkBackdrop(level, { far: 150, chunk: 96 });
   gegnerSicht(level, { brummer: { dist: 28, shadow: false } });
   heroShadowDiet(level, 0.16);
-  cullInstances(level, { coin: { far: 40, radius: 0.8, shadow: false } });
 }
 
 export const LEVEL = {
@@ -148,6 +147,7 @@ export const LEVEL = {
   timeLimit: 400,
   start: { pos: [0, Y, 6], yaw: Math.PI / 2 },
   killY: -12,
+  instances: { coin: { farHide: 40, shadow: false } },   // Münzen nur nahe der Figur (Motor, InstancePool)
   setup: levelSetupLate(setup, (level) => {
     cullStatic(level);
   }),

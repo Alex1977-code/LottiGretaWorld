@@ -713,88 +713,24 @@ export function creeperInstances(level, o = {}) {
 }
 
 // =====================================================================================================================
-// Fern-Ausblendung für Instanz-Gruppen (Ameisen, Riesenameisen, Münzen) – level-lokal, bis der Motor sie selbst kann
+// Fern-Ausblendung für Instanz-Gruppen (Ameisen, Riesenameisen, Münzen) – jetzt im Motor
 // =====================================================================================================================
 
 /**
- * Instanz-Gruppen, die übers ganze Level verteilt sind (Ameisen-Instanzen, gemeinsame Riesenameisen, Münz-Pool), zeichnen
- * sonst jedes Bild alle Instanzen – auch im Schattenpass. Hier bekommt jede passende InstancedMesh (Name in rules) einen
- * „Spiegel“ mit derselben Geometrie und demselben Material, der je Bild nur die Instanzen enthält, die näher als
- * far m an der Figur liegen und in der Sichtpyramide der Kamera (Kugel radius); das Original wird nicht gezeichnet
- * (es rechnet weiter, die Gegner-Logik bleibt unberührt). shadow: false → der Spiegel wirft keinen Sonnenschatten;
- * shadowNear → nur Instanzen näher als shadowNear m werfen Schatten (zweiter Spiegel für die fernen, ohne Schatten).
- * rules = { name: { far, radius, shadow, shadowNear } }. Liefert stats { drawn: { name: n } } (Tests). Nur Darstellung.
+ * Früher level-lokal (Spiegel-InstancedMeshes je Gruppe); jetzt wählt der Motor je Bild selbst aus (view/GroupCuller.js,
+ * Pools in view/InstancePool.js) – Regeln als Daten-Feld `LEVEL.instances = { name: { farHide, shadowDist, shadow } }`.
+ * Dieser Helfer übersetzt nur noch: rules = { name: { far, radius, shadow, shadowNear } } (name auch mit „instanzen:“)
+ * → view.instanceRule(name, { farHide: far, shadowDist: shadowNear, shadow }). radius entfällt (Begrenzung aus der
+ * Geometrie). Liefert die Kennzahlen des Motors (view.groups.stats).
  */
 export function cullInstances(level, rules) {
   const v = level.view;
   if (!v) return null;
-  const mirrors = new Map();   // Original → { near, far, rule, key, cap }
-  const stats = { drawn: {} };
-  const M = new THREE.Matrix4(), F = new THREE.Frustum(), S = new THREE.Sphere();
-  let scanT = 0;
-  const make = (m, key, tag) => {
-    const im = new THREE.InstancedMesh(m.geometry, m.material, m.instanceMatrix.count);
-    im.frustumCulled = false;
-    im.count = 0;
-    im.name = `${key}:${tag}`;
-    im.userData.cullMirror = true;
-    im.receiveShadow = m.receiveShadow;
-    im.renderOrder = m.renderOrder;
-    v.three.add(im);
-    return im;
-  };
-  const scan = () => {
-    v.three.traverse((m) => {
-      if (!m.isInstancedMesh || m.userData.cullMirror || mirrors.has(m)) return;
-      const key = m.name || m.parent?.name || '';
-      const rule = rules[key];
-      if (!rule) return;
-      // nahe Instanzen (mit Sonnenschatten) und ferne (ohne) in zwei Spiegeln
-      mirrors.set(m, { near: make(m, key, 'nah'), far: rule.shadowNear ? make(m, key, 'fern') : null, rule, key, cap: m.instanceMatrix.count });
-    });
-  };
-  scan();
-  const visible = (m) => { for (let q = m.parent; q; q = q.parent) if (!q.visible) return false; return true; };
-  const drop = (rec) => { for (const im of [rec.near, rec.far]) if (im) { im.removeFromParent(); im.dispose(); } };
-  v.onFrame((dt) => {
-    scanT += dt;
-    if (scanT > 0.5) { scanT = 0; scan(); }
-    const p = level.player, cam = v.camera;
-    cam.updateMatrixWorld();
-    F.setFromProjectionMatrix(M.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
-    for (const k of Object.keys(stats.drawn)) stats.drawn[k] = 0;
-    for (const [m, rec] of mirrors) {
-      const { near, far, rule } = rec;
-      if (!m.parent || m.instanceMatrix.count !== rec.cap) {
-        // entfernt oder Pool gewachsen (neue InstancedMesh): Spiegel verwerfen, scan() legt ihn neu an
-        drop(rec); mirrors.delete(m); scanT = 1; continue;
-      }
-      const on = visible(m);
-      m.visible = false;
-      let n = 0, nf = 0;
-      if (on) {
-        const a = m.instanceMatrix.array, b = near.instanceMatrix.array, bf = far?.instanceMatrix.array;
-        const fd = rule.far ?? 40, r = rule.radius ?? 1.5, sn = rule.shadowNear ?? Infinity;
-        for (let i = 0; i < m.count; i++) {
-          const o16 = i * 16;
-          if (a[o16] === 0 && a[o16 + 5] === 0 && a[o16 + 10] === 0 && a[o16 + 1] === 0) continue;
-          const x = a[o16 + 12], y = a[o16 + 13], z = a[o16 + 14];
-          const d = p ? Math.hypot(x - p.pos.x, z - p.pos.z) : 0;
-          if (d > fd) continue;
-          S.center.set(x, y, z); S.radius = r;
-          if (!F.intersectsSphere(S)) continue;
-          if (far && d > sn) { for (let k = 0; k < 16; k++) bf[nf * 16 + k] = a[o16 + k]; nf++; }
-          else { for (let k = 0; k < 16; k++) b[n * 16 + k] = a[o16 + k]; n++; }
-        }
-      }
-      near.count = n; near.visible = n > 0; near.instanceMatrix.needsUpdate = true;
-      near.castShadow = rule.shadow !== false && m.castShadow;
-      if (far) { far.count = nf; far.visible = nf > 0; far.castShadow = false; far.instanceMatrix.needsUpdate = true; }
-      stats.drawn[rec.key] = (stats.drawn[rec.key] ?? 0) + n + nf;
-    }
-  });
-  level.instanceCull = stats;
-  return stats;
+  for (const [key, r] of Object.entries(rules)) {
+    v.instanceRule(key.replace(/^instanzen:/, ''), { farHide: r.far ?? 40, ...(r.shadowNear ? { shadowDist: r.shadowNear } : {}), ...(r.shadow === false ? { shadow: false } : {}) });
+  }
+  level.instanceCull = v.groups.stats;
+  return v.groups.stats;
 }
 
 /**
@@ -979,6 +915,7 @@ export function tintWater(level, surface = 0x3ab8b0, deep = 0x1a6a78) {
  * Felsblöcke (Kollision wie island, aber camIgnore: die Kamera bleibt auf Abstand) mit eigenem Mesh, das durchscheinend
  * wird, solange der Block zwischen Kamera und Figur steht (Blick auf die Figur hinter der Wand frei). boxes = [{ pos
  * (Mitte unten), size, top: 'none'|'grass'|'sand', id }]. level.named.get(id) = { fade (0..1 Deckkraft), box }.
+ * Das Durchscheinen übernimmt der Motor (view.xray, view/Xray.js; Baustein island mit `xray: true` für neue Level).
  */
 export function xrayWalls(level, boxes, o = {}) {
   const v = level.view;
@@ -988,10 +925,8 @@ export function xrayWalls(level, boxes, o = {}) {
     const [px, py, pz] = B.pos, [w, h, d] = B.size;
     const min = [px - w / 2, py, pz - d / 2], max = [px + w / 2, py + h, pz + d / 2];
     level.world.add({ type: 'box', min, max, camIgnore: true, tag: B.tag ?? 'felswand' });
-    const rec = { box: new THREE.Box3(new THREE.Vector3(...min), new THREE.Vector3(...max)), fade: 1, mesh: null };
-    if (B.id) level.named.set(B.id, rec);
-    recs.push(rec);
-    if (!v) continue;
+    let rec = { box: new THREE.Box3(new THREE.Vector3(...min), new THREE.Vector3(...max)), fade: 1, mesh: null };
+    if (!v) { if (B.id) level.named.set(B.id, rec); recs.push(rec); continue; }
     const parts = islandParts(min[0], min[1], min[2], max[0], max[1], max[2], th, { top: B.top ?? 'none', under: 0, rnd: level.rnd });
     if (!B.top || B.top === 'none') parts.push(...lidParts(min[0], max[1], min[2], max[0], max[2], th, o.lid ?? {}));
     const mat = (v.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true })).clone();
@@ -1000,30 +935,11 @@ export function xrayWalls(level, boxes, o = {}) {
     mesh.castShadow = true; mesh.receiveShadow = true;
     mesh.name = 'durchsicht';
     mesh.userData.owned = true;
-    rec.mesh = mesh;
     addObject(level, mesh);
+    rec = v.xray(mesh, rec.box, { min: o.min ?? 0.28 });   // Motor: { mesh, box, fade, … }
+    if (B.id) level.named.set(B.id, rec);
+    recs.push(rec);
   }
-  if (!v) return recs;
-  const ray = new THREE.Ray(), hit = new THREE.Vector3(), head = new THREE.Vector3();
-  v.onFrame((dt) => {
-    const p = level.player, cam = v.camera.position;
-    if (!p) return;
-    head.set(p.pos.x, p.pos.y + 0.9, p.pos.z);
-    ray.origin.copy(cam); ray.direction.copy(head).sub(cam);
-    const len = ray.direction.length();
-    ray.direction.normalize();
-    for (const r of recs) {
-      const blocks = !!ray.intersectBox(r.box, hit) && hit.distanceTo(cam) < len - 0.4 && !r.box.containsPoint(head);
-      const want = blocks ? (o.min ?? 0.28) : 1;
-      r.fade += (want - r.fade) * Math.min(1, (dt || 0.016) * 8);
-      if (Math.abs(r.fade - want) < 0.01) r.fade = want;
-      const m = r.mesh.material;
-      const tr = r.fade < 0.999;
-      if (m.transparent !== tr) { m.transparent = tr; m.depthWrite = !tr; m.needsUpdate = true; }
-      m.opacity = r.fade;
-      r.mesh.castShadow = r.fade > 0.6;
-    }
-  });
   return recs;
 }
 

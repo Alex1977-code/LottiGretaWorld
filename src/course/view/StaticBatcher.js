@@ -5,7 +5,8 @@
 // blähen die Quader der Abschnitte nicht mehr auf: mit vielen Dreiecken (≥ BIG_TRIS) werden sie dreiecksweise auf
 // eigene Zellen (Abschnitt × CELL_X-Streifen, Schwerpunkt des Dreiecks) verteilt – gezeichnet wird nur, was im Bild
 // liegt –, sparsame (Kulissen-Hügel aus wenigen Dreiecken) landen zusammen in einem eigenen Mesh je Material (werden
-// es zusammen zu viele, ebenfalls auf Zellen verteilt).
+// es zusammen zu viele, ebenfalls auf Zellen verteilt). Kleinere Teile, die über eine Abschnittsgrenze reichen (Streuung,
+// Kulisse über mehrere Abschnitte), werden dreiecksweise auf ihre Abschnitte verteilt – die Quader bleiben eng.
 // Nicht-indizierte Geometrie mit position/normal/color wird erwartet; fehlende Farbe = Weiß, uv entfällt.
 //
 // Präzisierung (Leistung und Level-Haken 2): addStatic nach finalize (LEVEL.setup, Archetyp, Laufzeit) wird beim
@@ -49,6 +50,12 @@ function splitByCells(g) {
     if (!lists.has(g4)) lists.set(g4, []);
     lists.get(g4).push(...l);
   }
+  return pickAll(g, lists);
+}
+
+/** Dreiecks-Listen (Schlüssel → Dreiecksnummern) als eigene Geometrien (position/normal/color). */
+function pickAll(g, lists) {
+  const P = g.attributes.position.array, N = g.attributes.normal.array, C = g.attributes.color.array;
   const out = new Map();
   for (const [k, l] of lists) {
     const p = new Float32Array(l.length * 9), n = new Float32Array(l.length * 9), c = new Float32Array(l.length * 9);
@@ -62,13 +69,30 @@ function splitByCells(g) {
   return out;
 }
 
+/** Teil über mehrere Abschnitte: Dreiecke nach dem Abschnitt ihres Schwerpunkts → Map(Abschnitt → Geometrie). */
+function splitBySections(g) {
+  const P = g.attributes.position.array, tris = P.length / 9;
+  const lists = new Map();
+  for (let t = 0; t < tris; t++) {
+    const o = t * 9;
+    const k = secZ((P[o + 2] + P[o + 5] + P[o + 8]) / 3);
+    let l = lists.get(k);
+    if (!l) { l = []; lists.set(k, l); }
+    l.push(t);
+  }
+  if (lists.size < 2) return new Map([[lists.keys().next().value ?? 0, g]]);
+  const out = pickAll(g, lists);
+  g.dispose();
+  return out;
+}
+
 export class StaticBatcher {
   constructor(view) {
     this.view = view;
     this.buckets = new Map();
     this.meshes = [];
     this.byKey = new Map();          // Schlüssel → Mesh (für späteres Anhängen)
-    this.stats = { parts: 0, meshes: 0, triangles: 0, split: 0 };
+    this.stats = { parts: 0, meshes: 0, triangles: 0, split: 0, sections: 0 };
     this.built = false;
   }
 
@@ -107,6 +131,11 @@ export class StaticBatcher {
       this.stats.split++;
     } else if (big) {
       this.put(`weit|${tail}`, mat, cast, recv, g);
+    } else if (!this.compact && secZ(bb.max.z) !== secZ(bb.min.z)) {
+      // über mehrere Abschnitte (Streuung, lange Kulisse): je Abschnitt verteilen – sonst reichte der Quader eines
+      // Abschnitts weit in die Nachbarn (Sichtprüfungen, auch level-lokale wie cullStatic, blendeten falsch aus)
+      for (const [sec, q] of splitBySections(g)) this.put(`${sec}|${tail}`, mat, cast, recv, q);
+      this.stats.sections++;
     } else {
       this.put(`${secZ((bb.min.z + bb.max.z) / 2)}|${tail}`, mat, cast, recv, g);
     }

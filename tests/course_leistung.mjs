@@ -2,7 +2,9 @@
 //   Aufbau-Haken LEVEL.prebuild/LEVEL.build (Reihenfolge, Verschmelzen, Umriss), segments shadow: false, Wolken je Level,
 //   Sicht-/Schattenprüfung (view/Culling.js), Instanz-Pools (nur sichtbare Münzen/Blöcke, Detailstufe), EntityInstancer
 //   (Pilzling-Gruppe als Instanzen, Käfer-Detailstufe in der Ferne), Schatten-Stellvertreter der Heldin, Fern-Ausblendung
-//   (farHide), Bild mit und ohne Sparmaßnahmen (view.optimize) gleich, weniger Zeichenaufrufe/Dreiecke.
+//   (farHide), Bild mit und ohne Sparmaßnahmen (view.optimize) gleich, weniger Zeichenaufrufe/Dreiecke; Streuung über
+//   mehrere Abschnitte (je Abschnitt verteilt), Instanz-Gruppen (Ameisen, view/GroupCuller.js, LEVEL.instances),
+//   Felsdeckel (island top 'rock') und Durchsicht (island xray, view/Xray.js).
 // Aufruf (nach npm run build): PORT_BASE=3200 node tests/course_leistung.mjs   (Port 4963 + PORT_BASE)
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 import { writeFileSync } from 'node:fs';
@@ -56,14 +58,20 @@ const frames = async (k = 3) => { const f0 = await sc(() => window.__course.view
     const cells = sb.meshes.filter((m) => m.parent).map((m) => ({ key: m.userData.cell, cast: m.castShadow, box: m.geometry.boundingBox ? [m.geometry.boundingBox.min.x, m.geometry.boundingBox.max.x, m.geometry.boundingBox.min.z, m.geometry.boundingBox.max.z] : null }));
     return {
       order: L._order, saw: L._buildSaw, hook: L._buildHook, minY: L.bounds.min.y, pending: sb.pending,
-      cells, clouds: v.sky.cloudData.length, cullBox: sb.meshes.every((m) => m.cullBox),
+      cells, clouds: v.sky.cloudData.length, cullBox: sb.meshes.every((m) => m.cullBox), sections: sb.stats.sections,
     };
   });
   console.log(`  Haken: Reihenfolge ${JSON.stringify(r.order)}, im build gesehen ${JSON.stringify(r.saw)}, Umriss min y ${r.minY}`);
-  check('LEVEL.prebuild vor, LEVEL.build nach den Bausteinen (Gegner schon da, Münzen noch nicht)', r.order?.join() === 'prebuild,build' && r.saw.enemies === 14 && r.saw.coins === 0);
+  check('LEVEL.prebuild vor, LEVEL.build nach den Bausteinen (Gegner schon da, Münzen noch nicht)', r.order?.join() === 'prebuild,build' && r.saw.enemies === 18 && r.saw.coins === 0);
   check('Kollision aus LEVEL.build zählt für den Level-Umriss', r.minY <= -9);
   const plate = r.cells.filter((m) => m.box && m.box[0] <= 6.5 && m.box[1] >= 9.5 && m.box[2] <= -7.5 && m.box[3] >= -4.5);
-  check('statische Zier aus LEVEL.build liegt in einem Abschnitts-Mesh (kein eigenes Mesh)', plate.length >= 1 && !r.pending && r.cells.length <= 12);
+  check('statische Zier aus LEVEL.build liegt in einem Abschnitts-Mesh (kein eigenes Mesh)', plate.length >= 1 && !r.pending && r.cells.length <= 14);
+  // Streuung über 60 m (x ≈ 11,5): je Abschnitt verteilt – kein Abschnitts-Mesh reicht weit in die Nachbarn
+  const secs = r.cells.filter((m) => /^-?\d+\|/.test(m.key) && m.box);
+  const longest = Math.max(...secs.map((m) => m.box[3] - m.box[2]));
+  const scatter = secs.filter((m) => m.box[1] >= 11.6 && m.box[2] < -40 && m.box[3] > -116);
+  console.log(`  Abschnitte: ${secs.length}, längster ${longest.toFixed(1)} m, mit Streuung ${scatter.length}, je Abschnitt verteilt ${r.sections}`);
+  check('Teil über mehrere Abschnitte wird je Abschnitt verteilt (Quader bleiben eng)', r.sections >= 1 && scatter.length >= 2 && longest <= 45);
   check('statische Abschnitte prüfen mit Quadern (cullBox)', r.cullBox);
   const sec4 = r.cells.filter((m) => /^4\|/.test(m.key));
   console.log(`  Abschnitt 4 (Insel ohne Schatten): ${JSON.stringify(sec4.map((m) => [m.key, m.cast]))}`);
@@ -109,6 +117,40 @@ const frames = async (k = 3) => { const f0 = await sc(() => window.__course.view
   await frames(4);
   const near = await sc(() => { const L = window.__course.level; window.__lp.grab(); return L.named.get('fern').model.root.visible; });
   check('farHide: in der Nähe wieder gezeichnet', near === true);
+}
+
+// ------------------------------------------------ Instanz-Gruppe (Ameisen), Felsdeckel und Durchsicht
+{
+  await sc(() => window.__lp.go(0, 1, 2));
+  await frames(4);
+  const g = await sc(() => {
+    const v = window.__course.view, L = window.__course.level;
+    window.__lp.grab();
+    const ants = L.entities.filter((e) => e.kind === 'ameisensoldat');
+    return { stats: { ...v.groups.stats }, ants: ants.length, alive: ants.filter((e) => e.alive).length };
+  });
+  console.log(`  Ameisen: ${g.ants} (lebend ${g.alive}), Gruppen ${JSON.stringify(g.stats)}`);
+  check('Instanz-Gruppe: Ameisen angemeldet, ferne (LEVEL.instances farHide 40) nicht gezeichnet, nahe schon', g.stats.groups >= 1 && g.stats.total >= 4 && g.stats.drawn >= 2 && g.stats.drawn <= g.stats.total - 2 && g.alive === 4);
+  const rock = await sc(() => {
+    const rec = window.__course.level.named.get('durchsicht');
+    const m = rec?.mesh, g2 = m?.geometry;
+    if (!g2) return null;
+    const P = g2.attributes.position, N = g2.attributes.normal, top = rec.box.max.y;
+    let up = 0;
+    for (let i = 0; i < P.count; i++) if (N.getY(i) > 0.9 && P.getY(i) > top - 0.02) up++;
+    return { up, fade: rec.fade };
+  });
+  console.log(`  Felsblock: ${JSON.stringify(rock)}`);
+  check('island top \'rock\': Felsdeckel (Oberseite vorhanden)', rock && rock.up > 0 && rock.fade === 1);
+  await sc(() => window.__lp.go(-9, 1, -40));
+  await frames(8);
+  const x1 = await sc(() => { window.__lp.grab(); const rec = window.__course.level.named.get('durchsicht'); return { fade: rec.fade, tr: rec.mesh.material.transparent, cast: rec.mesh.castShadow }; });
+  await sc(() => window.__lp.go(0, 1, -12));
+  await frames(30);
+  const x2 = await sc(() => { window.__lp.grab(); const rec = window.__course.level.named.get('durchsicht'); return { fade: rec.fade, tr: rec.mesh.material.transparent }; });
+  console.log(`  Durchsicht: hinter dem Block ${JSON.stringify(x1)}, danach ${JSON.stringify(x2)}`);
+  check('island xray: Block zwischen Kamera und Figur wird durchscheinend', x1.fade < 0.9 && x1.tr === true);
+  check('island xray: frei – wieder deckend', x2.fade === 1 && x2.tr === false);
 }
 
 // ------------------------------------------------ Insel ohne Schatten: Bild gleich

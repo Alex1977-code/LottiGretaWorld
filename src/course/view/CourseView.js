@@ -18,6 +18,10 @@
 //   view.shadowProxy(root)                          Figur aus vielen Teilen: Schatten in einem Aufruf, Teile gleichen
 //                                                   Materials gebündelt (view/ShadowProxy.js; Heldin, Ritt, Pflaume
 //                                                   automatisch)
+//   view.groupCull(instancedMesh, name)             Instanz-Gruppe: je Bild nur Exemplare im Bild (view/GroupCuller.js;
+//                                                   EnemyW2 meldet sharedSlot/modelInstances selbst an)
+//   view.instanceRule(name, { farHide, shadowDist, shadow })   Regel für Gruppe/Pool name (sonst LEVEL.instances)
+//   view.xray(mesh, box, { min })                   Block wird durchscheinend, wenn er die Figur verdeckt (view/Xray.js)
 //   view.setMood(name, { time })                    Stimmung des Themas überblenden (theme.moods; null = Grundstimmung)
 //   view.setUnderwater(on)                          Unterwasser-Stimmung: true/false erzwingt, 'auto' erkennt selbst
 //                                                   (Thema mit `underwater`); view.underwater → bool (view/mood.js)
@@ -39,6 +43,8 @@ import { ViewCulling } from './Culling.js';
 import { poolLod } from './lod.js';
 import { ShadowProxies } from './ShadowProxy.js';
 import { EntityInstancer } from './EntityInstancer.js';
+import { GroupCuller } from './GroupCuller.js';
+import { XrayWalls } from './Xray.js';
 
 const SHADOW_R = 22;
 const MAX_LANTERNS = 4;
@@ -84,6 +90,9 @@ export class CourseView {
     this.culling = new ViewCulling(this);
     this.proxies = new ShadowProxies(this);
     this.instancer = new EntityInstancer(this);
+    this.groups = new GroupCuller(this);
+    this.instanceRules = { ...(data.instances ?? {}) };   // LEVEL.instances: { name: { farHide, shadowDist, shadow } }
+    this.xrays = new XrayWalls(this);
     this.shadows = new BlobShadows(this);
     this.effects = new CourseEffects(this);
     // Stimmungen/Unterwasser (Bausteine Welt 3): nur bei Themen mit moods/underwater, sonst erst beim ersten Aufruf
@@ -156,6 +165,15 @@ export class CourseView {
     return p;
   }
 
+  /** Instanz-Gruppe (InstancedMesh vieler Exemplare) je Bild auswählen lassen (view/GroupCuller.js). */
+  groupCull(im, name) { return this.groups.add(im, name); }
+
+  /** Regel für Instanz-Gruppe/Pool name: { farHide, shadowDist, shadow } (null = keine). */
+  instanceRule(name, rule) { if (rule) this.instanceRules[name] = rule; else delete this.instanceRules[name]; }
+
+  /** Durchsicht: mesh wird durchscheinend, solange box zwischen Kamera und Figur liegt (view/Xray.js). */
+  xray(mesh, box, opts) { return this.xrays.add(mesh, box, opts); }
+
   /** Schatten-Stellvertreter für eine Figur aus vielen starren Teilen (view/ShadowProxy.js). */
   shadowProxy(root) { this.proxies.add(root); }
 
@@ -201,6 +219,7 @@ export class CourseView {
     this.mood?.update(dt, player);
     this.sky.update(dt, this.camera);
     for (const f of this.frameFns) f.fn(dt, this.time);
+    this.xrays.update(dt, player);
     if (world) this.shadows.update(world);
     this.effects.update(dt);
     this.renderer.setClearColor(this.mood?.clear ?? this.theme.background, 1);
@@ -208,7 +227,9 @@ export class CourseView {
     this.culling.begin();
     this.proxies.update();                // nach begin(): Figur-Bündel prüfen Teile gegen die Kamera-Pyramide
     this.instancer.update(this.scene.level, this.culling);
-    for (const p of this.pools.values()) p.flush?.(this.culling);
+    const focus = player?.pos ?? null;
+    this.groups.update(this.culling, focus);
+    for (const p of this.pools.values()) p.flush?.(this.culling, focus, this.instanceRules[p.name]);
     this.renderer.render(this.three, this.camera);
     this.culling.end();
   }
@@ -240,6 +261,8 @@ export class CourseView {
     this.pools.clear();
     this.proxies.dispose();
     this.instancer.dispose();
+    this.groups.dispose();
+    this.xrays.dispose();
     this.static.dispose();
     this.shadows.dispose();
     this.effects.dispose();

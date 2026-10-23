@@ -1552,6 +1552,10 @@ export function bakeDeco(level, parts, o = {}) {
  * shadowless) wird mit seinem Quader gegen die Sichtpyramide der Kamera und den Sichtkörper der Sonnenschatten-Kamera
  * geprüft – außerhalb der Kamera unsichtbar, außerhalb des Schattenkörpers ohne Schattenwurf. Die Begrenzungskugeln
  * der 32-m-Abschnitte (Radius ≈ 35 m) reichen sonst weit über beide hinaus. Nur Darstellung.
+ * Präzisierung (Leistung und Level-Haken 2): Die Quader werden neu vermessen, sobald ein Abschnitts-Mesh neue Geometrie
+ * bekommt (spätes addStatic im Haken, levelSetup, Laufzeit), neue Abschnitts-Meshes kommen hinzu – der Aufruf darf also
+ * vor oder nach dem Verschmelzen stehen (vorher galten die alten Grenzen: Kulisse verschwand zeitweise). Der Motor prüft
+ * die Abschnitte inzwischen selbst (view/Culling.js); der Helfer bleibt für Zier-/Kulissen-Meshes und Instanz-Gruppen.
  */
 // o: floorY (−6: tiefer fallende Schatten zählen nicht), groups [{ name, boxes: [[x0, y0, z0, x1, y1, z1], …] }].
 export function cullStatic(level, o = {}) {
@@ -1562,19 +1566,29 @@ export function cullStatic(level, o = {}) {
   // verlängerte Quader (oberhalb von floorY, wo Schatten noch auffallen) die Kamera-Pyramide schneidet.
   const d = v.sunDir.clone().negate().normalize();
   const floorY = o.floorY ?? -6;
-  const add = (m) => {
+  const measure = (it) => {
+    const m = it.m;
+    it.g = m.geometry;
     m.geometry.computeBoundingBox();
-    const cast = m.userData.cast0 ?? m.castShadow;
-    m.userData.cast0 = cast;
     const b = m.geometry.boundingBox.clone().expandByScalar(0.6);
     let sw = null;
-    if (cast && b.max.y > floorY) {
+    if (it.cast && b.max.y > floorY) {
       const c = b.clone(); c.min.y = Math.max(c.min.y, floorY);
       const t = (c.max.y - floorY) / Math.max(0.2, -d.y);
       sw = c.clone().union(c.clone().translate(d.clone().multiplyScalar(t)));
       sw.min.y = Math.max(sw.min.y, floorY);
     }
-    items.push({ m, b, sw, cast });
+    it.b = b; it.sw = sw;
+  };
+  const known = new Set();
+  const add = (m) => {
+    if (known.has(m)) return;
+    known.add(m);
+    const cast = m.userData.cast0 ?? m.castShadow;
+    m.userData.cast0 = cast;
+    const it = { m, b: null, sw: null, cast, g: null };
+    measure(it);
+    items.push(it);
   };
   for (const m of v.static.meshes) add(m);
   for (const m of ZIER.get(level) ?? []) add(m);
@@ -1606,7 +1620,9 @@ export function cullStatic(level, o = {}) {
       sc.position.copy(v.sun.position); sc.lookAt(v.sun.target.position); sc.updateMatrixWorld();
       fs.setFromProjectionMatrix(M.multiplyMatrices(sc.projectionMatrix, sc.matrixWorldInverse));
     }
+    for (const m of v.static.meshes) add(m);          // neue Abschnitts-Meshes (spätes addStatic)
     for (const it of items) {
+      if (it.m.geometry !== it.g) measure(it);
       const inC = fc.intersectsBox(it.b), inS = it.cast && shadows && !!it.sw && fs.intersectsBox(it.b) && fc.intersectsBox(it.sw);
       it.m.visible = inC || inS;
       if (it.cast) it.m.castShadow = inS;

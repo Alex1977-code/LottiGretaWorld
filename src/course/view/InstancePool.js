@@ -154,10 +154,16 @@ export class InstancePool {
   /**
    * Vor dem Zeichnen (CourseView.render): Instanzen in die InstancedMeshes schreiben. Mit Sparmaßnahmen nur die
    * sichtbaren (bzw. schattenwerfenden) Instanzen, ferne in der sparsamen Stufe; sonst wie früher alle Plätze.
+   * Regel (LEVEL.instances[name], view/GroupCuller.js): farHide m – weiter von der Figur nicht gezeichnet; shadowDist m –
+   * weiter ohne Sonnenschatten; shadow: false – nie (gilt auch ohne Sparmaßnahmen).
    * @param {import('./Culling.js').ViewCulling} culling
+   * @param {THREE.Vector3|null} [focus] Haupt-Figur
+   * @param {{ farHide?: number, shadowDist?: number, shadow?: boolean }|null} [rule]
    */
-  flush(culling) {
-    const pick = !!culling?.view?.optimize;
+  flush(culling, focus = null, rule = null) {
+    const opt = !!culling?.view?.optimize;
+    const far = rule?.farHide ?? 0, sd = rule?.shadowDist ?? 0, noShadow = rule?.shadow === false;
+    const pick = opt || !!far || !!sd || noShadow;
     if (!pick) {
       if (!this.dirty && this.mode === 'all') return;
       this.mode = 'all';
@@ -181,16 +187,18 @@ export class InstancePool {
     this.mode = 'pick';
     this.dirty = false;
     this.sunFrustum = culling.sunFrustum;
-    const L = this.levels, nL = L.length, cast = this.castShadow;
+    const L = this.levels, NL = L.length, nL = opt ? NL : 1, cast = this.castShadow && !noShadow;   // ohne Sparen: keine Detailstufe
     const fill = this._fill ?? (this._fill = []), sfill = this._sfill ?? (this._sfill = []);
-    for (let l = 0; l < nL; l++) { fill[l] = 0; sfill[l] = 0; }
+    for (let l = 0; l < NL; l++) { fill[l] = 0; sfill[l] = 0; }
     const cam = culling.camPos;
     let drawn = 0;
     for (let i = 0; i < this.count; i++) {
       if (!this.shown[i]) continue;
       const o = i * 4, x = this.bound[o], y = this.bound[o + 1], z = this.bound[o + 2], r = this.bound[o + 3];
-      const inCam = culling.sphereVisible(x, y, z, r, false);
-      const inSh = cast && culling.shadowVisible(x, y, z, r);
+      const d = focus && (far || sd) ? Math.hypot(x - focus.x, z - focus.z) : 0;
+      if (far && d > far) continue;
+      const inCam = !opt || culling.sphereVisible(x, y, z, r, false);
+      const inSh = cast && (!sd || d <= sd) && (!opt || culling.shadowVisible(x, y, z, r));
       if (!inCam && !inSh) continue;
       let l = 0;
       if (nL > 1) {
@@ -206,7 +214,7 @@ export class InstancePool {
       }
       if (inCam) drawn++;
     }
-    for (let l = 0; l < nL; l++) {
+    for (let l = 0; l < NL; l++) {
       for (const part of L[l].parts) {
         part.mesh.count = fill[l]; part.mesh.castShadow = false; part.mesh.instanceMatrix.needsUpdate = true;
         if (part.smesh) { part.smesh.count = sfill[l]; part.smesh.instanceMatrix.needsUpdate = true; }

@@ -280,6 +280,8 @@ export function sharedSlot(level, name, opts = {}, chunk = 48) {
       if (vis) inst.update(dt);
     });
     g.off = () => { view.remove(inst.root); inst.dispose(); };
+    // je Bild nur Exemplare im Bild bzw. mit Schatten ins Bild (view/GroupCuller.js, Regeln aus LEVEL.instances[name])
+    for (const m of inst.meshes) view.groupCull?.(m, name);
     groups.push(g);
   }
   const i = g.free.pop();
@@ -344,6 +346,7 @@ export function modelInstances(level, name, opts, n, castShadow = 1) {
   const casters = list.filter((p) => p.im.castShadow).map((p) => p.im);
   let shadowOn = true;
   level.view.add(group);
+  for (const { im } of list) level.view.groupCull?.(im, name);   // Auswahl je Bild (view/GroupCuller.js)
   const api = {
     group, count: n, template: tpl,
     set(i, pos, yaw = 0, scale = 1) {

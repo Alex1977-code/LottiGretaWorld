@@ -612,12 +612,18 @@ export function krabbe(level, a, b, o = {}) {
 export function fernAus(level, dist = 130) {
   const v = level.view;
   if (!v) return;
-  const items = v.static.meshes.map((m) => { m.geometry.computeBoundingBox(); return { m, b: m.geometry.boundingBox.clone() }; });
+  // Quader neu vermessen, wenn ein Abschnitt neue Geometrie bekommt bzw. neue Abschnitte hinzukommen (spätes addStatic)
+  const items = [], known = new Set();
+  const measure = (it) => { it.g = it.m.geometry; it.g.computeBoundingBox(); it.b = it.g.boundingBox.clone(); };
+  const scan = () => { for (const m of v.static.meshes) if (!known.has(m)) { known.add(m); const it = { m }; measure(it); items.push(it); } };
+  scan();
   const c = new THREE.Vector3();
   v.onFrame(() => {
     const cam = v.camera.position;
+    scan();
     for (const it of items) {
       if (!it.m.visible) continue;
+      if (it.m.geometry !== it.g) measure(it);
       it.b.clampPoint(cam, c);
       if (c.distanceTo(cam) > dist) { it.m.visible = false; it.m.castShadow = false; }
     }
