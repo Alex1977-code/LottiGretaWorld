@@ -264,6 +264,48 @@ export function sideTable(level, x, y, z, w = 1, d = 0.7) {
   bake(level, b);
 }
 
+/**
+ * Bücherregal (statisch, sparsam: Bücher als schlichte Quader): { pos (Mitte unten), yaw (Bücher blicken nach lokal +X),
+ * w (Breite entlang lokal Z), h (Höhe), solid: true → Kollisionsquader, seed }. ≈ 1,5–2 k Dreiecke.
+ */
+export function bookShelf(level, o) {
+  const [x, y, z] = o.pos, w = o.w ?? 2.2, h = o.h ?? 3.2, yaw = o.yaw ?? 0, seed = o.seed ?? x * 7 + z * 3;
+  if (o.solid) {
+    const c = Math.abs(Math.cos(yaw)) > 0.5;
+    const hx = c ? 0.28 : w / 2, hz = c ? w / 2 : 0.28;
+    level.world.add({ type: 'box', min: [x - hx, y, z - hz], max: [x + hx, y + h, z + hz], tag: 'regal' });
+  }
+  if (!level.view) return;
+  const b = new Build();
+  const wood = 0x4a2a1a, wood2 = 0x5e3622;
+  const BOOKS = [0x8a2a2a, 0x2a4a8a, 0x2a6a3a, 0x8a6a2a, 0x5a2a6a, 0x2a6a6a, 0xa8482a, 0x3a3a5a, 0x7a3a4a];
+  b.box(0.5, h, 0.06, wood, { p: [0, h / 2, -w / 2 + 0.03] }, 0);
+  b.box(0.5, h, 0.06, wood, { p: [0, h / 2, w / 2 - 0.03] }, 0);
+  b.box(0.04, h, w, 0x2a1810, { p: [-0.23, h / 2, 0] }, 0);
+  b.box(0.58, 0.14, w + 0.12, wood2, { p: [0.02, h - 0.02, 0] }, 0);
+  b.box(0.54, 0.1, w + 0.04, wood2, { p: [0.02, 0.05, 0] }, 0);
+  const rows = Math.max(2, Math.floor((h - 0.25) / 0.72));
+  const rh = (h - 0.2) / rows;
+  for (let r = 0; r < rows; r++) {
+    const y0 = 0.1 + r * rh;
+    b.box(0.48, 0.04, w - 0.1, wood2, { p: [0, y0, 0] }, 0);
+    let zz = -w / 2 + 0.08, k = 0;
+    while (zz < w / 2 - 0.12) {
+      const j = hash(seed, r, k);
+      const bw = 0.06 + j * 0.07, bh = Math.min(rh - 0.1, 0.36 + hash(k, r, seed) * 0.26);
+      if (j > 0.93 && zz < w / 2 - 0.5) { zz += 0.3; k++; continue; }          // Lücke
+      const tilt = j > 0.86 ? 0.25 : 0;
+      b.box(0.32 + j * 0.06, bh, bw, BOOKS[Math.floor(hash(r, k, seed + 1) * BOOKS.length)], { p: [0.05, y0 + 0.02 + bh / 2, zz + bw / 2], r: [tilt, 0, 0] }, 0);
+      if (j > 0.5 && j < 0.56) b.box(0.33, 0.02, bw + 0.005, 0xe0b040, { p: [0.06, y0 + 0.02 + bh * 0.8, zz + bw / 2] }, 0);
+      zz += bw + 0.012 + tilt * 0.12; k++;
+    }
+  }
+  const g = b.geometry();
+  g.rotateY(yaw);
+  g.translate(x, y, z);
+  addStatic(level, g);
+}
+
 // ------------------------------------------------------------------ Außenhof
 
 /** Rasen bei Nacht (fest): x0..x1 × zA..zB, Oberkante y, Körper depth tief (Erdschichten an den Seiten). */

@@ -162,7 +162,7 @@ export const LEVEL = {
     [-11.6, 0, -4.8],                                         // 1: gegenüber dem Start (Ufer hinten links)
     [-4.2, 10.2, -10.4],                                      // 2: Dachterrasse der Seewarte (Röhre, an G1 nach oben)
     [-5, -2.0, 5.6],                                          // 3: Seegrund – Kreuzung geradeaus ins Wasser
-    { pos: [0.5, 0.3, 4.7], hidden: true, id: 'stern4' },     // 4: Schalter in der Kuppel
+    { pos: [2.1, 0.3, 4.4], hidden: true, id: 'stern4' },     // 4: Schalter in der Kuppel
     [-10.2, 0, 9.6],                                          // 5: Leuchtturm-Inselchen über den Holzsteg
   ],
   marks: {
