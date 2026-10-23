@@ -113,6 +113,9 @@ const sc = (fn, arg) => page.evaluate(fn, arg);
 const only = process.argv[2];
 const LEVELS = only ? [only] : ['3-3', '3-Kapitän'];
 const PARTS = new Set((process.env.PARTS ?? 'route,targets,extra,shots').split(','));
+// Teilläufe (Rechner unter Last): ONLY=Teil des Namens (Sterne/Mechanik), HERO=lotti|greta
+const ONLY = process.env.ONLY ?? '';
+const HEROES = (list) => (process.env.HERO ? [process.env.HERO] : list);
 const f2 = (v) => (typeof v === 'number' ? v.toFixed(2) : v);
 
 /** Hilfen in der Seite: Figur setzen, Bot-Fahrt, Zustand. */
@@ -364,8 +367,8 @@ async function test33() {
     check(`${id}: ${hero} Zeit bis zum Ziel < 240 s (${res.time.toFixed(1)} s)`, reached && res.time < 240);
   }
 
-  for (const t of PARTS.has('targets') ? R.targets : []) {
-    for (const hero of t.heroes ?? ['lotti', 'greta']) {
+  for (const t of PARTS.has('targets') ? R.targets.filter((x) => x.name.includes(ONLY)) : []) {
+    for (const hero of HEROES(t.heroes ?? ['lotti', 'greta'])) {
       await load(id);
       await W('place', t.from, { hero, settle: 10 });
       const res = await W('drive', t.legs, {});
@@ -377,8 +380,8 @@ async function test33() {
     }
   }
 
-  for (const t of PARTS.has('extra') ? R.extra : []) {
-    for (const hero of t.heroes ?? ['lotti']) {
+  for (const t of PARTS.has('extra') ? R.extra.filter((x) => x.name.includes(ONLY)) : []) {
+    for (const hero of HEROES(t.heroes ?? ['lotti'])) {
       await load(id);
       await W('place', t.from, { hero, settle: 10 });
       const res = await W('drive', t.legs, { invuln: t.invuln });
