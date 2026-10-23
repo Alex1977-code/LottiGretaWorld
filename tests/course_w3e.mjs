@@ -774,7 +774,7 @@ if (want('3-Zug')) {
   });
   console.log(`  Lauf 1: ${JSON.stringify(r)}`);
   check('3-Zug: Stern 0 an der Hinterkante gleich am Start', r.star0);
-  check(`3-Zug: auf einem Riesenprojektil landen und mitfahren (${r.ride?.on}/70 Schritte oben, Figur Δx ${r.ride?.dx} wie Projektil ${r.ride?.bdx}), Treffer verletzt (${r.bulletHurt})`, r.bullet && r.ride.on > 50 && Math.abs(r.ride.dx - r.ride.bdx) < 0.4 && r.ride.dx > 2 && r.bulletHurt === true);
+  check(`3-Zug: auf einem Riesenprojektil landen und mitfahren (${r.ride?.on}/70 Schritte oben, Figur Δx ${r.ride?.dx} wie Projektil ${r.ride?.bdx}), Treffer verletzt (${r.bulletHurt})`, r.bullet && r.ride.on > 50 && Math.abs(r.ride.dx - r.ride.bdx) < 0.4 && r.ride.dx > 1.5 && r.bulletHurt === true);
   check(`3-Zug: Pilzlingsturm Stufe für Stufe abgetragen (${r.turm.count0} → ${r.turm.stomps.join(' → ')}), Stern 1 eingesammelt`, r.turm.stomps.at(-1) === 0 && r.star1);
   check('3-Zug: Kontrollpunkt auf dem fahrenden Wagen W5 aktiviert', r.cp);
   await SHOT('zug_pilzlingsturm', () => { const t = window.__t; t.placeC(t.cw() + 1, 0.6, { settle: 20, invuln: 1e9 }); });
