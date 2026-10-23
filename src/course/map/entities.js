@@ -2,10 +2,13 @@
 //   MapRoamer  wandernde Gegnerfigur (z. B. Rammbock-Bulle für 1-A): läuft auf einem Wegstück hin und her (from/to)
 //              oder im Kreis (circle: [x, z, r], Welt 2: Großrollpilze auf der Lava-Felsinsel), schaut die Heldin an,
 //              wenn sie näher kommt; Berührung → onTouch(roamer) (startet das Level, wenn frei).
-//              Fehlt das Modell (model) noch, nimmt sie fallback (z. B. 'pilzling', vergrößert um fallbackScale).
+//              Fehlt das Modell (model) noch, nimmt sie fallback (z. B. 'pilzling', vergrößert um fallbackScale)
+//              bzw. – Welt 4 – einen Stellvertreter (spec.makeStandIn(): { root, update, dispose }).
 //   MapItem    schwebendes Gratis-Power-up (Beerenhaus): Berührung → onCollect(item).
 // Beide nutzen CourseEntity (Schwerkraft, Kollision, Modell) und werden mit addEntity() angemeldet.
+// instanceRoamers (Welt 4): gleiche Gegnermodelle einer Gruppe als Instanzen zeichnen (weniger Zeichenaufrufe).
 
+import * as THREE from 'three';
 import { CourseEntity } from '../entities/CourseEntity.js';
 import { getModel, hasModel } from '../models/index.js';
 
@@ -51,7 +54,9 @@ export class MapRoamer extends CourseEntity {
     this.cool = 0;
     const name = spec.model ?? 'rammbock_bulle';
     const useFallback = !hasModel(name) && spec.fallback && hasModel(spec.fallback);
-    this.setModel(getModel(useFallback ? spec.fallback : name, spec.modelOpts ?? {}));
+    const standIn = !hasModel(name) && !useFallback && typeof spec.makeStandIn === 'function';
+    this.setModel(standIn ? spec.makeStandIn(spec) : getModel(useFallback ? spec.fallback : name, spec.modelOpts ?? {}));
+    this.standInUsed = standIn;
     const sc = useFallback ? (spec.fallbackScale ?? 1) : (spec.scale ?? 1);
     if (sc !== 1 && this.model?.root) this.model.root.scale.setScalar(sc);
     // spec.castShadow === false (Welt 3): vielteilige Modelle ohne Sonnenschatten (der Schatten-Blob bleibt) – spart
@@ -148,4 +153,77 @@ export class MapItem extends CourseEntity {
     this.kill();
     return 'collect';
   }
+}
+
+/**
+ * Gegnergruppe instanziert zeichnen (Welt 4: drei Feuer-Werfer bzw. Lavabrocken): Teile, die bei allen Roamern der
+ * Gruppe dieselbe Geometrie und dasselbe Material haben, werden als je eine InstancedMesh gezeichnet; die Einzelteile
+ * bleiben im Modell (die Roamer rechnen und animieren weiter, Sichtbarkeitsschalter des Modells gelten), werden aber
+ * über ihre Ebenen (layers) nicht mehr gezeichnet. Teile mit eigenem Material je Exemplar (Glühen, Treffer-Blitz …)
+ * und Sprites zeichnen sich weiter selbst. Ferne Roamer (> far m vor der Kamera, wie lod.js) und solche außerhalb des
+ * Bildes werden nicht instanziert gezeichnet.
+ * @returns {{ dispose(): void, parts: number } | null}
+ */
+export function instanceRoamers(view, roamers, o = {}) {
+  if (!view || roamers.length < 2) return null;
+  const ents = [];
+  for (const e of roamers) {
+    if (!e.model?.root) return null;
+    const meshes = [];
+    let ok = true;
+    e.model.root.traverse((m) => { if (m.isSkinnedMesh || (m.isMesh && Array.isArray(m.material))) ok = false; else if (m.isMesh) meshes.push(m); });
+    if (!ok || !meshes.length) return null;
+    ents.push({ e, meshes });
+  }
+  const n0 = ents[0].meshes.length;
+  if (ents.some(({ meshes }) => meshes.length !== n0)) return null;
+  const per = (m) => (m.isInstancedMesh ? m.count : 1);
+  const parts = [];
+  const hidden = [];
+  for (let k = 0; k < n0; k++) {
+    const m0 = ents[0].meshes[k];
+    if (!ents.every(({ meshes }) => meshes[k].geometry === m0.geometry && meshes[k].material === m0.material && per(meshes[k]) === per(m0))) continue;
+    const im = new THREE.InstancedMesh(m0.geometry, m0.material, ents.length * per(m0));
+    im.castShadow = m0.castShadow; im.receiveShadow = m0.receiveShadow;
+    im.frustumCulled = false;
+    im.count = 0;
+    im.visible = false;
+    im.name = 'instanzen:gegnergruppe';
+    view.three.add(im);
+    for (const { meshes } of ents) { hidden.push([meshes[k], meshes[k].layers.mask]); meshes[k].layers.disableAll(); }
+    parts.push({ k, im, n: per(m0) });
+  }
+  if (!parts.length) return null;
+  const far = o.far ?? 90;
+  const vis = (m, root) => { for (let q = m; q && q !== root.parent; q = q.parent) if (!q.visible) return false; return true; };
+  const M = new THREE.Matrix4(), Mi = new THREE.Matrix4(), F = new THREE.Frustum(), S = new THREE.Sphere();
+  const off = view.onFrame(() => {
+    const cam = view.camera;
+    cam.updateMatrixWorld();
+    F.setFromProjectionMatrix(M.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    const fill = parts.map(() => 0);
+    for (const { e, meshes } of ents) {
+      const root = e.model?.root;
+      if (!root) continue;
+      S.center.set(e.pos.x, e.pos.y + 0.8, e.pos.z); S.radius = o.radius ?? 2;
+      if (!(e.alive && !e.removed && root.parent && cam.position.distanceTo(S.center) - S.radius < far && F.intersectsSphere(S))) continue;
+      root.updateMatrixWorld(true);
+      parts.forEach(({ k, im, n }, pi) => {
+        const m = meshes[k];
+        if (!vis(m, root)) return;
+        if (m.isInstancedMesh) {
+          for (let j = 0; j < Math.min(m.count, n); j++) { m.getMatrixAt(j, Mi); im.setMatrixAt(fill[pi]++, M.multiplyMatrices(m.matrixWorld, Mi)); }
+        } else im.setMatrixAt(fill[pi]++, m.matrixWorld);
+      });
+    }
+    parts.forEach(({ im }, pi) => { im.count = fill[pi]; im.visible = fill[pi] > 0; im.instanceMatrix.needsUpdate = true; });
+  });
+  return {
+    parts: parts.length,
+    dispose() {
+      off();
+      for (const { im } of parts) { im.parent?.remove(im); im.dispose(); }
+      for (const [m, mask] of hidden) m.layers.mask = mask;
+    },
+  };
 }

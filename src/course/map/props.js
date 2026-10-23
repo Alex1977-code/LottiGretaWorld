@@ -18,6 +18,9 @@ export const ENTRANCE_COLORS = {
   // Welt 3
   snowfield: 0x4aa8f0, skyladder: 0x6a8aff, spookhouse: 0x8a5ad8, kapitaen: 0x2ab8e8, pavilion: 0xff7ab8,
   redfortress: 0xe0303a, lagoon: 0x1fb8a8, racehill: 0xff8a1a, circustent: 0xff4a5a, autumnfalls: 0xe0782a, station: 0x3a6ad8,
+  // Welt 4
+  anthill: 0xd0782a, poisonwood: 0x9a4ad0, lavaisle: 0xff5a1a, beeptower: 0xff4ab0, mysteryclock: 0x8a5ad8,
+  bouncemeadow: 0xff8a1a, ruincity: 0xd8b070, bluefortress: 0x3a6ad8, lavacastle: 0xd8283a,
 };
 export const LOCKED_COLOR = 0x9a9cab;
 

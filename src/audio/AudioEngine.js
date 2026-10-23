@@ -124,6 +124,9 @@ export class Voices {
   }
   gain(v, t) {
     const g = this.ctx.createGain();
+    // auch der Grundwert: vor dem ersten Automationsereignis gälte sonst 1,0 – eine Rauschquelle, deren erstes
+    // Sample einen Frame vor `t` liegt, ginge dann mit voller Stärke durch (Knackser bis 2,0 im Mix)
+    g.gain.value = v;
     g.gain.setValueAtTime(v, t);
     this.stats.nodes++;
     return g;
@@ -302,13 +305,15 @@ export class Voices {
 
   /**
    * Hoover-/Supersaw-Lead: 3 oder 5 verstimmte Sägezähne (einer eine Oktave tiefer), Tiefpass mit
-   * Filter-Sweep, leichter Pitch-Slide vom Tonanfang.
-   * @param {object} o { at, bus, freq, duration, volume, voices (3|5), detune (Cent), cutoff }
+   * Filter-Sweep, leichter Pitch-Slide vom Tonanfang. Mit `sub: false` (ohne Oktave darunter) und `bend`
+   * nahe 1 (kaum Slide) klingt er als klarer Lead-Synth (Melodie ab Welt 2; der Hoover bleibt Akzent).
+   * @param {object} o { at, bus, freq, duration, volume, voices (3|5), detune (Cent), cutoff, q,
+   *                     sub (Oktave darunter, Standard true), bend (Start-Tonhöhenfaktor, Standard 0,94) }
    */
   hoover(o) {
     const t = o.at ?? this.now, bus = o.bus ?? this.dest, f = o.freq;
     const dur = Math.max(0.06, o.duration ?? 0.2), vol = o.volume ?? 0.17;
-    const n = o.voices ?? 5, spread = o.detune ?? 14, cutoff = o.cutoff ?? 4500;
+    const n = o.voices ?? 5, spread = o.detune ?? 14, cutoff = o.cutoff ?? 4500, bend = o.bend ?? 0.94;
     const filt = this.filter('lowpass', 500, o.q ?? 3, t);
     filt.frequency.exponentialRampToValueAtTime(cutoff, t + 0.05);
     filt.frequency.exponentialRampToValueAtTime(Math.max(800, cutoff * 0.5), t + dur);
@@ -317,9 +322,9 @@ export class Voices {
     filt.connect(g); g.connect(bus);
     const dets = n >= 5 ? [-spread, -spread / 3, spread / 3, spread] : [-spread, spread];
     const freqs = dets.map((d) => [f, d]);
-    freqs.push([f / 2, 0]); // eine Oktave tiefer: das Brummen des Hoovers
+    if (o.sub !== false) freqs.push([f / 2, 0]); // eine Oktave tiefer: das Brummen des Hoovers
     freqs.forEach(([fr, d], i) => {
-      const osc = this.osc('sawtooth', fr * 0.94, t, d);
+      const osc = this.osc('sawtooth', fr * bend, t, d);
       osc.frequency.exponentialRampToValueAtTime(fr, t + 0.05);
       osc.connect(filt);
       osc.start(t + i * 0.002); // leicht versetzt: keine Phasen-Spitze beim gemeinsamen Start

@@ -7,7 +7,7 @@
 //   Welt 2 (schaltet sie frei), zurück nach Welt 1 und von hinten durch gesperrte Schranken zum Start;
 //   Kennzahlen (< 120 Zeichenaufrufe, < 300 k Dreiecke). Screenshots tests/out/cmap2_*.png.
 // Simulation deterministisch über window.__courseMap.step(n)/setInput; Bilder nur zur Sichtprüfung.
-// Aufruf: npm run build && PORT_BASE=3700 node tests/course_map_w2.mjs
+// Aufruf: npm run build && PORT_BASE=3700 node tests/course_map_w2.mjs   (Teilläufe: W2_TEIL=1, 2, 3 – s. u.)
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 import { MAP as W2 } from '../src/course/map/worlds/w2.js';
 import { MAP as W1 } from '../src/course/map/worlds/w1.js';
@@ -146,15 +146,35 @@ const allW1Done = (stars) => {
   return lv;
 };
 const W1_OPENED = ['1-2', '1-A', '1-3', '1-Schatz', '1-4', '1-5', '1-Burg', 'W2'];
+// Testparameter mapAlias: 2-1, 2-A starten das Übungslevel 0-0
+const ALIAS = '&mapAlias=2-1:0-0,2-A:0-0';
+// Teilläufe (W2_TEIL=1|2|3) für Rechner, auf denen ein Lauf am Stück zu lange dauert; ohne Angabe alle Abschnitte.
+//   1: Abschnitte 2–4 (Sperre, Röhrenfahrt, Titel/Sterne), 2: 5–9 (Gegnergruppe … Neuladen), 3: 10–12 (Rückweg, Warp, Anflug)
+const TEIL = process.env.W2_TEIL ?? '';
+const PARTS = { 1: [2, 4], 2: [5, 9], 3: [10, 12] };
+const part = (n) => !PARTS[TEIL] || (n >= PARTS[TEIL][0] && n <= PARTS[TEIL][1]);
+let st, r, banner;
+if (PARTS[TEIL] && PARTS[TEIL][0] > 2) {
+  // Teillauf ab Abschnitt 5 bzw. 10: frischer Speicherstand, Welt 2 mit offenen Wegen
+  await page.goto(`http://localhost:${port}/?map=1&scale=2&adapt=0`, { waitUntil: 'load' });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: 'load' });
+  await waitMap();
+  const lv = allW1Done(true);
+  for (const id of ['2-1', '2-2', '2-3', '2-4', '2-5']) lv[id] = { done: true, stars: [false, false, false], stamp: false, bestTime: null, bestPole: 0 };
+  await loadWith({ levels: lv, mapOpened: [...W1_OPENED, '2-2', '2-3', '2-Haus', '2-4', '2-A', '2-5', '2-Panzer'], world: 2, worlds: [1, 2] }, ALIAS);
+  await waitMap(2);
+}
 
 // ------------------------------------------------------------------ 2) Welt 2 gesperrt, solange 1-Burg offen ist
+if (part(2)) {
 await page.goto(`http://localhost:${port}/?map=1&scale=2&adapt=0`, { waitUntil: 'load' });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: 'load' });
 await waitMap();
 await loadWith({ levels: (() => { const l = allW1Done(false); delete l['1-Burg']; return l; })(), mapOpened: W1_OPENED.filter((x) => x !== 'W2'), world: 2, worlds: [1] });
 await waitMap();
-let st = await sc(() => window.__courseMap.state());
+st = await sc(() => window.__courseMap.state());
 check('Gespeicherte Welt 2 ohne Freischaltung → Karte zeigt Welt 1', st.world === 1);
 check('Welt 2 gesperrt, solange 1-Burg offen ist (Glasröhre zu, Schranke zu)', st.entrances.W2.locked && st.entrances.W2.reason === 'locked' && st.gates.W2 === 'closed' && !st.worlds.includes(2));
 check('W2-Eingang zeigt den Weltnamen der Zielwelt', st.entrances.W2.title === 'Wüste mit Sandblöcken');
@@ -165,7 +185,7 @@ await waitMap(1);
 st = await sc(() => window.__courseMap.state());
 check('Nach 1-Burg: Glasröhre nach Welt 2 frei (Schranke offen)', st.entrances.W2.enterable && st.gates.W2 === 'open');
 await sc(() => { const m = window.__courseMap; m.teleport(-10, 5.3, -84, -Math.PI / 2); m.step(20); });
-let r = await walkTo(-10, -88.5, (s) => s.onPad === 'W2', 600);
+r = await walkTo(-10, -88.5, (s) => s.onPad === 'W2', 600);
 await shot('w1_roehre', 600);
 await frames();
 check('Figur steht auf dem Röhren-Podest, Hinweis „ab durch die Glasröhre“', r.s.onPad === 'W2' && (await sc(() => window.__courseMap.hud.bannerStatus.text)).includes('Glasröhre'));
@@ -221,8 +241,6 @@ check('Eingänge in Welt 2 zeigen den Leveltitel bzw. „Bald“', Object.values
 st = await sc(() => window.__courseMap.state());
 check('Start in Welt 2: 2-1 frei, alle anderen zu, Rückweg-Röhre frei, Welt-3-Röhre zu', !st.entrances['2-1'].locked && !st.entrances.W1.locked && st.entrances.W1.enterable
   && ['2-2', '2-3', '2-Haus', '2-4', '2-A', '2-5', '2-Panzer', 'W3'].every((id) => st.entrances[id].locked) && Object.values(st.gates).every((g) => g === 'closed'));
-// Testparameter mapAlias: 2-1, 2-A starten das Übungslevel 0-0
-const ALIAS = '&mapAlias=2-1:0-0,2-A:0-0';
 await loadWith({}, ALIAS);
 await waitMap(2);
 st = await sc(() => window.__courseMap.state());
@@ -239,7 +257,7 @@ check('2-1 geschafft → Schluchtweg offen; 2-2 bei 14 Sternen gesperrt (Sterne)
 await sc(() => { const m = window.__courseMap; m.teleport(12, 3.6, -6.6, -Math.PI / 2); m.step(40); });
 st = await sc(() => window.__courseMap.state());
 await shot('sterne', 900);
-let banner = await sc(() => window.__courseMap.hud.bannerStatus.text);
+banner = await sc(() => window.__courseMap.hud.bannerStatus.text);
 console.log('  Hinweis 2-2:', banner);
 check('Auf der Sternenplattform: Hinweis „Benötigt 15 Sterne (14/15)“, Enter startet nichts', st.onPad === '2-2' && banner === 'Benötigt 15 Sterne (14/15)'
   && !(await sc(() => { const m = window.__courseMap; m.enter(); return m.step(2).leaving; })));
@@ -288,7 +306,10 @@ await waitMap(2);
 st = await sc(() => window.__courseMap.state());
 check('30 Sterne: 2-Haus und 2-Panzer frei (zeigen „Bald“, bis es die Level gibt)', !st.entrances['2-Haus'].locked && !st.entrances['2-Panzer'].locked && st.gateStars === 30);
 
+}
+
 // ------------------------------------------------------------------ 5) Gegnergruppe startet 2-A
+if (part(5)) {
 st = await sc(() => window.__courseMap.state());
 check('2-A frei: drei Großrollpilze laufen auf der Lava-Felsinsel', !st.entrances['2-A'].locked && st.roamers.length === 3);
 await sc(() => { const m = window.__courseMap; m.teleport(-24, 1.3, -48, Math.PI); m.step(30); });
@@ -359,7 +380,10 @@ await waitMap();
 st = await sc(() => window.__courseMap.state());
 check('Nach Neuladen: wieder Welt 2 an der gemerkten Stelle', st.world === 2 && Math.hypot(st.player.x - 4, st.player.z - 40) < 0.8);
 
+}
+
 // ------------------------------------------------------------------ 10) Rückweg nach Welt 1
+if (part(10)) {
 await sc(() => { const m = window.__courseMap; m.teleport(-10, 1.3, 43.6, Math.PI / 2); m.step(20); });
 r = await walkTo(-10, 41, (s) => s.onPad === 'W1', 400);
 await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); });
@@ -426,11 +450,12 @@ await page.waitForTimeout(500);
 await page.screenshot({ path: `${OUT}cmap2_anflug.png`, timeout: 90000 });
 { const s = await sc(() => window.__courseMap?.intro ? window.__courseMap.stats() : null); if (s) stats.push(['anflug', s.calls, s.triangles]); }
 await waitMap(2);
+}
 console.log('\n  Kennzahlen je Bild (Zeichenaufrufe inkl. Schattenpass, Dreiecke):');
 for (const [n, c, t] of stats) console.log(`    ${n.padEnd(18)} ${String(c).padStart(4)} Aufrufe  ${String(Math.round(t / 1000)).padStart(4)} k Dreiecke`);
 const w2stats = stats.filter(([n]) => !['w1_roehre', 'schranke_hinten', 'abfahrt'].includes(n));
 const maxCalls = Math.max(...w2stats.map((s) => s[1])), maxTris = Math.max(...w2stats.map((s) => s[2]));
-check(`Kennzahlen Welt 2: Zeichenaufrufe < 120 (max ${maxCalls}), Dreiecke < 300 k (max ${Math.round(maxTris / 1000)} k)`, maxCalls < 120 && maxTris < 300000);
+if (w2stats.length) check(`Kennzahlen Welt 2: Zeichenaufrufe < 120 (max ${maxCalls}), Dreiecke < 300 k (max ${Math.round(maxTris / 1000)} k)`, maxCalls < 120 && maxTris < 300000);
 
 await browser.close();
 stop();

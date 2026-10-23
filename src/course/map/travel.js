@@ -10,6 +10,9 @@
 // deterministisch und in Tests mit step(n) abspielbar. Die Kamera folgt als Verfolger-Kamera hinter der Figur
 // (rig.custom), nach der Ankunft wird weich auf die Kartenkamera überblendet.
 //
+// def.arriveCam (Welt 3, Röhre nach Welt 4): { up, ahead, drop } – Verfolger-Kamera bei der Ankunft höher und steiler
+// nach unten (Blick auf Röhre und Figur statt über die ganze dichte Insel; spart Zeichenaufrufe und Dreiecke).
+//
 // Kosten: Am Anfang der Ankunft blickt die Kamera über die ganze Insel. Solange die Röhre dort noch weit draußen über
 // dem Meer verläuft (SHADOW_FREEZE), wird die Schattenkarte nicht neu gezeichnet (der Schattenbereich folgt der
 // Kamera und enthielte nur Meer und Figur); kleine ferne Objekte blendet lod.js aus.
@@ -192,8 +195,10 @@ export class TubeTravel {
     const d = this.dir;
     // hinter und über der Figur, leicht seitlich (die Röhre bleibt im Bild, vorn das Ziel am Horizont)
     const back = this.mode === 'depart' ? 7.5 : 9;
-    _a.set(c.x - d.x * back + d.z * 2.4, c.y + 3.4 - d.y * 4, c.z - d.z * back - d.x * 2.4);
-    _b.set(c.x + d.x * 12, c.y - 0.6 + d.y * 3, c.z + d.z * 12);
+    const ac = this.mode === 'arrive' ? this.def.arriveCam : null;
+    const up = ac?.up ?? 3.4, ahead = ac?.ahead ?? 12, drop = ac?.drop ?? 0.6;
+    _a.set(c.x - d.x * back + d.z * 2.4, c.y + up - d.y * 4, c.z - d.z * back - d.x * 2.4);
+    _b.set(c.x + d.x * ahead, c.y - drop + d.y * 3, c.z + d.z * ahead);
     if (!this.camPos || this.snapNext) {
       const at = this.mode === 'arrive' || this.snapNext;
       this.camPos = at ? _a.clone() : cam.position.clone();
