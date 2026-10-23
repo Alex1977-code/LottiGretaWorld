@@ -7,6 +7,8 @@
 // Nachbarwelt als ferne Insel an den Horizont (dorthin führt die Glasröhre).
 // Welt 3 (map.kit 'snow'): Thema 'map_snow' (snow.js), kälteres Meer (map.seaColors), Eisschollen, verschneite
 // Inselchen mit Tannen, leiser Schneefall um die Kamera (ein Punkte-Objekt); Nachbarwelt-Stil 'snow'.
+// Welt 4 (map.kit 'canyon'): Thema 'map_canyon' (canyon.js), rote Canyon-Inselchen mit Felsnadeln und Kakteen;
+// Nachbarwelt-Stil 'canyon' (rote Tafelberge, Felsnadeln, Felsbogen – Ziel der Welt-4-Röhre in Welt 3).
 
 import * as THREE from 'three';
 import { THEMES } from '../view/themes.js';
@@ -14,6 +16,7 @@ import { colorize, lin, mixc, smooth, merge, Rnd } from '../../three/world/geome
 import { islandParts } from '../blocks/kit.js';
 import { palmGeo, pyramidGeo, place } from './desert.js';
 import { snowGround, snowNeighborParts, firLiteGeo, iceFloeGeo } from './snow.js';
+import { canyonNeighborParts, canyonIsletParts } from './canyon.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 
 // Thema der Wüsteninsel (Welt 2): warmes Sonnenlicht, blasser, sandiger Horizont, Nebel ins Goldene.
@@ -240,6 +243,14 @@ export class MapScenery {
         n++;
         continue;
       }
+      if (this.kit === 'canyon') {
+        // Canyon-Inselchen: ohne Schattenwurf, je Meeressektor ein Mesh (wie Welt 3)
+        const sea = { castShadow: false, tile: this.seaSector(x, z) };
+        for (const g of canyonIsletParts(x, z, w, d, top, rnd)) this.view.addStatic(g, sea);
+        this.rects.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]);
+        n++;
+        continue;
+      }
       if (this.kit === 'desert') {
         for (const g of islandParts(x - w / 2, -2, z - d / 2, x + w / 2, top, z + d / 2, theme, { under: 0, rnd, top: 'sand' })) parts.push(g);
         parts.push(place(palmGeo(rnd.real(3.6, 4.8), rnd.real(0.5, 1.3), rnd.int(1, 999)), x + rnd.real(-1, 1), top, z + rnd.real(-1, 1), rnd.real(0, 6)));
@@ -302,12 +313,13 @@ export class MapScenery {
     const parts = [];
     const desert = nb.style === 'desert';
     if (nb.style === 'snow') parts.push(...snowNeighborParts(nb, rnd));
-    const blocks = nb.style === 'snow' ? [] : [[-0.5, -0.5, 0.5, 0.5, 2.5], [-0.35, -0.42, 0.1, 0.1, 6], [0.05, -0.3, 0.38, 0.2, 4.5]];
+    if (nb.style === 'canyon') parts.push(...canyonNeighborParts(nb, rnd));
+    const blocks = nb.style === 'snow' || nb.style === 'canyon' ? [] : [[-0.5, -0.5, 0.5, 0.5, 2.5], [-0.35, -0.42, 0.1, 0.1, 6], [0.05, -0.3, 0.38, 0.2, 4.5]];
     for (const [a, c, e, f, top] of blocks) {
       const g = islandParts(x + a * w, -3, z + c * d, x + e * w, top, z + f * d, desert ? { ...theme, dirt: 0xd9a060, dirtDeep: 0xa86a3a } : THEMES.grass, { under: 0, rnd, top: desert ? 'sand' : 'grass', cell: 4 });
       parts.push(...g);
     }
-    if (nb.style === 'snow') { /* Schneeinsel: oben gebaut */ } else if (desert) {
+    if (nb.style === 'snow' || nb.style === 'canyon') { /* Schnee-/Canyon-Insel: oben gebaut */ } else if (desert) {
       parts.push(place(pyramidGeo(18, 13, 6), x - 0.12 * w, 6, z - 0.15 * d));
       for (let i = 0; i < 4; i++) parts.push(place(palmGeo(5, 0.8, i + 3), x + rnd.real(-0.4, 0.4) * w, 2.5, z + rnd.real(0.25, 0.45) * d, rnd.real(0, 6)));
     } else {

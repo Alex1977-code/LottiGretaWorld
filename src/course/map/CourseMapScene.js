@@ -20,6 +20,10 @@
 // dann scene.start('CourseMap', { world: n, via: 'tube', fromWorld }) – die Figur kommt in Welt n durch deren
 // Rückweg-Röhre (Regel next: fromWorld) an. Welt-Warp aus einem Level (Röhre mit warpWorld, map/warp.js):
 // { warpWorld: n } → Ankunft wie mit der Glasröhre. Gesperrte Welten (worldOpen) fallen auf Welt 1 zurück.
+// Gibt es die Zielwelt eines Welt-Warps noch nicht (Welt 4: Warp aus 4-2 nach Welt 5), endet der Warp in der Welt
+// mit der Röhre zu ihr: Ankunft durch diese Röhre (entdeckt: Welt n steht in courseSave.worlds, die Schranke öffnet
+// sich), Meldung „Welt n kommt bald!“ (state().soonWorld). Kommt die Karte der Welt n hinzu, landet derselbe Warp
+// ohne weitere Änderung dort.
 
 import Phaser from 'phaser';
 import * as THREE from 'three';
@@ -37,7 +41,7 @@ import { RENDER3D } from '../../render3d.js';
 import { getWorldMap } from './worlds/index.js';
 import { buildMap, finalizeMap } from './MapBuilder.js';
 import { MapRuntime } from './MapRuntime.js';
-import { MapRoamer, MapItem, addEntity } from './entities.js';
+import { MapRoamer, MapItem, addEntity, instanceRoamers } from './entities.js';
 import * as unlock from './unlock.js';
 import { exitPoint, entranceById, ENTER_R } from './layout.js';
 import { MapHud } from './MapHud.js';
@@ -45,6 +49,7 @@ import { MapBatcher } from './MapBatcher.js';
 import { TubeTravel } from './travel.js';
 import { MapLod, pauseShadows } from './lod.js';
 import { THEMES as MUSIC_THEMES } from '../../audio/themes.js';
+import { STAND_INS } from './decor_w4.js';
 
 export const DT = 1 / 120;
 const MAX_STEPS = 8;
@@ -86,6 +91,7 @@ export class CourseMapScene extends Phaser.Scene {
     this.nearEntrance = null;
     this.safe = null;
     this.roamers = [];
+    this.roamerInst = [];
     this.item = null;
     this.travel = null;
     this.lod = null;
@@ -232,6 +238,15 @@ export class CourseMapScene extends Phaser.Scene {
   /** Welt der Karte: Welt-Warp, Glasröhren-Ziel, Welt des Levels, gemerkte Welt – nur wenn offen, sonst Welt 1. */
   chooseWorld(arrive) {
     let n;
+    // Welt-Warp in eine Welt ohne Karte (noch „Bald“): in der Welt davor durch deren Röhre zur Zielwelt ankommen
+    if (arrive.warpWorld && !getWorldMap(arrive.warpWorld)) {
+      const target = arrive.warpWorld, src = this.warpFallbackWorld(target, arrive.from);
+      courseSave.openWorld(target);   // entdeckt (wie der Warp selbst; die Röhre dorthin ist nun frei)
+      if (src) {
+        arrive.soonWorld = target; arrive.warpWorld = null; arrive.world = src; arrive.via = 'tube'; arrive.fromWorld = target;
+        arrive.from = null; arrive.done = null;
+      }
+    }
     if (arrive.warpWorld) {
       n = arrive.warpWorld;
       arrive.world = n; arrive.via = 'tube'; arrive.fromWorld = arrive.fromWorld ?? n - 1;
@@ -241,6 +256,19 @@ export class CourseMapScene extends Phaser.Scene {
     else n = courseSave.world;
     if (!Number.isFinite(n) || !getWorldMap(n) || !unlock.worldOpen(getWorldMap, courseSave, n)) n = 1;
     return getWorldMap(n) ?? getWorldMap(1);
+  }
+
+  /**
+   * Welt, in der ein Warp zur (noch) kartenlosen Welt target endet: die Welt des Levels, aus dem er kommt, sonst die
+   * Welt davor – sofern sie eine Karte, eine Röhre zu target hat und offen ist.
+   */
+  warpFallbackWorld(target, from) {
+    const lvlWorld = from ? this.worldOfLevel(courseSave.mapPos?.level === from ? courseSave.mapPos.entrance : from) : null;
+    for (const n of [lvlWorld, courseSave.mapPos?.world, target - 1]) {
+      const m = Number.isFinite(n) ? getWorldMap(n) : null;
+      if (m && m.levels.some((l) => l.next === target) && unlock.worldOpen(getWorldMap, courseSave, n)) return n;
+    }
+    return null;
   }
 
   /** Eingang dieser Welt, dessen Glasröhre zur Welt n führt (Rückweg bei der Ankunft). */
@@ -300,6 +328,8 @@ export class CourseMapScene extends Phaser.Scene {
     this.safe = { pos: [p.pos.x, p.pos.y, p.pos.z], yaw: p.yaw };
     if (this.pendingFresh?.length) this.startGateCinematic(this.pendingFresh);
     this.pendingFresh = null;
+    // Welt-Warp in eine Welt, die es noch nicht gibt: freundliche Meldung an der entdeckten Röhre
+    if (this.arriveInfo?.soonWorld) this.hud?.toast(`Welt ${this.arriveInfo.soonWorld} kommt bald!`, 3.2);
   }
 
   // ------------------------------------------------------------------ Glückshaus
@@ -436,14 +466,19 @@ export class CourseMapScene extends Phaser.Scene {
       const st = this.status(r.level);
       if (!st || st.done) continue;
       const n = r.count ?? 1;
+      const group = [];
       for (let i = 0; i < n; i++) {
         const spec = r.circle
           ? { ...r, start: (i + 0.5) / n, dir: 1 }
           : { ...r, start: n > 1 ? 0.15 + (0.7 * i) / (n - 1) : 0.5, dir: i % 2 ? -1 : 1 };
+        if (r.standIn && STAND_INS[r.standIn]) spec.makeStandIn = STAND_INS[r.standIn];   // Welt 4: Stellvertreter-Modell
         const e = new MapRoamer(this.level, spec, (ro) => this.onRoamerTouch(r.level, ro));
         addEntity(this.level, e);
         this.roamers.push(e);
+        group.push(e);
       }
+      // Welt 4 (r.instance): gleiche Modelle der Gruppe als Instanzen zeichnen (weniger Zeichenaufrufe)
+      if (r.instance) { const inst = instanceRoamers(this.view, group); if (inst) this.roamerInst.push(inst); }
     }
   }
 
@@ -567,7 +602,7 @@ export class CourseMapScene extends Phaser.Scene {
     if (this.onPad && !busy && (use.jumpPressed || enter)) {
       const st = this.status(this.onPad.id);
       if (st?.enterable) { this.enterLevel(this.onPad.id); return; }
-      if (enter) { sfx('bump'); this.hud?.toast(st?.reason === 'stars' ? `Benötigt ${st.minStars} Sterne` : st?.soon ? 'Bald!' : 'Noch nicht frei', 1.4); }
+      if (enter) { sfx('bump'); this.hud?.toast(st?.reason === 'stars' ? `Benötigt ${st.minStars} Sterne` : st?.soon ? (st.next ? `Welt ${st.next} kommt bald!` : 'Bald!') : 'Noch nicht frei', 1.4); }
     }
     this.level.controlYaw = rig.controlYaw(this.player.pos);
     this.level.step(DT, use);
@@ -719,7 +754,7 @@ export class CourseMapScene extends Phaser.Scene {
     for (const g of this.built.gates) gates[g.for] = g.state;
     for (const gt of this.map.gates ?? []) if (!gates[gt.for]) gates[gt.for] = 'open';
     const entrances = {};
-    for (const [id, st] of this.statuses) entrances[id] = { locked: st.locked, reason: st.reason, enterable: st.enterable, exists: st.exists, soon: st.soon, done: st.done, stars: st.stars, starsMax: st.starsMax, stamp: st.stamp, title: st.title, hidden: !!this.built.entrances.get(id)?.hidden };
+    for (const [id, st] of this.statuses) entrances[id] = { locked: st.locked, reason: st.reason, enterable: st.enterable, exists: st.exists, soon: st.soon, done: st.done, stars: st.stars, starsMax: st.starsMax, stamp: st.stamp, title: st.title, hidden: !!this.built.entrances.get(id)?.hidden, ...(st.next ? { discovered: courseSave.worldOpened(st.next) } : {}) };
     return {
       world: this.map.world, title: this.map.title, worlds: (courseSave.data.worlds ?? [1]).slice(),
       travel: this.travel && !this.travel.done ? this.travel.info() : null,
@@ -729,7 +764,14 @@ export class CourseMapScene extends Phaser.Scene {
       roamers: this.roamers.filter((r) => r.alive).map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]),
       stars: this.worldStars(), starsMax: this.worldStarsMax(), lives: courseSave.lives, coins: courseSave.coins,
       leaving: this.leaving, lastStart: this.lastStart, goVisible: !!this.hud?.goBtn.visible,
+      soonWorld: this.arriveInfo?.soonWorld ?? null, beep: this.beepInfo(),
     };
+  }
+
+  /** Piep-Blöcke auf der Karte (Welt 4, Lautsprecherturm): aktiver Satz aus der Taktuhr der Musik, sonst null. */
+  beepInfo() {
+    for (const ev of this.built?.entrances?.values() ?? []) if (ev.beep) return { ...ev.beep.info(), shown: ev.beep.shown };
+    return null;
   }
 
   stats() {
@@ -749,6 +791,7 @@ export class CourseMapScene extends Phaser.Scene {
     for (const g of this.built.gates) g.render(dt, t);
     this.slot?.render(dt, t);
     this.built.scenery?.update(dt);
+    for (const u of this.built.updaters ?? []) u(dt, t);   // Welt 4: Seilbahn-Gondel
     let target = this.player;
     if (this.focus) { this.focusVec.set(this.focus.x, this.focus.y, this.focus.z); target = this.focusProxy; }
     if (this.intro && this.flyIntro(dt)) target = null;   // Kamera setzt der Anflug selbst
@@ -798,11 +841,14 @@ export class CourseMapScene extends Phaser.Scene {
     this.travel = null;
     this.lod?.dispose();
     this.lod = null;
+    for (const ri of this.roamerInst ?? []) ri.dispose();
+    this.roamerInst = [];
     this.resumeShadows?.();
     this.resumeShadows = null;
     this.slot?.dispose();
     this.slot = null;
     this.built?.scenery?.dispose();
+    for (const o of this.built?.own ?? []) o.dispose?.();
     this.batcher?.dispose();
     this.rig?.dispose();
     this.level?.dispose();
