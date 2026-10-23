@@ -2127,13 +2127,16 @@ bzw. Maximum über die Messpunkte je Level; „vorher“ = Motor vor der Präzis
 | 4-2 | 80,6 (96) | 62,2 (80) | 160 k (222 k) | 137 k (203 k) |
 | 4-3 | 83,8 (99) | 57,8 (76) | 191 k (223 k) | 130 k (160 k) |
 | 4-4 | 80,7 (101) | 50 (71) | 187 k (220 k) | 127 k (155 k) |
+| 4-5 | 86,2 (97) | 54,4 (61) | 212 k (244 k) | 132 k (163 k) |
+| 4-A | 74 (74) | 50 (50) | 73 k (73 k) | 74 k (74 k) |
+| 4-B | 82 (82) | 57 (57) | 153 k (153 k) | 152 k (152 k) |
 | **Welt 1** (Mittel) | 90,3 | 52,2 (-42 %) | 200 k | 124 k (-38 %) |
 | **Welt 2** (Mittel) | 81,5 | 49,5 (-39 %) | 174 k | 110 k (-37 %) |
 | **Welt 3** (Mittel) | 80,7 | 53,6 (-34 %) | 203 k | 143 k (-30 %) |
-| **Welt 4** (Mittel) | 80 | 56,4 (-30 %) | 175 k | 133 k (-24 %) |
-| **alle 31** (Mittel) | 83,3 | 52,5 (-37 %) | 191 k | 128 k (-33 %) |
+| **Welt 4** (Mittel) | 80,3 | 55,3 (-31 %) | 163 k | 127 k (-22 %) |
+| **alle 34** (Mittel) | 83,1 | 52,6 (-37 %) | 187 k | 127 k (-32 %) |
 
-Arenen und Dioramen (1-A, 2-A, 2-Haus, 3-A, 1-Schatz, 3-Kapitän) sieht die Kamera fast ganz – dort sparen vor allem
+Arenen und Dioramen (1-A, 2-A, 2-Haus, 3-A, 4-A, 4-B, 1-Schatz, 3-Kapitän) sieht die Kamera fast ganz – dort sparen vor allem
 Instanzen, Pools, Schatten-Stellvertreter und Figur-Bündel Aufrufe; Dreiecke sinken kaum. Die Strecken-Level gewinnen
 zusätzlich über die Sicht-/Schattenprüfung, Zellen der großen Teile und die Detailstufen. Faustregel für Welt 4: ein
 Strecken-Level liegt jetzt im Mittel bei ≈ 50–60 Aufrufen und ≈ 100–150 k Dreiecken (Spitzen ≈ 80–100 / ≈ 200 k).
