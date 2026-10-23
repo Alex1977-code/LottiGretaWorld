@@ -15,6 +15,9 @@ export const ENTRANCE_COLORS = {
   // Welt 2
   canyon: 0xe8913a, space: 0x5a5ae0, glowcave: 0xd88a2a, mystery: 0x9a5ad8, hills: 0x4fc24a, lavaarena: 0xff6a2a,
   pinkgrass: 0xff7ac0, tankdepot: 0x6a8a3a,
+  // Welt 3
+  snowfield: 0x4aa8f0, skyladder: 0x6a8aff, spookhouse: 0x8a5ad8, kapitaen: 0x2ab8e8, pavilion: 0xff7ab8,
+  redfortress: 0xe0303a, lagoon: 0x1fb8a8, racehill: 0xff8a1a, circustent: 0xff4a5a, autumnfalls: 0xe0782a, station: 0x3a6ad8,
 };
 export const LOCKED_COLOR = 0x9a9cab;
 

@@ -1243,6 +1243,43 @@ Gemessen (scale 2, `tests/course_map_w2.mjs`): Kartenansichten Welt 2 71–105 Z
 169–286 k Dreiecke; Ankunft durch die Glasröhre 85–100 / 225–230 k, Anflug 99 / 272 k (Budget 120 / 300 k).
 Statische Kulisse Welt 2: 51 Kachel-Meshes, ≈ 207 k Dreiecke. Welt 1 unverändert im Budget (85 / 245 k).
 
+### Präzisierung (Mehrwelten-Karte): Welt 3 „Schnee und Eis“ (Notiz)
+
+- Dateien: `worlds/w3.js` (Daten), `snow.js` (Geländestile, Ränder, Streudeko, Winter-Requisiten, Thema `map_snow`),
+  `decor_w3.js` (Kulissen der Welt-3-Eingänge). Weltdaten zusätzlich: `kit: 'snow'`, `seaColors: [flach, mittel, tief]`,
+  `snowfall: { count }` (Schneeflocken um den Blickpunkt, ein Punkte-Objekt). Geländestile `snow`|`snowhill`|`forest`|
+  `cliff` (Eiszapfen vorn)|`peak`|`ice` (mit `ice: true` rutschig wie im Level)|`lakebed` (Seegrund, das Meer ist der
+  See)|`snowbeach`|`pastel`|`autumn`|`paving`|`asphalt` (`grid` = Startfelder)|`spook`; Ränder `edges.hedge`
+  `'snow'|'mint'|'autumn'`, `fence: 'snowfence'`; Bausteine `snowstairs` (sparsame Stufen) und `snowbridge` (Holzbrücke
+  mit Schnee, Kollision wie `bridge`, ≈ 15 % der Dreiecke), beide nur Karte. Neue Requisiten u. a. `stall`, `fountain`,
+  `tomb`, `spookfence`, `snowangel`, `footprints`, `rowboat`, `skates`, `curling`, `bigfir`, `igloo_lo`, `snowman_lo`.
+- Kacheln je Karte: `batch: { tile, origin: [x, z], freeTile, freeOrigin }` (MapBatcher; ohne Angabe wie bisher 32 m ab 0).
+  Welt 3: 32 m ab (16, 16), Teile ohne Schattenwurf (Schneedecken, Wege, Ränder) in 64-m-Kacheln – sie fehlen im
+  Schattenpass, große Kacheln sparen Zeichenaufrufe im Weitblick. `addStatic(g, { tile: 'name' })` legt Teile in eine
+  benannte Kachel (Welt 3: Eisschollen und Inselchen je 96-m-Meeressektor, ohne Schattenwurf).
+- Eingänge: `kind` `snowfield`|`skyladder`|`spookhouse`|`kapitaen`|`pavilion`|`redfortress` (`cage`, `podests`)|
+  `lagoon` (`wreck`, `buoy`)|`racehill` (`road` = begehbare Rennrampe, `barriers`, `tires`, `flags`)|`circustent`
+  (`ropeway` mit fahrender Gondel, `bunting`, `booth`)|`autumnfalls` (`waterfall`, `pool`, `rail` mit fahrender
+  Schalttafel)|`station` (`train`, `canopy`, `lamps`, `benches`). `appear: true` (3-Kapitän): Eingang samt Kulisse
+  verborgen, bis sein Weg frei ist; beim Schranken-Schwenk taucht er aus dem See auf (`state().entrances[id].hidden`;
+  am Ende der Kamerapause `settleReveal()`, damit die Endlage auch bei wenigen gezeichneten Bildern stimmt).
+  `disc`: kürzere Aufschrift der Nummernscheibe. Gegnergruppe: `anims` (Modell ohne Laufanimation, z. B.
+  `{ walk: 'idle', idle: 'cast' }`), `castShadow: false` (nur Schatten-Blob).
+- Glasröhre nach Welt 4 frei nach dem Weltboss `3-B` (Bauplan: Röhre nach dem Weltboss), ohne Karte „Bald“. Die
+  Welt-2-Röhre `W3` fährt jetzt übers Meer nach Nordosten zur Schneeinsel am Horizont (`neighbors` Stil `'snow'`).
+  `pipeDetail: 'low'` (Eingangsart `pipe`): lange Röhre mit 12 statt 16 Seiten, weniger Abschnitten und seltener
+  Ringen draußen – Welt-2-Röhre `W3` sowie beide Welt-3-Röhren (die Welt-2-Ansichten bleiben so beim alten Stand).
+- Sterne: Die Welt-3-Tabelle ergibt 31 Sterne (8 × 3 + 5 + 1 + 1); der Satz „Welt 3 hat 32 Sterne“ unter der Tabelle
+  („Welt 3 – Level-Liste“) passt nicht dazu – die Karte zählt nach der Tabelle. Vor den Sternschranken stehen Schilder
+  „ab 35 ★“, „ab 45 ★“, „ab 55 ★“.
+- Test: `tests/course_map_w3.mjs` (Port 4230, Bilder `tests/out/cmap3_*.png`); auf langsamen Rechnern in drei
+  Teilläufen `W3_TEIL=1|2|3` (Abschnitte 2–4, 5–9, 10–14, je mit den Node-Prüfungen).
+
+Gemessen (scale 2, `tests/course_map_w3.mjs`): Kartenansichten Welt 3 67–97 Zeichenaufrufe inkl. Schattenpass,
+139–266 k Dreiecke; Ankunft durch die Glasröhre 81–105 / 201–235 k, Anflug 108 / 262 k (Budget 120 / 300 k).
+Statische Kulisse Welt 3: 51 Kachel-Meshes, ≈ 191 k Dreiecke, 406 Kollisionsformen. Welt 2 unverändert im Budget
+(max 105 / 286 k), Welt 1 ebenso (86 / 245 k).
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
@@ -1863,7 +1900,7 @@ Sternbedarf zählt **alle** gesammelten Sterne (Welt 1 + 2 bieten zusammen ≈ 4
 | `3-7` | parcours (Herbstwald, Schalttafeln auf Schienen, Wasserfall) | autumn | course_autumn | 3 + Stempel | 3-6 |
 | `3-Zug` | autoscroller + boss (Zugfahrt, Schattenläuferin) | train | course_train | 3 + Stempel | 3-7 **und ≥ 55 Sterne** |
 
-Welt 3 hat 32 Sterne. Neu: Power-up **Gleitblatt** (`gleitblatt`: Schwanzhieb, Gleiten bei gehaltenem Sprung, kurz zur
+Welt 3 hat 31 Sterne. Neu: Power-up **Gleitblatt** (`gleitblatt`: Schwanzhieb, Gleiten bei gehaltenem Sprung, kurz zur
 Statue werden – eigenes Kostüm), **Schlittschuh** (tragbar wie ein Reit-Schuh: schnelles Gleiten auf Eis), Eis-Flächen
 (rutschig), rollbare Schneebälle, Kettenzaun-Klettern, Geister (`spuk` folgt, wenn man wegschaut; Licht-Helm bannt).
 Wo der Bauplan den „Kapitän“ nennt (3-Zug, 3-Kapitän), tritt **Krümel** auf; „Münz-Dieb“ = **Münzmarder**;
@@ -1904,6 +1941,53 @@ Wo der Bauplan den „Kapitän“ nennt (3-Zug, 3-Kapitän), tritt **Krümel** a
 - **Kennzahlen** (scale 2, inkl. Schattenpass, 18 bzw. 14 Abschnittsbilder): 3-1 72–108 Zeichenaufrufe, 194–268 k
   Dreiecke; 3-4 72–99 / 128–209 k. Wunsch an den Motor: Zeitwarnung (`timewarn`) auch bei Zeitlimits ≤ 120 s (3-4 hat
   100 s; die Warnung bei 100 s Rest entfällt dort, eine bei z. B. 30 s Rest wäre hilfreich).
+
+**Level-Notizen 3-5 / 3-7** (Level-Agent; Hilfen `src/course/levels/w3/_helpers_d.js` ohne `LEVEL`; Test
+`tests/course_w3d.mjs [3-5|3-7]`, Port 4384 + PORT_BASE, Bilder `tests/out/w3d_*.png`; Teile über `PARTS=route,targets,
+extra,shots`, Heldinnen über `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS_ONLY=1` – je Lauf ≤ 10 min):
+
+- **3-5 „Leuchtturmriff“** (parcours, water, course_water, 500 s, ≈ 250 m; Wasser y 0, Land y 1): Strand (Strandkörbe,
+  Sonnenschirme, Sandburg, Muscheln/Seesterne, Krabben, kleiner Leuchtturm mit Möwen, Flaschenpost; ?-Block mit
+  Gleitblatt; flache Lagune mit drei Reifen-Pilzlingen, **grüne Röhren über das Wasser**) → Riffkante → **Tiefwasser**
+  (8 m tief, Felswände, Riffkorallen, Seetang, Fischschwärme; Flossling-Schwärme, zwei Stachelfische an der Oberfläche) →
+  unter dem **Felsbogen** in die **Flutkammer**: schwimmt eine Figur darin, steigt das Wasser (`flutKammer`, Lagune `flut`
+  über `level.setWaterLevel`, 0 → 5 m, Ansage „Die Flut steigt!“; Neustart vor dem Checkpoint setzt es zurück) → Sims mit
+  **Glasrohr** (`rohrnetz`) hinab in die **Wrackbucht** (Schiffswrack, Holzsteg mit springenden Flosslingen, Kanonen-Helm
+  am Landeplatz; Rissfels: **Wandriss mit der Kanone sprengen → goldene Röhre → Goldraum** mit Goldschalter) → Checkpoint
+  → **Stachelwand**: Kanal mit Lochschützen (`stachelfisch` mode `wall`, Löcher als Zier `wandloecher`) in beiden Wänden
+  und in drei Felssäulen → Inselchen mit **Glasrohr-Kanone** auf die Zielinsel mit dem großen Leuchtturm (Lichtstrahl).
+  **Stern 1** Felsnische oben in der Flutkammer (nur mit gestiegenem Wasser), **Stern 2** Goldraum, **Stern 3**
+  unsichtbare Blöcke (`hiddenchain`) von der dritten Säule hinauf zum versteckten Raum im Hochfels; **Stempel**:
+  versteckter Gang nach dem Checkpoint (Glasrohr in der Wrackklippe, Eingang zwischen Palmen) auf die Klippe.
+  Extraleben: unsichtbarer Block über der Sandburg. Gegner: Reifen-Pilzling 5, Flossling 12, Stachelfisch 13,
+  Münzmarder 4. Kamera im Tauchbereich flach (`pitch 20–22, dist 8,5` – sonst Kamera knapp über der Oberfläche und das
+  Bild milchig), sonst 42–47° / 12–13,5 m; `LEVEL.underwater` etwas weitere Sicht, Lichtflecken der Unterwasser-Stimmung
+  level-lokal zarter (`view.mood.uwSpec.caustics`).
+- **3-7 „Ahornklamm“** (parcours, autumn, course_autumn, 500 s, ≈ 235 m; Inseln y 1, Schienen-Oberkante 0,25 →
+  Tafel 1,0): Herbstwiese (Laubhaufen, Kürbisse, Fliegenpilze, Eichhörnchen, Vogelscheuche, Laubteppich, Holzbrücke) →
+  Tafel 1 über die Klamm zu **Tafel 2, deren Schiene zurück zeigt: Schaltblock darüber stoßen** → Funkenzone: Tafel 3
+  fährt zum Prellbock, **Schaltblock stoßen, zurück, an der Weiche nach links (Bildschirm) in die Kehrschleife**
+  (Schaltblock am Netzanfang zum Neuversuch) → Checkpoint → Tafel 4 **hinter dem Wasserfall** (`wasserfall`:
+  durchscheinender, fließender Vorhang mit Gischt) und durch die Felsgasse → Umstieg auf Tafel 5 (Schaltblöcke an beiden
+  Netzenden) → Tafel 6 zur Zielinsel (Laubhügel, Zielmast). Funkenläufer laufen an der Blockkante und auf **Seitenspuren
+  der Tafeln** (ausweichen = auf die andere Tafelseite; ein Funkenläufer quer zur Fahrt zwänge zum Springen – dabei bleibt
+  die Tafel stehen und die Figur landet im Abgrund). **Stern 1**: während der dritten Fahrt auf die Plattform mit drei
+  Zeit-Uhren (`zeitUhren`, je +10 s) springen, Röhre → **Fallraum** (hohler Baum, `hohlerBaum`, Stern mitten im Schacht);
+  **Stern 2**: Tafel 5 an der Weiche links kippen, unter der Felsnase durchducken (ohne Ducken reißt sie die Figur von der
+  Tafel); **Stern 3**: Tafel 6 ganz rechts auf die Diagonalschiene; **Stempel**: von dort links auf die tiefere Plattform,
+  Holzbrücke hinauf zur Zielinsel. Extraleben: Laubhaufen unter der Eiche am Start stampfen. Gegner: Brummer 10,
+  Funkenkäfer 7, Funkenläufer 5, Münzmarder 1 (Brummer über den Inseln, nicht über den Schienen: ein Treffer auf der
+  fahrenden Tafel wäre ein Absturz).
+- **Level-Haken** (`LEVEL.setup`): `levelSetup` + `cullStatic` (Welt 2), `instanceEnemies` (3-1/3-4) für alle Gegner mit
+  gleichen Modellen (Fische ohne Sonnenschatten), `fernAus` (statische Abschnitte > 120 m von der Kamera aus, wegen der
+  flachen Tauchkamera), sparsame `riffKorallen` (≈ 60–160 Dreiecke statt ≈ 2 k des Registry-Modells), `seaFill` (Meer
+  zwischen den Becken bis zum Kulissen-Meer des Themas, das erst 6 m außerhalb des Level-Umrisses beginnt), Laubhaufen als
+  level-lokale Entität (Stampfen über `breakable`, Angriffe über `onHit`, Hineinrennen über `onPlayer`); Wolken der
+  Kulisse unter den Inseln liegen in 3-7 unter dem Boden (in der Klamm sähen sie wie Schneeflecken aus).
+- **Kennzahlen** (scale 2, inkl. Schattenpass, je 16 bzw. 15 Abschnittsbilder und Stern-/Stempel-Bilder): 3-5 72–111
+  Zeichenaufrufe, 166–240 k Dreiecke (Flutkammer mit steigender Kamera 88); 3-7 53–103 Zeichenaufrufe, 194–247 k
+  Dreiecke (Fallraum 74, Funkenzone 96). Bot-Zeiten bis zum Zielmast: 3-5 Lotti 49,6 s / Greta 45,9 s, 3-7 Lotti
+  82,2 s / Greta 81,4 s.
 
 ---
 

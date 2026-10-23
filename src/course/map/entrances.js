@@ -1,11 +1,14 @@
 // Eingänge der Kurs-Weltkarte: rundes Podest mit Nummernscheibe (frei = farbig mit Leuchtring, gesperrt = grau mit
 // schwebendem Schloss, geschafft = Fahne), dazu je Art eine Kulisse (Wiesentor, Höhlenmaul, Arena-Gitter, Bohnenranke,
-// Diorama-Vitrine, Blatt-Floß und Wasserfall, Zirkuszelt, Festung mit Baron-Flagge, Glasröhre; Welt 2: decor_w2.js).
+// Diorama-Vitrine, Blatt-Floß und Wasserfall, Zirkuszelt, Festung mit Baron-Flagge, Glasröhre; Welt 2: decor_w2.js,
+// Welt 3: decor_w3.js).
 // Große, unbewegte Teile gehen in die verschmolzene statische Geometrie (view.addStatic), bewegte sind eigene Objekte.
 //
 // Weltdaten je Eingang: { id, kind, pos, exit?, decor?: [x, y, z] (Lage der Kulisse), cage?: [[x0, z0, x1, z1], …],
 //   waterfall?: { x0, x1, z, top, bottom }, pipe?: [[dx, dy, dz], …] (Röhrenverlauf relativ zu decor), label? }
 // info (vom Kartenbau): { label, sign? } – sign = Aufschrift des Schilds an einer Glasröhre (z. B. „Welt 2\nWüste“).
+// def.appear (Welt 3, 3-Kapitän): Eingang samt Kulisse (ev.decorGroup) bleibt verborgen, bis sein Weg frei ist;
+// setHidden(true) verbirgt ihn, reveal() lässt ihn mit Platschen aus dem See auftauchen (Schranken-Schwenk der Szene).
 
 import * as THREE from 'three';
 import { getModel } from '../models/index.js';
@@ -18,6 +21,7 @@ import { canvasTexture } from '../../three/lib/itemMaterials.js';
 import { PODIUM_R } from './layout.js';
 import { tubeCurve } from './travel.js';
 import { decorateW2 } from './decor_w2.js';
+import { decorateW3 } from './decor_w3.js';
 
 
 /** Geometrie in Weltkoordinaten kopieren (gedreht um yaw, verschoben). */
@@ -41,7 +45,7 @@ export class EntranceView {
     this.id = def.id;
     this.kind = def.kind ?? 'meadow';
     this.color = ENTRANCE_COLORS[this.kind] ?? 0x4fc24a;
-    this.label = info.label;
+    this.label = def.disc ?? info.label;   // def.disc: kürzere Aufschrift der Nummernscheibe (Welt 3: „3-K“)
     this.sign = info.sign ?? null;
     this.pos = new THREE.Vector3(...def.pos);
     this.state = null;
@@ -102,6 +106,37 @@ export class EntranceView {
   /** Freude-Hüpfer (neu frei geworden). */
   hop() { this.hopT = 0.0001; }
 
+  /** Eingang samt Kulisse verbergen (def.appear: erscheint erst, wenn sein Weg frei ist) bzw. wieder zeigen. */
+  setHidden(on) {
+    this.hidden = !!on;
+    this.group.visible = !on;
+    if (this.decorGroup) this.decorGroup.visible = !on;
+    this.setPodiumVisible(!on);
+  }
+
+  /** Auftauchen: Kulisse und Podest steigen mit Platschen aus dem Wasser (≈ 1,6 s), Krümel jubelt. */
+  reveal() {
+    this.setHidden(false);
+    this.revealT = 0.0001;
+    this.hopT = 0;
+    this.decorBaseY = this.decorBaseY ?? this.decorGroup?.position.y ?? 0;
+    this.level.sfx('oneup');
+    this.applyReveal(0);
+  }
+
+  /** Auftauchen sofort beenden (Endlage), z. B. wenn wenige Bilder gezeichnet wurden. */
+  settleReveal() {
+    if (!(this.revealT > 0)) return;
+    this.revealT = 0;
+    this.applyReveal(1);
+  }
+
+  applyReveal(k) {
+    const e = k < 1 ? 1 - (1 - k) ** 3 : 1;
+    if (this.decorGroup) this.decorGroup.position.y = this.decorBaseY - 3.4 * (1 - e) + Math.sin(Math.min(1, k) * Math.PI) * 0.25;
+    this.podiumGroup.position.y = -1.2 * (1 - e);
+  }
+
   /** Podest zeigen/verbergen (wandernde Gegnergruppe: erst nach dem Sieg ein Podest) – inkl. Kollision. */
   setPodiumVisible(v) {
     this.podiumGroup.visible = v;
@@ -117,7 +152,19 @@ export class EntranceView {
     }
     if (this.ring.visible) this.ring.material.opacity = 0.45 + 0.35 * (0.5 + 0.5 * Math.sin(t * 3.2));
     if (this.flag?.root.visible) this.flag.update(dt, { anim: 'on' });
-    if (this.hopT > 0) {
+    if (this.revealT > 0) {
+      const prev = this.revealT;
+      this.revealT += dt;
+      const k = Math.min(1, this.revealT / 1.6);
+      this.applyReveal(k);
+      const fx = this.level.effects;
+      const d = this.decorGroup?.position ?? this.pos;
+      if (fx && Math.floor(prev / 0.18) !== Math.floor(this.revealT / 0.18) && this.revealT < 1.5) {
+        fx.splash({ x: d.x + (Math.random() - 0.5) * 3, z: d.z + (Math.random() - 0.5) * 3 }, 0.1);
+        fx.sparks({ x: d.x, y: (this.decorBaseY ?? d.y) + 2, z: d.z }, 4);
+      }
+      if (this.revealT > 2.6) this.revealT = 0;
+    } else if (this.hopT > 0) {
       this.hopT += dt;
       const k = this.hopT / 0.9;
       this.podiumGroup.position.y = k < 1 ? Math.abs(Math.sin(k * Math.PI * 2)) * 0.5 * (1 - k) : 0;
@@ -173,7 +220,7 @@ export class EntranceView {
         break;
       case 'castle': this.decorateCastle(x, y, z); break;
       case 'pipe': this.decoratePipe(x, y, z); break;
-      default: decorateW2(this, this.kind, x, y, z); break;
+      default: if (!decorateW2(this, this.kind, x, y, z)) decorateW3(this, this.kind, x, y, z); break;
     }
   }
 
@@ -257,7 +304,10 @@ export class EntranceView {
   decoratePipe(x, y, z) {
     const curve = tubeCurve(this.def);
     const len0 = curve.getLength();
-    const tube = new THREE.TubeGeometry(curve, Math.min(220, Math.max(120, Math.round(len0 / 1.5))), 1.15, 16, false);
+    // def.pipeDetail 'low' (lange Röhren übers Meer, Welt 2/3): 12 statt 16 Seiten, weniger Abschnitte, ferne Ringe seltener
+    const lo = this.def.pipeDetail === 'low';
+    const segs = lo ? Math.min(160, Math.max(80, Math.round(len0 / 1.5))) : Math.min(220, Math.max(120, Math.round(len0 / 1.5)));
+    const tube = new THREE.TubeGeometry(curve, segs, 1.15, lo ? 12 : 16, false);
     this.own.push(tube);
     this.level.world.add({ type: 'cyl', x, z, r: 1.2, y0: y, y1: y + 4, tag: 'deko' });
     const glass = std('map:pipeglass', { color: 0xa8e4ff, transparent: true, opacity: 0.42, roughness: 0.05, metalness: 0.1, side: THREE.DoubleSide, depthWrite: false, emissive: 0x16506a });
@@ -267,7 +317,7 @@ export class EntranceView {
     // weiße Ringe entlang der Röhre (nah dicht, weiter draußen seltener)
     const b = new Build();
     const len = len0;
-    for (let s = 0; s <= len; s += s < 40 ? 3.5 : 7) {
+    for (let s = 0; s <= len; s += s < 40 ? 3.5 : lo ? 10 : 7) {
       const p = curve.getPointAt(Math.min(1, s / len)), tan = curve.getTangentAt(Math.min(1, s / len));
       const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), tan);
       const e = new THREE.Euler().setFromQuaternion(q);
