@@ -1243,6 +1243,43 @@ Gemessen (scale 2, `tests/course_map_w2.mjs`): Kartenansichten Welt 2 71–105 Z
 169–286 k Dreiecke; Ankunft durch die Glasröhre 85–100 / 225–230 k, Anflug 99 / 272 k (Budget 120 / 300 k).
 Statische Kulisse Welt 2: 51 Kachel-Meshes, ≈ 207 k Dreiecke. Welt 1 unverändert im Budget (85 / 245 k).
 
+### Präzisierung (Mehrwelten-Karte): Welt 3 „Schnee und Eis“ (Notiz)
+
+- Dateien: `worlds/w3.js` (Daten), `snow.js` (Geländestile, Ränder, Streudeko, Winter-Requisiten, Thema `map_snow`),
+  `decor_w3.js` (Kulissen der Welt-3-Eingänge). Weltdaten zusätzlich: `kit: 'snow'`, `seaColors: [flach, mittel, tief]`,
+  `snowfall: { count }` (Schneeflocken um den Blickpunkt, ein Punkte-Objekt). Geländestile `snow`|`snowhill`|`forest`|
+  `cliff` (Eiszapfen vorn)|`peak`|`ice` (mit `ice: true` rutschig wie im Level)|`lakebed` (Seegrund, das Meer ist der
+  See)|`snowbeach`|`pastel`|`autumn`|`paving`|`asphalt` (`grid` = Startfelder)|`spook`; Ränder `edges.hedge`
+  `'snow'|'mint'|'autumn'`, `fence: 'snowfence'`; Bausteine `snowstairs` (sparsame Stufen) und `snowbridge` (Holzbrücke
+  mit Schnee, Kollision wie `bridge`, ≈ 15 % der Dreiecke), beide nur Karte. Neue Requisiten u. a. `stall`, `fountain`,
+  `tomb`, `spookfence`, `snowangel`, `footprints`, `rowboat`, `skates`, `curling`, `bigfir`, `igloo_lo`, `snowman_lo`.
+- Kacheln je Karte: `batch: { tile, origin: [x, z], freeTile, freeOrigin }` (MapBatcher; ohne Angabe wie bisher 32 m ab 0).
+  Welt 3: 32 m ab (16, 16), Teile ohne Schattenwurf (Schneedecken, Wege, Ränder) in 64-m-Kacheln – sie fehlen im
+  Schattenpass, große Kacheln sparen Zeichenaufrufe im Weitblick. `addStatic(g, { tile: 'name' })` legt Teile in eine
+  benannte Kachel (Welt 3: Eisschollen und Inselchen je 96-m-Meeressektor, ohne Schattenwurf).
+- Eingänge: `kind` `snowfield`|`skyladder`|`spookhouse`|`kapitaen`|`pavilion`|`redfortress` (`cage`, `podests`)|
+  `lagoon` (`wreck`, `buoy`)|`racehill` (`road` = begehbare Rennrampe, `barriers`, `tires`, `flags`)|`circustent`
+  (`ropeway` mit fahrender Gondel, `bunting`, `booth`)|`autumnfalls` (`waterfall`, `pool`, `rail` mit fahrender
+  Schalttafel)|`station` (`train`, `canopy`, `lamps`, `benches`). `appear: true` (3-Kapitän): Eingang samt Kulisse
+  verborgen, bis sein Weg frei ist; beim Schranken-Schwenk taucht er aus dem See auf (`state().entrances[id].hidden`;
+  am Ende der Kamerapause `settleReveal()`, damit die Endlage auch bei wenigen gezeichneten Bildern stimmt).
+  `disc`: kürzere Aufschrift der Nummernscheibe. Gegnergruppe: `anims` (Modell ohne Laufanimation, z. B.
+  `{ walk: 'idle', idle: 'cast' }`), `castShadow: false` (nur Schatten-Blob).
+- Glasröhre nach Welt 4 frei nach dem Weltboss `3-B` (Bauplan: Röhre nach dem Weltboss), ohne Karte „Bald“. Die
+  Welt-2-Röhre `W3` fährt jetzt übers Meer nach Nordosten zur Schneeinsel am Horizont (`neighbors` Stil `'snow'`).
+  `pipeDetail: 'low'` (Eingangsart `pipe`): lange Röhre mit 12 statt 16 Seiten, weniger Abschnitten und seltener
+  Ringen draußen – Welt-2-Röhre `W3` sowie beide Welt-3-Röhren (die Welt-2-Ansichten bleiben so beim alten Stand).
+- Sterne: Die Welt-3-Tabelle ergibt 31 Sterne (8 × 3 + 5 + 1 + 1); der Satz „Welt 3 hat 32 Sterne“ unter der Tabelle
+  („Welt 3 – Level-Liste“) passt nicht dazu – die Karte zählt nach der Tabelle. Vor den Sternschranken stehen Schilder
+  „ab 35 ★“, „ab 45 ★“, „ab 55 ★“.
+- Test: `tests/course_map_w3.mjs` (Port 4230, Bilder `tests/out/cmap3_*.png`); auf langsamen Rechnern in drei
+  Teilläufen `W3_TEIL=1|2|3` (Abschnitte 2–4, 5–9, 10–14, je mit den Node-Prüfungen).
+
+Gemessen (scale 2, `tests/course_map_w3.mjs`): Kartenansichten Welt 3 67–97 Zeichenaufrufe inkl. Schattenpass,
+139–266 k Dreiecke; Ankunft durch die Glasröhre 81–105 / 201–235 k, Anflug 108 / 262 k (Budget 120 / 300 k).
+Statische Kulisse Welt 3: 51 Kachel-Meshes, ≈ 191 k Dreiecke, 406 Kollisionsformen. Welt 2 unverändert im Budget
+(max 105 / 286 k), Welt 1 ebenso (86 / 245 k).
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
@@ -1868,6 +1905,42 @@ Statue werden – eigenes Kostüm), **Schlittschuh** (tragbar wie ein Reit-Schuh
 (rutschig), rollbare Schneebälle, Kettenzaun-Klettern, Geister (`spuk` folgt, wenn man wegschaut; Licht-Helm bannt).
 Wo der Bauplan den „Kapitän“ nennt (3-Zug, 3-Kapitän), tritt **Krümel** auf; „Münz-Dieb“ = **Münzmarder**;
 „Prinzessinnen-Figur“ (3-4) = Figurenschalter für **Greta** bzw. **Lotti**.
+
+**Level-Notizen 3-1 / 3-4** (Level-Agent; Hilfen `src/course/levels/w3/_helpers_a.js` ohne `LEVEL`; Test
+`tests/course_w3a.mjs [3-1|3-4]`, Port 4371 + PORT_BASE, Bilder `tests/out/w3a_*.png`; `SHOTS_ONLY=1`, `ONLY=<Text|Text>`,
+`ROUTE=1`):
+
+- **3-1 „Flockenwiese“** (parcours, snow, course_snow, 400 s, ≈ 255 m nach −Z): Schneefeld-Start (Iglu mit Rauch,
+  Schneemann-Familie, Schlitten mit Fußspuren, Lichterkette, ?-Block mit Gleitblatt, Schneebälle: einer zerschellt am
+  Felsriegel → 5 Münzen, einer kegelt drei Krabbelkäfer um; Frosttor mit fallenden Eiszapfen) → Flatterfeld (Spalte,
+  Felswand mit **Wandloch – Stern 0** hinter neun kreisenden Flatterkäfern, Eisläufer-Teich: auf dem Reit-Eisläufer
+  mitfahren, stampfen → Schlittschuh; Checkpoint mit Gleitblatt-Nachschub) → Hasenwiese (**Stern 1**) und **schmaler
+  Eissteg (1 m) zum Stempel** → Eisbahn mit zwei Eisläufern und Stachelstreifen (Münzen nur mit Schlittschuh), drei
+  schmale Eisstege über dem Abgrund, zweite Eisbahn mit Verfolger → Zielplateau: **Nische in der Felswand – Stern 2**
+  (Boden 6,8 m über dem Plateau, vom Dreifachsprung unerreichbar): vom Schneebaum (vier Ast-Stufen, Krone 7,6 m) mit dem
+  Gleitblatt hinübergleiten, Propeller-Helm am Wegrand, oder Krallen-Anzug (?-Block) an der Kletterwand; Zielröhre →
+  Baumhain hinter der Felswand (zugefrorener Teich mit Robben- und Pinguinkindern, Zielmast). Extraleben: unsichtbarer
+  Block über der Iglu-Kuppel. Gegner: Schneesäule 6, Flatterkäfer 9, Eisläufer 4, Mini-Pilzling 4, Krabbelkäfer 7.
+- **3-4 „Marzipangarten“** (parcours, plaza, course_plaza, **100 s**, ≈ 125 m): Startinsel unter dem Blumenbogen;
+  **Stern 0 auf dem unsichtbaren Wolkenlift bündig hinter der Startinsel** (drei Münzen schweben über ihm, Lift fährt
+  10 m hoch) → zwei gegenläufige Schwebeplattformen → Hasenplattform (Brunnen mit Wasserspiel, Pavillon mit begehbarem
+  Stufendach, Mosaikweg, Marzipan-Schweinchen; **Stern 1 Hase**; **Stempel**: Lotti- und Greta-Figurenschalter, jeder
+  nur für die eigene Heldin, lassen Wolkenstufen zum Stempel erscheinen; Extraleben im unsichtbaren Block über der
+  oberen Brunnenschale) → Glasröhre → drei Schwebeplattformen mit Topf-Schnappblumen, rechts die Wolkenkanone in den
+  Münzhimmel (**Stern 2**, Regenbogen; zurück per Sprung in die Tiefe) → Pastelltreppe mit Geländer, Pilzlingen und
+  Endlos-Münzblock → Zielmast. Gegner: Pilzling 11, Mini-Pilzling 5, Schnappblume 3. Bot-Zeit ≈ 30–36 s.
+- **Level-Haken** (`LEVEL.setup`): `levelSetup` (aus `w2/_helpers_c.js`) + `cullStatic` (aus `w2/_helpers_a.js`). Budget-
+  Kniffe level-lokal: `instanceEnemies(level, kinds)` zeichnet gleiche Gegner-Modelle (gleiche Registry-Geometrien und
+  -Materialien) als je eine InstancedMesh pro Modellteil – die Entitäten rechnen und animieren ihre Modelle weiter, nur
+  die Einzelmodelle werden nicht gezeichnet (neun Flatterkäfer ≈ 9 statt ≈ 80 Aufrufe; Pilzlinge, Eisläufer,
+  Schneesäulen, Krabbelkäfer); Modelle mit eigenem Material je Exemplar (Schnappblume: Treffer-Blitz) bleiben einzeln
+  (dort `noModelShadow` + `farHide`). Ferne Tannenhänge mit `farFirs` (≈ 70 Dreiecke je Baum, ohne Schatten), Wegrand-
+  Tannen mit `snowFirs` (≈ 260 statt 3 k des Registry-Modells `tanne_schnee`). Belebte Zier je ein Mesh ohne
+  Sonnenschatten (Blob am Boden): Pinguinkinder (watscheln, winken, Bauchrutschen), Robbenkinder, Iglu-Rauch
+  (Instanzen), Brunnenwasser.
+- **Kennzahlen** (scale 2, inkl. Schattenpass, 18 bzw. 14 Abschnittsbilder): 3-1 72–108 Zeichenaufrufe, 194–268 k
+  Dreiecke; 3-4 72–99 / 128–209 k. Wunsch an den Motor: Zeitwarnung (`timewarn`) auch bei Zeitlimits ≤ 120 s (3-4 hat
+  100 s; die Warnung bei 100 s Rest entfällt dort, eine bei z. B. 30 s Rest wäre hilfreich).
 
 ---
 

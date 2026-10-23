@@ -1,5 +1,6 @@
 // Modelle aus der Modell-Registry (models/kinds/*_w2.js: Palme, Kaktus, Säulenruine, Sandsteinbogen, Pyramide,
-// Blütenbaum, Panzerwagen, Sandblock …) als statische Kulisse in die Karte „einbacken“: Die Geometrie jedes
+// Blütenbaum, Panzerwagen, Sandblock …; Welt 3: Tanne, Schneemann, Iglu, Eiszapfen, Koralle, Wrack, Hecken-Hase …)
+// als statische Kulisse in die Karte „einbacken“: Die Geometrie jedes
 // vertexgefärbten Meshes (auch Instanz-Puffer) wird mit der Weltlage in die verschmolzenen Karten-Kacheln gegeben
 // (view.addStatic → MapBatcher) – gleiche Optik wie in den Leveln, aber keine eigenen Zeichenaufrufe je Requisite.
 // Unbeleuchtete Teile (MeshBasicMaterial, z. B. Glanzpunkte) landen im Material 'glow'; Durchsichtiges, Sprites und
@@ -77,6 +78,20 @@ export function propModel(it) {
     case 'pinktree': return ['bluetenbaum', { size: s ?? 4 }, 0, 1];
     case 'tank': return ['panzer_fahrzeug', { length: 6.4, width: 3.4, deck: 1.6, color: it.color ?? 'oliv' }, 0, s ?? 1];
     case 'bigtank': return ['panzer_fahrzeug', { length: 8, width: 4, deck: 2, color: 'rot' }, 0, 1];
+    // Welt 3 (models/kinds/*_w3.js)
+    case 'fir': return ['tanne_schnee', { size: s ?? 3.5 }, 0, 1];
+    case 'snowman': return ['schneemann', {}, -Math.PI / 2, s ?? 1];
+    case 'igloo': return ['iglu', { size: s ?? 3.4 }, -Math.PI / 2, 1];
+    case 'icicles': return ['eiszapfen', { length: s ?? 1, count: it.n ?? 3 }, 0, 1];
+    case 'snowblock': return ['schneeblock', {}, 0, s ?? 1];
+    case 'coral': return ['koralle', { kind: it.variant ?? 'ast' }, 0, s ?? 1];
+    case 'wreck': return ['schiffswrack', { size: s ?? 1 }, -Math.PI / 2, 1];
+    case 'flower': return ['pastell_blume', {}, 0, s ?? 1];
+    case 'hedgebunny': return ['hecken_hase', {}, -Math.PI / 2, s ?? 1];
+    case 'barrier': return ['bande', { length: s ?? 4 }, 0, 1];
+    case 'trampoline': return ['pilztrampolin', {}, 0, s ?? 1];
+    case 'bunny': return ['bunny_small', {}, -Math.PI / 2, s ?? 1];
+    case 'snowpillar': return ['schneesaeule', { segments: it.n ?? 4 }, -Math.PI / 2, s ?? 1];
     default: return null;
   }
 }

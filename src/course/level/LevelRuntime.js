@@ -40,7 +40,8 @@ export class LevelRuntime {
     if (this.status !== 'play') return;
     this.elapsed += dt;
     this.timeLeft -= dt;
-    if (!this.warned && this.timeLeft <= 100 && this.timeLimit > 120) { this.warned = true; this.level.sfx('timewarn'); }
+    // Zeitwarnung: bei 100 s Rest, in kurzen Leveln (Limit ≤ 120 s, z. B. 3-4 mit 100 s) bei 30 s Rest
+    if (!this.warned && this.timeLeft <= (this.timeLimit > 120 ? 100 : 30)) { this.warned = true; this.level.sfx('timewarn'); }
     if (this.timeLeft <= 0) { this.timeLeft = 0; this.level.player.die('time'); }
   }
 

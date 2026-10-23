@@ -6,7 +6,8 @@
 // → Oasen-Platz mit schwebender Sternenplattform (2-2, ab 15 Sternen), Glückshaus und Oase → Abzweig zum
 // geheimnisvollen Haus (2-Haus, ab 20 Sternen) → Felsenhof mit Höhleneingang (2-3) → Abzweige zur Lava-Felsinsel
 // (2-A, drei Großrollpilze) und über die Treppe zum Hügelland (2-4) → rosa Grasland (2-5) → Panzer-Depot von Baron
-// Brummbär (2-Panzer, ab 30 Sternen) → Glasröhre nach Welt 3 (bald). Sternbedarf zählt alle Sterne (starScope).
+// Brummbär (2-Panzer, ab 30 Sternen) → Glasröhre nach Welt 3 (frei nach 2-Panzer, Fahrt übers Meer zur Schneeinsel
+// im Nordosten). Sternbedarf zählt alle Sterne (starScope).
 //
 // Bereiche (begehbar, Höhe):                 Eingänge:
 //   A  Ankunftsstrand          y 1            W1        Glasröhre zurück        (−10, 1, 41)
@@ -18,7 +19,7 @@
 //   G  Lava-Felsinsel          y 1.4          2-4       Hügelwalze              (33, 3, −54)
 //   F  Hügelland               y 3            2-5       Doppelkirsche           (36, 3, −90)
 //   I  rosa Grasland           y 3            2-Panzer  Panzer-Depot            (2, 3, −93)
-//   K  Panzer-Depot            y 3            W3        Glasröhre (bald)        (0, 3, −121)
+//   K  Panzer-Depot            y 3            W3        Glasröhre nach Welt 3   (0, 3, −121)
 //   M  Röhrenplateau           y 3
 
 const PI = Math.PI;
@@ -44,7 +45,8 @@ export const MAP = {
   intro: { from: [6, 17, 98], look: [0, 4, -30], duration: 3.2 },
   edges: { hedge: 'adobe', fence: 'rope' },
   pathColors: [0xe8b47a, 0xdba06a, 0xb98352],
-  neighbors: [{ world: 1, pos: [-262, 104], size: [72, 48], style: 'grass' }],
+  // Nachbarwelten am Horizont: Welt 1 (Rückweg-Röhre) und die Schneeinsel von Welt 3 im Nordosten (Glasröhre nach 2-Panzer)
+  neighbors: [{ world: 1, pos: [-262, 104], size: [72, 48], style: 'grass' }, { world: 3, pos: [150, -300], size: [84, 56], style: 'snow' }],
   birds: [{ c: [0, 11.5, 16], r: 6, n: 2 }, { c: [-8, 6, -44], r: 8, n: 1 }, { c: [36, 8, -64], r: 8, n: 2 }, { c: [-10, 6, -14], r: 9, n: 1 }],   // Hackvögel kreisen
 
   levels: [
@@ -160,8 +162,9 @@ export const MAP = {
     { id: '2-4', kind: 'hills', pos: [33, 3, -54], decor: [32, 3, -62] },
     { id: '2-5', kind: 'pinkgrass', pos: [36, 3, -90], decor: [36, 3, -96.5] },
     { id: '2-Panzer', kind: 'tankdepot', pos: [2, 3, -93], decor: [2, 3, -100] },
+    // Glasröhre nach Welt 3: übers Meer nach Nordosten zur Schneeinsel am Horizont
     { id: 'W3', kind: 'pipe', pos: [0, 3, -121], decor: [0, 3, -124.1],
-      pipe: [[0, 0, 0], [0, 4, 0], [0, 6.5, -2], [0, 8, -10], [0, 12, -30], [0, 18, -60], [0, 26, -100]] },
+      pipe: [[0, 0, 0], [0, 3.5, 0], [0.3, 5.6, -0.8], [1.5, 6.8, -5], [5, 7, -15], [14, 6.4, -37], [30, 5.5, -72], [52, 3.5, -110], [72, 1.5, -140]], pipeDetail: 'low' },
   ],
 
   gates: [

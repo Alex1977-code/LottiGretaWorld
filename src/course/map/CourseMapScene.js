@@ -124,7 +124,7 @@ export class CourseMapScene extends Phaser.Scene {
     this.level.runtime = new MapRuntime(this.level, courseSave, this);
 
     // Statische Geometrie in Kacheln verschmelzen (besseres Culling auf der breiten Insel): addStatic umleiten
-    this.batcher = new MapBatcher(this.view);
+    this.batcher = new MapBatcher(this.view, map.batch);
     this.view.addStatic = (g, o) => this.batcher.add(g, o);
 
     // Zustände der Eingänge (aus dem Speicherstand) und frisch zu öffnende Schranken
@@ -153,6 +153,8 @@ export class CourseMapScene extends Phaser.Scene {
       const hidden = fresh.includes(id);
       ev.setState(hidden ? { locked: true } : { locked: st.locked, soon: st.soon, enterable: st.enterable, done: st.done });
       if (st.roamer) ev.setPodiumVisible(false);
+      // Welt 3 (def.appear): Eingang erscheint erst, wenn sein Weg frei ist (Auftauchen beim Schranken-Schwenk)
+      if (ev.def.appear && (!st.pathOpen || hidden)) ev.setHidden(true);
     }
 
     // Spielfigur
@@ -502,11 +504,21 @@ export class CourseMapScene extends Phaser.Scene {
       if (g.state === 'open' && c.t > g.duration() + 0.25) {
         const ev = this.built.entrances.get(g.for);
         const st = this.status(g.for);
-        if (ev && st) { ev.setState({ locked: st.locked, soon: st.soon, enterable: st.enterable, done: st.done }); ev.hop(); }
+        if (ev && st) {
+          ev.setState({ locked: st.locked, soon: st.soon, enterable: st.enterable, done: st.done });
+          if (ev.hidden) { ev.reveal(); c.hold = 1.8; c.focusAt = ev.decorGroup?.position ?? ev.pos; c.revealEv = ev; } else ev.hop();
+        }
         sfx('oneup');
         c.i++;
         c.t = 0;
-        c.phase = c.i < c.gates.length ? 'wait' : 'back';
+        c.phase = c.hold ? 'reveal' : c.i < c.gates.length ? 'wait' : 'back';
+      }
+    } else if (c.phase === 'reveal') {
+      // aufgetauchter Eingang (def.appear): Kamera bleibt kurz dort
+      this.focus = c.focusAt;
+      if (c.t > c.hold) {
+        c.revealEv?.settleReveal();   // langsame Bildrate: Auftauchen sicher abschließen
+        c.revealEv = null; c.hold = 0; c.t = 0; c.phase = c.i < c.gates.length ? 'wait' : 'back';
       }
     } else if (c.phase === 'back') {
       this.focus = null;
@@ -591,6 +603,7 @@ export class CourseMapScene extends Phaser.Scene {
     const p = this.player;
     let best = null, bd = NEAR_R * NEAR_R;
     for (const [id, ev] of this.built.entrances) {
+      if (ev.hidden) continue;   // noch nicht erschienen (def.appear)
       const st = this.status(id);
       let x = ev.pos.x, z = ev.pos.z;
       if (st?.roamer && this.roamers.length) { x = 0; z = 0; for (const r of this.roamers) { x += r.pos.x; z += r.pos.z; } x /= this.roamers.length; z /= this.roamers.length; }
@@ -706,7 +719,7 @@ export class CourseMapScene extends Phaser.Scene {
     for (const g of this.built.gates) gates[g.for] = g.state;
     for (const gt of this.map.gates ?? []) if (!gates[gt.for]) gates[gt.for] = 'open';
     const entrances = {};
-    for (const [id, st] of this.statuses) entrances[id] = { locked: st.locked, reason: st.reason, enterable: st.enterable, exists: st.exists, soon: st.soon, done: st.done, stars: st.stars, starsMax: st.starsMax, stamp: st.stamp, title: st.title };
+    for (const [id, st] of this.statuses) entrances[id] = { locked: st.locked, reason: st.reason, enterable: st.enterable, exists: st.exists, soon: st.soon, done: st.done, stars: st.stars, starsMax: st.starsMax, stamp: st.stamp, title: st.title, hidden: !!this.built.entrances.get(id)?.hidden };
     return {
       world: this.map.world, title: this.map.title, worlds: (courseSave.data.worlds ?? [1]).slice(),
       travel: this.travel && !this.travel.done ? this.travel.info() : null,
