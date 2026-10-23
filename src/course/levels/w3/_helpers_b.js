@@ -17,6 +17,7 @@ import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd
 import { visDt } from '../../entities/gimmick.js';
 import { levelSetup, cyl, sphere, cone, block, flatIslands } from '../w2/_helpers_c.js';
 import { SECTION } from '../../view/StaticBatcher.js';
+import { bandeLowParts } from '../../blocks/types/w3_race.js';
 
 export { levelSetup, cyl, sphere, cone, block, flatIslands };
 
@@ -613,12 +614,12 @@ export function addStaticParts(level, parts, opts) {
 
 /**
  * Kart-Bande (sparsam): grauer Sockel, rot-weiße Polster je Meter, gelb-schwarze Rolle oben, 0,8 m hoch – Optik wie
- * der Baustein `bande`, aber ≈ 40 statt ≈ 320 Dreiecke je Meter (Budget: in 3-6 stehen rund 300 m Bande).
+ * der Baustein `bande`, aber ≈ 40 statt ≈ 320 Dreiecke je Meter (Budget: in 3-6 stehen rund 300 m Bande). Die Optik
+ * liefert jetzt der Baustein selbst (bande mit detail: 'low', bandeLowParts); hier bleibt die Kollision von 3-6.
  * paths: Liste von Linienzügen [[x, y, z], …]; Kollision je Stück (achsenparallel ein Quader, sonst ≤ 1-m-Stücke).
  */
 export function kartBande(level, paths) {
   const parts = [];
-  const pad = [L(0xe8283a), L(0xffffff)], roll = [L(0xffd21f), L(0x2a2a3a)];
   for (const path of paths) {
     for (let i = 0; i < path.length - 1; i++) {
       const [ax, ay, az] = path[i], [bx, , bz] = path[i + 1];
@@ -634,31 +635,8 @@ export function kartBande(level, paths) {
         }
       }
       if (!level.view) continue;
-      // Stücke höchstens 12 m lang (Abschnitts-Culling), lokal entlang +X gebaut
-      const pieces = Math.ceil(len / 12);
-      for (let q = 0; q < pieces; q++) {
-        const u0 = (q / pieces) * len, u1 = ((q + 1) / pieces) * len, pl = u1 - u0;
-        const loc = [plate(pl, 0.16, 0.6, u0 + pl / 2, 0, 0, 0x7a8090, { r: 0 })];
-        const np = Math.max(1, Math.round(pl));
-        for (let k = 0; k < np; k++) {
-          const g = new THREE.BoxGeometry(pl / np - 0.05, 0.5, 0.42).toNonIndexed();
-          const c = pad[(Math.round(u0) + k) % 2];
-          colorize(g, (p, nn, o) => { const s = nn.y > 0.5 ? 1.08 : nn.y < -0.5 ? 0.6 : 0.88; o[0] = c[0] * s; o[1] = c[1] * s; o[2] = c[2] * s; });
-          g.translate(u0 + (k + 0.5) * pl / np, 0.42, 0);
-          loc.push(g);
-        }
-        const nr = Math.max(1, Math.round(pl * 2));
-        for (let k = 0; k < nr; k++) {
-          const g = new THREE.CylinderGeometry(0.1, 0.1, pl / nr, 6, 1, true).toNonIndexed();
-          g.rotateZ(Math.PI / 2);
-          g.translate(u0 + (k + 0.5) * pl / nr, 0.72, 0);
-          loc.push(colorize(g, fillc(roll[k % 2])));
-        }
-        const g = merge(loc);
-        g.rotateY(Math.atan2(-dz, dx));
-        g.translate(ax, ay, az);
-        parts.push(g);
-      }
+      // Optik wie der Baustein bande mit detail: 'low' (Stücke ≤ 12 m, Abschnitts-Culling)
+      parts.push(...bandeLowParts(ax, ay, az, bx, bz));
     }
   }
   addStaticParts(level, parts, { castShadow: true });

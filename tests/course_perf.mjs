@@ -169,7 +169,7 @@ async function load(id) {
 async function measure(id, pt) {
   const extra = await sc((p) => window.__perf.goto(p), pt);
   const f0 = await sc(() => window.__course.view.frame);
-  await page.waitForFunction((f) => window.__course.view.frame >= f + 3, f0, { timeout: 90000 });
+  await page.waitForFunction((f) => window.__course.view.frame >= f + 8, f0, { timeout: 90000 });   // Level-Haken mit Takt (z. B. alle 6 Bilder) greifen
   await page.waitForTimeout(150);
   const s = await sc(() => window.__course.stats());
   let detail = null;

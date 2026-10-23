@@ -16,7 +16,9 @@
 // pilztrampolin – Pilz-Trampolin (Modell 'pilztrampolin', Hut Ø 2,4 m, Oberkante 1,25 m): Landen federt hoch (Motor-Flag
 //   bounce).  { type: 'pilztrampolin', pos (Fuß), strength: 19, scale: 1 }
 // bande – Kart-Bande (Modell 'bande', 0,8 m hoch) entlang path (Polylinie, gerade Stücke) oder from/to.
-//   { type: 'bande', path: [[x, y, z], …] | from, to, solid: true }
+//   { type: 'bande', path: [[x, y, z], …] | from, to, solid: true, detail: 'high' | 'low' }
+//   detail 'low' (Präzisierung „Leistung und Level-Haken 2“): gleiche Optik (grauer Sockel, rot-weiße Polster je Meter,
+//   gelb-schwarze Rolle) aus einfachen Körpern – ≈ 40 statt ≈ 320 Dreiecke je Meter, für lange Strecken (3-6).
 // start_bogen – Start-/Zielbogen mit Ampel (Modell 'start_bogen'): Ampel wird grün nach `delay` s bzw. sobald eine Figur
 //   hindurchläuft (mode 'pass'); Pfeiler fest.  { type: 'start_bogen', pos, yaw: π/2, width: 8, delay: 2, mode: 'time' |
 //   'pass', id }   level.named.get(id) = { go }
@@ -26,7 +28,7 @@
 //     slope: 0.85, top: 'snow' (Thema-Decke) | 'stone' }
 
 import * as THREE from 'three';
-import { v3, sz3, wedge, themeOf, addStatic } from '../kit.js';
+import { v3, sz3, wedge, themeOf, addStatic, colorize, merge, lin, hex } from '../kit.js';
 import { modelObject, bakeModel, rotXZ, snapYaw, figures, slideSlope } from '../w3kit.js';
 import { flightCtl, runAction } from '../../entities/gimmick.js';
 
@@ -103,6 +105,50 @@ export function buildPilztrampolin(level, spec) {
   return owner;
 }
 
+const LC = (c) => lin(hex(c));
+
+/**
+ * Sparsame Bande (Weltkoordinaten) von (ax, ay, az) nach (bx, bz): Stücke höchstens 12 m lang (Abschnitts-Culling),
+ * je Stück Sockel, Polster je Meter (rot/weiß), Rolle je halbem Meter (gelb/schwarz). ≈ 40 Dreiecke je Meter.
+ */
+export function bandeLowParts(ax, ay, az, bx, bz) {
+  const parts = [];
+  const pad = [LC(0xe8283a), LC(0xffffff)], roll = [LC(0xffd21f), LC(0x2a2a3a)];
+  const dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz);
+  if (len < 0.2) return parts;
+  const pieces = Math.ceil(len / 12);
+  const base = LC(0x7a8090);
+  for (let q = 0; q < pieces; q++) {
+    const u0 = (q / pieces) * len, u1 = ((q + 1) / pieces) * len, pl = u1 - u0;
+    const sock = new THREE.BoxGeometry(pl, 0.16, 0.6).toNonIndexed();
+    const top = [base[0] * 1.1, base[1] * 1.1, base[2] * 1.1], low = [base[0] * 0.8, base[1] * 0.8, base[2] * 0.8];
+    colorize(sock, (p, n, o) => { const c = n.y > 0.5 ? top : n.y < -0.5 ? low : base; const k = 1 - Math.abs(n.x) * 0.06; o[0] = c[0] * k; o[1] = c[1] * k; o[2] = c[2] * k; });
+    sock.translate(u0 + pl / 2, 0.08, 0);
+    const loc = [sock];
+    const np = Math.max(1, Math.round(pl));
+    for (let k = 0; k < np; k++) {
+      const g = new THREE.BoxGeometry(pl / np - 0.05, 0.5, 0.42).toNonIndexed();
+      const c = pad[(Math.round(u0) + k) % 2];
+      colorize(g, (p, nn, o) => { const s = nn.y > 0.5 ? 1.08 : nn.y < -0.5 ? 0.6 : 0.88; o[0] = c[0] * s; o[1] = c[1] * s; o[2] = c[2] * s; });
+      g.translate(u0 + (k + 0.5) * pl / np, 0.42, 0);
+      loc.push(g);
+    }
+    const nr = Math.max(1, Math.round(pl * 2));
+    for (let k = 0; k < nr; k++) {
+      const g = new THREE.CylinderGeometry(0.1, 0.1, pl / nr, 6, 1, true).toNonIndexed();
+      g.rotateZ(Math.PI / 2);
+      g.translate(u0 + (k + 0.5) * pl / nr, 0.72, 0);
+      const c = roll[k % 2];
+      loc.push(colorize(g, (p, n, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
+    }
+    const g = merge(loc);
+    g.rotateY(Math.atan2(-dz, dx));
+    g.translate(ax, ay, az);
+    parts.push(g);
+  }
+  return parts;
+}
+
 export function buildBande(level, spec) {
   const pts = spec.path ?? [spec.from ?? [0, 0, 0], spec.to ?? [4, 0, 0]];
   for (let i = 0; i < pts.length - 1; i++) {
@@ -110,7 +156,8 @@ export function buildBande(level, spec) {
     const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz);
     if (L < 0.2) continue;
     const yaw = Math.atan2(-dz, dx);
-    bakeModel(level, 'bande', { length: L }, a.x, a.y, a.z, yaw, 1);
+    if (spec.detail === 'low') { for (const g of bandeLowParts(a.x, a.y, a.z, b.x, b.z)) addStatic(level, g, { castShadow: true }); }
+    else bakeModel(level, 'bande', { length: L }, a.x, a.y, a.z, yaw, 1);
     if (spec.solid === false) continue;
     // achsenparallele Stücke (≤ 1 m) entlang der Linie
     const n = Math.max(1, Math.ceil(L / 1));
