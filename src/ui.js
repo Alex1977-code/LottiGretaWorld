@@ -97,3 +97,16 @@ export class UiButton extends Phaser.GameObjects.Container {
 export function uiButton(scene, x, y, label, opts) {
   return new UiButton(scene, x, y, label, opts);
 }
+
+/** Herz (Lebensanzeige) in eine Phaser-Grafik zeichnen: Mitte (cx, cy), Breite ≈ 2·s. */
+export function drawHeart(g, cx, cy, s = 6.5, color = 0xff4d6d) {
+  const r = s * 0.56, top = cy - s * 0.22;
+  g.fillStyle(0x7a1030, 1);                       // dunkler Rand
+  g.fillCircle(cx - s * 0.48, top, r + 1.1); g.fillCircle(cx + s * 0.48, top, r + 1.1);
+  g.fillTriangle(cx - s * 1.08 - 0.9, top + s * 0.12, cx + s * 1.08 + 0.9, top + s * 0.12, cx, cy + s * 1.02 + 1.4);
+  g.fillStyle(color, 1);
+  g.fillCircle(cx - s * 0.48, top, r); g.fillCircle(cx + s * 0.48, top, r);
+  g.fillTriangle(cx - s * 1.03, top + s * 0.12, cx + s * 1.03, top + s * 0.12, cx, cy + s * 1.02);
+  g.fillStyle(0xffffff, 0.75);                    // Glanzpunkt
+  g.fillCircle(cx - s * 0.55, top - s * 0.12, s * 0.2);
+}

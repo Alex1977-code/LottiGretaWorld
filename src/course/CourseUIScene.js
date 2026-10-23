@@ -6,7 +6,7 @@
 import Phaser from 'phaser';
 import { GAME } from '../config.js';
 import { setupUiCamera } from '../render.js';
-import { uiText, uiPanel } from '../ui.js';
+import { uiText, uiPanel, drawHeart } from '../ui.js';
 import { CourseTouch } from './input/CourseTouch.js';
 import { getPower } from './player/powers.js';
 import { getHelmet } from './player/helmets.js';
@@ -184,10 +184,8 @@ export class CourseUIScene extends Phaser.Scene {
     const g = this.icons;
     const W = GAME.width;
     g.clear();
-    // Leben: Köpfchen der Heldin
-    g.fillStyle(0xffd6b0, 1); g.fillCircle(24, 15, 6.5);
-    g.fillStyle(HERO_HAIR[p.hero] ?? 0xc8963c, 1); g.slice(24, 14, 7, Math.PI, 0, false); g.fillPath();
-    g.fillStyle(0x2a2550, 1); g.fillCircle(22, 16, 0.9); g.fillCircle(26, 16, 0.9);
+    // Leben: rotes Herz
+    drawHeart(g, 24, 15, 6.5);
     // Power-up
     if (p.power !== 'none') {
       g.fillStyle(def.icon ?? 0xffffff, 1); g.fillCircle(80, 15, 5.5);
