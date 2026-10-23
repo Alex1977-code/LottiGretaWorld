@@ -160,8 +160,8 @@ export const LEVEL = {
     { ...CAM, from: -192, to: -240, pitch: 46, dist: 13.5, area: [-12.5, 50] },
     { ...CAM, from: -244, to: -266, pitch: 42, dist: 13 },
     { ...CAM, from: -178, to: -196, pitch: 40, dist: 13, yaw: 64, area: [-46, -12.5] },
-    { ...CAM, from: -60, to: -96, pitch: 50, dist: 13, area: [55, 90] },
-    { ...CAM, from: -30, to: -56, pitch: 50, dist: 13, area: [55, 90] },
+    { ...CAM, from: -60, to: -96, pitch: 48, dist: 13, area: [55, 90] },
+    { ...CAM, from: -30, to: -56, pitch: 48, dist: 13, area: [55, 90] },
   ],
   segments: [
     // =============================================================== Kulisse: Giftbäume auf Schlamminseln (ohne Schatten in der Ferne)

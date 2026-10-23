@@ -235,7 +235,7 @@ export const LEVEL = {
     { ...CAM, from: -158, to: -214, pitch: 48, dist: 13 },
     { ...CAM, from: -214, to: -226, pitch: 46 },
     { ...CAM, from: -228, to: -262, pitch: 42, dist: 13 },
-    { ...CAM, from: -170, to: -200, pitch: 50, dist: 13, area: [55, 85] },
+    { ...CAM, from: -170, to: -200, pitch: 48, dist: 13, area: [55, 85] },
   ],
   segments: [
     // =============================================================== Kulisse (ferne Canyonwände, ohne Schatten)
