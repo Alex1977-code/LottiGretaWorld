@@ -383,7 +383,7 @@ if (errors.length) for (const e of errors.slice(0, 10)) console.log('   ', e);
 
 // ---------------------------------------------------------------- Themen (Stimmung), je ein Bild
 if (SHOTS) {
-  const themes = [['canyon', [0, 1, -8]], ['poison', [0, 1, -156]], ['beep', [0, 1, -8]], ['bounce', [0, 1, -56]], ['ruins', [0, 1, -108]], ['lavacastle', [0, 1, -203]]];
+  const themes = [['canyon', [0, 1, -8]], ['poison', [0, 1, -158]], ['beep', [0, 1, -8]], ['bounce', [0, 1, -56]], ['ruins', [0, 1, -108]], ['lavacastle', [0, 1, -203]]];
   const tstats = [];
   for (const [th, pos] of themes) {
     await load(`&theme=${th}`);
@@ -394,8 +394,8 @@ if (SHOTS) {
     tstats.push([th, s.calls, s.triangles]);
     try { await page.screenshot({ path: `${OUT}w4b_thema_${th}.png`, timeout: 120000 }); } catch { console.log(`  (Bild ${th} übersprungen)`); }
     if (th === 'lavacastle') {
-      await sc(() => { window.__course.view.setMood('innen'); window.__course.step(240); });
-      await freshFrames(4);
+      await sc(() => { window.__course.view.setMood('innen', { time: 0.05 }); window.__course.step(240); });
+      await freshFrames(6);
       const m = await sc(() => ({ ...window.__course.view.mood.info(), fog: window.__course.view.three.fog.far }));
       console.log(`  Thema lavacastle: Stimmung innen ${JSON.stringify(m)}`);
       check('Thema lavacastle: Stimmung „innen“ (Burg-Gewölbe) blendet über (naher Rauch)', m.mood === 'innen' && m.fog < 100);

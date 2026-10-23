@@ -2733,3 +2733,108 @@ Sternring mit Sternmünzen. Gegner: Ameisensoldat, Hörner-Ameisensoldat, Riesen
 Figur), Rankenschnapper (wachsen über den Weg), Lavabrocken (tragbar, werfbar), Walzenwerfer (wirft Stachelwalzen),
 Stachelpanzer, Springklotz, Lavafunke; Boss **Lavafelsen-König** (nur geworfene Lavabrocken treffen). „Mitspieler“
 im Bauplan = Klone der Spiegelfrucht. Die Welt-Warp-Röhre in 4-2 führt zur Welt-5-Insel („Bald“, bis es sie gibt).
+
+---
+
+## Präzisierung (Bausteine Welt 4)
+
+Ergänzung des Bausteine-Agenten (Stand: Canyonwerkstatt 0-14). Nichts oben Festgelegtes wird geändert. Alle Welt-4-
+Bausteine, Gimmicks und Themen sind parametrierbare Module; Level-Bauer setzen sie nur in Daten ein. Jede Datei
+dokumentiert ihre Parameter vollständig im Kopfkommentar; hier die Felder mit Beispielen. Aktionen (`reward` …) im
+bekannten Format (Präzisierung Sonder-Bausteine). Alle Entitäts-Gimmicks (`kind`) sind auch als `type` in `segments`
+erlaubt (`w4_misc.js`).
+
+### Präzisierung (Bausteine Welt 4): Dateien
+
+```
+src/course/blocks/w4kit.js              beatClock (Taktuhr des Levels), smoothPath, penetrates/figuresIn/pushOutOf
+                                        (sanft herausschieben), glowSprite/glowTexture, hash01
+src/course/blocks/antpath.js            Ameisen-Laufpfade (Datenformat antpath, antPath, resolveAntPath, antPathAt,
+                                        antOrient, placeOnAntPath, antPathOver, antPathAround) – für den Gegner-Agenten
+src/course/blocks/types/w4_piep.js      piep_block, piep_treppe, piep_rutsche (System level.piep, Instanzen)
+src/course/blocks/types/w4_bounce.js    riesentrampolin, trampolin_orange
+src/course/blocks/types/w4_ruins.js     schwankplattform, drehplattform (axis y: Drehteller/-balken; x|z: Wende-Plattform)
+src/course/blocks/types/w4_fluids.js    giftwasser, giftfall, lavafall, lavarohr
+src/course/blocks/types/w4_ants.js      ameisenweg (benannter Ameisenpfad + Spur)
+src/course/blocks/types/w4_misc.js      Entitäts-Gimmicks auch als segments-type
+src/course/blocks/types/deco_w4.js      Kulisse Welt 4 (verschmolzen; shadow: false für ferne Kulisse)
+src/course/entities/kinds/w4_gimmicks.js  stachelstange, roulette_block, sternring, sternmuenze
+src/course/view/theme_canyon|poison|beep|bounce|ruins|lavacastle.js, backdrop_w4.js   Themen + Kulissen
+src/course/levels/w0/0-14.js            Canyonwerkstatt (eine Station je Baustein, marks für den Test)
+tests/course_w4_blocks.mjs              Port 4370, Bilder tests/out/w4b_*.png (auch je Thema w4b_thema_*.png)
+```
+
+Additiv geändert: `view/themes.js` (6 Registrierzeilen, `??=`). Motor, Ansicht, Audio und Modelle bleiben unverändert.
+
+### Präzisierung (Bausteine Welt 4): Taktuhr, Herausschieben, Ameisenpfade, tödliche Flüssigkeiten
+
+- **Taktuhr** `beatClock(level)` (= `level.beepClock`, eine je Level, in `level.onStep` angemeldet): folgt
+  `music.beat()`, solange das Sync-Thema spielt (`LEVEL.beepTheme`, Standard `'course_beep'`; aus `themeInfo().sync`
+  kommen `every` = switchEvery 8 und `warn` = warnBeats 3), sonst – Funkelstern-Thema, Musik aus, anderes Level-Thema –
+  einer eigenen Uhr auf der Simulationszeit im Tempo des Sync-Themas, die stetig an die letzte Zählzeit anschließt. Kehrt
+  das Sync-Thema zurück, gilt wieder seine Zählung. `LEVEL.beepClock = 'level'` erzwingt die eigene Uhr, `'music'` folgt
+  jedem laufenden Thema. Felder `beat`, `whole`, `source` ('music'|'level'), `bpm`, `every`, `warn`, `mode`,
+  `onBeat(fn(whole, k))`, `info()`. Pieps (`sfx('beep')` auf den Warn-Zählzeiten, `'beep_switch'` beim Umschalten) spielt
+  die Uhr nur bei eigener Uhr – `course_beep` hat sie schon in der Bell-Spur. Tests: `music.setManualClock(true)`,
+  `music.play('course_beep')`, dann je Simulationsschritt `music.advanceClock(1/120)` + `step(1)` (deterministisch).
+- **Piep-Zustand:** Zählzeit b (+ `phase`), Block `floor(b / every)` gerade → rot fest, blau Umriss; ungerade →
+  umgekehrt. Warnung in den letzten `warn` Zählzeiten (Blinken je Zählzeit). Kollision: Quader/Rampen nur im festen
+  Zustand in der Welt (Nachbar-Würfel zusammengefasst). **Herausschieben:** steckt beim Erscheinen eine Figur (auch Klon)
+  oder ein Gegner im Block, bleibt er „ausstehend“ und schiebt sie mit 7 m/s (mit Kollision gegen alles andere) hinaus –
+  nach oben, wenn die Füße im oberen Teil stecken (≤ 0,65 m), nach unten, wenn nur der Kopf knapp hineinragt, sonst zur
+  nächsten Seite; erst dann wird er fest. Darstellung: 4 Instanz-Meshes für alle Piep-Blöcke (fest/Umriss je Farbe;
+  Meshes ohne sichtbare Blöcke werden nicht gezeichnet).
+- **Ameisenpfade (4-1):** Datenformat `antpath: [[x, y, z, nx, ny, nz], …]` (Fußpunkte auf der Lauffläche mit
+  Flächennormale; gleiche Stelle mit neuer Normale = Kante, die Normale wird über `round` 0,35 m überblendet; `{ path,
+  loop }` für Rundwege) oder die Id eines Bausteins `ameisenweg`. Gegner lesen ihn mit `resolveAntPath(level,
+  spec.antpath)`, tasten ihn mit `antPathAt(path, s)` → `{ pos, normal, tangent, face }` ab; `placeOnAntPath(root, path,
+  s, dir)` richtet ein Modell (Blick +X, oben +Y) auf der Fläche aus. Generatoren: `antPathOver({ pos, size }, { along,
+  at, from, to })` (über eine Wand), `antPathAround(...)` (Rundweg um einen Block).
+- **Giftwasser, Gift-/Lavafall:** Formen `kill: 'gift', lava: true, poison: true` bzw. `kill: 'lava'` (nicht fest) – die
+  Figur stirbt wie in Lava (`deathCause 'lava'`); Gegner im Giftwasser versinken (0,7 s, `markDefeated`, zählen als
+  besiegt). Oberflächen-Schlieren im Shader (`onBeforeCompile` auf Standard-Material, Nebel bleibt).
+
+### Präzisierung (Bausteine Welt 4): Liste mit Daten-Beispielen
+
+| Typ / Art | Kern | Wichtige Felder (Standard) | Beispiel |
+| --- | --- | --- | --- |
+| `piep_block` | Piep-Blöcke im Musiktakt (fest ↔ Umriss), Warn-Blinken, Herausschieben | `color` 'rot'\|'blau', `phase` 0 (Zählzeiten-Versatz), `every` 8, `warn` 3, `pos`+`size` [w,h,d] \| `blocks: [[x,y,z]…]` \| `grid: [nx,nz]`\|`[nx,ny,nz]` + `pos` \| `map: ['rb.', …]` + `pos` (Zeilen nach −Z, r/b, R/B = 2 hoch), `cell` 1, `id` → `{ groups, boxes, solid, info() }` | `{ type: 'piep_block', color: 'rot', pos: [0,0,-14], size: [6,1,4] }`, `{ type: 'piep_block', pos: [-7,1,-25], map: ['rbrb','brbr'] }` |
+| `piep_treppe` | schwebende Stufen, Farben im Wechsel | `from` (Mitte unten der 1. Stufe), `dir` [0,−1], `steps` 8, `rise` 1, `run` 1, `width` 2, `height`, `colors` 'wechsel'\|'rot'\|'blau'\|[…], `first`, `phase`, `every`, `warn`, `id` | `{ type: 'piep_treppe', from: [7,1,-24], steps: 5, run: 1.2 }` |
+| `piep_rutsche` | Rutsche (Flag slide) aus Farbstreifen | `pos`, `size` [w,h,d], `axis` 'z', `dir` 1 (Oberseite steigt nach +axis), `band` 2, `thick` 0.6, `colors`, `slope` 0.85, `phase`, `id` | `{ type: 'piep_rutsche', pos: [-6,1,-42], size: [4,4,12], dir: 1 }` |
+| `riesentrampolin` | großes Trampolin fliegt einen Pfad (startet beim Draufspringen), Figur federt und fährt in der Luft mit, getimtes Drücken ×1,4, trägt Gegner | `path` (weich verbunden), `pos`, `size` 6, `height` 0.9, `strength` 15, `boost` 1.4, `speed` 4, `mode` 'once'\|'loop'\|'pingpong', `wait` 1, `start` 'bounce'\|'auto'\|'signal', `reset` true (nach Tod zurück), `carry`, `carryR`, `id` → `{ pos, s, L, running, done, bounces, riders, start(), stop(), reset(), info() }` | `{ type: 'riesentrampolin', id: 'rt', path: [[0,0.1,-67.5],[1.5,2.5,-76],[0,3,-85],[0,0.1,-93]] }` |
+| `trampolin_orange` | starke Feder (Höhe je Stärke), auch schräg | `pos`, `size` 1.8, `strength` 21 \| `height` (m), `angle` 0 (Grad), `dir` [0,−1], `boost` 1.3, `id` | `{ type: 'trampolin_orange', pos: [5,1,-57], angle: 35, dir: [0,-1] }` |
+| `stachelstange` | drehende Stange mit Stachelkugeln (Treffer), auf Säule; mit `attach` auf beweglicher Plattform | `pos` (Säulenfuß), `height` 1, `length` 4, `arms` 1, `balls` 3, `radius` 0.42, `speed` 1.2, `angle`, `axis` 'y'\|'x'\|'z', `bar` false, `post` true, `attach` (mover-/Plattform-Id; Fahrzeuge nehmen selbst mit), `id` | `{ type: 'stachelstange', pos: [5,1.5,-110], attach: 'm1', length: 1.7 }` |
+| `schwankplattform` | kippt unter Last (bis `max`), Figur rutscht ab `slideFrom`, schwingt gedämpft zurück | `pos` (Drehpunkt = Mitte der Oberseite), `size` [6,3], `thick` 0.6, `axis` 'x'\|'z', `max` 26, `slideFrom` 14, `slideSpeed` 4.5, `stiffness` 7, `damping` 3.2, `weight` 1, `post`, `postDown` 6, `style` 'ruine'\|'stein'\|'holz', `id` → `{ tilt, omega, load, info() }` | `{ type: 'schwankplattform', pos: [0,1,-130.5], size: [6,3] }` |
+| `drehplattform` | axis 'y': Drehteller/-balken (mover dyaw); 'x'\|'z': Wende-Plattform | y: `pos`, `arms` 2 (0 = Scheibe, 3, 4), `length` 4, `width` 1.8, `thick` 0.5, `speed` 0.6, `angle`, `hub`, `style` 'stein'\|'lava'\|'holz', `idle`; x/z: `size` [4,4], `mode` 'flip'\|'spin', `wait` 2.5, `turn` 1.1, `warnT` 0.8, `speed`, `phase`; `id` → `{ angle, flips, solid, start(), stop(), info() }` | `{ type: 'drehplattform', axis: 'y', pos: [-4,0.3,-214], arms: 4, style: 'lava' }` |
+| `giftwasser` | tödliches lila Giftwasser, Gegner versinken, Blasen, optional fließend | `pos`, `size` [w,h,d] (Oberfläche y+h), `flow` [vx,vz], `bubbles`, `color` 'lila'\|'gruen', `body`, `rise` { to, speed }, `id` → `{ top, sunk, setLevel(y, speed), start() }` | `{ type: 'giftwasser', id: 'gift', pos: [0,-1.6,-170], size: [12,2.2,20], flow: [0.4,0] }` |
+| `giftfall` / `lavafall` | senkrechter Gift-/Lavafall (tödlich oder nur Vorhang) | `pos` (Mitte der Unterkante), `width` 3, `height` 8, `yaw` 0 (Vorderseite +Z), `depth` 0.6, `speed` 4, `kill` true, `glow`, `color` | `{ type: 'lavafall', pos: [-11,0.4,-220], height: 7, yaw: Math.PI / 2 }` |
+| `lavarohr` | Glasröhre durch die Lava mit Glutsaum | Felder von `glasspipe` + `lava` (Oberfläche) | `{ type: 'lavarohr', path: [[6,1.6,-204.5],[6,0.4,-209],[6,0.4,-226],[6,1.6,-231]], lava: 0.5, coins: 4 }` |
+| `roulette_block` | Symbol wechselt im Musiktakt, Kopfstoß gibt das gezeigte | `items` ['wachstumsbeere','krallen','funken','stern'], `beats` 1 (Zählzeiten je Symbol), `period` (s, statt Takt), `id`, `hidden`; Laufzeit `item`, `current`, `used`, `given` | `{ kind: 'roulette_block', pos: [-6,3.4,-156] }` |
+| `sternring` / `sternmuenze` | wie `roter_ring`: 8 Sternmünzen auf Zeit → Belohnung | `yaw` π/2, `coins` (Liste \| { from, to, n } \| { pos, r, n }), `time` 10, `reward` \| `star`, `retry` true, `id` | `{ kind: 'sternring', pos: [6,1,-188], coins: { pos: [6,1.3,-194], r: 3 }, star: 1 }` |
+| `ameisenweg` | benannter Ameisenpfad über Boden/Wände (+ Spur) | `path` (antpath) \| `over: { pos, size }` \| `around: { pos, size }`, `along` 'z', `at`, `from`, `to`, `loop`, `round` 0.35, `show` true, `color`, `every`, `id` → `{ path, L, loop, data, at(s), place(root, s, dir) }` | `{ type: 'ameisenweg', id: 'wand1', over: { pos: [0,1,-250], size: [6,4,2] }, at: 1 }` |
+| `deco_w4` | Kulisse (verschmolzen) | `items: [{ kind, pos, … }]`, `shadow: false`; Canyon `felsnadel(n), tafelberg, canyonwand, geroell, trockenbusch/-buesche`, Giftwald `giftbaum/-baeume, leuchtpilze, ranken, sumpfgras`, Technik `antenne, lautsprecher, neonbogen, kabel`, Bergwiese `wiesenblumen, bergfichte(n), heuballen, zaun, windrad`, Ruinen `saeule(n), ruinenbogen, ruinenmauer, statue, truemmer`, Lavaburg `fackel(n), kette(n), burgzinne, banner, lavasteine` | `{ type: 'deco_w4', items: [{ kind: 'saeulen', from: [-11.5,1,-108], to: [-11.5,1,-124], every: 4 }] }` |
+
+### Präzisierung (Bausteine Welt 4): Themen
+
+| Thema | Stimmung | Kulisse (`buildBackdrop`) |
+| --- | --- | --- |
+| `canyon` | Abendrot: violetter Zenit, glühender Orange-Horizont, tiefe warme Sonne; goldgrünes Gras auf rot gebändertem Fels | geschichtete Canyonwände und Felsnadeln, Tafelberge, trockenes Flussbett (2 Meshes), kreisende Geier (1 Instanz-Gruppe) |
+| `poison` | lila-grüner Giftwald im Dämmerlicht, dichter lila Dunst, grünliches Licht, Moos auf violetter Erde | knorrige Giftbäume, Leuchtpilze (Glow), lila Giftsumpf tief unten (3 Meshes), aufsteigende Sporen (Punkte) |
+| `beep` | dunkelblauer Technik-Himmel bei Nacht, Sterne; helle Metallplatten im 1-m-Raster mit Neon-Kante | Neon-Türme, Neon-Gitter tief unten, **Takt-Lichter** (Neon-Ringe in der gerade festen Piep-Farbe, blitzen je Zählzeit, flackern in der Warnzeit) |
+| `bounce` | heller Sommerhimmel über Bergwiesen, weiße Wolken | Wiesenhügel und Schneeberge, Blumentupfen, schwebende Heißluftballons |
+| `ruins` | warme Ruinenstadt am goldenen Nachmittag, schwebender Staub | Säulen, Bögen, bröckelnde Türme, Dschungelbäume, Staub (Punkte) |
+| `lavacastle` | Lava-Burg: tiefroter Rauchhimmel, Glut; Stimmung `innen` (Gewölbe, naher Rauch, Licht von unten) | Lavasee, Burgmauern mit Zinnen, glühende Fenster, Türme, aufsteigende Funken; Fackeln/Ketten über `deco_w4` |
+
+`lava` (4-A), `fortress` (4-B) und `house` (4-Haus) bleiben unverändert. Die Canyonwerkstatt lässt sich mit
+`?course=0-14&theme=<name>` in jedem Thema ansehen.
+
+### Präzisierung (Bausteine Welt 4): Welt 4 – Gimmick → Baustein
+
+| Level | Gimmick laut Bauplan | Bausteine |
+| --- | --- | --- |
+| 4-1 | Canyon, Ameisen laufen an Wänden und tragen die Figur, Stachelfeld, Röhre zum Ziel | `ameisenweg` (Pfade für die Ameisen-Gegner), `deco_w4` (Canyon), Motor-`stachelboden`, `pipe`, Thema `canyon` |
+| 4-2 | Giftsumpf, Röhre, Warp-Box, Roulette-Block, bewegliche Plattformen über Gift, Giftwasserfall mit Welt-Warp dahinter, Sternring | `giftwasser` (`flow`), `giftfall` (`kill: false` als Vorhang vor dem Geheimgang), `roulette_block`, `mover`, `sternring`, `deco_w4` (Giftwald), Thema `poison` |
+| 4-3 | Piep-Block-Reihen, -Treppe (30 m hoch), Rutsche aus Piep-Blöcken, Druckfelder für Klone | `piep_block` (`map`/`grid`/`blocks`), `piep_treppe`, `piep_rutsche`, Musik `course_beep`, Thema `beep`; Druckfelder: `switchtiles`/`farbfeld` |
+| 4-4 | Pilztrampoline, orange Trampoline, Riesentrampolin-Fahrt, Warp-Box auf einer Wolke | `trampolin_orange`, `pilztrampolin`, `riesentrampolin` (`path`), `cloud`, `warpbox`, `deco_w4` (Bergwiese), Thema `bounce` |
+| 4-5 | Ruinenstadt, bewegliche Plattformen, drehende Stachelstangen auf Plattformen, schwankende Plattform (Stern 3) | `stachelstange` (`attach`), `mover`, `schwankplattform`, `deco_w4` (Ruinen), Thema `ruins` |
+| 4-Burg | Hang, Druckfelder lassen Brücke fallen, 3 Drehplattformen über Lava, roter Ring, Glasrohr durch die Lava, Lavafälle | `drehplattform` (`style: 'lava'`), `lava`, `lavafall`, `lavarohr`, `roter_ring`, `fallplatform`/`switchtiles`, `deco_w4` (Lavaburg), Thema `lavacastle` (`setMood('innen')`) |

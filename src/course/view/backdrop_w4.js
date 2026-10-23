@@ -86,16 +86,16 @@ export function canyonRing(sky, bounds, rnd, yBase, o = {}) {
     }
   }
   addMesh(sky, merge(parts), sky.view.mats.world);
-  // Trockenes Flussbett tief unten (unbeleuchtet hell, mit Sandbänken und einem dünnen Bach)
+  // Trockenes Flussbett tief unten (Sandbänke, dunklere Rinne mit Kieseln)
   const bed = [];
-  const sand = lin(o.floor ?? 0xe8b478), sand2 = lin(0xd08a52), water = lin(o.river ?? 0x58b8d8);
+  const sand = lin(o.floor ?? 0xe8b478), sand2 = lin(0xd08a52), water = lin(o.river ?? 0xa86a40);
   const w = (x1 - x0) + 600, d = (z1 - z0) + 600, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
   const plane = new THREE.PlaneGeometry(w, d, 60, 60);
   plane.rotateX(-Math.PI / 2);
   plane.translate(cx, gy + 0.2, cz);
   bed.push(colorize(plane, (p, n, out) => {
     const river = Math.abs(p.x - cx - Math.sin(p.z * 0.03) * 14) ;
-    if (river < 3) { mixc(water, lin(0xa8e8f8), smooth(3, 0, river) * 0.4, out); return; }
+    if (river < 3.5) { mixc(water, sand2, smooth(0, 3.5, river) * 0.7 + (Math.sin(p.z * 1.7 + p.x) > 0.6 ? 0.2 : 0), out); return; }
     mixc(sand2, sand, smooth(-1, 1, Math.sin(p.x * 0.07) * Math.cos(p.z * 0.05)), out);
   }));
   addMesh(sky, merge(bed), sky.view.mats.world);

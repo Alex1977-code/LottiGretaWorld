@@ -162,12 +162,13 @@ function giftbaum(level, it, p, rnd, parts, glow) {
     parts.push(colorize(g, (pp, n, o) => mixc(bark, barkHi, smooth(-0.4, 0.9, n.x * -0.4 + n.z * 0.5), o)));
     x += -Math.sin(tilt) * len * Math.cos(dir); y += Math.cos(tilt) * len; z += Math.sin(tilt) * len * Math.sin(dir); r *= 0.78;
   }
-  // Wurzeln
-  for (let k = 0; k < 4; k++) {
-    const a = (k / 4) * Math.PI * 2 + dir;
-    const g = new THREE.CylinderGeometry(0.06, H * 0.05, H * 0.22, 5);
-    g.translate(0, H * 0.11, 0); g.rotateZ(1.05); g.rotateY(a); g.translate(p.x, p.y - 0.05, p.z);
-    parts.push(fill(g, bark));
+  // Wurzelanlauf: flache, kurze Wülste am Stammfuß
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * Math.PI * 2 + dir;
+    const g = new THREE.SphereGeometry(H * 0.06, 6, 4);
+    g.scale(2.2, 0.8, 1);
+    g.translate(H * 0.07, H * 0.02, 0); g.rotateY(a); g.translate(p.x, p.y, p.z);
+    parts.push(shadeY(g, bark, barkHi));
   }
   const cols = [0x7a2aaa, 0x5a1a8a, 0x9a3abf].map(C);
   for (let k = 0; k < 3; k++) {

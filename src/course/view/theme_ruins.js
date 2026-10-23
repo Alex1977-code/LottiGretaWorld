@@ -17,7 +17,7 @@ export const RUINS_THEME = {
   clouds: true,
   backdrop: 'ruins',
   ground: { color: 0xb89c64, y: -24 },
-  grassTop: 0x8ece4c, grassTop2: 0x7ebe44, grassRim: 0xbaea72, grassSide: 0x5c9c36,
+  grassTop: 0xa4c656, grassTop2: 0x96b84c, grassRim: 0xd8e690, grassSide: 0x6c983c,
   dirt: 0xe2be86, dirtDeep: 0xaa8250, rock: 0xd2ac7a, rockDeep: 0x8c6642,
   checker: false,
   stone: 0xf2deb2, stoneDark: 0xc2a272,

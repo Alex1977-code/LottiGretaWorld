@@ -16,7 +16,7 @@ export const CANYON_THEME = {
   clouds: false,
   backdrop: 'canyon',
   ground: { color: 0xd8985c, y: -34 },
-  grassTop: 0xbcc45c, grassTop2: 0xaeb652, grassRim: 0xe0e08e, grassSide: 0x808a36,
+  grassTop: 0x9ccc4e, grassTop2: 0x8ebe46, grassRim: 0xd2ea86, grassSide: 0x6a9a34,
   dirt: 0xc85c3a, dirtDeep: 0x8a3622, rock: 0xb86a48, rockDeep: 0x6a3424,
   checker: false,
   stone: 0xf0dab4, stoneDark: 0xc49c72,

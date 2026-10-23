@@ -221,40 +221,45 @@ function solidGeo(c) {
   for (const [sx, sz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
     parts.push(pad(sx ? 0.03 : 0.66, 0.66, sz ? 0.03 : 0.66, sx * 0.495, 0, sz * 0.495, mixc(base, top, 0.25, [0, 0, 0])));
   }
-  // Piep-Lampe: kleine Achteck-Scheibe oben und an den Seiten
-  const lampAt = (rx, rz, x, y, z) => {
-    const g = new THREE.CylinderGeometry(0.13, 0.15, 0.05, 8);
-    if (rx) g.rotateX(rx); if (rz) g.rotateZ(rz);
+  // Piep-Lampe: flache Achteck-Scheibe oben und an den vier Seiten (je 8 Dreiecke)
+  const lampAt = (rx, ry, x, y, z) => {
+    const g = new THREE.CircleGeometry(0.15, 8);
+    g.rotateX(-Math.PI / 2);
+    if (rx) g.rotateX(rx); if (ry) g.rotateY(ry);
     g.translate(x, y, z);
     return colorize(g, (p, n, o) => { o[0] = lamp[0]; o[1] = lamp[1]; o[2] = lamp[2]; });
   };
-  parts.push(lampAt(0, 0, 0, 0.52, 0));
-  parts.push(lampAt(Math.PI / 2, 0, 0, 0, 0.52), lampAt(Math.PI / 2, 0, 0, 0, -0.52));
-  parts.push(lampAt(0, Math.PI / 2, 0.52, 0, 0), lampAt(0, Math.PI / 2, -0.52, 0, 0));
+  parts.push(lampAt(0, 0, 0, 0.513, 0));
+  for (let k = 0; k < 4; k++) { const a = (k * Math.PI) / 2; parts.push(lampAt(Math.PI / 2, a, Math.sin(a) * 0.513, 0, Math.cos(a) * 0.513)); }
   return merge(parts);
 }
 
-/** Umriss (Einheitswürfel): zwölf Neon-Kanten (deckend) und eine Hauch-Füllung (Alpha 0,12) – Farben mit Alpha. */
+/** Umriss (Einheitswürfel): auf jeder Seite ein Neon-Rahmen (deckend, beidseitig sichtbar) und eine Hauch-Füllung (Alpha
+ *  0,13) – Farben mit Alpha (8 Dreiecke je Seite, 60 je Block). */
 function frameGeo(c) {
   const edge = lin(hex(c.edge)), fill = lin(hex(c.base));
-  const parts = [];
-  const bar = (w, h, d, x, y, z, col, a) => {
-    const g = new THREE.BoxGeometry(w, h, d).toNonIndexed();
-    g.translate(x, y, z);
-    g.deleteAttribute('uv');
-    const n = g.attributes.position.count, arr = new Float32Array(n * 4);
-    for (let i = 0; i < n; i++) { arr[i * 4] = col[0]; arr[i * 4 + 1] = col[1]; arr[i * 4 + 2] = col[2]; arr[i * 4 + 3] = a; }
-    g.setAttribute('color', new THREE.BufferAttribute(arr, 4));
-    return g;
+  const pos = [], col = [];
+  const quad = (a, b, cc, d, rgb, al) => {
+    for (const q of [a, b, cc, a, cc, d]) { pos.push(q[0], q[1], q[2]); col.push(rgb[0], rgb[1], rgb[2], al); }
   };
-  const t = 0.07, L = 0.98, hh = L / 2 - t / 2;
-  for (const a of [-1, 1]) for (const b of [-1, 1]) {
-    parts.push(bar(L, t, t, 0, a * hh, b * hh, edge, 0.95));
-    parts.push(bar(t, L, t, a * hh, 0, b * hh, edge, 0.95));
-    parts.push(bar(t, t, L, a * hh, b * hh, 0, edge, 0.95));
+  const H = 0.49, I = 0.41;
+  // Rahmen je Seite (Normale n, Achsen u, v): Außenquadrat H, Innenquadrat I
+  const faces = [[[1, 0, 0], [0, 0, 1], [0, 1, 0]], [[-1, 0, 0], [0, 0, -1], [0, 1, 0]], [[0, 1, 0], [1, 0, 0], [0, 0, -1]],
+    [[0, -1, 0], [1, 0, 0], [0, 0, 1]], [[0, 0, 1], [-1, 0, 0], [0, 1, 0]], [[0, 0, -1], [1, 0, 0], [0, 1, 0]]];
+  const P = (n, u, v, a, b, d = H) => [n[0] * d + u[0] * a + v[0] * b, n[1] * d + u[1] * a + v[1] * b, n[2] * d + u[2] * a + v[2] * b];
+  for (const [n, u, v] of faces) {
+    const o = [[-H, -H], [H, -H], [H, H], [-H, H]], i = [[-I, -I], [I, -I], [I, I], [-I, I]];
+    for (let k = 0; k < 4; k++) {
+      const k2 = (k + 1) % 4;
+      quad(P(n, u, v, ...o[k]), P(n, u, v, ...o[k2]), P(n, u, v, ...i[k2]), P(n, u, v, ...i[k]), edge, 0.95);
+    }
+    quad(P(n, u, v, -I, -I, 0.45), P(n, u, v, I, -I, 0.45), P(n, u, v, I, I, 0.45), P(n, u, v, -I, I, 0.45), fill, 0.13);
   }
-  parts.push(bar(0.9, 0.9, 0.9, 0, 0, 0, fill, 0.13));
-  return merge(parts);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
+  g.computeVertexNormals();
+  return g;
 }
 
 const _m = new THREE.Matrix4(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _q = new THREE.Quaternion();
@@ -278,7 +283,7 @@ class PiepView {
       if (!n) continue;
       const set = PIEP_COLORS[color];
       const solid = new THREE.InstancedMesh(solidGeo(set), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.38, metalness: 0.05, emissive: set.base, emissiveIntensity: 0.12 }), n);
-      const frame = new THREE.InstancedMesh(frameGeo(set), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false }), n);
+      const frame = new THREE.InstancedMesh(frameGeo(set), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide }), n);
       solid.castShadow = true; solid.receiveShadow = true;
       frame.castShadow = false; frame.renderOrder = 2;
       for (const m of [solid, frame]) {
@@ -330,6 +335,14 @@ class PiepView {
     }
     for (const set of touched) {
       for (const m of [set.solid, set.frame]) { m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
+    }
+    // Instanz-Meshes ohne sichtbare Blöcke gar nicht zeichnen (meist ist je Farbe nur einer der beiden Zustände da)
+    for (const color of ['rot', 'blau']) {
+      const set = this.meshes[color];
+      if (!set) continue;
+      let on = false, off = false;
+      for (const g of this.sys.groups.values()) if (g.color === color) { if (g.on || g.pop > 0) on = true; if (!g.on) off = true; }
+      set.solid.visible = on; set.frame.visible = off;
     }
   }
 }

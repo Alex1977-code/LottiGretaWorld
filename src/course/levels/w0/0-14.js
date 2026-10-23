@@ -53,8 +53,8 @@ export const LEVEL = {
       { kind: 'lautsprecher', pos: [-10, 1, -10], yaw: -0.4 },
       { kind: 'lautsprecher', pos: [10, 1, -10], yaw: Math.PI + 0.4 },
       { kind: 'antenne', pos: [-11.5, 1, -21], height: 6 },
-      { kind: 'antenne', pos: [11.5, 1, -34], height: 7, color: 0x40a0ff },
-      { kind: 'kabel', from: [-11.5, 7, -21], to: [11.5, 8, -34], sag: 2.5 },
+      { kind: 'antenne', pos: [-11.5, 1, -34], height: 7, color: 0x40a0ff },
+      { kind: 'kabel', from: [-11.5, 7, -21], to: [-11.5, 8, -34], sag: 1.6 },
     ] },
     { type: 'piep_block', id: 'pr', color: 'rot', pos: [0, 0, -14], size: [6, 1, 4] },
     { type: 'piep_block', id: 'pb', color: 'blau', pos: [0, 0, -18], size: [6, 1, 4] },
@@ -161,7 +161,7 @@ export const LEVEL = {
   stars: [
     [0, 6.4, -24],
     { pos: [6, 1.6, -194], hidden: true, id: 'stern_ring' },
-    [0, 5, -150],
+    [-9, 3, -144],
   ],
   goal: [0, 1, -269],
   marks: {
