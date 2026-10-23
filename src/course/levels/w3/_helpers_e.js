@@ -1963,7 +1963,8 @@ export function zugSetup(level) {
     sub.camera = (dt, player, world) => {
       const r = subCam(dt, player, world);
       const b = sub.boss, f = sub.frame ?? 0;
-      if (f > 0 && b && !['intro', 'defeated', 'flee'].includes(b.state)) {
+      // nur wenn der Archetyp selbst gerahmt hat (Boss sichtbar; sonst kehrt er vorher zurück)
+      if (f > 0 && b && b.visible && !['intro', 'defeated', 'flee', 'gone'].includes(b.state)) {
         const rig = level.view.rig;
         rig.target.x += f * f * (3 - 2 * f) * cfg.arena.x * 0.5;
         rig.place(rig.cur, dt);
