@@ -22,9 +22,21 @@
 //                                     Treppe zum Stempel-Sims, lange verschiebende Fliesenbrücke (slide), Zielmast.
 // Sterne (Index): 0 Wachturm (Krallen-Anzug), 1 Steinblock im Hackvogel-Ring (nicht besiegen – hacken lassen),
 //                 2 Krümels Hackvogel besiegen. Stempel: Sims über der Sandblock-Treppe vor der verschiebenden Brücke.
-// Kulisse sparsam (Budget): Kakteen ≈ 1,3–3,8 k Dreiecke je Stück, daher wenige und nah am Weg; Felstürme/Dünen billig.
+// Kulisse sparsam (Budget): Kakteen sparsam (≈ 0,4–0,8 k Dreiecke je Stück über `cacti`), Felstürme/Dünen billig.
+// Wüstenzier (LEVEL.setup, nur Optik, keine neue Kollision): Sanddecken mit weichen Flecken, Windstreifen und Rippeln,
+// Sandstein-Schichten an allen sichtbaren Wänden, Geröll und Grasbüschel am Wandfuß, Tierspuren, Tonkrüge, Knochen,
+// Muscheln, Stoffbahn, Wegweiser, Marktstand-Rest, Sonnenschirm, Wimpelmast, Vogelnest, Trittplatten, nasses Oasenufer
+// ohne Nahtlinien (Fugen-Abdeckungen), Hacklöcher und Federn der Hackvögel, Felstürme in Schichtfarben, Echsen an den
+// Wänden, ein Pillendreher am Ziel, Sandfall am Treibsand-Absturz; statische Meshes und die Fliesen-/Sandblock-
+// Instanzen je Bild per Quader ausgeblendet (Fern-Ausblendung, auch im Schattenpass).
 
-import { isl, line, ring, arc, column, blockRing, figure, bubble, farHide, shadowless, camel, tumbleweed } from './_helpers_a.js';
+import {
+  isl, line, ring, arc, column, blockRing, figure, bubble, farHide, shadowless, camel, tumbleweed,
+  islandBoxes, desertTops, recolorRocks, strataParts, rubbleParts, stoneParts, tuftParts, tuftSpots, rippleParts,
+  rippleFields, trackParts, peckParts, featherParts, seamParts, bankParts, jarParts, boneParts, shellParts, clothParts,
+  signpostParts, stallParts, parasolParts, pennantParts, flagstoneParts, reedParts, nestParts, cacti, lizard, beetle,
+  sandfall, bakeDeco, cullStatic,
+} from './_helpers_a.js';
 
 const Y = 1;           // Oberseite der Plateaus
 const CAM = { pitch: 43, dist: 13.5, fov: 40, area: [-40, 40] };
@@ -84,6 +96,167 @@ function wuestenLeben(level) {
   tumbleweed(level, [-8.6, Y, -147.6], [8.6, Y, -153.6], { speed: 3.4, pause: 6, phase: 2 });
 }
 
+// ------------------------------------------------------------------ Wüstenzier (level-lokale Kulisse, nur Optik)
+// Zusatzquader für Schichten/Sandfarben: Treibsandbecken und Sandstrom (Oberfläche y = 1), die Oase (Sandrand, wird
+// mit eingefärbt) und die Kletterwand vor dem Wachturm (verdeckt dessen Vorderseite).
+const POOL = { x0: 0, x1: 6, z0: -62.5, z1: -57.5, y: Y };
+const MOUNDS = [{ x: -6.2, z: -208.6, r: 3, h: 0.8, y: Y }, { x: 6.8, z: -205.4, r: 2.4, h: 0.6, y: Y }];
+const EXTRA_BOXES = [
+  { x0: -7, x1: 7, z0: -21, z1: -9, y0: -0.2, y1: Y },
+  { x0: -9, x1: 11, z0: -162, z1: -156, y0: -0.2, y1: Y },
+  { x0: -2, x1: 8, z0: -64.5, z1: -55.5, y0: Y - 2.6, y1: Y, tops: true, noRipples: true },
+  { x0: -10, x1: -4.4, z0: -1.6, z1: -1.0, y0: Y, y1: 7 },
+];
+// Kakteen (Formen und Kollision wie deco_w2 kaktus, Darstellung sparsam)
+const KAKTEEN = [
+  { pos: [-8.8, 1.8, 3.4], variant: 'saeule', size: 1.1, yaw: 0.6 },
+  { pos: [8.4, Y, -6.8], variant: 'feige', yaw: 2.1 },
+  { pos: [9.4, 6.4, -28.6], variant: 'gruppe', yaw: 4.0 },
+  { pos: [9.6, 1.6, -52.2], variant: 'gruppe', yaw: 1.2 },
+  { pos: [-1.8, Y, -85.8], variant: 'gruppe', size: 0.8, yaw: 5.1 },
+  { pos: [13.4, 10, -122], variant: 'feige', yaw: 0.9 },
+  { pos: [7.8, Y, -131.6], variant: 'saeule', yaw: 2.6 },
+  { pos: [7.6, Y, -148.6], variant: 'gruppe', yaw: 3.3 },
+  { pos: [3.6, Y, -164.6], variant: 'kugel', size: 0.8, yaw: 0.2 },
+  { pos: [12, 5.8, -173.4], variant: 'saeule', size: 0.8, yaw: 4.4 },
+  { pos: [-8, Y, -205.2], variant: 'saeule', size: 1.2, yaw: 1.7 },
+  { pos: [88, Y, 54.8], variant: 'gruppe', size: 0.8, yaw: 2.9 },
+];
+// Stellen, an denen keine Streu-Zier liegen soll (Spielobjekte, Figuren, vorhandene Kulisse): [x, z, r]
+const AVOID = [
+  [0, 5, 1.6], [-7, 6.6, 1.2], [-3.6, 0.4, 0.8], [-2.6, -7.2, 1.4], [8.2, 2.8, 1.4], [8.4, 5.6, 0.9], [12.8, -3.2, 1.6],
+  [3.4, -36.6, 1.6], [8.2, -33.2, 1.6], [1.6, -38.8, 0.8], [-8.6, -27.4, 1.1], [-8.8, -32.4, 1.1], [8.6, -23.2, 0.9],
+  [-6, -57.2, 1.6], [-7, -66.4, 1.2], [-8.2, -52, 1.2], [-13, -57, 1], [14.6, -57.4, 1.8], [15.2, -60.4, 1.2],
+  [1.9, -83.4, 1], [-6.6, -140.6, 1.1], [-5, -132.4, 1.2], [-7.4, -171.2, 1.6], [-5.4, -171.2, 1.2], [-6.6, -173.6, 1.5],
+  [-7.8, -164.2, 1.1], [-8.3, -170.2, 1.1], [-8.2, -168, 0.9], [3.4, -180.8, 0.8], [12, -176, 1.6], [6.7, -178.4, 2.2],
+  [-11.6, -176.4, 1.1], [0, -212, 2.2], [0, -217.4, 1.2], [-7.4, -212, 1], [-6.2, -208.6, 3.2], [6.8, -205.4, 2.6],
+  ...KAKTEEN.map((k) => [k.pos[0], k.pos[2], 0.9 * (k.size ?? 1)]),
+];
+const TUFTS = [
+  [-0.9, Y, -56.6, 1.1], [7.2, Y, -56.3], [-1.1, Y, -61.2, 0.9], [7.3, Y, -63.4, 1.2], [2.4, Y, -64.0], [5.2, Y, -56.1],
+  [-9.2, 1.8, 7.8], [6.9, 1.8, 8.3], [-8.4, 2, -35.2], [-6.1, 2, -26.6], [10.4, 6.4, -30.2], [-7.6, 7, -3.0],
+  [-2.2, Y, -86.2, 0.8], [8.3, Y, -145.2], [-8.4, Y, -136.4], [-8.6, Y, -158.0], [9.2, Y, -218.4], [-9.1, Y, -202.6],
+];
+const TRACKS = [
+  { kind: 'vogel', y: Y, path: [[7.8, -1.6], [7.1, -3.2], [6.3, -4.3], [5.9, -5.3]] },
+  { kind: 'vogel', y: Y, path: [[5.7, -63.2], [5.3, -64.6], [4.8, -66.4]] },
+  { kind: 'vogel', y: Y, path: [[-2.8, -133.4], [-1.9, -134.6], [-0.6, -135.6], [0.2, -136.4]] },
+  { kind: 'vogel', y: Y, path: [[6.8, -168.4], [5.9, -170.4], [4.9, -172.4]] },
+  { kind: 'huf', y: 3.5, path: [[15.6, 7.4], [14.6, 3.4], [13.7, 0.3], [13.1, -2.2]] },
+  { kind: 'huf', y: 4.5, path: [[16.2, -50.6], [15.7, -53.6], [14.9, -56.3]] },
+  { kind: 'huf', y: 4.5, path: [[16.4, -67.4], [15.9, -64.2], [15.4, -61.4]], scale: 0.6 },
+  { kind: 'echse', y: Y, path: [[-4.6, -203.2], [-3.2, -204.2], [-1.8, -203.4], [-0.6, -204.6], [0.8, -204.0]] },
+  { kind: 'echse', y: Y, path: [[5.6, -25.0], [6.4, -26.4], [7.6, -26.8], [8.6, -28.4]] },
+];
+// Fugen-Abdeckungen: wo gleich hohe Teilstücke aneinanderstoßen (Oase, Ring-Plateau/Schlussstück)
+const SEAMS = [
+  { x0: -2.32, x1: -1.68, z0: -69.8, z1: -50.2, y: Y },
+  { x0: -1.68, x1: 7.95, z0: -55.82, z1: -55.18, y: Y },
+  { x0: -1.68, x1: 7.95, z0: -64.82, z1: -64.18, y: Y },
+  { x0: -1.68, x1: -0.45, z0: -57.82, z1: -57.18, y: Y },
+  { x0: -1.68, x1: -0.45, z0: -62.82, z1: -62.18, y: Y },
+  { x0: 6.45, x1: 7.95, z0: -57.82, z1: -57.18, y: Y },
+  { x0: 6.45, x1: 7.95, z0: -62.82, z1: -62.18, y: Y },
+  { x0: -8.8, x1: 8.8, z0: -146.32, z1: -145.68, y: Y },
+];
+const JARS = [
+  { pos: [9.3, 1.8, 4.4], kind: 'amphore', yaw: 0.4 }, { pos: [9.55, 1.8, 3.55], kind: 'topf', yaw: 1.2, band: 0xe0443a },
+  { pos: [-5.2, 7, -8.2], kind: 'krug', lie: true, yaw: 2.2 },
+  { pos: [-6.0, 2, -34.8], kind: 'amphore', yaw: -0.6 }, { pos: [-5.75, 2, -33.9], kind: 'krug', size: 0.8, band: 0xffc21a },
+  { pos: [-9.3, 2, -35.4], kind: 'topf', broken: true, yaw: 0.8 },
+  { pos: [10.1, 6.4, -37.6], kind: 'krug', yaw: 0.3 },
+  { pos: [-9.3, Y, -53.4], kind: 'amphore', yaw: 1 }, { pos: [-8.75, Y, -54.3], kind: 'topf', lie: true, yaw: -0.4, band: 0xe0443a },
+  { pos: [1.9, Y, -85.9], kind: 'krug', size: 0.85, yaw: 2 },
+  { pos: [-7.7, Y, -142.3], kind: 'amphore', lie: true, yaw: 0.8, broken: true },
+  { pos: [-8.6, Y, -172.7], kind: 'krug', band: 0xffc21a, yaw: 0.5 },
+  { pos: [-8.5, Y, -215.6], kind: 'amphore', yaw: 2.4 }, { pos: [-7.8, Y, -216.5], kind: 'topf', yaw: 0.2 },
+  { pos: [8.4, Y, -215.6], kind: 'krug', lie: true, yaw: 1.1 },
+  // Bonusraum
+  { pos: [86.4, Y, 55.1], kind: 'amphore', yaw: 0.7 }, { pos: [93.9, Y, 55.2], kind: 'krug', lie: true, yaw: 2.6 },
+  { pos: [96.2, Y, 58.2], kind: 'topf', yaw: 1.9, band: 0xe0443a },
+];
+const BONES = [[-5.8, Y, -8.3, 0.6], [-12.6, 3, -66.2, 1.9], [7.4, Y, -143.6, 2.5], [6.2, Y, -211.2, -0.4, 0.9]];
+const SHELLS = [
+  { pos: [-3.9, Y, -3.4], kind: 'kamm', yaw: 0.3 }, { pos: [8.2, Y, -41.8], kind: 'schnecke', yaw: 1 },
+  { pos: [-1.0, Y, -63.8], kind: 'kamm', color: 0xffd6a0, yaw: 2 }, { pos: [3.6, Y, -216.6], kind: 'schnecke', yaw: 2.2 },
+  { pos: [-4.4, Y, -147.4], kind: 'kamm', yaw: 4 }, { pos: [6.6, Y, -153.6], kind: 'kamm', color: 0xffb0c8, yaw: 1.4 },
+];
+const CLOTHS = [
+  { from: [-8.6, 4.55, -27.4], to: [-8.8, 5.15, -32.4], sag: 0.55, w: 0.42 },
+  { from: [84.6, 3.2, 55.3], to: [95.4, 3.2, 55.3], sag: 0.8, w: 0.36, n: 18, colors: [0xffc21a, 0x2fb8b0, 0xe0443a, 0xfff6ee] },
+];
+const SIGNPOSTS = [{ pos: [2.1, Y, -52.1], arms: [{ yaw: 2.52, color: 0x2fb8b0, y: 1.5 }, { yaw: 1.68, color: 0xe0443a, y: 1.28 }, { yaw: -1.57, color: 0xffc21a, y: 1.06 }] }];
+const STALL = { pos: [-11.9, 3, -60.8], yaw: Math.PI / 2 };
+const PARASOL = { pos: [-8.3, Y, -174.4], r: 1.0, h: 2.0, tilt: 0.12 };
+const PENNANT = { pos: [-9.5, 7, -2.2], h: 1.8, yaw: 0.4 };
+const NEST = { pos: [-11.6, 7, -108.6], eggs: 3 };
+// Hackvögel, vor deren Schnabel Hacklöcher im Sand liegen (nicht auf den schmalen Säulen und im Steinring)
+const PECKERS = ['hv1', 'hv2', 'hv3', 'hv4', 'hv7', 'hv_kruemel', 'hv10'];
+// verlorene Hackvogel-Federn [x, y, z, Gier, Größe?, Farbe?]
+const FEATHERS = [
+  [6.9, Y, -4.4, 0.3], [3.3, Y, -68.9, 2.0, 0.9], [4.1, Y, -134.5, 0.6], [-0.5, Y, -140.3, 2.2, 0.9],
+  [3.7, Y, -142.5, 4.1, 1.1, 0x2f58c0], [-4.1, Y, -169.5, 1.2], [-5.9, Y, -173.1, 3.5, 0.8, 0x2f58c0],
+];
+const FLAGSTONES = [
+  { from: [-1.2, Y, 3], to: [1.4, Y, -7.6], n: 7 }, { from: [-2, Y, -22.4], to: [-1.2, Y, -34], n: 6 },
+  { from: [-0.6, Y, -131], to: [-1, Y, -145], n: 7 }, { from: [0, Y, -163], to: [0, Y, -170], n: 5 },
+];
+const REEDS = [[0.35, 0.8, -62.15, 1.2], [5.7, 0.8, -57.85, 1.1], [5.65, 0.8, -62.1, 1.3], [0.4, 0.8, -59.3, 0.9]];
+const SHORE_PAL = [0xe6dccb, 0xcdbfa6, 0xd9c9aa, 0xc2b49c, 0xb7c08a];
+const SHORE = [
+  [0.7, Y, -57.25, 0.24], [1.35, Y, -57.2, 0.17], [2.1, Y, -57.3, 0.2], [6.25, Y, -59.2, 0.22], [6.3, Y, -59.9, 0.16],
+  [6.2, Y, -60.6, 0.25], [-0.25, Y, -62.75, 0.22], [0.5, Y, -62.8, 0.16], [3.8, Y, -62.75, 0.2], [4.4, Y, -62.8, 0.14],
+];
+// Instanz-Gruppen, die sonst immer gezeichnet werden (beide Pässe): Fliesen der drei Brücken (seitlich verschoben,
+// kippend/fallend) und die Sandblöcke (Steg im Becken, Treppe zum Stempel-Sims)
+const CULL_GROUPS = [
+  { name: 'fliese:3x2x0.4', boxes: [[-4, -6, -100, 4, 2.6, -69.5], [-3.5, -2, -202.3, 3.5, 2.6, -181.5]] },
+  { name: 'instanzen:sandblock', boxes: [[3.6, -2, -20.6, 5.6, 2, -9.6], [4.6, -2, -179, 8.8, 5.6, -177.8]] },
+];
+// Echsen an den Wänden (Kopf nach oben, je ein Zeichenaufruf in der Nähe)
+const LIZARDS = [
+  { pos: [9.97, 2.4, -3.8], normal: [-1, 0, 0], dir: [0, 1, 0.3], phase: 0 },
+  { pos: [-6.2, -1.6, -49.97], normal: [0, 0, 1], dir: [1, 0.35, 0], phase: 2.5, color: 0x5fc0a0, scale: 1.8 },
+  { pos: [3.8, -2.2, -129.97], normal: [0, 0, 1], dir: [-0.3, 1, 0], phase: 4.2, scale: 1.8 },
+  { pos: [-4.6, -1.3, -201.77], normal: [0, 0, 1], dir: [1, 0.2, 0], phase: 1.3, color: 0x5fc0a0, scale: 1.8 },
+];
+
+function wuestenZier(level) {
+  const kakteen = cacti(level, KAKTEEN);
+  if (!level.view) return;
+  const boxes = islandBoxes(LEVEL.segments, EXTRA_BOXES);
+  const ctx = { boxes, pools: [POOL], mounds: MOUNDS };
+  desertTops(level, ctx);
+  recolorRocks(level, ctx, [[-5, -219.2, 5, -215.6]]);     // ohne den Sandsteinbogen am Ziel
+  const { parts: schichten, bases } = strataParts(boxes);
+  const flach = {
+    schichten,
+    buesche: tuftParts([...tuftSpots(bases, { avoid: AVOID, boxes }), ...TUFTS]),
+    rippel: rippleParts(rippleFields(ctx, { avoid: AVOID }), ctx),
+    spuren: [...trackParts(TRACKS, ctx), ...featherParts(FEATHERS), ...peckParts(LEVEL.enemies.filter((e) => PECKERS.includes(e.id)), ctx)],
+    ufer: [...seamParts(SEAMS, ctx), ...bankParts(POOL, ctx)],
+    platten: flagstoneParts(FLAGSTONES),
+  };
+  const schatten = {
+    kakteen,
+    geroell: rubbleParts(bases, { avoid: AVOID, boxes }),
+    kruege: [...jarParts(JARS), ...boneParts(BONES), ...shellParts(SHELLS)],
+    stoff: [...clothParts(CLOTHS), ...signpostParts(SIGNPOSTS), ...stallParts(STALL), ...parasolParts(PARASOL), ...pennantParts(PENNANT), ...nestParts(NEST)],
+    oase: [...reedParts(REEDS), ...stoneParts(SHORE, 13, SHORE_PAL, 0.55)],
+  };
+  // Kennzahlen (Dreiecke je Gruppe) für Tests und Fehlersuche
+  const tri = (list) => Math.round(list.reduce((a, g) => a + (g ? g.attributes.position.count / 3 : 0), 0));
+  level.zier = {};
+  for (const [k, list] of [...Object.entries(flach), ...Object.entries(schatten)]) level.zier[k] = tri(list);
+  bakeDeco(level, Object.values(schatten).flat());
+  bakeDeco(level, Object.values(flach).flat(), { cast: false, chunk: 32 });
+  cullStatic(level, { groups: CULL_GROUPS });
+  for (const L of LIZARDS) lizard(level, L.pos, L);
+  beetle(level, [3.4, Y, -209.4], [6.2, Y, -210.9], { phase: 1 });
+  // der fließende Treibsand stürzt rechts über die Kante in die Schlucht
+  sandfall(level, { x: 11, z0: -161.9, z1: -156.1, y: Y, drop: 10, out: 1 });
+}
+
 export const LEVEL = {
   id: '2-1',
   world: 2,
@@ -94,9 +267,11 @@ export const LEVEL = {
   timeLimit: 400,
   start: { pos: [0, Y, 5], yaw: Math.PI / 2 },
   killY: -12,
-  // level-lokaler Code (Level-Haken): ferne Kulisse ohne Sonnenschatten, Krümels Szene, Wüstenleben, Fernsicht für Gegner
+  // level-lokaler Code (Level-Haken): ferne Kulisse ohne Sonnenschatten, Wüstenzier (nur Optik), Krümels Szene,
+  // Wüstenleben, Fernsicht für Gegner
   setup(level) {
     shadowless(level, FAR);
+    wuestenZier(level);
     kruemelSzene(level);
     wuestenLeben(level);
     farHide(level, ['hackvogel', 'brummer'], 46);
@@ -140,8 +315,6 @@ export const LEVEL = {
     { type: 'sign', pos: [-2.6, Y, -7.2], text: 'Vorsicht,\nTreibsand!' },
     { type: 'deco_w2', items: [
       { kind: 'palme', pos: [8.4, 1.8, 5.6], height: 4.8, lean: 0.3, sway: true },
-      { kind: 'kaktus', pos: [-8.8, 1.8, 3.4], variant: 'saeule', size: 1.1 },
-      { kind: 'kaktus', pos: [8.4, Y, -6.8], variant: 'feige' },
       { kind: 'ruine', pos: [-7.4, 7, -7.4], height: 1.6 },
       { kind: 'felsen', pos: [-14, 5, 0], size: [5, 16], n: 3, height: [1.5, 4], solid: true },
       { kind: 'felsen', pos: [14, 3.5, 2], size: [5, 12], n: 3, height: [1.2, 3.5], solid: true },
@@ -149,7 +322,6 @@ export const LEVEL = {
       { kind: 'felsen', pos: [10.4, 4, -17], size: [4, 6], n: 2, height: [1, 2.5] },
     ] },
     { type: 'deco_w1', items: [
-      { kind: 'pebbles', from: [-1.2, Y, 3], to: [1.4, Y, -7.6], n: 7, size: 0.3 },
       { kind: 'sign', pos: [-3.6, Y, 0.4], arrow: 'left', yaw: 0.3 },
       { kind: 'picnic', pos: [8.2, 1.8, 2.8], yaw: -0.4, size: [1.4, 1] },
     ] },
@@ -167,14 +339,12 @@ export const LEVEL = {
     { type: 'deco_w2', items: [
       { kind: 'ruine', pos: [-8.6, 2, -27.4], height: 2.8 },
       { kind: 'ruine', pos: [-8.8, 2, -32.4], height: 3.2, broken: false },
-      { kind: 'kaktus', pos: [9.4, 6.4, -28.6], variant: 'gruppe' },
       { kind: 'palme', pos: [8.6, Y, -23.2], height: 4 },
       { kind: 'felsen', pos: [-13.6, 6, -32], size: [5, 20], n: 4, height: [1.5, 5], solid: true },
       { kind: 'felsen', pos: [14, 4, -32], size: [5, 20], n: 3, height: [1.5, 4], solid: true },
     ] },
     { type: 'deco_w1', items: [
       { kind: 'sign', pos: [1.6, Y, -38.8], arrow: 'up', yaw: -0.2 },
-      { kind: 'pebbles', from: [-2, Y, -22.4], to: [-1.2, Y, -34], n: 6, size: 0.3 },
     ] },
     // Felssäule über der Schlucht (z −44 … −50)
     pillar(-1.6, 1.6, -45.4, -48.6),
@@ -191,7 +361,6 @@ export const LEVEL = {
       { kind: 'ruine', pos: [-7, Y, -66.4], height: 1.1, broken: true },
       { kind: 'ruine', pos: [-8.2, Y, -52], height: 3 },
       { kind: 'palme', pos: [-13, 3, -57], height: 4.6 },
-      { kind: 'kaktus', pos: [9.6, 1.6, -52.2], variant: 'gruppe' },
       { kind: 'felsen', pos: [14, 4.5, -56], size: [4, 10], n: 2, height: [1.5, 3.5], solid: true },
     ] },
     { type: 'deco_w1', items: [
@@ -207,7 +376,6 @@ export const LEVEL = {
     cliff(-18, -11, -70, -100, 9),
     cliff(11, 18, -70, -100, 6),
     { type: 'deco_w2', items: [
-      { kind: 'kaktus', pos: [-1.8, Y, -85.8], variant: 'gruppe', size: 0.8 },
       { kind: 'ruine', pos: [1.9, Y, -83.4], height: 2.2, scale: 0.8 },
       { kind: 'felsen', pos: [-14.5, 9, -84], size: [5, 26], n: 5, height: [1.5, 5], solid: true },
       { kind: 'felsen', pos: [14.5, 6, -84], size: [5, 26], n: 4, height: [1.5, 4], solid: true },
@@ -230,13 +398,8 @@ export const LEVEL = {
     { type: 'deco_w2', items: [
       { kind: 'felsen', pos: [-14, 7, -116], size: [5, 26], n: 4, height: [1.5, 5], solid: true },
       { kind: 'felsen', pos: [14, 10, -114], size: [5, 26], n: 4, height: [1.5, 5], solid: true },
-      { kind: 'kaktus', pos: [13.4, 10, -122], variant: 'feige' },
       { kind: 'ruine', pos: [-6.6, Y, -140.6], height: 2.6 },
-      { kind: 'kaktus', pos: [7.8, Y, -131.6], variant: 'saeule' },
       { kind: 'felsen', pos: [-12.5, 5, -138], size: [4, 12], n: 2, height: [1.5, 3] },
-    ] },
-    { type: 'deco_w1', items: [
-      { kind: 'pebbles', from: [-0.6, Y, -131], to: [-1, Y, -145], n: 7, size: 0.3 },
     ] },
 
     // =============================================================== 6  Schlussstück
@@ -259,17 +422,13 @@ export const LEVEL = {
     cliff(15, 21, -146, -170, 3),
     { type: 'deco_w2', items: [
       { kind: 'felsen', pos: [-12, 4, -152], size: [4, 10], n: 3, height: [1.2, 3.5], solid: true },
-      { kind: 'kaktus', pos: [7.6, Y, -148.6], variant: 'gruppe' },
       { kind: 'ruine', pos: [-7.8, Y, -164.2], height: 2.8 },
       { kind: 'ruine', pos: [-8.3, Y, -170.2], height: 1.6 },
       { kind: 'palme', pos: [-8.2, Y, -168], height: 4.4, lean: 0.35, sway: true },
-      { kind: 'kaktus', pos: [3.6, Y, -164.6], variant: 'kugel', size: 0.8 },
-      { kind: 'kaktus', pos: [12, 5.8, -173.4], variant: 'saeule', size: 0.8 },
       { kind: 'ruine', pos: [-11.6, 5, -176.4], height: 2.2 },
       { kind: 'felsen', pos: [18, 3, -158], size: [4, 18], n: 3, height: [2, 6] },
       { kind: 'bogen', pos: [0, Y, -217.4], width: 7.4, height: 5.2, yaw: Math.PI / 2 },
       { kind: 'palme', pos: [-7.4, Y, -212], height: 4.6, sway: true },
-      { kind: 'kaktus', pos: [-8, Y, -205.2], variant: 'saeule', size: 1.2 },
       { kind: 'felsen', pos: [13, 4, -210], size: [4, 16], n: 3, height: [1.5, 4], solid: true },
     ] },
     { type: 'deco_w1', items: [
@@ -277,7 +436,6 @@ export const LEVEL = {
       { kind: 'sign', pos: [3.4, Y, -180.8], arrow: 'up' },
       { kind: 'bunting', from: [-3.3, 6, -217.4], to: [3.3, 6, -217.4], sag: 0.6 },
       { kind: 'bunting', from: [-7.4, 4.2, -212], to: [-1.4, 4.6, -209.6], sag: 0.5 },
-      { kind: 'pebbles', from: [0, Y, -163], to: [0, Y, -170], n: 5, size: 0.3 },
     ] },
 
     // =============================================================== Bonusraum (Goldröhre, abseits bei x ≈ 90, z ≈ 60)
@@ -287,7 +445,6 @@ export const LEVEL = {
     { type: 'deco_w2', items: [
       { kind: 'ruine', pos: [84.6, Y, 55.4], height: 2.4 },
       { kind: 'ruine', pos: [95.4, Y, 55.4], height: 2.4 },
-      { kind: 'kaktus', pos: [88, Y, 54.8], variant: 'gruppe', size: 0.8 },
     ] },
   ],
   blocks: [
