@@ -278,7 +278,9 @@ function route32() {
   return { log, finished: c.finished, dead: p.dead, time: +L.time.toFixed(1), deaths: L.runtime.deaths ?? null, pushes: t.arch().pushes };
 }
 
-async function test32() {
+const stage = (b, n) => b.log.find((x) => x.n === n) ?? {};
+
+async function test32a() {
   console.log('\n3-2 „Gitterbahn über den Wolken“');
   await load('3-2', { fresh: true });
   check('3-2: Laden ohne Konsolenfehler/Warnungen', errors.length === 0);
@@ -313,7 +315,6 @@ async function test32() {
   await load('3-2', { hero: 'lotti' });
   const botL = await sc(route32);
   console.log(`  Bot Lotti: ${JSON.stringify(botL.log.map((x) => [x.n, x.s, x.pos, x.mode, x.fence ?? x.ok ?? '']))}`);
-  const stage = (b, n) => b.log.find((x) => x.n === n) ?? {};
   check(`3-2 Lotti: Zaunbahn (Schiebeplattform, Hubzaun, Bröckelbrücke, Querplattform, Warp-Box durchs Gittertor)`, stage(botL, 'hubzaun').ok && stage(botL, 'p2').ok && stage(botL, 'warp1').ci && !stage(botL, 'warp1').dead);
   check(`3-2 Lotti: Kletterturm an fahrenden Zäunen (${['k1', 'k2', 'k3', 'k4', 'k5'].map((n) => stage(botL, n).fence).join(' → ')}) bis zum Gipfelsims`, ['k1', 'k2', 'k3', 'k4', 'k5'].every((n) => stage(botL, n).fence === n) && stage(botL, 'gipfel').y > 37);
   check(`3-2 Lotti: Glasrohr, Wolken, Schiebezäune (${['sz1', 'sz2', 'sz3'].map((n) => stage(botL, n).fence).join(', ')}), Endstation, Zielinsel, Zielmast (${botL.time} s)`, stage(botL, 'glasrohr').y > 43 && ['sz1', 'sz2', 'sz3'].every((n) => stage(botL, n).fence === n) && botL.finished && !botL.dead);
@@ -327,6 +328,11 @@ async function test32() {
   check(`3-2 Greta: ganze Route Start → Zielmast (Zäune ${['k1', 'k2', 'k3', 'k4', 'k5', 'sz1', 'sz2', 'sz3'].filter((n) => stage(botG, n).fence === n).length}/8, ${botG.time} s)`,
     botG.finished && !botG.dead && ['k1', 'k2', 'k3', 'k4', 'k5', 'sz1', 'sz2', 'sz3'].every((n) => stage(botG, n).fence === n));
 
+}
+
+async function test32b() {
+  console.log('\n3-2 (Sterne, Stempel, Einklemmen, Checkpoint, 1-Up)');
+  let r;
   // Stern 1: Ringbahn durch zwei Goldringe, vom Plattformzaun abspringen
   await load('3-2', { hero: 'greta' });
   r = await sc(() => {
@@ -557,6 +563,10 @@ async function test32() {
     t.place([104, 30, -70], { invuln: 1e9, settle: 4 });
   });
 
+}
+
+async function test32c() {
+  console.log('\n3-2 (Bilder und Kennzahlen je Abschnitt)');
   // Bilder und Kennzahlen je Abschnitt
   await load('3-2', { hero: 'lotti' });
   const SECTIONS = [
@@ -627,7 +637,7 @@ function route36(upper) {
   return { log, finished: c.finished, dead: p.dead, time: +L.time.toFixed(1) };
 }
 
-async function test36() {
+async function test36a() {
   console.log('\n3-6 „Gipfelflitzer-Rennen“');
   await load('3-6', { fresh: true });
   check('3-6: Laden ohne Konsolenfehler/Warnungen', errors.length === 0);
@@ -655,7 +665,6 @@ async function test36() {
   await load('3-6', { hero: 'lotti' });
   const botL = await sc(route36, false);
   console.log(`  Bot Lotti: ${JSON.stringify(botL.log.map((x) => [x.n, x.pos, x.star1 ?? x.gs ?? x.cp ?? '']))}`);
-  const stage = (b, n) => b.log.find((x) => x.n === n) ?? {};
   check(`3-6 Lotti: Sprungfelder landen genau auf dem Ziel (z ${stage(botL, 'sf1').z}, ${stage(botL, 'sf2').z}, ${stage(botL, 'sf3').z}, ${stage(botL, 'sf4').z}; Ziel −30,4 / −48,6 / −185 / −203)`,
     near(stage(botL, 'sf1').z, -30.4, 0.15) && near(stage(botL, 'sf2').z, -48.6, 0.15) && near(stage(botL, 'sf3').z, -185, 0.15) && near(stage(botL, 'sf4').z, -203, 0.15));
   check(`3-6 Lotti: Boost-Pfeil bringt ${stage(botL, 'boost').gs} m/s`, stage(botL, 'boost').gs >= 15.5);
@@ -670,6 +679,11 @@ async function test36() {
   console.log(`  Bot Greta: ${JSON.stringify(botG.log.map((x) => [x.n, x.pos]))}`);
   check(`3-6 Greta: obere Straße (y ${stage(botG, 'oben').y}) → Hang → Zielmast (${botG.time} s)`, stage(botG, 'oben').y > 3.9 && botG.finished && !botG.dead);
 
+}
+
+async function test36b() {
+  console.log('\n3-6 (Grube, Sterne, Stempel, 1-Up)');
+  let r;
   // Grubentrampolin: wer neben dem Sprungfeld in die Lücke fällt, hüpft aufs Trampolin und wieder heraus
   await load('3-6', { hero: 'lotti' });
   r = await sc(() => {
@@ -792,6 +806,10 @@ async function test36() {
     t.place([-40, 32, -233], { invuln: 1e9, settle: 4 });
   });
 
+}
+
+async function test36c() {
+  console.log('\n3-6 (Bilder und Kennzahlen je Abschnitt)');
   // Bilder und Kennzahlen je Abschnitt
   await load('3-6', { hero: 'lotti' });
   const SECTIONS = [
@@ -809,13 +827,15 @@ async function test36() {
   }
 }
 
-if (which === '3-2' || which === 'all') await test32();
-if (which === '3-6' || which === 'all') await test36();
+// Teilläufe (je < 10 min unter Last): 3-2a Laden/Fenster/Routen, 3-2b Sterne/Stempel/Einklemmen/Checkpoint/1-Up,
+// 3-2c Bilder je Abschnitt; 3-6a/b/c ebenso. '3-2', '3-6' bzw. 'all' = alles.
+const PARTS = { '3-2a': test32a, '3-2b': test32b, '3-2c': test32c, '3-6a': test36a, '3-6b': test36b, '3-6c': test36c };
+for (const [k, fn] of Object.entries(PARTS)) if (which === 'all' || which === k || which === k.slice(0, 3)) await fn();
 
 console.log('\nKennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke):');
 for (const [n, calls, tri] of stats) console.log(`  ${n.padEnd(24)} ${String(calls).padStart(4)}  ${(tri / 1000).toFixed(0).padStart(4)} k`);
-const maxCalls = Math.max(...stats.map((s) => s[1])), maxTri = Math.max(...stats.map((s) => s[2]));
-check(`Budget: höchstens ${maxCalls} Zeichenaufrufe (< 120) und ${(maxTri / 1000).toFixed(0)} k Dreiecke (< 300 k) an allen Stellen`, maxCalls < 120 && maxTri < 300000);
+const maxCalls = Math.max(0, ...stats.map((s) => s[1])), maxTri = Math.max(0, ...stats.map((s) => s[2]));
+if (stats.length) check(`Budget: höchstens ${maxCalls} Zeichenaufrufe (< 120) und ${(maxTri / 1000).toFixed(0)} k Dreiecke (< 300 k) an allen Stellen`, maxCalls < 120 && maxTri < 300000);
 
 const ok = summary(errors);
 await browser.close();
