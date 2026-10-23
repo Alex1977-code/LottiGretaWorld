@@ -83,7 +83,7 @@ export function snowGround(b, base, theme, rnd) {
   const parts = [];
   if (style === 'pastel' || style === 'autumn') {
     const ps = islandParts(x0, base, z0, x1, top, z1, { ...theme, ...(style === 'pastel' ? PASTEL : AUTUMN) }, { under: 0, rnd, top: 'grass', cell: 2 });
-    flat(ps[ps.length - 1]);   // Raster obenauf: kein Schattenwurf
+    flat(dustEdges(ps[ps.length - 1], x0, z0, x1, z1));   // Raster obenauf: Puderschnee am Rand, kein Schattenwurf
     return ps;
   }
   if (style === 'lakebed') {
@@ -240,6 +240,22 @@ function snowCap(parts, x0, y0, z0, x1, y1, z1, rnd, b) {
     }
     parts.push(flat(bb.geometry()));
   }
+}
+
+/** Puderschnee: Vertexfarben zum Rand hin fleckig ins Weiße ziehen (Pastell-Garten, Herbstwald – es ist Winter). */
+function dustEdges(g, x0, z0, x1, z1, w = 1.8) {
+  const P = g?.attributes.position, C = g?.attributes.color;
+  if (!P || !C) return g;
+  const sn = lin(0xf2f6fb);
+  for (let i = 0; i < P.count; i++) {
+    const x = P.getX(i), z = P.getZ(i);
+    const e = Math.min(x - x0, x1 - x, z - z0, z1 - z);
+    if (e >= w) continue;
+    const t = Math.max(0, 1 - e / w) * (0.35 + 0.6 * hash2(Math.floor(x / 1.5), Math.floor(z / 1.5)));
+    C.setXYZ(i, C.getX(i) + (sn[0] - C.getX(i)) * t, C.getY(i) + (sn[1] - C.getY(i)) * t, C.getZ(i) + (sn[2] - C.getZ(i)) * t);
+  }
+  C.needsUpdate = true;
+  return g;
 }
 
 /** Schneedecke als Raster mit weichen Farbverläufen je Ecke (keine Kacheln): sanfte Wellen, bläuliche Mulden, Glitzer. */
