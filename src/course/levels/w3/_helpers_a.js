@@ -814,7 +814,7 @@ export function mosaic(level, x0, x1, zA, zB, y, o = {}) {
   const P = [];
   let k = 0;
   for (let x = x0; x < x1 - 0.01; x += cell) for (let z = z0; z < z1 - 0.01; z += cell) {
-    const c = cols[(Math.floor(x / cell) * 7 + Math.floor(z / cell) * 3 + (k++ % 2)) % cols.length];
+    const c = cols[(((Math.floor(x / cell) * 7 + Math.floor(z / cell) * 3 + (k++ % 2)) % cols.length) + cols.length) % cols.length];
     const g = new THREE.PlaneGeometry(Math.min(cell, x1 - x) - 0.06, Math.min(cell, z1 - z) - 0.06).toNonIndexed();
     g.rotateX(-Math.PI / 2);
     g.translate(x + Math.min(cell, x1 - x) / 2, y + 0.012, z + Math.min(cell, z1 - z) / 2);

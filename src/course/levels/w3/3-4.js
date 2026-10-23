@@ -108,7 +108,7 @@ export const LEVEL = {
     lawn(-6, 6, 8, -6.5, Y),
     { type: 'sign', pos: [-3.6, Y, 6.4], text: 'Marzipangarten', size: [2.8, 0.9] },
     // unsichtbarer Wolkenlift direkt hinter dem Start (bündig an der Hinterkante)
-    { type: 'wolkenlift', id: 'wl_start', pos: [0, Y - 0.55, 9.5], width: 2.6, path: [[0, Y + 9.4, 9.5]], speed: 2.4, reveal: 'touch', wait: 0.3 },
+    { type: 'wolkenlift', id: 'wl_start', pos: [0, Y - 0.55, 8.95], width: 2.6, path: [[0, Y + 9.4, 8.95]], speed: 2.4, reveal: 'touch', wait: 0.3 },
     { type: 'hecken_hase', pos: [4.4, Y, 4.2], yaw: -Math.PI / 2 - 0.5, scale: 0.8 },
     glider('mA', -9.6, -3.4, 3.4),
     glider('mB', -14, 3.4, -3.4),
@@ -144,7 +144,7 @@ export const LEVEL = {
     { type: 'cloudcannon', id: 'kanone', pos: [11.5, Y, -68.4], target: [0, YH, -77], arc: 4 },
     glider('m1', -75.5, -4, 4, { size: [3.6, 0.5, 3.6], speed: 1.8 }),
     glider('m2', -80.5, 4, -4, { size: [3.6, 0.5, 3.6], speed: 1.8 }),
-    glider('m3', -85.5, -4, 4, { size: [3.6, 0.5, 3.6], speed: 1.8, phase: 0.35 }),
+    glider('m3', -85.5, -4, 4, { size: [3.6, 0.5, 3.6], speed: 1.8 }),
     lawn(-7, 7, -89, -96, Y),
     // Münzhimmel: Wolkenweg hoch über der Strecke, am Ende Stern 2; zurück durch einen Sprung in die Tiefe
     { type: 'cloud', pos: [0, YH - 0.6, -77], size: [4, 0.6, 4] },
@@ -191,11 +191,11 @@ export const LEVEL = {
     // Schnappblumen (3) im Topf auf den Schwebeplattformen
     { kind: 'schnappblume', id: 'sb1', pos: [-4, Y, -75.5], base: 'pot', yaw: -Math.PI / 2 },
     { kind: 'schnappblume', id: 'sb2', pos: [4, Y, -80.5], base: 'pot', yaw: -Math.PI / 2 },
-    { kind: 'schnappblume', id: 'sb3', pos: [-1.2, Y, -85.5], base: 'pot', yaw: -Math.PI / 2 },
+    { kind: 'schnappblume', id: 'sb3', pos: [-4, Y, -85.5], base: 'pot', yaw: -Math.PI / 2 },
   ],
   items: [
     // Hinweis: drei Münzen schweben über dem unsichtbaren Wolkenlift
-    line([0, Y + 0.7, 7.2], [0, Y + 0.7, 10.2], 3),
+    line([0, Y + 0.7, 7.0], [0, Y + 0.7, 9.6], 3),
     line([0, Y + 0.7, 1], [0, Y + 0.7, -4], 3),
     ...arc([0, Y + 0.6, -7.4], [0, Y + 0.6, -16], 4, 1.4),
     { kind: 'bunny', id: 'hase', pos: [3, Y, -41.5], area: { pos: [2.6, Y, -41.6], r: 5.4 }, reward: starHere(1) },
@@ -213,7 +213,7 @@ export const LEVEL = {
     line([0, Y + 0.6, -88.4], [0, Y + 0.6, -94], 3),
   ],
   stars: [
-    [0, Y + 11.1, 9.5],                                                   // 0: auf dem unsichtbaren Wolkenlift
+    [0, Y + 10.7, 8.95],                                                  // 0: auf dem unsichtbaren Wolkenlift
     { pos: [3, Y + 1, -41.5], hidden: true, id: 'stern_hase' },          // 1: Hase
     [-2.6, YH + 0.6, -101.5],                                             // 2: Münzhimmel
   ],
@@ -221,7 +221,7 @@ export const LEVEL = {
   goal: { pos: [0, YT, -112.6], height: 8 },
   marks: {
     start: [0, Y, 4],
-    lift: [0, Y, 9.5],
+    lift: [0, Y, 8.95],
     gliders: [0, Y, -6],
     hare: [3, Y, -41.5],
     switches: [-8.2, Y, -42.5],

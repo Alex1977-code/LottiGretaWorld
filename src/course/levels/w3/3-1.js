@@ -30,11 +30,11 @@ const CAM = { pitch: 44, dist: 13, fov: 40 };
 
 // Schneebaum am Zielplateau (Krone begehbar, Ast-Stufen) und Felsnische
 const TREE = {
-  x: 7, z: -186, top: 8.9, r: 2.2,
+  x: 7, z: -186, top: 8.6, r: 2.2,
   // Ast-Stufen um den Stamm (dx, dz, Oberseite): je ≈ 3,2 m auseinander, 1,6 m höher
-  steps: [[3.0, 1.1, Y + 1.6], [2.45, -2.06, Y + 3.2], [-0.56, -3.15, Y + 4.8], [-3.29, -1.2, Y + 6.4]],
+  steps: [[3.0, 1.1, Y + 1.6], [2.45, -2.06, Y + 3.1], [-0.56, -3.15, Y + 4.6], [-3.29, -1.2, Y + 6.1]],
 };
-const NICHE = { x0: -12, x1: -9, z0: -183, z1: -186.6, y: 8 };
+const NICHE = { x0: -12.4, x1: -9, z0: -182.8, z1: -186.8, y: 8, h: 3.4, top: 14 };
 const HOLE = { x0: 12, x1: 15.4, z0: -75.6, z1: -79.4, y: 4 };
 
 function scene(level) {
@@ -68,7 +68,7 @@ function scene(level) {
   seals(level, [{ pos: [11.4, Y, -120], yaw: Math.PI + 0.3, phase: 0.2 }, { pos: [-11.6, Y, -137], yaw: -0.5, phase: 2.1 }]);
   // ---------------- Zielplateau: Schneebaum, Nische
   snowTree(level, TREE.x, Y, TREE.z, { top: TREE.top, r: TREE.r, lights: true, steps: TREE.steps.map(([dx, dz, y]) => [dx, dz, y, 0.95]) });
-  icicleFringe(level, NICHE.x1 + 0.02, NICHE.z0, NICHE.x1 + 0.02, NICHE.z1, NICHE.y + 2.6, { len: 0.5, density: 3 });
+  icicleFringe(level, NICHE.x1 + 0.02, NICHE.z0, NICHE.x1 + 0.02, NICHE.z1, NICHE.y + NICHE.h, { len: 0.5, density: 3 });
   crystals(level, [[-11.5, NICHE.y, -183.6, 1, 0x9ff0ff]]);
   icicleFringe(level, -16, -199.9, 16, -199.9, Y + 9, { len: 0.9, density: 1.2 });
   // ---------------- Baumhain
@@ -224,10 +224,10 @@ export const LEVEL = {
     snow(-9, 14, -174, -200, Y, 4),
     // Felswand links mit Nische (x −12 … −9, Boden y 8), Kletterwand darunter
     isl(-16, -9, -168, -204, NICHE.y, 11, { top: 'grass' }),
-    isl(-16, -9, -168, NICHE.z0, Y + 11, 4, { top: 'grass' }),
-    isl(-16, -9, NICHE.z1, -204, Y + 11, 4, { top: 'grass' }),
-    isl(-16, -9, NICHE.z0, NICHE.z1, Y + 11, 1.4, { top: 'grass' }),
-    isl(-16, NICHE.x0, NICHE.z0, NICHE.z1, NICHE.y + 2.6, 2.6, { top: 'none' }),
+    isl(-16, -9, -168, NICHE.z0, NICHE.top, NICHE.top - NICHE.y, { top: 'grass' }),
+    isl(-16, -9, NICHE.z1, -204, NICHE.top, NICHE.top - NICHE.y, { top: 'grass' }),
+    isl(-16, -9, NICHE.z0, NICHE.z1, NICHE.top, NICHE.top - NICHE.y - NICHE.h, { top: 'grass' }),
+    isl(-16, NICHE.x0, NICHE.z0, NICHE.z1, NICHE.y + NICHE.h, NICHE.h, { top: 'none' }),
     { type: 'wall', pos: [-8.8, Y, -184.8], size: [0.4, NICHE.y - Y, 3.6], climbable: true },
     // hohe Felswand hinter dem Plateau (verdeckt den Baumhain)
     isl(-16, 16, -200, -206, Y + 9, 13, { top: 'grass' }),
@@ -290,7 +290,7 @@ export const LEVEL = {
     { kind: 'pilzling', mini: true, pos: [10, Y, -192], path: [[8, Y, -192], [12, Y, -192]] },
     { kind: 'pilzling', mini: true, pos: [6, Y, -238], behavior: 'chase', sight: 5 },
     // Krabbelkäfer (7): Kegelbahn am Start (3), Reihe im Baumhain (4)
-    { kind: 'krabbelkaefer', id: 'kk_start', path: [[4.6, Y, -27.6], [9, Y, -27.6], [9, Y, -32.4], [4.6, Y, -32.4]], count: 3, spacing: 6.1, color: 'red' },
+    { kind: 'krabbelkaefer', id: 'kk_start', path: [[6.8, Y, -27], [6.8, Y, -35]], count: 3, spacing: 2.2, speed: 1.6, color: 'red' },
     { kind: 'krabbelkaefer', id: 'kk_hain', path: [[-8, Y, -235], [-3.6, Y, -235], [-3.6, Y, -244], [-8, Y, -244]], count: 4, spacing: 2.2, color: 'yellow' },
   ],
   items: [
