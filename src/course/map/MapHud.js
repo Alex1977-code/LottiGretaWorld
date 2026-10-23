@@ -14,7 +14,7 @@ import Phaser from 'phaser';
 import * as THREE from 'three';
 import { GAME, HERO_VARIANTS } from '../../config.js';
 import { setupUiCamera, fit } from '../../render.js';
-import { uiText, uiPanel, uiButton } from '../../ui.js';
+import { uiText, uiPanel, uiButton, drawHeart } from '../../ui.js';
 import { CourseTouch } from '../input/CourseTouch.js';
 import { getPower } from '../player/powers.js';
 import { courseSave } from '../level/CourseSave.js';
@@ -176,9 +176,7 @@ export class MapHud {
     this.totalIcon.fillStyle(0x3ee05a, 1); this.totalIcon.fillPoints(tp, true);
     const g = this.icons;
     g.clear();
-    g.fillStyle(0xffd6b0, 1); g.fillCircle(19, 15, 6.5);
-    g.fillStyle(HERO_HAIR[s.player?.hero ?? 'lotti'] ?? 0xc8963c, 1); g.slice(19, 14, 7, Math.PI, 0, false); g.fillPath();
-    g.fillStyle(0x2a2550, 1); g.fillCircle(17, 16, 0.9); g.fillCircle(21, 16, 0.9);
+    drawHeart(g, 19, 15, 6.5);                     // Leben: rotes Herz
     g.fillStyle(0xf7931a, 1); g.fillCircle(67, 15, 7);
     g.lineStyle(1, 0xffe0b0, 1); g.strokeCircle(67, 15, 6);
     const pts = starPoints(113, 15, 7.5, 3.4);
