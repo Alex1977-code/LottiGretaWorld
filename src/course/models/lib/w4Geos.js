@@ -21,7 +21,7 @@ export const CANYON = {
   grass: 0x6cc84a, grassDark: 0x47a23a, sand: 0xf3d08a, shadow: 0x8a3a24,
 };
 export const LAVA = {
-  rock: 0x3a2e36, rockHi: 0x5c4448, rockLow: 0x241c24, ash: 0x6a5a5c, cool: 0x7a3a2a,
+  rock: 0x332a36, rockHi: 0x54485c, rockLow: 0x1c1620, ash: 0x6e6474, cool: 0x7a3a2a,
   hot: 0xff7a1a, hotter: 0xffb52e, white: 0xfff0b0, deep: 0xd8340e,
 };
 export const ANT = {
