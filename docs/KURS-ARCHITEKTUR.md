@@ -1900,7 +1900,7 @@ Sternbedarf zählt **alle** gesammelten Sterne (Welt 1 + 2 bieten zusammen ≈ 4
 | `3-7` | parcours (Herbstwald, Schalttafeln auf Schienen, Wasserfall) | autumn | course_autumn | 3 + Stempel | 3-6 |
 | `3-Zug` | autoscroller + boss (Zugfahrt, Schattenläuferin) | train | course_train | 3 + Stempel | 3-7 **und ≥ 55 Sterne** |
 
-Welt 3 hat 32 Sterne. Neu: Power-up **Gleitblatt** (`gleitblatt`: Schwanzhieb, Gleiten bei gehaltenem Sprung, kurz zur
+Welt 3 hat 31 Sterne. Neu: Power-up **Gleitblatt** (`gleitblatt`: Schwanzhieb, Gleiten bei gehaltenem Sprung, kurz zur
 Statue werden – eigenes Kostüm), **Schlittschuh** (tragbar wie ein Reit-Schuh: schnelles Gleiten auf Eis), Eis-Flächen
 (rutschig), rollbare Schneebälle, Kettenzaun-Klettern, Geister (`spuk` folgt, wenn man wegschaut; Licht-Helm bannt).
 Wo der Bauplan den „Kapitän“ nennt (3-Zug, 3-Kapitän), tritt **Krümel** auf; „Münz-Dieb“ = **Münzmarder**;
