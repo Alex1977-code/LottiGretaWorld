@@ -22,7 +22,7 @@
 // Münzmarder 1. Level-Haken (LEVEL.setup, _helpers_d.js): Wasserfall, Teich tief unten, Laubhaufen, Kürbisse,
 // Fliegenpilze, Eichhörnchen, Zeit-Uhren.
 
-import { isl, line, ring, arc, levelSetup, felsen, laubhaufen, kuerbisse, fliegenpilze, eichhoernchen, wasserfall, teich, zeitUhren, instanceEnemies, hohlerBaum, laubTeppich, vogelscheuche } from './_helpers_d.js';
+import { isl, line, ring, arc, levelSetup, felsen, laubhaufen, kuerbisse, fliegenpilze, eichhoernchen, wasserfall, teich, zeitUhren, instanceEnemies, gegnerSicht, hohlerBaum, laubTeppich, vogelscheuche } from './_helpers_d.js';
 
 const Y = 1;        // Inseln
 const R = 0.25;     // Schienen-Oberkante (Tafel-Oberkante 1,0)
@@ -77,6 +77,9 @@ function setup(level) {
   for (const c of level.view?.sky?.cloudData ?? []) if (c.y < 0) c.y = -60;
   // gleiche Gegner-Modelle als Instanzen (Brummer, Funkenkäfer, Funkenläufer)
   instanceEnemies(level, ['brummer', 'funkenkaefer', 'funkenlaeufer'], { far: 46 });
+  // Brummer und Funkenkäfer haben je Exemplar eigene Materialien (nicht instanzierbar): ohne Sonnenschatten (der Blob
+  // bleibt), weiter als 38 m nicht gezeichnet
+  gegnerSicht(level, { brummer: { dist: 38, shadow: false }, funkenkaefer: { dist: 38, shadow: false } });
 }
 
 export const LEVEL = {
@@ -196,7 +199,7 @@ export const LEVEL = {
     // Brummer (10)
     { kind: 'brummer', id: 'b1', center: [-5, 3.4, 6], radius: 2 },
     { kind: 'brummer', id: 'b2', center: [-5.6, 3.4, -50.6], radius: 2 },
-    { kind: 'brummer', id: 'b3', path: [[5.6, 4, -49.6], [5.6, 4, -54.6]] },
+    { kind: 'brummer', id: 'b3', path: [[-14, 4, -82], [-14, 4, -92]] },
     { kind: 'brummer', id: 'b4', center: [-12.6, 3.6, -108.4], radius: 1.8 },
     { kind: 'brummer', id: 'b5', pos: [6.2, 4.6, -80.4] },
     { kind: 'brummer', id: 'b6', center: [15.4, 3.6, -139.6], radius: 1.8 },
