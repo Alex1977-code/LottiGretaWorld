@@ -128,6 +128,14 @@ function setup(level) {
   ]);
   // Flutkammer: schwimmt eine Figur in der Kammer, steigt das Wasser auf 5 m (Neustart vor dem Checkpoint: zurück)
   flutKammer(level, { id: 'flut', from: W, to: FLUT, speed: 1.1, area: { min: [-5, -9, -107.8], max: [5, 6, -95] }, resetBefore: -150 });
+  // Kamera der Flutkammer: unten flach (taucht mit), mit dem steigenden Wasser steiler (oben weiter Blick über die Bucht)
+  const kam = level.view?.rig?.sections?.find((c) => c.zMax === -92 && c.zMin === -110);
+  if (kam) {
+    level.onStep(() => {
+      const k = Math.max(0, Math.min(1, (level.waterLevel?.('flut') ?? 0) / FLUT));
+      kam.pitch = 22 + 22 * k; kam.dist = 8.5 + 3.5 * k;
+    });
+  }
   // Meeresfläche zwischen den Becken bis zum Kulissen-Meer
   seaFill(level, Object.values(POOLS), { path: [-20, 20] });
   // Lichtflecken der Unterwasser-Stimmung zarter (nur dieses Level)
