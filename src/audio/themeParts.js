@@ -67,6 +67,13 @@ function toMidi(name) {
 }
 const toName = (n, flats) => `${(flats ? FLAT : SHARP)[((n % 12) + 12) % 12]}${Math.floor(n / 12) - 1}`;
 
+/** Einzeltöne in Oktaven verdoppeln (Rave-Piano-Riff: „B4:3“ → „B4+B5:3“), Akkorde bleiben. */
+export const octaves = (bars) => bars.map((bar) => bar.trim().split(/\s+/).map((tok) => {
+  const [n, d] = tok.split(':');
+  const m = toMidi(n);
+  return m === null ? tok : `${n}+${toName(m + 12, n.includes('b'))}:${d}`;
+}).join(' '));
+
 /** Takte transponieren (Halbtöne); `flats` schreibt Versetzungen als b. */
 export function tr(bars, semis, flats = false) {
   return bars.map((bar) => bar.trim().split(/\s+/).map((tok) => {
@@ -105,6 +112,99 @@ export function shift(bars, steps, wrap = true) {
     return toks.join(' ');
   });
 }
+
+// ---- Akkorde (Liedform: Akkordfolge je Takt → Begleitspuren) ----
+// Akkordsymbole: Grundton + Art + optional Slash-Bass, z.B. 'Am', 'F', 'G7', 'Cmaj7', 'Dsus4', 'E/G#'.
+// Ein Takt mit zwei Akkorden wird als 'F G' geschrieben (Wechsel zur Takthälfte).
+const QUALITY = [['maj7', [0, 4, 7, 11]], ['madd9', [0, 3, 7, 14]], ['add9', [0, 4, 7, 14]], ['m7', [0, 3, 7, 10]],
+  ['m6', [0, 3, 7, 9]], ['sus4', [0, 5, 7]], ['sus2', [0, 2, 7]], ['dim', [0, 3, 6]], ['aug', [0, 4, 8]],
+  ['m', [0, 3, 7]], ['7', [0, 4, 7, 10]], ['6', [0, 4, 7, 9]], ['', [0, 4, 7]]];
+const pcOf = (s) => NOTE_INDEX[s[0]] + (s[1] === '#' ? 1 : s[1] === 'b' ? -1 : 0);
+
+/** Akkordsymbol → { root, pcs (Tonklassen ab Grundton), bass (Tonklasse), flats } */
+export function chordOf(sym) {
+  const m = /^([A-G][#b]?)([^/]*)(?:\/([A-G][#b]?))?$/.exec(sym.trim());
+  if (!m) return { root: 0, pcs: [0], bass: 0, flats: false, bad: true };
+  const q = QUALITY.find(([k]) => k === m[2]);
+  const root = (pcOf(m[1]) + 12) % 12;
+  return { root, pcs: (q ? q[1] : [0]).map((i) => root + i), bass: m[3] ? (pcOf(m[3]) + 12) % 12 : root, flats: /b/.test(sym), bad: !q };
+}
+
+/** Enge Lage: alle Akkordtöne im Oktavfenster ab `lo` (z.B. voicing('Am', 'G3') → 'A3+C4+E4'). */
+export function voicing(sym, lo = 'G3') {
+  const c = chordOf(sym), l = toMidi(lo);
+  if (c.bad) return `Akkord?${sym}`;
+  const ns = c.pcs.map((p) => l + ((((p - l) % 12) + 12) % 12));
+  return [...new Set(ns)].sort((a, b) => a - b).map((n) => toName(n, c.flats)).join('+');
+}
+
+/** Basston (Grundton bzw. Slash-Bass) zwischen E1 und D#2, `up` Oktaven höher. */
+export function bassNote(sym, up = 0) {
+  const c = chordOf(sym);
+  const n = 28 + ((((c.bass - 28) % 12) + 12) % 12) + 12 * up;
+  return toName(n, c.flats);
+}
+
+/** Akkorde eines Takts: 'F' oder 'F G' (Wechsel zur Takthälfte) → Akkord je Sechzehntel-Position. */
+const chordAt = (syms, i) => { const p = syms.trim().split(/\s+/); return p[Math.min(p.length - 1, Math.floor(i * p.length / 16))]; };
+
+/** Akkord-Takt im Rhythmus-Raster (x = Anschlag, _ halten, . Pause), Lage ab `lo`. */
+export function chordBar(syms, rhythm, lo = 'G3') {
+  const r = clean(rhythm), ns = [];
+  [...r].forEach((ch, i) => { if (ch === 'x') ns.push(voicing(chordAt(syms, i), lo)); });
+  return mel(ns, r);
+}
+
+/**
+ * Bass-Takt nach Muster: L = Grundton tief, H = Oktave darüber, F = Quinte darüber, _ halten, . Pause;
+ * Akkordwechsel zur Takthälfte bei 'F G'. Beispiel: bassBar('Am', 'L__H L_H_ L__H L_H_') = hüpfender Oktav-Bass.
+ */
+export function bassBar(syms, pattern) {
+  const r = clean(pattern), ns = [];
+  [...r].forEach((ch, i) => {
+    const sym = chordAt(syms, i);
+    if (ch === 'L') ns.push(bassNote(sym));
+    else if (ch === 'H') ns.push(bassNote(sym, 1));
+    else if (ch === 'F') { // Quinte des Grundtons über dem Basston
+      const c = chordOf(sym), lo = toMidi(bassNote(sym));
+      ns.push(toName(lo + 1 + ((((c.root + 7 - lo - 1) % 12) + 12) % 12), c.flats));
+    }
+  });
+  return mel(ns, r.replace(/[LHF]/g, 'x'));
+}
+
+/** Pad-Takt: ein liegender Akkord (oder zwei Halbtakt-Akkorde), Lage ab `lo`. */
+export const padBar = (syms, lo = 'E3') => syms.trim().split(/\s+/).map((s, _, a) => `${voicing(s, lo)}:${16 / a.length}`).join(' ');
+
+/** Bass-Muster (für bassBar) */
+export const B_BOUNCE = 'L__H L_H_ L__H L_H_';  // hüpfender Oktav-Bass (Welt 1)
+export const B_PUMP = 'L_H_ L_H_ L_H_ L_H_';    // Oktav-Pump in Achteln
+export const B_GALLOP = 'L.H_ L.H_ L.H_ L.H_';  // Galopp
+export const B_DRIVE = 'L.LH L.LH L.LH L.LH';   // treibend (tief-tief-hoch)
+export const B_HALF = 'L___ ..L_ F___ ..L_';    // ruhig, halbtaktig (Karten, Breakdown)
+
+/** Takte einer Akkordfolge mit einer Funktion füllen (Kurzform für Begleitspuren). */
+export const each = (prog, fn) => prog.map((c, i) => fn(c, i));
+
+/**
+ * Liedform: `form({ intro: 4, verse: 8, chorus: 8, bridge: 4 })` → Funktion Takt-Index → Abschnittsname.
+ * `bySection(prog, sec, { verse: (c) => …, chorus: '…' })` füllt je Abschnitt (fehlend = Pausentakt).
+ */
+export function form(bounds) {
+  const list = [];
+  for (const [k, n] of Object.entries(bounds)) for (let i = 0; i < n; i++) list.push(k);
+  const sec = (i) => list[i];
+  sec.bars = list.length;
+  sec.start = (name) => list.indexOf(name);
+  return sec;
+}
+export const bySection = (prog, sec, map) => prog.map((c, i) => {
+  const f = map[sec(i)];
+  return typeof f === 'function' ? f(c, i - sec.start(sec(i))) : (f ?? '-:16');
+});
+
+/** Schlagzeug eines Abschnitts: n Takte Grundmuster (Crash auf der Eins), der letzte Takt ist `fill`. */
+export const groove = (n, base, fill = base, crash = true) => [crash ? [...base, CR] : base, ...rep(Math.max(0, n - 2), base), fill].slice(0, n);
 
 // ---- Bass-Figuren ----
 /** Oktav-Pump in Achteln (tief/hoch). */

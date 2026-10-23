@@ -1280,6 +1280,56 @@ Gemessen (scale 2, `tests/course_map_w3.mjs`): Kartenansichten Welt 3 67–97 Ze
 Statische Kulisse Welt 3: 51 Kachel-Meshes, ≈ 191 k Dreiecke, 406 Kollisionsformen. Welt 2 unverändert im Budget
 (max 105 / 286 k), Welt 1 ebenso (86 / 245 k).
 
+### Präzisierung (Mehrwelten-Karte): Welt 4 „Canyon-Inselkette“ (Notiz)
+
+- Dateien: `worlds/w4.js` (Daten), `canyon.js` (Thema `map_canyon`, Geländestile, Ränder, Streudeko, Requisiten,
+  Hängebrücke/Felsbogen, Inselchen und Nachbarwelt `'canyon'`), `decor_w4.js` (Kulissen der Welt-4-Eingänge,
+  Piep-Takt, Seilbahn, Ersatzmodelle der Gegnergruppen). Inseln: A Ankunft (Ameisenhügel 4-1, Beerenhaus-Nische),
+  B Giftwald (4-2, Giftsumpf, Glückshaus), C Lava-Felsinsel im Lavasee (4-A), D Technik-Insel (Lautsprecherturm 4-3),
+  E Haus-Insel (Uhrenhaus 4-Haus, Seilbahn zur Ruinenstadt), F Bergwiese (4-4), G Ruinenstadt (4-5), H Werfer-Festung
+  (4-B), I Lava-Burg (4-Burg, Lavagraben mit Lavafällen), J Röhren-Insel (Welt 5); verbunden über Hängebrücken und
+  Felsbögen, Sternschranken mit Schildern „ab 60/70/80 ★“ vor 4-3, 4-Haus und 4-Burg.
+- Weltdaten zusätzlich: `kit: 'canyon'`; Geländestile `canyon`|`canyonlow`|`mesa` (rote Schichten, Tafelberg-Decke)|
+  `beach`|`meadow`|`poison` (violette Erde, Moos)|`marsh`|`swamp` (Becken unter dem Giftwasser-Modell)|`tech`
+  (Metallplatten, Warnstreifen)|`ruins`|`castle` (Basalt mit Glutrissen)|`fortress`, dazu `lavarock`/`basin` aus
+  `desert.js`; Ränder `edges: { hedge: 'redrock', fence: 'rope' }`. Bausteine (nur Karte, Kollision wie `bridge`):
+  `segments: [{ type: 'ropebridge'|'rockarch', from, to, width }]`. Kulisse `cableways: [{ from, to, hFrom, hTo, sag }]`
+  (Masten, Seil, pendelnde Gondel `seilbahn_gondel`). Kacheln `batch: { tile: 40, origin: [8, 8], freeTile: 80,
+  freeOrigin: [-16, -16] }`.
+- Eingänge: `kind` `anthill` (Ameisenhügel mit Ameisensoldaten als Instanzen)|`poisonwood` (`waterfall`, `swamp`,
+  `trees`, `shrooms`)|`lavaisle` (`spikes`, `braziers`)|`beeptower`|`mysteryclock`|`bouncemeadow` (`trampolines:
+  [[x, z, scale]]` federn die Figur hoch, `windmill`, `clouds`)|`ruincity` (`gates`)|`bluefortress` (`cage`)|
+  `lavacastle` (`lavafalls`); Röhren mit `arriveCam: { up, ahead, drop }` (travel.js: Verfolger-Kamera bei der Ankunft
+  steiler/näher als Standard 3,4/12/0,6 – weniger Weitblick, weniger Zeichenaufrufe; auch die Welt-3-Röhre `W4`).
+  Registry-Modelle der Welt 4 werden eingebacken (`bake.js`: `felsnadel`, `canyon_bogen`, `tafelberg`, `wolkeninsel`)
+  oder leben (Lautsprecher, Riesentrampolin, Giftwasser, Lavafall, Banner …); fehlt eines, zeichnet `decor_w4.js` eigene
+  Geometrie.
+- **Piep-Blöcke** am Lautsprecherturm: Satz a/b wechselt alle 4 Zählzeiten der Taktuhr `music.beat()` der Kartenmusik
+  (`course_world4_map`, 122 BPM), in der letzten Zählzeit blinkt der nächste Satz; ohne laufende Musik zählt eine eigene
+  Uhr (122 BPM, Kartenzeit). `state().beep = { active, beat, warn, source, theme, shown }`. Tests stellen die Uhr mit
+  `__audio.music.setManualClock(true)` / `advanceClock(s)`.
+- Gegnergruppen: `standIn` (Ersatzmodell aus `STAND_INS`, solange das Registry-Modell fehlt) und `instance: true`
+  (`entities.instanceRoamers`: Teile mit gleicher Geometrie und gleichem Material aller Mitglieder als ein
+  InstancedMesh, Ausblendung je Figur über Sichtkegel/Entfernung). 4-A: drei `lavabrocken`, 4-B: drei `feuer_werfer`.
+- Übergang Welt 3 → 4: Die Röhre `W4` in Welt 3 ist frei nach **`3-Zug`** (ersetzt „nach 3-B“ in der Welt-3-Notiz,
+  passend zur Welt-4-Tabelle) und fährt übers Meer nach Nordosten zu den Canyon-Inseln am Horizont (`neighbors` Stil
+  `'canyon'`, `[64, -224]`). Ankunft in Welt 4 an der Rückweg-Röhre `W3` im Südwesten der Ankunftsinsel.
+- **Welt-Warp in eine Welt ohne Karte** (4-2 → Welt 5): `exitToMap({ warpWorld: n })` ohne `worlds/w<n>.js` →
+  `CourseMap.chooseWorld`: `courseSave.openWorld(n)` (Welt n gilt als entdeckt), dann `warpFallbackWorld(n, from)` =
+  erste offene Welt mit einer Glasröhre `next: n` (Welt des Levels, gemerkte Kartenwelt, n−1). Die Figur kommt dort
+  durch diese Röhre an (wie `via: 'tube'`, `fromWorld: n`), danach Meldung „Welt n kommt bald!“, `state().soonWorld = n`;
+  der Weg zur Röhre ist frei (`worldOpened(n)`), `state().entrances[id].discovered = true`, A/Enter auf dem Podest zeigt
+  wieder die Meldung statt einer Fahrt. **Welt 5 nachrüsten:** nur `worlds/w5.js` mit `MAP.world = 5` anlegen (Registry
+  sammelt `w*.js`) samt Rückweg-Röhre `{ id: 'W4', world: 4, next: 4 }`; dann führen derselbe Warp und die Röhre `W5`
+  ohne Codeänderung nach Welt 5.
+- Test: `tests/course_map_w4.mjs` (Port 4240, Bilder `tests/out/cmap4_*.png`), Teilläufe `W4_TEIL=1|2|3` (Abschnitte
+  2–4, 5–9, 10–14, je mit den Node-Prüfungen). `tests/course_map_w2.mjs` hat jetzt ebenfalls `W2_TEIL=1|2|3`.
+
+Gemessen (scale 2, `tests/course_map_w4.mjs`): Kartenansichten Welt 4 70–97 Zeichenaufrufe inkl. Schattenpass,
+168–261 k Dreiecke; Ankunft durch die Glasröhre 79–101 / 214–231 k, Anflug 97 / 256 k (Budget 120 / 300 k).
+Welt 3 an der Röhre nach Welt 4 und bei der Ankunft von Welt 4 höchstens 91 / 245 k. Statische Kulisse Welt 4:
+43 Kachel-Meshes, ≈ 156 k Dreiecke, ≈ 245 Kollisionsformen.
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
@@ -1754,7 +1804,7 @@ Kennzahlen mit 1 und 5 Figuren. Bilder `tests/out/w2e_*.png`.
 - `music.beat()` → `{ bpm, beat, bar, phase, playing, inBar, theme, loopBeats, source }` – `beat` = fortlaufende Viertel seit Themenstart (Kommazahl, fällt nie), `bar = floor(beat/4)`, `phase` 0..1, `inBar` 0–3, `source` `'audio'|'ersatz'|'none'`. Ohne Thema `bpm 0`, `playing false`.
 - `music.onBeat(fn)` → Abmelden-Funktion; `fn({ beat, bar, inBar, bpm, theme, late })` einmal je ganzer Zählzeit, synchron zur **hörbaren** Musik (Ausgabelatenz berücksichtigt). Ersatzuhr über `performance.now()`, solange Audio nicht freigeschaltet/angehalten ist; Stummschalten ändert die Uhr nicht.
 - Themenwechsel setzt `beat` auf 0 zurück → in Piep-Levels die Musik nicht wechseln (z. B. kein Funkelstern-Thema) oder eigene Phase führen.
-- `themeInfo('course_beep').sync = { switchEvery: 8, warnBeats: 3 }`: Umschalt-Piep auf Zählzeit 0, 8, 16 …, Warn-Pieps auf den Zählzeiten 5, 6, 7 jedes Achterblocks.
+- `themeInfo('course_beep').sync = { switchEvery: 8, warnBeats: 3 }`: Umschalt-Piep auf Zählzeit 0, 8, 16 …, Warn-Pieps auf den Zählzeiten 5, 6, 7 jedes Achterblocks. Seit der Neukomposition (Musik-Richtlinie) läuft `course_beep` mit **128 BPM** (Wechsel alle 3,75 s); die Themen der Welten 2–4 haben 24 Takte (Haus 8, Karten 16).
 - Testhaken: `music.setManualClock(true|false)`, `music.advanceClock(sekunden)` (meldet überschrittene Zählzeiten synchron), `music.manualClock`.
 
 ---

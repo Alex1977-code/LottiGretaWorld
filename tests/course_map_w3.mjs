@@ -4,7 +4,7 @@
 //   Ankunft am Start von Welt 3 (Bilder, Kennzahlen); Eingänge zeigen Titel bzw. „Bald“ (mapAlias); Sternschranken
 //   35/45/55 mit Hinweis „Benötigt N Sterne (x/N)“; 3-Kapitän erscheint erst nach 3-3 (Auftauchen beim
 //   Schranken-Schwenk); Zauberkröten starten 3-A; Beerenhaus, Glückshaus; Eisbahn rutschig; Glasröhre nach Welt 4
-//   gesperrt bzw. „Bald“; gespeicherte Welt bleibt nach Neuladen; Rückweg nach Welt 2;
+//   gesperrt bis 3-Zug, danach frei (Welt 4: tests/course_map_w4.mjs); gespeicherte Welt bleibt nach Neuladen; Rückweg nach Welt 2;
 //   Kennzahlen (< 120 Zeichenaufrufe, < 300 k Dreiecke an jeder Ansicht inkl. Ankunft und Anflug).
 // Simulation deterministisch über window.__courseMap.step(n)/setInput; Bilder tests/out/cmap3_*.png zur Sichtprüfung.
 // Aufruf: npm run build && PORT_BASE=3700 node tests/course_map_w3.mjs   (Teilläufe: W3_TEIL=1, 2, 3 – s. u.)
@@ -46,7 +46,7 @@ const W3IDS = ['3-1', '3-2', '3-3', '3-Kapitän', '3-4', '3-A', '3-5', '3-6', '3
   check('Welt 3: Sterne je Eingang wie in der Welt-3-Tabelle (zusammen 31), Stempel bei Parcours/Autoscroller',
     W3IDS.every((id) => rule(id).stars === perLevel[id]) && unlock.worldStarsMax(W3) === 31
     && W3IDS.filter((id) => rule(id).stamp).join() === '3-1,3-2,3-3,3-4,3-5,3-6,3-7,3-Zug');
-  check('Welt 3: Glasröhre zurück (W2, offen) und nach Welt 4 (nach dem Weltboss 3-B)', rule('W2').next === 2 && !rule('W2').after && rule('W4').next === 4 && rule('W4').after === '3-B');
+  check('Welt 3: Glasröhre zurück (W2, offen) und nach Welt 4 (nach 3-Zug, Vertrag Welt 4)', rule('W2').next === 2 && !rule('W2').after && rule('W4').next === 4 && rule('W4').after === '3-Zug');
   check('Welt 3: jeder Eingang hat ein Podest/eine Kulisse, 3-Kapitän erscheint erst (appear)', W3.levels.every((l) => W3.entrances.some((e) => e.id === l.id))
     && W3.entrances.find((e) => e.id === '3-Kapitän').appear === true);
   check('Welt 3: drei Zauberkröten für 3-A, Beerenhaus und Glückshaus, Eisbahn rutschig', W3.roamers.length === 1 && W3.roamers[0].level === '3-A' && W3.roamers[0].count === 3
@@ -413,15 +413,15 @@ if (part(9)) {
   check('3 × Bitcoin: 30 Bitcoins Gewinn (15 → 45)', st.slot.state === 'idle' && st.coins === 45);
 }
 
-// ------------------------------------------------------------------ 10) Welt-4-Röhre: zu bis 3-B, danach „Bald“
+// ------------------------------------------------------------------ 10) Welt-4-Röhre: zu bis 3-Zug, danach frei
 if (part(10)) {
   lv = w12(true);
-  for (const id of ['3-1', '3-2', '3-3', '3-4', '3-5', '3-6']) lv[id] = lvl(false);
-  await loadWith({ levels: lv, mapOpened: [...W1_OPENED, ...W2_OPENED, ...W3_OPEN('3-7')], world: 3, worlds: [1, 2, 3], mapPos: null }, ALIAS);
+  for (const id of ['3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-B', '3-7']) lv[id] = lvl(false);
+  await loadWith({ levels: lv, mapOpened: [...W1_OPENED, ...W2_OPENED, ...W3_OPEN('3-Zug')], world: 3, worlds: [1, 2, 3], mapPos: null }, ALIAS);
   await waitMap(3);
   st = await sc(() => window.__courseMap.state());
-  check('Vor 3-B: Welt-4-Röhre gesperrt (Schranke zu)', st.entrances.W4.locked && st.gates.W4 === 'closed' && !st.entrances['3-B'].locked && !st.entrances['3-7'].locked);
-  lv['3-B'] = lvl(false);
+  check('Vor 3-Zug (3-B geschafft): Welt-4-Röhre gesperrt (Schranke zu)', st.entrances.W4.locked && st.gates.W4 === 'closed' && !st.entrances['3-B'].locked && !st.entrances['3-7'].locked);
+  lv['3-Zug'] = lvl(false);
   await loadWith({ levels: lv, mapOpened: [...W1_OPENED, ...W2_OPENED, ...W3_OPEN('3-Zug')] }, ALIAS);
   await waitMap(3);
   st = await sc(() => window.__courseMap.state());
@@ -430,9 +430,12 @@ if (part(10)) {
   await frames();
   banner = await sc(() => window.__courseMap.hud.bannerStatus.text);
   console.log('  Hinweis W4:', banner);
-  check('Nach 3-B: Welt-4-Röhre offen, aber „Bald“ (es gibt Welt 4 noch nicht), A startet keine Fahrt', !st.entrances.W4.locked && st.entrances.W4.soon && r.s.onPad === 'W4'
-    && banner.startsWith('Bald') && !(await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); const s = m.step(5); return !!s.travel || s.leaving; })));
   await shot('roehre4', 800);
+  check('Nach 3-Zug: Welt-4-Röhre frei (Ziel „Canyon-Inselkette“), A startet die Fahrt', !st.entrances.W4.locked && st.entrances.W4.enterable && st.entrances.W4.title === 'Canyon-Inselkette'
+    && r.s.onPad === 'W4' && banner.includes('Glasröhre') && (await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); const s = m.step(5); return s.travel?.mode === 'depart'; })));
+  // die Fahrt selbst prüft tests/course_map_w4.mjs – hier ohne Fahrt in Welt 3 weiter
+  await loadWith({ world: 3, worlds: [1, 2, 3] }, ALIAS);
+  await waitMap(3);
 }
 
 // ------------------------------------------------------------------ 11) Bilder der Insel (alle Wege offen)
