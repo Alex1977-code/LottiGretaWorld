@@ -40,7 +40,7 @@ function kingBodyGeo() {
     for (const s of [1, -1]) {
       const h = P(s * 0.33, 0.42, -0.04);
       b.add(displace(new THREE.CapsuleGeometry(0.11, 0.38, 4, 10), 0.02, 5, 3 + s, true), { v: (x, y, z, nx, ny) => mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.5)) },
-        { p: h.p.toArray(), r: [Math.PI / 2 + s * 0.38, -s * 0.42, 0], order: 'YXZ' });
+        { p: h.p.toArray(), r: [Math.PI / 2 - s * 0.38, -s * 0.42, 0], order: 'YXZ' });
     }
     // Steinnase
     const hn = P(0, 0.08, -0.06);

@@ -62,8 +62,8 @@ function lbBodyGeo() {
     } });
     // Steinbrauen (grimmig schräg)
     for (const s of [1, -1]) {
-      const h = lumpyPoint(LB.rad, LB.amp, LB.freq, LB.seed, s * 0.36, 0.36, -0.015);
-      b.capsule(0.038, 0.13, LAVA.rockLow, { p: h.p.toArray(), r: [Math.PI / 2 + s * 0.42, s * -0.55, 0], order: 'YXZ' }, 3, 8);
+      const h = lumpyPoint(LB.rad, LB.amp, LB.freq, LB.seed, s * 0.34, 0.47, -0.012);
+      b.capsule(0.046, 0.14, LAVA.rockLow, { p: h.p.toArray(), r: [Math.PI / 2 - s * 0.42, s * -0.55, 0], order: 'YXZ' }, 3, 8);
     }
     // Steinzähnchen an der Oberkante des Grinsens
     for (let i = -2; i <= 2; i++) {
@@ -406,7 +406,7 @@ function lfCoreGeo() {
     const b = new Build();
     b.add(new THREE.IcosahedronGeometry(0.24, 3), { v: (x, y, z) => mix(LAVA.deep, mix(LAVA.hotter, LAVA.white, smoothstep((x - 0.1) / 0.12)), smoothstep(x / 0.24 * 0.7 + 0.55)) });
     // dunkle, freche Brauen und Grinsen
-    for (const s of [1, -1]) b.capsule(0.022, 0.08, 0x8a1206, { p: [0.2, 0.15, s * 0.095], r: [Math.PI / 2 + s * 0.35, -s * 0.55, 0], order: 'YXZ' }, 3, 6);
+    for (const s of [1, -1]) b.capsule(0.022, 0.08, 0x8a1206, { p: [0.2, 0.15, s * 0.095], r: [Math.PI / 2 - s * 0.35, -s * 0.55, 0], order: 'YXZ' }, 3, 6);
     const sh = new THREE.Shape();
     sh.moveTo(-1, 0.25); sh.quadraticCurveTo(0, -0.1, 1, 0.25); sh.quadraticCurveTo(0.8, -0.85, 0, -0.85); sh.quadraticCurveTo(-0.8, -0.85, -1, 0.25);
     const mg = new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: false, curveSegments: 8 });
