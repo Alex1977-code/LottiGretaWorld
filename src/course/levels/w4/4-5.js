@@ -248,18 +248,18 @@ export const LEVEL = {
 
     // =============================================================== 4 Stachelstangen
     plat('ms1', [[7, Y4 - 0.5, -169.4], [7, Y4 - 0.5, -181.2]], { size: [4.2, 0.5, 4.2], speed: 1.8, wait: 1.0 }),
-    { type: 'stachelstange', id: 'ss1', pos: [7, Y4, -169.4], attach: 'ms1', length: 1.75, arms: 2, balls: 2, speed: 1.3 },
+    { type: 'stachelstange', id: 'ss1', pos: [7, Y4, -169.4], attach: 'ms1', length: 1.75, arms: 1, balls: 2, speed: 2.0 },
     isl(0, 14, -183.4, -196, Y4, 6, { under: 3 }),
     { type: 'stachelstange', id: 'ss2', pos: [7, Y4, -190], length: 3.0, arms: 2, balls: 3, speed: 1.0 },
     // Stern 2: Schwankplattform links (kippt, ab 14° rutscht man)
     { type: 'schwankplattform', id: 'schwank', pos: [-4.4, Y4, -190], size: [6, 3], axis: 'x', max: 26, slideFrom: 14 },
     plat('ms2', [[7, Y4 - 0.5, -199.2], [7, Y4 - 0.5, -210.6]], { size: [4.2, 0.5, 4.2], speed: 1.9, wait: 1.0 }),
-    { type: 'stachelstange', id: 'ss3', pos: [7, Y4, -199.2], attach: 'ms2', length: 1.75, arms: 1, balls: 2, speed: -1.6 },
+    { type: 'stachelstange', id: 'ss3', pos: [7, Y4, -199.2], attach: 'ms2', length: 1.75, arms: 1, balls: 2, speed: -2.0 },
     isl(3, 11, -212.8, -221, Y4, 6, { under: 3 }),
-    { type: 'stachelstange', id: 'ss4', pos: [3.4, Y4, -217], length: 2.75, arms: 1, balls: 3, speed: 1.4 },
-    { type: 'stachelstange', id: 'ss5', pos: [10.6, Y4, -217], length: 2.75, arms: 1, balls: 3, speed: -1.4, angle: Math.PI },
+    { type: 'stachelstange', id: 'ss4', pos: [3.4, Y4, -217], length: 3.0, arms: 1, balls: 3, speed: 1.6 },
+    { type: 'stachelstange', id: 'ss5', pos: [10.6, Y4, -217], length: 3.0, arms: 1, balls: 3, speed: -1.6, angle: Math.PI },
     plat('ms3', [[7, Y4 - 0.5, -224.4], [7, Y4 - 0.5, -233.2]], { size: [4.2, 0.5, 4.2], speed: 1.8, wait: 1.0 }),
-    { type: 'stachelstange', id: 'ss6', pos: [7, Y4, -224.4], attach: 'ms3', length: 1.75, arms: 2, balls: 2, speed: -1.2 },
+    { type: 'stachelstange', id: 'ss6', pos: [7, Y4, -224.4], attach: 'ms3', length: 1.75, arms: 2, balls: 2, speed: -1.5 },
     { type: 'deco_w4', items: [
       { kind: 'saeule', pos: [-2, Y4 - 16, -205], height: 14, shadow: false, solid: false }, { kind: 'saeule', pos: [17, Y4 - 18, -190], height: 16, broken: true, shadow: false, solid: false },
       { kind: 'saeule', pos: [13.4, Y4, -186], height: 4.4, broken: true }, { kind: 'saeule', pos: [0.6, Y4, -195.4], height: 3.4 },

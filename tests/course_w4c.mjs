@@ -56,8 +56,9 @@ const MAIN = [
   { name: 'Stachelplattform 1', untilNamed: 'ms1', axis: 'z', near: -169.4, d: 0.2, max: 3000 },
   { toNamed: 'ms1', off: [0, 1.3], jump: 24, within: 0.6, run: false },
   { untilNamed: 'ms1', axis: 'z', near: -181.2, d: 0.2, ride: 'ms1', off: [0, 1.3], max: 3000 },
-  { name: 'Insel 3', to: [4.4, -186], within: 0.6 },
-  { to: [4.4, -195.6], within: 0.35, run: false },
+  { name: 'Insel 3', to: [2.0, -186.4], within: 0.6 },
+  { to: [2.0, -194.2], within: 0.5 },
+  { to: [5.0, -195.6], within: 0.35, run: false },
   { name: 'Stachelplattform 2', untilNamed: 'ms2', axis: 'z', near: -199.2, d: 0.2, max: 3000 },
   { toNamed: 'ms2', off: [-1.3, 0], jump: 24, within: 0.6, run: false },
   { untilNamed: 'ms2', axis: 'z', near: -210.6, d: 0.2, ride: 'ms2', off: [-1.3, 0], max: 3000 },
@@ -180,11 +181,46 @@ function install() {
       let rode = false;
       const hist = [];
       let deadLogged = false;
+      let dodgeT = 0;
+      const hurtLog = [];
+      const threat = () => {
+        const c0 = p.center();
+        for (const e of L.entities) {
+          if (!e.alive || e.removed || e.defeated) continue;
+          if (e.kind === 'stachelstange' && e.balls) {
+            if (Math.abs(e.pos.y + e.height - c0.y) > 1.4) continue;
+            const r = Math.hypot(c0.x - e.pos.x, c0.z - e.pos.z);
+            if (r > e.length + 1.2) continue;
+            const phi = Math.atan2(-(c0.z - e.pos.z), c0.x - e.pos.x);
+            for (let a = 0; a < e.arms; a++) {
+              const ang = e.angle + (a / e.arms) * Math.PI * 2;
+              let gap = (phi - ang) * Math.sign(e.speed || 1);
+              gap = ((gap % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+              const t = gap / Math.abs(e.speed || 1);
+              const reachAng = 0.9 / Math.max(0.6, r);
+              if (t < 0.5 && t > 0.02 && r < e.length + 0.82) return 'kugel';
+              if ((gap < reachAng || gap > 2 * Math.PI - reachAng) && r < e.length + 0.82) return 'kugel';
+            }
+          } else if (e.kind === 'stachelwalze' || e.kind === 'rollpilz') {
+            const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            const vx = (e.vel?.x ?? 0) - p.vel.x, vz = (e.vel?.z ?? 0) - p.vel.z;
+            const closing = -(dx * vx + dz * vz) / (d || 1);
+            if (Math.abs(e.pos.y - p.pos.y) < 1.2 && (d < 1.3 || (d < 3.2 && closing > 1.5))) return e.kind;
+          }
+        }
+        return null;
+      };
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
+        if (o.dodge && p.mode === 'ground' && dodgeT <= 0 && !inp.jump && threat()) dodgeT = 22;
+        if (dodgeT > 0) { dodgeT--; inp = { ...inp, jump: dodgeT > 4 }; }
         const before = p.invuln;
         c.setInput(inp); c.step(1); steps++;
-        if (!hold && p.invuln > before + 0.5) hurt++;
+        if (!hold && p.invuln > before + 0.5) {
+          hurt++;
+          const ss = L.entities.find((e) => e.kind === 'stachelstange' && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 4);
+          hurtLog.push([+p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), threat(), p.big, ss ? [ss.spec.id, +Math.hypot(ss.pos.x - p.pos.x, ss.pos.z - p.pos.z).toFixed(2), +(Math.atan2(-(p.pos.z - ss.pos.z), p.pos.x - ss.pos.x) - ss.angle).toFixed(2)] : null, p.mode]);
+        }
         if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]); if (hist.length > 12) hist.shift(); }
         if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
         if (steps % 24 === 0 && p.mode !== 'script') track.push([+p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]);
@@ -200,7 +236,7 @@ function install() {
       };
       const rideTo = (id, off) => {
         const r = this.namedPos(id);
-        if (!r) return {};
+        if (!r || (o.dodge && p.mode === 'air')) return {};
         const dx = r[0] + (off?.[0] ?? 0) - p.pos.x, dz = r[1] + (off?.[1] ?? 0) - p.pos.z, d = Math.hypot(dx, dz);
         return d > 0.15 ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {};
       };
@@ -233,6 +269,36 @@ function install() {
           if (k >= (Lg.max ?? 1500)) log.push(['FEHLER: Lage nicht erreicht', Lg.untilNamed]);
           continue;
         }
+        if (Lg.board) {
+          // aufspringen erst, wenn die Plattform am Ende steht und keine Stachelkugel nahe am Landepunkt ist
+          const B = Lg.board;
+          let k = 0, still = 0;
+          for (; k < (B.max ?? 4000); k++) {
+            const q = this.namedPos(B.mover);
+            const v = B.axis === 'x' ? q[0] : q[1];
+            const tx = q[0] + (B.off?.[0] ?? 0), tz = q[1] + (B.off?.[1] ?? 0);
+            still = Math.abs(v - B.near) < (B.d ?? 0.25) ? still + 1 : 0;
+            this.boardTarget = [tx, tz];
+            const hz = L.named.get(B.hazard);
+            // kein Arm überstreicht den Landepunkt in den nächsten T s (Drehrichtung beachtet)
+            let safe = true;
+            if (hz) {
+              const phi = Math.atan2(-(tz - hz.pos.z), tx - hz.pos.x);
+              for (let a = 0; a < hz.arms && safe; a++) {
+                for (let t = 0; t <= (B.T ?? 1.1); t += 0.05) {
+                  const ang = hz.angle + (a / hz.arms) * Math.PI * 2 + hz.speed * t;
+                  let dd = Math.abs((((phi - ang) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI) - Math.PI);
+                  if (dd < (B.margin ?? 0.75)) { safe = false; break; }
+                }
+              }
+            }
+            if (still >= 1 && still <= 14 && safe && k > 2) break;
+            tick({});
+          }
+          log.push(['aufspringen', B.mover, k]);
+          if (k >= (B.max ?? 4000)) { log.push(['FEHLER: kein sicherer Aufsprung', B.mover]); break; }
+          continue;
+        }
         if (Lg.push) {
           const holdJ = Lg.jump ?? 0;
           for (let k = 0; k < Lg.push; k++) {
@@ -248,6 +314,7 @@ function install() {
         let i = 0, airborne = false, landed = false;
         let best = Infinity, still = 0, auto = 0;
         const target = () => {
+          if (Lg.toBoard && this.boardTarget) return this.boardTarget;
           if (Lg.toNamed) { const q = this.namedPos(Lg.toNamed); if (q) return [q[0] + (Lg.off?.[0] ?? 0), q[1] + (Lg.off?.[1] ?? 0)]; }
           return Lg.to;
         };
@@ -289,7 +356,7 @@ function install() {
       }
       c.setInput({});
       p.invuln = hold ? 0 : p.invuln;
-      return { log, track, steps, hurt, autoJumps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info() };
+      return { log, track, steps, hurt, hurtLog, autoJumps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info() };
     },
     chase(kind, o = {}) {
       const p = P();
@@ -389,9 +456,19 @@ if (P45.length) {
         if (!reached || VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
         check(`4-5: Routen-Bot ${hero} erreicht den Zielmast`, reached);
         check(`4-5: ${hero} Zeit bis zum Ziel < 180 s (${res.time.toFixed(1)} s)`, reached && res.time < 180);
-        const cp = res.rt.checkpoint ?? res.rt.cp ?? null;
         if (hero === 'lotti') console.log(`     Laufzeit-Info: ${JSON.stringify(res.rt).slice(0, 300)}`);
       }
+      // Fairness-Probe: ohne Unverwundbarkeit vom Start bis aufs Plateau vor den Stachelstangen (Walzen, Rollpilze,
+      // drei bewegliche Plattformen); der Bot weicht Walzen und Rollpilzen per Sprung aus
+      await load('4-5');
+      await W('place', [0, Y0, 5], { hero: 'lotti', settle: 2 });
+      const PROBE = MAIN.slice(0, MAIN.findIndex((l) => l.name === 'Plateau') + 1);
+      const fr = await W('drive', PROBE, { invuln: false, dodge: true });
+      const at = fr.pos;
+      const ok = !fr.dead && fr.status === 'play' && Math.abs(at[2] + 165.6) < 1 && at[1] > 11.5;
+      console.log(`  verwundbar bis zum Plateau: ${fr.time.toFixed(1)} s, Treffer ${fr.hurt}: ${JSON.stringify(fr.hurtLog)}`);
+      if (!ok || VERBOSE) for (const l of fr.log) console.log('     ', JSON.stringify(l));
+      check(`4-5: Lotti ohne Unverwundbarkeit vom Start bis aufs Plateau vor den Stachelstangen (${fr.hurt} Treffer)`, ok && fr.hurt <= 1);
     }
     if (want('4-5b')) {
       for (const t of pick(TARGETS)) {
@@ -472,6 +549,20 @@ if (P45.length) {
         return { moved, hit, hits: s2.hits };
       });
       check(`4-5: Stachelstange fährt mit der Plattform (${r.moved.ss} m = ${r.moved.m} m) und trifft eine stehende Figur (${r.hits})`, Math.abs(r.moved.ss - r.moved.m) < 0.05 && Math.abs(r.moved.m) > 1 && r.hit);
+      // Stachelplattform verwundbar: aufspringen, wenn der Arm weg ist, in der Plattformecke mitfahren (dort reichen die
+      // Kugeln nicht hin), geradeaus auf Insel 3 – ohne Treffer
+      r = await sc(() => {
+        const t = window.__w4;
+        t.place([7, 12, -165.6], { settle: 10 });
+        return t.drive([
+          { board: { mover: 'ms1', axis: 'z', near: -169.4, hazard: 'ss1', off: [1.85, 1.85], T: 1.0, margin: 0.8, max: 9000 } },
+          { toBoard: true, jump: 24, within: 0.5, run: false },
+          { untilNamed: 'ms1', axis: 'z', near: -181.2, d: 0.2, ride: 'ms1', off: [1.85, 1.85], max: 3000 },
+          { to: [8.85, -184.6], within: 0.4, run: false },
+        ], { invuln: false });
+      });
+      if (r.hurt || r.dead || VERBOSE) for (const l of r.log) console.log('     ', JSON.stringify(l));
+      check(`4-5: Stachelplattform 1 ohne Unverwundbarkeit: Aufsprung in der Armpause, Ecke außer Reichweite, Insel 3 erreicht (${r.hurt} Treffer, bei ${r.pos.map((v) => v.toFixed(1))})`, !r.dead && r.hurt === 0 && r.pos[2] < -183.6 && r.pos[1] > 11.5);
       // Schwankplattform kippt unter Last
       r = await sc(() => {
         const c = window.__course, L = c.level, t = window.__w4;
