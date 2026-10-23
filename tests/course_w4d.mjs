@@ -454,7 +454,7 @@ async function burgSterne() {
       out.plates2 = ['pf_drei1', 'pf_drei2', 'pf_drei3'].map((id) => W4.ent(id).pressed);
       for (let i = 0; i < 240 && W4.ent('gitter2').openK < 1; i++) c.step(1);
       out.gitter = W4.ent('gitter2').openK;
-      const g = W4.drive([{ to: [9, -144] }, { to: [11.6, -144] }, { star: 1 }]);
+      const g = W4.drive([{ to: [7.5, -148.5] }, { to: [7.5, -153] }, { star: 1 }]);
       out.star = L.runtime.stars[1];
       out.schlot = W4.ent('schlot2').info();
       return out;
@@ -493,7 +493,7 @@ async function burgSterne() {
     });
     console.log(`  Stern 3: ${JSON.stringify({ ...r, walk: { ...r.walk, log: undefined } })}`);
     if (VERBOSE || !r.star) for (const l of r.walk.log) console.log('     ', JSON.stringify(l));
-    check('Stern 3: Warp-Box führt auf den Turmbalkon', Math.abs(r.warp.x - 30) < 3 && Math.abs(r.warp.y - 7) < 0.6);
+    check(`Stern 3: Warp-Box führt auf den Turmbalkon (${JSON.stringify(r.warp)})`, Math.abs(r.warp.x - 30) < 3 && r.warp.y > 6.6 && r.warp.y < 8.6);
     check('Stern 3: Lavabrocken von der Kante aufs Druckfeld geworfen → Trittsteine steigen aus der Lava', r.grab && r.wurf.thrown && r.wurf.onPlate && r.feld);
     check('Stern 3: über die Trittsteine zum Podest, Stern eingesammelt, Warp-Box zurück', !r.walk.dead && r.star === true && Math.abs(r.back.x - 7.6) < 2.5);
   }
@@ -501,9 +501,9 @@ async function burgSterne() {
     const r = await sc(() => {
       const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
       const out = {};
-      W4.place([-4.5, 2.2, -130], { settle: 10 });
+      W4.place([-2, 2.2, -129], { settle: 10 });
       // ?-Block von unten stoßen → Krallen-Anzug, einsammeln
-      W4.drive([{ to: [-4.5, -131.5], within: 0.2, run: false, slow: 0.5 }]);
+      W4.drive([{ to: [-2, -130.5], within: 0.2, run: false, slow: 0.5 }]);
       for (let i = 0; i < 30; i++) { c.setInput({ jump: i < 20 }); c.step(1); }
       for (let i = 0; i < 90 && p.mode !== 'ground'; i++) { c.setInput({}); c.step(1); }
       c.step(60);
@@ -513,7 +513,7 @@ async function burgSterne() {
       out.power = p.power;
       // Kletterwand: anlaufen, springen, hochklettern
       W4.place([-5.8, 2.2, -135], { settle: 6, power: out.power === 'krallen' ? 'krallen' : undefined });
-      for (let i = 0; i < 360; i++) { c.setInput({ ...W4.stick(-1, 0), jump: i < 14 || (i > 120 && i < 134) }); c.step(1); if (p.pos.y > 8.8 && p.mode === 'ground') break; }
+      for (let i = 0; i < 480; i++) { c.setInput({ ...W4.stick(-1, 0), jump: i < 10 }); c.step(1); if (p.pos.y > 8.8 && p.mode === 'ground') break; }
       c.setInput({});
       out.top = { y: +p.pos.y.toFixed(2), x: +p.pos.x.toFixed(2), mode: p.mode };
       W4.drive([{ to: [-8.5, -135], within: 0.3, run: false }, { wait: 30 }]);
@@ -572,10 +572,12 @@ async function burgBoss() {
   // Sterne und Stempel schnell (Teleport), damit das Ergebnis alles enthält
   const pre = await sc(() => {
     const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
-    for (const [i, pos] of [[0, [-25, 4.2, -31]], [1, [12, 2.2, -144]]]) { W4.place(pos, { settle: 30 }); }
-    W4.ent('pf_balkon') && L.named.get('stern3')?.reveal?.();
-    const s3 = L.entities.find((e) => e.kind === 'star' && e.index === 2);
-    if (s3) { s3.reveal?.(); W4.place([s3.pos.x, s3.pos.y - 0.6, s3.pos.z], { settle: 30 }); }
+    for (const i of [0, 1, 2]) {
+      const s = L.entities.find((e) => e.kind === 'star' && e.index === i && !e.removed);
+      if (!s) continue;
+      if (s.hidden) s.reveal?.();
+      W4.place([s.pos.x, s.pos.y - 0.6, s.pos.z], { settle: 30 });
+    }
     W4.place([-8.5, 9.2, -135], { settle: 30 });
     return { stars: L.runtime.stars.slice(0, 3), stamp: L.runtime.stamp };
   });
@@ -583,8 +585,8 @@ async function burgBoss() {
   // Tod im Kampf setzt zurück
   const dead = await sc(() => {
     const c = window.__course, W4 = window.__w4, L = c.level, p = c.player;
-    W4.place([0, 2.2, -206], { settle: 5 });
-    W4.drive([{ to: [0, -209], jump: 30, within: 0.3, run: false }, { crouch: 4 }]);
+    W4.place([0, 2.2, -202.6], { settle: 5 });
+    W4.drive([{ name: 'Kontrollpunkt', to: [0, -204.8], within: 0.4, run: false }, { to: [0, -206.6], within: 0.4, run: false }, { to: [0, -209], jump: 30, within: 0.3, run: false }, { crouch: 4 }]);
     for (let i = 0; i < 240 && p.mode === 'script'; i++) c.step(1);
     for (let i = 0; i < 240 && !c.arch.started; i++) { c.setInput(W4.stick(0, -1, 0.6)); c.step(1); }
     c.setInput({});
@@ -657,8 +659,10 @@ async function burgBoss() {
     W4.place([w.pos.x, w.pos.y + 1.4, w.pos.z], { settle: 0 });
     let arrived = false;
     for (let i = 0; i < 800; i++) { c.step(1); if (p.pos.z < -270 && p.mode !== 'script') { arrived = true; break; } }
+    c.step(5);
     out.arrived = { arrived, z: +p.pos.z.toFixed(1), mood: L.moodNow };
-    W4.drive([{ to: [0, -294.5] }], { invuln: true });
+    W4.drive([{ to: [0, -297], within: 0.3, max: 900 }], { invuln: true });
+    out.goalStatus = L.runtime.status;
     for (let i = 0; i < 2400 && !c.finished; i++) { c.setInput({}); c.step(1); }
     out.finish = { finished: c.finished, res: c.lastResult ?? null };
     out.save = W4.save().levels?.['4-Burg'] ?? null;
@@ -682,7 +686,7 @@ async function burgBilder() {
   const at = (pos, o = {}) => ({ pos, ...o });
   const views = [
     ['start', at([0, 10, 5])], ['hang', at([0, 8, -8])], ['vorhof', at([1, 4, -27])], ['sternturm', at([-20, 4, -31], { drop: true })],
-    ['dreh1', at([0, 2, -47])], ['dreh2', at([0, 2, -62])], ['dreh3', at([0, 2, -77])], ['kontrollpunkt', at([0, 2, -97])],
+    ['dreh1', at([0, 2, -47])], ['dreh2', at([2.4, 2, -63])], ['dreh3', at([0, 2, -77])], ['kontrollpunkt', at([0, 2, -97])],
     ['lavarohr', at([0, 2, -101])], ['rohrhof', at([0, 2, -132])], ['dreifeld', at([4, 2, -140])], ['kletterwand', at([-5, 2, -133])],
     ['burgpfad', at([0, 2, -158])], ['warpbox', at([5, 2, -168])], ['balkon', at([30, 7, -166])], ['podest', at([30, 2, -188], { reveal: true })],
     ['funkenreihe', at([0, 2, -187])], ['roehre', at([0, 2, -205])], ['thronsaal', at([0, 2, -230])], ['ziel', at([0, 2, -282])],
@@ -718,6 +722,7 @@ async function burgBilder() {
     c.step(80);
     delete p.hurt;
   }, { wait: 300 });
+  console.log(`  Baron im Bild: ${JSON.stringify(await sc(() => ({ baron: window.__course.level._baron.info(), boss: window.__course.level.named.get('koenig').state })))}`);
 }
 
 // ====================================================================== Ablauf

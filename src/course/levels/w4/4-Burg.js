@@ -27,7 +27,7 @@
 
 import {
   isl, line, ring, levelSetup, cullStatic, farHide, teileInstanzen, heroShadowDiet, lavaSee, lavaFaelle, glutSaum, burgBoden, burgMauer, tuerme,
-  fackeln, banner, ketten, funkenFlug, thronSaal, fallBruecke, brockenQuelle, stimmung, baronSzene,
+  fackeln, banner, ketten, funkenFlug, thronSaal, baronStatue, teppich, fallBruecke, brockenQuelle, stimmung, baronSzene,
 } from './_helpers_d.js';
 
 const PI = Math.PI;
@@ -77,15 +77,20 @@ function setup(level) {
     { from: [8.3, Y1, -19.4], to: [8.3, Y1, -41], height: 0.9, thick: 0.6, slits: false, glow: false },
     { from: [-8.3, Y1, -19.4], to: [-8.3, Y1, -28.1], height: 0.9, thick: 0.6, slits: false, glow: false },
     { from: [-8.3, Y1, -33.9], to: [-8.3, Y1, -41], height: 0.9, thick: 0.6, slits: false, glow: false },
-    { from: [10.3, Y, -125.4], to: [10.3, Y, -140.4], height: 0.9, thick: 0.6, slits: false, glow: false },
-    { from: [10.3, Y, -147.6], to: [10.3, Y, -151], height: 0.9, thick: 0.6, slits: false, glow: false },
+    { from: [10.3, Y, -125.4], to: [10.3, Y, -150.6], height: 0.9, thick: 0.6, slits: false, glow: false },
+    { from: [3.2, Y, -151.3], to: [4.6, Y, -151.3], height: 0.9, thick: 0.6, slits: false, glow: false, face: 1 },
     { from: [-10.3, Y, -125.4], to: [-10.3, Y, -131.8], height: 0.9, thick: 0.6, slits: false, glow: false },
     { from: [-10.3, Y, -138.2], to: [-10.3, Y, -151], height: 0.9, thick: 0.6, slits: false, glow: false },
+    { from: [-7.8, Y, -275], to: [-7.8, Y, -301], height: 0.9, thick: 0.6, slits: false, glow: false },
+    { from: [7.8, Y, -275], to: [7.8, Y, -301], height: 0.9, thick: 0.6, slits: false, glow: false },
     // Burgtor (Ziel): Mauer mit Tor in der Mitte
     { from: [-14, LY, -304], to: [-2.6, LY, -304], height: 9, face: 1 },
     { from: [2.6, LY, -304], to: [14, LY, -304], height: 9, face: 1 },
   ]);
+  // Säulen mit Feuerschalen rings um die Arena (stehen in der Lava, nicht zur Kamera hin)
+  const saeulen = [0.85, 1.55, 2.3, 3.14, 3.98, 4.73, 5.43].map((a) => ({ pos: [Math.sin(a) * 15.2, LY, AZ + Math.cos(a) * 15.2], r: 1.25, height: 9.5, roof: false, solid: false }));
   tuerme(level, [
+    ...saeulen,
     { pos: [-33, LY, 9], r: 3, height: 14 }, { pos: [15, LY, 9], r: 3, height: 14 },
     { pos: [-33, LY, -46], r: 2.8, height: 13 }, { pos: [15.5, LY, -46], r: 2.8, height: 13 },
     { pos: [-25, Y1, -38.5], r: 2.4, height: 9 },                                  // Sternturm
@@ -127,8 +132,9 @@ function setup(level) {
     { pos: [-9.4, Y, -126], post: 1.4 }, { pos: [9.4, Y, -126], post: 1.4 }, { pos: [9.4, Y, -150], post: 1.4 },
     { pos: [-2.5, Y, -175.5], post: 1.2 }, { pos: [9.4, Y, -175.5], post: 1.2 },
     { pos: [25.6, YB, -169.4], post: 1.2 }, { pos: [34.4, YB, -169.4], post: 1.2 },
+    { pos: [25.6, Y, -185.6], post: 1.3 }, { pos: [34.4, Y, -185.6], post: 1.3 }, { pos: [25.6, Y, -193.4], post: 1.3 }, { pos: [34.4, Y, -193.4], post: 1.3 },
     { pos: [-4.4, Y, -202.2], post: 1.4 }, { pos: [4.4, Y, -202.2], post: 1.4 },
-    { pos: [-12.6, Y, -229], post: 1.6 }, { pos: [12.6, Y, -229], post: 1.6 }, { pos: [-12.6, Y, -251], post: 1.6 }, { pos: [12.6, Y, -251], post: 1.6 },
+    ...saeulen.map((q) => ({ pos: [q.pos[0], LY + 10.2, q.pos[2]], post: 0.3 })),
     { pos: [-7.4, Y, -276], post: 1.5 }, { pos: [7.4, Y, -276], post: 1.5 }, { pos: [-3.4, Y, -302], post: 1.6 }, { pos: [3.4, Y, -302], post: 1.6 },
   ]);
   ketten(level, [
@@ -140,14 +146,17 @@ function setup(level) {
   // ---------------- Mechanik: Fallbrücke (Stern 1), Lavaschlote
   fallBruecke(level, {
     id: 'fallbruecke', x0: -21.6, x1: -8, zA: -29.2, zB: -32.8, y: Y1, hang: 6.5,
-    anchors: [[-22.2, Y1 + 9.6, -33.4], [-7.4, Y1 + 9.6, -33.4], [-7.4, Y1 + 9.6, -28.6], [-22.2, Y1 + 9.6, -28.6]],
+    anchors: [[-22.2, Y1 + 9.4, -33.6], [-7.4, Y1 + 9.4, -33.6], [-7.4, Y1 + 9.4, -33.2], [-22.2, Y1 + 9.4, -33.2]],
   });
   brockenQuelle(level, { id: 'schlot1', pos: [6, Y1, -25], keep: 2, area: [-8, 8, -19, -41] });
-  brockenQuelle(level, { id: 'schlot2', pos: [8, Y, -149.2], keep: 2, area: [-10, 10, -125, -151], phase: 1 });
+  brockenQuelle(level, { id: 'schlot2', pos: [-5.6, Y, -147], keep: 2, area: [-10, 10, -125, -151], phase: 1 });
   brockenQuelle(level, { id: 'schlot3', pos: [33.6, YB, -161.4], keep: 1, area: [25, 35, -159, -170], phase: 2, spec: { behavior: 'walk', sight: 4 } });
-  // ---------------- Thronsaal
+  // ---------------- Thronsaal, Burgtor
   thronSaal(level, { x: 0, y: Y, z: AZ, r: AR + 0.9, throne: [0, Y + 0.5, -265.5] });
-  stimmung(level, [{ min: [-40, -218], max: [40, -272], mood: 'innen' }]);
+  baronStatue(level, { pos: [-4.6, Y, -289], yaw: -PI / 2 + 0.35, tilt: 0.16 });
+  teppich(level, { x: 0, y: Y, z0: -276.5, z1: -294.6, w: 3 });
+  baronStatue(level, { pos: [-3.4, Y0, 7.6], yaw: -PI / 2 - 0.25, size: 0.7 });
+  stimmung(level, [{ min: [-40, -272], max: [40, -218], mood: 'innen' }]);
   level._baron = baronSzene(level, { from: [-40, Y, -256], stop: [-3, Y, -256], away: [44, Y, -256] });
   // ---------------- Budget
   teileInstanzen(level, ['pilzlingsturm', 'lavabrocken', 'lavafunke', 'pilzling'], { name: 'gegner' });
@@ -175,7 +184,7 @@ export const LEVEL = {
     { from: -104, to: -151, pitch: 46, dist: 14, ahead: 2.2, area: CAM_MAIN },
     { from: -151, to: -216, pitch: 46, dist: 13.5, ahead: 2.6, area: CAM_MAIN },
     { from: -150, to: -200, pitch: 52, dist: 15, ahead: 3, area: [18, 46] },
-    { from: -220, to: -262, pitch: 48, dist: 17, x: 0, xLock: 0.35, ahead: 0.5, lead: 0.4, height: 1.6 },
+    { from: -220, to: -262, pitch: 41, dist: 18.5, x: 0, xLock: 0.35, ahead: 0.5, lead: 0.4, height: 1.6 },
     { from: -270, to: -306, pitch: 42, dist: 12.5, ahead: 2 },
   ],
   boss: {
@@ -190,12 +199,8 @@ export const LEVEL = {
     isl(-4, 4, -3, -19, Y1, 6, { top: 'none' }),
     isl(-8, 8, -19, -41, Y1, 6),
     isl(-28.6, -21.6, -25, -37, Y1, 6),                     // Sternturm-Plattform
-    { type: 'wall', pos: [-7.4, Y1, -28.6], size: [0.9, 9.6, 0.9], style: 'stone' },   // Galgen der Fallbrücke
-    { type: 'wall', pos: [-7.4, Y1, -33.4], size: [0.9, 9.6, 0.9], style: 'stone' },
-    { type: 'wall', pos: [-7.4, Y1 + 9.6, -31], size: [1.1, 0.7, 5.8], style: 'stone' },
-    { type: 'wall', pos: [-22.2, Y1, -28.6], size: [0.9, 9.6, 0.9], style: 'stone' },
-    { type: 'wall', pos: [-22.2, Y1, -33.4], size: [0.9, 9.6, 0.9], style: 'stone' },
-    { type: 'wall', pos: [-22.2, Y1 + 9.6, -31], size: [1.1, 0.7, 5.8], style: 'stone' },
+    { type: 'wall', pos: [-7.4, Y1, -33.6], size: [1, 9.6, 1], style: 'stone' },        // Kettenpfosten der Fallbrücke
+    { type: 'wall', pos: [-22.2, Y1, -33.6], size: [1, 9.6, 1], style: 'stone' },
     { type: 'wall', pos: [-28.6, Y1, -31], size: [1, 3.4, 12], style: 'stone' },        // Sternturm: Brüstung hinten
     { type: 'wall', pos: [-25.1, Y1, -25], size: [7, 1.1, 0.6], style: 'stone' },
     { type: 'wall', pos: [-25.1, Y1, -37], size: [7, 1.1, 0.6], style: 'stone' },
@@ -213,12 +218,14 @@ export const LEVEL = {
     { type: 'lavarohr', id: 'lavarohr', path: [[0, Y + 0.6, -102.5], [0, 0.45, -107.5], [-3.5, 0.45, -114.5], [0, 0.45, -121.5], [0, Y + 0.6, -126.6]], lava: LY, coins: 5 },
     isl(-10, 10, -125, -151, Y, 6),                          // Rohrhof
     { type: 'wall', pos: [-8.5, Y, -135], size: [3, 7, 6], climbable: true },           // Kletterwand (Stempel)
-    isl(10, 13.8, -140.6, -147.4, Y, 6),                     // Nische für Stern 2
-    { type: 'wall', pos: [13.5, Y, -144], size: [0.6, 4.4, 6.8], style: 'stone' },
-    { type: 'wall', pos: [11.9, Y, -140.9], size: [3.8, 4.4, 0.6], style: 'stone' },
-    { type: 'wall', pos: [11.9, Y, -147.1], size: [3.8, 4.4, 0.6], style: 'stone' },
-    { type: 'platform', pos: [11.9, Y + 4.4, -144], size: [4, 0.4, 6.8], style: 'stone' },
-    { type: 'deco_w4', items: [{ kind: 'fallgitter', id: 'gitter2', pos: [10.25, Y, -144], width: 3.4, height: 3.6, yaw: 0 }] },
+    isl(4.6, 10.4, -151, -156.4, Y, 6),                      // Nische für Stern 2 (Fallgitter zur Kamera)
+    { type: 'wall', pos: [4.9, Y, -153.7], size: [0.6, 4.4, 5.4], style: 'stone' },
+    { type: 'wall', pos: [10.1, Y, -153.7], size: [0.6, 4.4, 5.4], style: 'stone' },
+    { type: 'wall', pos: [7.5, Y, -156.1], size: [5.8, 4.4, 0.6], style: 'stone' },
+    { type: 'wall', pos: [5.2, Y + 3.6, -151.3], size: [1.2, 0.8, 0.6], style: 'stone' },
+    { type: 'wall', pos: [9.8, Y + 3.6, -151.3], size: [1.2, 0.8, 0.6], style: 'stone' },
+    { type: 'platform', pos: [7.5, Y + 4.4, -153.7], size: [6, 0.4, 5.6], style: 'stone' },
+    { type: 'deco_w4', items: [{ kind: 'fallgitter', id: 'gitter2', pos: [7.5, Y, -151.3], width: 3.6, height: 3.6, yaw: PI / 2 }] },
     isl(-3, 3, -151, -162, Y, 6),
     isl(-3, 10, -162, -176, Y, 6),
     isl(-3, 3, -176, -188, Y, 6),
@@ -244,7 +251,7 @@ export const LEVEL = {
     isl(-31, 31, -254.4, -257.6, Y, 6),                       // Burgbrücke (Baron-Szene)
     isl(-6, 6, -261, -270, Y + 0.5, 6.5),                     // Thronpodest
     // ======================================================== 5 Burgtor (Ziel)
-    isl(-9, 9, -274, -303, Y, 6),
+    isl(-7.5, 7.5, -274, -303, Y, 6),
     { type: 'deco_w4', items: [{ kind: 'fallgitter', pos: [0, LY, -304], width: 4.6, height: 6.5, yaw: PI / 2, open: true, solid: false }] },
     { type: 'sign', pos: [-5.4, Y, -279], text: 'Ausgang' },
   ],
@@ -254,7 +261,7 @@ export const LEVEL = {
     { kind: 'brick', pos: [-1.5, Y1 + 3, -21.5], content: 'coin' }, { kind: 'brick', pos: [-0.5, Y1 + 3, -21.5] },
     { kind: 'question', pos: [0.5, Y1 + 3, -21.5], content: 'coins:3' }, { kind: 'brick', pos: [1.5, Y1 + 3, -21.5], content: 'coin' },
     { kind: 'brick', pos: [-6, Y1 + 2.6, -38] }, { kind: 'brick', pos: [-5, Y1 + 2.6, -38] },
-    { kind: 'question', pos: [-4.5, Y + 2, -131.5], content: 'krallen' },
+    { kind: 'question', pos: [-2, Y + 2, -130.5], content: 'krallen' },
     { kind: 'brick', pos: [1, Y + 3, -166], content: 'coin' }, { kind: 'brick', pos: [2, Y + 3, -166] }, { kind: 'question', pos: [3, Y + 3, -166], content: 'wachstumsbeere' },
     { kind: 'hidden', id: 'geheim_beere', pos: [0, Y + 2.6, -211.8], content: 'wachstumsbeere' },
   ],
@@ -308,7 +315,7 @@ export const LEVEL = {
   checkpoint: [{ pos: [0, Y, -95.5], yaw: PI / 2 }, { pos: [0, Y, -204.5], yaw: PI / 2 }],
   stars: [
     [-25, Y1 + 1.2, -31],
-    [12, Y + 1.2, -144],
+    [7.5, Y + 1.2, -153.6],
     { pos: [30, Y + 1.3, -189.5], hidden: true, id: 'stern3' },
   ],
   stamp: [-8.5, Y + 7.9, -135],
