@@ -29,7 +29,7 @@
 
 import {
   isl, line, ring, arc, column, piepBands, checker, levelSetup, flatIslands, cullStatic, instanceEnemies, farHide, zeitUhren,
-  laserGate, klonAutomat, fangnetz, neonRail, danceBots, beatTiles, laserFans, noteFloat, neonSign, speakerTower, discoBall,
+  laserGate, klonAutomat, fangnetz, neonRail, modelDiet, danceBots, beatTiles, laserFans, noteFloat, neonSign, speakerTower, discoBall,
 } from './_helpers_b.js';
 
 const PI = Math.PI;
@@ -55,9 +55,9 @@ const ISLANDS = [
   isl(-21.5, -18, -113.8, -118.2, Y, 2, { under: 1 }),     // Sternpodest
   // Rundweg rechts (Warp-Schleife)
   isl(11, 14.5, -113.5, -117.5, Y, 1.4, { under: 0.6 }),
-  isl(22, 25.5, -113.5, -117.5, Y, 1.4, { under: 0.6 }),
-  isl(22, 25.5, -130.5, -135, Y, 1.4, { under: 0.6 }),
-  isl(11, 14.5, -130.5, -135, Y, 1.4, { under: 0.6 }),
+  isl(21.5, 25, -113.5, -117.5, Y, 1.4, { under: 0.6 }),
+  isl(21.5, 25, -128.5, -133, Y, 1.4, { under: 0.6 }),
+  isl(11, 14.5, -128.5, -133, Y, 1.4, { under: 0.6 }),
   // Treppenturm
   isl(-9.5, 7.5, -150, -170, Y, 4, { under: 2.5 }),        // Turmfuß (Boden unter den unteren Läufen)
   isl(0, 3, -157.6, -161.2, 8.5, 0.6, { under: 0 }),       // Absatz 1
@@ -76,8 +76,6 @@ const ISLANDS = [
   isl(-8, 8, -282.5, -295.7, YZ, 4, { under: 3 }),
   // Bonusraum (abseits)
   isl(BX - 10, BX + 10, BZ + 10, BZ - 10, 0, 2, { under: 1.5 }),
-  isl(BX - 7, BX - 5, BZ - 6, BZ - 8, 2, 2, { under: 0 }),
-  isl(BX + 5, BX + 7, BZ + 6, BZ + 8, 2, 2, { under: 0 }),
 ];
 
 /** Level-Haken: Inseln, Geländer, Laserzaun, Klon-Automaten, Fangnetz, Kulisse im Takt, Budget. */
@@ -107,29 +105,34 @@ function setup(level) {
   danceBots(level, [
     [-6.2, Y, 6.5, -0.4], [-5, Y, 8, -0.2], [5.4, Y, 7.2, PI + 0.3], [6.6, Y, 5, PI + 0.5], [-6.5, Y, -1.5, 0.3],
     [-4.8, Y, -42.4, 0.2], [4.6, Y, -36, PI - 0.3],
+    [-6.4, Y, -112, 0.4], [-5.8, Y, -133, 0.1], [6.2, Y, -132, PI - 0.2], [3.5, Y, -128.6, PI + 0.5],
     [9.5, YC, -178.5, PI + 0.6], [11.5, YC, -184, PI], [10.5, YC, -190.5, PI - 0.5],
     [-6.2, YU, -235.6, 0.3], [-1.5, YZ, -293.7, -PI / 2], [1.5, YZ, -294.1, -PI / 2], [-6, YZ, -288.7, 0.2], [6.4, YZ, -291.2, PI],
     [BX - 8, 0, BZ + 8, -0.6], [BX + 8, 0, BZ - 8, PI - 0.6],
   ]);
   beatTiles(level, [
     { x0: -5, x1: 5, z0: 9, z1: 2, y: Y },
+    { x0: -6, x1: 3, z0: -126, z1: -133, y: Y },
     { x0: 3, x1: 12, z0: -177, z1: -184, y: YC },
     { x0: -6, x1: 6, z0: -286.7, z1: -294.7, y: YZ },
     { x0: BX - 4, x1: BX + 4, z0: BZ + 4, z1: BZ - 4, y: 0 },
   ]);
   laserFans(level, [[-14, -6, -30], [15, -6, -78], [-16, -4, -140], [18, 0, -200], [-15, 2, -255], [14, 6, -292.7]], { beams: 4, length: 70 });
   noteFloat(level, [[-7.6, Y + 1.8, -2.5], [7.6, Y + 1.8, -2.5], [-1.5, Y + 27, -188.5], [5.6, YZ + 1.8, -292.3]], { n: 28 });
-  discoBall(level, [0, Y + 9, -1], 1.1);
+  discoBall(level, [-4.5, Y + 12, 3], 1.1);
   discoBall(level, [6, YZ + 9, -289.7], 1.0);
   neonSign(level, { pos: [-4.8, Y, 4.6], text: 'Neonsteg\nim Takt', size: [3.6, 1.6], yaw: 0.25, color: '#ff5af0' });
   neonSign(level, { pos: [4.2, Y, -38.5], text: 'Spiegelfrucht:\nein Klon tanzt mit!', size: [3.8, 1.3], yaw: -0.3, color: '#5af0ff' });
   neonSign(level, { pos: [-4.6, Y, -90.8], text: 'Zwei Felder –\nzwei Figuren!', size: [3.4, 1.2], yaw: 0.35, color: '#ffe04a', flicker: true });
   neonSign(level, { pos: [12.8, Y, -112.6], text: 'Rundweg ↻', size: [3, 0.9], yaw: -0.3, color: '#7aff9a' });
+  neonSign(level, { pos: [-6, Y, -122.5], text: 'Warp-Box ↓\nzum Turm', size: [3, 1.2], yaw: 0.3, color: '#ff5af0', flicker: true });
+  neonSign(level, { pos: [-9.6, Y, -113.2], text: '← Stern?', size: [2.4, 0.9], yaw: 0.5, color: '#ffe04a' });
   neonSign(level, { pos: [5.6, YC, -191.4], text: 'Viererlift:\nnur zu viert!', size: [3.6, 1.3], yaw: -0.25, color: '#ff8a4a' });
   neonSign(level, { pos: [BX, 0, BZ + 8.6], text: 'Schalter drücken,\nblaue Münzen fangen!', size: [4.4, 1.3], yaw: 0, color: '#5a9aff' });
   // ---------------- Budget
   instanceEnemies(level, ['feuer_werfer'], {});
-  farHide(level, ['feuer_werfer'], 42);
+  farHide(level, ['feuer_werfer', 'pfeld', 'warpbox', 'pipe', 'goal', 'checkpoint'], 42);
+  modelDiet(level, ['modell:lautsprecher', 'modell:equalizer_saeule', 'modell:neon_ring'], { far: 36, shadow: false });
 }
 
 // ------------------------------------------------------------------ Piep-Felder
@@ -152,7 +155,7 @@ export const LEVEL = {
     { from: 14, to: -20, pitch: 44, dist: 13 },
     { from: -20, to: -109, pitch: 46, dist: 13 },
     { from: -109, to: -146, pitch: 44, dist: 13.5 },
-    { from: -146, to: -194, pitch: 40, dist: 14, height: 1.2 },          // Treppe: flacher, Höhe sichtbar
+    { from: -146, to: -194, pitch: 38, dist: 14, height: 1.4 },          // Treppe: flacher (Ausblick), Höhe sichtbar
     { from: -194, to: -228, pitch: 48, dist: 13 },                        // Abstieg: steiler (Sprünge nach unten)
     { from: -228, to: -268, pitch: 44, dist: 13.5, ahead: 3 },            // Uhrenplatz und Rutsche
     { from: -268, to: -298.7, pitch: 44, dist: 13 },
@@ -196,13 +199,14 @@ export const LEVEL = {
     // Reihe 4: Laufwelle (vier Gruppen, je 4 Zählzeiten rückt der feste Doppelstreifen vor)
     ...piepBands(0, Y, -94, 6, 3, [R0, B4, B0, R4, R0], { id: 'r4', cell: 2 }),
     // Warp-Box (geradeaus) – Rundweg rechts: Piep-Steine zwischen den Plattformen
-    { type: 'piep_block', id: 'rw_a', color: RED, pos: [17.2, Y - 1, -115.5], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_b', color: BLUE, pos: [19.8, Y - 1, -115.5], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_c', color: RED, pos: [23.75, Y - 1, -120.2], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_d', color: BLUE, pos: [23.75, Y - 1, -123.8], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_e', color: RED, pos: [23.75, Y - 1, -127.4], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_f', color: BLUE, pos: [19.6, Y - 1, -132.75], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_g', color: RED, pos: [16.8, Y - 1, -132.75], size: [2, 1, 2] },
+    // (Ostseite rot, Südseite blau, Westseite rot: an jeder Plattform auf die passende Farbe warten)
+    { type: 'piep_block', id: 'rw_a', color: RED, pos: [16.5, Y - 1, -115.5], size: [2, 1, 2] },
+    { type: 'piep_block', id: 'rw_b', color: RED, pos: [19.5, Y - 1, -115.5], size: [2, 1, 2] },
+    { type: 'piep_block', id: 'rw_c', color: BLUE, pos: [23.25, Y - 1, -119.75], size: [2, 1, 2] },
+    { type: 'piep_block', id: 'rw_d', color: BLUE, pos: [23.25, Y - 1, -123], size: [2, 1, 2] },
+    { type: 'piep_block', id: 'rw_e', color: BLUE, pos: [23.25, Y - 1, -126.25], size: [2, 1, 2] },
+    { type: 'piep_block', id: 'rw_f', color: RED, pos: [19.5, Y - 1, -130.75], size: [2, 1, 2] },
+    { type: 'piep_block', id: 'rw_g', color: RED, pos: [16.5, Y - 1, -130.75], size: [2, 1, 2] },
     { type: 'warpbox', id: 'warp_turm_ein', pos: [-2.5, Y, -130.5], target: 'warp_turm' },
 
     // ======================================================== 3  Piep-Block-Treppe (30 m hoch) zum Checkpoint
@@ -213,6 +217,8 @@ export const LEVEL = {
     { type: 'piep_treppe', id: 'f3', from: [-0.75, 16.5, -169], dir: [-1, 0], ...STEPS, colors: RED },
     { type: 'piep_treppe', id: 'f4', from: [-7.5, 24, -171.55], dir: [0, -1], ...STEPS, colors: [RED, RED, BLUE, BLUE] },
     // Viererlift (vier Figuren) und Kletterwand (Krallen-Anzug) zum Stempel-Sims
+    { type: 'platform', pos: [-2, YC, -185.5], size: [1.6, 0.2, 3.4], style: 'stone' },
+    { type: 'platform', pos: [-3.7, YC, -183], size: [5, 0.2, 1.6], style: 'stone' },
     { type: 'multilift', id: 'vierer', pos: [-4.5, YC, -185.5], size: [3.4, 0.5, 3.4], rise: 7, need: 4 },
     { type: 'wall', pos: [-1.6, YC, -189.1], size: [0.8, 7.4, 3.8], climbable: true, style: 'stone' },
     { type: 'deco_w4', items: [
@@ -265,8 +271,7 @@ export const LEVEL = {
   ],
   blocks: [
     { kind: 'question', pos: [3, Y + 2.3, -1.5], content: 'wachstumsbeere' },
-    { kind: 'question', pos: [-2.4, Y + 2.3, -61.5], content: 'coins:5' },
-    { kind: 'hidden', pos: [23.75, Y + 2.3, -132.75], content: 'oneup' },            // Rundweg: 1-Up-Geheimnis
+    { kind: 'hidden', pos: [23.25, Y + 2.3, -130.75], content: 'oneup' },            // Rundweg: 1-Up-Geheimnis
     { kind: 'question', pos: [9, YC + 2.3, -180], content: 'krallen' },               // Krallen-Anzug (Kletterwand)
     { kind: 'question', pos: [4.4, YC + 2.3, -187.5], content: 'spiegel' },
     { kind: 'question', pos: [-1.5, YR + 2.3, -258.5], content: 'spiegel' },
@@ -275,7 +280,7 @@ export const LEVEL = {
     { kind: 'feuer_werfer', id: 'bw1', weapon: 'bumerang', pos: [4, Y + 1.2, -63.5], axis: [1, 0], pace: 0.4, sight: 12 },
     { kind: 'feuer_werfer', id: 'bw2', weapon: 'bumerang', pos: [5.5, Y, -125], axis: [0, 1], pace: 1.2, sight: 10 },
     { kind: 'feuer_werfer', id: 'bw3', weapon: 'bumerang', pos: [-12.6, Y, -116], axis: [1, 0], pace: 1.4, sight: 11 },
-    { kind: 'feuer_werfer', id: 'bw4', weapon: 'bumerang', pos: [23.75, Y, -133.6], axis: [1, 0], pace: 0.8, sight: 10 },
+    { kind: 'feuer_werfer', id: 'bw4', weapon: 'bumerang', pos: [23.25, Y, -132.2], axis: [1, 0], pace: 0.8, sight: 10 },
     { kind: 'feuer_werfer', id: 'bw5', weapon: 'bumerang', pos: [-1.5, 19, -209], axis: [1, 0], pace: 1.2, sight: 10 },
     { kind: 'feuer_werfer', id: 'bw6', weapon: 'bumerang', pos: [-5, YU, -237.5], axis: [1, 0], pace: 1, sight: 10 },
     { kind: 'feuer_werfer', id: 'bw7', weapon: 'bumerang', pos: [5.5, YZ + 0.8, -286.2], axis: [1, 0], pace: 0.4, sight: 12 },
@@ -296,16 +301,17 @@ export const LEVEL = {
     line([0, Y + 0.6, -95.5], [0, Y + 0.6, -107.5], 5),
     // Steg zu Stern 1 und Rundweg
     line([-9, Y + 0.6, -116], [-17, Y + 0.6, -116], 4),
-    line([12, Y + 0.6, -115.5], [25, Y + 0.6, -115.5], 6),
-    line([23.75, Y + 0.6, -118], [23.75, Y + 0.6, -129], 5),
-    line([22, Y + 0.6, -132.75], [12, Y + 0.6, -132.75], 5),
+    line([12.5, Y + 0.6, -115.5], [23.5, Y + 0.6, -115.5], 5),
+    line([23.25, Y + 0.6, -119.75], [23.25, Y + 0.6, -126.25], 3),
+    line([19.5, Y + 0.6, -130.75], [16.5, Y + 0.6, -130.75], 2),
+    ring([-2.4, Y + 0.6, -61.5], 1.2, 5),
     arc([-2.5, Y + 2.2, -124], [-2.5, Y + 2.2, -129], 3, 1),
     // 3 Treppe
     arc([-5.25, 3.1, -159.2], [-0.75, 7.6, -159.2], 4, 0.8),
     arc([1.5, 10.6, -161.95], [1.5, 15.1, -166.45], 4, 0.8),
     arc([-0.75, 18.1, -169], [-5.25, 22.6, -169], 4, 0.8),
     arc([-7.5, 25.6, -171.55], [-7.5, 30.1, -176.05], 4, 0.8),
-    { kind: 'coins', pos: [-4.5, YC + 8.6, -189], r: 1.2, n: 5 },
+    { kind: 'coins', pos: [-4.5, YC + 8.2, -189.2], r: 1.4, n: 5 },
     // 4 Abstieg, Uhrenplatz, Rutsche
     arc([6, 25.6, -199], [1, 19.6, -207], 4, 1.4),
     line([1, 13.6, -213.5], [1, 13.6, -218.5], 3),
@@ -318,16 +324,15 @@ export const LEVEL = {
     arc([0, YR + 9.6, -277.25], [0, YR + 14.1, -281.75], 4, 0.8),
     // Bonusraum: Druckschalter → zehn blaue Münzen in 10 s → Stern 2
     { kind: 'pswitch', id: 'p_schalter', pos: [BX, 0, BZ], time: 10, star: 1,
-      coins: [[BX - 6, 0.6, BZ], [BX - 4.2, 0.6, BZ - 4.2], [BX, 0.6, BZ - 6], [BX + 4.2, 0.6, BZ - 4.2], [BX + 6, 0.6, BZ],
-        [BX + 4.2, 0.6, BZ + 4.2], [BX, 0.6, BZ + 6], [BX - 4.2, 0.6, BZ + 4.2], [BX - 6, 2.6, BZ - 7], [BX + 6, 2.6, BZ + 7]] },
+      coins: Array.from({ length: 10 }, (_, i) => [BX + Math.cos(i * PI / 5) * 5, i % 2 ? 2.1 : 0.6, BZ - Math.sin(i * PI / 5) * 5]) },
   ],
   checkpoint: { pos: [6.5, YC, -181], yaw: PI / 2 },
   stars: [
-    [-19.8, Y + 1.2, -116],                                                   // 1: am Bumerang-Werfer vorbei
-    { pos: [BX, 2.6, BZ - 3], hidden: true, id: 'stern_bonus' },             // 2: Bonusraum (Druckschalter)
-    { pos: [0, YR + 2.6, -264], hidden: true, id: 'stern_felder' },          // 3: zwei Druckfelder am Rutschenfuß
+    [-19.8, Y + 0.4, -116],                                                   // 1: am Bumerang-Werfer vorbei
+    { pos: [BX, 1.2, BZ - 2.4], hidden: true, id: 'stern_bonus' },             // 2: Bonusraum (Druckschalter)
+    { pos: [0, YR + 1.2, -264], hidden: true, id: 'stern_felder' },          // 3: zwei Druckfelder am Rutschenfuß
   ],
-  stamp: [-4.5, YC + 8.6, -189],
+  stamp: [-4.5, YC + 7.6, -189.2],
   goal: { pos: [0, YZ, -290.7], height: 9 },
   marks: {
     start: [0, Y, 5], gasse: [0, Y, -8], r1: [0, Y, -19.5], insel1: [0, Y, -38], r2: [0, Y, -43.5], insel2: [0, Y, -60],

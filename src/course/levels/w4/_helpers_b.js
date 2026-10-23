@@ -287,13 +287,15 @@ export function danceBots(level, list) {
   grp.add(bodyM, armM);
   for (const b of list) level.view.shadows?.add({ pos: new THREE.Vector3(b[0], b[1], b[2]), radius: 0.32 });
   const M = new THREE.Matrix4(), A = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), V = new THREE.Vector3(), S = new THREE.Vector3(), Qa = new THREE.Quaternion();
+  const TINT = new THREE.Color();
+  const far = 38;
   addObject(level, grp, () => {
     const b = beatNow(level);
     const tgt = level.view.rig?.target ?? level.player?.pos;
-    let vis = false;
+    let j = 0;
     for (let i = 0; i < n; i++) {
       const [x, y, z, yaw] = list[i];
-      if (tgt && Math.hypot(x - tgt.x, z - tgt.z) < 60) vis = true;
+      if (tgt && Math.hypot(x - tgt.x, z - tgt.z) > far) continue;   // nur Roboter in der Nähe zeichnen (Dreiecke)
       const ph = i * 0.37;
       const bop = Math.exp(-b.frac * 6);
       const spin = b.k < 1 ? (1 - b.k) * TAU * ((i % 2) ? 1 : -1) * 0.25 : 0;
@@ -302,15 +304,20 @@ export function danceBots(level, list) {
       V.set(x, y + bop * 0.12, z);
       S.set(1 + bop * 0.06, 1 - bop * 0.08, 1 + bop * 0.06);
       M.compose(V, Q, S);
-      bodyM.setMatrixAt(i, M);
+      bodyM.setMatrixAt(j, M);
       // Arme: Schulter bei y 0.5; in der Warnzeit nach oben gereckt, sonst im Takt schwingend
       const up = b.warn ? 2.6 : 0.6 + Math.sin(b.beat * Math.PI + ph) * 0.5;
       Qa.setFromEuler(E.set(up, 0, 0));
       A.makeRotationFromQuaternion(Qa).setPosition(0, 0.5, 0);
-      armM.setMatrixAt(i, M.clone().multiply(A));
+      armM.setMatrixAt(j, M.clone().multiply(A));
+      const c = TINT.set(list[i][4] ?? tints[i % tints.length]);
+      bodyM.setColorAt(j, c); armM.setColorAt(j, c);
+      j++;
     }
-    grp.visible = vis;
+    bodyM.count = j; armM.count = j;
+    grp.visible = j > 0;
     bodyM.instanceMatrix.needsUpdate = true; armM.instanceMatrix.needsUpdate = true;
+    if (bodyM.instanceColor) { bodyM.instanceColor.needsUpdate = true; armM.instanceColor.needsUpdate = true; }
   });
   return grp;
 }
@@ -510,9 +517,9 @@ export function speakerTower(level, o) {
   addStatic(level, merge(frame), { castShadow: false });
   const cone = new THREE.ConeGeometry(1.15, 0.5, 20, 1, true);
   cone.rotateX(-Math.PI / 2);
-  const coneG = colorize(cone, (p, n, out) => mixc(L(0x0c1030), L(0x3a4a8a), smooth(0, 1.1, Math.hypot(p.x, p.y)), out));
+  const coneG = colorize(cone, (p, n, out) => mixc(L(0x2a3a8a), L(0x8aa0ff), smooth(0.2, 1.1, Math.hypot(p.x, p.y)), out));
   const cap = sphere(0.35, 0, 0, 0.1, 0x8aa0ff, { ws: 10, hs: 6, sz: 0.5 });
-  const mesh = new THREE.InstancedMesh(merge([coneG, cap]), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0.3 }), spots.length);
+  const mesh = new THREE.InstancedMesh(merge([coneG, cap]), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.2, emissive: 0x1a2266 }), spots.length);
   mesh.frustumCulled = false; mesh.castShadow = false; mesh.name = 'zier:lautsprecher';
   const M = new THREE.Matrix4(), V = new THREE.Vector3(), S = new THREE.Vector3(), Q = new THREE.Quaternion();
   addObject(level, mesh, () => {
@@ -554,6 +561,22 @@ export function discoBall(level, pos, r = 1.1) {
     mesh.material.emissive.setHex(b.red ? 0x441122 : 0x112244).multiplyScalar(0.6 + b.flash * 1.6);
   });
   return mesh;
+}
+
+/**
+ * Budget für Kulissen-Modelle (deco_w4-Modellarten als eigene Objekte, z. B. 'modell:lautsprecher'): ohne Sonnenschatten
+ * (shadow: false) und weiter als far m (waagerecht) vom Kamera-Ziel nicht gezeichnet. Nur Darstellung.
+ */
+export function modelDiet(level, names, o = {}) {
+  if (!level.view) return;
+  const far = o.far ?? 40, set = new Set(names);
+  const roots = level.view.three.children.filter((ch) => set.has(ch.name));
+  if (o.shadow === false) for (const r of roots) r.traverse((m) => { if (m.isMesh) m.castShadow = false; });
+  level.view.onFrame(() => {
+    const t = level.view.rig?.target ?? level.player?.pos;
+    if (!t) return;
+    for (const r of roots) r.visible = Math.hypot(r.position.x - t.x, r.position.z - t.z) < far;
+  });
 }
 
 // =====================================================================================================================

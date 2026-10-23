@@ -132,31 +132,37 @@ const R43 = {
   ],
   targets: [
     { name: 'Stern 1: am Bumerang-Werfer vorbei über den Steg', star: 0, from: [-6, 1, -116],
-      legs: [{ to: [-11, -116], run: false, within: 0.3 }, { chase: 'feuer_werfer', filter: 'bw3', max: 1200 }, { to: [-19.6, -116], run: false, within: 0.4 }, { wait: 30 }], shot: 'stern1' },
+      legs: [{ to: [-11, -116], run: false, within: 0.3 }, { chase: 'feuer_werfer', filter: 'bw3', max: 1200 }, { to: [-19.6, -116], run: false, within: 0.4 }, { star: 0 }], shot: 'stern1' },
     { name: 'Stern 2: Bonusraum – Druckschalter, alle blauen Münzen', star: 1, from: [1.6, 24, -233.6],
       legs: [{ to: [3.6, -233.6], jump: 30, within: 0.3, run: false }, { crouch: 4 }, { to: [BX - 1.4, BZ + 1.4], run: false, within: 0.6 },
-        { to: [BX, BZ], jump: 24, within: 0.4, run: false }, { wait: 20 }, { chaseKind: 'bluecoin', max: 1500 }, { wait: 30 }, { star: 1 }], shot: 'stern2' },
+        { to: [BX, BZ], jump: 24, within: 0.4, run: false }, { wait: 10 },
+        { to: [95.00, -232.00], within: 0.5 }, { to: [94.05, -234.94], within: 0.5, jump: 14, jumpAt: 1.6, land: false }, { to: [91.55, -236.76], within: 0.5 }, { to: [88.45, -236.76], within: 0.5, jump: 14, jumpAt: 1.6, land: false }, { to: [85.95, -234.94], within: 0.5 }, { to: [85.00, -232.00], within: 0.5, jump: 14, jumpAt: 1.6, land: false }, { to: [85.95, -229.06], within: 0.5 }, { to: [88.45, -227.24], within: 0.5, jump: 14, jumpAt: 1.6, land: false }, { to: [91.55, -227.24], within: 0.5 }, { to: [94.05, -229.06], within: 0.5, jump: 14, jumpAt: 1.6, land: false },
+        { chaseKind: 'bluecoin', max: 600 }, { wait: 30 }, { star: 1 }], shot: 'stern2' },
     { name: 'Stern 3: zwei Druckfelder am Rutschenfuß (Heldin + Klon vom Klon-Automaten)', star: 2, from: [-3, 11, -258.5],
       legs: [{ to: [-4.4, -258.5], run: false, within: 0.3 }, { wait: 60 }, { figs: true }, { pair: [0, -261.5] }, { wait: 40 }, { star: 2 }], shot: 'stern3' },
     { name: 'Stempel: Viererlift mit vier Figuren (Klon-Automat dreimal)', stamp: true, from: [2.4, 31, -184.6],
       legs: [{ to: [0.6, -184.6], run: false, within: 0.25 }, { to: [2.6, -184.6], run: false, within: 0.4 }, { wait: 340 }, { to: [0.6, -184.6], run: false, within: 0.25 },
         { to: [2.6, -184.6], run: false, within: 0.4 }, { wait: 340 }, { to: [0.6, -184.6], run: false, within: 0.25 }, { to: [-1, -184.4], run: false, within: 0.4 }, { figs: true },
-        { push: 260, dir: [-1, -0.7], untilUp: 'vierer' }, { figs: true }, { wait: 420 }, { to: [-4.5, -189], run: false, within: 0.4 }, { wait: 20 }], shot: 'stempel' },
+        { push: 260, dir: [-1, -0.7], untilUp: 'vierer' }, { figs: true }, { wait: 420 }, { to: [-4.5, -189.2], run: false, within: 0.4 }, { wait: 20 }], shot: 'stempel' },
     { name: 'Stempel: Krallen-Anzug aus dem ?-Block, Kletterwand hinauf', stamp: true, from: [9, 31, -178.2],
       legs: [{ to: [9, -180], run: false, within: 0.15 }, { hop: 20 }, { wait: 50 }, { chaseKind: 'powerup', max: 900 }, { wait: 10 },
-        { to: [-0.5, -189.1], run: false, within: 0.3 }, { push: 240, jump: 12, dir: [-1, 0] }, { to: [-4.5, -189], run: false, within: 0.4 }, { wait: 20 }], expectPower: 'krallen' },
+        { to: [-0.5, -189.1], run: false, within: 0.3 }, { push: 240, jump: 12, dir: [-1, 0] }, { to: [-4.5, -189.2], run: false, within: 0.4 }, { wait: 20 }], expectPower: 'krallen' },
   ],
   extra: [
     { name: 'Laserzaun: ein Feld allein schaltet ihn nicht ab', from: [-1.1, 1, -86], heroes: ['lotti'],
       legs: [{ to: [-1.1, -88.5], run: false, within: 0.2 }, { wait: 120 }, { to: [0, -92.6], run: false, max: 300, within: 0.3 }, { wait: 60 }], expectNamed: ['laser', 'opened', false], expectZ: [-93, 0] },
     { name: 'Viererlift fährt mit drei Figuren nicht', from: [-1, 31, -184.4], clones: 2, heroes: ['lotti'],
       legs: [{ push: 260, dir: [-1, -0.7] }, { wait: 240 }], expectY: [0, 33] },
-    { name: 'Rundweg rechts führt im Kreis zur Warp-Insel zurück', from: [7, 1, -115.5], heroes: ['lotti'],
-      legs: [{ to: [12.8, -115.5], jump: 30, within: 0.6 }, { to: [17.2, -115.5], jump: 20, within: 0.6 }, { to: [23.75, -115.5], jump: 26, within: 0.8 },
-        { to: [23.75, -120.2], jump: 20, within: 0.7 }, { to: [23.75, -127.4], jump: 30, within: 0.8 }, { to: [23.75, -131.8], jump: 20, within: 0.8 },
-        { to: [16.8, -132.75], jump: 30, within: 0.8 }, { to: [12.8, -132.75], jump: 20, within: 0.8 }, { to: [5, -130], jump: 30, within: 0.8 }], expectX: [-8, 8], expectZ: [-134, -109], expectY: [0.9, 1.3] },
-    { name: '1-Up im unsichtbaren Block auf dem Rundweg', from: [23.75, 1, -132.2], heroes: ['lotti'],
-      legs: [{ to: [23.75, -132.75], run: false, within: 0.15 }, { hop: 30 }, { wait: 60 }, { chaseKind: 'powerup', max: 900 }], expectLives: 1 },
+    { name: 'Rundweg rechts führt im Kreis zur Warp-Insel zurück', from: [3, 1, -115.5], heroes: ['lotti'],
+      legs: [{ to: [12.6, -115.5], jump: 24, jumpAt: 4.9, within: 0.6 }, { to: [14.1, -115.5], run: false, within: 0.25 }, { waitBeat: [0.1, 1.0] },
+        { to: [16.5, -115.5], jump: 14, within: 0.45, run: false }, { to: [19.5, -115.5], jump: 14, within: 0.45, run: false }, { to: [22.6, -115.5], jump: 14, within: 0.5, run: false },
+        { to: [23.25, -117.2], run: false, within: 0.25 }, { waitBeat: [8.1, 9.0] },
+        { to: [23.25, -119.75], jump: 14, within: 0.45, run: false }, { to: [23.25, -123], jump: 14, within: 0.45, run: false }, { to: [23.25, -126.25], jump: 14, within: 0.45, run: false },
+        { to: [23.25, -129.4], jump: 14, within: 0.5, run: false }, { to: [21.8, -130.75], run: false, within: 0.25 }, { waitBeat: [0.1, 1.0] },
+        { to: [19.5, -130.75], jump: 14, within: 0.45, run: false }, { to: [16.5, -130.75], jump: 14, within: 0.45, run: false }, { to: [13.2, -130.75], jump: 14, within: 0.5, run: false },
+        { to: [11.4, -130.75], run: false, within: 0.25 }, { to: [5, -130.75], jump: 20, within: 0.8 }], expectX: [-8, 8], expectZ: [-134, -109], expectY: [0.9, 1.3] },
+    { name: '1-Up im unsichtbaren Block auf dem Rundweg', from: [23.25, 1, -130.2], heroes: ['lotti'],
+      legs: [{ to: [23.25, -130.75], run: false, within: 0.15 }, { hop: 30 }, { wait: 60 }, { chaseKind: 'powerup', max: 900 }], expectLives: 1 },
     { name: 'Fangnetz fängt den Sturz von Lauf 3 auf', from: [-3.75, 23, -172], heroes: ['lotti'], vulnerable: true,
       legs: [{ wait: 240 }], expectY: [15, 15.6] },
     { name: 'Zeit-Uhren am Uhrenplatz: +10 s je Uhr', from: [4, 24, -231.4], heroes: ['lotti'],
@@ -528,7 +534,7 @@ for (const id of LEVELS) {
       await load(id);
       const lives0 = await W('lives');
       const coins0 = (await W('rt')).coins;
-      const time0 = (await W('rt')).timeLeft;
+      const time0 = (await W('rt')).time;
       await W('place', t.from, { hero, power: t.power, clones: t.clones, settle: 10 });
       const res = await W('drive', t.legs, { invuln: t.vulnerable ? false : undefined });
       const inR = (v, r) => (r === undefined ? true : Array.isArray(r) ? v >= r[0] && v <= r[1] : v >= r);
@@ -540,7 +546,7 @@ for (const id of LEVELS) {
       if (t.expectInfo) { const v = await sc(([nid, k]) => window.__course.level.named.get(nid)?.[k] ?? window.__course.level.named.get(nid)?.info?.()?.[k], [t.expectInfo[0], t.expectInfo[1]]); res.log.push(['info', ...t.expectInfo, v]); ok = ok && v >= t.expectInfo[2]; }
       if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
-      check(`${id}: ${t.name} (${hero}, bei ${res.info.x.toFixed(1)}, ${res.info.y.toFixed(1)}, ${res.info.z.toFixed(1)}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}, Zeit ${(res.rt.timeLeft - time0).toFixed(1)})`, ok);
+      check(`${id}: ${t.name} (${hero}, bei ${res.info.x.toFixed(1)}, ${res.info.y.toFixed(1)}, ${res.info.z.toFixed(1)}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}, Zeit ${(res.rt.time - time0).toFixed(1)} s)`, ok);
     }
   }
 
