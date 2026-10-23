@@ -1994,9 +1994,11 @@ verschmilzt der Batcher vor dem nächsten Bild in das vorhandene Mesh derselben 
   ändert den Abstand, `lod = { dist, make(entity), anchor(root), keep(mesh), all }` setzt eine eigene.
 - **Fern-Ausblendung**: Entität/spec `farHide: m` – weiter als m (waagerecht) von der Haupt-Figur wird das Modell nicht
   gezeichnet (läuft weiter); `LEVEL.farHide: m` gilt für alle Gegner.
-- **Schatten-Stellvertreter** (`view/ShadowProxy.js`): Heldin, Ritt (1-4) und Pflaume werfen ihren Sonnenschatten in
-  einem Zeichenaufruf (SkinnedMesh mit einem Knochen je Teil, nur im Schattenpass) statt ≈ 14; `view.shadowProxy(root)`
-  für eigene Figuren aus vielen starren Teilen.
+- **Schatten-Stellvertreter und Figur-Bündel** (`view/ShadowProxy.js`): Heldin, Ritt (1-4) und Pflaume werfen ihren
+  Sonnenschatten in einem Zeichenaufruf (SkinnedMesh mit einem Knochen je Teil, nur im Schattenpass) statt ≈ 14, und im
+  Hauptpass zeichnen ihre Teile mit gleichem Material gemeinsam (Heldin ≈ 20 → ≈ 11 Aufrufe; Teile, deren Weltmatrix in
+  diesem Bild nicht nur dreht und gleichmäßig skaliert – Blinzeln, Stauchen –, zeichnen dann selbst, damit die Normalen
+  stimmen). `view.shadowProxy(root)` für eigene Figuren aus vielen starren Teilen.
 - **Wolken**: je Bild nur Wolken im Bild.
 - `?optimize=0` bzw. `view.optimize = false` schaltet alle Sparmaßnahmen zur Laufzeit ab (Vergleich; Bild muss gleich
   sein). `?still=1` hält Simulation und Darstellungszeit an (Messungen, Bilder über Builds vergleichbar).

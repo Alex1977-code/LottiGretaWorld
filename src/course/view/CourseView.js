@@ -15,8 +15,9 @@
 //   view.shadows.add({ pos, radius, alive })        Schatten-Blob
 //   view.effects.dust|sparks|debris|splash|ring|coinPop(...)
 //   view.addLantern(x, y, z)                        Laternenlicht (Thema cave)
-//   view.shadowProxy(root)                          Figur aus vielen Teilen wirft ihren Schatten in einem Aufruf
-//                                                   (view/ShadowProxy.js; die Heldin automatisch)
+//   view.shadowProxy(root)                          Figur aus vielen Teilen: Schatten in einem Aufruf, Teile gleichen
+//                                                   Materials gebündelt (view/ShadowProxy.js; Heldin, Ritt, Pflaume
+//                                                   automatisch)
 //   view.setMood(name, { time })                    Stimmung des Themas überblenden (theme.moods; null = Grundstimmung)
 //   view.setUnderwater(on)                          Unterwasser-Stimmung: true/false erzwingt, 'auto' erkennt selbst
 //                                                   (Thema mit `underwater`); view.underwater → bool (view/mood.js)

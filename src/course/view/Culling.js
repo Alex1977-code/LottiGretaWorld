@@ -39,7 +39,8 @@ if (!THREE.Mesh.prototype.__kursCulling) {
     const c = ACTIVE;
     if (!c) return base.call(this, frustum);
     if (this.__inst === c.view.frame) return false;                     // zeichnet als Instanz (EntityInstancer.js)
-    if (this.shadowProxied && frustum === c.sunFrustum) return false;   // Schatten zeichnet der Stellvertreter (ShadowProxy.js)
+    if (frustum === c.sunFrustum) { if (this.shadowProxied) return false; }   // Schatten zeichnet der Stellvertreter
+    else if (this.__merged === c.view.frame) return false;                   // Hauptpass zeichnet das Figur-Bündel
     if (this.cullBox) return c.boxTest(this, frustum);
     if (!base.call(this, frustum)) return false;
     if (frustum !== c.sunFrustum || !c.shadowCull) return true;

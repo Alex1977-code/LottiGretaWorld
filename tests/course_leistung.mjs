@@ -88,6 +88,7 @@ const frames = async (k = 3) => { const f0 = await sc(() => window.__course.view
   check('EntityInstancer: Pilzling-Gruppe als Instanzen', r.inst.groups >= 1 && r.inst.instanced >= 8);
   check('Münz-Pool: nur ein Teil der Münzen gezeichnet, Detailstufe vorhanden', r.coin && r.coin.drawn < r.coin.count && r.coin.levels === 2);
   check('Schatten-Stellvertreter der Heldin', r.proxies.proxies >= 1 && r.proxies.parts >= 8);
+  check('Figur-Bündel: Teile der Heldin mit gleichem Material zeichnen gemeinsam', r.proxies.bundles >= 3 && r.proxies.bundled >= 8);
   try { writeFileSync(`${OUT}leistung_start.png`, await page.screenshot()); } catch { /* weiter */ }
 }
 
