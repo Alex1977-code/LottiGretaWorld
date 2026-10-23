@@ -28,9 +28,9 @@
 
 import { islandParts, merge, addStatic } from '../../blocks/kit.js';
 import {
-  isl, rock, wallBox, line, ring, arc, column, levelSetup, cullStatic, antOver, antWallLane, antLoop, areaMoods, campfire,
+  isl, rock, wallBox, line, ring, arc, column, levelSetupLate, cullStatic, antOver, antWallLane, antLoop, areaMoods, campfire,
   vultures, cacti, skulls, antFlags, stalactites, glowCrystals, antPantry, tumbleweed, lizard, beetle, fernAus, cullInstances,
-  spikeField, chunkBackdrop, xrayWalls, pebbles, tufts, cracks, wallHoles, roots, bunting, heroShadowDiet,
+  spikeField, chunkBackdrop, xrayWalls, pebbles, tufts, cracks, wallHoles, roots, bunting, heroShadowDiet, rockLids,
 } from './_helpers_a.js';
 
 const Y = 1;
@@ -90,6 +90,8 @@ function bakeChasm(level) {
   glowCrystals(level, [[0.6, y, -65.4, 1.4, 0x7ae8ff], [-3, y, -69.6, 1.1, 0xd88aff], [3.6, y, -71.6, 1.2, 0x9aff6a]]);
 }
 
+const LID = { top: 0xd89a68, side: 0xb4643e };   // Sandstein-Oberseite der Felsen
+
 /** Level-Haken: Kulisse, Stimmungen, sparsame Darstellung. */
 function setup(level) {
   // ---------------- Höhlen-Stimmung (dunkel, warmes Fackellicht) – Höhle und Ameisenraum
@@ -113,10 +115,17 @@ function setup(level) {
     { pos: [8.8, MESA.top, -252.6], variant: 'kugel', size: 0.9 }, { pos: [-8.6, MESA.top, -250], variant: 'gruppe', size: 1 },
     // Hörnerreihen-Rand
     { pos: [-10.6, Y, -114.6], variant: 'kugel', size: 0.85 }, { pos: [10, Y, -128.4], variant: 'saeule', size: 1 }, { pos: [-10.4, Y, -146], variant: 'feige', size: 0.9 },
+    // Endsims
+    { pos: [-8.6, Y, -215.2], variant: 'saeule', size: 0.9, yaw: 1 }, { pos: [8.4, Y, -215.6], variant: 'kugel', size: 0.8 },
+    { pos: [8.9, Y, -216.4], variant: 'kugel', size: 0.6 }, { pos: [-2.8, Y, -223.2], variant: 'feige', size: 0.7 },
+    // Zieltafel: zweite Reihe
+    { pos: [-6.2, MESA.top, -256.4], variant: 'kugel', size: 0.8 }, { pos: [6.4, MESA.top, -233.4], variant: 'saeule', size: 0.85, yaw: 2.4 },
   ]);
   skulls(level, [[-3.8, Y, 7.2, 0.7], [9.2, Y, -150.4, 2.2]]);
   vultures(level, [[-13.3, Y + 6.2, -7.4, 0.4, 1.1], [13.4, Y + 7.4, -21.4, Math.PI - 0.4, 1], [12.6, Y + 9.2, -151, Math.PI - 0.3, 1.2], [-13, MESA.top + 6.2, -241, 0.3, 1]]);
-  antFlags(level, [[-7, Y + 1.8, 0.2, 0.4, 1.6], [7.6, Y + 1.3, -11.6, 2.2, 1.4], [-4.6, MESA.top, -247.6, 0.3, 2.4], [4.6, MESA.top, -247.6, 2.8, 2.4]]);
+  antFlags(level, [[-7, Y + 1.8, 0.2, 0.4, 1.6], [7.6, Y + 1.3, -11.6, 2.2, 1.4], [-4.6, MESA.top, -247.6, 0.3, 2.4], [4.6, MESA.top, -247.6, 2.8, 2.4],
+    [-1.6, Y, -217.4, 0.6, 1.4], [8.4, MESA.top + 1.6, -238, 1.2, 1.5]]);
+  skulls(level, [[-8.8, MESA.top, -246.4, 1.4], [5.6, Y, -223, 2.6]]);
   tumbleweed(level, [-11, Y, -5], [11, Y, -9], { speed: 3, pause: 5 });
   tumbleweed(level, [11, Y, -125], [-11, Y, -121], { speed: 3.4, pause: 7, phase: 3 });
   lizard(level, [11.02, Y + 2.6, -27], { normal: [-1, 0, 0], dir: [0, 1, 0.3], near: 34 });
@@ -144,12 +153,14 @@ function setup(level) {
     eggs: [[62.8, Y, -189, 7], [77.6, Y, -188.4, 6], [70, Y, -180.6, 4]],
   });
 
+  // ---------------- Felsdeckel: Höhlenboden, Felsblöcke und -wände bekommen eine Oberseite aus Sandstein
+  rockLids(level, LID);
   // ---------------- hohe Felsblöcke im Weg: Kamera bleibt auf Abstand, Block wird durchscheinend, wenn er die Figur verdeckt
   xrayWalls(level, [
     { id: 'wand_w1', pos: W1.pos, size: W1.size },
     { id: 'wand_turm', pos: TOWER.pos, size: TOWER.size },
     { id: 'wand_vorrat', pos: STORE.pos, size: STORE.size },
-  ]);
+  ], { lid: LID });
   // ---------------- Boden-Details: Kiesel, trockenes Gras, Risse
   pebbles(level, [
     { pos: [0, Y, -9], size: [20, 38], n: 70, seed: 3, avoid: [[-7, 0, 2.2], [6.4, 4.2, 2.2], [0, -3, 1.4]] },
@@ -161,6 +172,7 @@ function setup(level) {
   tufts(level, [
     { pos: [0, Y, -10], size: [21, 38], n: 26, seed: 5, avoid: [[-7, 0, 2.4], [6.4, 4.2, 2.6], [0, 8, 2]] },
     { pos: [0, Y, -128], size: [21, 56], n: 30, seed: 9, color: 0x8aaa3a, tip: 0xd8e88a },
+    { pos: [0, Y, -219], size: [19, 9], n: 14, seed: 19, color: 0x8aaa3a, tip: 0xd8e88a, avoid: [[3.2, -219.6, 1.4], [-6.6, -219.4, 1.4], [0.6, -217.2, 1.2]] },
     { pos: [0, MESA.top, -245], size: [22, 24], n: 16, seed: 15, avoid: [[0, -251, 1.6], [0, -236, 1.6]] },
   ]);
   cracks(level, [[-4, Y, 6, 2.4, 0.4], [3.6, Y, -6.6, 2, 2.1], [-6, Y, -24, 2.8, -0.3], [5.2, Y, -29, 1.8, 1.2], [-2.6, MESA.top, -244, 2.6, 0.8], [5, MESA.top, -254, 2, 2.6], [2, Y, -219, 2.2, 0.2]]);
@@ -191,8 +203,6 @@ function setup(level) {
   });
   chunkBackdrop(level, { far: 260, chunk: 64 });
   heroShadowDiet(level, 0.16);
-  cullStatic(level);
-  fernAus(level, 140);
 }
 
 export const LEVEL = {
@@ -205,7 +215,10 @@ export const LEVEL = {
   timeLimit: 400,
   start: { pos: [0, Y, 8], yaw: Math.PI / 2 },
   killY: -8,
-  setup: levelSetup(setup),
+  setup: levelSetupLate(setup, (level) => {
+    cullStatic(level);
+    fernAus(level, 140);
+  }),
   camera: [
     { ...CAM, from: 14, to: -30 },
     { ...CAM, from: -30, to: -46, pitch: 46 },
@@ -231,6 +244,14 @@ export const LEVEL = {
 
     // =============================================================== Ameisenstraßen (Spuren der Kolonnen)
     ...Object.entries(LOOPS).map(([k, d]) => trail(`weg_${k}`, d)),
+    // Spuren an den Wänden: zeigen, wo Ameisen die Figur hinauf- oder hinübertragen
+    ...[-4.5, 0, 4.5].map((x, i) => trail(`spur_w1_${i}`, antOver(W1.pos, W1.size, x, 2.5, 2.5), 0x4a2012)),
+    ...[3.9, 5.1].map((x, i) => trail(`spur_turm_${i}`, antOver(TOWER.pos, TOWER.size, x, 2, 1.3), 0x4a2012)),
+    trail('spur_faehre_l', antWallLane(-7, 1, Y + 0.45, -59.6, -78.4), 0x4a2012),
+    trail('spur_faehre_r', antWallLane(7, -1, Y + 0.45, -59.6, -78.4), 0x4a2012),
+    trail('spur_faehre_l2', antWallLane(-7, 1, Y + 2.8, -60, -78), 0x4a2012),
+    trail('spur_faehre_r2', antWallLane(7, -1, Y + 2.8, -60, -78), 0x4a2012),
+    ...[69.4, 70.6].map((x, i) => trail(`spur_vorrat_${i}`, antOver(STORE.pos, STORE.size, x, 2.4, 2), 0x4a2012)),
 
     // =============================================================== 1  Wüstenstart
     isl(-11, 11, 12, -30, Y, 5, { top: 'sand' }),
@@ -312,6 +333,10 @@ export const LEVEL = {
     { type: 'pipe', id: 'p_ziel', pos: [3.2, Y, -219.6], height: 1.4, target: 'p_ziel_aus' },
     { type: 'pipe', id: 'p_raum_aus', pos: [-6.6, Y, -219.4], height: 1.2 },
     sign(0.6, Y, -217.2, 'Zum Ziel', { size: [1.8, 0.7] }),
+    { type: 'deco_w4', items: [
+      { kind: 'trockenbuesche', pos: [-6.4, Y, -222.4], size: [5, 2], n: 3 },
+      { kind: 'geroell', pos: [7.6, Y, -222.6], size: [4, 2], n: 5 },
+    ] },
     isl(-12, 12, -232, -258, MESA.top, 9, { top: 'sand' }),
     { type: 'pipe', id: 'p_ziel_aus', pos: [0, MESA.top, -236], height: 1.2 },
     { type: 'deco_w4', items: [
@@ -320,6 +345,10 @@ export const LEVEL = {
       { kind: 'canyonwand', from: [15, MESA.top, -232], to: [15, MESA.top, -258], height: 9, depth: 4, solid: true },
       { kind: 'trockenbuesche', pos: [-8, MESA.top, -254], size: [4, 4], n: 3 },
       { kind: 'geroell', pos: [7, MESA.top, -255], size: [5, 3], n: 6 },
+      { kind: 'felsnadel', pos: [-10.6, MESA.top, -256.4], height: 6.5, size: 1.4 },
+      { kind: 'felsnadel', pos: [10.8, MESA.top, -233.6], height: 5, size: 1.2 },
+      { kind: 'felsnadel', pos: [11, MESA.top, -256.6], height: 4, size: 1 },
+      { kind: 'trockenbuesche', pos: [-9, MESA.top, -242], size: [3, 6], n: 3 },
     ] },
     rock(-13.6, -12.2, -240.3, -241.7, MESA.top + 6.2, 6.2),
 

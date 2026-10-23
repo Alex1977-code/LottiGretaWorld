@@ -24,9 +24,9 @@
 // Gegner: Rankenschnapper 26, Brummer 3.
 
 import {
-  isl, rock, wallBox, line, ring, arc, column, levelSetup, cullStatic, areaMoods, cullInstances, creeperInstances,
+  isl, rock, wallBox, line, ring, arc, column, levelSetupLate, cullStatic, areaMoods, cullInstances, creeperInstances,
   fogBanks, dragonflies, lilies, reeds, logs, swampHut, frogs, fireflies, glowCrystals, stalactites, tintWater, gegnerSicht,
-  chunkBackdrop, heroShadowDiet,
+  chunkBackdrop, heroShadowDiet, rockLids,
 } from './_helpers_a.js';
 
 const Y = 1;
@@ -73,6 +73,7 @@ const stepVine = (id, z, top) => {
 
 /** Level-Haken: Kulisse, Stimmungen, sparsame Darstellung. */
 function setup(level) {
+  rockLids(level, { top: 0x74648a, side: 0x55475f });   // Moorfels-Oberseiten (top 'none' zeichnet keine)
   areaMoods(level, {
     hoehle: { fog: { color: 0x241a38, near: 12, far: 70 }, background: 0x1a1228, hemi: { sky: 0x9a8acc, ground: 0x2a3a2a, intensity: 0.78 }, sun: { color: 0xb8e8aa, intensity: 1.0 }, dome: 0x3a2a5a },
     kammer: { fog: { color: 0x1e1a3a, near: 12, far: 60 }, background: 0x141028, hemi: { sky: 0xa8a0ff, ground: 0x2a2a4a, intensity: 0.85 }, sun: { color: 0xc8f0ff, intensity: 1.1 }, dome: 0x2a2a5a },
@@ -135,7 +136,6 @@ function setup(level) {
   gegnerSicht(level, { brummer: { dist: 28, shadow: false } });
   heroShadowDiet(level, 0.16);
   cullInstances(level, { coin: { far: 40, radius: 0.8, shadow: false } });
-  cullStatic(level);
 }
 
 export const LEVEL = {
@@ -148,7 +148,9 @@ export const LEVEL = {
   timeLimit: 400,
   start: { pos: [0, Y, 6], yaw: Math.PI / 2 },
   killY: -12,
-  setup: levelSetup(setup),
+  setup: levelSetupLate(setup, (level) => {
+    cullStatic(level);
+  }),
   camera: [
     { ...CAM, from: 14, to: -58 },
     { ...CAM, from: -58, to: -100, pitch: 46, dist: 12.5 },

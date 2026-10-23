@@ -762,7 +762,7 @@ for (const id of LEVELS) {
   await load(id);
   for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2] of R.shots) {
     await W('place', pos, { settle: 10, yaw });
-    if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); }, [steps, input ?? {}]);
+    if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
     await shot(`${id}_${name}`);
   }
 }

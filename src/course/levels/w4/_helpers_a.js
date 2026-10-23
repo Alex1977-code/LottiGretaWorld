@@ -14,7 +14,7 @@
 // als gemeinsame Instanz-Gruppen (creeperInstances), Ameisenpfade über Wände (antOver/antWallLane).
 
 import * as THREE from 'three';
-import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, islandParts } from '../../blocks/kit.js';
+import { box, colorize, merge, lin, mixc, smooth, hex, addStatic as addStaticRaw, addObject, islandParts } from '../../blocks/kit.js';
 import { glowTexture } from '../../blocks/w4kit.js';
 import { visDt } from '../../entities/gimmick.js';
 import { Build } from '../../models/lib/kit.js';
@@ -29,6 +29,53 @@ export { heroShadowDiet } from '../w3/_helpers_e.js';
 
 const TAU = Math.PI * 2;
 const L = (c) => lin(hex(c));
+const SECTION = 32;   // Abschnittslänge des StaticBatchers (view/StaticBatcher.js)
+
+/**
+ * addStatic mit Aufteilung je Abschnitt: Der StaticBatcher ordnet eine Geometrie als Ganzes dem Abschnitt ihrer
+ * Mitte zu (32 m entlang z). Eine Streuung über das ganze Level (Kiesel, Felsdeckel …) landete so in einem einzigen
+ * Abschnitts-Mesh und wurde mit dessen Sichtprüfung aus- und eingeblendet (Höhlenboden „fehlte“). Hier wird je Dreieck
+ * nach Abschnitt getrennt; jede Gruppe geht einzeln an den Batcher (levelSetup hängt sie an das Abschnitts-Mesh).
+ */
+export function addStatic(level, g, opts) {
+  if (!g) return;
+  if (!level.view) { g.dispose(); return; }
+  if (g.index) { const n = g.toNonIndexed(); g.dispose(); g = n; }
+  g.computeBoundingBox();
+  const bb = g.boundingBox;
+  if (Math.floor(-bb.min.z / SECTION) === Math.floor(-bb.max.z / SECTION)) { addStaticRaw(level, g, opts); return; }
+  const pos = g.attributes.position, tri = pos.count / 3;
+  const names = Object.keys(g.attributes);
+  const groups = new Map();
+  for (let t = 0; t < tri; t++) {
+    const cz = (pos.getZ(t * 3) + pos.getZ(t * 3 + 1) + pos.getZ(t * 3 + 2)) / 3;
+    const sec = Math.floor(-cz / SECTION);
+    let list = groups.get(sec);
+    if (!list) groups.set(sec, (list = []));
+    list.push(t);
+  }
+  for (const list of groups.values()) {
+    const out = new THREE.BufferGeometry();
+    for (const nm of names) {
+      const src = g.attributes[nm], k = src.itemSize, arr = new Float32Array(list.length * 3 * k);
+      let o = 0;
+      for (const t of list) for (let v = t * 3; v < t * 3 + 3; v++) for (let c = 0; c < k; c++) arr[o++] = src.array[v * k + c];
+      out.setAttribute(nm, new THREE.BufferAttribute(arr, k));
+    }
+    addStaticRaw(level, out, opts);
+  }
+  g.dispose();
+}
+
+/**
+ * levelSetup (w2) und danach late(level, scene): Sichtprüfungen, die die Abschnitts-Meshes vermessen (cullStatic,
+ * fernAus), müssen nach dem Verschmelzen laufen – sonst gelten für die Abschnitte die alten Grenzen ohne die
+ * hinzugefügte Kulisse.
+ */
+export function levelSetupLate(fn, late) {
+  const base = levelSetup(fn);
+  return (level, scene) => { base(level, scene); late?.(level, scene); };
+}
 
 // =====================================================================================================================
 // Daten-Helfer
@@ -879,6 +926,34 @@ export function chunkBackdrop(level, o = {}) {
 }
 
 /**
+ * Felsdeckel: Inseln/Felsen mit top 'none' (Baustein island) haben keine Oberseite – von oben sah man in den hohlen
+ * Körper hinein (Höhlenboden „fehlte“). lidParts liefert eine Felsplatte (Kappe mit Kante und Raster wie die
+ * Steindecke, Farben aus o.top/o.side) für die Grundfläche x0..x1 × z0..z1 mit Oberseite y.
+ */
+export function lidParts(x0, y, z0, x1, z1, theme, o = {}) {
+  const th = { ...theme, stone: o.top ?? theme.rock ?? theme.stone, stoneDark: o.side ?? theme.dirt ?? theme.stoneDark };
+  const cap = Math.min(o.capH ?? 0.18, 0.4);
+  return islandParts(Math.min(x0, x1), y - cap, Math.min(z0, z1), Math.max(x0, x1), y, Math.max(z0, z1), th, { top: 'stone', capH: cap, under: 0, cell: o.cell ?? 1 });
+}
+
+/**
+ * Deckel für alle island-Segmente des Levels mit top 'none' (rock()/isl(..., { top: 'none' })), statisch verschmolzen.
+ * o: { top, side } Farben, skip(seg) → true lässt ein Segment aus; Segmente mit lid: false werden übersprungen.
+ */
+export function rockLids(level, o = {}) {
+  const v = level.view;
+  if (!v) return 0;
+  const parts = [];
+  for (const sg of level.data?.segments ?? []) {
+    if (!sg || sg.type !== 'island' || sg.top !== 'none' || sg.lid === false || o.skip?.(sg)) continue;
+    const [px, py, pz] = sg.pos, [w, h, d] = sg.size;
+    parts.push(...lidParts(px - w / 2, py + h, pz - d / 2, px + w / 2, pz + d / 2, v.theme, sg.lidColor ?? o));
+  }
+  if (parts.length) addStatic(level, merge(parts));
+  return parts.length;
+}
+
+/**
  * Klares Moorwasser statt Themenfarbe: Das Thema poison färbt Wasser lila wie das Gift – hier bekommen die Becken des
  * Bausteins water (Oberfläche und Körper in den Themenfarben) ein klares Türkis, damit Schwimmwasser und tödliches
  * Giftwasser nicht zu verwechseln sind. Nur Darstellung.
@@ -918,6 +993,7 @@ export function xrayWalls(level, boxes, o = {}) {
     recs.push(rec);
     if (!v) continue;
     const parts = islandParts(min[0], min[1], min[2], max[0], max[1], max[2], th, { top: B.top ?? 'none', under: 0, rnd: level.rnd });
+    if (!B.top || B.top === 'none') parts.push(...lidParts(min[0], max[1], min[2], max[0], max[2], th, o.lid ?? {}));
     const mat = (v.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true })).clone();
     mat.userData.owned = true;
     const mesh = new THREE.Mesh(merge(parts), mat);
@@ -1077,4 +1153,4 @@ export function bakeBuild(level, fn, opts) {
   if (b.parts.length) addStatic(level, b.geometry(), opts);
 }
 
-export { Build, TAU, L, box, colorize, merge, mixc, smooth, addStatic, addObject };
+export { Build, TAU, L, box, colorize, merge, mixc, smooth, addObject };
