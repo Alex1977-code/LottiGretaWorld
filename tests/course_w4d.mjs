@@ -905,19 +905,26 @@ async function hausRaum() {
   const n = Number(process.env.RAUM ?? 1) - 1;
   if (!(await load('4-Haus', { fresh: true, hero: process.env.HERO ?? 'lotti' }))) return;
   await sc(installHaus);
-  const r = await sc(([n, pre]) => {
-    const c = window.__course, Hs = window.__haus;
+  const r = await sc(([n, pre, legs]) => {
+    const c = window.__course, Hs = window.__haus, L = c.level;
     window.__hausTrace = true;
     for (let k = 0; k < pre; k++) Hs.step({});
     if (n > 0) c.arch.enterRoom(n);
     Hs.waitPlay(n);
-    const res = Hs.solve(n);
+    let res;
+    if (legs) {
+      const h0 = Hs.S.hits, tr = [];
+      const off = L.onStep(() => { const p = L.player; if (L.time % 0.1 < 1 / 120) tr.push([+(L.data._haus.Z0[n] - p.pos.z).toFixed(2), +p.pos.y.toFixed(2), +p.invuln.toFixed(2), p.big, L.entities.filter((e) => e.kind === 'stampfstein').map((e) => e.state[0]).join('')]); });
+      const log = Hs.run(n, legs);
+      off();
+      res = { log: [...log, ...tr], hits: Hs.S.hits - h0, resets: 0 };
+    } else res = Hs.solve(n);
     let k = 0;
     while (c.arch.info().phase === 'play' && k++ < 1300) Hs.step({});
     const shots = {};
     for (const [k, e] of c.level.named) if (/^r\d+_(kanone|werfer)/.test(k)) shots[k] = e.shots ?? e.throws;
     return { ...res, a: c.arch.info(), shots };
-  }, [n, Number(process.env.PRE ?? 0)]);
+  }, [n, Number(process.env.PRE ?? 0), process.env.LEGS ? JSON.parse(process.env.LEGS) : null]);
   console.log('   Schüsse/Würfe:', JSON.stringify(r.shots));
   for (const l of r.log) console.log('   ', JSON.stringify(l));
   check(`Raum ${n + 1}: ${r.a.phase} (Treffer ${r.hits}, Neustarts ${r.resets})`, r.a.cleared === 1 && r.hits === 0);
@@ -1021,30 +1028,39 @@ async function hausExtra() {
       let hit = false, minNear = 99;
       for (let i = 0; i < 600 && !hit; i++) { Hs.step({}); if (kugel.bullet && !kugel.bullet.removed) minNear = Math.min(minNear, kugel.near ?? 99); if (L.player.invuln > 0.5 || L.player.dead) hit = true; }
       out.kugel = { spawned: kugel.shots - shots0, hit, minNear: +minNear.toFixed(2) };
-      for (let i = 0; i < 900 && !(c.arch.info().phase === 'play' && c.arch.info().room === 2 && !L.player.dead && L.player.invuln < 0.5); i++) Hs.step({});
+      // frisch in die Galerie (Figur wieder groß, ohne Schutzzeit)
+      for (let i = 0; i < 300 && L.player.dead; i++) Hs.step({});
+      const fit = () => { const p = L.player; p.big = true; p.updateHalf?.(); p.invuln = 0; Hs.S.lastInv = 0; };
+      fit();
+      enter(2);
+      fit();
       // Lauf: Kugel bleibt hinter der Figur
       let gapMin = 99;
       const t0 = kugel.shots;
       const watch = () => { if (kugel.bullet && !kugel.bullet.removed) gapMin = Math.min(gapMin, kugel.near ?? 99); };
       L.onStep(watch);
       const s3 = Hs.solve(2);
+      Hs.step({}); Hs.step({});
       out.flucht = { spawned: kugel.shots - t0, gapMin: +gapMin.toFixed(2), hits: s3.hits, cleared: c.arch.info().phase !== 'play', bulletGone: !kugel.bullet };
-      // Maschinenhalle: langsam (gehen) unter den Stampfsteinen → Treffer; mit Boost → keiner (siehe Teil haus)
+      // Maschinenhalle: ohne Boost (hinter dem ersten Pfeil abgesetzt) langsam unter den Stampfsteinen → Treffer;
+      // mit Boost → keiner (siehe Teil haus)
       enter(5);
       const h0 = Hs.S.hits;
-      Hs.run(5, [{ to: [0, 30], run: false, slow: 0.5, name: 'langsam', max: 900 }]);
+      L.player.reset([0, H.Y, Hs.zu(5, 10.3)], Math.PI / 2);
+      Hs.run(5, [{ to: [0, 18.5], run: false, slow: 0.5, name: 'langsam', max: 600 }]);
       out.stein = { hits: Hs.S.hits - h0, fell: L.entities.filter((e) => e.kind === 'stampfstein' && e.state !== 'wait').length };
       // Dachboden: Bröckelblöcke zerfallen hinter der Figur; nach einem Neustart sind alle wieder da
       enter(9);
       Hs.run(9, [{ to: [0, 14], dodge: ['stachelwalze'], name: 'bloecke' }]);
       for (let i = 0; i < 90; i++) Hs.step({});
       const bl = () => ['broeckel_a', 'broeckel_b'].reduce((n, k) => n + L.named.get(k).left(), 0);
-      out.broeckel = { left: bl(), dead: L.player.dead };
+      const zA = H.Z0[9], zB = H.Z0[9] - 38;
+      out.broeckel = { left: bl(), dead: L.player.dead, walzen: L.named.get('r10_werfer')?.throws ?? null,
+        rollen: L.entities.filter((e) => e.kind === 'stachelwalze' && !e.removed && e.pos.z < zA && e.pos.z > zB).map((e) => +(e.vel?.z ?? 0).toFixed(1)) };
       for (let i = 0; i < 600 && !L.player.dead; i++) Hs.step({});
       for (let i = 0; i < 900 && !(c.arch.info().phase === 'play' && !L.player.dead && c.arch.info().room === 9); i++) Hs.step({});
       Hs.step({}); Hs.step({});
       out.broeckel.restored = bl();
-      out.broeckel.walzen = L.named.get('r10_werfer')?.throws ?? null;
       return out;
     });
     console.log(`  ${JSON.stringify({ ...r, solve5: { ...r.solve5, log: undefined } })}`);
@@ -1053,7 +1069,7 @@ async function hausExtra() {
     check(`Ahnengalerie: Riesenprojektil startet hinter der Figur und trifft, wer stehen bleibt (Abstand min ${r.kugel.minNear} m)`, r.kugel.spawned === 1 && r.kugel.hit);
     check(`Ahnengalerie: Flucht gelingt (Kugel jagt hinterher, Abstand min ${r.flucht.gapMin} m, keine Treffer), Kugel weg nach dem Stern`, r.flucht.spawned === 1 && r.flucht.gapMin < 8 && r.flucht.gapMin > 0 && r.flucht.hits === 0 && r.flucht.cleared && r.flucht.bulletGone);
     check(`Maschinenhalle: wer langsam geht, wird von einem Stampfstein getroffen (${r.stein.hits} Treffer, ${r.stein.fell} gefallen)`, r.stein.hits >= 1 && r.stein.fell >= 1);
-    check(`Dachboden: Bröckelblöcke zerfallen (${r.broeckel.left}/52 übrig), nach dem Neustart alle zurück (${r.broeckel.restored}), Walzen geworfen (${r.broeckel.walzen})`, r.broeckel.left < 52 && r.broeckel.restored === 52 && r.broeckel.walzen > 0);
+    check(`Dachboden: Bröckelblöcke zerfallen (${r.broeckel.left}/52 übrig), nach dem Neustart alle zurück (${r.broeckel.restored}), Walzen rollen heran (${r.broeckel.walzen} geworfen, vz ${r.broeckel.rollen.join('/')})`, r.broeckel.left < 52 && r.broeckel.restored === 52 && r.broeckel.walzen > 0 && r.broeckel.rollen.some((v) => v > 1));
   }
   if (want('Bild')) {
     if (!(await load(id, { fresh: true }))) return;

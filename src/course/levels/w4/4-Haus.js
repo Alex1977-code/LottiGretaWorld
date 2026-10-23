@@ -102,11 +102,11 @@ const RAEUME = [
       { kind: 'pferd', x: -4.8, u: 35.6, yaw: 0.5 }, { kind: 'trommel', x: 5.4, u: 36 }] },
   { id: 'r6', name: 'Maschinenhalle', title: 'Maschinenhalle: Mit Schwung unter den Stampfsteinen durch!', len: 40, h: 6, paper: 'maschine', wood: 0x3a4a5a,
     star: [37, Y + 1.2],
-    floors: [{ u0: -1, u1: 40, style: 'metall' }, { u0: 10, u1: 32, x0: -7, x1: -1.2, y: Y + 2.6, style: 'uni', color: 0x6a7a90 }, { u0: 10, u1: 32, x0: 1.2, x1: 7, y: Y + 2.6, style: 'uni', color: 0x6a7a90 }],
+    floors: [{ u0: -1, u1: 40, style: 'metall' }, { u0: 10, u1: 32, x0: -7, x1: -2, y: Y + 2.6, style: 'uni', color: 0x6a7a90 }, { u0: 10, u1: 32, x0: 2, x1: 7, y: Y + 2.6, style: 'uni', color: 0x6a7a90 }],
     pictures: [{ wall: 'l', u: 4, y: 2.4, motif: 'piep' }, { wall: 'r', u: 4, y: 2.4, motif: 'burg' }, { wall: 'b', x: -4.6, y: 2.2, motif: 'berg' }],
     clocks: [{ wall: 'l', u: 36, y: 3.4, r: 0.45 }, { wall: 'r', u: 36, y: 3.4, r: 0.45, speed: 3 }],
     props: [{ kind: 'rohre', x: -6.2, u: 2 }, { kind: 'rohre', x: 6.2, u: 6.5 }, { kind: 'kiste', x: 5.4, u: 2, size: 1.1, color: 0xd8a83a }, { kind: 'kiste', x: -5.2, u: 37.5, size: 0.9, color: 0xd8a83a },
-      { kind: 'zahnrad', x: -4, u: 10.05, y: Y + 1.3, r: 0.9, yaw: 0, solid: false }, { kind: 'zahnrad', x: 4.2, u: 10.05, y: Y + 1.4, r: 1.0, solid: false }] },
+      { kind: 'zahnrad', x: -4.5, u: 10.05, y: Y + 1.3, r: 0.9, yaw: 0, solid: false }, { kind: 'zahnrad', x: 4.6, u: 10.05, y: Y + 1.4, r: 1.0, solid: false }] },
   { id: 'r7', name: 'Schaukelzimmer', title: 'Schaukelzimmer: Von Schaukel zu Schaukel!', len: 38, h: 8, pit: true, paper: 'schaukel', wood: 0x2a8a6a,
     star: [35, Y + 1.2],
     floors: [{ u0: -1, u1: 6, style: 'teppich' }, { u0: 31, u1: 38, style: 'teppich' }],
@@ -176,10 +176,11 @@ function setup(level) {
   for (const [u0, u1] of [[5, 15], [16.6, 26], [27.6, 33]]) for (let u = u0; u < u1 - 0.01; u += 1) deco.push(blk(1.02, 0.06, Math.min(1, u1 - u) * 0.5, 0, Y - 0.03, zu(4, u + 0.25), 0xffffff));
   // 6 Maschinenhalle: Warnstreifen, Rohre auf den Gehäusen, Lämpchen
   for (const sx of [-1, 1]) {
-    for (let k = 0; k < 7; k++) deco.push(blk(0.42, 0.42, 0.06, sx * (1.5 + k * 0.8), Y + 2.2, zu(5, 10) + 0.03, k % 2 ? 0x1a1a1a : 0xffc21a));
-    deco.push(cyl(0.22, 0.22, 21, sx * 4.2, Y + 2.85, zu(5, 21), 0x9aa8b8, 10, { rx: Math.PI / 2, center: true }));
-    deco.push(cyl(0.16, 0.16, 21, sx * 5.6, Y + 2.8, zu(5, 21), 0xc8783a, 8, { rx: Math.PI / 2, center: true }));
-    for (let k = 0; k < 6; k++) deco.push(blk(0.8, 0.5, 0.8, sx * 2.6, Y + 2.6, zu(5, 12 + k * 3.6), 0x6a7a90, { top: 0x8a9ab0 }));
+    for (let k = 0; k < 6; k++) deco.push(blk(0.42, 0.42, 0.06, sx * (2.3 + k * 0.8), Y + 2.2, zu(5, 10) + 0.03, k % 2 ? 0x1a1a1a : 0xffc21a));
+    deco.push(cyl(0.22, 0.22, 21, sx * 4.6, Y + 2.85, zu(5, 21), 0x9aa8b8, 10, { rx: Math.PI / 2, center: true }));
+    deco.push(cyl(0.16, 0.16, 21, sx * 6.0, Y + 2.8, zu(5, 21), 0xc8783a, 8, { rx: Math.PI / 2, center: true }));
+    for (let k = 0; k < 6; k++) deco.push(blk(0.8, 0.5, 0.8, sx * 3.3, Y + 2.6, zu(5, 12 + k * 3.6), 0x6a7a90, { top: 0x8a9ab0 }));
+    deco.push(blk(0.12, 0.12, 22, sx * 2.06, Y + 2.6, zu(5, 21), 0xffc21a));   // gelbe Kante am Gang
   }
   // 7 Schaukelzimmer: Deckenbalken für die Schaukeln
   for (const u of SWING7) deco.push(blk(W, 0.4, 0.4, 0, Y + 5.7, zu(6, u), 0x6a3a1a));
@@ -188,13 +189,13 @@ function setup(level) {
   for (const sx of [-1, 1]) deco.push(blk(0.1, 0.5, 28, sx * 4.85, Y + 1.2, zu(8, 20), 0xd8a83a));
   // 10 Dachboden: Dachbalken und Stützen
   for (const u of [8, 20, 28]) {
-    deco.push(blk(W, 0.3, 0.3, 0, Y + 6.2, zu(9, u), 0x6a4422));
-    for (const sx of [-1, 1]) deco.push(blk(0.3, 6.2, 0.3, sx * 6.7, Y - 7, zu(9, u), 0x6a4422));
+    deco.push(blk(W, 0.3, 0.3, 0, Y + 6.6, zu(9, u), 0x6a4422));
+    for (const sx of [-1, 1]) deco.push(blk(0.3, 13.6, 0.3, sx * 6.7, Y - 7, zu(9, u), 0x6a4422));
   }
   bakeParts(level, deco, { castShadow: false });
   // Schaukeln (Raum 7): gegenläufig, Bretter tragen die Figur
   schaukeln(level, SWING7.map((u, k) => ({ id: `schaukel${k + 1}`, pos: [0, Y + 5.7, zu(6, u)], rope: 5.2, w: 2.6, d: 1.8, amp: 0.4, period: 2.5, phase: k % 2 ? 0.5 : 0 })));
-  // Raum 3: Riesenprojektil 1 s nach dem Countdown-Start hinter der Figur (durch die Öffnung der Vorderwand); Raum 10: Bröckelblöcke frisch
+  // Raum 3: Riesenprojektil 0,6 s nach dem Countdown-Start hinter der Figur (durch die Öffnung der Vorderwand); Raum 10: Bröckelblöcke frisch
   const kugel = { bullet: null, t: -1, shots: 0, maxNear: 0 };
   level.named.set('r3_kugel', kugel);
   // Walzen-Räume beginnen frisch: alte Walzen zerfallen, die Werfer holen erst nach `first` s aus (fair und gleich
@@ -214,7 +215,7 @@ function setup(level) {
   };
   raumHaken(level, {
     play(i) {
-      if (i === 2) kugel.t = 1.0;
+      if (i === 2) kugel.t = 0.6;
       if (i === 3) frischeWalzen(3, LANES4.map((u, k) => `r4_werfer${k + 1}`), LANES4.map((u, k) => 0.3 + k * 0.4));
       if (i === 8) {
         // Kanonengang: alte Suchköpfe weg, die Kanonen laden gestaffelt (die Köpfe kreuzen den Steg, wenn man vorbeikommt)
@@ -241,7 +242,7 @@ function setup(level) {
       kugel.t -= dt;
       if (kugel.t <= 0) {
         kugel.t = -1;
-        kugel.bullet = level.spawn('riesenprojektil', { pos: [0, Y + 0.95, zu(2, -1.2)], dir: [0, -1], speed: 7.5, life: 9 });
+        kugel.bullet = level.spawn('riesenprojektil', { pos: [0, Y + 0.95, zu(2, -1.2)], dir: [0, -1], speed: 8.2, life: 9 });
         kugel.shots++;
         level.sfx('cannon');
         level.effects?.ring({ x: 0, y: Y + 2.1, z: zu(2, -0.6) }, 2.2);
@@ -260,7 +261,7 @@ function setup(level) {
 const area = (i) => ({ min: [-W / 2 - 0.5, BOT - 3, zu(i, RAEUME[i].len) - 0.5], max: [W / 2 + 0.5, Y + 14, Z0(i) + 1.5] });
 const cam = (i, o = {}) => ({ pitch: o.pitch ?? 41, dist: o.dist ?? 13.5, yaw: 0, fov: o.fov ?? 44, x: 0, xLock: o.xLock ?? 0.55, ahead: o.ahead ?? 3.2, height: o.height ?? 1.0 });
 const start = (i) => ({ pos: P(i, 0, 2.5), yaw: Math.PI / 2 });
-const CAMS = [cam(0, { pitch: 44, dist: 15 }), cam(1), cam(2, { pitch: 44, dist: 12.5, xLock: 0.8 }), cam(3), cam(4, { pitch: 40 }), cam(5, { pitch: 43 }),
+const CAMS = [cam(0, { pitch: 44, dist: 15 }), cam(1), cam(2, { pitch: 44, dist: 12.5, xLock: 0.8 }), cam(3), cam(4, { pitch: 40 }), cam(5, { pitch: 48, dist: 13 }),
   cam(6, { pitch: 37, dist: 14.5 }), cam(7), cam(8, { pitch: 42 }), cam(9, { pitch: 40 })];
 
 export const LEVEL = {
@@ -300,10 +301,11 @@ export const LEVEL = {
     cliff(4, -7, 7, -1, 5, Y, 0xa86a3a),
     ...[[5, 15], [16.6, 26], [27.6, 33]].map(([a, b]) => isl(-0.5, 0.5, zu(4, a), zu(4, b), Y, 0.5, { top: 'none', under: 0, color: 0xd8283a })),
     cliff(4, -7, 7, 33, 38, Y, 0xa86a3a),
-    // 6 Maschinenhalle: Boden, Maschinengehäuse links/rechts (enger Gang 2,4 m), Boost-Pfeile
+    // 6 Maschinenhalle: Boden, Maschinengehäuse links/rechts (Gang 4 m, die Stampfsteine hängen versetzt links/rechts
+    //   und überdecken die Gangmitte – vorbei kommt man nur mit Schwung), Boost-Pfeile
     floor(5, -1, 40, { color: 0x6a7688 }),
-    isl(-7, -1.2, zu(5, 10), zu(5, 32), Y + 2.6, 2.6, { top: 'none', under: 0, color: 0x5a6a80 }),
-    isl(1.2, 7, zu(5, 10), zu(5, 32), Y + 2.6, 2.6, { top: 'none', under: 0, color: 0x5a6a80 }),
+    isl(-7, -2, zu(5, 10), zu(5, 32), Y + 2.6, 2.6, { top: 'none', under: 0, color: 0x5a6a80 }),
+    isl(2, 7, zu(5, 10), zu(5, 32), Y + 2.6, 2.6, { top: 'none', under: 0, color: 0x5a6a80 }),
     { type: 'boost', pos: P(5, 0, 7), dir: [0, -1], speed: 18, size: [1.8, 2.4] },
     { type: 'boost', pos: P(5, 0, 19.6), dir: [0, -1], speed: 18, size: [1.8, 2.0] },
     // 7 Schaukelzimmer: Start- und Zielpodest (Schaukeln im Level-Haken)
@@ -329,7 +331,7 @@ export const LEVEL = {
     // 4 Walzenwerfer auf den Theken, werfen quer über den Weg
     ...LANES4.map((u, k) => ({ kind: 'walzenwerfer', id: `r4_werfer${k + 1}`, roomId: 'r4', pos: P(3, (k % 2 ? 1 : -1) * 5.8, u, Y + 1), dir: [k % 2 ? -1 : 1, 0], aim: 'dir', interval: 1.4, first: 0.3 + k * 0.55, speed: 4, walze: 0.8, max: 2, life: 4.5 })),
     // 6 acht Stampfsteine über dem Maschinengang
-    ...STONES6.map((u, k) => ({ kind: 'stampfstein', id: `r6_stein${k + 1}`, roomId: 'r6', pos: P(5, 0, u, Y + 2.75), fall: 2.75, wait: 0.9 })),
+    ...STONES6.map((u, k) => ({ kind: 'stampfstein', id: `r6_stein${k + 1}`, roomId: 'r6', pos: P(5, k % 2 ? 0.95 : -0.95, u, Y + 2.75), fall: 2.75, wait: 0.9, trigger: 0.3 })),
     // 8 Pilzlingsparade: vier Reihen marschieren heran, Mini-Pilzlinge flitzen
     ...[[12, [-4.5, -1.5, 1.5, 4.5]], [18, [-3, 0, 3]], [24, [-4.5, -1.5, 1.5, 4.5]], [30, [-3, 0, 3]]].flatMap(([u, xs], r) => xs.map((x, k) => ({
       kind: 'pilzling', id: `r8_p${r + 1}${k + 1}`, roomId: 'r8', pos: P(7, x, u), dir: [0, 1], speed: 1.1, wake: 30 }))),
