@@ -2784,6 +2784,57 @@ Figur), Rankenschnapper (wachsen über den Weg), Lavabrocken (tragbar, werfbar),
 Stachelpanzer, Springklotz, Lavafunke; Boss **Lavafelsen-König** (nur geworfene Lavabrocken treffen). „Mitspieler“
 im Bauplan = Klone der Spiegelfrucht. Die Welt-Warp-Röhre in 4-2 führt zur Welt-5-Insel („Bald“, bis es sie gibt).
 
+**Level-Notizen 4-3 / 4-4** (Level-Agent; Hilfen `src/course/levels/w4/_helpers_b.js` ohne `LEVEL`; Test
+`tests/course_w4b.mjs [4-3|4-4] [a|b|c]` – a = Laden, Gegner, Takt, Routen Lotti + Greta; b = Sterne, Stempel, Extras;
+c = Bilder je Abschnitt, je < 10 min –, Port 4630 + PORT_BASE, Bilder `tests/out/w4lb_*.png`; `ONLY=<Text|Text>`,
+`HERO=lotti|greta`, `VERBOSE=1`; Piep-Takt im Test über `music.setManualClock(true)` + `advanceClock(1/120)` je Schritt):
+
+- **4-3 „Neonsteg im Takt“** (parcours, beep, course_beep 128 BPM, 400 s, ≈ 285 m nach −Z): Start-Tanzfläche
+  (Leuchtfliesen im Takt, tanzende Piep-Roboter, Discokugel, Leuchtschrift) → **Taktgasse** (rotes Piep-Tor + blaue Brücke
+  über einer flachen Grube, Geländer – harmlos) → **Reihe 1** (rot/blaue 2-m-Streifen) → Insel 1 mit Spiegelfrucht →
+  **Reihe 2** (6 m rot, dann 6 m blau: Sprung im Wechsel) → Insel 2 mit Spiegelfrucht und Bumerang-Werfer → **Reihe 3**
+  (Schachbrett aus 2-m-Würfeln) → Druckfeld-Insel: zwei Felder einer Gruppe gleichzeitig (Heldin + Klon; Klon-Automat,
+  Spiegelfrucht wächst alle 2,5 s nach) schalten den Laserzaun ab → **Reihe 4** „Laufwelle“ (vier Gruppen rot/blau mit
+  Versatz 0/4 Zählzeiten: alle 4 Zählzeiten rückt der feste Doppelstreifen 3 m vor) → Warp-Insel: links ein 1,6-m-Steg am
+  Bumerang-Werfer vorbei → **Stern 1**; rechts der **Rundweg** über Piep-Steine (Ost rot, Süd blau, West rot), der im
+  Kreis zur Insel zurückführt (Münzen, Werfer, **unsichtbarer 1-Up-Block**); geradeaus die Warp-Box → Turmfuß vor dem
+  Lautsprecherturm (Membranen pumpen im Takt): vier **Piep-Treppenläufe** aus je vier schwebenden Stufen (1,5 m hoch und
+  tief) mit festen Absätzen – rot, blau, rot, rot-rot-blau-blau (Sprung im Wechsel) –, 30 m hoch, Sicherheitsnetz unter
+  den oberen Läufen → Checkpoint (y 31); links der Viererlift in einer Geländer-Ecke (zwei Trittstufen; Klon-Automat und
+  ?-Block mit Spiegelfrucht daneben) → **Stempel** auf dem Sims (oder Krallen-Anzug aus dem ?-Block, Kletterwand) →
+  Abstieg über drei Absätze (Bumerang-Werfer) und zwei Piep-Platten, Warp-Box → Uhrenplatz (y 24): Röhre neben drei
+  Zeit-Uhren (+10 s) → **Bonusraum** (x ≈ 90, eigene Kamera): Druckschalter, zehn blaue Münzen im Ring (jede zweite hoch)
+  in 10 s → **Stern 2**; rote **Piep-Rutsche** (fest nur solange Rot gilt, Fangnetz darunter) → Rutschenfuß: zwei
+  Druckfelder gleichzeitig (Klon-Automat, ?-Block) → **Stern 3** → Schlussaufstieg: zwei Piep-Treppen (rot;
+  blau-blau-rot-rot), Fangnetz → Zielplateau mit Tanzfläche und Zielmast. Gegner: Bumerang-Werfer 7 (`feuer_werfer`,
+  `weapon: 'bumerang'`). Route ≈ 100 s (der Bot wartet an jeder Reihe auf die passende Zählzeit).
+- **4-4 „Trampolin-Alm“** (parcours, bounce, course_bounce, 400 s, ≈ 230 m nach −Z): Startwiese (Almhütte mit Rauch,
+  Kühe mit Glocken, grasende Schafe, Windrad, Drachen, Bienen; Felswand hinten links mit **Wandloch – Stern 1**:
+  Springklotz davor als Feder oder Krallen-Anzug aus dem ?-Block an der kletterbaren Wand) → Schlucht mit zwei
+  Pilztrampolinen auf Felssäulen (Wolken darunter) → Terrasse B (Stachelpanzer, Krabbelkäfer, drei Springklötze vor der
+  6-m-Stufe, oranges Trampolin) → Terrasse C (Flatterkäfer-Schwarm, Stachelpanzer, hüpfender Springklotz) → weiße Treppe →
+  Checkpoint-Plateau D; hinter der Treppe zwei Pilztrampoline auf zwei Felssimse → **Stern 2** → **Riesentrampolin-Fahrt**
+  (107 m, 4,2 m/s, startet beim Draufspringen, über einem Wolkenmeer): sechs Flatterkäfer-Räder (eines waagerecht als Ring
+  um die Bahn, eines entlang der Bahn), zwischen zwei Rädern hoch oben der **Stempel** (nur mit getimtem Sprung kurz vor
+  der Landung ×1,4 – gehaltene Taste reicht nicht), links eine Wolke mit Warp-Box → **Kletterzaun-Raum** (x ≈ −107,
+  frontale Kamera 24°): vier Kettenzäune (fest, seitlich und senkrecht fahrend) → **Stern 3** auf dem Sims, Warp-Box zur
+  Zielinsel → Zielinsel (Springklotz unter einem **unsichtbaren 1-Up-Block**, Springklotz neben dem Zielmast für die
+  Spitze). Gegner: Krabbelkäfer 4, Flatterkäfer 55 (6 Räder × 8 + 7), Stachelpanzer 5, Springklotz 9. Route ≈ 43 s.
+- **Level-Haken** (`LEVEL.setup` = `levelSetup` + `cullStatic`): Inseln ohne Sonnenschatten (`flatIslands`), `laserGate`
+  (Signal `open`), `klonAutomat`, `fangnetz`, `neonRail`; Takt-Kulisse über `beatNow(level)` (liest `level.beepClock`):
+  `danceBots`, `beatTiles`, `laserFans`, `noteFloat`, `neonSign`, `speakerTower`, `discoBall`; Bergwiese: `rockWall`
+  (Achse x|z, Wandloch), `nicheFrame`, `cloudSea`, `sheep`, `kite`, `bees`. Budget: `wheelSwarm` zeichnet alle Glieder der
+  Flatterkäfer-Räder als sparsame Käfer (≈ 520 statt ≈ 4500 Dreiecke, zwei Zeichenaufrufe für alle Räder; ersetzt dazu
+  `rad.inst` – ändert sich `kaefer_rad.js`, hier nachziehen), `bugSwarm`/`instanceEnemies` für die übrigen Gegner,
+  `farHide`, `modelDiet` (Kulissen-Modelle ohne Schatten, fern ausgeblendet), Roboter nur in der Nähe; große Piep-Felder
+  mit `cell: 2` (vier statt sechzehn Zellen je 2 × 2 m), Piep-Rutsche 4 m breit.
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 4-3 22 Bilder 70–111 Zeichenaufrufe (mit Klonen ≤ 111), 135–265 k
+  Dreiecke; 4-4 19 Bilder 65–98 / 146–219 k.
+- **Hinweise/Wünsche**: Eine Piep-Zelle kostet ≈ 750 Dreiecke (fest) bzw. ≈ 600 (Umriss + Füllung) – große Felder nur mit
+  `cell: 2`; `piep_rutsche` kennt kein `cell` (eine Zelle je m²). Münzen und ?-Blöcke werden immer gezeichnet (≈ 400
+  bzw. ≈ 3000 Dreiecke je Stück). Wünsche: `cell` für die Piep-Rutsche, Fern-Detailstufe für Registry-Käfer in
+  `flatterkaefer_rad`.
+
 ---
 
 ## Präzisierung (Bausteine Welt 4)

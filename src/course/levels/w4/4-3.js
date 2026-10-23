@@ -85,6 +85,8 @@ function setup(level) {
   neonRail(level, [-3.1, Y, -6], [-3.1, Y, -12.5]); neonRail(level, [3.1, Y, -6], [3.1, Y, -12.5]);
   neonRail(level, [-3.1, Y - 1.8, -12.5], [-3.1, Y - 1.8, -17.5], { height: 2.7 }); neonRail(level, [3.1, Y - 1.8, -12.5], [3.1, Y - 1.8, -17.5], { height: 2.7 });
   neonRail(level, [-3.1, Y, -17.5], [-3.1, Y, -20]); neonRail(level, [3.1, Y, -17.5], [3.1, Y, -20]);
+  // Bonusraum: Geländer an der offenen Vorderseite
+  neonRail(level, [BX - 10, 0, BZ + 9.9], [BX + 10, 0, BZ + 9.9], { color: 0x5a9aff });
   // Laserzaun hinter den Druckfeldern
   laserGate(level, { id: 'laser', pos: [0, Y, -93.5], width: 13, height: 5, beams: 7 });
   // Spiegelfrucht-Nachschub

@@ -79,6 +79,11 @@ function setup(level) {
   stonePath(parts, [0, YZ, -207], [0, YZ, -223]);
   ropeFence(parts, [KX - 16.6, 10, KZ + 10.6], [KX + 16.6, 10, KZ + 10.6]); ropeFence(parts, [KX - 16.6, 10, KZ + 10.6], [KX - 16.6, 10, KZ - 10.6]);
   ropeFence(parts, [KX + 16.6, 10, KZ + 10.6], [KX + 16.6, 10, KZ - 10.6]);
+  ropeFence(parts, [KX - 16.6, 10, KZ - 10.6], [KX + 16.6, 10, KZ - 10.6]);
+  // Seilzaun des Kletterzaun-Raums hält (unsichtbare Wand, 1,2 m)
+  for (const [x0, x1, z0, z1] of [[KX - 17, KX + 17, KZ + 10.4, KZ + 10.8], [KX - 17, KX + 17, KZ - 10.8, KZ - 10.4], [KX - 16.8, KX - 16.4, KZ - 11, KZ + 11], [KX + 16.4, KX + 16.8, KZ - 11, KZ + 11]]) {
+    level.world.add({ type: 'box', min: [x0, 10, z0], max: [x1, 11.2, z1], tag: 'seilzaun', camIgnore: true });
+  }
   addStaticParts(level, parts);
   smoke(level, [9.9, YA + 5.2, 4.9]);
   sheep(level, [
