@@ -15,7 +15,7 @@
 // (player.hurt) und Stachelkontakt werden trotzdem gezählt und bei den Mechanik-Prüfungen ausgewertet.
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
-const Y = 1, WS = 0, U = 5, LB = -6;   // 4-1 Boden; 4-2 Seespiegel, Oberland, Seegrund
+const Y = 1, WS = 0, U = 5, LB = -6, LEDGE0 = 5.1;   // 4-1 Boden; 4-2 Seespiegel, Oberland, Seegrund, erster Stempel-Sims
 // ------------------------------------------------------------------ Routen
 // Beine (legs): { to: [x, z], jump: Schritte (Sprungtaste gehalten), jumpAt, within, run, slow, max, land } · { wait } ·
 // { hop } (Sprung auf der Stelle) · { stomp } · { crouch } (Röhre) · { push, jump, dir } (Kletterwand drücken) ·
@@ -148,21 +148,22 @@ const ROUTES = {
     ],
     targets: [
       { name: 'Stern 0: vier Rankenschnapper als Stufen zur Warp-Box zwischen zwei hängenden → Sternkammer', star: 0, from: [0.2, Y, -73],
-        legs: [{ to: [3.4, -74.4], jump: 24, within: 0.35, run: false }, { wait: 10 }, { to: [3.6, -76.8], jump: 30, within: 0.35, run: false }, { wait: 10 },
-          { to: [3.8, -79.2], jump: 30, within: 0.35, run: false }, { wait: 10 }, { to: [4, -81.6], jump: 30, within: 0.35, run: false }, { wait: 10 },
-          { to: [4.4, -84.4], jump: 30, within: 0.4, run: false }, { to: [6.2, -85.8], jump: 20, within: 0.3, run: false }, { wait: 20 }, { expect: 'kammer' }, { star: 0 }],
+        legs: [{ to: [3.4, -74.4], jump: 24, within: 0.3, run: false }, { wait: 10 }, { to: [3.6, -76.5], jump: 30, within: 0.3, run: false }, { wait: 10 },
+          { to: [3.8, -78.6], jump: 30, within: 0.3, run: false }, { wait: 10 }, { to: [4, -80.7], jump: 30, within: 0.3, run: false }, { wait: 10 },
+          { to: [4.4, -83.6], jump: 30, within: 0.4, run: false }, { to: [6.2, -85.4], jump: 20, within: 0.3, run: false, stopIf: 'kammer' }, { wait: 40 }, { expect: 'kammer' }, { star: 0 }],
         shot: 'stern0', mech: { vines: 4 } },
       { name: 'Stern 0 nicht ohne Ranken (Sprung vom Weg zum Sims)', star: 0, expectNot: true, from: [0.6, Y, -82], heroes: ['lotti'],
         legs: [{ to: [3.4, -84.6], jump: 40, within: 0.4, max: 300 }, { wait: 60 }] },
       { name: 'Stern 1: ganz unten im Moorsee', star: 1, from: [-3.4, WS + 0.6, -142.6],
         legs: [{ to: [-1.6, -143], run: false }, { dive: [4.4, -141.6], y: LB + 0.4, within: 0.6 }, { star: 1 }, { swimOut: [3, -150] }], shot: 'stern1' },
       { name: 'Stempel: vom Rankenschnapper abprallen, versteckter Münzpfad über die Felssimse', stamp: true, from: [8.2, WS + 0.6, -141.6],
-        legs: [{ to: [8.2, -141.4], within: 0.3, run: false }, { bounceOn: 'rs_abprall', to: [10.7, -147.2] }, { wait: 10 },
-          { to: [10.7, -153.9], jump: 30, within: 0.4, run: false }, { to: [10.4, -160.2], jump: 30, within: 0.4, run: false }, { hop: 30 }, { wait: 20 }], shot: 'stempel', mech: { bounce: true } },
-      { name: 'Stempel-Sims nicht ohne Abprall (Sprung vom Inselchen)', stamp: true, expectNot: true, from: [8.2, WS + 0.6, -142.6], heroes: ['lotti'],
-        legs: [{ to: [10.7, -147.2], jump: 40, within: 0.4, max: 300 }, { wait: 60 }, { expect: 'nichtAufSims' }] },
+        legs: [{ to: [9.6, -142.6], within: 0.2, run: false }, { bounceOn: 'rs_abprall', to: [10.8, -146], overY: LEDGE0 + 0.25 }, { wait: 10 },
+          { to: [10.7, -147.7], within: 0.3, run: false }, { to: [10.7, -152.1], jump: 30, within: 0.4, run: false }, { to: [10.7, -153.1], within: 0.3, run: false },
+          { to: [10.4, -158.4], jump: 30, within: 0.4, run: false }, { hop: 30 }, { wait: 20 }], shot: 'stempel', mech: { bounce: true } },
+      { name: 'Stempel-Sims nicht ohne Abprall (Sprung vom Inselchen)', stamp: true, expectNot: true, from: [9, WS + 0.6, -142.6], heroes: ['lotti'],
+        legs: [{ to: [10.8, -146], jump: 40, within: 0.4, max: 300 }, { wait: 60 }, { expect: 'nichtAufSims' }] },
       { name: 'Stern 2: Sternring – acht Sternmünzen in 10 s', star: 2, from: [-5.4, U, -228.6],
-        legs: [{ to: [-5.4, -233.4], within: 0.5 }, { chaseKind: 'sternmuenze', max: 1300 }, { wait: 60 }, { star: 2 }], shot: 'stern2' },
+        legs: [{ to: [-5.4, -232.6], within: 0.5, run: false }, { chaseKind: 'sternmuenze', max: 1300, walk: true }, { wait: 60 }, { star: 2 }], shot: 'stern2' },
     ],
     extra: [
       { name: 'Welt-Warp: Roulette-Block (Krallen-Anzug), Felswand hinauf, Plattformen, hinter dem Giftwasserfall die Röhre nach Welt 5', from: [-4.6, U, -184.2], expectWarp: 5,
@@ -173,10 +174,10 @@ const ROUTES = {
           { name: 'Warp-Plattform 2', mover: 'warp2', when: { axis: 'x', gt: -24.2 }, until: { axis: 'x', lt: -26.5 }, run: false },
           { name: 'durch den Vorhang', to: [-29.6, -186.5], jump: 20, within: 0.4, run: false }, { to: [-33.2, -186.5], jump: 30, within: 0.25, run: false }, { crouch: 4 }, { wait: 30 }] },
       { name: 'Extraleben: Rankenschnapper auf der Röhre mit Stampfattacke besiegen, Röhre → Moorkeller', from: [6, Y, -48], heroes: ['lotti'], expectLives: 1,
-        legs: [{ to: [9.2, -48], within: 0.3, run: false }, { poundAt: 'rs_roehre' }, { wait: 90 }, { expect: 'roehreFrei' }, { to: [10, -48], jump: 30, within: 0.25, run: false }, { crouch: 4 },
+        legs: [{ to: [8.9, -48], jump: 20, jumpAt: 2.4, within: 0.3, run: false }, { poundAt: 'rs_roehre' }, { wait: 90 }, { expect: 'roehreFrei' }, { to: [10, -48], jump: 30, within: 0.25, run: false }, { crouch: 4 },
           { expect: 'keller' }, { chaseKind: 'powerup', max: 1500 }] },
-      { name: 'Röhre versperrt: auf dem Kopf des Rankenschnappers nur Abprall', from: [6, Y, -48], heroes: ['lotti'],
-        legs: [{ to: [9.2, -48], within: 0.3, run: false }, { to: [10, -48], jump: 30, within: 0.25, run: false, max: 240 }, { crouch: 4 }, { wait: 30 }, { expect: 'nichtImKeller' }] },
+      { name: 'Röhre versperrt: auf dem Kopf des Rankenschnappers nur Abprall', from: [6, Y, -48], heroes: ['lotti'], expectAlive: true,
+        legs: [{ to: [8.9, -48], jump: 20, jumpAt: 2.4, within: 0.3, run: false }, { to: [10, -48], jump: 30, within: 0.25, run: false, max: 240, land: false }, { crouch: 4 }, { wait: 30 }, { expect: 'nichtImKeller' }, { expect: 'abgeprallt' }] },
       { name: 'Großer Rankenschnapper: drei Stampfattacken auf den Kopf', from: [0, Y, -113], heroes: ['lotti'],
         legs: [{ until: 'grossDa', max: 1200 }, { poundAt: 'rs_gross' }, { wait: 70 }, { until: 'grossDa', max: 1200 }, { poundAt: 'rs_gross' }, { wait: 70 }, { until: 'grossDa', max: 1200 }, { poundAt: 'rs_gross' }, { wait: 70 }, { expect: 'grossBesiegt' }] },
     ],
@@ -250,6 +251,7 @@ function install() {
     nichtAufSims: () => P().pos.y < 4,
     grossDa: () => { const e = L.named.get('rs_gross'); return !!e && !e.defeated && e.grow > 0.98 && e.state !== 'hit'; },
     grossBesiegt: () => !!L.named.get('rs_gross')?.defeated,
+    abgeprallt: () => (L.named.get('rs_roehre')?.bounces ?? 0) > 0,
   };
   const W = {
     place(pos, o = {}) {
@@ -348,7 +350,7 @@ function install() {
           continue;
         }
         if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
-        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
+        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
         // ------------------------------------------------ Ameise an einer Wand besteigen
         if (Lg.board) {
           const ants = Lg.board.map((id) => L.named.get(id)).filter(Boolean);
@@ -550,7 +552,10 @@ function install() {
           for (; k < 600; k++) {
             if (p.dead) break;
             const tgt = bounced ? Lg.to : [e.headC.x, e.headC.z];
-            const st = p.mode === 'air' ? (bounced || p.vel.y < 4 ? this.airSteer(tgt[0], tgt[1], 0, 0, 2.6, 8) : { x: 0, y: 0 }) : this.stick(tgt[0] - p.pos.x, tgt[1] - p.pos.z, 0.6);
+            // erst lenken, wenn die Füße über dem Kopf sind (sonst seitlich in den Kopf = Biss)
+            const above = p.pos.y > e.headC.y + 0.55;
+            const steer = bounced ? (Lg.overY === undefined || p.pos.y > Lg.overY || p.vel.y < -2) : above;
+            const st = p.mode === 'air' && steer ? this.airSteer(tgt[0], tgt[1], 0, 0, 3.4, 8) : { x: 0, y: 0 };
             tick({ ...st, jump: (k < 24) || bounced || p.vel.y > 0, run: false });
             if (p.mode === 'air') left = true;
             if (!bounced && e.bounces > b0) { bounced = true; mech.bounces++; }
@@ -595,6 +600,7 @@ function install() {
             if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
           }
+          if (Lg.stopIf && COND[Lg.stopIf]()) break;
           if (j0 === null && dist <= Lg.jumpAt) j0 = i;
           const jump = (holdJ && j0 !== null ? (i - j0 < holdJ) : false) || auto > 0;
           if (auto > 0) auto--;
@@ -625,7 +631,7 @@ function install() {
         const dy = e.pos.y - p.pos.y;
         const jump = (o.jump !== false && (n % 48) < 20 && dist < 1.6) || (dy > 0.8 && (n % 48) < 30);
         p.invuln = Math.max(p.invuln, 5);
-        c.setInput({ ...this.stick(dx, dz, Math.min(1, 0.3 + dist)), run: dist > 1.5 || o.run, jump });
+        c.setInput({ ...this.stick(dx, dz, Math.min(1, 0.3 + dist)), run: !o.walk && (dist > 1.5 || o.run), jump });
         c.step(1);
         if (p.mode === 'script') { let k = 0; while (p.mode === 'script' && k++ < 1200) { c.setInput({}); c.step(1); } }
       }
@@ -718,7 +724,7 @@ for (const id of LEVELS) {
       const rt = await W('rt');
       let ok = t.star !== undefined ? rt.stars[t.star] : rt.stamp;
       if (t.expectNot) ok = !ok;
-      if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
+      if (!t.expectNot && res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (t.mech?.carried && !(res.mech.carried > 200)) ok = false;
       if (t.mech?.noSpikes && res.mech.spikes > 0) ok = false;
       if (t.mech?.vines && res.mech.vines.length < t.mech.vines) ok = false;
@@ -743,6 +749,7 @@ for (const id of LEVELS) {
       if (t.expectLives !== undefined) ok = ok && lives1 - lives0 >= t.expectLives;
       if (t.expectBelow !== undefined) ok = ok && res.pos[1] < t.expectBelow;
       if (t.expectWarp !== undefined) ok = ok && (await W('worldWarp')) === t.expectWarp;
+      if (t.expectAlive) ok = ok && !res.dead;
       if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
       check(`${id}: ${t.name} (${hero}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}, Ende y ${res.pos[1].toFixed(1)})`, ok);

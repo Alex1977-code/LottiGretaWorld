@@ -39,17 +39,17 @@ const ROCK = 0x5c4c6c;    // Felsfarbe der Überhänge (wie die Höhlenwände)
 export const M42 = {
   PIPE_BLOCK: { x: 10, z: -48, top: Y + 1.3 },
   POOL: { x0: 1, x1: 10.5, z0: -70, z1: -88 },              // Giftbecken in der Höhle
-  STEPS: [-74.4, -76.8, -79.2, -81.6],                      // z der vier Stufen-Ranken (waagerecht entlang +X)
+  STEPS: [-74.4, -76.5, -78.6, -80.7],                      // z der vier Stufen-Ranken (waagerecht entlang +X)
   STEP_TOPS: [Y + 1.2, Y + 2.5, Y + 3.8, Y + 5.1],
   STEP_X: [3.0, 7.4],                                       // waagerechtes Stück der Stufen von x … bis x
-  SHELF: { x0: 2.2, x1: 10.5, z0: -83.2, z1: -88, top: Y + 6.2 },
-  BOX: [6.2, Y + 6.2, -85.8],
+  SHELF: { x0: 2.2, x1: 10.5, z0: -82.4, z1: -88, top: Y + 6.2 },
+  BOX: [6.2, Y + 6.2, -85.4],
   KAMMER: { x0: 62, x1: 78, z0: -68, z1: -88 },
   KELLER: { x0: 62, x1: 76, z0: -36, z1: -50 },
   LAKE: { x0: -12, x1: 12, z0: -130, z1: -180, bottom: W - 6 },
-  ISLET: { x0: 7.2, x1: 9.2, z0: -140.4, z1: -143.6, top: W + 0.6 },   // Inselchen neben dem Abprall-Schnapper
+  ISLET: { x0: 7.6, x1: 9.9, z0: -140.8, z1: -143.6, top: W + 0.6 },   // Inselchen neben dem Abprall-Schnapper
   BOUNCE: { x: 10.7, z: -140.6 },                                       // Wurzel des Abprall-Schnappers (Kopf bei z ≈ −143,2)
-  LEDGES: [{ x0: 9.4, x1: 12, z0: -145.4, z1: -149.4, top: W + 5.2 }, { x0: 9.4, x1: 12, z0: -152.4, z1: -155.4, top: W + 6.2 }, { x0: 8.8, x1: 12, z0: -158.4, z1: -162.4, top: W + 7.2 }],
+  LEDGES: [{ x0: 9.6, x1: 12, z0: -144.3, z1: -148.3, top: W + 5.1 }, { x0: 9.4, x1: 12, z0: -150.6, z1: -153.6, top: W + 6.1 }, { x0: 8.8, x1: 12, z0: -156.4, z1: -160.4, top: W + 7.1 }],
   UP: { x0: -8, x1: 8, z0: -182, z1: -192, top: U },
   HIDDEN: { x0: -14, x1: -8.4, z0: -183, z1: -190, top: U + 7 },
   WARP: { x0: -40, x1: -28.6, z0: -182.5, z1: -190.5, top: U + 7, face: -30.4 },
@@ -350,7 +350,7 @@ export const LEVEL = {
     creeper('rs_w2', -10, W, -146.4, [1, 0], 10.6, { height: 1.7, phase: 0.6 }),
     creeper('rs_w3', -10.2, W, -155, [1, 0], 9.2, { height: 1.7, phase: 0.35 }),
     creeper('rs_w4', 10.2, W, -164.4, [-1, 0], 9.6, { height: 1.7, phase: 0.85 }),
-    creeper('rs_abprall', BOUNCE.x, W, BOUNCE.z, [0, -1], 3.6, { height: 2.2, mode: 'static' }),
+    creeper('rs_abprall', BOUNCE.x, W, BOUNCE.z, [0, -1], 3.6, { height: 2.4, mode: 'static', walk: false }),
     // ---------------- 5 Brummer (3)
     { kind: 'brummer', id: 'br1', center: [3.4, U + 2.6, -205], radius: 2.6 },
     { kind: 'brummer', id: 'br2', center: [7.4, U + 2.4, -212], radius: 2 },
@@ -377,9 +377,9 @@ export const LEVEL = {
     ...arc([2, W + 1.2, -153], [-3.4, W + 1.2, -157.2], 4, 1.4),
     ...arc([-3.4, W + 1.2, -162], [0.6, W + 1.2, -167], 3, 1.2),
     ...column(BOUNCE.x, -143.4, W + 3.8, W + 5.8, 2),
-    line([10.7, LEDGES[0].top + 0.7, -146.2], [10.7, LEDGES[0].top + 0.7, -148.6], 2),
-    ...arc([10.7, LEDGES[0].top + 0.7, -149.4], [10.7, LEDGES[1].top + 0.7, -152.6], 3, 1),
-    ...arc([10.7, LEDGES[1].top + 0.7, -155.2], [10.4, LEDGES[2].top + 0.7, -158.8], 3, 1),
+    line([10.8, LEDGES[0].top + 0.7, -145.2], [10.8, LEDGES[0].top + 0.7, -147.4], 2),
+    ...arc([10.7, LEDGES[0].top + 0.7, -148.2], [10.7, LEDGES[1].top + 0.7, -151.4], 3, 1),
+    ...arc([10.7, LEDGES[1].top + 0.7, -153.4], [10.4, LEDGES[2].top + 0.7, -157.2], 3, 1),
     // ---------------- 5
     line([0, U + 0.6, -188], [0, U + 0.6, -191.4], 2),
     line([0, U + 1, -196], [0, U + 1, -203], 3),
@@ -395,8 +395,8 @@ export const LEVEL = {
     { kind: 'powerup', pos: [69, Y + 0.1, -47.6], power: 'oneup', dir: [1, 0] },
     // ---------------- Sternring (Stern 2): acht Sternmünzen rund um die Zielröhren-Insel und auf der letzten Plattform
     { kind: 'sternring', id: 'sternring', pos: [-5.4, FINAL.top, -231.4], star: 2, time: 10, coins: [
-      [-8.4, FINAL.top + 0.8, -230.4], [-8.6, FINAL.top + 0.8, -234.6], [-5.6, FINAL.top + 0.8, -237.2], [-1.4, FINAL.top + 2.6, -233.6],
-      [1.8, FINAL.top + 0.8, -230.2], [4.6, FINAL.top + 0.8, -232.6], [-9.2, FINAL.top + 2.4, -232.4], [-3, FINAL.top + 0.8, -236.6],
+      [-7.4, FINAL.top + 0.8, -233.8], [-4.6, FINAL.top + 2.4, -235.4], [-2.4, FINAL.top + 0.8, -236.4], [0.6, FINAL.top + 0.8, -235],
+      [0.6, FINAL.top + 2.2, -233], [-1.2, FINAL.top + 0.8, -230.8], [-3.6, FINAL.top + 0.8, -233.2], [-6.6, FINAL.top + 2.2, -232],
     ] },
     // Krallen-Hinweis: zwei Münzen an der bewachsenen Wand
     ...column(-7.6, -186.5, U + 2.4, U + 5.4, 3),
@@ -408,7 +408,7 @@ export const LEVEL = {
     [4.4, LAKE.bottom + 0.9, -141.6],                           // 1: ganz unten im Moorsee
     { pos: [-5.4, FINAL.top + 1.4, -231.4], hidden: true, id: 'stern_ring' },   // 2: Sternring
   ],
-  stamp: [10.4, LEDGES[2].top + 1.4, -160.4],
+  stamp: [10.4, LEDGES[2].top + 1.4, -158.6],
   goal: { pos: [0, GOAL.top, -260], height: 9 },
   marks: {
     start: [0, Y, 6],
