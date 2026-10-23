@@ -648,10 +648,7 @@ if (want('3-Zug')) {
   }
 
   // Routen-Bot Lotti
-  if (zpart('lotti')) {
-  await load('3-Zug');
-  await sc(TRAIN_HELPERS);
-  const botL = await sc((lane) => {
+  const BOT_RUN = (lane) => {
     const c = window.__course, t = window.__t, p = c.player, L = c.level;
     t.place([3.2, 1.15, p.pos.z], { settle: 2, invuln: 1e9 });
     // aufspringen: quer aufs Dach
@@ -662,13 +659,277 @@ if (want('3-Zug')) {
     log.heads = t.ent('suchkanone')?.shots ?? 0;
     log.state = L.scroll.state;
     log.pushes = t.arch().pushes;
+    log.hero = p.hero;
+    if (!log.deaths) delete log.trace;
     return log;
-  }, LANE);
+  };
+  if (zpart('lotti')) {
+  await load('3-Zug');
+  await sc(TRAIN_HELPERS);
+  const botL = await sc(BOT_RUN, LANE);
   console.log(`  Bot Lotti: ${JSON.stringify(botL)}`);
   check(`3-Zug Lotti: Route bis zum Zughalt ohne Tod (c ${botL.finalC}, ${botL.jumps} Lückensprünge, ${botL.climbs} Kletter-Sprünge, ${botL.dodges} Ausweichsprünge)`, botL.done && botL.deaths === 0 && botL.state === 'done');
   check(`3-Zug Lotti: trägt jeder Wagen des Express (${botL.cars.join(' → ')})`, ['W1', 'W2', 'F1', 'W3', 'W4', 'F2', 'W5', 'F3', 'W6', 'G1', 'F4', 'W7', 'B1', 'T1', 'L1'].every((id) => botL.cars.includes(id)));
   check(`3-Zug: Riesenkanonen feuern (${botL.bullets.join('/')}), Suchkopf-Kanone (${botL.heads})`, botL.bullets.every((n) => n >= 1) && botL.heads >= 2);
   await SHOT('zug_halt', () => { window.__course.step(60); });
+  }
+
+  // Routen-Bot Greta
+  if (zpart('greta')) {
+  await load('3-Zug', { hero: 'greta' });
+  await sc(TRAIN_HELPERS);
+  const botG = await sc(BOT_RUN, LANE);
+  console.log(`  Bot Greta: ${JSON.stringify(botG)}`);
+  check(`3-Zug Greta (${botG.hero}): Route bis zum Zughalt ohne Tod (c ${botG.finalC}, ${botG.climbs} Kletter-Sprünge, ${botG.dodges} Ausweichsprünge)`, botG.hero === 'greta' && botG.done && botG.deaths === 0 && botG.state === 'done');
+  }
+
+  // Vollständiger Lauf: Stern 0, Riesenprojektil, Pilzlingsturm (Stern 1), Kontrollpunkt, Geheimröhre + Krümel
+  // (Stern 2), Postwagen (Stempel), Riesentrank + Steinblöcke, Bonuswagen, Lok-Röhre, Schattenläuferin, Baron, Ziel
+  if (zpart('komplett')) {
+  await load('3-Zug', { fresh: true });
+  await sc(TRAIN_HELPERS);
+  await sc(BOSS_HELPERS, ['schatten', [30, 1.6, -735.15]]);
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    const out = {};
+    for (let i = 0; i < 90; i++) { c.setInput({ x: -1, jump: i < 30 }); c.step(1); if (p.mode === 'ground' && i > 10) break; }
+    for (let i = 0; i < 400 && !L.runtime.stars[0]; i++) { c.setInput({ y: -1, x: (0 - p.pos.x) }); c.step(1); }
+    c.setInput({});
+    out.star0 = !!L.runtime.stars[0];
+    // Riesenprojektil: auf einem landen und mitfahren
+    t.waitWin(25);
+    let b = null;
+    for (let i = 0; i < 120 * 14 && !b; i++) { c.step(1); b = L.entities.find((e) => e.kind === 'riesenprojektil' && !e.removed && e.state === 'fly' && e.pos.x < -6.5); }
+    out.bullet = !!b;
+    if (b) {
+      t.place([b.pos.x, b.pos.y + 2.45, b.pos.z], { invuln: 1e9 });
+      const x0 = p.pos.x, bx0 = b.pos.x;
+      let on = 0;
+      for (let i = 0; i < 70; i++) { c.setInput({}); c.step(1); if (p.ground && (p.ground.tag === 'riesenprojektil' || p.ground.owner === b)) on++; }
+      out.ride = { on, dx: +(p.pos.x - x0).toFixed(2), bdx: +(b.pos.x - bx0).toFixed(2), dz: +(p.pos.z - b.pos.z).toFixed(2), tag: p.ground?.tag ?? null };
+      // Treffer: das nächste Projektil fliegt in die Figur auf dem Wagendach
+      let b2 = null;
+      t.placeC(t.cw(), 0, { settle: 4, invuln: 1e9 });
+      for (let i = 0; i < 120 * 10 && !b2; i++) { c.step(1); b2 = L.entities.find((e) => e !== b && e.kind === 'riesenprojektil' && !e.removed && e.state === 'fly' && e.pos.x < -7.5); }
+      if (b2) {
+        let hurt = false;
+        p.invuln = 0;
+        for (let i = 0; i < 120 * 4 && !hurt && !b2.removed; i++) {
+          p.pos.z = b2.pos.z; p.pos.x = Math.min(0.9, Math.max(-0.9, p.pos.x));
+          c.setInput({}); c.step(1);
+          hurt = p.invuln > 0.2 || p.dead;
+        }
+        out.bulletHurt = hurt;
+        p.invuln = 1e9;
+      }
+    }
+    // Pilzlingsturm auf F2 (Halt des Bildfensters): Stufe für Stufe von oben → Stern 1
+    t.waitWin(57.6);
+    const turm = t.ent('turm');
+    out.turm = { count0: turm.count, stomps: [] };
+    for (let k = 0; k < 7 && !turm.defeated && turm.count > 0; k++) {
+      t.place([turm.pos.x, turm.pos.y + (turm.height ?? turm.half.y * 2) + 0.9, turm.pos.z], { invuln: 1e9 });
+      for (let i = 0; i < 160; i++) {
+        c.setInput({}); c.step(1);
+        if (p.mode === 'air' && p.vel.y <= 0) { p.pos.x = turm.pos.x; p.pos.z = turm.pos.z; }
+        if (i > 2 && p.mode === 'air' && p.vel.y > 4) break;
+        if (p.mode === 'ground') break;
+      }
+      out.turm.stomps.push(turm.count);
+      t.placeC(t.cOf(turm.pos.z) - 3.2, -0.9, { settle: 30, invuln: 1e9 });
+    }
+    c.step(60);
+    const s1 = L.entities.find((e) => e.kind === 'star' && e.index === 1 && !e.removed);
+    out.turm.star = !!s1;
+    if (s1) for (let i = 0; i < 40 && !L.runtime.stars[1]; i++) { t.place([s1.pos.x, s1.pos.y - 0.4, s1.pos.z], { invuln: 1e9 }); c.step(3); }
+    out.star1 = !!L.runtime.stars[1];
+    // Kontrollpunkt auf dem Dach von W5
+    const cp = L.entities.find((e) => e.kind === 'checkpoint' && e.spec.attach === 'W5');
+    for (let i = 0; i < 30 && !L.runtime.checkpoint; i++) { t.place([cp.pos.x, cp.pos.y + 0.1, cp.pos.z], { invuln: 1e9 }); c.step(4); }
+    out.cp = !!L.runtime.checkpoint;
+    return out;
+  });
+  console.log(`  Lauf 1: ${JSON.stringify(r)}`);
+  check('3-Zug: Stern 0 an der Hinterkante gleich am Start', r.star0);
+  check(`3-Zug: auf einem Riesenprojektil landen und mitfahren (${r.ride?.on}/70 Schritte oben, Figur Δx ${r.ride?.dx} wie Projektil ${r.ride?.bdx}), Treffer verletzt (${r.bulletHurt})`, r.bullet && r.ride.on > 50 && Math.abs(r.ride.dx - r.ride.bdx) < 0.4 && r.ride.dx > 2 && r.bulletHurt === true);
+  check(`3-Zug: Pilzlingsturm Stufe für Stufe abgetragen (${r.turm.count0} → ${r.turm.stomps.join(' → ')}), Stern 1 eingesammelt`, r.turm.stomps.at(-1) === 0 && r.star1);
+  check('3-Zug: Kontrollpunkt auf dem fahrenden Wagen W5 aktiviert', r.cp);
+  await SHOT('zug_pilzlingsturm', () => { const t = window.__t; t.placeC(t.cw() + 1, 0.6, { settle: 20, invuln: 1e9 }); });
+
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    const out = {};
+    // Neustart am Kontrollpunkt: Fenster und Zug wie beim Aktivieren
+    p.invuln = 0; p.die('hit');
+    for (let i = 0; i < 900 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1);
+    c.step(30);
+    out.respawn = { ground: t.ground(), state: L.scroll.state, c: +t.cOf(p.pos.z).toFixed(1), cw: +t.cw().toFixed(1) };
+    // Geheimröhre auf F3 → Brummbär-Zug (PX), Krümel befreien, Rückröhre → Dach von W6
+    t.waitWin(79.05);
+    const hin = t.ent('roehre_hin'), px = t.ent('roehre_px'), rueck = t.ent('roehre_rueck'), w6 = t.ent('roehre_w6');
+    t.place([hin.pos.x, hin.pos.y + hin.H + 0.3, hin.pos.z], { settle: 30, invuln: 1e9 });
+    c.setInput({ crouch: true }); c.step(3); c.setInput({});
+    let arrived = null;
+    for (let i = 0; i < 900; i++) { c.step(1); if (p.mode !== 'script' && Math.abs(p.pos.x - px.pos.x) < 2.5) { c.step(30); arrived = t.ground(); break; } }
+    out.px = arrived;
+    const kiste = t.ent('kiste_kruemel'), k = L._zugScene.kruemel;
+    out.kruemel0 = k.state;
+    t.place([kiste.pos.x, kiste.pos.y + 1.3 + 1.2, kiste.pos.z], { invuln: 1e9 });
+    c.setInput({ crouch: true }); c.step(60); c.setInput({}); c.step(20);
+    out.crate = !!(kiste.removed || !kiste.alive);
+    for (let i = 0; i < 240 && k.state !== 'cheer'; i++) c.step(1);
+    out.kruemel1 = k.state;
+    c.step(20);
+    const s2 = L.entities.find((e) => e.kind === 'star' && e.index === 2 && !e.removed);
+    out.star = !!s2;
+    if (s2) for (let i = 0; i < 40 && !L.runtime.stars[2]; i++) { t.place([s2.pos.x, s2.pos.y - 0.4, s2.pos.z], { invuln: 1e9 }); c.step(3); }
+    out.star2 = !!L.runtime.stars[2];
+    t.place([rueck.pos.x, rueck.pos.y + rueck.H + 0.3, rueck.pos.z], { settle: 30, invuln: 1e9 });
+    c.setInput({ crouch: true }); c.step(3); c.setInput({});
+    let back = null;
+    for (let i = 0; i < 900; i++) { c.step(1); if (p.mode !== 'script' && Math.abs(p.pos.x - w6.pos.x) < 2.5) { c.step(30); back = t.ground(); break; } }
+    out.back = back;
+    for (let i = 0; i < 600 && !['pipe', 'gone'].includes(k.state); i++) c.step(1);
+    out.kruemel2 = k.state;
+    return out;
+  });
+  console.log(`  Lauf 2: ${JSON.stringify(r)}`);
+  check(`3-Zug: Tod → Neustart am Kontrollpunkt auf ${r.respawn.ground} (Fenster ${r.respawn.state} bei c ${r.respawn.cw})`, r.respawn.ground === 'W5' && r.respawn.state === 'run');
+  check(`3-Zug: Geheimröhre F3 → Brummbär-Zug (${r.px}), Kiste zerstampft, Krümel befreit (${r.kruemel0} → ${r.kruemel1}), Stern 2, Rückröhre aufs Dach von ${r.back} (Krümel: ${r.kruemel2})`, r.px === 'PX' && r.crate && r.kruemel1 === 'cheer' && r.star2 && r.back === 'W6' && ['pipe', 'gone'].includes(r.kruemel2));
+
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    const out = {};
+    // Postwagen: durch die Dachluke hinein, Stempel neben dem Feuer-Werfer
+    t.waitWin(100.6);
+    const TR = L.data.train, g1 = t.car('G1');
+    const [hx, , hz] = t.at(TR.G1.cc - 2.5, 0, 0);
+    t.place([hx, g1.pos.y + 4.3, hz], { invuln: 1e9 });
+    for (let i = 0; i < 120; i++) { c.step(1); if (p.mode === 'ground') break; }
+    c.step(10);
+    out.post = { inside: L._zugScene.post.inside, y: +(p.pos.y - g1.pos.y).toFixed(2), werfer: !!t.ent('post_werfer')?.alive };
+    const st = L.entities.find((e) => e.kind === 'stamp' && !e.removed);
+    if (st) t.go(st.pos.x, st.pos.z, { max: 300, r: 0.25 });
+    out.stamp = !!L.runtime.stamp;
+    // Riesentrank: versteckter Block über dem Deck von F4, dann die Steinblöcke zertrümmern
+    t.waitWin(110.4);
+    const blk = t.ent('block_riese');
+    t.placeC(t.cOf(blk.pos.z), blk.pos.x, { settle: 10, invuln: 1e9 });
+    c.setInput({ jump: true }); c.step(24); c.setInput({}); c.step(60);
+    const pu = L.entities.find((e) => e.kind === 'powerup' && !e.removed && /riese/.test(e.power ?? e.spec?.power ?? ''));
+    out.potion = !!pu;
+    if (pu) for (let i = 0; i < 40 && p.power !== 'riese'; i++) { t.place([pu.pos.x, pu.pos.y + 0.2, pu.pos.z], { invuln: 1e9, keepPower: true }); c.step(3); }
+    out.riese = p.power;
+    const n0 = t.count('steinblock');
+    for (let i = 0; i < 240 && t.count('steinblock') > 0; i++) { c.setInput({ y: 1 }); c.step(1); }
+    c.setInput({}); c.step(20);
+    out.blocks = n0 - t.count('steinblock');
+    // Bonuswagen: acht Kisten (sieben Münzen, ein Extraleben)
+    t.waitWin(133.5);
+    if (p.power === 'riese') p.setPower('none');
+    const coins0 = L.runtime.coins, lives0 = L.runtime.livesGained;
+    for (let i = 0; i < 8; i++) {
+      const k = t.ent(`bonus${i}`);
+      if (!k || k.removed || !k.alive) continue;
+      t.place([k.pos.x, k.pos.y + 1 + 1.2, k.pos.z], { invuln: 1e9 });
+      c.setInput({ crouch: true }); c.step(50); c.setInput({}); c.step(8);
+    }
+    out.bonus = [0, 1, 2, 3, 4, 5, 6, 7].filter((i) => { const k = t.ent(`bonus${i}`); return !k || k.removed || !k.alive; }).length;
+    for (let j = 0; j < 3; j++) {
+      const up = L.entities.find((e) => e.kind === 'powerup' && !e.removed && /oneup/.test(e.power ?? e.spec?.power ?? ''));
+      if (!up) break;
+      t.place([up.pos.x, up.pos.y + 0.1, up.pos.z], { invuln: 1e9 }); c.step(4);
+    }
+    c.step(30);
+    out.coins = L.runtime.coins - coins0;
+    out.lives = L.runtime.livesGained - lives0;
+    return out;
+  });
+  console.log(`  Lauf 3: ${JSON.stringify(r)}`);
+  check(`3-Zug: Postwagen durch die Dachluke (innen ${r.post.inside}, Feuer-Werfer wacht ${r.post.werfer}), Stempel eingesammelt`, r.post.inside && r.post.werfer && r.stamp);
+  check(`3-Zug: versteckter Block auf F4 → Riesentrank (${r.riese}), ${r.blocks} Steinblöcke zertrümmert`, r.potion && r.riese === 'riese' && r.blocks === 3);
+  check(`3-Zug: Bonuswagen – ${r.bonus}/8 Kisten, +${r.coins} Münzen, +${r.lives} Leben`, r.bonus === 8 && r.coins >= 7 && r.lives === 1);
+  await SHOT('zug_bonuswagen', () => { const t = window.__t; t.placeC(t.cw() + 1, 0, { settle: 20, invuln: 1e9 }); });
+
+  // Halt, Lok-Röhre → Drehscheibe
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player;
+    const out = {};
+    t.waitWin(999);
+    c.step(260);
+    const luke = t.ent('luke');
+    out.luke = { open: luke.open, banner: t.banners.includes('Ab durch die Röhre auf der Lok!') };
+    t.place([luke.pos.x, luke.pos.y + luke.H + 0.3, luke.pos.z], { settle: 20, invuln: 1e9 });
+    c.setInput({ crouch: true }); c.step(3); c.setInput({});
+    let arena = null;
+    for (let i = 0; i < 900; i++) { c.step(1); if (p.mode !== 'script' && Math.abs(p.pos.x - 30) < 12) { c.step(20); arena = [+p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]; break; } }
+    out.arena = arena;
+    return out;
+  });
+  console.log(`  Halt: ${JSON.stringify(r)}`);
+  check(`3-Zug: beim Halt öffnet die Lok-Röhre („Ab durch die Röhre auf der Lok!“ ${r.luke.banner}), sie führt in den Lokschuppen (${r.arena})`, r.luke.open && r.luke.banner && !!r.arena);
+  await SHOT('zug_arena', () => { window.__course.step(30); });
+
+  // Schattenläuferin in drei Phasen, danach Baron Brummbär
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    const out = { phases: [], hits: [] };
+    const b = t.boss(), home = [30, 1.6, -735.15];
+    out.started = t.enter();
+    for (let k = 0; k < 3; k++) {
+      t.untilSafe('throw', 2400, home);
+      out.phases.push({ phase: b.phase, clones: t.count('schatten_doppelgaenger'), hp: b.hp });
+      const hp0 = b.hp;
+      t.noShots();
+      const s = t.stomp(b, { invuln: 1e9 });
+      out.hits.push({ hit: b.hp < hp0, bounced: s.bounced });
+      t.place(home, { settle: 2, invuln: 1e9 });
+    }
+    out.def = ['defeated', 'flee', 'gone'].includes(b.state) || !!b.defeated;
+    t.untilSafe('gone', 900, home);
+    const zs = L._zugScene;
+    c.step(30);
+    out.baron = { active: !!zs.baron.active, state: zs.baron.state };
+    for (let i = 0; i < 120 * 16 && zs.baron.active; i++) { p.pos.set(...home); c.step(1); }
+    out.baronEnd = zs.baron.state;
+    out.banners = t.banners.slice(-6);
+    const w = t.ent('warp_sieg');
+    out.warp = !!w && !w.hidden;
+    return out;
+  });
+  console.log(`  Boss: ${JSON.stringify(r)}`);
+  check(`3-Zug: Kampf beginnt auf der Drehscheibe, Doppelgänger je Phase ${r.phases.map((x) => x.clones).join(' / ')}`, r.started && r.phases.map((x) => x.clones).join() === '2,3,5');
+  check(`3-Zug: drei Treffer auf das Original mit Schleife (${r.hits.map((h) => (h.hit ? '✓' : '✗')).join('')}), Schattenläuferin besiegt`, r.hits.every((h) => h.hit) && r.def);
+  check(`3-Zug: Baron Brummbär braust heran, schimpft und flieht (${r.baron.state} → ${r.baronEnd}), „Welt 3 geschafft!“, Warp-Box`, r.baron.active && r.banners.includes('Welt 3 geschafft!') && r.warp);
+
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    const out = {};
+    const w = t.ent('warp_sieg');
+    t.place([w.pos.x, w.pos.y + 0.2, w.pos.z], { settle: 2, invuln: 1e9 });
+    let arrived = null;
+    for (let i = 0; i < 600; i++) { c.step(1); if (Math.abs(p.pos.x - 4.6) < 3 && p.mode === 'ground') { arrived = [+p.pos.x.toFixed(1), +p.pos.z.toFixed(1)]; break; } }
+    out.arrived = arrived;
+    const g = L.data.goal.pos;
+    t.go(g[0] - 0.4, g[2] + 3, { max: 900 });
+    const kz = L._zugScene.land?.kruemelZiel;
+    out.kruemelZiel = { visible: !!kz?.root?.visible, said: !!kz?.said };
+    return out;
+  });
+  console.log(`  Ziel 1: ${JSON.stringify(r)}`);
+  check(`3-Zug: Warp-Box → Zielbahnsteig (${r.arrived}), Krümel wartet und jubelt (${JSON.stringify(r.kruemelZiel)})`, !!r.arrived && r.kruemelZiel.visible && r.kruemelZiel.said);
+  await SHOT('zug_ziel', () => {});
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, L = c.level;
+    const g = L.data.goal.pos;
+    t.go(g[0] - 0.4, g[2] + 0.3, { max: 900 });
+    for (let i = 0; i < 1500 && !c.finished; i++) c.step(1);
+    return { finished: c.finished, save: t.save().levels?.['3-Zug'] ?? null };
+  });
+  console.log(`  Ziel 2: ${JSON.stringify(r)}`);
+  check(`3-Zug: Zielmast erreicht, gespeichert mit drei Sternen und Stempel (${JSON.stringify(r.save)})`, r.finished && r.save?.done === true && r.save.stars?.length === 3 && r.save.stars.every((x) => x === true) && r.save.stamp === true);
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: `${OUT}w3z_zug_ergebnis.png` });
   }
   check('3-Zug: keine Konsolenfehler', errors.length === 0);
 }

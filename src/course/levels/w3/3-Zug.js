@@ -223,14 +223,14 @@ export const LEVEL = {
   },
   segments: [
     // Bahnhof Tannenruh: Gelände, Bahnsteig
-    { type: 'island', pos: [-1, -4.35, 8], size: [42, 4, 48], top: 'stone', under: 0 },
+    { type: 'island', pos: [-1, -4.35, 8], size: [42, 4, 48], top: 'grass', under: 0 },
     { type: 'bahnsteig', pos: [4.4, 0, ZUG.ZR - 9], size: [5, 1.1, 34], edge: 'left', sign: 'Tannenruh' },
     { type: 'killplane', y: -14 },
     // Gleise (Haupt- und Parallelgleis) mit Gerüstbrücke über die Schlucht
     ...trackChunks({ x: 0, z0: 40, z1: LOK_Z - 30, gorges: GORGES, bottom: -30 }),
     ...trackChunks({ x: XP, z0: 6, z1: LOK_Z - 30, gorges: GORGES, bottom: -30, start: true }),
     // Bahnhof Schneetal (Halt), Lokschuppen mit Drehscheibe
-    { type: 'island', pos: [15, -4.35, LOK_Z - 4], size: [80, 4, 60], top: 'stone', under: 0 },
+    { type: 'island', pos: [15, -4.35, LOK_Z - 4], size: [80, 4, 60], top: 'grass', under: 0 },
     { type: 'bahnsteig', pos: [GX, 0, LOK_Z + 4], size: [5, 1.1, 40], edge: 'left', sign: 'Schneetal' },
     { type: 'arena_cage', pos: [AX, AY, AZ], radius: AR, height: 5, floor: AY + 4.35, ceiling: 6.4, gate: Math.PI / 2, low: 0.85, color: 0x3a6ae8 },
     { type: 'pipe', id: 'arena_rohr', pos: [AX - 1.5, AY, AZ + AR - 2.2], height: 0.9, color: 0x2fbf4a },
