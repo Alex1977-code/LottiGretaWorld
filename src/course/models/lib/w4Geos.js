@@ -84,6 +84,53 @@ export function displace(g0, amp = 0.05, freq = 3, seed = 0, smooth = true) {
   return g;
 }
 
+/** Klumpiges Ellipsoid (Halbachsen rad, Mitte im Ursprung), weich schattiert. Passend dazu: lumpyPoint(). */
+export function lumpyEllipsoid(rad, amp, freq, seed, ws = 28, hs = 20) {
+  const g = new THREE.SphereGeometry(1, ws, hs);
+  g.scale(rad[0], rad[1], rad[2]);
+  return displace(g, amp, freq, seed, true);
+}
+/**
+ * Punkt und Normale auf lumpyEllipsoid(rad, amp, freq, seed) in Richtung (az um Y ab +X, el Höhe), lift = Abstand
+ * über der Oberfläche. c = Mitte (Verschiebung).
+ */
+export function lumpyPoint(rad, amp, freq, seed, az, el, lift = 0, c = [0, 0, 0]) {
+  const d = [Math.cos(el) * Math.cos(az), Math.sin(el), Math.cos(el) * Math.sin(az)];
+  const bx = d[0] * rad[0], by = d[1] * rad[1], bz = d[2] * rad[2];
+  const n = new THREE.Vector3(d[0] / rad[0], d[1] / rad[1], d[2] / rad[2]).normalize();
+  const disp = (noise3(bx * freq + seed, by * freq + seed * 0.7, bz * freq - seed) - 0.5) * 2 * amp;
+  const p = new THREE.Vector3(bx, by, bz).addScaledVector(n, disp + lift).add(new THREE.Vector3(...c));
+  return { p, n };
+}
+/**
+ * Glut-Risse als dünne Röhren auf einem lumpyEllipsoid: list = [{ az, el, steps, seed }]; jeder Riss läuft in
+ * zufälligen Knicken über die Oberfläche. color: Farbe oder { v } (z. B. hell → dunkel).
+ */
+export function addCracks(b, body, list, r, color) {
+  const { rad, amp, freq, seed, c } = body;
+  for (const k of list) {
+    let az = k.az, el = k.el;
+    const dAz = Math.cos(k.seed * 3.1) * 0.2, dEl = Math.sin(k.seed * 5.3) * 0.2 - 0.06;
+    const pts = [];
+    const steps = k.steps ?? 5;
+    for (let i = 0; i <= steps; i++) {
+      pts.push(lumpyPoint(rad, amp, freq, seed, az, el, r * 0.6, c).p.toArray());
+      az += dAz + (hash1(k.seed * 13 + i) - 0.5) * 0.35;
+      el += dEl + (hash1(k.seed * 7 + i * 3) - 0.5) * 0.35;
+    }
+    b.tube(pts, r, color, null, steps * 4, 5);
+    // Abzweig in der Mitte
+    if (k.branch) {
+      const m = Math.floor(steps / 2);
+      let a2 = k.az + dAz * m, e2 = k.el + dEl * m;
+      const bp = [];
+      for (let i = 0; i < 3; i++) { bp.push(lumpyPoint(rad, amp, freq, seed, a2, e2, r * 0.6, c).p.toArray()); a2 += dEl * 1.3; e2 -= dAz * 1.3; }
+      b.tube(bp, r * 0.75, color, null, 8, 5);
+    }
+  }
+  return b;
+}
+
 /** Canyon-Schichtfarbe: wellige waagerechte Bänder (Dicke band m), oben (ny > top) Gras/Sand. */
 export function strataColor(y, x = 0, z = 0, o = {}) {
   const band = o.band ?? 0.55, seed = o.seed ?? 0;
