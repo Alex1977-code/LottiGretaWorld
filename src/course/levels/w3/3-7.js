@@ -21,7 +21,7 @@
 // Münzmarder 1. Level-Haken (LEVEL.setup, _helpers_d.js): Wasserfall, Teich tief unten, Laubhaufen, Kürbisse,
 // Fliegenpilze, Eichhörnchen, Zeit-Uhren.
 
-import { isl, line, ring, arc, levelSetup, felsen, laubhaufen, kuerbisse, fliegenpilze, eichhoernchen, wasserfall, teich, zeitUhren, instanceEnemies, hohlerBaum, laubTeppich } from './_helpers_d.js';
+import { isl, line, ring, arc, levelSetup, felsen, laubhaufen, kuerbisse, fliegenpilze, eichhoernchen, wasserfall, teich, zeitUhren, instanceEnemies, hohlerBaum, laubTeppich, vogelscheuche } from './_helpers_d.js';
 
 const Y = 1;        // Inseln
 const R = 0.25;     // Schienen-Oberkante (Tafel-Oberkante 1,0)
@@ -67,6 +67,8 @@ function setup(level) {
     { pos: [-12.2, Y, -106], spots: [[-12.2, Y, -106], [-13.4, Y, -109], [-11.6, Y, -111]], yaw: 0.6 },
     { pos: [3, Y, -231], spots: [[3, Y, -231], [6.4, Y, -228.6], [1.4, Y, -233.6]], yaw: 2 },
   ]);
+  vogelscheuche(level, -7.2, Y, -224, 0.4);
+  vogelscheuche(level, 8.4, Y, 5.6, -0.3);
   zeitUhren(level, [[4.6, 3, -79.4], [5.8, 3, -79.4], [7, 3, -79.4]], { id: 'uhren' });
   // Fallraum: hohler Baum mit Baumpilz-Simsen
   hohlerBaum(level, { x: 80, z: -80, r: 5.4, y0: 1, y1: 44, shelves: [[-0.9, 30, 2.4], [1.0, 22, 2.2], [-1.1, 12, 2.4], [0.9, 6, 2]] });
@@ -188,15 +190,15 @@ export const LEVEL = {
   ],
   enemies: [
     // Brummer (10)
-    { kind: 'brummer', id: 'b1', center: [3.4, 3.6, -16], radius: 2.2 },
-    { kind: 'brummer', id: 'b2', center: [-5, 3.4, -38], radius: 2.4 },
-    { kind: 'brummer', id: 'b3', path: [[4, 4, -62], [4, 4, -72]] },
-    { kind: 'brummer', id: 'b4', center: [-6, 3.6, -86], radius: 2.4 },
-    { kind: 'brummer', id: 'b5', pos: [7.2, 4.6, -92] },
-    { kind: 'brummer', id: 'b6', center: [2, 4.2, -118], radius: 2.6 },
-    { kind: 'brummer', id: 'b7', center: [17, 3.6, -152], radius: 2.2 },
-    { kind: 'brummer', id: 'b8', center: [9.4, 3.8, -180], radius: 2.2 },
-    { kind: 'brummer', id: 'b9', center: [14, 3.4, -191.6], radius: 2 },
+    { kind: 'brummer', id: 'b1', center: [-5, 3.4, 6], radius: 2 },
+    { kind: 'brummer', id: 'b2', center: [-5.6, 3.4, -50.6], radius: 2 },
+    { kind: 'brummer', id: 'b3', path: [[5.6, 4, -49.6], [5.6, 4, -54.6]] },
+    { kind: 'brummer', id: 'b4', center: [-12.6, 3.6, -108.4], radius: 1.8 },
+    { kind: 'brummer', id: 'b5', pos: [6.2, 4.6, -80.4] },
+    { kind: 'brummer', id: 'b6', center: [15.4, 3.6, -139.6], radius: 1.8 },
+    { kind: 'brummer', id: 'b7', center: [20, 3.6, -162], radius: 1.8 },
+    { kind: 'brummer', id: 'b8', center: [10, 3.6, -191], radius: 2 },
+    { kind: 'brummer', id: 'b9', center: [-5, 3.4, -208], radius: 2.4 },
     { kind: 'brummer', id: 'b10', center: [0, 3.2, -222], radius: 2.8 },
     // Funkenkäfer (7)
     { kind: 'funkenkaefer', id: 'k1', pos: [3, 4, -51.6] },

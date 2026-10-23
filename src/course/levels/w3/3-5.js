@@ -24,7 +24,7 @@
 // Level-Haken (LEVEL.setup, _helpers_d.js): Meer zwischen den Becken, Felsen, Strandzier, Leuchttürme, Möwen,
 // Krabben, Fischschwärme, Wandlöcher, Flutkammer (steigendes Wasser, Neustart setzt es zurück).
 
-import { isl, line, ring, arc, levelSetup, cullStatic, seaFill, leuchtturm, strand, felsen, wandloecher, fischschwaerme, moewen, krabbe, flutKammer, instanceEnemies, fernAus, riffKorallen } from './_helpers_d.js';
+import { isl, line, ring, arc, levelSetup, cullStatic, seaFill, leuchtturm, strand, felsen, wandloecher, fischschwaerme, moewen, krabbe, flutKammer, instanceEnemies, fernAus, riffKorallen, flaschenpost } from './_helpers_d.js';
 
 const Y = 1;        // Land
 const W = 0;        // Wasseroberfläche
@@ -96,6 +96,8 @@ function setup(level) {
   leuchtturm(level, [5.6, 5, -248.4], { height: 12, r: 1.6 });
   leuchtturm(level, [-20, 2.4, -12], { height: 7, r: 1.1, shadow: false });
   moewen(level, [{ center: [5.6, 21, -248], radius: 7, n: 3 }, { center: [-20, 13, -12], radius: 5, n: 2 }, { center: [-24, 9, -146], radius: 6, n: 2 }]);
+  flaschenpost(level, 9.6, Y, 8.8, 0.6);
+  flaschenpost(level, -15.4, 8, -165.4, -0.8);
   krabbe(level, [-2, Y, 8.6], [3, Y, 8.6], { speed: 0.4 });
   krabbe(level, [3, Y, -37], [-2, Y, -37], { speed: 0.5, color: 0xff7a2a, phase: 0.4 });
   krabbe(level, [-3, Y, -162.6], [2, Y, -162.6], { speed: 0.45, phase: 0.7 });
@@ -205,7 +207,7 @@ export const LEVEL = {
     sand(-20, -8, -136, -150, Y, 4),
     sand(-8, 20, -146, -164, Y, 4),
     { type: 'steg', pos: [0, -0.2, -137.6], yaw: Math.PI / 2, length: 8.8, width: 2, height: 1.2 },
-    { type: 'schiffswrack', pos: [-25, -3, -150], yaw: 0.7, size: 1.6, shadow: false },
+    { type: 'schiffswrack', pos: [-21, -3, -124], yaw: 1.1, size: 1.6, shadow: false },
     sign(4.2, Y, -129.6, 'Kanonen-Helm:\nder Riss hält nicht ewig!', { size: [3.2, 1.1] }),
     // Wandriss vor der Kerbe im Rissfels, dahinter die goldene Röhre
     { type: 'wandriss', id: 'riss', pos: [11.5, Y, -149.5], size: [3, 3.4, 1] },

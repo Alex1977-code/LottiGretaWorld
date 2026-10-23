@@ -456,6 +456,40 @@ export function wandloecher(level, list) {
   if (parts.length) addStatic(level, mrg(parts), { castShadow: false });
 }
 
+/** Vogelscheuche (Strohhut, kariertes Hemd, Kürbiskopf), verschmolzen; Pfahl fest. */
+export function vogelscheuche(level, x, y, z, yaw = 0) {
+  const P = [];
+  P.push(place(cylG(0.06, 0.07, 2.3, 6), litFn(0x7a5232), x, y + 1.15, z));
+  const arm = new THREE.CylinderGeometry(0.05, 0.05, 1.8, 6); arm.rotateZ(Math.PI / 2); arm.rotateY(yaw);
+  P.push(place(arm, litFn(0x7a5232), x, y + 1.6, z));
+  const shirt = new THREE.BoxGeometry(0.62, 0.7, 0.32); shirt.rotateY(yaw);
+  const red = L(0xd83a2a), dark = L(0x7a1a1a);
+  P.push(place(shirt, (p, n, o) => mixc(red, dark, ((Math.floor((p.x + p.z) * 7) + Math.floor(p.y * 7)) & 1) ? 0.6 : 0, o), x, y + 1.45, z));
+  const sleeve = new THREE.BoxGeometry(1.5, 0.22, 0.26); sleeve.rotateY(yaw);
+  P.push(place(sleeve, (p, n, o) => mixc(red, dark, (Math.floor((p.x + p.z) * 7) & 1) ? 0.6 : 0, o), x, y + 1.62, z));
+  const head = new THREE.SphereGeometry(0.3, 10, 7); head.scale(1, 0.85, 1);
+  P.push(place(head, (p, n, o) => { const a = Math.atan2(p.z, p.x); mixc(L(0xc8601a), L(0xff9a2a), 0.5 + 0.5 * Math.abs(Math.sin(a * 4)), o); }, x, y + 2.2, z));
+  P.push(place(new THREE.CylinderGeometry(0.52, 0.56, 0.05, 14), litFn(0xe8c870), x, y + 2.42, z));
+  P.push(place(new THREE.CylinderGeometry(0.22, 0.28, 0.32, 12), litFn(0xe0be60), x, y + 2.6, z));
+  for (let i = 0; i < 6; i++) { const a = yaw + (i - 2.5) * 0.25; const g = new THREE.ConeGeometry(0.04, 0.3, 4); g.rotateZ(Math.PI); P.push(place(g, litFn(0xf0d070), x + Math.cos(a) * 0.95, y + 1.48, z - Math.sin(a) * 0.95)); }
+  addStatic(level, mrg(P));
+  level.world.add({ type: 'cyl', x, z, r: 0.12, y0: y, y1: y + 2.3, tag: 'vogelscheuche' });
+}
+
+/** Flaschenpost im Sand (Kulisse). */
+export function flaschenpost(level, x, y, z, yaw = 0) {
+  const P = [];
+  const g = new THREE.CylinderGeometry(0.09, 0.11, 0.42, 8); g.rotateZ(Math.PI / 2 - 0.15); g.rotateY(yaw);
+  P.push(place(g, (p, n, o) => mixc(L(0x2a8a5a), L(0x8ae0b0), smooth(-0.5, 0.9, n.y), o), x, y + 0.1, z));
+  const neck = new THREE.CylinderGeometry(0.04, 0.05, 0.14, 6); neck.rotateZ(Math.PI / 2 - 0.15); neck.rotateY(yaw);
+  P.push(place(neck, litFn(0x2a8a5a), x + Math.cos(yaw) * 0.27, y + 0.14, z - Math.sin(yaw) * 0.27));
+  const cork = new THREE.CylinderGeometry(0.035, 0.035, 0.05, 6); cork.rotateZ(Math.PI / 2 - 0.15); cork.rotateY(yaw);
+  P.push(place(cork, litFn(0xb8864a), x + Math.cos(yaw) * 0.36, y + 0.15, z - Math.sin(yaw) * 0.36));
+  const note = new THREE.BoxGeometry(0.2, 0.08, 0.08); note.rotateY(yaw);
+  P.push(place(note, litFn(0xfff4d0), x, y + 0.1, z));
+  addStatic(level, mrg(P), { castShadow: false });
+}
+
 // =====================================================================================================================
 // Lagunen-Zier (animiert)
 // =====================================================================================================================
