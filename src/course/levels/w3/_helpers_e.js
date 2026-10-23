@@ -2209,12 +2209,12 @@ export class Rentiere {
     const wz = w?.center?.z ?? 1e9;
     if (this.state === 'graze' && wz < o.wake) this.state = 'run';
     if (this.state === 'run') {
-      const want = Math.max(o.stop, wz - 5);
-      const dv = want < this.lead ? 9.5 : 0;
-      this.v += Math.max(-6 * dt, Math.min(4 * dt, dv - this.v));
-      if (this.lead - want < 1.5) this.v = Math.min(this.v, Math.max(0, (this.lead - want) * 2));
+      // Leittier hält sich knapp vor der Fenstermitte (Fenster ≈ 8 m/s); wartet, bis der Zug heran ist
+      const want = Math.max(o.stop, wz - 6);
+      const vt = want >= o.stop + 0.01 ? Math.max(0, Math.min(11, 8.2 + (this.lead - want) * 0.9)) : Math.max(0, Math.min(6, (this.lead - o.stop) * 1.5));
+      this.v += Math.max(-6 * dt, Math.min(5 * dt, vt - this.v));
       this.lead -= this.v * dt;
-      if (this.lead <= o.stop + 0.05 && this.v < 0.2) this.state = 'stand';
+      if (this.lead <= o.stop + 0.1 && this.v < 0.2) this.state = 'stand';
     }
     for (const a of this.list) {
       const tz = this.lead + a.oz, tx = o.x + a.ox + Math.sin(this.t * 0.6 + a.oz) * (this.v > 1 ? 0.5 : 0);
@@ -2403,8 +2403,8 @@ export function schneetalGelaende(level, cfg) {
     }
     const idx = [];
     for (let j = 0; j < nz; j++) for (let i = 0; i < nx - 1; i++) {
-      const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
-      idx.push(a, c, b, b, c, d);
+      const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;     // c, d: eine Reihe weiter in −z
+      idx.push(a, b, c, b, d, c);
     }
     let g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -2687,7 +2687,7 @@ export function schneetalSzene(level, cfg) {
     for (let j = 0; j < rows; j++) {
       for (let i = 0; i < xsR.length - 1; i++) {
         const za = zc + w / 2 - (j / rows) * w, zb = zc + w / 2 - ((j + 1) / rows) * w, xa = xsR[i], xb = xsR[i + 1];
-        for (const [x, z] of [[xa, za], [xa, zb], [xb, za], [xb, za], [xa, zb], [xb, zb]]) road.push(x, Math.max(tyAt(x), H(x, z)) + 0.04, z);
+        for (const [x, z] of [[xa, za], [xb, za], [xa, zb], [xb, za], [xb, zb], [xa, zb]]) road.push(x, Math.max(tyAt(x), H(x, z)) + 0.04, z);
       }
     }
     const rg = new THREE.BufferGeometry();
