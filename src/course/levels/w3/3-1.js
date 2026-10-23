@@ -22,7 +22,7 @@
 
 import {
   isl, snow, rink, steg, line, ring, arc, column, starHere, levelSetup, farHide, sled, footprints, sledTrack,
-  icicleFringe, bench, birdhouse, snowAngel, snowTree, crystals, penguins, seals, smoke, farFirs, snowFirs, snowballPile, snowDrifts, frostBushes, iceFall, wallLedges, instanceEnemies, cullStatic,
+  icicleFringe, bench, birdhouse, snowAngel, snowTree, crystals, penguins, seals, smoke, farFirs, snowFirs, snowballPile, frostTufts, snowDrifts, frostBushes, iceFall, wallLedges, instanceEnemies, cullStatic,
 } from './_helpers_a.js';
 
 const Y = 1;
@@ -106,6 +106,13 @@ function scene(level) {
   sled(level, -6.2, Y, -229.4, -0.3, { color: 0x3a6ad8 });
   footprints(level, [[0.6, -232], [1.4, -238], [0.6, -244], [0.2, -250]], Y, { size: 0.9 });
   snowTree(level, -8.6, Y, -256.4, { top: Y + 6.4, r: 2, lights: true });
+  frostTufts(level, [
+    { pos: [0, Y, -20], size: [22, 58], n: 64, seed: 3, avoid: [[-8.5, 3.5, 2.6], [-7.4, -9.4, 1.2], [6.8, -18.4, 1.2], [6.8, -30, 1.6], [0, -42.5, 7]] },
+    { pos: [0, Y, -88], size: [22, 44], n: 44, seed: 9, avoid: [[-6, -86, 6.5], [10, -77.5, 2]] },
+    { pos: [-18.5, Y, -108], size: [11, 18], n: 10, seed: 17 },
+    { pos: [2, Y, -187], size: [20, 24], n: 26, seed: 23, avoid: [[7, -186, 3.6], [3, -196, 1.4]] },
+    { pos: [0, Y, -245], size: [26, 32], n: 32, seed: 29, avoid: [[6.6, -246, 4.4], [0, -254, 1.5], [0, -230, 1.5]] },
+  ]);
   // ---------------- Schneewehen und Frostbüsche am Wegrand
   snowDrifts(level, [
     [-10.5, Y, -3, 3, 0.3], [10.6, Y, -16, 2.6, -0.5], [-10.4, Y, -36, 3.2, 1.2], [10.5, Y, -48, 2.8, 0.4], [-10.6, Y, -55, 2.4, -0.3],

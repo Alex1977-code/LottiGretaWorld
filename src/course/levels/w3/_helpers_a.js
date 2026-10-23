@@ -225,6 +225,43 @@ export function snowballPile(level, x, y, z, o = {}) {
   addStatic(level, merge(P));
 }
 
+/**
+ * Gefrorene Grasbüschel und verschneite Kiesel auf Schneeflächen (sparsam, ohne Schatten): Streuungen
+ * { pos: [x, y, z], size: [w, d], n, avoid: [[x, z, r]], seed }.
+ */
+export function frostTufts(level, list) {
+  const P = [];
+  const grass = [L(0x6a8a5a), L(0x9aa86a), L(0xc8c89a)], stone = L(0x8a94a8), snowC = L(0xffffff);
+  for (const s of list) {
+    let seed = (s.seed ?? 7) * 7919 + 13;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const [w, d] = s.size;
+    let made = 0;
+    for (let k = 0; k < (s.n ?? 10) * 20 && made < (s.n ?? 10); k++) {
+      const x = s.pos[0] + (rnd() - 0.5) * w, z = s.pos[2] + (rnd() - 0.5) * d, y = s.pos[1];
+      if ((s.avoid ?? []).some((a) => Math.hypot(a[0] - x, a[1] - z) < (a[2] ?? 1.5))) continue;
+      made++;
+      if (rnd() < 0.7) {
+        for (let b = 0; b < 4; b++) {
+          const g = new THREE.ConeGeometry(0.05, 0.4 + rnd() * 0.3, 3, 1, true).toNonIndexed();
+          g.rotateZ((rnd() - 0.5) * 0.9); g.rotateY(rnd() * 6);
+          g.translate(x + (rnd() - 0.5) * 0.18, y + 0.15, z + (rnd() - 0.5) * 0.18);
+          const c = grass[b % 3];
+          P.push(colorize(g, (p, n, out) => mixc(c, snowC, smooth(y + 0.25, y + 0.45, p.y) * 0.8, out)));
+        }
+      } else {
+        const r = 0.14 + rnd() * 0.16;
+        const g = new THREE.DodecahedronGeometry(r, 0);
+        g.scale(1.3, 0.6, 1);
+        g.translate(x, y + r * 0.2, z);
+        g.computeVertexNormals();
+        P.push(colorize(g, (p, n, out) => mixc(stone, snowC, smooth(0.3, 0.7, n.y), out)));
+      }
+    }
+  }
+  addStatic(level, merge(P), { castShadow: false });
+}
+
 /** Holzbank mit Schneehaube (Fußpunkt Mitte, Gier yaw: Sitzfläche entlang X lokal, Lehne nach −Z lokal). */
 export function bench(level, x, y, z, yaw = 0, o = {}) {
   const P = [];
