@@ -12,6 +12,8 @@
 //   - Hilfen: figures(level), nearestFigure(level, pos), playerJumped(p), localOffset() (Abwurfpunkte aus den
 //     Modellen, einmal vermessen → deterministisch), toWorld(), sharedSlot() (eine Instanz-Gruppe je Level für
 //     Kolonnen aus createInstanced: Marschblöcke, Wuschel).
+//   - Welt 4 (additiv): modelInstances(level, name, opts, n) zeichnet n Kopien eines Registry-Modells als Instanzen
+//     (gleiche Pose für alle; z. B. Flatterkäfer-Rad: 8 Käfer ≈ 8 Zeichenaufrufe statt ≈ 70).
 //   - Schatten-Stufen (nur Darstellung): initShadows(keep) lässt nur die keep größten Teile des Modells einen
 //     Sonnenschatten werfen (Blob bleibt immer); weiter als SHADOW_NEAR m (bzw. 1,35 × Kameraabstand) vom Blickziel
 //     der Kamera wirft das Modell keinen Sonnenschatten (spart Zeichenaufrufe im Schattenpass ±22 m).
@@ -21,6 +23,7 @@
 import * as THREE from 'three';
 import { Enemy, spawnLoot, wrapAngle, clamp } from './Enemy.js';
 import { createInstanced } from '../models/lib/instanced.js';
+import { getModel } from '../models/index.js';
 
 export { spawnLoot, wrapAngle, clamp };
 
@@ -300,4 +303,90 @@ export function sharedSlot(level, name, opts = {}, chunk = 48) {
       }
     },
   };
+}
+
+// ------------------------------------------------------------------ Welt 4 (additiv): Modell-Instanzen
+
+const _mi = new THREE.Matrix4(), _mj = new THREE.Matrix4(), _mq = new THREE.Quaternion(), _mp = new THREE.Vector3(), _ms = new THREE.Vector3();
+const _Y = new THREE.Vector3(0, 1, 0);
+const ZERO_M = new THREE.Matrix4().makeScale(0, 0, 0);
+
+/**
+ * n Kopien eines Registry-Modells als Instanzen (eine Vorlage wird animiert, alle Kopien zeigen dieselbe Pose).
+ * Jedes Mesh der Vorlage wird zu einem InstancedMesh (Instanz-Meshes der Vorlage, z. B. Beine, werden aufgefächert).
+ * → { group, set(i, pos, yaw | Quaternion, scale), hide(i), update(dt, state), dispose(), count } oder null ohne Ansicht.
+ * Die Gruppe hängt an der Ansicht; update() je Bild aufrufen (z. B. in render()).
+ */
+export function modelInstances(level, name, opts, n, castShadow = 1) {
+  if (!level.view) return null;
+  const tpl = getModel(name, opts);
+  const root = tpl.root;
+  root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); root.scale.set(1, 1, 1);
+  const parts = [];
+  root.traverse((o) => { if (o.isMesh) parts.push(o); });
+  const group = new THREE.Group();
+  group.name = `instanzen:${name}`;
+  let shadowLeft = castShadow;
+  const list = parts.map((src) => {
+    const per = src.isInstancedMesh ? src.count : 1;
+    const im = new THREE.InstancedMesh(src.geometry, src.material, Math.max(1, n * per));
+    im.frustumCulled = false;
+    im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    im.castShadow = !!src.castShadow && shadowLeft-- > 0;
+    im.receiveShadow = !!src.receiveShadow;
+    im.renderOrder = src.renderOrder;
+    for (let i = 0; i < n * per; i++) im.setMatrixAt(i, ZERO_M);
+    group.add(im);
+    return { src, im, per };
+  });
+  const slots = Array.from({ length: n }, () => ({ on: false, m: new THREE.Matrix4(), x: 0, z: 0 }));
+  const casters = list.filter((p) => p.im.castShadow).map((p) => p.im);
+  let shadowOn = true;
+  level.view.add(group);
+  const api = {
+    group, count: n, template: tpl,
+    set(i, pos, yaw = 0, scale = 1) {
+      const s = slots[i];
+      if (!s) return;
+      if (yaw && yaw.isQuaternion) _mq.copy(yaw); else _mq.setFromAxisAngle(_Y, Number(yaw) || 0);
+      s.m.compose(_mp.set(pos.x, pos.y, pos.z), _mq, _ms.setScalar(scale));
+      s.on = true; s.x = pos.x; s.z = pos.z;
+    },
+    hide(i) { if (slots[i]) slots[i].on = false; },
+    update(dt, state) {
+      // ganz weit weg: nicht zeichnen; außerhalb der Schattenreichweite: kein Sonnenschatten (wie sharedSlot)
+      let near = false, vis = false;
+      for (const s of slots) {
+        if (!s.on) continue;
+        if (!vis && shadowNear(level, s.x, s.z, 22)) vis = true;
+        if (!near && shadowNear(level, s.x, s.z)) near = true;
+        if (near) break;
+      }
+      group.visible = vis;
+      if (near !== shadowOn) { shadowOn = near; for (const m of casters) m.castShadow = near; }
+      if (!vis) return;
+      tpl.update(dt, state);
+      root.updateMatrixWorld(true);
+      for (const { src, im, per } of list) {
+        let vis = src.visible;
+        for (let o = src.parent; vis && o && o !== root; o = o.parent) vis = o.visible;
+        for (let i = 0; i < n; i++) {
+          const s = slots[i];
+          for (let j = 0; j < per; j++) {
+            if (!s.on || !vis) { im.setMatrixAt(i * per + j, ZERO_M); continue; }
+            _mi.multiplyMatrices(s.m, src.matrixWorld);
+            if (src.isInstancedMesh) { src.getMatrixAt(j, _mj); _mi.multiply(_mj); }
+            im.setMatrixAt(i * per + j, _mi);
+          }
+        }
+        im.instanceMatrix.needsUpdate = true;
+      }
+    },
+    dispose() {
+      level.view?.remove(group);
+      for (const { im } of list) im.dispose();
+      tpl.dispose?.();
+    },
+  };
+  return api;
 }

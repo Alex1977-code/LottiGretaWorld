@@ -7,8 +7,12 @@
 //          plane?: 'xy' (senkrecht, quer zur Standardkamera) | 'zy' (senkrecht, entlang z) | 'xz' (waagerecht),
 //          phase?: 0 (Startwinkel in rad), color?: 'pink', id? }
 // Glieder: level.named `${id}_${i}` (kind 'flatterkaefer'). Laufzeit: angle (rad), members, alive, info().
+// Darstellung: alle Glieder eines Rads als Instanzen eines Modells (modelInstances, ≈ 8 Zeichenaufrufe je Rad statt ≈ 8
+// je Käfer); ein besiegtes Glied bekommt für den Absturz wieder sein eigenes Modell.
 
 import { CourseEntity } from '../CourseEntity.js';
+import { modelInstances } from '../EnemyW2.js';
+import { getModel } from '../../models/index.js';
 
 const TAU = Math.PI * 2;
 
@@ -26,11 +30,14 @@ class FlatterkaeferRad extends CourseEntity {
     this.plane = spec.plane ?? 'xy';
     this.angle = spec.phase ?? 0;
     this.members = [];
+    this.color = spec.color ?? 'pink';
+    this.inst = modelInstances(level, 'flatterkaefer', { color: this.color }, this.count);
     for (let i = 0; i < this.count; i++) {
       const m = level.spawn('flatterkaefer', { pos: [c[0], c[1], c[2]], color: spec.color ?? 'pink', id: spec.id ? `${spec.id}_${i}` : undefined, drop: spec.drop });
       if (!m) continue;
       m.bob = i * 0.9;          // deterministisches Wippen
       m.wheel = this;
+      if (this.inst) m.setModel(null);   // gezeichnet als Instanz
       this.members.push(m);
     }
     this.place();
@@ -66,6 +73,27 @@ class FlatterkaeferRad extends CourseEntity {
   }
 
   onPlayer() { return 'none'; }
+
+  render(dt) {
+    if (!this.inst) return;
+    for (let i = 0; i < this.members.length; i++) {
+      const m = this.members[i];
+      if (m.removed || m.defeated) {
+        this.inst.hide(i);
+        // Absturz mit eigenem Modell (squashed/flipped)
+        if (!m.removed && !m.model && !m._ownModel) { m._ownModel = true; m.setModel(getModel('flatterkaefer', { color: this.color })); }
+        continue;
+      }
+      this.inst.set(i, m.pos, m.yaw, 1);
+    }
+    this.inst.update(dt, { anim: 'fly' });
+  }
+
+  dispose() {
+    this.inst?.dispose();
+    this.inst = null;
+    super.dispose();
+  }
 
   info() { return { angle: +this.angle.toFixed(3), alive: this.aliveCount, count: this.count, plane: this.plane }; }
 }

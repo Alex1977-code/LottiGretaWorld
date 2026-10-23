@@ -607,6 +607,133 @@ const rad = await sc(() => {
 console.log(`  Flatterkäfer-Rad: ${JSON.stringify(rad)}`);
 check(`Flatterkäfer-Rad dreht sich (${rad.turn.da} rad in 2 s, ω ${rad.turn.omega}), Glieder auf dem Kreis (±${rad.turn.dev} m)`, Math.abs(rad.turn.da - rad.turn.omega * 2) < 0.02 && rad.turn.moved > 2 && rad.turn.dev < 0.01);
 check('Flatterkäfer im Rad: Draufspringen besiegt, die anderen drehen weiter', rad.stomp.bounced && rad.stomp.defeated && rad.after.alive === 7);
+
+// ================================================================ Vorhandene im Welt-4-Einsatz
+const vh = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const w = t.ent('bumerang'), turm = t.ent('turm');
+  t.place([w.pos.x - 4, 1, w.pos.z + 1], { settle: 1 });
+  t.safe(true);
+  let boom = 0;
+  const seen = new Set();
+  for (let i = 0; i < 960; i++) { c.step(1); for (const e of L.entities) if (e.kind === 'wurf_bumerang' && !seen.has(e)) { seen.add(e); boom++; } }
+  t.safe(false);
+  return { boom, turm: !turm.defeated && turm.alive };
+});
+console.log(`  Vorhandene: ${JSON.stringify(vh)}`);
+check(`Bumerang-Werfer wirft im Zoo (${vh.boom} Bumerangs), Pilzlingsturm da`, vh.boom >= 2 && vh.turm);
+
+// ================================================================ Klone: Gegner zielen auf die nächste Figur, Ameise trägt den Klon
+const cl = await sc(() => {
+  const c = window.__course, t = window.__t, L = c.level, p = c.player;
+  if (typeof L.addClone !== 'function') return { api: false };
+  const out = { api: true };
+  t.place([0, 1, t.Z(3, 6)], { settle: 1 });
+  p.hurt = () => false;
+  const k = L.addClone(p);
+  if (!k) return { api: true, clone: false };
+  k.hurt = () => false;
+  // Lavabrocken: Haupt-Figur auf dem Mittelweg (weit), Klon nah → läuft zum Klon
+  const b = L.spawn('lavabrocken', { pos: [-15, 1, t.Z(3, 6)], charge: false });
+  const kx = -11.5, kz = t.Z(3, 6);
+  k.reset([kx, 1, kz], Math.PI); c.step(2);
+  const d0 = t.dist(b, k);
+  for (let i = 0; i < 240; i++) { p.pos.set(0, 1, t.Z(3, 6)); p.vel.set(0, 0, 0); k.pos.set(kx, 1, kz); k.vel.set(0, 0, 0); c.step(1); }
+  out.brocken = { target: b.player === k, d0: +d0.toFixed(2), d1: +t.dist(b, k).toFixed(2) };
+  b.kill();
+  // Walzenwerfer dreht sich zum Klon
+  const w = L.spawn('walzenwerfer', { pos: [11.5, 1, t.Z(3, 2)], dir: [0, 1], aim: 'player', sight: 12, first: 99 });
+  k.reset([7, 1, t.Z(3, 2)], 0);
+  for (let i = 0; i < 240; i++) { p.pos.set(0.5, 1, t.Z(3, 12)); p.vel.set(0, 0, 0); k.pos.set(7, 1, t.Z(3, 2)); k.vel.set(0, 0, 0); c.step(1); }
+  const want = Math.atan2(-(k.pos.z - w.pos.z), k.pos.x - w.pos.x);
+  out.werfer = { target: w.player === k, err: +Math.abs(Math.atan2(Math.sin(w.yaw - want), Math.cos(w.yaw - want))).toFixed(2) };
+  w.kill();
+  // Träger-Ameise trägt den Klon
+  const a = L.spawn('ameisensoldat', { ride: true, antpath: [[-16, 1, t.Z(1, 13)], [-7, 1, t.Z(1, 13)]], speed: 1.2 });
+  c.step(2);
+  k.reset([a.foot.x, a.box.max.y + 0.6, a.foot.z], 0);
+  p.pos.set(0, 1, t.Z(1, 6));
+  let rode = 0;
+  for (let i = 0; i < 240; i++) { p.pos.set(0, 1, t.Z(1, 6)); p.vel.set(0, 0, 0); c.step(1); if (a.riding(k)) rode++; }
+  out.ameise = { rode, riders: a.riders.size, defeated: a.defeated };
+  // Rankenschnapper schnappt nach dem Klon
+  const r = t.ent('rs_stufe3');
+  k.reset([r.headC.x + 1.3, 1, r.headC.z], Math.PI);
+  let snap = false;
+  for (let i = 0; i < 60; i++) { p.pos.set(0, 1, t.Z(1, 6)); k.pos.set(r.headC.x + 1.3, r.headC.y - 0.6, r.headC.z); k.vel.set(0, 0, 0); c.step(1); if (r.snapping) snap = true; }
+  out.ranke = snap;
+  delete p.hurt;
+  c.squad?.clear?.();
+  return out;
+});
+console.log(`  Klone: ${JSON.stringify(cl)}`);
+check('Klon: Lavabrocken läuft zur nächsten Figur (Klon), Walzenwerfer zielt auf ihn', cl.api && cl.brocken.target && cl.brocken.d1 < cl.brocken.d0 - 1.5 && cl.werfer.target && cl.werfer.err < 0.3);
+check('Klon: Träger-Ameise trägt den Klon, Rankenschnapper schnappt nach ihm', cl.ameise.rode > 200 && !cl.ameise.defeated && cl.ranke);
+check('Keine Konsolenfehler (Zoo-Prüfungen)', errors.length === 0);
+
+// ================================================================ Bilder und Kennzahlen (Zoo, frisch geladen)
+await load('0-15');
+const calls = {};
+const Zr = (r, dz) => -8 - 20 * (r - 1) - dz;
+calls.ameisen = await SHOT('w4en', 'ameisen', () => { const c = window.__course, t = window.__t; t.place([-5.5, 1, t.Z(1, -1)], { settle: 1 }); c.step(240); });
+calls.wand = await SHOT('w4en', 'ameisenwand', () => {
+  const c = window.__course, t = window.__t, p = c.player, a = t.ent('amw');
+  let ok = false;
+  for (let i = 0; i < 6000 && !ok; i++) { c.step(1); ok = a.normal.z > 0.95 && a.sdir > 0 && a.foot.y > 1.6 && a.foot.y < 2.2; }
+  t.place([(a.box.min.x + a.box.max.x) / 2, a.box.max.y + 0.8, (a.box.min.z + a.box.max.z) / 2 + 0.05], { settle: 0 });
+  for (let i = 0; i < 80 && !a.riding(p); i++) { c.step(1); if (p.mode === 'air') { p.pos.x = (a.box.min.x + a.box.max.x) / 2; p.pos.z = (a.box.min.z + a.box.max.z) / 2 + 0.05; } }
+  c.step(150);
+});
+calls.riesen = await SHOT('w4en', 'riesenameisen', () => {
+  const c = window.__course, t = window.__t, L = c.level;
+  let g = null;
+  for (let i = 0; i < 900 && !g; i++) { c.step(1); g = L.entities.find((e) => e.kind === 'riesenameise' && e.state === 'walk' && e.pos.x < -6.2 && e.pos.x > -8 && e.scale >= 1); }
+  t.place([g.pos.x - 0.2, g.deckTop + 0.5, g.pos.z], { settle: 0 });
+  c.step(300);
+});
+calls.ranken = await SHOT('w4en', 'rankenschnapper', () => {
+  const c = window.__course, t = window.__t, z = t.ent('rs_zyklus');
+  t.place([12, 1, t.Z(2, 9)], { settle: 1 });
+  for (let i = 0; i < 1200 && !(z.grow >= 1 && z.t > z.times.wait + z.times.out + 0.3); i++) c.step(1);
+});
+calls.lava = await SHOT('w4en', 'lavabrocken', () => {
+  const c = window.__course, t = window.__t, p = c.player, b = t.ent('lb2');
+  t.stomp(b);
+  t.place([b.pos.x + 0.9, 1, b.pos.z], { settle: 4, yaw: Math.PI });
+  t.action();
+  c.step(30);
+});
+calls.walzen = await SHOT('w4en', 'walzenwerfer', () => {
+  const c = window.__course, t = window.__t;
+  t.place([5.5, 1, t.Z(3, 2)], { settle: 1 });
+  const w = t.ent('ww_saeule');
+  for (let i = 0; i < 1200; i++) { c.step(1); if (w.state === 'throw' && w.stateT > 0.5) break; }
+  c.step(110);
+});
+calls.panzer = await SHOT('w4en', 'stachelpanzer_springklotz', () => {
+  const c = window.__course, t = window.__t, p = c.player, k = t.ent('sk1');
+  t.place([k.pos.x, k.pos.y + 3.2, k.pos.z], { settle: 0 });
+  for (let i = 0; i < 70; i++) { c.step(1); if (p.mode === 'air' && p.vel.y < 0) { p.pos.x = k.pos.x; p.pos.z = k.pos.z; } }
+});
+calls.funken = await SHOT('w4en', 'lavafunken', () => {
+  const c = window.__course, t = window.__t, f = t.ent('funke');
+  t.place([5.5, 1, t.Z(4, 1)], { settle: 1 });
+  for (let i = 0; i < 600 && !(f.state === 'up' && f.vel.y < 1 && f.vel.y > -1); i++) c.step(1);
+  c.step(30);
+});
+calls.rad = await SHOT('w4en', 'kaefer_rad', () => { const c = window.__course, t = window.__t; t.place([-5.5, 1, t.Z(5, 1)], { settle: 1 }); c.step(120); });
+calls.vorhandene = await SHOT('w4en', 'vorhandene', () => { const c = window.__course, t = window.__t; t.place([5.5, 1, t.Z(5, 1)], { settle: 1 }); c.step(240); });
+const maxCalls = Math.max(...Object.values(calls).map((s) => s.calls));
+const maxTri = Math.max(...Object.values(calls).map((s) => s.triangles));
+console.log(`  Zeichenaufrufe je Station: ${Object.entries(calls).map(([k, s]) => `${k} ${s.calls}`).join(', ')}; höchstens ${maxCalls}, ${Math.round(maxTri / 1000)} k Dreiecke`);
+check(`Gegnerzoo Canyon: Zeichenaufrufe < 140 je Station (höchstens ${maxCalls})`, maxCalls < 140);
+const step = await sc(() => {
+  const c = window.__course, L = c.level;
+  const t0 = performance.now();
+  for (let i = 0; i < 240; i++) L.step(1 / 120, {});
+  return { ms: +((performance.now() - t0) / 240).toFixed(3), n: L.entities.length };
+});
+console.log(`  Simulation: ${step.ms} ms je Schritt (${step.n} Entitäten)`);
 }
 
 // __ENDE__
