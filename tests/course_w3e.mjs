@@ -98,6 +98,23 @@ async function load(id, { hero = 'lotti', fresh = false } = {}) {
         return p.info();
       },
       hurt: () => P().invuln > 1.2 && P().invuln < 1e8,
+      /** Nach vorn (−Z) bis kurz vor eine Kante gehen, dann hinüberspringen und über tz abbremsen (Gondel, Lücke). */
+      hopTo(tz, o = {}) {
+        const p = P();
+        const edge = o.edge ?? tz + 1.9;
+        for (let i = 0; i < 400 && p.pos.z > edge; i++) { c.setInput({ y: 0.6 }); c.step(1); }
+        let left = false;
+        for (let i = 0; i < 300; i++) {
+          const over = p.pos.z < tz + (o.brake ?? 0.7);
+          c.setInput({ y: over ? (p.vel.z < -0.3 ? -1 : 0) : 0.7, jump: i < (o.hold ?? 18) });
+          c.step(1);
+          if (p.mode !== 'ground') left = true;
+          if (left && p.mode === 'ground') break;
+          if (p.dead) break;
+        }
+        c.setInput({}); c.step(4);
+        return p.mode === 'ground' && Math.abs(p.pos.z - tz) < 1.0 && (o.y === undefined || Math.abs(p.pos.y - o.y) < 0.2);
+      },
       /** Kamera und Darstellung wie in einem Bild nachführen. */
       cam(n = 1, dt = 0.05) { for (let i = 0; i < n; i++) { c.rig.update(dt, c.view.time + dt); L.render(dt, c.view.time + dt); c.view.rig.update(dt, c.player, c.world); } return c.view.rig.info(); },
     };
@@ -241,6 +258,243 @@ if (want('3-A')) {
     t.place([7.6, 4.4, -7.2], { settle: 30, invuln: 1e9 });
   });
   check('3-A: keine Konsolenfehler', errors.length === 0);
+}
+
+// ====================================================================================================== 3-B
+/** Boss-Hilfen (nach jedem Laden): Kampf betreten, Zustand abwarten (Figur geschützt), Teller-Sprung aufs Haupt. */
+const BOSS_HELPERS = ([id, enterPos]) => {
+  const c = window.__course, t = window.__t, L = c.level;
+  t.boss = () => t.ent(id);
+  t.enter = () => {
+    t.place(enterPos, { settle: 2 });
+    const a = c.arch.sub ?? c.arch;
+    for (let i = 0; i < 400 && !a.started; i++) { c.setInput({ y: 0.7 }); c.step(1); }
+    c.setInput({});
+    return a.started;
+  };
+  t.bossArch = () => c.arch.sub ?? c.arch;
+  t.untilSafe = (s, n = 1500, pos = null) => {
+    const b = t.boss(), p = c.player;
+    p.hurt = () => false;
+    let i = 0;
+    for (; i < n && b.state !== s; i++) { if (pos) { p.pos.set(pos[0], pos[1], pos[2]); p.vel.set(0, 0, 0); } c.step(1); }
+    delete p.hurt;
+    return i;
+  };
+  t.noShots = () => { for (const e of L.entities) if (e.kind === 'schatten_bumerang' || e.kind === 'felsbrocken') e.kill(); c.step(1); };
+  t.banners = [];
+  for (const h of [c.arch?.hud, c.arch?.sub?.hud]) {
+    if (!h || h._w3z) continue;
+    const orig = h.banner.bind(h);
+    h.banner = (text, o) => { t.banners.push(text); return orig(text, o); };
+    h._w3z = true;
+  }
+};
+const SNAKE_HELPERS = () => {
+  const c = window.__course, t = window.__t;
+  /** Vom Teller (Diener sv) aufs Haupt springen: Sprung halten, im Fallen über den Kopf lenken. */
+  t.plateJump = (sv) => {
+    const b = t.boss(), p = c.player;
+    b.rainT = 99;
+    for (const e of c.level.entities) if (e.kind === 'felsbrocken') e.kill();
+    if (sv) t.place([sv.pos.x, sv.plateTop + 0.05, sv.pos.z], { settle: 14 });
+    const standing = sv ? sv.standing : 0, y0 = p.pos.y;
+    let apex = p.pos.y, hit = false, hurt = false;
+    const hp0 = b.hp;
+    c.setInput({ jump: true });
+    for (let i = 0; i < 220; i++) {
+      c.step(1);
+      apex = Math.max(apex, p.pos.y);
+      if (t.hurt()) hurt = true;
+      const h = b.headWorld({});
+      if (p.mode === 'air' && p.vel.y < 0) { p.pos.x += (h.x - p.pos.x) * 0.3; p.pos.z += (h.z - p.pos.z) * 0.3; }
+      if (b.hp < hp0) { hit = true; break; }
+      if ((p.mode === 'ground' || p.dead) && i > 5) break;
+    }
+    c.setInput({});
+    return { standing, y0: +y0.toFixed(2), apex: +apex.toFixed(2), hit, hurt, hp: b.hp };
+  };
+  t.plate = (cracked = false) => {
+    const b = t.boss();
+    const up = b.servants.filter((s) => s.state === 'up' && !s.broken && s.cracked === cracked);
+    return (!cracked && up.includes(b.target)) ? b.target : up[0] ?? null;
+  };
+};
+
+if (want('3-B')) {
+  console.log('\n3-B „Manege frei für den Schlangenkönig“');
+  await load('3-B', { fresh: true });
+  check('3-B: Laden ohne Konsolenfehler/Warnungen', errors.length === 0);
+  let r = await sc(() => {
+    const c = window.__course, L = c.level, d = L.data;
+    return {
+      title: d.title, arch: d.archetype, theme: d.theme, music: d.music, time: d.timeLimit, slots: d.starSlots,
+      boss: L.entities.filter((e) => e.kind === 'schlangenkoenig').length, gondel: !!L.named.get('gondel'), pipe: L.named.get('roehre_ziel')?.hidden,
+      seats: L._circus?.ring?.seats ?? 0,
+    };
+  });
+  check(`3-B: „${r.title}“, Boss, Thema ${r.theme}, Musik ${r.music}, ${r.time} s, 1 Stern`, r.arch === 'boss' && r.theme === 'circus' && r.music === 'course_boss' && r.time === 400 && r.slots === 1);
+  check(`3-B: Schlangenkönig, Seilbahn, versteckte Ziel-Röhre, Publikum (${r.seats} Plätze)`, r.boss === 1 && r.gondel && r.pipe === true && r.seats > 80);
+  await SHOT('3b_vorplatz', () => { window.__course.step(30); });
+
+  // Vorplatz: ?-Block mit Krallen-Anzug, Treppe ohne Springen, Seilbahn über die Schlucht
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    const out = {};
+    // von unten anstoßen, dann seitlich auf den Block springen (der Anzug liegt oben)
+    t.place([2.8, 0, 4.0], { settle: 4 });
+    c.setInput({ jump: true }); c.step(30); c.setInput({}); c.step(60);
+    out.item = L.entities.find((e) => e.kind === 'powerup' && e.alive)?.power ?? null;
+    t.place([2.8, 0, 5.6], { settle: 4 });
+    for (let i = 0; i < 90 && p.power === 'none'; i++) { c.setInput({ y: i > 8 ? 0.45 : 0, jump: i < 40 }); c.step(1); }
+    c.setInput({}); c.step(20);
+    out.power = p.power;
+    // Treppe: nur laufen
+    t.place([0, 0, -7], { settle: 4, keepPower: true });
+    let jumped = false;
+    for (let i = 0; i < 600; i++) { c.setInput({ y: 1 }); c.step(1); if (p.mode === 'air' && p.vel.y > 2) jumped = true; if (p.pos.z < -22) break; }
+    c.setInput({}); c.step(10);
+    out.stairs = { y: +p.pos.y.toFixed(2), z: +p.pos.z.toFixed(1), jumped };
+    // in die Gondel (hineinspringen über das Geländer), mitfahren, auf dem Plateau aussteigen
+    const g = L.named.get('gondel');
+    out.waiting = g.state === 'wait' && g.u <= 0;
+    let inGondel = t.hopTo(-28.6, { y: 4.6 });
+    let u = 0, i = 0;
+    for (; i < 120 * 14 && !(g.u >= 1 && g.state === 'wait'); i++) { c.step(1); u = g.u; }
+    out.ride = { inGondel, u: +u.toFixed(2), secs: +(i / 120).toFixed(1), y: +p.pos.y.toFixed(2), dead: p.dead };
+    // aussteigen: hinüberspringen aufs Plateau
+    t.hopTo(-49.6, { y: 7, edge: -45.6, brake: 1.2 });
+    c.step(20);
+    out.plateau = { y: +p.pos.y.toFixed(2), z: +p.pos.z.toFixed(1), cp: L.runtime.checkpoint?.pos ?? null };
+    // Rückruf: wer an der Station wartet, holt die leere Gondel zurück
+    t.place([0, 4.6, -25], { settle: 4 });
+    let back = 0;
+    for (; back < 120 * 12 && !(g.state === 'wait' && g.u <= 0); back++) c.step(1);
+    out.recall = { u: g.u, state: g.state, secs: +(back / 120).toFixed(1) };
+    return out;
+  });
+  console.log(`  3-B Weg: ${JSON.stringify(r)}`);
+  check(`3-B: ?-Block auf dem Vorplatz gibt den Krallen-Anzug (${r.item} → ${r.power})`, r.item === 'krallen' && r.power === 'krallen');
+  check(`3-B: Prachttreppe ohne Springen hinauf zur Seilbahnstation (y ${r.stairs.y})`, Math.abs(r.stairs.y - 4.5) < 0.05 && !r.stairs.jumped);
+  check(`3-B: Seilbahn wartet an der Station, trägt über die Schlucht (${r.ride.secs} s), Ausstieg aufs Zeltplateau (y ${r.plateau.y}), Checkpoint; leer zurückgerufen (${r.recall.secs} s)`, r.waiting && r.ride.inGondel && r.ride.u >= 1 && !r.ride.dead && Math.abs(r.plateau.y - 7) < 0.05 && Array.isArray(r.plateau.cp) && r.recall.u <= 0 && r.recall.state === 'wait');
+  await SHOT('3b_seilbahn', () => {
+    const c = window.__course, t = window.__t, L = c.level, p = c.player;
+    const g = L.named.get('gondel');
+    t.place([0, 4.6, -25], { settle: 2, invuln: 1e9 });
+    for (let i = 0; i < 120 * 8 && !(g.state === 'wait' && g.u <= 0 && g.t > 0.2); i++) c.step(1);
+    t.hopTo(-28.6);
+    for (let i = 0; i < 120 * 4 && g.u < 0.5; i++) c.step(1);
+  });
+
+  // Bosskampf: Teller-Weg, drei Treffer, Phasen, Sieg → Stern, Röhre → Hinterhof → Zielmast
+  await sc(BOSS_HELPERS, ['koenig', [0, 7, -50]]);
+  await sc(SNAKE_HELPERS);
+  const sn = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    const out = {};
+    const b = t.boss();
+    out.before = { state: b.state, tent: L._circus.tent?.k ?? null };
+    out.started = t.enter();
+    out.lock = t.bossArch().lockId !== null;
+    // Tür zu: zurück nach draußen geht nicht
+    const z0 = p.pos.z;
+    t.place([0, 7, -57.5], { settle: 2, invuln: 1e9 });
+    for (let i = 0; i < 200; i++) { c.setInput({ y: -1 }); c.step(1); }
+    c.setInput({});
+    out.locked = p.pos.z < -55.0;
+    out.tent = L._circus.tent?.k ?? null;
+    p.invuln = 0;
+    t.untilSafe('lean', 900, [3, 7, -59]);
+    for (let i = 0; i < 60; i++) { p.hurt = () => false; p.pos.set(3, 7, -59); c.step(1); }
+    delete p.hurt;
+    const up = b.servants.filter((s) => s.state === 'up');
+    out.summon = { n: up.length, tops: up.map((s) => +(s.plateTop - 7).toFixed(2)) };
+    out.hits = [];
+    out.phases = [];
+    for (let k = 0; k < 3; k++) {
+      if (k > 0) {
+        t.untilSafe('lean', 1600, [0, 7, -58.5]);
+        for (let i = 0; i < 60; i++) { p.hurt = () => false; p.pos.set(0, 7, -58.5); c.step(1); }
+        delete p.hurt;
+      }
+      const ups = b.servants.filter((s) => s.state === 'up');
+      out.phases.push({ phase: b.phase, servants: ups.length, cracked: ups.filter((s) => s.cracked).length });
+      out.hits.push(t.plateJump(t.plate(false)));
+    }
+    out.def = { hp: b.hp, defeated: b.defeated };
+    out.cheer = L._circus.ring.cheerT > 0;
+    t.untilSafe('gone', 900, [0, 7, -58.5]);
+    c.step(2);
+    out.winBanner = t.bossArch().hud.state().banner;
+    c.step(148);
+    const star = L.entities.find((e) => e.kind === 'star' && e.alive);
+    const pipe = t.ent('roehre_ziel');
+    out.after = { won: t.bossArch().won, star: !!star, pipe: !pipe.hidden, pipeK: +pipe.k.toFixed(2), banner: t.bossArch().hud.state().banner };
+    if (star) t.go(star.pos.x, star.pos.z, { max: 600, r: 0.2 });
+    out.starGot = !!L.runtime.stars[0];
+    // Röhre → Hinterhof → Zielmast
+    t.place([pipe.pos.x, pipe.pos.y + pipe.H + 0.3, pipe.pos.z], { settle: 40 });
+    c.setInput({ crouch: true }); c.step(3); c.setInput({});
+    let arrived = null;
+    for (let i = 0; i < 400; i++) { c.step(1); if (p.pos.x > 40 && p.mode !== 'script') { arrived = [+p.pos.x.toFixed(1), +p.pos.z.toFixed(1)]; break; } }
+    out.arrived = arrived;
+    const g = L.data.goal.pos;
+    t.go(g[0] - 0.4, g[2] + 0.3, { max: 900 });
+    for (let i = 0; i < 1200 && !c.finished; i++) c.step(1);
+    out.finished = c.finished;
+    out.save = t.save().levels?.['3-B'] ?? null;
+    return out;
+  });
+  console.log(`  3-B Kampf: ${JSON.stringify(sn)}`);
+  check(`3-B: Kampf beginnt in der Manege, Tor schließt sich (Sperre), vordere Zelthälfte ausgeblendet (k ${sn.tent})`, sn.before.state === 'wait' && sn.started && sn.lock && sn.locked && sn.tent === 1);
+  check(`3-B: Diener-Schlangen mit Tellern auf 2,8 m (${sn.summon.n}: ${sn.summon.tops.join('/')})`, sn.summon.n === 3 && sn.summon.tops.every((y) => Math.abs(y - 2.8) < 0.02));
+  check(`3-B: drei Treffer vom Teller aufs Haupt (Phasen ${sn.phases.map((x) => `${x.phase}: ${x.servants} Diener, ${x.cracked} rissig`).join(' · ')})`, sn.hits.length === 3 && sn.hits.every((h) => h.hit && !h.hurt && h.standing === 1) && sn.phases.map((x) => x.phase).join() === '1,2,3' && sn.phases[2].servants === 4 && sn.def.defeated);
+  check(`3-B: Publikum jubelt, Stern erscheint und wird eingesammelt, Röhre fährt aus dem Boden („${sn.winBanner}“)`, sn.cheer && sn.after.won && sn.after.star && sn.starGot && sn.after.pipe && sn.after.pipeK === 1 && sn.winBanner === 'Ab in die Röhre!');
+  check(`3-B: Röhre → Hinterhof (${sn.arrived}), Zielmast, gespeichert (${JSON.stringify(sn.save)})`, !!sn.arrived && sn.finished && sn.save?.done === true && sn.save.stars?.[0] === true);
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: `${OUT}w3z_3b_ergebnis.png` });
+
+  // Bilder vom Kampf, Tod setzt den Kampf zurück
+  await load('3-B');
+  await sc(BOSS_HELPERS, ['koenig', [0, 7, -50]]);
+  await sc(SNAKE_HELPERS);
+  await sc(() => { window.__t.enter(); });
+  await SHOT('3b_auftritt', () => { const c = window.__course; c.player.invuln = 1e9; c.step(70); });
+  await SHOT('3b_teller', () => {
+    const c = window.__course, t = window.__t;
+    t.untilSafe('lean', 900, [0, 7, -58.5]); c.step(80);
+    const sv = t.plate(false);
+    if (sv) t.place([sv.pos.x, sv.plateTop + 0.05, sv.pos.z], { settle: 20, invuln: 1e9 });
+  });
+  await SHOT('3b_treffer', () => { const c = window.__course, t = window.__t; t.plateJump(null); c.step(8); });
+  await SHOT('3b_phase3', () => {
+    const c = window.__course, t = window.__t;
+    t.untilSafe('lean', 1500, [0, 7, -58.5]); c.step(60); t.plateJump(t.plate(false));
+    t.untilSafe('lean', 1500, [0, 7, -58.5]); c.step(70);
+    c.player.pos.set(0, 7, -58.5);
+  });
+  r = await sc(() => {
+    const c = window.__course, t = window.__t, p = c.player, L = c.level;
+    const b = t.boss();
+    p.invuln = 0;
+    p.die('hit');
+    for (let i = 0; i < 600 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1);
+    c.step(5);
+    return { state: b.state, hp: b.hp, servants: t.count('dienerschlange'), started: t.bossArch().started, deaths: t.bossArch().deaths, at: [+p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)], lock: t.bossArch().lockId !== null };
+  });
+  check(`3-B: Tod im Kampf → Neustart am Zelteingang (${r.at.join(', ')}), König wieder 3/3, Tor offen`, r.state === 'wait' && r.hp === 3 && r.servants === 0 && !r.started && r.deaths === 1 && r.at[2] > -51 && !r.lock);
+  await SHOT('3b_sieg', () => {
+    const c = window.__course, t = window.__t, b = t.boss();
+    t.enter(); c.player.invuln = 1e9;
+    for (let k = 0; k < 3; k++) { t.untilSafe('lean', 1600, [0, 7, -58.5]); c.step(40); t.plateJump(t.plate(false)); }
+    t.untilSafe('gone', 900, [0, 7, -58.5]); c.step(140);
+    t.place([2, 7, -60], { settle: 20, invuln: 1e9 });
+  });
+  await SHOT('3b_hinterhof', () => {
+    const c = window.__course, t = window.__t;
+    t.place([52 - 4, 7.3, -64 + 3], { settle: 60, invuln: 1e9 });
+  });
+  check('3-B: keine Konsolenfehler', errors.length === 0);
 }
 
 // ====================================================================================================== Abschluss

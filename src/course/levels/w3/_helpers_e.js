@@ -11,7 +11,11 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
+import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd, islandParts } from '../../blocks/kit.js';
+import { bakeModel } from '../../blocks/w3kit.js';
+import { pipeGeo } from '../../blocks/types/pipe.js';
+import { Gimmick } from '../../entities/gimmick.js';
+import { getModel } from '../../models/index.js';
 
 // ====================================================================== 1) Grundlagen
 
@@ -135,6 +139,25 @@ export function starG(rOut, rIn, x, y, z, color, rot = 0) {
   g.translate(x, y, z);
   const c = L(color);
   return colorize(g, (p, n, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; });
+}
+
+/**
+ * Schneedecke (flach, Weltkoordinaten): Rechteck x0..x1 × z0..z1 auf Höhe y, weiß mit bläulichen Mulden und
+ * glitzernden hellen Flecken (Vertexfarben, Raster cell m). Liefert eine Geometrie (für bake/addStatic).
+ */
+export function snowCover(x0, z0, x1, z1, y, cell = 1.5, o = {}) {
+  const w = x1 - x0, d = z1 - z0;
+  const nx = Math.max(1, Math.round(w / cell)), nz = Math.max(1, Math.round(d / cell));
+  const g = new THREE.PlaneGeometry(w, d, nx, nz).toNonIndexed();
+  g.rotateX(-Math.PI / 2);
+  g.translate((x0 + x1) / 2, y, (z0 + z1) / 2);
+  const a = L(o.color ?? 0xf6f9ff), b = L(o.shade ?? 0xd8e4f6), c = L(0xffffff);
+  return colorize(g, (p, n, out) => {
+    const v = Math.sin(p.x * 0.37 + p.z * 0.21) * 0.5 + Math.sin(p.x * 0.11 - p.z * 0.29 + 1.7) * 0.5;
+    mixc(a, b, smooth(-0.1, 0.9, v) * 0.75, out);
+    const s = Math.sin(p.x * 3.1 + p.z * 2.3) * Math.sin(p.x * 1.7 - p.z * 2.9);
+    if (s > 0.86) mixc(out, c, 0.8, out);
+  });
 }
 
 /** Geometrien → statisch (verschmolzen). opts wie view.addStatic. */
@@ -279,6 +302,25 @@ export class WavingFlags {
     this.cloth.instanceMatrix.needsUpdate = true;
     this.poles.visible = any; this.cloth.visible = any;
   }
+}
+
+/**
+ * Budget (Schattenpass): Modelle der Entitäten dieser Arten werfen den Sonnenschatten nur noch mit ihrem ersten
+ * schattenwerfenden Teil (der Blob bleibt). keep: Zahl der Teile, die werfen dürfen (Standard 1). Je Bild für neue
+ * Entitäten (z. B. nach einem Neustart erzeugte Gegner).
+ */
+export function shadowDiet(level, kinds, keep = 1) {
+  if (!level.view) return;
+  const seen = new WeakSet();
+  const set = new Set(kinds);
+  level.view.onFrame(() => {
+    for (const e of level.entities) {
+      if (seen.has(e) || !e.model || !set.has(e.kind)) continue;
+      seen.add(e);
+      let n = 0;
+      e.model.root.traverse((m) => { if ((m.isMesh || m.isInstancedMesh) && m.castShadow) { if (n >= keep) m.castShadow = false; n++; } });
+    }
+  });
 }
 
 // ------------------------------------------------------------------ Funken / Schnee (Punkte, 1 Zeichenaufruf)
@@ -606,4 +648,408 @@ export function fortressFx(level, fx, o = {}) {
     fx.gate.position.y = (o.y ?? 2) + open * 4.6;
     fx.barMat.emissive.setRGB(0.23 + open * 0.5 + k * 0.15, 0.02 + open * 0.25, 0.03);
   });
+}
+
+// ====================================================================== 3) Zirkus (3-B)
+
+/**
+ * Röhre, die auf Signal aus dem Boden fährt (reveal) – Ziel-Röhre nach dem Bosskampf. Steht sie, führt Ducken darauf
+ * zum Ziel. { id, pos (Fuß), height 1.6, radius 0.9, color, target: [x, y, z] | Röhren-Id, hidden: true }
+ */
+export class RisingPipe extends Gimmick {
+  constructor(level, spec) {
+    super(level, spec, 'roehre_steigt');
+    this.R = spec.radius ?? 0.9;
+    this.H = spec.height ?? 1.6;
+    this.touch = false;
+    this.k = this.hidden ? 0 : 1;
+    const self = this;
+    this.info = {
+      pipe: true, enterRadius: this.R * 0.7,
+      get x() { return self.pos.x; }, get z() { return self.pos.z; }, get top() { return self.pos.y + self.H; },
+      enter: (pl) => self.enter(pl),
+    };
+    const p = this.pos;
+    this.addSolid({ type: 'cyl', x: p.x, z: p.z, r: this.R + 0.08, y0: p.y, y1: p.y + this.H, pipe: this.info, tag: 'zielroehre' });
+    if (level.view) {
+      const g = pipeGeo(0, 0, 0, this.H, this.R, hex(spec.color ?? 0x2fbf4a));
+      const mesh = new THREE.Mesh(g, level.view.mats.stone);
+      mesh.castShadow = true;
+      const root = new THREE.Group();
+      root.add(mesh);
+      this.setModel({ root, update: () => {}, dispose: () => g.dispose() });
+    }
+  }
+
+  onReveal() { this.k = 0; this.level.shake(0.2); }
+
+  enter(pl) {
+    if (this.hidden || this.k < 0.95) return;
+    const t = this.spec.target;
+    const o = typeof t === 'string' ? this.level.named.get(t) : null;
+    pl.enterPipe({ x: this.pos.x, z: this.pos.z, top: this.pos.y + this.H, exit: o?.pipe ? o : { pos: Array.isArray(t) ? t : [this.pos.x, this.pos.y + 3, this.pos.z] } });
+  }
+
+  update(dt) {
+    if (!this.hidden && this.k < 1) {
+      this.k = Math.min(1, this.k + dt / 1.1);
+      if (this.level.view && Math.random() < 0.5) this.level.effects?.dust({ x: this.pos.x, y: this.pos.y, z: this.pos.z }, 2, 1.2);
+    }
+  }
+
+  render() {
+    if (!this.model) return;
+    this.model.root.visible = !this.hidden;
+    this.model.root.position.set(this.pos.x, this.pos.y - (1 - ease(this.k)) * this.H, this.pos.z);
+  }
+}
+
+/**
+ * Prachttreppe (scharfkantige Steinstufen, roter Läufer mit Goldstangen, Wangen mit Leuchtkugeln).
+ * { x, z (Vorderkante der untersten Stufe), y, n, rise (≤ 0,3 ohne Springen), run, width, dir: −1 (steigt nach −Z) }
+ */
+export function grandStairs(level, o) {
+  const { x, z, y, n, rise, run, width } = o;
+  const dir = o.dir ?? -1;
+  for (let i = 0; i < n; i++) {
+    const a = z + dir * i * run, b = a + dir * run;
+    level.world.add({ type: 'box', min: [x - width / 2, y - 0.5, Math.min(a, b)], max: [x + width / 2, y + (i + 1) * rise, Math.max(a, b)], tag: 'treppe' });
+  }
+  for (const s of [-1, 1]) level.world.add({ type: 'box', min: [x + s * (width / 2 + 0.25) - 0.25, y - 0.5, Math.min(z, z + dir * n * run)], max: [x + s * (width / 2 + 0.25) + 0.25, y + n * rise + 0.9, Math.max(z, z + dir * n * run)], tag: 'treppe:wange' });
+  if (!level.view) return;
+  const P = [], G = [];
+  const carpet = Math.min(2.4, width * 0.45);
+  for (let i = 0; i < n; i++) {
+    const zm = z + dir * (i + 0.5) * run, h = (i + 1) * rise;
+    P.push(blockG(width, h + 0.5, run, x, y - 0.5, zm, 0xe8e0ee, { r: 0, seg: 0, top: 0xf6f2fa }));
+    P.push(blockG(carpet, 0.03, run, x, y + h, zm, 0xb8142a, { r: 0, seg: 0, top: 0xd21e30 }));
+    P.push(blockG(carpet, rise, 0.03, x, y + h - rise, z + dir * i * run - dir * 0.015, 0xa0101e, { r: 0, seg: 0 }));
+    P.push(blockG(carpet + 0.3, 0.05, 0.05, x, y + h - 0.02, z + dir * i * run, 0xffc21a, { r: 0, seg: 0 }));
+  }
+  const len = n * run, H = n * rise;
+  for (const s of [-1, 1]) {
+    const bx = x + s * (width / 2 + 0.25);
+    for (let i = 0; i < n; i++) P.push(blockG(0.5, (i + 1) * rise + 0.9 + 0.5, run, bx, y - 0.5, z + dir * (i + 0.5) * run, 0xd8cce4, { r: 0, seg: 0, top: 0xc8b8d8 }));
+    for (let k = 0; k <= 3; k++) {
+      const zz = z + dir * ((k / 3) * (len - run)) + dir * run * 0.5;
+      const hh = y + (Math.round((k / 3) * (n - 1)) + 1) * rise + 0.9;
+      P.push(cylG(0.12, 0.16, 1.1, bx, hh, zz, 0x3a2a4a, 8));
+      G.push(sphereG(0.22, bx, hh + 1.3, zz, 0xfff0b0, { ws: 10, hs: 8 }));
+    }
+  }
+  bake(level, P);
+  bake(level, G, { material: 'glow', castShadow: false });
+}
+
+// ------------------------------------------------------------------ Zirkus-Requisiten (Vorplatz)
+
+/** Zirkuswagen: Kasten mit Rundbogendach, Räder, leuchtende Fensterchen, Zierleisten (Teile lokal, dann gedreht). */
+function zirkuswagen(P, G, x, y, z, yaw, col, trim) {
+  const L2 = 4.2, W2 = 2.0;
+  const parts = [blockG(L2, 1.8, W2, 0, 0.7, 0, col, { r: 0.08, seg: 1 })];
+  const roof = new THREE.CylinderGeometry(1.15, 1.15, L2 + 0.3, 16, 1, false, 0, Math.PI).toNonIndexed();
+  roof.rotateZ(Math.PI / 2); roof.rotateX(Math.PI / 2); roof.scale(1, 0.5, 1); roof.translate(0, 2.48, 0);
+  parts.push(colorize(roof, (p, n, o) => mixc(L(trim), L(0xfff6ee), (Math.floor((p.x + 5) * 1.6) & 1) * 0.85, o)));
+  parts.push(blockG(L2 + 0.1, 0.12, W2 + 0.1, 0, 2.42, 0, 0xffc21a, { r: 0.02, seg: 0 }));
+  for (const lx of [-1.4, 1.4]) for (const lz of [-1.05, 1.05]) {
+    parts.push(cylG(0.52, 0.52, 0.12, lx, 0.52, lz, 0xffc21a, 14, { rx: Math.PI / 2, center: true }));
+    parts.push(cylG(0.2, 0.2, 0.16, lx, 0.52, lz, 0xc0141e, 10, { rx: Math.PI / 2, center: true }));
+  }
+  parts.push(blockG(0.75, 1.3, 0.05, 1.4, 0.75, W2 / 2 + 0.01, trim, { r: 0.02, seg: 0 }));
+  const glow = [blockG(0.7, 0.6, 0.04, -1.0, 1.25, W2 / 2 + 0.01, 0xffd27a, { r: 0, seg: 0 }), blockG(0.7, 0.6, 0.04, 0.2, 1.25, W2 / 2 + 0.01, 0xffd27a, { r: 0, seg: 0 })];
+  for (const g of parts) { g.rotateY(yaw); g.translate(x, y, z); P.push(g); }
+  for (const g of glow) { g.rotateY(yaw); g.translate(x, y, z); G.push(g); }
+}
+
+function posterTexture() {
+  return canvasTex(256, 320, (g, w, h) => {
+    g.fillStyle = '#2a1050'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#ffc21a'; g.fillRect(8, 8, w - 16, h - 16);
+    g.fillStyle = '#b8142a'; g.fillRect(16, 16, w - 32, h - 32);
+    // Schlange mit Krone
+    g.strokeStyle = '#5ad06a'; g.lineWidth = 22; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(60, 220); g.bezierCurveTo(40, 170, 200, 180, 170, 130); g.bezierCurveTo(150, 95, 110, 105, 128, 86); g.stroke();
+    g.fillStyle = '#5ad06a'; g.beginPath(); g.ellipse(132, 80, 26, 18, -0.3, 0, TAU); g.fill();
+    g.fillStyle = '#ffc21a'; g.beginPath(); g.moveTo(112, 66); g.lineTo(116, 40); g.lineTo(126, 56); g.lineTo(134, 36); g.lineTo(142, 56); g.lineTo(152, 42); g.lineTo(150, 66); g.closePath(); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(140, 76, 5, 0, TAU); g.fill();
+    g.fillStyle = '#111'; g.beginPath(); g.arc(141, 76, 2.5, 0, TAU); g.fill();
+    g.fillStyle = '#fff6d0'; g.textAlign = 'center';
+    g.font = 'bold 22px "Nunito", Arial, sans-serif'; g.fillText('Der Schlangenkönig', w / 2, 262);
+    g.font = 'bold 30px "Nunito", Arial, sans-serif'; g.fillText('HEUTE!', w / 2, 296);
+  });
+}
+
+/**
+ * Vorplatz-Requisiten: Zirkuswagen, Kassenhäuschen mit gestreiftem Dach, Plakatwand mit dem Schlangenkönig.
+ * items: [{ kind: 'wagen' | 'kasse' | 'plakat', pos, yaw, color, trim }]
+ */
+export function circusProps(level, items, o = {}) {
+  const P = [], G = [];
+  for (const it of items) {
+    const [x, y, z] = it.pos, yaw = it.yaw ?? 0;
+    if (it.kind === 'wagen') {
+      const c = Math.abs(Math.cos(yaw)), s = Math.abs(Math.sin(yaw));
+      const hx = c * 2.2 + s * 1.05, hz = s * 2.2 + c * 1.05;
+      level.world.add({ type: 'box', min: [x - hx, y, z - hz], max: [x + hx, y + 2.9, z + hz], tag: 'zirkuswagen' });
+      if (level.view) zirkuswagen(P, G, x, y, z, yaw, it.color ?? 0x2a6ae8, it.trim ?? 0xe8283a);
+    } else if (it.kind === 'kasse') {
+      level.world.add({ type: 'box', min: [x - 1.1, y, z - 1.1], max: [x + 1.1, y + 2.2, z + 1.1], tag: 'kasse' });
+      if (!level.view) continue;
+      P.push(blockG(2.2, 2.2, 2.2, x, y, z, 0xfff2e0, { r: 0.06, seg: 1 }));
+      G.push(blockG(1.2, 0.8, 0.05, x, y + 1.1, z + 1.11, 0xffd27a, { r: 0, seg: 0 }));
+      P.push(blockG(1.6, 0.12, 0.5, x, y + 0.95, z + 1.3, 0xb86f3a, { r: 0.02, seg: 0 }));
+      const roof = new THREE.ConeGeometry(1.9, 1.4, 12).toNonIndexed();
+      roof.translate(x, y + 2.9, z);
+      P.push(colorize(roof, (p, n, o) => mixc(L(0xe8283a), L(0xfff6ee), (Math.floor(((Math.atan2(p.z - z, p.x - x) / TAU) + 1) * 12) & 1), o)));
+      P.push(sphereG(0.2, x, y + 3.7, z, 0xffc21a));
+    } else if (it.kind === 'plakat' && level.view) {
+      for (const s of [-1, 1]) P.push(blockG(0.14, 3.2, 0.14, x + s * 1.1, y, z, 0x5a3a2a, { r: 0.02, seg: 0 }));
+      const mat = new THREE.MeshLambertMaterial({ map: posterTexture(), emissive: 0x403020 });
+      const pl = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.5), mat);
+      pl.position.set(x, y + 1.95, z + 0.09);
+      pl.rotation.y = yaw;
+      addObject(level, owned(pl));
+    }
+  }
+  bake(level, P, { castShadow: o.shadow !== false });
+  bake(level, G, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Inseln wie der Baustein `island` (Kollision: Quader), aber ohne Sonnenschatten-Wurf (große Geländeblöcke: spart im
+ * Schattenpass viele Dreiecke). specs: { pos, size, top, under, color } wie island.
+ */
+export function plainIslands(level, specs) {
+  const th = level.view?.theme;
+  for (const spec of specs) {
+    const [px, py, pz] = spec.pos, [w, h, d] = spec.size;
+    const x0 = px - w / 2, x1 = px + w / 2, z0 = pz - d / 2, z1 = pz + d / 2, y0 = py, y1 = py + h;
+    level.world.add({ type: 'box', min: [x0, y0, z0], max: [x1, y1, z1], tag: 'island' });
+    if (!level.view) continue;
+    for (const g of islandParts(x0, y0, z0, x1, y1, z1, th, { top: spec.top, under: spec.under ?? 0, bodyColor: spec.color, rnd: level.rnd })) addStatic(level, g, { castShadow: false });
+  }
+}
+
+/**
+ * Felswand-Zier an einer Inselkante (Blick über eine Schlucht): Schneewulst an der Oberkante, Eiszapfen, vorspringende
+ * Felsbänder, gefrorener Wasserfall. { x0, x1, z, y (Oberkante), h (Höhe der Wand), face: +1 (Wand zeigt nach +Z) | −1,
+ * fall: x (Wasserfall), seed }
+ */
+export function cliffDeco(level, o) {
+  if (!level.view) return;
+  const P = [], N = [];
+  const f = o.face ?? 1, z = o.z, y = o.y, h = o.h ?? 20;
+  const rnd = new Rnd(o.seed ?? 5);
+  const w = o.x1 - o.x0;
+  // Schneewulst
+  P.push(cylG(0.35, 0.35, w, (o.x0 + o.x1) / 2, y - 0.05, z + f * 0.1, 0xf6faff, 10, { rz: Math.PI / 2, center: true, fn: litFn(0xf6faff, 0.85) }));
+  // Eiszapfen
+  for (let x = o.x0 + 0.6; x < o.x1 - 0.4; x += rnd.real(0.5, 1.3)) {
+    const len = rnd.real(0.4, 1.6);
+    const g = new THREE.ConeGeometry(rnd.real(0.08, 0.16), len, 5).toNonIndexed();
+    g.rotateX(Math.PI);
+    g.translate(x, y - 0.3 - len / 2, z + f * 0.18);
+    N.push(colorize(g, litFn(0xcfeaff, 0.8, 1.2)));
+  }
+  // Felsbänder (helle, verschneite Simse)
+  for (let k = 1; k < h / 3.2; k++) {
+    for (let x = o.x0 + rnd.real(0, 2); x < o.x1 - 1.5; x += rnd.real(2.5, 6)) {
+      const len = rnd.real(1.5, 4), yy = y - k * 3.2 + rnd.real(-0.6, 0.6);
+      N.push(blockG(len, 0.35, 0.7, x + len / 2, yy, z + f * 0.25, 0x8a8aa6, { r: 0.1, seg: 1, top: 0xeef4ff }));
+    }
+  }
+  // gefrorener Wasserfall
+  if (o.fall !== undefined) {
+    for (let i = 0; i < 9; i++) {
+      const xx = o.fall + (i - 4) * 0.42, len = h * rnd.real(0.6, 0.95);
+      N.push(cylG(0.24, 0.12, len, xx, y - len, z + f * (0.25 + (i % 2) * 0.12), 0xbfe6ff, 6, { fn: litFn(0xbfe6ff, 0.75, 1.25) }));
+    }
+  }
+  bake(level, P, { castShadow: false });
+  bake(level, N, { castShadow: false });
+}
+
+// ------------------------------------------------------------------ Zirkuszelt (aufgeschnitten) und Manege
+
+/**
+ * Zirkuszelt (Modell zirkuszelt, eigene Materialkopie) mit Schnittebene: steht die Figur draußen, ist das Zelt ganz zu
+ * sehen; geht sie hinein, gleitet die Schnittebene in ≈ 1 s bis knapp vor die Zeltmitte – die vordere Hälfte
+ * verschwindet, der Blick fällt ins Innere (Ränge, Publikum, Scheinwerfer). inside(p) → bool entscheidet.
+ * { center: [x, y, z], radius, height, inside: (p) => bool, cut: m vor der Mitte (Standard 3) }
+ */
+export function cutawayTent(level, o) {
+  if (!level.view) return null;
+  const [cx, cy, cz] = o.center;
+  const m = getModel('zirkuszelt', { radius: o.radius, height: o.height });
+  m.root.position.set(cx, cy, cz);
+  const plane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 1e5);
+  m.root.traverse((x) => {
+    if (!x.isMesh) return;
+    x.material = x.material.clone();
+    x.material.clippingPlanes = [plane];
+    x.material.clipShadows = true;
+    x.castShadow = false;
+    x.userData.owned = true;
+  });
+  level.view.renderer.localClippingEnabled = true;
+  addObject(level, m.root);
+  const st = { k: 0, plane, root: m.root };
+  const far = cz + o.radius + 2, cut = cz + (o.cut ?? 3);
+  // Fortschritt im Simulationstakt (deterministisch, auch bei step(n) ohne Bilder), Ebene je Bild
+  level.onStep((dt) => {
+    const p = level.player;
+    const want = p && o.inside(p) ? 1 : 0;
+    st.k = want ? Math.min(1, st.k + dt / 0.9) : Math.max(0, st.k - dt / 0.9);
+  });
+  level.view.onFrame(() => {
+    // behalten wird z < zc (Normale −Z: Abstand = −z + zc ≥ 0)
+    plane.constant = st.k <= 0 ? 1e5 : far + (cut - far) * ease(st.k);
+  });
+  return st;
+}
+
+/** Ring-Sektor (waagerechte Trittfläche) bzw. Setzstufe (senkrecht, zur Mitte gewandt); Winkel wie yaw (0 = +X). */
+function sector(cx, cz, r0, r1, y, a0, a1, color, seg = 32, riser = 0) {
+  const pos = [], nor = [], col = [];
+  const cA = L(color);
+  const P0 = (r, t) => [cx + Math.cos(t) * r, cz - Math.sin(t) * r];
+  for (let i = 0; i < seg; i++) {
+    const t0 = a0 + (a1 - a0) * (i / seg), t1 = a0 + (a1 - a0) * ((i + 1) / seg);
+    if (!riser) {
+      const [ax, az] = P0(r0, t0), [bx, bz] = P0(r1, t0), [ex, ez] = P0(r1, t1), [dx, dz] = P0(r0, t1);
+      // Umlaufsinn gegen den Uhrzeigersinn von oben (Normale +Y)
+      pos.push(ax, y, az, ex, y, ez, bx, y, bz, ax, y, az, dx, y, dz, ex, y, ez);
+      for (let k = 0; k < 6; k++) nor.push(0, 1, 0);
+    } else {
+      const [ax, az] = P0(r0, t0), [dx, dz] = P0(r0, t1);
+      pos.push(ax, y, az, ax, y + riser, az, dx, y + riser, dz, ax, y, az, dx, y + riser, dz, dx, y, dz);
+      const tm = (t0 + t1) / 2;
+      for (let k = 0; k < 6; k++) nor.push(-Math.cos(tm), 0, Math.sin(tm));
+    }
+    for (let k = 0; k < 6; k++) col.push(cA[0], cA[1], cA[2]);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return g;
+}
+
+/**
+ * Manege im Zelt: Sägemehl-Manege (Modell manege), Bande ringsum (Kollision bis 9 m, Tor zur Kamera), Ränge hinten und an
+ * den Seiten mit Publikum-Silhouetten (zwei Instanz-Gruppen, jubeln auf Zuruf), Leuchtstäbe im Publikum.
+ * cfg = { center, arena: r (Innenradius der Bande), door: Breite der Lücke nach +Z, rows: 6, rowDepth: 1, rowRise: 0.55,
+ *         span: [a0, a1] (Winkelbereich der Ränge, yaw-Sinn: 0 = +X, π/2 = −Z) }
+ * Rückgabe: { cheer(stärke, dauer), seats }
+ */
+export function circusArena(level, cfg) {
+  const [cx, cy, cz] = cfg.center;
+  const R = cfg.arena ?? 12.3, door = cfg.door ?? 4.2;
+  const W = level.world;
+  const n = Math.round((TAU * R) / 0.9);
+  for (let i = 0; i < n; i++) {
+    const a = (i + 0.5) / n * TAU;
+    const x = cx + Math.cos(a) * (R + 0.4), z = cz - Math.sin(a) * (R + 0.4);
+    const da = Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2));
+    if (Math.abs(da) * R < door / 2) continue;
+    W.add({ type: 'box', min: [x - 0.45, cy, z - 0.45], max: [x + 0.45, cy + 9, z + 0.45], camIgnore: true, noWallSlide: true, tag: 'bande' });
+  }
+  const st = { cheerT: 0, cheerK: 0, cheer: () => {}, seats: 0 };
+  if (!level.view) return st;
+  const P = [];
+  bakeModel(level, 'manege', { radius: R - 0.1, floor: true }, cx, cy, cz, 0, 1, {}, { castShadow: false });
+  // Bande (rot mit Goldsternen, weißes Polster) – Bogen ohne die Torlücke
+  const gapA = door / 2 / R + 0.03;
+  const b0 = -Math.PI / 2 + gapA, b1 = -Math.PI / 2 + TAU - gapA;
+  P.push(sector(cx, cz, R + 0.05, R + 0.75, cy + 1.05, b0, b1, 0xfff2e8, 96));
+  P.push(sector(cx, cz, R + 0.05, R + 0.05, cy, b0, b1, 0xd01c26, 96, 1.05));
+  for (let i = 0; i < 44; i++) {
+    const a = b0 + (b1 - b0) * ((i + 0.5) / 44);
+    const g = starG(0.22, 0.09, 0, 0, 0, 0xffc21a);
+    g.rotateX(Math.PI / 2); g.rotateY(a + Math.PI / 2);
+    g.translate(cx + Math.cos(a) * (R + 0.03), cy + 0.55, cz - Math.sin(a) * (R + 0.03));
+    P.push(g);
+  }
+  for (const s of [-1, 1]) {
+    const a = -Math.PI / 2 + s * gapA;
+    const x = cx + Math.cos(a) * (R + 0.4), z = cz - Math.sin(a) * (R + 0.4);
+    P.push(blockG(0.6, 2.2, 0.6, x, cy, z, 0xd01c26, { r: 0.08, seg: 1 }));
+    P.push(sphereG(0.36, x, cy + 2.5, z, 0xffc21a));
+  }
+  // Ränge (Tritt-/Setzstufen abwechselnd rot/violett, Goldkante) und Sitzplätze
+  const rows = cfg.rows ?? 6, depth = cfg.rowDepth ?? 1.0, rise = cfg.rowRise ?? 0.55;
+  const [a0, a1] = cfg.span ?? [-0.5, Math.PI + 0.5];
+  const r00 = R + 1.4;
+  const seats = [];
+  for (let i = 0; i < rows; i++) {
+    const r0 = r00 + i * depth, y = cy + (i + 1) * rise;
+    P.push(sector(cx, cz, r0, r0 + depth, y, a0, a1, i % 2 ? 0x7a2a8a : 0xb01c2c, 64));
+    P.push(sector(cx, cz, r0, r0, y - rise, a0, a1, i % 2 ? 0x5a1a6a : 0x8a1422, 64, rise));
+    P.push(sector(cx, cz, r0 - 0.02, r0 + 0.1, y + 0.012, a0, a1, 0xffc21a, 64));
+    const len = (a1 - a0) * (r0 + depth * 0.55), k = Math.floor(len / 0.95);
+    for (let j = 0; j < k; j++) {
+      const h = Math.sin(i * 12.9898 + j * 78.233) * 43758.5453, fr = h - Math.floor(h);
+      if (fr < 0.16) continue;
+      const a = a0 + (a1 - a0) * ((j + 0.5 + (fr - 0.5) * 0.3) / k);
+      seats.push({ x: cx + Math.cos(a) * (r0 + depth * 0.55), y, z: cz - Math.sin(a) * (r0 + depth * 0.55), yaw: a + Math.PI, s: 0.85 + fr * 0.35, ear: fr > 0.62, ph: fr * 17 });
+    }
+  }
+  const outerR = r00 + rows * depth;
+  P.push(sector(cx, cz, outerR, outerR, cy, a0, a1, 0x2a0e30, 64, rows * rise + 2.4));
+  bake(level, P, { castShadow: false });
+  // Publikum: zwei Instanz-Gruppen (mit langen Ohren / mit runden Ohren), dunkle Silhouetten gegen das Licht
+  const sil = 0x1c0e26;
+  const mkPerson = (ears) => {
+    const parts = [cylG(0.2, 0.3, 0.72, 0, 0, 0, sil, 6), sphereG(0.24, 0, 0.95, 0, sil, { ws: 7, hs: 5 })];
+    if (ears) for (const s of [-1, 1]) parts.push(sphereG(0.075, s * 0.1, 1.36, 0, sil, { sy: 3.2, ws: 4, hs: 3 }));
+    else for (const s of [-1, 1]) parts.push(sphereG(0.09, s * 0.17, 1.15, 0, sil, { ws: 4, hs: 3 }));
+    return merge(parts);
+  };
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true });
+  const groups = [false, true].map((ears) => {
+    const list = seats.filter((s) => s.ear === ears);
+    const im = new THREE.InstancedMesh(mkPerson(ears), mat, Math.max(1, list.length));
+    im.count = list.length;
+    im.frustumCulled = false;
+    im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    im.name = 'publikum';
+    addObject(level, owned(im));
+    return { im, list };
+  });
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), V = new THREE.Vector3(), E = new THREE.Euler();
+  // Leuchtstäbe (Punkte, additiv) bei jedem fünften Gast
+  const sticks = seats.filter((s, i) => i % 5 === 2);
+  const spos = new Float32Array(Math.max(1, sticks.length) * 3), scol = new Float32Array(Math.max(1, sticks.length) * 3);
+  const pal = [0xff4ad8, 0x4af0ff, 0xfff04a, 0x7aff6a].map((c) => new THREE.Color(c));
+  sticks.forEach((s, i) => { const c = pal[i % 4]; scol[i * 3] = c.r; scol[i * 3 + 1] = c.g; scol[i * 3 + 2] = c.b; });
+  const sg = new THREE.BufferGeometry();
+  sg.setAttribute('position', new THREE.BufferAttribute(spos, 3));
+  sg.setAttribute('color', new THREE.BufferAttribute(scol, 3));
+  const sm = new THREE.PointsMaterial({ size: 0.45, map: glowDot(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  const pts = new THREE.Points(sg, sm);
+  pts.frustumCulled = false;
+  addObject(level, owned(pts));
+  st.cheer = (k = 1, dur = 2) => { st.cheerT = Math.max(st.cheerT, dur); st.cheerK = Math.max(st.cheerK, k); };
+  st.seats = seats.length;
+  level.view.onFrame((dt, t) => {
+    if (st.cheerT > 0) st.cheerT -= dt; else st.cheerK = Math.max(0, st.cheerK - dt);
+    const ch = st.cheerT > 0 ? st.cheerK : 0;
+    for (const g of groups) {
+      g.list.forEach((s, i) => {
+        const hop = ch > 0 ? Math.abs(Math.sin(t * 7 + s.ph)) * 0.32 * ch : Math.max(0, Math.sin(t * 1.6 + s.ph)) * 0.04;
+        V.set(s.x, s.y + hop, s.z);
+        E.set(0, s.yaw + Math.sin(t * 0.7 + s.ph) * 0.15, ch > 0 ? Math.sin(t * 9 + s.ph) * 0.12 : 0);
+        Q.setFromEuler(E); S.setScalar(s.s);
+        M.compose(V, Q, S);
+        g.im.setMatrixAt(i, M);
+      });
+      g.im.instanceMatrix.needsUpdate = true;
+    }
+    sticks.forEach((s, i) => {
+      const w = t * (ch > 0 ? 7 : 2.2) + s.ph;
+      spos[i * 3] = s.x + Math.cos(w) * 0.25; spos[i * 3 + 1] = s.y + 1.55 + Math.sin(w) * 0.25 + (ch > 0 ? 0.3 : 0); spos[i * 3 + 2] = s.z;
+    });
+    sg.attributes.position.needsUpdate = true;
+  });
+  return st;
 }

@@ -54,9 +54,9 @@ export const LEVEL = {
     ] },
   ],
   blocks: [
-    { kind: 'question', pos: [-3.2, Y + 3.0, 5.6], content: 'funken' },
-    { kind: 'question', pos: [PODR[0], PODR[1] + 3.0, PODR[2] + 0.6], content: 'coins:5' },
-    { kind: 'brick', pos: [3.2, Y + 3.0, 5.6], content: 'coin' },
+    { kind: 'question', pos: [-3.2, Y + 2.5, 5.6], content: 'funken' },
+    { kind: 'question', pos: [PODR[0], PODR[1] + 2.5, PODR[2] + 0.6], content: 'coins:5' },
+    { kind: 'brick', pos: [3.2, Y + 2.5, 5.6], content: 'coin' },
   ],
   enemies: [
     // drei Zauberkröten, jede mit eigenen Auftrittsplätzen (Boden und Podeste), versetzte Pausen
