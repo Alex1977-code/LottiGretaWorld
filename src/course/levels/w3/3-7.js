@@ -73,8 +73,6 @@ function setup(level) {
   zeitUhren(level, [[4.6, 3, -79.4], [5.8, 3, -79.4], [7, 3, -79.4]], { id: 'uhren' });
   // Fallraum: hohler Baum mit Baumpilz-Simsen
   hohlerBaum(level, { x: 80, z: -80, r: 5.4, y0: 1, y1: 44, shelves: [[-0.9, 30, 2.4], [1.0, 22, 2.2], [-1.1, 12, 2.4], [0.9, 6, 2]] });
-  // Wolken der Kulisse unter den Inseln würden in der Klamm wie Schneeflecken wirken: tiefer legen (unter den Boden)
-  for (const c of level.view?.sky?.cloudData ?? []) if (c.y < 0) c.y = -60;
   // gleiche Gegner-Modelle als Instanzen (Brummer, Funkenkäfer, Funkenläufer)
   instanceEnemies(level, ['brummer', 'funkenkaefer', 'funkenlaeufer'], { far: 46 });
   // Brummer und Funkenkäfer haben je Exemplar eigene Materialien (nicht instanzierbar): ohne Sonnenschatten (der Blob
@@ -89,6 +87,8 @@ export const LEVEL = {
   archetype: 'parcours',
   theme: 'autumn',
   music: 'course_autumn',
+  // nur die Wolken über dem Level: die unter den Inseln wirkten in der Klamm wie Schneeflecken
+  sky: { clouds: 'above' },
   timeLimit: 500,
   killY: -14,
   setup: levelSetup(setup),

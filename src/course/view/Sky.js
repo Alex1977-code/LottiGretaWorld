@@ -1,6 +1,11 @@
 // Himmel und Hintergrund der Kurs-Level: Kuppel mit Farbverlauf (folgt der Kamera), Sonne mit Glühen,
 // treibende Wolken (eine InstancedMesh), ferne Hügelkette und tiefe Wiese unter den schwebenden Inseln
 // (je ein verschmolzenes Mesh). Alles deterministisch (Rnd) und nach dem Level-Umriss ausgelegt.
+//
+// Wolken je Level (Präzisierung „Leistung und Level-Haken 2“), LEVEL.sky.clouds:
+//   true/undefined = wie das Thema · false = keine · 'above' = nur die Wolken über dem Level · 'below' = nur die unter
+//   den Inseln · Zahl = so viele (gleiche Verteilung) · Liste [{ pos: [x, y, z], size: 6, drift: 0.5 }] = eigene Wolken
+//   (treiben mit drift m/s nach +X). Gezeichnet werden je Bild nur Wolken im Bild (view.optimize).
 
 import * as THREE from 'three';
 import { colorize, merge, lin, mixc, Rnd, smooth } from '../../three/world/geometry.js';
@@ -23,6 +28,9 @@ export class Sky {
     this.buildDome();
     this.clouds = null;
     this.cloudData = [];
+    this.cloudN = 0;
+    this._frustum = new THREE.Frustum();
+    this._sph = new THREE.Sphere();
   }
 
   track(x) { this.disposables.push(x); return x; }
@@ -91,7 +99,9 @@ export class Sky {
     }
     if (th.backdrop === 'hills') this.buildHills(bounds, rnd, yBase);
     else if (typeof th.buildBackdrop === 'function') th.buildBackdrop(this, bounds, rnd, yBase);   // eigene Kulisse (Welt-2-Themen)
-    if (th.clouds) this.buildClouds(bounds, rnd);
+    const opt = this.view.data?.sky?.clouds;
+    if (opt === false) return;
+    if (th.clouds || (opt !== undefined && opt !== true)) this.buildClouds(bounds, rnd, opt);
   }
 
   buildHills(bounds, rnd, yBase) {
@@ -135,7 +145,7 @@ export class Sky {
     this.group.add(mesh);
   }
 
-  buildClouds(bounds, rnd) {
+  buildClouds(bounds, rnd, opt) {
     const parts = [];
     const white = lin(0xffffff), shade = lin(0xd4e3f3);
     for (const [x, y, z, r] of [[0, 0, 0, 1], [-0.95, -0.12, 0.1, 0.72], [0.95, -0.1, -0.1, 0.78], [-0.35, 0.32, -0.2, 0.68], [0.45, 0.36, 0.15, 0.62]]) {
@@ -145,34 +155,60 @@ export class Sky {
     }
     const g = merge(parts);
     g.scale(1, 0.72, 1);
-    const n = 22;
+    g.computeBoundingSphere();
+    this.cloudSphere = g.boundingSphere;
+    const n = typeof opt === 'number' ? Math.max(0, Math.round(opt)) : Array.isArray(opt) ? opt.length : 22;
     const mat = this.track(new THREE.MeshBasicMaterial({ vertexColors: true, fog: true }));
     this.clouds = new THREE.InstancedMesh(this.track(g), mat, n);
     this.clouds.frustumCulled = false;
     const x0 = bounds.min.x - 60, x1 = bounds.max.x + 60, z0 = bounds.min.z - 80, z1 = bounds.max.z + 30;
     // Die Kamera blickt steil (45–55°) von oben: die meisten Wolken treiben unter den Inseln,
     // einige seitlich darüber
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < (Array.isArray(opt) ? 0 : n); i++) {
       const above = i % 4 === 0;
       const side = i % 2 ? 1 : -1;
       this.cloudData.push({
+        above,
         x: above ? (side < 0 ? rnd.real(x0 - 30, x0 + 20) : rnd.real(x1 - 20, x1 + 30)) : rnd.real(x0 - 20, x1 + 20),
         y: above ? bounds.max.y + rnd.real(4, 16) : bounds.min.y - rnd.real(9, 24),
         z: rnd.real(z0, z1), s: rnd.real(4, 8), sy: rnd.real(0.8, 1.1), v: rnd.real(0.3, 0.8),
         xa: x0 - 40, xb: x1 + 40,
       });
     }
+    if (opt === 'above') this.cloudData = this.cloudData.filter((c) => c.above);
+    else if (opt === 'below') this.cloudData = this.cloudData.filter((c) => !c.above);
+    else if (Array.isArray(opt)) {
+      for (const c of opt) {
+        const p = c.pos ?? c;
+        this.cloudData.push({ x: p[0], y: p[1], z: p[2], s: c.size ?? 6, sy: c.sy ?? 1, v: c.drift ?? 0.5, xa: x0 - 40, xb: x1 + 40 });
+      }
+    }
     this.placeClouds();
     this.group.add(this.clouds);
   }
 
-  placeClouds() {
+  /** Wolken in die Instanzen schreiben – mit Sparmaßnahmen (view.optimize, Kamera übergeben) nur die im Bild. */
+  placeClouds(camera = null) {
+    const pick = !!camera && this.view.optimize;
+    const F = this._frustum, S = this._sph, c0 = this.cloudSphere;
+    if (pick) {
+      camera.updateMatrixWorld();
+      F.setFromProjectionMatrix(_m.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+    }
+    let k = 0;
     for (let i = 0; i < this.cloudData.length; i++) {
       const c = this.cloudData[i];
+      if (pick) {
+        S.center.set(c.x + c0.center.x * c.s, c.y + c0.center.y * c.s * c.sy, c.z + c0.center.z * c.s);
+        S.radius = c0.radius * c.s * Math.max(1, c.sy);
+        if (!F.intersectsSphere(S)) continue;
+      }
       _p.set(c.x, c.y, c.z); _s.set(c.s, c.s * c.sy, c.s);
       _m.compose(_p, _q, _s);
-      this.clouds.setMatrixAt(i, _m);
+      this.clouds.setMatrixAt(k++, _m);
     }
+    this.clouds.count = k;
+    this.cloudN = k;
     this.clouds.instanceMatrix.needsUpdate = true;
   }
 
@@ -181,7 +217,7 @@ export class Sky {
     this.theme.updateBackdrop?.(this, dt, camera);   // eigene Kulisse animieren (Welt-2-Themen)
     if (this.clouds) {
       for (const c of this.cloudData) { c.x += c.v * dt; if (c.x > c.xb) c.x = c.xa; }
-      this.placeClouds();
+      this.placeClouds(camera);
     }
   }
 

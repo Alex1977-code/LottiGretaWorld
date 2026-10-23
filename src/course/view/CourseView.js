@@ -49,6 +49,7 @@ export class CourseView {
    */
   constructor(scene, data) {
     this.scene = scene;
+    this.data = data;
     this.game = scene.game;
     this.three = new THREE.Scene();
     this.three.name = `kurs:${data.id}`;
