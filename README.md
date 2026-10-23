@@ -139,6 +139,35 @@ geheimnisvolles Haus (2-Haus, ab 20), Hügelwalze (2-4), Lava-Felsinsel mit drei
 **Glückshaus** (Spielautomat: 10 Bitcoins Einsatz, drei Walzen, Gewinne Bitcoins, Leben oder ein Power-up). Die
 zuletzt besuchte Welt wird gemerkt.
 
+| Id | Titel | Art |
+| --- | --- | --- |
+| 2-1 | Rieselschlucht | Wüstenschlucht: Treibsand, Hackvögel, Goldröhre, Oase, Fliesenbrücken |
+| 2-2 | Sternenklavier | Weltraum: Tastensteine, Antipp-Plattformen, Propellerplattformen, Münzmarder |
+| 2-3 | Scherenschnittkeller | Schattentheater: Wege nur als Schatten, Topfpflanze, Krümel |
+| 2-Haus | Villa Tick-Tack | Prüfungs-Haus: 5 Räume à 10 s, je ein Stern |
+| 2-4 | Hügelmühle | Rollhügel, Lotti-/Greta-Schalter, Mühlenkeller mit Zahnrädern |
+| 2-A | Glutsee-Rempelei | Arena: Großrollpilze in die Lava stoßen |
+| 2-5 | Doppelgängersteig | Spiegelfrucht-Klone, Druckfelder für 2, Viererlift |
+| 2-Panzer | Brummbärs Panzerparade | Fahrt über den Panzerzug, Kanonen-Helm, Boss Wirbelbrocken |
+
+**Welt 3 „Schnee und Eis“** (frei nach 2-Panzer, Glasröhre am Ende der Wüsteninsel; Sternschranken 35/45/55):
+Neu sind das **Gleitblatt** (Schweif-Hieb, Gleiten mit gehaltenem Sprung, Steinstatue mit Ducken + Aktion in der
+Luft), Schlittschuhe, rutschiges Eis, rollende Schneebälle, Kettenzäune zum Klettern und Tauchen.
+
+| Id | Titel | Art |
+| --- | --- | --- |
+| 3-1 | Flockenwiese | Schneefeld, Eisbahn, Schneebälle, Eisläufer mit Schlittschuh |
+| 3-2 | Gitterbahn über den Wolken | Autoscroller an fahrenden Kettenzäunen |
+| 3-3 | Die Mondscheinvilla | Spukhaus mit Licht-Helm, Drehraum und falschem Zielmast |
+| 3-Kapitän | Krümel und der Röhrensee | Diorama mit Krümel: Glasröhren-Netz, Wasserschalter, 5 Sterne |
+| 3-4 | Marzipangarten | kurzer Pastell-Garten (100 s) |
+| 3-A | Krötenzauber im Roten Zwinger | Arena gegen drei Zauberkröten |
+| 3-5 | Leuchtturmriff | Lagune mit Tauchgang, steigender Flut und Goldraum |
+| 3-6 | Gipfelflitzer-Rennen | Bergrennen mit Boost-Pfeilen und Sprungfeldern |
+| 3-B | Manege frei für den Schlangenkönig | Boss im Zirkuszelt, Seilbahn |
+| 3-7 | Ahornklamm | Herbstwald mit Schalttafeln auf Schienen |
+| 3-Zug | Volldampf durchs Schneetal | Zugfahrt als Autoscroller, Boss Schattenläuferin |
+
 - **Tastatur:** Pfeile/WASD laufen (relativ zur Kamera), **Shift** rennen (Druck = Aktion, auch **X**:
   Feuerball, Krallenhieb, Aufheben/Werfen), **Leertaste** springen (Höhe nach Haltedauer), **Strg/C**
   ducken/rutschen (in der Luft: Stampfattacke), **Q/E** Kamera drehen, **Z** Zoom, **Tab** Figur (Karte),
@@ -148,7 +177,8 @@ zuletzt besuchte Welt wird gemerkt.
 - **Bewegungen:** Dreifachsprung, Rückwärtssalto (Ducken + Sprung im Stand), Seitwärtssalto (Umkehr + Sprung),
   Weitsprung (Rennen + Ducken + Sprung), Wandrutschen/Wandsprung, Stampfattacke, Rutschen, Klettern mit
   Krallen-Anzug, Bohnenranke, Schwimmen, Tragen/Werfen. Lotti springt höher, Greta weiter.
-- **Power-ups:** Wachstumsbeere, Krallen-Anzug, Funkenblüte, Riesentrank, Funkelstern, 1-Up.
+- **Power-ups:** Wachstumsbeere, Krallen-Anzug, Funkenblüte, Riesentrank, Funkelstern, 1-Up, Spiegelfrucht
+  (Klone), Gleitblatt; Trage-Helme (Kanone, Propeller, Licht), Schlittschuh.
 - **Tests:** `tests/course*.mjs` (deterministisch über `__course.step(n)`, Screenshots unter `tests/out/`),
   alle im `npm test`-Lauf.
 
