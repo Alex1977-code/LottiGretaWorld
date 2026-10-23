@@ -106,6 +106,10 @@ function scene(level) {
   // Leben
   birds(level, { center: [0, Y1 + 13, -30], r: 11, n: 6, speed: 0.28 });
   birds(level, { center: [8, Y4 + 12, -200], r: 12, n: 6, speed: 0.32 });
+  // Prellmauern an den Hangfüßen: die herabrollenden Stachelwalzen zerschellen dort (der Weg daneben bleibt frei)
+  for (const [x0, x1, z, y] of [[0.7, 4.5, -12.2, Y0], [-4.5, -1.3, -44.2, Y1], [1.3, 4.5, -44.2, Y1], [8.2, 11.5, -144.2, Y3], [8.8, 11.5, -241.2, Y4]]) {
+    stoneBlock(level, x0, x1, y, y + 0.6, z + 0.35, z - 0.35, { tag: 'prellmauer', chips: false });
+  }
   // Rampen verdecken die Kamera nie (der Strahl prüft Hüllquader – auf der Rampe steckt der Kopf darin)
   level.world.forEach?.((s) => { if (s.type === 'ramp') s.camIgnore = true; });
   // Budget
@@ -277,7 +281,7 @@ export const LEVEL = {
     { kind: 'brick', pos: [1, Y0 + 2.4, -4.6] },
     { kind: 'question', pos: [-1.5, Y1 + 2.4, -31], content: 'wachstumsbeere' },
     // Krallen-Anzug neben dem Rundturm (höchstens 2 m hoch: das Power-up bleibt oben liegen)
-    { kind: 'question', pos: [-5.4, Y2 + 2.1, -88.6], content: 'krallen' },
+    { kind: 'question', pos: [-5.4, Y2 + 2.0, -88.6], content: 'krallen' },
     { kind: 'question', pos: [5, Y4 + 2.4, -159], content: 'wachstumsbeere' },
     { kind: 'coinblock', pos: [7, Y5 + 2.4, -256.6], count: 6 },
   ],
@@ -336,9 +340,9 @@ export const LEVEL = {
     // Schalterraum
     line([XS - 3, Y0 + 0.4, -28.6], [XS + 3, Y0 + 0.4, -28.6], 4),
     // 1-Ups auf der Mauer (stehen still)
-    { kind: 'powerup', pos: [8.0, M.wall.top, -97.2], power: 'oneup', speed: 0 },
-    { kind: 'powerup', pos: [9.0, M.wall.top, -97.2], power: 'oneup', speed: 0 },
-    { kind: 'powerup', pos: [10.0, M.wall.top, -97.2], power: 'oneup', speed: 0 },
+    { kind: 'powerup', pos: [9.0, M.wall.top, -96.5], power: 'oneup', speed: 0 },
+    { kind: 'powerup', pos: [9.0, M.wall.top, -97.3], power: 'oneup', speed: 0 },
+    { kind: 'powerup', pos: [9.0, M.wall.top, -98.1], power: 'oneup', speed: 0 },
   ],
   checkpoint: { pos: [0, Y2, -81.6], yaw: Math.PI / 2 },
   stars: [

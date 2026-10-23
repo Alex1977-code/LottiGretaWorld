@@ -66,19 +66,19 @@ const MAIN = [
   { name: 'Stachelplattform 3', untilNamed: 'ms3', axis: 'z', near: -224.4, d: 0.2, max: 3000 },
   { toNamed: 'ms3', off: [0, 1.3], jump: 24, within: 0.6, run: false },
   { untilNamed: 'ms3', axis: 'z', near: -233.2, d: 0.2, ride: 'ms3', off: [0, 1.3], max: 3000 },
-  { name: 'Zielinsel', to: [5, -238], within: 0.6 },
-  { name: 'Zielhang', to: [5, -253.4] },
+  { name: 'Zielinsel', to: [7, -238], within: 0.6 },
+  { name: 'Zielhang', to: [7, -253.4] },
   { name: 'Zielmast', to: [7, -259.2], within: 0.2 },
 ];
 
 // Sterne/Stempel/Extraleben: from = Startpunkt, power = Power-up beim Start
 const TARGETS = [
   { name: 'Stern 0: Röhre in den Schalterraum, alle 16 Felder färben', star: 0, from: [12.6, Y1 + 1.5, -32.8], shot: 'stern0',
-    legs: [{ to: [12.6, -35], within: 0.25, run: false }, { crouch: 6 }, { wait: 60 },
+    legs: [{ to: [12.6, -35], jump: 22, within: 0.3, run: false }, { wait: 20 }, { crouch: 8 }, { wait: 60 },
       ...[-38, -36, -34, -32].flatMap((z, i) => (i % 2 ? [83, 81, 79, 77] : [77, 79, 81, 83]).map((x) => ({ to: [XS - 80 + x, z], within: 0.35, run: false }))),
       { wait: 80 }, { star: 0 }] },
   { name: 'Stern 1: Krallen-Anzug aus dem ?-Block, Rundturm hinauf', star: 1, from: [-5.4, Y2, -87.0], shot: 'stern1', heroes: ['lotti', 'greta'],
-    legs: [{ to: [-5.4, -88.6], within: 0.2, run: false }, { hop: 20 }, { wait: 50 }, { chaseKind: 'powerup', max: 900 }, { wait: 10 },
+    legs: [{ to: [-5.4, -88.6], within: 0.2, run: false }, { hop: 20 }, { wait: 90 }, { to: [-5.4, -86.7], within: 0.25, run: false }, { to: [-5.4, -88.6], jump: 30, within: 0.45, run: false }, { wait: 10 },
       { to: [-10, -91.0], within: 0.3, run: false }, { push: 260, jump: 14, dir: [0, -1] }, { to: [-10, -95], within: 0.4, run: false }, { star: 1 }], expectPower: 'krallen' },
   { name: 'Stern 1 nicht ohne Krallen (Sprung am Turm)', star: 1, expectNot: true, from: [-10, Y2, -90.4],
     legs: [{ push: 200, jump: 40, dir: [0, -1] }, { wait: 60 }] },
@@ -220,7 +220,7 @@ function install() {
           log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
         }
-        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400 }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
+        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, radius: Lg.radius }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
         if (Lg.untilNamed) {
           let k = 0;
           for (; k < (Lg.max ?? 1500); k++) {
@@ -603,19 +603,34 @@ if (want('4-A')) {
       const out = { steps: [], waves: null, flew: 0, landed: 0 };
       const t0 = L.time;
       const brocken = () => L.entities.filter((e) => e.kind === 'lavabrocken' && e.alive && !e.removed && !e.defeated && !e.parked);
+      const offOf = (e) => {
+        // vom betäubten Brocken herunter (sonst federt man auf ihm weiter): zur Inselmitte hin steuern
+        for (let i = 0; i < 300 && (p.mode !== 'ground' || Math.hypot(p.pos.x - e.pos.x, p.pos.z - e.pos.z) < 0.7); i++) {
+          c.setInput({ ...t.stick(-e.pos.x - 0.01, -e.pos.z + 0.01, 0.6) }); c.step(1);
+        }
+      };
       const throwOne = (target) => {
-        const e = brocken().filter((x) => x.grounded && x.state !== 'air').sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0];
+        const near = () => brocken().filter((x) => x.grounded && x.state !== 'air').sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z));
+        let tgt = null;
+        if (target) {
+          // erst das Ziel betäuben (liegt dann still), dann einen anderen Brocken holen
+          tgt = near()[0] ?? null;
+          if (tgt) { t.jumpOn(tgt, { safe: true }); offOf(tgt); }
+        }
+        const e = near().filter((x) => x !== tgt)[0];
         if (!e) return null;
         const j = t.jumpOn(e, { safe: true });
+        offOf(e);
         // neben ihn stellen (zur Mitte hin), ihn ansehen, aufheben
         const ax = -e.pos.x, az = -e.pos.z, al = Math.hypot(ax, az) || 1;
-        t.go(e.pos.x + (ax / al) * 0.9, e.pos.z + (az / al) * 0.9, { r: 0.25, max: 300 });
+        t.go(e.pos.x + (ax / al) * 0.9, e.pos.z + (az / al) * 0.9, { r: 0.25, max: 300, settle: 6 });
         t.face(e.pos.x, e.pos.z);
         t.action();
+        if (p.holding !== e) { t.face(e.pos.x, e.pos.z); t.action(); }
         const held = p.holding === e;
         let thrownAt = null;
         if (held) {
-          const o = target ? brocken().find((x) => x !== e && x.grounded) : null;
+          const o = target ? (tgt && !tgt.defeated && !tgt.removed ? tgt : brocken().find((x) => x !== e && x.grounded)) : null;
           if (o) {
             // gegen einen anderen Brocken werfen: auf 3,5 m heran
             const bx = p.pos.x - o.pos.x, bz = p.pos.z - o.pos.z, bl = Math.hypot(bx, bz) || 1;
@@ -645,6 +660,7 @@ if (want('4-A')) {
         const b = brocken();
         if (b.length === 3) { ys.push(Math.min(...b.map((e) => e.pos.y))); if (b.every((e) => e.grounded)) break; }
       }
+      c.step(6);
       out.flew = ys.length ? +Math.min(...ys).toFixed(2) : null;
       out.waves = L.named.get('wellen')?.log ?? null;
       out.landed = L.named.get('wellen')?.landed ?? 0;

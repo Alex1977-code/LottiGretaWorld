@@ -11,6 +11,7 @@
 //   4) Festung (4-B)  blau vergitterte Werfer-Festung: Gitter, Mauern, Türme, Fahnen, Banner, Steckbrief, Lager
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
 import { pipeGeo } from '../../blocks/types/pipe.js';
 import { MOVE } from '../../player/moveset.js';
@@ -636,6 +637,43 @@ export function steamVents(level, list, o = {}) {
 
 // ====================================================================== 4) Festung (4-B)
 
+/**
+ * Mehrere statische Registry-Modelle zu je einem Mesh pro Material verschmelzen (Weltkoordinaten; Schattenwurf wie im
+ * Modell). list = [{ name, opts, pos, yaw }]. Liefert die erzeugten Meshes.
+ */
+export function mergeModels(level, list, tag = 'modelle') {
+  if (!level.view) return [];
+  const groups = new Map();
+  for (const it of list) {
+    const m = getModel(it.name, it.opts ?? {});
+    m.update?.(0, {});
+    m.root.position.set(it.pos[0], it.pos[1], it.pos[2]);
+    m.root.rotation.set(0, it.yaw ?? 0, 0);
+    m.root.updateMatrixWorld(true);
+    m.root.traverse((o) => {
+      if (!o.isMesh || o.isInstancedMesh || !o.visible || Array.isArray(o.material)) return;
+      const key = o.material.uuid;
+      if (!groups.has(key)) groups.set(key, { mat: o.material, cast: o.castShadow, recv: o.receiveShadow, geos: [] });
+      const g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()).applyMatrix4(o.matrixWorld);
+      groups.get(key).geos.push(g);
+    });
+  }
+  const out = [];
+  for (const G of groups.values()) {
+    const keys = Object.keys(G.geos[0].attributes);
+    const geos = G.geos.map((g) => { for (const k of Object.keys(g.attributes)) if (!keys.includes(k)) g.deleteAttribute(k); return g; });
+    const merged = mergeGeometries(geos, false);
+    if (!merged) continue;
+    const mesh = new THREE.Mesh(merged, G.mat.clone());   // eigene Kopie: die Ansicht gibt sie am Levelende frei
+    mesh.castShadow = G.cast; mesh.receiveShadow = G.recv;
+    mesh.name = `zier:${tag}`;
+    mesh.userData.owned = true;
+    addObject(level, mesh);
+    out.push(mesh);
+  }
+  return out;
+}
+
 /** Steckbrief „Gesucht: Lotti & Greta“ (Kanvas, eigene Gestaltung) als Textur. */
 function wantedTexture() {
   if (typeof document === 'undefined') return null;
@@ -703,11 +741,13 @@ export function blueFortress(level, cfg) {
   const circle = new THREE.Mesh(merge(glowParts), glowMat);
   circle.renderOrder = 2;
   addObject(level, circle);
-  // Gitterwände (Registry-Modell, Fläche nach ±X, verläuft entlang z): links, rechts, hinten
-  const lattice = (x, z, yaw, w) => { const m = getModel('festungsgitter', { width: w, height: H }); m.root.position.set(x, Y, z); m.root.rotation.y = yaw; addObject(level, m.root); };
-  lattice(-R - 0.15, 0, 0, 2 * R);
-  lattice(R + 0.15, 0, 0, 2 * R);
-  lattice(0, -R - 0.15, Math.PI / 2, 2 * R);
+  // Gitterwände (Registry-Modell, Fläche nach ±X, verläuft entlang z): links, rechts, hinten – zu je einem Mesh pro
+  // Material verschmolzen (3 Modelle → 2 Zeichenaufrufe + Schatten)
+  mergeModels(level, [
+    { name: 'festungsgitter', opts: { width: 2 * R, height: H }, pos: [-R - 0.15, Y, 0], yaw: 0 },
+    { name: 'festungsgitter', opts: { width: 2 * R, height: H }, pos: [R + 0.15, Y, 0], yaw: 0 },
+    { name: 'festungsgitter', opts: { width: 2 * R, height: H }, pos: [0, Y, -R - 0.15], yaw: Math.PI / 2 },
+  ], 'gitter');
   // vorn: niedrige blaue Brüstung mit Goldkugeln
   P.push(blockG(2 * R + 0.4, 0.9, 0.4, 0, Y, R + 0.2, blue, { r: 0.06, seg: 1, top: blueDk }));
   for (let x = -R; x <= R + 0.01; x += 2.2) { P.push(blockG(0.32, 1.25, 0.32, x, Y, R + 0.2, blueDk, { r: 0.04, seg: 1 })); P.push(sphereG(0.18, x, Y + 1.36, R + 0.2, gold, { ws: 8, hs: 6 })); }

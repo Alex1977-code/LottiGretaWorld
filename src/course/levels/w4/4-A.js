@@ -73,7 +73,7 @@ export const LEVEL = {
   killY: -8,
   setup: levelSetup(setup),
   start: { pos: [0, Y, 7.6], yaw: Math.PI / 2 },
-  camera: [{ from: 30, to: -30, pitch: 52, dist: 21, x: 0, xLock: 0.35, ahead: 1, lead: 0.5 }],
+  camera: [{ from: 30, to: -30, pitch: 47, dist: 21.5, x: 0, xLock: 0.35, ahead: 1, lead: 0.5 }],
   arena: { enemies: 'all', star: [0, Y + 0.6, -0.5], starIndex: 0, intro: 'Wirf die Lavabrocken in die Lava!', center: [0, Y, -1], camPull: 0.3 },
   segments: [
     // Lavafälle aus der Kraterwand (nur Kulisse, nicht tödlich) – Vorderseite zur Insel (+Z)

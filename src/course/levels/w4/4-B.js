@@ -12,7 +12,7 @@
 // sie, ebenso Feuer (Funkenblüte aus dem ?-Block am Start), Krallen, Wurf … Alle drei besiegt → Stern in der Mitte →
 // Ziel. Tod setzt die Arena zurück.
 
-import { levelSetup, blueFortress, fortressFxB, shadowDiet } from './_helpers_c.js';
+import { levelSetup, blueFortress, fortressFxB, shadowDiet, instanceEnemies } from './_helpers_c.js';
 
 const Y = 2;           // Hofboden
 const R = 11;          // halbe Kampffläche
@@ -22,7 +22,8 @@ const YS = Y + 2.2;    // Seitenbühnen (Oberkante)
 function setup(level) {
   const fx = blueFortress(level, { y: Y, half: R, outer: 14.5, height: 4.6, ceiling: 8 });
   fortressFxB(level, fx, { y: Y });
-  shadowDiet(level, ['feuer_werfer'], 2);
+  shadowDiet(level, ['feuer_werfer'], 1);
+  instanceEnemies(level, ['feuer_werfer'], { far: 60 });
 }
 
 export const LEVEL = {
