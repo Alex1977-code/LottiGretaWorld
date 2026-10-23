@@ -487,6 +487,8 @@ async function shot(name, wait = 600) {
   await sc(() => window.__course.snapCamera());
   const f0 = await sc(() => window.__course.view.frame);
   await page.waitForFunction((f) => window.__course.view.frame >= f + 8, f0, { timeout: 90000 });
+  // Unterwasser-Stimmung des vorigen Bildes abklingen lassen (außer die Figur ist selbst unter Wasser)
+  await page.waitForFunction(() => { const c = window.__course; return c.player.mode === 'swim' || (c.view.mood?.info?.().water ?? 0) < 0.02; }, null, { timeout: 30000 }).catch(() => {});
   await page.waitForTimeout(wait);
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
