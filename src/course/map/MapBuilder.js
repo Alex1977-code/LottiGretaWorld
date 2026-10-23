@@ -5,6 +5,9 @@
 // Mehrwelten (Präzisierung Mehrwelten-Karte): map.kit = 'desert' wählt die Wüsten-Geländestile (desert.js) als
 // Standard, map.edges die Randdeko ({ hedge: 'hedge'|'adobe'|'pink', fence: 'fence'|'rope'|'chain' }, je Block
 // überschreibbar mit edge/fence), map.pathColors die Wegplatten, map.props Requisiten (Palmen, Pyramiden …).
+// Welt 3: map.kit = 'snow' wählt die Schnee-Geländestile (snow.js: Schneedecken, Eisfels, zugefrorener See mit
+// rutschigem Eis – Block mit ice: true –, Tannenwald, Pastell-Garten, Herbstwiese), Schneewälle/Holzzäune als Ränder
+// (edges { hedge: 'snow'|'mint'|'autumn', fence: 'snowfence' }) und Winter-Requisiten (snowPropGeo).
 // Reihenfolge wichtig: Höhen für Hecken/Platten werden vom Gelände abgefragt, bevor Wände/Schranken entstehen;
 // erst am Ende wird die statische Geometrie verschmolzen (view.finalize).
 
@@ -20,6 +23,7 @@ import { MapScenery } from './scenery.js';
 import { desertGround, adobeWallGeo, ropeFenceGeo, tintHedgeGeo, PINK_HEDGE, propGeo, propShape, cactusGeo, barrelCactusGeo, shrubGeo, desertRockGeo, pinkTreeGeo, sandBlocksGeo, turretGeo, place } from './desert.js';
 import { SlotMachine } from './slot.js';
 import { bakeModel, propModel } from './bake.js';
+import { SNOW_STYLES, snowGround, snowEdgeGeo, scatterSnow, snowPropGeo, snowPropGlow, snowPropShape, buildSnowStairs, buildSnowBridge } from './snow.js';
 
 const DESERT_STYLES = new Set(['desert', 'sandstone', 'dune', 'pink', 'lavarock', 'basin']);
 
@@ -41,6 +45,8 @@ export function buildMap(level, map, host) {
   map.ground.forEach((b, i) => buildGround(level, b, base, theme, i, map));
   // 2) Standard-Bausteine (Wasser, Brücken, Treppen, Plattformen, Deko)
   for (const seg of map.segments ?? []) {
+    if (seg.type === 'snowstairs') { buildSnowStairs(level, seg); continue; }   // Welt 3: sparsame Schneestufen (snow.js)
+    if (seg.type === 'snowbridge') { buildSnowBridge(level, seg); continue; }   // Welt 3: sparsame Holzbrücke mit Schnee
     const build = getBlockType(seg.type);
     if (!build) { console.warn(`[Weltkarte] unbekannter Baustein: ${seg.type}`); continue; }
     try { build(level, seg); } catch (err) { console.error(`[Weltkarte] Baustein ${seg.type} fehlgeschlagen:`, err); }
@@ -48,6 +54,7 @@ export function buildMap(level, map, host) {
   const grid = buildWalkGrid(map);
   out.grid = grid;
   if (map.kit === 'desert') scatterDesert(level, map, grid);
+  else if (map.kit === 'snow') scatterSnow(level, map, grid);
   else scatterDeco(level, map, base, grid);
   buildProps(level, map, grid);
   const bounds = level.computeBounds();
@@ -58,8 +65,10 @@ export function buildMap(level, map, host) {
   const groundBlock = (x, z) => level.world.raycastDown(x, 80, z, 120)?.shape?.mapBlock ?? null;
   const edgeParts = { hedge: [], fence: [] };
   for (const w of walls) borderDeco(w, ground, sea, edgeParts, groundBlock, map.edges);
-  for (const g of edgeParts.hedge) level.view?.addStatic(g, { castShadow: true });
-  for (const g of edgeParts.fence) level.view?.addStatic(g, { castShadow: true });
+  // Welt 3: niedrige Schneewälle/Zäune ohne Sonnenschatten (spart den Schattenpass auf der dichten Schneeinsel)
+  const edgeShadow = map.kit !== 'snow';
+  for (const g of edgeParts.hedge) level.view?.addStatic(g, { castShadow: edgeShadow });
+  for (const g of edgeParts.fence) level.view?.addStatic(g, { castShadow: edgeShadow });
   out.hedges = edgeParts.hedge.length;
 
   // 4) Wege aus hellen Platten
@@ -141,9 +150,17 @@ function buildGround(level, b, base, theme, index, map) {
   const [x0, z0, x1, z1] = b.rect;
   const top = b.top;
   const rnd = new Rnd(0x51ab + index * 977);
-  level.world.add({ type: 'box', min: [x0, base, z0], max: [x1, top, z1], tag: b.walk ? 'karte' : 'gelaende', mapBlock: b });
+  level.world.add({ type: 'box', min: [x0, base, z0], max: [x1, top, z1], tag: b.walk ? 'karte' : 'gelaende', mapBlock: b, ice: !!b.ice });
   if (!theme) return;
-  const style = b.style ?? (map.kit === 'desert' ? 'desert' : 'grass');
+  const style = b.style ?? (map.kit === 'desert' ? 'desert' : map.kit === 'snow' ? 'snow' : 'grass');
+  if (map.kit === 'snow' || SNOW_STYLES.has(style)) {
+    // Welt 3: Eisflächen (userData.material) glänzen über das Material 'stone'
+    for (const g of snowGround({ ...b, style }, base, theme, rnd)) {
+      const mat = g.userData?.material;
+      level.view.addStatic(g, mat ? { material: mat, castShadow: false } : g.userData?.noShadow ? { castShadow: false } : undefined);
+    }
+    return;
+  }
   if (map.kit === 'desert' || DESERT_STYLES.has(style)) {
     for (const g of desertGround({ ...b, style }, base, theme, rnd)) level.view.addStatic(g);
     return;
@@ -281,12 +298,15 @@ function buildProps(level, map, grid) {
     }
     if (!baked && level.view && it.kind === 'sandblocks') bakeSandblocks(add, it);
     else if (!baked) {
-      const g = level.view ? propGeo(it, 0x7a11 + i * 37) : null;
-      if (g) level.view.addStatic(place(g, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: it.shadow !== false });
+      const g = level.view ? (propGeo(it, 0x7a11 + i * 37) ?? snowPropGeo(it, 0x7a11 + i * 37)) : null;
+      if (g) level.view.addStatic(place(g, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: it.shadow !== false, material: it.material });
+      // Welt 3: Fenster, Laternen, Lichterkugeln (helle Teile ohne Schattenwurf; teilen die Kachel der Wegplatten)
+      const gl = level.view ? snowPropGlow(it) : null;
+      if (gl) level.view.addStatic(place(gl, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: false });
     }
     if (it.solid === false) return;
     if (it.solid || grid.isWalk(it.pos[0], it.pos[2])) {
-      const sh = propShape(it);
+      const sh = propShape(it) ?? snowPropShape(it);
       if (sh) level.world.add(sh);
     }
   });
@@ -372,12 +392,12 @@ function borderDeco(w, ground, sea, out, groundBlock, edges = {}) {
       let g;
       if (c === 'hedge') {
         const seed = Math.floor(mid * 7 + 13) >>> 0;
-        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : hedgeGeo(L + 0.2, 1.1, 0.9, seed);
+        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : snowEdgeGeo(st, L, seed) ?? hedgeGeo(L + 0.2, 1.1, 0.9, seed);
         const off = w.side * (st === 'adobe' ? 0.35 : 0.45);
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
       } else {
-        g = st === 'rope' || st === 'chain' ? ropeFenceGeo(L, st === 'chain') : fenceGeo(L);
+        g = st === 'rope' || st === 'chain' ? ropeFenceGeo(L, st === 'chain') : snowEdgeGeo(st, L, 1) ?? fenceGeo(L);
         const off = w.side * 0.12;
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
@@ -423,7 +443,9 @@ function buildPaths(level, map, grid, ground, sea) {
     const hs = corners.map(([x, z]) => ground(x, z));
     if (hs.some((h) => h === null || Math.abs(h - hit.y) > 0.02)) continue;
     const base = mixc(a, b2, rnd.frac(), [0, 0, 0]);
-    const g = colorize(new THREE.BoxGeometry(0.9, 0.1, 0.9), (p, n, o) => { if (n.y > 0.6) { o[0] = base[0]; o[1] = base[1]; o[2] = base[2]; } else mixc(base, edge, 0.7, o); });
+    const box = new THREE.BoxGeometry(0.9, 0.1, 0.9);
+    if (map.kit === 'snow') box.setIndex([...box.index.array.slice(0, 18), ...box.index.array.slice(24)]);   // Welt 3: ohne Unterseite
+    const g = colorize(box, (p, n, o) => { if (n.y > 0.6) { o[0] = base[0]; o[1] = base[1]; o[2] = base[2]; } else mixc(base, edge, 0.7, o); });
     g.translate(cx, hit.y + 0.01, cz);
     parts.push(g);
     count++;

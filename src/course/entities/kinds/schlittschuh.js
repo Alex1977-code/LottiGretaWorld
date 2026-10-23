@@ -162,6 +162,9 @@ class Skate extends Gimmick {
     m.update?.(dt, { anim: 'idle' });
     const spinJ = m.root.children[0];
     if (r) {
+      // Zeichnet der Avatar der Figur die Kufen selbst (HeroAvatar.drawsSkates), bleibt das Modell hier unsichtbar
+      const rig = this.level.squad?.rigs?.get(r) ?? (r === this.level.player ? this.level.scene?.rig : null);
+      if (rig?.avatar?.drawsSkates) { m.root.visible = false; return; }
       // an den Füßen: Schwebe-Gelenk ohne Drehen/Wippen, Kufen auf dem Boden, Blick in Laufrichtung, ohne Funkeln
       if (spinJ) { spinJ.rotation.set(0, 0, 0); spinJ.position.y = 0.04; spinJ.scale.setScalar(1); }
       for (let i = 1; i < m.root.children.length; i++) m.root.children[i].visible = false;

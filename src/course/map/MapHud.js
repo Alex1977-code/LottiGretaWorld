@@ -313,7 +313,8 @@ export class MapHud {
       const a = s.labelAnchor(id, _v);
       const dist = Math.hypot(a.x - p.x, a.z - p.z);
       const scr = s.view.project(a.x, a.y, a.z);
-      const vis = scr.visible && dist < 34 && scr.x > -40 && scr.x < GAME.width + 40 && scr.y > 22 && scr.y < GAME.height - 20 && id !== near;
+      const vis = scr.visible && dist < 34 && scr.x > -40 && scr.x < GAME.width + 40 && scr.y > 22 && scr.y < GAME.height - 20 && id !== near
+        && !s.entranceViews().get(id)?.hidden;   // noch nicht erschienen (Welt 3, def.appear)
       lab.c.setVisible(vis);
       if (!vis) continue;
       lab.c.setPosition(Math.round(scr.x * 2) / 2, Math.round(scr.y * 2) / 2);

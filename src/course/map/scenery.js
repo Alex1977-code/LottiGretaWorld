@@ -5,12 +5,16 @@
 // Welt 2 (map.kit 'desert'): Thema 'map_desert' (warmes Licht, sandiger Horizont), Sand-Inselchen mit Palmen und
 // ferne Tafelberge statt grüner Hügel. map.neighbors: [{ world, pos: [x, z], size, style: 'grass'|'desert' }] legt die
 // Nachbarwelt als ferne Insel an den Horizont (dorthin führt die Glasröhre).
+// Welt 3 (map.kit 'snow'): Thema 'map_snow' (snow.js), kälteres Meer (map.seaColors), Eisschollen, verschneite
+// Inselchen mit Tannen, leiser Schneefall um die Kamera (ein Punkte-Objekt); Nachbarwelt-Stil 'snow'.
 
 import * as THREE from 'three';
 import { THEMES } from '../view/themes.js';
 import { colorize, lin, mixc, smooth, merge, Rnd } from '../../three/world/geometry.js';
 import { islandParts } from '../blocks/kit.js';
 import { palmGeo, pyramidGeo, place } from './desert.js';
+import { snowGround, snowNeighborParts, firLiteGeo, iceFloeGeo } from './snow.js';
+import { canvasTexture } from '../../three/lib/itemMaterials.js';
 
 // Thema der Wüsteninsel (Welt 2): warmes Sonnenlicht, blasser, sandiger Horizont, Nebel ins Goldene.
 if (!THEMES.map_desert) {
@@ -62,6 +66,7 @@ export class MapScenery {
     const rects = (map.ground ?? []).filter((b) => b.top > (map.sea ?? 0) - 0.2).map((b) => b.rect);
     this.rects = rects;
     this.sea = map.sea ?? 0;
+    this.seaColors = map.seaColors ?? null;
     this.buildSea(bounds);
     this.buildFoam();
     this.buildGlints(bounds);
@@ -69,6 +74,11 @@ export class MapScenery {
     this.buildClouds(bounds);
     this.buildIslets(bounds);
     if (this.kit === 'desert') this.buildMesas(bounds);
+    if (this.kit === 'snow') {
+      this.buildFloes(bounds);
+      this.buildSnowfall(map.snowfall ?? {});
+      if (this.clouds) this.clouds.castShadow = false;   // Wolken über dem Meer: kein Schattenpass (dichte Schneeinsel)
+    }
     for (const nb of map.neighbors ?? []) this.buildNeighbor(nb);
     if (map.birds?.length) this.buildBirds(map.birds);
     view.three.add(this.group);
@@ -93,7 +103,8 @@ export class MapScenery {
     const g = new THREE.PlaneGeometry(w, d, nx, nz);
     g.rotateX(-Math.PI / 2);
     g.translate(cx, this.sea, cz);
-    const sh = lin(SEA_SHALLOW), mid = lin(SEA_MID), deep = lin(SEA_DEEP);
+    const [c0, c1, c2] = this.seaColors ?? [SEA_SHALLOW, SEA_MID, SEA_DEEP];
+    const sh = lin(c0), mid = lin(c1), deep = lin(c2);
     const sea = colorize(g, (p, n, o) => {
       const dist = this.distToLand(p.x, p.z);
       if (dist < 9) mixc(sh, mid, smooth(0.5, 9, dist), o);
@@ -107,7 +118,7 @@ export class MapScenery {
     const og = new THREE.PlaneGeometry(2400, 2400, 1, 1);
     og.rotateX(-Math.PI / 2);
     og.translate(cx, this.sea - 0.03, cz);
-    const outer = new THREE.Mesh(this.track(og), this.track(new THREE.MeshStandardMaterial({ color: SEA_DEEP, roughness: 0.3, metalness: 0.05 })));
+    const outer = new THREE.Mesh(this.track(og), this.track(new THREE.MeshStandardMaterial({ color: this.seaColors?.[2] ?? SEA_DEEP, roughness: 0.3, metalness: 0.05 })));
     outer.name = 'meer:fern';
     for (const m of [inner, outer]) { m.matrixAutoUpdate = false; m.updateMatrix(); this.group.add(m); }
   }
@@ -220,6 +231,15 @@ export class MapScenery {
       const w = rnd.real(4, 9), d = rnd.real(4, 8);
       if (this.distToLand(x, z) < 18 + Math.max(w, d)) continue;
       const top = rnd.real(0.6, 2.2);
+      if (this.kit === 'snow') {
+        // Schnee-Inselchen: ohne Schattenwurf, je Meeressektor ein Mesh (spart Zeichenaufrufe im Weitblick)
+        const sea = { castShadow: false, tile: this.seaSector(x, z) };
+        for (const g of snowGround({ rect: [x - w / 2, z - d / 2, x + w / 2, z + d / 2], top, style: 'snow', drips: false }, -2, theme, rnd)) this.view.addStatic(g, sea);
+        for (let k = 0; k < 2; k++) this.view.addStatic(place(firLiteGeo(rnd.real(3.2, 4.8), k + 1), x + rnd.real(-1.2, 1.2), top, z + rnd.real(-1, 1), rnd.real(0, 6)), sea);
+        this.rects.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]);
+        n++;
+        continue;
+      }
       if (this.kit === 'desert') {
         for (const g of islandParts(x - w / 2, -2, z - d / 2, x + w / 2, top, z + d / 2, theme, { under: 0, rnd, top: 'sand' })) parts.push(g);
         parts.push(place(palmGeo(rnd.real(3.6, 4.8), rnd.real(0.5, 1.3), rnd.int(1, 999)), x + rnd.real(-1, 1), top, z + rnd.real(-1, 1), rnd.real(0, 6)));
@@ -281,12 +301,13 @@ export class MapScenery {
     const rnd = new Rnd(0x4e1b + (nb.world ?? 0) * 17);
     const parts = [];
     const desert = nb.style === 'desert';
-    const blocks = [[-0.5, -0.5, 0.5, 0.5, 2.5], [-0.35, -0.42, 0.1, 0.1, 6], [0.05, -0.3, 0.38, 0.2, 4.5]];
+    if (nb.style === 'snow') parts.push(...snowNeighborParts(nb, rnd));
+    const blocks = nb.style === 'snow' ? [] : [[-0.5, -0.5, 0.5, 0.5, 2.5], [-0.35, -0.42, 0.1, 0.1, 6], [0.05, -0.3, 0.38, 0.2, 4.5]];
     for (const [a, c, e, f, top] of blocks) {
       const g = islandParts(x + a * w, -3, z + c * d, x + e * w, top, z + f * d, desert ? { ...theme, dirt: 0xd9a060, dirtDeep: 0xa86a3a } : THEMES.grass, { under: 0, rnd, top: desert ? 'sand' : 'grass', cell: 4 });
       parts.push(...g);
     }
-    if (desert) {
+    if (nb.style === 'snow') { /* Schneeinsel: oben gebaut */ } else if (desert) {
       parts.push(place(pyramidGeo(18, 13, 6), x - 0.12 * w, 6, z - 0.15 * d));
       for (let i = 0; i < 4; i++) parts.push(place(palmGeo(5, 0.8, i + 3), x + rnd.real(-0.4, 0.4) * w, 2.5, z + rnd.real(0.25, 0.45) * d, rnd.real(0, 6)));
     } else {
@@ -355,9 +376,68 @@ export class MapScenery {
     this.birds.instanceMatrix.needsUpdate = true;
   }
 
+  /** Benannte Kachel für Kleinteile im Meer: 96-m-Sektoren (wenige Meshes, Culling bleibt grob wirksam). */
+  seaSector(x, z) { return `meer:${Math.floor(x / 96)}:${Math.floor(z / 96)}`; }
+
+  /** Eisschollen im Meer rund um die Insel (statisch, je Meeressektor ein Mesh). */
+  buildFloes(b) {
+    const rnd = new Rnd(0x1cef);
+    let n = 0;
+    for (let i = 0; i < 200 && n < 30; i++) {
+      const x = rnd.real(b.min.x - 30, b.max.x + 30), z = rnd.real(b.min.z - 30, b.max.z + 30);
+      const d = this.distToLand(x, z);
+      if (d < 3.5 || d > 28) continue;
+      this.view.addStatic(place(iceFloeGeo(rnd.real(0.9, 2.6), rnd.int(1, 999)), x, this.sea - 0.06, z, rnd.real(0, 6)), { castShadow: false, tile: this.seaSector(x, z) });
+      n++;
+    }
+  }
+
+  /** Leiser Schneefall: Flocken in einem Kasten um den Kamerablickpunkt (wandern mit, ein Punkte-Objekt). */
+  buildSnowfall(o) {
+    const N = o.count ?? 900, W = o.w ?? 58, H = o.h ?? 26, D = o.d ?? 58;
+    const rnd = new Rnd(0x5f10);
+    const data = new Float32Array(N * 5);
+    for (let i = 0; i < N; i++) {
+      data[i * 5] = rnd.real(0, W); data[i * 5 + 1] = rnd.real(0, H); data[i * 5 + 2] = rnd.real(0, D);
+      data[i * 5 + 3] = rnd.real(0.7, 1.5); data[i * 5 + 4] = rnd.real(0, 6.28);
+    }
+    const geo = this.track(new THREE.BufferGeometry());
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
+    const tex = canvasTexture('map:flake', 32, 32, (ctx, w, h) => {
+      const g = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+      g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.45, 'rgba(255,255,255,0.85)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    });
+    const mat = this.track(new THREE.PointsMaterial({ size: o.size ?? 0.2, map: tex, color: 0xffffff, transparent: true, opacity: 0.92, depthWrite: false, sizeAttenuation: true, fog: true }));
+    this.snow = new THREE.Points(geo, mat);
+    this.snow.frustumCulled = false;
+    this.snow.name = 'schneefall';
+    this.snow.renderOrder = 5;
+    this.snowData = { N, W, H, D, data };
+    this.group.add(this.snow);
+    this.placeSnow(0);
+  }
+
+  placeSnow(t) {
+    const { N, W, H, D, data } = this.snowData;
+    const tg = this.view.rig?.target ?? this.view.camera.position;
+    const cx = tg.x, cy = tg.y - 5, cz = tg.z;
+    const arr = this.snow.geometry.attributes.position.array;
+    const wrap = (v, c, s) => c + ((((v - c) % s) + s * 1.5) % s) - s / 2;
+    for (let i = 0; i < N; i++) {
+      const v = data[i * 5 + 3], ph = data[i * 5 + 4];
+      const y = ((((data[i * 5 + 1] - t * v) % H) + H) % H);
+      arr[i * 3] = wrap(data[i * 5] + t * 0.35 + Math.sin(t * 0.7 + ph) * 0.5, cx, W);
+      arr[i * 3 + 1] = cy + y;
+      arr[i * 3 + 2] = wrap(data[i * 5 + 2] + Math.cos(t * 0.5 + ph) * 0.4, cz, D);
+    }
+    this.snow.geometry.attributes.position.needsUpdate = true;
+  }
+
   update(dt) {
     this.time += dt;
     const t = this.time;
+    if (this.snow) this.placeSnow(t);
     if (this.birds) this.placeBirds(t);
     if (this.foamMat) this.foamMat.opacity = 0.42 + 0.18 * Math.sin(t * 1.6);
     if (this.glints) this.placeGlints(t);
