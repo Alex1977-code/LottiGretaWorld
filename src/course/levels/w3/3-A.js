@@ -17,8 +17,8 @@ import { levelSetupE, buildFortress, fortressFx } from './_helpers_e.js';
 const Y = 2;            // Bodenoberfläche des Zwingers
 const R = 10;           // halbe Innenweite
 const PH = 2.4;         // Podesthöhe
-const PL = { x0: -R, x1: -R + 4.6, z0: -R, z1: -R + 4.6, h: PH, stairs: { x: -R + 4.6 + 3.2, dir: -1, n: 4, run: 0.8, w: 2.2, z: -R + 2.3 } };
-const PR = { x0: R - 4.6, x1: R, z0: -R, z1: -R + 4.6, h: PH, stairs: { x: R - 4.6 - 3.2, dir: 1, n: 4, run: 0.8, w: 2.2, z: -R + 2.3 } };
+const PL = { x0: -R, x1: -R + 4.6, z0: -R, z1: -R + 4.6, h: PH, stairs: { x: -R + 4.6 + 3.2, dir: -1, n: 8, run: 0.4, w: 2.2, z: -R + 2.3 } };
+const PR = { x0: R - 4.6, x1: R, z0: -R, z1: -R + 4.6, h: PH, stairs: { x: R - 4.6 - 3.2, dir: 1, n: 8, run: 0.4, w: 2.2, z: -R + 2.3 } };
 const PODL = [(PL.x0 + PL.x1) / 2, Y + PH, (PL.z0 + PL.z1) / 2];
 const PODR = [(PR.x0 + PR.x1) / 2, Y + PH, (PR.z0 + PR.z1) / 2];
 

@@ -161,7 +161,9 @@ if (want('3-A')) {
   r = await sc(() => {
     const c = window.__course, t = window.__t, p = c.player, L = c.level;
     t.place([0, 2, 7], { settle: 2 });
-    const out = { hits: [], hurtByOrb: false, orbs: 0 };
+    const out = { hits: [], hurtByOrb: false, orbs: 0, deaths: [] };
+    const prevDef = L.onEnemyDefeated;
+    L.onEnemyDefeated = (e) => { out.deaths.push([e.spec?.id, +L.time.toFixed(2), +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.state, +e.pos.x.toFixed(1), +e.pos.z.toFixed(1), e.state]); prevDef?.(e); };
     // Zauberkugel trifft (eine Kröte zaubert auf die Figur)
     for (let i = 0; i < 1200 && !out.hurtByOrb; i++) {
       c.step(1);
@@ -170,20 +172,24 @@ if (want('3-A')) {
     }
     p.invuln = 0;
     // ohne Treffer: unsichtbare Kröte ist nicht zu treffen
-    const k1 = L.entities.find((e) => e.kind === 'zauberkroete' && e.state === 'hidden');
+    let k1 = null;
+    for (let i = 0; i < 900 && !k1; i++) { k1 = L.entities.find((e) => e.kind === 'zauberkroete' && e.state === 'hidden' && e.stateT > 0.1) ?? null; if (!k1) { p.invuln = 1e9; c.step(1); } }
+    p.invuln = 0;
     out.hiddenTouch = k1 ? k1.touch : null;
     for (let n = 0; n < 3; n++) {
       let e = null;
-      for (let i = 0; i < 1500 && !e; i++) {
-        e = L.entities.find((x) => x.kind === 'zauberkroete' && x.alive && !x.defeated && x.vulnerable && x.state === 'cast');
+      // erster Treffer möglichst auf einem Eckpodest (y 4,4)
+      const okE = (x, i) => x.kind === 'zauberkroete' && x.alive && !x.defeated && x.vulnerable && x.state === 'cast' && (n > 0 || i > 1400 || x.pos.y > 4);
+      for (let i = 0; i < 2400 && !e; i++) {
+        e = L.entities.find((x) => okE(x, i)) ?? null;
         if (!e) { p.invuln = 1e9; p.pos.set(0, 2, 7); p.vel.set(0, 0, 0); c.step(1); }
       }
       p.invuln = 0;
       if (!e) break;
       const s = t.stomp(e, { invuln: 0 });
       out.hits.push({ id: e.spec.id, y: +e.pos.y.toFixed(2), bounced: s.bounced, defeated: e.defeated, left: t.arch().left });
-      p.invuln = 1e9;
-      c.step(30);
+      // sofort weg (der Abprall soll nicht auf einer anderen Kröte landen)
+      t.place([0, 2, 7], { settle: 2, invuln: 1e9 });
     }
     p.invuln = 1e9;
     let shown = false;
@@ -195,7 +201,7 @@ if (want('3-A')) {
   });
   console.log(`  3-A Kampf: ${JSON.stringify(r)}`);
   check(`3-A: Zauberkröten zaubern Kugeln (${r.orbs} gleichzeitig), eine Kugel trifft die Figur; unsichtbar keine Berührung`, r.orbs >= 1 && r.hurtByOrb && r.hiddenTouch === false);
-  check(`3-A: alle drei Zauberkröten draufspringend besiegt (${r.hits.map((h) => `${h.id}@${h.y}`).join(', ')}), auch auf einem Podest`, r.hits.length === 3 && r.hits.every((h) => h.bounced && h.defeated) && r.hits[2].left === 0);
+  check(`3-A: alle drei Zauberkröten draufspringend besiegt (${r.hits.map((h) => `${h.id}@${h.y}`).join(', ')}), eine davon auf einem Podest`, r.hits.length === 3 && r.hits.every((h) => h.bounced && h.defeated) && r.hits[2].left === 0 && r.hits.some((h) => h.y > 4));
   await SHOT('3a_stern', () => { window.__course.step(10); });
   r = await sc(() => {
     const c = window.__course, t = window.__t, p = c.player, L = c.level;

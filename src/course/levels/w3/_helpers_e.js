@@ -228,6 +228,11 @@ export class WavingFlags {
     poleG.translate(0, 0.5, 0);
     this.poleMat = new THREE.MeshStandardMaterial({ color: o.poleColor ?? 0x3a3242, roughness: 0.4, metalness: 0.5 });
     this.poles = new THREE.InstancedMesh(poleG, this.poleMat, n);
+    // feste Fahnen: Masten einmal in die statische Geometrie (spart einen Zeichenaufruf)
+    this.staticPoles = !!o.staticPoles && list.every((f) => !f.at);
+    if (this.staticPoles) {
+      bake(level, list.map((f) => cylG(o.poleR ?? 0.06, (o.poleR ?? 0.06) * 1.3, f.h ?? 3, f.pos[0], f.pos[1], f.pos[2], o.poleColor ?? 0x3a3242, 6)), { castShadow: false });
+    }
     const W = o.w ?? 1.6, H = o.h ?? 1.1;
     this.W = W;
     this.clothG = new THREE.PlaneGeometry(W, H, 12, 3);
@@ -241,7 +246,7 @@ export class WavingFlags {
     this.m = new THREE.Matrix4(); this.q = new THREE.Quaternion(); this.s = new THREE.Vector3(); this.p = new THREE.Vector3(); this.e = new THREE.Euler();
     this.near = o.near ?? null;      // (x, z) → bool: nur in Kameranähe zeichnen
     owned(this.poles); owned(this.cloth);
-    level.view.add(this.poles);
+    if (!this.staticPoles) level.view.add(this.poles);
     level.view.add(this.cloth, (dt, t) => this.update(dt, t));
     this.update(0, 0);
   }
@@ -485,7 +490,6 @@ export function buildFortress(level, cfg) {
   for (let i = 0; i < 7; i++) gateParts.push(coneG(0.1, 0.3, -1.5 + i * 0.5, -0.3, 0, 0x6a6268, 6, { ry: 0 }));
   const gate = new THREE.Mesh(merge(gateParts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0.6 }));
   gate.position.set(0, Y, -O + 0.3);
-  gate.castShadow = true;
   addObject(level, gate);
   // Banner an der Rückwand (Wappen), Ketten
   const banTex = emblemTexture('banner');
@@ -571,7 +575,7 @@ export function buildFortress(level, cfg) {
   bake(level, N, { castShadow: false });
   bake(level, G, { material: 'glow', castShadow: false });
 
-  const flags = new WavingFlags(level, flagList, { w: 2.0, h: 1.35 });
+  const flags = new WavingFlags(level, flagList, { w: 2.0, h: 1.35, staticPoles: true });
   return { glowMat, circle, gate, barMat, flags, banners };
 }
 
@@ -590,7 +594,7 @@ export function fortressFx(level, fx, o = {}) {
       if (seen.has(e) || !e.model) continue;
       seen.add(e);
       if (e.kind === 'zauberkroete') { let first = true; e.model.root.traverse((m) => { if (m.isMesh && m.castShadow) { if (!first) m.castShadow = false; first = false; } }); }
-      if (e.kind === 'zauberkugel') e.model.root.traverse((m) => { if (m.isSprite && m.scale.x < 0.5) m.visible = false; });
+      if (e.kind === 'zauberkugel') e.model.root.traverse((m) => { if ((m.isSprite && m.scale.x < 0.5) || (m.isMesh && m.material?.emissive && !m.material.transparent)) m.visible = false; });
     }
     const arch = level.archetype;
     const info = arch?.info?.() ?? {};
