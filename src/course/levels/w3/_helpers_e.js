@@ -2843,6 +2843,22 @@ export function schneetalSzene(level, cfg) {
       S.push(blockG(0.8, 0.5, 0.6, x - 0.1, y + 0.57, z - 0.5, 0x8a3a2a, { r: 0.06 }), blockG(0.7, 0.42, 0.5, x + 0.05, y + 0.57, z + 0.3, 0x3a5a8a, { r: 0.06 }), blockG(0.6, 0.36, 0.45, x, y + 1.07, z - 0.4, 0xc8a050, { r: 0.06 }));
     }
     for (const c of st.coal ?? []) S.push(sphereG(c[3] ?? 2, c[0], c[1], c[2], 0x2a2630, { sy: 0.45, ws: 10, hs: 6, half: true, fn: (p, n, o) => mixc(L(0x1e1c24), L(0xf2f6ff), smooth(0.75, 0.95, n.y), o) }));
+    // Wasserkran zwischen den Gleisen: Säule, Ausleger über das Gleis (+x), Schlauch
+    for (const [x, y, z, len = 2.8] of st.cranes ?? []) {
+      S.push(cylG(0.42, 0.5, 0.35, x, y, z, 0x3a4a5a, 10), cylG(0.2, 0.24, 3.7, x, y + 0.3, z, 0x2e4256, 10), sphereG(0.3, x, y + 4.05, z, 0x2e4256, { ws: 8, hs: 6 }));
+      S.push(cylG(0.15, 0.15, len, x + len / 2, y + 4.05, z, 0x2e4256, 8, { rz: Math.PI / 2, center: true }));
+      S.push(cylG(0.13, 0.1, 1.5, x + len - 0.05, y + 2.6, z, 0x6a4a30, 8), cylG(0.24, 0.24, 0.12, x, y + 4.25, z, 0xd8b040, 10));
+      N.push(blockG(0.5, 0.1, 0.5, x, y + 4.32, z, 0xf6f9ff, { r: 0.08 }));
+    }
+    // Bänke, Postsäcke, Gepäck
+    for (const [x, y, z, yaw = 0] of st.benches ?? []) {
+      const g = merge([blockG(1.7, 0.1, 0.5, 0, 0.42, 0, 0x8a5a36, { r: 0.03, top: 0xf2f6fc }), blockG(1.7, 0.5, 0.08, 0, 0.5, -0.24, 0x8a5a36, { r: 0.03 }), blockG(0.1, 0.42, 0.45, -0.75, 0, 0, 0x2a2a34, { r: 0 }), blockG(0.1, 0.42, 0.45, 0.75, 0, 0, 0x2a2a34, { r: 0 })]);
+      g.rotateY(yaw); g.translate(x, y, z);
+      S.push(g);
+    }
+    for (const [x, y, z] of st.sacks ?? []) {
+      for (const [dx, dz, r, c] of [[0, 0, 0.42, 0xd8c8a0], [0.6, 0.2, 0.36, 0xc8b890], [0.25, -0.5, 0.38, 0xe0d0a8], [0.3, -0.05, 0.3, 0xb84a3a]]) S.push(sphereG(r, x + dx, y + r * 0.75, z + dz, c, { sy: 0.8, ws: 8, hs: 6 }));
+    }
   }
 
   // ---- Lokschuppen (Halbrund hinter der Drehscheibe), Gleise zu den Ständen, Drehscheiben-Brücke
