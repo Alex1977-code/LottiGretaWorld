@@ -71,11 +71,11 @@ const ROUTE_33 = {
   ],
   targets: [
     { name: 'Stern 0: ins Spuk-Gemälde springen, Warp-Box, Drehraum', star: 0, from: [-0.4, Y, 1.6],
-      legs: [{ name: 'Anlauf, Sprung ins Gemälde', to: [-5.3, 1.6], jump: 14, jumpAt: 1.7, within: 0.3, land: false, max: 200 }, { wait: 60 },
-        { name: 'Warp-Box in der Nische', to: [-6, 1.6], jump: 30, within: 0.3, endOnRide: true }, { wait: 30 },
+      legs: [{ name: 'Anlauf, Sprung ins Gemälde', to: [-4.7, 1.6], jump: 14, jumpAt: 1.4, within: 0.25, land: false, max: 200 }, { wait: 60, skipIfX: -40 },
+        { name: 'Warp-Box in der Nische', to: [-6.4, 1.6], jump: 30, within: 0.3, endOnRide: true, skipIfX: -40 }, { wait: 30 },
         { dreh: true }, { wait: 40 }], shot: 'stern0' },
     { name: 'Stempel: nach Stern 0 Warp-Box auf die Empore, Sofa', stamp: true, from: [-60, Y, 44.6],
-      legs: [{ name: 'Warp-Box im Drehraum', to: [-60, 41.6], jump: 30, within: 0.3, endOnRide: true }, { wait: 40 },
+      legs: [{ name: 'Warp-Box im Drehraum', to: [-60, 41.6], jump: 30, jumpAt: 1.8, within: 0.3, endOnRide: true }, { wait: 40 },
         { to: [4, 3], run: false, within: 0.3 }, { name: 'aufs Sofa', to: [3.9, 1.4], jump: 20, within: 0.3 }, { wait: 300 }], shot: 'stempel' },
     { name: 'Stern 1: Regal in der Regalgasse zurückschieben, Nische', star: 1, from: [54, Y, -45],
       legs: [{ name: 'Regal schieben', to: [54, -51.3], run: false, within: 0.3, max: 1400 }, { to: [53.2, -50.2], run: false, within: 0.3 },
@@ -173,6 +173,7 @@ function install() {
         const L = legs[li];
         if (p.dead || c.level.runtime.status !== 'play') break;
         rode = false;
+        if (L.skipIfX !== undefined && p.pos.x < L.skipIfX) { log.push(['übersprungen', L.name ?? li]); continue; }
         if (L.wait) { for (let i = 0; i < L.wait; i++) tick({}); continue; }
         if (L.face) { const st = this.stick(L.face[0], L.face[1], 0.3); for (let i = 0; i < 6; i++) tick(st); for (let i = 0; i < 12; i++) tick({}); continue; }
         if (L.faceSpuk) {
@@ -197,10 +198,11 @@ function install() {
         if (L.dreh) {
           // Drehraum: warten, bis er gerade eine Vierteldrehung beendet hat und Viertel 0 zeigt; dann Stufe → Brett → Stern
           const d = this.named('dreh');
+          this.drive([{ to: [-59.2, 45.4], run: false, within: 0.3 }], o);
           let n = 0;
-          while (!(d.quarter === 0 && !d.turning && d.t < 0.05) && n++ < 4000) tick({});
+          while (!(d.quarter === 0 && !d.turning && d.t < 0.3) && n++ < 4000) tick({});
           log.push(['dreh', n, d.quarter, d.turns]);
-          const seq = [{ to: [-62.2, 45.4], jump: 26, within: 0.4 }, { to: [-58.4, 45.4], jump: 36, within: 0.4 }, { to: [-57.6, 45.4], jump: 40, within: 0.6, land: false }];
+          const seq = [{ to: [-62.4, 45.4], jump: 20, jumpAt: 2.0, within: 0.5 }, { to: [-59, 45.4], jump: 24, jumpAt: 2.2, within: 0.5 }, { to: [-58.8, 45.4], jump: 40, within: 0.6, land: false }];
           const r = this.drive(seq, o);
           log.push(...r.log);
           continue;

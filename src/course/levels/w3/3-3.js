@@ -55,10 +55,10 @@ function scene(level) {
   hauntFloor(level, { x0: -7.6, x1: 5.6, zA: 12, zB: -31.6, y: Y, depth: 3, rug: [-1.1, 1.1, 10, -23, 0x6a1a3a] });
   hauntWall(level, { face: '+x', at: -5, from: 12, to: 2.8, y: Y, h: 8, pal: pv });
   hauntWall(level, { face: '+x', at: -5, from: 0.4, to: -31.6, y: Y, h: 8, pal: pv });
-  hauntWall(level, { face: '+x', at: -5, from: 0.4, to: 2.8, y: Y + 2.6, h: 5.4, below: 0, pal: pv });          // Sturz über der Nische
-  hauntWall(level, { face: '+x', at: -7.4, from: 0.4, to: 2.8, y: Y, h: 2.6, pal: PAL.rot });          // Nischen-Rückwand
-  hauntWall(level, { face: '-z', at: 2.8, from: -7.4, to: -5.6, y: Y, h: 2.6, t: 0.3, visual: false });
-  hauntWall(level, { face: '+z', at: 0.4, from: -7.4, to: -5.6, y: Y, h: 2.6, t: 0.3, visual: false });
+  hauntWall(level, { face: '+x', at: -5, from: 0.4, to: 2.8, y: Y + 3.4, h: 4.6, below: 0, pal: pv });          // Sturz über der Nische
+  hauntWall(level, { face: '+x', at: -7.4, from: 0.4, to: 2.8, y: Y, h: 3.4, pal: PAL.rot });          // Nischen-Rückwand
+  hauntWall(level, { face: '-z', at: 2.8, from: -7.4, to: -5.6, y: Y, h: 3.4, t: 0.3, visual: false });
+  hauntWall(level, { face: '+z', at: 0.4, from: -7.4, to: -5.6, y: Y, h: 3.4, t: 0.3, visual: false });
   hauntWall(level, { face: '-x', at: 5, from: 12, to: -31.6, y: Y, h: 8, pal: pv });
   hauntWall(level, { face: '+z', at: -31, from: -5.6, to: 5.6, y: Y, h: 8, pal: pv });
   // Empore rechts (y 8): Rückkehr aus dem Drehraum, Sofa mit dem Stempel; Brüstung bis zum Sofa
@@ -92,7 +92,7 @@ function scene(level) {
   cobweb(level, [-4.98, Y + 7.8, -30.98], 0, 1.6);
   cobweb(level, [4.98, Y + 7.8, -30.98], -Math.PI / 2, 1.4);
   cobweb(level, [-4.98, Y + 7.8, 11.4], 0, 1.0);
-  cobweb(level, [-7.38, Y + 2.5, 0.42], 0, 0.7);
+  cobweb(level, [-7.38, Y + 3.3, 0.42], 0, 0.8);
 
   // ================================================================ D  Drehraum (Hülle baut der Baustein)
   lamp(-60, 5, 49);
@@ -259,7 +259,7 @@ export const LEVEL = {
   segments: [
     // ---------------- A: Spuk-Gemälde (Warp-Box in der Nische → Drehraum), Sofa-Lift, Spuk-Treppe, Tür
     { type: 'bilderrahmen', id: 'gemaelde', pos: [-5, Y + 0.05, 1.6], yaw: 0, size: [1.6, 2.0], motif: 'spuk', floor: Y,
-      warp: { id: 'bild_warp', target: [-60, Y + 0.2, 50.6] } },
+      warp: { id: 'bild_warp', target: [-60, Y + 0.2, 50.6], pos: [-6.4, Y, 1.6] } },
     { type: 'spuk_sofa', id: 'sofa_lift', pos: [-4.4, Y, -21], yaw: 0, rise: 5.85, speed: 1.7, back: 3 },
     { type: 'pipe', id: 'falsche_roehre', pos: [-4.1, Y + 6.6, -23.5], height: 0.9, radius: 0.72, color: 0x5ab84a },
     { type: 'sign', pos: [-3.4, Y + 6.6, -24.3], text: 'Außer\nBetrieb', yaw: 0.3, size: [1.2, 0.7] },
@@ -272,7 +272,7 @@ export const LEVEL = {
 
     // ---------------- D: Drehraum
     { type: 'drehraum', id: 'dreh', pos: [-60, Y, 46], size: [10, 12], period: 4, turn: 1.4,
-      parts: [{ pos: [-2.2, 0], size: [2.4, 1.4], color: 0x8a5a3a }, { pos: [2.2, 3.0], size: [2.8, 0.5], color: 0xc89a5a }] },
+      parts: [{ pos: [-2.2, 0], size: [2.4, 1.4], color: 0x8a5a3a }, { pos: [1.0, 2.2], size: [2.8, 0.5], color: 0xc89a5a }] },
 
     // ---------------- B: Schieberegale, Spuk-Treppen, Kronleuchter, Tür
     { type: 'spuk_tuer', id: 'tuerB', pos: [67.75, Y, -37], yaw: R, target: 'tuerA' },
@@ -376,7 +376,7 @@ export const LEVEL = {
   ],
   checkpoint: { pos: [65.5, Y, -46.6], yaw: Math.PI / 2 },
   stars: [
-    [-57.6, Y + 6.1, 45.4],            // 0: Drehraum (Gemälde am Anfang → Warp-Box)
+    [-58.8, Y + 5.4, 45.4],            // 0: Drehraum (Gemälde am Anfang → Warp-Box)
     [50.6, Y, -50.2],                  // 1: Nische hinter der Regalgasse ganz links
     [-4.1, Y + 7.5, -23.5],            // 2: falsche Röhre auf dem Sims (Sofa-Lift)
   ],
