@@ -2733,3 +2733,18 @@ Sternring mit Sternmünzen. Gegner: Ameisensoldat, Hörner-Ameisensoldat, Riesen
 Figur), Rankenschnapper (wachsen über den Weg), Lavabrocken (tragbar, werfbar), Walzenwerfer (wirft Stachelwalzen),
 Stachelpanzer, Springklotz, Lavafunke; Boss **Lavafelsen-König** (nur geworfene Lavabrocken treffen). „Mitspieler“
 im Bauplan = Klone der Spiegelfrucht. Die Welt-Warp-Röhre in 4-2 führt zur Welt-5-Insel („Bald“, bis es sie gibt).
+
+## Musik-Richtlinie (Auftraggeber, verbindlich für alle Welten)
+
+Rückmeldung des Auftraggebers: Die Musik ab Welt 2 war „nicht melodisch“ – **alle** Kurs-Themen sollen wie Welt 1
+klingen: 90er-Eurodance (eigene Kompositionen im Geist von 2 Unlimited), **melodisch und eingängig**. Maßstab sind die
+Welt-1-Themen in `src/audio/themes.js` (`course_grass`, `course_cave`, `course_circus`, `course_river`, `course_boss`,
+`course_arena`, `course_diorama`, `course_map`, `world1`):
+- Liedform: Intro → Strophe → **Refrain mit klarer, singbarer Hook** (Lead-Synth/Piano führen die Melodie fast
+  durchgehend) → Überleitung; 16–32 Takte, Loop.
+- Harmonik: klassische Eurodance-Folgen in Dur/Moll (z. B. I–V–vi–IV, vi–IV–I–V, i–VI–III–VII, i–iv–VII–III);
+  exotische Skalen höchstens als Farbe, nicht als Grundlage.
+- Typische Spuren: Off-Beat-Stabs, Piano-Akkorde, Pad, hüpfender Oktav-Bass, Four-on-the-floor; Hoover sparsam als
+  Akzent. 128–150 BPM.
+- Welt-Charakter über Klangfarben/Percussion (z. B. Darbuka in der Wüste, Glöckchen im Schnee), nie auf Kosten der
+  Melodie.
