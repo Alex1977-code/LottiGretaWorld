@@ -39,6 +39,13 @@ export { isl, line, ring, arc, column, deco, decoW1 } from '../w1/_helpers.js';
 export { planks, carpet, bake, prop } from '../w2/_helpers_b.js';
 
 const FLAT = { r: 0, seg: 0 };
+
+/**
+ * Aufbau-Haken während des Levelaufbaus (vor dem Verschmelzen der statischen Geometrie): eine schon brennende
+ * Laterne (echte Laterne an pos), deren onLit beim Aufbau genau einmal fn(level) ruft – so landen alle Kulissenteile
+ * im richtigen 32-m-Abschnitt (Culling je Raum). Muster wie w2/_helpers_b.js hook.
+ */
+export const hook = (pos, fn) => ({ kind: 'lantern', pos, lit: true, radius: 0.1, onLit: (level) => fn(level) });
 const hash = (a, b = 0, c = 0) => { const s = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return s - Math.floor(s); };
 
 /** Unsichtbarer, fester Quader (x0..x1, y0..y1, zA..zB). */
@@ -85,7 +92,7 @@ export function hauntWall(level, o) {
   const paperH = h - 1.2;
   const pa = new THREE.Color(pal.a), pb = new THREE.Color(pal.b), pp = new THREE.Color(pal.pin);
   const tmp = new THREE.Color();
-  b.add(new THREE.BoxGeometry(len, paperH, 0.02, nSeg, 3, 1), (x, yy) => {
+  b.add(new THREE.PlaneGeometry(len, paperH, nSeg, 1), (x, yy) => {
     const k = Math.floor((x + len / 2) / 0.18 + 1e-4);
     const m = k % 6;
     tmp.copy(m === 0 ? pp : m < 3 ? pa : pb);
@@ -122,7 +129,7 @@ export function hauntFloor(level, o) {
   for (let row = 0; row < Math.floor((d - 0.2) / 0.5); row++) {
     const yy = y - 0.35 - row * 0.5;
     for (let x = o.x0 + (row % 2 ? 0.45 : 0.05); x < o.x1 - 0.5; x += 0.9) {
-      b.box(0.82, 0.42, 0.06, hash(x, row) > 0.5 ? 0x4a3a56 : 0x403250, { p: [x + 0.41, yy, z1 + 0.02] }, 0.03, 1);
+      b.box(0.82, 0.42, 0.06, hash(x, row) > 0.5 ? 0x4a3a56 : 0x403250, { p: [x + 0.41, yy, z1 + 0.02] }, 0);
     }
   }
   bake(level, b);
@@ -137,14 +144,14 @@ export function hauntFloor(level, o) {
 function planksOn(level, x0, x1, z0, z1, y, colors) {
   const cols = colors ?? [0x6a4026, 0x5c3820, 0x734a2c, 0x56341e, 0x684226];
   const b = new Build();
-  b.box(x1 - x0, 0.01, z1 - z0, 0x2a180e, { p: [(x0 + x1) / 2, y + 0.005, (z0 + z1) / 2] }, 0);
+  b.add(new THREE.PlaneGeometry(x1 - x0, z1 - z0), 0x2a180e, { p: [(x0 + x1) / 2, y + 0.008, (z0 + z1) / 2], r: [-Math.PI / 2, 0, 0] });
   let i = 0;
   for (let x = x0; x < x1 - 0.1; x += 0.6, i++) {
     const xa = x + 0.025, xb = Math.min(x + 0.6, x1) - 0.025;
     let z = z0, k = 0, next = z0 + 0.8 + hash(i) * 2.4;
     while (z < z1 - 0.05) {
       const e = Math.min(next, z1);
-      b.box(xb - xa, 0.014, e - z - 0.05, cols[(i * 3 + k) % cols.length], { p: [(xa + xb) / 2, y + 0.017, (z + e) / 2] }, 0);
+      b.add(new THREE.PlaneGeometry(xb - xa, e - z - 0.05), cols[(i * 3 + k) % cols.length], { p: [(xa + xb) / 2, y + 0.022, (z + e) / 2], r: [-Math.PI / 2, 0, 0] });
       z = e; next = e + 3.2; k++;
     }
   }
@@ -276,7 +283,7 @@ export function bookShelf(level, o) {
     level.world.add({ type: 'box', min: [x - hx, y, z - hz], max: [x + hx, y + h, z + hz], tag: 'regal' });
   }
   if (!level.view) return;
-  const b = new Build();
+  const b = new Build(), bk = new Build();
   const wood = 0x4a2a1a, wood2 = 0x5e3622;
   const BOOKS = [0x8a2a2a, 0x2a4a8a, 0x2a6a3a, 0x8a6a2a, 0x5a2a6a, 0x2a6a6a, 0xa8482a, 0x3a3a5a, 0x7a3a4a];
   b.box(0.5, h, 0.06, wood, { p: [0, h / 2, -w / 2 + 0.03] }, 0);
@@ -295,13 +302,70 @@ export function bookShelf(level, o) {
       const bw = 0.06 + j * 0.07, bh = Math.min(rh - 0.1, 0.36 + hash(k, r, seed) * 0.26);
       if (j > 0.93 && zz < w / 2 - 0.5) { zz += 0.3; k++; continue; }          // Lücke
       const tilt = j > 0.86 ? 0.25 : 0;
-      b.box(0.32 + j * 0.06, bh, bw, BOOKS[Math.floor(hash(r, k, seed + 1) * BOOKS.length)], { p: [0.05, y0 + 0.02 + bh / 2, zz + bw / 2], r: [tilt, 0, 0] }, 0);
-      if (j > 0.5 && j < 0.56) b.box(0.33, 0.02, bw + 0.005, 0xe0b040, { p: [0.06, y0 + 0.02 + bh * 0.8, zz + bw / 2] }, 0);
+      const bc = BOOKS[Math.floor(hash(r, k, seed + 1) * BOOKS.length)], bd = 0.32 + j * 0.06;
+      if (tilt) bk.box(bd, bh, bw, bc, { p: [0.05, y0 + 0.02 + bh / 2, zz + bw / 2], r: [tilt, 0, 0] }, 0);
+      else {
+        bk.add(new THREE.PlaneGeometry(bw, bh), bc, { p: [0.05 + bd / 2, y0 + 0.02 + bh / 2, zz + bw / 2], r: [0, Math.PI / 2, 0] });
+        bk.add(new THREE.PlaneGeometry(bd, bw), new THREE.Color(bc).multiplyScalar(0.8), { p: [0.05, y0 + 0.02 + bh, zz + bw / 2], r: [-Math.PI / 2, 0, 0] });
+      }
+      if (j > 0.5 && j < 0.56) bk.add(new THREE.PlaneGeometry(bw, 0.025), 0xe0b040, { p: [0.052 + bd / 2, y0 + 0.02 + bh * 0.8, zz + bw / 2], r: [0, Math.PI / 2, 0] });
       zz += bw + 0.012 + tilt * 0.12; k++;
     }
   }
+  for (const [bb, cast] of [[b, true], [bk, false]]) {
+    const g = bb.geometry();
+    g.rotateY(yaw);
+    g.translate(x, y, z);
+    addStatic(level, g, { castShadow: cast });
+  }
+}
+
+/**
+ * Leseecke der Bibliothek (fest: Tisch): Lesetisch mit aufgeschlagenem Buch und Leuchter, Globus auf Ständer,
+ * Bücherstapel, Rollleiter. { pos (Tischmitte am Boden) }.
+ */
+export function readingNook(level, o) {
+  const [x, y, z] = o.pos;
+  level.world.add({ type: 'box', min: [x - 1, y, z - 0.55], max: [x + 1, y + 0.9, z + 0.55], tag: 'lesetisch' });
+  if (!level.view) return;
+  const b = new Build(), gl = new Build();
+  b.box(2, 0.1, 1.1, 0x6a3c24, { p: [x, y + 0.85, z] }, 0.03);
+  b.box(1.8, 0.12, 0.9, 0x4a2a18, { p: [x, y + 0.74, z] }, 0.02);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.cyl(0.05, 0.07, 0.78, 0x4a2a18, { p: [x + sx * 0.88, y + 0.39, z + sz * 0.44] }, 6);
+  // aufgeschlagenes Buch mit Lesezeichen, Tintenfass mit Feder
+  for (const s of [-1, 1]) b.box(0.34, 0.03, 0.46, 0xf4ead0, { p: [x - 0.3 + s * 0.17, y + 0.92, z + 0.05], r: [0, 0, s * -0.08] }, 0);
+  b.box(0.7, 0.025, 0.5, 0x7a1a2a, { p: [x - 0.3, y + 0.905, z + 0.05] }, 0);
+  b.box(0.03, 0.005, 0.3, 0xd84a4a, { p: [x - 0.3, y + 0.94, z + 0.3] }, 0);
+  b.cyl(0.05, 0.06, 0.08, 0x1a1a2a, { p: [x + 0.45, y + 0.94, z - 0.2] }, 8);
+  b.box(0.02, 0.32, 0.06, 0xffffff, { p: [x + 0.48, y + 1.1, z - 0.18], r: [0, 0, -0.35] }, 0);
+  // Globus auf Ständer
+  b.cyl(0.04, 0.2, 0.9, 0x5a3220, { p: [x + 1.7, y + 0.45, z + 0.3] }, 8);
+  b.add(new THREE.SphereGeometry(0.34, 14, 10), (px, py, pz) => (Math.sin(px * 9) + Math.cos(pz * 8 + py * 5) > 0.6 ? 0x5aa84a : 0x3a6ab8), { p: [x + 1.7, y + 1.22, z + 0.3] });
+  b.torus(0.38, 0.018, 0xe0b040, { p: [x + 1.7, y + 1.22, z + 0.3], r: [0, 0, 0.4] }, 4, 24);
+  // Bücherstapel am Boden
+  const C = [0x8a2a2a, 0x2a4a8a, 0x2a6a3a, 0x8a6a2a, 0x5a2a6a];
+  for (let i = 0; i < 5; i++) b.box(0.42 - i * 0.03, 0.09, 0.3, C[i], { p: [x - 1.6, y + 0.045 + i * 0.09, z + 0.6], r: [0, i * 0.3, 0] }, 0);
+  for (let i = 0; i < 3; i++) b.box(0.38, 0.08, 0.28, C[(i + 2) % 5], { p: [x + 1.2, y + 0.04 + i * 0.08, z - 1.0], r: [0, -i * 0.4, 0] }, 0);
+  gl.sphere(0.06, 0xfff2b0, { p: [x + 0.6, y + 1.2, z + 0.2] }, 8, 6);
+  b.cyl(0.05, 0.09, 0.3, 0xe0b040, { p: [x + 0.6, y + 1.0, z + 0.2] }, 8);
+  addStatic(level, b.geometry());
+  addStatic(level, gl.geometry(), { material: 'glow', castShadow: false });
+}
+
+/** Ohrensessel (fest): { pos, yaw (Sitz blickt nach lokal +X), color }. */
+export function armchair(level, o) {
+  const [x, y, z] = o.pos;
+  level.world.add({ type: 'box', min: [x - 0.5, y, z - 0.5], max: [x + 0.5, y + 1.1, z + 0.5], tag: 'sessel' });
+  if (!level.view) return;
+  const b = new Build(), c = o.color ?? 0x7a1a3a;
+  b.box(0.9, 0.42, 0.9, c, { p: [0.05, 0.36, 0] }, 0.1);
+  b.box(0.22, 1.3, 0.92, c, { p: [-0.36, 0.65, 0] }, 0.1);
+  for (const s of [-1, 1]) { b.box(0.8, 0.32, 0.18, c, { p: [0, 0.68, s * 0.42] }, 0.08); b.box(0.24, 0.5, 0.2, c, { p: [-0.32, 1.2, s * 0.36] }, 0.08); }
+  b.box(0.6, 0.12, 0.7, new THREE.Color(c).multiplyScalar(0.8), { p: [0.1, 0.6, 0] }, 0.05);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.cyl(0.04, 0.03, 0.16, 0xe0b040, { p: [sx * 0.35, 0.08, sz * 0.35] }, 6);
+  b.sphere(0.12, 0xf0c890, { p: [0.15, 0.78, 0.15], s: [1, 0.8, 1] }, 8, 6);   // Kissen
   const g = b.geometry();
-  g.rotateY(yaw);
+  g.rotateY(o.yaw ?? 0);
   g.translate(x, y, z);
   addStatic(level, g);
 }
@@ -331,7 +395,7 @@ export function flagstones(level, pts, y, w = 2) {
         if (j < 0.08) continue;
         const px = ax + ux * s - uz * q + (j - 0.5) * 0.1, pz = az + uz * s + ux * q + (hash(q, s) - 0.5) * 0.1;
         const c = j > 0.6 ? 0x6a6478 : j > 0.3 ? 0x5e586c : 0x726c80;
-        b.box(0.52, 0.06, 0.52, c, { p: [px, y + 0.03, pz], r: [0, Math.atan2(-uz, ux) + (j - 0.5) * 0.2, 0] }, 0.05, 1);
+        b.box(0.52, 0.06, 0.52, c, { p: [px, y + 0.03, pz], r: [0, Math.atan2(-uz, ux) + (j - 0.5) * 0.2, 0] }, 0);
       }
     }
   }
@@ -378,7 +442,7 @@ export function graves(level, list) {
   bake(level, b);
 }
 
-/** Kürbislaternen mit leuchtendem Gesicht (Kollision klein): [{ pos, yaw, size }]. Gesicht nach lokal +X. */
+/** Kürbislaternen mit leuchtendem Gesicht (Kollision klein): [{ pos, yaw (0 = Gesicht zur Kamera +Z), size }]. */
 export function pumpkins(level, list) {
   for (const pk of list) {
     const [x, y, z] = pk.pos, s = pk.size ?? 0.45;
@@ -396,17 +460,17 @@ function pumpkinParts(level, list) {
     const loc = new Build(), lg = new Build();
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * TAU;
-      loc.sphere(s * 0.62, i % 2 ? 0xe8781a : 0xf08a24, { p: [Math.cos(a) * s * 0.32, s * 0.62, Math.sin(a) * s * 0.32], s: [0.8, 1, 0.8] }, 10, 7);
+      loc.sphere(s * 0.62, i % 2 ? 0xe8781a : 0xf08a24, { p: [Math.cos(a) * s * 0.32, s * 0.62, Math.sin(a) * s * 0.32], s: [0.8, 1, 0.8] }, 8, 5);
     }
     loc.cyl(s * 0.07, s * 0.1, s * 0.3, 0x5a7a2a, { p: [0, s * 1.3, 0], r: [0, 0, 0.3] }, 6);
     const fx = s * 0.93;
     for (const sz of [-1, 1]) lg.add(new THREE.CircleGeometry(s * 0.14, 3), 0xffe070, { p: [fx, s * 0.84, sz * s * 0.22], r: [0, Math.PI / 2, 0] });
     lg.add(new THREE.CircleGeometry(s * 0.3, 10, Math.PI, Math.PI), 0xffc040, { p: [fx, s * 0.56, 0], r: [0, Math.PI / 2, 0] });
     const a = loc.geometry(), g = lg.geometry();
-    for (const q of [a, g]) { q.rotateY(pk.yaw ?? 0); q.translate(x, y, z); }
+    for (const q of [a, g]) { q.rotateY((pk.yaw ?? 0) - Math.PI / 2); q.translate(x, y, z); }
     body.push(a); glow.push(g);
   }
-  addStatic(level, merge(body));
+  addStatic(level, merge(body), { castShadow: false });
   addStatic(level, merge(glow), { material: 'glow', castShadow: false });
 }
 
@@ -498,12 +562,14 @@ export function facade(level, o) {
   // Bruchstein unten, Holzverschalung oben, Dachkante
   b.box(len, h, t, 0x3a2a44, { p: [0, h / 2, -t / 2] }, 0);
   for (let row = 0; row < 4; row++) for (let u = -len / 2 + (row % 2 ? 0.5 : 0.1); u < len / 2 - 0.6; u += 1.0) {
-    b.box(0.9, 0.4, 0.08, hash(u, row) > 0.5 ? 0x5a5068 : 0x4e4660, { p: [u + 0.45, 0.25 + row * 0.45, 0.03] }, 0.04, 1);
+    b.box(0.9, 0.4, 0.08, hash(u, row) > 0.5 ? 0x5a5068 : 0x4e4660, { p: [u + 0.45, 0.25 + row * 0.45, 0.03] }, 0);
   }
   for (let u = -len / 2 + 0.2; u < len / 2; u += 0.36) b.box(0.32, h - 1.9, 0.06, hash(u) > 0.5 ? 0x3e2c4e : 0x46325a, { p: [u + 0.16, 1.9 + (h - 1.9) / 2, 0.02] }, 0);
   b.box(len + 0.6, 0.3, 0.9, 0x2a1a2a, { p: [0, h + 0.1, 0.25] }, 0.05);
-  for (let u = -len / 2; u < len / 2; u += 0.5) b.box(0.48, 0.12, 0.3, 0x5a2a3a, { p: [u + 0.25, h + 0.3, 0.55], r: [0.3, 0, 0] }, 0.02);
-  for (const u of o.windows ?? []) {
+  for (let u = -len / 2; u < len / 2; u += 0.5) b.box(0.48, 0.12, 0.3, (Math.round(u * 2) & 1) ? 0x5a2a3a : 0x4e2434, { p: [u + 0.25, h + 0.3, 0.55], r: [0.3, 0, 0] }, 0);
+  // Fenster: Lage in Weltkoordinaten entlang der Fassade → lokal (Fassade läuft entlang lokal x, Mitte 0)
+  const toLocal = (w) => (face === '+z' ? w - mid : face === '-z' ? mid - w : face === '+x' ? mid - w : w - mid);
+  for (const u of (o.windows ?? []).map(toLocal)) {
     const wy = o.windowY ?? 3.4, ww = 1.3, wh = 1.8;
     gl.add(new THREE.PlaneGeometry(ww, wh), { v: (xx, yy) => new THREE.Color(0xffb84a).lerp(new THREE.Color(0xffe8a8), THREE.MathUtils.clamp(yy / wh + 0.5, 0, 1)) }, { p: [u, wy + wh / 2, 0.05] });
     b.box(ww + 0.24, 0.14, 0.18, 0x2a1a14, { p: [u, wy - 0.06, 0.1] }, 0.02);
@@ -517,6 +583,41 @@ export function facade(level, o) {
   const place = (g) => { g.rotateY(FACE_YAW[face]); if (sx) g.translate(o.at, y, mid); else g.translate(mid, y, o.at); return g; };
   addStatic(level, place(b.geometry()));
   if (gl.parts.length) addStatic(level, place(gl.geometry()), { material: 'glow', castShadow: false });
+}
+
+/**
+ * Räume einzeln zeichnen (Teleport-Level wie 3-3): rooms = [[xMin, xMax], …] (getrennte x-Bereiche). Je Bild werden
+ * statische Abschnitts-Meshes (Mitte ihres Umrisses) und Gegner-/Gimmick-Modelle (Lage der Entität) in einem anderen
+ * Raum als die Figur ausgeblendet (ihr Schatten ebenso); beim Zurückkehren erscheinen sie wieder. Nur Darstellung.
+ */
+export function roomCull(level, rooms) {
+  const v = level.view;
+  if (!v) return;
+  const roomOf = (x) => rooms.findIndex(([a, b]) => x >= a && x <= b);
+  const statics = v.static.meshes.map((m) => {
+    m.geometry.computeBoundingBox();
+    const bb = m.geometry.boundingBox;
+    return { m, room: roomOf((bb.min.x + bb.max.x) / 2) };
+  });
+  const hidden = new Set();
+  let last = -2;
+  v.onFrame(() => {
+    const p = level.player;
+    if (!p) return;
+    const cur = roomOf(p.pos.x);
+    if (cur !== last) {
+      last = cur;
+      for (const s of statics) s.m.visible = cur < 0 || s.room < 0 || s.room === cur;
+    }
+    for (const e of level.entities) {
+      const root = e.model?.root;
+      if (!root) continue;
+      const r = roomOf(e.pos.x);
+      const away = cur >= 0 && r >= 0 && r !== cur && !e.removed;
+      if (away) { if (root.visible) { root.visible = false; hidden.add(e); } }
+      else if (hidden.has(e)) { root.visible = true; hidden.delete(e); }
+    }
+  });
 }
 
 /**
@@ -569,7 +670,7 @@ function kruemelGear() {
   const ring = new Build();
   for (let i = 0; i < 8; i++) ring.torus(0.19, 0.05, i % 2 ? 0xffffff : 0xe8322a, { r: [Math.PI / 2, 0, (i / 8) * TAU] }, 6, 6, TAU / 8 + 0.02);
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 });
-  const mk = (b) => { const m = new THREE.Mesh(b.geometry(), mat); m.castShadow = true; return m; };
+  const mk = (b) => new THREE.Mesh(b.geometry(), mat);
   return { cap: mk(cap), pack: mk(pack), ring: mk(ring), mat };
 }
 
@@ -584,7 +685,10 @@ export class KruemelRig {
     this.hull.add(this.tilt);
     view.three.add(this.hull);
     this.model = getModel('kruemel');
-    this.model.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    // Sonnenschatten nur vom Körper (Augen, Ohren, Glitzer ohne: Budget)
+    let body = null;
+    this.model.root.traverse((o) => { if (o.isMesh) { o.castShadow = false; if (!body || o.geometry.attributes.position.count > body.geometry.attributes.position.count) body = o; } });
+    if (body) body.castShadow = true;
     this.tilt.add(this.model.root);
     // Hüpf-Gelenk des Hasenmodells (bunny_small → hop), daran hängen Mütze und Rucksack
     const hop = this.model.root.children[0]?.children?.[0] ?? this.model.root;

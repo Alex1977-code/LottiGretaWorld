@@ -21,7 +21,7 @@
 // Koordinaten: x −13 … 13, z −13 … 13 (vorn = +z), Ebenen y −4 (Seegrund) / 0 (Ufer) / 4 (Wiese) / 10,2 (Terrasse).
 
 import {
-  levelSetup, isl, line, ring, decoW1, useKruemel, glassWall, seeTower, glassDome, sandRamp, lilyPads, ducks, lighthouse,
+  hook, isl, line, ring, decoW1, useKruemel, glassWall, seeTower, glassDome, sandRamp, lilyPads, ducks, lighthouse,
   rowboat, parasol,
 } from './_helpers_c.js';
 
@@ -34,12 +34,11 @@ const MAIN = [
   [-5, 0.6, -6.6], [-5, 0.45, -7.5], [-5, -1.7, -7.3], [-5, -2.8, -5.6], [-5, -2.8, -3.6],
   [-5, -2.8, -1.5], [-5, -2.8, 2.5], [-5, -3.1, 4.4], [-5, -2.0, 5.1],
 ];
-const UP = [[-6.6, -2.4, -1.8], [-7.6, 0.4, -2.5], [-7.9, 2.6, -4.2], [-7.9, 5.4, -5.0], [-7.9, 9.6, -5.1], [-7.3, 10.9, -6.6], [-6.0, 10.75, -8.4]];
+const UP = [[-6.6, -2.4, -1.8], [-7.6, -0.2, -2.1], [-7.9, 2.4, -2.5], [-7.9, 3.8, -4.2], [-7.9, 5.8, -5.0], [-7.9, 9.6, -5.1], [-7.3, 10.9, -6.6], [-6.0, 10.75, -8.4]];
 const RIGHT = [[-3.0, -2.8, 2.7], [-1.0, -2.3, 3.6], [0.0, 0.6, 4.6], [0.5, 3.0, 5.4], [1.1, 3.9, 5.5], [1.5, 3.6, 5.5], [1.5, 2.3, 5.5]];
 const LEFT = [[-7.0, -2.8, 2.4], [-10.0, -2.3, 0.6], [-10.6, -0.6, -1.6], [-10.6, 0.4, -3.0], [-10.6, 0.6, -4.3]];
 
-function scene(level, sc) {
-  useKruemel(level, sc);
+function scene(level) {
   // Aquarium-Scheiben vorn und links (Blick unter Wasser), mit Holzrahmen
   glassWall(level, [
     { min: [-13, -5, 12], max: [6, 0.45, 13] },
@@ -83,7 +82,14 @@ export const LEVEL = {
       { kind: 'islet', pos: [-27, -5, 25], size: 2.2 },
     ],
   },
-  setup: levelSetup(scene),
+  // Level-Haken: Krümel statt Pflaume (nur die Darstellung, Archetyp unverändert); Budget: Holzsteg und Schalter ohne
+  // Sonnenschatten (Blob bleibt)
+  setup: (level, sc) => {
+    useKruemel(level, sc);
+    const quiet = (root) => root?.traverse((m) => { if (m.isMesh) m.castShadow = false; });
+    for (const o of level.view?.three.children ?? []) if (o.name === 'modell:holzsteg') quiet(o);
+    for (const e of level.entities) if (e.kind === 'wasserschalter' || e.kind === 'lantern') quiet(e.model?.root);
+  },
   segments: [
     // ---------------- Würfelkörper: Wiese (y 4) mit Mauseloch unter der Seewarte, Ufer (y 0), Erde unter dem See
     { type: 'island', pos: [-9.5, -6.5, -9.5], size: [7, 10.5, 7], under: 0 },
@@ -102,8 +108,8 @@ export const LEVEL = {
     { type: 'holzsteg', id: 'stegA', pos: [-8, -2.7, 9], yaw: 0, length: 7, width: 2, hub: 2.2, float: 0.1 },
     { type: 'holzsteg', id: 'stegB', pos: [-1, -2.7, 9], yaw: 0, length: 7, width: 2, hub: 2.2, float: 0.1 },
     // Glasröhren-Netz
-    { type: 'glasspipe', id: 'roehre', path: MAIN, radius: 0.9, speed: 9,
-      branches: [{ at: 5, path: UP }, { at: 6, path: RIGHT, enter: false }, { at: 6, path: LEFT }] },
+    { type: 'glasspipe', id: 'roehre', path: MAIN, radius: 0.9, speed: 9, enter: ['start'],
+      branches: [{ at: 5, path: UP }, { at: 6, path: RIGHT, enter: false }, { at: 6, path: LEFT, enter: false }] },
     { type: 'glasspipe', id: 'roehre2', path: [[2.7, 0.95, 5.5], [4.9, 0.95, 5.5], [7.0, 0.95, 5.5]], radius: 0.9, speed: 8, coins: 2 },
     // Treppe vom rechten Ufer auf die Wiese (Stufen 0,25 m: Krümel springt nicht)
     { type: 'stairs', pos: [11, 0, 0], dir: '-z', steps: 16, rise: 0.25, run: 0.375, width: 3, style: 'grass' },
@@ -130,7 +136,7 @@ export const LEVEL = {
       { kind: 'tree', pos: [11.6, 4, -11.4], size: 3.6, color: 'green' }, { kind: 'tree', pos: [-11.4, 4, -11.6], size: 3.2, color: 'autumn' },
       { kind: 'tree', pos: [11.8, 0, 3.4], size: 3, color: 'green' }, { kind: 'bush', pos: [-12, 0, -5.4], size: 0.6 },
       { kind: 'bush', pos: [6.8, 0, -2.4], size: 0.5 }, { kind: 'bush', pos: [-8.8, 4, -7], size: 0.5 },
-      { kind: 'lantern', pos: [6.6, 0, 8.2] }, { kind: 'lantern', pos: [-4, 0, -5.4] }, { kind: 'lantern', pos: [9.2, 4, -6.6] },
+{ kind: 'lantern', pos: [-2.4, 0, -5.5] }, { kind: 'lantern', pos: [9.2, 4, -6.6] },
       { kind: 'lantern', pos: [-9.6, 0, 9.4] },
       { kind: 'fence', from: [-12.4, 4, -6.3], to: [-6.4, 4, -6.3] }, { kind: 'fence', from: [-3.6, 4, -6.3], to: [8.8, 4, -6.3] },
     ] },
@@ -138,6 +144,8 @@ export const LEVEL = {
     { type: 'sign', pos: [-3.4, 0, -5.2], text: 'Röhren-Bahnhof', yaw: 0.2 },
   ],
   items: [
+    // Aufbau-Haken: Laterne am rechten Ufer baut Scheiben, Seewarte, Kuppel, Strand und Zier
+    hook([6.6, 0, 8.2], scene),
     // Ufer und Wiese
     line([8.6, 0.3, 7.5], [8.6, 0.3, 1], 4),
     line([4, 0.3, -4.5], [-3, 0.3, -4.5], 4),
@@ -149,7 +157,6 @@ export const LEVEL = {
     line([3.5, 0.6, 9], [-6, 0.6, 9], 6),
     { kind: 'chest', pos: [5.8, 4, -12], content: 'coins:5', yaw: 0.3 },
     { kind: 'chest', pos: [-11, 0, 8.4], content: 'coins:5', yaw: 1.2 },
-    { kind: 'spotter', pos: [11.8, 4, -9.8], yaw: 2.4 },
   ],
   blocks: [
     // Wasserschalter in der Glaskuppel: hebt See und Holzsteg, Stern 4 erscheint
