@@ -10,7 +10,8 @@
 //   view.add(object3D, updateFn?)                   eigenes Objekt (bewegt/animiert); updateFn(dt, t) je Bild
 //   view.remove(object3D)
 //   view.onFrame(fn) → Abmelde-Funktion             je Bild fn(dt, t)
-//   view.pool(name, makeTemplate, opts)             InstancePool (einmal je Name)
+//   view.pool(name, makeTemplate, opts)             InstancePool (einmal je Name); je Bild nur sichtbare Instanzen,
+//                                                   opts.lod = { dist, make(vorlage) } ferne Exemplare sparsam
 //   view.shadows.add({ pos, radius, alive })        Schatten-Blob
 //   view.effects.dust|sparks|debris|splash|ring|coinPop(...)
 //   view.addLantern(x, y, z)                        Laternenlicht (Thema cave)
@@ -32,6 +33,7 @@ import { CourseEffects } from './Effects.js';
 import { CameraRig } from './CameraRig.js';
 import { ViewMood } from './mood.js';
 import { ViewCulling } from './Culling.js';
+import { poolLod } from './lod.js';
 
 const SHADOW_R = 22;
 const MAX_LANTERNS = 4;
@@ -139,7 +141,8 @@ export class CourseView {
   pool(name, makeTemplate, opts = {}) {
     let p = this.pools.get(name);
     if (!p) {
-      p = new InstancePool(this.three, makeTemplate(), { name, ...opts });
+      // Detailstufe ferner Exemplare: eigene Angabe (lod, false = keine) oder Motor-Vorgabe nach Name (view/lod.js)
+      p = new InstancePool(this.three, makeTemplate(), { name, ...opts, lod: opts.lod === undefined ? poolLod(name) : opts.lod || null });
       this.pools.set(name, p);
     }
     return p;

@@ -175,7 +175,7 @@ async function measure(id, pt) {
     await sc(() => { window.__course.view.optimize = true; window.__course.scene.resume(); });
     const d = await sc(([a, b]) => window.__perf.diff(a, b), [on.toString('base64'), off.toString('base64')]);
     cmp = { frac: d.frac, max: d.max, offCalls: sOff.calls, offTris: sOff.triangles, onCalls: sOn.calls, onTris: sOn.triangles };
-    if (d.frac > 0.0005) {
+    if (d.frac > 0.00002) {
       const { writeFileSync: w } = await import('node:fs');
       w(`${OUT}perf_cmp_${id}_${pt.name}_an.png`, on); w(`${OUT}perf_cmp_${id}_${pt.name}_aus.png`, off);
     }
