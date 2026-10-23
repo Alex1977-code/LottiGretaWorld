@@ -13,7 +13,8 @@
 //     Modellen, einmal vermessen → deterministisch), toWorld(), sharedSlot() (eine Instanz-Gruppe je Level für
 //     Kolonnen aus createInstanced: Marschblöcke, Wuschel).
 //   - Welt 4 (additiv): modelInstances(level, name, opts, n) zeichnet n Kopien eines Registry-Modells als Instanzen
-//     (gleiche Pose für alle; z. B. Flatterkäfer-Rad: 8 Käfer ≈ 8 Zeichenaufrufe statt ≈ 70).
+//     (gleiche Pose für alle; z. B. Flatterkäfer-Rad: 8 Käfer ≈ 8 Zeichenaufrufe statt ≈ 70); sharedModelSlot(level,
+//     name, opts, state) = ein Platz in einer gemeinsamen Gruppe je Level (Riesenameisen).
 //   - Schatten-Stufen (nur Darstellung): initShadows(keep) lässt nur die keep größten Teile des Modells einen
 //     Sonnenschatten werfen (Blob bleibt immer); weiter als SHADOW_NEAR m (bzw. 1,35 × Kameraabstand) vom Blickziel
 //     der Kamera wirft das Modell keinen Sonnenschatten (spart Zeichenaufrufe im Schattenpass ±22 m).
@@ -389,4 +390,47 @@ export function modelInstances(level, name, opts, n, castShadow = 1) {
     },
   };
   return api;
+}
+
+const SHARED_MODELS = new WeakMap();
+
+/**
+ * Gemeinsame Modell-Instanzen je Level und Modell (wie sharedSlot, aber für jedes Registry-Modell über modelInstances):
+ * alle Kopien zeigen dieselbe Pose (state, je Bild animiert). → { set(pos, yaw | Quaternion, scale), hide(), release() }
+ * oder null ohne Ansicht. Weitere Gruppen entstehen, wenn eine voll ist (chunk Plätze je Gruppe).
+ */
+export function sharedModelSlot(level, name, opts = {}, state = 'idle', chunk = 12) {
+  if (!level.view) return null;
+  let byKey = SHARED_MODELS.get(level);
+  if (!byKey) { byKey = new Map(); SHARED_MODELS.set(level, byKey); }
+  const key = `${name}|${JSON.stringify(opts)}|${JSON.stringify(state)}`;
+  let groups = byKey.get(key);
+  if (!groups) { groups = []; byKey.set(key, groups); }
+  let g = groups.find((x) => x.free.length > 0);
+  if (!g) {
+    const inst = modelInstances(level, name, opts, chunk);
+    const free = [];
+    for (let i = chunk - 1; i >= 0; i--) free.push(i);
+    const off = level.view.onFrame((dt) => inst.update(dt, state));
+    g = { inst, free, used: 0, off };
+    groups.push(g);
+  }
+  const i = g.free.pop();
+  g.used++;
+  const gr = g;
+  return {
+    set(pos, yaw = 0, scale = 1) { gr.inst.set(i, pos, yaw, scale); },
+    hide() { gr.inst.hide(i); },
+    release() {
+      gr.inst.hide(i);
+      gr.free.push(i);
+      gr.used--;
+      if (gr.used <= 0) {
+        gr.off();
+        gr.inst.dispose();
+        const k = groups.indexOf(gr);
+        if (k >= 0) groups.splice(k, 1);
+      }
+    },
+  };
 }

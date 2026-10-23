@@ -32,9 +32,10 @@
 //   Daten: { kind: 'riesenameise', path: [[x, y, z], …], speed?: 2, loop?, mode?: 'pingpong' | 'loop' | 'once',
 //            phase?: 0..1, spawner?: true | { every: 3.5, max: 8, first: 0, prefill: true }, id? }
 //   Laufzeit: deckTop (Höhe der Deck-Oberseite), riders, info(); Spawner: spawned, alive.
+//   Darstellung: alle Riesenameisen eines Levels teilen sich Modell-Instanzen (sharedModelSlot, gleicher Gang).
 
 import * as THREE from 'three';
-import { EnemyW2, sharedSlot, figures } from '../EnemyW2.js';
+import { EnemyW2, sharedSlot, sharedModelSlot, figures } from '../EnemyW2.js';
 import { getModel } from '../../models/index.js';
 import { PathMover } from '../../level/PathMover.js';
 import { antPath, resolveAntPath, antPathAt, antOrient } from '../../blocks/antpath.js';
@@ -379,8 +380,9 @@ class Riesenameise extends EnemyW2 {
     this.carried = 0;
     this.prev = { x: this.pos.x, y: this.pos.y, z: this.pos.z, yaw: this.yaw };
     this.syncDeck(0, true);
-    if (level.view) this.setModel(getModel('riesenameise'));
-    this.initShadows(2);
+    // Darstellung: alle Riesenameisen eines Levels als Instanzen (gleicher Gang), sonst eigenes Modell
+    this.slot = sharedModelSlot(level, 'riesenameise', {}, { anim: 'walk', speed: this.speed });
+    if (!this.slot && level.view) { this.setModel(getModel('riesenameise')); this.initShadows(2); }
   }
 
   /** Blickrichtung aus dem aktuellen Pfadstück (PathMover). */
@@ -462,9 +464,16 @@ class Riesenameise extends EnemyW2 {
   modelState() { return { anim: this.state === 'leave' || this.state === 'walk' ? (this.riders.size ? 'carry' : 'walk') : 'idle', speed: this.speed }; }
 
   syncModel() {
+    if (this.slot) { if (!this.removed) this.slot.set(this.pos, this.yaw, this.scale); return; }
     if (!this.model) return;
     super.syncModel();
     this.model.root.scale.setScalar(this.scale);
+  }
+
+  dispose() {
+    this.slot?.release();
+    this.slot = null;
+    super.dispose();
   }
 
   info() {

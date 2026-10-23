@@ -102,7 +102,7 @@ export const LEVEL = {
     // ---- 3 links: Lavabrocken, Druckfeld, Zielscheibe
     { kind: 'lavabrocken', id: 'lb1', pos: at(-15, 3, 4), behavior: 'walk', path: [at(-16, 3, 4), at(-12, 3, 4)] },
     { kind: 'lavabrocken', id: 'lb2', pos: at(-9, 3, 9) },
-    { kind: 'pilzling', id: 'lb_ziel', pos: at(-7, 3, 4), path: [at(-8, 3, 4), at(-6, 3, 4)] },
+    { kind: 'pilzling', id: 'lb_ziel', pos: at(-7, 3, 4), speed: 0.001 },   // Zielscheibe (steht)
     // ---- 3 rechts: Walzenwerfer
     { kind: 'walzenwerfer', id: 'ww_saeule', pos: at(11.5, 3, 12.2), pillar: 2.6, dir: [0, 1], aim: 'dir', interval: 2.6, sight: 30 },
     { kind: 'walzenwerfer', id: 'ww_boden', pos: at(17, 3, 3), dir: [-1, 0], aim: 'player', sight: 9, interval: 3 },

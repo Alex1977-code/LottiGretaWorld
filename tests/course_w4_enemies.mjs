@@ -188,9 +188,21 @@ const am = await sc(() => {
   c.setInput({ crouch: true }); c.step(1);
   for (let i = 0; i < 80 && !r.defeated; i++) { c.setInput({}); c.step(1); if (p.mode === 'air' && p.state === 'groundpound') { p.pos.x = r.foot.x; p.pos.z = r.foot.z; } }
   out.pound = { defeated: r.defeated, state: r.state };
+  // Strom aus einer Röhre (4-Haus): Hörner-Ameisen kommen alle 1,5 s, laufen den Pfad und verschwinden am Ende
+  const sp = L.spawn('ameisensoldat_horn', { spawner: { every: 1.5, max: 3, prefill: false }, antpath: [[-16, 1, t.Z(1, 1.5)], [-8, 1, t.Z(1, 1.5)]], speed: 2 });
+  const ants = new Set();
+  let maxAlive = 0, gone = 0;
+  for (let i = 0; i < 1440; i++) {
+    c.step(1);
+    for (const e of L.entities) if (e.kind === 'ameisensoldat_horn' && e.mode === 'once') ants.add(e);
+    maxAlive = Math.max(maxAlive, sp.aliveCount);
+  }
+  for (const e of ants) if (e.removed) gone++;
+  out.strom = { spawned: sp.spawned, maxAlive, gone };
   return out;
 });
 console.log(`  Ameisen: ${JSON.stringify(am)}`);
+check(`Ameisen-Strom: alle 1,5 s eine neue, solange < 3 unterwegs (${am.strom.spawned} in 12 s), höchstens 3 gleichzeitig, am Pfadende verschwunden (${am.strom.gone})`, am.strom.spawned >= 6 && am.strom.maxAlive <= 3 && am.strom.gone >= 3);
 check('Ameisen-Kolonne: läuft den Rundweg (Ecken gedreht), Abstand entlang des Pfads bleibt 1,7 m', am.loop.L > 29 && am.loop.turned > 5 && am.loop.x[1] - am.loop.x[0] > 6 && Math.abs(am.loop.gaps[0] - 1.7) < 0.05 && Math.abs(am.loop.gaps[1] - 1.7) < 0.05);
 check('Freie Ameise (ohne Pfad) läuft', am.frei > 1);
 check('Ameise seitlich = Treffer', am.side);
@@ -381,7 +393,7 @@ const lb = await sc(() => {
   t.place([b.pos.x + 0.9, 1, b.pos.z], { settle: 4, yaw: Math.PI });
   t.action();
   out.pick = { holding: p.holding === b, state: b.state };
-  t.moveTo([ziel.pos.x + 3.6, 1.2, ziel.pos.z]);
+  t.moveTo([ziel.pos.x - 3.4, 1.2, ziel.pos.z]);   // im Gehege (die Gehegemauer liegt bei x −4)
   t.face(ziel.pos.x, ziel.pos.z);
   c.step(1);
   t.action();
