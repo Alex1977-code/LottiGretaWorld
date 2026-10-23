@@ -706,6 +706,45 @@ const cl = await sc(() => {
 console.log(`  Klone: ${JSON.stringify(cl)}`);
 check('Klon: Lavabrocken läuft zur nächsten Figur (Klon), Walzenwerfer zielt auf ihn', cl.api && cl.brocken.target && cl.brocken.d1 < cl.brocken.d0 - 1.5 && cl.werfer.target && cl.werfer.err < 0.3);
 check('Klon: Träger-Ameise trägt den Klon, Rankenschnapper schnappt nach ihm', cl.ameise.rode > 200 && !cl.ameise.defeated && cl.ranke);
+// ================================================================ Gleitblatt: echter Schwanzhieb, Statue (für Gegner unsichtbar)
+const gb = await sc(() => {
+  const c = window.__course, t = window.__t, L = c.level, p = c.player;
+  const out = {};
+  const b = L.spawn('lavabrocken', { pos: [-9, 1, t.Z(3, 12)], behavior: 'walk', charge: false });
+  const a = L.spawn('ameisensoldat_horn', { pos: [-13, 1, t.Z(3, 12)], dir: [1, 0], speed: 0.001, ride: false });
+  c.step(2);
+  // Schwanzhieb (Gleitblatt, Aktion) neben dem Lavabrocken: betäubt; neben der Hörner-Ameise: besiegt
+  t.place([b.pos.x + 1.0, 1, b.pos.z], { settle: 2, power: 'gleitblatt' });
+  p.setPower('gleitblatt');
+  t.safe(true);
+  c.setInput({ action: true }); c.step(1);
+  const style = p.attackInfo?.style ?? null;
+  c.setInput({}); c.step(30);
+  out.tail = { style, brocken: b.state };
+  t.place([a.foot.x + 1.0, 1, a.foot.z], { settle: 40 });
+  p.setPower('gleitblatt');
+  c.setInput({ action: true }); c.step(1); c.setInput({}); c.step(30);
+  out.tailAnt = a.defeated;
+  t.safe(false);
+  // Statue: ein Verfolger (Lavabrocken) sieht sie nicht
+  b.kill();
+  const j = L.spawn('lavabrocken', { pos: [-15, 1, t.Z(3, 7)], charge: false, sight: 9 });
+  t.place([-10, 1, t.Z(3, 7)], { settle: 2 });
+  p.setPower('gleitblatt');
+  c.step(120);
+  const chased = j.state === 'chase';
+  c.setInput({ crouch: true }); c.step(1); c.setInput({ crouch: true, action: true }); c.step(1);
+  const statue = !!p.statue;
+  for (let i = 0; i < 200; i++) { c.setInput({ crouch: true }); c.step(1); }
+  out.statue = { chased, statue, state: j.state, hurt: !p.big || p.dead, still: !!p.statue };
+  c.setInput({});
+  c.step(90);
+  j.kill();
+  return out;
+});
+console.log(`  Gleitblatt: ${JSON.stringify(gb)}`);
+check('Echter Schwanzhieb (Gleitblatt): betäubt den Lavabrocken, besiegt die Hörner-Ameise', gb.tail.style === 'tail' && gb.tail.brocken === 'stunned' && gb.tailAnt);
+check('Statue ist für Gegner unsichtbar: Lavabrocken hört auf zu verfolgen', gb.statue.chased && gb.statue.statue && gb.statue.state === 'walk' && !gb.statue.hurt);
 check('Keine Konsolenfehler (Zoo-Prüfungen)', errors.length === 0);
 
 // ================================================================ Bilder und Kennzahlen (Zoo, frisch geladen)
