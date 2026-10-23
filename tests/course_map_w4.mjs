@@ -374,7 +374,8 @@ if (part(7)) {
   r = await sc(() => {
     const mu = window.__audio.music, m = window.__courseMap;
     mu.setManualClock(true);
-    const spb = 60 / 122;
+    const bpmTheme = mu.themeInfo('course_world4_map').bpm;
+    const spb = 60 / bpmTheme;
     const b0 = m.state().beep;
     mu.advanceClock((4 - (b0.beat % 4)) * spb + 0.02);       // knapp nach dem nächsten Wechsel
     const b1 = m.state().beep;
@@ -384,16 +385,16 @@ if (part(7)) {
     const b3 = m.state().beep;
     mu.advanceClock(0.4 * spb);                               // Wechsel
     const b4 = m.state().beep;
-    return { b0, b1, b2, b3, b4, bpm: mu.beat().bpm };
+    return { b0, b1, b2, b3, b4, bpm: mu.beat().bpm, bpmTheme };
   });
   console.log('  Piep:', JSON.stringify(r));
-  check('Piep-Blöcke folgen der Taktuhr der Kartenmusik (course_world4_map, 122 BPM)', r.b0.theme === 'course_world4_map' && r.bpm === 122 && r.b1.source !== 'zeit');
+  check(`Piep-Blöcke folgen der Taktuhr der Kartenmusik (course_world4_map, ${r.bpmTheme} BPM)`, r.b0.theme === 'course_world4_map' && r.bpm === r.bpmTheme && r.b1.source !== 'zeit');
   check('Wechsel alle 4 Zählzeiten: aktiver Satz wechselt am Taktanfang, bleibt in der Phase, warnt in der letzten Zählzeit',
     r.b1.active !== r.b0.active && r.b2.active === r.b1.active && !r.b2.warn && r.b3.warn && r.b3.active === r.b1.active && r.b4.active !== r.b3.active);
   await frames(3);
   const shownA = await sc(() => window.__courseMap.state().beep);
   await shot('piep_a', 300, false);
-  await sc(() => window.__audio.music.advanceClock(4 * 60 / 122));
+  await sc(() => window.__audio.music.advanceClock(4 * 60 / window.__audio.music.themeInfo('course_world4_map').bpm));
   await frames(3);
   const shownB = await sc(() => window.__courseMap.state().beep);
   await shot('piep_b', 300, false);

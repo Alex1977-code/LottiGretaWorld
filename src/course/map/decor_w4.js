@@ -416,7 +416,9 @@ function lavaIsle(ev, x, y, z) {
 // ------------------------------------------------------------------ 4-3 Lautsprecherturm mit Piep-Blöcken
 
 export const BEEP_SWITCH = 4;          // Zählzeiten je Phase (ein Takt der Kartenmusik)
-const MAP_BPM = 122;                   // course_world4_map (Ersatz, falls keine Musikuhr läuft)
+// Ersatz-Tempo, falls keine Musikuhr läuft: Tempo von course_world4_map (nach der Neukomposition 128 BPM)
+let mapBpm = 0;
+const MAP_BPM = () => mapBpm || (mapBpm = music.themeInfo?.('course_world4_map')?.bpm ?? 128);
 
 /** Piep-Block (0,9 m) in Kartenqualität: runde Kanten, helle Frontfläche, Note. Farbe col. */
 function beepBlockGeo(col, light) {
@@ -534,11 +536,11 @@ function beepTower(ev, x, y, z) {
   }
   for (let k = 0; k < 4; k++) spots[k % 2].push([x + 3.6 + k * 0.95, y + 0.45 + k * 0.5, z + 3.6, 0]);
   const beep = {
-    /** Zustand aus der Taktuhr der Musik (Ersatz: Bildzeit bei 122 BPM): aktiver Satz, Warnblinken, Zählzeit. */
+    /** Zustand aus der Taktuhr der Musik (Ersatz: Bildzeit im Tempo der Kartenmusik): aktiver Satz, Warnblinken, Zählzeit. */
     info(t = ev.view.time) {
       const mb = music.beat();
       const useMusic = mb.bpm > 0 && mb.playing;
-      const beat = useMusic ? mb.beat : (t * MAP_BPM) / 60;
+      const beat = useMusic ? mb.beat : (t * MAP_BPM()) / 60;
       const phase = Math.floor(beat / BEAT_PHASE()) % 2;
       const inPhase = beat - Math.floor(beat / BEAT_PHASE()) * BEAT_PHASE();
       return { active: phase === 0 ? 'a' : 'b', beat: +beat.toFixed(3), warn: inPhase >= BEAT_PHASE() - 1, source: useMusic ? mb.source : 'zeit', theme: mb.theme };
