@@ -69,7 +69,7 @@ function setup(level) {
   const parts = [];
   almHut(parts, 8.6, YA, 5.4, 1, -0.3);
   cow(parts, 9.2, YA, -4.5, 2.6, 1); cow(parts, 6.8, YA, -8.6, -2.2, 0.9);
-  cow(parts, -8.6, YC, -61, 0.6, 1); cow(parts, 8.4, YD, -88.5, PI + 0.4, 1);
+  cow(parts, -9.6, YC, -55.6, 0.6, 1); cow(parts, 8.4, YD, -88.5, PI + 0.4, 1);
   cow(parts, 7.6, YZ, -214, -0.8, 1); cow(parts, -7.2, YZ, -226.4, 0.4, 0.85);
   hayBale(parts, 10.6, YA, 0.4, 0.3); hayBale(parts, 10.2, YA, -1.4, 1.2); hayBale(parts, -9.4, YB, -33.6, 0.6); hayBale(parts, 10, YD, -78.4, 1.1);
   hayBale(parts, -9.8, YZ, -210, 0.2);
