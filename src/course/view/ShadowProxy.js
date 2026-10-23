@@ -8,8 +8,8 @@
 // Ausgenommen (zeichnen ihren Schatten weiter selbst): Teile mit Alpha-Test/Alpha-Karte, eigenem Tiefenmaterial,
 // Morph-Zielen, Skinning, Instanzen, Material-Listen oder frustumCulled = false.
 //
-// Nutzung: view.shadowProxy(root) (einmal; root = Hülle der Figur) – die Heldin (Objekte „heldin“) bekommt ihn
-// automatisch. Ändert sich der Aufbau (Kostüm, Figurwechsel, castShadow eines Teils), wird der Stellvertreter neu
+// Nutzung: view.shadowProxy(root) (einmal; root = Hülle der Figur) – Heldin, Ritt und Pflaume (Objekte „heldin“,
+// „ritt“, „pflaume“) bekommen ihn automatisch. Ändert sich der Aufbau (Kostüm, Figurwechsel, castShadow eines Teils), wird der Stellvertreter neu
 // gebaut; Sichtbarkeit wechselt ohne Neubau (Matrix 0).
 
 import * as THREE from 'three';
@@ -135,7 +135,7 @@ export class ShadowProxies {
   constructor(view) {
     this.view = view;
     this.list = [];
-    this.auto = new Set(['heldin']);
+    this.auto = new Set(['heldin', 'ritt', 'pflaume']);   // Heldin, Ritt (Heldin auf Pflaume mit Floß), Pflaume
   }
 
   add(root) {
