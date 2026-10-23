@@ -7,7 +7,7 @@
 // Funkelstern, endloser Strom), Zeit bis zum Ziel, Kennzahlen je Abschnitt (Zeichenaufrufe < 120 inkl. Schattenpass,
 // Dreiecke < 300 k) und Bilder aus der Spielkamera (tests/out/w4a_*.png).
 // Aufruf (nach npm run build): PORT_BASE=5000 node tests/course_w4a.mjs [4-1|4-2]
-//   PARTS=route,targets,extra,shots (Standard alle; je Lauf ≤ 10 min) · HEROES=lotti,greta · ONLY=<Text> (nur Ziele/Extras
+//   PARTS=route,sweep,targets,extra,shots (Standard alle; je Lauf ≤ 10 min; sweep = Kennzahlen entlang der Route) · HEROES=lotti,greta · ONLY=<Text> (nur Ziele/Extras
 //   mit diesem Namensteil) · SHOTS_ONLY=1 · VERBOSE=1 (Protokoll der Beine)
 //
 // Der Bot lenkt je Schritt zum nächsten Wegpunkt (Stick relativ zur Kamera-Gier wie im Spiel). Die Figur ist während der
@@ -218,7 +218,7 @@ const LEVELS = only ? [only] : Object.keys(ROUTES);
 const SHOTS_ONLY = !!process.env.SHOTS_ONLY;
 const ONLY = process.env.ONLY ?? null;
 const pick = (list) => (ONLY ? list.filter((t) => t.name.includes(ONLY)) : list);
-const PARTS = new Set((process.env.PARTS ?? 'route,targets,extra,shots').split(','));
+const PARTS = new Set((process.env.PARTS ?? 'route,sweep,targets,extra,shots').split(','));
 const HEROES = (process.env.HEROES ?? 'lotti,greta').split(',');
 
 /** Hilfen in der Seite: Figur setzen, Bot-Fahrt, Zustand. */
@@ -302,10 +302,15 @@ function install() {
       let deadLogged = false;
       const mech = { carried: 0, wallRide: 0, maxRideY: -99, spikes: 0, deckSteps: 0, hurts: 0, vines: [], bounces: 0, poison: 0 };
       const vineSet = new Set();
+      const track = [];
       let curAnt = null, curGiant = null;
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
         c.setInput(inp); c.step(1); steps++;
+        if (p.mode === 'ground' && !p.dead) {
+          const t = track[track.length - 1];
+          if (!t || Math.hypot(p.pos.x - t[0], p.pos.z - t[2]) > 7) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+        }
         if (p.mode === 'ground' && p.ground?.spikes) mech.spikes++;
         if (p.mode === 'ground' && p.ground?.owner?.kind === 'rankenschnapper') vineSet.add(p.ground.owner.spec?.id ?? '?');
         if (p.dead && p.deathCause === 'lava') mech.poison++;
@@ -615,7 +620,7 @@ function install() {
       c.setInput({});
       mech.hurts = p.hurtTries ?? 0;
       mech.vines = [...vineSet];
-      return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power };
+      return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
       const p = P();
@@ -700,6 +705,7 @@ for (const id of LEVELS) {
   for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
+  let sweepTrack = null;
   for (const hero of SHOTS_ONLY || ONLY || !PARTS.has('route') ? [] : HEROES) {
     await load(id);
     await W('place', R.start, { hero, settle: 2 });
@@ -709,10 +715,30 @@ for (const id of LEVELS) {
     if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
     check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
     check(`${id}: ${hero} Zeit bis zum Ziel < 240 s (${res.time.toFixed(1)} s)`, reached && res.time < 240);
+    if (hero === HEROES[0] && PARTS.has('sweep')) sweepTrack = res.track;
     if (id === '4-1') {
       check(`${id}: ${hero} – Ameisen tragen die Figur (Wand hinauf bis ${res.mech.maxRideY.toFixed(1)} m, ${res.mech.wallRide} Schritte an Wänden)`, res.mech.wallRide > 400 && res.mech.maxRideY > Y + 6);
       check(`${id}: ${hero} – Riesenameisen über das Stachelfeld ohne Stachelkontakt (${res.mech.deckSteps} Schritte auf Decks, ${res.mech.spikes} auf Stacheln)`, res.mech.deckSteps > 2000 && res.mech.spikes === 0);
     }
+  }
+
+  // ------------------------------------------------ Kennzahlen entlang der ganzen Route (alle ~7 m ein Messpunkt)
+  if (sweepTrack?.length) {
+    await load(id);
+    let worst = { calls: 0, tris: 0, at: null, atT: null };
+    const per = [];
+    for (const pt of sweepTrack) {
+      await W('place', pt, { settle: 6 });
+      const f0 = await sc(() => { window.__course.snapCamera(); return window.__course.view.frame; });
+      await page.waitForFunction((f) => window.__course.view.frame >= f + 6, f0, { timeout: 90000 });
+      const st = await sc(() => window.__course.stats());
+      per.push([pt, st.calls, st.triangles]);
+      if (st.calls > worst.calls) { worst.calls = st.calls; worst.at = pt; }
+      if (st.triangles > worst.tris) { worst.tris = st.triangles; worst.atT = pt; }
+    }
+    if (process.env.VERBOSE) for (const [pt, cl, tr] of per) console.log(`      ${pt.join(', ').padEnd(26)} ${cl} Aufrufe ${Math.round(tr / 1000)} k`);
+    check(`${id}: Messgang über ${per.length} Punkte der Route – Zeichenaufrufe < 120 (max ${worst.calls} bei ${worst.at?.map((v) => v.toFixed(0)).join(', ')})`, worst.calls < 120);
+    check(`${id}: Messgang – Dreiecke < 300 k (max ${Math.round(worst.tris / 1000)} k bei ${worst.atT?.map((v) => v.toFixed(0)).join(', ')})`, worst.tris < 300000);
   }
 
   // ------------------------------------------------ Sterne und Stempel
