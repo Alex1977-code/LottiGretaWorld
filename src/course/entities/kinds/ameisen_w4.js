@@ -2,7 +2,7 @@
 // Riesenameise (Laufuntergrund über dem Stachelfeld). Präzisierung (Gegner Welt 4) in docs/KURS-ARCHITEKTUR.md.
 //
 // ameisensoldat / ameisensoldat_horn – marschieren auf einem **Ameisenpfad** über Böden und Wände (Datenformat
-//   `antpath` wie blocks/antpath.js des Bausteine-Agenten: [[x, y, z, nx, ny, nz], …] Fußpunkte auf der Lauffläche mit
+//   `antpath`, blocks/antpath.js: [[x, y, z, nx, ny, nz], …] Fußpunkte auf der Lauffläche mit
 //   Flächennormale; zwei Punkte an derselben Stelle mit neuer Normale = Kante, dort kippt die Ameise weich über `round`
 //   0,35 m; ohne Normale [0, 1, 0]; { path, loop } für Rundwege; oder die Id eines Bausteins `ameisenweg`). Ohne Pfad
 //   laufen sie am Boden wie Pilzlinge (dir, Umkehr an Kanten/Wänden).
@@ -37,95 +37,23 @@ import * as THREE from 'three';
 import { EnemyW2, sharedSlot, figures } from '../EnemyW2.js';
 import { getModel } from '../../models/index.js';
 import { PathMover } from '../../level/PathMover.js';
+import { antPath, resolveAntPath, antPathAt, antOrient } from '../../blocks/antpath.js';
 
-const TAU = Math.PI * 2;
 
 // =====================================================================================================================
-// Ameisenpfad (Datenformat antpath – gleiche Struktur wie blocks/antpath.js: { pts: [{ p, n }], segs, L, loop, round })
+// Ameisenpfad: Datenformat und Abtasten aus blocks/antpath.js (Bausteine Welt 4)
 // =====================================================================================================================
 
-/** Datenformat → Pfad. data: Liste | { path, loop } | fertiger Pfad. */
-export function antTrack(data, opts = {}) {
-  if (data && data.pts && data.segs) return data;
-  const list = Array.isArray(data) ? data : data?.path ?? [];
-  const loop = !!(opts.loop ?? data?.loop);
-  const pts = list.map((q) => ({
-    p: new THREE.Vector3(q[0], q[1], q[2]),
-    n: new THREE.Vector3(q[3] ?? 0, q[4] ?? 1, q[5] ?? 0).normalize(),
-  }));
-  const segs = [];
-  let L = 0;
-  const n = pts.length;
-  const last = loop ? n : n - 1;
-  for (let i = 0; i < last; i++) {
-    const a = pts[i], b = pts[(i + 1) % n];
-    const l = a.p.distanceTo(b.p);
-    segs.push({ a, b, i, l, s0: L, corner: l < 1e-4 && a.n.dot(b.n) < 0.999 });
-    L += l;
-  }
-  return { pts, segs, L, loop, round: opts.round ?? data?.round ?? 0.35 };
-}
-
-/** Pfad aus Gegnerdaten: Id eines `ameisenweg` (level.named → handle.path | handle.data), Liste oder Objekt. */
+/** Pfad aus Gegnerdaten (antpath | path): Id eines `ameisenweg`, Liste (mit loop) oder { path, loop }. */
 export function resolveTrack(level, ref, loop) {
   if (!ref) return null;
   if (typeof ref === 'string') {
-    const h = level?.named?.get(ref);
-    if (!h) { console.warn(`[Ameise] Ameisenweg fehlt: ${ref}`); return null; }
-    if (h.path?.pts && h.path?.segs) return h.path;
-    if (h.data) return antTrack(h.data, { loop: h.loop });
-    return null;
+    const t = resolveAntPath(level, ref);
+    if (!t) console.warn(`[Ameise] Ameisenweg fehlt: ${ref}`);
+    return t;
   }
-  return antTrack(ref, { loop });
-}
-
-const _n = new THREE.Vector3();
-const smooth01 = (x) => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
-
-/** Lage auf dem Pfad bei Bogenlänge s → out { pos, normal, tangent, s, face }. */
-export function trackAt(path, s, out) {
-  const { segs, L } = path;
-  if (!segs.length) {
-    const p0 = path.pts[0];
-    if (p0) { out.pos.copy(p0.p); out.normal.copy(p0.n); } else { out.pos.set(0, 0, 0); out.normal.set(0, 1, 0); }
-    out.tangent.set(1, 0, 0); out.s = 0; out.face = 0;
-    return out;
-  }
-  if (path.loop && L > 0) s = ((s % L) + L) % L; else s = Math.max(0, Math.min(L, s));
-  out.s = s;
-  let k = segs.length - 1;
-  for (let i = 0; i < segs.length; i++) { const g = segs[i]; if (g.l > 1e-4 && s <= g.s0 + g.l + 1e-9) { k = i; break; } }
-  let g = segs[k];
-  if (g.l <= 1e-4) { for (let i = segs.length - 1; i >= 0; i--) if (segs[i].l > 1e-4) { k = i; g = segs[i]; break; } }
-  const t = g.l > 0 ? Math.max(0, Math.min(1, (s - g.s0) / g.l)) : 0;
-  out.pos.copy(g.a.p).lerp(g.b.p, t);
-  out.tangent.copy(g.b.p).sub(g.a.p).normalize();
-  out.face = g.i;
-  out.normal.copy(g.a.n);
-  const r = path.round;
-  const prev = segs[(k - 1 + segs.length) % segs.length], next = segs[(k + 1) % segs.length];
-  if (prev && prev.corner && (k > 0 || path.loop)) {
-    const d = s - g.s0;
-    if (d < r) { const w = 0.5 + 0.5 * (d / r); _n.copy(prev.a.n).lerp(g.a.n, smooth01(w)); out.normal.copy(_n.normalize()); }
-  }
-  if (next && next.corner && (k < segs.length - 1 || path.loop)) {
-    const d = g.s0 + g.l - s;
-    if (d < r) { const w = 0.5 - 0.5 * (d / r); _n.copy(g.a.n).lerp(next.b.n, smooth01(w)); out.normal.copy(_n.normalize()); }
-  }
-  return out;
-}
-
-const _x = new THREE.Vector3(), _y = new THREE.Vector3(), _z = new THREE.Vector3(), _mb = new THREE.Matrix4();
-
-/** Quaternion: Blick +X entlang tangent, oben +Y = normal. */
-export function antOrient(normal, tangent, q) {
-  _y.copy(normal).normalize();
-  _x.copy(tangent).addScaledVector(_y, -tangent.dot(_y));
-  if (_x.lengthSq() < 1e-8) _x.set(1, 0, 0).addScaledVector(_y, -_y.x);
-  _x.normalize();
-  _z.crossVectors(_x, _y).normalize();
-  _mb.makeBasis(_x, _y, _z);
-  return q.setFromRotationMatrix(_mb);
+  if (Array.isArray(ref) && loop) return antPath({ path: ref, loop: true });
+  return resolveAntPath(level, ref);
 }
 
 const _rm = new THREE.Matrix4();
@@ -234,7 +162,7 @@ class Ameise extends EnemyW2 {
   /** Lage (Fußpunkt, Normale, Richtung) → Quaternion, Hülle, Reit-Quader, mover. */
   place(dt, first) {
     if (this.track) {
-      trackAt(this.track, this.s, this.at);
+      antPathAt(this.track, this.s, this.at);
       this.foot.copy(this.at.pos);
       this.normal.copy(this.at.normal);
       this.tangent.copy(this.at.tangent).multiplyScalar(this.sdir);

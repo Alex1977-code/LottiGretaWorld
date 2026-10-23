@@ -767,14 +767,19 @@ const BOSS_HELPERS = ([id, startZ]) => {
   t.grab = () => {
     const p = c.player;
     let br = null;
-    for (let i = 0; i < 1200 && !br; i++) { br = t.brocken().find((e) => e.grounded && (e.state === 'walk' || e.state === 'chase' || e.state === 'stunned')) ?? null; if (!br) { p.hurt = () => false; c.step(1); delete p.hurt; } }
-    if (!br) return null;
+    p.hurt = () => false;
+    for (let i = 0; i < 1200 && !br; i++) { br = t.brocken().find((e) => e.grounded && (e.state === 'walk' || e.state === 'chase' || e.state === 'stunned')) ?? null; if (!br) c.step(1); }
+    if (!br) { delete p.hurt; return null; }
     if (br.state !== 'stunned') t.stomp(br);
-    const d = 0.9;
-    t.place([br.pos.x + d, br.pos.y, br.pos.z], { settle: 2, yaw: Math.PI });
+    p.hurt = () => false;
+    // zur Arenamitte hin danebenstellen und aufheben
+    const ax = -br.pos.x, az = -br.pos.z, al = Math.hypot(ax, az) || 1;
+    t.place([br.pos.x + (ax / al) * 0.9, br.pos.y, br.pos.z + (az / al) * 0.9], { settle: 2 });
+    p.hurt = () => false;
     if (br.state !== 'stunned') br.stun();
     t.face(br.pos.x, br.pos.z);
     t.action();
+    delete p.hurt;
     return p.holding === br ? br : null;
   };
   /** Getragenen Brocken aus dist m auf den König werfen (wartet auf 'rest'); → { thrown, hit } */
@@ -850,7 +855,7 @@ const kb = await sc(() => {
     out.fbHurt = hurtF;
   }
   t.untilSafe('rest', 1500, [0, 2, 9.5]);
-  c.step(400);
+  p.hurt = () => false; c.step(400); delete p.hurt;
   out.feuerOut = t.count('feuerbrocken');
   // nicht verwundbar im Wirbel: Wurf in 'spin' zählt nicht
   const g2 = t.grab();
@@ -875,11 +880,11 @@ const kb = await sc(() => {
   const g4 = p.holding ?? t.grab();
   const w4 = t.throwAtBoss(4, 'rest');
   out.hit3 = { ...w4, ok: !!g4, defeated: b.defeated };
-  out.feuerTotal = b.feuer;
   out.endless = { summoned: b.summoned, summons: b.summons };
-  out.banners = t.banners.slice();
   t.untilSafe('gone', 1500, [0, 2, 9.5]);
   c.step(2);
+  out.feuerTotal = b.feuer;
+  out.banners = t.banners.slice();
   out.gone = { state: b.state, visible: b.visible, won: t.arch().won, warp: t.ent('warp_sieg').hidden, star: t.count('star'), brocken: t.brocken().length + L.entities.filter((e) => e.kind === 'lavabrocken' && !e.removed && !e.defeated).length };
   // Stern einsammeln, Warp-Box → Plateau → Zielmast
   const st = L.entities.find((e) => e.kind === 'star' && !e.removed);

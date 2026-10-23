@@ -84,10 +84,12 @@ class Lavabrocken extends EnemyW2 {
         break;
       case 'walk':
         this.walk(dt, this.speed);
+        this.separate(dt);
         if (this.behavior === 'chase' && this.grounded && this.canSee(this.sight, 2.5)) this.setState('chase');
         break;
       case 'chase': {
         this.chase(dt, this.chaseSpeed);
+        this.separate(dt);
         if (!this.canSee(this.sight * 1.5, 4)) { this.setState('walk'); break; }
         const d = this.playerDist();
         if (this.canCharge && this.cool <= 0 && d < this.sight * 0.8 && d > 1.2 && this.grounded) {
@@ -133,6 +135,24 @@ class Lavabrocken extends EnemyW2 {
       case 'thrown': this.fly(dt); break;
       default: break;
     }
+  }
+
+  /** Lavabrocken drängen sich nicht auf einen Fleck (weiches Abstoßen untereinander, mit Kollision). */
+  separate(dt) {
+    let sx = 0, sz = 0;
+    for (const e of this.level.entities) {
+      if (e === this || e.kind !== 'lavabrocken' || e.removed || e.defeated || e.carrier || e.state === 'thrown') continue;
+      const dx = this.pos.x - e.pos.x, dz = this.pos.z - e.pos.z, d = Math.hypot(dx, dz);
+      if (d >= 0.9 || Math.abs(e.pos.y - this.pos.y) > 0.8) continue;
+      if (d < 1e-4) { const a = (this.level.time * 7.7 + this.pos.x) % 6.28; sx += Math.cos(a); sz += Math.sin(a); continue; }
+      const k = (0.9 - d) / 0.9;
+      sx += (dx / d) * k; sz += (dz / d) * k;
+    }
+    if (!sx && !sz) return;
+    const c = this.center();
+    const own = this.shapes.length ? new Set(this.shapes) : null;
+    this.level.world.moveAABB(c, this.half, { x: sx * 2.5 * dt, y: 0, z: sz * 2.5 * dt }, { step: 0.25, ignore: own ? (sh) => own.has(sh.id) : null });
+    this.pos.x = c.x; this.pos.z = c.z;
   }
 
   // ------------------------------------------------------------------ Zustandswechsel

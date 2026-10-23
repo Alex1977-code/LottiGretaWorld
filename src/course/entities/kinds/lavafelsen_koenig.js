@@ -137,7 +137,11 @@ class LavafelsenKoenig extends EnemyW2 {
   update(dt) {
     this.stateT += dt;
     this.brocken = this.brocken.filter((b) => !b.removed && !b.defeated);
-    this.syncArch();
+    this.run(dt);
+    this.syncArch();    // nach dem Zustandswechsel, vor dem Boss-Archetyp (afterStep)
+  }
+
+  run(dt) {
     switch (this.state) {
       case 'wait':
         this.stand(dt);

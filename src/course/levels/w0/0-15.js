@@ -12,7 +12,7 @@
 //                     Lavafunken im Takt
 //   5 (−88 … −102)    links Flatterkäfer-Rad (senkrecht, 8 Käfer) · rechts Vorhandene im Welt-4-Einsatz: Bumerang-Werfer,
 //                     Pilzlingsturm, Rollpilz
-//   Ziel bei z −125. Thema 'desert' (bis es das Canyon-Thema gibt), Musik course_canyon.
+//   Ziel bei z −125. Thema 'canyon', Musik course_canyon.
 // Hilfe Z(r, dz) = z der Reihe r, dz Meter hinter ihrer Vorderkante (auch in den Tests).
 
 const Y = 1;
@@ -34,7 +34,7 @@ const at = (x, r, dz, y = Y) => [x, y, Z(r, dz)];
 
 // Ameisenwand (Reihe 1 rechts): Block, Mitte der Unterseite (x, Y, z), Breite 6 (x), Höhe 4, Tiefe 2 (z)
 const WALL = { x: 11.5, z: Z(1, 8), w: 6, h: 4, d: 2 };
-/** Ameisenpfad über den Block (antpath-Format; wie antPathOver des Bausteins ameisenweg). */
+/** Ameisenpfad über den Block als Liste (antpath-Format, wie antPathOver) – für die Hörner-Ameise. */
 function over(x, from = 3, to = 3) {
   const zf = WALL.z + WALL.d / 2, zb = WALL.z - WALL.d / 2, y0 = Y, y1 = Y + WALL.h;
   return [
@@ -50,7 +50,7 @@ export const LEVEL = {
   world: 0,
   title: 'Gegnerzoo Canyon',
   archetype: 'parcours',
-  theme: 'desert',
+  theme: 'canyon',
   music: 'course_canyon',
   timeLimit: 999,
   start: { pos: [0, Y, 6], yaw: Math.PI / 2 },
@@ -61,6 +61,8 @@ export const LEVEL = {
     ...L(1), ...R(1), ...L(2), ...R(2), ...L(3), ...R(3), ...L(4), ...R(4), ...L(5), ...R(5),
     // 1 rechts: Ameisenwand
     { type: 'wall', pos: [WALL.x, Y, WALL.z], size: [WALL.w, WALL.h, WALL.d], style: 'stone' },
+    // Ameisenpfad über den Block als Baustein (Spur, level.named 'wandweg') – die Ameise 'amw' liest ihn per Id
+    { type: 'ameisenweg', id: 'wandweg', over: { pos: [WALL.x, Y, WALL.z], size: [WALL.w, WALL.h, WALL.d] }, along: 'z', at: WALL.x + 1.5 },
     // 2 links: Stachelfeld unter dem Riesenameisen-Strom
     { type: 'stachelboden', pos: at(-11.5, 2, 7), size: [14.4, 0.25, 6] },
     // 2 rechts: Decke für den hängenden Rankenschnapper
@@ -84,7 +86,7 @@ export const LEVEL = {
     { kind: 'ameisensoldat', id: 'amr', ride: true, antpath: [at(-16, 1, 12), at(-7, 1, 12)], speed: 1.2 },
     { kind: 'ameisensoldat_horn', id: 'amfrei', pos: at(-12, 1, 11), dir: [1, 0], ride: false },
     // ---- 1 rechts: Ameisenwand
-    { kind: 'ameisensoldat', id: 'amw', antpath: over(WALL.x + 1.5), speed: 1.5 },
+    { kind: 'ameisensoldat', id: 'amw', antpath: 'wandweg', speed: 1.5 },
     { kind: 'ameisensoldat_horn', id: 'amwh', antpath: over(WALL.x - 1.5), speed: 1.2, phase: 0.55 },
     // ---- 2 links: Riesenameisen-Strom über dem Stachelfeld (Höhle links, Weg nach −X)
     { kind: 'riesenameise', id: 'strom', spawner: { every: 3.6, max: 6 }, path: [at(-5.6, 2, 7), at(-18, 2, 7)], speed: 2 },

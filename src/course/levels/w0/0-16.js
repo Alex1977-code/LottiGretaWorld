@@ -2,7 +2,7 @@
 // 'boss'. Runde Felsinsel in der Lava (Käfig ohne Decke, Innenradius 11 m), der Lavafelsen-König steht hinten in der
 // Mitte. Der Kampf beginnt beim Schritt in die Arena. Er ruft Lavabrocken (draufspringen → aufheben → auf ihn werfen),
 // rollt auf die Figur zu und verstreut nach jedem Treffer Feuerbrocken. Nach dem Sieg: Stern vorn und Warp-Box hinten
-// zum Zielplateau. Thema 'lava', Musik course_lavacastle.
+// zum Zielplateau. Thema 'lavacastle', Musik course_lavacastle.
 
 const Y = 2;
 const R = 11;
@@ -12,7 +12,7 @@ export const LEVEL = {
   world: 0,
   title: 'Thronsaal des Lavafelsen-Königs',
   archetype: 'boss',
-  theme: 'lava',
+  theme: 'lavacastle',
   music: 'course_lavacastle',
   timeLimit: 400,
   start: { pos: [0, Y, 9.5], yaw: Math.PI / 2 },
