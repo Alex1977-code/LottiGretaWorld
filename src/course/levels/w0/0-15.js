@@ -5,7 +5,8 @@
 //                     laufende) · rechts **Ameisenwand**: Block 6 × 4 × 2 m, Ameisen laufen über ihn (Ameisenpfad mit
 //                     Flächennormalen: Boden → Vorderwand hoch → Oberseite → Rückwand runter), Hörner-Ameise daneben
 //   2 (−28 … −42)     links **Riesenameisen-Strom** über einem Stachelfeld (Spawner, Deck als Laufuntergrund) · rechts
-//                     Rankenschnapper (Zyklus über den Weg, drei feste als Stufen, ein hängender unter einer Decke)
+//                     Rankenschnapper (Zyklus aus einem Giftwasser-Tümpel über den Weg, drei feste als Stufen, ein
+//                     hängender unter einer Decke)
 //   3 (−48 … −62)     links Lavabrocken (zwei, Druckfeld 'lbfeld', Zielscheibe Pilzling) · rechts Walzenwerfer auf einer
 //                     Säule hinter einer Rampe (Walzen rollen hinab und zerbrechen an der Gehegemauer) und einer am Boden
 //   4 (−68 … −82)     links Stachelpanzer, Springklötze (einer hüpft) mit hohem Sims · rechts Lavabecken mit einer Reihe
@@ -65,6 +66,8 @@ export const LEVEL = {
     { type: 'ameisenweg', id: 'wandweg', over: { pos: [WALL.x, Y, WALL.z], size: [WALL.w, WALL.h, WALL.d] }, along: 'z', at: WALL.x + 1.5 },
     // 2 links: Stachelfeld unter dem Riesenameisen-Strom
     { type: 'stachelboden', pos: at(-11.5, 2, 7), size: [14.4, 0.25, 6] },
+    // 2 rechts: Giftwasser-Tümpel an der Wurzel des Zyklus-Rankenschnappers (er wurzelt darin, andere Gegner versinken)
+    { type: 'giftwasser', id: 'gift', pos: at(6.6, 2, 3), size: [3.2, 0.25, 2.6] },
     // 2 rechts: Decke für den hängenden Rankenschnapper
     { type: 'platform', pos: at(16.5, 2, 7, Y + 3.6), size: [3, 0.5, 2.4], style: 'stone' },
     // 3 rechts: Rampe vor der Walzenwerfer-Säule (steigt nach −Z)

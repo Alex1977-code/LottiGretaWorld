@@ -299,6 +299,7 @@ const rs = await sc(() => {
   let gMin = 9, gMax = -9, solidMax = 0, solidMin = 99;
   for (let i = 0; i < 960; i++) { c.step(1); gMin = Math.min(gMin, z.grow); gMax = Math.max(gMax, z.grow); const n = z.boxes.filter((b) => b.shape.solid).length; solidMax = Math.max(solidMax, n); solidMin = Math.min(solidMin, n); }
   out.cycle = { gMin: +gMin.toFixed(2), gMax: +gMax.toFixed(2), solidMax, solidMin, L: +z.L.toFixed(2), tipX: +z.headC.x.toFixed(2) };
+  out.giftImmune = !z.defeated && !z.removed && (t.ent('gift')?.sunk ?? 0) === 0;
   // ausgewachsen: auf dem Körper stehen, beim Zurückziehen fällt die Figur
   for (let i = 0; i < 1200 && !(z.grow >= 1 && z.t > z.times.wait + z.times.out + 0.1); i++) c.step(1);
   const pt = z.curve.getPointAt(0.55);
@@ -343,6 +344,7 @@ const rs = await sc(() => {
 });
 console.log(`  Rankenschnapper: ${JSON.stringify(rs)}`);
 check(`Rankenschnapper wächst über den Weg und zieht sich zurück (${rs.cycle.gMin} … ${rs.cycle.gMax}, Lauf-Quader ${rs.cycle.solidMin} … ${rs.cycle.solidMax})`, rs.cycle.gMin < 0.15 && rs.cycle.gMax > 0.99 && rs.cycle.solidMax >= 8 && rs.cycle.solidMin === 0);
+check('Rankenschnapper wurzelt im Giftwasser, ohne zu versinken', rs.giftImmune);
 check('Rankenschnapper: Körper begehbar, beim Zurückziehen fällt die Figur', rs.walk.on && !rs.walk.hurt && rs.walk.fell);
 check('Rankenschnapper schnappt nach einer nahen Figur; Kopf seitlich = Biss', rs.snap && rs.bite);
 check('Rankenschnapper: auf den Kopf springen = Abprall ohne Schaden', rs.bounce.bounced && !rs.bounce.hurt && !rs.bounce.defeated && rs.bounce.bounces >= 1);
@@ -425,6 +427,20 @@ check('Lavabrocken: aufheben (Aktion) und werfen – Zielscheibe besiegt, Brocke
 check(`Lavabrocken aufs Druckfeld geworfen löst es aus und bleibt liegen (${JSON.stringify(lb.plate.stay)})`, lb.plate.onPlate && lb.plate.done && lb.plate.stay.state === 'stunned' && lb.plate.stay.onPlate);
 check('Lavabrocken: Stampfattacke auf den betäubten zerbricht ihn', lb.pound);
 check('Lavabrocken: Lava = besiegt (zerschmilzt)', lb.lava.defeated && lb.lava.fellOut);
+
+// ================================================================ Giftwasser: Gegner versinken (Baustein giftwasser)
+const gw = await sc(() => {
+  const c = window.__course, t = window.__t, L = c.level;
+  const g = t.ent('gift');
+  const sunk0 = g.sunk;
+  const b = L.spawn('lavabrocken', { pos: [g.shape.x0 + 0.6, 1.4, (g.shape.z0 + g.shape.z1) / 2], vel: [0, 0, 0] });
+  const a = L.spawn('ameisensoldat', { pos: [g.shape.x1 + 1.2, 1, (g.shape.z0 + g.shape.z1) / 2], dir: [-1, 0], edges: false, ride: false });
+  let n = 0;
+  for (let i = 0; i < 360 && !(b.defeated && a.defeated); i++) { c.step(1); n++; }
+  return { brocken: b.defeated, ameise: a.defeated, sunk: g.sunk - sunk0, steps: n };
+});
+console.log(`  Giftwasser: ${JSON.stringify(gw)}`);
+check('Giftwasser: Lavabrocken und Ameise versinken (zählen als besiegt)', gw.brocken && gw.ameise && gw.sunk === 2);
 
 // ================================================================ Walzenwerfer und Stachelwalze
 const ww = await sc(() => {
@@ -717,7 +733,7 @@ calls.panzer = await SHOT('w4en', 'stachelpanzer_springklotz', () => {
 });
 calls.funken = await SHOT('w4en', 'lavafunken', () => {
   const c = window.__course, t = window.__t, f = t.ent('funke');
-  t.place([5.5, 1, t.Z(4, 1)], { settle: 1 });
+  t.place([5.5, 1, t.Z(4, -1.5)], { settle: 1 });
   for (let i = 0; i < 600 && !(f.state === 'up' && f.vel.y < 1 && f.vel.y > -1); i++) c.step(1);
   c.step(30);
 });
@@ -952,6 +968,40 @@ console.log(`  Lavafelsen-König Klon/Tod: ${JSON.stringify(kk)}`);
 check('Lavafelsen-König rollt zur nächsten Figur (Klon)', !!kk.clone && kk.clone.target && kk.clone.d1 < kk.clone.d0 - 2);
 check('Tod im Kampf: Neustart, König wieder 3/3 am Startplatz, Brocken und Feuerbrocken weg, Kampf von vorn', kk.hpBefore === 2 && kk.reset.state === 'wait' && kk.reset.hp === 3 && kk.reset.brocken === 0 && kk.reset.feuer === 0 && !kk.reset.started && kk.reset.deaths === 1 && kk.reset.z === -3);
 check('Keine Konsolenfehler (Lavafelsen-König)', errors.length === 0);
+
+// Bilder Lavafelsen-König
+await load('0-16');
+await sc(BOSS_HELPERS, ['koenig', 9.5]);
+await sc(() => { window.__t.enter(); });
+const ks = {};
+ks.intro = await SHOT('w4en', 'koenig_auftritt', () => { window.__course.step(150); });
+ks.summon = await SHOT('w4en', 'koenig_ruf', () => { const t = window.__t; t.untilSafe('summon', 900, [0, 2, 8]); t.untilSafe('roll', 900, [0, 2, 8]); window.__course.step(10); });
+ks.roll = await SHOT('w4en', 'koenig_rollt', () => { const c = window.__course; const p = c.player; p.hurt = () => false; for (let i = 0; i < 120; i++) { p.pos.set(4, 2, 6); p.vel.set(0, 0, 0); c.step(1); } });
+ks.carry = await SHOT('w4en', 'koenig_brocken', () => {
+  const c = window.__course, t = window.__t, b = t.boss(), p = c.player;
+  t.grab();
+  p.hurt = () => false;
+  for (let i = 0; i < 3000 && b.state !== 'rest'; i++) { p.vel.set(0, 0, 0); c.step(1); }
+  t.moveTo([b.pos.x * 0.6, 2.2, b.pos.z * 0.6 + 4.5], 6);
+  t.face(b.pos.x, b.pos.z);
+  c.step(2);
+});
+ks.spin = await SHOT('w4en', 'koenig_wirbel', () => {
+  const c = window.__course, t = window.__t, b = t.boss(), p = c.player;
+  p.hurt = () => false;
+  t.face(b.pos.x, b.pos.z); c.step(1); t.action();
+  for (let i = 0; i < 300 && b.state !== 'spin'; i++) c.step(1);
+  c.step(170);
+});
+ks.def = await SHOT('w4en', 'koenig_besiegt', () => {
+  const c = window.__course, t = window.__t, b = t.boss();
+  for (let k = 0; k < 2 && b.hp > 0; k++) { t.grab(); t.throwAtBoss(4); }
+  t.untilSafe('defeated', 600, [0, 2, 9]);
+  c.step(120);
+});
+const kMax = Math.max(...Object.values(ks).map((s) => s.calls));
+console.log(`  Zeichenaufrufe Lavafelsen-König: ${Object.entries(ks).map(([k, s]) => `${k} ${s.calls}`).join(', ')}; ${Math.round(Math.max(...Object.values(ks).map((s) => s.triangles)) / 1000)} k Dreiecke`);
+check(`Lavafelsen-König-Arena: Zeichenaufrufe < 140 (höchstens ${kMax})`, kMax < 140);
 }
 
 // __ENDE__
