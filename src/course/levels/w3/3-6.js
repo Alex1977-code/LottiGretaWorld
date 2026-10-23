@@ -21,7 +21,7 @@
 //                                           unten schleudert zur Zielinsel mit Zielbogen und Zielmast
 // Gegner: Schnappblume (5), Flatterkäfer (28), Pilzling (3).
 
-import { levelSetup, flatIslands, isl, line, ring, arc, road, grandstand, marmots, almHut, cow, tireStack, hayBale, flagPole, finishBanner, checkerLine, pennantLine, plate, cyl, sphere, bugSwarm, kartBande, addStaticParts, shadowRange } from './_helpers_b.js';
+import { levelSetup, flatIslands, isl, line, ring, arc, road, grandstand, marmots, almHut, cow, tireStack, hayBale, flagPole, finishBanner, checkerLine, pennantLine, plate, cyl, sphere, bugSwarm, kartBande, addStaticParts, shadowRange, meadow, bush } from './_helpers_b.js';
 import { addStatic, merge } from '../../blocks/kit.js';
 
 const PI = Math.PI;
@@ -293,6 +293,37 @@ function buildRace(level) {
   for (const x of [-5.6, 5.6]) parts.push(cyl(0.08, 0.1, 4.7, x, 0, 13.4, 0xd8dce8, 8));
   pennantLine(parts, [-5.6, YH + 4, -150.6], [5.6, YH + 4, -150.6], 14, 0.6);
   for (const x of [-5.6, 5.6]) parts.push(cyl(0.08, 0.1, 4.1, x, YH, -150.6, 0xd8dce8, 8));
+  // Trennrücken an der Gabelung: Zielflaggen-Band, zwei gemalte Pfeile (links hinauf, rechts hinab), Büsche oben
+  for (let i = 0; i < 14; i++) for (let j = 0; j < 2; j++) parts.push(plate(0.6, 0.4, 0.04, -3.9 + i * 0.6, 3.6 + j * 0.4, -63.98, ((i + j) & 1) ? 0x1a1a22 : 0xffffff, { r: 0 }));
+  for (const [x, dir, col] of [[-2.4, 1, 0xffd23d], [2.2, -1, 0x3d8bff]]) {
+    // Schaft (−0,75 … 0,75) und zwei Widerhaken, die sich an der Spitze (0,75 | 0) treffen
+    const arrow = [plate(1.5, 0.34, 0.05, 0, -0.17, 0, col, { r: 0 })];
+    for (const a of [0.75, -0.75]) {
+      const barb = plate(0.8, 0.3, 0.05, 0, -0.15, 0, col, { r: 0 });
+      barb.rotateZ(a);
+      barb.translate(0.75 - 0.4 * Math.cos(a), -0.4 * Math.sin(a), 0);
+      arrow.push(barb);
+    }
+    const g = merge(arrow);
+    g.rotateZ(dir > 0 ? 2.4 : -0.7);
+    g.translate(x, 1.9, -63.96);
+    parts.push(g);
+  }
+  for (const x of [-3.4, -0.6, 2.6]) bush(parts, x, 6, -64.8, 1.1);
+  meadow(parts, -4.5, 4, -64.2, -70, 6, { n: 10, band: 1.2 });
+  hayBale(parts, -3.6, 0, -63.2, 0.2); hayBale(parts, 3.2, 0, -63.2, -0.2);
+  // Blumen und Büsche abseits der Fahrbahn
+  meadow(parts, 6, 16, 14, -20, 0, { n: 22, band: 3, skip: [[5, 10, 4, -2], [9.6, 15.4, -8, -13]] });
+  meadow(parts, -16, -10.8, 14, -20, 0, { n: 14, band: 2.5, skip: [[-10, -6, -10, -13.5]] });
+  for (const [x, z] of [[14.6, 10], [14.8, -2], [-14.6, 6], [-14.2, -17.5]]) bush(parts, x, 0, z, 1.2);
+  for (const [z0, z1, y] of [[-122, -136, YU], [-150, -160, YH], [-166.5, -176, YH], [-200, -212, YH]]) {
+    meadow(parts, -13, 13, z0, z1, y, { n: 14, band: 2.2, skip: [[-5.4, 5.4, z0 + 1, z1 - 1]] });
+  }
+  meadow(parts, -13, 13, -182, -194, YH, { n: 10, band: 2, skip: [[-7.4, 13.5, -181, -195]] });
+  meadow(parts, -14, 13, -228, -242, YS, { n: 14, band: 2, skip: [[-5.4, 5.4, -227, -243], [-15, -11, -233, -237.5]] });
+  meadow(parts, -11, 11, -288, -304, YG, { n: 12, band: 2.5, skip: [[-4.4, 20, -287, -305]] });
+  meadow(parts, BX - 15, BX + 15, BZ + 15, BZ - 15, 0, { n: 30, band: 1.6, skip: [[BX - 12.5, BX - 7.5, BZ + 7.5, BZ + 12.5], [BX + 6.5, BX + 12, BZ, BZ - 10]] });
+  for (const [x, z] of [[-45.5, -230.5], [-38.5, -240]]) bush(parts, x, 32, z, 0.9);
   // Felsbogen-Deko (Stern 1): Moos und Steinchen
   parts.push(plate(7.2, 0.2, 1.6, 8.5, 4.2, -87, 0x6cd844, { r: 0.08 }));
   // Bonus-Oval: Hügel in der Mitte, Fahnenkranz, Stempel-Plattformen

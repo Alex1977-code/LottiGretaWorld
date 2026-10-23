@@ -191,7 +191,7 @@ async function SHOT(name, setup, arg) {
     // Unverwundbarkeit lässt die Figur blinken – fürs Bild kurz aus, danach zurück
     window.__shotInv = c.player.invuln;
     c.player.invuln = 0;
-    for (const b of c.arch?.hud?.banners ?? []) b.setAlpha?.(0);
+    for (const b of c.arch?.hud?.banners ?? []) b.setVisible?.(false);   // Ansagen (z. B. „Los geht's!“) nicht im Bild
     window.__t.cam(12);
     return c.view.frame;
   });

@@ -605,6 +605,80 @@ export function birds(level, o) {
   return im;
 }
 
+/**
+ * Blumen und Grasbüschel im Randstreifen eines Rechtecks (x0..x1, z0..z1, Boden y) – sparsam (Blume 20, Büschel 24
+ * Dreiecke). o: n (Anzahl), band (Streifenbreite), margin (Abstand zur Kante), skip [[x0, x1, z0, z1], …], colors, seed.
+ */
+export function meadow(parts, x0, x1, z0, z1, y, o = {}) {
+  const rnd = new Rnd((o.seed ?? Math.floor(Math.abs(x0 * 13 + z0 * 7 + y * 3))) + 1);
+  const n = o.n ?? 16, band = o.band ?? 1.4, m = o.margin ?? 0.35;
+  const xa = Math.min(x0, x1) + m, xb = Math.max(x0, x1) - m, za = Math.min(z0, z1) + m, zb = Math.max(z0, z1) - m;
+  const cols = o.colors ?? [0xff5a7a, 0xffd23d, 0xffffff, 0xb06aff, 0x5ab0ff];
+  const inSkip = (x, z) => (o.skip ?? []).some(([a, b, c, d]) => x > Math.min(a, b) && x < Math.max(a, b) && z > Math.min(c, d) && z < Math.max(c, d));
+  for (let i = 0; i < n; i++) {
+    const side = rnd.int(0, 3);
+    let x, z;
+    if (side < 2) { x = rnd.real(xa, xb); z = side ? za + rnd.real(0, band) : zb - rnd.real(0, band); }
+    else { z = rnd.real(za, zb); x = side === 2 ? xa + rnd.real(0, band) : xb - rnd.real(0, band); }
+    if (o.all) { x = rnd.real(xa, xb); z = rnd.real(za, zb); }
+    if (inSkip(x, z)) continue;
+    if (rnd.chance(0.55)) {
+      const h = rnd.real(0.18, 0.32);
+      parts.push(plate(0.035, h, 0.035, x, y, z, 0x3f9a32, { r: 0 }));
+      const head = new THREE.OctahedronGeometry(0.12, 0);   // schon nicht indiziert
+      head.scale(1, 0.55, 1);
+      head.translate(x, y + h + 0.02, z);
+      parts.push(colorize(head, fillc(L(rnd.pick(cols)))));
+    } else {
+      for (let k = 0; k < 3; k++) {
+        const h = rnd.real(0.22, 0.38);
+        const g = new THREE.ConeGeometry(0.05, h, 4).toNonIndexed();
+        g.rotateZ((k - 1) * 0.35);
+        g.translate(x + (k - 1) * 0.06, y + h / 2 - 0.02, z + rnd.real(-0.05, 0.05));
+        parts.push(colorize(g, fillc(L(k === 1 ? 0x62c848 : 0x4aa838))));
+      }
+    }
+  }
+}
+
+/** Bäumchen (Stamm, zwei Kronenkugeln) – Fußpunkt (x, y, z), Größe s. */
+export function tree(parts, x, y, z, s = 1, color = 0x4fb83a) {
+  parts.push(cyl(0.12 * s, 0.17 * s, 1.3 * s, x, y, z, 0x8a5a32, 6));
+  parts.push(sphere(0.85 * s, x, y + 1.75 * s, z, color, { ws: 7, hs: 5 }));
+  parts.push(sphere(0.6 * s, x + 0.35 * s, y + 2.35 * s, z - 0.2 * s, color, { ws: 7, hs: 5 }));
+}
+
+/** Busch (flache Kugel, ein paar Beeren). */
+export function bush(parts, x, y, z, s = 1, berries = 0xff4a5a) {
+  parts.push(sphere(0.55 * s, x, y + 0.3 * s, z, 0x48a83a, { ws: 7, hs: 5, sy: 0.7 }));
+  if (berries) for (let k = 0; k < 3; k++) { const a = k * 2.1; parts.push(sphere(0.07 * s, x + Math.cos(a) * 0.42 * s, y + 0.42 * s, z + Math.sin(a) * 0.42 * s, berries, { ws: 4, hs: 3 })); }
+}
+
+/** Trittsteinweg von a nach b (flache graue Steine, abwechselnd versetzt). */
+export function stonePath(parts, a, b, step = 1.15) {
+  const dx = b[0] - a[0], dz = b[2] - a[2], len = Math.hypot(dx, dz), n = Math.max(1, Math.floor(len / step));
+  const nx = -dz / len, nz = dx / len;
+  for (let i = 0; i <= n; i++) {
+    const u = i / n, off = (i % 2 ? 0.22 : -0.22);
+    const g = plate(0.8, 0.05, 0.6, 0, 0, 0, i % 3 ? 0xc8c4bc : 0xb4b0a8, { r: 0, top: i % 3 ? 0xdcd8d0 : 0xc8c4bc });
+    g.rotateY(Math.atan2(-dz, dx) + (i % 2 ? 0.25 : -0.2));
+    g.translate(a[0] + dx * u + nx * off, a[1] + 0.005, a[2] + dz * u + nz * off);
+    parts.push(g);
+  }
+}
+
+/** Zaun aus Pfosten und Seil entlang a → b (Inselrand). */
+export function ropeFence(parts, a, b, step = 2) {
+  const dx = b[0] - a[0], dz = b[2] - a[2], len = Math.hypot(dx, dz), n = Math.max(1, Math.round(len / step));
+  for (let i = 0; i <= n; i++) parts.push(cyl(0.06, 0.07, 0.75, a[0] + dx * i / n, a[1], a[2] + dz * i / n, 0x9a6a3a, 5), sphere(0.08, a[0] + dx * i / n, a[1] + 0.78, a[2] + dz * i / n, 0xffc21a, { ws: 5, hs: 3 }));
+  for (const h of [0.45, 0.68]) {
+    const g = plate(len, 0.04, 0.04, len / 2, 0, 0, 0xf6f4ef, { r: 0 });
+    g.rotateY(Math.atan2(-dz, dx));
+    g.translate(a[0], a[1] + h, a[2]);
+    parts.push(g);
+  }
+}
+
 /** Kleines Windrad (Mast statisch in parts, Rotor als drehendes Mesh). */
 export function windmill(level, parts, x, y, z, o = {}) {
   const h = o.h ?? 3.2, col = o.color ?? 0xf6f4ef;

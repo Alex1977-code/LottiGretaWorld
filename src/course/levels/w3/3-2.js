@@ -23,7 +23,7 @@
 // 3 nach dem Glasrohr: Kurbelrad drehen, Plattform hoch, Zaun hinaufklettern. Stempel: Krallenwand + Zaun hinter dem
 // Glasrohr-Eingang. 1-Up: Kurbelrad auf der Zielinsel → Wolke. Gegner: Krabbelkäfer (4), Flatterkäfer (7).
 
-import { levelSetup, isl, line, ring, arc, column, scrollDirector, clockSync, towerBack, slotStrip, pennantLine, balloon, zeppelin, birds, windmill, pipeLid, plate, cyl, sphere, bugSwarm, fenceShadows, addStaticParts, shadowRange } from './_helpers_b.js';
+import { levelSetup, isl, line, ring, arc, column, scrollDirector, clockSync, towerBack, slotStrip, pennantLine, balloon, zeppelin, birds, windmill, pipeLid, plate, cyl, sphere, bugSwarm, fenceShadows, addStaticParts, shadowRange, meadow, tree, bush, stonePath, ropeFence } from './_helpers_b.js';
 
 const PI = Math.PI;
 const ZC = -68;          // Fensterlinie (Kletterturm, Wolkenstrecke)
@@ -314,6 +314,25 @@ function skyDeco(level) {
   // Zielinsel: Blumen, Bäumchen (deco), Wetterhäuschen
   parts.push(plate(1.4, 2.2, 1.4, 99, YZ, -77.5, 0xf6f4ef, { r: 0.1 }), plate(1.7, 0.3, 1.7, 99, YZ + 2.2, -77.5, 0xe8283a, { r: 0.08 }));
   parts.push(cyl(0.05, 0.05, 1.4, 99, YZ + 2.5, -77.5, 0xd8dce8, 6), plate(0.6, 0.06, 0.06, 99.3, YZ + 3.8, -77.5, 0xffc21a, { r: 0 }));
+  // Blumen und Gras am Rand der Wiesen-Inseln
+  meadow(parts, -5, 5, 8, -1.5, 0, { n: 14, skip: [[-5, -3, 1.5, -0.5]] });
+  meadow(parts, -4.5, 4.5, -14.5, -27.5, 0, { n: 12, skip: [[-5, 5, -20.3, -21.7]] });
+  meadow(parts, -9, 4.5, -32.5, -43.7, 0, { n: 14 });
+  meadow(parts, -6, 6, -50.3, -60.1, 0, { n: 12, skip: [[-1.5, 1.5, -55.5, -58.5]] });
+  meadow(parts, 10, 27, -63, -71, YW, { n: 16, skip: [[12.5, 16, -62, -66.5], [16, 19.2, -66, -69]] });
+  meadow(parts, 70, 86, -62, -71, YR, { n: 14, skip: [[77, 81, -64, -68]] });
+  // Zielinsel: Trittsteinweg zum Zielmast, Bäume, Büsche, Blumen, Seilzaun, Bank am Windrad
+  stonePath(parts, [100.5, YZ, -66.5], [118.5, YZ, -70]);
+  for (const [x, z, s] of [[98, -59, 1.1], [124, -59.5, 1], [103.5, -78.4, 0.9], [116.5, -78.4, 1.2], [124.8, -66, 0.8]]) {
+    tree(parts, x, YZ, z, s);
+    level.world.add({ type: 'cyl', x, z, r: 0.2 * s, y0: YZ, y1: YZ + 1.3 * s, tag: 'baum' });
+  }
+  for (const [x, z] of [[97.6, -63], [97.6, -70.5], [114, -57.4], [119.5, -57.6], [108, -79], [112, -79], [125, -72.5]]) bush(parts, x, YZ, z, 1);
+  meadow(parts, 96, 126, -56, -80, YZ, { n: 40, band: 2.4, skip: [[103.5, 111, -58, -64.5], [97, 101.6, -76, -79], [119, 123, -68, -72]] });
+  ropeFence(parts, [96.6, YZ, -79.4], [125.4, YZ, -79.4], 2.4);
+  ropeFence(parts, [125.4, YZ, -79.4], [125.4, YZ, -56.6], 2.4);
+  parts.push(plate(1.6, 0.08, 0.45, 120.2, YZ + 0.42, -77.2, 0xb8834a, { r: 0 }), plate(1.6, 0.4, 0.06, 120.2, YZ + 0.5, -77.42, 0xb8834a, { r: 0 }));
+  for (const sx of [-0.65, 0.65]) parts.push(plate(0.08, 0.42, 0.4, 120.2 + sx, YZ, -77.2, 0x6a4a2a, { r: 0 }));
   addStaticParts(level, parts, { castShadow: true });
   // ferne Kulisse ohne Schatten: Ballons, Zeppelin, Möwen
   balloon(level, { pos: [-26, 6, -30], colors: [0xff4a3d, 0xffd23d], r: 3, phase: 0.4, drift: 3, flag: 0x3d8bff });
