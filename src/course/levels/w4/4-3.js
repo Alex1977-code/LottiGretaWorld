@@ -142,7 +142,8 @@ function setup(level) {
 
 // ------------------------------------------------------------------ Piep-Felder
 const RED = 'rot', BLUE = 'blau';
-const STEPS = { steps: 4, rise: 1.5, run: 1.5, width: 2.4, height: 1 };
+// run 1,49 statt 1,5: eine Piep-Zelle je Stufe in Laufrichtung statt zwei (Dreiecks-Budget)
+const STEPS = { steps: 4, rise: 1.5, run: 1.49, width: 2.4, height: 1 };
 const R0 = { color: RED, phase: 0 }, B0 = { color: BLUE, phase: 0 }, R4 = { color: RED, phase: 4 }, B4 = { color: BLUE, phase: 4 };
 
 export const LEVEL = {
@@ -205,13 +206,13 @@ export const LEVEL = {
     ...piepBands(0, Y, -94, 6, 3, [R0, B4, B0, R4, R0], { id: 'r4', cell: 2 }),
     // Warp-Box (geradeaus) – Rundweg rechts: Piep-Steine zwischen den Plattformen
     // (Ostseite rot, Südseite blau, Westseite rot: an jeder Plattform auf die passende Farbe warten)
-    { type: 'piep_block', id: 'rw_a', color: RED, pos: [16.5, Y - 1, -115.5], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_b', color: RED, pos: [19.5, Y - 1, -115.5], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_c', color: BLUE, pos: [23.25, Y - 1, -119.75], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_d', color: BLUE, pos: [23.25, Y - 1, -123], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_e', color: BLUE, pos: [23.25, Y - 1, -126.25], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_f', color: RED, pos: [19.5, Y - 1, -130.75], size: [2, 1, 2] },
-    { type: 'piep_block', id: 'rw_g', color: RED, pos: [16.5, Y - 1, -130.75], size: [2, 1, 2] },
+    { type: 'piep_block', id: 'rw_a', color: RED, pos: [16.5, Y - 1, -115.5], size: [2, 1, 2], cell: 2 },
+    { type: 'piep_block', id: 'rw_b', color: RED, pos: [19.5, Y - 1, -115.5], size: [2, 1, 2], cell: 2 },
+    { type: 'piep_block', id: 'rw_c', color: BLUE, pos: [23.25, Y - 1, -119.75], size: [2, 1, 2], cell: 2 },
+    { type: 'piep_block', id: 'rw_d', color: BLUE, pos: [23.25, Y - 1, -123], size: [2, 1, 2], cell: 2 },
+    { type: 'piep_block', id: 'rw_e', color: BLUE, pos: [23.25, Y - 1, -126.25], size: [2, 1, 2], cell: 2 },
+    { type: 'piep_block', id: 'rw_f', color: RED, pos: [19.5, Y - 1, -130.75], size: [2, 1, 2], cell: 2 },
+    { type: 'piep_block', id: 'rw_g', color: RED, pos: [16.5, Y - 1, -130.75], size: [2, 1, 2], cell: 2 },
     { type: 'warpbox', id: 'warp_turm_ein', pos: [-2.5, Y, -130.5], target: 'warp_turm' },
 
     // ======================================================== 3  Piep-Block-Treppe (30 m hoch) zum Checkpoint
@@ -241,7 +242,7 @@ export const LEVEL = {
     { type: 'warpbox', id: 'warp_rein', pos: [1, 13, -224], target: 'warp_uhr' },
     { type: 'warpbox', id: 'warp_uhr', pos: [-4, YU, -231.2], target: 'warp_rein' },
     { type: 'pipe', id: 'rohr_bonus', pos: [3.6, YU, -233.6], height: 1.2, target: 'bonus_ein' },
-    { type: 'piep_rutsche', id: 'rutsche', pos: [0, YR, -247], size: [4, YU - YR, 16], axis: 'z', dir: 1, band: 2, colors: RED },
+    { type: 'piep_rutsche', id: 'rutsche', pos: [0, YR, -247], size: [3.4, YU - YR, 16], axis: 'z', dir: 1, band: 2, colors: RED },
     { type: 'deco_w4', items: [
       { kind: 'neonbogen', pos: [0, YU, -238.4], width: 6.4, height: 4.2, color: 0x40e8ff },
       { kind: 'lautsprecher', pos: [6, YR, -264.5], yaw: PI + 0.4 },

@@ -40,7 +40,7 @@ const R43 = {
     { name: 'Reihe 2: warten auf Rot', waitBeat: [0.2, 4.6] },
     { to: [0, -48.6], run: false, within: 0.35 },
     { waitBeat: [6.6, 7.0] },
-    { name: 'Reihe 2: Sprung im Wechsel', to: [0, -54], jump: 30, within: 0.7 },
+    { name: 'Reihe 2: Sprung im Wechsel', to: [0, -54], jump: 30, within: 0.7, switchJump: true },
     { name: 'Insel 2 (Spiegelfrucht)', to: [-2.5, -59.6] },
     { to: [1, -65.4], within: 0.3, run: false },
     { name: 'Reihe 3: warten auf Rot', waitBeat: [0.2, 0.8] },
@@ -49,7 +49,7 @@ const R43 = {
     { to: [1, -75], jump: 14, within: 0.6 },
     { to: [1, -75.6], run: false, within: 0.3 },
     { waitBeat: [6.7, 7.1] },
-    { name: 'Reihe 3: Sprung im Wechsel', to: [1, -77.4], jump: 24, within: 0.6 },
+    { name: 'Reihe 3: Sprung im Wechsel', to: [1, -77.4], jump: 24, within: 0.6, switchJump: true },
     { to: [1, -81], jump: 14, within: 0.6 },
     { name: 'Druckfeld-Insel', to: [1, -84], run: false },
     { figs: true },
@@ -94,7 +94,7 @@ const R43 = {
     { name: 'Lauf 4', to: [-7.5, -171.55], jump: 14, within: 0.4, run: false },
     { to: [-7.5, -173.05], jump: 14, within: 0.4, run: false },
     { waitBeat: [6.8, 7.2] },
-    { name: 'Lauf 4: Sprung im Wechsel', to: [-7.5, -174.55], jump: 16, within: 0.45, run: false },
+    { name: 'Lauf 4: Sprung im Wechsel', to: [-7.5, -174.55], jump: 16, within: 0.45, run: false, switchJump: true },
     { to: [-7.5, -176.05], jump: 14, within: 0.4, run: false },
     { name: 'Checkpoint-Plateau', to: [-7.5, -178.4], jump: 14, within: 0.6, run: false },
     { name: 'Checkpoint', to: [6.5, -182.4] },
@@ -125,7 +125,7 @@ const R43 = {
     { name: 'Treppe G2', to: [0, -277.25], jump: 14, within: 0.4, run: false },
     { to: [0, -278.75], jump: 14, within: 0.4, run: false },
     { waitBeat: [14.8, 15.2] },
-    { name: 'Treppe G2: Sprung im Wechsel', to: [0, -280.25], jump: 16, within: 0.45, run: false },
+    { name: 'Treppe G2: Sprung im Wechsel', to: [0, -280.25], jump: 16, within: 0.45, run: false, switchJump: true },
     { to: [0, -281.75], jump: 14, within: 0.4, run: false },
     { name: 'Zielplateau', to: [0, -284.2], jump: 14, within: 0.6, run: false },
     { name: 'Zielmast', to: [0, -290.3], within: 0.2 },
@@ -519,7 +519,8 @@ function install() {
         const within = Lg.within ?? 0.6;
         const holdJ = Lg.jump === true ? 40 : (Lg.jump ?? 0);
         let i = 0, airborne = false, landed = false;
-        if (holdJ && Lg.to) jumps.push([Lg.name ?? `leg${li}`, W.landingVisible(Lg.to[0], Lg.to[1])]);
+        // Sprung im Wechsel: das Ziel erscheint erst während des Sprungs (Piep-Block noch Umriss) – Landepunkt nicht prüfbar
+        if (holdJ && Lg.to && !Lg.switchJump) jumps.push([Lg.name ?? `leg${li}`, W.landingVisible(Lg.to[0], Lg.to[1])]);
         let best = Infinity, still = 0, auto = 0, j0 = Lg.jumpAt ? null : 0;
         for (; i < max; i++) {
           const m = P();
@@ -688,7 +689,7 @@ for (const id of LEVELS) {
     check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
     if (hero === 'lotti') {
       const hidden = res.jumps.filter((j) => !j[1]).map((j) => j[0]);
-      check(`${id}: alle ${res.jumps.length} Pflichtsprünge mit sichtbarem Landepunkt${hidden.length ? ' – verdeckt: ' + hidden.join(', ') : ''}`, hidden.length <= 2);
+      check(`${id}: alle ${res.jumps.length} Pflichtsprünge mit sichtbarem Landepunkt${hidden.length ? ' – verdeckt: ' + hidden.join(', ') : ''}`, hidden.length === 0);
     }
     const lim = Math.min(180, R.timeLimit * 0.6);
     check(`${id}: ${hero} Zeit bis zum Ziel < ${lim} s (${res.time.toFixed(1)} s)`, reached && res.time < lim);
