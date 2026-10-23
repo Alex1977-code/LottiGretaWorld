@@ -2091,41 +2091,47 @@ Strecke, Checkpoints, Sterne, Stempel, Ziel (Autoscroller: sechs Fensterlagen); 
 `POINTS=…`. Ergebnis `tests/out/perf_<Name>.json`.
 
 Stand dieser Präzisierung (Chromium headless mit Software-Rendering, 960 × 540, `?still=1`, Zufall geseedet; Mittel
-bzw. Maximum über die Messpunkte je Level; „vorher“ = Motor vor der Präzisierung, gleiche Level-Daten):
+bzw. Maximum über die Messpunkte je Level; „vorher“ = Motor vor der Präzisierung, gleiche Level-Daten; Welt 4: „vorher“
+= master mit den level-lokalen Sparhilfen, „nachher“ = mit Motor und umgestellten Hilfen):
 
 | Level | Aufrufe Ø (max) vorher | nachher | Dreiecke Ø (max) vorher | nachher |
 |---|---|---|---|---|
 | 1-1 | 90,9 (117) | 49,9 (70) | 244 k (289 k) | 138 k (190 k) |
 | 1-2 | 69,5 (103) | 41,5 (64) | 181 k (217 k) | 83 k (118 k) |
-| 1-A | 87 (87) | 53 (53) | 187 k (187 k) | 178 k (178 k) |
+| 1-A | 87 (87) | 53 (53) | 187 k (187 k) | 177 k (177 k) |
 | 1-3 | 91 (113) | 49,3 (70) | 237 k (271 k) | 125 k (156 k) |
 | 1-Schatz | 112,7 (115) | 59,7 (62) | 152 k (152 k) | 107 k (108 k) |
 | 1-4 | 97,3 (111) | 66,8 (78) | 193 k (235 k) | 138 k (168 k) |
 | 1-5 | 85,9 (112) | 50,5 (76) | 185 k (222 k) | 108 k (144 k) |
 | 1-Burg | 88,3 (115) | 46,9 (60) | 217 k (302 k) | 114 k (198 k) |
-| 2-1 | 90,4 (112) | 56,9 (83) | 220 k (261 k) | 153 k (222 k) |
+| 2-1 | 90,4 (112) | 56,6 (83) | 220 k (261 k) | 151 k (222 k) |
 | 2-2 | 91,3 (124) | 58,6 (81) | 177 k (223 k) | 105 k (146 k) |
-| 2-3 | 88,9 (121) | 54,6 (86) | 236 k (288 k) | 148 k (197 k) |
+| 2-3 | 88,9 (121) | 53,2 (85) | 236 k (288 k) | 134 k (177 k) |
 | 2-4 | 88,2 (109) | 54,1 (74) | 203 k (267 k) | 114 k (194 k) |
-| 2-5 | 78,3 (90) | 47,7 (58) | 212 k (258 k) | 134 k (168 k) |
+| 2-5 | 78,3 (90) | 45,5 (56) | 212 k (258 k) | 113 k (141 k) |
 | 2-A | 66 (66) | 41 (41) | 65 k (65 k) | 66 k (66 k) |
 | 2-Haus | 58 (58) | 30 (30) | 60 k (60 k) | 58 k (58 k) |
-| 2-Panzer | 91,3 (108) | 58,5 (74) | 222 k (266 k) | 169 k (212 k) |
-| 3-1 | 89,2 (100) | 52 (63) | 229 k (279 k) | 133 k (165 k) |
+| 2-Panzer | 91,3 (108) | 56,8 (69) | 222 k (266 k) | 136 k (175 k) |
+| 3-1 | 89,2 (100) | 51,8 (63) | 229 k (279 k) | 132 k (165 k) |
 | 3-2 | 87,5 (111) | 54,5 (75) | 235 k (255 k) | 137 k (167 k) |
-| 3-3 | 74,7 (98) | 46,5 (73) | 203 k (268 k) | 148 k (216 k) |
+| 3-3 | 74,7 (98) | 46,5 (72) | 203 k (268 k) | 149 k (216 k) |
 | 3-4 | 80,2 (94) | 52,8 (61) | 166 k (196 k) | 130 k (162 k) |
-| 3-5 | 97,1 (137) | 64,3 (102) | 213 k (273 k) | 134 k (214 k) |
+| 3-5 | 97,1 (137) | 64,2 (102) | 213 k (273 k) | 134 k (214 k) |
 | 3-6 | 80,6 (89) | 43,2 (52) | 218 k (248 k) | 96 k (115 k) |
-| 3-7 | 79,5 (101) | 53,9 (76) | 223 k (235 k) | 132 k (152 k) |
+| 3-7 | 79,5 (101) | 53,5 (76) | 223 k (235 k) | 131 k (150 k) |
 | 3-A | 53 (53) | 37 (37) | 111 k (111 k) | 111 k (111 k) |
-| 3-B | 60,7 (73) | 36 (50) | 176 k (192 k) | 138 k (180 k) |
+| 3-B | 60,7 (73) | 36 (48) | 176 k (192 k) | 138 k (179 k) |
 | 3-Kapitän | 94,8 (96) | 89,5 (91) | 238 k (238 k) | 226 k (227 k) |
-| 3-Zug | 90,3 (101) | 61 (69) | 216 k (238 k) | 184 k (215 k) |
+| 3-Zug | 90,3 (101) | 60,8 (69) | 216 k (238 k) | 184 k (215 k) |
+| 4-1 | 74,9 (91) | 55,5 (76) | 163 k (236 k) | 138 k (208 k) |
+| 4-2 | 80,6 (96) | 62,2 (80) | 160 k (222 k) | 137 k (203 k) |
+| 4-3 | 83,8 (99) | 57,8 (76) | 191 k (223 k) | 130 k (160 k) |
+| 4-4 | 80,7 (101) | 50 (71) | 187 k (220 k) | 127 k (155 k) |
 | **Welt 1** (Mittel) | 90,3 | 52,2 (-42 %) | 200 k | 124 k (-38 %) |
-| **Welt 2** (Mittel) | 81,5 | 50,2 (-38 %) | 174 k | 118 k (-32 %) |
-| **Welt 3** (Mittel) | 80,7 | 53,7 (-33 %) | 203 k | 143 k (-30 %) |
-| **alle 27** (Mittel) | 83,8 | 52,2 (-38 %) | 193 k | 130 k (-33 %) |
+| **Welt 2** (Mittel) | 81,5 | 49,5 (-39 %) | 174 k | 110 k (-37 %) |
+| **Welt 3** (Mittel) | 80,7 | 53,6 (-34 %) | 203 k | 143 k (-30 %) |
+| **Welt 4** (Mittel) | 80 | 56,4 (-30 %) | 175 k | 133 k (-24 %) |
+| **alle 31** (Mittel) | 83,3 | 52,5 (-37 %) | 191 k | 128 k (-33 %) |
 
 Arenen und Dioramen (1-A, 2-A, 2-Haus, 3-A, 1-Schatz, 3-Kapitän) sieht die Kamera fast ganz – dort sparen vor allem
 Instanzen, Pools, Schatten-Stellvertreter und Figur-Bündel Aufrufe; Dreiecke sinken kaum. Die Strecken-Level gewinnen
