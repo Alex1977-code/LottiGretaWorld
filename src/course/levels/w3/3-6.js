@@ -21,7 +21,7 @@
 //                                           unten schleudert zur Zielinsel mit Zielbogen und Zielmast
 // Gegner: Schnappblume (5), Flatterkäfer (28), Pilzling (3).
 
-import { levelSetup, flatIslands, isl, line, ring, arc, road, grandstand, marmots, almHut, cow, tireStack, hayBale, flagPole, finishBanner, checkerLine, pennantLine, plate, cyl, sphere, bugSwarm, kartBande, addStaticParts, shadowRange, meadow, bush, ovalTrack, cloudRim, rainbow } from './_helpers_b.js';
+import { levelSetup, flatIslands, isl, line, ring, arc, road, grandstand, marmots, almHut, cow, tireStack, hayBale, flagPole, finishBanner, checkerLine, pennantLine, plate, cyl, sphere, bugSwarm, kartBande, addStaticParts, shadowRange, meadow, bush, ovalTrack, cloudRim, rainbow, poly4 } from './_helpers_b.js';
 import { addStatic, merge } from '../../blocks/kit.js';
 
 const PI = Math.PI;
@@ -327,6 +327,18 @@ function buildRace(level) {
   meadow(parts, -11, 11, -288, -304, YG, { n: 12, band: 2.5, skip: [[-4.4, 20, -287, -305]] });
   meadow(parts, BX - 15, BX + 15, BZ + 15, BZ - 15, 0, { n: 30, band: 1.6, skip: [[BX - 12.5, BX - 7.5, BZ + 7.5, BZ + 12.5], [BX + 6.5, BX + 12, BZ, BZ - 10]] });
   for (const [x, z] of [[-45.5, -230.5], [-38.3, -231.2]]) bush(parts, x, 32, z, 0.9);
+  // Rutschhang (z −242 … −274): rot-weiße Randstreifen und gelbe Pfeile bergab, aufgemalt
+  const ys = (z) => YB + ((z + 274) / 32) * (YS - YB) + 0.03;
+  for (let i = 0; i < 16; i++) {
+    const za = -242 - i * 2, zb = za - 2;
+    for (const x0 of [-5.9, 5.4]) poly4(parts, [x0, ys(za), za], [x0 + 0.5, ys(za), za], [x0 + 0.5, ys(zb), zb], [x0, ys(zb), zb], i % 2 ? 0xffffff : 0xe8283a);
+  }
+  for (const zc of [-250, -258, -266]) {
+    for (const s of [-1, 1]) {
+      const A = [s * 1.3, 0, zc + 0.9], B = [0, 0, zc], B2 = [0, 0, zc + 0.5], A2 = [s * 1.3, 0, zc + 1.4];
+      poly4(parts, ...[A, B, B2, A2].map(([x, , z]) => [x, ys(z), z]), 0xffd23d);
+    }
+  }
   // Wolkenterrasse: Wolkenkranz am Rand, Regenbogen hinter dem Stern
   cloudRim(parts, -42, 31.8, -235, 5.4, 6.4, 14);
   rainbow(parts, -42, 32, -240.3, 3.4);

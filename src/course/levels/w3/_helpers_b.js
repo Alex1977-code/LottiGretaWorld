@@ -196,11 +196,43 @@ export function clockSync(level, sync) {
  * gezeichnet (Flügel als zweite InstancedMesh mit Flügelschlag); die Entitäten behalten Verhalten, Kollision und
  * Blob-Schatten, ihre eigenen Modelle werden geleert. Käfer weiter als `dist` m von der Figur fallen weg.
  * Nur Darstellung (Wippen, Flügelschlag, platt gedrückt), kein Sonnenschatten.
+ * Detailstufen: Das Registry-Modell hat ≈ 4500 Dreiecke; nur Käfer bis `near` m um die Figur nutzen es, weiter
+ * entfernte eine sparsame Nachbildung (bugLowGeo, ≈ 650 Dreiecke: Panzer mit Punkten, Kopf, Augen, Fühler, Beine).
  */
+function bugLowGeo(kind, color) {
+  const COLS = { blue: 0x2f9bff, red: 0xff3a3a, green: 0x3ccf4a, yellow: 0xffcf22, pink: 0xff6fc0 };
+  const shell = COLS[color] ?? COLS.blue, dark = 0x1f2a4a;
+  const p = [];
+  const cx = -0.03, cy = 0.17, rx = 0.3, ry = 0.3, rz = 0.27;
+  const sh = new THREE.SphereGeometry(1, 12, 6, 0, TAU, 0, Math.PI * 0.56).toNonIndexed();
+  sh.scale(rx, ry, rz); sh.translate(cx, cy, 0);
+  p.push(colorize(sh, fillc(L(shell))));
+  p.push(sphere(1, 0, 0.16, 0, dark, { sx: 0.28, sy: 0.12, sz: 0.25, ws: 8, hs: 4 }));
+  // Punkte auf dem Panzer
+  for (const [az, el, r] of [[2.3, 0.75, 0.075], [-2.3, 0.75, 0.075], [1.55, 0.35, 0.065], [-1.55, 0.35, 0.065], [Math.PI, 0.25, 0.06], [0.9, 0.55, 0.055], [-0.9, 0.55, 0.055]]) {
+    const dx = Math.cos(el) * Math.cos(az), dy = Math.sin(el), dz = Math.cos(el) * Math.sin(az);
+    p.push(sphere(r * 0.9, cx + dx * rx * 0.99, cy + dy * ry * 0.99, dz * rz * 0.99, 0xffffff, { ws: 6, hs: 3, sy: 0.3 }));
+  }
+  p.push(sphere(0.16, 0.25, 0.22, 0, dark, { ws: 8, hs: 6 }));
+  for (const s of [1, -1]) {
+    p.push(sphere(0.075, 0.355, 0.255, s * 0.075, 0xffffff, { ws: 6, hs: 4, sy: 1.2 }), sphere(0.042, 0.415, 0.265, s * 0.088, 0x2a1a4a, { ws: 5, hs: 3 }));
+    const ant = cyl(0.014, 0.014, 0.24, 0, 0, 0, dark, 4, { center: true });
+    ant.rotateZ(-0.45); ant.rotateX(s * 0.35); ant.translate(0.35, 0.43, s * 0.085);
+    p.push(ant, sphere(0.04, 0.4, 0.54, s * 0.13, shell, { ws: 5, hs: 3 }));
+    for (let i = 0; i < 3; i++) {
+      const leg = plate(0.05, 0.14, 0.05, 0, -0.07, 0, dark, { r: 0 });
+      leg.rotateX(s * (kind === 'flatterkaefer' ? 0.6 : 0.35));
+      leg.translate(0.13 - i * 0.13, 0.1, s * 0.19);
+      p.push(leg);
+    }
+  }
+  return merge(p);
+}
+
 export function bugSwarm(level, o = {}) {
   if (!level.view) return null;
   const kinds = o.kinds ?? ['flatterkaefer', 'krabbelkaefer'];
-  const dist = o.dist ?? 40;
+  const dist = o.dist ?? 40, near = o.near ?? 9;
   const sets = new Map();
   const _m = new THREE.Matrix4(), _r = new THREE.Matrix4(), _w = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _e = new THREE.Euler();
   /** Modell in Ruhehaltung → Geometrie im Modellraum (ohne transparente Flügel). */
@@ -251,9 +283,10 @@ export function bugSwarm(level, o = {}) {
   const flyers = bugs.filter((e) => e.kind === 'flatterkaefer');
   for (const set of sets.values()) {
     const b = bake(set.kind, set.color);
-    set.im = new THREE.InstancedMesh(b.body, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45 }), set.list.length);
-    set.im.castShadow = false; set.im.frustumCulled = false;
-    addObject(level, set.im);
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45 });
+    set.im = new THREE.InstancedMesh(b.body, mat, set.list.length);
+    set.lo = new THREE.InstancedMesh(bugLowGeo(set.kind, set.color), mat, set.list.length);
+    for (const im of [set.im, set.lo]) { im.castShadow = false; im.frustumCulled = false; addObject(level, im); }
     if (!wingIM && b.wingGeo && flyers.length) {
       wingIM = new THREE.InstancedMesh(b.wingGeo, b.wingMat, flyers.length * 2);
       wingIM.castShadow = false; wingIM.frustumCulled = false;
@@ -268,10 +301,11 @@ export function bugSwarm(level, o = {}) {
     const pl = level.player;
     st.drawn = 0; wingN = 0;
     for (const set of sets.values()) {
-      let n = 0;
+      let n = 0, nl = 0;
       for (const e of set.list) {
         if (e.removed || !e.alive) continue;
-        if (pl && Math.hypot(e.pos.x - pl.pos.x, e.pos.z - pl.pos.z) > dist) continue;
+        const d = pl ? Math.hypot(e.pos.x - pl.pos.x, e.pos.z - pl.pos.z) : 0;
+        if (d > dist) continue;
         const fly = e.kind === 'flatterkaefer';
         const sq = e.state === 'squashed';
         const bob = fly && !sq ? 0.12 + Math.sin(t * 4 + e.pos.x) * 0.05 : 0;
@@ -279,7 +313,7 @@ export function bugSwarm(level, o = {}) {
         _e.set(0, e.yaw ?? 0, 0); _q.setFromEuler(_e);
         if (sq) _s.set(1.3, 0.25, 1.3); else _s.set(1, 1, 1);
         _m.compose(_p, _q, _s);
-        set.im.setMatrixAt(n++, _m);
+        if (d <= near) set.im.setMatrixAt(n++, _m); else set.lo.setMatrixAt(nl++, _m);
         st.drawn++;
         if (fly && wingIM && !sq) {
           for (const sgn of [1, -1]) {
@@ -290,8 +324,10 @@ export function bugSwarm(level, o = {}) {
           }
         }
       }
-      set.im.count = n;
+      set.im.count = n; set.im.visible = n > 0;
+      set.lo.count = nl; set.lo.visible = nl > 0;
       set.im.instanceMatrix.needsUpdate = true;
+      set.lo.instanceMatrix.needsUpdate = true;
     }
     if (wingIM) { wingIM.count = wingN; wingIM.instanceMatrix.needsUpdate = true; }
   });
@@ -883,6 +919,17 @@ function quadP(a, b, c, d, y) {
   g.setAttribute('position', new THREE.Float32BufferAttribute(order.flatMap(([x, z]) => [x, y, z]), 3));
   g.computeVertexNormals();
   return g;
+}
+
+/** Viereck aus vier Punkten [x, y, z] (z. B. Aufmalung auf einem Hang), Vorderseite nach oben. */
+export function poly4(parts, a, b, c, d, color) {
+  const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+  const ny = u[2] * v[0] - u[0] * v[2];
+  const order = ny > 0 ? [a, b, c, a, c, d] : [a, c, b, a, d, c];
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(order.flat(), 3));
+  g.computeVertexNormals();
+  parts.push(colorize(g, fillc(L(color))));
 }
 
 /** Ringförmige Rennbahn (Bonus-Oval): Asphalt rIn..rOut, rot-weiße Randsteine innen und außen, Mittelstriche. */
