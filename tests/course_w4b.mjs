@@ -194,7 +194,81 @@ const R43 = {
   ],
 };
 
-const ROUTES = { '4-3': R43 };
+
+// ====================================================================== 4-4
+const KX = -107, KZ = -161;   // Kletterzaun-Raum
+const R44 = {
+  start: [0, 1, 6],
+  theme: 'bounce', music: 'course_bounce', timeLimit: 400,
+  enemies: { krabbelkaefer: 4, flatterkaefer: 55, stachelpanzer: 5, springklotz: 9, flatterkaefer_rad: 6 },
+  main: [
+    { name: 'Startwiese', to: [0, -14.4] },
+    { name: 'Pilztrampolin 1', to: [-1.5, -20.5], untilBounce: true, jump: 10, run: true },
+    { name: 'Pilztrampolin 2', to: [1.5, -25.5], untilBounce: true },
+    { name: 'Terrasse B', to: [0, -32], jump: 1, within: 0.8 },
+    { to: [0, -47.6] },
+    { name: 'Springklotz (Feder)', to: [0, -50.3], untilBounce: true, jump: 12, hold: true },
+    { name: 'Terrasse C', to: [0, -55], jump: 1, within: 0.8 },
+    { to: [0, -64.5] },
+    { name: 'Treppe', to: [0, -74.6] },
+    { name: 'Checkpoint', to: [3, -76.3] },
+    { to: [0, -95.2], run: false },
+    { name: 'Riesentrampolin', to: [0, -99.5], untilBounce: true, run: false },
+    { name: 'Fahrt', ride: 'rt', until: 'done' },
+    { name: 'Zielinsel', to: [0, -210], jump: 1, within: 1 },
+    { name: 'Zielmast', to: [0, -223.6], within: 0.2 },
+  ],
+  targets: [
+    { name: 'Stern 1: Wandloch – Springklotz als Feder', star: 0, from: [-7.6, 1, -7.3],
+      legs: [{ to: [-8.6, -7.3], run: false, within: 0.2 }, { to: [-10.2, -7.3], untilBounce: true, jump: 14 }, { to: [-13.6, -7.3], jump: 1, within: 0.5 }, { star: 0 }], shot: 'stern1' },
+    { name: 'Stern 1: Wandloch – Krallen-Anzug aus dem ?-Block', star: 0, from: [-5, 1, 2.6], expectPower: 'krallen',
+      legs: [{ to: [-5, 1], run: false, within: 0.15 }, { hop: 20 }, { wait: 50 }, { chaseKind: 'powerup', max: 900 }, { wait: 10 },
+        { to: [-11.2, -7.3], run: false, within: 0.25 }, { push: 260, jump: 10, dir: [-1, 0] }, { to: [-13.4, -7.3], run: false, within: 0.4 }, { star: 0 }] },
+    { name: 'Stern 2: hinter der Treppe über zwei Pilztrampoline', star: 1, from: [-6, 13, -78],
+      legs: [{ to: [-8.5, -80], untilBounce: true, jump: 10 }, { to: [-11, -85], untilBounce: true }, { to: [-10.5, -91], jump: 1, within: 0.5 }, { star: 1 }], shot: 'stern2' },
+    { name: 'Stempel: während der Fahrt zwischen zwei Flatterkäfer-Rädern (getimter Sprung)', stamp: true, from: [0, 13, -95.2],
+      legs: [{ to: [0, -99.5], untilBounce: true, run: false }, { ride: 'rt', boostZ: -139.6, boostTo: [0, -144.2], untilZ: -152 }], shot: 'stempel' },
+    { name: 'Stern 3: Warp-Box auf der Wolke → Kletterzaun-Raum', star: 2, from: [0, 13, -95.2],
+      legs: [{ to: [0, -99.5], untilBounce: true, run: false }, { ride: 'rt', untilZ: -170.4 }, { name: 'zur Wolke', to: [-9.5, -174], jump: 1, within: 0.6, land: false, max: 300 },
+        { wait: 200 }, { name: 'zum Zaun', to: [-116, -164.4], run: false, within: 0.3 },
+        { name: 'Zaun 1', grab: [-116, -166] }, { climb: [-114.6, 14.6] },
+        { name: 'warten auf Zaun 2', climb: [-114.6, 14.6], until: ['kz2', 'x', '<', -110.7] }, { name: 'Zaun 2', hopTo: -111.8, hold: 18 },
+        { climb: [1.0, 2.6], rel: 'kz2', until: ['kz2', 'x', '>', -107.3] }, { name: 'Zaun 3', hopTo: -103.2, hold: 20 },
+        { climb: [1.0, 3.0], rel: 'kz3', until: ['kz3', 'y', '>', 16.7] }, { name: 'Zaun 4', hopTo: -99.8, hold: 22, into: 0.5 },
+        { climb: [-96.9, 22.4] }, { name: 'Sims', hopTo: -94.6, land: true, hold: 16, into: 0.5 }, { star: 2 }], shot: 'stern3' },
+  ],
+  extra: [
+    { name: 'Riesentrampolin wartet, bis man draufspringt', from: [0, 13, -90], heroes: ['lotti'],
+      legs: [{ wait: 240 }, { named: 'rt' }], expectNamed: ['rt', 'running', false] },
+    { name: 'Springklotz auf der Zielinsel: 1-Up im unsichtbaren Block', from: [-3.6, 10.5, -213], heroes: ['lotti'],
+      legs: [{ to: [-4.4, -213], run: false, within: 0.2 }, { to: [-6, -213], untilBounce: true, jump: 14 }, { wait: 90 }, { chaseKind: 'powerup', max: 900 }], expectLives: 1 },
+    { name: 'Kletterzaun-Raum: Ausgang zur Zielinsel', from: [-96, 10, -158], heroes: ['lotti'],
+      legs: [{ to: [-94, -155], jump: 30, within: 0.35, run: false }, { wait: 20 }], expectZ: [-230, -206], expectY: [10, 12.5] },
+  ],
+  shots: [
+    ['start', [0, 1, 6]],
+    ['wandloch', [-7, 1, -4]],
+    ['schlucht', [0, 1, -13]],
+    ['terrasseB', [0, 3, -33]],
+    ['federn', [0, 3, -45]],
+    ['terrasseC', [0, 9, -56]],
+    ['treppe', [0, 9, -63]],
+    ['checkpoint', [2, 13, -78]],
+    ['sims', [-9.5, 18, -84]],
+    ['trampolin', [0, 13, -93]],
+    ['fahrt_rad1', null, { ride: 14 }],
+    ['fahrt_ring', null, { ride: 29 }],
+    ['fahrt_stempel', null, { ride: 42 }],
+    ['fahrt_wolke', null, { ride: 72 }],
+    ['fahrt_ende', null, { ride: 96 }],
+    ['zielinsel', [0, 10.5, -209]],
+    ['ziel', [0, 10.5, -218]],
+    ['zaunraum', [-112, 10, -158]],
+    ['zaunraum_oben', [-102.5, 18, -163.6]],
+  ],
+};
+
+const ROUTES = { '4-3': R43, '4-4': R44 };
 
 const PORT = 4630;
 const stop = await startServer(PORT);
@@ -300,6 +374,99 @@ function install() {
           continue;
         }
         if (Lg.figs) { log.push(['figuren', L().players.length, JSON.stringify(W.figInfo())]); continue; }
+        const airTo = (m, tx, tz, k = 2.6, vmax = 11) => {
+          let vx = (tx - m.pos.x) * k, vz = (tz - m.pos.z) * k;
+          const vl = Math.hypot(vx, vz);
+          if (vl > vmax) { vx *= vmax / vl; vz *= vmax / vl; }
+          const ex = vx - m.vel.x, ez = vz - m.vel.z, el = Math.hypot(ex, ez);
+          return el > 0.05 ? W.stick(ex, ez, Math.min(1, el / 2.5)) : { x: 0, y: 0 };
+        };
+        if (Lg.untilBounce) {
+          // zu (x, z) – am Boden laufen/abspringen, in der Luft lenken – bis die Figur von einer Feder abprallt
+          let k = 0, prev = P().vel.y, bounced = false;
+          for (; k < (Lg.max ?? 600); k++) {
+            const m = P();
+            if (m.dead || L().runtime.status !== 'play') break;
+            const dx = Lg.to[0] - m.pos.x, dz = Lg.to[1] - m.pos.z, d = Math.hypot(dx, dz);
+            const st = m.mode === 'air' ? airTo(m, Lg.to[0], Lg.to[1]) : (d > 0.05 ? W.stick(dx, dz, Math.min(1, Math.max(0.3, d))) : { x: 0, y: 0 });
+            tick({ ...st, run: Lg.run ?? false, jump: k < (Lg.jump ?? 0) || (!!Lg.hold && m.mode === 'air') });
+            const vy = P().vel.y;
+            if (vy > 8 && prev <= 1 && k > 1) { bounced = true; break; }
+            prev = vy;
+          }
+          log.push([Lg.name ?? `feder${li}`, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), +P().vel.y.toFixed(1)]);
+          if (!bounced) { log.push(['FEHLER: kein Abprall', li]); break; }
+          continue;
+        }
+        if (Lg.ride) {
+          // auf dem Riesentrampolin mitfahren: über der Matte halten; boostZ: getimter Sprung (Taste kurz vor der
+          // Landung), danach zum Punkt boostTo lenken; untilZ / until 'done': Ende
+          const rt = L().named.get(Lg.ride);
+          let k = 0, boosted = 0, phase = 'ride', jumpSteps = 0, apexY = -1e9;
+          for (; k < (Lg.max ?? 120 * 60); k++) {
+            const m = P();
+            if (m.dead || L().runtime.status !== 'play') break;
+            if (Lg.untilZ !== undefined && rt.pos.z <= Lg.untilZ) break;
+            if (Lg.untilS !== undefined && rt.s >= Lg.untilS) break;
+            if (Lg.until === 'done' && rt.done && m.mode === 'air' && m.vel.y > 0) break;
+            const mat = rt.pos.y + 0.9;
+            let tx = rt.pos.x, tz = rt.pos.z;
+            if (phase === 'stamp') { tx = Lg.boostTo[0]; tz = Lg.boostTo[1]; apexY = Math.max(apexY, m.pos.y); if (m.vel.y < -2) phase = 'ride'; }
+            if (Lg.boostZ !== undefined && !boosted && rt.pos.z <= Lg.boostZ && m.mode === 'air' && m.vel.y < 0 && m.pos.y - mat < 0.9) { boosted = 1; jumpSteps = 6; }
+            const st = m.mode === 'air' ? airTo(m, tx, tz, phase === 'stamp' ? 2.2 : 3) : W.stick(tx - m.pos.x, tz - m.pos.z, 0.5);
+            const jump = jumpSteps > 0;
+            if (jumpSteps > 0) { jumpSteps--; if (jumpSteps === 0) phase = 'stamp'; }
+            tick({ ...st, run: false, jump });
+          }
+          log.push([Lg.name ?? `fahrt${li}`, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), JSON.stringify(rt.info()), boosted ? +apexY.toFixed(2) : '']);
+          continue;
+        }
+        if (Lg.grab) {
+          // an einen Zaun springen (in der Luft zum Zaun drücken), bis die Figur am Zaun hängt
+          let k = 0;
+          for (; k < (Lg.max ?? 300); k++) {
+            const m = P();
+            if (m.dead) break;
+            if (k > 4 && m.mode === 'wall') break;
+            const dx = Lg.grab[0] - m.pos.x;
+            tick({ x: Math.max(-1, Math.min(1, dx * 2)), y: 1, jump: k < (Lg.hold ?? 24) });
+          }
+          log.push([Lg.name ?? `greifen${li}`, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), P().mode, P().fence?.obj?.spec?.id ?? null]);
+          if (P().mode !== 'wall') { log.push(['FEHLER: Zaun nicht gegriffen', li]); break; }
+          continue;
+        }
+        if (Lg.climb) {
+          // am Zaun klettern: relativ zur Zaunmitte (rel) oder absolut, bis am Ziel (oder until-Bedingung)
+          let k = 0;
+          const f = Lg.rel ? L().named.get(Lg.rel) : null;
+          for (; k < (Lg.max ?? 900); k++) {
+            const m = P();
+            if (m.dead || m.mode !== 'wall') break;
+            const tx = (f ? f.pos.x : 0) + Lg.climb[0], ty = (f ? f.pos.y : 0) + Lg.climb[1];
+            const dx = tx - m.pos.x, dy = ty - m.pos.y;
+            const there = Math.abs(dx) < 0.2 && Math.abs(dy) < 0.2;
+            if (Lg.until) { const e = L().named.get(Lg.until[0]); const v = e.pos[Lg.until[1]]; if ((Lg.until[2] === '<' ? v < Lg.until[3] : v > Lg.until[3]) && there) break; }
+            else if (there) break;
+            tick({ x: Math.max(-1, Math.min(1, dx * 3)), y: Math.max(-1, Math.min(1, dy * 3)) });
+          }
+          log.push([Lg.name ?? `klettern${li}`, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), P().mode, P().fence?.obj?.spec?.id ?? null]);
+          if (P().mode !== 'wall') { log.push(['FEHLER: vom Zaun gefallen', li]); break; }
+          continue;
+        }
+        if (Lg.hopTo !== undefined) {
+          // vom Zaun abspringen (seitlich zu x) und wieder greifen (Stick zum Zaun) bzw. landen (land: true)
+          let k = 0;
+          for (; k < (Lg.max ?? 240); k++) {
+            const m = P();
+            if (m.dead) break;
+            if (k > 4 && !Lg.land && m.mode === 'wall') break;
+            if (k > 4 && m.mode === 'ground') break;
+            tick({ x: Math.max(-1, Math.min(1, (Lg.hopTo - m.pos.x) * 2)), y: Lg.into ?? 1, jump: k < (Lg.hold ?? 30) });
+          }
+          log.push([Lg.name ?? `hüpfen${li}`, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), P().mode, P().fence?.obj?.spec?.id ?? null]);
+          if (!Lg.land && P().mode !== 'wall') { log.push(['FEHLER: Zaun verfehlt', li]); break; }
+          continue;
+        }
         if (Lg.named) { const e = L().named.get(Lg.named); log.push(['benannt', Lg.named, JSON.stringify(e?.info?.() ?? null)]); continue; }
         if (Lg.crouch) { for (let i = 0; i < Lg.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); log.push(['röhre', li, +P().pos.x.toFixed(1), +P().pos.y.toFixed(1), +P().pos.z.toFixed(1)]); continue; }
         if (Lg.hop) { for (let k = 0; k < Lg.hop; k++) tick({ jump: true }); for (let k = 0; k < 240 && P().mode !== 'ground'; k++) tick({}); continue; }
@@ -420,6 +587,13 @@ function install() {
       }
       c.setInput({});
       return n;
+    },
+    /** Riesentrampolin neu starten und mitfahren, bis s ≥ s0 (für Bilder). */
+    rideTo(s0) {
+      const rt = L().named.get('rt');
+      rt.reset();
+      W.place([rt.pos.x, rt.pos.y + 3, rt.pos.z], { settle: 1 });
+      return W.drive([{ ride: 'rt', untilS: s0 }]);
     },
     rt: () => L().runtime.info(),
     info: () => P().info(),
@@ -555,7 +729,8 @@ for (const id of LEVELS) {
   loaded = null;
   await load(id);
   for (const [name, pos, o = {}] of R.shots) {
-    await W('place', pos, { settle: o.settle ?? 10, clones: o.clones });
+    if (o.ride !== undefined) await W('rideTo', o.ride);
+    else await W('place', pos, { settle: o.settle ?? 10, clones: o.clones });
     await shot(`${id}_${name}`);
   }
 }

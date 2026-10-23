@@ -19,12 +19,12 @@ import { colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } fr
 import { visDt } from '../../entities/gimmick.js';
 import { levelSetup, cyl, sphere, cone, block, flatIslands } from '../w2/_helpers_c.js';
 import { cullStatic, farHide, shadowless } from '../w2/_helpers_a.js';
-import { instanceEnemies } from '../w3/_helpers_a.js';
+import { instanceEnemies, smoke } from '../w3/_helpers_a.js';
 import { zeitUhren } from '../w3/_helpers_d.js';
-import { plate, cow, almHut, hayBale, meadow, balloon, addStaticParts, ropeFence, stonePath, cloudRim } from '../w3/_helpers_b.js';
+import { plate, cow, almHut, hayBale, meadow, balloon, addStaticParts, ropeFence, stonePath, cloudRim, bugSwarm } from '../w3/_helpers_b.js';
 
-export { levelSetup, cyl, sphere, cone, block, flatIslands, cullStatic, farHide, shadowless, instanceEnemies, zeitUhren };
-export { plate, cow, almHut, hayBale, meadow, balloon, addStaticParts, ropeFence, stonePath, cloudRim };
+export { levelSetup, cyl, sphere, cone, block, flatIslands, cullStatic, farHide, shadowless, instanceEnemies, zeitUhren, smoke };
+export { plate, cow, almHut, hayBale, meadow, balloon, addStaticParts, ropeFence, stonePath, cloudRim, bugSwarm };
 
 const TAU = Math.PI * 2;
 const L = (c) => lin(hex(c));
@@ -757,5 +757,96 @@ export function bees(level, spots, o = {}) {
   });
   return pts;
 }
+
+/** Sparsamer Flatterkäfer (≈ 520 Dreiecke, Blick +X): Panzer mit Punkten, Kopf, Augen, Fühler, Beine. */
+function flyerLowGeo(color) {
+  const COLS = { blue: 0x2f9bff, red: 0xff3a3a, green: 0x3ccf4a, yellow: 0xffcf22, pink: 0xff6fc0 };
+  const shell = COLS[color] ?? COLS.pink, dark = 0x1f2a4a;
+  const p = [];
+  const sh = new THREE.SphereGeometry(1, 12, 6, 0, TAU, 0, Math.PI * 0.56).toNonIndexed();
+  sh.scale(0.3, 0.3, 0.27); sh.translate(-0.03, 0.17, 0);
+  p.push(colorize(sh, fillc(L(shell))));
+  p.push(sphere(1, 0, 0.16, 0, dark, { sx: 0.28, sy: 0.12, sz: 0.25, ws: 8, hs: 4 }));
+  for (const [az, el, r] of [[2.3, 0.75, 0.075], [-2.3, 0.75, 0.075], [1.55, 0.35, 0.065], [-1.55, 0.35, 0.065], [Math.PI, 0.25, 0.06]]) {
+    const dx = Math.cos(el) * Math.cos(az), dy = Math.sin(el), dz = Math.cos(el) * Math.sin(az);
+    p.push(sphere(r * 0.9, -0.03 + dx * 0.297, 0.17 + dy * 0.297, dz * 0.267, 0xffffff, { ws: 6, hs: 3, sy: 0.3 }));
+  }
+  p.push(sphere(0.16, 0.25, 0.22, 0, dark, { ws: 8, hs: 6 }));
+  for (const sg of [1, -1]) {
+    p.push(sphere(0.075, 0.355, 0.255, sg * 0.075, 0xffffff, { ws: 6, hs: 4, sy: 1.2 }), sphere(0.042, 0.415, 0.265, sg * 0.088, 0x2a1a4a, { ws: 5, hs: 3 }));
+    const ant = cyl(0.014, 0.014, 0.24, 0, 0, 0, dark, 4, { center: true });
+    ant.rotateZ(-0.45); ant.rotateX(sg * 0.35); ant.translate(0.35, 0.43, sg * 0.085);
+    p.push(ant, sphere(0.04, 0.4, 0.54, sg * 0.13, shell, { ws: 5, hs: 3 }));
+    for (let i = 0; i < 3; i++) {
+      const leg = block(0.05, 0.14, 0.05, 0, -0.14, 0, dark, { r: 0 });
+      leg.rotateX(sg * 0.6); leg.translate(0.13 - i * 0.13, 0.1, sg * 0.19);
+      p.push(leg);
+    }
+  }
+  return merge(p);
+}
+
+/**
+ * Räder aus Flatterkäfern (Gegner flatterkaefer_rad) sparsam zeichnen: Die Räder zeichnen ihre Glieder sonst als
+ * Instanzen des Registry-Modells (≈ 4500 Dreiecke je Käfer, sieben Teile je Rad). Hier übernimmt eine gemeinsame
+ * Instanz-Gruppe aus sparsamen Käfern (≈ 520 Dreiecke) mit schlagenden Flügeln alle Glieder aller Räder (zwei
+ * Zeichenaufrufe, kein Sonnenschatten); Räder weiter als far m von der Figur fallen weg. Verhalten, Kollision und der
+ * Absturz besiegter Glieder (eigenes Modell) bleiben unberührt. Nur Darstellung.
+ */
+export function wheelSwarm(level, o = {}) {
+  if (!level.view) return null;
+  const wheels = level.entities.filter((e) => e.kind === 'flatterkaefer_rad' && e.inst);
+  if (!wheels.length) return null;
+  const far = o.far ?? 44;
+  const total = wheels.reduce((n, w) => n + w.count, 0);
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45 });
+  const body = new THREE.InstancedMesh(flyerLowGeo(o.color ?? 'pink'), mat, total);
+  const wg = new THREE.CircleGeometry(0.26, 10);
+  wg.scale(1.3, 0.7, 1); wg.rotateX(-Math.PI / 2); wg.translate(-0.12, 0, 0.2);
+  const wings = new THREE.InstancedMesh(wg, new THREE.MeshStandardMaterial({ color: 0xf4fbff, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, roughness: 0.3 }), total * 2);
+  for (const im of [body, wings]) { im.frustumCulled = false; im.castShadow = false; im.count = 0; im.name = 'zier:kaeferraeder'; addObject(level, im); }
+  const list = [];
+  for (const w of wheels) {
+    const old = w.inst;
+    old.group.visible = false;
+    const slots = Array.from({ length: w.count }, () => ({ on: false, m: new THREE.Matrix4(), x: 0, z: 0 }));
+    w.inst = {
+      group: old.group, count: w.count, template: old.template,
+      set(i, pos, yaw = 0, scale = 1) { const s = slots[i]; if (!s) return; _wq.setFromAxisAngle(_wy, Number(yaw) || 0); s.m.compose(_wp.set(pos.x, pos.y, pos.z), _wq, _ws.setScalar(scale)); s.on = true; s.x = pos.x; s.z = pos.z; },
+      hide(i) { if (slots[i]) slots[i].on = false; },
+      update() { old.group.visible = false; },
+      dispose() { old.dispose(); },
+    };
+    list.push(slots);
+  }
+  const W = new THREE.Matrix4(), R = new THREE.Matrix4();
+  let t = 0;
+  const holder = {};
+  level.view.onFrame((dt) => {
+    t += visDt(level, holder, dt);
+    const pl = level.player;
+    let n = 0, nw = 0;
+    for (const slots of list) {
+      for (const s of slots) {
+        if (!s.on) continue;
+        if (pl && Math.hypot(s.x - pl.pos.x, s.z - pl.pos.z) > far) continue;
+        body.setMatrixAt(n++, s.m);
+        const flap = Math.sin(t * 34 + s.x * 3) * 0.6 + 0.4;
+        for (const sg of [1, -1]) {
+          R.makeRotationX(sg * (0.25 + flap));
+          if (sg < 0) R.multiply(_wflip);
+          R.setPosition(-0.05, 0.4, sg * 0.08);
+          wings.setMatrixAt(nw++, W.multiplyMatrices(s.m, R));
+        }
+      }
+    }
+    body.count = n; wings.count = nw;
+    body.visible = n > 0; wings.visible = nw > 0;
+    body.instanceMatrix.needsUpdate = true; wings.instanceMatrix.needsUpdate = true;
+  });
+  return { wheels: wheels.length, total };
+}
+const _wq = new THREE.Quaternion(), _wy = new THREE.Vector3(0, 1, 0), _wp = new THREE.Vector3(), _ws = new THREE.Vector3();
+const _wflip = new THREE.Matrix4().makeScale(1, 1, -1);
 
 export { clamp };
