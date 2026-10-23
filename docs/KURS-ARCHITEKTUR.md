@@ -2784,6 +2784,48 @@ Figur), Rankenschnapper (wachsen über den Weg), Lavabrocken (tragbar, werfbar),
 Stachelpanzer, Springklotz, Lavafunke; Boss **Lavafelsen-König** (nur geworfene Lavabrocken treffen). „Mitspieler“
 im Bauplan = Klone der Spiegelfrucht. Die Welt-Warp-Röhre in 4-2 führt zur Welt-5-Insel („Bald“, bis es sie gibt).
 
+**Level-Notizen 4-5 / 4-A / 4-B** (Level-Agent; Hilfen `src/course/levels/w4/_helpers_c.js` ohne `LEVEL`; Test
+`tests/course_w4c.mjs [4-5a|4-5b|4-5c|4-5d|4-A|4-B]` – Laden + Routen, Sterne/Stempel/Extraleben, Mechanik, Bilder, Arenen;
+je Teil < 10 min; Port 4610 + PORT_BASE, Bilder `tests/out/w4c_*.png`; `ONLY=<Text|Text>`, `VERBOSE=1`):
+
+- **4-5 „Säulenstadt der Stachelwalzen“** (parcours, ruins, course_ruins, 400 s, ≈ 265 m nach −Z; Höhen 1 → 3,5 → 6 → 9 → 12
+  → 14,5): **Ruinenstart** (Mosaik-Rosette, Hasenbrunnen mit Wasserstrahl, Torbogen; links die **schrägen Stufen – Stempel**
+  oben; Hang 1 mit Walzenwerfer oben – Walzen rollen herab und zerschellen an einer Prellmauer am Hangfuß; Säulenplatz mit
+  trockenem Brunnen, rechts auf dem Sims die **Röhre in den Schalterraum**; Hang 2 mit zwei Walzenwerfern; Kante →
+  bewegliche Plattform zum Checkpoint) → **Checkpoint-Insel** (?-Block mit Krallen-Anzug, links der **Rundturm** = gewölbte
+  Kletterwand, **Stern 1** oben; rechts die L-förmige **Balkenbrücke** mit Spiegelfrucht-Strauch zur hohen Mauer) →
+  **Plattformfahrt** (längs, quer, schräg aufwärts, dazwischen Rast-Säulen; Aufstieg über Hang 3 mit Walzenwerfer) →
+  **Stachelstangen** (drei fahrende Plattformen mit drehenden Stachelstangen – einarmig schnell, im Finale zweiarmig;
+  Insel mit großer Stachelstange, Insel mit zwei gegenläufigen; links die **Schwankplattform – Stern 2**) → **Zielhang**
+  (Zielplateau mit Brunnen, Zielmast, **versiegelte blaue Röhre** mit Gitterdeckel und Schild „Werfer-Festung (über die
+  Weltkarte)“ – Ducken darauf zeigt die Ansage; 4-B selbst ist auf der Karte erreichbar). **Stern 0**: Schalterraum
+  (x ≈ 80, eigene Kameraschiene `area`) – Farbfeld 4 × 4 färben, Röhre zurück auf den Säulenplatz. **Extraleben (3)**: oben
+  auf der Mauer rechts neben dem Turm – Spiegelfrucht auf dem 1,2 m schmalen Balken nehmen (seitlich kein Boden → der Klon
+  erscheint **hinter** der Figur), im Gänsemarsch weiter: die vordere Figur fällt in den Graben (0,8 m) vor dem glatten
+  Sockel, die hintere läuft ihr auf den Kopf → **Räuberleiter** (`raeuberleiter`, level-lokal: Hochwurf 19,5 m/s, frische
+  Kletterzeit) → mit Krallen-Anzug das Rankenband (7–8 m über dem Balken, kletterbar) hinauf. Ohne Klon unerreichbar
+  (Sockel `noWallSlide`, Dreifachsprung endet 0,5 m darunter), ohne Krallen wirft der Klon nur hoch. Gegner: Walzenwerfer
+  10, Rollpilz 8; Stachelstangen 6. Bot-Zeit bis zum Zielmast Lotti 91,0 s / Greta 90,7 s; ohne Unverwundbarkeit
+  (Ausweichen per Sprung) Start → Plateau ohne Treffer, Stachelplattform 1 mit Ecken-Taktik (die Kugeln reichen nicht in
+  die Plattformecken) ohne Treffer.
+- **4-A „Glutbrocken-Gerangel“** (arena, lava, course_arena, 200 s, 1 Stern): Basaltinsel (r ≈ 11,6 m) mit glühenden Rissen
+  und Basaltwaben, Basaltsäulen-Gruppen im See, Kraterwand mit zwei Lavafällen, Vulkane, Lavablasen, Glutfunken,
+  Dampfschwaden, Glutkristalle, Hinweisschild „Draufspringen, aufheben, werfen!“. Welle 1: ein Lavabrocken; ist er besiegt,
+  **springen drei aus der Lava** im Bogen auf die Insel (`lavaWaves`, Ansage). Besiegen: draufspringen → betäubt →
+  aufheben → in die Lava werfen oder gegen einen anderen Brocken (beide zerplatzen). ?-Block Krallen-Anzug (Tatzenhieb
+  betäubt), Münzblock. Tod setzt Arena und Wellen zurück.
+- **4-B „Blaugitter-Bastion der Feuer-Werfer“** (arena, fortress, course_arena, **100 s**, 1 Stern): Festungshof 22 × 22 m,
+  blaue Rautengitter (Modell `festungsgitter`, drei Wände zu je einem Mesh pro Material verschmolzen: `mergeModels`), vorn
+  Brüstung; Galerie (Einweg, 2,6 m) und zwei Seitenbühnen (2,2 m) – die drei Feuer-Werfer starten oben und springen
+  zwischen Bühne und Boden; Wappen-Mosaik (blauer Ring, goldene Flamme), Außenmauern mit blauem Band, Ecktürme mit blauen
+  Kegeldächern und wehenden blauen Fahnen, Banner, Steckbrief „Gesucht: Lotti & Greta“, Lager (Fässer, Kisten,
+  Feuerkugel-Vorrat), Feuerschalen, Wimpel. Bot (echte Eingabe, draufspringen) gewinnt in ≈ 24 s.
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 4-5 (23 Abschnittsbilder) 73–108 Zeichenaufrufe, 190–275 k Dreiecke
+  (Walzenwerfer-Modell ≈ 10,5 k Dreiecke: Instanzgruppe ohne Sonnenschatten; Münzen ≈ 33 k werden immer gezeichnet);
+  4-A 68–83 / 73–94 k; 4-B 66–112 / 139–177 k. Rampen bekommen level-lokal `camIgnore` (der Kamerastrahl prüft Hüllquader,
+  auf der Rampe steckt der Kopf darin), ebenso die 1-Up-Mauer. Wünsche an den Motor: `camIgnore`-Parameter im Baustein
+  `ramp`; Räuberleiter (Figur auf Figur) als Motor-Regel für Klone; Detailstufe für Münzen und Walzenwerfer.
+
 ---
 
 ## Präzisierung (Bausteine Welt 4)
