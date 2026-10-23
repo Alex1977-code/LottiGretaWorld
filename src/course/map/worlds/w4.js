@@ -50,7 +50,7 @@ export const MAP = {
   seaColors: [0x5ad8e6, 0x249ed6, 0x1666b8],
   // Kacheln der statischen Geometrie wie Welt 3: 32 m (Ursprung so, dass die Inseln in wenige Kacheln fallen), Teile
   // ohne Schattenwurf (Deckschichten, Wege, Ränder) in 64-m-Kacheln
-  batch: { tile: 48, origin: [8, 8], freeTile: 96, freeOrigin: [-16, -16] },
+  batch: { tile: 40, origin: [8, 8], freeTile: 80, freeOrigin: [-16, -16] },
   // Nachbarwelt am Horizont: Welt 3 (Schneeinsel) im Südwesten – dorthin führt die Rückweg-Röhre
   neighbors: [{ world: 3, pos: [-262, 112], size: [80, 54], style: 'snow' }],
   birds: [{ c: [-8, 13, 18], r: 7, n: 2 }, { c: [20, 14, -52], r: 9, n: 2 }, { c: [40, 15, -104], r: 8, n: 1 }],   // Geier kreisen
