@@ -64,14 +64,14 @@ const COURSE_THEMES = {
   course_house: { bpm: 172, bars: [8, 8], loop: true, has: ['lead', 'stabs'], drums: 'x', key: 'Dm', mel: ['lead'], hook: 0, preview: 0, world: 2 },
   course_world2_map: { bpm: 128, bars: [16, 16], loop: true, beatMult: 2, drums: 'dp', key: 'G', mel: ['lead', 'piano'], hook: 8, preview: 0, world: 2, map: true },
   // Welt 3
-  course_snow: { bpm: 128, bars: [16, 16], loop: true, has: ['bell', 'pad', 'piano'], drums: 'j' },
-  course_ghost: { bpm: 122, bars: [16, 16], loop: true, has: ['organ', 'whistle'], drums: 'x' },
-  course_plaza: { bpm: 152, bars: [16, 16], loop: true, has: ['arp', 'piano', 'bell'] },
-  course_water: { bpm: 118, bars: [16, 16], loop: true, beatMult: 2, has: ['arp', 'lead'], fx: 'lowpass' },
-  course_race: { bpm: 150, bars: [16, 16], loop: true, has: ['lead', 'arp', 'riser'] },
-  course_autumn: { bpm: 134, bars: [16, 16], loop: true, has: ['lead', 'arp', 'piano'] },
-  course_train: { bpm: 146, bars: [16, 16], loop: true, has: ['whistle', 'lead'] },
-  course_skyway: { bpm: 136, bars: [16, 16], loop: true, has: ['pad', 'arp', 'lead', 'bell'] },
+  course_snow: { bpm: 132, bars: [24, 24], loop: true, has: ['lead', 'bell', 'pad', 'piano', 'arp'], drums: 'j', fx: 'delay', key: 'Eb', mel: ['lead', 'bell'], hook: 12, preview: 4, world: 3 },
+  course_ghost: { bpm: 130, bars: [24, 24], loop: true, has: ['lead', 'organ', 'whistle'], drums: 'x', key: 'C#m', mel: ['lead', 'organ', 'whistle'], hook: 12, preview: 4, world: 3 },
+  course_plaza: { bpm: 148, bars: [24, 24], loop: true, has: ['lead', 'piano', 'arp'], key: 'Ab', mel: ['lead', 'piano'], hook: 12, preview: 4, world: 3 },
+  course_water: { bpm: 130, bars: [24, 24], loop: true, has: ['lead', 'arp', 'piano'], fx: 'lowpass', key: 'F#', mel: ['lead', 'piano'], hook: 12, preview: 4, world: 3 },
+  course_race: { bpm: 150, bars: [24, 24], loop: true, has: ['lead', 'arp', 'stabs', 'riser'], key: 'Em', mel: ['lead'], hook: 12, preview: 4, world: 3 },
+  course_autumn: { bpm: 136, bars: [24, 24], loop: true, has: ['lead', 'arp', 'piano'], key: 'D', mel: ['lead', 'piano'], hook: 12, preview: 4, world: 3 },
+  course_train: { bpm: 146, bars: [24, 24], loop: true, has: ['whistle', 'lead'], drums: 's', key: 'C', mel: ['lead', 'whistle'], hook: 12, preview: 4, world: 3 },
+  course_skyway: { bpm: 140, bars: [24, 24], loop: true, has: ['pad', 'arp', 'lead', 'bell'], key: 'Bb', mel: ['lead', 'bell'], hook: 12, preview: 4, world: 3 },
   // Welt 4
   course_canyon: { bpm: 132, bars: [16, 16], loop: true, has: ['whistle', 'arp'] },
   course_poison: { bpm: 130, bars: [16, 16], loop: true, has: ['lead', 'arp', 'stabs'] },
@@ -80,7 +80,7 @@ const COURSE_THEMES = {
   course_ruins: { bpm: 128, bars: [16, 16], loop: true, has: ['whistle', 'arp', 'lead'] },
   course_lavacastle: { bpm: 148, bars: [16, 16], loop: true, has: ['organ', 'stabs', 'lead'] },
   // Karten
-  course_world3_map: { bpm: 116, bars: [8, 8], loop: true, beatMult: 2, drums: 'j' },
+  course_world3_map: { bpm: 128, bars: [16, 16], loop: true, beatMult: 2, drums: 'j', key: 'F', mel: ['lead', 'piano'], hook: 8, preview: 0, world: 3, map: true },
   course_world4_map: { bpm: 122, bars: [8, 8], loop: true, beatMult: 2, has: ['whistle'] },
 };
 // Musiknamen Welt 2–4 (Auftrag/Vertrag) und Karten-Themen je Welt
@@ -515,7 +515,8 @@ if (want('live')) {
       && (spec.has ?? []).every((k) => i.tracks.includes(k)) && [...(spec.drums ?? '')].every((ch) => i.drumKinds.includes(ch)) && (!spec.fx || i.fx.includes(spec.fx)));
   }
   // Klangfarbe aus den Daten: Lagune blubbert (Plucks gleiten aufwärts), Gifttropfen gleiten abwärts, Spukhaus-Theremin mit weitem Vibrato
-  check('course_water: blubbernde Plucks (glide > 1), Tiefpass auf Lead/Piano/Pad', THEMES.course_water.voice.arp.glide > 1 && ['lead', 'piano', 'pad'].every((k) => THEMES.course_water.fx.lowpass[k] <= 1600));
+  check('course_water: blubbernde Plucks (glide > 1), weicher Tiefpass auf Piano/Pad, Lead gedämpft, aber klar (2–3 kHz)', THEMES.course_water.voice.arp.glide > 1
+    && ['piano', 'pad'].every((k) => THEMES.course_water.fx.lowpass[k] <= 1600) && THEMES.course_water.voice.lead.cutoff >= 2000 && THEMES.course_water.voice.lead.cutoff <= 3000);
   check('course_poison: Gifttropfen gleiten abwärts (glide < 1)', THEMES.course_poison.voice.arp.glide < 1);
   check('course_ghost: Theremin mit weitem Vibrato (≥ 30 Cent)', THEMES.course_ghost.voice.whistle.vibrato >= 30);
   // Lead-Synth ab Welt 2: Melodie ohne Hoover-Brummen (Oktave darunter aus), der Hoover bleibt Akzent
