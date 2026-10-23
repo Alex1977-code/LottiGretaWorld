@@ -175,7 +175,7 @@ const ROUTES = {
   },
 };
 
-const PORT = 4371;
+const PORT = 4384;   // 4371 nutzt tests/course_w3a.mjs
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
 const { check, summary } = makeChecker();
