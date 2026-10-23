@@ -723,8 +723,14 @@ if (want('3-Zug')) {
       let b2 = null;
       t.placeC(t.cw(), 0, { settle: 4, invuln: 1e9 });
       // nächstes Projektil, das über ein Wagendach (nicht über einen Flachwagen) fliegen wird
-      const roofAt = (z) => (c.world.raycastDown(0, 12, z, 14, { ignore: (sh) => sh.tag === 'riesenprojektil' || sh.quicksand })?.y ?? 0) > 3;
-      for (let i = 0; i < 120 * 14 && !b2; i++) { c.step(1); b2 = L.entities.find((e) => e !== b && e.kind === 'riesenprojektil' && !e.removed && e.state === 'fly' && e.pos.x < -4.5 && roofAt(e.pos.z)); }
+      const TRd = L.data.train;
+      const roofAt = (z) => { const cc = t.cOf(z); return Object.values(TRd).some((k) => k.x === 0 && k.style === 'wagen' && cc > k.c0 + 0.8 && cc < k.c1 - 0.8); };
+      for (let i = 0; i < 120 * 14 && !b2; i++) {
+        if (i % 90 === 0) t.placeC(t.cw() + 1.5, 0.9, { invuln: 1e9 });   // mitfahren, nicht vom Bildfenster einklemmen lassen
+        c.step(1);
+        b2 = L.entities.find((e) => e !== b && e.kind === 'riesenprojektil' && !e.removed && e.state === 'fly' && e.pos.x < -4.5 && roofAt(e.pos.z));
+      }
+      out.b2 = !!b2;
       if (b2) {
         t.place([0, 3.8, b2.pos.z], { settle: 0, invuln: 1e9 });
         let hurt = false;
@@ -735,6 +741,7 @@ if (want('3-Zug')) {
           hurt = p.invuln > 0.2 || p.dead;
         }
         out.bulletHurt = hurt;
+        out.hurtC = +t.cOf(b2.pos.z).toFixed(1);
         out.hurtInfo = { y: +p.pos.y.toFixed(2), by: +b2.pos.y.toFixed(2), bx: +b2.pos.x.toFixed(2), px: +p.pos.x.toFixed(2), ground: t.ground(), big: p.big };
         p.invuln = 1e9;
       }

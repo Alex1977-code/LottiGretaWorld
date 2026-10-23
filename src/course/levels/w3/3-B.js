@@ -16,7 +16,8 @@
 // einem Teller (an den Dienern hochklettern). 3 Treffer → er versinkt, der Stern erscheint vor dem Sockel, hinter dem
 // Sockel fährt die grüne Röhre zum Hinterhof aus dem Boden. Das Publikum jubelt bei jedem Treffer.
 
-import { levelSetupE, grandStairs, circusProps, cutawayTent, circusArena, RisingPipe, spawnLocal, particles, snowCover, discG, bake, plainIslands, shadowDiet, cliffDeco } from './_helpers_e.js';
+import { levelSetupE, grandStairs, circusProps, cutawayTent, circusArena, RisingPipe, spawnLocal, particles, snowCover, discG, bake, plainIslands, shadowDiet, cliffDeco, bakeSections, firG } from './_helpers_e.js';
+import { Rnd } from '../../blocks/kit.js';
 
 const AY = 7;                    // Boden des Zeltplateaus
 const AZ = -68;                  // Manegenmitte
@@ -40,8 +41,18 @@ function setup(level) {
   cliffDeco(level, { x0: -7.8, x1: 7.8, z: -27, y: SY, h: 24, face: -1, seed: 7 });
   cliffDeco(level, { x0: -14.8, x1: 14.8, z: 14, y: 0, h: 20, face: 1, seed: 9 });
   cliffDeco(level, { x0: GX - 12.8, x1: GX + 12.8, z: GZ + 11, y: AY, h: 26, face: 1, fall: GX + 6, seed: 11 });
+  // Tannen (leichte Eigenbau-Fichten statt des Registry-Modells – Budget im Zelt): Vorplatz mit Stamm-Kollision und
+  // Schatten, Zeltplateau-Rand und Hinterhof ohne Schatten
+  const rnd = new Rnd(41);
+  const near = [[-13, 0, 12, 4.2], [13, 0, 12.5, 3.8], [-13.2, 0, -14, 4.6], [13, 0, -15, 4.4]];
+  bakeSections(level, near.map(([x, y, z, h]) => firG(x, y, z, h, rnd)), { castShadow: true });
+  for (const [x, y, z, h] of near) level.world.add({ type: 'cyl', x, z, r: 0.3 * h / 3.5, y0: y, y1: y + h * 0.45, tag: 'tanne' });
+  const far = [];
+  for (const [x0, z0] of [[-23, -62], [23, -64]]) for (let i = 0; i < 5; i++) far.push(firG(x0 + rnd.real(-2.6, 2.6), AY, z0 + rnd.real(-12, 12), rnd.real(3.2, 5.4), rnd));
+  far.push(firG(GX - 9, AY, GZ + 9, 4.4, rnd), firG(GX + 9, AY, GZ - 12, 4.8, rnd));
+  bakeSections(level, far, { castShadow: false });
   // Schneedecken auf Vorplatz, Station, Zeltplateau (ohne das Zelt), Hinterhof, Schluchtgrund; Holzboden im Zelt
-  bake(level, [
+  bakeSections(level, [
     snowCover(-14.9, -18.9, 14.9, 13.9, 0.02),
     snowCover(-7.9, -26.9, 7.9, -19.1, SY + 0.02),
     snowCover(-27.9, -102.9, -19.7, -47.1, AY + 0.02), snowCover(19.7, -102.9, 27.9, -47.1, AY + 0.02),
@@ -146,16 +157,11 @@ export const LEVEL = {
     { type: 'killplane', y: -8 },
     { type: 'deco_w3', items: [
       { kind: 'schneemann', pos: [-4.5, 0, 11.5], yaw: -1.2 },
-      { kind: 'tanne', pos: [-13, 0, 12], size: 4.2 }, { kind: 'tanne', pos: [13, 0, 12.5], size: 3.8 },
-      { kind: 'tanne', pos: [-13.2, 0, -14], size: 4.6 }, { kind: 'tanne', pos: [13, 0, -15], size: 4.4 },
-      { kind: 'tannen', pos: [-23, AY, -62], size: [6, 26], n: 4, scale: [0.9, 1.5], shadow: false },
-      { kind: 'tannen', pos: [23, AY, -64], size: [6, 26], n: 4, scale: [0.9, 1.5], shadow: false },
       { kind: 'laternen', pos: [-3.6, 0, 12], from: [-3.6, 0, 12], to: [-3.6, 0, -8], every: 7 },
       { kind: 'laternen', pos: [3.6, 0, 12], from: [3.6, 0, 12], to: [3.6, 0, -8], every: 7 },
       { kind: 'laternen', pos: [-4, AY, -48], from: [-4, AY, -48], to: [-4, AY, -54], every: 6 },
       { kind: 'laternen', pos: [4, AY, -48], from: [4, AY, -48], to: [4, AY, -54], every: 6 },
       { kind: 'felsen', pos: [0, -12, -37], size: [34, 16], n: 7, height: [2, 6], shadow: false },
-      { kind: 'tanne', pos: [GX - 9, AY, GZ + 9], size: 4.4, shadow: false }, { kind: 'tanne', pos: [GX + 9, AY, GZ - 12], size: 4.8, shadow: false },
       { kind: 'schneemann', pos: [GX + 3, AY, GZ + 10], yaw: -1.8, shadow: false },
     ] },
     // Zirkus-Zier: Lichterketten, Ballons, Wimpel, Scheinwerfer, Wimpelketten im Zelt, Seilbahnstation, Torbogen

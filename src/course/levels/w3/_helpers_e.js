@@ -1002,9 +1002,9 @@ export function circusArena(level, cfg) {
   // Publikum: zwei Instanz-Gruppen (mit langen Ohren / mit runden Ohren), dunkle Silhouetten gegen das Licht
   const sil = 0x1c0e26;
   const mkPerson = (ears) => {
-    const parts = [cylG(0.2, 0.3, 0.72, 0, 0, 0, sil, 6), sphereG(0.24, 0, 0.95, 0, sil, { ws: 7, hs: 5 })];
-    if (ears) for (const s of [-1, 1]) parts.push(sphereG(0.075, s * 0.1, 1.36, 0, sil, { sy: 3.2, ws: 4, hs: 3 }));
-    else for (const s of [-1, 1]) parts.push(sphereG(0.09, s * 0.17, 1.15, 0, sil, { ws: 4, hs: 3 }));
+    const parts = [cylG(0.2, 0.3, 0.72, 0, 0, 0, sil, 6, { open: true }), sphereG(0.24, 0, 0.95, 0, sil, { ws: 6, hs: 4 })];
+    if (ears) for (const s of [-1, 1]) parts.push(sphereG(0.075, s * 0.1, 1.36, 0, sil, { sy: 3.2, ws: 4, hs: 2 }));
+    else for (const s of [-1, 1]) parts.push(sphereG(0.09, s * 0.17, 1.15, 0, sil, { ws: 4, hs: 2 }));
     return merge(parts);
   };
   const mat = new THREE.MeshBasicMaterial({ vertexColors: true });
