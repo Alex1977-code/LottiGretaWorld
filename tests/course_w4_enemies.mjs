@@ -108,6 +108,8 @@ async function load(id) {
       face(x, z) { const p = P(); p.yaw = Math.atan2(-(z - p.pos.z), x - p.pos.x); },
       /** Aktion drücken (ein Schritt), dann loslassen. */
       action(o = {}) { c.setInput({ action: true, ...o }); c.step(1); c.setInput({}); c.step(1); },
+      /** Figur versetzen, ohne Getragenes loszulassen. */
+      moveTo(pos, n = 20) { const p = P(); p.pos.set(pos[0], pos[1], pos[2]); p.vel.set(0, 0, 0); p.mode = 'air'; c.setInput({}); c.step(n); },
     };
   });
 }
@@ -347,6 +349,264 @@ check('Rankenschnapper: auf den Kopf springen = Abprall ohne Schaden', rs.bounce
 check('Rankenschnapper: Stampfattacke auf den Kopf besiegt (welkt, verschwindet)', rs.pound.defeated && rs.gone);
 check('Rankenschnapper als Stufe (fest): Figur steht darauf; Feuer besiegt', rs.step.on && !rs.step.hurt && rs.fire);
 check(`Hängender Rankenschnapper wächst nur bei naher Figur (${rs.hang.far} → ${rs.hang.near}), Kopf unter der Decke`, rs.hang.far < 0.2 && rs.hang.near > 0.95 && rs.hang.headY < rs.hang.rootY - 0.8);
+
+// ================================================================ Lavabrocken
+const lb = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const a = t.ent('lb1'), b = t.ent('lb2'), ziel = t.ent('lb_ziel'), feld = t.ent('lbfeld');
+  // b verfolgt die Figur, holt aus und stürmt
+  t.place([b.pos.x + 5, 1, b.pos.z], { settle: 1 });
+  t.safe(true);
+  const d0 = t.dist(b, p);
+  let charged = false, wind = false, dmin = 99;
+  for (let i = 0; i < 480; i++) { c.step(1); if (b.state === 'windup') wind = true; if (b.state === 'charge') charged = true; dmin = Math.min(dmin, t.dist(b, p)); }
+  t.safe(false);
+  out.chase = { d0: +d0.toFixed(2), dmin: +dmin.toFixed(2), wind, charged };
+  // seitlich (wach) = Treffer
+  t.place([-9, 1, t.Z(3, 9)], { settle: 1 });
+  out.side = t.touch(b, 10);
+  // Draufspringen betäubt (Abprall, kein Schaden), dann harmlos
+  t.place([-9, 1, t.Z(3, 6)], { settle: 20 });
+  const s = t.stomp(b);
+  out.stomp = { ...s, state: b.state, carryable: b.canCarry(), defeated: b.defeated };
+  t.place([b.pos.x + 1.2, 1, b.pos.z], { settle: 1, yaw: Math.PI });
+  out.stunTouch = t.touch(b, 10);
+  // Feuer prallt ab
+  b.onHit('fire', p);
+  out.fire = b.defeated;
+  // aufheben, zur Zielscheibe drehen und werfen → Pilzling besiegt, Brocken zerplatzt
+  t.place([b.pos.x + 0.9, 1, b.pos.z], { settle: 4, yaw: Math.PI });
+  t.action();
+  out.pick = { holding: p.holding === b, state: b.state };
+  t.moveTo([ziel.pos.x + 3.6, 1.2, ziel.pos.z]);
+  t.face(ziel.pos.x, ziel.pos.z);
+  c.step(1);
+  t.action();
+  const thrown = b.state === 'thrown';
+  let zielHit = false;
+  for (let i = 0; i < 120 && !b.removed; i++) { c.step(1); if (ziel.defeated) zielHit = true; }
+  out.throw = { thrown, zielHit, burst: b.state === 'burst' || b.removed, bDefeated: b.defeated };
+  // Druckfeld: a betäuben, aufheben, aufs Feld werfen
+  t.place([a.pos.x, 1, a.pos.z + 3], { settle: 1 });
+  const s2 = t.stomp(a);
+  t.place([a.pos.x, 1, a.pos.z + 0.9], { settle: 4, yaw: Math.PI / 2 });
+  t.face(a.pos.x, a.pos.z);
+  t.action();
+  const held = p.holding === a;
+  t.moveTo([feld.pos.x, 1.2, feld.pos.z + 3.4]);
+  t.face(feld.pos.x, feld.pos.z);
+  c.step(1);
+  t.action();
+  for (let i = 0; i < 240; i++) c.step(1);
+  out.plate = { stomped: s2.bounced, held, onPlate: a.onPlate, state: a.state, done: feld.done, count: feld.count };
+  // bleibt auf dem Feld liegen (wacht nicht auf)
+  c.step(1200);
+  out.plate.stay = { state: a.state, onPlate: a.onPlate };
+  // Stampfattacke auf den betäubten zerbricht ihn
+  t.place([a.pos.x, a.pos.y + 3, a.pos.z], { settle: 0 });
+  c.step(6);
+  c.setInput({ crouch: true }); c.step(1);
+  for (let i = 0; i < 120 && !a.defeated; i++) { c.setInput({ crouch: true }); c.step(1); if (p.mode === 'air') { p.pos.x = a.pos.x; p.pos.z = a.pos.z; } }
+  c.setInput({});
+  out.pound = a.defeated;
+  // Lava: ein Brocken über dem Lavabecken zerschmilzt
+  const lv = L.spawn('lavabrocken', { pos: [11.5, 2.5, t.Z(4, 7)], vel: [0, 0, 0] });
+  for (let i = 0; i < 120 && !lv.defeated; i++) c.step(1);
+  out.lava = { defeated: lv.defeated, fellOut: lv.fellOut };
+  return out;
+});
+console.log(`  Lavabrocken: ${JSON.stringify(lb)}`);
+check(`Lavabrocken verfolgt die Figur, holt aus und stürmt (${lb.chase.d0} → ${lb.chase.dmin} m)`, lb.chase.dmin < lb.chase.d0 - 2 && lb.chase.wind && lb.chase.charged);
+check('Lavabrocken seitlich (wach) = Treffer', lb.side);
+check('Lavabrocken: Draufspringen betäubt (Abprall, kein Schaden, tragbar, nicht besiegt), betäubt harmlos', lb.stomp.bounced && !lb.stomp.hurt && lb.stomp.state === 'stunned' && lb.stomp.carryable && !lb.stomp.defeated && !lb.stunTouch);
+check('Lavabrocken: Feuer prallt ab', !lb.fire);
+check('Lavabrocken: aufheben (Aktion) und werfen – Zielscheibe besiegt, Brocken zerplatzt', lb.pick.holding && lb.pick.state === 'carried' && lb.throw.thrown && lb.throw.zielHit && lb.throw.burst);
+check(`Lavabrocken aufs Druckfeld geworfen löst es aus und bleibt liegen (${JSON.stringify(lb.plate.stay)})`, lb.plate.onPlate && lb.plate.done && lb.plate.stay.state === 'stunned' && lb.plate.stay.onPlate);
+check('Lavabrocken: Stampfattacke auf den betäubten zerbricht ihn', lb.pound);
+check('Lavabrocken: Lava = besiegt (zerschmilzt)', lb.lava.defeated && lb.lava.fellOut);
+
+// ================================================================ Walzenwerfer und Stachelwalze
+const ww = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const w = t.ent('ww_saeule'), wb = t.ent('ww_boden');
+  t.place([0, 1, t.Z(3, 6)], { settle: 1 });
+  const th0 = w.throws;
+  const walzen = new Map();
+  for (let i = 0; i < 1200; i++) {
+    c.step(1);
+    for (const e of L.entities) if (e.kind === 'stachelwalze' && e.owner === w && !walzen.has(e)) walzen.set(e, { maxSp: 0, maxZ: -99, broke: false, minY: 99, onRamp: 0 });
+    for (const [e, r] of walzen) {
+      if (e.removed) continue;
+      r.maxSp = Math.max(r.maxSp, e.speed()); r.maxZ = Math.max(r.maxZ, e.pos.z); r.minY = Math.min(r.minY, e.pos.y);
+      if (e.ground?.type === 'ramp') r.onRamp++;
+      if (e.state === 'break') r.broke = true;
+    }
+  }
+  const list = [...walzen.values()];
+  out.saeule = { throws: w.throws - th0, walzen: list.length, first: list[0] ? { maxSp: +list[0].maxSp.toFixed(2), maxZ: +list[0].maxZ.toFixed(2), broke: list[0].broke, onRamp: list[0].onRamp } : null, wallZ: t.Z(3, 0) };
+  // Stampfattacke zerstört eine Walze nicht (verletzt)
+  let wz = null;
+  for (let i = 0; i < 900 && !wz; i++) { c.step(1); wz = L.entities.find((e) => e.kind === 'stachelwalze' && e.state === 'roll' && e.owner === w && e.ground?.type === 'ramp' && e.pos.z > t.Z(3, 9) && e.pos.z < t.Z(3, 6)); }
+  out.found = !!wz;
+  if (wz) {
+    t.place([wz.pos.x, wz.pos.y + 3, wz.pos.z], { settle: 0 });
+    c.step(4);
+    c.setInput({ crouch: true }); c.step(1);
+    let hurt = false;
+    for (let i = 0; i < 90 && !hurt; i++) { c.setInput({ crouch: true }); c.step(1); if (p.mode === 'air') { p.pos.x = wz.pos.x; p.pos.z = wz.pos.z; } if (t.hurt()) hurt = true; }
+    c.setInput({});
+    out.pound = { hurt, broke: wz.state === 'break' || wz.removed };
+    wz.onHit('cannon', p);
+    out.cannon = wz.state === 'break';
+  }
+  // Walzenwerfer am Boden: dreht sich zur Figur; Draufspringen besiegt
+  t.place([wb.pos.x - 5, 1, wb.pos.z + 3], { settle: 1 });
+  t.safe(true);
+  for (let i = 0; i < 240; i++) c.step(1);
+  t.safe(false);
+  const want = Math.atan2(-(p.pos.z - wb.pos.z), p.pos.x - wb.pos.x);
+  out.aim = +Math.abs(Math.atan2(Math.sin(wb.yaw - want), Math.cos(wb.yaw - want))).toFixed(2);
+  for (const e of L.entities) if (e.kind === 'stachelwalze') e.kill();
+  c.step(1);
+  t.place([wb.pos.x - 3, 1, wb.pos.z], { settle: 1 });
+  out.side = t.touch(wb, 10);
+  t.place([wb.pos.x - 3, 1, wb.pos.z], { settle: 20 });
+  const sw = t.stomp(wb);
+  out.stomp = { ...sw, defeated: wb.defeated };
+  // Säulen-Werfer: Feuer besiegt, die Säule bleibt stehen
+  w.onHit('fire', p);
+  c.step(120);
+  const top = L.world.raycastDown(w.base.x, w.base.y + 6, w.base.z, 8);
+  out.fire = { defeated: w.defeated, removed: w.removed, pillar: top ? +(top.y - w.base.y).toFixed(2) : null };
+  return out;
+});
+console.log(`  Walzenwerfer: ${JSON.stringify(ww)}`);
+check(`Walzenwerfer auf der Säule wirft im Takt (${ww.saeule.throws} Würfe in 10 s: 1,2 + 0,6 + 2,6 s)`, ww.saeule.throws >= 2);
+check(`Stachelwalze rollt die Rampe hinab und wird schneller (${ww.saeule.first?.maxSp} m/s), zerbricht an der Gehegemauer`, ww.saeule.first && ww.saeule.first.maxSp > 4.6 && ww.saeule.first.broke && ww.saeule.first.maxZ > ww.saeule.wallZ - 1.2);
+check('Stachelwalze: Stampfattacke zerstört sie nicht (verletzt), Kanonenkugel zerbricht sie', ww.found && ww.pound.hurt && !ww.pound.broke && ww.cannon);
+check(`Walzenwerfer am Boden dreht sich zur Figur (Abweichung ${ww.aim} rad)`, ww.aim < 0.3);
+check('Walzenwerfer: seitlich = Treffer, Draufspringen besiegt', ww.side && ww.stomp.bounced && !ww.stomp.hurt && ww.stomp.defeated);
+check('Walzenwerfer auf der Säule: Feuer besiegt, die Säule bleibt (begehbar)', ww.fire.defeated && !ww.fire.removed && Math.abs(ww.fire.pillar - 2.6) < 0.05);
+
+// ================================================================ Stachelpanzer und Springklotz
+const sp = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const a = t.ent('sp1'), b = t.ent('sp2'), k = t.ent('sk1'), h = t.ent('sk2');
+  t.place([0, 1, t.Z(4, 6)], { settle: 1 });
+  let walked = 0, lx = a.pos.x;
+  for (let i = 0; i < 240; i++) { c.step(1); walked += Math.abs(a.pos.x - lx); lx = a.pos.x; }
+  out.walk = +walked.toFixed(2);
+  const s = t.stomp(a);
+  out.stomp = { ...s, defeated: a.defeated };
+  t.place([0, 1, t.Z(4, 6)], { settle: 20 });
+  out.side = t.touch(a, 10);
+  t.place([0, 1, t.Z(4, 6)], { settle: 20 });
+  a.onHit('claw', p);
+  out.claw = a.defeated;
+  a.onHit('fire', p);
+  out.fire = a.defeated;
+  // Stampfwelle daneben → Rücken, dann Berührung besiegt
+  t.place([b.pos.x + 1.0, b.pos.y + 3, b.pos.z], { settle: 0 });
+  t.safe(true);
+  c.step(4);
+  c.setInput({ crouch: true }); c.step(1);
+  for (let i = 0; i < 120 && p.mode !== 'ground'; i++) { c.setInput({ crouch: true }); c.step(1); if (p.mode === 'air') { p.pos.x = b.pos.x + 1.0; p.pos.z = b.pos.z; } }
+  c.setInput({});
+  c.step(2);
+  t.safe(false);
+  out.back = b.state;
+  c.step(30);
+  out.backTouch = t.touch(b, 10);
+  out.backDefeated = b.defeated;
+  // Springklotz: von oben → hoch geschleudert (ohne Schaden)
+  t.place([k.pos.x, k.pos.y + 3.2, k.pos.z], { settle: 0 });
+  let maxY = 0, hurt = false;
+  for (let i = 0; i < 240; i++) { c.step(1); if (p.mode === 'air' && p.vel.y < 0 && maxY < 2) { p.pos.x = k.pos.x; p.pos.z = k.pos.z; } maxY = Math.max(maxY, p.pos.y - k.pos.y); if (t.hurt()) hurt = true; }
+  out.spring = { maxY: +maxY.toFixed(2), launches: k.launches, hurt };
+  // Seitlich: weggestoßen, kein Schaden
+  t.place([k.pos.x + 1.2, 1, k.pos.z], { settle: 1, yaw: Math.PI });
+  let pushed = false, hurt2 = false;
+  for (let i = 0; i < 40; i++) { c.setInput({ x: -0.6 }); c.step(1); if (p.state === 'hurt' || p.vel.x > 2) pushed = true; if (!p.big || p.dead) hurt2 = true; }
+  c.setInput({});
+  out.push = { pushed, hurt: hurt2 };
+  // hüpfender Springklotz bewegt sich
+  const hx = h.pos.x;
+  c.step(600);
+  out.hop = +Math.abs(h.pos.x - hx).toFixed(2);
+  k.onHit('fire', p);
+  out.kFire = k.defeated;
+  return out;
+});
+console.log(`  Stachelpanzer/Springklotz: ${JSON.stringify(sp)}`);
+check(`Stachelpanzer läuft (${sp.walk} m in 2 s); von oben = Treffer (nicht besiegt), seitlich = Treffer`, sp.walk > 2 && sp.stomp.hurt && !sp.stomp.defeated && sp.side);
+check('Stachelpanzer: Krallen prallen ab, Feuer besiegt', !sp.claw && sp.fire);
+check('Stachelpanzer: Stampfwelle daneben → auf dem Rücken, dann besiegt Berührung', sp.back === 'back' && !sp.backTouch && sp.backDefeated);
+check(`Springklotz schleudert die Figur hoch (${sp.spring.maxY} m über dem Fuß, ohne Schaden)`, sp.spring.maxY > 5 && sp.spring.launches >= 1 && !sp.spring.hurt);
+check('Springklotz: seitlich weggestoßen ohne Schaden; hüpfender bewegt sich; Feuer besiegt', sp.push.pushed && !sp.push.hurt && sp.hop > 1 && sp.kFire);
+
+// ================================================================ Lavafunken im Takt
+const lf = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const f = [0, 1, 2, 3, 4].map((i) => t.ent(i ? `funke_${i}` : 'funke'));
+  t.place([0, 1, t.Z(4, 7)], { settle: 1 });
+  const peaks = f.map(() => []);
+  const prev = f.map((e) => e.vel.y);
+  let maxH = 0;
+  const j0 = f.map((e) => e.jumps);
+  const t0 = L.time;
+  for (let i = 0; i < 1152; i++) {
+    c.step(1);
+    f.forEach((e, k) => { if (e.state === 'up' && prev[k] > 0 && e.vel.y <= 0) peaks[k].push(+(L.time - t0).toFixed(3)); prev[k] = e.vel.y; maxH = Math.max(maxH, e.height()); });
+  }
+  out.jumps = f.map((e, k) => e.jumps - j0[k]);
+  out.maxH = +maxH.toFixed(2);
+  out.peaks = peaks.map((x) => x.slice(0, 2));
+  const per = peaks[0].length >= 2 ? peaks[0][1] - peaks[0][0] : 0;
+  out.period = +per.toFixed(3);
+  out.offset = +(peaks[1][0] - peaks[0][0]).toFixed(3);
+  // Berührung in der Luft verletzt, in der Lava harmlos
+  const e = f[0];
+  for (let i = 0; i < 600 && !(e.state === 'up' && e.height() > 2); i++) c.step(1);
+  t.place([e.pos.x + 0.55, e.pos.y, e.pos.z], { settle: 0 });
+  p.pos.set(e.pos.x + 0.55, e.pos.y, e.pos.z); p.vel.set(0, 0, 0); p.mode = 'air';
+  c.step(1);
+  out.hurtUp = t.hurt();
+  for (let i = 0; i < 600 && e.state !== 'down'; i++) c.step(1);
+  out.downTouch = e.touch;
+  return out;
+});
+console.log(`  Lavafunken: ${JSON.stringify(lf)}`);
+check(`Lavafunken springen im Takt (2,4 s gemessen ${lf.period} s, Höhe ${lf.maxH} m, je 4 Sprünge in 9,6 s)`, Math.abs(lf.period - 2.4) < 0.02 && Math.abs(lf.maxH - 3.4) < 0.15 && lf.jumps.every((n) => n === 4));
+check(`Lavafunken-Reihe versetzt (${lf.offset} s ≈ 0,14 Takt)`, Math.abs(lf.offset - 0.336) < 0.02);
+check('Lavafunke: Berührung in der Luft verletzt, in der Lava harmlos', lf.hurtUp && lf.downTouch === false);
+
+// ================================================================ Flatterkäfer-Rad
+const rad = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const r = t.ent('rad');
+  const m0 = t.ent('rad_0') ?? r.members[0], m3 = r.members[3];
+  t.place([0, 1, t.Z(5, 7)], { settle: 1 });
+  const a0 = r.angle, p0 = { x: m3.pos.x, y: m3.pos.y };
+  c.step(240);
+  let dev = 0;
+  for (const m of r.members) dev = Math.max(dev, Math.abs(Math.hypot(m.pos.x - r.cx, m.home.y - r.cy) - r.radius));
+  out.turn = { da: +(r.angle - a0).toFixed(3), omega: +r.omega.toFixed(3), moved: +Math.hypot(m3.pos.x - p0.x, m3.pos.y - p0.y).toFixed(2), dev: +dev.toFixed(3) };
+  // ein Glied von oben besiegen (fällt herunter), die anderen drehen weiter
+  const low = r.members.reduce((a, b) => (b.pos.y < a.pos.y ? b : a));
+  const s = t.stomp(low, { h: 1.0 });
+  out.stomp = { ...s, defeated: low.defeated };
+  c.step(240);
+  out.after = { alive: r.aliveCount, angle: +r.angle.toFixed(2) };
+  return out;
+});
+console.log(`  Flatterkäfer-Rad: ${JSON.stringify(rad)}`);
+check(`Flatterkäfer-Rad dreht sich (${rad.turn.da} rad in 2 s, ω ${rad.turn.omega}), Glieder auf dem Kreis (±${rad.turn.dev} m)`, Math.abs(rad.turn.da - rad.turn.omega * 2) < 0.02 && rad.turn.moved > 2 && rad.turn.dev < 0.01);
+check('Flatterkäfer im Rad: Draufspringen besiegt, die anderen drehen weiter', rad.stomp.bounced && rad.stomp.defeated && rad.after.alive === 7);
 }
 
 // __ENDE__

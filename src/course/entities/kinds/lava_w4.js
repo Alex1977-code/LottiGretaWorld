@@ -127,6 +127,7 @@ class Lavabrocken extends EnemyW2 {
         if (this.stateT >= GETUP) this.wake_();
         break;
       case 'carried':
+        if (!this.carrier) { this.stun(true); this.vel.set(0, 1, 0); break; }   // ohne Träger (Neustart, Teleport)
         this.followCarrier();
         break;
       case 'thrown': this.fly(dt); break;
@@ -365,7 +366,8 @@ class Lavafunke extends EnemyW2 {
     return u * this.period;
   }
 
-  height() { return this.pos.y - this.base.y; }
+  /** Höhe der Kugelmitte über der Lava-Oberfläche. */
+  height() { return this.pos.y + 0.3 - this.base.y; }
 
   track() {
     const t = this.cycleT();
