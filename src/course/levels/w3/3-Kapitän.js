@@ -65,8 +65,9 @@ export const LEVEL = {
   killY: -16,
   start: { pos: [9.5, 0, 9.5], yaw: Math.PI },
   diorama: {
-    center: [-0.5, 0.5, 0],
-    camera: { yaw: 28, pitch: 46, dist: [40, 15], follow: [0.3, 0.9], fov: 40 },
+    // Mitte etwas nach hinten und oben: die Seewarte (bis y ≈ 12) bleibt in der Übersicht ganz im Bild
+    center: [-0.5, 4, -4],
+    camera: { yaw: 28, pitch: 46, dist: [46, 15], follow: [0.3, 0.9], fov: 40 },
     props: [
       // Wiese: Häuschen des Seewärters, Pilze, Wimpel
       { kind: 'house', pos: [7.4, 4, -10.2], yaw: -0.3, size: [3.4, 2.6, 3], roof: 0x3a8bff, wall: 0xfff6e6 },

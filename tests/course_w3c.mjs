@@ -326,7 +326,8 @@ async function load(id) {
 const W = (name, ...args) => sc(([n, a]) => window.__w3c[n](...a), [name, args]);
 const stats = [];
 async function shot(name, wait = 500) {
-  await sc(() => { const c = window.__course; c.snapCamera(); if (c.arch?.orbit) c.arch.orbit.inited = false; });
+  // Figur-Rig nachführen (die Routen laufen im Simulationstakt ohne Bildaufbau; z. B. Schwimmring ausblenden)
+  await sc(() => { const c = window.__course; for (let i = 0; i < 10; i++) c.rig?.update?.(0.05, c.view.time + i * 0.05); c.snapCamera(); if (c.arch?.orbit) c.arch.orbit.inited = false; });
   const f0 = await sc(() => window.__course.view.frame);
   await page.waitForFunction((f) => window.__course.view.frame >= f + 3, f0, { timeout: 90000 });
   await page.waitForTimeout(wait);
