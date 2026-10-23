@@ -21,7 +21,7 @@
 // Münzmarder 1. Level-Haken (LEVEL.setup, _helpers_d.js): Wasserfall, Teich tief unten, Laubhaufen, Kürbisse,
 // Fliegenpilze, Eichhörnchen, Zeit-Uhren.
 
-import { isl, line, ring, arc, levelSetup, felsen, laubhaufen, kuerbisse, fliegenpilze, eichhoernchen, wasserfall, teich, zeitUhren, farHide } from './_helpers_d.js';
+import { isl, line, ring, arc, levelSetup, felsen, laubhaufen, kuerbisse, fliegenpilze, eichhoernchen, wasserfall, teich, zeitUhren, instanceEnemies } from './_helpers_d.js';
 
 const Y = 1;        // Inseln
 const R = 0.25;     // Schienen-Oberkante (Tafel-Oberkante 1,0)
@@ -63,7 +63,8 @@ function setup(level) {
     { pos: [3, Y, -231], spots: [[3, Y, -231], [6.4, Y, -228.6], [1.4, Y, -233.6]], yaw: 2 },
   ]);
   zeitUhren(level, [[5.8, 3, -79], [7, 3, -79], [8.2, 3, -79]], { id: 'uhren' });
-  farHide(level, ['brummer', 'funkenkaefer', 'funkenlaeufer', 'muenzmarder'], 48);
+  // gleiche Gegner-Modelle als Instanzen (Brummer, Funkenkäfer, Funkenläufer)
+  instanceEnemies(level, ['brummer', 'funkenkaefer', 'funkenlaeufer'], { far: 46 });
 }
 
 export const LEVEL = {

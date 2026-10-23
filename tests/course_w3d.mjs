@@ -27,10 +27,10 @@ const ROUTES = {
     start: [0, 1, 8],
     enemies: { pilzling_reifen: 5, flossling: 12, stachelfisch: 13, muenzmarder: 4 },
     main: [
-      { name: 'Strand', to: [-2.4, -3.6] },
-      { name: 'Röhre 1', to: [-2.4, -12.6], within: 0.5 },
-      { name: 'Röhre 2', to: [1.8, -17.6], jump: 30, within: 0.6 },
-      { to: [1.8, -25.4], within: 0.5 },
+      { name: 'Strand', to: [-1.6, -3.6] },
+      { name: 'Röhre 1', to: [-1.6, -12.4], within: 0.4 },
+      { name: 'Röhre 2', to: [0.6, -18], jump: 30, within: 0.5 },
+      { to: [0.6, -25.4], within: 0.5 },
       { name: 'Riffkante', to: [0.4, -30], jump: 20 },
       { to: [0, -37.2] },
       { name: 'Tiefwasser', to: [0, -40.5], within: 0.8 },
@@ -38,8 +38,7 @@ const ROUTES = {
       { dive: [0, -88], y: -6.4, within: 1 },
       { name: 'Felsbogen', dive: [0, -97], y: -6.4, within: 1 },
       { name: 'Flutkammer', until: 'flutOben', max: 1200, dive: [0, -103], y: 6 },
-      { name: 'Sims', swimOut: [0, -109.6] },
-      { name: 'Glasrohr', to: [0, -111.6], within: 0.4 },
+      { name: 'Sims → Glasrohr', swimOut: [0, -111], ride: false },
       { name: 'Bucht', to: [0, -136] },
       { name: 'Holzsteg', to: [0, -146.6], run: false },
       { name: 'Checkpoint', to: [0, -157] },
@@ -49,8 +48,7 @@ const ROUTES = {
       { dive: [5.6, -188], y: -0.3, within: 1 },
       { dive: [-5.4, -203], y: -0.3, within: 1 },
       { dive: [3.4, -218], y: -0.3, within: 1 },
-      { name: 'Ausgang', swimOut: [0, -227.4] },
-      { name: 'Glasrohr-Kanone', to: [0, -228.4], within: 0.4 },
+      { name: 'Ausgang → Glasrohr-Kanone', swimOut: [0, -228.4] },
       { name: 'Zielmast', to: [0, -245], within: 0.2 },
     ],
     targets: [
@@ -78,7 +76,7 @@ const ROUTES = {
     shots: [
       ['start', [0, 1, 8]],
       ['strand', [-5, 1, 3], 0, null, Math.PI * 0.75],
-      ['roehren', [-2.4, 1.2, -8]],
+      ['roehren', [-1.6, 1.2, -8]],
       ['riff', [0, 1, -33]],
       ['tiefwasser', [0, -4, -56]],
       ['flutkammer', [0, -4, -101]],
@@ -182,6 +180,9 @@ const LEVELS = only ? [only] : ['3-5', '3-7'];
 const SHOTS_ONLY = !!process.env.SHOTS_ONLY;
 const ONLY = process.env.ONLY ?? null;
 const pick = (list) => (ONLY ? list.filter((t) => t.name.includes(ONLY)) : list);
+// Teile (Rechnerlast: je Lauf höchstens ≈ 10 min): PARTS=route,targets,extra,shots (Standard alle)
+const PARTS = new Set((process.env.PARTS ?? 'route,targets,extra,shots').split(','));
+const HEROES = (process.env.HEROES ?? 'lotti,greta').split(',');
 
 /** Hilfen in der Seite: Figur setzen, Bot-Fahrt, Zustand. */
 function install() {
@@ -292,7 +293,7 @@ function install() {
           log.push(['eingesammelt', Lg.collectKind, k]);
           continue;
         }
-        if (Lg.ride) {
+        if (Lg.ride && !Lg.swimOut) {
           // Auf einer Schalttafel mitfahren: Stellung off (Welt-x/z relativ zur Tafelmitte) halten, an crouchZ ducken
           const b = L.named.get(Lg.ride);
           let k = 0, moved = false, stillN = 0;
@@ -347,10 +348,11 @@ function install() {
             if (p.dead) break;
             const dx = Lg.swimOut[0] - p.pos.x, dz = Lg.swimOut[1] - p.pos.z, d = Math.hypot(dx, dz);
             if (p.mode === 'ground' && d < 0.6) break;
+            if (rode) break;
             if (p.mode === 'swim') {
               const head = (p.water?.top ?? 0) - (p.pos.y + p.half.y * 2);
-              const near = d < 2.2;
-              tick({ ...this.stick(dx, dz, 1), crouch: false, jump: near ? (k % 20) < 12 : (head > 0.2 && (k % 26) < 3), run: false });
+              const near = d < 4.5;
+              tick({ ...this.stick(dx, dz, 1), crouch: false, jump: near ? (k % 30) < 22 : (head > 0.2 && (k % 26) < 3), run: false });
             } else tick({ ...this.stick(dx, dz, Math.min(1, d)), jump: p.mode === 'air' && p.vel.y > 0, run: false });
           }
           log.push([Lg.name ?? `hinaus${li}`, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
@@ -392,7 +394,9 @@ function install() {
           if (j0 === null && dist <= Lg.jumpAt) j0 = i;
           const jump = (holdJ && j0 !== null ? (i - j0 < holdJ) : false) || auto > 0;
           if (auto > 0) auto--;
-          tick({ ...st, run: Lg.run ?? true, jump });
+          // im Wasser: Schwimmzüge bzw. Aussprung zum Ziel
+          const swimJ = p.mode === 'swim' && (i % 24) < 10;
+          tick({ ...st, run: Lg.run ?? true, jump: jump || swimJ });
           if (p.mode === 'air') airborne = true;
           else if (airborne) landed = true;
         }
@@ -463,7 +467,7 @@ const stats = [];
 async function shot(name, wait = 600) {
   await sc(() => window.__course.snapCamera());
   const f0 = await sc(() => window.__course.view.frame);
-  await page.waitForFunction((f) => window.__course.view.frame >= f + 3, f0, { timeout: 90000 });
+  await page.waitForFunction((f) => window.__course.view.frame >= f + 8, f0, { timeout: 90000 });
   await page.waitForTimeout(wait);
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
@@ -485,7 +489,7 @@ for (const id of LEVELS) {
   for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
-  for (const hero of SHOTS_ONLY || ONLY ? [] : ['lotti', 'greta']) {
+  for (const hero of SHOTS_ONLY || ONLY || !PARTS.has('route') ? [] : HEROES) {
     await load(id);
     await W('place', R.start, { hero, settle: 2 });
     const res = await W('drive', R.main, {});
@@ -497,8 +501,8 @@ for (const id of LEVELS) {
   }
 
   // ------------------------------------------------ Sterne und Stempel
-  for (const t of SHOTS_ONLY ? [] : pick(R.targets)) {
-    for (const hero of t.heroes ?? ['lotti', 'greta']) {
+  for (const t of SHOTS_ONLY || !PARTS.has('targets') ? [] : pick(R.targets)) {
+    for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
       await load(id);
       await W('place', t.from, { hero, settle: 10 });
       const res = await W('drive', t.legs, {});
@@ -513,8 +517,8 @@ for (const id of LEVELS) {
     }
   }
 
-  for (const t of SHOTS_ONLY ? [] : pick(R.extra ?? [])) {
-    for (const hero of t.heroes ?? ['lotti', 'greta']) {
+  for (const t of SHOTS_ONLY || !PARTS.has('extra') ? [] : pick(R.extra ?? [])) {
+    for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
       await load(id);
       const lives0 = await W('lives');
       const coins0 = (await W('rt')).coins;
@@ -532,7 +536,7 @@ for (const id of LEVELS) {
   }
 
   // ------------------------------------------------ Bilder je Abschnitt aus der Spielkamera
-  if (ONLY) continue;
+  if (ONLY || !PARTS.has('shots')) continue;
   loaded = null;
   await load(id);
   for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2, ride = null] of R.shots) {

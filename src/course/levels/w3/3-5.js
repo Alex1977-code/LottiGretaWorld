@@ -24,7 +24,7 @@
 // Level-Haken (LEVEL.setup, _helpers_d.js): Meer zwischen den Becken, Felsen, Strandzier, Leuchttürme, Möwen,
 // Krabben, Fischschwärme, Wandlöcher, Flutkammer (steigendes Wasser, Neustart setzt es zurück).
 
-import { isl, line, ring, arc, levelSetup, cullStatic, seaFill, leuchtturm, strand, felsen, wandloecher, fischschwaerme, moewen, krabbe, flutKammer, gegnerSicht } from './_helpers_d.js';
+import { isl, line, ring, arc, levelSetup, cullStatic, seaFill, leuchtturm, strand, felsen, wandloecher, fischschwaerme, moewen, krabbe, flutKammer, instanceEnemies } from './_helpers_d.js';
 
 const Y = 1;        // Land
 const W = 0;        // Wasseroberfläche
@@ -51,9 +51,9 @@ const ROCKS = [
   // Tiefwasser: Felswände links/rechts
   [-17, -11, -38, -92, -8, 4], [11, 17, -38, -92, -8, 4],
   // Flutkammer: Felsmassen links (mit Nische für Stern 1) und rechts, Felsbogen vorn, Sims hinten
-  [-17, -5, -92, -101, -8, 8], [-17, -7, -101, -104, -8, 8], [-7, -5, -101, -104, -8, FLUT + 0.6], [-17, -5, -104, -118, -8, 8],
-  [5, 17, -92, -118, -8, 8],
-  [-5, 5, -92, -94, -3, 8],
+  [-17, -5, -92, -100, -8, FLUT + 1.4], [-17, -7.4, -100, -105, -8, FLUT + 1.4], [-7.4, -5, -100, -105, -8, FLUT + 0.6], [-17, -5, -105, -118, -8, FLUT + 1.4],
+  [5, 17, -92, -118, -8, FLUT + 1.4],
+  [-5, 5, -92, -94, -3, FLUT + 1.4],
   [-5, 5, -108, -118, -8, FLUT + 0.6],
   // Wrackbucht: Rissfels rechts (Kerbe x 10 … 13 hinter dem Wandriss), Wrackklippe links (Stempel oben)
   [8, 10, -150, -164, -3, 6], [13, 20, -150, -164, -3, 6], [10, 13, -154, -164, -3, 6],
@@ -75,6 +75,9 @@ const PILLAR_FISH = [[-2.5 + 1.25, -0.25, -182, 1], [2.5 - 1.25, -0.25, -196, -1
 /** Level-Haken: Meer, Felsen, Strand- und Riffzier, Leuchttürme, Tiere, Wandlöcher, Flutkammer. */
 function setup(level) {
   felsen(level, ROCKS, { color: 0xc8a882, dark: 0x7a6250, top: 0xb8d870 });
+  // Stachelfisch-Säulen (Fels, oben Sand) und die Zielinsel als Felsklotz
+  felsen(level, PILLARS.map(([x, z]) => [x - 1.2, x + 1.2, z + 1.2, z - 1.2, -6, PH]), { color: 0xb8a088, dark: 0x6a5848, top: 0xf0dca8, rockTop: 0xe0c898 });
+  felsen(level, [[-9, 9, -234, -253, -3, 5]], { color: 0xc8a882, dark: 0x7a6250, top: 0xf0dca8, rockTop: 0xe6d0a4 });
   // Felsfuß des Goldraums (Insel weit draußen)
   felsen(level, [[63, 81, -141, -159, -3, 0.4]], { color: 0xc8a882, top: 0xf0d8a0 });
   // Strand, Riffkante, Buchten
@@ -86,7 +89,7 @@ function setup(level) {
     ringe: [[12, Y, 2, -0.6], [-5.6, Y, -132.4, 0.4]],
     palmen: [[-12.6, Y, 9, 4.6, 0.35, 0.8], [12.4, Y, -3.4, 4.2, 0.3, -0.9], [-11, Y, -36.4, 4.4, 0.3, 1.2], [11.2, Y, -29, 3.8, 0.25, -1],
       [-6.4, Y, -137.4, 4.2, 0.3, 0.6], [-7, Y, -158.4, 4.4, 0.35, 1.4], [-7.2, Y, -164, 3.6, 0.25, 1.9], [7.4, Y, -137, 3.8, 0.3, -0.7],
-      [-17.6, Y, -137, 4.6, 0.3, 1.0], [16.4, Y, -147.4, 4, 0.3, -1.2], [-6.6, 5, -250, 4.4, 0.3, 0.7], [6.6, Y, -230.6, 3.6, 0.25, -0.5],
+      [-17.6, Y, -137, 4.6, 0.3, 1.0], [16.4, Y, -147.4, 4, 0.3, -1.2], [-6.6, 5, -250, 4.4, 0.3, 0.7], [6.6, Y, -230.6, 3.6, 0.25, -0.5], [-18.4, 8, -154.4, 4.2, 0.3, 0.9], [-10.4, 8, -166.6, 3.8, 0.3, 2.4], [-7, 5, -236, 3.8, 0.25, 0.4],
       [66, 0.4, -143, 3.8, 0.3, 0.6], [79, 0.4, -156, 4.2, 0.3, -2.2]],
   });
   // Leuchttürme: groß auf der Zielinsel (vom Start aus sichtbar), klein auf dem Felsen neben dem Strand
@@ -113,11 +116,10 @@ function setup(level) {
   flutKammer(level, { id: 'flut', from: W, to: FLUT, speed: 1.1, area: { min: [-5, -9, -107.8], max: [5, 6, -95] }, resetBefore: -150 });
   // Meeresfläche zwischen den Becken bis zum Kulissen-Meer
   seaFill(level, Object.values(POOLS), { path: [-20, 20] });
-  // Fische werfen keinen Sonnenschatten (unter Wasser), versteckte Lochschützen und ferne Gegner werden nicht gezeichnet
-  gegnerSicht(level, {
-    flossling: { dist: 24, shadow: false }, stachelfisch: { dist: 26, shadow: false, hide: (e) => e.hidden },
-    pilzling_reifen: { dist: 34 }, muenzmarder: { dist: 34 },
-  });
+  // Lichtflecken der Unterwasser-Stimmung zarter (nur dieses Level)
+  if (level.view?.mood?.uwSpec) level.view.mood.uwSpec.caustics = 0.24;
+  // gleiche Gegner-Modelle als Instanzen (Fische ohne Sonnenschatten – sie schwimmen unter Wasser)
+  instanceEnemies(level, ['flossling', 'stachelfisch', 'pilzling_reifen', 'muenzmarder'], { far: 40, noShadow: ['flossling', 'stachelfisch'] });
 }
 
 /** Haken: Aufbau, danach Fern-/Schatten-Ausblendung der statischen Abschnitte. */
@@ -133,12 +135,15 @@ export const LEVEL = {
   music: 'course_water',
   timeLimit: 500,
   killY: -16,
+  // Unterwasser-Ansicht des Motors: tiefes Blaugrün, etwas weitere Sicht, zarte Tönung
+  underwater: { color: 0x0f6f9c, near: 3, far: 36, tint: 0.16 },
   setup: hook,
   start: { pos: [0, Y, 8], yaw: Math.PI / 2 },
   camera: [
     { from: 16, to: -36, pitch: 44, dist: 13 },
-    { from: -36, to: -92, pitch: 41, dist: 12 },
-    { from: -92, to: -110, pitch: 47, dist: 12 },
+    // Tauchbereich: flacher, damit die Kamera beim Abtauchen mit unter Wasser geht (Präzisierung Motor Welt 3)
+    { from: -36, to: -92, pitch: 24, dist: 9 },
+    { from: -92, to: -110, pitch: 30, dist: 9.5 },
     { from: -110, to: -166, pitch: 43, dist: 13.5 },
     { from: -166, to: -226, pitch: 46, dist: 12.5 },
     { from: -226, to: -256, pitch: 42, dist: 13 },
@@ -165,10 +170,10 @@ export const LEVEL = {
     sand(-11, -7.4, -19, -22.6, 0.7, 2.7),
     // grüne Röhren über das Wasser
     { type: 'rohrteile', items: [
-      { kind: 'gerade', pos: [-2.4, -0.7, -4.6], yaw: Math.PI / 2, length: 9.4, radius: 0.9 },
-      { kind: 'ende', pos: [-2.4, -0.7, -14], yaw: Math.PI / 2, radius: 0.9 },
-      { kind: 'gerade', pos: [1.8, -0.5, -16.2], yaw: Math.PI / 2, length: 10.6, radius: 0.9 },
-      { kind: 't', pos: [1.8, -0.5, -26.8], yaw: Math.PI / 2, radius: 0.9 },
+      { kind: 'gerade', pos: [-1.6, -0.8, -4.6], yaw: Math.PI / 2, length: 9.4, radius: 1 },
+      { kind: 'ende', pos: [-1.6, -0.8, -14], yaw: Math.PI / 2, radius: 1 },
+      { kind: 'gerade', pos: [0.6, -0.6, -16.2], yaw: Math.PI / 2, length: 10.6, radius: 1 },
+      { kind: 't', pos: [0.6, -0.6, -26.8], yaw: Math.PI / 2, radius: 1 },
     ] },
     // Riffkante
     sand(-12, 12, -27, -38, Y, 3),
@@ -211,7 +216,6 @@ export const LEVEL = {
       path: [[-7.6, 1.95, -161], [-10, 1.95, -161], [-12.4, 3, -161.4], [-13.2, 6.4, -161.8], [-13.2, 9.6, -162]] },
 
     // ======================================================== 4  Stachelwand
-    ...PILLARS.map(([x, z]) => ({ type: 'island', pos: [x, -6, z], size: [2.4, PH + 6, 2.4], top: 'stone', under: 0, color: 0xa89078 })),
     { type: 'deco_w3', shadow: false, items: [{ kind: 'korallen', pos: [0, -6, -190], size: [14, 50], n: 6, gap: 4, scale: [0.9, 1.6] }] },
     { type: 'seetang', pos: [-6.5, -6, -198], height: 4, count: 2 },
     { type: 'blasen', pos: [6, -6, -172], height: 6, count: 10 },
@@ -223,7 +227,11 @@ export const LEVEL = {
     sand(-9, 9, -226, -233, Y, 4),
     { type: 'rohrnetz', id: 'rohr_ziel', radius: 1, coins: 3, oneWay: true,
       path: [[0, 2.05, -227], [0, 2.05, -230], [0, 3.6, -232.4]], cannon: { target: [0, 5, -240.5], arc: 4.5 } },
-    isl(-9, 9, -234, -253, 5, 8, { top: 'grass', under: 0 }),
+    { type: 'deco_w1', items: [
+      { kind: 'tufts', pos: [0, 5, -244], size: [16, 16], n: 12 }, { kind: 'tufts', pos: [-14, 8, -160], size: [10, 14], n: 9 },
+      { kind: 'tufts', pos: [12, 8.4, -214], size: [8, 10], n: 6 }, { kind: 'tufts', pos: [0, Y, 6], size: [24, 10], n: 8 },
+      { kind: 'daisies', pos: [-4, 5, -241], size: [6, 4], n: 14 },
+    ] },
   ],
   blocks: [
     { kind: 'question', pos: [2.6, Y + 2.4, 2.4], content: 'gleitblatt' },
@@ -261,9 +269,9 @@ export const LEVEL = {
   items: [
     // 1
     line([0, Y + 0.5, 3], [0, Y + 0.5, -1], 2),
-    line([-2.4, 1.7, -6], [-2.4, 1.7, -12.6], 4),
-    arc([-2.4, 1.7, -13.4], [1.8, 1.9, -17], 3, 1.4),
-    line([1.8, 1.9, -18.6], [1.8, 1.9, -25], 4),
+    line([-1.6, 1.8, -6], [-1.6, 1.8, -12.6], 4),
+    arc([-1.6, 1.8, -13.4], [0.6, 2, -17], 3, 1.4),
+    line([0.6, 2, -18.6], [0.6, 2, -25], 4),
     // 2 (unter Wasser)
     ring([0, -2.5, -46], 1.4, 6),
     ring([5, -5, -70], 1.2, 5),
@@ -289,14 +297,14 @@ export const LEVEL = {
   ],
   checkpoint: { pos: [0, Y, -156], yaw: Math.PI / 2 },
   stars: [
-    [-6, FLUT + 1.5, -102.5],     // 1: Felsnische oben in der Flutkammer (nur mit gestiegenem Wasser)
+    [-6.2, FLUT + 1.4, -102.5],   // 1: Felsnische oben in der Flutkammer (nur mit gestiegenem Wasser)
     [72, 3.6, -153.4],            // 2: Goldraum (Wandriss sprengen → goldene Röhre)
     [13.4, 9.6, -215.6],          // 3: versteckter Raum im Hochfels über der dritten Säule
   ],
   stamp: [-16, 8.8, -164],
   goal: { pos: [0, 5, -245], height: 9 },
   marks: {
-    start: [0, Y, 8], qblock: [2.6, Y, 2.4], pipe1: [-2.4, 1.2, -6], pipe2: [1.8, 1.4, -18], riff: [0, Y, -32],
+    start: [0, Y, 8], qblock: [2.6, Y, 2.4], pipe1: [-1.6, 1.2, -6], pipe2: [0.6, 1.4, -18], riff: [0, Y, -32],
     tief: [0, W, -40], bogen: [0, -5.5, -93], flut: [0, -4, -100], nische: [-6, FLUT + 0.6, -102.5], sims: [0, FLUT + 0.6, -109.5],
     bucht: [0, Y, -132], helm: [3.6, Y, -134.6], steg: [0, 1, -142], riss: [11.5, Y, -147], checkpoint: [0, Y, -156],
     gang: [-7.2, Y, -161], klippe: [-15, 8, -162], goldraum: [72, 1.4, -150],

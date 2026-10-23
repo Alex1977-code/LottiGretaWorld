@@ -20,6 +20,7 @@ import { banner } from '../../blocks/w3kit.js';
 
 export { isl, line, ring, arc, levelSetup, cyl, sphere, cone, block } from '../w2/_helpers_c.js';
 export { farHide, cullStatic } from '../w2/_helpers_a.js';
+export { instanceEnemies } from './_helpers_a.js';
 
 const L = (c) => lin(hex(c));
 const TAU = Math.PI * 2;
@@ -169,21 +170,25 @@ export function leuchtturm(level, pos, o = {}) {
   addObject(level, m, (dt) => { m.rotation.y += visDt(level, holder, dt) * 0.55; });
 }
 
-/** Strandkorb (Korbgeflecht mit gestreiftem Polster, Haube). yaw: Blick der Sitzfläche (0 = +Z zur Kamera). */
+/** Strandkorb (Korbgeflecht, gestreiftes Polster und gestreifte Haube). yaw: Blick der Sitzfläche (0 = +Z zur Kamera). */
 function strandkorbParts(parts, x, y, z, yaw, stripe) {
-  const wick = L(0xe8d2a0), wickD = L(0xb89a60), s = L(stripe), w = L(0xffffff);
-  const wickFn = (p, n, out) => { mixc(wickD, wick, smooth(-0.5, 0.8, n.y + 0.3), out); const k = 0.92 + 0.08 * Math.sin(p.y * 40 + p.x * 20); out[0] *= k; out[1] *= k; out[2] *= k; };
-  const stripes = (p, n, out) => { const c = (Math.floor((p.x + 2) / 0.16) & 1) ? s : w; out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; };
+  const wick = L(0xeedcb0), wickD = L(0xb89a60), s = L(stripe), w = L(0xfffaf0);
+  const wickFn = (p, n, out) => { mixc(wickD, wick, smooth(-0.5, 0.8, n.y + 0.3), out); const k = 0.9 + 0.1 * Math.sin(p.y * 38 + p.x * 21 + p.z * 17); out[0] *= k; out[1] *= k; out[2] *= k; };
+  const stripesX = (p, n, out) => { const c = (Math.floor((p.x + 2) / 0.17) & 1) ? s : w; out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; };
   const add = (g, fn, lx, ly, lz) => { g = g.toNonIndexed(); colorize(g, fn); g.translate(lx, ly, lz); g.rotateY(yaw); g.translate(x, y, z); parts.push(g); };
-  add(new THREE.BoxGeometry(1.3, 0.55, 0.85), wickFn, 0, 0.28, 0);
-  add(new THREE.BoxGeometry(1.36, 1.0, 0.2), wickFn, 0, 1.0, -0.38);
-  add(new THREE.BoxGeometry(0.14, 0.6, 0.8), wickFn, -0.62, 0.85, -0.02);
-  add(new THREE.BoxGeometry(0.14, 0.6, 0.8), wickFn, 0.62, 0.85, -0.02);
-  const hood = new THREE.CylinderGeometry(0.68, 0.68, 1.36, 10, 1, true, 0, Math.PI);
-  hood.rotateZ(Math.PI / 2); hood.rotateX(Math.PI / 2);
-  add(hood, wickFn, 0, 1.45, -0.1);
-  add(new THREE.BoxGeometry(1.12, 0.1, 0.62), stripes, 0, 0.6, 0.06);
-  add(new THREE.BoxGeometry(1.12, 0.62, 0.06), stripes, 0, 0.95, -0.25);
+  add(new THREE.BoxGeometry(1.3, 0.5, 0.9), wickFn, 0, 0.25, 0);                 // Sockel
+  add(new THREE.BoxGeometry(1.34, 0.9, 0.2), wickFn, 0, 0.95, -0.36);            // Rücken
+  add(new THREE.BoxGeometry(0.14, 0.62, 0.78), wickFn, -0.6, 0.8, -0.02);        // Seitenwangen
+  add(new THREE.BoxGeometry(0.14, 0.62, 0.78), wickFn, 0.6, 0.8, -0.02);
+  // Haube: halber Zylinder quer (Achse x), oben und hinten geschlossen, vorn offen; außen breite Streifen
+  const hood = new THREE.CylinderGeometry(0.62, 0.62, 1.34, 12, 1, true, Math.PI * 0.12, Math.PI * 0.88);
+  hood.rotateZ(Math.PI / 2);
+  const ring = (p, n, out) => { const a = Math.atan2(p.y, p.z); const c = (Math.floor(a / (Math.PI / 6)) & 1) ? s : w; out[0] = c[0] * 0.95; out[1] = c[1] * 0.95; out[2] = c[2] * 0.95; };
+  add(hood, ring, 0, 1.2, -0.08);
+  add(new THREE.BoxGeometry(1.36, 0.06, 0.06), wickFn, 0, 1.2 + 0.62 * Math.sin(Math.PI * 0.12), 0.5);   // Haubenkante
+  add(new THREE.BoxGeometry(1.12, 0.1, 0.66), stripesX, 0, 0.55, 0.06);          // Sitzpolster
+  add(new THREE.BoxGeometry(1.12, 0.66, 0.06), stripesX, 0, 0.92, -0.24);        // Rückenpolster
+  add(new THREE.BoxGeometry(0.5, 0.05, 0.7), wickFn, 0, 0.12, 0.72);             // Fußbank
 }
 
 /** Sonnenschirm (gestreift) mit Badetuch. */
@@ -354,9 +359,17 @@ export function felsen(level, list, o = {}) {
       P.setXYZ(i, px + ex, py, pz + ez);
     }
     g.computeVertexNormals();
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    const topD = topC ? [topC[0] * 0.78, topC[1] * 0.8, topC[2] * 0.7] : null, rockT = L(o.rockTop ?? 0xd8c4a0);
     colorize(g, (p, n, out) => {
-      if (n.y > 0.6 && topC) { out[0] = topC[0]; out[1] = topC[1]; out[2] = topC[2]; return; }
-      const band = 0.5 + 0.5 * Math.sin((p.y + y0) * 2.3 + p.x * 0.3);
+      const wx = p.x + cx, wz = p.z + cz;
+      if (n.y > 0.6 && topC) {
+        // Oberseite: Moos-/Grasflecken auf hellem Fels (Rauschen in Weltkoordinaten)
+        const v = Math.sin(wx * 0.55 + Math.sin(wz * 0.4) * 1.7) * Math.cos(wz * 0.47 - wx * 0.21) + Math.sin(wx * 1.3 + wz * 1.1) * 0.35;
+        if (v > -0.15) mixc(topD, topC, smooth(-0.15, 0.9, v), out); else mixc(rockT, topD, smooth(-0.9, -0.15, v), out);
+        return;
+      }
+      const band = 0.5 + 0.5 * Math.sin((p.y + (y0 + y1) / 2) * 2.3 + wx * 0.3);
       mixc(colD, col, smooth(-h / 2, h / 2, p.y) * 0.6 + 0.25 + band * 0.15, out);
     });
     g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
