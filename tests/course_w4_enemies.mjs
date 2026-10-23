@@ -736,6 +736,219 @@ const step = await sc(() => {
 console.log(`  Simulation: ${step.ms} ms je Schritt (${step.n} Entitäten)`);
 }
 
+// =====================================================================================================================
+// Lavafelsen-König 0-16
+// =====================================================================================================================
+const BOSS_HELPERS = ([id, startZ]) => {
+  const c = window.__course, t = window.__t, L = c.level;
+  t.boss = () => t.ent(id);
+  t.arch = () => c.state().archetype;
+  t.enter = () => {
+    t.place([0, 2, startZ], { settle: 2 });
+    for (let i = 0; i < 480 && !c.arch.started; i++) { c.setInput({ y: 0.6 }); c.step(1); }
+    c.setInput({});
+    return t.arch();
+  };
+  t.until = (s, n = 3000) => { const b = t.boss(); let i = 0; for (; i < n && b.state !== s; i++) c.step(1); return i; };
+  t.banners = [];
+  const hud = c.arch?.hud;
+  if (hud && !hud._w4) { const orig = hud.banner.bind(hud); hud.banner = (text, o) => { t.banners.push(text); orig(text, o); }; hud._w4 = true; }
+  /** Bis Zustand s; Figur unverwundbar an pos (null = bleibt). */
+  t.untilSafe = (s, n = 3000, pos = null) => {
+    const b = t.boss(), p = c.player;
+    p.hurt = () => false;
+    let i = 0;
+    for (; i < n && b.state !== s; i++) { if (pos) { p.pos.set(pos[0], pos[1], pos[2]); p.vel.set(0, 0, 0); } c.step(1); }
+    delete p.hurt;
+    return i;
+  };
+  t.brocken = () => L.entities.filter((e) => e.kind === 'lavabrocken' && !e.removed && !e.defeated && e.owner === t.boss());
+  /** Einen gerufenen Lavabrocken betäuben und aufheben → Brocken | null. */
+  t.grab = () => {
+    const p = c.player;
+    let br = null;
+    for (let i = 0; i < 1200 && !br; i++) { br = t.brocken().find((e) => e.grounded && (e.state === 'walk' || e.state === 'chase' || e.state === 'stunned')) ?? null; if (!br) { p.hurt = () => false; c.step(1); delete p.hurt; } }
+    if (!br) return null;
+    if (br.state !== 'stunned') t.stomp(br);
+    const d = 0.9;
+    t.place([br.pos.x + d, br.pos.y, br.pos.z], { settle: 2, yaw: Math.PI });
+    if (br.state !== 'stunned') br.stun();
+    t.face(br.pos.x, br.pos.z);
+    t.action();
+    return p.holding === br ? br : null;
+  };
+  /** Getragenen Brocken aus dist m auf den König werfen (wartet auf 'rest'); → { thrown, hit } */
+  t.throwAtBoss = (dist = 4, wait = 'rest') => {
+    const p = c.player, b = t.boss(), br = p.holding;
+    if (!br) return { thrown: false };
+    p.hurt = () => false;
+    for (let i = 0; i < 3000 && b.state !== wait; i++) { p.vel.set(0, 0, 0); c.step(1); }
+    const ax = -b.pos.x, az = -b.pos.z, al = Math.hypot(ax, az) || 1;
+    const hp0 = b.hp;
+    t.moveTo([b.pos.x + (ax / al) * dist, b.pos.y + 0.2, b.pos.z + (az / al) * dist], 6);
+    t.face(b.pos.x, b.pos.z);
+    c.step(1);
+    t.action();
+    const thrown = br.state === 'thrown' || br.removed;
+    for (let i = 0; i < 120 && !br.removed && br.state === 'thrown'; i++) c.step(1);
+    delete p.hurt;
+    return { thrown, hit: b.hp < hp0, hp: b.hp, state: b.state, br: br.state };
+  };
+};
+
+if (PART === 'all' || PART === 'boss') {
+await load('0-16');
+await sc(BOSS_HELPERS, ['koenig', 9.5]);
+console.log('Lavafelsen-König 0-16');
+const kb = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const b = t.boss();
+  out.before = { state: b.state, hp: b.hp };
+  const a = t.enter();
+  out.start = { started: a.started, state: b.state, hud: a.hud?.boss?.hp };
+  // Ruf: Lavabrocken springen aus dem Boden
+  t.untilSafe('roll', 1200, [0, 2, 8]);
+  c.step(60);
+  out.summon = { summoned: b.summoned, brocken: t.brocken().length, airborne: t.brocken().filter((e) => e.state === 'air').length };
+  // Rollen: auf die Figur zu (begrenzt lenkend), Berührung verletzt
+  t.untilSafe('rest', 1200, [0, 2, 8]);
+  t.untilSafe('roll', 1500, [0, 2, 8]);
+  const d0 = Math.hypot(b.pos.x - 6, b.pos.z - 6);
+  p.hurt = () => false;
+  for (let i = 0; i < 90; i++) { p.pos.set(6, 2, 6); p.vel.set(0, 0, 0); c.step(1); }
+  delete p.hurt;
+  out.roll = { d0: +d0.toFixed(2), d1: +Math.hypot(b.pos.x - 6, b.pos.z - 6).toFixed(2), state: b.state };
+  for (const e of t.brocken()) e.kill();
+  c.step(1);
+  t.place([b.pos.x + b.half.x + 0.6, 2, b.pos.z], { settle: 0 });
+  let hurtRoll = false;
+  for (let i = 0; i < 20 && !hurtRoll; i++) { const bc = b.center(); p.pos.set(bc.x + b.half.x + p.half.x - 0.05, b.pos.y, bc.z); p.vel.set(0, 0, 0); c.step(1); hurtRoll = t.hurt(); }
+  out.rollHurt = hurtRoll;
+  // Draufspringen: Abprall ohne Schaden; Feuer, Kanonenkugel, Stern prallen ab
+  t.untilSafe('rest', 1500, [0, 2, 8]);
+  const s = t.stomp(b, { h: 0.6 });
+  b.onHit('fire', p); b.onHit('cannon', p); b.onHit('star', p); b.onHit('throw', { kind: 'rollpilz', pos: b.pos });
+  out.stomp = { ...s, hp: b.hp };
+  // Wurf eines Lavabrockens: Treffer (3 → 2), Wirbel, Feuerbrocken
+  for (const e of L.entities) if (e.kind === 'feuerbrocken') e.kill();
+  const g1 = t.grab();
+  out.grab1 = { ok: !!g1, holding: !!p.holding };
+  const w1 = t.throwAtBoss(4);
+  out.hit1 = { ...w1, hud: t.arch().hud?.boss?.hp };
+  t.untilSafe('spin', 200, [0, 2, 9.5]);
+  out.spinState = b.state;
+  t.untilSafe('summon', 600, [0, 2, 9.5]);
+  out.feuer1 = { total: b.feuer, alive: t.count('feuerbrocken') };
+  // Feuerbrocken brennen und verlöschen; Berührung verletzt
+  const fb = L.entities.find((e) => e.kind === 'feuerbrocken' && e.state === 'burn');
+  out.fbFound = !!fb;
+  if (fb) {
+    t.place([fb.pos.x + 0.55, fb.pos.y, fb.pos.z], { settle: 0 });
+    let hurtF = false;
+    for (let i = 0; i < 10 && !hurtF; i++) { p.pos.set(fb.pos.x + fb.half.x + p.half.x - 0.05, fb.pos.y, fb.pos.z); p.vel.set(0, 0, 0); c.step(1); hurtF = t.hurt(); }
+    out.fbHurt = hurtF;
+  }
+  t.untilSafe('rest', 1500, [0, 2, 9.5]);
+  c.step(400);
+  out.feuerOut = t.count('feuerbrocken');
+  // nicht verwundbar im Wirbel: Wurf in 'spin' zählt nicht
+  const g2 = t.grab();
+  const w2 = t.throwAtBoss(4, 'rest');
+  out.hit2 = { ...w2, ok: !!g2 };
+  t.untilSafe('spin', 200, [0, 2, 9.5]);
+  const g3 = t.grab();
+  const hpSpin = b.hp;
+  let w3 = { thrown: false };
+  if (g3 && b.state === 'spin') {
+    const ax = -b.pos.x, az = -b.pos.z, al = Math.hypot(ax, az) || 1;
+    p.hurt = () => false;
+    t.moveTo([b.pos.x + (ax / al) * 4, b.pos.y + 0.2, b.pos.z + (az / al) * 4], 4);
+    t.face(b.pos.x, b.pos.z); c.step(1); t.action();
+    for (let i = 0; i < 120 && !g3.removed && g3.state === 'thrown'; i++) c.step(1);
+    delete p.hurt;
+    w3 = { thrown: true, state: b.state, hp: b.hp };
+  }
+  out.spinThrow = { ...w3, hp0: hpSpin, ok: !!g3 };
+  // dritter Treffer
+  t.untilSafe('rest', 3000, [0, 2, 9.5]);
+  const g4 = p.holding ?? t.grab();
+  const w4 = t.throwAtBoss(4, 'rest');
+  out.hit3 = { ...w4, ok: !!g4, defeated: b.defeated };
+  out.feuerTotal = b.feuer;
+  out.endless = { summoned: b.summoned, summons: b.summons };
+  out.banners = t.banners.slice();
+  t.untilSafe('gone', 1500, [0, 2, 9.5]);
+  c.step(2);
+  out.gone = { state: b.state, visible: b.visible, won: t.arch().won, warp: t.ent('warp_sieg').hidden, star: t.count('star'), brocken: t.brocken().length + L.entities.filter((e) => e.kind === 'lavabrocken' && !e.removed && !e.defeated).length };
+  // Stern einsammeln, Warp-Box → Plateau → Zielmast
+  const st = L.entities.find((e) => e.kind === 'star' && !e.removed);
+  if (st) { t.place([st.pos.x, st.pos.y, st.pos.z], { settle: 30 }); }
+  out.starTaken = !L.entities.some((e) => e.kind === 'star' && !e.removed);
+  const w = t.ent('warp_sieg');
+  t.place([w.pos.x, w.pos.y + 1.6, w.pos.z], { settle: 0 });
+  let arrived = false;
+  for (let i = 0; i < 800; i++) { c.step(1); if (p.pos.z < -30 && p.mode !== 'script') { arrived = true; break; } }
+  for (let i = 0; i < 1200 && !c.finished && L.runtime.status === 'play'; i++) { c.setInput({ y: 1 }); c.step(1); }
+  c.setInput({});
+  for (let i = 0; i < 1800 && !c.finished; i++) c.step(1);
+  out.finish = { arrived, finished: c.finished };
+  return out;
+});
+console.log(`  Lavafelsen-König: ${JSON.stringify(kb)}`);
+check('Lavafelsen-König: Kampf beginnt beim Betreten (Auftritt, Lebensleiste 3/3)', kb.before.state === 'wait' && kb.start.started && kb.start.state === 'intro' && kb.start.hud === 3);
+check(`Er ruft Lavabrocken (${kb.summon.summoned} springen aus dem Boden)`, kb.summon.summoned >= 2 && kb.summon.brocken >= 2);
+check(`Er rollt auf die Figur zu (${kb.roll.d0} → ${kb.roll.d1} m); Berührung im Rollen verletzt`, kb.roll.d1 < kb.roll.d0 - 2 && kb.rollHurt);
+check('Draufspringen: Abprall ohne Schaden; Feuer, Kanonenkugel, Stern, anderer Wurf zählen nicht', kb.stomp.bounced && !kb.stomp.hurt && kb.stomp.hp === 3);
+check('Geworfener Lavabrocken trifft (3 → 2), Lebensleiste folgt; danach wirbelt er', kb.grab1.ok && kb.hit1.thrown && kb.hit1.hit && kb.hit1.hp === 2 && kb.hit1.hud === 2 && kb.spinState === 'spin');
+check(`Wirbel verstreut Feuerbrocken (${kb.feuer1.total}), sie verletzen und verlöschen`, kb.feuer1.total === 6 && kb.fbFound && kb.fbHurt && kb.feuerOut === 0);
+check('Zweiter Wurf trifft (2 → 1); Wurf während des Wirbelns zählt nicht', kb.hit2.ok && kb.hit2.hit && kb.hit2.hp === 1 && kb.spinThrow.ok && kb.spinThrow.thrown && kb.spinThrow.hp === kb.spinThrow.hp0);
+check(`Dritter Treffer besiegt ihn; Feuerbrocken 6 + 8 + 10 = ${kb.feuerTotal}; ruft endlos (${kb.endless.summoned} Brocken in ${kb.endless.summons} Rufen)`, kb.hit3.ok && kb.hit3.hit && kb.hit3.hp === 0 && kb.hit3.defeated && kb.feuerTotal === 24 && kb.endless.summons >= 4);
+check(`Eigene Ansagen (${kb.banners.join(' | ')}), keine fremden`, kb.banners.includes('Wirf Lavabrocken auf ihn!') && kb.banners.includes('Er rollt schneller!') && kb.banners.includes('Jetzt wird es heiß!') && !kb.banners.some((x) => /Feuerspur|wütend|Bomben/.test(x)));
+check('Sieg: gone, Archetyp gewinnt, Stern erscheint, Warp-Box sichtbar, gerufene Brocken zerfallen', kb.gone.state === 'gone' && !kb.gone.visible && kb.gone.won && kb.gone.warp === false && kb.gone.star === 1 && kb.gone.brocken === 0);
+check('Stern einsammeln, Warp-Box führt zum Zielplateau, Zielmast beendet das Level', kb.starTaken && kb.finish.arrived && kb.finish.finished);
+
+// Klon: König rollt zur nächsten Figur; Tod setzt den Kampf zurück
+await load('0-16');
+await sc(BOSS_HELPERS, ['koenig', 9.5]);
+const kk = await sc(() => {
+  const c = window.__course, t = window.__t, L = c.level, p = c.player;
+  const b = t.boss();
+  t.enter();
+  const out = {};
+  if (typeof L.addClone === 'function') {
+    t.untilSafe('rest', 1500, [0, 2, 9]);
+    p.hurt = () => false;
+    const k = L.addClone(p);
+    if (k) {
+      k.hurt = () => false;
+      for (let i = 0; i < 1500 && b.state !== 'roll'; i++) { p.pos.set(-8, 2, 6); k.pos.set(7, 2, -4); p.vel.set(0, 0, 0); k.vel.set(0, 0, 0); c.step(1); }
+      const d0 = Math.hypot(b.pos.x - 7, b.pos.z + 4);
+      for (let i = 0; i < 90; i++) { p.pos.set(-8, 2, 6); k.pos.set(7, 2, -4); p.vel.set(0, 0, 0); k.vel.set(0, 0, 0); c.step(1); }
+      out.clone = { target: b.player === k, d0: +d0.toFixed(2), d1: +Math.hypot(b.pos.x - 7, b.pos.z + 4).toFixed(2) };
+    }
+    delete p.hurt;
+  }
+  // Tod im Kampf: alles zurück
+  t.untilSafe('rest', 1500, [0, 2, 9]);
+  const g = t.grab();
+  t.throwAtBoss(4);
+  out.hpBefore = b.hp;
+  t.untilSafe('spin', 300, [0, 2, 9]);
+  c.step(60);
+  c.squad?.clear?.();
+  p.die('hit');
+  for (let i = 0; i < 1200 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1);
+  c.step(5);
+  out.reset = { state: b.state, hp: b.hp, brocken: L.entities.filter((e) => e.kind === 'lavabrocken' && !e.removed).length, feuer: t.count('feuerbrocken'), started: t.arch().started, deaths: t.arch().deaths, x: +b.pos.x.toFixed(2), z: +b.pos.z.toFixed(2) };
+  return out;
+});
+console.log(`  Lavafelsen-König Klon/Tod: ${JSON.stringify(kk)}`);
+check('Lavafelsen-König rollt zur nächsten Figur (Klon)', !!kk.clone && kk.clone.target && kk.clone.d1 < kk.clone.d0 - 2);
+check('Tod im Kampf: Neustart, König wieder 3/3 am Startplatz, Brocken und Feuerbrocken weg, Kampf von vorn', kk.hpBefore === 2 && kk.reset.state === 'wait' && kk.reset.hp === 3 && kk.reset.brocken === 0 && kk.reset.feuer === 0 && !kk.reset.started && kk.reset.deaths === 1 && kk.reset.z === -3);
+check('Keine Konsolenfehler (Lavafelsen-König)', errors.length === 0);
+}
+
 // __ENDE__
 check('Keine Konsolenfehler', errors.length === 0);
 if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);

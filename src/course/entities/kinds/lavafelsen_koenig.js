@@ -10,7 +10,7 @@
 //             1,6 rad/s – seitlich ausweichen!), prallt an der Arenagrenze und an Wänden ab; Berührung verletzt.
 //     rest    (1,8 / 1,5 / 1,2 s) steht keuchend – gute Gelegenheit zum Werfen.
 //   **Treffer nur durch einen geworfenen Lavabrocken** (onHit('throw', brocken); in summon/roll/rest): hit (0,6 s) →
-//   spin (2,0 s, wirbelt mit ausgestreckten Fäusten und verstreut Feuerbrocken 6 / 8 / 10 im Kreis, die landen, brennen
+//   spin (2,0 s, wirbelt mit ausgestreckten Fäusten und verstreut nach Treffer 1 / 2 / 3 Feuerbrocken 6 / 8 / 10 im Kreis, die landen, brennen
 //   2,6 s und verlöschen; Berührung verletzt) → nächste Runde. Alles andere (Draufspringen, Feuer, Kanonenkugel, Bombe,
 //   Stern, Riese) zählt nicht; von oben: Abprall ohne Schaden. 3 Treffer → defeated (2,6 s, Glut erlischt, Krone fällt)
 //   → gone: alle gerufenen Lavabrocken und Feuerbrocken zerfallen, star erscheint; der Boss-Archetyp öffnet die Warp-Box.
@@ -174,7 +174,7 @@ class LavafelsenKoenig extends EnemyW2 {
         this.stand(dt);
         this.yaw += dt * TAU * 2;
         this.spinHurt();
-        const n = this.val('sparks', [6, 8, 10]);
+        const n = pick(this.spec.sparks, clamp(this.hits, 1, 3), [6, 8, 10]);   // nach Treffer 1 / 2 / 3
         if (this.sparksDone === 0 && this.stateT >= 0.3) { this.scatter(Math.ceil(n / 2), 0); this.sparksDone = 1; }
         if (this.sparksDone === 1 && this.stateT >= 1.1) { this.scatter(Math.floor(n / 2), 0.5); this.sparksDone = 2; }
         if (this.stateT >= (this.spec.spin ?? SPIN)) {
