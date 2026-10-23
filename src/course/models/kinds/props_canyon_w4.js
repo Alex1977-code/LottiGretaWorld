@@ -230,9 +230,14 @@ function hoehleGeo(W, Hh) {
     tg.box(0.05, Hh + 0.2, W + 0.2, HO.dark, { p: [-tl - 0.05, Hh / 2, 0] }, 0, 1);
     b.parts.push(tg.geometry());
     // Felsbuckel hinter der Wand, der den Gang umschließt (von hinten kein schwarzer Kasten)
-    const bl = tl + 0.45 - D + 0.2;
-    b.add(displace(new THREE.BoxGeometry(bl, Hh + 0.6, W + 1.2, 3, 4, 4), 0.12, 1.4, W + 3, false),
-      (x, y, z, nx, ny) => (ny > 0.75 ? CANYON.grass : strataColor(y + (Hh + 0.6) / 2, x, z, { band: 0.6, seed: 2 })), { p: [-D + 0.1 - bl / 2, (Hh + 0.6) / 2, 0] });
+    const bl = tl + 0.45 - D + 0.2, bx = -D + 0.1 - bl / 2;
+    const humpC = (y0) => (x, y, z, nx, ny) => (ny > 0.75 ? CANYON.grass : strataColor(y + y0, x, z, { band: 0.6, seed: 2 }));
+    for (const s of [1, -1]) {
+      const zw = 0.7;
+      b.add(displace(new THREE.BoxGeometry(bl, Hh + 0.6, zw, 3, 4, 2), 0.1, 1.4, W + 3 + s, false), humpC((Hh + 0.6) / 2), { p: [bx, (Hh + 0.6) / 2, s * (hw + zw / 2)] });
+    }
+    b.add(displace(new THREE.BoxGeometry(bl, 0.7, W + 1.4, 3, 2, 4), 0.1, 1.4, W + 5, false), humpC(Hh + 0.3), { p: [bx, Hh + 0.3, 0] });
+    b.add(displace(new THREE.BoxGeometry(0.6, Hh + 0.6, W + 1.4, 2, 4, 4), 0.1, 1.4, W + 7, false), humpC((Hh + 0.6) / 2), { p: [-tl - 0.37, (Hh + 0.6) / 2, 0] });
     // Stollen-Holzrahmen vorn
     const woodV = { v: (x, y, z, nx, ny) => mix(HO.woodDark, HO.wood, smoothstep(nx * 0.5 + 0.5)) };
     for (const s of [1, -1]) b.box(0.28, hs + 0.2, 0.28, woodV, { p: [0.32, (hs + 0.2) / 2, s * (hw - 0.05)] }, 0.04, 1);
@@ -410,11 +415,19 @@ function buildGiftwasserfall(opts = {}) {
   const S = FALL_STYLE.gift;
   const root = new THREE.Group();
   const sheet = mesh(fallSheetGeo(W, H), std('w4:giftFall', { map: fallTexture('gift', S.base, S.hi, S.dark), emissive: S.emissive, emissiveIntensity: 0.6, roughness: 0.15, side: THREE.DoubleSide }));
-  const lip = mesh(cached(`w4:fall:lip:${W}`, () => new Build().add(displace(new THREE.BoxGeometry(1.1, 0.7, W + 0.8, 2, 2, 4), 0.12, 2, W, false), { v: (x, y, z, nx, ny) => mix(S.rock[0], S.rock[1], smoothstep(ny * 0.5 + 0.5)) }).geometry()),
-    vcol(0.8, {}, 'w4rock2'), { p: [-0.35, H + 0.05, 0] }, true);
+  const lip = mesh(cached(`w4:fall:lip:${W}`, () => {
+    const lb = new Build();
+    // Felskante (oben moosig) mit Giftgrün-Tropfen; Becken-Rand unten (flacher Felsring)
+    lb.add(displace(new THREE.BoxGeometry(1.0, 0.55, W + 0.7, 3, 2, 5), 0.1, 2, W, false), (x, y, z, nx, ny) => (ny > 0.7 ? GIFT.moss : mix(S.rock[0], S.rock[1], smoothstep(ny * 0.5 + 0.5))), { p: [-0.35, H + 0.05, 0] });
+    for (let i = 0; i < 4; i++) lb.sphere(0.06, GIFT.drip, { p: [0.12, H - 0.25, ((i + 0.5) / 4 - 0.5) * (W + 0.4)], s: [1, 1.8, 1] }, 8, 6);
+    for (const s of [1, -1]) lb.add(displace(new THREE.IcosahedronGeometry(0.45, 1), 0.1, 3, s, false), (x, y, z, nx, ny) => (ny > 0.6 ? GIFT.moss : mix(S.rock[0], S.rock[1], smoothstep(ny * 0.5 + 0.5))), { p: [0.35, 0.15, s * (W / 2 + 0.25)], s: [1.2, 0.6, 1] });
+    return lb.geometry();
+  }), vcol(0.8, {}, 'w4rock2'), {}, true);
   const nf = Math.max(4, Math.round(W * 3));
   const foam = instMesh(cached('w4:fall:foam', () => new THREE.IcosahedronGeometry(1, 1)), std('w4:giftFoam', { color: S.foam, roughness: 0.6, emissive: 0x3a1a5a }), nf, W + 2, 0.3);
-  root.add(sheet, lip, foam);
+  const mist = glowSprite(0xe0c8ff, Math.max(W, 2) * 1.3, 0.45);
+  mist.position.set(0.5, 0.4, 0);
+  root.add(sheet, lip, foam, mist);
   const seeds = Array.from({ length: nf }, (_, i) => ({ z: ((i + 0.5) / nf - 0.5) * W * 0.95, ph: hash1(i) * TAU, r: 0.18 + hash1(i + 3) * 0.16 }));
   const update = () => {
     const now = performance.now() / 1000;
