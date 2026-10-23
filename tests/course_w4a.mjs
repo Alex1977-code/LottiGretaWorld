@@ -162,7 +162,7 @@ const ROUTES = {
           { to: [10.4, -158.4], jump: 30, within: 0.4, run: false }, { hop: 30 }, { wait: 20 }], shot: 'stempel', mech: { bounce: true } },
       { name: 'Stempel-Sims nicht ohne Abprall (Sprung vom Inselchen)', stamp: true, expectNot: true, from: [9, WS + 0.6, -142.6], heroes: ['lotti'],
         legs: [{ to: [10.8, -146], jump: 40, within: 0.4, max: 300 }, { wait: 60 }, { expect: 'nichtAufSims' }] },
-      { name: 'Stern 2: Sternring – acht Sternmünzen in 10 s', star: 2, from: [-5.4, U, -228.6],
+      { name: 'Stern 2: Sternring – acht Sternmünzen in 10 s', star: 2, from: [-5.4, U, -229.8],
         legs: [{ to: [-5.4, -232.6], within: 0.5, run: false }, { chaseKind: 'sternmuenze', max: 1300, walk: true }, { wait: 60 }, { star: 2 }], shot: 'stern2' },
     ],
     extra: [
