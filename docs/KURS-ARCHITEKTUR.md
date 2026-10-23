@@ -1981,8 +1981,10 @@ Wo der Bauplan den „Kapitän“ nennt (3-Zug, 3-Kapitän), tritt **Krümel** a
   ausgeblendet, Räder nur nahe der Kamera, ferne Wagen als Ersatzkörper (eine Instanzgruppe je Bauart), Himmelskranz
   aus, solange der Horizont nicht im Bild ist (`skyDiet`), kleine Teile der Heldin ohne eigenen Sonnenschatten
   (`heroShadowDiet`), Gegner-Schatten nur als Blob (`shadowDiet`).
-- **Kennzahlen** (scale 2, inkl. Schattenpass): 3-A 54–120 Zeichenaufrufe / 114–162 k Dreiecke; 3-B 30–97 / 134–273 k;
-  3-Zug 68–104 / 181–269 k. Wünsche an den Motor: Boss-Ansage „Spring in die Warp-Box!“ je Level einstellbar;
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 3-A 54–120 Zeichenaufrufe / 114–162 k Dreiecke; 3-B 62–97 / 164–273 k;
+  3-Zug 62–104 / 185–272 k (Doppelgänger in ruhigen Haltungen als Instanzgruppen: `instanceModels`; die Kampf-Kamera
+  des Boss-Archetyps rahmt zwischen Figur und x = 0 – für die seitliche Drehscheibe level-lokal verschoben).
+  Wünsche an den Motor: Boss-Ansage „Spring in die Warp-Box!“ je Level einstellbar; Boss-Kamera mit Arenamitte;
   `track` legt den ganzen Pfad in eine Geometrie (lange Strecken müssen gestückelt werden); Räder des Modells
   `zug_waggon` (je 920 Dreiecke × 8) und die Heldin (≈ 17 Meshes) sind die größten Posten im Zug-Budget.
 
