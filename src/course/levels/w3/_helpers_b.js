@@ -19,7 +19,9 @@
 import * as THREE from 'three';
 import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
 import { visDt } from '../../entities/gimmick.js';
+import { getModel } from '../../models/index.js';
 import { levelSetup, cyl, sphere, cone, block, flatIslands } from '../w2/_helpers_c.js';
+import { SECTION } from '../../view/StaticBatcher.js';
 
 export { levelSetup, cyl, sphere, cone, block, flatIslands };
 
@@ -143,7 +145,7 @@ export function scrollDirector(level, scene, cfg) {
     const f = cfg.fall;
     if (f && w.s >= f.minS) {
       for (const p of level.players ?? [level.player]) {
-        if (!p || p.dead || p.removedFigure) continue;
+        if (!p || p.dead || p.removedFigure || p.mode === 'script') continue;
         if (p.pos.y < f.y && p.pos.x > f.x[0] && p.pos.x < f.x[1]) { st.falls++; p.die('fall'); }
       }
     }
@@ -184,13 +186,148 @@ export function clockSync(level, sync) {
 }
 
 // =============================================================================================
+// Käfer-Schwarm: alle Krabbel-/Flatterkäfer als Instanzen (Zeichenaufrufe sparen)
+// =============================================================================================
+
+/**
+ * Das Registry-Modell eines Käfers besteht aus sieben Meshes (Panzer, Augen, Glanzpunkte, Fühler, Beine, zwei Flügel) –
+ * je Käfer sieben Zeichenaufrufe plus zwei im Schattenpass. Bei 7 (3-2) bzw. 28 (3-6) Käfern sprengt das das Budget.
+ * Hier wird das Modell je Art/Farbe einmal in Ruhehaltung zu einem Körper-Mesh verschmolzen und als InstancedMesh
+ * gezeichnet (Flügel als zweite InstancedMesh mit Flügelschlag); die Entitäten behalten Verhalten, Kollision und
+ * Blob-Schatten, ihre eigenen Modelle werden geleert. Käfer weiter als `dist` m von der Figur fallen weg.
+ * Nur Darstellung (Wippen, Flügelschlag, platt gedrückt), kein Sonnenschatten.
+ */
+export function bugSwarm(level, o = {}) {
+  if (!level.view) return null;
+  const kinds = o.kinds ?? ['flatterkaefer', 'krabbelkaefer'];
+  const dist = o.dist ?? 40;
+  const sets = new Map();
+  const _m = new THREE.Matrix4(), _r = new THREE.Matrix4(), _w = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _e = new THREE.Euler();
+  /** Modell in Ruhehaltung → Geometrie im Modellraum (ohne transparente Flügel). */
+  const bake = (kind, color) => {
+    const m = getModel(kind, { color });
+    m.update?.(0, { anim: kind === 'flatterkaefer' ? 'fly' : 'idle' });
+    const root = m.root;
+    root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); root.scale.set(1, 1, 1);
+    root.updateMatrixWorld(true);
+    const parts = [];
+    let wingGeo = null, wingMat = null;
+    root.traverse((ob) => {
+      if (!ob.isMesh) return;
+      const mat = Array.isArray(ob.material) ? ob.material[0] : ob.material;
+      if (mat?.transparent) { if (!wingGeo) { wingGeo = ob.geometry; wingMat = mat; } return; }
+      const list = ob.isInstancedMesh ? Array.from({ length: ob.count }, (_, i) => { ob.getMatrixAt(i, _r); return _m.clone().multiplyMatrices(ob.matrixWorld, _r); }) : [ob.matrixWorld.clone()];
+      for (const mw of list) {
+        let g = ob.geometry.index ? ob.geometry.toNonIndexed() : ob.geometry.clone();
+        g.applyMatrix4(mw);
+        for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'color') g.deleteAttribute(k);
+        if (!g.attributes.normal) g.computeVertexNormals();
+        if (!g.attributes.color) {
+          const c = mat?.color ?? new THREE.Color(1, 1, 1);
+          const arr = new Float32Array(g.attributes.position.count * 3);
+          for (let i = 0; i < arr.length; i += 3) { arr[i] = c.r; arr[i + 1] = c.g; arr[i + 2] = c.b; }
+          g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+        }
+        parts.push(g);
+      }
+    });
+    m.dispose?.();
+    return { body: merge(parts), wingGeo, wingMat };
+  };
+  const bugs = [];
+  for (const e of level.entities) {
+    if (!kinds.includes(e.kind) || !e.model) continue;
+    const color = e.spec.color ?? (e.kind === 'flatterkaefer' ? 'pink' : 'blue');
+    const key = `${e.kind}:${color}`;
+    let set = sets.get(key);
+    if (!set) { set = { kind: e.kind, color, list: [] }; sets.set(key, set); }
+    set.list.push(e);
+    // eigenes Modell leeren (Wurzel bleibt als Lageträger)
+    for (const ch of [...e.model.root.children]) e.model.root.remove(ch);
+    e.model.update = () => {};
+    bugs.push(e);
+  }
+  let wingIM = null, wingN = 0;
+  const flyers = bugs.filter((e) => e.kind === 'flatterkaefer');
+  for (const set of sets.values()) {
+    const b = bake(set.kind, set.color);
+    set.im = new THREE.InstancedMesh(b.body, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45 }), set.list.length);
+    set.im.castShadow = false; set.im.frustumCulled = false;
+    addObject(level, set.im);
+    if (!wingIM && b.wingGeo && flyers.length) {
+      wingIM = new THREE.InstancedMesh(b.wingGeo, b.wingMat, flyers.length * 2);
+      wingIM.castShadow = false; wingIM.frustumCulled = false;
+      addObject(level, wingIM);
+    }
+  }
+  const holder = {};
+  let t = 0;
+  const st = { drawn: 0, total: bugs.length };
+  level.view.onFrame((dt) => {
+    t += visDt(level, holder, dt);
+    const pl = level.player;
+    st.drawn = 0; wingN = 0;
+    for (const set of sets.values()) {
+      let n = 0;
+      for (const e of set.list) {
+        if (e.removed || !e.alive) continue;
+        if (pl && Math.hypot(e.pos.x - pl.pos.x, e.pos.z - pl.pos.z) > dist) continue;
+        const fly = e.kind === 'flatterkaefer';
+        const sq = e.state === 'squashed';
+        const bob = fly && !sq ? 0.12 + Math.sin(t * 4 + e.pos.x) * 0.05 : 0;
+        _p.set(e.pos.x, e.pos.y + bob, e.pos.z);
+        _e.set(0, e.yaw ?? 0, 0); _q.setFromEuler(_e);
+        if (sq) _s.set(1.3, 0.25, 1.3); else _s.set(1, 1, 1);
+        _m.compose(_p, _q, _s);
+        set.im.setMatrixAt(n++, _m);
+        st.drawn++;
+        if (fly && wingIM && !sq) {
+          for (const sgn of [1, -1]) {
+            const flap = Math.sin(t * 38 + e.pos.z) * 0.7 + 0.5;
+            _r.makeRotationFromEuler(_e.set(sgn * (0.35 + flap), 0, 0.5));
+            _r.setPosition(-0.06, 0.4 + 0.12, sgn * 0.1);
+            wingIM.setMatrixAt(wingN++, _w.multiplyMatrices(_m, _r));
+          }
+        }
+      }
+      set.im.count = n;
+      set.im.instanceMatrix.needsUpdate = true;
+    }
+    if (wingIM) { wingIM.count = wingN; wingIM.instanceMatrix.needsUpdate = true; }
+  });
+  level._bugSwarm = st;
+  return st;
+}
+
+/** Netz-Teile der Kettenzäune werfen keinen Sonnenschatten (der Schatten wäre eine volle Platte; spart Aufrufe). */
+export function fenceShadows(level) {
+  for (const e of level.entities) {
+    if (e.kind !== 'kettenzaun' && e.kind !== 'kettenplattform') continue;
+    e.model?.root?.traverse((ob) => {
+      if (!ob.isMesh) return;
+      const mat = Array.isArray(ob.material) ? ob.material[0] : ob.material;
+      if (mat?.map || mat?.alphaTest || ob.isInstancedMesh) ob.castShadow = false;
+    });
+  }
+}
+
+// =============================================================================================
 // Kleine Geometrie-Bausteine (Weltkoordinaten, Vertexfarben)
 // =============================================================================================
 
 const L = (c) => lin(hex(c));
+/** colorize-Rückruf: einfarbig (lineare Farbe). */
+const fillc = (c) => (p, n, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; };
 /** Flache Platte (Mitte x,y,z), ohne Rundung (sparsam). */
 export function plate(w, h, d, x, y, z, color, o = {}) {
-  return box(w, h, d, x, y + h / 2, z, color, { r: o.r ?? 0.02, seg: o.seg ?? 1, topColor: o.top });
+  const r = o.r ?? 0.02;
+  if (r > 0.045) return box(w, h, d, x, y + h / 2, z, color, { r, seg: o.seg ?? 1, topColor: o.top });
+  // kleine Teile: einfacher Quader (12 Dreiecke), oben etwas heller (bzw. top)
+  const g = new THREE.BoxGeometry(w, h, d).toNonIndexed();
+  const base = L(color), top = o.top !== undefined ? L(o.top) : [base[0] * 1.1, base[1] * 1.1, base[2] * 1.1], low = [base[0] * 0.8, base[1] * 0.8, base[2] * 0.8];
+  colorize(g, (p, n, out) => { const c = n.y > 0.5 ? top : n.y < -0.5 ? low : base; const k = 1 - Math.abs(n.x) * 0.06; out[0] = c[0] * k; out[1] = c[1] * k; out[2] = c[2] * k; });
+  g.translate(x, y + h / 2, z);
+  return g;
 }
 
 /** 7-Segment-Ziffern als Quader (Höhenmarken am Kletterturm): Text aus Ziffern, Mitte unten (x, y, z), Höhe h, Ebene XY. */
@@ -245,8 +382,8 @@ export function towerBack(level, o) {
   // Felder (helle Platten) im 2-m-Raster mit Nieten
   for (let y = y0 + 0.4; y < y1 - 1.6; y += 2.2) {
     for (let x = x0 + 0.5; x < x1 - 1.4; x += 2.4) {
-      parts.push(plate(2.1, 1.9, 0.08, x + 1.05, y, z + 0.02, ((Math.floor(x) + Math.floor(y)) & 1) ? panel : steel, { r: 0.05 }));
-      for (const [rx, ry] of [[0.15, 0.15], [1.95, 0.15], [0.15, 1.75], [1.95, 1.75]]) parts.push(plate(0.1, 0.1, 0.05, x + rx, y + ry, z + 0.09, 0xd8e2f6, { r: 0.02 }));
+      parts.push(plate(2.1, 1.9, 0.08, x + 1.05, y, z + 0.02, ((Math.floor(x) + Math.floor(y)) & 1) ? panel : steel, { r: 0 }));
+      parts.push(plate(0.12, 0.12, 0.05, x + 0.18, y + 1.62, z + 0.09, 0xd8e2f6, { r: 0 }), plate(0.12, 0.12, 0.05, x + 1.92, y + 0.16, z + 0.09, 0xd8e2f6, { r: 0 }));
     }
   }
   // Querträger und senkrechte Kanten
@@ -288,7 +425,7 @@ export function pennantLine(parts, a, b, n = 10, sag = 0.5) {
       g.scale(1, 1, 0.25);
       g.rotateY(yaw);
       g.translate(x + dx / n / 2, y - 0.26, z + dz / n / 2);
-      parts.push(colorize(g, () => L(cols[i % cols.length])));
+      parts.push(colorize(g, fillc(L(cols[i % cols.length]))));
     }
   }
   // Schnur
@@ -297,7 +434,7 @@ export function pennantLine(parts, a, b, n = 10, sag = 0.5) {
   s.rotateZ(Math.atan2(dy, Math.hypot(dx, dz)));
   s.rotateY(yaw);
   s.translate((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - sag * 0.7, (a[2] + b[2]) / 2);
-  parts.push(colorize(s, () => L(0xf6f4ef)));
+  parts.push(colorize(s, fillc(L(0xf6f4ef))));
 }
 
 /** Heißluftballon (ein Mesh, schattenlos), schwebt auf und ab und dreht sich langsam. */
@@ -362,7 +499,7 @@ export function zeppelin(level, o) {
   const mono = new THREE.TorusGeometry(0.27, 0.05, 6, 16).toNonIndexed();
   mono.rotateY(Math.PI / 2);
   mono.translate(6.85, 0.75, -0.6);
-  parts.push(colorize(mono, () => L(0xffd23d)));
+  parts.push(colorize(mono, fillc(L(0xffd23d))));
   parts.push(cyl(0.7, 0.7, 1.4, 2.5, 2.2, 0, 0x22202a, 12), cyl(1.1, 1.1, 0.12, 2.5, 2.2, 0, 0x22202a, 12), cyl(0.72, 0.72, 0.22, 2.5, 2.5, 0, 0xc81e2e, 12));
   // Gondel und Leitwerk
   parts.push(plate(3, 0.9, 1.2, 0.5, -3.1, 0, 0x3a2a2a, { r: 0.2, top: 0x5a4040 }));
@@ -499,13 +636,13 @@ export function road(level, pieces) {
       const ya = at(za), yb = at(zb);
       const g = quad(r.x - r.w / 2, ya, za, r.x + r.w / 2, yb, zb);
       const c = (i % 2) ? asph : asph2;
-      parts.push(colorize(g, () => c));
-      if (r.dashes !== false && i % 3 === 0) parts.push(colorize(quad(r.x - 0.09, ya + 0.004, za - 0.1, r.x + 0.09, (ya + yb) / 2 + 0.004, za - len / n * 0.55), () => L(0xf6f4ef)));
+      parts.push(colorize(g, fillc(c)));
+      if (r.dashes !== false && i % 3 === 0) parts.push(colorize(quad(r.x - 0.09, ya + 0.004, za - 0.1, r.x + 0.09, (ya + yb) / 2 + 0.004, za - len / n * 0.55), fillc(L(0xf6f4ef))));
       if (r.curbs !== false) {
         for (const side of [-1, 1]) {
           const cx = r.x + side * (r.w / 2 - 0.25);
           const c2 = L((i % 2) ? 0xe8283a : 0xf6f4ef);
-          parts.push(colorize(quad(cx - 0.25, ya + 0.006, za, cx + 0.25, yb + 0.006, zb), () => c2));
+          parts.push(colorize(quad(cx - 0.25, ya + 0.006, za, cx + 0.25, yb + 0.006, zb), fillc(c2)));
         }
       }
     }
@@ -513,8 +650,8 @@ export function road(level, pieces) {
       // Startaufstellung: weiße Winkel je Startplatz
       for (const [gx, gz] of r.grid) {
         const yy = at(gz) + 0.008;
-        parts.push(colorize(quad(gx - 0.8, yy, gz + 0.05, gx + 0.8, yy, gz - 0.12), () => L(0xffffff)));
-        parts.push(colorize(quad(gx - 0.8, yy, gz + 0.05, gx - 0.65, yy, gz - 1.0), () => L(0xffffff)));
+        parts.push(colorize(quad(gx - 0.8, yy, gz + 0.05, gx + 0.8, yy, gz - 0.12), fillc(L(0xffffff))));
+        parts.push(colorize(quad(gx - 0.8, yy, gz + 0.05, gx - 0.65, yy, gz - 1.0), fillc(L(0xffffff))));
       }
     }
   }
@@ -532,12 +669,82 @@ function quad(x0, ya, za, x1, yb, zb) {
   return g;
 }
 
+/**
+ * Statische Teile je 32-m-Abschnitt (wie der StaticBatcher) zusammenfassen und einzeln abgeben: so landen sie im
+ * Abschnitts-Mesh ihres Orts (Frustum-Culling, kein zusätzlicher Zeichenaufruf) statt in einem levelweiten Mesh, das
+ * immer – auch im Schattenpass – gezeichnet würde.
+ */
+export function addStaticParts(level, parts, opts) {
+  if (!level.view) { for (const g of parts) g.dispose?.(); return; }
+  const groups = new Map();
+  for (const g of parts) {
+    g.computeBoundingBox();
+    const sec = Math.floor(-(g.boundingBox.min.z + g.boundingBox.max.z) / 2 / SECTION);
+    if (!groups.has(sec)) groups.set(sec, []);
+    groups.get(sec).push(g);
+  }
+  for (const list of groups.values()) addStatic(level, merge(list), opts);
+}
+
+/**
+ * Kart-Bande (sparsam): grauer Sockel, rot-weiße Polster je Meter, gelb-schwarze Rolle oben, 0,8 m hoch – Optik wie
+ * der Baustein `bande`, aber ≈ 40 statt ≈ 320 Dreiecke je Meter (Budget: in 3-6 stehen rund 300 m Bande).
+ * paths: Liste von Linienzügen [[x, y, z], …]; Kollision je Stück (achsenparallel ein Quader, sonst ≤ 1-m-Stücke).
+ */
+export function kartBande(level, paths) {
+  const parts = [];
+  const pad = [L(0xe8283a), L(0xffffff)], roll = [L(0xffd21f), L(0x2a2a3a)];
+  for (const path of paths) {
+    for (let i = 0; i < path.length - 1; i++) {
+      const [ax, ay, az] = path[i], [bx, , bz] = path[i + 1];
+      const dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz);
+      if (len < 0.2) continue;
+      if (Math.abs(dx) < 1e-3 || Math.abs(dz) < 1e-3) {
+        level.world.add({ type: 'box', min: [Math.min(ax, bx) - 0.22, ay, Math.min(az, bz) - 0.22], max: [Math.max(ax, bx) + 0.22, ay + 0.8, Math.max(az, bz) + 0.22], tag: 'bande' });
+      } else {
+        const n = Math.ceil(len);
+        for (let k = 0; k < n; k++) {
+          const x0 = ax + dx * k / n, x1 = ax + dx * (k + 1) / n, z0 = az + dz * k / n, z1 = az + dz * (k + 1) / n;
+          level.world.add({ type: 'box', min: [Math.min(x0, x1) - 0.22, ay, Math.min(z0, z1) - 0.22], max: [Math.max(x0, x1) + 0.22, ay + 0.8, Math.max(z0, z1) + 0.22], tag: 'bande' });
+        }
+      }
+      if (!level.view) continue;
+      // Stücke höchstens 12 m lang (Abschnitts-Culling), lokal entlang +X gebaut
+      const pieces = Math.ceil(len / 12);
+      for (let q = 0; q < pieces; q++) {
+        const u0 = (q / pieces) * len, u1 = ((q + 1) / pieces) * len, pl = u1 - u0;
+        const loc = [plate(pl, 0.16, 0.6, u0 + pl / 2, 0, 0, 0x7a8090, { r: 0 })];
+        const np = Math.max(1, Math.round(pl));
+        for (let k = 0; k < np; k++) {
+          const g = new THREE.BoxGeometry(pl / np - 0.05, 0.5, 0.42).toNonIndexed();
+          const c = pad[(Math.round(u0) + k) % 2];
+          colorize(g, (p, nn, o) => { const s = nn.y > 0.5 ? 1.08 : nn.y < -0.5 ? 0.6 : 0.88; o[0] = c[0] * s; o[1] = c[1] * s; o[2] = c[2] * s; });
+          g.translate(u0 + (k + 0.5) * pl / np, 0.42, 0);
+          loc.push(g);
+        }
+        const nr = Math.max(1, Math.round(pl * 2));
+        for (let k = 0; k < nr; k++) {
+          const g = new THREE.CylinderGeometry(0.1, 0.1, pl / nr, 6, 1, true).toNonIndexed();
+          g.rotateZ(Math.PI / 2);
+          g.translate(u0 + (k + 0.5) * pl / nr, 0.72, 0);
+          loc.push(colorize(g, fillc(roll[k % 2])));
+        }
+        const g = merge(loc);
+        g.rotateY(Math.atan2(-dz, dx));
+        g.translate(ax, ay, az);
+        parts.push(g);
+      }
+    }
+  }
+  addStaticParts(level, parts, { castShadow: true });
+}
+
 /** Schachbrettfläche (Start-/Ziellinie) quer über die Fahrbahn bei z. */
 export function checkerLine(parts, x, w, z, y, d = 1.2, cell = 0.6) {
   const nx = Math.round(w / cell), nz = Math.round(d / cell);
   for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
     const c = L(((i + j) & 1) ? 0x1a1a22 : 0xffffff);
-    parts.push(colorize(quad(x - w / 2 + i * cell, y + 0.016, z + d / 2 - j * cell, x - w / 2 + (i + 1) * cell, y + 0.016, z + d / 2 - (j + 1) * cell), () => c));
+    parts.push(colorize(quad(x - w / 2 + i * cell, y + 0.016, z + d / 2 - j * cell, x - w / 2 + (i + 1) * cell, y + 0.016, z + d / 2 - (j + 1) * cell), fillc(c)));
   }
 }
 
@@ -643,18 +850,18 @@ export function finishBanner(parts, x, y, z, w = 9, h = 5) {
 function critterGeo(kind) {
   const p = [];
   if (kind === 'hase') {
-    p.push(sphere(0.3, 0, 0.32, 0, 0xffffff, { sy: 1.1 }), sphere(0.24, 0, 0.78, 0, 0xffffff));
+    p.push(sphere(0.3, 0, 0.32, 0, 0xffffff, { sy: 1.1, ws: 7, hs: 5 }), sphere(0.24, 0, 0.78, 0, 0xffffff, { ws: 6, hs: 4 }));
     p.push(plate(0.09, 0.42, 0.06, -0.09, 0.9, 0, 0xffffff, { r: 0.04 }), plate(0.09, 0.42, 0.06, 0.09, 0.9, 0, 0xffffff, { r: 0.04 }));
   } else if (kind === 'baer') {
-    p.push(sphere(0.34, 0, 0.34, 0, 0xffffff, { sy: 1.05 }), sphere(0.27, 0, 0.82, 0, 0xffffff));
-    p.push(sphere(0.1, -0.2, 1.04, 0, 0xffffff), sphere(0.1, 0.2, 1.04, 0, 0xffffff), sphere(0.11, 0, 0.76, 0.22, 0xf0e0c8));
+    p.push(sphere(0.34, 0, 0.34, 0, 0xffffff, { sy: 1.05, ws: 7, hs: 5 }), sphere(0.27, 0, 0.82, 0, 0xffffff, { ws: 6, hs: 4 }));
+    p.push(sphere(0.1, -0.2, 1.04, 0, 0xffffff, { ws: 6, hs: 4 }), sphere(0.1, 0.2, 1.04, 0, 0xffffff, { ws: 6, hs: 4 }), sphere(0.11, 0, 0.76, 0.22, 0xf0e0c8, { ws: 6, hs: 4 }));
   } else if (kind === 'pinguin') {
-    p.push(sphere(0.3, 0, 0.36, 0, 0x2a2a34, { sy: 1.25 }), sphere(0.22, 0, 0.36, 0.12, 0xffffff, { sy: 1.2 }), sphere(0.22, 0, 0.82, 0, 0x2a2a34));
+    p.push(sphere(0.3, 0, 0.36, 0, 0x2a2a34, { sy: 1.25, ws: 7, hs: 5 }), sphere(0.22, 0, 0.36, 0.12, 0xffffff, { sy: 1.2, ws: 6, hs: 4 }), sphere(0.22, 0, 0.82, 0, 0x2a2a34, { ws: 6, hs: 4 }));
     p.push(cone(0.06, 0.16, 0, 0.74, 0.22, 0xffa21a));
   } else {
-    p.push(sphere(0.28, 0, 0.36, 0, 0xffffff, { sy: 1.05 }), sphere(0.2, 0, 0.74, 0, 0xffffff), cone(0.06, 0.14, 0, 0.7, 0.2, 0xffa21a));
+    p.push(sphere(0.28, 0, 0.36, 0, 0xffffff, { sy: 1.05, ws: 7, hs: 5 }), sphere(0.2, 0, 0.74, 0, 0xffffff, { ws: 6, hs: 4 }), cone(0.06, 0.14, 0, 0.7, 0.2, 0xffa21a));
   }
-  p.push(sphere(0.045, -0.09, kind === 'pinguin' ? 0.86 : 0.82, 0.21, 0x101018), sphere(0.045, 0.09, kind === 'pinguin' ? 0.86 : 0.82, 0.21, 0x101018));
+  p.push(sphere(0.045, -0.09, kind === 'pinguin' ? 0.86 : 0.82, 0.21, 0x101018, { ws: 6, hs: 4 }), sphere(0.045, 0.09, kind === 'pinguin' ? 0.86 : 0.82, 0.21, 0x101018, { ws: 6, hs: 4 }));
   // Winke-Arme (ein Ärmchen hoch)
   p.push(plate(0.08, 0.36, 0.08, 0.32, 0.5, 0.04, kind === 'pinguin' ? 0x2a2a34 : 0xffffff, { r: 0.03 }));
   return merge(p);
@@ -742,7 +949,14 @@ export function grandstand(level, o) {
   };
   upd(0);
   const group = new THREE.Group();
-  for (const k in meshes) group.add(meshes[k].im);
+  for (const k in meshes) {
+    // Instanzen liegen nur auf der Tribüne: Hüllkugel aus den Instanzen (+ Hüpfen) → Frustum-Culling möglich
+    const im = meshes[k].im;
+    im.computeBoundingSphere();
+    if (im.boundingSphere) im.boundingSphere.radius += 1;
+    im.frustumCulled = true;
+    group.add(im);
+  }
   addObject(level, group, upd);
   return { seats: seats.length, st };
 }

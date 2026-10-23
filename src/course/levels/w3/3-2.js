@@ -23,8 +23,7 @@
 // 3 nach dem Glasrohr: Kurbelrad drehen, Plattform hoch, Zaun hinaufklettern. Stempel: Krallenwand + Zaun hinter dem
 // Glasrohr-Eingang. 1-Up: Kurbelrad auf der Zielinsel → Wolke. Gegner: Krabbelkäfer (4), Flatterkäfer (7).
 
-import { levelSetup, isl, line, ring, arc, column, scrollDirector, clockSync, towerBack, slotStrip, pennantLine, balloon, zeppelin, birds, windmill, pipeLid, plate, cyl, sphere } from './_helpers_b.js';
-import { addStatic, merge } from '../../blocks/kit.js';
+import { levelSetup, isl, line, ring, arc, column, scrollDirector, clockSync, towerBack, slotStrip, pennantLine, balloon, zeppelin, birds, windmill, pipeLid, plate, cyl, sphere, bugSwarm, fenceShadows, addStaticParts } from './_helpers_b.js';
 
 const PI = Math.PI;
 const ZC = -68;          // Fensterlinie (Kletterturm, Wolkenstrecke)
@@ -121,16 +120,16 @@ export const LEVEL = {
     { from: -40, to: -100, pitch: 42, dist: 13, fov: 40, ahead: 2.4, area: [92, 140] },
   ],
   skyCam: [
-    { s: 0, pitch: 42, dist: 14, fov: 40, height: 1 },
-    { s: 66, pitch: 40, dist: 14, fov: 40, height: 1 },
+    { s: 0, pitch: 42, dist: 15, fov: 40, height: 1 },
+    { s: 66, pitch: 40, dist: 15, fov: 40, height: 1 },
     { s: 78, pitch: 17, dist: 17, fov: 42, height: 1 },
     { s: 108, pitch: 17, dist: 17, fov: 42, height: 1 },
     { s: 120, pitch: 27, dist: 15.5, fov: 40, height: 1 },
     { s: 200, pitch: 27, dist: 15.5, fov: 40, height: 1 },
   ],
   skyFrame: [
-    { s: 0, back: 5, front: 8, ahead: 1.2, followX: 0.3 },
-    { s: 68, back: 5, front: 8, ahead: 1.2, followX: 0.3 },
+    { s: 0, back: 5, front: 7.5, ahead: 1.2, followX: 0.3 },
+    { s: 68, back: 5, front: 7.5, ahead: 1.2, followX: 0.3 },
     { s: 76, back: 5.5, front: 6.4, ahead: 1.0, followX: 0.3 },
     { s: 96, back: 5.5, front: 6.4, ahead: 1.0, followX: 0.3 },
     { s: 101, back: 5.5, front: 8.0, ahead: 2.0, followX: 0.3 },
@@ -167,7 +166,7 @@ export const LEVEL = {
   ],
   blocks: [
     { kind: 'question', pos: [2, 3.2, -0.5], content: 'coins:3' },
-    { kind: 'question', pos: [3.2, 3.3, -64.5], content: 'krallen' },
+    { kind: 'question', pos: [3.2, 2.0, -64.5], content: 'krallen' },   // niedrig: der Anzug bleibt oben liegen (Sprung hinauf)
     { kind: 'question', pos: [-4.6, 3.2, -38.2], content: 'wachstumsbeere' },
     { kind: 'brick', pos: [-3.6, 3.2, -38.2] }, { kind: 'brick', pos: [-5.6, 3.2, -38.2] },
   ],
@@ -189,45 +188,45 @@ export const LEVEL = {
     // Warp-Boxen (erscheinen per Level-Haken)
     { kind: 'warpbox', id: 'warp1', pos: [0, 0, -57], target: [0, 0.05, -63.4], hidden: true },
     { kind: 'warpbox', id: 'warp2', pos: [79, YR, -66], target: [100, YZ + 0.05, -66], hidden: true },
-    { kind: 'powerup', pos: [112.6, YZ + 6.1, -59.4], power: 'oneup' },
+    { kind: 'powerup', pos: [112.6, YZ + 6.0, -59.4], power: 'oneup', speed: 0 },
     // Münzspuren
-    line([0, 0.9, 5], [0, 0.9, 0], 4),
-    line([0, 0.9, -5], [0, 0.9, -11], 4),
+    line([0, 0.9, 5], [0, 0.9, 0], 3),
+    line([0, 0.9, -5], [0, 0.9, -11], 3),
     ...arc([-7, 0.9, -2], [-7, 0.9, -6], 3, 0.6),
-    line([-7, 0.9, -17.5], [-7, 0.9, -26], 5),
-    line([0, 0.9, -16], [0, 0.9, -19.5], 3),
-    line([0, 0.9, -23], [0, 0.9, -26.5], 3),
-    line([0, 1.6, -28], [0, 1.6, -32], 4),
-    ring([-2, 0.9, -36.5], 1.4, 6),
-    line([7.9, 0.9, -32], [7.9, 0.9, -36], 3),
-    line([7.9, 3.4, -39.7], [7.9, 3.4, -47], 4),
-    line([-6, 0.9, -47], [2, 0.9, -47], 5),
-    line([0, 0.9, -51.5], [0, 0.9, -55], 3),
-    ring([-3.5, 0.9, -66.5], 1.2, 6),
-    column(-2.4, -69.5, 2.5, 10, 6),
-    line([-1.8, 15.2, -69.5], [4.4, 15.2, -69.5], 4),
-    column(7.6, -69.5, 17.5, 27.5, 6),
-    column(3.0, -69.5, 27.5, 32.5, 4),
-    column(-2.5, -69.5, 32.5, 37.5, 4),
-    line([3.5, YT + 0.9, -64.5], [9.5, YT + 0.9, -64.5], 4),
-    line([20.5, YW + 0.9, -66], [26, YW + 0.9, -66], 4),
-    ...arc([27, YW + 0.9, -66], [29.5, YW - 0.2, -66], 3, 0.8),
-    ...arc([31, YW, -66], [33.4, YR + 2.6, -66], 3, 0.9),
+    line([-7, 0.9, -17.5], [-7, 0.9, -26], 3),
+    line([0, 0.9, -16], [0, 0.9, -19.5], 2),
+    line([0, 0.9, -23], [0, 0.9, -26.5], 2),
+    line([0, 1.6, -28], [0, 1.6, -32], 3),
+    ring([-2, 0.9, -36.5], 1.4, 5),
+    line([7.9, 0.9, -32], [7.9, 0.9, -36], 2),
+    line([7.9, 3.4, -39.7], [7.9, 3.4, -47], 3),
+    line([-6, 0.9, -47], [2, 0.9, -47], 3),
+    line([0, 0.9, -51.5], [0, 0.9, -55], 2),
+    ring([-3.5, 0.9, -66.5], 1.2, 5),
+    column(-2.4, -69.5, 2.5, 10, 4),
+    line([-1.8, 15.2, -69.5], [4.4, 15.2, -69.5], 3),
+    column(7.6, -69.5, 17.5, 27.5, 4),
+    column(3.0, -69.5, 27.5, 32.5, 3),
+    column(-2.5, -69.5, 32.5, 37.5, 3),
+    line([3.5, YT + 0.9, -64.5], [9.5, YT + 0.9, -64.5], 3),
+    line([20.5, YW + 0.9, -66], [26, YW + 0.9, -66], 3),
+    ...arc([27, YW + 0.9, -66], [29.6, YW - 0.2, -66], 3, 0.8),
+    ...arc([31, YW, -66], [33.6, YR + 2.6, -66], 3, 0.9),
     line([36.5, YR + 1.6, -66], [38.5, YR + 1.6, -66], 3),
-    line([42, YR + 4.6, -67.8], [48, YR + 4.6, -67.8], 5),
-    line([51.5, YR + 1.0, -64], [55.5, YR + 1.0, -64], 4),
-    line([57.5, YR + 4.4, -67.8], [67.5, YR + 4.4, -67.8], 6),
-    ring([75, YR + 1.0, -66], 1.6, 8),
-    line([100, YZ + 0.9, -70], [117, YZ + 0.9, -70], 8),
-    ring([112.6, YZ + 6.9, -59.4], 1.4, 6),
+    line([42, YR + 4.6, -67.8], [48, YR + 4.6, -67.8], 3),
+    line([51.5, YR + 1.0, -64], [55.5, YR + 1.0, -64], 3),
+    line([57.5, YR + 4.4, -67.8], [67.5, YR + 4.4, -67.8], 4),
+    ring([75, YR + 1.0, -66], 1.6, 6),
+    line([100, YZ + 0.9, -70], [117, YZ + 0.9, -70], 5),
+    ring([112.6, YZ + 6.9, -59.4], 1.4, 5),
   ],
   checkpoint: [{ pos: [-3.5, 0, -64.5] }],
   stars: [
-    { pos: [-7.45, 5.9, -21.5] },                  // 1: Sprung vom Plattformzaun der Ringbahn (über den zwei Goldringen)
-    { pos: [7.9, 1.2, -51.2] },                    // 2: Ende der Hubzaun-Gasse ganz rechts
-    { pos: [17.6, YW + 9.0, -68.55] },             // 3: Zaun über der Kurbelrad-Plattform
+    { pos: [-7.45, 5.3, -21.5] },                  // 1: Sprung vom Plattformzaun der Ringbahn (über den zwei Goldringen)
+    { pos: [7.9, 0.5, -51.2] },                    // 2: Ende der Hubzaun-Gasse ganz rechts
+    { pos: [17.6, 52.0, -68.55] },             // 3: Zaun über der Kurbelrad-Plattform
   ],
-  stamp: { pos: [3.6, YT + 7.2, -69.75] },          // auf dem Zaun über der Krallenwand
+  stamp: { pos: [3.6, 44.3, -69.75] },          // auf dem Zaun über der Krallenwand
   goal: { pos: [121, YZ, -70], height: 9 },
   marks: {
     start: [0, 0, 3.5], p1Near: [0, 0, -2.5], i2: [0, 0, -16], hub1: [0, 0, -21], bridge: [0, 0, -27.8], i3: [0, 0, -34],
@@ -238,9 +237,10 @@ export const LEVEL = {
   },
   pathS: { B: S_B, C: S_C, end: S_END },
   // Takt der fahrenden Zäune (Sekunden Versatz zur Fahrt-Uhr, clockSync): je so gelegt, dass sie zur Stelle sind,
-  // wenn das Bildfenster dort ankommt (P1 wartet am Start, Hubzaun steht oben, wenn man ankommt …)
+  // wenn das Bildfenster dort ankommt (P1 wartet am Start; der Hubzaun senkt sich, wenn man ankommt, und fährt wieder
+  // hoch, kurz bevor die hintere Grenze ihn erreicht – wer trödelt, wird zwischen Grenze und Zaun eingeklemmt …)
   sync: {
-    p1: 0, hub1: -0.565, gasse1: 2.832, gasse2: 1.632, gasse3: 0.432, gasse4: 3.94, p2: -14.58,
+    p1: 0, hub1: 1.485, gasse1: 2.832, gasse2: 1.632, gasse3: 0.432, gasse4: 3.94, p2: -14.58,
     k2: 4, k4: 0, sz1: 2.8, sz2: 1.06, sz3: 4.28,
   },
 };
@@ -275,6 +275,8 @@ function buildSky(level, scene) {
   const w = level.scroll;
   pipeLid(level, { pos: [5.95, YT + 1.15 - 1.05, -65.5], r: 1.05, open: () => w.state === 'done' || w.s >= 116 });
   skyDeco(level);
+  bugSwarm(level, { dist: 32 });
+  fenceShadows(level);
 }
 
 /** Kulisse (statisch verschmolzen bzw. wenige animierte Objekte): Turm, Schlitze, Wimpel, Windräder, Ballons, Zeppelin, Vögel. */
@@ -311,7 +313,7 @@ function skyDeco(level) {
   // Zielinsel: Blumen, Bäumchen (deco), Wetterhäuschen
   parts.push(plate(1.4, 2.2, 1.4, 99, YZ, -77.5, 0xf6f4ef, { r: 0.1 }), plate(1.7, 0.3, 1.7, 99, YZ + 2.2, -77.5, 0xe8283a, { r: 0.08 }));
   parts.push(cyl(0.05, 0.05, 1.4, 99, YZ + 2.5, -77.5, 0xd8dce8, 6), plate(0.6, 0.06, 0.06, 99.3, YZ + 3.8, -77.5, 0xffc21a, { r: 0 }));
-  addStatic(level, merge(parts), { castShadow: true });
+  addStaticParts(level, parts, { castShadow: true });
   // ferne Kulisse ohne Schatten: Ballons, Zeppelin, Möwen
   balloon(level, { pos: [-26, 6, -30], colors: [0xff4a3d, 0xffd23d], r: 3, phase: 0.4, drift: 3, flag: 0x3d8bff });
   balloon(level, { pos: [24, 26, -90], colors: [0x3d8bff, 0xf6f4ef], r: 3.4, phase: 2.0, drift: 4 });
