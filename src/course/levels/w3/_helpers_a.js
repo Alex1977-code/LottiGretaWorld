@@ -644,71 +644,20 @@ export function snowFirs(level, list, o = {}) {
 
 /**
  * Gleiche Gegner-Modelle als Instanzen zeichnen (Budget: ein Schwarm aus neun Flatterkäfern kostet sonst ≈ 80
- * Zeichenaufrufe – je Modell 7 Meshes plus Schatten). Die Entitäten rechnen und animieren ihre Modelle wie bisher;
- * je Bild werden die Teil-Matrizen in je eine InstancedMesh pro Modellteil übernommen und die Einzelmodelle nicht
- * gezeichnet. Gruppen = gleiche Geometrien und Materialien (Registry-Caches). Weiter als far m von der Figur: nicht
- * gezeichnet. Nur Darstellung.
+ * Zeichenaufrufe – je Modell 7 Meshes plus Schatten). Jetzt im Motor (view/EntityInstancer.js, automatisch für gleiche
+ * Modellteile); hier bleiben die Level-Vorgaben: auch durchsichtige Teile instanzieren (`instancing = 'all'`), weiter
+ * als far m von der Figur nicht zeichnen (`farHide`), Arten in o.noShadow ohne Sonnenschatten. Nur Darstellung.
  */
 export function instanceEnemies(level, kinds, o = {}) {
   if (!level.view) return null;
-  const want = new Set(kinds), far = o.far ?? 46;
-  const groups = new Map();
+  const want = new Set(kinds), far = o.far ?? 46, noShadow = new Set(o.noShadow ?? []);
   for (const e of level.entities) {
     if (!want.has(e.kind) || !e.model?.root) continue;
-    const meshes = [];
-    let ok = true;
-    e.model.root.traverse((m) => { if (m.isSkinnedMesh || (m.isMesh && Array.isArray(m.material))) ok = false; else if (m.isMesh) meshes.push(m); });
-    if (!ok || !meshes.length) continue;
-    const key = `${e.kind}|${meshes.map((m) => `${m.geometry.uuid}:${m.material.uuid}:${m.isInstancedMesh ? m.count : 1}`).join(',')}`;
-    if (!groups.has(key)) groups.set(key, { ents: [], parts: meshes.map((m) => ({ geo: m.geometry, mat: m.material, cast: m.castShadow, recv: m.receiveShadow, n: m.isInstancedMesh ? m.count : 1 })) });
-    groups.get(key).ents.push({ e, meshes });
+    e.instancing = 'all';
+    e.farHide = far;
+    if (noShadow.has(e.kind)) e.model.root.traverse((m) => { if (m.isMesh) m.castShadow = false; });
   }
-  const live = [];
-  for (const G of groups.values()) {
-    if (G.ents.length < 2) continue;
-    G.inst = G.parts.map((pt) => {
-      const im = new THREE.InstancedMesh(pt.geo, pt.mat, G.ents.length * pt.n);
-      im.castShadow = pt.cast && !(o.noShadow ?? []).includes(G.ents[0].e.kind); im.receiveShadow = pt.recv;
-      im.frustumCulled = false;
-      im.count = 0;
-      im.visible = false;
-      im.name = `instanzen:gegner:${G.ents[0].e.kind}`;
-      addObject(level, im);
-      im.traverse((x) => { x.userData.owned = false; });   // Geometrie/Material gehören dem Modell-Cache
-      return im;
-    });
-    live.push(G);
-  }
-  const vis = (m, root) => { for (let q = m; q && q !== root; q = q.parent) if (!q.visible) return false; return true; };
-  const M = new THREE.Matrix4(), Mi = new THREE.Matrix4(), F = new THREE.Frustum(), S = new THREE.Sphere();
-  level.view.onFrame(() => {
-    const p = level.player, cam = level.view.camera;
-    cam.updateMatrixWorld();
-    F.setFromProjectionMatrix(M.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
-    for (const G of live) {
-      const fill = G.inst.map(() => 0);
-      for (const { e, meshes } of G.ents) {
-        const root = e.model?.root;
-        if (!root) continue;
-        S.center.set(e.pos.x, e.pos.y + 0.6, e.pos.z); S.radius = o.radius ?? 3.5;
-        const show = e.alive && !e.removed && root.parent && (!p || Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < far) && F.intersectsSphere(S);
-        if (show) {
-          root.visible = true;
-          root.updateMatrixWorld(true);
-          meshes.forEach((m, k) => {
-            if (!vis(m, root)) return;
-            const im = G.inst[k];
-            if (m.isInstancedMesh) {
-              for (let j = 0; j < Math.min(m.count, G.parts[k].n); j++) { m.getMatrixAt(j, Mi); im.setMatrixAt(fill[k]++, M.multiplyMatrices(m.matrixWorld, Mi)); }
-            } else im.setMatrixAt(fill[k]++, m.matrixWorld);
-          });
-        }
-        root.visible = false;
-      }
-      G.inst.forEach((im, k) => { im.count = fill[k]; im.visible = fill[k] > 0; im.instanceMatrix.needsUpdate = true; });
-    }
-  });
-  return live;
+  return level.view.instancer?.stats ?? null;
 }
 
 // ------------------------------------------------------------------ Pastell-Garten (3-4)

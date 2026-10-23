@@ -108,22 +108,12 @@ export function shadowless(level, segs) {
 /**
  * Fernsicht: Gegner-Modelle der Arten kinds, die weiter als dist m (waagerecht) von der Figur entfernt sind, werden
  * nicht gezeichnet (im Dunst ohnehin winzig; spart Dreiecke und Zeichenaufrufe auf langen Sichtachsen). Nur
- * Darstellung – die Gegner laufen weiter.
+ * Darstellung – die Gegner laufen weiter. Jetzt im Motor: setzt `farHide` der Entitäten (level/Level.js render).
  */
 export function farHide(level, kinds, dist = 50) {
   if (!level.view) return;
   const set = new Set(kinds);
-  const hidden = new Set();
-  level.view.onFrame(() => {
-    const p = level.player;
-    if (!p) return;
-    for (const e of level.entities) {
-      if (!set.has(e.kind) || !e.model?.root) continue;
-      const far = !e.removed && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > dist;
-      if (far) { if (e.model.root.visible) { e.model.root.visible = false; hidden.add(e); } }
-      else if (hidden.has(e)) { e.model.root.visible = true; hidden.delete(e); }
-    }
-  });
+  for (const e of level.entities) if (set.has(e.kind)) e.farHide = dist;
 }
 
 /**

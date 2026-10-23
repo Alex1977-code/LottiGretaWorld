@@ -4,7 +4,8 @@
 // Sehr große Teile (länger als BIG_Z oder breiter als BIG_X: lange Strecken wie `track`, Kulissen-Ringe, große Böden)
 // blähen die Quader der Abschnitte nicht mehr auf: mit vielen Dreiecken (≥ BIG_TRIS) werden sie dreiecksweise auf
 // eigene Zellen (Abschnitt × CELL_X-Streifen, Schwerpunkt des Dreiecks) verteilt – gezeichnet wird nur, was im Bild
-// liegt –, sparsame (Kulissen-Hügel aus wenigen Dreiecken) landen zusammen in einem eigenen Mesh je Material.
+// liegt –, sparsame (Kulissen-Hügel aus wenigen Dreiecken) landen zusammen in einem eigenen Mesh je Material (werden
+// es zusammen zu viele, ebenfalls auf Zellen verteilt).
 // Nicht-indizierte Geometrie mit position/normal/color wird erwartet; fehlende Farbe = Weiß, uv entfällt.
 //
 // Präzisierung (Leistung und Level-Haken 2): addStatic nach finalize (LEVEL.setup, Archetyp, Laufzeit) wird beim
@@ -16,12 +17,16 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const SECTION = 32;
 export const CELL_X = 64;
-const BIG_Z = SECTION * 2.5, BIG_X = 120, BIG_TRIS = 2000;
+const BIG_Z = SECTION * 2.5, BIG_X = 120, BIG_TRIS = 2000, WEIT_TRIS = 2000, MIN_CELL = 600;
 
 const cellX = (x) => Math.floor((x + CELL_X / 2) / CELL_X);
 const secZ = (z) => Math.floor(-z / SECTION);
 
-/** Nicht-indizierte Geometrie dreiecksweise nach Zellen aufteilen → Map(Schlüssel → Geometrie). */
+/**
+ * Nicht-indizierte Geometrie dreiecksweise nach Zellen aufteilen → Map(Schlüssel → Geometrie). Dreiecke aus Zellen mit
+ * weniger als MIN_CELL Dreiecken landen in einer groben Zelle (2 × 2 Zellen) – sonst kosteten viele fast leere Zellen je
+ * einen Zeichenaufruf.
+ */
 function splitByCells(g) {
   const P = g.attributes.position.array, N = g.attributes.normal.array, C = g.attributes.color.array;
   const tris = P.length / 9;
@@ -33,6 +38,14 @@ function splitByCells(g) {
     let l = lists.get(k);
     if (!l) { l = []; lists.set(k, l); }
     l.push(t);
+  }
+  for (const [k, l] of [...lists]) {
+    if (l.length >= MIN_CELL) continue;
+    const [zs, xc] = k.split('|').map(Number);
+    const g4 = `g${Math.floor(zs / 2)}|${Math.floor(xc / 2)}`;
+    lists.delete(k);
+    if (!lists.has(g4)) lists.set(g4, []);
+    lists.get(g4).push(...l);
   }
   const out = new Map();
   for (const [k, l] of lists) {
@@ -99,6 +112,21 @@ export class StaticBatcher {
   }
 
   build() {
+    // viele sparsame Großteile zusammen (z. B. Gelände-Streifen, Schneezäune entlang einer langen Strecke): dann doch
+    // auf Zellen verteilen, sonst wäre das gemeinsame Mesh groß und überall zu sehen
+    for (const [key, b] of [...this.buckets]) {
+      if (!key.startsWith('weit|')) continue;
+      let n = 0;
+      for (const g of b.parts) n += g.attributes.position.count;
+      if (n < WEIT_TRIS * 3) continue;
+      this.buckets.delete(key);
+      const tail = key.slice(5);
+      const g = mergeGeometries(b.parts, false);
+      for (const q of b.parts) q.dispose();
+      if (!g) continue;
+      for (const [cell, q] of splitByCells(g)) this.put(`groß|${cell}|${tail}`, b.mat, b.cast, b.recv, q);
+      g.dispose();
+    }
     for (const [key, b] of this.buckets) {
       const host = this.byKey.get(key);
       // schon gebaut (spätes addStatic): an das vorhandene Mesh derselben Zelle anhängen

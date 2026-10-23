@@ -21,7 +21,6 @@
 import * as THREE from 'three';
 import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
 import { visDt } from '../../entities/gimmick.js';
-import { getModel } from '../../models/index.js';
 import { levelSetup, cyl, sphere, cone, block, flatIslands } from '../w2/_helpers_c.js';
 import { SECTION } from '../../view/StaticBatcher.js';
 
@@ -193,146 +192,23 @@ export function clockSync(level, sync) {
 
 /**
  * Das Registry-Modell eines Käfers besteht aus sieben Meshes (Panzer, Augen, Glanzpunkte, Fühler, Beine, zwei Flügel) –
- * je Käfer sieben Zeichenaufrufe plus zwei im Schattenpass. Bei 7 (3-2) bzw. 28 (3-6) Käfern sprengt das das Budget.
- * Hier wird das Modell je Art/Farbe einmal in Ruhehaltung zu einem Körper-Mesh verschmolzen und als InstancedMesh
- * gezeichnet (Flügel als zweite InstancedMesh mit Flügelschlag); die Entitäten behalten Verhalten, Kollision und
- * Blob-Schatten, ihre eigenen Modelle werden geleert. Käfer weiter als `dist` m von der Figur fallen weg.
- * Nur Darstellung (Wippen, Flügelschlag, platt gedrückt), kein Sonnenschatten.
- * Detailstufen: Das Registry-Modell hat ≈ 4500 Dreiecke; nur Käfer bis `near` m um die Figur nutzen es, weiter
- * entfernte eine sparsame Nachbildung (bugLowGeo, ≈ 650 Dreiecke: Panzer mit Punkten, Kopf, Augen, Fühler, Beine).
+ * je Käfer sieben Zeichenaufrufe plus zwei im Schattenpass. Jetzt im Motor: gleiche Käfer zeichnen als Instanzen
+ * (view/EntityInstancer.js, auch die Flügel), ferne als sparsame Nachbildung (view/lod.js, ≈ 650 statt ≈ 4500
+ * Dreiecke ab 22 m Kameraabstand). Hier bleiben die Level-Vorgaben: Käfer weiter als `dist` m von der Figur fallen weg
+ * (`farHide`), kein Sonnenschatten (Blob bleibt). Nur Darstellung.
  */
-function bugLowGeo(kind, color) {
-  const COLS = { blue: 0x2f9bff, red: 0xff3a3a, green: 0x3ccf4a, yellow: 0xffcf22, pink: 0xff6fc0 };
-  const shell = COLS[color] ?? COLS.blue, dark = 0x1f2a4a;
-  const p = [];
-  const cx = -0.03, cy = 0.17, rx = 0.3, ry = 0.3, rz = 0.27;
-  const sh = new THREE.SphereGeometry(1, 12, 6, 0, TAU, 0, Math.PI * 0.56).toNonIndexed();
-  sh.scale(rx, ry, rz); sh.translate(cx, cy, 0);
-  p.push(colorize(sh, fillc(L(shell))));
-  p.push(sphere(1, 0, 0.16, 0, dark, { sx: 0.28, sy: 0.12, sz: 0.25, ws: 8, hs: 4 }));
-  // Punkte auf dem Panzer
-  for (const [az, el, r] of [[2.3, 0.75, 0.075], [-2.3, 0.75, 0.075], [1.55, 0.35, 0.065], [-1.55, 0.35, 0.065], [Math.PI, 0.25, 0.06], [0.9, 0.55, 0.055], [-0.9, 0.55, 0.055]]) {
-    const dx = Math.cos(el) * Math.cos(az), dy = Math.sin(el), dz = Math.cos(el) * Math.sin(az);
-    p.push(sphere(r * 0.9, cx + dx * rx * 0.99, cy + dy * ry * 0.99, dz * rz * 0.99, 0xffffff, { ws: 6, hs: 3, sy: 0.3 }));
-  }
-  p.push(sphere(0.16, 0.25, 0.22, 0, dark, { ws: 8, hs: 6 }));
-  for (const s of [1, -1]) {
-    p.push(sphere(0.075, 0.355, 0.255, s * 0.075, 0xffffff, { ws: 6, hs: 4, sy: 1.2 }), sphere(0.042, 0.415, 0.265, s * 0.088, 0x2a1a4a, { ws: 5, hs: 3 }));
-    const ant = cyl(0.014, 0.014, 0.24, 0, 0, 0, dark, 4, { center: true });
-    ant.rotateZ(-0.45); ant.rotateX(s * 0.35); ant.translate(0.35, 0.43, s * 0.085);
-    p.push(ant, sphere(0.04, 0.4, 0.54, s * 0.13, shell, { ws: 5, hs: 3 }));
-    for (let i = 0; i < 3; i++) {
-      const leg = plate(0.05, 0.14, 0.05, 0, -0.07, 0, dark, { r: 0 });
-      leg.rotateX(s * (kind === 'flatterkaefer' ? 0.6 : 0.35));
-      leg.translate(0.13 - i * 0.13, 0.1, s * 0.19);
-      p.push(leg);
-    }
-  }
-  return merge(p);
-}
-
 export function bugSwarm(level, o = {}) {
   if (!level.view) return null;
   const kinds = o.kinds ?? ['flatterkaefer', 'krabbelkaefer'];
-  const dist = o.dist ?? 40, near = o.near ?? 9;
-  const sets = new Map();
-  const _m = new THREE.Matrix4(), _r = new THREE.Matrix4(), _w = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _e = new THREE.Euler();
-  /** Modell in Ruhehaltung → Geometrie im Modellraum (ohne transparente Flügel). */
-  const bake = (kind, color) => {
-    const m = getModel(kind, { color });
-    m.update?.(0, { anim: kind === 'flatterkaefer' ? 'fly' : 'idle' });
-    const root = m.root;
-    root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); root.scale.set(1, 1, 1);
-    root.updateMatrixWorld(true);
-    const parts = [];
-    let wingGeo = null, wingMat = null;
-    root.traverse((ob) => {
-      if (!ob.isMesh) return;
-      const mat = Array.isArray(ob.material) ? ob.material[0] : ob.material;
-      if (mat?.transparent) { if (!wingGeo) { wingGeo = ob.geometry; wingMat = mat; } return; }
-      const list = ob.isInstancedMesh ? Array.from({ length: ob.count }, (_, i) => { ob.getMatrixAt(i, _r); return _m.clone().multiplyMatrices(ob.matrixWorld, _r); }) : [ob.matrixWorld.clone()];
-      for (const mw of list) {
-        let g = ob.geometry.index ? ob.geometry.toNonIndexed() : ob.geometry.clone();
-        g.applyMatrix4(mw);
-        for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'color') g.deleteAttribute(k);
-        if (!g.attributes.normal) g.computeVertexNormals();
-        if (!g.attributes.color) {
-          const c = mat?.color ?? new THREE.Color(1, 1, 1);
-          const arr = new Float32Array(g.attributes.position.count * 3);
-          for (let i = 0; i < arr.length; i += 3) { arr[i] = c.r; arr[i + 1] = c.g; arr[i + 2] = c.b; }
-          g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
-        }
-        parts.push(g);
-      }
-    });
-    m.dispose?.();
-    return { body: merge(parts), wingGeo, wingMat };
-  };
-  const bugs = [];
+  const dist = o.dist ?? 40;
+  const st = { total: 0 };
   for (const e of level.entities) {
     if (!kinds.includes(e.kind) || !e.model) continue;
-    const color = e.spec.color ?? (e.kind === 'flatterkaefer' ? 'pink' : 'blue');
-    const key = `${e.kind}:${color}`;
-    let set = sets.get(key);
-    if (!set) { set = { kind: e.kind, color, list: [] }; sets.set(key, set); }
-    set.list.push(e);
-    // eigenes Modell leeren (Wurzel bleibt als Lageträger)
-    for (const ch of [...e.model.root.children]) e.model.root.remove(ch);
-    e.model.update = () => {};
-    bugs.push(e);
+    e.farHide = dist;
+    e.instancing = 'all';
+    e.model.root.traverse((m) => { if (m.isMesh) m.castShadow = false; });
+    st.total++;
   }
-  let wingIM = null, wingN = 0;
-  const flyers = bugs.filter((e) => e.kind === 'flatterkaefer');
-  for (const set of sets.values()) {
-    const b = bake(set.kind, set.color);
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45 });
-    set.im = new THREE.InstancedMesh(b.body, mat, set.list.length);
-    set.lo = new THREE.InstancedMesh(bugLowGeo(set.kind, set.color), mat, set.list.length);
-    for (const im of [set.im, set.lo]) { im.castShadow = false; im.frustumCulled = false; addObject(level, im); }
-    if (!wingIM && b.wingGeo && flyers.length) {
-      wingIM = new THREE.InstancedMesh(b.wingGeo, b.wingMat, flyers.length * 2);
-      wingIM.castShadow = false; wingIM.frustumCulled = false;
-      addObject(level, wingIM);
-    }
-  }
-  const holder = {};
-  let t = 0;
-  const st = { drawn: 0, total: bugs.length };
-  level.view.onFrame((dt) => {
-    t += visDt(level, holder, dt);
-    const pl = level.player;
-    st.drawn = 0; wingN = 0;
-    for (const set of sets.values()) {
-      let n = 0, nl = 0;
-      for (const e of set.list) {
-        if (e.removed || !e.alive) continue;
-        const d = pl ? Math.hypot(e.pos.x - pl.pos.x, e.pos.z - pl.pos.z) : 0;
-        if (d > dist) continue;
-        const fly = e.kind === 'flatterkaefer';
-        const sq = e.state === 'squashed';
-        const bob = fly && !sq ? 0.12 + Math.sin(t * 4 + e.pos.x) * 0.05 : 0;
-        _p.set(e.pos.x, e.pos.y + bob, e.pos.z);
-        _e.set(0, e.yaw ?? 0, 0); _q.setFromEuler(_e);
-        if (sq) _s.set(1.3, 0.25, 1.3); else _s.set(1, 1, 1);
-        _m.compose(_p, _q, _s);
-        if (d <= near) set.im.setMatrixAt(n++, _m); else set.lo.setMatrixAt(nl++, _m);
-        st.drawn++;
-        if (fly && wingIM && !sq) {
-          for (const sgn of [1, -1]) {
-            const flap = Math.sin(t * 38 + e.pos.z) * 0.7 + 0.5;
-            _r.makeRotationFromEuler(_e.set(sgn * (0.35 + flap), 0, 0.5));
-            _r.setPosition(-0.06, 0.4 + 0.12, sgn * 0.1);
-            wingIM.setMatrixAt(wingN++, _w.multiplyMatrices(_m, _r));
-          }
-        }
-      }
-      set.im.count = n; set.im.visible = n > 0;
-      set.lo.count = nl; set.lo.visible = nl > 0;
-      set.im.instanceMatrix.needsUpdate = true;
-      set.lo.instanceMatrix.needsUpdate = true;
-    }
-    if (wingIM) { wingIM.count = wingN; wingIM.instanceMatrix.needsUpdate = true; }
-  });
   level._bugSwarm = st;
   return st;
 }
