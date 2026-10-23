@@ -8,10 +8,19 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const TILE = 32;
 
+// Optionen je Karte (map.batch, z. B. Welt 3): { tile, origin: [x, z], freeTile, freeOrigin } – Kachelgröße und
+// -ursprung, für Teile ohne Schattenwurf eigene (größere) Kacheln: Sie fehlen im Schattenpass, größere Kacheln
+// sparen dort Zeichenaufrufe. add(g, { tile: 'name' }) legt Teile in eine benannte Kachel (z. B. verstreute
+// Kleinteile im Meer eines Sektors), unabhängig von ihrer Lage.
+
 export class MapBatcher {
   /** @param {import('../view/CourseView.js').CourseView} view */
-  constructor(view) {
+  constructor(view, opts = {}) {
     this.view = view;
+    this.tile = opts.tile ?? TILE;
+    this.origin = opts.origin ?? [0, 0];
+    this.freeTile = opts.freeTile ?? this.tile;
+    this.freeOrigin = opts.freeOrigin ?? this.origin;
     this.buckets = new Map();
     this.meshes = [];
     this.stats = { parts: 0, meshes: 0, triangles: 0 };
@@ -26,10 +35,11 @@ export class MapBatcher {
     if (!g.attributes.color) g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 3).fill(1), 3));
     g.computeBoundingBox();
     const bb = g.boundingBox;
-    const tx = Math.floor((bb.min.x + bb.max.x) / 2 / TILE), tz = Math.floor((bb.min.z + bb.max.z) / 2 / TILE);
     const mat = opts.material ?? 'world';
     const cast = opts.castShadow !== false, recv = opts.receiveShadow !== false;
-    const key = `${mat}|${tx}|${tz}|${cast ? 1 : 0}|${recv ? 1 : 0}`;
+    const T = cast ? this.tile : this.freeTile, [ox, oz] = cast ? this.origin : this.freeOrigin;
+    const tx = Math.floor(((bb.min.x + bb.max.x) / 2 - ox) / T), tz = Math.floor(((bb.min.z + bb.max.z) / 2 - oz) / T);
+    const key = `${mat}|${opts.tile ?? `${tx}|${tz}`}|${cast ? 1 : 0}|${recv ? 1 : 0}`;
     let b = this.buckets.get(key);
     if (!b) { b = { mat, cast, recv, parts: [] }; this.buckets.set(key, b); }
     b.parts.push(g);

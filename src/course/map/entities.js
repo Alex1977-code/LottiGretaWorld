@@ -54,6 +54,9 @@ export class MapRoamer extends CourseEntity {
     this.setModel(getModel(useFallback ? spec.fallback : name, spec.modelOpts ?? {}));
     const sc = useFallback ? (spec.fallbackScale ?? 1) : (spec.scale ?? 1);
     if (sc !== 1 && this.model?.root) this.model.root.scale.setScalar(sc);
+    // spec.castShadow === false (Welt 3): vielteilige Modelle ohne Sonnenschatten (der Schatten-Blob bleibt) – spart
+    // Zeichenaufrufe im Schattenpass
+    if (spec.castShadow === false) this.model?.root?.traverse((o) => { if (o.isMesh) o.castShadow = false; });
     this.fallbackUsed = !!useFallback;
   }
 
@@ -100,7 +103,11 @@ export class MapRoamer extends CourseEntity {
     this.moveWithGravity(dt);
   }
 
-  modelState() { return { anim: this.anim, speed: this.anim === 'walk' ? this.speed : 0, hp: 3 }; }
+  modelState() {
+    // spec.anims (Welt 3): Modelle ohne Laufanimation (z. B. Zauberkröte) – { walk: 'idle', idle: 'cast' }
+    const anim = this.spec.anims?.[this.anim] ?? this.anim;
+    return { anim, speed: this.anim === 'walk' ? this.speed : 0, hp: 3 };
+  }
 
   onPlayer(player) {
     if (this.cool <= 0) { this.cool = 0.6; this.onTouch?.(this, player); }
