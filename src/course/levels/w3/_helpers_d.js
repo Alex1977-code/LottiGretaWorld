@@ -866,7 +866,9 @@ export function laubhaufen(level, list) {
     else if (h.coins > 0) runAction(level, { coins: h.coins }, { pos: [h.x, h.y + 0.8, h.z] });
   };
   for (const h of piles) level.entities.push(new Laubhaufen(level, h, scatter));
-  return { piles, scatter };
+  const api = { piles, scatter, get gone() { return piles.filter((h) => h.gone).length; } };
+  level.named.set('laubhaufen', api);
+  return api;
 }
 
 /** Kürbisse (statisch, Kollision Zylinder bei size ≥ 0.7): list = [[x, y, z, size, farbe?]]. */

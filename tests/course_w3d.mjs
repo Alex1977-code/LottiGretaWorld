@@ -139,8 +139,8 @@ const ROUTES = {
         legs: [{ to: [12, -197], within: 0.3, run: false }, { ride: 't6', off: [1.2, 0], until: 'stopped', max: 3000 }, { to: [21, -214.4], jump: 20, within: 0.4 }, { to: [20.6, -214.4], within: 0.3 }, { wait: 20 }], shot: 'stempel' },
     ],
     extra: [
-      { name: 'Extraleben: Laubhaufen unter der Eiche stampfen', from: [-7.6, 1, 0.2], heroes: ['lotti'],
-        legs: [{ to: [-7.6, -0.9], jump: 30, within: 0.3, run: false, land: false }, { stomp: true }, { wait: 40 }, { chaseKind: 'powerup' }], expectLives: 1 },
+      { name: 'Extraleben: Laubhaufen unter der Eiche stampfen', from: [-6.6, 1, 4.6], heroes: ['lotti'],
+        legs: [{ to: [-6.6, 3.8], within: 0.15, run: false }, { poundAt: [-6.6, 2.8] }, { expect: 'laubWeg' }, { wait: 40 }, { chaseKind: 'powerup' }], expectLives: 1 },
       { name: 'Zeit-Uhren: drei Uhren geben +30 s', from: [4, 2.2, -78], heroes: ['lotti'],
         legs: [{ to: [4.4, -79.4], within: 0.3, run: false }, { to: [7.4, -79.4], within: 0.3, run: false }, { expect: 'uhren3' }], expectTime: 520 },
       { name: 'Laubhaufen: Hineinrennen wirbelt das Laub auf, Münzen', from: [-1, 1, 5], heroes: ['lotti'],
@@ -203,6 +203,7 @@ function install() {
     kette1: () => (L.named.get('kette')?.shown ?? 0) >= 1,
     uhren3: () => (L.named.get('uhren')?.got ?? 0) === 3,
     t2steht: () => { const b = L.named.get('t2'); return !!b && Math.abs(b.pos.z + 30.6) < 0.2 && b.v < 0.01; },
+    laubWeg: () => (L.named.get('laubhaufen')?.gone ?? 0) > 0,
     t3amStart: () => { const b = L.named.get('t3'); return !!b && b.pos.z > -57 && b.stopped; },
   };
   const W = {
@@ -271,6 +272,18 @@ function install() {
           for (let k = 0; k < Lg.hop; k++) tick({ jump: true });
           for (let k = 0; k < 240 && p.mode !== 'ground'; k++) tick({});
           log.push(['hüpfer', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        if (Lg.poundAt) {
+          // abspringen, über das Ziel lenken, dort Stampfattacke
+          let k = 0, pounding = false;
+          for (; k < 300; k++) {
+            const dx = Lg.poundAt[0] - p.pos.x, dz = Lg.poundAt[1] - p.pos.z, d = Math.hypot(dx, dz);
+            if (k > 5 && p.mode === 'ground') break;
+            if (!pounding && k > 8 && d < 0.3 && p.vel.y < 3) pounding = true;
+            tick(pounding ? { crouch: true } : { ...this.stick(dx, dz, Math.min(1, d * 1.2)), jump: k < 26, run: false });
+          }
+          log.push(['stampfen auf', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, pounding]);
           continue;
         }
         if (Lg.stomp) {

@@ -43,7 +43,7 @@ function setup(level) {
   wasserfall(level, { x0: -8.4, x1: 10.8, z: -122.4, top: 11.4, bottom: -13, bulge: 1.1, speed: 0.6 });
   teich(level, [-22, -100, 26, -146], -13.2);
   laubhaufen(level, [
-    { pos: [-6.5, Y, 4], coins: 3 }, { pos: [6.4, Y, 6.5], coins: 3 }, { pos: [-7.6, Y, -1.4], content: { power: 'oneup' }, size: 1.2 },
+    { pos: [-6.5, Y, 4], coins: 3 }, { pos: [6.4, Y, 6.5], coins: 3 }, { pos: [-6.6, Y, 2.8], content: { power: 'oneup' }, size: 1.2 },
     { pos: [5.6, Y, -50.6], coins: 3 }, { pos: [-6.4, Y, -54], coins: 2 },
     { pos: [-13, Y, -110], coins: 3 }, { pos: [-5.4, Y, -103.6], coins: 2 },
     { pos: [16.4, Y, -140.6], coins: 3 },
