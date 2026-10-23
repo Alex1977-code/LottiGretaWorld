@@ -2838,3 +2838,20 @@ Additiv geändert: `view/themes.js` (6 Registrierzeilen, `??=`). Motor, Ansicht,
 | 4-4 | Pilztrampoline, orange Trampoline, Riesentrampolin-Fahrt, Warp-Box auf einer Wolke | `trampolin_orange`, `pilztrampolin`, `riesentrampolin` (`path`), `cloud`, `warpbox`, `deco_w4` (Bergwiese), Thema `bounce` |
 | 4-5 | Ruinenstadt, bewegliche Plattformen, drehende Stachelstangen auf Plattformen, schwankende Plattform (Stern 3) | `stachelstange` (`attach`), `mover`, `schwankplattform`, `deco_w4` (Ruinen), Thema `ruins` |
 | 4-Burg | Hang, Druckfelder lassen Brücke fallen, 3 Drehplattformen über Lava, roter Ring, Glasrohr durch die Lava, Lavafälle | `drehplattform` (`style: 'lava'`), `lava`, `lavafall`, `lavarohr`, `roter_ring`, `fallplatform`/`switchtiles`, `deco_w4` (Lavaburg), Thema `lavacastle` (`setMood('innen')`) |
+
+---
+
+## Musik-Richtlinie (Auftraggeber, verbindlich für alle Welten)
+
+Rückmeldung des Auftraggebers: Die Musik ab Welt 2 war „nicht melodisch“ – **alle** Kurs-Themen sollen wie Welt 1
+klingen: 90er-Eurodance (eigene Kompositionen im Geist von 2 Unlimited), **melodisch und eingängig**. Maßstab sind die
+Welt-1-Themen in `src/audio/themes.js` (`course_grass`, `course_cave`, `course_circus`, `course_river`, `course_boss`,
+`course_arena`, `course_diorama`, `course_map`, `world1`):
+- Liedform: Intro → Strophe → **Refrain mit klarer, singbarer Hook** (Lead-Synth/Piano führen die Melodie fast
+  durchgehend) → Überleitung; 16–32 Takte, Loop.
+- Harmonik: klassische Eurodance-Folgen in Dur/Moll (z. B. I–V–vi–IV, vi–IV–I–V, i–VI–III–VII, i–iv–VII–III);
+  exotische Skalen höchstens als Farbe, nicht als Grundlage.
+- Typische Spuren: Off-Beat-Stabs, Piano-Akkorde, Pad, hüpfender Oktav-Bass, Four-on-the-floor; Hoover sparsam als
+  Akzent. 128–150 BPM.
+- Welt-Charakter über Klangfarben/Percussion (z. B. Darbuka in der Wüste, Glöckchen im Schnee), nie auf Kosten der
+  Melodie.
