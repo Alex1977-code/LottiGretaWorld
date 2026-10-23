@@ -184,7 +184,7 @@ export function snowDrifts(level, list) {
     const n = Math.max(2, Math.round(len / 0.8));
     for (let i = 0; i < n; i++) {
       const u = (i / (n - 1) - 0.5) * len, r = 0.55 + Math.sin(i * 2.3 + x) * 0.15 + (i % 2) * 0.1;
-      const g = new THREE.SphereGeometry(r, 9, 5, 0, TAU, 0, Math.PI / 2).toNonIndexed();
+      const g = new THREE.SphereGeometry(r, 8, 3, 0, TAU, 0, Math.PI / 2).toNonIndexed();
       g.scale(1.25, 0.42, 1);
       g.rotateY(yaw);
       g.translate(x + Math.cos(yaw) * u, y - 0.02, z - Math.sin(yaw) * u);
@@ -199,8 +199,8 @@ export function frostBushes(level, list) {
   const P = [];
   for (const [x, y, z, s = 1] of list) {
     for (const [dx, dz, r] of [[0, 0, 0.5], [-0.42, 0.18, 0.36], [0.4, -0.15, 0.38], [0.08, 0.38, 0.32]]) {
-      P.push(blob(r * s, r * 0.8 * s, r * s, x + dx * s, y + r * 0.7 * s, z + dz * s, 0x2f6a4a, { ws: 8, hs: 6 }));
-      P.push(blob(r * 0.86 * s, r * 0.32 * s, r * 0.86 * s, x + dx * s, y + r * 1.25 * s, z + dz * s, 0xffffff, { ws: 8, hs: 4 }));
+      P.push(blob(r * s, r * 0.8 * s, r * s, x + dx * s, y + r * 0.7 * s, z + dz * s, 0x2f6a4a, { ws: 7, hs: 5 }));
+      P.push(blob(r * 0.86 * s, r * 0.32 * s, r * 0.86 * s, x + dx * s, y + r * 1.25 * s, z + dz * s, 0xffffff, { ws: 7, hs: 3 }));
     }
     for (let i = 0; i < 5; i++) { const a = i * 1.3 + x; P.push(blob(0.06 * s, 0.06 * s, 0.06 * s, x + Math.cos(a) * 0.5 * s, y + (0.35 + (i % 2) * 0.2) * s, z + Math.sin(a) * 0.5 * s, 0xe0283a, { ws: 5, hs: 3 })); }
     level.world.add({ type: 'cyl', x, z, r: 0.55 * s, y0: y, y1: y + 0.8 * s, tag: 'frostbusch' });
@@ -299,6 +299,48 @@ export function snowTree(level, x, y, z, o = {}) {
     }
     addStatic(level, merge(G), { material: 'glow', castShadow: false });
   }
+}
+
+/**
+ * Gefrorener Wasserfall an einer Felswand (Vorderseite +Z): Eissäulen in Blau-Weiß, Eiszapfen-Saum oben, gefrorenes
+ * Becken unten (nur Optik). x Mitte, z Wandfläche, y0 Fuß, y1 Oberkante, w Breite.
+ */
+export function iceFall(level, x, z, y0, y1, w = 3) {
+  const P = [];
+  const n = Math.max(3, Math.round(w / 0.45));
+  const c0 = L(0x7ac8f0), c1 = L(0xe8f8ff);
+  for (let i = 0; i < n; i++) {
+    const u = (i / (n - 1) - 0.5) * w, h = (y1 - y0) * (0.82 + ((i * 7) % 5) * 0.045), r = 0.22 + ((i * 3) % 4) * 0.05;
+    const g = new THREE.CylinderGeometry(r * 0.8, r * 1.15, h, 6, 4, false).toNonIndexed();
+    const pos = g.attributes.position;
+    for (let k = 0; k < pos.count; k++) { const yy = pos.getY(k); const wob = Math.sin(yy * 2.2 + i) * 0.06; pos.setX(k, pos.getX(k) + wob); }
+    g.computeVertexNormals();
+    g.translate(x + u, y1 - h / 2, z + r * 0.9);
+    P.push(colorize(g, (p, nn, out) => mixc(c0, c1, smooth(-0.4, 0.9, nn.z * 0.6 + nn.y * 0.4 + Math.sin(p.y * 3 + i) * 0.15), out)));
+  }
+  const pool = new THREE.CylinderGeometry(w * 0.62, w * 0.7, 0.16, 12).toNonIndexed();
+  pool.scale(1, 1, 0.6);
+  pool.translate(x, y0 + 0.08, z + w * 0.42);
+  P.push(colorize(pool, (p, nn, out) => mixc(c0, c1, smooth(-0.2, 1, nn.y), out)));
+  addStatic(level, merge(P), { castShadow: false });
+}
+
+/** Schneebänder an einer hohen Felswand (Vorderseite +Z): flache verschneite Simse mit Eiszapfen (nur Optik). */
+export function wallLedges(level, list) {
+  const P = [];
+  for (const [x, y, z, w] of list) {
+    P.push(box(w, 0.28, 0.7, x, y, z + 0.3, 0x8e9cb8, { r: 0.1, seg: 1, topColor: 0xffffff }));
+    P.push(blob(w * 0.52, 0.12, 0.42, x, y + 0.15, z + 0.3, 0xffffff, { ws: 8, hs: 3 }));
+    const k = Math.max(2, Math.round(w * 1.6));
+    for (let i = 0; i < k; i++) P.push(spike(0.06, 0.3 + ((i * 5) % 3) * 0.15, x - w / 2 + (i + 0.5) * w / k, y - 0.14, z + 0.62, 0x9fe4ff));
+  }
+  addStatic(level, merge(P), { castShadow: false });
+}
+
+/** Sonnenschatten der Modelle bestimmter Entitäten ausschalten (Budget; der Blob-Schatten bleibt). */
+export function noModelShadow(level, kinds) {
+  const want = new Set(kinds);
+  for (const e of level.entities) if (want.has(e.kind)) e.model?.root.traverse((m) => { if (m.isMesh) m.castShadow = false; });
 }
 
 /** Kristalle (leuchtend) in einer Höhle: list [[x, y, z, size, color]]. */
@@ -803,6 +845,29 @@ export function flowerArch(level, x, y, z, o = {}) {
     const [qx, qy, qz] = pt(s * w / 2, 0.4 + k * 0.5);
     P.push(sphere(0.12, qx + s * 0.08 * ux, qy, qz + s * 0.08 * uz, cols[(k + (s > 0 ? 1 : 3)) % cols.length], { ws: 5, hs: 3 }));
     P.push(sphere(0.15, qx - 0.1 * uz, qy + 0.2, qz + 0.1 * ux, 0x5cc06a, { ws: 5, hs: 3 }));
+  }
+  addStatic(level, merge(P));
+}
+
+/**
+ * Weißes Treppengeländer mit rosa Kappen und Blumentöpfen entlang einer Treppe (nur Optik): x, z0/y0 (Fuß unten),
+ * z1/y1 (oben), n Pfosten, steps (Stufenzahl) und rise (Stufenhöhe) für die Pfostenfüße.
+ */
+export function balustrade(level, x, z0, z1, y0, steps, rise, o = {}) {
+  const P = [];
+  const run = (z1 - z0) / steps;
+  for (let i = 0; i <= steps; i++) {
+    const z = z0 + run * Math.min(i + 0.5, steps), y = y0 + rise * Math.min(i + 1, steps);
+    P.push(cyl(0.07, 0.09, 0.95, x, y, z, 0xffffff, 8), sphere(0.11, x, y + 1.02, z, o.cap ?? 0xff9ccc, { ws: 8, hs: 5 }));
+    if (i < steps) {
+      const zn = z0 + run * Math.min(i + 1.5, steps), yn = y0 + rise * Math.min(i + 2, steps);
+      P.push(rod([x, y + 0.92, z], [x, yn + 0.92, zn], 0.045, 0.045, 0xffffff, 6));
+      if (i % 2 === 0) {
+        P.push(cyl(0.2, 0.15, 0.3, x - Math.sign(x) * 0.45, y, z, 0xe89a6a, 8));
+        P.push(sphere(0.2, x - Math.sign(x) * 0.45, y + 0.42, z, 0x5cc06a, { ws: 7, hs: 5 }));
+        for (let k = 0; k < 3; k++) P.push(sphere(0.07, x - Math.sign(x) * 0.45 + Math.cos(k * 2.1) * 0.13, y + 0.55, z + Math.sin(k * 2.1) * 0.13, [0xff7ab0, 0xffffff, 0xffe27a][(i + k) % 3], { ws: 5, hs: 3 }));
+      }
+    }
   }
   addStatic(level, merge(P));
 }

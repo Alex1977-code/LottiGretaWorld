@@ -22,7 +22,7 @@
 
 import {
   isl, snow, rink, steg, line, ring, arc, column, starHere, levelSetup, farHide, sled, footprints, sledTrack,
-  icicleFringe, bench, birdhouse, snowAngel, snowTree, crystals, penguins, seals, smoke, farFirs, snowFirs, snowDrifts, frostBushes, instanceEnemies, cullStatic,
+  icicleFringe, bench, birdhouse, snowAngel, snowTree, crystals, penguins, seals, smoke, farFirs, snowFirs, snowDrifts, frostBushes, iceFall, wallLedges, instanceEnemies, cullStatic,
 } from './_helpers_a.js';
 
 const Y = 1;
@@ -34,7 +34,8 @@ const TREE = {
   // Ast-Stufen um den Stamm (dx, dz, Oberseite): je ≈ 3,2 m auseinander, 1,6 m höher
   steps: [[3.0, 1.1, Y + 1.6], [2.45, -2.06, Y + 3.1], [-0.56, -3.15, Y + 4.6], [-3.29, -1.2, Y + 6.1]],
 };
-const NICHE = { x0: -12.4, x1: -9, z0: -182.8, z1: -186.8, y: 8, h: 3.4, top: 14 };
+// Nische in der hohen Felswand hinter dem Zielplateau (Wandfläche z = −200, Öffnung nach +Z zur Kamera)
+const NICHE = { x0: -4, x1: 0, z: -200, d: 3, y: Y + 6.8, h: 3, top: Y + 12 };
 const HOLE = { x0: 12, x1: 15.4, z0: -75.6, z1: -79.4, y: 4 };
 
 function scene(level) {
@@ -65,12 +66,29 @@ function scene(level) {
   ]);
   footprints(level, [[-14.5, -101], [-17, -104], [-18.6, -108], [-17.4, -113]], Y, { kind: 'pfote', size: 0.7, step: 0.4 });
   // ---------------- Eisbahn: Robbenkinder am Rand
-  seals(level, [{ pos: [11.4, Y, -120], yaw: Math.PI + 0.3, phase: 0.2 }, { pos: [-11.6, Y, -137], yaw: -0.5, phase: 2.1 }]);
+  seals(level, [{ pos: [8.4, Y, -138.4], yaw: Math.PI + 0.3, phase: 0.2 }, { pos: [-8.4, Y, -116], yaw: -0.5, phase: 2.1 }]);
+  penguins(level, [
+    { pos: [-8.6, Y, -120], color: 0xff7ab0, mode: 'rutschen', path: [[-8.6, -119.6], [-3.4, -125.4]], phase: 1.4 },
+    { pos: [-9.2, Y, -136.6], yaw: 0.5, color: 0x4ad06a, phase: 0.3 },
+    { pos: [-8.4, Y, -137.4], yaw: 0.9, color: 0xffc23a, scale: 0.8, phase: 1.9 },
+  ]);
+  // kleiner Abgrund: Eiszapfen an beiden Kanten (die Spalte liest sich als Spalte)
+  icicleFringe(level, -12, -62.02, 12, -62.02, Y - 0.35, { len: 0.7, density: 1.6 });
+  icicleFringe(level, -12, -66.48, 12, -66.48, Y - 0.35, { len: 0.8, density: 1.6 });
   // ---------------- Zielplateau: Schneebaum, Nische
   snowTree(level, TREE.x, Y, TREE.z, { top: TREE.top, r: TREE.r, lights: true, steps: TREE.steps.map(([dx, dz, y]) => [dx, dz, y, 0.95]) });
-  icicleFringe(level, NICHE.x1 + 0.02, NICHE.z0, NICHE.x1 + 0.02, NICHE.z1, NICHE.y + NICHE.h, { len: 0.5, density: 3 });
-  crystals(level, [[-11.5, NICHE.y, -183.6, 1, 0x9ff0ff]]);
-  icicleFringe(level, -16, -199.9, 16, -199.9, Y + 9, { len: 0.9, density: 1.2 });
+  icicleFringe(level, NICHE.x0, NICHE.z + 0.02, NICHE.x1, NICHE.z + 0.02, NICHE.y + NICHE.h, { len: 0.5, density: 3 });
+  crystals(level, [[NICHE.x0 + 0.5, NICHE.y, NICHE.z - NICHE.d + 0.5, 1, 0x9ff0ff], [NICHE.x1 - 0.5, NICHE.y, NICHE.z - NICHE.d + 0.6, 0.8, 0xc8a8ff]]);
+  icicleFringe(level, -16, -199.9, NICHE.x0, -199.9, NICHE.top, { len: 0.9, density: 1.2 });
+  icicleFringe(level, NICHE.x1, -199.9, 16, -199.9, NICHE.top, { len: 0.9, density: 1.2 });
+  iceFall(level, 10.2, -200, Y, NICHE.top - 0.5, 3.6);
+  wallLedges(level, [[6.2, Y + 7.6, -200, 2.6], [-10.6, Y + 4.4, -200, 2.4], [-7.4, Y + 8.6, -200, 2]]);
+  footprints(level, [[-1.4, -175.4], [1.2, -180.6], [4.4, -184.6], [8.6, -184.2], [9.6, -184.6]], Y, { size: 0.9 });
+  bench(level, -7.2, Y, -181, Math.PI / 2 - 0.1);
+  penguins(level, [
+    { pos: [12.6, Y, -193.6], yaw: Math.PI - 0.3, color: 0x3a8aff, mode: 'winken', phase: 0.7 },
+    { pos: [-7.1, Y + 0.46, -181.5], yaw: 0, color: 0xff4a3a, scale: 0.8, phase: 2.0 },
+  ]);
   // ---------------- Baumhain
   seals(level, [{ pos: [6.2, Y + 0.02, -246.8], yaw: 2.6, phase: 0.8 }, { pos: [8.6, Y + 0.02, -244.6], yaw: -2.4, phase: 2.6 }]);
   penguins(level, [
@@ -87,7 +105,7 @@ function scene(level) {
   snowDrifts(level, [
     [-10.5, Y, -3, 3, 0.3], [10.6, Y, -16, 2.6, -0.5], [-10.4, Y, -36, 3.2, 1.2], [10.5, Y, -48, 2.8, 0.4], [-10.6, Y, -55, 2.4, -0.3],
     [4.8, Y, -56, 2, 0.8], [-10.4, Y, -74, 2.6, 0.2], [9, Y, -66.8, 2.4, 0], [5, Y, -96.6, 2.2, 0.5], [-9.6, Y, -110, 2.6, 1.4],
-    [-23.5, Y, -108, 3, 1.5], [12.6, Y, -186, 2.6, 1.4], [-6.6, Y, -175.6, 2.4, 0.2], [-4, Y, -198.4, 3, 0], [7, Y, -258.6, 3, 0],
+    [-23.5, Y, -108, 3, 1.5], [-6, Y, -79.4, 8, 0], [-6, Y + 0.05, -92.6, 8, 0], [-10.9, Y, -86, 11, Math.PI / 2], [-1.1, Y, -84, 6, Math.PI / 2], [12.6, Y, -186, 2.6, 1.4], [-6.6, Y, -175.6, 2.4, 0.2], [-4, Y, -198.4, 3, 0], [7, Y, -258.6, 3, 0],
     [-6.2, Y, -244, 2.6, 1.3],
   ]);
   frostBushes(level, [
@@ -99,6 +117,7 @@ function scene(level) {
     [11.2, Y, -11, 4.2], [-11.2, Y, -26, 4.6, 1], [11.3, Y, -40, 3.8, 2], [-11, Y, -46, 4.2, 3], [-11.4, Y, -17.5, 3.2, 4],
     [-11.2, Y, -68, 4.4, 1], [-11.3, Y, -95, 4, 2], [11, Y, -100, 4.6], [11.2, Y, -111, 3.8, 3],
     [-23.4, Y, -100.4, 3.6, 1], [-13.4, Y, -117, 3.2, 2], [-23.6, Y, -116, 4.2, 4],
+    [-14, Y + 6, -186, 4.2, 2], [-14.2, Y + 6, -195, 3.6, 4], [-12.6, Y + 3.2, -171.6, 3.4, 1],
     [-12.8, Y, -229.4, 4.6, 1], [-11.6, Y, -234.6, 3.6, 2], [-12.6, Y, -243.4, 5, 3], [-11.4, Y, -252, 4, 4], [-12.8, Y, -260.4, 4.8, 5],
     [-5.4, Y, -261, 3.6, 2], [5.6, Y, -260.6, 4.2, 1], [12.6, Y, -258, 4.6, 3], [12.8, Y, -236.4, 4.4, 2], [11.6, Y, -229.6, 3.6, 4], [8.8, Y, -232.6, 3, 5],
   ]);
@@ -142,7 +161,7 @@ export const LEVEL = {
     { ...CAM, from: -114, to: -140, pitch: 46, dist: 13.5 },
     { ...CAM, from: -140, to: -158, pitch: 50, dist: 12.5 },
     { ...CAM, from: -158, to: -174, pitch: 46 },
-    { ...CAM, from: -176, to: -200, pitch: 42, dist: 14, yaw: 10 },
+    { ...CAM, from: -176, to: -200, pitch: 40, dist: 14, yaw: 6 },
     { ...CAM, from: -224, to: -264, pitch: 42, dist: 13 },
   ],
   segments: [
@@ -155,7 +174,7 @@ export const LEVEL = {
     { type: 'iglu', pos: [-8.5, Y, 3.5], yaw: 0 },
     { type: 'deco_w3', items: [
       { kind: 'schneemann', pos: [7.8, Y, 3], yaw: -2 },
-      { kind: 'schneemann', pos: [9.4, Y, 2.0], yaw: -2.3, scale: 0.55 },
+      { kind: 'schneemann', pos: [9.4, Y, 2.0], yaw: -2.3, scale: 0.55, shadow: false },
       { kind: 'laterne', pos: [-3.7, Y, 0.6] }, { kind: 'laterne', pos: [3.7, Y, 0.6] },
       { kind: 'tanne', pos: [-11, Y, 8.6], size: 4.6 }, { kind: 'tanne', pos: [11.2, Y, 8.4], size: 3.8 },
       { kind: 'felsen', pos: [-10.6, Y, -1], size: [2, 3], n: 2, height: [0.6, 1.2] },
@@ -176,7 +195,7 @@ export const LEVEL = {
     { type: 'schneehaufen', id: 'haufen1', pos: [10.2, Y, -4.2], coins: 5 },
 
     // =============================================================== 2  Flatterfeld
-    snow(-12, 12, -65.5, -114, Y, 4),
+    snow(-12, 12, -66.5, -114, Y, 4),
     // Felswand rechts mit dem Wandloch (Höhle x 12 … 15,4, Boden y 4)
     isl(12, 17.5, -64, -94, HOLE.y, 8, { top: 'grass' }),
     isl(12, 17.5, -64, HOLE.z0, Y + 6.6, 3.6, { top: 'grass' }),
@@ -185,10 +204,10 @@ export const LEVEL = {
     isl(HOLE.x1, 17.5, HOLE.z0, HOLE.z1, Y + 5.6, 2.6, { top: 'none' }),
     isl(9.4, 11, -76.5, -78.5, Y + 1.3, 1.3, { top: 'grass' }),
     // Eisläufer-Teich (erhöht 0,3 m, Schneewulst)
-    { type: 'eisflaeche', pos: [-6, Y, -86], size: [9, 0.2, 12], edge: true },
+    { type: 'eisflaeche', pos: [-6, Y, -86], size: [9, 0.2, 12] },
     { type: 'sign', pos: [-9.6, Y, -78.6], text: 'Eisläufer-\nTeich', size: [2, 0.8] },
     { type: 'deco_w3', items: [
-      { kind: 'schneemann', pos: [-9.5, Y, -104], yaw: -1.2 },
+      { kind: 'schneemann', pos: [-9.5, Y, -104], yaw: -1.2, shadow: false },
       { kind: 'laternen', pos: [-3.4, Y, -96], from: [-3.4, Y, -96], to: [-3.4, Y, -110], every: 7 },
       { kind: 'felsen', pos: [11.2, Y, -66.5], size: [1.6, 2], n: 2, height: [0.6, 1.4] },
     ] },
@@ -223,18 +242,21 @@ export const LEVEL = {
     // Zielplateau
     snow(-9, 14, -174, -200, Y, 4),
     // Felswand links mit Nische (x −12 … −9, Boden y 8), Kletterwand darunter
-    isl(-16, -9, -168, -204, NICHE.y, 11, { top: 'grass' }),
-    isl(-16, -9, -168, NICHE.z0, NICHE.top, NICHE.top - NICHE.y, { top: 'grass' }),
-    isl(-16, -9, NICHE.z1, -204, NICHE.top, NICHE.top - NICHE.y, { top: 'grass' }),
-    isl(-16, -9, NICHE.z0, NICHE.z1, NICHE.top, NICHE.top - NICHE.y - NICHE.h, { top: 'grass' }),
-    isl(-16, NICHE.x0, NICHE.z0, NICHE.z1, NICHE.y + NICHE.h, NICHE.h, { top: 'none' }),
-    { type: 'wall', pos: [-8.8, Y, -184.8], size: [0.4, NICHE.y - Y, 3.6], climbable: true },
+    // Felsstufen links (Kulisse mit Tannen)
+    isl(-16, -9, -168, -200, Y + 3.2, 7, { top: 'grass' }),
+    isl(-16, -12, -176, -200, Y + 6, 3, { top: 'grass' }),
+    // Nische in der hohen Felswand hinter dem Plateau, Kletterwand darunter (Krallen-Anzug)
+    { type: 'wall', pos: [(NICHE.x0 + NICHE.x1) / 2, Y, NICHE.z + 0.2], size: [NICHE.x1 - NICHE.x0, NICHE.y - Y, 0.4], climbable: true },
     // hohe Felswand hinter dem Plateau (verdeckt den Baumhain)
-    isl(-16, 16, -200, -206, Y + 9, 13, { top: 'grass' }),
+    isl(-16, 16, NICHE.z, -206, NICHE.y, NICHE.y + 3, { top: 'grass' }),
+    isl(-16, NICHE.x0, NICHE.z, -206, NICHE.top, NICHE.top - NICHE.y, { top: 'grass' }),
+    isl(NICHE.x1, 16, NICHE.z, -206, NICHE.top, NICHE.top - NICHE.y, { top: 'grass' }),
+    isl(NICHE.x0, NICHE.x1, NICHE.z, -206, NICHE.top, NICHE.top - NICHE.y - NICHE.h, { top: 'grass' }),
+    isl(NICHE.x0, NICHE.x1, NICHE.z - NICHE.d, -206, NICHE.y + NICHE.h, NICHE.h, { top: 'none' }),
     { type: 'pipe', id: 'p_ziel', pos: [3, Y, -196], height: 1.4, target: 'p_hain' },
     { type: 'sign', pos: [0.2, Y, -194.2], text: 'Zum Baumhain', size: [2, 0.7] },
     { type: 'deco_w3', items: [
-      { kind: 'schneemann', pos: [12.4, Y, -177], yaw: -2.4 },
+      { kind: 'schneemann', pos: [12.4, Y, -177], yaw: -2.4, shadow: false },
       { kind: 'tanne', pos: [12.6, Y, -197], size: 4 }, { kind: 'tanne', pos: [-7.6, Y, -198], size: 3.4 },
       { kind: 'laterne', pos: [5.6, Y, -197.2] },
     ] },
@@ -245,7 +267,7 @@ export const LEVEL = {
     { type: 'iglu', pos: [9.3, Y, -250.5], yaw: Math.PI },
     { type: 'deco_w3', items: [
       { kind: 'schneemann', pos: [-3.6, Y, -258], yaw: -1.4 },
-      { kind: 'schneemann', pos: [-2.4, Y, -258.8], yaw: -1.7, scale: 0.5 },
+      { kind: 'schneemann', pos: [-2.4, Y, -258.8], yaw: -1.7, scale: 0.5, shadow: false },
       { kind: 'laternen', pos: [-2.6, Y, -232], from: [-2.6, Y, -232], to: [-2.6, Y, -252], every: 6.5 },
       { kind: 'laternen', pos: [2.6, Y, -232], from: [2.6, Y, -232], to: [2.6, Y, -252], every: 6.5 },
     ] },
@@ -266,8 +288,8 @@ export const LEVEL = {
     // 2: Gleitblatt-Nachschub am Checkpoint
     { kind: 'question', pos: [-3.4, Y + 2.4, -99], content: 'gleitblatt' },
     // 3: Krallen-Anzug am Zielplateau
-    { kind: 'question', pos: [-5, Y + 2.4, -178.6], content: 'krallenAnzug' },
-    { kind: 'brick', pos: [-6, Y + 2.4, -178.6], content: 'coins:2' },
+    { kind: 'question', pos: [-6.4, Y + 2.4, -195.6], content: 'krallenAnzug' },
+    { kind: 'brick', pos: [-7.4, Y + 2.4, -195.6], content: 'coins:2' },
   ],
   enemies: [
     // Schneesäulen (6)
@@ -302,7 +324,7 @@ export const LEVEL = {
     { kind: 'schneeball', id: 'ball_riegel', pos: [-7.4, Y, -9.4], size: 1, content: 'coins:5' },
     { kind: 'schneeball', id: 'ball_kegel', pos: [6.8, Y, -18.4], size: 1.1, content: 'coins:3' },
     // ---------------- 2
-    ...arc([0, Y + 0.6, -59.6], [0, Y + 0.6, -68], 5, 1.8),
+    ...arc([0, Y + 0.6, -59.6], [0, Y + 0.6, -69], 5, 1.9),
     line([12.6, HOLE.y + 0.6, -76.6], [12.6, HOLE.y + 0.6, -78.4], 2),
     ...column(10.2, -77.5, Y + 2, Y + 3.4, 2),
     ring([-6, Y + 1.0, -86], 2.6, 4),
@@ -320,7 +342,7 @@ export const LEVEL = {
     ...TREE.steps.map(([dx, dz, y]) => ({ kind: 'coin', pos: [TREE.x + dx, y + 0.7, TREE.z + dz] })),
     // Propeller-Helm und Hinweis-Münzen vor der Nische
     { kind: 'helm_propeller', pos: [1.2, Y, -177.6], respawn: 6 },
-    line([-7.6, NICHE.y + 0.8, -184.8], [-3.6, NICHE.y + 0.8, -184.8], 3),
+    line([3.6, NICHE.y + 1.6, -190], [0, NICHE.y + 1.2, -196.4], 3),
     { kind: 'schneeball', id: 'ball_plateau', pos: [-3, Y, -190.6], size: 1.2, content: 'coins:3' },
     // ---------------- 4
     line([0, Y + 0.6, -233], [0, Y + 0.6, -248], 5),
@@ -329,7 +351,7 @@ export const LEVEL = {
   stars: [
     [13.9, HOLE.y + 0.5, -77.5],                                            // 0: Wandloch hinter den Flatterkäfern
     { pos: [-18.5, Y + 1, -108], hidden: true, id: 'stern_hase' },          // 1: Hase (erscheint über ihm)
-    [-10.6, NICHE.y + 0.5, -184.8],                                          // 2: Wandnische vor der Zielröhre
+    [-2, NICHE.y + 0.5, NICHE.z - 1.6],                                      // 2: Wandnische vor der Zielröhre
   ],
   stamp: [-19.6, Y + 0.9, -132.6],
   goal: { pos: [0, Y, -254], height: 9 },
@@ -352,7 +374,7 @@ export const LEVEL = {
     rink2: [9, Y, -159],
     plateau: [3, Y, -176],
     tree: [TREE.x, TREE.top, TREE.z],
-    niche: [-10.6, NICHE.y, -184.8],
+    niche: [-2, NICHE.y, NICHE.z - 1.6],
     pipe: [3, Y + 1.4, -196],
     grove: [0, Y, -232],
     goal: [0, Y, -249],

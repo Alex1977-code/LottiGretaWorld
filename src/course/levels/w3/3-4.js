@@ -18,7 +18,7 @@
 import {
   lawn, line, ring, arc, starHere, levelSetup, farHide, pavilion, fountain, candyTrees, ballBushes, marzipanPigs,
   gardenBench, flowerArch, mosaic, blossomTrees, flowerBeds, gardenLamps, hedges, petals, instanceEnemies, cullStatic,
-  shadowless, isl,
+  shadowless, isl, noModelShadow, balustrade,
 } from './_helpers_a.js';
 
 const Y = 1;
@@ -56,6 +56,8 @@ function scene(level) {
   flowerBeds(level, [[-3.4, Y, -70.4, 3, 1.4, 8], [11.4, Y, -65.2, 3, 1, 7], [2.2, Y, -94.8, 3, 1.2, 8]]);
   blossomTrees(level, [[12.8, Y, -65, 3.2]]);
   // ---------------- Zieltreppe
+  balustrade(level, -3.8, -96, -105.6, Y, 6, 0.7);
+  balustrade(level, 3.8, -96, -105.6, Y, 6, 0.7, { cap: 0xb8a0ff });
   gardenLamps(level, [[-4.6, YT, -107], [4.6, YT, -107]]);
   candyTrees(level, [[-5, YT, -115, 2.8, 1], [5, YT, -115, 2.6, 0]]);
   ballBushes(level, [[-5.2, YT, -110.6, 0.55], [5.2, YT, -110.6, 0.55]]);
@@ -64,8 +66,9 @@ function scene(level) {
   // ferne Gartenschwebeinseln (ohne Sonnenschatten)
   shadowless(level, FAR);
   petals(level, { n: 60, size: [28, 12, 24] });
-  instanceEnemies(level, ['pilzling', 'schnappblume']);
-  farHide(level, ['bunny'], 50);
+  instanceEnemies(level, ['pilzling']);
+  noModelShadow(level, ['schnappblume', 'endlessblock']);
+  farHide(level, ['bunny', 'schnappblume', 'endlessblock'], 34);
 }
 
 // ferne Schwebeinseln mit Blütenbäumen
