@@ -29,7 +29,7 @@
 import {
   isl, rock, wallBox, line, ring, arc, column, levelSetup, cullStatic, antOver, antWallLane, antLoop, areaMoods, campfire,
   vultures, cacti, skulls, antFlags, stalactites, glowCrystals, antPantry, tumbleweed, lizard, beetle, fernAus, cullInstances,
-  spikeField,
+  spikeField, chunkBackdrop,
 } from './_helpers_a.js';
 
 const Y = 1;
@@ -126,6 +126,7 @@ function setup(level) {
     'instanzen:riesenameise': { far: 44, radius: 3, shadowNear: 18 },
     coin: { far: 40, radius: 0.8, shadow: false },
   });
+  chunkBackdrop(level, { far: 260, chunk: 64 });
   cullStatic(level);
   fernAus(level, 140);
 }

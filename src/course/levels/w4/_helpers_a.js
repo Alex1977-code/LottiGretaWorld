@@ -810,6 +810,91 @@ export function fireflies(level, list, o = {}) {
   return P;
 }
 
+/**
+ * Kulisse des Themas (Himmel-Gruppe: Giftwald, Canyonwände …) ist je Art ein einziges, levelweites Mesh – bei langen
+ * Leveln mit Seitenräumen schnell ≈ 100 k Dreiecke, die immer gezeichnet werden (die Begrenzungskugel umfasst alles).
+ * Hier werden solche Meshes (mehr als minTris Dreiecke) nach Dreiecks-Schwerpunkt in chunk-m-Kacheln (x, z; mit
+ * strips: true nur in Querstreifen entlang z – weniger Zeichenaufrufe) zerlegt:
+ * Kacheln außerhalb der Sicht fallen über das Frustum-Culling weg, Kacheln weiter als far m von der Kamera (im Dunst
+ * ohnehin unsichtbar) werden ausgeblendet. Nur Darstellung; Material und Aussehen bleiben gleich.
+ */
+export function chunkBackdrop(level, o = {}) {
+  const v = level.view, sky = v?.sky;
+  if (!sky?.group) return 0;
+  const minTris = o.minTris ?? 6000, chunk = o.chunk ?? 48, far = o.far ?? 220;
+  const tiles = [];
+  for (const m of [...sky.group.children]) {
+    if (!m.isMesh || m.isInstancedMesh || m === sky.domeGroup) continue;
+    let g = m.geometry;
+    const tris = (g.index ? g.index.count : g.attributes.position.count) / 3;
+    if (tris < minTris) continue;
+    if (g.index) g = g.toNonIndexed();
+    m.updateMatrixWorld(true);
+    const names = Object.keys(g.attributes);
+    const P = g.attributes.position;
+    const cells = new Map();
+    for (let i = 0; i < P.count; i += 3) {
+      const cx = (P.getX(i) + P.getX(i + 1) + P.getX(i + 2)) / 3, cz = (P.getZ(i) + P.getZ(i + 1) + P.getZ(i + 2)) / 3;
+      const key = o.strips ? `${Math.floor(cz / chunk)}` : `${Math.floor(cx / chunk)}|${Math.floor(cz / chunk)}`;
+      let c = cells.get(key);
+      if (!c) { c = []; cells.set(key, c); }
+      c.push(i);
+    }
+    for (const list of cells.values()) {
+      const ng = new THREE.BufferGeometry();
+      for (const nm of names) {
+        const a = g.attributes[nm], sz = a.itemSize;
+        const arr = new Float32Array(list.length * 3 * sz);
+        let k = 0;
+        for (const i of list) for (let j = 0; j < 3; j++) for (let c = 0; c < sz; c++) arr[k++] = a.array[(i + j) * sz + c];
+        ng.setAttribute(nm, new THREE.BufferAttribute(arr, sz));
+      }
+      ng.computeBoundingSphere(); ng.computeBoundingBox();
+      const mesh = new THREE.Mesh(sky.track(ng), m.material);
+      mesh.matrixAutoUpdate = false;
+      mesh.matrix.copy(m.matrix);
+      mesh.renderOrder = m.renderOrder;
+      mesh.castShadow = m.castShadow; mesh.receiveShadow = m.receiveShadow;
+      mesh.name = 'kulisse:kachel';
+      sky.group.add(mesh);
+      tiles.push(mesh);
+    }
+    sky.group.remove(m);
+  }
+  if (!tiles.length) return 0;
+  // Sichtprüfung mit dem Quader (die Begrenzungskugel breiter Kacheln reicht weit hinter die Kamera)
+  for (const t of tiles) t.frustumCulled = false;
+  const c = new THREE.Vector3(), F = new THREE.Frustum(), M = new THREE.Matrix4();
+  v.onFrame(() => {
+    const cam = v.camera;
+    cam.updateMatrixWorld();
+    F.setFromProjectionMatrix(M.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    for (const t of tiles) {
+      t.geometry.boundingBox.clampPoint(cam.position, c);
+      t.visible = c.distanceTo(cam.position) < far && F.intersectsBox(t.geometry.boundingBox);
+    }
+  });
+  return tiles.length;
+}
+
+/**
+ * Klares Moorwasser statt Themenfarbe: Das Thema poison färbt Wasser lila wie das Gift – hier bekommen die Becken des
+ * Bausteins water (Oberfläche und Körper in den Themenfarben) ein klares Türkis, damit Schwimmwasser und tödliches
+ * Giftwasser nicht zu verwechseln sind. Nur Darstellung.
+ */
+export function tintWater(level, surface = 0x3ab8b0, deep = 0x1a6a78) {
+  const v = level.view;
+  if (!v) return 0;
+  const th = v.theme, ws = new THREE.Color(th.water), wd = new THREE.Color(th.waterDeep);
+  let n = 0;
+  v.three.traverse((m) => {
+    if (!m.isMesh || !m.material?.transparent || !m.material.color || m.material.map) return;
+    if (m.material.color.equals(ws)) { m.material.color.set(surface); n++; }
+    else if (m.material.color.equals(wd)) { m.material.color.set(deep); m.material.opacity = 0.38; n++; }
+  });
+  return n;
+}
+
 /** Statische Geometrie aus einer Build-Funktion (fn(b) füllt einen Build) in die Abschnitts-Meshes. */
 export function bakeBuild(level, fn, opts) {
   const b = new Build();
