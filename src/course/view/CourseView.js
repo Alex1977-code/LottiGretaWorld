@@ -14,6 +14,9 @@
 //   view.shadows.add({ pos, radius, alive })        Schatten-Blob
 //   view.effects.dust|sparks|debris|splash|ring|coinPop(...)
 //   view.addLantern(x, y, z)                        Laternenlicht (Thema cave)
+//   view.setMood(name, { time })                    Stimmung des Themas überblenden (theme.moods; null = Grundstimmung)
+//   view.setUnderwater(on)                          Unterwasser-Stimmung: true/false erzwingt, 'auto' erkennt selbst
+//                                                   (Thema mit `underwater`); view.underwater → bool (view/mood.js)
 
 import * as THREE from 'three';
 import Phaser from 'phaser';
@@ -27,6 +30,7 @@ import { InstancePool } from './InstancePool.js';
 import { BlobShadows } from './BlobShadows.js';
 import { CourseEffects } from './Effects.js';
 import { CameraRig } from './CameraRig.js';
+import { ViewMood } from './mood.js';
 
 const SHADOW_R = 22;
 const MAX_LANTERNS = 4;
@@ -67,6 +71,8 @@ export class CourseView {
     this.static = new StaticBatcher(this);
     this.shadows = new BlobShadows(this);
     this.effects = new CourseEffects(this);
+    // Stimmungen/Unterwasser (Bausteine Welt 3): nur bei Themen mit moods/underwater, sonst erst beim ersten Aufruf
+    this.mood = this.theme.underwater || this.theme.moods ? new ViewMood(this) : null;
 
     this.onResize = () => this.syncLayout(true);
     scene.scale.on(Phaser.Scale.Events.RESIZE, this.onResize);
@@ -134,6 +140,14 @@ export class CourseView {
     return p;
   }
 
+  /** Stimmung des Themas (theme.moods[name]; null = Grundstimmung) weich überblenden. */
+  setMood(name, opts) { return (this.mood ??= new ViewMood(this)).setMood(name, opts); }
+
+  /** Unterwasser-Stimmung: true/false erzwingt (Motor), 'auto' erkennt sie selbst (Kopf der Figur unter Wasser). */
+  setUnderwater(on = true) { return (this.mood ??= new ViewMood(this)).setUnderwater(on); }
+
+  get underwater() { return (this.mood?.water ?? 0) > 0.5; }
+
   /** Laternenlicht an (x, y, z) – im Thema cave leuchten die nächsten MAX_LANTERNS. */
   addLantern(x, y, z) { this.lanternSpots?.push(new THREE.Vector3(x, y, z)); }
 
@@ -165,11 +179,12 @@ export class CourseView {
     this.sun.position.set(x + this.sunDir.x * 50, y + this.sunDir.y * 50, z - 4 + this.sunDir.z * 50);
     if (this.playerLight && player) this.playerLight.position.set(player.pos.x, player.pos.y + 3.2, player.pos.z + 1.4);
     if (this.lanternSpots?.length) this.updateLanterns(tg);
+    this.mood?.update(dt, player);
     this.sky.update(dt, this.camera);
     for (const f of this.frameFns) f.fn(dt, this.time);
     if (world) this.shadows.update(world);
     this.effects.update(dt);
-    this.renderer.setClearColor(this.theme.background, 1);
+    this.renderer.setClearColor(this.mood?.clear ?? this.theme.background, 1);
     this.renderer.render(this.three, this.camera);
   }
 

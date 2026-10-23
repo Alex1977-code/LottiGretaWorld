@@ -16,6 +16,8 @@
 //      power:  Name            Power-up erscheint am Auslöser (wachstumsbeere, krallen, funken, riese, stern, oneup)
 //      coins:  n               n Münzen gutschreiben (springen sichtbar heraus)
 //      sfx:    Name            Effekt abspielen
+//      water:  { id, y | dy, speed } | [ … ]   Wasserstand ändern (Bausteine Welt 3, blocks/water_level.js): Lagune
+//                              (setLevel), sonst level.setWaterLevel(id, y, speed) des Motors, sonst Rückfall
 //      pos:    [x, y, z]       Ort für star/spawn/power/coins (Standard: Auslöser)
 //      fn(level, ctx)          eigene Funktion (nur aus Code)
 //    }   – auch als Liste mehrerer Aktionen. Kurzformen (Inhalt von Kiste/Truhe/Baum): 'coin', 'coins:5', 'star:1',
@@ -31,6 +33,7 @@
 import * as THREE from 'three';
 import { CourseEntity } from './CourseEntity.js';
 import { normalizePower } from '../player/powers.js';
+import { setWaterLevel } from '../blocks/water_level.js';
 
 export const LIST = (v) => (v === undefined || v === null || v === false ? [] : Array.isArray(v) ? v : [v]);
 export const vec = (p, out = new THREE.Vector3()) => (Array.isArray(p) ? out.set(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) : out.set(p?.x ?? 0, p?.y ?? 0, p?.z ?? 0));
@@ -103,6 +106,7 @@ export function runAction(level, action, ctx = {}) {
     for (let i = 0; i < Math.min(5, action.coins); i++) level.effects?.coinPop({ x: o.x + (i - 2) * 0.25, y: o.y, z: o.z });
   }
   if (action.sfx) level.sfx(action.sfx);
+  for (const w of LIST(action.water)) setWaterLevel(level, w);
   if (typeof action.fn === 'function') action.fn(level, ctx);
 }
 
