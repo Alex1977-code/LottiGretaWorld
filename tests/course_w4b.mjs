@@ -165,6 +165,10 @@ const R43 = {
       legs: [{ to: [23.25, -130.75], run: false, within: 0.15 }, { hop: 30 }, { wait: 60 }, { chaseKind: 'powerup', max: 900 }], expectLives: 1 },
     { name: 'Fangnetz fängt den Sturz von Lauf 3 auf', from: [-3.75, 23, -172], heroes: ['lotti'], vulnerable: true,
       legs: [{ wait: 240 }], expectY: [15, 15.6] },
+    { name: 'Takt: Achterblock 0 – Reihe 1 rot fest, blau nur Umriss', from: [0, 1, -10], heroes: ['lotti'],
+      legs: [{ waitBeat: [4, 4.5] }], expectNamed: ['r1_0', 'solid', true], expectNamed2: ['r1_1', 'solid', false] },
+    { name: 'Takt: Achterblock 1 – Reihe 1 blau fest, rot nur Umriss', from: [0, 1, -10], heroes: ['lotti'],
+      legs: [{ waitBeat: [12, 12.5] }], expectNamed: ['r1_0', 'solid', false], expectNamed2: ['r1_1', 'solid', true] },
     { name: 'Zeit-Uhren am Uhrenplatz: +10 s je Uhr', from: [4, 24, -231.4], heroes: ['lotti'],
       legs: [{ to: [6, -231.4], jump: 20, within: 0.3, run: false }, { to: [6.2, -233.6], jump: 20, within: 0.3, run: false }, { to: [6, -235.8], jump: 20, within: 0.3, run: false }], expectInfo: ['uhren', 'got', 3] },
   ],
@@ -240,6 +244,8 @@ const R44 = {
   extra: [
     { name: 'Riesentrampolin wartet, bis man draufspringt', from: [0, 13, -90], heroes: ['lotti'],
       legs: [{ wait: 240 }, { named: 'rt' }], expectNamed: ['rt', 'running', false] },
+    { name: 'Stempel nicht ohne getimten Sprung (Sprungtaste nur gehalten)', from: [0, 13, -95.2], heroes: ['lotti', 'greta'], expectNoStamp: true,
+      legs: [{ to: [0, -99.5], untilBounce: true, run: false }, { ride: 'rt', holdJump: true, untilZ: -152 }] },
     { name: 'Springklotz auf der Zielinsel: 1-Up im unsichtbaren Block', from: [-3.6, 10.5, -213], heroes: ['lotti'],
       legs: [{ to: [-4.4, -213], run: false, within: 0.2 }, { to: [-6, -213], untilBounce: true, jump: 14 }, { wait: 90 }, { chaseKind: 'powerup', max: 900 }], expectLives: 1 },
     { name: 'Kletterzaun-Raum: Ausgang zur Zielinsel', from: [-96, 10, -158], heroes: ['lotti'],
@@ -414,11 +420,12 @@ function install() {
             if (phase === 'stamp') { tx = Lg.boostTo[0]; tz = Lg.boostTo[1]; apexY = Math.max(apexY, m.pos.y); if (m.vel.y < -2) phase = 'ride'; }
             if (Lg.boostZ !== undefined && !boosted && rt.pos.z <= Lg.boostZ && m.mode === 'air' && m.vel.y < 0 && m.pos.y - mat < 0.9) { boosted = 1; jumpSteps = 6; }
             const st = m.mode === 'air' ? airTo(m, tx, tz, phase === 'stamp' ? 2.2 : 3) : W.stick(tx - m.pos.x, tz - m.pos.z, 0.5);
-            const jump = jumpSteps > 0;
+            const jump = jumpSteps > 0 || !!Lg.holdJump;
             if (jumpSteps > 0) { jumpSteps--; if (jumpSteps === 0) phase = 'stamp'; }
+            if (Lg.holdJump) apexY = Math.max(apexY, m.pos.y);
             tick({ ...st, run: false, jump });
           }
-          log.push([Lg.name ?? `fahrt${li}`, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), JSON.stringify(rt.info()), boosted ? +apexY.toFixed(2) : '']);
+          log.push([Lg.name ?? `fahrt${li}`, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), JSON.stringify(rt.info()), boosted || Lg.holdJump ? +apexY.toFixed(2) : '']);
           continue;
         }
         if (Lg.grab) {
@@ -716,7 +723,9 @@ for (const id of LEVELS) {
       let ok = inR(res.info.x, t.expectX) && inR(res.info.y, t.expectY) && inR(res.info.z, t.expectZ) && !res.dead;
       if (t.expectCoins !== undefined) ok = ok && res.rt.coins - coins0 >= t.expectCoins;
       if (t.expectLives !== undefined) ok = ok && lives1 - lives0 >= t.expectLives;
+      if (t.expectNoStamp) ok = ok && !res.rt.stamp;
       if (t.expectNamed) { const v = await sc(([nid, k]) => window.__course.level.named.get(nid)?.[k], [t.expectNamed[0], t.expectNamed[1]]); res.log.push(['benannt', ...t.expectNamed, v]); ok = ok && v === t.expectNamed[2]; }
+      if (t.expectNamed2) { const v = await sc(([nid, k]) => window.__course.level.named.get(nid)?.[k], [t.expectNamed2[0], t.expectNamed2[1]]); res.log.push(['benannt', ...t.expectNamed2, v]); ok = ok && v === t.expectNamed2[2]; }
       if (t.expectInfo) { const v = await sc(([nid, k]) => window.__course.level.named.get(nid)?.[k] ?? window.__course.level.named.get(nid)?.info?.()?.[k], [t.expectInfo[0], t.expectInfo[1]]); res.log.push(['info', ...t.expectInfo, v]); ok = ok && v >= t.expectInfo[2]; }
       if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));

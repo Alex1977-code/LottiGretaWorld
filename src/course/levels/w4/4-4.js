@@ -262,11 +262,11 @@ export const LEVEL = {
     [-10.5, 24.2, -91],                            // 2: Felssims hinter der Treppe (zwei Pilztrampoline)
     [-94.6, 22.8, -165],                           // 3: Kletterzaun-Raum
   ],
-  stamp: [0, 25.0, -144],                          // zwischen zwei Flatterkäfer-Rädern über der Fahrt
+  stamp: [0, 24.7, -144],                          // zwischen zwei Flatterkäfer-Rädern über der Fahrt (nur mit getimtem Sprung)
   goal: { pos: [0, YZ, -224], height: 9 },
   marks: {
     start: [0, YA, 6], wandloch: [-8, YA + 6, -14.5], schlucht: [0, YA, -15], terrasseB: [0, YB, -32], federn: [0, YB, -48],
     terrasseC: [0, YC, -56], treppe: [0, YC, -65], checkpoint: [3, YD, -76], stern2: [-10.5, 24, -91], start_fahrt: [0, YD, -94],
-    stempel: [0, 25, -144], wolke: [-9.5, 14.9, -174], zaunraum: [KX, 10, KZ], ziel: [0, YZ, -224],
+    stempel: [0, 24.7, -144], wolke: [-9.5, 14.9, -174], zaunraum: [KX, 10, KZ], ziel: [0, YZ, -224],
   },
 };
