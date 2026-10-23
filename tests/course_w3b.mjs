@@ -478,7 +478,7 @@ async function test32b() {
     if (pu) {
       // der Anzug bleibt oben auf dem Block liegen: seitlich anlaufen und auf den Block springen
       t.step({}, 80);
-      t.go(pu.pos.x + 1.7, pu.pos.z, { tol: 0.15 });
+      t.go(pu.pos.x + 1.7, pu.pos.z, { tol: 0.15 }); t.step({}, 30);
       t.jumpTo(pu.pos.x, pu.pos.z, { hold: 40, max: 160 });
       t.step({}, 10);
       out.blockTop = +p.pos.y.toFixed(2);
@@ -690,13 +690,14 @@ async function test36b() {
     const c = window.__course, t = window.__t, p = c.player;
     t.place([3.2, 0, -18.6], { invuln: 1e9, settle: 2 });
     const fell = t.until(() => p.pos.y < -4.9 && p.mode === 'ground', () => t.stick(0, -1), 240);
+    t.step({}, 30); t.go(1.4, -23.5, { tol: 0.15 }); t.step({}, 30);
     let maxY = -10, bounced = false;
     for (let i = 0; i < 600; i++) {
       const tz = bounced ? -29.5 : -23.5, dx = 0 - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz) || 1;
-      const steer = !bounced || p.vel.y < 6;
+      const steer = true;
       c.setInput({ ...(steer ? t.stick(dx / d * Math.min(1, d), dz / d * Math.min(1, d)) : {}), jump: true });
       c.step(1);
-      if (p.vel.y > 12) bounced = true;
+      if (p.vel.y > 17) bounced = true;
       maxY = Math.max(maxY, p.pos.y);
       if (bounced && p.mode === 'ground') break;
     }
@@ -711,13 +712,20 @@ async function test36b() {
     const BX = 98, BZ = -190;
     const guards = L.entities.filter((e) => e.kind === 'flatterkaefer' && Math.hypot(e.pos.x - 10.8, e.pos.z + 190) < 5.6 && e.pos.y > 11.5).length;
     out.guards = guards;
-    t.place([2, 10, -189.5], { invuln: 1e9, settle: 2 });
-    t.go(4.0, -189.5, { tol: 0.2 });
-    let jk = 0;
-    t.until(() => p.pos.x > 80 || (p.pos.x > 8.9 && p.mode === 'ground'), () => ({ x: 1, jump: (jk++ % 30) < 12 }), 600);
-    if (p.pos.x < 80) { t.jumpTo(10.8, -190, { hold: 20, max: 200 }); }
-    t.until(() => p.mode !== 'script', {}, 400); t.step({}, 30);
+    // Treppe hinauf aufs Plateau und in die Warp-Box; prallt man an einem Wächter ab, neuer Anlauf (wie ein Spieler)
+    out.tries = 0;
+    for (let k = 0; k < 5 && p.pos.x < 80; k++) {
+      out.tries++;
+      t.place([2, 10, -189.5], { invuln: 1e9, settle: 2 });
+      t.step({}, k * 70);
+      t.go(4.0, -189.5, { tol: 0.2 });
+      let jk = 0;
+      t.until(() => p.pos.x > 80 || (p.pos.x > 8.9 && p.mode === 'ground' && p.pos.y > 13.9), () => ({ ...t.stick(1, 0), jump: (jk++ % 30) < 12 }), 600);
+      if (p.pos.x < 80) { t.step({}, 20); t.jumpTo(10.8, -190, { hold: 20, max: 200 }); }
+      t.until(() => p.mode !== 'script', {}, 400); t.step({}, 30);
+    }
     out.bonus = p.pos.x > 80;
+    if (!out.bonus) return out;
     const hase = L.entities.find((e) => e.kind === 'bunny');
     const boosts = [];
     out.hase = t.until(() => hase.state === 'caught' || L.entities.some((e) => e.kind === 'star' && e.index === 1 && !e.hidden), () => { boosts.push(p.gs); const dx = hase.pos.x - p.pos.x, dz = hase.pos.z - p.pos.z, d = Math.hypot(dx, dz) || 1; return { ...t.stick(dx / d, dz / d), run: true }; }, 120 * 40);
@@ -740,7 +748,7 @@ async function test36b() {
     return out;
   });
   console.log(`  Bonus: ${JSON.stringify(r)}`);
-  check(`3-6 Stern 2: Warp-Box auf dem Aufstieg (bewacht von ${r.guards} Flatterkäfern) → Bonus-Oval, Hase gefangen (bis ${r.maxGs} m/s mit Boost-Pfeilen) → Stern auf dem Siegertreppchen`, r.guards === 9 && r.bonus && r.hase >= 0 && r.star2);
+  check(`3-6 Stern 2: Warp-Box auf dem Aufstieg (bewacht von ${r.guards} Flatterkäfern) → Bonus-Oval, Hase gefangen (nach ${(r.hase / 120).toFixed(1)} s, ${r.tries}. Anlauf) → Stern auf dem Siegertreppchen`, r.guards === 9 && r.bonus && r.hase >= 0 && r.star2);
   check('3-6 Stempel: nach Stern 2 über zwei Pilztrampoline auf den Stempel-Sims; Warp-Box zurück zum Hang', r.stamp && r.back);
   await SHOT('36_a3_bonus', () => {
     const t = window.__t;
@@ -773,7 +781,7 @@ async function test36b() {
     t.until(() => p.mode === 'ground', {}, 120);
     out.leafPopped = L.entities.some((e) => e.kind === 'powerup' && e.power === 'gleitblatt');
     t.step({}, 80);
-    t.go(3.4 + 1.7, -153.4, { tol: 0.15 });
+    t.go(3.4 + 1.7, -153.4, { tol: 0.15 }); t.step({}, 30);
     t.jumpTo(3.4, -153.4, { hold: 40, max: 160 });
     t.step({}, 10);
     out.leaf = p.power;
@@ -786,10 +794,13 @@ async function test36b() {
     t.until(() => p.mode === 'ground' && (p.pos.y > 23.9 || p.pos.x < -6 || p.pos.y < 17), () => { const dx = -13 - p.pos.x, dz = -235 - p.pos.z, d = Math.hypot(dx, dz) || 1; return { ...t.stick(dx / d, dz / d), jump: true }; }, 120 * 8);
     out.noGlide = p.pos.y > 23.9;
     // 1-Up auf dem Tribünendach: von der Strecke über die Bande aufs Pilztrampolin, aufs Dach, zum Extraleben
-    t.place([-3.4, 0, -12.6], { invuln: 1e9, settle: 2 });
+    t.place([-4.6, 0, -11.4], { invuln: 1e9, settle: 2 });
     const lives0 = L.runtime.lives;
-    t.jumpTo(-8.2, -12.6, { hold: 40, max: 160, grab: false });
-    t.jumpTo(-8.6, -8.4, { hold: 80, max: 300, rise: 8 });
+    t.jumpTo(-6.8, -11.4, { hold: 30, max: 160, grab: false }); t.step({}, 30);
+    t.go(-6.9, -11.5, { tol: 0.1 }); t.step({}, 30);
+    let hk = 0;
+    out.bounce = t.until(() => p.vel.y > 17, () => { const dx = -8.2 - p.pos.x, dz = -11.5 - p.pos.z, d = Math.hypot(dx, dz) || 1; return { ...t.stick(dx / d * Math.min(1, d), dz / d * Math.min(1, d)), jump: hk++ < 12 || p.vel.y < 0 }; }, 200);
+    t.jumpTo(-8.6, -8.6, { hold: 80, max: 300 });
     out.roof = p.ground?.tag ?? null;
     t.go(-9.5, -4, { tol: 0.2 });
     t.step({}, 20);

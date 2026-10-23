@@ -143,7 +143,7 @@ export const LEVEL = {
     { type: 'pilztrampolin', pos: [0, -5, -23.5] },
     { type: 'pilztrampolin', pos: [-2.6, -5, -42] },
     { type: 'pilztrampolin', pos: [0, YH - 5, -163.2] },
-    { type: 'pilztrampolin', id: 'tribuenenpilz', pos: [-8.2, 0, -12.6], scale: 0.9 },   // vor dem Südende der Tribüne (über die Bande hüpfen)
+    { type: 'pilztrampolin', id: 'tribuenenpilz', pos: [-8.2, 0, -11.5], scale: 0.9 },   // vor dem Südende der Tribüne (über die Bande hüpfen)
     { type: 'pilztrampolin', id: 'gipfelpilz', pos: [-1.5, YS, -235] },
     { type: 'pilztrampolin', pos: [BX + 4, 0, BZ + 1] },
     { type: 'pilztrampolin', pos: [BX + 8.5, 4.2, BZ - 2.5] },
