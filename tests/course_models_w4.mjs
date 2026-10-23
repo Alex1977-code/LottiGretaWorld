@@ -148,7 +148,7 @@ await sc(async () => {
 
   const live = [];
   // hängende/schwebende Modelle (Ursprung oben bzw. Sprungfläche) anheben
-  const LIFT = { liane: 3.2, burg_kette: 3.2, riesentrampolin: 2.2, neon_ring: 0, sternring: 0 };
+  const LIFT = { liane: 3.2, burg_kette: 3.2, riesentrampolin: 2.2, giftwasser: 0.03, lavafall: 0, giftwasserfall: 0 };
   const cm = {
     reg, kit, inst, THREE, v, stage, hero, live, labels, ground,
     clear() {
