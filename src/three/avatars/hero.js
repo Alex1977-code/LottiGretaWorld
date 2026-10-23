@@ -62,6 +62,32 @@
 //    seitlich abgespreizt, was aus der Kurs-Kamera (hinten oben) als erhobene Arme liest.
 //  - Gretas Haar pendelt im Kurs-Modus physikalisch (eine Kette in Weltkoordinaten, Grenzkegel im Kopf-System),
 //    Lottis Zöpfe wie bisher; mit Kapuze weichen die Zöpfe einem größeren Kopf-Kollider aus.
+//
+// Welt 3 (Kurs-Modus, Bausteine in ../lib/heroWorld3.js; Vertrag „Präzisierung (Motor Welt 3): Avatar-Zustände“):
+//  - Power 'gleitblatt' = Gleitblatt-Kostüm: Haarreif mit zwei großen grün-goldenen Blatt-Ohren (im Haar-Mesh, 0 Aufrufe),
+//    Kragen in Blattgrün bzw. Gold, buschiger orange-brauner Ringel-Schweif mit Blattspitze (SkinnedMesh mit 4 Knochen am
+//    Becken: +1 Aufruf, +1 Schatten). Der Schweif folgt jedem Zustand (Stand: S-Bogen nach oben und langsames Wedeln,
+//    Lauf: weht nach hinten, Sprung/Fall: hängt bzw. hebt sich, Zaun: hängt, Unterwasser: verlängert die Körperachse).
+//  - Zustände (obj.course.state, exakt): 'tailswipe' (Drehung um die Hochachse, Schweif waagerecht ausgestreckt; phase
+//    0..1, sobald sie sich im Zustand ändert, sonst 0,35 s ab Zustandsbeginn), 'glide' (Arme leicht ausgebreitet, Schweif
+//    kreist schnell als Propeller, Zöpfe/Haar wehen im Aufwind hoch), 'statue' (Stein-Haut für alle Materialien, gefaltete
+//    Hände, Augen zu, Sockel unter den Füßen, Zöpfe/Haar/Schweif starr; Puff beim Verwandeln, Staubwolke beim Aufkommen –
+//    erkannt an grounded oder am abrupten Ende des Sturzes (vy); phase > 0,82 = Anteil der Höchstdauer → Wackeln als
+//    Vorwarnung), 'skate' (Schlittschuhe – hellblau, weißer Fellrand, Bommel, hohe Kufe –, Gleitschritte im Takt aus
+//    speed, Kurvenneigung aus der Gierrate von root bzw. optional obj.course.turn in rad/s), 'fence' (Zaun VOR der Figur,
+//    +X, courseAnchors().fence = 0,38 m wie im Motor; Kletterzyklus aus obj.course.fenceMove {x: rechts +, y: hoch +}
+//    −1..1, seitliche Richtung aus der tatsächlichen Bewegung von root; ruhiges Hängen ohne Bewegung; Faustschlag durch
+//    den Zaun bei obj.course.fencePunch 0..1 (oder attack: true → 0,25 s ab der Flanke), Hände im Wechsel), 'swimUnder'
+//    (Brustschwimmen unter Wasser: Arme ziehen, Froschbeine; vy neigt den Körper; ohne Tempo Schweben mit Paddeln;
+//    Zöpfe/Haar mit Auftrieb; alle ~2 s zwei, drei Luftbläschen am Mund).
+//  - Schlittschuhe: an bei obj.course.skates (Motor, auch in der Luft) oder state 'skate'; ohne skates bleiben sie nach
+//    'skate' in Sprung-/Fall-/Landezuständen an. Die Kufe reicht 0,15 Einheiten unter die Sohle – genau so weit hebt
+//    HeroRig die Hülle mit skates (0,1 m bzw. 0,07 m klein); ohne skates steht die Kufe auf root. `drawsSkates = true`:
+//    die Schlittschuh-Entität muss keine eigenen Kufen an den Füßen zeichnen.
+//  - Zeichenaufrufe: Puff/Bläschen sind ein InstancedMesh (1 Aufruf, ohne Schatten, nur solange sichtbar); als Ausgleich
+//    blendet die Statue die Augen-Glanzpunkte aus, unter Wasser werfen die Unterschenkel keinen Schatten. In den
+//    Dauer-Zuständen bleibt der Mund zu (offener Mund kostet einen Aufruf). Klone (HeroRig `lite`, erkannt am fehlenden
+//    Schattenwurf des Oberkörpers) zeigen keine Bläschen/Staubwolken.
 
 import * as THREE from 'three';
 import { Avatar3D } from '../Avatar3D.js';
@@ -72,6 +98,7 @@ import {
   mesh, limb, placed, dirAE, mergeTinted, mergePlain, mergeColored, vcolMat, buildEyes, Facing, PoseBlender, Blinker,
   HangChain, lerp, smoothstep, basicMat, wrapAngle, legIK, skinTwoBones, RainbowGlow,
 } from '../lib/figures.js';
+import { leafSolidGeo, bushyTailGeo, skinChain, StoneSkin, PuffFx } from '../lib/heroWorld3.js';
 
 const U = 1 / GAME.tile;             // Weltpixel → Einheiten
 const BIAS = 0.42;                   // Drehung zur Kamera (3/4-Ansicht), für Heldin und Pflaume gleich
@@ -352,6 +379,7 @@ const HERO_POSE = {
   // nur Kurs-Modus (im Klassik-Modus immer 0): Ellbogen, Oberarm-Drehung (Beugerichtung), Rumpf seitlich/
   // verdreht, Lage der ganzen Figur um den Schwerpunkt (pitch um Z, roll um X), Versatz, Stauchung
   elbowN: 0, elbowF: 0, twistN: 0, twistF: 0, torsoX: 0, torsoY: 0, pitch: 0, roll: 0, figX: 0, figY: 0, sq: 0,
+  figZo: 0, // Welt 3: seitlicher Versatz der ganzen Figur (Kurvenneigung um die Kufen statt um den Schwerpunkt)
 };
 
 // ================================================================== Kurs-Modus: Maße, Kostüme
@@ -372,9 +400,13 @@ const FIRE_WHITE = '#fff8ee', FIRE_RED = '#e8392d';
 /** Farbe zur Creme hin aufhellen (Pastell-Streifen). */
 const pastel = (hex, k = 0.62) => `#${new THREE.Color(hex).lerp(new THREE.Color(CREAM_C), k).getHexString()}`;
 /** Zustände, in denen die Heldin an Wand/Ranke hängt (das Feld `climbing` erzwingt sonst 'climb'). */
-const CLIMB_STATES = new Set(['climb', 'beanstalk', 'wallslide', 'walljump']);
+const CLIMB_STATES = new Set(['climb', 'beanstalk', 'wallslide', 'walljump', 'fence']);
 /** Zustände, in denen `holding` die Arme übernimmt (Tragen vorn bzw. über dem Kopf). */
-const HOLD_STATES = new Set(['idle', 'walk', 'run', 'skid', 'jump', 'jump2', 'fall', 'land', 'crouch']);
+const HOLD_STATES = new Set(['idle', 'walk', 'run', 'skid', 'jump', 'jump2', 'fall', 'land', 'crouch', 'skate']);
+/** Kostüme per Geometrie-Tausch (power-Werte). */
+const COSTUMES = new Set(['krallen', 'funken', 'gleitblatt']);
+/** Zustände, in denen angelegte Schlittschuhe an bleiben (Sprünge vom Eis, Landung). */
+const SKATE_KEEP = new Set(['skate', 'jump', 'jump2', 'jump3', 'fall', 'land', 'longjump', 'backflip', 'sideflip', 'skid', 'hurt', 'throw', 'claw', 'tailswipe', 'glide']);
 
 /** Kostüm-Farben „Funkenblüte“: Kleid feuerweiß, Ärmel/Kragen/Schürze rot, Haarschmuck weiß (Lotti) bzw. rot (Greta). */
 const fireStyle = (st) => ({ ...st, dress: FIRE_WHITE, sleeve: FIRE_RED, collar: FIRE_RED, apronC: FIRE_RED, accent: st.braids ? FIRE_WHITE : FIRE_RED });
@@ -492,10 +524,85 @@ function tailParts(st) {
     .map(([x, y, r, c]) => part(sphere(r, 12, 10), c, { x, y }));
 }
 
+// ================================================================== Welt 3: Gleitblatt, Schlittschuhe, Statue, Zaun
+const FENCE_M = 0.38;         // fence: Zaunebene vor root (Meter; Motor: Hitbox-Halbbreite 0,3 + Abstand 0,08)
+const FENCE_REACH = 0.264;    // fence: so weit reichen die Hände ohne Versatz vor root (Einheiten, Ruhehaltung; gemessen)
+const SKATE_ANKLE = 0.29;     // skate: Knöchel über der Kufen-Unterkante (Stiefelsohle 0,14 + Kufe 0,15)
+const SKATE_LIFT_U = 0.15;    // skate: so hoch hebt HeroRig die Hülle mit course.skates (0,1 m groß bzw. 0,07 m klein = 0,15 Einheiten)
+const PLINTH_H = 0.1;         // statue: Sockelhöhe (Einheiten), die Figur steht darauf
+const STATUE_BOB = -0.03;
+const TAIL_LEN = 0.62, TAIL_BONES = [0, 0.2, 0.4, 0.56];
+const LEAF_EAR_C = { base: '#d9b13a', mid: '#8fcf45', tip: '#58ad36', rim: '#f2da63', vein: '#e9f7a0' };
+const LEAF_TIP_C = { base: '#c99a2e', mid: '#7cc443', tip: '#4f9f31', rim: '#e8d25a', vein: '#d9f08e' };
+/** Gleitblatt-Stil: Kragen Blattgrün (Lotti) bzw. Gold (Greta, grünes Kleid); Gretas Haarreif wird zum goldenen Blatt-Reif. */
+const leafStyle = (st) => ({ ...st, collar: st.braids ? '#8fcf45' : '#f0c43c', accent: st.braids ? st.accent : '#c98a2e' });
+const LEAF_BAND_C = '#c98a2e';
+
+/** Haarreif mit zwei großen Blatt-Ohren (kopf-lokal, zum Haar-Mesh). Lotti behält ihre Schleife, Gretas Reif trägt die Ohren. */
+function leafEarParts(st) {
+  const parts = [];
+  const bx = HEAD_C.x + (st.braids ? 0.015 : -0.03), by = HEAD_C.y + 0.01, Rb = HEAD_R + 0.03;
+  if (st.braids) {
+    const arc = Math.PI * 0.95;
+    parts.push(part(torus(Rb, 0.026, 8, 20, arc), LEAF_BAND_C, { x: bx, y: by, ry: Math.PI / 2, rz: (Math.PI - arc) / 2 }));
+  }
+  const ear = geo('hero:leafEar', () => leafSolidGeo({ len: 0.4, half: 0.135, thick: 0.04, cup: 0.045, bend: -0.06, nu: 12, nv: 6, colors: LEAF_EAR_C }));
+  for (const s of [1, -1]) {
+    const beta = 0.78;
+    const base = V(bx, by + Rb * Math.cos(beta), s * Rb * Math.sin(beta));
+    const dir = V(-0.22, Math.cos(beta * 0.72), s * Math.sin(beta * 0.72)).normalize();     // nach oben-außen, leicht zurück
+    const fwd = V(1, 0, s * 0.45);
+    const z = fwd.addScaledVector(dir, -fwd.dot(dir)).normalize();                           // Vorderseite nach vorn-außen
+    const x = new THREE.Vector3().crossVectors(dir, z);
+    const m = new THREE.Matrix4().makeBasis(x, dir, z).setPosition(base.addScaledVector(dir, -0.035));
+    parts.push([ear, null, m]);
+  }
+  return parts;
+}
+
+/** Bushy Schweif (Ursprung = Ansatz, entlang +Y; Knochen bei TAIL_BONES). */
+function leafTailGeo() {
+  return geo('hero:leafTail', () => skinChain(bushyTailGeo({
+    len: TAIL_LEN, r0: 0.05, rMax: 0.165, fur: 0.1, base: '#ef8b33', stripe: '#8a4520', tipC: '#f7c47e',
+    ringAt: [0.3, 0.5, 0.7], ringW: 0.085,
+    leaf: { len: 0.24, half: 0.085, thick: 0.024, cup: 0.02, bend: 0.03, colors: LEAF_TIP_C, at: 0.88, cross: true },
+  }), TAIL_BONES));
+}
+
+/** Schlittschuh (knöchel-lokal, ersetzt den Stiefel): hellblauer Schuh, weißer Fellrand, Bommel, Kufe mit Bogen vorn. */
+function skateParts(st) {
+  const BLUE = '#8fd3f4', ICE = '#e6f2fa', STEEL = '#c3cfd8';
+  const parts = [
+    part(capsule(0.08, 0.1), BLUE, { x: 0.045, y: -0.062, rz: Math.PI / 2 }),
+    part(cylinder(0.07, 0.074, 0.12, 12), BLUE, { y: 0.0 }),
+    part(torus(0.07, 0.026, 6, 14), '#ffffff', { y: 0.066, rx: Math.PI / 2 }),
+    part(sphere(0.05, 10, 8), st.braids ? '#ff5f7e' : '#ff8fc0', { x: 0.075, y: 0.08 }),
+    part(sphere(0.02, 8, 6), '#ffffff', { x: 0.12, y: -0.02 }),
+    part(geo('skate:plate', () => new THREE.BoxGeometry(0.25, 0.024, 0.075)), '#ffffff', { x: 0.045, y: -0.152 }),
+    part(cylinder(0.017, 0.014, 0.11, 6), STEEL, { x: -0.04, y: -0.215 }),
+    part(cylinder(0.017, 0.014, 0.11, 6), STEEL, { x: 0.13, y: -0.215 }),
+    part(geo('skate:blade2', () => new THREE.BoxGeometry(0.31, 0.03, 0.018)), ICE, { x: 0.045, y: -0.275 }),
+    part(torus(0.036, 0.01, 5, 10, Math.PI * 0.95), ICE, { x: 0.198, y: -0.254, rz: -Math.PI * 0.47 }),
+  ];
+  if (st.socks) parts.push(part(cylinder(0.062, 0.062, 0.05, 10), WHITE_C, { y: 0.09 }));
+  return parts;
+}
+
+/** Statuen-Sockel (becken-lokal unter den Füßen; wird mit dem Rock verschmolzen). */
+function plinthParts() {
+  const top = -(HIP + STATUE_BOB);
+  return [
+    part(cylinder(0.31, 0.35, PLINTH_H, 20), '#9c968c', { y: top - PLINTH_H / 2 }),
+    part(torus(0.3, 0.022, 5, 24), '#c8c2b8', { y: top - 0.006, rx: Math.PI / 2 }),
+    part(torus(0.345, 0.02, 5, 24), '#7d786f', { y: top - PLINTH_H + 0.012, rx: Math.PI / 2 }),
+  ];
+}
+
 // ================================================================== Heldin
 export class HeroAvatar extends Avatar3D {
   buildModel() {
     this.usesFacing = false;
+    this.drawsSkates = true;   // Welt 3: Kufen zeichnet der Avatar selbst (course.skates / state 'skate'), nicht die Entität
     this.variant = STYLES[this.textureKey] ? this.textureKey : 'lotti';
     const st = STYLES[this.variant];
     const key = (k) => `hero:${this.variant}:${k}`;
@@ -824,11 +931,12 @@ export class HeroAvatar extends Avatar3D {
   /**
    * Kurs-Anbindung in Metern (für den Motor): Wand bzw. Ranke liegen `wall`/`vine` vor bzw. hinter root
    * (Hitbox-Rand), Wasserlinie beim Schwimmen `waterLine` über root, Fußpunkt der Reiterin `rideHeight` über
-   * Pflaumes Fußpunkt (beide Hüllen 1 m / 1,5 Einheiten), Salto-Drehpunkt `pivot` über root.
+   * Pflaumes Fußpunkt (beide Hüllen 1 m / 1,5 Einheiten), Salto-Drehpunkt `pivot` über root; Welt 3: Kettenzaun
+   * `fence` vor root (+X, wie die Kletterwand), Statuen-Sockel `plinth` (die Statue steht so hoch über root).
    */
   static courseAnchors(big = true) {
     const upm = unitsPerMeter(big);
-    return { wall: 0.3, vine: VINE_M, vineRadius: 0.1, waterLine: WATER_U / upm, rideHeight: 0.5, pivot: PIVOT_Y / upm };
+    return { wall: 0.3, vine: VINE_M, vineRadius: 0.1, waterLine: WATER_U / upm, rideHeight: 0.5, pivot: PIVOT_Y / upm, fence: FENCE_M, plinth: PLINTH_H / upm };
   }
 
   /**
@@ -881,11 +989,45 @@ export class HeroAvatar extends Avatar3D {
       this.maneChain = new HangChain([0.42], { gravity: 32, drag: 0.5, damping: 5, stiffness: 22, rootCone: { back: 1.5, front: 0.12, out: 0.4, inward: 0.4 } });
       this.maneRest = V(-0.13, -1, 0).normalize();
     }
+    this.ensureW3Rig();
   }
+
+  /**
+   * Welt-3-Teile (beim ersten Kurs-Modus, also vor HeroRig.applyLite – Klone bekommen so auch hier keinen Schattenwurf):
+   * Gleitblatt-Schweif (SkinnedMesh, 4 Knochen) am Becken, Puff-Effekte am Modell, Stein-Haut, Stiefel-Referenzen.
+   */
+  ensureW3Rig() {
+    const bones = TAIL_BONES.map(() => new THREE.Bone());
+    bones.forEach((b, i) => { if (i > 0) { b.position.y = TAIL_BONES[i] - TAIL_BONES[i - 1]; bones[i - 1].add(b); } });
+    bones[0].rotation.order = 'YZX';
+    const tail = new THREE.SkinnedMesh(leafTailGeo(), vcolMat(0.8));
+    tail.add(bones[0]);
+    tail.bind(new THREE.Skeleton(bones));
+    tail.frustumCulled = false; tail.castShadow = true; tail.visible = false;
+    tail.position.set(-0.2, 0.0, 0);
+    this.pelvis.add(tail);
+    const fx = new PuffFx(this.model, 12);
+    this.w3 = {
+      tail, bones, tailCur: { rz: 1.5, ry: 0, rx: 0, curl: -0.78, side: 0 },
+      fx, stone: new StoneSkin(this.model, (o) => !!o.userData.fx),
+      boots: [this.legN, this.legF].map((l) => l.ankle.children[0]),
+      bootGeo: this.legN.ankle.children[0].geometry,
+      shins: [this.legN.knee.limbMesh, this.legF.knee.limbMesh],
+      shinsOff: false, skates: false, statue: false, frozen: false,
+      grounded: true, vy: 0, yaw: null, turn: 0, side: 0, pos: null, bubbleT: 1.2, attackT: -1, attackPrev: false, punchSide: 1,
+      phase0: 0, physics: 'base',
+    };
+  }
+
+  /** Klon-Darstellung (HeroRig `lite`) erkennen: dort wirft nichts einen Schatten, auch der Oberkörper nicht. */
+  get liteLook() { return !this.torsoMesh.castShadow; }
 
   /** Beim Ausschalten: Kostüm, Glanz und alle nur im Kurs-Modus gesetzten Lagen zurück auf Klassik. */
   resetCourseLook() {
     this.glow.set(false);
+    this.setW3Look({ statue: false, skates: false, water: false });
+    this.setChainPhysics('base');
+    this.w3.fx.clear();
     this.setCostume('none');
     this.fig.position.set(0, 0, 0);
     this.torso.rotation.set(0, 0, 0);
@@ -911,12 +1053,65 @@ export class HeroAvatar extends Avatar3D {
       this.hairMesh.material = g.hairMat;
       this.torsoMesh.geometry = geo(key('torso:funken'), () => mergeTinted(torsoParts(fs)));
       this.skirtMesh.geometry = geo(key('skirt:funken'), () => mergeTinted(skirtParts(fs)));
+    } else if (kind === 'gleitblatt') {
+      const ls = leafStyle(st);
+      this.hairMesh.geometry = geo(key('hair:gleitblatt'), () => mergeColored([...hairParts(ls), ...leafEarParts(ls)]));
+      this.hairMesh.material = g.hairMat;
+      this.torsoMesh.geometry = geo(key('torso:gleitblatt'), () => mergeTinted(torsoParts(ls)));
+      this.skirtMesh.geometry = g.skirt;
     } else {
       this.hairMesh.geometry = g.hair; this.hairMesh.material = g.hairMat;
       this.torsoMesh.geometry = g.torso; this.skirtMesh.geometry = g.skirt;
     }
+    this.w3.tail.visible = kind === 'gleitblatt';
+    this.w3.skirtBase = this.skirtMesh.geometry;
+    if (this.w3.statue) this.updateSkirt();
     // Zöpfe weichen der Kapuze aus
     if (this.braidColliders) this.braidColliders.head.r = kind === 'krallen' ? 0.37 : 0.33;
+  }
+
+  /** Rock mit Statuen-Sockel (nur als Statue) bzw. der Rock des Kostüms. */
+  updateSkirt() {
+    const w = this.w3, base = w.skirtBase ?? this.cGeo.skirt;
+    this.skirtMesh.geometry = w.statue ? geo(`hero:${this.variant}:plinth:${base.uuid}`, () => mergeColored([[base, null, null], ...plinthParts()])) : base;
+  }
+
+  /**
+   * Welt-3-Optik schalten: Stein-Haut + Sockel + ohne Glanzpunkte (statue), Schlittschuhe (skates), unter Wasser ohne
+   * Unterschenkel-Schatten (water). Klone (lite) behalten ihren Zustand (kein Schatten, keine Glanzpunkte).
+   */
+  setW3Look({ statue, skates, water }) {
+    const w = this.w3, lite = this.liteLook;
+    if (statue !== w.statue) {
+      w.statue = statue;
+      this.updateSkirt();
+      this.eyeHl.visible = !statue && !lite;
+    }
+    w.stone.set(statue);
+    if (skates !== w.skates) {
+      w.skates = skates;
+      const g = skates ? geo(`hero:${this.variant}:skate`, () => mergeTinted(skateParts(STYLES[this.variant]))) : w.bootGeo;
+      for (const b of w.boots) b.geometry = g;
+    }
+    if (water !== w.shinsOff) {
+      w.shinsOff = water;
+      for (const m of w.shins) m.castShadow = !water && !lite && (m.userData.cs0 ?? true);
+    }
+  }
+
+  /** Zopf-/Haarphysik je Umgebung: 'base' (Luft), 'water' (Auftrieb, zäh), 'updraft' (Gleiten: Zöpfe wehen hoch). */
+  setChainPhysics(kind) {
+    const w = this.w3;
+    if (kind === w.physics) return;
+    w.physics = kind;
+    const P = { base: [32, 0.4, 4], water: [-14, 2.5, 6], updraft: [-20, 0.4, 3] }[kind];
+    for (const b of this.braids ?? []) { b.chain.gravity = P[0]; b.chain.drag = P[1]; b.chain.damping = P[2]; }
+    if (this.maneChain) {
+      // Gretas Haar (ein großes Pendel): im Aufwind mäßig hoch, im Wasser fast schwerelos entlang des Rückens treibend;
+      // Ruhelage dabei nach hinten (sonst bliebe das Pendel seitlich am Grenzkegel hängen)
+      this.maneChain.gravity = kind === 'updraft' ? -12 : kind === 'water' ? -3 : P[0]; this.maneChain.drag = P[1] + 0.1; this.maneChain.damping = P[2] + 1;
+      this.maneRestCur = kind === 'updraft' ? V(-0.96, -0.28, 0).normalize() : kind === 'water' ? V(-0.93, -0.36, 0).normalize() : this.maneRest;
+    }
   }
 
   /** Hand-Varianten der Kurs-Arme: 'bare' | 'peace' | 'glove'. */
@@ -930,8 +1125,10 @@ export class HeroAvatar extends Avatar3D {
     this.dt = dt;
     const c = this.obj.course ?? {};
     const power = c.power ?? 'none';
+    const raw = c.state ?? 'idle';
     if (power !== 'stern') this.glow.set(false);
-    this.setCostume(power === 'krallen' || power === 'funken' ? power : 'none');
+    this.setCostume(COSTUMES.has(power) ? power : 'none');
+    this.updateW3(c, raw, power, dt);   // Stein-Haut vor dem Glanz (schließen sich aus)
     if (power === 'stern') this.glow.set(true);
     this.model.rotation.set(0, 0, 0);
     const { state, pose, dur } = this.coursePose(c, dt, t);
@@ -940,11 +1137,159 @@ export class HeroAvatar extends Avatar3D {
     this.applyCoursePose(cur);
     const glove = this.costume === 'krallen';
     this.setArmKinds(glove ? 'glove' : this.peace ? 'peace' : 'bare', glove ? 'glove' : 'bare');
-    if (this.braids) this.updateBraids(dt);
-    if (this.maneChain) this.updateMane(dt);
+    this.applyTail(dt, c, this.cState);
+    if (this.w3.statue) this.freezeHair();
+    else {
+      if (this.w3.frozen) this.thawHair();
+      if (this.braids) this.updateBraids(dt);
+      if (this.maneChain) this.updateMane(dt);
+    }
+    this.updateW3Fx(c, raw, dt);
     this.umbrella.visible = false; this.leafOpen = 0;
     this.updateCourseRod(dt, c, this.cState === 'ride');
     this.glow.update(t);
+  }
+
+  /** Welt-3-Zustand je Bild: Stein-Haut, Schlittschuhe, Wasser-Schatten, Zopfphysik, Gierrate (Kurvenneigung), Puff beim Verwandeln. */
+  updateW3(c, raw, power, dt) {
+    const w = this.w3;
+    const statue = raw === 'statue' && power !== 'stern';
+    const skates = c.skates === true || raw === 'skate' || (w.skates && SKATE_KEEP.has(raw));
+    const was = w.statue;
+    this.setW3Look({ statue, skates, water: raw === 'swimUnder' });
+    this.setChainPhysics(raw === 'swimUnder' ? 'water' : raw === 'glide' ? 'updraft' : 'base');
+    // Verwandlungs-Puff (Statue an/aus)
+    if (statue !== was && !this.liteLook) {
+      this.pelvis.getWorldPosition(_p);
+      this.root.getWorldScale(_s);
+      w.fx.dust(_p, 0.3 * _s.y, 0.22, 10, '#fbfaf6', { spread: 0.9, up: 0.6, life: 0.5, yJit: 0.7 * _s.y });
+    }
+    // Gierrate der Figur (rad/s, links positiv) aus der Weltlage von root – oder vom Motor (course.turn); dazu das
+    // Seitentempo (Einheiten/s entlang der rechten Seite +Z der Figur, z. B. Richtung am Zaun)
+    this.root.updateWorldMatrix(true, false);
+    const e = this.root.matrixWorld.elements, yaw = Math.atan2(-e[2], e[0]);
+    if (typeof c.turn === 'number') w.turn = c.turn;
+    else if (w.yaw !== null && dt > 0) w.turn = damp(w.turn, clamp(wrapAngle(yaw - w.yaw) / dt, -6, 6), 10, dt);
+    w.yaw = yaw;
+    _p.set(e[12], e[13], e[14]);
+    if (w.pos && dt > 0) {
+      _v.subVectors(_p, w.pos);
+      const sz = Math.hypot(e[8], e[9], e[10]) || 1, side = _v.length() < 1 ? (_v.x * e[8] + _v.y * e[9] + _v.z * e[10]) / (sz * sz) / dt : 0;
+      w.side = damp(w.side, side, 12, dt);
+    }
+    (w.pos ??= new THREE.Vector3()).copy(_p);
+  }
+
+  /** Staubwolke beim Aufkommen der Statue, Luftbläschen unter Wasser; dann die Puff-Kügelchen bewegen. */
+  updateW3Fx(c, raw, dt) {
+    const w = this.w3, grounded = c.grounded ?? true, lite = this.liteLook, vy = c.vy ?? 0;
+    // Aufkommen: grounded wird wahr – oder (Motor: Statue im Skript-Modus, grounded bleibt falsch) der Sturz endet abrupt
+    const landed = (grounded && !w.grounded) || (w.vy < -4 && vy > -2.5);
+    w.vy = vy;
+    if (!lite && raw === 'statue' && landed) {
+      this.root.getWorldPosition(_p);
+      this.root.getWorldScale(_s);
+      w.fx.dust(_p, 0.4 * _s.y, 0.16, 10, '#efe9dc', { spread: 1.4, up: 0.35, life: 0.6, yJit: 0.06 * _s.y });
+    }
+    w.grounded = grounded;
+    if (raw === 'swimUnder' && !lite) {
+      w.bubbleT -= dt;
+      if (w.bubbleT <= 0) {
+        w.bubbleT = 1.7 + Math.random() * 0.9;
+        this.head.updateWorldMatrix(true, false);
+        _p.copy(this.mouthO.position).add(_v.set(0.03, -0.01, 0)).applyMatrix4(this.head.matrixWorld);
+        this.root.getWorldScale(_s);
+        w.fx.bubbles(_p, Math.random() < 0.5 ? 2 : 3, 0.032, 0.75 * _s.y);
+      }
+    } else { w.bubbleT = Math.min(w.bubbleT, 0.5); w.fx.pop('bubble'); }
+    w.fx.update(dt);
+  }
+
+  /** Statue: Zöpfe und Haar starr in Ruhelage (Ketten liegen neu ab, damit sie danach ohne Ruck weiterschwingen). */
+  freezeHair() {
+    this.w3.frozen = true;
+    if (this.braids) {
+      this.head.updateWorldMatrix(true, false);
+      for (const b of this.braids) {
+        b.anchor.updateWorldMatrix(false, false);
+        b.anchor.matrixWorld.decompose(_p, _q, _s);
+        const ch = b.chain;
+        ch.frame.copy(_q);
+        for (let i = 0; i < ch.n; i++) ch.rest[i].copy(b.restLocal[i]).applyQuaternion(_q);
+        ch.reset(_p);
+        for (let i = 0; i < ch.n; i++) {
+          _qi.copy(_q).invert();
+          _v.copy(ch.dirs[i]).applyQuaternion(_qi);
+          b.links[i].quaternion.setFromUnitVectors(DOWN, _v);
+          _q.multiply(b.links[i].quaternion);
+        }
+      }
+    }
+    if (this.maneChain) { this.mane.quaternion.setFromUnitVectors(DOWN, this.maneRest); this.locks.quaternion.identity().slerp(this.mane.quaternion, 0.45); }
+  }
+
+  thawHair() {
+    this.w3.frozen = false;
+    if (this.maneChain) {
+      this.head.updateWorldMatrix(true, false);
+      this.head.matrixWorld.decompose(_p, _q, _s);
+      _p.copy(this.mane.position).applyMatrix4(this.head.matrixWorld);
+      this.maneChain.rest[0].copy(this.maneRest).applyQuaternion(_q);
+      this.maneChain.reset(_p);
+    }
+  }
+
+  /**
+   * Gleitblatt-Schweif: Grundlage je Zustand (weich nachgeführt) plus Wedeln als Welle entlang der Knochen.
+   * Wurzel (Euler YZX): rz = Neigung in der Körperebene (π/2 = waagerecht nach hinten, π = nach unten), ry = seitlich
+   * schwenken, rx = seitlich kippen; Folgeknochen: curl (< 0 rollt nach oben ein), side (seitlich biegen).
+   */
+  applyTail(dt, c, state) {
+    const w = this.w3;
+    if (!w.tail.visible) return;
+    const speed = Math.max(0, c.speed ?? 0), vy = c.vy ?? 0;
+    let rz = 1.5, ry = 0, rx = 0, curl = -0.78, side = 0, rate = 9;
+    let wagA = 0.22, wagF = 2.1, cone = 0, coneF = 0;
+    switch (state) {
+      case 'walk': case 'run': case 'skate': {
+        const k = clamp(speed / 8, 0, 1);
+        rz = lerp(1.5, 1.45, k); curl = lerp(-0.75, -0.4, k); wagA = 0.18 + 0.12 * k; wagF = 2 + 3 * k;
+        break;
+      }
+      case 'jump': case 'jump2': case 'jump3': case 'longjump': case 'backflip': case 'sideflip': case 'walljump':
+        rz = vy > 0 ? 2.25 : 1.55; curl = vy > 0 ? -0.25 : -0.55; wagA = 0.1; break;
+      case 'fall': rz = 1.45; curl = -0.6; wagA = 0.12; wagF = 4; break;
+      case 'glide':
+        // Propeller: Schweif steht schräg nach hinten-oben und kreist schnell um seine Achse
+        rz = 1.25; curl = -0.12; wagA = 0.08; wagF = 14; cone = 0.55; coneF = 5.5; rate = 16; break;
+      case 'tailswipe':
+        // waagerecht ausgestreckt, Spitze schleppt gegen die Drehrichtung nach
+        rz = Math.PI / 2 + 0.08; curl = 0.04; side = -0.32; wagA = 0; rate = 30; break;
+      case 'statue': rz = 1.85; curl = -0.85; wagA = 0; rate = 40; break;
+      case 'fence': case 'climb': case 'beanstalk': rz = 2.65; curl = -0.18; wagA = 0.15; wagF = 1.4; break;
+      case 'swimUnder': case 'swim':
+        rz = Math.PI - 0.4; curl = 0.05; wagA = 0.3; wagF = 1.3 + 0.4 * clamp(speed, 0, 3); rate = 6; break;
+      case 'slide': case 'crouch': rz = 1.7; curl = -0.3; break;
+      case 'wallslide': rz = 2.5; curl = -0.25; wagA = 0.1; break;
+      case 'dead': case 'hurt': rz = 1.9; curl = -0.2; wagA = 0.35; wagF = 7; break;
+      default: break;
+    }
+    const cur = w.tailCur;
+    cur.rz = damp(cur.rz, rz, rate, dt); cur.ry = damp(cur.ry, ry, rate, dt); cur.rx = damp(cur.rx, rx, rate, dt);
+    cur.curl = damp(cur.curl, curl, rate, dt); cur.side = damp(cur.side, side, rate, dt);
+    // Wedeln und Kreisen über eigene Phasen (Tempowechsel ohne Sprung), Ausschläge weich ein-/ausgeblendet
+    cur.wagA = damp(cur.wagA ?? 0, wagA, 8, dt); cur.cone = damp(cur.cone ?? 0, cone, 10, dt);
+    cur.ph = (cur.ph ?? 0) + (dt * wagF * TAU) / 2.1; cur.cph = (cur.cph ?? 0) + dt * coneF * TAU;
+    const [b0, ...rest] = w.bones, ph = cur.ph, A = cur.wagA, C = cur.cone;
+    b0.rotation.set(cur.rx + C * Math.sin(cur.cph), cur.ry + A * Math.sin(ph), cur.rz + C * Math.cos(cur.cph));
+    rest.forEach((b, i) => b.rotation.set(cur.side + A * 1.2 * Math.sin(ph - 0.9 * (i + 1)), 0, cur.curl));
+  }
+
+  /** Fortschritt einer kurzen Aktion: phase, sobald der Motor sie im Zustand verändert, sonst Zeit seit Zustandsbeginn / T. */
+  actionPhase(c, st, T) {
+    const w = this.w3, ph = c.phase ?? 0;
+    if (st === 0) { w.phase0 = ph; w.phaseLive = false; } else if (ph !== w.phase0) w.phaseLive = true;
+    return w.phaseLive ? clamp(ph, 0, 1) : clamp(st / T, 0, 1);
   }
 
   /** Kurs-Felder der Pose anwenden: Ellbogen, Oberarm-Drehung, Rumpf, Figurlage um den Schwerpunkt, Stauchung. */
@@ -961,7 +1306,7 @@ export class HeroAvatar extends Avatar3D {
     _e.set(p.roll + this.spin.x, this.spin.y, p.pitch + this.spin.z, 'YXZ');
     this.fig.quaternion.setFromEuler(_e);
     _v.set(0, PIVOT_Y, 0).applyQuaternion(this.fig.quaternion);
-    this.fig.position.set(p.figX - _v.x, PIVOT_Y - _v.y + p.figY, -_v.z);
+    this.fig.position.set(p.figX - _v.x, PIVOT_Y - _v.y + p.figY, -_v.z + p.figZo);
     this.model.scale.set(1 + 0.5 * p.sq, 1 - p.sq, 1 + 0.5 * p.sq);
   }
 
@@ -972,7 +1317,7 @@ export class HeroAvatar extends Avatar3D {
     this.head.matrixWorld.decompose(_p, _q, _s);
     _p.copy(this.mane.position).applyMatrix4(this.head.matrixWorld);
     ch.frame.copy(_q);
-    ch.rest[0].copy(this.maneRest).applyQuaternion(_q);
+    ch.rest[0].copy(this.maneRestCur ?? this.maneRest).applyQuaternion(_q);
     ch.update(_p, dt);
     _qi.copy(_q).invert();
     _v.copy(ch.dirs[0]).applyQuaternion(_qi);
@@ -1088,6 +1433,17 @@ export class HeroAvatar extends Avatar3D {
       const hipY = HIP + (o.bob ?? 0), lean = o.lean ?? 0;
       const n = legIK(THIGH, SHIN, hipY, xn, ANKLE_H, lean), f = legIK(THIGH, SHIN, hipY, xf, ANKLE_H, lean);
       return Object.assign(o, { thighZn: n.thigh, kneeN: n.knee, footN: n.foot + extraN, thighZf: f.thigh, kneeF: f.knee, footF: f.foot + extraF });
+    };
+    // Ein Bein (s = 1 nah/rechts, −1 fern/links) per IK mit Abspreizen: Knöchel x vor der Hüfte, lat nach außen, ay über dem Boden
+    const plantLeg = (o, s, x, lat, ay = ANKLE_H, extra = 0) => {
+      const lean = o.lean ?? 0, hipY = HIP + (o.bob ?? 0), dy = ay - hipY;
+      const cl = Math.cos(lean), sl = Math.sin(lean);
+      const px = x * cl + dy * sl, h = -(-x * sl + dy * cl);  // Ziel im Becken-System
+      const ik = legIK(THIGH, SHIN, Math.hypot(h, lat), px, 0, 0);
+      const ab = Math.atan2(lat, h);
+      if (s > 0) Object.assign(o, { thighXn: -ab, thighZn: ik.thigh, kneeN: ik.knee, footN: ik.foot + lean + extra });
+      else Object.assign(o, { thighXf: ab, thighZf: ik.thigh, kneeF: ik.knee, footF: ik.foot + lean + extra });
+      return o;
     };
 
     switch (state) {
@@ -1352,6 +1708,148 @@ export class HeroAvatar extends Avatar3D {
         dur = 0.05;
         break;
       }
+      // ------------------------------------------------------------ Welt 3
+      case 'tailswipe': {
+        // Schweifhieb: eine Drehung um die Hochachse (von oben gegen den Uhrzeiger), Arme wie ein Kreisel ausgebreitet,
+        // Schweif waagerecht ausgestreckt (applyTail); Beine bleiben am Boden bzw. in der Sprunghaltung
+        const p = this.actionPhase(c, st, 0.35);
+        S.y = TAU * smoothstep(p);
+        const o = grounded ? plant({ bob: -0.07, lean: -0.1 }, 0.07, -0.07) : this.poseJump(0.4);
+        const mid = Math.sin(Math.PI * p);
+        Object.assign(o, {
+          armXn: -1.3 - 0.15 * mid, armXf: 1.3 + 0.15 * mid, armZn: 0.25, armZf: 0.25, elbowN: 0.2, elbowF: 0.2, twistN: 0, twistF: 0,
+          torsoY: 0.25 * mid, headZ: 0.05, headY: 0.3 * mid, eyes: 0.8, mouth: 0, sq: -0.03 * mid,
+        });
+        pose = P(o);
+        dur = 0.05;
+        break;
+      }
+      case 'glide': {
+        // Gleiten: leicht vorgebeugt, Arme seitlich ausgebreitet (etwas nach vorn), Beine baumeln und strampeln sacht;
+        // der Schweif kreist als Propeller, die Zöpfe wehen im Aufwind nach oben (setChainPhysics)
+        const sw = Math.sin(t * 2.6), k = Math.sin(t * 4.8);
+        pose = P({
+          pitch: -0.14, lean: -0.04, bob: 0.025 * Math.sin(t * 2.2), roll: 0.05 * sw,
+          armXn: -1.08 - 0.08 * sw, armXf: 1.08 - 0.08 * sw, armZn: 0.45, armZf: 0.45, elbowN: 0.3, elbowF: 0.3, twistN: -0.4, twistF: 0.4,
+          thighZn: 0.35 + 0.2 * k, thighZf: 0.12 - 0.2 * k, kneeN: 0.6 - 0.2 * k, kneeF: 0.5 + 0.2 * k, footN: 0.6, footF: 0.6,
+          headZ: 0.12, headY: 0.1 * sw, mouth: 0, eyes: 1.05,
+        });
+        dur = 0.16;
+        break;
+      }
+      case 'statue': {
+        // Stein-Statue: aufrecht auf dem Sockel, Hände vor dem Bauch gefaltet, Augen zu, starr (keine Atmung)
+        // Kurz vor Ablauf der Höchstdauer (phase = Anteil, Motor) wackelt die Statue als Vorwarnung
+        const warn = smoothstep((phase - 0.82) / 0.12) * Math.sin(t * 40);
+        const o = { figY: PLINTH_H, bob: STATUE_BOB, lean: 0, headZ: -0.06, roll: 0.035 * warn, figZo: PIVOT_Y * 0.035 * warn, armZn: 0.62, armZf: 0.62, armXn: 0.2, armXf: -0.2, elbowN: 1.5, elbowF: 1.5, twistN: 1.05, twistF: -1.05, eyes: 0.07, mouth: 0 };
+        pose = P(plant(o, 0.035, -0.035));
+        dur = 0.08;
+        break;
+      }
+      case 'skate': {
+        // Schlittschuhlaufen: vorgebeugt, Schritte schräg nach außen-hinten im Wechsel (Abstoß, Zurückholen in der Luft,
+        // Gleiten auf dem Standbein), Arme schwingen gegengleich quer vor dem Körper; Kurvenneigung um die Kufen
+        const k = clamp(speed / 7, 0, 1.15);
+        this.skatePhase = (this.skatePhase ?? 0) + (speed > 0.3 ? clamp(0.5 + 0.1 * speed, 0.5, 1.4) * dt : 0);
+        const leg = (u) => {
+          u = ((u % 1) + 1) % 1;
+          const ext = u < 0.35 ? smoothstep(u / 0.35) : u < 0.5 ? 1 - smoothstep((u - 0.35) / 0.15) : 0;
+          const lift = u >= 0.35 && u < 0.5 ? Math.sin((Math.PI * (u - 0.35)) / 0.15) : 0;
+          return { ext, lift };
+        };
+        const n = leg(this.skatePhase), f = leg(this.skatePhase + 0.5);
+        const w = n.ext - f.ext, bal = Math.sin(t * 2.7);
+        const turn = clamp(-Math.atan((speed * this.w3.turn) / 9.8), -0.5, 0.5);
+        const lean = -0.2 - 0.38 * Math.min(1, k), bob = -0.04 - 0.08 * Math.min(1, k);
+        const o = {
+          lean, bob, torso: -0.04, torsoY: 0.18 * k * w, roll: turn + 0.06 * k * (f.ext - n.ext),
+          headZ: -0.85 * lean + 0.06, headY: -0.12 * k * w,
+          armZn: lerp(0.15, -0.35 - 0.3 * k, n.ext) + lerp(0, 0.9 * k, f.ext), armZf: lerp(0.15, -0.35 - 0.3 * k, f.ext) + lerp(0, 0.9 * k, n.ext),
+          armXn: -0.45 - 0.3 * (1 - k) * (0.5 + 0.5 * bal) - 0.75 * k * n.ext + 0.35 * k * f.ext, armXf: 0.45 + 0.3 * (1 - k) * (0.5 - 0.5 * bal) + 0.75 * k * f.ext - 0.35 * k * n.ext,
+          elbowN: 0.35, elbowF: 0.35, mouth: 0,
+        };
+        o.figZo = PIVOT_Y * Math.sin(o.roll); o.figY = -PIVOT_Y * (1 - Math.cos(o.roll));
+        // Kufen auf den Boden: mit course.skates hebt HeroRig die Hülle um die Kufenhöhe (dann Knöchel wie ohne Kufen)
+        const ankle = SKATE_ANKLE - (c.skates ? SKATE_LIFT_U : 0);
+        plantLeg(o, 1, 0.05 - 0.2 * k * n.ext, 0.02 + 0.3 * k * n.ext, ankle + 0.09 * k * n.lift, 0.15 * k * n.ext);
+        plantLeg(o, -1, 0.05 - 0.2 * k * f.ext, 0.02 + 0.3 * k * f.ext, ankle + 0.09 * k * f.lift, 0.15 * k * f.ext);
+        pose = P(o);
+        dur = 0.16;
+        break;
+      }
+      case 'fence': {
+        // Kettenzaun VOR der Figur (+X, Hitbox-Rand 0,3 m): Rücken zur Kamera, Hände greifen über Kopfhöhe, Füße stehen in
+        // den Maschen; fenceMove {x, y} (−1..1) treibt den Kletterzyklus (hoch/runter: Hände/Füße im Wechsel, seitlich:
+        // nachsetzen); ohne Bewegung ruhiges Hängen. attack → Faustschlag (nahe/ferne Hand im Wechsel) durch den Zaun.
+        const fm = c.fenceMove ?? {}, mx = clamp(fm.x ?? 0, -1, 1), my = clamp(fm.y ?? 0, -1, 1);
+        const m = Math.min(1, Math.hypot(mx, my)), wallU = FENCE_M * upm;
+        this.climbPhase += TAU * 1.5 * m * dt;
+        const q = this.climbPhase, a = 0.5 + 0.5 * Math.sin(q), b = 1 - a;
+        const tot = Math.abs(mx) + Math.abs(my) + 1e-6, vert = (Math.abs(my) / tot) * smoothstep(m / 0.25), lat = (Math.abs(mx) / tot) * smoothstep(m / 0.25);
+        // Richtung seitlich: aus der tatsächlichen Bewegung von root (Rückseite des Zauns: Bildschirm rechts = Figur links), sonst aus x
+        const sv = this.w3.side, dir = Math.abs(sv) > 0.3 ? Math.sign(sv) : Math.sign(mx) || 1, still = 1 - smoothstep(m / 0.25), br = Math.sin(t * 2.1);
+        // seitlich: führende Hand/Fuß greift weit nach außen (a), die andere setzt nach (b); dir = +1 → nach rechts (+Z, nahe Seite)
+        const leadN = dir > 0 ? a : b, leadF = dir > 0 ? b : a;
+        // Arme im V seitlich am Kopf vorbei (aus der Kurs-Kamera hinter der Figur sichtbar), Knie froschartig nach außen
+        const hiN = lerp(0.5, a, vert), hiF = lerp(0.5, b, vert);   // 1 = Hand oben (greift nach)
+        const o = {
+          figX: wallU - FENCE_REACH, lean: -0.05, pitch: -0.15, torso: -0.03, bob: 0.035 * vert * Math.abs(Math.cos(q)) + 0.008 * br * still,
+          figZo: 0.05 * lat * dir * Math.sin(q), roll: 0.08 * lat * dir * Math.sin(q),
+          headZ: 0.8, headY: -0.3 * lat * dir, headX: 0.04 * br * still,
+          armZn: lerp(1.85, 2.35, hiN) + 0.03 * br * still, armZf: lerp(1.85, 2.35, hiF) - 0.03 * br * still,
+          armXn: -lerp(0.9, 0.72, hiN) - lat * lerp(-0.1, 0.25, leadN), armXf: lerp(0.9, 0.72, hiF) + lat * lerp(-0.1, 0.25, leadF),
+          elbowN: lerp(0.3, 0.1, hiN), elbowF: lerp(0.3, 0.1, hiF), twistN: -0.3, twistF: 0.3,
+          thighZn: lerp(0.8, 1.35, hiF), thighZf: lerp(0.8, 1.35, hiN),
+          thighXn: -0.5 - lat * lerp(-0.08, 0.3, leadN), thighXf: 0.5 + lat * lerp(-0.08, 0.3, leadF),
+          kneeN: lerp(1.3, 2.0, hiF), kneeF: lerp(1.3, 2.0, hiN), footN: -0.3, footF: -0.3,
+          eyes: 1, mouth: 0,
+        };
+        // Faustschlag: course.fencePunch (0..1, Motor) bzw. course.attack (true → 0,25 s ab der Flanke, Zahl = Fortschritt)
+        const w = this.w3, at = (c.fencePunch ?? 0) > 0 ? c.fencePunch : c.attack;
+        if (at && !w.attackPrev) { w.attackT = 0; w.punchSide = -w.punchSide; }
+        w.attackPrev = !!at;
+        let pp = -1;
+        if (typeof at === 'number' && at > 0 && at <= 1) { pp = at; w.attackT = -1; } else if (w.attackT >= 0) { w.attackT += dt; pp = w.attackT / 0.25; if (pp >= 1) w.attackT = -1; }
+        if (pp >= 0 && pp <= 1) {
+          const pw = Math.sin(Math.PI * clamp(pp, 0, 1)) ** 0.6, sn = w.punchSide > 0;
+          o.figX += 0.09 * pw; o.lean -= 0.2 * pw; o.torsoY = (sn ? -0.4 : 0.4) * pw; o.headZ -= 0.15 * pw;
+          if (sn) Object.assign(o, { armZn: lerp(o.armZn, 1.72, pw), armXn: lerp(o.armXn, -0.05, pw), elbowN: lerp(o.elbowN, 0, pw), twistN: lerp(o.twistN, 0, pw) });
+          else Object.assign(o, { armZf: lerp(o.armZf, 1.72, pw), armXf: lerp(o.armXf, 0.05, pw), elbowF: lerp(o.elbowF, 0, pw), twistF: lerp(o.twistF, 0, pw) });
+          o.mouth = 0.8; o.eyes = 0.85;
+          label = 'fencePunch';
+        }
+        pose = P(o);
+        dur = label === 'fencePunch' ? 0.04 : 0.12;
+        break;
+      }
+      case 'swimUnder': {
+        // Unter Wasser: Brustschwimmen (Körper waagerecht, Arme ziehen außen herum unter die Brust und schießen nach
+        // vorn, Froschbeine ziehen an und stoßen aus, dann Gleiten); ohne Tempo schwebend mit Paddeln. vy neigt den Körper.
+        const k = clamp(speed / 2.2, 0, 1);
+        this.swimPhase += TAU * (0.42 + 0.38 * k) * dt;
+        const q = this.swimPhase, u = ((q / TAU) % 1 + 1) % 1;
+        const pull = smoothstep(u / 0.3), tuck = smoothstep((u - 0.28) / 0.22), shoot = smoothstep((u - 0.5) / 0.18), glideK = smoothstep((u - 0.68) / 0.3);
+        const tilt = clamp(vy * 0.22, -0.55, 0.55);
+        const sc = Math.sin(t * 2.4), kick = Math.sin(t * 2.4 + 1);
+        // Brustzug (k = 1) und Schweben (k = 0)
+        const S1 = {
+          armX: lerp(lerp(lerp(0.15, 1.3, pull), 0.35, tuck), 0.12, shoot), armZ: lerp(lerp(lerp(3.0, 2.15, pull), 1.25, tuck), 3.0, shoot),
+          elbow: lerp(lerp(lerp(0.05, 0.35, pull), 1.7, tuck), 0.05, shoot), twist: lerp(0.3, 1.0, tuck * (1 - shoot)),
+          thighZ: lerp(lerp(0.05, 1.0, tuck), -0.05, shoot), thighX: lerp(lerp(0.05, 0.5, tuck), 0.42, shoot) * (1 - glideK) + 0.05 * glideK,
+          knee: lerp(lerp(0.15, 1.95, tuck), 0.12, shoot), foot: lerp(0.9, 0.2, tuck * (1 - shoot)) + 0.6 * shoot,
+        };
+        const S0 = { armX: 1.05 + 0.25 * sc, armZ: 1.35 + 0.35 * sc, elbow: 0.5, twist: 0.6, thighZ: 0.45 + 0.3 * kick, thighX: 0.3, knee: 1.1 - 0.45 * kick, foot: 0.6 };
+        const L = (key) => lerp(S0[key], S1[key], k);
+        pose = P({
+          pitch: lerp(-0.4, -1.32, k) + tilt * lerp(0.6, 1, k) + 0.05 * Math.sin(q), figY: 0.02 * Math.sin(q * 2 + 1),
+          headZ: lerp(0.2, 0.95, k) - 0.4 * tilt * k, lean: 0, torso: 0.04 * Math.sin(q),
+          armXn: -L('armX'), armXf: L('armX'), armZn: L('armZ'), armZf: L('armZ'), elbowN: L('elbow'), elbowF: L('elbow'), twistN: L('twist'), twistF: -L('twist'),
+          thighZn: L('thighZ'), thighZf: L('thighZ'), thighXn: -L('thighX'), thighXf: L('thighX'), kneeN: L('knee'), kneeF: L('knee'), footN: L('foot'), footF: L('foot'),
+          eyes: 1, mouth: 0, hairLift: 0.3,
+        });
+        dur = 0.3;
+        break;
+      }
       default:
         label = 'idle';
         pose = P(this.poseIdle(t));
@@ -1362,6 +1860,9 @@ export class HeroAvatar extends Avatar3D {
 
   dispose() {
     this.glow?.dispose();
+    this.w3?.stone.set(false);
+    this.w3?.fx.dispose();
+    this.w3?.tail.skeleton.dispose();
     super.dispose();
   }
 }

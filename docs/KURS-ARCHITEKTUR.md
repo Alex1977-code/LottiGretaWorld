@@ -1906,6 +1906,42 @@ Statue werden – eigenes Kostüm), **Schlittschuh** (tragbar wie ein Reit-Schuh
 Wo der Bauplan den „Kapitän“ nennt (3-Zug, 3-Kapitän), tritt **Krümel** auf; „Münz-Dieb“ = **Münzmarder**;
 „Prinzessinnen-Figur“ (3-4) = Figurenschalter für **Greta** bzw. **Lotti**.
 
+**Level-Notizen 3-1 / 3-4** (Level-Agent; Hilfen `src/course/levels/w3/_helpers_a.js` ohne `LEVEL`; Test
+`tests/course_w3a.mjs [3-1|3-4]`, Port 4371 + PORT_BASE, Bilder `tests/out/w3a_*.png`; `SHOTS_ONLY=1`, `ONLY=<Text|Text>`,
+`ROUTE=1`):
+
+- **3-1 „Flockenwiese“** (parcours, snow, course_snow, 400 s, ≈ 255 m nach −Z): Schneefeld-Start (Iglu mit Rauch,
+  Schneemann-Familie, Schlitten mit Fußspuren, Lichterkette, ?-Block mit Gleitblatt, Schneebälle: einer zerschellt am
+  Felsriegel → 5 Münzen, einer kegelt drei Krabbelkäfer um; Frosttor mit fallenden Eiszapfen) → Flatterfeld (Spalte,
+  Felswand mit **Wandloch – Stern 0** hinter neun kreisenden Flatterkäfern, Eisläufer-Teich: auf dem Reit-Eisläufer
+  mitfahren, stampfen → Schlittschuh; Checkpoint mit Gleitblatt-Nachschub) → Hasenwiese (**Stern 1**) und **schmaler
+  Eissteg (1 m) zum Stempel** → Eisbahn mit zwei Eisläufern und Stachelstreifen (Münzen nur mit Schlittschuh), drei
+  schmale Eisstege über dem Abgrund, zweite Eisbahn mit Verfolger → Zielplateau: **Nische in der Felswand – Stern 2**
+  (Boden 6,8 m über dem Plateau, vom Dreifachsprung unerreichbar): vom Schneebaum (vier Ast-Stufen, Krone 7,6 m) mit dem
+  Gleitblatt hinübergleiten, Propeller-Helm am Wegrand, oder Krallen-Anzug (?-Block) an der Kletterwand; Zielröhre →
+  Baumhain hinter der Felswand (zugefrorener Teich mit Robben- und Pinguinkindern, Zielmast). Extraleben: unsichtbarer
+  Block über der Iglu-Kuppel. Gegner: Schneesäule 6, Flatterkäfer 9, Eisläufer 4, Mini-Pilzling 4, Krabbelkäfer 7.
+- **3-4 „Marzipangarten“** (parcours, plaza, course_plaza, **100 s**, ≈ 125 m): Startinsel unter dem Blumenbogen;
+  **Stern 0 auf dem unsichtbaren Wolkenlift bündig hinter der Startinsel** (drei Münzen schweben über ihm, Lift fährt
+  10 m hoch) → zwei gegenläufige Schwebeplattformen → Hasenplattform (Brunnen mit Wasserspiel, Pavillon mit begehbarem
+  Stufendach, Mosaikweg, Marzipan-Schweinchen; **Stern 1 Hase**; **Stempel**: Lotti- und Greta-Figurenschalter, jeder
+  nur für die eigene Heldin, lassen Wolkenstufen zum Stempel erscheinen; Extraleben im unsichtbaren Block über der
+  oberen Brunnenschale) → Glasröhre → drei Schwebeplattformen mit Topf-Schnappblumen, rechts die Wolkenkanone in den
+  Münzhimmel (**Stern 2**, Regenbogen; zurück per Sprung in die Tiefe) → Pastelltreppe mit Geländer, Pilzlingen und
+  Endlos-Münzblock → Zielmast. Gegner: Pilzling 11, Mini-Pilzling 5, Schnappblume 3. Bot-Zeit ≈ 30–36 s.
+- **Level-Haken** (`LEVEL.setup`): `levelSetup` (aus `w2/_helpers_c.js`) + `cullStatic` (aus `w2/_helpers_a.js`). Budget-
+  Kniffe level-lokal: `instanceEnemies(level, kinds)` zeichnet gleiche Gegner-Modelle (gleiche Registry-Geometrien und
+  -Materialien) als je eine InstancedMesh pro Modellteil – die Entitäten rechnen und animieren ihre Modelle weiter, nur
+  die Einzelmodelle werden nicht gezeichnet (neun Flatterkäfer ≈ 9 statt ≈ 80 Aufrufe; Pilzlinge, Eisläufer,
+  Schneesäulen, Krabbelkäfer); Modelle mit eigenem Material je Exemplar (Schnappblume: Treffer-Blitz) bleiben einzeln
+  (dort `noModelShadow` + `farHide`). Ferne Tannenhänge mit `farFirs` (≈ 70 Dreiecke je Baum, ohne Schatten), Wegrand-
+  Tannen mit `snowFirs` (≈ 260 statt 3 k des Registry-Modells `tanne_schnee`). Belebte Zier je ein Mesh ohne
+  Sonnenschatten (Blob am Boden): Pinguinkinder (watscheln, winken, Bauchrutschen), Robbenkinder, Iglu-Rauch
+  (Instanzen), Brunnenwasser.
+- **Kennzahlen** (scale 2, inkl. Schattenpass, 18 bzw. 14 Abschnittsbilder): 3-1 72–108 Zeichenaufrufe, 194–268 k
+  Dreiecke; 3-4 72–99 / 128–209 k. Wunsch an den Motor: Zeitwarnung (`timewarn`) auch bei Zeitlimits ≤ 120 s (3-4 hat
+  100 s; die Warnung bei 100 s Rest entfällt dort, eine bei z. B. 30 s Rest wäre hilfreich).
+
 ---
 
 ## Präzisierung (Motor Welt 3)

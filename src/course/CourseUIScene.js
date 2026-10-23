@@ -143,7 +143,7 @@ export class CourseUIScene extends Phaser.Scene {
       this.livesText.setText(`×${rt.lives}`);
       this.coinText.setText(String(rt.coins));
       this.timeText.setText(String(time).padStart(3, '0'));
-      this.timeText.setColor(time <= 100 ? '#ffb0a0' : '#ffffff');
+      this.timeText.setColor(time <= (rt.timeLimit > 120 ? 100 : 30) ? '#ffb0a0' : '#ffffff');
       const def = getPower(p.power);
       this.powerText.setText(p.power !== 'none' ? `${def.label ?? p.power}${def.duration ? ` ${Math.ceil(p.powerTime)}` : ''}` : '');
       this.drawIcons(rt, p, def);
