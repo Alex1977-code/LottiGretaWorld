@@ -50,7 +50,8 @@ export class CourseScene extends Phaser.Scene {
 
   init(data) {
     this.levelId = data?.id ?? this.registry.get('startCourse') ?? '0-0';
-    this.manual = false;
+    // ?still=1 (Messungen, tests/course_perf.mjs): Simulation steht von Anfang an (wie setManual(true))
+    this.manual = new URLSearchParams(window.location.search).has('still');
     this.acc = 0;
     this.finished = false;
     this.level = null;
