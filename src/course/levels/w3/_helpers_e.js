@@ -2027,7 +2027,8 @@ export function zugSetup(level) {
     }
     // Räder/Stangen der Wagen (Instanzen unter dem Aufbau) werfen keinen Sonnenschatten
     for (const v of level.entities) if (v.kind === 'vehicle') v.model?.root.traverse((o) => { if (o.isInstancedMesh) o.castShadow = false; });
-    shadowDiet(level, ['pilzlingsturm']);
+    shadowDiet(level, ['pilzlingsturm', 'schattenlaeuferin']);
+    shadowDiet(level, ['schatten_doppelgaenger', 'schatten_bumerang'], 0);
     shadowDiet(level, ['huepfqualle', 'feuer_werfer', 'suchkopf', 'riesenprojektil', 'riesenkanone', 'kanone_turm', 'crate', 'checkpoint_flag', 'steinblock'], 0);
     const sz = cfg.shadowZones ?? [];
     sc.cull = new StaticCullE(level, { shadowRange: 30, maxDist: 95, merge: true, shadowKeep: (b) => sz.some(([z0, z1]) => b.max.z > z1 && b.min.z < z0) });
