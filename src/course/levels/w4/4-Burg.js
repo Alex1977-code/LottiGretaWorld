@@ -88,7 +88,8 @@ function setup(level) {
     { from: [2.6, LY, -304], to: [14, LY, -304], height: 9, face: 1 },
   ]);
   // Säulen mit Feuerschalen rings um die Arena (stehen in der Lava, nicht zur Kamera hin)
-  const saeulen = [0.85, 1.55, 2.3, 3.14, 3.98, 4.73, 5.43].map((a) => ({ pos: [Math.sin(a) * 15.2, LY, AZ + Math.cos(a) * 15.2], r: 1.25, height: 9.5, roof: false, solid: false }));
+  // Säulen rund um den Käfig; hinten (Winkel π) bleibt eine Lücke – dort hält Baron Brummbär auf der Burgbrücke
+  const saeulen = [0.85, 1.55, 2.3, 3.98, 4.73, 5.43].map((a) => ({ pos: [Math.sin(a) * 15.2, LY, AZ + Math.cos(a) * 15.2], r: 1.25, height: 9.5, roof: false, solid: false }));
   tuerme(level, [
     ...saeulen,
     { pos: [-33, LY, 9], r: 3, height: 14 }, { pos: [15, LY, 9], r: 3, height: 14 },
@@ -157,7 +158,7 @@ function setup(level) {
   teppich(level, { x: 0, y: Y, z0: -276.5, z1: -294.6, w: 3 });
   baronStatue(level, { pos: [-3.4, Y0, 7.6], yaw: -PI / 2 - 0.25, size: 0.7 });
   stimmung(level, [{ min: [-40, -272], max: [40, -218], mood: 'innen' }]);
-  level._baron = baronSzene(level, { from: [-40, Y, -256], stop: [-3, Y, -256], away: [44, Y, -256] });
+  level._baron = baronSzene(level, { from: [-40, Y, -256], stop: [0, Y, -256], away: [44, Y, -256] });
   // ---------------- Budget
   teileInstanzen(level, ['pilzlingsturm', 'lavabrocken', 'lavafunke', 'pilzling'], { name: 'gegner' });
   heroShadowDiet(level, 0.12);

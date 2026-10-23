@@ -1223,7 +1223,7 @@ class BaronSzeneLava {
       if (!this.said && this.t > 0.3) {
         this.said = true;
         const hud = this.level.archetype?.hud;
-        hud?.banner?.(this.cfg.text ?? 'Baron Brummbär: „Mein Felsenkönig! Das bekommt ihr zurück!“', { hold: 2.8, size: 11, color: '#ffb0a0', y: 0.22 });
+        hud?.banner?.(this.cfg.text ?? 'Baron Brummbär: „Mein Felsenkönig! Das bekommt ihr zurück!“', { hold: 2.8, size: 11, color: '#ffb0a0', y: 0.7 });
         this.level.sfx('panic');
       }
       if (this.t > 2.2) {
@@ -1267,34 +1267,39 @@ class BaronSzeneLava {
 export function baronSzene(level, cfg) {
   const sc = new BaronSzeneLava(level, cfg);
   const rt = level.runtime, respawn = rt.respawn.bind(rt);
-  const arch = level.archetype;
-  rt.respawn = (...a) => { respawn(...a); if (!arch?.won) sc.reset(); };
+  rt.respawn = (...a) => { respawn(...a); if (!level.archetype?.won) sc.reset(); };
+  // Kamera erst einhängen, wenn der Archetyp steht (der Level-Haken läuft vor dessen setup)
+  let wrapped = false;
+  const wrapCam = () => {
+    const arch = level.archetype;
+    if (wrapped || !level.view || !arch?.camera) return;
+    wrapped = true;
+    const cam = arch.camera.bind(arch);
+    let k = 0;
+    arch.camera = (dt, player, world) => {
+      const r = cam(dt, player, world);
+      const want = sc.active && sc.state !== 'away' ? 0.95 : sc.state === 'away' && sc.t < 1.4 ? 0.6 : 0;
+      k += (want - k) * Math.min(1, dt * 2.5);
+      if (k > 0.01) {
+        // Blick zum Wagen, flacher (über die Käfigstäbe hinweg)
+        const rig = level.view.rig;
+        // Blickziel etwas hinter und über dem Wagen: der Baron steht dann mittig über dem Käfigrand
+        rig.target.set(rig.target.x + (sc.pos.x - rig.target.x) * k, rig.target.y + (sc.pos.y + 3.2 - rig.target.y) * k, rig.target.z + (sc.pos.z - 3 - rig.target.z) * k);
+        rig.distNow += (15 - rig.distNow) * k;
+        rig.place({ ...rig.cur, pitch: rig.cur.pitch + (30 - rig.cur.pitch) * k }, dt);
+      }
+      return r;
+    };
+  };
   level.onStep((dt) => {
+    wrapCam();
     if (sc.state === 'wait') {
       const b = level.named.get(cfg.boss ?? 'koenig');
       if (b && b.state === 'gone' && b.hp <= 0) sc.start();
     }
     sc.step(dt);
   });
-  if (level.view) {
-    level.view.onFrame((dt) => sc.render(dt));
-    if (arch?.camera) {
-      const cam = arch.camera.bind(arch);
-      let k = 0;
-      arch.camera = (dt, player, world) => {
-        const r = cam(dt, player, world);
-        const want = sc.active && sc.state !== 'away' ? 0.6 : sc.state === 'away' && sc.t < 1.4 ? 0.45 : 0;
-        k += (want - k) * Math.min(1, dt * 2.5);
-        if (k > 0.01) {
-          const rig = level.view.rig;
-          rig.target.set(rig.target.x + (sc.pos.x - rig.target.x) * k, rig.target.y + (sc.pos.y + 1.5 - rig.target.y) * k, rig.target.z + (sc.pos.z - rig.target.z) * k);
-          rig.distNow += (20 - rig.distNow) * k;
-          rig.place(rig.cur, dt);
-        }
-        return r;
-      };
-    }
-  }
+  if (level.view) level.view.onFrame((dt) => sc.render(dt));
   return sc;
 }
 

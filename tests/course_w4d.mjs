@@ -315,7 +315,7 @@ const W = (name, ...args) => sc(([n, a]) => window.__w4[n](...a), [name, args]);
 
 async function shot(name, setup, o = {}) {
   if (setup) await sc(setup, o.arg);
-  await sc(() => { const c = window.__course; for (const f of c.level.players) f.invuln = 0; c.step(1); c.snapCamera(); });
+  await sc((snap) => { const c = window.__course; for (const f of c.level.players) f.invuln = 0; c.step(1); if (snap) c.snapCamera(); }, o.snap !== false);
   const f0 = await sc(() => window.__course.view.frame);
   await page.waitForFunction((f) => window.__course.view.frame >= f + 3, f0, { timeout: 60000 });
   await page.waitForTimeout(o.wait ?? 400);
@@ -721,8 +721,8 @@ async function burgBilder() {
     for (let i = 0; i < 2400 && L._baron?.state !== 'stop'; i++) c.step(1);
     c.step(80);
     delete p.hurt;
-  }, { wait: 300 });
-  console.log(`  Baron im Bild: ${JSON.stringify(await sc(() => ({ baron: window.__course.level._baron.info(), boss: window.__course.level.named.get('koenig').state })))}`);
+  }, { snap: false });                // Kamera schwenkt weich zum Wagen – nicht auf die Figur zurückschnappen
+  console.log(`  Baron im Bild: ${JSON.stringify(await sc(() => ({ baron: window.__course.level._baron.info(), boss: window.__course.level.named.get('koenig').state, rig: window.__course.view.rig.info(), cam: window.__course.view.camera.position.toArray().map((v) => +v.toFixed(1)) })))}`);
 }
 
 // ====================================================================== 4-Haus: Raum-Bot (in der Seite)
