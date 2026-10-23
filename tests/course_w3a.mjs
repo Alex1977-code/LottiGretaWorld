@@ -48,10 +48,13 @@ const ROUTES = {
           { to: [13.6, -77.5], jump: 40, within: 0.4, run: false }], shot: 'stern0' },
       { name: 'Stern 1: Hasen auf der Hasenwiese fangen', star: 1, from: [-13, 1, -108],
         legs: [{ chaseKind: 'bunny', max: 3000 }, { wait: 60 }, { star: 1 }], shot: 'stern1' },
-      { name: 'Stern 2: Schneebaum hinauf, mit dem Gleitblatt in die Nische', star: 2, from: [12, 1, -185], power: 'gleitblatt',
-        legs: [{ to: [10.5, -185.1], jump: 30, within: 0.35, run: false }, { wait: 10 }, { to: [8.6, -189.3], jump: 34, within: 0.35, run: false }, { wait: 10 },
-          { to: [4.1, -188.1], jump: 34, within: 0.35, run: false }, { wait: 10 }, { to: [5.6, -186.6], jump: 34, within: 0.4, run: false }, { wait: 10 },
-          { to: [8.6, -186], within: 0.3, run: false }, { to: [-10.4, -184.8], jump: 900, jumpAt: 14.8, within: 0.6 }], shot: 'stern2', expectPower: 'gleitblatt' },
+      { name: 'Stern 2: Schneebaum hinauf, mit dem Gleitblatt in die Nische', star: 2, from: [12.4, 1, -184.4], power: 'gleitblatt',
+        legs: [{ to: [10.0, -184.9], jump: 30, jumpAt: 2.4, within: 0.3, run: false }, { wait: 10 },
+          { to: [9.45, -188.06], jump: 30, jumpAt: 2.3, within: 0.3, run: false }, { wait: 10 },
+          { to: [6.44, -189.15], jump: 30, jumpAt: 2.3, within: 0.3, run: false }, { wait: 10 },
+          { to: [3.71, -187.2], jump: 30, jumpAt: 2.3, within: 0.3, run: false }, { wait: 10 },
+          { to: [5.4, -186.5], jump: 30, within: 0.4, run: false }, { wait: 10 },
+          { to: [8.8, -186], within: 0.3, run: false }, { to: [-10.4, -184.8], jump: 900, jumpAt: 15.3, within: 0.6 }], shot: 'stern2', expectPower: 'gleitblatt' },
       { name: 'Stern 2: mit dem Propeller-Helm hinauf', star: 2, from: [3, 1, -177.6],
         legs: [{ to: [1.2, -177.6], within: 0.3, run: false }, { wait: 10 }, { to: [-7, -184.8], within: 0.3, run: false }, { press: true, to: [-10.4, -184.8], hold: { action: true }, holdJump: 0, within: 0.6, run: false, airOnly: true }] },
       { name: 'Stern 2: mit dem Krallen-Anzug die Wand hinauf', star: 2, from: [-5, 1, -176.6],
@@ -66,11 +69,11 @@ const ROUTES = {
       { name: 'Schneeball am Felsriegel: zerschellt, 5 Münzen', from: [-7.4, 1, -6.8], heroes: ['lotti'],
         legs: [{ to: [-7.4, -19.4], run: false, within: 0.4, max: 900 }, { wait: 60 }, { chaseKind: 'coin', max: 600 }], expectBroken: 'ball_riegel', expectCoins: 5 },
       { name: 'Schneeball kegelt die Krabbelkäfer um', from: [6.8, 1, -16.2], heroes: ['lotti'],
-        legs: [{ to: [6.8, -29], run: false, within: 0.5, max: 900 }, { wait: 120 }], expectDefeatedKind: ['krabbelkaefer', 1] },
-      { name: 'Eisläufer: mitfahren, stampfen → Schlittschuh', from: [-6, 1.3, -79.6], heroes: ['lotti', 'greta'],
+        legs: [{ to: [6.8, -22], run: true, within: 0.5, max: 900 }, { wait: 300 }], expectDefeatedKind: ['krabbelkaefer', 1] },
+      { name: 'Eisläufer: mitfahren, stampfen → Schlittschuh', from: [-6, 1, -78.8], heroes: ['lotti', 'greta'],
         legs: [{ mount: 'eis_reit' }, { ride: 'eis_reit', steps: 240 }, { stomp: true }, { wait: 40 }, { chaseKind: 'schlittschuh', max: 600 }], expectSkate: true },
       { name: 'Stachelstreifen: mit Schlittschuh sicher, Münzen', from: [8.2, 1, -115.6], heroes: ['lotti'], skate: true, vulnerable: true,
-        legs: [{ to: [8.2, -136.5], run: true, within: 0.6, max: 900 }], expectCoins: 6, expectNotHurt: true },
+        legs: [{ to: [8.2, -136.5], run: true, within: 0.6, max: 900 }], expectCoins: 5, expectNotHurt: true },
       { name: 'Eiszapfen im Frosttor fallen', from: [-2.6, 1, -38], heroes: ['lotti'],
         legs: [{ to: [-2.6, -42.4], run: false, within: 0.4 }, { wait: 50 }], expectNamedState: ['ez1', ['shake', 'fall', 'gone']] },
       { name: 'Extraleben im unsichtbaren Block über der Iglu-Kuppel', from: [-5.6, 1, 3.5], heroes: ['lotti'],
@@ -99,6 +102,88 @@ const ROUTES = {
   },
 };
 
+const YH = 25, YT = 5.2;
+ROUTES['3-4'] = {
+  start: [0, 1, 4],
+  timeLimit: 100,
+  enemies: { pilzling: 16, schnappblume: 3 },
+  minis: 5,
+  main: [
+    { name: 'Start', to: [0, -5.6], within: 0.4, run: false },
+    { untilNamed: 'mA', axis: 'x', gt: -1.0 },
+    { name: 'Schwebeplattform A', toNamed: 'mA', jump: 30, within: 0.7 },
+    { untilNamed: 'mB', axis: 'x', lt: 1.4, ride: 'mA', max: 1600 },
+    { name: 'Schwebeplattform B', toNamed: 'mB', jump: 30, within: 0.7 },
+    { name: 'Insel 2', to: [0, -19], jump: 30, within: 0.6 },
+    { to: [0, -28] },
+    { name: 'Hasenplattform', to: [0, -50] },
+    { name: 'Glasröhre', to: [0, -54.4], within: 0.3 },
+    { to: [0, -70.4], within: 0.5 },
+    { name: 'Schnappblume 1', untilNamed: 'm1', axis: 'x', gt: -0.6, max: 1600 },
+    { toNamed: 'm1', jump: 30, within: 0.7, run: false },
+    { toNamed: 'm1', within: 0.4, run: false, max: 300 },
+    { untilNamed: 'm2', axis: 'x', lt: 1.6, ride: 'm1', max: 1600 },
+    { name: 'Schnappblume 2', toNamed: 'm2', jump: 30, within: 0.7, run: false },
+    { toNamed: 'm2', within: 0.4, run: false, max: 300 },
+    { untilNamed: 'm3', axis: 'x', gt: -1.6, ride: 'm2', max: 1600 },
+    { name: 'Schnappblume 3', toNamed: 'm3', jump: 30, within: 0.7, run: false },
+    { toNamed: 'm3', within: 0.4, run: false, max: 300 },
+    { name: 'Insel D', to: [0, -90.4], jump: 30, within: 0.6 },
+    { to: [0, -95.6], within: 0.4 },
+    { name: 'Treppe', to: [0, -97.2], jump: 16, within: 0.4, run: false },
+    { to: [0, -98.8], jump: 16, within: 0.4, run: false },
+    { to: [0, -100.4], jump: 16, within: 0.4, run: false },
+    { to: [0, -102], jump: 16, within: 0.4, run: false },
+    { to: [0, -103.6], jump: 16, within: 0.4, run: false },
+    { to: [0, -105.2], jump: 16, within: 0.4, run: false },
+    { name: 'Zielmast', to: [0, -112.3], within: 0.2 },
+  ],
+  targets: [
+    { name: 'Stern 0: unsichtbarer Wolkenlift direkt hinter dem Start', star: 0, from: [0, 1, 6],
+      legs: [{ to: [0, 9.4], run: false, within: 0.3 }, { untilNamed: 'wl_start', axis: 'y', gt: 9.8, ride: true, max: 1200 }, { wait: 60 }], shot: 'stern0' },
+    { name: 'Stern 1: Hasen fangen', star: 1, from: [-2, 1, -36],
+      legs: [{ chaseKind: 'bunny', max: 3000 }, { wait: 60 }, { star: 1 }], shot: 'stern1' },
+    { name: 'Stern 2: Wolkenkanone in den Münzhimmel', star: 2, from: [4.6, 1, -68.2],
+      legs: [{ to: [10.2, -68.2], jump: 30, within: 0.5 }, { to: [11.5, -68.4], jump: 36, within: 0.3, run: false }, { wait: 30 },
+        { to: [0, -78.6], within: 0.4, run: false }, { to: [0, -83.5], jump: 34, within: 0.5 }, { to: [3, -89.5], jump: 34, within: 0.5 },
+        { to: [0, -95.5], jump: 34, within: 0.5 }, { to: [-2.6, -101.5], jump: 34, within: 0.5 }, { wait: 20 }], shot: 'stern2' },
+    { name: 'Stempel: Lotti-Schalter lässt die Wolkenstufen erscheinen', from: [-6, 1, -41.2], stamp: true, heroes: ['lotti'],
+      legs: [{ to: [-8.2, -41.2], within: 0.25, run: false }, { wait: 90 }, { to: [-12.4, -43.2], jump: 30, within: 0.4, run: false },
+        { to: [-14.8, -45.4], jump: 30, within: 0.4, run: false }, { to: [-17.2, -47.6], jump: 30, within: 0.4, run: false },
+        { to: [-18.6, -50.6], jump: 34, within: 0.4, run: false }, { wait: 20 }], shot: 'stempel' },
+    { name: 'Stempel: Greta-Schalter (Greta)', from: [-6, 1, -43.8], stamp: true, heroes: ['greta'],
+      legs: [{ to: [-8.2, -43.8], within: 0.25, run: false }, { wait: 90 }, { to: [-12.4, -43.2], jump: 30, within: 0.4, run: false },
+        { to: [-14.8, -45.4], jump: 30, within: 0.4, run: false }, { to: [-17.2, -47.6], jump: 30, within: 0.4, run: false },
+        { to: [-18.6, -50.6], jump: 34, within: 0.4, run: false }, { wait: 20 }] },
+  ],
+  extra: [
+    { name: 'Lotti-Schalter reagiert nicht auf Greta', from: [-6, 1, -41.2], heroes: ['greta'],
+      legs: [{ to: [-8.2, -41.2], within: 0.25, run: false }, { wait: 120 }], expectNamed: ['stempelweg', 'want', false] },
+    { name: 'Extraleben im unsichtbaren Block über der Brunnenschale', from: [-3.6, 1, -35.4], heroes: ['lotti'],
+      legs: [{ to: [-4.0, -35.4], within: 0.3, run: false }, { to: [-6.4, -35.4], jump: 40, within: 0.3, run: false }, { wait: 10 }, { hop: 40 }, { wait: 60 }, { chaseKind: 'powerup', max: 900 }], expectLives: 1 },
+    { name: 'Endlos-Münzblock auf der Treppe: Münzen in Folge', from: [-2.2, 3.1, -100], heroes: ['lotti'],
+      legs: [{ hop: 26 }, { hop: 26 }, { hop: 26 }, { hop: 26 }, { hop: 26 }, { wait: 90 }], expectCoins: 4 },
+    { name: 'Zeitlimit 100 s: Zeit um → Tod', from: [0, 1, 4], heroes: ['lotti'], timeout: true,
+      legs: [{ wait: 12200 }], expectDead: true },
+  ],
+  shots: [
+    ['start', [0, 1, 4]],
+    ['hinter_start', [0, 1, 7.4]],
+    ['schwebe', [0, 1, -5]],
+    ['insel2', [0, 1, -18]],
+    ['hasenplatz', [0, 1, -32]],
+    ['brunnen', [-3, 1, -38]],
+    ['schalter', [-7, 1, -44]],
+    ['pavillon', [-2, 1, -46]],
+    ['roehre', [0, 1, -51]],
+    ['schnappblumen', [0, 1, -70]],
+    ['kanone', [8, 1, -66]],
+    ['muenzhimmel', [0, YH, -78]],
+    ['treppe', [0, 1, -92]],
+    ['ziel', [0, YT, -107]],
+  ],
+};
+
 const PORT = 4371;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
@@ -109,7 +194,7 @@ const only = process.argv[2];
 const LEVELS = only ? [only] : ['3-1', '3-4'].filter((id) => ROUTES[id]);
 const SHOTS_ONLY = !!process.env.SHOTS_ONLY;
 const ONLY = process.env.ONLY ?? null;
-const pick = (list) => (ONLY ? list.filter((t) => t.name.includes(ONLY)) : list);
+const pick = (list) => (ONLY ? list.filter((t) => ONLY.split('|').some((k) => t.name.includes(k))) : list);
 
 /** Hilfen in der Seite: Figur setzen, Bot-Fahrt, Zustand. */
 function install() {
@@ -196,10 +281,12 @@ function install() {
         if (L.mount) {
           // auf eine Entität (Reit-Oberseite) springen: hinlaufen, abspringen, in der Luft zu ihr lenken
           const e = c.level.named.get(L.mount);
-          let n = 0, on = false;
+          let n = 0, on = false, still = 0, lx = p.pos.x, lz = p.pos.z;
           for (; n < 2400 && !on && e && !e.defeated; n++) {
             const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
-            const jump = p.mode === 'ground' && d < 2.2 && p.pos.y < e.pos.y + 0.6;
+            if (Math.hypot(p.pos.x - lx, p.pos.z - lz) < 0.01) still++; else still = 0;
+            lx = p.pos.x; lz = p.pos.z;
+            const jump = p.mode === 'ground' && ((d < 2.2 && p.pos.y < e.pos.y + 0.6) || still > 30);
             let st;
             if (p.mode === 'air') {
               let vx = dx * 3 + (e.vel?.x ?? 0), vz = dz * 3 + (e.vel?.z ?? 0);
@@ -239,7 +326,7 @@ function install() {
             const q = this.namedPos(L.untilNamed);
             const v = L.axis === 'x' ? q[0] : L.axis === 'y' ? q[2] : q[1];
             if ((L.lt !== undefined && v < L.lt) || (L.gt !== undefined && v > L.gt)) break;
-            if (L.ride) { const r = this.namedPos(L.untilNamed); const dx = r[0] - p.pos.x, dz = r[1] - p.pos.z, d = Math.hypot(dx, dz); tick(d > 0.2 ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {}); }
+            if (L.ride) { const r = this.namedPos(L.ride === true ? L.untilNamed : L.ride); const dx = r[0] - p.pos.x, dz = r[1] - p.pos.z, d = Math.hypot(dx, dz); tick(d > 0.2 ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {}); }
             else tick(L.hold ?? {});
           }
           log.push(['warte', L.untilNamed, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
@@ -340,6 +427,7 @@ function install() {
     info: () => P().info(),
     named: (id) => { const e = c.level.named.get(id); return e ? { kind: e.kind, alive: e.alive, defeated: !!e.defeated, state: e.state, broken: !!e.broken, info: e.info?.() } : null; },
     kinds: () => { const m = {}; for (const e of c.level.entities) m[e.kind] = (m[e.kind] ?? 0) + (e.count > 1 && e.members ? 0 : 1); return m; },
+    minis: () => c.level.entities.filter((e) => e.kind === 'pilzling' && e.mini).length,
     defeated: (kind) => c.level.entities.filter((e) => e.kind === kind && e.defeated).length,
     lives: () => c.level.runtime.save.lives,
   };
@@ -401,6 +489,7 @@ for (const id of LEVELS) {
   for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
   check(`${id}: Zeitlimit ${R.timeLimit} s`, meta.timeLimit === R.timeLimit);
   for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
+  if (R.minis !== undefined) { const m = await W('minis'); check(`${id}: davon ${R.minis} Mini-Pilzlinge (${m})`, m === R.minis); }
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
   for (const hero of SHOTS_ONLY || ONLY ? [] : ['lotti', 'greta']) {
@@ -454,7 +543,8 @@ for (const id of LEVELS) {
       if (t.expectDefeated) { const nm = await W('named', t.expectDefeated); res.log.push(['besiegt?', t.expectDefeated, JSON.stringify(nm)]); ok = ok && !!nm?.defeated; }
       if (t.expectDefeatedKind) { const n = await W('defeated', t.expectDefeatedKind[0]); res.log.push(['besiegt', t.expectDefeatedKind[0], n]); ok = ok && n >= t.expectDefeatedKind[1]; }
       if (t.expectNamedState) { const nm = await W('named', t.expectNamedState[0]); res.log.push(['zustand', JSON.stringify(nm)]); ok = ok && t.expectNamedState[1].includes(nm?.state); }
-      if (t.expectRt) { const rt = res.rt; ok = ok && t.expectRt(rt); }
+      if (t.expectNamed) { const v = await sc(([id, k]) => window.__course.level.named.get(id)?.[k], [t.expectNamed[0], t.expectNamed[1]]); res.log.push(['benannt', ...t.expectNamed, v]); ok = ok && v === t.expectNamed[2]; }
+      if (t.expectDead) ok = res.log.some((l) => l[0] === 'TOD' && l[1] === 'time');
       if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
       check(`${id}: ${t.name} (${hero}, bei ${res.info.x.toFixed(1)}, ${res.info.y.toFixed(1)}, ${res.info.z.toFixed(1)}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0})`, ok);

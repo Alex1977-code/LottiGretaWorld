@@ -22,14 +22,18 @@
 
 import {
   isl, snow, rink, steg, line, ring, arc, column, starHere, levelSetup, farHide, sled, footprints, sledTrack,
-  icicleFringe, bench, birdhouse, snowAngel, snowTree, crystals, penguins, seals, smoke, farFirs, instanceEnemies,
+  icicleFringe, bench, birdhouse, snowAngel, snowTree, crystals, penguins, seals, smoke, farFirs, snowFirs, snowDrifts, frostBushes, instanceEnemies, cullStatic,
 } from './_helpers_a.js';
 
 const Y = 1;
 const CAM = { pitch: 44, dist: 13, fov: 40 };
 
 // Schneebaum am Zielplateau (Krone begehbar, Ast-Stufen) und Felsnische
-const TREE = { x: 7, z: -186, top: 8.9, r: 2.2 };
+const TREE = {
+  x: 7, z: -186, top: 8.9, r: 2.2,
+  // Ast-Stufen um den Stamm (dx, dz, Oberseite): je ≈ 3,2 m auseinander, 1,6 m höher
+  steps: [[3.0, 1.1, Y + 1.6], [2.45, -2.06, Y + 3.2], [-0.56, -3.15, Y + 4.8], [-3.29, -1.2, Y + 6.4]],
+};
 const NICHE = { x0: -12, x1: -9, z0: -183, z1: -186.6, y: 8 };
 const HOLE = { x0: 12, x1: 15.4, z0: -75.6, z1: -79.4, y: 4 };
 
@@ -63,7 +67,7 @@ function scene(level) {
   // ---------------- Eisbahn: Robbenkinder am Rand
   seals(level, [{ pos: [11.4, Y, -120], yaw: Math.PI + 0.3, phase: 0.2 }, { pos: [-11.6, Y, -137], yaw: -0.5, phase: 2.1 }]);
   // ---------------- Zielplateau: Schneebaum, Nische
-  snowTree(level, TREE.x, Y, TREE.z, { top: TREE.top, r: TREE.r, lights: true, steps: [[3.5, 0.9, Y + 1.9], [1.6, -3.3, Y + 3.7], [-2.9, -2.1, Y + 5.6]] });
+  snowTree(level, TREE.x, Y, TREE.z, { top: TREE.top, r: TREE.r, lights: true, steps: TREE.steps.map(([dx, dz, y]) => [dx, dz, y, 0.95]) });
   icicleFringe(level, NICHE.x1 + 0.02, NICHE.z0, NICHE.x1 + 0.02, NICHE.z1, NICHE.y + 2.6, { len: 0.5, density: 3 });
   crystals(level, [[-11.5, NICHE.y, -183.6, 1, 0x9ff0ff]]);
   icicleFringe(level, -16, -199.9, 16, -199.9, Y + 9, { len: 0.9, density: 1.2 });
@@ -79,10 +83,29 @@ function scene(level) {
   sled(level, -6.2, Y, -229.4, -0.3, { color: 0x3a6ad8 });
   footprints(level, [[0.6, -232], [1.4, -238], [0.6, -244], [0.2, -250]], Y, { size: 0.9 });
   snowTree(level, -8.6, Y, -256.4, { top: Y + 6.4, r: 2, lights: true });
+  // ---------------- Schneewehen und Frostbüsche am Wegrand
+  snowDrifts(level, [
+    [-10.5, Y, -3, 3, 0.3], [10.6, Y, -16, 2.6, -0.5], [-10.4, Y, -36, 3.2, 1.2], [10.5, Y, -48, 2.8, 0.4], [-10.6, Y, -55, 2.4, -0.3],
+    [4.8, Y, -56, 2, 0.8], [-10.4, Y, -74, 2.6, 0.2], [9, Y, -66.8, 2.4, 0], [5, Y, -96.6, 2.2, 0.5], [-9.6, Y, -110, 2.6, 1.4],
+    [-23.5, Y, -108, 3, 1.5], [12.6, Y, -186, 2.6, 1.4], [-6.6, Y, -175.6, 2.4, 0.2], [-4, Y, -198.4, 3, 0], [7, Y, -258.6, 3, 0],
+    [-6.2, Y, -244, 2.6, 1.3],
+  ]);
+  frostBushes(level, [
+    [10.6, Y, -2.2, 0.8], [-10.8, Y, -10.2, 0.9], [10.8, Y, -30.4, 0.8], [-10.8, Y, -60, 0.9], [11, Y, -58.6, 0.7], [-11.3, Y, -79, 0.8],
+    [11.2, Y, -104.6, 0.8], [13, Y, -181, 0.8], [-7.8, Y, -192, 0.9], [-6, Y, -232.4, 0.8], [6.5, Y, -255.5, 0.9],
+  ]);
+  // ---------------- Tannen am Wegrand (sparsam, mit Schatten)
+  snowFirs(level, [
+    [11.2, Y, -11, 4.2], [-11.2, Y, -26, 4.6, 1], [11.3, Y, -40, 3.8, 2], [-11, Y, -46, 4.2, 3], [-11.4, Y, -17.5, 3.2, 4],
+    [-11.2, Y, -68, 4.4, 1], [-11.3, Y, -95, 4, 2], [11, Y, -100, 4.6], [11.2, Y, -111, 3.8, 3],
+    [-23.4, Y, -100.4, 3.6, 1], [-13.4, Y, -117, 3.2, 2], [-23.6, Y, -116, 4.2, 4],
+    [-12.8, Y, -229.4, 4.6, 1], [-11.6, Y, -234.6, 3.6, 2], [-12.6, Y, -243.4, 5, 3], [-11.4, Y, -252, 4, 4], [-12.8, Y, -260.4, 4.8, 5],
+    [-5.4, Y, -261, 3.6, 2], [5.6, Y, -260.6, 4.2, 1], [12.6, Y, -258, 4.6, 3], [12.8, Y, -236.4, 4.4, 2], [11.6, Y, -229.6, 3.6, 4], [8.8, Y, -232.6, 3, 5],
+  ]);
   // ---------------- ferne Tannenhänge (sparsame Tannen ohne Schatten)
   farFirs(level, FIRS);
   // ---------------- Gegner gleicher Art als Instanzen (Budget)
-  instanceEnemies(level, ['flatterkaefer', 'krabbelkaefer', 'pilzling', 'schneesaeule', 'pilzling_eis']);
+  instanceEnemies(level, ['flatterkaefer', 'krabbelkaefer', 'pilzling', 'schneesaeule', 'pilzling_eis'], { noShadow: ['flatterkaefer'] });
 }
 
 // ferne Tannen auf den Hängen links und rechts (in LEVEL.setup über farFirs)
@@ -110,7 +133,7 @@ export const LEVEL = {
   timeLimit: 400,
   start: { pos: [0, Y, 5], yaw: Math.PI / 2 },
   killY: -9,
-  setup: levelSetup(scene),
+  setup(level, sc) { levelSetup(scene)(level, sc); cullStatic(level); },
   camera: [
     { ...CAM, from: 14, to: -44 },
     { ...CAM, from: -44, to: -66, pitch: 45 },
@@ -135,8 +158,6 @@ export const LEVEL = {
       { kind: 'schneemann', pos: [9.4, Y, 2.0], yaw: -2.3, scale: 0.55 },
       { kind: 'laterne', pos: [-3.7, Y, 0.6] }, { kind: 'laterne', pos: [3.7, Y, 0.6] },
       { kind: 'tanne', pos: [-11, Y, 8.6], size: 4.6 }, { kind: 'tanne', pos: [11.2, Y, 8.4], size: 3.8 },
-      { kind: 'tanne', pos: [11.2, Y, -11], size: 4.2 }, { kind: 'tanne', pos: [-11.2, Y, -26], size: 4.4 },
-      { kind: 'tanne', pos: [11.3, Y, -40], size: 3.6 }, { kind: 'tanne', pos: [-11, Y, -46], size: 4 },
       { kind: 'felsen', pos: [-10.6, Y, -1], size: [2, 3], n: 2, height: [0.6, 1.2] },
     ] },
     { type: 'deco_w1b', items: [{ kind: 'bulbs', from: [-3.7, Y + 2.75, 0.6], to: [3.7, Y + 2.75, 0.6], sag: 0.6, n: 12 }] },
@@ -164,11 +185,9 @@ export const LEVEL = {
     isl(HOLE.x1, 17.5, HOLE.z0, HOLE.z1, Y + 5.6, 2.6, { top: 'none' }),
     isl(9.4, 11, -76.5, -78.5, Y + 1.3, 1.3, { top: 'grass' }),
     // Eisläufer-Teich (erhöht 0,3 m, Schneewulst)
-    { type: 'eisflaeche', pos: [-6, Y, -86], size: [9, 0.3, 12], edge: true },
+    { type: 'eisflaeche', pos: [-6, Y, -86], size: [9, 0.2, 12], edge: true },
     { type: 'sign', pos: [-9.6, Y, -78.6], text: 'Eisläufer-\nTeich', size: [2, 0.8] },
     { type: 'deco_w3', items: [
-      { kind: 'tanne', pos: [-11.2, Y, -68], size: 4.2 }, { kind: 'tanne', pos: [-11.3, Y, -95], size: 3.8 },
-      { kind: 'tanne', pos: [11, Y, -100], size: 4.4 }, { kind: 'tanne', pos: [11.2, Y, -111], size: 3.6 },
       { kind: 'schneemann', pos: [-9.5, Y, -104], yaw: -1.2 },
       { kind: 'laternen', pos: [-3.4, Y, -96], from: [-3.4, Y, -96], to: [-3.4, Y, -110], every: 7 },
       { kind: 'felsen', pos: [11.2, Y, -66.5], size: [1.6, 2], n: 2, height: [0.6, 1.4] },
@@ -182,7 +201,6 @@ export const LEVEL = {
       { kind: 'fence', from: [-24.6, Y, -98.6], to: [-12.6, Y, -98.6] },
     ] },
     { type: 'deco_w3', items: [
-      { kind: 'tanne', pos: [-23.4, Y, -100.4], size: 3.4 }, { kind: 'tanne', pos: [-13.4, Y, -117], size: 3 },
       { kind: 'felsen', pos: [-23.5, Y, -114], size: [1.6, 2], n: 2, height: [0.5, 1] },
     ] },
     // schmaler Eissteg (1 m) zum Stempel, zweiter Steg zur Eisbahn
@@ -226,8 +244,6 @@ export const LEVEL = {
     { type: 'pipe', id: 'p_hain', pos: [0, Y, -229.6], height: 1.2 },
     { type: 'iglu', pos: [9.3, Y, -250.5], yaw: Math.PI },
     { type: 'deco_w3', items: [
-      { kind: 'tannen', pos: [-10.5, Y, -244], size: [6, 34], n: 7, scale: [0.9, 1.3], gap: 3, avoid: [[-5.5, -240, 4], [-9.6, -249.6, 1.6], [-8.6, -256.4, 3], [-11, -239, 1], [-6.2, -229.4, 1.5]] },
-      { kind: 'tannen', pos: [11.2, Y, -236], size: [5, 18], n: 4, scale: [0.9, 1.3], gap: 3, avoid: [[10.8, -242.6, 1.6]] },
       { kind: 'schneemann', pos: [-3.6, Y, -258], yaw: -1.4 },
       { kind: 'schneemann', pos: [-2.4, Y, -258.8], yaw: -1.7, scale: 0.5 },
       { kind: 'laternen', pos: [-2.6, Y, -232], from: [-2.6, Y, -232], to: [-2.6, Y, -252], every: 6.5 },
@@ -264,7 +280,7 @@ export const LEVEL = {
     // Flatterkäfer (9) kreisen vor dem Wandloch
     { kind: 'flatterkaefer', id: 'fk', path: [[11.3, HOLE.y + 0.7, -73.4], [11.3, HOLE.y + 0.7, -81.6], [8.2, HOLE.y + 0.4, -81.6], [8.2, HOLE.y + 0.4, -73.4]], count: 9, spacing: 1.75, speed: 1.6, color: 'blue' },
     // Eisläufer-Pilzlinge (4): Reit-Eisläufer im Teich, zwei auf Eisbahn 1, ein Verfolger auf Eisbahn 2
-    { kind: 'pilzling_eis', id: 'eis_reit', pos: [-3, Y + 0.3, -86], center: [-6, Y + 0.3, -86], radius: 2.6, rz: 3.8, ride: true, speed: 2.2 },
+    { kind: 'pilzling_eis', id: 'eis_reit', pos: [-3, Y + 0.2, -86], center: [-6, Y + 0.2, -86], radius: 2.6, rz: 3.8, ride: true, speed: 2.2 },
     { kind: 'pilzling_eis', id: 'eis1', pos: [1.5, Y, -126], center: [-3, Y, -126], radius: 4.5, cw: true },
     { kind: 'pilzling_eis', id: 'eis2', pos: [3, Y, -117], dir: [0, -1], slalom: 0.9, speed: 3.6 },
     { kind: 'pilzling_eis', id: 'eis3', pos: [9, Y, -170], behavior: 'chase', sight: 8, speed: 3.6 },
@@ -274,7 +290,7 @@ export const LEVEL = {
     { kind: 'pilzling', mini: true, pos: [10, Y, -192], path: [[8, Y, -192], [12, Y, -192]] },
     { kind: 'pilzling', mini: true, pos: [6, Y, -238], behavior: 'chase', sight: 5 },
     // Krabbelkäfer (7): Kegelbahn am Start (3), Reihe im Baumhain (4)
-    { kind: 'krabbelkaefer', id: 'kk_start', path: [[3.5, Y, -26], [10, Y, -26], [10, Y, -34], [3.5, Y, -34]], count: 3, spacing: 3, color: 'red' },
+    { kind: 'krabbelkaefer', id: 'kk_start', path: [[4.6, Y, -27.6], [9, Y, -27.6], [9, Y, -32.4], [4.6, Y, -32.4]], count: 3, spacing: 6.1, color: 'red' },
     { kind: 'krabbelkaefer', id: 'kk_hain', path: [[-8, Y, -235], [-3.6, Y, -235], [-3.6, Y, -244], [-8, Y, -244]], count: 4, spacing: 2.2, color: 'yellow' },
   ],
   items: [
@@ -292,6 +308,7 @@ export const LEVEL = {
     ring([-6, Y + 1.0, -86], 2.6, 4),
     line([2, Y + 0.6, -94], [2, Y + 0.6, -100], 3),
     // ---------------- 3
+    { kind: 'bunny', id: 'hase', pos: [-18.5, Y, -108], area: { pos: [-18.5, Y, -108], r: 4.8 }, reward: starHere(1) },
     line([-19.5, Y + 0.7, -120], [-19.5, Y + 0.7, -128], 4),
     line([8.2, Y + 1.0, -119], [8.2, Y + 1.0, -135], 5),
     line([0, Y + 0.6, -141], [0, Y + 0.6, -145.5], 3),
@@ -300,7 +317,7 @@ export const LEVEL = {
     line([6, Y + 0.6, -160], [4, Y + 0.6, -172], 4),
     // Krone des Schneebaums und Ast-Stufen (zeigt den Weg nach oben)
     ring([TREE.x, TREE.top + 0.7, TREE.z], 1.3, 4),
-    ...arc([TREE.x + 3.5, Y + 2.4, TREE.z + 0.9], [TREE.x + 1.6, Y + 4.2, TREE.z - 3.3], 2, 0.5),
+    ...TREE.steps.map(([dx, dz, y]) => ({ kind: 'coin', pos: [TREE.x + dx, y + 0.7, TREE.z + dz] })),
     // Propeller-Helm und Hinweis-Münzen vor der Nische
     { kind: 'helm_propeller', pos: [1.2, Y, -177.6], respawn: 6 },
     line([-7.6, NICHE.y + 0.8, -184.8], [-3.6, NICHE.y + 0.8, -184.8], 3),
@@ -325,7 +342,7 @@ export const LEVEL = {
     tor: [0, Y, -40],
     gap: [0, Y, -60],
     hole: [10.2, Y + 1.3, -77.5],
-    pond: [-6, Y + 0.3, -80.6],
+    pond: [-6, Y + 0.2, -80.6],
     checkpoint: [0, Y, -102],
     meadow: [-15, Y, -108],
     steg: [-19.5, Y, -118.6],

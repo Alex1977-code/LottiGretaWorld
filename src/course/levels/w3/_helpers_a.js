@@ -15,7 +15,7 @@ import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject } fr
 import { levelSetup, cyl, sphere, cone, block } from '../w2/_helpers_c.js';
 
 export { levelSetup, cyl, sphere, cone, block };
-export { line, ring, arc, column, farHide, bubble, shadowless } from '../w2/_helpers_a.js';
+export { line, ring, arc, column, farHide, bubble, shadowless, cullStatic } from '../w2/_helpers_a.js';
 export { hedges, ponds, gardenLamps, roseVines, blossomTrees, flowerBeds, petals } from '../w2/_helpers_c.js';
 
 const L = (c) => lin(hex(c));
@@ -174,6 +174,38 @@ export function icicleFringe(level, x0, z0, x1, z1, y, o = {}) {
     P.push(spike(0.06 + h * 0.08, h, x0 + (x1 - x0) * t, y, z0 + (z1 - z0) * t, 0x9fe4ff));
   }
   addStatic(level, merge(P), { castShadow: false });
+}
+
+/** Schneewehen (flache weiße Buckel ohne Kollision, am Wegrand): list [[x, y, z, Länge, Gier]]. */
+export function snowDrifts(level, list) {
+  const P = [];
+  const w = L(0xffffff), b = L(0xcadcf2);
+  for (const [x, y, z, len = 2.4, yaw = 0] of list) {
+    const n = Math.max(2, Math.round(len / 0.8));
+    for (let i = 0; i < n; i++) {
+      const u = (i / (n - 1) - 0.5) * len, r = 0.55 + Math.sin(i * 2.3 + x) * 0.15 + (i % 2) * 0.1;
+      const g = new THREE.SphereGeometry(r, 9, 5, 0, TAU, 0, Math.PI / 2).toNonIndexed();
+      g.scale(1.25, 0.42, 1);
+      g.rotateY(yaw);
+      g.translate(x + Math.cos(yaw) * u, y - 0.02, z - Math.sin(yaw) * u);
+      P.push(colorize(g, (p, nn, out) => mixc(b, w, smooth(-0.1, 0.8, nn.y + nn.z * 0.2), out)));
+    }
+  }
+  addStatic(level, merge(P), { castShadow: false });
+}
+
+/** Frostbüsche (dunkelgrün mit Schneehauben und roten Beeren): list [[x, y, z, Größe]]. Kollision: Zylinder. */
+export function frostBushes(level, list) {
+  const P = [];
+  for (const [x, y, z, s = 1] of list) {
+    for (const [dx, dz, r] of [[0, 0, 0.5], [-0.42, 0.18, 0.36], [0.4, -0.15, 0.38], [0.08, 0.38, 0.32]]) {
+      P.push(blob(r * s, r * 0.8 * s, r * s, x + dx * s, y + r * 0.7 * s, z + dz * s, 0x2f6a4a, { ws: 8, hs: 6 }));
+      P.push(blob(r * 0.86 * s, r * 0.32 * s, r * 0.86 * s, x + dx * s, y + r * 1.25 * s, z + dz * s, 0xffffff, { ws: 8, hs: 4 }));
+    }
+    for (let i = 0; i < 5; i++) { const a = i * 1.3 + x; P.push(blob(0.06 * s, 0.06 * s, 0.06 * s, x + Math.cos(a) * 0.5 * s, y + (0.35 + (i % 2) * 0.2) * s, z + Math.sin(a) * 0.5 * s, 0xe0283a, { ws: 5, hs: 3 })); }
+    level.world.add({ type: 'cyl', x, z, r: 0.55 * s, y0: y, y1: y + 0.8 * s, tag: 'frostbusch' });
+  }
+  addStatic(level, merge(P));
 }
 
 /** Holzbank mit Schneehaube (Fußpunkt Mitte, Gier yaw: Sitzfläche entlang X lokal, Lehne nach −Z lokal). */
@@ -476,6 +508,45 @@ export function farFirs(level, list) {
 }
 
 /**
+ * Verschneite Tannen in Wegnähe (≈ 260 Dreiecke statt ≈ 3 k des Registry-Modells, mit Schatten, Stamm fest):
+ * list = [[x, y, z, Höhe?, Gier?], …]. Vier gezackte Etagen mit Schneekappen und Schneewülsten am Rand.
+ */
+export function snowFirs(level, list, o = {}) {
+  const P = [];
+  const dark = L(0x1d5a3a), mid = L(0x2e7d4c), white = L(0xffffff), blue = L(0xcfe0f6), bark = L(0x6a4428);
+  for (const [x, y, z, H = 4, yaw = 0] of list) {
+    const trunk = new THREE.CylinderGeometry(0.12 * H / 4, 0.18 * H / 4, H * 0.3, 6, 1, true).toNonIndexed();
+    trunk.translate(x, y + H * 0.15, z);
+    P.push(colorize(trunk, (p, n, out) => mixc([bark[0] * 0.7, bark[1] * 0.7, bark[2] * 0.7], bark, 0.5 + n.x * 0.5, out)));
+    for (let t = 0; t < 4; t++) {
+      const r = H * (0.34 - t * 0.065), h = H * (0.36 - t * 0.04), y0 = y + H * (0.16 + t * 0.19);
+      const g = new THREE.ConeGeometry(r, h, 11, 2, false).toNonIndexed();
+      // gezackter Rand: untere Ringpunkte abwechselnd tiefer/weiter
+      const pos = g.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const py = pos.getY(i);
+        if (py < -h / 2 + 1e-3) { const a = Math.atan2(pos.getZ(i), pos.getX(i)); const k = Math.round(a / (TAU / 11)) & 1; pos.setY(i, py - k * 0.12 * H / 4); pos.setX(i, pos.getX(i) * (1 + k * 0.1)); pos.setZ(i, pos.getZ(i) * (1 + k * 0.1)); }
+      }
+      g.computeVertexNormals();
+      g.rotateY(yaw + t * 0.7);
+      g.translate(x, y0 + h / 2, z);
+      P.push(colorize(g, (p, n, out) => {
+        const k = (p.y - y0) / h;
+        mixc(dark, mid, smooth(-0.6, 0.8, n.x * 0.4 + n.z * 0.6), out);
+        if (n.y < -0.2) { out[0] *= 0.6; out[1] *= 0.6; out[2] *= 0.6; return; }
+        const s = smooth(0.42, 0.62, k) + smooth(0.06, 0.0, k) * 0.9;
+        mixc(out, mixc(blue, white, smooth(0.2, 0.9, n.y + n.z * 0.3), [0, 0, 0]), Math.min(1, s), out);
+      }));
+    }
+    const cap = new THREE.SphereGeometry(0.16 * H / 4, 6, 4).toNonIndexed();
+    cap.translate(x, y + H * 0.98, z);
+    P.push(colorize(cap, (p, n, out) => { out[0] = white[0]; out[1] = white[1]; out[2] = white[2]; }));
+    if (o.solid !== false) level.world.add({ type: 'cyl', x, z, r: 0.28 * H / 4, y0: y, y1: y + H * 0.5, tag: 'tanne' });
+  }
+  addStatic(level, merge(P), { castShadow: o.shadow !== false });
+}
+
+/**
  * Gleiche Gegner-Modelle als Instanzen zeichnen (Budget: ein Schwarm aus neun Flatterkäfern kostet sonst ≈ 80
  * Zeichenaufrufe – je Modell 7 Meshes plus Schatten). Die Entitäten rechnen und animieren ihre Modelle wie bisher;
  * je Bild werden die Teil-Matrizen in je eine InstancedMesh pro Modellteil übernommen und die Einzelmodelle nicht
@@ -490,22 +561,22 @@ export function instanceEnemies(level, kinds, o = {}) {
     if (!want.has(e.kind) || !e.model?.root) continue;
     const meshes = [];
     let ok = true;
-    e.model.root.traverse((m) => { if (m.isInstancedMesh || m.isSkinnedMesh || (m.isMesh && Array.isArray(m.material))) ok = false; else if (m.isMesh) meshes.push(m); });
+    e.model.root.traverse((m) => { if (m.isSkinnedMesh || (m.isMesh && Array.isArray(m.material))) ok = false; else if (m.isMesh) meshes.push(m); });
     if (!ok || !meshes.length) continue;
-    const key = `${e.kind}|${meshes.map((m) => `${m.geometry.uuid}:${m.material.uuid}`).join(',')}`;
-    if (!groups.has(key)) groups.set(key, { ents: [], parts: meshes.map((m) => ({ geo: m.geometry, mat: m.material, cast: m.castShadow, recv: m.receiveShadow })) });
+    const key = `${e.kind}|${meshes.map((m) => `${m.geometry.uuid}:${m.material.uuid}:${m.isInstancedMesh ? m.count : 1}`).join(',')}`;
+    if (!groups.has(key)) groups.set(key, { ents: [], parts: meshes.map((m) => ({ geo: m.geometry, mat: m.material, cast: m.castShadow, recv: m.receiveShadow, n: m.isInstancedMesh ? m.count : 1 })) });
     groups.get(key).ents.push({ e, meshes });
   }
   const live = [];
-  const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
   for (const G of groups.values()) {
     if (G.ents.length < 2) continue;
     G.inst = G.parts.map((pt) => {
-      const im = new THREE.InstancedMesh(pt.geo, pt.mat, G.ents.length);
-      im.castShadow = pt.cast; im.receiveShadow = pt.recv;
+      const im = new THREE.InstancedMesh(pt.geo, pt.mat, G.ents.length * pt.n);
+      im.castShadow = pt.cast && !(o.noShadow ?? []).includes(G.ents[0].e.kind); im.receiveShadow = pt.recv;
       im.frustumCulled = false;
+      im.count = 0;
+      im.visible = false;
       im.name = `instanzen:gegner:${G.ents[0].e.kind}`;
-      for (let i = 0; i < G.ents.length; i++) im.setMatrixAt(i, ZERO);
       addObject(level, im);
       im.traverse((x) => { x.userData.owned = false; });   // Geometrie/Material gehören dem Modell-Cache
       return im;
@@ -513,17 +584,32 @@ export function instanceEnemies(level, kinds, o = {}) {
     live.push(G);
   }
   const vis = (m, root) => { for (let q = m; q && q !== root; q = q.parent) if (!q.visible) return false; return true; };
+  const M = new THREE.Matrix4(), Mi = new THREE.Matrix4(), F = new THREE.Frustum(), S = new THREE.Sphere();
   level.view.onFrame(() => {
-    const p = level.player;
+    const p = level.player, cam = level.view.camera;
+    cam.updateMatrixWorld();
+    F.setFromProjectionMatrix(M.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
     for (const G of live) {
-      G.ents.forEach(({ e, meshes }, i) => {
+      const fill = G.inst.map(() => 0);
+      for (const { e, meshes } of G.ents) {
         const root = e.model?.root;
-        const show = root && e.alive && !e.removed && root.parent && (!p || Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < far);
-        if (show) { root.visible = true; root.updateMatrixWorld(true); }
-        meshes.forEach((m, k) => G.inst[k].setMatrixAt(i, show && vis(m, root) ? m.matrixWorld : ZERO));
-        if (root) root.visible = false;
-      });
-      for (const im of G.inst) im.instanceMatrix.needsUpdate = true;
+        if (!root) continue;
+        S.center.set(e.pos.x, e.pos.y + 0.6, e.pos.z); S.radius = o.radius ?? 3.5;
+        const show = e.alive && !e.removed && root.parent && (!p || Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < far) && F.intersectsSphere(S);
+        if (show) {
+          root.visible = true;
+          root.updateMatrixWorld(true);
+          meshes.forEach((m, k) => {
+            if (!vis(m, root)) return;
+            const im = G.inst[k];
+            if (m.isInstancedMesh) {
+              for (let j = 0; j < Math.min(m.count, G.parts[k].n); j++) { m.getMatrixAt(j, Mi); im.setMatrixAt(fill[k]++, M.multiplyMatrices(m.matrixWorld, Mi)); }
+            } else im.setMatrixAt(fill[k]++, m.matrixWorld);
+          });
+        }
+        root.visible = false;
+      }
+      G.inst.forEach((im, k) => { im.count = fill[k]; im.visible = fill[k] > 0; im.instanceMatrix.needsUpdate = true; });
     }
   });
   return live;
