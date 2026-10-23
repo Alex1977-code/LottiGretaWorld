@@ -1276,7 +1276,7 @@ Statische Kulisse Welt 2: 51 Kachel-Meshes, ≈ 207 k Dreiecke. Welt 1 unveränd
   Teilläufen `W3_TEIL=1|2|3` (Abschnitte 2–4, 5–9, 10–14, je mit den Node-Prüfungen).
 
 Gemessen (scale 2, `tests/course_map_w3.mjs`): Kartenansichten Welt 3 67–97 Zeichenaufrufe inkl. Schattenpass,
-139–266 k Dreiecke; Ankunft durch die Glasröhre 81–104 / 201–235 k, Anflug 108 / 262 k (Budget 120 / 300 k).
+139–266 k Dreiecke; Ankunft durch die Glasröhre 81–105 / 201–235 k, Anflug 108 / 262 k (Budget 120 / 300 k).
 Statische Kulisse Welt 3: 51 Kachel-Meshes, ≈ 191 k Dreiecke, 406 Kollisionsformen. Welt 2 unverändert im Budget
 (max 105 / 286 k), Welt 1 ebenso (86 / 245 k).
 
