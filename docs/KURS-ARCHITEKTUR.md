@@ -3035,11 +3035,12 @@ ab, aufheben/werfen besiegt eine Zielscheibe, aufs Druckfeld geworfen löst es a
 Lava), Giftwasser (Brocken und Ameise versinken), Walzenwerfer (Takt, Walze rollt hangabwärts schneller und zerbricht an
 der Mauer, Stampfattacke zerstört sie nicht, Kanonenkugel schon, zielt auf die Figur, besiegt, Säule bleibt),
 Stachelpanzer, Springklotz (≈ 7 m hoch), Lavafunken (Takt 2,4 s, Versatz 0,14 Takt, Höhe 3,4 m), Flatterkäfer-Rad
-(Drehung, Glieder auf dem Kreis, besiegtes Glied fällt), Bumerang-Werfer, Klone (Brocken, Werfer, Träger-Ameise,
-Rankenschnapper, Boss), Boss vollständig (Ruf, Rollen, nur geworfene Brocken treffen, nicht im Wirbel, Feuerbrocken
-6 + 8 + 10, Ansagen, Sieg → Stern + Warp → Ziel, Tod setzt zurück) – 73 Prüfungen. Gemessen (scale 2, inkl.
-Schattenpass, Thema canyon/lavacastle): Gegnerzoo 82–116 Zeichenaufrufe je Station (≤ 331 k Dreiecke), Boss-Arena
-54–104; Simulation im Zoo (≈ 51 Entitäten) ≈ 0,14 ms je Schritt.
+(Drehung, Glieder auf dem Kreis, besiegtes Glied fällt), Bumerang-Werfer, großer Rankenschnapper (3 Treffer), echter
+Schwanzhieb des Gleitblatts, Statue (Verfolger hört auf), Klone (Brocken, Werfer, Träger-Ameise, Rankenschnapper, Boss),
+Boss vollständig (Ruf, Rollen, nur geworfene Brocken treffen, nicht im Wirbel, Feuerbrocken 6 + 8 + 10, Ansagen, Sieg →
+Stern + Warp → Ziel, Tod setzt zurück) – 60 (Zoo) + 16 (Boss) Prüfungen; `W4_PART=zoo|boss` führt einen Teil aus (je
+≈ 4 bzw. 3 min). Gemessen (scale 2, inkl. Schattenpass, Thema canyon/lavacastle): Gegnerzoo 82–116 Zeichenaufrufe je
+Station (≤ 331 k Dreiecke), Boss-Arena 54–104 (≤ 178 k); Simulation im Zoo (≈ 51 Entitäten) 0,11–0,14 ms je Schritt.
 
 ---
 
