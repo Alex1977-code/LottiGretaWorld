@@ -26,7 +26,7 @@
 import {
   isl, rock, wallBox, line, ring, arc, column, levelSetup, cullStatic, areaMoods, cullInstances, creeperInstances,
   fogBanks, dragonflies, lilies, reeds, logs, swampHut, frogs, fireflies, glowCrystals, stalactites, tintWater, gegnerSicht,
-  chunkBackdrop,
+  chunkBackdrop, heroShadowDiet,
 } from './_helpers_a.js';
 
 const Y = 1;
@@ -132,7 +132,8 @@ function setup(level) {
   // ---------------- Budget
   creeperInstances(level, { far: 40 });
   chunkBackdrop(level, { far: 150, chunk: 96 });
-  gegnerSicht(level, { brummer: { dist: 40, shadow: false } });
+  gegnerSicht(level, { brummer: { dist: 28, shadow: false } });
+  heroShadowDiet(level, 0.16);
   cullInstances(level, { coin: { far: 40, radius: 0.8, shadow: false } });
   cullStatic(level);
 }
@@ -153,10 +154,10 @@ export const LEVEL = {
     { ...CAM, from: -58, to: -100, pitch: 46, dist: 12.5 },
     { ...CAM, from: -100, to: -128, pitch: 45 },
     { ...CAM, from: -128, to: -180, pitch: 47, dist: 13.5 },
-    { ...CAM, from: -180, to: -192, pitch: 44 },
-    { ...CAM, from: -192, to: -240, pitch: 46, dist: 13.5 },
+    { ...CAM, from: -180, to: -192, pitch: 44, area: [-12.5, 50] },
+    { ...CAM, from: -192, to: -240, pitch: 46, dist: 13.5, area: [-12.5, 50] },
     { ...CAM, from: -244, to: -266, pitch: 42, dist: 13 },
-    { ...CAM, from: -178, to: -196, pitch: 40, dist: 13, area: [-46, -12.5] },
+    { ...CAM, from: -178, to: -196, pitch: 40, dist: 13, yaw: 64, area: [-46, -12.5] },
     { ...CAM, from: -60, to: -96, pitch: 50, dist: 13, area: [55, 90] },
     { ...CAM, from: -30, to: -56, pitch: 50, dist: 13, area: [55, 90] },
   ],
@@ -184,7 +185,7 @@ export const LEVEL = {
     { type: 'pipe', id: 'p_keller_ein', pos: [PIPE_BLOCK.x, Y, PIPE_BLOCK.z], height: PIPE_BLOCK.top - Y, target: 'p_keller', color: 'purple' },
     sign(-0.4, Y, -2.6, 'Ranken sind\nbegehbar!', { size: [2.4, 0.9] }),
     { type: 'deco_w4', items: [
-      { kind: 'giftbaum', pos: [-4.6, Y, 8.4], height: 6.5 }, { kind: 'giftbaum', pos: [5, Y, -2.6], height: 5.5 },
+      { kind: 'giftbaum', pos: [-5.2, Y, -3.4], height: 6.5 }, { kind: 'giftbaum', pos: [5.2, Y, 2.4], height: 5.5 },
       { kind: 'giftpilze', pos: [4.4, Y, 7.4], size: [2, 2], n: 3 }, { kind: 'leuchtpilze', pos: [-5, Y, -2.6], n: 5 },
       { kind: 'giftpilz', pos: [-7.8, Y, -16.2], height: 1.6 }, { kind: 'leuchtpilze', pos: [-8, Y, -35.6], n: 4 },
       { kind: 'giftpilz', pos: [5.4, Y, -45], height: 2.2 }, { kind: 'leuchtpilze', pos: [-4, Y, -51], n: 4 },
@@ -208,7 +209,7 @@ export const LEVEL = {
     wallBox(-7, -4.6, -73, -75, Y + 11.4, 1, { camIgnore: true, style: ROCK }),
     wallBox(8, 10.5, -94.6, -96.6, Y + 11.4, 1, { camIgnore: true, style: ROCK }),
     rock(SHELF.x0, SHELF.x1, SHELF.z0, SHELF.z1, SHELF.top, SHELF.top - PY + 0.8),
-    wallBox(SHELF.x0 + 0.6, SHELF.x1, SHELF.z0 + 0.4, SHELF.z1, Y + 12.2, 1, { camIgnore: true, style: ROCK }),
+    wallBox(BOX[0] - 3, BOX[0] + 3, BOX[2] + 0.6, BOX[2] - 0.6, Y + 12.2, 0.8, { camIgnore: true, style: ROCK }),
     { type: 'deco_w4', items: [
       { kind: 'liane', pos: [-6.4, Y + 11.6, -61], length: 4 }, { kind: 'liane', pos: [9.8, Y + 11.6, -98], length: 3.6 },
       { kind: 'leuchtpilze', pos: [-5.6, Y, -71], n: 6 }, { kind: 'leuchtpilze', pos: [0, Y, -99], n: 5 },
@@ -228,13 +229,13 @@ export const LEVEL = {
     { type: 'water', id: 'see', pos: [0, LAKE.bottom, (LAKE.z0 + LAKE.z1) / 2], size: [LAKE.x1 - LAKE.x0, W - LAKE.bottom, LAKE.z0 - LAKE.z1] },
     rock(-16, LAKE.x0, LAKE.z0 + 2, LAKE.z1, Y + 7, 14),
     rock(LAKE.x1, 16, LAKE.z0 + 2, LAKE.z1, Y + 8, 15),
-    rock(-3, 3, -132, -136, W + 0.6, 6.6),
-    rock(-8, -2.6, -139.6, -144.6, W + 0.6, 6.6),
-    rock(0.8, 6, -148, -153, W + 0.6, 6.6),
-    rock(ISLET.x0, ISLET.x1, ISLET.z0, ISLET.z1, ISLET.top, 6.6),
-    rock(-6.4, -1, -157, -162, W + 0.6, 6.6),
-    rock(-3, 6, -166.6, -180, W + 0.6, 6.6),
-    ...LEDGES.map((l) => rock(l.x0, l.x1, l.z0, l.z1, l.top, l.top - LAKE.bottom)),
+    isl(-3, 3, -132, -136, W + 0.6, 6.6),
+    isl(-8, -2.6, -139.6, -144.6, W + 0.6, 6.6),
+    isl(0.8, 6, -148, -153, W + 0.6, 6.6),
+    isl(ISLET.x0, ISLET.x1, ISLET.z0, ISLET.z1, ISLET.top, 6.6),
+    isl(-6.4, -1, -157, -162, W + 0.6, 6.6),
+    isl(-3, 6, -166.6, -180, W + 0.6, 6.6),
+    ...LEDGES.map((l) => isl(l.x0, l.x1, l.z0, l.z1, l.top, l.top - LAKE.bottom)),
     { type: 'pipe', id: 'p_hinauf', pos: [2, W + 0.6, -175.4], height: 1.4, target: 'p_oben', color: 'purple' },
     sign(-1.2, W + 0.6, -172.6, 'Röhre\nhinauf', { size: [1.8, 0.8] }),
     { type: 'deco_w4', items: [

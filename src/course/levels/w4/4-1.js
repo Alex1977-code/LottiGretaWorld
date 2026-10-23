@@ -26,10 +26,11 @@
 // die Röhre auf der Felsinsel; Rückweg über eine Röhre aufs Endsims.
 // Gegner: Ameisensoldat 41, Hörner-Ameisensoldat 23, Riesenameise (endlos, Strom).
 
+import { islandParts, merge, addStatic } from '../../blocks/kit.js';
 import {
   isl, rock, wallBox, line, ring, arc, column, levelSetup, cullStatic, antOver, antWallLane, antLoop, areaMoods, campfire,
   vultures, cacti, skulls, antFlags, stalactites, glowCrystals, antPantry, tumbleweed, lizard, beetle, fernAus, cullInstances,
-  spikeField, chunkBackdrop,
+  spikeField, chunkBackdrop, xrayWalls, pebbles, tufts, cracks, wallHoles, roots, bunting, heroShadowDiet,
 } from './_helpers_a.js';
 
 const Y = 1;
@@ -60,7 +61,34 @@ export const GIANT_PATH = [
 ];
 
 const sign = (x, y, z, text, o = {}) => ({ type: 'sign', pos: [x, y, z], text, size: o.size ?? [2.8, 0.95], yaw: o.yaw ?? 0 });
+/** Ameisenstraße am Boden (Baustein ameisenweg mit Spur): data = Liste oder { loop, path }. */
+const trail = (id, data, color = 0x6a3a22) => ({ type: 'ameisenweg', id, path: data.path ?? data, loop: !!data.loop, color, every: 0.36 });
+const LOOPS = {
+  huegel: { loop: true, path: [[-10.2, Y, 3.2], [-3.8, Y, 3.2], [-3.8, Y, -3.2], [-10.2, Y, -3.2]] },
+  feuer: { loop: true, path: [[8.2, Y, 4.2], [7.7, Y, 2.9], [6.4, Y, 2.4], [5.1, Y, 2.9], [4.6, Y, 4.2], [5.1, Y, 5.5], [6.4, Y, 6], [7.7, Y, 5.5]] },
+  quer1: antLoop(-9, 9, -22.4, Y, 1.2),
+  kolonne: antLoop(-6, 6, -84.4, Y, 1.2),
+  h1: antLoop(-8, 8, -117.4, Y, 1.2),
+  wall: antLoop(-8, 8, -124.4, Y + 0.6, 1.2),
+  h3: antLoop(-8, 8, -136.4, Y, 1.2),
+  h_platz: { loop: true, path: [[3.4, Y, -128.4], [9.6, Y, -128.4], [9.6, Y, -134.4], [3.4, Y, -134.4]] },
+  jubel: { loop: true, path: [[10.8, MESA.top, -236], [10.8, MESA.top, -240], [6, MESA.top, -240], [6, MESA.top, -236]] },
+};
 const wayOver = (box, at, phase = 0, o = {}) => ({ kind: 'ameisensoldat', antpath: antOver(box.pos, box.size, at, o.from ?? 2.5, o.to ?? 2.5), speed: o.speed ?? 1.5, phase, ...o.extra });
+
+/**
+ * Grund der Höhlenschlucht (nur Kulisse, ohne Kollision – wer hineinfällt, stürzt unter killY): dunkler Fels mit
+ * Tropfsteinen und ein paar Leuchtpilzen tief unten, damit die Schlucht tief und gefährlich wirkt.
+ */
+function bakeChasm(level) {
+  const v = level.view;
+  if (!v) return;
+  const y = Y - 10.5;
+  const parts = islandParts(-7, y - 1, CHASM.z0, 7, y, CHASM.z1, { ...v.theme, dirt: 0x3a1e18, dirtDeep: 0x1e0e0c }, { top: 'none', under: 0 });
+  addStatic(level, merge(parts), { castShadow: false });
+  stalactites(level, [[-4, y, -64, 2.6, 0.6], [2.6, y, -67, 3.4, 0.7], [-1, y, -71, 2, 0.5], [4.4, y, -73.4, 2.8, 0.6], [-5, y, -74.6, 3.2, 0.7]]);
+  glowCrystals(level, [[0.6, y, -65.4, 1.4, 0x7ae8ff], [-3, y, -69.6, 1.1, 0xd88aff], [3.6, y, -71.6, 1.2, 0x9aff6a]]);
+}
 
 /** Level-Haken: Kulisse, Stimmungen, sparsame Darstellung. */
 function setup(level) {
@@ -116,6 +144,41 @@ function setup(level) {
     eggs: [[62.8, Y, -189, 7], [77.6, Y, -188.4, 6], [70, Y, -180.6, 4]],
   });
 
+  // ---------------- hohe Felsblöcke im Weg: Kamera bleibt auf Abstand, Block wird durchscheinend, wenn er die Figur verdeckt
+  xrayWalls(level, [
+    { id: 'wand_w1', pos: W1.pos, size: W1.size },
+    { id: 'wand_turm', pos: TOWER.pos, size: TOWER.size },
+    { id: 'wand_vorrat', pos: STORE.pos, size: STORE.size },
+  ]);
+  // ---------------- Boden-Details: Kiesel, trockenes Gras, Risse
+  pebbles(level, [
+    { pos: [0, Y, -9], size: [20, 38], n: 70, seed: 3, avoid: [[-7, 0, 2.2], [6.4, 4.2, 2.2], [0, -3, 1.4]] },
+    { pos: [0, Y, -128], size: [20, 56], n: 60, seed: 7 },
+    { pos: [0, MESA.top, -245], size: [22, 24], n: 40, seed: 11, avoid: [[0, -251, 1.6], [0, -236, 1.6]] },
+    { pos: [0, Y, -217], size: [18, 7], n: 16, seed: 13 },
+    { pos: [70, Y, -186], size: [18, 18], n: 26, seed: 17, colors: [0x6a3a28, 0x8a5a3a, 0x4a2a1a] },
+  ]);
+  tufts(level, [
+    { pos: [0, Y, -10], size: [21, 38], n: 26, seed: 5, avoid: [[-7, 0, 2.4], [6.4, 4.2, 2.6], [0, 8, 2]] },
+    { pos: [0, Y, -128], size: [21, 56], n: 30, seed: 9, color: 0x8aaa3a, tip: 0xd8e88a },
+    { pos: [0, MESA.top, -245], size: [22, 24], n: 16, seed: 15, avoid: [[0, -251, 1.6], [0, -236, 1.6]] },
+  ]);
+  cracks(level, [[-4, Y, 6, 2.4, 0.4], [3.6, Y, -6.6, 2, 2.1], [-6, Y, -24, 2.8, -0.3], [5.2, Y, -29, 1.8, 1.2], [-2.6, MESA.top, -244, 2.6, 0.8], [5, MESA.top, -254, 2, 2.6], [2, Y, -219, 2.2, 0.2]]);
+  // ---------------- Höhle: Gänge in den Wänden, Wurzeln, Grund der Schlucht (nur Kulisse – wer fällt, stürzt ab)
+  wallHoles(level, [
+    [-6.98, Y + 1.2, -41, 1, 0, 1.1, 0.8], [6.98, Y + 0.9, -53, -1, 0, 1, 0.7], [-6.98, Y + 4.6, -66, 1, 0, 0.9, 0.7], [6.98, Y + 5.2, -71, -1, 0, 1.2, 0.9],
+    [-6.98, Y + 1, -88, 1, 0, 1.2, 0.8], [6.98, Y + 1.4, -92, -1, 0, 0.9, 0.7],
+    [-4, Y + 2.6, ROOM.z1 + 0.02, 0, 1, 1.4, 1], [66, Y + 1, ROOM.z1 + 0.02, 0, 1, 1.2, 0.9], [74.6, Y + 3.6, ROOM.z1 + 0.02, 0, 1, 1, 0.8],
+    [ROOM.x0 + 0.02, Y + 1.6, -183, 1, 0, 1, 0.8], [ROOM.x1 - 0.02, Y + 1.2, -191, -1, 0, 1.2, 0.9], [ROOM.x1 - 0.02, Y + 4.2, -181, -1, 0, 0.9, 0.7],
+    [10.02, Y - 0.2, -186, -1, 0, 1.2, 0.8], [-9.98, Y - 0.2, -172, 1, 0, 1, 0.7], [-9.98, Y + 2.2, -198, 1, 0, 1.1, 0.8],
+  ]);
+  roots(level, [[-6.8, Y + 10, -48, 2.4, 3], [6.8, Y + 10, -60, 3, 4], [-6.8, Y + 10, -76, 2.6, 3], [6.8, Y + 10, -87, 2.2, 3],
+    [64, Y + 7, ROOM.z1 + 0.2, 2.2, 3], [76, Y + 7, ROOM.z1 + 0.2, 2.8, 4]]);
+  bakeChasm(level);
+  // ---------------- Zielbereich: Wimpelketten
+  bunting(level, [-4.6, MESA.top + 2.35, -247.6], [4.6, MESA.top + 2.35, -247.6], 12, 0.5);
+  bunting(level, [-7, Y + 1.7, 0.2], [-3.2, Y + 2.6, 7.8], 7, 0.3);
+
   // ---------------- 4 Stachelfeld (Kollision wie stachelboden, sparsame Spitzen)
   spikeField(level, [0, PIT.floor, (PIT.z0 + PIT.z1) / 2], [20, 0.25, PIT.z0 - PIT.z1]);
 
@@ -127,6 +190,7 @@ function setup(level) {
     coin: { far: 40, radius: 0.8, shadow: false },
   });
   chunkBackdrop(level, { far: 260, chunk: 64 });
+  heroShadowDiet(level, 0.16);
   cullStatic(level);
   fernAus(level, 140);
 }
@@ -165,6 +229,9 @@ export const LEVEL = {
       { kind: 'tafelberg', pos: [0, -12, -300], radius: 12, height: 16 },
     ] },
 
+    // =============================================================== Ameisenstraßen (Spuren der Kolonnen)
+    ...Object.entries(LOOPS).map(([k, d]) => trail(`weg_${k}`, d)),
+
     // =============================================================== 1  Wüstenstart
     isl(-11, 11, 12, -30, Y, 5, { top: 'sand' }),
     sign(-4.4, Y, 9.2, 'Kribbelkrabbel-\nSchlucht', { size: [3, 1.1] }),
@@ -192,19 +259,16 @@ export const LEVEL = {
     rock(-13, -7, -34, -98, Y + 10, 15),
     rock(7, 13, -34, -98, Y + 10, 15),
     { type: 'deco_w4', items: [
-      { kind: 'canyon_bogen', pos: [0, Y, -35], width: 15.5, height: 11.6, thickness: 2.2, yaw: Math.PI / 2, solid: false },
-      { kind: 'canyon_bogen', pos: [0, Y, -97], width: 15.5, height: 11.6, thickness: 2.2, yaw: Math.PI / 2, solid: false },
-      { kind: 'canyon_bogen', pos: [0, Y + 2, -69], width: 15.2, height: 10.6, thickness: 1.4, yaw: Math.PI / 2, solid: false, shadow: false },
+      { kind: 'canyonwand', from: [-13.5, Y + 10, -34], to: [-13.5, Y + 10, -98], height: 3, depth: 3 },
+      { kind: 'canyonwand', from: [13.5, Y + 10, -34], to: [13.5, Y + 10, -98], height: 4, depth: 3 },
       { kind: 'fackel', pos: [-6.98, Y + 2.2, -40], yaw: 0 }, { kind: 'fackel', pos: [6.98, Y + 2.2, -46], yaw: Math.PI },
       { kind: 'fackel', pos: [-6.98, Y + 2.4, -58], yaw: 0 }, { kind: 'fackel', pos: [6.98, Y + 2.4, -80], yaw: Math.PI },
       { kind: 'fackel', pos: [-6.98, Y + 2.4, -90], yaw: 0 },
     ] },
-    isl(-7, 7, -36, CHASM.z0, Y, 5),
-    isl(-7, 7, CHASM.z1, -98, Y, 5),
+    isl(-7, 7, -36, CHASM.z0, Y, 5, { top: 'none' }),
+    isl(-7, 7, CHASM.z1, -98, Y, 5, { top: 'none' }),
     rock(B1.pos[0] - B1.size[0] / 2, B1.pos[0] + B1.size[0] / 2, B1.pos[2] + B1.size[2] / 2, B1.pos[2] - B1.size[2] / 2, Y + B1.size[1], B1.size[1]),
     sign(-4.8, Y, -44.2, 'Spring auf eine\nAmeise an der Wand!', { size: [2.8, 0.9] }),
-    rock(W1.pos[0] - W1.size[0] / 2, W1.pos[0] + W1.size[0] / 2, W1.pos[2] + W1.size[2] / 2, W1.pos[2] - W1.size[2] / 2, Y + W1.size[1], W1.size[1]),
-    rock(TOWER.pos[0] - TOWER.size[0] / 2, TOWER.pos[0] + TOWER.size[0] / 2, TOWER.pos[2] + TOWER.size[2] / 2, TOWER.pos[2] - TOWER.size[2] / 2, Y + TOWER.size[1], TOWER.size[1]),
     sign(-3.6, Y, -60.6, 'Ameisen-Fähre', { size: [2.2, 0.75] }),
 
     // =============================================================== 3  Hörnerreihen (mit Stern-Sims)
@@ -260,11 +324,10 @@ export const LEVEL = {
     rock(-13.6, -12.2, -240.3, -241.7, MESA.top + 6.2, 6.2),
 
     // =============================================================== Ameisenraum (nur durch die Röhre)
-    isl(ROOM.x0, ROOM.x1, ROOM.z0, ROOM.z1, Y, 4),
+    isl(ROOM.x0, ROOM.x1, ROOM.z0, ROOM.z1, Y, 4, { top: 'none' }),
     rock(ROOM.x0 - 3, ROOM.x1 + 3, ROOM.z1, ROOM.z1 - 3, Y + 7, 11),
     rock(ROOM.x0 - 3, ROOM.x0, ROOM.z0, ROOM.z1, Y + 7, 11),
     rock(ROOM.x1, ROOM.x1 + 3, ROOM.z0, ROOM.z1, Y + 7, 11),
-    rock(STORE.pos[0] - STORE.size[0] / 2, STORE.pos[0] + STORE.size[0] / 2, STORE.pos[2] + STORE.size[2] / 2, STORE.pos[2] - STORE.size[2] / 2, Y + STORE.size[1], STORE.size[1]),
     { type: 'pipe', id: 'p_raum', pos: [63.4, Y, -179.6], height: 1.2 },
     { type: 'pipe', id: 'p_raum_zurueck', pos: [76.6, Y, -179.8], height: 1.2, target: 'p_raum_aus' },
     sign(70, Y, -177.4, 'Vorratskammer', { size: [2.6, 0.8] }),
@@ -289,10 +352,10 @@ export const LEVEL = {
   ],
   enemies: [
     // ---------------- 1 Wüstenstart (Ameisensoldat 15)
-    { kind: 'ameisensoldat', id: 'huegel', count: 4, spacing: 6, speed: 1.3, antpath: { loop: true, path: [[-10.2, Y, 3.2], [-3.8, Y, 3.2], [-3.8, Y, -3.2], [-10.2, Y, -3.2]] } },
-    { kind: 'ameisensoldat', id: 'feuer', count: 3, spacing: 3.1, speed: 0.9, antpath: { loop: true, path: [[8.2, Y, 4.2], [7.7, Y, 2.9], [6.4, Y, 2.4], [5.1, Y, 2.9], [4.6, Y, 4.2], [5.1, Y, 5.5], [6.4, Y, 6], [7.7, Y, 5.5]] } },
+    { kind: 'ameisensoldat', id: 'huegel', count: 4, spacing: 6, speed: 1.3, antpath: 'weg_huegel', mode: 'loop' },
+    { kind: 'ameisensoldat', id: 'feuer', count: 3, spacing: 3.1, speed: 0.9, antpath: 'weg_feuer', mode: 'loop' },
     wayOver(B0, 3.3, 0.1), wayOver(B0, 4.7, 0.6),
-    { kind: 'ameisensoldat', id: 'quer1', count: 4, spacing: 9.4, speed: 1.6, antpath: antLoop(-9, 9, -22.4, Y, 1.2) },
+    { kind: 'ameisensoldat', id: 'quer1', count: 4, spacing: 9.4, speed: 1.6, antpath: 'weg_quer1', mode: 'loop' },
     { kind: 'ameisensoldat', pos: [-3, Y, -8.6], dir: [1, 0], speed: 1.4 },
     { kind: 'ameisensoldat', pos: [5, Y, -27.6], dir: [-1, 0], speed: 1.4 },
     // ---------------- 2 Höhle (Ameisensoldat 14)
@@ -306,12 +369,12 @@ export const LEVEL = {
     { kind: 'ameisensoldat', id: 'faehre_r', antpath: antWallLane(7, -1, Y + 0.45, -59.6, -78.4), speed: 2, phase: 0.5 },
     { kind: 'ameisensoldat', id: 'faehre_l2', antpath: antWallLane(-7, 1, Y + 2.8, -60, -78), speed: 1.6, phase: 0.45 },
     { kind: 'ameisensoldat', id: 'faehre_r2', antpath: antWallLane(7, -1, Y + 2.8, -60, -78), speed: 1.6, phase: 0.95 },
-    { kind: 'ameisensoldat', id: 'kolonne', count: 4, spacing: 6.6, speed: 1.6, antpath: antLoop(-6, 6, -84.4, Y, 1.2) },
+    { kind: 'ameisensoldat', id: 'kolonne', count: 4, spacing: 6.6, speed: 1.6, antpath: 'weg_kolonne', mode: 'loop' },
     // ---------------- 3 Hörnerreihen (Hörner 23, Ameisensoldat 6)
-    { kind: 'ameisensoldat_horn', id: 'h1', count: 5, spacing: 6.9, speed: 1.6, antpath: antLoop(-8, 8, -117.4, Y, 1.2) },
-    { kind: 'ameisensoldat', id: 'wall', count: 6, spacing: 5.7, speed: 1.5, antpath: antLoop(-8, 8, -124.4, Y + 0.6, 1.2) },
-    { kind: 'ameisensoldat_horn', id: 'h3', count: 6, spacing: 5.7, speed: 2, antpath: antLoop(-8, 8, -136.4, Y, 1.2), phase: 0.3 },
-    { kind: 'ameisensoldat_horn', id: 'h_platz', count: 4, spacing: 4.8, speed: 1.2, antpath: { loop: true, path: [[3.4, Y, -128.4], [9.6, Y, -128.4], [9.6, Y, -134.4], [3.4, Y, -134.4]] } },
+    { kind: 'ameisensoldat_horn', id: 'h1', count: 5, spacing: 6.9, speed: 1.6, antpath: 'weg_h1', mode: 'loop' },
+    { kind: 'ameisensoldat', id: 'wall', count: 6, spacing: 5.7, speed: 1.5, antpath: 'weg_wall', mode: 'loop' },
+    { kind: 'ameisensoldat_horn', id: 'h3', count: 6, spacing: 5.7, speed: 2, antpath: 'weg_h3', mode: 'loop', phase: 0.3 },
+    { kind: 'ameisensoldat_horn', id: 'h_platz', count: 4, spacing: 4.8, speed: 1.2, antpath: 'weg_h_platz', mode: 'loop' },
     { kind: 'ameisensoldat_horn', pos: [-5, Y, -154.6], dir: [1, 0], speed: 1.3 },
     { kind: 'ameisensoldat_horn', pos: [6, Y, -147], dir: [-1, 0], speed: 1.3 },
     ...[-5, 0, 5].map((x, i) => ({ kind: 'ameisensoldat_horn', antpath: antOver([0, Y, -143.5], [18, 1.5, 1], x, 2.2, 2.2), speed: 1.4, phase: 0.2 + i * 0.3 })),
@@ -323,7 +386,7 @@ export const LEVEL = {
     { kind: 'ameisensoldat', id: 'vorrat2', antpath: antOver(STORE.pos, STORE.size, 70.6, 2.4, 2), speed: 1.6, phase: 0.55 },
     { kind: 'ameisensoldat', id: 'rueckwand', antpath: [[61.5, Y + 2.2, ROOM.z1, 0, 0, 1], [78.5, Y + 2.2, ROOM.z1, 0, 0, 1]], speed: 1.4 },
     // ---------------- Zielbereich (Ameisensoldat 3: Ehrenrunde um den Hügel)
-    { kind: 'ameisensoldat', id: 'jubel', count: 3, spacing: 4.4, speed: 1.1, antpath: { loop: true, path: [[10.8, MESA.top, -236], [10.8, MESA.top, -240], [6, MESA.top, -240], [6, MESA.top, -236]] } },
+    { kind: 'ameisensoldat', id: 'jubel', count: 3, spacing: 4.4, speed: 1.1, antpath: 'weg_jubel', mode: 'loop' },
   ],
   items: [
     // ---------------- 1

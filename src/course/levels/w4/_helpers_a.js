@@ -14,7 +14,7 @@
 // als gemeinsame Instanz-Gruppen (creeperInstances), Ameisenpfade über Wände (antOver/antWallLane).
 
 import * as THREE from 'three';
-import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject } from '../../blocks/kit.js';
+import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, islandParts } from '../../blocks/kit.js';
 import { glowTexture } from '../../blocks/w4kit.js';
 import { visDt } from '../../entities/gimmick.js';
 import { Build } from '../../models/lib/kit.js';
@@ -25,6 +25,7 @@ export { levelSetup, cyl, sphere, cone, block };
 export { line, ring, arc, column, farHide, cullStatic, tumbleweed, lizard, beetle } from '../w2/_helpers_a.js';
 export { instanceEnemies } from '../w3/_helpers_a.js';
 export { gegnerSicht, fernAus } from '../w3/_helpers_d.js';
+export { heroShadowDiet } from '../w3/_helpers_e.js';
 
 const TAU = Math.PI * 2;
 const L = (c) => lin(hex(c));
@@ -344,7 +345,7 @@ export function fogBanks(level, list, o = {}) {
   }
   const g = new THREE.PlaneGeometry(1, 1);
   g.rotateX(-Math.PI / 2);
-  const mat = new THREE.MeshBasicMaterial({ map: softTexture(), color: o.color ?? 0xc8a8e8, transparent: true, opacity: o.opacity ?? 0.32, depthWrite: false, fog: true });
+  const mat = new THREE.MeshBasicMaterial({ map: softTexture(), color: o.color ?? 0xeadcff, transparent: true, opacity: o.opacity ?? 0.5, depthWrite: false, fog: true });
   const im = new THREE.InstancedMesh(g, mat, items.length);
   im.frustumCulled = false;
   im.renderOrder = 2;
@@ -893,6 +894,180 @@ export function tintWater(level, surface = 0x3ab8b0, deep = 0x1a6a78) {
     else if (m.material.color.equals(wd)) { m.material.color.set(deep); m.material.opacity = 0.38; n++; }
   });
   return n;
+}
+
+// =====================================================================================================================
+// Durchsicht-Wände: hohe Felsblöcke im Weg (Ameisenwand, Stempelturm), hinter denen die Kamera sonst zur Figur rückt
+// =====================================================================================================================
+
+/**
+ * Felsblöcke (Kollision wie island, aber camIgnore: die Kamera bleibt auf Abstand) mit eigenem Mesh, das durchscheinend
+ * wird, solange der Block zwischen Kamera und Figur steht (Blick auf die Figur hinter der Wand frei). boxes = [{ pos
+ * (Mitte unten), size, top: 'none'|'grass'|'sand', id }]. level.named.get(id) = { fade (0..1 Deckkraft), box }.
+ */
+export function xrayWalls(level, boxes, o = {}) {
+  const v = level.view;
+  const th = v?.theme;
+  const recs = [];
+  for (const B of boxes) {
+    const [px, py, pz] = B.pos, [w, h, d] = B.size;
+    const min = [px - w / 2, py, pz - d / 2], max = [px + w / 2, py + h, pz + d / 2];
+    level.world.add({ type: 'box', min, max, camIgnore: true, tag: B.tag ?? 'felswand' });
+    const rec = { box: new THREE.Box3(new THREE.Vector3(...min), new THREE.Vector3(...max)), fade: 1, mesh: null };
+    if (B.id) level.named.set(B.id, rec);
+    recs.push(rec);
+    if (!v) continue;
+    const parts = islandParts(min[0], min[1], min[2], max[0], max[1], max[2], th, { top: B.top ?? 'none', under: 0, rnd: level.rnd });
+    const mat = (v.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true })).clone();
+    mat.userData.owned = true;
+    const mesh = new THREE.Mesh(merge(parts), mat);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.name = 'durchsicht';
+    mesh.userData.owned = true;
+    rec.mesh = mesh;
+    addObject(level, mesh);
+  }
+  if (!v) return recs;
+  const ray = new THREE.Ray(), hit = new THREE.Vector3(), head = new THREE.Vector3();
+  v.onFrame((dt) => {
+    const p = level.player, cam = v.camera.position;
+    if (!p) return;
+    head.set(p.pos.x, p.pos.y + 0.9, p.pos.z);
+    ray.origin.copy(cam); ray.direction.copy(head).sub(cam);
+    const len = ray.direction.length();
+    ray.direction.normalize();
+    for (const r of recs) {
+      const blocks = !!ray.intersectBox(r.box, hit) && hit.distanceTo(cam) < len - 0.4 && !r.box.containsPoint(head);
+      const want = blocks ? (o.min ?? 0.28) : 1;
+      r.fade += (want - r.fade) * Math.min(1, (dt || 0.016) * 8);
+      if (Math.abs(r.fade - want) < 0.01) r.fade = want;
+      const m = r.mesh.material;
+      const tr = r.fade < 0.999;
+      if (m.transparent !== tr) { m.transparent = tr; m.depthWrite = !tr; m.needsUpdate = true; }
+      m.opacity = r.fade;
+      r.mesh.castShadow = r.fade > 0.6;
+    }
+  });
+  return recs;
+}
+
+// =====================================================================================================================
+// Kleine Kulisse (statisch, verschmolzen)
+// =====================================================================================================================
+
+/** Deterministische Streuung in size [w, d] um pos, Abstand gap, meidet avoid [[x, z, r]]. */
+function scatterPts(pos, size, n, seed = 1, gap = 0.5, avoid = []) {
+  let s = seed * 9301 + 49297;
+  const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const out = [];
+  for (let t = 0; t < n * 30 && out.length < n; t++) {
+    const x = pos[0] + (rnd() - 0.5) * size[0], z = pos[2] + (rnd() - 0.5) * size[1];
+    if (out.some((q) => Math.hypot(q[0] - x, q[1] - z) < gap)) continue;
+    if (avoid.some((a) => Math.hypot(a[0] - x, a[1] - z) < a[2])) continue;
+    out.push([x, z, rnd(), rnd()]);
+  }
+  return out;
+}
+
+/** Kiesel und Steinchen: list = [{ pos, size: [w, d], n, seed, avoid, colors }]. */
+export function pebbles(level, list) {
+  const b = new Build();
+  for (const P of list) {
+    const cols = P.colors ?? [0xb86a48, 0xd89a6a, 0x8a4a32, 0xe8c09a];
+    for (const [x, z, r1, r2] of scatterPts(P.pos, P.size, P.n ?? 12, P.seed ?? 1, 0.35, P.avoid)) {
+      const s = (P.scale ?? 1) * (0.1 + r1 * 0.2);
+      const g = new THREE.DodecahedronGeometry(s, 0);
+      g.scale(1, 0.55 + r2 * 0.3, 0.8 + r2 * 0.4);
+      b.add(g, cols[Math.floor(r1 * 97) % cols.length], { p: [x, P.pos[1] + s * 0.25, z], r: [0, r2 * 6, 0] });
+    }
+  }
+  if (b.parts.length) addStatic(level, b.geometry(), { castShadow: false });
+}
+
+/** Trockene Grasbüschel (Halme als schmale Kegel): list = [{ pos, size, n, seed, avoid, color }]. */
+export function tufts(level, list) {
+  const b = new Build();
+  for (const P of list) {
+    const c0 = P.color ?? 0xc8b45a, c1 = P.tip ?? 0xf0dc8a;
+    for (const [x, z, r1, r2] of scatterPts(P.pos, P.size, P.n ?? 10, P.seed ?? 3, 0.6, P.avoid)) {
+      const h = (P.h ?? 0.6) * (0.7 + r1 * 0.6);
+      for (let k = 0; k < 7; k++) {
+        const a = k * 0.9 + r2 * 3;
+        b.cone(0.055, h * (0.7 + (k % 3) * 0.2), { v: (px, py) => (py > 0 ? c1 : c0) }, { p: [x + Math.cos(a) * 0.08, P.pos[1] + h * 0.4, z + Math.sin(a) * 0.08], r: [Math.sin(a) * 0.45, 0, Math.cos(a) * 0.45] }, 3);
+      }
+    }
+  }
+  if (b.parts.length) addStatic(level, b.geometry(), { castShadow: false });
+}
+
+/** Risse im Boden (dunkle Zickzack-Linien knapp über der Fläche): list = [[x, y, z, len, yaw]]. */
+export function cracks(level, list) {
+  const b = new Build();
+  for (const [x, y, z, len = 2, yaw = 0] of list) {
+    const n = Math.max(3, Math.round(len / 0.4));
+    let px = 0, pz = 0;
+    for (let i = 0; i < n; i++) {
+      const dz = (i % 2 ? 0.12 : -0.12) * (0.6 + ((i * 37) % 7) / 10), dx = len / n;
+      const seg = Math.hypot(dx, dz), a = Math.atan2(dz, dx);
+      const g = new THREE.PlaneGeometry(seg, 0.05 + (i % 3) * 0.02);
+      g.rotateX(-Math.PI / 2);
+      g.rotateY(-a);
+      g.translate(px + dx / 2, 0, pz + dz / 2);
+      g.rotateY(yaw);
+      b.add(g, 0x5a2a1a, { p: [x, y + 0.012, z] });
+      px += dx; pz += dz;
+    }
+  }
+  if (b.parts.length) addStatic(level, b.geometry(), { castShadow: false });
+}
+
+/** Gangöffnungen in Felswänden (dunkle Ellipse mit hellem Erdrand, knapp vor der Fläche): [x, y, z, nx, nz, w, h]. */
+export function wallHoles(level, list) {
+  const b = new Build();
+  for (const [x, y, z, nx = 0, nz = 1, w = 1.2, h = 0.9] of list) {
+    const yaw = Math.atan2(nx, nz);
+    const rim = new THREE.CircleGeometry(0.62, 14);
+    rim.scale(w, h, 1);
+    b.add(rim, 0x9a5a3a, { p: [x + nx * 0.02, y, z + nz * 0.02], r: [0, yaw, 0] });
+    const hole = new THREE.CircleGeometry(0.5, 14);
+    hole.scale(w, h, 1);
+    b.add(hole, 0x1a0e0a, { p: [x + nx * 0.035, y, z + nz * 0.035], r: [0, yaw, 0] });
+  }
+  if (b.parts.length) addStatic(level, b.geometry(), { castShadow: false });
+}
+
+/** Hängende Wurzeln (gewellte dünne Röhren) ab Oberkante: [x, y, z, len, n]. */
+export function roots(level, list) {
+  const b = new Build();
+  for (const [x, y, z, len = 2, n = 3] of list) {
+    for (let k = 0; k < n; k++) {
+      const ox = (k - (n - 1) / 2) * 0.35, l = len * (0.6 + ((k * 13) % 5) / 10);
+      const pts = [];
+      for (let i = 0; i <= 4; i++) pts.push([x + ox + Math.sin(i * 1.3 + k) * 0.12, y - (l * i) / 4, z + Math.cos(i * 1.7 + k) * 0.1]);
+      b.tube(pts, 0.035 - k * 0.004, 0x6a4a32, null, 8, 4);
+    }
+  }
+  if (b.parts.length) addStatic(level, b.geometry(), { castShadow: false });
+}
+
+/** Wimpelkette zwischen a und b (Durchhang sag), bunte Dreiecke. */
+export function bunting(level, a, c, n = 10, sag = 0.6, colors = [0xffc21a, 0xe8322a, 0x3a8aff, 0x4ad06a]) {
+  const b = new Build();
+  const P = (t) => [a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t - Math.sin(t * Math.PI) * sag, a[2] + (c[2] - a[2]) * t];
+  const pts = [];
+  for (let i = 0; i <= 8; i++) pts.push(P(i / 8));
+  b.tube(pts, 0.012, 0x5a3a22, null, 16, 3);
+  const yaw = Math.atan2(-(c[2] - a[2]), c[0] - a[0]);
+  for (let i = 0; i < n; i++) {
+    const q = P((i + 0.5) / n);
+    const sh = new THREE.Shape();
+    sh.moveTo(-0.16, 0); sh.lineTo(0.16, 0); sh.lineTo(0, -0.34); sh.closePath();
+    const g = new THREE.ShapeGeometry(sh);
+    b.add(g, colors[i % colors.length], { p: q, r: [0, yaw, 0] });
+    const g2 = new THREE.ShapeGeometry(sh);
+    b.add(g2, colors[i % colors.length], { p: q, r: [0, yaw + Math.PI, 0] });
+  }
+  addStatic(level, b.geometry(), { castShadow: false });
 }
 
 /** Statische Geometrie aus einer Build-Funktion (fn(b) füllt einen Build) in die Abschnitts-Meshes. */
