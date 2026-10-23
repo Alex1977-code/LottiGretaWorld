@@ -109,23 +109,33 @@ export function buildSchwankplattform(level, spec) {
   const st = { tilt: (spec.tilt ?? 0) * DEG, omega: 0, load: 0 };
   const conv = { x: 0, z: 0 };
   const shape = { type: 'ramp', min: [0, 0, 0], max: [1, 1, 1], axis, dir: 1, low: 0, tag: 'schwankplattform', conveyor: null };
+  // Drehpunkt (Gelenk) 0,5 m unter der Oberseite (wie das Modell): die Oberseite ist eine Gerade durch
+  // (0,5·sin θ, 0,5·cos θ) relativ zum Gelenk → Höhe y = gelenk + 0,5/cos θ − tan θ·u (u entlang axis ab pos)
+  const DP = 0.5, pivotY = p.y - DP;
   const shapeAt = () => {
-    const t = Math.tan(Math.abs(st.tilt)), hx = hl * Math.cos(st.tilt);
-    const hi = p.y + t * hx, lo = p.y - t * hx;
-    shape.min = axis === 'x' ? [p.x - hx, lo - thick, p.z - hw] : [p.x - hw, lo - thick, p.z - hx];
-    shape.max = axis === 'x' ? [p.x + hx, hi, p.z + hw] : [p.x + hw, hi, p.z + hx];
+    const th = st.tilt, c = Math.cos(th), tn = Math.tan(th), shift = DP * Math.sin(th);
+    const u0 = -hl * c + shift, u1 = hl * c + shift;
+    const top0 = pivotY + DP / c - tn * u0, top1 = pivotY + DP / c - tn * u1;
+    const hi = Math.max(top0, top1), lo = Math.min(top0, top1);
+    const a = axis === 'x' ? p.x : p.z;
+    shape.min = axis === 'x' ? [a + u0, lo - thick, p.z - hw] : [p.x - hw, lo - thick, a + u0];
+    shape.max = axis === 'x' ? [a + u1, hi, p.z + hw] : [p.x + hw, hi, a + u1];
     shape.low = lo;
-    shape.dir = st.tilt > 0 ? -1 : 1;     // tilt > 0: Seite +axis unten → Oberseite steigt nach −axis
-    const a = Math.abs(st.tilt);
-    if (a > slideFrom) {
-      const v = slideSpeed * Math.min(1, (a - slideFrom) / Math.max(1e-6, max - slideFrom));
-      conv.x = axis === 'x' ? Math.sign(st.tilt) * v : 0; conv.z = axis === 'z' ? Math.sign(st.tilt) * v : 0;
+    shape.dir = th > 0 ? -1 : 1;     // tilt > 0: Seite +axis unten → Oberseite steigt nach −axis
+    const ab = Math.abs(th);
+    if (ab > slideFrom) {
+      const v = slideSpeed * Math.min(1, (ab - slideFrom) / Math.max(1e-6, max - slideFrom));
+      conv.x = axis === 'x' ? Math.sign(th) * v : 0; conv.z = axis === 'z' ? Math.sign(th) * v : 0;
       shape.conveyor = conv;
     } else shape.conveyor = null;
   };
   shapeAt();
   const sid = level.world.add(shape);
-  if (spec.post !== false) pillar(level, p.x, p.y - thick, p.z, 0.45, spec.postDown ?? 6, style === 'holz' ? 'stein' : style);
+  const reg = !!level.view && hasModel('schwankplattform');
+  if (spec.post !== false) {
+    if (reg) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: 0.42, y0: p.y - (spec.postDown ?? 6), y1: p.y - thick - 0.3, tag: 'drehpunkt:saeule' });
+    else pillar(level, p.x, p.y - thick, p.z, 0.45, spec.postDown ?? 6, style === 'holz' ? 'stein' : style);
+  }
   const handle = {
     get tilt() { return st.tilt; }, get omega() { return st.omega; }, get load() { return st.load; }, shape,
     info: () => ({ tilt: +(st.tilt / DEG).toFixed(2), omega: +st.omega.toFixed(3), load: +st.load.toFixed(3), sliding: !!shape.conveyor }),
@@ -155,19 +165,24 @@ export function buildSchwankplattform(level, spec) {
     const root = new THREE.Group();
     root.position.set(p.x, p.y, p.z);
     let model = null, mesh = null;
-    if (hasModel('schwankplattform')) {
-      model = getModel('schwankplattform', { size: sz, thick, axis, style });
+    if (reg) {
+      // Modell: Säule (bis postDown unter die Oberseite), Gelenkkugel, Platte; Oberkante = pivot + 0,5
+      model = getModel('schwankplattform', { size: sz, height: spec.post === false ? 0.6 : Math.max(0.6, Math.min(10, (spec.postDown ?? 6) - DP)) });
+      const top = model.root.userData.top ?? 2;
+      model.root.position.y = -top;
       root.add(model.root);
     } else {
       const g = slabGeo(sz[0], sz[1], thick, style, p.x * 0.37);
       mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }));
       mesh.castShadow = true; mesh.receiveShadow = true;
+      mesh.position.y = DP;
       // Drehlager (Bronze) unter der Platte
       const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, wid * 0.7, 10), new THREE.MeshStandardMaterial({ color: 0xc89040, roughness: 0.35, metalness: 0.6 }));
       if (axis === 'x') hinge.rotation.x = Math.PI / 2; else hinge.rotation.z = Math.PI / 2;
       hinge.position.y = -thick - 0.12;
       root.add(hinge);
       const pivot = new THREE.Group();
+      pivot.position.y = -DP;
       pivot.add(mesh);
       root.add(pivot);
       mesh = pivot;
@@ -175,7 +190,7 @@ export function buildSchwankplattform(level, spec) {
     const holder = {};
     addObject(level, root, (dt) => {
       const d = visDt(level, holder, dt);
-      if (model) { model.update?.(d, { tilt: st.tilt, axis }); return; }
+      if (model) { model.update?.(d, { tilt: axis === 'x' ? [0, -st.tilt] : [st.tilt, 0] }); return; }
       if (axis === 'x') mesh.rotation.set(0, 0, -st.tilt); else mesh.rotation.set(st.tilt, 0, 0);
     });
   }

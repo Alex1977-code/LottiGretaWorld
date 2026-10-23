@@ -26,10 +26,12 @@
 
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, Rnd, addStatic, addObject, hex, box } from '../kit.js';
-import { bakeModel } from '../w2kit.js';
+import { bakeModel, modelObject } from '../w2kit.js';
+import { rotXZ } from '../w3kit.js';
 import { hasModel } from '../../models/index.js';
 import { glowSprite } from '../w4kit.js';
 import { visDt } from '../../entities/gimmick.js';
+import { music } from '../../../audio/index.js';
 
 const range = (v, d) => (Array.isArray(v) ? v : [v ?? d[0], v ?? d[1]]);
 const C = (h) => lin(hex(h));
@@ -575,6 +577,173 @@ function lavasteine(level, it, p, rnd, parts, glow) {
   }
 }
 
+// ------------------------------------------------------------------ Kulissen-Modelle der Registry (models/kinds/props_*_w4.js)
+
+/** Takt-Puls 0..1 (Blitz zu Beginn jeder Zählzeit) aus der Taktuhr des Levels bzw. der Musik. */
+function beatPulse(level) {
+  let b = level.beepClock?.beat;
+  if (b === undefined) { try { const mb = music.beat(); b = mb.playing ? mb.beat : level.time * 2; } catch { b = level.time * 2; } }
+  return Math.exp(-(((b % 1) + 1) % 1) * 5);
+}
+
+/** Achsenparalleler Hüllquader eines lokalen Quaders (Ursprung p, Gier yaw: lokal x → rotXZ). */
+function boxAt(level, p, lx0, lx1, y0, y1, lz0, lz1, yaw, tag) {
+  const xs = [], zs = [];
+  for (const a of [lx0, lx1]) for (const b of [lz0, lz1]) { const w = rotXZ(a, b, yaw); xs.push(p.x + w.x); zs.push(p.z + w.z); }
+  level.world.add({ type: 'box', min: [Math.min(...xs), p.y + y0, Math.min(...zs)], max: [Math.max(...xs), p.y + y1, Math.max(...zs)], tag });
+}
+
+const sh = (it) => ({ castShadow: it.shadow !== false });
+
+/**
+ * Kind → Aufbau mit Modell (nur wenn das Modell in der Registry ist; sonst eigene Geometrie oben). yaw = Drehung des
+ * Modells (Vorderseite bzw. Durchgang bei yaw 0 nach +X, wie bei allen Modellen).
+ */
+const REG = {
+  felsnadel(level, it, p) {
+    const H = it.height ?? 5;
+    bakeModel(level, 'felsnadel', { height: H }, p.x, p.y, p.z, it.yaw ?? (p.x * 1.7 + p.z) % 6.28, it.scale ?? 1, {}, sh(it));
+    if (it.solid) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: it.size ?? H * 0.2, y0: p.y, y1: p.y + H, tag: 'felsnadel' });
+  },
+  tafelberg(level, it, p) {
+    const sz = Array.isArray(it.size) ? Math.max(...it.size) : it.size;
+    const R = it.radius ?? (sz ? sz / 2 : 4), H = it.height ?? 6;
+    bakeModel(level, 'tafelberg', { radius: R, height: H }, p.x, p.y, p.z, it.yaw ?? 0, 1, {}, sh(it));
+    if (it.solid) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: R * 0.9, y0: p.y, y1: p.y + H, tag: 'tafelberg' });
+  },
+  canyon_bogen(level, it, p) {
+    const W = it.width ?? 5, H = it.height ?? 4, T = it.thickness ?? 1.2, yaw = it.yaw ?? 0;
+    bakeModel(level, 'canyon_bogen', { width: W, height: H, thickness: T }, p.x, p.y, p.z, yaw, 1, {}, sh(it));
+    if (it.solid !== false) for (const s of [-1, 1]) boxAt(level, p, -T / 2, T / 2, 0, H * 0.7, s * W / 2 - T * 0.6, s * W / 2 + T * 0.6, yaw, 'canyon_bogen');
+  },
+  ameisenhuegel(level, it, p) {
+    const S = it.size ?? 2.5;
+    bakeModel(level, 'ameisenhuegel', { size: S }, p.x, p.y, p.z, it.yaw ?? 0, 1, {}, sh(it));
+    if (it.solid !== false) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: S * 0.4, y0: p.y, y1: p.y + S * 0.45, tag: 'ameisenhuegel' });
+  },
+  ameisenhoehle(level, it, p) {
+    bakeModel(level, 'ameisenhoehle', { width: it.width ?? 3.2, height: it.height ?? 2.4 }, p.x, p.y, p.z, it.yaw ?? 0, 1, {}, sh(it));
+  },
+  giftpilz(level, it, p) {
+    const H = it.height ?? 2;
+    bakeModel(level, 'giftpilz', { height: H }, p.x, p.y, p.z, it.yaw ?? (p.x + p.z * 1.3) % 6.28, it.scale ?? 1, {}, sh(it));
+    if (it.solid) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: H * 0.12, y0: p.y, y1: p.y + H * 0.8, tag: 'giftpilz' });
+  },
+  giftbaum(level, it, p) {
+    const H = it.height ?? 5;
+    bakeModel(level, 'giftbaum', { height: H }, p.x, p.y, p.z, it.yaw ?? (p.x * 0.7 + p.z) % 6.28, 1, {}, sh(it));
+    if (it.solid !== false) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: H * 0.07, y0: p.y, y1: p.y + H * 0.7, tag: 'giftbaum' });
+  },
+  liane(level, it, p) {
+    if (level.view) modelObject(level, 'liane', { length: it.length ?? 3 }, p.x, p.y, p.z, it.yaw ?? 0, { sway: it.sway ?? 0.35 });
+  },
+  giftwasserfall(level, it, p) {
+    if (level.view) modelObject(level, 'giftwasserfall', { width: it.width ?? 3, height: it.height ?? 5 }, p.x, p.y, p.z, it.yaw ?? 0, {});
+  },
+  lavafall(level, it, p) {
+    if (level.view) modelObject(level, 'lavafall', { width: it.width ?? 3, height: it.height ?? 5 }, p.x, p.y, p.z, it.yaw ?? 0, {});
+  },
+  lautsprecher(level, it, p) {
+    const H = it.height ?? (it.size ?? 2);
+    if (level.view) { const st = { beat: 0 }; modelObject(level, 'lautsprecher', { height: H }, p.x, p.y, p.z, it.yaw ?? 0, () => { st.beat = beatPulse(level); return st; }); }
+    if (it.solid !== false) level.world.add({ type: 'box', min: [p.x - H * 0.35, p.y, p.z - H * 0.35], max: [p.x + H * 0.35, p.y + H, p.z + H * 0.35], tag: 'lautsprecher' });
+  },
+  neon_ring(level, it, p) {
+    if (level.view) { const st = { pulse: 0 }; modelObject(level, 'neon_ring', { radius: it.radius ?? 1.5, color: it.color ?? 'cyan' }, p.x, p.y, p.z, it.yaw ?? 0, () => { st.pulse = 0.35 + 0.65 * beatPulse(level); return st; }); }
+  },
+  equalizer_saeule(level, it, p) {
+    const H = it.height ?? 4, seed = (p.x * 3.1 + p.z * 1.7) % 1;
+    if (level.view) {
+      const st = { level: 0 };
+      modelObject(level, 'equalizer_saeule', { segments: it.segments ?? 10, height: H }, p.x, p.y, p.z, it.yaw ?? 0, () => {
+        const k = beatPulse(level);
+        st.level = Math.min(1, 0.25 + 0.6 * k + 0.15 * Math.abs(Math.sin(level.time * 3.7 + seed * 9)));
+        return st;
+      });
+    }
+    if (it.solid !== false) level.world.add({ type: 'box', min: [p.x - 0.5, p.y, p.z - 0.5], max: [p.x + 0.5, p.y + H, p.z + 0.5], tag: 'equalizer' });
+  },
+  wolkeninsel(level, it, p) {
+    const S = it.size ?? 4;
+    bakeModel(level, 'wolkeninsel', { size: S }, p.x, p.y, p.z, it.yaw ?? 0, 1, {}, sh(it));
+    if (it.solid !== false) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: S * 0.42, y0: p.y + S * 0.42 - 0.6, y1: p.y + S * 0.42, tag: 'wolkeninsel' });
+  },
+  windrad(level, it, p) {
+    if (level.view) modelObject(level, 'windrad', { height: it.height ?? 6 }, p.x, p.y, p.z, it.yaw ?? 0, { speed: it.speed ?? 0.3 });
+    if (it.solid !== false) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: 0.45, y0: p.y, y1: p.y + (it.height ?? 6), tag: 'windrad' });
+  },
+  saeule(level, it, p) {
+    const H = it.height ?? 5;
+    bakeModel(level, 'ruinen_saeule', { height: H, broken: !!it.broken }, p.x, p.y, p.z, it.yaw ?? (p.x + p.z) % 6.28, 1, {}, sh(it));
+    if (it.solid !== false) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: it.r ?? 0.55, y0: p.y, y1: p.y + H * (it.broken ? 0.6 : 1), tag: 'saeule' });
+  },
+  statue(level, it, p) {
+    const S = it.size ?? 3, yaw = it.yaw ?? 0;
+    bakeModel(level, 'statue_bruch', { size: S }, p.x, p.y, p.z, yaw, 1, {}, sh(it));
+    if (it.solid !== false) level.world.add({ type: 'box', min: [p.x - S * 0.3, p.y, p.z - S * 0.3], max: [p.x + S * 0.3, p.y + S * 0.85, p.z + S * 0.3], tag: 'statue' });
+  },
+  ruinenbogen(level, it, p) {
+    const W = it.width ?? 4, H = it.height ?? 4.5, yaw = it.yaw ?? 0;
+    bakeModel(level, 'ruinen_torbogen', { width: W, height: H }, p.x, p.y, p.z, yaw, 1, {}, sh(it));
+    if (it.solid !== false) for (const s of [-1, 1]) boxAt(level, p, -0.5, 0.5, 0, H * 0.85, s * (W / 2 + 0.45) - 0.45, s * (W / 2 + 0.45) + 0.45, yaw, 'ruinenbogen');
+  },
+  ruinen_treppe(level, it, p) {
+    const n = it.steps ?? 5, W = it.width ?? 3, rise = it.rise ?? 0.35, run = it.run ?? 0.55, yaw = it.yaw ?? 0;
+    bakeModel(level, 'ruinen_treppe', { steps: n, width: W, rise, run }, p.x, p.y, p.z, yaw, 1, {}, sh(it));
+    if (it.solid !== false) for (let i = 0; i < n; i++) boxAt(level, p, i * run, n * run, 0, (i + 1) * rise, -W / 2, W / 2, yaw, 'ruinen_treppe');
+  },
+  ranken(level, it, p) {
+    if (level.view) modelObject(level, 'ranken', { length: it.width ?? it.length ?? 3, kind: it.lage === 'boden' ? 'boden' : 'haengend' }, p.x, p.y, p.z, it.yaw ?? 0, { sway: it.sway ?? 0.3 });
+  },
+  kette(level, it, p) {
+    if (level.view) modelObject(level, 'burg_kette', { length: it.length ?? 3 }, p.x, p.y, p.z, it.yaw ?? 0, { sway: it.sway ?? 0.2 });
+  },
+  banner(level, it, p) {
+    if (level.view) modelObject(level, 'brummbaer_banner', { height: it.height ?? 3, width: it.width ?? 1.4 }, p.x, p.y, p.z, it.yaw ?? 0, { sway: it.sway ?? 0.3 });
+  },
+  burgzinne(level, it, p) {
+    const { a, b, L } = line(it, p);
+    const H = it.height ?? 3.5, T = it.thick ?? 1;
+    const yaw = Math.atan2(b.x - a.x, b.z - a.z) - Math.PI / 2;   // Modell verläuft lokal entlang z; lokal +Z → Richtung a→b
+    const m = { x: (a.x + b.x) / 2, y: a.y, z: (a.z + b.z) / 2 };
+    bakeModel(level, 'burgmauer', { length: L, height: H, thickness: T }, m.x, m.y, m.z, yaw + Math.PI / 2, 1, {}, sh(it));
+    if (it.solid !== false) boxAt(level, m, -T / 2, T / 2, 0, H, -L / 2, L / 2, yaw + Math.PI / 2, 'burgzinne');
+  },
+  fallgitter(level, it, p) {
+    const W = it.width ?? 3, H = it.height ?? 3.5, yaw = it.yaw ?? 0;
+    const st = { open: it.open ? 1 : 0, target: it.open ? 1 : 0 };
+    let sid = null;
+    const shape = () => {
+      const xs = [], zs = [];
+      for (const aa of [-0.2, 0.2]) for (const bb of [-W / 2, W / 2]) { const w = rotXZ(aa, bb, yaw); xs.push(p.x + w.x); zs.push(p.z + w.z); }
+      return { type: 'box', min: [Math.min(...xs), p.y, Math.min(...zs)], max: [Math.max(...xs), p.y + H, Math.max(...zs)], tag: 'fallgitter' };
+    };
+    const sync = () => {
+      const closed = st.open < 0.6;
+      if (closed && sid === null && it.solid !== false) sid = level.world.add(shape());
+      else if (!closed && sid !== null) { level.world.remove(sid); sid = null; }
+    };
+    sync();
+    const h = { get openK() { return st.open; }, start() { st.target = 1; }, open() { st.target = 1; }, close() { st.target = 0; }, toggle() { st.target = 1 - st.target; } };
+    if (it.id) level.named.set(it.id, h);
+    level.onStep((dt) => { if (st.open !== st.target) { st.open = st.target > st.open ? Math.min(1, st.open + dt / 1.2) : Math.max(0, st.open - dt / 0.5); sync(); } });
+    if (level.view) modelObject(level, 'fallgitter', { width: W, height: H }, p.x, p.y, p.z, yaw, () => ({ open: st.open }));
+  },
+  festungsgitter(level, it, p) {
+    const W = it.width ?? 4, H = it.height ?? 3, yaw = it.yaw ?? 0;
+    if (level.view) modelObject(level, 'festungsgitter', { width: W, height: H }, p.x, p.y, p.z, yaw, {});
+    if (it.solid !== false) boxAt(level, p, -0.15, 0.15, 0, H, -W / 2, W / 2, yaw, 'festungsgitter');
+  },
+};
+const REG_MODEL = {
+  felsnadel: 'felsnadel', tafelberg: 'tafelberg', canyon_bogen: 'canyon_bogen', ameisenhuegel: 'ameisenhuegel', ameisenhoehle: 'ameisenhoehle',
+  giftpilz: 'giftpilz', giftbaum: 'giftbaum', liane: 'liane', giftwasserfall: 'giftwasserfall', lavafall: 'lavafall', lautsprecher: 'lautsprecher',
+  neon_ring: 'neon_ring', equalizer_saeule: 'equalizer_saeule', wolkeninsel: 'wolkeninsel', windrad: 'windrad', saeule: 'ruinen_saeule',
+  statue: 'statue_bruch', ruinenbogen: 'ruinen_torbogen', ruinen_treppe: 'ruinen_treppe', ranken: 'ranken', kette: 'burg_kette',
+  banner: 'brummbaer_banner', burgzinne: 'burgmauer', fallgitter: 'fallgitter', festungsgitter: 'festungsgitter',
+};
+const viaModel = (kind) => !!REG[kind] && hasModel(REG_MODEL[kind]);
+
 // ------------------------------------------------------------------ Aufbau
 
 const SINGLE = {
@@ -592,25 +761,37 @@ export function buildDecoW4(level, spec) {
     const p = v3(it.pos ?? it.from);
     const rnd = new Rnd((it.seed ?? Math.floor(p.x * 73 + p.z * 37 + p.y * 11)) >>> 0);
     const P = it.shadow === false ? parts.flat : parts.shadow;
-    // Kulissen-Modell der Registry (deco_w4_<kind>), sobald es eines gibt
-    if (hasModel(`deco_w4_${it.kind}`)) { bakeModel(level, `deco_w4_${it.kind}`, it, p.x, p.y, p.z, it.yaw ?? 0, it.scale ?? 1, {}, { castShadow: it.shadow !== false }); continue; }
-    const scat = (fn, n, sz, gap, mk) => { for (const [x, z] of scatter(p, it.size ?? sz, it.n ?? n, it.gap ?? gap, it.avoid, rnd)) fn(level, mk(), { x, y: p.y, z }, rnd, P, glow); };
+    const scat = (fn, n, sz, gap, mk, regKind) => {
+      for (const [x, z] of scatter(p, it.size ?? sz, it.n ?? n, it.gap ?? gap, it.avoid, rnd)) {
+        const one = { shadow: it.shadow, ...mk() };
+        if (regKind && viaModel(regKind)) REG[regKind](level, one, { x, y: p.y, z }); else fn(level, one, { x, y: p.y, z }, rnd, P, glow);
+      }
+    };
+    if (viaModel(it.kind)) { REG[it.kind](level, it, p, rnd); continue; }
     switch (it.kind) {
-      case 'felsnadeln': { const [h0, h1] = range(it.height, [5, 12]); scat(felsnadel, 5, [12, 12], 3, () => ({ height: rnd.real(h0, h1), size: rnd.real(1.4, 2.6), solid: it.solid })); break; }
+      case 'felsnadeln': { const [h0, h1] = range(it.height, [5, 12]); scat(felsnadel, 5, [12, 12], 3, () => ({ height: rnd.real(h0, h1), size: rnd.real(1.4, 2.6), solid: it.solid }), 'felsnadel'); break; }
+      case 'giftpilze': { const [h0, h1] = range(it.height, [1.2, 2.6]); scat(leuchtpilze, 5, [8, 8], 1.6, () => ({ height: rnd.real(h0, h1), n: 3, solid: it.solid }), 'giftpilz'); break; }
       case 'trockenbuesche': scat(trockenbusch, 6, [8, 8], 1.2, () => ({})); break;
-      case 'giftbaeume': { const [s0, s1] = range(it.scale, [0.8, 1.3]); scat(giftbaum, 5, [12, 12], 3, () => ({ height: 7 * rnd.real(s0, s1), solid: it.solid ?? false })); break; }
+      case 'giftbaeume': { const [s0, s1] = range(it.scale, [0.8, 1.3]); scat(giftbaum, 5, [12, 12], 3, () => ({ height: 6 * rnd.real(s0, s1), solid: it.solid ?? false }), 'giftbaum'); break; }
       case 'bergfichten': { const [s0, s1] = range(it.scale, [0.8, 1.3]); scat(bergfichte, 6, [12, 12], 2.2, () => ({ height: 5 * rnd.real(s0, s1), solid: it.solid })); break; }
       case 'saeulen': {
         const { a, b, L } = line(it, p);
         const n = Math.max(1, Math.floor(L / (it.every ?? 3)) + 1);
-        for (let i = 0; i < n; i++) { const u = n > 1 ? i / (n - 1) : 0; saeule(level, { ...it, broken: rnd.frac() < (it.broken ?? 0.3) }, { x: a.x + (b.x - a.x) * u, y: a.y, z: a.z + (b.z - a.z) * u }, rnd, P); }
+        for (let i = 0; i < n; i++) {
+          const u = n > 1 ? i / (n - 1) : 0, q = { x: a.x + (b.x - a.x) * u, y: a.y, z: a.z + (b.z - a.z) * u };
+          const one = { ...it, broken: rnd.frac() < (it.broken ?? 0.3) };
+          if (viaModel('saeule')) REG.saeule(level, one, q); else saeule(level, one, q, rnd, P);
+        }
         break;
       }
       case 'fackeln': case 'ketten': {
         const { a, b, L } = line(it, p);
         const n = Math.max(1, Math.floor(L / (it.every ?? (it.kind === 'fackeln' ? 6 : 2.5))) + 1);
         const fn = it.kind === 'fackeln' ? fackel : kette;
-        for (let i = 0; i < n; i++) { const u = n > 1 ? i / (n - 1) : 0; fn(level, it, { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, z: a.z + (b.z - a.z) * u }, rnd, P, glow); }
+        for (let i = 0; i < n; i++) {
+          const u = n > 1 ? i / (n - 1) : 0, q = { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, z: a.z + (b.z - a.z) * u };
+          if (it.kind === 'ketten' && viaModel('kette')) REG.kette(level, it, q); else fn(level, it, q, rnd, P, glow);
+        }
         break;
       }
       default: {

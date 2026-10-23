@@ -189,15 +189,19 @@ export function buildRiesentrampolin(level, spec) {
   });
   // Darstellung
   if (level.view) {
-    const m = hasModel('riesentrampolin') ? getModel('riesentrampolin', { size }) : bigTrampolineModel(size);
-    m.root.position.copy(pos);
+    // Modell der Registry: Ursprung = Mitte der Sprungfläche (Matte bei pos.y + H), Nachfedern über anim 'bounce' + n
+    const reg = hasModel('riesentrampolin');
+    const m = reg ? getModel('riesentrampolin', { radius: r + 0.25 }) : bigTrampolineModel(size);
+    const lift = reg ? H : 0;
+    m.root.position.set(pos.x, pos.y + lift, pos.z);
     const holder = {};
     addObject(level, m.root, (dt) => {
       const d = visDt(level, holder, dt);
       st.squash = Math.max(0, st.squash - d * 3.2);
       const sq = Math.sin(st.squash * Math.PI) * st.squash;
-      m.root.position.copy(pos);
-      m.update?.(d, { squash: sq, speed: st.speedNow, moving: st.running });
+      m.root.position.set(pos.x, pos.y + lift, pos.z);
+      if (reg) m.update?.(d, { squash: 0, anim: st.bounces ? 'bounce' : 'idle', n: st.bounces, spin: 2.5 + st.speedNow * 0.6 });
+      else m.update?.(d, { squash: sq, speed: st.speedNow, moving: st.running });
     });
   }
   return handle;
@@ -236,13 +240,13 @@ function orangeModel(size) {
   const tg = colorize(top, (p, n, o) => { const d = Math.hypot(p.x, p.z) / (r * 0.9); mixc(cream, orange, d > 0.62 && d < 0.8 ? 1 : d < 0.22 ? 0.85 : 0, o); });
   const drumMesh = new THREE.Mesh(merge([dg, rimG, tg]), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45 }));
   drumMesh.castShadow = true; drumMesh.receiveShadow = true;
-  drumMesh.position.y = 0.55;
+  drumMesh.position.y = 0.7;
   tilt.add(drumMesh);
   return {
     root,
     update(dt, st) {
       const s = st.squash ?? 0;
-      drumMesh.position.y = 0.55 - s * 0.16;
+      drumMesh.position.y = 0.7 - s * 0.16;
       lower.scale.y = 1 - s * 0.25;
       tilt.rotation.set(st.tiltX ?? 0, 0, st.tiltZ ?? 0);
     },
@@ -253,7 +257,7 @@ function orangeModel(size) {
 export function buildTrampolinOrange(level, spec) {
   const p = v3(spec.pos);
   const size = spec.size ?? 1.8, r = size / 2;
-  const H = 0.88;
+  const H = 1.0;   // Hut-Oberkante (Modell trampolin_orange: 1,0 m)
   const strength = spec.height ? Math.sqrt(2 * G_UP * spec.height) * 0.94 : (spec.strength ?? 21);
   const ang = Math.max(0, Math.min(60, spec.angle ?? 0)) * Math.PI / 180;
   const d = spec.dir ?? [0, -1], dl = Math.hypot(d[0], d[1]) || 1;
@@ -279,17 +283,29 @@ export function buildTrampolinOrange(level, spec) {
   const handle = { strength, vUp, vSide, get bounces() { return st.bounces; } };
   if (spec.id) level.named.set(spec.id, handle);
   if (level.view) {
-    const m = hasModel('trampolin_orange') ? getModel('trampolin_orange', { size }) : orangeModel(size);
-    m.root.position.set(p.x, p.y, p.z);
     // Neigung: Matte kippt zur Schleuderrichtung (Drehachse quer dazu)
     const tiltX = ang * dz, tiltZ = -ang * dx;
+    const reg = hasModel('trampolin_orange');
+    let m, root;
+    if (reg) {
+      // Pilz-Federtrampolin (Ø 1,9 m, Hut-Oberkante 1,0): auf size skaliert, bei Neigung um den Hut gekippt
+      m = getModel('trampolin_orange', {});
+      const k = size / 1.9;
+      m.root.scale.set(k, 1, k);
+      m.root.position.y = -H;
+      root = new THREE.Group();
+      root.position.set(p.x, p.y + H, p.z);
+      root.rotation.set(tiltX, 0, tiltZ);
+      root.add(m.root);
+    } else { m = orangeModel(size); root = m.root; root.position.set(p.x, p.y, p.z); }
     const holder = {};
-    addObject(level, m.root, (dt) => {
+    addObject(level, root, (dt) => {
       const dd = visDt(level, holder, dt);
       st.squash = Math.max(0, st.squash - dd * 4);
-      m.update?.(dd, { squash: Math.sin(st.squash * Math.PI) * st.squash, angle: ang, tiltX, tiltZ, dir: [dx, dz] });
+      if (reg) m.update?.(dd, { squash: 0, anim: st.bounces ? 'bounce' : 'idle', n: st.bounces });
+      else m.update?.(dd, { squash: Math.sin(st.squash * Math.PI) * st.squash, angle: ang, tiltX, tiltZ, dir: [dx, dz] });
     });
-    m.update?.(0, { squash: 0, angle: ang, tiltX, tiltZ, dir: [dx, dz] });
+    if (!reg) m.update?.(0, { squash: 0, angle: ang, tiltX, tiltZ, dir: [dx, dz] });
   }
   return handle;
 }

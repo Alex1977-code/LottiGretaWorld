@@ -38,6 +38,8 @@ import { beatClock, pushOutOf, penetrates } from '../w4kit.js';
 import { slideSlope } from '../w3kit.js';
 import { figures } from '../w2kit.js';
 import { topAt } from '../../physics/shapes.js';
+import { hasModel } from '../../models/index.js';
+import { piepSolidGeo, piepOutlineGeo, piepFillGeo, piepMats } from '../../models/lib/w4Geos.js';
 
 export const PIEP_COLORS = {
   rot: { base: 0xff3d55, top: 0xff8494, dark: 0x9a0c26, lamp: 0xfff0f2, edge: 0xff5a70 },
@@ -265,84 +267,137 @@ function frameGeo(c) {
 const _m = new THREE.Matrix4(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _q = new THREE.Quaternion();
 const _col = new THREE.Color();
 
+/** Geometrie/Materialien der Piep-Blöcke: Modell der Registry (models/lib/w4Geos.js, Ursprung = Mitte der Unterseite,
+ *  geteilte Ressourcen) oder eigene Rückfall-Geometrie (Ursprung = Mitte). */
+function piepLook(color) {
+  if (hasModel('piep_block')) {
+    const mats = piepMats(color);
+    return { model: true, off: -0.5, solid: [piepSolidGeo(color, true), mats.solid], outline: [piepOutlineGeo(), mats.outline], fill: [piepFillGeo(), mats.fill] };
+  }
+  const set = PIEP_COLORS[color];
+  return {
+    model: false, off: 0,
+    solid: [solidGeo(set), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.38, metalness: 0.05, emissive: set.base, emissiveIntensity: 0.12 })],
+    outline: [frameGeo(set), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide })],
+    fill: null,
+  };
+}
+
+const _sc = new THREE.Matrix4(), _off = new THREE.Matrix4(), _c3 = new THREE.Vector3();
+const VIEW_R = 46;      // m um das Kamera-Ziel: nur diese Zellen werden gezeichnet (Instanzen verdichtet)
+const SHADOW_R = 24;    // m: nur diese Zellen werfen Schatten (eigene, schlichte Schattenwürfel)
+
+/**
+ * Darstellung aller Piep-Blöcke eines Levels: je Farbe Instanz-Meshes für fest / Umriss / Füllung (+ unsichtbare
+ * Schattenwürfel). Je Bild (bei Bedarf) werden nur die Zellen nahe am Kamera-Ziel in die Instanzen geschrieben
+ * (count = sichtbare Zellen) – so kostet auch ein großes Piep-Feld nur die sichtbaren Dreiecke.
+ */
 class PiepView {
   constructor(sys) {
     this.sys = sys;
     this.level = sys.level;
     this.meshes = null;
     this.time = 0;
+    this.frameN = 0;
+    this.lastT = new THREE.Vector3(1e9, 0, 0);
     this.level.view.onFrame((dt) => this.frame(dt));
   }
 
   build() {
     const byColor = { rot: [], blau: [] };
-    for (const c of this.sys.cells) { c.i = byColor[c.g.color].length; byColor[c.g.color].push(c); }
+    for (const c of this.sys.cells) byColor[c.g.color].push(c);
     this.meshes = {};
+    const shadowGeo = new THREE.BoxGeometry(1, 1, 1);
+    shadowGeo.translate(0, 0.5, 0);
     for (const color of ['rot', 'blau']) {
       const n = byColor[color].length;
       if (!n) continue;
-      const set = PIEP_COLORS[color];
-      const solid = new THREE.InstancedMesh(solidGeo(set), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.38, metalness: 0.05, emissive: set.base, emissiveIntensity: 0.12 }), n);
-      const frame = new THREE.InstancedMesh(frameGeo(set), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide }), n);
-      solid.castShadow = true; solid.receiveShadow = true;
-      frame.castShadow = false; frame.renderOrder = 2;
-      for (const m of [solid, frame]) {
+      const look = piepLook(color);
+      _off.makeTranslation(0, look.off, 0);
+      for (const c of byColor[color]) {
+        c.base = c.m.clone().multiply(_off);
+        c.center = new THREE.Vector3().setFromMatrixPosition(c.m);
+        c.shadow = c.m.clone().multiply(new THREE.Matrix4().makeTranslation(0, -0.5, 0));
+      }
+      const make = (gm, cast, order) => {
+        const m = new THREE.InstancedMesh(gm[0], gm[1], n);
+        m.castShadow = cast; m.receiveShadow = !cast && order === 0; m.renderOrder = order;
         m.frustumCulled = false;
         m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         for (let i = 0; i < n; i++) { m.setMatrixAt(i, ZERO); m.setColorAt(i, _col.setRGB(1, 1, 1)); }
-        m.userData.owned = true;
+        m.count = 0;
+        if (!look.model) m.userData.owned = true;   // Modell-Ressourcen sind geteilt (nicht freigeben)
         this.level.view.add(m);
-      }
-      solid.name = `piep:${color}`; frame.name = `piep:${color}:umriss`;
-      this.meshes[color] = { solid, frame, cells: byColor[color] };
+        return m;
+      };
+      const solid = make(look.solid, false, 0);
+      solid.receiveShadow = true;
+      const outline = make(look.outline, false, 3);
+      const fill = look.fill ? make(look.fill, false, 2) : null;
+      const shadow = make([shadowGeo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false })], true, -1);
+      shadow.userData.owned = true;
+      solid.name = `piep:${color}`; outline.name = `piep:${color}:umriss`; shadow.name = `piep:${color}:schatten`;
+      this.meshes[color] = { solid, outline, fill, shadow, cells: byColor[color], look, list: [solid, outline, fill, shadow].filter(Boolean) };
     }
-    for (const g of this.sys.groups.values()) g.dirty = true;
+    for (const g of this.sys.groups.values()) { g.dirty = true; g.vk = g.on ? 1 : 0; }
   }
 
   frame(dt) {
     if (!this.meshes) this.build();
     this.time += dt;
-    const touched = new Set();
+    this.frameN++;
+    const beat = this.sys.clock.beat;
+    const flash = Math.exp(-(((beat % 1) + 1) % 1) * 5);      // Blitz zu Beginn jeder Zählzeit
+    let changed = false;
     for (const g of this.sys.groups.values()) {
-      const popping = g.pop > 0;
-      if (popping) g.pop = Math.max(0, g.pop - dt);
-      const warnK = g.warnOn ? Math.exp(-(g.k % 1) * 5) : 0;   // Blitz zu Beginn jeder Warn-Zählzeit
-      const warnChanged = (g._warnK ?? -1) !== warnK;
-      if (!g.dirty && !popping && !warnChanged && !g._popped) continue;
-      const set = this.meshes[g.color];
-      if (!set) continue;
-      g._popped = popping;
-      const k = popping ? 1 - g.pop / 0.2 : 1;
-      const sc = popping && g.on ? 0.82 + 0.18 * Math.sin(k * Math.PI * 0.5) + Math.sin(k * Math.PI) * 0.08 : 1;
-      for (const c of g.cells) {
-        if (g.dirty || popping || g._wasPopping) {
-          if (g.on) {
-            if (sc !== 1) { c.m.decompose(_p, _q, _s); _m.compose(_p, _q, _s.multiplyScalar(sc)); set.solid.setMatrixAt(c.i, _m); }
-            else set.solid.setMatrixAt(c.i, c.m);
-            set.frame.setMatrixAt(c.i, ZERO);
-          } else { set.solid.setMatrixAt(c.i, ZERO); set.frame.setMatrixAt(c.i, c.m); }
-        }
-        if (warnChanged || g.dirty) {
-          const w = 1 + warnK * (g.on ? 0.9 : 1.6);
-          set.solid.setColorAt(c.i, _col.setRGB(w, w, w));
-          set.frame.setColorAt(c.i, _col.setRGB(w, w, w));
-        }
-      }
-      g._wasPopping = popping;
-      g._warnK = warnK;
+      // Übergang fest ↔ Umriss: wächst in 0,15 s, schrumpft in 0,12 s
+      const target = g.on ? 1 : 0;
+      const prevK = g.vk ?? target;
+      g.vk = target > prevK ? Math.min(1, prevK + dt / 0.15) : target < prevK ? Math.max(0, prevK - dt / 0.12) : prevK;
+      const warn = g.warnOn ? 1 : 0;
+      const wk = warn * flash;
+      const warnKey = Math.round(wk * 40) + warn * 100;
+      if (g.dirty || g.vk !== prevK || g._warnKey !== warnKey) changed = true;
+      g._warnKey = warnKey;
+      g._wk = wk; g._warn = warn;
       g.dirty = false;
-      touched.add(set);
     }
-    for (const set of touched) {
-      for (const m of [set.solid, set.frame]) { m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
-    }
-    // Instanz-Meshes ohne sichtbare Blöcke gar nicht zeichnen (meist ist je Farbe nur einer der beiden Zustände da)
+    // Kamera-Ziel gewandert oder Zustand geändert → sichtbare Zellen neu schreiben
+    const tgt = this.level.view.rig?.target ?? this.level.player?.pos ?? _c3.set(0, 0, 0);
+    const moved = Math.abs(tgt.x - this.lastT.x) + Math.abs(tgt.z - this.lastT.z) + Math.abs(tgt.y - this.lastT.y) > 1.5;
+    if (!changed && !moved) return;
+    this.lastT.set(tgt.x, tgt.y, tgt.z);
+    const r2 = VIEW_R * VIEW_R, s2 = SHADOW_R * SHADOW_R;
     for (const color of ['rot', 'blau']) {
       const set = this.meshes[color];
       if (!set) continue;
-      let on = false, off = false;
-      for (const g of this.sys.groups.values()) if (g.color === color) { if (g.on || g.pop > 0) on = true; if (!g.on) off = true; }
-      set.solid.visible = on; set.frame.visible = off;
+      let ns = 0, no = 0, nsh = 0;
+      for (const c of set.cells) {
+        const dx = c.center.x - tgt.x, dz = c.center.z - tgt.z, dy = c.center.y - tgt.y;
+        const d2 = dx * dx + dz * dz + dy * dy * 0.5;
+        if (d2 > r2) continue;
+        const g = c.g, k = g.vk, ks = k * k * (3 - 2 * k), wk = g._wk;
+        if (k > 0.02) {
+          const sc = 0.55 + 0.45 * ks;
+          if (sc < 0.999) set.solid.setMatrixAt(ns, _m.copy(c.m).multiply(_sc.makeScale(sc, sc, sc)).multiply(_off.makeTranslation(0, set.look.off, 0)));
+          else set.solid.setMatrixAt(ns, c.base);
+          const sv = 1 + wk * 0.9;
+          set.solid.setColorAt(ns++, _col.setRGB(sv, sv, sv));
+          if (d2 < s2 && k > 0.5) set.shadow.setMatrixAt(nsh++, c.shadow);
+        }
+        if (k < 0.98) {
+          const ov = (1 - ks) * (1 - wk * 0.5) + wk * 0.6;
+          set.outline.setMatrixAt(no, c.base);
+          set.outline.setColorAt(no, _col.setRGB(ov, ov, ov));
+          if (set.fill) { const fv = (1 - ks) * (1 + g._warn * 1.5 + wk); set.fill.setMatrixAt(no, c.base); set.fill.setColorAt(no, _col.setRGB(fv, fv, fv)); }
+          no++;
+        }
+      }
+      set.solid.count = ns; set.outline.count = no; set.shadow.count = nsh;
+      if (set.fill) set.fill.count = no;
+      set.solid.visible = ns > 0; set.outline.visible = no > 0; set.shadow.visible = nsh > 0;
+      if (set.fill) set.fill.visible = no > 0;
+      for (const m of set.list) { m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
     }
   }
 }

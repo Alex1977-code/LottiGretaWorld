@@ -103,6 +103,27 @@ function stangeModel(o) {
   };
 }
 
+/** Modell der Registry; höher als 0,75 m → auf einer Ruinensäule. */
+function regStange(o) {
+  const m = getModel('stachelstange', { length: o.length * 2, balls: o.balls, sides: o.arms >= 2 ? 2 : 1 });
+  const bar = m.root.userData.barHeight ?? 0.75;
+  const root = new THREE.Group();
+  const lift = Math.max(0, o.height - bar);
+  m.root.position.y = lift;
+  root.add(m.root);
+  let col = null;
+  if (lift > 0.05) {
+    const g = new THREE.CylinderGeometry(0.4, 0.46, lift, 12, 2);
+    g.translate(0, lift / 2, 0);
+    const sand = lin(0xe8d0a0), sandD = lin(0xa8845a);
+    col = new THREE.Mesh(colorize(g, (p, n, out) => { mixc(sandD, sand, smooth(-0.6, 0.8, n.x * -0.5 + n.z * 0.5), out); if ((Math.floor(p.y * 2.5) & 1) === 1) { out[0] *= 0.92; out[1] *= 0.92; out[2] *= 0.92; } }),
+      new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }));
+    col.castShadow = true; col.receiveShadow = true;
+    root.add(col);
+  }
+  return { root, update: (dt, st) => m.update?.(dt, st), dispose() { m.dispose?.(); if (col) { col.geometry.dispose(); col.material.dispose(); } } };
+}
+
 class Stachelstange extends Gimmick {
   constructor(level, spec) {
     super(level, spec, 'stachelstange');
@@ -112,10 +133,13 @@ class Stachelstange extends Gimmick {
     this.arms = Math.max(1, spec.arms ?? 1);
     this.nBalls = Math.max(1, spec.balls ?? 3);
     this.ballR = spec.radius ?? 0.42;
-    this.height = spec.height ?? 1;
     this.speed = spec.speed ?? 1.2;
     this.angle = spec.angle ?? 0;
     this.axis = spec.axis === 'x' || spec.axis === 'z' ? spec.axis : 'y';
+    // Modell der Registry (Bronze-Sockel, Stange in 0,75 m Höhe; Armlänge in 0,25-m-Schritten) für axis y mit 1–2 Armen
+    this.reg = hasModel('stachelstange') && this.axis === 'y' && this.arms <= 2;
+    if (this.reg) this.length = Math.max(0.75, Math.round(this.length * 4) / 4);
+    this.height = spec.height ?? (this.reg ? 0.75 : 1);
     this.hits = 0;
     this.base = this.pos.clone();
     this.attachRef = null;
@@ -123,10 +147,10 @@ class Stachelstange extends Gimmick {
     this._pts = [];
     this._b = new THREE.Vector3();
     this.hitter = { pos: new THREE.Vector3(), kind: 'stachelkugel' };
-    if (spec.post !== false) this.postShape = this.addSolid({ type: 'cyl', x: this.pos.x, z: this.pos.z, r: 0.34, y0: this.pos.y, y1: this.pos.y + this.height - 0.1, tag: 'stachelstange:saeule' });
+    if (spec.post !== false) this.postShape = this.addSolid({ type: 'cyl', x: this.pos.x, z: this.pos.z, r: this.reg ? 0.45 : 0.34, y0: this.pos.y, y1: this.pos.y + this.height - 0.12, tag: 'stachelstange:saeule' });
     if (level.view) {
       const o = { length: this.length, arms: this.arms, balls: this.nBalls, radius: this.ballR, height: this.height, axis: this.axis, post: spec.post !== false };
-      this.setModel(hasModel('stachelstange') ? getModel('stachelstange', o) : stangeModel(o));
+      this.setModel(this.reg ? regStange(o) : stangeModel(o));
     }
   }
 
@@ -213,6 +237,17 @@ class Stachelstange extends Gimmick {
 // Roulette-Block (im Takt)
 // =============================================================================================
 
+/** Inhalt → Symbol des Modells roulette_block_w4 (null = kein passendes Symbol). */
+function rouletteSymbol(c) {
+  if (!c) return null;
+  if (c.power) {
+    const p = normalizePower(c.power);
+    return { wachstumsbeere: 'pilz', beere: 'pilz', pilz: 'pilz', funken: 'blume', krallen: 'krallen', stern: 'stern' }[p] ?? null;
+  }
+  if (c.coins > 0) return 'muenze';
+  return null;
+}
+
 class RouletteBlockW4 extends Gimmick {
   constructor(level, spec) {
     super(level, spec, 'roulette_block');
@@ -232,15 +267,21 @@ class RouletteBlockW4 extends Gimmick {
     this.icons = [];
     this.lastIdx = -1;
     this.tick = 0;
+    // Modell 'roulette_block_w4' (Symbole pilz|blume|krallen|stern|muenze), sonst Glaswürfel aus Welt 1 mit Power-up-Modellen
+    this.symbols = this.items.map((c) => rouletteSymbol(c));
+    this.w4 = hasModel('roulette_block_w4') && this.symbols.every(Boolean);
     if (level.view) {
-      this.setModel(getModel('roulette_block'));
-      const inner = this.model.root.userData.inner ?? this.model.root;
-      for (const c of this.items) {
-        const icon = c?.power ? powerupModel(normalizePower(c.power)) : getModel('coin');
-        icon.root.scale.setScalar(0.72);
-        icon.root.visible = false;
-        inner.add(icon.root);
-        this.icons.push(icon);
+      if (this.w4) this.setModel(getModel('roulette_block_w4'));
+      else {
+        this.setModel(getModel('roulette_block'));
+        const inner = this.model.root.userData.inner ?? this.model.root;
+        for (const c of this.items) {
+          const icon = c?.power ? powerupModel(normalizePower(c.power)) : getModel('coin');
+          icon.root.scale.setScalar(0.72);
+          icon.root.visible = false;
+          inner.add(icon.root);
+          this.icons.push(icon);
+        }
       }
     }
   }
@@ -277,7 +318,7 @@ class RouletteBlockW4 extends Gimmick {
       this.level.sfx('powerup_appear');
     } else runAction(this.level, c, { pos: top, source: this });
     this.level.sfx('blockhit');
-    if (this.level.view) {
+    if (this.level.view && !this.w4) {
       for (const ic of this.icons) ic.dispose?.();
       this.icons = [];
       this.setModel(getModel('used_block'));
@@ -286,6 +327,12 @@ class RouletteBlockW4 extends Gimmick {
 
   render(dt, t) {
     super.render(dt, t);
+    if (this.w4 && this.model && !this.used) {
+      const cur = this.current;
+      if (cur !== this.lastIdx) { this.lastIdx = cur; this.tick = 1; }
+      this.tick = Math.max(0, this.tick - dt * 6);
+      this.model.root.scale.setScalar(1 + this.tick * 0.06);
+    }
     if (this.used || !this.icons.length || !this.model) return;
     const cur = this.current;
     if (cur !== this.lastIdx) { this.lastIdx = cur; this.tick = 1; }
@@ -297,7 +344,10 @@ class RouletteBlockW4 extends Gimmick {
     });
   }
 
-  modelState() { return { anim: this.anim === 'bump' ? 'bump' : 'idle', n: this.n, item: this.item }; }
+  modelState() {
+    if (this.w4) return { item: this.symbols[this.used ? Math.max(0, this.names.indexOf(this.given)) : this.current] ?? 'muenze', anim: this.used ? 'used' : this.anim === 'bump' ? 'bump' : 'idle', n: this.n };
+    return { anim: this.anim === 'bump' ? 'bump' : 'idle', n: this.n, item: this.item };
+  }
 
   dispose() {
     for (const ic of this.icons) ic.dispose?.();
@@ -337,7 +387,7 @@ function sternringModel() {
   if (hasModel('sternring')) return getModel('sternring');
   const root = new THREE.Group();
   const spin = new THREE.Group();
-  spin.position.y = 1.2;
+  spin.position.y = 1.15;
   root.add(spin);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.13, 10, 40), new THREE.MeshStandardMaterial({ color: 0x3ee05a, roughness: 0.3, metalness: 0.3, emissive: 0x1a8a2a, emissiveIntensity: 0.55 }));
   ring.rotation.y = Math.PI / 2;
@@ -441,11 +491,11 @@ class Sternring extends Gimmick {
     this.rearm = 0;
     this.yaw = spec.yaw ?? Math.PI / 2;
     const ax = Math.abs(Math.cos(this.yaw)), az = Math.abs(Math.sin(this.yaw));
-    this.half.set(ax * 0.45 + az * 1.15, 1.2, az * 0.45 + ax * 1.15);
+    this.half.set(ax * 0.45 + az * 1.2, 1.15, az * 0.45 + ax * 1.2);
     if (level.view) this.setModel(sternringModel());
   }
 
-  center(out = this._c) { return out.set(this.pos.x, this.pos.y + 1.2, this.pos.z); }
+  center(out = this._c) { return out.set(this.pos.x, this.pos.y + 1.15, this.pos.z); }
 
   onPlayer() {
     if (this.state === 'idle' && this.rearm <= 0) this.begin();
@@ -498,7 +548,7 @@ class Sternring extends Gimmick {
     if (this.timeLeft <= 0) this.fail();
   }
 
-  modelState() { return { anim: this.state }; }
+  modelState() { return { anim: this.state, progress: this.state === 'active' ? Math.max(0, this.timeLeft / this.time) : 1 }; }
 
   dispose() {
     countdown(this.level).hide(this);

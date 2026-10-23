@@ -20,6 +20,7 @@ import { v3, sz3, lin, addObject, Rnd } from '../kit.js';
 import { buildGlassPipe } from './glasspipe.js';
 import { glowSprite } from '../w4kit.js';
 import { visDt } from '../../entities/gimmick.js';
+import { hasModel, getModel } from '../../models/index.js';
 
 const PALETTE = {
   lila: { deep: 0x3a0a5e, mid: 0x8a2ad0, hi: 0xd27aff, foam: 0xf0c8ff, body: 0x2a0844, bubble: 0xc060ff },
@@ -150,6 +151,25 @@ export function buildGiftwasser(level, spec) {
     }
   });
   if (!level.view) return handle;
+  // Modell der Registry (Textur-Schlieren, Glanz, Blasen; Oberfläche y = 0) – sonst eigener Shader mit Schaumrand
+  if (hasModel('giftwasser') && spec.look !== 'shader') {
+    const m = getModel('giftwasser', { size: [s.x, s.z], bubbles: spec.bubbles === false ? 0 : undefined });
+    const group = new THREE.Group();
+    m.root.position.set(p.x, top - 0.03, p.z);
+    group.add(m.root);
+    if (spec.body !== false && s.y > 0.4) {
+      const bh = s.y - 0.2;
+      const body = new THREE.Mesh(new THREE.BoxGeometry(s.x - 0.02, bh, s.z - 0.02), new THREE.MeshStandardMaterial({ color: pal.body, roughness: 0.6, emissive: pal.body, emissiveIntensity: 0.35 }));
+      body.position.set(p.x, p.y + bh / 2, p.z);
+      body.userData.owned = true;
+      group.add(body);
+    }
+    burst = null;
+    const holder = {};
+    const st2 = { flow: [flow[0] || 0.05, flow[1] || 0.03] };
+    level.view.add(group, (dt) => { m.root.position.y = top - 0.03; m.update?.(visDt(level, holder, dt), st2); });
+    return handle;
+  }
   const group = new THREE.Group();
   const nx = Math.min(64, Math.max(2, Math.round(s.x / 1.4))), nz = Math.min(64, Math.max(2, Math.round(s.z / 1.4)));
   const g = new THREE.PlaneGeometry(s.x, s.z, nx, nz);
@@ -221,6 +241,17 @@ function buildFall(level, spec, kind) {
     level.world.add({ type: 'box', min: [p.x - hx, p.y - 0.5, p.z - hz], max: [p.x + hx, p.y + H, p.z + hz], kill: lava ? 'lava' : 'gift', lava: true, poison: !lava, solid: false, camIgnore: true, tag: `${kind}fall` });
   }
   if (!level.view) return;
+  // Modell der Registry ('giftwasserfall' | 'lavafall': Vorhang über einer Felskante, Gischt; Ursprung = Aufprallpunkt,
+  // Vorderseite +X) – sonst eigener Shader-Vorhang
+  const regName = lava ? 'lavafall' : 'giftwasserfall';
+  if (hasModel(regName) && spec.look !== 'shader') {
+    const m = getModel(regName, { width: W, height: H });
+    m.root.position.set(p.x, p.y, p.z);
+    m.root.rotation.y = yaw - Math.PI / 2;
+    const holder = {};
+    level.view.add(m.root, (dt) => m.update?.(visDt(level, holder, dt), {}));
+    return;
+  }
   const root = new THREE.Group();
   root.position.set(p.x, p.y, p.z);
   root.rotation.y = yaw;
