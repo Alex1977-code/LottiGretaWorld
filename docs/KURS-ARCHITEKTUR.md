@@ -2766,6 +2766,35 @@ tests/course_w4_blocks.mjs              Port 4370, Bilder tests/out/w4b_*.png (a
 
 Additiv geändert: `view/themes.js` (6 Registrierzeilen, `??=`). Motor, Ansicht, Audio und Modelle bleiben unverändert.
 
+### Präzisierung (Bausteine Welt 4): Modelle
+
+Die Bausteine nutzen die Welt-4-Modelle der Registry (`models/kinds/*_w4.js`), sobald `hasModel(name)` gilt; sonst
+bauen sie ihre eigene Rückfall-Geometrie (gleiche Kollision, gleiches Verhalten). Zuordnung: `piep_block` (Geometrien
+aus `models/lib/w4Geos.js`, Darstellung über eigene Instanz-Meshes, s. u.), `riesentrampolin` (`radius` = size/2 + 0,25,
+`squash`/`anim` je Abprall), `trampolin_orange` (in xz auf `size` skaliert, Neigung um die Mattenmitte), `stachelstange`
+(nur `axis: 'y'` und `arms` ≤ 2; dann wird `length` auf 0,25 m gerundet und `height` steht auf 0,75 = `barHeight`),
+`schwankplattform` (Drehpunkt 0,5 m unter der Oberseite wie im Modell; Kollision folgt ihm), `roulette_block` (Modell
+**`roulette_block_w4`**, Symbole: wachstumsbeere/beere/pilz → pilz, funken → blume, krallen, stern, coins → muenze; nur
+wenn alle `items` abbildbar sind, sonst der alte Glasblock), `sternring`/`sternmuenze`, `giftwasser` (Modell-Oberfläche;
+`look: 'shader'` erzwingt die eigene Shader-Fläche), `giftfall`/`lavafall` (`giftwasserfall`/`lavafall`, um `yaw − π/2`
+gedreht, damit „Vorderseite +Z“ gilt). Die Piep-Ansicht zeichnet je Farbe 4 Instanz-Meshes (Körper, Umriss, Füllung,
+unsichtbare Schattenkörper als einfache Quader) und schreibt nur Blöcke im Umkreis von 46 m um die Kamera-Zielfigur
+(Schatten 24 m) – so bleibt auch eine 30-m-Piep-Treppe unter dem Dreiecks-Budget.
+
+**`deco_w4` mit Modellen** (Vorderseite bzw. Durchgang bei `yaw: 0` nach +X, wie bei allen Modellen; `solid` je Art,
+`shadow: false` für ferne Kulisse). Vorhandene Arten wechseln automatisch auf das Modell: `felsnadel(n)` (`height`),
+`tafelberg` (`size`|`radius`, `height`), `giftbaum/-baeume` (`height`), `saeule(n)` → `ruinen_saeule` (`broken`),
+`statue` → `statue_bruch` (`size`), `ruinenbogen` → `ruinen_torbogen` (`width` = lichte Weite, `height`; Durchgang ±X →
+für einen Weg entlang z `yaw: π/2`), `ranken` (`width`|`length`, `lage: 'boden'`), `kette(n)` → `burg_kette`
+(`length`), `banner` → `brummbaer_banner` (`height`, `width`), `burgzinne` → `burgmauer` (`from`/`to`, `height`,
+`thick`), `lautsprecher` (pulsiert im Takt), `windrad` (`height`, `speed`). Neue Arten: `canyon_bogen` (`width`,
+`height`, `thickness`), `ameisenhuegel` (`size`), `ameisenhoehle` (`width`, `height`), `giftpilz` / `giftpilze`
+(Streuung wie `leuchtpilze`), `liane` (`length`, `sway`), `giftwasserfall`/`lavafall` (nur Kulisse, nicht tödlich –
+tödlich ist der Baustein `giftfall`/`lavafall`), `neon_ring` (`radius`, `color` 'cyan'|'magenta'|…, pulsiert im Takt),
+`equalizer_saeule` (`height`, `segments`, Pegel im Takt), `wolkeninsel` (`size`, begehbar), `ruinen_treppe` (`steps`,
+`width`, `rise` 0.35, `run` 0.55; steigt nach +X, begehbar), `fallgitter` (`width`, `height`, `open`; mit `id` ein
+Griff `open()`/`close()`/`toggle()`/`start()` für Aktionen, geschlossen fest), `festungsgitter` (`width`, `height`).
+
 ### Präzisierung (Bausteine Welt 4): Taktuhr, Herausschieben, Ameisenpfade, tödliche Flüssigkeiten
 
 - **Taktuhr** `beatClock(level)` (= `level.beepClock`, eine je Level, in `level.onStep` angemeldet): folgt
@@ -2783,7 +2812,7 @@ Additiv geändert: `view/themes.js` (6 Registrierzeilen, `??=`). Motor, Ansicht,
   oder ein Gegner im Block, bleibt er „ausstehend“ und schiebt sie mit 7 m/s (mit Kollision gegen alles andere) hinaus –
   nach oben, wenn die Füße im oberen Teil stecken (≤ 0,65 m), nach unten, wenn nur der Kopf knapp hineinragt, sonst zur
   nächsten Seite; erst dann wird er fest. Darstellung: 4 Instanz-Meshes für alle Piep-Blöcke (fest/Umriss je Farbe;
-  Meshes ohne sichtbare Blöcke werden nicht gezeichnet).
+  Meshes ohne sichtbare Blöcke werden nicht gezeichnet; Modelle s. o.).
 - **Ameisenpfade (4-1):** Datenformat `antpath: [[x, y, z, nx, ny, nz], …]` (Fußpunkte auf der Lauffläche mit
   Flächennormale; gleiche Stelle mit neuer Normale = Kante, die Normale wird über `round` 0,35 m überblendet; `{ path,
   loop }` für Rundwege) oder die Id eines Bausteins `ameisenweg`. Gegner lesen ihn mit `resolveAntPath(level,
@@ -2802,17 +2831,17 @@ Additiv geändert: `view/themes.js` (6 Registrierzeilen, `??=`). Motor, Ansicht,
 | `piep_treppe` | schwebende Stufen, Farben im Wechsel | `from` (Mitte unten der 1. Stufe), `dir` [0,−1], `steps` 8, `rise` 1, `run` 1, `width` 2, `height`, `colors` 'wechsel'\|'rot'\|'blau'\|[…], `first`, `phase`, `every`, `warn`, `id` | `{ type: 'piep_treppe', from: [7,1,-24], steps: 5, run: 1.2 }` |
 | `piep_rutsche` | Rutsche (Flag slide) aus Farbstreifen | `pos`, `size` [w,h,d], `axis` 'z', `dir` 1 (Oberseite steigt nach +axis), `band` 2, `thick` 0.6, `colors`, `slope` 0.85, `phase`, `id` | `{ type: 'piep_rutsche', pos: [-6,1,-42], size: [4,4,12], dir: 1 }` |
 | `riesentrampolin` | großes Trampolin fliegt einen Pfad (startet beim Draufspringen), Figur federt und fährt in der Luft mit, getimtes Drücken ×1,4, trägt Gegner | `path` (weich verbunden), `pos`, `size` 6, `height` 0.9, `strength` 15, `boost` 1.4, `speed` 4, `mode` 'once'\|'loop'\|'pingpong', `wait` 1, `start` 'bounce'\|'auto'\|'signal', `reset` true (nach Tod zurück), `carry`, `carryR`, `id` → `{ pos, s, L, running, done, bounces, riders, start(), stop(), reset(), info() }` | `{ type: 'riesentrampolin', id: 'rt', path: [[0,0.1,-67.5],[1.5,2.5,-76],[0,3,-85],[0,0.1,-93]] }` |
-| `trampolin_orange` | starke Feder (Höhe je Stärke), auch schräg | `pos`, `size` 1.8, `strength` 21 \| `height` (m), `angle` 0 (Grad), `dir` [0,−1], `boost` 1.3, `id` | `{ type: 'trampolin_orange', pos: [5,1,-57], angle: 35, dir: [0,-1] }` |
-| `stachelstange` | drehende Stange mit Stachelkugeln (Treffer), auf Säule; mit `attach` auf beweglicher Plattform | `pos` (Säulenfuß), `height` 1, `length` 4, `arms` 1, `balls` 3, `radius` 0.42, `speed` 1.2, `angle`, `axis` 'y'\|'x'\|'z', `bar` false, `post` true, `attach` (mover-/Plattform-Id; Fahrzeuge nehmen selbst mit), `id` | `{ type: 'stachelstange', pos: [5,1.5,-110], attach: 'm1', length: 1.7 }` |
-| `schwankplattform` | kippt unter Last (bis `max`), Figur rutscht ab `slideFrom`, schwingt gedämpft zurück | `pos` (Drehpunkt = Mitte der Oberseite), `size` [6,3], `thick` 0.6, `axis` 'x'\|'z', `max` 26, `slideFrom` 14, `slideSpeed` 4.5, `stiffness` 7, `damping` 3.2, `weight` 1, `post`, `postDown` 6, `style` 'ruine'\|'stein'\|'holz', `id` → `{ tilt, omega, load, info() }` | `{ type: 'schwankplattform', pos: [0,1,-130.5], size: [6,3] }` |
+| `trampolin_orange` | starke Feder (Höhe je Stärke), auch schräg; Matte 1 m über `pos` | `pos`, `size` 1.8, `strength` 21 \| `height` (m), `angle` 0 (Grad), `dir` [0,−1], `boost` 1.3, `id` | `{ type: 'trampolin_orange', pos: [5,1,-57], angle: 35, dir: [0,-1] }` |
+| `stachelstange` | drehende Stange mit Stachelkugeln (Treffer), auf Säule; mit `attach` auf beweglicher Plattform | `pos` (Säulenfuß), `height` 1 (mit Modell 0.75), `length` 4 (mit Modell auf 0,25 gerundet), `arms` 1, `balls` 3, `radius` 0.42, `speed` 1.2, `angle`, `axis` 'y'\|'x'\|'z', `bar` false, `post` true, `attach` (mover-/Plattform-Id; Fahrzeuge nehmen selbst mit), `id` | `{ type: 'stachelstange', pos: [5,1.5,-110], attach: 'm1', length: 1.7 }` |
+| `schwankplattform` | kippt unter Last (bis `max`), Figur rutscht ab `slideFrom`, schwingt gedämpft zurück | `pos` (Mitte der Oberseite in Ruhe; Drehpunkt 0,5 m darunter), `size` [6,3], `thick` 0.6, `axis` 'x'\|'z', `max` 26, `slideFrom` 14, `slideSpeed` 4.5, `stiffness` 7, `damping` 3.2, `weight` 1, `post`, `postDown` 6, `style` 'ruine'\|'stein'\|'holz', `id` → `{ tilt, omega, load, info() }` | `{ type: 'schwankplattform', pos: [0,1,-130.5], size: [6,3] }` |
 | `drehplattform` | axis 'y': Drehteller/-balken (mover dyaw); 'x'\|'z': Wende-Plattform | y: `pos`, `arms` 2 (0 = Scheibe, 3, 4), `length` 4, `width` 1.8, `thick` 0.5, `speed` 0.6, `angle`, `hub`, `style` 'stein'\|'lava'\|'holz', `idle`; x/z: `size` [4,4], `mode` 'flip'\|'spin', `wait` 2.5, `turn` 1.1, `warnT` 0.8, `speed`, `phase`; `id` → `{ angle, flips, solid, start(), stop(), info() }` | `{ type: 'drehplattform', axis: 'y', pos: [-4,0.3,-214], arms: 4, style: 'lava' }` |
 | `giftwasser` | tödliches lila Giftwasser, Gegner versinken, Blasen, optional fließend | `pos`, `size` [w,h,d] (Oberfläche y+h), `flow` [vx,vz], `bubbles`, `color` 'lila'\|'gruen', `body`, `rise` { to, speed }, `id` → `{ top, sunk, setLevel(y, speed), start() }` | `{ type: 'giftwasser', id: 'gift', pos: [0,-1.6,-170], size: [12,2.2,20], flow: [0.4,0] }` |
 | `giftfall` / `lavafall` | senkrechter Gift-/Lavafall (tödlich oder nur Vorhang) | `pos` (Mitte der Unterkante), `width` 3, `height` 8, `yaw` 0 (Vorderseite +Z), `depth` 0.6, `speed` 4, `kill` true, `glow`, `color` | `{ type: 'lavafall', pos: [-11,0.4,-220], height: 7, yaw: Math.PI / 2 }` |
 | `lavarohr` | Glasröhre durch die Lava mit Glutsaum | Felder von `glasspipe` + `lava` (Oberfläche) | `{ type: 'lavarohr', path: [[6,1.6,-204.5],[6,0.4,-209],[6,0.4,-226],[6,1.6,-231]], lava: 0.5, coins: 4 }` |
-| `roulette_block` | Symbol wechselt im Musiktakt, Kopfstoß gibt das gezeigte | `items` ['wachstumsbeere','krallen','funken','stern'], `beats` 1 (Zählzeiten je Symbol), `period` (s, statt Takt), `id`, `hidden`; Laufzeit `item`, `current`, `used`, `given` | `{ kind: 'roulette_block', pos: [-6,3.4,-156] }` |
+| `roulette_block` | Symbol wechselt im Musiktakt, Kopfstoß gibt das gezeigte (Modell `roulette_block_w4`) | `items` ['wachstumsbeere','krallen','funken','stern'], `beats` 1 (Zählzeiten je Symbol), `period` (s, statt Takt), `id`, `hidden`; Laufzeit `item`, `current`, `used`, `given` | `{ kind: 'roulette_block', pos: [-6,3.4,-156] }` |
 | `sternring` / `sternmuenze` | wie `roter_ring`: 8 Sternmünzen auf Zeit → Belohnung | `yaw` π/2, `coins` (Liste \| { from, to, n } \| { pos, r, n }), `time` 10, `reward` \| `star`, `retry` true, `id` | `{ kind: 'sternring', pos: [6,1,-188], coins: { pos: [6,1.3,-194], r: 3 }, star: 1 }` |
 | `ameisenweg` | benannter Ameisenpfad über Boden/Wände (+ Spur) | `path` (antpath) \| `over: { pos, size }` \| `around: { pos, size }`, `along` 'z', `at`, `from`, `to`, `loop`, `round` 0.35, `show` true, `color`, `every`, `id` → `{ path, L, loop, data, at(s), place(root, s, dir) }` | `{ type: 'ameisenweg', id: 'wand1', over: { pos: [0,1,-250], size: [6,4,2] }, at: 1 }` |
-| `deco_w4` | Kulisse (verschmolzen) | `items: [{ kind, pos, … }]`, `shadow: false`; Canyon `felsnadel(n), tafelberg, canyonwand, geroell, trockenbusch/-buesche`, Giftwald `giftbaum/-baeume, leuchtpilze, ranken, sumpfgras`, Technik `antenne, lautsprecher, neonbogen, kabel`, Bergwiese `wiesenblumen, bergfichte(n), heuballen, zaun, windrad`, Ruinen `saeule(n), ruinenbogen, ruinenmauer, statue, truemmer`, Lavaburg `fackel(n), kette(n), burgzinne, banner, lavasteine` | `{ type: 'deco_w4', items: [{ kind: 'saeulen', from: [-11.5,1,-108], to: [-11.5,1,-124], every: 4 }] }` |
+| `deco_w4` | Kulisse (verschmolzen) | `items: [{ kind, pos, … }]`, `shadow: false`; Canyon `felsnadel(n), tafelberg, canyonwand, geroell, trockenbusch/-buesche`, Giftwald `giftbaum/-baeume, leuchtpilze, ranken, sumpfgras`, Technik `antenne, lautsprecher, neonbogen, kabel`, Bergwiese `wiesenblumen, bergfichte(n), heuballen, zaun, windrad`, Ruinen `saeule(n), ruinenbogen, ruinenmauer, statue, truemmer`, Lavaburg `fackel(n), kette(n), burgzinne, banner, lavasteine`; Modell-Arten s. „Modelle“ (`canyon_bogen, ameisenhuegel, ameisenhoehle, giftpilz(e), liane, giftwasserfall, lavafall, neon_ring, equalizer_saeule, wolkeninsel, ruinen_treppe, fallgitter, festungsgitter`) | `{ type: 'deco_w4', items: [{ kind: 'saeulen', from: [-11.5,1,-108], to: [-11.5,1,-124], every: 4 }] }` |
 
 ### Präzisierung (Bausteine Welt 4): Themen
 
