@@ -30,7 +30,7 @@
 // Gegner: Spuk (12 + 1 vom falschen Zielmast), Großspuk (3), Kreisgeist (37: Ringe 6 / 10 / 8 / 8, einzeln 5).
 
 import {
-  hook, line, ring, arc, hauntWall, hauntFloor, cobweb, moonWindow, clock, sideTable, bookShelf, nightLawn, flagstones,
+  hookLamp, line, ring, arc, hauntWall, hauntFloor, cobweb, moonWindow, clock, sideTable, bookShelf, nightLawn, flagstones,
   graves, pumpkins, deadTree, ironFence, fountain, facade, ghostMoods, roomCull, camThrough, bake, prop, solid, PAL, readingNook, armchair,
 } from './_helpers_c.js';
 
@@ -233,6 +233,8 @@ export const LEVEL = {
   archetype: 'parcours',
   theme: 'ghost',
   music: 'course_ghost',
+  // Aufbau-Haken vor dem Verschmelzen: Wände, Böden, Möbel und Kulisse aller Räume
+  build: scene,
   timeLimit: 500,
   killY: -10,
   start: { pos: [0, Y, 8], yaw: Math.PI / 2 },
@@ -345,8 +347,8 @@ export const LEVEL = {
     { kind: 'spuk', pos: [233, Y + 0.4, -192] }, { kind: 'spuk', pos: [247.5, Y + 0.4, -192] },
   ],
   items: [
-    // Aufbau-Haken: Gartenlaterne am Eingang von Außenhof 1 baut Wände, Böden, Möbel und Kulisse aller Räume
-    hook([110.6, Y, -68.4], scene),
+    // Gartenlaterne am Eingang von Außenhof 1 (früher Aufbau-Haken; der Aufbau läuft jetzt über LEVEL.build)
+    hookLamp([110.6, Y, -68.4]),
     // Drehraum: Warp-Box zurück auf die Empore (und von dort wieder hinein)
     { kind: 'warpbox', id: 'dreh_warp', pos: [-60, Y, 41.6], target: 'gal_warp' },
     { kind: 'warpbox', id: 'gal_warp', pos: [4, Y + 7, 4.6], target: 'dreh_warp' },

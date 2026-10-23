@@ -27,8 +27,12 @@ export { isl, lawn, line, ring, arc, column, deco, decoW1, fence } from '../w1/_
 const TAU = Math.PI * 2;
 const HERO_NAME = { lotti: 'Lotti', greta: 'Greta' };
 
-/** Aufbau-Haken (siehe Kopf): brennende Laterne bei pos, ruft fn(level) beim Levelaufbau. */
+/**
+ * Früherer Aufbau-Haken: brennende Laterne bei pos, ruft fn(level) beim Levelaufbau. Heute offiziell: `LEVEL.build`
+ * (Präzisierung „Leistung und Level-Haken 2“); `hookLamp(pos)` ist dieselbe Laterne ohne Haken (Bild unverändert).
+ */
 export const hook = (pos, fn) => ({ kind: 'lantern', pos, lit: true, radius: 0.1, onLit: (level) => fn(level) });
+export const hookLamp = (pos) => ({ kind: 'lantern', pos, lit: true, radius: 0.1 });
 
 /** Nächste lebende Figur und ihr waagerechter Abstand zu (x, z). */
 function nearest(level, x, z) {

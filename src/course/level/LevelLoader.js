@@ -9,6 +9,13 @@
 //   goal       → Zielmast [x,y,z] | { pos, height }
 //   marks      → benannte Punkte (nur Tests/Fehlersuche, vom Spiel ignoriert)
 // Danach: statische Geometrie verschmelzen, Umriss/Absturzhöhe bestimmen, Hintergrund auslegen.
+//
+// Aufbau-Haken (Präzisierung „Leistung und Level-Haken 2“), beide optional, je fn(level):
+//   LEVEL.prebuild  vor dem ersten Baustein (z. B. lokale Themen-Variante, deren Farben die Bausteine schon nutzen)
+//   LEVEL.build     nach Bausteinen, Blöcken und Gegnern, vor den Items (Münzen, Power-ups, Checkpoint, Sterne,
+//                   Stempel, Ziel) und vor dem Verschmelzen: addStatic landet in den Abschnitts-Meshes,
+//                   Kollisionsformen zählen für Umriss/Absturzhöhe und den Hintergrund. Spieler, Kamera und Archetyp
+//                   gibt es hier noch nicht (dafür LEVEL.setup).
 
 import { getBlockType } from '../blocks/index.js';
 
@@ -19,8 +26,15 @@ const list = (v) => {
   return typeof v[0] === 'number' ? [v] : v;               // [x,y,z] oder Liste
 };
 
+function runHook(level, name) {
+  const fn = level.data[name];
+  if (typeof fn !== 'function') return;
+  try { fn(level); } catch (err) { console.error(`[Level ${level.data.id}] LEVEL.${name} fehlgeschlagen:`, err); }
+}
+
 export function buildLevel(level) {
   const d = level.data;
+  runHook(level, 'prebuild');
   for (const seg of d.segments ?? []) {
     const build = getBlockType(seg.type);
     if (!build) { console.warn(`[Level ${d.id}] unbekannter Baustein: ${seg.type}`); continue; }
@@ -28,6 +42,7 @@ export function buildLevel(level) {
   }
   for (const b of d.blocks ?? []) level.spawn(b.kind ?? 'question', b);
   for (const e of d.enemies ?? []) level.spawn(e.kind, e);
+  runHook(level, 'build');
   for (const it of d.items ?? []) level.spawn(it.kind ?? 'coin', it);
   for (const c of list(d.checkpoint)) level.spawn('checkpoint', asPos(c));
   (d.stars ?? []).forEach((s, i) => level.spawn('star', { ...asPos(s), index: i }));

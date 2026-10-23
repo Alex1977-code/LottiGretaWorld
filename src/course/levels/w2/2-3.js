@@ -28,7 +28,7 @@
 // Stempel: unter der Bühne hinter zwei Kisten (Funkenblüte oder Krallen-Anzug).
 
 import {
-  isl, line, ring, arc, column, deco, decoW1, hook, Kruemel, shadowStars, cullShadowWalls, curtain, valance, footlights, carpet, bake,
+  isl, line, ring, arc, column, deco, decoW1, hookLamp, Kruemel, shadowStars, cullShadowWalls, curtain, valance, footlights, carpet, bake,
   prop, cage,
 } from './_helpers_b.js';
 
@@ -131,6 +131,8 @@ export const LEVEL = {
   archetype: 'parcours',
   theme: 'shadow',
   music: 'course_shadow',
+  // Aufbau-Haken vor dem Verschmelzen: Krümel, Schattensterne, Vorhänge, Kulisse
+  build: scene,
   timeLimit: 400,
   start: { pos: [0, Y, 5], yaw: Math.PI / 2 },
   killY: -14,
@@ -411,8 +413,8 @@ export const LEVEL = {
     { kind: 'lauerblock', pos: [258.5, Y, 36], dir: [1, 0], reach: 2.5, mode: 'timed', period: 2, phase: 0.2 },
   ],
   items: [
-    // Aufbau-Haken (brennende Laterne am Start): Krümel, Schattensterne, Vorhänge, Kulisse
-    hook([-8.8, Y, 6.8], scene),
+    // brennende Laterne am Start (früher Aufbau-Haken; der Aufbau läuft jetzt über LEVEL.build)
+    hookLamp([-8.8, Y, 6.8]),
     // 1: Foyer
     line([0, 1.5, 2], [0, 1.5, -2], 3),
     line([2.6, 1.5, -7], [7.6, 1.5, -12], 4),

@@ -24,7 +24,7 @@
 // Stempel: auf dem Turm am Start (Lotti- und Greta-Schalter).
 
 import {
-  isl, lawn, line, ring, arc, column, deco, decoW1, fence, hook, windmill, Hopper, dimZone, bake, planks, millCellar,
+  isl, lawn, line, ring, arc, column, deco, decoW1, fence, hookLamp, windmill, Hopper, dimZone, bake, planks, millCellar,
 } from './_helpers_b.js';
 
 const Y = 1;            // Graswiese
@@ -81,6 +81,8 @@ export const LEVEL = {
   archetype: 'parcours',
   theme: 'grass',
   music: 'course_hills',
+  // Aufbau-Haken vor dem Verschmelzen: Mühlen, Kaninchen, Untergrund-Licht, Blumen
+  build: scene,
   timeLimit: 500,
   start: { pos: [0, Y, 5], yaw: Math.PI / 2 },
   killY: -32,
@@ -322,8 +324,8 @@ export const LEVEL = {
     { kind: 'pilzling', mini: true, pos: [UX - 5, YD, -331], dir: [1, 0] },
   ],
   items: [
-    // Aufbau-Haken (Laterne am Wegrand): Mühlen, Kaninchen, Untergrund-Licht, Blumen
-    hook([10.8, Y, 4.2], scene),
+    // Laterne am Wegrand (früher Aufbau-Haken; der Aufbau läuft jetzt über LEVEL.build)
+    hookLamp([10.8, Y, 4.2]),
     // Figurenschalter: Lotti und Greta (beide nötig für den Stempel)
     { kind: 'figurenschalter', id: 'fs_lotti', pos: [-4.4, Y, 0.2], hero: 'lotti', on: { reveal: 'weg_lotti' } },
     { kind: 'figurenschalter', id: 'fs_greta', pos: [-8.6, Y, 0.2], hero: 'greta', on: { reveal: 'weg_greta' } },

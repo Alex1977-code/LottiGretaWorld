@@ -46,6 +46,8 @@ const FLAT = { r: 0, seg: 0 };
  * im richtigen 32-m-Abschnitt (Culling je Raum). Muster wie w2/_helpers_b.js hook.
  */
 export const hook = (pos, fn) => ({ kind: 'lantern', pos, lit: true, radius: 0.1, onLit: (level) => fn(level) });
+/** Dieselbe Laterne ohne Haken – der Aufbau läuft heute über `LEVEL.build` (Präzisierung „Leistung und Level-Haken 2“). */
+export const hookLamp = (pos) => ({ kind: 'lantern', pos, lit: true, radius: 0.1 });
 const hash = (a, b = 0, c = 0) => { const s = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return s - Math.floor(s); };
 
 /** Unsichtbarer, fester Quader (x0..x1, y0..y1, zA..zB). */

@@ -21,7 +21,7 @@
 // Koordinaten: x −13 … 13, z −13 … 13 (vorn = +z), Ebenen y −4 (Seegrund) / 0 (Ufer) / 4 (Wiese) / 10,2 (Terrasse).
 
 import {
-  hook, isl, line, ring, decoW1, useKruemel, glassWall, seeTower, glassDome, sandRamp, lilyPads, ducks, lighthouse,
+  hookLamp, isl, line, ring, decoW1, useKruemel, glassWall, seeTower, glassDome, sandRamp, lilyPads, ducks, lighthouse,
   rowboat, parasol,
 } from './_helpers_c.js';
 
@@ -61,6 +61,8 @@ export const LEVEL = {
   archetype: 'diorama',
   theme: 'diorama',
   music: 'course_diorama',
+  // Aufbau-Haken vor dem Verschmelzen: Scheiben, Seewarte, Kuppel, Strand und Zier
+  build: scene,
   timeLimit: 400,
   killY: -16,
   start: { pos: [9.5, 0, 9.5], yaw: Math.PI },
@@ -145,8 +147,8 @@ export const LEVEL = {
     { type: 'sign', pos: [-3.4, 0, -5.2], text: 'Röhren-Bahnhof', yaw: 0.2 },
   ],
   items: [
-    // Aufbau-Haken: Laterne am rechten Ufer baut Scheiben, Seewarte, Kuppel, Strand und Zier
-    hook([6.6, 0, 8.2], scene),
+    // Laterne am rechten Ufer (früher Aufbau-Haken; der Aufbau läuft jetzt über LEVEL.build)
+    hookLamp([6.6, 0, 8.2]),
     // Ufer und Wiese
     line([8.6, 0.3, 7.5], [8.6, 0.3, 1], 4),
     line([4, 0.3, -4.5], [-3, 0.3, -4.5], 4),
