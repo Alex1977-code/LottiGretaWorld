@@ -10,6 +10,9 @@
 //   DETAIL=1              je Punkt die größten Posten (Objektname → Aufrufe/Dreiecke, Haupt- und Schattenpass „S:“);
 //                         DETAIL=json: nur in die JSON-Datei
 //   SHOTS=1               Bildschirmfoto je Punkt: tests/out/perf_<Name>_<Id>_<Punkt>.png
+//   COMPARE=1             Bildvergleich je Punkt: Bild mit und ohne Sparmaßnahmen (view.optimize, ?optimize=0) bei
+//                         angehaltener Darstellungszeit; Anteil abweichender Pixel (Kanal > 40) und Aufrufe/Dreiecke ohne;
+//                         stark abweichende Paare als tests/out/perf_cmp_<Id>_<Punkt>_{an,aus}.png
 // Ohne Prüfungen (reine Messung); Budget-Hinweise (≥ 120 Aufrufe, ≥ 300 k Dreiecke) werden markiert.
 import { readdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { startServer, launchBrowser, OUT } from './helpers.mjs';
@@ -19,6 +22,7 @@ const LABEL = process.env.PERF_LABEL ?? 'aktuell';
 const BASE = process.env.PERF_BASE ?? null;
 const DETAIL = !!process.env.DETAIL;
 const SHOTS = !!process.env.SHOTS;
+const COMPARE = !!process.env.COMPARE;
 
 const LV = new URL('../src/course/levels/', import.meta.url).pathname;
 const byWorld = (w) => readdirSync(`${LV}w${w}`).filter((f) => f.endsWith('.js') && !f.startsWith('_')).map((f) => f.slice(0, -3));
@@ -112,6 +116,23 @@ function install() {
     acc.clear();
     requestAnimationFrame(wait);
   });
+  // Bildvergleich zweier PNG (Base64): Anteil der Pixel mit einer Kanal-Abweichung > lim
+  P.diff = async (a, b, lim = 40) => {
+    const img = async (d) => { const r = await fetch(`data:image/png;base64,${d}`); return createImageBitmap(await r.blob()); };
+    const [A, B] = await Promise.all([img(a), img(b)]);
+    const cv = document.createElement('canvas'); cv.width = A.width; cv.height = A.height;
+    const g = cv.getContext('2d', { willReadFrequently: true });
+    g.drawImage(A, 0, 0); const da = g.getImageData(0, 0, A.width, A.height).data;
+    g.clearRect(0, 0, A.width, A.height); g.drawImage(B, 0, 0); const db = g.getImageData(0, 0, A.width, A.height).data;
+    let n = 0, max = 0;
+    for (let i = 0; i < da.length; i += 4) {
+      const d = Math.max(Math.abs(da[i] - db[i]), Math.abs(da[i + 1] - db[i + 1]), Math.abs(da[i + 2] - db[i + 2]));
+      if (d > max) max = d;
+      if (d > lim) n++;
+    }
+    return { frac: n / (da.length / 4), max };
+  };
+  P.frames = (k) => new Promise((res) => { const f0 = v.frame; const w = () => (v.frame >= f0 + k ? res(v.frame) : requestAnimationFrame(w)); requestAnimationFrame(w); });
   window.__perf = P;
 }
 
@@ -139,7 +160,25 @@ async function measure(id, pt) {
   let detail = null;
   if (DETAIL) detail = await sc(() => window.__perf.detail());
   if (SHOTS) await page.screenshot({ path: `${OUT}perf_${LABEL}_${id}_${pt.name}.png` });
-  return { name: pt.name, calls: s.calls, tris: s.triangles, extra, detail };
+  let cmp = null;
+  if (COMPARE) {
+    await sc(() => { window.__course.scene.pause(); });
+    await sc(() => window.__perf.frames(2));
+    const on = await page.screenshot();
+    const sOn = await sc(() => window.__course.stats());
+    await sc(() => { window.__course.view.optimize = false; });
+    await sc(() => window.__perf.frames(2));
+    const off = await page.screenshot();
+    const sOff = await sc(() => window.__course.stats());
+    await sc(() => { window.__course.view.optimize = true; window.__course.scene.resume(); });
+    const d = await sc(([a, b]) => window.__perf.diff(a, b), [on.toString('base64'), off.toString('base64')]);
+    cmp = { frac: d.frac, max: d.max, offCalls: sOff.calls, offTris: sOff.triangles, onCalls: sOn.calls, onTris: sOn.triangles };
+    if (d.frac > 0.0005) {
+      const { writeFileSync: w } = await import('node:fs');
+      w(`${OUT}perf_cmp_${id}_${pt.name}_an.png`, on); w(`${OUT}perf_cmp_${id}_${pt.name}_aus.png`, off);
+    }
+  }
+  return { name: pt.name, calls: s.calls, tris: s.triangles, extra, detail, cmp };
 }
 
 const result = existsSync(`${OUT}perf_${LABEL}.json`) ? JSON.parse(readFileSync(`${OUT}perf_${LABEL}.json`, 'utf8')) : {};
@@ -161,7 +200,8 @@ for (const id of LEVELS) {
   for (const r of rows) {
     const br = b?.rows?.find((x) => x.name === r.name);
     const d = br ? `  (${br.calls} / ${k(br.tris)})` : '';
-    console.log(`    ${r.name.padEnd(9)} ${String(r.calls).padStart(4)} Aufrufe ${k(r.tris).padStart(6)} Dreiecke${d}${r.extra ? '  ' + JSON.stringify(r.extra) : ''}`);
+    const cm = r.cmp ? `  Bild ${(r.cmp.frac * 100).toFixed(3)} % abweichend (max ${r.cmp.max}), ohne Sparen ${r.cmp.offCalls} / ${k(r.cmp.offTris)}${r.cmp.frac > 0.0005 ? '  ⚠' : ''}` : '';
+    console.log(`    ${r.name.padEnd(9)} ${String(r.calls).padStart(4)} Aufrufe ${k(r.tris).padStart(6)} Dreiecke${d}${r.extra ? '  ' + JSON.stringify(r.extra) : ''}${cm}`);
     if (r.detail && process.env.DETAIL !== 'json') for (const [n, c, t] of r.detail.slice(0, 14)) console.log(`        ${n.slice(0, 40).padEnd(40)} ${String(c).padStart(4)} ${k(t).padStart(6)}`);
   }
   if (errors.length) { console.log(`    Konsole (${errors.length}):`); for (const e of errors.slice(0, 5)) console.log('     ', e.slice(0, 200)); }

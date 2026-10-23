@@ -31,6 +31,7 @@ import { BlobShadows } from './BlobShadows.js';
 import { CourseEffects } from './Effects.js';
 import { CameraRig } from './CameraRig.js';
 import { ViewMood } from './mood.js';
+import { ViewCulling } from './Culling.js';
 
 const SHADOW_R = 22;
 const MAX_LANTERNS = 4;
@@ -69,6 +70,10 @@ export class CourseView {
     this.buildLights();
     this.sky = new Sky(this, this.theme);
     this.static = new StaticBatcher(this);
+    // Sparmaßnahmen der Darstellung (Culling, Pool-Auswahl, Instanzen, Schatten-Stellvertreter); ?optimize=0 schaltet
+    // sie zum Vergleich ab (tests/course_perf.mjs COMPARE=1) – das Bild muss gleich bleiben
+    this.optimize = new URLSearchParams(window.location.search).get('optimize') !== '0';
+    this.culling = new ViewCulling(this);
     this.shadows = new BlobShadows(this);
     this.effects = new CourseEffects(this);
     // Stimmungen/Unterwasser (Bausteine Welt 3): nur bei Themen mit moods/underwater, sonst erst beim ersten Aufruf
@@ -185,7 +190,10 @@ export class CourseView {
     if (world) this.shadows.update(world);
     this.effects.update(dt);
     this.renderer.setClearColor(this.mood?.clear ?? this.theme.background, 1);
+    this.culling.begin();
+    for (const p of this.pools.values()) p.flush?.(this.culling);
     this.renderer.render(this.three, this.camera);
+    this.culling.end();
   }
 
   updateLanterns(tg) {

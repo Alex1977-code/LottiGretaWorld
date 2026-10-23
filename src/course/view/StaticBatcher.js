@@ -53,6 +53,7 @@ export class StaticBatcher {
       mesh.receiveShadow = b.recv;
       mesh.matrixAutoUpdate = false;
       mesh.updateMatrix();
+      mesh.cullBox = true;            // Quader statt Kugel gegen Sicht/Schatten (view/Culling.js)
       mesh.name = `statisch:${b.mat}`;
       this.view.three.add(mesh);
       this.meshes.push(mesh);
