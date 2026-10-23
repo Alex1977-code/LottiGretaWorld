@@ -519,7 +519,7 @@ export function speakerTower(level, o) {
   cone.rotateX(-Math.PI / 2);
   const coneG = colorize(cone, (p, n, out) => mixc(L(0x2a3a8a), L(0x8aa0ff), smooth(0.2, 1.1, Math.hypot(p.x, p.y)), out));
   const cap = sphere(0.35, 0, 0, 0.1, 0x8aa0ff, { ws: 10, hs: 6, sz: 0.5 });
-  const mesh = new THREE.InstancedMesh(merge([coneG, cap]), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.2, emissive: 0x1a2266 }), spots.length);
+  const mesh = new THREE.InstancedMesh(merge([coneG, cap]), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.2, emissive: 0x1a2266, side: THREE.DoubleSide }), spots.length);
   mesh.frustumCulled = false; mesh.castShadow = false; mesh.name = 'zier:lautsprecher';
   const M = new THREE.Matrix4(), V = new THREE.Vector3(), S = new THREE.Vector3(), Q = new THREE.Quaternion();
   addObject(level, mesh, () => {
@@ -672,6 +672,7 @@ export function cloudSea(level, o) {
   const rnd = new Rnd(o.seed ?? 7);
   const parts = [];
   const [r0, r1] = o.r ?? [1.6, 3.4];
+  const tint = L(o.tint ?? 0xf4faff);
   const zA = Math.max(o.z0, o.z1), zB = Math.min(o.z0, o.z1);
   for (let i = 0; i < (o.n ?? 40); i++) {
     const x = rnd.real(o.x0, o.x1), z = rnd.real(zB, zA);
@@ -680,7 +681,7 @@ export function cloudSea(level, o) {
     for (let k = 0; k < 3; k++) {
       const rr = r * (k ? 0.65 : 1), a = k * 2.3 + i;
       parts.push(sphere(rr, x + (k ? Math.cos(a) * r * 0.8 : 0), y + (k ? r * 0.15 : 0), z + (k ? Math.sin(a) * r * 0.6 : 0), 0xffffff,
-        { ws: 9, hs: 5, sy: 0.42, fn: (p, n, out) => { const c = 0.82 + 0.18 * smooth(-0.6, 0.9, n.y); out[0] = c * 0.96; out[1] = c * 0.98; out[2] = c; } }));
+        { ws: 9, hs: 5, sy: 0.42, fn: (p, n, out) => { const c = 0.82 + 0.18 * smooth(-0.6, 0.9, n.y); out[0] = c * tint[0]; out[1] = c * tint[1]; out[2] = c * tint[2]; } }));
     }
   }
   addStaticParts(level, parts, { castShadow: false, receiveShadow: false });

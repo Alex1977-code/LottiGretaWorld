@@ -107,6 +107,7 @@ function setup(level) {
     [-4.8, Y, -42.4, 0.2], [4.6, Y, -36, PI - 0.3],
     [-6.4, Y, -112, 0.4], [-5.8, Y, -133, 0.1], [6.2, Y, -132, PI - 0.2], [3.5, Y, -128.6, PI + 0.5],
     [9.5, YC, -178.5, PI + 0.6], [11.5, YC, -184, PI], [10.5, YC, -190.5, PI - 0.5],
+    [5.6, Y, -164, PI - 0.4], [-8.4, Y, -164.6, 0.6],
     [-6.2, YU, -235.6, 0.3], [-1.5, YZ, -293.7, -PI / 2], [1.5, YZ, -294.1, -PI / 2], [-6, YZ, -288.7, 0.2], [6.4, YZ, -291.2, PI],
     [BX - 8, 0, BZ + 8, -0.6], [BX + 8, 0, BZ - 8, PI - 0.6],
   ]);
@@ -128,6 +129,7 @@ function setup(level) {
   neonSign(level, { pos: [-6, Y, -122.5], text: 'Warp-Box ↓\nzum Turm', size: [3, 1.2], yaw: 0.3, color: '#ff5af0', flicker: true });
   neonSign(level, { pos: [-9.6, Y, -113.2], text: '← Stern?', size: [2.4, 0.9], yaw: 0.5, color: '#ffe04a' });
   neonSign(level, { pos: [5.6, YC, -191.4], text: 'Viererlift:\nnur zu viert!', size: [3.6, 1.3], yaw: -0.25, color: '#ff8a4a' });
+  neonSign(level, { pos: [-7.6, Y, -153.4], text: 'Treppe im Takt:\nRot – Blau – Rot!', size: [3.6, 1.3], yaw: 0.3, color: '#ff5a8a', flicker: true });
   neonSign(level, { pos: [BX, 0, BZ + 8.6], text: 'Schalter drücken,\nblaue Münzen fangen!', size: [4.4, 1.3], yaw: 0, color: '#5a9aff' });
   // ---------------- Budget
   instanceEnemies(level, ['feuer_werfer'], {});

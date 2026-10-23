@@ -64,7 +64,7 @@ function setup(level) {
   rockWall(level, { x0: 0.2, x1: 2.8, z0: -24.2, z1: -26.8, y: -12, h: 10.5, face: 1 });
   // Wolken unter der Schlucht und ein Wolkenmeer unter der Riesentrampolin-Fahrt (zeigt die Tiefe)
   cloudSea(level, { x0: -14, x1: 14, z0: -16.5, z1: -29, y: -7, n: 10, seed: 3, r: [1.4, 2.6] });
-  cloudSea(level, { x0: -34, x1: 34, z0: -98, z1: -206, y: 2, n: 90, seed: 11, r: [2.2, 4.4] });
+  cloudSea(level, { x0: -34, x1: 34, z0: -98, z1: -206, y: -3, n: 90, seed: 11, r: [2.2, 4.4], tint: 0xe4f0ff });
   // Bergwiesen-Kulisse (statisch, je 32-m-Abschnitt verschmolzen)
   const parts = [];
   almHut(parts, 8.6, YA, 5.4, 1, -0.3);
@@ -115,7 +115,7 @@ export const LEVEL = {
     { from: 14, to: -16, pitch: 44, dist: 13 },
     { from: -16, to: -30, pitch: 46, dist: 13 },                       // Schlucht mit Pilztrampolinen
     { from: -30, to: -96, pitch: 44, dist: 13 },
-    { from: -96, to: -206, pitch: 40, dist: 14, height: 2.4, ahead: 3 },   // Riesentrampolin-Fahrt: Blick voraus auf die Räder
+    { from: -96, to: -206, pitch: 38, dist: 14, height: 2.6, ahead: 3 },   // Riesentrampolin-Fahrt: flacher (Ausblick), Blick auf die Räder
     { from: -206, to: -234, pitch: 44, dist: 13 },
     { from: KZ + 16, to: KZ - 16, pitch: 24, dist: 15, height: 2, area: [KX - 24, KX + 24] },   // Kletterzaun-Raum (frontal)
   ],
