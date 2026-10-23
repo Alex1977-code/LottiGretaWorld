@@ -171,7 +171,7 @@ export function buildGiftwasser(level, spec) {
     const rnd = level.rnd;
     for (let i = 0; i < n; i++) B.push({ x: x0 + rnd.frac() * s.x, z: z0 + rnd.frac() * s.z, t: rnd.frac() * 2.5, life: 1.4 + rnd.frac() * 1.6, r: 0.12 + rnd.frac() * 0.22 });
     group.add(bub);
-    burst = (x, z, k) => { for (let i = 0; i < k; i++) { const b = B[(i * 7 + Math.floor(x * 3 + z)) % B.length]; b.x = x + (i - k / 2) * 0.25; b.z = z + ((i * 3) % 5 - 2) * 0.18; b.t = i * 0.08; b.life = 0.8; b.r = 0.2 + i * 0.03; } };
+    burst = (x, z, k) => { for (let i = 0; i < k; i++) { const b = B[(((i * 7 + Math.floor(x * 3 + z)) % B.length) + B.length) % B.length]; b.x = x + (i - k / 2) * 0.25; b.z = z + ((i * 3) % 5 - 2) * 0.18; b.t = i * 0.08; b.life = 0.8; b.r = 0.2 + i * 0.03; } };
   }
   const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _q = new THREE.Quaternion();
   const holder = {};

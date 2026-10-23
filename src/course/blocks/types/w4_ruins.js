@@ -66,7 +66,7 @@ function slabGeo(w, d, thick, style, rnd = 1) {
       const g = new THREE.SphereGeometry(0.22 + (i % 3) * 0.06, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2);
       g.scale(1.4, 0.5, 1.1);
       g.translate(x, 0, z);
-      parts.push(colorize(g.toNonIndexed(), (p, n, o) => mixc(acc, lin(0xa8d86a), smooth(0, 1, n.y) * 0.5, o)));
+      parts.push(colorize(g, (p, n, o) => mixc(acc, lin(0xa8d86a), smooth(0, 1, n.y) * 0.5, o)));
     }
   }
   return merge(parts);

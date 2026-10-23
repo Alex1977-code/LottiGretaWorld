@@ -55,7 +55,7 @@ export function canyonRing(sky, bounds, rnd, yBase, o = {}) {
           g.scale(1, 1, d / w);
           g.rotateY(rnd.real(0, 1));
           g.translate(x, y + th / 2, z);
-          parts.push(colorize(g.toNonIndexed(), rockCol));
+          parts.push(colorize(g, rockCol));
         }
       }
     }
@@ -71,18 +71,18 @@ export function canyonRing(sky, bounds, rnd, yBase, o = {}) {
         const h = rnd.real(7, 12);
         const g = new THREE.CylinderGeometry(r * 0.8, r, h, 8, 2);
         g.translate(x, y + h / 2, z);
-        parts.push(colorize(g.toNonIndexed(), rockCol));
+        parts.push(colorize(g, rockCol));
         y += h; r *= 0.82;
       }
       const capG = new THREE.CylinderGeometry(r * 1.6, r * 1.1, 2.4, 8);
       capG.translate(x, y + 1.2, z);
-      parts.push(colorize(capG.toNonIndexed(), (p, n, out) => mixc(shadow, lin(0x8a4a30), smooth(-0.5, 0.8, n.y), out)));
+      parts.push(colorize(capG, (p, n, out) => mixc(shadow, lin(0x8a4a30), smooth(-0.5, 0.8, n.y), out)));
     } else {
       const r = rnd.real(14, 26), h = rnd.real(40, 70);
       const g = new THREE.CylinderGeometry(r * 0.86, r, h, 9, 5);
       g.scale(1, 1, rnd.real(0.6, 1));
       g.translate(x, gy + h / 2 - 2, z);
-      parts.push(colorize(g.toNonIndexed(), rockCol));
+      parts.push(colorize(g, rockCol));
     }
   }
   addMesh(sky, merge(parts), sky.view.mats.world);
@@ -158,7 +158,7 @@ export function poisonForest(sky, bounds, rnd, yBase, o = {}) {
       g.translate(0, len / 2, 0);
       g.rotateZ(bend * (k + 1) * 0.35);
       g.translate(px, py, pz);
-      parts.push(colorize(g.toNonIndexed(), (p, n, out) => mixc(bark, barkHi, smooth(-0.4, 0.9, n.x * -0.4 + n.z * 0.5), out)));
+      parts.push(colorize(g, (p, n, out) => mixc(bark, barkHi, smooth(-0.4, 0.9, n.x * -0.4 + n.z * 0.5), out)));
       px += -Math.sin(bend * (k + 1) * 0.35) * len; py += Math.cos(bend * (k + 1) * 0.35) * len; r *= 0.75;
     }
     // hängende, flache Kronen (Schirm) in Lagen
@@ -169,7 +169,7 @@ export function poisonForest(sky, bounds, rnd, yBase, o = {}) {
       g.scale(1, 0.55, 1);
       g.translate(px + rnd.real(-1, 1) * h * 0.1, py - k * h * 0.08 + h * 0.04, pz + rnd.real(-1, 1) * h * 0.1);
       const dark = mixc(c, [0.02, 0.01, 0.04], 0.55, [0, 0, 0]);
-      parts.push(colorize(g.toNonIndexed(), (p, n, out) => mixc(dark, c, smooth(-0.3, 0.8, n.y), out)));
+      parts.push(colorize(g, (p, n, out) => mixc(dark, c, smooth(-0.3, 0.8, n.y), out)));
     }
     // Leuchtpilze am Fuß
     for (let k = 0; k < 3; k++) {
@@ -178,7 +178,7 @@ export function poisonForest(sky, bounds, rnd, yBase, o = {}) {
       const g = new THREE.SphereGeometry(s, 6, 3, 0, Math.PI * 2, 0, Math.PI / 2);
       g.scale(1, 0.6, 1);
       g.translate(x + rnd.real(-2.5, 2.5), gy + s * 0.8, z + rnd.real(-2.5, 2.5));
-      glow.push(colorize(g.toNonIndexed(), (p, n, out) => mixc(mixc(c, [0, 0, 0], 0.4, [0, 0, 0]), c, smooth(0, 1, n.y), out)));
+      glow.push(colorize(g, (p, n, out) => mixc(mixc(c, [0, 0, 0], 0.4, [0, 0, 0]), c, smooth(0, 1, n.y), out)));
     }
   };
   for (const side of [-1, 1]) {
@@ -224,21 +224,21 @@ export function techCity(sky, bounds, rnd, yBase, o = {}) {
   const tower = (x, z, w, h) => {
     const g = new THREE.BoxGeometry(w, h, w * rnd.real(0.7, 1.2), 1, 4, 1);
     g.translate(x, gy + h / 2, z);
-    parts.push(colorize(g.toNonIndexed(), (p, n, out) => mixc(body, bodyHi, smooth(-0.6, 0.9, n.y * 0.6 - n.x * 0.3 + n.z * 0.3), out)));
+    parts.push(colorize(g, (p, n, out) => mixc(body, bodyHi, smooth(-0.6, 0.9, n.y * 0.6 - n.x * 0.3 + n.z * 0.3), out)));
     const c = neon[Math.floor(rnd.frac() * neon.length)];
     // Fensterbänder (leicht vor der Fassade)
     for (let yy = gy + 6; yy < gy + h - 3; yy += rnd.real(4, 7)) {
       const b = new THREE.BoxGeometry(w * 1.02, 0.5, w * 0.2);
       b.translate(x, yy, z + w * 0.42);
-      glow.push(colorize(b.toNonIndexed(), (p, n, out) => { out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+      glow.push(colorize(b, (p, n, out) => { out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
     }
     // Antenne mit Spitze
     const a = new THREE.CylinderGeometry(0.15, 0.25, 6, 5);
     a.translate(x, gy + h + 3, z);
-    parts.push(colorize(a.toNonIndexed(), (p, n, out) => { out[0] = bodyHi[0]; out[1] = bodyHi[1]; out[2] = bodyHi[2]; }));
+    parts.push(colorize(a, (p, n, out) => { out[0] = bodyHi[0]; out[1] = bodyHi[1]; out[2] = bodyHi[2]; }));
     const tip = new THREE.SphereGeometry(0.7, 6, 4);
     tip.translate(x, gy + h + 6.2, z);
-    glow.push(colorize(tip.toNonIndexed(), (p, n, out) => { out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+    glow.push(colorize(tip, (p, n, out) => { out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
   };
   for (const side of [-1, 1]) for (let z = z1 + 30; z > z0 - 70; z -= rnd.real(16, 26)) tower(side < 0 ? x0 - rnd.real(30, 70) : x1 + rnd.real(30, 70), z, rnd.real(6, 12), rnd.real(40, 80));
   for (let x = x0 - 140; x < x1 + 140; x += rnd.real(18, 30)) tower(x, z0 - rnd.real(80, 160), rnd.real(8, 16), rnd.real(50, 110));
@@ -248,8 +248,8 @@ export function techCity(sky, bounds, rnd, yBase, o = {}) {
   const lines = [];
   const gc = lin(o.grid ?? 0x3a5aff);
   const W = (x1 - x0) + 500, D = (z1 - z0) + 500, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-  for (let x = cx - W / 2; x <= cx + W / 2; x += 12) { const b = new THREE.BoxGeometry(0.35, 0.05, D); b.translate(x, gy + 0.3, cz); lines.push(colorize(b.toNonIndexed(), (p, n, out) => { out[0] = gc[0]; out[1] = gc[1]; out[2] = gc[2]; })); }
-  for (let z = cz - D / 2; z <= cz + D / 2; z += 12) { const b = new THREE.BoxGeometry(W, 0.05, 0.35); b.translate(cx, gy + 0.3, z); lines.push(colorize(b.toNonIndexed(), (p, n, out) => { out[0] = gc[0]; out[1] = gc[1]; out[2] = gc[2]; })); }
+  for (let x = cx - W / 2; x <= cx + W / 2; x += 12) { const b = new THREE.BoxGeometry(0.35, 0.05, D); b.translate(x, gy + 0.3, cz); lines.push(colorize(b, (p, n, out) => { out[0] = gc[0]; out[1] = gc[1]; out[2] = gc[2]; })); }
+  for (let z = cz - D / 2; z <= cz + D / 2; z += 12) { const b = new THREE.BoxGeometry(W, 0.05, 0.35); b.translate(cx, gy + 0.3, z); lines.push(colorize(b, (p, n, out) => { out[0] = gc[0]; out[1] = gc[1]; out[2] = gc[2]; })); }
   addMesh(sky, merge(lines), sky.track(new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })));
   // Takt-Lichter: schwebende Neon-Ringe beiderseits der Strecke
   const rings = [];
@@ -259,7 +259,7 @@ export function techCity(sky, bounds, rnd, yBase, o = {}) {
       const g = new THREE.TorusGeometry(rnd.real(2.2, 3.4), 0.18, 6, 28);
       g.rotateY(Math.PI / 2 + side * 0.4);
       g.translate(x, bounds.max.y + rnd.real(2, 9), z);
-      rings.push(colorize(g.toNonIndexed(), (p, n, out) => { out[0] = 1; out[1] = 1; out[2] = 1; }));
+      rings.push(colorize(g, (p, n, out) => { out[0] = 1; out[1] = 1; out[2] = 1; }));
     }
   }
   const ringMat = sky.track(new THREE.MeshBasicMaterial({ vertexColors: true, color: 0xff4060, fog: false }));
@@ -341,7 +341,7 @@ export function meadowFlowers(sky, bounds, rnd, yBase, o = {}) {
     const g = new THREE.CircleGeometry(rnd.real(0.5, 1.1), 5);
     g.rotateX(-Math.PI / 2);
     g.translate(x, gy + 0.25, z);
-    parts.push(colorize(g.toNonIndexed(), (p, n, out) => { out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+    parts.push(colorize(g, (p, n, out) => { out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
   }
   addMesh(sky, merge(parts), glowMat(sky));
 }
@@ -361,10 +361,10 @@ export function ruinCity(sky, bounds, rnd, yBase, o = {}) {
   const column = (x, z, h, r, broken) => {
     const g = new THREE.CylinderGeometry(r, r * 1.05, h, 10, 3);
     g.translate(x, gy + h / 2, z);
-    parts.push(colorize(g.toNonIndexed(), (p, n, out) => { stoneCol(p, n, out); const a = Math.atan2(p.z - z, p.x - x); const k = 0.9 + 0.1 * Math.cos(a * 10); out[0] *= k; out[1] *= k; out[2] *= k; }));
+    parts.push(colorize(g, (p, n, out) => { stoneCol(p, n, out); const a = Math.atan2(p.z - z, p.x - x); const k = 0.9 + 0.1 * Math.cos(a * 10); out[0] *= k; out[1] *= k; out[2] *= k; }));
     const cap = new THREE.BoxGeometry(r * 2.8, r * 0.7, r * 2.8);
     cap.translate(x, gy + h + r * 0.35, z);
-    if (!broken) parts.push(colorize(cap.toNonIndexed(), stoneCol));
+    if (!broken) parts.push(colorize(cap, stoneCol));
   };
   const arch = (x, z, w, h, yaw) => {
     const t = 1.4;
@@ -372,11 +372,11 @@ export function ruinCity(sky, bounds, rnd, yBase, o = {}) {
     for (const [lx] of legs) {
       const g = new THREE.BoxGeometry(t, h, t);
       g.translate(lx, h / 2, 0); g.rotateY(yaw); g.translate(x, gy, z);
-      parts.push(colorize(g.toNonIndexed(), stoneCol));
+      parts.push(colorize(g, stoneCol));
     }
     const top = new THREE.TorusGeometry(w / 2, t / 2, 6, 12, Math.PI);
     top.translate(0, h, 0); top.rotateY(yaw); top.translate(x, gy, z);
-    parts.push(colorize(top.toNonIndexed(), stoneCol));
+    parts.push(colorize(top, stoneCol));
   };
   const tower = (x, z, w, h) => {
     const g = new THREE.BoxGeometry(w, h, w, 2, 5, 2);
@@ -384,12 +384,12 @@ export function ruinCity(sky, bounds, rnd, yBase, o = {}) {
     for (let v = 0; v < pos.count; v++) if (pos.getY(v) > h * 0.3) pos.setY(v, pos.getY(v) - Math.max(0, Math.sin(pos.getX(v) * 1.7 + pos.getZ(v)) * h * 0.18));
     g.computeVertexNormals();
     g.translate(x, gy + h / 2, z);
-    parts.push(colorize(g.toNonIndexed(), stoneCol));
+    parts.push(colorize(g, stoneCol));
   };
   const jungleTree = (x, z, h) => {
     const tr = new THREE.CylinderGeometry(h * 0.04, h * 0.07, h * 0.7, 6);
     tr.translate(x, gy + h * 0.35, z);
-    parts.push(colorize(tr.toNonIndexed(), (p, n, out) => mixc(lin(0x4a2e1a), lin(0x7a5232), smooth(-0.5, 0.8, n.x), out)));
+    parts.push(colorize(tr, (p, n, out) => mixc(lin(0x4a2e1a), lin(0x7a5232), smooth(-0.5, 0.8, n.x), out)));
     for (let k = 0; k < 4; k++) {
       const g = new THREE.IcosahedronGeometry(h * rnd.real(0.16, 0.24), 1);
       g.scale(1.3, 0.7, 1.3);
@@ -431,18 +431,18 @@ export function castleWalls(sky, bounds, rnd, yBase, o = {}) {
   const wall = (x, z, len, h, yaw) => {
     const g = new THREE.BoxGeometry(len, h, 4, 4, 3, 1);
     g.translate(0, h / 2, 0); g.rotateY(yaw); g.translate(x, gy, z);
-    parts.push(colorize(g.toNonIndexed(), stoneCol));
+    parts.push(colorize(g, stoneCol));
     // Zinnen
     for (let k = -len / 2 + 1.5; k < len / 2; k += 3) {
       const c = new THREE.BoxGeometry(1.6, 2, 4.2);
       c.translate(k, h + 1, 0); c.rotateY(yaw); c.translate(x, gy, z);
-      parts.push(colorize(c.toNonIndexed(), stoneCol));
+      parts.push(colorize(c, stoneCol));
     }
     // Fensterschlitze (glühend)
     for (let k = -len / 2 + 4; k < len / 2 - 2; k += rnd.real(5, 8)) {
       const w = new THREE.BoxGeometry(0.9, 2.4, 0.3);
       w.translate(k, h * rnd.real(0.45, 0.75), 2.05); w.rotateY(yaw); w.translate(x, gy, z);
-      glow.push(colorize(w.toNonIndexed(), (p, n, out) => { out[0] = win[0]; out[1] = win[1]; out[2] = win[2]; }));
+      glow.push(colorize(w, (p, n, out) => { out[0] = win[0]; out[1] = win[1]; out[2] = win[2]; }));
     }
   };
   for (const side of [-1, 1]) {
@@ -453,10 +453,10 @@ export function castleWalls(sky, bounds, rnd, yBase, o = {}) {
       const r = rnd.real(4, 6), h = rnd.real(36, 48);
       const t = new THREE.CylinderGeometry(r, r * 1.1, h, 10, 4);
       t.translate(x, gy + h / 2, z + 17);
-      parts.push(colorize(t.toNonIndexed(), stoneCol));
+      parts.push(colorize(t, stoneCol));
       const cone = new THREE.ConeGeometry(r * 1.3, r * 2.4, 10);
       cone.translate(x, gy + h + r * 1.2, z + 17);
-      parts.push(colorize(cone.toNonIndexed(), (p, n, out) => mixc(lin(0x2a0a10), lin(0x8a1a22), smooth(-0.3, 0.8, n.y), out)));
+      parts.push(colorize(cone, (p, n, out) => mixc(lin(0x2a0a10), lin(0x8a1a22), smooth(-0.3, 0.8, n.y), out)));
     }
   }
   for (let x = x0 - 60; x < x1 + 60; x += 34) wall(x, z0 - rnd.real(40, 60), 34, rnd.real(34, 46), 0);

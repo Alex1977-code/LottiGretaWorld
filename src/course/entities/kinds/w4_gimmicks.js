@@ -64,41 +64,42 @@ function stangeModel(o) {
   const spin = new THREE.Group();
   root.add(spin);
   const H = o.height, L = o.length, R = o.radius;
-  const metal = new THREE.MeshStandardMaterial({ color: 0x8a8e9c, roughness: 0.35, metalness: 0.7 });
-  const ballMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, metalness: 0.6 });
-  const ballG = spikeBallGeo(R);
-  // Säule (Ruinen-Stein) mit Bronze-Kappe
+  const steel = lin(0x7a7e8c), steelHi = lin(0xd0d4e0), sand = lin(0xd2b080), sandD = lin(0x8a6a44), gold = lin(0xe0a840);
+  // Säule (Ruinen-Stein) und Bronze-Kappe: ein Mesh
+  const fixed = [];
   if (o.post) {
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.38, H, 10), new THREE.MeshStandardMaterial({ color: 0xc8a676, roughness: 0.85 }));
-    post.position.y = H / 2;
-    post.castShadow = true;
-    root.add(post);
+    const post = new THREE.CylinderGeometry(0.3, 0.38, H, 10, 2);
+    post.translate(0, H / 2, 0);
+    fixed.push(colorize(post, (p, n, out) => { mixc(sandD, sand, smooth(-0.6, 0.8, n.x * -0.5 + n.z * 0.5), out); if ((Math.floor(p.y * 3) & 1) === 1) { out[0] *= 0.93; out[1] *= 0.93; out[2] *= 0.93; } }));
   }
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 8), new THREE.MeshStandardMaterial({ color: 0xd8a040, roughness: 0.3, metalness: 0.7 }));
-  cap.position.y = H;
-  root.add(cap);
+  const cap = new THREE.SphereGeometry(0.3, 12, 8);
+  cap.translate(0, H, 0);
+  fixed.push(colorize(cap, (p, n, out) => mixc(mixc(gold, [0, 0, 0], 0.4, [0, 0, 0]), gold, smooth(-0.4, 0.9, n.y), out)));
+  const fixedMesh = new THREE.Mesh(merge(fixed), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.25 }));
+  fixedMesh.castShadow = true;
+  root.add(fixedMesh);
+  // Arme mit Stachelkugeln: ein Mesh, das sich dreht
+  const arms = [];
+  for (let a = 0; a < o.arms; a++) {
+    const ang = (a / o.arms) * Math.PI * 2;
+    const rod = new THREE.CylinderGeometry(0.08, 0.08, L, 8);
+    rod.rotateZ(Math.PI / 2);
+    rod.translate(L / 2, 0, 0);
+    const parts = [colorize(rod, (p, n, out) => mixc(steel, steelHi, smooth(-0.5, 0.9, n.y), out))];
+    for (let k = 1; k <= o.balls; k++) { const b = spikeBallGeo(R); b.translate((L * k) / o.balls, 0, 0); parts.push(b); }
+    const g = merge(parts);
+    if (o.axis === 'y') g.rotateY(ang); else g.rotateZ(ang);
+    arms.push(g);
+  }
+  const armMesh = new THREE.Mesh(merge(arms), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, metalness: 0.6 }));
+  armMesh.castShadow = true;
+  spin.add(armMesh);
   spin.position.y = H;
   if (o.axis === 'x') spin.rotation.y = Math.PI / 2;
-  for (let a = 0; a < o.arms; a++) {
-    const arm = new THREE.Group();
-    arm.rotation[o.axis === 'y' ? 'y' : 'z'] = (a / o.arms) * Math.PI * 2;
-    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, L, 8), metal);
-    rod.rotation.z = Math.PI / 2;
-    rod.position.x = L / 2;
-    rod.castShadow = true;
-    arm.add(rod);
-    for (let k = 1; k <= o.balls; k++) {
-      const b = new THREE.Mesh(ballG, ballMat);
-      b.position.x = (L * k) / o.balls;
-      b.castShadow = true;
-      arm.add(b);
-    }
-    spin.add(arm);
-  }
   return {
     root,
     update(dt, st) { if (o.axis === 'y') spin.rotation.y = st.angle ?? 0; else spin.rotation.z = st.angle ?? 0; },
-    dispose() { ballG.dispose(); metal.dispose(); ballMat.dispose(); },
+    dispose() { fixedMesh.geometry.dispose(); fixedMesh.material.dispose(); armMesh.geometry.dispose(); armMesh.material.dispose(); },
   };
 }
 

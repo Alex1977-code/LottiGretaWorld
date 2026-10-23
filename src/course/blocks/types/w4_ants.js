@@ -43,7 +43,7 @@ export function buildAmeisenweg(level, spec) {
     g.scale(1.4, 1, 0.8);
     g.applyQuaternion(q);
     g.translate(at.pos.x + side.x * off + at.normal.x * 0.02, at.pos.y + side.y * off + at.normal.y * 0.02, at.pos.z + side.z * off + at.normal.z * 0.02);
-    parts.push(colorize(g.toNonIndexed(), (p, nn, o) => { o[0] = col[0]; o[1] = col[1]; o[2] = col[2]; }));
+    parts.push(colorize(g, (p, nn, o) => { o[0] = col[0]; o[1] = col[1]; o[2] = col[2]; }));
   }
   if (parts.length) addStatic(level, merge(parts), { castShadow: false });
   return handle;
