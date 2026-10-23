@@ -1100,7 +1100,8 @@ kamele, Steppenläufer, Fernrohr, Sternschnuppen, Asteroiden).
   (`view.static.build()`) und hängt sie an das vorhandene Mesh gleichen Materials/Schattenwurfs im selben 32-m-Abschnitt
   an (sonst + 1–2 Zeichenaufrufe je Abschnitt); danach `level.computeBounds()` (Absturzhöhe mit den eigenen Inseln).
   Der Himmel/Hintergrund wird mit dem Umriss **ohne** die Haken-Formen ausgelegt – wo das zählt, `killY` im Level setzen.
-  Wunsch an den Motor: `addStatic` im Haken direkt in die Abschnitts-Meshes (oder ein `setup` vor `finalize`).
+  Wunsch an den Motor: `addStatic` im Haken direkt in die Abschnitts-Meshes (oder ein `setup` vor `finalize`) – umgesetzt
+  (Präzisierung „Leistung und Level-Haken 2“: spätes addStatic verschmilzt automatisch, `LEVEL.build`).
 - **2-5 „Doppelgängersteig“** (parcours, pinkgrass, course_cherry, 400 s, ≈ 235 m nach −Z): Blütenweg (Spiegelfrucht
   mit Schild) → Kistenhof (Stern 1 versteckt in der hinteren rechten Kiste, Stampfattacke) → Rosenhecken-Gang mit
   zwei Marschblock-Kolonnen, Nischen-Druckfeld (2 Figuren → 1-Up + Münzen), Druckfeld für 2 senkt das Tor (übersprungen:
@@ -1929,7 +1930,134 @@ Sieg → Warp → Zielmast, Tod setzt den Kampf zurück. Gemessen (scale 2, inkl
 
 ## Präzisierung (Level-Haken)
 
-`LEVEL.setup(level, scene)` (optional) wird einmal aufgerufen, nachdem Level, Spielfigur, Figurengruppe, Kamera und Archetyp aufgebaut sind (`CourseScene.create`). Für Code je Simulationsschritt darin `level.onStep((dt) => …)` anmelden. So bauen Level eigene Szenen (Krümel winkt, Sonder-Rätsel) ohne Umweg über Entitäten mit Aktionen. Ältere Kniffe (z. B. Laterne mit `onLit` als Aufbau-Haken in 2-3/2-4) funktionieren weiter.
+`LEVEL.setup(level, scene)` (optional) wird einmal aufgerufen, nachdem Level, Spielfigur, Figurengruppe, Kamera und Archetyp aufgebaut sind (`CourseScene.create`). Für Code je Simulationsschritt darin `level.onStep((dt) => …)` anmelden. So bauen Level eigene Szenen (Krümel winkt, Sonder-Rätsel) ohne Umweg über Entitäten mit Aktionen. Ältere Kniffe (z. B. Laterne mit `onLit` als Aufbau-Haken in 2-3/2-4) funktionieren weiter. Für Aufbau vor dem Verschmelzen gibt es jetzt `LEVEL.prebuild`/`LEVEL.build` (Präzisierung „Leistung und Level-Haken 2“).
+
+## Präzisierung (Leistung und Level-Haken 2)
+
+Ergänzungen des Motor-Agenten nach Welt 3 (Wünsche der Level-Bauer an den Motor, vor allem Leistung fürs Handy). Nichts
+oben Festgelegtes wird geändert; das Spielbild bleibt gleich (gemessen: Bild mit und ohne Sparmaßnahmen pixelgleich bis auf
+Detailstufen ferner Münzen/Blöcke/Käfer), die Routen-Bots laufen unverändert. Alles Folgende gilt ohne Level-Code.
+
+### Präzisierung (Leistung und Level-Haken 2): Dateien
+
+```
+src/course/view/Culling.js          Sicht-/Schattenprüfung (Mesh.intersectsFrustum während CourseView.render)
+src/course/view/EntityInstancer.js  gleiche Modellteile mehrerer Entitäten als Instanzen (Haupt-/Schattenpass getrennt)
+src/course/view/ShadowProxy.js      Schatten-Stellvertreter: Figur aus vielen Teilen wirft ihren Schatten in 1 Aufruf
+src/course/view/lod.js              Detailstufen: Münze, ?-/Ziegel-/benutzte Blöcke (Pools), Käfer (Entitäten)
+src/course/view/InstancePool.js     + Auswahl je Bild (nur sichtbare Instanzen), Detailstufen, Schatten-Instanzen
+src/course/view/StaticBatcher.js    + spätes addStatic verschmilzt in vorhandene Abschnitte, sehr große Teile in Zellen
+src/course/view/Sky.js              + Wolken je Level (LEVEL.sky), je Bild nur Wolken im Bild
+src/course/level/LevelLoader.js     + LEVEL.prebuild / LEVEL.build, segments shadow: false
+src/course/level/Level.js           + Fern-Ausblendung (farHide) in render()
+src/course/archetypes/ScrollDirector.js   Regie des Autoscrollers je Pfadlänge (aus 3-2 übernommen)
+src/course/archetypes/KruemelRig.js       Krümel als Diorama-Figur (aus 3-Kapitän übernommen)
+src/course/levels/w0/0-L.js         Testlevel „Leistungsprobe“
+tests/course_perf.mjs               Messskript (Zeichenaufrufe/Dreiecke je Level an festen Punkten, Bildvergleich)
+tests/course_leistung.mjs           Prüfungen der neuen Motor-Funktionen (Port 4963)
+```
+
+### Präzisierung (Leistung und Level-Haken 2): Aufbau-Haken
+
+| Feld | wann | wofür |
+| --- | --- | --- |
+| `LEVEL.prebuild(level)` | vor dem ersten Baustein | lokale Themen-Variante, deren Farben die Bausteine schon nutzen (2-Panzer: Abendrot, Festungspanzer) |
+| `LEVEL.build(level)` | nach Bausteinen, Blöcken, Gegnern – vor Items (Münzen, Power-ups, Checkpoint, Sterne, Stempel, Ziel) und vor dem Verschmelzen | statische Zier (`addStatic` landet in den Abschnitts-Meshes), Kollision (zählt für Umriss, Absturzhöhe, Hintergrund), eigene Entitäten |
+| `LEVEL.setup(level, scene)` | wie bisher nach Figur, Kamera, Archetyp | Code je Schritt (`level.onStep`), Hüllen |
+
+Spieler, Kamera und Archetyp gibt es in prebuild/build noch nicht. `addStatic` nach dem Verschmelzen (setup, Laufzeit)
+verschmilzt der Batcher vor dem nächsten Bild in das vorhandene Mesh derselben Zelle (kein zusätzlicher Zeichenaufruf;
+`levelSetup`/`levelSetupE` sind dafür nicht mehr nötig, schaden aber nicht). Der Laternen-Kniff (`onLit`) entfällt: 2-3,
+2-4, 3-3, 3-Kapitän nutzen `LEVEL.build`, 2-Panzer `LEVEL.prebuild`; die Laternen stehen weiter als Zier (`hookLamp`).
+
+### Präzisierung (Leistung und Level-Haken 2): Darstellung – was der Motor jetzt selbst spart
+
+- **Sicht- und Schattenprüfung** (`view/Culling.js`): Ein Mesh wirft nur dann in die Schattenkarte, wenn sein Schatten die
+  Kamera-Sicht erreichen kann (Begrenzungskugel bzw. Abschnitts-Quader entlang des Lichts bis unter den Umriss verlängert);
+  statische Abschnitte werden mit Quadern statt Kugeln geprüft. `view.culling.sphereVisible(x, y, z, r, cast)`,
+  `.shadowVisible(…)`, `.boxVisible(box, cast)`, `.camFrustum`, `.camPos` für eigene Auswahl.
+- **Statische Geometrie**: sehr große Teile (länger als 80 m oder breiter als 120 m – lange Strecken wie `track`, große
+  Böden, Kulissen-Ringe) blähen die Abschnitte nicht mehr auf: mit ≥ 2000 Dreiecken dreiecksweise auf eigene Zellen
+  (32 m × 64 m, dünn besetzte Zellen gröber zusammengefasst), sparsame gemeinsam in einem Mesh je Material.
+- **Instanz-Pools** (`view.pool`): je Bild nur Instanzen im Bild bzw. mit Schatten ins Bild (Schatten über eigene
+  Instanzgruppen nur im Schattenpass); Detailstufe ferner Exemplare über `opts.lod = { dist, make(vorlage) }`
+  (`lod: false` = keine). Motor-Vorgaben (`view/lod.js`): Münze ab 30 m (≈ 110 statt ≈ 430 Dreiecke), ?-/Münz-/Ziegel-/
+  benutzte Blöcke ab 28 m (Modell-Stufe `'low'`). Pool-API unverändert (`alloc/set/hide/release`).
+- **Gegner-/Modell-Instanzen** (`view/EntityInstancer.js`, automatisch): Meshes der Entitäts-Modelle mit gleicher
+  Geometrie + gleichem Material (+ Schattenwurf/-empfang) zeichnen bei ≥ 2 Exemplaren als eine InstancedMesh je Teil
+  (auch Instanzgruppen im Modell, z. B. Käferbeine). Nicht instanziert: transparente Teile (außer Entität `instancing =
+  'all'`), Material-Listen, Skinning/Morph, eigene Render-Haken, Scherung/Spiegelung in der Weltmatrix, Modelle mit
+  eigenem Material je Exemplar (Treffer-Blitz) – die zeichnen wie bisher. Abschalten: Entität/spec `instancing: false`,
+  Level `LEVEL.instancing: false`.
+- **Detailstufen ferner Entitäten** (`view/lod.js`, nach Art): Flatter-/Krabbelkäfer ab 22 m Kameraabstand als sparsame
+  Nachbildung (≈ 650 statt ≈ 4500 Dreiecke, Flügel des Modells bleiben). Entität `lod: false` schaltet ab, `lodDist`
+  ändert den Abstand, `lod = { dist, make(entity), anchor(root), keep(mesh), all }` setzt eine eigene.
+- **Fern-Ausblendung**: Entität/spec `farHide: m` – weiter als m (waagerecht) von der Haupt-Figur wird das Modell nicht
+  gezeichnet (läuft weiter); `LEVEL.farHide: m` gilt für alle Gegner.
+- **Schatten-Stellvertreter** (`view/ShadowProxy.js`): Heldin, Ritt (1-4) und Pflaume werfen ihren Sonnenschatten in
+  einem Zeichenaufruf (SkinnedMesh mit einem Knochen je Teil, nur im Schattenpass) statt ≈ 14; `view.shadowProxy(root)`
+  für eigene Figuren aus vielen starren Teilen.
+- **Wolken**: je Bild nur Wolken im Bild.
+- `?optimize=0` bzw. `view.optimize = false` schaltet alle Sparmaßnahmen zur Laufzeit ab (Vergleich; Bild muss gleich
+  sein). `?still=1` hält Simulation und Darstellungszeit an (Messungen, Bilder über Builds vergleichbar).
+
+### Präzisierung (Leistung und Level-Haken 2): neue Daten-Felder
+
+```js
+// Schattenwurf je Baustein: alles, was er zeichnet (statisch, Objekte, Registry-Modelle), wirft keinen Sonnenschatten
+{ type: 'island', pos: [0, 0, -140], size: [20, 1, 40], shadow: false },          // auch castShadow: false
+{ type: 'deco', castShadow: false, items: [ … ] },
+// Wolken je Level: true (Thema) | false | 'above' | 'below' | Anzahl | eigene Liste
+sky: { clouds: 'above' },                                    // 3-7: nur die Wolken über dem Level
+sky: { clouds: [{ pos: [0, 30, -60], size: 7, drift: 0.4 }] },
+// Gegner/Entitäten
+{ kind: 'pilzling', pos: [6, 1, -30], farHide: 40, instancing: false, lodDist: 30 },
+farHide: 50,                                                 // LEVEL: alle Gegner
+// Baustein bande: sparsame Bauweise (≈ 40 statt ≈ 320 Dreiecke je Meter, gleiche Optik; 3-6 nutzt sie über kartBande)
+{ type: 'bande', path: [[…], …], detail: 'low' },
+// Schalttafel fährt nach dem Abspringen noch coast s weiter (Sprünge über Hindernisse auf der Schiene; Standard 0)
+{ type: 'schalttafel', net: 'n1', at: [x, y, z], coast: 1 },
+// Drehraum setzt camIgnore auf Hülle und Einbauten selbst (camThrough: false schaltet ab)
+```
+
+### Präzisierung (Leistung und Level-Haken 2): Archetypen
+
+- **Boss**: `LEVEL.boss.center: [x, y, z]` – die Kampfkamera rahmt seitlich zwischen Figur und Arenamitte (Standard
+  `LEVEL.arena.center` bzw. x = 0); `warpBanner: 'Ab in die Röhre!'` (Ansage beim Sieg, `''` = keine); `phaseBanners:
+  { 2: 'Er wird wütend!', 3: { text, hold, size, color } }` (je Phase überschreibbar, `''` = keine). 3-Zug, 3-B,
+  2-Panzer umgestellt.
+- **Autoscroller**: Regie je Pfadlänge in `LEVEL.scroll` (`archetypes/ScrollDirector.js`): `cams: [{ s, pitch, dist, fov,
+  height }]`, `frames: [{ s, back, front, ahead, followX }]`, `killUp`, `gates: [{ id, open: s }]`, `reveal: [{ id, at:
+  s | 'done' }]`, `fall: { minS, y, x }`, `cap: { s0, s1, up, x, z }`, `sync: { id: t0 }` (fahrende Plattformen/Zäune im
+  Takt der Fahrt-Uhr). Am Kettenzaun wird das geerbte Fahrzeugtempo gelöscht. Mit `with: 'boss'` zeigen
+  `archetype.boss`/`seenPhase` auf den Zusatz-Archetyp. 3-2 umgestellt (`scrollDirector`/`clockSync` entfallen).
+- **Ansagen** (`archetypes/hud.js`): alle Archetyp-HUDs eines Levels teilen eine Warteschlange – eine Ansage erscheint erst,
+  wenn die vorige ausgeblendet ist (gleicher Text nicht doppelt, höchstens 3 wartend). `hud.state().banner` = zuletzt
+  angeforderte Ansage.
+- **Diorama**: `LEVEL.diorama.figure: 'pflaume' | 'kruemel' | (view, player) => rig` (nur Darstellung). 3-Kapitän
+  umgestellt (`useKruemel` bleibt als Rückfall).
+
+### Präzisierung (Leistung und Level-Haken 2): Hinweise für Level-Bauer
+
+- Eigene **ShaderMaterials** (oder `onBeforeCompile`-Shader) brauchen am Ende des Fragment-Shaders
+  `#include <colorspace_fragment>` (sonst sind die Farben im sRGB-Ausgang zu dunkel/blass); Nebel ggf. `#include
+  <fog_fragment>`.
+- **Power-ups, die nicht laufen** (Krallen-Anzug, Gleitblatt, Propeller-Helm …), bleiben oben auf dem ?-Block liegen:
+  solche Blöcke höchstens ≈ 2 m über dem Boden setzen (Sprunghöhe 3,5 m), sonst erreicht man sie nur mit Kettensprung.
+- Gleiche Gegner kosten jetzt kaum mehr als einer; Modelle mit eigenem Material je Exemplar bleiben einzeln (z. B. Spuke
+  mit eigener Deckkraft). Statt level-lokaler Instanz-/Fernhilfen genügen die Daten-Felder oben; die Level-Helfer
+  `instanceEnemies`, `instanceModels`, `bugSwarm`, `farHide` setzen nur noch diese Felder.
+- Lange statische Strecken (Gleise, Banden, Böden) müssen nicht mehr gestückelt werden.
+- Zöpfe/Haar der Heldin rechnen im Kurs in Avatar-Einheiten (vorher 1,5× zu lang, Kollider zu groß – die Zöpfe standen ab).
+
+### Präzisierung (Leistung und Level-Haken 2): Messung
+
+`tests/course_perf.mjs [w1|w2|w3|all|<Id> …]` (Port 4960 + PORT_BASE; je Welt < 10 min): je Level Start, 25/50/75 % der
+Strecke, Checkpoints, Sterne, Stempel, Ziel (Autoscroller: sechs Fensterlagen); `PERF_LABEL`, `PERF_BASE` (vorher/nachher),
+`DETAIL=1` (größte Posten je Objekt, Haupt- und Schattenpass), `COMPARE=1` (Bild mit/ohne Sparmaßnahmen), `SHOTS=1`,
+`POINTS=…`. Ergebnis `tests/out/perf_<Name>.json`.
+
+KENNZAHLEN_PLATZHALTER
 
 ## Welt 3 – Level-Liste und Freischaltung (Hauptsitzung)
 
@@ -2043,7 +2171,8 @@ PORT_BASE, Bilder `tests/out/w3lb_*.png`):
 - **Hinweise**: Power-ups, die nicht laufen (Krallen-Anzug, Gleitblatt), bleiben oben auf dem ?-Block liegen – solche
   Blöcke höchstens 2 m hoch setzen (Sprunghöhe 3,5 m), sonst erreicht man sie nur mit dem Kettensprung. Teuer auf langen
   Strecken: Registry-Käfer (≈ 4500 Dreiecke), Baustein `bande` (≈ 320 Dreiecke/m), Münzen (alle Instanzen werden
-  immer gezeichnet, ≈ 430 Dreiecke je Münze) – Detailstufen im Motor wären hilfreich.
+  immer gezeichnet, ≈ 430 Dreiecke je Münze) – Detailstufen im Motor wären hilfreich (umgesetzt: Präzisierung „Leistung
+  und Level-Haken 2“; `scrollDirector`/`clockSync`/`bugSwarm` laufen jetzt im Motor).
 
 **Level-Notizen 3-A / 3-B / 3-Zug** (Level-Agent; Hilfen `src/course/levels/w3/_helpers_e.js` ohne `LEVEL`; Test
 `tests/course_w3e.mjs [3-A|3-B|3-Zug]`, Port 4740 + PORT_BASE, Bilder `tests/out/w3z_*.png`; Teilprüfungen 3-Zug mit
@@ -2089,7 +2218,8 @@ PORT_BASE, Bilder `tests/out/w3lb_*.png`):
   des Boss-Archetyps rahmt zwischen Figur und x = 0 – für die seitliche Drehscheibe level-lokal verschoben).
   Wünsche an den Motor: Boss-Ansage „Spring in die Warp-Box!“ je Level einstellbar; Boss-Kamera mit Arenamitte;
   `track` legt den ganzen Pfad in eine Geometrie (lange Strecken müssen gestückelt werden); Räder des Modells
-  `zug_waggon` (je 920 Dreiecke × 8) und die Heldin (≈ 17 Meshes) sind die größten Posten im Zug-Budget.
+  `zug_waggon` (je 920 Dreiecke × 8) und die Heldin (≈ 17 Meshes) sind die größten Posten im Zug-Budget. (Ansagen,
+  Boss-Kamera, Instanzen, Heldin-Schatten umgesetzt: Präzisierung „Leistung und Level-Haken 2“.)
 
 **Level-Notizen 3-5 / 3-7** (Level-Agent; Hilfen `src/course/levels/w3/_helpers_d.js` ohne `LEVEL`; Test
 `tests/course_w3d.mjs [3-5|3-7]`, Port 4384 + PORT_BASE, Bilder `tests/out/w3d_*.png`; Teile über `PARTS=route,targets,
@@ -2181,6 +2311,8 @@ targets,extra,shots`, `HERO=lotti|greta`, `ONLY=<Text>`, `VERBOSE=1` – je Lauf
   Zeichenaufrufe, 127–278 k Dreiecke (Steinbrücke in F 278 k); 3-Kapitän (9 Bilder) 36–99 / 179–243 k. Wünsche an den
   Motor: Drehraum-Teile mit `camIgnore` im Baustein selbst; offizielle Figurwahl im Diorama (`LEVEL.diorama.figure`)
   statt Rig-Tausch im Haken; Spuke mit gemeinsamem Material (Deckkraft je Instanz), damit sie instanziert werden können.
+  (Drehraum-`camIgnore` und `LEVEL.diorama.figure` umgesetzt: Präzisierung „Leistung und Level-Haken 2“; Spuke offen –
+  braucht eine Modell-Änderung.)
 
 ---
 
