@@ -98,7 +98,7 @@ function lbGlowGeo() {
     }
     // Glut-Risse am Körper
     addCracks(b, LB, [
-      { az: 0.9, el: -0.1, steps: 4, seed: 1 }, { az: -0.95, el: 0.0, steps: 4, seed: 2, branch: true }, { az: 2.2, el: -0.25, steps: 5, seed: 3 },
+      { az: 1.45, el: -0.15, steps: 4, seed: 1 }, { az: -1.5, el: 0.0, steps: 4, seed: 2, branch: true }, { az: 2.2, el: -0.25, steps: 5, seed: 3 },
       { az: -2.4, el: 0.1, steps: 5, seed: 4, branch: true }, { az: 3.1, el: -0.45, steps: 4, seed: 5 }, { az: 1.6, el: -0.55, steps: 3, seed: 6 },
     ], 0.014, LAVA.hot);
     // glühendes Grinsen (Halbmond)

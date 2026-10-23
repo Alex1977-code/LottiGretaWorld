@@ -241,17 +241,17 @@ export function antLegGeo(lo = false) {
   return cached(`w4:ant:leg:${lo}`, () => {
     const b = new Build();
     const rs = lo ? 4 : 6;
-    const hip = new THREE.Vector3(0, 0, 0.02), knee = new THREE.Vector3(0, 0.09, 0.2), foot = new THREE.Vector3(0, -0.29, 0.34);
+    const hip = new THREE.Vector3(0, 0, 0.02), knee = new THREE.Vector3(0, 0.08, 0.18), foot = new THREE.Vector3(0, -0.29, 0.3);
     const seg = (a, c, r) => {
       const d = c.clone().sub(a), L = d.length();
       const m = new THREE.Matrix4().compose(a.clone().add(c).multiplyScalar(0.5), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()), new THREE.Vector3(1, 1, 1));
       b.add(new THREE.CapsuleGeometry(r, L, 1, rs), ANT.bodyLow, m);
     };
-    seg(hip, knee, 0.036);
-    seg(knee, foot, 0.031);
-    b.sphere(0.047, ANT.body, { p: knee.toArray() }, rs + 1, lo ? 3 : rs);
+    seg(hip, knee, 0.043);
+    seg(knee, foot, 0.037);
+    b.sphere(0.052, ANT.body, { p: knee.toArray() }, rs + 1, lo ? 3 : rs);
     // Stiefel (dunkel, vorn rund)
-    b.sphere(1, ANT.boot, { p: [0.025, -0.27, 0.35], s: [0.075, 0.045, 0.052] }, rs + 3, lo ? 4 : rs);
+    b.sphere(1, ANT.boot, { p: [0.03, -0.265, 0.31], s: [0.085, 0.05, 0.06] }, rs + 3, lo ? 4 : rs);
     return b.geometry();
   });
 }
@@ -452,18 +452,25 @@ export function felsnadelGeo(height = 5, lo = false) {
     const b = new Build();
     const H = Math.max(1.5, height);
     // Profil: breiter Fuß, schlanke Taille, Kappenstein oben (wie Erdpyramiden / Hoodoos)
-    const pts = [[0, 0], [1.05, 0], [0.95, H * 0.12], [0.78, H * 0.3], [0.62, H * 0.52], [0.55, H * 0.7], [0.5, H * 0.8], [0.7, H * 0.84], [0.82, H * 0.9], [0.74, H * 0.97], [0, H]];
+    const base = [[1.05, 0], [0.95, H * 0.12], [0.78, H * 0.3], [0.62, H * 0.52], [0.55, H * 0.7], [0.5, H * 0.8]];
+    // Schaft in waagerechten Ringen je ≈0,6 m (eine Schicht je Ring → saubere Bänder), oben Kappenstein
+    const pts = [[0, 0]];
+    const rAt = (y) => { for (let i = 0; i < base.length - 1; i++) if (y <= base[i + 1][1]) { const k = (y - base[i][1]) / (base[i + 1][1] - base[i][1]); return base[i][0] + (base[i + 1][0] - base[i][0]) * k; } return base[base.length - 1][0]; };
+    const nb = Math.max(2, Math.round((H * 0.8) / 0.6));
+    for (let i = 0; i <= nb; i++) { const y = (i / nb) * H * 0.8; pts.push([rAt(y) * (i % 2 ? 1.04 : 1), y]); }
+    pts.push([0.7, H * 0.84], [0.82, H * 0.9], [0.74, H * 0.97], [0, H]);
     const g = new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), lo ? 9 : 14);
     const P = g.attributes.position;
     for (let i = 0; i < P.count; i++) {
       const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
       // Stufen-Kanten je Schicht (Ausbuchtungen) und Unregelmäßigkeit
-      const k = 1 + (noise3(x * 1.2, y * 0.6, z * 1.2) - 0.5) * 0.35 + (Math.floor(y / 0.6) % 2 ? 0.05 : -0.02);
+      const k = 1 + (noise3(x * 1.2, y * 0.6, z * 1.2) - 0.5) * 0.3;
       P.setX(i, x * k); P.setZ(i, z * k);
     }
     const ng = g.toNonIndexed(); g.dispose();
     ng.computeVertexNormals();
-    b.add(ng, (x, y, z, nx, ny) => (ny > 0.75 && y > H * 0.9 ? CANYON.grass : y > H * 0.82 ? CANYON.bands[5] : strataColor(y, x, z, { band: 0.6, seed: H })));
+    const band = (H * 0.8) / nb;
+    b.add(ng, (x, y, z, nx, ny) => (ny > 0.75 && y > H * 0.9 ? CANYON.grass : y > H * 0.81 ? CANYON.bands[5] : CANYON.bands[(Math.floor(y / band + 0.02) + Math.round(H)) % CANYON.bands.length]));
     // Grasbüschel auf dem Kappenstein
     if (!lo) for (let i = 0; i < 3; i++) b.sphere(0.18, CANYON.grassDark, { p: [Math.cos(i * 2.1) * 0.35, H + 0.02, Math.sin(i * 2.1) * 0.35], s: [1, 0.5, 1] }, 8, 5);
     return b.geometry();

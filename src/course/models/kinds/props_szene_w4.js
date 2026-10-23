@@ -211,7 +211,7 @@ const WR_COLS = [0xff3a4a, 0xffd21f, 0x2a8aff, 0x3ac84a];
 function windradTowerGeo(H) {
   return cached(`w4:windrad:tower:${H}`, () => {
     const b = new Build();
-    b.cyl(0.14, 0.3, H, (x, y) => (Math.floor((y + H / 2) / (H / 6)) % 2 ? 0xffffff : 0xe8283a), { p: [0, H / 2, 0] }, 14);
+    b.add(new THREE.CylinderGeometry(0.14, 0.3, H, 14, 7), (x, y) => (Math.floor((y + H / 2) / (H / 7)) % 2 ? 0xe8283a : 0xffffff), { p: [0, H / 2, 0] });
     b.box(0.7, 0.4, 0.45, 0xfff6ee, { p: [-0.05, H + 0.1, 0] }, 0.12, 2);
     b.cone(0.18, 0.4, 0xe8283a, { p: [-0.55, H + 0.1, 0], r: [0, 0, Math.PI / 2] }, 10);
     b.box(0.6, 0.02, 0.5, 0xe8283a, { p: [-0.75, H + 0.1, 0] }, 0, 1);
@@ -222,7 +222,7 @@ function windradTowerGeo(H) {
 function windradRotorGeo(H) {
   return cached(`w4:windrad:rotor:${H}`, () => {
     const b = new Build();
-    const L = H * 0.32;
+    const L = H * 0.26;
     for (let i = 0; i < 4; i++) {
       // geschwungener Flügel (Dreieck mit Bogen), leicht angestellt
       const s = new THREE.Shape();
@@ -375,12 +375,12 @@ function treppeGeo(n, W, rise, run) {
     // Wangen (seitlich, schräg) mit türkisem Band
     for (const s of [1, -1]) {
       const sh = new THREE.Shape();
-      sh.moveTo(-0.05, 0); sh.lineTo(n * run + 0.05, 0); sh.lineTo(n * run + 0.05, n * rise + 0.35); sh.lineTo(n * run - 0.35, n * rise + 0.35); sh.lineTo(-0.05, 0.55); sh.closePath();
+      sh.moveTo(-0.05, 0); sh.lineTo(n * run + 0.05, 0); sh.lineTo(n * run + 0.05, n * rise + 0.2); sh.lineTo(n * run - 0.3, n * rise + 0.2); sh.lineTo(-0.05, rise + 0.15); sh.closePath();
       const g = new THREE.ExtrudeGeometry(sh, { depth: 0.35, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 });
       g.translate(0, 0, -0.175);
       b.add(g, stoneV(s * 2), { p: [0, 0, s * (W / 2 + 0.17)] });
       const len = Math.hypot(n * run, n * rise);
-      b.box(len, 0.06, 0.37, RUIN.inlay, { p: [n * run / 2, n * rise / 2 + 0.47, s * (W / 2 + 0.17)], r: [0, 0, Math.atan2(n * rise, n * run)] }, 0.02, 1);
+      b.box(len * 0.92, 0.06, 0.37, RUIN.inlay, { p: [n * run / 2 - 0.1, n * rise / 2 + 0.12, s * (W / 2 + 0.17)], r: [0, 0, Math.atan2(n * rise, n * run)] }, 0.02, 1);
       b.add(displace(new THREE.SphereGeometry(0.25, 10, 6), 0.05, 5, s, false), RUIN.moss, { p: [0.1, 0.5, s * (W / 2 + 0.2)], s: [1.2, 0.5, 1] });
     }
     return b.geometry();

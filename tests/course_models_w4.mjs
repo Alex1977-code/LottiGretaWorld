@@ -148,7 +148,7 @@ await sc(async () => {
 
   const live = [];
   // hängende/schwebende Modelle (Ursprung oben bzw. Sprungfläche) anheben
-  const LIFT = { liane: 3.2, burg_kette: 3.2, riesentrampolin: 2.2, giftwasser: 0.03, lavafall: 0, giftwasserfall: 0 };
+  const LIFT = { liane: 3.2, burg_kette: 3.2, riesentrampolin: 2.2, giftwasser: 0.03, ranken: 2.2, brummbaer_banner: 3.4 };
   const cm = {
     reg, kit, inst, THREE, v, stage, hero, live, labels, ground,
     clear() {
@@ -416,6 +416,9 @@ if (part('gallery')) {
   await gallery('technik', TECHNIK, 0.25, 0.8, 5);
   await gallery('ruinen', RUINEN, 0.25, 0.8, 6);
   await gallery('burg', BURG, 0.25, 0.8, 6);
+  // Nahansichten ausgewählter Kulissen-Stücke
+  const NAH = [CANYON[4], GIFTWALD[3], RUINEN[2], RUINEN[4], BURG[3], TECHNIK[0], CANYON[0], GIFTWALD[1], TECHNIK[4]];
+  await gallery('nah', NAH, 0.3, 0.8, 3);
 }
 
 // Zustände: je Modell ein Bild mit allen Zuständen nebeneinander (cm4_st_<name>.png)
@@ -544,7 +547,7 @@ if (part('views')) {
       for (let i = 0; i < 24; i++) blue.setAt(i, p.set(-9 + (i % 8), Math.floor(i / 8), 0.6), 0, 1, { on: 0 });
       for (let i = 0; i < 8; i++) ants.setAt(i, p.set(1 + (i % 4) * 1.2, 0, 1 - Math.floor(i / 4) * 1.4), 0.3, 1, i % 2 ? 'walk' : 'carry');
       // vier Ameisen laufen an einer gedachten Wand bei z = −4 hinauf (Bauch zur Wand, Kopf nach oben)
-      const q = new T.Quaternion().setFromEuler(new T.Euler(Math.PI / 2, 0, Math.PI / 2, 'YXZ'));
+      const q = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(new T.Vector3(0, 1, 0), new T.Vector3(0, 0, 1), new T.Vector3(1, 0, 0)));
       for (let i = 8; i < 12; i++) ants.setAt(i, p.set(1 + (i - 8) * 1.2, 0.6 + (i % 2) * 0.8, -4), q, 1, 'walk');
       for (let i = 0; i < 6; i++) horns.setAt(i, p.set(1 + i * 1.1, 0, -2.2), Math.PI / 2, 1, 'walk');
       for (let i = 0; i < 6; i++) cols.setAt(i, p.set(-11 + i * 2.2, 0, -6.5), i, 0.9, 'idle');

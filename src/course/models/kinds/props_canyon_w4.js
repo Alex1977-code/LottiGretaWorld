@@ -31,7 +31,9 @@ import {
   THREE, TAU, Build, cached, vcol, basic, std, mesh, joint, makeModel, Clock, damp, clamp, mix, col, smoothstep,
   instMesh, setInst, canvasTexture, placed, glowSprite,
 } from '../lib/kit.js';
-import { CANYON, strataColor, noise3, hash1, displace, felsnadelGeo, canyonMat, axisY, lumpyEllipsoid } from '../lib/w4Geos.js';
+import { CANYON, strataColor, noise3, hash1, displace, felsnadelGeo, canyonMat } from '../lib/w4Geos.js';
+import { roundedBox, SIDE } from '../lib/kit.js';
+const roundedBoxG = (w, h, d, r) => roundedBox(w, h, d, r, SIDE.ALL, 0, 1);
 import { GIFT, giftpilzGeos, giftpilzMats, fallTexture } from '../lib/w4Props.js';
 
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -196,22 +198,27 @@ function hoehleGeo(W, Hh) {
   return cached(`w4:hoehle:${W}:${Hh}`, () => {
     const b = new Build();
     const wallW = W + 4, wallH = Hh + 2.4, D = 1.4;
-    // Felswand mit Bogenöffnung (Form mit Loch), extrudiert nach −X
-    const sh = new THREE.Shape();
-    sh.moveTo(-wallW / 2, 0); sh.lineTo(wallW / 2, 0);
-    for (let i = 0; i <= 8; i++) { const t = i / 8; sh.lineTo(wallW / 2 - t * 0.6 + Math.sin(t * 7) * 0.25, t * wallH); }
-    for (let i = 1; i <= 10; i++) { const t = i / 10; sh.lineTo(wallW / 2 - 0.6 - t * (wallW - 1.2), wallH + Math.sin(t * 9) * 0.35 + Math.cos(t * 4) * 0.2); }
-    for (let i = 1; i <= 8; i++) { const t = i / 8; sh.lineTo(-wallW / 2 + 0.6 - (t * 0.6) + Math.sin(t * 6) * 0.25, wallH * (1 - t)); }
-    const hole = new THREE.Path();
+    // Felswand aus waagerechten Gesteinsschichten (je 0,6 m), Öffnung ausgespart (unten gerade, oben Bogen)
     const hw = W / 2, hs = Hh - hw * 0.6;
-    hole.moveTo(-hw, 0); hole.lineTo(-hw, hs);
-    hole.absellipse(0, hs, hw, hw * 0.6, Math.PI, 0, true, 0);
-    hole.lineTo(hw, 0); hole.lineTo(-hw, 0);
-    sh.holes.push(hole);
-    const ex = new THREE.ExtrudeGeometry(sh, { depth: D, bevelEnabled: true, bevelThickness: 0.25, bevelSize: 0.25, bevelSegments: 1, curveSegments: 10 });
-    ex.rotateY(-Math.PI / 2); // Fläche (vorher +Z) zeigt jetzt nach +X, Breite entlang z
-    const dex = displace(ex, 0.12, 1.2, W, false);
-    b.add(dex, (x, y, z, nx, ny) => (ny > 0.75 && y > wallH - 0.6 ? CANYON.grass : strataColor(y, x, z, { band: 0.6, seed: 2 })));
+    const band = 0.6, nb = Math.ceil(wallH / band);
+    const gapAt = (y) => (y < hs ? hw : y < Hh ? hw * Math.sqrt(Math.max(0, 1 - ((y - hs) / (hw * 0.6)) ** 2)) : 0);
+    for (let i = 0; i < nb; i++) {
+      const y0 = i * band, y1 = Math.min(wallH, y0 + band), yc = (y0 + y1) / 2;
+      const jag = (k) => (hash1(i * 7 + k + W) - 0.5);
+      const dep = D + jag(1) * 0.5, front = jag(2) * 0.3;
+      const left = -wallW / 2 + jag(3) * 0.8 + i * 0.12, right = wallW / 2 + jag(4) * 0.8 - i * 0.12;
+      const top = i === nb - 1;
+      const colr = CANYON.bands[(i + 2) % CANYON.bands.length];
+      const cf = { v: (x, y, z, nx, ny) => (top && ny > 0.7 ? CANYON.grass : mix(CANYON.shadow, colr, smoothstep(0.55 + ny * 0.3 + nx * 0.25))) };
+      const gap = gapAt(y0 + 0.02) > 0.01 ? gapAt(y0 + 0.02) + 0.06 : 0;
+      const spans = gap > 0 ? [[left, -gap], [gap, right]] : [[left, right]];
+      for (const [z0, z1] of spans) {
+        if (z1 - z0 < 0.2) continue;
+        b.add(roundedBoxG(dep, y1 - y0 + 0.02, z1 - z0, 0.1), cf, { p: [front - dep / 2, yc, (z0 + z1) / 2] });
+      }
+    }
+    // Grasbüschel oben
+    for (let i = 0; i < 4; i++) b.add(displace(new THREE.IcosahedronGeometry(0.3, 1), 0.06, 4, i, false), (x, y, z, nx, ny) => (ny > 0.2 ? CANYON.grass : CANYON.grassDark), { p: [-0.5, nb * band + 0.05, (i - 1.5) * wallW * 0.2], s: [1.2, 0.6, 1.2] });
     // dunkler Gang nach hinten (halbe Röhre + Boden), Verlauf schwarz
     const tl = 2.5;
     const tun = new THREE.CylinderGeometry(hw * 0.98, hw * 0.98, tl, 14, 1, true, 0, Math.PI);
