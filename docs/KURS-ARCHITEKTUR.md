@@ -2442,4 +2442,7 @@ Funkenkäfer, Hüpfqualle, beide Bosse zielen auf die nächste Figur); Schattenl
 2/3/5, nur das Original trifft, Salven, Ansagen, Sieg → Warp → Ziel, Tod setzt zurück); Schlangenkönig (Auftritt, Steine mit
 Landeanzeige, Diener mit Tellern auf 2,8 m, vom Boden unerreichbar, Teller-Weg = Treffer, rissiger Teller bricht, Krallen-Anzug
 und Kletter-Säule, Steinregen zerschlägt Teller, Stoß verletzt, Phase 3 mit 4 Dienern, Sieg → Stern + Warp → Ziel, Sockel
-schubst, Tod setzt zurück). Bilder `tests/out/w3en_*.png`.
+schubst, Tod setzt zurück) – 88 Prüfungen. Bilder `tests/out/w3en_*.png`. Gemessen (scale 2, inkl. Schattenpass, Themen
+snow/train/circus): Gegnerzoo Schnee 61–100 Zeichenaufrufe, ≤ 212 k Dreiecke; Schattenläuferin 69–122 (mit 5 Doppelgängern;
+Doppelgänger werfen keinen Sonnenschatten); Schlangenkönig 54–99. Simulation: ein Schritt im Zoo (≈ 50 Entitäten) ≈ 0,15 ms.
+Hinweis für Level-Bauer: Kreisgeist-Glieder und alle Gegner haben einen Schatten-Blob (höchstens 96 je Bild sichtbar).
