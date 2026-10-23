@@ -2709,3 +2709,27 @@ schubst, Tod setzt zurück) – 88 Prüfungen. Bilder `tests/out/w3en_*.png`. Ge
 snow/train/circus): Gegnerzoo Schnee 61–100 Zeichenaufrufe, ≤ 212 k Dreiecke; Schattenläuferin 69–122 (mit 5 Doppelgängern;
 Doppelgänger werfen keinen Sonnenschatten); Schlangenkönig 54–99. Simulation: ein Schritt im Zoo (≈ 50 Entitäten) ≈ 0,15 ms.
 Hinweis für Level-Bauer: Kreisgeist-Glieder und alle Gegner haben einen Schatten-Blob (höchstens 96 je Bild sichtbar).
+
+## Welt 4 – Level-Liste und Freischaltung (Hauptsitzung)
+
+Welt 4 „Canyon-Inselkette“ wird nach Sieg über `3-Zug` frei (Glasröhre am Ende der Welt-3-Insel, bisher „Bald“).
+Sternbedarf zählt **alle** gesammelten Sterne (Welt 1–3 bieten zusammen 79).
+
+| Id | Archetyp | Thema | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `4-1` | parcours (Canyon, Ameisensoldaten an Wänden, Stachelfeld) | canyon | course_canyon | 3 + Stempel | Welt 4 offen |
+| `4-2` | parcours (Giftwasser-Wald, Rankenschnapper; Welt-Warp nach Welt 5) | poison | course_poison | 3 + Stempel | 4-1 |
+| `4-A` | arena (Felsinsel in Lava, Lavabrocken) | lava | course_arena | 1 | 4-2 |
+| `4-3` | parcours (Piep-Blöcke im Musiktakt, Klone) | beep | course_beep | 3 + Stempel | 4-2 **und ≥ 60 Sterne** |
+| `4-Haus` | house (Prüfungs-Haus, 10 Räume à 10 s) | house | course_house | 10 | 4-3 **und ≥ 70 Sterne** |
+| `4-4` | parcours (Trampoline, Riesentrampolin-Fahrt, Flatterkäfer-Räder) | bounce | course_bounce | 3 + Stempel | 4-3 |
+| `4-5` | parcours (Ruinenstadt, Walzenwerfer, Stachelstangen) | ruins | course_ruins | 3 + Stempel | 4-4 |
+| `4-B` | arena (blau vergitterte Werfer-Festung, 3 Feuer-Werfer, 100 s) | fortress | course_arena | 1 | 4-5 |
+| `4-Burg` | parcours + boss (Lava-Burg, Lavafelsen-König) | lavacastle | course_lavacastle | 3 + Stempel | 4-5 **und ≥ 80 Sterne** |
+
+Welt 4 hat 30 Sterne. Neu: **Piep-Blöcke** (erscheinen/verschwinden im Takt der Musik – Taktuhr `music.beat()`/
+`onBeat`, `themeInfo('course_beep').sync`), Riesentrampolin, Stachelstangen, Roulette-Block, Giftwasser (tödlich),
+Sternring mit Sternmünzen. Gegner: Ameisensoldat, Hörner-Ameisensoldat, Riesenameise (laufen an Wänden, tragen die
+Figur), Rankenschnapper (wachsen über den Weg), Lavabrocken (tragbar, werfbar), Walzenwerfer (wirft Stachelwalzen),
+Stachelpanzer, Springklotz, Lavafunke; Boss **Lavafelsen-König** (nur geworfene Lavabrocken treffen). „Mitspieler“
+im Bauplan = Klone der Spiegelfrucht. Die Welt-Warp-Röhre in 4-2 führt zur Welt-5-Insel („Bald“, bis es sie gibt).
