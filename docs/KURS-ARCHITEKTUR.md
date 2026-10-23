@@ -2784,6 +2784,105 @@ Figur), Rankenschnapper (wachsen über den Weg), Lavabrocken (tragbar, werfbar),
 Stachelpanzer, Springklotz, Lavafunke; Boss **Lavafelsen-König** (nur geworfene Lavabrocken treffen). „Mitspieler“
 im Bauplan = Klone der Spiegelfrucht. Die Welt-Warp-Röhre in 4-2 führt zur Welt-5-Insel („Bald“, bis es sie gibt).
 
+**Level-Notizen 4-3 / 4-4** (Level-Agent; Hilfen `src/course/levels/w4/_helpers_b.js` ohne `LEVEL`; Test
+`tests/course_w4b.mjs [4-3|4-4] [a|b|c]` – a = Laden, Gegner, Takt, Routen Lotti + Greta; b = Sterne, Stempel, Extras;
+c = Bilder je Abschnitt, je < 10 min –, Port 4630 + PORT_BASE, Bilder `tests/out/w4lb_*.png`; `ONLY=<Text|Text>`,
+`HERO=lotti|greta`, `VERBOSE=1`; Piep-Takt im Test über `music.setManualClock(true)` + `advanceClock(1/120)` je Schritt):
+
+- **4-3 „Neonsteg im Takt“** (parcours, beep, course_beep 128 BPM, 400 s, ≈ 285 m nach −Z): Start-Tanzfläche
+  (Leuchtfliesen im Takt, tanzende Piep-Roboter, Discokugel, Leuchtschrift) → **Taktgasse** (rotes Piep-Tor + blaue Brücke
+  über einer flachen Grube, Geländer – harmlos) → **Reihe 1** (rot/blaue 2-m-Streifen) → Insel 1 mit Spiegelfrucht →
+  **Reihe 2** (6 m rot, dann 6 m blau: Sprung im Wechsel) → Insel 2 mit Spiegelfrucht und Bumerang-Werfer → **Reihe 3**
+  (Schachbrett aus 2-m-Würfeln) → Druckfeld-Insel: zwei Felder einer Gruppe gleichzeitig (Heldin + Klon; Klon-Automat,
+  Spiegelfrucht wächst alle 2,5 s nach) schalten den Laserzaun ab → **Reihe 4** „Laufwelle“ (vier Gruppen rot/blau mit
+  Versatz 0/4 Zählzeiten: alle 4 Zählzeiten rückt der feste Doppelstreifen 3 m vor) → Warp-Insel: links ein 1,6-m-Steg am
+  Bumerang-Werfer vorbei → **Stern 1**; rechts der **Rundweg** über Piep-Steine (Ost rot, Süd blau, West rot), der im
+  Kreis zur Insel zurückführt (Münzen, Werfer, **unsichtbarer 1-Up-Block**); geradeaus die Warp-Box → Turmfuß vor dem
+  Lautsprecherturm (Membranen pumpen im Takt): vier **Piep-Treppenläufe** aus je vier schwebenden Stufen (1,5 m hoch und
+  tief) mit festen Absätzen – rot, blau, rot, rot-rot-blau-blau (Sprung im Wechsel) –, 30 m hoch, Sicherheitsnetz unter
+  den oberen Läufen → Checkpoint (y 31); links der Viererlift in einer Geländer-Ecke (zwei Trittstufen; Klon-Automat und
+  ?-Block mit Spiegelfrucht daneben) → **Stempel** auf dem Sims (oder Krallen-Anzug aus dem ?-Block, Kletterwand) →
+  Abstieg über drei Absätze (Bumerang-Werfer) und zwei Piep-Platten, Warp-Box → Uhrenplatz (y 24): Röhre neben drei
+  Zeit-Uhren (+10 s) → **Bonusraum** (x ≈ 90, eigene Kamera): Druckschalter, zehn blaue Münzen im Ring (jede zweite hoch)
+  in 10 s → **Stern 2**; rote **Piep-Rutsche** (fest nur solange Rot gilt, Fangnetz darunter) → Rutschenfuß: zwei
+  Druckfelder gleichzeitig (Klon-Automat, ?-Block) → **Stern 3** → Schlussaufstieg: zwei Piep-Treppen (rot;
+  blau-blau-rot-rot), Fangnetz → Zielplateau mit Tanzfläche und Zielmast. Gegner: Bumerang-Werfer 7 (`feuer_werfer`,
+  `weapon: 'bumerang'`). Route ≈ 100 s (der Bot wartet an jeder Reihe auf die passende Zählzeit).
+- **4-4 „Trampolin-Alm“** (parcours, bounce, course_bounce, 400 s, ≈ 230 m nach −Z): Startwiese (Almhütte mit Rauch,
+  Kühe mit Glocken, grasende Schafe, Windrad, Drachen, Bienen; Felswand hinten links mit **Wandloch – Stern 1**:
+  Springklotz davor als Feder oder Krallen-Anzug aus dem ?-Block an der kletterbaren Wand) → Schlucht mit zwei
+  Pilztrampolinen auf Felssäulen (Wolken darunter) → Terrasse B (Stachelpanzer, Krabbelkäfer, drei Springklötze vor der
+  6-m-Stufe, oranges Trampolin) → Terrasse C (Flatterkäfer-Schwarm, Stachelpanzer, hüpfender Springklotz) → weiße Treppe →
+  Checkpoint-Plateau D; hinter der Treppe zwei Pilztrampoline auf zwei Felssimse → **Stern 2** → **Riesentrampolin-Fahrt**
+  (107 m, 4,2 m/s, startet beim Draufspringen, über einem Wolkenmeer): sechs Flatterkäfer-Räder (eines waagerecht als Ring
+  um die Bahn, eines entlang der Bahn), zwischen zwei Rädern hoch oben der **Stempel** (nur mit getimtem Sprung kurz vor
+  der Landung ×1,4 – gehaltene Taste reicht nicht), links eine Wolke mit Warp-Box → **Kletterzaun-Raum** (x ≈ −107,
+  frontale Kamera 24°): vier Kettenzäune (fest, seitlich und senkrecht fahrend) → **Stern 3** auf dem Sims, Warp-Box zur
+  Zielinsel → Zielinsel (Springklotz unter einem **unsichtbaren 1-Up-Block**, Springklotz neben dem Zielmast für die
+  Spitze). Gegner: Krabbelkäfer 4, Flatterkäfer 55 (6 Räder × 8 + 7), Stachelpanzer 5, Springklotz 9. Route ≈ 43 s.
+- **Level-Haken** (`LEVEL.setup` = `levelSetup` + `cullStatic`): Inseln ohne Sonnenschatten (`flatIslands`), `laserGate`
+  (Signal `open`), `klonAutomat`, `fangnetz`, `neonRail`; Takt-Kulisse über `beatNow(level)` (liest `level.beepClock`):
+  `danceBots`, `beatTiles`, `laserFans`, `noteFloat`, `neonSign`, `speakerTower`, `discoBall`; Bergwiese: `rockWall`
+  (Achse x|z, Wandloch), `nicheFrame`, `cloudSea`, `sheep`, `kite`, `bees`. Budget: `wheelSwarm` zeichnet alle Glieder der
+  Flatterkäfer-Räder als sparsame Käfer (≈ 520 statt ≈ 4500 Dreiecke, zwei Zeichenaufrufe für alle Räder; ersetzt dazu
+  `rad.inst` – ändert sich `kaefer_rad.js`, hier nachziehen), `bugSwarm`/`instanceEnemies` für die übrigen Gegner,
+  `farHide`, `modelDiet` (Kulissen-Modelle ohne Schatten, fern ausgeblendet), Roboter nur in der Nähe; große Piep-Felder
+  mit `cell: 2` (vier statt sechzehn Zellen je 2 × 2 m).
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 4-3 22 Abschnittsbilder 70–111 Zeichenaufrufe, 135–243 k Dreiecke; mit
+  vier Figuren am Stempel-Sims 143 Aufrufe / 247 k; 4-4 19 Bilder 70–103 / 148–220 k. Piep-Treppen mit `run: 1.49`
+  (eine Zelle je Stufe in Laufrichtung statt zwei), Rundweg-Steine `cell: 2`, Rutsche 3,4 m breit.
+- **Hinweise/Wünsche**: Eine Piep-Zelle kostet ≈ 750 Dreiecke (fest) bzw. ≈ 600 (Umriss + Füllung) – große Felder nur mit
+  `cell: 2`; `piep_rutsche` kennt kein `cell` (eine Zelle je m²). Münzen und ?-Blöcke werden immer gezeichnet (≈ 400
+  bzw. ≈ 3000 Dreiecke je Stück). Wünsche: `cell` für die Piep-Rutsche, Fern-Detailstufe für Registry-Käfer in
+  `flatterkaefer_rad`.
+
+**Level-Notizen 4-1 / 4-2** (Level-Agent; Hilfen `src/course/levels/w4/_helpers_a.js` ohne `LEVEL`; Test
+`tests/course_w4a.mjs [4-1|4-2]`, Port 4412 + PORT_BASE, Bilder `tests/out/w4a_*.png`; `PARTS=route,sweep,targets,extra,shots`
+(je Lauf ≤ 10 min, einzeln aufrufbar), `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS_ONLY=1`, `VERBOSE=1`):
+
+- **4-1 „Kribbelkrabbel-Schlucht“** (parcours, canyon, course_canyon, 400 s, ≈ 250 m nach −Z): Wüstenstart (Sandplateau,
+  Ameisenhügel mit marschierender Kolonne, Lagerfeuer der Ameisen mit Zelten und Kochtopf, Kakteen mit Blüten, Geier auf
+  Felsnadeln, Kuhschädel, Steppenläufer, Gecko, Wimpelkette; niedriger Felsblock als Einführung „Ameisen laufen auch an
+  Wänden“) → **Ameisenhöhle** (dunkle Höhlen-Stimmung, Fackeln, Leuchtkristalle, Tropfsteine; **Ameisenwand** 6,4 m – nur
+  auf dem Rücken einer Ameise hinauf; **Stempelturm** 10,5 m, Ameisen tragen hinauf, **Stempel** darüber; **Ameisen-Fähre**:
+  Ameisen laufen waagerecht an den Seitenwänden und tragen 14 m über die Schlucht; Ameisenspuren an allen Wänden zeigen
+  die Wege) → Hörnerreihen (gleich nach der Höhle links der ?-Block mit Krallen-Anzug und die Kletterwand zum Sims mit
+  **Stern 0**; Checkpoint; Reihen von Hörner-Ameisen, ein Wall mit gewöhnlichen Ameisen, **Funkelstern** auf der
+  Plattform, zwei Mauern mit Hörner-Ameisen) → **Stachelfeld** (aus der Höhle rechts kommen endlos Riesenameisen und tragen
+  auf ihrem Lastdeck zur Höhle links; Felsinsel mit **Röhre in den Ameisenraum**: Vorratskammer mit Zuckerwürfeln,
+  Krümeln, Ameiseneiern, Ameisen tragen auf den Vorratsturm → **Stern 1**, Rückweg per Röhre aufs Endsims; am Ende des
+  Felds die Felssäule mit **Stern 2**, vom Deck aus) → Endsims mit Zielröhre → Zieltafel (Ameisen-Ehrenrunde,
+  Wimpelkette, Zielmast). Extraleben: unsichtbarer Block über dem großen Ameisenhügel am Start. Gegner: Ameisensoldat 41,
+  Hörner-Ameisensoldat 23, Riesenameise (Strom, `every 3 s`, höchstens 12). Bot-Zeit ≈ 96 s.
+- **4-2 „Das Lila Nebelmoor“** (parcours, poison, course_poison, 400 s, ≈ 260 m): Giftpfad (gewundener Moospfad,
+  Sumpfhütte auf Stelzen, Nebelbänke, Libellen, Frösche, Seerosen, Schilf, Giftpilze; Rankenschnapper wachsen im Takt
+  über den Weg, Funkenblüten; ein Rankenschnapper liegt auf einer Röhre – Stampfattacke auf den Kopf → Röhre frei →
+  Moorkeller mit **Extraleben**) → Höhle (Rankenschnapper hängen von der Decke; im Giftbecken **vier Rankenschnapper als
+  Stufen** zum Sims, dort die **Warp-Box zwischen zwei hängenden** → Sternkammer, **Stern 0**) → Rückkehr (Checkpoint, die
+  schmale Brücke, über die der **große Rankenschnapper** wächst – Kopf ruht über der Brücke, drei Stampfattacken besiegen
+  ihn, sonst den Rückzug abpassen) → Wasserzone (klarer, sicherer Moorsee mit Grasinseln; **Stern 1 ganz unten im See**;
+  vom Kopf eines Rankenschnappers im Wasser **abprallen** → versteckter Münzpfad über Felssimse zum **Stempel**; Röhre
+  hinauf) → Oberland mit **Roulette-Block**, paarweise im Takt fahrende Plattformen über Gift (Brummer), Sternring-Insel
+  (**Stern 2**: acht Sternmünzen in 10 s), Zielröhre → Zielinsel. **Welt-Warp**: Krallen-Anzug aus dem Roulette-Block →
+  bewachsene Felswand links hinauf → versteckte Plattform → zwei Plattformen → hinter dem Giftwasserfall (Vorhang ohne
+  Schaden) die goldene Röhre `warpWorld: 5`. Gegner: Rankenschnapper 26, Brummer 3. Bot-Zeit ≈ 67 s.
+- **Level-Haken** (`LEVEL.setup = levelSetupLate(setup, late)`): wie `levelSetup` (w2), danach `late` – Sichtprüfungen,
+  die die Abschnitts-Meshes vermessen (`cullStatic`, `fernAus`), laufen erst **nach** dem Verschmelzen. `addStatic` der
+  Hilfen teilt Geometrie je Dreieck nach Abschnitt (32 m) auf – sonst landet eine Streuung über das ganze Level (Kiesel,
+  Grasbüschel …) als Ganzes im Abschnitt ihrer Mitte und wird mit dessen Sichtprüfung aus- und eingeblendet.
+  `rockLids`/`lidParts`: Felsdeckel für `island` mit `top: 'none'` (der Baustein zeichnet dann **keine** Oberseite).
+  `xrayWalls`: hohe Felsblöcke (`camIgnore`), werden durchscheinend, wenn sie die Figur verdecken. `areaMoods`: Stimmung
+  je Bereich (Höhle, Ameisenraum, Sternkammer). Budget: `cullInstances` (Instanz-Gruppen der Ameisen, Riesenameisen,
+  Münzen: nah mit Schatten, fern ohne, außerhalb aus), `creeperInstances` (Rankenschnapper als gemeinsame
+  Instanz-Gruppen, blitzende Köpfe einzeln), `chunkBackdrop` (Himmels-Kulisse in Kacheln mit Sichtprüfung), `spikeField`
+  (sparsame Stacheln), `heroShadowDiet`, `gegnerSicht`.
+- **Kennzahlen** (scale 2, inkl. Schattenpass; Abschnittsbilder 18 bzw. 21, dazu Messgang alle ~7 m entlang der Route):
+  4-1 42–92 Zeichenaufrufe, 83–253 k Dreiecke; 4-2 40–101 / 95–247 k.
+- **Wünsche an den Motor**: `island` mit `top: 'none'` sollte eine Felsoberseite zeichnen (oder ein Stil `top: 'rock'`);
+  StaticBatcher könnte große Geometrien selbst je Abschnitt teilen; `xrayWalls` (Durchsicht hoher Blöcke) als Baustein;
+  Instanzen/Fern-Ausblendung der Ameisen-, Riesenameisen- und Münz-Gruppen im Motor (hier level-lokal); nach einer
+  Stampfattacke auf einen Rankenschnapper-Kopf ein kleiner Abprall (über Gift fällt die Figur sonst hinein).
+
 **Level-Notizen 4-5 / 4-A / 4-B** (Level-Agent; Hilfen `src/course/levels/w4/_helpers_c.js` ohne `LEVEL`; Test
 `tests/course_w4c.mjs [4-5a|4-5b|4-5c|4-5d|4-A|4-B]` – Laden + Routen, Sterne/Stempel/Extraleben, Mechanik, Bilder, Arenen;
 je Teil < 10 min; Port 4610 + PORT_BASE, Bilder `tests/out/w4c_*.png`; `ONLY=<Text|Text>`, `VERBOSE=1`):
