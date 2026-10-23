@@ -23,7 +23,7 @@
 
 import {
   levelSetup, isl, line, ring, arc, cullStatic, farHide, instanceEnemies, noModelShadow, birds, fruitBush, ruinMosaic,
-  ruinFountain, vines, mossTufts, stoneBlock, roundTower, jungleTrees, raeuberleiter, sealedPipe, switchHall, sockelRelief, RUIN,
+  ruinFountain, vines, mossTufts, stoneBlock, roundTower, jungleTrees, raeuberleiter, sealedPipe, switchHall, sockelRelief, rampPaving, valley, RUIN,
 } from './_helpers_c.js';
 
 // Höhen
@@ -107,6 +107,24 @@ function scene(level) {
   // Leben
   birds(level, { center: [0, Y1 + 13, -30], r: 11, n: 6, speed: 0.28 });
   birds(level, { center: [8, Y4 + 12, -200], r: 12, n: 6, speed: 0.32 });
+  // Hänge: Seitenmauern (gemauert, Ranken), Pflaster mit Mittelstreifen
+  for (const [x0, x1, za, zb, ya, yb, h] of [[-4.5, 4.5, -12, -26, Y0, Y1, 3.2], [-4.5, 4.5, -44, -54, Y1, Y2, 3.2], [2.5, 11.5, -144, -155, Y3, Y4, 3.4], [2.5, 11.5, -241, -252, Y4, Y5, 3.0]]) {
+    stoneBlock(level, x0 - 1.2, x0, ya, ya + h, za, zb, { tag: 'hangmauer', chips: false, r: 0.05 });
+    stoneBlock(level, x1, x1 + 1.2, ya, ya + h, za, zb, { tag: 'hangmauer', chips: false, r: 0.05 });
+    rampPaving(level, { x0, x1, z0: za, z1: zb, y0: ya, y1: yb });
+    vines(level, [
+      { x: x0 - 0.6, y: ya + h, z: (za + zb) / 2, w: Math.abs(za - zb) * 0.6, len: 1.4, face: '+x', n: 6 },
+      { x: x1 + 0.6, y: ya + h, z: (za + zb) / 2 - 1, w: Math.abs(za - zb) * 0.4, len: 1.1, face: '-x', n: 4 },
+    ]);
+  }
+  // Dschungeltal tief unten (Kulisse)
+  valley(level, [
+    [-22, -21, -30, 'wald', 1.3], [24, -21, -48, 'wald', 1.4], [-18, -22, -70, 'wald', 1.2], [20, -21, -78, 'wald', 1.1],
+    [-14, -22, -118, 'wald', 1.3], [22, -21, -126, 'wald', 1.2], [-6, -21, -132, 'wald', 1.0], [-14, -20, -176, 'wald', 1.4],
+    [24, -21, -182, 'wald', 1.3], [-10, -21, -224, 'wald', 1.2], [22, -21, -232, 'wald', 1.4], [7, -22, -205, 'wald', 0.9],
+    [-26, -24, -54, 'saeule', 1.2], [28, -24, -64, 'saeule', 1.0], [-9, -22, -88, 'wald', 1.1], [26, -24, -110, 'saeule', 1.1],
+    [-20, -24, -150, 'saeule', 1.3], [24, -24, -204, 'saeule', 1.2], [-18, -24, -246, 'saeule', 1.1], [-24, -21, -100, 'wald', 1.2],
+  ]);
   // Prellmauern an den Hangfüßen: die herabrollenden Stachelwalzen zerschellen dort (der Weg daneben bleibt frei)
   for (const [x0, x1, z, y] of [[0.7, 4.5, -12.2, Y0], [-4.5, -1.3, -44.2, Y1], [1.3, 4.5, -44.2, Y1], [8.2, 11.5, -144.2, Y3], [8.8, 11.5, -241.2, Y4]]) {
     stoneBlock(level, x0, x1, y, y + 0.6, z + 0.35, z - 0.35, { tag: 'prellmauer', chips: false });
@@ -114,7 +132,7 @@ function scene(level) {
   // Rampen verdecken die Kamera nie (der Strahl prüft Hüllquader – auf der Rampe steckt der Kopf darin)
   level.world.forEach?.((s) => { if (s.type === 'ramp') s.camIgnore = true; });
   // Budget
-  instanceEnemies(level, ['rollpilz', 'walzenwerfer']);
+  instanceEnemies(level, ['rollpilz', 'walzenwerfer'], { noShadow: ['walzenwerfer'], far: 42 });
   noModelShadow(level, ['stachelwalze']);
   farHide(level, ['rollpilz', 'walzenwerfer', 'stachelwalze', 'stachelstange'], 46);
 }
@@ -172,8 +190,6 @@ export const LEVEL = {
     // Hang 1 (steigt nach −Z), Seitenmauern halten die Walzen
     isl(-4.5, 4.5, -12, -26, Y0, 4, { under: 2, top: 'stone' }),
     { type: 'ramp', pos: [0, Y0, -19], size: [9, Y1 - Y0, 14], axis: 'z', dir: -1, top: 'stone' },
-    { type: 'wall', pos: [-5.1, Y0, -19], size: [1.2, 3.2, 14] },
-    { type: 'wall', pos: [5.1, Y0, -19], size: [1.2, 3.2, 14] },
     // Säulenplatz
     isl(-10, 10, -26, -44, Y1, 6, { under: 2 }),
     { type: 'platform', pos: [12.5, Y1 - 6, -34.5], size: [5, 7.5, 9], style: 'stone' },
@@ -190,8 +206,6 @@ export const LEVEL = {
     // Hang 2
     isl(-4.5, 4.5, -44, -54, Y1, 6, { under: 2, top: 'stone' }),
     { type: 'ramp', pos: [0, Y1, -49], size: [9, Y2 - Y1, 10], axis: 'z', dir: -1, top: 'stone' },
-    { type: 'wall', pos: [-5.1, Y1, -49], size: [1.2, 3.2, 10] },
-    { type: 'wall', pos: [5.1, Y1, -49], size: [1.2, 3.2, 10] },
     // Kante → bewegliche Plattform zum Checkpoint
     isl(-6, 6, -54, -61, Y2, 6, { under: 3 }),
     plat('mp1', [[0, Y2 - 0.5, -63.6], [0, Y2 - 0.5, -76.2]], { speed: 2.4, wait: 0.9 }),
@@ -225,8 +239,6 @@ export const LEVEL = {
     // Aufstieg (Hang 3) mit Walzenwerfer oben
     isl(2.5, 11.5, -144, -155, Y3, 6, { under: 3, top: 'stone' }),
     { type: 'ramp', pos: [7, Y3, -149.5], size: [9, Y4 - Y3, 11], axis: 'z', dir: -1, top: 'stone' },
-    { type: 'wall', pos: [1.9, Y3, -149.5], size: [1.2, 3.4, 11] },
-    { type: 'wall', pos: [12.1, Y3, -149.5], size: [1.2, 3.4, 11] },
     isl(0, 14, -155, -166, Y4, 6, { under: 3 }),
     { type: 'deco_w4', items: [
       { kind: 'saeule', pos: [-6, Y2 - 16, -120], height: 14, shadow: false, solid: false }, { kind: 'saeule', pos: [16, Y2 - 14, -134], height: 15, broken: true, shadow: false, solid: false },
@@ -259,8 +271,6 @@ export const LEVEL = {
     isl(0, 14, -235.4, -241, Y4, 6, { under: 3 }),
     isl(2.5, 11.5, -241, -252, Y4, 6, { under: 3, top: 'stone' }),
     { type: 'ramp', pos: [7, Y4, -246.5], size: [9, Y5 - Y4, 11], axis: 'z', dir: -1, top: 'stone' },
-    { type: 'wall', pos: [1.9, Y4, -246.5], size: [1.2, 3.0, 11] },
-    { type: 'wall', pos: [12.1, Y4, -246.5], size: [1.2, 3.0, 11] },
     isl(0, 14, -252, -266, Y5, 6, { under: 3 }),
     { type: 'sign', pos: [13, Y5, -253.6], text: 'Werfer-Festung\n(über die Weltkarte)', size: [2.6, 0.9] },
     { type: 'deco_w4', items: [
@@ -313,19 +323,16 @@ export const LEVEL = {
   items: [
     // Startplatz
     line([0, Y0 + 0.3, 2.4], [0, Y0 + 0.3, -1.6], 3),
-    ring([6.4, Y0 + 2.6, 4.2], 1.3, 6),
+    ring([6.4, Y0 + 2.6, 4.2], 1.3, 5),
     ...arc([-5.2, Y0 + 1.2, 1.2], [-8.4, Y0 + 3.0, -2.0], 4, 1.2),
     // Hang 1 + Säulenplatz
     line([-2.6, Y0 + 0.9, -13.4], [-2.6, Y0 + 2.4, -24.6], 5),
-    line([1.2, Y1 + 0.4, -36.6], [1.2, Y1 + 0.4, -40.6], 3),
-    ring([12.6, Y1 + 3.6, -35], 1.2, 5),
     line([2.6, Y1 + 0.9, -45.6], [2.6, Y1 + 2.4, -52.6], 4),
     // Plattform zum Checkpoint
     line([0, Y2 + 1.1, -65], [0, Y2 + 1.1, -75], 5),
     // Checkpoint-Insel, Turm (zeigt den Aufstieg)
     ring([-7.2, Y2 + 3.4, -100.2], 1.4, 6),
     line([-10, Y2 + 1.4, -92.4], [-10, Y2 + 5.8, -92.4], 4),
-    line([7.0, Y2 + 0.5, -89], [9, Y2 + 0.5, -89], 2),
     // Plattformfahrt
     line([-2, Y2 + 1.1, -108.6], [-2, Y2 + 1.1, -116], 4),
     line([0.5, Y2 + 1.1, -124.4], [5.5, Y2 + 1.1, -124.4], 3),

@@ -157,16 +157,19 @@ export function vines(level, list) {
       const steps = Math.max(2, Math.round(len / 0.35));
       for (let s = 0; s < steps; s++) {
         const a = pos((s / steps) * len, 0), b = pos(((s + 1) / steps) * len, 0);
-        const g = new THREE.CylinderGeometry(0.025, 0.025, Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), 4).toNonIndexed();
+        const g = new THREE.CylinderGeometry(0.025, 0.025, Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), 3, 1, true).toNonIndexed();
         const dir = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize();
         g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir));
         g.translate((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2);
         P.push(colorize(g, (p, nn, o) => { o[0] = stem[0]; o[1] = stem[1]; o[2] = stem[2]; }));
         // Blattpaar
         const q = pos(((s + 0.5) / steps) * len, 0.03);
-        const lf = new THREE.SphereGeometry(0.13, 5, 3).toNonIndexed();
-        lf.scale(1.3, 0.55, 0.9);
-        lf.rotateZ((s % 2 ? 1 : -1) * 0.5);
+        // flaches Rautenblatt (2 Dreiecke), zur Wand hin ausgerichtet
+        const lf = new THREE.BufferGeometry();
+        const L0 = 0.17, W0 = 0.09, sg = s % 2 ? 1 : -1;
+        lf.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, sg * L0, W0 * 0.6, 0, sg * L0 * 0.5, -W0, 0, 0, 0, 0, sg * L0 * 0.5, W0 + 0.04, 0, sg * L0, W0 * 0.6, 0], 3));
+        lf.computeVertexNormals();
+        if (v.face === '+x') lf.rotateY(Math.PI / 2); else if (v.face === '-x') lf.rotateY(-Math.PI / 2); else if (v.face === '-z') lf.rotateY(Math.PI);
         lf.translate(q[0], q[1], q[2]);
         const lc = (s + i) % 2 ? leafA : leafB;
         P.push(colorize(lf, (p, nn, o) => mixc(lc, leafB, smooth(-0.3, 0.9, nn.y) * 0.4, o)));
@@ -314,6 +317,79 @@ export function roundTower(level, o) {
   ]);
 }
 
+/**
+ * Pflaster auf einer Rampe (steigt nach −Z von y0 bei z0 auf y1 bei z1): Steinplatten-Reihen in Sandsteintönen mit
+ * Fugen, ein türkiser Mittelstreifen mit Rauten und Moos an den Rändern (flache Teile 1,5 cm über der Rampe).
+ * o: { x0, x1, z0 (unten), z1 (oben), y0, y1, stripe: true }
+ */
+export function rampPaving(level, o) {
+  if (!level.view) return;
+  const { x0, x1, y0, y1 } = o, z0 = Math.max(o.z0, o.z1), z1 = Math.min(o.z0, o.z1);
+  const len = z0 - z1, k = (y1 - y0) / len;
+  const yAt = (z) => y0 + (z0 - z) * k + 0.015;
+  const P = [];
+  const quad = (xa, xb, za, zb, col) => {
+    const g = new THREE.BufferGeometry();
+    const pts = [[xa, yAt(za), za], [xb, yAt(za), za], [xb, yAt(zb), zb], [xa, yAt(za), za], [xb, yAt(zb), zb], [xa, yAt(zb), zb]];
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pts.flat(), 3));
+    g.computeVertexNormals();
+    P.push(colorize(g, flat(col)));
+  };
+  const rows = Math.round(len / 1.0), cols = Math.max(2, Math.round((x1 - x0) / 1.5));
+  const cw = (x1 - x0) / cols, rh = len / rows;
+  for (let r = 0; r < rows; r++) for (let cI = 0; cI < cols; cI++) {
+    const off = (r % 2) * cw * 0.5;
+    const xa = Math.max(x0, x0 + cI * cw - off + 0.04), xb = Math.min(x1, x0 + (cI + 1) * cw - off - 0.04);
+    if (xb - xa < 0.2) continue;
+    const za = z0 - r * rh - 0.04, zb = z0 - (r + 1) * rh + 0.04;
+    const h = hash(r, cI, x0);
+    quad(xa, xb, za, zb, h < 0.33 ? RUIN.sandLt : h < 0.75 ? RUIN.sand : 0xe4c896);
+  }
+  if (o.stripe !== false) {
+    const cx = (x0 + x1) / 2;
+    for (let r = 0; r < rows; r++) {
+      const za = z0 - r * rh - 0.15, zb = z0 - (r + 1) * rh + 0.15, zm = (za + zb) / 2;
+      const g = new THREE.BufferGeometry();
+      const d = 0.32, pts = [[cx, yAt(za) + 0.004, za], [cx + d, yAt(zm) + 0.004, zm], [cx, yAt(zb) + 0.004, zb], [cx, yAt(za) + 0.004, za], [cx, yAt(zb) + 0.004, zb], [cx - d, yAt(zm) + 0.004, zm]];
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pts.flat(), 3));
+      g.computeVertexNormals();
+      P.push(colorize(g, flat(r % 2 ? RUIN.turq : RUIN.terra)));
+    }
+  }
+  addStatic(level, merge(P), { castShadow: false });
+}
+
+/**
+ * Dschungeltal tief unten im Abgrund (nur Kulisse, ohne Kollision und Schatten): Baumkronen-Teppich aus Blattballen,
+ * dazwischen ragende Säulenstümpfe und Bogenreste. list = [[x, y, z, kind ('wald'|'saeule'|'bogen'), s]].
+ */
+export function valley(level, list) {
+  if (!level.view) return;
+  const P = [];
+  const greens = [0x3a8a3a, 0x4fa844, 0x2e7432, 0x5cb850];
+  for (const [k, [x, y, z, kind, s0]] of list.entries()) {
+    const s = s0 ?? 1;
+    if (kind === 'wald') {
+      for (let i = 0; i < 6; i++) {
+        const a = hash(i, k) * TAU, r = (i === 0 ? 0 : 1.6 + hash(k, i) * 1.4) * s;
+        const g = new THREE.IcosahedronGeometry((1.6 + hash(i, k, 2) * 1.0) * s, 1);
+        g.scale(1, 0.7, 1);
+        g.translate(x + Math.cos(a) * r, y + hash(i, 7, k) * 0.8 * s, z + Math.sin(a) * r);
+        const c = L(greens[(i + k) % 4]);
+        P.push(colorize(g, (p, n, o) => mixc(c, mixc(c, [0, 0, 0], 0.45, [0, 0, 0]), smooth(0.6, -0.6, n.y), o)));
+      }
+    } else if (kind === 'saeule') {
+      const h = 9 * s;
+      P.push(cylG(0.55 * s, 0.65 * s, h, x, y, z, RUIN.sandLt, 8));
+      P.push(blockG(1.6 * s, 0.35 * s, 1.6 * s, x, y + h, z, RUIN.sand, { r: 0.04, seg: 0, top: RUIN.mossLt }));
+    } else {
+      for (const sx of [-1, 1]) P.push(blockG(1.0 * s, 7 * s, 1.0 * s, x + sx * 2.2 * s, y, z, RUIN.sand, { r: 0.04, seg: 0, top: RUIN.mossLt }));
+      P.push(blockG(5.4 * s, 1.0 * s, 1.0 * s, x, y + 7 * s, z, RUIN.sandLt, { r: 0.04, seg: 0, top: RUIN.mossLt }));
+    }
+  }
+  addStatic(level, merge(P), { castShadow: false });
+}
+
 /** Dschungelbaum (Krone aus Blattballen, gebogener Stamm mit Ranken), statisch: list = [[x, y, z, h]]. */
 export function jungleTrees(level, list, o = {}) {
   if (!level.view) return;
@@ -333,7 +409,7 @@ export function jungleTrees(level, list, o = {}) {
     const greens = [0x3e9a3a, 0x5ab84a, 0x2f7e30, 0x6cc85a];
     for (let i = 0; i < 7; i++) {
       const a = (i / 7) * TAU + hash(i, k), r = i === 0 ? 0 : 1.2 + hash(k, i) * 0.6;
-      P.push(sphereG(1.1 + hash(i, k, 2) * 0.5, px + Math.cos(a) * r, top + (i === 0 ? 0.6 : hash(i, 7, k) * 0.6), pz + Math.sin(a) * r, greens[(i + k) % 4], { ws: 9, hs: 6, sy: 0.75 }));
+      P.push(sphereG(1.1 + hash(i, k, 2) * 0.5, px + Math.cos(a) * r, top + (i === 0 ? 0.6 : hash(i, 7, k) * 0.6), pz + Math.sin(a) * r, greens[(i + k) % 4], { ws: 8, hs: 5, sy: 0.75 }));
     }
     // Lianen aus der Krone
     for (let i = 0; i < 3; i++) {
