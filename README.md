@@ -168,6 +168,21 @@ Luft), Schlittschuhe, rutschiges Eis, rollende Schneebälle, Kettenzäune zum Kl
 | 3-7 | Ahornklamm | Herbstwald mit Schalttafeln auf Schienen |
 | 3-Zug | Volldampf durchs Schneetal | Zugfahrt als Autoscroller, Boss Schattenläuferin |
 
+**Welt 4 „Canyon-Inselkette“** (frei nach 3-Zug; Sternschranken 60/70/80; die Welt-Warp-Röhre in 4-2 zeigt „Welt 5
+kommt bald!“):
+
+| Id | Titel | Art |
+| --- | --- | --- |
+| 4-1 | Kribbelkrabbel-Schlucht | Canyon: Ameisen tragen die Heldin an Wänden, Riesenameisen über Stacheln |
+| 4-2 | Das Lila Nebelmoor | Giftsumpf mit Rankenschnappern, Sternring, Welt-Warp |
+| 4-A | Glutbrocken-Gerangel | Arena: Lavabrocken in die Lava werfen |
+| 4-3 | Neonsteg im Takt | Piep-Blöcke im Takt der Musik, Klone, Viererlift |
+| 4-Haus | Haus Sausewind | Prüfungs-Haus: 10 Räume à 10 s |
+| 4-4 | Trampolin-Alm | Bergwiese, Riesentrampolin-Fahrt, Flatterkäfer-Räder |
+| 4-5 | Säulenstadt der Stachelwalzen | Ruinenstadt, Walzenwerfer, Stachelstangen, Räuberleiter |
+| 4-B | Blaugitter-Bastion der Feuer-Werfer | Arena: drei Feuer-Werfer in 100 s |
+| 4-Burg | Glutburg des Felsenkönigs | Lava-Burg, Boss Lavafelsen-König (nur geworfene Lavabrocken treffen) |
+
 - **Tastatur:** Pfeile/WASD laufen (relativ zur Kamera), **Shift** rennen (Druck = Aktion, auch **X**:
   Feuerball, Krallenhieb, Aufheben/Werfen), **Leertaste** springen (Höhe nach Haltedauer), **Strg/C**
   ducken/rutschen (in der Luft: Stampfattacke), **Q/E** Kamera drehen, **Z** Zoom, **Tab** Figur (Karte),
