@@ -1988,6 +1988,53 @@ Wo der Bauplan den „Kapitän“ nennt (3-Zug, 3-Kapitän), tritt **Krümel** a
   `track` legt den ganzen Pfad in eine Geometrie (lange Strecken müssen gestückelt werden); Räder des Modells
   `zug_waggon` (je 920 Dreiecke × 8) und die Heldin (≈ 17 Meshes) sind die größten Posten im Zug-Budget.
 
+**Level-Notizen 3-5 / 3-7** (Level-Agent; Hilfen `src/course/levels/w3/_helpers_d.js` ohne `LEVEL`; Test
+`tests/course_w3d.mjs [3-5|3-7]`, Port 4384 + PORT_BASE, Bilder `tests/out/w3d_*.png`; Teile über `PARTS=route,targets,
+extra,shots`, Heldinnen über `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS_ONLY=1` – je Lauf ≤ 10 min):
+
+- **3-5 „Leuchtturmriff“** (parcours, water, course_water, 500 s, ≈ 250 m; Wasser y 0, Land y 1): Strand (Strandkörbe,
+  Sonnenschirme, Sandburg, Muscheln/Seesterne, Krabben, kleiner Leuchtturm mit Möwen, Flaschenpost; ?-Block mit
+  Gleitblatt; flache Lagune mit drei Reifen-Pilzlingen, **grüne Röhren über das Wasser**) → Riffkante → **Tiefwasser**
+  (8 m tief, Felswände, Riffkorallen, Seetang, Fischschwärme; Flossling-Schwärme, zwei Stachelfische an der Oberfläche) →
+  unter dem **Felsbogen** in die **Flutkammer**: schwimmt eine Figur darin, steigt das Wasser (`flutKammer`, Lagune `flut`
+  über `level.setWaterLevel`, 0 → 5 m, Ansage „Die Flut steigt!“; Neustart vor dem Checkpoint setzt es zurück) → Sims mit
+  **Glasrohr** (`rohrnetz`) hinab in die **Wrackbucht** (Schiffswrack, Holzsteg mit springenden Flosslingen, Kanonen-Helm
+  am Landeplatz; Rissfels: **Wandriss mit der Kanone sprengen → goldene Röhre → Goldraum** mit Goldschalter) → Checkpoint
+  → **Stachelwand**: Kanal mit Lochschützen (`stachelfisch` mode `wall`, Löcher als Zier `wandloecher`) in beiden Wänden
+  und in drei Felssäulen → Inselchen mit **Glasrohr-Kanone** auf die Zielinsel mit dem großen Leuchtturm (Lichtstrahl).
+  **Stern 1** Felsnische oben in der Flutkammer (nur mit gestiegenem Wasser), **Stern 2** Goldraum, **Stern 3**
+  unsichtbare Blöcke (`hiddenchain`) von der dritten Säule hinauf zum versteckten Raum im Hochfels; **Stempel**:
+  versteckter Gang nach dem Checkpoint (Glasrohr in der Wrackklippe, Eingang zwischen Palmen) auf die Klippe.
+  Extraleben: unsichtbarer Block über der Sandburg. Gegner: Reifen-Pilzling 5, Flossling 12, Stachelfisch 13,
+  Münzmarder 4. Kamera im Tauchbereich flach (`pitch 20–22, dist 8,5` – sonst Kamera knapp über der Oberfläche und das
+  Bild milchig), sonst 42–47° / 12–13,5 m; `LEVEL.underwater` etwas weitere Sicht, Lichtflecken der Unterwasser-Stimmung
+  level-lokal zarter (`view.mood.uwSpec.caustics`).
+- **3-7 „Ahornklamm“** (parcours, autumn, course_autumn, 500 s, ≈ 235 m; Inseln y 1, Schienen-Oberkante 0,25 →
+  Tafel 1,0): Herbstwiese (Laubhaufen, Kürbisse, Fliegenpilze, Eichhörnchen, Vogelscheuche, Laubteppich, Holzbrücke) →
+  Tafel 1 über die Klamm zu **Tafel 2, deren Schiene zurück zeigt: Schaltblock darüber stoßen** → Funkenzone: Tafel 3
+  fährt zum Prellbock, **Schaltblock stoßen, zurück, an der Weiche nach links (Bildschirm) in die Kehrschleife**
+  (Schaltblock am Netzanfang zum Neuversuch) → Checkpoint → Tafel 4 **hinter dem Wasserfall** (`wasserfall`:
+  durchscheinender, fließender Vorhang mit Gischt) und durch die Felsgasse → Umstieg auf Tafel 5 (Schaltblöcke an beiden
+  Netzenden) → Tafel 6 zur Zielinsel (Laubhügel, Zielmast). Funkenläufer laufen an der Blockkante und auf **Seitenspuren
+  der Tafeln** (ausweichen = auf die andere Tafelseite; ein Funkenläufer quer zur Fahrt zwänge zum Springen – dabei bleibt
+  die Tafel stehen und die Figur landet im Abgrund). **Stern 1**: während der dritten Fahrt auf die Plattform mit drei
+  Zeit-Uhren (`zeitUhren`, je +10 s) springen, Röhre → **Fallraum** (hohler Baum, `hohlerBaum`, Stern mitten im Schacht);
+  **Stern 2**: Tafel 5 an der Weiche links kippen, unter der Felsnase durchducken (ohne Ducken reißt sie die Figur von der
+  Tafel); **Stern 3**: Tafel 6 ganz rechts auf die Diagonalschiene; **Stempel**: von dort links auf die tiefere Plattform,
+  Holzbrücke hinauf zur Zielinsel. Extraleben: Laubhaufen unter der Eiche am Start stampfen. Gegner: Brummer 10,
+  Funkenkäfer 7, Funkenläufer 5, Münzmarder 1 (Brummer über den Inseln, nicht über den Schienen: ein Treffer auf der
+  fahrenden Tafel wäre ein Absturz).
+- **Level-Haken** (`LEVEL.setup`): `levelSetup` + `cullStatic` (Welt 2), `instanceEnemies` (3-1/3-4) für alle Gegner mit
+  gleichen Modellen (Fische ohne Sonnenschatten), `fernAus` (statische Abschnitte > 120 m von der Kamera aus, wegen der
+  flachen Tauchkamera), sparsame `riffKorallen` (≈ 60–160 Dreiecke statt ≈ 2 k des Registry-Modells), `seaFill` (Meer
+  zwischen den Becken bis zum Kulissen-Meer des Themas, das erst 6 m außerhalb des Level-Umrisses beginnt), Laubhaufen als
+  level-lokale Entität (Stampfen über `breakable`, Angriffe über `onHit`, Hineinrennen über `onPlayer`); Wolken der
+  Kulisse unter den Inseln liegen in 3-7 unter dem Boden (in der Klamm sähen sie wie Schneeflecken aus).
+- **Kennzahlen** (scale 2, inkl. Schattenpass, je 16 bzw. 15 Abschnittsbilder und Stern-/Stempel-Bilder): 3-5 72–111
+  Zeichenaufrufe, 166–240 k Dreiecke (Flutkammer mit steigender Kamera 88); 3-7 53–103 Zeichenaufrufe, 194–247 k
+  Dreiecke (Fallraum 74, Funkenzone 96). Bot-Zeiten bis zum Zielmast: 3-5 Lotti 49,6 s / Greta 45,9 s, 3-7 Lotti
+  82,2 s / Greta 81,4 s.
+
 ---
 
 ## Präzisierung (Motor Welt 3)
