@@ -99,7 +99,7 @@ export function canyonGround(b, base, theme, rnd) {
     });
     parts.push(flat(surf, 'stone'));
     // schlammiger Rand
-    const rim = roundedBox(x1 - x0 + 0.1, 0.3, z1 - z0 + 0.1, 0.1, SIDE.ALL & ~SIDE.NY & ~SIDE.PY, 0, 1);
+    const rim = roundedBox(x1 - x0 + 0.1, 0.3, z1 - z0 + 0.1, 0.1, SIDE.ALL & ~SIDE.NY & ~SIDE.PY, SIDE.NY | SIDE.PY, 1);
     colorize(rim, (p, n, o) => mixc(lin(0x3e2a3e), lin(0x5a4256), smooth(0, 1, n.y), o));
     rim.translate((x0 + x1) / 2, top - 0.2, (z0 + z1) / 2);
     parts.push(rim);
@@ -111,7 +111,7 @@ export function canyonGround(b, base, theme, rnd) {
   // Decke mit runder Oberkante
   const lip = P.lip ?? 0.08;
   const r = Math.min(0.16, capH * 0.45);
-  const cap = roundedBox(x1 - x0 + lip * 2, capH, z1 - z0 + lip * 2, r, SIDE.ALL & ~SIDE.NY, 0, 1);
+  const cap = roundedBox(x1 - x0 + lip * 2, capH, z1 - z0 + lip * 2, r, SIDE.ALL & ~SIDE.NY, SIDE.NY, 1);
   const side = lin(P.side), rim = lin(P.rim);
   colorize(cap, (p, n, o) => mixc(side, rim, smooth(0.15, 0.85, n.y), o));
   cap.translate((x0 + x1) / 2, top - capH / 2, (z0 + z1) / 2);
