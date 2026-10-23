@@ -181,14 +181,15 @@ export const MAP = {
       pipe: [[0, 0, 0], [0, 3.5, 0], [-0.8, 5.6, 0.2], [-5, 6.8, 0.8], [-16, 7.4, 2.5], [-40, 7, 7], [-80, 5.5, 14], [-140, 4, 26], [-205, 1.5, 40]], pipeDetail: 'low' },
     { id: '4-1', kind: 'anthill', pos: [9, 1, 32], decor: [10, 1.3, 23.6] },
     { id: '4-2', kind: 'poisonwood', pos: [-6, 2, -6], decor: [-21, 1.2, -9], exit: [-3.4, 2, -3.4],
-      waterfall: { x0: -26, x1: -21, z: -15.92, top: 9, bottom: 1.1 } },
+      waterfall: { x0: -26, x1: -21, z: -15.92, top: 9, bottom: 1.1 }, swamp: [-34, -16, -10, -2],
+      trees: [[-31.4, -13.2, 5.4, 0.4], [-13.2, -13.8, 4.6, 2.2], [-32, -4.6, 4.2, 1.2]], shrooms: [[-12.2, -3.6, 1.6, 0.5], [-28.6, -14.2, 1.9, 2.4], [-17.6, -3.2, 1.3, 1]] },
     { id: '4-A', kind: 'lavaisle', pos: [-52, 1.4, -1], decor: [-52, 1.4, -1], exit: [-45.6, 1.4, 0],
       spikes: [[-58.6, -8.4, 3.2], [-45.6, -8.6, 2.4], [-58.4, 6.4, 2.2]], braziers: [[-45.4, -6.4], [-45.4, 4.6]] },
     { id: '4-3', kind: 'beeptower', pos: [-6.5, 3, -35.4], decor: [-7, 3, -41.4] },
     { id: '4-Haus', kind: 'mysteryclock', pos: [35, 3, -32], decor: [35, 3, -39.2] },
     { id: '4-4', kind: 'bouncemeadow', pos: [-4, 5, -70], decor: [-4, 5, -78.2],
-      trampolines: [[-11.6, -65.6, 1.5], [7.6, -66.4, 1.4], [-12.2, -77.6, 1.3]] },
-    { id: '4-5', kind: 'ruincity', pos: [32, 5, -77], decor: [32, 5, -86] },
+      trampolines: [[-11.6, -65.6, 1.3], [7.6, -66.4, 1.2], [-12.2, -77.6, 1.15]], windmill: [9.6, 5, -82.4, 6.5], clouds: [[-7, 15.6, -93, 6.5], [4, 17.4, -98, 4.5]] },
+    { id: '4-5', kind: 'ruincity', pos: [32, 5, -77], decor: [32, 5, -86], gates: [[44, -88, Math.PI / 2, 3.6]] },
     { id: '4-B', kind: 'bluefortress', pos: [70, 5, -81], decor: [70, 5, -95.4], exit: [64.8, 5, -82],
       cage: [[62.4, -70.4, 77.6, -70.4], [77.6, -91.6, 77.6, -70.4], [62.4, -91.6, 77.6, -91.6], [62.4, -91.6, 62.4, -84.2], [62.4, -79.8, 62.4, -70.4]] },
     { id: '4-Burg', kind: 'lavacastle', pos: [38, 6, -122.5], decor: [38, 6, -134], labelY: 2.8,
@@ -257,12 +258,12 @@ export const MAP = {
     // E Haus-Insel
     { kind: 'cactus_lo', pos: [40, 3, -28.4], size: 2.2 }, { kind: 'boulder', pos: [29.4, 3, -42.6], size: 1.0 },
     // F Bergwiese: Blumen, Bäume am Hang
-    { kind: 'meadowtree', pos: [-13.4, 5, -82], size: 4.4 }, { kind: 'meadowtree', pos: [11.6, 5, -82.2], size: 4.0 },
+    { kind: 'meadowtree', pos: [-13.4, 5, -82], size: 4.4 }, { kind: 'meadowtree', pos: [11.8, 5, -63.4], size: 4.0 },
     { kind: 'flowers_lo', pos: [4, 5, -64.4], n: 7, solid: false }, { kind: 'flowers_lo', pos: [-8.6, 5, -73.4], n: 6, solid: false },
     { kind: 'flowers_lo', pos: [9.6, 5, -77.4], n: 6, solid: false },
     // G Ruinenstadt: Säulen, Mauerreste, Statue am Weg
-    { kind: 'column', pos: [27.6, 5, -67.6], size: 3.4, broken: true }, { kind: 'column', pos: [48.4, 5, -67.6], size: 4.2 },
-    { kind: 'column', pos: [48.4, 5, -94.4], size: 3.0, broken: true }, { kind: 'ruinwall', pos: [29, 5, -94.2], size: 5, yaw: 0 },
+    { kind: 'ruincolumn', pos: [27.6, 5, -67.6], size: 3.4, broken: true }, { kind: 'ruincolumn', pos: [48.4, 5, -67.6], size: 4.2 },
+    { kind: 'ruincolumn', pos: [48.4, 5, -94.4], size: 3.0, broken: true }, { kind: 'ruinwall', pos: [29, 5, -94.2], size: 5, yaw: 0 },
     { kind: 'fallen', pos: [39.6, 5, -69.4], size: 3, yaw: 0.4, solid: false },
     // H Festung (Kulisse in decor_w4)
     // I Lava-Burg: Fackeln am Weg
@@ -275,6 +276,10 @@ export const MAP = {
     { kind: 'needle', pos: [-30, 0, -66], size: 9.5, solid: false }, { kind: 'needle', pos: [60, 0, -64], size: 8, solid: false },
     { kind: 'needle', pos: [84, 0, -86], size: 10, solid: false }, { kind: 'needle', pos: [4, 0, -118], size: 9, solid: false },
     { kind: 'seaarch', pos: [-44, 0, -42], size: 1.2, yaw: 0.5, solid: false }, { kind: 'seaarch', pos: [74, 0, -50], size: 1, yaw: -0.4, solid: false },
+    // kleine Tafelberge im Meer
+    { kind: 'tafelberg', pos: [-50, 0, 30], radius: 5, size: 8, solid: false }, { kind: 'tafelberg', pos: [52, 0, 10], radius: 4, size: 6.5, solid: false },
+    { kind: 'tafelberg', pos: [-44, 0, -90], radius: 5.5, size: 10, solid: false }, { kind: 'tafelberg', pos: [64, 0, -32], radius: 4.5, size: 7, solid: false },
+    { kind: 'tafelberg', pos: [-12, 0, -124], radius: 5, size: 9, solid: false }, { kind: 'tafelberg', pos: [88, 0, -112], radius: 4, size: 8, solid: false },
   ],
 
   // Seilbahn (Kulisse): Gondel pendelt von der Haus-Insel zur Ruinenstadt

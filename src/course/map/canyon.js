@@ -17,7 +17,7 @@ import { roundedBox, SIDE, colorize, lin, mixc, smooth, Rnd } from '../../three/
 import { alignedGrid, islandParts } from '../blocks/kit.js';
 import { THEMES } from '../view/themes.js';
 import { hillRing } from '../view/backdrop_w2.js';
-import { LowBuild as Build, place, desertGround, cactusGeo, barrelCactusGeo, shrubGeo, desertRockGeo, ruinArchGeo } from './desert.js';
+import { LowBuild as Build, place, desertGround, cactusGeo, barrelCactusGeo, shrubGeo, desertRockGeo, ruinArchGeo, columnGeo } from './desert.js';
 import { buildBridge } from '../blocks/types/bridge.js';
 
 export const CANYON_STYLES = new Set(['canyon', 'canyonlow', 'mesa', 'beach', 'meadow', 'poison', 'marsh', 'swamp', 'tech', 'ruins', 'castle', 'fortress']);
@@ -475,8 +475,19 @@ export function canyonPropGeo(it, seed) {
     case 'lightpole': return lightPoleGeo();
     case 'ruinwall': return ruinWallGeo(it.size ?? 5, seed);
     case 'ruinarch': return ruinArchGeo(it.width ?? 3.4, it.size ?? 4);
+    case 'ruincolumn': return columnGeo(it.size ?? 3, !!it.broken, seed);
+    case 'tafelberg': return mesaPropGeo(it.radius ?? 4, it.size ?? 6, seed);
     default: return null;
   }
+}
+
+/** Kleiner Tafelberg (Ersatz für das Modell 'tafelberg'): gestapelte Bänder, flache Kuppe. */
+function mesaPropGeo(r = 4, h = 6, seed = 1) {
+  const b = new Build();
+  const n = Math.max(2, Math.round(h / 1.2));
+  for (let i = 0; i < n; i++) b.cyl(r * (1 - (i + 1) * 0.03), r * (1 - i * 0.03), h / n, MESA[(i * 3 + seed) % MESA.length], { p: [0, (h / n) * (i + 0.5), 0] }, 9);
+  b.cyl(r * 0.92, r * 0.94, 0.2, 0xf2c088, { p: [0, h + 0.1, 0] }, 9);
+  return b.geometry();
 }
 
 function cratesLoGeo(seed = 1) {
@@ -504,6 +515,8 @@ export function canyonPropShape(it) {
   const cyl = (r, h) => ({ type: 'cyl', x, z, r, y0: y - 0.2, y1: y + h, tag: `deko:${it.kind}` });
   switch (it.kind) {
     case 'needle': return cyl(0.45 + (it.size ?? 8) * 0.1, it.size ?? 8);
+    case 'ruincolumn': return cyl(0.5, it.size ?? 3);
+    case 'tafelberg': return cyl((it.radius ?? 4) * 0.9, it.size ?? 6);
     case 'boulder': return cyl((it.size ?? 1) * 0.9, (it.size ?? 1) * 1.1);
     case 'cactus_lo': return cyl(0.35, it.size ?? 2.2);
     case 'barrel_lo': return cyl(0.4, 0.8);

@@ -156,80 +156,74 @@ export class MapItem extends CourseEntity {
 }
 
 /**
- * Gegnergruppe instanziert zeichnen (Welt 4: drei Feuer-Werfer ≈ 9 statt 27 Zeichenaufrufe): Roamer mit gleichem
- * Modell (gleiche Geometrien/Materialien je Teil) werden als je eine InstancedMesh pro Modellteil gezeichnet. Die
- * Roamer rechnen und animieren ihre Modelle weiter; je Bild werden die Weltmatrizen der Teile übernommen und die
- * Einzelmodelle ausgeblendet (wie instanceEnemies der Welt-3-Level). Sprites der Modelle entfallen dabei.
- * Ferne Roamer (> far m vor der Kamera, wie lod.js) und solche außerhalb des Bildes werden nicht gezeichnet.
- * @returns {{ dispose(): void, groups: number } | null}
+ * Gegnergruppe instanziert zeichnen (Welt 4: drei Feuer-Werfer bzw. Lavabrocken): Teile, die bei allen Roamern der
+ * Gruppe dieselbe Geometrie und dasselbe Material haben, werden als je eine InstancedMesh gezeichnet; die Einzelteile
+ * bleiben im Modell (die Roamer rechnen und animieren weiter, Sichtbarkeitsschalter des Modells gelten), werden aber
+ * über ihre Ebenen (layers) nicht mehr gezeichnet. Teile mit eigenem Material je Exemplar (Glühen, Treffer-Blitz …)
+ * und Sprites zeichnen sich weiter selbst. Ferne Roamer (> far m vor der Kamera, wie lod.js) und solche außerhalb des
+ * Bildes werden nicht instanziert gezeichnet.
+ * @returns {{ dispose(): void, parts: number } | null}
  */
 export function instanceRoamers(view, roamers, o = {}) {
   if (!view || roamers.length < 2) return null;
-  const groups = new Map();
+  const ents = [];
   for (const e of roamers) {
-    if (!e.model?.root) continue;
+    if (!e.model?.root) return null;
     const meshes = [];
     let ok = true;
     e.model.root.traverse((m) => { if (m.isSkinnedMesh || (m.isMesh && Array.isArray(m.material))) ok = false; else if (m.isMesh) meshes.push(m); });
-    if (!ok || !meshes.length) continue;
-    const key = meshes.map((m) => `${m.geometry.uuid}:${m.material.uuid}:${m.isInstancedMesh ? m.count : 1}`).join(',');
-    if (!groups.has(key)) groups.set(key, { ents: [], parts: meshes.map((m) => ({ geo: m.geometry, mat: m.material, cast: m.castShadow, recv: m.receiveShadow, n: m.isInstancedMesh ? m.count : 1 })) });
-    groups.get(key).ents.push({ e, meshes });
+    if (!ok || !meshes.length) return null;
+    ents.push({ e, meshes });
   }
-  const live = [];
-  const added = [];
-  for (const G of groups.values()) {
-    if (G.ents.length < 2) continue;
-    G.inst = G.parts.map((pt) => {
-      const im = new THREE.InstancedMesh(pt.geo, pt.mat, G.ents.length * pt.n);
-      im.castShadow = pt.cast; im.receiveShadow = pt.recv;
-      im.frustumCulled = false;
-      im.count = 0;
-      im.visible = false;
-      im.name = 'instanzen:gegnergruppe';
-      view.three.add(im);
-      added.push(im);
-      return im;
-    });
-    live.push(G);
+  const n0 = ents[0].meshes.length;
+  if (ents.some(({ meshes }) => meshes.length !== n0)) return null;
+  const per = (m) => (m.isInstancedMesh ? m.count : 1);
+  const parts = [];
+  const hidden = [];
+  for (let k = 0; k < n0; k++) {
+    const m0 = ents[0].meshes[k];
+    if (!ents.every(({ meshes }) => meshes[k].geometry === m0.geometry && meshes[k].material === m0.material && per(meshes[k]) === per(m0))) continue;
+    const im = new THREE.InstancedMesh(m0.geometry, m0.material, ents.length * per(m0));
+    im.castShadow = m0.castShadow; im.receiveShadow = m0.receiveShadow;
+    im.frustumCulled = false;
+    im.count = 0;
+    im.visible = false;
+    im.name = 'instanzen:gegnergruppe';
+    view.three.add(im);
+    for (const { meshes } of ents) { hidden.push([meshes[k], meshes[k].layers.mask]); meshes[k].layers.disableAll(); }
+    parts.push({ k, im, n: per(m0) });
   }
-  if (!live.length) return null;
+  if (!parts.length) return null;
   const far = o.far ?? 90;
-  const vis = (m, root) => { for (let q = m; q && q !== root; q = q.parent) if (!q.visible) return false; return true; };
+  const vis = (m, root) => { for (let q = m; q && q !== root.parent; q = q.parent) if (!q.visible) return false; return true; };
   const M = new THREE.Matrix4(), Mi = new THREE.Matrix4(), F = new THREE.Frustum(), S = new THREE.Sphere();
   const off = view.onFrame(() => {
     const cam = view.camera;
     cam.updateMatrixWorld();
     F.setFromProjectionMatrix(M.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
-    for (const G of live) {
-      const fill = G.inst.map(() => 0);
-      for (const { e, meshes } of G.ents) {
-        const root = e.model?.root;
-        if (!root) continue;
-        S.center.set(e.pos.x, e.pos.y + 0.8, e.pos.z); S.radius = o.radius ?? 2;
-        const show = e.alive && !e.removed && root.parent && cam.position.distanceTo(S.center) - S.radius < far && F.intersectsSphere(S);
-        if (show) {
-          root.visible = true;
-          root.updateMatrixWorld(true);
-          meshes.forEach((m, k) => {
-            if (!vis(m, root)) return;
-            const im = G.inst[k];
-            if (m.isInstancedMesh) {
-              for (let j = 0; j < Math.min(m.count, G.parts[k].n); j++) { m.getMatrixAt(j, Mi); im.setMatrixAt(fill[k]++, M.multiplyMatrices(m.matrixWorld, Mi)); }
-            } else im.setMatrixAt(fill[k]++, m.matrixWorld);
-          });
-        }
-        root.visible = false;
-      }
-      G.inst.forEach((im, k) => { im.count = fill[k]; im.visible = fill[k] > 0; im.instanceMatrix.needsUpdate = true; });
+    const fill = parts.map(() => 0);
+    for (const { e, meshes } of ents) {
+      const root = e.model?.root;
+      if (!root) continue;
+      S.center.set(e.pos.x, e.pos.y + 0.8, e.pos.z); S.radius = o.radius ?? 2;
+      if (!(e.alive && !e.removed && root.parent && cam.position.distanceTo(S.center) - S.radius < far && F.intersectsSphere(S))) continue;
+      root.updateMatrixWorld(true);
+      parts.forEach(({ k, im, n }, pi) => {
+        const m = meshes[k];
+        if (!vis(m, root)) return;
+        if (m.isInstancedMesh) {
+          for (let j = 0; j < Math.min(m.count, n); j++) { m.getMatrixAt(j, Mi); im.setMatrixAt(fill[pi]++, M.multiplyMatrices(m.matrixWorld, Mi)); }
+        } else im.setMatrixAt(fill[pi]++, m.matrixWorld);
+      });
     }
+    parts.forEach(({ im }, pi) => { im.count = fill[pi]; im.visible = fill[pi] > 0; im.instanceMatrix.needsUpdate = true; });
   });
   return {
-    groups: live.length,
+    parts: parts.length,
     dispose() {
       off();
-      for (const im of added) { im.parent?.remove(im); im.dispose(); }
-      for (const G of live) for (const { e } of G.ents) if (e.model?.root) e.model.root.visible = true;
+      for (const { im } of parts) { im.parent?.remove(im); im.dispose(); }
+      for (const [m, mask] of hidden) m.layers.mask = mask;
     },
   };
 }
