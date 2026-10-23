@@ -15,6 +15,8 @@
 //   view.shadows.add({ pos, radius, alive })        Schatten-Blob
 //   view.effects.dust|sparks|debris|splash|ring|coinPop(...)
 //   view.addLantern(x, y, z)                        Laternenlicht (Thema cave)
+//   view.shadowProxy(root)                          Figur aus vielen Teilen wirft ihren Schatten in einem Aufruf
+//                                                   (view/ShadowProxy.js; die Heldin automatisch)
 //   view.setMood(name, { time })                    Stimmung des Themas überblenden (theme.moods; null = Grundstimmung)
 //   view.setUnderwater(on)                          Unterwasser-Stimmung: true/false erzwingt, 'auto' erkennt selbst
 //                                                   (Thema mit `underwater`); view.underwater → bool (view/mood.js)
@@ -34,6 +36,7 @@ import { CameraRig } from './CameraRig.js';
 import { ViewMood } from './mood.js';
 import { ViewCulling } from './Culling.js';
 import { poolLod } from './lod.js';
+import { ShadowProxies } from './ShadowProxy.js';
 
 const SHADOW_R = 22;
 const MAX_LANTERNS = 4;
@@ -76,6 +79,7 @@ export class CourseView {
     // sie zum Vergleich ab (tests/course_perf.mjs COMPARE=1) – das Bild muss gleich bleiben
     this.optimize = new URLSearchParams(window.location.search).get('optimize') !== '0';
     this.culling = new ViewCulling(this);
+    this.proxies = new ShadowProxies(this);
     this.shadows = new BlobShadows(this);
     this.effects = new CourseEffects(this);
     // Stimmungen/Unterwasser (Bausteine Welt 3): nur bei Themen mit moods/underwater, sonst erst beim ersten Aufruf
@@ -148,6 +152,9 @@ export class CourseView {
     return p;
   }
 
+  /** Schatten-Stellvertreter für eine Figur aus vielen starren Teilen (view/ShadowProxy.js). */
+  shadowProxy(root) { this.proxies.add(root); }
+
   /** Stimmung des Themas (theme.moods[name]; null = Grundstimmung) weich überblenden. */
   setMood(name, opts) { return (this.mood ??= new ViewMood(this)).setMood(name, opts); }
 
@@ -194,6 +201,7 @@ export class CourseView {
     this.effects.update(dt);
     this.renderer.setClearColor(this.mood?.clear ?? this.theme.background, 1);
     if (this.static.built && this.static.pending) this.static.build();   // spätes addStatic (Haken, Laufzeit)
+    this.proxies.update();
     this.culling.begin();
     for (const p of this.pools.values()) p.flush?.(this.culling);
     this.renderer.render(this.three, this.camera);
@@ -225,6 +233,7 @@ export class CourseView {
     window.removeEventListener('resize', this.onResize);
     for (const p of this.pools.values()) p.dispose();
     this.pools.clear();
+    this.proxies.dispose();
     this.static.dispose();
     this.shadows.dispose();
     this.effects.dispose();

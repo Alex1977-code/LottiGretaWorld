@@ -38,6 +38,7 @@ if (!THREE.Mesh.prototype.__kursCulling) {
   THREE.Mesh.prototype.intersectsFrustum = function (frustum) {
     const c = ACTIVE;
     if (!c) return base.call(this, frustum);
+    if (this.shadowProxied && frustum === c.sunFrustum) return false;   // Schatten zeichnet der Stellvertreter (ShadowProxy.js)
     if (this.cullBox) return c.boxTest(this, frustum);
     if (!base.call(this, frustum)) return false;
     if (frustum !== c.sunFrustum || !c.shadowCull) return true;
