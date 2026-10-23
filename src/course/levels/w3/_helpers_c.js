@@ -589,9 +589,11 @@ export function facade(level, o) {
 /**
  * Räume einzeln zeichnen (Teleport-Level wie 3-3): rooms = [[xMin, xMax], …] (getrennte x-Bereiche). Je Bild werden
  * statische Abschnitts-Meshes (Mitte ihres Umrisses) und Gegner-/Gimmick-Modelle (Lage der Entität) in einem anderen
- * Raum als die Figur ausgeblendet (ihr Schatten ebenso); beim Zurückkehren erscheinen sie wieder. Nur Darstellung.
+ * Raum als die Figur ausgeblendet (ihr Schatten ebenso); beim Zurückkehren erscheinen sie wieder. o.far = { kind: m }:
+ * diese Modelle auch im selben Raum erst ab m Nähe zeigen (Spuke tauchen auf, wenn man näher kommt). Nur Darstellung.
  */
-export function roomCull(level, rooms) {
+export function roomCull(level, rooms, o = {}) {
+  const far = o.far ?? {};            // { kind: m } – diese Modelle weiter als m von der Figur nicht zeichnen
   const v = level.view;
   if (!v) return;
   const roomOf = (x) => rooms.findIndex(([a, b]) => x >= a && x <= b);
@@ -614,7 +616,8 @@ export function roomCull(level, rooms) {
       const root = e.model?.root;
       if (!root) continue;
       const r = roomOf(e.pos.x);
-      const away = cur >= 0 && r >= 0 && r !== cur && !e.removed;
+      const lim = far[e.kind];
+      const away = !e.removed && ((cur >= 0 && r >= 0 && r !== cur) || (lim > 0 && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > lim));
       if (away) { if (root.visible) { root.visible = false; hidden.add(e); } }
       else if (hidden.has(e)) { root.visible = true; hidden.delete(e); }
     }

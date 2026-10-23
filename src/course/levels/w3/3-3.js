@@ -236,8 +236,10 @@ export const LEVEL = {
   // Level-Haken: Räume getrennt zeichnen (Teleport-Räume liegen nebeneinander in x); Geister werfen keinen Schatten
   // (nur den Blob am Boden – passt zu Gespenstern und spart den Schattenpass)
   setup: (level) => {
-    roomCull(level, ROOMS);
+    roomCull(level, ROOMS, { far: { spuk: 17, kreisgeist_kreis: 26, kreisgeist: 22 } });
     for (const e of level.entities) if (GHOSTS.has(e.kind)) e.model?.root.traverse((m) => { if (m.isMesh) m.castShadow = false; });
+    // Spuk-Treppen (viele Stufen, oft halb versunken) ohne Sonnenschatten – Budget
+    for (const o of level.view?.three.children ?? []) if (o.name === 'modell:spuk_treppe') o.traverse((m) => { if (m.isMesh) m.castShadow = false; });
   },
   camera: [
     // A Spukflur
@@ -351,7 +353,6 @@ export const LEVEL = {
     // A
     line([0, Y + 0.6, 4], [0, Y + 0.6, -3], 4),
     line([0, Y + 0.6, -7], [0, Y + 0.6, -23], 6),
-    ring([0, Y + 3.6, -14], 1.4, 6),
     line([-4, Y + 7.3, -12], [-4, Y + 7.3, -18], 3),
     // D
     ring([-60, Y + 3, 45.4], 1.2, 5),
@@ -371,7 +372,7 @@ export const LEVEL = {
     line([180, Y + 5.4, -146.6], [180, Y + 7.8, -149.4], 3),
     // F
     line([232, Y + 0.6, -167], [238, Y + 0.6, -167], 3),
-    line([240, Y + 0.6, -182], [240, Y + 0.6, -189.6], 5),
+    line([240, Y + 0.6, -182.4], [240, Y + 0.6, -189.2], 4),
     line([240, Y + 0.6, -201], [240, Y + 0.6, -204], 3),
   ],
   checkpoint: { pos: [65.5, Y, -46.6], yaw: Math.PI / 2 },
