@@ -13,7 +13,8 @@
 //                                    Fahrt: Sprung auf die Plattform mit drei Zeit-Uhren und Röhre → Fallraum (Stern 1).
 //   3  Wasserfall    (z −112 … −187) Tafel 4 fährt hinter dem Wasserfall entlang und durch die Felsgasse zum
 //                                    Umstieg; Tafel 5: an der Weiche nach links kippen → Seitenast unter der Felsnase
-//                                    (ducken!) mit Stern 2, dann zurück aufs Hauptgleis (Funkenläufer auf der rechten Spur).
+//                                    (ducken!) mit Stern 2, dann zurück aufs Hauptgleis (Funkenläufer auf der rechten Spur);
+//                                    Schaltblöcke an beiden Enden kehren das Netz um (zurück zum Seitenast).
 //   4  Ziel          (z −187 … −237) Tafel 6: geradeaus zur Zielinsel (Laubhügel, Zielmast); ganz rechts die
 //                                    Diagonalschiene zu Stern 3, von dort links hinab auf die tiefere Plattform mit dem
 //                                    Stempel und über die Holzbrücke hinauf zur Zielinsel.
@@ -163,6 +164,9 @@ export const LEVEL = {
     rail('n5', [[13, -142.4], [13, -186]]),
     rail('n5', [[13, -148], [10, -152], [7.5, -156], [7.5, -166], [10, -170], [13, -174]]),
     board('t5', 'n5', 13, -144),
+    // Schaltblock-Netz: an beiden Enden kehrt ein Schaltblock Netz 5 um (zurückfahren, den Seitenast nachholen)
+    { type: 'schaltblock', id: 'sb5a', pos: [13, T + 2.75, -142.9], net: 'n5' },
+    { type: 'schaltblock', id: 'sb5b', pos: [13, T + 2.75, -185.9], net: 'n5' },
 
     // ======================================================== 4  Ziel
     land(7, 19, -187.6, -195),

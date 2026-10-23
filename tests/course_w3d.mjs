@@ -150,6 +150,10 @@ const ROUTES = {
       { name: 'Ohne Neigung fährt Tafel 3 zurück zum Anfang (Schaltblock am Start hilft)', from: [0, 1, -57.6], heroes: ['lotti'],
         legs: [{ to: [0, -58], within: 0.3, run: false }, { ride: 't3', off: [0, 0], until: 'stopped', max: 3000 }, { hop: 22 }, { wait: 20 },
           { ride: 't3', off: [0, 0], until: 'stopped', max: 4000 }, { expect: 't3amStart' }] },
+      { name: 'Schaltblock-Netz 5: am Ende umkehren, rückwärts in den Seitenast, Stern 2', from: [13, 1, -139], heroes: ['lotti'], star: 1,
+        legs: [{ to: [13, -144], within: 0.3, run: false }, { ride: 't5', off: [0, 0], until: { axis: 'z', lt: -149.6 }, max: 2000 },
+          { ride: 't5', off: [-0.9, 0], until: 'stopped', max: 4000 }, { to: [13, -185.9], within: 0.2, run: false }, { hop: 22 }, { wait: 20 },
+          { ride: 't5', off: [-1.2, 0], until: { axis: 'z', gt: -171.5 }, max: 3000 }, { ride: 't5', off: [0, 0], until: { axis: 'z', gt: -150 }, crouchZ: [-157, -166.5], max: 4000 }] },
     ],
     shots: [
       ['start', [0, 1, 8]],
@@ -550,6 +554,7 @@ for (const id of LEVELS) {
       if (t.expectCoins !== undefined) ok = ok && res.rt.coins - coins0 >= t.expectCoins;
       if (t.expectLives !== undefined) ok = ok && lives1 - lives0 >= t.expectLives;
       if (t.expectTime !== undefined) ok = ok && res.rt.time >= t.expectTime;
+      if (t.star !== undefined) ok = ok && !!res.rt.stars[t.star];
       if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
       check(`${id}: ${t.name} (${hero}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}, Zeit ${res.rt.time})`, ok);
