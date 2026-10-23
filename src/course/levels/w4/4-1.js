@@ -121,9 +121,9 @@ function setup(level) {
 
   // ---------------- Budget: Instanz-Gruppen nur nahe und im Bild; ferne Abschnitte aus
   cullInstances(level, {
-    'instanzen:ameisensoldat': { far: 36, radius: 1.2 },
-    'instanzen:ameisensoldat_horn': { far: 36, radius: 1.2 },
-    'instanzen:riesenameise': { far: 44, radius: 3 },
+    'instanzen:ameisensoldat': { far: 34, radius: 1.2, shadowNear: 14 },
+    'instanzen:ameisensoldat_horn': { far: 34, radius: 1.2, shadowNear: 14 },
+    'instanzen:riesenameise': { far: 44, radius: 3, shadowNear: 18 },
     coin: { far: 40, radius: 0.8, shadow: false },
   });
   cullStatic(level);
@@ -279,8 +279,8 @@ export const LEVEL = {
     // Extraleben: unsichtbarer Block über dem großen Ameisenhügel
     { kind: 'hidden', pos: [-7, Y + 4.4, 0], content: 'oneup' },
     // gleich nach der Höhle: Krallen-Anzug für die Kletterwand
-    { kind: 'question', pos: [-4.6, Y + 2.4, -100.6], content: 'krallenAnzug' },
-    { kind: 'brick', pos: [-3.6, Y + 2.4, -100.6], content: 'coins:3' },
+    { kind: 'question', pos: [-4.6, Y + 2, -100.6], content: 'krallenAnzug' },
+    { kind: 'brick', pos: [-3.6, Y + 2, -100.6], content: 'coins:3' },
     // Checkpoint: Wachstumsbeere
     { kind: 'question', pos: [2.4, Y + 2.4, -109], content: 'wachstumsbeere' },
     // Stachelfeld-Vorplatz

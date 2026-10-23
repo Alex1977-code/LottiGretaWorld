@@ -673,35 +673,41 @@ export function creeperInstances(level, o = {}) {
  * sonst jedes Bild alle Instanzen – auch im Schattenpass. Hier bekommt jede passende InstancedMesh (Name in rules) einen
  * „Spiegel“ mit derselben Geometrie und demselben Material, der je Bild nur die Instanzen enthält, die näher als
  * far m an der Figur liegen und in der Sichtpyramide der Kamera (Kugel radius); das Original wird nicht gezeichnet
- * (es rechnet weiter, die Gegner-Logik bleibt unberührt). shadow: false → der Spiegel wirft keinen Sonnenschatten.
- * rules = { name: { far, radius, shadow } }. Liefert stats { drawn: { name: n } } (Tests). Nur Darstellung.
+ * (es rechnet weiter, die Gegner-Logik bleibt unberührt). shadow: false → der Spiegel wirft keinen Sonnenschatten;
+ * shadowNear → nur Instanzen näher als shadowNear m werfen Schatten (zweiter Spiegel für die fernen, ohne Schatten).
+ * rules = { name: { far, radius, shadow, shadowNear } }. Liefert stats { drawn: { name: n } } (Tests). Nur Darstellung.
  */
 export function cullInstances(level, rules) {
   const v = level.view;
   if (!v) return null;
-  const mirrors = new Map();   // Original → { mirror, rule, cap }
+  const mirrors = new Map();   // Original → { near, far, rule, key, cap }
   const stats = { drawn: {} };
   const M = new THREE.Matrix4(), F = new THREE.Frustum(), S = new THREE.Sphere();
   let scanT = 0;
+  const make = (m, key, tag) => {
+    const im = new THREE.InstancedMesh(m.geometry, m.material, m.instanceMatrix.count);
+    im.frustumCulled = false;
+    im.count = 0;
+    im.name = `${key}:${tag}`;
+    im.userData.cullMirror = true;
+    im.receiveShadow = m.receiveShadow;
+    im.renderOrder = m.renderOrder;
+    v.three.add(im);
+    return im;
+  };
   const scan = () => {
     v.three.traverse((m) => {
       if (!m.isInstancedMesh || m.userData.cullMirror || mirrors.has(m)) return;
       const key = m.name || m.parent?.name || '';
       const rule = rules[key];
       if (!rule) return;
-      const im = new THREE.InstancedMesh(m.geometry, m.material, m.instanceMatrix.count);
-      im.frustumCulled = false;
-      im.count = 0;
-      im.name = `${key}:nah`;
-      im.userData.cullMirror = true;
-      im.receiveShadow = m.receiveShadow;
-      im.renderOrder = m.renderOrder;
-      v.three.add(im);
-      mirrors.set(m, { mirror: im, rule, key, cap: m.instanceMatrix.count });
+      // nahe Instanzen (mit Sonnenschatten) und ferne (ohne) in zwei Spiegeln
+      mirrors.set(m, { near: make(m, key, 'nah'), far: rule.shadowNear ? make(m, key, 'fern') : null, rule, key, cap: m.instanceMatrix.count });
     });
   };
   scan();
   const visible = (m) => { for (let q = m.parent; q; q = q.parent) if (!q.visible) return false; return true; };
+  const drop = (rec) => { for (const im of [rec.near, rec.far]) if (im) { im.removeFromParent(); im.dispose(); } };
   v.onFrame((dt) => {
     scanT += dt;
     if (scanT > 0.5) { scanT = 0; scan(); }
@@ -710,30 +716,33 @@ export function cullInstances(level, rules) {
     F.setFromProjectionMatrix(M.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
     for (const k of Object.keys(stats.drawn)) stats.drawn[k] = 0;
     for (const [m, rec] of mirrors) {
-      const { mirror, rule } = rec;
+      const { near, far, rule } = rec;
       if (!m.parent || m.instanceMatrix.count !== rec.cap) {
         // entfernt oder Pool gewachsen (neue InstancedMesh): Spiegel verwerfen, scan() legt ihn neu an
-        mirror.removeFromParent(); mirror.dispose(); mirrors.delete(m); scanT = 1; continue;
+        drop(rec); mirrors.delete(m); scanT = 1; continue;
       }
       const on = visible(m);
       m.visible = false;
-      let n = 0;
+      let n = 0, nf = 0;
       if (on) {
-        const a = m.instanceMatrix.array, b = mirror.instanceMatrix.array, far = rule.far ?? 40, r = rule.radius ?? 1.5;
+        const a = m.instanceMatrix.array, b = near.instanceMatrix.array, bf = far?.instanceMatrix.array;
+        const fd = rule.far ?? 40, r = rule.radius ?? 1.5, sn = rule.shadowNear ?? Infinity;
         for (let i = 0; i < m.count; i++) {
           const o16 = i * 16;
           if (a[o16] === 0 && a[o16 + 5] === 0 && a[o16 + 10] === 0 && a[o16 + 1] === 0) continue;
           const x = a[o16 + 12], y = a[o16 + 13], z = a[o16 + 14];
-          if (p && Math.hypot(x - p.pos.x, z - p.pos.z) > far) continue;
+          const d = p ? Math.hypot(x - p.pos.x, z - p.pos.z) : 0;
+          if (d > fd) continue;
           S.center.set(x, y, z); S.radius = r;
           if (!F.intersectsSphere(S)) continue;
-          for (let k = 0; k < 16; k++) b[n * 16 + k] = a[o16 + k];
-          n++;
+          if (far && d > sn) { for (let k = 0; k < 16; k++) bf[nf * 16 + k] = a[o16 + k]; nf++; }
+          else { for (let k = 0; k < 16; k++) b[n * 16 + k] = a[o16 + k]; n++; }
         }
       }
-      mirror.count = n; mirror.visible = n > 0; mirror.instanceMatrix.needsUpdate = true;
-      mirror.castShadow = rule.shadow !== false && m.castShadow;
-      stats.drawn[rec.key] = (stats.drawn[rec.key] ?? 0) + n;
+      near.count = n; near.visible = n > 0; near.instanceMatrix.needsUpdate = true;
+      near.castShadow = rule.shadow !== false && m.castShadow;
+      if (far) { far.count = nf; far.visible = nf > 0; far.castShadow = false; far.instanceMatrix.needsUpdate = true; }
+      stats.drawn[rec.key] = (stats.drawn[rec.key] ?? 0) + n + nf;
     }
   });
   level.instanceCull = stats;

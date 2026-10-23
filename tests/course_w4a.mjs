@@ -35,13 +35,13 @@ const ROUTES = {
       { name: 'Kolonne queren', to: [-1.2, -26.6], jump: 30, jumpAt: 3.4 },
       { name: 'Spalte', to: [0, -34.4], jump: 34, jumpAt: 4.6 },
       { name: 'Höhle', to: [-3, -43.6] },
-      { name: 'Warteplatz Ameisenwand', to: [-2.3, -46.9], within: 0.25, run: false },
-      { name: 'Ameise an der Wand', board: ['w1a', 'w1b', 'w1c'], wait: [-2.3, -46.9], fy: [Y + 0.4, Y + 1.6], wall: true, reach: 3.2 },
+      { name: 'Warteplatz Ameisenwand', to: [-0.86, -48.62], within: 0.15, run: false },
+      { name: 'Ameise an der Wand', board: ['w1b'], wait: [-0.86, -48.62], face: [0, 0, 1], fy: [Y + 0.25, Y + 0.9], reach: 1.6 },
       { name: 'hinauf getragen', ride: true, top: Y + 6.3 },
       { to: [null, -50.4], within: 0.25, run: false, rel: true },
       { name: 'hinab', to: [-3, -54], run: false },
-      { name: 'Fähre', to: [-4.9, -60.6], within: 0.25, run: false },
-      { name: 'Ameise an der Seitenwand', board: ['faehre_l'], wait: [-4.9, -60.6], fy: [Y + 0.3, Y + 0.6], zr: [-59.6, -62.4], sdir: 1, reach: 2.6 },
+      { name: 'Fähre', to: [-5.7, -61.2], within: 0.2, run: false },
+      { name: 'Ameise an der Seitenwand', board: ['faehre_l'], wait: [-5.7, -61.2], fy: [Y + 0.3, Y + 0.6], sdir: 1, near: [0.9, 2.2], reach: 2.4, steerAt: 6 },
       { name: 'über die Schlucht getragen', ride: true, z: -77.2 },
       { name: 'abspringen', to: [-4, -79.4], jump: 16, within: 0.4 },
       { name: 'Ausgang', to: [0, -97] },
@@ -57,22 +57,23 @@ const ROUTES = {
       { name: 'aufs Endsims', to: [-4.6, -215.8], jump: 30, within: 0.5 },
       { name: 'Zielröhre', to: [3.2, -219.6], jump: 30, within: 0.25, run: false },
       { crouch: 4 },
-      { name: 'Zielmast', to: [0, -249.4], within: 0.2 },
+      { name: 'Zielmast', to: [0, -250.8], within: 0.2 },
     ],
     targets: [
       { name: 'Stern 0: Krallen-Anzug, Kletterwand hinauf zum Sims', star: 0, from: [-2, Y, -98.6],
-        legs: [{ to: [-4.6, -100.6], within: 0.15, run: false }, { hop: 20 }, { wait: 60 }, { chaseKind: 'powerup', max: 900 }, { expect: 'krallen' },
+        legs: [{ to: [-4.6, -100.6], within: 0.12, run: false, slow: 0.5 }, { wait: 30 }, { hop: 20 }, { wait: 60 }, { to: [-8.4, -100.6], within: 0.3, run: false },
+          { to: [-4.6, -100.6], jump: 34, jumpAt: 2.9, within: 0.35, run: false }, { wait: 10 }, { expect: 'krallen' },
           { to: [-9.2, -101.8], within: 0.3, run: false }, { push: 220, jump: 12, dir: [0, -1] }, { to: [-9.2, -106.4], within: 0.4, run: false }, { star: 0 }], shot: 'stern0' },
       { name: 'Stern 0 nicht ohne Krallen (Rückwärtssalto vor der Wand)', star: 0, expectNot: true, from: [-9.2, Y, -101.2], heroes: ['lotti'],
         legs: [{ to: [-9.2, -102.2], within: 0.2, run: false }, { push: 220, jump: 40, dir: [0, -1] }, { wait: 60 }] },
       { name: 'Stern 1: Riesenameise → Felsinsel → Röhre → Ameisenraum, Ameise trägt auf den Vorratsturm', star: 1, from: [5.2, Y, -157.3],
         legs: [{ giant: [5.2, -157.3] }, { onDeck: true, z: -180.2 }, { to: [-6.1, -182], jump: 30, within: 0.3, run: false }, { crouch: 4 }, { expect: 'raum' },
-          { to: [68.6, -185.2], within: 0.25, run: false }, { board: ['vorrat1', 'vorrat2'], wait: [68.6, -185.2], fy: [Y + 0.4, Y + 1.8], wall: true, reach: 3.2 },
+          { to: [68.54, -186.65], within: 0.15, run: false }, { board: ['vorrat1'], wait: [68.54, -186.65], face: [0, 0, 1], fy: [Y + 0.25, Y + 0.9], reach: 1.6 },
           { ride: true, top: Y + 6.1 }, { star: 1 }], shot: 'stern1', mech: { carried: true, noSpikes: true } },
       { name: 'Stern 2: vom Lastdeck auf die Felssäule am Ende des Stachelfelds', star: 2, from: [5.2, Y, -157.3],
         legs: [{ giant: [5.2, -157.3] }, { onDeck: true, z: -198.8 }, { to: [3.4, -201.5], jump: 30, within: 0.35, run: false }, { wait: 20 }, { star: 2 }], shot: 'stern2', mech: { noSpikes: true } },
       { name: 'Stempel: Ameise trägt den Stempelturm hinauf', stamp: true, from: [0, Y, -52.6],
-        legs: [{ to: [2.2, -55.2], within: 0.25, run: false }, { board: ['turm1', 'turm2'], wait: [2.2, -55.2], fy: [Y + 0.4, Y + 1.6], wall: true, reach: 3.4 },
+        legs: [{ to: [3.05, -57.12], within: 0.15, run: false }, { board: ['turm1'], wait: [3.05, -57.12], face: [0, 0, 1], fy: [Y + 0.25, Y + 0.9], reach: 1.6 },
           { ride: true, top: Y + 10.4 }, { to: [4.5, -58.5], within: 0.3, run: false, slow: 0.5 }, { hop: 30 }, { wait: 20 }], shot: 'stempel', mech: { carried: true } },
     ],
     extra: [
@@ -251,15 +252,16 @@ function install() {
             let a = null;
             for (const e of ants) {
               if (!e.alive || e.defeated || e.removed || e.boxId === null) continue;
-              if (Lg.wall && !e.onWall) continue;
+              if (Lg.face && e.normal.x * Lg.face[0] + e.normal.y * Lg.face[1] + e.normal.z * Lg.face[2] < 0.9) continue;
               if (e.foot.y < Lg.fy[0] || e.foot.y > Lg.fy[1]) continue;
               if (Lg.sdir && e.sdir !== Lg.sdir) continue;
               if (Lg.zr && (e.foot.z > Lg.zr[0] || e.foot.z < Lg.zr[1])) continue;
-              if (Lg.wall && Lg.sdir === undefined && e.normal.y < -0.1) continue;
               const cx = (e.box.min.x + e.box.max.x) / 2, cz = (e.box.min.z + e.box.max.z) / 2;
-              if (Math.hypot(cx - p.pos.x, cz - p.pos.z) > (Lg.reach ?? 2.8)) continue;
-              // Ameise muss sich hinauf (bzw. auf der Bahn weg vom Startpunkt) bewegen
-              if (Lg.wall && (e.mover?.vy ?? 0) < 0.2) continue;
+              const d = Math.hypot(cx - p.pos.x, cz - p.pos.z);
+              if (d > (Lg.reach ?? 2.8)) continue;
+              // an der Wand: Ameise steigt; auf der Bahn: Ameise kommt auf die Figur zu (Abstand near)
+              if (Lg.face && Math.abs(Lg.face[1]) < 0.5 && Lg.up !== false && (e.mover?.vy ?? 0) < 0.2) continue;
+              if (Lg.near && (d < Lg.near[0] || d > Lg.near[1] || ((p.pos.x - cx) * (e.mover?.vx ?? 0) + (p.pos.z - cz) * (e.mover?.vz ?? 0)) < 0)) continue;
               a = e; break;
             }
             if (!a) { tick({}); continue; }
@@ -268,7 +270,7 @@ function install() {
             let j = 0, left = false;
             for (; j < 220; j++) {
               const cx = (a.box.min.x + a.box.max.x) / 2, cz = (a.box.min.z + a.box.max.z) / 2;
-              const rising = p.vel.y > (Lg.steerAt ?? 2.5);
+              const rising = p.vel.y > (Lg.steerAt ?? 6);
               const st = p.mode === 'air' && !rising ? this.airSteer(cx, cz, a.mover?.vx ?? 0, a.mover?.vz ?? 0) : { x: 0, y: 0 };
               tick({ ...st, jump: j < 30, run: false });
               if (p.mode === 'air') left = true;
