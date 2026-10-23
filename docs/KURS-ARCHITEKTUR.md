@@ -1250,19 +1250,31 @@ Statische Kulisse Welt 2: 51 Kachel-Meshes, ≈ 207 k Dreiecke. Welt 1 unveränd
   `snowfall: { count }` (Schneeflocken um den Blickpunkt, ein Punkte-Objekt). Geländestile `snow`|`snowhill`|`forest`|
   `cliff` (Eiszapfen vorn)|`peak`|`ice` (mit `ice: true` rutschig wie im Level)|`lakebed` (Seegrund, das Meer ist der
   See)|`snowbeach`|`pastel`|`autumn`|`paving`|`asphalt` (`grid` = Startfelder)|`spook`; Ränder `edges.hedge`
-  `'snow'|'mint'|'autumn'`, `fence: 'snowfence'`; Baustein `snowstairs` (sparsame Stufen, nur Karte).
+  `'snow'|'mint'|'autumn'`, `fence: 'snowfence'`; Bausteine `snowstairs` (sparsame Stufen) und `snowbridge` (Holzbrücke
+  mit Schnee, Kollision wie `bridge`, ≈ 15 % der Dreiecke), beide nur Karte. Neue Requisiten u. a. `stall`, `fountain`,
+  `tomb`, `spookfence`, `snowangel`, `footprints`, `rowboat`, `skates`, `curling`, `bigfir`, `igloo_lo`, `snowman_lo`.
+- Kacheln je Karte: `batch: { tile, origin: [x, z], freeTile, freeOrigin }` (MapBatcher; ohne Angabe wie bisher 32 m ab 0).
+  Welt 3: 32 m ab (16, 16), Teile ohne Schattenwurf (Schneedecken, Wege, Ränder) in 64-m-Kacheln – sie fehlen im
+  Schattenpass, große Kacheln sparen Zeichenaufrufe im Weitblick. `addStatic(g, { tile: 'name' })` legt Teile in eine
+  benannte Kachel (Welt 3: Eisschollen und Inselchen je 96-m-Meeressektor, ohne Schattenwurf).
 - Eingänge: `kind` `snowfield`|`skyladder`|`spookhouse`|`kapitaen`|`pavilion`|`redfortress` (`cage`, `podests`)|
   `lagoon` (`wreck`, `buoy`)|`racehill` (`road` = begehbare Rennrampe, `barriers`, `tires`, `flags`)|`circustent`
   (`ropeway` mit fahrender Gondel, `bunting`, `booth`)|`autumnfalls` (`waterfall`, `pool`, `rail` mit fahrender
   Schalttafel)|`station` (`train`, `canopy`, `lamps`, `benches`). `appear: true` (3-Kapitän): Eingang samt Kulisse
-  verborgen, bis sein Weg frei ist; beim Schranken-Schwenk taucht er aus dem See auf (`state().entrances[id].hidden`).
+  verborgen, bis sein Weg frei ist; beim Schranken-Schwenk taucht er aus dem See auf (`state().entrances[id].hidden`;
+  am Ende der Kamerapause `settleReveal()`, damit die Endlage auch bei wenigen gezeichneten Bildern stimmt).
   `disc`: kürzere Aufschrift der Nummernscheibe. Gegnergruppe: `anims` (Modell ohne Laufanimation, z. B.
   `{ walk: 'idle', idle: 'cast' }`), `castShadow: false` (nur Schatten-Blob).
 - Glasröhre nach Welt 4 frei nach dem Weltboss `3-B` (Bauplan: Röhre nach dem Weltboss), ohne Karte „Bald“. Die
   Welt-2-Röhre `W3` fährt jetzt übers Meer nach Nordosten zur Schneeinsel am Horizont (`neighbors` Stil `'snow'`).
-- Sterne: Die Welt-3-Tabelle ergibt 31 Sterne (8 × 3 + 5 + 1 + 1); der Satz „Welt 3 hat 32 Sterne“ oben passt nicht dazu
-  – die Karte zählt nach der Tabelle.
+- Sterne: Die Welt-3-Tabelle ergibt 31 Sterne (8 × 3 + 5 + 1 + 1); der Satz „Welt 3 hat 32 Sterne“ unter der Tabelle
+  („Welt 3 – Level-Liste“) passt nicht dazu – die Karte zählt nach der Tabelle. Vor den Sternschranken stehen Schilder
+  „ab 35 ★“, „ab 45 ★“, „ab 55 ★“.
 - Test: `tests/course_map_w3.mjs` (Port 4230, Bilder `tests/out/cmap3_*.png`).
+
+Gemessen (scale 2, `tests/course_map_w3.mjs`): Kartenansichten Welt 3 68–97 Zeichenaufrufe inkl. Schattenpass,
+143–266 k Dreiecke; Ankunft durch die Glasröhre 79–103 / 197–242 k, Anflug 106 / 270 k (Budget 120 / 300 k).
+Statische Kulisse Welt 3: 51 Kachel-Meshes, ≈ 192 k Dreiecke, 406 Kollisionsformen.
 
 ---
 
