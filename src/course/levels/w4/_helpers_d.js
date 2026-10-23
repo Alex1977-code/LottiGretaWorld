@@ -147,7 +147,7 @@ export function glowPoints(level, pts, color, size, o = {}) {
  * (Matrizen aus dem animierten Modell), die Einzelteile sind für dieses Bild unsichtbar und werden nach dem Zeichnen
  * (scene.onAfterRender) wieder sichtbar. Teile mit eigenem Material je Exemplar (Glut, Funken, Schein) zeichnen wie
  * bisher. Anders als instanceEnemies auch für Gegner mit gemischten Materialien und für später erzeugte Gegner
- * (Lavaschlot, Endgegner). Nur Darstellung.
+ * (Lavaschlot, Endgegner). o.near: nur Gegner bis zu so vielen Metern (z) von der Figur. Nur Darstellung.
  */
 export function teileInstanzen(level, kinds, o = {}) {
   if (!level.view) return null;
@@ -178,8 +178,10 @@ export function teileInstanzen(level, kinds, o = {}) {
   const cand = new Map();
   level.view.onFrame(() => {
     cand.clear();
+    const pl = level.player;
     for (const e of level.entities) {
       if (!want.has(e.kind) || e.removed || !e.model?.root) continue;
+      if (o.near && pl && Math.abs(e.pos.z - pl.pos.z) > o.near) continue;   // weit weg (anderer Raum): nicht instanzieren
       const root = e.model.root;
       if (!root.visible || !root.parent) continue;
       let list = cache.get(e);
@@ -1435,7 +1437,7 @@ function uvQuad(acc, x, y, z, w, h, face, uv) {
 }
 
 /** Fußböden (Vertexfarben, je Raum ein Stil): Rechteck [x0, x1, zA, zB] auf Höhe y. */
-function bodenG(style, x0, x1, za, zb, y, rnd) {
+function bodenG(style, x0, x1, za, zb, y, rnd, color = 0xd8a868) {
   const z0 = Math.min(za, zb), z1 = Math.max(za, zb);
   const pos = [], col = [];
   const cell = (ax, bx, az, bz, c) => { const q = [[ax, az], [ax, bz], [bx, bz], [bx, az]]; for (const k of [0, 1, 2, 0, 2, 3]) { pos.push(q[k][0], y + 0.008, q[k][1]); col.push(c[0], c[1], c[2]); } };
@@ -1450,6 +1452,8 @@ function bodenG(style, x0, x1, za, zb, y, rnd) {
     terrakotta: () => { const a = L(0xd07a4a), b = L(0xb8643a), c2 = L(0xe08a5a); grid(1, 1, (i, j) => [a, b, c2][(i * 5 + j * 2) % 3]); },
     stein: () => { const a = L(0x9a8ea0), b = L(0x8a7e92); grid(1.2, 0.9, (i, j) => ((i + j) & 1 ? b : a)); },
     teppich: () => { const a = L(0x2a8a6a), b = L(0x247a5c); grid(1, 1, (i, j) => ((i + j) & 1 ? b : a)); },
+    uni: () => { const a = L(color), b = [a[0] * 0.92, a[1] * 0.92, a[2] * 0.92]; grid(1, 1, (i, j) => ((i + j) & 1 ? b : a)); },
+    laeufer: () => { const a = L(0xa8182a), b = L(0xd8a83a); grid((x1 - x0) / 7, 1, (i) => (i === 0 || i === 6 ? b : a)); },
   };
   (S[style] ?? S.holz)();
   const g = new THREE.BufferGeometry();
@@ -1469,7 +1473,7 @@ const HAUSRAT = {
   ball(o) { return { p: [sph(o.r ?? 0.3, 0, o.r ?? 0.3, 0, o.color ?? 0xff5a5a, { ws: 12, hs: 8 }), cyl((o.r ?? 0.3) * 1.01, (o.r ?? 0.3) * 1.01, 0.08, 0, (o.r ?? 0.3) - 0.04, 0, 0xffffff, 12, { open: true })], s: [] }; },
   kaktus(o) { const S = o.size ?? 1; return { p: [cyl(0.28 * S, 0.22 * S, 0.4 * S, 0, 0, 0, 0xc86a3a, 8), cyl(0.14 * S, 0.16 * S, 1.2 * S, 0, 0.35 * S, 0, 0x4fae5a, 8), cyl(0.08 * S, 0.08 * S, 0.4 * S, -0.22 * S, 0.8 * S, 0, 0x4fae5a, 6), cyl(0.08 * S, 0.08 * S, 0.35 * S, 0.22 * S, 0.95 * S, 0, 0x4fae5a, 6), sph(0.08 * S, 0, 1.6 * S, 0, 0xff6a8a)], s: [[-0.28 * S, 0, -0.28 * S, 0.28 * S, 1.5 * S, 0.28 * S]] }; },
   sandburg() { return { p: [blk(1.4, 0.5, 1.4, 0, 0, 0, 0xe8cc88), cyl(0.3, 0.34, 0.9, -0.5, 0, -0.5, 0xe2c47e, 8), cyl(0.3, 0.34, 0.9, 0.5, 0, -0.5, 0xe2c47e, 8), cone(0.32, 0.4, -0.5, 0.9, -0.5, 0xd8b06a, 8), cone(0.32, 0.4, 0.5, 0.9, -0.5, 0xd8b06a, 8), cyl(0.012, 0.012, 0.6, 0.5, 1.3, -0.5, 0x5a3a22, 4), blk(0.02, 0.18, 0.28, 0.5, 1.7, -0.36, 0xff4a4a)], s: [[-0.7, 0, -0.7, 0.7, 0.5, 0.7]] }; },
-  busta(o) { return { p: [blk(0.7, 1.1, 0.7, 0, 0, 0, 0xe8e0d8, { top: 0xf4f0ea }), sph(0.28, 0, 1.5, 0, o.color ?? 0xd8d0c8), blk(0.5, 0.3, 0.3, 0, 1.1, 0, o.color ?? 0xd8d0c8)], s: [[-0.35, 0, -0.35, 0.35, 1.8, 0.35]] }; },
+  buste(o) { return { p: [blk(0.7, 1.1, 0.7, 0, 0, 0, 0xe8e0d8, { top: 0xf4f0ea }), sph(0.28, 0, 1.5, 0, o.color ?? 0xd8d0c8), blk(0.5, 0.3, 0.3, 0, 1.1, 0, o.color ?? 0xd8d0c8)], s: [[-0.35, 0, -0.35, 0.35, 1.8, 0.35]] }; },
   kordel(o) { const L2 = o.len ?? 3; const p = []; for (const x of [-L2 / 2, L2 / 2]) { p.push(cyl(0.05, 0.05, 0.9, x, 0, 0, 0xd8a83a, 6), sph(0.08, x, 0.95, 0, 0xffc21a)); } p.push(cyl(0.035, 0.035, L2, 0, 0.8, 0, 0xb0182a, 6, { rz: Math.PI / 2, center: true })); return { p, s: [] }; },
   ofen() { return { p: [blk(1.6, 1.4, 1.0, 0, 0, 0, 0xc8a07a), blk(1.0, 0.6, 0.06, 0, 0.3, 0.5, 0x2a1a14), blk(1.7, 0.1, 1.1, 0, 1.4, 0, 0x9a7a5a), cyl(0.18, 0.2, 0.9, 0.5, 1.5, -0.2, 0x8a7a6a, 8)], s: [[-0.8, 0, -0.5, 0.8, 1.5, 0.5]], glow: [blk(0.9, 0.45, 0.04, 0, 0.36, 0.53, 0xff8a2a)] }; },
   mehl() { return { p: [sph(0.35, 0, 0.35, 0, 0xf0ead8, { sy: 1.2 }), cyl(0.14, 0.2, 0.2, 0, 0.72, 0, 0xe8e0c8, 8), blk(0.3, 0.2, 0.02, 0, 0.3, 0.33, 0x3a6ad0)], s: [] }; },
@@ -1482,6 +1486,9 @@ const HAUSRAT = {
   ruestung() { return { p: [blk(0.6, 0.3, 0.4, 0, 0, 0, 0x5a5468), cyl(0.12, 0.1, 0.9, -0.14, 0.3, 0, 0xa8b0c0, 8), cyl(0.12, 0.1, 0.9, 0.14, 0.3, 0, 0xa8b0c0, 8), cyl(0.3, 0.26, 0.8, 0, 1.15, 0, 0xb8c0d0, 10), sph(0.2, 0, 2.15, 0, 0xc8d0dc), blk(0.3, 0.06, 0.05, 0, 2.15, 0.18, 0x2a2a34), cyl(0.02, 0.02, 2.2, 0.42, 0.2, 0.1, 0x6a4a2a, 4), cone(0.08, 0.3, 0.42, 2.4, 0.1, 0xc8d0dc, 6)], s: [[-0.3, 0, -0.2, 0.3, 2.3, 0.2]] }; },
   kiste(o) { const S = o.size ?? 1; return { p: [blk(S, S * 0.8, S * 0.8, 0, 0, 0, o.color ?? 0x9a6a3e), blk(S * 1.02, 0.08, S * 0.82, 0, S * 0.55, 0, 0x6a4422)], s: [[-S / 2, 0, -S * 0.4, S / 2, S * 0.8, S * 0.4]] }; },
   truhe() { return { p: [blk(1.2, 0.6, 0.7, 0, 0, 0, 0x8a5a2e), cyl(0.35, 0.35, 1.2, 0, 0.6, 0, 0x9a6a36, 10, { rz: Math.PI / 2, center: true }), blk(0.12, 0.3, 0.06, 0, 0.45, 0.36, 0xffc21a)], s: [[-0.6, 0, -0.35, 0.6, 0.9, 0.35]] }; },
+  riesenpilz(o) { const S = o.size ?? 1, c = o.color ?? 0xe83a3a; return { p: [cyl(0.22 * S, 0.3 * S, 1.3 * S, 0, 0, 0, 0xf4ead8, 10), sph(0.9 * S, 0, 1.3 * S, 0, c, { sy: 0.55, ws: 14, hs: 8 }), ...[[0.4, 0.3], [-0.5, 0.1], [0.05, -0.55], [-0.15, 0.5]].map(([x, z]) => sph(0.15 * S, x * S, 1.62 * S, z * S, 0xffffff, { sy: 0.5 }))], s: [[-0.3 * S, 0, -0.3 * S, 0.3 * S, 1.3 * S, 0.3 * S]] }; },
+  stange(o) { const h = o.h ?? 3; const p = []; for (let k = 0; k < Math.ceil(h / 0.5); k++) p.push(cyl(0.08, 0.08, Math.min(0.5, h - k * 0.5), 0, k * 0.5, 0, k % 2 ? 0xffffff : 0xd8283a, 8)); p.push(sph(0.14, 0, h + 0.1, 0, 0xffc21a)); return { p, s: [] }; },
+  eimer(o) { return { p: [cyl(0.26, 0.2, 0.42, 0, 0, 0, o.color ?? 0x3a8aff, 10), cyl(0.27, 0.27, 0.04, 0, 0.4, 0, 0xffffff, 10), cyl(0.04, 0.04, 0.7, 0.32, 0.05, 0, 0xffd23d, 5, { rz: 0.5 })], s: [] }; },
   spinne() { const p = []; for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI; p.push(cyl(0.008, 0.008, 1.6, 0, 0, 0, 0xe8e8f0, 3, { rz: Math.PI / 2, center: true })); p[p.length - 1].rotateY(a); } p.push(sph(0.08, 0, 0, 0, 0x2a2a2a)); return { p, s: [] }; },
 };
 
@@ -1499,7 +1506,7 @@ export function hausRaum(level, r, shared, clocks) {
   const rnd = new Rnd(Math.floor(-z0) + 17);
   const parts = [], glow = [], flat = [];
   // Böden (Insel-Körper bauen die LEVEL-Segmente; hier nur die Oberflächen-Muster)
-  for (const f of r.floors ?? []) flat.push(bodenG(f.style, f.x0, f.x1, zA(f.u0), zA(f.u1), f.y ?? y, rnd));
+  for (const f of r.floors ?? []) flat.push(bodenG(f.style, f.x0 ?? x0, f.x1 ?? x1, zA(f.u0), zA(f.u1), f.y ?? y, rnd, f.color));
   // Wände: links, rechts, hinten (Kollision im Level: walls), Täfelung 1 m, Leiste, Tapete darüber
   const wood = r.wood ?? 0x8a5a3a;
   const wy0 = y - (r.pit ? 9 : 0.4);
@@ -1511,6 +1518,8 @@ export function hausRaum(level, r, shared, clocks) {
     parts.push(blk(0.18, 0.14, zLen, sx * (W / 2 - 0.09), y + H - 0.14, zMid, 0xf0e0c8));
     if (r.pit) parts.push(blk(0.06, y - wy0, zLen, sx * (W / 2 - 0.03), wy0, zMid, 0x2a1e30));
   }
+  // Schacht: dunkler Grund tief unten (nur Optik; der Absturz endet an killY)
+  if (r.pit) parts.push(blk(W, 0.1, zLen, 0, wy0 + 2.5, zMid, 0x0e0814));
   parts.push(blk(W + 1, H - wy0 + y, 0.5, 0, wy0, zEnd - 0.25, 0x3a2a3e));
   parts.push(blk(W, 1.0, 0.1, 0, y, zEnd + 0.05, wood));
   parts.push(blk(W, 0.08, 0.16, 0, y + 1.0, zEnd + 0.08, 0xf0e0c8));
@@ -1523,9 +1532,9 @@ export function hausRaum(level, r, shared, clocks) {
       uvQuad(shared, p.x ?? 0, fy, zEnd + 0.08, fw, fh, '+z', bildUV(p.motif));
       continue;
     }
-    const sx = p.wall === 'l' ? -1 : 1;
-    parts.push(blk(0.06, fh + 0.18, fw + 0.18, sx * (W / 2 - 0.03), fy - 0.09, fz, p.frame ?? 0xc89a40));
-    uvQuad(shared, sx * (W / 2 - 0.08), fy, fz, fw, fh, sx < 0 ? '+x' : '-x', bildUV(p.motif));
+    const sx = p.wall === 'l' ? -1 : 1, wx = p.at ?? W / 2;          // at: Wandebene (z. B. Stellwand), sonst Raumwand
+    parts.push(blk(0.06, fh + 0.18, fw + 0.18, sx * (wx - 0.03), fy - 0.09, fz, p.frame ?? 0xc89a40));
+    uvQuad(shared, sx * (wx - 0.08), fy, fz, fw, fh, sx < 0 ? '+x' : '-x', bildUV(p.motif));
   }
   // kleine Wanduhren (Zifferblatt im Atlas, Zeiger als Instanzen)
   const out = [];
@@ -1574,7 +1583,10 @@ export function hausRaum(level, r, shared, clocks) {
   level.world.add({ type: 'box', min: [x0 - 0.5, wy0, zEnd - 0.5], max: [x0, y + H + 6, z0 + 1], camIgnore: true, tag: 'hauswand' });
   level.world.add({ type: 'box', min: [x1, wy0, zEnd - 0.5], max: [x1 + 0.5, y + H + 6, z0 + 1], camIgnore: true, tag: 'hauswand' });
   level.world.add({ type: 'box', min: [x0 - 0.5, wy0, zEnd - 0.5], max: [x1 + 0.5, y + H + 6, zEnd], camIgnore: true, tag: 'hauswand' });
-  level.world.add({ type: 'box', min: [x0 - 0.5, wy0, z0 + 1], max: [x1 + 0.5, y + H + 6, z0 + 1.5], camIgnore: true, noWallSlide: true, tag: 'hauswand' });
+  // vorn (hinter dem Start; frontHole [hx0, hx1, hy0, hy1]: Öffnung, z. B. für ein Riesenprojektil)
+  const fr = r.frontHole ? [[x0 - 0.5, r.frontHole[0], wy0, y + H + 6], [r.frontHole[1], x1 + 0.5, wy0, y + H + 6], [r.frontHole[0], r.frontHole[1], wy0, r.frontHole[2]], [r.frontHole[0], r.frontHole[1], r.frontHole[3], y + H + 6]]
+    : [[x0 - 0.5, x1 + 0.5, wy0, y + H + 6]];
+  for (const [ax, bx, ay, by] of fr) level.world.add({ type: 'box', min: [ax, ay, z0 + 1], max: [bx, by, z0 + 1.5], camIgnore: true, noWallSlide: true, tag: 'hauswand' });
   bakeParts(level, parts, { castShadow: false });
   bakeParts(level, flat, { castShadow: false });
   if (glow.length) bakeParts(level, glow, { material: 'glow', castShadow: false });
@@ -1677,8 +1689,11 @@ export function schaukeln(level, list) {
     st.th = q0.th; st.y = q0.y; st.z = q0.z;
     const shape = { type: 'box', min: [px - W / 2, q0.y - 0.3, q0.z - D / 2], max: [px + W / 2, q0.y, q0.z + D / 2], mover, tag: 'schaukel' };
     const id = level.world.add(shape);
+    if (s.id) level.named.set(s.id, st);
+    st.pivot = [px, py, pz]; st.rope = R; st.amp = amp; st.period = per; st.phase = s.phase ?? 0;
     level.onStep((dt, t) => {
       const q = pose(t);
+      st.t = t;
       mover.dx = 0; mover.dy = q.y - st.y; mover.dz = q.z - st.z;
       mover.vx = 0; mover.vy = mover.dy / dt; mover.vz = mover.dz / dt;
       mover.cx = px; mover.cz = q.z;

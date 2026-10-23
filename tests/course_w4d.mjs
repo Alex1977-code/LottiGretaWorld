@@ -725,12 +725,386 @@ async function burgBilder() {
   console.log(`  Baron im Bild: ${JSON.stringify(await sc(() => ({ baron: window.__course.level._baron.info(), boss: window.__course.level.named.get('koenig').state })))}`);
 }
 
+// ====================================================================== 4-Haus: Raum-Bot (in der Seite)
+/**
+ * In der Seite: window.__haus mit run(i, legs) (Wegpunkte [x, u] im Raum i; hops = Sprünge vor Kordeln/Lücken, dodge =
+ * Gefahren-Arten, über die bei drohender Berührung gesprungen wird, gate = Ameisenbahnen abwarten), swing(i) (Raum 7)
+ * und solve(i) (Raum i nach ROUTE). Zählt Treffer (Unverwundbarkeit springt hoch) und Sprünge.
+ */
+function installHaus() {
+  const c = window.__course, W4 = window.__w4, L = c.level, H = L.data._haus;
+  const A = () => c.arch.info();
+  const zu = (i, u) => H.Z0[i] - u;
+  const prev = new Map();
+  const HZ = new Set(['ameisensoldat_horn', 'stachelwalze', 'pilzling', 'suchkopf', 'riesenprojektil', 'walzenwerfer', 'stampfstein']);
+  const S = { hits: 0, lastInv: 0, jumps: 0 };
+  const track = () => {
+    for (const e of L.entities) {
+      if (!HZ.has(e.kind)) continue;
+      const q = prev.get(e);
+      if (q) { q.vx = (e.pos.x - q.x) * 120; q.vz = (e.pos.z - q.z) * 120; q.x = e.pos.x; q.z = e.pos.z; } else prev.set(e, { x: e.pos.x, z: e.pos.z, vx: 0, vz: 0 });
+    }
+  };
+  const step = (inp) => {
+    c.setInput(inp); c.step(1); track();
+    const p = L.player;
+    if (p.invuln > S.lastInv + 0.5 && !p.dead && A().phase === 'play') S.hits++;
+    S.lastInv = p.invuln;
+  };
+  const dead = new Set(['break', 'squashed', 'burst', 'fall', 'leave', 'down', 'flipped', 'gone', 'defeated']);
+  const alive = (e) => !e.removed && e.alive !== false && !e.defeated && !dead.has(e.state);
+  /** Nächste drohende Berührung (Annäherung in ≤ horizon s näher als r m). */
+  const danger = (kinds, o = {}) => {
+    const p = L.player;
+    let best = null;
+    for (const e of L.entities) {
+      if (!kinds.includes(e.kind) || !alive(e)) continue;
+      if (e.kind === 'stachelwalze' && e.state === 'air' && e.pos.y > p.pos.y + 2) continue;
+      const q = prev.get(e) ?? { vx: 0, vz: 0 };
+      const rx = e.pos.x - p.pos.x, rz = e.pos.z - p.pos.z;
+      if (Math.hypot(rx, rz) > 12 || Math.abs(e.pos.y - p.pos.y) > 2.6) continue;
+      const vx = q.vx - p.vel.x, vz = q.vz - p.vel.z, vv = vx * vx + vz * vz;
+      const t = vv > 1e-6 ? Math.max(0, Math.min(o.horizon ?? 0.6, -(rx * vx + rz * vz) / vv)) : 0;
+      const d = Math.hypot(rx + vx * t, rz + vz * t);
+      if (d < (o.r ?? 1.2) && (!best || t < best.t)) best = { e, t, d };
+    }
+    return best;
+  };
+  /** Ameisenbahn vor der Figur in den nächsten Augenblicken belegt? */
+  const blocked = (i, g) => {
+    const p = L.player;
+    for (const lane of g.lanes) {
+      const lz = zu(i, lane), a = p.pos.z - lz;
+      if (a < 1.3 || a > (g.look ?? 3.8)) continue;
+      const tArr = Math.max(0, a - 1.3) / 8;
+      for (const e of L.entities) {
+        if (!g.kinds.includes(e.kind) || !alive(e) || Math.abs(e.pos.z - lz) > 1.2) continue;
+        const q = prev.get(e) ?? { vx: 0 };
+        for (const t of [tArr, tArr + 0.2, tArr + 0.4, tArr + 0.6]) if (Math.abs(e.pos.x + q.vx * t - p.pos.x) < (g.w ?? 1.5)) return true;
+      }
+    }
+    return false;
+  };
+  const run = (i, legs) => {
+    const log = [];
+    for (const Lg of legs) {
+      if (A().room !== i || A().phase !== 'play') break;
+      const tx = Lg.to[0], tz = zu(i, Lg.to[1]);
+      let n = 0, hold = 0, rode = false;
+      for (; n < (Lg.max ?? 1500); n++) {
+        const p = L.player;
+        if (A().room !== i || A().phase !== 'play' || p.dead) break;
+        if (p.mode === 'script') { rode = true; step({}); continue; }       // Sprungfeld-Flug
+        if (rode) break;
+        const dx = tx - p.pos.x, dz = tz - p.pos.z, dist = Math.hypot(dx, dz);
+        if (dist < (Lg.within ?? 0.6) && p.mode === 'ground') break;
+        let jump = hold > 0;
+        if (hold > 0) hold--;
+        if (p.mode === 'ground' && hold <= 0) {
+          for (const hz of Lg.hops ?? []) {
+            const a = p.pos.z - zu(i, hz);
+            if (a > 0.4 && a < (Lg.hopAt ?? 2.2)) { hold = Lg.hopHold ?? 14; jump = true; S.jumps++; log.push(['hop', hz, +(H.Z0[i] - p.pos.z).toFixed(2)]); }
+          }
+          if (Lg.dodge && !jump) {
+            const d = danger(Lg.dodge, Lg);
+            if (d && d.t > (Lg.tMin ?? 0.05) && d.t < (Lg.tJump ?? 0.42)) { hold = Lg.dodgeHold ?? 16; jump = true; S.jumps++; log.push(['sprung', d.e.kind, +d.t.toFixed(2), +(H.Z0[i] - p.pos.z).toFixed(1)]); }
+          }
+        }
+        if (window.__hausTrace && Lg.dodge && n % 24 === 0) {
+          const hz = L.entities.filter((e) => Lg.dodge.includes(e.kind) && alive(e)).map((e) => [+e.pos.x.toFixed(1), +e.pos.y.toFixed(1), +(H.Z0[i] - e.pos.z).toFixed(1)]);
+          log.push(['g', n, +(H.Z0[i] - p.pos.z).toFixed(1), ...hz.slice(0, 4)]);
+        }
+        const mag = Lg.gate && p.mode === 'ground' && blocked(i, Lg.gate) ? 0 : (Lg.slow ?? 1);
+        const st = mag > 0 && dist > 0.05 ? W4.stick(dx, dz, mag) : { x: 0, y: 0 };
+        step({ ...st, run: Lg.run ?? true, jump });
+      }
+      log.push([Lg.name ?? 'weg', n, +L.player.pos.x.toFixed(2), +L.player.pos.y.toFixed(2), +(H.Z0[i] - L.player.pos.z).toFixed(2)]);
+    }
+    return log;
+  };
+  /** Raum 7: von der Kante auf Schaukel 1, 2, 3 und hinüber (Sprung so, dass die Landung in den Umkehrpunkt fällt). */
+  const swing = (i) => {
+    const sw = [1, 2, 3].map((k) => L.named.get(`schaukel${k}`));
+    const Pd = sw[0].period, amp = sw[0].amp;
+    const now = () => sw[0].t ?? 0;
+    const at = (k, t) => { const th = amp * Math.sin(2 * Math.PI * (t / Pd + sw[k].phase)); return { x: 0, z: sw[k].pivot[2] + Math.sin(th) * sw[k].rope, y: sw[k].pivot[1] - Math.cos(th) * sw[k].rope }; };
+    const log = run(i, [{ to: [0, 5.55], within: 0.25, run: false, slow: 0.7, name: 'kante' }]);
+    const ledge = { x: 0, z: L.player.pos.z };
+    const end = { x: 0, z: zu(i, 32.4) };
+    const FL = 0.85;
+    const hops = [[() => ledge, (t) => at(0, t)], [(t) => at(0, t), (t) => at(1, t)], [(t) => at(1, t), (t) => at(2, t)], [(t) => at(2, t), () => end]];
+    for (let h = 0; h < hops.length; h++) {
+      if (A().room !== i || A().phase !== 'play') break;
+      const [from, to] = hops[h];
+      // nächsten Zeitpunkt suchen, an dem der Abstand Halt → Ziel ein Minimum hat (Umkehrpunkt)
+      const g = (t) => Math.abs(to(t).z - from(t).z);
+      const t0 = now();
+      let best = null;
+      for (let s = FL * 0.5 + 0.3; s < Pd * 1.5; s += 1 / 120) {     // ≥ 0,3 s zum Ruhigstehen
+        const v = g(t0 + s);
+        if (v < 4.6 && v <= g(t0 + s - 1 / 120) && v <= g(t0 + s + 1 / 120)) { best = s; break; }
+      }
+      if (best === null) { log.push(['FEHLER: kein Umkehrpunkt', h]); break; }
+      const tJump = t0 + best - FL * 0.5;
+      let w = 0;
+      while (now() < tJump && w++ < 900) {
+        const p = L.player, f = from(now());
+        const dx = f.x - p.pos.x, dz = f.z - p.pos.z, dd = Math.hypot(dx, dz);
+        step(dd > 0.12 && p.mode === 'ground' ? { ...W4.stick(dx, dz, Math.min(0.6, dd)), run: false } : {});
+      }
+      let k = 0, landed = false;
+      for (; k < 200; k++) {
+        const p = L.player;
+        if (A().phase !== 'play' || p.dead) break;
+        const tg = to(now() + Math.max(0, FL - k / 120));
+        const dx = tg.x - p.pos.x, dz = tg.z - p.pos.z;
+        step({ ...W4.stick(dx, dz, Math.min(1, Math.hypot(dx, dz) / 1.2)), run: true, jump: k < 30 });
+        if (window.__hausTrace && k % 6 === 0) { const nb = to(now()); log.push(['t', k, +p.pos.y.toFixed(2), +(H.Z0[i] - p.pos.z).toFixed(2), +p.vel.z.toFixed(2), nb.y !== undefined ? +nb.y.toFixed(2) : null, +(H.Z0[i] - nb.z).toFixed(2), p.mode]); }
+        if (k > 8 && p.mode === 'ground') { landed = true; break; }
+      }
+      const p = L.player;
+      log.push([`schaukel${h + 1}`, w, k, landed, p.ground?.tag ?? null, +p.pos.y.toFixed(2), +(H.Z0[i] - p.pos.z).toFixed(2)]);
+      if (!landed) break;
+    }
+    log.push(...run(i, [{ to: [0, 35] }]));
+    return log;
+  };
+  const ROUTE = [
+    [{ to: [0, 5.5], within: 0.3, name: 'sprungfeld1' }, { to: [0, 19], within: 0.3, name: 'sprungfeld2' }, { to: [0, 37.5], name: 'stern' }],
+    [{ to: [0, 38], gate: { kinds: ['ameisensoldat_horn'], lanes: H.LANES2 }, name: 'sandweg' }],
+    [{ to: [0, 41.6], hops: H.ROPES3, hopAt: 2.0, name: 'galerie' }],
+    [{ to: [0, 38], dodge: ['stachelwalze'], name: 'backstube' }],
+    [{ to: [0, 36.5], hops: [15, 26], hopAt: 1.4, name: 'steg' }],
+    [{ to: [0, 38], name: 'maschinengang' }],
+    null,
+    [{ to: [0, 36.5], dodge: ['pilzling'], name: 'parade' }],
+    [{ to: [0, 38], dodge: ['suchkopf'], name: 'kanonengang' }],
+    [{ to: [0, 33.4], dodge: ['stachelwalze'], name: 'dachboden' }],
+  ];
+  const waitPlay = (i, max = 1500) => { let n = 0; while (!(A().room === i && A().phase === 'play') && n++ < max) step({}); return A().room === i && A().phase === 'play'; };
+  const solve = (i) => {
+    const h0 = S.hits, j0 = S.jumps, r0 = A().resets;
+    const log = ROUTE[i] ? run(i, ROUTE[i]) : swing(i);
+    // Rückfall: Stern direkt anlaufen
+    if (A().room === i && A().phase === 'play' && !L.player.dead) {
+      const n = W4.chase('star', { filter: (e) => e.index === i && !e.hidden, max: 600, safe: false });
+      log.push(['rueckfall', n]);
+    }
+    return { log, hits: S.hits - h0, jumps: S.jumps - j0, resets: A().resets - r0 };
+  };
+  window.__haus = { run, swing, solve, waitPlay, danger, step, S, zu, A };
+  return true;
+}
+
+const HAUS_NAMES = ['Bauklotz-Zimmer (Sprungfelder an Klippen)', 'Sandkasten-Diele (Hörner-Ameisen aus Röhren)', 'Ahnengalerie (Flucht vor dem Riesenprojektil)',
+  'Backstube (Weg zwischen Walzenwerfern)', 'Seiltänzer-Saal (dünner Steg, Münzblock)', 'Maschinenhalle (Boost-Pfeile unter 8 Stampfsteinen)', 'Schaukelzimmer (drei Schaukeln)',
+  'Pilzlingsparade (Pilzlinge und Mini-Pilzlinge)', 'Kanonengang (dünner Weg, Suchköpfe)', 'Dachboden (Bröckelblöcke, rollende Walzen)'];
+
+// ====================================================================== 4-Haus: einzelner Raum (Fehlersuche: RAUM=n, Protokoll)
+async function hausRaum() {
+  const n = Number(process.env.RAUM ?? 1) - 1;
+  if (!(await load('4-Haus', { fresh: true, hero: process.env.HERO ?? 'lotti' }))) return;
+  await sc(installHaus);
+  const r = await sc(([n, pre]) => {
+    const c = window.__course, Hs = window.__haus;
+    window.__hausTrace = true;
+    for (let k = 0; k < pre; k++) Hs.step({});
+    if (n > 0) c.arch.enterRoom(n);
+    Hs.waitPlay(n);
+    const res = Hs.solve(n);
+    let k = 0;
+    while (c.arch.info().phase === 'play' && k++ < 1300) Hs.step({});
+    const shots = {};
+    for (const [k, e] of c.level.named) if (/^r\d+_(kanone|werfer)/.test(k)) shots[k] = e.shots ?? e.throws;
+    return { ...res, a: c.arch.info(), shots };
+  }, [n, Number(process.env.PRE ?? 0)]);
+  console.log('   Schüsse/Würfe:', JSON.stringify(r.shots));
+  for (const l of r.log) console.log('   ', JSON.stringify(l));
+  check(`Raum ${n + 1}: ${r.a.phase} (Treffer ${r.hits}, Neustarts ${r.resets})`, r.a.cleared === 1 && r.hits === 0);
+}
+
+// ====================================================================== 4-Haus: alle Räume
+async function haus() {
+  const id = '4-Haus';
+  console.log(`\n${id}: zehn Räume per Skript`);
+  for (const hero of ['lotti', 'greta']) {
+    if (!want(hero)) continue;
+    if (!(await load(id, { fresh: true, hero }))) { check(`${id} lädt`, false); return; }
+    if (hero === 'lotti') {
+      const d = await sc(() => {
+        const c = window.__course, L = c.level, D = L.data, a = c.arch.info();
+        return { title: D.title, theme: D.theme, music: D.music, arch: D.archetype, rooms: D.house.rooms.length, goals: D.house.rooms.map((r) => r.goal), times: D.house.rooms.map((r) => r.time), fail: D.house.fail,
+          starCount: L.runtime.starCount, kinds: window.__w4.kinds(), a, tapeten: (() => { const n = new Set(); L.view.three.traverse((o) => { if (/^tapete:/.test(o.name)) n.add(o.name); }); return n.size; })() };
+      });
+      console.log(`  Daten: ${JSON.stringify({ ...d, kinds: undefined })}`);
+      console.log(`  Arten: ${JSON.stringify(d.kinds)}`);
+      check(`${id}: „${d.title}“, Archetyp house, Thema house, Musik course_house, 10 Räume à 10 s, Ziel jeweils „Stern erreichen“, fail 'exit'`,
+        d.title === 'Haus Sausewind' && d.arch === 'house' && d.theme === 'house' && d.music === 'course_house' && d.rooms === 10 && d.goals.every((g) => g === 'reach') && d.times.every((t) => t === 10) && d.fail === 'exit' && d.starCount === 10);
+      check(`${id}: Gimmicks vorhanden (8 Stampfsteine, 6 Walzenwerfer, 5 Kanonen, 4 Ameisenströme, 14 Pilzlinge + 4 Mini, Münzblock)`,
+        d.kinds.stampfstein === 8 && d.kinds.walzenwerfer === 6 && d.kinds.kanone_turm === 5 && d.kinds.ameisensoldat_horn_strom === 4 && d.kinds.pilzling === 18 && d.kinds.coinblock === 1);
+      check(`${id}: zehn eigene Tapeten (${d.tapeten})`, d.tapeten === 10);
+    }
+    await sc(installHaus);
+    if (process.env.TRACE) await sc(() => { window.__hausTrace = true; });
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, Hs = window.__haus;
+      const rec = {};
+      L.onStep(() => { const a = c.arch.info(); if (a.phase === 'clear' && rec[a.room] === undefined) rec[a.room] = +(10 - a.time).toFixed(2); });
+      const out = [];
+      for (let i = 0; i < 10; i++) {
+        if (!Hs.waitPlay(i)) { out.push({ room: i, error: 'kein Start', a: Hs.A() }); break; }
+        const res = Hs.solve(i);
+        let n = 0;
+        while (c.arch.info().phase === 'play' && c.arch.info().room === i && n++ < 1300) Hs.step({});
+        Hs.step({});                                   // Haken (vor dem Archetyp) sieht die Phase „clear“ erst jetzt
+        out.push({ room: i, cleared: rec[i] !== undefined, used: rec[i] ?? null, ...res });
+      }
+      for (let i = 0; i < 1800 && !c.finished; i++) Hs.step({});
+      return { out, finished: c.finished, res: c.lastResult ?? null, a: c.arch.info(), save: window.__w4.save().levels?.['4-Haus'] ?? null };
+    });
+    for (const o of r.out) {
+      check(`${id}: ${hero} Raum ${o.room + 1} ${HAUS_NAMES[o.room]} in ${o.used} s (< 10 s, Treffer ${o.hits}, Sprünge ${o.jumps})`, o.cleared && o.used < 10 && o.resets === 0 && o.hits === 0);
+      if (VERBOSE || !o.cleared || o.hits) console.log(`     Raum ${o.room + 1}: ${JSON.stringify(o.log)}`);
+    }
+    check(`${id}: ${hero} Ergebnis 10/10 gespeichert (${(r.res?.stars ?? []).map(Number).join('')})`, r.finished && r.res?.stars?.filter(Boolean).length === 10 && r.save?.stars?.filter(Boolean).length === 10 && !r.a.exited);
+  }
+}
+
+// ====================================================================== 4-Haus: Zeitablauf, Tod, Gimmicks, Bilder
+async function hausExtra() {
+  const id = '4-Haus';
+  console.log(`\n${id}: Zeitablauf, Tod, Gimmicks, Bilder`);
+  if (want('Zeit') && (await load(id, { fresh: true }))) {
+    await sc(installHaus);
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, Hs = window.__haus;
+      Hs.waitPlay(0);
+      // große Raumuhr: roter Zeiger läuft die 10 s ab
+      for (let i = 0; i < 480; i++) { L.player.invuln = 999; Hs.step({}); }
+      const uhr = { angle: L.named.get('haus_uhren')?.bigAngle?.[0] ?? null, time: c.arch.info().time };
+      Hs.solve(0);
+      Hs.waitPlay(1);
+      let n = 0;
+      while (c.arch.info().phase === 'play' && n++ < 1500) { L.player.invuln = 999; Hs.step({}); }
+      const a = c.arch.info();
+      for (let i = 0; i < 900 && !c.finished; i++) { L.player.invuln = 999; c.step(1); }
+      return { uhr, a, after: c.arch.info(), finished: c.finished, res: c.lastResult ?? null, save: window.__w4.save().levels?.['4-Haus'] ?? null };
+    });
+    check(`Große Raumuhr zeigt die Restzeit (nach 4 s: Zeiger ${r.uhr.angle?.toFixed(2)} rad ≈ −0,4·2π, Rest ${r.uhr.time.toFixed(2)} s)`, r.uhr.angle !== null && Math.abs(r.uhr.angle + (10 - r.uhr.time) / 10 * 2 * Math.PI) < 0.02 && r.uhr.time > 5.9 && r.uhr.time < 6.1);
+    check(`Zeit abgelaufen in Raum 2 → Haus verlassen, Teilergebnis 1/10 gespeichert (${(r.res?.stars ?? []).map(Number).join('')})`, r.a.phase === 'timeout' && r.finished && r.after.exited && r.res?.stars?.filter(Boolean).length === 1 && r.save?.stars?.[0] === true);
+    await page.waitForFunction(() => window.__game.scene.isActive('CourseResult'), null, { timeout: 10000 }).catch(() => {});
+    const texts = await sc(() => window.__game.scene.getScene('CourseResult')?.children.list.map((o) => o.text).filter(Boolean) ?? []);
+    check(`Ergebnis-Szene „Prüfungs-Haus: 1 von 10 Sternen“ (${texts.filter((t) => /Haus|Stern/.test(t)).join(' | ')})`, texts.includes('Prüfungs-Haus: 1 von 10 Sternen'));
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${OUT}w4d_haus_ergebnis_teil.png` });
+  }
+  if (want('Tod|Gimmick') && (await load(id, { fresh: true }))) {
+    await sc(installHaus);
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, Hs = window.__haus, H = L.data._haus;
+      const out = {};
+      const enter = (i) => { c.arch.enterRoom(i); return Hs.waitPlay(i); };
+      // Tod im Seiltänzer-Saal: vom Steg in den Abgrund → Leben −1, Raum von vorn
+      enter(4);
+      const lives0 = L.runtime.save.lives, r0 = c.arch.info().resets;
+      Hs.run(4, [{ to: [0, 9], name: 'steg' }]);
+      for (let i = 0; i < 240 && !L.player.dead; i++) Hs.step(window.__w4.stick(1, 0));
+      out.dead = L.player.dead;
+      for (let i = 0; i < 900 && !(c.arch.info().phase === 'play' && !L.player.dead && c.arch.info().resets > r0); i++) Hs.step({});
+      out.after = { ...c.arch.info(), lives: L.runtime.save.lives, lives0, z: +(H.Z0[4] - L.player.pos.z).toFixed(2) };
+      out.solve5 = Hs.solve(4);
+      out.cleared5 = c.arch.info().phase !== 'play';
+      // Ahnengalerie: Riesenprojektil kommt 1 s nach dem Start; wer stehen bleibt, wird getroffen
+      enter(2);
+      const kugel = L.named.get('r3_kugel');
+      const shots0 = kugel.shots;
+      let hit = false, minNear = 99;
+      for (let i = 0; i < 600 && !hit; i++) { Hs.step({}); if (kugel.bullet && !kugel.bullet.removed) minNear = Math.min(minNear, kugel.near ?? 99); if (L.player.invuln > 0.5 || L.player.dead) hit = true; }
+      out.kugel = { spawned: kugel.shots - shots0, hit, minNear: +minNear.toFixed(2) };
+      for (let i = 0; i < 900 && !(c.arch.info().phase === 'play' && c.arch.info().room === 2 && !L.player.dead && L.player.invuln < 0.5); i++) Hs.step({});
+      // Lauf: Kugel bleibt hinter der Figur
+      let gapMin = 99;
+      const t0 = kugel.shots;
+      const watch = () => { if (kugel.bullet && !kugel.bullet.removed) gapMin = Math.min(gapMin, kugel.near ?? 99); };
+      L.onStep(watch);
+      const s3 = Hs.solve(2);
+      out.flucht = { spawned: kugel.shots - t0, gapMin: +gapMin.toFixed(2), hits: s3.hits, cleared: c.arch.info().phase !== 'play', bulletGone: !kugel.bullet };
+      // Maschinenhalle: langsam (gehen) unter den Stampfsteinen → Treffer; mit Boost → keiner (siehe Teil haus)
+      enter(5);
+      const h0 = Hs.S.hits;
+      Hs.run(5, [{ to: [0, 30], run: false, slow: 0.5, name: 'langsam', max: 900 }]);
+      out.stein = { hits: Hs.S.hits - h0, fell: L.entities.filter((e) => e.kind === 'stampfstein' && e.state !== 'wait').length };
+      // Dachboden: Bröckelblöcke zerfallen hinter der Figur; nach einem Neustart sind alle wieder da
+      enter(9);
+      Hs.run(9, [{ to: [0, 14], dodge: ['stachelwalze'], name: 'bloecke' }]);
+      for (let i = 0; i < 90; i++) Hs.step({});
+      const bl = () => ['broeckel_a', 'broeckel_b'].reduce((n, k) => n + L.named.get(k).left(), 0);
+      out.broeckel = { left: bl(), dead: L.player.dead };
+      for (let i = 0; i < 600 && !L.player.dead; i++) Hs.step({});
+      for (let i = 0; i < 900 && !(c.arch.info().phase === 'play' && !L.player.dead && c.arch.info().room === 9); i++) Hs.step({});
+      Hs.step({}); Hs.step({});
+      out.broeckel.restored = bl();
+      out.broeckel.walzen = L.named.get('r10_werfer')?.throws ?? null;
+      return out;
+    });
+    console.log(`  ${JSON.stringify({ ...r, solve5: { ...r.solve5, log: undefined } })}`);
+    check(`Tod im Seiltänzer-Saal: Absturz, Leben −1, Raum 5 beginnt von vorn mit 10 s (Raum ${r.after.room + 1}, Zeit ${r.after.time})`, r.dead && r.after.room === 4 && r.after.lives === r.after.lives0 - 1 && r.after.time > 9.5 && r.after.z < 4);
+    check('Nach dem Neustart: Raum 5 per Skript geschafft', r.cleared5 && r.solve5.hits === 0);
+    check(`Ahnengalerie: Riesenprojektil startet hinter der Figur und trifft, wer stehen bleibt (Abstand min ${r.kugel.minNear} m)`, r.kugel.spawned === 1 && r.kugel.hit);
+    check(`Ahnengalerie: Flucht gelingt (Kugel jagt hinterher, Abstand min ${r.flucht.gapMin} m, keine Treffer), Kugel weg nach dem Stern`, r.flucht.spawned === 1 && r.flucht.gapMin < 8 && r.flucht.gapMin > 0 && r.flucht.hits === 0 && r.flucht.cleared && r.flucht.bulletGone);
+    check(`Maschinenhalle: wer langsam geht, wird von einem Stampfstein getroffen (${r.stein.hits} Treffer, ${r.stein.fell} gefallen)`, r.stein.hits >= 1 && r.stein.fell >= 1);
+    check(`Dachboden: Bröckelblöcke zerfallen (${r.broeckel.left}/52 übrig), nach dem Neustart alle zurück (${r.broeckel.restored}), Walzen geworfen (${r.broeckel.walzen})`, r.broeckel.left < 52 && r.broeckel.restored === 52 && r.broeckel.walzen > 0);
+  }
+  if (want('Bild')) {
+    if (!(await load(id, { fresh: true }))) return;
+    await sc(installHaus);
+    for (let i = 0; i < 10; i++) {
+      await shot(`haus_raum${i + 1}`, (i) => {
+        const c = window.__course, Hs = window.__haus;
+        if (i > 0) c.arch.enterRoom(i);
+        Hs.waitPlay(i);
+        const prog = [12, 0, 6, 0, 0, 0, 0, 0, 0, 0][i];
+        if (prog) Hs.run(i, [{ to: [0, prog], name: 'bild' }]);
+        for (let k = 0; k < 50; k++) { c.level.player.invuln = 999; Hs.step({}); }
+      }, { arg: i });
+    }
+    // besondere Augenblicke
+    await shot('haus_flucht', () => {
+      const c = window.__course, Hs = window.__haus;
+      c.arch.enterRoom(2); Hs.waitPlay(2);
+      Hs.run(2, [{ to: [0, 16], hops: [13], name: 'bild' }]);
+    });
+    await shot('haus_stampfsteine', () => {
+      const c = window.__course, Hs = window.__haus;
+      c.arch.enterRoom(5); Hs.waitPlay(5);
+      Hs.run(5, [{ to: [0, 22], name: 'bild' }]);
+      for (let k = 0; k < 10; k++) Hs.step({});
+    });
+    await shot('haus_schaukel', () => {
+      const c = window.__course, Hs = window.__haus;
+      c.arch.enterRoom(6); Hs.waitPlay(6);
+      const p = c.level.player;
+      const sw = c.level.named.get('schaukel2');
+      p.reset([0, sw.y + 0.1, sw.z], Math.PI / 2);
+      for (let k = 0; k < 40; k++) { p.invuln = 999; Hs.step({}); }
+    });
+    await shot('haus_dachboden', () => {
+      const c = window.__course, Hs = window.__haus;
+      c.arch.enterRoom(9); Hs.waitPlay(9);
+      Hs.run(9, [{ to: [0, 10], dodge: ['stachelwalze'], name: 'bild' }]);
+    });
+  }
+}
+
 // ====================================================================== Ablauf
-for (const p of PARTS.length ? PARTS : ['burg-route', 'burg-sterne', 'burg-boss', 'burg-bilder']) {
+for (const p of PARTS.length ? PARTS : ['burg-route', 'burg-sterne', 'burg-boss', 'burg-bilder', 'haus', 'haus-extra']) {
   if (p === 'burg-route') await burgRoute();
   if (p === 'burg-sterne') await burgSterne();
   if (p === 'burg-boss') await burgBoss();
   if (p === 'burg-bilder') await burgBilder();
+  if (p === 'haus') await haus();
+  if (p === 'haus-extra') await hausExtra();
+  if (p === 'haus-raum') await hausRaum();
 }
 
 if (stats.length) {
