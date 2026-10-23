@@ -2,15 +2,9 @@
 // exportiert kein LEVEL, die Level-Registry überspringt dieses Modul). Alles level-lokal über den Level-Haken
 // (`LEVEL.setup = levelSetup(fn)`, Präzisierung „Level-Haken“) – keine gemeinsame Datei wird geändert.
 //
-// 3-2 (Autoscroller mit wechselnder Fahrtrichtung):
-//   scrollDirector(level, scene, cfg)  Kamera und Bildfenster je Pfadlänge s statt je z-Abschnitt: Der Autoscroller
-//                                      wertet die Kameraschiene an der Fenstermitte (x, z) aus – bei der senkrechten
-//                                      Fahrt (Kletteraufstieg) und der seitlichen Fahrt (Wolkenstrecke, nach +X) bleibt
-//                                      z gleich, die Schiene könnte die Abschnitte nicht trennen. Der Haken legt deshalb
-//                                      rig.railAt (nur solange die Fahrt läuft) auf eine Tabelle über s, setzt die
-//                                      Fenstergrenzen (back/front/ahead) je s und schaltet bei senkrechter Fahrt
-//                                      backMode 'kill' (unten aus dem Bild = Absturz, statt von einer unsichtbaren
-//                                      Grenze getragen zu werden). Nach dem Halt gilt wieder LEVEL.camera.
+// 3-2 (Autoscroller mit wechselnder Fahrtrichtung): Kamera und Bildfenster je Pfadlänge s, fahrende Zäune im Takt der
+//   Fahrt-Uhr – früher scrollDirector/clockSync hier, jetzt im Motor (LEVEL.scroll.cams/frames/…/sync,
+//   archetypes/ScrollDirector.js).
 //   towerBack, digits7, balloon, zeppelin, birds, windmill, pipeLid, pennantLine, slotStrip   Kulisse (3-2)
 // 3-6 (Bergrennen):
 //   road, kartBande, ovalTrack, grandstand (Tribüne mit Tierchen, La-Ola), marmots (Murmeltiere schauen aus dem Bau),
@@ -53,137 +47,6 @@ export function arc(a, b, n, h = 2) {
 /** Senkrechte Münzsäule. */
 export function column(x, z, y0, y1, n) {
   return { kind: 'coins', from: [x, y0, z], to: [x, y1, z], n };
-}
-
-// =============================================================================================
-// 3-2: Kamera und Bildfenster je Pfadlänge
-// =============================================================================================
-
-/** Lineare Überblendung einer Tabelle [{ s, …Werte }] (sortiert) an s; weich (smoothstep) zwischen Einträgen. */
-function sampleTable(table, s, keys, out) {
-  let a = table[0], b = table[table.length - 1];
-  if (s <= a.s) b = a;
-  else if (s >= b.s) a = b;
-  else for (let i = 0; i < table.length - 1; i++) if (s >= table[i].s && s <= table[i + 1].s) { a = table[i]; b = table[i + 1]; break; }
-  const t = a === b ? 0 : sstep((s - a.s) / (b.s - a.s));
-  for (const k of keys) out[k] = (a[k] ?? b[k]) + ((b[k] ?? a[k]) - (a[k] ?? b[k])) * t;
-  return out;
-}
-
-/**
- * Kamera/Bildfenster des Autoscrollers je Pfadlänge s (siehe Kopfkommentar).
- * cfg.cam:   [{ s, pitch, dist, fov, height }]        Kamera (überblendet; yaw bleibt 0 – frame.turn: false im Level)
- * cfg.frame: [{ s, back, front, ahead, followX }]       Fenstergrenzen (überblendet)
- * cfg.killUp: 0.6                                       backMode 'kill', solange die Fahrtrichtung so steil nach oben zeigt
- * cfg.gates: [{ id, open: s }]                          Glasröhre `id` nimmt die Figur erst ab Pfadlänge s auf
- * cfg.reveal: [{ id, at: s | 'done' }]                  benannte Objekte (Warp-Box) erscheinen ab s bzw. beim Halt
- * cfg.fall: { minS, y, x: [x0, x1] }                    unter y (in diesem X-Bereich, ab Pfadlänge minS) = Absturz
- * Liefert { info() } für Tests.
- */
-export function scrollDirector(level, scene, cfg) {
-  const w = level.scroll, arch = level.archetype, rig = scene?.view?.rig;
-  if (!w || !arch?.frame) return null;
-  const camKeys = ['pitch', 'dist', 'fov', 'height'];
-  const frameKeys = ['back', 'front', 'ahead', 'followX'];
-  const cam = { pitch: 42, dist: 14, fov: 40, height: 1 };
-  const st = { s: w.s, mode: arch.frame.backMode, revealed: [], gated: 0, falls: 0 };
-  if (rig) {
-    const orig = rig.railAt.bind(rig);
-    rig.railAt = (x, z, out = {}) => {
-      if (w.state === 'done') return orig(x, z, out);
-      sampleTable(cfg.cam, w.s, camKeys, cam);
-      out.pitch = cam.pitch; out.dist = cam.dist; out.fov = cam.fov; out.height = cam.height;
-      out.yaw = 0; out.lead = 1; out.ahead = 2; out.lockX = null; out.lockW = 0;
-      return out;
-    };
-  }
-  const gates = (cfg.gates ?? []).map((g) => ({ ...g, net: level.named.get(g.id) }));
-  const reveals = (cfg.reveal ?? []).map((r) => ({ ...r, done: false }));
-  const fr = arch.frame;
-  const apply = () => {
-    sampleTable(cfg.frame, w.s, frameKeys, fr);
-    fr.backMode = w.state !== 'done' && w.dir.y > (cfg.killUp ?? 0.6) ? 'kill' : 'push';
-    st.mode = fr.backMode;
-  };
-  apply();
-  level.onStep(() => {
-    st.s = w.s;
-    apply();
-    // Am Kettenzaun trägt der Zaun selbst (fenceCarry). Das vom Autoscroller „geerbte“ Fahrzeugtempo (Absprung von einer
-    // fahrenden Plattform) würde die Figur sonst zusätzlich am Zaun entlangschieben und beim Absprung doppelt zählen.
-    if (arch.fstate) {
-      for (const p of level.players ?? [level.player]) {
-        if (!p?.fence || p.mode !== 'wall') continue;
-        const fs = arch.fstate(p);
-        if (fs?.inh) { fs.inh.x = 0; fs.inh.z = 0; }
-      }
-    }
-    for (const g of gates) {
-      if (!g.net) continue;
-      if (w.state !== 'done' && w.s < g.open) { g.net.cool = Math.max(g.net.cool ?? 0, 0.05); st.gated++; }
-    }
-    for (const r of reveals) {
-      if (r.done) continue;
-      if ((r.at === 'done' && w.state === 'done') || (typeof r.at === 'number' && w.s >= r.at)) {
-        r.done = true;
-        const e = level.named.get(r.id);
-        e?.reveal?.();
-        st.revealed.push(r.id);
-        if (r.sfx !== false) level.sfx('powerup_appear');
-      }
-    }
-    // Decke über dem Kletterturm: höher als `up` über der Fenstermitte geht es nicht (sonst schöbe die Vordergrenze
-    // die Figur in der Kurve schräg vom Zaun weg) – senkrecht begrenzt, die Figur bleibt am Zaun.
-    const cap = cfg.cap;
-    if (cap && w.state !== 'done' && w.s >= cap.s0 && w.s <= cap.s1) {
-      for (const p of level.players ?? [level.player]) {
-        if (!p || p.dead || p.removedFigure || p.mode === 'script') continue;
-        if (p.pos.x < cap.x[0] || p.pos.x > cap.x[1] || p.pos.z < cap.z[0] || p.pos.z > cap.z[1]) continue;
-        const top = w.center.y + cap.up;
-        if (p.pos.y > top) { p.pos.y = top; if (p.vel.y > 0) p.vel.y = 0; st.capped = (st.capped ?? 0) + 1; }
-      }
-    }
-    const f = cfg.fall;
-    if (f && w.s >= f.minS) {
-      for (const p of level.players ?? [level.player]) {
-        if (!p || p.dead || p.removedFigure || p.mode === 'script') continue;
-        if (p.pos.y < f.y && p.pos.x > f.x[0] && p.pos.x < f.x[1]) { st.falls++; p.die('fall'); }
-      }
-    }
-  });
-  return { st, info: () => ({ s: +w.s.toFixed(2), mode: st.mode, back: fr.back, front: fr.front, revealed: st.revealed.slice(), falls: st.falls }) };
-}
-
-/**
- * Fahrende Zäune/Plattformen im Takt der Fahrt-Uhr: Im Autoscroller beginnt nach einem Neustart die Fahrt von vorn bzw.
- * an der Fensterlage des Checkpoints (level.scroll.clock wird zurückgesetzt) – Zäune mit eigenem Pfad liefen dagegen
- * mit der Level-Zeit weiter und kämen aus dem Takt (eine Plattform wäre nicht mehr erreichbar, solange das Fenster
- * vorbeizieht). Hier wird ihr PathMover (pingpong mit wait an beiden Enden) zur reinen Funktion der Fahrt-Uhr:
- * u = (clock + t0) mod T, T = 2·(L/speed + wait); u ∈ [0, wait) am Anfang, dann hin, wait am Ende, zurück.
- * sync = { id: t0 } (Sekunden). Vor der Abfahrt (clock 0) stehen sie an ihrer Anfangslage.
- */
-export function clockSync(level, sync) {
-  const w = level.scroll;
-  if (!w) return;
-  for (const [id, t0] of Object.entries(sync ?? {})) {
-    const f = level.named.get(id), pm = f?.pm;
-    if (!pm || pm.mode === 'loop') continue;
-    const L = pm.length, v = pm.speed, wait = pm.wait, tr = L / v, T = 2 * (tr + wait);
-    const sAt = (u) => (u < wait ? 0 : u < wait + tr ? (u - wait) * v : u < 2 * wait + tr ? L : L - (u - 2 * wait - tr) * v);
-    pm.step = function step() {
-      const ox = this.pos.x, oy = this.pos.y, oz = this.pos.z;
-      const u = (((w.clock + t0) % T) + T) % T;
-      this.s = clamp(sAt(u), 0, L);
-      this.dir = u >= wait && u < wait + tr ? 1 : -1;
-      this.at(this.s, this.pos);
-      this.delta.dx = this.pos.x - ox; this.delta.dy = this.pos.y - oy; this.delta.dz = this.pos.z - oz;
-      return this.delta;
-    };
-    pm.syncT = T;
-    pm.step(0);
-    f.pos.set(pm.pos.x, pm.pos.y, pm.pos.z);
-    f.placeShapes?.();
-  }
 }
 
 // =============================================================================================

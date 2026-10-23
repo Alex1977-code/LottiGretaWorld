@@ -21,6 +21,12 @@
 //   warpPos: [x, y, z], warpTo: [x, y, z],
 //   frame: 0.42,                                  Kampfkamera: Blickziel so weit von der Figur zum Wagen (0..1)
 //   musicAfter: 'course_grass',                   Musik nach dem Sieg-Jingle (Weg zum Ziel)
+//   center: [x, y, z],                            Arenamitte (Präzisierung „Leistung und Level-Haken 2“): die
+//                                                 Kampfkamera rahmt seitlich zwischen Figur und center.x (Standard
+//                                                 LEVEL.arena.center bzw. x = 0 – Arenen in der Levelmitte)
+//   warpBanner: 'Spring in die Warp-Box!',        Ansage beim Sieg ('' = keine; z. B. 'Ab in die Röhre!')
+//   phaseBanners: { 2: 'Er wird wütend!', 3: 'Vorsicht – Feuerspur!' }   Ansagen beim Phasenwechsel (Text oder
+//                                                 { text, hold, size, color }; '' = keine; je Phase überschreibbar)
 // }
 // info(): { started, won, speed, boss: baron.info(), hud, deaths }.
 
@@ -33,6 +39,10 @@ import { music } from '../../../audio/index.js';
 const lerp = (a, b, t) => a + (b - a) * t;
 const smooth = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
 const inBox = (p, b) => p.x >= b.min[0] && p.x <= b.max[0] && p.y >= b.min[1] && p.y <= b.max[1] && p.z >= b.min[2] && p.z <= b.max[2];
+const PHASE_BANNERS = {
+  2: { text: 'Er wird wütend!', hold: 1.3, size: 14, color: '#ffb040' },
+  3: { text: 'Vorsicht – Feuerspur!', hold: 1.5, size: 14, color: '#ffb040' },
+};
 
 /** Heldin auf der fahrenden Straße: im Stand/Gehen nach vorn Laufbewegung zeigen (nur Darstellung). */
 class TreadmillRig extends HeroRig {
@@ -141,8 +151,7 @@ class Boss {
       if (b.state === 'drive' && this.introSaid !== 'done') { this.introSaid = 'done'; this.hud.banner('Kick die Bomben zurück!', { hold: 1.8, size: 13, y: 0.36 }); }
       if (b.phase !== this.seenPhase && b.state !== 'hit') {
         this.seenPhase = b.phase;
-        if (b.phase === 3) this.hud.banner('Vorsicht – Feuerspur!', { hold: 1.5, size: 14, color: '#ffb040' });
-        else if (b.phase === 2) this.hud.banner('Er wird wütend!', { hold: 1.3, size: 14, color: '#ffb040' });
+        this.phaseBanner(b);
       }
       this.hud.boss({ name: this.name, hp: b.hp, max: b.maxHp, car: b.carHits });
       if (b.state === 'gone') this.win();
@@ -152,6 +161,21 @@ class Boss {
       // nach dem Sieg-Jingle: ruhige Musik zum Rastplatz
       if (this.wonT > 4.5 && !this.calm) { this.calm = true; music.play(this.cfg.musicAfter ?? 'course_grass'); }
     }
+  }
+
+  /** Ansage zum Phasenwechsel (LEVEL.boss.phaseBanners, sonst Standard). */
+  phaseBanner(b) {
+    const own = this.cfg.phaseBanners?.[b.phase];
+    const def = PHASE_BANNERS[b.phase];
+    const t = own === undefined ? def : typeof own === 'string' ? (own ? { ...def, text: own } : null) : own;
+    if (!t?.text || (own !== undefined && b.hp <= 0)) return;
+    this.hud.banner(t.text, { hold: t.hold ?? 1.5, size: t.size ?? 14, color: t.color ?? '#ffb040' });
+  }
+
+  /** Arenamitte x für die Kampfkamera. */
+  centerX() {
+    const c = this.cfg.center ?? this.level?.data?.arena?.center;
+    return Array.isArray(c) ? c[0] : typeof c === 'number' ? c : 0;
   }
 
   win() {
@@ -169,7 +193,8 @@ class Boss {
     const at = w?.pos ?? (this.cfg.warpPos ? { x: this.cfg.warpPos[0], y: this.cfg.warpPos[1], z: this.cfg.warpPos[2] } : null);
     if (at) { level.effects?.sparks({ x: at.x, y: at.y + 1.2, z: at.z }, 30); level.effects?.ring(at, 2); }
     level.sfx('powerup');
-    this.hud.banner('Spring in die Warp-Box!', { hold: 2.2, size: 13, y: 0.36 });
+    const wb = this.cfg.warpBanner ?? 'Spring in die Warp-Box!';
+    if (wb) this.hud.banner(wb, { hold: 2.2, size: 13, y: 0.36 });
   }
 
   /** Ohne Warp-Box-Baustein: Röhre am Siegpunkt, die zum Ziel führt (Rückfall). */
@@ -205,7 +230,9 @@ class Boss {
       const front = b.home.z + b.half.z;
       const tz = lerp(player.pos.z, front, this.cfg.frame ?? 0.42);
       rig.target.z = lerp(rig.target.z, tz, f);
-      rig.target.x = lerp(rig.target.x, player.pos.x * 0.5, f);
+      // seitlich zwischen Figur und Arenamitte (während Auftritt/Sieg nur zur Figur hin, wie bisher)
+      const cx = ['intro', 'defeated', 'flee', 'gone'].includes(b.state) ? 0 : this.centerX();
+      rig.target.x = lerp(rig.target.x, (player.pos.x + cx) * 0.5, f);
       rig.place(rig.cur, dt);
     }
     let k = 0, tgt = null, dist = null;

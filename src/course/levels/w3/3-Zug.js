@@ -160,6 +160,7 @@ export const LEVEL = {
     id: 'schatten', name: 'Schattenläuferin', speed: 0,
     trigger: { min: [AX - AR, AY - 0.5, AZ - AR], max: [AX + AR, AY + 6, AZ + AR - 3.2] },
     warp: 'warp_sieg', frame: 0.3, musicAfter: 'course_train',
+    center: [AX, AY, AZ],   // Kampf-Kamera rahmt zur seitlichen Drehscheibe
   },
   setup: levelSetupE((level, scene) => zugSetup(level, scene)),
   zug: {

@@ -1965,29 +1965,9 @@ export function zugSetup(level) {
   }
   // Postwagen (Ausschnitt-Ansicht, Optik am Fahrzeug)
   if (cfg.post) sc.post = postwagenBody(level, cfg.post, { len: 10 });
-  // Phasen-Ansagen der Schattenläuferin im Autoscroller (sie liest archetype.boss / seenPhase)
+  // Phasen-Ansagen der Schattenläuferin im Autoscroller: archetype.boss/seenPhase zeigen auf den Zusatz-Archetyp (Motor);
+  // die Kampf-Kamera rahmt zur seitlichen Drehscheibe über LEVEL.boss.center (Motor)
   const arch = level.archetype;
-  if (arch?.sub && !Object.prototype.hasOwnProperty.call(arch, 'boss')) {
-    Object.defineProperty(arch, 'boss', { get: () => arch.sub.boss, configurable: true });
-    Object.defineProperty(arch, 'seenPhase', { get: () => arch.sub.seenPhase, set: (v) => { arch.sub.seenPhase = v; }, configurable: true });
-  }
-  // Kampf-Kamera des Boss-Archetyps rahmt zwischen Figur und x = 0 (Arenen in der Levelmitte); die Drehscheibe liegt
-  // seitlich (x = arena.x): Blickziel um denselben Anteil zur Arena-Mitte hin verschieben
-  const sub = arch?.sub;
-  if (sub?.camera && cfg.arena?.x && level.view) {
-    const subCam = sub.camera.bind(sub);
-    sub.camera = (dt, player, world) => {
-      const r = subCam(dt, player, world);
-      const b = sub.boss, f = sub.frame ?? 0;
-      // nur wenn der Archetyp selbst gerahmt hat (Boss sichtbar; sonst kehrt er vorher zurück)
-      if (f > 0 && b && b.visible && !['intro', 'defeated', 'flee', 'gone'].includes(b.state)) {
-        const rig = level.view.rig;
-        rig.target.x += f * f * (3 - 2 * f) * cfg.arena.x * 0.5;
-        rig.place(rig.cur, dt);
-      }
-      return r;
-    };
-  }
   // Baron-Szene nach dem Sieg
   if (cfg.baron) {
     sc.baron = new BaronSzene(level, cfg.baron);

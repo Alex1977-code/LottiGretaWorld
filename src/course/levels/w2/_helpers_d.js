@@ -772,23 +772,8 @@ export function panzerSetup(level) {
   const cfg = level.data.panzer ?? {};
   const st = level._panzer = { cfg, init: false, vehicles: [], seen: new WeakSet(), helmets: [], said: {}, luke: null, flucht: null, rings: [] };
 
-  // Phase-3-Ansage von Wirbelbrocken: liest archetype.boss/seenPhase – beim Autoscroller liegen sie im Zusatz-Archetyp
-  const arch = level.archetype;
-  if (arch?.sub && !Object.prototype.hasOwnProperty.call(arch, 'boss')) {
-    Object.defineProperty(arch, 'boss', { get: () => arch.sub.boss, configurable: true });
-    Object.defineProperty(arch, 'seenPhase', { get: () => arch.sub.seenPhase, set: (v) => { arch.sub.seenPhase = v; }, configurable: true });
-    // Phase 3 beginnt im selben Schritt, in dem der Treffer-Zustand endet: dann sähe der Boss-Archetyp die neue Phase vor
-    // dem Endgegner und sagte „Feuerspur“ an (gilt dem Baron) – hier vorher die eigene Ansage des Wirbelbrockens.
-    const sub = arch.sub, after = sub.afterStep?.bind(sub);
-    if (after) sub.afterStep = (dt, inp) => {
-      const b = sub.boss;
-      if (b && b.kind === 'wirbelbrocken' && b.phase === 3 && sub.seenPhase !== 3 && b.state !== 'hit' && sub.started) {
-        sub.seenPhase = 3;
-        if (b.hp > 0) arch.hud?.banner?.('Jetzt wirbelt er wie wild!', { hold: 1.5, size: 14, color: '#ffb040' });
-      }
-      after(dt, inp);
-    };
-  }
+  // Phase-3-Ansage des Wirbelbrockens: LEVEL.boss.phaseBanners (Motor); archetype.boss/seenPhase zeigen im Autoscroller
+  // auf den Zusatz-Archetyp (Motor)
 
   // Lokale Entitäten (die Panzer lesen ihre Unterobjekte beim nächsten Schritt neu ein: `attach`)
   if (cfg.luke) st.luke = spawnLocal(level, new Luke(level, cfg.luke));

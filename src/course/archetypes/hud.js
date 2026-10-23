@@ -6,10 +6,25 @@
 //   hud.arena({ left, total })         Bullenköpfe (übrig = farbig, besiegt = grau mit Kreuz) + „noch N“
 //   hud.banner(text, { color, size, hold }) große Ansage in der Bildmitte (blendet ein und aus)
 //   hud.hideBoss(), hud.hideArena(), hud.state() (für Tests), hud.dispose()
+//
+// Ansagen-Warteschlange (Präzisierung „Leistung und Level-Haken 2“): alle ArchHud eines Levels (z. B. Autoscroller und
+// sein Zusatz-Archetyp Boss) teilen sich eine Schlange – eine Ansage erscheint erst, wenn die vorige ausgeblendet ist
+// (keine Überlagerung, kein Abschneiden). Gleicher Text wird nicht doppelt eingereiht; warten mehr als MAX_WAIT, entfällt
+// die älteste wartende. state().banner nennt die zuletzt angeforderte Ansage.
 
 import Phaser from 'phaser';
 import { GAME } from '../../config.js';
 import { uiText } from '../../ui.js';
+
+const FADE = 0.38;       // s Ausblenden
+const MAX_WAIT = 3;
+
+/** Gemeinsame Schlange aller ArchHud eines Levels (an der Kurs-Szene, je Level neu). */
+function channel(course) {
+  let ch = course.__banners;
+  if (!ch || ch.level !== course.level) ch = course.__banners = { level: course.level, queue: [], busy: false, timer: null };
+  return ch;
+}
 
 export class ArchHud {
   /** @param {Phaser.Scene} course CourseScene */
@@ -19,7 +34,6 @@ export class ArchHud {
     this.objs = null;
     this.want = { boss: null, arena: null };
     this.banners = [];
-    this.queue = [];
     this.lastKey = '';
   }
 
@@ -29,7 +43,7 @@ export class ArchHud {
     try { ui = this.course.scene.get('CourseUI'); } catch (_) { ui = null; }
     if (!ui || !ui.sys.isActive() || ui.course !== this.course) return;
     if (this.ui !== ui || !this.objs) this.attach(ui);
-    while (this.queue.length) this.showBanner(...this.queue.shift());
+    this.pump();
     this.draw();
   }
 
@@ -40,7 +54,11 @@ export class ArchHud {
     const arenaText = uiText(ui, GAME.width / 2 + 34, 39, '', { size: 8, thickness: 2 }).setDepth(46);
     this.objs = { g, bossName, arenaText };
     this.lastKey = '';
-    ui.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { this.objs = null; this.ui = null; this.banners = []; });
+    ui.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.objs = null; this.ui = null; this.banners = [];
+      const ch = channel(this.course);
+      ch.busy = false; ch.timer = null;
+    });
   }
 
   boss(s) { this.want.boss = s; }
@@ -49,8 +67,25 @@ export class ArchHud {
   hideArena() { this.want.arena = null; }
 
   banner(text, opts = {}) {
-    if (this.objs) this.showBanner(text, opts);
-    else this.queue.push([text, opts]);
+    this.lastBanner = text;
+    const ch = channel(this.course);
+    if (ch.queue.some((q) => q.text === text)) return;
+    ch.queue.push({ text, opts });
+    while (ch.queue.length > MAX_WAIT) ch.queue.shift();
+    if (this.objs) this.pump();
+  }
+
+  /** Nächste Ansage zeigen, sobald die vorige ausgeblendet ist. */
+  pump() {
+    const ch = channel(this.course);
+    if (ch.busy || !ch.queue.length || !this.ui) return;
+    const { text, opts } = ch.queue.shift();
+    ch.busy = true;
+    this.showBanner(text, opts);
+    ch.timer = this.ui.time.delayedCall(((opts.hold ?? 1.6) + FADE) * 1000, () => {
+      ch.busy = false; ch.timer = null;
+      this.pump();
+    });
   }
 
   showBanner(text, opts = {}) {
@@ -60,9 +95,8 @@ export class ArchHud {
     const t = uiText(ui, GAME.width / 2, GAME.height * (opts.y ?? 0.3), text, { size: opts.size ?? 17, thickness: 4, stroke: '#3a2a6a', color: opts.color ?? '#ffe066' }).setDepth(61);
     t.setScale(0.4).setAlpha(0);
     this.banners.push(t);
-    this.lastBanner = text;
     ui.tweens.add({ targets: t, scale: 1, alpha: 1, duration: 260, ease: 'Back.Out' });
-    ui.tweens.add({ targets: t, alpha: 0, y: t.y - 10, delay: (opts.hold ?? 1.6) * 1000, duration: 380, onComplete: () => { t.destroy(); this.banners = this.banners.filter((b) => b !== t); } });
+    ui.tweens.add({ targets: t, alpha: 0, y: t.y - 10, delay: (opts.hold ?? 1.6) * 1000, duration: FADE * 1000, onComplete: () => { t.destroy(); this.banners = this.banners.filter((b) => b !== t); } });
   }
 
   draw() {

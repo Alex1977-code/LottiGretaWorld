@@ -137,6 +137,8 @@ export const LEVEL = {
     id: 'wirbel', name: 'Wirbelbrocken', speed: 0,
     trigger: { min: [-AR, AY - 0.5, AZ - AR], max: [AR, AY + 6, AZ + 6.6] },
     warp: 'warp_sieg', frame: 0.35, musicAfter: 'course_tank',
+    // Phase 3: eigene Ansage statt „Vorsicht – Feuerspur!“ (gilt dem Baron)
+    phaseBanners: { 3: { text: 'Jetzt wirbelt er wie wild!', hold: 1.5, size: 14, color: '#ffb040' } },
   },
   // Level-Haken (Präzisierung „Level-Haken“): lokale Teile, Mitfahr-Regeln, Baron-Szene (_helpers_d.js)
   setup: panzerSetup,

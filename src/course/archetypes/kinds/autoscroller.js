@@ -27,7 +27,11 @@
 //   with: 'boss'            optional zweiter Archetyp (z. B. Bossarena nach der Fahrt) – seine Haken laufen mit,
 //                           Kamera/Darstellung übernimmt er nach dem Ende der Fahrt
 //   endBanner: 'Endstation!' Ansage beim Halt ('' = keine), startBanner: 'Los geht's!'
+//   cams, frames, killUp, gates, reveal, fall, cap, sync   Regie je Pfadlänge (archetypes/ScrollDirector.js):
+//                           Kamera und Fenstergrenzen je Pfadlänge s, fahrende Plattformen im Takt der Fahrt-Uhr …
 // }
+// Mit `with: 'boss'` zeigen archetype.boss/seenPhase auf den Zusatz-Archetyp (Endgegner lesen sie).
+// Ansagen von Autoscroller und Zusatz-Archetyp teilen sich eine Warteschlange (hud.js: keine Überlagerung).
 // Kamera-Schienenwerte (pitch, dist, yaw, fov, height) kommen weiter aus LEVEL.camera, ausgewertet an der
 // Fenstermitte. HUD/Timer wie gewohnt. Tod → Neustart am letzten Checkpoint (auch auf einem Fahrzeug, attach) mit
 // der Fensterlage von damals, sonst am Levelstart mit Fahrt von vorn.
@@ -35,6 +39,7 @@
 // across }, pushes, crushed, camK, inherit, sub }.
 
 import { ScrollWindow } from '../ScrollWindow.js';
+import { installScrollDirector } from '../ScrollDirector.js';
 import { ArchHud } from '../hud.js';
 import { createArchetype } from '../index.js';
 
@@ -64,6 +69,11 @@ class Autoscroller {
     this._rail = {};
   }
 
+  /** Endgegner des Zusatz-Archetyps (with: 'boss') – Entitäten lesen level.archetype.boss/seenPhase. */
+  get boss() { return this.sub?.boss; }
+  get seenPhase() { return this.sub?.seenPhase; }
+  set seenPhase(v) { if (this.sub) this.sub.seenPhase = v; }
+
   createPlayer(level, opts) { return this.sub?.createPlayer?.(level, opts); }
   createRig(view, player) { return this.sub?.createRig?.(view, player); }
 
@@ -76,6 +86,7 @@ class Autoscroller {
     const setCp = rt.setCheckpoint.bind(rt);
     rt.setCheckpoint = (pos, yaw) => { setCp(pos, yaw); this.snap = this.win.snapshot(); };
     this.sub?.setup?.();
+    this.director = installScrollDirector(this, level, this.scene, this.cfg);
     if (this.cfg.startBanner) this.hud.banner(this.cfg.startBanner, { hold: 1.4 });
   }
 

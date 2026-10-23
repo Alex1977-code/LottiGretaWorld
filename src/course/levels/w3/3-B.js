@@ -84,12 +84,6 @@ function setup(level) {
   const prevHit = level.onBossHit, prevDef = level.onBossDefeated;
   level.onBossHit = (b, w) => { prevHit?.(b, w); ring.cheer(1, 2.4); };
   level.onBossDefeated = (b) => { prevDef?.(b); ring.cheer(1, 6); };
-  // Röhre statt Warp-Box: Ansage des Boss-Archetyps anpassen
-  const hud = level.archetype?.hud;
-  if (hud?.banner) {
-    const banner = hud.banner.bind(hud);
-    hud.banner = (text, o) => banner(text === 'Spring in die Warp-Box!' ? 'Ab in die Röhre!' : text, o);
-  }
   spawnLocal(level, new RisingPipe(level, { id: 'roehre_ziel', pos: [0, AY, AZ - 8.6], hidden: true, height: 1.5, target: 'ziel_ausgang', color: 0x2fbf4a }));
   // Schneefall vor dem Zelt (folgt der Kamera), Feuerwerk im Hinterhof
   particles(level, { follow: () => { const t = level.view.rig.target; return { x: t.x, y: t.y - 4, z: t.z - 6 }; }, size: [44, 40], n: 140, h: 22, dir: -1, speed: [1.2, 2.2], dot: 0.22, sway: 0.8, colors: [0xffffff, 0xeef4ff], additive: false, opacity: 0.85, name: 'schneefall' });
@@ -151,6 +145,7 @@ export const LEVEL = {
     trigger: { min: [-11, AY - 0.5, AZ - 11], max: [11, AY + 9, AZ + AR - 1.2] },
     lock: { min: [-2.7, AY, AZ + AR - 0.2], max: [2.7, AY + 9, AZ + AR + 1.1] },
     warp: 'roehre_ziel', frame: 0.25, musicAfter: 'course_circus',
+    warpBanner: 'Ab in die Röhre!',   // Röhre statt Warp-Box
   },
   segments: [
     // Gelände (Inseln ohne Schattenwurf) baut der Haken: ISLANDS

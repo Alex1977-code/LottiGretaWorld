@@ -2,7 +2,8 @@
 // Kettenzäunen als Plattformen, an denen man klettert). Thema `skyway`, Musik `course_skyway`, 400 s, 3 Sterne + Stempel.
 // Das Bildfenster fährt einen Pfad mit drei Richtungen: zuerst nach −Z (Zaunbahn), dann senkrecht nach oben
 // (Kletteraufstieg, 40 m), oben nach rechts (+X, Wolkenstrecke in Seitenansicht). Kamera und Fenstergrenzen je
-// Pfadlänge s (scrollDirector in _helpers_b.js, Level-Haken), bei senkrechter Fahrt ist unten aus dem Bild = Absturz.
+// Pfadlänge s (LEVEL.scroll.cams/frames, Motor: archetypes/ScrollDirector.js), bei senkrechter Fahrt ist unten aus dem
+// Bild = Absturz.
 //
 // Pfad der Fenstermitte (s = Pfadlänge):  A (0, 0, 6) → B (0, 0, −68) s 74 → C (0, 40, −68) s 114 → D (72, 40, −68) s 186
 //   1 Zaunbahn       (z 8 … −60, y 0)      Start-Insel, Schiebeplattform P1 (vor/zurück) über die erste Lücke, links die
@@ -23,7 +24,7 @@
 // 3 nach dem Glasrohr: Kurbelrad drehen, Plattform hoch, Zaun hinaufklettern. Stempel: Krallenwand + Zaun hinter dem
 // Glasrohr-Eingang. 1-Up: Kurbelrad auf der Zielinsel → Wolke. Gegner: Krabbelkäfer (4), Flatterkäfer (7).
 
-import { levelSetup, isl, line, ring, arc, column, scrollDirector, clockSync, towerBack, slotStrip, pennantLine, balloon, zeppelin, birds, windmill, pipeLid, plate, cyl, sphere, bugSwarm, fenceShadows, addStaticParts, shadowRange, meadow, tree, bush, stonePath, ropeFence } from './_helpers_b.js';
+import { levelSetup, isl, line, ring, arc, column, towerBack, slotStrip, pennantLine, balloon, zeppelin, birds, windmill, pipeLid, plate, cyl, sphere, bugSwarm, fenceShadows, addStaticParts, shadowRange, meadow, tree, bush, stonePath, ropeFence } from './_helpers_b.js';
 
 const PI = Math.PI;
 const ZC = -68;          // Fensterlinie (Kletterturm, Wolkenstrecke)
@@ -112,30 +113,45 @@ export const LEVEL = {
     accel: 3, delay: 2.5,
     frame: { back: 5, front: 8, ahead: 1.2, followX: 0.3, turn: false },
     startBanner: 'Los geht\'s!', endBanner: 'Endstation!',
+    // Regie je Pfadlänge s (archetypes/ScrollDirector.js): Kamera und Fenstergrenzen während der Fahrt, steile Fahrt nach
+    // oben = unten aus dem Bild ist Absturz, Glasrohr ab s 116, Warp-Boxen, Absturz auf der Wolkenstrecke, Decke über dem
+    // Kletterturm, fahrende Zäune im Takt der Fahrt-Uhr
+    cams: [
+      { s: 0, pitch: 42, dist: 15, fov: 40, height: 1 },
+      { s: 66, pitch: 40, dist: 15, fov: 40, height: 1 },
+      { s: 78, pitch: 17, dist: 17, fov: 42, height: 1 },
+      { s: 108, pitch: 17, dist: 17, fov: 42, height: 1 },
+      { s: 120, pitch: 27, dist: 15.5, fov: 40, height: 1 },
+      { s: 200, pitch: 27, dist: 15.5, fov: 40, height: 1 },
+    ],
+    frames: [
+      { s: 0, back: 5, front: 7.5, ahead: 1.2, followX: 0.3 },
+      { s: 68, back: 5, front: 7.5, ahead: 1.2, followX: 0.3 },
+      { s: 76, back: 5.5, front: 6.4, ahead: 1.0, followX: 0.3 },
+      { s: 96, back: 5.5, front: 6.4, ahead: 1.0, followX: 0.3 },
+      { s: 101, back: 5.5, front: 8.0, ahead: 2.0, followX: 0.3 },
+      { s: 110, back: 5.5, front: 8.0, ahead: 2.0, followX: 0.3 },
+      { s: 118, back: 6.5, front: 7, ahead: 1.5, followX: 0.25 },
+      { s: 200, back: 6.5, front: 7, ahead: 1.5, followX: 0.25 },
+    ],
+    killUp: 0.6,
+    gates: [{ id: 'rohr', open: 116 }],
+    reveal: [{ id: 'warp1', at: 62 }, { id: 'warp2', at: 'done' }],
+    fall: { minS: 116, y: 33, x: [-12, 92] },
+    cap: { s0: 60, s1: 80, up: 6.0, x: [-9, 12], z: [-72, -60.5] },
+    // Takt der fahrenden Zäune (Sekunden Versatz zur Fahrt-Uhr, LEVEL.scroll.sync, Motor): je so gelegt, dass sie zur Stelle sind,
+    // wenn das Bildfenster dort ankommt (P1 wartet am Start; der Hubzaun senkt sich, wenn man ankommt, und fährt wieder
+    // hoch, kurz bevor die hintere Grenze ihn erreicht – wer trödelt, wird zwischen Grenze und Zaun eingeklemmt …)
+    sync: {
+      p1: 0, hub1: 1.485, gasse1: 2.832, gasse2: 1.632, gasse3: 0.432, gasse4: 3.94, p2: -14.58,
+      k2: 4, k4: 0, sz1: 2.8, sz2: 1.06, sz3: 4.28,
+    },
   },
   // Kamera je Pfadlänge (Level-Haken; während der Fahrt) – danach diese Schiene (Endstation, Zielinsel)
   camera: [
     { from: 20, to: -100, pitch: 42, dist: 14, fov: 40, area: [-20, 40] },
     { from: -40, to: -100, pitch: 27, dist: 15.5, fov: 40, area: [40, 92] },
     { from: -40, to: -100, pitch: 42, dist: 13, fov: 40, ahead: 2.4, area: [92, 140] },
-  ],
-  skyCam: [
-    { s: 0, pitch: 42, dist: 15, fov: 40, height: 1 },
-    { s: 66, pitch: 40, dist: 15, fov: 40, height: 1 },
-    { s: 78, pitch: 17, dist: 17, fov: 42, height: 1 },
-    { s: 108, pitch: 17, dist: 17, fov: 42, height: 1 },
-    { s: 120, pitch: 27, dist: 15.5, fov: 40, height: 1 },
-    { s: 200, pitch: 27, dist: 15.5, fov: 40, height: 1 },
-  ],
-  skyFrame: [
-    { s: 0, back: 5, front: 7.5, ahead: 1.2, followX: 0.3 },
-    { s: 68, back: 5, front: 7.5, ahead: 1.2, followX: 0.3 },
-    { s: 76, back: 5.5, front: 6.4, ahead: 1.0, followX: 0.3 },
-    { s: 96, back: 5.5, front: 6.4, ahead: 1.0, followX: 0.3 },
-    { s: 101, back: 5.5, front: 8.0, ahead: 2.0, followX: 0.3 },
-    { s: 110, back: 5.5, front: 8.0, ahead: 2.0, followX: 0.3 },
-    { s: 118, back: 6.5, front: 7, ahead: 1.5, followX: 0.25 },
-    { s: 200, back: 6.5, front: 7, ahead: 1.5, followX: 0.25 },
   ],
   setup: levelSetup((level, scene) => buildSky(level, scene)),
   segments: [
@@ -236,27 +252,12 @@ export const LEVEL = {
     sz2: [56, YR + 0.2, -65], wend: [72, YR, -66], warp2: [79, YR, -66], ziel: [100, YZ, -66], kurbelZiel: [105.5, YZ, -62.5], goal: [121, YZ, -70],
   },
   pathS: { B: S_B, C: S_C, end: S_END },
-  // Takt der fahrenden Zäune (Sekunden Versatz zur Fahrt-Uhr, clockSync): je so gelegt, dass sie zur Stelle sind,
-  // wenn das Bildfenster dort ankommt (P1 wartet am Start; der Hubzaun senkt sich, wenn man ankommt, und fährt wieder
-  // hoch, kurz bevor die hintere Grenze ihn erreicht – wer trödelt, wird zwischen Grenze und Zaun eingeklemmt …)
-  sync: {
-    p1: 0, hub1: 1.485, gasse1: 2.832, gasse2: 1.632, gasse3: 0.432, gasse4: 3.94, p2: -14.58,
-    k2: 4, k4: 0, sz1: 2.8, sz2: 1.06, sz3: 4.28,
-  },
 };
 
 /** Level-Haken: Kamera/Fenster je Pfadlänge, Glasrohr-Deckel, Warp-Boxen, Ringbahn-Start, Kulisse. */
 function buildSky(level, scene) {
-  const data = level.data;
-  clockSync(level, data.sync);
-  const dir = scrollDirector(level, scene, {
-    cam: data.skyCam, frame: data.skyFrame, killUp: 0.6,
-    gates: [{ id: 'rohr', open: 116 }],
-    reveal: [{ id: 'warp1', at: 62 }, { id: 'warp2', at: 'done' }],
-    fall: { minS: 116, y: 33, x: [-12, 92] },
-    cap: { s0: 60, s1: 80, up: 6.0, x: [-9, 12], z: [-72, -60.5] },
-  });
-  level._sky = { dir };
+  // Kamera/Fenster je Pfadlänge, Glasrohr, Warp-Boxen, Takt der Zäune: LEVEL.scroll (Motor, archetypes/ScrollDirector.js)
+  level._sky = { dir: level.archetype?.director ?? null };
   // Ringbahn fährt los, sobald eine Figur auf ihr steht; ein Neustart vom Levelanfang stellt sie zurück
   const rb = level.named.get('ringbahn');
   if (rb) {
