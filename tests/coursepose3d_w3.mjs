@@ -1,14 +1,15 @@
-// Welt-3-Kostüme und -Posen der Heldinnen im echten Kurs (1-1, CourseScene mit HeroRig): Gleitblatt-Kostüm (Blatt-Ohren,
-// Ringel-Schweif) mit 'tailswipe' | 'glide' | 'statue', Schlittschuhe ('skate' + speed, Kurvenneigung aus der Gierrate),
-// Kettenzaun ('fence' + fenceMove, Faustschlag über attack), Unterwasser ('swimUnder', Bläschen, treibende Zöpfe).
-// Der Test setzt proxy.course direkt (HeroRig.update ist abgeschaltet, die Simulation steht) und zeichnet über die
-// Kurs-Ansicht: Nahaufnahmen und Bilder aus der Kurs-Kamera (45°, 13 m, 38°) unter tests/out/cp3_*.png, dazu
-// Übersichtsbögen tests/out/cp3_sheet_*.png. Klone (HeroRig `lite`) über level.addClone.
+// Welt-3-Kostüme und -Posen der Heldinnen im Kurs (Schneegarten 0-9, CourseScene mit HeroRig): Gleitblatt-Kostüm
+// (Blatt-Ohren, Ringel-Schweif) mit 'tailswipe' | 'glide' | 'statue', Schlittschuhe ('skate' + speed + skates, Kurvenneigung
+// aus der Gierrate), Kettenzaun ('fence' + fenceMove, Faustschlag über fencePunch bzw. attack), Unterwasser ('swimUnder',
+// Bläschen, treibende Zöpfe). Teil 1 setzt proxy.course direkt (HeroRig.update abgeschaltet, Simulation steht) und zeichnet
+// Nahaufnahmen und Bilder aus der Kurs-Kamera (45°, 13 m, 38°) unter tests/out/cp3_*.png, dazu Übersichtsbögen
+// tests/out/cp3_sheet_*.png; Klone (HeroRig `lite`) über level.addClone. Teil 2 („motor“) spielt dieselben Zustände mit dem
+// echten Motor durch (Eingaben, HeroRig füllt proxy.course) und prüft Pose, Kufen am Boden und Hände an der Zaunebene.
 // Messungen: Zeichenaufrufe (sichtbare Meshes + Schattenwerfer) und Dreiecke je Pose für Lotti/Greta, groß/klein und Klon;
 // Kufen auf dem Boden, Hände am Zaun, Faust durch den Zaun, Statue auf dem Sockel und ganz aus Stein (und zurück),
 // Drehung beim Schweifhieb, Zöpfe wehen beim Gleiten hoch und treiben unter Wasser, Bläschen nur bei voller Darstellung,
 // unbekannter Zustand → idle, Kurs-Modus aus → Stiefel/Schweif/Stein zurück; keine Konsolenfehler.
-// Aufruf: npm run build && PORT_BASE=3300 node tests/coursepose3d_w3.mjs
+// Aufruf: npm run build && PORT_BASE=3300 node tests/coursepose3d_w3.mjs   (Port 4203; Teilmengen: CP3_PARTS, CP3_HEROES)
 import { writeFileSync, readFileSync } from 'node:fs';
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
@@ -20,7 +21,7 @@ const port = PORT + Number(process.env.PORT_BASE ?? 0);
 const sc = (fn, arg) => page.evaluate(fn, arg);
 const SHOTS = process.env.CP3_SHOTS !== '0';
 
-await page.goto(`http://localhost:${port}/?course=1-1&scale=2&adapt=0`, { waitUntil: 'load' });
+await page.goto(`http://localhost:${port}/?course=0-9&scale=2&adapt=0`, { waitUntil: 'load' });
 try {
   await page.waitForFunction(() => window.__course && window.__course.level && window.__game.scene.isActive('CourseUI'), null, { timeout: 60000 });
 } catch {
@@ -68,6 +69,7 @@ await sc(() => {
   };
   // Kamera: Nahaufnahme relativ zur Blickrichtung der Figur oder Kurs-Kamera (45°, 13 m, 38°, Ziel 1 m über dem Fuß)
   c.view.rig.custom = () => {
+    if (H.motor) return false;
     const cam = c.view.camera, k = H.cam, r = H.focus, s = r.hull.scale.y * 1.5;
     const tg = H.V().copy(r.hull.position);
     let az;
@@ -103,6 +105,17 @@ await sc(() => {
     });
     return { lo: [lo.x, lo.y, lo.z], hi: [hi.x, hi.y, hi.z] };
   };
+  /** Tiefster Weltpunkt (y) der Meshes eines Avatars (mit Filter). */
+  H.worldMinY = (av, filter = () => true) => {
+    av.root.updateMatrixWorld(true);
+    let lo = 1e9; const w = H.V();
+    av.root.traverseVisible((o) => {
+      if (!o.isMesh || o.isInstancedMesh || !filter(o)) return;
+      const n = o.geometry.attributes.position.count;
+      for (let i = 0; i < n; i++) { o.getVertexPosition(i, w); w.applyMatrix4(o.matrixWorld); lo = Math.min(lo, w.y); }
+    });
+    return lo;
+  };
   H.isArm = (av, o) => o === av.armN.carm || o === av.armF.carm;
   H.isBraid = (av, o) => !!av.braids?.some((b) => b.links.some((l) => l.children.includes(o)));
   /** Zopf-/Haarspitzen relativ zu den Ansätzen als Anteil der Kettenlänge (Welt-y): −1 hängt senkrecht, 0 waagerecht, +1 steht hoch. */
@@ -118,7 +131,7 @@ await sc(() => {
   const av0 = H.main.avatar;
   const G = av0.hairMesh.geometry.constructor, A = av0.hairMesh.geometry.attributes.position.constructor, M = av0.hairMesh.constructor;
   H.fenceProp = (r) => {
-    const d = window.__fenceD ?? 0.3, yaw = r.hull.rotation.y;
+    const d = r.avatar.constructor.courseAnchors(true).fence, yaw = r.hull.rotation.y;
     const fx = Math.cos(yaw), fz = -Math.sin(yaw), sx = Math.sin(yaw), sz = Math.cos(yaw);   // vorn, rechts (Welt)
     const o = H.V(r.hull.position.x + fx * d, H.base.y - 0.2, r.hull.position.z + fz * d);
     const pos = [];
@@ -189,7 +202,7 @@ console.log('  Lotti Stand (Kurs):', JSON.stringify(base));
 check('Kurs-Modus aktiv, Ellbogen-Arme', await sc(() => { const av = window.__w3.main.avatar; return !!av.courseMode && av.armN.carm.visible; }));
 
 // ---------------------------------------------------------------- je Heldin: alle Welt-3-Posen
-// Teilmengen fürs Nachbessern: CP3_PARTS=leaf,swipe,glide,statue,skate,fence,swim,small,combo,clones  CP3_HEROES=lotti,greta
+// Teilmengen fürs Nachbessern: CP3_PARTS=leaf,swipe,glide,statue,skate,fence,swim,small,combo,clones,motor  CP3_HEROES=lotti,greta
 const PARTS = (process.env.CP3_PARTS ?? '').split(',').filter(Boolean);
 const on = (part) => !PARTS.length || PARTS.includes(part);
 const HEROES = (process.env.CP3_HEROES ?? 'lotti,greta').split(',').filter(Boolean);
@@ -262,8 +275,10 @@ async function heroine(key) {
     await pose({ state: 'statue', power: 'gleitblatt', grounded: false, vy: -6 }, 4);
     await shot(`${P}_statue_poof`, 'front', 'statue');
     await pose({ state: 'statue', power: 'gleitblatt', grounded: false, vy: -6 }, 30);
+    // Landung wie im Motor (Skript-Modus: grounded bleibt falsch, vy springt von −22 auf −2 m/s)
+    await pose({ state: 'statue', power: 'gleitblatt', grounded: false, vy: -22 }, 2);
     await place();
-    await pose({ state: 'statue', power: 'gleitblatt', grounded: true }, 7);
+    await pose({ state: 'statue', power: 'gleitblatt', grounded: false, vy: -2 }, 7);
     const dust = await sc(() => { const av = window.__w3.main.avatar; return { fx: av.w3.fx.mesh.visible, n: av.w3.fx.mesh.count }; });
     lim(await measure(`${key} statue + Staub`), 2, 'Statue mit Staubwolke');
     await shot(`${P}_statue_land`, 'front', 'statue');
@@ -283,36 +298,48 @@ async function heroine(key) {
     T('Stern + Statue ohne Stein-Haut (Glanz hat Vorrang)', (await stoneCount()).stone === 0);
   }
   if (on('skate')) {
+    // wie im Motor: course.skates = true und HeroRig hebt die Hülle um 0,1 m (klein 0,07 m) – die Kufen müssen bis zum Boden reichen
     await settleIdle();
-    await pose({ state: 'skate', speed: 0 }, 40);
+    await place({ dy: 0.1 });
+    const SK = { state: 'skate', skates: true };
+    const feetW = () => sc(() => { const H = window.__w3, av = H.main.avatar; return H.worldMinY(av, (o) => o.parent === av.legN.ankle || o.parent === av.legF.ankle) - H.base.y; });
+    await pose({ ...SK, speed: 0 }, 40);
     lim(await measure(`${key} skate`), 0, 'Schlittschuh (Stand)');
-    const feet0 = await sc(() => { const H = window.__w3, av = H.main.avatar; return H.extent(av, (o) => o.parent === av.legN.ankle || o.parent === av.legF.ankle).lo[1]; });
+    const feet0 = await feetW();
     await shot(`${P}_skate_stand`, 'front', 'skate');
-    await pose({ state: 'skate', speed: 6 }, 50);
+    await pose({ ...SK, speed: 6 }, 50);
     const feet = await sc(() => {
       const H = window.__w3, av = H.main.avatar, out = [];
-      for (let i = 0; i < 40; i++) { H.pose({ state: 'skate', speed: 6 }, 1); out.push(H.extent(av, (o) => o.parent === av.legN.ankle || o.parent === av.legF.ankle).lo[1]); }
+      for (let i = 0; i < 40; i++) { H.pose({ state: 'skate', skates: true, speed: 6 }, 1); out.push(H.worldMinY(av, (o) => o.parent === av.legN.ankle || o.parent === av.legF.ankle) - H.base.y); }
       return { min: Math.min(...out), max: Math.max(...out) };
     });
     lim(await measure(`${key} skate 6 m/s`), 0, 'Schlittschuh (Lauf)');
-    console.log(`  ${key} Kufen: Stand ${feet0.toFixed(3)}, Lauf ${feet.min.toFixed(3)}…${feet.max.toFixed(3)}`);
-    T('Kufen stehen auf dem Boden (Stand), im Lauf trägt immer ein Fuß', Math.abs(feet0) < 0.02 && Math.abs(feet.min) < 0.03);
-    await shot(`${P}_skate_a`, 'side', 'skate'); await pose({ state: 'skate', speed: 6 }, 20); await shot(`${P}_skate_b`, 'front', 'skate');
+    console.log(`  ${key} Kufen über dem Boden (m, Hülle 0,1 m gehoben): Stand ${feet0.toFixed(3)}, Lauf tiefster Fuß ${feet.min.toFixed(3)}…${feet.max.toFixed(3)}`);
+    T('Kufen stehen auf dem Boden (Stand), im Lauf trägt immer ein Fuß', Math.abs(feet0) < 0.012 && Math.abs(feet.min) < 0.012 && feet.max < 0.02);
+    await shot(`${P}_skate_a`, 'side', 'skate'); await pose({ ...SK, speed: 6 }, 20); await shot(`${P}_skate_b`, 'front', 'skate');
     await shot(`${P}_skate_rear`, 'rear', 'skate'); await shot(`${P}_skate_course`, 'course', 'skate');
-    await pose({ state: 'skate', speed: 8, power: 'gleitblatt' }, 30, { turn: 1.2 });
+    await pose({ ...SK, speed: 8, power: 'gleitblatt' }, 30, { turn: 1.2 });
     const roll = await sc(() => window.__w3.main.avatar.blender.cur.roll);
     lim(await measure(`${key} skate gleitblatt (Kurve)`), 2, 'Schlittschuh mit Gleitblatt');
     console.log(`  ${key} Kurvenneigung bei 8 m/s, 1,2 rad/s: ${roll.toFixed(2)} rad`);
     T('Kurvenneigung nach innen (Linkskurve → links)', roll < -0.15);
     await shot(`${P}_skate_turn`, 'back', 'skate');
-    await place();
-    await pose({ state: 'jump', speed: 6, grounded: false, vy: 3 }, 10);
+    await place({ dy: 0.1 });
+    await pose({ state: 'jump', skates: true, speed: 6, grounded: false, vy: 3 }, 10);
     const keep = await sc(() => window.__w3.main.avatar.w3.skates);
+    await shot(`${P}_skate_jump`, 'side', 'skate');
+    await place();
     await pose({ state: 'idle' }, 10);
     const offOk = await sc(() => { const av = window.__w3.main.avatar; return !av.w3.skates && av.legN.ankle.children[0].geometry === av.w3.bootGeo; });
-    T('Schlittschuhe bleiben im Sprung, weg im Stand', keep && offOk);
+    // ohne course.skates (älterer Motor): 'skate' zeigt die Kufen trotzdem, Fußpunkt = Kufen-Unterkante
+    await pose({ state: 'skate', speed: 0 }, 30);
+    const legacy = await sc(() => { const H = window.__w3, av = H.main.avatar; return { on: av.w3.skates, y: H.worldMinY(av, (o) => o.parent === av.legN.ankle || o.parent === av.legF.ankle) - H.base.y }; });
+    await pose({ state: 'idle' }, 10);
+    T('Schlittschuhe in der Luft an (course.skates), ohne weg; state skate ohne skates: Kufen am Fußpunkt', keep && offOk && legacy.on && Math.abs(legacy.y) < 0.012);
+    T('HeroAvatar.drawsSkates', await sc(() => window.__w3.main.avatar.drawsSkates === true));
   }
   if (on('fence')) {
+    // Zaunebene wie im Motor: Hitbox-Halbbreite 0,3 m + Abstand 0,08 m vor root (courseAnchors().fence)
     await settleIdle();
     await place({ dy: 0.5, fence: true });
     await pose({ state: 'fence', fenceMove: { x: 0, y: 0 } }, 40);
@@ -331,12 +358,23 @@ async function heroine(key) {
     await pose({ state: 'fence', fenceMove: { x: 0, y: 1 } }, 10); await shot(`${P}_fence_up_b`, 'back', 'fence'); await shot(`${P}_fence_up_course`, 'course', 'fence');
     await pose({ state: 'fence', fenceMove: { x: 1, y: 0 } }, 30); await shot(`${P}_fence_right`, 'back', 'fence');
     await pose({ state: 'fence', fenceMove: { x: 0, y: 0 } }, 20);
-    await pose({ state: 'fence', fenceMove: { x: 0, y: 0 }, attack: true }, 7);
-    const punch = await handsX();
+    // Faustschlag wie vom Motor: fencePunch 0..1 über 0,28 s
+    const punch = await sc(() => {
+      const H = window.__w3; let mx = 0;
+      for (let i = 1; i <= 17; i++) {
+        H.pose({ state: 'fence', fenceMove: { x: 0, y: 0 }, fencePunch: Math.min(1, i / 17) }, 1);
+        const av = H.main.avatar; mx = Math.max(mx, H.extent(av, (o) => o === av.armN.carm).hi[0], H.extent(av, (o) => o === av.armF.carm).hi[0]);
+        if (i === 8) H.punchMid = av.blender.state;
+      }
+      return { mx, label: H.punchMid };
+    });
+    await pose({ state: 'fence', fenceMove: { x: 0, y: 0 }, fencePunch: 0 }, 20);
+    await pose({ state: 'fence', fenceMove: { x: 0, y: 0 }, fencePunch: 0.01 }, 1);
+    await pose({ state: 'fence', fenceMove: { x: 0, y: 0 }, fencePunch: 0.45 }, 1);
     await shot(`${P}_fence_punch`, 'side', 'fence');
-    console.log(`  ${key} Faustschlag: Hand bei ${punch.toFixed(3)} (Zaun ${fu.toFixed(3)})`);
-    T('Faustschlag reicht durch den Zaun', punch > fu + 0.06);
-    await pose({ state: 'fence', fenceMove: { x: 0, y: 0 }, attack: false }, 20);
+    console.log(`  ${key} Faustschlag (fencePunch): Hand bis ${punch.mx.toFixed(3)} (Zaun ${fu.toFixed(3)}), Pose ${punch.label}`);
+    T('Faustschlag (fencePunch) reicht durch den Zaun', punch.mx > fu + 0.06 && punch.label === 'fencePunch');
+    await pose({ state: 'fence', fenceMove: { x: 0, y: 0 }, fencePunch: 0 }, 20);
     await pose({ state: 'fence', fenceMove: { x: 0, y: 0 }, attack: true }, 7); await shot(`${P}_fence_punch2`, 'back', 'fence'); await shot(`${P}_fence_punch_course`, 'course', 'fence');
     await pose({ state: 'fence', fenceMove: { x: 0, y: 0 }, attack: false }, 20);
     await place({ clear: true });
@@ -449,7 +487,7 @@ if (cl.length === 2) {
   await pose({ state: 'idle', power: 'gleitblatt' }, 10);
   await frames(4);
   const st = await sc(() => window.__course.stats());
-  console.log('  Szene 1-1 Start, 3 Figuren mit Gleitblatt, Kurs-Kamera:', st.calls, 'Zeichenaufrufe,', st.triangles, 'Dreiecke');
+  console.log('  Szene 0-9 Start, 3 Figuren mit Gleitblatt, Kurs-Kamera:', st.calls, 'Zeichenaufrufe,', st.triangles, 'Dreiecke');
   metrics.push({ name: 'Szene (3 Figuren, Gleitblatt)', total: st.calls, tris: st.triangles });
 }
 
@@ -467,6 +505,133 @@ const off = await sc(() => {
 });
 console.log('  Kurs-Modus aus:', JSON.stringify(off));
 check('Kurs-Modus aus: kein Stein, kein Schweif, Stiefel/Rock zurück, keine Effekte, Schatten und Haarphysik wie vorher', off.stone === 0 && !off.tail && off.boots && off.skirt && !off.fx && off.shins && off.gravity === 32);
+
+// ---------------------------------------------------------------- Mit dem echten Motor (Schneegarten 0-9)
+// HeroRig füllt proxy.course wieder selbst (Simulation per step, Kurs-Kamera der Schiene); Bilder cp3_motor_*.png
+if (on('motor')) {
+  await sc(() => {
+    const c = window.__course, H = window.__w3;
+    c.squad.clear();
+    for (const r of H.rigs) delete r.update;            // Prototyp-Methode wieder aktiv
+    // proxy.course wieder als Objekt mit allen Feldern, die HeroRig beschreibt (Teil 1 hat es je Bild ersetzt)
+    c.rig.proxy.course = { state: 'idle', speed: 0, vy: 0, grounded: true, phase: 0, power: 'none', big: true, holding: null, climbing: false, fenceMove: { x: 0, y: 0 }, fencePunch: 0, skates: false };
+    H.rigs.length = 0;
+    H.motor = true;                                     // Kamera-Haken aus → Kameraschiene des Levels
+    c.setHero('lotti');
+    const P = () => c.player, L = () => c.level;
+    H.mplace = (pos, o = {}) => {
+      const p = P();
+      c.setInput(null); c.setInput({});
+      c.squad.clear(); p.dropHeld();
+      p.dead = false; p.removedFigure = null; p.hidden = false;
+      p.big = o.big ?? true; p.power = 'none'; p.powerTime = 0;
+      p.reset(pos, o.yaw ?? Math.PI / 2);
+      if (o.power) p.setPower(o.power);
+      p.invuln = 0; p.updateHalf();
+      L().runtime.status = 'play'; L().runtime.save.lives = 99;
+      L().controlYaw = c.view.rig.controlYaw(p.pos);
+      c.view.rig.snap(p);
+      c.step(o.settle ?? 30);
+    };
+    H.mplay = (segs) => { for (const [inp, n] of segs) { c.setInput(inp); c.step(n); } c.setInput({}); };
+    H.mstate = () => {
+      for (let i = 0; i < 24; i++) c.rig.update(1 / 60, c.view.time + (i + 1) / 60);   // Avatar mit dem aktuellen Zustand einschwingen
+      const k = c.rig.proxy.course, av = c.rig.avatar, p = P();
+      return { player: p.state, mode: p.mode, course: k.state, label: av.blender.state, skates: k.skates, fenceMove: { ...k.fenceMove }, fencePunch: +(k.fencePunch ?? 0).toFixed(2), power: k.power, stone: av.w3.statue, tail: av.w3.tail.visible };
+    };
+    // Kufen-Unterkante über dem Fußpunkt der Simulation (m)
+    H.mfeet = () => { const av = c.rig.avatar; return H.worldMinY(av, (o) => o.parent === av.legN.ankle || o.parent === av.legF.ankle) - P().pos.y; };
+    H.mhands = () => {
+      // Hände relativ zur Zaunebene (m, > 0 = hinter der Ebene von der Figur aus): Ebene aus level.fences der Figur
+      const p = P(), fe = p.fence?.obj, av = c.rig.avatar;
+      if (!fe?.plane) return null;
+      const Pl = fe.plane, s = p.fence.side, w = H.V();
+      let best = -9;
+      for (const arm of [av.armN.carm, av.armF.carm]) {
+        av.root.updateMatrixWorld(true);
+        const n = arm.geometry.attributes.position.count;
+        for (let i = 0; i < n; i++) { arm.getVertexPosition(i, w); w.applyMatrix4(arm.matrixWorld); best = Math.max(best, -s * ((w.x - Pl.x) * Pl.nx + (w.z - Pl.z) * Pl.nz)); }
+      }
+      return best;
+    };
+  });
+  const mshot = async (name) => {
+    if (!SHOTS) return;
+    await sc(() => { window.__course.view.rig.snap(window.__course.player); });
+    await frames(4);
+    const p = await sc(() => { const c = window.__course, v = c.player.pos.clone(); v.y += 0.5; v.project(c.view.camera); return { x: (v.x + 1) / 2 * window.innerWidth, y: (1 - v.y) / 2 * window.innerHeight }; });
+    const clip = { x: Math.round(Math.max(0, Math.min(960 - 360, p.x - 180))), y: Math.round(Math.max(0, Math.min(540 - 260, p.y - 130))), width: 360, height: 260 };
+    const path = `${OUT}cp3_motor_${name}.png`;
+    try { await page.screenshot({ path, clip, timeout: 120000 }); shotList.push({ name: `motor_${name}`, path, group: 'motor' }); } catch (err) { console.log(`  (Bild ${name} übersprungen: ${err.message.split('\n')[0]})`); }
+  };
+  const M = (fn, arg) => sc(fn, arg);
+  const mstate = () => M(() => window.__w3.mstate());
+  // Schwanzhieb
+  await M(() => window.__w3.mplace([0, 1, 3], { power: 'gleitblatt' }));
+  await M(() => window.__w3.mplay([[{ action: true }, 1], [{}, 12]]));
+  const sw = await mstate();
+  await mshot('tailswipe');
+  // Gleiten über der Lücke
+  await M(() => window.__w3.mplace([-6, 6, -40], { power: 'gleitblatt', settle: 0 }));
+  await M(() => window.__w3.mplay([[{ jump: true }, 70]]));
+  const gl = await mstate();
+  await sc(() => window.__course.setInput({ jump: true }));
+  await mshot('glide');
+  await sc(() => window.__course.setInput({}));
+  // Statue: in der Luft verwandeln, landen
+  await M(() => window.__w3.mplace([-2, 4.5, -20], { power: 'gleitblatt', settle: 0 }));
+  await M(() => window.__w3.mplay([[{ crouch: true, action: true }, 1], [{ crouch: true }, 70]]));
+  const stt = await mstate();
+  await sc(() => window.__course.setInput({ crouch: true }));
+  await mshot('statue');
+  await sc(() => window.__course.setInput({}));
+  await M(() => window.__w3.mplay([[{}, 120]]));
+  // Schlittschuh: hineinlaufen, Graspiste
+  await M(() => window.__w3.mplace([-6, 1, -62.5], { yaw: Math.PI / 2 }));
+  await M(() => window.__w3.mplay([[{ y: 1 }, 110]]));
+  const sk = await mstate();
+  const skFeet = await M(() => window.__w3.mfeet());
+  if (process.env.CP3_DEBUG) console.log(await M(() => { const c = window.__course, av = c.rig.avatar, cur = av.blender.cur, r = (v) => +v.toFixed(3); return JSON.stringify({ hullDy: r(c.rig.hull.position.y - c.player.pos.y), hullSy: r(c.rig.hull.scale.y * 1.5), sx: r(c.rig.hull.scale.x * 1.5), speed: r(c.rig.proxy.course.speed), turn: r(av.w3.turn), bob: r(cur.bob), lean: r(cur.lean), roll: r(cur.roll), figY: r(cur.figY), figZo: r(cur.figZo), pitch: r(cur.pitch), state: av.blender.state, t: r(av.blender.t), modelSy: r(av.model.scale.y) }); }));
+  await sc(() => window.__course.setInput({ y: 1 }));
+  await mshot('skate');
+  await sc(() => window.__course.setInput({}));
+  await M(() => window.__w3.mplay([[{ y: 1, jump: true }, 12]]));
+  const skAir = await mstate();
+  await M(() => window.__w3.mplay([[{}, 120]]));
+  // Kettenzaun: anspringen, klettern, seitlich, Faustschlag
+  await M(() => window.__w3.mplace([-6, 1, -155.5]));
+  await M(() => window.__w3.mplay([[{ y: 1 }, 12], [{ y: 1, jump: true }, 50]]));
+  const fe0 = await mstate();
+  await M(() => window.__w3.mplay([[{ y: 1 }, 40]]));
+  const feUp = await mstate();
+  const feHands = await M(() => window.__w3.mhands());
+  if (process.env.CP3_DEBUG) console.log(await M(() => { const c = window.__course, p = c.player, av = c.rig.avatar, Pl = p.fence.obj.plane, s = p.fence.side, r = (v) => +v.toFixed(3); const e = av.root.matrixWorld.elements; return JSON.stringify({ rootDist: r(-s * ((e[12] - Pl.x) * Pl.nx + (e[14] - Pl.z) * Pl.nz)), posDist: r(-s * ((p.pos.x - Pl.x) * Pl.nx + (p.pos.z - Pl.z) * Pl.nz)), faceDot: r((e[0] * Pl.nx + e[2] * Pl.nz) / Math.hypot(e[0], e[1], e[2])), side: s, yaw: r(p.yaw), rigYaw: r(c.rig.yaw), figX: r(av.blender.cur.figX), label: av.blender.state, big: p.big }); }));
+  await sc(() => window.__course.setInput({ y: 1 }));
+  await mshot('fence_up');
+  await M(() => window.__w3.mplay([[{ x: 1 }, 30]]));
+  await sc(() => window.__course.setInput({ x: 1 }));
+  await mshot('fence_side');
+  await M(() => window.__w3.mplay([[{}, 10], [{ action: true }, 1], [{}, 12]]));
+  const fePunch = await mstate();
+  await mshot('fence_punch');
+  await M(() => window.__w3.mplay([[{ crouch: true }, 2], [{}, 60]]));
+  // Unterwasser: abtauchen und schwimmen
+  await M(() => window.__w3.mplace([-4, 2, -214], { settle: 240 }));
+  await M(() => window.__w3.mplay([[{ crouch: true }, 180], [{ y: 1 }, 60]]));
+  const uw = await mstate();
+  await sc(() => window.__course.setInput({ y: 1 }));
+  await mshot('swim');
+  await sc(() => window.__course.setInput({}));
+  const mrows = { tailswipe: sw, glide: gl, statue: stt, skate: sk, skateAir: skAir, fence: fe0, fenceUp: feUp, fencePunch: fePunch, swimUnder: uw };
+  for (const [k, v] of Object.entries(mrows)) console.log(`  Motor ${k.padEnd(10)} ${JSON.stringify(v)}`);
+  console.log(`  Motor: Kufen über dem Boden ${skFeet.toFixed(3)} m, Hände hinter der Zaunebene ${feHands?.toFixed(3)} m`);
+  check('Motor: Schwanzhieb → Pose tailswipe mit Gleitblatt-Kostüm', sw.course === 'tailswipe' && sw.label === 'tailswipe' && sw.tail);
+  check('Motor: Gleiten → Pose glide', gl.course === 'glide' && gl.label === 'glide');
+  check('Motor: Statue → Stein-Haut', stt.course === 'statue' && stt.label === 'statue' && stt.stone);
+  check('Motor: Schlittschuh → Pose skate, Kufen auf dem Boden (±1,5 cm), in der Luft Kufen an', sk.course === 'skate' && sk.label === 'skate' && sk.skates && Math.abs(skFeet) < 0.015 && skAir.skates);
+  check('Motor: Zaun → Pose fence, Klettern hoch, Hände an der Zaunebene (±4 cm), Faustschlag', fe0.course === 'fence' && feUp.fenceMove.y > 0.5 && feHands !== null && Math.abs(feHands) < 0.04 && fePunch.label === 'fencePunch');
+  check('Motor: getaucht → Pose swimUnder', uw.course === 'swimUnder' && uw.label === 'swimUnder');
+}
 
 // ---------------------------------------------------------------- Kennzahlen, Übersichtsbögen
 console.log('\n  Kennzahlen (Zeichenaufrufe inkl. Schattenwerfer / Dreiecke inkl. Schattenpass):');

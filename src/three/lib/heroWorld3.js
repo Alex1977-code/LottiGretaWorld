@@ -68,7 +68,7 @@ export function bushyTailGeo({ len, r0, rMax, fur = 0.08, segs = 14, rings = 26,
   const B = new THREE.Color(base), S = new THREE.Color(stripe), T = new THREE.Color(tipC ?? base);
   const yMax = 0.6;
   const radius = (u) => {
-    if (u <= yMax) return lerp(r0, rMax, Math.sin((Math.PI / 2) * (u / yMax)) ** 1.4);
+    if (u <= yMax) return lerp(r0, rMax, Math.sin((Math.PI / 2) * (u / yMax)) ** 1.4) * Math.sqrt(Math.min(1, u / 0.035));   // Ansatz geschlossen
     const k = (u - yMax) / (1 - yMax);
     return rMax * Math.sqrt(Math.max(0, 1 - k * k));
   };
@@ -159,7 +159,7 @@ function stoneFor(orig) {
   const key = vcol ? `v:${side}` : `p:${side}:${Math.round(lum * 20)}`;
   let m = STONE.get(key);
   if (m) return m;
-  m = new THREE.MeshStandardMaterial({ roughness: 0.96, metalness: 0, side, flatShading: true, vertexColors: vcol, emissive: 0x1d1c1a });
+  m = new THREE.MeshStandardMaterial({ roughness: 0.96, metalness: 0, side, flatShading: true, vertexColors: vcol, emissive: 0x302e2a });
   if (vcol) {
     m.color.copy(STONE_TINT);
     m.onBeforeCompile = (sh) => {
