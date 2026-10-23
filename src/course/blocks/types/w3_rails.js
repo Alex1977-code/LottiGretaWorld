@@ -14,8 +14,11 @@
 //   entscheidet die Neigung: Stick seitlich (bezogen auf die Fahrtrichtung) bzw. die Stellung der Figur auf der Tafel –
 //   links/rechts → linker/rechter Abzweig, sonst geradeaus. Am Strangende ohne Fortsetzung bleibt sie stehen.
 //   { type: 'schalttafel', net: 'n1', at: [x, y, z] (Startpunkt, wird auf die nächste Schiene gesetzt), size: 3,
-//     speed: 3.5 (m/s), accel: 6, brake: 10, tilt: 0.3 (Schwelle der Neigung, 0..1), id }
-//   level.named.get(id) = { box (MovingBox), pos, edge, s, v, sign, tilt, moving, info() }
+//     speed: 3.5 (m/s), accel: 6, brake: 10, tilt: 0.3 (Schwelle der Neigung, 0..1), id,
+//     coast: 0 (s) }  – coast > 0 (empfohlen ≈ 1): nach dem Abspringen fährt die Tafel so lange mit ihrem Tempo und der
+//     letzten Neigung weiter, bevor sie bremst – die Figur (sie erbt das Tafeltempo) landet wieder auf ihr; so lassen
+//     sich Hindernisse auf der Strecke (Funkenläufer quer zur Fahrt) überspringen. Standard 0 = hält sofort an.
+//   level.named.get(id) = { box (MovingBox), pos, edge, s, v, sign, tilt, moving, coast, info() }
 //
 // schaltblock – Entität (entities/kinds/w3_gimmicks.js, auch als segments-type): Kopfstoß kehrt die Fahrtrichtung
 //   aller Schienen des Netzes um.  { kind: 'schaltblock', pos, net: 'n1' | ['n1', 'n2'] }
@@ -227,11 +230,11 @@ export function buildSchalttafel(level, spec) {
   const bx = new MovingBox(level, at.x, at.y + 0.45, at.z, S, 0.3, S, { tag: 'schalttafel' });
   const b = {
     box: bx, net, pos: new THREE.Vector3(at.x, at.y, at.z), edge: null, s: 0, v: 0, tilt: 0, roll: 0, yaw: 0,
-    moving: false, stopped: false, junctions: 0, lastChoice: null,
+    moving: false, stopped: false, junctions: 0, lastChoice: null, coast: spec.coast ?? 0, coastT: 0,
     get sign() { return b.edge ? b.edge.dir * net.sign : net.sign; },
     info() {
       return { x: +b.pos.x.toFixed(3), y: +b.pos.y.toFixed(3), z: +b.pos.z.toFixed(3), v: +b.v.toFixed(3), edge: b.edge?.i ?? -1,
-        s: +b.s.toFixed(2), tilt: +b.tilt.toFixed(2), stopped: b.stopped, junctions: b.junctions, lastChoice: b.lastChoice };
+        s: +b.s.toFixed(2), tilt: +b.tilt.toFixed(2), stopped: b.stopped, junctions: b.junctions, lastChoice: b.lastChoice, coast: +b.coastT.toFixed(2) };
     },
   };
   net.boards.push(b);
@@ -292,8 +295,12 @@ export function buildSchalttafel(level, spec) {
     const sg = b.sign;
     tangentAt(b.edge, b.s, head); if (sg < 0) head.negate();
     const riders = figures(level).filter((p) => bx.carries(p));
-    b.tilt = tiltOf(riders);
-    const want = riders.length ? speed : 0;
+    // nach dem Abspringen kurz weiterfahren (coast), Neigung beibehalten
+    if (riders.length) b.coastT = b.coast;
+    else if (b.coastT > 0) b.coastT = Math.max(0, b.coastT - dt);
+    const coasting = !riders.length && b.coastT > 0;
+    if (!coasting) b.tilt = tiltOf(riders);
+    const want = riders.length || coasting ? speed : 0;
     if (b.v < want) b.v = Math.min(want, b.v + accel * dt); else b.v = Math.max(want, b.v - brake * dt);
     if (b.stopped && riders.length) {
       // Strangende: weiter nur, wenn es (nach Umkehr) wieder einen Weg gibt

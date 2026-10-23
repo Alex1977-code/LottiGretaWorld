@@ -488,6 +488,24 @@ console.log('Winterwerkstatt 0-13');
   check('view.setUnderwater(true) blendet die Unterwasser-Stimmung ein (naher Nebel, Lichtflecken), auto wieder aus', u1.water > 0.95 && u1.overlay && u1.fog < 60 && u2.water < 0.05 && u2.fog > 200);
 }
 
+// ---------------------------------------------------------------- Schalttafel coast (am Ende: verschiebt die Zeit)
+{
+  // coast (Präzisierung „Leistung und Level-Haken 2“): nach dem Abspringen fährt die Tafel noch kurz weiter
+  const b7 = await sc(() => window.__t.named('tafel').info());
+  await sc(() => { window.__t.named('n1').reverse(); window.__t.named('tafel').coast = 1; });
+  await T('place', [b7.x, b7.y + 0.9, b7.z], { settle: 20 });
+  await T('play', [[{}, 90]]);
+  const c0 = await sc(() => window.__t.named('tafel').info());
+  await T('place', [6, 1, -36], { settle: 0 });
+  await T('play', [[{}, 60]]);
+  const c1 = await sc(() => window.__t.named('tafel').info());
+  await T('play', [[{}, 120]]);
+  const c2 = await sc(() => window.__t.named('tafel').info());
+  await sc(() => { window.__t.named('tafel').coast = 0; });
+  console.log(`  coast 1 s: v ${c0.v} → nach 0,5 s ohne Figur ${c1.v} (noch ${c1.coast} s) → ${c2.v}`);
+  check('Schalttafel coast: ohne Figur noch ≈ 1 s mit vollem Tempo weiter, dann bremst sie', c0.v > 3 && c1.v > 3 && c2.v === 0);
+}
+
 // ---------------------------------------------------------------- Ziel, Kennzahlen
 {
   await T('place', marks.goal);
