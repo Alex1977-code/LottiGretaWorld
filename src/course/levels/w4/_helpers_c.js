@@ -394,6 +394,35 @@ export function raeuberleiter(level, o) {
 }
 
 /**
+ * Relief auf dem glatten Marmorsockel der 1-Up-Mauer (nur Optik, flach auf der Vorderseite z = W.z0 − 0.1): türkiser
+ * Fries, goldene Hasen-Rosette, feine Risse – der Sockel liest sich als „glatt, hier kann man nicht klettern“.
+ */
+export function sockelRelief(level, W, y0) {
+  if (!level.view) return;
+  const z = W.z0 - 0.1 + 0.012, cx = (W.x0 + W.x1) / 2, w = W.x1 - W.x0 - 0.3;
+  const P = [];
+  const plate = (x, y, pw, ph, col) => { const g = new THREE.PlaneGeometry(pw, ph).toNonIndexed(); g.translate(x, y, z); P.push(colorize(g, flat(col))); };
+  for (const [yy, col] of [[y0 + 1.6, RUIN.turq], [y0 + 1.75, RUIN.gold], [y0 + 6.2, RUIN.terra], [y0 + 6.35, RUIN.turqDk]]) plate(cx, yy, w, 0.12, col);
+  // Rosette mit Hasenkopf (Kreise, Ohren)
+  const rc = y0 + 4.0;
+  for (const [r, col] of [[0.95, RUIN.gold], [0.8, RUIN.sandLt], [0.5, RUIN.turq]]) { const g = new THREE.CircleGeometry(r, 24).toNonIndexed(); g.translate(cx, rc, z + (1 - r) * 0.004); P.push(colorize(g, flat(col))); }
+  for (const s of [-1, 1]) { const g = new THREE.CircleGeometry(0.16, 10).toNonIndexed(); g.scale(0.7, 2.2, 1); g.translate(cx + s * 0.18, rc + 0.62, z + 0.006); P.push(colorize(g, flat(RUIN.ivory))); }
+  // Risse
+  for (let i = 0; i < 5; i++) {
+    let x = W.x0 + 0.5 + hash(i, 3) * (w - 0.6), y = y0 + 0.4 + hash(i, 7) * 7;
+    for (let k = 0; k < 4; k++) {
+      const nx = x + (hash(i, k) - 0.5) * 0.5, ny = y + 0.35 + hash(k, i) * 0.3;
+      const g = new THREE.PlaneGeometry(0.035, Math.hypot(nx - x, ny - y)).toNonIndexed();
+      g.rotateZ(-Math.atan2(nx - x, ny - y));
+      g.translate((x + nx) / 2, (y + ny) / 2, z + 0.008);
+      P.push(colorize(g, flat(0xb8a080)));
+      x = nx; y = ny;
+    }
+  }
+  addStatic(level, merge(P), { castShadow: false });
+}
+
+/**
  * Versiegelte blaue Röhre (Hinweis auf die Werfer-Festung 4-B, die auf der Weltkarte erreichbar ist): Röhre mit
  * Gitterdeckel, Vorhängeschloss, kleinem Feuer-Werfer-Wimpel; Steht man darauf und duckt sich, erscheint eine Ansage.
  * o: pos (Fuß), height (1.4), radius (0.9), text.

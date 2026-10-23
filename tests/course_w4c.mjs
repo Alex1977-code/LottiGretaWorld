@@ -78,7 +78,7 @@ const TARGETS = [
       ...[-38, -36, -34, -32].flatMap((z, i) => (i % 2 ? [83, 81, 79, 77] : [77, 79, 81, 83]).map((x) => ({ to: [XS - 80 + x, z], within: 0.35, run: false }))),
       { wait: 80 }, { star: 0 }] },
   { name: 'Stern 1: Krallen-Anzug aus dem ?-Block, Rundturm hinauf', star: 1, from: [-5.4, Y2, -87.0], shot: 'stern1', heroes: ['lotti', 'greta'],
-    legs: [{ to: [-5.4, -88.6], within: 0.2, run: false }, { hop: 20 }, { wait: 90 }, { to: [-5.4, -86.7], within: 0.25, run: false }, { to: [-5.4, -88.6], jump: 30, within: 0.45, run: false }, { wait: 10 },
+    legs: [{ to: [-5.4, -88.6], within: 0.2, run: false }, { hop: 20 }, { wait: 90 }, { to: [-5.4, -86.4], within: 0.15, run: false }, { to: [-5.4, -87.45], within: 0.1, run: false, slow: 0.4 }, { wait: 30 }, { to: [-5.4, -88.6], jump: 40, airDelay: 30, within: 0.45, run: false }, { wait: 10 },
       { to: [-10, -91.0], within: 0.3, run: false }, { push: 260, jump: 14, dir: [0, -1] }, { to: [-10, -95], within: 0.4, run: false }, { star: 1 }], expectPower: 'krallen' },
   { name: 'Stern 1 nicht ohne Krallen (Sprung am Turm)', star: 1, expectNot: true, from: [-10, Y2, -90.4],
     legs: [{ push: 200, jump: 40, dir: [0, -1] }, { wait: 60 }] },
@@ -263,7 +263,9 @@ function install() {
           if (done && i > 0) break;
           let mag = Lg.slow ?? 1;
           let st;
-          if (p.mode === 'air' && holdJ) {
+          if (Lg.airDelay && i < Lg.airDelay) {
+            st = { x: 0, y: 0 };
+          } else if (p.mode === 'air' && holdJ) {
             const k = 2.6, vmax = Lg.vmax ?? 11;
             let vx = dx * k, vz = dz * k;
             const vl = Math.hypot(vx, vz);
@@ -282,6 +284,7 @@ function install() {
           else if (airborne) landed = true;
         }
         log.push([Lg.name ?? `leg${li}`, i, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.power]);
+        if (Lg.trace) log.push(['spur', JSON.stringify(hist)]);
         if (i >= max) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, Lg.to ?? Lg.toNamed]); break; }
       }
       c.setInput({});
@@ -352,7 +355,7 @@ async function load(id, { fresh = false } = {}) {
 const W = (name, ...args) => sc(([n, a]) => window.__w4[n](...a), [name, args]);
 
 async function shot(name, wait = 500) {
-  await sc(() => window.__course.snapCamera());
+  await sc(() => { const c = window.__course; c.snapCamera(); for (let i = 0; i < 20; i++) c.rig.update(0.05, c.view.time + i * 0.05); });
   const f0 = await sc(() => window.__course.view.frame);
   await page.waitForFunction((f) => window.__course.view.frame >= f + 3, f0, { timeout: 90000 }).catch(() => {});
   await page.waitForTimeout(wait);

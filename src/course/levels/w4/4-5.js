@@ -23,7 +23,7 @@
 
 import {
   levelSetup, isl, line, ring, arc, cullStatic, farHide, instanceEnemies, noModelShadow, birds, fruitBush, ruinMosaic,
-  ruinFountain, vines, mossTufts, stoneBlock, roundTower, jungleTrees, raeuberleiter, sealedPipe, switchHall, RUIN,
+  ruinFountain, vines, mossTufts, stoneBlock, roundTower, jungleTrees, raeuberleiter, sealedPipe, switchHall, sockelRelief, RUIN,
 } from './_helpers_c.js';
 
 // Höhen
@@ -68,7 +68,7 @@ function scene(level) {
   ruinFountain(level, -7.2, Y2, -100.2, { r: 1.6 });
   roundTower(level, { x: -10, z: -95, y: Y2, r: 2.4, h: 7 });
   mossTufts(level, [[-12.6, Y2, -86, 1.0, 4], [3.6, Y2, -101.8, 1.2, 5], [-6.6, Y2, -102.4, 1.0, 4]]);
-  jungleTrees(level, [[-12.8, Y2, -80.6, 6.4], [4.4, Y2, -102.6, 5.8]]);
+  jungleTrees(level, [[-12.8, Y2, -80.6, 6.4]]);
   // 1-Up-Mauer: Balkenbrücke über dem Abgrund, Graben, glatter Sockel, Rankenband, Krone
   const [ax0, ax1, az0, az1] = M.beamA, [bx0, bx1, bz0, bz1] = M.beamB, [mx0, mx1, mz0, mz1] = M.moat, W = M.wall;
   stoneBlock(level, ax0, ax1, Y2 - 0.8, Y2, az0, az1, { tag: 'balken', chips: false, top: false });
@@ -77,8 +77,8 @@ function scene(level) {
   stoneBlock(level, mx0 - 0.35, mx0, M.moatY - 0.8, Y2, mz0, mz1, { tag: 'graben-rand', noWallSlide: true, chips: false });
   stoneBlock(level, mx1, mx1 + 0.35, M.moatY - 0.8, Y2, mz0, mz1, { tag: 'graben-rand', noWallSlide: true, chips: false });
   // Sockel (glatt, kein Wandrutschen) etwas zurückgesetzt, darüber das Rankenband (kletterbar), oben die Krone
-  stoneBlock(level, W.x0 + 0.1, W.x1 - 0.1, Y2 - 6, W.band, W.z0 - 0.1, W.z1 + 0.1, { tag: 'mauer-sockel', noWallSlide: true, color: RUIN.ivory, light: 0xffffff, dark: 0xe8d8b8, top: false, chips: false, course: 1.4 });
-  stoneBlock(level, W.x0, W.x1, W.band, W.top, W.z0, W.z1, { tag: 'mauer-ranken', climbable: true, chips: true });
+  stoneBlock(level, W.x0 + 0.1, W.x1 - 0.1, Y2 - 6, W.band, W.z0 - 0.1, W.z1 + 0.1, { tag: 'mauer-sockel', noWallSlide: true, camIgnore: true, color: RUIN.ivory, light: 0xffffff, dark: 0xe8d8b8, top: false, chips: false, course: 1.4 });
+  stoneBlock(level, W.x0, W.x1, W.band, W.top, W.z0, W.z1, { tag: 'mauer-ranken', climbable: true, camIgnore: true, chips: true });
   vines(level, [
     { x: (W.x0 + W.x1) / 2, y: W.top - 0.05, z: W.z0, w: 3.8, len: 1.15, face: '+z', n: 9 },
     { x: W.x0, y: W.top - 0.05, z: (W.z0 + W.z1) / 2, w: 2.8, len: 1.1, face: '-x', n: 6 },
@@ -86,6 +86,7 @@ function scene(level) {
   ]);
   // Brüstung hinten auf der Krone (der Klon läuft nicht hinten hinunter)
   level.world.add({ type: 'box', min: [W.x0, W.top, W.z1], max: [W.x1, W.top + 0.7, W.z1 + 0.35], tag: 'mauer-bruestung' });
+  sockelRelief(level, W, Y2);
   fruitBush(level, [9, Y2, -91.6], { every: 4, id: 'strauch' });
   raeuberleiter(level, { area: { min: [mx0 - 0.05, M.moatY - 0.1, mz1 - 0.1], max: [mx1 + 0.05, M.moatY + 0.4, mz0 + 0.1] }, speed: 19.5, id: 'leiter' });
   // =============================================================== 3 Plattformfahrt / Aufstieg
@@ -139,7 +140,9 @@ export const LEVEL = {
   camera: [
     { ...CAM, from: 14, to: -27 },
     { ...CAM, from: -27, to: -62, pitch: 45 },
-    { ...CAM, from: -62, to: -106, pitch: 44, dist: 13.5 },
+    { ...CAM, from: -62, to: -106, pitch: 44, dist: 13.5, area: [-30, 7.6] },
+    // Balkenbrücke und Mauer (Räuberleiter): flacher und weiter, Blickziel höher – Graben und Krone im Bild
+    { ...CAM, from: -86, to: -100, pitch: 30, dist: 16, height: 4.6, area: [7.6, 40] },
     { ...CAM, from: -106, to: -168, pitch: 46 },
     { ...CAM, from: -168, to: -236, pitch: 47, dist: 12.5 },
     { ...CAM, from: -236, to: -270, pitch: 42, dist: 13.5 },
