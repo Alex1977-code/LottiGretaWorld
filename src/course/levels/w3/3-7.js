@@ -8,12 +8,12 @@
 //                                    zum Bahnsteig. Tafel 1 fährt über die Klamm zu Tafel 2 – deren Schiene zeigt
 //                                    zurück: Schaltblock darüber stoßen, dann geht es weiter (Brummer).
 //   2  Funkenzone    (z −47 … −112)  Tafel 3 fährt bis zum Prellbock; Schaltblock stoßen → zurück, an der Weiche nach
-//                                    links (Bildschirm) in die Kehrschleife → Checkpoint-Insel. Funkenläufer an Blockkante,
-//                                    quer über die Schiene und auf der Schleife; Funkenkäfer. Während dieser dritten
+//                                    links (Bildschirm) in die Kehrschleife → Checkpoint-Insel. Funkenläufer an der Blockkante
+//                                    und auf Seitenspuren der Tafel (ausweichen = auf die andere Tafelseite); Funkenkäfer. Während dieser dritten
 //                                    Fahrt: Sprung auf die Plattform mit drei Zeit-Uhren und Röhre → Fallraum (Stern 1).
 //   3  Wasserfall    (z −112 … −187) Tafel 4 fährt hinter dem Wasserfall entlang und durch die Felsgasse zum
 //                                    Umstieg; Tafel 5: an der Weiche nach links kippen → Seitenast unter der Felsnase
-//                                    (ducken!) mit Stern 2, dann zurück aufs Hauptgleis, auf dem ein Funkenläufer pendelt.
+//                                    (ducken!) mit Stern 2, dann zurück aufs Hauptgleis (Funkenläufer auf der rechten Spur).
 //   4  Ziel          (z −187 … −237) Tafel 6: geradeaus zur Zielinsel (Laubhügel, Zielmast); ganz rechts die
 //                                    Diagonalschiene zu Stern 3, von dort links hinab auf die tiefere Plattform mit dem
 //                                    Stempel und über die Holzbrücke hinauf zur Zielinsel.
@@ -123,9 +123,9 @@ export const LEVEL = {
     rail('n1', [[0, -6.2], [0, -15], [2.5, -20], [2.5, -26.4]]),
     board('t1', 'n1', 0, -7.8),
     // Tafel 2 – ihre Schiene führt zurück (zur Kamera): Schaltblock darüber kehrt sie um
-    rail('n2', [[-1, -46], [-1, -40], [-4, -36], [-4, -31]]),
-    board('t2', 'n2', -4, -31),
-    { type: 'schaltblock', id: 'sb2', pos: [-4, T + 2.75, -31.4], net: 'n2' },
+    rail('n2', [[-2, -46], [-2, -40.5], [0.5, -36.5], [0.5, -30.6]]),
+    board('t2', 'n2', 0.5, -30.6),
+    { type: 'schaltblock', id: 'sb2', pos: [0.5, T + 2.75, -31], net: 'n2' },
 
     // ======================================================== 2  Funkenzone
     land(-9, 9, -47.6, -56),
@@ -136,8 +136,7 @@ export const LEVEL = {
     board('t3', 'n3', 0, -58),
     { type: 'schaltblock', id: 'sb3a', pos: [2.6, Y + 2.4, -53.4], net: 'n3' },
     { type: 'schaltblock', id: 'sb3b', pos: [0, T + 2.75, -89.6], net: 'n3' },
-    // Rail für den querenden Funkenläufer (Zier) und Plattform mit Zeit-Uhren und Röhre zum Fallraum
-    { type: 'schiene', net: 'deko', path: [[-4.6, 1.02, -82], [4.6, 1.02, -82]], radius: 0, color: 0x8a6a4a },
+    // Plattform mit Zeit-Uhren und Röhre zum Fallraum
     land(5, 9.6, -76.4, -81.6, 2.2, 3),
     { type: 'pipe', id: 'p_fall', pos: [8.2, 2.2, -77.4], height: 1.2, radius: 0.85, target: [76.6, 40.4, -80.6] },
     // Checkpoint-Insel
@@ -185,7 +184,7 @@ export const LEVEL = {
   enemies: [
     // Brummer (10)
     { kind: 'brummer', id: 'b1', center: [3.4, 3.6, -16], radius: 2.2 },
-    { kind: 'brummer', id: 'b2', center: [-4, 3.4, -38], radius: 2.4 },
+    { kind: 'brummer', id: 'b2', center: [-5, 3.4, -38], radius: 2.4 },
     { kind: 'brummer', id: 'b3', path: [[4, 4, -62], [4, 4, -72]] },
     { kind: 'brummer', id: 'b4', center: [-6, 3.6, -86], radius: 2.4 },
     { kind: 'brummer', id: 'b5', pos: [7.2, 4.6, -92] },
@@ -204,9 +203,10 @@ export const LEVEL = {
     { kind: 'funkenkaefer', id: 'k7', center: [-4, 4, -210], radius: 2.2 },
     // Funkenläufer (5)
     { kind: 'funkenlaeufer', id: 'f1', block: { pos: [-4.5, Y, -51], size: [2.2, 1.2, 2.2] }, speed: 2.4 },
-    { kind: 'funkenlaeufer', id: 'f2', path: [[-4.4, 1.02, -82], [4.4, 1.02, -82]], speed: 2.6, wait: 0.4 },
-    { kind: 'funkenlaeufer', id: 'f3', path: [[-9.5, T + 0.02, -80], [-9.5, T + 0.02, -94]], speed: 2, wait: 0.6 },
-    { kind: 'funkenlaeufer', id: 'f4', path: [[13, T + 0.02, -152], [13, T + 0.02, -170]], speed: 2.2, wait: 0.5 },
+    // Funkenläufer auf einer Seitenspur der Tafel: auf die andere Tafelseite ausweichen (Springen hielte die Tafel an)
+    { kind: 'funkenlaeufer', id: 'f2', path: [[0.95, T + 0.02, -72], [0.95, T + 0.02, -88]], speed: 2.6, wait: 0.4 },
+    { kind: 'funkenlaeufer', id: 'f3', path: [[-8.55, T + 0.02, -78], [-8.55, T + 0.02, -95]], speed: 2.2, wait: 0.6 },
+    { kind: 'funkenlaeufer', id: 'f4', path: [[13.95, T + 0.02, -150], [13.95, T + 0.02, -184]], speed: 2.6, wait: 0.5 },
     { kind: 'funkenlaeufer', id: 'f5', block: { pos: [16.4, Y, -191], size: [2, 1, 2] }, speed: 2.2 },
     // Münzmarder (1)
     { kind: 'muenzmarder', id: 'm1', path: [[3, Y, -204], [-6, Y, -206.4], [-8, Y, -214], [-4, Y, -222.6], [5, Y, -224], [7.4, Y, -232]], speed: 6, sight: 5.5, lead: 9 },
@@ -216,7 +216,7 @@ export const LEVEL = {
     line([0, Y + 0.5, 6], [0, Y + 0.5, 1], 3),
     line([0, T + 0.6, -10], [0, T + 0.6, -14.6], 3),
     arc([2.5, T + 0.6, -22], [2.5, T + 0.6, -25.6], 2, 0.4),
-    line([-1.2, T + 0.6, -38], [-1, T + 0.6, -43], 3),
+    line([-1.6, T + 0.6, -40], [-2, T + 0.6, -44], 3),
     // 2
     ring([0, Y + 0.6, -52], 1, 4),
     line([0, T + 0.6, -60], [0, T + 0.6, -68], 4),
@@ -244,7 +244,7 @@ export const LEVEL = {
   stamp: [20.6, -1.0, -214.4],
   goal: { pos: [-2.6, Y + 1.4, -227], height: 9 },
   marks: {
-    start: [0, Y, 8], steig: [0, Y, -4.6], t1: [0, T, -7.8], t2: [-4, T, -31], f1: [0, Y, -50], t3: [0, T, -58],
+    start: [0, Y, 8], steig: [0, Y, -4.6], t1: [0, T, -7.8], t2: [0.5, T, -30.6], f1: [0, Y, -50], t3: [0, T, -58],
     uhren: [7, 2.2, -79], fall: [76.4, 40, -80], checkpoint: [-9.5, Y, -106], t4: [-9.5, T, -114], umstieg: [13, Y, -138],
     t5: [13, T, -144], z1: [12, Y, -191], t6: [12, T, -197], ziel: [0, Y, -214], stempel: [20.6, -1.6, -214.4], goal: [-2.6, Y + 1.4, -227],
   },
