@@ -503,8 +503,8 @@ async function testKapitaen() {
     log.push(['s3', rt.stars[2], 'swim', p.mode, 'ring', swimRing, ...K.pos()]);
     const sw = K.walk(-3.6, 1.6, 3000, 0.4) + K.walk(2.6, 0, 3000, 0.4); K.walk(7.4, -1, 1500);
     log.push(['Strand', sw, ...K.pos()]);
-    // 4: Mauseloch, an der Kreuzung rechts → Kuppel, fällt auf den Wasserschalter
-    K.walk(-5, -4.4); K.walk(-5, -7.5, 400);
+    // 4: Mauseloch, an der Kreuzung rechts → Kuppel, fällt auf den Wasserschalter (am Ufer hinten herum, nicht durch den See)
+    K.walk(7.2, -4.5); K.walk(-5, -4.4); K.walk(-5, -7.5, 400);
     K.ride((q) => (q.pos.z > -1 ? [1, 0] : null));
     c.step(60);
     const sch = L.named.get('schalter');
