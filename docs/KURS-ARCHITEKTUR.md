@@ -1978,11 +1978,13 @@ verschmilzt der Batcher vor dem nächsten Bild in das vorhandene Mesh derselben 
   `.shadowVisible(…)`, `.boxVisible(box, cast)`, `.camFrustum`, `.camPos` für eigene Auswahl.
 - **Statische Geometrie**: sehr große Teile (länger als 80 m oder breiter als 120 m – lange Strecken wie `track`, große
   Böden, Kulissen-Ringe) blähen die Abschnitte nicht mehr auf: mit ≥ 2000 Dreiecken dreiecksweise auf eigene Zellen
-  (32 m × 64 m, dünn besetzte Zellen gröber zusammengefasst), sparsame gemeinsam in einem Mesh je Material.
+  (32 m × 64 m, dünn besetzte Zellen gröber zusammengefasst), sparsame gemeinsam in einem Mesh je Material. Dioramen
+  (Archetyp `diorama`, sonst `LEVEL.staticSplit: false`) teilen nicht – die Kamera sieht sie ganz.
 - **Instanz-Pools** (`view.pool`): je Bild nur Instanzen im Bild bzw. mit Schatten ins Bild (Schatten über eigene
   Instanzgruppen nur im Schattenpass); Detailstufe ferner Exemplare über `opts.lod = { dist, make(vorlage) }`
   (`lod: false` = keine). Motor-Vorgaben (`view/lod.js`): Münze ab 30 m (≈ 110 statt ≈ 430 Dreiecke), ?-/Münz-/Ziegel-/
-  benutzte Blöcke ab 28 m (Modell-Stufe `'low'`). Pool-API unverändert (`alloc/set/hide/release`).
+  benutzte Blöcke ab 28 m (Modell-Stufe `'low'`). Leere Stufen kosten keinen Aufruf. Pool-API unverändert
+  (`alloc/set/hide/release`).
 - **Gegner-/Modell-Instanzen** (`view/EntityInstancer.js`, automatisch): Meshes der Entitäts-Modelle mit gleicher
   Geometrie + gleichem Material (+ Schattenwurf/-empfang) zeichnen bei ≥ 2 Exemplaren als eine InstancedMesh je Teil
   (auch Instanzgruppen im Modell, z. B. Käferbeine). Nicht instanziert: transparente Teile (außer Entität `instancing =
@@ -1998,7 +2000,8 @@ verschmilzt der Batcher vor dem nächsten Bild in das vorhandene Mesh derselben 
   Sonnenschatten in einem Zeichenaufruf (SkinnedMesh mit einem Knochen je Teil, nur im Schattenpass) statt ≈ 14, und im
   Hauptpass zeichnen ihre Teile mit gleichem Material gemeinsam (Heldin ≈ 20 → ≈ 11 Aufrufe; Teile, deren Weltmatrix in
   diesem Bild nicht nur dreht und gleichmäßig skaliert – Blinzeln, Stauchen –, zeichnen dann selbst, damit die Normalen
-  stimmen). `view.shadowProxy(root)` für eigene Figuren aus vielen starren Teilen.
+  stimmen; Teile außerhalb des Bildes fallen wie bisher weg). `view.shadowProxy(root)` für eigene Figuren aus vielen
+  starren Teilen.
 - **Wolken**: je Bild nur Wolken im Bild.
 - `?optimize=0` bzw. `view.optimize = false` schaltet alle Sparmaßnahmen zur Laufzeit ab (Vergleich; Bild muss gleich
   sein). `?still=1` hält Simulation und Darstellungszeit an (Messungen, Bilder über Builds vergleichbar).
@@ -2020,6 +2023,8 @@ farHide: 50,                                                 // LEVEL: alle Gegn
 // Schalttafel fährt nach dem Abspringen noch coast s weiter (Sprünge über Hindernisse auf der Schiene; Standard 0)
 { type: 'schalttafel', net: 'n1', at: [x, y, z], coast: 1 },
 // Drehraum setzt camIgnore auf Hülle und Einbauten selbst (camThrough: false schaltet ab)
+// Statische Geometrie: große Teile nicht auf Zellen verteilen (Standard nur im Archetyp diorama)
+staticSplit: false,
 ```
 
 ### Präzisierung (Leistung und Level-Haken 2): Archetypen
@@ -2059,7 +2064,47 @@ Strecke, Checkpoints, Sterne, Stempel, Ziel (Autoscroller: sechs Fensterlagen); 
 `DETAIL=1` (größte Posten je Objekt, Haupt- und Schattenpass), `COMPARE=1` (Bild mit/ohne Sparmaßnahmen), `SHOTS=1`,
 `POINTS=…`. Ergebnis `tests/out/perf_<Name>.json`.
 
-KENNZAHLEN_PLATZHALTER
+Stand dieser Präzisierung (Chromium headless mit Software-Rendering, 960 × 540, `?still=1`, Zufall geseedet; Mittel
+bzw. Maximum über die Messpunkte je Level; „vorher“ = Motor vor der Präzisierung, gleiche Level-Daten):
+
+| Level | Aufrufe Ø (max) vorher | nachher | Dreiecke Ø (max) vorher | nachher |
+|---|---|---|---|---|
+| 1-1 | 90,9 (117) | 49,9 (70) | 244 k (289 k) | 138 k (190 k) |
+| 1-2 | 69,5 (103) | 41,5 (64) | 181 k (217 k) | 83 k (118 k) |
+| 1-A | 87 (87) | 53 (53) | 187 k (187 k) | 178 k (178 k) |
+| 1-3 | 91 (113) | 49,3 (70) | 237 k (271 k) | 125 k (156 k) |
+| 1-Schatz | 112,7 (115) | 59,7 (62) | 152 k (152 k) | 107 k (108 k) |
+| 1-4 | 97,3 (111) | 66,8 (78) | 193 k (235 k) | 138 k (168 k) |
+| 1-5 | 85,9 (112) | 50,5 (76) | 185 k (222 k) | 108 k (144 k) |
+| 1-Burg | 88,3 (115) | 46,9 (60) | 217 k (302 k) | 114 k (198 k) |
+| 2-1 | 90,4 (112) | 56,9 (83) | 220 k (261 k) | 153 k (222 k) |
+| 2-2 | 91,3 (124) | 58,6 (81) | 177 k (223 k) | 105 k (146 k) |
+| 2-3 | 88,9 (121) | 54,6 (86) | 236 k (288 k) | 148 k (197 k) |
+| 2-4 | 88,2 (109) | 54,1 (74) | 203 k (267 k) | 114 k (194 k) |
+| 2-5 | 78,3 (90) | 47,7 (58) | 212 k (258 k) | 134 k (168 k) |
+| 2-A | 66 (66) | 41 (41) | 65 k (65 k) | 66 k (66 k) |
+| 2-Haus | 58 (58) | 30 (30) | 60 k (60 k) | 58 k (58 k) |
+| 2-Panzer | 91,3 (108) | 58,5 (74) | 222 k (266 k) | 169 k (212 k) |
+| 3-1 | 89,2 (100) | 52 (63) | 229 k (279 k) | 133 k (165 k) |
+| 3-2 | 87,5 (111) | 54,5 (75) | 235 k (255 k) | 137 k (167 k) |
+| 3-3 | 74,7 (98) | 46,5 (73) | 203 k (268 k) | 148 k (216 k) |
+| 3-4 | 80,2 (94) | 52,8 (61) | 166 k (196 k) | 130 k (162 k) |
+| 3-5 | 97,1 (137) | 64,3 (102) | 213 k (273 k) | 134 k (214 k) |
+| 3-6 | 80,6 (89) | 43,2 (52) | 218 k (248 k) | 96 k (115 k) |
+| 3-7 | 79,5 (101) | 53,9 (76) | 223 k (235 k) | 132 k (152 k) |
+| 3-A | 53 (53) | 37 (37) | 111 k (111 k) | 111 k (111 k) |
+| 3-B | 60,7 (73) | 36 (50) | 176 k (192 k) | 138 k (180 k) |
+| 3-Kapitän | 94,8 (96) | 89,5 (91) | 238 k (238 k) | 226 k (227 k) |
+| 3-Zug | 90,3 (101) | 61 (69) | 216 k (238 k) | 184 k (215 k) |
+| **Welt 1** (Mittel) | 90,3 | 52,2 (-42 %) | 200 k | 124 k (-38 %) |
+| **Welt 2** (Mittel) | 81,5 | 50,2 (-38 %) | 174 k | 118 k (-32 %) |
+| **Welt 3** (Mittel) | 80,7 | 53,7 (-33 %) | 203 k | 143 k (-30 %) |
+| **alle 27** (Mittel) | 83,8 | 52,2 (-38 %) | 193 k | 130 k (-33 %) |
+
+Arenen und Dioramen (1-A, 2-A, 2-Haus, 3-A, 1-Schatz, 3-Kapitän) sieht die Kamera fast ganz – dort sparen vor allem
+Instanzen, Pools, Schatten-Stellvertreter und Figur-Bündel Aufrufe; Dreiecke sinken kaum. Die Strecken-Level gewinnen
+zusätzlich über die Sicht-/Schattenprüfung, Zellen der großen Teile und die Detailstufen. Faustregel für Welt 4: ein
+Strecken-Level liegt jetzt im Mittel bei ≈ 50–60 Aufrufen und ≈ 100–150 k Dreiecken (Spitzen ≈ 80–100 / ≈ 200 k).
 
 ## Welt 3 – Level-Liste und Freischaltung (Hauptsitzung)
 
