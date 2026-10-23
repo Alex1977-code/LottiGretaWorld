@@ -2,7 +2,8 @@
 //   MapRoamer  wandernde Gegnerfigur (z. B. Rammbock-Bulle für 1-A): läuft auf einem Wegstück hin und her (from/to)
 //              oder im Kreis (circle: [x, z, r], Welt 2: Großrollpilze auf der Lava-Felsinsel), schaut die Heldin an,
 //              wenn sie näher kommt; Berührung → onTouch(roamer) (startet das Level, wenn frei).
-//              Fehlt das Modell (model) noch, nimmt sie fallback (z. B. 'pilzling', vergrößert um fallbackScale).
+//              Fehlt das Modell (model) noch, nimmt sie fallback (z. B. 'pilzling', vergrößert um fallbackScale)
+//              bzw. – Welt 4 – einen Stellvertreter (spec.makeStandIn(): { root, update, dispose }).
 //   MapItem    schwebendes Gratis-Power-up (Beerenhaus): Berührung → onCollect(item).
 // Beide nutzen CourseEntity (Schwerkraft, Kollision, Modell) und werden mit addEntity() angemeldet.
 
@@ -51,7 +52,9 @@ export class MapRoamer extends CourseEntity {
     this.cool = 0;
     const name = spec.model ?? 'rammbock_bulle';
     const useFallback = !hasModel(name) && spec.fallback && hasModel(spec.fallback);
-    this.setModel(getModel(useFallback ? spec.fallback : name, spec.modelOpts ?? {}));
+    const standIn = !hasModel(name) && !useFallback && typeof spec.makeStandIn === 'function';
+    this.setModel(standIn ? spec.makeStandIn(spec) : getModel(useFallback ? spec.fallback : name, spec.modelOpts ?? {}));
+    this.standInUsed = standIn;
     const sc = useFallback ? (spec.fallbackScale ?? 1) : (spec.scale ?? 1);
     if (sc !== 1 && this.model?.root) this.model.root.scale.setScalar(sc);
     // spec.castShadow === false (Welt 3): vielteilige Modelle ohne Sonnenschatten (der Schatten-Blob bleibt) – spart

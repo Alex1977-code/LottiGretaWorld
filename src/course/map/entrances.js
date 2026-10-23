@@ -1,7 +1,7 @@
 // Eingänge der Kurs-Weltkarte: rundes Podest mit Nummernscheibe (frei = farbig mit Leuchtring, gesperrt = grau mit
 // schwebendem Schloss, geschafft = Fahne), dazu je Art eine Kulisse (Wiesentor, Höhlenmaul, Arena-Gitter, Bohnenranke,
 // Diorama-Vitrine, Blatt-Floß und Wasserfall, Zirkuszelt, Festung mit Baron-Flagge, Glasröhre; Welt 2: decor_w2.js,
-// Welt 3: decor_w3.js).
+// Welt 3: decor_w3.js, Welt 4: decor_w4.js).
 // Große, unbewegte Teile gehen in die verschmolzene statische Geometrie (view.addStatic), bewegte sind eigene Objekte.
 //
 // Weltdaten je Eingang: { id, kind, pos, exit?, decor?: [x, y, z] (Lage der Kulisse), cage?: [[x0, z0, x1, z1], …],
@@ -22,6 +22,7 @@ import { PODIUM_R } from './layout.js';
 import { tubeCurve } from './travel.js';
 import { decorateW2 } from './decor_w2.js';
 import { decorateW3 } from './decor_w3.js';
+import { decorateW4 } from './decor_w4.js';
 
 
 /** Geometrie in Weltkoordinaten kopieren (gedreht um yaw, verschoben). */
@@ -220,7 +221,7 @@ export class EntranceView {
         break;
       case 'castle': this.decorateCastle(x, y, z); break;
       case 'pipe': this.decoratePipe(x, y, z); break;
-      default: if (!decorateW2(this, this.kind, x, y, z)) decorateW3(this, this.kind, x, y, z); break;
+      default: if (!decorateW2(this, this.kind, x, y, z) && !decorateW3(this, this.kind, x, y, z)) decorateW4(this, this.kind, x, y, z); break;
     }
   }
 

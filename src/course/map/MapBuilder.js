@@ -8,6 +8,10 @@
 // Welt 3: map.kit = 'snow' wählt die Schnee-Geländestile (snow.js: Schneedecken, Eisfels, zugefrorener See mit
 // rutschigem Eis – Block mit ice: true –, Tannenwald, Pastell-Garten, Herbstwiese), Schneewälle/Holzzäune als Ränder
 // (edges { hedge: 'snow'|'mint'|'autumn', fence: 'snowfence' }) und Winter-Requisiten (snowPropGeo).
+// Welt 4: map.kit = 'canyon' wählt die Canyon-Geländestile (canyon.js: rote Sandstein-Bänder, Tafelberge, Giftwald,
+// Bergwiese, Ruinen-Pflaster, Basalt mit glühenden Fugen …), Felsbrocken-Mäuerchen als Rand (edges.hedge 'redrock'),
+// Hängebrücken/Felsbögen (segments 'ropebridge'/'rockarch'), Canyon-Requisiten und Seilbahnen (map.cableways,
+// bewegte Gondel: out.updaters je Bild, out.own zum Aufräumen).
 // Reihenfolge wichtig: Höhen für Hecken/Platten werden vom Gelände abgefragt, bevor Wände/Schranken entstehen;
 // erst am Ende wird die statische Geometrie verschmolzen (view.finalize).
 
@@ -24,6 +28,8 @@ import { desertGround, adobeWallGeo, ropeFenceGeo, tintHedgeGeo, PINK_HEDGE, pro
 import { SlotMachine } from './slot.js';
 import { bakeModel, propModel } from './bake.js';
 import { SNOW_STYLES, snowGround, snowEdgeGeo, scatterSnow, snowPropGeo, snowPropGlow, snowPropShape, buildSnowStairs, buildSnowBridge } from './snow.js';
+import { canyonGround, canyonEdgeGeo, scatterCanyon, canyonPropGeo, canyonPropGlow, canyonPropShape, buildRopeBridge, buildRockArch } from './canyon.js';
+import { buildCableway } from './decor_w4.js';
 
 const DESERT_STYLES = new Set(['desert', 'sandstone', 'dune', 'pink', 'lavarock', 'basin']);
 
@@ -36,7 +42,7 @@ const WALL_TOP = 40;         // so hoch, dass kein Sprung darüber reicht
  * @param {{ entranceInfo(def): { label: string }, gateClosed(gate): boolean }} host
  */
 export function buildMap(level, map, host) {
-  const out = { grid: null, entrances: new Map(), gates: [], scenery: null, walls: 0, hedges: 0, tiles: 0, house: null, slot: null };
+  const out = { grid: null, entrances: new Map(), gates: [], scenery: null, walls: 0, hedges: 0, tiles: 0, house: null, slot: null, updaters: [], own: [] };
   const base = map.base ?? -3;
   const sea = map.sea ?? 0;
   const theme = level.view?.theme;
@@ -47,6 +53,8 @@ export function buildMap(level, map, host) {
   for (const seg of map.segments ?? []) {
     if (seg.type === 'snowstairs') { buildSnowStairs(level, seg); continue; }   // Welt 3: sparsame Schneestufen (snow.js)
     if (seg.type === 'snowbridge') { buildSnowBridge(level, seg); continue; }   // Welt 3: sparsame Holzbrücke mit Schnee
+    if (seg.type === 'ropebridge') { buildRopeBridge(level, seg); continue; }   // Welt 4: Hängebrücke
+    if (seg.type === 'rockarch') { buildRockArch(level, seg); continue; }       // Welt 4: Felsbogen
     const build = getBlockType(seg.type);
     if (!build) { console.warn(`[Weltkarte] unbekannter Baustein: ${seg.type}`); continue; }
     try { build(level, seg); } catch (err) { console.error(`[Weltkarte] Baustein ${seg.type} fehlgeschlagen:`, err); }
@@ -55,6 +63,7 @@ export function buildMap(level, map, host) {
   out.grid = grid;
   if (map.kit === 'desert') scatterDesert(level, map, grid);
   else if (map.kit === 'snow') scatterSnow(level, map, grid);
+  else if (map.kit === 'canyon') scatterCanyon(level, map, grid);
   else scatterDeco(level, map, base, grid);
   buildProps(level, map, grid);
   const bounds = level.computeBounds();
@@ -66,7 +75,7 @@ export function buildMap(level, map, host) {
   const edgeParts = { hedge: [], fence: [] };
   for (const w of walls) borderDeco(w, ground, sea, edgeParts, groundBlock, map.edges);
   // Welt 3: niedrige Schneewälle/Zäune ohne Sonnenschatten (spart den Schattenpass auf der dichten Schneeinsel)
-  const edgeShadow = map.kit !== 'snow';
+  const edgeShadow = map.kit !== 'snow' && map.kit !== 'canyon';   // Welt 4 ebenso
   for (const g of edgeParts.hedge) level.view?.addStatic(g, { castShadow: edgeShadow });
   for (const g of edgeParts.fence) level.view?.addStatic(g, { castShadow: edgeShadow });
   out.hedges = edgeParts.hedge.length;
@@ -76,6 +85,12 @@ export function buildMap(level, map, host) {
 
   // 5) Meer, Wolken, Nachbarinseln (Inselchen gehen in die statische Geometrie)
   if (level.view) out.scenery = new MapScenery(level.view, map, bounds);
+
+  // 5b) Seilbahnen (Welt 4, Kulisse mit fahrender Gondel)
+  for (const cw of map.cableways ?? []) {
+    const c = buildCableway(level, cw);
+    if (c) { out.updaters.push(c.update); out.own.push(c); }
+  }
 
   // 6) Eingänge
   for (const def of map.entrances ?? []) {
@@ -152,6 +167,14 @@ function buildGround(level, b, base, theme, index, map) {
   const rnd = new Rnd(0x51ab + index * 977);
   level.world.add({ type: 'box', min: [x0, base, z0], max: [x1, top, z1], tag: b.walk ? 'karte' : 'gelaende', mapBlock: b, ice: !!b.ice });
   if (!theme) return;
+  if (map.kit === 'canyon') {
+    // Welt 4: Canyon-Stile (flache Deckschichten ohne Schattenwurf, glänzende/leuchtende Teile über userData.material)
+    for (const g of canyonGround({ ...b, style: b.style ?? 'canyon' }, base, theme, rnd)) {
+      const mat = g.userData?.material, ns = g.userData?.noShadow;
+      level.view.addStatic(g, mat || ns ? { material: mat, castShadow: !ns } : undefined);
+    }
+    return;
+  }
   const style = b.style ?? (map.kit === 'desert' ? 'desert' : map.kit === 'snow' ? 'snow' : 'grass');
   if (map.kit === 'snow' || SNOW_STYLES.has(style)) {
     // Welt 3: Eisflächen (userData.material) glänzen über das Material 'stone'
@@ -298,15 +321,15 @@ function buildProps(level, map, grid) {
     }
     if (!baked && level.view && it.kind === 'sandblocks') bakeSandblocks(add, it);
     else if (!baked) {
-      const g = level.view ? (propGeo(it, 0x7a11 + i * 37) ?? snowPropGeo(it, 0x7a11 + i * 37)) : null;
+      const g = level.view ? (propGeo(it, 0x7a11 + i * 37) ?? snowPropGeo(it, 0x7a11 + i * 37) ?? canyonPropGeo(it, 0x7a11 + i * 37)) : null;
       if (g) level.view.addStatic(place(g, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: it.shadow !== false, material: it.material });
       // Welt 3: Fenster, Laternen, Lichterkugeln (helle Teile ohne Schattenwurf; teilen die Kachel der Wegplatten)
-      const gl = level.view ? snowPropGlow(it) : null;
+      const gl = level.view ? (snowPropGlow(it) ?? (map.kit === 'canyon' ? canyonPropGlow(it) : null)) : null;
       if (gl) level.view.addStatic(place(gl, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: false });
     }
     if (it.solid === false) return;
     if (it.solid || grid.isWalk(it.pos[0], it.pos[2])) {
-      const sh = propShape(it) ?? snowPropShape(it);
+      const sh = propShape(it) ?? snowPropShape(it) ?? canyonPropShape(it);
       if (sh) level.world.add(sh);
     }
   });
@@ -392,7 +415,7 @@ function borderDeco(w, ground, sea, out, groundBlock, edges = {}) {
       let g;
       if (c === 'hedge') {
         const seed = Math.floor(mid * 7 + 13) >>> 0;
-        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : snowEdgeGeo(st, L, seed) ?? hedgeGeo(L + 0.2, 1.1, 0.9, seed);
+        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : snowEdgeGeo(st, L, seed) ?? canyonEdgeGeo(st, L, seed) ?? hedgeGeo(L + 0.2, 1.1, 0.9, seed);
         const off = w.side * (st === 'adobe' ? 0.35 : 0.45);
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
