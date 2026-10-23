@@ -4,7 +4,7 @@
 // piep_block        Piep-Block 1 m: glänzender Würfel (rot = pink-rot, blau = königsblau) mit weißem „Schallwellen“-Zeichen
 //                   auf allen vier Seiten und hellem Deckelfeld. Aus: nur gestrichelter, leuchtender Umriss + Hauch von Füllung.
 //                   opts  { color: 'rot'|'blau' (Standard 'rot') }
-//                   state { on (0..1: 1 = fest, 0 = Umriss; Zwischenwerte wachsen/schrumpfen den Block), warn (0..1: Blinken
+//                   state { on (0..1: 1 = fest, 0 = Umriss; Zwischenwerte wachsen/schrumpfen den Block; Kurzform 'on'|'off'), warn (0..1: Blinken
 //                           vor dem Wechsel – fest: Block blinkt hell; Umriss: Umriss flackert, Füllung nimmt zu) }
 //                   Viele → createInstanced('piep_block', n, { color }) (lib/instanced_w4.js), state wie hier.
 // riesentrampolin   großes schwebendes Trampolin: runde Sprungfläche (orange mit gelbem Stern und Strahlen) in einem rot-weißen
@@ -84,7 +84,7 @@ function buildPiep(opts = {}) {
   const update = (dt, st) => {
     clk.tick(dt, 'idle');
     const t = clk.t;
-    const on = clamp(Number(st.on ?? 1), 0, 1), warn = clamp(Number(st.warn ?? 0), 0, 1);
+    const on = clamp(Number(st.on ?? (st.anim === 'off' ? 0 : 1)), 0, 1), warn = clamp(Number(st.warn ?? 0), 0, 1);
     const blink = warn > 0 ? (Math.sin(t * TAU * (5 + warn * 5)) > 0 ? 1 : 0) * warn : 0;
     const k = smoothstep(on);
     center.scale.setScalar(Math.max(0.001, 0.55 + 0.45 * k) * (1 + blink * 0.03));

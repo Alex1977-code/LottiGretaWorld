@@ -7,7 +7,7 @@
 //   blocks.root, blocks.meshes, blocks.count, blocks.name
 //
 // Arten und Zustände (state als String oder Objekt, 'hidden' blendet aus):
-//   'piep_block'          opts { color: 'rot'|'blau' }  state { on (0..1), warn (0..1) } wie das Einzelmodell.
+//   'piep_block'          opts { color: 'rot'|'blau' }  state { on (0..1), warn (0..1) } wie das Einzelmodell (oder 'on'|'off').
 //                         Zusatz: setAll(state) setzt alle belegten Plätze auf einmal (Taktwechsel). getState(i) → 'hidden'
 //                         oder { on, warn }. 3 InstancedMeshes (fest, Umriss, Füllung).
 //   'ameisensoldat'       state 'walk'|'idle'|'carry'|'squashed' oder { anim, speed } wie das Einzelmodell; Beine laufen
