@@ -320,8 +320,11 @@ function install() {
           // im freien Fall zum Ziel lenken, bis gelandet
           let k = 0;
           for (; k < (Lg.max ?? 600); k++) {
-            const dx = Lg.fall[0] - p.pos.x, dz = Lg.fall[1] - p.pos.z, d = Math.hypot(dx, dz);
-            tick(d > 0.1 ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {});
+            // Wunschgeschwindigkeit zum Ziel (bremst davor ab), Stick = Abweichung
+            const dx = Lg.fall[0] - p.pos.x, dz = Lg.fall[1] - p.pos.z;
+            let vx = dx * 2.2, vz = dz * 2.2; const vl = Math.hypot(vx, vz); if (vl > 5) { vx *= 5 / vl; vz *= 5 / vl; }
+            const ex = vx - p.vel.x, ez = vz - p.vel.z, el = Math.hypot(ex, ez);
+            tick(el > 0.08 ? { ...this.stick(ex, ez, Math.min(1, el / 2.5)), run: false } : {});
             if (k > 10 && p.mode === 'ground') break;
           }
           log.push(['fall', k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
