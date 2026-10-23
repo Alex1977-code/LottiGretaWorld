@@ -206,8 +206,8 @@ export function antHeadGeo(horn = false, lo = false) {
     // Schnauze/Kieferzangen (creme, gebogen)
     for (const s of [1, -1]) {
       // kurze, nach innen gebogene Zangen: Kegel nach vorn, Spitzen zueinander
-      b.sphere(0.03, ANT.jaw, { p: [R * 0.84, -R * 0.56, s * 0.06] }, n(8), n(6));
-      b.add(new THREE.ConeGeometry(0.024, 0.1, n(8)), ANT.jaw, axisY([R * 0.84 + 0.05, -R * 0.6, s * 0.045], [1, -0.15, -s * 0.45]));
+      b.sphere(0.026, ANT.jaw, { p: [R * 0.86, -R * 0.55, s * 0.055] }, n(8), n(6));
+      b.add(new THREE.ConeGeometry(0.02, 0.065, n(8)), ANT.jaw, axisY([R * 0.86 + 0.035, -R * 0.57, s * 0.04], [1, 0.1, -s * 0.6]));
     }
     b.sphere(0.05, ANT.bodyLow, { p: [R * 0.92, -R * 0.38, 0], s: [0.8, 0.6, 1.1] }, n(10), n(6));
     // Wangen

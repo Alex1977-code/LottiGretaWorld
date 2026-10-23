@@ -19,7 +19,7 @@
 //                   state { squash (0..1: Hut sinkt bis 0,35 m ein), anim?: 'idle'|'bounce' (Nachfedern 0,8 s, n?) }
 //                   root.userData.top() → aktuelle Hut-Oberkante.
 // stachelstange     drehende Stachelstange: Bronze-Sockel (Ø 0,9 m, 0,55 m) mit drehendem Kopf, waagerechte Eisenstange mit
-//                   Goldringen, an jedem Ende und in der Mitte jeder Hälfte eine Stachelkugel (Ø 0,7 m).
+//                   Goldringen, an jedem Ende und in der Mitte jeder Hälfte eine Stachelkugel (Ø ≈1 m mit Stacheln).
 //                   opts  { length (Gesamtlänge, 6), balls (Kugeln je Seite, 1–4, Standard 2), sides (1|2, Standard 2) }
 //                   state { angle (rad um +Y) }  root.userData.barHeight → 0,75 (Stangenhöhe), userData.reach → Reichweite.
 // schwankplattform  Schwankplattform auf Kugelgelenk: Ruinen-Steinsäule, goldene Gelenkkugel, darauf eine Steinplatte mit
@@ -342,7 +342,7 @@ function ssRotorGeo(L, balls, sides) {
       b.torus(0.1, 0.03, SS.gold, { p: [x, BAR_Y, 0], r: [0, Math.PI / 2, 0] }, 5, 12);
     }
     for (const s of sides === 2 ? [1, -1] : [1]) {
-      for (let i = 1; i <= balls; i++) spikeBall(b, [s * (half * i) / balls, BAR_Y, 0], 0.24);
+      for (let i = 1; i <= balls; i++) spikeBall(b, [s * (half * i) / balls, BAR_Y, 0], 0.3);
     }
     return b.geometry();
   });
@@ -357,7 +357,7 @@ function buildStachelstange(opts = {}) {
   rotor.frustumCulled = true;
   root.add(base, rotor);
   root.userData.barHeight = BAR_Y;
-  root.userData.reach = L / 2 + 0.42;
+  root.userData.reach = L / 2 + 0.52;
   const update = (dt, st) => { rotor.rotation.y = Number(st.angle ?? 0); };
   return makeModel('stachelstange', root, update);
 }

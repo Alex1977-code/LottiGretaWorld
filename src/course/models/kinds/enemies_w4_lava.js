@@ -62,8 +62,8 @@ function lbBodyGeo() {
     } });
     // Steinbrauen (grimmig schräg)
     for (const s of [1, -1]) {
-      const h = lumpyPoint(LB.rad, LB.amp, LB.freq, LB.seed, s * 0.37, 0.4, -0.012);
-      b.capsule(0.05, 0.14, LAVA.rockLow, { p: h.p.toArray(), r: [Math.PI / 2 + s * 0.42, s * -0.55, 0], order: 'YXZ' }, 3, 8);
+      const h = lumpyPoint(LB.rad, LB.amp, LB.freq, LB.seed, s * 0.36, 0.36, -0.015);
+      b.capsule(0.038, 0.13, LAVA.rockLow, { p: h.p.toArray(), r: [Math.PI / 2 + s * 0.42, s * -0.55, 0], order: 'YXZ' }, 3, 8);
     }
     // Steinzähnchen an der Oberkante des Grinsens
     for (let i = -2; i <= 2; i++) {

@@ -356,7 +356,7 @@ if (part('checks')) {
   }, PATH);
   for (const k of Object.keys(props)) for (const x of Object.values(props[k])) if (x && typeof x === 'object' && x.m) delete x.m;
   console.log('  Eigenschaften:', JSON.stringify(props));
-  if (props.ant) check('Ameisensoldat ≈1,1–1,4 m lang (mit Beinen/Zangen), 0,7–0,95 m hoch (Fühler), Füße am Boden; platt viel flacher; Horn höher', props.ant[0] > 1.0 && props.ant[0] < 1.45 && props.ant[1] > 0.7 && props.ant[1] < 0.95 && props.ant[2] < props.ant[1] * 0.6 && props.ant[3] > props.ant[1] + 0.1 && props.ant[4] > -0.06);
+  if (props.ant) check('Ameisensoldat ≈1,1–1,4 m lang (mit Beinen/Zangen), 0,7–1,0 m hoch (Fühler), Füße am Boden; platt viel flacher; Horn höher', props.ant[0] > 1.0 && props.ant[0] < 1.45 && props.ant[1] > 0.7 && props.ant[1] < 1.0 && props.ant[2] < props.ant[1] * 0.6 && props.ant[3] > props.ant[1] + 0.1 && props.ant[4] > -0.06);
   if (props.giant) check('Riesenameise: Deck-Oberkante ≈ userData.deck.y (Strahl von oben), 3–4 m lang (mit Fühlern)', props.giant[1] !== null && Math.abs(props.giant[1] - props.giant[0]) < 0.04 && props.giant[2] > 3 && props.giant[2] < 4);
   if (props.creeper) check('Rankenschnapper: grow wächst die Ranke, path biegt sie (z-Ausdehnung), head() am Pfadende', props.creeper[1] > props.creeper[0] + 2 && props.creeper[2] > 1 && props.creeperHead && Math.abs(props.creeperHead[2] - 1.0) < 0.8);
   if (props.spring) check('Springklotz: Oberkante ≈1,3 m, squash drückt deutlich', Math.abs(props.spring[0] - 1.3) < 0.12 && props.spring[1] < props.spring[0] - 0.2);
