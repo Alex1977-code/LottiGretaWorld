@@ -5,8 +5,10 @@
 // blähen die Quader der Abschnitte nicht mehr auf: mit vielen Dreiecken (≥ BIG_TRIS) werden sie dreiecksweise auf
 // eigene Zellen (Abschnitt × CELL_X-Streifen, Schwerpunkt des Dreiecks) verteilt – gezeichnet wird nur, was im Bild
 // liegt –, sparsame (Kulissen-Hügel aus wenigen Dreiecken) landen zusammen in einem eigenen Mesh je Material (werden
-// es zusammen zu viele, ebenfalls auf Zellen verteilt). Kleinere Teile, die über eine Abschnittsgrenze reichen (Streuung,
-// Kulisse über mehrere Abschnitte), werden dreiecksweise auf ihre Abschnitte verteilt – die Quader bleiben eng.
+// es zusammen zu viele, ebenfalls auf Zellen verteilt). Mittellange Teile mit vielen Dreiecken (länger als SPREAD_Z,
+// ≥ MIN_CELL Dreiecke: Streuungen, Kulisse über mehrere Abschnitte) werden dreiecksweise auf ihre Abschnitte verteilt –
+// die Quader bleiben eng. Kürzere Teile über einer Grenze bleiben ganz (geteilt kosteten sie in Arenen und kurzen
+// Abschnitten mehr Zeichenaufrufe, als sie sparen).
 // Nicht-indizierte Geometrie mit position/normal/color wird erwartet; fehlende Farbe = Weiß, uv entfällt.
 //
 // Präzisierung (Leistung und Level-Haken 2): addStatic nach finalize (LEVEL.setup, Archetyp, Laufzeit) wird beim
@@ -20,7 +22,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const SECTION = 32;
 export const CELL_X = 64;
-const BIG_Z = SECTION * 2.5, BIG_X = 120, BIG_TRIS = 2000, WEIT_TRIS = 2000, MIN_CELL = 600;
+const BIG_Z = SECTION * 2.5, BIG_X = 120, BIG_TRIS = 2000, WEIT_TRIS = 2000, MIN_CELL = 600, SPREAD_Z = SECTION * 1.5;
 
 const cellX = (x) => Math.floor((x + CELL_X / 2) / CELL_X);
 const secZ = (z) => Math.floor(-z / SECTION);
@@ -131,9 +133,9 @@ export class StaticBatcher {
       this.stats.split++;
     } else if (big) {
       this.put(`weit|${tail}`, mat, cast, recv, g);
-    } else if (!this.compact && secZ(bb.max.z) !== secZ(bb.min.z)) {
+    } else if (!this.compact && bb.max.z - bb.min.z > SPREAD_Z && g.attributes.position.count >= MIN_CELL * 3) {
       // über mehrere Abschnitte (Streuung, lange Kulisse): je Abschnitt verteilen – sonst reichte der Quader eines
-      // Abschnitts weit in die Nachbarn (Sichtprüfungen, auch level-lokale wie cullStatic, blendeten falsch aus)
+      // Abschnitts weit in die Nachbarn
       for (const [sec, q] of splitBySections(g)) this.put(`${sec}|${tail}`, mat, cast, recv, q);
       this.stats.sections++;
     } else {

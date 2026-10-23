@@ -1983,9 +1983,10 @@ verschmilzt der Batcher vor dem nächsten Bild in das vorhandene Mesh derselben 
   `.shadowVisible(…)`, `.boxVisible(box, cast)`, `.camFrustum`, `.camPos` für eigene Auswahl.
 - **Statische Geometrie**: sehr große Teile (länger als 80 m oder breiter als 120 m – lange Strecken wie `track`, große
   Böden, Kulissen-Ringe) blähen die Abschnitte nicht mehr auf: mit ≥ 2000 Dreiecken dreiecksweise auf eigene Zellen
-  (32 m × 64 m, dünn besetzte Zellen gröber zusammengefasst), sparsame gemeinsam in einem Mesh je Material. Kleinere
-  Teile, die über eine Abschnittsgrenze reichen (Streuungen, Kulisse über mehrere Abschnitte), werden dreiecksweise je
-  Abschnitt verteilt – die Quader der Abschnitte bleiben eng (Hilfen müssen nicht mehr selbst teilen). Dioramen
+  (32 m × 64 m, dünn besetzte Zellen gröber zusammengefasst), sparsame gemeinsam in einem Mesh je Material. Teile über
+  48 m Länge mit ≥ 600 Dreiecken (Streuungen, Kulisse über mehrere Abschnitte) werden dreiecksweise je Abschnitt verteilt
+  – die Quader der Abschnitte bleiben eng (Hilfen müssen nicht mehr selbst teilen; kürzere Teile über einer Grenze
+  bleiben ganz, geteilt kosteten sie mehr Aufrufe, als sie sparen). Dioramen
   (Archetyp `diorama`, sonst `LEVEL.staticSplit: false`) teilen nicht – die Kamera sieht sie ganz.
 - **Instanz-Pools** (`view.pool`): je Bild nur Instanzen im Bild bzw. mit Schatten ins Bild (Schatten über eigene
   Instanzgruppen nur im Schattenpass); Detailstufe ferner Exemplare über `opts.lod = { dist, make(vorlage) }`
