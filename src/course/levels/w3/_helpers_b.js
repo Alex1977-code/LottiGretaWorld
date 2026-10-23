@@ -19,9 +19,9 @@
 import * as THREE from 'three';
 import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
 import { visDt } from '../../entities/gimmick.js';
-import { levelSetup, cyl, sphere, cone, block } from '../w2/_helpers_c.js';
+import { levelSetup, cyl, sphere, cone, block, flatIslands } from '../w2/_helpers_c.js';
 
-export { levelSetup, cyl, sphere, cone, block };
+export { levelSetup, cyl, sphere, cone, block, flatIslands };
 
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -127,6 +127,17 @@ export function scrollDirector(level, scene, cfg) {
         e?.reveal?.();
         st.revealed.push(r.id);
         if (r.sfx !== false) level.sfx('powerup_appear');
+      }
+    }
+    // Decke über dem Kletterturm: höher als `up` über der Fenstermitte geht es nicht (sonst schöbe die Vordergrenze
+    // die Figur in der Kurve schräg vom Zaun weg) – senkrecht begrenzt, die Figur bleibt am Zaun.
+    const cap = cfg.cap;
+    if (cap && w.state !== 'done' && w.s >= cap.s0 && w.s <= cap.s1) {
+      for (const p of level.players ?? [level.player]) {
+        if (!p || p.dead || p.removedFigure || p.mode === 'script') continue;
+        if (p.pos.x < cap.x[0] || p.pos.x > cap.x[1] || p.pos.z < cap.z[0] || p.pos.z > cap.z[1]) continue;
+        const top = w.center.y + cap.up;
+        if (p.pos.y > top) { p.pos.y = top; if (p.vel.y > 0) p.vel.y = 0; st.capped = (st.capped ?? 0) + 1; }
       }
     }
     const f = cfg.fall;
@@ -661,25 +672,29 @@ export function grandstand(level, o) {
   const stepD = 1.0, stepH = 0.55;
   // Stufen (zur Strecke hin abfallend): Reihe 0 vorn unten
   for (let r = 0; r < rows; r++) {
-    const x = o.x - sd * (r * stepD);
+    const x = o.x + sd * (r * stepD);
     parts.push(plate(stepD + 0.05, stepH * (r + 1), len, x, o.y, zc, r % 2 ? 0xd8dce8 : 0xc8ccd8, { r: 0.04 }));
     parts.push(plate(0.1, 0.12, len, x + sd * (stepD / 2 - 0.05), o.y + stepH * (r + 1), zc, 0x3d8bff, { r: 0.02 }));
   }
-  const back = o.x - sd * (rows * stepD - 0.3);
+  const back = o.x + sd * (rows * stepD - 0.3);
   // Rückwand und Dach (rot-weiß gestreift)
   parts.push(plate(0.3, stepH * rows + 2.6, len + 0.4, back - sd * 0.2, o.y, zc, 0x8a96b8, { r: 0.04 }));
   const roofW = rows * stepD + 1.2, roofY = o.y + stepH * rows + 2.6;
   const nStr = Math.round(len / 1.2);
   for (let i = 0; i < nStr; i++) {
-    const g = plate(roofW, 0.16, len / nStr, o.x - sd * (rows * stepD / 2 - 0.3), roofY, z0 - (i + 0.5) * len / nStr, i % 2 ? 0xffffff : 0xe8283a, { r: 0.02 });
+    const g = plate(roofW, 0.16, len / nStr, o.x + sd * (rows * stepD / 2 - 0.3), roofY, z0 - (i + 0.5) * len / nStr, i % 2 ? 0xffffff : 0xe8283a, { r: 0.02 });
     parts.push(g);
   }
-  for (const zz of [z0 - 0.3, zc, z1 + 0.3]) parts.push(cyl(0.09, 0.09, stepH * rows + 2.6, o.x + sd * 0.35, o.y, zz, 0xd8dce8, 8));
+  for (const zz of [z0 - 0.3, zc, z1 + 0.3]) parts.push(cyl(0.09, 0.09, stepH * rows + 2.6, o.x - sd * 0.45, o.y, zz, 0xd8dce8, 8));
   // Bande vorn mit bunten Feldern
   const nB = Math.round(len / 2);
-  for (let i = 0; i < nB; i++) parts.push(plate(0.12, 0.7, len / nB - 0.05, o.x + sd * 0.62, o.y, z0 - (i + 0.5) * len / nB, [0xffd23d, 0x3d8bff, 0x4fd04a, 0xff7ac0][i % 4], { r: 0.03 }));
+  for (let i = 0; i < nB; i++) parts.push(plate(0.12, 0.7, len / nB - 0.05, o.x - sd * 0.62, o.y, z0 - (i + 0.5) * len / nB, [0xffd23d, 0x3d8bff, 0x4fd04a, 0xff7ac0][i % 4], { r: 0.03 }));
   addStatic(level, merge(parts));
-  level.world.add({ type: 'box', min: [Math.min(o.x + sd * 0.7, back - sd * 0.4), o.y, z1], max: [Math.max(o.x + sd * 0.7, back - sd * 0.4), o.y + stepH * rows + 2.6, z0], tag: 'tribuene' });
+  level.world.add({ type: 'box', min: [Math.min(o.x - sd * 0.7, back + sd * 0.4), o.y, z1], max: [Math.max(o.x - sd * 0.7, back + sd * 0.4), o.y + stepH * rows, z0], tag: 'tribuene' });
+  // Rückwand und Dach fest (das Dach ist begehbar – oben liegt in 3-6 ein Geheimnis)
+  level.world.add({ type: 'box', min: [Math.min(back, back + sd * 0.4), o.y, z1], max: [Math.max(back, back + sd * 0.4), roofY, z0], tag: 'tribuene:wand' });
+  const rcx = o.x + sd * (rows * stepD / 2 - 0.3);
+  level.world.add({ type: 'box', min: [rcx - roofW / 2, roofY, z1], max: [rcx + roofW / 2, roofY + 0.16, z0], tag: 'tribuene:dach' });
   if (!level.view) return null;
   // Tierchen
   const kinds = ['hase', 'baer', 'pinguin', 'vogel'];
@@ -689,7 +704,7 @@ export function grandstand(level, o) {
   const rnd = new Rnd(Math.floor(Math.abs(o.x * 13 + o.z0 * 7)) >>> 0);
   for (let r = 0; r < rows; r++) for (let i = 0; i < per; i++) {
     if (rnd.frac() < 0.12) continue;
-    seats.push({ x: o.x - sd * (r * stepD), y: o.y + stepH * (r + 1), z: z0 - (i + 0.5) * len / per + rnd.real(-0.15, 0.15), kind: kinds[Math.floor(rnd.frac() * kinds.length)], ph: (z0 - (i + 0.5) * len / per) * 0.35, r });
+    seats.push({ x: o.x + sd * (r * stepD), y: o.y + stepH * (r + 1), z: z0 - (i + 0.5) * len / per + rnd.real(-0.15, 0.15), kind: kinds[Math.floor(rnd.frac() * kinds.length)], ph: (z0 - (i + 0.5) * len / per) * 0.35, r });
   }
   const meshes = {};
   for (const k of kinds) {

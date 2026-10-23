@@ -23,7 +23,7 @@
 // 3 nach dem Glasrohr: Kurbelrad drehen, Plattform hoch, Zaun hinaufklettern. Stempel: Krallenwand + Zaun hinter dem
 // Glasrohr-Eingang. 1-Up: Kurbelrad auf der Zielinsel → Wolke. Gegner: Krabbelkäfer (4), Flatterkäfer (7).
 
-import { levelSetup, isl, line, ring, arc, column, scrollDirector, towerBack, slotStrip, pennantLine, balloon, zeppelin, birds, windmill, pipeLid, plate, cyl, sphere } from './_helpers_b.js';
+import { levelSetup, isl, line, ring, arc, column, scrollDirector, clockSync, towerBack, slotStrip, pennantLine, balloon, zeppelin, birds, windmill, pipeLid, plate, cyl, sphere } from './_helpers_b.js';
 import { addStatic, merge } from '../../blocks/kit.js';
 
 const PI = Math.PI;
@@ -43,26 +43,26 @@ const deck = (y) => y - 0.35;
 // ------------------------------------------------------------------ Bewegliche Zäune
 const FENCES = [
   // 1 Zaunbahn
-  { type: 'kettenplattform', id: 'p1', yaw: 0, size: [3, 4.4], pos: [0, deck(0), -3], path: [[0, deck(0), -3], [0, deck(0), -13]], speed: 2.2, wait: 0.9, fenceHeight: 2.2 },
+  { type: 'kettenplattform', id: 'p1', yaw: 0, size: [3, 4.4], pos: [0, deck(0), -3], path: [[0, deck(0), -3], [0, deck(0), -13]], speed: 2.2, wait: 2.5, fenceHeight: 2.2 },
   { type: 'kettenplattform', id: 'ringbahn', yaw: 0, size: [4.2, 3], pos: [-7, deck(0), 0.5], path: [[-7, deck(0), 0.5], [-7, deck(0), -30]], speed: 2.4, idle: true, once: true, fenceHeight: 2.5 },
-  { type: 'kettenzaun', id: 'hub1', size: [9.2, 3.8], pos: [0, -3.95, -21], path: [[0, -3.95, -21], [0, 0.02, -21]], speed: 1.7, wait: 1.3 },
-  { type: 'kettenplattform', id: 'p2', yaw: 0, size: [6.4, 4], pos: [-8, deck(0), -47], path: [[-8, deck(0), -47], [3.5, deck(0), -47]], speed: 2.6, wait: 0.5, fenceHeight: 2.2 },
+  { type: 'kettenzaun', id: 'hub1', size: [9.2, 3.8], pos: [0, -3.95, -21], path: [[0, -3.95, -21], [0, 0.02, -21]], speed: 1.7, wait: 3 },
+  { type: 'kettenplattform', id: 'p2', yaw: 0, size: [6.4, 4], pos: [-8, deck(0), -47], path: [[-8, deck(0), -47], [3.5, deck(0), -47]], speed: 2.6, wait: 1.5, fenceHeight: 2.2 },
   // Hubzaun-Gasse (Stern 2): vier Zäune, die abwechselnd versinken
-  ...[-38, -41.5, -45, -48.5].map((z, i) => ({ type: 'kettenzaun', id: `gasse${i + 1}`, size: [3.1, 2.7], pos: [7.9, -2.75, z], path: [[7.9, -2.75, z], [7.9, 0.02, z]], speed: 2.4, wait: 0.9, phase: [0.0, 0.75, 0.3, 0.55][i] })),
+  ...[-38, -41.5, -45, -48.5].map((z, i) => ({ type: 'kettenzaun', id: `gasse${i + 1}`, size: [3.1, 2.7], pos: [7.9, -2.75, z], path: [[7.9, -2.75, z], [7.9, 0.02, z]], speed: 2.4, wait: 1.2 })),
   // Gittertor (fest) zwischen Torinsel und Checkpoint-Insel
   { type: 'kettenzaun', id: 'tor', size: [12.4, 5.4], pos: [0, 0.02, -60.35] },
   // 2 Kletterturm (Ebene z −70, Vorderseite zur Kamera)
   { type: 'kettenzaun', id: 'k1', size: [7, 11.2], pos: [0, 0.25, PL] },
-  { type: 'kettenzaun', id: 'k2', size: [3.2, 4.6], pos: [-2.2, 12.3, PL], path: [[-2.2, 12.3, PL], [4.4, 12.3, PL]], speed: 2.2, wait: 0.7 },
-  { type: 'kettenzaun', id: 'k3', size: [4, 7.8], pos: [6.4, 17.5, PL] },
-  { type: 'kettenzaun', id: 'k4', size: [3, 4.2], pos: [2.3, 21.2, PL], path: [[2.3, 21.2, PL], [2.3, 28.8, PL]], speed: 2.4, wait: 0.8 },
-  { type: 'kettenzaun', id: 'k5', size: [4.2, 8.4], pos: [-1.6, 30.2, PL] },
+  { type: 'kettenzaun', id: 'k2', size: [3.2, 4.6], pos: [-2.2, 12.3, PL], path: [[-2.2, 12.3, PL], [4.0, 12.3, PL]], speed: 3, wait: 0.5 },
+  { type: 'kettenzaun', id: 'k3', size: [4, 18], pos: [7.6, 12, PL] },
+  { type: 'kettenzaun', id: 'k4', size: [3, 7], pos: [3.0, 18.5, PL], path: [[3.0, 18.5, PL], [3.0, 26.5, PL]], speed: 1.8, wait: 1.2 },
+  { type: 'kettenzaun', id: 'k5', size: [4.2, 10.4], pos: [-1.6, 28.2, PL] },
   { type: 'kettenzaun', id: 'k6', size: [2.6, 3.2], pos: [3.6, 41.85, -70.2] },
   // 3 Wolkenstrecke (Ebene z −68,4; man steht davor auf z ≈ −66)
   { type: 'kettenzaun', id: 'g3', size: [2.6, 3.4], pos: [17.6, 49.2, -69.0] },
-  { type: 'kettenzaun', id: 'sz1', size: [3.6, 4.2], pos: [41.2, 39.6, -68.4], path: [[41.2, 39.6, -68.4], [49, 39.6, -68.4]], speed: 2.0, wait: 0.8 },
-  { type: 'kettenzaun', id: 'sz2', size: [3.2, 4], pos: [56.6, 39.8, -68.4], path: [[56.6, 39.8, -68.4], [60.6, 39.8, -68.4]], speed: 1.8, wait: 0.6 },
-  { type: 'kettenzaun', id: 'sz3', size: [3.2, 4], pos: [68.4, 39.8, -68.4], path: [[64, 39.8, -68.4], [68.4, 39.8, -68.4]], speed: 1.8, wait: 0.6, phase: 1 },
+  { type: 'kettenzaun', id: 'sz1', size: [3.6, 4.2], pos: [41.2, 39.6, -68.4], path: [[41.2, 39.6, -68.4], [49, 39.6, -68.4]], speed: 2.1, wait: 1.5 },
+  { type: 'kettenzaun', id: 'sz2', size: [3.2, 4], pos: [56.6, 39.8, -68.4], path: [[56.6, 39.8, -68.4], [60.6, 39.8, -68.4]], speed: 1.8, wait: 1.0 },
+  { type: 'kettenzaun', id: 'sz3', size: [3.2, 4], pos: [64, 39.8, -68.4], path: [[64, 39.8, -68.4], [68, 39.8, -68.4]], speed: 1.8, wait: 1.0 },
 ];
 
 // Laufbahnen (Optik) unter den Plattformen und Zäunen
@@ -70,7 +70,7 @@ const RAILS = [
   { type: 'kettenbahn', path: [[0, deck(0), -3], [0, deck(0), -13]] },
   { type: 'kettenbahn', path: [[-7, deck(0), 0.5], [-7, deck(0), -30]] },
   { type: 'kettenbahn', path: [[-8, deck(0), -47], [3.5, deck(0), -47]] },
-  { type: 'kettenbahn', path: [[-3.8, 12.3, PL - 0.2], [6.0, 12.3, PL - 0.2]], drop: 0.15 },
+  { type: 'kettenbahn', path: [[-3.8, 12.3, PL - 0.2], [5.6, 12.3, PL - 0.2]], drop: 0.15 },
   { type: 'kettenbahn', path: [[39.4, 39.6, -68.6], [50.8, 39.6, -68.6]], drop: 0.2 },
   { type: 'kettenbahn', path: [[55, 39.8, -68.6], [62.2, 39.8, -68.6]], drop: 0.2 },
   { type: 'kettenbahn', path: [[62.4, 39.8, -68.6], [70, 39.8, -68.6]], drop: 0.2 },
@@ -123,16 +123,18 @@ export const LEVEL = {
   skyCam: [
     { s: 0, pitch: 42, dist: 14, fov: 40, height: 1 },
     { s: 66, pitch: 40, dist: 14, fov: 40, height: 1 },
-    { s: 78, pitch: 17, dist: 14.5, fov: 42, height: 1 },
-    { s: 108, pitch: 17, dist: 14.5, fov: 42, height: 1 },
+    { s: 78, pitch: 17, dist: 17, fov: 42, height: 1 },
+    { s: 108, pitch: 17, dist: 17, fov: 42, height: 1 },
     { s: 120, pitch: 27, dist: 15.5, fov: 40, height: 1 },
     { s: 200, pitch: 27, dist: 15.5, fov: 40, height: 1 },
   ],
   skyFrame: [
     { s: 0, back: 5, front: 8, ahead: 1.2, followX: 0.3 },
     { s: 68, back: 5, front: 8, ahead: 1.2, followX: 0.3 },
-    { s: 76, back: 5.5, front: 5.5, ahead: 0.8, followX: 0.3 },
-    { s: 110, back: 5.5, front: 5.5, ahead: 0.8, followX: 0.3 },
+    { s: 76, back: 5.5, front: 6.4, ahead: 1.0, followX: 0.3 },
+    { s: 96, back: 5.5, front: 6.4, ahead: 1.0, followX: 0.3 },
+    { s: 101, back: 5.5, front: 8.0, ahead: 2.0, followX: 0.3 },
+    { s: 110, back: 5.5, front: 8.0, ahead: 2.0, followX: 0.3 },
     { s: 118, back: 6.5, front: 7, ahead: 1.5, followX: 0.25 },
     { s: 200, back: 6.5, front: 7, ahead: 1.5, followX: 0.25 },
   ],
@@ -147,8 +149,9 @@ export const LEVEL = {
     // Brücke I3 → Hubzaun-Gasse
     { type: 'bridge', from: [4.5, 0, -35], to: [6.4, 0, -35], width: 2 },
     // Wolken der Wolkenstrecke
-    { type: 'cloud', pos: [29.5, YW - 1.7, -66], size: [2.8, 0.6, 3] },
-    { type: 'cloud', id: 'wolke2', pos: [33.4, YR + 1.2, -66], size: [2.6, 0.6, 3], path: [[33.4, YR + 1.2, -66], [33.4, YR + 2.6, -66]], speed: 0.9, wait: 0.5 },
+    { type: 'cloud', pos: [29.6, YW - 1.7, -66], size: [2.8, 0.6, 3] },
+    { type: 'cloud', pos: [40.3, YR + 0.2, -66], size: [2.2, 0.6, 2.6] },
+    { type: 'cloud', id: 'wolke2', pos: [33.6, YR + 1.2, -66], size: [2.6, 0.6, 3], path: [[33.6, YR + 1.2, -66], [33.6, YR + 2.6, -66]], speed: 0.9, wait: 0.5 },
     // Krallenwand (Stempel) hinter dem Glasrohr-Eingang
     { type: 'wall', pos: [3.6, YT, -69.75], size: [2.8, 4.2, 1.3], climbable: true },
     // Glasrohr vom Gipfelsims hinauf zur Wolkenstation (öffnet, sobald das Fenster nach rechts abbiegt)
@@ -175,7 +178,7 @@ export const LEVEL = {
     // Flatterkäfer (7): über der Bröckelbrücke, hinter K1 (Faustschlag durch den Zaun), vor K3, über W2
     { kind: 'flatterkaefer', path: [[-2.2, 2.1, -28.5], [2.2, 2.1, -30.5], [-2.2, 2.1, -32.5]], count: 3, spacing: 2.2, color: 'pink' },
     { kind: 'flatterkaefer', path: [[-2.5, 3.5, -70.75], [2.5, 3.5, -70.75], [2.5, 8.5, -70.75], [-2.5, 8.5, -70.75]], count: 2, spacing: 5.5, color: 'yellow' },
-    { kind: 'flatterkaefer', path: [[4.9, 21.6, -69.3], [7.9, 21.6, -69.3]], color: 'red', speed: 1.6 },
+    { kind: 'flatterkaefer', path: [[6.1, 21.6, -69.3], [9.1, 21.6, -69.3]], color: 'red', speed: 1.6 },
     { kind: 'flatterkaefer', path: [[51.5, YR + 1.7, -64.6], [55.2, YR + 1.7, -64.6]], color: 'pink', speed: 1.8 },
   ],
   items: [
@@ -202,9 +205,9 @@ export const LEVEL = {
     line([0, 0.9, -51.5], [0, 0.9, -55], 3),
     ring([-3.5, 0.9, -66.5], 1.2, 6),
     column(-2.4, -69.5, 2.5, 10, 6),
-    line([-1.8, 15.2, -69.5], [3.8, 15.2, -69.5], 4),
-    column(6.4, -69.5, 19.5, 24.5, 4),
-    column(2.3, -69.5, 26, 31.5, 4),
+    line([-1.8, 15.2, -69.5], [4.4, 15.2, -69.5], 4),
+    column(7.6, -69.5, 17.5, 27.5, 6),
+    column(3.0, -69.5, 27.5, 32.5, 4),
     column(-2.5, -69.5, 32.5, 37.5, 4),
     line([3.5, YT + 0.9, -64.5], [9.5, YT + 0.9, -64.5], 4),
     line([20.5, YW + 0.9, -66], [26, YW + 0.9, -66], 4),
@@ -234,16 +237,24 @@ export const LEVEL = {
     sz2: [56, YR + 0.2, -65], wend: [72, YR, -66], warp2: [79, YR, -66], ziel: [100, YZ, -66], kurbelZiel: [105.5, YZ, -62.5], goal: [121, YZ, -70],
   },
   pathS: { B: S_B, C: S_C, end: S_END },
+  // Takt der fahrenden Zäune (Sekunden Versatz zur Fahrt-Uhr, clockSync): je so gelegt, dass sie zur Stelle sind,
+  // wenn das Bildfenster dort ankommt (P1 wartet am Start, Hubzaun steht oben, wenn man ankommt …)
+  sync: {
+    p1: 0, hub1: -0.565, gasse1: 2.832, gasse2: 1.632, gasse3: 0.432, gasse4: 3.94, p2: -14.58,
+    k2: 4, k4: 0, sz1: 2.8, sz2: 1.06, sz3: 4.28,
+  },
 };
 
 /** Level-Haken: Kamera/Fenster je Pfadlänge, Glasrohr-Deckel, Warp-Boxen, Ringbahn-Start, Kulisse. */
 function buildSky(level, scene) {
   const data = level.data;
+  clockSync(level, data.sync);
   const dir = scrollDirector(level, scene, {
     cam: data.skyCam, frame: data.skyFrame, killUp: 0.6,
     gates: [{ id: 'rohr', open: 116 }],
-    reveal: [{ id: 'warp1', at: 61 }, { id: 'warp2', at: 'done' }],
+    reveal: [{ id: 'warp1', at: 62 }, { id: 'warp2', at: 'done' }],
     fall: { minS: 116, y: 33, x: [-12, 92] },
+    cap: { s0: 60, s1: 80, up: 6.0, x: [-9, 12], z: [-72, -60.5] },
   });
   level._sky = { dir };
   // Ringbahn fährt los, sobald eine Figur auf ihr steht; ein Neustart vom Levelanfang stellt sie zurück
