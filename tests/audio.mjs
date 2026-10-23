@@ -73,15 +73,15 @@ const COURSE_THEMES = {
   course_train: { bpm: 146, bars: [24, 24], loop: true, has: ['whistle', 'lead'], drums: 's', key: 'C', mel: ['lead', 'whistle'], hook: 12, preview: 4, world: 3 },
   course_skyway: { bpm: 140, bars: [24, 24], loop: true, has: ['pad', 'arp', 'lead', 'bell'], key: 'Bb', mel: ['lead', 'bell'], hook: 12, preview: 4, world: 3 },
   // Welt 4
-  course_canyon: { bpm: 132, bars: [16, 16], loop: true, has: ['whistle', 'arp'] },
-  course_poison: { bpm: 130, bars: [16, 16], loop: true, has: ['lead', 'arp', 'stabs'] },
-  course_beep: { bpm: 120, bars: [16, 16], loop: true, has: ['bell'], drums: 'x' },
-  course_bounce: { bpm: 140, bars: [16, 16], loop: true, has: ['lead', 'arp'] },
-  course_ruins: { bpm: 128, bars: [16, 16], loop: true, has: ['whistle', 'arp', 'lead'] },
-  course_lavacastle: { bpm: 148, bars: [16, 16], loop: true, has: ['organ', 'stabs', 'lead'] },
+  course_canyon: { bpm: 138, bars: [24, 24], loop: true, has: ['whistle', 'arp', 'lead'], drums: 's', key: 'Am', mel: ['lead', 'whistle'], hook: 12, preview: 4, world: 4 },
+  course_poison: { bpm: 134, bars: [24, 24], loop: true, has: ['lead', 'arp', 'stabs'], key: 'F#m', mel: ['lead', 'piano'], hook: 12, preview: 4, world: 4 },
+  course_beep: { bpm: 128, bars: [24, 24], loop: true, has: ['bell', 'lead', 'piano'], drums: 'x', key: 'Cm', mel: ['lead', 'piano'], hook: 12, preview: 4, world: 4 },
+  course_bounce: { bpm: 142, bars: [24, 24], loop: true, has: ['lead', 'arp', 'piano'], key: 'Db', mel: ['lead', 'piano'], hook: 12, preview: 4, world: 4 },
+  course_ruins: { bpm: 132, bars: [24, 24], loop: true, has: ['whistle', 'arp', 'lead'], drums: 't', key: 'Dm', mel: ['lead', 'whistle'], hook: 12, preview: 4, world: 4 },
+  course_lavacastle: { bpm: 148, bars: [24, 24], loop: true, has: ['organ', 'stabs', 'lead', 'riser'], key: 'Ebm', mel: ['lead', 'organ'], hook: 12, preview: 4, world: 4 },
   // Karten
   course_world3_map: { bpm: 128, bars: [16, 16], loop: true, beatMult: 2, drums: 'j', key: 'F', mel: ['lead', 'piano'], hook: 8, preview: 0, world: 3, map: true },
-  course_world4_map: { bpm: 122, bars: [8, 8], loop: true, beatMult: 2, has: ['whistle'] },
+  course_world4_map: { bpm: 128, bars: [16, 16], loop: true, beatMult: 2, has: ['whistle', 'lead'], key: 'E', mel: ['lead', 'whistle'], hook: 8, preview: 0, world: 4, map: true },
 };
 // Musiknamen Welt 2–4 (Auftrag/Vertrag) und Karten-Themen je Welt
 const CONTRACT_THEMES_W = ['course_desert', 'course_space', 'course_shadow', 'course_hills', 'course_cherry', 'course_tank', 'course_house',
