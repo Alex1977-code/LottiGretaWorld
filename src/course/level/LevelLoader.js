@@ -16,6 +16,11 @@
 //                   Stempel, Ziel) und vor dem Verschmelzen: addStatic landet in den Abschnitts-Meshes,
 //                   Kollisionsformen zählen für Umriss/Absturzhöhe und den Hintergrund. Spieler, Kamera und Archetyp
 //                   gibt es hier noch nicht (dafür LEVEL.setup).
+//
+// Schattenwurf je Baustein (Präzisierung „Leistung und Level-Haken 2“): `shadow: false` bzw. `castShadow: false` an einem
+// Eintrag in segments – alles, was dieser Baustein zeichnet (statische Geometrie, eigene Objekte, Registry-Modelle,
+// Modelle seiner Entitäten), wirft keinen Sonnenschatten (empfängt ihn aber). Für Inseln, Plattformen, Deko und Kulisse,
+// deren Schatten man nicht sieht oder nicht braucht.
 
 import { getBlockType } from '../blocks/index.js';
 
@@ -25,6 +30,16 @@ const list = (v) => {
   if (!Array.isArray(v)) return [v];                       // { pos, yaw }
   return typeof v[0] === 'number' ? [v] : v;               // [x,y,z] oder Liste
 };
+
+/** Baustein bauen; ohne Schattenwurf, wenn spec.shadow/castShadow === false. */
+function buildSegment(level, build, seg) {
+  const v = level.view;
+  if (!v || (seg.shadow !== false && seg.castShadow !== false)) { build(level, seg); return; }
+  const addStatic = v.addStatic, add = v.add;
+  v.addStatic = (g, o) => addStatic.call(v, g, { ...(o ?? {}), castShadow: false });
+  v.add = (obj, update) => { obj?.traverse?.((m) => { if (m.isMesh) m.castShadow = false; }); return add.call(v, obj, update); };
+  try { build(level, seg); } finally { v.addStatic = addStatic; v.add = add; }
+}
 
 function runHook(level, name) {
   const fn = level.data[name];
@@ -38,7 +53,7 @@ export function buildLevel(level) {
   for (const seg of d.segments ?? []) {
     const build = getBlockType(seg.type);
     if (!build) { console.warn(`[Level ${d.id}] unbekannter Baustein: ${seg.type}`); continue; }
-    try { build(level, seg); } catch (err) { console.error(`[Level ${d.id}] Baustein ${seg.type} fehlgeschlagen:`, err); }
+    try { buildSegment(level, build, seg); } catch (err) { console.error(`[Level ${d.id}] Baustein ${seg.type} fehlgeschlagen:`, err); }
   }
   for (const b of d.blocks ?? []) level.spawn(b.kind ?? 'question', b);
   for (const e of d.enemies ?? []) level.spawn(e.kind, e);
