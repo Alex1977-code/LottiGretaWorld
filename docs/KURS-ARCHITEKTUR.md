@@ -1267,14 +1267,18 @@ Statische Kulisse Welt 2: 51 Kachel-Meshes, ≈ 207 k Dreiecke. Welt 1 unveränd
   `{ walk: 'idle', idle: 'cast' }`), `castShadow: false` (nur Schatten-Blob).
 - Glasröhre nach Welt 4 frei nach dem Weltboss `3-B` (Bauplan: Röhre nach dem Weltboss), ohne Karte „Bald“. Die
   Welt-2-Röhre `W3` fährt jetzt übers Meer nach Nordosten zur Schneeinsel am Horizont (`neighbors` Stil `'snow'`).
+  `pipeDetail: 'low'` (Eingangsart `pipe`): lange Röhre mit 12 statt 16 Seiten, weniger Abschnitten und seltener
+  Ringen draußen – Welt-2-Röhre `W3` sowie beide Welt-3-Röhren (die Welt-2-Ansichten bleiben so beim alten Stand).
 - Sterne: Die Welt-3-Tabelle ergibt 31 Sterne (8 × 3 + 5 + 1 + 1); der Satz „Welt 3 hat 32 Sterne“ unter der Tabelle
   („Welt 3 – Level-Liste“) passt nicht dazu – die Karte zählt nach der Tabelle. Vor den Sternschranken stehen Schilder
   „ab 35 ★“, „ab 45 ★“, „ab 55 ★“.
-- Test: `tests/course_map_w3.mjs` (Port 4230, Bilder `tests/out/cmap3_*.png`).
+- Test: `tests/course_map_w3.mjs` (Port 4230, Bilder `tests/out/cmap3_*.png`); auf langsamen Rechnern in drei
+  Teilläufen `W3_TEIL=1|2|3` (Abschnitte 2–4, 5–9, 10–14, je mit den Node-Prüfungen).
 
-Gemessen (scale 2, `tests/course_map_w3.mjs`): Kartenansichten Welt 3 68–97 Zeichenaufrufe inkl. Schattenpass,
-143–266 k Dreiecke; Ankunft durch die Glasröhre 79–103 / 197–242 k, Anflug 106 / 270 k (Budget 120 / 300 k).
-Statische Kulisse Welt 3: 51 Kachel-Meshes, ≈ 192 k Dreiecke, 406 Kollisionsformen.
+Gemessen (scale 2, `tests/course_map_w3.mjs`): Kartenansichten Welt 3 67–97 Zeichenaufrufe inkl. Schattenpass,
+139–266 k Dreiecke; Ankunft durch die Glasröhre 81–104 / 201–235 k, Anflug 108 / 262 k (Budget 120 / 300 k).
+Statische Kulisse Welt 3: 51 Kachel-Meshes, ≈ 191 k Dreiecke, 406 Kollisionsformen. Welt 2 unverändert im Budget
+(max 105 / 286 k), Welt 1 ebenso (86 / 245 k).
 
 ---
 

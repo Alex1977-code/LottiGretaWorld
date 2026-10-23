@@ -164,7 +164,7 @@ export const MAP = {
     { id: '2-Panzer', kind: 'tankdepot', pos: [2, 3, -93], decor: [2, 3, -100] },
     // Glasröhre nach Welt 3: übers Meer nach Nordosten zur Schneeinsel am Horizont
     { id: 'W3', kind: 'pipe', pos: [0, 3, -121], decor: [0, 3, -124.1],
-      pipe: [[0, 0, 0], [0, 3.5, 0], [0.3, 5.6, -0.8], [1.5, 6.8, -5], [5, 7, -15], [14, 6.4, -37], [30, 5.5, -72], [60, 4, -115], [100, 1.5, -160]] },
+      pipe: [[0, 0, 0], [0, 3.5, 0], [0.3, 5.6, -0.8], [1.5, 6.8, -5], [5, 7, -15], [14, 6.4, -37], [30, 5.5, -72], [52, 3.5, -110], [72, 1.5, -140]], pipeDetail: 'low' },
   ],
 
   gates: [

@@ -304,7 +304,10 @@ export class EntranceView {
   decoratePipe(x, y, z) {
     const curve = tubeCurve(this.def);
     const len0 = curve.getLength();
-    const tube = new THREE.TubeGeometry(curve, Math.min(220, Math.max(120, Math.round(len0 / 1.5))), 1.15, 16, false);
+    // def.pipeDetail 'low' (lange Röhren übers Meer, Welt 2/3): 12 statt 16 Seiten, weniger Abschnitte, ferne Ringe seltener
+    const lo = this.def.pipeDetail === 'low';
+    const segs = lo ? Math.min(160, Math.max(80, Math.round(len0 / 1.5))) : Math.min(220, Math.max(120, Math.round(len0 / 1.5)));
+    const tube = new THREE.TubeGeometry(curve, segs, 1.15, lo ? 12 : 16, false);
     this.own.push(tube);
     this.level.world.add({ type: 'cyl', x, z, r: 1.2, y0: y, y1: y + 4, tag: 'deko' });
     const glass = std('map:pipeglass', { color: 0xa8e4ff, transparent: true, opacity: 0.42, roughness: 0.05, metalness: 0.1, side: THREE.DoubleSide, depthWrite: false, emissive: 0x16506a });
@@ -314,7 +317,7 @@ export class EntranceView {
     // weiße Ringe entlang der Röhre (nah dicht, weiter draußen seltener)
     const b = new Build();
     const len = len0;
-    for (let s = 0; s <= len; s += s < 40 ? 3.5 : 7) {
+    for (let s = 0; s <= len; s += s < 40 ? 3.5 : lo ? 10 : 7) {
       const p = curve.getPointAt(Math.min(1, s / len)), tan = curve.getTangentAt(Math.min(1, s / len));
       const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), tan);
       const e = new THREE.Euler().setFromQuaternion(q);
