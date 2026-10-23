@@ -570,7 +570,7 @@ async function test32c() {
   // Bilder und Kennzahlen je Abschnitt
   await load('3-2', { hero: 'lotti' });
   const SECTIONS = [
-    ['32_a1_platte', 8, [0.6, 0, -5.5]], ['32_a1_hubzaun', 18, [0.6, 0, -18]], ['32_a1_bruecke', 27, [0, 0, -27.8]],
+    ['32_a1_platte', 8, [0.6, 0, -5.5], 'p1'], ['32_a1_hubzaun', 18, [0.6, 0, -18]], ['32_a1_bruecke', 27, [0, 0, -27.8]],
     ['32_a1_querplattform', 44, [3, 0, -43]], ['32_a1_torinsel', 62, [1.5, 0, -53]], ['32_a2_checkpoint', 68, [-2, 0, -64]],
     ['32_a2_k1', 82, [-2.15, 9, -69.62], 'wall'], ['32_a2_k3', 92, [6, 20, -69.62], 'wall'], ['32_a2_k5', 104, [-1.5, 33, -69.62], 'wall'],
     ['32_a3_wolken', 140, [29.6, 42.4, -66]], ['32_a3_schiebezaun', 160, [52, 40.2, -64.5]], ['32_a3_endstation', 186, [74, 40, -65]],
@@ -579,6 +579,8 @@ async function test32c() {
     await SHOT(name, ({ s, pos, mode }) => {
       const c = window.__course, t = window.__t, L = c.level;
       t.waitS(s);
+      // auf der Schiebeplattform P1 (wo sie gerade ist)
+      if (mode === 'p1') { const f = L.named.get('p1'); t.until(() => f.pos.z > -3.6, {}, 120 * 12); pos = [f.pos.x + 0.5, f.pos.y + 0.36, f.pos.z - 1]; }
       t.place(pos, { invuln: 1e9, settle: 2 });
       // am Zaun: im Fallen greifen (Stick zum Zaun)
       if (mode === 'wall') t.until(() => c.player.mode === 'wall', { y: 1 }, 90);
