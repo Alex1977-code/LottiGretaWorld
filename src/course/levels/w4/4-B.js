@@ -12,7 +12,7 @@
 // sie, ebenso Feuer (Funkenblüte aus dem ?-Block am Start), Krallen, Wurf … Alle drei besiegt → Stern in der Mitte →
 // Ziel. Tod setzt die Arena zurück.
 
-import { levelSetup, blueFortress, fortressFxB, shadowDiet, instanceEnemies } from './_helpers_c.js';
+import { levelSetup, blueFortress, fortressFxB, shadowDiet } from './_helpers_c.js';
 
 const Y = 2;           // Hofboden
 const R = 11;          // halbe Kampffläche
@@ -23,7 +23,6 @@ function setup(level) {
   const fx = blueFortress(level, { y: Y, half: R, outer: 14.5, height: 4.6, ceiling: 8 });
   fortressFxB(level, fx, { y: Y });
   shadowDiet(level, ['feuer_werfer'], 1);
-  instanceEnemies(level, ['feuer_werfer'], { far: 60 });
 }
 
 export const LEVEL = {
@@ -61,10 +60,10 @@ export const LEVEL = {
     { kind: 'coinblock', pos: [3.2, Y + 2.5, 5.8], count: 5 },
   ],
   enemies: [
-    // hinten auf/unter der Galerie, links und rechts an den Seitenbühnen (springen zwischen Boden und Bühne)
-    { kind: 'feuer_werfer', id: 'werfer1', pos: [0, Y, -7.8], axis: [1, 0], pace: 2.6, heights: [Y, YG], sight: 22, interval: 2.2, first: 1.6, jumpEvery: 3.2 },
-    { kind: 'feuer_werfer', id: 'werfer2', pos: [-8.6, Y, 0], axis: [0, 1], pace: 1.4, heights: [Y, YS], sight: 22, interval: 2.4, first: 2.4, jumpEvery: 3.8 },
-    { kind: 'feuer_werfer', id: 'werfer3', pos: [8.6, Y, 0], axis: [0, 1], pace: 1.4, heights: [Y, YS], sight: 22, interval: 2.6, first: 3.0, jumpEvery: 4.2 },
+    // starten oben auf Galerie und Seitenbühnen (gut sichtbar) und springen zwischen Bühne und Boden hin und her
+    { kind: 'feuer_werfer', id: 'werfer1', pos: [0, YG, -7.8], axis: [1, 0], pace: 2.6, heights: [Y, YG], sight: 22, interval: 2.2, first: 1.6, jumpEvery: 3.2 },
+    { kind: 'feuer_werfer', id: 'werfer2', pos: [-8.6, YS, 0], axis: [0, 1], pace: 1.4, heights: [Y, YS], sight: 22, interval: 2.4, first: 2.4, jumpEvery: 3.8 },
+    { kind: 'feuer_werfer', id: 'werfer3', pos: [8.6, YS, 0], axis: [0, 1], pace: 1.4, heights: [Y, YS], sight: 22, interval: 2.6, first: 3.0, jumpEvery: 4.2 },
   ],
   items: [
     { kind: 'coins', from: [-4, YG + 0.5, -7.8], to: [4, YG + 0.5, -7.8], n: 5 },

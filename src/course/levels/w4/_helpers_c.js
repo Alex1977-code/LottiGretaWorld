@@ -597,6 +597,38 @@ export function basaltColumns(level, list, o = {}) {
   if (P.length) addStatic(level, merge(P), { castShadow: o.shadow ?? false });
 }
 
+/**
+ * Basaltwaben auf der Insel-Oberseite (flache Sechsecke, dunkel mit heller Kante, zwischen ihnen glimmende Fugen) in
+ * einem Ring r0..r1 um center, lückenhaft (fill). Nur Optik, ohne Schattenwurf. o: center, top, r0, r1, size (0.55),
+ * fill (0.55), radius(a) → Inselrand (Waben bleiben 0,6 m innen).
+ */
+export function basaltTiles(level, o) {
+  if (!level.view) return;
+  const [cx, cz] = o.center ?? [0, 0], y = (o.top ?? 2) + 0.018, s = o.size ?? 0.55;
+  const P = [], G = [];
+  const dx = s * Math.sqrt(3), dz = s * 1.5;
+  for (let j = -40; j <= 40; j++) for (let i = -40; i <= 40; i++) {
+    const x = cx + i * dx + (j & 1) * dx / 2, z = cz + j * dz;
+    const r = Math.hypot(x - cx, z - cz), a = Math.atan2(z - cz, x - cx);
+    const rim = o.radius ? o.radius(a) - 0.6 : (o.r1 ?? 10);
+    if (r < (o.r0 ?? 5) || r > Math.min(rim, o.r1 ?? 99)) continue;
+    if (hash(i, j, 5) > (o.fill ?? 0.55) * (0.6 + 0.4 * smooth(o.r0 ?? 5, rim, r))) continue;
+    const g = new THREE.CircleGeometry(s * 0.9, 6).toNonIndexed();
+    g.rotateX(-Math.PI / 2); g.rotateY(Math.PI / 6);
+    g.translate(x, y + hash(i, j) * 0.01, z);
+    const k = 0.75 + hash(j, i, 2) * 0.35;
+    const base = L(hash(i, j, 9) > 0.5 ? 0x4a3e3a : 0x3a302e);
+    P.push(colorize(g, (p, n, out) => { const d = Math.hypot(p.x - x, p.z - z) / (s * 0.9); mixc(base, L(0x6e5e56), smooth(0.55, 1, d) * 0.7, out); out[0] *= k; out[1] *= k; out[2] *= k; }));
+    if (hash(i, j, 11) > 0.82) {
+      const f = new THREE.RingGeometry(s * 0.9, s * 1.0, 6).toNonIndexed();
+      f.rotateX(-Math.PI / 2); f.rotateY(Math.PI / 6); f.translate(x, y - 0.004, z);
+      G.push(colorize(f, flat(0xff8a2a)));
+    }
+  }
+  if (P.length) addStatic(level, merge(P), { castShadow: false });
+  if (G.length) addStatic(level, merge(G), { material: 'glow', castShadow: false });
+}
+
 /** Glühende Risse auf der Insel-Oberseite (unbeleuchtet): Zickzack-Linien von der Mitte nach außen. o: center, top, R, n. */
 export function glowCracks(level, o) {
   if (!level.view) return null;

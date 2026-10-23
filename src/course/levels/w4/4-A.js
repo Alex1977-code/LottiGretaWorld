@@ -14,7 +14,7 @@
 
 import {
   levelSetup, rockIsland, islandRadius, lavaLake, calderaWall, volcanoes, lavaBubbles, embers, basaltColumns, glowCracks,
-  lavaWaves, steamVents, banner, shadowDiet,
+  lavaWaves, steamVents, banner, shadowDiet, basaltTiles,
 } from './_helpers_c.js';
 
 const Y = 2;           // Oberseite der Insel
@@ -39,6 +39,7 @@ function setup(level) {
   }
   for (const [x, z, h] of [[-17, -14, 5], [-15.6, -15.2, 3.6], [18, -12, 6], [16.8, -13.5, 4.2], [-22, 4, 3], [21, 6, 3.6]]) cols.push([x, LAVA, z, h, 0.8]);
   basaltColumns(level, cols, { lavaY: LAVA });
+  basaltTiles(level, { center: [0, 0], top: Y, r0: 6.2, r1: 12, radius: (a) => islandRadius(ISLAND, a), fill: 0.6 });
   const cracks = glowCracks(level, { center: [0, 0], top: Y, R: ISLAND.R, n: 10 });
   calderaWall(level, { center: [0, -4], r0: 29, r1: 40, n: 26, h: [8, 19], y: LAVA, gap: [1.05, 2.1] });
   volcanoes(level, [[-58, LAVA, -96, 26, 38], [52, LAVA, -108, 28, 44], [-14, LAVA, -150, 22, 30], [86, LAVA, -60, 16, 22]]);
@@ -77,6 +78,12 @@ export const LEVEL = {
   arena: { enemies: 'all', star: [0, Y + 0.6, -0.5], starIndex: 0, intro: 'Wirf die Lavabrocken in die Lava!', center: [0, Y, -1], camPull: 0.3 },
   segments: [
     // Lavafälle aus der Kraterwand (nur Kulisse, nicht tödlich) – Vorderseite zur Insel (+Z)
+    { type: 'sign', pos: [3.6, Y, 8.6], text: 'Draufspringen,\naufheben, werfen!', size: [2.6, 0.9] },
+    { type: 'deco_w1', items: [
+      { kind: 'crystals', pos: [Math.cos(-2.0) * 10.2, Y, Math.sin(-2.0) * 10.2], size: 1.0, n: 5, color: 'gold' },
+      { kind: 'crystals', pos: [Math.cos(-0.6) * 10.0, Y, Math.sin(-0.6) * 10.0], size: 0.9, n: 4, color: 'pink' },
+      { kind: 'crystals', pos: [Math.cos(2.4) * 9.8, Y, Math.sin(2.4) * 9.8], size: 0.8, n: 4, color: 'gold' },
+    ] },
     { type: 'deco_w4', items: [
       { kind: 'lavafall', pos: [-17, LAVA, -30], width: 4, height: 15, yaw: -Math.PI / 2 + 0.5 },
       { kind: 'lavafall', pos: [19, LAVA, -28], width: 3.4, height: 13, yaw: -Math.PI / 2 - 0.55 },
