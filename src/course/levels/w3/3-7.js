@@ -21,7 +21,7 @@
 // Münzmarder 1. Level-Haken (LEVEL.setup, _helpers_d.js): Wasserfall, Teich tief unten, Laubhaufen, Kürbisse,
 // Fliegenpilze, Eichhörnchen, Zeit-Uhren.
 
-import { isl, line, ring, arc, levelSetup, felsen, laubhaufen, kuerbisse, fliegenpilze, eichhoernchen, wasserfall, teich, zeitUhren, instanceEnemies, hohlerBaum } from './_helpers_d.js';
+import { isl, line, ring, arc, levelSetup, felsen, laubhaufen, kuerbisse, fliegenpilze, eichhoernchen, wasserfall, teich, zeitUhren, instanceEnemies, hohlerBaum, laubTeppich } from './_helpers_d.js';
 
 const Y = 1;        // Inseln
 const R = 0.25;     // Schienen-Oberkante (Tafel-Oberkante 1,0)
@@ -50,6 +50,11 @@ function setup(level) {
     { pos: [8.6, Y, -193.4], coins: 3 }, { pos: [17.6, Y, -189.4], coins: 2 },
     { pos: [-7.4, Y, -205], coins: 3 }, { pos: [5.6, Y, -232], coins: 3 }, { pos: [-8, Y, -230], coins: 2 },
     { pos: [21.6, -1.6, -219], coins: 3 },
+  ]);
+  laubTeppich(level, [
+    [-10.6, 0.4, 10.6, 11.6, Y, 90], [-4.6, -6, 4.6, -3.6, Y, 14], [-8.6, -55.6, 8.6, -48, Y, 50], [-14.6, -111.6, -4.4, -102, Y, 45],
+    [9, -141.6, 17.6, -135, Y, 30], [7.4, -194.6, 18.6, -188, Y, 35], [-9.6, -236.6, 10, -200.4, Y, 130], [18.8, -220.6, 23, -212, -1.6, 14],
+    [-33, -58, -20, 14, 2.6, 60], [31, -88, 43, 14, 2.6, 60], [-33, -238, -20, -136, 2.6, 60], [31, -238, 43, -136, 2.6, 60], [3.8, -81.4, 8.2, -76.6, 2.2, 10],
   ]);
   kuerbisse(level, [
     [-3.4, Y, 8.6, 0.55], [-2.6, Y, 9.4, 0.38], [7.8, Y, 1.2, 0.75], [8.6, Y, 2.4, 0.42], [-8.6, Y, -50, 0.6],

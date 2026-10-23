@@ -154,17 +154,17 @@ const ROUTES = {
     shots: [
       ['start', [0, 1, 8]],
       ['wiese', [-4, 1, 4], 0, null, Math.PI * 0.8],
-      ['tafel1', [0, 1, -12], 0, null, Math.PI / 2, 't1'],
+      ['tafel1', [0, 1.05, -7.8], 0, null, Math.PI / 2, 't1', 200],
       ['tafel2', [0.5, 1, -30.6]],
       ['funkenzone', [0, 1, -52]],
       ['uhren', [5, 2.2, -78.4]],
-      ['schleife', [-6, 1, -66], 0, null, Math.PI / 2, 't3'],
+      ['tafel3', [0, 1.05, -58], 0, null, Math.PI / 2, 't3', 300],
       ['checkpoint', [-9.5, 1, -106]],
-      ['wasserfall', [-2, 1, -124.6], 0, null, 0, 't4'],
+      ['wasserfall', [-9.5, 1.05, -114], 0, null, Math.PI / 2, 't4', 520],
       ['umstieg', [13, 1, -139]],
-      ['felsnase', [7.5, 1, -156], 0, null, Math.PI / 2, 't5'],
+      ['weiche', [13, 1.05, -144], 0, null, Math.PI / 2, 't5', 160],
       ['insel5', [12, 1, -191]],
-      ['diagonale', [20, 1, -207], 0, null, Math.PI / 4, 't6'],
+      ['diagonale', [12, 1.05, -197], 0, null, Math.PI / 2, 't6', 160],
       ['ziel', [-2, 1, -214]],
       ['fallraum', [80, 20, -80]],
     ],
@@ -558,9 +558,9 @@ for (const id of LEVELS) {
   if (ONLY || !PARTS.has('shots')) continue;
   loaded = null;
   await load(id);
-  for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2, ride = null] of R.shots) {
+  for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2, ride = null, rideSteps = 150] of R.shots) {
     await W('place', pos, { settle: 10, yaw });
-    if (ride) await W('rideFor', ride, 150);
+    if (ride) await W('rideFor', ride, rideSteps);
     if (steps) await sc(([n, inp]) => { const c = window.__course; c.setInput(inp); c.step(n); }, [steps, input ?? {}]);
     await shot(`${id}_${name}`);
   }

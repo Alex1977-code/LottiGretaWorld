@@ -1020,6 +1020,36 @@ export function hohlerBaum(level, o) {
   level.world.add({ type: 'box', min: [x + w, y0, z - w], max: [x + w + t, y1, z + w * 0.7], tag: 'baum:wand' });
 }
 
+/** Herbstlaub auf dem Boden (flache Blätter, verschmolzen, ohne Schatten): list = [[x0, z0, x1, z1, y, n]]. */
+export function laubTeppich(level, list) {
+  const P = [];
+  const cs = [...LEAF_COLS, 0xa8401a, 0xd89a2a].map(L);
+  let k = 7;
+  const r = () => { k = (k * 9301 + 49297) % 233280; return k / 233280; };
+  for (const [x0, z0, x1, z1, y, n = 40] of list) {
+    for (let i = 0; i < n; i++) {
+      const x = x0 + r() * (x1 - x0), z = z0 + r() * (z1 - z0), s = 0.12 + r() * 0.12;
+      const g = new THREE.CircleGeometry(s, 5);
+      g.scale(1, 0.62, 1); g.rotateZ(r() * Math.PI); g.rotateX(-Math.PI / 2 + (r() - 0.5) * 0.3);
+      const c = cs[Math.floor(r() * cs.length)], sh = 0.8 + r() * 0.3;
+      P.push(place(g, (p, nn, o) => { o[0] = c[0] * sh; o[1] = c[1] * sh; o[2] = c[2] * sh; }, x, y + 0.02 + r() * 0.01, z, r() * TAU));
+    }
+  }
+  for (let i = 0; i < P.length; i += 150) addStatic(level, mrg(P.slice(i, i + 150)), { castShadow: false });
+}
+
+/** Weiche runde Punkt-Textur (Gischt, Blasen). */
+function softDot() {
+  if (typeof document === 'undefined') return null;
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 /**
  * Wasserfall: durchscheinender, fließender Vorhang (Shader mit wandernden Streifen) von top bis bottom über x0..x1 bei z,
  * Gischtwolke am Fuß (Punktwolke) und Abrisskante oben. 2 Zeichenaufrufe. Nur Darstellung.
@@ -1033,7 +1063,7 @@ export function wasserfall(level, o) {
   for (let i = 0; i < P.count; i++) { const y = P.getY(i); const u = (h / 2 - y) / h; P.setZ(i, Math.sqrt(u) * (o.bulge ?? 1.2) + Math.sin(P.getX(i) * 1.7) * 0.08); }
   g.computeVertexNormals();
   const mat = new THREE.ShaderMaterial({
-    uniforms: { t: { value: 0 }, a: { value: new THREE.Color(o.light ?? 0xd8f6ff) }, b: { value: new THREE.Color(o.color ?? 0x2a90e0) }, op: { value: o.opacity ?? 0.42 }, fogColor: { value: new THREE.Color(0xf4e0c2) }, fogNear: { value: 60 }, fogFar: { value: 235 } },
+    uniforms: { t: { value: 0 }, a: { value: new THREE.Color(o.light ?? 0xd8f6ff) }, b: { value: new THREE.Color(o.color ?? 0x2a90e0) }, op: { value: o.opacity ?? 0.3 }, fogColor: { value: new THREE.Color(0xf4e0c2) }, fogNear: { value: 60 }, fogFar: { value: 235 } },
     vertexShader: 'varying vec2 vUv; varying float vD; void main() { vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0); vD = -mv.z; gl_Position = projectionMatrix * mv; }',
     fragmentShader: `uniform float t; uniform vec3 a; uniform vec3 b; uniform float op; uniform vec3 fogColor; uniform float fogNear; uniform float fogFar;
       varying vec2 vUv; varying float vD;
@@ -1067,7 +1097,8 @@ export function wasserfall(level, o) {
   const arr = new Float32Array(N * 3);
   const seeds = Array.from({ length: N }, (_, i) => ({ x: x0 + ((i * 0.618) % 1) * w, ph: (i * 0.37) % 1, sp: 0.6 + ((i * 7) % 5) / 6 }));
   geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: o.spray ?? 0.9, transparent: true, opacity: 0.55, depthWrite: false, sizeAttenuation: true }));
+  const dot = softDot();
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: o.spray ?? 1.4, map: dot, transparent: true, opacity: 0.6, depthWrite: false, sizeAttenuation: true }));
   pts.frustumCulled = false;
   let t = 0;
   const h2 = {};
