@@ -71,7 +71,7 @@ const ROUTES = {
       { name: 'Neustart vor dem Checkpoint setzt die Flutkammer zurück', from: [0, -2.6, -99], heroes: ['lotti'],
         legs: [{ until: 'flutOben', max: 1400, dive: [0, -102], y: 6 }, { die: true }, { wait: 400 }, { expect: 'flutUnten' }] },
       { name: 'Münzmarder am Strand einholen', from: [5, 1, 5], heroes: ['lotti'],
-        legs: [{ chaseKind: 'muenzmarder', max: 1200, run: true }, { collectKind: 'muenze_flug', radius: 12, max: 600 }], expectCoins: 5 },
+        legs: [{ chaseId: 'm1', kind: 'muenzmarder', max: 1500 }, { collectKind: 'muenze_flug', radius: 12, max: 700 }], expectCoins: 5 },
     ],
     shots: [
       ['start', [0, 1, 8]],
@@ -279,6 +279,7 @@ function install() {
           continue;
         }
         if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
+        if (Lg.chaseId) { const n = this.chase(Lg.kind, { max: Lg.max ?? 1500, run: true, jump: false, filter: (e) => e.spec?.id === Lg.chaseId }); const e = L.named.get(Lg.chaseId); log.push(['jagd', Lg.chaseId, n, JSON.stringify(e?.info?.())]); continue; }
         if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
         if (Lg.collectKind) {
           let k = 0;

@@ -246,8 +246,8 @@ export const LEVEL = {
     { kind: 'pilzling_reifen', id: 'rf1', pos: [-6, W, -10.5], path: [[-8, W, -10.5], [-4.6, W, -12]] },
     { kind: 'pilzling_reifen', id: 'rf2', pos: [5.6, W, -20], path: [[4.8, W, -19], [8.6, W, -21]] },
     { kind: 'pilzling_reifen', id: 'rf3', pos: [-4.6, W, -25.4] },
-    { kind: 'muenzmarder', id: 'm1', path: [[8, Y, 2.6], [11.6, Y, -1], [12, Y, 6], [5, Y, 9.6], [-1, Y, 10.6]], speed: 6, sight: 5.5, lead: 9 },
-    { kind: 'muenzmarder', id: 'm2', path: [[5, Y, -30.4], [10, Y, -33], [-2, Y, -37.4], [-10.6, Y, -33]], speed: 6, sight: 5.5, lead: 9 },
+    { kind: 'muenzmarder', id: 'm1', path: [[6, Y, 2], [11, Y, -2.5], [12.6, Y, 5], [8, Y, 10.4], [0, Y, 11], [-8, Y, 10.4], [-12.4, Y, 6], [-12.6, Y, -1.4]], speed: 5.2, sight: 5.5, lead: 9 },
+    { kind: 'muenzmarder', id: 'm2', path: [[5, Y, -29.4], [10.6, Y, -31], [10.6, Y, -36.6], [0, Y, -37.2], [-10.6, Y, -36.4], [-10.6, Y, -29]], speed: 5.2, sight: 5.5, lead: 9 },
     // 2 Tiefwasser
     { kind: 'flossling', id: 'fA', path: [[-7, -5.2, -45], [7, -5.2, -45], [7, -5.2, -58], [-7, -5.2, -58]], count: 4, spacing: 1.4, color: 'tuerkis' },
     { kind: 'flossling', id: 'fB', center: [1, -3, -73], radius: 4, count: 3, spacing: 1.6, color: 'koralle' },
@@ -260,14 +260,14 @@ export const LEVEL = {
     { kind: 'pilzling_reifen', id: 'rf4', pos: [-9, W, -122] },
     { kind: 'pilzling_reifen', id: 'rf5', pos: [12, W, -132], path: [[10, W, -128], [14, W, -136]] },
     { kind: 'stachelfisch', id: 'sB', pos: [13, W, -141], sight: 5, speed: 1.6 },
-    { kind: 'muenzmarder', id: 'm3', path: [[-11, Y, -139], [-18, Y, -141], [-17, Y, -148], [-10, Y, -148.6]], speed: 6, sight: 5.5, lead: 9 },
+    { kind: 'muenzmarder', id: 'm3', path: [[-11, Y, -139], [-18.6, Y, -138], [-18.6, Y, -148.6], [-9.4, Y, -149], [-9.4, Y, -142], [-2, Y, -134]], speed: 5.2, sight: 5.5, lead: 9 },
     // 4 Stachelwand
     { kind: 'flossling', id: 'fK', path: [[-6, -3.6, -186], [6, -3.6, -186], [6, -3.6, -192], [-6, -3.6, -192]], count: 2, spacing: 2, color: 'tuerkis' },
     { kind: 'stachelfisch', id: 'sK', pos: [5, W, -172], sight: 5, speed: 1.6 },
     ...WALL_FISH.map(([x, y, z, dx], i) => ({ kind: 'stachelfisch', id: `sW${i + 1}`, mode: 'wall', pos: [x, y, z], dir: [dx, 0], period: 2.4, phase: (i * 0.29) % 1, reach: 3.4 })),
     ...PILLAR_FISH.map(([x, y, z, dx], i) => ({ kind: 'stachelfisch', id: `sP${i + 1}`, mode: 'wall', pos: [x, y, z], dir: [dx, 0], period: 2.4, phase: 0.15 + i * 0.33, reach: 3.2 })),
     // 5 Ausgang
-    { kind: 'muenzmarder', id: 'm4', path: [[-5, Y, -228.4], [-8, Y, -231.4], [6.6, Y, -231.6], [8, Y, -227.4]], speed: 6, sight: 5, lead: 8 },
+    { kind: 'muenzmarder', id: 'm4', path: [[-5, Y, -228.4], [-8.4, Y, -231.8], [8.4, Y, -231.8], [8.4, Y, -226.6], [-8.2, Y, -226.6]], speed: 5.2, sight: 5, lead: 8 },
   ],
   items: [
     // 1
