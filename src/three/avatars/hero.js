@@ -107,7 +107,7 @@ const V = (x, y, z = 0) => new THREE.Vector3(x, y, z);
 const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
 const _v = new THREE.Vector3();
-const _p = new THREE.Vector3(), _s = new THREE.Vector3();
+const _p = new THREE.Vector3(), _s = new THREE.Vector3(), _sv = new THREE.Vector3();
 const _q = new THREE.Quaternion(), _qi = new THREE.Quaternion();
 const _e = new THREE.Euler();
 
@@ -903,16 +903,31 @@ export class HeroAvatar extends Avatar3D {
    * Kette rechnen und die Glieder im jeweiligen Elternsystem ausrichten. Schwerkraft und Luftwiderstand
    * wirken in Weltkoordinaten – auch wenn die Figur Kopf steht (Sturzflug) oder sich umdreht.
    */
+  /**
+   * Maßstab der Haarketten: Gliedlängen, Kollider und Physik sind in Avatar-Einheiten angelegt. Im Kurs-Modus skaliert
+   * eine Hülle die Figur (1,5 Einheiten → 1,0 m bzw. 0,7 m) – die Ketten rechnen dann in Weltkoordinaten geteilt durch
+   * diesen Maßstab (sonst wären sie 1,5× zu lang, die Kollider zu groß und die Zöpfe stünden vom Kopf ab).
+   * Liefert Avatar-Einheiten je Welteinheit (1 außerhalb des Kurs-Modus).
+   */
+  chainUnits() {
+    if (!this.courseMode) return 1;
+    this.root.updateWorldMatrix(true, false);
+    const k = _sv.setFromMatrixScale(this.root.matrixWorld).x;
+    return k > 1e-6 ? 1 / k : 1;
+  }
+
   updateBraids(dt) {
     this.torso.updateWorldMatrix(true, false);
     this.head.updateWorldMatrix(false, false);
+    const u = this.chainUnits();
     const col = this.braidColliders;
-    col.head.c.set(HEAD_C.x - 0.03, HEAD_C.y + 0.03, 0).applyMatrix4(this.head.matrixWorld);
-    col.shoulders[0].c.set(0, SHOULDER_Y, SHOULDER_Z).applyMatrix4(this.torso.matrixWorld);
-    col.shoulders[1].c.set(0, SHOULDER_Y, -SHOULDER_Z).applyMatrix4(this.torso.matrixWorld);
+    col.head.c.set(HEAD_C.x - 0.03, HEAD_C.y + 0.03, 0).applyMatrix4(this.head.matrixWorld).multiplyScalar(u);
+    col.shoulders[0].c.set(0, SHOULDER_Y, SHOULDER_Z).applyMatrix4(this.torso.matrixWorld).multiplyScalar(u);
+    col.shoulders[1].c.set(0, SHOULDER_Y, -SHOULDER_Z).applyMatrix4(this.torso.matrixWorld).multiplyScalar(u);
     for (const b of this.braids) {
       b.anchor.updateWorldMatrix(false, false);
       b.anchor.matrixWorld.decompose(_p, _q, _s);
+      _p.multiplyScalar(u);
       const ch = b.chain;
       ch.frame.copy(_q);
       for (let i = 0; i < ch.n; i++) ch.rest[i].copy(b.restLocal[i]).applyQuaternion(_q);
@@ -1210,9 +1225,11 @@ export class HeroAvatar extends Avatar3D {
     this.w3.frozen = true;
     if (this.braids) {
       this.head.updateWorldMatrix(true, false);
+      const u = this.chainUnits();
       for (const b of this.braids) {
         b.anchor.updateWorldMatrix(false, false);
         b.anchor.matrixWorld.decompose(_p, _q, _s);
+        _p.multiplyScalar(u);
         const ch = b.chain;
         ch.frame.copy(_q);
         for (let i = 0; i < ch.n; i++) ch.rest[i].copy(b.restLocal[i]).applyQuaternion(_q);
@@ -1233,7 +1250,7 @@ export class HeroAvatar extends Avatar3D {
     if (this.maneChain) {
       this.head.updateWorldMatrix(true, false);
       this.head.matrixWorld.decompose(_p, _q, _s);
-      _p.copy(this.mane.position).applyMatrix4(this.head.matrixWorld);
+      _p.copy(this.mane.position).applyMatrix4(this.head.matrixWorld).multiplyScalar(this.chainUnits());
       this.maneChain.rest[0].copy(this.maneRest).applyQuaternion(_q);
       this.maneChain.reset(_p);
     }
@@ -1315,7 +1332,7 @@ export class HeroAvatar extends Avatar3D {
     const ch = this.maneChain;
     this.head.updateWorldMatrix(true, false);
     this.head.matrixWorld.decompose(_p, _q, _s);
-    _p.copy(this.mane.position).applyMatrix4(this.head.matrixWorld);
+    _p.copy(this.mane.position).applyMatrix4(this.head.matrixWorld).multiplyScalar(this.chainUnits());
     ch.frame.copy(_q);
     ch.rest[0].copy(this.maneRestCur ?? this.maneRest).applyQuaternion(_q);
     ch.update(_p, dt);
