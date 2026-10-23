@@ -8,12 +8,15 @@
 //                  (victory), danach Ergebnis (Zeile „Schatz“ statt Zielmast) – alle Sterne werden gespeichert
 //   render       → Glitzern über offenen Schatzstellen
 // Level-Daten: LEVEL.diorama = { center: [x, y, z], camera: { yaw, pitch, dist: [überblick, nah], follow, fov },
-//   props: [...] (archetypes/DioramaDeco.js: house, mushroom, banner, dig, cloudsea, islet) }.
+//   props: [...] (archetypes/DioramaDeco.js: house, mushroom, banner, dig, cloudsea, islet),
+//   figure: 'pflaume' (Standard) | 'kruemel' (Krümel mit Kapitänsmütze, archetypes/KruemelRig.js) | (view, player) => rig }
+//   – Figurwahl (Präzisierung „Leistung und Level-Haken 2“): nur die Darstellung, die Steuerung bleibt gleich.
 // Test-Hilfen: arch.setOrbit(deg), arch.orbit, arch.info().
 
 import Phaser from 'phaser';
 import { DioramaController } from '../DioramaController.js';
 import { PflaumeRig } from '../PflaumeRig.js';
+import { KruemelRig } from '../KruemelRig.js';
 import { OrbitCamera } from '../OrbitCamera.js';
 import { buildDioramaProps } from '../DioramaDeco.js';
 import { TOUCH_LAYOUT } from '../../input/CourseTouch.js';
@@ -22,6 +25,7 @@ import { GAME } from '../../../config.js';
 const ROT_SPEED = 100;        // °/s (Tasten/Knöpfe gehalten)
 const SWIPE_YAW = 0.45;       // °/Pixel (Logik-Pixel 480×270)
 const SWIPE_PITCH = 0.25;
+const FIGURES = { pflaume: PflaumeRig, kruemel: KruemelRig };
 
 class DioramaArchetype {
   constructor(scene) {
@@ -39,7 +43,12 @@ class DioramaArchetype {
   }
 
   createPlayer(level, opts) { return new DioramaController(level, opts); }
-  createRig(view, player) { return new PflaumeRig(view, player); }
+  createRig(view, player) {
+    const f = this.cfg.figure;
+    if (typeof f === 'function') return f(view, player);
+    if (f && !FIGURES[f]) console.warn(`[Diorama] unbekannte Figur ${f}`);
+    return new (FIGURES[f] ?? PflaumeRig)(view, player);
+  }
 
   setup() {
     const sc = this.scene;

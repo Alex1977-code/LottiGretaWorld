@@ -21,7 +21,7 @@
 // Koordinaten: x −13 … 13, z −13 … 13 (vorn = +z), Ebenen y −4 (Seegrund) / 0 (Ufer) / 4 (Wiese) / 10,2 (Terrasse).
 
 import {
-  hookLamp, isl, line, ring, decoW1, useKruemel, glassWall, seeTower, glassDome, sandRamp, lilyPads, ducks, lighthouse,
+  hookLamp, isl, line, ring, decoW1, glassWall, seeTower, glassDome, sandRamp, lilyPads, ducks, lighthouse,
   rowboat, parasol,
 } from './_helpers_c.js';
 
@@ -67,6 +67,7 @@ export const LEVEL = {
   killY: -16,
   start: { pos: [9.5, 0, 9.5], yaw: Math.PI },
   diorama: {
+    figure: 'kruemel',      // Krümel statt Pflaume (Kapitänsmütze, Rucksack, Schwimmring)
     // Mitte etwas nach hinten und oben: die Seewarte (bis y ≈ 12) bleibt in der Übersicht ganz im Bild
     center: [-0.5, 4, -4],
     camera: { yaw: 28, pitch: 46, dist: [46, 15], follow: [0.3, 0.9], fov: 40 },
@@ -85,10 +86,8 @@ export const LEVEL = {
       { kind: 'islet', pos: [-27, -5, 25], size: 2.2 },
     ],
   },
-  // Level-Haken: Krümel statt Pflaume (nur die Darstellung, Archetyp unverändert); Budget: Holzsteg und Schalter ohne
-  // Sonnenschatten (Blob bleibt)
+  // Level-Haken – Budget: Holzsteg und Schalter ohne Sonnenschatten (Blob bleibt); Krümel: LEVEL.diorama.figure
   setup: (level, sc) => {
-    useKruemel(level, sc);
     const quiet = (root) => root?.traverse((m) => { if (m.isMesh) m.castShadow = false; });
     for (const o of level.view?.three.children ?? []) if (o.name === 'modell:holzsteg') quiet(o);
     for (const e of level.entities) if (e.kind === 'wasserschalter' || e.kind === 'lantern') quiet(e.model?.root);
