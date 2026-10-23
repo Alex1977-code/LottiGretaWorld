@@ -422,6 +422,63 @@ export function jungleTrees(level, list, o = {}) {
 }
 
 /**
+ * Ruinen-Deckblatt für fahrende Plattformen (mover): Mosaikrahmen (Terrakotta/Türkis), Mittelrosette und Moospolster
+ * auf der Oberseite – je Plattformgröße eine Instanzgruppe ohne Schattenwurf, folgt den Plattformen je Bild.
+ * groups = [{ ids: ['mp1', …], size: [w, d], top: 0.5 (Oberseite über pm.pos.y) }].
+ */
+export function moverTops(level, groups) {
+  if (!level.view) return;
+  for (const G of groups) {
+    const [w, d] = G.size, top = G.top ?? 0.5;
+    const P = [];
+    const q = (x0, x1, z0, z1, col, y = 0.012) => P.push(quadXZ(x0, x1, z0, z1, y, flat(col)));
+    const b = 0.32;
+    // Rahmen: abwechselnd Terrakotta und Türkis
+    const n = Math.round(w / 0.6);
+    for (let i = 0; i < n; i++) {
+      const xa = -w / 2 + (i * w) / n + 0.03, xb = -w / 2 + ((i + 1) * w) / n - 0.03, col = i % 2 ? RUIN.turq : RUIN.terra;
+      q(xa, xb, d / 2 - b, d / 2 - 0.04, col); q(xa, xb, -d / 2 + 0.04, -d / 2 + b, col);
+    }
+    const m = Math.round((d - 2 * b) / 0.6);
+    for (let i = 0; i < m; i++) {
+      const za = -d / 2 + b + (i * (d - 2 * b)) / m + 0.03, zb = -d / 2 + b + ((i + 1) * (d - 2 * b)) / m - 0.03, col = i % 2 ? RUIN.terra : RUIN.turq;
+      q(-w / 2 + 0.04, -w / 2 + b, za, zb, col); q(w / 2 - b, w / 2 - 0.04, za, zb, col);
+    }
+    // Rosette in der Mitte
+    for (const [r, col] of [[0.7, RUIN.gold], [0.55, RUIN.sandLt], [0.3, RUIN.turq]]) {
+      const g = new THREE.CircleGeometry(r, 16).toNonIndexed();
+      g.rotateX(-Math.PI / 2); g.translate(0, 0.014 + (0.7 - r) * 0.004, 0);
+      P.push(colorize(g, flat(col)));
+    }
+    // Moospolster an zwei Ecken
+    for (const [sx, sz] of [[-1, 1], [1, -1]]) {
+      const g = new THREE.SphereGeometry(0.28, 8, 3, 0, TAU, 0, Math.PI / 2).toNonIndexed();
+      g.scale(1.4, 0.45, 1.1); g.translate(sx * (w / 2 - 0.45), 0, sz * (d / 2 - 0.45));
+      P.push(colorize(g, flat(RUIN.moss)));
+    }
+    const geo = merge(P);
+    const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    const im = new THREE.InstancedMesh(geo, mat, G.ids.length);
+    im.castShadow = false; im.receiveShadow = true; im.frustumCulled = false;
+    im.name = 'zier:plattformdeckel';
+    im.userData.owned = true;
+    const M = new THREE.Matrix4();
+    const upd = () => {
+      G.ids.forEach((id, i) => {
+        const h = level.named.get(id);
+        const p = h?.pm?.pos;
+        if (!p) return;
+        M.makeTranslation(p.x, p.y + top, p.z);
+        im.setMatrixAt(i, M);
+      });
+      im.instanceMatrix.needsUpdate = true;
+    };
+    upd();
+    addObject(level, im, upd);
+  }
+}
+
+/**
  * Räuberleiter (Bauplan 4-5: „vom Mitspieler abspringen“ – Mitspieler = Klon der Spiegelfrucht): Kommt eine Figur von
  * oben (oder auf gleicher Höhe heranlaufend) auf den Kopf einer stehenden Figur in der Zone area, wird sie mit speed
  * m/s hochgeworfen (wie von einer Sprungfeder, fester Schwerkraft-Bogen ohne Sprungtasten-Abhängigkeit) und bekommt

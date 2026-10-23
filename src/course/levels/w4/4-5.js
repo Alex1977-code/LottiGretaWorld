@@ -23,7 +23,8 @@
 
 import {
   levelSetup, isl, line, ring, arc, cullStatic, farHide, instanceEnemies, noModelShadow, birds, fruitBush, ruinMosaic,
-  ruinFountain, vines, mossTufts, stoneBlock, roundTower, jungleTrees, raeuberleiter, sealedPipe, switchHall, sockelRelief, rampPaving, valley, RUIN,
+  ruinFountain, vines, mossTufts, stoneBlock, roundTower, jungleTrees, raeuberleiter, sealedPipe, switchHall, sockelRelief, rampPaving, valley,
+  moverTops, RUIN,
 } from './_helpers_c.js';
 
 // Höhen
@@ -136,6 +137,16 @@ function scene(level) {
   for (const [x0, x1, z, y] of [[0.7, 4.5, -12.2, Y0], [-4.5, -1.3, -44.2, Y1], [1.3, 4.5, -44.2, Y1], [8.2, 11.5, -144.2, Y3], [8.8, 11.5, -241.2, Y4]]) {
     stoneBlock(level, x0, x1, y, y + 0.6, z + 0.35, z - 0.35, { tag: 'prellmauer', chips: false });
   }
+  // Rast-Säulen der Plattformfahrt (gemauert, Moos, Ranken)
+  for (const [x, z, w] of [[-2, -120.4, 2.6], [7.2, -128.6, 2.4]]) {
+    stoneBlock(level, x - w / 2, x + w / 2, Y2 - 7, Y2, z + w / 2, z - w / 2, { tag: 'rastsaeule', r: 0.06 });
+    vines(level, [{ x, y: Y2 - 0.05, z: z + w / 2, w: w * 0.8, len: 2.2, face: '+z', n: 4 }]);
+  }
+  // Fahrende Plattformen als Ruinenplatten (Mosaik-Deckblatt)
+  moverTops(level, [
+    { ids: ['mp1', 'mp2a', 'mp2b', 'mp2c'], size: [3.6, 3.6] },
+    { ids: ['ms1', 'ms2', 'ms3'], size: [4.2, 4.2] },
+  ]);
   // Rampen verdecken die Kamera nie (der Strahl prüft Hüllquader – auf der Rampe steckt der Kopf darin)
   level.world.forEach?.((s) => { if (s.type === 'ramp') s.camIgnore = true; });
   // Budget
@@ -148,8 +159,6 @@ function scene(level) {
 const walzer = (id, x, y, z, o = {}) => ({ kind: 'walzenwerfer', id, pos: [x, y, z], pillar: o.pillar ?? 1.6, dir: o.dir ?? [0, 1], aim: o.aim ?? 'dir', sight: o.sight ?? 18, interval: o.interval ?? 3, first: o.first ?? 1, walze: 0.85, speed: o.speed ?? 3.5, max: 2 });
 /** Bewegliche Ruinenplattform (Sandstein-Orange). */
 const plat = (id, path, o = {}) => ({ type: 'mover', id, path, size: o.size ?? [3.6, 0.5, 3.6], speed: o.speed ?? 2.4, wait: o.wait ?? 0.7, phase: o.phase ?? 0, color: o.color ?? 0xe8b070 });
-/** Rast-Säule (Sandsteinblock, Oberkante y). */
-const pillar = (x, z, y, s = 2.4) => ({ type: 'platform', pos: [x, y - 6, z], size: [s, 6, s], style: 'stone' });
 
 export const LEVEL = {
   id: '4-5',
@@ -238,9 +247,7 @@ export const LEVEL = {
 
     // =============================================================== 3 Plattformfahrt
     plat('mp2a', [[-2, Y2 - 0.5, -107], [-2, Y2 - 0.5, -117.4]], { speed: 2.6, wait: 0.6 }),
-    pillar(-2, -120.4, Y2, 2.6),
     plat('mp2b', [[-2, Y2 - 0.5, -124.4], [7.2, Y2 - 0.5, -124.4]], { speed: 2.2, wait: 0.7 }),
-    pillar(7.2, -128.6, Y2, 2.4),
     plat('mp2c', [[7.2, Y2 - 0.5, -132.2], [7.2, Y3 - 0.5, -139.6]], { speed: 1.9, wait: 0.8 }),
     isl(2, 12, -141.4, -144, Y3, 6, { under: 3, top: 'stone' }),
     // Aufstieg (Hang 3) mit Walzenwerfer oben
