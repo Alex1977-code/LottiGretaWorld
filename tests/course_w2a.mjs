@@ -96,6 +96,10 @@ const ROUTES = {
       ['schiebebruecke', [0, 1, -186]],
       ['ziel', [0, 1, -204]],
       ['bonusraum', [85, 2.4, 63]],
+      // Wüstenzier aus der Nähe: Oasenufer (ohne Nahtlinien), Marktstand-Rest, Sandfall über der Schluchtkante
+      ['oasenufer', [2.6, 1, -54.6]],
+      ['marktstand', [-12.6, 3, -55.5]],
+      ['sandfall', [16, 3, -151]],
     ],
   },
   '2-2': {
@@ -614,6 +618,8 @@ for (const id of LEVELS) {
   const meta = await sc(() => { const d = window.__course.level.data; return { title: d.title, timeLimit: d.timeLimit, theme: d.theme, music: d.music }; });
   const kinds = await W('kinds');
   console.log(`  „${meta.title}“, Thema ${meta.theme}, Musik ${meta.music}, Zeitlimit ${meta.timeLimit} s, Entitäten: ${JSON.stringify(kinds)}`);
+  const zier = await sc(() => window.__course.level.zier ?? null);
+  if (zier) console.log(`  Zier (Dreiecke je Gruppe): ${Object.entries(zier).map(([k, v]) => `${k} ${v}`).join(', ')}`);
   check(`${id}: lädt ohne Konsolenfehler/-warnungen`, loadErrors.length === 0);
   for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
   for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind}`, (kinds[kind] ?? 0) === n);

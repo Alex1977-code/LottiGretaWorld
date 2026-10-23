@@ -86,6 +86,48 @@ export const MOVE = {
   hurtTime: 0.35,         // s ohne Steuerung
   stompBounce: 9.5,       // m/s Abprall vom Gegner
   stompBounceHeld: 13,    // m/s Abprall mit gehaltener Sprungtaste
+
+  // --- Welt 3 (Präzisierung Motor Welt 3) ---
+  // Eis (Formen mit ice: true): wenig Reibung, Rutschen beim Anhalten/Wenden, Rennen baut sich langsamer auf
+  iceAccelRun: 3.5,       // m/s² auf Eis über dem Gehtempo
+  iceBrake: 5,            // m/s² auf Eis ohne Eingabe (Bremsweg aus 6 m/s ≈ 3,6 m statt 0,4 m)
+  iceSlideDecel: 1.5,     // m/s² Rutschen/Ducken auf Eis
+  // Gleitblatt
+  glideFall: 2.0,         // m/s höchste Fallgeschwindigkeit beim Gleiten (Sprung gehalten)
+  glideDrift: 2.6,        // m/s leichte Vorwärtsfahrt beim Gleiten (Mindesttempo in Blickrichtung)
+  glideDriftAccel: 6,     // m/s² Aufbau der Vorwärtsfahrt
+  glideBrake: 40,         // m/s² ein schnellerer Fall wird auf glideFall abgebremst
+  tailTime: 0.32,         // s Schwanzhieb (rundum)
+  tailReach: 1.2,         // m Reichweite des Schwanzhiebs um die Figur
+  statueTime: 3.0,        // s Statue höchstens (Ducken loslassen beendet sie nach statueMin)
+  statueMin: 0.6,         // s Statue mindestens
+  statueFall: 22,         // m/s Sturz als Statue (Stampfer)
+  statueCool: 0.5,        // s bis zur nächsten Statue
+  // Kettenzaun
+  fenceSpeed: 3.2,        // m/s Klettern am Zaun (seitlich und hoch/runter)
+  fenceJump: 3.0,         // m Absprung-Höhe vom Zaun
+  fenceAway: 4.5,         // m/s vom Zaun weg beim Absprung
+  fencePunch: 1.25,       // m Reichweite des Faustschlags durch den Zaun
+  fencePunchTime: 0.28,   // s Faustschlag
+  // Schlittschuh
+  skateMax: 12.5,         // m/s Höchsttempo (mit Rennen; ohne ×0,8) …
+  skateMaxIce: 16,        // … auf Eis
+  skateAccel: 7,          // m/s² Anschieben (Eis: skateAccelIce)
+  skateAccelIce: 9,
+  skateFriction: 2.0,     // m/s² Ausrollen ohne Eingabe (Eis: skateFrictionIce)
+  skateFrictionIce: 0.7,
+  skateBrake: 14,         // m/s² Bremsen (Stick entgegen)
+  skateGrip: 9,           // m/s² Abbau der Quergeschwindigkeit (Driften in Kurven; Eis: skateGripIce)
+  skateGripIce: 3.5,
+  skateTurn: 5.5,         // rad/s Lenken im Stand …
+  skateTurnFall: 3.5,     // … geteilt durch (1 + Tempo / skateTurnFall): enge Kurven bei Tempo schwer
+  skateSlope: 14,         // m/s² hangabwärts (× Neigung)
+  // Unterwasser
+  swimStrokeUnder: 4.6,   // m/s Schwimmzug unter Wasser (getaucht)
+  swimSinkSlow: 0.9,      // m/s ruhiges Sinken unter Wasser (getaucht, ohne Eingabe)
+  swimHoldRise: 1.1,      // m/s Sprung gehalten unter Wasser: langsames Steigen
+  swimUnderDrag: 5,       // m/s² Annäherung an Sink-/Steiggeschwindigkeit
+  swimStrokePush: 1.6,    // m/s Schub in Stick-Richtung je Schwimmzug
 };
 
 /** Hitbox (Halbmaße): groß 0,6 × 0,95 × 0,6, klein 0,6 × 0,65 × 0,6. */

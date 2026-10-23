@@ -28,6 +28,7 @@
 //   overlaps(other), distanceTo(x, y, z)   AABB-Hilfen (Berührung, Explosionsradius)
 
 import * as THREE from 'three';
+import { iceSlide, iceAfterMove } from './ice.js';
 
 const GRAVITY = 40;
 
@@ -105,6 +106,8 @@ export class CourseEntity {
     const g = this.ground;
     if (this.grounded && g?.mover) { const m = g.mover; this.pos.x += m.dx; this.pos.y += m.dy; this.pos.z += m.dz; }
     if (this.grounded && g?.conveyor) { this.pos.x += g.conveyor.x * dt; this.pos.z += g.conveyor.z * dt; }
+    // Eis (Präzisierung Motor Welt 3, entities/ice.js): gewünschtes Tempo wird nur träge erreicht → Rutschen
+    if (this.grounded && g?.ice && !this.noIce) iceSlide(this, dt); else this._iceV = null;
     this.vel.y = Math.max(this.vel.y - (opts.gravity ?? GRAVITY) * dt, -24);
     if (this.grounded && this.vel.y < -2) this.vel.y = -2;
     const c = this.center();
@@ -121,6 +124,7 @@ export class CourseEntity {
       const n = res.wallNormal, d = this.vel.x * n.x + this.vel.z * n.z;
       if (d < 0) { this.vel.x -= n.x * d; this.vel.z -= n.z * d; }
     }
+    if (this._iceV) iceAfterMove(this);
     // Tod in Lava/Abgrund
     if (this.pos.y < this.level.killY) this.kill();
     return res;
