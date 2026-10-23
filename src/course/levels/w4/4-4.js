@@ -23,7 +23,7 @@
 
 import {
   isl, line, ring, arc, column, levelSetup, flatIslands, cullStatic, instanceEnemies, farHide, modelDiet,
-  rockWall, sheep, kite, bees, wheelSwarm, bugSwarm, cloudSea, nicheFrame, cow, almHut, hayBale, addStaticParts, balloon, ropeFence, stonePath, smoke,
+  rockWall, sheep, kite, bees, wheelSwarm, bugSwarm, cloudSea, nicheFrame, bench, cow, almHut, hayBale, addStaticParts, balloon, ropeFence, stonePath, smoke,
 } from './_helpers_b.js';
 
 const PI = Math.PI;
@@ -86,6 +86,7 @@ function setup(level) {
   }
   addStaticParts(level, parts);
   smoke(level, [9.9, YA + 5.2, 4.9]);
+  bench(level, 8.6, YD, -83.4, -PI / 2, { snow: false }); bench(level, -6.6, YZ, -209.6, 0.2, { snow: false });
   sheep(level, [
     [-5.8, YA, -11.6, 0.3], [-7.6, YA, -9.2, 2.2], [3.6, YA, 2.6, -1.2],
     [-7.8, YB, -38.4, 1.4], [8.6, YB, -45.2, -2.4], [6.6, YB, -33.2, 0.8],
@@ -134,6 +135,10 @@ export const LEVEL = {
       { kind: 'wiesenblumen', pos: [5, YA, -7], size: [12, 12], n: 34 },
       { kind: 'bergfichten', pos: [11, YA, -14], size: [2, 3], n: 2, scale: [0.8, 1.1] },
       { kind: 'heuballen', pos: [-9.6, YA, -14.2], yaw: 0.5 },
+    ] },
+    { type: 'deco_w1', items: [
+      { kind: 'butterflies', pos: [-4, YA, -2], n: 4, r: 2.4, h: 1.4 }, { kind: 'butterflies', pos: [6, YB, -38], n: 3, r: 2.2, h: 1.3 },
+      { kind: 'butterflies', pos: [-5, YD, -88], n: 3, r: 2, h: 1.4 }, { kind: 'butterflies', pos: [4, YZ, -216], n: 4, r: 2.6, h: 1.5 },
     ] },
     { type: 'pilztrampolin', id: 'pt1', pos: [-1.5, -1.5, -20.5], scale: 1.4 },
     { type: 'pilztrampolin', id: 'pt2', pos: [1.5, -1.5, -25.5], scale: 1.4 },

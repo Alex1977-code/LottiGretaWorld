@@ -125,6 +125,7 @@ function setup(level) {
   discoBall(level, [-4.5, Y + 12, 3], 1.1);
   discoBall(level, [6, YZ + 9, -289.7], 1.0);
   neonSign(level, { pos: [-4.8, Y, 4.6], text: 'Neonsteg\nim Takt', size: [3.6, 1.6], yaw: 0.25, color: '#ff5af0' });
+  neonSign(level, { pos: [5.4, Y, -4.4], text: 'Hör auf die Pieps:\nRot ↔ Blau!', size: [3.4, 1.2], yaw: -0.35, color: '#5af0ff', flicker: true });
   neonSign(level, { pos: [4.2, Y, -38.5], text: 'Spiegelfrucht:\nein Klon tanzt mit!', size: [3.8, 1.3], yaw: -0.3, color: '#5af0ff' });
   neonSign(level, { pos: [-4.6, Y, -90.8], text: 'Zwei Felder –\nzwei Figuren!', size: [3.4, 1.2], yaw: 0.35, color: '#ffe04a', flicker: true });
   neonSign(level, { pos: [12.8, Y, -112.6], text: 'Rundweg ↻', size: [3, 0.9], yaw: -0.3, color: '#7aff9a' });

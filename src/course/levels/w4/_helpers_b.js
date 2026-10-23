@@ -19,11 +19,11 @@ import { colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } fr
 import { visDt } from '../../entities/gimmick.js';
 import { levelSetup, cyl, sphere, cone, block, flatIslands } from '../w2/_helpers_c.js';
 import { cullStatic, farHide, shadowless } from '../w2/_helpers_a.js';
-import { instanceEnemies, smoke } from '../w3/_helpers_a.js';
+import { instanceEnemies, smoke, bench } from '../w3/_helpers_a.js';
 import { zeitUhren } from '../w3/_helpers_d.js';
 import { plate, cow, almHut, hayBale, meadow, balloon, addStaticParts, ropeFence, stonePath, cloudRim, bugSwarm } from '../w3/_helpers_b.js';
 
-export { levelSetup, cyl, sphere, cone, block, flatIslands, cullStatic, farHide, shadowless, instanceEnemies, zeitUhren, smoke };
+export { levelSetup, cyl, sphere, cone, block, flatIslands, cullStatic, farHide, shadowless, instanceEnemies, zeitUhren, smoke, bench };
 export { plate, cow, almHut, hayBale, meadow, balloon, addStaticParts, ropeFence, stonePath, cloudRim, bugSwarm };
 
 const TAU = Math.PI * 2;
