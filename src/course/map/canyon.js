@@ -239,13 +239,24 @@ function smoothGrid(x0, z0, x1, z1, y, cell, colorAt) {
 
 /** Glühende Fugen: schmale Leisten entlang einiger Fliesengrenzen (2-m-Raster), zufällig unterbrochen. */
 function castleCracks(x0, z0, x1, z1, y, rnd) {
+  // Zickzack-Risse: kurze, geknickte Glutlinien (2–4 Glieder, manchmal verzweigt) statt eines Fugengitters
   const b = new Build();
-  for (let x = Math.ceil(x0 / 2) * 2; x < x1; x += 2) {
-    for (let z = Math.ceil(z0 / 2) * 2; z < z1 - 2; z += 2) if (rnd.frac() < 0.35) b.box(0.1, 0.02, 2, 0xff7a1a, { p: [x, y, z + 1] }, 0);
-  }
-  for (let z = Math.ceil(z0 / 2) * 2; z < z1; z += 2) {
-    for (let x = Math.ceil(x0 / 2) * 2; x < x1 - 2; x += 2) if (rnd.frac() < 0.3) b.box(2, 0.02, 0.1, 0xffa03a, { p: [x + 1, y, z] }, 0);
-  }
+  const n = Math.round(((x1 - x0) * (z1 - z0)) / 12);
+  const seg = (ax, az, bx, bz, w, color) => {
+    const len = Math.hypot(bx - ax, bz - az);
+    b.box(len + w, 0.02, w, color, { p: [(ax + bx) / 2, y, (az + bz) / 2], r: [0, -Math.atan2(bz - az, bx - ax), 0] }, 0);
+  };
+  const walk = (x, z, dir, k, w) => {
+    for (let i = 0; i < k; i++) {
+      const l = 0.6 + rnd.frac() * 0.8;
+      dir += (rnd.frac() - 0.5) * 1.4;
+      const nx = Math.min(x1 - 0.4, Math.max(x0 + 0.4, x + Math.cos(dir) * l)), nz = Math.min(z1 - 0.4, Math.max(z0 + 0.4, z + Math.sin(dir) * l));
+      seg(x, z, nx, nz, w, i % 2 ? 0xffa03a : 0xff7a1a);
+      if (i === 1 && rnd.frac() < 0.35) walk(nx, nz, dir + (rnd.frac() < 0.5 ? 1 : -1) * 1.1, 2, w * 0.7);
+      x = nx; z = nz;
+    }
+  };
+  for (let i = 0; i < n; i++) walk(x0 + 0.6 + rnd.frac() * (x1 - x0 - 1.2), z0 + 0.6 + rnd.frac() * (z1 - z0 - 1.2), rnd.frac() * TAU, 2 + Math.floor(rnd.frac() * 3), 0.1);
   return b.parts.length ? b.geometry() : null;
 }
 
@@ -673,7 +684,17 @@ export function buildRockArch(level, spec) {
   b.extrude(sh, w + 0.2, (x, y) => MESA[Math.abs(Math.floor((y - bottom) / 0.9)) % MESA.length], {}, 0, 12);
   // sandiger Laufweg (schräg) mit Randsteinen
   const pitch = Math.atan2(dy, L), len = Math.hypot(L, dy) + 1.2;
-  b.box(len, 0.32, w + 0.3, (x, y, z, nx, ny) => (ny > 0.5 ? 0xe6aa70 : 0xcc7a48), { p: [L / 2, dy / 2 - 0.14, 0], r: [0, 0, pitch] }, 0);
+  b.box(len, 0.32, w + 0.3, (x, y, z, nx, ny) => (ny > 0.5 ? 0xb8703e : 0xcc7a48), { p: [L / 2, dy / 2 - 0.2, 0], r: [0, 0, pitch] }, 0);
+  // Trittplatten: zweifarbige Sandsteinplatten mit schmalen Fugen (wie die Wege der Karte)
+  const nSlab = Math.max(2, Math.round(len / 1.35)), sl = len / nSlab;
+  for (let i = 0; i < nSlab; i++) {
+    const t = -0.6 + (i + 0.5) * sl;                        // Abstand entlang der Schräge
+    const px = t * Math.cos(pitch), py = t * Math.sin(pitch);
+    for (const [sz, sw] of [[-(w + 0.1) / 4, (w + 0.1) / 2 - 0.08], [(w + 0.1) / 4, (w + 0.1) / 2 - 0.08]]) {
+      const tone = (i + (sz > 0 ? 1 : 0)) % 2 ? 0xe8b27a : 0xf0c48e;
+      b.box(sl - 0.08, 0.1, sw, (x, y, z, nx, ny) => (ny > 0.5 ? tone : 0xc98a56), { p: [px, py + 0.0, sz], r: [0, 0, pitch] }, 0);
+    }
+  }
   const rnd = new Rnd(Math.round(L * 13 + a[2]));
   for (const s of [-1, 1]) {
     for (let t = 0.6; t < L; t += rnd.real(1.4, 2.4)) {
