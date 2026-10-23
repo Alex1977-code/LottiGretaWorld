@@ -1995,6 +1995,52 @@ PORT_BASE, Bilder `tests/out/w3lb_*.png`):
   Strecken: Registry-Käfer (≈ 4500 Dreiecke), Baustein `bande` (≈ 320 Dreiecke/m), Münzen (alle Instanzen werden
   immer gezeichnet, ≈ 430 Dreiecke je Münze) – Detailstufen im Motor wären hilfreich.
 
+**Level-Notizen 3-A / 3-B / 3-Zug** (Level-Agent; Hilfen `src/course/levels/w3/_helpers_e.js` ohne `LEVEL`; Test
+`tests/course_w3e.mjs [3-A|3-B|3-Zug]`, Port 4740 + PORT_BASE, Bilder `tests/out/w3z_*.png`; Teilprüfungen 3-Zug mit
+`ZUG=basis,lotti,greta,komplett` – je Teil < 10 min):
+
+- **3-A „Krötenzauber im Roten Zwinger“** (arena, fortress, course_arena, 200 s, 1 Stern): roter Käfigraum (≈ 20 × 20 m
+  Spielfläche) auf einer kleinen Festung, zwei erhöhte Eckpodeste (2,4 m, je 8 flache Stufen ohne Springen), Zauberkreis
+  in der Mitte, Fallgatter mit Brummbär-Wappen, Rundtürme mit wehenden Fahnen, Glutfunken. Drei Zauberkröten (Boden und
+  Podeste) – alle besiegt → Stern in der Mitte → Ziel. ?-Block (Funkenblüte), Münzblock auf dem rechten Podest.
+- **3-B „Manege frei für den Schlangenkönig“** (boss, circus, course_boss, 400 s, 1 Stern): Vorplatz mit Zirkuswagen,
+  Kasse, Plakat, Trommel, Lichterketten (?-Block **Krallen-Anzug**) → Prachttreppe (18 Stufen) zur Seilbahnstation →
+  Seilbahn über die Schlucht (fährt, sobald man in der Gondel steht; wer an der Station wartet, holt die leere Gondel
+  zurück) → Zeltplateau (Kontrollpunkt) → aufgeschnittenes Zirkuszelt (vordere Hälfte gleitet weg, sobald man drin ist),
+  Ränge mit jubelnden Silhouetten, Scheinwerfer. Schlangenkönig: Teller auf Diener-Schlangen (2,8 m) → aufs Haupt
+  springen; ab Phase 2 rissige Teller, Felsbrocken von der Kuppel; 3 Treffer → Stern in der Manege, grüne Röhre fährt
+  aus dem Boden (Ansage „Ab in die Röhre!“) → Hinterhof mit Feuerwerk und Zielmast.
+- **3-Zug „Volldampf durchs Schneetal“** (autoscroller + boss, train, course_train, 400 s, 3 Sterne + Stempel): Bahnhof
+  Tannenruh (Wer nicht aufspringt, wird ans Bahnsteigende geschoben und stürzt in die Schlucht) → Fahrt ≈ 593 m auf dem
+  Schneetal-Express (15 Wagen), daneben Baron Brummbärs Kanonenzug (11 Wagen): Hüpfquallen, Riesenprojektile quer über
+  die Dächer (drüber springen oder mitreiten), Suchkopf-Kanone, Pilzlingsturm (F2), Postwagen mit Dachluke, Riesentrank
+  im versteckten Block (F4) und Steinblöcke, Bonuswagen (8 Kisten: 7 × Münzen, 1 × Extraleben), zwei Feuer-Werfer auf
+  dem Tender → Halt im Bahnhof Schneetal: Röhre auf der Lok → Drehscheibe vor dem Lokschuppen, **Schattenläuferin**
+  (Doppelgänger 2 / 3 / 5, Original mit pinker Schleife, 3 Treffer) → Baron Brummbär braust im Wagen heran, schleudert,
+  schimpft und flieht („Welt 3 geschafft!“) → Warp-Box → Zielbahnsteig (Krümel wartet, wenn befreit).
+  **Sterne:** 0 an der Hinterkante des letzten Wagens (gleich am Start), 1 im Pilzlingsturm (fünf Stufen abtragen),
+  2 Krümel (Geheimröhre auf Flachwagen F3 → Brummbär-Zug, Kiste zerstampfen, Rückröhre aufs Dach von W6).
+  **Stempel:** im Postwagen G1 (Dachluke), bewacht von einem Feuer-Werfer. Fahrplan des Bildfensters mit Halte-Pausen
+  (`solveTrainRide`), Wagen als Fahrzeuge (`carSegment`: Übergangsplatten über den Kupplungslücken, Holztritte vor
+  Personenwagen), Röhren und Krümel fahren mit (`ZugRoehre`, `KruemelZug`).
+  **Landschaft** (`schneetalSzene`): Höhenfeld je 32-m-Abschnitt mit Verwehungen und Tiefschnee (Treibsand-Form: wer vom
+  Zug fällt, versinkt), drei Schluchten mit Gerüstbrücken, Felswänden, gefrorenem Wasserfall und Eisbächen, Rentierherde
+  (galoppiert neben dem Zug, weidet am gefrorenen See), Bahnübergang mit Bahnwärterhaus (Wärter winkt mit der Kelle,
+  Schornstein raucht, Warnlichter blinken), Telegrafenleitung, Schneezäune, Formsignale, Wasserkräne, Dampfschwaden der
+  Loks, Lokschuppen mit Rangierlok, Dorf mit Kapelle.
+- **Level-Haken** (`levelSetupE`): neue Zier wird in vorhandene Abschnitts-Meshes verschmolzen. 3-Zug-Budget level-lokal:
+  Gleise in 32-m-Stücken (`trackChunks`), statische Abschnitte je Material zu einem Mesh verschmolzen und nur nahe
+  (`StaticCullE`: Sichtpyramide, 95 m, Sonnenschatten nur an Bahnhöfen/Bahnübergang), Wagen außerhalb der Sicht
+  ausgeblendet, Räder nur nahe der Kamera, ferne Wagen als Ersatzkörper (eine Instanzgruppe je Bauart), Himmelskranz
+  aus, solange der Horizont nicht im Bild ist (`skyDiet`), kleine Teile der Heldin ohne eigenen Sonnenschatten
+  (`heroShadowDiet`), Gegner-Schatten nur als Blob (`shadowDiet`).
+- **Kennzahlen** (scale 2, inkl. Schattenpass): 3-A 54–120 Zeichenaufrufe / 114–162 k Dreiecke; 3-B 62–97 / 164–273 k;
+  3-Zug 62–104 / 185–272 k (Doppelgänger in ruhigen Haltungen als Instanzgruppen: `instanceModels`; die Kampf-Kamera
+  des Boss-Archetyps rahmt zwischen Figur und x = 0 – für die seitliche Drehscheibe level-lokal verschoben).
+  Wünsche an den Motor: Boss-Ansage „Spring in die Warp-Box!“ je Level einstellbar; Boss-Kamera mit Arenamitte;
+  `track` legt den ganzen Pfad in eine Geometrie (lange Strecken müssen gestückelt werden); Räder des Modells
+  `zug_waggon` (je 920 Dreiecke × 8) und die Heldin (≈ 17 Meshes) sind die größten Posten im Zug-Budget.
+
 **Level-Notizen 3-5 / 3-7** (Level-Agent; Hilfen `src/course/levels/w3/_helpers_d.js` ohne `LEVEL`; Test
 `tests/course_w3d.mjs [3-5|3-7]`, Port 4384 + PORT_BASE, Bilder `tests/out/w3d_*.png`; Teile über `PARTS=route,targets,
 extra,shots`, Heldinnen über `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS_ONLY=1` – je Lauf ≤ 10 min):
