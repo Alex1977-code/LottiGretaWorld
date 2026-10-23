@@ -1984,8 +1984,10 @@ extra,shots`, Heldinnen über `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS_ONLY=1
   zwischen den Becken bis zum Kulissen-Meer des Themas, das erst 6 m außerhalb des Level-Umrisses beginnt), Laubhaufen als
   level-lokale Entität (Stampfen über `breakable`, Angriffe über `onHit`, Hineinrennen über `onPlayer`); Wolken der
   Kulisse unter den Inseln liegen in 3-7 unter dem Boden (in der Klamm sähen sie wie Schneeflecken aus).
-- **Kennzahlen** (scale 2, inkl. Schattenpass, je 16 bzw. 15 Abschnittsbilder und Stern-/Stempel-Bilder): 3-5 KENNZ35;
-  3-7 KENNZ37. Bot-Zeiten bis zum Zielmast: 3-5 ZEIT35, 3-7 ZEIT37.
+- **Kennzahlen** (scale 2, inkl. Schattenpass, je 16 bzw. 15 Abschnittsbilder und Stern-/Stempel-Bilder): 3-5 72–111
+  Zeichenaufrufe, 166–240 k Dreiecke (Flutkammer mit steigender Kamera 88); 3-7 53–103 Zeichenaufrufe, 194–247 k
+  Dreiecke (Fallraum 74, Funkenzone 96). Bot-Zeiten bis zum Zielmast: 3-5 Lotti 49,6 s / Greta 45,9 s, 3-7 Lotti
+  82,2 s / Greta 81,4 s.
 
 ---
 
