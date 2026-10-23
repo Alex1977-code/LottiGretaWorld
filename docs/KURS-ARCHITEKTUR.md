@@ -2270,14 +2270,15 @@ Kennzahlen (SwiftShader, 960 × 540, Szenen-Bilder der Werkstatt; Zeichenaufrufe
 | schnee | 84 | 227 k | | skyway | 95 | 212 k |
 | eis | 89 | 222 k | | ghost | 134 | 292 k |
 | schienen | 87 | 220 k | | plaza | 92 | 196 k |
-| regal | 85 | 178 k | | fortress | 111 | 303 k |
+| regal | 86 | 178 k | | fortress | 111 | 303 k |
 | sofa | 101 | 157 k | | water | 132 | 285 k |
 | gemaelde | 97 | 153 k | | race | 121 | 245 k |
 | drehraum | 70 | 107 k | | autumn | 113 | 355 k |
 | lagune | 93 | 204 k | | train | 88 | 232 k |
 | rennen | 78 | 126 k | | circus | 75 | 159 k |
-| himmel | 88 | 174 k | | diorama | 102 | 299 k |
+| himmel | 89 | 175 k | | diorama | 102 | 299 k |
 | wolkenlift / zug / zirkus | 91 / 90 / 85 | 216 k / 221 k / 152 k | | | | |
 
-Budget eingehalten (< 140 Aufrufe, < 400 k Dreiecke); keine Konsolenfehler/-warnungen. Regression: `course_w3engine`,
-`course_w2_blocks`, `course_blocks`, `course` grün.
+Budget eingehalten (< 140 Aufrufe, < 400 k Dreiecke); keine Konsolenfehler/-warnungen. Regression: `course_w3engine`
+66/66, `course_w2_blocks` 50/50, `course_blocks` 62/62, `course` 46/46 (die Prüfung „Ergebnis-Szene sichtbar“ wartet
+15 s Wanduhr und kann unter Last ausfallen; Wiederholung grün).
