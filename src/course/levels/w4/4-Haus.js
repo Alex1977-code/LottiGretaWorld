@@ -18,7 +18,7 @@
 // Stellwände, Theken, Maschinen, Schaukeln, Pilze, Dachbalken; Riesenprojektil in Raum 3 (raumHaken); Budget.
 
 import {
-  isl, levelSetup, cullStatic, farHide, teileInstanzen, heroShadowDiet, hausRaum, hausFertig, schaukeln, raumHaken, bakeParts, blk, cyl, sph,
+  isl, levelSetup, cullStatic, farHide, teileInstanzen, heroShadowDiet, hausRaum, hausFertig, schaukeln, raumHaken, wimpel, bakeParts, blk, cyl, sph,
 } from './_helpers_d.js';
 
 const Y = 1;          // Fußboden
@@ -193,6 +193,13 @@ function setup(level) {
     for (const sx of [-1, 1]) deco.push(blk(0.3, 13.6, 0.3, sx * 6.7, Y - 7, zu(9, u), 0x6a4422));
   }
   bakeParts(level, deco, { castShadow: false });
+  // Wimpelketten (Sandkasten-Diele, Seiltänzer-Saal, Schaukelzimmer, Pilzlingsparade)
+  wimpel(level, [
+    ...[6, 34].map((u) => ({ z: zu(1, u), y: Y + 4.7, sag: 0.6, colors: [0xff9a3a, 0x5ac85a, 0xffd23d] })),
+    ...[9, 21, 31].map((u) => ({ z: zu(4, u), y: Y + 5.4, sag: 0.8, colors: [0xd8283a, 0xffffff, 0xffc21a] })),
+    ...[3.5, 34].map((u) => ({ z: zu(6, u), y: Y + 7.2, sag: 0.9 })),
+    ...[5, 19, 33].map((u) => ({ z: zu(7, u), y: Y + 4.6, sag: 0.6, colors: [0xe83a3a, 0xffffff, 0x5ac85a] })),
+  ]);
   // Schaukeln (Raum 7): gegenläufig, Bretter tragen die Figur
   schaukeln(level, SWING7.map((u, k) => ({ id: `schaukel${k + 1}`, pos: [0, Y + 5.7, zu(6, u)], rope: 5.2, w: 2.6, d: 1.8, amp: 0.4, period: 2.5, phase: k % 2 ? 0.5 : 0 })));
   // Raum 3: Riesenprojektil 0,6 s nach dem Countdown-Start hinter der Figur (durch die Öffnung der Vorderwand); Raum 10: Bröckelblöcke frisch

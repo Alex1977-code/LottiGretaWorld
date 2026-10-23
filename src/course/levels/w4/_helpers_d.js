@@ -1592,6 +1592,8 @@ export function hausRaum(level, r, shared, clocks) {
   const fr = r.frontHole ? [[x0 - 0.5, r.frontHole[0], wy0, y + H + 6], [r.frontHole[1], x1 + 0.5, wy0, y + H + 6], [r.frontHole[0], r.frontHole[1], wy0, r.frontHole[2]], [r.frontHole[0], r.frontHole[1], r.frontHole[3], y + H + 6]]
     : [[x0 - 0.5, x1 + 0.5, wy0, y + H + 6]];
   for (const [ax, bx, ay, by] of fr) level.world.add({ type: 'box', min: [ax, ay, z0 + 1], max: [bx, by, z0 + 1.5], camIgnore: true, noWallSlide: true, tag: 'hauswand' });
+  // dunkler Vorhang hinter und über der Rückwand (Farbe des Haus-Hintergrunds): verdeckt den nächsten Raum
+  bakeParts(level, [quadG(0, y + H - 0.2, zEnd - 0.55, W + 1.2, 14, '+z', r.night ?? 0x1a1028)], { material: 'glow', castShadow: false });
   bakeParts(level, parts, { castShadow: false });
   bakeParts(level, flat, { castShadow: false });
   if (glow.length) bakeParts(level, glow, { material: 'glow', castShadow: false });
@@ -1724,6 +1726,38 @@ export function schaukeln(level, list) {
     out.push(st);
   }
   return out;
+}
+
+/**
+ * Wimpelketten quer durch einen Raum: list [{ z, y, x0: −7, x1: 7, sag: 0.7, n: 14, colors }]. Dreiecksfähnchen an
+ * einer durchhängenden Schnur (beidseitig sichtbar), alles in einem statischen Mesh je 32-m-Abschnitt.
+ */
+export function wimpel(level, list) {
+  const parts = [];
+  for (const w of list) {
+    const x0 = w.x0 ?? -7, x1 = w.x1 ?? 7, n = w.n ?? 14, sag = w.sag ?? 0.7;
+    const cols = (w.colors ?? [0xff5a5a, 0xffd23d, 0x4aa8ff, 0x5ac85a, 0xc87aff]).map(L);
+    const at = (k) => { const t = k / n; return [x0 + (x1 - x0) * t, w.y - sag * 4 * t * (1 - t)]; };
+    const pos = [], col = [];
+    for (let k = 0; k < n; k++) {
+      const [ax, ay] = at(k + 0.1), [bx, by] = at(k + 0.9), [cx2, cy2] = at(k + 0.5);
+      const tip = [cx2, cy2 - 0.55];
+      const c = cols[k % cols.length];
+      for (const tri of [[[ax, ay], [bx, by], tip], [[bx, by], [ax, ay], tip]]) for (const q of tri) { pos.push(q[0], q[1], w.z); col.push(c[0], c[1], c[2]); }
+    }
+    // Schnur
+    for (let k = 0; k < n * 2; k++) {
+      const [ax, ay] = at(k / 2), [bx, by] = at((k + 1) / 2);
+      for (const q of [[ax, ay + 0.03], [bx, by + 0.03], [bx, by - 0.01], [ax, ay + 0.03], [bx, by - 0.01], [ax, ay - 0.01]]) { pos.push(q[0], q[1], w.z); col.push(0.75, 0.7, 0.6); }
+      for (const q of [[bx, by + 0.03], [ax, ay + 0.03], [bx, by - 0.01], [bx, by - 0.01], [ax, ay + 0.03], [ax, ay - 0.01]]) { pos.push(q[0], q[1], w.z); col.push(0.75, 0.7, 0.6); }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.computeVertexNormals();
+    parts.push(g);
+  }
+  bakeParts(level, parts, { castShadow: false });
 }
 
 /**
