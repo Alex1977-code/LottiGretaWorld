@@ -2106,7 +2106,7 @@ src/course/entities/kinds/  schneesaeule · pilzling_w3 (pilzling_eis, pilzling_
                             huepfqualle · riesenprojektil (+ riesenkanone) · fische_w3 (flossling, stachelfisch, rammfisch) ·
                             schattenlaeuferin (+ schatten_doppelgaenger, schatten_bumerang) · schlangenkoenig
                             (+ dienerschlange, felsbrocken); kanone_turm: shot 'riesenprojektil'
-src/course/levels/w0/0-10.js                Gegnerzoo Schnee (8 Gehege, Spukraum, Wasserbecken mit Steg und Stachelwand, Z(r, dz))
+src/course/levels/w0/0-10.js                Gegnerzoo Schnee (8 Gehege, Spukraum, Wasserbecken 'becken' mit Steg und Stachelwand, Z(r, dz))
 src/course/levels/w0/0-11.js                Schattenläuferin-Arena (Archetyp boss, Käfig r 9, Warp-Box → Ziel)
 src/course/levels/w0/0-12.js                Schlangenkönig im Zirkus (Archetyp boss, Käfig r 11,5 ohne Decke, Manege, Stern + Warp-Box)
 tests/course_w3_enemies.mjs                 Port 4231: Verhalten/Konter/Schaden je Gegner, Klone, beide Bosse, Bilder w3en_*.png
@@ -2114,16 +2114,21 @@ tests/course_w3_enemies.mjs                 Port 4231: Verhalten/Konter/Schaden 
 
 ### Präzisierung (Gegner Welt 3): gemeinsame Regeln
 
-- **Angriffsarten:** Feuer, Wurf (`throw`, Schneeball), Biss, Stampfwelle (`pound`), Rutschen (`slide`), Kanonenkugel,
-  Krallen, Panzer, Explosion, Riesentrank, Funkelstern wie in Welt 2. **Unbekannte Arten** (z. B. der Schwanzhieb des
-  Gleitblatts) wirken wie ein normaler Treffer. Stampfen auf Reit-Oberseiten ruft `onPound(figur)` (Player.land).
+- **Angriffsarten:** Feuer, Wurf (`throw`, auch der rollende Schneeball), Biss, Stampfwelle (`pound`, auch die landende
+  Statue), Rutschen (`slide`), Kanonenkugel, Krallen, Panzer, Explosion, Riesentrank, Funkelstern wie in Welt 2; der
+  **Schwanzhieb** des Gleitblatts kommt als `claw` (`source.attackInfo.style === 'tail'`), der Zaun-Faustschlag als `punch`.
+  **Unbekannte Arten** wirken wie ein normaler Treffer. Stampfen auf Reit-Oberseiten ruft `onPound(figur)` (Player.land).
 - **Licht** (`onLight(dt, figur)`, Licht-Helm) wirkt nur auf Geister (Spuk, Kreisgeist); andere Gegner ignorieren es.
-- **Blick:** Spuke fragen `level.isFacing?.(figur, punkt, look)` (Motor) bzw. rechnen mit `figur.yaw` (±look Grad).
-- **Wasser:** Reifen-Pilzling, Stachelfisch (Oberfläche) folgen dem aktuellen Wasserspiegel (Form mit `water`, auch wenn
-  der Motor sie hebt/senkt) und bleiben im Wasser vor Hindernissen in der Wasserlinie (Steg, Mauer); Flossling/Rammfisch
-  schwimmen nur, wo Wasser ist. Schwimmende Figuren werden normal getroffen.
-- **Schlittschuh:** Der Eisläufer erzeugt beim Besiegen `level.spawn('schlittschuh', { pos, drop: true })`, sobald es die
-  Entität gibt (Motor); sonst 3 Münzen als Platzhalter (`skateDrop: 'fehlt'`, einmal `console.info`).
+- **Blick:** Spuke fragen `level.isFacing(figur, punkt, look)` (Motor; ohne ihn Rückfall über `figur.yaw`). Eine **Statue**
+  (Gleitblatt) ist für alle Gegner unsichtbar (Skript-Modus): Spuke folgen ihr nicht.
+- **Eis:** Gegner mit `moveWithGravity` rutschen auf Eis automatisch (Motor, `entities/ice.js`); der Eisläufer-Pilzling hat
+  eigene Gleitphysik (`noIce`).
+- **Wasser:** Reifen-Pilzling, Stachelfisch (Oberfläche) folgen dem aktuellen Wasserspiegel (jede Abfrage liest die Form,
+  auch während `level.setWaterLevel(id, y, speed)`) und bleiben im Wasser vor Hindernissen in der Wasserlinie (Steg, Mauer);
+  Flossling/Rammfisch schwimmen nur, wo Wasser ist (Flossling auf dem Trockenen: zappelt). Schwimmende und getauchte Figuren
+  werden normal getroffen.
+- **Schlittschuh:** Der Eisläufer erzeugt beim Besiegen (Draufspringen/Stampfen) die Motor-Entität `schlittschuh` an seiner
+  Stelle (`skateDrop: 'schlittschuh'`; verloren → nach 4 s wieder dort); ohne Motor-Entität 3 Münzen (`'fehlt'`).
 - **Bosse** (Schattenläuferin, Schlangenkönig) sind kein `enemy` (Stern/Riese wirken nicht), Schnittstelle wie Wirbelbrocken
   (`begin, reset, state, stateT, hp, maxHp, phase, visible, home, half, carHits 0, info()`, `level.onBossHit`,
   `level.onBossDefeated`) und setzen eigene Phasen-Ansagen (`arch.seenPhase`).
@@ -2231,11 +2236,13 @@ um: `strike` (Stoß nach der Figur, verletzt) → `gap` → nächste Runde. Kopf
 `tests/course_w3_enemies.mjs` (Port 4231, `?course=0-10|0-11|0-12&scale=2&adapt=0`, deterministisch über `step(n)`/`setInput`;
 Hilfen `window.__t`: `Z(r, dz)`, `place`, `stomp`, `side`, `touch`, `face`, `safe`, `count`, Bosse zusätzlich `enter`, `until`,
 `untilSafe`, `plateJump`, `plate`): je Gegner Kernverhalten, Besiegen-Weg und Schadensweg – Schneesäule verliert Segmente (Kopf
-zuletzt, Feuer schmilzt), Eisläufer auf Eis (Bögen, Slalom, Verfolger, Schlittschuh, Mitfahren + Stampfen), Spuk folgt nur bei
-abgewandtem Blick (shy beim Hinsehen), Licht-Helm löst Spuk (0,8 s) und Großspuk (2,2 s) auf, Kreisgeist-Ring (Drehung, Licht
+zuletzt, Feuer schmilzt, echter Schwanzhieb des Gleitblatts), Eisläufer auf Eis (Bögen, Slalom, Verfolger, Schlittschuh des
+Motors zum Anziehen, Mitfahren + Stampfen), Spuk folgt nur bei abgewandtem Blick (shy beim Hinsehen, Statue unsichtbar),
+Licht-Helm löst Spuk (0,8 s) und Großspuk (2,2 s) auf, Kreisgeist-Ring (Drehung, Licht
 löst einzelne Glieder, Maske), Funkenläufer am Blockrand, Funkenkäfer-Sturzflug, Hüpfquallen im Takt (Versatz), Riesenkanone im
 Takt, Riesenprojektil (Mitfahren, Abspringen, Stampfen), Reifen-Pilzling (paddelt, bleibt vor dem Steg), Flossling-Schwarm und
-Sprung-Flossling, Stachelfisch an der Oberfläche, Stachelwand im Takt (2,4 s, Versatz), Rammfisch; Klone (Reifen-Pilzling,
+Sprung-Flossling, Stachelfisch an der Oberfläche, Stachelwand im Takt (2,4 s, Versatz), Rammfisch, steigender Wasserspiegel
+(`setWaterLevel`: Reifen-Pilzling und Stachelfisch treiben oben mit); Klone (Reifen-Pilzling,
 Funkenkäfer, Hüpfqualle, beide Bosse zielen auf die nächste Figur); Schattenläuferin (Bumerang hin und zurück, Doppelgänger
 2/3/5, nur das Original trifft, Salven, Ansagen, Sieg → Warp → Ziel, Tod setzt zurück); Schlangenkönig (Auftritt, Steine mit
 Landeanzeige, Diener mit Tellern auf 2,8 m, vom Boden unerreichbar, Teller-Weg = Treffer, rissiger Teller bricht, Krallen-Anzug

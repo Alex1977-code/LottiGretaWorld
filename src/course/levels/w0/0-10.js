@@ -7,7 +7,8 @@
 //                     · rechts Kreisgeister (Ring mit 8, einzelner auf großem Kreis) und ein Licht-Helm
 //   3 (−48 … −62)     links Funkenläufer (um einen Block, Schiene, Kreis) · rechts Funkenkäfer (schwebend, Bahn)
 //   4 (−68 … −82)     links Hüpfquallen (auf der Stelle, Verfolger, Bahn) · rechts Riesenkanone (feuert nach −X)
-//   5–6 (−86 … −124)  **Wasserbecken** über die ganze Breite (Wasser bis 0,8, Boden −1,6) mit Holzsteg in der Mitte:
+//   5–6 (−86 … −124)  **Wasserbecken** 'becken' über die ganze Breite (Wasser bis 0,8, Boden −1,6; level.setWaterLevel)
+//                     mit Holzsteg in der Mitte:
 //                     links Reifen-Pilzlinge und Rammfisch-Bahn, rechts Flossling-Schwarm, springende Flosslinge über
 //                     dem Steg, Stachelfisch an der Oberfläche und eine **Stachelwand** (x 18) mit drei Lochschützen
 //   Ziel bei z −150. Thema 'snow' (bis es das Schneethema gibt: Rückfall), Musik course_snow.
@@ -62,7 +63,7 @@ export const LEVEL = {
     { type: 'island', pos: [0, POOL.bottom - 1, PZ], size: [42, 1, PL], top: 'sand', under: 0 },
     { type: 'wall', pos: [-20.75, POOL.bottom, PZ], size: [0.5, Y - POOL.bottom + 0.4, PL], style: 'stone' },
     { type: 'wall', pos: [20.75, POOL.bottom, PZ], size: [0.5, Y - POOL.bottom + 0.4, PL], style: 'stone' },
-    { type: 'water', pos: [0, POOL.bottom, PZ], size: [41, POOL.top - POOL.bottom, PL] },
+    { type: 'water', id: 'becken', pos: [0, POOL.bottom, PZ], size: [41, POOL.top - POOL.bottom, PL] },
     { type: 'platform', pos: [0, 0.55, PZ], size: [2.4, 0.45, PL + 0.4], style: 'wood' },
     { type: 'killplane', y: -16 },
     ...L(1), ...R(1), ...spukraum(), ...R(2), ...L(3), ...R(3), ...L(4), ...R(4),

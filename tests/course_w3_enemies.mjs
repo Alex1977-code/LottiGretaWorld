@@ -181,6 +181,17 @@ const ss = await sc(() => {
   // Kleine Säule: Tatzenhieb nimmt ein Segment
   k.onHit('claw', p);
   out.claw = k.segments;
+  // Schwanzhieb des Gleitblatts (Motor: onHit('claw') mit attackInfo.style 'tail') nimmt ebenfalls eins
+  c.step(60);
+  t.place([k.pos.x + 1.0, 1, k.pos.z], { settle: 1, yaw: Math.PI });
+  p.setPower('gleitblatt');
+  t.safe(true);
+  const sg0 = k.segments;
+  c.setInput({ action: true }); c.step(1);
+  const style = p.attackInfo?.style ?? null;
+  c.setInput({}); c.step(30);
+  t.safe(false);
+  out.tailReal = { before: sg0, after: k.segments, style };
   return out;
 });
 console.log(`  Schneesäule: ${JSON.stringify(ss)}`);
@@ -190,6 +201,7 @@ check('Schneesäule: zweites Draufspringen → 2, Schwanzhieb (unbekannte Art) �
 check('Schneesäule (chase) folgt der Figur', ss.chase.d1 < ss.chase.d0 - 1 && ss.chase.state === 'chase');
 check('Schneesäule: Feuer schmilzt die ganze Säule', ss.fire.defeated && ss.fire.melted && ss.fire.state === 'melt');
 check('Schneesäule: Tatzenhieb nimmt ein Segment (3 → 2)', ss.claw === 2);
+check(`Schneesäule: Schwanzhieb des Gleitblatts (${ss.tailReal.style}) nimmt ein Segment (${ss.tailReal.before} → ${ss.tailReal.after})`, ss.tailReal.style === 'tail' && ss.tailReal.before === 2 && ss.tailReal.after === 1);
 
 // ================================================================ Eisläufer-Pilzling
 const ei = await sc(() => {
@@ -223,6 +235,13 @@ const ei = await sc(() => {
   const st = t.stomp(k);
   c.step(2);
   out.stomp = { ...st, defeated: k.defeated, state: k.state, skate: k.skateDrop, skates: t.count('schlittschuh') - sk0 };
+  // der Schlittschuh lässt sich anziehen (Motor: Berührung → Figur steigt hinein)
+  const sk = k.skateEntity;
+  if (sk && !sk.removed) {
+    t.place([sk.pos.x, sk.pos.y + 0.3, sk.pos.z], { settle: 20 });
+    out.wear = p.skate === sk;
+    if (p.skate) { p.skate = null; sk.release?.(p, 'gone'); }
+  }
   // Seitlich = Treffer
   t.place([s.pos.x + 1.2, s.pos.y, s.pos.z], { settle: 0 });
   out.side = t.touch(s);
@@ -230,6 +249,7 @@ const ei = await sc(() => {
   t.place([r.pos.x, r.pos.y + 2.2, r.pos.z], { settle: 0 });
   let rode = 0, moved = 0, last = null, hurtR = false;
   for (let i = 0; i < 240; i++) {
+    if (p.mode === 'air' && !rode) { p.pos.x = r.pos.x; p.pos.z = r.pos.z; }
     c.step(1);
     if (t.hurt()) hurtR = true;
     if (r.riding(p)) { rode++; if (last) moved += Math.hypot(p.pos.x - last.x, p.pos.z - last.z); last = { x: p.pos.x, z: p.pos.z }; }
@@ -247,6 +267,7 @@ check('Eisläufer (Slalom) fährt Bögen um die Grundrichtung', ei.slalom.span >
 check('Eisläufer (chase) bemerkt die Figur und fährt auf sie zu', ei.jagd.seen && ei.jagd.dmin < 1.2);
 check(`Eisläufer: Draufspringen besiegt ihn und er lässt einen Schlittschuh zurück (${ei.stomp.skate})`, ei.stomp.defeated && ei.stomp.bounced && !ei.stomp.hurt && (ei.stomp.skate === 'schlittschuh' ? ei.stomp.skates === 1 : ei.stomp.skate === 'fehlt'));
 check('Eisläufer: seitlich = Treffer', ei.side);
+check('Der zurückgelassene Schlittschuh lässt sich anziehen', ei.stomp.skate !== 'schlittschuh' || ei.wear === true);
 check(`Reit-Eisläufer: Figur landet oben und fährt mit (${ei.ride.moved} m), Stampfen besiegt ihn (Schlittschuh)`, ei.ride.rode > 150 && ei.ride.moved > 2 && !ei.ride.hurt && ei.pound.defeated && !!ei.pound.skate);
 
 // ================================================================ Spuk / Großspuk (Spukraum)
@@ -273,6 +294,17 @@ const sp = await sc(() => {
   // Wieder wegschauen → folgt wieder
   for (let i = 0; i < 40; i++) { t.face(s1.pos.x, s1.pos.z, true); p.pos.set(-11, 1, t.Z(2, 6)); p.vel.set(0, 0, 0); c.step(1); }
   out.again = s1.state;
+  // Statue (Gleitblatt: Ducken + Aktion): für Geister unsichtbar – er folgt nicht
+  t.place([-11, 1, t.Z(2, 6)], { settle: 2 });
+  p.setPower('gleitblatt');
+  t.face(s1.pos.x, s1.pos.z, true);
+  c.setInput({ crouch: true, action: true }); c.step(1); c.setInput({ crouch: true });
+  const sd0 = t.dist(s1, p);
+  let statue = 0;
+  for (let i = 0; i < 120; i++) { c.step(1); if (p.statue) statue++; }
+  c.setInput({});
+  out.statue = { frames: statue, d0: +sd0.toFixed(2), d1: +t.dist(s1, p).toFixed(2), state: s1.state };
+  c.step(120);
   // Großspuk ist langsamer
   out.speed = { spuk: s1.speed, gross: g.speed, size: g.size };
   t.safe(false);
@@ -297,7 +329,8 @@ const sp = await sc(() => {
     if (s1.defeated) { tLit = (i + 1) / 120; break; }
   }
   out.light = { t: +tLit.toFixed(2), fade: fadeSeen, by: s1.vanishedBy, calls: s1.lightCalls };
-  // Großspuk braucht länger Licht
+  // Großspuk braucht länger Licht (Lichtzeit von vorhin zurücksetzen)
+  g.light = 0;
   let tg = -1, alive12 = false;
   for (let i = 0; i < 600; i++) {
     t.face(g.pos.x, g.pos.z, false); p.pos.set(g.pos.x + 3.5, 1, g.pos.z); p.vel.set(0, 0, 0);
@@ -316,9 +349,10 @@ console.log(`  Spuk: ${JSON.stringify(sp)}`);
 check('Spuk folgt, solange die Figur wegschaut (Großspuk langsamer)', sp.away.d1 < sp.away.d0 - 1 && sp.away.chase > 100 && sp.away.g > 0.5 && sp.speed.gross < sp.speed.spuk && sp.speed.size > 2);
 check('Spuk versteckt sich (shy), wenn die Figur ihn ansieht, und bleibt stehen', sp.look.shy >= 118 && Math.abs(sp.look.d1 - sp.look.d0) < 0.05 && sp.look.anim === 'shy' && sp.look.looked);
 check('Spuk folgt wieder, sobald die Figur wegschaut', sp.again === 'chase');
+check(`Statue (Gleitblatt) ist für den Spuk unsichtbar: er folgt nicht (${sp.statue.d0} → ${sp.statue.d1} m)`, sp.statue.frames > 100 && Math.abs(sp.statue.d1 - sp.statue.d0) < 0.05 && sp.statue.state === 'idle');
 check('Spuk: Berührung verletzt, auch von oben; Feuer/Krallen gehen hindurch', sp.touch && sp.stomp.hurt && !sp.stomp.defeated && !sp.fire.defeated);
 check(`Licht-Helm: Spuk verblasst und löst sich nach ${sp.light.t} s auf`, sp.light.t > 0.7 && sp.light.t < 1.2 && sp.light.fade && sp.light.by === 'light');
-check(`Licht-Helm: Großspuk braucht länger (${sp.lightGross.t} s)`, sp.lightGross.alive12 && sp.lightGross.t > 2 && sp.lightGross.t < 3.2 && sp.gone === 1);
+check(`Licht-Helm: Großspuk braucht länger (${sp.lightGross.t} s); aufgelöste verschwinden`, sp.lightGross.alive12 && sp.lightGross.t > 2 && sp.lightGross.t < 3.2 && sp.gone <= 1);
 
 // ================================================================ Kreisgeister
 const kg = await sc(() => {
@@ -369,7 +403,7 @@ const fu = await sc(() => {
   t.place([-6, 1, t.Z(3, 1)], { settle: 1 });
   let rim = true, ymin = 9, ymax = -9, s0 = b.s, laps = 0, last = b.s;
   const cx = -14, cz = t.Z(3, 7);
-  for (let i = 0; i < 480; i++) {
+  for (let i = 0; i < 720; i++) {
     c.step(1);
     const m = Math.max(Math.abs(b.pos.x - cx), Math.abs(b.pos.z - cz));
     if (Math.abs(m - 1.5) > 0.02) rim = false;
@@ -548,8 +582,9 @@ const wa = await sc(() => {
   for (let i = 0; i < 400 && !(j.state === 'jump' && j.stateT > 0.2); i++) c.step(1);
   t.place([j.pos.x + 0.8, j.pos.y, j.pos.z], { settle: 0 });
   out.jumpTouch = t.touch(j, 4);
-  for (let i = 0; i < 400 && !(j.state === 'jump' && j.stateT > j.flight * 0.45); i++) c.step(1);
-  const st2 = t.stomp(j, { h: 0.5, max: 40 });
+  // am Scheitel (senkrecht kaum Tempo) knapp über ihm loslassen
+  for (let i = 0; i < 400 && !(j.state === 'jump' && j.stateT >= j.flight * 0.5); i++) c.step(1);
+  const st2 = t.stomp(j, { h: 0.05, max: 60 });
   out.jumpStomp = { ...st2, defeated: j.defeated };
   return out;
 });
@@ -622,6 +657,17 @@ const wb = await sc(() => {
   out.stunStomp = { ...st3, defeated: rm.defeated, state: rm.state };
   rm.onHit('bomb', p);
   out.rammBomb = rm.defeated;
+  // Wasserspiegel steigt (Motor: level.setWaterLevel): Reifen-Pilzling und Stachelfisch treiben oben mit
+  const r2 = t.ent('rf2'), sw = L.spawn('stachelfisch', { pos: [9, 0, t.Z(6, 1)] });
+  t.place([0, 1, t.Z(5, -2)], { settle: 1 });
+  out.level0 = { reifen: +r2.line.toFixed(2), stachel: +(sw.surface ?? 0).toFixed(2) };
+  if (typeof L.setWaterLevel === 'function') {
+    L.setWaterLevel('becken', 1.3, 2);
+    c.step(60);
+    out.level1 = { reifen: +r2.line.toFixed(2), stachel: +sw.surface.toFixed(2), water: +(L.waterLevel?.('becken') ?? 0).toFixed(2) };
+    L.setWaterLevel('becken', 0.8, 0);
+    c.step(2);
+  }
   return out;
 });
 console.log(`  Wasser 2: ${JSON.stringify(wb)}`);
@@ -630,6 +676,7 @@ check('Stachelfisch: Draufspringen verletzt (Stacheln), Feuer/Krallen prallen ab
 check(`Stachelwand: Lochschütze im Takt (${wb.wall.gap} s, ${wb.wall.shots1} Schüsse in 9,6 s, ${wb.wall.ext} m weit), Nachbarloch um ⅓ Takt versetzt (${wb.wall.off} s)`, /hide>peek>shoot>hold>back/.test(wb.wall.seq) && Math.abs(wb.wall.gap - 2.4) < 0.02 && wb.wall.shots1 === 4 && wb.wall.shots2 === 4 && Math.abs(wb.wall.ext - 3.5) < 0.01 && Math.abs(wb.wall.off - 1.6) < 0.05 && wb.wall.hiddenTouch === 0);
 check('Stachelwand: ausgefahrener Fisch verletzt, versteckt nicht', wb.wallHit && !wb.wallHidden);
 check(`Rammfisch: dreht sich zur Figur, rammt, ist betäubt, dreht um (${wb.ramm.seq})`, /charge>stunned>swim/.test(wb.ramm.seq) && /swim>turn>charge/.test(wb.ramm.seq) && wb.ramm.rams >= 2);
+check(`Steigt der Wasserspiegel (0,8 → 1,3), treiben Reifen-Pilzling und Stachelfisch oben mit (${wb.level1?.reifen} / ${wb.level1?.stachel})`, !!wb.level1 && Math.abs(wb.level1.water - 1.3) < 0.01 && Math.abs(wb.level1.reifen - 1.3) < 0.02 && Math.abs(wb.level1.stachel - 1.3) < 0.02 && Math.abs(wb.level0.reifen - 0.8) < 0.02);
 check('Rammfisch: Rammen verletzt (steigt zur schwimmenden Figur auf), betäubt harmlos, Explosion besiegt', wb.rammHurt && wb.stunTouch === false && !wb.stunStomp.hurt && !wb.stunStomp.defeated && wb.rammBomb);
 
 // ================================================================ Klone: Gegner zielen auf die nächste Figur

@@ -3,8 +3,9 @@
 // pilzling_eis – Eisläufer-Pilzling: gleitet schnell in weiten Bögen (Lenkung mit begrenzter Drehrate, auf Eis kaum
 //   Reibung): auf einer Bahn (path, Runde), im Kreis/Oval um center (radius, rz) oder im Slalom geradeaus (Bögen um
 //   dir). behavior 'chase': sieht er eine Figur (sight), fährt er in Bögen auf sie zu (überholt sich, wendet weit).
-//   Abseits vom Eis läuft er langsam. Draufspringen → besiegt (platt) und er **lässt einen Schlittschuh zurück**
-//   (Entität 'schlittschuh' des Motors, Daten { pos, drop: true }; fehlt sie, Rückfall: 3 Münzen, skateDrop 'fehlt').
+//   Abseits vom Eis läuft er langsam (eigene Gleitphysik, noIce). Draufspringen → besiegt (platt) und er **lässt einen
+//   Schlittschuh zurück** (Entität 'schlittschuh' des Motors an seiner Stelle; fehlt sie, Rückfall: 3 Münzen, skateDrop
+//   'fehlt').
 //   Mit ride: true trägt er eine Einweg-Oberseite: man landet auf ihm und **fährt mit** (Bauplan 3-1); die
 //   Stampfattacke auf ihm besiegt ihn (Schlittschuh). Seitlich = Treffer. Feuer, Krallen, Panzer, Wurf, Biss,
 //   Rutschen, Schwanzhieb, Kanonenkugel, Explosion, Riesentrank, Funkelstern besiegen ihn (fliegt weg, Schlittschuh
@@ -67,6 +68,7 @@ class PilzlingEis extends EnemyW2 {
       this.syncShape();
     }
     this._ownIgnore = (s) => s.owner === this;
+    this.noIce = true;          // eigene Gleitphysik (entities/ice.js nicht zusätzlich)
     this.yaw = this.heading;
     if (level.view) this.setModel(getModel('pilzling_eis'));
     this.initShadows(2);
@@ -220,7 +222,8 @@ class PilzlingEis extends EnemyW2 {
   dropSkate(x, y, z) {
     if (this.skateDrop) return;
     if (this.level.hasKind('schlittschuh')) {
-      const e = this.level.spawn('schlittschuh', { pos: [x, y + 0.05, z], drop: true });
+      // Entität des Motors (liegt, funkelt; verloren → nach 4 s wieder an dieser Stelle)
+      const e = this.level.spawn('schlittschuh', { pos: [x, y + 0.05, z], yaw: this.yaw });
       this.skateDrop = e ? 'schlittschuh' : 'fehlt';
       this.skateEntity = e;
     } else {
