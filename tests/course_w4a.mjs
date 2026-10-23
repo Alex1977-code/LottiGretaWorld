@@ -122,6 +122,7 @@ const ROUTES = {
       { name: 'Höhle', to: [-3, -62] },
       { to: [-3, -98] },
       { name: 'Checkpoint', to: [0, -104.4] },
+      { name: 'warten, bis die große Ranke zurück ist', until: 'grossWeg', max: 1200 },
       { name: 'Brücke', to: [0, -125] },
       { name: 'Insel 1', to: [0, -134], jump: 24, jumpAt: 3.6 },
       { to: [-1.4, -135.4], within: 0.4 },
@@ -178,8 +179,10 @@ const ROUTES = {
           { expect: 'keller' }, { chaseKind: 'powerup', max: 1500 }] },
       { name: 'Röhre versperrt: auf dem Kopf des Rankenschnappers nur Abprall', from: [6, Y, -48], heroes: ['lotti'], expectAlive: true,
         legs: [{ to: [8.9, -48], jump: 20, jumpAt: 2.4, within: 0.3, run: false }, { to: [10, -48], jump: 30, within: 0.25, run: false, max: 240, land: false }, { crouch: 4 }, { wait: 30 }, { expect: 'nichtImKeller' }, { expect: 'abgeprallt' }] },
-      { name: 'Großer Rankenschnapper: drei Stampfattacken auf den Kopf', from: [0, Y, -113], heroes: ['lotti'],
-        legs: [{ until: 'grossDa', max: 1200 }, { poundAt: 'rs_gross' }, { wait: 70 }, { until: 'grossDa', max: 1200 }, { poundAt: 'rs_gross' }, { wait: 70 }, { until: 'grossDa', max: 1200 }, { poundAt: 'rs_gross' }, { wait: 70 }, { expect: 'grossBesiegt' }] },
+      { name: 'Großer Rankenschnapper: drei Stampfattacken auf den Kopf', from: [0, Y, -113], heroes: ['lotti'], expectAlive: true,
+        legs: [{ until: 'grossDa', max: 1200 }, { poundAt: 'rs_gross' }, { wait: 70 }, { to: [0, -113.4], within: 0.2, run: false },
+          { until: 'grossWeg', max: 1200 }, { until: 'grossDa', max: 1200 }, { poundAt: 'rs_gross' }, { wait: 70 }, { to: [0, -113.4], within: 0.2, run: false },
+          { until: 'grossWeg', max: 1200 }, { until: 'grossDa', max: 1200 }, { poundAt: 'rs_gross' }, { wait: 70 }, { expect: 'grossBesiegt' }, { to: [0, -112], run: false }] },
     ],
     shots: [
       ['start', [0, Y, 6]],
@@ -251,6 +254,7 @@ function install() {
     nichtAufSims: () => P().pos.y < 4,
     grossDa: () => { const e = L.named.get('rs_gross'); return !!e && !e.defeated && e.grow > 0.98 && e.state !== 'hit'; },
     grossBesiegt: () => !!L.named.get('rs_gross')?.defeated,
+    grossWeg: () => { const e = L.named.get('rs_gross'); return !e || e.defeated || e.grow < 0.2; },
     abgeprallt: () => (L.named.get('rs_roehre')?.bounces ?? 0) > 0,
   };
   const W = {
@@ -303,10 +307,17 @@ function install() {
       const mech = { carried: 0, wallRide: 0, maxRideY: -99, spikes: 0, deckSteps: 0, hurts: 0, vines: [], bounces: 0, poison: 0 };
       const vineSet = new Set();
       const track = [];
+      const hurtAt = new Map();
+      let lastHurts = p.hurtTries ?? 0;
       let curAnt = null, curGiant = null;
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
         c.setInput(inp); c.step(1); steps++;
+        if ((p.hurtTries ?? 0) > lastHurts) {
+          lastHurts = p.hurtTries;
+          const k = `${p.lastHurt}@${Math.round(p.pos.x)},${Math.round(p.pos.z)}`;
+          hurtAt.set(k, (hurtAt.get(k) ?? 0) + 1);
+        }
         if (p.mode === 'ground' && !p.dead) {
           const t = track[track.length - 1];
           if (!t || Math.hypot(p.pos.x - t[0], p.pos.z - t[2]) > 7) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
@@ -619,6 +630,7 @@ function install() {
       }
       c.setInput({});
       mech.hurts = p.hurtTries ?? 0;
+      mech.hurtAt = [...hurtAt.entries()].sort((x, y) => y[1] - x[1]).slice(0, 8).map(([k, n]) => `${k}×${n}`);
       mech.vines = [...vineSet];
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },

@@ -346,7 +346,7 @@ export const LEVEL = {
     creeper('rs_wache1', BOX[0] - 2.4, Y + 12.2, BOX[2], [0, 1], 3.05, { hang: true, height: 2.6, mode: 'sense', sight: 3.6 }),
     creeper('rs_wache2', BOX[0] + 2.4, Y + 12.2, BOX[2], [0, 1], 3.05, { hang: true, height: 2.6, mode: 'sense', sight: 3.6 }),
     // ---------------- 3 Rückkehr (2)
-    creeper('rs_gross', -8.2, PY, -116.6, [1, 0], 12, { size: 1.7, hp: 3, grow: { out: 1.8, hold: 2.4, back: 1.6, wait: 2.6 } }),
+    creeper('rs_gross', -8.2, PY, -116.6, [1, 0], 8.4, { size: 1.7, hp: 3, grow: { out: 1.8, hold: 2.4, back: 1.6, wait: 2.6 } }),
     creeper('rs_r2', 8, PY, -110, [-1, 0], 4.6, { mode: 'sense', sight: 5 }),
     // ---------------- 4 Wasserzone (5)
     creeper('rs_w1', -9.8, W, -137.8, [1, 0], 8.6, { height: 1.7, phase: 0.2 }),
@@ -356,7 +356,7 @@ export const LEVEL = {
     creeper('rs_abprall', BOUNCE.x, W, BOUNCE.z, [0, -1], 3.6, { height: 2.4, mode: 'static', walk: false }),
     // ---------------- 5 Brummer (3)
     { kind: 'brummer', id: 'br1', center: [3.4, U + 2.6, -205], radius: 2.6 },
-    { kind: 'brummer', id: 'br2', center: [7.4, U + 2.4, -212], radius: 2 },
+    { kind: 'brummer', id: 'br2', center: [0.4, U + 3, -217.6], radius: 1.2 },
     { kind: 'brummer', id: 'br3', path: [[-6, U + 2.6, -219], [-6, U + 2.6, -228], [-1, U + 2.6, -224]] },
   ],
   items: [
