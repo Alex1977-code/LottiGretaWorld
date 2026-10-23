@@ -7,12 +7,15 @@
 // Aufruf (nach npm run build):  PORT_BASE=3200 node tests/course_perf.mjs [w1|w2|w3|all|<Id> …]
 //   PERF_LABEL=<Name>     Ergebnis nach tests/out/perf_<Name>.json (Standard: aktuell)
 //   PERF_BASE=<Name>      Vergleich mit tests/out/perf_<Name>.json (vorher/nachher je Level)
+//   SCALE=1               Darstellungs-Maßstab (Standard 2 wie die Level-Tests)
+//   POINTS=start,weg50    nur diese Punkte (stern* = alle Sterne); Bilder kosten im Software-Renderer ≈ 10 s je Stück
 //   DETAIL=1              je Punkt die größten Posten (Objektname → Aufrufe/Dreiecke, Haupt- und Schattenpass „S:“);
 //                         DETAIL=json: nur in die JSON-Datei
-//   SHOTS=1               Bildschirmfoto je Punkt: tests/out/perf_<Name>_<Id>_<Punkt>.png
-//   COMPARE=1             Bildvergleich je Punkt: Bild mit und ohne Sparmaßnahmen (view.optimize, ?optimize=0) bei
-//                         angehaltener Darstellungszeit; Anteil abweichender Pixel (Kanal > 40) und Aufrufe/Dreiecke ohne;
-//                         stark abweichende Paare als tests/out/perf_cmp_<Id>_<Punkt>_{an,aus}.png
+//   SHOTS=1               Bild der 3D-Leinwand je Punkt: tests/out/perf_<Name>_<Id>_<Punkt>.png (Darstellungszeit und
+//                         Zufall fest – Bilder verschiedener Builds lassen sich pixelgenau vergleichen)
+//   COMPARE=1             Bildvergleich je Punkt: Bild mit und ohne Sparmaßnahmen (view.optimize, ?optimize=0);
+//                         Anteil abweichender Pixel (Kanal > 40) und Aufrufe/Dreiecke ohne; abweichende Paare als
+//                         tests/out/perf_cmp_<Id>_<Punkt>_{an,aus}.png
 // Ohne Prüfungen (reine Messung); Budget-Hinweise (≥ 120 Aufrufe, ≥ 300 k Dreiecke) werden markiert.
 import { readdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { startServer, launchBrowser, OUT } from './helpers.mjs';
@@ -118,21 +121,31 @@ function install() {
     acc.clear();
     requestAnimationFrame(wait);
   });
-  // Bildvergleich zweier PNG (Base64): Anteil der Pixel mit einer Kanal-Abweichung > lim
-  P.diff = async (a, b, lim = 40) => {
-    const img = async (d) => { const r = await fetch(`data:image/png;base64,${d}`); return createImageBitmap(await r.blob()); };
-    const [A, B] = await Promise.all([img(a), img(b)]);
-    const cv = document.createElement('canvas'); cv.width = A.width; cv.height = A.height;
+  // Bild der 3D-Leinwand (ohne HUD) direkt nach einem eigenen Zeichnen – schneller als page.screenshot
+  const grab = () => {
+    c.renderFrame();
+    const cv = document.createElement('canvas'); cv.width = v.canvas.width; cv.height = v.canvas.height;
     const g = cv.getContext('2d', { willReadFrequently: true });
-    g.drawImage(A, 0, 0); const da = g.getImageData(0, 0, A.width, A.height).data;
-    g.clearRect(0, 0, A.width, A.height); g.drawImage(B, 0, 0); const db = g.getImageData(0, 0, A.width, A.height).data;
+    g.drawImage(v.canvas, 0, 0);
+    return { cv, data: g.getImageData(0, 0, cv.width, cv.height).data, stats: { calls: r.info.render.calls, triangles: r.info.render.triangles } };
+  };
+  P.shot = () => grab().cv.toDataURL('image/png').split(',')[1];
+  // Bild mit und ohne Sparmaßnahmen: Anteil der Pixel mit einer Kanal-Abweichung > lim
+  P.compare = (lim = 40) => {
+    const A = grab();
+    v.optimize = false;
+    const B = grab();
+    v.optimize = true;
+    const da = A.data, db = B.data;
     let n = 0, max = 0;
     for (let i = 0; i < da.length; i += 4) {
       const d = Math.max(Math.abs(da[i] - db[i]), Math.abs(da[i + 1] - db[i + 1]), Math.abs(da[i + 2] - db[i + 2]));
       if (d > max) max = d;
       if (d > lim) n++;
     }
-    return { frac: n / (da.length / 4), max };
+    const frac = n / (da.length / 4);
+    const png = frac > 0.00002 ? [A.cv.toDataURL('image/png').split(',')[1], B.cv.toDataURL('image/png').split(',')[1]] : null;
+    return { frac, max, on: A.stats, off: B.stats, png };
   };
   P.frames = (k) => new Promise((res) => { const f0 = v.frame; const w = () => (v.frame >= f0 + k ? res(v.frame) : requestAnimationFrame(w)); requestAnimationFrame(w); });
   window.__perf = P;
@@ -142,7 +155,7 @@ async function load(id) {
   errors.length = 0;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      await page.goto(`http://localhost:${port}/?course=${encodeURIComponent(id)}&scale=2&adapt=0&still=1`, { waitUntil: 'load', timeout: 120000 });
+      await page.goto(`http://localhost:${port}/?course=${encodeURIComponent(id)}&scale=${process.env.SCALE ?? 2}&adapt=0&still=1`, { waitUntil: 'load', timeout: 120000 });
       await page.waitForFunction(() => window.__course && window.__course.level && window.__game.scene.isActive('CourseUI'), null, { timeout: 90000 });
       await sc(install);
       return true;
@@ -161,23 +174,14 @@ async function measure(id, pt) {
   const s = await sc(() => window.__course.stats());
   let detail = null;
   if (DETAIL) detail = await sc(() => window.__perf.detail());
-  if (SHOTS) await page.screenshot({ path: `${OUT}perf_${LABEL}_${id}_${pt.name}.png` });
+  if (SHOTS) writeFileSync(`${OUT}perf_${LABEL}_${id}_${pt.name}.png`, Buffer.from(await sc(() => window.__perf.shot()), 'base64'));
   let cmp = null;
   if (COMPARE) {
-    await sc(() => { window.__course.scene.pause(); });
-    await sc(() => window.__perf.frames(2));
-    const on = await page.screenshot();
-    const sOn = await sc(() => window.__course.stats());
-    await sc(() => { window.__course.view.optimize = false; });
-    await sc(() => window.__perf.frames(2));
-    const off = await page.screenshot();
-    const sOff = await sc(() => window.__course.stats());
-    await sc(() => { window.__course.view.optimize = true; window.__course.scene.resume(); });
-    const d = await sc(([a, b]) => window.__perf.diff(a, b), [on.toString('base64'), off.toString('base64')]);
-    cmp = { frac: d.frac, max: d.max, offCalls: sOff.calls, offTris: sOff.triangles, onCalls: sOn.calls, onTris: sOn.triangles };
-    if (d.frac > 0.00002) {
-      const { writeFileSync: w } = await import('node:fs');
-      w(`${OUT}perf_cmp_${id}_${pt.name}_an.png`, on); w(`${OUT}perf_cmp_${id}_${pt.name}_aus.png`, off);
+    const d = await sc(() => window.__perf.compare());
+    cmp = { frac: d.frac, max: d.max, offCalls: d.off.calls, offTris: d.off.triangles, onCalls: d.on.calls, onTris: d.on.triangles };
+    if (d.png) {
+      writeFileSync(`${OUT}perf_cmp_${id}_${pt.name}_an.png`, Buffer.from(d.png[0], 'base64'));
+      writeFileSync(`${OUT}perf_cmp_${id}_${pt.name}_aus.png`, Buffer.from(d.png[1], 'base64'));
     }
   }
   return { name: pt.name, calls: s.calls, tris: s.triangles, extra, detail, cmp };
@@ -189,7 +193,8 @@ const k = (t) => `${Math.round(t / 1000)}k`;
 const t0 = Date.now();
 for (const id of LEVELS) {
   if (!(await load(id))) continue;
-  const pts = await sc(() => window.__perf.points());
+  let pts = await sc(() => window.__perf.points());
+  if (process.env.POINTS) { const want = process.env.POINTS.split(','); pts = pts.filter((p) => want.includes(p.name) || want.includes(p.name.replace(/\d+$/, '*'))); }
   const rows = [];
   for (const pt of pts) rows.push(await measure(id, pt));
   const calls = rows.map((r) => r.calls), tris = rows.map((r) => r.tris);
