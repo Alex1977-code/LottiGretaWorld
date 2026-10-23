@@ -64,7 +64,7 @@ const drops = (c) => pat(tones(c, 'C#6'), '..0. .... .1.. ..2.');
 const bpProg = ['Cm', 'Ab', 'Cm', 'Ab', 'Eb', 'Ab', 'Cm', 'Fm', 'Eb', 'Ab', 'G', 'Ab', 'Cm', 'Ab', 'Eb', 'Fm', 'Cm', 'Ab', 'G', 'Cm', 'Eb', 'Fm', 'G', 'Ab'];
 const bpHook = ['Eb5:4 D5:2 C5:2 G5:6 F5:2', 'Eb5:12 -:2 F5:2', 'G5:4 F5:2 Eb5:2 Bb5:6 Ab5:2', 'F5:12 -:2 G5:2'];
 const bpChorus = [...bpHook, bpHook[0], 'C6:12 -:2 Bb5:2', 'D6:4 C6:2 B5:2 G5:6 F5:2', 'Eb5:12 -:2 D5:2'];
-const bpVerse = ['G4:2 Bb4:2 Eb5:4 D5:2 Eb5:2 F5:4', 'C5:12 -:2 Bb4:2', 'G4:2 C5:2 Eb5:4 D5:2 C5:2 D5:4', 'Ab4:12 -:2 G4:2',
+const bpVerse = ['G4:2 Bb4:2 Eb5:4 D5:2 Eb5:2 F5:4', 'C5:12 -:2 Bb4:2', 'G4:2 C5:2 Eb5:4 D5:2 C5:2 G4:4', 'Ab4:12 -:2 G4:2',
   'G4:2 Bb4:2 Eb5:4 D5:2 Eb5:2 F5:4', 'C5:12 -:2 Bb4:2', 'B4:2 D5:2 G5:4 F5:2 D5:2 B4:4', 'C5:12 -:2 D5:2'];
 const bpBridge = ['G5:16', 'Ab5:12 -:2 G5:2', 'B5:16', 'C6:12 -:4'];
 const BEEP_ON = mel('G6', 'x... .... .... ....');          // Umschalt-Takt: Piep auf der Eins
@@ -105,7 +105,7 @@ const lvProg = ['Ebm', 'Cb', 'Db', 'Bb', 'Ebm', 'Ebm', 'Abm', 'Bb', 'Ebm', 'Ebm'
 const lvHook = ['Eb5:2 -:1 Eb5:1 Gb5:2 Bb5:2 Eb6:4 Db6:4', 'Cb6:4 Bb5:2 Gb5:2 Eb5:4 Gb5:4', 'Db5:2 -:1 Db5:1 F5:2 Ab5:2 Db6:4 Cb6:4', 'Bb5:4 Ab5:2 F5:2 D5:8'];
 const lvChorus = [...lvHook, lvHook[0], lvHook[1], 'Eb5:2 -:1 Eb5:1 Ab5:2 Cb6:2 Eb6:4 Db6:4', 'D6:4 Bb5:4 F5:4 D5:4'];
 const lvV = ['Bb4:4 Eb5:2 F5:2 Gb5:4 F5:2 Eb5:2', 'Gb5:4 F5:2 Eb5:2 Db5:4 Bb4:4'];
-const lvVerse = [...lvV, 'Cb5:4 Eb5:2 F5:2 Gb5:4 F5:2 Eb5:2', 'D5:4 F5:4 Bb5:8', ...lvV, 'Eb5:4 Gb5:2 Ab5:2 Bb5:4 Gb5:4', 'F5:4 D5:4 Bb4:4 -:2 Bb4:1 Bb4:1'];
+const lvVerse = [...lvV, 'Cb5:4 Eb5:2 F5:2 Gb5:4 F5:2 Eb5:2', 'D5:4 F5:4 Bb5:8', ...lvV, 'Eb5:4 Gb5:2 Ab5:2 Cb6:4 Gb5:4', 'F5:4 D5:4 Bb4:4 -:2 Bb4:1 Bb4:1'];
 const lvBridge = ['Gb5:8 Eb5:8', 'Ab5:8 F5:8', 'Bb5:8 Gb5:8', 'D5:8 F5:8'];
 
 // ================================================================ Karte Welt 4 ====

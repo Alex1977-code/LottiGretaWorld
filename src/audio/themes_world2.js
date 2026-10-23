@@ -89,8 +89,8 @@ const ROLL = (fill) => [K4, CL, dr('hhoh hhoh hhoh hh..'), dr(fill)];
 
 // ================================================================ Spiegelfrucht ====
 // A-Dur, 138 BPM. Intro D E cis fis | Strophe A fis D E ×2 | Refrain D E cis fis | D E A A (IV–V–iii–vi) |
-// Überleitung fis D E E: der Lead singt, das Glockenspiel antwortet als „Klon“ mit derselben Phrase.
-const chProg = ['D', 'E', 'C#m', 'F#m', ...rep(2, ['A', 'F#m', 'D', 'E']).flat(), 'D', 'E', 'C#m', 'F#m', 'D', 'E', 'A', 'A', 'F#m', 'D', 'E', 'E'];
+// Überleitung fis fis E E: der Lead singt, das Glockenspiel antwortet als „Klon“ mit derselben Phrase.
+const chProg = ['D', 'E', 'C#m', 'F#m', ...rep(2, ['A', 'F#m', 'D', 'E']).flat(), 'D', 'E', 'C#m', 'F#m', 'D', 'E', 'A', 'A', 'F#m', 'F#m', 'E', 'E'];
 const chHook = ['F#5:1 A5:1 D6:2 C#6:2 A5:2 -:2 B5:2 A5:2 F#5:2', 'E5:1 G#5:1 B5:2 A5:2 G#5:2 -:2 A5:2 G#5:2 E5:2',
   'C#5:1 E5:1 G#5:2 B5:2 C#6:2 -:2 B5:2 G#5:2 E5:2', 'F#5:1 A5:1 C#6:2 B5:2 A5:2 G#5:2 F#5:2 E5:4'];
 const chChorus = [...chHook, chHook[0], chHook[1], 'C#6:1 D6:1 E6:2 C#6:2 A5:2 -:2 B5:2 C#6:2 A5:2', 'A5:8 E5:4 C#5:4'];

@@ -62,7 +62,7 @@ const plHook = ['C6:2 -:1 Ab5:2 -:1 Eb5:2 F5:2 -:1 Ab5:2 -:1 Bb5:2', 'Ab5:2 -:1 
   'Ab5:2 -:1 F5:2 -:1 C5:2 Db5:2 -:1 F5:2 -:1 G5:2', 'Bb5:2 -:1 G5:2 -:1 Eb5:4 F5:2 G5:4'];
 const plChorus = [...plHook, plHook[0], plHook[1], 'Db6:2 -:1 Bb5:2 -:1 F5:2 G5:2 -:1 Bb5:2 -:1 C6:2', 'Bb5:4 G5:2 Eb5:2 F5:2 G5:2 Bb5:4'];
 const plV = ['F5:2 Eb5:2 Db5:2 Eb5:2 F5:4 Ab5:4', 'Eb5:2 Db5:2 C5:2 Db5:2 Eb5:4 C5:4', 'G5:2 F5:2 Eb5:2 F5:2 G5:4 Bb5:4'];
-const plVerse = [...plV, 'Ab5:6 G5:2 F5:4 C5:4', ...plV, 'Ab5:4 G5:2 F5:2 Eb5:4 G5:4'];
+const plVerse = [...plV, 'Ab5:6 G5:2 F5:4 C5:4', ...plV, 'Ab5:4 G5:2 F5:2 C5:4 F5:4'];
 const plBridge = ['F5:8 Ab5:8', 'G5:8 Bb5:8', 'C6:8 Ab5:8', 'Bb5:12 -:4'];
 
 // ================================================================ Lagune ====
@@ -72,7 +72,7 @@ const plBridge = ['F5:8 Ab5:8', 'G5:8 Bb5:8', 'C6:8 Ab5:8', 'Bb5:12 -:4'];
 const waProg = ['F#', 'C#/F', 'D#m', 'B', ...rep(2, ['D#m', 'B', 'F#', 'C#']).flat(), 'F#', 'C#/F', 'D#m', 'B', 'F#', 'C#/F', 'G#m', 'C#', 'B', 'C#', 'D#m', 'C#'];
 const waHook = ['C#5:4 F#5:2 G#5:2 A#5:6 G#5:2', 'G#5:4 F#5:2 F5:2 C#5:6 D#5:2', 'F#5:4 A#5:2 G#5:2 F#5:6 D#5:2', 'D#5:4 F#5:2 G#5:2 F#5:8'];
 const waChorus = [...waHook, waHook[0], waHook[1], 'D#5:4 G#5:2 A#5:2 B5:6 A#5:2', 'G#5:4 F5:2 D#5:2 C#5:8'];
-const waV = ['F#5:6 F5:2 D#5:4 A#4:4', 'D#5:6 C#5:2 B4:4 F#4:4', 'C#5:6 D#5:2 F5:4 F#5:4'];
+const waV = ['F#5:6 F5:2 D#5:4 A#4:4', 'D#5:6 C#5:2 B4:4 F#4:4', 'C#5:6 D#5:2 F#5:4 A#5:4'];
 const waVerse = [...waV, 'G#5:8 F5:4 C#5:4', ...waV, 'G#5:6 F5:2 D#5:4 C#5:4'];
 const waBridge = ['D#5:8 F#5:8', 'F5:8 G#5:8', 'F#5:8 A#5:8', 'G#5:12 -:4'];
 const bubbles = (c) => pat(tones(c, 'F#5'), '0... ..1. .... 2...');
@@ -109,7 +109,7 @@ const trProg = ['C', 'F', 'G', 'C', ...rep(2, ['Am', 'F', 'C', 'G']).flat(), 'C'
 const trHook = ['E5:2 G5:1 G5:1 -:1 G5:1 A5:2 G5:2 E5:2 C5:4', 'F5:2 A5:1 A5:1 -:1 A5:1 C6:2 A5:2 F5:2 C5:4',
   'D5:2 G5:1 G5:1 -:1 G5:1 B5:2 A5:2 G5:2 D5:4', 'E5:4 F5:2 G5:2 C6:8'];
 const trChorus = [...trHook, 'C5:2 E5:1 E5:1 -:1 E5:1 A5:2 G5:2 E5:2 C5:4', trHook[1], trHook[2], 'B4:4 D5:2 G5:2 B5:8'];
-const trV = ['A4:3 B4:1 C5:2 E5:2 D5:2 C5:2 B4:4', 'A4:3 B4:1 C5:2 F5:2 E5:2 D5:2 C5:4', 'G4:3 A4:1 C5:2 E5:2 D5:2 C5:2 G4:4'];
+const trV = ['A4:3 B4:1 C5:2 E5:2 D5:2 C5:2 A4:4', 'A4:3 B4:1 C5:2 F5:2 E5:2 D5:2 C5:4', 'G4:3 A4:1 C5:2 E5:2 D5:2 C5:2 G4:4'];
 const trVerse = [...trV, 'B4:4 D5:4 G5:8', ...trV, 'B4:4 D5:2 F5:2 G5:4 D5:4'];
 const trBridge = ['A5:8 F5:8', 'B5:8 G5:8', 'C6:8 A5:8', 'B5:4 G5:4 D5:8'];
 const CHUG = [K4, CL, dr('h.hh h.hh h.hh h.hh'), dr('.... ...s .... ...s')];
@@ -120,7 +120,7 @@ const CHUG = [K4, CL, dr('h.hh h.hh h.hh h.hh'), dr('.... ...s .... ...s')];
 const skProg = ['Bb', 'Dm', 'Eb', 'F', ...rep(2, ['Gm', 'Eb', 'Bb', 'F']).flat(), 'Bb', 'Dm', 'Eb', 'F', 'Bb', 'Dm', 'Gm', 'F', 'Eb', 'F', 'Gm', 'F'];
 const skHook = ['F5:4 Bb5:4 A5:2 Bb5:2 C6:4', 'D6:4 A5:4 F5:2 G5:2 A5:4', 'Bb5:4 G5:4 F5:2 G5:2 Bb5:4', 'C6:6 Bb5:2 A5:4 F5:4'];
 const skChorus = [...skHook, skHook[0], skHook[1], 'Bb5:4 D6:4 C6:2 Bb5:2 G5:4', 'A5:4 C6:4 D6:2 C6:2 A5:4'];
-const skV = ['D5:2 G5:2 A5:2 Bb5:2 A5:4 G5:4', 'Eb5:2 G5:2 A5:2 Bb5:2 G5:4 Eb5:4', 'D5:2 F5:2 G5:2 A5:2 Bb5:4 F5:4'];
+const skV = ['D5:2 G5:2 A5:2 Bb5:4 A5:2 G5:4', 'Eb5:2 G5:2 A5:2 Bb5:2 G5:4 Eb5:4', 'D5:2 F5:2 G5:2 A5:2 Bb5:4 F5:4'];
 const skVerse = [...skV, 'C5:4 F5:4 A5:8', ...skV, 'C6:4 A5:4 F5:4 -:4'];
 const skBridge = ['G5:8 Bb5:8', 'A5:8 C6:8', 'Bb5:8 D6:8', 'C6:12 -:4'];
 const skArp = (c) => pat(tones(c, 'D6'), '0120 1201 0120 1201');
