@@ -1727,6 +1727,64 @@ export function heroShadowDiet(level, minR = 0.12) {
 }
 
 /**
+ * Gleiche Modelle mehrerer Entitäten einer Art (z. B. Doppelgänger der Schattenläuferin, bis zu 5 zugleich) als je eine
+ * Instanzgruppe pro Modellteil zeichnen – nur in ruhigen Haltungen (steady(e) → true, z. B. laufen/werfen); während
+ * Erscheinen/Verpuffen (Material-Effekte je Exemplar) zeichnet das Einzelmodell. Die Entitäten rechnen und animieren
+ * ihre Modelle weiter (Knoten-Matrizen werden übernommen). Spart ≈ 9 Zeichenaufrufe je weiterem Exemplar.
+ */
+export function instanceModels(level, kind, steady, o = {}) {
+  if (!level.view) return null;
+  const st = { inst: null, drawn: 0 };
+  const vis = (m, root) => { for (let q = m; q && q !== root; q = q.parent) if (!q.visible) return false; return m.visible; };
+  const meshesOf = (e) => {
+    if (e._instMeshes && e._instMeshes.root === e.model.root) return e._instMeshes.list;
+    const list = [];
+    e.model.root.traverse((m) => { if (m.isMesh) list.push(m); });
+    e._instMeshes = { root: e.model.root, list };
+    return list;
+  };
+  level.view.onFrame(() => {
+    const ents = level.entities.filter((e) => e.kind === kind && e.model?.root && !e.removed);
+    if (!st.inst && ents.length) {
+      const ref = meshesOf(ents[0]);
+      st.sig = ref.map((m) => m.geometry.uuid).join(',');
+      st.inst = ref.map((m) => {
+        const n = m.isInstancedMesh ? m.count : 1;
+        const im = new THREE.InstancedMesh(m.geometry, m.material, (o.cap ?? 8) * n);
+        im.castShadow = false; im.receiveShadow = m.receiveShadow; im.frustumCulled = false;
+        im.count = 0; im.visible = false; im.name = `instanzen:${kind}`;
+        addObject(level, im);
+        im.userData.owned = false;            // Geometrie/Material gehören dem Modell-Cache bzw. den Exemplaren
+        return im;
+      });
+    }
+    if (!st.inst) return;
+    const fill = st.inst.map(() => 0);
+    const M = st.M ?? (st.M = new THREE.Matrix4()), Mi = st.Mi ?? (st.Mi = new THREE.Matrix4());
+    let drawn = 0;
+    for (const e of ents) {
+      const root = e.model.root, list = meshesOf(e);
+      const ok = e.alive && steady(e) && list.length === st.inst.length && list.map((m) => m.geometry.uuid).join(',') === st.sig;
+      root.visible = true;
+      if (!ok) continue;
+      root.updateMatrixWorld(true);
+      list.forEach((m, k) => {
+        if (!vis(m, root)) return;
+        const im = st.inst[k];
+        if (m.isInstancedMesh) {
+          for (let j = 0; j < m.count && fill[k] < im.instanceMatrix.count; j++) { m.getMatrixAt(j, Mi); im.setMatrixAt(fill[k]++, M.multiplyMatrices(m.matrixWorld, Mi)); }
+        } else if (fill[k] < im.instanceMatrix.count) im.setMatrixAt(fill[k]++, m.matrixWorld);
+      });
+      root.visible = false;
+      drawn++;
+    }
+    st.inst.forEach((im, k) => { im.count = fill[k]; im.visible = fill[k] > 0; im.instanceMatrix.needsUpdate = true; });
+    st.drawn = drawn;
+  });
+  return st;
+}
+
+/**
  * Himmel-Kulisse (Bergkranz, Waldkranz, Wolken: je ≥ 4000 Dreiecke) nur zeichnen, wenn der obere Bildrand über den
  * Horizont reicht – bei der steilen Zugkamera liegt der Horizont außerhalb des Bildes (spart ≈ 58 k Dreiecke).
  */
@@ -2030,6 +2088,7 @@ export function zugSetup(level) {
     for (const v of level.entities) if (v.kind === 'vehicle') v.model?.root.traverse((o) => { if (o.isInstancedMesh) o.castShadow = false; });
     shadowDiet(level, ['pilzlingsturm', 'schattenlaeuferin']);
     shadowDiet(level, ['schatten_doppelgaenger', 'schatten_bumerang'], 0);
+    sc.klone = instanceModels(level, 'schatten_doppelgaenger', (e) => !e.poofed && (e.anim === 'run' || e.anim === 'throw' || e.anim === 'idle'));
     shadowDiet(level, ['huepfqualle', 'feuer_werfer', 'suchkopf', 'riesenprojektil', 'riesenkanone', 'kanone_turm', 'crate', 'checkpoint_flag', 'steinblock'], 0);
     const sz = cfg.shadowZones ?? [];
     sc.cull = new StaticCullE(level, { shadowRange: 30, maxDist: 95, merge: true, shadowKeep: (b) => sz.some(([z0, z1]) => b.max.z > z1 && b.min.z < z0) });
