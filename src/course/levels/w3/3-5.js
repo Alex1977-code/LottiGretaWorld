@@ -24,7 +24,7 @@
 // Level-Haken (LEVEL.setup, _helpers_d.js): Meer zwischen den Becken, Felsen, Strandzier, Leuchttürme, Möwen,
 // Krabben, Fischschwärme, Wandlöcher, Flutkammer (steigendes Wasser, Neustart setzt es zurück).
 
-import { isl, line, ring, arc, levelSetup, cullStatic, seaFill, leuchtturm, strand, felsen, wandloecher, fischschwaerme, moewen, krabbe, flutKammer, instanceEnemies } from './_helpers_d.js';
+import { isl, line, ring, arc, levelSetup, cullStatic, seaFill, leuchtturm, strand, felsen, wandloecher, fischschwaerme, moewen, krabbe, flutKammer, instanceEnemies, fernAus, riffKorallen } from './_helpers_d.js';
 
 const Y = 1;        // Land
 const W = 0;        // Wasseroberfläche
@@ -112,6 +112,18 @@ function setup(level) {
     // blinde Löcher (Abwechslung)
     [-8.98, 1.6, -180, 1, 0, 0.3], [8.98, 1.8, -190, -1, 0, 0.3], [-8.98, -3.6, -206, 1, 0, 0.36], [8.98, -3.4, -176, -1, 0, 0.36],
   ]);
+  // Riffkorallen (sparsam, verschmolzen): Riffkante, Tiefwasser, Bucht, Kanal, Strand-Lagune
+  riffKorallen(level, [
+    { pos: [0, Y, -37.4], size: [22, 0.8], n: 9, scale: [0.4, 0.7], gap: 1.6 },
+    { pos: [-5, -8, -50], size: [10, 18], n: 9, scale: [1.2, 2.1], gap: 1.8, shadow: false },
+    { pos: [5, -8, -70], size: [10, 18], n: 9, scale: [1.2, 2.1], gap: 1.8, shadow: false },
+    { pos: [0, -8, -86], size: [18, 10], n: 8, scale: [1.1, 1.9], gap: 1.8, shadow: false },
+    { pos: [0, -2, -14], size: [24, 18], n: 10, scale: [0.6, 1.1], gap: 2.2, shadow: false },
+    { pos: [-20, -3, -128], size: [14, 12], n: 7, scale: [1, 1.6], gap: 2, shadow: false },
+    { pos: [18, -3, -134], size: [10, 10], n: 5, scale: [1, 1.6], gap: 2, shadow: false },
+    { pos: [0, -6, -195], size: [16, 56], n: 14, scale: [1, 1.8], gap: 2.4, shadow: false },
+    { pos: [0, -8, -101], size: [8, 10], n: 4, scale: [1, 1.5], gap: 2, shadow: false },
+  ]);
   // Flutkammer: schwimmt eine Figur in der Kammer, steigt das Wasser auf 5 m (Neustart vor dem Checkpoint: zurück)
   flutKammer(level, { id: 'flut', from: W, to: FLUT, speed: 1.1, area: { min: [-5, -9, -107.8], max: [5, 6, -95] }, resetBefore: -150 });
   // Meeresfläche zwischen den Becken bis zum Kulissen-Meer
@@ -124,7 +136,7 @@ function setup(level) {
 
 /** Haken: Aufbau, danach Fern-/Schatten-Ausblendung der statischen Abschnitte. */
 const build = levelSetup(setup);
-function hook(level, scene) { build(level, scene); cullStatic(level, { floorY: -9 }); }
+function hook(level, scene) { build(level, scene); cullStatic(level, { floorY: -9 }); fernAus(level, 120); }
 
 export const LEVEL = {
   id: '3-5',
@@ -142,8 +154,8 @@ export const LEVEL = {
   camera: [
     { from: 16, to: -36, pitch: 44, dist: 13 },
     // Tauchbereich: flacher, damit die Kamera beim Abtauchen mit unter Wasser geht (Präzisierung Motor Welt 3)
-    { from: -36, to: -92, pitch: 24, dist: 9 },
-    { from: -92, to: -110, pitch: 30, dist: 9.5 },
+    { from: -36, to: -92, pitch: 20, dist: 8.5 },
+    { from: -92, to: -110, pitch: 22, dist: 8.5 },
     { from: -110, to: -166, pitch: 43, dist: 13.5 },
     { from: -166, to: -226, pitch: 46, dist: 12.5 },
     { from: -226, to: -256, pitch: 42, dist: 13 },
@@ -177,17 +189,10 @@ export const LEVEL = {
     ] },
     // Riffkante
     sand(-12, 12, -27, -38, Y, 3),
-    { type: 'deco_w3', items: [{ kind: 'korallen', pos: [0, Y, -37], size: [20, 1.4], n: 6, scale: [0.4, 0.7] }] },
 
     // ======================================================== 2  Tiefwasser
-    { type: 'deco_w3', shadow: false, items: [
-      { kind: 'korallen', pos: [-6, -8, -50], size: [8, 14], n: 4, gap: 2.5, scale: [1, 1.7] },
-      { kind: 'korallen', pos: [6, -8, -68], size: [8, 16], n: 4, gap: 2.5, scale: [1, 1.7] },
-      { kind: 'korallen', pos: [-3, -8, -86], size: [12, 8], n: 4, gap: 2.5, scale: [0.9, 1.5] },
-    ] },
     { type: 'seetang', pos: [-8, -8, -66], height: 5, count: 3 },
     { type: 'blasen', pos: [3, -8, -82], height: 7.5, count: 12 },
-    { type: 'koralle', pos: [0, -8, -58], kind: 'hirn', scale: 1.6 },
     // versunkene Kiste mit Münzen (Kulisse) und Wegweiser unter Wasser
     { type: 'platform', pos: [-6, -8, -62], size: [1.6, 1.2, 1.2], style: 'wood' },
     sign(-6.6, Y, -36.4, 'Tief tauchen!\nAm Ende unter dem Felsbogen durch', { size: [3.4, 1.1] }),
@@ -201,7 +206,6 @@ export const LEVEL = {
     sand(-8, 20, -146, -164, Y, 4),
     { type: 'steg', pos: [0, -0.2, -137.6], yaw: Math.PI / 2, length: 8.8, width: 2, height: 1.2 },
     { type: 'schiffswrack', pos: [-25, -3, -150], yaw: 0.7, size: 1.6, shadow: false },
-    { type: 'deco_w3', shadow: false, items: [{ kind: 'korallen', pos: [-20, -3, -128], size: [14, 10], n: 4, gap: 3 }, { kind: 'korallen', pos: [16, -3, -136], size: [10, 8], n: 3, gap: 3 }] },
     sign(4.2, Y, -129.6, 'Kanonen-Helm:\nder Riss hält nicht ewig!', { size: [3.2, 1.1] }),
     // Wandriss vor der Kerbe im Rissfels, dahinter die goldene Röhre
     { type: 'wandriss', id: 'riss', pos: [11.5, Y, -149.5], size: [3, 3.4, 1] },
@@ -216,7 +220,6 @@ export const LEVEL = {
       path: [[-7.6, 1.95, -161], [-10, 1.95, -161], [-12.4, 3, -161.4], [-13.2, 6.4, -161.8], [-13.2, 9.6, -162]] },
 
     // ======================================================== 4  Stachelwand
-    { type: 'deco_w3', shadow: false, items: [{ kind: 'korallen', pos: [0, -6, -190], size: [14, 50], n: 6, gap: 4, scale: [0.9, 1.6] }] },
     { type: 'seetang', pos: [-6.5, -6, -198], height: 4, count: 2 },
     { type: 'blasen', pos: [6, -6, -172], height: 6, count: 10 },
     // unsichtbare Blöcke über der dritten Säule → Hochfels mit dem versteckten Raum

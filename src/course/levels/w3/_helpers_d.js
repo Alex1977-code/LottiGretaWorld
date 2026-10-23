@@ -378,6 +378,68 @@ export function felsen(level, list, o = {}) {
   for (const g of parts) addStatic(level, g, { castShadow: o.shadow !== false });
 }
 
+/**
+ * Sparsame Riffkorallen (≈ 60–160 Dreiecke je Stück statt ≈ 2 k des Registry-Modells), verschmolzen, ohne Kollision:
+ * Streuungen { pos: [x, y, z], size: [w, d], n, scale: [a, b], kinds: ['ast', 'faecher', 'hirn', 'roehre'], seed,
+ * shadow }. Farben: Rosa, Orange, Violett, Gelbgrün, Türkis.
+ */
+export function riffKorallen(level, list) {
+  const P = { cast: [], flat: [] };
+  const cols = [0xff6a9a, 0xff9a3a, 0xb06aff, 0xc8e04a, 0x4ad8c8, 0xff5a5a];
+  for (const it of list) {
+    let k = it.seed ?? Math.floor(Math.abs(it.pos[0] * 13 + it.pos[2] * 7)) + 1;
+    const r = () => { k = (k * 9301 + 49297) % 233280; return k / 233280; };
+    const [w, d] = it.size ?? [6, 6];
+    const kinds = it.kinds ?? ['ast', 'faecher', 'hirn', 'roehre'];
+    const out = it.shadow === false ? P.flat : P.cast;
+    const pts = [];
+    for (let t = 0; t < (it.n ?? 6) * 20 && pts.length < (it.n ?? 6); t++) {
+      const x = it.pos[0] + (r() - 0.5) * w, z = it.pos[2] + (r() - 0.5) * d;
+      if (pts.some((q) => Math.hypot(q[0] - x, q[1] - z) < (it.gap ?? 1.2))) continue;
+      pts.push([x, z]);
+    }
+    const [s0, s1] = it.scale ?? [0.8, 1.3];
+    for (const [x, z] of pts) {
+      const y = it.pos[1], sc = s0 + r() * (s1 - s0), kind = kinds[Math.floor(r() * kinds.length)];
+      const C = L(cols[Math.floor(r() * cols.length)]), CD = [C[0] * 0.55, C[1] * 0.5, C[2] * 0.55], CL = [Math.min(1, C[0] * 1.25 + 0.1), Math.min(1, C[1] * 1.25 + 0.1), Math.min(1, C[2] * 1.25 + 0.1)];
+      const grad = (p, n, o) => mixc(CD, CL, smooth(0, 1.2 * sc, p.y), o);
+      if (kind === 'ast') {
+        for (let i = 0; i < 5; i++) {
+          const a = i * 1.26 + r(), lean = i ? 0.45 : 0.1, h = (0.6 + r() * 0.5) * sc;
+          const g = new THREE.CylinderGeometry(0.035 * sc, 0.07 * sc, h, 5, 1, true);
+          g.translate(0, h / 2, 0); g.rotateZ(lean * Math.cos(a)); g.rotateX(lean * Math.sin(a));
+          const tip = new THREE.Vector3(0, h, 0).applyEuler(new THREE.Euler(lean * Math.sin(a), 0, lean * Math.cos(a)));
+          out.push(place(g, grad, x, y, z));
+          out.push(place(new THREE.SphereGeometry(0.075 * sc, 5, 3), (p, n, o) => { o[0] = CL[0]; o[1] = CL[1]; o[2] = CL[2]; }, x + tip.x, y + tip.y, z + tip.z));
+        }
+      } else if (kind === 'faecher') {
+        const yaw = r() * Math.PI;
+        for (const back of [0, Math.PI]) {
+          const g = new THREE.CircleGeometry(0.7 * sc, 9, Math.PI * 0.1, Math.PI * 0.8);
+          g.rotateY(yaw + back);
+          out.push(place(g, (p, n, o) => { const v = Math.abs(Math.sin(Math.atan2(p.y, p.x + p.z) * 9)); mixc(CD, CL, 0.35 + 0.65 * v * smooth(0, 0.7 * sc, Math.hypot(p.x, p.y, p.z)), o); }, x, y + 0.1 * sc, z));
+        }
+        out.push(place(new THREE.CylinderGeometry(0.04 * sc, 0.07 * sc, 0.2 * sc, 5), grad, x, y + 0.1 * sc, z));
+      } else if (kind === 'hirn') {
+        const g = new THREE.SphereGeometry(0.5 * sc, 10, 5, 0, TAU, 0, Math.PI / 2);
+        g.scale(1, 0.75, 1);
+        const A = L(0xd8e85a), B = L(0x7a9a2a);
+        out.push(place(g, (p, n, o) => mixc(B, A, Math.sin(p.x * 14 / sc + Math.sin(p.z * 8 / sc) * 2.5) * Math.cos(p.z * 4 / sc) > 0.1 ? 1 : 0, o), x, y, z));
+      } else {
+        // Röhrenkorallen: Bündel offener Röhrchen
+        for (let i = 0; i < 4; i++) {
+          const a = i * 1.57 + r(), rr = 0.12 * sc, h = (0.35 + r() * 0.45) * sc;
+          out.push(place(new THREE.CylinderGeometry(0.07 * sc, 0.06 * sc, h, 6, 1, true), grad, x + Math.cos(a) * rr, y + h / 2, z + Math.sin(a) * rr));
+          const ring = new THREE.TorusGeometry(0.07 * sc, 0.02 * sc, 3, 6); ring.rotateX(Math.PI / 2);
+          out.push(place(ring, (p, n, o) => { o[0] = CL[0]; o[1] = CL[1]; o[2] = CL[2]; }, x + Math.cos(a) * rr, y + h, z + Math.sin(a) * rr));
+        }
+      }
+    }
+  }
+  for (let i = 0; i < P.cast.length; i += 60) addStatic(level, mrg(P.cast.slice(i, i + 60)));
+  for (let i = 0; i < P.flat.length; i += 60) addStatic(level, mrg(P.flat.slice(i, i + 60)), { castShadow: false });
+}
+
 /** Dunkle Wandlöcher (Stachelfisch-Röhren) als Scheiben mit Rand: list = [[x, y, z, nx, nz, r]] (Normale zeigt aus der Wand). */
 export function wandloecher(level, list) {
   const parts = [];
@@ -505,6 +567,26 @@ export function krabbe(level, a, b, o = {}) {
     const u = 0.5 - 0.5 * Math.cos((t * (o.speed ?? 0.5) * TAU) / (len / 1.2) * 0.5);
     mesh.position.set(a[0] + dx * u, a[1] + Math.abs(Math.sin(t * 14)) * 0.02, a[2] + dz * u);
     mesh.rotation.set(0, yaw + Math.sin(t * 3) * 0.1, Math.sin(t * 14) * 0.05);
+  });
+}
+
+/**
+ * Ferne statische Abschnitte nicht zeichnen (nach cullStatic anmelden): Abschnitts-Meshes, deren Quader weiter als
+ * dist m von der Kamera entfernt ist, werden ausgeblendet (flache Kameras sehen sonst den ganzen Kurs – im Dunst kaum
+ * sichtbar, aber teuer). Nur Darstellung.
+ */
+export function fernAus(level, dist = 130) {
+  const v = level.view;
+  if (!v) return;
+  const items = v.static.meshes.map((m) => { m.geometry.computeBoundingBox(); return { m, b: m.geometry.boundingBox.clone() }; });
+  const c = new THREE.Vector3();
+  v.onFrame(() => {
+    const cam = v.camera.position;
+    for (const it of items) {
+      if (!it.m.visible) continue;
+      it.b.clampPoint(cam, c);
+      if (c.distanceTo(cam) > dist) { it.m.visible = false; it.m.castShadow = false; }
+    }
   });
 }
 
