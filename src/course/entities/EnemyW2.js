@@ -83,6 +83,37 @@ export function localOffset(key, model, state, getter, fallback) {
   return v;
 }
 
+// ------------------------------------------------------------------ Welt 3 (additiv): Blick, Wasser
+
+/**
+ * Schaut die Figur fig zum Punkt pos (innerhalb ±deg Grad um ihre Blickrichtung)? Nutzt level.isFacing (Motor), sonst
+ * eigene Rechnung über fig.yaw (Spuk: folgt nur, wenn man wegschaut).
+ */
+export function looksAt(level, fig, pos, deg = 70) {
+  if (!fig) return false;
+  if (typeof level.isFacing === 'function') {
+    const r = level.isFacing(fig, pos, deg);
+    if (typeof r === 'boolean') return r;
+  }
+  const dx = pos.x - fig.pos.x, dz = pos.z - fig.pos.z, d = Math.hypot(dx, dz);
+  if (d < 1e-4) return true;
+  const fx = Math.cos(fig.yaw), fz = -Math.sin(fig.yaw);
+  return (dx * fx + dz * fz) / d >= Math.cos((deg * Math.PI) / 180);
+}
+
+/**
+ * Wasserform an (x, z) um die Höhe y (Punkt im Wasser oder bis `below` m darüber) → { shape, top, bottom } | null.
+ * Folgt steigendem/fallendem Wasser (Motor ändert die Form; jede Abfrage liest den aktuellen Stand).
+ */
+export function waterAt(level, x, y, z, below = 0.6) {
+  let best = null;
+  for (const s of level.world.overlapAABB({ x, y: y - below / 2, z }, { x: 0.05, y: below / 2 + 0.6, z: 0.05 })) {
+    if (!s.water) continue;
+    if (!best || s.top > best.top) best = s;
+  }
+  return best ? { shape: best, top: best.top, bottom: best.bot ?? best.top - 1 } : null;
+}
+
 /** Sonnenschatten nur bis zu diesem Abstand (m) vom Blickziel der Kamera. */
 export const SHADOW_NEAR = 18;
 
