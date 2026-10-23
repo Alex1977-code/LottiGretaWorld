@@ -101,6 +101,19 @@ function radialProfile(root, bins = 24) {
  * Mehrere bewegte Modelle gleicher Art instanziert zeichnen (geteilte Teile als InstancedMesh, wie die Gegnergruppen):
  * items = [{ model, pos: THREE.Vector3 }] – Lage/Zustand setzt der Aufrufer je Bild.
  */
+function cullByView(ev, obj, cx, cy, cz, r, far = 85) {
+  const F = new THREE.Frustum(), M = new THREE.Matrix4(), S = new THREE.Sphere(new THREE.Vector3(cx, cy, cz), r);
+  ev.updaters.push(() => {
+    const cam = ev.view.camera;
+    cam.updateMatrixWorld();
+    F.setFromProjectionMatrix(M.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    obj.visible = cam.position.distanceTo(S.center) - r < far && F.intersectsSphere(S);
+  });
+}
+/**
+ * Instanz-Gruppen der Registry (createInstanced) zeichnen ohne Frustum-Culling – sie werden hier je Bild als Ganzes
+ * ausgeblendet, wenn ihre Hüllkugel nicht im Bild bzw. weiter als far m entfernt ist.
+ */
 function instanceModelGroup(ev, items) {
   const ents = items.map((it) => ({ model: it.model, pos: it.pos, alive: true, removed: false }));
   const inst = instanceRoamers(ev.view, ents, { radius: 3 });
@@ -212,7 +225,7 @@ function anthill(ev, x, y, z) {
   const { R, H } = prof;
   solidCyl(ev, x, z, R * 0.82, y, y + H * 0.9, 'ameisenhuegel');
   // Ameisensoldaten marschieren im Gänsemarsch spiralig um den Hügel (hinauf und wieder hinab), an den Hang gelegt
-  const N = 12, AS = 0.55;
+  const N = 6, AS = 0.6;
   const useModel = hasModel('ameisensoldat');
   let ants = null, antsInst = null;
   if (useModel) {
@@ -221,6 +234,7 @@ function anthill(ev, x, y, z) {
     antsInst.root.name = 'w4:ameisen';
     ev.view.add(antsInst.root);
     ev.own.push(antsInst);
+    cullByView(ev, antsInst.root, x, y + H / 2, z, R + 1);
   } else ants = instanced(ev, antGeo(), N, { key: 'w4ant' });
   // Weg 0..1: spiralig hinauf (0..0.5) und wieder hinab (0.5..1)
   const at = (u, out) => {
@@ -333,7 +347,7 @@ function poisonWood(ev, x, y, z) {
   // Giftwald ringsum: Giftbäume, Giftpilze, Lianen am Tafelberg (Registry-Modelle, eingebacken)
   for (const [px, pz, h, yaw] of ev.def.trees ?? []) bakeW4(ev, 'giftbaum', { height: h }, [px, y, pz], yaw);
   for (const [px, pz, h, yaw] of ev.def.shrooms ?? []) bakeW4(ev, 'giftpilz', { height: h }, [px, y, pz], yaw);
-  if (wf) for (const [px, len] of [[wf.x0 - 1.4, 4.2], [wf.x1 + 1.1, 3.4]]) bakeW4(ev, 'liane', { length: len }, [px, wf.top, wf.z + 0.15], FRONT, 1, { sway: 0.3 }, false);
+  if (wf) bakeW4(ev, 'liane', { length: 4.2 }, [wf.x0 - 1.4, wf.top, wf.z + 0.15], FRONT, 1, { sway: 0.3 }, false);
   // Giftsumpf: lila Giftwasser mit Schlieren und Blasen (Registry-Modell über dem Sumpfbecken def.swamp)
   const sw = ev.def.swamp;
   if (sw && liveW4(ev, 'giftwasser', { size: [sw[2] - sw[0] - 0.3, sw[3] - sw[1] - 0.3] }, [(sw[0] + sw[2]) / 2, y - 0.08, (sw[1] + sw[3]) / 2], 0, 1, 'idle', false)) return;
@@ -513,8 +527,8 @@ function beepTower(ev, x, y, z) {
   // fest, der andere nur ein leuchtender Umriss. Registry: createInstanced('piep_block') je Farbe (setAll { on, warn });
   // sonst eigene Instanz-Flächen (fest = Vertexfarben, aus = durchscheinender Umriss).
   const spots = [[], []];
-  for (let i = 0; i < 14; i++) {
-    const a = (i / 14) * TAU + 0.3, set = i % 2;
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * TAU + 0.3, set = i % 2;
     const r = 3.4 + (i % 3) * 0.5;
     spots[set].push([x + Math.cos(a) * r, y + 1.4 + ((i * 5) % 7) * 0.9, z + Math.sin(a) * r, a]);
   }
@@ -539,6 +553,7 @@ function beepTower(ev, x, y, z) {
       api.root.name = `w4:piep:${color}`;
       ev.view.add(api.root);
       ev.own.push(api);
+      cullByView(ev, api.root, x, y + 4, z, 7);
       return api;
     });
     let key = '';
@@ -907,7 +922,6 @@ function lavaCastle(ev, x, y, z) {
   }).clone(), x, y, z), { castShadow: true });
   // Fallgitter, Ketten und Banner des Barons: Registry-Modelle, sonst eigene Gitterstäbe und Wandbehänge
   const gate = bakeW4(ev, 'fallgitter', { width: 3.4, height: 4.0 }, [x, y, z + 6.05], FRONT, 1, { open: 0 });
-  for (const sx of [-2.5, 2.5]) bakeW4(ev, 'burg_kette', { length: 2.6 }, [x + sx, y + 4.7, z + 6.2], FRONT, 1, { sway: 0.2 }, false);
   let banners = 0;
   for (const sx of [-4.6, 4.6]) if (liveW4(ev, 'brummbaer_banner', { height: 3.0, width: 1.5 }, [x + sx, y + 4.8, z + 6.35], FRONT, 1, { sway: 0.35 })) banners++;
   if (!gate || !banners) {

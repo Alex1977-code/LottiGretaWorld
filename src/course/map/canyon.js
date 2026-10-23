@@ -137,6 +137,9 @@ const PALETTES = {
     tile: (rnd) => (i, j, ax, az) => {
       const blk = (Math.floor((ax + 1.01) / 2) + Math.floor((az + 1.01) / 2)) & 1;
       const o = tone(blk ? SANDTOP.top : SANDTOP.top2, SANDTOP.dust, rnd.frac() * 0.25);
+      const h = hash2(Math.floor(ax / 2) - 11, Math.floor(az / 2) + 5);
+      if (h > 0.9) mixc(o, lin(0xc8704a), 0.45, o);          // rötliche Sandsteinplatte
+      else if (h < 0.06) mixc(o, lin(0xf6dcae), 0.5, o);     // ausgebleichte Platte
       return o;
     },
   },
@@ -151,14 +154,16 @@ const PALETTES = {
   poison: {
     bands: VIOLET, side: 0x4a6a3a, rim: 0x7aa04e, cell: 2,
     tile: (rnd) => (i, j, ax, az) => {
-      const h = hash2(Math.floor(ax / 2), Math.floor(az / 2));
-      if (h > 0.9) return tone(0x7a4a8a, 0x8a5a9a, rnd.frac());
-      return tone(0x6a9a46, 0x5a8a3e, rnd.frac() * 0.7 + (((Math.floor(ax / 2) + Math.floor(az / 2)) & 1) ? 0.2 : 0));
+      // Moos in zwei Grüntönen, selten ein violett schimmernder Giftfleck
+      const h = hash2(Math.floor(ax / 2) + 7, Math.floor(az / 2) - 3);
+      const o = tone(0x6c9c48, 0x5c8c40, rnd.frac() * 0.6 + (((Math.floor(ax / 2) + Math.floor(az / 2)) & 1) ? 0.25 : 0));
+      if (h > 0.93) mixc(o, lin(0x8a6aa0), 0.45, o);
+      return o;
     },
   },
   marsh: {
     bands: VIOLET, side: 0x4a6a3a, rim: 0x6a8a46, cellOff: 2,
-    tile: (rnd) => (i, j, ax, az) => (hash2(Math.floor(ax / 2), Math.floor(az / 2)) > 0.62 ? tone(0x6a2a8a, 0x8a3aaa, rnd.frac()) : tone(0x587a3c, 0x4a6a34, rnd.frac())),
+    tile: (rnd) => (i, j, ax, az) => (hash2(Math.floor(ax / 2), Math.floor(az / 2)) > 0.7 ? tone(0x6a4a7a, 0x7a5a8a, rnd.frac()) : tone(0x587a3c, 0x4a6a34, rnd.frac())),
   },
   tech: {
     bands: RED, side: 0x7a8494, rim: 0xb8c0cc, cell: 2,

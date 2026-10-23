@@ -96,8 +96,6 @@ export function propModel(it) {
     case 'needle': return it.color === 'dark' ? null : ['felsnadel', { height: s ?? 8 }, 0, 1];
     case 'seaarch': return ['canyon_bogen', { width: 7 * (s ?? 1), height: 8 * (s ?? 1), thickness: 2 * (s ?? 1) }, Math.PI / 2, 1];
     case 'tafelberg': return ['tafelberg', { radius: it.radius ?? 4, height: s ?? 6 }, 0, 1];
-    case 'poisontree': return ['giftbaum', { height: s ?? 4 }, 0, 1];
-    case 'ruincolumn': return ['ruinen_saeule', { height: s ?? 3, broken: !!it.broken }, -Math.PI / 2, 1];
     case 'cloudisle': return ['wolkeninsel', { size: s ?? 4 }, 0, 1];
     default: return null;
   }

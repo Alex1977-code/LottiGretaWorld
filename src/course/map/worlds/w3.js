@@ -57,7 +57,7 @@ export const MAP = {
   batch: { tile: 32, origin: [16, 16], freeTile: 64, freeOrigin: [0, 0] },
   // Nachbarwelten am Horizont: Welt 2 (Wüste) im Südwesten – dorthin führt die Rückweg-Röhre –, die Canyon-Inseln von
   // Welt 4 im Nordosten (Glasröhre nach 3-Zug)
-  neighbors: [{ world: 2, pos: [-262, 112], size: [76, 52], style: 'desert' }, { world: 4, pos: [150, -330], size: [92, 60], style: 'canyon' }],
+  neighbors: [{ world: 2, pos: [-262, 112], size: [76, 52], style: 'desert' }, { world: 4, pos: [64, -224], size: [60, 40], style: 'canyon' }],
 
   levels: [
     { id: 'W2', world: 2, next: 2, label: 'Welt 2', stars: 0 },
@@ -211,7 +211,8 @@ export const MAP = {
       canopy: [60.6, -109, -95], lamps: [[51.4, -94.6], [51.4, -109.6]], benches: [[58.6, -102.4, PI / 2]],
       train: { track: [65, 3, -134, -70], lok: -96, cars: 2 } },
     { id: 'W4', kind: 'pipe', pos: [1, 9, -135.6], decor: [1, 9, -138.7],
-      pipe: [[0, 0, 0], [0, 4, 0], [0.3, 6.5, -1.8], [1.5, 7.8, -6], [5, 8.4, -16], [14, 8, -38], [30, 6.5, -72], [52, 4, -110], [72, 2, -140]], pipeDetail: 'low' },
+      pipe: [[0, 0, 0], [0, 4, 0], [0.3, 6.5, -1.8], [1.5, 7.8, -6], [5, 8.4, -16], [14, 8.8, -36], [28, 9.4, -58], [44, 10, -78], [60, 11, -96]], pipeDetail: 'low',
+      arriveCam: { up: 7.5, ahead: 4, drop: 3.5 } },   // Ankunft aus Welt 4: steiler Blick (nicht über die ganze Insel)
   ],
 
   gates: [
