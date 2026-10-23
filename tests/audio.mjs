@@ -23,7 +23,9 @@
 // danach Wiedereinstieg), Themenwechsel, Stopp und deterministisch über den Testhaken (setManualClock/advanceClock).
 //
 // Aufteilen (kürzere Läufe): AUDIO_PART=melodie,live,render,sfx (Standard: alles). „melodie“ läuft ohne Browser.
-// AUDIO_THEMES=course_desert,course_space beschränkt die Offline-Messung der Kurs-Themen auf diese Themen.
+// AUDIO_THEMES=course_desert,course_space bzw. AUDIO_WORLD=1,2 (1 = Welt-1-Themen) beschränken die Offline-Messung der
+// Kurs-Themen; die Kurs-Themen werden je zwei gleichzeitig gerendert. Unter hoher Rechnerlast z.B. in zwei Läufen:
+// AUDIO_PART=melodie,live,sfx und AUDIO_PART=render.
 import { writeFileSync } from 'node:fs';
 import { startServer, launchBrowser, loadGame, makeChecker, OUT } from './helpers.mjs';
 import { THEMES } from '../src/audio/themes.js';
@@ -33,6 +35,7 @@ const PORT = 4184;
 const PARTS = (process.env.AUDIO_PART ?? 'melodie,live,render,sfx').split(',').map((s) => s.trim());
 const want = (p) => PARTS.includes(p);
 const ONLY = process.env.AUDIO_THEMES ? process.env.AUDIO_THEMES.split(',').map((s) => s.trim()) : null;
+const WORLDS = process.env.AUDIO_WORLD ? process.env.AUDIO_WORLD.split(',').map(Number) : null; // Welt-1-Themen = 1
 const { check, summary } = makeChecker();
 const fmt = (v, d = 3) => (typeof v === 'number' ? v.toFixed(d) : String(v));
 
@@ -469,12 +472,19 @@ if (want('live')) {
   check('Live unter 120 Knoten/s', liveRate > 20 && liveRate < 120);
 
   // Stummschalten (M) und speichern
-  await page.keyboard.press('m');
-  await page.waitForTimeout(100);
+  // auf den neuen Zustand warten statt fester 100 ms; geht ein Tastendruck unter Rechnerlast verloren (die Tastatur-
+  // Verarbeitung des Spiels verschluckt gelegentlich einen schnellen zweiten Druck), wird er einmal wiederholt
+  const pressMute = async (want) => {
+    for (let i = 0; i < 2; i++) {
+      await page.keyboard.press('m');
+      const ok = await page.waitForFunction((v) => window.__audio.engine.muted === v, want, { timeout: 1500 }).then(() => true, () => false);
+      if (ok) return;
+    }
+  };
+  await pressMute(true);
   a = await audio();
   check('M schaltet stumm', a.muted === true && (await sc(() => localStorage.getItem('lotti-greta-muted'))) === '1');
-  await page.keyboard.press('m');
-  await page.waitForTimeout(100);
+  await pressMute(false);
   check('M schaltet wieder an', (await audio()).muted === false);
 
   // Zur Weltkarte: Karten-Thema
@@ -729,22 +739,29 @@ if (want('render')) {
   console.log(`\nKurs-Themen offline (RMS-Bereich = bestehende Themen ±3 dB: ${fmt(rmsLo)}–${fmt(rmsHi)})`);
   const courseResults = {}, refrains = {};
   const PREVIEW = 30, REFRAIN = 15;
+  const jobs = [];
   for (const [name, spec] of Object.entries(COURSE_THEMES)) {
     if (ONLY && !ONLY.includes(name)) continue;
+    if (WORLDS && !WORLDS.includes(spec.world ?? 1)) continue;
     const info = infos.find((i) => i?.name === name);
     const preview = spec.preview !== undefined;
     const barSec = info.seconds / info.bars;
     const seconds = info.loop ? Math.max(8, info.seconds, preview ? PREVIEW : 0) : info.seconds + 0.6;
     const theme = preview ? rotateTheme(THEMES[name], spec.preview) : null;
     const excerpt = preview && spec.world === 2 && !spec.map ? { from: ((spec.hook - spec.preview + info.bars) % info.bars) * barSec, seconds: REFRAIN } : null;
-    const jobs = [{ name, seconds, energy: false, wantWav: true, wavSeconds: preview ? PREVIEW : 8, beatMult: spec.beatMult ?? 1, theme, excerpt }];
-    if (spec.energy) jobs.push({ name, seconds, energy: true, wantWav: false, beatMult: spec.beatMult ?? 1, label: `${name}+energy` });
-    for (const job of jobs) {
-      const r = await sc(analyzeInPage, job);
-      const label = job.label ?? name;
+    jobs.push({ job: { name, seconds, energy: false, wantWav: true, wavSeconds: preview ? PREVIEW : 8, beatMult: spec.beatMult ?? 1, theme, excerpt }, spec, info, preview });
+    if (spec.energy) jobs.push({ job: { name, seconds, energy: true, wantWav: false, beatMult: spec.beatMult ?? 1, label: `${name}+energy` }, spec, info, preview: false });
+  }
+  // je zwei Themen gleichzeitig rendern (jeder OfflineAudioContext rechnet in einem eigenen Audio-Thread)
+  const t0 = Date.now();
+  for (let k = 0; k < jobs.length; k += 2) {
+    const pair = jobs.slice(k, k + 2);
+    const rs = await Promise.all(pair.map(({ job }) => sc(analyzeInPage, job)));
+    pair.forEach(({ job, spec, info, preview }, j) => {
+      const r = rs[j], name = job.name, label = job.label ?? name;
       courseResults[label] = { ...r, spec, wav: null, excerptWav: null };
       const b = r.bands;
-      console.log(`\n[${label}] ${r.bpm} BPM, ${r.bars} Takte, ${fmt(r.seconds, 2)} s offline (${info.loop ? 'ganzer Loop' : 'ganzes Stück'}${theme ? `, ab Takt ${spec.preview + 1}` : ''})`);
+      console.log(`\n[${label}] ${r.bpm} BPM, ${r.bars} Takte, ${fmt(r.seconds, 2)} s offline (${info.loop ? 'ganzer Loop' : 'ganzes Stück'}${job.theme ? `, ab Takt ${spec.preview + 1}` : ''})`);
       console.log(`   Spitze ${fmt(r.peak)} bei ${fmt(r.peakAt, 2)} s  RMS ${fmt(r.rms)} (im Spiel ${fmt(r.rms * r.inGameLevel)})  Knoten/s ${fmt(r.nodesPerSecond, 1)}  Oszillatoren/s ${fmt(r.oscPerSecond, 1)}`);
       console.log(`   Bänder: Bass ${fmt(b.bass.dB, 1)} dBFS (${fmt(b.bass.share * 100, 1)} %), Mitten ${fmt(b.mid.dB, 1)} dBFS (${fmt(b.mid.share * 100, 1)} %), Höhen ${fmt(b.high.dB, 1)} dBFS (${fmt(b.high.share * 100, 2)} %)`);
       if (!spec.noBeat) console.log(`   Beat: AK-Maximum bei ${fmt(r.beatLag)} s (erwartet ${fmt(r.beatExpected)} s = ${job.beatMult}·60/${r.bpm}); AK(Kick-Abstand) ${fmt(r.acBeat, 2)}, AK(halber) ${fmt(r.acEighth, 2)}, AK(3/4) ${fmt(r.acOff, 2)}`);
@@ -754,8 +771,9 @@ if (want('render')) {
         console.log(`   WAV: ${file}${preview ? ` (${PREVIEW} s ab Takt ${spec.preview + 1}: Strophe → Refrain ab Takt ${spec.hook + 1})` : ''}`);
       }
       if (r.excerptWav) refrains[name] = { pcm: Buffer.from(r.excerptWav, 'base64'), sr: r.sampleRate };
-    }
+    });
   }
+  console.log(`\n(${jobs.length} Kurs-Themen offline vermessen in ${fmt((Date.now() - t0) / 1000, 0)} s)`);
   for (const [label, r] of Object.entries(courseResults)) {
     const b = r.bands;
     check(`${label}: kein Clipping (Spitze ${fmt(r.peak)} < 0,98)`, r.peak < 0.98);
