@@ -16,7 +16,7 @@
 //   …glasspipe-Felder (radius 1, speed 12, coins, cannon, branches, id …) }. Die Lava selbst baut der Level (lava).
 
 import * as THREE from 'three';
-import { v3, sz3, lin, addObject } from '../kit.js';
+import { v3, sz3, lin, addObject, Rnd } from '../kit.js';
 import { buildGlassPipe } from './glasspipe.js';
 import { glowSprite } from '../w4kit.js';
 import { visDt } from '../../entities/gimmick.js';
@@ -34,6 +34,8 @@ function liquidMaterial(pal, opts = {}) {
     uTime: { value: 0 }, uFlow: { value: new THREE.Vector2(opts.flow?.[0] ?? 0, opts.flow?.[1] ?? 0) },
     uDeep: { value: C3(pal.deep) }, uMid: { value: C3(pal.mid) }, uHi: { value: C3(pal.hi) }, uWave: { value: opts.wave ?? 1 },
     uGlow: { value: opts.glow ?? 0.18 },
+    uRect: { value: new THREE.Vector4(opts.rect?.[0] ?? 0, opts.rect?.[1] ?? 0, opts.rect?.[2] ?? 1e4, opts.rect?.[3] ?? 1e4) },   // Mitte x, z, halbe Breite, halbe Tiefe
+    uFoam: { value: C3(pal.foam) },
   };
   const mat = opts.basic
     ? new THREE.MeshBasicMaterial({ color: 0xffffff })
@@ -44,7 +46,7 @@ function liquidMaterial(pal, opts = {}) {
       vec4 w4p = modelMatrix * vec4(transformed, 1.0);
       transformed.y += (sin(w4p.x * 1.3 + uTime * 1.7) + cos(w4p.z * 1.1 - uTime * 1.3)) * 0.045 * uWave;
       vWp = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
-    const pre = 'uniform float uTime;\nuniform vec2 uFlow;\nuniform vec3 uDeep;\nuniform vec3 uMid;\nuniform vec3 uHi;\nuniform float uGlow;\nvarying vec3 vWp;\n';
+    const pre = 'uniform float uTime;\nuniform vec2 uFlow;\nuniform vec3 uDeep;\nuniform vec3 uMid;\nuniform vec3 uHi;\nuniform float uGlow;\nuniform vec4 uRect;\nuniform vec3 uFoam;\nvarying vec3 vWp;\n';
     let fs = pre + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
       vec2 w4q = vWp.xz * 0.32 - uFlow * uTime * 0.32;
       float w4n = sin(w4q.x * 2.1 + sin(w4q.y * 1.7 + uTime * 0.55) * 1.7) * 0.5 + sin(w4q.y * 2.4 + sin(w4q.x * 1.4 - uTime * 0.45) * 1.5) * 0.5;
@@ -52,6 +54,9 @@ function liquidMaterial(pal, opts = {}) {
       float w4c = smoothstep(0.7, 0.98, sin(w4q.x * 5.3 + w4q.y * 4.1 + uTime * 1.2) * 0.5 + 0.5) * 0.35;
       vec3 w4col = mix(uDeep, uMid, smoothstep(-0.7, 0.45, w4n));
       w4col = mix(w4col, uHi, clamp(w4s * 0.85 + w4c, 0.0, 1.0));
+      float w4e = min(uRect.z - abs(vWp.x - uRect.x), uRect.w - abs(vWp.z - uRect.y));
+      float w4f = (1.0 - smoothstep(0.05, 0.55 + 0.2 * sin(vWp.x * 3.1 + vWp.z * 2.3 + uTime * 1.4), w4e)) * 0.75;
+      w4col = mix(w4col, uFoam, w4f);
       diffuseColor.rgb = w4col;`);
     if (!opts.basic) fs = fs.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       totalEmissiveRadiance += w4col * uGlow + uHi * w4s * 0.25;`);
@@ -149,7 +154,7 @@ export function buildGiftwasser(level, spec) {
   const nx = Math.min(64, Math.max(2, Math.round(s.x / 1.4))), nz = Math.min(64, Math.max(2, Math.round(s.z / 1.4)));
   const g = new THREE.PlaneGeometry(s.x, s.z, nx, nz);
   g.rotateX(-Math.PI / 2);
-  const mat = liquidMaterial(pal, { flow });
+  const mat = liquidMaterial(pal, { flow, rect: [p.x, p.z, s.x / 2, s.z / 2] });
   const surf = new THREE.Mesh(g, mat);
   surf.receiveShadow = true;
   surf.position.set(p.x, top - 0.04, p.z);
@@ -164,11 +169,11 @@ export function buildGiftwasser(level, spec) {
   const n = spec.bubbles === false ? 0 : Math.max(4, Math.min(28, Math.round((s.x * s.z) / 7)));
   let bub = null;
   const B = [];
+  const rnd = new Rnd((Math.floor(p.x * 31 + p.z * 17) >>> 0) + 7);   // eigene Folge: Darstellung verbraucht nicht level.rnd
   if (n) {
     bub = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: pal.bubble, roughness: 0.15, metalness: 0.1, emissive: pal.mid, emissiveIntensity: 0.35, transparent: true, opacity: 0.85 }), n);
     bub.frustumCulled = false;
     bub.castShadow = false;
-    const rnd = level.rnd;
     for (let i = 0; i < n; i++) B.push({ x: x0 + rnd.frac() * s.x, z: z0 + rnd.frac() * s.z, t: rnd.frac() * 2.5, life: 1.4 + rnd.frac() * 1.6, r: 0.12 + rnd.frac() * 0.22 });
     group.add(bub);
     burst = (x, z, k) => { for (let i = 0; i < k; i++) { const b = B[(((i * 7 + Math.floor(x * 3 + z)) % B.length) + B.length) % B.length]; b.x = x + (i - k / 2) * 0.25; b.z = z + ((i * 3) % 5 - 2) * 0.18; b.t = i * 0.08; b.life = 0.8; b.r = 0.2 + i * 0.03; } };
@@ -186,8 +191,8 @@ export function buildGiftwasser(level, spec) {
       const b = B[i];
       b.t += d;
       if (b.t > b.life) {
-        b.t = 0; b.life = 1.4 + level.rnd.frac() * 1.6; b.r = 0.12 + level.rnd.frac() * 0.22;
-        b.x = x0 + 0.3 + level.rnd.frac() * (s.x - 0.6); b.z = z0 + 0.3 + level.rnd.frac() * (s.z - 0.6);
+        b.t = 0; b.life = 1.4 + rnd.frac() * 1.6; b.r = 0.12 + rnd.frac() * 0.22;
+        b.x = x0 + 0.3 + rnd.frac() * (s.x - 0.6); b.z = z0 + 0.3 + rnd.frac() * (s.z - 0.6);
       }
       b.x += flow[0] * d; b.z += flow[1] * d;
       if (b.x > x1) b.x -= s.x; if (b.x < x0) b.x += s.x; if (b.z > z1) b.z -= s.z; if (b.z < z0) b.z += s.z;
