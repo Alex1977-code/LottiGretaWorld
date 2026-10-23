@@ -117,7 +117,7 @@ export const LEVEL = {
     { from: -60, to: -122, pitch: 42, dist: 14, ahead: 3.2, lead: 1.3 },
     { from: -122, to: -212, pitch: 42, dist: 14, ahead: 3.4, lead: 1.4 },
     { from: -212, to: -242, pitch: 40, dist: 14, ahead: 3.4, lead: 1.4 },
-    { from: -242, to: -282, pitch: 36, dist: 15, ahead: 4.5, lead: 1.5 },
+    { from: -242, to: -282, pitch: 37, dist: 14, ahead: 4.5, lead: 1.5 },   // Rutschhang: flacher (Rennstrecke, Ausblick)
     { from: -282, to: -310, pitch: 42, dist: 13, ahead: 2.4, lead: 1.2 },
     // Bonus-Oval (Warp-Box, abseits)
     { from: BZ + 20, to: BZ - 20, pitch: 52, dist: 16, ahead: 1.5, area: [BX - 22, BX + 22] },
