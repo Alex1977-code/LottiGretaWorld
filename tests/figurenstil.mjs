@@ -291,6 +291,24 @@ async function pets() {
   await pose('kruemel', { anim: 'scared' }, 30); await shot('kruemel_scared', 'front', 'kruemel', { cam: { h: 0.5 } });
   await pose('kruemel', { anim: 'cheer' }, 20); await shot('kruemel_cheer', 'front', 'kruemel', { cam: { h: 0.5 } });
   await pose('kruemel', { anim: 'idle' }, 20);
+  // Krümel als Diorama-Figur (KruemelRig: Kapitänsmütze, Rucksack, Schwimmring)
+  const kr = await sc(async () => {
+    const H = window.__fs, THREE = H.THREE;
+    const mod = await import('/src/course/archetypes/KruemelRig.js');
+    const pl = { pos: H.base.clone().add(new THREE.Vector3(0, 0, 0)), yaw: -Math.PI / 2 + 0.45, vel: { x: 0, y: 0, z: 0 }, mode: 'ground', state: 'idle', big: true, invuln: 0 };
+    const rig = new mod.KruemelRig(H.view, pl);
+    for (let i = 0; i < 40; i++) rig.update(1 / 60, H.t + i / 60);
+    H.figs.krig = { kind: 'kruemel', hull: rig.hull, rig, scale: 1.35 };
+    H.figs.kruemel.hull.visible = false;
+    H.krig = rig; H.krigP = pl;
+    return true;
+  });
+  if (kr) {
+    await focus('krig');
+    await shot('kruemel_kapitaen', 'front0', 'kruemel', { cam: { h: 0.55, az: 0.25 } });
+    await sc(() => { const H = window.__fs; H.krig.dispose?.(); H.krig.hull.parent?.remove(H.krig.hull); delete H.figs.krig; H.figs.kruemel.hull.visible = true; });
+    await focus('kruemel');
+  }
   // Gruppenbild: Lotti, Pflaume, Krümel nebeneinander (Blick zur Kamera +Z, leicht gedreht)
   await place('hero', -1.05, 0, -Math.PI / 2 + 0.3); await place('pflaume', 0.15, -0.15, -Math.PI / 2 + 0.55); await place('kruemel', 1.25, 0.15, -Math.PI / 2 + 0.35);
   await pose('hero', { state: 'idle' }, 30); await pose('pflaume', { state: 'idle' }, 30); await pose('kruemel', { anim: 'idle' }, 30);
