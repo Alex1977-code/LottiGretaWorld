@@ -57,8 +57,11 @@ export const TOY_KULISSE = new Set([
   'wolkeninsel', 'windrad', 'ruinen_saeule', 'statue_bruch', 'ruinen_torbogen', 'ruinen_treppe', 'ranken',
   'treibsand', 'kaktus', 'palme', 'ruine_saeule', 'sandsteinbogen', 'pyramide', 'fliese', 'bluetenbaum', 'planet',
   'koralle', 'seetang', 'steg', 'holzsteg', 'schiffswrack', 'guardrail', 'river_rock', 'item_tree', 'holzwand_boss', 'holz_silhouette', 'metalltor',
+  'festungsmauer', 'zinnen', 'tempelsaeule', 'steinkopf', 'tempeltreppe', 'brummbaer_relief', 'holzbalken', 'schiene_stueck',
+  'akazie', 'deco_w5_akazie', 'termitenhuegel', 'felsenberg', 'steppengras', 'sandskulptur_pilzling', 'torten_plateau',
 ]);
-const KULISSE_MATS = new Set(['vcol:0.75:w4stone', 'vcol:0.85:w4canyon', 'vcol:0.45:w4giftpilz', 'vcol:0.62:w3snowblock', 'vcol:0.6:w3fir', 'vcol:0.1:w3icicle', 'vcol:0.12:w3icecore', 'metal:w3:iceShell']);
+const KULISSE_MATS = new Set(['vcol:0.75:w4stone', 'vcol:0.85:w4canyon', 'vcol:0.45:w4giftpilz', 'vcol:0.62:w3snowblock', 'vcol:0.6:w3fir', 'vcol:0.1:w3icicle',
+  'vcol:0.12:w3icecore', 'metal:w3:iceShell', 'vcol:0.75:w5grass']);
 const MATS = new Map();
 function cachedMat(key, make, toy) {
   let m = MATS.get(key);
