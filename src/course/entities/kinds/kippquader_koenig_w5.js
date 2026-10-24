@@ -486,7 +486,7 @@ class KippquaderKoenig extends EnemyW2 {
         if (!activeFigure(p) || w.hit.has(p)) continue;
         if (p.pos.y > w.y + 0.45 || p.pos.y + p.half.y * 2 < w.y - 0.2) continue;
         const d = Math.hypot(p.pos.x - w.x, p.pos.z - w.z);
-        if (Math.abs(d - w.r) < 0.3 + p.half.x) { w.hit.add(p); p.hurt({ pos: { x: w.x, y: w.y, z: w.z } }); }
+        if (Math.abs(d - w.r) < 0.3 + p.half.x && p.hurt({ pos: { x: w.x, y: w.y, z: w.z } })) w.hit.add(p);
       }
     }
     this.waves = this.waves.filter((w) => w.r < w.rMax);

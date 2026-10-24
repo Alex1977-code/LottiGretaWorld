@@ -611,6 +611,217 @@ check('Suchkopf-Welle: Alarm in der Abklingzeit verpufft, danach wieder bereit, 
 check('Keine Konsolenfehler (Teil 2)', errors.length === 0);
 }
 
+// =====================================================================================================================
+// Teil 3: Kippquader-König (0-19)
+// =====================================================================================================================
+const BOSS_HELPERS = ([id, startZ]) => {
+  const c = window.__course, t = window.__t, L = c.level;
+  t.boss = () => t.ent(id);
+  t.arch = () => c.state().archetype;
+  t.enter = () => {
+    t.place([0, 2, startZ], { settle: 2 });
+    for (let i = 0; i < 960 && !c.arch.started; i++) { c.setInput({ y: 0.6 }); c.step(1); }
+    c.setInput({});
+    return t.arch();
+  };
+  t.banners = [];
+  const hud = c.arch?.hud;
+  if (hud && !hud._w5) { const orig = hud.banner.bind(hud); hud.banner = (text, o) => { t.banners.push(text); orig(text, o); }; hud._w5 = true; }
+  /** Bis Zustand s; Figur unverwundbar an pos (null = bleibt). */
+  t.untilSafe = (s, n = 3000, pos = null) => {
+    const b = t.boss(), p = c.player;
+    p.hurt = () => false;
+    let i = 0;
+    for (; i < n && b.state !== s; i++) { if (pos) { p.pos.set(pos[0], pos[1], pos[2]); p.vel.set(0, 0, 0); } c.step(1); }
+    delete p.hurt;
+    return i;
+  };
+  /** Von oben auf den liegenden König fallen: Feld-Mitte + along m entlang seiner Blickrichtung (+ side quer). */
+  t.backJump = (along = 0, side = 0, o = {}) => {
+    const b = t.boss(), p = c.player;
+    const f = b.backField(), D = [[1, 0], [0, -1], [-1, 0], [0, 1]][b.facing];
+    const x = f.x + D[0] * along - D[1] * side, z = f.z + D[1] * along + D[0] * side;
+    t.place([x, f.y + (o.h ?? 1.6), z], { settle: 0 });
+    t.fresh();
+    const hp0 = b.hp;
+    let landed = false, bounced = false;
+    if (o.pound) { c.setInput({ crouch: true }); c.step(1); }
+    for (let i = 0; i < 240; i++) {
+      c.setInput({});
+      c.step(1);
+      if (p.mode === 'air' && p.vel.y <= 0) { p.pos.x = x; p.pos.z = z; }
+      if (b.hp < hp0 && p.vel.y > 5) { bounced = true; break; }
+      if (p.mode === 'ground') { landed = true; if (i > 3) break; }
+    }
+    return { hp: b.hp, hit: b.hp < hp0, landed, bounced, onBoss: p.ground?.owner === b, misses: b.misses, x: +x.toFixed(2), z: +z.toFixed(2) };
+  };
+};
+
+if (want(3)) {
+await load('0-19');
+await sc(BOSS_HELPERS, ['koenig', 17]);
+console.log('Teil 3: Kippquader-König 0-19');
+const kk = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const b = t.boss();
+  out.before = { state: b.state, hp: b.hp, maxHp: b.maxHp };
+  const a = t.enter();
+  out.start = { started: a.started, state: b.state, hud: a.hud?.boss?.hp, lock: a.lock };
+  // Auftritt → Gehen: er kommt näher und richtet sich zur Figur aus
+  const fig = [-3, 2, 4];
+  t.untilSafe('walk', 900, fig);
+  const d0 = Math.hypot(b.pos.x - fig[0], b.pos.z - fig[2]);
+  let warnRect = null, warnHint = false;
+  p.hurt = () => false;
+  for (let i = 0; i < 1200 && b.state !== 'warn'; i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  delete p.hurt;
+  c.step(2);
+  warnHint = b.hint.info().shown;
+  warnRect = b.hint.info().rects[0];
+  const lieR = b.lieRect();
+  out.walk = { d0: +d0.toFixed(2), d1: +Math.hypot(b.pos.x - fig[0], b.pos.z - fig[2]).toFixed(2), facing: b.facing, state: b.state, hint: warnHint, rect: warnRect, lie: [lieR.x0, lieR.z0, lieR.x1, lieR.z1].map((v) => +v.toFixed(2)) };
+  // Kippen trifft die Figur in der Landefläche und schiebt sie hinaus
+  t.fresh();
+  const mid = [(lieR.x0 + lieR.x1) / 2 + 0.6, 2, (lieR.z0 + lieR.z1) / 2];
+  let hurtTilt = false;
+  for (let i = 0; i < 400 && b.state !== 'lie'; i++) { if (!hurtTilt) { p.pos.set(mid[0], mid[1], mid[2]); p.vel.set(0, 0, 0); } c.step(1); if (t.hurt()) hurtTilt = true; }
+  const box = b.lyingBox();
+  const inside = p.pos.x > box.x0 && p.pos.x < box.x1 && p.pos.z > box.z0 && p.pos.z < box.z1 && p.pos.y < box.y1 - 0.1;
+  out.tilt = { hurt: hurtTilt, state: b.state, lying: b.lying, inside, tips: b.tips, hint: b.hint.info().shown };
+  // liegend begehbar: Landung daneben (Fußende) zählt nicht
+  const miss = t.backJump(-1.6);
+  out.miss = miss;
+  // Treffer von vorn/seitlich zählt nicht – im Liegen sind Angriffe wirkungslos
+  b.onHit('fire', p); b.onHit('claw', p); b.onHit('bomb', p); b.onHit('star', p); b.onHit('mega', p);
+  out.attacks = b.hp;
+  // Sprung auf das Schwachpunkt-Feld: Treffer (3 → 2), Abprall
+  const back = b.backField();
+  if (b.model) { for (let k = 0; k < 30; k++) { b.syncModel(); b.model.update(0.2, b.modelState()); } }
+  const mb = c.view ? b.model?.back?.() : null;
+  out.backModel = mb ? [+mb.x.toFixed(2), +mb.z.toFixed(2)] : null;
+  out.backField = [+back.x.toFixed(2), +back.z.toFixed(2)];
+  const h1 = t.backJump(0);
+  out.hit1 = { ...h1, hud: t.arch().hud?.boss?.hp, state: b.state };
+  // aufstehen, Ecken brechen weg, Phase 2
+  t.untilSafe('roar', 600, [0, 2, 8]);
+  out.corners1 = ['ecke_vl', 'ecke_vr', 'ecke_hl', 'ecke_hr'].map((id) => t.ent(id).state);
+  t.untilSafe('walk', 600, [0, 2, 8]);
+  c.step(240);
+  out.corners1b = ['ecke_vl', 'ecke_vr'].map((id) => t.ent(id).state);
+  out.phase2 = { phase: b.phase, banners: t.banners.slice() };
+  // stehend: seitliche Berührung verletzt, Kopfsprung prallt ab – beides ohne Schaden für ihn
+  for (let i = 0; i < 900 && b.state !== 'walk'; i++) { p.hurt = () => false; c.step(1); delete p.hurt; }
+  const side = t.touch(b, 6, 1);
+  const head = t.stomp(b, { h: 0.6 });
+  out.standing = { side, head: head.bounced, headHurt: head.hurt, hp: b.hp };
+  // zweiter Treffer (Stampfattacke auf das Feld)
+  t.untilSafe('lie', 3000, [0, 2, 8]);
+  const h2 = t.backJump(0.3, -0.2, { pound: true, h: 2.2 });
+  out.hit2 = { ...h2, pound: b.hitLog[1]?.pound ?? null };
+  t.untilSafe('walk', 900, [0, 2, 8]);
+  out.corners2 = ['ecke_vl', 'ecke_vr', 'ecke_hl', 'ecke_hr'].map((id) => t.ent(id).state);
+  out.phase3 = { phase: b.phase, banners: t.banners.slice(-2) };
+  // Phase 3: Schockwelle beim Aufschlag (verletzt am Boden, drüberspringen geht), Begleit-Kippquader kippen mit
+  t.untilSafe('tilt', 3000, [0, 2, 8]);
+  const kq = [t.ent('kq_l'), t.ent('kq_r')];
+  const kqTips0 = kq.map((q) => q.tips);
+  t.untilSafe('lie', 600, [0, 2, 8]);
+  out.shock = { shocks: b.shocks, waves: b.waves.length, escortTips: b.escortTips };
+  // Welle läuft auf die Figur (≈ 5 m von der Mitte) zu: stehend getroffen
+  const wv = b.waves[0];
+  let shockHurt = false;
+  if (wv) {
+    const sp = [wv.x + 5, 2, wv.z];
+    const okSpot = Math.abs(sp[0]) < 6;
+    const spot = okSpot ? sp : [wv.x - 5, 2, wv.z];
+    t.place(spot, { settle: 0 });
+    t.fresh();
+    for (let i = 0; i < 200 && !shockHurt; i++) { p.pos.set(spot[0], spot[1], spot[2]); p.vel.set(0, 0, 0); c.step(1); shockHurt = t.hurt(); }
+  }
+  out.shock.hurt = shockHurt;
+  t.place([0, 2, 8], { settle: 1 });
+  p.hurt = () => false;
+  c.step(360);
+  delete p.hurt;
+  out.escorts = kq.map((q, i) => q.tips - kqTips0[i]);
+  // dritter Treffer: besiegt
+  t.untilSafe('lie', 3000, [0, 2, 8]);
+  const h3 = t.backJump(0);
+  out.hit3 = { ...h3, defeated: b.defeated, state: b.state };
+  t.untilSafe('gone', 900, [0, 2, 8]);
+  c.step(4);
+  out.gone = { state: b.state, visible: b.visible, won: t.arch().won, warp: t.ent('warp_sieg').hidden, star: t.count('star'), lying: b.lying, banners: t.banners.slice(-3) };
+  // Stern einsammeln, Warp-Box → Plateau → Zielmast
+  const st = L.entities.find((e) => e.kind === 'star' && !e.removed);
+  if (st) t.place([st.pos.x, st.pos.y, st.pos.z], { settle: 60 });
+  out.starTaken = !L.entities.some((e) => e.kind === 'star' && !e.removed);
+  const w = t.ent('warp_sieg');
+  t.place([w.pos.x, w.pos.y + 1.6, w.pos.z], { settle: 0 });
+  let arrived = false;
+  for (let i = 0; i < 1600; i++) { c.step(1); if (p.pos.z < -30 && p.mode !== 'script') { arrived = true; break; } }
+  for (let i = 0; i < 2400 && !c.finished && L.runtime.status === 'play'; i++) { c.setInput({ y: 1 }); c.step(1); }
+  c.setInput({});
+  for (let i = 0; i < 3600 && !c.finished; i++) c.step(1);
+  out.finish = { arrived, finished: c.finished };
+  return out;
+});
+console.log(`  Kippquader-König: ${JSON.stringify(kk)}`);
+check('Kippquader-König: Kampf beginnt beim Betreten (Auftritt, Lebensleiste 3/3, Sperre)', kk.before.state === 'wait' && kk.start.started && kk.start.state === 'intro' && kk.start.hud === 3 && kk.start.lock);
+check(`Er watschelt auf die Figur zu (${kk.walk.d0} → ${kk.walk.d1} m) und kündigt das Kippen mit roter Landefläche an (genau sein Grundriss)`, kk.walk.d1 < kk.walk.d0 - 1 && kk.walk.state === 'warn' && kk.walk.hint && kk.walk.rect && kk.walk.rect.every((v, i) => Math.abs(v - kk.walk.lie[i]) < 0.01));
+check('Kippen trifft die Figur in der Landefläche (hinausgeschoben); danach liegt er (Kollisions-Box), Hinweis weg', kk.tilt.hurt && !kk.tilt.inside && kk.tilt.state === 'lie' && kk.tilt.lying && !kk.tilt.hint);
+check('Liegend begehbar: Landung neben dem Schwachpunkt-Feld zählt nicht; Angriffe (Feuer, Krallen, Bombe, Stern, Riese) zählen nicht', kk.miss.landed && kk.miss.onBoss && !kk.miss.hit && kk.miss.misses >= 1 && kk.attacks === 3);
+check(`Sprung auf das Schwachpunkt-Feld (model.back ${JSON.stringify(kk.backModel)} ≈ ${JSON.stringify(kk.backField)}): Treffer 3 → 2, Abprall, Lebensleiste folgt`, kk.hit1.hit && kk.hit1.hp === 2 && kk.hit1.bounced && kk.hit1.hud === 2 && (!kk.backModel || Math.hypot(kk.backModel[0] - kk.backField[0], kk.backModel[1] - kk.backField[1]) < 0.3));
+check(`Nach Treffer 1 brechen zwei Arenaecken weg (${kk.corners1b.join(', ')}), die hinteren bleiben (${kk.corners1.slice(2).join(', ')})`, kk.corners1b.every((s) => s === 'gone' || s === 'fall') && kk.corners1.slice(2).every((s) => s === 'solid'));
+check(`Phase 2 mit eigener Ansage (${kk.phase2.banners.join(' | ')})`, kk.phase2.phase === 2 && kk.phase2.banners.includes('Er wird schneller!') && kk.phase2.banners.includes('Spring auf den blauen Stern auf seinem Rücken!') && !kk.phase2.banners.some((x) => /wütend|Feuerspur|Bomben/.test(x)));
+check('Stehend: seitliche Berührung verletzt, Kopfsprung prallt ab – kein Treffer für ihn', kk.standing.side && kk.standing.head && !kk.standing.headHurt && kk.standing.hp === 2);
+check('Zweiter Treffer per Stampfattacke auf das Feld (2 → 1); die hinteren Ecken brechen', kk.hit2.hit && kk.hit2.hp === 1 && kk.hit2.pound === true && kk.corners2.every((s) => s !== 'solid'));
+check(`Phase 3: Ansage, Schockwelle beim Aufschlag (verletzt am Boden), Begleit-Kippquader kippen mit (${kk.escorts.join('/')})`, kk.phase3.phase === 3 && kk.phase3.banners.some((x) => /Welle/.test(x)) && kk.shock.shocks >= 1 && kk.shock.hurt && kk.shock.escortTips === 2 && kk.escorts.every((n) => n >= 1));
+check('Dritter Treffer besiegt ihn: zerbröckelt → gone, Archetyp siegt, Stern erscheint, Warp-Box sichtbar', kk.hit3.hit && kk.hit3.hp === 0 && kk.hit3.defeated && kk.gone.state === 'gone' && !kk.gone.visible && kk.gone.won && kk.gone.warp === false && kk.gone.star === 1 && !kk.gone.lying);
+check('Stern einsammeln, Warp-Box führt zum Zielplateau, Zielmast beendet das Level', kk.starTaken && kk.finish.arrived && kk.finish.finished);
+
+// Tod im Kampf setzt alles zurück (König, Ecken, Begleit-Kippquader); Klon: er zielt auf die nächste Figur
+await load('0-19');
+await sc(BOSS_HELPERS, ['koenig', 17]);
+const kr = await sc(() => {
+  const c = window.__course, t = window.__t, L = c.level, p = c.player;
+  const b = t.boss();
+  t.enter();
+  const out = {};
+  t.untilSafe('lie', 3000, [0, 2, 8]);
+  t.backJump(0);
+  out.hpBefore = b.hp;
+  t.untilSafe('walk', 900, [0, 2, 8]);
+  c.step(240);
+  out.cornersBefore = t.ent('ecke_vl').state;
+  p.die('hit');
+  for (let i = 0; i < 2400 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1);
+  c.step(10);
+  out.reset = { state: b.state, hp: b.hp, lying: b.lying, started: t.arch().started, deaths: t.arch().deaths, z: +b.pos.z.toFixed(2), corners: ['ecke_vl', 'ecke_vr', 'ecke_hl', 'ecke_hr'].map((id) => t.ent(id).state), kq: ['kq_l', 'kq_r'].map((id) => t.ent(id).running) };
+  // erneut betreten: Kampf von vorn
+  const a = t.enter();
+  out.again = { started: a.started, state: b.state, hp: b.hp };
+  // Klon: er richtet sich zur nächsten Figur aus
+  if (typeof L.addClone === 'function') {
+    t.untilSafe('walk', 900, [0, 2, 8]);
+    const q = c.player;
+    q.hurt = () => false;
+    const k = L.addClone(q);
+    if (k) {
+      k.hurt = () => false;
+      for (let i = 0; i < 400; i++) { q.pos.set(-4, 2, 8); k.pos.set(7.5, 2, -1); q.vel.set(0, 0, 0); k.vel.set(0, 0, 0); c.step(1); }
+      out.clone = { target: b.player === k, facing: b.facing };
+    }
+    delete q.hurt;
+  }
+  return out;
+});
+console.log(`  Kippquader-König Tod/Klon: ${JSON.stringify(kr)}`);
+check('Kippquader-König zielt auf die nächste Figur (Klon) und blickt zu ihr (+X)', !kr.clone || (kr.clone.target && kr.clone.facing === 0));
+check('Tod im Kampf: Neustart, König 3/3 am Startplatz, Ecken wieder fest, Begleit-Kippquader ruhen, Kampf von vorn', kr.hpBefore === 2 && kr.cornersBefore !== 'solid' && kr.reset.state === 'wait' && kr.reset.hp === 3 && !kr.reset.lying && !kr.reset.started && kr.reset.deaths === 1 && kr.reset.z === -5 && kr.reset.corners.every((s) => s === 'solid') && kr.reset.kq.every((r) => r === false) && kr.again.started && kr.again.state === 'intro');
+check('Keine Konsolenfehler (Teil 3)', errors.length === 0);
+}
+
 // __TEILE__
 
 // __ENDE__
