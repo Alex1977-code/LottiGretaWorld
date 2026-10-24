@@ -43,7 +43,7 @@ function addMerlons(b, L, T, y0) {
 function mauerGeo(L, H, T, zinnen) {
   return cached(`w5:mauer:${L}:${H}:${T}:${zinnen}`, () => {
     const b = new Build();
-    b.box(L - 0.04, H - 0.04, T - 0.12, FM.mortar, { p: [0, H / 2, 0] }, 0.02, 1);
+    b.box(L - 0.16, H - 0.08, T - 0.12, FM.mortar, { p: [0, H / 2, 0] }, 0.02, 1);
     const rows = Math.max(1, Math.round(H / 0.7)), rh = H / rows;
     for (let r = 0; r < rows; r++) {
       let x = -L / 2;
@@ -99,7 +99,10 @@ function alarmBaseGeo() {
 function buildAlarmlampe() {
   const root = new THREE.Group();
   const own = [];
-  root.add(mesh(alarmBaseGeo(), vcol(0.4, { metalness: 0.2 }, 'w5alarm'), {}, true));
+  const S = joint();
+  S.scale.setScalar(1.35);
+  root.add(S);
+  S.add(mesh(alarmBaseGeo(), vcol(0.4, { metalness: 0.2 }, 'w5alarm'), {}, true));
   const domeMat = ownMat(vcol(0.15), { emissive: 0x000000, transparent: true, opacity: 0.92 });
   own.push(domeMat);
   const dome = mesh(cached('w5:alarm:dome', () => new Build().dome(0.2, gradV(0xb81a1a, 0xff7a6a), { s: [1, 1.15, 1] }, Math.PI / 2, 24, 10).geometry()), domeMat, { p: [0.42, 0.1, 0] });
@@ -113,7 +116,7 @@ function buildAlarmlampe() {
   const glow = glowSprite(0xff3a2a, 1.4, 0);
   glow.material = glow.material.clone(); own.push(glow.material);
   glow.position.set(0.42, 0.2, 0);
-  root.add(dome, beams, glow);
+  S.add(dome, beams, glow);
   const clk = new Clock();
   let k = 0;
   const update = (dt, st) => {
@@ -188,13 +191,17 @@ function treppeGeo(n, W, rise, run, walls) {
     if (walls) {
       const L = n * run;
       for (const s of [1, -1]) {
-        const g = new THREE.BoxGeometry(L + 0.2, 1, 0.4, 1, 1, 1);
+        // Wange: schräger Steinbalken knapp über den Stufenkanten
+        const g = new THREE.BoxGeometry(L, 1, 0.32, 1, 1, 1);
         const P = g.attributes.position;
-        for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i); const top = rise * n * ((x + (L + 0.2) / 2) / (L + 0.2)) + 0.45; P.setY(i, y > 0 ? top : 0); P.setX(i, x + L / 2 - 0.1); }
+        for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i); const u = (x + L / 2) / L; const top = rise * n * u + 0.28; P.setY(i, y > 0 ? top : Math.max(0, rise * n * u - 0.5)); P.setX(i, x + L / 2); }
         g.computeVertexNormals();
-        b.add(g, gradV(TP.low, TP.stone, 0.5, 0.5), { p: [0, 0, s * (W / 2 + 0.2)] });
-        b.box(0.5, 0.25, 0.5, stoneV, { p: [-0.05, 0.55, s * (W / 2 + 0.2)] }, 0.06, 2);
-        b.sphere(0.12, gradV(0xc88a10, TP.goldHi), { p: [-0.05, 0.74, s * (W / 2 + 0.2)] }, 14, 10);
+        b.add(g, gradV(TP.low, TP.stone, 0.5, 0.5), { p: [0, 0, s * (W / 2 + 0.16)] });
+        // Pfosten mit Goldkugel unten und oben
+        for (const [px, py] of [[0.15, 0.0], [L - 0.15, rise * n]]) {
+          b.box(0.42, py + 0.62, 0.42, stoneV, { p: [px, (py + 0.62) / 2, s * (W / 2 + 0.16)] }, 0.06, 2);
+          b.sphere(0.12, gradV(0xc88a10, TP.goldHi), { p: [px, py + 0.72, s * (W / 2 + 0.16)] }, 14, 10);
+        }
       }
     }
     return b.geometry();

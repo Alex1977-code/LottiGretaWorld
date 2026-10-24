@@ -177,9 +177,9 @@ function cellEdge(x, y, z, s) {
 }
 const SPECIES = {
   giraffe: {
-    hipY: 1.62, legLen: 1.45, legR: 0.075, hoof: 0x5a3a2a, hips: [[0.42, 0.17], [0.42, -0.17], [-0.42, 0.17], [-0.42, -0.17]],
-    torso: { c: [0, 1.88, 0], r: [0.68, 0.4, 0.34] }, neck: [[0.42, 1.95, 0], [0.62, 2.55, 0], [0.82, 3.15, 0]], neckR: [0.19, 0.11],
-    head: [0.86, 3.25, 0], tail: [-0.66, 2.0, 0], tailLen: 0.7,
+    hipY: 1.38, legLen: 1.22, legR: 0.095, hoof: 0x5a3a2a, hips: [[0.4, 0.2], [0.4, -0.2], [-0.4, 0.2], [-0.4, -0.2]],
+    torso: { c: [0, 1.66, 0], r: [0.74, 0.46, 0.4] }, neck: [[0.46, 1.78, 0], [0.66, 2.4, 0], [0.84, 3.0, 0]], neckR: [0.22, 0.14],
+    head: [0.88, 3.12, 0], headScale: 1.25, tail: [-0.72, 1.8, 0], tailLen: 0.7,
     fur: 0xffe0a0, patch: 0xd8862a, belly: 0xfff2d0, muzzle: 0xfff0d8, nose: 0x8a5a3a,
   },
   zebra: {
@@ -314,6 +314,7 @@ function buildAnimal(kind) {
     const pose = joint();
     const body = mesh(animalBodyGeo(kind), vcol(0.45), {}, true);
     const head = joint(S.head);
+    if (S.headScale) head.scale.setScalar(S.headScale);
     const headM = mesh(animalHeadGeo(kind), vcol(0.42), {}, true);
     const eyeList = kind === 'elefantenkind'
       ? [{ p: [0.27, 0.06, 0.15], r: 0.075, sy: 1.3, dir: [1, 0.1, 0.55] }, { p: [0.27, 0.06, -0.15], r: 0.075, sy: 1.3, dir: [1, 0.1, -0.55] }]

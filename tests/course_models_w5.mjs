@@ -547,7 +547,7 @@ if (part('views')) {
       const ok = list.filter(([n]) => cm.reg.hasModel(n));
       ok.forEach(([n, o, s], i) => {
         const col = i % 6, row = Math.floor(i / 6);
-        cm.put(n, o, s, (col - 2.5) * 2.6, 1.6 - row * 3.2, i % 2 ? -Math.PI / 2 : Math.atan2(-0.3, 1), 24, n.replace(/_.*/, ''));
+        cm.put(n, o, s, (col - 2.5) * 2.6, 0.4 - row * 3.4, i % 2 ? -Math.PI / 2 : Math.atan2(-0.3, 1), 24, n.replace(/_.*/, ''));
       });
       cm.cam([0, 0.4, -3.2], 45 * Math.PI / 180, 13, 45);
     }, [ENEMIES.concat([GIMMICKS[0], GIMMICKS[9], GIMMICKS[4], GIMMICKS[7], BOSSES[2]]).map(([n, o, s]) => [n, o, s]),

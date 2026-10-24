@@ -430,7 +430,7 @@ function buildKippquader(opts = {}) {
   if (face) {
     const top = hole ? (Math.min(sy - 0.4, hole[1]) / 2 + sy / 2) / 2 : 0;
     const ey = hole ? top : sy * 0.16;
-    const ex = Math.min(sx * 0.22, 0.6), er = Math.min(0.26, sx * 0.11, hole ? (sy / 2 - Math.min(sy - 0.4, hole[1]) / 2) * 0.32 : 1);
+    const ex = Math.min(sx * 0.22, 0.6), er = Math.min(0.3, sx * 0.14, hole ? (sy / 2 - Math.min(sy - 0.4, hole[1]) / 2) * 0.34 : 1);
     eye = eyes([{ p: [ex, ey, -sz / 2 - 0.01], r: er, sy: 1.1, dir: [0.12, 0, -1] }, { p: [-ex, ey, -sz / 2 - 0.01], r: er, sy: 1.1, dir: [-0.12, 0, -1] }],
       { key: `w5:kq:${ex.toFixed(2)}:${ey.toFixed(2)}:${er.toFixed(2)}:${sz}`, iris: 0xff7a1a, pupil: 0.55, depth: 0.5 });
     inner.add(eye);

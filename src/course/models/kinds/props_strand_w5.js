@@ -139,15 +139,16 @@ function korbGeo(color) {
     b.box(0.16, 1.0, 1.3, wick, { p: [-0.37, 1.05, 0] }, 0.07, 2);
     for (const sz of [1, -1]) b.box(0.62, 0.42, 0.12, wick, { p: [-0.06, 0.77, sz * 0.6] }, 0.05, 2);
     // gewölbtes Dach (halbe Röhre entlang Z), außen Geflecht, innen Stoff
-    const roof = new THREE.CylinderGeometry(0.55, 0.55, 1.3, 28, 1, true, Math.PI, Math.PI * 0.75);
+    // Dach: Geflecht außen (Viertel- bis Halbröhre von hinten über oben nach vorn), Stoff innen
+    const roof = new THREE.CylinderGeometry(0.56, 0.56, 1.3, 28, 6, true, Math.PI * 0.8, Math.PI * 0.7);
     roof.rotateX(Math.PI / 2);
-    b.add(roof, wick, { p: [-0.0, 1.5, 0], r: [0, 0, 0] });
-    const roofIn = new THREE.CylinderGeometry(0.5, 0.5, 1.26, 28, 1, true, Math.PI, Math.PI * 0.75);
-    roofIn.rotateX(Math.PI / 2); roofIn.scale(-1, 1, 1);
-    b.add(roofIn, stripeV(C, 'z', 5), { p: [-0.0, 1.5, 0] });
-    // Dachkante (Wulst) und Geflecht-Bänder
-    b.torus(0.55, 0.04, KORB.band, { p: [0, 1.5, 0.65], r: [0, 0, Math.PI * 0.25] }, 6, 24, Math.PI * 0.75);
-    b.torus(0.55, 0.04, KORB.band, { p: [0, 1.5, -0.65], r: [0, 0, Math.PI * 0.25] }, 6, 24, Math.PI * 0.75);
+    b.add(roof, (x, y, z) => ((((Math.floor((y + 0.6) * 9) + Math.floor(z * 6)) % 2) + 2) % 2 ? KORB.wickHi : KORB.wick), { p: [0, 1.5, 0] });
+    const roofIn = new THREE.CylinderGeometry(0.5, 0.5, 1.26, 28, 1, true, Math.PI * 0.8, Math.PI * 0.7);
+    roofIn.rotateX(Math.PI / 2);
+    b.add(roofIn, stripeV(C, 'z', 5), { p: [0, 1.5, 0] });
+    // Dachkanten (Wulst) und Geflecht-Bänder
+    for (const z of [0.65, -0.65]) b.torus(0.53, 0.05, KORB.band, { p: [0, 1.5, z], r: [0, 0, Math.PI * 0.3] }, 6, 24, Math.PI * 0.7);
+    b.capsule(0.05, 1.25, KORB.band, { p: [0.32, 1.94, 0], r: [Math.PI / 2, 0, 0] }, 3, 8);
     for (const y of [0.2, 0.38, 0.52]) b.box(0.92, 0.025, 1.32, KORB.band, { p: [0, y, 0] }, 0.01, 1);
     for (const y of [0.75, 0.95, 1.15, 1.35]) b.box(0.18, 0.025, 1.32, KORB.band, { p: [-0.37, y, 0] }, 0.01, 1);
     // Futter innen, Sitzkissen, Armlehnen-Polster, Fußstützen
