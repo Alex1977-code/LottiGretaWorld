@@ -999,10 +999,10 @@ export class HeroAvatar extends Avatar3D {
     const E = heroEyeGeos(st);
     this.eyes = smesh(E.open, gloss, false); this.eyes.position.y = E.eyeY;
     this.eyesClosed = smesh(E.closed, gloss, false); this.eyesClosed.position.y = E.eyeY; this.eyesClosed.visible = false;
-    // Glanzpunkte als Kind der offenen Augen: blinzeln mit, verschwinden mit geschlossenen Augen
-    this.eyeHl = smesh(E.hl, basicMat('white', { color: 0xffffff }), false);
-    this.eyes.add(this.eyeHl);
-    this.head.add(this.eyes, this.eyesClosed);
+    // Glanzpunkte (eigenes Mesh neben den Augen, folgt deren Maßstab; bei geschlossenen Augen auf ~0 skaliert – so bleibt
+    // die Zahl sichtbarer Meshes/Zeichenaufrufe beim Blinzeln gleich)
+    this.eyeHl = smesh(E.hl, basicMat('white', { color: 0xffffff }), false); this.eyeHl.position.y = E.eyeY;
+    this.head.add(this.eyes, this.eyesClosed, this.eyeHl);
     const mf = HEAD.frame(0, FACE.mouthEl - 0.035);
     const mouthC = HEAD.point(mf.d, -0.002);
     this.mouthO = smesh(mouthGeo(), gloss, false);
@@ -1210,6 +1210,7 @@ export class HeroAvatar extends Avatar3D {
     const ey = Math.max(0.06, open);
     const k = ey < 1 ? 1 + 0.04 * (1 - ey) : 1;
     this.eyes.scale.set(k, ey, k);
+    if (closed) this.eyeHl.scale.setScalar(1e-4); else this.eyeHl.scale.copy(this.eyes.scale);
   }
 
   animate(dt, t) {
@@ -2498,9 +2499,8 @@ export class PflaumeAvatar extends Avatar3D {
     const E = rabbitEyeGeos();
     this.eyes = smesh(E.open, gloss, false); this.eyes.position.y = E.eyeY;
     this.eyesClosed = smesh(E.closed, gloss, false); this.eyesClosed.position.y = E.eyeY; this.eyesClosed.visible = false;
-    this.eyeHl = smesh(E.hl, basicMat('white', { color: 0xffffff }), false);
-    this.eyes.add(this.eyeHl);
-    this.head.add(this.eyes, this.eyesClosed);
+    this.eyeHl = smesh(E.hl, basicMat('white', { color: 0xffffff }), false); this.eyeHl.position.y = E.eyeY;
+    this.head.add(this.eyes, this.eyesClosed, this.eyeHl);
     const mf = RHEAD.frame(0, -0.4);
     this.mouthO = smesh(mouthGeo(), gloss, false);
     this.mouthO.position.copy(RHEAD.point(mf.d, -0.002));
@@ -2662,7 +2662,7 @@ export class PflaumeAvatar extends Avatar3D {
       if (this.gear) for (const g of this.gear) g.visible = false;
       this.powerKey = null; // Klassik setzt die Halstuchfarbe neu
       // Gesicht neutral (Augen offen, Mund zu) – wie im Klassik-Stand
-      this.eyes.visible = true; this.eyesClosed.visible = false; this.eyes.scale.set(1, 1, 1);
+      this.eyes.visible = true; this.eyesClosed.visible = false; this.eyes.scale.set(1, 1, 1); this.eyeHl.scale.set(1, 1, 1);
       this.mouthO.visible = false; this.mouthO.scale.setScalar(0.001);
     }
     return this;
