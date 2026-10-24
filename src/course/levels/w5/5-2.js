@@ -17,7 +17,7 @@
 // Gegner: Schnappblume 16, Riesenschnappblume 4, Funkenling 4, Pilzling 6 (Riesentrank-Gasse).
 
 import {
-  line, arc, ring, column, areaMoods, schattenDiaet,
+  line, arc, ring, column, areaMoods, schattenDiaet, zirkusScheiben,
 } from './_helpers_a.js';
 
 const Y0 = 1, Y1 = 9, YC = 5, YD = 10, YF = 14;
@@ -64,9 +64,12 @@ export const GONDOLA = {
 /** Level-Haken: Stimmung im Blaumünzen-Raum, Budget. */
 function setup(level) {
   areaMoods(level, {
-    raum: { fog: { color: 0x1a1030, near: 12, far: 60 }, background: 0x140c24, hemi: { sky: 0xd8c8ff, ground: 0x3a1a5a, intensity: 1.1 }, sun: { color: 0xe0d0ff, intensity: 1.6 }, dome: 0x2a1a4a },
+    raum: { fog: { color: 0x1a1030, near: 12, far: 60 }, background: 0x140c24, hemi: { sky: 0xc8b8ff, ground: 0x3a1a5a, intensity: 0.85 }, sun: { color: 0xffe8d0, intensity: 1.25 }, dome: 0x2a1a4a },
   }, [{ min: [ROOM.x0 - 2, ROOM.z1 - 2], max: [ROOM.x1 + 2, ROOM.z0 + 2], mood: 'raum' }]);
   schattenDiaet(level, ['schnappblume', 'riesenschnappblume', 'pilzling', 'funkenling'], 1);
+  level.world.add({ type: 'box', min: [ROOM.x0 - 0.6, YF + 5, ROOM.z1 - 0.6], max: [ROOM.x1 + 0.6, YF + 5.6, ROOM.z0 + 0.6], camIgnore: true, tag: 'raum:decke' });
+  zirkusScheiben(level, DISCS.map((z, i) => ({ id: `scheibe${i + 1}`, pos: [0, YF - 0.5, z], r: 3.2, thick: 0.5,
+    colors: i === 1 ? [0x2f7bff, 0xfff4e0, 0xff6fb5, 0xfff4e0, 0x35c24a, 0xfff4e0, 0xffc21a, 0xfff4e0] : undefined })));
 }
 
 export const LEVEL = {
@@ -196,9 +199,26 @@ export const LEVEL = {
     ...TRAPEZE.b.map((z, i) => ({ type: 'trapez', id: `tb${i + 1}`, pos: [0, YF + 6.2, z], length: 3, swing: 30, color: ['gold', 'rot', 'blau'][i] })),
 
     // =============================================================== Blaumünzen-Raum (abseits)
-    { type: 'room', pos: [(ROOM.x0 + ROOM.x1) / 2, YF, (ROOM.z0 + ROOM.z1) / 2], size: [ROOM.x1 - ROOM.x0, 5, ROOM.z0 - ROOM.z1], style: 0x6a2ad0, top: 'stone' },
+    // ohne Decke (die halb durchsichtige Decke legte einen hellen Schleier über den Raum; Kollisionsdecke im Haken) und mit
+    // einem Zirkusteppich als Boden
+    { type: 'room', pos: [(ROOM.x0 + ROOM.x1) / 2, YF, (ROOM.z0 + ROOM.z1) / 2], size: [ROOM.x1 - ROOM.x0, 5, ROOM.z0 - ROOM.z1], style: 0x6a2ad0, ceiling: false, floor: false },
     { type: 'pipe', id: 'p_blau_raum', pos: [ROOM.x0 + 2.4, YF, ROOM.z0 - 2.4], height: 1.2, color: 'blue' },
     { type: 'pipe', id: 'p_blau_zurueck', pos: [ROOM.x1 - 2.4, YF, ROOM.z0 - 2.4], height: 1.2, color: 'blue', target: 'p_blau' },
+    { type: 'deco_w1b', items: [
+      // kleine Manege mitten im Raum (nur Optik), Vorhang, Wimpel und Lichter an den Wänden
+      stageZ(ROOM.x0 - 0.6, ROOM.x1 + 0.6, ROOM.z0 + 0.6, ROOM.z1 - 0.6, YF, { color: 0x4a24a8, h: 1, bulbs: false }),
+      { kind: 'stage', round: true, pos: [(ROOM.x0 + ROOM.x1) / 2, YF - 0.255, (ROOM.z0 + ROOM.z1) / 2], size: [11.6, 0.3, 11.6], color: 0xd0302a, star: true, noCollision: true, bulbs: false },
+      { kind: 'curtain', pos: [(ROOM.x0 + ROOM.x1) / 2, YF, ROOM.z1 + 0.25], size: [ROOM.x1 - ROOM.x0 - 1, 4.6], color: 0x2a4fd0 },
+      { kind: 'bunting', from: [ROOM.x0 + 0.4, YF + 4.4, ROOM.z1 + 0.6], to: [ROOM.x1 - 0.4, YF + 4.4, ROOM.z1 + 0.6], sag: 0.9, n: 18 },
+      { kind: 'bulbs', from: [ROOM.x0 + 0.3, YF + 3.9, ROOM.z0 - 0.6], to: [ROOM.x0 + 0.3, YF + 3.9, ROOM.z1 + 0.6], sag: 0.6, n: 18 },
+      { kind: 'bulbs', from: [ROOM.x1 - 0.3, YF + 3.9, ROOM.z0 - 0.6], to: [ROOM.x1 - 0.3, YF + 3.9, ROOM.z1 + 0.6], sag: 0.6, n: 18 },
+      { kind: 'balloons', pos: [ROOM.x0 + 1.4, YF, ROOM.z1 + 1.4], n: 5, size: 2 },
+      { kind: 'balloons', pos: [ROOM.x1 - 1.4, YF, ROOM.z1 + 1.4], n: 5, size: 2 },
+      { kind: 'drum', pos: [ROOM.x0 + 1.5, YF, -178.5], size: [1.6, 0.9], color: 'yellow' },
+      { kind: 'drum', pos: [ROOM.x1 - 1.5, YF, -178.5], size: [1.6, 0.9], color: 'blue' },
+      { kind: 'ball', pos: [ROOM.x1 - 1.6, YF, -182.6], size: 0.6 },
+    ] },
+    sign(ROOM.x0 + 2.4, YF, -174.6, 'Drück den\nSchalter!', { size: [2, 0.8] }),
 
     // =============================================================== 4  Finale
     { type: 'deco_w1b', items: [

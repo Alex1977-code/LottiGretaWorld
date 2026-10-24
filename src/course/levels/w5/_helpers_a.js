@@ -8,7 +8,7 @@
 //                 den Stern, sobald die Krabbelkäfer besiegt sind), Rettungsturm, Leuchtturm, Strandtücher, Krabben,
 //                 springende Delfine, Brandungsschaum, Stimmung je Bereich (Grotte), Glitzerkristalle, Tropfsteine,
 //                 Lichtschächte.
-//   Zirkus (5-2)  in eigener Abteilung weiter unten.
+//   Zirkus (5-2)  bunte, mitdrehende Hüllen für die Drehscheiben (ganz unten).
 // Statische Teile gehen über addStatic in die Abschnitts-Meshes (keine zusätzlichen Zeichenaufrufe), belebte
 // Kleinigkeiten sind je ein Mesh bzw. eine Instanz-Gruppe ohne Sonnenschatten.
 
@@ -296,7 +296,7 @@ export function rettungsturm(level, x, y, z, o = {}) {
   const W = 2.8;
   level.world.add({ type: 'box', min: [x - W / 2, top - 0.3, z - W / 2], max: [x + W / 2, top, z + W / 2], tag: 'rettungsturm' });
   for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) level.world.add({ type: 'cyl', x: x + dx * (W / 2 - 0.2), z: z + dz * (W / 2 - 0.2), r: 0.14, y0: y, y1: top - 0.3, tag: 'rettungsturm:bein' });
-  // Treppe (0,5-m-Stufen) nach +Z
+  // Treppe (Stufen ≤ 0,27 m hoch, 0,45 m tief) nach +Z
   const steps = Math.ceil((top - y) / 0.27), RUN = 0.45;
   if (o.stairs !== false) {
     for (let i = 0; i < steps - 1; i++) {
@@ -703,4 +703,54 @@ export function schattenDiaet(level, kinds, keep = 1) {
   apply();
   let t = 0;
   level.onStep((dt) => { t += dt; if (t > 0.5) { t = 0; apply(); } });
+}
+
+// =====================================================================================================================
+// Zirkus (5-2)
+// =====================================================================================================================
+
+/**
+ * Bunte Zirkus-Hülle für Drehscheiben (drehplattform axis 'y', arms 0): Tortenstücke in Zirkusfarben, Goldrand und
+ * gestreifte Seite; dreht sich mit der Scheibe (Winkel aus dem benannten Griff) – so sieht man, dass sie sich dreht.
+ * list = [{ id, pos (wie die Scheibe: Mitte der Unterseite), r (= length), thick: 0.5, colors }]. 1 Mesh je Scheibe.
+ */
+export function zirkusScheiben(level, list) {
+  if (!level.view) return;
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 });
+  for (const s of list) {
+    const h = level.named.get(s.id);
+    if (!h) continue;
+    const R = s.r, T = s.thick ?? 0.5;
+    const cols = s.colors ?? [0xe8323a, 0xfff4e0, 0xffc21a, 0xfff4e0, 0x2f7bff, 0xfff4e0, 0x35c24a, 0xfff4e0];
+    const parts = [];
+    const n = cols.length;
+    for (let i = 0; i < n; i++) {
+      const g = new THREE.CircleGeometry(R - 0.26, 4, (i / n) * TAU, TAU / n);
+      g.rotateX(-Math.PI / 2);
+      g.translate(0, T + 0.014, 0);
+      parts.push(fill(g, cols[i]));
+    }
+    const rim = new THREE.RingGeometry(R - 0.3, R + 0.05, 40, 1);
+    rim.rotateX(-Math.PI / 2);
+    rim.translate(0, T + 0.016, 0);
+    parts.push(fill(rim, 0xffc21a));
+    const stripes = 20;
+    for (let i = 0; i < stripes; i++) {
+      const g = new THREE.CylinderGeometry(R + 0.05, R * 0.97, T + 0.05, 2, 1, true, (i / stripes) * TAU, TAU / stripes);
+      g.translate(0, T / 2 - 0.005, 0);
+      parts.push(fill(g, i & 1 ? 0xfff4e0 : 0xe8323a));
+    }
+    // Goldnieten auf dem Rand
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * TAU;
+      const b = new THREE.SphereGeometry(0.09, 6, 3, 0, TAU, 0, Math.PI / 2);
+      b.translate(Math.cos(a) * (R - 0.12), T + 0.016, -Math.sin(a) * (R - 0.12));
+      parts.push(fill(b, 0xfff3b0));
+    }
+    const mesh = new THREE.Mesh(merge(parts), mat);
+    mesh.name = `zier:${s.id}`;
+    mesh.receiveShadow = true;
+    mesh.position.set(s.pos[0], s.pos[1], s.pos[2]);
+    addObject(level, mesh, () => { mesh.rotation.y = h.angle; });
+  }
 }
