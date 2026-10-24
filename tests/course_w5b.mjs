@@ -173,6 +173,8 @@ const ROUTES = {};
         legs: [{ to: [-3.6, -98.2], within: 0.15, run: false, slow: 0.5 }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', filter: 'oneup', max: 900 }] },
       { name: 'Extraleben: kleinen Hasen fangen', from: [-14, Y3, -188], heroes: ['lotti'], expectLives: 1,
         legs: [{ chaseKind: 'bunny', filter: 'hase1', max: 3600 }, { wait: 30 }, { chaseKind: 'powerup', filter: 'oneup', max: 900 }] },
+      { name: 'Ameisen-Wandspur: auf die kletternde Ameise springen, sie trägt die Figur die Wand hinauf zum Gipfel', from: [-1.6, T3, -85.5], heroes: ['lotti', 'greta'],
+        legs: [{ to: [-1.6, -87.3], within: 0.2, run: false }, { antRide: 'wandameise', x: -3, to: [-3, -92] }, { expect: 'gipfel' }] },
       { name: 'Alles in einem Lauf (3 Sterne + Stempel + Ziel) unter 400 s', allInOne: true, heroes: ['lotti'] },
     ],
     // alles in einem Lauf: Kanone → Mulde (Stern 0) → Gipfel → Kanone 2 → Hase (Stern 1) → Ameisenbau (Stempel) → Hohe
@@ -356,6 +358,7 @@ function install() {
     sternKraft: () => P().power === 'stern',
     aufSims: () => P().pos.y > 23.5 && P().pos.y < 30,
     aufPlateau: () => P().pos.y > 38.5,
+    gipfel: () => P().pos.y > 18.5,
   };
   const W = {
     place(pos, o = {}) {
@@ -520,6 +523,22 @@ function install() {
         }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)
         if (Lg.orbit !== undefined) { c.arch?.setOrbit?.(Lg.orbit); tick({}); continue; }
+        if (Lg.antRide) {
+          // Ameise an der Wand: warten, bis sie knapp über dem Boden hinaufläuft, aufspringen (über ihr landen), mitfahren
+          const a = named(Lg.antRide);
+          let w = 0, prevY = a.pos.y;
+          for (; w < 6000; w++) { tick({}); const up = a.pos.y > prevY + 1e-4; prevY = a.pos.y; if (up && a.onWall && a.pos.y - P().pos.y < 0.3) break; }
+          let k = 0, rodeAnt = 0;
+          for (; k < 900; k++) {
+            const q = P(), dx = Lg.x - q.pos.x;
+            tick({ ...(q.mode === 'air' && k > 6 ? this.stick(dx, -0.2, Math.min(1, Math.abs(dx) * 2)) : {}), jump: k < 40 });
+            if (a.riders?.size) rodeAnt++;
+            if (rodeAnt && !a.onWall && P().mode === 'ground') break;
+          }
+          for (let m = 0; m < 600; m++) { const q = P(), dx = Lg.to[0] - q.pos.x, dz = Lg.to[1] - q.pos.z; if (Math.hypot(dx, dz) < 0.4) break; tick({ ...this.stick(dx, dz, 1) }); }
+          log.push(['Ameisenritt', w, k, rodeAnt, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          continue;
+        }
         if (Lg.tap) {
           // Antippen wie im Spiel: Bildschirm-Tipp auf die Zielmitte (Strahl von der Kamera), danach kurz warten
           const h = named(Lg.tap);

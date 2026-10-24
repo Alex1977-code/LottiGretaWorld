@@ -4063,7 +4063,8 @@ level-lokal (Hilfsdatei, Haken `LEVEL.build`/`LEVEL.setup`).
 - Gebänderte Tafelberge ragen aus der goldenen Ebene (Thema-Boden y −22); Flanken `cliffSkirt` (Umriss-Prisma mit Bändern,
   nach unten breiter, nur Darstellung), Böden `savannaFloor` (Grasflecken, Blumen, Büsche), Trampelpfade, Giraffen,
   Heißluftballons. Abschnitte (≈ 280 m): **Startsäule** (y 10) mit Röhrenkanone ≈ 43 m zum **Kletterberg** (Terrassen
-  7 → 10,5 → 14,5 → 19: Ameisenkreise, Rampe, Glasröhren, Wuschel, Ameisen-Wandspur, Gipfel mit **Drehbrücke** und
+  7 → 10,5 → 14,5 → 19: Ameisenkreise, Rampe, Glasröhren, Wuschel, Ameisen-Wandspur – auf die kletternde Ameise
+  springen, sie trägt die Figur hinauf –, Gipfel mit **Drehbrücke** und
   zweiter Kanone) → **dritter Berg** (60 × 74 m, y 9: Checkpoint, Wasserlöcher, Hasen, Ameisenstrom in das Loch eines
   Ameisenhügels) → **Hohe Wand** (30 m: ?-Block mit Funkelstern am Eingang, Glasröhre zum Sims mit drei Wuscheln, zweite
   Glasröhre ganz hinauf) → **Plateau** (y 39) mit zwei Drehbalken (`drehplattform`), Insel mit Sternring, Zielmast.
@@ -4096,7 +4097,7 @@ Port 4480 (+ `PORT_BASE`), Aufruf `node tests/course_w5b.mjs [5-3|5-A|5-4|5-Kapi
 `DETAIL=1` (Zeichenaufrufe je Objekt), Bilder `tests/out/w5b_*.png`. Bot mit echter Eingabe (`setInput`/`step`, Stick
 relativ zur Kamera-Gier); Beine u. a. `poundAt`, `gather`/`liftTop` (Klone, Lifte), `climbOnto`, `ride` (Kanone, Röhre,
 Warp-Box, Tür), `rideInput` (Stick in der Röhre: Abzweig), `bar` (Drehbalken: Arm abwarten, zur Nabe, Arm zum Ziel,
-Absprung), `until: 'brueckeZneu'`, `tap` (Bildschirm-Tipp auf die Zielmitte, Strahl wie im Spiel), `ring` (Kreisgeist-Lücke
+Absprung), `antRide` (auf die kletternde Ameise), `until: 'brueckeZneu'`, `tap` (Bildschirm-Tipp auf die Zielmitte, Strahl wie im Spiel), `ring` (Kreisgeist-Lücke
 vorausrechnen), Arena-Bot `fight` (Kopfsprünge, Ausweichen, Stern). Geprüft: Laden ohne Konsolenfehler, Metadaten,
 Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel; alle Sterne und Stempel mit Gegenproben (Fliese nicht ohne
 Stampfen, 3er-Lift nicht mit zwei Figuren, Lotti drückt den Greta-Schalter nicht, Kristall-Lücke nicht ohne Antippen),
