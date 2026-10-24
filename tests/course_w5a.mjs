@@ -96,6 +96,12 @@ const ROUTES = {
         legs: [{ chaseKind: 'muenzmarder', ids: ['marder3'], run: true, max: 3000 }, { wait: 60 }, { chaseKind: 'powerup', max: 1200 }] },
       { name: 'Warp-Box versteckt, solange Schlüssel fehlen', from: [1, Y, -18], heroes: ['lotti'],
         legs: [{ to: [1, -23], within: 0.3, run: false }, { wait: 60 }, { expect: 'notOnIsle' }] },
+      { name: 'Hubbrücke unten hält Pflaume auf, nach dem Anheben fährt sie darunter durch bis zum Grottenstrand', from: [0, 0.62, -72], heroes: ['lotti'],
+        legs: [{ bridge: ['bruecke_a', 'low'] }, { to: [0, -79.8], within: 0.4, run: false }, { mount: [0, -82.6] },
+          { ride: [[-80, 0], [-118, 0]], max: 1500, partial: true, bridges: ['bruecke_a'] }, { bridge: ['bruecke_a', 'high'] },
+          { ride: [[-80, 0], [-118, 0], [-128, 0], [-140, 0], [-200, 0]], jump: [[-131, -137]] }],
+        mech: (r) => r.mech.rideStops?.[0] > -112 && r.mech.bridgeHits > 0 && r.mech.rideStops?.[1] < -185,
+        mechText: (r) => `angehalten bei z ${r.mech.rideStops?.[0]}, Abpraller ${r.mech.bridgeHits}, Ende z ${r.mech.rideStops?.[1]}` },
     ],
     shots: [
       ['start', [0, Y, 10]],
@@ -355,6 +361,8 @@ function install() {
         if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
         if (Lg.crouch) { for (let i = 0; i < Lg.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); log.push(['röhre', li, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
         if (Lg.expect) { const ok = COND[Lg.expect](); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect]); continue; }
+        // Hubbrücke steuern: { bridge: [id, 'low' | 'high' | 'start'] }
+        if (Lg.bridge) { const b = L.named.get(Lg.bridge[0]); if (!b) log.push(['FEHLER: Brücke fehlt', Lg.bridge[0]]); else if (Lg.bridge[1] === 'start') b.start(); else b.hold(Lg.bridge[1]); log.push(['brücke', ...Lg.bridge, b?.info?.()]); continue; }
         if (Lg.until) { let k = 0; for (; k < (Lg.max ?? 1200) && !COND[Lg.until](); k++) tick({}); log.push(['bis', Lg.until, k]); if (!COND[Lg.until]()) log.push(['FEHLER: bis', Lg.until]); continue; }
         if (Lg.hop) {
           for (let k = 0; k < Lg.hop; k++) tick({ jump: true });
@@ -413,8 +421,9 @@ function install() {
             if (p.mode === 'air' && p.riding) mech.maxRampY = Math.max(mech.maxRampY, p.pos.y);
           }
           for (const id of Lg.bridges ?? []) mech.bridgeHits += L.named.get(id)?.hits ?? 0;
+          (mech.rideStops ??= []).push(+p.pos.z.toFixed(2));
           log.push(['ritt', k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, !!p.dismounted]);
-          if (!p.dismounted) log.push(['FEHLER: Ritt nicht beendet']);
+          if (!p.dismounted && !Lg.partial) log.push(['FEHLER: Ritt nicht beendet']);
           continue;
         }
         // ------------------------------------------------ Seilbahn: Gondel abwarten, einsteigen, mitfahren (optional unterwegs abspringen)
