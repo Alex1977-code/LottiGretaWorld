@@ -277,6 +277,8 @@ export class HangChain {
     this.maxBend = o.maxBend ?? 0;       // 0 = unbegrenzt
     this.straighten = o.straighten ?? 0; // 1/s² – Feder, die jedes Glied in die Richtung des vorigen zieht (Biegesteifigkeit)
     this.rootCone = o.rootCone ? { zSign: 1, ...o.rootCone } : null;
+    this.iterations = o.iterations ?? 2;  // Durchgänge der Abstands-/Knick-/Kollider-Bedingungen je Teilschritt
+    this.strictBend = !!o.strictBend;     // Schlussdurchgang ohne Kollider (Knick bleibt sicher begrenzt)
     this.frame = new THREE.Quaternion();
     this.pos = lengths.map(() => new THREE.Vector3());
     this.prev = lengths.map(() => new THREE.Vector3());
@@ -346,7 +348,7 @@ export class HangChain {
     // Abstandsbedingungen von der Aufhängung aus (Richtung begrenzt: Wurzelkegel, Knickwinkel),
     // dazwischen Kollider; zwei Durchgänge
     const cosBend = this.maxBend > 0 ? Math.cos(this.maxBend) : -2;
-    for (let it = 0; it < 2; it++) {
+    for (let it = 0; it < this.iterations; it++) {
       let parent = anchor;
       for (let i = 0; i < this.n; i++) {
         const p = this.pos[i];
@@ -374,6 +376,33 @@ export class HangChain {
         }
         parent = p;
       }
+    }
+    // strictBend: danach noch einmal Länge/Knick/Kegel ohne Kollider – ein Kollider-Stoß darf den Strang nicht über den
+    // Knickwinkel hinaus abknicken (der Kollider wirkt im nächsten Teilschritt wieder)
+    if (this.strictBend) this.relax(anchor, cosBend);
+  }
+
+  /** Länge, Wurzelkegel und Knickwinkel ohne Kollider herstellen (Schlussdurchgang für strictBend). */
+  relax(anchor, cosBend) {
+    let parent = anchor;
+    for (let i = 0; i < this.n; i++) {
+      const p = this.pos[i];
+      _cd.subVectors(p, parent);
+      const len = _cd.length();
+      if (len < 1e-6) _cd.copy(this.rest[i]); else _cd.divideScalar(len);
+      if (i === 0 && this.rootCone) this.limitRoot(_cd);
+      else if (i > 0 && cosBend > -1) {
+        _ct.subVectors(parent, i === 1 ? anchor : this.pos[i - 2]).normalize();
+        const c = _cd.dot(_ct);
+        if (c < cosBend) {
+          _cv.copy(_cd).addScaledVector(_ct, -c);
+          const q = _cv.length();
+          if (q > 1e-6) _cd.copy(_ct).multiplyScalar(cosBend).addScaledVector(_cv, Math.sqrt(1 - cosBend * cosBend) / q);
+          else _cd.copy(_ct);
+        }
+      }
+      p.copy(parent).addScaledVector(_cd, this.lengths[i]);
+      parent = p;
     }
   }
 
@@ -634,7 +663,7 @@ export function toonEyeGeos(head, o) {
   const W = o.w, Hh = o.h, bulge = o.bulge ?? 0.01, base = o.base ?? 0.003;
   const iw = (o.irisW ?? 0.8) * W, ih = (o.irisH ?? 0.88) * Hh, pw = (o.pupilW ?? 0.5) * iw, ph = (o.pupilH ?? 0.54) * ih;
   const C = (c) => new THREE.Color(c);
-  const irisC = C(o.iris), dark = irisC.clone().multiplyScalar(0.38), light = irisC.clone().lerp(C('#ffffff'), 0.38), rimC = irisC.clone().multiplyScalar(0.45);
+  const irisC = C(o.iris), dark = irisC.clone().multiplyScalar(0.38), light = irisC.clone().lerp(C('#ffffff'), o.irisLight ?? 0.38), rimC = irisC.clone().multiplyScalar(0.45);
   const pupilC = C(o.pupil ?? '#140c18'), white = C(o.sclera ?? '#ffffff'), shade = white.clone().lerp(C('#b9c6db'), 0.6);
   const lidC = o.lid ? C(o.lid) : null;
   const hs = o.hlSide ?? 1;
@@ -702,6 +731,33 @@ export function toonEyeGeos(head, o) {
   const shift = new THREE.Matrix4().makeTranslation(0, -eyeY, 0);
   const merge = (gs) => { const m = mergeGeometries(gs, false); for (const g of gs) g.dispose(); m.applyMatrix4(shift); return m; };
   return { open: merge(open), hl: merge(hl), closed: merge(closed), eyeY };
+}
+
+/**
+ * Weicher Körper als „verschmolzene“ Ellipsoide (glatte Vereinigung, keine Kanten an den Übergängen): blobs = [{ c: [x,y,z],
+ * r: [rx,ry,rz] }], k = Breite der Verschmelzung. Die Oberfläche wird von `center` aus je Richtung gesucht (sternförmig);
+ * floor: Unterseite unterhalb dieser Höhe flach gedrückt (sitzt auf). color(p) → Farbe.
+ */
+export function blobUnionGeo(blobs, { center, k = 0.1, nu = 28, nv = 20, color, floor = null }) {
+  const c0 = new THREE.Vector3(...center), p = new THREE.Vector3();
+  const sdE = (q, b) => {
+    const x = (q.x - b.c[0]) / b.r[0], y = (q.y - b.c[1]) / b.r[1], z = (q.z - b.c[2]) / b.r[2];
+    return (Math.sqrt(x * x + y * y + z * z) - 1) * Math.min(b.r[0], b.r[1], b.r[2]);
+  };
+  const smin = (a, b) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
+  const sdf = (q) => blobs.reduce((d, b, i) => (i === 0 ? sdE(q, b) : smin(d, sdE(q, b))), 0);
+  return gridGeo({
+    nu, nv, wrapU: true,
+    point: (u, v, out) => {
+      const d = dirAE(u * TAU, -Math.PI / 2 + v * Math.PI);
+      let lo = 0, hi = 2;
+      for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; p.copy(c0).addScaledVector(d, m); if (sdf(p) < 0) lo = m; else hi = m; }
+      out.copy(c0).addScaledVector(d, (lo + hi) / 2);
+      if (floor !== null && out.y < floor.y) out.y = floor.y - (floor.y - out.y) * floor.k;
+      return out;
+    },
+    color: color ? (u, v, q) => color(q) : null,
+  });
 }
 
 /** Glatter Körper entlang einer Achse (x von x0 bis x1), Querschnitt-Ellipse hy(v)/hz(v), Mitte yc(v) – Schuhe, Pfoten. */

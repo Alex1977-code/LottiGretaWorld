@@ -315,7 +315,9 @@ async function clones() {
   await focus('klon0');
   await measure('klon (lite) idle', ['klon0']);
   await focus('hero');
-  await shot('klone_front', 'front', 'klone', { cam: { dist: 4.4, h: 0.55 } });
+  await sc(() => { const H = window.__fs; for (const k of ['hero', ...H.clones]) H.figs[k].hull.rotation.y = -Math.PI / 2 + 0.25; });
+  await shot('klone_front', 'front0', 'klone', { cam: { dist: 4.6, h: 0.55, az: 0.35, el: 0.15 } });
+  await sc(() => { const H = window.__fs; for (const k of ['hero', ...H.clones]) H.figs[k].hull.rotation.y = Math.PI / 2; });
   await shot('klone_course', 'course', 'klone', { w: 360, h: 260 });
   for (const k of ['hero', 'klon0', 'klon1']) await pose(k, { state: 'run', speed: 7, power: 'gleitblatt' }, 30);
   await shot('klone_run_course', 'course', 'klone', { w: 360, h: 260 });

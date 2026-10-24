@@ -489,10 +489,10 @@ function bunnyGeo() {
     for (const [x, y, z, r] of [[-0.165, 0.15, 0, 0.055], [-0.18, 0.19, 0.02, 0.035], [-0.18, 0.12, -0.025, 0.035]]) gs.push(ell([x, y, z], [r, r, r], () => white, 10, 8));
     // Halstuch: Ring um den Hals, Knoten und zwei Zipfel vorn seitlich
     const scarf = bcol(BN.scarf);
-    const ring = new THREE.TorusGeometry(0.112, 0.03, 8, 22); ring.rotateX(Math.PI / 2); ring.rotateZ(0.3); ring.translate(0.065, 0.285, 0);
+    const ring = new THREE.TorusGeometry(0.118, 0.03, 8, 22); ring.rotateX(Math.PI / 2); ring.rotateZ(-0.35); ring.translate(0.05, 0.27, 0);
     gs.push(paintGeo(ring, () => scarf));
-    gs.push(ell([0.15, 0.255, 0.07], [0.028, 0.026, 0.024], () => scarf.clone().multiplyScalar(0.85), 10, 6));
-    for (const s of [0, 1]) { const g = new THREE.SphereGeometry(1, 10, 6); g.scale(0.018, 0.045, 0.03); g.rotateX(0.35 + s * 0.5); g.translate(0.155, 0.215, 0.08 + s * 0.022); gs.push(paintGeo(g, () => scarf)); }
+    gs.push(ell([0.15, 0.228, 0.072], [0.028, 0.026, 0.024], () => scarf.clone().multiplyScalar(0.85), 10, 6));
+    for (const s of [0, 1]) { const g = new THREE.SphereGeometry(1, 10, 6); g.scale(0.018, 0.045, 0.03); g.rotateX(0.35 + s * 0.5); g.translate(0.158, 0.19, 0.08 + s * 0.022); gs.push(paintGeo(g, () => scarf)); }
     const m = mergeColored(gs.map((g) => [g, null, null]));
     for (const g of gs) g.dispose();
     m.computeBoundingSphere();

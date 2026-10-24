@@ -97,7 +97,7 @@ import {
   TAU, damp, clamp, mat, lineMat, geo, sphere, capsule, cylinder, cone, torus, unitSphere,
   mesh, limb, placed, dirAE, mergeTinted, mergePlain, mergeColored, vcolMat, buildEyes, Facing, PoseBlender, Blinker,
   HangChain, lerp, smoothstep, basicMat, wrapAngle, legIK, skinTwoBones, RainbowGlow,
-  gridGeo, latheGeo, smoothProfile2, HeadShape, decalGeo, stripGeo, hairShellGeo, blobGeo, paramDecalGeo, toonEyeGeos,
+  gridGeo, latheGeo, smoothProfile2, HeadShape, decalGeo, stripGeo, hairShellGeo, blobGeo, paramDecalGeo, toonEyeGeos, blobUnionGeo,
 } from '../lib/figures.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { leafSolidGeo, bushyTailGeo, skinChain, StoneSkin, PuffFx } from '../lib/heroWorld3.js';
@@ -139,23 +139,23 @@ const ARM = 0.22, HAND = 0.27;
 const NECK_Y = 0.42;       // über der Hüfte (Kopf-Drehpunkt)
 const HEAD_R = 0.30;
 const HEAD_C = V(0.02, 0.28, 0); // Kopfmitte relativ zum Hals → Weltmitte (0.02, 1.20)
-const SKIN_C = '#ffd6b0', WHITE_C = '#f8f6f0';
+const SKIN_C = '#ffd9b8', WHITE_C = '#f8f6f0';
 const ARM_R = 0.056, HAND_R = 0.08;   // kräftige Arme, runde Fäustlings-Hand
 
 const STYLES = {
   lotti: {
-    hair: '#c8963c', hairTip: '#f6dc8e', hairDark: '#8c6026', brow: '#8a5a2a', dress: '#3b7cf0', sleeve: WHITE_C, boot: '#7c4a24', sole: '#43260f',
+    hair: '#cf9a43', hairTip: '#ffe6a2', hairDark: '#8f5e24', brow: '#8a5a2a', dress: '#3b7cf0', sleeve: WHITE_C, boot: '#7c4a24', sole: '#43260f',
     cuff: '#a06a38', iris: '#3e82f5', accent: '#e83a30', braids: true, bootShaft: true, blouse: true,
   },
   greta: {
-    hair: '#f3d97a', hairTip: '#fff7d6', hairDark: '#c99d45', brow: '#c39a4a', dress: '#4fb833', sleeve: '#4fb833', boot: '#7d2e42', sole: '#3e1424',
+    hair: '#f3d97a', hairTip: '#fffbe6', hairDark: '#c99d45', brow: '#c39a4a', dress: '#4fb833', sleeve: '#4fb833', boot: '#7d2e42', sole: '#3e1424',
     iris: '#49a84a', accent: '#f0609f', apron: true, socks: true, mane: true, strap: true,
   },
 };
 
 /** Oberflächen (geteilte Materialien): Haut weich, Stoff samtig, Haar seidig, Augen/Schuhe glänzend. */
 const SURF = {
-  skin: () => vcolMat(0.55),
+  skin: () => mat('hero:skin', { vertexColors: true, roughness: 0.55, emissive: 0x33190c }),   // Haut: weich, leicht warm aufgehellt
   cloth: () => vcolMat(0.74),
   hair: () => vcolMat(0.36),
   gloss: () => vcolMat(0.24),
@@ -193,7 +193,7 @@ const own = (gs) => gs.map((g) => [g, null, null]);
 /** Kopfform: rund, etwas breiter als tief, volle Wangen (Kopfmitte HEAD_C, kopf-lokal). */
 const HEAD = new HeadShape(HEAD_C, HEAD_R, { sx: 1.0, sy: 0.98, sz: 1.05, bulges: [{ az: 0.72, el: -0.46, w: 0.42, a: 0.012, sym: true }] });
 /** Gesicht (Azimut/Elevation auf der Kopfform, Maße in Einheiten): Augen tief und groß (Kindchenschema). */
-const FACE = { eyeAz: 0.35, eyeEl: -0.07, eyeW: 0.061, eyeH: 0.084, browAz: 0.37, browEl: 0.29, noseEl: -0.3, mouthEl: -0.47, blushAz: 0.64, blushEl: -0.35 };
+const FACE = { eyeAz: 0.355, eyeEl: -0.07, eyeW: 0.064, eyeH: 0.09, browAz: 0.37, browEl: 0.29, noseEl: -0.3, mouthEl: -0.47, blushAz: 0.64, blushEl: -0.35 };
 
 /** Kopf: Haut, Stupsnase, Wangenröte, Lächeln, Brauen – eine Geometrie (vertexgefärbt). */
 function headGeo(st) {
@@ -284,8 +284,8 @@ function hairColorFn(st) {
   return (a, el, k) => {
     const g = H.groove(a);
     const c = base.clone().lerp(dk, 0.2 * g + 0.3 * (1 - smoothstep(k / 0.12)) + 0.35 * H.part(a, el));
-    const band = Math.exp(-(((el - 0.97) / 0.11) ** 2)) * (0.5 + 0.5 * Math.cos(a)) * (1 - 0.75 * g);
-    return c.lerp(tip, 0.7 * band);
+    const band = Math.exp(-(((el - 0.97) / 0.12) ** 2)) * (0.45 + 0.55 * Math.cos(a)) * (1 - 0.7 * g);
+    return c.lerp(tip, 0.85 * band);
   };
 }
 
@@ -1026,7 +1026,7 @@ export class HeroAvatar extends Avatar3D {
         // des Strangs), Knick ≤ 40° je Gelenk. Wurzelkegel (Grenzwinkel von „unten“): nach hinten bis 16° über
         // die Waagerechte, vorn ≤ 35°, außen ≤ 80°, nach innen (zum Kopf) ≤ 12°.
         const chain = new HangChain(BRAID.links, {
-          gravity: 32, drag: 0.4, damping: 4, stiffness: 40, straighten: 120, maxBend: 0.7,
+          gravity: 32, drag: 0.4, damping: 4, stiffness: 40, straighten: 120, maxBend: 0.7, strictBend: true,
           rootCone: { back: 1.85, front: 0.61, out: 1.4, inward: 0.21, zSign: s },
         });
         chain.colliders.push(this.braidColliders.head, ...this.braidColliders.shoulders);
@@ -1159,8 +1159,8 @@ export class HeroAvatar extends Avatar3D {
       });
     } else {
       state = 'idle';
-      const br = Math.sin(t * 2.2);
-      pose = P({ bob: 0.012 * br, torso: 0.015 * br, headX: 0.05 * Math.sin(t * 0.7), headY: -0.18, headZ: 0.02 * br, hairLift: 0.03 * br, armZn: 0.1, armZf: 0.1, armXn: -0.14, armXf: 0.14 });
+      const br = Math.sin(t * 2.2), tilt = Math.sin(t * 0.83) * smoothstep(Math.sin(t * 0.31 + 1) * 1.5);
+      pose = P({ bob: 0.012 * br, torso: 0.015 * br, headX: 0.05 * Math.sin(t * 0.7) + 0.12 * tilt, headY: -0.18, headZ: 0.02 * br, hairLift: 0.03 * br, armZn: 0.1 + 0.05 * Math.sin(t * 1.1), armZf: 0.1 - 0.05 * Math.sin(t * 1.1 + 0.4), armXn: -0.14, armXf: 0.14 });
     }
     return { state, pose, dur, vx, vy, mount, onGround, speed, sf };
   }
@@ -1722,7 +1722,7 @@ export class HeroAvatar extends Avatar3D {
         footN: 0.35 * k * Math.max(0, -s), footF: 0.35 * k * Math.max(0, s),
         armZn: 0.05 - 0.55 * k * s, armZf: 0.05 + 0.55 * k * s, armXn: -0.13, armXf: 0.13,
         elbowN: 0.3 + 0.35 * k * Math.max(0, -s), elbowF: 0.3 + 0.35 * k * Math.max(0, s),
-        lean: -0.07 * k, bob: 0.035 * k * Math.abs(s) - 0.012 * k, torsoY: -0.1 * k * s,
+        lean: -0.07 * k, bob: 0.042 * k * Math.abs(s) - 0.012 * k, torsoY: -0.1 * k * s, sq: 0.025 * k * (0.5 - Math.abs(s)),
         headZ: 0.07 * k + 0.02 * Math.cos(2 * p), headY: 0.05 * k * s,
         hairBack: 0.35 * k + 0.08 * Math.sin(2 * p), hairLift: 0.1 * k * Math.cos(2 * p),
       };
@@ -1735,30 +1735,35 @@ export class HeroAvatar extends Avatar3D {
       footN: 0.6 * Math.max(0, -s), footF: 0.6 * Math.max(0, s),
       armZn: 0.3 - 0.85 * k * s, armZf: 0.3 + 0.85 * k * s, armXn: -0.22, armXf: 0.22,
       elbowN: 1.3 + 0.35 * Math.max(0, -s), elbowF: 1.3 + 0.35 * Math.max(0, s),
-      lean, torso: -0.04, bob: 0.06 * k * Math.abs(s) - 0.02, torsoY: -0.2 * k * s,
+      lean, torso: -0.04, bob: 0.075 * k * Math.abs(s) - 0.02, torsoY: -0.2 * k * s, sq: 0.04 * k * (0.45 - Math.abs(s)),
       headZ: -0.85 * lean + 0.03 * Math.cos(2 * p), mouth: 0.35,
       hairBack: 0.85 * k + 0.12 * Math.sin(2 * p), hairLift: 0.2 * k * Math.cos(2 * p),
     };
   }
 
   poseIdle(t) {
-    const br = Math.sin(t * 2.2);
+    const br = Math.sin(t * 2.2), sw = Math.sin(t * 0.55);
     const look = Math.sin(t * 0.37) * smoothstep(Math.sin(t * 0.23) * 2); // ab und zu umschauen
-    return { bob: 0.012 * br, torso: 0.015 * br, headX: 0.04 * Math.sin(t * 0.7), headY: 0.45 * look, headZ: 0.03 + 0.02 * br, hairLift: 0.03 * br, armZn: 0.1, armZf: 0.1, armXn: -0.14, armXf: 0.14, elbowN: 0.15, elbowF: 0.15 };
+    const tilt = Math.sin(t * 0.83) * smoothstep(Math.sin(t * 0.31 + 1) * 1.5); // ab und zu den Kopf schief legen
+    return {
+      bob: 0.012 * br, torso: 0.015 * br, sq: 0.014 * br, lean: 0.015 * sw, torsoX: 0.025 * sw,
+      headX: 0.04 * Math.sin(t * 0.7) + 0.13 * tilt, headY: 0.45 * look, headZ: 0.03 + 0.02 * br, hairLift: 0.03 * br,
+      armZn: 0.1 + 0.05 * Math.sin(t * 1.1), armZf: 0.1 - 0.05 * Math.sin(t * 1.1 + 0.4), armXn: -0.14 - 0.03 * br, armXf: 0.14 + 0.03 * br, elbowN: 0.15, elbowF: 0.15,
+    };
   }
 
   poseFall(t) {
     const fl = Math.sin(t * 9);
-    return { armXn: -1.45, armXf: 1.45, armZn: 0.25 + 0.25 * fl, armZf: 0.25 - 0.25 * fl, elbowN: 0.3, elbowF: 0.3, thighZn: 0.45, thighZf: -0.15, kneeN: 0.55, kneeF: 0.35, footN: 0.3, footF: 0.3, eyes: 1.15, mouth: 0.6, hairLift: 0.9, hairBack: 0.3, lean: 0.04, headZ: -0.08 };
+    return { armXn: -1.45, armXf: 1.45, armZn: 0.25 + 0.25 * fl, armZf: 0.25 - 0.25 * fl, elbowN: 0.3, elbowF: 0.3, thighZn: 0.45, thighZf: -0.15, kneeN: 0.55, kneeF: 0.35, footN: 0.3, footF: 0.3, eyes: 1.15, mouth: 0.6, hairLift: 0.9, hairBack: 0.3, lean: 0.04, headZ: -0.08, sq: -0.035 };
   }
 
   /** Erster Sprung; d = 0 (steigt) … 1 (sinkt, Beine strecken sich zur Landung). */
   poseJump(d) {
     return this.variant === 'greta'
       // Greta gestreckt: Arme schräg nach vorn-oben gespreizt, Beine in der Spreize
-      ? { armZn: 2.3 - 0.5 * d, armZf: 2.35 - 0.5 * d, armXn: -0.7, armXf: 0.7, elbowN: 0.25, elbowF: 0.25, thighZn: 0.75 - 0.3 * d, thighZf: -0.45 + 0.3 * d, kneeN: 0.45, kneeF: 0.3 + 0.2 * d, footN: 0.9, footF: 0.9, lean: -0.05, headZ: 0.15, mouth: 0.9, hairLift: -0.5 + 0.9 * d, hairBack: 0.3 }
+      ? { armZn: 2.3 - 0.5 * d, armZf: 2.35 - 0.5 * d, armXn: -0.7, armXf: 0.7, elbowN: 0.25, elbowF: 0.25, thighZn: 0.75 - 0.3 * d, thighZf: -0.45 + 0.3 * d, kneeN: 0.45, kneeF: 0.3 + 0.2 * d, footN: 0.9, footF: 0.9, lean: -0.05, headZ: 0.15, mouth: 0.9, hairLift: -0.5 + 0.9 * d, hairBack: 0.3, sq: -0.09 * (1 - d) }
       // Lotti kraftvoll: Faust nach oben, anderer Arm zurück, Knie hoch
-      : { armZn: 0.35, armXn: -2.0 + 0.5 * d, elbowN: 0.35, armZf: -0.55, armXf: 0.35, elbowF: 0.3, thighZn: 1.25 - 0.55 * d, kneeN: 1.55 - 0.8 * d, thighZf: -0.2 + 0.25 * d, kneeF: 0.5, footN: 0.6, footF: 0.75, lean: -0.04, headZ: 0.18, mouth: 0.9, hairLift: -0.35 + 0.8 * d, hairBack: 0.3 };
+      : { armZn: 0.35, armXn: -2.0 + 0.5 * d, elbowN: 0.35, armZf: -0.55, armXf: 0.35, elbowF: 0.3, thighZn: 1.25 - 0.55 * d, kneeN: 1.55 - 0.8 * d, thighZf: -0.2 + 0.25 * d, kneeF: 0.5, footN: 0.6, footF: 0.75, lean: -0.04, headZ: 0.18, mouth: 0.9, hairLift: -0.35 + 0.8 * d, hairBack: 0.3, sq: -0.09 * (1 - d) };
   }
 
   /** Grundpose für Aktionen, die nur den Oberkörper übernehmen (Werfen, Krallenhieb): Stand, Lauf oder Luft. */
@@ -1829,7 +1834,7 @@ export class HeroAvatar extends Avatar3D {
       case 'jump2': {
         // zweiter Sprung: beide Arme hoch im V, beide Knie angezogen
         const d = clamp(-vy / 6, 0, 1);
-        pose = P({ armZn: 0.35, armZf: 0.35, armXn: -1.9 + 0.4 * d, armXf: 1.9 - 0.4 * d, elbowN: 0.3, elbowF: 0.3, thighZn: 1.15 - 0.45 * d, thighZf: 0.85 - 0.35 * d, kneeN: 1.7 - 0.8 * d, kneeF: 1.5 - 0.7 * d, footN: 0.7, footF: 0.7, lean: 0.02, headZ: 0.25, mouth: 1, eyes: 1.1, hairLift: -0.4 + 0.8 * d });
+        pose = P({ armZn: 0.35, armZf: 0.35, armXn: -1.9 + 0.4 * d, armXf: 1.9 - 0.4 * d, elbowN: 0.3, elbowF: 0.3, thighZn: 1.15 - 0.45 * d, thighZf: 0.85 - 0.35 * d, kneeN: 1.7 - 0.8 * d, kneeF: 1.5 - 0.7 * d, footN: 0.7, footF: 0.7, lean: 0.02, headZ: 0.25, mouth: 1, eyes: 1.1, hairLift: -0.4 + 0.8 * d, sq: -0.08 * (1 - d) });
         dur = 0.1;
         break;
       }
@@ -1894,7 +1899,7 @@ export class HeroAvatar extends Avatar3D {
       case 'land': {
         // kurzes Einfedern: Knie beugen, Arme federn seitlich, Stauchung klingt ab
         const d = 1 - smoothstep(st / 0.22);
-        const o = { bob: -0.16 * d, lean: -0.15 * d, armXn: -0.12 - 0.45 * d, armXf: 0.12 + 0.45 * d, armZn: 0.1 + 0.3 * d, armZf: 0.1 + 0.3 * d, elbowN: 0.3, elbowF: 0.3, headZ: 0.12 * d, sq: 0.12 * d, hairLift: -0.2 * d };
+        const o = { bob: -0.17 * d, lean: -0.15 * d, armXn: -0.12 - 0.5 * d, armXf: 0.12 + 0.5 * d, armZn: 0.1 + 0.3 * d, armZf: 0.1 + 0.3 * d, elbowN: 0.3, elbowF: 0.3, headZ: 0.12 * d, sq: 0.2 * d, hairLift: -0.2 * d, eyes: 1 - 0.25 * d };
         pose = P(plant(o, 0.05, -0.04));
         dur = 0.05;
         break;
@@ -1945,7 +1950,7 @@ export class HeroAvatar extends Avatar3D {
       }
       case 'walljump':
         // Abstoßen: Beine noch hinten gestreckt, Arme nach vorn-oben
-        pose = P({ lean: -0.12, armZn: 1.5, armXn: -1.3, elbowN: 0.2, armZf: 1.5, armXf: 0.6, elbowF: 0.3, thighZn: -0.35, thighZf: -0.15, kneeN: 0.25, kneeF: 0.6, footN: 0.9, footF: 0.8, headZ: 0.3, mouth: 0.9, hairLift: -0.3 });
+        pose = P({ lean: -0.12, armZn: 1.5, armXn: -1.3, elbowN: 0.2, armZf: 1.5, armXf: 0.6, elbowF: 0.3, thighZn: -0.35, thighZf: -0.15, kneeN: 0.25, kneeF: 0.6, footN: 0.9, footF: 0.8, headZ: 0.3, mouth: 0.9, hairLift: -0.3, sq: -0.07 });
         dur = 0.06;
         break;
       case 'climb': {
@@ -2239,33 +2244,29 @@ const FUR_C = '#2a2630', FURW_C = '#f4f1f8', PINK_C = '#ffa3c6', FUR_HI = '#4f48
 const HEAD_PIV = V(0.44, 0.74, 0);   // Halsansatz (Kopf-Drehpunkt)
 const HC = V(0.12, 0.20, 0);         // Kopfmitte, kopf-lokal → Welt ≈ (0.56, 0.94)
 /** Kopfform: rund, Pausbacken unten seitlich, kleine Schnauze vorn. */
-const RHEAD = new HeadShape(HC, 0.27, { sx: 1.03, sy: 0.95, sz: 1.08, bulges: [{ az: 0.62, el: -0.42, w: 0.42, a: 0.028, sym: true }, { az: 0, el: -0.2, w: 0.3, a: 0.026 }] });
+const RHEAD = new HeadShape(HC, 0.285, { sx: 1.03, sy: 0.95, sz: 1.08, bulges: [{ az: 0.62, el: -0.42, w: 0.42, a: 0.028, sym: true }, { az: 0, el: -0.2, w: 0.3, a: 0.026 }] });
 const RNOSE = RHEAD.point(dirAE(0, -0.1), -0.012);
 const furShade = (p, yTop, k = 0.55) => col3(FUR_C).lerp(col3(FUR_HI), k * smoothstep((p.y - yTop) / 0.18));
 
 /** Rumpf: weicher Laib (hinten voll und rund, Keulen seitlich unten), weiße Brust, Puschelschwänzchen. Rumpf-lokal. */
 function rabbitTorsoGeo() {
-  return geo('rabbit:torso2', () => {
+  return geo('rabbit:torso3', () => {
     const white = col3(FURW_C);
-    const env = (v) => Math.pow(Math.max(0, 1 - Math.abs(2 * v - 1) ** 2.2), 1 / 2.2);
-    const body = gridGeo({
-      nu: 26, nv: 22, wrapU: true,
-      point: (u, v, out) => {
-        const th = u * TAU, x = -0.68 + 1.2 * v, e = env(v);
-        const yc = lerp(0.45, 0.47, v), hy = lerp(0.38, 0.3, v) * e, hz = lerp(0.34, 0.26, v) * e;
-        const sn = Math.sin(th), cs = Math.cos(th);
-        const haunch = 1 + 0.22 * Math.exp(-(((x + 0.33) / 0.2) ** 2)) * smoothstep((0.35 - sn) / 0.7);
-        let y = yc + sn * hy * (sn < 0 ? 1 + 0.45 * v * v : 1);   // Brust vorn tiefer
-        if (y < 0.12) y = 0.12 - (0.12 - y) * 0.45;           // Bauch sitzt flach auf
-        return out.set(x, y, cs * hz * haunch);
-      },
-      color: (u, v, p) => {
-        const w = smoothstep((p.x - 0.27) / 0.09) * smoothstep((0.68 - p.y) / 0.1) * (1 - smoothstep((Math.abs(p.z) - 0.13) / 0.06));
-        return furShade(p, 0.66).lerp(white, w);
+    // Hinterteil (groß, rund), Brust (höher, schmaler), Keulen seitlich unten – glatt verschmolzen; Bauch sitzt flach auf
+    const body = blobUnionGeo([
+      { c: [-0.27, 0.43, 0], r: [0.37, 0.37, 0.34] },
+      { c: [0.2, 0.45, 0], r: [0.31, 0.34, 0.27] },
+      { c: [-0.31, 0.28, 0.2], r: [0.24, 0.2, 0.15] },
+      { c: [-0.31, 0.28, -0.2], r: [0.24, 0.2, 0.15] },
+    ], {
+      center: [-0.04, 0.44, 0], k: 0.16, nu: 30, nv: 22, floor: { y: 0.11, k: 0.45 },
+      color: (p) => {
+        const w = smoothstep((p.x - 0.2) / 0.08) * smoothstep((0.74 - p.y) / 0.08) * (1 - smoothstep((Math.abs(p.z) - 0.17) / 0.05));
+        return furShade(p, 0.68).lerp(white, w);
       },
     });
     // Puschelschwänzchen (Wölkchen aus fünf Kugeln)
-    const tail = [[-0.69, 0.5, 0, 0.1], [-0.73, 0.57, 0.04, 0.06], [-0.73, 0.45, -0.05, 0.06], [-0.65, 0.6, -0.05, 0.055], [-0.74, 0.52, -0.02, 0.06]]
+    const tail = [[-0.64, 0.5, 0, 0.1], [-0.68, 0.57, 0.04, 0.06], [-0.68, 0.45, -0.05, 0.06], [-0.6, 0.6, -0.05, 0.055], [-0.69, 0.52, -0.02, 0.06]]
       .map(([x, y, z, r]) => ellipsoidGeo(V(x, y, z), V(r, 0, 0), V(0, r, 0), V(0, 0, r), white, 12, 8));
     const m = mergeColored(own([body, ...tail]));
     body.dispose(); for (const t of tail) t.dispose();
@@ -2302,7 +2303,7 @@ function rabbitHeadGeo() {
 /** Augen (groß, glänzend, dunkle Iris), geschlossen als heller Bogen auf dem dunklen Fell. */
 function rabbitEyeGeos() {
   return geo('rabbit:eyes2', () => toonEyeGeos(RHEAD, {
-    az: 0.6, el: 0.07, w: 0.072, h: 0.088, iris: '#6e3c22', pupil: '#0b0507', look: 0.12, irisW: 0.86, irisH: 0.9, irisY: -0.02,
+    az: 0.6, el: 0.07, w: 0.072, h: 0.088, iris: '#7f421c', irisLight: 0.22, pupil: '#0b0507', look: 0.12, irisW: 0.86, irisH: 0.9, irisY: -0.02,
     bulge: 0.018, closedColor: '#d9c8ea', hlSide: 1,
   }));
 }
@@ -2520,7 +2521,7 @@ export class PflaumeAvatar extends Avatar3D {
     };
     this.hindN = makeHind(1); this.hindF = makeHind(-1);
     const makeFront = (s) => {
-      const piv = new THREE.Group(); piv.position.set(0.38, 0.25, s * 0.15);
+      const piv = new THREE.Group(); piv.position.set(0.34, 0.25, s * 0.15);
       const me = smesh(rabbitFrontGeo(), fur, false); piv.add(me); piv.limbMesh = me;
       this.body.add(piv);
       return piv;
