@@ -3944,6 +3944,7 @@ Port 4470 (+ `PORT_BASE`), Aufruf `node tests/course_w5a.mjs [5-1|5-2]`, Teillä
 (je Lauf < 10 min), `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS='a|b'`, `DETAIL=1` (Zeichenaufrufe je Objekt), Bilder
 `tests/out/w5a_*.png`. Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start →
 Ziel mit echter Mechanik (5-1: fünf Schlüssel, Warp-Box, Ritt; 5-2: zwei Gondeln, sieben Trapeze, Pendel, Trampolin);
-alle Sterne, Stempel und Extraleben samt Gegenproben (Stern/Stempel nicht ohne die Mechanik); Messgang entlang der Route.
-Gemessen (scale 2, inkl. Schattenpass): 5-1 bis ≈ 110 Zeichenaufrufe / ≈ 285 k Dreiecke (Strand), 5-2 bis ≈ 92 / ≈ 261 k
-(Riesen-Gasse).
+alle Sterne, Stempel und Extraleben samt Gegenproben (Stern/Stempel nicht ohne die Mechanik), Hubbrücke unten hält das
+Floß auf (Bein `{ bridge: [id, 'low' | 'high' | 'start'] }`); Messgang entlang der Route. Gemessen (scale 2, inkl.
+Schattenpass): 5-1 bis ≈ 112 Zeichenaufrufe / ≈ 285 k Dreiecke (offener Strand – dort ist kaum noch Luft), 5-2 bis ≈ 92 /
+≈ 260 k (Riesen-Gasse).
