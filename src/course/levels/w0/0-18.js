@@ -62,7 +62,7 @@ export const LEVEL = {
     { type: 'lava', pos: at(-11.5, 5, 7), size: [9, 0.3, 7], color: 'blau' },
     // 5 rechts: Dach als Deckung vor dem Suchscheinwerfer
     { type: 'platform', id: 'dach', pos: at(15.5, 5, 7, Y + 2.2), size: [3.2, 0.4, 3.2], style: 'stone' },
-    { type: 'suchscheinwerfer', id: 'licht', path: [at(7, 5, 7), at(17, 5, 7)], speed: 2.5, radius: 2, lamp: [12, Y + 10, Z(5, 15)], cooldown: 2, alarmTime: 1.5 },
+    { type: 'suchscheinwerfer', id: 'licht', path: [at(7, 5, 7), at(17, 5, 7)], speed: 2.5, radius: 2, lamp: [12, Y + 10, Z(5, 15)], post: false, cooldown: 2, alarmTime: 1.5 },
     sign(-11.5, 1, 'Sandtaucher'), sign(11.5, 1, 'Sandtaucher Wasser'),
     sign(-11.5, 2, 'Zündköpfe'), sign(11.5, 2, 'Zündkopf werfen'),
     sign(-11.5, 3, 'Feuerring Puls'), sign(11.5, 3, 'Feuerring Rad'),

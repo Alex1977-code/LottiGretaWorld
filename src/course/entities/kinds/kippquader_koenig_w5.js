@@ -7,8 +7,9 @@
 //   wait → begin(): intro (2,2 s, stampft auf) → Runde:
 //     walk  (walk s) watschelt auf die nächste Figur zu und richtet sich so aus, dass sie in seiner Kipp-Bahn steht. Er
 //           blickt immer in eine der vier Himmelsrichtungen (±X, ±Z) – so liegt seine Landefläche achsenparallel.
-//     warn  (warn s) bleibt stehen, zittert; **rote Landefläche** (blocks/w5kit.js landingHint) zeigt genau den Grundriss,
-//           auf den er gleich fällt (3,6 × 3,4 m vor ihm) – jetzt ausweichen! Steht die Figur in seiner Bahn, beginnt warn
+//     warn  (warn s) bleibt stehen, zittert; **rote Landefläche** (Modell 'landemarke', sonst blocks/w5kit.js landingHint)
+//           zeigt genau den Grundriss, auf den er gleich fällt (3,6 × 3,4 m vor ihm) – jetzt ausweichen! Steht die Figur
+//           in seiner Bahn, beginnt warn
 //           sofort, sonst nach Ablauf von walk (er kippt also auch ins Leere – „kippt öfter“, je Phase kürzer).
 //     tilt  (tilt s) kippt nach vorn aufs Gesicht. Aufschlag: wer im Grundriss steht, wird getroffen und hinausgeschoben,
 //           Gegner darunter onHit('mega'); Beben. Phase mit shock: eine **Schockwelle** (Ring, 0,45 m hoch, wächst mit
@@ -49,7 +50,7 @@ import { EnemyW2, figures, activeFigure, clamp, wrapAngle } from '../EnemyW2.js'
 import { CourseEntity } from '../CourseEntity.js';
 import { spawnLoot } from '../Enemy.js';
 import { landingHint } from '../../blocks/w5kit.js';
-import { getModel } from '../../models/index.js';
+import { getModel, hasModel } from '../../models/index.js';
 
 const W = 3.4, H = 3.6, D = 1.5;
 const LX0 = D / 2, LX1 = D / 2 + H, LH = D;
@@ -58,6 +59,31 @@ const INTRO = 2.2, HIT = 0.6, RISE = 0.8, ROAR = 1.0, DEFEAT = 2.2, LAND = 0.35;
 const DIRS = [[1, 0], [0, -1], [-1, 0], [0, 1]];
 const pick = (v, ph, def) => (Array.isArray(v) ? v[Math.min(v.length - 1, ph - 1)] : v ?? def[ph - 1]);
 const LIST = (v) => (v === undefined || v === null ? [] : Array.isArray(v) ? v : [v]);
+
+/**
+ * Rote Landefläche: Registry-Modell 'landemarke' (rote Fläche, heller Rand, nach innen laufender Warnrahmen), sonst
+ * landingHint aus blocks/w5kit.js – gleiche Schnittstelle show(rects, y, k), hide(), shown, info().
+ */
+function markHint(level) {
+  if (!level.view || !hasModel('landemarke')) return landingHint(level);
+  const m = getModel('landemarke', { size: [LX1 - LX0, W] });
+  const st = { shown: false, k: 0, y: 0, rects: [] };
+  m.root.visible = false;
+  level.view.add(m.root, (dt) => m.update(dt, { k: st.shown ? st.k : 0 }));
+  return {
+    show(rects, y, k = 1) {
+      const r = rects?.[0];
+      if (!r) return;
+      st.rects = rects; st.y = y; st.k = clamp(k, 0, 1); st.shown = true;
+      m.root.position.set((r.x0 + r.x1) / 2, y, (r.z0 + r.z1) / 2);
+      m.root.rotation.y = (r.x1 - r.x0) >= (r.z1 - r.z0) ? 0 : Math.PI / 2;
+    },
+    hide() { st.shown = false; },
+    get shown() { return st.shown; },
+    info: () => ({ shown: st.shown, k: +st.k.toFixed(2), y: st.y, rects: st.rects.map((r) => [+r.x0.toFixed(2), +r.z0.toFixed(2), +r.x1.toFixed(2), +r.z1.toFixed(2)]), model: true }),
+    dispose() { level.view?.remove(m.root); m.dispose?.(); },
+  };
+}
 
 /** Blickrichtung (Index) zu einem Vektor: größere Achse. */
 const facingOf = (dx, dz) => (Math.abs(dx) >= Math.abs(dz) ? (dx >= 0 ? 0 : 2) : (dz < 0 ? 1 : 3));
@@ -83,7 +109,7 @@ class KippquaderKoenig extends EnemyW2 {
     this.visible = true;
     this.wakeR = spec.wakeR ?? 10;
     this.startFacing = facingOf(...(Array.isArray(spec.dir) ? [spec.dir[0], spec.dir[1]] : [0, 1]));
-    this.hint = landingHint(level);
+    this.hint = markHint(level);
     this.waves = [];
     this.waveMeshes = [];
     this.lyingSid = null;
@@ -621,6 +647,7 @@ class KippquaderKoenig extends EnemyW2 {
   dispose() {
     for (const m of this.waveMeshes) { this.level.view?.remove(m); m.geometry.dispose(); m.material.dispose(); }
     this.waveMeshes.length = 0;
+    this.hint.dispose?.();
     super.dispose();
   }
 }

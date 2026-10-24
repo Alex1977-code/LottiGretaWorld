@@ -949,7 +949,7 @@ S.welle = await SHOT('w5e', 'suchkopf_welle', () => {
 S.alt = await SHOT('w5e', 'vorhandene', () => { const t = window.__t; t.place([0, 1, t.Z(6, 1)], { settle: 120 }); t.face(0, t.Z(6, 8)); });
 S.turm = await SHOT('w5e', 'werferturm', () => {
   const c = window.__course, t = window.__t, tw = t.ent('wturm');
-  t.place([tw.pos.x - 1, 1, t.Z(6, -1)], { settle: 2 });
+  t.place([tw.pos.x - 2, 1, t.Z(6, 4)], { settle: 2 });
   c.step(120);
   t.face(tw.pos.x, tw.pos.z);
 });
