@@ -95,7 +95,7 @@ export const MAP = {
     g(44, -14, 52, 4, 4.5, { style: 'lilarock' }),
     // ---- C Savanne mit Savannenberg, Spuk-Insel (5-Kapitän)
     g(-24, -64, 14, -28, 3.5, { style: 'savanna', walk: W }),
-    g(-24, -86, 8, -64, 6.5, { style: 'savannahill', hill: { h: 5.5, at: [-9, -76], r: 11 } }),
+    g(-24, -86, 8, -64, 6.5, { style: 'savannahill', hill: { h: 5.5, at: [-9, -75], r: 11 } }),
     g(8, -88, 22, -64, 5.5, { style: 'lilarock' }),
     g(-62, -60, -38, -32, 3.5, { style: 'spook', walk: W }),
     g(-66, -70, -36, -60, 6, { style: 'spook', trees: 1.2 }),
@@ -151,22 +151,22 @@ export const MAP = {
     [[8, -3], [10, -4], [14, -4]],
     [[-26, -4], [-28.5, -4]],
     [[26, -4], [32, -3.4], [35, -3.4]],
-    [[8, -28], [8, -36], [0, -44], [-6, -47.4]],
+    [[8, -28], [8, -36], [0, -44], [-9, -53.9]],
     [[0, -44], [-14, -46], [-24, -46]],
     [[8, -36], [10, -48], [14, -48]],
-    [[-38, -46], [-46, -41.4], [-50, -41.4]],
-    [[24, -48], [30, -50], [30, -54.4]],
+    [[-38, -46], [-46, -42.4], [-50, -42.4]],
+    [[24, -48], [30, -50], [30, -56.9]],
     [[30, -50], [40, -49], [46, -56], [46, -66]],
     [[46, -66], [46, -82]],
     [[40, -49], [46, -51], [50, -52]],
     [[46, -92], [46, -99.4]],
     [[46, -96], [36, -102], [34, -106], [28, -106]],
-    [[16, -106], [6, -106], [-4, -107.4]],
+    [[16, -106], [6, -106], [-4, -109.9]],
     [[6, -106], [10, -112], [10, -124]],
-    [[-4, -107.4], [-10, -110], [-16, -110]],
+    [[-4, -109.9], [-10, -110], [-16, -110]],
     [[-30, -110], [-40, -107.4], [-46, -107.4]],
     [[-40, -107.4], [-52, -101], [-60, -100.5]],
-    [[10, -138], [10, -147.4]],
+    [[10, -138], [10, -146.4]],
     [[10, -143], [24, -150], [30, -158], [34, -158]],
     [[46, -158], [54, -155.4]],
   ],
@@ -181,17 +181,18 @@ export const MAP = {
       cage: [[-47.5, -15.5, -28.5, -15.5], [-47.5, 5.5, -28.5, 5.5], [-47.5, -15.5, -47.5, 5.5], [-28.5, -15.5, -28.5, -7.4], [-28.5, -0.6, -28.5, 5.5]],
       towers: [[-47.5, -15.5], [-28.5, -15.5], [-47.5, 5.5], [-28.5, 5.5]], gateAt: [-28.5, -4, 0] },
     { id: '5-3', kind: 'bluecave', pos: [35, 2, -6], decor: [35, 2, -14] },
-    { id: '5-4', kind: 'savanna', pos: [-6, 3.5, -50], decor: [-6, 3.5, -50],
-      cannon: [-9, 12, -76, 0.6], acacias: [[-17, 6.5, -69, 5.2], [-1.5, 6.5, -70.5, 4.6], [-19.5, 6.5, -81, 4.8], [2.5, 6.5, -82, 5.4], [-13, 3.5, -33, 4.4], [10.5, 3.5, -60, 4.6]],
-      termites: [[-20.5, 3.5, -40, 1.0], [11, 3.5, -38.5, 0.8], [-21, 3.5, -60.5, 1.1]], bunnies: [[-12, -38, 3.2], [4, -56, 3.6], [-15, -55, 2.6]] },
-    { id: '5-Kapitän', kind: 'ghostdiorama', pos: [-50, 3.5, -44], decor: [-50, 3.5, -53], kruemel: [-45.2, 3.5, -46.8], disc: '5-K' },
-    { id: '5-5', kind: 'mine', pos: [30, 4.5, -57], decor: [30, 4.5, -66], rail: { x: 38.5, z0: -66, z1: -54 } },
+    { id: '5-4', kind: 'savanna', pos: [-9, 3.5, -56.5], decor: [-9, 3.5, -56.5],
+      cannon: [-9, 12, -75, 0.6], acacias: [[-17, 6.5, -69, 5.2], [0, 6.5, -67.5, 4.6], [-19.5, 6.5, -81, 4.8], [2.5, 6.5, -82, 5.4], [-13, 3.5, -33, 4.4], [10.5, 3.5, -60, 4.6],
+        [-19.5, 3.5, -49, 4.8], [-2, 3.5, -32.5, 4.0]],
+      termites: [[-20.5, 3.5, -40, 1.0], [11, 3.5, -38.5, 0.8], [-21, 3.5, -60.5, 1.1], [1, 3.5, -61, 0.8]], bunnies: [[-12, -38, 3.2], [4, -54, 3.4], [-17, -55, 2.6]] },
+    { id: '5-Kapitän', kind: 'ghostdiorama', pos: [-50, 3.5, -45], decor: [-50, 3.5, -52], kruemel: [-45.4, 3.5, -47.8], disc: '5-K' },
+    { id: '5-5', kind: 'mine', pos: [30, 4.5, -59.5], decor: [30, 4.5, -66], rail: { x: 38.5, z0: -66, z1: -54 } },
     { id: '5-B', kind: 'lavarocks', pos: [76, 2, -52], decor: [76, 2, -52], exit: [66.4, 2, -52],
       pillars: [[60.5, -42, 2.6], [92, -38, 3.0], [92, -66, 2.4], [60.5, -68, 2.8]], tower: [82.5, -58.5], braziers: [[66, -55.6], [66, -48.4]], lavaRing: 14 },
-    { id: '5-6', kind: 'cakeisle', pos: [46, 5.5, -102], decor: [46, 5.5, -111], flipper: [35, -98.5, 3, 1.6] },
-    { id: '5-7', kind: 'sneakfort', pos: [-4, 6, -110], decor: [-4, 6, -120.5], lamp: [-11.2, 15.8, -120.3], sweep: [-2, -105, 5.5] },
+    { id: '5-6', kind: 'cakeisle', pos: [46, 5.5, -102], decor: [46, 5.5, -110.5], flipper: [35, -98.5, 3, 1.6] },
+    { id: '5-7', kind: 'sneakfort', pos: [-4, 6, -112.5], decor: [-4, 6, -120.5], lamp: [-11.2, 15.8, -120.3], sweep: [-3, -107, 5.5] },
     { id: '5-Zug', kind: 'goldstation', pos: [-46, 6, -110], decor: [-46, 6, -120], rail: { z: -121, x0: -65, x1: -31, train: -44 } },
-    { id: '5-Burg', kind: 'kipptemple', pos: [10, 7, -150], decor: [10, 7, -161], labelY: 2.8 },
+    { id: '5-Burg', kind: 'kipptemple', pos: [10, 7, -149], decor: [10, 7, -159.5], labelY: 2.8 },
     { id: 'W6', kind: 'pipe', pos: [54, 7, -158], decor: [54, 7, -161.1],
       pipe: [[0, 0, 0], [0, 3.5, 0], [0.8, 5.6, -0.3], [5, 8, -1.5], [16, 11, -5], [40, 16, -12], [80, 22, -24], [140, 30, -40], [205, 38, -56]], pipeDetail: 'low',
       arriveCam: { up: 7.5, ahead: 4, drop: 3.5 } },
@@ -232,7 +233,7 @@ export const MAP = {
     { pos: [-55.2, 6, -98.4], yaw: -0.2, text: 'Glückshaus' },
     // Sternschranken: Schilder mit dem Sternbedarf vor den Eingängen
     { pos: [30.4, 2, -0.6], yaw: 0.3, text: 'ab 90 ★' },
-    { pos: [5.2, 7, -146.6], yaw: 0.3, text: 'ab 100 ★' },
+    { pos: [5.2, 7, -145.6], yaw: 0.3, text: 'ab 100 ★' },
   ],
 
   props: [
@@ -247,6 +248,9 @@ export const MAP = {
     { kind: 'shells5', pos: [-10, 0.45, 53.6], area: [20, 3], n: 12, solid: false, shadow: false },
     { kind: 'towel', pos: [-26, 0.45, 53.2], yaw: 0.3, color: 0xb46ae8, solid: false, shadow: false },
     { kind: 'surfboard', pos: [-30, 0.45, 52.4], yaw: 0.6, color: 0x3ac8e8, solid: false },
+    { kind: 'parasol', pos: [-14, 1, 44.6], color: 0xff7a5a, tone: 'rot' }, { kind: 'towel', pos: [-13, 1, 45.4], yaw: 0.2, color: 0x3ac8e8, solid: false, shadow: false },
+    { kind: 'beachchair', pos: [-19.4, 1, 33.2], yaw: 0.5, color: 0x2ab8d8 }, { kind: 'violetrock', pos: [17.6, 1, 48], size: 0.6 },
+    { kind: 'shells5', pos: [8, 1, 31], area: [6, 2], n: 5, solid: false, shadow: false },
     // Meer ringsum: Leuchtturm, Segelboote, violette Felsen
     { kind: 'lighthouse', pos: [62, 0, 6], size: 8, solid: false },
     { kind: 'sailboat', pos: [56, 0, 42], yaw: 0.4, solid: false }, { kind: 'sailboat', pos: [-62, 0, 8], yaw: -0.6, color: 0xff7ab4, solid: false },
@@ -256,6 +260,8 @@ export const MAP = {
     { kind: 'violetrock', pos: [76, 0, -120], size: 2.6, solid: false }, { kind: 'violetrock', pos: [38, 0, -136], size: 2.2, solid: false },
     // B Zirkus-Insel
     { kind: 'lavender', pos: [12, 2, 6], size: 0.55 }, { kind: 'hibiscus', pos: [-12.4, 2, 6.2], size: 0.6 },
+    { kind: 'drum', pos: [11.6, 2, -9], size: 1 }, { kind: 'drum', pos: [12.4, 2, -12.6], size: 0.8, color: 0x2a6ae8 },
+    { kind: 'balloons', pos: [9.8, 2, 3.6], solid: false }, { kind: 'balloons', pos: [-11.6, 2, 3.2], solid: false },
     // Arena-Insel: Palmen außen
     { kind: 'palm5', pos: [-48.4, 1.6, 6.6], size: 4.6 }, { kind: 'palm5', pos: [-48.6, 1.6, -16.6], size: 4.2 },
     // Höhlen-Insel: Kristalle sind Kulisse; Felsen
@@ -263,19 +269,27 @@ export const MAP = {
     // C Savanne: Grasbüschel
     { kind: 'grasstuft', pos: [-18, 3.5, -46], solid: false }, { kind: 'grasstuft', pos: [4, 3.5, -31.4], solid: false },
     { kind: 'grasstuft', pos: [-2, 3.5, -61], solid: false }, { kind: 'grasstuft', pos: [12, 3.5, -46], solid: false },
+    { kind: 'pond5', pos: [3.6, 3.5, -40.4], size: 2.4 }, { kind: 'grasstuft', pos: [-16, 3.5, -36], solid: false }, { kind: 'grasstuft', pos: [-21, 3.5, -54], solid: false },
     // Spuk-Insel: Grabsteine, kahle Bäume
     { kind: 'tomb5', pos: [-59.6, 3.5, -40], solid: true }, { kind: 'tomb5', pos: [-41, 3.5, -34.6] }, { kind: 'tomb5', pos: [-60, 3.5, -54] },
     { kind: 'deadtree', pos: [-59.4, 3.5, -34.6], size: 4.4 }, { kind: 'deadtree', pos: [-40.4, 3.5, -57.6], size: 3.8 },
     // D Minen-Insel: Felsen, Fackeln
     { kind: 'violetrock', pos: [25.6, 4.5, -38], size: 0.9 }, { kind: 'tiki', pos: [43, 4.5, -64.6] }, { kind: 'tiki', pos: [49, 4.5, -64.6] },
+    { kind: 'crates', pos: [26.6, 4.5, -41.4] }, { kind: 'violetrock', pos: [48.2, 4.5, -38.6], size: 0.7 },
     // E Torten-Insel: Zuckerstangen, Cupcakes, Kirschen am Rand
     { kind: 'candycane', pos: [29.6, 5.5, -93.6], size: 2.2 }, { kind: 'cupcake', pos: [62, 5.5, -94], size: 0.9 },
     { kind: 'cherry5', pos: [61.6, 5.5, -116], size: 0.8 }, { kind: 'cupcake', pos: [30, 5.5, -116.4], size: 1.0, color: 0xc8a0ff },
+    { kind: 'donut', pos: [58, 5.5, -104], size: 1.1 }, { kind: 'balloons', pos: [57.4, 5.5, -95.8], solid: false },
+    // F Schleich-Festung: Fackeln an den Ecken, Kisten
+    { kind: 'tiki', pos: [-14.4, 6, -95.6] }, { kind: 'tiki', pos: [14.4, 6, -95.6] }, { kind: 'crates', pos: [13.6, 6, -118.4] },
     // G Bahnhof: Palmen, Lavendel
     { kind: 'palm5', pos: [-64.4, 6, -97.6], size: 4.8 }, { kind: 'lavender', pos: [-32, 6, -97.8], size: 0.6 },
+    { kind: 'bench5', pos: [-38, 6, -98.6] }, { kind: 'lamppost5', pos: [-34.4, 6, -100.2] }, { kind: 'lamppost5', pos: [-54.6, 6, -113.6] },
+    { kind: 'luggage', pos: [-36.6, 6, -113.8] },
     // H Tempel: Säulenreste, Obelisk
     { kind: 'templecolumn', pos: [-11.6, 7, -140.4], size: 4 }, { kind: 'templecolumn', pos: [31.6, 7, -140.4], size: 2.6, broken: true },
     { kind: 'templecolumn', pos: [-11.6, 7, -168], size: 2.2, broken: true }, { kind: 'obelisk5', pos: [31.4, 7, -167.4], size: 5 },
+    { kind: 'jungletree', pos: [-9.6, 7, -157.6], size: 4.6 }, { kind: 'jungletree', pos: [29.6, 7, -163.4], size: 4.4 }, { kind: 'stonehead', pos: [-6.4, 7, -141.6], size: 0.8, yaw: 0.4 },
     // I Röhren-Insel
     { kind: 'palm5', pos: [60, 7, -147.6], size: 4.6 }, { kind: 'lavender', pos: [47.6, 7, -168], size: 0.6 },
     // Wolkeninseln über dem Ende der Welt-6-Röhre (Ausblick auf die Wolkeninseln)

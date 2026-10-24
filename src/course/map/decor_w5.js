@@ -30,6 +30,8 @@
 // 'trapez', 'roehrenkanone', 'suchscheinwerfer', 'kippquader', 'schluesselmuenze' …) – mit Dreiecks-Obergrenze, damit
 // die Karte im Budget bleibt; sonst eigene sparsame Geometrie. Große, unbewegte Teile gehen in die verschmolzene
 // statische Geometrie, bewegte sind eigene Objekte (ev.updaters), gleichartige als Instanzen (ein Zeichenaufruf).
+// Wichtig: Bewegte Objekte stehen schon beim Bau an ihrer Startlage – die Fern-Ausblendung (lod.js) merkt sich die
+// Lage aller Kartenobjekte beim Aufbau.
 
 import * as THREE from 'three';
 import { mix, TAU, cached, vcol, glowTexture, starShape } from '../models/lib/kit.js';
@@ -39,7 +41,7 @@ import { canvasTexture } from '../../three/lib/itemMaterials.js';
 import { bakeModel } from './bake.js';
 import { cageGeo } from './props.js';
 import { LowBuild as Build, place } from './desert.js';
-import { wavingFlag } from './decor_w2.js';
+import { wavingFlag, flame } from './decor_w2.js';
 import { buntingGeo, tombGeo } from './snow.js';
 import {
   beachChairGeo, parasolGeo, towelGeo, sandcastleGeo, surfboardGeo, acaciaGeo, termiteGeo, grassTuftGeo, violetRockGeo,
@@ -128,8 +130,8 @@ function addGeo(ev, key, make, x, y, z, yaw = 0, cast = true, material) {
 function flames(ev, spots, name = 'flammen') {
   const geo = cached('w5m:flame', () => {
     const b = new Build();
-    b.cone(0.16, 0.48, 0xffa03a, { p: [0, 0.24, 0] }, 7);
-    b.cone(0.09, 0.3, 0xfff2a8, { p: [0, 0.17, 0.02] }, 6);
+    b.cone(0.16, 0.48, { v: (px, py) => mix(0xff5a1a, 0xffd23a, py + 0.5) }, { p: [0, 0.24, 0] }, 7);
+    b.cone(0.1, 0.32, 0xfff6c0, { p: [0, 0.2, 0.06] }, 6);
     return b.geometry();
   });
   const m = instanced(ev, geo, spots.length, { name, material: glowMat(ev, 0xffffff, { vertexColors: true }) });
@@ -163,7 +165,8 @@ function puffs(ev, n, color, name = 'wolken', opts = {}) {
   ev.own.push(mat);
   const m = instanced(ev, geo, n, { name, material: mat });
   const P = [];
-  for (let i = 0; i < n; i++) P.push({ t: 1, life: 1, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, s: 1 });
+  const [ax, ay, az] = opts.at ?? [0, 0, 0];
+  for (let i = 0; i < n; i++) P.push({ t: 1, life: 1, x: ax, y: ay, z: az, vx: 0, vy: 0, vz: 0, s: 1 });
   let next = 0;
   const api = {
     emit(x, y, z, k = 1, o = {}) {
@@ -279,11 +282,13 @@ function seaside(ev, x, y, z) {
   ball.name = 'w5:wasserball';
   ev.view.add(ball);
   const bx0 = x - 2.6, bz0 = z + 2.8;
-  ev.updaters.push((dt, t) => {
+  const bounce = (t) => {
     const ph = (t * 0.9) % 1;
     ball.position.set(bx0 + Math.sin(t * 0.45) * 2.2, y + 0.45 + Math.abs(Math.sin(ph * Math.PI)) * 1.6, bz0 + Math.cos(t * 0.3) * 1.2);
     ball.rotation.set(t * 1.3, t * 0.7, 0);
-  });
+  };
+  bounce(0);
+  ev.updaters.push((dt, t) => bounce(t));
   // Wellen: Schaumkämme rollen auf den Strand zu (def.waves: [{ x, z0, z1, dir: ±1 }] – Uferlinie bei x)
   for (const w of ev.def.waves ?? []) beachWaves(ev, w);
 }
@@ -468,7 +473,7 @@ function blueCave(ev, x, y, z) {
   const N = 10;
   const sparks = instanced(ev, cached('w5m:spark', () => new THREE.OctahedronGeometry(0.08, 0)), N, { name: 'blaue_funken', material: glowMat(ev, 0x8ae8ff) });
   const seeds = Array.from({ length: N }, (_, i) => [((i * 0.37) % 1) * 3.2 - 1.6, (i * 0.61) % 1, 0.6 + (i % 3) * 0.25]);
-  ev.updaters.push((dt, t) => {
+  const glowUp = (t) => {
     const k = 0.75 + 0.25 * Math.sin(t * 2.3) + 0.08 * Math.sin(t * 7.1);
     inner.material.opacity = k;
     halo.material.opacity = 0.35 + 0.25 * k;
@@ -479,7 +484,9 @@ function blueCave(ev, x, y, z) {
       setInst(sparks, i, x + sx + Math.sin(t * 2 + i) * 0.2, y + 0.3 + u * 4.2, z + 1.2 + u * 0.6, t + i, u > 0.85 ? (1 - u) * 6.6 : 1);
     }
     sparks.instanceMatrix.needsUpdate = true;
-  });
+  };
+  glowUp(0);
+  ev.updaters.push((dt, t) => glowUp(t));
   cullByView(ev, sparks, x, y + 2, z + 1.4, 4);
 }
 
@@ -528,14 +535,22 @@ function bullCage(ev, x, y, z) {
     const [gx, gz, gyaw] = ga;
     addGeo(ev, 'w5m:cagegate', () => {
       const b = new Build();
-      for (const s of [-1, 1]) b.cyl(0.25, 0.3, 3.4, 0x6a5a7a, { p: [0, 1.7, s * 3.2] }, 8);
-      b.box(0.4, 0.5, 7.0, 0x8a3a2a, { p: [0, 3.5, 0] }, 0.05, 1);
-      b.box(0.5, 1.0, 1.3, 0x5a3a2a, { p: [0, 4.1, 0] }, 0.1, 1);
-      for (const s of [-1, 1]) b.tube([[0, 4.3, s * 0.5], [0, 4.6, s * 1.1], [0, 5.2, s * 1.3]], 0.11, 0xf6ecd8, null, 6, 5);
-      for (const s of [-1, 1]) b.sphere(0.09, 0x1a1012, { p: [0.27, 4.25, s * 0.3] }, 6, 4);
+      for (const s of [-1, 1]) {
+        // Pfeiler (rot-weiß gestreift) mit Bullenkopf und Hörnern obenauf
+        b.cyl(0.42, 0.5, 3.0, (px, py) => (Math.floor(py * 1.6 + 10) % 2 ? 0xe8283a : 0xfff6ff), { p: [0, 1.5, s * 3.3] }, 10);
+        b.cyl(0.6, 0.55, 0.3, 0xffc21a, { p: [0, 3.15, s * 3.3] }, 10);
+        b.sphere(0.5, { v: (px, py, pz, nx, ny) => mix(0x7a3a22, 0xb8643a, ny * 0.5 + 0.5) }, { p: [0, 3.7, s * 3.3], s: [1, 0.85, 1.1] }, 9, 6);
+        b.sphere(0.24, 0xf0b090, { p: [0.36, 3.55, s * 3.3], s: [0.8, 0.7, 1.2] }, 7, 4);
+        for (const k of [-1, 1]) b.tube([[0, 3.95, s * 3.3 + k * 0.35], [0, 4.2, s * 3.3 + k * 0.75], [0.1, 4.65, s * 3.3 + k * 0.85]], 0.08, 0xf6ecd8, null, 6, 4);
+      }
+      // Wimpel-Bogen über der Öffnung
+      const pts = [];
+      for (let i = 0; i <= 8; i++) { const u = i / 8; pts.push([0, 3.3 + Math.sin(u * Math.PI) * 1.1, -3.3 + u * 6.6]); }
+      b.tube(pts, 0.05, 0xffc21a, null, 16, 4);
+      for (let i = 1; i < 8; i++) { const [px, py, pz] = pts[i]; b.cone(0.22, 0.45, i % 2 ? 0xe8283a : 0x9a4ad8, { p: [px, py - 0.26, pz], r: [Math.PI, 0, 0], s: [0.2, 1, 1] }, 3); }
       return b.geometry();
     }, gx, y, gz, gyaw ?? 0);
-    for (const s of [-1, 1]) solidCyl(ev, gx + Math.sin(gyaw ?? 0) * s * 3.2, gz + Math.cos(gyaw ?? 0) * s * 3.2, 0.32, y, y + 3.6, 'tor');
+    for (const s of [-1, 1]) solidCyl(ev, gx + Math.sin(gyaw ?? 0) * s * 3.3, gz + Math.cos(gyaw ?? 0) * s * 3.3, 0.55, y, y + 4.2, 'tor');
   }
 }
 
@@ -591,7 +606,7 @@ function savanna(ev, x, y, z) {
       pivot.add(barrel);
     }
     solidCyl(ev, cx, cz, 1.4, cy, cy + 3, 'kanone');
-    puff = puffs(ev, 14, 0xf8f6ff, 'kanonenrauch');
+    puff = puffs(ev, 14, 0xf8f6ff, 'kanonenrauch', { at: [cx, cy + 3, cz] });
     let next = 1.5;
     const mouth = new THREE.Vector3();
     ev.updaters.push((dt, t) => {
@@ -864,7 +879,7 @@ function lavaRocks(ev, x, y, z) {
     }, bx, y, bz);
     solidCyl(ev, bx, bz, 0.5, y, y + 1.5, 'feuerschale');
   }
-  if (ev.def.braziers?.length) flames(ev, ev.def.braziers.map(([bx, bz]) => [bx, y + 1.42, bz, 1.6]), 'feuerschalen');
+  for (const [bx, bz] of ev.def.braziers ?? []) flame(ev, bx, y + 1.75, bz, 1.0);
   let next = 0;
   const lr = ev.def.lavaRing ?? 13;
   ev.updaters.push((dt, t) => {
@@ -1055,14 +1070,14 @@ function sneakFort(ev, x, y, z) {
     head.add(lens);
   }
   // Lichtkegel (additiv, Spitze an der Lampe) und Lichtfleck am Boden
-  const coneMat = new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: true });
+  const coneMat = new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.24, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: true });
   ev.own.push(coneMat);
   const coneGeo = cached('w5m:lightcone', () => { const g = new THREE.ConeGeometry(1, 1, 20, 1, true); g.translate(0, -0.5, 0); g.rotateX(-Math.PI / 2); return g; });
   const cone = new THREE.Mesh(coneGeo, coneMat);
   cone.renderOrder = 4;
   cone.name = 'w5:lichtkegel';
   ev.view.add(cone);
-  const spotMat = new THREE.MeshBasicMaterial({ map: spotTexture(), color: 0xfff2b0, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, fog: true });
+  const spotMat = new THREE.MeshBasicMaterial({ map: spotTexture(), color: 0xfff2b0, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false, fog: true });
   ev.own.push(spotMat);
   const spot = new THREE.Mesh(cached('w5m:spot', () => new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2)), spotMat);
   spot.renderOrder = 3;
@@ -1096,10 +1111,10 @@ function sneakFort(ev, x, y, z) {
   };
   ev.searchlight = searchlight;
   ev.liveInfo = () => ({ searchlight: { ...searchlight.info(), alarm: state.alarm, shown: searchlight.shown } });
-  ev.updaters.push((dt, t) => {
+  const aimLight = (dt, t) => {
     const st = searchlight.info(t);
     const [tx, tz] = st.spot;
-    const gy = y + 0.03;
+    const gy = y + 0.075;   // über den Wegplatten (0,06 m)
     target.set(tx, gy, tz);
     // Heldin im Lichtfleck → Alarm (rot)
     const p = ev.level.player;
@@ -1124,7 +1139,9 @@ function sneakFort(ev, x, y, z) {
     if (!model) head.rotation.set(0, aim.yaw, aim.pitch, 'YXZ');
     wm.color.setHex(Math.sin(t * 4.1) + Math.sin(t * 1.7) > 1.3 ? 0xffc04a : 0xff7a1a);
     searchlight.shown = { step: st.step, spot: st.spot };
-  });
+  };
+  aimLight(0, 0);
+  ev.updaters.push(aimLight);
 }
 
 let spotTex = null;
@@ -1210,7 +1227,7 @@ function goldStation(ev, x, y, z) {
   }, tx, y + 0.2, RZ);
   solidBox(ev, tx - 9.5, y, RZ - 1.2, tx + 7, y + 3.6, RZ + 1.2, 'goldzug');
   // Dampf aus dem Schornstein, funkelnde Münzen
-  const steam = puffs(ev, 12, 0xffffff, 'dampf', { opacity: 0.9 });
+  const steam = puffs(ev, 12, 0xffffff, 'dampf', { opacity: 0.9, at: [tx - 8.0, y + 4.2, RZ] });
   const N = 8;
   const twinkle = instanced(ev, cached('w5m:twinkle', () => {
     const b = new Build();
@@ -1219,15 +1236,19 @@ function goldStation(ev, x, y, z) {
   }), N, { name: 'muenzfunkeln', material: glowMat(ev, 0xfff6b0, { transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide }) });
   const spots = Array.from({ length: N }, (_, i) => [tx + (i < 4 ? -0.6 : 4.6) - 1.6 + ((i * 1.3) % 3.2), y + 2.6 + (i % 2) * 0.2, RZ + ((i % 3) - 1) * 0.6]);
   let next = 0;
-  ev.updaters.push((dt, t) => {
-    if (t > next) { next = t + 0.45; steam.emit(tx - 8.0, y + 4.2, RZ, 1, { vy: 1.6, vx: 0.5, life: 1.8, size: 0.9, spread: 0.2 }); }
-    hand.rotation.z = -t * 0.6;
+  const sparkle = (t) => {
     for (let i = 0; i < N; i++) {
       const k = Math.max(0, Math.sin(t * 2.2 + i * 1.9)) ** 4;
       const [px, py, pz] = spots[i];
-      setInst(twinkle, i, px, py, pz + 1.15, 0, Math.max(0.0001, k * 1.2), 0, t * 2 + i);
+      setInst(twinkle, i, px, py, pz + 1.15, 0, Math.max(0.05, k * 1.2), 0, t * 2 + i);
     }
     twinkle.instanceMatrix.needsUpdate = true;
+  };
+  sparkle(0.3);
+  ev.updaters.push((dt, t) => {
+    if (t > next) { next = t + 0.45; steam.emit(tx - 8.0, y + 4.2, RZ, 1, { vy: 1.6, vx: 0.5, life: 1.8, size: 0.9, spread: 0.2 }); }
+    hand.rotation.z = -t * 0.6;
+    sparkle(t);
   });
   cullByView(ev, twinkle, tx + 2, y + 2.6, RZ, 6);
 }
@@ -1264,7 +1285,7 @@ function kippTemple(ev, x, y, z) {
     addGeo(ev, 'w5m:templetorch', () => { const b = new Build(); b.cyl(0.12, 0.16, 1.8, 0x6a4a2a, { p: [0, 0.9, 0] }, 6); b.cyl(0.28, 0.18, 0.3, 0x4a3a2a, { p: [0, 1.9, 0] }, 8); return b.geometry(); }, x + s * 5.4, y, z + 7.4);
     solidCyl(ev, x + s * 5.4, z + 7.4, 0.25, y, y + 2, 'fackel');
   }
-  flames(ev, [[x - 5.4, y + 2.05, z + 7.4, 1.5], [x + 5.4, y + 2.05, z + 7.4, 1.5]], 'tempelfackeln');
+  for (const s of [-1, 1]) flame(ev, x + s * 5.4, y + 2.35, z + 7.4, 0.8);
   // Dschungel-Bäumchen hinter der Pyramide
   for (const [dx, dz, h] of [[-9.5, -4, 5], [9.8, -3.6, 5.4], [-7.6, -7.4, 4.6], [8.2, -7.8, 4.8]]) ev.addStatic(place(jungleTreeGeo(h, Math.round(dx * 3)), x + dx, y, z + dz), { castShadow: true });
   // Kippquader-König auf der obersten Stufe: kippt abwechselnd links/rechts über die untere Kante, bleibt kurz liegen,
@@ -1305,8 +1326,9 @@ function kippTemple(ev, x, y, z) {
   const hint = new THREE.Mesh(cached('w5m:kipphint', () => new THREE.PlaneGeometry(S[1], S[2] + 0.2).rotateX(-Math.PI / 2)), hintMat);
   hint.renderOrder = 2;
   hint.name = 'w5:landehinweis';
+  hint.position.set(kx + S[0] / 2 + S[1] / 2, topY + 0.04, kz);
   ev.view.add(hint);
-  const dust = puffs(ev, 14, 0xe8d8b8, 'staub');
+  const dust = puffs(ev, 14, 0xe8d8b8, 'staub', { at: [kx, topY + 0.5, kz] });
   const kipp = { phase: 'idle', side: 1, k: 0, t: 0, lying: false, tips: 0 };
   // Ablauf: idle 1,6 s → warn 0,7 s → tip 0,55 s → liegt 1,2 s → aufrichten 0,8 s → Seite wechseln
   const PH = { idle: 1.6, warn: 0.7, tip: 0.55, down: 1.2, up: 0.8 };

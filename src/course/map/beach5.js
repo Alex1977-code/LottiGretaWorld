@@ -198,10 +198,9 @@ const PALETTES = {
   temple: {
     bands: SANDST, side: 0xc8a87a, rim: 0xf2dcb8, cell: 1,
     tile: (rnd) => (i, j, ax, az) => {
-      const h = hash2(ax, az);
-      if (h > 0.975) return tone(0xb8c88a, 0xa8bc7c, rnd.frac());         // Moos
-      if (h < 0.02) return tone(0xc8a47c, 0xb89870, rnd.frac());          // fehlende Platte
-      return tone(0xead6b2, 0xd8c098, rnd.frac() * 0.8 + (((Math.floor(ax) + Math.floor(az)) & 1) ? 0.15 : 0));
+      const o = tone(0xecd8b4, 0xdcc49e, rnd.frac() * 0.7 + (((Math.floor(ax) + Math.floor(az)) & 1) ? 0.18 : 0));
+      if (hash2(Math.floor(ax / 3) + 4, Math.floor(az / 3) - 2) > 0.93) mixc(o, lin(0xb4c48a), 0.3, o);   // Moosfleck
+      return o;
     },
   },
 };
@@ -652,6 +651,91 @@ export function cloudGeo(s = 6, seed = 1) {
   return b.geometry();
 }
 
+/** Zirkus-Trommel (Podest) mit goldenen Rändern und Stern. */
+export function drumGeo(s = 1, color = 0xe8283a) {
+  const b = new Build();
+  b.cyl(0.85 * s, 0.85 * s, 0.8 * s, (px, py, pz) => (Math.floor((Math.atan2(pz, px) + 4) * 1.9) % 2 ? color : 0xfff6ff), { p: [0, 0.4 * s, 0] }, 14);
+  for (const yy of [0.04, 0.78]) b.torus(0.86 * s, 0.06 * s, 0xffc21a, { p: [0, yy * s, 0], r: [Math.PI / 2, 0, 0] }, 4, 16);
+  b.extrude(starShape5(0.36 * s, 0.15 * s), 0.04, 0xffd23a, { p: [0, 0.81 * s, 0], r: [-Math.PI / 2, 0, 0] }, 0, 1);
+  return b.geometry();
+}
+function starShape5(R, r) {
+  const sh = new THREE.Shape();
+  for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r : R; if (i) sh.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); else sh.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+  return sh;
+}
+
+/** Luftballon-Strauß an einem Gewicht (Zirkus). */
+export function balloonsGeo(seed = 1) {
+  const b = new Build();
+  const rnd = new Rnd(seed);
+  b.box(0.3, 0.2, 0.3, 0x5a5a6a, { p: [0, 0.1, 0] }, 0);
+  const cols = [0xff4a6a, 0xffd23a, 0x4ac8ff, 0xb46aff, 0x6ae07a];
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * TAU + rnd.real(-0.3, 0.3), r = rnd.real(0.25, 0.5), h = rnd.real(2.4, 3.1);
+    b.cyl(0.008, 0.008, h, 0xf6f2ea, { p: [Math.cos(a) * r * 0.5, h / 2 + 0.1, Math.sin(a) * r * 0.5], r: [Math.sin(a) * 0.12, 0, -Math.cos(a) * 0.12] }, 3);
+    b.sphere(0.3, cols[i], { p: [Math.cos(a) * r, h + 0.35, Math.sin(a) * r], s: [1, 1.2, 1] }, 9, 6);
+  }
+  return b.geometry();
+}
+
+/** Wasserloch in der Savanne: Wasserfläche mit hellem Rand, Schilf, Steine. */
+export function pondGeo(r = 2.4, seed = 1) {
+  const b = new Build();
+  const rnd = new Rnd(seed);
+  b.cyl(r + 0.25, r + 0.35, 0.12, 0xc89a5a, { p: [0, 0.03, 0], s: [1, 1, 0.75] }, 18);
+  b.cyl(r, r, 0.06, { v: (x, y, z) => mix(0x2ab8d8, 0x7ae8ec, Math.hypot(x, z) / r) }, { p: [0, 0.09, 0], s: [1, 1, 0.75] }, 18);
+  for (let i = 0; i < 7; i++) {
+    const a = rnd.real(0, TAU);
+    b.cone(0.05, rnd.real(0.7, 1.1), 0x6a9a3a, { p: [Math.cos(a) * (r + 0.1), 0.4, Math.sin(a) * (r + 0.1) * 0.75] }, 3);
+  }
+  for (let i = 0; i < 3; i++) { const a = rnd.real(0, TAU); b.add(new THREE.DodecahedronGeometry(0.28, 0), 0x9a8a7a, { p: [Math.cos(a) * (r + 0.35), 0.12, Math.sin(a) * (r + 0.35) * 0.75], r: [a, a, 0] }); }
+  return b.geometry();
+}
+
+/** Riesen-Donut mit Glasur und Streuseln. */
+export function donutGeo(s = 1) {
+  const b = new Build();
+  b.torus(0.62 * s, 0.32 * s, 0xe8b46a, { p: [0, 0.3 * s, 0], r: [Math.PI / 2, 0, 0] }, 8, 18);
+  b.torus(0.62 * s, 0.26 * s, 0xff8ac0, { p: [0, 0.4 * s, 0], r: [Math.PI / 2, 0, 0], s: [1, 1, 0.75] }, 6, 18);
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; b.box(0.14 * s, 0.03, 0.04 * s, [0xffffff, 0x4ac8ff, 0xffd23a, 0x7ae05a][i % 4], { p: [Math.cos(a) * 0.62 * s, 0.62 * s, Math.sin(a) * 0.62 * s], r: [0, a, 0] }, 0); }
+  return b.geometry();
+}
+
+/** Bahnsteig-Bank (Holz, goldene Füße). */
+export function benchGeo5() {
+  const b = new Build();
+  for (let i = 0; i < 3; i++) b.box(1.7, 0.08, 0.16, 0xc8925a, { p: [0, 0.48, -0.18 + i * 0.18] }, 0);
+  for (let i = 0; i < 2; i++) b.box(1.7, 0.14, 0.06, 0xc8925a, { p: [0, 0.75 + i * 0.2, -0.3] }, 0);
+  for (const s of [-1, 1]) b.box(0.08, 0.5, 0.5, 0xffc21a, { p: [s * 0.75, 0.25, -0.05] }, 0);
+  return b.geometry();
+}
+
+/** Laternenmast (Bahnhof); Leuchtkörper liefert lampPostGlowGeo. */
+export function lampPostGeo() {
+  const b = new Build();
+  b.cyl(0.2, 0.25, 0.3, 0x3a2a4a, { p: [0, 0.15, 0] }, 8);
+  b.cyl(0.07, 0.09, 3.0, 0x5a3a7a, { p: [0, 1.6, 0] }, 6);
+  b.cone(0.32, 0.35, 0x3a2a4a, { p: [0, 3.55, 0] }, 6);
+  return b.geometry();
+}
+export function lampPostGlowGeo() {
+  const b = new Build();
+  b.cyl(0.18, 0.14, 0.4, 0xfff0b0, { p: [0, 3.2, 0] }, 6);
+  return b.geometry();
+}
+
+/** Koffer- und Kistenstapel (Bahnhof). */
+export function luggageGeo(seed = 1) {
+  const b = new Build();
+  const rnd = new Rnd(seed);
+  for (const [x, y, z, w, h, d, c] of [[0, 0, 0, 1.0, 0.5, 0.6, 0xb46ae8], [0.1, 0.5, 0, 0.8, 0.4, 0.5, 0xffc21a], [-0.9, 0, 0.2, 0.7, 0.7, 0.7, 0xc8925a]]) {
+    b.box(w, h, d, c, { p: [x, y + h / 2, z], r: [0, rnd.real(-0.2, 0.2), 0] }, 0.04, 1);
+    b.box(w * 0.3, 0.06, d * 1.02, 0x5a3a2a, { p: [x, y + h / 2, z] }, 0);
+  }
+  return b.geometry();
+}
+
 /** Leuchtende Fackel (Tiki-Fackel: Bambus, Flamme im Material 'glow'). */
 export function tikiGeo() {
   const b = new Build();
@@ -694,6 +778,13 @@ export function lilaPropGeo(it, seed) {
     case 'templecolumn': return columnGeo(it.size ?? 3, !!it.broken, seed);
     case 'obelisk5': return obeliskGeo(it.size ?? 5);
     case 'tiki': return tikiGeo();
+    case 'drum': return drumGeo(it.size ?? 1, it.color ?? 0xe8283a);
+    case 'balloons': return balloonsGeo(seed);
+    case 'pond5': return pondGeo(it.size ?? 2.4, seed);
+    case 'donut': return donutGeo(it.size ?? 1);
+    case 'bench5': return benchGeo5();
+    case 'lamppost5': return lampPostGeo();
+    case 'luggage': return luggageGeo(seed);
     case 'tomb5': return tombGeo(seed);
     case 'deadtree': return bareTreeGeo(it.size ?? 4.2, seed);
     case 'palm5': return palmGeo(it.size ?? 5, it.lean ?? 0.8, seed);
@@ -706,6 +797,7 @@ export function lilaPropGeo(it, seed) {
 export function lilaPropGlow(it) {
   switch (it.kind) {
     case 'tiki': return tikiFlameGeo();
+    case 'lamppost5': return lampPostGlowGeo();
     default: return null;
   }
 }
@@ -729,6 +821,12 @@ export function lilaPropShape(it) {
     case 'templecolumn': return cyl(0.5, it.size ?? 3);
     case 'obelisk5': return cyl(0.6, it.size ?? 5);
     case 'tomb5': return cyl(0.45, 1.2);
+    case 'drum': return cyl(0.9 * (it.size ?? 1), 0.9 * (it.size ?? 1));
+    case 'pond5': return cyl((it.size ?? 2.4) * 0.92, 0.3);
+    case 'donut': return cyl(0.9 * (it.size ?? 1), 0.6 * (it.size ?? 1));
+    case 'lamppost5': return cyl(0.2, 3.4);
+    case 'luggage': return cyl(0.8, 1.2);
+    case 'bench5': return { type: 'box', min: [x - 0.9, y - 0.2, z - 0.35], max: [x + 0.9, y + 0.9, z + 0.35], tag: 'deko:bank' };
     default: return null;
   }
 }
