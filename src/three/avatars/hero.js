@@ -2232,48 +2232,134 @@ export class HeroAvatar extends Avatar3D {
 }
 
 // ================================================================== Pflaume (Kaninchen)
-const FUR_C = '#2a2630', FURW_C = '#f4f1f8', PINK_C = '#ffa3c6';
+// Figurenstil: rundlicher, flauschiger Körper (Laib mit vollen Keulen, weiße Brust, Puschelschwänzchen), runder Kopf mit
+// Pausbacken und großen glänzenden Augen, weiche breite Schlappohren (innen rosa), kurze stämmige Beine mit runden Pfoten,
+// weiße Zehen am nahen Hinterfuß. Gelenke wie bisher (Reiten, Floß, Ausrüstung); alles Fell teilt ein Material (Bündel).
+const FUR_C = '#2a2630', FURW_C = '#f4f1f8', PINK_C = '#ffa3c6', FUR_HI = '#4f4860';
 const HEAD_PIV = V(0.44, 0.74, 0);   // Halsansatz (Kopf-Drehpunkt)
-const HC = V(0.12, 0.20, 0);         // Kopfmitte, kopf-lokal → Welt ≈ (0.54, 0.88)
+const HC = V(0.12, 0.20, 0);         // Kopfmitte, kopf-lokal → Welt ≈ (0.56, 0.94)
+/** Kopfform: rund, Pausbacken unten seitlich, kleine Schnauze vorn. */
+const RHEAD = new HeadShape(HC, 0.27, { sx: 1.03, sy: 0.95, sz: 1.08, bulges: [{ az: 0.62, el: -0.42, w: 0.42, a: 0.028, sym: true }, { az: 0, el: -0.2, w: 0.3, a: 0.026 }] });
+const RNOSE = RHEAD.point(dirAE(0, -0.1), -0.012);
+const furShade = (p, yTop, k = 0.55) => col3(FUR_C).lerp(col3(FUR_HI), k * smoothstep((p.y - yTop) / 0.18));
 
-/** Rumpf: große runde Hinterpartie, nach vorn ansteigender Rumpf, weiße Brust, Puschelschwanz. */
-function rabbitTorsoParts() {
-  return [
-    part(sphere(0.37, 18, 14), FUR_C, { x: -0.33, y: 0.46, sz: 0.92 }),
-    part(sphere(0.30, 18, 14), FUR_C, { x: 0.1, y: 0.56, sx: 1.22, sy: 0.95, rz: 0.42 }),
-    part(sphere(0.21, 14, 10), FURW_C, { x: 0.42, y: 0.46, sx: 0.75, sy: 1.15, sz: 0.85 }),
-    part(sphere(0.14, 12, 10), FURW_C, { x: -0.70, y: 0.60 }),
-  ];
-}
-/** Kopf mit Schnauze (die rosa Nase ist ein eigenes Mesh, sie wackelt). */
-function rabbitHeadParts() {
-  return [
-    part(sphere(0.27, 18, 12), FUR_C, { x: HC.x, y: HC.y, sx: 1.08 }),
-    part(sphere(0.15, 14, 10), FUR_C, { x: 0.34, y: 0.12, sx: 1.1, sy: 0.8, sz: 0.95 }),
-  ];
-}
-/** Halstuch: Band um den Hals, Zipfel vor der Brust, Knoten – ein Mesh in Kraftfarbe. */
-function rabbitBandanaGeo() {
-  return geo('rabbit:bandana', () => {
-    const neckAxis = V(0.45, 0.89, 0).normalize();
-    const band = new THREE.Matrix4().compose(V(0.03, 0.02, 0), new THREE.Quaternion().setFromUnitVectors(V(0, 0, 1), neckAxis), V(1, 1, 1));
-    const tip = part(cone(0.13, 0.26, 4), null, { x: 0.2, y: -0.17, z: 0.04, rx: Math.PI, ry: Math.PI / 4, sz: 0.4 });
-    const knot = part(sphere(0.055, 10, 8), null, { x: 0.22, y: -0.03, z: 0.07 });
-    return mergePlain([[torus(0.21, 0.045, 8, 18), band], [tip[0], tip[2]], [knot[0], knot[2]]]);
+/** Rumpf: weicher Laib (hinten voll und rund, Keulen seitlich unten), weiße Brust, Puschelschwänzchen. Rumpf-lokal. */
+function rabbitTorsoGeo() {
+  return geo('rabbit:torso2', () => {
+    const white = col3(FURW_C);
+    const env = (v) => Math.pow(Math.max(0, 1 - Math.abs(2 * v - 1) ** 2.2), 1 / 2.2);
+    const body = gridGeo({
+      nu: 26, nv: 22, wrapU: true,
+      point: (u, v, out) => {
+        const th = u * TAU, x = -0.68 + 1.2 * v, e = env(v);
+        const yc = lerp(0.45, 0.47, v), hy = lerp(0.38, 0.3, v) * e, hz = lerp(0.34, 0.26, v) * e;
+        const sn = Math.sin(th), cs = Math.cos(th);
+        const haunch = 1 + 0.22 * Math.exp(-(((x + 0.33) / 0.2) ** 2)) * smoothstep((0.35 - sn) / 0.7);
+        let y = yc + sn * hy * (sn < 0 ? 1 + 0.45 * v * v : 1);   // Brust vorn tiefer
+        if (y < 0.12) y = 0.12 - (0.12 - y) * 0.45;           // Bauch sitzt flach auf
+        return out.set(x, y, cs * hz * haunch);
+      },
+      color: (u, v, p) => {
+        const w = smoothstep((p.x - 0.27) / 0.09) * smoothstep((0.68 - p.y) / 0.1) * (1 - smoothstep((Math.abs(p.z) - 0.13) / 0.06));
+        return furShade(p, 0.66).lerp(white, w);
+      },
+    });
+    // Puschelschwänzchen (Wölkchen aus fünf Kugeln)
+    const tail = [[-0.69, 0.5, 0, 0.1], [-0.73, 0.57, 0.04, 0.06], [-0.73, 0.45, -0.05, 0.06], [-0.65, 0.6, -0.05, 0.055], [-0.74, 0.52, -0.02, 0.06]]
+      .map(([x, y, z, r]) => ellipsoidGeo(V(x, y, z), V(r, 0, 0), V(0, r, 0), V(0, 0, r), white, 12, 8));
+    const m = mergeColored(own([body, ...tail]));
+    body.dispose(); for (const t of tail) t.dispose();
+    return m;
   });
 }
-/** Schlappohr: lange flache Kapsel, Innenseite rosa (zum Kopf hin). side = +1 nah / -1 fern. */
-function rabbitEarParts(side) {
-  return [
-    part(capsule(0.105, 0.56), FUR_C, { y: -0.32, sz: 0.42 }),
-    part(capsule(0.07, 0.42), PINK_C, { y: -0.37, z: -side * 0.042, sz: 0.3 }),
-  ];
+
+/** Kopf: Fell, Pausbacken, rosa Schnäuzchen-Mund („ω“), zarte Wangenröte. Kopf-lokal (Drehpunkt am Halsansatz). */
+function rabbitHeadGeo() {
+  return geo('rabbit:head2', () => {
+    const muz = col3('#3a3444'), blush = col3('#c46a8e'), pink = col3('#f08ab2');
+    const d = new THREE.Vector3();
+    const parts = [gridGeo({
+      nu: 30, nv: 20, point: (u, v, out) => RHEAD.point(dirAE(u * TAU, -Math.PI / 2 + v * Math.PI), 0, out),
+      color: (u, v, p) => {
+        d.copy(p).sub(HC).normalize();
+        const c = furShade(p, HC.y + 0.12, 0.6);
+        const m = Math.exp(-((Math.acos(clamp(d.dot(dirAE(0, -0.28)), -1, 1)) / 0.3) ** 2));
+        const b = Math.max(...[1, -1].map((s) => Math.exp(-((Math.acos(clamp(d.dot(dirAE(s * 0.72, -0.25)), -1, 1)) / 0.18) ** 2))));
+        return c.lerp(muz, 0.6 * m).lerp(blush, 0.4 * b);
+      },
+    })];
+    const f = RHEAD.frame(0, -0.33);
+    for (const s of [1, -1]) {
+      parts.push(stripGeo(RHEAD, f, { n: 10, across: 2, curve: (t) => [s * 0.036 * t, -0.012 * Math.sin(Math.PI * t) + 0.004 * t], width: () => 0.0042, lift: () => 0.0018, color: () => pink }));
+    }
+    parts.push(stripGeo(RHEAD, RHEAD.frame(0, -0.2), { n: 6, across: 1, curve: (t) => [0, 0.03 - 0.06 * t], width: () => 0.0035, lift: () => 0.0018, color: () => pink }));
+    const m = mergeColored(own(parts));
+    for (const g of parts) g.dispose();
+    return m;
+  });
 }
-/** Hinterlauf: langer Hasenfuß vom Fersengelenk nach vorn; der nahe Fuß trägt den weißen Fleck. */
-function rabbitHindParts(spot) {
-  const parts = [part(capsule(0.1, 0.42), FUR_C, { x: 0.31, y: -0.10, rz: -Math.PI / 2, sz: 0.9 })];
-  if (spot) parts.push(part(sphere(0.075, 10, 8), FURW_C, { x: 0.5, y: -0.04, z: 0.02, sy: 0.8 }));
-  return parts;
+
+/** Augen (groß, glänzend, dunkle Iris), geschlossen als heller Bogen auf dem dunklen Fell. */
+function rabbitEyeGeos() {
+  return geo('rabbit:eyes2', () => toonEyeGeos(RHEAD, {
+    az: 0.6, el: 0.07, w: 0.072, h: 0.088, iris: '#6e3c22', pupil: '#0b0507', look: 0.12, irisW: 0.86, irisH: 0.9, irisY: -0.02,
+    bulge: 0.018, closedColor: '#d9c8ea', hlSide: 1,
+  }));
+}
+
+/** Halstuch: Band um den Hals, Zipfel vor der Brust, Knoten – ein Mesh in Kraftfarbe. */
+function rabbitBandanaGeo() {
+  return geo('rabbit:bandana2', () => {
+    const neckAxis = V(0.45, 0.89, 0).normalize();
+    const band = new THREE.Matrix4().compose(V(0.03, 0.0, 0), new THREE.Quaternion().setFromUnitVectors(V(0, 0, 1), neckAxis), V(1, 1, 1));
+    const tip = part(cone(0.13, 0.26, 4), null, { x: 0.23, y: -0.17, z: 0.04, rx: Math.PI, ry: Math.PI / 4, sz: 0.42 });
+    const knot = part(sphere(0.058, 12, 8), null, { x: 0.24, y: -0.03, z: 0.07 });
+    return mergePlain([[torus(0.225, 0.05, 8, 24), band], [tip[0], tip[2]], [knot[0], knot[2]]]);
+  });
+}
+
+/** Schlappohr (ohr-lokal, hängt vom Drehpunkt nach −Y): breite, weiche Löffelform, Innenseite (zum Kopf) rosa. */
+function rabbitEarGeo(side) {
+  return geo(`rabbit:ear2:${side}`, () => {
+    const L = 0.56, fur = col3(FUR_C), pink = col3(PINK_C), hi = col3(FUR_HI);
+    const e = (v) => Math.sqrt(Math.sin((Math.PI / 2) * Math.min(1, v / 0.07))) * (v > 0.8 ? Math.sqrt(Math.max(0, 1 - ((v - 0.8) / 0.2) ** 2)) : 1);
+    return gridGeo({
+      nu: 16, nv: 14, flip: true,
+      point: (u, v, out) => {
+        const th = u * TAU, ev = e(v);
+        const wx = (0.05 + 0.068 * Math.pow(Math.sin(Math.PI * Math.min(1, v * 1.12)), 0.8)) * ev, wz = 0.022 * ev + 0.004 * (v > 0.02 ? 1 : 0);
+        const bend = side * 0.035 * Math.sin(Math.PI * v);
+        return out.set(wx * Math.cos(th), -L * v, wz * Math.sin(th) + bend);
+      },
+      color: (u, v) => {
+        const th = u * TAU, inner = -Math.sin(th) * side;
+        const k = smoothstep((inner - 0.15) / 0.5) * (1 - smoothstep((Math.abs(Math.cos(th)) - 0.55) / 0.35)) * smoothstep((v - 0.1) / 0.15) * (1 - smoothstep((v - 0.84) / 0.1));
+        return fur.clone().lerp(hi, 0.4 * smoothstep((Math.abs(Math.cos(th)) - 0.6) / 0.4)).lerp(pink, 0.9 * k);
+      },
+    });
+  });
+}
+
+/** Vorderpfote (pivot-lokal, hängt nach −Y): kurzes, stämmiges Bein, runde Pfote. */
+function rabbitFrontGeo() {
+  return geo('rabbit:front2', () => {
+    const leg = latheGeo([[0.0, -0.14], [0.06, -0.13], [0.072, -0.09], [0.075, -0.03], [0.07, 0.02], [0.0, 0.05]], { segs: 12, steps: 8, color: (phi, y, p) => furShade(p, 0.0, 0.3) });
+    const paw = ellipsoidGeo(V(0.022, -0.168, 0), V(0.086, 0, 0), V(0, 0.056, 0), V(0, 0, 0.076), (p) => furShade(p, -0.17, 0.4), 14, 10);
+    const m = mergeColored(own([leg, paw]));
+    leg.dispose(); paw.dispose();
+    return m;
+  });
+}
+/** Hinterfuß (Drehpunkt an der Ferse unter der Keule): ovale Pfote nach vorn; spot → weiße Zehen. */
+function rabbitHindGeo(spot) {
+  return geo(`rabbit:hind2:${spot ? 1 : 0}`, () => {
+    const white = col3(FURW_C);
+    return blobGeo({
+      x0: -0.08, x1: 0.34, nu: 16, nv: 12, hy: (v) => 0.064 * Math.pow(Math.sin(Math.PI * v), 0.5), hz: (v) => (0.07 + 0.012 * v) * Math.pow(Math.sin(Math.PI * v), 0.5), yc: () => -0.13,
+      deform: (p) => { if (p.y < -0.18) p.y = -0.18 + (p.y + 0.18) * 0.4; },
+      color: (p) => (spot ? furShade(p, -0.1, 0.4).lerp(white, smoothstep((p.x - 0.17) / 0.08)) : furShade(p, -0.1, 0.4)),
+    });
+  });
 }
 
 const RABBIT_POSE = {
@@ -2372,7 +2458,8 @@ function backpackParts() {
 export class PflaumeAvatar extends Avatar3D {
   buildModel() {
     this.usesFacing = false;
-    const fur = mat('fur-black', { color: FUR_C, roughness: 0.82 });
+    const fur = SURF.cloth(), gloss = SURF.gloss();
+    const smesh = (g, m, shadow = true) => { const me = new THREE.Mesh(g, m); me.castShadow = shadow; return me; };
     this.bandanaMat = this.track(new THREE.MeshStandardMaterial({ color: POWER_COLORS.none.Z, roughness: 0.5 }));
     this.powerKey = null;
 
@@ -2386,52 +2473,63 @@ export class PflaumeAvatar extends Avatar3D {
     this.model.add(this.body);
     this.torso = new THREE.Group();
     this.body.add(this.torso);
-    this.torso.add(vmesh('rabbit:torso', rabbitTorsoParts, 0.82, true));
+    this.torso.add(smesh(rabbitTorsoGeo(), fur));
 
-    // Kopf (Drehpunkt am Halsansatz)
+    // Kopf (Drehpunkt am Halsansatz): Fell+Schnäuzchen, Nase (wackelt), Augen (offen/zu, Glanzpunkte), offener Mund
     this.head = new THREE.Group(); this.head.position.copy(HEAD_PIV);
     this.torso.add(this.head);
-    this.head.add(vmesh('rabbit:head', rabbitHeadParts, 0.82, true));
-    this.nose = mesh(sphere(0.05, 10, 8), mat('fur-pink', { color: PINK_C, roughness: 0.6 }), { x: 0.49, y: 0.17, sx: 0.7, sy: 0.75 });
+    this.head.add(smesh(rabbitHeadGeo(), fur));
+    this.noseY = RNOSE.y;
+    this.nose = mesh(sphere(0.05, 12, 8), mat('fur-pink', { color: PINK_C, roughness: 0.45 }), { x: RNOSE.x, y: RNOSE.y, sx: 0.7, sy: 0.62, sz: 0.85 });
     this.head.add(this.nose);
-    const eyes = buildEyes({ center: HC, r: 0.285, az: 0.95, el: 0.16, look: 0.14, white: 0.1, iris: 0.07, pupil: 0.046, hl: 0.022, irisColor: '#4a2a1a', pupilColor: '#0d0608' });
-    this.eyes = eyes.eyes; this.eyeHl = eyes.hl;
-    this.head.add(this.eyes, this.eyeHl);
-    this.mouthO = mesh(unitSphere(), mat('mouth', { color: 0x7a2230, roughness: 0.5 }), { x: 0.46, y: 0.06 });
+    const E = rabbitEyeGeos();
+    this.eyes = smesh(E.open, gloss, false); this.eyes.position.y = E.eyeY;
+    this.eyesClosed = smesh(E.closed, gloss, false); this.eyesClosed.position.y = E.eyeY; this.eyesClosed.visible = false;
+    this.eyeHl = smesh(E.hl, basicMat('white', { color: 0xffffff }), false);
+    this.eyes.add(this.eyeHl);
+    this.head.add(this.eyes, this.eyesClosed);
+    const mf = RHEAD.frame(0, -0.4);
+    this.mouthO = smesh(mouthGeo(), gloss, false);
+    this.mouthO.position.copy(RHEAD.point(mf.d, -0.002));
+    this.mouthO.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(mf.T.clone().negate(), mf.B, mf.n));
     this.mouthO.scale.setScalar(0.001);
     this.head.add(this.mouthO);
-    // Schnurrhaare (hell, ein Linienkörper)
-    this.head.add(new THREE.LineSegments(geo('rabbit:whiskers', () => {
-      const pts = [];
-      for (const s of [1, -1]) for (const [dx, dy, dz] of [[0.26, 0.09, 0.18], [0.28, 0.02, 0.21], [0.25, -0.05, 0.19]]) pts.push(V(0.42, 0.14, s * 0.1), V(0.42 + dx, 0.14 + dy, s * (0.1 + dz)));
+    // Schnurrhaare (hell, ein Linienkörper) seitlich am Schnäuzchen
+    this.head.add(new THREE.LineSegments(geo('rabbit:whiskers2', () => {
+      const pts = [], o = RNOSE.clone().add(V(-0.05, -0.035, 0));
+      for (const s of [1, -1]) for (const [dx, dy, dz] of [[0.22, 0.08, 0.17], [0.24, 0.01, 0.2], [0.21, -0.06, 0.18]]) pts.push(V(o.x, o.y, s * 0.075), V(o.x + dx, o.y + dy, s * (0.075 + dz)));
       return new THREE.BufferGeometry().setFromPoints(pts);
     }), lineMat('whisker', { color: 0xe8e4f0 })));
     // Schlappohren: Drehpunkt oben am Kopf, hängen seitlich herab (nahes Ohr abgespreizt), Innenseite rosa
     this.ears = [];
     for (const s of [1, -1]) {
-      const ear = new THREE.Group(); ear.position.set(0.05, 0.45, s * 0.15);
+      const ear = new THREE.Group(); ear.position.set(0.05, 0.43, s * 0.15);
       const inner = new THREE.Group(); // Drehung um die Ohrachse (Twist)
-      inner.add(vmesh(`rabbit:ear:${s}`, () => rabbitEarParts(s), 0.82, true));
+      inner.add(smesh(rabbitEarGeo(s), fur));
       ear.add(inner); ear.inner = inner; ear.side = s;
       this.head.add(ear); this.ears.push(ear);
     }
     this.head.add(mesh(rabbitBandanaGeo(), this.bandanaMat));
 
-    // Hinterläufe (Drehpunkt am Fersengelenk unter der Hinterpartie) und kurze Vorderpfoten
+    // Hinterpfoten (Drehpunkt an der Ferse unter der Keule) und kurze, stämmige Vorderbeine
     const makeHind = (s) => {
       const piv = new THREE.Group(); piv.position.set(-0.40, 0.20, s * 0.27);
-      piv.add(vmesh(`rabbit:hind:${s}`, () => rabbitHindParts(s > 0), 0.82, true));
+      piv.add(smesh(rabbitHindGeo(s > 0), fur));
       this.body.add(piv);
       return piv;
     };
     this.hindN = makeHind(1); this.hindF = makeHind(-1);
     const makeFront = (s) => {
-      const piv = limb(0.065, 0.22, fur, false); piv.position.set(0.46, 0.30, s * 0.16);
+      const piv = new THREE.Group(); piv.position.set(0.38, 0.25, s * 0.15);
+      const me = smesh(rabbitFrontGeo(), fur, false); piv.add(me); piv.limbMesh = me;
       this.body.add(piv);
       return piv;
     };
     this.frontN = makeFront(1); this.frontF = makeFront(-1);
   }
+
+  /** Augen wie bei der Heldin (Blinzeln über scale.y, fast zu → Lidbogen). */
+  applyEyes(open) { HeroAvatar.prototype.applyEyes.call(this, open); }
 
   computePose(dt, t) {
     const o = this.obj;
@@ -2517,12 +2615,11 @@ export class PflaumeAvatar extends Avatar3D {
     eF.rotation.set(p.earOutF, 0, -p.earBackF); eF.inner.rotation.y = -p.earTwist;
     this.hindN.rotation.z = p.hindN; this.hindF.rotation.z = p.hindF;
     this.frontN.rotation.z = p.frontN; this.frontF.rotation.z = p.frontF;
-    const blink = this.blinker.update(this.dt, p.eyes > 0.5);
-    const ey = Math.max(0.06, p.eyes * blink);
-    this.eyes.scale.y = ey; this.eyeHl.scale.y = ey;
+    this.applyEyes(p.eyes);
     const mo = Math.max(0.001, p.mouth);
-    this.mouthO.scale.set(0.045 * mo, 0.05 * mo, 0.05 * mo);
-    this.nose.position.y = 0.17 + 0.012 * nose;
+    this.mouthO.scale.set(0.042 * mo, 0.05 * mo, 0.006 + 0.01 * mo);
+    this.mouthO.visible = mo > 0.06;   // geschlossen: kein Zeichenaufruf
+    this.nose.position.y = this.noseY + 0.012 * nose;
     this.nose.scale.x = 0.7 + 0.1 * Math.abs(nose);
   }
 

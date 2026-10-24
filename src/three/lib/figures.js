@@ -649,7 +649,7 @@ export function toonEyeGeos(head, o) {
     // Weiß (unten minimal breiter), oben im Schatten des Lids
     open.push(decalGeo(head, f, {
       rings: 4, segs: 24, shape: ell(0, 0, W, Hh, 0.05), lift: L,
-      color: (x, y) => white.clone().lerp(shade, smoothstep((y / Hh - 0.25) / 0.75) * (lidC ? 1 : 0.6)),
+      color: (x, y) => white.clone().lerp(shade, smoothstep((y / Hh - 0.25) / 0.75) * (lidC ? 1 : 0.25)),
     }));
     // Iris: Verlauf oben dunkel → unten hell, dunkler Rand
     const irisShape = (r, th) => clip(ell(cx, cy, iw, ih)(r, th));
