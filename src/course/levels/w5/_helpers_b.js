@@ -1058,3 +1058,267 @@ export function wallWindows(level, list) {
   b.flush(level, { castShadow: false });
   g.flush(level, { material: 'glow', castShadow: false });
 }
+
+// =====================================================================================================================
+// 5-A Hörnerherde am Lila Strand
+// =====================================================================================================================
+
+/**
+ * Runde Strandinsel mit lila Sand (Wellenrand, nasser Saum, Schaumring) im Meer, das bis zum Horizont reicht (Verlauf
+ * Türkis → Violett, Glitzern). Kollision: Zylinder der Insel (nur Kulisse – die Figur bleibt im Käfig). o: { r 30,
+ * y (Sandhöhe) 0, sea (Meeresspiegel) -0.35, seaR 200 }.
+ */
+export function lilacBeach(level, o = {}) {
+  const R = o.r ?? 30, y = o.y ?? 0, sea = o.sea ?? -0.35, cx = o.x ?? 0, cz = o.z ?? 0;
+  level.world.add({ type: 'cyl', x: cx, z: cz, r: R, y0: y - 3, y1: y, tag: 'strand' });
+  if (!level.view) return;
+  const rim = (a) => R * (1 + 0.035 * Math.sin(a * 5 + 1.3) + 0.025 * Math.sin(a * 11 + 0.4));
+  const sandHi = new THREE.Color(0xf6dcf2), sand = new THREE.Color(0xe8c4e6), wet = new THREE.Color(0xb88ac8), c = new THREE.Color();
+  // Sandfläche als Fächer aus Ringen (Rand wellig), leichte Dünenwellen
+  const N = 72, RINGS = 8;
+  const pos = [], col = [];
+  const P = (k, j) => {
+    const a = (k / N) * TAU, t = j / RINGS, r = rim(a) * t;
+    const h = t < 0.86 ? 0.04 * Math.sin(a * 7 + t * 9) * t : -(t - 0.86) * 2.2;
+    return [cx + Math.sin(a) * r, y + h, cz + Math.cos(a) * r, t];
+  };
+  const colAt = (t, a) => { c.copy(sand).lerp(sandHi, 0.5 + 0.5 * Math.sin(a * 9 + t * 13)); if (t > 0.86) c.lerp(wet, Math.min(1, (t - 0.86) / 0.1)); return c; };
+  for (let j = 0; j < RINGS; j++) {
+    for (let k = 0; k < N; k++) {
+      const A = P(k, j), B = P(k + 1, j), C = P(k + 1, j + 1), D = P(k, j + 1);
+      for (const q of [A, D, C, A, C, B]) { pos.push(q[0], q[1], q[2]); const cc = colAt(q[3], Math.atan2(q[0] - cx, q[2] - cz)); col.push(cc.r, cc.g, cc.b); }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  addStatic(level, g, { castShadow: false });
+  // Schaumring und Meer
+  const foam = new THREE.RingGeometry(1, 1.06, N, 1);
+  foam.rotateX(-Math.PI / 2);
+  const fp = foam.attributes.position;
+  for (let i = 0; i < fp.count; i++) {
+    const x = fp.getX(i), z = fp.getZ(i), a = Math.atan2(x, z), r = Math.hypot(x, z);
+    const rr = rim(a) * 0.985 * r;
+    fp.setXYZ(i, Math.sin(a) * rr, 0, Math.cos(a) * rr);
+  }
+  const foamMesh = new THREE.Mesh(foam, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
+  foamMesh.position.set(cx, sea + 0.03, cz);
+  const seaR = o.seaR ?? 220;
+  const sg = new THREE.CircleGeometry(seaR, 64, 0, TAU);
+  sg.rotateX(-Math.PI / 2);
+  const sc = new Float32Array(sg.attributes.position.count * 3);
+  const near = new THREE.Color(0x5ae0e0), mid = new THREE.Color(0x3a8ae8), far = new THREE.Color(0x8a6ad8);
+  for (let i = 0; i < sg.attributes.position.count; i++) {
+    const r = Math.hypot(sg.attributes.position.getX(i), sg.attributes.position.getZ(i));
+    const t = Math.min(1, Math.max(0, (r - R) / 60));
+    c.copy(near).lerp(mid, Math.min(1, t * 1.6)); if (t > 0.6) c.lerp(far, (t - 0.6) / 0.4);
+    sc[i * 3] = c.r; sc[i * 3 + 1] = c.g; sc[i * 3 + 2] = c.b;
+  }
+  sg.setAttribute('color', new THREE.BufferAttribute(sc, 3));
+  const seaMesh = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ vertexColors: true }));
+  seaMesh.position.set(cx, sea, cz);
+  const grp = new THREE.Group();
+  grp.add(seaMesh, foamMesh);
+  const holder = {};
+  let t = 0;
+  addObject(level, grp, (dt) => { t += visDt(level, holder, dt); const k = 1 + Math.sin(t * 1.1) * 0.012; foamMesh.scale.set(k, 1, k); foamMesh.material.opacity = 0.65 + 0.25 * Math.sin(t * 1.1); });
+  // Glitzern auf dem Meer
+  const rnd = new Rnd(31);
+  const pts = [];
+  for (let i = 0; i < 40; i++) { const a = rnd.real(0, TAU), r = rnd.real(R + 4, R + 50); pts.push([cx + Math.sin(a) * r, sea + 0.05, cz + Math.cos(a) * r, rnd.real(0.6, 1.2)]); }
+  glowPoints(level, pts, { color: 0xffffff, size: 0.9, opacity: 0.55, pulse: 1.3 });
+}
+
+/** Rettungsschwimmer-Turm (Holzgestell, rot-weiße Hütte, Rettungsring, Fahne) – Fußpunkt pos, Blick yaw. */
+export function lifeguardTower(level, pos, yaw = 0) {
+  if (!level.view) return;
+  const [x, y, z] = pos, b = new Bld(), c = Math.cos(yaw), s = Math.sin(yaw);
+  const P = (u, n) => [x + c * u + s * n, z - s * u + c * n];
+  for (const u of [-0.8, 0.8]) for (const n of [-0.8, 0.8]) { const [px, pz] = P(u, n); b.box(0.16, 2.6, 0.16, px, y, pz, litTop(0xf0e0c0), { r: 0 }); }
+  const [hx, hz] = P(0, 0);
+  b.box(2.0, 0.14, 2.0, hx, y + 2.6, hz, litTop(0xc89a6a), { yaw, r: 0.02 });
+  for (let k = 0; k < 4; k++) b.box(2.0, 0.3, 1.9, hx, y + 2.74 + k * 0.3, hz, k % 2 ? 0xffffff : 0xff4a4a, { yaw, r: 0.02 });
+  b.box(2.4, 0.16, 2.3, hx, y + 3.95, hz, litTop(0xff4a4a), { yaw, r: 0.05 });
+  const [rx, rz] = P(0, 1.0);
+  b.torus(0.32, 0.09, rx, y + 3.2, rz, 0xff6a3a, { yaw, ts: 14 });
+  b.cyl(0.03, 0.03, 1.4, hx, y + 4.1, hz, 0x6a5a4a, 5);
+  const fl = new THREE.Shape(); fl.moveTo(0, 0); fl.lineTo(0.8, -0.2); fl.lineTo(0, -0.45);
+  b.add(new THREE.ShapeGeometry(fl), 0xffd24a, { p: [hx, y + 5.45, hz], r: [0, yaw, 0] });
+  for (let k = 0; k < 6; k++) { const [lx, lz] = P(0, 1.05); b.box(0.7, 0.06, 0.08, lx, y + 0.3 + k * 0.42, lz, litTop(0xf0e0c0), { yaw, r: 0 }); }
+  b.flush(level);
+}
+
+/**
+ * Sandstein-Felsen am Strand (Wartepodeste, oben flach auf Höhe top): gebänderter lila-rosa Fels mit Grasbüscheln und
+ * Kieseln – list [[x, z, r], …], Sandhöhe y. Kollision: Zylinder (Figuren können hinaufspringen).
+ */
+export function sandRocks(level, list, y, top) {
+  const b = new Bld(), rnd = new Rnd(57), h = top - y;
+  const band = { v: (x, yy) => { const t = (yy - y) / h; const k = 0.5 + 0.5 * Math.sin(t * 15); return new THREE.Color(0xc9a0d8).lerp(new THREE.Color(0xf0c8de), k * 0.7).multiplyScalar(0.82 + 0.18 * t); } };
+  for (const [x, z, r] of list) {
+    level.world.add({ type: 'cyl', x, z, r: r * 0.92, y0: y - 1, y1: top, tag: 'fels' });
+    b.cyl(r * 0.92, r * 1.12, h * 0.55, x, y, z, band, 11);
+    b.cyl(r, r * 0.92, h * 0.45 - 0.12, x, y + h * 0.55, z, band, 11);
+    b.cyl(r * 0.94, r, 0.12, x, top - 0.12, z, litTop(0xf6d6ec), 11);
+    for (let k = 0; k < 6; k++) {
+      const a = rnd.real(0, TAU), rr = r * rnd.real(0.75, 0.92);
+      b.cone(0.16, rnd.real(0.35, 0.6), x + Math.sin(a) * rr, top - 0.05, z + Math.cos(a) * rr, 0x7ad070, 5);
+    }
+    for (let k = 0; k < 4; k++) { const a = rnd.real(0, TAU), rr = r * rnd.real(1.15, 1.6); b.sphere(rnd.real(0.18, 0.34), x + Math.sin(a) * rr, y + 0.08, z + Math.cos(a) * rr, litTop(0xd8b0e0), { s: [1, 0.6, 1], ws: 7, hs: 5 }); }
+  }
+  b.flush(level);
+}
+
+/** Segelboote auf dem Meer (schaukeln sacht) – list [[x, z, yaw, farbe], …], Meeresspiegel y. Ein Mesh je Boot. */
+export function sailboats(level, list, y = -0.35) {
+  if (!level.view) return;
+  for (const [x, z, yaw, colr] of list) {
+    const b = new Bld();
+    b.box(2.6, 0.5, 0.9, 0, 0, 0, litTop(0xffffff), { r: 0.18 });
+    b.box(2.2, 0.08, 0.7, 0, 0.5, 0, litTop(0xc89a6a), { r: 0 });
+    b.cyl(0.05, 0.05, 3.2, 0, 0.5, 0, 0x8a6a4a, 5);
+    const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(1.4, 0); sh.lineTo(0, 2.6);
+    b.add(new THREE.ShapeGeometry(sh), colr ?? 0xff6a8a, { p: [0.08, 0.9, 0] });
+    const sh2 = new THREE.Shape(); sh2.moveTo(0, 0); sh2.lineTo(-1.0, 0); sh2.lineTo(0, 2.2);
+    b.add(new THREE.ShapeGeometry(sh2), 0xffffff, { p: [-0.08, 0.9, 0] });
+    const mesh = new THREE.Mesh(b.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, side: THREE.DoubleSide }));
+    mesh.position.set(x, y, z);
+    mesh.rotation.y = yaw;
+    const holder = {};
+    let t = x;
+    addObject(level, mesh, (dt) => { t += visDt(level, holder, dt); mesh.rotation.z = Math.sin(t * 0.9) * 0.06; mesh.position.y = y + Math.sin(t * 1.3) * 0.06; });
+  }
+}
+
+/** Möwen, die über dem Strand kreisen (Instanz-Gruppen, weiß-grau). o: { spots: [[cx, y, cz, r], …], n }. */
+export function seagulls(level, o) {
+  if (!level.view) return;
+  const spots = o.spots ?? [], per = o.n ?? 2, N = spots.length * per;
+  if (!N) return;
+  const body = new Build();
+  body.sphere(0.16, 0xffffff, { s: [1.6, 0.8, 0.8] }, 8, 6);
+  body.sphere(0.1, 0xffffff, { p: [0.24, 0.06, 0] }, 7, 5);
+  body.cone(0.035, 0.12, 0xffb02a, { p: [0.34, 0.05, 0], r: [0, 0, -Math.PI / 2] }, 5);
+  body.sphere(0.02, 0x2a2a3a, { p: [0.29, 0.1, 0.06] }, 4, 3);
+  body.sphere(0.02, 0x2a2a3a, { p: [0.29, 0.1, -0.06] }, 4, 3);
+  const wing = new Build();
+  const shape = new THREE.Shape();
+  shape.moveTo(0.1, 0); shape.lineTo(0.0, 0.62); shape.lineTo(-0.18, 0.55); shape.lineTo(-0.14, 0);
+  wing.add(new THREE.ShapeGeometry(shape), { v: (x, y) => (y > 0.45 ? new THREE.Color(0x4a4a5a) : new THREE.Color(0xdadae8)) }, { r: [-Math.PI / 2, 0, 0] });
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, side: THREE.DoubleSide });
+  const mb = new THREE.InstancedMesh(body.geometry(), mat, N), mw = new THREE.InstancedMesh(wing.geometry(), mat, N * 2);
+  for (const m of [mb, mw]) { m.frustumCulled = false; m.castShadow = false; }
+  const grp = new THREE.Group(); grp.add(mb, mw);
+  const M = new THREE.Matrix4(), W = new THREE.Matrix4(), T = new THREE.Matrix4(), O = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s1 = new THREE.Vector3(1, 1, 1);
+  const holder = {};
+  let t = 0;
+  addObject(level, grp, (dt) => {
+    t += visDt(level, holder, dt);
+    let i = 0;
+    for (const [cx, cy, cz, r] of spots) for (let k = 0; k < per; k++, i++) {
+      const a = t * (0.35 + 0.08 * k) + k * 2.6 + cx * 0.1;
+      v.set(cx + Math.cos(a) * r, cy + Math.sin(t * 0.7 + i) * 0.6, cz - Math.sin(a) * r);
+      q.setFromEuler(e.set(0, a + Math.PI / 2, 0.25));
+      M.compose(v, q, s1);
+      mb.setMatrixAt(i, M);
+      const flap = Math.sin(t * 5 + i * 1.3) * 0.55 + 0.15;
+      W.makeRotationX(flap); T.makeTranslation(0, 0.04, -0.05); O.copy(M).multiply(T).multiply(W); mw.setMatrixAt(i * 2, O);
+      W.makeRotationX(Math.PI - flap); T.makeTranslation(0, 0.04, 0.05); O.copy(M).multiply(T).multiply(W); mw.setMatrixAt(i * 2 + 1, O);
+    }
+    mb.instanceMatrix.needsUpdate = true; mw.instanceMatrix.needsUpdate = true;
+  });
+}
+
+/**
+ * Bullen-Wellen für die Arena (5-A): Bullen späterer Wellen warten draußen am Strand hinter dem Gitter (scharren, schauen
+ * herein, ohne Berührung); ist die vorige Welle besiegt, springen sie nacheinander in hohem Bogen über das Gitter in die
+ * Arena (Staub, Wackeln, Jubel) und kämpfen dann normal. Tod der Figur → Arena neu (der Archetyp erzeugt die Bullen
+ * frisch), die Wartenden stehen wieder draußen. waves: [[ids …], …]; wait: { id: [x, y, z] } (Warteplatz; Landeplatz =
+ * pos aus den Daten), o: { flight 1.15, stagger 0.5, arc 8, pause 1.2, banner(level, n), center [x, y, z], crowd }.
+ * level.named('wellen') = Zustand { wave, landed, log }.
+ */
+export function bullWaves(level, waves, wait, o = {}) {
+  const st = { wave: 0, timer: -1, jumping: [], log: [], landed: 0 };
+  const ent = (id) => level.named.get(id);
+  const ctr = o.center ?? [0, 0, 0];
+  const park = (e, id) => {
+    if (!e || e.parked) return;
+    const w = wait[id];
+    e.parked = { update: e.update, touch: e.touch, target: e.pos.clone() };
+    e.pos.set(w[0], w[1], w[2]);
+    e.vel?.set(0, 0, 0);
+    e.yaw = Math.atan2(-(ctr[2] - w[2]), ctr[0] - w[0]);
+    e.touch = false;
+    let dustT = 0.3 + (w[0] % 1 + 1) % 1;
+    e.update = (dt) => {
+      e.stateT += dt;
+      dustT -= dt;
+      if (dustT <= 0) { dustT = 0.7; level.effects?.dust({ x: e.pos.x - Math.cos(e.yaw) * 0.5, y: e.pos.y, z: e.pos.z + Math.sin(e.yaw) * 0.5 }, 2, 0.5); }
+    };
+    e.modelState = () => ({ anim: 'idle', speed: 0, hp: e.hp });
+  };
+  const leap = (e) => {
+    if (!e?.parked) return null;
+    const from = e.pos.clone(), to = e.parked.target;
+    const j = { e, from, to, top: Math.max(from.y, to.y) + (o.arc ?? 8), t: 0, T: o.flight ?? 1.15, delay: 0 };
+    st.jumping.push(j);
+    e.update = () => {};
+    e.modelState = () => ({ anim: 'charge', speed: 6, hp: e.hp });
+    return j;
+  };
+  const land = (e) => {
+    const P = e.parked;
+    delete e.update; if (e.update !== P.update) e.update = P.update;
+    delete e.modelState;
+    e.touch = P.touch ?? true;
+    e.parked = null;
+    e.vel?.set(0, 0, 0);
+    e.wake = Math.max(e.wake ?? 0, 60);
+    e.setState?.('idle');
+    e.cool = 0.6;
+    st.landed++;
+    level.effects?.dust(e.pos, 12, 2.2);
+    level.effects?.ring?.({ x: e.pos.x, y: e.pos.y + 0.05, z: e.pos.z }, 1.8);
+    level.shake?.(0.35);
+    level.sfx('groundpound');
+    level.named.get(o.crowd ?? 'crowd')?.cheer?.(0.8, 1.5);
+  };
+  const reset = () => {
+    st.wave = 0; st.timer = -1; st.jumping = [];
+    for (let w = 1; w < waves.length; w++) for (const id of waves[w]) park(ent(id), id);
+  };
+  onRespawn(level, reset);
+  reset();
+  level.onStep((dt) => {
+    for (const j of st.jumping.slice()) {
+      if (j.delay > 0) { j.delay -= dt; if (j.delay <= 0) level.sfx('panic'); continue; }
+      j.t += dt;
+      const u = Math.min(1, j.t / j.T);
+      const e = j.e;
+      // Bogen: waagerecht gleichmäßig, senkrecht Parabel mit y(0) = from, y(0,5) = top, y(1) = to
+      const y0 = j.from.y, y1 = j.to.y, h = j.top;
+      const a = 2 * (y0 + y1 - 2 * h), b = 4 * h - 3 * y0 - y1;
+      e.pos.set(j.from.x + (j.to.x - j.from.x) * u, a * u * u + b * u + y0, j.from.z + (j.to.z - j.from.z) * u);
+      e.yaw = Math.atan2(-(j.to.z - j.from.z), j.to.x - j.from.x);
+      if (u >= 1) { st.jumping.splice(st.jumping.indexOf(j), 1); land(e); }
+    }
+    if (st.wave + 1 >= waves.length) return;
+    const cur = waves[st.wave].map(ent);
+    const down = cur.every((e) => !e || e.defeated || e.removed || !e.alive);
+    if (down && st.timer < 0) st.timer = o.pause ?? 1.2;
+    if (st.timer >= 0) {
+      st.timer -= dt;
+      if (st.timer <= 0) {
+        st.timer = -1;
+        st.wave++;
+        waves[st.wave].forEach((id, k) => { const j = leap(ent(id)); if (j) j.delay = k * (o.stagger ?? 0.5); });
+        st.log.push({ wave: st.wave + 1, t: +level.time.toFixed(2) });
+        o.banner?.(level, st.wave + 1);
+      }
+    }
+  });
+  level.named.set(o.id ?? 'wellen', st);
+  return st;
+}
