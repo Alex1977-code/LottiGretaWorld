@@ -121,11 +121,80 @@ const ROUTES = {
   '5-2': {
     start: [0, Y, 6],
     meta: { stars: 3, time: 400, theme: 'circus', music: 'course_trapeze', archetype: 'parcours' },
-    enemies: {},
-    main: [],
+    enemies: { schnappblume: 16, riesenschnappblume: 4, funkenling: 4, pilzling: 6, stachelstange: 3 },
+    main: [
+      { name: 'Startbühne', to: [0, -2.8], within: 0.4 },
+      { name: 'Seilbahn 1', gondola: 'gondel1' },
+      { name: 'Trapezbühne', to: [0, -30], within: 0.6, jump: 10 },
+      { to: [0, -36.6], within: 0.25, run: false },
+      { trapeze: 'ta1' },
+      { swing: 'ta1', next: 'ta2' },
+      { swing: 'ta2', next: 'ta3' },
+      { swing: 'ta3', land: true },
+      { name: 'Seilbahnbühne', to: [0, -59.4], within: 0.4, run: false },
+      { name: 'Seilbahn 2', gondola: 'gondel2' },
+      { name: 'Checkpoint', to: [0, -85], within: 0.6, jump: 10 },
+      { name: 'Pilz-Trampolin zur Gasse', bounce: [0, -98.5], at: [0, -92] },
+      { to: [1, -103], within: 0.4 },
+      { name: '?-Block mit Riesentrank', to: [1, -104.5], within: 0.2, run: false },
+      { hop: 22 },
+      { chaseKind: 'powerup', max: 600 },
+      { expect: 'giant' },
+      { name: 'als Riese durch die Steinwände', to: [1, -129.5], within: 0.6 },
+      { name: 'Glasröhre', to: [0, -136], within: 0.5, stopIf: 'onF' },
+      { wait: 20 },
+      { expect: 'onF' },
+      { to: [0, -146.4], within: 0.3, run: false },
+      { name: 'Pendelplattform', pendel: 'pendel1', exitZ: -154.2 },
+      { name: 'Bühne G', to: [0, -159.5], jump: 24, within: 0.6, run: false },
+      { to: [0, -163.5], within: 0.3, run: false },
+      { name: 'Drehscheibe 1', to: [0, -167.6], jump: 24, runUp: 3, within: 0.5, run: false, dodge: true },
+      { to: [-1.6, -169.3], within: 0.5, run: false, dodge: true },
+      { to: [0, -171.3], within: 0.4, run: false, dodge: true },
+      { name: 'Drehscheibe 2', to: [0, -175.8], jump: 24, runUp: 3, within: 0.5, run: false, dodge: true },
+      { to: [-1.6, -177.3], within: 0.5, run: false, dodge: true },
+      { to: [0, -179.3], within: 0.4, run: false, dodge: true },
+      { name: 'Drehscheibe 3', to: [0, -183.8], jump: 24, runUp: 3, within: 0.5, run: false, dodge: true },
+      { to: [-1.6, -185.3], within: 0.5, run: false, dodge: true },
+      { to: [0, -187.3], within: 0.4, run: false, dodge: true },
+      { name: 'Bühne H', to: [0, -192.2], jump: 30, runUp: 3, within: 0.6, run: false },
+      { to: [0, -196.2], within: 0.25, run: false },
+      { trapeze: 'tb1' },
+      { swing: 'tb1', next: 'tb2' },
+      { swing: 'tb2', next: 'tb3' },
+      { swing: 'tb3', land: true },
+      { name: 'Bühne I', to: [0, -217.2], within: 0.25, run: false },
+      { trapeze: 'tc1' },
+      { swing: 'tc1', land: true },
+      { name: 'Zielmast', to: [0, -243.6], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'Seilbahnen und Trapeze benutzt (2 Gondeln, 7 Trapeze)', ok: (r) => r.mech.gondola === 2 && r.mech.trapezes === 7 },
+      { name: 'Pendelplattform und Pilz-Trampolin benutzt', ok: (r) => r.mech.pendel === 1 && r.mech.bounces >= 1 },
+    ],
     targets: [],
     extra: [],
-    shots: [['start', [0, Y, 6]]],
+    shots: [
+      ['start', [0, Y, 8]],
+      ['seilbahn', [0, Y, -2]],
+      ['sims', [-4.6, 6.6, -15]],
+      ['trapezbuehne', [0, 9, -30]],
+      ['trapeze', [0, 9, -35.5]],
+      ['seilbahn2', [0, 9, -58]],
+      ['checkpoint', [0, 5, -84]],
+      ['gasse', [0, 10, -99]],
+      ['gasse_mitte', [-4.5, 10, -114]],
+      ['buehne_f', [0, 14, -142]],
+      ['pendel', [0, 14, -145.5]],
+      ['scheiben', [0, 14, -161.5]],
+      ['ostbuehne', [9.5, 14, -177]],
+      ['blauraum', [83, 14, -172]],
+      ['buehne_h', [0, 14, -193]],
+      ['sims_stempel', [-10.4, 20.4, -194]],
+      ['trapeze_b', [0, 14, -197]],
+      ['finale', [0, 14, -217]],
+      ['ziel', [0, 14, -229]],
+    ],
   },
 };
 
@@ -173,6 +242,9 @@ function install() {
     taskDone: () => L.named.get('aufgabe_hoehle')?.state === 'done',
     onGoalIsle: () => P().pos.z < -210,
     fire: () => P().power === 'funken',
+    giant: () => P().power === 'riese',
+    onF: () => P().pos.y > 13 && P().pos.z < -138 && P().pos.z > -150,
+    wallsBroken: () => ['wand1', 'wand2', 'wand3'].every((id) => (L.named.get(id)?.broken ?? 0) > 0),
   };
   const W = {
     place(pos, o = {}) {
@@ -225,9 +297,9 @@ function install() {
           const t = track[track.length - 1];
           if (!t || Math.hypot(p.pos.x - t[0], p.pos.z - t[2]) > 7) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
         }
-        if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]); if (hist.length > 12) hist.shift(); }
+        if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.ground?.tag ?? '']); if (hist.length > 40) hist.shift(); }
         if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
-        if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead && !p.riding && p.script?.type !== 'mount' && p.script?.type !== 'dismount' && !o.keepScript) {
+        if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead && !p.riding && p.script?.type !== 'mount' && p.script?.type !== 'dismount' && !p.trapeze && !o.keepScript) {
           let n = 0;
           const kind = p.script?.type ?? p.script?.kind ?? '?';
           while (p.mode === 'script' && n++ < 2400 && !p.dead && L.runtime.status === 'play' && !p.riding) { if (hold) p.invuln = Math.max(p.invuln, 5); c.setInput({}); c.step(1); steps++; }
@@ -312,6 +384,140 @@ function install() {
           if (!p.dismounted) log.push(['FEHLER: Ritt nicht beendet']);
           continue;
         }
+        // ------------------------------------------------ Seilbahn: Gondel abwarten, einsteigen, mitfahren (optional unterwegs abspringen)
+        if (Lg.gondola) {
+          const g = L.named.get(Lg.gondola);
+          const atStart = () => g.state === 'wait' && g.u <= 0.001 && g.t < 1.2;
+          let k = 0;
+          for (; k < 3000 && !atStart(); k++) tick({});
+          // hinein (Mitte der Gondel; Geländer 0,9 m – hineinspringen)
+          let j = 0, inside = false;
+          for (; j < 300; j++) {
+            const dx = g.pos.x - p.pos.x, dz = g.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            inside = p.mode === 'ground' && p.ground?.tag === 'seilbahn';
+            if (inside && d < 0.35) break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(g.pos.x, g.pos.z) : this.stick(dx, dz, Math.min(1, d))), jump: !inside && j < 26, run: false });
+          }
+          log.push(['eingestiegen', Lg.gondola, k, j, inside, +p.pos.y.toFixed(2)]);
+          if (!inside) { log.push(['FEHLER: nicht in der Gondel', Lg.gondola]); break; }
+          mech.gondola = (mech.gondola ?? 0) + 1;
+          // mitfahren bis zum Ziel bzw. bis zum Absprungpunkt
+          let r = 0, jumped = false;
+          for (; r < 3000; r++) {
+            if (p.dead) break;
+            if (Lg.leap && !jumped && g.pos.z <= Lg.leap.at) {
+              jumped = true;
+              let a = 0;
+              for (; a < 400; a++) {
+                const [tx, tz] = Lg.leap.to;
+                tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 2.6, 8) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: a < 30, run: false });
+                if (a > 10 && p.mode === 'ground') break;
+              }
+              log.push(['aus der Gondel gesprungen', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.ground?.tag]);
+              break;
+            }
+            if (g.state === 'wait' && g.u >= 0.999) break;
+            const dx = g.pos.x - p.pos.x, dz = g.pos.z - p.pos.z;
+            tick(Math.hypot(dx, dz) > 0.3 ? { ...this.stick(dx, dz, 0.4), run: false } : {});
+          }
+          log.push(['gefahren', Lg.gondola, r, +g.u.toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Trapez vom Boden aus greifen (Absprung, wenn die Stange heranschwingt)
+        if (Lg.trapeze) {
+          const t = L.named.get(Lg.trapeze);
+          let k = 0, got = false;
+          for (; k < 2400 && !got; k++) {
+            // Stange schwingt zur Bühne zurück: springen, wenn sie in ≈ 0,18 s waagerecht über der Figur ist (dann
+            // erreichen die Hände beim Steigen ihre Höhe)
+            const b0 = t.bar({});
+            const v = t.L * t.omega * Math.cos(t.theta);
+            const bx = b0.x + t.dir.x * v * 0.18, bz = b0.z + t.dir.z * v * 0.18;
+            const ready = p.mode === 'ground' && Math.hypot(bx - p.pos.x, bz - p.pos.z) < 0.55 && b0.y - (p.pos.y + p.half.y * 2 + 0.26) < 3.2;
+            if (!ready) { tick({}); continue; }
+            let j = 0;
+            for (; j < 160; j++) {
+              const b = t.bar({});
+              tick({ ...(p.mode === 'air' ? this.airSteer(b.x, b.z, 0, 0, 3, 8) : this.stick(b.x - p.pos.x, b.z - p.pos.z, 1)), jump: j < 30, run: false });
+              if (t.rider === p) { got = true; break; }
+              if (j > 10 && p.mode === 'ground') break;
+            }
+            if (p.dead) break;
+          }
+          log.push(['Trapez gegriffen', Lg.trapeze, got, k, +p.pos.y.toFixed(2)]);
+          if (!got) { log.push(['FEHLER: Trapez nicht gegriffen', Lg.trapeze]); break; }
+          mech.trapezes = (mech.trapezes ?? 0) + 1;
+          continue;
+        }
+        // ------------------------------------------------ am Trapez schwingen, abspringen zum nächsten Trapez bzw. auf die Bühne
+        if (Lg.swing) {
+          const t = L.named.get(Lg.swing), next = Lg.next ? L.named.get(Lg.next) : null;
+          const DEG = Math.PI / 180;
+          const fwd = this.stick(t.dir.x, t.dir.z, 1);
+          let k = 0;
+          const lo = next ? 20 : (Lg.lo ?? 12), hi = next ? 30 : (Lg.hi ?? 30);
+          for (; k < 8 * 120 && !(t.omega > 0 && t.theta > lo * DEG && t.theta < hi * DEG && k > (Lg.pump ?? 240)); k++) tick(fwd);
+          const rel = { th: +(t.theta / DEG).toFixed(1), om: +t.omega.toFixed(2), amp: +t.targetAmp.toFixed(1), aimed0: t.aimed ?? 0 };
+          let i = 0, ok = false;
+          for (; i < 3 * 120; i++) {
+            tick({ ...(next || i > 30 ? fwd : {}), jump: i < 30 });
+            if (i === 1) { rel.v = [+p.vel.x.toFixed(2), +p.vel.y.toFixed(2), +p.vel.z.toFixed(2)]; rel.aimed = (t.aimed ?? 0) - rel.aimed0; }
+            if (next && next.rider === p) { ok = true; break; }
+            if (!next && p.mode === 'ground') { ok = true; break; }
+            if (p.dead) break;
+          }
+          log.push(['geschwungen', Lg.swing, Lg.next ?? 'Bühne', ok, k, i, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), JSON.stringify(rel)]);
+          if (!ok) { log.push(['FEHLER: Schwung verfehlt', Lg.swing]); break; }
+          if (next) mech.trapezes = (mech.trapezes ?? 0) + 1;
+          continue;
+        }
+        // ------------------------------------------------ Pendelplattform: aufspringen, mitschwingen, abspringen
+        if (Lg.pendel) {
+          const h = L.named.get(Lg.pendel);
+          const near = () => { const q = h.pos; return Math.hypot(q.x - p.pos.x, q.z - p.pos.z) < (Lg.reach ?? 2.8) && h.theta < (Lg.theta ?? -0.42); };
+          let k = 0;
+          for (; k < 2400 && !near(); k++) tick({});
+          let j = 0, on = false;
+          for (; j < 200; j++) {
+            const q = h.pos;
+            tick({ ...(p.mode === 'air' ? this.airSteer(q.x, q.z, 0, 0, 3.2, 8) : this.stick(q.x - p.pos.x, q.z - p.pos.z, 1)), jump: j < 22, run: false });
+            if (j > 8 && p.mode === 'ground') { on = p.ground?.owner === h || p.ground?.tag === 'pendelplattform'; break; }
+          }
+          if (!on) { log.push(['FEHLER: nicht auf der Pendelplattform', Lg.pendel]); break; }
+          mech.pendel = (mech.pendel ?? 0) + 1;
+          // mitschwingen, bis die Plattform am anderen Ende ist (z ≤ exitZ), dann abspringen
+          let r = 0;
+          for (; r < 2400; r++) {
+            const q = h.pos;
+            if (q.z <= Lg.exitZ) break;
+            const dx = q.x - p.pos.x, dz = q.z - p.pos.z;
+            tick(Math.hypot(dx, dz) > 0.25 ? { ...this.stick(dx, dz, 0.5), run: false } : {});
+            if (p.mode === 'ground' && p.ground?.owner !== h && p.ground?.tag !== 'pendelplattform') { log.push(['FEHLER: von der Pendelplattform gefallen']); break; }
+          }
+          log.push(['Pendel', Lg.pendel, k, j, r, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Pilz-Trampolin: hinaufspringen, hochfedern, zum Ziel lenken
+        if (Lg.bounce) {
+          const [ax, az] = Lg.at, [tx, tz] = Lg.bounce;
+          let k = 0, bounced = false, landed = false;
+          for (; k < 900; k++) {
+            if (p.dead) break;
+            if (!bounced) {
+              const dx = ax - p.pos.x, dz = az - p.pos.z;
+              tick({ ...(p.mode === 'air' ? this.airSteer(ax, az, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, Math.hypot(dx, dz)))), jump: (p.mode === 'ground' && Math.hypot(dx, dz) < 2.2) || (p.mode === 'air' && p.vel.y > 0), run: false });
+              if (p.jumpKind === 'bounce' && p.mode === 'air') bounced = true;
+              continue;
+            }
+            const steer = p.vel.y < (Lg.steerBelow ?? 9);
+            tick({ ...(steer ? this.airSteer(tx, tz, 0, 0, 2.6, 8) : {}), jump: true });
+            if (p.mode === 'ground') { landed = true; break; }
+          }
+          log.push(['Trampolin', bounced, landed, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!bounced || !landed) { log.push(['FEHLER: Trampolin', Lg.at]); break; }
+          mech.bounces = (mech.bounces ?? 0) + 1;
+          continue;
+        }
         // ------------------------------------------------ alle Felder einer Schaltfeld-Gruppe betreten
         if (Lg.tiles) {
           const g = L.named.get(Lg.tiles);
@@ -355,14 +561,15 @@ function install() {
         const holdJ = Lg.jump === true ? 40 : (Lg.jump ?? 0);
         const tx = Lg.to[0] ?? p.pos.x, tz = Lg.to[1];
         let i = 0, airborne = false, landed = false;
-        let best = Infinity, still = 0, auto = 0, j0 = Lg.jumpAt ? null : 0;
+        let best = Infinity, still = 0, auto = 0, j0 = Lg.jumpAt || Lg.runUp ? null : 0;
+        if (holdJ) for (let w = 0; w < 240 && p.mode === 'air'; w++) tick({});   // erst landen, dann abspringen
         for (; i < max; i++) {
           if (p.dead || L.runtime.status !== 'play') break;
           const dx = tx - p.pos.x, dz = tz - p.pos.z;
           const dist = Math.hypot(dx, dz);
           if (dist < best - 0.05) { best = dist; still = 0; } else if (p.mode === 'ground') still++;
           if (still > 45 && auto <= 0 && Lg.autoJump !== false) { auto = 26; still = 0; autoJumps++; }
-          const done = dist < within && (!holdJ || Lg.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim')));
+          const done = dist < within && (!holdJ || Lg.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim'))) && (!Lg.dodge || p.mode === 'ground');
           if (done && i > 0) break;
           let mag = Lg.slow ?? 1;
           let st;
@@ -372,11 +579,21 @@ function install() {
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
           }
           if (Lg.stopIf && COND[Lg.stopIf]()) break;
-          if (j0 === null && dist <= Lg.jumpAt) j0 = i;
+          if (j0 === null && Lg.jumpAt && dist <= Lg.jumpAt) j0 = i;
+          if (j0 === null && Lg.runUp && p.mode === 'ground' && ((p.vel.x * dx + p.vel.z * dz) / Math.max(0.01, dist) > Lg.runUp || i > 40)) j0 = i;
           const jump = (holdJ && j0 !== null ? (i - j0 < holdJ) : false) || auto > 0;
           if (auto > 0) auto--;
           const swimJ = p.mode === 'swim' && (i % 24) < 10;
-          tick({ ...st, run: Lg.run ?? true, jump: jump || swimJ });
+          // Stachelkugeln ausweichen: kommt eine Kugel auf Fußhöhe heran, drüberspringen
+          let dodgeJ = false;
+          if (Lg.dodge && p.mode === 'ground') {
+            for (const e of L.entities) {
+              if (e.kind !== 'stachelstange' || e.removed) continue;
+              for (const b of e.balls()) if (Math.hypot(b[0] - p.pos.x, b[2] - p.pos.z) < 1.7 && Math.abs(b[1] - p.pos.y - 0.6) < 1.1) dodgeJ = true;
+            }
+            if (dodgeJ) mech.dodges = (mech.dodges ?? 0) + 1;
+          }
+          tick({ ...st, run: Lg.run ?? true, jump: jump || swimJ || dodgeJ });
           if (p.mode === 'air') airborne = true;
           else if (airborne) landed = true;
         }
