@@ -52,6 +52,8 @@ import { Puffs, stick } from '../lib/kit_w3.js';
 import { W5, ownMat, glowVcol, gradV, mouthShape, puffyGeo, flameGeo, FLAME, hash1, noise3 } from '../lib/w5Geos.js';
 
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
+/** sparsame Kugelkappe für Tupfen-Aufkleber (Fläche nach +Z). */
+const capLo = () => { const s = new THREE.SphereGeometry(1, 10, 4, 0, TAU, 0, Math.PI / 2); s.rotateX(Math.PI / 2); return s; };
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
 const prog = (st, clk, dur, loop = false) => (st.progress !== undefined ? clamp(st.progress, 0, 1) : loop ? (clk.age % dur) / dur : clamp(clk.age / dur, 0, 1));
 const easeIn = (x) => x * x * x;
@@ -72,8 +74,8 @@ function sdBodyGeo() {
       return mix(base, SD.belly, smoothstep((-ny - 0.12) / 0.3));
     } }, { s: SDB.r }, 36, 26);
     // helle Rückentupfen (erhaben)
-    const dots = [[-0.5, 0.75], [-1.0, 0.5], [-0.2, 0.95], [-2.2, 0.75], [-2.6, 0.45], [-1.6, 0.85], [0.75, 0.75], [1.4, 0.5], [2.3, 0.62], [3.0, 0.8], [1.9, 0.95]];
-    for (const [az, el] of dots) stick(b, onEllipsoid(SDB.c, SDB.r, az, el), SD.spot, [0.045, 0.045, 0.02], 0.35);
+    const dots = [[-0.5, 0.75], [-1.0, 0.5], [-2.2, 0.75], [-2.6, 0.45], [-1.6, 0.85], [0.75, 0.75], [1.4, 0.5], [2.3, 0.62], [3.0, 0.8]];
+    for (const [az, el] of dots) stick(b, onEllipsoid(SDB.c, SDB.r, az, el), SD.spot, [0.045, 0.045, 0.02], 0.35, capLo());
     // Schwanz (verjüngt nach −X)
     const tail = new THREE.LatheGeometry([[0, 0], [0.24, 0.02], [0.23, 0.12], [0.17, 0.26], [0.1, 0.38], [0.05, 0.45], [0, 0.47]].map(([x, y]) => new THREE.Vector2(x, y)), 24);
     tail.rotateZ(Math.PI / 2);
@@ -156,7 +158,7 @@ function buildSandtaucher(opts = {}) {
   pose.add(body);
   const mound = mesh(sdMoundGeo(water), water ? vcol(0.2, { transparent: true, opacity: 0.85 }, 'w5water') : vcol(0.85, {}, 'w5sand'), {}, false);
   mound.receiveShadow = !water;
-  const puffs = new Puffs(12, water ? 0xe8faff : W5.sand, { opacity: 0.9, radius: 3, cy: 0.3 });
+  const puffs = new Puffs(8, water ? 0xe8faff : W5.sand, { opacity: 0.9, radius: 3, cy: 0.3 });
   own.push(puffs);
   const dizzy = dizzyStars(0.32, 0.075);
   root.add(pose, mound, puffs.mesh, dizzy);
@@ -544,7 +546,7 @@ function hbBodyGeo() {
     // Hut mit erhabenen Tupfen
     b.lathe(HB_CAP, gradV(HB.capLow, HB.capHi, 0.6, 0.35), null, 44, 3);
     const spots = [[0.55, 0.32, 0.075], [-0.6, 0.3, 0.075], [1.75, 0.3, 0.07], [-1.8, 0.28, 0.07], [2.75, 0.33, 0.075], [-2.6, 0.3, 0.065], [3.14, 0.55, 0.06], [0, 0.62, 0.06], [1.2, 0.62, 0.05], [-1.3, 0.6, 0.05], [2.1, 0.7, 0.045], [-2.2, 0.68, 0.045]];
-    for (const [az, el, r] of spots) { const h = onLathe(HB_CAP, 0.5, az, el); if (h) stick(b, h, HB.spot, [r, r, r * 0.35], 0.4); }
+    for (const [az, el, r] of spots) { const h = onLathe(HB_CAP, 0.5, az, el); if (h) stick(b, h, HB.spot, [r, r, r * 0.35], 0.4, capLo()); }
     b.cyl(0.4, 0.3, 0.03, HB.gill, { p: [0, 0.505, 0] }, 32);
     // Gesicht: grimmiger Mund mit Zähnen, dicke Brauen
     const hm = onLathe(HB_STEM, 0.24, 0, -0.06);
@@ -565,7 +567,7 @@ function hbBladeGeo() {
     const b = new Build();
     const s = new THREE.Shape();
     s.moveTo(-0.4, 0); s.lineTo(0.4, 0); s.absellipse(0, 0, 0.4, 0.44, 0, Math.PI, false, 0);
-    const g = puffyGeo(s, 0.05, 0.022, 40, 3);
+    const g = puffyGeo(s, 0.05, 0.022, 26, 2);
     b.add(g, { v: (x, y) => {
       const r = Math.hypot(x / 0.4, y / 0.44);
       if (y < 0.1) return mix(0x2a3040, 0x4a5468, smoothstep(y / 0.1));
@@ -596,7 +598,7 @@ function buildHackbeilPilz() {
   pivot.add(inner);
   const feet = instMesh(hbBootGeo(), vcol(0.4), 2, 1.5, 0.3);
   feet.castShadow = true;
-  const dust = new Puffs(10, 0xe8d8b8, { opacity: 0.85, radius: 3, cy: 0.3 });
+  const dust = new Puffs(7, 0xe8d8b8, { opacity: 0.85, radius: 3, cy: 0.3 });
   own.push(dust);
   const dizzy = dizzyStars(0.3, 0.07);
   root.add(pivot, feet, dust.mesh, dizzy);

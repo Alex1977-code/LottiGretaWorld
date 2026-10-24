@@ -13,7 +13,7 @@
 
 import {
   THREE, TAU, Build, cached, vcol, basic, std, col, mix, clamp, smoothstep, smoothNormals, puffyStarGeo, placed,
-  circleShape, heartShape,
+  circleShape, heartShape, canvasTexture,
 } from './kit.js';
 import { noise3, hash1 } from './w4Geos.js';
 
@@ -154,28 +154,30 @@ export const FLIP = {
   rot: { plate: 0xff3c4e, hi: 0xff8a96, low: 0xc81e34, rim: 0xffe6ea, rimLow: 0xb81a30, mark: 0xffffff, grid: 0xff6a7a },
   blau: { plate: 0x2f7aff, hi: 0x8ab8ff, low: 0x1a4ad0, rim: 0xe6f0ff, rimLow: 0x1a3aa8, mark: 0xffffff, grid: 0x6aa8ff },
 };
-const flipKey = (c, w, d, t) => `${c}:${w.toFixed(2)}:${d.toFixed(2)}:${t.toFixed(2)}`;
+const flipKey = (c, w, d, t, lo) => `${c}:${w.toFixed(2)}:${d.toFixed(2)}:${t.toFixed(2)}:${lo ? 'lo' : 'hi'}`;
 /**
  * Flipper-Feld, Mitte im Ursprung, Maße w × t × d. Teile: 'solid' (Rahmen + Unterbau, immer sichtbar), 'plate'
  * (Vorderseite oben: glasierte Platte mit Zeichen ● bzw. ◆), 'grid' (Rückseite unten: Gitter für ein durchscheinendes
  * Material), 'back' (Rückseite unten als volle Platte in der Gegenfarbe, für opts.back = 'farbe').
  */
-export function flipperGeo(part, color = 'rot', w = 1, d = 1, t = 1) {
+export function flipperGeo(part, color = 'rot', w = 1, d = 1, t = 1, lo = false) {
   const C = FLIP[color] ?? FLIP.rot;
-  return cached(`w5:flip:${part}:${flipKey(color, w, d, t)}`, () => {
+  const seg = lo ? 1 : 2;
+  return cached(`w5:flip:${part}:${flipKey(color, w, d, t, lo)}`, () => {
     const b = new Build();
     const rim = Math.min(0.12, Math.min(w, d) * 0.1);
     const r = Math.min(0.06, t * 0.22, rim * 0.6);
     if (part === 'solid') {
       // vier Rahmenleisten (volle Höhe) – hell glasiert mit dunklem Fuß
       const rimV = { v: (x, y, z, nx, ny) => mix(C.rimLow, C.rim, smoothstep((y / t) * 1.4 + 0.55 + ny * 0.2)) };
-      b.box(w, t, rim, rimV, { p: [0, 0, d / 2 - rim / 2] }, r, 2);
-      b.box(w, t, rim, rimV, { p: [0, 0, -d / 2 + rim / 2] }, r, 2);
-      b.box(rim, t, d - rim * 2 + 0.002, rimV, { p: [w / 2 - rim / 2, 0, 0] }, r, 2);
-      b.box(rim, t, d - rim * 2 + 0.002, rimV, { p: [-w / 2 + rim / 2, 0, 0] }, r, 2);
+      b.box(w, t, rim, rimV, { p: [0, 0, d / 2 - rim / 2] }, r, seg);
+      b.box(w, t, rim, rimV, { p: [0, 0, -d / 2 + rim / 2] }, r, seg);
+      b.box(rim, t, d - rim * 2 + 0.002, rimV, { p: [w / 2 - rim / 2, 0, 0] }, r, seg);
+      b.box(rim, t, d - rim * 2 + 0.002, rimV, { p: [-w / 2 + rim / 2, 0, 0] }, r, seg);
       // Eck-Nieten (Goldknöpfe) oben und unten
       for (const sy of [1, -1]) for (const sx of [1, -1]) for (const sz of [1, -1]) {
-        b.sphere(rim * 0.36, 0xffd23a, { p: [sx * (w / 2 - rim / 2), sy * (t / 2 + 0.002), sz * (d / 2 - rim / 2)], s: [1, 0.45, 1] }, 10, 6);
+        if (lo && sy < 0) continue;
+        b.sphere(rim * 0.36, 0xffd23a, { p: [sx * (w / 2 - rim / 2), sy * (t / 2 + 0.002), sz * (d / 2 - rim / 2)], s: [1, 0.45, 1] }, lo ? 6 : 10, lo ? 3 : 6);
       }
     } else if (part === 'plate' || part === 'back') {
       const CC = part === 'back' ? (FLIP[color === 'rot' ? 'blau' : 'rot']) : C;
@@ -189,13 +191,13 @@ export function flipperGeo(part, color = 'rot', w = 1, d = 1, t = 1) {
           return mix(CC.plate, CC.hi, smoothstep((e - 0.78) / 0.2) * 0.8);
         }
         return mix(CC.low, CC.plate, 0.4);
-      } }, { p: [0, sg * (t / 2 - ph / 2), 0] }, Math.min(r, ph * 0.3), 2);
+      } }, { p: [0, sg * (t / 2 - ph / 2), 0] }, Math.min(r, ph * 0.3), seg);
       // Zeichen: Rot ● (Ring), Blau ◆ (Raute) – puffig erhaben, weiß
       const m = Math.min(iw, id);
       const shape = (part === 'back' ? (color === 'rot' ? 'blau' : 'rot') : color) === 'rot'
         ? (() => { const s = circleShape(0.5); const h = new THREE.Path(); h.absarc(0, 0, 0.26, 0, TAU, true); s.holes.push(h); return s; })()
         : (() => { const s = new THREE.Shape(); s.moveTo(0, 0.55); s.lineTo(0.45, 0); s.lineTo(0, -0.55); s.lineTo(-0.45, 0); s.closePath(); return s; })();
-      const g = puffyGeo(shape, 0.06, 0.05, 20, 3);
+      const g = lo ? new THREE.ShapeGeometry(shape, 8).translate(0, 0, 0.03) : puffyGeo(shape, 0.06, 0.05, 20, 3);
       g.scale(m * 0.62, m * 0.62, 1);
       g.rotateX(-Math.PI / 2 * sg);
       b.add(g, CC.mark, { p: [0, sg * (t / 2 + 0.005), 0] });
@@ -205,8 +207,8 @@ export function flipperGeo(part, color = 'rot', w = 1, d = 1, t = 1) {
       const y = -t / 2 + 0.05;
       for (let i = 1; i < 4; i++) {
         const u = -0.5 + i * 0.25;
-        b.box(iw, 0.06, 0.05, C.grid, { p: [0, y, u * id] }, 0.02, 1);
-        b.box(0.05, 0.06, id, C.grid, { p: [u * iw, y, 0] }, 0.02, 1);
+        b.box(iw, 0.06, 0.05, C.grid, { p: [0, y, u * id] }, lo ? 0 : 0.02, 1);
+        b.box(0.05, 0.06, id, C.grid, { p: [u * iw, y, 0] }, lo ? 0 : 0.02, 1);
       }
       const f = new THREE.PlaneGeometry(iw, id); f.rotateX(Math.PI / 2);
       b.add(f, mix(C.grid, 0xffffff, 0.3), { p: [0, y + 0.02, 0] });
@@ -222,9 +224,40 @@ export const flipperMats = () => ({
 
 // ------------------------------------------------------------------ Lila Ziegel (geteilt mit instanced_w5.js)
 export const LZ = { brick: 0xa45ae8, brickHi: 0xd2a0ff, brickLow: 0x6a2ab8, mortar: 0x3a1a62, stud: 0xffe07a };
-/** Lila Ziegelblock (Mitte der Unterseite im Ursprung), Maße w × h × d; lo = sparsam (Instanzen). */
+/** Lila Ziegel-Textur (1 Kachel = 1 m: 4 Reihen à 2 Ziegel, versetzt, mit Fase-Licht und Goldnieten-Fugen). */
+export function lilaBrickTexture() {
+  return canvasTexture('w5:lilaBrick', 256, 256, (ctx, w, h) => {
+    ctx.fillStyle = '#3a1a62'; ctx.fillRect(0, 0, w, h);
+    const rows = 4, rh = h / rows;
+    for (let r = 0; r < rows; r++) {
+      const cols = 2, cw = w / cols, off = r % 2 ? cw / 2 : 0;
+      for (let c = -1; c <= cols; c++) {
+        const x = c * cw + off, y = r * rh;
+        const k = hash1(r * 13 + c * 7 + 5);
+        const g = ctx.createLinearGradient(0, y, 0, y + rh);
+        g.addColorStop(0, `hsl(${272 + k * 8}, 70%, ${70 + k * 6}%)`);
+        g.addColorStop(0.25, `hsl(${272 + k * 8}, 66%, ${60 + k * 5}%)`);
+        g.addColorStop(1, `hsl(${270 + k * 8}, 62%, ${42 + k * 5}%)`);
+        ctx.fillStyle = g;
+        const rr = 10;
+        ctx.beginPath(); ctx.roundRect(x + 5, y + 5, cw - 10, rh - 10, rr); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.roundRect(x + 12, y + 9, cw - 24, 6, 3); ctx.fill();
+      }
+    }
+  }, { repeat: true });
+}
+export const lilaTexMat = () => std('w5lilaTex', { map: lilaBrickTexture(), roughness: 0.42 });
+/** Lila Ziegelblock (Mitte der Unterseite im Ursprung), Maße w × h × d; lo = sparsam (Instanzen: Quader mit Textur, Material lilaTexMat()). */
 export function lilaZiegelGeo(w = 1, h = 1, d = 1, lo = false) {
   return cached(`w5:lz:${w}:${h}:${d}:${lo}`, () => {
+    if (lo) {
+      const g = new THREE.BoxGeometry(w, h, d);
+      const uv = g.attributes.uv;
+      const dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+      for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) { const i = f * 4 + k; uv.setXY(i, uv.getX(i) * dims[f][0], uv.getY(i) * dims[f][1]); }
+      g.translate(0, h / 2, 0);
+      return g;
+    }
     const b = new Build();
     // Kern (Mörtel, dunkel) und davor gewölbte Ziegel (je Seite einzeln, mit runden Kanten)
     b.box(w * 0.97, h * 0.97, d * 0.97, LZ.mortar, { p: [0, h / 2, 0] }, 0.04, 1);
@@ -249,15 +282,15 @@ export function lilaZiegelGeo(w = 1, h = 1, d = 1, lo = false) {
           const depth = 0.07;
           const p = fx ? [fx * (w / 2 - depth / 2 + 0.02), y, uc] : [uc, y, fz * (d / 2 - depth / 2 + 0.02)];
           const sz = fx ? [depth, bh - 0.035, uw] : [uw, bh - 0.035, depth];
-          b.box(sz[0], sz[1], sz[2], cv, { p }, lo ? 0.015 : 0.03, lo ? 1 : 2);
+          b.box(sz[0], sz[1], sz[2], cv, { p }, 0.03, 1);
         }
       }
     }
     // Deckel: vier große Platten mit Goldnieten
     const tw = w / 2 - 0.025, td = d / 2 - 0.025;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-      b.box(tw, 0.07, td, gradV(LZ.brickLow, LZ.brickHi, 0.5, 0.55), { p: [sx * w / 4, h - 0.02, sz * d / 4] }, lo ? 0.02 : 0.03, lo ? 1 : 2);
-      if (!lo) b.sphere(0.035, LZ.stud, { p: [sx * w / 4, h + 0.02, sz * d / 4], s: [1, 0.5, 1] }, 10, 6);
+      b.box(tw, 0.07, td, gradV(LZ.brickLow, LZ.brickHi, 0.5, 0.55), { p: [sx * w / 4, h - 0.02, sz * d / 4] }, 0.03, 2);
+      b.sphere(0.035, LZ.stud, { p: [sx * w / 4, h + 0.02, sz * d / 4], s: [1, 0.5, 1] }, 10, 6);
     }
     return b.geometry();
   });
@@ -284,7 +317,7 @@ export function donutBlockGeo(color = 'rosa', lo = false) {
       const e = Math.max(Math.abs(x), Math.abs(z));
       const base = mix(DONUT.biscuitLow, DONUT.biscuit, smoothstep(ny * 0.5 + 0.5 + y * 0.3));
       return e > 0.47 ? mix(base, DONUT.biscuitLow, 0.35) : base;
-    } }, { p: [0, 0.28, 0] }, 0.1, lo ? 2 : 3);
+    } }, { p: [0, 0.28, 0] }, 0.1, lo ? 1 : 3);
     // Zucker-Perlen am oberen Rand
     if (!lo) {
       for (let i = 0; i < 16; i++) {
@@ -295,8 +328,8 @@ export function donutBlockGeo(color = 'rosa', lo = false) {
     }
     // Donut (Teig) und Glasur mit Tropfkante
     const R = 0.3, tr = 0.155;
-    b.torus(R, tr, gradV(DONUT.doughLow, DONUT.doughHi), { p: [0, 0.56 + tr * 0.62, 0], r: [Math.PI / 2, 0, 0], s: [1, 1, 0.62] }, lo ? 10 : 14, lo ? 22 : 30);
-    const gl = new THREE.TorusGeometry(R, tr * 1.04, lo ? 8 : 12, lo ? 22 : 30, TAU);
+    b.torus(R, tr, gradV(DONUT.doughLow, DONUT.doughHi), { p: [0, 0.56 + tr * 0.62, 0], r: [Math.PI / 2, 0, 0], s: [1, 1, 0.62] }, lo ? 8 : 14, lo ? 18 : 30);
+    const gl = new THREE.TorusGeometry(R, tr * 1.04, lo ? 7 : 12, lo ? 18 : 30, TAU);
     gl.rotateX(Math.PI / 2);
     const P = gl.attributes.position;
     for (let i = 0; i < P.count; i++) {
@@ -309,11 +342,11 @@ export function donutBlockGeo(color = 'rosa', lo = false) {
     gl.computeVertexNormals();
     b.add(gl, { v: (x, y, z, nx, ny) => mix(C.glaze, C.glazeHi, smoothstep(ny * 0.7 + 0.1)) }, { p: [0, 0.56 + tr * 0.62 + 0.012, 0], s: [1, 0.66, 1] });
     // Streusel (kleine Stäbchen auf der Glasur)
-    const n = lo ? 10 : 22;
+    const n = lo ? 8 : 22;
     for (let i = 0; i < n; i++) {
       const a = hash1(i * 3.1) * TAU, rr = R + (hash1(i * 7.7) - 0.5) * tr * 1.3;
       const c = DONUT.sprinkles[i % DONUT.sprinkles.length];
-      b.capsule(0.013, 0.045, c, { p: [Math.cos(a) * rr, 0.56 + tr * 0.62 + tr * 0.66 + 0.004, Math.sin(a) * rr], r: [Math.PI / 2, 0, hash1(i * 1.3) * TAU], order: 'ZXY' }, 2, 5);
+      b.capsule(0.013, 0.045, c, { p: [Math.cos(a) * rr, 0.56 + tr * 0.62 + tr * 0.66 + 0.004, Math.sin(a) * rr], r: [Math.PI / 2, 0, hash1(i * 1.3) * TAU], order: 'ZXY' }, lo ? 1 : 2, lo ? 4 : 5);
     }
     return b.geometry();
   });
@@ -349,7 +382,7 @@ export const grassMat = () => vcol(0.75, { side: THREE.DoubleSide }, 'w5grass');
 export function sahneGeo(lo = false) {
   return cached(`w5:sahne:${lo}`, () => {
     const b = new Build();
-    const seg = lo ? 32 : 64, rows = lo ? 10 : 18;
+    const seg = lo ? 24 : 64, rows = lo ? 8 : 18;
     const g = new THREE.CylinderGeometry(1, 1, 1, seg, rows, false);
     const P = g.attributes.position;
     for (let i = 0; i < P.count; i++) {

@@ -171,7 +171,7 @@ await sc(async () => {
   const live = [];
   // hängende/schwebende Modelle (Ursprung oben, in der Mitte oder an der Oberseite) anheben
   const LIFT = {
-    trapez: (o) => (o.length ?? 3) + 0.4, pendelplattform: () => 0.6, suchscheinwerfer: (o) => (o.mount ? 0 : 1.2), grubenlaterne: (o) => (o.hang ? 2.6 : 0),
+    trapez: (o) => (o.length ?? 3) + 0.4, pendelplattform: () => 0.6, suchscheinwerfer: (o) => (o.mount ? 1.12 : 1.2), grubenlaterne: (o) => (o.hang ? 2.6 : 0),
     flipper_feld: (o) => (o.thick ?? 1) / 2 + 0.3, kippquader: (o) => (o.size?.[1] ?? 4) / 2, drehbruecke: () => 0.6, alarmlampe: () => 1.6,
     landemarke: () => 0.01,
   };
@@ -382,11 +382,11 @@ if (part('checks')) {
   if (props.king) check('Kippquader-König 3,5–5 m hoch; land: liegt vorn (+X) flach; userData.lying', props.king[1] > 3.5 && props.king[1] < 5 && props.king[3] < 2.2 && props.king[4] > 3 && !!props.king[5]);
   if (props.kq) check('Kippquader: Maße = size (Mitte im Ursprung)', Math.abs(props.kq[0] - 2) < 0.25 && Math.abs(props.kq[1] - 4) < 0.25 && Math.abs(props.kq[2] - 2) < 0.3 && Math.abs(props.kq[3] + 2) < 0.15);
   if (props.mark) check('Landemarke: Maße = size, flach am Boden', Math.abs(props.mark[0] - 3) < 0.2 && Math.abs(props.mark[1] - 2) < 0.2 && props.mark[2] < 0.15);
-  if (props.trapez) check('Trapez: hängt vom Ursprung bis −length (Stange), Breite ≈ width', props.trapez[1] < 0.3 && Math.abs(props.trapez[0] + 3.05) < 0.2 && Math.abs(props.trapez[2] - 1.2) < 0.4);
+  if (props.trapez) check('Trapez: hängt vom Ursprung bis −length (Stange), Breite ≈ width', props.trapez[1] < 0.3 && Math.abs(props.trapez[0] + 3.05) < 0.2 && props.trapez[2] > 1.1 && props.trapez[2] < 1.8);
   if (props.pendel) check('Pendelplattform: Oberseite bei y = 0, Seile bis zur Aufhängung (length)', Math.abs(props.pendel[0] - 3) < 0.4 && props.pendel[1] > 3.6 && Math.abs(props.pendel[2] + 0.4) < 0.15);
   if (props.dreh) check('Drehbrücke: Länge/Breite = opts, Oberseite ≈ y 0', Math.abs(props.dreh[0] - 8) < 0.4 && Math.abs(props.dreh[1] - 2.4) < 0.5 && props.dreh[2] < 0.35 && props.dreh[3] > -0.75);
   if (props.kanone) check('Röhrenkanone: Oberkante ≈ height, Ø ≈ 2·radius', Math.abs(props.kanone[0] - 2.2) < 0.25 && props.kanone[1] > 1.9 && props.kanone[1] < 2.6);
-  if (props.flip) check('Flipper-Feld: Maße = size × thick; Standard Einheitswürfel', Math.abs(props.flip[0] - 2) < 0.1 && Math.abs(props.flip[1] - 0.35) < 0.06 && Math.abs(props.flip[2] - 1) < 0.06 && Math.abs(props.flip[3] - 1) < 0.08);
+  if (props.flip) check('Flipper-Feld: Maße = size × thick (Zeichen/Knöpfe stehen ≤ 0,12 m vor); Standard Einheitswürfel', Math.abs(props.flip[0] - 2) < 0.1 && props.flip[1] > 0.34 && props.flip[1] < 0.48 && Math.abs(props.flip[2] - 1) < 0.06 && props.flip[3] > 0.99 && props.flip[3] < 1.13);
   if (props.kugel) check('Schiebekugel: Ø = size, liegt auf dem Ursprung', Math.abs(props.kugel[0] - 1.6) < 0.15 && Math.abs(props.kugel[1] - 1.6) < 0.15 && props.kugel[2] > -0.05);
   if (props.donut) check('Donut-Block 1 m, Ursprung = Mitte der Unterseite, erstes Mesh trägt den Look', Math.abs(props.donut[0] - 1) < 0.08 && Math.abs(props.donut[1]) < 0.03 && props.donut[2] < 1.15 && props.donutMesh);
   if (props.key) check('Schlüsselmünze: groß (Ø 0,8–1 m), schwebt über dem Fußpunkt', props.key[1] > 0.8 && props.key[1] < 1.05 && props.key[0] < 1.1);
@@ -418,6 +418,8 @@ if (part('checks')) {
   }, INST_W5);
   console.log('  Instanz-Helfer (200 Stück):', JSON.stringify(instInfo));
   check(`Instanz-Helfer für ${INST_W5.join(', ')} (≤ 3 Meshes, API wie gehabt)`, INST_W5.every((k) => instInfo[k] && !instInfo[k].error && instInfo[k].meshes >= 1 && instInfo[k].meshes <= 3 && instInfo[k].api && instInfo[k].detached));
+  const heavyI = INST_W5.filter((k) => instInfo[k] && instInfo[k].tris / 200 > 1200);
+  check(`Instanzen sparsam (≤ 1,2 k Dreiecke je Stück)${heavyI.length ? ` (zu viel: ${heavyI.map((k) => `${k}=${Math.round(instInfo[k].tris / 200)}`).join(', ')})` : ''}`, heavyI.length === 0);
   check('Instanz-Helfer: alte Arten unverändert (coin, question_block, piep_block, ameisensoldat)', ['coin', 'question_block'].every((k) => instInfo[k] && !instInfo[k].error && instInfo[k].meshes === 2) && ['piep_block', 'ameisensoldat'].every((k) => instInfo[k] && !instInfo[k].error));
 }
 

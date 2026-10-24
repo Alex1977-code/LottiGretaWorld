@@ -126,7 +126,7 @@ function kingBodyGeo() {
       const shade = mix(KC.stoneLow, KC.stoneHi, smoothstep(ny * 0.4 + 0.55 + (y / H - 0.5) * 0.3 + nx * 0.08));
       const n = noise3(x * 2.2, y * 2.2, z * 2.2);
       return mix(shade, n > 0.62 ? KC.stoneHi : KC.stoneLow, Math.abs(n - 0.5) * 0.35);
-    } }, { p: [0, H / 2, 0] }, 0.3, 5);
+    } }, { p: [0, H / 2, 0] }, 0.3, 4);
     // Fugen als flache Rillen auf den Seiten (dünne dunklere Leisten)
     for (const sx of [1, -1]) {
       for (const y of [1.2, 2.4]) b.box(0.02, 0.05, W - 0.5, KC.seam, { p: [sx * (D / 2 + 0.002), y, 0] }, 0.01, 1);
@@ -172,13 +172,13 @@ function kingCrownGeo() {
     const b = new Build();
     const goldV = gradV(KC.goldLow, KC.goldHi, 0.45, 0.5);
     b.dome(0.62, gradV(0x4a0a6a, KC.velvet, 0.6, 0.4), { p: [0, 0.12, 0], s: [1, 0.85, 1] }, Math.PI / 2, 24, 10);
-    b.cyl(0.72, 0.66, 0.42, goldV, { p: [0, 0.21, 0] }, 40, true);
-    b.cyl(0.7, 0.64, 0.42, KC.goldLow, { p: [0, 0.21, 0], r: [Math.PI, 0, 0] }, 40, true);
-    b.torus(0.66, 0.06, KC.gold, { p: [0, 0.02, 0], r: [Math.PI / 2, 0, 0] }, 8, 40);
-    b.torus(0.72, 0.05, KC.goldHi, { p: [0, 0.42, 0], r: [Math.PI / 2, 0, 0] }, 8, 40);
+    b.cyl(0.72, 0.66, 0.42, goldV, { p: [0, 0.21, 0] }, 32, true);
+    b.cyl(0.7, 0.64, 0.42, KC.goldLow, { p: [0, 0.21, 0], r: [Math.PI, 0, 0] }, 32, true);
+    b.torus(0.66, 0.06, KC.gold, { p: [0, 0.02, 0], r: [Math.PI / 2, 0, 0] }, 6, 32);
+    b.torus(0.72, 0.05, KC.goldHi, { p: [0, 0.42, 0], r: [Math.PI / 2, 0, 0] }, 6, 32);
     for (let i = 0; i < 7; i++) {
       const a = (i / 7) * TAU;
-      const g = new THREE.SphereGeometry(1, 14, 10);
+      const g = new THREE.SphereGeometry(1, 12, 8);
       const P = g.attributes.position;
       for (let k = 0; k < P.count; k++) { const y = P.getY(k); if (y > 0) { const f = 1 - y * 0.75; P.setX(k, P.getX(k) * f); P.setZ(k, P.getZ(k) * f); } }
       g.computeVertexNormals();
@@ -187,7 +187,7 @@ function kingCrownGeo() {
     }
     for (let i = 0; i < 14; i++) {
       const a = (i / 14) * TAU + 0.22, big = i === 0;
-      b.add(new THREE.SphereGeometry(1, 12, 8), big ? KC.ruby : i % 2 ? KC.sapphire : KC.emerald, placed(new THREE.Vector3(Math.cos(a) * 0.72, 0.21, Math.sin(a) * 0.72), new THREE.Vector3(Math.cos(a), 0, Math.sin(a)), new THREE.Vector3(big ? 0.11 : 0.06, big ? 0.11 : 0.07, 0.04)));
+      b.add(new THREE.SphereGeometry(1, 10, 6), big ? KC.ruby : i % 2 ? KC.sapphire : KC.emerald, placed(new THREE.Vector3(Math.cos(a) * 0.72, 0.21, Math.sin(a) * 0.72), new THREE.Vector3(Math.cos(a), 0, Math.sin(a)), new THREE.Vector3(big ? 0.11 : 0.06, big ? 0.11 : 0.07, 0.04)));
     }
     b.add(puffyStarGeo(0.13, 0.06, 0.05, 0.02), KC.goldHi, { p: [0, 0.68, 0], r: [0, Math.PI / 2, 0] });
     return b.geometry();
@@ -210,7 +210,7 @@ function kingCrackGeo(hp) {
     return b.geometry();
   });
 }
-const kingChunkGeo = () => cached('w5:kk:chunk', () => new Build().box(0.7, 0.6, 0.65, gradV(KC.stoneLow, KC.stoneHi), {}, 0.12, 2).geometry());
+const kingChunkGeo = () => cached('w5:kk:chunk', () => new Build().box(0.7, 0.6, 0.65, gradV(KC.stoneLow, KC.stoneHi), {}, 0.12, 1).geometry());
 function buildKoenig(opts = {}) {
   const { W, H, D } = KK;
   const root = new THREE.Group();
@@ -237,7 +237,7 @@ function buildKoenig(opts = {}) {
   const chunks = instMesh(kingChunkGeo(), vcol(0.55), 14, 8, 1.5);
   chunks.castShadow = true;
   chunks.visible = false;
-  const dust = new Puffs(16, 0xeadcc0, { opacity: 0.85, radius: 7, cy: 0.6 });
+  const dust = new Puffs(10, 0xeadcc0, { opacity: 0.85, radius: 7, cy: 0.6 });
   own.push(dust);
   const dizzy = dizzyStars(0.6, 0.14);
   root.add(pivot, chunks, dust.mesh, dizzy);
