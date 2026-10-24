@@ -43,6 +43,7 @@ const BOSSES = [
   ['kippquader_koenig', { marker: true }, { anim: 'tilt', progress: 0.3 }, [{ anim: 'tilt', progress: 0.3 }, { anim: 'idle', mark: 0.6 }]],
   ['kippquader', {}, 'idle', ['idle', 'warn', { anim: 'tip', k: 0.5 }, 'land']],
   ['kippquader', { hole: [1.4, 1.6], size: [2.4, 3.4, 1.4] }, 'warn', ['idle', 'warn']],
+  ['kippquader', { front: '+x', style: 'stein', size: [2, 3, 1.6] }, 'idle', ['idle', 'warn']],
   ['landemarke', { size: [3.6, 3.4] }, { k: 1 }, [{ k: 0 }, { k: 0.5 }, { k: 1 }]],
 ];
 const GIMMICKS = [
@@ -468,7 +469,7 @@ if (part('views')) {
   const PORTRAITS = [
     ['sandtaucher', {}, { anim: 'jump', progress: 0.45 }, 1.3, 2.6], ['zuendkopf', {}, 'idle', 0.45, 1.9], ['hackbeil_pilz', {}, 'idle', 0.6, 2.4],
     ['funkenling', {}, 'idle', 0.35, 1.6], ['feuerring', { radius: 2 }, { anim: 'pulse', progress: 0.3 }, 0.3, 3.6], ['kippquader_koenig', {}, 'idle', 2.2, 8.5],
-    ['kippquader', {}, 'warn', 2.0, 7], ['giraffe', {}, 'idle', 2.2, 6.5], ['elefantenkind', {}, 'idle', 0.9, 3.8],
+    ['kippquader', { front: '+x' }, 'warn', 2.0, 7], ['giraffe', {}, 'idle', 2.2, 6.5], ['elefantenkind', {}, 'idle', 0.9, 3.8],
   ];
   for (let i = 0; i < PORTRAITS.length; i += 3) {
     const nm = `portrait_${i / 3 + 1}`;
