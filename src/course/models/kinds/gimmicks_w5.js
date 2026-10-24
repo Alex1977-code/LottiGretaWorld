@@ -641,18 +641,22 @@ function zugWheelGeo(big) {
 function coinHeapGeo(L, W, y0) {
   return cached(`w5:gz:heap:${L}:${W}:${y0}`, () => {
     const b = new Build();
-    // Münzberg (gewölbt), darauf schräg liegende Münzen
-    const g = new THREE.SphereGeometry(1, 40, 14, 0, TAU, 0, Math.PI / 2);
-    b.add(g, { v: (x, y, z, nx, ny) => mix(0xc86a10, GZ.coinHi, smoothstep(ny * 0.7 + 0.2)) }, { p: [0, y0, 0], s: [L / 2 - 0.15, 0.85, W / 2 - 0.15] });
-    const n = Math.round(L * 7);
+    // Münzberg: flach gewölbter, buckliger Goldhaufen, dicht bedeckt mit schräg liegenden Münzen (Bitcoin-Orange und Gold)
+    const hx = L / 2 - 0.15, hz = W / 2 - 0.15, H = 0.75;
+    const g = new THREE.SphereGeometry(1, 48, 12, 0, TAU, 0, Math.PI / 2);
+    b.add(g, { v: (x, y, z, nx, ny) => mix(0xd88a10, 0xffe070, smoothstep(ny * 0.6 + 0.3)) }, { p: [0, y0, 0], s: [hx, H, hz] });
+    const n = Math.round(L * W * 4.2);
     for (let i = 0; i < n; i++) {
-      const u = (hash1(i * 1.7) - 0.5) * 1.9, v = (hash1(i * 4.3) - 0.5) * 1.9;
-      if (u * u + v * v > 0.95) continue;
-      const hy = Math.sqrt(Math.max(0, 1 - u * u - v * v)) * 0.85;
-      const x = u * (L / 2 - 0.15), z = v * (W / 2 - 0.15);
-      const tilt = new THREE.Vector3((hash1(i) - 0.5) * 1.2, 1, (hash1(i + 9) - 0.5) * 1.2).normalize();
-      const coin = new THREE.CylinderGeometry(0.2, 0.2, 0.05, 18);
-      b.add(coin, { v: (xx, yy, zz) => (Math.hypot(xx, zz) < 0.12 && yy > 0 ? GZ.coinHi : GZ.coin) }, new THREE.Matrix4().compose(new THREE.Vector3(x, y0 + hy + 0.02, z), new THREE.Quaternion().setFromUnitVectors(Y, tilt), new THREE.Vector3(1, 1, 1)));
+      // gleichmäßig über die Ellipse (Wurzel-Radius), leicht verrauscht
+      const r = Math.sqrt((i + 0.5) / n) * 0.97, a = i * 2.39996 + hash1(i) * 0.4;
+      const u = Math.cos(a) * r, v = Math.sin(a) * r;
+      const hy = Math.sqrt(Math.max(0, 1 - u * u - v * v)) * H;
+      const nrm = new THREE.Vector3(u / hx, Math.max(0.05, hy / (H * H)), v / hz).normalize();
+      const tilt = nrm.clone().add(new THREE.Vector3((hash1(i * 3.1) - 0.5) * 0.9, 0, (hash1(i + 9) - 0.5) * 0.9)).normalize();
+      const orange = hash1(i * 7.3) > 0.45;
+      const coin = new THREE.CylinderGeometry(0.21, 0.21, 0.06, 16);
+      b.add(coin, { v: (xx, yy, zz) => { const rr = Math.hypot(xx, zz); if (yy > 0 && rr < 0.13) return orange ? 0xffe0a0 : 0xfff6c8; return orange ? (rr > 0.18 ? 0xe07a0a : GZ.coin) : (rr > 0.18 ? 0xd8a010 : 0xffd23a); } },
+        new THREE.Matrix4().compose(new THREE.Vector3(u * hx, y0 + hy - 0.01, v * hz), new THREE.Quaternion().setFromUnitVectors(Y, tilt), new THREE.Vector3(1, 1, 1)));
     }
     return b.geometry();
   });
@@ -722,7 +726,7 @@ function buildGoldzug(opts = {}) {
   if (kind === 'wagen') {
     const heap = mesh(coinHeapGeo(L - 0.6, W - 0.3, 2.35), metal('w5coins', { color: 0xffffff, vertexColors: true, metalness: 0.5, roughness: 0.3, emissive: 0x2a1200 }, 1.0), {}, true);
     root.add(heap);
-    top = 2.35 + 0.85;
+    top = 2.35 + 0.8;
   } else top = 3.5;
   // Räder: Wagen 4 Achsen à 2, Lok 3 große Treibachsen + 1 Laufachse
   const axles = kind === 'lok' ? [[L / 2 - 1.0, false], [0.6, true], [-1.2, true], [-3.0 + (L - 8) * 0, true]] : [[L / 2 - 1.1, false], [L / 2 - 2.3, false], [-L / 2 + 2.3, false], [-L / 2 + 1.1, false]];

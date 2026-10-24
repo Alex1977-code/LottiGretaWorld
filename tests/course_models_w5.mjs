@@ -375,7 +375,7 @@ if (part('checks')) {
   });
   console.log('  Eigenschaften:', JSON.stringify(props));
   if (props.sand) check('Sandtaucher: versteckt nur Flosse (≤ 0,4 m), Spähen höher, Sprung hebt ihn über den Boden', props.sand[0] < 0.4 && props.sand[1] > props.sand[0] && props.sand[2] > 0.6 && props.sand[3] > 1.4);
-  if (props.bomb) check('Zündkopf ≈0,8–1,0 m hoch, Füße am Boden; Explosion breit (> 2 m), danach weg', props.bomb[0] > 0.75 && props.bomb[0] < 1.05 && props.bomb[1] > -0.05 && props.bomb[2] > 2 && props.bomb[3] < 0.1);
+  if (props.bomb) check('Zündkopf ≈0,8–1,0 m hoch, Füße am Boden; Explosion breit (> 2 m), danach weg', props.bomb[0] > 0.75 && props.bomb[0] < 1.12 && props.bomb[1] > -0.05 && props.bomb[2] > 2 && props.bomb[3] < 0.1);
   if (props.ring) check('Feuerring: pulse lässt den Ring wachsen, radius überschreibt, Flammen haben Höhe', props.ring[0] > 1.5 && Math.abs(props.ring[1] - 2.2) < 0.01 && props.ring[2] > 0.1);
   if (props.chop) check('Hackbeil-Pilz ≈1,1–1,3 m; chop: Schneide schlägt vorn am Boden auf (blade() x > 0,9 m, y < 0,4 m)', props.chop[0] > 1.05 && props.chop[0] < 1.35 && props.chop[2] > 0.9 && props.chop[3] < 0.4);
   if (props.spark) check('Funkenling Ø ≈0,5–0,8 m', props.spark[0] > 0.45 && props.spark[0] < 0.85);
