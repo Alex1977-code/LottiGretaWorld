@@ -21,6 +21,9 @@ export const ENTRANCE_COLORS = {
   // Welt 4
   anthill: 0xd0782a, poisonwood: 0x9a4ad0, lavaisle: 0xff5a1a, beeptower: 0xff4ab0, mysteryclock: 0x8a5ad8,
   bouncemeadow: 0xff8a1a, ruincity: 0xd8b070, bluefortress: 0x3a6ad8, lavacastle: 0xd8283a,
+  // Welt 5
+  seaside: 0x2ac8e0, bigtop: 0xb04ae8, bluecave: 0x3a8aff, bullcage: 0xf2b830, savanna: 0xe8a830, ghostdiorama: 0x8a5ad8,
+  mine: 0xb07a4a, lavarocks: 0xff6a2a, cakeisle: 0xff6ab8, sneakfort: 0x6a5aa8, goldstation: 0xffb81a, kipptemple: 0xd8a84a,
 };
 export const LOCKED_COLOR = 0x9a9cab;
 

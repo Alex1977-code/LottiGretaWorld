@@ -12,6 +12,10 @@
 // Bergwiese, Ruinen-Pflaster, Basalt mit glühenden Fugen …), Felsbrocken-Mäuerchen als Rand (edges.hedge 'redrock'),
 // Hängebrücken/Felsbögen (segments 'ropebridge'/'rockarch'), Canyon-Requisiten und Seilbahnen (map.cableways,
 // bewegte Gondel: out.updaters je Bild, out.own zum Aufräumen).
+// Welt 5: map.kit = 'lila' wählt die Geländestile der Lila Strand-Insel (beach5.js: violette Sandbänder, Strand,
+// Zirkusplatz, Savanne mit Grashügel, Spukwiese, Minen-Schotter, Torte, Festung, Pflaster, Tempel …), Ränder
+// ('violetrock', 'driftwood', 'tropic', 'cream', 'fortwall', 'templewall' – auch als fence), Holzstege
+// (segments 'boardwalk') und Strand-/Savannen-/Torten-Requisiten (lilaPropGeo; Registry-Kulisse über lilaPropModel).
 // Reihenfolge wichtig: Höhen für Hecken/Platten werden vom Gelände abgefragt, bevor Wände/Schranken entstehen;
 // erst am Ende wird die statische Geometrie verschmolzen (view.finalize).
 
@@ -30,6 +34,7 @@ import { bakeModel, propModel } from './bake.js';
 import { SNOW_STYLES, snowGround, snowEdgeGeo, scatterSnow, snowPropGeo, snowPropGlow, snowPropShape, buildSnowStairs, buildSnowBridge } from './snow.js';
 import { canyonGround, canyonEdgeGeo, scatterCanyon, canyonPropGeo, canyonPropGlow, canyonPropShape, buildRopeBridge, buildRockArch } from './canyon.js';
 import { buildCableway } from './decor_w4.js';
+import { lilaGround, lilaEdgeGeo, scatterLila, lilaPropGeo, lilaPropGlow, lilaPropShape, lilaPropModel, buildBoardwalk } from './beach5.js';
 
 const DESERT_STYLES = new Set(['desert', 'sandstone', 'dune', 'pink', 'lavarock', 'basin']);
 
@@ -55,6 +60,7 @@ export function buildMap(level, map, host) {
     if (seg.type === 'snowbridge') { buildSnowBridge(level, seg); continue; }   // Welt 3: sparsame Holzbrücke mit Schnee
     if (seg.type === 'ropebridge') { buildRopeBridge(level, seg); continue; }   // Welt 4: Hängebrücke
     if (seg.type === 'rockarch') { buildRockArch(level, seg); continue; }       // Welt 4: Felsbogen
+    if (seg.type === 'boardwalk') { buildBoardwalk(level, seg); continue; }     // Welt 5: Holzsteg
     const build = getBlockType(seg.type);
     if (!build) { console.warn(`[Weltkarte] unbekannter Baustein: ${seg.type}`); continue; }
     try { build(level, seg); } catch (err) { console.error(`[Weltkarte] Baustein ${seg.type} fehlgeschlagen:`, err); }
@@ -64,6 +70,7 @@ export function buildMap(level, map, host) {
   if (map.kit === 'desert') scatterDesert(level, map, grid);
   else if (map.kit === 'snow') scatterSnow(level, map, grid);
   else if (map.kit === 'canyon') scatterCanyon(level, map, grid);
+  else if (map.kit === 'lila') scatterLila(level, map, grid);
   else scatterDeco(level, map, base, grid);
   buildProps(level, map, grid);
   const bounds = level.computeBounds();
@@ -75,7 +82,7 @@ export function buildMap(level, map, host) {
   const edgeParts = { hedge: [], fence: [] };
   for (const w of walls) borderDeco(w, ground, sea, edgeParts, groundBlock, map.edges);
   // Welt 3: niedrige Schneewälle/Zäune ohne Sonnenschatten (spart den Schattenpass auf der dichten Schneeinsel)
-  const edgeShadow = map.kit !== 'snow' && map.kit !== 'canyon';   // Welt 4 ebenso
+  const edgeShadow = map.kit !== 'snow' && map.kit !== 'canyon' && map.kit !== 'lila';   // Welt 4 und 5 ebenso
   for (const g of edgeParts.hedge) level.view?.addStatic(g, { castShadow: edgeShadow });
   for (const g of edgeParts.fence) level.view?.addStatic(g, { castShadow: edgeShadow });
   out.hedges = edgeParts.hedge.length;
@@ -167,6 +174,14 @@ function buildGround(level, b, base, theme, index, map) {
   const rnd = new Rnd(0x51ab + index * 977);
   level.world.add({ type: 'box', min: [x0, base, z0], max: [x1, top, z1], tag: b.walk ? 'karte' : 'gelaende', mapBlock: b, ice: !!b.ice });
   if (!theme) return;
+  if (map.kit === 'lila') {
+    // Welt 5: Stile der Lila Strand-Insel (flache Deckschichten ohne Schattenwurf, Leuchtendes über userData.material)
+    for (const g of lilaGround({ ...b, style: b.style ?? 'lila' }, base, theme, rnd)) {
+      const mat = g.userData?.material, ns = g.userData?.noShadow;
+      level.view.addStatic(g, mat || ns ? { material: mat, castShadow: !ns } : undefined);
+    }
+    return;
+  }
   if (map.kit === 'canyon') {
     // Welt 4: Canyon-Stile (flache Deckschichten ohne Schattenwurf, glänzende/leuchtende Teile über userData.material)
     for (const g of canyonGround({ ...b, style: b.style ?? 'canyon' }, base, theme, rnd)) {
@@ -309,7 +324,7 @@ function buildProps(level, map, grid) {
   const add = (g, o) => level.view.addStatic(g, o);
   (map.props ?? []).forEach((it, i) => {
     // Modell aus der Registry (gleiche Optik wie in den Leveln), sonst eigene sparsame Geometrie
-    const pm = level.view && it.model !== false ? propModel(it) : null;
+    const pm = level.view && it.model !== false ? (propModel(it) ?? (map.kit === 'lila' ? lilaPropModel(it) : null)) : null;
     const baked = pm ? bakeModel(add, pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
     if (baked && it.kind === 'tank') add(place(turretGeo(it.size ?? 1, (it.color ?? 'oliv') === 'oliv'), it.pos[0], it.pos[1] + 1.6 * (it.size ?? 1), it.pos[2], it.yaw ?? 0), { castShadow: true });
     if (it.kind === 'sandstack') {
@@ -321,15 +336,15 @@ function buildProps(level, map, grid) {
     }
     if (!baked && level.view && it.kind === 'sandblocks') bakeSandblocks(add, it);
     else if (!baked) {
-      const g = level.view ? (propGeo(it, 0x7a11 + i * 37) ?? snowPropGeo(it, 0x7a11 + i * 37) ?? canyonPropGeo(it, 0x7a11 + i * 37)) : null;
+      const g = level.view ? (propGeo(it, 0x7a11 + i * 37) ?? snowPropGeo(it, 0x7a11 + i * 37) ?? canyonPropGeo(it, 0x7a11 + i * 37) ?? lilaPropGeo(it, 0x7a11 + i * 37)) : null;
       if (g) level.view.addStatic(place(g, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: it.shadow !== false, material: it.material });
       // Welt 3: Fenster, Laternen, Lichterkugeln (helle Teile ohne Schattenwurf; teilen die Kachel der Wegplatten)
-      const gl = level.view ? (snowPropGlow(it) ?? (map.kit === 'canyon' ? canyonPropGlow(it) : null)) : null;
+      const gl = level.view ? (snowPropGlow(it) ?? (map.kit === 'canyon' ? canyonPropGlow(it) : map.kit === 'lila' ? lilaPropGlow(it) : null)) : null;
       if (gl) level.view.addStatic(place(gl, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: false });
     }
     if (it.solid === false) return;
     if (it.solid || grid.isWalk(it.pos[0], it.pos[2])) {
-      const sh = propShape(it) ?? snowPropShape(it) ?? canyonPropShape(it);
+      const sh = propShape(it) ?? snowPropShape(it) ?? canyonPropShape(it) ?? lilaPropShape(it);
       if (sh) level.world.add(sh);
     }
   });
@@ -415,12 +430,12 @@ function borderDeco(w, ground, sea, out, groundBlock, edges = {}) {
       let g;
       if (c === 'hedge') {
         const seed = Math.floor(mid * 7 + 13) >>> 0;
-        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : snowEdgeGeo(st, L, seed) ?? canyonEdgeGeo(st, L, seed) ?? hedgeGeo(L + 0.2, 1.1, 0.9, seed);
+        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : snowEdgeGeo(st, L, seed) ?? canyonEdgeGeo(st, L, seed) ?? lilaEdgeGeo(st, L, seed) ?? hedgeGeo(L + 0.2, 1.1, 0.9, seed);
         const off = w.side * (st === 'adobe' ? 0.35 : 0.45);
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
       } else {
-        g = st === 'rope' || st === 'chain' ? ropeFenceGeo(L, st === 'chain') : snowEdgeGeo(st, L, 1) ?? fenceGeo(L);
+        g = st === 'rope' || st === 'chain' ? ropeFenceGeo(L, st === 'chain') : snowEdgeGeo(st, L, 1) ?? lilaEdgeGeo(st, L, 1) ?? fenceGeo(L);
         const off = w.side * 0.12;
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
@@ -467,7 +482,7 @@ function buildPaths(level, map, grid, ground, sea) {
     if (hs.some((h) => h === null || Math.abs(h - hit.y) > 0.02)) continue;
     const base = mixc(a, b2, rnd.frac(), [0, 0, 0]);
     const box = new THREE.BoxGeometry(0.9, 0.1, 0.9);
-    if (map.kit === 'snow') box.setIndex([...box.index.array.slice(0, 18), ...box.index.array.slice(24)]);   // Welt 3: ohne Unterseite
+    if (map.kit === 'snow' || map.kit === 'lila') box.setIndex([...box.index.array.slice(0, 18), ...box.index.array.slice(24)]);   // Welt 3/5: ohne Unterseite
     const g = colorize(box, (p, n, o) => { if (n.y > 0.6) { o[0] = base[0]; o[1] = base[1]; o[2] = base[2]; } else mixc(base, edge, 0.7, o); });
     g.translate(cx, hit.y + 0.01, cz);
     parts.push(g);

@@ -1331,6 +1331,80 @@ Gemessen (scale 2, `tests/course_map_w4.mjs`): Kartenansichten Welt 4 70–97 Ze
 Welt 3 an der Röhre nach Welt 4 und bei der Ankunft von Welt 4 höchstens 91 / 245 k. Statische Kulisse Welt 4:
 43 Kachel-Meshes, ≈ 156 k Dreiecke, ≈ 245 Kollisionsformen.
 
+### Präzisierung (Mehrwelten-Karte): Welt 5 „Lila Strand-Insel“ (Notiz)
+
+- Dateien: `worlds/w5.js` (Daten, `MAP.world = 5`, Musik `course_world5_map`), `beach5.js` (Thema `map_lila`, Geländestile,
+  Ränder, Streudeko, Requisiten, Holzstege, Inselchen und Nachbarwelt-Stil `'lila'`), `decor_w5.js` (Kulissen der
+  Welt-5-Eingänge). Additiv angebunden in `MapBuilder.js` (`map.kit === 'lila'`), `scenery.js`, `entrances.js`
+  (`decorateW5`), `props.js` (Podestfarben), `CourseMapScene.js` (`state().decor`, s. u.); `worlds/w4.js` zeigt die
+  Lila-Insel als Nachbarwelt am Ende ihrer Welt-5-Röhre (`neighbors` Stil `'lila'`, `[312, −210]`).
+- Inseln (begehbar, Höhe) und Eingänge (`kind`): A Ankunftsbucht y 1 mit Beerenhaus-Nische – `W4` Glasröhre zurück
+  (−16, 1, 42), `5-1` `seaside` Sonnenstrand (18.5, 1, 36; Strandkörbe, Schirme, Warp-Box mit fünf Schlüsselmünzen,
+  Wellen `waves`); B Zirkus-Insel y 2 – `5-2` `bigtop` Zirkuszelt (−4, 2, −4; Wimpel, Trapez-Gerüst `trapeze`); BA Arena-Insel
+  y 1.6 – `5-A` `bullcage` Arena-Käfig (−38, 1.6, −5; `cage`, `towers`, Hörnertor `gateAt`, Gegnergruppe 5 ×
+  `rammbock_bulle`); BH Höhlen-Insel y 2 – `5-3` `bluecave` Höhleneingang mit blauem Lavaschein (35, 2, −6, „ab 90 ★“);
+  C Savanne y 3.5 mit Savannenberg (Block `savannahill` mit `hill`, Grasrand `edge: 'tufts'`) – `5-4` `savanna`
+  (−9, 3.5, −59.5; Röhrenkanone `cannon`, `acacias`, `termites`, hüpfende Hasen `bunnies`, einer leuchtet grün);
+  CG Spuk-Insel y 3.5 – `5-Kapitän` `ghostdiorama` Geisterhaus-Diorama (−50, 3.5, −45; Kreisgeister-Ring, Großspuk,
+  Krümel `kruemel`, Scheibe „5-K“); D Minen-Insel y 4.5 – `5-5` `mine` (30, 4.5, −59.5; Loren auf `rail`, Zündkopf-Haufen,
+  POW-Block, lila Ziegelwand), Schlucht nach Norden; DL Lava-Felsen y 2 im Lavasee – `5-B` `lavarocks` (76, 2, −52;
+  steigende Steinsäulen `pillars`, Werfer-Thron `tower`, Feuerschalen `braziers`, Gegnergruppe 3 × `feuer_werfer`);
+  E Torten-Insel y 5.5 – `5-6` `cakeisle` Riesentorte (46, 5.5, −102; Kerzen, Rot-Blau-Flipper `flipper`);
+  F Schleich-Festung y 6 – `5-7` `sneakfort` (−4, 6, −112.5; Suchscheinwerfer `lamp`, Kreis des Lichtflecks `sweep`);
+  G Goldzug-Bahnhof y 6 mit Glückshaus – `5-Zug` `goldstation` (−46, 6, −109; Gleis und Goldzug `rail`); H Ruinen-Tempel
+  y 7 – `5-Burg` `kipptemple` Stufenpyramide mit Kippquader-König (10, 7, −149, „ab 100 ★“); I Röhren-Insel y 7 – `W6`
+  Glasröhre (54, 7, −158), steigt nach Nordosten zu fernen Wolkeninseln. Verbunden über zwölf Holzstege
+  (`segments: [{ type: 'boardwalk', from, to, width }]`, Kollision wie `bridge`); zwölf Schranken je 4 m auf Stegen bzw. in
+  der Schlucht.
+- Weltdaten zusätzlich: `kit: 'lila'`, `birdStyle: 'gull'` (Möwen), Geländestile `lila` (Standard, begehbarer Flieder-Sand)|
+  `lilarock`|`lilabeach`|`palmgrove`|`circus`|`arena`|`cave` (blau glühende Risse)|`savanna`|`savannahill` (`hill: { h,
+  at, r }`)|`spook`|`gravel`|`cake` (Biskuit-/Sahneschichten, Zuckerguss-Tropfen, Streusel)|`fort` (Glutfugen)|`paving`|
+  `temple`, dazu `lavarock`/`basin` aus `desert.js`; Ränder `edges: { hedge: 'violetrock', fence: 'rope' }`, je Block
+  `edge`/`fence` `'driftwood'`|`'tropic'`|`'cream'`|`'fortwall'`|`'templewall'`|`'tufts'`. Requisiten (`props`) u. a.
+  `palm5`, `lavender`, `hibiscus`, `acacia`, `termite`, `grasstuft`, `violetrock`, `shells5`, `beachchair`, `parasol`,
+  `towel`, `sandcastle`, `surfboard`, `lifebuoy`, `lighthouse`, `sailboat`, `candycane`, `cherry5`, `cupcake`, `donut`,
+  `drum`, `balloons`, `pond5`, `jungletree`, `stonehead`, `templecolumn`, `obelisk5`, `tiki` (Flamme leuchtet), `tomb5`,
+  `deadtree`, `bench5`, `lamppost5`, `luggage`, `cloud5`. Kacheln `batch: { tile: 48, origin: [−4, 4], freeTile: 128,
+  freeOrigin: [−72, −72] }` (große Kacheln: Anflug über die ganze Kette im Budget).
+- Freischaltung laut „Welt 5 – Level-Liste“: `5-1` frei, sobald Welt 5 offen ist; `5-2` nach 5-1; `5-3` (≥ 90 ★), `5-A`,
+  `5-4` nach 5-2; `5-Kapitän`, `5-5` nach 5-4; `5-B`, `5-6` nach 5-5; `5-7` nach 5-6; `5-Zug`, `5-Burg` (≥ 100 ★) nach
+  5-7; `W6` nach 5-Burg. `starScope: 'all'`, 31 Sterne. Schilder „ab 90 ★“, „ab 100 ★“.
+- **Suchscheinwerfer im Takt**: Der Lichtfleck kreist je Zählzeit der Kartenmusik eine Achtelrunde weiter (`music.beat()`,
+  Bewegung in den ersten 45 % der Zählzeit, dann Halt; ohne laufende Musik Ersatzuhr im Tempo von `course_world5_map`).
+  Steht die Heldin im Fleck, färben sich Kegel und Fleck rot, über der Lampe blinkt ein „!“ (nur Optik). Rot-Blau-Flipper
+  auf der Torten-Insel wechseln bei jedem Sprung der Heldin (`level.onJump`); der Kippquader-König auf dem Tempel kippt
+  abwechselnd über die linke und rechte Kante (roter Landeboden-Hinweis, Staub). Test-Schnittstelle (additiv):
+  `state().decor` = Vereinigung von `ev.liveInfo()` aller Eingänge – `searchlight { beat, step, moving, angle, source,
+  theme, bpm, spot, alarm, shown }`, `flipper { color, flips }`, `kippquader { phase, side, tips }`.
+- Registry-Modelle (Registry-Abfrage `hasModel`, je mit Dreiecks-Obergrenze über `beach5.modelTris`, sonst eigene
+  sparsame Geometrie aus `beach5.js`/`decor_w5.js`): Welt 5 – `strandkorb` und `sonnenschirm` am Sonnenstrand (eingebacken
+  in eine eigene Kachel `w5:strandmoebel`, damit sie nur in den Ansichten zählen, die sie sehen), `trapez` (zwei
+  gegenläufig schwingende am Zirkuszelt), `roehrenkanone` (aufrecht auf dem Savannenberg, `load`/`fire` mit Rauchring),
+  `lore` (`load: 'kristall'`, als Instanz-Vorlage: je Teil-Mesh ein InstancedMesh), `suchscheinwerfer` (Kopf dreht die
+  Karte, `alarm`/`seen` aus dem Lichtfleck), `kippquader` (`style: 'tempel'`, Gesicht zur Kamera, `warn`/`tip`/`land`;
+  dazu eine eigene Krone), `steinkopf` (als eigene Objekte, damit die Fern-Ausblendung sie beim Anflug ausblendet),
+  `deco_w5_zuckerstange` (Requisite `candycane`); vorhandene: `kruemel`, `warp_box`, `pow_block`, `kanone_turm`,
+  `pilzlingsturm`, `feuer_werfer`, `rammbock_bulle`. Bewusst eigene Geometrie (auf der Karte zu schwer, Stand der Modelle):
+  `schluesselmuenze` (≈ 6 k Dreiecke je Münze × 5), `goldzug_waggon` (18–26 k), `torten_plateau` (≈ 21 k),
+  `deco_w5_akazie` (≈ 5,8 k × 7), `termitenhuegel`, Giraffe/Zebra/Elefant (≈ 9 k), verstreute Requisiten (Strandkorb,
+  Schirm, Tempelsäule, Steinkopf liegen in den Schatten-Kacheln vieler Ansichten), Palmen (`palm5`). Werden die Modelle
+  leichter, greifen sie ohne Codeänderung (Kandidatenlisten `W5_PROP_MODELS`, Obergrenzen in `decor_w5.js`).
+  **Hinweis Fern-Ausblendung:** `MapLod` merkt sich die Lage aller Kartenobjekte beim Aufbau – bewegte Kulissen-Teile
+  (Lichtkegel, Ball, Funken, Rauch …) müssen schon beim Bau an ihrer Startlage stehen.
+- Übergänge: Die Welt-4-Röhre `W5` und der Welt-Warp aus 4-2 führen ohne Codeänderung nach Welt 5 (Ankunft an der
+  Rückweg-Röhre `W4`, `{ id: 'W4', world: 4, next: 4 }`, Röhre nach Südwesten zur Canyon-Insel am Horizont). Die Röhre
+  `W6` zeigt „Welt 6 kommt bald!“; ein Welt-Warp nach Welt 6 aus einem Welt-5-Level endet über den vorhandenen Rückfall an
+  dieser Röhre (entdeckt, Schranke versinkt). `tests/course_map_w4.mjs` Abschnitt 9 prüft jetzt die Ankunft in Welt 5
+  (der „bald“-Rückfall wird in `tests/course_map_w5.mjs` mit Welt 6 geprüft).
+- Test: `tests/course_map_w5.mjs` (Port 4250, Bilder `tests/out/cmap5_*.png`), Teilläufe `W5_TEIL=1|2|3` (Abschnitte
+  2–4, 5–8, 9–14, je mit den Node-Prüfungen; gemessen bei Rechnerlast ≈ 10–15: 5,2 / 6,1 / 7,6 min).
+
+Gemessen (scale 2, `tests/course_map_w5.mjs`, mit den Welt-5-Modellen): Kartenansichten Welt 5 37–80 Zeichenaufrufe
+inkl. Schattenpass, 119–258 k Dreiecke; Ankunft durch die Glasröhre 73–88 / 208–249 k, Anflug 109 / 272 k (Budget
+120 / 300 k). Welt 4 an der Röhre nach Welt 5 und bei der Ankunft von Welt 5 höchstens 66 / 162 k (Anflug Welt 4 mit
+Lila-Insel am Horizont 108 / 274 k). Statische Kulisse Welt 5: 38 Kachel-Meshes, ≈ 167 k Dreiecke, ≈ 295
+Kollisionsformen.
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
@@ -3898,3 +3972,53 @@ Kippquader-König vollständig (Auftritt, Landefläche = Grundriss, Kippen triff
 Tod setzt zurück, Klon) · Teil 4 Bilder `tests/out/w5e_*.png` und Zeichenaufrufe · Teil 5 Sandtaucher im Ritt-Fluss
 der Strandwerkstatt `0-17` (springt den auf Pflaume reitenden Spieler an, Treffer). Gemessen (scale 2, inkl. Schattenpass,
 Thema beach/temple): Gegnerwerkstatt 54–90 Zeichenaufrufe (≤ 182 k Dreiecke), Tempel-Arena 37–50 (≤ 104 k).
+
+## Präzisierung (Level 5-1 und 5-2)
+
+Additiv zur Welt-5-Liste: Titel und Besonderheiten der beiden ersten Level der Lila Strand-Insel. Dateien
+`src/course/levels/w5/5-1.js`, `5-2.js`, eigene Hilfen `src/course/levels/w5/_helpers_a.js` (kein `LEVEL`, nur für diese
+beiden Level), Test `tests/course_w5a.mjs`. Kein Motor-Code geändert; Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`).
+
+### 5-1 „Schlüsselsuche am Muschelstrand“ (parcours_ride · beach · course_beach · 500 s)
+
+- Abschnitte (nach −Z): **Sandstrand** (x −34 … 40, offener Strand mit Flachwasser, Sandbank, Rettungsturm, Sandburgen,
+  Palmenhain, lila Fels mit Wandhöhle) → **Schwebeinsel** (y 9, Checkpoint, Röhre) → **Glitzergrotte** (Steg, Ritt auf
+  Pflaume ≈ 120 m Höhlenfluss mit zwei Hubbrücken, Sandtauchern im Wasser, Holzschanze; Grottenstrand mit Karottenkorb) →
+  **Zielinsel** (Leuchtturm, Zielmast).
+- Fünf Schlüsselmünzen (`schluesselmuenze`, Gruppe → `reveal` der versteckten Warp-Box auf der Sandbank): Sandburg,
+  Palmenhain, Fels im Flachwasser, Rettungsturm, Fels hinter den Rammbock-Bullen. Die Warp-Box bringt zur Schwebeinsel.
+- Sterne: 0 rechte Pilzlings-Sandskulptur zerstampfen (Sprung allein reicht nicht; links Münzen, Mitte sechs
+  Mini-Pilzlinge) · 1 Meeresloch neben der Sandbank → Röhre → Farbfeld-Raum, alle 16 Felder betreten · 2 Wandhöhle im lila
+  Fels: Krabbelkäfer besiegen (Aufgabe `task`), dann gibt Krümel den Stern. Stempel: über der Holzschanze im Flussritt
+  (Sprung halten; ohne Sprung zu niedrig).
+- Extraleben: unsichtbarer Block vor dem roten Strandkorb, Schatztruhe hinter dem Leuchtturm, dritter Münzmarder.
+- Haken-Hilfen: `sandSkulpturen`, `kruemelHoehle`, `rettungsturm`, `leuchtturm`, `hoehlenTor` (blendet aus, solange die
+  Figur in der Höhle ist), `raumKlar` (Raum-Ausschnitt verschwindet ganz statt 18 % Schleier), `fernAus` (Grottenteile vom
+  Strand aus ausgeblendet – Budget), Schwimmtiere, Krabben, Delfine, Brandung, Kristalle, Leuchtpilze, Lichtschächte,
+  `schattenDiaet` (Gegner werfen nur mit dem größten Teil Sonnenschatten).
+
+### 5-2 „Zirkus Schwingeschwung“ (parcours · circus · course_trapeze · 400 s)
+
+- Abschnitte (Bühnen schweben über den Manegen, y 1 → 9 → 5 → 10 → 14): **Startbühne und Seilbahn 1** → Trapezbühne, drei
+  Trapeze (4,5 m Abstand) → **Seilbahn 2** hinab zur Checkpoint-Bühne, Pilz-Trampolin hinauf → **Riesen-Gasse**
+  (?-Block mit Riesentrank: als Riese durch drei graue Steinwände, Pilzlinge und zwei Riesenschnappblumen; ohne Trank über
+  den Seitensteg) → Glasröhre zur Bühne F (Checkpoint 2) → **Pendelplattform**, Bühne G (Funkenlinge um die Trommeln),
+  **drei Drehscheiben** mit Stachelstangen (bunte, mitdrehende Hülle `zirkusScheiben`) → Bühne H, drei Trapeze, Bühne I,
+  letztes Trapez → **Zielbühne** mit Sternring und Konfetti-Regen.
+- Sterne: 0 aus der fahrenden Gondel 1 auf den hohen Sims links springen · 1 von Drehscheibe 2 zur Ostbühne, Röhre in den
+  Blaumünzen-Raum (Druckschalter, acht blaue Münzen in 10 s) · 2 Sternring vor dem Ziel (acht Sternmünzen in 10 s).
+  Stempel: Pilz-Trampolin auf Bühne H → Stempel-Sims (vom Bühnenboden aus nicht erreichbar).
+- Extraleben: unsichtbarer Block über dem hohen Sims, hinter der dritten Steinwand (nur als Riese).
+- Trapeze für Bodenabsprünge 1,5 m vor der Bühnenkante aufhängen (Greifradius 0,8 m), Aufhängung Bühne + 6,2 m, Länge 3.
+
+### Test `tests/course_w5a.mjs`
+
+Port 4470 (+ `PORT_BASE`), Aufruf `node tests/course_w5a.mjs [5-1|5-2]`, Teilläufe `PARTS=load,route,sweep,targets,extra,shots`
+(je Lauf < 10 min), `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS='a|b'`, `DETAIL=1` (Zeichenaufrufe je Objekt), Bilder
+`tests/out/w5a_*.png`. Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start →
+Ziel mit echter Mechanik (5-1: fünf Schlüssel, Warp-Box, Ritt; 5-2: zwei Gondeln, sieben Trapeze, Pendel, Trampolin);
+alle Sterne, Stempel und Extraleben samt Gegenproben (Stern/Stempel nicht ohne die Mechanik), Hubbrücke unten hält das
+Floß auf (Bein `{ bridge: [id, 'low' | 'high' | 'start'] }`); Messgang entlang der Route. Gemessen (scale 2, inkl.
+Schattenpass): 5-1 bis ≈ 112 Zeichenaufrufe / ≈ 285 k Dreiecke (offener Strand – dort ist kaum noch Luft), 5-2 bis ≈ 92 /
+≈ 260 k (Riesen-Gasse).
