@@ -25,7 +25,7 @@ const LAVA = -0.5;     // Lavaspiegel
 const ISLAND = { center: [0, 0], top: Y, R: 11.8, depth: 5, lavaY: LAVA, wobble: [0.06, 0.04, 0.035], phase: [0.7, 2.1, 1.3] };
 const rim = (a, d = 0) => { const r = islandRadius(ISLAND, a) + d; return [Math.cos(a) * r, Math.sin(a) * r]; };
 // Steinsäulen: hinten links / hinten rechts, 1,2 m Lava zwischen Rand und Säule
-const A_L = -2.45, A_R = -0.69;          // Winkel (rad) der Säulen (−z ist hinten)
+const A_L = -2.62, A_R = -0.52;          // Winkel (rad) der Säulen (−z ist hinten): links/rechts, etwas nach hinten
 const S_L = rim(A_L, 2.5), S_R = rim(A_R, 2.5);
 export const PILLARS = { left: S_L, right: S_R, low: Y - 0.35, high: Y + 7.6 };
 
@@ -52,7 +52,7 @@ function build(level) {
     [Math.cos(2.0) * 10.3, Y, Math.sin(2.0) * 10.3, 1.2, 0xb07aff], [Math.cos(0.9) * 10.4, Y, Math.sin(0.9) * 10.4, 1.0, 0xff7ad8],
     [Math.cos(-1.6) * 10.2, Y, Math.sin(-1.6) * 10.2, 1.3, 0xb07aff], [Math.cos(3.1) * 10.3, Y, Math.sin(3.1) * 10.3, 0.9, 0xffd04a],
   ]);
-  werferLager(level, [[Math.cos(1.55) * 9.6, Y, Math.sin(1.55) * 9.6, 0.2], [Math.cos(-2.9) * 9.4, Y, Math.sin(-2.9) * 9.4, -1.2]]);
+  werferLager(level, [[Math.cos(2.35) * 9.4, Y, Math.sin(2.35) * 9.4, 0.8], [Math.cos(-1.85) * 9.6, Y, Math.sin(-1.85) * 9.6, -1.2]]);
   calderaWall(level, { center: [0, -4], r0: 30, r1: 42, n: 26, h: [8, 20], y: LAVA, gap: [1.05, 2.1] });
   volcanoes(level, [[-60, LAVA, -98, 26, 40], [54, LAVA, -110, 28, 44], [-12, LAVA, -150, 22, 32], [88, LAVA, -58, 16, 22]]);
 }
@@ -78,8 +78,8 @@ export const LEVEL = {
   build,
   setup,
   start: { pos: [0, Y, 8.4], yaw: Math.PI / 2 },
-  camera: [{ from: 30, to: -30, pitch: 47, dist: 22.5, x: 0, xLock: 0.35, ahead: 1, lead: 0.5, height: 1.4 }],
-  arena: { enemies: 'all', star: [0, Y + 0.6, -0.5], starIndex: 0, intro: 'Spring von der Steinsäule auf den Werfer!', center: [0, Y, -2], camPull: 0.35 },
+  camera: [{ from: 30, to: -30, pitch: 44, dist: 24, x: 0, xLock: 0.35, ahead: 1.2, lead: 0.5, height: 2 }],
+  arena: { enemies: 'all', star: [0, Y + 0.6, -0.5], starIndex: 0, intro: 'Spring von der Steinsäule auf den Werfer!', center: [0, Y, -3], camPull: 0.4 },
   segments: [
     { type: 'sign', pos: [3.6, Y, 8.6], text: 'Säule rauf,\nWerfer drauf!', size: [2.4, 0.9] },
     { type: 'deco_w4', items: [
@@ -94,7 +94,7 @@ export const LEVEL = {
     { kind: 'coinblock', pos: [3.4, Y + 2.3, 5.2], count: 6 },
   ],
   enemies: [
-    { kind: 'werferturm', id: 'wturm', pos: [0, Y, -4.5], count: 9, riderId: 'werfer', speed: 0.8, sight: 16, throwSight: 16, interval: 2.4, first: 2.0, wake: 40 },
+    { kind: 'werferturm', id: 'wturm', pos: [0, Y, -3], count: 9, riderId: 'werfer', speed: 0.8, sight: 16, throwSight: 16, interval: 2.4, first: 2.0, wake: 40 },
   ],
   items: [
     { kind: 'coins', pos: [-6.4, Y + 0.4, 2.2], r: 1.4, n: 6 },

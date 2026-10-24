@@ -776,6 +776,182 @@ for (const id of LEVELS) {
     }
   }
 
+  // ------------------------------------------------ Arena 5-B: Steinsäulen, Werfer von oben, Turm abtragen, Stern
+  if (R.arena && PARTS.has('arena') && !ONLY) {
+    await load(id);
+    let r = await sc(() => {
+      const c = window.__course, L = c.level, p = c.player;
+      const tw = L.named.get('wturm'), w = L.named.get('werfer');
+      const out = { count: tw.count, height: +tw.height.toFixed(2), riding: w?.riding === tw, riderY: w ? +(w.pos.y - tw.pos.y).toFixed(2) : null, left: c.state().archetype?.left, total: c.state().archetype?.total };
+      // Säulen: im Wechsel (eine oben, während die andere unten ist)
+      const A = L.named.get('saeule_l'), B = L.named.get('saeule_r');
+      let both = 0, opposite = 0, maxY = 0, minY = 99;
+      p.invuln = 1e9;
+      for (let i = 0; i < 1300; i++) {
+        c.setInput({}); c.step(1);
+        if (A.state === 'high' && B.state === 'high') both++;
+        if ((A.state === 'high' && B.state === 'low') || (A.state === 'low' && B.state === 'high')) opposite++;
+        maxY = Math.max(maxY, A.y); minY = Math.min(minY, A.y);
+      }
+      out.saeulen = { both, opposite, maxY: +maxY.toFixed(2), minY: +minY.toFixed(2), cycles: A.cycles };
+      out.throws = w?.throws ?? 0;
+      return out;
+    });
+    console.log(`  5-B Start: ${JSON.stringify(r)}`);
+    check(`5-B: Werferturm aus 9 Pilzlingen (${r.height} m), Feuer-Werfer obenauf (${r.riderY} m), Arena zählt 2 Gegner`, r.count === 9 && r.riding && Math.abs(r.riderY - r.height) < 0.05 && r.total === 2 && r.left === 2);
+    check(`5-B: zwei Steinsäulen steigen im Wechsel (unten ${r.saeulen.minY} m, oben ${r.saeulen.maxY} m; nie beide oben)`, r.saeulen.both === 0 && r.saeulen.opposite > 200 && r.saeulen.maxY > 9 && r.saeulen.minY < 2);
+    check(`5-B: der Werfer wirft von oben (${r.throws} Würfe in 11 s)`, r.throws >= 2);
+    for (const hero of HEROES) {
+      await load(id);
+      r = await sc((heroName) => {
+        const c = window.__course, L = c.level, p = c.player;
+        p.setHero(heroName);
+        const W5 = window.__w5;
+        const stick = (dx, dz, mag = 1) => W5.stick(dx, dz, mag);
+        const out = { log: [], hurts: 0 };
+        const hurt = p.hurt.bind(p);
+        p.hurt = (src) => { out.hurts++; return hurt(src); };
+        const start = L.time;
+        const step = (inp) => { p.invuln = Math.max(p.invuln, 3); c.setInput(inp); c.step(1); };
+        const tower = () => L.entities.find((e) => e.kind === 'werferturm' && !e.removed && !e.defeated) ?? null;
+        const rider = () => { const t = L.named.get('werfer'); return t && !t.defeated && !t.removed ? t : null; };
+        const pillars = [L.named.get('saeule_l'), L.named.get('saeule_r')];
+        const pc = (pl) => ({ x: (pl.box.shape.min[0] + pl.box.shape.max[0]) / 2, z: (pl.box.shape.min[2] + pl.box.shape.max[2]) / 2 });
+        const goTo = (x, z, r = 0.3, max = 900) => { let i = 0; for (; i < max; i++) { const dx = x - p.pos.x, dz = z - p.pos.z, d = Math.hypot(dx, dz); if (d < r && p.mode === 'ground') break; step({ ...stick(dx, dz, Math.min(1, Math.max(0.25, d / 1.2))) }); } return i; };
+        let guard = 0;
+        while (L.time - start < 95 && guard++ < 40 && (tower() || rider())) {
+          // 1) eine Säule wählen, die gerade unten ist (bzw. bald), am Inselrand davor warten
+          const pl = pillars.find((q) => q.state === 'low') ?? pillars.find((q) => q.state === 'down') ?? pillars[0];
+          const ctr = pc(pl), a = Math.atan2(ctr.z, ctr.x);
+          const wx = ctr.x - Math.cos(a) * 2.8, wz = ctr.z - Math.sin(a) * 2.8;
+          goTo(wx, wz, 0.4);
+          let k = 0;
+          for (; k < 1400 && pl.state !== 'low'; k++) step({});
+          // 2) auf die Säule hüpfen
+          let left = false;
+          for (k = 0; k < 200; k++) {
+            step({ ...(p.mode === 'air' ? W5.airSteer(ctr.x, ctr.z, 0, 0, 3, 7) : stick(ctr.x - p.pos.x, ctr.z - p.pos.z, 0.8)), jump: k < 18 });
+            if (p.mode === 'air') left = true;
+            if (left && p.mode === 'ground') break;
+          }
+          const onP = p.ground?.tag === 'steinsaeule';
+          out.log.push(['auf Säule', pillars.indexOf(pl), onP, +p.pos.y.toFixed(2)]);
+          if (!onP) continue;
+          // 3) mitfahren bis oben; Ziel in Reichweite abwarten, dann draufspringen (Werfer zuerst, sonst Turmspitze)
+          let target = null;
+          for (k = 0; k < 1600; k++) {
+            const dx = ctr.x - p.pos.x, dz = ctr.z - p.pos.z;
+            step(Math.hypot(dx, dz) > 0.3 ? { ...stick(dx, dz, 0.4) } : {});
+            if (p.ground?.tag !== 'steinsaeule') break;
+            if (pl.state === 'down' && pl.y < 6) break;
+            const tg = rider() ?? tower();
+            if (!tg) break;
+            const top = rider() ? tg.pos.y + 1.1 : tg.pos.y + tg.height;
+            const d = Math.hypot(tg.pos.x - p.pos.x, tg.pos.z - p.pos.z);
+            if (p.pos.y > top + 0.6 && d < 5.2) { target = tg; break; }
+          }
+          if (!target) { out.log.push(['kein Ziel', pl.state, +p.pos.y.toFixed(2)]); continue; }
+          // 4) Sprung auf das Ziel, bei Turm-Abprall weiter auf den Turm steuern (Taste gehalten → hoher Abprall)
+          const isRider = target === rider();
+          const before = isRider ? 1 : target.count;
+          let hits = 0;
+          left = false;
+          for (k = 0; k < 2400; k++) {
+            const tg = isRider ? rider() : tower();
+            if (!tg) break;
+            const top = isRider ? tg.pos.y + 1.1 : tg.pos.y + tg.height;
+            const above = p.pos.y > top + 0.15;
+            step({ ...(p.mode === 'air' && (above || p.vel.y > 0) ? W5.airSteer(tg.pos.x, tg.pos.z, tg.vel?.x ?? 0, tg.vel?.z ?? 0, 3.6, 8) : {}), jump: k < 20 || p.vel.y > 0 });
+            if (p.mode === 'air') left = true;
+            if (left && p.mode === 'ground') break;
+          }
+          const tw = tower();
+          hits = isRider ? (rider() ? 0 : 1) : before - (tw?.count ?? 0);
+          out.log.push([isRider ? 'Werfer' : 'Turm', hits, tw?.count ?? 0, +p.pos.y.toFixed(2), +(L.time - start).toFixed(1)]);
+          // 5) am Boden: niedrigen Turm direkt anspringen
+          for (let q = 0; q < 12 && !rider() && tower() && tower().height < 3.3 && p.mode === 'ground'; q++) {
+            const c0 = tower().count;
+            let lf = false;
+            for (k = 0; k < 600; k++) {
+              const t3 = tower();
+              if (!t3) break;
+              const dx = t3.pos.x - p.pos.x, dz = t3.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              const top = t3.pos.y + t3.height;
+              let inp;
+              if (p.mode === 'air') inp = { ...((p.pos.y > top + 0.15 || p.vel.y > 0) ? W5.airSteer(t3.pos.x, t3.pos.z, t3.vel?.x ?? 0, t3.vel?.z ?? 0, 3.6, 8) : {}), jump: p.vel.y > 0 };
+              else inp = { ...stick(dx, dz, 1), jump: d < 2.2 };
+              step(inp);
+              if (p.mode === 'air') lf = true;
+              if (lf && p.mode === 'ground') break;
+            }
+            out.log.push(['Turm vom Boden', c0 - (tower()?.count ?? 0), tower()?.count ?? 0]);
+          }
+        }
+        const arch = () => c.state().archetype;
+        out.left = arch().left;
+        for (let i = 0; i < 500 && !arch().starTouch; i++) step({});
+        const star = L.entities.find((x) => x.kind === 'star' && x.alive);
+        if (star) goTo(star.pos.x, star.pos.z, 0.2, 900);
+        for (let i = 0; i < 900 && !c.finished; i++) step({});
+        out.time = +(L.time - start).toFixed(1);
+        out.finished = !!c.finished;
+        out.got = L.runtime.stars[0];
+        out.save = JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}').levels?.['5-B'] ?? null;
+        return out;
+      }, hero);
+      console.log(`  5-B Kampf (${hero}): ${JSON.stringify(r)}`);
+      const riderHit = r.log.some((l) => l[0] === 'Werfer' && l[1] === 1);
+      check(`5-B: ${hero} – von der Steinsäule auf den Werfer gesprungen (besiegt)`, riderHit);
+      check(`5-B: ${hero} – Turm Stufe für Stufe abgetragen, Stern eingesammelt, Ziel nach ${r.time} s (< 100 s), gespeichert`, r.left === 0 && r.got && r.finished && r.time < 100 && r.save?.done === true);
+      if (hero === HEROES[0]) await shot('5-B_ergebnis');
+    }
+    // Tod → Arena neu: Turm mit Werfer obenauf, kein doppelter Werfer
+    await load(id);
+    r = await sc(() => {
+      const c = window.__course, L = c.level, p = c.player;
+      const w = L.named.get('werfer');
+      p.invuln = 1e9;
+      w.onHit('fire', p);
+      for (let i = 0; i < 120; i++) c.step(1);
+      const before = c.state().archetype.left;
+      p.invuln = 0;
+      p.die('hit');
+      for (let i = 0; i < 900 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1);
+      c.step(30);
+      const tw = L.entities.filter((e) => e.kind === 'werferturm' && !e.removed);
+      const ws = L.entities.filter((e) => e.kind === 'feuer_werfer' && !e.removed && !e.defeated);
+      return { before, left: c.state().archetype.left, resets: c.state().archetype.resets, towers: tw.length, count: tw[0]?.count, werfer: ws.length, riding: ws[0]?.riding === tw[0] };
+    });
+    console.log(`  5-B Neustart: ${JSON.stringify(r)}`);
+    check(`5-B: Tod setzt die Arena zurück (vorher noch ${r.before}, danach ${r.left}): ein Turm mit ${r.count} Pilzlingen, genau ein Werfer obenauf`, r.before === 1 && r.left === 2 && r.towers === 1 && r.count === 9 && r.werfer === 1 && r.riding);
+    // Zeitlimit 100 s
+    await load(id);
+    r = await sc(() => {
+      const c = window.__course, L = c.level, p = c.player;
+      p.hurt = () => false;
+      let dead = false, cause = null;
+      for (let i = 0; i < 101 * 120 && !dead; i++) { c.step(1); if (p.dead) { dead = true; cause = p.deathCause; } }
+      return { dead, cause, t: +L.time.toFixed(1) };
+    });
+    check(`5-B: nach 100 s ist die Zeit um (${r.cause} bei ${r.t} s)`, r.dead && r.cause === 'time');
+    // Funkenblüte: jeder Feuerball nimmt eine Stufe
+    await load(id);
+    r = await sc(() => {
+      const c = window.__course, L = c.level, p = c.player, W5 = window.__w5;
+      p.invuln = 1e9;
+      const tw = L.named.get('wturm');
+      const c0 = tw.count;
+      p.reset([0, 2, 4], Math.PI / 2);
+      p.setPower('funken');
+      for (let i = 0; i < 1200 && tw.count > c0 - 3; i++) {
+        W5.face(tw.pos.x, tw.pos.z);
+        c.setInput({ action: i % 40 === 0 }); c.step(1);
+      }
+      return { c0, count: tw.count };
+    });
+    check(`5-B: Funkenblüte – Feuerbälle nehmen die Turmstufen einzeln (${r.c0} → ${r.count})`, r.count <= r.c0 - 3);
+  }
+
   // ------------------------------------------------ Bilder je Abschnitt aus der Spielkamera
   if (ONLY || !PARTS.has('shots')) continue;
   loaded = null;

@@ -475,17 +475,21 @@ export function steinsaeule(level, spec) {
 const nz2 = (z) => Math.sin(z * 3.1) * 0.5;
 
 /**
- * Arena mit Werferturm: Der Werfer obenauf ist eine eigene Entität, die der Turm selbst erzeugt. Der Arena-Archetyp
- * erzeugt beim Neustart (Tod) alle gezählten Gegner aus ihren Daten neu – dabei entstünde der Werfer doppelt (frisch
- * vom Turm und noch einmal aus seinen Daten, dann frei herumspringend). Dieser Haken räumt das Doppel weg und zählt
- * den Werfer des neuen Turms. Aufruf in LEVEL.setup (nach dem Archetyp).
+ * Arena mit Werferturm: Der Werfer obenauf ist eine eigene Entität, die der Turm selbst erzeugt (ihre Daten haben kein
+ * `kind`). Der Arena-Archetyp erzeugt beim Neustart (Tod) alle gezählten Gegner aus ihren Daten neu – der Werfer entstünde
+ * dabei ohne Art (Warnung) bzw. doppelt. Dieser Haken baut nur den Turm aus den Daten neu (der bringt seinen Werfer mit)
+ * und zählt dessen Werfer. Aufruf in LEVEL.setup (nach dem Archetyp).
  */
 export function arenaTowerFix(level, towerId, riderId) {
   const arch = level.archetype;
   if (!arch?.resetArena) return;
   const orig = arch.resetArena.bind(arch);
   arch.resetArena = () => {
+    // Der Werfer hat keine eigenen Level-Daten (der Turm erzeugt ihn, spec ohne kind): nicht aus den Daten neu bauen
+    const all = arch.specs;
+    arch.specs = all.filter((sp) => sp?.kind);
     orig();
+    arch.specs = all;
     for (const e of [...arch.members]) {
       if (e.kind === 'feuer_werfer' && e.spec?.id === riderId && !e.riding) {
         e.kill();
