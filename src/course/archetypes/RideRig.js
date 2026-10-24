@@ -7,10 +7,19 @@
 // der Spielfigur). Nach dem Absteigen hüpft Pflaume hinterher (eigene kleine Folge-Logik, Boden per raycastDown); das
 // Blatt bleibt am Ufer liegen (zweiter PflaumeAvatar, nur das Floß sichtbar). Am Zielmast: Freudensprung.
 // Effekte: Kielwasser (Schaumringe, eine InstancedMesh), kleine Spritzer im Paddeltakt, Gischt bei Schub.
+//
+// Ritt-Abschnitt im Parcours (Präzisierung Motor und Bausteine Welt 5; opts { section, swim, after }):
+//  - section: zu Fuß zeichnet ein normaler HeroRig die Heldin (alle Kurs-Zustände: Trapez, Helme, Schlittschuh …), nur
+//    auf Pflaumes Rücken die Reitpose dieses Rigs.
+//  - swim (Standard im Abschnitt): Pflaume schwimmt selbst (Paddel-Pose ohne Blatt-Floß und Paddel, etwas tiefer im
+//    Wasser; proxy.course.swim = true für eine spätere eigene Schwimm-Pose des Avatars).
+//  - after: 'stay' (Standard im Abschnitt: Pflaume bleibt am Ende im Wasser und schaut der Heldin nach) | 'follow'
+//    (hoppelt hinterher wie in 1-4).
 
 import * as THREE from 'three';
 import { createAvatar } from '../../three/avatars/index.js';
 import { HeroAvatar } from '../../three/avatars/hero.js';
+import { HeroRig } from '../player/HeroRig.js';
 
 const AVATAR_H = 1.5;
 const PFL_SCALE = 1.12;          // Pflaume etwas größer: Floß ≈ 1,55 m lang
@@ -32,10 +41,16 @@ function makeProxy(key) {
   };
 }
 
+const SWIM_DEPTH = 0.22;            // m: schwimmende Pflaume liegt tiefer im Wasser als auf dem Floß
+
 export class RideRig {
-  constructor(view, player) {
+  constructor(view, player, opts = {}) {
     this.view = view;
     this.player = player;
+    this.section = !!opts.section;
+    this.swim = opts.swim ?? this.section;
+    this.after = opts.after ?? (this.section ? 'stay' : 'follow');
+    this.footRig = null;
     this.root = new THREE.Group();
     this.root.name = 'ritt';
     view.three.add(this.root);
@@ -143,7 +158,7 @@ export class RideRig {
     const rp = p.raftPos ?? p.pos;
     if (!this.pflFree) {
       this.raftGroup.position.copy(rp);
-      this.yaw += wrap((p.raftYaw ?? p.yaw) - this.yaw) * (1 - Math.exp(-8 * dt));
+      if (!(this.section && !onRaft && !p.dead && p.script?.type !== 'mount')) this.yaw += wrap((p.raftYaw ?? p.yaw) - this.yaw) * (1 - Math.exp(-8 * dt));
       this.raftGroup.rotation.order = 'YXZ';
       // Kippen: Querfahrt relativ zur Blickrichtung, Anstoßen; Nicken: Steigen/Fallen
       const fx = Math.cos(this.yaw), fz = -Math.sin(this.yaw);
@@ -176,8 +191,16 @@ export class RideRig {
     const hs = (p.big ? 1 : 0.7) / AVATAR_H;
     const blink = p.invuln > 0 && !p.powerDef.invulnerable && Math.floor(t * 16) % 2 === 0;
     this.heroHull.visible = !blink && !(p.dead && p.deathCause === 'fall' && p.script?.t > 0.3);
+    // Ritt-Abschnitt: zu Fuß zeichnet ein normaler HeroRig die Heldin (alle Kurs-Posen), dieses Rig nur die Reiterin
+    if (this.section) {
+      if (!heroOnRaft) {
+        this.footRig ??= new HeroRig(this.view, p);
+        this.footRig.update(dt, t);
+        this.heroHull.visible = false;
+      } else if (this.footRig) this.footRig.hull.visible = false;
+    }
     if (heroOnRaft) {
-      this.heroHull.position.set(-0.06, this.rideHeight(p.big), 0);
+      this.heroHull.position.set(-0.06, this.rideHeight(p.big) - (this.swim ? SWIM_DEPTH : 0), 0);
       this.heroHull.rotation.set(0, 0, 0);
       this.heroHull.scale.setScalar(hs);
     } else {
@@ -196,19 +219,32 @@ export class RideRig {
     c.power = scarf;
     c.gear = null;
     c.rider = this.hero;
-    if (!this.pflFree && p.dismounted && !p.riding && p.script?.type !== 'dismount' && p.raftPos) this.freePflaume(p);
+    if (!this.pflFree && this.after !== 'stay' && p.dismounted && !p.riding && p.script?.type !== 'dismount' && p.raftPos) this.freePflaume(p);
     if (!this.pflFree) {
       const speed = onRaft ? Math.hypot(p.vel.x, p.vel.z) : 0;
       c.state = 'paddle';
+      c.swim = this.swim;
       c.speed = Math.min(4, speed * 0.55);
       c.vy = p.vel.y;
       c.grounded = p.mode === 'ground';
+      // bleibt am Ende/wartet an der Station: schaut zur Heldin
+      if (this.section && !onRaft && !p.dead && p.script?.type !== 'mount') {
+        const want = Math.atan2(-(p.pos.z - rp.z), p.pos.x - rp.x);
+        this.yaw += wrap(want - this.yaw) * (1 - Math.exp(-3 * dt));
+        this.raftGroup.rotation.y = this.yaw;
+      }
     } else {
       this.updateFollower(dt, t, p);
     }
     const pblink = blink && heroOnRaft;
     this.pflHull.visible = !pblink;
     try { this.pfl?.animate(dt, t); } catch (err) { console.error('Pflaume-Animation fehlgeschlagen:', err); this.pfl = null; }
+    // Pflaume schwimmt selbst (Ritt-Abschnitt): Blatt-Floß und Paddel ausblenden, tiefer ins Wasser
+    if (this.swim && this.pfl && !this.pflFree) {
+      if (this.pfl.raft) this.pfl.raft.visible = false;
+      if (this.pfl.paddle) this.pfl.paddle.visible = false;
+      this.pflHull.position.y = -SWIM_DEPTH;
+    }
     // Pflaume (und Floß) werfen keinen Sonnenschatten – der Schatten-Blob genügt, spart ~10 Zeichenaufrufe
     if (this.pfl && this.pflShadowKey !== (this.pfl.raft ? 2 : 1) + (this.pfl.gear ? 2 : 0)) {
       this.pflShadowKey = (this.pfl.raft ? 2 : 1) + (this.pfl.gear ? 2 : 0);
@@ -356,7 +392,11 @@ export class RideRig {
     }
   }
 
+  /** Spiegelfrucht-Schnittstelle (Squad): Klon-Darstellung – hier nur für das Fuß-Rig. */
+  setLite(on) { this.footRig?.setLite(on); }
+
   dispose() {
+    this.footRig?.dispose(); this.footRig = null;
     this.hero?.dispose(); this.pfl?.dispose(); this.leaf?.dispose();
     this.hero = null; this.pfl = null; this.leaf = null;
     this.wake.geometry.dispose(); this.wake.material.dispose(); this.wake.dispose();

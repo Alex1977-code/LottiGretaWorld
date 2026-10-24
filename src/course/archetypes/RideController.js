@@ -17,6 +17,12 @@
 //   beach: { min, max, land: [x, y, z] (Landepunkt), raft?: [x, y, z] } (Absteigen).
 // Zusätzliche Felder: riding, raftPos, raftMoored, dismounted, plunging, boostTime, bumpTime, landImpact, flow (letzte
 // Abfrage), camYaw (Kamera-Gier, in Simulationsschritten geglättet – deterministische Steuerung).
+//
+// Ritt-Abschnitt im Parcours (Präzisierung Motor und Bausteine Welt 5, LEVEL.ride.section = true, z. B. 5-1 „Pflaume im
+// Höhlenfluss“): Das Level ist ein normaler Parcours zu Fuß; Pflaume wartet an der Station (`raft`, Zone `dock`), der
+// Ritt endet im Bereich `beach`. Neustart an Land vor dem Ritt → Pflaume wartet wieder an der Station; nach dem
+// Absteigen bleibt sie am Ende. Bewegliche Hindernisse über dem Fluss (Baustein flussbruecke) tragen sich in
+// level.rideObstacles ein: { box() → { x0, x1, y0, y1, z0, z1 } | null } – das Floß prallt daran ab wie an einem Felsen.
 
 import * as THREE from 'three';
 import { Player } from '../player/Player.js';
@@ -97,7 +103,14 @@ export class RideController extends Player {
       return;
     }
     const f = net.sample(x, z, this._f);
-    if (f.ok && f.norm < 1.25) this.beginRide(true);
+    if (f.ok && f.norm < 1.25) { this.beginRide(true); return; }
+    // Ritt-Abschnitt: an Land außerhalb von Station/Ende → Pflaume wartet an der Station (bis der Ritt geschafft ist)
+    if (cfg.section && !this.dismounted) {
+      const r = cfg.raft ?? [x, this.pos.y, z];
+      this.raftPos.set(r[0], r[1], r[2]);
+      this.raftYaw = cfg.raftYaw ?? Math.PI / 2;
+      this.raftMoored = true;
+    }
   }
 
   updateHalf() {
@@ -155,7 +168,8 @@ export class RideController extends Player {
     const rp = this.raftPos;
     const d = Math.hypot(this.pos.x - rp.x, this.pos.z - rp.z);
     const near = d < 1.75 && this.pos.y > rp.y - 0.8 && this.pos.y < rp.y + 2.6;
-    const fell = this.mode === 'swim' || (this.pos.y < rp.y - 0.3 && this.net?.sample(this.pos.x, this.pos.z, this._f).inside);
+    let fell = this.mode === 'swim' || (this.pos.y < rp.y - 0.3 && this.net?.sample(this.pos.x, this.pos.z, this._f).inside);
+    if (this.cfg.section && d > 6) fell = false;   // Ritt-Abschnitt: nur ins Wasser bei der Station springen zählt
     if (near || fell) this.startMount();
   }
 
@@ -273,6 +287,7 @@ export class RideController extends Player {
     this.collideBanks();
     this.collideRocks();
     this.collideRampSides();
+    this.collideObstacles();
 
     // senkrecht: Wasser/Rampe als Boden
     const f2 = net.sample(this.pos.x, this.pos.z, this._f, this.pos.y);
@@ -285,6 +300,7 @@ export class RideController extends Player {
         this.leaveWater('jump');
         this.hopTime = 0.25;
         this.level.sfx('jump');
+        this.level.notifyJump?.(this, 'raft');
         this.level.effects?.splash(this.pos, this.pos.y);
       } else {
         const drop = this.pos.y - g.y;
@@ -414,6 +430,39 @@ export class RideController extends Player {
       this.pos.x += r.bx * sg * push; this.pos.z += r.bz * sg * push;
       const vn = (this.vel.x * r.bx + this.vel.z * r.bz) * sg;
       if (vn < 0) { this.vel.x -= (1 + RIDE.bankBounce) * vn * r.bx * sg; this.vel.z -= (1 + RIDE.bankBounce) * vn * r.bz * sg; }
+    }
+  }
+
+  /**
+   * Bewegliche Hindernisse über dem Fluss (Welt 5: Baustein flussbruecke → level.rideObstacles): Quader, der die Hülle
+   * des Floßes (Kreis RIDE.radius, Höhe pos.y … pos.y + 1,3) schneidet, schiebt es waagerecht hinaus (kürzeste Seite) und
+   * lässt es abprallen. Über dem Hindernis (pos.y ≥ Oberkante) fährt das Floß darüber hinweg.
+   */
+  collideObstacles() {
+    const list = this.level.rideObstacles;
+    if (!list?.length) return;
+    for (const o of list) {
+      const b = o.box?.();
+      if (!b || this.pos.y + 1.3 < b.y0 || this.pos.y > b.y1 - 0.1) continue;
+      const r = RIDE.radius;
+      const cx = Math.max(b.x0, Math.min(b.x1, this.pos.x)), cz = Math.max(b.z0, Math.min(b.z1, this.pos.z));
+      const dx = this.pos.x - cx, dz = this.pos.z - cz, d = Math.hypot(dx, dz);
+      if (d >= r) continue;
+      let nx, nz, push;
+      if (d > 1e-5) { nx = dx / d; nz = dz / d; push = r - d; }
+      else {
+        // Mitte im Quader: zur nächsten Seite
+        const opts = [[this.pos.x - b.x0, -1, 0], [b.x1 - this.pos.x, 1, 0], [this.pos.z - b.z0, 0, -1], [b.z1 - this.pos.z, 0, 1]].sort((u, v) => u[0] - v[0]);
+        nx = opts[0][1]; nz = opts[0][2]; push = opts[0][0] + r;
+      }
+      this.pos.x += nx * push; this.pos.z += nz * push;
+      const vn = this.vel.x * nx + this.vel.z * nz;
+      if (vn < 0) {
+        this.vel.x -= (1 + RIDE.rockBounce) * vn * nx;
+        this.vel.z -= (1 + RIDE.rockBounce) * vn * nz;
+        if (-vn > 1.2 && this.bumpCd <= 0) this.bump(-nx, -nz, -vn);
+      }
+      o.hits = (o.hits ?? 0) + 1;
     }
   }
 

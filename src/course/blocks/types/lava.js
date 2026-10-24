@@ -2,15 +2,25 @@
 //
 //   pos:  [x, y, z]  Mitte der Unterseite
 //   size: [w, h, d]  Oberfläche bei y + h (Standard [4, 0.5, 4])
+//   color: 'blau'    blaue Lava (Welt 5, 5-3; Präzisierung Motor und Bausteine Welt 5) – tödlich wie rote Lava;
+//                    Standard: Thema-Feld lavaColor ('blau' im Thema bluelava), sonst rot
 // Kollision: nicht feste Form mit kill = 'lava' (Füße unter der Oberfläche → Tod).
 
 import * as THREE from 'three';
-import { v3, sz3, addObject } from '../kit.js';
+import { v3, sz3, addObject, themeOf } from '../kit.js';
+
+// Farben je Lava-Art: heiß, mittel, kühl (Oberfläche), Kruste, Glut der Kruste
+const LAVA_COLORS = {
+  rot: { hot: 0xffd23a, mid: 0xff6a1a, cool: 0xc0280c, body: 0x7a1d08, glow: 0x3a0800 },
+  blau: { hot: 0xd8faff, mid: 0x3ab4ff, cool: 0x1a3ad8, body: 0x0e1a5a, glow: 0x061040 },
+};
 
 export function buildLava(level, spec) {
   const p = v3(spec.pos), s = sz3(spec.size, [4, 0.5, 4]);
   const top = p.y + s.y;
-  level.world.add({ type: 'box', min: [p.x - s.x / 2, p.y - 2, p.z - s.z / 2], max: [p.x + s.x / 2, top - 0.12, p.z + s.z / 2], kill: 'lava', solid: false, camIgnore: true, tag: 'lava' });
+  const kind = spec.color === 'blau' || spec.color === 'blue' || (spec.color === undefined && themeOf(level).lavaColor === 'blau') ? 'blau' : 'rot';
+  const LC = LAVA_COLORS[kind];
+  level.world.add({ type: 'box', min: [p.x - s.x / 2, p.y - 2, p.z - s.z / 2], max: [p.x + s.x / 2, top - 0.12, p.z + s.z / 2], kill: 'lava', solid: false, camIgnore: true, tag: 'lava', lavaColor: kind });
   const nx = Math.max(2, Math.round(s.x * 1.5)), nz = Math.max(2, Math.round(s.z * 1.5));
   const g = new THREE.PlaneGeometry(s.x, s.z, nx, nz);
   g.rotateX(-Math.PI / 2);
@@ -20,13 +30,13 @@ export function buildLava(level, spec) {
   const mesh = new THREE.Mesh(g, mat);
   mesh.position.set(p.x, top - 0.05, p.z);
   // Rand/Körper unter der Oberfläche (dunkle Kruste)
-  const body = new THREE.Mesh(new THREE.BoxGeometry(s.x, s.y, s.z), new THREE.MeshStandardMaterial({ color: 0x7a1d08, roughness: 0.9, emissive: 0x3a0800 }));
+  const body = new THREE.Mesh(new THREE.BoxGeometry(s.x, s.y, s.z), new THREE.MeshStandardMaterial({ color: LC.body, roughness: 0.9, emissive: LC.glow }));
   body.position.set(p.x, p.y + s.y / 2 - 0.06, p.z);
   const group = new THREE.Group();
   group.add(mesh, body);
   const pos = g.attributes.position;
   const base = Float32Array.from(pos.array);
-  const hot = new THREE.Color(0xffd23a), mid = new THREE.Color(0xff6a1a), cool = new THREE.Color(0xc0280c);
+  const hot = new THREE.Color(LC.hot), mid = new THREE.Color(LC.mid), cool = new THREE.Color(LC.cool);
   const c = new THREE.Color();
   let t = Math.random() * 10;
   addObject(level, group, (dt) => {

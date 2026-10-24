@@ -18,6 +18,8 @@
 //      sfx:    Name            Effekt abspielen
 //      water:  { id, y | dy, speed } | [ … ]   Wasserstand ändern (Bausteine Welt 3, blocks/water_level.js): Lagune
 //                              (setLevel), sonst level.setWaterLevel(id, y, speed) des Motors, sonst Rückfall
+//      signal: Name | [Namen]  benanntes Ereignis level.signal(name, ctx) (Welt 5: Suchscheinwerfer 'alarm'; Empfänger
+//                              melden sich mit level.onSignal(name, fn) an, z. B. Suchkopf-Kanonen)
 //      pos:    [x, y, z]       Ort für star/spawn/power/coins (Standard: Auslöser)
 //      fn(level, ctx)          eigene Funktion (nur aus Code)
 //    }   – auch als Liste mehrerer Aktionen. Kurzformen (Inhalt von Kiste/Truhe/Baum): 'coin', 'coins:5', 'star:1',
@@ -107,6 +109,7 @@ export function runAction(level, action, ctx = {}) {
   }
   if (action.sfx) level.sfx(action.sfx);
   for (const w of LIST(action.water)) setWaterLevel(level, w);
+  for (const name of LIST(action.signal)) level.signal?.(name, { pos: [o.x, o.y, o.z], source: ctx.source ?? null });
   if (typeof action.fn === 'function') action.fn(level, ctx);
 }
 
