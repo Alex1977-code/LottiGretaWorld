@@ -108,6 +108,92 @@ const ROUTES = {
       ['ziel', [0, YG, -210]],
     ],
   },
+  '5-B': {
+    arena: true,
+    start: [0, 2, 8.4],
+    meta: { stars: 0, slots: 1, time: 100, theme: 'lava', music: 'course_arena' },
+    enemies: { werferturm: 1, feuer_werfer: 1 },
+    shots: [
+      ['start', [0, 2, 8.4], 60],
+      ['links', [-6, 2, -2], 30],
+      ['rechts', [6, 2, -3], 30],
+    ],
+  },
+  '5-6': {
+    start: [0, 1, 5],
+    meta: { stars: 3, time: 400, theme: 'cake', music: 'course_cake' },
+    enemies: { feuerring: 4, schnappblume: 3, pilzling: 7 },
+    main: [
+      { name: 'Übungsfeld Reihe 1 (rot)', to: [0, -5], within: 0.4, run: false },
+      { name: 'Reihe 2 (blau)', tile: [0, -7] }, { name: 'Reihe 3 (rot)', tile: [0, -9] },
+      { name: 'Rastplatte', to: [0, -11.6], jump: 14, within: 0.5, run: false },
+      { to: [0, -13.2], within: 0.3, run: false },
+      { name: 'Feld 1', tile: [0, -15.2] }, { tile: [0, -17.2] }, { tile: [0, -19.2] }, { tile: [0, -21.2] }, { tile: [0, -23.2] }, { tile: [0, -25.2] }, { tile: [0, -27.2] },
+      { name: 'Rastplatte 2', to: [0, -29.6], jump: 14, within: 0.5, run: false },
+      { to: [1, -31.6], within: 0.3, run: false },
+      { name: 'Feld 2', tile: [1, -34] }, { tile: [1, -36] }, { tile: [1, -38] }, { tile: [1, -40] }, { tile: [1, -42] }, { tile: [1, -44] },
+      { name: '?-Block-Insel', to: [1, -46.8], jump: 14, within: 0.5, run: false },
+      { to: [0, -53.4], within: 0.3, run: false },
+      { name: 'Wechselplattformen I', tile: [0, -56] }, { tile: [1.6, -59.6], hold: 24 }, { tile: [-0.6, -63.2], hold: 24 }, { tile: [1.4, -66.8], hold: 24 }, { tile: [-1.0, -70.4], hold: 24 }, { tile: [0.6, -74], hold: 24 },
+      { name: 'Hangfuß', to: [0, -77.6], jump: 24, within: 0.6, run: false },
+      { name: 'Steigung', to: [0, -106] },
+      { name: 'Checkpoint', to: [0, -113] },
+      { name: 'Feuerring-Platz', to: [0, -156] }, { to: [0, -159], within: 0.3, run: false },
+      { name: 'Wechselplattformen II', tile: [0, -162.6] }, { tile: [2.8, -165.8], hold: 22 }, { tile: [2.8, -169.4], hold: 22 }, { tile: [0, -172.6], hold: 22 },
+      { name: 'Sternring-Torte', to: [0, -176], jump: 24, within: 0.6, run: false },
+      { to: [-3, -177.6], within: 0.4, run: false }, { to: [-3, -182], within: 0.3, run: false },
+      { tile: [-2.2, -185.6], hold: 22 }, { tile: [0, -188.8], hold: 22 }, { tile: [2.2, -192], hold: 22 },
+      { name: 'Zieltorte', to: [2, -195.6], jump: 24, within: 0.6, run: false },
+      { name: 'Zielmast', to: [0, -208.4], within: 0.2 },
+    ],
+    mainMech: [[(m) => `jeder Sprung wechselt die Farbe (${m.jumps} Sprünge, ${m.flipsAll} Farbwechsel, ${m.tiles} Landungen auf Flippern)`, (m) => m.jumps >= 30 && m.flipsAll === m.jumps && m.tiles >= 25]],
+    targets: [
+      { name: 'Stern 0: blaues Feld in der hinteren linken Ecke von Feld 2', star: 0, from: [-5, 1, -31.6],
+        legs: [{ tile: [-5, -34] }, { tile: [-5, -36] }, { tile: [-5, -38] }, { tile: [-5, -40] }, { tile: [-5, -42] }, { tile: [-5, -44] }, { wait: 10 }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 1: Schnappblume auf der Röhre besiegen, Kugel auf das P-Feld bugsieren', star: 1, from: [-2, 9, -114],
+        legs: [{ stompOn: 'sb_roehre' }, { expect: 'blumeWeg' }, { wait: 40 }, { to: [-5, -116.4], within: 0.3, run: false }, { wait: 20 }, { crouch: 6 }, { expect: 'imKugelraum' },
+          { to: [76, -114], within: 0.4, run: false }, { to: [76, -121.4], within: 0.4, run: false }, { to: [70, -125.6], within: 0.4, run: false },
+          { push: 'kugel', path: [[75.6, -123.4], [75.8, -113], [67.6, -112.6]], within: 0.6 }, { wait: 30 }, { expect: 'kugelAufFeld' }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stern 2: Sternring – acht Sternmünzen in 10 s, drei über den Wechselplattformen', star: 2, from: [0, 10.5, -175.9],
+        legs: [{ to: [0, -177.6], within: 0.4, run: false }, { wait: 6 }, { to: [-3, -178.4], within: 0.35, run: false }, { to: [-3, -181.4], within: 0.35, run: false },
+          { to: [0, -182.1], within: 0.35, run: false }, { to: [3, -181.4], within: 0.35, run: false }, { to: [3, -178.4], within: 0.35, run: false },
+          { to: [-2.2, -182.4], within: 0.35, run: false }, { tile: [-2.2, -185.6], hold: 22 }, { tile: [0, -188.8], hold: 22 }, { tile: [2.2, -192], hold: 22 },
+          { wait: 30 }, { expect: 'ringFertig' }, { tile: [0, -188.8], hold: 22 }, { tile: [-2.2, -185.6], hold: 22 }, { to: [-2.6, -181.2], jump: 24, within: 0.5, run: false }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stempel: Spiegelfrucht, mit dem Klon auf den 2er-Lift, oben zur Stempel-Etage', stamp: true, from: [1.4, 12, -197.6],
+        legs: [{ to: [1.4, -201], within: 0.2, run: false, slow: 0.5 }, { wait: 40 }, { expect: 'klon' },
+          { to: [4.4, -203.4], jump: 14, jumpAt: 2.2, within: 0.3, run: false, slow: 0.6 }, { wait: 30 }, { expect: 'zweiAufLift' }, { until: 'liftOben', max: 900 }, { expect: 'liftOben' },
+          { to: [5, -208], jump: 24, within: 0.5, run: false }, { wait: 20 }], shot: 'stempel' },
+      { name: 'Stempel nicht allein: der 2er-Lift fährt mit einer Figur nicht', stamp: true, expectNot: true, from: [5, 12, -200.6], heroes: ['lotti'],
+        legs: [{ to: [5, -203.6], jump: 14, jumpAt: 2.2, within: 0.3, run: false }, { wait: 600 }, { expect: 'liftUnten' }] },
+    ],
+    extra: [
+      { name: 'Hüpfer auf der Stelle: das eigene Feld klappt weg (durchfallen)', from: [0, 1, -21.2], heroes: ['lotti'], expectAlive: false,
+        legs: [{ setColorOf: [0, -21.2] }, { wait: 20 }, { hop: 12 }, { wait: 120 }, { expect: 'durchgefallen' }] },
+      { name: 'Extraleben: versteckter Block über der Startplatte', from: [0, 1, 0.4], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [0, -1], within: 0.15, run: false, slow: 0.4 }, { hop: 30 }, { wait: 40 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Extraleben: Ziegel über der Zuckerwürfel-Mauer im Kugel-Raum', from: [74.4, 9, -116.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [73.9, -118], within: 0.15, run: false, slow: 0.4 }, { hop: 30 }, { wait: 40 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Puls-Feuerring: rechtzeitig über die Flammen springen bleibt heil', from: [0, 9, -138.6], heroes: ['lotti'], expectAlive: true,
+        legs: [{ ringJump: 'fr2' }, { expect: 'keinRingTreffer' }] },
+    ],
+    shots: [
+      ['start', [0, 1, 5]],
+      ['uebung', [0, 1, -2]],
+      ['feld1', [0, 1, -12]],
+      ['feld2', [0, 1, -30.5]],
+      ['bloecke', [0, 1, -48]],
+      ['wechsel1', [0, 1, -53]],
+      ['hang', [0, 4, -78.5]],
+      ['checkpoint', [0, 9, -110]],
+      ['ringe', [0, 9, -122]],
+      ['rad', [0, 9, -147]],
+      ['wechsel2', [0, 9, -158.5]],
+      ['sternring', [0, 10.5, -176]],
+      ['ziel', [0, 12, -197]],
+      ['lift', [3, 12, -201]],
+      ['kugelraum', [70, 9, -114]],
+    ],
+  },
 };
 
 const PORT = 4490;
@@ -158,6 +244,17 @@ function install() {
     inGrube: () => P().pos.y < -10 && P().pos.z < -158,
     ausGrube: () => P().pos.y > -7.5 && P().pos.z > -159,
     tuermeUm: () => ['t3', 't4'].every((id) => ent(id)?.defeated),
+    // 5-6
+    blumeWeg: () => !!ent('sb_roehre')?.defeated,
+    imKugelraum: () => P().pos.x > 60,
+    kugelAufFeld: () => !!ent('kugel')?.onField,
+    ringFertig: () => ent('sternring')?.state === 'done',
+    klon: () => (L.players?.length ?? 1) >= 2,
+    liftOben: () => (ent('zweierlift')?.state === 'top'),
+    zweiAufLift: () => (ent('zweierlift')?.count ?? 0) >= 2,
+    liftUnten: () => (ent('zweierlift')?.state ?? 'wait') !== 'top' && P().pos.y < 13,
+    durchgefallen: () => P().dead || P().pos.y < -2,
+    keinRingTreffer: () => (P().hurtTries ?? 0) === 0,
   };
   const W = {
     place(pos, o = {}) {
@@ -201,10 +298,11 @@ function install() {
       const hold = o.invuln !== false;
       const hist = [];
       let deadLogged = false;
-      const mech = { carried: 0, rides: 0, hurts: 0, thrown: 0, pipes: 0, flips: 0, falls: 0 };
+      const mech = { carried: 0, rides: 0, hurts: 0, thrown: 0, pipes: 0, flips: 0, tiles: 0 };
       const track = [];
       const hurtAt = new Map();
       let lastHurts = p.hurtTries ?? 0;
+      const jumps0 = L.jumps ?? 0, flips0 = L.flipper?.flips ?? 0;
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
         c.setInput(inp); c.step(1); steps++;
@@ -274,6 +372,115 @@ function install() {
           let k = 0;
           for (; k < (Lg.max ?? 1200) && !COND[Lg.until](); k++) tick({});
           log.push(['bis', Lg.until, k]);
+          continue;
+        }
+        // ------------------------------------------------ Rot-Blau-Flipper: ein Hüpfer auf das Feld bei (x, z)
+        if (Lg.tile) {
+          const sys = L.flipper;
+          const [tx, tz] = Lg.tile;
+          const t = sys?.tiles.find((q) => Math.abs(tx - q.x) <= q.w / 2 && Math.abs(tz - q.z) <= q.d / 2);
+          if (!t) { log.push(['FEHLER: kein Feld bei', tx, tz]); break; }
+          // Die Zielfarbe muss vor dem Sprung durchlässig sein (der Sprung macht sie fest): sonst erst auf festem Boden hüpfen
+          if (sys.color === t.color) {
+            const onFlip = p.ground?.tag === 'flipper';
+            if (onFlip) { log.push(['FEHLER: Farbe passt nicht, Figur steht auf einem Flipper', t.color]); break; }
+            for (let k = 0; k < 60 && Math.hypot(p.vel.x, p.vel.z) > 0.2; k++) tick({});
+            for (let k = 0; k < 8; k++) tick({ jump: true });
+            for (let k = 0; k < 240 && p.mode !== 'ground'; k++) tick({});
+            for (let k = 0; k < 6; k++) tick({});
+            log.push(['Farbe abwarten (Hüpfer)', sys.color]);
+          }
+          const f0 = sys.flips;
+          for (let k = 0; k < 60 && p.mode === 'ground' && Math.hypot(p.vel.x, p.vel.z) > 2.5; k++) tick({});
+          let k = 0, left = false;
+          const holdJ = Lg.hold ?? 12;
+          for (; k < 400; k++) {
+            tick({ ...(p.mode === 'air' ? this.airSteer(t.x, t.z, 0, 0, 3.4, 8) : this.stick(t.x - p.pos.x, t.z - p.pos.z, 0.6)), jump: k < holdJ, run: false });
+            if (p.mode === 'air') left = true;
+            if (left && p.mode === 'ground') break;
+            if (p.dead) break;
+          }
+          for (let q = 0; q < 4; q++) tick({});
+          const on = p.mode === 'ground' && p.ground?.tag === 'flipper' && Math.abs(p.pos.x - t.x) <= t.w / 2 + 0.3 && Math.abs(p.pos.z - t.z) <= t.d / 2 + 0.3;
+          mech.flips += sys.flips - f0;
+          if (on) mech.tiles++;
+          log.push([Lg.name ?? 'feld', t.color, sys.color, on, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!on) { log.push(['FEHLER: nicht auf dem Feld gelandet', tx, tz]); break; }
+          continue;
+        }
+        if (Lg.setColorOf) {
+          // Figur steht schon auf dem Feld: dessen Farbe fest schalten (Testaufbau)
+          const t = L.flipper.tiles.find((q) => Math.abs(Lg.setColorOf[0] - q.x) <= q.w / 2 && Math.abs(Lg.setColorOf[1] - q.z) <= q.d / 2);
+          L.flipper.set(t.color);
+          p.reset([t.x, t.y + 0.05, t.z], Math.PI / 2);
+          continue;
+        }
+        // ------------------------------------------------ Gegner von oben treffen (Kopf) – z. B. Schnappblume auf der Röhre
+        if (Lg.stompOn) {
+          const e = ent(Lg.stompOn);
+          let k = 0, left = false;
+          for (; k < 600 && e && !e.defeated; k++) {
+            const above = p.pos.y > e.pos.y + 1.0;
+            const st = p.mode === 'air' ? (above ? this.airSteer(e.pos.x, e.pos.z, 0, 0, 3.6, 7) : { x: 0, y: 0 }) : this.stick(e.pos.x - p.pos.x, e.pos.z - p.pos.z, 0.25);
+            tick({ ...st, jump: (k % 140) < 30, run: false });
+            if (p.mode === 'air') left = true;
+            if (left && p.mode === 'ground' && !e.defeated) { left = false; for (let q = 0; q < 20; q++) tick({}); }
+          }
+          for (let q = 0; q < 60; q++) tick({});
+          log.push(['getroffen', Lg.stompOn, !!e?.defeated, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Schiebekugel über Wegpunkte schieben (von hinten anlaufen)
+        if (Lg.push) {
+          const b = ent(Lg.push);
+          const R = (b.spec?.size ?? 1.6) / 2;
+          let k = 0;
+          for (const [wx, wz] of Lg.path) {
+            for (; k < 9000; k++) {
+              const bx = b.pos.x, bz = b.pos.z, dx = wx - bx, dz = wz - bz, d = Math.hypot(dx, dz);
+              if (d < (Lg.within ?? 0.6)) break;
+              const sp = b.speed?.() ?? 0;
+              if (sp > 1.2) { tick({}); continue; }   // rollt noch: abwarten
+              const ux = dx / d, uz = dz / d;
+              const px = bx - ux * (R + 0.5), pz = bz - uz * (R + 0.5);
+              const rx = p.pos.x - bx, rz = p.pos.z - bz;
+              const along = rx * ux + rz * uz, across = rx * uz - rz * ux;
+              const dp = Math.hypot(p.pos.x - px, p.pos.z - pz);
+              let gx, gz, mag;
+              if (dp > 0.35) {
+                if (along > -R * 0.5) {
+                  // vor oder neben der Kugel: seitlich um sie herum
+                  const side = across >= 0 ? 1 : -1;
+                  gx = bx + uz * side * (R + 1.1) - ux * (R + 0.4); gz = bz - ux * side * (R + 1.1) - uz * (R + 0.4);
+                } else { gx = px; gz = pz; }
+                mag = 0.7;
+              } else {
+                // hinter der Kugel: durch die Kugelmitte in Schieberichtung laufen
+                gx = bx + ux * 1.2; gz = bz + uz * 1.2; mag = d < 2 ? 0.45 : 0.7;
+              }
+              const ddx = gx - p.pos.x, ddz = gz - p.pos.z, dd = Math.hypot(ddx, ddz);
+              tick(dd > 0.08 ? { ...this.stick(ddx, ddz, Math.min(mag, Math.max(0.25, dd / 1.2))), run: false } : {});
+            }
+            log.push(['kugel', wx, wz, k, +b.pos.x.toFixed(2), +b.pos.z.toFixed(2), b.resets ?? 0]);
+          }
+          if (k >= 9000) log.push(['FEHLER: Kugel nicht ans Ziel']);
+          continue;
+        }
+        // ------------------------------------------------ Puls-Feuerring: warten, bis die Welle naht, dann drüberspringen
+        if (Lg.ringJump) {
+          const e = ent(Lg.ringJump);
+          const h0 = p.hurtTries ?? 0;
+          let k = 0, jumped = 0, prev = e.ring ?? 0;
+          for (; k < 1200 && jumped < 2; k++) {
+            const d = Math.hypot(p.pos.x - e.pos.x, p.pos.z - e.pos.z);
+            const r = e.ring ?? 0, growing = r > prev;
+            prev = r;
+            const lead = 0.55;
+            if (p.mode === 'ground' && growing && r > d - lead - 0.2 && r < d - 0.1 && (e.flameH ?? 0) > 0.1) { for (let q = 0; q < 26; q++) tick({ jump: true }); jumped++; continue; }
+            tick({});
+          }
+          for (let q = 0; q < 120; q++) tick({});
+          log.push(['feuerring', jumped, k, (p.hurtTries ?? 0) - h0]);
           continue;
         }
         // ------------------------------------------------ in eine Glasröhre hineinlaufen und mitfahren
@@ -409,6 +616,8 @@ function install() {
         if (i >= max && Lg.land !== false && !Lg.noFail) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, Lg.to]); break; }
       }
       c.setInput({});
+      mech.jumps = (L.jumps ?? 0) - jumps0;
+      mech.flipsAll = (L.flipper?.flips ?? 0) - flips0;
       mech.hurts = p.hurtTries ?? 0;
       mech.hurtAt = [...hurtAt.entries()].sort((x, y) => y[1] - x[1]).slice(0, 8).map(([k, n]) => `${k}×${n}`);
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
@@ -486,13 +695,14 @@ for (const id of LEVELS) {
   console.log(`\nLevel ${id}`);
   if (!(await load(id))) { check(`${id} lädt`, false); continue; }
   const loadErrors = errors.slice();
-  const meta = await sc(() => { const d = window.__course.level.data; return { title: d.title, timeLimit: d.timeLimit, theme: d.theme, music: d.music, stars: d.stars.length }; });
+  const meta = await sc(() => { const d = window.__course.level.data; return { title: d.title, timeLimit: d.timeLimit, theme: d.theme, music: d.music, stars: d.stars.length, arch: d.archetype, slots: d.starSlots ?? null }; });
   const kinds = await W('kinds');
   console.log(`  „${meta.title}“, Thema ${meta.theme}, Musik ${meta.music}, Zeitlimit ${meta.timeLimit} s, Entitäten: ${JSON.stringify(kinds)}`);
   check(`${id}: lädt ohne Konsolenfehler/-warnungen`, loadErrors.length === 0);
   for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
-  check(`${id}: ${R.meta.stars} Sterne, Stempel, ${R.meta.time} s, Thema ${R.meta.theme}, Musik ${R.meta.music}`, meta.stars === R.meta.stars && kinds.stamp === 1 && meta.timeLimit === R.meta.time && meta.theme === R.meta.theme && meta.music === R.meta.music);
-  for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
+  if (R.arena) check(`${id}: Arena, ${R.meta.slots} Stern, ${R.meta.time} s, Thema ${R.meta.theme}, Musik ${R.meta.music} (${meta.arch}, ${meta.slots})`, meta.arch === 'arena' && meta.slots === R.meta.slots && meta.stars === 0 && !kinds.stamp && meta.timeLimit === R.meta.time && meta.theme === R.meta.theme && meta.music === R.meta.music);
+  else check(`${id}: ${R.meta.stars} Sterne, Stempel, ${R.meta.time} s, Thema ${R.meta.theme}, Musik ${R.meta.music}`, meta.stars === R.meta.stars && kinds.stamp === 1 && meta.timeLimit === R.meta.time && meta.theme === R.meta.theme && meta.music === R.meta.music);
+  for (const [kind, n] of Object.entries(R.enemies ?? {})) if (n > 0) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
   let sweepTrack = null;
