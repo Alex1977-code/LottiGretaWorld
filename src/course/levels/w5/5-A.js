@@ -11,7 +11,7 @@
 // Alle fünf besiegt → der Stern steigt in der Mitte auf; Einsammeln beendet das Level. Tod setzt Arena und Wellen
 // zurück. Extraleben: unsichtbarer Block über dem Sternmosaik vorn.
 
-import { lilacBeach, lifeguardTower, sandRocks, sailboats, seagulls, bullWaves, plazaProps, Bld, litTop } from './_helpers_b.js';
+import { lilacBeach, lifeguardTower, sandRocks, sailboats, seagulls, bullWaves, plazaProps, bunting, beachTowels, Bld, litTop } from './_helpers_b.js';
 import { banner } from '../../blocks/w3kit.js';
 
 const Y = 2.4;            // Bodenoberfläche der Arena
@@ -28,12 +28,17 @@ const WAIT = { bulle3: ring(ROCK, -Math.PI / 2 - 0.35, Y), bulle4: ring(ROCK, -1
 function scene(level) {
   lilacBeach(level, { r: 31, y: SAND, sea: -0.4 });
   lifeguardTower(level, [21.5, SAND, 9], -Math.PI / 2 + 0.5);
-  // Rampe hinten (die wartenden Bullen stehen auf dem Sand davor), Strandkörbe aus Holz-Kisten
+  // Holzkisten am Strand; Sandsteinfelsen als Warteplätze der zweiten Welle
   const b = new Bld();
   for (const [x, z, s] of [[-19, -8, 0.9], [-18.2, -9.2, 0.7], [19.6, -10.5, 0.8]]) b.box(s, s, s, x, SAND, z, litTop(0xc89a6a), { r: 0.04, yaw: x * 0.3 });
   b.flush(level);
   sandRocks(level, Object.values(WAIT).map((p) => [p[0], p[2], 1.6]), SAND - 0.2, Y);
   plazaProps(level, [{ kind: 'bank', pos: [14.2, SAND, 12.4], yaw: -0.8 }]);
+  // Wimpelketten zwischen den Fahnenmasten, Strandtücher und Krebse zwischen Tribünen und Käfig
+  const top = (a) => { const p = ring(R + 2.4, a); return [p[0], 5.3, p[2]]; };
+  bunting(level, [[top(0.55), top(1.6), 9, 0.9], [top(1.6), top(2.4), 7, 0.7], [top(-0.55), top(-1.6), 9, 0.9], [top(-1.6), top(-2.4), 7, 0.7]]);
+  beachTowels(level, [[-16.4, SAND, 2.2, 0.3, 0xff6a8a, 0xffffff], [16.6, SAND, 2.6, -0.2, 0x5ac8ff, 0xffe04a], [-17, SAND, 11.6, -0.4, 0x7ae07a, 0xffffff], [8.6, SAND, 16.8, 0.1, 0xb08aff, 0xffffff]],
+    [[-11.6, SAND, 12.8, 0.6], [12.2, SAND, 13.4, -0.5], [16.4, SAND, -1.2, 2.2]]);
 }
 
 function setup(level) {

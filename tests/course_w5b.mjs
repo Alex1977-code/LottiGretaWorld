@@ -743,7 +743,8 @@ async function load(id, fresh = false) {
 const W = (name, ...args) => sc(([n, a]) => window.__w5[n](...a), [name, args]);
 const stats = [];
 async function shot(name, wait = 500) {
-  await sc(() => window.__course.snapCamera());
+  // Bot-Unverwundbarkeit aus (sonst blinkt die Figur und fehlt im Bild); im Handbetrieb läuft keine Simulation weiter
+  await sc(() => { for (const f of window.__course.level.players) f.invuln = 0; window.__course.snapCamera(); });
   const f0 = await sc(() => window.__course.view.frame);
   await page.waitForFunction((f) => window.__course.view.frame >= f + 10, f0, { timeout: 90000 });
   await page.waitForTimeout(wait);

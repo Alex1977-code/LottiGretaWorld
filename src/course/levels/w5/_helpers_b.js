@@ -1911,3 +1911,49 @@ export function quietShadows(level, kinds = [], o = {}) {
     if (o.signs !== false && ch.isGroup && ch.children.length === 2 && ch.children.some((m) => m.isMesh && m.material?.map && m.geometry?.type === 'PlaneGeometry')) quiet(ch);
   }
 }
+
+/** Wimpelketten (bunte Dreiecksfähnchen an einer durchhängenden Leine) zwischen Punkten: list [[a, b, n, sag], …]. */
+export function bunting(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  const cols = [0xff5a5a, 0xffd24a, 0x5ac8ff, 0x7ae07a, 0xff8ad8, 0xb08aff];
+  for (const [a, c, n = 10, sag = 0.8] of list) {
+    const P = (t) => [a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t - Math.sin(t * Math.PI) * sag, a[2] + (c[2] - a[2]) * t];
+    const yaw = Math.atan2(c[0] - a[0], c[2] - a[2]);
+    for (let i = 0; i < 16; i++) {
+      const p0 = P(i / 16), p1 = P((i + 1) / 16), L0 = Math.hypot(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]);
+      const pitch = Math.atan2(p1[1] - p0[1], Math.hypot(p1[0] - p0[0], p1[2] - p0[2]));
+      b.box(0.03, 0.03, L0, (p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, (p0[2] + p1[2]) / 2, 0xf4f0e0, { yaw, rx: -pitch, r: 0 });
+    }
+    for (let i = 1; i < n; i++) {
+      const p = P(i / n);
+      const fl = new THREE.Shape(); fl.moveTo(-0.22, 0); fl.lineTo(0.22, 0); fl.lineTo(0, -0.5);
+      const g = new THREE.ShapeGeometry(fl);
+      b.add(g, cols[i % cols.length], { p: [p[0], p[1] - 0.02, p[2]], r: [0, yaw + Math.PI / 2, 0] });
+    }
+  }
+  b.flush(level, { castShadow: false });
+}
+
+/** Strandtücher (gestreift) und Krebse auf dem Sand: towels [[x, y, z, yaw, farbe1, farbe2], …], crabs [[x, y, z, yaw], …]. */
+export function beachTowels(level, towels, crabs = []) {
+  if (!level.view) return;
+  const b = new Bld();
+  for (const [x, y, z, yaw = 0, c1 = 0xff6a8a, c2 = 0xffffff] of towels) {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    for (let k = 0; k < 5; k++) {
+      const u = -0.8 + k * 0.4;
+      b.box(0.4, 0.03, 1.0, x + c * u, y + 0.01, z - s * u, k % 2 ? c2 : c1, { yaw, r: 0 });
+    }
+  }
+  for (const [x, y, z, yaw = 0] of crabs) {
+    b.sphere(0.22, x, y + 0.14, z, litTop(0xff4a3a), { s: [1.2, 0.6, 0.9], yaw, ws: 8, hs: 5 });
+    for (const sd of [-1, 1]) {
+      const c = Math.cos(yaw), s = Math.sin(yaw);
+      b.sphere(0.1, x + c * 0.28 + s * sd * 0.16, y + 0.2, z - s * 0.28 + c * sd * 0.16, 0xff5a4a, { s: [1, 0.7, 1], ws: 6, hs: 4 });
+      b.cyl(0.02, 0.02, 0.18, x + c * 0.12 + s * sd * 0.07, y + 0.2, z - s * 0.12 + c * sd * 0.07, 0x3a1a1a, 3);
+      b.sphere(0.04, x + c * 0.12 + s * sd * 0.07, y + 0.4, z - s * 0.12 + c * sd * 0.07, 0x1a1a1a, { ws: 5, hs: 3 });
+    }
+  }
+  b.flush(level);
+}
