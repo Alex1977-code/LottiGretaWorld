@@ -102,7 +102,7 @@ class SuchkopfWelle extends CourseEntity {
     }
     for (const q of this.queue) {
       if (q.fired) continue;
-      if (!q.warned && this.t >= q.t - 0.4) { q.warned = true; const p = q.f.pos; this.level.effects?.sparks({ x: p[0], y: p[1] + 0.4, z: p[2] }, 6); this.level.sfx('fuse'); }
+      if (!q.warned && this.t >= q.t - 0.4) { q.warned = true; const p = q.f.pos; this.level.effects?.sparks({ x: p[0], y: p[1] + 0.4, z: p[2] }, 6); this.level.sfx('hover'); }
       if (this.t >= q.t) { q.fired = true; this.fire(q.f); }
       else open++;
     }
