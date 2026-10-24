@@ -67,7 +67,7 @@ const TZ_HAT = dr('o.h. h.o. h.h. o.h.');     // offen auf dem Beginn jeder Drei
 const TRAPEZ = [K4, CL, TZ_HAT];
 
 // ================================================================ Blaue Lava ====
-// g-Moll, 152 BPM, 16 Takte, kurz und hektisch (100-s-Level). Intro g F (das Piano spielt die Hook) | Strophe c g Es D |
+// g-Moll, 150 BPM, 16 Takte, kurz und hektisch (100-s-Level). Intro g F (das Piano spielt die Hook) | Strophe c g Es D |
 // Refrain g F Es D ×2 (andalusische Kadenz, die Hook steigt als Sequenz mit ihr ab) | Überleitung Es D. Hook aus
 // Sechzehntel-Zellen „di-di-DA di-di-DA di-di-DA da da“ – rennend, aber singbar.
 const BL_SONG = form({ intro: 2, verse: 4, chorus: 8, bridge: 2 });
@@ -259,12 +259,12 @@ export const WORLD5_THEMES = {
     ],
   },
 
-  // Blaue Lava (5-3, unterirdisch, nur 100 s): 152 BPM, g-Moll, 16 Takte, kurz und hektisch. Intro: das Piano spielt
+  // Blaue Lava (5-3, unterirdisch, nur 100 s): 150 BPM, g-Moll, 16 Takte, kurz und hektisch. Intro: das Piano spielt
   // die Hook in Oktaven, Lava-Blubbern | Strophe (c g Es D): Lead, Piano auf der „und“ | Refrain (g F Es D ×2): Hook aus
   // Sechzehntel-Zellen als absteigende Sequenz, kalte Glas-Pings, Galopp-Bass, Stabs, Sechzehntel-Hats | Überleitung:
   // lange Töne, Hoover-Riser in den Loop.
   course_bluelava: {
-    bpm: 152,
+    bpm: 150,
     voice: {
       lead: { ...SYNTH, voices: 3, cutoff: 4800, volume: 0.17 },
       piano: { volume: 0.1 },
