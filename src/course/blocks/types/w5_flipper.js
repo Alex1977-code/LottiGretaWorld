@@ -17,8 +17,8 @@
 //     thick: 0.4 }
 // Laufzeit: level.flipper = { color, flips, start, flip(), set(color), onFlip(fn(color)) → abmelden, solidAt(x, z),
 //   info() }; level.named.get(id) = { tiles: [{ x, y, z, w, d, color, solid }], info() }.
-// Modelle (Registry, sobald es sie gibt): 'flipper_feld' ({ color: 'rot' | 'blau' }) wird als Platte (1 × 1 × 1, Mitte)
-// instanziert; sonst eigene Geometrie (Rahmen + Platte mit Zeichen ● bzw. ◆ + Gitter).
+// Darstellung: eigene Geometrie in Instanz-Meshes für alle Felder des Levels (je Farbe Rahmen, Platte mit Zeichen ● bzw.
+// ◆, Gitter – zusammen 6 Zeichenaufrufe); ein Registry-Modell ist bewusst nicht angebunden (Instanzen, Umklapp-Animation).
 
 import * as THREE from 'three';
 import { v3, lin, mixc, colorize, merge, hex, box, addObject } from '../kit.js';

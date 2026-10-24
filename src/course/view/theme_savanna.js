@@ -1,6 +1,6 @@
 // Thema `savanna` (Welt 5: 5-4 Savannenberge): warmer Nachmittag in der Savanne – blauer Himmel mit honiggelbem Dunst
 // am Horizont, tiefe warme Sonne; Kulisse: goldene Grasebene tief unten, Akazien-Silhouetten mit Schirmkronen am Horizont,
-// gebänderte Tafelberge und ferne blaue Berge, kreisende Geier. Gelände: goldgrünes Gras auf rotbraunem Lehm.
+// gebänderte Tafelberge und ferne blaue Berge, kreisende Geier. Gelände: goldgelbes Trockengras auf rotbraunem Lehm.
 // Akazien, Termitenhügel und Grasbüschel im Level liefert deco_w5. Registriert in view/themes.js (eine Zeile).
 import { savannaRing } from './backdrop_w5.js';
 import { birdFlock, animateBirds } from './backdrop_w4.js';

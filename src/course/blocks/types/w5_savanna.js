@@ -4,7 +4,8 @@
 // roehrenkanone – Kanonenröhre: hineinspringen (auf der Öffnung landen) oder auf ihr stehen + Ducken → die Figur
 //   rutscht hinein (unsichtbar), die Röhre lädt `charge` s (zittert), dann schießt sie die Figur in hohem Bogen genau auf
 //   `to` (Fußpunkt; ≈ 40 m weit ohne Weiteres). Unterwegs sammelt die Figur Münzen; state 'cannon' (phase =
-//   Flugfortschritt 0..1), die Kamera folgt (CameraRig im Skript-Modus). Klone reisen mit (wie in der Röhre).
+//   Flugfortschritt 0..1), die Kamera folgt (CameraRig, im Flug schnell nachgeführt über player.camTrack = 16). Klone
+//   reisen mit (wie in der Röhre).
 //   { type: 'roehrenkanone', id, pos: [x, y, z] (Fuß der Röhre, Mitte), height: 2.2, radius: 1.0, to: [x, y, z],
 //     arc: (m Scheitel über dem höheren Punkt; Standard max(6, 0,3·Abstand)), gravity: 30, charge: 0.55,
 //     enter: 'both' | 'land' | 'crouch', color: 'gruen' | 'gold' | 'rot', onFire: Aktion, hidden }

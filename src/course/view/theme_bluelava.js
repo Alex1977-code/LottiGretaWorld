@@ -1,6 +1,6 @@
 // Thema `bluelava` (Welt 5: 5-3 Unterirdisch, blaue Lava): dunkle Höhle mit blauem Lavaglühen – fast schwarzes Gewölbe,
 // kaltes blaues Licht von unten, Licht an der Figur und an Laternen; tief unten ein glühender blauer Lavasee, ringsum
-// Tropfstein-Säulen mit blauem Saum, aufsteigende blaue Funken. Gelände: dunkler Basalt mit violetter Kante. Baustein
+// Tropfstein-Säulen mit blauem Saum, aufsteigende blaue Funken. Gelände: schieferblauer Basalt mit heller Kante. Baustein
 // `lava` erscheint in diesem Thema blau (lavaColor 'blau'; tödlich wie rote Lava). Registriert in view/themes.js.
 import { blueLavaCave } from './backdrop_w5.js';
 import { fallingParticles, animateFall } from './backdrop_w3.js';

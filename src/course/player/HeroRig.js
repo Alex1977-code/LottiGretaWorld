@@ -33,8 +33,9 @@
 //
 // Ergänzungen (Präzisierung Motor und Bausteine Welt 5) – neue Werte von proxy.course.state:
 //   'trapeze'  hängt am Trapez (Hände an der Stange über dem Kopf, Körper hängt am Seil): die Hülle wird um die Querachse
-//              der Blickrichtung um player.swingTilt (rad, + = Füße schwingen nach vorn) geneigt – Drehpunkt sind die
-//              Hände (die Simulation legt den Fußpunkt entlang des Seils unter die Stange); proxy.course.swing = Seilwinkel
+//              der Blickrichtung um player.swingTilt (rad, + = Füße schwingen nach vorn) geneigt – Drehpunkt ist der
+//              Fußpunkt der Hülle; die Simulation legt ihn entlang des Seils unter die Stange, so liegen die Hände an
+//              der Stange; proxy.course.swing = Seilwinkel
 //              (rad, + = nach vorn), swingVel (rad/s), phase = Anteil der Ausschlagsgrenze (0..1).
 //   'cannon'   Flug aus der Röhrenkanone (gestreckt wie ein Geschoss, Arme vorn); phase = Flugfortschritt 0..1. Während
 //              die Figur in der Röhre steckt, ist sie unsichtbar (player.hidden).
