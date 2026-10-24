@@ -176,6 +176,9 @@ export const LEVEL = {
     { type: 'deco_w1b', items: [
       { kind: 'bulbs', from: [-5.4, YD + 1.6, -100], to: [-5.4, YD + 1.6, -130], sag: 0.5, n: 30 },
       { kind: 'pole', pos: [-5.4, YD, -100], size: 1.8, r: 0.08 }, { kind: 'pole', pos: [-5.4, YD, -130], size: 1.8, r: 0.08 },
+      // Requisiten am Gasseneingang (rechts, abseits der Wege)
+      { kind: 'drum', pos: [4.3, YD, -103.4], size: [1.3, 0.8], color: 'red' }, { kind: 'ball', pos: [4.7, YD, -101.2], size: 0.5, solid: true },
+      { kind: 'balloons', pos: [4.9, YD, -105.2], n: 4, size: 1.6 },
     ] },
     // Glasröhre hinauf zur Bühne F
     { type: 'glasspipe', id: 'roehre_f', path: [[0, YD + 1, GASSE.z1 + 0.2], [0, YD + 1, GASSE.z1 - 3], [0, YF - 0.5, GASSE.z1 - 6], [0, YF + 1, F.z0 + 0.2]], radius: 1, oneWay: true, coins: 6 },
