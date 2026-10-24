@@ -33,7 +33,8 @@
 // Je Bild stellt syncToy() Randlicht-Farbe/-Stärke und Glanzlicht nach dem aktuellen Licht ein (folgt Stimmungen,
 // Unterwasser und Level-Effekten). Thema-Feld `toy` (alle optional, Standard je Tag/Dunkel siehe toyLight()):
 // { hemi, sun (Faktoren), shadow (Schattendeckkraft 0..1), sky (Blauton fürs Himmelslicht, Hex), skyMix (0..1), rim,
-// spec, sat, fill (Faktoren/Werte des Looks), rimColor (sonst Himmelsfarbe), tone, exposure }. ?toy=0 schaltet alles ab.
+// spec, sat, fill, shape (Faktoren/Werte des Looks), rimColor (sonst Himmelsfarbe), tone, exposure }. ?toy=0 schaltet
+// alles ab; ?toyk=rim:1.2,spec:0.8 überschreibt Werte zum Abstimmen.
 
 import * as THREE from 'three';
 import Phaser from 'phaser';
@@ -69,11 +70,20 @@ export function toyLight(theme) {
   if (!TOY_ENABLED) return null;
   const dark = theme.hemi.intensity < 1 || !!theme.playerLight;
   const base = dark
-    ? { hemi: 1, sun: 1, shadow: 0.94, sky: null, skyMix: 0, rim: 1.0, spec: 0.8, sat: 0.1, fill: 0.05 }
-    : { hemi: 1.08, sun: 0.96, shadow: 0.88, sky: 0x8ec4ff, skyMix: 0.22, rim: 1, spec: 1, sat: 0.14, fill: 0.06 };
-  const k = { tone: 'none', exposure: 1, ...base, ...(theme.toy ?? {}), dark };
+    ? { hemi: 1, sun: 1, shadow: 0.94, sky: null, skyMix: 0, rim: 1.15, spec: 1.3, sat: 0.12, fill: 0.05 }
+    : { hemi: 1.08, sun: 0.96, shadow: 0.88, sky: 0x8ec4ff, skyMix: 0.22, rim: 1.25, spec: 1.6, sat: 0.18, fill: 0.06 };
+  const k = { tone: 'none', exposure: 1, shape: 0.6, ...base, ...(theme.toy ?? {}), ...urlToy(), dark };
   k.skyC = k.sky !== null && k.sky !== undefined && k.skyMix > 0 ? new THREE.Color(k.sky) : null;
   return k;
+}
+
+/** Abstimm-Schalter ?toyk=rim:1.2,spec:0.8,shape:0.6 (Zahlen) – überschreibt die Werte aus toyLight() für alle Themen. */
+function urlToy() {
+  try {
+    const q = new URLSearchParams(window.location.search).get('toyk');
+    if (!q) return {};
+    return Object.fromEntries(q.split(',').map((p) => p.split(':')).filter(([a, b]) => a && Number.isFinite(+b)).map(([a, b]) => [a, +b]));
+  } catch { return {}; }
 }
 
 const _kd = new THREE.Vector3(), _kf = new THREE.Vector3(0, 0.55, 0.84).normalize(), _rc = new THREE.Color(), WHITE = new THREE.Color(1, 1, 1);
@@ -294,6 +304,7 @@ export class CourseView {
       keyDir: _kd,
       saturation: k.sat,
       fill: k.fill * lit,
+      rimShape: k.shape,
     });
   }
 

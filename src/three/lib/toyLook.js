@@ -16,8 +16,8 @@
 //   plainTwin(material) / plainTree(root)        schlichter Zwilling ohne Look (Kulisse mit geteilten Materialien)
 //   toyStats() → { materials } · TOY_ENABLED (false bei ?toy=0: Vergleich vorher/nachher, Licht wie früher)
 //
-// Kosten: ~35 ALU-Befehle (eine exp2, eine Wurzel) je Pixel nur auf Spielzeug-Materialien, keine Textur, keine neue
-// Lichtquelle; stehen alle Stärken auf 0, überspringt der Shader den Block.
+// Kosten: ~40 ALU-Befehle (eine exp2, eine Wurzel, eine Ableitung) je Pixel nur auf Spielzeug-Materialien, keine Textur,
+// keine neue Lichtquelle; stehen alle Stärken auf 0, überspringt der Shader den Block.
 
 import * as THREE from 'three';
 
@@ -31,7 +31,7 @@ const U = {
   toyRimColor: { value: new THREE.Color(0.86, 0.94, 1.0) },
   toyKeyColor: { value: new THREE.Color(1.0, 0.97, 0.9) },
   toyKeyDir: { value: new THREE.Vector3(-0.32, 0.62, 0.72).normalize() },
-  // x Randlicht, y Glanzkante, z Sättigung, w Form des Randlichts (0 → x², 1 → x³)
+  // x Randlicht, y Glanzkante, z Sättigung, w Form des Randlichts (0 → x², 1 → x⁴: schmaler)
   toyEnv: { value: new THREE.Vector4(0.8, 0.7, 0.14, 0.35) },
   toyFill: { value: 0.06 },
 };
@@ -79,18 +79,23 @@ if ( toyEnv.x + toyEnv.y + toyEnv.z + toyFill > 0.0 ) {
 	vec3 toyV = isOrthographic ? vec3( 0.0, 0.0, 1.0 ) : normalize( vViewPosition );
 	float toyX = 1.0 - saturate( dot( normal, toyV ) );
 	vec3 toyAlb = diffuseColor.rgb;
-	// weiches Randlicht (Fresnel x^2..x^3), oben stärker – viewMatrix[ 1 ] ist die Welt-Senkrechte im Kameraraum –,
-	// in Himmelsfarbe mit einem Hauch Eigenfarbe (dunkle Figuren bekommen eine helle Kante, helle keine weiße Fläche)
-	float toyFr = toyX * toyX * mix( 1.0, toyX, toyEnv.w ) * saturate( 0.6 + 0.4 * dot( normal, viewMatrix[ 1 ].xyz ) );
-	vec3 toyTint = 0.6 + 0.4 * toyAlb / max( max( toyAlb.r, toyAlb.g ), max( toyAlb.b, 0.04 ) );
+	// weiches Randlicht (Fresnel x^2..x^4, toyEnv.w schmaler), oben stärker – viewMatrix[ 1 ] ist die Welt-Senkrechte im
+	// Kameraraum –, in Himmelsfarbe mit einem Hauch Eigenfarbe (dunkle Figuren bekommen eine helle Kante, keine Fläche)
+	// Krümmung (Normalen-Änderung je Pixel): ebene Flächen (Podest-Deckel, Kisten-Seiten im Streiflicht) bekommen kein
+	// Randlicht, runde Körper an ihrer Kante voll – kleine (ferne) Figuren ganz, große nur am Umriss
+	vec3 toyDN = fwidth( normal );
+	float toyC = saturate( ( toyDN.x + toyDN.y + toyDN.z ) * 40.0 );
+	float toyX2 = toyX * toyX;
+	float toyFr = toyX2 * mix( 1.0, toyX2, toyEnv.w ) * toyC * saturate( 0.6 + 0.4 * dot( normal, viewMatrix[ 1 ].xyz ) );
+	vec3 toyTint = 0.45 + 0.55 * toyAlb / max( max( toyAlb.r, toyAlb.g ), max( toyAlb.b, 0.04 ) );
 	outgoingLight += toyRimColor * toyTint * ( toyFr * toyEnv.x * toyMat.x );
 	// sanfte Aufhellung der Kamera-Seite (Figuren wirken von vorn ausgeleuchtet)
 	outgoingLight += toyAlb * toyRimColor * ( toyFill * toyMat.x * ( 1.0 - toyX ) );
-	// Glanzkante: weiches, helles Spielzeug-Glanzlicht (Richtung im Kameraraum); auch raue Teile glänzen etwas (Vinyl),
-	// glatte schärfer und heller
+	// Glanzkante: helles Spielzeug-Glanzlicht (Richtung im Kameraraum); glatte Teile klein und hell, raue breit und matt
+	// (Breite und Helligkeit gegenläufig – große Körper werden nicht flächig heller), ganz raue glänzen kaum noch (Vinyl)
 	float toyG = 1.0 - clamp( roughnessFactor, 0.05, 1.0 );
 	float toyNH = saturate( dot( normal, normalize( toyKeyDir + toyV ) ) );
-	float toyS = exp2( ( toyNH - 1.0 ) * ( 16.0 + 160.0 * toyG * toyG ) * 1.4427 ) * ( 0.3 + 0.7 * toyG );
+	float toyS = exp2( ( toyNH - 1.0 ) * ( 16.0 + 160.0 * toyG * toyG ) * 1.4427 ) * ( 0.12 + 0.88 * toyG * toyG );
 	outgoingLight += toyKeyColor * ( toyS * toyEnv.y * toyMat.y );
 	// sanft angehobene Sättigung (linear)
 	float toyY = dot( outgoingLight, vec3( 0.2126, 0.7152, 0.0722 ) );
@@ -121,11 +126,15 @@ function toyCompile(shader, renderer) {
 const TOY_KEY = 'toylook:1';
 function toyKey() { return this.__toyPrevKey ? `${this.__toyPrevKey.call(this)}|${TOY_KEY}` : TOY_KEY; }
 
-/** Faktoren je Materialart: Metall (eigene Spiegelung) zurückhaltend, raue Stoffe/Fell weiches Randlicht ohne Glanz. */
+/**
+ * Faktoren je Materialart: Metall (eigene Spiegelung) zurückhaltend, halbraue Teile (Haut, Fels-Körper) etwas weniger
+ * Randlicht, raue Stoffe/Fell nur ein weicher Schimmer ohne Glanz.
+ */
 export function toyDefaults(m) {
   const r = m.roughness ?? 0.5, metal = m.metalness ?? 0;
   if (metal > 0.4) return { rim: 0.55, spec: 0.7, sat: 0.6 };
-  if (r >= 0.75) return { rim: 0.85, spec: 0.3, sat: 1 };
+  if (r >= 0.75) return { rim: 0.65, spec: 0.3, sat: 1 };
+  if (r >= 0.55) return { rim: 0.8, spec: 0.9, sat: 1 };
   return { rim: 1, spec: 1, sat: 1 };
 }
 

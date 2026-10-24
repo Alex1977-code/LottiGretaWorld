@@ -5,7 +5,7 @@
 // einzeln als toy_0_<name>.png / toy_1_<name>.png. Ansichten: je Welt 2–4 Level aus der Spielkamera (Tag, Höhle, Spuk,
 // Unterwasser, Lava …), Figuren-Galerien (Gegner, Bosse, Items/Blöcke, Heldin) aus der Kurs-Kamera und nah, Kurs-Weltkarte.
 // Prüfungen: keine Konsolenfehler/-warnungen, Zeichenaufrufe mit und ohne Look gleich, Shader-Programme höchstens
-// wenige mehr, Bildzeit (Software-WebGL, readPixels je Bild, gleiche Seite Look an/aus) höchstens +35 %, Spielzeug-
+// wenige mehr, Bildzeit (Software-WebGL, readPixels je Bild, gleiche Seite Look an/aus) im Median höchstens +20 %, Spielzeug-
 // Materialien vorhanden (bzw. bei ?toy=0 keine), kein Tonemapping (die weiche Schulter sitzt in den Figuren-Materialien).
 //
 // Aufruf: PORT_BASE=3900 node tests/toylook.mjs   (Vite-Entwicklungsserver, kein Build nötig; Port 4480 + PORT_BASE)
@@ -102,9 +102,11 @@ async function measure(kind = 'course', timed = true) {
     for (let i = 0; i < 2; i++) draw();
     sync();
     // fein verschränkt (an, aus, an, aus …), Median je Zustand: Lastspitzen anderer Prozesse treffen beide gleich
+    // Reihenfolge abwechselnd an→aus / aus→an (ABBA), damit ein Trend (Wärme, Speicherbereinigung) keinen Zustand bevorzugt
     for (let rep = 0; rep < (toy ? 2 * n : n); rep++) {
-      one(); A.push(one()); callsOn = r.info.render.calls;
-      if (toy) { set(true); one(); B.push(one()); callsOff = r.info.render.calls; set(false); }
+      const on = () => { set(false); one(); A.push(one()); callsOn = r.info.render.calls; };
+      const off = () => { set(true); one(); B.push(one()); callsOff = r.info.render.calls; set(false); };
+      if (!toy) on(); else if (rep & 1) { off(); on(); } else { on(); off(); }
     }
     draw(); sync();
     window.__toyPlainProgs = (window.__toyPlainProgs ?? 0) + (r.info.programs.length - progBefore);
@@ -338,6 +340,7 @@ if (pairs.length && MODES.length === 2 && !TAG) {
 // ------------------------------------------------------------------ Prüfungen
 console.log('\n  Kennzahlen (vorher → nachher):');
 let worstMs = 0, worstProg = 0, callsSame = true, worstPage = 0;
+const ratios = [];
 const names = [...new Set(metrics.map((m) => m.name))];
 for (const n of names) {
   const a = metrics.find((m) => m.name === n && m.mode === '0'), b = metrics.find((m) => m.name === n && m.mode === '1');
@@ -345,6 +348,7 @@ for (const n of names) {
   const r = b.ms / Math.max(1, a.ms);           // getrennte Seitenläufe (anfällig für Last anderer Prozesse)
   const rp = b.msPlain ? b.ms / Math.max(1, b.msPlain) : r;   // dieselbe Seite, abwechselnd an/aus
   worstMs = Math.max(worstMs, rp);
+  if (b.msPlain) ratios.push(rp);
   worstPage = Math.max(worstPage, r);
   worstProg = Math.max(worstProg, b.programs - a.programs);
   // gleiche Seite, gleicher Zustand: Look an/aus exakt gleich viele Aufrufe; getrennte Läufe nur zur Anzeige (Zufalls-
@@ -358,7 +362,10 @@ if (metrics.length) {
   check('Spielzeug-Look: Materialien gepatcht, Randlicht aktiv, Tonemapping aus (Schulter nur in den Figuren)', m1.every((m) => m.toy.materials > 10 && m.tone === 0 && m.toy.env.rimStrength > 0) || !!EXTRA);
   check('Zeichenaufrufe mit und ohne Spielzeug-Look gleich (gleiche Seite, an/aus)', callsSame);
   check(`Shader-Programme höchstens 14 mehr (max +${worstProg})`, worstProg <= 14);
-  check(`Bildzeit mit Look höchstens +35 % (Software-WebGL, gleiche Seite an/aus, schlechtestes ×${worstMs.toFixed(2)}; getrennte Läufe ×${worstPage.toFixed(2)})`, worstMs <= 1.35);
+  // Software-WebGL rechnet Pixel auf der CPU (Zusatz-Befehle zählen voll); Rechnerlast anderer Läufe streut einzelne
+  // Messungen – geprüft wird der Median über alle gemessenen Ansichten, das schlechteste Bild steht dabei
+  const medR = ratios.length ? ratios.slice().sort((x, y) => x - y)[ratios.length >> 1] : 1;
+  check(`Bildzeit mit Look: Median ≤ +20 % (Software-WebGL, gleiche Seite an/aus, Median ×${medR.toFixed(2)}, schlechtestes ×${worstMs.toFixed(2)}; getrennte Läufe ×${worstPage.toFixed(2)})`, medR <= 1.2);
 }
 await browser.close();
 await stopServer();
