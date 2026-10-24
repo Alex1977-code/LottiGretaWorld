@@ -584,6 +584,16 @@ function hbBladeGeo() {
     return b.geometry();
   });
 }
+/** Holzgriff des Hackbeils (ragt hinten aus dem Hut), Messingzwinge. */
+function hbHandleGeo() {
+  return cached('w5:hb:handle', () => {
+    const b = new Build();
+    b.capsule(0.05, 0.3, { v: (x, y, z) => mix(0x7a4422, 0xc8844a, smoothstep(Math.sin(y * 40) * 0.3 + 0.5)) }, { p: [-0.6, 0.16, 0], r: [0, 0, Math.PI / 2 + 0.35] }, 4, 12);
+    b.cyl(0.062, 0.062, 0.06, HB.rivet, { p: [-0.43, 0.1, 0], r: [0, 0, Math.PI / 2 + 0.35] }, 14);
+    b.sphere(0.06, 0x5a3018, { p: [-0.77, 0.22, 0] }, 12, 8);
+    return b.geometry();
+  });
+}
 const hbBootGeo = () => cached('w5:hb:boot', () => new Build().sphere(1, gradV(HB.boot, HB.bootHi), { p: [0.05, 0.07, 0], s: [0.15, 0.085, 0.11] }, 18, 12).geometry());
 const HB_EYES = [1, -1].map((s) => { const h = onLathe(HB_STEM, 0.33, s * 0.29, 0.1); return { p: h.p.toArray(), r: 0.095, sy: 1.25, dir: h.n.clone().lerp(new THREE.Vector3(1, 0, 0), 0.25).toArray() }; });
 function buildHackbeilPilz() {
@@ -595,7 +605,7 @@ function buildHackbeilPilz() {
   const eye = eyes(HB_EYES, { key: 'w5:hb', iris: 0x6a3a1a, pupil: 0.6, depth: 0.55 });
   const bladeJ = joint([0, 0.69, 0]);
   const bladeM = mesh(hbBladeGeo(), metal('w5steel', { color: 0xffffff, vertexColors: true, metalness: 0.5, roughness: 0.3 }, 0.8), {}, true);
-  bladeJ.add(bladeM);
+  bladeJ.add(bladeM, mesh(hbHandleGeo(), vcol(0.5), {}, true));
   const glint = sparkleSprite(0xffffff, 0.22);
   glint.position.set(0.22, 0.34, 0.06);
   glint.material = glint.material.clone(); own.push(glint.material);
@@ -682,7 +692,7 @@ function flCrownGeo(color) {
     for (const [az, el, len] of list) {
       const d = new THREE.Vector3(Math.cos(el) * Math.cos(az), Math.sin(el), Math.cos(el) * Math.sin(az));
       const dir = d.clone().lerp(new THREE.Vector3(-0.5, 1, 0), 0.45).normalize();
-      const g = new THREE.LatheGeometry([[0, 0], [0.1, 0.04], [0.12, 0.2], [0.09, 0.45], [0.045, 0.72], [0, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 10);
+      const g = new THREE.LatheGeometry([[0, 0], [0.1, 0.04], [0.12, 0.2], [0.09, 0.45], [0.045, 0.72], [0, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 12);
       const m = new THREE.Matrix4().compose(d.clone().multiplyScalar(0.17), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir), new THREE.Vector3(1.05, len, 1.05));
       b.add(g, { v: (x, y) => (y < 0.25 ? mix(C[0], C[1], y / 0.25) : mix(C[1], C[2], smoothstep((y - 0.25) / 0.75))) }, m);
     }
