@@ -1359,7 +1359,7 @@ export function cliffSkirt(level, poly, top, bottom, o = {}) {
   const nrm = pts.map((p, i) => {
     const a = pts[(i - 1 + N) % N], b = pts[(i + 1) % N];
     const tx = b[0] - a[0], tz = b[1] - a[1], l = Math.hypot(tx, tz) || 1;
-    return [sgn * tz / l, -sgn * tx / l];
+    return [-sgn * tz / l, sgn * tx / l];
   });
   const ys = [top - 0.3, top - 1.1];
   for (let y = top - 1.1 - band; y > bottom; y -= band) ys.push(y);
@@ -1376,7 +1376,7 @@ export function cliffSkirt(level, poly, top, bottom, o = {}) {
       const m = nrm[i];
       const lit = 0.78 + 0.3 * Math.max(0, m[0] * sun.x + m[1] * sun.z) + (k === 0 ? 0.08 : 0);
       c.copy(bc).multiplyScalar(lit * (0.92 + 0.08 * Math.sin(i * 2.3 + k)));
-      for (const q of sgn > 0 ? [A, B, C, A, C, D] : [A, C, B, A, D, C]) { pos.push(q[0], q[1], q[2]); col.push(c.r, c.g, c.b); }
+      for (const q of sgn > 0 ? [A, C, B, A, D, C] : [A, B, C, A, C, D]) { pos.push(q[0], q[1], q[2]); col.push(c.r, c.g, c.b); }
     }
   }
   const g = new THREE.BufferGeometry();
@@ -1684,4 +1684,32 @@ export function dirtPath(level, pts, top, w = 1.6) {
     }
   }
   b.flush(level, { castShadow: false });
+}
+
+/**
+ * Heißluftballons über der Savanne (Kulisse, schweben sacht auf und ab, drehen sich langsam): list [[x, y, z, farbe1,
+ * farbe2, größe], …]. Ein Mesh je Ballon, ohne Schatten.
+ */
+export function balloons(level, list) {
+  const v = level.view;
+  if (!v) return;
+  list.forEach(([x, y, z, c1, c2, s = 1], idx) => {
+    const b = new Bld();
+    const A = new THREE.Color(c1), B = new THREE.Color(c2), col = new THREE.Color();
+    const stripes = { v: (px, py, pz) => { const a = Math.atan2(px, pz); return col.copy(Math.floor((a / TAU) * 12 + 12) % 2 ? A : B); } };
+    b.sphere(2.4, 0, 3.2, 0, stripes, { s: [1, 1.18, 1], ws: 24, hs: 14 });
+    b.cyl(1.0, 0.55, 1.1, 0, 0.55, 0, stripes, 12, { open: true });
+    for (const [dx, dz] of [[-0.45, -0.45], [0.45, -0.45], [0.45, 0.45], [-0.45, 0.45]]) b.cyl(0.02, 0.02, 1.5, dx * 1.2, -0.85, dz * 1.2, 0x6a4a2a, 3);
+    b.box(1.0, 0.75, 1.0, 0, -1.4, 0, litTop(0xb07a40), { r: 0.08 });
+    b.box(1.06, 0.1, 1.06, 0, -0.7, 0, 0x7a5228, { r: 0.04 });
+    for (let k = 0; k < 3; k++) b.box(0.18, 0.28, 0.12, -0.3 + k * 0.3, -1.6 + 0.1, 0.56, 0xd8c8a0, { r: 0.03 });
+    const g = b.geometry();
+    const m = new THREE.Mesh(g, v.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true }));
+    m.castShadow = false;
+    m.scale.setScalar(s);
+    m.position.set(x, y, z);
+    const holder = {};
+    let t = idx * 2.1;
+    addObject(level, m, (dt) => { t += visDt(level, holder, dt); m.position.y = y + Math.sin(t * 0.45) * 0.9; m.rotation.y = t * 0.08; });
+  });
 }

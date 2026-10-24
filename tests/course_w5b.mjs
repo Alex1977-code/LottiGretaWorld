@@ -324,13 +324,20 @@ function install() {
       const hold = o.invuln !== false;
       const hist = [];
       let deadLogged = false;
-      const mech = { hurts: 0, maxFigs: 1, liftTrips: {}, pounds: 0 };
+      const mech = { hurts: 0, maxFigs: 1, liftTrips: {}, pounds: 0, episodes: 0, by: {} };
       const track = [];
+      let lastHurt = -999;
       const tick = (inp) => {
         const p = P();
         if (hold) for (const f of L.players) f.invuln = Math.max(f.invuln, 5);
+        const h0 = p.hurtTries ?? 0;
         c.setInput(inp); c.step(1); steps++;
         wrapHurt();
+        if ((p.hurtTries ?? 0) > h0) {
+          // Berührungs-Ereignis (zusammenhängende Bilder = eins): Verursacher zählen
+          if (steps - lastHurt > 24) { mech.episodes++; const k = p.lastHurt ?? '?'; mech.by[k] = (mech.by[k] ?? 0) + 1; }
+          lastHurt = steps;
+        }
         mech.maxFigs = Math.max(mech.maxFigs, figs().length);
         if (p.mode === 'ground' && !p.dead) {
           const t = track[track.length - 1];
@@ -686,7 +693,7 @@ async function parcours(id) {
     await W('place', R.start, { hero, settle: 2 });
     const res = await W('drive', R.main, {});
     const reached = res.status === 'goal' || res.status === 'done';
-    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Trefferversuche ${res.mech.hurts}`);
+    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Gegner-Berührungen ${res.mech.episodes} ${JSON.stringify(res.mech.by)} (${res.mech.hurts} Bilder)`);
     report(res, reached);
     check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
     check(`${id}: ${hero} Zeit bis zum Ziel < ${R.timeMax} s (${res.time.toFixed(1)} s)`, reached && res.time < R.timeMax);

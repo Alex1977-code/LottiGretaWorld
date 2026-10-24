@@ -19,7 +19,7 @@
 
 import {
   isl, line, ring, column, arc, rectPoly, cliffSkirt, waterholeRim, antHill, hideBoxModel, antCave, bunnyGlow, stampOnAnt,
-  giraffes, areaMood, cannonCoins, savannaFloor, dirtPath,
+  giraffes, areaMood, cannonCoins, savannaFloor, dirtPath, balloons,
 } from './_helpers_b.js';
 
 const S1 = 10;                                   // Startsäule
@@ -63,6 +63,7 @@ function build(level) {
   antHill(level, HOLE, { seed: 4 });
   antCave(level, CAVE.x0, CAVE.x1, CAVE.z0, CAVE.z1, CAVE.y, { h: 7, tunnels: [CAVE.x0 + 5, CAVE.x1 - 5], eggs: [[CAVE.x0 + 2.4, CAVE.z1 + 2], [CAVE.x1 - 2.4, CAVE.z0 - 2.2]] });
   giraffes(level, [[24, Y3, -150, 2.4, 1.15], [21.5, Y3, -154, 2.0, 0.9], [-26, Y3, -196, -0.6, 1.1]]);
+  balloons(level, [[-7.5, 4.5, -15, 0xff5a5a, 0xffe04a, 1], [34, 24, -166, 0x5ac8ff, 0xffffff, 1.2], [-28, 50, -244, 0xb07aff, 0xffa040, 1.1]]);
   // lebendiger Boden: Grasflecken, Blumen, Büsche; Trampelpfade entlang des Wegs
   savannaFloor(level, [
     [-5, 5, 6, -6, S1, 7], [-8, 8, -38, -58, T1, 16], [-10, 8, -58, -70, T2, 12], [-7.5, 10, -70, -88, T3, 14], [-12.6, -7.5, -72, -82, M, 3],
@@ -122,7 +123,7 @@ export const LEVEL = {
     sign(-3.2, S1, 1.2, 'Röhrenkanone', 0.4),
     { type: 'roehrenkanone', id: 'kanone1', pos: K1.pos, to: K1.to, color: 'gruen' },
     { type: 'deco_w5', items: [
-      { kind: 'akazie', pos: [-3.5, S1, -4.6], height: 4.6, lean: 0.2 }, { kind: 'termitenhuegel', pos: [3.6, S1, -4.6], size: 1.1 },
+      { kind: 'akazie', pos: [3.5, S1, -4.4], height: 4.6, lean: 0.2 }, { kind: 'termitenhuegel', pos: [-3.7, S1, -4.6], size: 1.1 },
       { kind: 'savannengras', pos: [0, S1, 0], size: [9, 11], n: 10, avoid: [[0, -2.6, 1.8], [0, 3.6, 1.2], [-3.2, 1.2, 1.2]] },
       { kind: 'felsbrocken', pos: [3.8, S1, 2.4], size: [1.5, 3], n: 2 },
     ] },
