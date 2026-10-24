@@ -3,8 +3,8 @@
 //
 // Verhalten: schwimmt verborgen (harmlos, unangreifbar) auf seiner Bahn bzw. in Kreisen um seinen Platz; ist eine Figur in
 // Sichtweite (sight m, innerhalb seines Reviers), folgt er ihr unter der Oberfläche. Ist sie trigger m nah, schaut er
-// kurz heraus (peek 0,45 s – Vorwarnung: Augen und Stirn) und **springt im Bogen** auf die Stelle zu, an der sie gleich
-// sein wird (lead s Vorhalt, höchstens leap m weit, Landepunkt im Revier). Der Sprung dauert 1,1 s (Modell-Takt), die
+// kurz heraus (peek 0,45 s – Vorwarnung: Augen und Stirn) und **springt im Bogen** durch die Stelle, an der sie gleich
+// sein wird (lead s Vorhalt; er landet hinter ihr, höchstens leap m weit, Landepunkt im Revier). Der Sprung dauert 1,1 s (Modell-Takt), die
 // Sprunghöhe height m macht das Modell (root.userData.bodyY). Danach taucht er wieder ab (dive 0,35 s) und wartet
 // cooldown s bis zum nächsten Sprung.
 // Konter: **Draufspringen bzw. Stampfen in der Sprungphase** besiegt ihn (platt, Abprall; er fällt auf die Oberfläche und
@@ -15,7 +15,8 @@
 // Daten: { kind: 'sandtaucher', pos: [x, y, z] (y = Sand-/Wasseroberfläche), ground?: 'sand' | 'wasser' (Standard: Wasser,
 //          wenn an pos eine Wasserform ist, sonst Sand), path?: [[x,y,z], …] (Bahn verborgen), loop?, speed?: 2 (m/s
 //          verborgen), chaseSpeed?: 3 (folgen), sight?: 8, trigger?: 3.4 (Sprung ab dieser Nähe), leap?: 4.5 (größte
-//          Sprungweite), height?: 1.5 (Sprunghöhe der Körpermitte), lead?: 0.35 (s Vorhalt), cooldown?: 1.4, peek?: 0.45,
+//          Sprungweite), height?: 1.5 (Sprunghöhe der Körpermitte), lead?: 0.35 (s Vorhalt), through?: 0.68 (Anteil des
+//          Sprungs, an dem er die Stelle der Figur kreuzt – er landet dahinter), cooldown?: 1.4, peek?: 0.45,
 //          range?: 6 (Revier: Kreis um pos) | area?: { min: [x, z], max: [x, z] } (Revier: Rechteck), phase?: 0..1, id?, drop? }
 //   Wasser: die Oberfläche folgt dem Wasserspiegel (level.waterAt, auch bei steigendem Wasser).
 // Zustände: swim → peek → jump → dive → swim …; squashed | flipped. Laufzeit: jumps, surf (Oberfläche), bodyY, info().
@@ -48,6 +49,7 @@ class Sandtaucher extends EnemyW2 {
     this.leap = spec.leap ?? 4.5;
     this.jumpH = spec.height ?? 1.5;
     this.lead = spec.lead ?? 0.35;
+    this.through = clamp(spec.through ?? 0.68, 0.4, 1);
     this.coolTime = spec.cooldown ?? 1.4;
     this.peekT = spec.peek ?? 0.45;
     this.range = spec.range ?? 6;
@@ -187,7 +189,8 @@ class Sandtaucher extends EnemyW2 {
     let dx = ax - this.pos.x, dz = az - this.pos.z;
     let d = Math.hypot(dx, dz);
     if (d < 1e-3) { const f = this.facing({}); dx = f.x; dz = f.z; d = 1; }
-    const L = clamp(d, 0.8, this.leap);
+    // er springt durch die Stelle der Figur hindurch (bei through des Sprungs) und landet dahinter
+    const L = clamp(d / this.through, 0.8, this.leap);
     const e = this.clampArea({ x: this.pos.x + (dx / d) * L, z: this.pos.z + (dz / d) * L });
     this.from.x = this.pos.x; this.from.z = this.pos.z;
     this.to.x = e.x; this.to.z = e.z;

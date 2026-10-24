@@ -406,7 +406,7 @@ class ZuendkopfQuelle extends CourseEntity {
     const near = figures(this.level).some((p) => Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) <= this.range);
     if (!near) return;
     this.t = 0;
-    const e = this.level.spawn('zuendkopf', { ...this.childSpec, pos: [this.pos.x, this.pos.y, this.pos.z], wake: 0 });
+    const e = this.level.spawn('zuendkopf', { ...this.childSpec, pos: [this.pos.x, this.pos.y, this.pos.z], wake: 999 });
     if (e) { this.kids.push(e); this.spawned++; this.level.effects?.dust(this.pos, 4, 0.8); }
   }
 

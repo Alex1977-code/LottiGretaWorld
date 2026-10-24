@@ -146,10 +146,17 @@ class KippquaderKoenig extends EnemyW2 {
     return { x: this.pos.x + fx * BACK_AT, z: this.pos.z + fz * BACK_AT, half: BACK_HALF, y: this.pos.y + LH };
   }
 
-  /** Ecken (Bruchplatten), die er nie betritt. */
+  /** Ecken (Bruchplatten) und Begleit-Kippquader (samt ihrer nächsten Lage), die er nie betritt. */
   holes() {
     const out = [];
     for (const pair of LIST(this.spec.corners)) for (const id of LIST(pair)) { const e = this.level.named.get(id); if (e?.rect) out.push(e.rect); }
+    for (const id of LIST(this.spec.escorts)) {
+      const q = this.level.named.get(id);
+      if (!q?.box) continue;
+      const b = q.box;
+      out.push({ x0: b.x0 - 0.3, x1: b.x1 + 0.3, z0: b.z0 - 0.3, z1: b.z1 + 0.3 });
+      for (const r of q.nextRects?.() ?? []) out.push({ x0: r.x0 - 0.3, x1: r.x1 + 0.3, z0: r.z0 - 0.3, z1: r.z1 + 0.3 });
+    }
     return out;
   }
 
@@ -350,7 +357,14 @@ class KippquaderKoenig extends EnemyW2 {
     this.tips++;
     this.level.sfx('swoop');
     if (this.phase >= (this.spec.escortFrom ?? 3)) {
-      for (const id of LIST(this.spec.escorts)) { const q = this.level.named.get(id); if (q?.tip && q.state !== 'tip' && q.state !== 'done') { q.tip(); this.escortTips++; } }
+      // Begleit-Kippquader: laufen ab jetzt mit Vorwarnung (roter Boden) ihre eigene Bahn
+      for (const id of LIST(this.spec.escorts)) {
+        const q = this.level.named.get(id);
+        if (!q || q.state === 'done') continue;
+        if (!q.running) this.escortTips++;
+        q.running = true;
+        if (q.state === 'wait' && q.t < q.wait - q.warnT) q.t = q.wait - q.warnT;
+      }
     }
   }
 
