@@ -646,25 +646,21 @@ export function jungleTreeGeo(h = 5, seed = 1) {
   return b.geometry();
 }
 
-/** Steinkopf (Tempel-Kulisse): grimmiger Quaderkopf mit Moos. */
+/** Steinkopf (Tempel-Kulisse): grimmiger Quaderkopf mit tiefen Augen, schweren Brauen, Nase und Mund; Moos obenauf. */
 export function stoneHeadGeo(s = 1) {
   const b = new Build();
+  const F = 0.71 * s;   // Vorderseite (z)
   b.box(1.6 * s, 2.0 * s, 1.4 * s, { v: (x, y, z, nx, ny) => mix(0x9a8a72, 0xd8c8a8, ny * 0.4 + 0.5) }, { p: [0, 1.0 * s, 0] }, 0.08, 1);
-  b.box(1.2 * s, 0.22 * s, 0.2 * s, 0x6a5a48, { p: [0, 1.45 * s, 0.68 * s] }, 0, 1);
-  b.box(0.3 * s, 0.6 * s, 0.3 * s, 0xb8a888, { p: [0, 1.05 * s, 0.75 * s] }, 0, 1);
-  b.box(0.9 * s, 0.14 * s, 0.14 * s, 0x5a4a3a, { p: [0, 0.55 * s, 0.7 * s] }, 0, 1);
-  b.sphere(0.5 * s, 0x6aa04a, { p: [-0.4 * s, 2.0 * s, 0], s: [1.2, 0.35, 1.2] }, 7, 3);
-  return b.geometry();
-}
-
-/** Wolkeninsel in der Ferne (Ausblick auf Welt 6): weiße Kugelwolke mit grünem Inselchen obenauf. */
-export function cloudGeo(s = 6, seed = 1) {
-  const b = new Build();
-  const rnd = new Rnd(seed);
-  for (const [dx, dy, dz, r] of [[0, 0.3, 0, 1], [-0.9, 0.1, 0.2, 0.75], [0.95, 0.12, -0.1, 0.8], [0.3, 0.55, -0.3, 0.6], [-0.4, 0.5, 0.35, 0.55]]) {
-    b.sphere(r * s * 0.5, { v: (x, y, z, nx, ny) => mix(0xd8e4f6, 0xffffff, ny * 0.5 + 0.5) }, { p: [dx * s * 0.5, dy * s * 0.5, dz * s * 0.5], s: [1, 0.62, 1] }, 9, 5);
+  for (const k of [-1, 1]) {
+    b.box(0.42 * s, 0.3 * s, 0.08 * s, 0x2e2620, { p: [k * 0.38 * s, 1.36 * s, F] }, 0);                       // Augenhöhle
+    b.sphere(0.07 * s, 0xffe680, { p: [k * 0.36 * s, 1.34 * s, F + 0.04 * s], s: [1, 1, 0.5] }, 6, 4);          // Glimmen
+    b.box(0.52 * s, 0.14 * s, 0.16 * s, 0x7a6a56, { p: [k * 0.38 * s, 1.6 * s, F + 0.02 * s], r: [0, 0, k * 0.28] }, 0);   // Braue
   }
-  b.cyl(s * 0.32, s * 0.36, s * 0.12, 0x6ac85a, { p: [rnd.real(-0.1, 0.1) * s, s * 0.46, 0] }, 9);
+  b.box(0.26 * s, 0.5 * s, 0.22 * s, 0xc4b494, { p: [0, 1.05 * s, F + 0.06 * s] }, 0.04, 1);                   // Nase
+  b.box(0.8 * s, 0.14 * s, 0.08 * s, 0x2e2620, { p: [0, 0.6 * s, F] }, 0);                                      // Mund
+  for (const k of [-1, 1]) b.box(0.16 * s, 0.1 * s, 0.06 * s, 0xf0e6d0, { p: [k * 0.22 * s, 0.63 * s, F + 0.03 * s] }, 0);   // Zähne
+  b.sphere(0.5 * s, 0x6aa04a, { p: [-0.4 * s, 2.0 * s, 0], s: [1.2, 0.35, 1.2] }, 7, 3);
+  b.sphere(0.3 * s, 0x7ab85a, { p: [0.5 * s, 1.98 * s, 0.3 * s], s: [1.2, 0.35, 1.2] }, 6, 3);
   return b.geometry();
 }
 

@@ -1331,6 +1331,71 @@ Gemessen (scale 2, `tests/course_map_w4.mjs`): Kartenansichten Welt 4 70–97 Ze
 Welt 3 an der Röhre nach Welt 4 und bei der Ankunft von Welt 4 höchstens 91 / 245 k. Statische Kulisse Welt 4:
 43 Kachel-Meshes, ≈ 156 k Dreiecke, ≈ 245 Kollisionsformen.
 
+### Präzisierung (Mehrwelten-Karte): Welt 5 „Lila Strand-Insel“ (Notiz)
+
+- Dateien: `worlds/w5.js` (Daten, `MAP.world = 5`, Musik `course_world5_map`), `beach5.js` (Thema `map_lila`, Geländestile,
+  Ränder, Streudeko, Requisiten, Holzstege, Inselchen und Nachbarwelt-Stil `'lila'`), `decor_w5.js` (Kulissen der
+  Welt-5-Eingänge). Additiv angebunden in `MapBuilder.js` (`map.kit === 'lila'`), `scenery.js`, `entrances.js`
+  (`decorateW5`), `props.js` (Podestfarben), `CourseMapScene.js` (`state().decor`, s. u.); `worlds/w4.js` zeigt die
+  Lila-Insel als Nachbarwelt am Ende ihrer Welt-5-Röhre (`neighbors` Stil `'lila'`, `[312, −210]`).
+- Inseln (begehbar, Höhe) und Eingänge (`kind`): A Ankunftsbucht y 1 mit Beerenhaus-Nische – `W4` Glasröhre zurück
+  (−16, 1, 42), `5-1` `seaside` Sonnenstrand (18.5, 1, 36; Strandkörbe, Schirme, Warp-Box mit fünf Schlüsselmünzen,
+  Wellen `waves`); B Zirkus-Insel y 2 – `5-2` `bigtop` Zirkuszelt (−4, 2, −4; Wimpel, Trapez-Gerüst `trapeze`); BA Arena-Insel
+  y 1.6 – `5-A` `bullcage` Arena-Käfig (−38, 1.6, −5; `cage`, `towers`, Hörnertor `gateAt`, Gegnergruppe 5 ×
+  `rammbock_bulle`); BH Höhlen-Insel y 2 – `5-3` `bluecave` Höhleneingang mit blauem Lavaschein (35, 2, −6, „ab 90 ★“);
+  C Savanne y 3.5 mit Savannenberg (Block `savannahill` mit `hill`, Grasrand `edge: 'tufts'`) – `5-4` `savanna`
+  (−9, 3.5, −59.5; Röhrenkanone `cannon`, `acacias`, `termites`, hüpfende Hasen `bunnies`, einer leuchtet grün);
+  CG Spuk-Insel y 3.5 – `5-Kapitän` `ghostdiorama` Geisterhaus-Diorama (−50, 3.5, −45; Kreisgeister-Ring, Großspuk,
+  Krümel `kruemel`, Scheibe „5-K“); D Minen-Insel y 4.5 – `5-5` `mine` (30, 4.5, −59.5; Loren auf `rail`, Zündkopf-Haufen,
+  POW-Block, lila Ziegelwand), Schlucht nach Norden; DL Lava-Felsen y 2 im Lavasee – `5-B` `lavarocks` (76, 2, −52;
+  steigende Steinsäulen `pillars`, Werfer-Thron `tower`, Feuerschalen `braziers`, Gegnergruppe 3 × `feuer_werfer`);
+  E Torten-Insel y 5.5 – `5-6` `cakeisle` Riesentorte (46, 5.5, −102; Kerzen, Rot-Blau-Flipper `flipper`);
+  F Schleich-Festung y 6 – `5-7` `sneakfort` (−4, 6, −112.5; Suchscheinwerfer `lamp`, Kreis des Lichtflecks `sweep`);
+  G Goldzug-Bahnhof y 6 mit Glückshaus – `5-Zug` `goldstation` (−46, 6, −109; Gleis und Goldzug `rail`); H Ruinen-Tempel
+  y 7 – `5-Burg` `kipptemple` Stufenpyramide mit Kippquader-König (10, 7, −149, „ab 100 ★“); I Röhren-Insel y 7 – `W6`
+  Glasröhre (54, 7, −158), steigt nach Nordosten zu fernen Wolkeninseln. Verbunden über zwölf Holzstege
+  (`segments: [{ type: 'boardwalk', from, to, width }]`, Kollision wie `bridge`); zwölf Schranken je 4 m auf Stegen bzw. in
+  der Schlucht.
+- Weltdaten zusätzlich: `kit: 'lila'`, `birdStyle: 'gull'` (Möwen), Geländestile `lila` (Standard, begehbarer Flieder-Sand)|
+  `lilarock`|`lilabeach`|`palmgrove`|`circus`|`arena`|`cave` (blau glühende Risse)|`savanna`|`savannahill` (`hill: { h,
+  at, r }`)|`spook`|`gravel`|`cake` (Biskuit-/Sahneschichten, Zuckerguss-Tropfen, Streusel)|`fort` (Glutfugen)|`paving`|
+  `temple`, dazu `lavarock`/`basin` aus `desert.js`; Ränder `edges: { hedge: 'violetrock', fence: 'rope' }`, je Block
+  `edge`/`fence` `'driftwood'`|`'tropic'`|`'cream'`|`'fortwall'`|`'templewall'`|`'tufts'`. Requisiten (`props`) u. a.
+  `palm5`, `lavender`, `hibiscus`, `acacia`, `termite`, `grasstuft`, `violetrock`, `shells5`, `beachchair`, `parasol`,
+  `towel`, `sandcastle`, `surfboard`, `lifebuoy`, `lighthouse`, `sailboat`, `candycane`, `cherry5`, `cupcake`, `donut`,
+  `drum`, `balloons`, `pond5`, `jungletree`, `stonehead`, `templecolumn`, `obelisk5`, `tiki` (Flamme leuchtet), `tomb5`,
+  `deadtree`, `bench5`, `lamppost5`, `luggage`, `cloud5`. Kacheln `batch: { tile: 48, origin: [−4, 4], freeTile: 128,
+  freeOrigin: [−72, −72] }` (große Kacheln: Anflug über die ganze Kette im Budget).
+- Freischaltung laut „Welt 5 – Level-Liste“: `5-1` frei, sobald Welt 5 offen ist; `5-2` nach 5-1; `5-3` (≥ 90 ★), `5-A`,
+  `5-4` nach 5-2; `5-Kapitän`, `5-5` nach 5-4; `5-B`, `5-6` nach 5-5; `5-7` nach 5-6; `5-Zug`, `5-Burg` (≥ 100 ★) nach
+  5-7; `W6` nach 5-Burg. `starScope: 'all'`, 31 Sterne. Schilder „ab 90 ★“, „ab 100 ★“.
+- **Suchscheinwerfer im Takt**: Der Lichtfleck kreist je Zählzeit der Kartenmusik eine Achtelrunde weiter (`music.beat()`,
+  Bewegung in den ersten 45 % der Zählzeit, dann Halt; ohne laufende Musik Ersatzuhr im Tempo von `course_world5_map`).
+  Steht die Heldin im Fleck, färben sich Kegel und Fleck rot, über der Lampe blinkt ein „!“ (nur Optik). Rot-Blau-Flipper
+  auf der Torten-Insel wechseln bei jedem Sprung der Heldin (`level.onJump`); der Kippquader-König auf dem Tempel kippt
+  abwechselnd über die linke und rechte Kante (roter Landeboden-Hinweis, Staub). Test-Schnittstelle (additiv):
+  `state().decor` = Vereinigung von `ev.liveInfo()` aller Eingänge – `searchlight { beat, step, moving, angle, source,
+  theme, bpm, spot, alarm, shown }`, `flipper { color, flips }`, `kippquader { phase, side, tips }`.
+- Registry-Modelle der Welt 5 werden benutzt, sobald es sie gibt (`deco_w5_<kind>` für Schirm, Sandburg, Akazie,
+  Termitenhügel, Zuckerstange, Kirsche, Steinkopf, Tempelsäule, Obelisk, Torte; `trapez`, `roehrenkanone`,
+  `suchscheinwerfer`, `kippquader`, `schluesselmuenze`), vorhandene ebenso (`kruemel`, `warp_box`, `pow_block`,
+  `kanone_turm`, `pilzlingsturm`, `feuer_werfer`) – jeweils mit Dreiecks-Obergrenze (`beach5.modelTris`), damit die Karte
+  im Budget bleibt; sonst zeichnet `beach5.js`/`decor_w5.js` eigene sparsame Geometrie (Registry-Palmen sind auf der
+  Karte zu schwer → `palm5`). **Hinweis Fern-Ausblendung:** `MapLod` merkt sich die Lage aller Kartenobjekte beim Aufbau
+  – bewegte Kulissen-Teile (Lichtkegel, Ball, Funken, Rauch …) müssen schon beim Bau an ihrer Startlage stehen.
+- Übergänge: Die Welt-4-Röhre `W5` und der Welt-Warp aus 4-2 führen ohne Codeänderung nach Welt 5 (Ankunft an der
+  Rückweg-Röhre `W4`, `{ id: 'W4', world: 4, next: 4 }`, Röhre nach Südwesten zur Canyon-Insel am Horizont). Die Röhre
+  `W6` zeigt „Welt 6 kommt bald!“; ein Welt-Warp nach Welt 6 aus einem Welt-5-Level endet über den vorhandenen Rückfall an
+  dieser Röhre (entdeckt, Schranke versinkt). `tests/course_map_w4.mjs` Abschnitt 9 prüft jetzt die Ankunft in Welt 5
+  (der „bald“-Rückfall wird in `tests/course_map_w5.mjs` mit Welt 6 geprüft).
+- Test: `tests/course_map_w5.mjs` (Port 4250, Bilder `tests/out/cmap5_*.png`), Teilläufe `W5_TEIL=1|2|3` (Abschnitte
+  2–4, 5–8, 9–14, je mit den Node-Prüfungen; gemessen bei Rechnerlast ≈ 15: 5,5 / 4,8 / 6,7 min).
+
+Gemessen (scale 2, `tests/course_map_w5.mjs`): Kartenansichten Welt 5 37–80 Zeichenaufrufe inkl. Schattenpass,
+117–259 k Dreiecke; Ankunft durch die Glasröhre 71–87 / 195–230 k, Anflug 107 / 264 k (Budget 120 / 300 k). Welt 4 an
+der Röhre nach Welt 5 und bei der Ankunft von Welt 5 höchstens 66 / 173 k (Anflug Welt 4 mit Lila-Insel am Horizont
+108 / 274 k). Statische Kulisse Welt 5: 36 Kachel-Meshes, ≈ 151 k Dreiecke, ≈ 290 Kollisionsformen.
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
