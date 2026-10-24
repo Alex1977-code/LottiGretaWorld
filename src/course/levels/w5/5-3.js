@@ -20,7 +20,7 @@
 
 import {
   isl, line, ring, arc, crackTile, fruitCrystal, caveWall, caveHouses, streetLamps, mushroomLamps, laundry,
-  bats, blueFalls, marketStalls, glowFountain, paving, sparksUp, blueLavaSea, fairyLights, parapet, liftShaft, pyramidRoof, plazaProps, caveExit, wallWindows, Bld, litTop, GASSE,
+  bats, blueFalls, marketStalls, glowFountain, paving, sparksUp, blueLavaSea, fairyLights, parapet, liftShaft, pyramidRoof, plazaProps, caveExit, wallWindows, Bld, litTop, GASSE, quietShadows,
 } from './_helpers_b.js';
 
 const Y = 1;              // Gassen (Oberseite)
@@ -197,6 +197,10 @@ function setup(level) {
   ]);
   bats(level, { spots: [[-4, 11, -6, 4], [6, 12, -22, 5], [-6, 12.5, -24, 3]], n: 2 });
   sparksUp(level, { x0: WA, x1: EA, z0: 1, z1: -26, y: LAVA, h: 10, n: 70 });
+  // Budget (Präzisierung „Leistung und Level-Haken 2“): Zielmast, Checkpoint, Lifte und Schilder ohne Sonnenschatten
+  // (die Blob-Schatten bleiben), ebenso Pilzlinge und Feuer-Schnappblumen – mit drei, vier Klonen im Bild bleibt die
+  // Szene so unter 120 Zeichenaufrufen
+  quietShadows(level, ['goal', 'checkpoint', 'pilzling', 'feuer_schnappblume']);
 }
 
 export const LEVEL = {

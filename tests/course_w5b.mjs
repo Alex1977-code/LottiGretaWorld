@@ -750,6 +750,21 @@ async function shot(name, wait = 500) {
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
   await page.screenshot({ path: `${OUT}w5b_${name}.png` });
+  if (process.env.DETAIL) {
+    // Aufschlüsselung der Zeichenaufrufe dieses Bildes (Fehlersuche Budget)
+    const rows = await sc(() => new Promise((done) => {
+      const c = window.__course, view = c.view, r = view.renderer, orig = r.renderBufferDirect, acc = new Map();
+      for (const e of c.level.entities) e.model?.root?.traverse((o) => { o.userData.__perf = `E:${e.kind}`; });
+      const label = (o) => { if (o.userData.__perf) return o.userData.__perf; for (let q = o; q; q = q.parent) if (q.name) return q.name.replace(/:\d+$/, ''); return o.type; };
+      r.renderBufferDirect = function (cam, scene, geo, mat, obj, grp) { orig.call(this, cam, scene, geo, mat, obj, grp); const k = `${scene ? '' : 'S:'}${label(obj)}`; acc.set(k, (acc.get(k) ?? 0) + 1); };
+      const origR = r.render;
+      r.render = function (scene, cam) { const c0 = r.info.render.calls; origR.call(this, scene, cam); acc.set(`render:${scene.name || scene.type}`, (acc.get(`render:${scene.name || scene.type}`) ?? 0) + (r.info.render.calls - c0)); };
+      const f0 = view.frame;
+      const wait = () => { if (view.frame < f0 + 1) { requestAnimationFrame(wait); return; } r.renderBufferDirect = orig; r.render = origR; done([...acc.entries()].sort((a, b) => b[1] - a[1])); };
+      requestAnimationFrame(wait);
+    }));
+    console.log(`     ${name}: ${rows.map(([k, n]) => `${k} ${n}`).join(' · ')}`);
+  }
   return s;
 }
 

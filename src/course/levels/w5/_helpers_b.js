@@ -1894,3 +1894,20 @@ export function wisps(level, list) {
     });
   });
 }
+
+/**
+ * Sonnenschatten abschalten (Budget, Präzisierung „Leistung und Level-Haken 2“): Modelle der Entitäten der Arten kinds,
+ * Szene-Objekte mit Namen aus o.names (Standard: Mehrpersonen-Lifte) und Holzschilder (Brett + Schrift-Ebene). Die
+ * Blob-Schatten der Entitäten bleiben.
+ */
+export function quietShadows(level, kinds = [], o = {}) {
+  const v = level.view;
+  if (!v) return;
+  const quiet = (root) => root?.traverse((m) => { if (m.isMesh) m.castShadow = false; });
+  for (const e of level.entities) if (kinds.includes(e.kind)) quiet(e.model?.root);
+  const names = o.names ?? ['modell:multilift'];
+  for (const ch of v.three.children) {
+    if (names.some((n) => (ch.name ?? '').startsWith(n))) quiet(ch);
+    if (o.signs !== false && ch.isGroup && ch.children.length === 2 && ch.children.some((m) => m.isMesh && m.material?.map && m.geometry?.type === 'PlaneGeometry')) quiet(ch);
+  }
+}
