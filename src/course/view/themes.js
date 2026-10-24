@@ -92,5 +92,13 @@ import { BEEP_THEME } from './theme_beep.js'; THEMES.beep ??= BEEP_THEME;
 import { BOUNCE_THEME } from './theme_bounce.js'; THEMES.bounce ??= BOUNCE_THEME;
 import { RUINS_THEME } from './theme_ruins.js'; THEMES.ruins ??= RUINS_THEME;
 import { LAVACASTLE_THEME } from './theme_lavacastle.js'; THEMES.lavacastle ??= LAVACASTLE_THEME;
+// Welt 5 (Motor und Bausteine Welt 5): nur eintragen, wenn das Thema nicht schon anders registriert ist
+import { BEACH_THEME } from './theme_beach.js'; THEMES.beach ??= BEACH_THEME;
+import { BLUELAVA_THEME } from './theme_bluelava.js'; THEMES.bluelava ??= BLUELAVA_THEME;
+import { SAVANNA_THEME } from './theme_savanna.js'; THEMES.savanna ??= SAVANNA_THEME;
+import { MINE_THEME } from './theme_mine.js'; THEMES.mine ??= MINE_THEME;
+import { CAKE_THEME } from './theme_cake.js'; THEMES.cake ??= CAKE_THEME;
+import { SNEAK_THEME } from './theme_sneak.js'; THEMES.sneak ??= SNEAK_THEME;
+import { TEMPLE_THEME } from './theme_temple.js'; THEMES.temple ??= TEMPLE_THEME;
 
 export function getTheme(name) { return THEMES[name] ?? THEMES.grass; }

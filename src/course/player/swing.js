@@ -5,9 +5,12 @@
 // in Richtung dir), Winkelgeschwindigkeit `omega`. Es schwingt leer von selbst (Energie-Regelung auf `idleAmp`) und
 // trägt sich in `level.trapezes` ein. Die Figur greift es im Sprung (Hände nahe der Stange), hängt im Skript-Modus
 // (player.ride mit solo: true – Klone schwingen je für sich) mit state 'trapeze' darunter und schwingt mit:
-//   - Stick in Schwungrichtung schaukelt auf (Ziel-Ausschlag +swing.pump °/s bis maxAmp), entgegen bremst ab.
+//   - Stick entlang der Schwingebene (vor oder zurück) schaukelt auf (Ziel-Ausschlag +SWING.pump °/s bis maxAmp).
 //   - Sprung lässt los: Geschwindigkeit der Hände (Bahn der Stange) + Absprung (SWING.up nach oben, SWING.fwd in
-//     Schwungrichtung) – bei ≈ 45° Ausschlag reicht das genau für den Schwungabstand 4–5 m zum nächsten Trapez.
+//     Schwungrichtung). Liegt in Schwungrichtung ein freies Trapez 3–6,5 m weiter (Schwungabstand 4–5 m), stimmt die
+//     Zielhilfe die waagerechte Geschwindigkeit (im Band 0,4–1,8 × des Schwungs) so ab, dass die Hände dessen Stange
+//     treffen (aimRelease, Pendel vorausgerechnet; bis zur Ankunft keine Luftsteuerung) – wer im falschen Moment (nach
+//     hinten schwingend) springt, fliegt frei.
 //   - Ducken lässt fallen (nur die Bahngeschwindigkeit).
 // Die Figur hängt mit den Händen an der Stange: Fußpunkt = Stange + (Körperhöhe + Armlänge) entlang des Seils;
 // player.swingTilt = Seilwinkel (HeroRig neigt die Darstellung darum), player.swingVel = omega, player.trapeze = Trapez.
@@ -25,7 +28,7 @@ export const SWING = {
   arm: 0.26,          // m Hände über dem Scheitel
   grabR: 0.8,         // m Hände ↔ Stange zum Greifen
   grabTime: 0.12,     // s Übergang in die Hängelage
-  cool: 0.35,         // s nach dem Loslassen kein erneutes Greifen (dasselbe Trapez 0,6 s)
+  cool: 0.15,         // s nach dem Loslassen kein erneutes Greifen (dasselbe Trapez 0,6 s)
   riderAmp: 40,       // ° Ausschlag, auf den ein gegriffenes Trapez mindestens schwingt
   maxAmp: 66,         // ° größter Ausschlag (Aufschaukeln)
   minAmp: 8,          // ° kleinster Ausschlag (Abbremsen)
@@ -114,6 +117,54 @@ export function grabTrapeze(p, t) {
   t.onGrab?.(p);
 }
 
+/**
+ * Zielhilfe beim Absprung (Trapez-Kette): Gibt es in Schwungrichtung ein freies Trapez (Aufhängung 3–6,5 m entfernt,
+ * Stange erreichbar), wird die Flugzeit bis zum Treffpunkt der Hände mit der Stange (auf dem Weg nach unten, nach der
+ * Schwerkraft der Figur: steigen 27, Scheitel ×0,6, fallen 50 × fallMult) und dessen Pendel-Lage zu dieser Zeit
+ * vorausgerechnet und die waagerechte Geschwindigkeit darauf abgestimmt – höchstens im Band 0,4 … 1,8 × des natürlichen
+ * Schwungs (sonst kein Eingriff). → { vx, vz, T } | null
+ */
+function aimRelease(pl, from, sg, vx, vy, vz) {
+  const list = pl.level.trapezes ?? [];
+  const fx = from.dir.x * sg, fz = from.dir.z * sg;
+  const hNat = vx * fx + vz * fz;
+  if (hNat <= 0.5) return null;
+  const reachH = pl.half.y * 2 + SWING.arm;
+  let best = null;
+  for (const t of list) {
+    if (t === from || t.rider || t.hidden || t.removed) continue;
+    const dx = t.pivot.x - from.pivot.x, dz = t.pivot.z - from.pivot.z;
+    const along = dx * fx + dz * fz, lat = Math.abs(dx * -fz + dz * fx);
+    if (along < 3 || along > 6.5 || lat > 1.2) continue;
+    if (!best || along < best.along) best = { t, along };
+  }
+  if (!best) return null;
+  const t = best.t;
+  // Höhe der Hände über der Zeit (Schwerkraft wie Player.applyGravity ohne Haltetaste, nicht variabel)
+  const g = { up: MOVE.gUp, fall: MOVE.gFall * (pl.fallMult ?? 1), band: MOVE.apexBand, mult: MOVE.apexMult };
+  const h0 = pl.pos.y + reachH;
+  const ghost = { theta: t.theta, omega: t.omega, L: t.L, g: t.g, gain: t.gain, idleAmp: t.idleAmp, targetAmp: t.targetAmp, rider: null, damp: t.damp, pivot: t.pivot, dir: t.dir };
+  const dt = 1 / 120;
+  let y = h0, v = vy, T = 0, hit = null;
+  const b = { x: 0, y: 0, z: 0 };
+  for (let i = 0; i < 2.2 * 120; i++) {
+    let gg = v > 0 ? g.up : g.fall;
+    if (v > 0 && Math.abs(v) < g.band) gg *= g.mult;   // Scheitel (nicht variabel); im Fall nur mit gehaltener Taste
+    v = Math.max(v - gg * dt, -MOVE.maxFall);
+    y += v * dt;
+    T += dt;
+    pendulumStep(ghost, dt);
+    barPos(ghost, b);
+    if (v < 0 && y <= b.y + 0.05) { hit = { T, x: b.x, z: b.z }; break; }
+  }
+  if (!hit || hit.T < 0.15) return null;
+  // waagerechter Weg der Hände: von der Figur (Hände über dem Fußpunkt) zur Stange
+  const need = ((hit.x - pl.pos.x) * fx + (hit.z - pl.pos.z) * fz) / hit.T;
+  if (need < hNat * 0.4 || need > hNat * 1.8) return null;
+  const latV = ((hit.x - pl.pos.x) * -fz + (hit.z - pl.pos.z) * fx) / hit.T;
+  return { vx: fx * need - fz * latV, vz: fz * need + fx * latV, T: Math.min(1.2, hit.T) };
+}
+
 /** Gesteuerter Ablauf am Trapez (player.ride): Hängen, Aufschaukeln, Loslassen. */
 export function trapezeCtl(t, p) {
   const from = { x: p.pos.x, y: p.pos.y, z: p.pos.z };
@@ -127,10 +178,8 @@ export function trapezeCtl(t, p) {
       const cy = pl.level.controlYaw ?? 0, c = Math.cos(cy), s = Math.sin(cy);
       const wx = c * input.moveX - s * input.moveY, wz = -s * input.moveX - c * input.moveY;
       const along = clamp(wx * t.dir.x + wz * t.dir.z, -1, 1);
-      if (Math.abs(along) > 0.2) {
-        const withSwing = Math.sign(along) === Math.sign(t.omega || along);
-        t.targetAmp = clamp(t.targetAmp + (withSwing ? 1 : -1.3) * SWING.pump * Math.abs(along) * dt, SWING.minAmp, t.maxAmp ?? SWING.maxAmp);
-      }
+      // Stick entlang der Schwingebene (vor oder zurück) schaukelt auf
+      if (Math.abs(along) > 0.2) t.targetAmp = clamp(t.targetAmp + SWING.pump * Math.abs(along) * dt, SWING.minAmp, t.maxAmp ?? SWING.maxAmp);
       hangPos(t, pl, q);
       k = Math.min(1, startT / SWING.grabTime);
       const e = k * k * (3 - 2 * k);
@@ -159,8 +208,12 @@ export function trapezeCtl(t, p) {
       if (how === 'jump') {
         const sg = Math.sign(t.omega) || 1;
         vx += t.dir.x * SWING.fwd * sg; vz += t.dir.z * SWING.fwd * sg; vy = Math.max(vy, 0) + SWING.up;
+        // Zielhilfe zum nächsten Trapez in Schwungrichtung (Schwungabstand 4–5 m): waagerecht so abgestimmt, dass die
+        // Hände die Stange dort treffen, wo sie beim Ankommen ist – nur in einem Band um den natürlichen Schwung
+        const aim = aimRelease(pl, t, sg, vx, vy, vz);
+        if (aim) { vx = aim.vx; vz = aim.vz; pl.lockTime = aim.T; t.aimed = (t.aimed ?? 0) + 1; }
         pl.vel.set(vx, vy, vz);
-        pl.enterAir('jump', true);
+        pl.enterAir('jump', false);   // feste Flugkurve (nicht von der Haltedauer abhängig): Schwungabstand verlässlich
         pl.airMax = Math.max(Math.hypot(vx, vz), MOVE.walk * pl.speedMult);
         if (Math.hypot(vx, vz) > 0.5) pl.yaw = Math.atan2(-vz, vx);
         pl.level.sfx('jump2');
