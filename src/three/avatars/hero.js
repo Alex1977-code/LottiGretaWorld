@@ -1,6 +1,9 @@
-// Avatare der Heldinnen (Lotti, Greta) und des Reittiers Pflaume im Super-Mario-3D-World-Look:
-// weiche, runde Grundkörper (Kugeln, Kapseln, Lathe, Röhren), kräftige saubere Farben, spielzeughafte
-// Materialien, prozedurale Animation. Alles Code-generiert, keine Dateien.
+// Avatare der Heldinnen (Lotti, Greta) und des Reittiers Pflaume im Super-Mario-3D-World-Look (eigene Figuren):
+// weiche, glatte Formen aus Parametern (Gitter mit weichen Normalen, Drehkörper ohne Naht, verschmolzene Ellipsoide),
+// großer runder Kopf mit Aufkleber-Gesicht (gewölbte Comic-Augen mit Lidstrich/Wimpern und Glanzpunkten, Brauen,
+// Stupsnase, Wangenröte, Lächeln), modellierte Haarschale mit gerolltem Rand und Glanzband, kräftige Glieder, runde
+// Fäustlings-Hände, große glänzende Schuhe; Materialien je Oberfläche (Haut weich, Stoff samtig, Haar seidig,
+// Augen/Schuhe glänzend). Prozedurale Animation. Alles Code-generiert, keine Dateien.
 //
 // Zustand kommt vom Phaser-Sprite (nur lesen, keine Spiellogik):
 //   Hero:    obj.moveState ('ground'|'air'|'glide'|'dive'), obj.body.velocity, obj.onGround,
@@ -16,7 +19,10 @@
 //    beide Augen sichtbar). Neigung (angle) und Squash & Stretch bleiben bei der Basisklasse.
 //  - Zeichenaufrufe: Alles, was sich gemeinsam bewegt und starr ist, wird zu einem vertexgefärbten Mesh
 //    verschmolzen (Kopf+Gesicht, Haare+Schleife, Oberkörper+Kragen+Ärmel, Rock+Schürze, Schirm, …).
-//    Nur Gelenke trennen Meshes. Heldin ≈ 25 Meshes (21 sichtbar, davon 6 Zopfglieder), Pflaume 14.
+//    Nur Gelenke trennen Meshes. Heldin ≈ 26 Meshes (21 sichtbar, davon 6 Zopfglieder; geschlossene Augen als eigenes,
+//    sonst unsichtbares Mesh), Pflaume 15. Teile gleicher Oberfläche (Material) bündelt die Kurs-Ansicht zu einem
+//    Zeichenaufruf (view/ShadowProxy.js) – Heldin im Stand 9 Aufrufe inkl. Schattenpass. Darum: dauerhaftes Stauchen
+//    (nicht gleichmäßiger Maßstab) nur kurz (Absprung, Landung), sonst zeichnet jedes Teil einzeln.
 //  - Angel und Möhre gehören zum Hero-Avatar (die Hand hält sie). Die Möhre pendelt physikalisch aus
 //    der Beschleunigung der Reiterin; Pflaume streckt beim Reiten die Nase nach vorn-oben.
 //  - Lottis Zöpfe hängen hinter den Ohren herab und sind je eine Kette aus drei Gliedern (je ein Mesh),

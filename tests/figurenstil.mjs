@@ -14,7 +14,8 @@
 //
 // Vorher-Bilder: einen zweiten Arbeitsbaum mit dem alten Stand anlegen und den Test mit FS_ROOT=<pfad> FS_LABEL=vorher laufen
 // lassen (Bilder landen trotzdem hier unter tests/out/).
-// Aufruf: PORT_BASE=3300 node tests/figurenstil.mjs   (FS_PARTS=hero,pets,extra,map für Teilläufe; Port 4350 + PORT_BASE)
+// Aufruf: PORT_BASE=3300 node tests/figurenstil.mjs   (Teilläufe unter Last: FS_PARTS=hero,costume,clones,pets,map und
+// FS_HEROES=lotti,greta; Kennzahlen früherer Teilläufe bleiben in fs_<label>.json erhalten; Port 4350 + PORT_BASE)
 import { createServer } from 'vite';
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { launchBrowser, makeChecker, OUT } from './helpers.mjs';
@@ -22,7 +23,8 @@ import { launchBrowser, makeChecker, OUT } from './helpers.mjs';
 const PORT = 4350 + Number(process.env.PORT_BASE ?? 0);
 const ROOT = process.env.FS_ROOT ?? new URL('..', import.meta.url).pathname;
 const LABEL = process.env.FS_LABEL ?? 'nachher';
-const PARTS = (process.env.FS_PARTS ?? 'hero,pets,extra,map').split(',').filter(Boolean);
+const PARTS = (process.env.FS_PARTS ?? 'hero,costume,clones,pets,map').split(',').filter(Boolean);
+const HEROES = (process.env.FS_HEROES ?? 'lotti,greta').split(',').filter(Boolean);
 const on = (p) => PARTS.includes(p);
 const MAX_CALLS = Number(process.env.FS_MAX_CALLS ?? 11);
 
@@ -207,6 +209,12 @@ async function heroine(key) {
   await place('hero');
   await pose('hero', { state: 'idle' }, 60);
   await measure(`${key} idle`);
+  if (on('hero')) await heroineBase(key);
+  if (on('costume')) await heroineCostumes(key);
+}
+
+async function heroineBase(key) {
+  const P = key;
   await shot(`${P}_front`, 'front', `${P}`); await shot(`${P}_front0`, 'front0', `${P}`); await shot(`${P}_side`, 'side', `${P}`); await shot(`${P}_back`, 'back', `${P}`);
   await shot(`${P}_face`, 'face', `${P}_face`); await shot(`${P}_face_side`, 'faceSide', `${P}_face`);
   // Blinzeln (Augen zu) und Lächeln
@@ -224,7 +232,10 @@ async function heroine(key) {
   await place('hero', 0, 0, 0); await pose('hero', { state: 'run', speed: 8 }, 30); await shot(`${P}_course_run`, 'course', `${P}_course`);
   await place('hero', 0, 0, -Math.PI / 2 + 0.3); await pose('hero', { state: 'idle' }, 30); await shot(`${P}_course_front`, 'course', `${P}_course`);
   await place('hero');
-  if (!on('extra')) return;
+}
+
+async function heroineCostumes(key) {
+  const P = key;
   // Kostüme
   for (const power of ['krallen', 'funken', 'stern', 'gleitblatt']) {
     await pose('hero', { state: 'idle', power }, 30);
@@ -236,6 +247,12 @@ async function heroine(key) {
   await place('hero', 0, 0, Math.PI / 2, true, 0.1);
   await pose('hero', { state: 'skate', skates: true, speed: 5, power: 'none' }, 40); await shot(`${P}_skate`, 'front', `${P}_kostuem`);
   await place('hero');
+  await pose('hero', { state: 'statue', power: 'gleitblatt', grounded: true }, 40); await shot(`${P}_statue`, 'front', `${P}_kostuem`);
+  await pose('hero', { state: 'idle', power: 'none' }, 20);
+  await place('hero', 0, 0, Math.PI / 2, true, 0.4);
+  await pose('hero', { state: 'swimUnder', speed: 2 }, 60); await shot(`${P}_swim`, 'side', `${P}_kostuem`);
+  await place('hero');
+  await pose('hero', { state: 'idle', holding: 'over' }, 30); await shot(`${P}_tragen`, 'front', `${P}_kostuem`);
   await pose('hero', { state: 'idle', power: 'none' }, 40);
   // klein
   await place('hero', 0, 0, Math.PI / 2, false);
@@ -328,18 +345,21 @@ async function clones() {
   for (const k of ['hero', 'klon0', 'klon1']) await pose(k, { state: 'idle', power: 'none' }, 30);
 }
 
-if (on('hero') || on('pets') || on('extra')) {
+if (on('hero') || on('costume') || on('pets') || on('clones')) {
   await openCourse();
   check('Kurs 1-1 lädt ohne Konsolenfehler', errors.length === 0);
-  if (on('hero')) {
-    await heroine('lotti');
-    await sc(() => { const H = window.__fs, r = H.figs.hero.rig; r.player.hero = 'greta'; r.build('greta'); H.place('hero'); });
-    check('Greta-Avatar gebaut', await sc(() => window.__fs.figs.hero.avatar.variant === 'greta'));
-    await heroine('greta');
-    await sc(() => { const H = window.__fs, r = H.figs.hero.rig; r.player.hero = 'lotti'; r.build('lotti'); H.place('hero'); });
+  if (on('hero') || on('costume')) {
+    for (const key of HEROES) {
+      if (key === 'greta') {
+        await sc(() => { const H = window.__fs, r = H.figs.hero.rig; r.player.hero = 'greta'; r.build('greta'); H.place('hero'); });
+        check('Greta-Avatar gebaut', await sc(() => window.__fs.figs.hero.avatar.variant === 'greta'));
+      }
+      await heroine(key);
+    }
+    await sc(() => { const H = window.__fs, r = H.figs.hero.rig; if (r.avatar.variant !== 'lotti') { r.player.hero = 'lotti'; r.build('lotti'); } H.place('hero'); });
   }
   if (on('pets')) await pets();
-  if (on('extra')) await clones();
+  if (on('clones')) await clones();
   for (const k of ['lotti idle', 'greta idle']) {
     const m = metrics[k];
     if (!m) continue;
