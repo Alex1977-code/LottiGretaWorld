@@ -60,7 +60,7 @@ class Pow extends Gimmick {
       const dx = e.pos.x - this.pos.x, dz = e.pos.z - this.pos.z;
       if (dx * dx + dz * dz > R2 || Math.abs(e.pos.y - this.pos.y) > this.reachY) continue;
       if (e.enemy) { if (!e.flying) e.onHit?.('bump', this); }
-      else if (e.kind === 'brick') e.onHit?.('pound', this);
+      else if (e.kind === 'brick' || e.powBreak) e.onHit?.('pound', this);   // powBreak: lila Ziegel (Welt 5)
       else if (e.kind === 'crate') e.onHit?.('pow', this);
     }
     runAction(lv, this.spec.onUse, { pos: [this.pos.x, this.pos.y + 1, this.pos.z], source: this });

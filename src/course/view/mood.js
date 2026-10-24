@@ -187,8 +187,10 @@ export class ViewMood {
     if (scene.fog) { scene.fog.color.copy(o.fogColor); scene.fog.near = o.fogNear; scene.fog.far = o.fogFar; }
     if (scene.background?.isColor) scene.background.copy(o.background);
     this.clear = o.background.getHex();
-    v.hemi.color.copy(o.hemiSky); v.hemi.groundColor.copy(o.hemiGround); v.hemi.intensity = o.hemiI;
-    v.sun.color.copy(o.sunColor); v.sun.intensity = o.sunI;
+    // Licht-Faktoren des Spielzeug-Looks (CourseView.toyLight) gelten auch für Stimmungen und Unterwasser
+    v.hemi.color.copy(o.hemiSky); v.hemi.groundColor.copy(o.hemiGround); v.hemi.intensity = o.hemiI * (v.toyLight?.hemi ?? 1);
+    if (v.toyLight?.skyC) v.hemi.color.lerp(v.toyLight.skyC, v.toyLight.skyMix * (1 - this.water));
+    v.sun.color.copy(o.sunColor); v.sun.intensity = o.sunI * (v.toyLight?.sun ?? 1);
     const dome = v.sky?.dome?.material;
     if (dome?.color) dome.color.copy(o.dome);
     if (v.playerLight) v.playerLight.intensity = this.playerLightBase * o.playerLight;

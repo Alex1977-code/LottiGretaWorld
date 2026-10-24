@@ -22,6 +22,7 @@ import { roundedBox, SIDE } from '../../../three/world/geometry.js';
 import { placed, Blinker, damp, clamp, smoothstep, lerp } from '../../../three/lib/figures.js';
 import { getEnvMap, canvasTexture, glowTexture, sparkleTexture } from '../../../three/lib/itemMaterials.js';
 import { getRenderer } from '../../../three/renderer.js';
+import { applyToyLook, applyToyLookTree, plainTree } from '../../../three/lib/toyLook.js';
 
 export { THREE, roundedBox, SIDE, placed, Blinker, damp, clamp, smoothstep, lerp, canvasTexture, glowTexture, sparkleTexture };
 export const TAU = Math.PI * 2;
@@ -39,18 +40,50 @@ export function col(c) {
 export const mix = (a, b, t) => col(a).clone().lerp(col(b), clamp(t, 0, 1));
 
 // ------------------------------------------------------------------ Materialien
+// Spielzeug-Look (three/lib/toyLook.js): alle beleuchteten Materialien aus std/vcol/metal und die modell-eigenen
+// Materialien (makeModel) bekommen weiches Randlicht, Glanzkante und etwas Sättigung. Opt-out für Gelände/Kulisse:
+// Eigenschaft `toy: false` (std(key, { toy: false }), vcol(r, { toy: false }, key), metal(key, { toy: false })) bzw.
+// material.userData.toy = false; `toy: { rim, spec, sat }` stellt die Faktoren je Material ein.
+//
+// Kulisse (gelände-artige Modelle: Felsen, Bäume, Mauern, Möbel, Ruinen, Wasser, Banden …) bleibt schlicht: makeModel
+// ersetzt dort geteilte Spielzeug-Materialien durch schlichte Zwillinge (kein Zeichenaufruf mehr, Programme wie bisher),
+// eigene Materialien bleiben unverändert; Kulissen-Materialien der Instanz-Helfer (Säulen, Felsnadeln, Schnee) per Schlüssel.
+export const TOY_KULISSE = new Set([
+  'burgmauer', 'lavafall', 'fallgitter', 'festungsgitter', 'brummbaer_banner',
+  'tafelberg', 'canyon_bogen', 'felsnadel', 'ameisenhuegel', 'ameisenhoehle', 'giftpilz', 'giftbaum', 'liane', 'giftwasserfall', 'giftwasser',
+  'schneeblock', 'eisblock', 'eisflaeche', 'eiskante', 'tanne_schnee', 'iglu', 'eiszapfen', 'kettenzaun',
+  'spuk_treppe', 'kronleuchter', 'bilderrahmen', 'kerze', 'spinnweben', 'buecherregal', 'spuk_sofa', 'spuk_tuer',
+  'bande', 'start_bogen', 'schiene', 'zirkuszelt', 'manege', 'zirkuspodest', 'rosa_gras', 'bunter_stein', 'pastell_blume', 'hecken_hase',
+  'wolkeninsel', 'windrad', 'ruinen_saeule', 'statue_bruch', 'ruinen_torbogen', 'ruinen_treppe', 'ranken',
+  'treibsand', 'kaktus', 'palme', 'ruine_saeule', 'sandsteinbogen', 'pyramide', 'fliese', 'bluetenbaum', 'planet',
+  'koralle', 'seetang', 'steg', 'holzsteg', 'schiffswrack', 'guardrail', 'river_rock', 'item_tree', 'holzwand_boss', 'holz_silhouette', 'metalltor',
+  'festungsmauer', 'zinnen', 'tempelsaeule', 'steinkopf', 'tempeltreppe', 'brummbaer_relief', 'holzbalken', 'schiene_stueck',
+  'akazie', 'deco_w5_akazie', 'termitenhuegel', 'felsenberg', 'steppengras', 'sandskulptur_pilzling', 'torten_plateau',
+]);
+const KULISSE_MATS = new Set(['vcol:0.75:w4stone', 'vcol:0.85:w4canyon', 'vcol:0.45:w4giftpilz', 'vcol:0.62:w3snowblock', 'vcol:0.6:w3fir', 'vcol:0.1:w3icicle',
+  'vcol:0.12:w3icecore', 'metal:w3:iceShell', 'vcol:0.75:w5grass']);
 const MATS = new Map();
-function cachedMat(key, make) {
+function cachedMat(key, make, toy) {
   let m = MATS.get(key);
-  if (!m) { m = make(); m.name = key; MATS.set(key, m); }
+  if (!m) {
+    m = make(); m.name = key; MATS.set(key, m);
+    if (toy === false || KULISSE_MATS.has(key)) m.userData.toy = false;
+    else applyToyLook(m, toy && typeof toy === 'object' ? toy : undefined);
+  }
   return m;
 }
+/** Eigenschaft `toy` (kein Material-Feld) abtrennen → [toy, übrige Eigenschaften]. */
+function toyOpt(props) {
+  if (!props || !('toy' in props)) return [undefined, props ?? {}];
+  const { toy, ...rest } = props;
+  return [toy, rest];
+}
 /** Geteiltes MeshStandardMaterial (Spielzeug-Look: glatt, leicht glänzend). */
-export const std = (key, props = {}) => cachedMat(`std:${key}`, () => new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0, ...props }));
+export const std = (key, props = {}) => { const [toy, p] = toyOpt(props); return cachedMat(`std:${key}`, () => new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0, ...p }), toy); };
 /** Geteiltes unbeleuchtetes Material (Glanzpunkte, Glut, Schein). */
 export const basic = (key, props = {}) => cachedMat(`basic:${key}`, () => new THREE.MeshBasicMaterial(props));
 /** Material für vertexgefärbte Sammel-Meshes. */
-export const vcol = (roughness = 0.42, extra = {}, key = '') => cachedMat(`vcol:${roughness}:${key}`, () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness, metalness: 0, ...extra }));
+export const vcol = (roughness = 0.42, extra = {}, key = '') => { const [toy, e] = toyOpt(extra); return cachedMat(`vcol:${roughness}:${key}`, () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness, metalness: 0, ...e }), toy); };
 /** Geteiltes Sprite-Material (Schein, Funkeln; blickt immer zur Kamera). */
 export const spriteMat = (key, props = {}) => cachedMat(`sprite:${key}`, () => new THREE.SpriteMaterial({ transparent: true, depthWrite: false, ...props }));
 
@@ -65,12 +98,13 @@ export function envMap() {
 }
 /** Metall mit Umgebungsspiegelung (Gold, Chrom, Eisen). */
 export function metal(key, props, intensity = 1) {
+  const [toy, p] = toyOpt(props);
   return cachedMat(`metal:${key}`, () => {
-    const m = new THREE.MeshStandardMaterial({ metalness: 0.7, roughness: 0.3, ...props });
+    const m = new THREE.MeshStandardMaterial({ metalness: 0.7, roughness: 0.3, ...p });
     const e = envMap();
     if (e) { m.envMap = e; m.envMapIntensity = intensity; }
     return m;
-  });
+  }, toy);
 }
 export const gold = () => metal('gold', { color: 0xffc21a, metalness: 0.75, roughness: 0.26, emissive: 0x2a1a00 }, 1.1);
 
@@ -537,6 +571,9 @@ export const wave = (t, hz, phase = 0) => Math.sin(t * hz * TAU + phase);
 export function makeModel(name, root, update, own = [], extra = {}) {
   root.name = `modell:${name}`;
   root.userData.modelName = name;
+  // modell-eigene Materialien (Aufblitzen, Ausblenden …) bekommen den Spielzeug-Look wie die geteilten
+  // (userData.toy = false bleibt außen vor; schon gepatchte bleiben unverändert); Kulisse bleibt schlicht
+  if (TOY_KULISSE.has(name)) plainTree(root); else applyToyLookTree(root);
   const model = {
     root,
     update(dt, state) { update(Math.min(Math.max(dt || 0, 0), 0.1), S(state)); },

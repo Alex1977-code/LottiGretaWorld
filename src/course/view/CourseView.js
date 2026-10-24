@@ -25,12 +25,23 @@
 //   view.setMood(name, { time })                    Stimmung des Themas überblenden (theme.moods; null = Grundstimmung)
 //   view.setUnderwater(on)                          Unterwasser-Stimmung: true/false erzwingt, 'auto' erkennt selbst
 //                                                   (Thema mit `underwater`); view.underwater → bool (view/mood.js)
+//
+// Spielzeug-Look (three/lib/toyLook.js, Wunsch „Figuren wie Super Mario 3D World“): Figuren-Materialien mit Randlicht,
+// Glanzkante, Sättigung und weicher Lichter-Schulter; dazu freundlicheres Licht: etwas mehr (und blaueres) Himmelslicht,
+// etwas weniger Sonne, weichere, bläuliche Schlagschatten. Tonemapping bleibt aus (Farben von Gelände/Himmel sind darauf
+// abgestimmt; Neutral/ACES/AgX dunkeln Gras ab und vergrauen den Himmel – Vergleich: ?tone=neutral|aces|agx&exposure=…).
+// Je Bild stellt syncToy() Randlicht-Farbe/-Stärke und Glanzlicht nach dem aktuellen Licht ein (folgt Stimmungen,
+// Unterwasser und Level-Effekten). Thema-Feld `toy` (alle optional, Standard je Tag/Dunkel siehe toyLight()):
+// { hemi, sun (Faktoren), shadow (Schattendeckkraft 0..1), sky (Blauton fürs Himmelslicht, Hex), skyMix (0..1), rim,
+// spec, sat, fill, shape (Faktoren/Werte des Looks), rimColor (sonst Himmelsfarbe), tone, exposure }. ?toy=0 schaltet
+// alles ab; ?toyk=rim:1.2,spec:0.8 überschreibt Werte zum Abstimmen.
 
 import * as THREE from 'three';
 import Phaser from 'phaser';
 import { GAME } from '../../config.js';
 import { RENDER3D } from '../../render3d.js';
-import { getRenderer, mountCanvas, layoutCanvas, hideCanvas, adaptQuality } from '../../three/renderer.js';
+import { getRenderer, mountCanvas, layoutCanvas, hideCanvas, adaptQuality, setToneMapping } from '../../three/renderer.js';
+import { TOY_ENABLED, setToyLookEnv } from '../../three/lib/toyLook.js';
 import { getTheme } from './themes.js';
 import { Sky } from './Sky.js';
 import { StaticBatcher } from './StaticBatcher.js';
@@ -48,6 +59,38 @@ import { XrayWalls } from './Xray.js';
 
 const SHADOW_R = 22;
 const MAX_LANTERNS = 4;
+
+/**
+ * Licht- und Randlicht-Werte des Spielzeug-Looks je Thema (null bei ?toy=0). Tagesthemen: Himmelslicht +8 % (bei
+ * bläulichem Himmel 22 % ins Himmelblau gemischt: Schatten bläulich statt grau), Sonne −4 %, Schlagschatten zu 88 %
+ * deckend; dunkle Themen (Nacht, Spuk, Höhle, Figurenlicht) behalten ihr Licht und bekommen ein etwas kräftigeres
+ * Randlicht (Figuren lesbar vor dunklem Grund). theme.toy überschreibt einzelne Werte.
+ */
+export function toyLight(theme) {
+  if (!TOY_ENABLED) return null;
+  const dark = theme.hemi.intensity < 1 || !!theme.playerLight;
+  const base = dark
+    ? { hemi: 1, sun: 1, shadow: 0.94, sky: null, skyMix: 0, rim: 1.15, spec: 1.3, sat: 0.12, fill: 0.05 }
+    : { hemi: 1.08, sun: 0.96, shadow: 0.88, sky: 0x8ec4ff, skyMix: 0.22, rim: 1.25, spec: 1.6, sat: 0.16, fill: 0.06 };
+  // Blauton fürs Himmelslicht nur bei ohnehin bläulichem Himmel (Wiese, Wüste, Schnee …); warme Themen (Abendrot,
+  // Lava, Festung, Herbst, Zirkus) behalten ihr warmes Himmelslicht
+  const sky = new THREE.Color(theme.hemi.sky);
+  if (!dark && sky.b <= sky.r + 0.02) base.skyMix = 0;
+  const k = { tone: 'none', exposure: 1, shape: 0.6, ...base, ...(theme.toy ?? {}), ...urlToy(), dark };
+  k.skyC = k.sky !== null && k.sky !== undefined && k.skyMix > 0 ? new THREE.Color(k.sky) : null;
+  return k;
+}
+
+/** Abstimm-Schalter ?toyk=rim:1.2,spec:0.8,shape:0.6 (Zahlen) – überschreibt die Werte aus toyLight() für alle Themen. */
+function urlToy() {
+  try {
+    const q = new URLSearchParams(window.location.search).get('toyk');
+    if (!q) return {};
+    return Object.fromEntries(q.split(',').map((p) => p.split(':')).filter(([a, b]) => a && Number.isFinite(+b)).map(([a, b]) => [a, +b]));
+  } catch { return {}; }
+}
+
+const _kd = new THREE.Vector3(), _kf = new THREE.Vector3(0, 0.55, 0.84).normalize(), _rc = new THREE.Color(), WHITE = new THREE.Color(1, 1, 1);
 
 export class CourseView {
   /**
@@ -72,6 +115,9 @@ export class CourseView {
     this.renderer = renderer;
     this.canvas = canvas;
     mountCanvas(this.game, canvas);
+    // Spielzeug-Look: Licht-Faktoren des Themas (buildLights, mood.js), Tonemapping „Neutral“
+    this.toyLight = toyLight(this.theme);
+    setToneMapping(renderer, this.toyLight?.tone ?? 'none', this.toyLight?.exposure ?? 1, !!this.toyLight);
 
     this.camera = new THREE.PerspectiveCamera(40, GAME.width / GAME.height, 0.3, 700);
     this.rig = new CameraRig(this.camera, data.camera);
@@ -105,11 +151,13 @@ export class CourseView {
   }
 
   buildLights() {
-    const th = this.theme;
-    this.hemi = new THREE.HemisphereLight(th.hemi.sky, th.hemi.ground, th.hemi.intensity);
-    this.sun = new THREE.DirectionalLight(th.sun.color, th.sun.intensity);
+    const th = this.theme, k = this.toyLight;
+    this.hemi = new THREE.HemisphereLight(th.hemi.sky, th.hemi.ground, th.hemi.intensity * (k?.hemi ?? 1));
+    if (k?.skyC) this.hemi.color.lerp(k.skyC, k.skyMix);
+    this.sun = new THREE.DirectionalLight(th.sun.color, th.sun.intensity * (k?.sun ?? 1));
     this.sunDir = new THREE.Vector3(...th.sun.dir).normalize();
     this.sun.castShadow = RENDER3D.shadows && th.shadows;
+    if (k) this.sun.shadow.intensity = k.shadow;
     const sc = this.sun.shadow.camera;
     sc.left = -SHADOW_R; sc.right = SHADOW_R; sc.top = SHADOW_R; sc.bottom = -SHADOW_R; sc.near = 1; sc.far = 120;
     this.sun.shadow.mapSize.set(RENDER3D.shadowMapSize, RENDER3D.shadowMapSize);
@@ -217,6 +265,7 @@ export class CourseView {
     if (this.playerLight && player) this.playerLight.position.set(player.pos.x, player.pos.y + 3.2, player.pos.z + 1.4);
     if (this.lanternSpots?.length) this.updateLanterns(tg);
     this.mood?.update(dt, player);
+    if (this.toyLight) this.syncToy();
     this.sky.update(dt, this.camera);
     for (const f of this.frameFns) f.fn(dt, this.time);
     this.xrays.update(dt, player);
@@ -232,6 +281,35 @@ export class CourseView {
     for (const p of this.pools.values()) p.flush?.(this.culling, focus, this.instanceRules[p.name]);
     this.renderer.render(this.three, this.camera);
     this.culling.end();
+  }
+
+  /**
+   * Randlicht und Glanzlicht der Spielzeug-Materialien nach dem aktuellen Licht (je Bild, nur Lesen der Lichter):
+   * Farbe = Himmelsfarbe der Hemisphäre (bzw. theme.toy.rimColor), Stärke folgt der Himmelshelligkeit (Stimmungen,
+   * Level-Effekte), unter Wasser gedämpft; Glanzlicht in Sonnenfarbe, Richtung zwischen Sonne und Kamera-Vorderseite.
+   */
+  syncToy() {
+    const k = this.toyLight, th = this.theme;
+    const hemiI = this.hemi.intensity / (k.hemi || 1), sunI = this.sun.intensity / (k.sun || 1);
+    const water = this.mood?.water ?? 0;
+    const lit = THREE.MathUtils.clamp(0.3 + 0.7 * hemiI / 1.3, 0.4, 1.15);
+    _rc.copy(this.hemi.color);
+    if (k.rimColor !== undefined) _rc.lerp(k.rimColorC ??= new THREE.Color(k.rimColor), 1 - water);
+    _rc.lerp(WHITE, 0.18);                 // Hauch Weiß: Spielzeug-Kante statt farbigem Schein
+    const cam = this.camera;
+    cam.updateMatrixWorld();
+    _kd.copy(this.sunDir).transformDirection(cam.matrixWorldInverse).lerp(_kf, 0.6).normalize();
+    if (_kd.z < 0.25) { _kd.z = 0.25; _kd.normalize(); }
+    setToyLookEnv({
+      rimColor: _rc,
+      rimStrength: 0.8 * k.rim * lit * (1 - 0.4 * water),
+      specStrength: 0.7 * k.spec * THREE.MathUtils.clamp(sunI / (th.sun.intensity || 1), 0.3, 1.2) * (1 - 0.3 * water),
+      keyColor: this.sun.color,
+      keyDir: _kd,
+      saturation: k.sat,
+      fill: k.fill * lit,
+      rimShape: k.shape,
+    });
   }
 
   updateLanterns(tg) {
@@ -269,6 +347,7 @@ export class CourseView {
     this.sky.dispose();
     this.sun.shadow.map?.dispose();
     for (const m of Object.values(this.mats)) m.dispose();
+    setToneMapping(this.renderer, 'none');
     // Übrige Geometrien/Materialien der Bausteine freigeben (geteilte Avatar-Caches nicht anfassen)
     this.three.traverse((o) => {
       if (o.userData?.owned) { o.geometry?.dispose?.(); if (o.material && !Array.isArray(o.material)) o.material.dispose?.(); }
