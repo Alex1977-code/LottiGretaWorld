@@ -143,7 +143,7 @@ console.log('Gegnerwerkstatt Lila Strand 0-18');
   console.log(`  Arten: ${JSON.stringify(st0.kinds)}`);
   const NEED = ['sandtaucher', 'zuendkopf', 'zuendkopf_quelle', 'lila_ziegelwand', 'lila_ziegel', 'feuerring', 'hackbeil_pilz', 'funkenling', 'glutball', 'suchkopf_welle', 'kanone_turm'];
   check(`Alle Welt-5-Gegnerarten geladen (${NEED.filter((k) => !st0.kinds[k]).join(', ') || 'vollständig'})`, NEED.every((k) => st0.kinds[k] > 0));
-  const OLD = ['panzerkroete', 'pilzling', 'rammbock_bulle', 'ameisensoldat', 'feuer_werfer', 'pilzlingsturm', 'kreisgeist', 'muenzmarder', 'spuk', 'krabbelkaefer'];
+  const OLD = ['panzerkroete', 'pilzling', 'rammbock_bulle', 'ameisensoldat', 'feuer_werfer', 'pilzlingsturm', 'kreisgeist', 'muenzmarder', 'spuk', 'krabbelkaefer', 'werferturm'];
   check(`Vorhandene Welt-5-Gegner bereit (${OLD.filter((k) => !st0.kinds[k]).join(', ') || 'alle'})`, OLD.every((k) => st0.kinds[k] > 0));
   check('Keine Konsolenfehler beim Laden', errors.length === 0);
   if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
@@ -608,6 +608,34 @@ console.log(`  Suchkopf-Welle: ${JSON.stringify(sw)}`);
 check('Suchkopf-Kanonen schweigen ohne Alarm (Figur unter dem Dach)', sw.quiet.k1 === 0 && sw.quiet.k2 === 0 && sw.quiet.alarms === 0 && sw.quiet.state === 'ready');
 check(`Alarm des Suchscheinwerfers → Suchkopf-Welle: ${sw.wave.heads} Suchköpfe (2 je Kanone), danach wieder still`, sw.wave.spotted && sw.wave.signals >= 1 && sw.wave.shots[0] === 2 && sw.wave.shots[1] === 2 && sw.wave.heads === 4 && sw.wave.state === 'cool' && !sw.wave.active[0] && !sw.wave.active[1]);
 check('Suchkopf-Welle: Alarm in der Abklingzeit verpufft, danach wieder bereit, ohne Alarm keine Schüsse', sw.cool.ignored === 1 && sw.ready === 'ready' && sw.after[0] === 0 && sw.after[1] === 0);
+const wt = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const tw = t.ent('wturm'), w = t.ent('wturm_werfer');
+  out.start = { count: tw.count, height: +tw.height.toFixed(2), riderY: +(w.pos.y - tw.pos.y).toFixed(2), riding: w.riding === tw };
+  // er wirft von oben auf die Figur
+  const fig = [10, 1, t.Z(6, 3)];
+  t.place(fig, { settle: 1 });
+  const th0 = w.throws;
+  p.hurt = () => false;
+  for (let i = 0; i < 960; i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  delete p.hurt;
+  out.throws = w.throws - th0;
+  out.riderStill = +(w.pos.y - tw.pos.y - tw.height).toFixed(2);
+  // von oben eine Stufe abtragen: der Werfer sinkt mit (der Abprall vom Werfer besiegt ihn – hier nur die Stufe)
+  const h0 = tw.height;
+  tw.onHit('fire', p);
+  c.step(2);
+  out.pop = { count: tw.count, drop: +(h0 - tw.height).toFixed(2), riderY: +(w.pos.y - tw.pos.y).toFixed(2) };
+  // Explosion wirft den Turm um, der Werfer springt ab und kämpft am Boden
+  tw.onHit('bomb', p);
+  for (let i = 0; i < 360; i++) c.step(1);
+  out.fall = { tower: tw.defeated, rider: w.state, riderY: +w.pos.y.toFixed(2), riding: !!w.riding, alive: !w.defeated };
+  return out;
+});
+console.log(`  Werferturm: ${JSON.stringify(wt)}`);
+check(`Werferturm (5-B): 9 Pilzlinge (${wt.start.height} m), Werfer obenauf wirft (${wt.throws} Würfe in 8 s) und bleibt oben`, wt.start.count === 9 && wt.start.height > 5.5 && wt.start.riding && Math.abs(wt.start.riderY - wt.start.height) < 0.05 && wt.throws >= 2 && Math.abs(wt.riderStill) < 0.05);
+check('Werferturm: ein Treffer nimmt die oberste Stufe, der Werfer sinkt mit; Explosion wirft den Turm um, der Werfer kämpft am Boden weiter', wt.pop.count === 8 && Math.abs(wt.pop.drop - 0.62) < 0.01 && wt.fall.tower && !wt.fall.riding && wt.fall.alive && wt.fall.riderY < 1.2);
 check('Keine Konsolenfehler (Teil 2)', errors.length === 0);
 }
 
@@ -820,6 +848,143 @@ console.log(`  Kippquader-König Tod/Klon: ${JSON.stringify(kr)}`);
 check('Kippquader-König zielt auf die nächste Figur (Klon) und blickt zu ihr (+X)', !kr.clone || (kr.clone.target && kr.clone.facing === 0));
 check('Tod im Kampf: Neustart, König 3/3 am Startplatz, Ecken wieder fest, Begleit-Kippquader ruhen, Kampf von vorn', kr.hpBefore === 2 && kr.cornersBefore !== 'solid' && kr.reset.state === 'wait' && kr.reset.hp === 3 && !kr.reset.lying && !kr.reset.started && kr.reset.deaths === 1 && kr.reset.z === -5 && kr.reset.corners.every((s) => s === 'solid') && kr.reset.kq.every((r) => r === false) && kr.again.started && kr.again.state === 'intro');
 check('Keine Konsolenfehler (Teil 3)', errors.length === 0);
+}
+
+// =====================================================================================================================
+// Teil 4: Bilder (Kurs-Kamera) und Zeichenaufrufe
+// =====================================================================================================================
+if (want(4)) {
+await load('0-18');
+console.log('Teil 4: Bilder');
+const S = {};
+const stand = (pos, yaw = Math.PI / 2) => sc(([q, y]) => { window.__t.place(q, { settle: 2, yaw: y }); }, [pos, yaw]);
+S.sandtaucher = await SHOT('w5e', 'sandtaucher_versteckt', () => { const t = window.__t; t.place([-7, 1, t.Z(1, 2)], { settle: 2 }); window.__course.step(30); });
+S.sandsprung = await SHOT('w5e', 'sandtaucher_sprung', () => {
+  const c = window.__course, t = window.__t, p = c.player, f = t.ent('st_sand');
+  const fig = [-7, 1, t.Z(1, 4)];
+  for (let i = 0; i < 2400 && !(f.state === 'jump' && f.stateT > 0.42); i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  t.face(f.pos.x, f.pos.z);
+});
+S.wasser = await SHOT('w5e', 'sandtaucher_wasser', () => {
+  const c = window.__course, t = window.__t, p = c.player, f = t.ent('st_wasser'), m = c.level.data.marks.pool;
+  for (let i = 0; i < 2400 && !(f.state === 'jump' && f.stateT > 0.45); i++) { p.pos.set(m[0], m[1] + 0.4, m[2]); p.vel.set(0, 0, 0); c.step(1); }
+  t.face(f.pos.x, f.pos.z);
+});
+S.zk = await SHOT('w5e', 'zuendkopf_brennt', () => {
+  const c = window.__course, t = window.__t, p = c.player, j = t.ent('zk_jaeger');
+  const fig = [-10, 1, t.Z(2, 4)];
+  for (let i = 0; i < 1800 && !(j.lit && j.fuse < 1.6); i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  t.face(j.pos.x, j.pos.z);
+});
+S.zkboom = await SHOT('w5e', 'zuendkopf_explosion', () => {
+  const c = window.__course, t = window.__t, p = c.player, j = t.ent('zk_jaeger');
+  for (let i = 0; i < 600 && !j.exploded; i++) { j.pos.set(-11.5, 1, t.Z(2, 11.2)); p.pos.set(-7, 1, t.Z(2, 7)); p.vel.set(0, 0, 0); c.step(1); }
+  c.step(14);
+});
+S.zktrag = await SHOT('w5e', 'zuendkopf_tragen', () => {
+  const c = window.__course, t = window.__t, p = c.player, z = t.ent('zk_wurf');
+  t.place([z.pos.x - 0.75, 1, z.pos.z], { settle: 2, yaw: 0 });
+  t.face(z.pos.x, z.pos.z); t.action(); c.step(20);
+  t.face(z.pos.x + 2, z.pos.z - 4); c.step(2);
+});
+S.lila = await SHOT('w5e', 'lila_ziegel', () => {
+  const c = window.__course, t = window.__t, p = c.player;
+  // Wurf an die Wand: Explosion, Ziegel brechen
+  const w2 = t.ent('lw2');
+  t.moveTo([w2.pos.x - 1, 1, w2.pos.z + w2.half.z + 3.2], 10);
+  t.face(w2.pos.x, w2.pos.z); c.step(1); t.action();
+  for (let i = 0; i < 180 && p.holding; i++) c.step(1);
+  for (let i = 0; i < 200; i++) { c.step(1); if (w2.broken > 0) break; }
+  c.step(10);
+});
+S.puls = await SHOT('w5e', 'feuerring_puls', () => {
+  const c = window.__course, t = window.__t, f = t.ent('fr_puls');
+  t.place([-5.5, 1, t.Z(3, 3)], { settle: 2 });
+  for (let i = 0; i < 600 && !(f.anim === 'pulse' && f.ring > 3 && f.ring < 3.4); i++) c.step(1);
+  t.face(f.base.x, f.base.z);
+});
+S.rad = await SHOT('w5e', 'feuerring_rad', () => {
+  const c = window.__course, t = window.__t, f = t.ent('fr_rad');
+  t.place([6.5, 1, t.Z(3, 2)], { settle: 30 });
+  t.face(f.base.x, f.base.z);
+});
+S.hb = await SHOT('w5e', 'hackbeil_ausholen', () => {
+  const c = window.__course, t = window.__t, p = c.player, h = t.ent('hb_jaeger');
+  const fig = [-9, 1, t.Z(4, 5)];
+  for (let i = 0; i < 1800 && !(h.state === 'raise' && h.stateT > 0.3); i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  t.face(h.pos.x, h.pos.z);
+});
+S.hbstuck = await SHOT('w5e', 'hackbeil_steckt', () => {
+  const c = window.__course, t = window.__t, p = c.player, h = t.ent('hb_jaeger');
+  for (let i = 0; i < 600 && !(h.state === 'stuck' && h.stateT > 0.3); i++) c.step(1);
+  const f = h.facing({});
+  p.pos.set(h.pos.x - f.x * 1.6 + f.z * 1.2, 1, h.pos.z - f.z * 1.6 - f.x * 1.2);
+  t.face(h.pos.x, h.pos.z);
+});
+S.fl = await SHOT('w5e', 'funkenling', () => { const t = window.__t; t.place([10, 1, t.Z(4, 0.6)], { settle: 60 }); t.face(12, t.Z(4, 7)); });
+S.gb = await SHOT('w5e', 'glutball', () => {
+  const c = window.__course, t = window.__t, g = t.ent('gb_1');
+  t.place([-11.5, 1, t.Z(5, 1.2)], { settle: 2 });
+  for (let i = 0; i < 600 && !(g.state === 'up' && g.vel.y < 1 && g.vel.y > -1); i++) c.step(1);
+  t.face(-11.5, t.Z(5, 7));
+});
+S.welle = await SHOT('w5e', 'suchkopf_welle', () => {
+  const c = window.__course, t = window.__t, p = c.player, w = t.ent('welle'), licht = t.ent('licht');
+  p.hurt = () => false;
+  for (let i = 0; i < 1200 && w.state !== 'wave'; i++) { const s = licht.spot; p.pos.set(s.x, 1, s.z); p.vel.set(0, 0, 0); c.step(1); }
+  for (let i = 0; i < 230; i++) { p.pos.set(12, 1, t.Z(5, 9)); p.vel.set(0, 0, 0); c.step(1); }
+  t.face(12, t.Z(5, 13));
+});
+S.alt = await SHOT('w5e', 'vorhandene', () => { const t = window.__t; t.place([0, 1, t.Z(6, 1)], { settle: 120 }); t.face(0, t.Z(6, 8)); });
+// Modelle im Einzelporträt: Zündkopf, Hackbeil, Funkenling nah
+S.nah = await SHOT('w5e', 'nah_zuendkopf_hackbeil', () => {
+  const c = window.__course, t = window.__t, L = c.level;
+  t.place([0, 1, t.Z(2, 2)], { settle: 2 });
+  L.spawn('zuendkopf', { pos: [-1.4, 1, t.Z(2, 4)], trigger: 0, speed: 0.001, behavior: 'walk', wake: 99 });
+  L.spawn('zuendkopf', { pos: [0, 1, t.Z(2, 4.5)], lit: true, fuse: 60, trigger: 0, speed: 0.001, behavior: 'walk', wake: 99 });
+  L.spawn('hackbeil_pilz', { pos: [1.6, 1, t.Z(2, 4)], dir: [0, 1], hop: 0.001, sight: 0, wake: 99 });
+  L.spawn('funkenling', { pos: [3, 1, t.Z(2, 4.2)], speed: 0.001, mode: 'wusel', wake: 99, color: 'pink' });
+  c.step(60);
+  t.face(0, t.Z(2, 5));
+});
+const zmax = Math.max(...Object.values(S).map((s) => s.calls));
+console.log(`  Zeichenaufrufe Werkstatt: ${Object.entries(S).map(([k, s]) => `${k} ${s.calls}`).join(', ')}; höchstens ${Math.round(Math.max(...Object.values(S).map((s) => s.triangles)) / 1000)} k Dreiecke`);
+check(`Gegnerwerkstatt: Zeichenaufrufe < 140 (höchstens ${zmax})`, zmax < 140);
+
+await load('0-19');
+await sc(BOSS_HELPERS, ['koenig', 17]);
+const B = {};
+B.intro = await SHOT('w5e', 'koenig_auftritt', () => { const c = window.__course, t = window.__t; t.enter(); t.untilSafe('walk', 600, [-2, 2, 7]); c.step(30); });
+B.warn = await SHOT('w5e', 'koenig_landeflaeche', () => { const t = window.__t; t.untilSafe('warn', 2400, [-2, 2, 6]); window.__course.step(40); window.__course.player.pos.set(-4.5, 2, 6); });
+B.tilt = await SHOT('w5e', 'koenig_kippt', () => { const t = window.__t, b = t.boss(); for (let i = 0; i < 300 && !(b.state === 'tilt' && b.stateT > 0.42); i++) window.__course.step(1); });
+B.lie = await SHOT('w5e', 'koenig_liegt', () => {
+  const c = window.__course, t = window.__t, b = t.boss();
+  t.untilSafe('lie', 600, [-4.5, 2, 6]);
+  c.step(60);
+  const f = b.backField(), D = [[1, 0], [0, -1], [-1, 0], [0, 1]][b.facing];
+  t.place([f.x - D[0] * 1.5, f.y + 0.1, f.z - D[1] * 1.5], { settle: 20 });
+  t.face(f.x, f.z);
+});
+B.hit = await SHOT('w5e', 'koenig_treffer', () => { const c = window.__course, t = window.__t; t.backJump(0); c.step(20); });
+B.corner = await SHOT('w5e', 'koenig_ecken', () => { const c = window.__course, t = window.__t; t.untilSafe('roar', 600, [0, 2, 7]); c.step(90); });
+B.shock = await SHOT('w5e', 'koenig_schockwelle', () => {
+  const c = window.__course, t = window.__t, b = t.boss();
+  t.untilSafe('lie', 3000, [0, 2, 7]); t.backJump(0);
+  t.untilSafe('lie', 3000, [0, 2, 7]);
+  c.step(40);
+  c.player.pos.set(0, 2, 7);
+});
+B.def = await SHOT('w5e', 'koenig_besiegt', () => {
+  const c = window.__course, t = window.__t;
+  t.untilSafe('lie', 3000, [0, 2, 7]);
+  t.backJump(0);
+  c.step(110);
+  c.player.pos.set(0, 2, 7);
+});
+const bmax = Math.max(...Object.values(B).map((s) => s.calls));
+console.log(`  Zeichenaufrufe Tempel: ${Object.entries(B).map(([k, s]) => `${k} ${s.calls}`).join(', ')}; höchstens ${Math.round(Math.max(...Object.values(B).map((s) => s.triangles)) / 1000)} k Dreiecke`);
+check(`Tempel-Arena: Zeichenaufrufe < 140 (höchstens ${bmax})`, bmax < 140);
+check('Keine Konsolenfehler (Teil 4)', errors.length === 0);
 }
 
 // __TEILE__

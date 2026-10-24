@@ -480,8 +480,15 @@ class KippquaderKoenig extends EnemyW2 {
   stepWaves(dt) {
     if (!this.waves.length) return;
     const sp = this.spec.shockSpeed ?? 6.5;
+    const fx = this.level.effects;
     for (const w of this.waves) {
       w.r += sp * dt;
+      // Staub am Wellenkamm (lesbar auf hellem Boden)
+      w.dustT = (w.dustT ?? 0) - dt;
+      if (fx && w.dustT <= 0) {
+        w.dustT = 0.09;
+        for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2 + w.r * 0.7; fx.dust({ x: w.x + Math.cos(a) * w.r, y: w.y, z: w.z + Math.sin(a) * w.r }, 1, 0.5); }
+      }
       for (const p of figures(this.level)) {
         if (!activeFigure(p) || w.hit.has(p)) continue;
         if (p.pos.y > w.y + 0.45 || p.pos.y + p.half.y * 2 < w.y - 0.2) continue;
@@ -580,7 +587,7 @@ class KippquaderKoenig extends EnemyW2 {
     const view = this.level.view;
     if (!view) return;
     while (this.waveMeshes.length < this.waves.length) {
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.45, 56, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe2a0, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }));
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.45, 56, 1, true), new THREE.MeshBasicMaterial({ color: 0xff9a3a, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
       m.renderOrder = 3;
       view.add(m);
       this.waveMeshes.push(m);
@@ -591,7 +598,7 @@ class KippquaderKoenig extends EnemyW2 {
       if (!w) return;
       m.position.set(w.x, w.y + 0.225, w.z);
       m.scale.set(w.r, 1, w.r);
-      m.material.opacity = 0.6 * (1 - Math.max(0, (w.r - w.rMax * 0.7) / (w.rMax * 0.3)));
+      m.material.opacity = 0.8 * (1 - Math.max(0, (w.r - w.rMax * 0.7) / (w.rMax * 0.3)));
     });
   }
 

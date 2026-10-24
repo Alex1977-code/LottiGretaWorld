@@ -8,7 +8,8 @@
 //   4 (−68 … −82)     links Hackbeil-Pilze (Verfolger, Patrouille) · rechts Funkenlinge (Blockrand, Wand, wuselnd)
 //   5 (−88 … −102)    links Glutbälle in blauer Lava · rechts Suchscheinwerfer mit zwei Suchkopf-Kanonen (Suchkopf-Welle)
 //   6 (−108 … −122)   links/rechts: Vorhandene im Welt-5-Einsatz (Panzerkröte, Mini-Pilzling, Rammbock-Bulle,
-//                     Ameisensoldat, Feuer-Werfer, Pilzlingsturm, Kreisgeist, Münzmarder, Spuk, Krabbelkäfer)
+//                     Ameisensoldat, Feuer-Werfer, Pilzlingsturm, Kreisgeist, Münzmarder, Spuk, Krabbelkäfer) und der
+//                     Werferturm (Feuer-Werfer auf 9 Pilzlingen, 5-B)
 //   Ziel bei z −140. Thema 'beach', Musik course_beach.
 // Hilfe Z(r, dz) = z der Reihe r, dz Meter hinter ihrer Vorderkante (auch in den Tests).
 
@@ -108,6 +109,8 @@ export const LEVEL = {
     { kind: 'kreisgeist', id: 'v_kreisgeist', center: at(11.5, 6, 6, Y + 0.25), radius: 2.4 },
     { kind: 'spuk', id: 'v_spuk', pos: at(17, 6, 3, Y + 0.4) },
     { kind: 'muenzmarder', id: 'v_marder', path: [at(6, 6, 2), at(17, 6, 2)], sight: 3 },
+    // 5-B: Feuer-Werfer auf einem Pilzlingsturm aus 9 Pilzlingen (werferturm)
+    { kind: 'werferturm', id: 'wturm', pos: at(12, 6, 12), count: 9, behavior: 'walk', speed: 0.3, path: [at(10, 6, 12), at(14, 6, 12)], riderId: 'wturm_werfer' },
   ],
   items: [
     // 2 links: lila Ziegelwand hinter den Zündköpfen; Ziegel und Steinblock daneben

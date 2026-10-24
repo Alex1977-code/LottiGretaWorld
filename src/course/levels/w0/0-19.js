@@ -27,7 +27,7 @@ export const LEVEL = {
     id: 'koenig', name: 'Kippquader-König', speed: 0,
     trigger: { min: [-A, Y - 0.5, -A], max: [A, Y + 8, A - 0.6] },
     lock: { min: [-2.2, Y - 0.5, A + 0.2], max: [2.2, Y + 5, A + 0.8] },
-    warp: 'warp_sieg', warpPos: [0, Y, -7.5], warpTo: [0, Y + 0.3, -40], frame: 0.3, musicAfter: 'course_temple',
+    warp: 'warp_sieg', warpPos: [0, Y, -7.5], warpTo: [0, Y + 0.3, -40], frame: 0.45, musicAfter: 'course_temple',
     center: [0, Y, 0],
   },
   segments: [
