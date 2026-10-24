@@ -61,17 +61,21 @@ const SHADOW_R = 22;
 const MAX_LANTERNS = 4;
 
 /**
- * Licht- und Randlicht-Werte des Spielzeug-Looks je Thema (null bei ?toy=0). Tagesthemen: Himmelslicht +8 % und 22 % ins
- * Himmelblau gemischt (Schatten bläulich statt grau-grün), Sonne −4 %, Schlagschatten zu 88 % deckend; dunkle Themen
- * (Nacht, Spuk, Höhle, Figurenlicht) behalten ihr Licht und bekommen ein kräftigeres Randlicht (Figuren lesbar vor
- * dunklem Grund). theme.toy überschreibt einzelne Werte.
+ * Licht- und Randlicht-Werte des Spielzeug-Looks je Thema (null bei ?toy=0). Tagesthemen: Himmelslicht +8 % (bei
+ * bläulichem Himmel 22 % ins Himmelblau gemischt: Schatten bläulich statt grau), Sonne −4 %, Schlagschatten zu 88 %
+ * deckend; dunkle Themen (Nacht, Spuk, Höhle, Figurenlicht) behalten ihr Licht und bekommen ein etwas kräftigeres
+ * Randlicht (Figuren lesbar vor dunklem Grund). theme.toy überschreibt einzelne Werte.
  */
 export function toyLight(theme) {
   if (!TOY_ENABLED) return null;
   const dark = theme.hemi.intensity < 1 || !!theme.playerLight;
   const base = dark
     ? { hemi: 1, sun: 1, shadow: 0.94, sky: null, skyMix: 0, rim: 1.15, spec: 1.3, sat: 0.12, fill: 0.05 }
-    : { hemi: 1.08, sun: 0.96, shadow: 0.88, sky: 0x8ec4ff, skyMix: 0.22, rim: 1.25, spec: 1.6, sat: 0.18, fill: 0.06 };
+    : { hemi: 1.08, sun: 0.96, shadow: 0.88, sky: 0x8ec4ff, skyMix: 0.22, rim: 1.25, spec: 1.6, sat: 0.16, fill: 0.06 };
+  // Blauton fürs Himmelslicht nur bei ohnehin bläulichem Himmel (Wiese, Wüste, Schnee …); warme Themen (Abendrot,
+  // Lava, Festung, Herbst, Zirkus) behalten ihr warmes Himmelslicht
+  const sky = new THREE.Color(theme.hemi.sky);
+  if (!dark && sky.b <= sky.r + 0.02) base.skyMix = 0;
   const k = { tone: 'none', exposure: 1, shape: 0.6, ...base, ...(theme.toy ?? {}), ...urlToy(), dark };
   k.skyC = k.sky !== null && k.sky !== undefined && k.skyMix > 0 ? new THREE.Color(k.sky) : null;
   return k;

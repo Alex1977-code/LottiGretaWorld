@@ -9,7 +9,7 @@
 // Materialien vorhanden (bzw. bei ?toy=0 keine), kein Tonemapping (die weiche Schulter sitzt in den Figuren-Materialien).
 //
 // Aufruf: PORT_BASE=3900 node tests/toylook.mjs   (Vite-Entwicklungsserver, kein Build nötig; Port 4480 + PORT_BASE)
-//   TOY_PART=w1,w2,w3,w4,gallery,map (Standard alle; je Teil ≤ 10 min) · TOY_ONLY=<Namensteil> · TOY_FRAMES=3 (Bildzeit: Runden)
+//   TOY_PART=w1,w2,w3,w4,w4x,gallery,map (Standard alle; je Teil ≤ 10 min) · TOY_ONLY=<Namensteil> · TOY_FRAMES=3 (Bildzeit: Runden)
 //   TOY_URL=&tone=aces (zusätzliche URL-Parameter für den Nachher-Lauf, z. B. Tonemapping-Vergleich) · TOY_MODES=1
 //   (nur nachher) · TOY_TAG=_x (Namenszusatz der Einzelbilder, dann ohne Vergleichsbilder)
 import { createServer } from 'vite';
@@ -18,7 +18,7 @@ import { launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
 const PORT = 4480 + Number(process.env.PORT_BASE ?? 0);
 const ROOT = new URL('..', import.meta.url).pathname;
-const PARTS = new Set((process.env.TOY_PART ?? 'w1,w2,w3,w4,gallery,map').split(','));
+const PARTS = new Set((process.env.TOY_PART ?? 'w1,w2,w3,w4,w4x,gallery,map').split(','));
 const ONLY = process.env.TOY_ONLY ?? '';
 const FRAMES = Number(process.env.TOY_FRAMES ?? 3);
 const EXTRA = process.env.TOY_URL ?? '';
@@ -30,7 +30,8 @@ const LEVELS = {
   w1: [['1-1', 'start', null, 20], ['1-1', 'terrasse', [-2, 4, -15], 20], ['1-2', 'hoehle', null, 20], ['1-5', 'zirkus', null, 20]],
   w2: [['2-1', 'wueste', null, 20], ['2-3', 'schatten', null, 20], ['2-A', 'lava', null, 20]],
   w3: [['3-1', 'schnee', [0, 1, -12], 20], ['3-3', 'spuk', [64, 1, -38], 20], ['3-5', 'riff', [0, 1, -33], 20], ['3-5', 'unterwasser', [0, -4, -56], 60]],
-  w4: [['4-1', 'kolonne', [0, 1, -18], 20], ['4-2', 'giftwald', null, 20], ['4-Burg', 'lavaburg', null, 20], ['4-3', 'technik', null, 20]],
+  w4: [['4-1', 'kolonne', [0, 1, -18], 20], ['4-2', 'giftwald', null, 20], ['4-Burg', 'lavaburg', null, 20]],
+  w4x: [['4-3', 'technik', null, 20], ['4-B', 'festung', null, 20], ['3-7', 'herbst', null, 20]],
 };
 // Galerien: [Level (Licht/Thema), Name, Reihen [[Modell, opts?] …]]
 const ROWS = {
@@ -305,7 +306,7 @@ async function mapShots() {
 }
 
 // ------------------------------------------------------------------ Ablauf
-for (const w of ['w1', 'w2', 'w3', 'w4']) if (PARTS.has(w)) { console.log(`\nLevel ${w}`); await levelShots(LEVELS[w]); }
+for (const w of ['w1', 'w2', 'w3', 'w4', 'w4x']) if (PARTS.has(w)) { console.log(`\nLevel ${w}`); await levelShots(LEVELS[w]); }
 if (PARTS.has('gallery')) for (const [id, label, pos] of GALLERIES) { if (!want(`galerie_${label}`) && !ONLY.startsWith(`galerie_${label}_`)) continue; console.log(`\nGalerie ${label} (${id})`); await gallery(id, label, pos); }
 if (PARTS.has('map')) { console.log('\nKarte'); await mapShots(); }
 allErrors.push(...relevant(errors.splice(0)));

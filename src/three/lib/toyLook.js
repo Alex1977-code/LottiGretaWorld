@@ -100,9 +100,10 @@ if ( toyEnv.x + toyEnv.y + toyEnv.z + toyFill > 0.0 ) {
 	// sanft angehobene Sättigung (linear)
 	float toyY = dot( outgoingLight, vec3( 0.2126, 0.7152, 0.0722 ) );
 	outgoingLight = max( mix( vec3( toyY ), outgoingLight, 1.0 + toyEnv.z * toyMat.z ), 0.0 );
-	// weiche Lichter-Schulter (farbtonerhaltend, ab 0,8): Glanz und Randlicht laufen weich aus statt hart ins Weiß
+	// weiche Lichter-Schulter (farbtonerhaltend, ab 0,9): Glanz und Randlicht laufen weich aus statt hart ins Weiß,
+	// darunter bleibt alles unverändert (Schattierung heller Flächen bleibt erhalten)
 	float toyPk = max( max( outgoingLight.r, outgoingLight.g ), outgoingLight.b );
-	if ( toyPk > 0.8 ) outgoingLight *= ( 0.8 + ( toyPk - 0.8 ) / ( 1.0 + ( toyPk - 0.8 ) * 4.0 ) ) / toyPk;
+	if ( toyPk > 0.9 ) outgoingLight *= ( 0.9 + ( toyPk - 0.9 ) / ( 1.0 + ( toyPk - 0.9 ) * 4.0 ) ) / toyPk;
 }
 `;
 
