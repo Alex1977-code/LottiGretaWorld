@@ -269,7 +269,7 @@ const HAIR = {
     },
     thick: (a, el) => {
       const x = Math.abs(wrapAngle(a));
-      const t = 0.046 + 0.006 * smoothstep((0.8 - x) / 0.8) * smoothstep((0.9 - el) / 0.5);
+      const t = 0.046 + 0.006 * smoothstep((0.8 - x) / 0.8) * smoothstep((0.9 - el) / 0.5) + 0.014 * smoothstep((x - 1.9) / 0.6) * smoothstep((0.8 - el) / 0.4);   // hinten voller (Übergang zum langen Haar)
       return t * (1 + 0.06 * Math.cos(a * 14) * smoothstep((1.25 - el) / 0.45));
     },
     groove: (a) => Math.pow(0.5 + 0.5 * Math.cos(a * 14), 6),
@@ -425,22 +425,27 @@ const MANE_LEN = 0.74;
 function maneGeo(st) {
   return geo(`hero:mane:${st.hair}`, () => {
     const base = col3(st.hair), tip = col3(st.hairTip), dk = col3(st.hairDark);
-    const env = (v) => Math.sqrt(Math.sin((Math.PI / 2) * Math.min(1, v / 0.14))) * (v > 0.86 ? Math.sqrt(Math.max(0, 1 - ((v - 0.86) / 0.14) ** 2)) : 1);
+    // oberes Fünftel steckt in der Haarschale (Hinterkopf), darunter ein Haarvorhang: Rückseite bündig mit der Schale,
+    // Vorderseite hinter dem Rücken, unten gewellte Spitzen mit Schwung nach hinten
+    const env = (v) => Math.pow(Math.sin((Math.PI / 2) * Math.min(1, v / 0.3)), 0.6) * (v > 0.86 ? Math.sqrt(Math.max(0, 1 - ((v - 0.86) / 0.14) ** 2)) : 1);
     return gridGeo({
       nu: 22, nv: 12, flip: true,
       point: (u, v, out) => {
-        const th = u * TAU, e = env(v);
-        const wz = (0.25 + 0.07 * Math.sin(Math.PI * Math.min(1, v * 1.15))) * (1 + 0.05 * Math.cos(7 * th) * smoothstep((v - 0.55) / 0.3)) * e;
-        const wx = (0.12 + 0.02 * v) * e;
+        const th = u * TAU, e = env(v), sz = Math.sin(th);
+        // drei große Locken unten (Spitzen verschieden lang), leicht glockig, Rücken gewölbt
+        const lock = 0.5 + 0.5 * Math.cos(3 * Math.PI * sz);
+        const wz = (0.335 - 0.035 * v * v + 0.025 * Math.sin(Math.PI * v)) * (1 + 0.04 * lock * smoothstep((v - 0.6) / 0.3)) * e;
+        const wx = (0.085 + 0.025 * Math.sin(Math.PI * v)) * e;
         const curl = smoothstep((v - 0.78) / 0.22);
-        const cx = -0.05 - 0.05 * v - 0.05 * curl;
-        return out.set(cx + wx * Math.cos(th), -MANE_LEN * v + 0.035 * curl, wz * Math.sin(th));
+        const cx = -0.13 - 0.04 * v - 0.05 * curl;
+        const y = -MANE_LEN * v * (1 + 0.07 * lock * smoothstep((v - 0.7) / 0.3)) + 0.035 * curl;
+        return out.set(cx + wx * Math.cos(th), y, wz * sz);
       },
       color: (u, v) => {
-        const th = u * TAU, g = Math.pow(0.5 + 0.5 * Math.cos(16 * th), 5);
-        const c = base.clone().lerp(dk, 0.18 * g + 0.15 * smoothstep((Math.cos(th) + 0.2) / 0.8));
+        const th = u * TAU, g = Math.pow(0.5 + 0.5 * Math.cos(3 * Math.PI * Math.sin(th) + Math.PI), 3);
+        const c = base.clone().lerp(dk, 0.22 * g * smoothstep((v - 0.3) / 0.4) + 0.15 * smoothstep((Math.cos(th) + 0.2) / 0.8));
         const band = Math.exp(-(((v - 0.36) / 0.08) ** 2)) * smoothstep((-Math.cos(th) - 0.2) / 0.6) * (1 - 0.7 * g);
-        return c.lerp(tip, Math.max(0.55 * band, 0.6 * smoothstep((v - 0.78) / 0.2)));
+        return c.lerp(tip, Math.max(0.3 * band, 0.6 * smoothstep((v - 0.78) / 0.2)));
       },
     });
   });
@@ -1722,7 +1727,7 @@ export class HeroAvatar extends Avatar3D {
         footN: 0.35 * k * Math.max(0, -s), footF: 0.35 * k * Math.max(0, s),
         armZn: 0.05 - 0.55 * k * s, armZf: 0.05 + 0.55 * k * s, armXn: -0.13, armXf: 0.13,
         elbowN: 0.3 + 0.35 * k * Math.max(0, -s), elbowF: 0.3 + 0.35 * k * Math.max(0, s),
-        lean: -0.07 * k, bob: 0.042 * k * Math.abs(s) - 0.012 * k, torsoY: -0.1 * k * s, sq: 0.025 * k * (0.5 - Math.abs(s)),
+        lean: -0.07 * k, bob: 0.042 * k * Math.abs(s) - 0.012 * k, torsoY: -0.1 * k * s,
         headZ: 0.07 * k + 0.02 * Math.cos(2 * p), headY: 0.05 * k * s,
         hairBack: 0.35 * k + 0.08 * Math.sin(2 * p), hairLift: 0.1 * k * Math.cos(2 * p),
       };
@@ -1735,7 +1740,7 @@ export class HeroAvatar extends Avatar3D {
       footN: 0.6 * Math.max(0, -s), footF: 0.6 * Math.max(0, s),
       armZn: 0.3 - 0.85 * k * s, armZf: 0.3 + 0.85 * k * s, armXn: -0.22, armXf: 0.22,
       elbowN: 1.3 + 0.35 * Math.max(0, -s), elbowF: 1.3 + 0.35 * Math.max(0, s),
-      lean, torso: -0.04, bob: 0.075 * k * Math.abs(s) - 0.02, torsoY: -0.2 * k * s, sq: 0.04 * k * (0.45 - Math.abs(s)),
+      lean, torso: -0.04, bob: 0.075 * k * Math.abs(s) - 0.02, torsoY: -0.2 * k * s,
       headZ: -0.85 * lean + 0.03 * Math.cos(2 * p), mouth: 0.35,
       hairBack: 0.85 * k + 0.12 * Math.sin(2 * p), hairLift: 0.2 * k * Math.cos(2 * p),
     };
@@ -1746,7 +1751,7 @@ export class HeroAvatar extends Avatar3D {
     const look = Math.sin(t * 0.37) * smoothstep(Math.sin(t * 0.23) * 2); // ab und zu umschauen
     const tilt = Math.sin(t * 0.83) * smoothstep(Math.sin(t * 0.31 + 1) * 1.5); // ab und zu den Kopf schief legen
     return {
-      bob: 0.012 * br, torso: 0.015 * br, sq: 0.014 * br, lean: 0.015 * sw, torsoX: 0.025 * sw,
+      bob: 0.014 * br, torso: 0.018 * br, lean: 0.015 * sw, torsoX: 0.025 * sw,
       headX: 0.04 * Math.sin(t * 0.7) + 0.13 * tilt, headY: 0.45 * look, headZ: 0.03 + 0.02 * br, hairLift: 0.03 * br,
       armZn: 0.1 + 0.05 * Math.sin(t * 1.1), armZf: 0.1 - 0.05 * Math.sin(t * 1.1 + 0.4), armXn: -0.14 - 0.03 * br, armXf: 0.14 + 0.03 * br, elbowN: 0.15, elbowF: 0.15,
     };
@@ -1754,16 +1759,16 @@ export class HeroAvatar extends Avatar3D {
 
   poseFall(t) {
     const fl = Math.sin(t * 9);
-    return { armXn: -1.45, armXf: 1.45, armZn: 0.25 + 0.25 * fl, armZf: 0.25 - 0.25 * fl, elbowN: 0.3, elbowF: 0.3, thighZn: 0.45, thighZf: -0.15, kneeN: 0.55, kneeF: 0.35, footN: 0.3, footF: 0.3, eyes: 1.15, mouth: 0.6, hairLift: 0.9, hairBack: 0.3, lean: 0.04, headZ: -0.08, sq: -0.035 };
+    return { armXn: -1.45, armXf: 1.45, armZn: 0.25 + 0.25 * fl, armZf: 0.25 - 0.25 * fl, elbowN: 0.3, elbowF: 0.3, thighZn: 0.45, thighZf: -0.15, kneeN: 0.55, kneeF: 0.35, footN: 0.3, footF: 0.3, eyes: 1.15, mouth: 0.6, hairLift: 0.9, hairBack: 0.3, lean: 0.04, headZ: -0.08 };
   }
 
   /** Erster Sprung; d = 0 (steigt) … 1 (sinkt, Beine strecken sich zur Landung). */
-  poseJump(d) {
+  poseJump(d, up = 0) {
     return this.variant === 'greta'
       // Greta gestreckt: Arme schräg nach vorn-oben gespreizt, Beine in der Spreize
-      ? { armZn: 2.3 - 0.5 * d, armZf: 2.35 - 0.5 * d, armXn: -0.7, armXf: 0.7, elbowN: 0.25, elbowF: 0.25, thighZn: 0.75 - 0.3 * d, thighZf: -0.45 + 0.3 * d, kneeN: 0.45, kneeF: 0.3 + 0.2 * d, footN: 0.9, footF: 0.9, lean: -0.05, headZ: 0.15, mouth: 0.9, hairLift: -0.5 + 0.9 * d, hairBack: 0.3, sq: -0.09 * (1 - d) }
+      ? { armZn: 2.3 - 0.5 * d, armZf: 2.35 - 0.5 * d, armXn: -0.7, armXf: 0.7, elbowN: 0.25, elbowF: 0.25, thighZn: 0.75 - 0.3 * d, thighZf: -0.45 + 0.3 * d, kneeN: 0.45, kneeF: 0.3 + 0.2 * d, footN: 0.9, footF: 0.9, lean: -0.05, headZ: 0.15, mouth: 0.9, hairLift: -0.5 + 0.9 * d, hairBack: 0.3, sq: -0.1 * up }
       // Lotti kraftvoll: Faust nach oben, anderer Arm zurück, Knie hoch
-      : { armZn: 0.35, armXn: -2.0 + 0.5 * d, elbowN: 0.35, armZf: -0.55, armXf: 0.35, elbowF: 0.3, thighZn: 1.25 - 0.55 * d, kneeN: 1.55 - 0.8 * d, thighZf: -0.2 + 0.25 * d, kneeF: 0.5, footN: 0.6, footF: 0.75, lean: -0.04, headZ: 0.18, mouth: 0.9, hairLift: -0.35 + 0.8 * d, hairBack: 0.3, sq: -0.09 * (1 - d) };
+      : { armZn: 0.35, armXn: -2.0 + 0.5 * d, elbowN: 0.35, armZf: -0.55, armXf: 0.35, elbowF: 0.3, thighZn: 1.25 - 0.55 * d, kneeN: 1.55 - 0.8 * d, thighZf: -0.2 + 0.25 * d, kneeF: 0.5, footN: 0.6, footF: 0.75, lean: -0.04, headZ: 0.18, mouth: 0.9, hairLift: -0.35 + 0.8 * d, hairBack: 0.3, sq: -0.1 * up };
   }
 
   /** Grundpose für Aktionen, die nur den Oberkörper übernehmen (Werfen, Krallenhieb): Stand, Lauf oder Luft. */
@@ -1828,13 +1833,13 @@ export class HeroAvatar extends Avatar3D {
         break;
       }
       case 'jump':
-        pose = P(this.poseJump(clamp(-vy / 6, 0, 1)));
+        pose = P(this.poseJump(clamp(-vy / 6, 0, 1), clamp((vy - 2) / 6, 0, 1)));   // Strecken nur kurz nach dem Absprung
         dur = 0.1;
         break;
       case 'jump2': {
         // zweiter Sprung: beide Arme hoch im V, beide Knie angezogen
         const d = clamp(-vy / 6, 0, 1);
-        pose = P({ armZn: 0.35, armZf: 0.35, armXn: -1.9 + 0.4 * d, armXf: 1.9 - 0.4 * d, elbowN: 0.3, elbowF: 0.3, thighZn: 1.15 - 0.45 * d, thighZf: 0.85 - 0.35 * d, kneeN: 1.7 - 0.8 * d, kneeF: 1.5 - 0.7 * d, footN: 0.7, footF: 0.7, lean: 0.02, headZ: 0.25, mouth: 1, eyes: 1.1, hairLift: -0.4 + 0.8 * d, sq: -0.08 * (1 - d) });
+        pose = P({ armZn: 0.35, armZf: 0.35, armXn: -1.9 + 0.4 * d, armXf: 1.9 - 0.4 * d, elbowN: 0.3, elbowF: 0.3, thighZn: 1.15 - 0.45 * d, thighZf: 0.85 - 0.35 * d, kneeN: 1.7 - 0.8 * d, kneeF: 1.5 - 0.7 * d, footN: 0.7, footF: 0.7, lean: 0.02, headZ: 0.25, mouth: 1, eyes: 1.1, hairLift: -0.4 + 0.8 * d, sq: -0.09 * clamp((vy - 2) / 6, 0, 1) });
         dur = 0.1;
         break;
       }
@@ -2261,7 +2266,7 @@ function rabbitTorsoGeo() {
     ], {
       center: [-0.04, 0.44, 0], k: 0.16, nu: 30, nv: 22, floor: { y: 0.11, k: 0.45 },
       color: (p) => {
-        const w = smoothstep((p.x - 0.2) / 0.08) * smoothstep((0.74 - p.y) / 0.08) * (1 - smoothstep((Math.abs(p.z) - 0.17) / 0.05));
+        const w = smoothstep((p.x - 0.21) / 0.05) * smoothstep((0.74 - p.y) / 0.05) * (1 - smoothstep((Math.abs(p.z) - 0.17) / 0.04));
         return furShade(p, 0.68).lerp(white, w);
       },
     });

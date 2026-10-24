@@ -215,6 +215,7 @@ async function heroine(key) {
   await sc(() => { const av = window.__fs.figs.hero.avatar; av.blinker.update = av.__bl; });
   await pose('hero', { state: 'jump', vy: 5, grounded: false }, 14); await shot(`${P}_jump`, 'front', `${P}_pose`); await shot(`${P}_jump_face`, 'face', `${P}_face`);
   await pose('hero', { state: 'run', speed: 8 }, 40); await shot(`${P}_run`, 'side', `${P}_pose`);
+  await measure(`${key} lauf`);
   await pose('hero', { state: 'land' }, 3); await shot(`${P}_land`, 'front', `${P}_pose`);
   await pose('hero', { state: 'victory' }, 50); await shot(`${P}_victory`, 'front', `${P}_pose`);
   await pose('hero', { state: 'idle' }, 30);
@@ -259,6 +260,8 @@ async function pets() {
   await pose('pflaume', { state: 'jump', vy: 4, grounded: false }, 14); await shot('pflaume_jump', 'side', 'pflaume_pose', { cam: { ...PC, dist: 4.4 } });
   await pose('pflaume', { state: 'victory' }, 20); await shot('pflaume_victory', 'front', 'pflaume_pose', { cam: { ...PC, h: 0.7 } });
   await pose('pflaume', { state: 'idle', gear: 'lamp' }, 40); await shot('pflaume_lamp', 'front', 'pflaume_pose', { cam: PC });
+  await pose('pflaume', { state: 'paddle', speed: 1, gear: null }, 40); await shot('pflaume_paddle', 'side', 'pflaume_pose', { cam: { ...PC, dist: 4.8, h: 0.4, el: 0.3 } });
+  await pose('pflaume', { state: 'dig' }, 20); await shot('pflaume_dig', 'side', 'pflaume_pose', { cam: { ...PC, dist: 4.4 } });
   await shot('pflaume_lamp_course', 'course', 'pflaume_pose', { focus: 'pflaume' });
   await pose('pflaume', { state: 'idle', gear: null }, 10);
   await hide('pflaume');
@@ -316,7 +319,8 @@ async function clones() {
   await measure('klon (lite) idle', ['klon0']);
   await focus('hero');
   await sc(() => { const H = window.__fs; for (const k of ['hero', ...H.clones]) H.figs[k].hull.rotation.y = -Math.PI / 2 + 0.25; });
-  await shot('klone_front', 'front0', 'klone', { cam: { dist: 4.6, h: 0.55, az: 0.35, el: 0.15 } });
+  const ktg = await sc(() => { const b = window.__fs.base; return [b.x + 0.55, b.y + 0.5, b.z]; });
+  await shot('klone_front', 'front0', 'klone', { cam: { target: ktg, dist: 5.2, az: 0.45, el: 0.22 } });
   await sc(() => { const H = window.__fs; for (const k of ['hero', ...H.clones]) H.figs[k].hull.rotation.y = Math.PI / 2; });
   await shot('klone_course', 'course', 'klone', { w: 360, h: 260 });
   for (const k of ['hero', 'klon0', 'klon1']) await pose(k, { state: 'run', speed: 7, power: 'gleitblatt' }, 30);
