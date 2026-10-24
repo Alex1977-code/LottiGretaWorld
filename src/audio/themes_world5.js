@@ -162,7 +162,7 @@ const CHUG = dr('h.hh h.hh h.hh h.hh');
 const GOLD = [K4, CL, CHUG];
 
 // ================================================================ Ruinen-Tempel ====
-// gis-Moll, 146 BPM, dramatisch. Intro gis E H Fis (Tempel-Gong, Stabs im Hook-Rhythmus) | Strophe gis gis cis Dis |
+// gis-Moll, 146 BPM, dramatisch. Intro gis E H Fis (Piano-Hook, Stabs, Tempel-Gong) | Strophe gis gis cis Dis |
 // gis gis E Dis (i–iv–V) | Refrain gis E H Fis | gis E cis Dis (i–VI–III–VII) | Überleitung E Fis gis Dis. Hook als
 // Moll-Fanfare in zwei Anläufen: lange Töne, jeweils über zwei Sechzehntel-Vorschläge angesprungen („DIIIS gis-ais
 // HAAA cis-dis“), dann der Gipfel „EEE dis-E H GIS“.
@@ -222,15 +222,15 @@ export const WORLD5_THEMES = {
   },
 
   // Zirkus-Trapez (5-2): 138 BPM, F-Dur, 24 Takte, schwungvoll im Dreier-Gefühl über Four-on-the-floor. Intro: die
-  // Kalliope-Orgel spielt die Hook | Strophe (d B F C | d B g C): Lead in Achtel-Dreiergruppen, Orgel „pa-pa“ und Bass
+  // Kalliope-Orgel spielt die Hook, die Lotus-Flöte gleitet mit | Strophe (d B F C | d B g C): Lead in Achtel-Dreiergruppen, Orgel „pa-pa“ und Bass
   // auf den Gruppen-Anfängen (0, 6, 12) | Refrain (F a B C | F a g C): Hook schwingt auf und ab, Humpa-Bass in
   // Dreiern, Stabs | Überleitung: die Lotus-Flöte gleitet in lange Töne („fliegen“), Wirbel und Tusch in den Loop.
   course_trapeze: {
     bpm: 138,
     voice: {
       lead: { ...SYNTH, cutoff: 4800, volume: 0.15 },
-      organ: { volume: 0.05, cutoff: 3400, octave: false },
-      whistle: { type: 'sine', volume: 0.14, vibrato: 18, rate: 6, slide: 7, attack: 0.04, gate: 0.94 },
+      organ: { volume: 0.045, cutoff: 3400 },
+      whistle: { type: 'sine', volume: 0.14, vibrato: 18, rate: 6, slide: 4, attack: 0.03, gate: 0.94 },
       piano: { volume: 0.09, oscs: 1 },
       stabs: { volume: 0.11 },
       pad: { volume: 0.045 },
@@ -241,7 +241,7 @@ export const WORLD5_THEMES = {
     fx: { delay: { steps: 3, feedback: 0.3, lowpass: 3000, wet: 0.28, send: { whistle: 0.4, lead: 0.15, organ: 0.12 } } },
     lead: [...rest(4), ...tzVerse, ...tzChorus, ...rest(4)],
     organ: bySection(tzProg, SONG, { intro: (c, i) => tzHook[i], verse: (c) => chordBar(c, OOMPA, 'A3'), chorus: (c) => chordBar(c, OOMPA, 'A3') }),
-    whistle: [...rest(20), ...tzBridge],
+    whistle: [...tzHook, ...rest(16), ...tzBridge],
     piano: bySection(tzProg, SONG, { chorus: (c) => chordBar(c, 'x_____ x_____ x___', 'F4'), bridge: (c) => chordBar(c, 'x_____ x_____ x___', 'F4') }),
     stabs: bySection(tzProg, SONG, { chorus: (c) => chordBar(c, ST24) }),
     pad: bySection(tzProg, SONG, { intro: (c) => padBar(c), verse: (c) => padBar(c), bridge: (c) => padBar(c) }),
@@ -479,8 +479,8 @@ export const WORLD5_THEMES = {
     ],
   },
 
-  // Ruinen-Tempel (5-Burg, Boss Kippquader-König): 146 BPM, gis-Moll, 24 Takte, dramatisch. Intro: harte Stabs im
-  // Hook-Rhythmus, Tempel-Gong, Taiko-Toms | Strophe (gis gis cis Dis | gis gis E Dis): Lead tief, Chor-Pad, Galopp-Bass
+  // Ruinen-Tempel (5-Burg, Boss Kippquader-König): 146 BPM, gis-Moll, 24 Takte, dramatisch. Intro: das Piano spielt die
+  // Hook in Oktaven, harte Stabs auf ihren langen Tönen, Tempel-Gong, Taiko-Toms | Strophe (gis gis cis Dis | gis gis E Dis): Lead tief, Chor-Pad, Galopp-Bass
   // | Refrain (gis E H Fis | gis E cis Dis): Moll-Fanfare mit Vorschlägen, Stabs auf der Eins, Piano auf der „und“ |
   // Überleitung: lange Töne über Gong und Chor, Hoover-Riser über zwei Takte in den Loop.
   course_temple: {
@@ -489,7 +489,7 @@ export const WORLD5_THEMES = {
       lead: { ...SYNTH, cutoff: 4600, volume: 0.17 },
       bell: { volume: 0.12, decay: 1.1, ratio: 2.4, partial: 0.5 },
       stabs: { volume: 0.14, cutoff: 6500, cutoffEnd: 1800 },
-      piano: { volume: 0.08, oscs: 1 },
+      piano: { volume: 0.1 },
       pad: { volume: 0.06, bright: 1.15 },
       bass: { volume: 0.17 },
       riser: { volume: 0.08 },
@@ -499,7 +499,7 @@ export const WORLD5_THEMES = {
     lead: [...rest(4), ...teVerse, ...teChorus, ...teBridge],
     bell: bySection(teProg, SONG, { intro: (c, i) => (i % 2 ? '-:16' : `${tones(c, 'G#2')[0]}:16`), verse: (c, i) => (i % 4 ? '-:16' : 'G#2:16'), chorus: (c, i) => (i % 4 ? '-:16' : 'G#2:16'), bridge: (c) => `${tones(c, 'D#2')[0]}:16` }),
     stabs: bySection(teProg, SONG, {
-      intro: (c) => chordBar(c, 'x_____ xxx_____ xx', 'G#3'),
+      intro: (c) => chordBar(c, 'x_____ ..x_____ ..', 'G#3'),
       chorus: (c) => chordBar(c, 'x... .... x... ....', 'G#3'),
       bridge: (c) => chordBar(c, 'x.xx .x.x x.xx .x..', 'G#3'),
     }),
