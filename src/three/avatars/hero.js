@@ -94,6 +94,24 @@
 //    blendet die Statue die Augen-Glanzpunkte aus, unter Wasser werfen die Unterschenkel keinen Schatten. In den
 //    Dauer-Zuständen bleibt der Mund zu (offener Mund kostet einen Aufruf). Klone (HeroRig `lite`, erkannt am fehlenden
 //    Schattenwurf des Oberkörpers) zeigen keine Bläschen/Staubwolken.
+//
+// Welt 5 (Kurs-Modus; Vertrag „Präzisierung (Motor und Bausteine Welt 5): Avatar-Zustände“ und „… Trapez (Figur)“):
+//  - 'trapeze' (obj.course.swing = Seilwinkel rad, + = nach vorn; swingVel rad/s; phase): Die Hülle ist schon um den
+//    Seilwinkel geneigt (HeroRig, Drehpunkt Fußpunkt) – die Pose dreht die Figur deshalb NICHT mehr, sie arbeitet im
+//    Seil-System: Fäuste per Arm-IK genau an der Stange (TRAPEZE: Stangenmitte des Modells `trapez` über dem Fußpunkt =
+//    Körperhöhe der Hitbox + Armzugabe des Motors − Durchbiegung, in Avatar-Einheiten über den Maßstab der Hülle), Arme
+//    gestreckt im weiten V um den großen Kopf (Gummi-Arme: Kanal reachN/reachF verlängert den Unterarm-Knochen), Beine
+//    laufen dem Schwung nach (swingVel), am Umkehrpunkt Knie angezogen (vorn gehockt, hinten nach hinten gebeugt), im
+//    Durchschwung gestreckt; Kopf gleicht die Neigung halb aus, Lächeln, Zöpfe/Haar pendeln weiter physikalisch. Absprung
+//    bzw. Fallenlassen blenden länger über (TRAPEZE.release). Riesentrank: Die Stange liegt in Brusthöhe – die Figur hängt
+//    etwas hinter ihr und hält sie vor dem Bauch. Gestreckte Arme sind gleichmäßig etwas größer (armKn/armKf, kräftiger).
+//  - 'cannon' (phase = Flugfortschritt 0..1, speed/vy = Geschwindigkeit; die Hülle blickt waagerecht in Flugrichtung):
+//    Superheldinnen-Flug – Körperachse entlang der Geschwindigkeit (pitch aus atan2(speed, vy), kopfüber höchstens
+//    CANNON.pitchMin), führende Faust voraus (Gummi-Arm), anderer Arm Lotti am Körper / Greta nach vorn, Beine geschlossen,
+//    Zehen gespitzt, Blick in Flugrichtung, Rock flattert (Drehkanäle skirtX/skirtZ, gleichmäßiger Maßstab → Figur-Bündel
+//    bleibt), Zöpfe/Haar wehen im Fahrtwind (Physik). Ab phase 0,8 Übergang in die Landepose (aufrichten, Beine vor,
+//    Arme seitlich). In der Röhre ist die Figur unsichtbar (HeroRig), davor 'pipe'.
+//  - Beide Posen halten den Mund geschlossen und die Augen ungestaucht (kein zusätzlicher Zeichenaufruf gegenüber idle).
 
 import * as THREE from 'three';
 import { Avatar3D } from '../Avatar3D.js';
@@ -717,6 +735,9 @@ const HERO_POSE = {
   // verdreht, Lage der ganzen Figur um den Schwerpunkt (pitch um Z, roll um X), Versatz, Stauchung
   elbowN: 0, elbowF: 0, twistN: 0, twistF: 0, torsoX: 0, torsoY: 0, pitch: 0, roll: 0, figX: 0, figY: 0, sq: 0,
   figZo: 0, // Welt 3: seitlicher Versatz der ganzen Figur (Kurvenneigung um die Kufen statt um den Schwerpunkt)
+  // Welt 5: Gummi-Arme (Streckung über die Armlänge hinaus, Einheiten; Unterarm-Knochen rückt nach außen) und Rock-Flattern
+  // armKn/armKf: Maßstab des Kurs-Arms (gleichmäßig: kräftigere Arme und größere Fäuste, solange er gestreckt ist)
+  reachN: 0, reachF: 0, armKn: 1, armKf: 1, skirtX: 0, skirtZ: 0,
 };
 
 // ================================================================== Kurs-Modus: Maße, Kostüme
@@ -744,6 +765,21 @@ const HOLD_STATES = new Set(['idle', 'walk', 'run', 'skid', 'jump', 'jump2', 'fa
 const COSTUMES = new Set(['krallen', 'funken', 'gleitblatt']);
 /** Zustände, in denen angelegte Schlittschuhe an bleiben (Sprünge vom Eis, Landung). */
 const SKATE_KEEP = new Set(['skate', 'jump', 'jump2', 'jump3', 'fall', 'land', 'longjump', 'backflip', 'sideflip', 'skid', 'hurt', 'throw', 'claw', 'tailswipe', 'glide']);
+
+// Welt 5: Trapez und Röhrenkanone (Maße in Metern, sofern nicht anders vermerkt)
+const TRAPEZE = {
+  body: { big: 0.95, small: 0.65 },   // Körperhöhe der Hitbox (Motor: HITBOX.*.y · 2)
+  arm: 0.26,                          // Hände über dem Scheitel (Motor: SWING.arm) → Stange liegt body + arm über dem Fußpunkt
+  bend: 0.06,                         // Modell 'trapez' biegt sich mit Reiterin um 2 % der Seillänge (3 m) durch
+  clear: 1.6,                         // Einheiten: liegt die Stangenmitte tiefer über dem Fußpunkt, passt der Kopf nicht darunter
+  grip: V(0.034, 0.008, 0.56),        // Fäuste vor (x, m), über (y, m) der Stangenmitte, seitlich (±z, Einheiten) – V um den Kopf
+  half: 0.47,                         // Fäuste höchstens so weit von der Stangenmitte (Seile bei ±0,6)
+  armK: 1.25,                         // Maßstab der gestreckten Arme (Gummi-Arme kräftiger, Fäuste größer)
+  hold: 0.45,                         // Einheiten: Riesentrank – Körper hängt so weit hinter der Stange, hält sie vor dem Bauch
+  wRef: 2.6,                          // rad/s: Schwunggeschwindigkeit, ab der die Beine voll nachlaufen
+  release: 0.3,                       // s: Überblendung beim Absprung/Fallenlassen
+};
+const CANNON = { pitchMin: -2.25, pitchMax: -0.25, land: 0.8 };
 
 /** Kostüm-Farben „Funkenblüte“: Kleid feuerweiß, Ärmel/Kragen/Schürze rot, Haarschmuck weiß (Lotti) bzw. rot (Greta). */
 const fireStyle = (st) => ({ ...st, dress: FIRE_WHITE, sleeve: FIRE_RED, collar: FIRE_RED, apronC: FIRE_RED, accent: st.braids ? FIRE_WHITE : FIRE_RED });
@@ -1406,6 +1442,7 @@ export class HeroAvatar extends Avatar3D {
     this.w3.fx.clear();
     this.setCostume('none');
     this.fig.position.set(0, 0, 0);
+    this.skirtMesh.rotation.set(0, 0, 0);
     this.torso.rotation.set(0, 0, 0);
     this.model.rotation.set(0, 0, 0);
     this.model.scale.set(1, 1, 1);
@@ -1650,6 +1687,9 @@ export class HeroAvatar extends Avatar3D {
       case 'slide': case 'crouch': rz = 1.7; curl = -0.3; break;
       case 'wallslide': rz = 2.5; curl = -0.25; wagA = 0.1; break;
       case 'dead': case 'hurt': rz = 1.9; curl = -0.2; wagA = 0.35; wagF = 7; break;
+      // Welt 5: am Trapez hängt er (pendelt sacht), im Kanonenflug weht er gestreckt zu den Füßen (flattert)
+      case 'trapeze': rz = 2.6; curl = -0.22; wagA = 0.14; wagF = 1.2; break;
+      case 'cannon': rz = Math.PI - 0.3; curl = 0.05; wagA = 0.1; wagF = 9; rate = 14; break;
       default: break;
     }
     const cur = w.tailCur;
@@ -1675,6 +1715,10 @@ export class HeroAvatar extends Avatar3D {
     const dt = this.dt;
     this.armN.carm.fore.rotation.z = p.elbowN; this.armF.carm.fore.rotation.z = p.elbowF;
     this.armN.carm.upper.rotation.y = p.twistN; this.armF.carm.upper.rotation.y = p.twistF;
+    // Welt 5: Gummi-Arme – der Unterarm-Knochen rückt entlang des Oberarms nach außen (die Röhre dehnt sich im Ellbogen-Übergang)
+    this.armN.carm.fore.position.y = -ELBOW_Y - p.reachN; this.armF.carm.fore.position.y = -ELBOW_Y - p.reachF;
+    this.armN.carm.scale.setScalar(p.armKn); this.armF.carm.scale.setScalar(p.armKf);
+    this.skirtMesh.rotation.set(p.skirtX, 0, p.skirtZ);
     this.torso.rotation.set(p.torsoX, p.torsoY, p.torso);
     // Salto-Kanäle (nicht überblendet): exakt aus phase, sonst über die kürzere Richtung zurück auf 0 (mod 2π)
     for (const k of ['x', 'y', 'z']) {
@@ -1794,13 +1838,96 @@ export class HeroAvatar extends Avatar3D {
   }
 
   /**
+   * Arm-IK der Kurs-Arme (Welt 5): Faust (Handpunkt HAND unter der Schulter) auf das Ziel (x, y, z) im Figur-System
+   * (Fußpunkt; vor dem Versatz figX/figY/figZo und vor der Lage pitch/roll). Setzt Abspreizen (armX), Schwingen (armZ,
+   * stetig in −0,5 … 2π − 0,5), gestreckten Ellbogen und die Streckung reach (Gummi-Arm, im Arm-Maßstab armKn/armKf aus o)
+   * der Seite s (1 nah, −1 fern). Rumpfkanäle aus o: bob, lean, torso (torsoX/torsoY = 0 vorausgesetzt).
+   */
+  reachTo(o, s, x, y, z) {
+    const k = (s > 0 ? o.armKn : o.armKf) ?? 1;   // Arm-Maßstab: Handpunkt liegt HAND · k unter der Schulter
+    const L = (o.lean ?? 0) + (o.torso ?? 0), cl = Math.cos(L), sl = Math.sin(L);
+    const dx = x + sl * SHOULDER_Y, dy = y - (HIP + (o.bob ?? 0) + cl * SHOULDER_Y), dz = z - s * SHOULDER_Z;
+    const lx = dx * cl + dy * sl, ly = -dx * sl + dy * cl, len = Math.max(1e-6, Math.hypot(lx, ly, dz));
+    const a = Math.asin(clamp(-dz / len, -1, 1));
+    let b = Math.atan2(lx / len, -ly / len);
+    if (b < -0.5) b += TAU;
+    const reach = Math.max(0, len / k - HAND);
+    if (s > 0) Object.assign(o, { armXn: a, armZn: b, elbowN: 0, reachN: reach });
+    else Object.assign(o, { armXf: a, armZf: b, elbowF: 0, reachF: reach });
+    return o;
+  }
+
+  /**
+   * Trapez (Welt 5): Pose im Seil-System – die Hülle ist schon um den Seilwinkel geneigt (HeroRig), hier dreht nichts mehr
+   * die ganze Figur. Fäuste per IK an der Stange, Beine laufen dem Schwung nach, am Umkehrpunkt angezogen.
+   */
+  poseTrapeze(c, t) {
+    // Avatar-Einheiten je Meter aus dem Maßstab der Hülle (groß, klein, Riesentrank) – über das Volumen, damit kurzes
+    // Stauchen (Squash & Stretch der Hülle) die Stangenhöhe nicht verschiebt
+    this.root.updateWorldMatrix(true, false);
+    const U = 1 / Math.max(1e-6, Math.cbrt(Math.abs(this.root.matrixWorld.determinant())));
+    const barY = ((c.big === false ? TRAPEZE.body.small : TRAPEZE.body.big) + TRAPEZE.arm - TRAPEZE.bend) * U;
+    // Riesentrank: Die Stange liegt in Brusthöhe – die Figur hängt dann etwas hinter ihr und hält sie vor dem Bauch
+    const low = smoothstep((TRAPEZE.clear - barY) / 0.35);
+    const s = clamp((c.swing ?? 0) / 1.0, -1.2, 1.2);
+    const w = clamp((c.swingVel ?? 0) / TRAPEZE.wRef, -1.3, 1.3);
+    const still = 1 - Math.min(1, Math.abs(w));
+    const front = Math.max(0, s) * still, back = Math.max(0, -s) * still;   // Umkehrpunkt vorn / hinten
+    const br = Math.sin(t * 2.3);
+    const o = {
+      figX: -TRAPEZE.hold * low, lean: 0.08 * s, torso: -0.03 * s, armKn: TRAPEZE.armK, armKf: TRAPEZE.armK,
+      // vorwärts schwingend laufen die Füße hinterher (und umgekehrt); vorn gehockt, hinten nach hinten gebeugt
+      thighZn: 0.06 - 0.4 * w + 1.15 * front - 0.32 * back, thighZf: -0.04 - 0.4 * w + 1.05 * front - 0.25 * back,
+      kneeN: 0.1 + 0.08 * Math.abs(w) + 1.55 * front + 1.35 * back, kneeF: 0.16 + 0.08 * Math.abs(w) + 1.45 * front + 1.5 * back,
+      thighXn: -0.07 - 0.12 * front, thighXf: 0.07 + 0.12 * front,
+      footN: 0.75 - 0.3 * front, footF: 0.7 - 0.3 * front,
+      // Kopf gleicht die Seilneigung halb aus (Gesicht bleibt sichtbar), Lächeln (Mund zu)
+      headZ: 0.06 - 0.28 * s, headX: 0.04 * br * still, eyes: 1, mouth: 0,
+      twistN: 1.1, twistF: -1.1,
+      skirtZ: -0.4 * s,   // Rock hängt halb der Schwerkraft nach (gegen die Seilneigung)
+    };
+    const g = TRAPEZE.grip, gx = g.x * U + TRAPEZE.hold * low, gy = barY + g.y * U, gz = Math.min(g.z, TRAPEZE.half * U);
+    this.reachTo(o, 1, gx, gy, gz);
+    this.reachTo(o, -1, gx, gy, -gz);
+    return o;
+  }
+
+  /** Röhrenkanone (Welt 5): Superheldinnen-Flug entlang der Geschwindigkeit, ab CANNON.land Übergang in die Landepose. */
+  poseCannon(c, t, phase) {
+    const sp = Math.max(0, c.speed ?? 0), vy = c.vy ?? 0;
+    // Körperachse (Fuß → Kopf) entlang (speed, vy) im Hüllen-System (Hülle blickt waagerecht in Flugrichtung)
+    const pf = sp + Math.abs(vy) > 0.5 ? clamp(-Math.atan2(sp, vy), CANNON.pitchMin, CANNON.pitchMax) : -Math.PI / 2;
+    const k = smoothstep((phase - CANNON.land) / 0.17);
+    const f1 = Math.sin(t * 31), f2 = Math.sin(t * 23 + 1.3);
+    const o = {
+      pitch: pf, headZ: 0.85, eyes: 1, mouth: 0,
+      thighZn: -0.1, thighZf: -0.04, thighXn: -0.03, thighXf: 0.03, kneeN: 0.06, kneeF: 0.32, footN: 1.1, footF: 1.0,
+      skirtX: 0.05 * f1, skirtZ: 0.07 * f2,
+    };
+    // führende Faust voraus (nahe Hand, Gummi-Arm am Kopf vorbei); Greta beide Arme vorn, Lotti den anderen am Körper
+    o.armKn = TRAPEZE.armK;
+    this.reachTo(o, 1, 0.12, 1.58, 0.34);
+    if (this.variant === 'greta') { o.armKf = TRAPEZE.armK; this.reachTo(o, -1, 0.16, 1.36, -0.38); }
+    else Object.assign(o, { armZf: -0.18, armXf: 0.22, elbowF: 0.25, twistF: 0, reachF: 0 });
+    if (k <= 0) return o;
+    const land = {
+      pitch: -0.1, headZ: 0.12,
+      armXn: -1.25, armXf: 1.25, armZn: 0.5, armZf: 0.45, elbowN: 0.3, elbowF: 0.3, reachN: 0, reachF: 0, armKn: 1, armKf: 1, twistN: 0, twistF: 0,
+      thighZn: 0.6, thighZf: 0.28, kneeN: 0.8, kneeF: 0.55, footN: 0.35, footF: 0.3, thighXn: -0.08, thighXf: 0.08,
+      skirtX: 0.02 * f1, skirtZ: 0.03 * f2,
+    };
+    for (const key of Object.keys(land)) o[key] = lerp(o[key] ?? HERO_POSE[key], land[key], k);
+    return o;
+  }
+
+  /**
    * Zielpose aus obj.course. Zustände und Felder: siehe Kopfkommentar „Kurs-Modus“ unten in dieser Datei.
    * Saltos setzen this.spinSet exakt aus phase; alles andere geht durch den PoseBlender.
    */
   coursePose(c, dt, t) {
     let state = c.state ?? 'idle';
     if (c.climbing && !CLIMB_STATES.has(state)) state = 'climb';
-    if (state !== this.cState) { this.cState = state; this.cStateT = 0; } else this.cStateT += dt;
+    if (state !== this.cState) { this.cPrev = this.cState; this.cState = state; this.cStateT = 0; } else this.cStateT += dt;
     const st = this.cStateT;
     const speed = Math.max(0, c.speed ?? 0), vy = c.vy ?? 0, phase = clamp(c.phase ?? 0, 0, 1);
     const grounded = c.grounded ?? true;
@@ -1843,7 +1970,7 @@ export class HeroAvatar extends Avatar3D {
       }
       case 'jump':
         pose = P(this.poseJump(clamp(-vy / 6, 0, 1), clamp((vy - 2) / 6, 0, 1)));   // Strecken nur kurz nach dem Absprung
-        dur = 0.1;
+        dur = this.cPrev === 'trapeze' ? TRAPEZE.release : 0.1;   // Absprung vom Trapez: weich aus der Hängelage
         break;
       case 'jump2': {
         // zweiter Sprung: beide Arme hoch im V, beide Knie angezogen
@@ -1908,7 +2035,7 @@ export class HeroAvatar extends Avatar3D {
       }
       case 'fall':
         pose = P(this.poseFall(t));
-        dur = 0.2;
+        dur = this.cPrev === 'trapeze' ? TRAPEZE.release : 0.2;
         break;
       case 'land': {
         // kurzes Einfedern: Knie beugen, Arme federn seitlich, Stauchung klingt ab
@@ -2231,6 +2358,17 @@ export class HeroAvatar extends Avatar3D {
           eyes: 1, mouth: 0, hairLift: 0.3,
         });
         dur = 0.3;
+        break;
+      }
+      // ------------------------------------------------------------ Welt 5
+      case 'trapeze':
+        pose = P(this.poseTrapeze(c, t));
+        dur = 0.14;   // Griff zur Stange (Motor: 0,12 s in die Hängelage)
+        break;
+      case 'cannon': {
+        const o = this.poseCannon(c, t, phase);
+        pose = P(o);
+        dur = 0.08;   // kommt unsichtbar aus der Röhre
         break;
       }
       default:
