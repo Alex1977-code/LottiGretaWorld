@@ -6,7 +6,7 @@
 // (sichtbare Meshes) im Kurs-Modus wie im Klassik-Modus, Kostüme höchstens +4; Zöpfe bleiben in Saltos
 // heil (keine Neuablage, Knickwinkel begrenzt, Enden außerhalb des Kopfes); Hände/Sohle an der Wand ohne
 // Durchdringung; beim Schwimmen Kopf über, Becken unter der Wasserlinie; Floß und Lampe nur bei Bedarf.
-// Aufruf: npm run build && PORT_BASE=1100 node tests/coursepose3d.mjs
+// Aufruf: npm run build && PORT_BASE=1100 node tests/coursepose3d.mjs   (CP_SHOTS=0: ohne Bilder)
 import { startServer, launchBrowser, loadGame, makeChecker, OUT } from './helpers.mjs';
 
 const PORT = 4196;
@@ -148,7 +148,10 @@ const VIEWS = {
   front: { az: 0.75, el: 0.15, dist: 5.4, y: 0.8 },
   back: { az: -Math.PI / 2 + 0.25, el: 0.2, dist: 5.6, y: 0.8 },
 };
+// CP_SHOTS=0: nur Prüfungen, keine Bilder (schneller unter Last)
+const SHOTS = process.env.CP_SHOTS !== '0';
 const shot = async (name, view) => {
+  if (!SHOTS) return;
   if (view) await cam(VIEWS[view]);
   await frames(2);
   await page.screenshot({ path: `${OUT}cp_${name}.png`, clip: CLIP });

@@ -714,9 +714,9 @@ const ELBOW_Y = 0.13;   // Ellbogen unter der Schulter (Kurs-Arme)
 const ANKLE_H = 0.14;   // Knöchel über der Sohle bei waagerechtem Stiefel
 const unitsPerMeter = (big) => 1.5 / (big === false ? 0.7 : 1.0);
 // Kontaktmaße (Einheiten, Fußpunkt = root, Blick +X) – per tests/coursepose3d.mjs nachgemessen:
-const WS_REACH = 0.393;   // wallslide: so weit reichen Hand/Sohle/Rock hinter root (−X) ohne Versatz
-const CL_REACH = 0.394;   // climb: so weit reichen die Hände vor root (+X) ohne Versatz
-const BS_REACH = 0.437;   // beanstalk: Rankenachse liegt ohne Versatz so weit vor root
+const WS_REACH = 0.409;   // wallslide: so weit reichen Hand/Sohle/Rock hinter root (−X) ohne Versatz
+const CL_REACH = 0.409;   // climb: so weit reichen die Hände vor root (+X) ohne Versatz
+const BS_REACH = 0.457;   // beanstalk: Rankenachse liegt ohne Versatz so weit vor root
 const VINE_M = 0.25;     // beanstalk: Rankenachse vor root (Meter, Vertrag mit dem Motor)
 const WATER_U = 0.75;    // swim: Wasserlinie über root (Einheiten; groß 0,5 m)
 const SWIM_Y0 = -0.12, SWIM_Y1 = -0.05; // swim: Höhenversatz Wassertreten / Brustschwimmen (Hals knapp über der Wasserlinie)
@@ -842,7 +842,7 @@ function tailParts(st) {
 
 // ================================================================== Welt 3: Gleitblatt, Schlittschuhe, Statue, Zaun
 const FENCE_M = 0.38;         // fence: Zaunebene vor root (Meter; Motor: Hitbox-Halbbreite 0,3 + Abstand 0,08)
-const FENCE_REACH = 0.264;    // fence: so weit reichen die Hände ohne Versatz vor root (Einheiten, Ruhehaltung; gemessen)
+const FENCE_REACH = 0.277;    // fence: so weit reichen die Hände ohne Versatz vor root (Einheiten, Ruhehaltung; gemessen)
 const SKATE_ANKLE = 0.29;     // skate: Knöchel über der Kufen-Unterkante (Stiefelsohle 0,14 + Kufe 0,15)
 const SKATE_LIFT_U = 0.15;    // skate: so hoch hebt HeroRig die Hülle mit course.skates (0,1 m groß bzw. 0,07 m klein = 0,15 Einheiten)
 const PLINTH_H = 0.1;         // statue: Sockelhöhe (Einheiten), die Figur steht darauf
@@ -1007,7 +1007,7 @@ export class HeroAvatar extends Avatar3D {
       // Der Kopf-Kollider gilt erst ab dem zweiten Glied (das erste begrenzt der Wurzelkegel), sonst kann
       // ein über den Ansatz geschlagenes Glied zwischen Kollider und Abstandsbedingung hängen bleiben.
       this.braids = [];
-      this.braidColliders = { head: { c: new THREE.Vector3(), r: 0.34, from: 1 }, shoulders: [1, -1].map(() => ({ c: new THREE.Vector3(), r: 0.13, from: 0 })) };
+      this.braidColliders = { head: { c: new THREE.Vector3(), r: 0.33, from: 1 }, shoulders: [1, -1].map(() => ({ c: new THREE.Vector3(), r: 0.125, from: 0 })) };
       for (const s of [1, -1]) {
         const anchor = new THREE.Group();
         anchor.position.set(BRAID.anchor.x, BRAID.anchor.y, s * BRAID.anchor.z);
@@ -2618,7 +2618,7 @@ export class PflaumeAvatar extends Avatar3D {
     this.applyEyes(p.eyes);
     const mo = Math.max(0.001, p.mouth);
     this.mouthO.scale.set(0.042 * mo, 0.05 * mo, 0.006 + 0.01 * mo);
-    this.mouthO.visible = mo > 0.06;   // geschlossen: kein Zeichenaufruf
+    this.mouthO.visible = mo > 0.2;    // zu bzw. nur Schnuppern: kein Zeichenaufruf
     this.nose.position.y = this.noseY + 0.012 * nose;
     this.nose.scale.x = 0.7 + 0.1 * Math.abs(nose);
   }
@@ -2648,6 +2648,9 @@ export class PflaumeAvatar extends Avatar3D {
       if (this.raft) { this.raft.visible = false; this.paddle.visible = false; }
       if (this.gear) for (const g of this.gear) g.visible = false;
       this.powerKey = null; // Klassik setzt die Halstuchfarbe neu
+      // Gesicht neutral (Augen offen, Mund zu) – wie im Klassik-Stand
+      this.eyes.visible = true; this.eyesClosed.visible = false; this.eyes.scale.set(1, 1, 1);
+      this.mouthO.visible = false; this.mouthO.scale.setScalar(0.001);
     }
     return this;
   }
