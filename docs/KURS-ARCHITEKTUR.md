@@ -3753,7 +3753,7 @@ src/course/entities/kinds/projektilkopf.js         + Option `breaks` (Kopf zertr
 src/course/entities/kinds/kanone_turm.js           + reicht `breaks` an die Köpfe weiter
 src/course/levels/w0/0-18.js                       Gegnerwerkstatt Lila Strand (6 Reihen Gehege, Z(r, dz) wie 0-15)
 src/course/levels/w0/0-19.js                       Tempel des Kippquader-Königs (Archetyp boss, Bruchplatten-Ecken, Begleit-Kippquader)
-tests/course_w5_enemies.mjs                        Port 4400, W5E_PART=1|2|3|4, Bilder tests/out/w5e_*.png
+tests/course_w5_enemies.mjs                        Port 4400, W5E_PART=1|2|3|4|5, Bilder tests/out/w5e_*.png
 ```
 
 ### Präzisierung (Gegner Welt 5): gemeinsame Regeln
@@ -3885,7 +3885,7 @@ hits, misses, shocks, escortTips, hitLog, lyingBox(), backField(), lieRect(), in
 
 `tests/course_w5_enemies.mjs` (Port 4400, `?course=0-18|0-19&scale=2&adapt=0`, deterministisch über `step(n)`/`setInput`;
 Hilfen `window.__t`: `Z(r, dz)`, `place`, `stomp`, `touch`, `fresh`, `hold`, `moveTo`, `action`, `face`, Boss: `enter`,
-`untilSafe`, `backJump`; `W5E_PART=1|2|3|4`, je Teil 1,5–3 min): Laden (alle Arten, vorhandene Welt-5-Gegner, 10 s ohne
+`untilSafe`, `backJump`; `W5E_PART=1|2|3|4|5`, je Teil 1,5–3 min): Laden (alle Arten, vorhandene Welt-5-Gegner, 10 s ohne
 Fehler) · Teil 1 Sandtaucher (verborgen harmlos, folgt, späht, Bogen durch die Figur, seitlich verletzt, Stampfen im
 Sprung besiegt, Wasser), Zündkopf (Nähe zündet, 3 s, blinkt, Explosion verletzt/besiegt/zerstört lila Ziegel, Stampfen
 zündet, Kette, Stern entschärft, Nachschub ≤ max), Tragen/Werfen (Aufprall explodiert), lila Ziegel (Inhalt, Stampfen nein,
@@ -3895,5 +3895,6 @@ von vorn Treffer, von hinten besiegt), Funkenling (Blockrand, Wand, wuseln, nur 
 Farbe, Luft/Lava), Suchkopf-Welle (still ohne Alarm, Welle 2 + 2, Abklingzeit), breaks, Werferturm · Teil 3
 Kippquader-König vollständig (Auftritt, Landefläche = Grundriss, Kippen trifft, begehbar, daneben zählt nicht, Rückenfeld
 = model.back, 3 Treffer inkl. Stampfattacke, Ecken, Phasen-Ansagen, Schockwelle, Begleiter, Sieg → Stern + Warp → Ziel,
-Tod setzt zurück, Klon) · Teil 4 Bilder `tests/out/w5e_*.png` und Zeichenaufrufe. Gemessen (scale 2, inkl. Schattenpass,
+Tod setzt zurück, Klon) · Teil 4 Bilder `tests/out/w5e_*.png` und Zeichenaufrufe · Teil 5 Sandtaucher im Ritt-Fluss
+der Strandwerkstatt `0-17` (springt den auf Pflaume reitenden Spieler an, Treffer). Gemessen (scale 2, inkl. Schattenpass,
 Thema beach/temple): Gegnerwerkstatt 54–90 Zeichenaufrufe (≤ 182 k Dreiecke), Tempel-Arena 37–50 (≤ 104 k).

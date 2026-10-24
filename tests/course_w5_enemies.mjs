@@ -11,7 +11,8 @@
 // Simulation nur über window.__course.step(n) und setInput; Bilder tests/out/w5e_*.png.
 // Aufruf: PORT_BASE=3800 node tests/course_w5_enemies.mjs   (Port 4400; vorher npm run build)
 //   W5E_PART=1 (Sandtaucher, Zündkopf, lila Ziegel) | 2 (Feuerring, Hackbeil-Pilz, Funkenling, Glutball, Suchkopf-Welle,
-//   Vorhandene) | 3 (Kippquader-König) | 4 (Bilder) – ohne: alle Teile nacheinander.
+//   Vorhandene, Werferturm) | 3 (Kippquader-König) | 4 (Bilder) | 5 (Sandtaucher im Ritt-Fluss der Strandwerkstatt 0-17)
+//   – ohne: alle Teile nacheinander (dann > 10 min: besser einzeln, auch kombiniert W5E_PART=3,4).
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
 const PORT = 4400;
@@ -1002,6 +1003,41 @@ const bmax = Math.max(...Object.values(B).map((s) => s.calls));
 console.log(`  Zeichenaufrufe Tempel: ${Object.entries(B).map(([k, s]) => `${k} ${s.calls}`).join(', ')}; höchstens ${Math.round(Math.max(...Object.values(B).map((s) => s.triangles)) / 1000)} k Dreiecke`);
 check(`Tempel-Arena: Zeichenaufrufe < 140 (höchstens ${bmax})`, bmax < 140);
 check('Keine Konsolenfehler (Teil 4)', errors.length === 0);
+}
+
+// =====================================================================================================================
+// Teil 5: Sandtaucher im Ritt-Fluss (Strandwerkstatt 0-17, Pflaume schwimmt – 5-1 Höhlenfluss)
+// =====================================================================================================================
+if (want(5)) {
+await load('0-17');
+console.log('Teil 5: Sandtaucher im Ritt-Fluss (0-17)');
+const rf = await sc(() => {
+  const c = window.__course, t = window.__t, L = c.level, p = c.player;
+  const out = {};
+  const br = t.ent('hubbruecke');
+  br.hold?.('high');
+  for (let i = 0; i < 480 && br.state !== 'high'; i++) c.step(1);
+  const f = L.spawn('sandtaucher', { id: 'st_fluss', pos: [0, -1, -42], ground: 'wasser', area: { min: [-3.4, -66], max: [3.4, -30] }, sight: 9, trigger: 3.6, cooldown: 1.2 });
+  out.spawn = { surf: +f.surf.toFixed(2), ground: f.groundKind };
+  // zur Station, zu Pflaume springen
+  t.place(L.data.marks.station, { settle: 10 });
+  const seq = [[{ y: 1 }, 30], [{ y: 1, jump: true }, 30], [{ y: 0.4 }, 60]];
+  for (const [inp, n] of seq) { c.setInput(inp); c.step(n); }
+  c.setInput({});
+  out.riding = !!c.state().archetype.riding;
+  // im Fluss: er springt den reitenden Spieler an; Treffer im Ritt
+  let hurt = false, minD = 99;
+  for (let i = 0; i < 20 * 120 && !hurt; i++) {
+    c.step(1);
+    if (f.state === 'jump') minD = Math.min(minD, Math.hypot(f.pos.x - p.pos.x, f.pos.z - p.pos.z));
+    if (p.invuln > 0 || !p.big || p.dead) hurt = true;
+  }
+  out.fish = { jumps: f.jumps, minD: +minD.toFixed(2), hurt, surf: +f.surf.toFixed(2), riding: !!c.state().archetype.riding };
+  return out;
+});
+console.log(`  Sandtaucher im Fluss: ${JSON.stringify(rf)}`);
+check(`Sandtaucher im Ritt-Fluss springt den reitenden Spieler an (${rf.fish.jumps} Sprünge, ${rf.fish.minD} m) und trifft ihn`, rf.riding && rf.fish.jumps >= 1 && rf.fish.minD < 1.5 && rf.fish.hurt);
+check('Keine Konsolenfehler (Teil 5)', errors.length === 0);
 }
 
 // __TEILE__
