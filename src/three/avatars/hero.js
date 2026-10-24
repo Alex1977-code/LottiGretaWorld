@@ -145,7 +145,7 @@ const ARM = 0.22, HAND = 0.27;
 const NECK_Y = 0.42;       // über der Hüfte (Kopf-Drehpunkt)
 const HEAD_R = 0.30;
 const HEAD_C = V(0.02, 0.28, 0); // Kopfmitte relativ zum Hals → Weltmitte (0.02, 1.20)
-const SKIN_C = '#ffd9b8', WHITE_C = '#f8f6f0';
+const SKIN_C = '#ffd1ae', WHITE_C = '#f8f6f0';
 const ARM_R = 0.056, HAND_R = 0.08;   // kräftige Arme, runde Fäustlings-Hand
 
 const STYLES = {
@@ -161,8 +161,8 @@ const STYLES = {
 
 /** Oberflächen (geteilte Materialien): Haut weich, Stoff samtig, Haar seidig, Augen/Schuhe glänzend. */
 const SURF = {
-  skin: () => mat('hero:skin', { vertexColors: true, roughness: 0.55, emissive: 0x33190c }),   // Haut: weich, leicht warm aufgehellt
-  cloth: () => vcolMat(0.74),
+  skin: () => mat('hero:skin', { vertexColors: true, roughness: 0.55, emissive: 0x26100a }),   // Haut: weich, leicht warm aufgehellt
+  cloth: () => vcolMat(0.78),   // ab 0,75 behandelt der Spielzeug-Look (toyLook.js) die Fläche als Stoff: weicher Schimmer, kaum Glanz
   hair: () => vcolMat(0.36),
   gloss: () => vcolMat(0.24),
 };
