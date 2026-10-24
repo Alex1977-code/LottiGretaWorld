@@ -1199,14 +1199,15 @@ export class HeroAvatar extends Avatar3D {
   }
 
   /**
-   * Augen: Blinzeln über scale.y um die Augenmitte (x/z wachsen leicht mit, damit die gewölbten Aufkleber nicht in die Haut
-   * sinken); fast zu → Lidbogen statt gestauchter Augen (die Glanzpunkte hängen an den offenen Augen).
+   * Augen: Weite aus der Pose über scale.y um die Augenmitte (x/z wachsen leicht mit, damit die gewölbten Aufkleber nicht
+   * in die Haut sinken); fast zu → Lidbogen. Blinzeln schaltet kurz auf den Lidbogen statt zu stauchen – so bleiben die
+   * Augen im Stand gleichmäßig skaliert und im Figur-Bündel (kein zusätzlicher Zeichenaufruf beim Blinzeln).
    */
   applyEyes(open) {
     const blink = this.blinker.update(this.dt, open > 0.5);
-    const ey = Math.max(0.06, open * blink);
-    const closed = ey < 0.3;
+    const closed = open < 0.3 || blink < 0.6;
     this.eyes.visible = !closed; this.eyesClosed.visible = closed;
+    const ey = Math.max(0.06, open);
     const k = ey < 1 ? 1 + 0.04 * (1 - ey) : 1;
     this.eyes.scale.set(k, ey, k);
   }
