@@ -126,11 +126,12 @@ export function buildRoehrenkanone(level, spec) {
         const done = fl.step(q, dt);
         q.phase = Math.min(1, t / fl.T);
         q.setState('cannon');
+        q.camTrack = 16;   // Kamera führt im Flug schnell nach (CameraRig: player.camTrack)
         collectNear(level, q, 1.1);
         if (done) { st.state = 'idle'; st.rider = null; st.k = 0; }
         return done;
       },
-      exit(q) { q.vel.set(0, -2, 0); q.phase = 0; q.hidden = false; level.effects?.dust(q.pos, 6); level.sfx('land'); },
+      exit(q) { q.vel.set(0, -2, 0); q.phase = 0; q.hidden = false; q.camTrack = 0; level.effects?.dust(q.pos, 6); level.sfx('land'); },
     }, { state: 'pipe', kind: 'roehrenkanone' });
     return true;
   };

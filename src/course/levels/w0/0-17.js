@@ -108,7 +108,7 @@ export const LEVEL = {
     plat(-218, -236),
     sign(-11, 1, -219, 'Suchscheinwerfer'),
     { type: 'wall', pos: [-4, 1, -228], size: [3, 2.4, 1] },
-    { type: 'platform', pos: [6, 3.2, -224], size: [3, 0.4, 3] },
+    { type: 'platform', pos: [6, 3.2, -224], size: [4.4, 0.4, 4.4] },   // Unterstand: verdeckt die Figur vor dem Licht
     { type: 'suchscheinwerfer', id: 'licht', path: [[-8, 1, -224], [8, 1, -224]], speed: 2.4, radius: 2.0, lamp: [0, 9, -219] },
 
     // ---------------- S7 Tempel

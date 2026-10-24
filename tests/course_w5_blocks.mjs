@@ -295,7 +295,7 @@ console.log('Strandwerkstatt 0-17');
     // warten bis die Brücke ruht (entlang z) und nicht gleich dreht, dann aufs Ende stellen
     for (let i = 0; i < 8 * 120 && (h.turning || h.warn || Math.abs(Math.sin(h.angle)) < 0.99); i++) t.tick(1);
     const a0 = h.angle;
-    t.place([0, 1.1, -167], { settle: 4 });
+    t.place([0, 1.02, -167], { settle: 20 });
     const r0 = { x: p.pos.x, z: p.pos.z, g: p.ground?.tag };
     let turned = false, on = 0, n = 0;
     for (let i = 0; i < 6 * 120; i++) {
@@ -309,7 +309,7 @@ console.log('Strandwerkstatt 0-17');
     if (rot > 180) rot -= 360; if (rot < -180) rot += 360;
     return { turned, on, n, d0, d1, rot, a: (h.angle - a0) * 180 / Math.PI, g0: r0.g, dead: p.dead, y: p.pos.y };
   });
-  console.log(`  Drehbrücke: Drehung ${f2(db.a)}°, Figur ${db.on}/${db.n} Schritte darauf, Abstand zur Achse ${f2(db.d0)} → ${f2(db.d1)}, mitgedreht ${f2(db.rot)}°`);
+  console.log(`  Drehbrücke: Drehung ${f2(db.a)}°, Figur ${db.on}/${db.n} Schritte darauf, Abstand zur Achse ${f2(db.d0)} → ${f2(db.d1)}, mitgedreht ${f2(db.rot)}° (Boden ${db.g0}, tot ${db.dead}, gedreht ${db.turned})`);
   check('Drehbrücke: dreht sich (Vierteldrehung) und trägt die Figur mit (Abstand zur Achse bleibt, Lage dreht mit)', db.turned && db.g0 === 'drehbruecke' && db.on >= db.n - 8 && Math.abs(db.d1 - db.d0) < 0.25 && Math.abs(Math.abs(db.rot) - 90) < 6 && !db.dead);
   await shot('drehbruecke', 900);
 }
@@ -462,8 +462,208 @@ console.log('Strandwerkstatt 0-17');
   await shot('kugel', 900);
 }
 
-const ok0 = true;
-void ok0;
+// ---------------------------------------------------------------- Suchscheinwerfer
+{
+  const sl = await sc(() => {
+    const t = window.__t, c = window.__course, L = c.level, h = t.named('licht');
+    let alarmSignals = 0, detectCalls = 0;
+    const off1 = L.onSignal('alarm', () => { alarmSignals++; });
+    const off2 = h.onDetect(() => { detectCalls++; });
+    // Figur abseits (im Schatten): keine Meldung
+    t.place([-10, 1, -232], { settle: 120 });
+    const quiet = { alarms: h.alarms, seen: !!h.seen };
+    // Figur an den Lichtfleck stellen → entdeckt
+    const s = h.spot;
+    t.place([s.x, 1, s.z], { settle: 2 });
+    const a1 = { alarms: h.alarms, alarm: h.alarm, signals: L.signals.alarm ?? 0, banner: L.lastBanner ?? null };
+    // im Licht bleiben: Abklingzeit – keine zweite Meldung sofort
+    t.tick(120);
+    const a2 = { alarms: h.alarms, alarm: h.alarm, seen: !!h.seen };
+    off1(); off2();
+    return { quiet, a1, a2, alarmSignals, detectCalls, info: h.info() };
+  });
+  console.log(`  Suchscheinwerfer: abseits ${JSON.stringify(sl.quiet)}; im Licht ${JSON.stringify(sl.a1)}; nach 1 s ${JSON.stringify(sl.a2)}; Signale ${sl.alarmSignals}, onDetect ${sl.detectCalls}`);
+  check('Suchscheinwerfer: abseits des Lichtkegels keine Meldung', sl.quiet.alarms === 0 && !sl.quiet.seen);
+  check('Suchscheinwerfer: Figur im Licht → „entdeckt“ (Aktion { signal: \'alarm\' }, onDetect, Alarmlicht, Ansage)', sl.a1.alarms === 1 && sl.a1.alarm && sl.a1.signals >= 1 && sl.alarmSignals >= 1 && sl.detectCalls >= 1 && sl.a1.banner === 'Entdeckt!');
+  check('Suchscheinwerfer: Abklingzeit – im Licht bleiben meldet nicht sofort erneut', sl.a2.alarms === 1 && sl.a2.seen);
+  // Verfolgen: der Fleck folgt der Figur, solange sie im Licht ist
+  const tr = await sc(() => {
+    const t = window.__t, c = window.__course, h = t.named('licht'), p = c.player;
+    const s0 = { x: h.spot.x };
+    c.setInput({ x: 0.5 });
+    t.tick(90);
+    c.setInput({});
+    return { dx: h.spot.x - s0.x, px: p.pos.x, seen: !!h.seen };
+  });
+  check('Suchscheinwerfer: der Lichtfleck folgt der entdeckten Figur', tr.seen && Math.abs(tr.dx) > 0.8);
+  // Verdeckt: unter dem Dach (fester Quader zwischen Lampe und Figur) sieht das Licht sie nicht
+  const occ = await sc(() => {
+    const t = window.__t, c = window.__course, h = t.named('licht');
+    t.place([6, 1, -224], { settle: 2 });
+    const a0 = h.alarms;
+    let seen = 0, near = 0;
+    for (let i = 0; i < 12 * 120; i++) {
+      t.tick(1);
+      if (h.seen) seen++;
+      if (Math.hypot(h.spot.x - 6, h.spot.z + 224) < 1.2) near++;
+    }
+    return { seen, near, alarms: h.alarms - a0 };
+  });
+  console.log(`  Suchscheinwerfer unter dem Dach: Fleck ${occ.near} Schritte über der Figur, gesehen ${occ.seen}, Meldungen ${occ.alarms}`);
+  check('Suchscheinwerfer: verdeckte Figur (Dach zwischen Lampe und Figur) bleibt unentdeckt', occ.near > 20 && occ.seen === 0 && occ.alarms === 0);
+  await T('place', marks.licht, { settle: 4 });
+  await shot('licht', 1100);
+}
+
+// ---------------------------------------------------------------- Kippquader
+{
+  // a) Figur steht in der Landezone vor dem Quader → er kippt auf sie: Treffer
+  const kq = await sc(() => {
+    const t = window.__t, c = window.__course, q = t.named('kq1'), p = c.player;
+    // warten bis er ruht (stehend am Start), dann in die Landezone stellen
+    // (er kippt seit dem Laden hin und her: warten, bis er wieder stehend am Start ruht und als Nächstes nach −z kippt)
+    const atStart = () => { const b = q.info().box; return q.state === 'wait' && b[4] - b[1] > 3.9 && Math.abs(b[2] + 242) < 0.05 && q.info().next === '-z'; };
+    for (let i = 0; i < 20 * 120 && !atStart(); i++) t.tick(1);
+    const box0 = q.info().box, tips0 = q.tips;
+    t.place([-5, 1, -243.6], { settle: 2 });
+    let hint = null, hits0 = q.hits;
+    for (let i = 0; i < 5 * 120 && q.tips === tips0; i++) { t.tick(1); if (q.state === 'warn' && !hint) hint = q.hint.info(); }
+    const box1 = q.info().box;
+    return { box0, box1, hint, hits: q.hits - hits0, big: p.big, invuln: p.invuln, out: !q.boxes.some((b) => p.pos.x + p.half.x > b.x0 && p.pos.x - p.half.x < b.x1 && p.pos.z + p.half.z > b.z0 && p.pos.z - p.half.z < b.z1 && p.pos.y < b.y1 && p.pos.y + p.half.y * 2 > b.y0), ray: t.ray(-5, 9, -245) };
+  });
+  console.log(`  Kippquader: stehend ${JSON.stringify(kq.box0)} → liegend ${JSON.stringify(kq.box1)}; Hinweis ${JSON.stringify(kq.hint)}; Treffer ${kq.hits} (groß ${kq.big}), hinausgeschoben ${kq.out}; Boden dort ${JSON.stringify(kq.ray)}`);
+  check('Kippquader: kippt in Laufrichtung über die Kante (stehend → liegend)', kq.box0[4] - kq.box0[1] > 3.9 && kq.box1[4] - kq.box1[1] < 2.1 && kq.box1[2] < kq.box0[2] - 3.9);
+  check('Kippquader: roter Landeboden-Hinweis vor dem Kippen (Grundriss der Landestelle)', kq.hint?.shown && kq.hint.rects.length === 1 && Math.abs(kq.hint.rects[0][1] - kq.box1[2]) < 0.05);
+  check('Kippquader: kippt er auf die Figur → Treffer, Figur wird hinausgeschoben', kq.hits === 1 && (!kq.big || kq.invuln > 0) && kq.out);
+  check('Kippquader: liegend ist er fest und begehbar (Oberseite)', kq.ray?.tag === 'kippquader' && Math.abs(kq.ray.y - kq.box1[4]) < 0.01);
+  // b) auf ihm stehen, wenn er kippt → wird mitgenommen
+  const ride = await sc(() => {
+    const t = window.__t, c = window.__course, q = t.named('kq1'), p = c.player;
+    for (let i = 0; i < 6 * 120 && q.state !== 'wait'; i++) t.tick(1);
+    const b = q.info().box;
+    t.place([(b[0] + b[3]) / 2, b[4] + 0.02, (b[2] + b[5]) / 2 + 0.4], { settle: 24 });
+    const g0 = p.ground?.tag, c0 = q.carried, tips0 = q.tips;
+    let script = 0;
+    for (let i = 0; i < 6 * 120 && q.tips === tips0; i++) { t.tick(1); if (p.mode === 'script' && p.script?.kind === 'kippquader') script++; }
+    t.tick(30);
+    const b1 = q.info().box;
+    return { g0, carried: q.carried - c0, script, p: p.info(), b1, g1: p.ground?.tag, dead: p.dead };
+  });
+  console.log(`  Kippquader mitgenommen: Boden vorher ${ride.g0}, ${ride.script} Schritte mitgefahren, danach auf ${ride.g1} bei y ${f2(ride.p.y)} (Oberseite ${ride.b1[4]})`);
+  check('Kippquader: wer darauf steht, wenn er kippt, wird mitgenommen und landet auf der neuen Oberseite', ride.g0 === 'kippquader' && ride.carried === 1 && ride.script > 30 && ride.g1 === 'kippquader' && Math.abs(ride.p.y - ride.b1[4]) < 0.05 && !ride.dead);
+  // c) Rahmen mit Loch: im Loch stehen ist sicher
+  const hole = await sc(() => {
+    const t = window.__t, c = window.__course, q = t.named('kq2'), p = c.player;
+    const b0 = q.info().box;
+    t.place([5, 1, -242.9], { settle: 4, invuln: 0 });
+    const big0 = p.big;
+    q.tip('-z');
+    for (let i = 0; i < 4 * 120 && q.tips < 1; i++) t.tick(1);
+    t.tick(10);
+    return { b0, b1: q.info().box, hits: q.hits, big: p.big, big0, inv: p.invuln, y: p.pos.y, dead: p.dead };
+  });
+  console.log(`  Kippquader-Rahmen mit Loch: ${JSON.stringify(hole.b0)} → ${JSON.stringify(hole.b1)}, Treffer ${hole.hits}, Figur groß ${hole.big}`);
+  check('Kippquader mit Loch (Rahmen): kippt per tip(), wer im Loch steht, bleibt heil', hole.b1[4] - hole.b1[1] < 1 && hole.hits === 0 && hole.big && hole.inv === 0 && !hole.dead);
+  await T('place', marks.kq, { settle: 4 });
+  await shot('kippquader', 1100);
+}
+
+// ---------------------------------------------------------------- Donut-Blöcke über blauer Lava
+{
+  const dn = await sc(() => {
+    const t = window.__t, c = window.__course, h = t.named('donuts'), p = c.player;
+    const b = h.blocks[1];
+    t.place([b.x, b.y0 + 1.05, b.z], { settle: 2 });
+    const s0 = b.state;
+    let fellAt = null, yMin = 99, carried = 0, dead = false, cause = null;
+    for (let i = 0; i < 3 * 120; i++) {
+      t.tick(1);
+      if (p.dead && !dead) { dead = true; cause = p.deathCause; }
+      if (b.state === 'fall' && fellAt === null) fellAt = i / 120;
+      if (b.state === 'fall' && p.mode === 'ground' && p.ground === b.shape) carried++;
+      yMin = Math.min(yMin, b.y);
+    }
+    for (let i = 0; i < 6 * 120 && b.state !== 'idle'; i++) t.tick(1);
+    return { s0, fellAt, carried, yMin, back: b.state, y: b.y, y0: b.y0, dead, cause };
+  });
+  console.log(`  Donut-Block: ${dn.s0} → fällt nach ${f2(dn.fellAt)} s (trägt ${dn.carried} Schritte), sinkt bis y ${f2(dn.yMin)}; danach ${dn.back} bei y ${f2(dn.y)} (Start ${dn.y0}); Figur tot ${dn.dead} (${dn.cause})`);
+  check('Donut-Block: fällt kurz nach dem Betreten (≈ 0,5 s) und trägt die Figur mit', dn.fellAt !== null && dn.fellAt > 0.4 && dn.fellAt < 0.8 && dn.carried > 10 && dn.yMin < dn.y0 - 1);
+  check('Donut-Block: kommt nach respawn s an seinem Platz wieder', dn.back === 'idle' && Math.abs(dn.y - dn.y0) < 1e-6);
+  check('Blaue Lava: tödlich wie Lava (deathCause lava)', dn.dead && dn.cause === 'lava');
+  const lv = await sc(() => { let n = 0; window.__course.level.world.forEach((s) => { if (s.kill === 'lava' && s.lavaColor === 'blau') n++; }); return n; });
+  check('Blaue Lava: Baustein lava mit color „blau“ (Kollision kill: lava)', lv >= 1);
+  await sc(() => { const L = window.__course.level; L.runtime.respawn(); window.__t.tick(5); });
+  await T('place', marks.donut0, { settle: 4 });
+  await shot('donut', 1100);
+}
+
+// ---------------------------------------------------------------- 3er-Lift (Mehrpersonen-Lift) und Figurenschalter
+{
+  const lf = await sc(() => {
+    const t = window.__t, c = window.__course, L = c.level, h = t.named('dreier');
+    const spots = [[-8.8, -261.6], [-7.2, -261.6], [-8, -262.7]];
+    const onLift = () => { const fs = L.players; fs.forEach((f, k) => { f.pos.set(spots[k][0], h.shape?.max?.[1] ?? 1.5, spots[k][1]); f.vel.set(0, 0, 0); }); return fs.length; };
+    t.place([-8.8, 1.6, -261.6], { settle: 10 });
+    c.addClone(); t.tick(20);
+    onLift(); t.tick(120);
+    const two = { s: h.s, count: h.count, n: L.players.length };
+    c.addClone(); t.tick(20);
+    onLift();
+    let maxS = 0;
+    for (let i = 0; i < 3 * 120; i++) { t.tick(1); maxS = Math.max(maxS, h.s); }
+    const three = { s: h.s, count: h.count, n: L.players.length, maxS };
+    L.squad?.clear();
+    return { two, three, need: h.need };
+  });
+  console.log(`  3er-Lift (need ${lf.need}): mit ${lf.two.n} Figuren s ${f2(lf.two.s)} (darauf ${lf.two.count}); mit ${lf.three.n} Figuren s bis ${f2(lf.three.maxS)}`);
+  check('Mehrpersonen-Lift need 3: fährt nicht mit 2 Figuren, fährt mit 3 Figuren (Klone)', lf.need === 3 && lf.two.s < 0.05 && lf.three.n === 3 && lf.three.maxS > 2);
+  const fs = await sc(() => !!window.__course.level.hasKind('figurenschalter'));
+  check('Figurenschalter vorhanden (Entität figurenschalter, Präzisierung Motor Welt 2)', fs);
+}
+
+// ---------------------------------------------------------------- Ziel, Kennzahlen
+{
+  await T('place', marks.goal);
+  await T('play', [[{ y: 1, run: true }, 70], [{ y: 1, run: true, jump: true }, 40], [{}, 400]]);
+  const st = await sc(() => window.__course.level.runtime.status);
+  check('Ziel der Strandwerkstatt erreichbar', st === 'done' || st === 'goal');
+}
+if (stats.length) {
+  console.log('  Kennzahlen (Bild, Zeichenaufrufe, Dreiecke):');
+  for (const s of stats) console.log(`    ${s[0].padEnd(18)} ${String(s[1]).padStart(4)} ${String(s[2]).padStart(8)}`);
+  check('Budget: < 140 Zeichenaufrufe in allen Bildern', stats.every((s) => s[1] < 140));
+  check('Budget: < 400 k Dreiecke in allen Bildern', stats.every((s) => s[2] < 400000));
+}
+check('Keine Konsolenfehler', errors.length === 0);
+if (errors.length) for (const e of errors.slice(0, 10)) console.log('   ', e);
+
+}
+
+// ---------------------------------------------------------------- Themen (?theme=) mit Bildern
+if (PART !== 'mech' && SHOTS) {
+  console.log('Welt-5-Themen');
+  // je Thema eine passende Station der Strandwerkstatt als Bild (Kulissen, Himmel, Gelände, Wasser/Lava)
+  const VIEWS = { beach: ['keys', 'river'], bluelava: ['donut0'], savanna: ['kanone'], mine: ['lift'], cake: ['felder0'], sneak: ['licht'], temple: ['kq'] };
+  const labels = {};
+  for (const th of Object.keys(VIEWS)) {
+    const e0 = errors.length;
+    await load(`&theme=${th}`);
+    const m = await sc(() => window.__t.marks);
+    labels[th] = await sc(() => ({ label: window.__course.view.theme.label, backdrop: window.__course.view.theme.backdrop ?? null, lava: window.__course.view.theme.lavaColor ?? null }));
+    for (const [k, w] of VIEWS[th].entries()) {
+      await T('place', m[w], { settle: 30 });
+      await shot(k ? `thema_${th}_${w}` : `thema_${th}`, 1600);
+    }
+    console.log(`  ${th}: ${labels[th].label} (Kulisse ${labels[th].backdrop}${labels[th].lava ? ', Lava ' + labels[th].lava : ''})${errors.length > e0 ? ' – Fehler!' : ''}`);
+  }
+  const ls = Object.values(labels).map((l) => l.label);
+  check('Themen: alle sieben Welt-5-Themen registriert (eigene Namen, eigene Kulisse)', ls.every((l) => l && l !== 'Wiese') && new Set(ls).size === 7 && Object.values(labels).every((l) => l.backdrop));
+  check('Thema bluelava: blaue Lava als Themen-Lava', labels.bluelava.lava === 'blau');
+  const ts = stats.filter((s) => s[0].startsWith('thema_'));
+  for (const s of ts) console.log(`    ${s[0].padEnd(22)} ${String(s[1]).padStart(4)} ${String(s[2]).padStart(8)}`);
+  check('Themen-Bilder: < 140 Zeichenaufrufe, < 400 k Dreiecke', ts.length >= 7 && ts.every((s) => s[1] < 140 && s[2] < 400000));
+  check('Themen: keine Konsolenfehler', errors.length === 0);
+  if (errors.length) for (const e of errors.slice(0, 10)) console.log('   ', e);
 }
 
 const ok = summary(errors);

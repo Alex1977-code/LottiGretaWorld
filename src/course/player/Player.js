@@ -154,7 +154,7 @@ export class Player {
     this.diving = false; this.waterCurrent = null;
     // Welt 5
     if (this.trapeze?.rider === this) this.trapeze.rider = null;
-    this.trapeze = null; this.swingTilt = 0; this.swingVel = 0;
+    this.trapeze = null; this.swingTilt = 0; this.swingVel = 0; this.camTrack = 0;
     this.updateHalf();
   }
 
