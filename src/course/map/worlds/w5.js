@@ -249,7 +249,7 @@ export const MAP = {
     { kind: 'towel', pos: [-26, 0.45, 53.2], yaw: 0.3, color: 0xb46ae8, solid: false, shadow: false },
     { kind: 'surfboard', pos: [-30, 0.45, 52.4], yaw: 0.6, color: 0x3ac8e8, solid: false },
     { kind: 'parasol', pos: [-14, 1, 44.6], color: 0xff7a5a, tone: 'rot' }, { kind: 'towel', pos: [-13, 1, 45.4], yaw: 0.2, color: 0x3ac8e8, solid: false, shadow: false },
-    { kind: 'beachchair', pos: [-19.4, 1, 33.2], yaw: 0.5, color: 0x2ab8d8 }, { kind: 'violetrock', pos: [17.6, 1, 48], size: 0.6 },
+    { kind: 'beachchair', pos: [-19.4, 1, 33.2], yaw: 0.5, color: 0x2ab8d8, tone: 'blau' }, { kind: 'violetrock', pos: [17.6, 1, 48], size: 0.6 },
     { kind: 'shells5', pos: [8, 1, 31], area: [6, 2], n: 5, solid: false, shadow: false },
     // Meer ringsum: Leuchtturm, Segelboote, violette Felsen
     { kind: 'lighthouse', pos: [62, 0, 6], size: 8, solid: false },

@@ -75,10 +75,19 @@ const glowMat = (ev, color, extra = {}) => { const m = new THREE.MeshBasicMateri
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3();
 // Registry-Modelle blicken nach +X, die Kulissen nach +Z (Kamera): yaw −π/2 dreht +X nach +Z
 const FRONT = -Math.PI / 2;
-/** Registry-Modell als statische Kulisse einbacken (false, solange es das Modell nicht gibt oder es zu schwer ist). */
-function bake5(ev, name, opts, pos, yaw = FRONT, scale = 1, state = null, cast = true, maxTris = 8000) {
+/**
+ * Schlüsselmünzen als Registry-Modell nur bis zu dieser Dreieckszahl je Münze: fünf Münzen (mit Schattenpass) sind auf
+ * der Karte bis 85 m weit zu sehen – das Modell (≈ 6 k Dreiecke je Münze) wäre dort zu schwer, eigene Münzen bleiben.
+ */
+const COIN_TRIS = 1500;
+/**
+ * Registry-Modell als statische Kulisse einbacken (false, solange es das Modell nicht gibt oder es zu schwer ist).
+ * tile: eigene benannte Kachel (MapBatcher) – kompakte Hülle, damit schwere Modelle nur in den Ansichten (und im
+ * Schattenpass) zählen, die sie wirklich sehen, statt in jeder Ansicht ihrer 48-m-Kachel.
+ */
+function bake5(ev, name, opts, pos, yaw = FRONT, scale = 1, state = null, cast = true, maxTris = 8000, tile = undefined) {
   if (!hasModel(name) || modelTris(name, opts) > maxTris) return false;
-  const add = cast ? (g, o) => ev.addStatic(g, o) : (g, o) => ev.addStatic(g, { ...o, castShadow: false });
+  const add = (g, o) => ev.addStatic(g, { ...o, ...(cast ? {} : { castShadow: false }), ...(tile ? { tile } : {}) });
   return !!bakeModel(add, name, opts, pos, yaw, scale, state);
 }
 /** Registry-Modell als bewegtes Objekt; state = Objekt/String oder Funktion (dt, t) → state. null, wenn es fehlt. */
@@ -93,6 +102,49 @@ function live5(ev, name, opts, pos, yaw = FRONT, scale = 1, state = 'idle', shad
   ev.own.push(m);
   ev.updaters.push((dt, t) => m.update(dt, typeof state === 'function' ? state(dt, t) : state));
   return m;
+}
+/** Erstes vorhandene Registry-Modell aus [name, opts, maxTris]-Kandidaten → [name, opts] oder null. */
+function pick5(...cands) {
+  for (const [name, opts, max] of cands) if (hasModel(name) && modelTris(name, opts) <= max) return [name, opts];
+  return null;
+}
+/**
+ * Registry-Modell als Instanz-Vorlage (nur starre Teile, Zustand state eingefroren): je sichtbarem Mesh ein InstancedMesh
+ * mit n Instanzen (Material des Modells). set(i, x, y, z, yaw, s) setzt Instanz i (Fußpunkt, Drehung um +Y, Blick
+ * des Modells +X), done() meldet die Änderung. null, wenn das Modell fehlt oder mehr als maxTris Dreiecke hat.
+ */
+function instModel(ev, name, opts, n, { maxTris = 8000, shadow = true, state = null, label = name } = {}) {
+  if (!hasModel(name) || modelTris(name, opts) > maxTris) return null;
+  const m = getModel(name, opts ?? {});
+  if (state) m.update?.(0, state);
+  m.root.position.set(0, 0, 0); m.root.rotation.set(0, 0, 0); m.root.scale.setScalar(1);
+  m.root.updateMatrixWorld(true);
+  const parts = [];
+  m.root.traverseVisible((o) => {
+    if (!o.isMesh || o.isInstancedMesh || o.isSprite) return;
+    const g = o.geometry.clone().applyMatrix4(o.matrixWorld);
+    const im = new THREE.InstancedMesh(g, o.material, n);
+    im.frustumCulled = false;
+    im.castShadow = shadow && o.castShadow !== false;
+    im.receiveShadow = false;
+    im.renderOrder = o.renderOrder;
+    im.name = `w5:${label}`;
+    ev.view.add(im);
+    ev.own.push(g, im);
+    parts.push(im);
+  });
+  ev.own.push(m);   // Materialien gehören dem Modell (dispose beim Abbau)
+  const mm = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+  return {
+    parts,
+    set(i, x, y, z, yaw = 0, s = 1, rx = 0, rz = 0) {
+      e.set(rx, yaw, rz, 'YXZ'); q.setFromEuler(e); v.set(x, y, z); sc.setScalar(s);
+      mm.compose(v, q, sc);
+      for (const im of parts) im.setMatrixAt(i, mm);
+    },
+    done() { for (const im of parts) im.instanceMatrix.needsUpdate = true; },
+    cull(cx, cy, cz, r) { for (const im of parts) cullByView(ev, im, cx, cy, cz, r); },
+  };
 }
 /** Instanz-Fläche (eigenes Material nach Vertexfarben), ohne Frustum-Culling (die Instanzen bewegen sich). */
 function instanced(ev, geo, n, opts = {}) {
@@ -220,14 +272,19 @@ function keyCoinGeo() {
 
 function seaside(ev, x, y, z) {
   // Strandmöbel: Strandkörbe, Schirme mit Badetüchern, Sandburg, Surfbretter, Rettungsring (eine Kulisse)
-  addGeo(ev, 'w5m:beach', () => {
+  // Strandkörbe und Schirme: Welt-5-Modelle der Registry (strandkorb, sonnenschirm), sonst eigene Geometrie
+  const CHAIRS = [[-4.6, -5.8, -0.45, 0x9a4ad8, 'lila'], [-1.8, -7.4, -0.25, 0x2ab8d8, 'blau']];
+  const SHADES = [[-6.2, 1.2, 0xb46ae8, 'lila'], [0.8, -1.4, 0xff7a5a, 'rot'], [-3.4, 7.2, 0x3ad8c8, 'gruen']];
+  const korb = CHAIRS.map(([px, pz, yaw, , tn]) => bake5(ev, 'strandkorb', { color: tn }, [x + px, y, z + pz], FRONT + yaw, 1.1, null, true, 5000, 'w5:strandmoebel'));
+  const schirm = SHADES.map(([px, pz, , tn], i) => bake5(ev, 'sonnenschirm', { color: tn, height: 2.6, tilt: 0.1 + i * 0.04 }, [x + px, y, z + pz], FRONT + i * 1.3, 1, { sway: 0.3 }, true, 4000, 'w5:strandmoebel'));
+  addGeo(ev, `w5m:beach:${korb.join()}:${schirm.join()}`, () => {
     const b = new Build();
     const put = (g, px, pz, yaw = 0) => { g.rotateY(yaw); g.translate(px, 0, pz); b.parts.push(g); };
-    put(beachChairGeo(0x9a4ad8), -4.6, -5.8, -0.45);
-    put(beachChairGeo(0x2ab8d8), -1.8, -7.4, -0.25);
-    put(parasolGeo(0xb46ae8), -6.2, 1.2, 0); put(towelGeo(0xff7ab4), -5.4, 1.6, 0.3);
-    put(parasolGeo(0xff7a5a), 0.8, -1.4, 0); put(towelGeo(0x3ac8e8), 1.8, -0.8, -0.2);
-    put(parasolGeo(0x3ad8c8), -3.4, 7.2, 0); put(towelGeo(0xffd23a), -2.4, 7.8, 0.1);
+    CHAIRS.forEach(([px, pz, yaw, col], i) => { if (!korb[i]) put(beachChairGeo(col), px, pz, yaw); });
+    SHADES.forEach(([px, pz, col], i) => { if (!schirm[i]) put(parasolGeo(col), px, pz, 0); });
+    put(towelGeo(0xff7ab4), -5.4, 1.6, 0.3);
+    put(towelGeo(0x3ac8e8), 1.8, -0.8, -0.2);
+    put(towelGeo(0xffd23a), -2.4, 7.8, 0.1);
     put(sandcastleGeo(1.15), -6.6, 4.6, 0.3);
     put(surfboardGeo(0xff8a3a), 3.6, -9.6, 0.4); put(surfboardGeo(0x8a5ae8), 4.6, -8.8, -0.3);
     return b.geometry();
@@ -257,21 +314,21 @@ function seaside(ev, x, y, z) {
     }, wb[0], wb[1], wb[2]);
   }
   const N = 5;
-  const useCoin = hasModel('schluesselmuenze') && modelTris('schluesselmuenze', {}) < 1500;
-  const coins = useCoin ? null : instanced(ev, keyCoinGeo(), N, { name: 'schluesselmuenzen', extra: { emissive: 0x4a3000, metalness: 0.3 }, key: 'w5keycoin', shadow: true });
-  const models = useCoin ? Array.from({ length: N }, (_, i) => live5(ev, 'schluesselmuenze', {}, [wb[0], wb[1] + 3, wb[2]], 0, 0.9, 'idle', true, 1500)) : [];
+  const coinModel = instModel(ev, 'schluesselmuenze', {}, N, { maxTris: COIN_TRIS, label: 'schluesselmuenzen' });
+  const coins = coinModel ? null : instanced(ev, keyCoinGeo(), N, { name: 'schluesselmuenzen', extra: { emissive: 0x4a3000, metalness: 0.3 }, key: 'w5keycoin', shadow: true });
   const placeCoins = (t) => {
     for (let i = 0; i < N; i++) {
       const a = (i / (N - 1) - 0.5) * 2.4;
       const cx = wb[0] + Math.sin(a) * 2.6, cy = wb[1] + 2.6 + Math.cos(a) * 1.2 + Math.sin(t * 2.2 + i) * 0.15, cz = wb[2] + 0.4;
       if (coins) setInst(coins, i, cx, cy, cz, t * 2.4 + i * 0.6);
-      else if (models[i]) { models[i].root.position.set(cx, cy, cz); models[i].root.rotation.y = t * 2.4 + i * 0.6; }
+      else coinModel.set(i, cx, cy - 0.48 * 0.95, cz, t * 2.4 + i * 0.6, 0.95);   // Modell: Fußpunkt, Münzmitte 0,48 m darüber
     }
-    if (coins) coins.instanceMatrix.needsUpdate = true;
+    if (coins) coins.instanceMatrix.needsUpdate = true; else coinModel.done();
   };
   placeCoins(0);
   ev.updaters.push((dt, t) => placeCoins(t));
   if (coins) cullByView(ev, coins, wb[0], wb[1] + 3, wb[2], 4.5);
+  else coinModel.cull(wb[0], wb[1] + 3, wb[2], 4.5);
   // Wasserball hüpft über den Sand
   const ball = new THREE.Mesh(cached('w5m:beachball', () => {
     const b = new Build();
@@ -405,7 +462,7 @@ function bigTop(ev, x, y, z) {
     pivot.position.set(tx, y + H - 0.1, tz + dz);
     pivot.name = 'w5:trapez';
     ev.view.add(pivot);
-    const m = live5(ev, 'trapez', { length: 3, width: 1.2 }, [0, 0, 0], 0, 1, () => ({ theta: pivot.rotation.z, rider: false }), true, 3000, pivot);
+    const m = live5(ev, 'trapez', { length: 3, width: 1.2, color: k ? 'blau' : 'rot' }, [0, 0, 0], Math.PI / 2, 1, { rider: false }, true, 4000, pivot);
     if (!m) {
       const mesh = new THREE.Mesh(cached('w5m:trapezbar', () => {
         const b = new Build();
@@ -582,8 +639,10 @@ function savanna(ev, x, y, z) {
     pivot.rotation.y = cyaw;
     pivot.name = 'w5:roehrenkanone';
     ev.view.add(pivot);
-    let fireK = 0;
-    const model = live5(ev, 'roehrenkanone', { height: 2.2, radius: 1, color: 'gruen' }, [0, 0, 0], FRONT, 1, () => ({ anim: fireK > 0 ? 'fire' : 'idle', k: fireK }), true, 5000, pivot);
+    let fireK = 0, next = 1.5;
+    const CS = 1.3;   // Maßstab des Registry-Modells (Höhe 2,2 m → 2,9 m)
+    const model = live5(ev, 'roehrenkanone', { height: 2.2, radius: 1, color: 'gruen' }, [0, 0, 0], FRONT, CS,
+      () => (fireK > 0 ? { anim: 'fire', fire: Math.min(1, 1 - fireK) } : { anim: 'load', k: Math.max(0, 1 - (next - ev.view.time) / 1.2) * 0.8 }), true, 8000, pivot);
     let barrel = null;
     if (!model) {
       addGeo(ev, 'w5m:cannonbase', () => {
@@ -607,7 +666,6 @@ function savanna(ev, x, y, z) {
     }
     solidCyl(ev, cx, cz, 1.4, cy, cy + 3, 'kanone');
     puff = puffs(ev, 14, 0xf8f6ff, 'kanonenrauch', { at: [cx, cy + 3, cz] });
-    let next = 1.5;
     const mouth = new THREE.Vector3();
     ev.updaters.push((dt, t) => {
       fireK = Math.max(0, fireK - dt * 2);
@@ -615,8 +673,9 @@ function savanna(ev, x, y, z) {
       if (t > next) {
         next = t + 4.2;
         fireK = 1;
-        mouth.set(Math.sin(0.75) * 3.4, 0.9 + Math.cos(0.75) * 3.4, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), cyaw).add(pivot.position);
-        const dx = Math.cos(cyaw) * 2.2, dz = -Math.sin(cyaw) * 2.2;
+        if (model) mouth.set(0, 2.2 * CS + 0.2, 0).add(pivot.position);
+        else mouth.set(Math.sin(0.75) * 3.4, 0.9 + Math.cos(0.75) * 3.4, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), cyaw).add(pivot.position);
+        const dx = model ? 0 : Math.cos(cyaw) * 2.2, dz = model ? 0 : -Math.sin(cyaw) * 2.2;
         puff.emit(mouth.x, mouth.y, mouth.z, 6, { vx: dx, vz: dz, vy: 2.4, life: 1.6, size: 1.1, spread: 0.6 });
       }
     });
@@ -626,7 +685,9 @@ function savanna(ev, x, y, z) {
     if (!bake5(ev, 'deco_w5_akazie', { height: h }, [px, py, pz], FRONT + px, 1, null, true, 3000)) ev.addStatic(place(acaciaGeo(h, Math.round(px * 7 + pz)), px, py, pz, px), { castShadow: true });
   }
   for (const [px, py, pz, s] of ev.def.termites ?? []) {
-    if (!bake5(ev, 'deco_w5_termitenhuegel', { size: 1.4 * s }, [px, py, pz], FRONT, 1, null, true, 2000)) ev.addStatic(place(termiteGeo(s), px, py, pz, px * 3), { castShadow: true });
+    // Termitenhügel-Modell (≈ 2,7 k Dreiecke) nur, wenn es leicht genug ist – die Hügel liegen in der großen Kulissen-Kachel
+    const tm = pick5(['deco_w5_termitenhuegel', { size: 1.4 * s }, 1200], ['termitenhuegel', { height: 2.2 * s }, 1200]);
+    if (!tm || !bake5(ev, tm[0], tm[1], [px, py, pz], FRONT + px * 3, 1, null, true, 3000)) ev.addStatic(place(termiteGeo(s), px, py, pz, px * 3), { castShadow: true });
     ev.addStatic(place(grassTuftGeo(1, Math.round(px)), px + 0.9, py, pz + 0.6), { castShadow: false });
   }
   // Hasen hüpfen im Kreis über die Savanne (def.bunnies: [[x, z, r], …]); der letzte leuchtet grün
@@ -806,8 +867,9 @@ function mine(ev, x, y, z) {
     return b.geometry();
   }, rx, y, z0);
   solidBox(ev, rx - 0.9, y, z0 + L - 0.1, rx + 0.9, y + 0.7, z0 + L + 0.3, 'prellbock');
-  const carts = instanced(ev, cartGeo(0xb070e0), 2, { name: 'loren', key: 'w5cart', shadow: true });
-  const gold = instanced(ev, cached('w5m:cartgold', () => {
+  const lore = instModel(ev, 'lore', { load: 'kristall' }, 2, { maxTris: 6000, label: 'loren' });
+  const carts = lore ? null : instanced(ev, cartGeo(0xb070e0), 2, { name: 'loren', key: 'w5cart', shadow: true });
+  const gold = lore ? null : instanced(ev, cached('w5m:cartgold', () => {
     const b = new Build();
     for (let i = 0; i < 4; i++) b.cyl(0.2, 0.2, 0.08, 0xffc21a, { p: [-0.4 + i * 0.26, 1.2 + (i % 2) * 0.08, (i % 2 ? 0.12 : -0.12)], r: [0.4, 0, 0.3] }, 10);
     return b.geometry();
@@ -819,15 +881,18 @@ function mine(ev, x, y, z) {
       let u = ph < 0.35 ? ph / 0.35 : ph < 0.5 ? 1 : ph < 0.85 ? 1 - (ph - 0.5) / 0.35 : 0;
       u = u * u * (3 - 2 * u);
       const pz = z0 - 0.6 + u * (L - 0.9 - i * 1.7);
-      setInst(carts, i, rx, y, pz, -Math.PI / 2, 1, 0, Math.sin(t * 14 + i) * 0.015 * (u > 0 && u < 1 ? 1 : 0));
+      const rock = Math.sin(t * 14 + i) * 0.015 * (u > 0 && u < 1 ? 1 : 0);
+      if (lore) { lore.set(i, rx, y + 0.17, pz, -Math.PI / 2, 1.05, 0, rock); continue; }   // Schienen-Oberkante 0,17 m
+      setInst(carts, i, rx, y, pz, -Math.PI / 2, 1, 0, rock);
       setInst(gold, i, rx, y, pz, -Math.PI / 2, i ? 1 : 0.0001);
     }
-    carts.instanceMatrix.needsUpdate = true; gold.instanceMatrix.needsUpdate = true;
+    if (lore) lore.done();
+    else { carts.instanceMatrix.needsUpdate = true; gold.instanceMatrix.needsUpdate = true; }
   };
   put(0);
   ev.updaters.push((dt, t) => put(t));
-  cullByView(ev, carts, rx, y + 1, z0 + L / 2, L / 2 + 2);
-  cullByView(ev, gold, rx, y + 1, z0 + L / 2, L / 2 + 2);
+  if (lore) lore.cull(rx, y + 1, z0 + L / 2, L / 2 + 2);
+  else { cullByView(ev, carts, rx, y + 1, z0 + L / 2, L / 2 + 2); cullByView(ev, gold, rx, y + 1, z0 + L / 2, L / 2 + 2); }
 }
 
 // ------------------------------------------------------------------ 5-B Lava-Felsen mit steigenden Steinsäulen
@@ -1052,7 +1117,7 @@ function sneakFort(ev, x, y, z) {
   head.name = 'w5:suchscheinwerfer';
   ev.view.add(head);
   let alarm = 0, aim = { yaw: 0, pitch: -0.6 };
-  const model = live5(ev, 'suchscheinwerfer', {}, [0, 0, 0], 0, 1, () => ({ alarm: alarm > 0.5, yaw: aim.yaw, pitch: aim.pitch }), true, 5000, head);
+  const model = live5(ev, 'suchscheinwerfer', {}, [0, 0, 0], 0, 1.25, () => ({ alarm: alarm > 0.5 ? 1 : 0, seen: alarm > 0.05 && alarm <= 0.5 }), true, 6000, head);
   let lampMat = null;
   if (!model) {
     const lamp = new THREE.Mesh(cached('w5m:lamphead', () => {
@@ -1136,7 +1201,7 @@ function sneakFort(ev, x, y, z) {
     spot.scale.set(SPOT_R, 1, SPOT_R);
     aim.yaw = Math.atan2(-(tz - lp[2]), tx - lp[0]);
     aim.pitch = Math.atan2(gy - lp[1], Math.hypot(tx - lp[0], tz - lp[2]));
-    if (!model) head.rotation.set(0, aim.yaw, aim.pitch, 'YXZ');
+    head.rotation.set(0, aim.yaw, aim.pitch, 'YXZ');
     wm.color.setHex(Math.sin(t * 4.1) + Math.sin(t * 1.7) > 1.3 ? 0xffc04a : 0xff7a1a);
     searchlight.shown = { step: st.step, spot: st.spot };
   };
@@ -1280,7 +1345,8 @@ function kippTemple(ev, x, y, z) {
   const topY = y + yy;
   // Steinköpfe neben der Treppe, Fackeln
   for (const s of [-1, 1]) {
-    if (!bake5(ev, 'deco_w5_steinkopf', { size: 2.2 }, [x + s * 3.4, y, z + 6.6], FRONT, 1, null, true, 3000)) ev.addStatic(place(stoneHeadGeo(1.1), x + s * 3.4, y, z + 6.6), { castShadow: true });
+    const sk = pick5(['deco_w5_steinkopf', { size: 2.2 }, 6000], ['steinkopf', { size: 1.1 }, 6000]);
+    if (!sk || !bake5(ev, sk[0], sk[1], [x + s * 3.4, y, z + 6.6], FRONT - s * 0.25, 1, { glow: 0.8 }, true, 6000)) ev.addStatic(place(stoneHeadGeo(1.1), x + s * 3.4, y, z + 6.6), { castShadow: true });
     solidBox(ev, x + s * 3.4 - 1, y, z + 5.8, x + s * 3.4 + 1, y + 2.3, z + 7.4, 'steinkopf');
     addGeo(ev, 'w5m:templetorch', () => { const b = new Build(); b.cyl(0.12, 0.16, 1.8, 0x6a4a2a, { p: [0, 0.9, 0] }, 6); b.cyl(0.28, 0.18, 0.3, 0x4a3a2a, { p: [0, 1.9, 0] }, 8); return b.geometry(); }, x + s * 5.4, y, z + 7.4);
     solidCyl(ev, x + s * 5.4, z + 7.4, 0.25, y, y + 2, 'fackel');
@@ -1298,9 +1364,22 @@ function kippTemple(ev, x, y, z) {
   ev.view.add(hinge);
   const body = new THREE.Group();
   hinge.add(body);
-  const kq = live5(ev, 'kippquader', { size: S, style: 'tempel' }, [0, 0, 0], FRONT, 1, () => ({ anim: kipp.phase === 'warn' ? 'warn' : kipp.phase === 'tip' ? 'tip' : 'idle', k: kipp.k }), true, 6000, body);
-  if (kq) kq.root.position.y = S[1] / 2;   // Modell: Ursprung Körpermitte
-  else {
+  const kq = live5(ev, 'kippquader', { size: S, style: 'tempel' }, [0, 0, 0], Math.PI, 1,
+    () => ({ anim: kipp.phase === 'warn' ? 'warn' : kipp.phase === 'tip' ? 'tip' : kipp.phase === 'down' ? 'land' : 'idle', k: kipp.k }), true, 7000, body);
+  if (kq) {
+    kq.root.position.y = S[1] / 2;   // Modell: Ursprung Körpermitte
+    // Krone des Königs obenauf (eigene Geometrie, kippt mit)
+    const crown = new THREE.Mesh(cached('w5m:kippcrown', () => {
+      const b = new Build();
+      b.cyl(0.8, 0.86, 0.34, { v: (px, py, pz, nx, ny) => mix(0xd89a10, 0xffe070, ny * 0.4 + 0.5) }, { p: [0, 0.17, 0] }, 10);
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; b.cone(0.17, 0.48, 0xffd23a, { p: [Math.cos(a) * 0.68, 0.56, Math.sin(a) * 0.68] }, 4); b.sphere(0.07, 0xfff4b0, { p: [Math.cos(a) * 0.68, 0.84, Math.sin(a) * 0.68] }, 5, 3); }
+      for (const [a, c] of [[Math.PI / 2, 0xe8283a], [Math.PI / 2 + 0.8, 0x3a8aff], [Math.PI / 2 - 0.8, 0x3ac85a]]) b.sphere(0.1, c, { p: [Math.cos(a) * 0.84, 0.18, Math.sin(a) * 0.84] }, 6, 4);
+      return b.geometry();
+    }), vcol(0.35, { metalness: 0.25 }, 'w5crown'));
+    crown.position.y = S[1];
+    crown.castShadow = true;
+    body.add(crown);
+  } else {
     const mesh = new THREE.Mesh(cached('w5m:kippking', () => {
       const b = new Build();
       b.box(S[0], S[1], S[2], { v: (px, py, pz, nx, ny) => mix(0x9a8a6a, 0xd8c8a0, ny * 0.3 + 0.5 + Math.sin(py * 5) * 0.05) }, { p: [0, S[1] / 2, 0] }, 0.1, 1);

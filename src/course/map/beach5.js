@@ -664,6 +664,17 @@ export function stoneHeadGeo(s = 1) {
   return b.geometry();
 }
 
+/** Wolkeninsel in der Ferne (Ausblick auf Welt 6): weiße Kugelwolke mit grünem Inselchen obenauf. */
+export function cloudGeo(s = 6, seed = 1) {
+  const b = new Build();
+  const rnd = new Rnd(seed);
+  for (const [dx, dy, dz, r] of [[0, 0.3, 0, 1], [-0.9, 0.1, 0.2, 0.75], [0.95, 0.12, -0.1, 0.8], [0.3, 0.55, -0.3, 0.6], [-0.4, 0.5, 0.35, 0.55]]) {
+    b.sphere(r * s * 0.5, { v: (x, y, z, nx, ny) => mix(0xd8e4f6, 0xffffff, ny * 0.5 + 0.5) }, { p: [dx * s * 0.5, dy * s * 0.5, dz * s * 0.5], s: [1, 0.62, 1] }, 9, 5);
+  }
+  b.cyl(s * 0.32, s * 0.36, s * 0.12, 0x6ac85a, { p: [rnd.real(-0.1, 0.1) * s, s * 0.46, 0] }, 9);
+  return b.geometry();
+}
+
 /** Zirkus-Trommel (Podest) mit goldenen Rändern und Stern. */
 export function drumGeo(s = 1, color = 0xe8283a) {
   const b = new Build();
@@ -864,28 +875,38 @@ export function modelTris(name, opts = {}) {
   return n;
 }
 
+// Kandidaten je Requisite: [Name, Optionen, Dreiecks-Obergrenze] – zuerst die Kulisse des Bausteins deco_w5
+// ('deco_w5_<kind>'), dann das gleichnamige Welt-5-Modell (models/kinds/props_*_w5.js). Die verstreuten Requisiten
+// liegen in den Schatten-Kacheln vieler Ansichten: Strandkorb (≈ 4,3 k), Sonnenschirm (≈ 2,2 k), Tempelsäule (≈ 4,5 k)
+// und Steinkopf (≈ 5 k) sind dafür zu schwer – sie stehen als Registry-Modelle nur an ihren Eingängen (decor_w5.js:
+// Strandkörbe und Schirme am Sonnenstrand 5-1, Steinköpfe an der Tempeltreppe 5-Burg).
+const TONES = ['rot', 'blau', 'gelb', 'lila', 'gruen'];
+const toneName = (it, d) => (TONES.includes(it.tone) ? it.tone : d);
 const W5_PROP_MODELS = {
-  parasol: (it) => ['deco_w5_sonnenschirm', { color: it.tone ?? 'lila', height: it.size ?? 2.6 }],
-  sandcastle: (it) => ['deco_w5_sandburg', { size: 2 * (it.size ?? 1) }],
-  acacia: (it) => ['deco_w5_akazie', { height: it.size ?? 5 }],
-  termite: (it) => ['deco_w5_termitenhuegel', { size: 1.4 * (it.size ?? 1) }],
-  candycane: (it) => ['deco_w5_zuckerstange', { height: it.size ?? 2.4 }],
-  cherry5: (it) => ['deco_w5_kirsche', { size: 0.75 * (it.size ?? 0.8) }],
-  stonehead: (it) => ['deco_w5_steinkopf', { size: 2.4 * (it.size ?? 1) }],
-  templecolumn: (it) => ['deco_w5_tempelsaeule', { height: it.size ?? 3, broken: !!it.broken }],
-  obelisk5: (it) => ['deco_w5_obelisk', { height: it.size ?? 5 }],
+  parasol: (it) => [['deco_w5_sonnenschirm', { color: toneName(it, 'lila'), height: it.size ?? 2.6 }, 1500], ['sonnenschirm', { color: toneName(it, 'lila'), height: it.size ?? 2.6 }, 1500]],
+  beachchair: (it) => [['strandkorb', { color: toneName(it, 'blau') }, 1500]],
+  sandcastle: (it) => [['deco_w5_sandburg', { size: 2 * (it.size ?? 1) }, 5000]],
+  acacia: (it) => [['deco_w5_akazie', { height: it.size ?? 5 }, 5000]],
+  termite: (it) => [['deco_w5_termitenhuegel', { size: 1.4 * (it.size ?? 1) }, 3000], ['termitenhuegel', { height: 2.2 * (it.size ?? 1) }, 3000]],
+  candycane: (it) => [['deco_w5_zuckerstange', { height: it.size ?? 2.4 }, 3000], ['zuckerstange', { height: it.size ?? 2.4 }, 3000]],
+  cherry5: (it) => [['deco_w5_kirsche', { size: 0.75 * (it.size ?? 0.8) }, 3000]],
+  stonehead: (it) => [['deco_w5_steinkopf', { size: 2.4 * (it.size ?? 1) }, 2000], ['steinkopf', { size: it.size ?? 1 }, 2000]],
+  templecolumn: (it) => [['deco_w5_tempelsaeule', { height: it.size ?? 3, broken: !!it.broken }, 2000], ['tempelsaeule', { height: it.size ?? 3, broken: !!it.broken }, 2000]],
+  obelisk5: (it) => [['deco_w5_obelisk', { height: it.size ?? 5 }, 5000]],
 };
 
 /**
- * Requisite (map.props, Welt 5) → Kulissen-Modell der Registry 'deco_w5_<kind>' als [name, opts, yaw-Korrektur, scale],
- * sobald es das Modell gibt und es höchstens cap Dreiecke hat; sonst null (eigene Geometrie aus lilaPropGeo).
+ * Requisite (map.props, Welt 5) → Kulissen-Modell der Registry als [name, opts, yaw-Korrektur, scale], sobald es das
+ * Modell gibt und es höchstens so viele Dreiecke hat wie für die Karte vorgesehen (Kandidaten s. o.; cap begrenzt
+ * zusätzlich); sonst null (eigene Geometrie aus lilaPropGeo).
  */
-export function lilaPropModel(it, cap = 5000) {
+export function lilaPropModel(it, cap = Infinity) {
   const f = W5_PROP_MODELS[it.kind];
   if (!f) return null;
-  const [name, opts] = f(it);
-  if (!hasModel(name) || modelTris(name, opts) > cap) return null;
-  return [name, opts, -Math.PI / 2, 1];
+  for (const [name, opts, max] of f(it)) {
+    if (hasModel(name) && modelTris(name, opts) <= Math.min(cap, max)) return [name, opts, -Math.PI / 2, 1];
+  }
+  return null;
 }
 
 // ------------------------------------------------------------------ Streudeko
