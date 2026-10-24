@@ -97,7 +97,9 @@ import {
   TAU, damp, clamp, mat, lineMat, geo, sphere, capsule, cylinder, cone, torus, unitSphere,
   mesh, limb, placed, dirAE, mergeTinted, mergePlain, mergeColored, vcolMat, buildEyes, Facing, PoseBlender, Blinker,
   HangChain, lerp, smoothstep, basicMat, wrapAngle, legIK, skinTwoBones, RainbowGlow,
+  gridGeo, latheGeo, smoothProfile2, HeadShape, decalGeo, stripGeo, hairShellGeo, blobGeo, paramDecalGeo, toonEyeGeos,
 } from '../lib/figures.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { leafSolidGeo, bushyTailGeo, skinChain, StoneSkin, PuffFx } from '../lib/heroWorld3.js';
 
 const U = 1 / GAME.tile;             // Weltpixel → Einheiten
@@ -124,6 +126,11 @@ function vmesh(key, parts, roughness = 0.6, shadow = false, side = THREE.FrontSi
 }
 
 // ------------------------------------------------------------------ Heldin: Maße (Einheiten, Fußpunkt y = 0)
+// Figurenstil (3D-World-Anmutung, eigene Figuren): Gelenke und Hülle wie bisher (Spielphysik, Anker), dazu großer runder
+// Kopf mit Aufkleber-Gesicht (gewölbte Comic-Augen mit Lidstrich und Wimpern, Brauen, Stupsnase, Wangenröte, Lächeln),
+// modellierte Haarschale mit gerolltem Rand und Glanzband, kräftige weiche Arme/Beine, große Fäustlings-Hände, große
+// glänzende Schuhe. Materialien je Oberfläche (Haut, Stoff, Haar, Glanz) – Teile gleicher Oberfläche bündelt die
+// Kurs-Ansicht in einen Zeichenaufruf (view/ShadowProxy.js).
 const HIP = 0.50;          // Hüftgelenk
 const THIGH = 0.19, SHIN = 0.17;
 const SHOULDER_Y = 0.35;   // über der Hüfte
@@ -133,81 +140,227 @@ const NECK_Y = 0.42;       // über der Hüfte (Kopf-Drehpunkt)
 const HEAD_R = 0.30;
 const HEAD_C = V(0.02, 0.28, 0); // Kopfmitte relativ zum Hals → Weltmitte (0.02, 1.20)
 const SKIN_C = '#ffd6b0', WHITE_C = '#f8f6f0';
+const ARM_R = 0.056, HAND_R = 0.08;   // kräftige Arme, runde Fäustlings-Hand
 
 const STYLES = {
-  lotti: { hair: '#c8963c', hairTip: '#f2d886', dress: '#3b7cf0', sleeve: WHITE_C, boot: '#7c4a24', iris: '#3e82f5', accent: '#e83a30', braids: true, bootShaft: true },
-  greta: { hair: '#f3d97a', hairTip: '#fff3c4', dress: '#4fb833', sleeve: '#4fb833', boot: '#7d2e42', iris: '#49a84a', accent: '#f0609f', apron: true, socks: true, mane: true },
+  lotti: {
+    hair: '#c8963c', hairTip: '#f6dc8e', hairDark: '#8c6026', brow: '#8a5a2a', dress: '#3b7cf0', sleeve: WHITE_C, boot: '#7c4a24', sole: '#43260f',
+    cuff: '#a06a38', iris: '#3e82f5', accent: '#e83a30', braids: true, bootShaft: true, blouse: true,
+  },
+  greta: {
+    hair: '#f3d97a', hairTip: '#fff7d6', hairDark: '#c99d45', brow: '#c39a4a', dress: '#4fb833', sleeve: '#4fb833', boot: '#7d2e42', sole: '#3e1424',
+    iris: '#49a84a', accent: '#f0609f', apron: true, socks: true, mane: true, strap: true,
+  },
 };
 
-// ------------------------------------------------------------------ Heldin: Geometrien (geteilt, pro Variante)
-/** Pony als Kugelschalen-Stück vor der Stirn (Elevation ≈24°–73°); scalloped = drei Bögen (Lotti). */
-function fringeGeo(scalloped, phiStart, phiLen) {
-  return geo(`fringe:${scalloped}:${phiStart.toFixed(2)}:${phiLen.toFixed(2)}`, () => {
-    const g = new THREE.SphereGeometry(HEAD_R + 0.014, 12, 5, phiStart, phiLen, 0.3, 0.85);
-    if (scalloped) {
-      const pos = g.attributes.position, uv = g.attributes.uv;
-      for (let i = 0; i < pos.count; i++) {
-        if (uv.getY(i) < 0.001) { const u = uv.getX(i); pos.setY(i, pos.getY(i) - 0.05 * (0.5 - 0.5 * Math.cos(TAU * 3 * u))); }
-      }
-      g.computeVertexNormals();
+/** Oberflächen (geteilte Materialien): Haut weich, Stoff samtig, Haar seidig, Augen/Schuhe glänzend. */
+const SURF = {
+  skin: () => vcolMat(0.55),
+  cloth: () => vcolMat(0.74),
+  hair: () => vcolMat(0.36),
+  gloss: () => vcolMat(0.24),
+};
+
+const deg = Math.PI / 180;
+const col3 = (c) => new THREE.Color(c);
+/** Kurve über |Azimut| in Grad (Stützstellen [[grad, wert], …], linear, über ±7,5° geglättet). */
+function curveDeg(pts) {
+  const lin = (x) => {
+    if (x <= pts[0][0]) return pts[0][1];
+    for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0); }
+    return pts[pts.length - 1][1];
+  };
+  return (a) => {
+    const x = Math.abs(wrapAngle(a)) / deg;
+    let s = 0;
+    for (let k = -3; k <= 3; k++) { let q = Math.abs(x + k * 2.5); if (q > 180) q = 360 - q; s += lin(q); }
+    return s / 7;
+  };
+}
+/** Ellipsoid (Einheitskugel) mit Achsen ax/ay/az (Vector3, schon skaliert) um c, Farbe je Punkt. */
+function ellipsoidGeo(c, ax, ay, az, color, ws = 18, hs = 12) {
+  const g = new THREE.SphereGeometry(1, ws, hs);
+  g.applyMatrix4(new THREE.Matrix4().makeBasis(ax, ay, az).setPosition(c));
+  const P = g.attributes.position, arr = new Float32Array(P.count * 3), cc = new THREE.Color(), p = new THREE.Vector3();
+  for (let i = 0; i < P.count; i++) { p.fromBufferAttribute(P, i); cc.set(typeof color === 'function' ? color(p) : color); arr.set([cc.r, cc.g, cc.b], i * 3); }
+  g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+  return g;
+}
+/** Teilliste [[geo, null, null], …] aus fertig gefärbten Geometrien. */
+const own = (gs) => gs.map((g) => [g, null, null]);
+
+// ------------------------------------------------------------------ Kopf und Gesicht
+/** Kopfform: rund, etwas breiter als tief, volle Wangen (Kopfmitte HEAD_C, kopf-lokal). */
+const HEAD = new HeadShape(HEAD_C, HEAD_R, { sx: 1.0, sy: 0.98, sz: 1.05, bulges: [{ az: 0.72, el: -0.46, w: 0.42, a: 0.012, sym: true }] });
+/** Gesicht (Azimut/Elevation auf der Kopfform, Maße in Einheiten): Augen tief und groß (Kindchenschema). */
+const FACE = { eyeAz: 0.35, eyeEl: -0.07, eyeW: 0.061, eyeH: 0.084, browAz: 0.37, browEl: 0.29, noseEl: -0.3, mouthEl: -0.47, blushAz: 0.64, blushEl: -0.35 };
+
+/** Kopf: Haut, Stupsnase, Wangenröte, Lächeln, Brauen – eine Geometrie (vertexgefärbt). */
+function headGeo(st) {
+  return geo(`hero:head:${st.brow}`, () => {
+    const skin = col3(SKIN_C), parts = [];
+    parts.push(gridGeo({ nu: 32, nv: 20, point: (u, v, out) => HEAD.point(dirAE(u * TAU, -Math.PI / 2 + v * Math.PI), 0, out), color: () => skin }));
+    // Stupsnase: kleine runde Kuppe, Spitze leicht rosig
+    const nose = col3('#ffb994'), nr = (x, y) => Math.hypot(x / 0.025, y / 0.021);
+    parts.push(decalGeo(HEAD, HEAD.frame(0, FACE.noseEl), {
+      rings: 4, segs: 16, shape: (r, th) => [0.025 * r * Math.cos(th), 0.021 * r * Math.sin(th)],
+      lift: (x, y) => 0.014 * Math.sqrt(Math.max(0, 1 - nr(x, y) ** 2)) - 0.0015, color: (x, y, r) => skin.clone().lerp(nose, 0.55 * (1 - r)),
+    }));
+    // Wangenröte (weicher Rand)
+    const blush = col3('#ff9696');
+    for (const s of [1, -1]) {
+      parts.push(decalGeo(HEAD, HEAD.frame(s * FACE.blushAz, FACE.blushEl), {
+        rings: 3, segs: 16, shape: (r, th) => [0.052 * r * Math.cos(th), 0.032 * r * Math.sin(th)], lift: () => 0.0012,
+        color: (x, y, r) => skin.clone().lerp(blush, 0.78 * (1 - smoothstep((r - 0.3) / 0.7))),
+      }));
     }
-    return g;
+    // Lächeln (Bogen, Mitte kräftiger, Mundwinkel zart nach oben)
+    const lip = col3('#a23c42');
+    parts.push(stripGeo(HEAD, HEAD.frame(0, FACE.mouthEl), {
+      n: 14, across: 2, curve: (t) => [lerp(-0.043, 0.043, t), 0.014 * (2 * t - 1) ** 2 - 0.006],
+      width: (t) => 0.0014 + 0.0042 * Math.sin(Math.PI * t) ** 0.7, lift: () => 0.0014, color: () => lip,
+    }));
+    // Brauen: feine Bögen in dunklerem Haarton
+    const brow = col3(st.brow);
+    for (const s of [1, -1]) {
+      const sg = s > 0 ? 1 : -1;
+      parts.push(stripGeo(HEAD, HEAD.frame(s * FACE.browAz, FACE.browEl), {
+        n: 10, across: 2, curve: (t) => [sg * lerp(-0.033, 0.036, t), 0.009 * Math.sin(Math.PI * t) - 0.005 * t],
+        width: (t) => 0.0043 * (0.5 + 0.5 * Math.sin(Math.PI * Math.min(1, 0.1 + t))), lift: () => 0.0016, color: () => brow,
+      }));
+    }
+    const merged = mergeColored(own(parts));
+    for (const g of parts) g.dispose();
+    return merged;
   });
 }
 
-/** Kopf: Haut, Wangen, Lächeln (Torusbogen) – ein Mesh. */
-function headParts() {
-  const parts = [part(sphere(HEAD_R, 18, 12), SKIN_C, { x: HEAD_C.x, y: HEAD_C.y })];
-  const smileDir = V(Math.cos(-0.38), Math.sin(-0.38), 0);
-  const smileM = placed(HEAD_C.clone().addScaledVector(smileDir, HEAD_R + 0.004), smileDir, V(1, 1, 1)).multiply(new THREE.Matrix4().makeRotationZ(Math.PI + (Math.PI - 2.5) / 2));
-  parts.push([torus(0.05, 0.011, 6, 10, 2.5), '#8a2a2a', smileM]);
-  for (const s of [1, -1]) {
-    const d = dirAE(0.85 * s, -0.3);
-    parts.push([unitSphere(), '#ff8f8f', placed(HEAD_C.clone().addScaledVector(d, HEAD_R - 0.012), d, V(0.05, 0.034, 0.02))]);
-  }
-  return parts;
+/** Augen der Heldin (offen, Glanzpunkte, geschlossen) – je Variante (Irisfarbe), geteilt. */
+function heroEyeGeos(st) {
+  return geo(`hero:eyes:${st.iris}`, () => toonEyeGeos(HEAD, {
+    az: FACE.eyeAz, el: FACE.eyeEl, w: FACE.eyeW, h: FACE.eyeH, iris: st.iris, lid: '#2c1a20', lashes: 2, look: 0.1,
+    irisW: 0.8, irisH: 0.88, irisY: -0.02, bulge: 0.011, hlSide: 1,
+  }));
 }
 
-/** Haarkappe, Pony und Schleife (Lotti) bzw. Haarreif (Greta). */
-function hairParts(st) {
-  const parts = [part(sphere(0.325, 18, 12), st.hair, { x: HEAD_C.x - 0.055, y: HEAD_C.y + 0.025 })];
-  if (st.braids) {
-    parts.push(part(fringeGeo(true, Math.PI - 1.05, 2.1), st.hair, { x: HEAD_C.x, y: HEAD_C.y }));
-    // Haarzug je Seite: flache Wulst auf der Kappe vom Scheitel hinter das Ohr, darunter der Zopfansatz
-    const capC = V(HEAD_C.x - 0.055, HEAD_C.y + 0.025, 0);
-    for (const s of [1, -1]) {
-      const d = dirAE(s * 2.05, 0.3);
-      parts.push([unitSphere(), st.hair, placed(capC.clone().addScaledVector(d, 0.325 - 0.014), d, V(0.065, 0.12, 0.03))]);
-      parts.push(part(sphere(0.058, 12, 10), st.hair, { x: BRAID.anchor.x, y: BRAID.anchor.y + 0.01, z: s * BRAID.anchor.z, sy: 1.15 }));
-    }
-    // Schleife: zwei Schlaufen und Knoten, oben hinten auf dem Kopf, leicht zur Kamera
-    const bow = new THREE.Matrix4().compose(V(HEAD_C.x - 0.1, HEAD_C.y + 0.34, 0.1), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.3, 0, 0.1)), V(1, 1, 1));
-    for (const s of [1, -1]) {
-      const m = new THREE.Matrix4().compose(V(s * 0.105, 0.015, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, s * 0.35)), V(0.12, 0.07, 0.05));
-      parts.push([unitSphere(), st.accent, bow.clone().multiply(m)]);
-    }
-    parts.push([unitSphere(), st.accent, bow.clone().multiply(new THREE.Matrix4().compose(V(0, 0, 0.01), new THREE.Quaternion(), V(0.04, 0.04, 0.045)))]);
-  } else {
-    parts.push(part(fringeGeo(false, Math.PI - 1.35, 2.2), st.hair, { x: HEAD_C.x, y: HEAD_C.y, rx: 0.42, rz: -0.05 }));
-    const arc = Math.PI * 0.95;
-    parts.push(part(torus(HEAD_R + 0.03, 0.03, 8, 20, arc), st.accent, { x: HEAD_C.x - 0.03, y: HEAD_C.y + 0.01, ry: Math.PI / 2, rz: (Math.PI - arc) / 2 }));
+// ------------------------------------------------------------------ Haar
+/** Haaransatz (Elevation je Azimut) und Dicke – Lotti: Mittelscheitel, zwei große Pony-Strähnen je Seite, nach hinten zu den Zöpfen. */
+const LOTTI_RIM = curveDeg([[0, 0.6], [10, 0.55], [22, 0.45], [32, 0.39], [42, 0.33], [50, 0.2], [58, -0.02], [66, -0.2], [80, -0.3], [96, -0.28], [110, -0.24], [125, -0.38], [150, -0.53], [180, -0.58]]);
+const GRETA_RIM = curveDeg([[0, 0.375], [10, 0.37], [20, 0.36], [30, 0.35], [38, 0.33], [44, 0.24], [50, 0.04], [56, -0.25], [62, -0.48], [72, -0.56], [90, -0.6], [180, -0.62]]);
+const HAIR = {
+  lotti: {
+    rim: (a) => { const x = Math.abs(wrapAngle(a)) / deg; return LOTTI_RIM(a) - 0.05 * Math.exp(-(((x - 14) / 7) ** 2)) - 0.04 * Math.exp(-(((x - 34) / 8) ** 2)); },
+    thick: (a, el) => {
+      const x = Math.abs(wrapAngle(a)), back = Math.abs(wrapAngle(a - Math.PI));
+      let t = 0.042 + 0.008 * smoothstep((0.9 - x) / 0.9) * smoothstep((1.0 - el) / 0.6);
+      t *= 1 - 0.5 * Math.exp(-((x / 0.07) ** 2)) * smoothstep((el - 0.3) / 0.2) * smoothstep((1.35 - el) / 0.2);   // Mittelscheitel vorn
+      t *= 1 - 0.45 * Math.exp(-((back / 0.08) ** 2)) * smoothstep((1.15 - el) / 0.3);                            // Scheitel hinten
+      return t * (1 + 0.07 * Math.cos(a * 12) * smoothstep((1.2 - el) / 0.4));
+    },
+    groove: (a) => Math.pow(0.5 + 0.5 * Math.cos(a * 12), 6),
+    part: (a, el) => Math.exp(-((wrapAngle(a) / 0.06) ** 2)) * smoothstep((el - 0.4) / 0.15) * smoothstep((1.3 - el) / 0.2)
+      + Math.exp(-((wrapAngle(a - Math.PI) / 0.07) ** 2)) * smoothstep((1.1 - el) / 0.3),
+  },
+  greta: {
+    rim: (a) => {
+      const x = Math.abs(wrapAngle(a)) / deg;
+      const lock = x < 42 ? Math.pow(0.5 + 0.5 * Math.cos((x / 11) * TAU), 3) * smoothstep((44 - x) / 6) : 0;
+      return GRETA_RIM(a) - 0.035 * lock;
+    },
+    thick: (a, el) => {
+      const x = Math.abs(wrapAngle(a));
+      const t = 0.046 + 0.006 * smoothstep((0.8 - x) / 0.8) * smoothstep((0.9 - el) / 0.5);
+      return t * (1 + 0.06 * Math.cos(a * 14) * smoothstep((1.25 - el) / 0.45));
+    },
+    groove: (a) => Math.pow(0.5 + 0.5 * Math.cos(a * 14), 6),
+    part: () => 0,
+  },
+};
+const hairKind = (st) => (st.braids ? HAIR.lotti : HAIR.greta);
+
+/** Farbe der Haarschale: Rillen und Wulst-Unterseite dunkler, Glanzband oben vorn (von den Rillen unterbrochen). */
+function hairColorFn(st) {
+  const base = col3(st.hair), tip = col3(st.hairTip), dk = col3(st.hairDark), H = hairKind(st);
+  return (a, el, k) => {
+    const g = H.groove(a);
+    const c = base.clone().lerp(dk, 0.2 * g + 0.3 * (1 - smoothstep(k / 0.12)) + 0.35 * H.part(a, el));
+    const band = Math.exp(-(((el - 0.97) / 0.11) ** 2)) * (0.5 + 0.5 * Math.cos(a)) * (1 - 0.75 * g);
+    return c.lerp(tip, 0.7 * band);
+  };
+}
+
+/** Haarschale (ganz oder nur der Pony vorn, z. B. unter der Kapuze). */
+function hairShell(st, front = false) {
+  const H = hairKind(st);
+  return hairShellGeo(HEAD, {
+    rim: H.rim, thick: H.thick, color: hairColorFn(st), nA: front ? 28 : 56, rows: front ? 4 : 9, lipRows: 4,
+    ...(front ? { aFrom: -1.25, aTo: 1.25 } : {}),
+  });
+}
+
+/** Punkt auf der Haaroberfläche in Richtung d (+ extra). */
+function onHair(st, d, extra = 0) {
+  const H = hairKind(st), a = Math.atan2(d.z, d.x), el = Math.asin(clamp(d.y, -1, 1));
+  return HEAD.point(d, H.thick(a, el) + extra);
+}
+
+/** Schleife (Lotti): zwei bauschige Schlaufen, Knoten, zwei kurze Bänder – oben hinten, zur nahen Seite. */
+function bowGeos(st) {
+  const d = dirAE(2.35, 0.98).normalize(), f = HEAD.frame(2.35, 0.98);
+  const c = onHair(st, d, 0.03), n = f.n, T = f.T.clone().negate(), B = f.B;
+  const acc = col3(st.accent), fold = acc.clone().multiplyScalar(0.62);
+  const shadeAt = (p) => acc.clone().lerp(fold, Math.exp(-p.distanceToSquared(c) / 0.0016));
+  const out = [];
+  for (const s of [1, -1]) {
+    const q = new THREE.Quaternion().setFromAxisAngle(n, s * 0.32);
+    const ax = T.clone().applyQuaternion(q), ay = B.clone().applyQuaternion(q);
+    out.push(ellipsoidGeo(c.clone().addScaledVector(ax, s * 0.095).addScaledVector(n, -0.004), ax.clone().multiplyScalar(0.105), ay.clone().multiplyScalar(0.07), n.clone().multiplyScalar(0.05), shadeAt, 16, 12));
+    const tc = c.clone().addScaledVector(B, -0.075).addScaledVector(T, s * 0.032);
+    out.push(ellipsoidGeo(tc, T.clone().multiplyScalar(0.026).applyAxisAngle(n, s * 0.35), B.clone().multiplyScalar(0.058).applyAxisAngle(n, s * 0.35), n.clone().multiplyScalar(0.018), acc, 10, 8));
   }
-  return parts;
+  out.push(ellipsoidGeo(c.clone().addScaledVector(n, 0.012), T.clone().multiplyScalar(0.042), B.clone().multiplyScalar(0.046), n.clone().multiplyScalar(0.036), acc.clone().multiplyScalar(0.92), 12, 8));
+  return out;
+}
+
+/** Haarreif (Greta): dicke, glänzende Spange über den Kopf, leicht nach hinten gekippt, runde Enden. */
+function headbandGeos(st) {
+  const beta = 0.3, pts = [];
+  for (let i = 0; i <= 24; i++) {
+    const ph = lerp(-1.62, 1.62, i / 24);
+    const d = V(-Math.sin(beta) * Math.cos(ph), Math.cos(beta) * Math.cos(ph), Math.sin(ph)).normalize();
+    pts.push(onHair(st, d, 0.02));
+  }
+  const tube = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.028, 6, false);
+  const acc = col3(st.accent);
+  const tint = (g, c) => { const n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) a.set([c.r, c.g, c.b], i * 3); g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; };
+  const caps = [pts[0], pts[pts.length - 1]].map((p) => tint(new THREE.SphereGeometry(0.029, 8, 5).translate(p.x, p.y, p.z), acc));
+  return [tint(tube, acc), ...caps];
+}
+
+/** Haar-Mesh: Schale + Schleife und Zopfansätze (Lotti) bzw. Haarreif (Greta). Teile für mergeColored. */
+function hairParts(st) {
+  const gs = [hairShell(st)];
+  if (st.braids) {
+    gs.push(...bowGeos(st));
+    const hc = col3(st.hair);
+    for (const s of [1, -1]) gs.push(ellipsoidGeo(V(BRAID.anchor.x, BRAID.anchor.y + 0.005, s * BRAID.anchor.z), V(0.066, 0, 0), V(0, 0.074, 0), V(0, 0, 0.066), hc, 16, 12));
+  } else gs.push(...headbandGeos(st));
+  return own(gs);
 }
 
 /**
  * Zopf (Lotti): Kette aus drei Gliedern, hängt am Ansatz hinter dem Ohr. Die Oberfläche ist ein
  * geflochtener Strang: zwei um 180° versetzte Wülste, die sich spiralig um die Achse drehen, mit
  * zusätzlicher Verdickung je Strang dort, wo er vorn/hinten liegt (versetzte Flechtwülste, flache
- * Seiten wie bei einem echten Zopf). Vertexfarben: Kämme hell, Rinnen dunkel. Das letzte Glied trägt
- * das rote Haargummi und eine aufgefächerte Quaste aus hellen Spitzen. Maße relativ zum Glied-Drehpunkt.
+ * Seiten wie bei einem echten Zopf). Vertexfarben: Kämme hell (Glanz), Rinnen dunkel. Das letzte Glied trägt
+ * das rote Haargummi (bauschig) und eine aufgefächerte Quaste aus hellen Spitzen. Maße relativ zum Glied-Drehpunkt.
  */
 const BRAID = {
   anchor: V(HEAD_C.x - 0.09, HEAD_C.y - 0.01, 0.29), // Ansatz hinter dem Ohr, knapp in der Kappe (z je Seite ±)
   links: [0.12, 0.11, 0.10],   // Gliedlängen → Zopfkörper 0,33 (+ Haargummi 0,04 + Quaste ≈ 0,09)
-  r0: 0.045, r1: 0.034,        // Radius oben / am Haargummi
-  twist: 46,                   // rad je Einheit: Drehung der Wülste um die Achse
-  lobe: 0.66, q: 0.6,          // Tiefe und Rundung der Rinne zwischen den Strängen
+  r0: 0.054, r1: 0.04,         // Radius oben / am Haargummi (kräftig, spielzeughaft)
+  twist: 40,                   // rad je Einheit: Drehung der Wülste um die Achse
+  lobe: 0.7, q: 0.6,           // Tiefe und Rundung der Rinne zwischen den Strängen
   bump: 0.10,                  // Verdickung je Strang vorn/hinten
   overlap: 0.03,               // jedes Glied steckt oben im vorigen
   tie: 0.04,                   // Haargummi
@@ -216,11 +369,12 @@ const BRAID_LEN = BRAID.links.reduce((a, b) => a + b, 0);
 
 /** Geometrie eines Zopfglieds (geteilt je Variante, Glied und Seite; side spiegelt die Drehrichtung). */
 function braidLinkGeo(st, k, side) {
-  return geo(`hero:braid:${st.hair}:${k}:${side}`, () => {
+  return geo(`hero:braid:${st.hair}:${st.accent}:${k}:${side}`, () => {
     const len = BRAID.links[k], y0 = BRAID.links.slice(0, k).reduce((a, b) => a + b, 0);
-    const rings = 16, segs = 16, period = TAU / BRAID.twist;
-    const base = new THREE.Color(st.hair);
+    const rings = 12, segs = 14, period = TAU / BRAID.twist;
+    const base = col3(st.hair), tip = col3(st.hairTip), dk = col3(st.hairDark);
     const pos = [], uv = [], col = [], idx = [];
+    const c = new THREE.Color();
     for (let i = 0; i <= rings; i++) {
       const yl = BRAID.overlap - (len + BRAID.overlap) * (i / rings); // lokal: +overlap … -len
       const yg = y0 - yl;                                              // Abstand vom Ansatz (nach unten)
@@ -229,19 +383,20 @@ function braidLinkGeo(st, k, side) {
       const psi = side * BRAID.twist * yg;
       for (let j = 0; j < segs; j++) {
         const th = (j / segs) * TAU;
-        const c = Math.cos(th - psi);
-        const lobe = Math.pow(Math.abs(c), BRAID.q);
-        const bump = Math.cos((TAU * yg) / period) * c;
+        const cc = Math.cos(th - psi);
+        const lobe = Math.pow(Math.abs(cc), BRAID.q);
+        const bump = Math.cos((TAU * yg) / period) * cc;
         const r = R * (BRAID.lobe + (1 - BRAID.lobe) * lobe) * (1 + BRAID.bump * bump);
         pos.push(r * Math.sin(th), yl, r * Math.cos(th));
         uv.push(j / segs, i / rings);
-        const shade = 0.74 + 0.38 * lobe + 0.12 * bump;
-        col.push(base.r * shade, base.g * shade, base.b * shade);
+        // Rinnen dunkel, Kämme hell mit Glanz
+        c.copy(base).lerp(dk, 0.55 * (1 - lobe)).lerp(tip, 0.35 * Math.max(0, lobe * (0.5 + 0.5 * bump)) ** 2);
+        col.push(c.r, c.g, c.b);
       }
     }
     for (let i = 0; i < rings; i++) for (let j = 0; j < segs; j++) {
-      const a = i * segs + j, b = i * segs + ((j + 1) % segs), c = a + segs, d = b + segs;
-      idx.push(a, c, b, b, c, d);
+      const a = i * segs + j, b = i * segs + ((j + 1) % segs), cc = a + segs, d = b + segs;
+      idx.push(a, cc, b, b, cc, d);
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -250,62 +405,232 @@ function braidLinkGeo(st, k, side) {
     g.setIndex(idx);
     g.computeVertexNormals();
     if (k < BRAID.links.length - 1) return g;
-    // Letztes Glied: Haargummi quer über das Zopfende, darunter die Quaste (fünf Strähnen + Mittelbüschel)
+    // Letztes Glied: bauschiges Haargummi über dem Zopfende, darunter die Quaste (fünf Strähnen + Mittelbüschel)
     const yTie = -len - BRAID.tie / 2, yT = -len - BRAID.tie;
-    const parts = [[g, null, null], part(cylinder(0.044, 0.040, BRAID.tie, 12), st.accent, { y: yTie })];
+    const parts = [[g, null, null], part(torus(0.034, 0.02, 8, 14), st.accent, { y: yTie, rx: Math.PI / 2 }), part(cylinder(0.036, 0.036, BRAID.tie * 0.7, 14), st.accent, { y: yTie })];
     for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * TAU + 0.3, tilt = 0.34;
+      const a = (i / 5) * TAU + 0.3, tilt = 0.36;
       const d = V(Math.sin(tilt) * Math.cos(a), -Math.cos(tilt), Math.sin(tilt) * Math.sin(a));
-      parts.push([unitSphere(), st.hairTip, placed(V(0, yT + 0.005, 0).addScaledVector(d, 0.05), d, V(0.021, 0.021, 0.056))]);
+      parts.push([sphere(1, 10, 6), st.hairTip, placed(V(0, yT + 0.004, 0).addScaledVector(d, 0.05), d, V(0.024, 0.024, 0.058))]);
     }
-    parts.push(part(unitSphere(), st.hairTip, { y: yT - 0.035, sx: 0.03, sy: 0.05, sz: 0.03 }));
+    parts.push(part(sphere(1, 10, 6), st.hairTip, { y: yT - 0.035, sx: 0.034, sy: 0.052, sz: 0.034 }));
     const merged = mergeColored(parts);
     g.dispose();
     return merged;
   });
 }
 
-/** Offenes langes Haar (Greta): Haarschopf hinter Kopf und Rücken, hängt von y = 0 nach unten. */
-function maneGeo() {
-  return geo('mane', () => {
-    const prof = [[0.002, -0.70], [0.17, -0.68], [0.28, -0.62], [0.31, -0.50], [0.29, -0.32], [0.26, -0.15], [0.20, 0.0], [0.002, 0.05]];
-    const g = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 14);
-    g.scale(0.62, 1, 1);
-    return g;
+/** Offenes langes Haar (Greta): Haarvorhang hinter Kopf und Rücken (Ursprung oben, hängt nach −Y), Spitzen mit Schwung. */
+const MANE_LEN = 0.74;
+function maneGeo(st) {
+  return geo(`hero:mane:${st.hair}`, () => {
+    const base = col3(st.hair), tip = col3(st.hairTip), dk = col3(st.hairDark);
+    const env = (v) => Math.sqrt(Math.sin((Math.PI / 2) * Math.min(1, v / 0.14))) * (v > 0.86 ? Math.sqrt(Math.max(0, 1 - ((v - 0.86) / 0.14) ** 2)) : 1);
+    return gridGeo({
+      nu: 22, nv: 12, flip: true,
+      point: (u, v, out) => {
+        const th = u * TAU, e = env(v);
+        const wz = (0.25 + 0.07 * Math.sin(Math.PI * Math.min(1, v * 1.15))) * (1 + 0.05 * Math.cos(7 * th) * smoothstep((v - 0.55) / 0.3)) * e;
+        const wx = (0.12 + 0.02 * v) * e;
+        const curl = smoothstep((v - 0.78) / 0.22);
+        const cx = -0.05 - 0.05 * v - 0.05 * curl;
+        return out.set(cx + wx * Math.cos(th), -MANE_LEN * v + 0.035 * curl, wz * Math.sin(th));
+      },
+      color: (u, v) => {
+        const th = u * TAU, g = Math.pow(0.5 + 0.5 * Math.cos(16 * th), 5);
+        const c = base.clone().lerp(dk, 0.18 * g + 0.15 * smoothstep((Math.cos(th) + 0.2) / 0.8));
+        const band = Math.exp(-(((v - 0.36) / 0.08) ** 2)) * smoothstep((-Math.cos(th) - 0.2) / 0.6) * (1 - 0.7 * g);
+        return c.lerp(tip, Math.max(0.55 * band, 0.6 * smoothstep((v - 0.78) / 0.2)));
+      },
+    });
   });
 }
 
-/** Oberkörper: Mieder, weißer Kragen, Puffärmel, (Greta) Schürzenlatz. */
+/** Zwei Strähnen vor den Schultern (Greta): flach, verjüngt, Spitze rollt sich nach vorn ein. Ursprung = Kopfmitte. */
+function locksGeo(st) {
+  return geo(`hero:locks:${st.hair}`, () => {
+    const base = col3(st.hair), tip = col3(st.hairTip), dk = col3(st.hairDark);
+    const gs = [1, -1].map((s) => gridGeo({
+      nu: 10, nv: 10, flip: true,
+      point: (u, v, out) => {
+        const th = u * TAU, curl = smoothstep((v - 0.65) / 0.35);
+        const e = Math.sqrt(Math.sin((Math.PI / 2) * Math.min(1, v / 0.12))) * (v > 0.9 ? Math.sqrt(Math.max(0, 1 - ((v - 0.9) / 0.1) ** 2)) : 1);
+        const cx = 0.03 + 0.02 * v + 0.05 * curl, cy = -0.04 - 0.4 * v + 0.03 * curl * curl, cz = s * (0.272 - 0.03 * v);
+        const wx = 0.056 * (1 - 0.45 * v) * e, wz = 0.03 * (1 - 0.3 * v) * e;
+        return out.set(cx + wx * Math.cos(th), cy, cz + wz * Math.sin(th));
+      },
+      color: (u, v) => base.clone().lerp(dk, 0.2 * Math.pow(0.5 + 0.5 * Math.cos(u * TAU * 3), 4)).lerp(tip, 0.55 * smoothstep((v - 0.6) / 0.35)),
+    }));
+    const m = mergeGeometries(gs, false);
+    for (const g of gs) g.dispose();
+    return m;
+  });
+}
+
+// ------------------------------------------------------------------ Kleid
+/** Mieder als Drehkörper (Taille → Schultern → Hals), becken-lokal; Querschnitt vorn/hinten etwas flacher. */
+const BODICE = smoothProfile2([[0.0, 0.02], [0.118, 0.035], [0.138, 0.1], [0.15, 0.19], [0.152, 0.27], [0.142, 0.335], [0.118, 0.39], [0.082, 0.43], [0.0, 0.452]], 18);
+const BODICE_SX = 0.9;
+const bodiceR = (y) => {
+  for (let i = 1; i < BODICE.length; i++) if (y <= BODICE[i][1]) { const [r0, y0] = BODICE[i - 1], [r1, y1] = BODICE[i]; return r0 + ((r1 - r0) * (y - y0)) / Math.max(1e-6, y1 - y0); }
+  return 0;
+};
+/** Punkt auf dem Mieder: s = Bogenlänge quer (vorn 0, +s → +Z), t = Höhe (becken-lokal), lift über der Oberfläche. */
+const onBodice = (s, t, lift, out) => {
+  const r = bodiceR(t), phi = s / Math.max(0.05, r);
+  return out.set(Math.cos(phi) * (r + lift) * BODICE_SX, t, Math.sin(phi) * (r + lift));
+};
+
+/** Oberkörper: Mieder, Bubikragen, Puffärmel; Lotti weißer Blusen-Einsatz, Greta Schürzenlatz mit Trägern. */
 function torsoParts(st) {
-  const parts = [
-    part(capsule(0.15, 0.12), st.dress, { y: 0.25 }),
-    part(torus(0.1, 0.045, 8, 16), st.collar ?? WHITE_C, { y: SHOULDER_Y + 0.05, rx: Math.PI / 2 }),
-    part(sphere(0.085, 12, 10), st.sleeve, { y: SHOULDER_Y, z: 0.2 }),
-    part(sphere(0.085, 12, 10), st.sleeve, { y: SHOULDER_Y, z: -0.2 }),
-  ];
-  if (st.apron) parts.push(part(unitSphere(), st.apronC ?? WHITE_C, { x: 0.125, y: 0.29, sx: 0.035, sy: 0.085, sz: 0.085 }));
-  return parts;
-}
-
-/** Rock als Lathe von Saum bis Taille; Greta zusätzlich Schürze als Teilumdrehung vorn. */
-function skirtParts(st) {
-  const prof = [[0.295, -0.125], [0.305, -0.10], [0.27, -0.03], [0.22, 0.05], [0.17, 0.12], [0.15, 0.18], [0.002, 0.19]];
-  const skirt = geo('skirt', () => new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 16));
-  const parts = [part(skirt, st.dress)];
-  if (st.apron) {
-    const o = 0.014;
-    const ap = [[0.30 + o, -0.09], [0.27 + o, -0.03], [0.22 + o, 0.05], [0.17 + o, 0.12], [0.155 + o, 0.165]];
-    // Lathe: phi = 0 zeigt nach +Z, +X liegt bei phi = π/2
-    parts.push(part(geo('apron', () => new THREE.LatheGeometry(ap.map(([r, y]) => new THREE.Vector2(r, y)), 8, Math.PI / 2 - 0.95, 1.9)), st.apronC ?? WHITE_C));
+  const dress = col3(st.dress), white = col3(st.collar ?? WHITE_C), sleeve = col3(st.sleeve);
+  const gs = [latheGeo(BODICE, { segs: 22, sx: BODICE_SX, smooth: false, color: () => dress })];
+  // Bubikragen: gerollter Ring + zwei runde Kragenecken vorn
+  gs.push(ellipsoidGeo(V(0, 0.428, 0), V(0.1, 0, 0), V(0, 0.032, 0), V(0, 0, 0.104), white, 20, 8));
+  for (const s of [1, -1]) {
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(s * -0.35, s * 0.55, -0.55, 'YXZ'));
+    gs.push(ellipsoidGeo(V(0.082, 0.41, s * 0.052), V(0.062, 0, 0).applyQuaternion(q), V(0, 0.016, 0).applyQuaternion(q), V(0, 0, 0.054).applyQuaternion(q), white, 10, 6));
   }
-  return parts;
+  // Puffärmel mit Raffung (helle/dunkle Falten), leicht nach außen gekippt
+  for (const s of [1, -1]) {
+    const g = latheGeo([[0.0, -0.085], [0.07, -0.072], [0.1, -0.03], [0.104, 0.0], [0.09, 0.045], [0.05, 0.07], [0.0, 0.078]], {
+      segs: 16, steps: 8, radius: (phi, y, r) => r * (1 + 0.05 * Math.cos(8 * phi) * (1 - Math.abs(y) / 0.09)),
+      color: (phi) => sleeve.clone().multiplyScalar(0.94 + 0.06 * Math.cos(8 * phi)),
+    });
+    g.applyMatrix4(new THREE.Matrix4().compose(V(0, SHOULDER_Y - 0.005, s * 0.205), new THREE.Quaternion().setFromEuler(new THREE.Euler(s * 0.38, 0, 0)), V(1, 1, 1)));
+    gs.push(g);
+  }
+  if (st.blouse) {
+    // Blusen-Einsatz unter dem Kragen (weiß, runder Ausschnitt)
+    gs.push(paramDecalGeo(onBodice, { rings: 2, segs: 20, flip: true, shape: (r, th) => [0.068 * r * Math.cos(th), 0.37 + 0.045 * r * Math.sin(th)], lift: () => 0.004, color: () => white }));
+  }
+  if (st.apron) {
+    const apron = col3(st.apronC ?? WHITE_C), edge = apron.clone().multiplyScalar(0.9);
+    const sq = (r, th, a, b, cy, p = 4) => { const c = Math.cos(th), s2 = Math.sin(th); return [a * r * Math.sign(c) * Math.abs(c) ** (2 / p), cy + b * r * Math.sign(s2) * Math.abs(s2) ** (2 / p)]; };
+    gs.push(paramDecalGeo(onBodice, { rings: 3, segs: 22, flip: true, shape: (r, th) => sq(r, th, 0.072, 0.085, 0.235), lift: () => 0.006, color: (s, t, r) => apron.clone().lerp(edge, smoothstep((r - 0.85) / 0.15)) }));
+    // Träger über die Schultern
+    for (const s of [1, -1]) {
+      const pts = [[0.055, 0.31], [0.075, 0.37], [0.13, 0.415], [0.22, 0.41], [0.32, 0.36], [0.4, 0.3]].map(([a, t]) => onBodice(s * a, t, 0.008, new THREE.Vector3()));
+      const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 10, 0.012, 5, false);
+      gs.push(tintGeo(g, apron));
+    }
+  }
+  return own(gs);
+}
+/** Geometrie einfarbig tönen (Vertexfarbe). */
+function tintGeo(g, c) {
+  const cc = col3(c), n = g.attributes.position.count, a = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) a.set([cc.r, cc.g, cc.b], i * 3);
+  g.setAttribute('color', new THREE.BufferAttribute(a, 3));
+  return g;
 }
 
-/** Stiefel/Schuh am Knöchel (+ Söckchen bei Greta). */
+/** Rock: Glocke mit weichen Bahnen, gerolltem Saum und Futter (geschlossen, eine Seite genügt); becken-lokal. */
+const SKIRT_PROF = smoothProfile2([[0.1, 0.17], [0.16, 0.08], [0.22, -0.02], [0.268, -0.1], [0.287, -0.133], [0.303, -0.144], [0.318, -0.132], [0.315, -0.106], [0.292, -0.05], [0.256, 0.02], [0.212, 0.09], [0.174, 0.15], [0.155, 0.195], [0.1, 0.214], [0.0, 0.22]], 25);
+const SKIRT_HEM = SKIRT_PROF.reduce((k, p, i) => (p[1] < SKIRT_PROF[k][1] ? i : k), 0);                 // tiefster Punkt (Saum)
+const SKIRT_IN = SKIRT_PROF.findIndex((p) => p[1] < -0.12);                                          // ab hier Saumwulst
+const SKIRT_OUT = SKIRT_PROF.slice(SKIRT_HEM);                                                        // Außenseite (aufsteigend)
+const skirtPleat = (phi, y) => 1 + 0.026 * Math.cos(6 * phi) * smoothstep((0.12 - y) / 0.25);
+function skirtGeo(c) {
+  const dress = col3(c), lining = dress.clone().multiplyScalar(0.7);
+  return latheGeo(SKIRT_PROF, {
+    segs: 26, smooth: false, radius: (phi, y, r) => r * skirtPleat(phi, y),
+    color: (phi, y, p, k) => (k < SKIRT_IN ? lining : dress.clone().multiplyScalar(0.95 + 0.05 * Math.cos(6 * phi))),
+  });
+}
+/** Außenradius des Rocks in Höhe t (ohne Bahnen). */
+function skirtR(t) {
+  const P = SKIRT_OUT;
+  if (t <= P[0][1]) return P[0][0];
+  for (let i = 1; i < P.length; i++) if (t <= P[i][1]) { const [r0, y0] = P[i - 1], [r1, y1] = P[i]; return r0 + ((r1 - r0) * (t - y0)) / Math.max(1e-6, y1 - y0); }
+  return 0;
+}
+/** Punkt auf der Rock-Außenseite (für die Schürze): s = Bogenlänge quer (vorn 0), t = Höhe. */
+function onSkirt(s, t, lift, out) {
+  const r = skirtR(t), phi = s / Math.max(0.1, r), R = r * skirtPleat(phi, t) + lift;
+  return out.set(Math.cos(phi) * R, t, Math.sin(phi) * R);
+}
+/** Rock-Teile: Rock (Greta mit Schürze und Schleife hinten). */
+function skirtParts(st) {
+  const gs = [skirtGeo(st.dress)];
+  if (st.apron) {
+    const apron = col3(st.apronC ?? WHITE_C), shade = apron.clone().multiplyScalar(0.86);
+    gs.push(paramDecalGeo(onSkirt, {
+      rings: 4, segs: 24, flip: true,
+      shape: (r, th) => { const c = Math.cos(th), s2 = Math.sin(th); return [0.2 * r * Math.sign(c) * Math.abs(c) ** 0.6, 0.035 + 0.135 * r * Math.sign(s2) * Math.abs(s2) ** (s2 < 0 ? 0.9 : 0.4)]; },
+      lift: () => 0.008, color: (s, t, r) => apron.clone().lerp(shade, smoothstep((r - 0.82) / 0.18)),
+    }));
+    // Schürzenschleife hinten an der Taille
+    const k = V(-0.158, 0.17, 0);
+    for (const s of [1, -1]) {
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(s * 0.4, 0, 0));
+      gs.push(ellipsoidGeo(k.clone().add(V(-0.012, 0.012, s * 0.06)), V(0.025, 0, 0), V(0, 0.042, 0).applyQuaternion(q), V(0, 0, 0.065).applyQuaternion(q), apron, 8, 6));
+      gs.push(ellipsoidGeo(k.clone().add(V(-0.01, -0.07, s * 0.03)), V(0.012, 0, 0), V(0, 0.06, 0).applyAxisAngle(V(1, 0, 0), s * 0.25), V(0, 0, 0.022), apron, 6, 5));
+    }
+    gs.push(ellipsoidGeo(k.clone().add(V(-0.016, 0.008, 0)), V(0.022, 0, 0), V(0, 0.028, 0), V(0, 0, 0.026), shade, 8, 6));
+  }
+  return own(gs);
+}
+
+// ------------------------------------------------------------------ Arme, Beine, Schuhe
+/** Arm (arm-lokal, hängt vom Schulter-Drehpunkt nach −Y): kräftige, leicht verjüngte Röhre, runde Fäustlings-Hand mit Daumen. */
+function armParts(withHand = true) {
+  const skin = col3(SKIN_C);
+  const tube = latheGeo([[0.0, -ARM - ARM_R * 0.9], [ARM_R * 0.85, -ARM - ARM_R * 0.5], [ARM_R * 0.93, -ARM], [ARM_R * 0.97, -ARM * 0.5], [ARM_R, -0.02], [ARM_R * 0.8, 0.03], [0.0, 0.05]], { segs: 10, steps: 9, color: () => skin });
+  const gs = [tube];
+  if (withHand) gs.push(...handGeos());
+  return own(gs);
+}
+/** Fäustling: runde, etwas flache Hand, Daumen nach vorn (+X). */
+function handGeos() {
+  const skin = col3(SKIN_C), kn = skin.clone().lerp(col3('#ffb9a0'), 0.25);
+  return [
+    ellipsoidGeo(V(0.004, -HAND, 0), V(HAND_R, 0, 0), V(0, HAND_R * 1.06, 0), V(0, 0, HAND_R * 0.86), (p) => skin.clone().lerp(kn, smoothstep((-HAND - 0.02 - p.y) / 0.05) * 0.6), 14, 10),
+    ellipsoidGeo(V(HAND_R * 0.72, -HAND + 0.026, 0), V(0.03, 0.012, 0), V(-0.012, 0.04, 0), V(0, 0, 0.028), skin, 10, 6),
+  ];
+}
+
+/** Oberschenkel (hip-lokal) und Unterschenkel (knie-lokal): weiche, kräftige Röhren; Lotti Stiefelschaft mit Umschlag. */
+function thighGeo() {
+  return geo('hero:thigh', () => latheGeo([[0.0, -THIGH - 0.064], [0.058, -THIGH - 0.04], [0.068, -THIGH], [0.072, -THIGH * 0.5], [0.074, -0.01], [0.05, 0.05], [0.0, 0.07]], { segs: 12, steps: 10, color: () => col3(SKIN_C) }));
+}
+function shinGeo(st) {
+  return geo(`hero:shin:${st.bootShaft ? st.boot : 'skin'}:${st.socks ? 1 : 0}`, () => {
+    const c = col3(st.bootShaft ? st.boot : SKIN_C), white = col3(WHITE_C);
+    const g = latheGeo([[0.0, -SHIN - 0.06], [0.055, -SHIN - 0.035], [0.064, -SHIN], [0.066, -SHIN * 0.5], [0.068, -0.01], [0.05, 0.045], [0.0, 0.062]], { segs: 12, steps: 10, color: () => c });
+    const extra = [];
+    // Lotti: Stiefelschaft mit hellerem Umschlag unter dem Knie
+    if (st.bootShaft) extra.push(latheGeo([[0.06, -0.06], [0.08, -0.052], [0.086, -0.03], [0.08, -0.008], [0.06, 0.0]], { segs: 14, steps: 6, color: () => col3(st.cuff) }));
+    // Greta: Söckchen mit Rüsche am Knöchel
+    if (st.socks) extra.push(latheGeo([[0.05, -SHIN - 0.03], [0.069, -SHIN - 0.02], [0.07, -SHIN + 0.04], [0.082, -SHIN + 0.05], [0.084, -SHIN + 0.068], [0.07, -SHIN + 0.075], [0.064, -SHIN + 0.07]], { segs: 14, steps: 7, radius: (phi, y, r) => r * (y > -SHIN + 0.045 ? 1 + 0.06 * Math.cos(9 * phi) : 1), color: () => white }));
+    if (!extra.length) return g;
+    const m = mergeGeometries([g, ...extra], false); g.dispose(); for (const e of extra) e.dispose();
+    return m;
+  });
+}
+/** Schuh (knöchel-lokal, Sohle bei y = −ANKLE_H): großer, runder, glänzender Schuh; Greta mit Riemchen und Söckchen. */
+function shoeGeo(c, sole, { strap = null, welt = true } = {}) {
+  const base = col3(c), soleC = col3(sole), weltC = base.clone().lerp(col3('#ffffff'), 0.18);
+  const env = (v) => Math.pow(Math.sin(Math.PI * v), 0.42);
+  const g = blobGeo({
+    x0: -0.088, x1: 0.222, nu: 18, nv: 13,
+    hy: (v) => (0.056 + 0.006 * v) * env(v), hz: (v) => (0.066 + 0.026 * smoothstep(v * 1.2)) * env(v), yc: (v) => -0.084 - 0.006 * v,
+    deform: (p) => { if (p.y < -0.12) p.y = -0.12 + (p.y + 0.12) * 0.62; },
+    color: (p) => (p.y < -0.128 ? soleC : welt && p.y < -0.12 ? weltC : base),
+  });
+  // Sohle genau auf −ANKLE_H legen
+  const P = g.attributes.position; let lo = 1e9;
+  for (let i = 0; i < P.count; i++) lo = Math.min(lo, P.getY(i));
+  g.translate(0, -ANKLE_H - lo, 0);
+  if (!strap) return [g];
+  const st = new THREE.TorusGeometry(0.074, 0.011, 4, 12, Math.PI);
+  st.applyMatrix4(new THREE.Matrix4().compose(V(0.05, -0.07, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 2, 0)), V(1, 1.05, 1)));
+  const btn = [1, -1].map((s) => new THREE.SphereGeometry(0.013, 6, 4).translate(0.05, -0.072, s * 0.076));
+  return [g, tintGeo(st, strap), ...btn.map((b) => tintGeo(b, '#f6e3b4'))];
+}
+/** Stiefel/Schuh am Knöchel (Greta: Riemchenschuh; Söckchen sitzen am Unterschenkel). */
 function bootParts(st) {
-  const parts = [part(capsule(0.075, 0.1), st.boot, { x: 0.045, y: -0.065, rz: Math.PI / 2 })];
-  if (st.socks) parts.push(part(cylinder(0.062, 0.062, 0.07, 10), WHITE_C));
-  return parts;
+  return own(shoeGeo(st.boot, st.sole, { strap: st.strap ? new THREE.Color(st.boot).multiplyScalar(0.7) : null }));
 }
 
 /** Blatt des Blätterschirms: Gitterfläche, Spitze nach +X, leicht gewölbt, gezackter Rand. */
@@ -411,24 +736,19 @@ const SKATE_KEEP = new Set(['skate', 'jump', 'jump2', 'jump3', 'fall', 'land', '
 /** Kostüm-Farben „Funkenblüte“: Kleid feuerweiß, Ärmel/Kragen/Schürze rot, Haarschmuck weiß (Lotti) bzw. rot (Greta). */
 const fireStyle = (st) => ({ ...st, dress: FIRE_WHITE, sleeve: FIRE_RED, collar: FIRE_RED, apronC: FIRE_RED, accent: st.braids ? FIRE_WHITE : FIRE_RED });
 
-/** Kurs-Arm (Ober- und Unterarm mit Ellbogen, eine SkinnedMesh): Röhre + Kappen, Hand/Handschuh, ggf. Peace-Finger. */
+/** Kurs-Arm (Ober- und Unterarm mit Ellbogen, eine SkinnedMesh): kräftige Röhre, Fäustling bzw. Tatzen-Handschuh, ggf. Peace-Finger. */
 function courseArmGeo(st, kind) {
   return geo(`hero:carm:${kind}:${kind === 'glove' ? st.dress : ''}`, () => {
-    const parts = [
-      part(geo('carm:tube', () => new THREE.CylinderGeometry(0.05, 0.05, ARM, 10, 12, true)), SKIN_C, { y: -ARM / 2 }),
-      part(geo('carm:capT', () => new THREE.SphereGeometry(0.05, 10, 5, 0, TAU, 0, Math.PI / 2)), SKIN_C),
-      part(geo('carm:capB', () => new THREE.SphereGeometry(0.05, 10, 5, 0, TAU, Math.PI / 2, Math.PI / 2)), SKIN_C, { y: -ARM }),
-    ];
+    const parts = armParts(kind !== 'glove');
     if (kind === 'glove') parts.push(...gloveParts(st));
-    else parts.push(part(sphere(0.065, 12, 10), SKIN_C, { y: -HAND }));
     if (kind === 'peace') {
       // Zeige- und Mittelfinger als V, in Verlängerung des Unterarms
       for (const s of [1, -1]) {
         const d = V(0.1, -1, s * 0.42).normalize();
-        parts.push([capsule(0.019, 0.05, 3, 6), SKIN_C, new THREE.Matrix4().compose(V(0, -HAND, 0).addScaledVector(d, 0.078), new THREE.Quaternion().setFromUnitVectors(UP, d), V(1, 1, 1))]);
+        parts.push([capsule(0.023, 0.05, 3, 8), SKIN_C, new THREE.Matrix4().compose(V(0, -HAND, 0).addScaledVector(d, 0.09), new THREE.Quaternion().setFromUnitVectors(UP, d), V(1, 1, 1))]);
       }
     }
-    return skinTwoBones(mergeTinted(parts), -ELBOW_Y + 0.04, -ELBOW_Y - 0.05);
+    return skinTwoBones(mergeColored(parts), -ELBOW_Y + 0.04, -ELBOW_Y - 0.05);
   });
 }
 
@@ -436,13 +756,13 @@ function courseArmGeo(st, kind) {
 function gloveParts(st) {
   const H = -HAND;
   const parts = [
-    part(sphere(0.08, 14, 10), st.dress, { y: H - 0.006, sy: 1.08 }),
-    part(torus(0.056, 0.021, 6, 14), CREAM_C, { y: H + 0.066, rx: Math.PI / 2 }),
-    [unitSphere(), PAD_C, placed(V(0.074, H - 0.014, 0), V(1, 0, 0), V(0.034, 0.032, 0.013))],
+    part(sphere(0.093, 18, 12), st.dress, { y: H - 0.004, sy: 1.07, sz: 0.92 }),
+    part(torus(0.064, 0.023, 8, 16), CREAM_C, { y: H + 0.078, rx: Math.PI / 2 }),
+    [unitSphere(), PAD_C, placed(V(0.086, H - 0.014, 0), V(1, 0, 0), V(0.038, 0.036, 0.014))],
   ];
-  for (const z of [-0.034, 0, 0.034]) {
-    parts.push([unitSphere(), PAD_C, placed(V(0.056, H - 0.06, z), V(0.7, -0.7, 0), V(0.016, 0.016, 0.009))]);
-    parts.push(part(cone(0.011, 0.036, 6), CLAW_C, { x: 0.036, y: H - 0.09, z, rz: Math.PI + 0.45 }));
+  for (const z of [-0.038, 0, 0.038]) {
+    parts.push([unitSphere(), PAD_C, placed(V(0.064, H - 0.07, z), V(0.7, -0.7, 0), V(0.018, 0.018, 0.01))]);
+    parts.push(part(cone(0.012, 0.04, 6), CLAW_C, { x: 0.042, y: H - 0.104, z, rz: Math.PI + 0.45 }));
   }
   return parts;
 }
@@ -509,12 +829,8 @@ function hoodParts(st) {
   for (const s of [1, -1]) parts.push([unitSphere(), st.accent, bow.clone().multiply(new THREE.Matrix4().compose(V(s * 0.062, 0, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, s * 0.35)), V(0.068, 0.044, 0.03)))]);
   parts.push([unitSphere(), st.accent, bow.clone().multiply(new THREE.Matrix4().makeScale(0.028, 0.028, 0.03))]);
   // Haar schaut vorn heraus (Pony), Lottis Zopfansätze unter dem Rand
-  if (st.braids) {
-    parts.push(part(fringeGeo(true, Math.PI - 1.05, 2.1), st.hair, { x: HEAD_C.x, y: HEAD_C.y }));
-    for (const s of [1, -1]) parts.push(part(sphere(0.058, 12, 10), st.hair, { x: BRAID.anchor.x, y: BRAID.anchor.y + 0.01, z: s * BRAID.anchor.z, sy: 1.15 }));
-  } else {
-    parts.push(part(fringeGeo(false, Math.PI - 1.35, 2.2), st.hair, { x: HEAD_C.x, y: HEAD_C.y, rx: 0.42, rz: -0.05 }));
-  }
+  parts.push([hairShell(st, true), null, null]);
+  if (st.braids) for (const s of [1, -1]) parts.push([ellipsoidGeo(V(BRAID.anchor.x, BRAID.anchor.y + 0.005, s * BRAID.anchor.z), V(0.066, 0, 0), V(0, 0.074, 0), V(0, 0, 0.066), col3(st.hair), 16, 12), null, null]);
   return parts;
 }
 /** Geringelter Puschelschweif am Rock (Krallen-Anzug), becken-lokal. */
@@ -573,18 +889,17 @@ function leafTailGeo() {
 function skateParts(st) {
   const BLUE = '#8fd3f4', ICE = '#e6f2fa', STEEL = '#c3cfd8';
   const parts = [
-    part(capsule(0.08, 0.1), BLUE, { x: 0.045, y: -0.062, rz: Math.PI / 2 }),
-    part(cylinder(0.07, 0.074, 0.12, 12), BLUE, { y: 0.0 }),
-    part(torus(0.07, 0.026, 6, 14), '#ffffff', { y: 0.066, rx: Math.PI / 2 }),
-    part(sphere(0.05, 10, 8), st.braids ? '#ff5f7e' : '#ff8fc0', { x: 0.075, y: 0.08 }),
-    part(sphere(0.02, 8, 6), '#ffffff', { x: 0.12, y: -0.02 }),
-    part(geo('skate:plate', () => new THREE.BoxGeometry(0.25, 0.024, 0.075)), '#ffffff', { x: 0.045, y: -0.152 }),
+    ...own(shoeGeo(BLUE, '#f4fbff', { welt: false })),
+    part(cylinder(0.078, 0.08, 0.12, 14), BLUE, { y: 0.0 }),
+    part(torus(0.078, 0.03, 8, 16), '#ffffff', { y: 0.07, rx: Math.PI / 2 }),
+    part(sphere(0.054, 12, 10), st.braids ? '#ff5f7e' : '#ff8fc0', { x: 0.085, y: 0.09 }),
+    part(sphere(0.022, 8, 6), '#ffffff', { x: 0.13, y: -0.02 }),
+    part(geo('skate:plate', () => new THREE.BoxGeometry(0.27, 0.024, 0.08)), '#ffffff', { x: 0.05, y: -0.152 }),
     part(cylinder(0.017, 0.014, 0.11, 6), STEEL, { x: -0.04, y: -0.215 }),
-    part(cylinder(0.017, 0.014, 0.11, 6), STEEL, { x: 0.13, y: -0.215 }),
-    part(geo('skate:blade2', () => new THREE.BoxGeometry(0.31, 0.03, 0.018)), ICE, { x: 0.045, y: -0.275 }),
-    part(torus(0.036, 0.01, 5, 10, Math.PI * 0.95), ICE, { x: 0.198, y: -0.254, rz: -Math.PI * 0.47 }),
+    part(cylinder(0.017, 0.014, 0.11, 6), STEEL, { x: 0.14, y: -0.215 }),
+    part(geo('skate:blade2', () => new THREE.BoxGeometry(0.33, 0.03, 0.018)), ICE, { x: 0.05, y: -0.275 }),
+    part(torus(0.036, 0.01, 5, 10, Math.PI * 0.95), ICE, { x: 0.213, y: -0.254, rz: -Math.PI * 0.47 }),
   ];
-  if (st.socks) parts.push(part(cylinder(0.062, 0.062, 0.05, 10), WHITE_C, { y: 0.09 }));
   return parts;
 }
 
@@ -598,6 +913,24 @@ function plinthParts() {
   ];
 }
 
+/** Offener Mund (Einheitsmaß, Blick +Z = aus dem Gesicht): oben fast gerade, unten rund („D“), innen dunkel, Zunge rosa. */
+function mouthGeo() {
+  return geo('hero:mouth', () => {
+    const g = new THREE.SphereGeometry(1, 22, 14);
+    const P = g.attributes.position, c = new Float32Array(P.count * 3), cc = new THREE.Color();
+    const dark = col3('#5c1626'), tongue = col3('#ff7a8c');
+    for (let i = 0; i < P.count; i++) {
+      let y = P.getY(i);
+      if (y > 0) { y *= 0.28; P.setY(i, y); }
+      cc.copy(dark).lerp(tongue, smoothstep((-0.35 - y) / 0.35) * smoothstep((P.getZ(i) - 0.1) / 0.4));
+      c.set([cc.r, cc.g, cc.b], i * 3);
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+    g.computeVertexNormals();
+    return g;
+  });
+}
+
 // ================================================================== Heldin
 export class HeroAvatar extends Avatar3D {
   buildModel() {
@@ -606,9 +939,8 @@ export class HeroAvatar extends Avatar3D {
     this.variant = STYLES[this.textureKey] ? this.textureKey : 'lotti';
     const st = STYLES[this.variant];
     const key = (k) => `hero:${this.variant}:${k}`;
-    const skin = mat('skin', { color: SKIN_C, roughness: 0.6 });
-    const hair = mat(`hair:${this.variant}`, { color: st.hair, roughness: 0.42 });
-    const boot = mat(`boot:${this.variant}`, { color: st.boot, roughness: 0.5 });
+    const skin = SURF.skin(), cloth = SURF.cloth(), hair = SURF.hair(), gloss = SURF.gloss();
+    const smesh = (g, m, shadow = true) => { const me = new THREE.Mesh(g, m); me.castShadow = shadow; return me; };
 
     this.facingCtl = new Facing(BIAS);
     this.blinker = new Blinker();
@@ -624,22 +956,22 @@ export class HeroAvatar extends Avatar3D {
     this.model.add(this.fig);
     this.pelvis = new THREE.Group(); this.pelvis.position.y = HIP;
     this.fig.add(this.pelvis);
-    this.skirtMesh = vmesh(key('skirt'), () => skirtParts(st), 0.6, true, THREE.DoubleSide);
+    this.skirtMesh = smesh(geo(key('skirt'), () => mergeColored(skirtParts(st))), cloth);
     this.pelvis.add(this.skirtMesh);
 
     // Oberkörper (Mieder, Kragen, Ärmel in einem Mesh)
     this.torso = new THREE.Group();
     this.pelvis.add(this.torso);
-    this.torsoMesh = vmesh(key('torso'), () => torsoParts(st), 0.6, true);
+    this.torsoMesh = smesh(geo(key('torso'), () => mergeColored(torsoParts(st))), cloth);
     this.torso.add(this.torsoMesh);
 
-    // Arme: Schulter-Drehpunkt → Kapsel + Hand (ein Mesh); Hand-Position als leerer Knoten für die Angel
-    const armGeo = geo('hero:arm', () => mergePlain([[capsule(0.05, ARM), new THREE.Matrix4().makeTranslation(0, -ARM / 2, 0)], [sphere(0.065, 12, 10), new THREE.Matrix4().makeTranslation(0, -HAND, 0)]]));
+    // Arme: Schulter-Drehpunkt → Röhre + Fäustling (ein Mesh); Hand-Position als leerer Knoten für die Angel
+    const armGeo = geo('hero:arm', () => mergeColored(armParts(true)));
     const makeArm = (s) => {
       const sh = new THREE.Group();
       sh.rotation.order = 'ZYX'; // erst seitlich abspreizen (X), dann vor/zurück schwingen (Z)
       sh.position.set(0, SHOULDER_Y, s * SHOULDER_Z);
-      sh.armMesh = mesh(armGeo, skin);
+      sh.armMesh = smesh(armGeo, skin, false);
       sh.add(sh.armMesh);
       sh.hand = new THREE.Object3D(); sh.hand.position.y = -HAND; sh.add(sh.hand);
       this.torso.add(sh);
@@ -647,19 +979,24 @@ export class HeroAvatar extends Avatar3D {
     };
     this.armN = makeArm(1); this.armF = makeArm(-1);
 
-    // Kopf: Haut+Gesicht, Haare(+Schleife/Haarreif), Augen, Glanzpunkte, offener Mund
+    // Kopf: Haut+Gesicht (Nase, Wangen, Lächeln, Brauen), Haare(+Schleife/Haarreif), Augen (offen/zu), Glanzpunkte, offener Mund
     this.head = new THREE.Group(); this.head.position.y = NECK_Y;
     this.torso.add(this.head);
-    this.head.add(vmesh('hero:head', headParts, 0.6, true));
-    this.hairMesh = vmesh(key('hair'), () => hairParts(st), 0.42, true);
+    this.head.add(smesh(headGeo(st), skin, false));   // Schatten wirft die Haarschale (gleiche Silhouette)
+    this.hairMesh = smesh(geo(key('hair'), () => mergeColored(hairParts(st))), hair);
     this.head.add(this.hairMesh);
-    const eyes = buildEyes({ center: HEAD_C, r: HEAD_R, az: 0.5, el: 0.02, look: 0.1, white: 0.082, iris: 0.054, pupil: 0.032, hl: 0.017, irisColor: st.iris });
-    this.eyes = eyes.eyes; this.eyeHl = eyes.hl;
-    this.head.add(this.eyes, this.eyeHl);
-    const mouthDir = V(Math.cos(-0.42), Math.sin(-0.42), 0);
-    const mouthC = HEAD_C.clone().addScaledVector(mouthDir, HEAD_R - 0.005);
-    this.mouthO = mesh(unitSphere(), mat('mouth', { color: 0x7a2230, roughness: 0.5 }), { x: mouthC.x, y: mouthC.y, z: mouthC.z });
-    this.mouthO.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(mouthDir, V(0, 0, 0), UP));
+    const E = heroEyeGeos(st);
+    this.eyes = smesh(E.open, gloss, false); this.eyes.position.y = E.eyeY;
+    this.eyesClosed = smesh(E.closed, gloss, false); this.eyesClosed.position.y = E.eyeY; this.eyesClosed.visible = false;
+    // Glanzpunkte als Kind der offenen Augen: blinzeln mit, verschwinden mit geschlossenen Augen
+    this.eyeHl = smesh(E.hl, basicMat('white', { color: 0xffffff }), false);
+    this.eyes.add(this.eyeHl);
+    this.head.add(this.eyes, this.eyesClosed);
+    const mf = HEAD.frame(0, FACE.mouthEl - 0.035);
+    const mouthC = HEAD.point(mf.d, -0.002);
+    this.mouthO = smesh(mouthGeo(), gloss, false);
+    this.mouthO.position.copy(mouthC);
+    this.mouthO.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(mf.T.clone().negate(), mf.B, mf.n));
     this.mouthO.scale.setScalar(0.001);
     this.head.add(this.mouthO);
 
@@ -670,7 +1007,7 @@ export class HeroAvatar extends Avatar3D {
       // Der Kopf-Kollider gilt erst ab dem zweiten Glied (das erste begrenzt der Wurzelkegel), sonst kann
       // ein über den Ansatz geschlagenes Glied zwischen Kollider und Abstandsbedingung hängen bleiben.
       this.braids = [];
-      this.braidColliders = { head: { c: new THREE.Vector3(), r: 0.33, from: 1 }, shoulders: [1, -1].map(() => ({ c: new THREE.Vector3(), r: 0.125, from: 0 })) };
+      this.braidColliders = { head: { c: new THREE.Vector3(), r: 0.34, from: 1 }, shoulders: [1, -1].map(() => ({ c: new THREE.Vector3(), r: 0.13, from: 0 })) };
       for (const s of [1, -1]) {
         const anchor = new THREE.Group();
         anchor.position.set(BRAID.anchor.x, BRAID.anchor.y, s * BRAID.anchor.z);
@@ -680,9 +1017,7 @@ export class HeroAvatar extends Avatar3D {
         BRAID.links.forEach((len, k) => {
           const link = new THREE.Group();
           if (k > 0) link.position.y = -BRAID.links[k - 1];
-          const m = new THREE.Mesh(braidLinkGeo(st, k, s), vcolMat(0.45));
-          m.castShadow = true;
-          link.add(m);
+          link.add(smesh(braidLinkGeo(st, k, s), hair));
           parent.add(link); links.push(link); parent = link;
         });
         // Physik: Schwerkraft 32 E/s² (etwas leichter als die Spielschwerkraft → weiches Pendeln), quadratischer
@@ -702,22 +1037,23 @@ export class HeroAvatar extends Avatar3D {
     }
     if (st.mane) {
       this.mane = new THREE.Group(); this.mane.position.set(HEAD_C.x - 0.1, HEAD_C.y + 0.15, 0);
-      this.mane.add(mesh(maneGeo(), hair, { shadow: true }));
+      this.mane.add(smesh(maneGeo(st), hair));
       this.head.add(this.mane);
       // zwei Strähnen vor den Schultern, schwingen gemeinsam um die Kopfmitte
       this.locks = new THREE.Group(); this.locks.position.set(HEAD_C.x, HEAD_C.y, 0);
-      this.locks.add(mesh(geo('hero:locks', () => mergePlain([1, -1].map((s) => [capsule(0.05, 0.26), new THREE.Matrix4().makeTranslation(0.0, -0.24, s * 0.285)]))), hair));
+      this.locks.add(smesh(locksGeo(st), hair, false));
       this.head.add(this.locks);
     }
 
-    // Beine: Hüfte → Oberschenkel → Knie → Unterschenkel → Knöchel → Stiefel
+    // Beine: Hüfte → Oberschenkel → Knie → Unterschenkel → Knöchel → Schuh (weiche, kräftige Röhren; Lotti Stiefelschaft)
+    const joint = (g, m, shadow = true) => { const pivot = new THREE.Group(); const me = smesh(g, m, shadow); pivot.add(me); pivot.limbMesh = me; return pivot; };
     const makeLeg = (s) => {
-      const hip = limb(0.065, THIGH, skin); hip.position.set(0, 0, s * 0.1);
+      const hip = joint(thighGeo(), skin, false); hip.position.set(0, 0, s * 0.1);   // im Rock-Schatten
       hip.rotation.order = 'ZYX';
-      const knee = limb(0.055, SHIN, st.bootShaft ? boot : skin); knee.position.y = -THIGH;
+      const knee = joint(shinGeo(st), st.bootShaft ? gloss : skin); knee.position.y = -THIGH;
       hip.add(knee);
       const ankle = new THREE.Group(); ankle.position.y = -SHIN;
-      ankle.add(vmesh(key('boot'), () => bootParts(st), 0.5));
+      ankle.add(smesh(geo(key('boot'), () => mergeColored(bootParts(st))), gloss, false));
       knee.add(ankle);
       hip.knee = knee; hip.ankle = ankle;
       this.pelvis.add(hip);
@@ -840,17 +1176,28 @@ export class HeroAvatar extends Avatar3D {
     this.legN.rotation.set(p.thighXn, 0, p.thighZn); this.legN.knee.rotation.z = -p.kneeN; this.legN.ankle.rotation.z = -p.footN;
     this.legF.rotation.set(p.thighXf, 0, p.thighZf); this.legF.knee.rotation.z = -p.kneeF; this.legF.ankle.rotation.z = -p.footF;
     this.fig.rotation.set(p.flip * Math.PI, 0, p.figZ);
-    const blink = this.blinker.update(this.dt, p.eyes > 0.5);
-    const ey = Math.max(0.06, p.eyes * blink);
-    this.eyes.scale.y = ey; this.eyeHl.scale.y = ey;
+    this.applyEyes(p.eyes);
     const mo = Math.max(0.001, p.mouth);
-    this.mouthO.scale.set(0.045 * mo, 0.05 * mo, 0.03 * mo);
+    this.mouthO.scale.set(0.046 * mo, 0.052 * mo, 0.006 + 0.01 * mo);
     // Frisur (Lottis Zöpfe laufen physikalisch in updateBraids)
     if (this.mane) {
       const back = 0.12 + 0.9 * p.hairBack + 0.8 * Math.max(0, p.hairLift) - 0.25 * Math.min(0, p.hairLift);
       this.mane.rotation.z = -back;
       this.locks.rotation.z = -back * 0.45 + 0.1;
     }
+  }
+
+  /**
+   * Augen: Blinzeln über scale.y um die Augenmitte (x/z wachsen leicht mit, damit die gewölbten Aufkleber nicht in die Haut
+   * sinken); fast zu → Lidbogen statt gestauchter Augen (die Glanzpunkte hängen an den offenen Augen).
+   */
+  applyEyes(open) {
+    const blink = this.blinker.update(this.dt, open > 0.5);
+    const ey = Math.max(0.06, open * blink);
+    const closed = ey < 0.3;
+    this.eyes.visible = !closed; this.eyesClosed.visible = closed;
+    const k = ey < 1 ? 1 + 0.04 * (1 - ey) : 1;
+    this.eyes.scale.set(k, ey, k);
   }
 
   animate(dt, t) {
@@ -1058,21 +1405,21 @@ export class HeroAvatar extends Avatar3D {
     this.costume = kind;
     const st = STYLES[this.variant], key = (k) => `hero:${this.variant}:${k}`, g = this.cGeo;
     if (kind === 'krallen') {
-      this.hairMesh.geometry = geo(key('hood'), () => mergeTinted(hoodParts(st)));
-      this.hairMesh.material = vcolMat(0.42, THREE.DoubleSide);
+      this.hairMesh.geometry = geo(key('hood'), () => mergeColored(hoodParts(st)));
+      this.hairMesh.material = vcolMat(0.72, THREE.DoubleSide);
       this.torsoMesh.geometry = g.torso;
-      this.skirtMesh.geometry = geo(key('skirt:krallen'), () => mergeTinted([...skirtParts(st), ...tailParts(st)]));
+      this.skirtMesh.geometry = geo(key('skirt:krallen'), () => mergeColored([...skirtParts(st), ...tailParts(st)]));
     } else if (kind === 'funken') {
       const fs = fireStyle(st);
-      this.hairMesh.geometry = geo(key('hair:funken'), () => mergeTinted(hairParts(fs)));
+      this.hairMesh.geometry = geo(key('hair:funken'), () => mergeColored(hairParts(fs)));
       this.hairMesh.material = g.hairMat;
-      this.torsoMesh.geometry = geo(key('torso:funken'), () => mergeTinted(torsoParts(fs)));
-      this.skirtMesh.geometry = geo(key('skirt:funken'), () => mergeTinted(skirtParts(fs)));
+      this.torsoMesh.geometry = geo(key('torso:funken'), () => mergeColored(torsoParts(fs)));
+      this.skirtMesh.geometry = geo(key('skirt:funken'), () => mergeColored(skirtParts(fs)));
     } else if (kind === 'gleitblatt') {
       const ls = leafStyle(st);
       this.hairMesh.geometry = geo(key('hair:gleitblatt'), () => mergeColored([...hairParts(ls), ...leafEarParts(ls)]));
       this.hairMesh.material = g.hairMat;
-      this.torsoMesh.geometry = geo(key('torso:gleitblatt'), () => mergeTinted(torsoParts(ls)));
+      this.torsoMesh.geometry = geo(key('torso:gleitblatt'), () => mergeColored(torsoParts(ls)));
       this.skirtMesh.geometry = g.skirt;
     } else {
       this.hairMesh.geometry = g.hair; this.hairMesh.material = g.hairMat;
@@ -1105,7 +1452,7 @@ export class HeroAvatar extends Avatar3D {
     w.stone.set(statue);
     if (skates !== w.skates) {
       w.skates = skates;
-      const g = skates ? geo(`hero:${this.variant}:skate`, () => mergeTinted(skateParts(STYLES[this.variant]))) : w.bootGeo;
+      const g = skates ? geo(`hero:${this.variant}:skate`, () => mergeColored(skateParts(STYLES[this.variant]))) : w.bootGeo;
       for (const b of w.boots) b.geometry = g;
     }
     if (water !== w.shinsOff) {

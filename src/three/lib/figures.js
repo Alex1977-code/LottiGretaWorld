@@ -402,6 +402,322 @@ export class HangChain {
   }
 }
 
+// ------------------------------------------------------------------ Spielzeug-Formen (Figurenstil „3D World“)
+// Glatte, vertexgefärbte Flächen aus Parametern: Gitter mit weichen Normalen (Naht- und Polfrei), Kopfform mit
+// Aufklebern (Augen, Mund, Wangen, Brauen folgen der Kopfoberfläche), Haarschale mit gerolltem Rand (sauberer
+// Haaransatz statt Durchdringung zweier Kugeln). Alle Geometrien haben position/normal/uv/color (bündelbar).
+const _g0 = new THREE.Vector3(), _g1 = new THREE.Vector3(), _g2 = new THREE.Vector3(), _g3 = new THREE.Vector3();
+const _gc = new THREE.Color();
+
+/**
+ * Indiziertes Gitter aus point(u, v, out) (u ∈ [0, 1), v ∈ [0, 1]); wrapU schließt in u (keine Naht), Zeilen, deren Punkte
+ * alle zusammenfallen (Pole), werden zu einem Punkt (keine Pol-Sterne in der Schattierung). color(u, v, p) → Color/Hex.
+ * flip kehrt die Umlaufrichtung (Normalen) um. Normalen aus den Flächen (computeVertexNormals).
+ */
+export function gridGeo({ nu, nv, wrapU = true, point, color, flip = false }) {
+  const cols = wrapU ? nu : nu + 1;
+  const pos = [], col = [], uv = [], idx = [];
+  const rows = [];
+  for (let i = 0; i <= nv; i++) {
+    const v = i / nv, pts = [];
+    for (let j = 0; j < cols; j++) pts.push(point(j / nu, v, new THREE.Vector3()));
+    let pole = true;
+    for (const p of pts) if (p.distanceToSquared(pts[0]) > 1e-12) { pole = false; break; }
+    const ids = [];
+    const add = (p, u) => {
+      ids.push(pos.length / 3);
+      pos.push(p.x, p.y, p.z); uv.push(u, v);
+      const c = color ? color(u, v, p) : 0xffffff;
+      if (c && c.isColor) _gc.copy(c); else _gc.set(c);
+      col.push(_gc.r, _gc.g, _gc.b);
+    };
+    if (pole) { add(pts[0], 0.5); for (let j = 1; j < cols; j++) ids.push(ids[0]); } else pts.forEach((p, j) => add(p, j / nu));
+    rows.push(ids);
+  }
+  const quads = wrapU ? cols : cols - 1;
+  for (let i = 0; i < nv; i++) {
+    const r0 = rows[i], r1 = rows[i + 1];
+    for (let j = 0; j < quads; j++) {
+      const j1 = (j + 1) % cols;
+      const a = r0[j], b = r0[j1], c = r1[j], d = r1[j1];
+      const tri = (x, y, z) => { if (x === y || y === z || x === z) return; if (flip) idx.push(x, z, y); else idx.push(x, y, z); };
+      tri(a, c, b); tri(b, c, d);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * Drehkörper mit weichen Normalen ohne Naht: prof = [[r, y], …] von unten nach oben (sonst flip), Querschnitt-Ellipse
+ * (sx entlang x, sz entlang z), radius(phi, y, r) moduliert (Falten, Rüschen); phi = 0 zeigt nach +X, π/2 nach +Z.
+ * Profil wird per Catmull-Rom auf `steps` Punkte verfeinert, wenn smooth.
+ */
+export function latheGeo(prof, { segs = 32, sx = 1, sz = 1, radius = null, color = null, smooth = true, steps = 0, flip = false } = {}) {
+  const pts = smooth ? smoothProfile2(prof, steps || prof.length * 4) : prof;
+  return gridGeo({
+    nu: segs, nv: pts.length - 1, wrapU: true, flip,
+    point: (u, v, out) => {
+      const k = Math.round(v * (pts.length - 1));
+      const [r0, y] = pts[k], phi = u * TAU;
+      const r = radius ? radius(phi, y, r0, k) : r0;
+      return out.set(Math.cos(phi) * r * sx, y, Math.sin(phi) * r * sz);
+    },
+    color: color ? (u, v, p) => color(u * TAU, p.y, p, Math.round(v * (pts.length - 1))) : null,
+  });
+}
+
+/** Profilpunkte [[r, y], …] per Catmull-Rom (zentripetal) auf n Punkte verfeinern (Endpunkte bleiben). */
+export function smoothProfile2(prof, n) {
+  const curve = new THREE.CatmullRomCurve3(prof.map(([r, y]) => new THREE.Vector3(r, y, 0)), false, 'centripetal');
+  return curve.getPoints(Math.max(2, n - 1)).map((p) => [Math.max(0, p.x), p.y]);
+}
+
+/**
+ * Kopfform: Ellipsoid um center (Halbachsen R·sx, R·sy, R·sz) mit weichen Beulen (Wangen) – liefert Punkte und Normalen
+ * der Oberfläche je Richtung und bildet Aufkleber (Augen, Mund …) in einer Tangentialebene auf die Oberfläche ab.
+ * bulges: [{ az, el, w (rad), a (Radius-Zuwachs), sym (beide Seiten) }]
+ */
+export class HeadShape {
+  constructor(center, R, { sx = 1, sy = 1, sz = 1, bulges = [] } = {}) {
+    this.c = center.clone(); this.R = R; this.ax = R * sx; this.ay = R * sy; this.az = R * sz; this.bulges = bulges;
+  }
+  /** Abstand Mitte → Oberfläche in Richtung d (normiert). */
+  radius(d) {
+    let r = 1 / Math.sqrt((d.x / this.ax) ** 2 + (d.y / this.ay) ** 2 + (d.z / this.az) ** 2);
+    for (const b of this.bulges) {
+      for (const s of b.sym ? [1, -1] : [1]) {
+        const bd = dirAE(b.az * s, b.el), c = clamp(d.dot(bd), -1, 1), ang = Math.acos(c);
+        r += b.a * Math.exp(-(ang * ang) / (b.w * b.w));
+      }
+    }
+    return r;
+  }
+  point(d, lift = 0, out = new THREE.Vector3()) { return out.copy(d).multiplyScalar(this.radius(d) + lift).add(this.c); }
+  /** Oberflächennormale in Richtung d (numerisch, auch an den Polen). */
+  normal(d, out = new THREE.Vector3()) {
+    const t1 = Math.abs(d.y) < 0.9 ? _g0.set(0, 1, 0).cross(d).normalize() : _g0.set(1, 0, 0).cross(d).normalize();
+    const t2 = _g1.copy(d).cross(t1).normalize();
+    const e = 1e-3;
+    const p = (a, b) => this.point(_g3.copy(d).addScaledVector(t1, a).addScaledVector(t2, b).normalize(), 0, new THREE.Vector3());
+    const du = p(e, 0).sub(p(-e, 0)), dv = p(0, e).sub(p(0, -e));
+    out.crossVectors(du, dv).normalize();
+    if (out.dot(d) < 0) out.negate();
+    return out;
+  }
+  /** Tangential-Rahmen an (az, el): d (Richtung), n (Normale), T (waagerecht, wachsendes az), B (nach oben). */
+  frame(az, el) {
+    const d = dirAE(az, el), n = this.normal(d);
+    const T = new THREE.Vector3().crossVectors(n, UPV).normalize(), B = new THREE.Vector3().crossVectors(T, n).normalize();
+    return { d, n, T, B, az, el, r: this.radius(d) };
+  }
+  /** Tangentialebene (x entlang T, y entlang B, Einheiten) → Richtung zur Oberfläche. */
+  dirAt(f, x, y, out = new THREE.Vector3()) { return out.copy(f.d).multiplyScalar(f.r).addScaledVector(f.T, x).addScaledVector(f.B, y).normalize(); }
+}
+const UPV = new THREE.Vector3(0, 1, 0);
+
+/**
+ * Aufkleber auf einer Kopfform: Polarraster (rings × segs) um den Rahmen f. shape(r, th) → [x, y] (Tangentialebene),
+ * lift(x, y, r, th) → Abstand über der Oberfläche, color(x, y, r, th) → Farbe. Normale = Oberflächennormale, gekippt nach
+ * dem Gefälle von lift (Wölbung von Augen).
+ */
+export function decalGeo(head, f, { rings = 4, segs = 24, shape, lift = () => 0.004, color }) {
+  const d = new THREE.Vector3(), nn = new THREE.Vector3();
+  const g = gridGeo({
+    nu: segs, nv: rings, wrapU: true, flip: true,
+    point: (u, v, out) => {
+      const [x, y] = shape(v, u * TAU);
+      head.dirAt(f, x, y, d);
+      return head.point(d, lift(x, y, v, u * TAU), out);
+    },
+    color: (u, v) => color(...shape(v, u * TAU), v, u * TAU),
+  });
+  // Normalen: Oberfläche + Gefälle der Wölbung (weich, ohne Polstern in der Mitte)
+  const P = g.attributes.position, N = g.attributes.normal, U = g.attributes.uv;
+  for (let i = 0; i < P.count; i++) {
+    const v = U.getY(i), th = U.getX(i) * TAU;
+    const [x, y] = shape(v, th);
+    head.dirAt(f, x, y, d);
+    head.normal(d, nn);
+    const e = 1e-3, l0 = lift(x, y, v, th);
+    const gx = (lift(x + e, y, v, th) - l0) / e, gy = (lift(x, y + e, v, th) - l0) / e;
+    nn.addScaledVector(f.T, -gx).addScaledVector(f.B, -gy).normalize();
+    N.setXYZ(i, nn.x, nn.y, nn.z);
+  }
+  return g;
+}
+
+/**
+ * Streifen-Aufkleber entlang einer Kurve in der Tangentialebene: curve(t) → [x, y] (t ∈ [0, 1]), width(t) (halbe Breite),
+ * lift(t, s), color(t, s) (s ∈ [−1, 1] quer). Für Lidstrich, Wimpern, Brauen, Mund.
+ */
+export function stripGeo(head, f, { n = 16, across = 2, curve, width, lift = () => 0.005, color }) {
+  const d = new THREE.Vector3();
+  const at = (t, s) => {
+    const e = 1e-3, [x, y] = curve(t), [x1, y1] = curve(Math.min(1, t + e)), [x0, y0] = curve(Math.max(0, t - e));
+    let tx = x1 - x0, ty = y1 - y0; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
+    const w = width(t);
+    return [x - ty * w * s, y + tx * w * s];
+  };
+  const g = gridGeo({
+    nu: n, nv: across, wrapU: false,
+    point: (u, v, out) => { const s = -1 + 2 * v, [x, y] = at(u, s); head.dirAt(f, x, y, d); return head.point(d, lift(u, s), out); },
+    color: (u, v) => color(u, -1 + 2 * v),
+  });
+  const P = g.attributes.position, N = g.attributes.normal, nn = new THREE.Vector3();
+  for (let i = 0; i < P.count; i++) { _g2.fromBufferAttribute(P, i).sub(head.c).normalize(); head.normal(_g2, nn); N.setXYZ(i, nn.x, nn.y, nn.z); }
+  return g;
+}
+
+/**
+ * Haarschale über einer Kopfform: bedeckt alle Richtungen oberhalb des Randes rim(a) (Elevation je Azimut a, 0 = vorn +X),
+ * Dicke thick(a, el). Am Rand ein gerollter Wulst (Halbkreis, Durchmesser = Dicke), der knapp unter der Haut ansetzt →
+ * scharfer, sauberer Haaransatz. color(a, el, k) (k = 0 im Wulst … 1 oben). nA Spalten, rows Zeilen bis zum Scheitel.
+ */
+export function hairShellGeo(head, { rim, thick, color, nA = 72, rows = 12, lipRows = 5, aFrom = null, aTo = null }) {
+  const d = new THREE.Vector3();
+  const nv = lipRows + rows;
+  const part = aFrom !== null;            // nur ein Azimut-Bereich (z. B. Pony unter der Kapuze)
+  const A = (u) => (part ? lerp(aFrom, aTo, u) : u * TAU);
+  return gridGeo({
+    nu: nA, nv, wrapU: !part,
+    point: (u, v, out) => {
+      const a = A(u), i = Math.round(v * nv), e0 = rim(a);
+      const T0 = thick(a, e0);
+      const ec = e0 + (T0 * 0.5) / head.R;                 // Wulstmitte (Winkel)
+      let el, t;
+      if (i <= lipRows) {
+        const ph = -Math.PI / 2 + (Math.PI * i) / lipRows;  // −90° (an der Haut) … +90° (Oberseite)
+        el = ec - ((T0 * 0.5) / head.R) * Math.cos(ph);
+        t = T0 * 0.5 + T0 * 0.5 * Math.sin(ph) - (i === 0 ? 0.004 : 0);
+      } else {
+        const k = (i - lipRows) / rows;
+        el = lerp(ec, Math.PI / 2, Math.pow(k, 0.9));
+        t = thick(a, el);
+      }
+      d.copy(dirAE(a, Math.min(el, Math.PI / 2)));
+      return head.point(d, t, out);
+    },
+    color: (u, v, p) => {
+      const a = A(u), i = Math.round(v * nv);
+      _g2.copy(p).sub(head.c).normalize();
+      return color(a, Math.asin(clamp(_g2.y, -1, 1)), i <= lipRows ? (i / lipRows) * 0.15 : 0.15 + 0.85 * ((i - lipRows) / rows));
+    },
+  });
+}
+
+/**
+ * Aufkleber auf einer beliebigen Fläche: map(s, t, lift, out) bildet Flächenparameter (s quer, t hoch, Einheiten) auf einen
+ * Punkt ab; shape(r, th) → [s, t]; Normalen aus den Flächen. Für Schürze, Latz, Blusen-Einsatz auf Drehkörpern.
+ */
+export function paramDecalGeo(map, { rings = 4, segs = 24, shape, lift = () => 0.005, color, flip = false }) {
+  return gridGeo({
+    nu: segs, nv: rings, wrapU: true, flip,
+    point: (u, v, out) => { const [s, t] = shape(v, u * TAU); return map(s, t, lift(s, t, v), out); },
+    color: (u, v) => color(...shape(v, u * TAU), v),
+  });
+}
+
+/**
+ * Comic-Augen als Aufkleber auf einer Kopfform (Figurenstil): je Auge gewölbtes Weiß, große Iris mit Verlauf (oben dunkel,
+ * unten hell) und dunklem Rand, Pupille, optional Lidstrich mit Wimpern; dazu Glanzpunkte (eigene Geometrie, unbeleuchtet)
+ * und geschlossene Augen (Lidbogen „◡“ mit Wimpern). Alles um eyeY nach unten verschoben (Blinzeln über scale.y).
+ * o: { az, el (Augenmitte, beide Seiten ±az), w, h (halbe Breite/Höhe), iris, pupil, sclera, lid (Farbe | null), lashes (0..3),
+ *      look (Iris nach vorn, Anteil von w), irisW/irisH/irisY, pupilW/pupilH, bulge, base, hlSide (+1 Glanz zur +Z-Seite) }
+ */
+export function toonEyeGeos(head, o) {
+  const W = o.w, Hh = o.h, bulge = o.bulge ?? 0.01, base = o.base ?? 0.003;
+  const iw = (o.irisW ?? 0.8) * W, ih = (o.irisH ?? 0.88) * Hh, pw = (o.pupilW ?? 0.5) * iw, ph = (o.pupilH ?? 0.54) * ih;
+  const C = (c) => new THREE.Color(c);
+  const irisC = C(o.iris), dark = irisC.clone().multiplyScalar(0.38), light = irisC.clone().lerp(C('#ffffff'), 0.38), rimC = irisC.clone().multiplyScalar(0.45);
+  const pupilC = C(o.pupil ?? '#140c18'), white = C(o.sclera ?? '#ffffff'), shade = white.clone().lerp(C('#b9c6db'), 0.6);
+  const lidC = o.lid ? C(o.lid) : null;
+  const hs = o.hlSide ?? 1;
+  const open = [], hl = [], closed = [];
+  const L = (x, y) => base + bulge * Math.max(0, 1 - (x / W) ** 2 - (y / Hh) ** 2);
+  // Punkt in das Weiß hineinziehen (Iris/Pupille werden am Augenrand beschnitten)
+  const clip = ([x, y], m = 0.965) => { const q = Math.hypot(x / W, y / Hh); return q > m ? [(x * m) / q, (y * m) / q] : [x, y]; };
+  for (const s of [1, -1]) {
+    const f = head.frame(o.az * s, o.el);
+    const cx = -s * (o.look ?? 0.1) * W, cy = (o.irisY ?? -0.02) * Hh;
+    const ell = (ex, ey, a, b, egg = 0) => (r, th) => [ex + a * r * Math.cos(th) * (1 - egg * Math.sin(th)), ey + b * r * Math.sin(th)];
+    // Weiß (unten minimal breiter), oben im Schatten des Lids
+    open.push(decalGeo(head, f, {
+      rings: 4, segs: 24, shape: ell(0, 0, W, Hh, 0.05), lift: L,
+      color: (x, y) => white.clone().lerp(shade, smoothstep((y / Hh - 0.25) / 0.75) * (lidC ? 1 : 0.6)),
+    }));
+    // Iris: Verlauf oben dunkel → unten hell, dunkler Rand
+    const irisShape = (r, th) => clip(ell(cx, cy, iw, ih)(r, th));
+    open.push(decalGeo(head, f, {
+      rings: 4, segs: 24, shape: irisShape, lift: (x, y) => L(x, y) + 0.0012,
+      color: (x, y, r) => {
+        const k = smoothstep(((y - cy) / ih + 0.75) / 1.5);
+        const c = light.clone().lerp(irisC, smoothstep(k * 1.6)).lerp(dark, smoothstep((k - 0.45) / 0.55));
+        return c.lerp(rimC, smoothstep((r - 0.78) / 0.22) * 0.85);
+      },
+    }));
+    // Pupille
+    const pcx = cx - s * 0.04 * iw, pcy = cy + 0.06 * ih;
+    open.push(decalGeo(head, f, { rings: 2, segs: 18, shape: (r, th) => clip(ell(pcx, pcy, pw, ph)(r, th)), lift: (x, y) => L(x, y) + 0.0024, color: () => pupilC }));
+    // Glanzpunkte (unbeleuchtet): groß oben, klein unten gegenüber – beide Augen zur selben Weltseite
+    const hx = hs * 0.3 * iw, hy = 0.36 * ih;
+    hl.push(decalGeo(head, f, { rings: 2, segs: 14, shape: (r, th) => clip(ell(cx + hx, cy + hy, 0.27 * iw, 0.3 * ih)(r, th), 0.9), lift: (x, y) => L(x, y) + 0.0036, color: () => 0xffffff }));
+    hl.push(decalGeo(head, f, { rings: 1, segs: 10, shape: (r, th) => clip(ell(cx - hs * 0.34 * iw, cy - 0.44 * ih, 0.12 * iw, 0.12 * iw)(r, th), 0.9), lift: (x, y) => L(x, y) + 0.0036, color: () => 0xffffff }));
+    // Lidstrich (Mädchen): entlang des oberen Randes, außen dicker, mit Wimpern
+    const lidLift = () => base + 0.003;
+    if (lidC) {
+      // Kontur für „außen = +x“ (innen leicht unter der Mitte → über die Oberkante → außen tiefer); fernes Auge gespiegelt
+      const th0 = Math.PI + 0.12, th1 = -0.3;
+      const contour = (t) => { const th = lerp(th0, th1, t); return [W * 1.03 * Math.cos(th) * (1 - 0.05 * Math.sin(th)), Hh * 1.03 * Math.sin(th)]; };
+      const cont = (t) => { const [x, y] = contour(t); return [s > 0 ? x : -x, y]; };
+      open.push(stripGeo(head, f, { n: 18, across: 2, curve: cont, width: (t) => lerp(0.0032, 0.0088, smoothstep(t)) * Math.min(1, t / 0.12 + 0.35), lift: lidLift, color: () => lidC }));
+      const lashes = o.lashes ?? 2;
+      for (let k = 0; k < lashes; k++) {
+        const t0 = 0.97 - k * 0.15, [px, py] = cont(t0);
+        const ang = 0.35 + k * 0.4;                         // Richtung: nach außen-oben
+        const dx = (s > 0 ? 1 : -1) * Math.cos(ang), dy = Math.sin(ang), len = (o.lashLen ?? 0.024) * (1 - 0.18 * k);
+        open.push(stripGeo(head, f, {
+          n: 5, across: 1, curve: (t) => [px + dx * len * t, py + dy * len * t + 0.25 * len * t * t],
+          width: (t) => lerp(0.0036, 0.0006, t), lift: lidLift, color: () => lidC,
+        }));
+      }
+    }
+    // geschlossen: Lidbogen ◡ (leicht gewölbt), Wimpern nach außen-unten
+    const lc = lidC ?? C(o.closedColor ?? '#2b1d24');
+    const arc = (t) => [(s > 0 ? 1 : -1) * W * 0.95 * (2 * t - 1), 0.004 - 0.024 * (1 - (2 * t - 1) ** 2)];
+    closed.push(stripGeo(head, f, { n: 14, across: 2, curve: arc, width: (t) => 0.0048 * (0.45 + 0.55 * Math.sin(Math.PI * t)), lift: (t) => base + 0.004 + 0.5 * bulge * (1 - (2 * t - 1) ** 2), color: () => lc }));
+    if (lidC) {
+      for (let k = 0; k < (o.lashes ?? 2); k++) {
+        const [px, py] = arc(0.92 - k * 0.14), ang = -0.35 - k * 0.35, dx = (s > 0 ? 1 : -1) * Math.cos(ang), dy = Math.sin(ang), len = 0.018;
+        closed.push(stripGeo(head, f, { n: 4, across: 1, curve: (t) => [px + dx * len * t, py + dy * len * t], width: (t) => lerp(0.003, 0.0006, t), lift: () => base + 0.005, color: () => lc }));
+      }
+    }
+  }
+  const eyeY = head.point(dirAE(o.az, o.el)).y;
+  const shift = new THREE.Matrix4().makeTranslation(0, -eyeY, 0);
+  const merge = (gs) => { const m = mergeGeometries(gs, false); for (const g of gs) g.dispose(); m.applyMatrix4(shift); return m; };
+  return { open: merge(open), hl: merge(hl), closed: merge(closed), eyeY };
+}
+
+/** Glatter Körper entlang einer Achse (x von x0 bis x1), Querschnitt-Ellipse hy(v)/hz(v), Mitte yc(v) – Schuhe, Pfoten. */
+export function blobGeo({ x0, x1, hy, hz, yc = () => 0, nu = 20, nv = 14, color, deform = null }) {
+  return gridGeo({
+    nu, nv, wrapU: true,
+    point: (u, v, out) => {
+      const th = u * TAU, x = lerp(x0, x1, v);
+      out.set(x, yc(v) + Math.sin(th) * hy(v), Math.cos(th) * hz(v));
+      if (deform) deform(out, u, v);
+      return out;
+    },
+    color: color ? (u, v, p) => color(p, u, v) : null,
+  });
+}
+
 // ------------------------------------------------------------------ Kurs-Modus: Hilfen für Posen und Kostüme
 /** Winkel auf (−π, π] falten (Salto-Rest nach einer vollen Umdrehung → 0). */
 export const wrapAngle = (a) => a - TAU * Math.round(a / TAU);
