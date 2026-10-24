@@ -118,6 +118,89 @@ const ROUTES = {
   },
 };
 
+const Y3 = 4, AZ = -200;
+ROUTES['5-Burg'] = {
+  start: [0, Y, 8],
+  meta: { stars: 3, stamp: true, time: 400, theme: 'temple', music: 'course_temple', archetype: 'boss' },
+  enemies: { rammbock_bulle: 4, kippquader_koenig: 1, bruchplatte: 4, warpbox: 4, starring: 1 },
+  loadChecks: [
+    { name: 'Kippquader (Bausteine): 10, davon 2 Würfel im Ring und 1 Rahmen mit Loch', fn: () => { const L = window.__course.level; const ids = ['kq_vorhof', 'kq_rand', 'kq_spalte1', 'kq_spalte2', 'kq_spalte3', 'kq_loch', 'wuerfel1', 'wuerfel2', 'kq_l', 'kq_r']; return ids.filter((id) => L.named.get(id)?.tip).length; }, ok: (n) => n === 10 },
+    { name: 'Boss: Kippquader-König mit Bruchplatten-Ecken und zwei Begleit-Kippquadern', fn: () => { const b = window.__course.level.named.get('koenig'); return { state: b?.state, hp: b?.hp, boss: window.__course.level.data.boss?.name }; }, ok: (v) => v.state === 'wait' && v.hp === 3 && v.boss === 'Kippquader-König' },
+  ],
+  main: [
+    { name: 'Vorhof (am Übungs-Kippquader vorbei)', to: [4.6, 3], within: 0.6 },
+    { to: [4.6, -14], within: 0.6 },
+    { name: 'Tempeltor', to: [0, -18], within: 0.5 },
+    { to: [0, -26.6], within: 0.6 },
+    { name: 'Bullenplatz', to: [0, -40], within: 0.6 },
+    { to: [0, -43.2], within: 0.3, run: false },
+    { name: 'bewegliche Plattform', mover: 'plattform', board: -46.2, leave: -57.6, off: [0, -61] },
+    { name: 'Warp-Box 1', warp: [0, -78.6] },
+    { name: 'Galerie (Checkpoint)', to: [0, -101.6], within: 0.6 },
+    { name: 'Gang der Wandspalten', to: [2.8, -108], within: 0.6 },
+    { to: [3, -114], within: 0.6 },
+    { to: [-3, -120.5], within: 0.6 },
+    { to: [2.5, -126], within: 0.6 },
+    { to: [0, -131], within: 0.6 },
+    { name: 'Platz der Mutprobe', to: [-1.5, -140], within: 0.6 },
+    { to: [-1.5, -152], within: 0.6 },
+    { name: 'Warp-Box 2', warp: [2.4, -167.4] },
+    { name: 'Kampf gegen den Kippquader-König', boss: 'koenig' },
+    { expect: 'baronFort' },
+    { name: 'Warp-Box nach dem Sieg', warp: [0, AZ - 7.5] },
+    { name: 'Zielmast', to: [0, AZ - 46.6], within: 0.2 },
+  ],
+  routeChecks: [
+    { name: 'Boss: 3 Treffer nur per Sprung auf den Rücken (Rückenfeld), Ecken brechen weg', ok: (r) => r.mech.boss?.hits === 3 && r.mech.boss?.corners === 4 },
+    { name: 'Warp-Boxen (1, 2, Sieg) und die bewegliche Plattform benutzt', ok: (r) => r.mech.warps === 3 && r.mech.movers === 1 },
+  ],
+  targets: [
+    { name: 'Stern 0: Sternring – acht Sternmünzen in 10 s (zwei auf den Säulenstümpfen)', star: 0, from: [0, Y, -61],
+      legs: [{ to: [0, -63.6], within: 0.5 }, { chaseKind: 'starcoin', max: 1300, run: true }, { wait: 40 }, { star: 0 }], shot: 'stern0' },
+    { name: 'Stern 1: Mutprobe – im Loch des Rahmen-Kippquaders stehen, er fällt über die Figur', star: 1, from: [-7, Y3, -131],
+      legs: [{ to: [-7, -135.5], within: 0.15, run: false }, { until: 'lochStern', max: 1400 }, { wait: 30 }], shot: 'stern1',
+      mech: (r) => r.mech.hurts === 0, mechText: (r) => `Treffer ${r.mech.hurts}` },
+    { name: 'Stern 1 nicht ohne Loch (neben dem Stern: der Rahmen trifft)', star: 1, expectNot: true, from: [-7, Y3, -131], heroes: ['lotti'],
+      legs: [{ to: [-5.9, -135.5], within: 0.15, run: false }, { until: 'lochGelandet', max: 1400 }, { wait: 30 }],
+      mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+    { name: 'Stern 2: Krallen-Anzug aus dem ?-Block, Kletterwand neben Warp-Box 2 hinauf', star: 2, from: [3, Y3, -154.4],
+      legs: [{ to: [3, -156], within: 0.2, run: false }, { hop: 22 }, { wait: 30 }, { chaseKind: 'powerup', max: 600 }, { expect: 'krallen' },
+        { to: [-5, -165.2], within: 0.3, run: false }, { climb: [0, -1], top: 10.8 }, { to: [-5, -168], within: 0.4, run: false }, { star: 2 }], shot: 'stern2' },
+    { name: 'Stern 2 nicht ohne Krallen-Anzug', star: 2, expectNot: true, from: [-5, Y3, -164.6], heroes: ['lotti'],
+      legs: [{ climb: [0, -1], top: 10.8, max: 420 }, { wait: 30 }] },
+    { name: 'Stempel: auf einen Würfel des Rings, mitrollen, auf den Wandsims springen', stamp: true, from: [9.5, Y3, -136.5],
+      legs: [{ cube: 'wuerfel', sims: [10.2, -141] }, { wait: 30 }], shot: 'stempel' },
+    { name: 'Stempel nicht vom Boden aus (Sprung zum Sims)', stamp: true, expectNot: true, from: [9.8, Y3, -137.5], heroes: ['lotti'],
+      legs: [{ to: [10.2, -141], jump: 40, within: 0.4, max: 260, land: false }, { wait: 60 }] },
+  ],
+  extra: [
+    { name: 'Extraleben: unsichtbarer Block rechts neben den ?-Blöcken', from: [4, Y, 5], heroes: ['lotti'], expectLives: 1,
+      legs: [{ to: [4, 2.5], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+    { name: 'Extraleben: Kiste auf dem Mittelpfeiler des Würfel-Rings (vom Würfel aus)', from: [9.5, Y3, -136.5], heroes: ['lotti'], expectLives: 1,
+      legs: [{ cube: 'wuerfel', pillar: [6, -141] }, { pound: [6, -141] }, { wait: 40 }, { chaseKind: 'powerup', max: 900 }] },
+    { name: 'Kippquader trifft: im roten Landefeld des Übungs-Quaders stehen bleiben → Treffer, hinausgeschoben', from: [-2, Y, -8], heroes: ['lotti'], invuln: false,
+      legs: [{ until: 'vorhofGekippt', max: 1400 }, { wait: 30 }], mech: (r) => r.mech.hurts >= 1 && r.info.big === false, mechText: (r) => `Treffer ${r.mech.hurts}, klein ${!r.info.big}` },
+    { name: 'Kampf allein (Fehlersuche)', from: [0, Y, AZ + 14], heroes: ['lotti'], legs: [{ boss: 'koenig' }] },
+    { name: 'Tod im Kampf: Neustart am Steg, König wieder 3/3', from: [0, Y, AZ + 14], heroes: ['lotti'], invuln: false, expectAlive: false,
+      legs: [{ to: [0, AZ + 6], within: 0.6 }, { until: 'kampf', max: 600 }, { die: true }, { wait: 400 }, { expect: 'respawnSteg' }, { expect: 'koenigVoll' }] },
+  ],
+  shots: [
+    ['start', [0, Y, 8]],
+    ['vorhof', [3, Y, -4]],
+    ['bullen', [0, Y, -30]],
+    ['plattform', [0, Y, -43.5]],
+    ['sternring', [0, Y, -62]],
+    ['galerie', [0, Y3, -100]],
+    ['gang', [0, Y3, -109]],
+    ['mutprobe', [-5, Y3, -131]],
+    ['wuerfel', [3, Y3, -134.5]],
+    ['turm', [0, Y3, -158]],
+    ['steg', [0, Y, AZ + 14]],
+    ['arena', [0, Y, AZ + 6], 240, { x: 0, y: 0.3 }],
+    ['ziel', [0, Y, AZ - 38]],
+  ],
+};
+
 const PORT = 4500;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
@@ -162,6 +245,14 @@ function install() {
     raumHeil: () => L._kletterRaum?.alive?.() === 30 && L._kletterRaum.resets >= 1,
     respawnAbsatz: () => Math.abs(P().pos.z + 157) < 2 && P().pos.y > 6.5 && !P().dead,
     giant: () => P().power === 'riese',
+    krallen: () => P().power === 'krallen',
+    baronFort: () => { const b = L._baron; return !b || ['away', 'gone'].includes(b.state) || b.state === 'stop'; },
+    lochStern: () => !!L._lochStern?.given,
+    lochGelandet: () => (L.named.get('kq_loch')?.tips ?? 0) >= 1,
+    vorhofGekippt: () => (L.named.get('kq_vorhof')?.tips ?? 0) >= 1,
+    kampf: () => !!c.arch?.started,
+    respawnSteg: () => Math.abs(P().pos.z + 183.5) < 2.5 && !P().dead,
+    koenigVoll: () => { const b = L.named.get('koenig'); return b?.hp === 3 && !c.arch?.started; },
   };
   const PRE = {
     rissAuf: () => { const w = L.named.get('risswand'); for (const col of w?.columns ?? []) col.onHit?.('bomb', null); },
@@ -341,6 +432,129 @@ function install() {
           }
           for (let i = 0; i < 60; i++) tick({});
           log.push(['besiegt', mech.stomped.length, mech.stomped.join(' ')]);
+          continue;
+        }
+        // ------------------------------------------------ Tod (Gegenprobe Neustart)
+        if (Lg.die) { p.die('hit'); for (let i = 0; i < 2400 && (p.dead || L.runtime.status !== 'play'); i++) { c.setInput({}); c.step(1); steps++; } log.push(['neustart', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
+        // ------------------------------------------------ bewegliche Plattform (mover): abwarten, aufspringen, mitfahren, absteigen
+        if (Lg.mover) {
+          const m = L.named.get(Lg.mover);
+          const top = () => { const q = m.shape; return { x: (q.x0 + q.x1) / 2, y: q.y1, z: (q.z0 + q.z1) / 2 }; };
+          let k = 0;
+          for (; k < 2400 && !(Math.abs(top().z - Lg.board) < 0.25); k++) tick({});
+          let j = 0, on = false;
+          for (; j < 300; j++) {
+            const q = top();
+            on = p.mode === 'ground' && !!p.ground?.mover && Math.hypot(q.x - p.pos.x, q.z - p.pos.z) < 1.4;
+            if (on && Math.hypot(q.x - p.pos.x, q.z - p.pos.z) < 0.5) break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(q.x, q.z, 0, 0, 3, 6) : this.stick(q.x - p.pos.x, q.z - p.pos.z, 1)), jump: !on && p.mode === 'ground' && j < 30, run: false });
+          }
+          if (!on) { log.push(['FEHLER: nicht auf der Plattform', Lg.mover]); break; }
+          let r = 0;
+          for (; r < 2400 && Math.abs(top().z - Lg.leave) > 0.25; r++) { const q = top(); const dx = q.x - p.pos.x, dz = q.z - p.pos.z; tick(Math.hypot(dx, dz) > 0.3 ? { ...this.stick(dx, dz, 0.4), run: false } : {}); }
+          goTo(Lg.off[0], Lg.off[1], 0.5, 400);
+          mech.movers = (mech.movers ?? 0) + 1;
+          log.push(['plattform', Lg.mover, k, j, r, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Krallen-Kletterwand: zur Wand drücken, springen, hinauf
+        if (Lg.climb) {
+          const [dx, dz] = Lg.climb;
+          let k = 0, topped = false;
+          for (; k < (Lg.max ?? 600); k++) {
+            tick({ ...this.stick(dx, dz, 1), jump: k < 10 || (!!Lg.max && k % 60 < 20), run: false });
+            if (p.pos.y > Lg.top - 0.2 && p.mode === 'ground') { topped = true; break; }
+          }
+          log.push(['klettern', topped, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.power]);
+          continue;
+        }
+        // ------------------------------------------------ Würfel-Ring: auf einen Würfel springen, mitrollen, auf Sims/Pfeiler springen
+        if (Lg.cube) {
+          const cubes = [1, 2].map((i) => L.named.get(`${Lg.cube}${i}`));
+          const target = Lg.sims ?? Lg.pillar;
+          const onCube = () => p.mode === 'ground' && cubes.includes(p.ground?.owner);
+          let k = 0;
+          for (; k < 3000 && !onCube(); k++) {
+            const ready = cubes.map((q) => ({ q, b: q.box })).filter(({ q, b }) => q.state === 'wait' && q.t < 0.3 && b.y1 < 4 + 2.2);
+            ready.sort((u, v) => Math.hypot((u.b.x0 + u.b.x1) / 2 - p.pos.x, (u.b.z0 + u.b.z1) / 2 - p.pos.z) - Math.hypot((v.b.x0 + v.b.x1) / 2 - p.pos.x, (v.b.z0 + v.b.z1) / 2 - p.pos.z));
+            const t = ready[0];
+            if (!t || Math.hypot((t.b.x0 + t.b.x1) / 2 - p.pos.x, (t.b.z0 + t.b.z1) / 2 - p.pos.z) > 4.5) { tick({}); continue; }
+            const cx = (t.b.x0 + t.b.x1) / 2, cz = (t.b.z0 + t.b.z1) / 2;
+            for (let j = 0; j < 200 && !onCube(); j++) tick({ ...(p.mode === 'air' ? this.airSteer(cx, cz, 0, 0, 3, 6) : this.stick(cx - p.pos.x, cz - p.pos.z, 1)), jump: p.mode === 'ground' ? j < 26 : p.vel.y > 0, run: false });
+          }
+          if (!onCube()) { log.push(['FEHLER: nicht auf einem Würfel']); break; }
+          const cube = p.ground.owner;
+          let r = 0, done = false;
+          for (; r < 4000 && !done; r++) {
+            const b = cube.box, cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
+            const near = Math.hypot(target[0] - cx, target[1] - cz) < 3.2;
+            if (cube.state === 'wait' && cube.t > 0.15 && cube.t < 0.6 && near && p.mode === 'ground') {
+              for (let j = 0; j < 200; j++) {
+                tick({ ...(p.mode === 'air' ? this.airSteer(target[0], target[1], 0, 0, 2.8, 6) : this.stick(target[0] - p.pos.x, target[1] - p.pos.z, 1)), jump: j < 30, run: false });
+                if (j > 8 && p.mode === 'ground') break;
+              }
+              done = p.pos.y > 4 + 4.4;
+              if (!done && !onCube()) break;
+              continue;
+            }
+            const dx = cx - p.pos.x, dz = cz - p.pos.z;
+            tick(p.mode === 'ground' && Math.hypot(dx, dz) > 0.35 ? { ...this.stick(dx, dz, 0.5), run: false } : {});
+          }
+          log.push(['würfel', done, k, r, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!done) log.push(['FEHLER: Ziel vom Würfel nicht erreicht']);
+          continue;
+        }
+        // ------------------------------------------------ Kampf gegen den Kippquader-König (nur Sprünge auf das Rückenfeld)
+        if (Lg.boss) {
+          const b = L.named.get(Lg.boss);
+          const AZ0 = -200;
+          const DIRS = [[1, 0], [0, -1], [-1, 0], [0, 1]];
+          const hits0 = b.hits ?? 0;
+          let k = 0, jumpsOnBack = 0, waveJumps = 0;
+          goTo(0, AZ0 + 9.2, 0.6, 600);
+          goTo(0, AZ0 + 6, 0.6, 600);
+          const inRect = (r, m = 0) => p.pos.x > r.x0 - m && p.pos.x < r.x1 + m && p.pos.z > r.z0 - m && p.pos.z < r.z1 + m;
+          for (; k < 120 * 140 && b.state !== 'gone' && !p.dead; k++) {
+            const s = b.state;
+            const wv = (b.waves ?? []).find((w) => Math.abs(Math.hypot(p.pos.x - w.x, p.pos.z - w.z) - w.r) < 1.1);
+            if (wv && p.mode === 'ground') { waveJumps++; for (let j = 0; j < 16; j++) tick({ jump: true }); continue; }
+            if (s === 'lie' && b.stateT > 0.15) {
+              const f = b.backField();
+              const D = DIRS[b.facing], Pp = [-D[1], D[0]];
+              const side = (p.pos.x - f.x) * Pp[0] + (p.pos.z - f.z) * Pp[1] >= 0 ? 1 : -1;
+              const ax = f.x + Pp[0] * side * 2.7, az = f.z + Pp[1] * side * 2.7;
+              const da = Math.hypot(ax - p.pos.x, az - p.pos.z);
+              if (p.mode === 'ground' && p.ground?.owner !== b && (da > 0.4 || Math.hypot(p.vel.x, p.vel.z) > 1.5)) { tick(da > 0.4 ? { ...this.stick(ax - p.pos.x, az - p.pos.z, Math.min(1, da / 1.5)), run: da > 3 } : {}); continue; }
+              const hp0 = b.hp;
+              for (let j = 0; j < 160; j++) {
+                // erst senkrecht hoch (über die Kante), dann zur Feldmitte lenken
+                const steer = p.mode === 'air' && p.pos.y > b.pos.y + 1.9 ? this.airSteer(f.x, f.z, 0, 0, 3.4, 7) : {};
+                tick({ ...steer, jump: j < 26, run: false });
+                if (b.hp < hp0 || (j > 8 && p.mode === 'ground')) break;
+              }
+              jumpsOnBack++;
+              if (jumpsOnBack <= 12) log.push(['rücken', +(p.pos.x - f.x).toFixed(2), +(p.pos.z - f.z).toFixed(2), +p.pos.y.toFixed(2), b.hp < hp0, p.ground?.owner === b, b.facing, s, +b.stateT.toFixed(2)]);
+              for (let j = 0; j < 40 && b.state === 'hit'; j++) tick({});
+              continue;
+            }
+            const r = s === 'warn' || s === 'tilt' ? b.lieRect() : null;
+            if (r && inRect(r, 0.9)) {
+              const D = DIRS[b.facing], Pp = [-D[1], D[0]];
+              const side = (p.pos.x - b.pos.x) * Pp[0] + (p.pos.z - b.pos.z) * Pp[1] >= 0 ? 1 : -1;
+              let tx = p.pos.x + Pp[0] * side * 3, tz = p.pos.z + Pp[1] * side * 3;
+              if (Math.abs(tx) > 7.5 || Math.abs(tz - AZ0) > 7.5) { tx = p.pos.x - Pp[0] * side * 3; tz = p.pos.z - Pp[1] * side * 3; }
+              tick({ ...this.stick(tx - p.pos.x, tz - p.pos.z, 1), run: true });
+              continue;
+            }
+            const hx = 0, hz = AZ0 + 3.5;
+            const dx = hx - p.pos.x, dz = hz - p.pos.z, d = Math.hypot(dx, dz);
+            tick(d > 0.8 ? { ...this.stick(dx, dz, Math.min(1, d / 2)), run: false } : {});
+          }
+          for (let i = 0; i < 240; i++) tick({});
+          const corners = ['ecke_vl', 'ecke_vr', 'ecke_hl', 'ecke_hr'].filter((id) => L.named.get(id)?.state !== 'solid').length;
+          mech.boss = { hits: (b.hits ?? 0) - hits0, state: b.state, jumpsOnBack, waveJumps, misses: b.misses, corners, time: +(k / 120).toFixed(1) };
+          log.push(['kampf', JSON.stringify(mech.boss)]);
+          if (b.state !== 'gone') log.push(['FEHLER: König nicht besiegt', b.state, b.hp]);
           continue;
         }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)

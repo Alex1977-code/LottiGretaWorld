@@ -543,3 +543,142 @@ export function gluehwuermchen(level, boxes, o = {}) {
 }
 
 export { TAU, clamp, L };
+
+// =====================================================================================================================
+// 4) Rumpeltempel (5-Burg)
+// =====================================================================================================================
+
+/**
+ * Stern im Loch eines Kippquaders (5-Burg Stern 1, Bauplan „nach dem Checkpoint in einem Kippquader“): ein Rahmen-
+ * Kippquader (hole) fällt auf den „Mut-Platz“; steht eine Figur dabei im Loch, ist sie sicher – und der versteckte Stern
+ * erscheint genau dort (in diesem Augenblick im Loch, also gleich eingesammelt). o = { kq: Id, star: Index,
+ * rect: [x0, x1, z0, z1] (Lochfläche liegend), y } → Zustand { lands, tries, given } (level._lochStern).
+ */
+export function lochStern(level, o) {
+  const st = level._lochStern = { lands: 0, given: false };
+  const [x0, x1, z0, z1] = o.rect;
+  let kq = null;
+  level.onStep(() => {
+    if (kq) return;
+    kq = level.named.get(o.kq);
+    if (!kq?.onLand) { kq = null; return; }
+    kq.onLand((boxes) => {
+      st.lands++;
+      const lying = boxes.length === 4 && Math.max(...boxes.map((b) => b.y1)) < o.y + 1.2;
+      if (!lying || st.given || level.runtime?.stars?.[o.star]) return;
+      const inHole = figures(level).some((f) => f.pos.x > x0 && f.pos.x < x1 && f.pos.z > z0 && f.pos.z < z1 && f.pos.y < o.y + 0.9);
+      if (!inHole) return;
+      st.given = true;
+      runAction(level, { star: o.star }, { pos: [(x0 + x1) / 2, o.y + 0.6, (z0 + z1) / 2] });
+      level.sfx('powerup_appear');
+      level.effects?.sparks({ x: (x0 + x1) / 2, y: o.y + 1, z: (z0 + z1) / 2 }, 24);
+      hudBanner(level, 'Mutig! Sicher im Loch!', { color: '#9affc0', size: 16, hold: 1.2 });
+    });
+  });
+  return st;
+}
+
+/** Leuchtender „Mut-Platz“ (Stern-Zeichen im Boden, pulsiert): zeigt, wo man im Loch des Kippquaders stehen muss. */
+export function mutPlatz(level, x, y, z, r = 0.7) {
+  if (!level.view) return;
+  const shape = new THREE.Shape();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.45 : r;
+    if (i === 0) shape.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); else shape.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  const g = new THREE.ShapeGeometry(shape);
+  g.rotateX(-Math.PI / 2);
+  const mat = new THREE.MeshBasicMaterial({ color: 0x7dffa0, transparent: true, opacity: 0.75, depthWrite: false, fog: true });
+  const m = new THREE.Mesh(g, mat);
+  m.position.set(x, y + 0.03, z);
+  m.name = 'mutplatz';
+  m.renderOrder = 2;
+  const holder = {};
+  let t = 0;
+  addObject(level, m, (dt) => { t += visDt(level, holder, dt); mat.opacity = 0.45 + 0.35 * Math.sin(t * 3.4); m.rotation.y = t * 0.6; });
+}
+
+/**
+ * Baron Brummbär nach dem Sieg über den Kippquader-König: braust im Sportwagen über die Tempelbrücke heran, hüpft vor
+ * Wut im Sitz, schimpft (text) und flieht; Kamera schwenkt mit; danach Ansage done ('Welt 5 geschafft!'). Startet,
+ * sobald der Endgegner (cfg.boss) ganz verschwunden ist; ein Neustart vor dem Sieg setzt die Szene zurück.
+ * cfg = { from, stop, away: [x, y, z], boss: 'koenig', text, done }. Rein darstellerisch → level._baron ({ state, info() }).
+ */
+export function baronAuftritt(level, cfg) {
+  const sc = {
+    state: 'wait', t: 0, pos: new THREE.Vector3(...cfg.from), yaw: 0, speed: 0, hop: 0, said: false, log: [], model: null,
+    get active() { return this.state === 'in' || this.state === 'stop' || this.state === 'away'; },
+    info() { return { state: this.state, t: +this.t.toFixed(2), x: +this.pos.x.toFixed(2), z: +this.pos.z.toFixed(2), log: this.log.slice() }; },
+  };
+  if (level.view && hasModel('baron_brummbaer')) {
+    sc.model = getModel('baron_brummbaer', { withCar: true });
+    sc.model.root.visible = false;
+    sc.model.root.traverse((x) => { if (x.isMesh) x.userData.owned = true; });
+    level.view.add(sc.model.root);
+  }
+  const hud = () => level.archetype?.hud;
+  const dir = (a, b) => Math.atan2(-(b[2] - a[2]), b[0] - a[0]);
+  const rt = level.runtime, respawn = rt.respawn.bind(rt);
+  rt.respawn = (...a) => { respawn(...a); if (!level.archetype?.won) { sc.state = 'wait'; sc.t = 0; sc.said = false; sc.pos.set(...cfg.from); } };
+  level.onStep((dt) => {
+    if (sc.state === 'wait') {
+      const b = level.named.get(cfg.boss ?? 'koenig');
+      if (b && b.state === 'gone' && b.hp <= 0) { sc.state = 'in'; sc.t = 0; level.sfx('swoop'); sc.log.push('in'); }
+      return;
+    }
+    if (!sc.active) return;
+    sc.t += dt;
+    const { from, stop, away } = cfg;
+    if (sc.state === 'in') {
+      const k = Math.min(1, sc.t / 2.2), e = 1 - (1 - k) * (1 - k);
+      sc.pos.set(from[0] + (stop[0] - from[0]) * e, from[1] + (stop[1] - from[1]) * e, from[2] + (stop[2] - from[2]) * e);
+      sc.yaw = dir(from, stop); sc.speed = 15 * (1 - k * 0.7);
+      if (k >= 1) { sc.state = 'stop'; sc.t = 0; level.sfx('skid'); sc.log.push('stop'); }
+    } else if (sc.state === 'stop') {
+      sc.speed = 0;
+      const p = level.player;
+      const want = p ? Math.atan2(-(p.pos.z - stop[2]), p.pos.x - stop[0]) : sc.yaw;
+      if (sc.t < 1.6) sc.yaw += Math.atan2(Math.sin(want - sc.yaw), Math.cos(want - sc.yaw)) * Math.min(1, dt * 3);
+      sc.hop = sc.t > 0.4 && sc.t < 2.4 ? Math.abs(Math.sin(sc.t * 9)) * 0.35 : 0;
+      if (!sc.said && sc.t > 0.3) { sc.said = true; hud()?.banner?.(cfg.text ?? 'Baron Brummbär: „Mein Kippquader-König! Na wartet!“', { hold: 2.8, size: 11, color: '#ffb0a0', y: 0.7 }); level.sfx('panic'); }
+      if (sc.t > 2.4) { const w2 = dir(stop, away); sc.yaw += Math.atan2(Math.sin(w2 - sc.yaw), Math.cos(w2 - sc.yaw)) * Math.min(1, dt * 5); }
+      if (sc.t > 3.2) { sc.state = 'away'; sc.t = 0; sc.hop = 0; level.sfx('swoop'); sc.log.push('away'); }
+    } else if (sc.state === 'away') {
+      const k = Math.min(1, sc.t / 2.4);
+      sc.pos.set(stop[0] + (away[0] - stop[0]) * k * k, stop[1] + (away[1] - stop[1]) * k * k, stop[2] + (away[2] - stop[2]) * k * k);
+      sc.yaw = dir(stop, away); sc.speed = 4 + k * 26;
+      if (k >= 1) { sc.state = 'gone'; sc.log.push('gone'); hud()?.banner?.(cfg.done ?? 'Welt 5 geschafft!', { hold: 2.8, size: 18, color: '#7dffa0' }); level.sfx('victory'); }
+    }
+  });
+  // Kamera: Blickziel schwenkt zum Wagen (beim ersten Schritt einhängen)
+  let wrapped = false, kc = 0;
+  level.onStep(() => {
+    const arch = level.archetype;
+    if (wrapped || !level.view || !arch?.camera) return;
+    wrapped = true;
+    const cam = arch.camera.bind(arch);
+    arch.camera = (dt, player, world) => {
+      const r = cam(dt, player, world);
+      const want = sc.active && sc.state !== 'away' ? 0.9 : sc.state === 'away' && sc.t < 1.4 ? 0.55 : 0;
+      kc += (want - kc) * Math.min(1, dt * 2.5);
+      if (kc > 0.01) {
+        const rig = level.view.rig;
+        rig.target.set(rig.target.x + (sc.pos.x - rig.target.x) * kc, rig.target.y + (sc.pos.y + 2.6 - rig.target.y) * kc, rig.target.z + (sc.pos.z + 2 - rig.target.z) * kc);
+        rig.distNow += (17 - rig.distNow) * kc;
+        rig.place({ ...rig.cur, pitch: rig.cur.pitch + (34 - rig.cur.pitch) * kc }, dt);
+      }
+      return r;
+    };
+  });
+  if (level.view) level.view.onFrame((dt) => {
+    const m = sc.model;
+    if (!m) return;
+    m.root.visible = sc.active;
+    if (!m.root.visible) return;
+    m.root.position.set(sc.pos.x, sc.pos.y + sc.hop, sc.pos.z);
+    m.root.rotation.y = sc.yaw;
+    m.update(Math.min(dt || 0, 0.1), { anim: sc.state === 'stop' ? 'stunned' : 'drive', speed: sc.speed, steer: 0 });
+  });
+  level._baron = sc;
+  return sc;
+}
