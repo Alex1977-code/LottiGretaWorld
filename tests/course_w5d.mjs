@@ -158,18 +158,18 @@ ROUTES['5-Burg'] = {
     { name: 'Stern 0: Sternring – acht Sternmünzen in 10 s (zwei auf den Säulenstümpfen)', star: 0, from: [0, Y, -61],
       legs: [{ to: [0, -63.6], within: 0.5 }, { chaseKind: 'starcoin', max: 1300, run: true }, { wait: 40 }, { star: 0 }], shot: 'stern0' },
     { name: 'Stern 1: Mutprobe – im Loch des Rahmen-Kippquaders stehen, er fällt über die Figur', star: 1, from: [-7, Y3, -131],
-      legs: [{ to: [-7, -135.5], within: 0.15, run: false }, { until: 'lochStern', max: 1400 }, { wait: 30 }], shot: 'stern1',
-      mech: (r) => r.mech.hurts === 0, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      legs: [{ to: [-4.4, -132], within: 0.4, run: false }, { until: 'lochSteht', max: 900 }, { to: [-4.4, -135.5], within: 0.3, run: false }, { to: [-7, -135.5], within: 0.15, run: false }, { until: 'lochStern', max: 1400 }, { wait: 30 }], shot: 'stern1',
+      mech: (r) => r.mech.kqHurts === 0, mechText: (r) => `Treffer durch den Kippquader ${r.mech.kqHurts}` },
     { name: 'Stern 1 nicht ohne Loch (neben dem Stern: der Rahmen trifft)', star: 1, expectNot: true, from: [-7, Y3, -131], heroes: ['lotti'],
-      legs: [{ to: [-5.9, -135.5], within: 0.15, run: false }, { until: 'lochGelandet', max: 1400 }, { wait: 30 }],
-      mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      legs: [{ to: [-4.4, -132], within: 0.4, run: false }, { until: 'lochSteht', max: 900 }, { to: [-4.4, -135.5], within: 0.3, run: false }, { to: [-5.9, -135.5], within: 0.15, run: false }, { until: 'lochGelandet', max: 1400 }, { wait: 30 }],
+      mech: (r) => r.mech.kqHurts >= 1, mechText: (r) => `Treffer durch den Kippquader ${r.mech.kqHurts}` },
     { name: 'Stern 2: Krallen-Anzug aus dem ?-Block, Kletterwand neben Warp-Box 2 hinauf', star: 2, from: [3, Y3, -154.4],
       legs: [{ to: [3, -156], within: 0.2, run: false }, { hop: 22 }, { wait: 30 }, { chaseKind: 'powerup', max: 600 }, { expect: 'krallen' },
         { to: [-5, -165.2], within: 0.3, run: false }, { climb: [0, -1], top: 10.8 }, { to: [-5, -168], within: 0.4, run: false }, { star: 2 }], shot: 'stern2' },
     { name: 'Stern 2 nicht ohne Krallen-Anzug', star: 2, expectNot: true, from: [-5, Y3, -164.6], heroes: ['lotti'],
       legs: [{ climb: [0, -1], top: 10.8, max: 420 }, { wait: 30 }] },
     { name: 'Stempel: auf einen Würfel des Rings, mitrollen, auf den Wandsims springen', stamp: true, from: [9.5, Y3, -136.5],
-      legs: [{ cube: 'wuerfel', sims: [10.2, -141] }, { wait: 30 }], shot: 'stempel' },
+      legs: [{ cube: 'wuerfel', sims: [10.2, -141] }, { to: [10.2, -141], within: 0.3, run: false }, { wait: 30 }], shot: 'stempel' },
     { name: 'Stempel nicht vom Boden aus (Sprung zum Sims)', stamp: true, expectNot: true, from: [9.8, Y3, -137.5], heroes: ['lotti'],
       legs: [{ to: [10.2, -141], jump: 40, within: 0.4, max: 260, land: false }, { wait: 60 }] },
   ],
@@ -179,9 +179,9 @@ ROUTES['5-Burg'] = {
     { name: 'Extraleben: Kiste auf dem Mittelpfeiler des Würfel-Rings (vom Würfel aus)', from: [9.5, Y3, -136.5], heroes: ['lotti'], expectLives: 1,
       legs: [{ cube: 'wuerfel', pillar: [6, -141] }, { pound: [6, -141] }, { wait: 40 }, { chaseKind: 'powerup', max: 900 }] },
     { name: 'Kippquader trifft: im roten Landefeld des Übungs-Quaders stehen bleiben → Treffer, hinausgeschoben', from: [-2, Y, -8], heroes: ['lotti'], invuln: false,
-      legs: [{ until: 'vorhofGekippt', max: 1400 }, { wait: 30 }], mech: (r) => r.mech.hurts >= 1 && r.info.big === false, mechText: (r) => `Treffer ${r.mech.hurts}, klein ${!r.info.big}` },
+      legs: [{ until: 'vorhofGekippt', max: 1400 }, { wait: 30 }], mech: (r) => r.mech.kqHurts >= 1 && r.info.big === false, mechText: (r) => `Treffer ${r.mech.kqHurts}, klein ${!r.info.big}` },
     { name: 'Kampf allein (Fehlersuche)', from: [0, Y, AZ + 14], heroes: ['lotti'], legs: [{ boss: 'koenig' }] },
-    { name: 'Tod im Kampf: Neustart am Steg, König wieder 3/3', from: [0, Y, AZ + 14], heroes: ['lotti'], invuln: false, expectAlive: false,
+    { name: 'Tod im Kampf: Neustart am Steg, König wieder 3/3', from: [0, Y, AZ + 18.4], heroes: ['lotti'], invuln: false, expectAlive: false,
       legs: [{ to: [0, AZ + 6], within: 0.6 }, { until: 'kampf', max: 600 }, { die: true }, { wait: 400 }, { expect: 'respawnSteg' }, { expect: 'koenigVoll' }] },
   ],
   shots: [
@@ -229,7 +229,8 @@ function install() {
     p.__hurtWrapped = true;
     p.hurtTries = 0;
     const orig = p.hurt.bind(p);
-    p.hurt = (src) => { p.hurtTries++; p.lastHurt = src?.kind ?? String(src); return orig(src); };
+    p.kqHurts = 0;
+    p.hurt = (src) => { p.hurtTries++; if (src?.kippquader) p.kqHurts++; p.lastHurt = src?.kind ?? String(src); return orig(src); };
   };
   wrapHurt();
   const alive = (id) => { const e = L.named.get(id); return !!e && e.alive && !e.removed; };
@@ -248,7 +249,8 @@ function install() {
     krallen: () => P().power === 'krallen',
     baronFort: () => { const b = L._baron; return !b || ['away', 'gone'].includes(b.state) || b.state === 'stop'; },
     lochStern: () => !!L._lochStern?.given,
-    lochGelandet: () => (L.named.get('kq_loch')?.tips ?? 0) >= 1,
+    lochGelandet: () => (L.named.get('kq_loch')?.tips ?? 0) >= 1 && L.named.get('kq_loch').box.y1 < 5,
+    lochSteht: () => { const q = L.named.get('kq_loch'); return q && q.state === 'wait' && q.t < 0.2 && q.box.y1 > 6.5; },
     vorhofGekippt: () => (L.named.get('kq_vorhof')?.tips ?? 0) >= 1,
     kampf: () => !!c.arch?.started,
     respawnSteg: () => Math.abs(P().pos.z + 183.5) < 2.5 && !P().dead,
@@ -275,6 +277,7 @@ function install() {
       c.snapCamera();
       wrapHurt();
       p.hurtTries = 0;
+      p.kqHurts = 0;
       return p.info();
     },
     pre(name) { PRE[name]?.(); c.step(30); },
@@ -490,7 +493,9 @@ function install() {
             const near = Math.hypot(target[0] - cx, target[1] - cz) < 3.2;
             if (cube.state === 'wait' && cube.t > 0.15 && cube.t < 0.6 && near && p.mode === 'ground') {
               for (let j = 0; j < 200; j++) {
-                tick({ ...(p.mode === 'air' ? this.airSteer(target[0], target[1], 0, 0, 2.8, 6) : this.stick(target[0] - p.pos.x, target[1] - p.pos.z, 1)), jump: j < 30, run: false });
+                // erst hoch über die Kante (Sims/Pfeiler y 9), dann hinüber lenken
+                const steer = p.mode === 'air' && p.pos.y > 4 + 5.2 ? this.airSteer(target[0], target[1], 0, 0, 2.8, 6) : {};
+                tick({ ...steer, jump: j < 30, run: false });
                 if (j > 8 && p.mode === 'ground') break;
               }
               done = p.pos.y > 4 + 4.4;
@@ -594,6 +599,7 @@ function install() {
       }
       c.setInput({});
       mech.hurts = p.hurtTries ?? 0;
+      mech.kqHurts = p.kqHurts ?? 0;
       const sl = L._schleich;
       if (sl) { mech.alarms = { ...sl.byLight }; mech.praised = sl.praised.slice(); mech.heads = sl.heads; }
       mech.waves = Object.fromEntries(L.entities.filter((e) => e.kind === 'suchkopf_welle').map((e) => [e.spec.id, e.waves]));

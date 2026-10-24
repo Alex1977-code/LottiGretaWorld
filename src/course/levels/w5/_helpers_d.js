@@ -557,16 +557,23 @@ export { TAU, clamp, L };
 export function lochStern(level, o) {
   const st = level._lochStern = { lands: 0, given: false };
   const [x0, x1, z0, z1] = o.rect;
+  const inside = (f) => f.pos.x > x0 && f.pos.x < x1 && f.pos.z > z0 && f.pos.z < z1 && f.pos.y < o.y + 0.9;
+  const brave = new Set();          // Figuren, die während des ganzen Kippens im Loch standen
   let kq = null;
   level.onStep(() => {
-    if (kq) return;
+    if (kq) {
+      if (kq.state === 'tip') { for (const f of figures(level)) if (!inside(f)) brave.delete(f); }
+      else if (kq.state === 'warn') { brave.clear(); for (const f of figures(level)) if (inside(f)) brave.add(f); }
+      return;
+    }
     kq = level.named.get(o.kq);
     if (!kq?.onLand) { kq = null; return; }
     kq.onLand((boxes) => {
       st.lands++;
       const lying = boxes.length === 4 && Math.max(...boxes.map((b) => b.y1)) < o.y + 1.2;
       if (!lying || st.given || level.runtime?.stars?.[o.star]) return;
-      const inHole = figures(level).some((f) => f.pos.x > x0 && f.pos.x < x1 && f.pos.z > z0 && f.pos.z < z1 && f.pos.y < o.y + 0.9);
+      // nur wer schon beim Kippen im Loch stand (nicht wer erst vom Rahmen hineingeschoben wurde)
+      const inHole = figures(level).some((f) => inside(f) && brave.has(f));
       if (!inHole) return;
       st.given = true;
       runAction(level, { star: o.star }, { pos: [(x0 + x1) / 2, o.y + 0.6, (z0 + z1) / 2] });

@@ -215,8 +215,8 @@ export const LEVEL = {
   enemies: [
     bulle('bulle1', [-4, Y, -33], [0, 1]),
     bulle('bulle2', [3.5, Y, -40.5], [0, 1]),
-    bulle('bulle3', [-3, Y3, -146.5], [0, 1]),
-    bulle('bulle4', [1, Y3, -136.5], [0, 1], { sight: 8 }),
+    bulle('bulle3', [-4, Y3, -148], [0, 1], { sight: 8 }),
+    bulle('bulle4', [2.5, Y3, -149], [0, 1], { sight: 8 }),
     {
       kind: 'kippquader_koenig', id: 'koenig', pos: [0, Y, AZ - 5], dir: [0, 1], arena: { min: [-A, AZ - A], max: [A, AZ + A] },
       corners: [['ecke_vl', 'ecke_vr'], ['ecke_hl', 'ecke_hr']], escorts: ['kq_l', 'kq_r'], drop: 'coins:10',
@@ -255,7 +255,7 @@ export const LEVEL = {
     { pos: [LOCH.x, Y3 + 0.6, LOCH.z], hidden: true, id: 'stern_loch' },          // 1: im Loch des Kippquaders
     [TURM.x, TURM.top + 1.2, TURM.z],                                              // 2: Kletterturm neben Warp-Box 2
   ],
-  stamp: [SIMS.x, SIMS.top + 1.2, SIMS.z],
+  stamp: [SIMS.x, SIMS.top + 0.9, SIMS.z],
   goal: { pos: [0, Y, AZ - 47], height: 9 },
   marks: {
     start: [0, Y, 8], vorhof: [0, Y, -10], bullen: [0, Y, -35], plattform: [0, Y, -45], ring: [0, Y, -63], warp1: [0, Y, -78.6],
