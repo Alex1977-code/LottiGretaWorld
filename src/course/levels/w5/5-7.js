@@ -21,7 +21,7 @@
 
 import {
   isl, line, ring, arc, pfosten, roof, daecher, hofPflaster, laternen, festungsMauern, alarmLampen, rissWand, kletterRaum,
-  steinStern, schleichZaehler, gluehwuermchen, lavaSee, lavaFaelle, glutSaum, tuerme, fackeln, banner, ketten, funkenFlug,
+  steinStern, schleichZaehler, scheinwerferSparen, gluehwuermchen, lavaSee, lavaFaelle, glutSaum, tuerme, fackeln, banner, ketten, funkenFlug,
 } from './_helpers_d.js';
 import { bakeModel } from '../../blocks/w2kit.js';
 import { hasModel } from '../../models/index.js';
@@ -148,6 +148,7 @@ function setup(level) {
     { pos: [-12.5, Y + 5, -108], yaw: 0 },
     { pos: [5, YT + 0.9, -204], yaw: PI / 2 },
   ]);
+  scheinwerferSparen(level, 40);
   rissWand(level, { wall: 'risswand', x: RISS.x + 0.5, y: Y, z: RISS.z, w: RISS.w, h: RISS.h, face: '+x' });
   kletterRaum(level, { area: [RX - 8, RX + 8, RZ - 8, RZ + 8], blocks: KR_BLOCKS, star: 1 });
   steinStern(level, 'stein_stern', 2);
@@ -209,7 +210,7 @@ export const LEVEL = {
 
     // ================================================================ 3 Bastion (Checkpoint, Stempel im Licht)
     isl(-8, 8, -68, -84, Y),
-    licht('licht4', [[-5, Y, -77], [5, Y, -77]], [3.5, Y + 12, -82.4], { speed: 2.1, radius: 2.4 }),
+    licht('licht4', [[-5, Y, -77], [5, Y, -77]], [6.2, Y + 12, -80.5], { speed: 2.1, radius: 2.6 }),
     sign(-5.6, Y, -71.2, 'Stempel im Licht –\nmutig?', { size: [2.4, 0.9] }),
     // überdachte Brücke (Torhaus) zum nächsten Hof
     { type: 'bridge', from: [0, Y, -84], to: [0, Y, -88], width: 3.4, color: 0x8a5a3a },

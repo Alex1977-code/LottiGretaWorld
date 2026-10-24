@@ -91,8 +91,8 @@ const ROUTES = {
         legs: [{ until: 'gesehen6', max: 900 }, { to: [8, -106], within: 0.5, run: true }, { wait: 120 }, { expect: 'blind6' }] },
       { name: 'Kletterraum: Suchköpfe zertrümmern die Steinblöcke; wieder betreten → Treppe wieder heil', from: [70, Y, -99.5], heroes: ['lotti'],
         legs: [{ to: [64.6, -100], within: 0.5 }, { wait: 1200 }, { expect: 'raumKaputt' }, { to: [72, -99], within: 0.5 }, { warp: [77, -98.8] }, { wait: 60 }, { expect: 'nichtImRaum' },
-          { to: [-9.2, -96], within: 0.4, run: false, max: 30 }, { wait: 10 }],
-        place: {}, pre: 'rissAuf', mech: (r) => r.mech.raumKaputt > 0, mechText: (r) => `zertrümmert ${r.mech.raumKaputt}` },
+          { to: [-8.4, -96], within: 0.4, run: false }, { wait: 20 }, { warp: [-10.6, -96] }, { wait: 30 }, { expect: 'imRaum' }, { expect: 'raumHeil' }],
+        place: {}, pre: 'rissAuf', mechText: (r) => `zertrümmert zuvor ${r.log.find((l) => l[0] === 'erwartet' && l[1] === 'raumKaputt') ? 'ja' : 'nein'}` },
       { name: 'Checkpoint 2 auf dem Treppenabsatz: Sturz in die Lava → Neustart dort', from: [0, 7.1, -157], heroes: ['lotti'], invuln: false, expectAlive: false,
         legs: [{ to: [0, -157.5], within: 0.4 }, { to: [8, -158], within: 0.4, max: 300 }, { wait: 400 }, { expect: 'respawnAbsatz' }] },
     ],
@@ -159,6 +159,7 @@ function install() {
     gesehen6: () => !!L.named.get('licht6')?.seen,
     blind6: () => !L.named.get('licht6')?.seen,
     raumKaputt: () => (L._kletterRaum?.alive?.() ?? 30) < 30,
+    raumHeil: () => L._kletterRaum?.alive?.() === 30 && L._kletterRaum.resets >= 1,
     respawnAbsatz: () => Math.abs(P().pos.z + 157) < 2 && P().pos.y > 6.5 && !P().dead,
     giant: () => P().power === 'riese',
   };
@@ -272,7 +273,9 @@ function install() {
           for (; k < 400; k++) {
             if (p.mode === 'script') break;
             const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            const bx = p.pos.x, bz = p.pos.z;
             tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3.2, 6) : this.stick(dx, dz, Math.min(1, d))), jump: p.mode === 'ground' ? (k % 70) < 26 : p.vel.y > 0, run: false });
+            if (Math.hypot(p.pos.x - bx, p.pos.z - bz) > 4) break;     // versetzt (Warp im Fahrt-Schritt erledigt)
           }
           for (let w = 0; w < 600 && (p.mode === 'script' || p.mode === 'air'); w++) tick({});
           mech.warps++;
@@ -408,7 +411,7 @@ function install() {
     detail: () => new Promise((res) => {
       const v = c.view, r = v.renderer;
       for (const e of L.entities) e.model?.root?.traverse((o) => { o.userData.__perf = `E:${e.kind}`; });
-      const label = (o) => { if (o.userData.__perf) return o.userData.__perf; for (let q = o; q; q = q.parent) if (q.name) return q.name.replace(/:\d+$/, ''); return o.type; };
+      const label = (o) => { if (o.userData.__perf) return o.userData.__perf; for (let q = o; q && q.parent; q = q.parent) if (q.name) return q.name.replace(/:\d+$/, ''); return `${o.type}/${o.material?.type ?? ''}/${o.geometry?.type ?? ''}/${o.geometry?.attributes?.position?.count ?? 0}`; };
       const acc = new Map();
       const orig = r.renderBufferDirect;
       r.renderBufferDirect = function (camera, scene, geometry, material, object, group) {

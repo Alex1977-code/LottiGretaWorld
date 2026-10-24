@@ -219,29 +219,111 @@ export function laternen(level, pts) {
   for (const [x, y, z] of pts) level.view?.addLantern(x, y, z);
 }
 
-/** Festungsmauer (Registry-Modell 'festungsmauer', schiefer-lila Quader mit Zinnen) in gleich lange Stücke geteilt und
- *  in die statische Geometrie gebacken; Kollision als Quader. list [{ from: [x, y, z], to: [x, y, z] (gleiches x oder z),
- *  height: 4, thick: 1, zinnen: true, solid: true }]. Ohne Modell: Basalt-Quader. */
+/**
+ * Festungsmauer aus schiefer-lila Quadern (eigene, sparsame Geometrie: Körper, Quader-Bild auf beiden Längsseiten als
+ * flache Vierecke mit Fugen, Mauerkrone, Zinnen, Moosflecken unten, glühende Schießscharten) – in die statische Geometrie
+ * gebacken, ohne Sonnenschatten. list [{ from: [x, y, z], to: [x, y, z] (gleiches x oder z), height: 4, thick: 1,
+ * zinnen: true, slits: true, solid: true, camIgnore: true }]. Kollision als Quader (bis über die Zinnen).
+ */
 export function festungsMauern(level, list) {
+  const parts = [], glow = [];
+  const rnd = new Rnd(4242);
+  const pal = [0x5a547e, 0x4e4870, 0x66608c, 0x544e78, 0x5e5684].map(L);
+  const mortar = 0x221e34, cap = 0x6e6890, moss = L(0x4a7a36);
   for (const it of list) {
     const a = it.from, b = it.to;
     const alongX = Math.abs(b[0] - a[0]) >= Math.abs(b[2] - a[2]);
     const len = alongX ? Math.abs(b[0] - a[0]) : Math.abs(b[2] - a[2]);
-    const H = it.height ?? 4, T = it.thick ?? 1;
-    const n = Math.max(1, Math.round(len / 5));
-    const seg = Math.round((len / n) * 10) / 10;
-    for (let i = 0; i < n; i++) {
-      const t = (i + 0.5) / n;
-      const x = a[0] + (b[0] - a[0]) * t, z = a[2] + (b[2] - a[2]) * t;
-      if (hasModel('festungsmauer')) bakeModel(level, 'festungsmauer', { length: seg, height: H, thick: T, zinnen: it.zinnen !== false }, x, a[1], z, alongX ? 0 : Math.PI / 2, 1, {}, { castShadow: !!it.shadow });
-      else addStatic(level, blk(alongX ? seg : T, H, alongX ? T : seg, x, a[1], z, 0x4a4468), { castShadow: false });
+    const H = it.height ?? 4, T = it.thick ?? 1, y0 = a[1];
+    const cx = (a[0] + b[0]) / 2, cz = (a[2] + b[2]) / 2;
+    const w = alongX ? len : T, d = alongX ? T : len;
+    parts.push(blk(w, H, d, cx, y0, cz, mortar));
+    parts.push(blk(w + (alongX ? 0.04 : 0.24), 0.2, d + (alongX ? 0.24 : 0.04), cx, y0 + H - 0.04, cz, cap, { top: 0x8a84a8 }));
+    // Quader-Bild auf beiden Längsseiten (Reihen 0,62 m, Quader 1,0–1,5 m, versetzt)
+    for (const side of [1, -1]) {
+      const pos = [], col = [], nor = [];
+      const off = (alongX ? T : T) / 2 + 0.012;
+      const P = (u, v) => (alongX ? [cx - len / 2 + u, y0 + v, cz + side * off] : [cx + side * off, y0 + v, cz - len / 2 + u]);
+      const N = alongX ? [0, 0, side] : [side, 0, 0];
+      const rowH = 0.62;
+      for (let r = 0; r * rowH < H - 0.25; r++) {
+        const v0 = r * rowH, v1 = Math.min(H - 0.2, v0 + rowH);
+        let u = -(r % 2) * 0.55;
+        while (u < len - 1e-3) {
+          const bw = 1.0 + rnd.frac() * 0.5;
+          const u0 = Math.max(0, u), u1 = Math.min(len, u + bw);
+          if (u1 - u0 > 0.1) {
+            const c = pal[Math.floor(rnd.frac() * pal.length)], k = 0.9 + rnd.frac() * 0.2;
+            const cc = r === 0 && rnd.frac() < 0.5 ? mixc(c, moss, 0.55, [0, 0, 0]) : [c[0] * k, c[1] * k, c[2] * k];
+            const g = 0.03;
+            let q = [P(u0 + g, v0 + g), P(u1 - g, v0 + g), P(u1 - g, v1 - g), P(u0 + g, v1 - g)];
+            if ((side > 0) !== alongX) q = [q[1], q[0], q[3], q[2]];
+            for (const k2 of [0, 1, 2, 0, 2, 3]) { pos.push(...q[k2]); col.push(...cc); nor.push(...N); }
+          }
+          u += bw;
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+      parts.push(g);
+      // glühende Schießscharten
+      if (it.slits !== false && H >= 4) {
+        const m = Math.max(1, Math.floor(len / 6));
+        for (let i = 0; i < m; i++) {
+          const u = ((i + 0.5) / m) * len;
+          const [sx, , sz] = P(u, 0);
+          const f = alongX ? (side > 0 ? '+z' : '-z') : (side > 0 ? '+x' : '-x');
+          glow.push(quadG(sx + (alongX ? 0 : side * 0.02), y0 + H * 0.5, sz + (alongX ? side * 0.02 : 0), 0.26, 0.9, f, [L(0xff6a10), L(0xff6a10), L(0xffd060), L(0xffd060)]));
+        }
+      }
+    }
+    // Zinnen
+    if (it.zinnen !== false) {
+      const m = Math.max(1, Math.round(len / 1.3));
+      for (let i = 0; i < m; i++) {
+        const u = (i + 0.5) / m;
+        const mx = alongX ? a[0] + (b[0] - a[0]) * u : cx, mz = alongX ? cz : a[2] + (b[2] - a[2]) * u;
+        parts.push(blk(alongX ? (len / m) * 0.58 : T * 0.92, 0.75, alongX ? T * 0.92 : (len / m) * 0.58, mx, y0 + H + 0.16, mz, [0x5a547e, 0x524c74, 0x625c88][i % 3], { top: 0x7a74a0 }));
+      }
     }
     if (it.solid !== false) {
       const xs = alongX ? [Math.min(a[0], b[0]), Math.max(a[0], b[0])] : [a[0] - T / 2, a[0] + T / 2];
       const zs = alongX ? [a[2] - T / 2, a[2] + T / 2] : [Math.min(a[2], b[2]), Math.max(a[2], b[2])];
-      level.world.add({ type: 'box', min: [xs[0], a[1], zs[0]], max: [xs[1], a[1] + H + (it.zinnen === false ? 0 : 0.9), zs[1]], camIgnore: it.camIgnore ?? true, tag: 'festungsmauer' });
+      level.world.add({ type: 'box', min: [xs[0], y0, zs[0]], max: [xs[1], y0 + H + (it.zinnen === false ? 0 : 0.9), zs[1]], camIgnore: it.camIgnore ?? true, tag: 'festungsmauer' });
     }
   }
+  bakeParts(level, parts, { castShadow: false });
+  bakeParts(level, glow, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Budget der Suchscheinwerfer: Lichtkegel und -fleck zeichnet der Baustein ohne Sichtprüfung (je Licht 3 Aufrufe, der
+ * doppelseitige Kegel zweimal) – hier zeichnen nur Lichter, deren Fleck oder Lampe nahe am Blickziel liegt (near m), und
+ * der Kegel in einem Durchgang. Nur Darstellung (Erkennen, Alarm, Bahn laufen weiter).
+ */
+export function scheinwerferSparen(level, near = 42) {
+  const v = level.view;
+  if (!v) return;
+  const groups = [];
+  v.three.traverse((o) => {
+    if (!o.isGroup || o.children.length < 3) return;
+    const cone = o.children.find((c) => c.isMesh && c.geometry?.type === 'ConeGeometry' && c.material?.isMeshBasicMaterial && c.renderOrder === 4);
+    const spot = o.children.find((c) => c.isMesh && c.geometry?.type === 'CircleGeometry' && c.renderOrder === 3);
+    if (!cone || !spot) return;
+    cone.material.forceSinglePass = true;
+    groups.push({ g: o, cone, spot });
+  });
+  level._scheinwerfer = groups.length;
+  v.onFrame(() => {
+    const t = v.rig?.target ?? level.player?.pos;
+    if (!t) return;
+    for (const q of groups) {
+      const sx = q.spot.position.x, sz = q.spot.position.z, lx = q.cone.position.x, lz = q.cone.position.z;
+      q.g.visible = Math.hypot(sx - t.x, sz - t.z) < near || Math.hypot(lx - t.x, lz - t.z) < near;
+    }
+  });
 }
 
 /** Gestreifte Markisen an den Vorderkanten der Unterstände (nur Optik, in die statische Geometrie): list [{ x0, x1, z
