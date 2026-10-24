@@ -1583,8 +1583,15 @@ export function areaMood(level, moods, zones) {
     level.moodNow = m;
     v?.setMood?.(m, { time: fast ? 0 : 1.1 });
   };
+  // Sprung der Figur (Warp-Box, Neustart): sofort umschalten – der Ortswechsel verdeckt den Schnitt
+  let last = null;
   apply(true);
-  level.onStep(() => apply(false));
+  level.onStep(() => {
+    const p = level.player;
+    const jump = !!p && !!last && Math.hypot(p.pos.x - last.x, p.pos.z - last.z) > 12;
+    if (p) last = { x: p.pos.x, z: p.pos.z };
+    apply(jump);
+  });
 }
 
 /** Münzen entlang der Flugbahn einer Röhrenkanone (flightCtl: Start an der Öffnung − 0,6 m, Schwerkraft 30). */
