@@ -1376,25 +1376,34 @@ Welt 3 an der Röhre nach Welt 4 und bei der Ankunft von Welt 4 höchstens 91 / 
   abwechselnd über die linke und rechte Kante (roter Landeboden-Hinweis, Staub). Test-Schnittstelle (additiv):
   `state().decor` = Vereinigung von `ev.liveInfo()` aller Eingänge – `searchlight { beat, step, moving, angle, source,
   theme, bpm, spot, alarm, shown }`, `flipper { color, flips }`, `kippquader { phase, side, tips }`.
-- Registry-Modelle der Welt 5 werden benutzt, sobald es sie gibt (`deco_w5_<kind>` für Schirm, Sandburg, Akazie,
-  Termitenhügel, Zuckerstange, Kirsche, Steinkopf, Tempelsäule, Obelisk, Torte; `trapez`, `roehrenkanone`,
-  `suchscheinwerfer`, `kippquader`, `schluesselmuenze`), vorhandene ebenso (`kruemel`, `warp_box`, `pow_block`,
-  `kanone_turm`, `pilzlingsturm`, `feuer_werfer`) – jeweils mit Dreiecks-Obergrenze (`beach5.modelTris`), damit die Karte
-  im Budget bleibt; sonst zeichnet `beach5.js`/`decor_w5.js` eigene sparsame Geometrie (Registry-Palmen sind auf der
-  Karte zu schwer → `palm5`). **Hinweis Fern-Ausblendung:** `MapLod` merkt sich die Lage aller Kartenobjekte beim Aufbau
-  – bewegte Kulissen-Teile (Lichtkegel, Ball, Funken, Rauch …) müssen schon beim Bau an ihrer Startlage stehen.
+- Registry-Modelle (Registry-Abfrage `hasModel`, je mit Dreiecks-Obergrenze über `beach5.modelTris`, sonst eigene
+  sparsame Geometrie aus `beach5.js`/`decor_w5.js`): Welt 5 – `strandkorb` und `sonnenschirm` am Sonnenstrand (eingebacken
+  in eine eigene Kachel `w5:strandmoebel`, damit sie nur in den Ansichten zählen, die sie sehen), `trapez` (zwei
+  gegenläufig schwingende am Zirkuszelt), `roehrenkanone` (aufrecht auf dem Savannenberg, `load`/`fire` mit Rauchring),
+  `lore` (`load: 'kristall'`, als Instanz-Vorlage: je Teil-Mesh ein InstancedMesh), `suchscheinwerfer` (Kopf dreht die
+  Karte, `alarm`/`seen` aus dem Lichtfleck), `kippquader` (`style: 'tempel'`, Gesicht zur Kamera, `warn`/`tip`/`land`;
+  dazu eine eigene Krone), `steinkopf` (als eigene Objekte, damit die Fern-Ausblendung sie beim Anflug ausblendet),
+  `deco_w5_zuckerstange` (Requisite `candycane`); vorhandene: `kruemel`, `warp_box`, `pow_block`, `kanone_turm`,
+  `pilzlingsturm`, `feuer_werfer`, `rammbock_bulle`. Bewusst eigene Geometrie (auf der Karte zu schwer, Stand der Modelle):
+  `schluesselmuenze` (≈ 6 k Dreiecke je Münze × 5), `goldzug_waggon` (18–26 k), `torten_plateau` (≈ 21 k),
+  `deco_w5_akazie` (≈ 5,8 k × 7), `termitenhuegel`, Giraffe/Zebra/Elefant (≈ 9 k), verstreute Requisiten (Strandkorb,
+  Schirm, Tempelsäule, Steinkopf liegen in den Schatten-Kacheln vieler Ansichten), Palmen (`palm5`). Werden die Modelle
+  leichter, greifen sie ohne Codeänderung (Kandidatenlisten `W5_PROP_MODELS`, Obergrenzen in `decor_w5.js`).
+  **Hinweis Fern-Ausblendung:** `MapLod` merkt sich die Lage aller Kartenobjekte beim Aufbau – bewegte Kulissen-Teile
+  (Lichtkegel, Ball, Funken, Rauch …) müssen schon beim Bau an ihrer Startlage stehen.
 - Übergänge: Die Welt-4-Röhre `W5` und der Welt-Warp aus 4-2 führen ohne Codeänderung nach Welt 5 (Ankunft an der
   Rückweg-Röhre `W4`, `{ id: 'W4', world: 4, next: 4 }`, Röhre nach Südwesten zur Canyon-Insel am Horizont). Die Röhre
   `W6` zeigt „Welt 6 kommt bald!“; ein Welt-Warp nach Welt 6 aus einem Welt-5-Level endet über den vorhandenen Rückfall an
   dieser Röhre (entdeckt, Schranke versinkt). `tests/course_map_w4.mjs` Abschnitt 9 prüft jetzt die Ankunft in Welt 5
   (der „bald“-Rückfall wird in `tests/course_map_w5.mjs` mit Welt 6 geprüft).
 - Test: `tests/course_map_w5.mjs` (Port 4250, Bilder `tests/out/cmap5_*.png`), Teilläufe `W5_TEIL=1|2|3` (Abschnitte
-  2–4, 5–8, 9–14, je mit den Node-Prüfungen; gemessen bei Rechnerlast ≈ 15: 5,5 / 4,8 / 6,7 min).
+  2–4, 5–8, 9–14, je mit den Node-Prüfungen; gemessen bei Rechnerlast ≈ 10–15: 5,2 / 6,1 / 7,6 min).
 
-Gemessen (scale 2, `tests/course_map_w5.mjs`): Kartenansichten Welt 5 37–80 Zeichenaufrufe inkl. Schattenpass,
-117–259 k Dreiecke; Ankunft durch die Glasröhre 71–87 / 195–230 k, Anflug 107 / 264 k (Budget 120 / 300 k). Welt 4 an
-der Röhre nach Welt 5 und bei der Ankunft von Welt 5 höchstens 66 / 173 k (Anflug Welt 4 mit Lila-Insel am Horizont
-108 / 274 k). Statische Kulisse Welt 5: 36 Kachel-Meshes, ≈ 151 k Dreiecke, ≈ 290 Kollisionsformen.
+Gemessen (scale 2, `tests/course_map_w5.mjs`, mit den Welt-5-Modellen): Kartenansichten Welt 5 37–80 Zeichenaufrufe
+inkl. Schattenpass, 119–258 k Dreiecke; Ankunft durch die Glasröhre 73–88 / 208–249 k, Anflug 109 / 272 k (Budget
+120 / 300 k). Welt 4 an der Röhre nach Welt 5 und bei der Ankunft von Welt 5 höchstens 66 / 162 k (Anflug Welt 4 mit
+Lila-Insel am Horizont 108 / 274 k). Statische Kulisse Welt 5: 38 Kachel-Meshes, ≈ 167 k Dreiecke, ≈ 295
+Kollisionsformen.
 
 ---
 

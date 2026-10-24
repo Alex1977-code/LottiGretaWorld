@@ -26,9 +26,10 @@
 //                            Lok mit zwei Münzwagen (Dampfwolken, funkelnde Münzen)
 //   kipptemple    5-Burg     Ruinen-Tempel: Stufenpyramide mit Steinköpfen und Fackeln, oben der Kippquader-König, der
 //                            abwechselnd nach links und rechts über die Kante kippt (roter Landeboden-Hinweis, Staub)
-// Registry-Modelle der Welt 5 (models/kinds/*_w5.js) werden benutzt, sobald es sie gibt (Kulisse 'deco_w5_<kind>',
-// 'trapez', 'roehrenkanone', 'suchscheinwerfer', 'kippquader', 'schluesselmuenze' …) – mit Dreiecks-Obergrenze, damit
-// die Karte im Budget bleibt; sonst eigene sparsame Geometrie. Große, unbewegte Teile gehen in die verschmolzene
+// Registry-Modelle der Welt 5 (models/kinds/*_w5.js) werden benutzt, sobald es sie gibt – mit Dreiecks-Obergrenze,
+// damit die Karte im Budget bleibt: strandkorb/sonnenschirm (eigene Kachel), trapez, roehrenkanone, lore (Instanz-
+// Vorlage, instModel), suchscheinwerfer, kippquader, steinkopf; sonst (z. B. schluesselmuenze, goldzug_waggon, zu schwer
+// für die Karte) eigene sparsame Geometrie. Große, unbewegte Teile gehen in die verschmolzene
 // statische Geometrie, bewegte sind eigene Objekte (ev.updaters), gleichartige als Instanzen (ein Zeichenaufruf).
 // Wichtig: Bewegte Objekte stehen schon beim Bau an ihrer Startlage – die Fern-Ausblendung (lod.js) merkt sich die
 // Lage aller Kartenobjekte beim Aufbau.
