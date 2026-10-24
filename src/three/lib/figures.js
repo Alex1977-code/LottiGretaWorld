@@ -7,6 +7,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { applyToyLook } from './toyLook.js';
 
 export const TAU = Math.PI * 2;
 export const damp = (c, t, rate, dt) => c + (t - c) * (1 - Math.exp(-rate * dt));
@@ -20,7 +21,7 @@ const MATS = new Map();
 /** Geteiltes MeshStandardMaterial (modulweit, lebt so lange wie die Seite). */
 export function mat(key, props = {}) {
   let m = MATS.get(key);
-  if (!m) { m = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0, ...props }); MATS.set(key, m); }
+  if (!m) { m = applyToyLook(new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0, ...props })); MATS.set(key, m); }
   return m;
 }
 

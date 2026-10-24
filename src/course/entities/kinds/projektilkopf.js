@@ -11,7 +11,8 @@
 //
 // Daten: { kind: 'projektilkopf' | 'suchkopf', pos: [x, y, z] (Unterkante; Mitte = y + 0,33), dir?: [dx, dz] | yaw,
 //          speed?: 5.5 (Such 4.2), life?: 10 (Such 8) s, seek?: 4 s, turn?: 1.8 rad/s, ride?: false,
-//          owner? (Kanone: deren Formen werden ignoriert), drop? }
+//          owner? (Kanone: deren Formen werden ignoriert), drop?,
+//          breaks?: false | true | r (Welt 5: zertrümmert beim Aufprall Ziegel/Steinblöcke im Umkreis r, Standard 0,9 m) }
 //   Beispiel: { kind: 'projektilkopf', pos: [-10, 2, -40], dir: [1, 0], ride: true, speed: 4 }
 // Zustände: fly (die ersten 0,4 s Startflamme) → fall (abgestürzt/besiegt) | burst. Laufzeit: age.
 // Modelle 'projektilkopf' / 'suchkopf' (state { anim: fly|launch|fall|seek }).
@@ -120,12 +121,29 @@ class Projektil extends EnemyW2 {
   pop(fx) {
     if (this.removed) return;
     this.burst = true;
+    if (fx && this.spec.breaks) this.smash();
     if (fx) {
       this.level.effects?.sparks(this.center(), 10);
       this.level.effects?.dust(this.pos, 5, 1.1);
       this.level.sfx('blockhit');
     }
     this.kill();
+  }
+
+  /**
+   * Welt 5 (5-7, breaks): beim Aufprall zertrümmert der Kopf Zerbrechliches im Umkreis (breakable/mega: Ziegel, graue
+   * Steinblöcke, lila Ziegel …) wie eine kleine Explosion – onHit('bomb', kopf, form); kopf.blast = { x, y, z, r }.
+   */
+  smash() {
+    const c = this.center(), r = Number(this.spec.breaks) > 0 ? Number(this.spec.breaks) : 0.9;
+    this.blast = { x: c.x, y: c.y, z: c.z, r };
+    const done = new Set();
+    for (const s of this.level.world.overlapAABB(c, { x: r + 0.25, y: r + 0.25, z: r + 0.25 })) {
+      const o = s.owner;
+      if (!o || o === this || o === this.owner || done.has(o) || !(s.breakable || s.mega)) continue;
+      done.add(o);
+      o.onHit?.('bomb', this, s);
+    }
   }
 
   /** Steht eine Figur auf dem Reit-Kopf? */

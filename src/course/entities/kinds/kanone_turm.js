@@ -11,7 +11,8 @@
 //          sides?: 1 | 2, shot?: 'projektilkopf' | 'suchkopf' | 'wechsel' (abwechselnd) | 'riesenprojektil' (Welt 3),
 //          interval?: 3.0 s,
 //          first?: 1.0 s, range?: 26 m, minRange?: 1.6 m, max?: 3, speed? (Kopf-Tempo), seek?/turn? (Suchkopf),
-//          ride? (Projektilkopf), track?: false, charge?: 0.5 s, active?: true, drop? }
+//          ride? (Projektilkopf), track?: false, charge?: 0.5 s, active?: true, drop?,
+//          breaks? (Welt 5: Köpfe zertrümmern beim Aufprall Zerbrechliches, siehe projektilkopf.js) }
 //   Beispiel: { kind: 'kanone_turm', pos: [6, 1, -40], dir: [-1, 0], interval: 2.5, shot: 'suchkopf' }
 // Zustände: idle → charge → fire → idle …; broken. Laufzeit: shots (abgefeuert), heads (lebende), aim, setActive(b).
 // Modell 'kanone_turm' (opts { height, sides }, state { anim: idle|charge|fire, aim, progress }).
@@ -115,7 +116,7 @@ class KanoneTurm extends EnemyW2 {
     const big = kind === 'riesenprojektil';
     const ahead = big ? 2.4 : 0.15;
     const spec = { pos: [m.x + m.dx * ahead, m.y - (big ? 1.2 : 0.33), m.z + m.dz * ahead], dir: [m.dx, m.dz], owner: this };
-    for (const k of ['speed', 'seek', 'turn', 'ride', 'life']) if (this.spec[k] !== undefined) spec[k] = this.spec[k];
+    for (const k of ['speed', 'seek', 'turn', 'ride', 'life', 'breaks']) if (this.spec[k] !== undefined) spec[k] = this.spec[k];
     const h = this.level.spawn(kind, spec);
     if (h) this.heads.push(h);
     this.shots++;

@@ -3728,3 +3728,173 @@ dem Dach), Kippquader (kippt, Hinweis, Treffer, begehbar, trägt, Loch sicher), 
 wieder), blaue Lava tötet, 3er-Lift (2 Figuren nein, 3 ja), Ziel, keine Konsolenfehler; dazu 4 Themen-Prüfungen.
 Kennzahlen (960×540, scale 2): Stationen 59–78 Zeichenaufrufe, 122–150 k Dreiecke; Themen-Bilder 59–80 Aufrufe,
 115–145 k Dreiecke (Budget < 140 / < 400 k).
+
+## Präzisierung (Gegner Welt 5)
+
+Ergänzung des Gegner-Agenten Welt 5 (Stand: Gegnerwerkstatt Lila Strand `0-18`, Tempel des Kippquader-Königs `0-19`).
+Nichts oben Festgelegtes wird geändert; alles ist additiv. Level-Bauer schreiben nur Daten; alle Felder sind optional,
+sofern nicht anders vermerkt. Gemeinsame Felder und Konter aus „Präzisierung (Gegner/Power-ups)“ und „(Gegner Welt 2/3/4)“
+gelten weiter (`id, pos, dir|yaw, path, loop, wake, edges, drop`; Ziel = nächste Figur, Lava/Absturz = besiegt, `STRONG` =
+cannon, bomb, mega, star). Jede Datei dokumentiert ihre Parameter vollständig im Kopfkommentar.
+
+### Präzisierung (Gegner Welt 5): Dateien
+
+```
+src/course/entities/kinds/sandtaucher_w5.js        sandtaucher
+src/course/entities/kinds/zuendkopf_w5.js          zuendkopf (+ Nachschub-Spender zuendkopf_quelle), lila_ziegel,
+                                                   lila_ziegelwand; explodeAt(level, center, radius, source, opts) als Hilfe
+src/course/entities/kinds/feuer_w5.js              feuerring, funkenling, glutball
+src/course/entities/kinds/hackbeil_w5.js           hackbeil_pilz
+src/course/entities/kinds/alarm_w5.js              suchkopf_welle (Suchscheinwerfer-Alarm → Suchkopf-Kanonen feuern eine Welle)
+src/course/entities/kinds/werferturm_w5.js         werferturm (Feuer-Werfer auf einem Pilzlingsturm aus bis zu 12 Pilzlingen, 5-B)
+src/course/entities/kinds/kippquader_koenig_w5.js  kippquader_koenig (Boss 5-Burg), bruchplatte (Arenaecke, bricht weg)
+src/course/entities/kinds/pow.js                   + Entitäten mit `powBreak` (lila Ziegel) bekommen onHit('pound', pow)
+src/course/entities/kinds/projektilkopf.js         + Option `breaks` (Kopf zertrümmert beim Aufprall Ziegel/Steinblöcke)
+src/course/entities/kinds/kanone_turm.js           + reicht `breaks` an die Köpfe weiter
+src/course/levels/w0/0-18.js                       Gegnerwerkstatt Lila Strand (6 Reihen Gehege, Z(r, dz) wie 0-15)
+src/course/levels/w0/0-19.js                       Tempel des Kippquader-Königs (Archetyp boss, Bruchplatten-Ecken, Begleit-Kippquader)
+tests/course_w5_enemies.mjs                        Port 4400, W5E_PART=1|2|3|4|5, Bilder tests/out/w5e_*.png
+```
+
+### Präzisierung (Gegner Welt 5): gemeinsame Regeln
+
+- **Explosionen** (Zündkopf, `explodeAt`): Entitäten im Radius → `onHit('bomb', src)`, Formen mit `breakable`/`mega` →
+  `owner.onHit('bomb', src, form)`, **alle** Figuren bis 0,9 × Radius → Treffer, danach `level.onExplosion(c, r, src)`.
+  `src.blast = { x, y, z, r }` erlaubt Wänden aus vielen Blöcken, alle Blöcke im Radius zu zerbrechen.
+- **Lila Ziegel** tragen `breakable: 'bomb'` (Stampfen der Figur bricht sie nicht, Tatzenhieb/Riese/Explosion erreichen
+  sie) und `powBreak` (POW-Block). Zerbrechen: Explosion, Tatzenhieb/Schwanzhieb, Riesentrank, Kanonenkugel, POW;
+  Kopfstoß und Stampfattacke lassen sie nur wackeln.
+- **Tragen/Werfen** des Zündkopfs über das vorhandene Trage-System (`carryable`, `onPickup/onThrow/onDrop`, Rennen +
+  Berühren hebt auf). Geworfen explodiert er am ersten Hindernis (Wand, Gegner, Endgegner: `onBombHit(src)` vorher).
+- **Signale:** die Suchkopf-Welle hört auf `level.onSignal('alarm')` (bzw. `signal`), mit `lights` direkt auf
+  `level.named.get(id).onDetect` der Suchscheinwerfer. Kanonen bleiben dafür mit `active: false` still.
+- **Bosse:** der Kippquader-König ist kein `enemy`, `boss: true`, Schnittstelle wie Lavafelsen-König (`begin, reset, state,
+  stateT, hp, maxHp, phase, visible, home, half, carHits 0, vulnerable, info()`, `level.onBossHit(boss, 'ruecken')`,
+  `level.onBossDefeated`), eigene Phasen-Ansagen (`arch.seenPhase`). Rote Landefläche = `landingHint` aus `blocks/w5kit.js`.
+- **Sound** nur über vorhandene `level.sfx`-Namen (`sand_crumble`, `splash_big`, `hover`, `slam`, `brickbreak`, `swoop`,
+  `panic`, `bullet`, `boss_hit`, `boss_spin`, `stomp`, `blockhit`, `bounce`, `land`, `powerdown`).
+
+| Gegner | Verhalten | besiegt durch | verletzt |
+| --- | --- | --- | --- |
+| sandtaucher | schwimmt verborgen (Flosse, Sandwelle/Wellenring), folgt der Figur im Revier, späht (0,45 s), springt im Bogen (1,1 s) durch ihre Stelle und landet dahinter | **im Sprung**: Draufspringen/Stampfen (platt, Abprall), alle Angriffe; verborgen nur Stampfwelle daneben/Explosion | seitlich im Sprung |
+| zuendkopf | läuft/verfolgt; Nähe/Berührung/Treffer zündet, rennt brennend, blinkt, explodiert nach 3 s (2 m) | Stern/Riese entschärfen (zählt); Explosion zählt nicht | nur die Explosion |
+| feuerring | Puls: Ring wächst im Takt bis radius, erlischt, Pause; Rad: Flammen auf Kreis drehen sich, Lücken, optional atmend/blinkend | nie | Flammen (Füße darunter), Brennerkern |
+| hackbeil_pilz | hüpft heran, holt aus (0,55 s Vorwarnung), hackt (Schneide 1,1–1,4 m vor ihm), steckt 1,3 s fest | festgesteckt von oben; sonst von hinten draufspringen; alle Angriffe | Schneide im Hieb, Beil auf dem Kopf (von vorn), seitlich (nicht festgesteckt) |
+| funkenling | Bahn (auch senkrecht an Wänden), Blockrand, Kreis oder wuselnd mit Hüpfern | nur Power-ups: Tatzenhieb/Sturzflug/Schwanzhieb, Kanonenkugel, Explosion, Riese, Stern | jede Berührung (auch von oben) |
+| glutball | springt im Takt aus (blauer) Lava, Reihen versetzt | Stern, Riese, Explosion | in der Luft |
+| suchkopf_welle | Alarm → Kanonen feuern shots Köpfe, Abklingzeit | – (Leitstand) | – |
+| werferturm | hoher Pilzlingsturm, Werfer obenauf wirft; Stufen weg → Werfer sinkt; Turm fällt → Werfer am Boden | Stufen wie Pilzlingsturm; Explosion/Riese/Stern/POW ganz | seitlich; Geschosse |
+| kippquader_koenig | geht, rote Landefläche, kippt aufs Gesicht, liegt begehbar | nur Landung auf dem Rückenfeld (3×) | stehend seitlich, Aufschlag, Schockwelle (Phase 3) |
+
+### Präzisierung (Gegner Welt 5): Gegner-Daten (exakt, mit Beispiel)
+
+```js
+enemies: [
+  // Sandtaucher: pos.y = Sand-/Wasseroberfläche; ground 'sand'|'wasser' (Standard: Wasser, wenn an pos eine Wasserform ist),
+  //   path (Bahn verborgen), loop, speed 2, chaseSpeed 3, sight 8, trigger 3.4 (Sprung), leap 4.5 (größte Sprungweite),
+  //   height 1.5 (Sprunghöhe), lead 0.35 (s Vorhalt), through 0.68 (an diesem Anteil des Sprungs kreuzt er die Figur),
+  //   cooldown 1.4, peek 0.45, range 6 (Revier-Kreis um pos) | area { min: [x, z], max: [x, z] } (Revier-Rechteck), phase
+  { kind: 'sandtaucher', pos: [-11.5, 1, -15], area: { min: [-18, -21], max: [-5, -9] } },
+  { kind: 'sandtaucher', pos: [15, 2.2, -15], ground: 'wasser', range: 5 },       // Wasser: folgt dem Wasserspiegel
+  // Zündkopf: speed 1.2, behavior 'chase'|'walk', sight 7, trigger 2.2 (Nähe zündet; 0 = nie), fuse 3, radius 2, lit,
+  //   litSpeed 2.4, vel (Start im Flug), owner; spawner { every 4, max 2, first 0.5, range 30 } = Nachschub an pos
+  { kind: 'zuendkopf', pos: [-15, 1, -32], sight: 7 },
+  { kind: 'zuendkopf', pos: [-17.5, 1, -30], spawner: { every: 5, max: 1 }, behavior: 'walk', dir: [1, 0] },
+  // Feuerring: mode 'puls'|'rad', radius 4 (puls) | 3 (rad), height 0.7, color 'rot'|'blau'|'pink', flames;
+  //   puls: period 2.4, wait 0.6, phase; rad: speed 1.2 (rad/s), gaps 1, gap 70 (°), angle, pulse { min, period },
+  //   blink [an, aus] (s), phase
+  { kind: 'feuerring', pos: [-11.5, 1, -55], mode: 'puls', radius: 4.5 },
+  { kind: 'feuerring', pos: [11.5, 1, -55], mode: 'rad', radius: 3, gaps: 1, gap: 80, speed: 1 },
+  { kind: 'feuerring', pos: [16.5, 1, -60], mode: 'rad', radius: 1.4, gaps: 0, blink: [2, 1.2], color: 'pink' },
+  // Hackbeil-Pilz: hop 0.8 (m je Hüpfer), sight 6, reach 1.9, raise 0.55, stuck 1.3, cooldown 0.9, behavior 'chase'|'patrol'
+  { kind: 'hackbeil_pilz', pos: [-15, 1, -73], dir: [1, 0] },
+  { kind: 'hackbeil_pilz', pos: [-14, 1, -79], behavior: 'patrol', path: [[-17, 1, -79], [-8, 1, -79]], sight: 0 },
+  // Funkenling: path|rail (y = Laufebene, auch senkrecht), loop, block { pos, size }, center + radius, cw, speed 2, phase,
+  //   count, spacing 1.5, wait; ohne Bahn mode 'wusel' (pos, dir, behavior 'walk'|'chase', sight 6); color 'rot'|'blau'|'pink'
+  { kind: 'funkenling', block: { pos: [8, 1, -73], size: [3, 1.2, 3] } },
+  { kind: 'funkenling', path: [[13.5, 1, -76.2], [13.5, 4, -76.2], [17.5, 4, -76.2], [17.5, 1, -76.2]], loop: true, color: 'blau' },
+  { kind: 'funkenling', pos: [14, 1, -71], dir: [1, 0], color: 'pink' },
+  // Glutball: pos = Lava-Oberfläche, height 3.5, period 2.6, phase, count, spacing 1.6, dir [1, 0], stagger 0.12,
+  //   color 'blau'|'rot' (Standard: Farbe der Lava darunter)
+  { kind: 'glutball', pos: [-14.5, 1.3, -95], count: 3, spacing: 3, height: 3.2, period: 2.4, stagger: 0.2 },
+  // Suchkopf-Welle: signal 'alarm' | Liste, lights ['licht', …] (statt signal), cannons ['k1', …] (kanone_turm, active:
+  //   false), shots 3, every 1.2 (≥ 1,1), stagger 0.35, cooldown 4, range 40, from [{ pos, dir, shot }] (Köpfe ohne Kanone),
+  //   shot 'suchkopf', speed/seek/turn/life/breaks (from-Köpfe), onWave (Aktion)
+  { kind: 'kanone_turm', id: 'k1', pos: [5.5, 1, -101], dir: [1, 0], shot: 'suchkopf', active: false, breaks: true },
+  { kind: 'suchkopf_welle', cannons: ['k1', 'k2'], shots: 2, cooldown: 3 },
+  // Werferturm (5-B): count 9 (1–12), speed 0.8, behavior 'chase'|'walk', sight 10, weapon 'feuer'|'hammer'|'bumerang',
+  //   rider true, interval/volley/first (Werfer), throwSight 14, riderId (level.named des Werfers), riderDrop
+  { kind: 'werferturm', pos: [0, 1, -10], count: 9, riderId: 'werfer' },
+  // Vorhandene im Welt-5-Einsatz (Felder wie in den Präzisierungen Welt 1–4): panzerkroete, pilzling (mini), rammbock_bulle,
+  //   ameisensoldat, feuer_werfer, pilzlingsturm, kreisgeist(_kreis), muenzmarder, spuk, krabbelkaefer, flatterkaefer,
+  //   schnappblume, riesenschnappblume, feuer_schnappblume, wuschel, suchkopf/kanone_turm – alle bereit (0-18 Reihe 6)
+],
+items: [
+  // lila Ziegel: einzeln (1 m) oder Wand aus ganzen Blöcken; content (Beute je Block), onBreak (Aktion beim letzten Block)
+  { kind: 'lila_ziegel', pos: [17.5, 1, -34] },
+  { kind: 'lila_ziegelwand', pos: [12, 1, -37.5], size: [3, 2, 1], content: 'coin', onBreak: { reveal: 'warp1' } },
+],
+```
+
+Projektil-/Suchköpfe (auch über `kanone_turm`): `breaks: true | r` – beim Aufprall an Wand/Boden zertrümmert der Kopf
+Zerbrechliches im Umkreis r (Standard 0,9 m): Ziegel, graue Steinblöcke, lila Ziegel, Holzwände (5-7 Stern 2).
+
+### Präzisierung (Gegner Welt 5): Kippquader-König
+
+```js
+{ kind: 'kippquader_koenig', id: 'koenig', pos: [0, 2, -5] (Start, Fußpunkt), dir: [0, 1] (Start-Blick),
+  arena: { min: [-10, -10], max: [10, 10] } | { center: [x, y, z], r: 9 }, hp: 3,
+  speed: [1.4, 1.9, 2.4], walk: [2.6, 1.9, 1.3], warn: [0.95, 0.8, 0.65], tilt: [0.7, 0.6, 0.5], lie: [2.8, 2.4, 2.1],
+  shock: [false, false, true], shockR: 7, shockSpeed: 6.5, escorts: ['kq_l', 'kq_r'], escortFrom: 3,
+  corners: [['ecke_vl', 'ecke_vr'], ['ecke_hl', 'ecke_hr']], star: { pos: [0, 2.4, 6.5], index: 0 }, wakeR: 10, drop }
+boss: { id: 'koenig', name: 'Kippquader-König', speed: 0, trigger, lock, warp: 'warp_sieg', warpPos, warpTo, frame: 0.45, center }
+items: [{ kind: 'bruchplatte', id: 'ecke_vl', pos: [-8, 2, 8] (Mitte der Oberseite), size: [4, 4], thick: 1, warn: 0.9,
+          style: 'tempel' | 'stein' }, …]
+segments: [{ type: 'kippquader', id: 'kq_l', pos, size: [2, 4, 2], steps: ['+z', '-z'], start: 'signal', … }]   // Begleiter
+```
+
+Ablauf: `wait` → `intro` (2,2 s) → Runde: `walk` (er blickt immer in eine Himmelsrichtung und richtet sich so aus, dass die
+Figur 2,6 m vor ihm in seiner Kipp-Bahn steht) → `warn` (rote Landefläche = genau sein liegender Grundriss 3,6 × 3,4 m,
+zittert) → `tilt` (kippt aufs Gesicht; Aufschlag trifft Figuren im Grundriss und schiebt sie hinaus, Gegner darunter
+`onHit('mega')`) → `lie` (feste Kollisions-Box, Oberseite 1,5 m = Rücken, begehbar; **nur eine Landung – Sprung oder
+Stampfattacke – auf dem Schwachpunkt-Feld** 1,9 × 1,9 m um 2,6 m vor dem Fuß (= `model.back()`) ist ein Treffer: Abprall,
+`hit` 0,6 s) → `rise` (0,8 s; wer auf ihm steht, wird abgeworfen) → nach einem Treffer brechen `corners[i]` weg, `roar`
+(1 s) → `walk` … Er kippt auch, wenn walk abläuft (kippt öfter, je Phase kürzer), nur wenn der Grundriss ganz in der Arena
+liegt (Bruchplatten und Begleit-Kippquader meidet er). Phase 3: **Schockwelle** (Ring 0,45 m hoch, drüberspringen) und
+die Begleit-Kippquader beginnen ihre Bahn (mit eigener roter Vorwarnung). Treffer von vorn/seitlich, Landen neben dem Feld,
+Feuer, Krallen, Kanone, Bombe, Stern, Riese zählen nicht; stehend: Berührung verletzt, Kopfsprung = Abprall. 3 Treffer →
+`defeated` (2,2 s, zerbröckelt, Krone springt) → `gone` (Stern, Archetyp: Fanfare `course_clear`, Warp-Box). Ansagen:
+„Spring auf den blauen Stern auf seinem Rücken!“, „Er wird schneller!“, „Der Boden bebt – spring über die Welle!“. Tod im
+Kampf: König 3/3 am Start, Ecken wieder fest, Begleiter zurück (ruhen), Kampf von vorn. Laufzeit: `facing, lying, tips,
+hits, misses, shocks, escortTips, hitLog, lyingBox(), backField(), lieRect(), info()`.
+
+### Präzisierung (Gegner Welt 5): Hinweise für Level-Bauer
+
+- Sandtaucher: Revier (`area`/`range`) = Sandfläche bzw. Wasserbereich; er landet nur darin. Im Ritt-Fluss (5-1) springt er
+  den reitenden Spieler an (RideController ist eine Figur); `area` dann auf den Kanal legen, `pos.y` = Wasseroberfläche.
+- Zündkopf-Nachschub (5-5 „3 + Nachschub“): `spawner` an einer Röhre, `vel: [0, 6, 1.5]` lässt ihn herausspringen.
+- Lila Ziegelwand vor einer Glasröhre (5-5): `lila_ziegelwand` mit `onBreak`; POW-Blöcke (`pow`, radius) wirken mit.
+- Feuerringe (5-6): Puls-Ringe mit verschiedenem `phase` versetzen; Rad mit 1–2 Lücken (≥ 70°) bei 0,8–1,2 rad/s.
+- Schleich-Festung (5-7): Suchscheinwerfer + `kanone_turm` (`active: false`, `shot: 'suchkopf'`, ggf. `breaks: true`) +
+  `suchkopf_welle`; Deckung (Dach) gegen das Licht.
+- 5-B: `werferturm` mit `count: 9`; der Werfer ist über steigende Plattformen erreichbar, Stufen fallen durch Treffer.
+- 5-Burg: Arena ≥ 20 × 20 m, Ecken als `bruchplatte` (der König betritt sie nie), Begleit-Kippquader auf den Armen mit
+  `start: 'signal'`; zwischen Steg und Arena `boss.lock`.
+
+### Präzisierung (Gegner Welt 5): Tests und Kennzahlen
+
+`tests/course_w5_enemies.mjs` (Port 4400, `?course=0-18|0-19&scale=2&adapt=0`, deterministisch über `step(n)`/`setInput`;
+Hilfen `window.__t`: `Z(r, dz)`, `place`, `stomp`, `touch`, `fresh`, `hold`, `moveTo`, `action`, `face`, Boss: `enter`,
+`untilSafe`, `backJump`; `W5E_PART=1|2|3|4|5`, je Teil 1,5–3 min): Laden (alle Arten, vorhandene Welt-5-Gegner, 10 s ohne
+Fehler) · Teil 1 Sandtaucher (verborgen harmlos, folgt, späht, Bogen durch die Figur, seitlich verletzt, Stampfen im
+Sprung besiegt, Wasser), Zündkopf (Nähe zündet, 3 s, blinkt, Explosion verletzt/besiegt/zerstört lila Ziegel, Stampfen
+zündet, Kette, Stern entschärft, Nachschub ≤ max), Tragen/Werfen (Aufprall explodiert), lila Ziegel (Inhalt, Stampfen nein,
+Tatzenhieb/POW ja), Explosion zerstört Ziegel/Steinblock · Teil 2 Feuerring (Puls, stehen = Treffer, drüberspringen heil,
+Kern, nicht besiegbar, Rad dreht, Lücke, blink), Hackbeil-Pilz (Anlauf, Vorwarnung, Hieb, Schneide, festgesteckt von oben,
+von vorn Treffer, von hinten besiegt), Funkenling (Blockrand, Wand, wuseln, nur Power-ups), Glutball (Takt, Versatz,
+Farbe, Luft/Lava), Suchkopf-Welle (still ohne Alarm, Welle 2 + 2, Abklingzeit), breaks, Werferturm · Teil 3
+Kippquader-König vollständig (Auftritt, Landefläche = Grundriss, Kippen trifft, begehbar, daneben zählt nicht, Rückenfeld
+= model.back, 3 Treffer inkl. Stampfattacke, Ecken, Phasen-Ansagen, Schockwelle, Begleiter, Sieg → Stern + Warp → Ziel,
+Tod setzt zurück, Klon) · Teil 4 Bilder `tests/out/w5e_*.png` und Zeichenaufrufe · Teil 5 Sandtaucher im Ritt-Fluss
+der Strandwerkstatt `0-17` (springt den auf Pflaume reitenden Spieler an, Treffer). Gemessen (scale 2, inkl. Schattenpass,
+Thema beach/temple): Gegnerwerkstatt 54–90 Zeichenaufrufe (≤ 182 k Dreiecke), Tempel-Arena 37–50 (≤ 104 k).

@@ -18,6 +18,7 @@
 // Anmelden: view.groupCull(instancedMesh, name) (EnemyW2 meldet seine Gruppen selbst an).
 
 import * as THREE from 'three';
+import { isToyOnly } from '../../three/lib/toyLook.js';
 
 const _c = new THREE.Vector3();
 
@@ -32,7 +33,8 @@ export class GroupCuller {
   add(src, name) {
     if (!src?.isInstancedMesh || this.list.some((r) => r.src === src)) return null;
     const mat = src.material, geo = src.geometry;
-    if (Array.isArray(mat) || Object.prototype.hasOwnProperty.call(mat, 'onBeforeCompile') || src.morphTexture) return null;
+    // eigenes onBeforeCompile: nicht übernehmen – außer dem reinen Spielzeug-Look (three/lib/toyLook.js, spiegelbar)
+    if (Array.isArray(mat) || (Object.prototype.hasOwnProperty.call(mat, 'onBeforeCompile') && !isToyOnly(mat)) || src.morphTexture) return null;
     if (Object.values(geo.attributes).some((a) => a.isInstancedBufferAttribute)) return null;
     const r = { src, name: name ?? src.name ?? src.parent?.name ?? '', main: null, shadow: null, cap: 0, active: false };
     src.frustumCulled = true;
