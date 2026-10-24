@@ -183,6 +183,7 @@ export function fenceJump(p, want) {
   p.grabCooldown = 0.35;
   p.wallCoyote = 0;
   p.enterAir('jump', true);
+  p.level.notifyJump?.(p, 'fence');
   p.coyote = 0;
   p.level.sfx('jump');
 }

@@ -164,14 +164,16 @@ export class CameraRig {
       this.lead.z = damp(this.lead.z, lz, 2.2, dt);
       // Senkrecht: an der Standhöhe verankert, folgt nur bei deutlichem Steigen/Fallen
       const standing = player.mode === 'ground' || player.mode === 'wall' || player.mode === 'stalk' || player.mode === 'swim' || player.mode === 'script';
-      if (standing) this.anchorY = damp(this.anchorY, p.y, 6, dt);
+      // player.camTrack > 0 (1/s): schnelles Nachführen in schnellen Flügen (Röhrenkanone, Präzisierung Welt 5)
+      const track = player.camTrack > 0 ? player.camTrack : 0;
+      if (standing) this.anchorY = damp(this.anchorY, p.y, Math.max(6, track), dt);
       else if (p.y > this.anchorY + 2.6) this.anchorY = p.y - 2.6;
       else if (p.y < this.anchorY - 0.5) this.anchorY = p.y + 0.5;
       const yaw = (r.yaw + this.userYaw) * DEG;
       const tx = this.lockedX(p.x + this.lead.x - Math.sin(yaw) * r.ahead, r), ty = this.anchorY + r.height, tz = p.z + this.lead.z - Math.cos(yaw) * r.ahead;
-      this.target.x = damp(this.target.x, tx, 8, dt);
-      this.target.y = damp(this.target.y, ty, 5, dt);
-      this.target.z = damp(this.target.z, tz, 8, dt);
+      this.target.x = damp(this.target.x, tx, Math.max(8, track), dt);
+      this.target.y = damp(this.target.y, ty, Math.max(5, track), dt);
+      this.target.z = damp(this.target.z, tz, Math.max(8, track), dt);
     }
     // Kamera nicht in Geometrie: Strahl vom Kopf der Figur zur Wunschposition. Ist er verdeckt, rückt die
     // Kamera auf ihrer Achse näher ans Ziel, bis der Kopf wieder frei sichtbar ist (höchstens bis 3 m).
