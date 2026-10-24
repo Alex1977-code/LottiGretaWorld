@@ -30,6 +30,14 @@
 // 'skate' (auf dem Schlittschuh am Boden; proxy.course.speed = Tempo, proxy.course.skates = true auch in der Luft),
 // 'swimUnder' (getaucht); proxy.course.power = 'gleitblatt' mit dem Gleitblatt. Mit Schlittschuh steht die Hülle
 // SKATE_LIFT m höher (Kufen; das Schlittschuh-Modell zeichnet die Entität an den Füßen).
+//
+// Ergänzungen (Präzisierung Motor und Bausteine Welt 5) – neue Werte von proxy.course.state:
+//   'trapeze'  hängt am Trapez (Hände an der Stange über dem Kopf, Körper hängt am Seil): die Hülle wird um die Querachse
+//              der Blickrichtung um player.swingTilt (rad, + = Füße schwingen nach vorn) geneigt – Drehpunkt sind die
+//              Hände (die Simulation legt den Fußpunkt entlang des Seils unter die Stange); proxy.course.swing = Seilwinkel
+//              (rad, + = nach vorn), swingVel (rad/s), phase = Anteil der Ausschlagsgrenze (0..1).
+//   'cannon'   Flug aus der Röhrenkanone (gestreckt wie ein Geschoss, Arme vorn); phase = Flugfortschritt 0..1. Während
+//              die Figur in der Röhre steckt, ist sie unsichtbar (player.hidden).
 
 import * as THREE from 'three';
 import { createAvatar } from '../../three/avatars/index.js';
@@ -186,6 +194,9 @@ export class HeroRig {
     const targetYaw = p.yaw + (this.courseMode && p.state === 'wallslide' ? Math.PI : 0);
     this.yaw += wrap(targetYaw - this.yaw) * (1 - Math.exp(-28 * dt));
     this.hull.rotation.y = this.yaw;
+    // Welt 5: Trapez – Körper hängt entlang des Seils (Euler XYZ: Neigung im lokalen Rahmen, dann Gier)
+    this.tilt = p.state === 'trapeze' ? (p.swingTilt ?? 0) : damp(this.tilt ?? 0, 0, 10, dt);
+    this.hull.rotation.z = Math.abs(this.tilt) < 1e-4 ? 0 : this.tilt;
     // Größe (Klein/Groß, Riesentrank) weich, Squash & Stretch bei Landung/Absprung
     const target = ((p.big ? 1 : 0.7) / AVATAR_H) * (p.powerDef.scale ?? 1);
     this.scale = damp(this.scale, target, 10, dt);
@@ -230,6 +241,8 @@ export class HeroRig {
     c.fenceMove.y = p.fence ? p.fenceMove.y : 0;
     c.fencePunch = p.fence && p.punchTime > 0 ? Math.min(1, Math.max(0.01, 1 - p.punchTime / 0.28)) : 0;
     c.skates = !!p.skate;
+    c.swing = p.state === 'trapeze' ? (p.swingTilt ?? 0) : 0;
+    c.swingVel = p.state === 'trapeze' ? (p.swingVel ?? 0) : 0;
     c.power = p.power;
     c.big = p.big;
     // Avatar-Vertrag: holding = false | 'front' | 'over' (Haltestil der getragenen Entität, Standard über dem Kopf)

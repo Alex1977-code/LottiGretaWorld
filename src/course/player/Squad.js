@@ -231,7 +231,7 @@ export class Squad {
     if (figs.length <= 1) { const m = figs[0]; if (m?.script?.type === 'follow') { m.script = null; m.mode = 'air'; m.hidden = false; } return; }
     const main = figs[0];
     // 1) Mitreisen: Haupt-Figur in Röhre / gesteuertem Ablauf → die anderen folgen unsichtbar, danach um sie herum
-    const travel = main.mode === 'script' && (main.script?.type === 'pipe' || main.script?.type === 'ride');
+    const travel = main.mode === 'script' && (main.script?.type === 'pipe' || (main.script?.type === 'ride' && !main.script.solo));   // solo (Trapez …): jede Figur für sich
     let k = 0;
     for (const f of figs) {
       if (f === main || f.dead) continue;

@@ -38,6 +38,11 @@
 //  - Stachelboden (Formflag spikes) verletzt (nicht mit Schlittschuh/als Statue); Schieben: Wandformen, deren
 //    Besitzer `onPush(player, dir, speed)` kennt, werden angeschoben (Schneeball).
 //  - Blick: facingDot(pos) (−1..1, waagerecht) – level.isFacing(fig, pos, angleDeg) baut darauf.
+//
+// Ergänzungen (Präzisierung Motor und Bausteine Welt 5):
+//  - Jeder Absprung meldet level.notifyJump(fig, kind) (Rot-Blau-Flipper zählen Sprünge aller Figuren).
+//  - Trapez (player/swing.js): in der Luft greifen (tryGrabTrapeze), state 'trapeze', `trapeze`, `swingTilt`, `swingVel`.
+//  - ride(ctl, { solo: true }): gesteuerter Ablauf ohne Haupt-Figur-Wechsel und ohne Mitreisen der Klone.
 
 import * as THREE from 'three';
 import { HERO_VARIANTS } from '../../config.js';
@@ -48,6 +53,7 @@ import { surfaceNormal } from '../physics/shapes.js';
 import { skateGround, skateJump, leaveSkate } from './skating.js';
 import { tryGrabFence, grabFenceAction, fenceCarry, updateFence, fenceAfterMove, fencePunch } from './fencing.js';
 import { updateStatue } from './statue.js';
+import { tryGrabTrapeze } from './swing.js';
 
 /** Treibsand: Werte je Form (quicksand-Flag des Bausteins), Standard hier. */
 export const SAND = { sink: 0.3, slow: 0.5, jump: 0.75, plop: 0.06 };
@@ -146,6 +152,9 @@ export class Player {
     this.fence = null; this.fenceMove = { x: 0, y: 0 }; this.punchTime = 0;
     this.tailTime = 0; this.tailDur = MOVE.tailTime; this.gliding = false; this.statueCool = 0;
     this.diving = false; this.waterCurrent = null;
+    // Welt 5
+    if (this.trapeze?.rider === this) this.trapeze.rider = null;
+    this.trapeze = null; this.swingTilt = 0; this.swingVel = 0;
     this.updateHalf();
   }
 
@@ -246,6 +255,7 @@ export class Player {
     if (this.fence && this.mode === 'wall') fenceAfterMove(this);
     if (this.mode !== 'script') this.checkTriggers(dt, input, want);
     if (this.mode === 'air' && this.level.fences?.length) tryGrabFence(this, input, want);
+    if (this.mode === 'air' && this.level.trapezes?.length) tryGrabTrapeze(this, input);   // Welt 5: Trapez (player/swing.js)
     this.updatePhase();
   }
 
@@ -410,7 +420,7 @@ export class Player {
 
   /** Sprung vom Boden: wählt Rückwärtssalto, Weitsprung, Seitwärtssalto oder Kettensprung. */
   startJump(input, want) {
-    if (this.skate) { skateJump(this); return; }   // Schlittschuh: voller Schwung, keine Saltos
+    if (this.skate) { skateJump(this); this.level.notifyJump?.(this, 'skate'); return; }   // Schlittschuh: voller Schwung, keine Saltos
     const speed = Math.max(this.gs, 0);
     const pv = this.platformVel;
     let kind = 'jump';
@@ -425,6 +435,7 @@ export class Player {
       this.coyote = 0;
       this.level.sfx('jump');
       this.level.effects?.dust(this.pos, 4, 0.7);
+      this.level.notifyJump?.(this, 'jump');
       return;
     }
     if (this.state === 'crouch' && speed < 2) kind = 'backflip';
@@ -460,6 +471,7 @@ export class Player {
     this.enterAir(kind, VARIABLE.has(kind));
     this.coyote = 0;
     this.level.effects?.dust(this.pos, kind === 'longjump' ? 6 : 3);
+    this.level.notifyJump?.(this, kind);   // Welt 5: Rot-Blau-Flipper u. ä. (level.onJump)
   }
 
   enterAir(kind, variable) {
@@ -665,6 +677,7 @@ export class Player {
     this.wallCoyote = 0;
     this.enterAir('walljump', true);
     this.level.sfx('walljump');
+    this.level.notifyJump?.(this, 'walljump');
     this.level.effects?.dust({ x: this.pos.x - n.x * 0.3, y: this.pos.y + 0.5, z: this.pos.z - n.z * 0.3 }, 3);
   }
 
@@ -704,6 +717,7 @@ export class Player {
       this.buffer = 0;
       this.enterAir('jump', true);
       this.level.sfx('jump');
+      this.level.notifyJump?.(this, 'stalk');
       return;
     }
     if (input.crouchPressed) { this.stalk = null; this.grabCooldown = 0.35; this.mode = 'air'; this.setState('fall'); return; }
@@ -774,7 +788,7 @@ export class Player {
     if (input.crouch) this.diving = true;
     else if (this.diving && headDepth < 0.05 && this.vel.y >= -0.05) this.diving = false;   // aufgetaucht
     if (input.jumpPressed) {
-      if (depth < 0.45 && (!this.diving || headDepth < 0.15)) { this.diving = false; this.vel.y = MOVE.swimExit; this.mode = 'air'; this.enterAir('jump', true); this.water = null; this.level.sfx('jump'); this.airMax = Math.max(this.hSpeed(), MOVE.walk * this.speedMult); return; }
+      if (depth < 0.45 && (!this.diving || headDepth < 0.15)) { this.diving = false; this.vel.y = MOVE.swimExit; this.mode = 'air'; this.enterAir('jump', true); this.water = null; this.level.sfx('jump'); this.airMax = Math.max(this.hSpeed(), MOVE.walk * this.speedMult); this.level.notifyJump?.(this, 'swim'); return; }
       this.vel.y = this.diving ? MOVE.swimStrokeUnder : MOVE.swimStroke;
       if (want.mag > 0.2) { this.vel.x += want.x * MOVE.swimStrokePush; this.vel.z += want.z * MOVE.swimStrokePush; }
       this.level.sfx('swim');
@@ -1384,12 +1398,14 @@ export class Player {
    * step setzt pos/yaw (und vel für Kamera-Vorausschau und Animation); exit setzt die Austrittsgeschwindigkeit.
    * Danach ist die Figur in der Luft (mode 'air'). opts: { state ('pipe'), kind (Name zur Fehlersuche) }.
    * Während des Ablaufs prüft die Laufzeit keine Berührungen (mode 'script'); Münzen im Rohr sammelt ctl.
+   * opts.solo (Welt 5: Trapez, Kippquader-Mitfahrt): die Figur wird nicht zur Haupt-Figur und die anderen Figuren
+   * reisen nicht mit (script.solo) – jede Figur schwingt/fährt für sich.
    */
   ride(ctl, opts = {}) {
-    this.level.setMainFigure?.(this);   // mehrere Figuren: die anderen reisen mit (Squad)
+    if (!opts.solo) this.level.setMainFigure?.(this);   // mehrere Figuren: die anderen reisen mit (Squad)
     this.dropHeld?.();
     this.mode = 'script';
-    this.script = { type: 'ride', kind: opts.kind ?? 'ride', t: 0, ctl };
+    this.script = { type: 'ride', kind: opts.kind ?? 'ride', t: 0, ctl, solo: !!opts.solo };
     this.vel.set(0, 0, 0);
     this.gs = 0;
     this.setCrouch(false);
