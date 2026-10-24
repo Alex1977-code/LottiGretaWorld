@@ -93,7 +93,7 @@ const COURSE_THEMES = {
   course_world3_map: { bpm: 128, bars: [16, 16], loop: true, beatMult: 2, drums: 'j', key: 'F', mel: ['lead', 'piano'], hook: 8, preview: 0, world: 3, map: true },
   course_world4_map: { bpm: 128, bars: [16, 16], loop: true, beatMult: 2, has: ['whistle', 'lead'], key: 'E', mel: ['lead', 'whistle'], hook: 8, preview: 0, world: 4, map: true },
   // Welt 5
-  course_beach: { bpm: 132, bars: [24, 24], loop: true, has: ['lead', 'bell', 'arp', 'piano'], drums: 'jpd', fx: 'delay', key: 'D', mel: ['lead', 'bell'], hook: 12, preview: 4, world: 5 },
+  course_beach: { bpm: 132, bars: [24, 24], loop: true, energy: true, has: ['lead', 'bell', 'arp', 'piano', 'energy'], drums: 'jpd', fx: 'delay', key: 'D', mel: ['lead', 'bell'], hook: 12, preview: 4, world: 5 },
   course_trapeze: { bpm: 138, bars: [24, 24], loop: true, has: ['lead', 'organ', 'whistle'], drums: 'o', key: 'F', mel: ['lead', 'organ', 'whistle'], hook: 12, preview: 4, world: 5 },
   course_bluelava: { bpm: 150, bars: [16, 16], loop: true, has: ['lead', 'piano', 'arp', 'bell', 'riser'], key: 'Gm', mel: ['lead', 'piano'], hook: 6, preview: 2, world: 5 },
   course_savanna: { bpm: 130, bars: [24, 24], loop: true, has: ['whistle', 'lead', 'arp'], drums: 'dpjt', fx: 'delay', key: 'A', mel: ['lead', 'whistle'], hook: 12, preview: 4, world: 5 },

@@ -189,6 +189,7 @@ export const WORLD5_THEMES = {
   // Sonnenstrand (5-1, Strand mit Höhlenfluss): 132 BPM, D-Dur, 24 Takte, fröhlich. Intro: die Steel-Drum spielt die
   // Hook über Marimba und Pad | Strophe (G A fis h | G A h A): Lead in der Mittellage, Marimba auf der „und“ | Refrain (D h G A | D h e A, I–vi–IV–V): Calypso-Hook, die Steel-Drum singt eine Oktave tiefer mit, Piano
   // auf der „und“, Stabs | Überleitung: lange Töne, Marimba, Riser. Shaker, 3-2-Clave und Congas statt Hi-Hats.
+  // Beim Reiten auf Pflaume kommt die Energie-Ebene dazu (hohe Offbeat-Stabs).
   course_beach: {
     bpm: 132,
     voice: {
@@ -210,6 +211,8 @@ export const WORLD5_THEMES = {
     pad: bySection(beProg, SONG, { intro: (c) => padBar(c), verse: (c) => padBar(c), bridge: (c) => padBar(c) }),
     riser: [...rest(23), 'A3:16'],
     bass: bySection(beProg, SONG, { intro: (c) => bassBar(c, B_HALF), verse: (c) => bassBar(c, B_BOUNCE), chorus: (c) => bassBar(c, B_PUMP), bridge: BREAK_BASS }),
+    // Energie-Ebene (Reiten auf Pflaume im Höhlenfluss): hohe Offbeat-Stabs, im Refrain mit Sechzehntel-Schubs
+    energy: bySection(beProg, SONG, { intro: (c) => chordBar(c, '..x. ..x. ..x. ..x.', 'F#4'), verse: (c) => chordBar(c, '..x. ..x. ..x. ..x.', 'F#4'), chorus: (c) => chordBar(c, '..x. ..x. ..x. .xx.', 'F#4'), bridge: (c) => chordBar(c, '..x. .... ..x. ....', 'F#4') }),
     drums: [
       [K4, SHAKE, CLAVE[0], CR], [K4, SHAKE, CLAVE[1]], [K4, SHAKE, CLAVE[0], CONGA], [K4, CL, SHAKE, CLAVE[1], dr('.... .... .... t.tt')],
       ...[0, 1, 2, 3, 4, 5, 6].map((i) => (i === 0 ? [...beach(0), CR] : beach(i))), beach(1, [dr('.... .... ..t. tttt')]),
@@ -310,7 +313,7 @@ export const WORLD5_THEMES = {
       bass: { cutoff: 700 },
       riser: { volume: 0.07 },
     },
-    kit: { kick: { volume: 0.55 }, doum: { volume: 0.34, freq: 92, decay: 0.32 }, tek: { volume: 0.18, freq: 820, off: 0.7 }, jingle: { volume: 0.14 }, tom: { freq: 120, volume: 0.42 }, clap: { volume: 0.28 } },
+    kit: { kick: { volume: 0.55 }, doum: { volume: 0.34, freq: 92, decay: 0.32 }, tek: { volume: 0.18, freq: 820, off: 0.7 }, jingle: { volume: 0.2 }, tom: { freq: 120, volume: 0.42 }, clap: { volume: 0.28 } },
     fx: { delay: { steps: [3, 6], feedback: 0.38, lowpass: 3000, wet: 0.32, send: { whistle: 0.4, arp: 0.45, lead: 0.18, pad: 0.2, tom: 0.15 } } },
     whistle: [...svHook, ...rest(16), '-:16', '-:8 B5:4 G#5:4', '-:16', '-:8 B5:8'],
     lead: [...rest(4), ...svVerse, ...svChorus, ...svBridge],
@@ -416,7 +419,7 @@ export const WORLD5_THEMES = {
       bass: { cutoff: 560, volume: 0.2 },
       riser: { volume: 0.06, glide: 1.5, noise: 0.05 },
     },
-    kit: { kick: { pitchStart: 125, click: 0.12, volume: 0.52 }, clap: { volume: 0.26 }, tek: { freq: 900, volume: 0.18 }, tick: { freq: 1800, volume: 0.08, decay: 0.04 }, hat: { volume: 0.22, off: 0.14 }, open: { volume: 0.12 }, tom: { freq: 120, volume: 0.32 } },
+    kit: { kick: { pitchStart: 125, click: 0.12, volume: 0.52 }, clap: { volume: 0.26 }, tek: { freq: 900, volume: 0.18 }, tick: { freq: 1800, volume: 0.08, decay: 0.04 }, hat: { volume: 0.26, off: 0.16 }, open: { volume: 0.15 }, tom: { freq: 120, volume: 0.32 } },
     fx: {
       lowpass: { piano: 1800, stabs: 1600, pad: 1400 },
       delay: { steps: 3, feedback: 0.4, lowpass: 1800, wet: 0.38, send: { lead: 0.35, arp: 0.3, tek: 0.3, clap: 0.3 } },
@@ -527,7 +530,7 @@ export const WORLD5_THEMES = {
       pad: { volume: 0.05 },
       bass: { cutoff: 650 },
     },
-    kit: { tek: { freq: 2500, volume: 0.11 }, jingle: { volume: 0.13 } },
+    kit: { tek: { freq: 2500, volume: 0.11 }, jingle: { volume: 0.18 } },
     fx: { delay: { steps: 3, feedback: 0.3, lowpass: 3000, wet: 0.3, send: { piano: 0.3, lead: 0.2, bell: 0.4 } } },
     piano: [...m5Piano, ...m5Prog.slice(8).map((c) => chordBar(c, OFF, 'E4'))],
     lead: [...rest(8), ...m5Lead],

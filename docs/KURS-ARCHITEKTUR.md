@@ -1799,6 +1799,8 @@ Kennzahlen mit 1 und 5 Figuren. Bilder `tests/out/w2e_*.png`.
 
 **Neue Themen** (`music.play(name)`): Welt 2 `course_desert`, `course_space`, `course_shadow`, `course_hills`, `course_cherry`, `course_tank`, `course_house` · Welt 3 `course_snow`, `course_ghost`, `course_plaza`, `course_water`, `course_race`, `course_autumn`, `course_train`, `course_skyway` · Welt 4 `course_canyon`, `course_poison`, `course_beep`, `course_bounce`, `course_ruins`, `course_lavacastle` · Karten `course_world2_map`, `course_world3_map`, `course_world4_map`. Dateien: `src/audio/themes_world2.js` … `themes_world4.js`, Bausteine in `themeParts.js`.
 
+**Welt 5** (`src/audio/themes_world5.js`, nach der Musik-Richtlinie, Namen aus der Welt-5-Liste): `course_beach` (D-Dur, 132 BPM, Steel-Drum/Marimba, Energie-Ebene beim Reiten), `course_trapeze` (F-Dur, 138, Dreier-Gefühl 3+3+2 über Four-on-the-floor), `course_bluelava` (g-Moll, 150, 16 Takte), `course_savanna` (A-Dur, 130, Djembe/Kalimba/Penny-Whistle), `course_mine` (d-Moll, 136, Riff-Bass), `course_cake` (E-Dur, 144, Glockenspiel), `course_sneak` (b-Moll, 130, gedämpft), `course_goldtrain` (H-Dur, 156), `course_temple` (gis-Moll, 146, Gong/Taiko), `course_world5_map` (C-Dur, 128, 16 Takte). Alle 24 Takte (Lava 16, Karte 16); `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–5.
+
 **Neue Effekte** (`sfx(name)`): `clone`, `clone_lost`, `helm_on`, `helm_off`, `cannon`, `propeller`, `light`, `quicksand`, `sand_crumble`, `peck`, `bullet`, `boss_hit`, `boss_spin`, `house_tick`, `room_clear`, `ice_slide`, `snowball`, `ghost`, `splash_big`, `train_whistle`, `beep`, `beep_switch`.
 
 **Taktuhr** (für Piep-Blöcke u. ä.):
