@@ -8,8 +8,10 @@
 // Antipp-Plattformen, Kreisgeister, Donut-Blöcke), Extras, Kennzahlen je Abschnitt (Zeichenaufrufe < 120 inkl.
 // Schattenpass, Dreiecke < 300 k) und Bilder aus der Spielkamera (tests/out/w5b_*.png).
 // Aufruf (nach npm run build): PORT_BASE=0 node tests/course_w5b.mjs [5-3|5-A|5-4|5-Kapitän]
-//   PARTS=load,route,targets,extra,sweep,shots (Standard alle; je Lauf ≤ 10 min) · HEROES=lotti,greta ·
-//   ONLY=<Text> (nur Ziele/Extras mit diesem Namensteil) · VERBOSE=1 (Protokoll der Beine)
+//   PARTS=load,route,targets,extra,sweep,shots (Standard alle; je Lauf ≤ 10 min in Teilen aufrufen, z. B.
+//   PARTS=load,route,targets · PARTS=extra,sweep · PARTS=shots je Level) · HEROES=lotti,greta ·
+//   ONLY=<Text> (nur Ziele/Extras mit diesem Namensteil) · VERBOSE=1 (Protokoll der Beine) · DETAIL=1 (Zeichenaufrufe
+//   je Objekt für jedes Bild)
 //
 // Der Bot lenkt je Schritt zum nächsten Wegpunkt (Stick relativ zur Kamera-Gier wie im Spiel). Die Figur ist während der
 // Fahrt unverwundbar (Abpraller zählen weiter), damit Geometrie und Mechanik geprüft werden; Treffer-Versuche werden
