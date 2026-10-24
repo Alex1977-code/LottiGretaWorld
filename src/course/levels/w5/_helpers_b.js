@@ -1618,15 +1618,22 @@ export function savannaFloor(level, rects, o = {}) {
   const avoid = o.avoid ?? [];
   const free = (x, z, r) => !avoid.some((a) => Math.hypot(a[0] - x, a[1] - z) < (a[2] ?? 1.5) + r * 0.5);
   const b = new Bld(), fl = new Bld();
+  const pal = o.palette ?? PATCH, flowers = o.flowers ?? [0xffffff, 0xff8ac8, 0xffe04a, 0xc08aff, 0xff6a4a];
   let k = 0;
   for (const [x0, x1, zA, zB, top, n] of rects) {
     const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+    if (o.base !== undefined) {
+      // durchgehende Grundfarbe (z. B. Mondschein-Rasen) knapp über der Oberseite
+      c.set(o.base);
+      const yb = top + 0.02, m = o.inset ?? 0.25;
+      for (const q of [[x0 + m, yb, z0 - m], [x1 - m, yb, z0 - m], [x1 - m, yb, z1 + m], [x0 + m, yb, z0 - m], [x1 - m, yb, z1 + m], [x0 + m, yb, z1 + m]]) { pos.push(q[0], q[1], q[2]); col.push(c.r, c.g, c.b); }
+    }
     for (let i = 0; i < n; i++) {
       const r = rnd.real(0.9, 2.6);
       const cx = rnd.real(x0 + r * 0.8, x1 - r * 0.8), cz = rnd.real(z1 + r * 0.8, z0 - r * 0.8);
       if (!free(cx, cz, r)) continue;
-      c.set(PATCH[rnd.int(0, PATCH.length - 1)]);
-      const y = top + 0.03 + (k++ % 7) * 0.004;
+      c.set(pal[rnd.int(0, pal.length - 1)]);
+      const y = top + 0.035 + (k++ % 7) * 0.004;
       const N = 10, rr = Array.from({ length: N }, () => r * rnd.real(0.7, 1.15));
       for (let j = 0; j < N; j++) {
         const a0 = (j / N) * TAU, a1 = ((j + 1) / N) * TAU;
@@ -1638,7 +1645,7 @@ export function savannaFloor(level, rects, o = {}) {
     for (let i = 0; i < Math.round(n * 0.6); i++) {
       const cx = rnd.real(x0 + 1, x1 - 1), cz = rnd.real(z1 + 1, z0 - 1);
       if (!free(cx, cz, 1)) continue;
-      const fc = [0xffffff, 0xff8ac8, 0xffe04a, 0xc08aff, 0xff6a4a][rnd.int(0, 4)];
+      const fc = flowers[rnd.int(0, flowers.length - 1)];
       for (let j = 0; j < 5; j++) {
         const fx = cx + rnd.real(-0.45, 0.45), fz = cz + rnd.real(-0.45, 0.45), h = rnd.real(0.18, 0.34);
         fl.cyl(0.015, 0.015, h, fx, top, fz, 0x6a9a3a, 3);
@@ -1646,7 +1653,7 @@ export function savannaFloor(level, rects, o = {}) {
       }
     }
     // runde Büsche
-    for (let i = 0; i < Math.round(n * 0.25); i++) {
+    for (let i = 0; i < (o.bushes === false ? 0 : Math.round(n * 0.25)); i++) {
       const cx = rnd.real(x0 + 1.2, x1 - 1.2), cz = rnd.real(z1 + 1.2, z0 - 1.2);
       if (!free(cx, cz, 1.4)) continue;
       const s = rnd.real(0.7, 1.1);
@@ -1712,4 +1719,156 @@ export function balloons(level, list) {
     let t = idx * 2.1;
     addObject(level, m, (dt) => { t += visDt(level, holder, dt); m.position.y = y + Math.sin(t * 0.45) * 0.9; m.rotation.y = t * 0.08; });
   });
+}
+
+// =====================================================================================================================
+// 5-Kapitän Kicherschlösschen
+// =====================================================================================================================
+
+export const SPUK = { stone: 0x6e5c8e, stoneHi: 0x9a88b8, stoneLo: 0x3e3058, mortar: 0x4a3c66, roof: 0x3a2a6a, roof2: 0x2a8a8a, wood: 0x6a4630, glow: 0xffd27a };
+
+/**
+ * Schloss-Mauerwerk: Quader x0..x1 × y0..y1 × zA..zB mit Kollision (o.solid), Steinfugen (versetzte Reihen), oben auf
+ * Wunsch Zinnen (o.crenel: Seiten-Liste '+z' | '-z' | '+x' | '-x' | 'all'), leuchtende Fenster auf der Vorderseite
+ * (o.windows: [[x, y, w, h, 'rund'?], …], Fensterrahmen dunkel, Scheiben im Glüh-Material). o.camIgnore, o.tag.
+ */
+export function castleBlock(level, x0, x1, y0, y1, zA, zB, o = {}) {
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+  if (o.solid !== false) level.world.add({ type: 'box', min: [x0, y0, z1], max: [x1, y1, z0], camIgnore: !!o.camIgnore, tag: o.tag ?? 'schloss' });
+  if (!level.view) return;
+  const hi = L(o.light ?? SPUK.stoneHi), mid = L(o.color ?? SPUK.stone), lo = L(SPUK.stoneLo), mor = L(SPUK.mortar);
+  const g = box(x1 - x0, y1 - y0, z0 - z1, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, 0x6e5c8e, { r: 0.06, seg: 1 });
+  colorize(g, (p, n, out) => {
+    const row = Math.floor((p.y + 20) / 0.55);
+    const u = (Math.abs(n.x) > 0.5 ? p.z : p.x) + (row % 2) * 0.45;
+    const joint = Math.abs(((p.y + 20) / 0.55) % 1 - 0.5) > 0.44 || Math.abs((u / 0.9) % 1) < 0.06;
+    mixc(lo, mid, smooth(y0 - 2, y0 + 3, p.y) * 0.6 + 0.4, out);
+    if (n.y > 0.5) mixc(out, hi, 0.55, out);
+    if (joint && n.y < 0.5) mixc(out, mor, 0.7, out);
+    const k = 0.94 + 0.06 * Math.sin(row * 1.7 + Math.floor(u / 0.9) * 2.3);
+    out[0] *= k; out[1] *= k; out[2] *= k;
+  });
+  addStatic(level, g, { castShadow: o.shadow !== false });
+  const b = new Bld(), w = new Bld();
+  // Zinnen
+  const sides = o.crenel === 'all' ? ['+z', '-z', '+x', '-x'] : (o.crenel ?? []);
+  for (const s of sides) {
+    const along = s === '+z' || s === '-z';
+    const a0 = along ? x0 : z1, a1 = along ? x1 : z0;
+    for (let a = a0 + 0.35; a < a1 - 0.3; a += 1.2) {
+      const cx = along ? a + 0.3 : (s === '+x' ? x1 - 0.3 : x0 + 0.3), cz = along ? (s === '+z' ? z0 - 0.3 : z1 + 0.3) : a + 0.3;
+      b.box(along ? 0.6 : 0.6, 0.6, along ? 0.6 : 0.6, cx, y1, cz, litTop(o.color ?? SPUK.stone), { r: 0.05 });
+    }
+  }
+  // Fenster (Vorderseite +z)
+  for (const [wx, wy, ww, wh, kind] of o.windows ?? []) {
+    const fz = z0 + 0.02;
+    b.box(ww + 0.3, 0.16, 0.14, wx, wy - 0.12, fz, litTop(SPUK.wood), { r: 0.03 });
+    if (kind === 'rund') {
+      b.torus(ww / 2 + 0.08, 0.1, wx, wy + wh / 2, fz + 0.02, SPUK.wood, { ts: 18 });
+      w.cyl(ww / 2, ww / 2, 0.04, wx, wy + wh / 2, fz, SPUK.glow, 16, { rx: Math.PI / 2 });
+    } else {
+      w.box(ww, wh, 0.04, wx, wy, fz, SPUK.glow, { r: 0 });
+      w.cyl(ww / 2, ww / 2, 0.04, wx, wy + wh, fz, SPUK.glow, 12, { rx: Math.PI / 2 });
+      b.box(0.08, wh + ww / 2, 0.06, wx, wy, fz + 0.03, SPUK.wood, { r: 0 });
+      b.box(ww, 0.08, 0.06, wx, wy + wh * 0.55, fz + 0.03, SPUK.wood, { r: 0 });
+      for (const sx of [-1, 1]) b.box(0.12, wh + 0.2, 0.12, wx + sx * (ww / 2 + 0.06), wy - 0.05, fz + 0.02, litTop(SPUK.wood), { r: 0.02 });
+    }
+  }
+  b.flush(level);
+  w.flush(level, { material: 'glow', castShadow: false });
+}
+
+/** Spitzdach (Kegel) auf einem Turm: Mitte x, z, Traufe y, Radius r, Höhe h, Farbe; Fähnchen oben. */
+export function towerRoofs(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  for (const [x, y, z, r, h, color = SPUK.roof, flag = 0xff7ac0] of list) {
+    b.cone(r, h, x, y, z, gradY(color, 0x8a6ad8, y, y + h), 12);
+    b.cyl(r * 1.04, r * 1.04, 0.18, x, y - 0.1, z, litTop(SPUK.wood), 12);
+    b.cyl(0.04, 0.04, 1.2, x, y + h - 0.1, z, 0x3a3a4a, 4);
+    const fl = new THREE.Shape(); fl.moveTo(0, 0); fl.lineTo(0.7, -0.18); fl.lineTo(0, -0.42);
+    b.add(new THREE.ShapeGeometry(fl), flag, { p: [x, y + h + 1.05, z] });
+  }
+  b.flush(level);
+}
+
+/** Grabsteine mit Herzchen (schaurig-niedlich): list [[x, y, z, yaw, größe], …]; Kollision niedrig (0,9 m). */
+export function heartGraves(level, list) {
+  const b = new Bld();
+  for (const [x, y, z, yaw = 0, s = 1] of list) {
+    level.world.add({ type: 'cyl', x, z, r: 0.42 * s, y0: y, y1: y + 0.9 * s, tag: 'grab' });
+    const c = Math.cos(yaw), sn = Math.sin(yaw);
+    b.box(0.8 * s, 0.75 * s, 0.22 * s, x, y, z, litTop(0x9a90b0), { yaw, r: 0.06 });
+    b.cyl(0.4 * s, 0.4 * s, 0.22 * s, x, y + 0.75 * s, z, litTop(0x9a90b0), 14, { rx: Math.PI / 2, yaw });
+    const hx = x + sn * 0.12 * s, hz = z + c * 0.12 * s;
+    b.sphere(0.1 * s, hx - c * 0.07 * s, y + 0.82 * s, hz + sn * 0.07 * s, 0xff6aa8, { ws: 6, hs: 4 });
+    b.sphere(0.1 * s, hx + c * 0.07 * s, y + 0.82 * s, hz - sn * 0.07 * s, 0xff6aa8, { ws: 6, hs: 4 });
+    b.cone(0.13 * s, 0.16 * s, hx, y + 0.64 * s, hz, 0xff6aa8, 6, { rx: Math.PI });
+    b.cyl(0.5 * s, 0.6 * s, 0.08, x - sn * 0.5 * s, y, z - c * 0.5 * s, 0x5a8a4a, 8);
+  }
+  b.flush(level);
+}
+
+/** Kürbislaternen mit leuchtenden Gesichtern: list [[x, y, z, yaw, größe], …]. */
+export function pumpkins(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld(), pts = [];
+  for (const [x, y, z, yaw = 0, s = 1] of list) {
+    const r = 0.42 * s;
+    for (let k = 0; k < 5; k++) { const a = (k / 5) * TAU; b.sphere(r * 0.62, x + Math.cos(a) * r * 0.42, y + r * 0.72, z + Math.sin(a) * r * 0.42, litTop(0xff8a1a), { s: [1, 0.9, 1], ws: 8, hs: 6 }); }
+    b.cyl(0.05 * s, 0.07 * s, 0.22 * s, x, y + r * 1.3, z, 0x4a7a2a, 5);
+    const fx = Math.sin(yaw), fz = Math.cos(yaw), px = x + fx * r * 0.95, pz = z + fz * r * 0.95;
+    for (const sd of [-1, 1]) g.cone(0.08 * s, 0.11 * s, px + fz * sd * 0.14 * s, y + r * 0.92, pz - fx * sd * 0.14 * s, 0xffd23a, 3, { rx: Math.PI / 2 * fz, rz: -Math.PI / 2 * fx });
+    g.box(0.24 * s, 0.07 * s, 0.05, px, y + r * 0.5, pz, 0xffd23a, { yaw, r: 0 });
+    pts.push([px, y + r * 0.75, pz, 0.8 * s]);
+  }
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+  glowPoints(level, pts, { color: 0xff9a2a, size: 1.4, opacity: 0.6, pulse: 1.1 });
+}
+
+/** Schmiedeeiserner Zaun mit Speerspitzen von a nach b (Fußpunkte), Höhe h. Ohne Kollision (o.solid → Kollision). */
+export function ironFence(level, a, b2, h = 1.1, o = {}) {
+  const [ax, ay, az] = a, [bx, , bz] = b2, L0 = Math.hypot(bx - ax, bz - az), yaw = Math.atan2(bx - ax, bz - az);
+  if (o.solid) level.world.add({ type: 'box', min: [Math.min(ax, bx) - 0.06, ay, Math.min(az, bz) - 0.06], max: [Math.max(ax, bx) + 0.06, ay + h, Math.max(az, bz) + 0.06], tag: 'zaun' });
+  if (!level.view) return;
+  const b = new Bld(), dark = 0x2a2438;
+  const n = Math.max(1, Math.round(L0 / 0.32));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t, post = i % 8 === 0;
+    b.cyl(post ? 0.05 : 0.025, post ? 0.05 : 0.025, h + (post ? 0.15 : 0), x, ay, z, dark, 4);
+    b.cone(post ? 0.09 : 0.05, 0.14, x, ay + h + (post ? 0.15 : 0), z, post ? 0xd8b04a : dark, 4);
+  }
+  for (const yy of [0.25, h - 0.15]) b.box(0.05, 0.05, L0, (ax + bx) / 2, ay + yy, (az + bz) / 2, dark, { yaw, r: 0 });
+  b.flush(level, { castShadow: false });
+}
+
+/** Kahle, verdrehte Bäume (Silhouetten): list [[x, y, z, größe, yaw], …]. */
+export function deadTrees(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  for (const [x, y, z, s = 1, yaw = 0] of list) {
+    const bark = gradY(0x2a1e30, 0x5a4a62, y, y + 4 * s);
+    b.cyl(0.14 * s, 0.32 * s, 2.6 * s, x, y, z, bark, 7, { rz: 0.08, yaw });
+    const arms = [[0.9, 2.2, 0.7, 1.4], [-0.8, 2.6, -0.6, 1.2], [0.2, 3.0, 0.9, 1.0], [-0.4, 1.7, -1.0, 0.9]];
+    for (const [dx, hy, rz, L1] of arms) {
+      b.cyl(0.04 * s, 0.11 * s, L1 * s, x + dx * 0.3 * s, y + hy * s, z, bark, 5, { rz, yaw });
+      b.cyl(0.02 * s, 0.05 * s, 0.6 * s, x + dx * 0.95 * s, y + (hy + 0.7) * s, z, bark, 4, { rz: rz * 0.3, yaw });
+    }
+  }
+  b.flush(level);
+}
+
+/** Nächtliches Nebelmeer unter dem Diorama: flache Wolkenballen in Violett/Blau (statt weißer Wolken). */
+export function mistSea(level, pos, r = 40, n = 30) {
+  if (!level.view) return;
+  const [cx, cy, cz] = pos, rnd = new Rnd(41), b = new Bld();
+  const cols = [0x3a2c6a, 0x4a3a7a, 0x2c2458, 0x5a4a8a];
+  for (let i = 0; i < n; i++) {
+    const a = rnd.real(0, TAU), d = Math.sqrt(rnd.frac()) * r;
+    const rr = rnd.real(4, 8);
+    b.sphere(rr, cx + Math.cos(a) * d, cy + rnd.real(-2, 1.2), cz + Math.sin(a) * d, gradY(cols[i % 4], 0x7a6aaa, cy - 2, cy + 3), { s: [1, rnd.real(0.3, 0.45), rnd.real(0.8, 1.2)], ws: 9, hs: 5 });
+  }
+  b.flush(level, { castShadow: false });
 }

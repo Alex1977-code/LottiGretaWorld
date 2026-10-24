@@ -197,6 +197,57 @@ const ROUTES = {};
 }
 
 // =====================================================================================================================
+// 5-Kapitän Krümel im Kicherschlösschen (Diorama)
+// =====================================================================================================================
+{
+  const RING = { ring: 'ring', center: [5.8, 9], r: 3 };
+  const S4 = [{ to: [10.2, 9], within: 0.2 }, { ...RING, name: 'in den Ring', to: [5.9, 9] }, { star: 3 }, { ...RING, name: 'aus dem Ring', to: [10.2, 9] }];
+  const S1 = [{ to: [12.75, 8.4], within: 0.25 }, { name: 'Tür Gruft-Häuschen', to: [12.75, 4.4], ride: true }, { to: [9.5, -6.5], within: 0.2 }, { tap: 'kristall' },
+    { to: [4.5, -6.5], within: 0.25 }, { star: 0 }];
+  const S1_BACK = [{ to: [12, -6.4], within: 0.25 }, { name: 'Tür zurück in den Garten', to: [12, -9.6], ride: true }];
+  const S5 = [{ to: [10.2, 7], within: 0.3 }, { to: [10.4, 3.2], within: 0.3 }, { to: [11.5, 2.4], within: 0.3 }, { name: 'Rampe hinter den Kreisgeistern', to: [11.5, -3.2], within: 0.3 }, { to: [3.2, -5], within: 0.25 },
+    { name: 'Terrassenkante → Donut-Blöcke → Säule', to: [-5, -5], within: 0.3, max: 900 }, { star: 4 }];
+  const TO_HOF = [{ to: [-1.2, 10.5], within: 0.3 }, { name: 'Hang hinab', to: [-9, 10.5], within: 0.3 }, { to: [-8, 3], within: 0.3 }];
+  const S2 = [{ to: [-11.5, -5.6], within: 0.2 }, { name: 'linke Tür', to: [-11.5, -9.6], ride: true }, { to: [-9.6, -6.4], within: 0.25 }, { star: 1 }];
+  const S3 = [{ to: [-8.9, -6.6], within: 0.2 }, { tap: 'tipp1' }, { tap: 'tipp2' }, { to: [-0.8, -6.5], within: 0.25 }, { star: 2 }];
+  ROUTES['5-Kapitän'] = {
+    kind: 'diorama',
+    start: [11, 0, 12],
+    orbit: 24,
+    meta: { stars: 5, time: 400, theme: 'ghost', music: 'course_diorama' },
+    enemies: { kreisgeist_glied: 7, kreisgeist_kreis: 1, spuk: 2, spuk_tuer: 6 },
+    targets: [
+      { name: 'Stern 4: Weg durch den Kreisgeist-Ring (Lücke abwarten)', star: 3, legs: S4, shot: 'ring' },
+      { name: 'Stern 1: Tür vom Start (Gruft-Häuschen) → rechter Balkon, Kristallplattform antippen → Erker', star: 0, legs: S1, shot: 'kristall' },
+      { name: 'Stern 1 nicht ohne Antippen (Krümel fällt aus der Lücke auf die Terrasse)', star: 0, expectNot: true,
+        legs: [...S1.slice(0, 3), { to: [4.5, -6.5], within: 0.25, max: 500, autoJump: false }], check: '(L) => L.player.pos.y < 5' },
+      { name: 'Stern 2: Hang hinab, linke Tür im Hof → linker Balkon', star: 1, legs: [...TO_HOF, ...S2], shot: 'balkon_links' },
+      { name: 'Stern 3: vom linken Balkon über die zwei Tippblöcke (antippen, fahren aus der Wand) → mittlerer Erker', star: 2, legs: [...TO_HOF, ...S2, ...S3], shot: 'tippbloecke' },
+      { name: 'Stern 5: Rampe hinter den Kreisgeistern, auf die Donut-Blöcke fallen → Säule', star: 4, legs: S5, shot: 'donuts' },
+    ],
+    allInOne: [...S4, ...S1, ...S1_BACK, ...S5, { to: [-5, -1], within: 0.4 }, { to: [-8, 3], within: 0.3 }, ...S2, ...S3],
+    extra: [
+      { name: 'Donut-Block fällt, wenn Krümel darauf stehen bleibt (Krümel fällt mit in den Hof)', legs: [...S5.slice(0, 5), { to: [1.2, -5], within: 0.25 }, { wait: 6 }, { to: [0.5, -5], within: 0.12, autoJump: false }, { wait: 150 }],
+        check: '(L) => L.named.get("donuts").falls > 0 && L.player.pos.y < 0 && !L.player.dead' },
+      { name: 'Rechte Tür im Hof führt aufs Dach (Großspuk, Münzring), Dachtür zurück', legs: [...TO_HOF, { to: [-2, -2], within: 0.3 }, { to: [-0.5, -5.6], within: 0.2 }, { name: 'rechte Tür', to: [-0.5, -9.6], ride: true },
+        { to: [3, -9], within: 0.4 }, { to: [-4, -9], within: 0.4 }, { to: [-4, -11.2], within: 0.4 }, { to: [-4, -9], within: 0.4 }, { to: [3, -9], within: 0.4 },
+        { to: [5, -11.4], within: 0.25 }, { name: 'Dachtür', to: [5, -14.2], ride: true }], check: '(L) => L.player.pos.y < -2 && L.runtime.coins >= 8', shot: 'dach' },
+    ],
+    shots: [
+      ['ueberblick', [11, 0, 12], 24, false],
+      ['ueberblick_links', [11, 0, 12], -35, false],
+      ['ueberblick_rechts', [11, 0, 12], 75, false],
+      ['hinten', [11, 0, 12], 160, false],
+      ['start', [11, 0, 12], 24, true],
+      ['hof', [-9, -3, 6], 10, true],
+      ['balkone', [11, 7, -6.5], 20, true],
+      ['terrasse', [6, 3, -4], 30, true],
+      ['dach_nah', [-2, 11, -10.5], 20, true],
+    ],
+  };
+}
+
+// =====================================================================================================================
 // 5-A Hörnerherde am Lila Strand (Arena)
 // =====================================================================================================================
 {
@@ -444,6 +495,46 @@ function install() {
           continue;
         }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)
+        if (Lg.orbit !== undefined) { c.arch?.setOrbit?.(Lg.orbit); tick({}); continue; }
+        if (Lg.tap) {
+          // Antippen wie im Spiel: Bildschirm-Tipp auf die Zielmitte (Strahl von der Kamera), danach kurz warten
+          const h = named(Lg.tap);
+          const t = L.taps?.targets.find((x) => x.owner === h);
+          const sp = t ? L.taps.screenPos(t) : null;
+          const before = h?.state;
+          if (sp?.visible) L.taps.tapScreen(sp.x, sp.y);
+          for (let k = 0; k < (Lg.wait ?? 60); k++) tick({});
+          log.push(['antippen', Lg.tap, sp ? [Math.round(sp.x), Math.round(sp.y), sp.visible] : null, before, h?.state]);
+          if (!h || h.state === before) log.push(['FEHLER: Antippen ohne Wirkung', Lg.tap]);
+          continue;
+        }
+        if (Lg.ring) {
+          // Kreisgeist-Ring: am Startpunkt warten, bis keine Geister die Bahn kreuzen, solange Krümel im Geister-Band ist
+          const rg = named(Lg.ring), [cx, cz] = Lg.center, R0 = Lg.r, band = Lg.band ?? 0.85, half = Lg.half ?? 0.36;
+          const v = Lg.speed ?? 3.5;
+          const angs = () => rg.members.filter((m) => m.alive && !m.removed).map((m) => Math.atan2(m.pos.z - cz, m.pos.x - cx));
+          const wrapA = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+          const a0 = angs(); tick({}); const a1 = angs();
+          const om = a0.length ? wrapA(a1[0] - a0[0]) * 120 : 0;
+          const q0 = P();
+          const d0 = Math.hypot(q0.pos.x - cx, q0.pos.z - cz);
+          const [tx, tz] = Lg.to;
+          const d1 = Math.hypot(tx - cx, tz - cz);
+          // Weg geradlinig von der Figur zum Ziel: Zeiten im Band und Winkel dort
+          const segs = [];
+          const L1 = Math.hypot(tx - q0.pos.x, tz - q0.pos.z);
+          for (let u = 0; u <= 1.0001; u += 0.02) {
+            const x = q0.pos.x + (tx - q0.pos.x) * u, z = q0.pos.z + (tz - q0.pos.z) * u, rr = Math.hypot(x - cx, z - cz);
+            if (Math.abs(rr - R0) < band) segs.push([u * L1 / v + 0.08, Math.atan2(z - cz, x - cx)]);
+          }
+          const safe = () => { const now = angs(); return segs.every(([t, pa]) => now.every((g) => Math.abs(wrapA(g + om * t - pa)) > half)); };
+          let w = 0;
+          for (; w < 2400 && !safe(); w++) tick({});
+          let k = 0;
+          for (; k < 900; k++) { const q = P(); const dx = tx - q.pos.x, dz = tz - q.pos.z, d = Math.hypot(dx, dz); if (d < (Lg.within ?? 0.3)) break; tick({ ...this.stick(dx, dz, 1) }); }
+          log.push([Lg.name ?? 'Ring', 'gewartet', w, 'gelaufen', k, +om.toFixed(3), +d0.toFixed(2), +d1.toFixed(2), +P().pos.x.toFixed(2), +P().pos.z.toFixed(2)]);
+          continue;
+        }
         if (Lg.bar) {
           // Drehbalken (5-4): warten, bis ein Arm zur Figur zeigt, zur Nabe, warten, bis ein Arm zum Ziel zeigt, entlang des
           // Arms zur Spitze, Absprung zum Ziel
@@ -934,8 +1025,91 @@ async function arena(id) {
   }
 }
 
+async function diorama(id) {
+  const R = ROUTES[id];
+  console.log(`\nLevel ${id}`);
+  if (!(await load(id, true))) { check(`${id} lädt`, false); return; }
+  const loadErrors = errors.slice();
+  const meta = await sc(() => {
+    const c = window.__course, L = c.level, d = L.data;
+    return { title: d.title, timeLimit: d.timeLimit, theme: d.theme, music: d.music, archetype: d.archetype, world: d.world, stars: L.runtime.stars.length,
+      hud: window.__game.scene.getScene('CourseUI').nStars, rig: c.rig?.info?.(), figure: d.diorama?.figure };
+  });
+  const kinds = await W('kinds');
+  console.log(`  „${meta.title}“, Thema ${meta.theme}, Musik ${meta.music}, Zeitlimit ${meta.timeLimit} s, Entitäten: ${JSON.stringify(kinds)}`);
+  if (PARTS.has('load')) {
+    check(`${id}: lädt ohne Konsolenfehler/-warnungen`, loadErrors.length === 0);
+    for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
+    const m = R.meta;
+    check(`${id}: Welt 5, Diorama, ${m.stars} Sterne (HUD ${meta.hud}), ${m.time} s, Thema ${m.theme}, Musik ${m.music}, Figur Krümel`,
+      meta.world === 5 && meta.archetype === 'diorama' && meta.stars === m.stars && meta.hud === m.stars && meta.timeLimit === m.time && meta.theme === m.theme && meta.music === m.music && meta.figure === 'kruemel' && meta.rig?.kind === 'kruemel');
+    for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
+    const nj = await sc(() => {
+      const c = window.__course, p = c.player;
+      c.step(20);
+      const y0 = p.pos.y; let maxY = y0;
+      for (let i = 0; i < 90; i++) { c.setInput({ jump: true }); c.step(1); maxY = Math.max(maxY, p.pos.y); }
+      c.setInput({});
+      return { dy: maxY - y0, dead: p.dead };
+    });
+    check(`${id}: Krümel springt nicht (Höhe ${nj.dy.toFixed(2)} m), 2 s ohne Fehler`, nj.dy < 0.02 && !nj.dead && errors.length === 0);
+  }
+
+  // ------------------------------------------------ alle Sterne einzeln (je ab Start) und alles in einem Lauf
+  const runLegs = async (legs, hero, o = {}) => {
+    await load(id);
+    await W('place', o.from ?? R.start, { hero, settle: 4, yaw: Math.PI });
+    if (o.orbit !== undefined) await sc((d) => window.__course.arch.setOrbit(d), o.orbit);
+    return W('drive', legs, { invuln: o.invuln });
+  };
+  for (const t of !PARTS.has('targets') ? [] : pick(R.targets)) {
+    for (const hero of (t.heroes ?? ['lotti']).filter((h) => HEROES.includes(h))) {
+      const res = await runLegs(t.legs, hero, t);
+      const rt = res.rt;
+      let ok = rt.stars[t.star];
+      if (t.expectNot) ok = !ok;
+      if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
+      if (t.check) ok = ok && (await sc(new Function(`return (${t.check})(window.__course.level);`)));
+      report(res, ok);
+      check(`${id}: ${t.name} (${res.time.toFixed(1)} s, Geister-Berührungen ${res.mech.episodes})`, !!ok);
+      if (t.shot) await shot(`${id}_${t.shot}`);
+    }
+  }
+  if (PARTS.has('route')) {
+    const res = await runLegs(R.allInOne, 'lotti', { orbit: R.orbit });
+    const fin = await sc(() => { const c = window.__course; for (let i = 0; i < 900 && !c.finished; i++) c.step(1); return { finished: c.finished, res: c.lastResult, treasure: c.player.treasure }; });
+    const ok = res.rt.stars.every(Boolean) && fin.finished && fin.res?.stars?.length === 5;
+    console.log(`  alles in einem Lauf: ${res.time.toFixed(1)} s, Sterne ${res.rt.stars.map((s) => (s ? 1 : 0)).join('')}, Geister-Berührungen ${res.mech.episodes} ${JSON.stringify(res.mech.by)}`);
+    report(res, ok);
+    check(`${id}: alle 5 Sterne in einem Lauf (${res.time.toFixed(1)} s < ${R.meta.time} s), 5. Stern → Siegesablauf und Ergebnis`, ok && res.time < R.meta.time);
+  }
+  for (const t of !PARTS.has('extra') ? [] : pick(R.extra ?? [])) {
+    const res = await runLegs(t.legs, 'lotti', t);
+    let ok = !res.log.some((l) => String(l[0]).startsWith('FEHLER'));
+    if (t.check) ok = ok && (await sc(new Function(`return (${t.check})(window.__course.level);`)));
+    report(res, ok);
+    if (!ok) console.log('     Zustand:', JSON.stringify(await sc(() => { const L = window.__course.level; return { pos: L.player.pos.toArray().map((v) => +v.toFixed(2)), dead: L.player.dead, coins: L.runtime.coins, falls: L.named.get('donuts')?.falls }; })));
+    check(`${id}: ${t.name} (Münzen ${res.rt.coins})`, !!ok);
+    if (t.shot) await shot(`${id}_${t.shot}`);
+  }
+
+  // ------------------------------------------------ Kennzahlen und Bilder (Orbit-Kamera aus mehreren Richtungen)
+  if (PARTS.has('sweep') || PARTS.has('shots')) {
+    await load(id);
+    let worst = { calls: 0, tris: 0 };
+    for (const [name, pos, deg, zoom] of R.shots) {
+      await W('place', pos, { settle: 6, yaw: Math.PI });
+      await sc(([d, z]) => { const c = window.__course; c.arch.setOrbit(d); if (z && c.arch.orbit.zoom === 0) c.arch.orbit.toggleZoom(); if (!z && c.arch.orbit.zoom === 1) c.arch.orbit.toggleZoom(); c.step(30); }, [deg, !!zoom]);
+      const st = PARTS.has('shots') ? await shot(`${id}_${name}`) : await sc(() => window.__course.stats());
+      worst = { calls: Math.max(worst.calls, st.calls), tris: Math.max(worst.tris, st.triangles) };
+    }
+    if (PARTS.has('sweep')) check(`${id}: Messgang über ${R.shots.length} Ansichten – Zeichenaufrufe < 120 (max ${worst.calls}), Dreiecke < 300 k (max ${Math.round(worst.tris / 1000)} k)`, worst.calls < 120 && worst.tris < 300000);
+  }
+}
+
 for (const id of LEVELS) {
-  if (ROUTES[id]?.kind === 'arena') await arena(id);
+  if (ROUTES[id]?.kind === 'diorama') await diorama(id);
+  else if (ROUTES[id]?.kind === 'arena') await arena(id);
   else if (ROUTES[id]) await parcours(id);
   else console.log(`Unbekanntes Level ${id}`);
 }
