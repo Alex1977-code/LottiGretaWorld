@@ -26,6 +26,7 @@ import { RiverChannel } from '../../archetypes/RiverNet.js';
 import {
   isl, rock, line, arc, ring, column, areaMoods, sandSkulpturen, kruemelHoehle, rettungsturm, leuchtturm, strandtuecher,
   krabben, delfine, brandung, kristalle, tropfsteine, lichtschaechte, grottenStaub, holzsteg, tiefwasser, schattenDiaet,
+  raumKlar, hoehlenTor, leuchtpilze, karottenkorb,
 } from './_helpers_a.js';
 import { bakeModel } from '../../blocks/w2kit.js';
 
@@ -95,13 +96,14 @@ const key = (pos, extra = {}) => ({ kind: 'schluesselmuenze', pos, group: 'tor',
 function setup(level) {
   // ---------------- Stimmung in der Glitzergrotte (türkis-violettes Dämmerlicht) und in den Höhlen
   areaMoods(level, {
-    grotte: { fog: { color: 0x1e2a48, near: 14, far: 80 }, background: 0x141a32, hemi: { sky: 0x9adcff, ground: 0x4a2a6a, intensity: 0.95 }, sun: { color: 0xc8f0ff, intensity: 1.35 }, dome: 0x2a3a6a },
+    grotte: { fog: { color: 0x221e48, near: 14, far: 80 }, background: 0x16142e, hemi: { sky: 0xc4b4ff, ground: 0x4a2a6a, intensity: 0.95 }, sun: { color: 0xf0e4ff, intensity: 1.35 }, dome: 0x2e2a6a },
     hoehle: { fog: { color: 0x2a2040, near: 10, far: 60 }, background: 0x1a1428, hemi: { sky: 0xffd8b0, ground: 0x4a2a5a, intensity: 1.0 }, sun: { color: 0xffe0b0, intensity: 1.3 }, dome: 0x3a2a5a },
   }, [
     { min: [-22, -206], max: [22, -63], mood: 'grotte' },
     { min: [CAVE.x0 - 0.6, CAVE.z1 - 0.6], max: [CAVE.x1 + 0.6, CAVE.z0], mood: 'hoehle' },
     { min: [ROOM.x0 - 2, ROOM.z1 - 2], max: [ROOM.x1 + 2, ROOM.z0 + 2], mood: 'hoehle' },
   ]);
+  raumKlar(level);
 
   // ---------------- 1 Sandstrand: Sandskulpturen (links Münzen, Mitte Mini-Pilzlinge, rechts Stern 0)
   sandSkulpturen(level, [
@@ -111,6 +113,9 @@ function setup(level) {
   ]);
   // Krümel in der Wandhöhle
   kruemelHoehle(level, { pos: [51.3, Y + 0.9, CAVE.z1 + 1.4], yaw: -Math.PI / 2 - 0.4, task: 'aufgabe_hoehle' });
+  // Höhlentor: Felsbogen, Moos und Ranken an der lila Wand, zwei Glitzerkristalle am Eingang
+  hoehlenTor(level, (CAVE.x0 + CAVE.x1) / 2, Y, MASSIF.z0, { w: 2.8, h: 3.2, top: MASSIF.top, span: 7.6 });
+  kristalle(level, [[(CAVE.x0 + CAVE.x1) / 2 - 2.9, Y, MASSIF.z0 + 0.9, 0.7, 0xd88aff], [(CAVE.x0 + CAVE.x1) / 2 + 3.0, Y, MASSIF.z0 + 0.8, 0.8, 0x7ae8ff, 0.2]], { seed: 9, halo: false });
   rettungsturm(level, TOWER[0], TOWER[1], TOWER[2], { top: 3.2 });
   leuchtturm(level, 8.5, Y, -238, { h: 9 });
   strandtuecher(level, [
@@ -165,6 +170,9 @@ function setup(level) {
   kristalle(level, wallCrystals, { seed: 9 });
   tropfsteine(level, drips);
   tropfsteine(level, [[-4.6, 1, -191, 1.6, 0.5], [5.2, 1, -193, 2.2, 0.6], [-6, 1, -200, 1.2, 0.4], [6, 1, -202, 1.6, 0.45]]);
+  // Grottenstrand: Leuchtpilze an den Wänden, Karottenkorb für Pflaume
+  leuchtpilze(level, [[-7.4, DK, -189.6, 1.1, 0x7ae8ff], [7.6, DK, -195.4, 1.2, 0xff8ae0], [-7.8, DK, -199.8, 0.9, 0xb08aff], [7.2, DK, -203.4, 1, 0x7ae8ff], [-4.4, DK, -204.2, 0.8, 0xff8ae0]]);
+  karottenkorb(level, 4.4, DK, -198.8);
   lichtschaechte(level, [[2, 12, -100, 1.8, 12], [-2, 12, -138, 2.2, 12.5], [2, 12, -172, 1.8, 12.5], [-9, 12, -199, 2, 12]], { opacity: 0.16 });
   tiefwasser(level, HOLE.x0, HOLE.x1, HOLE.z0, HOLE.z1, WT - 0.08, HOLE.bot);
   grottenStaub(level, { inside: (p) => !!p && p.pos.z < -66 && p.pos.z > -206 && Math.abs(p.pos.x) < 20, y0: 0 });
@@ -182,7 +190,7 @@ export const LEVEL = {
   timeLimit: 500,
   start: { pos: [0, Y, 10], yaw: Math.PI / 2 },
   killY: -7,
-  instances: { coin: { farHide: 44, shadow: false }, krabbelkaefer: { farHide: 40, shadowDist: 16 } },
+  instances: { coin: { farHide: 44, shadow: false }, krabbelkaefer: { farHide: 40, shadowDist: 16 }, panzerkroete: { farHide: 36, shadowDist: 18 }, rammbock_bulle: { farHide: 40, shadowDist: 18 }, muenzmarder: { farHide: 40, shadowDist: 18 } },
   farHide: 34,
   ride: {
     section: true,
@@ -306,7 +314,7 @@ export const LEVEL = {
       { kind: 'arrow', pos: XZ(-92, 0) }, { kind: 'arrow', pos: XZ(-128, -1.2) },
     ] },
     // Grottenstrand (Absteigen) und Röhre zur Zielinsel
-    rock(-19, 19, -191, -206, DK, 8, SANDST),
+    isl(-19, 19, -191, -206, DK, 8, { top: 'sand', sideColor: SANDST.sideColor }),
     rock(-19, 19, -206, -209, 12, 18, LILA),
     { type: 'pipe', id: 'p_grotte_aus', pos: [0, DK, -201.5], height: 1.2, target: 'p_ziel_ein' },
     sign(-3.2, DK, -199.5, 'Zur Zielinsel', { size: [2.2, 0.75] }),

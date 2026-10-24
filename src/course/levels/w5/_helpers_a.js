@@ -81,6 +81,20 @@ export function areaMoods(level, moods, zones) {
   level.onStep(() => apply(false));
 }
 
+/**
+ * Klare Sicht in Räume (Baustein room): der Ausschnitt (Decke und Wand zur Kamera) blendet der Baustein auf 18 % ab –
+ * bei hellen Decken liegt dann ein milchiger Schleier über dem Raum. Hier verschwindet er ganz, sobald er weit genug
+ * abgeblendet ist (gilt für alle Räume des Levels; im Haken nach den Bausteinen aufrufen).
+ */
+export function raumKlar(level, below = 0.4) {
+  const v = level.view;
+  if (!v) return;
+  const meshes = [];
+  v.three.traverse((o) => { if (o.isMesh && o.name === 'raum:ausschnitt') meshes.push(o); });
+  if (!meshes.length) return;
+  v.onFrame(() => { for (const m of meshes) m.visible = !(m.material.transparent && m.material.opacity < below); });
+}
+
 /** Nur in der Nähe der Figur sichtbar (Darstellung): liefert eine Prüffunktion, die obj.visible setzt. */
 function nearOnly(level, obj, x, z, r = 40) {
   return () => { const p = level.player; obj.visible = !p || Math.hypot(p.pos.x - x, p.pos.z - z) < r; return obj.visible; };
@@ -654,6 +668,162 @@ export function holzsteg(level, x0, x1, z0, z1, top, o = {}) {
     for (let z = zA - 0.3; z > zB; z -= 2.2) parts.push(box(0.22, post + 0.5, 0.22, x, top - post / 2 + 0.1, z, 0x8a5a32, { r: 0.08, seg: 1 }));
   }
   if (o.rails) for (const x of [x0 + 0.1, x1 - 0.1]) parts.push(box(0.08, 0.08, zA - zB, x, top + 0.75, (zA + zB) / 2, 0xf0d0a0, { r: 0.03, seg: 0 }));
+  addStatic(level, merge(parts), { castShadow: true });
+}
+
+/**
+ * Höhlentor vor einer Felswand (Wand zeigt nach +Z): Felsbogen aus Brocken um die Türöffnung, Tropfstein-Zähne am
+ * Sturz, Moospolster auf der Kante und Ranken, die seitlich der Öffnung herabhängen (nicht vor die Sicht in die Höhle).
+ * x = Mitte der Tür, y = Boden, z = Wandfläche; o: { w: 2.8 (Türbreite), h: 3.2, top: Wandoberkante, span: 7 (halbe
+ * Breite der bemoosten Kante), rock: [dunkel, hell] }. Statisch (keine zusätzlichen Zeichenaufrufe).
+ */
+export function hoehlenTor(level, x, y, z, o = {}) {
+  if (!level.view) return;
+  const W = o.w ?? 2.8, H = o.h ?? 3.2, top = o.top ?? y + 7.6, span = o.span ?? 7;
+  const rnd = new Rnd(o.seed ?? 41);
+  const [dark, light] = (o.rock ?? [0x7a4a98, 0xd8a8e0]).map(L);
+  const rockC = (g) => colorize(ni(g), (p, n, oo) => mixc(dark, light, smooth(-0.5, 0.95, n.y * 0.8 + n.z * 0.35), oo));
+  const parts = [], soft = [];
+  const lump = (cx, cy, cz, r, sy = 0.85) => {
+    const g = new THREE.DodecahedronGeometry(r, 0);
+    g.scale(1, sy, 0.8);
+    g.rotateY(rnd.real(0, TAU));
+    g.translate(cx, cy, cz);
+    parts.push(rockC(g));
+  };
+  // Pfeiler aus gestapelten Brocken links und rechts
+  for (const sx of [-1, 1]) {
+    let yy = y;
+    for (let i = 0; i < 4; i++) {
+      const r = 0.62 - i * 0.06 + rnd.real(-0.05, 0.05);
+      lump(x + sx * (W / 2 + 0.42 + rnd.real(-0.06, 0.06)), yy + r * 0.7, z + 0.35, r);
+      yy += r * 1.25;
+    }
+  }
+  // Sturz: drei breite Brocken über der Öffnung, darunter Tropfstein-Zähne
+  for (let i = -1; i <= 1; i++) lump(x + i * (W / 2.2), y + H + 0.45 + (i === 0 ? 0.2 : 0), z + 0.3, i === 0 ? 0.85 : 0.72, 0.7);
+  for (const dx of [-0.9, -0.3, 0.35, 0.95]) {
+    const l = rnd.real(0.35, 0.6);
+    const g = new THREE.ConeGeometry(0.13, l, 5, 1);
+    g.rotateX(Math.PI);
+    g.translate(x + dx, y + H - l / 2 + 0.06, z + 0.42);
+    parts.push(rockC(g));
+  }
+  // Moospolster entlang der Wandkante und auf dem Sturz
+  const mossA = L(0x3cc06a), mossB = L(0x9af0a0);
+  const moss = (cx, cy, cz, r) => {
+    const g = new THREE.SphereGeometry(r, 7, 4, 0, TAU, 0, Math.PI / 2);
+    g.scale(1, 0.45, 0.8);
+    g.translate(cx, cy, cz);
+    soft.push(colorize(ni(g), (p, n, oo) => mixc(mossA, mossB, smooth(0.2, 1, n.y), oo)));
+  };
+  for (let k = 0; k < 14; k++) moss(x - span + (k + rnd.real(0.1, 0.9)) * (span * 2 / 14), top - 0.05, z + rnd.real(0.05, 0.35), rnd.real(0.45, 0.8));
+  moss(x - 0.4, y + H + 0.95, z + 0.45, 0.55); moss(x + 0.6, y + H + 0.85, z + 0.4, 0.45);
+  // Ranken (seitlich der Tür, höchstens bis 3,5 m unter die Kante)
+  const vine = L(0x2a9a52), leaf = L(0x6ad86a);
+  const strands = o.vines ?? [-5.6, -4.3, -3.1, 3.0, 4.4, 5.5];
+  for (const dx of strands) {
+    const len = rnd.real(1.8, 3.5);
+    const g = new THREE.CylinderGeometry(0.035, 0.035, len, 4, 1, true);
+    g.translate(x + dx, top - len / 2, z + 0.08);
+    soft.push(fill(g, vine));
+    for (let yy = top - 0.35; yy > top - len + 0.1; yy -= 0.42) {
+      const lf = new THREE.SphereGeometry(0.14, 5, 3);
+      lf.scale(1.3, 0.55, 0.6);
+      lf.rotateZ(rnd.real(-0.6, 0.6));
+      lf.translate(x + dx + rnd.real(-0.14, 0.14), yy, z + 0.12);
+      soft.push(colorize(ni(lf), (p, n, oo) => mixc(vine, leaf, smooth(-0.3, 0.9, n.y + n.z * 0.5), oo)));
+    }
+  }
+  addStatic(level, merge(parts), { castShadow: true });
+  addStatic(level, merge(soft), { castShadow: false });
+  // dunkler Höhlenschlund in der Öffnung (nur Optik): blendet aus, sobald die Figur nahe am Tor oder drinnen ist
+  if (o.dark === false) return;
+  const g = new THREE.PlaneGeometry(W, H);
+  g.translate(x, y + H / 2, z - (o.depth ?? 0.3));
+  const P = g.attributes.position, A = new Float32Array(P.count * 3);
+  for (let i = 0; i < P.count; i++) { const k = smooth(y, y + H, P.getY(i)); A[i * 3] = 0.05 + 0.05 * k; A[i * 3 + 1] = 0.02 + 0.03 * k; A[i * 3 + 2] = 0.1 + 0.08 * k; }
+  g.setAttribute('color', new THREE.BufferAttribute(A, 3));
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.8, depthWrite: false });
+  const mesh = new THREE.Mesh(g, mat);
+  mesh.name = 'zier:hoehlenschlund';
+  addObject(level, mesh, () => {
+    const p = level.player;
+    const near = !p ? 9 : Math.max(p.pos.z - z, Math.abs(p.pos.x - x) - W / 2);
+    mat.opacity = 0.8 * smooth(0.6, 3, near);
+    mesh.visible = mat.opacity > 0.02;
+  });
+}
+
+/** Leuchtpilze in Grüppchen (Glüh-Material, statisch): list = [[x, y, z, size = 1, farbe = 0x7ae8ff]]. */
+export function leuchtpilze(level, list, o = {}) {
+  if (!level.view) return;
+  const rnd = new Rnd(o.seed ?? 23);
+  const stems = [], caps = [];
+  const stemC = L(0xf4f0e8);
+  for (const [x, y, z, s = 1, c = 0x7ae8ff] of list) {
+    const col = L(c), hi = mixc(col, L(0xffffff), 0.6, [0, 0, 0]);
+    const n = 3 + rnd.int(0, 2);
+    for (let i = 0; i < n; i++) {
+      const k = s * (i === 0 ? 1 : rnd.real(0.45, 0.8));
+      const px = x + (i === 0 ? 0 : rnd.real(-0.55, 0.55) * s), pz = z + (i === 0 ? 0 : rnd.real(-0.55, 0.55) * s);
+      const h = 0.5 * k;
+      const st = new THREE.CylinderGeometry(0.06 * k, 0.09 * k, h, 6, 1, true);
+      st.translate(px, y + h / 2, pz);
+      stems.push(fill(st, stemC));
+      const cap = new THREE.SphereGeometry(0.26 * k, 8, 4, 0, TAU, 0, Math.PI / 2);
+      cap.scale(1, 0.62, 1);
+      cap.translate(px, y + h - 0.02, pz);
+      caps.push(colorize(ni(cap), (p, nn, oo) => mixc(col, hi, smooth(0.3, 1, nn.y), oo)));
+    }
+  }
+  addStatic(level, merge(stems), { castShadow: false });
+  addStatic(level, merge(caps), { material: 'glow', castShadow: false });
+}
+
+/** Karottenkorb für Pflaume (Weidenkorb mit Möhren und Grün, statisch, mit Kollision). */
+export function karottenkorb(level, x, y, z, o = {}) {
+  const R = o.r ?? 0.5;
+  level.world.add({ type: 'cyl', x, z, r: R, y0: y, y1: y + 0.55, tag: 'korb' });
+  if (!level.view) return;
+  const rnd = new Rnd(o.seed ?? 5);
+  const parts = [];
+  const wick = L(0xc8904a), wickD = L(0x8a5a2a);
+  const body = new THREE.CylinderGeometry(R, R * 0.82, 0.55, 14, 3, true);
+  body.translate(x, y + 0.275, z);
+  parts.push(colorize(ni(body), (p, n, oo) => mixc(wickD, wick, (Math.floor((p.y - y) / 0.09) + Math.floor(Math.atan2(p.z - z, p.x - x) * 4)) & 1 ? 0.85 : 0.35, oo)));
+  const rim = new THREE.TorusGeometry(R, 0.05, 4, 16);
+  rim.rotateX(Math.PI / 2);
+  rim.translate(x, y + 0.55, z);
+  parts.push(fill(rim, 0xb07a3a));
+  const fill0 = new THREE.CylinderGeometry(R * 0.95, R * 0.95, 0.04, 12);
+  fill0.translate(x, y + 0.48, z);
+  parts.push(fill(fill0, 0x6a3a1a));
+  const or = L(0xff8a1e), orL = L(0xffb04a), green = L(0x3cc06a);
+  for (let i = 0; i < 7; i++) {
+    const a = rnd.real(0, TAU), d = rnd.real(0, R * 0.6);
+    const cx = x + Math.cos(a) * d, cz = z + Math.sin(a) * d;
+    const c = new THREE.ConeGeometry(0.075, 0.42, 6, 1);
+    c.rotateX(Math.PI);
+    c.rotateZ(rnd.real(-0.5, 0.5));
+    c.rotateX(rnd.real(-0.4, 0.4));
+    c.translate(cx, y + 0.62, cz);
+    parts.push(colorize(ni(c), (p, n, oo) => mixc(or, orL, smooth(-0.5, 0.9, n.y + n.x * 0.3), oo)));
+    for (let j = 0; j < 3; j++) {
+      const lf = new THREE.ConeGeometry(0.03, 0.24, 4, 1);
+      lf.rotateZ((j - 1) * 0.45);
+      lf.translate(cx, y + 0.94, cz);
+      parts.push(fill(lf, green));
+    }
+  }
+  // zwei Möhren daneben im Sand
+  for (const [dx, dz, yaw] of [[R + 0.35, 0.2, 0.4], [R + 0.15, -0.45, 2.1]]) {
+    const c = new THREE.ConeGeometry(0.075, 0.42, 6, 1);
+    c.rotateZ(Math.PI / 2);
+    c.rotateY(yaw);
+    c.translate(x + dx, y + 0.08, z + dz);
+    parts.push(colorize(ni(c), (p, n, oo) => mixc(or, orL, smooth(-0.5, 0.9, n.y), oo)));
+  }
   addStatic(level, merge(parts), { castShadow: true });
 }
 
