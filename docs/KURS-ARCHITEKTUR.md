@@ -4097,8 +4097,9 @@ Port 4480 (+ `PORT_BASE`), Aufruf `node tests/course_w5b.mjs [5-3|5-A|5-4|5-Kapi
 `DETAIL=1` (Zeichenaufrufe je Objekt), Bilder `tests/out/w5b_*.png`. Bot mit echter Eingabe (`setInput`/`step`, Stick
 relativ zur Kamera-Gier); Beine u. a. `poundAt`, `gather`/`liftTop` (Klone, Lifte), `climbOnto`, `ride` (Kanone, Röhre,
 Warp-Box, Tür), `rideInput` (Stick in der Röhre: Abzweig), `bar` (Drehbalken: Arm abwarten, zur Nabe, Arm zum Ziel,
-Absprung), `antRide` (auf die kletternde Ameise), `until: 'brueckeZneu'`, `tap` (Bildschirm-Tipp auf die Zielmitte, Strahl wie im Spiel), `ring` (Kreisgeist-Lücke
-vorausrechnen), Arena-Bot `fight` (Kopfsprünge, Ausweichen, Stern). Geprüft: Laden ohne Konsolenfehler, Metadaten,
+Absprung), `antRide` (auf die kletternde Ameise), `until: 'brueckeZneu'`, `tap` (Bildschirm-Tipp auf die Zielmitte,
+Strahl wie im Spiel), `ring` (Kreisgeist-Lücke vorausrechnen), Arena-Bot `fight` (Kopfsprünge, Ausweichen, Stern).
+Geprüft: Laden ohne Konsolenfehler, Metadaten,
 Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel; alle Sterne und Stempel mit Gegenproben (Fliese nicht ohne
 Stampfen, 3er-Lift nicht mit zwei Figuren, Lotti drückt den Greta-Schalter nicht, Kristall-Lücke nicht ohne Antippen),
 Extraleben, alles in einem Lauf (5-3 43,5 s; 5-4 68,9 s; 5-Kapitän 39,2 s), Arena: Wellen-Regeln, Tod setzt zurück,
