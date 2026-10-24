@@ -1345,8 +1345,10 @@ function kippTemple(ev, x, y, z) {
   const topY = y + yy;
   // Steinköpfe neben der Treppe, Fackeln
   for (const s of [-1, 1]) {
+    // Steinkopf-Modell als eigenes Objekt (nicht eingebacken): so blendet die Fern-Ausblendung (lod.js) es beim Anflug aus
     const sk = pick5(['deco_w5_steinkopf', { size: 2.2 }, 6000], ['steinkopf', { size: 1.1 }, 6000]);
-    if (!sk || !bake5(ev, sk[0], sk[1], [x + s * 3.4, y, z + 6.6], FRONT - s * 0.25, 1, { glow: 0.8 }, true, 6000)) ev.addStatic(place(stoneHeadGeo(1.1), x + s * 3.4, y, z + 6.6), { castShadow: true });
+    const head = sk && live5(ev, sk[0], sk[1], [x + s * 3.4, y, z + 6.6], FRONT - s * 0.25, 1, (dt, t) => ({ glow: 0.55 + 0.35 * Math.sin(t * 1.7 + s) }), true, 6000);
+    if (!head) ev.addStatic(place(stoneHeadGeo(1.1), x + s * 3.4, y, z + 6.6), { castShadow: true });
     solidBox(ev, x + s * 3.4 - 1, y, z + 5.8, x + s * 3.4 + 1, y + 2.3, z + 7.4, 'steinkopf');
     addGeo(ev, 'w5m:templetorch', () => { const b = new Build(); b.cyl(0.12, 0.16, 1.8, 0x6a4a2a, { p: [0, 0.9, 0] }, 6); b.cyl(0.28, 0.18, 0.3, 0x4a3a2a, { p: [0, 1.9, 0] }, 8); return b.geometry(); }, x + s * 5.4, y, z + 7.4);
     solidCyl(ev, x + s * 5.4, z + 7.4, 0.25, y, y + 2, 'fackel');
