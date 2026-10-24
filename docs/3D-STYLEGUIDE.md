@@ -51,6 +51,29 @@ class MeinAvatar extends Avatar3D {
 - Schatten: `castShadow = true` für Körper, keine Schatten auf Kleinteilen (Augen, Glanz).
 - Animation ist **prozedural** (Sinus-Läufe, Zielposen mit `damp`), keine Frame-Sequenzen.
 
+## Figurenstil (Lotti, Greta, Pflaume, Krümel)
+
+Rückmeldung „figurenstil mehr wie supermarioworld“: Formensprache und Anmutung wie in 3D World, die Figuren
+bleiben eigene (Farben, Frisuren, Kleider, Merkmale). Bausteine in `src/three/lib/figures.js`:
+
+- **Glatte Flächen aus Parametern:** `gridGeo` (Gitter mit weichen Normalen, ohne Naht und Pol-Sterne),
+  `latheGeo` (Drehkörper, z. B. Mieder, Rock mit Bahnen, gerolltem Saum und Futter), `blobGeo` (Schuhe, Pfoten),
+  `blobUnionGeo` (weich verschmolzene Ellipsoide, z. B. Pflaumes Körper).
+- **Kopf und Gesicht:** `HeadShape` (rund, Pausbacken) mit Aufklebern (`decalGeo`, `stripGeo`): Stupsnase,
+  Wangenröte, Lächeln, Brauen. `toonEyeGeos`: gewölbtes Weiß, große Iris mit Verlauf (oben dunkel) und dunklem
+  Rand, Pupille, zwei unbeleuchtete Glanzpunkte (beide Augen zur selben Seite), bei den Mädchen Lidstrich mit
+  Wimpern; geschlossene Augen als Lidbogen „◡“ (Blinzeln, Statue, Jubel).
+- **Haar:** `hairShellGeo` – Haarschale über der Kopfform mit gerolltem Rand (sauberer Haaransatz, keine
+  Durchdringung zweier Kugeln), Strähnen-Rillen und Glanzband in Vertexfarben. Lottis Zöpfe bleiben eine
+  Verlet-Kette (`HangChain`, `strictBend`), Gretas langes Haar ein Haarvorhang mit Locken.
+- **Proportionen:** Kopf ≈ 40 % der Höhe, kräftige weiche Arme und Beine, runde Fäustlings-Hände, große glänzende
+  Schuhe. Gelenke und Kurs-Anker sind unverändert (Spielphysik).
+- **Oberflächen = Materialien:** Haut (weich, leicht warm aufgehellt), Stoff (samtig), Haar (seidig), Glanz
+  (Augen, Schuhe, Stiefelschaft). Teile gleichen Materials bündelt die Kurs-Ansicht zu einem Zeichenaufruf –
+  neue Teile möglichst einem dieser Materialien zuordnen; kein dauerhaftes ungleichmäßiges Stauchen.
+- Vergleich und Kennzahlen: `tests/figurenstil.mjs` (Bilder `tests/out/fs_*`, Vergleichsbögen
+  `fs_vergleich_*.png`).
+
 ## Welt-Vertrag (`src/three/world/World3D.js`)
 
 - `new World3D(view, map, groundLayer)`, `removeTile(tx, ty)` (Block zerbrochen), `update(dt, t)`,

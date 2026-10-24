@@ -3972,3 +3972,53 @@ Kippquader-König vollständig (Auftritt, Landefläche = Grundriss, Kippen triff
 Tod setzt zurück, Klon) · Teil 4 Bilder `tests/out/w5e_*.png` und Zeichenaufrufe · Teil 5 Sandtaucher im Ritt-Fluss
 der Strandwerkstatt `0-17` (springt den auf Pflaume reitenden Spieler an, Treffer). Gemessen (scale 2, inkl. Schattenpass,
 Thema beach/temple): Gegnerwerkstatt 54–90 Zeichenaufrufe (≤ 182 k Dreiecke), Tempel-Arena 37–50 (≤ 104 k).
+
+## Präzisierung (Level 5-1 und 5-2)
+
+Additiv zur Welt-5-Liste: Titel und Besonderheiten der beiden ersten Level der Lila Strand-Insel. Dateien
+`src/course/levels/w5/5-1.js`, `5-2.js`, eigene Hilfen `src/course/levels/w5/_helpers_a.js` (kein `LEVEL`, nur für diese
+beiden Level), Test `tests/course_w5a.mjs`. Kein Motor-Code geändert; Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`).
+
+### 5-1 „Schlüsselsuche am Muschelstrand“ (parcours_ride · beach · course_beach · 500 s)
+
+- Abschnitte (nach −Z): **Sandstrand** (x −34 … 40, offener Strand mit Flachwasser, Sandbank, Rettungsturm, Sandburgen,
+  Palmenhain, lila Fels mit Wandhöhle) → **Schwebeinsel** (y 9, Checkpoint, Röhre) → **Glitzergrotte** (Steg, Ritt auf
+  Pflaume ≈ 120 m Höhlenfluss mit zwei Hubbrücken, Sandtauchern im Wasser, Holzschanze; Grottenstrand mit Karottenkorb) →
+  **Zielinsel** (Leuchtturm, Zielmast).
+- Fünf Schlüsselmünzen (`schluesselmuenze`, Gruppe → `reveal` der versteckten Warp-Box auf der Sandbank): Sandburg,
+  Palmenhain, Fels im Flachwasser, Rettungsturm, Fels hinter den Rammbock-Bullen. Die Warp-Box bringt zur Schwebeinsel.
+- Sterne: 0 rechte Pilzlings-Sandskulptur zerstampfen (Sprung allein reicht nicht; links Münzen, Mitte sechs
+  Mini-Pilzlinge) · 1 Meeresloch neben der Sandbank → Röhre → Farbfeld-Raum, alle 16 Felder betreten · 2 Wandhöhle im lila
+  Fels: Krabbelkäfer besiegen (Aufgabe `task`), dann gibt Krümel den Stern. Stempel: über der Holzschanze im Flussritt
+  (Sprung halten; ohne Sprung zu niedrig).
+- Extraleben: unsichtbarer Block vor dem roten Strandkorb, Schatztruhe hinter dem Leuchtturm, dritter Münzmarder.
+- Haken-Hilfen: `sandSkulpturen`, `kruemelHoehle`, `rettungsturm`, `leuchtturm`, `hoehlenTor` (blendet aus, solange die
+  Figur in der Höhle ist), `raumKlar` (Raum-Ausschnitt verschwindet ganz statt 18 % Schleier), `fernAus` (Grottenteile vom
+  Strand aus ausgeblendet – Budget), Schwimmtiere, Krabben, Delfine, Brandung, Kristalle, Leuchtpilze, Lichtschächte,
+  `schattenDiaet` (Gegner werfen nur mit dem größten Teil Sonnenschatten).
+
+### 5-2 „Zirkus Schwingeschwung“ (parcours · circus · course_trapeze · 400 s)
+
+- Abschnitte (Bühnen schweben über den Manegen, y 1 → 9 → 5 → 10 → 14): **Startbühne und Seilbahn 1** → Trapezbühne, drei
+  Trapeze (4,5 m Abstand) → **Seilbahn 2** hinab zur Checkpoint-Bühne, Pilz-Trampolin hinauf → **Riesen-Gasse**
+  (?-Block mit Riesentrank: als Riese durch drei graue Steinwände, Pilzlinge und zwei Riesenschnappblumen; ohne Trank über
+  den Seitensteg) → Glasröhre zur Bühne F (Checkpoint 2) → **Pendelplattform**, Bühne G (Funkenlinge um die Trommeln),
+  **drei Drehscheiben** mit Stachelstangen (bunte, mitdrehende Hülle `zirkusScheiben`) → Bühne H, drei Trapeze, Bühne I,
+  letztes Trapez → **Zielbühne** mit Sternring und Konfetti-Regen.
+- Sterne: 0 aus der fahrenden Gondel 1 auf den hohen Sims links springen · 1 von Drehscheibe 2 zur Ostbühne, Röhre in den
+  Blaumünzen-Raum (Druckschalter, acht blaue Münzen in 10 s) · 2 Sternring vor dem Ziel (acht Sternmünzen in 10 s).
+  Stempel: Pilz-Trampolin auf Bühne H → Stempel-Sims (vom Bühnenboden aus nicht erreichbar).
+- Extraleben: unsichtbarer Block über dem hohen Sims, hinter der dritten Steinwand (nur als Riese).
+- Trapeze für Bodenabsprünge 1,5 m vor der Bühnenkante aufhängen (Greifradius 0,8 m), Aufhängung Bühne + 6,2 m, Länge 3.
+
+### Test `tests/course_w5a.mjs`
+
+Port 4470 (+ `PORT_BASE`), Aufruf `node tests/course_w5a.mjs [5-1|5-2]`, Teilläufe `PARTS=load,route,sweep,targets,extra,shots`
+(je Lauf < 10 min), `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS='a|b'`, `DETAIL=1` (Zeichenaufrufe je Objekt), Bilder
+`tests/out/w5a_*.png`. Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start →
+Ziel mit echter Mechanik (5-1: fünf Schlüssel, Warp-Box, Ritt; 5-2: zwei Gondeln, sieben Trapeze, Pendel, Trampolin);
+alle Sterne, Stempel und Extraleben samt Gegenproben (Stern/Stempel nicht ohne die Mechanik), Hubbrücke unten hält das
+Floß auf (Bein `{ bridge: [id, 'low' | 'high' | 'start'] }`); Messgang entlang der Route. Gemessen (scale 2, inkl.
+Schattenpass): 5-1 bis ≈ 112 Zeichenaufrufe / ≈ 285 k Dreiecke (offener Strand – dort ist kaum noch Luft), 5-2 bis ≈ 92 /
+≈ 260 k (Riesen-Gasse).
