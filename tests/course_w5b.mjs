@@ -114,6 +114,31 @@ const ROUTES = {};
 }
 
 // =====================================================================================================================
+// 5-A Hörnerherde am Lila Strand (Arena)
+// =====================================================================================================================
+{
+  const Y = 2.4;
+  ROUTES['5-A'] = {
+    kind: 'arena',
+    start: [0, Y, 7],
+    meta: { time: 200, theme: 'grass', music: 'course_arena', archetype: 'arena', starSlots: 1 },
+    enemies: { rammbock_bulle: 5 },
+    waves: [['bulle1', 'bulle2'], ['bulle3', 'bulle4', 'bulle5']],
+    cageR: 11.9,
+    timeMax: 120,
+    oneUp: { from: [0, Y, 5.2], under: [0, 3.4] },
+    funken: { from: [-3.4, Y, 7.4], under: [-3.4, 5.4] },
+    sweepPts: [[0, Y, 7], [0, Y, 0], [-7, Y, -4], [7, Y, -4], [0, Y, -9], [-9, Y, 3], [9, Y, 3]],
+    shots: [
+      ['start', [0, Y, 7], 30],
+      ['kampf', [1, Y, 3], 0, 'charge'],
+      ['welle2', null, 0, 'wave2'],
+      ['stern', null, 0, 'star'],
+    ],
+  };
+}
+
+// =====================================================================================================================
 // Ablauf
 // =====================================================================================================================
 const PORT = 4480;
@@ -377,6 +402,87 @@ function install() {
       c.setInput({});
       return n;
     },
+    /**
+     * Arena-Bot (5-A): den nächsten aktiven Bullen anspringen und auf seinem Kopf weiterhüpfen (echte Eingabe: Stick,
+     * Sprung), vor anstürmenden Bullen seitlich ausweichen; sind alle besiegt, den Stern holen. o.only: nur diese
+     * Bullen angreifen (dann Ende, sobald sie besiegt sind); o.until: 'wave2air' | 'starTouch' | 'charge' (Bild-Halt).
+     */
+    fight(o = {}) {
+      const log = [];
+      let steps = 0, stomps = 0, jumpHold = 0, dodges = 0, wave2 = null, episodes = 0, lastHurt = -999;
+      const wl = () => named('wellen');
+      const hold = o.invuln !== false;
+      const active = (e) => e.kind === 'rammbock_bulle' && !e.removed && e.alive && !e.defeated && !e.parked && !(wl()?.jumping ?? []).some((j) => j.e === e)
+        && (!o.only || o.only.includes(e.spec?.id));
+      const hp = new Map();
+      const tick = (inp) => {
+        if (hold) for (const f of L.players) f.invuln = Math.max(f.invuln, 5);
+        const h0 = P().hurtTries ?? 0;
+        c.setInput(inp); c.step(1); steps++;
+        wrapHurt();
+        if ((P().hurtTries ?? 0) > h0) { if (steps - lastHurt > 24) episodes++; lastHurt = steps; }
+        if ((P().hurtTries ?? 0) > h0 && steps - lastHurt < 2 && log.filter((l) => l[0] === 'au').length < 30 && (log.at(-1)?.[0] !== 'au')) {
+          const p = P();
+          const near = L.entities.filter((e) => e.kind === 'rammbock_bulle' && !e.removed).map((e) => [e.spec?.id, e.state, +Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z).toFixed(2), +(p.pos.y - e.pos.y).toFixed(2)]).sort((a, b) => a[2] - b[2])[0];
+          log.push(['au', +(steps / 120).toFixed(2), p.mode, +p.vel.y.toFixed(1), ...near]);
+        }
+        for (const e of L.entities) {
+          if (e.kind !== 'rammbock_bulle') continue;
+          const was = hp.get(e);
+          if (was !== undefined && e.hp < was) { stomps++; log.push(['Treffer', e.spec?.id, e.hp, +(steps / 120).toFixed(2), P().mode]); }
+          hp.set(e, e.hp);
+          if (e.defeated && !e.__logged) { e.__logged = true; log.push(['besiegt', e.spec?.id, +(steps / 120).toFixed(2)]); }
+        }
+      };
+      const stop = () => {
+        if (o.until === 'wave2air') return (wl()?.jumping ?? []).some((j) => j.delay <= 0 && j.t > j.T * 0.45);
+        if (o.until === 'starTouch') return !!c.arch?.info?.().starTouch;
+        if (o.until === 'charge') return L.entities.some((e) => e.kind === 'rammbock_bulle' && e.state === 'charge' && e.stateT > 0.2);
+        return false;
+      };
+      const max = o.max ?? 120 * 150;
+      while (steps < max) {
+        const p = P();
+        if (c.finished || L.runtime.status !== 'play' || p.dead || stop()) break;
+        if (wl()?.wave > 0 && wave2 === null) { wave2 = +(steps / 120).toFixed(2); log.push(['Welle 2 springt', wave2]); }
+        if (p.mode === 'script' || o.idle) { tick({}); continue; }
+        const ts = L.entities.filter(active);
+        if (!ts.length) {
+          if (o.only) break;
+          const s = L.entities.find((e) => e.kind === 'star' && !e.removed);
+          if (s?.touch) {
+            const dx = s.pos.x - p.pos.x, dz = s.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            tick({ ...this.stick(dx, dz, Math.min(1, 0.3 + d)), jump: d < 1.4 && s.pos.y > p.pos.y + 0.9 });
+          } else tick({});
+          continue;
+        }
+        let b = null, bd = Infinity;
+        for (const e of ts) { const d = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z); if (d < bd) { bd = d; b = e; } }
+        if (p.mode === 'air') { tick({ ...this.airSteer(b.pos.x, b.pos.z, b.vel.x, b.vel.z, 3.5, 8), jump: jumpHold-- > 0 }); continue; }
+        // anstürmender Bulle auf die Figur zu? seitlich (nach innen) ausweichen
+        const threat = ts.find((e) => e.state === 'charge' && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 6
+          && ((p.pos.x - e.pos.x) * e.dir.x + (p.pos.z - e.pos.z) * e.dir.z) > 0);
+        if (threat) {
+          const side = (p.pos.x - threat.pos.x) * threat.dir.z - (p.pos.z - threat.pos.z) * threat.dir.x >= 0 ? 1 : -1;
+          let sx = threat.dir.z * side, sz = -threat.dir.x * side;
+          if (Math.hypot(p.pos.x + sx * 2, p.pos.z + sz * 2) > 9.5) { sx = -sx; sz = -sz; }
+          dodges++;
+          tick({ ...this.stick(sx, sz, 1), run: true });
+          continue;
+        }
+        const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z;
+        if (bd < 2.3) { jumpHold = 22; tick({ ...this.stick(dx, dz, 0.6), jump: true }); continue; }
+        tick({ ...this.stick(dx, dz, 1), run: bd > 4 });
+      }
+      c.setInput({});
+      const A = c.arch?.info?.() ?? {};
+      return { log, steps, time: steps / 120, stomps, dodges, wave2, arena: { total: A.total, left: A.left, won: A.won, resets: A.resets, starTouch: A.starTouch },
+        finished: !!c.finished, status: L.runtime.status, hurts: L.players.reduce((a, f) => a + (f.hurtTries ?? 0), 0), episodes, stars: L.runtime.info().stars, dead: P().dead,
+        waveLog: wl()?.log ?? [], landed: wl()?.landed ?? 0 };
+    },
+    /** Bullen-Zustand (5-A): je Id Position, geparkt, berührbar, Zustand, hp. */
+    bulls: () => L.entities.filter((e) => e.kind === 'rammbock_bulle' && !e.removed).map((e) => ({ id: e.spec?.id, pos: [+e.pos.x.toFixed(2), +e.pos.y.toFixed(2), +e.pos.z.toFixed(2)], parked: !!e.parked, touch: !!e.touch, state: e.state, hp: e.hp })),
+    arena: () => { const A = c.arch?.info?.() ?? {}; return { total: A.total, left: A.left, won: A.won, resets: A.resets, starShown: A.starShown, starTouch: A.starTouch, hudLeft: A.hud?.arena?.left, wave: named('wellen')?.wave, jumping: named('wellen')?.jumping?.length ?? 0 }; },
     rt: () => L.runtime.info(),
     info: () => P().info(),
     kinds: () => { const m = {}; for (const e of L.entities) m[e.kind] = (m[e.kind] ?? 0) + 1; return m; },
@@ -546,8 +652,157 @@ async function parcours(id) {
   }
 }
 
+/** Bot-Protokoll kurz: Treffer zusammenfassen. */
+function fightLog(res) {
+  const out = [];
+  for (const l of res.log) if (l[0] !== 'Treffer') out.push(JSON.stringify(l));
+  return out.join(' ');
+}
+
+async function arena(id) {
+  const R = ROUTES[id];
+  console.log(`\nLevel ${id}`);
+  if (!(await load(id, true))) { check(`${id} lädt`, false); return; }
+  const loadErrors = errors.slice();
+  const meta = await sc(() => { const d = window.__course.level.data; return { title: d.title, timeLimit: d.timeLimit, theme: d.theme, music: d.music, archetype: d.archetype, stars: d.stars.length, starSlots: d.starSlots, world: d.world }; });
+  const kinds = await W('kinds');
+  console.log(`  „${meta.title}“, Thema ${meta.theme}, Musik ${meta.music}, Zeitlimit ${meta.timeLimit} s, Entitäten: ${JSON.stringify(kinds)}`);
+  const second = R.waves.slice(1).flat();
+  if (PARTS.has('load')) {
+    check(`${id}: lädt ohne Konsolenfehler/-warnungen`, loadErrors.length === 0);
+    for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
+    const m = R.meta;
+    check(`${id}: Welt 5, Arena, 1 Stern (erscheint nach dem Sieg), kein Stempel, ${m.time} s, Thema ${m.theme}, Musik ${m.music}`,
+      meta.world === 5 && meta.archetype === 'arena' && meta.starSlots === 1 && meta.stars === 0 && !kinds.stamp && meta.timeLimit === m.time && meta.theme === m.theme && meta.music === m.music);
+    for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
+    const a = await W('arena');
+    const b0 = await W('bulls');
+    await sc(() => window.__course.step(240));
+    const b1 = await W('bulls');
+    const s = await sc(() => window.__course.state());
+    const wait = b1.filter((b) => second.includes(b.id));
+    console.log(`  wartend: ${wait.map((b) => `${b.id} ${b.pos.join(',')} ${b.parked ? 'geparkt' : 'frei'}`).join(' · ')}`);
+    check(`${id}: Arena zählt ${R.enemies.rammbock_bulle} Bullen („noch ${a.hudLeft}“)`, a.total === 5 && a.left === 5 && a.hudLeft === 5);
+    check(`${id}: zweite Welle wartet draußen auf den Felsen (außerhalb des Gitters, nicht berührbar, bleibt 2 s stehen)`,
+      wait.length === 3 && wait.every((b) => b.parked && !b.touch && Math.hypot(b.pos[0], b.pos[2]) > R.cageR + 1)
+      && wait.every((b) => { const o = b0.find((x) => x.id === b.id); return Math.hypot(o.pos[0] - b.pos[0], o.pos[2] - b.pos[2]) < 0.01; }));
+    check(`${id}: 2 s ohne Fehler`, errors.length === 0 && !s.player.dead);
+  }
+
+  // ------------------------------------------------ Kampf-Bot je Heldin (alle Bullen → Stern → Sieg)
+  for (const hero of !PARTS.has('route') ? [] : HEROES) {
+    await load(id);
+    await W('place', R.start, { hero, settle: 2 });
+    const res = await W('fight', {});
+    const t = (bid) => res.log.find((l) => l[0] === 'besiegt' && l[1] === bid)?.[2];
+    const firstDone = Math.max(...R.waves[0].map((bid) => t(bid) ?? Infinity));
+    const ok = res.finished && res.stars[0] && res.arena.won;
+    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, ${res.stomps} Kopftreffer, ${res.dodges} Ausweichschritte, Gegner-Berührungen ${res.episodes} (${res.hurts} Bilder), Welle 2 bei ${res.wave2} s (erste Welle besiegt bei ${firstDone} s), gelandet ${res.landed}`);
+    if (!ok || process.env.VERBOSE) console.log(`     ${fightLog(res)}`);
+    check(`${id}: ${hero} besiegt alle fünf Bullen mit Kopfsprüngen (${res.stomps} Treffer à 1 hp)`, res.stomps >= 15 && res.arena.left === 0);
+    check(`${id}: ${hero}: zweite Welle springt erst nach dem Sieg über die ersten zwei über das Gitter`, res.wave2 !== null && res.wave2 >= firstDone && res.landed === 3);
+    check(`${id}: ${hero}: Stern erscheint, Einsammeln → Siegespose und Ergebnis (${res.time.toFixed(1)} s < ${R.timeMax} s)`, ok && res.time < R.timeMax);
+  }
+
+  // ------------------------------------------------ Wellen-Regeln und Tod
+  if (PARTS.has('targets')) {
+    await load(id);
+    await W('place', R.start, { hero: 'lotti', settle: 2 });
+    const r1 = await W('fight', { only: [R.waves[0][0]] });
+    await sc(() => window.__course.step(600));
+    const mid = await W('bulls');
+    const a1 = await W('arena');
+    check(`${id}: ein Bulle besiegt → die zweite Welle wartet weiter (noch ${a1.left})`, a1.left === 4 && mid.filter((b) => second.includes(b.id)).every((b) => b.parked) && a1.wave === 0);
+    const r2 = await W('fight', { until: 'wave2air' });
+    await sc(() => { const c = window.__course; for (let i = 0; i < 600 && c.level.named.get('wellen').jumping.length; i++) { c.player.invuln = 5; c.step(1); } });
+    const landed = await W('bulls');
+    const inCage = landed.filter((b) => second.includes(b.id));
+    console.log(`  gelandet: ${inCage.map((b) => `${b.id} ${b.pos.join(',')} ${b.state}`).join(' · ')}`);
+    check(`${id}: zweite Welle landet im Käfig (auf dem Arenaboden, berührbar)`, inCage.length === 3 && inCage.every((b) => !b.parked && b.touch && Math.hypot(b.pos[0], b.pos[2]) < R.cageR - 1 && Math.abs(b.pos[1] - R.start[1]) < 0.3));
+    const d = await sc(() => {
+      const c = window.__course, L = c.level;
+      const lives0 = L.runtime.save.lives;
+      c.player.invuln = 0;
+      c.player.die('hit');
+      for (let i = 0; i < 600 && (c.player.dead || L.runtime.status !== 'play'); i++) c.step(1);
+      c.step(30);
+      return { lives0, lives: L.runtime.save.lives };
+    });
+    const a2 = await W('arena');
+    const b2 = await W('bulls');
+    check(`${id}: Tod setzt Arena und Wellen zurück (noch ${a2.left}, zweite Welle wieder draußen, Leben ${d.lives0} → ${d.lives})`,
+      a2.left === 5 && a2.resets === 1 && a2.wave === 0 && b2.length === 5 && b2.filter((b) => second.includes(b.id)).every((b) => b.parked && Math.hypot(b.pos[0], b.pos[2]) > R.cageR + 1) && d.lives === d.lives0 - 1);
+    if (process.env.VERBOSE) console.log(`     ${fightLog(r1)} | ${fightLog(r2)}`);
+    // nach dem Neustart noch einmal ganz durch
+    const r3 = await W('fight', {});
+    check(`${id}: nach dem Neustart wieder lösbar (${r3.time.toFixed(1)} s)`, r3.finished && r3.stars[0]);
+  }
+
+  // ------------------------------------------------ Extras: Extraleben, Funkenblüte
+  if (PARTS.has('extra')) {
+    await load(id);
+    const lives0 = await W('lives');
+    await W('place', R.oneUp.from, { hero: 'lotti', settle: 4 });
+    const r = await W('drive', [{ to: R.oneUp.under, within: 0.15, run: false, slow: 0.5 }, { hop: 30 }, { wait: 20 }, { chaseKind: 'powerup', filter: 'oneup', max: 900 }], {});
+    const lives1 = await W('lives');
+    report(r, lives1 > lives0);
+    check(`${id}: Extraleben aus dem unsichtbaren Block über dem Sternmosaik (Leben ${lives0} → ${lives1})`, lives1 === lives0 + 1);
+    await load(id);
+    await W('place', R.funken.from, { hero: 'lotti', settle: 4 });
+    const f = await W('drive', [{ to: R.funken.under, within: 0.15, run: false, slow: 0.5 }, { hop: 30 }, { wait: 20 }, { chaseKind: 'powerup', max: 900 }], {});
+    const shotRes = await sc(() => {
+      const c = window.__course, L = c.level, p = c.player;
+      const b = L.named.get('bulle1');
+      const hp0 = b.hp;
+      // aus 5 m Abstand zielen und feuern (Aktionstaste), Bulle hält still, solange er die Figur noch nicht sieht
+      const out = { power: p.power, hp0 };
+      for (let k = 0; k < 6 && b.hp === hp0; k++) {
+        const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z;
+        p.yaw = Math.atan2(-dz, dx);
+        c.setInput({ action: true }); c.step(1); c.setInput({}); c.step(50);
+        p.invuln = 5;
+      }
+      out.hp1 = b.hp;
+      out.dist = Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z);
+      return out;
+    });
+    check(`${id}: Funkenblüte aus dem ?-Block trifft einen Bullen von weitem (${shotRes.power}, hp ${shotRes.hp0} → ${shotRes.hp1}, Abstand ${shotRes.dist.toFixed(1)} m)`, shotRes.power === 'funken' && shotRes.hp1 < shotRes.hp0 && shotRes.dist > 2.5);
+    if (shotRes.power !== 'funken') report(f, false);
+  }
+
+  // ------------------------------------------------ Kennzahlen
+  if (PARTS.has('sweep')) {
+    await load(id);
+    let worst = { calls: 0, tris: 0 };
+    for (const pt of R.sweepPts) {
+      await W('place', pt, { settle: 6 });
+      const f0 = await sc(() => { window.__course.snapCamera(); return window.__course.view.frame; });
+      await page.waitForFunction((f) => window.__course.view.frame >= f + 6, f0, { timeout: 90000 });
+      const st = await sc(() => window.__course.stats());
+      worst = { calls: Math.max(worst.calls, st.calls), tris: Math.max(worst.tris, st.triangles) };
+    }
+    check(`${id}: Messgang über ${R.sweepPts.length} Punkte – Zeichenaufrufe < 120 (max ${worst.calls}), Dreiecke < 300 k (max ${Math.round(worst.tris / 1000)} k)`, worst.calls < 120 && worst.tris < 300000);
+  }
+
+  // ------------------------------------------------ Bilder
+  if (!PARTS.has('shots')) return;
+  for (const [name, pos, steps = 0, mode = null] of R.shots) {
+    await load(id);
+    await W('place', pos ?? R.start, { settle: 10 });
+    if (steps) await sc((n) => { const c = window.__course; c.player.invuln = 99; c.step(n); }, steps);
+    if (mode === 'charge') await W('fight', { until: 'charge', idle: true, max: 1200 });
+    if (mode === 'wave2') await W('fight', { until: 'wave2air' });
+    if (mode === 'star') {
+      await W('fight', { until: 'starTouch' });
+      await sc(() => { const c = window.__course; c.player.invuln = 99; c.step(20); });
+    }
+    await shot(`${id}_${name}`);
+  }
+}
+
 for (const id of LEVELS) {
-  if (ROUTES[id]) await parcours(id);
+  if (ROUTES[id]?.kind === 'arena') await arena(id);
+  else if (ROUTES[id]) await parcours(id);
   else console.log(`Unbekanntes Level ${id}`);
 }
 
