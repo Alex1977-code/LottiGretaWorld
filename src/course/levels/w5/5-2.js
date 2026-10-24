@@ -41,9 +41,9 @@ export const M52 = {
   GASSE: { x0: -5.5, x1: 5.5, z0: -94.5, z1: -131, top: YD },
   F: { x0: -5, x1: 5, z0: -139.5, z1: -147, top: YF },
   G: { x0: -5, x1: 5, z0: -158, z1: -164, top: YF },
-  EAST: { x0: 7.5, x1: 11.5, z0: -175, z1: -179.5, top: YF },
+  EAST: { x0: 6.2, x1: 10.2, z0: -175, z1: -179.5, top: YF },
   H: { x0: -5, x1: 5, z0: -190.5, z1: -196.5, top: YF },
-  PERCH: { x0: -12.4, x1: -8.4, z0: -191.5, z1: -195.5, top: 20.4 }, // Stempel-Sims
+  PERCH: { x0: -11, x1: -7, z0: -191.5, z1: -195.5, top: 19.4 }, // Stempel-Sims
   I: { x0: -5, x1: 5, z0: -211.5, z1: -217.5, top: YF },
   J: { x0: -6, x1: 6, z0: -223.5, z1: -250, top: YF },
   ROOM: { x0: 80, x1: 96, z0: -168, z1: -186 },                     // Blaumünzen-Raum
@@ -168,7 +168,7 @@ export const LEVEL = {
     { type: 'pilztrampolin', id: 'trampolin_c', pos: [0, YC, -92], strength: 19 },
     sign(-3.2, YC, -89.6, 'Hüpf hoch!', { size: [1.8, 0.7] }),
     // Requisiten-Gasse: graue Steinwände (nur Riesentrank), Seitensteg links
-    ...WALLS.map((z, i) => ({ type: 'megawall', id: `wand${i + 1}`, pos: [1, YD, z], size: [9, 3, 1], onBreak: i === 2 ? { power: 'oneup', pos: [1, YD + 1.5, z - 2] } : { coins: 5 } })),
+    ...WALLS.map((z, i) => ({ type: 'megawall', id: `wand${i + 1}`, pos: [1, YD, z], size: [9, 3, 1], onBreak: i === 2 ? { spawn: { kind: 'powerup', power: 'oneup', dir: [0, 0], pos: [1, YD + 0.2, z - 2.4] } } : { coins: 5 } })),
     sign(-4.6, YD, -97, 'Riesen-\nGasse', { size: [2, 0.8] }),
     { type: 'deco_w1b', items: [
       { kind: 'bulbs', from: [-5.4, YD + 1.6, -100], to: [-5.4, YD + 1.6, -130], sag: 0.5, n: 30 },
@@ -192,7 +192,7 @@ export const LEVEL = {
     ...DISCS.map((z, i) => ({ type: 'drehplattform', id: `scheibe${i + 1}`, axis: 'y', pos: [0, YF - 0.5, z], arms: 0, length: 3.2, thick: 0.5, speed: i % 2 ? -0.5 : 0.5, hub: true, style: 'holz' })),
     { type: 'pipe', id: 'p_blau', pos: [(EAST.x0 + EAST.x1) / 2, EAST.top, (EAST.z0 + EAST.z1) / 2], height: 1.2, color: 'blue', target: 'p_blau_raum' },
     sign(EAST.x0 + 0.6, EAST.top, EAST.z0 - 0.4, 'Geheim!', { size: [1.4, 0.6] }),
-    { type: 'pilztrampolin', id: 'trampolin_h', pos: [-3, YF, -193.5], strength: 19 },
+    { type: 'pilztrampolin', id: 'trampolin_h', pos: [-3.4, YF, -193.5], strength: 19 },
     ...TRAPEZE.b.map((z, i) => ({ type: 'trapez', id: `tb${i + 1}`, pos: [0, YF + 6.2, z], length: 3, swing: 30, color: ['gold', 'rot', 'blau'][i] })),
 
     // =============================================================== Blaumünzen-Raum (abseits)
@@ -216,7 +216,7 @@ export const LEVEL = {
     // Riesentrank am Eingang der Gasse
     { kind: 'question', pos: [1, YD + 2.2, -104.5], content: 'riese' },
     // Extraleben: unsichtbarer Block über dem hohen Sims
-    { kind: 'hidden', pos: [LEDGE.x0 + 1.4, LEDGE.top + 3.1, -15], content: 'oneup' },
+    { kind: 'hidden', pos: [LEDGE.x0 + 1.4, LEDGE.top + 3.1, -19.2], content: 'oneup' },
     { kind: 'question', pos: [0, YF + 2.4, -143.5], content: 'wachstumsbeere' },
   ],
   enemies: [
@@ -245,7 +245,7 @@ export const LEVEL = {
     { kind: 'funkenling', id: 'fl1', block: { pos: [-3, YF, -161], size: [2, 1, 2] }, speed: 1.6 },
     { kind: 'funkenling', id: 'fl2', block: { pos: [3, YF, -161], size: [2, 1, 2] }, speed: 1.6, color: 'blau' },
     { kind: 'funkenling', id: 'fl3', path: [[-4.6, YF, -212.2], [4.6, YF, -212.2]], speed: 1.8, color: 'pink' },
-    { kind: 'funkenling', id: 'fl4', path: [[J.x0 + 0.6, YF, -238], [J.x1 - 0.6, YF, -238]], speed: 1.6 },
+    { kind: 'funkenling', id: 'fl4', path: [[J.x0 + 0.6, YF, -246.5], [J.x1 - 0.6, YF, -246.5]], speed: 1.6 },
   ],
   items: [
     // ---------------- 1
@@ -261,28 +261,28 @@ export const LEVEL = {
     line([0, YF + 0.6, F.z0 - 2], [0, YF + 0.6, F.z1 + 1], 4),
     ...DISCS.map((z) => ring([0, YF + 0.6, z], 2.2, 6)),
     ...arc([2, YF + 0.6, DISCS[1]], [EAST.x0 + 0.6, YF + 0.6, (EAST.z0 + EAST.z1) / 2], 4, 1.2),
-    ...column(-3, -193.5, YF + 2.6, YF + 6.6, 4),
+    ...column(-3.4, -193.5, YF + 2.6, YF + 6.6, 4),
     ...arc([0, YF + 3.6, TRAPEZE.b[0] - 1.5], [0, YF + 3.6, TRAPEZE.b[2] + 1.5], 6, 1.4),
     // Blaumünzen-Raum: Druckschalter → blaue Münzen (10 s) → Stern 1
-    { kind: 'pswitch', id: 'schalter_blau', pos: [(ROOM.x0 + ROOM.x1) / 2, YF, (ROOM.z0 + ROOM.z1) / 2 + 2], star: 1, time: 10,
-      coins: [[83, YF + 0.6, -173], [86, YF + 0.6, -179], [83, YF + 0.6, -184], [88, YF + 2.2, -184], [93, YF + 0.6, -184], [90, YF + 0.6, -179], [93, YF + 0.6, -173], [88, YF + 2.6, -179]] },
+    { kind: 'pswitch', id: 'schalter_blau', pos: [(ROOM.x0 + ROOM.x1) / 2, YF, (ROOM.z0 + ROOM.z1) / 2], star: 1, time: 10,
+      coins: Array.from({ length: 8 }, (_, i) => { const a = (i / 8) * Math.PI * 2; return [(ROOM.x0 + ROOM.x1) / 2 + Math.cos(a) * 4, YF + 0.6 + (i % 2) * 1.2, (ROOM.z0 + ROOM.z1) / 2 + Math.sin(a) * 4]; }) },
     // Stachelstangen auf den Naben der Drehscheiben (drehen gegen die Scheibe)
     ...DISCS.map((z, i) => ({ kind: 'stachelstange', id: `stange${i + 1}`, pos: [0, YF, z], height: 1.0, length: 2.7, arms: i === 1 ? 2 : 1, balls: 2, radius: 0.38, speed: i % 2 ? 1.1 : -1.1, angle: i * 1.3 })),
     // ---------------- 4 Finale: Sternring vor dem Ziel → Stern 2
-    { kind: 'starring', id: 'sternring', pos: [0, YF, -228], star: 2, time: 10, coins: { pos: [0, YF + 0.6, -234], r: 4, n: 8 } },
+    { kind: 'starring', id: 'sternring', pos: [0, YF, -228], star: 2, time: 10, coins: [[-1.8, -230.8], [1.8, -232.2], [-1.8, -233.6], [1.8, -235], [-1.8, -236.4], [1.8, -237.8], [-1.8, -239.2], [0, -240.6]].map(([x, z]) => [x, YF + 0.6, z]) },
     line([0, YF + 0.6, I.z0 - 1], [0, YF + 0.6, I.z1 + 1], 3),
   ],
   checkpoint: [{ pos: [0, YC, -84.5], yaw: Math.PI / 2 }, { pos: [0, YF, -144], yaw: Math.PI / 2 }],
   stars: [
     [(LEDGE.x0 + LEDGE.x1) / 2, LEDGE.top + 1.1, -17],                        // 0: hoher Sims (aus der Seilbahn)
-    { pos: [(ROOM.x0 + ROOM.x1) / 2, YF + 1.4, (ROOM.z0 + ROOM.z1) / 2 - 2], hidden: true, id: 'stern_blau' }, // 1: Blaumünzen-Raum
+    { pos: [(ROOM.x0 + ROOM.x1) / 2, YF + 2.2, (ROOM.z0 + ROOM.z1) / 2], hidden: true, id: 'stern_blau' }, // 1: Blaumünzen-Raum
     { pos: [0, YF + 1.4, -236], hidden: true, id: 'stern_ring' },              // 2: Sternring
   ],
   stamp: [(PERCH.x0 + PERCH.x1) / 2, PERCH.top + 1.2, (PERCH.z0 + PERCH.z1) / 2],
   goal: { pos: [0, YF, -244], height: 9 },
   marks: {
     start: [0, Y0, 8], ledge: [(LEDGE.x0 + LEDGE.x1) / 2, LEDGE.top, -17], p1: [0, Y1, -30], p2: [0, Y1, -56],
-    c: [0, YC, -84.5], gasse: [0, YD, -100], f: [0, YF, -144], g: [0, YF, -161], east: [9.5, YF, -178], h: [0, YF, -194],
-    perch: [-10.4, PERCH.top, -193.5], i: [0, YF, -214.5], j: [0, YF, -227], room: [84, YF, -172], goal: [0, YF, -242],
+    c: [0, YC, -84.5], gasse: [0, YD, -100], f: [0, YF, -144], g: [0, YF, -161], east: [8.2, YF, -177.25], h: [0, YF, -194],
+    perch: [-9, PERCH.top, -193.5], i: [0, YF, -214.5], j: [0, YF, -227], room: [84, YF, -172], goal: [0, YF, -242],
   },
 };
