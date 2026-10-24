@@ -135,7 +135,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
 const _v = new THREE.Vector3();
 const _p = new THREE.Vector3(), _s = new THREE.Vector3(), _sv = new THREE.Vector3();
-const _q = new THREE.Quaternion(), _qi = new THREE.Quaternion();
+const _q = new THREE.Quaternion(), _qi = new THREE.Quaternion(), _qt = new THREE.Quaternion();
 const _e = new THREE.Euler();
 
 /** Teil für mergeTinted: [Geometrie, Farbe, Matrix] aus Lage/Drehung/Skalierung. */
@@ -445,32 +445,45 @@ function braidLinkGeo(st, k, side) {
   });
 }
 
-/** Offenes langes Haar (Greta): Haarvorhang hinter Kopf und Rücken (Ursprung oben, hängt nach −Y), Spitzen mit Schwung. */
+/**
+ * Offenes langes Haar (Greta): runder, voller Haarschopf hinter Kopf und Rücken (Ursprung oben, hängt nach −Y). Querschnitt
+ * rund gewölbt (hinten voll, zum Rücken hin flach), über die Rückseite sieben Strähnen mit Rinnen, die nach unten tiefer
+ * werden, unten einzelne Spitzen verschieden lang mit Schwung nach hinten; Glanzband auf den Strähnen, Spitzen heller.
+ * Ein Mesh wie bisher (kein zusätzlicher Zeichenaufruf). Von hinten keine Platte mehr, im Salto ein Schopf statt einer Scheibe.
+ */
 const MANE_LEN = 0.74;
+const MANE_N = 7;                                      // Strähnen über die Rückseite
+const MANE_TIPS = [0.25, 0.6, 0.72, 1.0, 0.85, 0.48, 0.2];   // Länge der Spitzen je Strähne (Anteil; Mitte länger → runder Abschluss)
+/** Lage auf der Rückseite: across 0..1 (rechts → links), back 0..1 (Gewicht Rückseite), ridge 0 (Rinne) … 1 (Strähnenmitte). */
+function maneAt(th) {
+  const c = Math.cos(th), back = smoothstep((-c + 0.15) / 0.5);
+  const across = clamp((wrapAngle(th - Math.PI) + Math.PI / 2) / Math.PI, 0, 1);
+  const ridge = Math.pow(Math.abs(Math.sin(Math.PI * MANE_N * across)), 0.6);
+  return { c, back, across, ridge, k: Math.min(MANE_N - 1, Math.floor(across * MANE_N)) };
+}
 function maneGeo(st) {
-  return geo(`hero:mane:${st.hair}`, () => {
+  return geo(`hero:mane2:${st.hair}`, () => {
     const base = col3(st.hair), tip = col3(st.hairTip), dk = col3(st.hairDark);
-    // oberes Fünftel steckt in der Haarschale (Hinterkopf), darunter ein Haarvorhang: Rückseite bündig mit der Schale,
-    // Vorderseite hinter dem Rücken, unten gewellte Spitzen mit Schwung nach hinten
-    const env = (v) => Math.pow(Math.sin((Math.PI / 2) * Math.min(1, v / 0.3)), 0.6) * (v > 0.86 ? Math.sqrt(Math.max(0, 1 - ((v - 0.86) / 0.14) ** 2)) : 1);
+    // oberes Drittel steckt in der Haarschale (Hinterkopf), darunter fällt der Schopf über den Rücken
+    const env = (v) => Math.pow(Math.sin((Math.PI / 2) * Math.min(1, v / 0.3)), 0.6) * (v > 0.84 ? Math.sqrt(Math.max(0, 1 - ((v - 0.84) / 0.16) ** 2)) : 1);
     return gridGeo({
-      nu: 22, nv: 12, flip: true,
+      nu: 56, nv: 16, flip: true,
       point: (u, v, out) => {
-        const th = u * TAU, e = env(v), sz = Math.sin(th);
-        // drei große Locken unten (Spitzen verschieden lang), leicht glockig, Rücken gewölbt
-        const lock = 0.5 + 0.5 * Math.cos(3 * Math.PI * sz);
-        const wz = (0.335 - 0.035 * v * v + 0.025 * Math.sin(Math.PI * v)) * (1 + 0.04 * lock * smoothstep((v - 0.6) / 0.3)) * e;
-        const wx = (0.085 + 0.025 * Math.sin(Math.PI * v)) * e;
-        const curl = smoothstep((v - 0.78) / 0.22);
-        const cx = -0.13 - 0.04 * v - 0.05 * curl;
-        const y = -MANE_LEN * v * (1 + 0.07 * lock * smoothstep((v - 0.7) / 0.3)) + 0.035 * curl;
-        return out.set(cx + wx * Math.cos(th), y, wz * sz);
+        const th = u * TAU, m = maneAt(th), e = env(v), sz = Math.sin(th);
+        const low = smoothstep((v - 0.45) / 0.45), curl = smoothstep((v - 0.76) / 0.24);
+        const rmod = 1 + (0.06 + 0.1 * low) * (m.ridge - 0.6) * m.back;
+        const wz = (0.3 - 0.11 * v * v + 0.02 * Math.sin(Math.PI * v)) * e * rmod;
+        const wx = (m.c < 0 ? 0.12 + 0.03 * Math.sin(Math.PI * v) : 0.06) * e * rmod;
+        const cx = -0.15 - 0.03 * v - 0.05 * curl;
+        const tipY = 0.1 * MANE_TIPS[m.k] * m.ridge * m.back * smoothstep((v - 0.68) / 0.32);
+        const y = -MANE_LEN * v - tipY + 0.035 * curl;
+        return out.set(cx + wx * m.c - 0.3 * tipY * curl, y, wz * sz);
       },
       color: (u, v) => {
-        const th = u * TAU, g = Math.pow(0.5 + 0.5 * Math.cos(3 * Math.PI * Math.sin(th) + Math.PI), 3);
-        const c = base.clone().lerp(dk, 0.22 * g * smoothstep((v - 0.3) / 0.4) + 0.15 * smoothstep((Math.cos(th) + 0.2) / 0.8));
-        const band = Math.exp(-(((v - 0.36) / 0.08) ** 2)) * smoothstep((-Math.cos(th) - 0.2) / 0.6) * (1 - 0.7 * g);
-        return c.lerp(tip, Math.max(0.3 * band, 0.6 * smoothstep((v - 0.78) / 0.2)));
+        const m = maneAt(u * TAU);
+        const c = base.clone().lerp(dk, (0.38 * (1 - m.ridge) * (0.5 + 0.5 * smoothstep((v - 0.25) / 0.4)) + 0.12) * m.back + 0.2 * (1 - m.back));
+        const band = Math.exp(-(((v - 0.4) / 0.09) ** 2)) * m.back * m.ridge;
+        return c.lerp(tip, Math.max(0.45 * band, 0.6 * smoothstep((v - 0.76) / 0.2)) + 0.12 * m.ridge * m.back);
       },
     });
   });
@@ -1397,8 +1410,9 @@ export class HeroAvatar extends Avatar3D {
     this.glow = new RainbowGlow(this.model, { intensity: 0.32, flicker: 0.14 });
     if (this.mane) {
       // Gretas offenes Haar im Kurs-Modus physikalisch: ein Pendelglied in Weltkoordinaten (Saltos, Kopfüberlagen),
-      // Grenzkegel im Kopf-System: nach hinten weit, nach vorn kaum (nie ins Gesicht), seitlich mäßig
-      this.maneChain = new HangChain([0.42], { gravity: 32, drag: 0.5, damping: 5, stiffness: 22, rootCone: { back: 1.5, front: 0.12, out: 0.4, inward: 0.4 } });
+      // Grenzkegel im Rumpf-System (das Haar liegt auf dem Rücken, auch wenn der Kopf nickt): nach hinten bis ≈ 66° (fliegt
+      // bei Saltos nicht mehr waagerecht hinaus), nach vorn kaum (nie in den Rücken), seitlich mäßig
+      this.maneChain = new HangChain([0.42], { gravity: 32, drag: 0.5, damping: 5, stiffness: 28, rootCone: { back: 1.15, front: 0.12, out: 0.4, inward: 0.4 } });
       this.maneRest = V(-0.13, -1, 0).normalize();
     }
     this.ensureW3Rig();
@@ -1649,6 +1663,7 @@ export class HeroAvatar extends Avatar3D {
       this.head.updateWorldMatrix(true, false);
       this.head.matrixWorld.decompose(_p, _q, _s);
       _p.copy(this.mane.position).applyMatrix4(this.head.matrixWorld).multiplyScalar(this.chainUnits());
+      this.torso.getWorldQuaternion(_q);
       this.maneChain.rest[0].copy(this.maneRest).applyQuaternion(_q);
       this.maneChain.reset(_p);
     }
@@ -1732,14 +1747,22 @@ export class HeroAvatar extends Avatar3D {
     this.model.scale.set(1 + 0.5 * p.sq, 1 - p.sq, 1 + 0.5 * p.sq);
   }
 
-  /** Gretas Haar (Kurs-Modus): Pendel in Weltkoordinaten, Ausrichtung im Kopf-System; Strähnen folgen halb. */
+  /**
+   * Gretas Haar (Kurs-Modus): Pendel in Weltkoordinaten; Grenzkegel und Ruhelage im Rumpf-System (langes Haar fällt auf den
+   * Rücken, auch wenn der Kopf in den Nacken geht – Weitsprung, Kanonenflug), Ausrichtung des Meshes im Kopf-System;
+   * Strähnen folgen halb.
+   */
   updateMane(dt) {
     const ch = this.maneChain;
     this.head.updateWorldMatrix(true, false);
     this.head.matrixWorld.decompose(_p, _q, _s);
     _p.copy(this.mane.position).applyMatrix4(this.head.matrixWorld).multiplyScalar(this.chainUnits());
-    ch.frame.copy(_q);
-    ch.rest[0].copy(this.maneRestCur ?? this.maneRest).applyQuaternion(_q);
+    this.torso.getWorldQuaternion(_qt);
+    ch.frame.copy(_qt);
+    // Saltos (Drehkanäle aktiv): Haar bleibt enger am Rücken, statt waagerecht hinauszufliegen
+    const S = this.spinSet, spin = !!S && (S.x !== null || S.z !== null);
+    ch.rootCone.back = spin ? 0.6 : 1.15; ch.stiffness = spin ? 60 : 28;
+    ch.rest[0].copy(this.maneRestCur ?? this.maneRest).applyQuaternion(_qt);
     ch.update(_p, dt);
     _qi.copy(_q).invert();
     _v.copy(ch.dirs[0]).applyQuaternion(_qi);
