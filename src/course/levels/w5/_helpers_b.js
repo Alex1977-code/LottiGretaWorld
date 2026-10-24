@@ -412,7 +412,7 @@ const FACES = {
 function houseFacade(b, g, h, i) {
   const F = FACES[h.face ?? '+z'];
   const [cx, cy, cz] = h.at;
-  const W = h.w ?? 3.4, H = h.h ?? 4, D = 0.5;
+  const W = h.w ?? 3.4, H = h.h ?? 4, D = h.depth ?? 0.5;
   const col = h.color ?? GASSE.plaster[i % GASSE.plaster.length];
   const roof = h.roof ?? GASSE.roof[i % GASSE.roof.length];
   // lokale Koordinaten: u entlang der Fassade, v hoch, n aus der Wand heraus
@@ -943,5 +943,118 @@ export function liftShaft(level, x0, x1, zA, zB, y0, y1, o = {}) {
     b.box(alongZ ? th * 0.5 : len, 0.08, alongZ ? len : th * 0.5, px, y0 + h, pz, litTop(0x8a86b0), { r: 0 });
   }
   b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Spitzdach (vierseitige Pyramide mit Schindelreihen, Spitze mit goldener Kugel und Wimpel) über x0..x1 × zA..zB ab Höhe
+ * y. o: { h (Dachhöhe, 2,8), color, flag }.
+ */
+export function pyramidRoof(level, x0, x1, zA, zB, y, o = {}) {
+  if (!level.view) return;
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, w = x1 - x0 + 0.5, d = z0 - z1 + 0.5, H = o.h ?? 2.8;
+  const b = new Bld(), g = new Bld();
+  const col = o.color ?? 0x7a4aff;
+  // Pyramide aus 4 Seiten (Kegel mit 4 Segmenten, um 45° gedreht und auf w × d gestreckt)
+  const geo = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 4);
+  geo.rotateY(Math.PI / 4);
+  geo.scale(w, H, d);
+  b.add(geo, (x, yy, z, nx, ny, nz) => {
+    const band = Math.floor((yy + H / 2) / 0.45) % 2;
+    return new THREE.Color(col).multiplyScalar(band ? 0.82 : 1.05);
+  }, { p: [cx, y + H / 2, cz] });
+  b.box(w + 0.1, 0.22, d + 0.1, cx, y - 0.12, cz, litTop(0xb0b8e0), { r: 0.04 });
+  g.sphere(0.22, cx, y + H + 0.18, cz, 0xffd24a, { ws: 8, hs: 6 });
+  b.cyl(0.04, 0.04, 1.4, cx, y + H + 0.3, cz, 0x5a4a3a, 5);
+  if (o.flag !== false) {
+    const fl = new THREE.Shape();
+    fl.moveTo(0, 0); fl.lineTo(0.9, -0.22); fl.lineTo(0, -0.5);
+    b.add(new THREE.ShapeGeometry(fl), o.flagColor ?? 0xff5a8a, { p: [cx + 0.04, y + H + 1.68, cz] });
+  }
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Kleinkram für Plätze (statisch): Bänke ('bank'), Blumenkübel mit leuchtenden Blüten ('kuebel'), Kristallkarren
+ * ('karren'), Wegweiser ('weiser'). list: [{ kind, pos: [x, y, z], yaw }].
+ */
+export function plazaProps(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  for (const it of list) {
+    const [x, y, z] = it.pos, yaw = it.yaw ?? 0, c = Math.cos(yaw), sn = Math.sin(yaw);
+    const P = (u, n) => [x + c * u + sn * n, z - sn * u + c * n];
+    if (it.kind === 'bank') {
+      for (const u of [-0.7, 0.7]) { const [px, pz] = P(u, 0); b.box(0.12, 0.42, 0.42, px, y, pz, litTop(0x3a3a58), { yaw, r: 0 }); }
+      const [sx, sz] = P(0, 0); b.box(1.7, 0.08, 0.5, sx, y + 0.42, sz, litTop(GASSE.wood), { yaw, r: 0.02 });
+      const [bx2, bz2] = P(0, -0.24); b.box(1.7, 0.42, 0.07, bx2, y + 0.56, bz2, litTop(GASSE.wood), { yaw, r: 0.02 });
+    } else if (it.kind === 'kuebel') {
+      b.cyl(0.36, 0.28, 0.5, x, y, z, litTop(it.color ?? 0x8a5aff), 10);
+      b.sphere(0.34, x, y + 0.55, z, litTop(0x3a8a5a), { s: [1, 0.6, 1], ws: 8, hs: 5 });
+      for (let k = 0; k < 5; k++) g.sphere(0.07, x + Math.cos(k * 1.26) * 0.22, y + 0.72, z + Math.sin(k * 1.26) * 0.22, GASSE.flower[k % 4], { ws: 5, hs: 3 });
+    } else if (it.kind === 'karren') {
+      const [cx2, cz2] = P(0, 0);
+      b.box(1.5, 0.5, 0.9, cx2, y + 0.4, cz2, litTop(GASSE.wood, 0.7), { yaw, r: 0.04 });
+      for (const u of [-0.5, 0.5]) for (const n of [-0.48, 0.48]) { const [wx, wz] = P(u, n); b.cyl(0.3, 0.3, 0.08, wx, y + 0.3, wz, litTop(0x3a3a58), 10, { rx: Math.abs(sn) > 0.5 ? 0 : Math.PI / 2, rz: Math.abs(sn) > 0.5 ? Math.PI / 2 : 0 }); }
+      for (let k = 0; k < 6; k++) { const [kx, kz] = P(-0.5 + (k % 3) * 0.5, (k > 2 ? 0.2 : -0.2)); g.cone(0.12, 0.45 + (k % 2) * 0.2, kx, y + 0.9, kz, [0x7ad8ff, 0xff8ad8, 0xb08aff][k % 3], 5); }
+    } else if (it.kind === 'weiser') {
+      b.cyl(0.07, 0.08, 2.2, x, y, z, litTop(GASSE.woodDark), 6);
+      for (const [k, a] of [[0, 0.4], [1, -0.9], [2, 2.2]]) {
+        const [ax, az] = [x + Math.cos(a + yaw) * 0.45, z - Math.sin(a + yaw) * 0.45];
+        b.box(0.95, 0.22, 0.05, ax, y + 1.4 + k * 0.3, az, litTop([0xf0dcb0, 0xb8e0ff, 0xffc8e0][k]), { yaw: a + yaw, r: 0.03 });
+      }
+    }
+  }
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Höhlenausgang hinter dem Ziel: runde Öffnung in der Felswand mit warmem Tageslicht (Glüh-Scheibe mit Strahlen),
+ * Felsbogen ringsum. pos = Mitte unten in der Wandebene, face '+z'. o: { r (2,2) }.
+ */
+export function caveExit(level, pos, o = {}) {
+  if (!level.view) return;
+  const [x, y, z] = pos, R = o.r ?? 2.2;
+  const b = new Bld(), g = new Bld();
+  g.cyl(R, R, 0.06, x, y + R, z + 0.04, gradY(0xd88a3a, 0xffc86a, y, y + 2 * R), 24, { rx: Math.PI / 2 });
+  g.cyl(R * 0.7, R * 0.7, 0.06, x, y + R, z + 0.06, gradY(0xffd88a, 0xfff0c0, y, y + 2 * R), 20, { rx: Math.PI / 2 });
+  // Silhouette der Außenwelt: grüne Hügel unten in der Öffnung
+  g.sphere(R * 0.55, x - R * 0.3, y + 0.1, z + 0.08, 0x5ac85a, { s: [1, 0.55, 0.05], ws: 12, hs: 6 });
+  g.sphere(R * 0.45, x + R * 0.35, y + 0.05, z + 0.09, 0x48b048, { s: [1, 0.6, 0.05], ws: 12, hs: 6 });
+  for (let k = 0; k < 14; k++) {
+    const a = (k / 14) * Math.PI, rr = R + 0.25;
+    b.box(0.7, 0.55, 0.6, x + Math.cos(a) * rr, y + R + Math.sin(a) * rr - 0.27, z + 0.3, litTop(k % 2 ? 0x8a86b0 : 0x6a6496), { rz: a - Math.PI / 2, r: 0.08 });
+  }
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+  glowPoints(level, [[x, y + R, z + 0.6, 1]], { color: 0xffd090, size: R * 2.6, opacity: 0.35, pulse: 0.2 });
+}
+
+/**
+ * Bogenfenster an einer Wandfläche (flach, ohne Kollision): Rahmen, leuchtende Scheibe mit Sprossen, Fensterbank.
+ * list: [{ at: Mitte unten [x, y, z], face: '+x' | '-x' | '+z', w: 0.8, h: 1.1, lit: true, color }].
+ */
+export function wallWindows(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  for (const wdw of list) {
+    const F = FACES[wdw.face ?? '+z'];
+    const [cx, cy, cz] = wdw.at, W = wdw.w ?? 0.8, H = wdw.h ?? 1.1;
+    const P = (u, v, n) => [cx + F.ux * u + F.nx * n, cy + v, cz + F.uz * u + F.nz * n];
+    const bx = (wu, hv, dn, u, v, n, c, glow) => { const [x, y, z] = P(u, v, n); (glow ? g : b).box(F.nx ? dn : wu, hv, F.nx ? wu : dn, x, y, z, c, { r: 0 }); };
+    const pane = wdw.lit === false ? 0x2a2a4a : (wdw.color ?? GASSE.window);
+    bx(W, H, 0.04, 0, 0, 0.02, pane, wdw.lit !== false);
+    const [ax, ay, az] = P(0, H, 0.03);
+    (wdw.lit === false ? b : g).cyl(W / 2, W / 2, 0.04, ax, ay - 0.02, az, pane, 12, { rx: F.nx ? 0 : Math.PI / 2, rz: F.nx ? Math.PI / 2 : 0 });
+    bx(W + 0.16, 0.1, 0.16, 0, -0.08, 0.08, litTop(0xe8e8ff));
+    bx(0.08, H, 0.08, -W / 2 - 0.04, 0, 0.05, litTop(0xe8e8ff));
+    bx(0.08, H, 0.08, W / 2 + 0.04, 0, 0.05, litTop(0xe8e8ff));
+    bx(0.05, H + W / 2 - 0.05, 0.06, 0, 0, 0.06, litTop(0xe8e8ff));
+    bx(W, 0.05, 0.06, 0, H * 0.55, 0.06, litTop(0xe8e8ff));
+  }
+  b.flush(level, { castShadow: false });
   g.flush(level, { material: 'glow', castShadow: false });
 }

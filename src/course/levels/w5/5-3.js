@@ -19,8 +19,8 @@
 // Pilzling 2, Glutball 2.
 
 import {
-  isl, line, ring, arc, crackTile, fruitCrystal, caveWall, caveHouses, streetLamps, mushroomLamps, stalactites, laundry,
-  bats, blueFalls, marketStalls, glowFountain, paving, sparksUp, blueLavaSea, fairyLights, parapet, liftShaft, Bld, litTop, GASSE,
+  isl, line, ring, arc, crackTile, fruitCrystal, caveWall, caveHouses, streetLamps, mushroomLamps, laundry,
+  bats, blueFalls, marketStalls, glowFountain, paving, sparksUp, blueLavaSea, fairyLights, parapet, liftShaft, pyramidRoof, plazaProps, caveExit, wallWindows, Bld, litTop, GASSE,
 } from './_helpers_b.js';
 
 const Y = 1;              // Gassen (Oberseite)
@@ -93,8 +93,41 @@ function scene(level) {
     { at: [X1, Y, -23], face: '-x', w: 4.2, h: 3.8, shop: 'laterne' },
     { at: [-2.6, Y, NWALL.z], face: '+z', w: 3.6, h: 4.2, shop: 'kristall' },
     { at: [3.4, Y, NWALL.z], face: '+z', w: 4.0, h: 4.6, balcony: true },
-    { at: [11.4, Y, NWALL.z], face: '+z', w: 3.0, h: 3.6, door: false, windows: 2 },
   ]);
+  pyramidRoof(level, TOWER.x0, TOWER.x1, TOWER.back, TOWER.z1, TOWER.clock, { h: 2.1, color: 0x8a4aff, flagColor: 0xff5a8a });
+  wallWindows(level, [
+    { at: [TOWER.x1, Y + 1.2, (TOWER.z0 + TOWER.back) / 2], face: '+x', w: 0.9, h: 1.2 },
+    { at: [TOWER.x1, TOWER.top + 0.8, (TOWER.back + TOWER.z1) / 2], face: '+x', w: 0.8, h: 1.0, color: GASSE.windowBlue },
+    { at: [TOWER.x0, TOWER.top + 0.8, (TOWER.back + TOWER.z1) / 2], face: '-x', w: 0.8, h: 1.0 },
+  ]);
+  // Oberstadt auf der Felsterrasse (Häuser an der Rückwand)
+  caveHouses(level, [
+    { at: [-12.2, NWALL.ledge, NWALL.lz1], face: '+z', w: 3.2, h: 3.2, color: 0xffd0a0, roof: 0x3a6aff },
+    { at: [-7.0, NWALL.ledge, NWALL.lz1], face: '+z', w: 2.8, h: 3.0, door: false, windows: 2, color: 0xb8f0a0, roof: 0xff5a7a },
+  ]);
+  plazaProps(level, [
+    { kind: 'kuebel', pos: [TOWER.x0 + 0.45, TOWER.top, TOWER.back + 0.45], color: 0xff7ac0 },
+    { kind: 'kuebel', pos: [TOWER.x1 - 0.45, TOWER.top, TOWER.back + 0.45], color: 0x6ac8ff },
+    { kind: 'bank', pos: [-7.6, Y, 7.8], yaw: 0 }, { kind: 'bank', pos: [7.4, Y, 2.0], yaw: Math.PI },
+    { kind: 'kuebel', pos: [-5.4, Y, 8.4] }, { kind: 'kuebel', pos: [5.4, Y, 8.4], color: 0x6ac8ff }, { kind: 'kuebel', pos: [X1 - 0.8, Y, 1.9], color: 0xff7ac0 },
+    { kind: 'karren', pos: [4.6, Y, 5.6], yaw: 0.3 }, { kind: 'weiser', pos: [WA + 0.8, Y, 2.0], yaw: 0.2 },
+    { kind: 'kuebel', pos: [-9.6, NWALL.ledge, -36.8], color: 0xff7ac0 }, { kind: 'kuebel', pos: [-5.9, NWALL.ledge, -36.4], color: 0x6ac8ff },
+    { kind: 'kuebel', pos: [13.2, ROOF.top, -9.2], color: 0xffd24a }, { kind: 'kuebel', pos: [13.2, ROOF.top, -12.8], color: 0xff7ac0 },
+  ]);
+  paving(level, NWALL.lx0, NWALL.lx1, NWALL.z, NWALL.lz1, NWALL.ledge + 0.02, { colors: [0x9a8ac0, 0x8a7ab0, 0xa898cc] });
+  paving(level, TOWER.x0, TOWER.x1, TOWER.z0, TOWER.back, TOWER.top + 0.02, { colors: [0xb8a0d8, 0xa890c8, 0xc8b0e8] });
+  paving(level, ROOF.x0, ROOF.x1, ROOF.z0, ROOF.z1, ROOF.top + 0.02, { colors: [0xc89878, 0xb88868, 0xd8a888] });
+  parapet(level, LIFT4.x1, NWALL.lx1, NWALL.z, NWALL.z - 0.3, NWALL.ledge, 0.7);
+  caveExit(level, [10.8, Y, NWALL.z], { r: 1.9 });
+  // Kristallgruppen auf den Felswänden (sieht man von der Terrasse und vom Uhrturm)
+  const cr = new Bld();
+  for (const [x, y, z, n] of [[-1, NWALL.top, -38.5, 5], [5, NWALL.top, -39.5, 4], [11, NWALL.top, -38, 6], [16, NWALL.top, -36, 3], [X0 - 2, SIDE, -20, 4], [X1 + 2, SIDE, -24, 4], [X0 - 2.5, SIDE, 2, 3], [X1 + 2.2, SIDE, 4, 5]]) {
+    for (let k = 0; k < n; k++) {
+      const a = k * 2.4 + x, rr = 0.3 + (k % 3) * 0.35;
+      cr.cone(0.22 + (k % 2) * 0.12, 0.9 + (k % 3) * 0.6, x + Math.cos(a) * rr, y, z + Math.sin(a) * rr, [0x7ad8ff, 0xb08aff, 0xff8ad8][k % 3], 5, { rx: Math.sin(a) * 0.3, rz: Math.cos(a) * 0.3 });
+    }
+  }
+  cr.flush(level, { material: 'glow', castShadow: false });
   clockFace(level, [(TOWER.x0 + TOWER.x1) / 2, (TOWER.top + TOWER.clock) / 2 + 0.2, TOWER.back + 0.02]);
 
   // ---------------------------------------------------------------- Pflaster, Brunnen, Marktstände
@@ -106,7 +139,7 @@ function scene(level) {
   glowFountain(level, FOUNT, { r: 1.15 });
   marketStalls(level, [
     { pos: [X0 + 1.3, Y, -3.4], yaw: Math.PI / 2, w: 2.2, colors: [0x6ac8ff, 0xffffff] },
-    { pos: [X1 - 1.3, Y, -11.4], yaw: -Math.PI / 2, w: 2.2, colors: [0xff7ac0, 0xffffff] },
+    { pos: [X1 - 1.3, Y, -14.8], yaw: -Math.PI / 2, w: 2.2, colors: [0xff7ac0, 0xffffff] },
     { pos: [6.6, Y, -32.8], yaw: 0, w: 2.4, colors: [0xffd24a, 0x8a5aff] },
   ]);
   streetLamps(level, [[WA + 0.5, Y, 1.4], [6.6, Y, 7.6], [WA + 0.4, Y, -13.6], [EA - 0.4, Y, -6.6], [EA - 0.4, Y, -24.4], [6.4, Y, -27.0], [12.6, Y, -29], [4, Y, -9.2], [X0 + 0.6, Y, -27]]);
@@ -130,11 +163,7 @@ function scene(level) {
     props.box(s + 0.02, 0.08, s + 0.02, x, Y + s * 0.45, z, litTop(0x6a4a2a), { yaw, r: 0 });
   }
   props.flush(level);
-  // Tropfsteine unter der Decke, Lavafälle an der Nordwand
-  stalactites(level, [
-    [-9, 15, 4, 3], [-4, 16, -4, 4], [5, 15.5, 2, 3.4], [9, 16, -12, 4.2], [-8, 16, -18, 3.6], [0, 17, -22, 5], [6, 16, -28, 3.8],
-    [-6, 16, -30, 3], [10, 15, 6, 2.8], [-1, 16, 6, 3.2], [3, 15.5, -14, 3.6],
-  ]);
+  // Lavafälle an der Nordwand
   blueFalls(level, [
     { pos: [15.5, LAVA, -38], width: 2.2, height: 12.6, face: '+z' },
     { pos: [-16, LAVA, -38], width: 1.6, height: 12.6, face: '+z' },
