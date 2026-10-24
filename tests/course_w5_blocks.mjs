@@ -94,6 +94,7 @@ async function shot(name, wait = 1500) {
   await freshFrames();
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
+  if (process.env.W5B_DEBUG) console.log('  [Bild]', name, JSON.stringify(await sc(() => { const c = window.__course, p = c.player, cam = c.view.camera.position, tg = c.view.rig.target, f = (v) => [v.x, v.y, v.z].map((x) => +x.toFixed(2)); return { p: f(p.pos), mode: p.mode, state: p.state, dead: p.dead, cam: f(cam), tg: f(tg), rig: c.level.archetype?.useRig, camYaw: p.camYaw }; })));
   try { await page.screenshot({ path: `${OUT}w5b_${name}.png`, timeout: 120000 }); } catch (err) { console.log(`  (Bild ${name} übersprungen: ${err.message.split('\n')[0]})`); }
 }
 
@@ -352,6 +353,8 @@ console.log('Strandwerkstatt 0-17');
   const ck = await sc(() => { const t = window.__t, c = window.__course, h = t.named('kanone'); c.setInput({ crouch: true }); t.tick(2); c.setInput({}); t.tick(60); return { state: h.state, mode: c.player.mode }; });
   check('Röhrenkanone: auf der Öffnung ducken lädt ebenfalls', ck.state !== 'idle' && ck.mode === 'script');
   await sc(() => { const t = window.__t, c = window.__course; for (let i = 0; i < 4 * 120 && c.player.mode === 'script'; i++) t.tick(1); });
+  await T('place', marks.kanone, { settle: 4 });
+  await shot('kanone', 900);
 }
 
 // ---------------------------------------------------------------- Rot-Blau-Flipper

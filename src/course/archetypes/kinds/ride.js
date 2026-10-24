@@ -170,7 +170,12 @@ class RideArchetype {
       this.cam.update(dt, player);
       return true;
     }
-    if (!this.useRig) { this.cam.handOver(this.view.rig); this.useRig = true; }
+    if (!this.useRig) {
+      // Übergabe an die Kameraschiene nur, wenn die Ritt-Kamera noch bei der Figur ist (nach Teleport/snapCamera ohne
+      // gezeichnete Bilder behält die Schiene ihr eigenes Ziel)
+      if (this.cam.target.distanceTo(player.pos) < 14) this.cam.handOver(this.view.rig);
+      this.useRig = true;
+    }
     return false;
   }
 

@@ -17,7 +17,7 @@ export const SAVANNA_THEME = {
   clouds: true,
   backdrop: 'savanna',
   ground: { color: 0xd8a858, y: -22 },
-  grassTop: 0xc8c050, grassTop2: 0xb8b046, grassRim: 0xe8e08a, grassSide: 0x8a9a38,
+  grassTop: 0xe0c060, grassTop2: 0xd4b452, grassRim: 0xf4e09a, grassSide: 0xa89a40,
   dirt: 0xc8743e, dirtDeep: 0x8a4a26, rock: 0xb87a50, rockDeep: 0x7a4a2a,
   checker: false,
   stone: 0xf0d8b0, stoneDark: 0xc0986a,

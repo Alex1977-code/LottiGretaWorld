@@ -28,6 +28,7 @@ import { bakeModel } from '../w2kit.js';
 import { hasModel } from '../../models/index.js';
 
 const C = (h) => lin(hex(h));
+const ni = (g) => (g.index ? g.toNonIndexed() : g);   // nur indizierte Geometrie umwandeln (keine three-Warnung)
 const range = (v, d) => (Array.isArray(v) ? v : [v ?? d[0], v ?? d[1]]);
 const fill = (g, col) => colorize(g.index ? g.toNonIndexed() : g, (p, n, o) => { o[0] = col[0]; o[1] = col[1]; o[2] = col[2]; });
 const shadeY = (g, lo, hi, a = -0.6, b = 0.8) => colorize(g.index ? g.toNonIndexed() : g, (p, n, o) => mixc(lo, hi, smooth(a, b, n.y * 0.7 - n.x * 0.25 + n.z * 0.25), o));
@@ -69,7 +70,7 @@ function palme(level, it, p, rnd, parts) {
     const dir = new THREE.Vector3(b.x - a.x, b.y - a.y, b.z - a.z).normalize();
     g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir));
     g.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
-    parts.push(colorize(g.toNonIndexed(), (q, n, o) => mixc(TRUNK_D, TRUNK, (Math.floor((q.y - p.y) * 3.3) & 1) * 0.6 + 0.2, o)));
+    parts.push(colorize(ni(g), (q, n, o) => mixc(TRUNK_D, TRUNK, (Math.floor((q.y - p.y) * 3.3) & 1) * 0.6 + 0.2, o)));
     tip = b;
   }
   // Wedel: 7 gebogene, flache Blätter
@@ -86,7 +87,7 @@ function palme(level, it, p, rnd, parts) {
     }
     g.rotateY(-a);
     g.translate(tip.x, tip.y, tip.z);
-    parts.push(colorize(g.toNonIndexed(), (q, n, o) => mixc(FROND_D, FROND, 0.4 + 0.6 * smooth(-0.2, 1, n.y), o)));
+    parts.push(colorize(ni(g), (q, n, o) => mixc(FROND_D, FROND, 0.4 + 0.6 * smooth(-0.2, 1, n.y), o)));
     const g2 = g.clone(); g2.translate(0, -0.02, 0);
   }
   const nut = new THREE.SphereGeometry(0.22, 6, 5);
@@ -96,7 +97,7 @@ function palme(level, it, p, rnd, parts) {
 
 function sandburg(level, it, p, rnd, parts) {
   const s = it.size ?? 2;
-  const sh = (g) => colorize(g.toNonIndexed(), (q, n, o) => mixc(SAND_D, SAND, smooth(-0.6, 0.8, n.y + (Math.sin(q.x * 9) + Math.cos(q.z * 8)) * 0.08), o));
+  const sh = (g) => colorize(ni(g), (q, n, o) => mixc(SAND_D, SAND, smooth(-0.6, 0.8, n.y + (Math.sin(q.x * 9) + Math.cos(q.z * 8)) * 0.08), o));
   parts.push(sh(at(new THREE.CylinderGeometry(s * 0.55, s * 0.62, s * 0.5, 10), p.x, p.y + s * 0.25, p.z)));
   parts.push(sh(at(new THREE.BoxGeometry(s * 0.7, s * 0.4, s * 0.7), p.x, p.y + s * 0.7, p.z)));
   for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
@@ -111,7 +112,7 @@ function sandburg(level, it, p, rnd, parts) {
 function sandskulptur(level, it, p, rnd, parts) {
   // Pilzling aus Sand: Stiel mit Gesicht, großer Hut mit Tupfen (Bauplan 5-1 „Pilzlings-Sandskulpturen“)
   const s = it.size ?? 1.5, yaw = it.yaw ?? Math.PI / 2;
-  const sh = (g) => colorize(g.toNonIndexed(), (q, n, o) => mixc(SAND_D, SAND_L, smooth(-0.6, 0.9, n.y + Math.sin(q.x * 11 + q.z * 7) * 0.06), o));
+  const sh = (g) => colorize(ni(g), (q, n, o) => mixc(SAND_D, SAND_L, smooth(-0.6, 0.9, n.y + Math.sin(q.x * 11 + q.z * 7) * 0.06), o));
   parts.push(sh(at(new THREE.CylinderGeometry(s * 0.6, s * 0.7, s * 0.25, 12), p.x, p.y + s * 0.12, p.z)));
   parts.push(sh(at(new THREE.CylinderGeometry(s * 0.3, s * 0.36, s * 0.55, 10), p.x, p.y + s * 0.52, p.z)));
   const cap = new THREE.SphereGeometry(s * 0.55, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2);
@@ -158,7 +159,7 @@ function sonnenschirm(level, it, p, rnd, parts) {
   const [a, b] = (UMBRELLA[it.color] ?? UMBRELLA.rot).map(C);
   parts.push(fill(at(new THREE.CylinderGeometry(0.05, 0.05, H, 6), p.x, p.y + H / 2, p.z), C(0xf4f0e8)));
   const top = new THREE.ConeGeometry(1.4, 0.55, 12, 1, true);
-  parts.push(colorize(at(top, p.x, p.y + H, p.z).toNonIndexed(), (q, n, o) => { const k = Math.floor(((Math.atan2(q.z - p.z, q.x - p.x) + Math.PI) / (Math.PI * 2)) * 12) & 1; const c = k ? a : b; o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
+  parts.push(colorize(ni(at(top, p.x, p.y + H, p.z)), (q, n, o) => { const k = Math.floor(((Math.atan2(q.z - p.z, q.x - p.x) + Math.PI) / (Math.PI * 2)) * 12) & 1; const c = k ? a : b; o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
   parts.push(fill(at(new THREE.SphereGeometry(0.08, 6, 4), p.x, p.y + H + 0.3, p.z), b));
 }
 
@@ -167,7 +168,7 @@ function liegestuhl(level, it, p, rnd, parts) {
   const [a, b] = (UMBRELLA[it.color] ?? UMBRELLA.blau).map(C);
   const g1 = new THREE.BoxGeometry(1.2, 0.05, 0.6); g1.rotateZ(0.12); g1.translate(0.1, 0.35, 0);
   const g2 = new THREE.BoxGeometry(0.8, 0.05, 0.6); g2.rotateZ(1.0); g2.translate(-0.65, 0.6, 0);
-  for (const g of [g1, g2]) parts.push(colorize(at(g, p.x, p.y, p.z, yaw).toNonIndexed(), (q, n, o) => { const k = Math.floor((q.x + q.z) * 6) & 1; const c = k ? a : b; o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
+  for (const g of [g1, g2]) parts.push(colorize(ni(at(g, p.x, p.y, p.z, yaw)), (q, n, o) => { const k = Math.floor((q.x + q.z) * 6) & 1; const c = k ? a : b; o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
   for (const [dx, dz] of [[0.55, 0.28], [0.55, -0.28], [-0.4, 0.28], [-0.4, -0.28]]) parts.push(fill(at(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 4), dx, 0.2, dz).rotateY(yaw).translate(p.x, p.y, p.z), C(0xd8b888)));
 }
 
@@ -176,7 +177,7 @@ function strandball(level, it, p, rnd, parts) {
   const cols = [0xff4a4a, 0xffffff, 0x3d8bff, 0xffd23a, 0xffffff, 0x4fd04a].map(C);
   const g = new THREE.SphereGeometry(s / 2, 16, 10);
   g.translate(p.x, p.y + s / 2, p.z);
-  parts.push(colorize(g.toNonIndexed(), (q, n, o) => { const k = Math.floor(((Math.atan2(q.z - p.z, q.x - p.x) + Math.PI) / (Math.PI * 2)) * 6) % 6; const c = cols[k]; o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
+  parts.push(colorize(ni(g), (q, n, o) => { const k = Math.floor(((Math.atan2(q.z - p.z, q.x - p.x) + Math.PI) / (Math.PI * 2)) * 6) % 6; const c = cols[k]; o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
 }
 
 function duenen(level, it, p, rnd, parts) {
@@ -215,7 +216,7 @@ function akazie(level, it, p, rnd, parts) {
     const g = new THREE.CylinderGeometry(r, r * 0.85, H * 0.12, 10, 1);
     const ox = Math.cos(ang + k * 2.1) * H * 0.18, oz = Math.sin(ang + k * 2.1) * H * 0.18;
     g.translate(tx + ox, p.y + H * (0.86 + k * 0.035), tz + oz);
-    parts.push(colorize(g.toNonIndexed(), (q, n, o) => mixc(LEAF_D, n.y > 0.5 ? LEAF_L : LEAF, smooth(-0.6, 0.9, n.y), o)));
+    parts.push(colorize(ni(g), (q, n, o) => mixc(LEAF_D, n.y > 0.5 ? LEAF_L : LEAF, smooth(-0.6, 0.9, n.y), o)));
   }
   if (it.solid) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: 0.3, y0: p.y, y1: p.y + H * 0.7, tag: 'akazie' });
 }
@@ -241,7 +242,7 @@ function baobab(level, it, p, rnd, parts) {
 
 function termitenhuegel(level, it, p, rnd, parts) {
   const s = it.size ?? 1.4;
-  const col = (g) => colorize(g.toNonIndexed(), (q, n, o) => mixc(C(0x9a5a32), C(0xd8925a), smooth(-0.6, 0.9, n.y * 0.5 + n.x * 0.3 + Math.sin(q.y * 7) * 0.1), o));
+  const col = (g) => colorize(ni(g), (q, n, o) => mixc(C(0x9a5a32), C(0xd8925a), smooth(-0.6, 0.9, n.y * 0.5 + n.x * 0.3 + Math.sin(q.y * 7) * 0.1), o));
   parts.push(col(at(new THREE.ConeGeometry(s * 0.7, s * 2.2, 9, 3), p.x, p.y + s * 1.1, p.z)));
   for (let k = 0; k < 3; k++) {
     const a = k * 2.3 + rnd.real(0, 0.5), h = s * rnd.real(0.9, 1.5);
@@ -257,7 +258,7 @@ function savannengras(level, it, p, rnd, parts) {
     for (let k = 0; k < 4; k++) {
       const g = new THREE.ConeGeometry(0.06, h, 3);
       g.translate(0, h / 2, 0); g.rotateZ(rnd.real(-0.45, 0.45)); g.rotateY(rnd.real(0, 6.28));
-      parts.push(colorize(at(g, x, p.y, z).toNonIndexed(), (q, n, o) => mixc(g2, rnd.frac() < 0.5 ? g0 : g1, smooth(p.y, p.y + h, q.y), o)));
+      parts.push(colorize(ni(at(g, x, p.y, z)), (q, n, o) => mixc(g2, rnd.frac() < 0.5 ? g0 : g1, smooth(p.y, p.y + h, q.y), o)));
     }
   }
 }
@@ -277,7 +278,7 @@ function felsbrocken(level, it, p, rnd, parts) {
 const CAKE = { sponge: C(0xf4c878), sponge2: C(0xe8a85a), cream: C(0xfff8f0), creamS: C(0xffe0ea), jam: C(0xff4a6a), choco: C(0x8a4a2a), pink: C(0xff9ad0), mint: C(0x8af0d0) };
 
 function layered(g, y0, h, cols) {
-  return colorize(g.toNonIndexed(), (q, n, o) => {
+  return colorize(ni(g), (q, n, o) => {
     if (n.y > 0.6) { o[0] = cols[0][0]; o[1] = cols[0][1]; o[2] = cols[0][2]; return; }
     const k = Math.floor(((q.y - y0) / h) * cols.length * 1.5) % cols.length;
     const c = cols[(k + 1) % cols.length];
@@ -307,7 +308,7 @@ function torte(level, it, p, rnd, parts, glow) {
     const g = new THREE.CylinderGeometry(r, r, h, 20, 2);
     g.translate(p.x, y + h / 2, p.z);
     const [c0, c1] = cols[t % cols.length];
-    parts.push(colorize(g.toNonIndexed(), (q, n, o) => mixc(c0, c1, n.y > 0.5 ? 1 : (Math.sin(Math.atan2(q.z - p.z, q.x - p.x) * 10) > 0.6 && q.y > y + h * 0.7 ? 1 : 0), o)));
+    parts.push(colorize(ni(g), (q, n, o) => mixc(c0, c1, n.y > 0.5 ? 1 : (Math.sin(Math.atan2(q.z - p.z, q.x - p.x) * 10) > 0.6 && q.y > y + h * 0.7 ? 1 : 0), o)));
     // Sahnerand
     const rim = new THREE.TorusGeometry(r * 0.96, s * 0.04, 5, 20);
     rim.rotateX(Math.PI / 2); rim.translate(p.x, y + h, p.z);
@@ -326,7 +327,7 @@ function kerzen(level, it, p, rnd, parts, glow, ring = null) {
     const d = ring ?? s * 0.5 * (n > 1 ? 1 : 0);
     const x = p.x + Math.cos(a) * d, z = p.z + Math.sin(a) * d, h = s * rnd.real(0.6, 1);
     const c = cols[k % cols.length];
-    parts.push(colorize(at(new THREE.CylinderGeometry(s * 0.07, s * 0.07, h, 8), x, p.y + h / 2, z).toNonIndexed(), (q, nn, o) => mixc(c, CAKE.cream, (Math.floor((q.y - p.y) * 9 / s) & 1) * 0.6, o)));
+    parts.push(colorize(ni(at(new THREE.CylinderGeometry(s * 0.07, s * 0.07, h, 8), x, p.y + h / 2, z)), (q, nn, o) => mixc(c, CAKE.cream, (Math.floor((q.y - p.y) * 9 / s) & 1) * 0.6, o)));
     const f = new THREE.SphereGeometry(s * 0.06, 6, 5); f.scale(1, 1.8, 1);
     glow.push(fill(at(f, x, p.y + h + s * 0.09, z), C(0xffd860)));
   }
@@ -353,7 +354,7 @@ function kirsche(level, it, p, rnd, parts) {
 function zuckerstange(level, it, p, rnd, parts) {
   const H = it.height ?? 3, yaw = it.yaw ?? 0;
   const red = C(0xff3a4a), wht = C(0xfff8f4);
-  const stripe = (g) => colorize(g.toNonIndexed(), (q, n, o) => { const c = Math.floor((q.y * 3 + Math.atan2(q.z - p.z, q.x - p.x) * 0.5) * 1) & 1 ? red : wht; o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; });
+  const stripe = (g) => colorize(ni(g), (q, n, o) => { const c = Math.floor((q.y * 3 + Math.atan2(q.z - p.z, q.x - p.x) * 0.5) * 1) & 1 ? red : wht; o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; });
   parts.push(stripe(at(new THREE.CylinderGeometry(0.15, 0.15, H, 10), p.x, p.y + H / 2, p.z)));
   const hook = new THREE.TorusGeometry(0.4, 0.15, 8, 12, Math.PI);
   hook.rotateY(yaw);
@@ -367,7 +368,7 @@ function keksstapel(level, it, p, rnd, parts) {
   for (let k = 0; k < 3; k++) {
     const g = new THREE.CylinderGeometry(s * 0.5, s * 0.5, s * 0.16, 14);
     g.rotateY(rnd.real(0, 1));
-    parts.push(colorize(at(g, p.x + rnd.real(-0.05, 0.05) * s, y + s * 0.08, p.z + rnd.real(-0.05, 0.05) * s).toNonIndexed(), (q, n, o) => mixc(CAKE.sponge2, CAKE.sponge, n.y > 0.5 ? (Math.sin(q.x * 20) * Math.cos(q.z * 20) > 0.5 ? 0 : 1) : 0.4, o)));
+    parts.push(colorize(ni(at(g, p.x + rnd.real(-0.05, 0.05) * s, y + s * 0.08, p.z + rnd.real(-0.05, 0.05) * s)), (q, n, o) => mixc(CAKE.sponge2, CAKE.sponge, n.y > 0.5 ? (Math.sin(q.x * 20) * Math.cos(q.z * 20) > 0.5 ? 0 : 1) : 0.4, o)));
     y += s * 0.17;
   }
 }
@@ -378,7 +379,7 @@ const TSTONE = C(0xe0c890), TSTONE_D = C(0x9a7a4a), TSTONE_L = C(0xfff0c8), MOSS
 
 function tempelsaeule(level, it, p, rnd, parts) {
   const H = (it.height ?? 5) * (it.broken ? rnd.real(0.35, 0.7) : 1), r = it.r ?? 0.55;
-  const col = (g) => colorize(g.toNonIndexed(), (q, n, o) => { mixc(TSTONE_D, TSTONE, smooth(-0.6, 0.9, n.y * 0.6 + n.x * 0.3), o); if (Math.sin(Math.atan2(q.z - p.z, q.x - p.x) * 12) > 0.75 && Math.abs(n.y) < 0.5) mixc(o, TSTONE_D, 0.4, o); if (q.y < p.y + 0.6 && n.y < 0.5 && rnd.frac() < 0.5) mixc(o, MOSS, 0.4, o); });
+  const col = (g) => colorize(ni(g), (q, n, o) => { mixc(TSTONE_D, TSTONE, smooth(-0.6, 0.9, n.y * 0.6 + n.x * 0.3), o); if (Math.sin(Math.atan2(q.z - p.z, q.x - p.x) * 12) > 0.75 && Math.abs(n.y) < 0.5) mixc(o, TSTONE_D, 0.4, o); if (q.y < p.y + 0.6 && n.y < 0.5 && rnd.frac() < 0.5) mixc(o, MOSS, 0.4, o); });
   parts.push(col(at(new THREE.BoxGeometry(r * 2.6, 0.35, r * 2.6), p.x, p.y + 0.175, p.z)));
   parts.push(col(at(new THREE.CylinderGeometry(r * 0.92, r, H - 0.7, 16, 2), p.x, p.y + 0.35 + (H - 0.7) / 2, p.z)));
   if (!it.broken) parts.push(col(at(new THREE.BoxGeometry(r * 2.4, 0.35, r * 2.4), p.x, p.y + H - 0.175, p.z)));
@@ -387,7 +388,7 @@ function tempelsaeule(level, it, p, rnd, parts) {
 
 function steinkopf(level, it, p, rnd, parts) {
   const s = it.size ?? 2.4, yaw = it.yaw ?? Math.PI / 2;
-  const col = (g) => colorize(g.toNonIndexed(), (q, n, o) => mixc(TSTONE_D, TSTONE, smooth(-0.6, 0.9, n.y * 0.5 + n.x * 0.3 + n.z * 0.2), o));
+  const col = (g) => colorize(ni(g), (q, n, o) => mixc(TSTONE_D, TSTONE, smooth(-0.6, 0.9, n.y * 0.5 + n.x * 0.3 + n.z * 0.2), o));
   const head = new THREE.BoxGeometry(s * 0.8, s, s * 0.85, 2, 2, 2);
   parts.push(col(at(head, 0, s / 2, 0).rotateY(yaw).translate(p.x, p.y, p.z)));
   const fx = Math.cos(yaw), fz = -Math.sin(yaw), rx = -fz, rz = fx;
@@ -405,7 +406,7 @@ function steinkopf(level, it, p, rnd, parts) {
 
 function obelisk(level, it, p, rnd, parts) {
   const H = it.height ?? 6, w = H * 0.14;
-  const col = (g) => colorize(g.toNonIndexed(), (q, n, o) => { mixc(TSTONE_D, TSTONE_L, smooth(-0.6, 0.9, n.y * 0.4 + n.x * 0.4), o); if (Math.abs(((q.y - p.y) * 2.5) % 1 - 0.5) > 0.45) mixc(o, TSTONE_D, 0.3, o); });
+  const col = (g) => colorize(ni(g), (q, n, o) => { mixc(TSTONE_D, TSTONE_L, smooth(-0.6, 0.9, n.y * 0.4 + n.x * 0.4), o); if (Math.abs(((q.y - p.y) * 2.5) % 1 - 0.5) > 0.45) mixc(o, TSTONE_D, 0.3, o); });
   const g = new THREE.CylinderGeometry(w * 0.7, w, H, 4, 4);
   g.rotateY(Math.PI / 4);
   parts.push(col(at(g, p.x, p.y + H / 2, p.z)));
@@ -416,7 +417,7 @@ function obelisk(level, it, p, rnd, parts) {
 
 function tempeltor(level, it, p, rnd, parts) {
   const W = it.width ?? 4, H = it.height ?? 5, yaw = it.yaw ?? 0, t = 0.9;
-  const col = (g) => colorize(g.toNonIndexed(), (q, n, o) => mixc(TSTONE_D, TSTONE, smooth(-0.6, 0.9, n.y * 0.5 + n.x * 0.3 + n.z * 0.2), o));
+  const col = (g) => colorize(ni(g), (q, n, o) => mixc(TSTONE_D, TSTONE, smooth(-0.6, 0.9, n.y * 0.5 + n.x * 0.3 + n.z * 0.2), o));
   const sx = -Math.sin(yaw), sz = -Math.cos(yaw);   // quer zum Durchgang (lokal z)
   for (const sd of [-1, 1]) {
     const g = new THREE.BoxGeometry(t, H, t); g.rotateY(yaw);
@@ -472,7 +473,7 @@ function kristalle(level, it, p, rnd, parts, glow) {
     const g = new THREE.OctahedronGeometry(s * 0.22, 0);
     g.scale(1, h / (s * 0.44), 1);
     g.rotateZ(rnd.real(-0.4, 0.4)); g.rotateY(rnd.real(0, 3));
-    glow.push(colorize(at(g, p.x + Math.cos(a) * d, p.y + h * 0.4, p.z + Math.sin(a) * d).toNonIndexed(), (q, nn, o) => mixc(C(0x2a5aff), C(0xa8f0ff), smooth(-0.5, 1, nn.y), o)));
+    glow.push(colorize(ni(at(g, p.x + Math.cos(a) * d, p.y + h * 0.4, p.z + Math.sin(a) * d)), (q, nn, o) => mixc(C(0x2a5aff), C(0xa8f0ff), smooth(-0.5, 1, nn.y), o)));
   }
 }
 

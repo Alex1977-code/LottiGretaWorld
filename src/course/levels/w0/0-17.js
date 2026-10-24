@@ -65,6 +65,8 @@ export const LEVEL = {
     { type: 'deco_w5', items: [
       { kind: 'sandskulptur', pos: [-9, 1, -18], size: 1.6 }, { kind: 'sandskulptur', pos: [-6.5, 1, -20], size: 1.4 },
       { kind: 'liegestuhl', pos: [10, 1, -21], yaw: -0.6 }, { kind: 'palme', pos: [-11.5, 1, -12], height: 5.6 },
+      { kind: 'strandball', pos: [5.5, 1, -18.5] }, { kind: 'sonnenschirm', pos: [6.5, 1, -9], color: 'blau' },
+      { kind: 'muscheln', pos: [0, 1, -15], size: [16, 16], n: 8 },
     ] },
     // Schwebeinsel (Ziel der Warp-Box)
     { type: 'island', pos: [40, 2, -15], size: [10, 4, 10], under: 0, top: 'sand' },
@@ -90,6 +92,11 @@ export const LEVEL = {
     plat(-118, -126),
     sign(-11, 1, -119, 'Röhrenkanone'),
     { type: 'roehrenkanone', id: 'kanone', pos: [0, 1, -122.5], to: [0, 1, -162.5] },
+    { type: 'deco_w5', items: [
+      { kind: 'akazie', pos: [8.5, 1, -124.5], height: 5.5 }, { kind: 'baobab', pos: [-9.5, 1, -124], height: 5 },
+      { kind: 'savannengras', pos: [0, 1, -122], size: [20, 7], n: 12, avoid: [[0, -122.5, 2.4], [0, -119, 1.5]] },
+      { kind: 'felsbrocken', pos: [0, 1, -125], size: [22, 2], n: 3, avoid: [[0, -122.5, 2.6]] },
+    ] },
     plat(-158, -165),
     { type: 'deco_w5', items: [{ kind: 'akazie', pos: [-9, 1, -161], height: 5 }, { kind: 'termitenhuegel', pos: [9, 1, -160], size: 1.6 }] },
     { type: 'drehbruecke', id: 'dreh', pos: [0, 1, -170.5], length: 11, width: 2.6, yaw: Math.PI / 2, mode: 'step', wait: 3, turn: 1.4 },
@@ -109,13 +116,21 @@ export const LEVEL = {
     sign(-11, 1, -219, 'Suchscheinwerfer'),
     { type: 'wall', pos: [-4, 1, -228], size: [3, 2.4, 1] },
     { type: 'platform', pos: [6, 3.2, -224], size: [4.4, 0.4, 4.4] },   // Unterstand: verdeckt die Figur vor dem Licht
-    { type: 'suchscheinwerfer', id: 'licht', path: [[-8, 1, -224], [8, 1, -224]], speed: 2.4, radius: 2.0, lamp: [0, 9, -219] },
+    { type: 'suchscheinwerfer', id: 'licht', path: [[-8, 1, -224], [8, 1, -224]], speed: 2.4, radius: 2.0, lamp: [-2, 10, -231] },
 
     // ---------------- S7 Tempel
     plat(-236, -270),
     sign(-11, 1, -237, 'Kippquader'),
     { type: 'kippquader', id: 'kq1', pos: [-5, 1, -241], size: [2, 4, 2], steps: ['-z', '-z'], wait: 1.4 },
     { type: 'kippquader', id: 'kq2', pos: [5, 1, -241], size: [3, 3, 0.8], hole: [1.5, 1.5], steps: ['-z'], wait: 1.6, start: 'signal' },
+    { type: 'deco_w5', items: [
+      { kind: 'tempelsaeulen', from: [-11.5, 1, -242], to: [-11.5, 1, -258], every: 4 },
+      { kind: 'steinkopf', pos: [10.5, 1, -250], size: 2.4, yaw: Math.PI },
+      { kind: 'obelisk', pos: [10.5, 1, -258], height: 6 },
+      { kind: 'steinplatten', pos: [0, 1, -250], size: [6, 6] },
+      { kind: 'kristalle', pos: [-11, 1, -265], n: 4 }, { kind: 'grubenbalken', pos: [-8, 1, -258.6], width: 4, height: 3.2, yaw: Math.PI / 2 },
+      { kind: 'grubenlampe', pos: [-8, 4.2, -258.6] },
+    ] },
     { type: 'multilift', id: 'dreier', pos: [-8, 1, -262], rise: 4, need: 3, size: [3, 0.5, 3] },
     { type: 'platform', pos: [-8, 5, -267], size: [3, 0.6, 3] },
     { type: 'island', pos: [0, -4, -274], size: [26, 2.5, 8], under: 0 },

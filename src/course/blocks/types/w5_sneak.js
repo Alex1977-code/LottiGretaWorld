@@ -10,9 +10,10 @@
 //   level.onSignal('alarm', fn) bzw. level.named.get(id).onDetect(fn(info)).
 //   { type: 'suchscheinwerfer' (auch kind), id, path: [[x, y, z], …] (Bahn des Lichtflecks, y = Boden), speed: 2.5,
 //     radius: 2.2, mode: 'pingpong' | 'loop', wait: 0.5 (s Halt an den Enden), phase: 0 (0..1 der Bahn), lamp: [x, y, z]
-//     (Standort; Standard 10 m über der Bahnmitte, 5 m zur Kamera hin), post: true (Mast bis zum Boden unter der Lampe),
+//     (Standort; Standard 10 m über der Bahnmitte, 6 m dahinter in −Z – so verdeckt der Mast der Kurs-Kamera nichts),
+//     post: true (Mast bis zum Boden unter der Lampe, camIgnore),
 //     cooldown: 3, alarmTime: 2, track: true, trackSpeed: 3.2, occlude: true, onDetect: Aktion | null, banner: 'Entdeckt!',
-//     color: 0xfff2b0, idle: false (steht, bis { start: id }) }
+//     color: 0xfff2b0 (dunkle Themen) bzw. 0xffc21a (helle), idle: false (steht, bis { start: id }) }
 //   level.named.get(id) = { spot {x,y,z}, lamp, radius, seen (Figur im Licht | null), alarm (bool), alarms (Zahl),
 //     lastSeen {x,y,z} | null, onDetect(fn) → abmelden, start(), stop(), sees(fig), info() }; alle in level.searchlights.
 // Modell aus der Registry, sobald es den Namen gibt: 'suchscheinwerfer' (Lampe, Ursprung = Drehpunkt, Blick +X; state
@@ -25,21 +26,33 @@ import { banner } from '../w3kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
 import { hasModel, getModel } from '../../models/index.js';
 
-let SPOT_TEX = null;
-function spotTexture() {
-  if (SPOT_TEX) return SPOT_TEX;
+const SPOT_TEX = {};
+/** Lichtfleck: weicher Verlauf (dunkle Themen, additiv) bzw. Scheibe mit kräftigem Rand (helle Themen, normal gemischt –
+ *  auf hellem Sand liest sich ein Verlauf allein nicht). */
+function spotTexture(rim = false) {
+  const key = rim ? 'rim' : 'soft';
+  if (SPOT_TEX[key]) return SPOT_TEX[key];
   const c = document.createElement('canvas');
   c.width = c.height = 128;
   const g = c.getContext('2d');
   const grad = g.createRadialGradient(64, 64, 4, 64, 64, 64);
-  grad.addColorStop(0, 'rgba(255,255,255,1)');
-  grad.addColorStop(0.62, 'rgba(255,255,255,0.75)');
-  grad.addColorStop(0.86, 'rgba(255,255,255,0.32)');
-  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  if (rim) {
+    grad.addColorStop(0, 'rgba(255,255,255,0.62)');
+    grad.addColorStop(0.78, 'rgba(255,255,255,0.5)');
+    grad.addColorStop(0.84, 'rgba(255,255,255,0.95)');
+    grad.addColorStop(0.92, 'rgba(255,255,255,0.95)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+  } else {
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.62, 'rgba(255,255,255,0.75)');
+    grad.addColorStop(0.86, 'rgba(255,255,255,0.32)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+  }
   g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
-  SPOT_TEX = new THREE.CanvasTexture(c);
-  SPOT_TEX.colorSpace = THREE.SRGBColorSpace;
-  return SPOT_TEX;
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  SPOT_TEX[key] = t;
+  return t;
 }
 
 /** Polylinie mit Bogenlänge (gerade Stücke): { L, at(s, out) }. */
@@ -84,7 +97,7 @@ export function buildSuchscheinwerfer(level, spec) {
   const radius = spec.radius ?? 2.2, speed = spec.speed ?? 2.5, wait = spec.wait ?? 0.5;
   const mode = spec.mode ?? 'pingpong';
   const mid = path.at(path.L / 2, { x: 0, y: 0, z: 0 });
-  const lamp = v3(spec.lamp ?? [mid.x, mid.y + 10, mid.z + 5]);
+  const lamp = v3(spec.lamp ?? [mid.x, mid.y + 10, mid.z - 6]);
   const cooldown = spec.cooldown ?? 3, alarmTime = spec.alarmTime ?? 2;
   const track = spec.track !== false, trackSpeed = spec.trackSpeed ?? 3.2;
   const onDetect = spec.onDetect === undefined ? { signal: 'alarm' } : spec.onDetect;
@@ -169,17 +182,22 @@ export function buildSuchscheinwerfer(level, spec) {
       const g = new THREE.CylinderGeometry(0.16, 0.24, h, 8);
       g.translate(lamp.x, y0 + h / 2, lamp.z);
       addStatic(level, colorize(g.toNonIndexed(), (p, n, o) => mixc(lin(0x2a2630), lin(0x5a5664), smooth(-0.5, 0.8, n.x * 0.6 + n.z * 0.4), o)));
-      level.world.add({ type: 'cyl', x: lamp.x, z: lamp.z, r: 0.22, y0, y1: lamp.y - 0.4, tag: 'suchscheinwerfer:mast' });
+      level.world.add({ type: 'cyl', x: lamp.x, z: lamp.z, r: 0.22, y0, y1: lamp.y - 0.4, tag: 'suchscheinwerfer:mast', camIgnore: true });
     }
   }
   if (level.view) {
-    const col = new THREE.Color(hex(spec.color ?? 0xfff2b0)), red = new THREE.Color(0xff3a2a);
+    // dunkle Themen (Nacht, schwaches Himmelslicht): additiv leuchtend; helle Themen: normal gemischt in kräftigem Gold
+    // mit Rand, sonst brennt der Fleck auf hellem Sand weiß aus bzw. verschwindet
+    const th = level.view.theme ?? {};
+    const dark = th.night ?? ((th.hemi?.intensity ?? 1.2) < 1);
+    const col = new THREE.Color(hex(spec.color ?? (dark ? 0xfff2b0 : 0xffc21a))), red = new THREE.Color(0xff3a2a);
+    const blending = dark ? THREE.AdditiveBlending : THREE.NormalBlending, glow = dark ? 1 : 0.55;
     const coneGeo = new THREE.ConeGeometry(1, 1, 28, 1, true);
     coneGeo.translate(0, -0.5, 0);                 // Spitze im Ursprung, öffnet nach −Y
-    const coneMat = new THREE.MeshBasicMaterial({ color: col.clone(), transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: true });
+    const coneMat = new THREE.MeshBasicMaterial({ color: col.clone(), transparent: true, opacity: 0.16 * glow, blending, depthWrite: false, side: THREE.DoubleSide, fog: true });
     const cone = new THREE.Mesh(coneGeo, coneMat);
     cone.renderOrder = 4; cone.castShadow = false; cone.frustumCulled = false;
-    const spotMat = new THREE.MeshBasicMaterial({ map: spotTexture(), color: col.clone(), transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, fog: true });
+    const spotMat = new THREE.MeshBasicMaterial({ map: spotTexture(!dark), color: col.clone(), transparent: true, opacity: dark ? 0.85 : 0.8, blending, depthWrite: false, fog: true });
     const spot = new THREE.Mesh(new THREE.CircleGeometry(1, 32), spotMat);
     spot.rotation.x = -Math.PI / 2;
     spot.renderOrder = 3; spot.frustumCulled = false;
@@ -215,7 +233,7 @@ export function buildSuchscheinwerfer(level, spec) {
       const blink = st.alarm > 0 ? 0.5 + 0.5 * Math.sin(tt * 18) : 0;
       tmp.copy(col).lerp(red, st.alarm > 0 ? 0.65 + 0.35 * blink : st.seen ? 0.4 : 0);
       coneMat.color.copy(tmp); spotMat.color.copy(tmp);
-      coneMat.opacity = st.alarm > 0 ? 0.2 + 0.08 * blink : 0.14;
+      coneMat.opacity = (st.alarm > 0 ? 0.2 + 0.08 * blink : 0.14) * glow;
       lampRoot.rotation.set(0, Math.atan2(-_a.z, _a.x), Math.atan2(_a.y, Math.hypot(_a.x, _a.z)), 'YZX');
       if (lampRoot.userData.lens) lampRoot.userData.lens.material.color.copy(tmp);
       model?.update?.(d, { alarm: st.alarm > 0, seen: !!st.seen });
