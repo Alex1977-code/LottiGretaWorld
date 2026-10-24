@@ -73,7 +73,7 @@ class HackbeilPilz extends EnemyW2 {
   }
 
   /** Figur, auf die er es abgesehen hat (aktiv, in Sicht), oder null. */
-  target(range = this.sight) {
+  prey(range = this.sight) {
     const p = this.player;
     if (!activeFigure(p)) return null;
     if (Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) > range || Math.abs(p.pos.y - this.pos.y) > 2) return null;
@@ -100,7 +100,7 @@ class HackbeilPilz extends EnemyW2 {
         break;
       case 'rest': {
         this.stand(dt);
-        const p = this.behavior === 'chase' ? this.target() : null;
+        const p = this.behavior === 'chase' ? this.prey() : null;
         if (p) this.faceToward(p.pos.x - this.pos.x, p.pos.z - this.pos.z, dt, 10);
         if (this.cool <= 0 && p && this.inReach(p)) { this.startRaise(p); break; }
         const close = p && Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) < 1.1;
@@ -110,7 +110,7 @@ class HackbeilPilz extends EnemyW2 {
       case 'hop': this.hopStep(dt); break;
       case 'raise': {
         this.stand(dt);
-        const p = this.target(this.reach + 1.5);
+        const p = this.prey(this.reach + 1.5);
         if (p && this.stateT < this.raiseT * 0.6) this.faceToward(p.pos.x - this.pos.x, p.pos.z - this.pos.z, dt, 4);
         if (this.stateT >= this.raiseT) { this.setState('chop'); this.half.y = 0.5; }
         break;
@@ -165,11 +165,11 @@ class HackbeilPilz extends EnemyW2 {
     const sp = air ? this.hopLen / (HOP * 0.7) : 0;
     this.vel.x = this.hopDir.x * sp; this.vel.z = this.hopDir.z * sp;
     const res = this.moveWithGravity(dt);
-    if (res.hitWall && !this.target()) { this.turn(res); this.hopDir.x = this.dir.x; this.hopDir.z = this.dir.z; }
+    if (res.hitWall && !this.prey()) { this.turn(res); this.hopDir.x = this.dir.x; this.hopDir.z = this.dir.z; }
     this.faceToward(this.hopDir.x, this.hopDir.z, dt, 12);
     if (k >= 1) {
       this.setState('rest');
-      if (!this.target()) { this.dir.x = this.hopDir.x; this.dir.z = this.hopDir.z; }
+      if (!this.prey()) { this.dir.x = this.hopDir.x; this.dir.z = this.hopDir.z; }
     }
   }
 

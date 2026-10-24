@@ -86,6 +86,7 @@ async function load(id) {
       /** Figur an e stellen (Hüllen berühren sich, von +x) und n Schritte halten; Treffer? */
       touch(e, n = 20, sx = 1) {
         const p = P();
+        this.fresh();
         let hurt = false;
         for (let i = 0; i < n; i++) {
           const ec = e.center();
@@ -96,6 +97,8 @@ async function load(id) {
         return hurt;
       },
       hurt: () => { const p = P(); return p.invuln > 0 || !p.big || p.dead; },
+      /** Treffer-Spuren löschen (unverwundbar-Zeit, klein). */
+      fresh() { const p = P(); p.invuln = 0; if (!p.big) { p.big = true; p.updateHalf?.(); } },
       count: (kind, f = () => true) => L.entities.filter((e) => e.kind === kind && e.alive && !e.removed && f(e)).length,
       ents: (kind) => L.entities.filter((e) => e.kind === kind && !e.removed),
       dist: (a, b) => Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z),
@@ -355,6 +358,257 @@ check(`Lila Ziegel geben ihren Inhalt frei (${zw.coins} Münzen liegen)`, zw.coi
 check('Lila Ziegel: Stampfattacke zerbricht ihn nicht, Tatzenhieb schon, der POW-Block zerbricht die übrigen', zw.pound.left === 1 && zw.claw.left === 0 && zw.pow.lz1 === 0 && zw.pow.uses === 2);
 check('Explosion zerstört auch Ziegel und graue Steinblöcke', zw.blocks.exploded && zw.blocks.brick && zw.blocks.stein);
 check('Keine Konsolenfehler (Teil 1)', errors.length === 0);
+}
+
+// =====================================================================================================================
+// Teil 2: Feuerring, Hackbeil-Pilz, Funkenling, Glutball, Suchkopf-Welle
+// =====================================================================================================================
+if (want(2)) {
+await load('0-18');
+console.log('Teil 2: Feuerring, Hackbeil-Pilz, Funkenling, Glutball, Suchkopf-Welle');
+const fr = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const f = t.ent('fr_puls');
+  // Puls: Ring wächst von 0,6 m bis 4,5 m, flammt auf und erlischt, Pause
+  let rMin = 99, rMax = 0, hMax = 0, off = 0;
+  t.place([0, 1, t.Z(3, 7)], { settle: 1 });
+  for (let i = 0; i < 360; i++) { c.step(1); if (f.flameH > 0.2) { rMin = Math.min(rMin, f.ring); rMax = Math.max(rMax, f.ring); } hMax = Math.max(hMax, f.flameH); if (f.flameH === 0) off++; }
+  out.puls = { rMin: +rMin.toFixed(2), rMax: +rMax.toFixed(2), hMax: +hMax.toFixed(2), offS: +(off / 120).toFixed(2) };
+  // stehen bleiben im Ring → Treffer
+  const at3 = [f.base.x + 3, 1, f.base.z];
+  t.place(at3, { settle: 1 });
+  let hurt = false;
+  for (let i = 0; i < 400 && !hurt; i++) { p.pos.set(at3[0], at3[1], at3[2]); p.vel.set(0, 0, 0); c.step(1); hurt = t.hurt(); }
+  out.stand = hurt;
+  // drüberspringen: im richtigen Augenblick springen → heil
+  t.place(at3, { settle: 1 });
+  for (let i = 0; i < 500 && !(f.anim === 'idle'); i++) { p.hurt = () => false; c.step(1); delete p.hurt; }
+  t.fresh();
+  let jumped = false, hurtJ = false, crossed = false;
+  for (let i = 0; i < 480; i++) {
+    const go = !jumped && f.anim === 'pulse' && f.ring >= 2.25;
+    if (go) jumped = true;
+    c.setInput(go ? { jump: true } : jumped && p.mode === 'air' ? { jump: true } : {});
+    c.step(1);
+    if (f.ring > 3.7) crossed = true;
+    if (t.hurt() && !hurtJ) { hurtJ = true; out.dbg = { ring: +f.ring.toFixed(2), h: +f.flameH.toFixed(2), y: +p.pos.y.toFixed(2), mode: p.mode, state: p.state, i, inv: +p.invuln.toFixed(2), big: p.big }; }
+    if (crossed && p.mode === 'ground') break;
+  }
+  c.setInput({});
+  out.jumpOver = { jumped, crossed, hurt: hurtJ };
+  // Kern verletzt, nicht besiegbar
+  const coreHurt = t.touch(f, 10);
+  f.onHit('star', p); f.onHit('bomb', p); f.onHit('fire', p);
+  out.core = { hurt: coreHurt, alive: !f.removed };
+  // Rad: dreht sich, Lücke lässt durch
+  const r = t.ent('fr_rad');
+  const a0 = r.angle;
+  t.place([0, 1, t.Z(3, 7)], { settle: 120 });
+  out.rad = { turned: +(r.angle - a0).toFixed(2), ring: r.ring };
+  // Figur genau in die Lücke stellen (auf den Kreis): erst heil, dann trifft das Rad, wenn die Lücke weiterzieht
+  const ga = r.angle;
+  const gp = [r.base.x + Math.cos(ga) * r.ring, 1, r.base.z - Math.sin(ga) * r.ring];
+  t.place(gp, { settle: 0 });
+  let firstHurt = -1, inGapWhenHurt = null;
+  for (let i = 0; i < 600 && firstHurt < 0; i++) {
+    p.pos.set(gp[0], gp[1], gp[2]); p.vel.set(0, 0, 0);
+    c.step(1);
+    if (t.hurt()) { firstHurt = i / 120; inGapWhenHurt = r.gapAt(Math.atan2(-(gp[2] - r.base.z), gp[0] - r.base.x)); }
+  }
+  out.gap = { firstHurt: +firstHurt.toFixed(2), inGap: inGapWhenHurt };
+  // blink: Flammen gehen im Takt aus
+  const b = t.ent('fr_blink');
+  let bOff = 0, bOn = 0;
+  t.place([0, 1, t.Z(3, 7)], { settle: 1 });
+  for (let i = 0; i < 400; i++) { c.step(1); if (b.flameH === 0) bOff++; if (b.flameH > 0.6) bOn++; }
+  out.blink = { offS: +(bOff / 120).toFixed(2), onS: +(bOn / 120).toFixed(2) };
+  return out;
+});
+console.log(`  Feuerring: ${JSON.stringify(fr)}`);
+check(`Feuerring Puls: Ring wächst ${fr.puls.rMin} → ${fr.puls.rMax} m (Flammen ${fr.puls.hMax} m), dann Pause (${fr.puls.offS} s ohne Flammen)`, fr.puls.rMin < 1.2 && fr.puls.rMax > 4.2 && fr.puls.hMax > 0.6 && fr.puls.offS > 0.5);
+check('Feuerring: wer im Ring stehen bleibt, wird getroffen; wer rechtzeitig drüberspringt, bleibt heil', fr.stand && fr.jumpOver.jumped && fr.jumpOver.crossed && !fr.jumpOver.hurt);
+check('Feuerring: der Brennerkern verletzt; nicht besiegbar (Stern, Bombe, Feuer)', fr.core.hurt && fr.core.alive);
+check(`Feuerring Rad dreht sich (${fr.rad.turned} rad in 1 s); in der Lücke heil, getroffen erst, als die Flammen kommen (${fr.gap.firstHurt} s)`, Math.abs(fr.rad.turned - 1) < 0.05 && fr.gap.firstHurt > 0.3 && fr.gap.inGap === false);
+check(`Feuerring blink: Flammen im Takt aus (${fr.blink.offS} s) und an (${fr.blink.onS} s)`, fr.blink.offS > 0.6 && fr.blink.onS > 1.5);
+
+const hb = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const h = t.ent('hb_jaeger');
+  const fig = [-9, 1, t.Z(4, 5)];
+  t.place(fig, { settle: 1 });
+  const d0 = t.dist(h, p);
+  const seq = [];
+  let raiseT = 0, hopSeen = false;
+  p.hurt = () => false;
+  for (let i = 0; i < 1500; i++) {
+    p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0);
+    c.step(1);
+    if (h.state === 'hop') hopSeen = true;
+    if (seq[seq.length - 1] !== h.state) seq.push(h.state);
+    if (h.state === 'raise') raiseT = h.stateT;
+    if (h.state === 'stuck') break;
+  }
+  delete p.hurt;
+  out.approach = { d0: +d0.toFixed(2), d1: +t.dist(h, p).toFixed(2), hop: hopSeen, seq: seq.slice(-5).join('>'), raise: +raiseT.toFixed(2), blade: h.info().blade, hx: +h.pos.x.toFixed(2) };
+  // Schneide trifft die Figur 1,25 m vor ihm
+  for (let i = 0; i < 600 && h.state !== 'rest'; i++) { p.hurt = () => false; c.step(1); delete p.hurt; }
+  const f = h.facing({});
+  const front = [h.pos.x + f.x * 1.25, 1, h.pos.z + f.z * 1.25];
+  t.place(front, { settle: 0 });
+  p.hurt = () => false;
+  for (let i = 0; i < 900 && h.state !== 'raise'; i++) { p.pos.set(front[0], front[1], front[2]); p.vel.set(0, 0, 0); c.step(1); }
+  delete p.hurt;
+  t.fresh();
+  const hf = h.facing({});
+  const front2 = [h.pos.x + hf.x * 1.25, 1, h.pos.z + hf.z * 1.25];
+  let bladeHurt = false, hurtState = null;
+  for (let i = 0; i < 600 && !bladeHurt; i++) { p.pos.set(front2[0], front2[1], front2[2]); p.vel.set(0, 0, 0); c.step(1); if (t.hurt()) { bladeHurt = true; hurtState = h.state; } }
+  out.blade = { hurt: bladeHurt, state: hurtState };
+  // steckt fest: von der Seite harmlos, von oben besiegbar
+  for (let i = 0; i < 900 && h.state !== 'stuck'; i++) { p.hurt = () => false; p.pos.set(front2[0] + hf.x * 2, 1, front2[2] + hf.z * 2); c.step(1); delete p.hurt; }
+  c.step(20);
+  const stuck = h.state === 'stuck';
+  const sideStuck = stuck ? t.touch(h, 5, -1) : null;
+  const st = h.state === 'stuck' ? t.stomp(h, { h: 0.8 }) : { bounced: false };
+  out.stuck = { stuck, sideHurt: sideStuck, ...st, defeated: h.defeated, state: h.state };
+  // nicht festgesteckt: von vorn draufspringen trifft das Beil; von hinten besiegt; seitlich verletzt; Feuer besiegt
+  const mk = (x) => L.spawn('hackbeil_pilz', { pos: [x, 1, t.Z(4, 9)], dir: [1, 0], behavior: 'patrol', hop: 0.001, sight: 0, wake: 99 });
+  const a = mk(-16), b = mk(-12), d = mk(-8);
+  t.place([-11, 1, t.Z(4, 2)], { settle: 2 });
+  const sa = t.stomp(a, { h: 0.6, off: [0.25, 0] });
+  out.front = { ...sa, defeated: a.defeated };
+  t.place([-11, 1, t.Z(4, 2)], { settle: 30 });
+  const sb = t.stomp(b, { h: 0.6, off: [-0.3, 0] });
+  out.back = { ...sb, defeated: b.defeated };
+  t.place([-11, 1, t.Z(4, 2)], { settle: 30 });
+  out.side = t.touch(d, 6, 1);
+  t.place([-11, 1, t.Z(4, 2)], { settle: 30 });
+  d.onHit('fire', p);
+  out.fire = d.defeated;
+  return out;
+});
+console.log(`  Hackbeil-Pilz: ${JSON.stringify(hb)}`);
+check(`Hackbeil-Pilz hüpft auf die Figur zu (${hb.approach.d0} → ${hb.approach.d1} m), holt aus (Vorwarnung ${hb.approach.raise} s), hackt, steckt fest`, hb.approach.hop && hb.approach.d1 < hb.approach.d0 - 2 && /raise>chop>stuck/.test(hb.approach.seq) && hb.approach.raise >= 0.5);
+check(`Hackbeil-Pilz: die Schneide trifft 1,25 m vor ihm (im Hieb: ${hb.blade.state})`, hb.blade.hurt && (hb.blade.state === 'chop' || hb.blade.state === 'stuck'));
+check('Hackbeil-Pilz steckt fest: seitlich harmlos, Draufspringen besiegt ihn (Abprall)', hb.stuck.stuck && hb.stuck.sideHurt === false && hb.stuck.bounced && !hb.stuck.hurt && hb.stuck.defeated);
+check('Hackbeil-Pilz ohne Feststecken: von vorn draufspringen trifft das Beil (Treffer), von hinten besiegt ihn, seitlich verletzt, Feuer besiegt', hb.front.hurt && !hb.front.defeated && hb.back.bounced && hb.back.defeated && !hb.back.hurt && hb.side && hb.fire);
+
+const fl = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const b = t.ent('fl_block'), w = t.ent('fl_wand'), u = t.ent('fl_wusel');
+  t.place([0, 1, t.Z(4, 7)], { settle: 1 });
+  const m0 = [b.moved, w.moved, u.moved];
+  let yb0 = 99, yb1 = -99, yw0 = 99, yw1 = -99, ux0 = 99, ux1 = -99;
+  for (let i = 0; i < 480; i++) {
+    c.step(1);
+    yb0 = Math.min(yb0, b.pos.y); yb1 = Math.max(yb1, b.pos.y);
+    yw0 = Math.min(yw0, w.pos.y); yw1 = Math.max(yw1, w.pos.y);
+    ux0 = Math.min(ux0, u.pos.x); ux1 = Math.max(ux1, u.pos.x);
+  }
+  out.move = { block: +(b.moved - m0[0]).toFixed(1), blockY: [+yb0.toFixed(2), +yb1.toFixed(2)], wallY: [+yw0.toFixed(2), +yw1.toFixed(2)], wusel: +(u.moved - m0[2]).toFixed(1), wuselX: [+ux0.toFixed(1), +ux1.toFixed(1)] };
+  // Draufspringen verbrennt; Feuer prallt ab; Tatzenhieb besiegt
+  const st = t.stomp(u, { h: 0.6 });
+  out.stomp = { hurt: st.hurt, defeated: u.defeated };
+  t.place([0, 1, t.Z(4, 7)], { settle: 30 });
+  u.onHit('fire', p); u.onHit('shell', p); u.onHit('throw', p);
+  out.fire = u.defeated;
+  // echter Tatzenhieb (Krallen-Anzug) gegen einen stehenden Funkenling
+  const k = L.spawn('funkenling', { pos: [10, 1, t.Z(4, 12)], speed: 0.001, mode: 'wusel', wake: 99 });
+  c.step(5);
+  t.place([k.pos.x - 0.9, 1, k.pos.z], { settle: 3, power: 'krallen', yaw: 0 });
+  t.face(k.pos.x, k.pos.z);
+  t.action();
+  c.step(30);
+  out.claw = { defeated: k.defeated, state: k.state };
+  c.step(100);
+  out.claw.gone = k.removed;
+  w.onHit('star', p);
+  out.star = w.defeated;
+  return out;
+});
+console.log(`  Funkenling: ${JSON.stringify(fl)}`);
+check(`Funkenling läuft am Blockrand (${fl.move.block} m in 4 s, Höhe ${fl.move.blockY.join('–')}), die Wand hinauf (${fl.move.wallY.join('–')} m) und wuselt (${fl.move.wusel} m)`, fl.move.block > 6 && fl.move.blockY[0] > 2.1 && fl.move.wallY[0] < 1.1 && fl.move.wallY[1] > 3.9 && fl.move.wusel > 4 && fl.move.wuselX[0] > 4 && fl.move.wuselX[1] < 19);
+check('Funkenling: Draufspringen verbrennt (Treffer), Feuer/Panzer/Wurf prallen ab', fl.stomp.hurt && !fl.stomp.defeated && !fl.fire);
+check('Funkenling: nur Power-ups besiegen ihn (Tatzenhieb, Funkelstern) – er verpufft', fl.claw.defeated && fl.claw.state === 'poof' && fl.claw.gone && fl.star);
+
+const gb = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const g = [t.ent('gb'), t.ent('gb_1'), t.ent('gb_2')];
+  t.place([0, 1, t.Z(5, 7)], { settle: 1 });
+  const j0 = g.map((e) => e.jumps);
+  let hMax = 0;
+  const first = [-1, -1, -1];
+  for (let i = 0; i < 576; i++) {
+    c.step(1);
+    hMax = Math.max(hMax, g[0].height());
+    g.forEach((e, k) => { if (first[k] < 0 && e.jumps > j0[k]) first[k] = L.time; });
+  }
+  out.jumps = g.map((e, k) => e.jumps - j0[k]);
+  out.hMax = +hMax.toFixed(2);
+  const per = (x) => +((((x % 2.4) + 2.4) % 2.4)).toFixed(2);   // Versatz im Takt (2,4 s)
+  out.lag = [per(first[1] - first[0]), per(first[2] - first[1])];
+  out.color = g[0].color;
+  // in der Luft verletzt, unten harmlos; Draufspringen verletzt; Stern besiegt
+  const e = g[0];
+  for (let i = 0; i < 400 && !(e.state === 'up' && e.height() > 1.5); i++) c.step(1);
+  out.airHurt = t.touch(e, 3);
+  t.place([0, 1, t.Z(5, 7)], { settle: 1 });
+  for (let i = 0; i < 400 && e.state !== 'down'; i++) c.step(1);
+  out.downTouch = e.touch;
+  e.onHit('fire', p); e.onHit('claw', p);
+  out.fire = e.defeated;
+  for (let i = 0; i < 400 && e.state !== 'up'; i++) c.step(1);
+  e.onHit('star', p);
+  out.star = e.defeated;
+  return out;
+});
+console.log(`  Glutball: ${JSON.stringify(gb)}`);
+check(`Glutbälle springen im Takt (2,4 s: ${gb.jumps.join('/')} Sprünge in 4,8 s, ${gb.hMax} m hoch), Reihe versetzt (${gb.lag.join(' / ')} s), blau wie die Lava`, gb.jumps.every((n) => n === 2) && gb.hMax > 3 && gb.hMax < 3.4 && gb.lag.every((x) => Math.abs(x - 0.48) < 0.05) && gb.color === 'blau');
+check('Glutball: in der Luft verletzt, in der Lava harmlos; Feuer/Krallen nicht, Stern besiegt', gb.airHurt && gb.downTouch === false && !gb.fire && gb.star);
+
+const sw = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const w = t.ent('welle'), k1 = t.ent('k1'), k2 = t.ent('k2'), licht = t.ent('licht');
+  // ohne Alarm: Kanonen schweigen (Figur im Schussfeld, aber im Schatten des Dachs)
+  const dach = [15.5, 1, t.Z(5, 7)];
+  t.place(dach, { settle: 1 });
+  p.hurt = () => false;
+  for (let i = 0; i < 480; i++) { p.pos.set(dach[0], dach[1], dach[2]); p.vel.set(0, 0, 0); c.step(1); }
+  out.quiet = { k1: k1.shots, k2: k2.shots, alarms: licht.alarms, state: w.state };
+  // ins Licht: Alarm → Welle (2 Schüsse je Kanone)
+  const a0 = L.signals.alarm ?? 0;
+  let spotted = false;
+  for (let i = 0; i < 1200 && !spotted; i++) { const s = licht.spot; p.pos.set(s.x, 1, s.z); p.vel.set(0, 0, 0); c.step(1); spotted = w.state === 'wave'; }
+  const heads = new Set();
+  let maxState = w.state;
+  for (let i = 0; i < 1200 && w.state !== 'cool'; i++) {
+    p.pos.set(12, 1, t.Z(5, 9)); p.vel.set(0, 0, 0);
+    c.step(1);
+    for (const e of L.entities) if (e.kind === 'suchkopf' && e.owner && (e.owner === k1 || e.owner === k2)) heads.add(e);
+  }
+  out.wave = { spotted, signals: (L.signals.alarm ?? 0) - a0, shots: [k1.shots, k2.shots], heads: heads.size, state: w.state, waves: w.waves, active: [k1.active, k2.active] };
+  // Abklingzeit: neuer Alarm verpufft, danach wieder bereit
+  const ig0 = w.ignored;
+  w.trigger({});
+  out.cool = { ignored: w.ignored - ig0, state: w.state };
+  for (let i = 0; i < 480 && w.state !== 'ready'; i++) { p.pos.set(dach[0], dach[1], dach[2]); c.step(1); }
+  out.ready = w.state;
+  const s1 = [k1.shots, k2.shots];
+  for (let i = 0; i < 360; i++) { p.pos.set(dach[0], dach[1], dach[2]); p.vel.set(0, 0, 0); c.step(1); }
+  out.after = [k1.shots - s1[0], k2.shots - s1[1]];
+  delete p.hurt;
+  return out;
+});
+console.log(`  Suchkopf-Welle: ${JSON.stringify(sw)}`);
+check('Suchkopf-Kanonen schweigen ohne Alarm (Figur unter dem Dach)', sw.quiet.k1 === 0 && sw.quiet.k2 === 0 && sw.quiet.alarms === 0 && sw.quiet.state === 'ready');
+check(`Alarm des Suchscheinwerfers → Suchkopf-Welle: ${sw.wave.heads} Suchköpfe (2 je Kanone), danach wieder still`, sw.wave.spotted && sw.wave.signals >= 1 && sw.wave.shots[0] === 2 && sw.wave.shots[1] === 2 && sw.wave.heads === 4 && sw.wave.state === 'cool' && !sw.wave.active[0] && !sw.wave.active[1]);
+check('Suchkopf-Welle: Alarm in der Abklingzeit verpufft, danach wieder bereit, ohne Alarm keine Schüsse', sw.cool.ignored === 1 && sw.ready === 'ready' && sw.after[0] === 0 && sw.after[1] === 0);
+check('Keine Konsolenfehler (Teil 2)', errors.length === 0);
 }
 
 // __TEILE__
