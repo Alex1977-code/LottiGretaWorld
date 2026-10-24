@@ -107,6 +107,7 @@ const ROUTES = {
       ['loch', [8, 0.7, -17]],
       ['hain', [16, Y, 13]],
       ['bullen', [30, Y, 4]],
+      ['strand_mitte', [20, Y, 5]],
       ['hoehle_vor', [48, Y, 7]],
       ['hoehle', [48, Y, -2], 40],
       ['farbraum', [102, Y, -12], 40],
@@ -677,7 +678,7 @@ function install() {
       const wait = () => {
         if (v.frame < f0 + 1) { requestAnimationFrame(wait); return; }
         r.renderBufferDirect = orig;
-        res([...acc.entries()].map(([k, a]) => [k, a.calls, a.tris]).sort((x, y) => y[2] - x[2]).slice(0, 16));
+        res([...acc.entries()].map(([k, a]) => [k, a.calls, a.tris]).sort((x, y) => y[1] - x[1] || y[2] - x[2]).slice(0, 40));
       };
       requestAnimationFrame(wait);
     }),

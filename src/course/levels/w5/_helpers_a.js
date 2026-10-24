@@ -95,6 +95,41 @@ export function raumKlar(level, below = 0.4) {
   v.onFrame(() => { for (const m of meshes) m.visible = !(m.material.transparent && m.material.opacity < below); });
 }
 
+/**
+ * Budget: Objekte (Name genau oder Präfix mit „*“, z. B. 'wasser:*'; optional nur wo where(Mittelpunkt) gilt) blenden
+ * aus, solange far(player) gilt – für Teile, die von dort verdeckt oder außer Sicht sind, aber im Sichtkegel
+ * Zeichenaufrufe kosten. Stellt beim Zurückkehren den vorherigen Zustand wieder her. Im Haken nach den Bausteinen.
+ */
+export function fernAus(level, names, far, where = null) {
+  const v = level.view;
+  if (!v) return;
+  const exact = new Set(names.filter((n) => !n.endsWith('*'))), pre = names.filter((n) => n.endsWith('*')).map((n) => n.slice(0, -1));
+  const objs = [];
+  v.three.updateMatrixWorld(true);
+  v.three.traverse((o) => {
+    if (!o.name || !(exact.has(o.name) || pre.some((q) => o.name.startsWith(q)))) return;
+    if (where) {
+      // Mittelpunkt der Geometrie in Weltkoordinaten (Objekte stehen oft im Ursprung)
+      const g = o.geometry;
+      if (g && !g.boundingSphere) g.computeBoundingSphere();
+      const c = g?.boundingSphere ? g.boundingSphere.center.clone().applyMatrix4(o.matrixWorld) : o.getWorldPosition(new THREE.Vector3());
+      if (!where(c, o)) return;
+    }
+    objs.push(o);
+  });
+  let hidden = false;
+  const saved = new Map();
+  v.onFrame(() => {
+    const p = level.player;
+    const h = !!p && far(p);
+    if (h === hidden) return;
+    hidden = h;
+    for (const o of objs) {
+      if (h) { saved.set(o, o.visible); o.visible = false; } else o.visible = saved.get(o) ?? true;
+    }
+  });
+}
+
 /** Nur in der Nähe der Figur sichtbar (Darstellung): liefert eine Prüffunktion, die obj.visible setzt. */
 function nearOnly(level, obj, x, z, r = 40) {
   return () => { const p = level.player; obj.visible = !p || Math.hypot(p.pos.x - x, p.pos.z - z) < r; return obj.visible; };
@@ -825,6 +860,55 @@ export function karottenkorb(level, x, y, z, o = {}) {
     parts.push(colorize(ni(c), (p, n, oo) => mixc(or, orL, smooth(-0.5, 0.9, n.y), oo)));
   }
   addStatic(level, merge(parts), { castShadow: true });
+}
+
+/**
+ * Schwimmtiere im Flachwasser (Gummiente, Schwimmring), schaukeln sanft (ein Mesh für alle):
+ * list = [[x, y (Wasseroberfläche), z, 'ente' | 'ring', yaw, farbe]].
+ */
+export function schwimmtiere(level, list) {
+  if (!level.view) return;
+  const parts = [];
+  for (const [x, y, z, kind = 'ente', yaw = 0, c] of list) {
+    const local = [];
+    if (kind === 'ring') {
+      const col = L(c ?? 0xe8323a), white = L(0xffffff);
+      const g = new THREE.TorusGeometry(0.55, 0.2, 8, 16);
+      g.rotateX(Math.PI / 2);
+      local.push(colorize(ni(g), (p, n, o) => { const a = Math.atan2(p.z, p.x); const k = Math.floor((a + Math.PI) / (Math.PI / 4)) & 1; const cc = k ? col : white; const sh = 0.8 + 0.25 * smooth(-1, 1, n.y); o[0] = cc[0] * sh; o[1] = cc[1] * sh; o[2] = cc[2] * sh; }));
+    } else {
+      const yel = L(c ?? 0xffd23a), yelL = L(0xfff0a0), beak = L(0xff8a1e);
+      const body = new THREE.SphereGeometry(0.42, 12, 8);
+      body.scale(1.25, 0.8, 1);
+      body.translate(0, 0.12, 0);
+      local.push(colorize(ni(body), (p, n, o) => mixc(yel, yelL, smooth(-0.2, 1, n.y), o)));
+      const tail = new THREE.ConeGeometry(0.16, 0.3, 6);
+      tail.rotateZ(Math.PI / 2 + 0.7);
+      tail.translate(-0.55, 0.3, 0);
+      local.push(fill(tail, yel));
+      const head = new THREE.SphereGeometry(0.27, 10, 7);
+      head.translate(0.28, 0.58, 0);
+      local.push(colorize(ni(head), (p, n, o) => mixc(yel, yelL, smooth(-0.2, 1, n.y), o)));
+      const bk = new THREE.ConeGeometry(0.1, 0.24, 6);
+      bk.rotateZ(-Math.PI / 2);
+      bk.scale(1, 1, 1.4);
+      bk.translate(0.62, 0.54, 0);
+      local.push(fill(bk, beak));
+      for (const sz of [-1, 1]) {
+        const e = new THREE.SphereGeometry(0.045, 6, 4);
+        e.translate(0.46, 0.66, sz * 0.13);
+        local.push(fill(e, 0x1a1a2a));
+      }
+    }
+    const g = merge(local);
+    g.rotateY(yaw);
+    g.translate(x, y, z);
+    parts.push(g);
+  }
+  const mesh = new THREE.Mesh(merge(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45 }));
+  mesh.name = 'zier:schwimmtiere';
+  const holder = {};
+  addObject(level, mesh, (dt) => { visDt(level, holder, dt); mesh.position.y = Math.sin(level.time * 1.7) * 0.05; mesh.rotation.z = Math.sin(level.time * 1.1) * 0.004; });
 }
 
 /**

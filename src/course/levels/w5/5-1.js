@@ -26,7 +26,7 @@ import { RiverChannel } from '../../archetypes/RiverNet.js';
 import {
   isl, rock, line, arc, ring, column, areaMoods, sandSkulpturen, kruemelHoehle, rettungsturm, leuchtturm, strandtuecher,
   krabben, delfine, brandung, kristalle, tropfsteine, lichtschaechte, grottenStaub, holzsteg, tiefwasser, schattenDiaet,
-  raumKlar, hoehlenTor, leuchtpilze, karottenkorb,
+  raumKlar, hoehlenTor, leuchtpilze, karottenkorb, fernAus, schwimmtiere,
 } from './_helpers_a.js';
 import { bakeModel } from '../../blocks/w2kit.js';
 
@@ -104,6 +104,11 @@ function setup(level) {
     { min: [ROOM.x0 - 2, ROOM.z1 - 2], max: [ROOM.x1 + 2, ROOM.z0 + 2], mood: 'hoehle' },
   ]);
   raumKlar(level);
+  // Schwimmtiere im Flachwasser, Muscheln und Mini-Sandburg auf der Sandbank
+  schwimmtiere(level, [[-31, WT - 0.12, -25, 'ring', 0, 0xe8323a], [15.5, WT - 0.1, -27, 'ente', 2.4], [28, WT - 0.12, -19.5, 'ring', 0, 0x2f7bff],
+    [-8.5, WT - 0.1, -27.6, 'ente', -0.6], [-36, WT - 0.1, -18, 'ente', 0.8, 0xff8ae0]]);
+  // Grotte und Fluss vom Strand aus verdeckt (Budget am Strand): ausblenden, solange die Figur am Strand ist
+  fernAus(level, ['wasserfall', 'regenbogen', 'regenbogenfall', 'kielwasser', 'wasser:*', 'schaum:*'], (p) => p.pos.z > -24 && p.pos.x < 90, (c) => c.z < -60);
 
   // ---------------- 1 Sandstrand: Sandskulpturen (links Münzen, Mitte Mini-Pilzlinge, rechts Stern 0)
   sandSkulpturen(level, [
@@ -234,6 +239,10 @@ export const LEVEL = {
     { type: 'water', pos: [(HOLE.x0 + HOLE.x1) / 2, HOLE.bot, (HOLE.z0 + HOLE.z1) / 2], size: [HOLE.x1 - HOLE.x0, WT - HOLE.bot, HOLE.z0 - HOLE.z1], show: false },
     // Sandbank mit der Warp-Box, Röhre im Meeresloch (ragt knapp aus dem Wasser)
     isl(BAR.x0, BAR.x1, BAR.z0, BAR.z1, Y, 2, { top: 'sand' }),
+    { type: 'deco_w5', shadow: false, items: [
+      { kind: 'sandburg', pos: [BAR.x1 - 1.2, Y, BAR.z1 + 1.3], size: 0.9 },
+      { kind: 'muscheln', pos: [(BAR.x0 + BAR.x1) / 2, Y, (BAR.z0 + BAR.z1) / 2], size: [7, 7], n: 6, avoid: [[1, -23, 1.6], [BAR.x1 - 1.2, BAR.z1 + 1.3, 1.2]] },
+    ] },
     { type: 'pipe', id: 'p_loch', pos: [(HOLE.x0 + HOLE.x1) / 2, HOLE.bot, (HOLE.z0 + HOLE.z1) / 2], height: WT - HOLE.bot + 0.15, target: 'p_farb' },
     // Wasserfälle über die Kante des Flachwassers in den Abgrund
     { type: 'river_fall', from: [-24, WT, SHALLOW.z1], to: [-24, -11, SHALLOW.z1 - 3], width: 12, lip: 1.4, mist: false },
@@ -248,14 +257,17 @@ export const LEVEL = {
       { kind: 'sandburg', pos: [-16.5, Y, 1.5], size: 1.6, solid: true }, { kind: 'sandburg', pos: [-8.2, Y, -5.4], size: 1.3, solid: true },
       { kind: 'palme', pos: [-11.5, Y, 12], height: 6, lean: 0.25, yaw: 0.6 }, { kind: 'palme', pos: [9, Y, 12.6], height: 5.6, lean: 0.3, yaw: 2.6 },
       { kind: 'palme', pos: [-30, Y, 12], height: 6.4 }, { kind: 'palme', pos: [-31.5, Y, -6], height: 5.2, lean: 0.35, yaw: -0.6 },
-      { kind: 'palmen', pos: [16, Y, 8], size: [8, 7], n: 5, height: [4.6, 6.4], avoid: [[16, 8, 2.2]] },
+      // Palmenhain um Schlüssel 2: Palmen vor und neben dem Schlüssel, Kronen von der Kamera weg geneigt (freie Sicht)
+      { kind: 'palme', pos: [12.2, Y, 6.4], height: 5.4, lean: 0.3, yaw: 2.2 }, { kind: 'palme', pos: [12.8, Y, 2.4], height: 4.8, lean: 0.3, yaw: 2 },
+      { kind: 'palme', pos: [16.4, Y, 3.6], height: 5.8, lean: 0.25, yaw: 1.5 }, { kind: 'palme', pos: [20.4, Y, 11.8], height: 5.2, lean: 0.3, yaw: 0.2 },
       { kind: 'palme', pos: [36, Y, 12], height: 6.2, lean: 0.2, yaw: 3.4 }, { kind: 'palme', pos: [37.5, Y, 4], height: 5, lean: 0.3, yaw: 3 },
       { kind: 'sonnenschirm', pos: [-7, Y, 8.5], color: 'rot' }, { kind: 'sonnenschirm', pos: [21.5, Y, -1.5], color: 'gelb' },
       { kind: 'sonnenschirm', pos: [-20, Y, -7.5], color: 'blau' }, { kind: 'sonnenschirm', pos: [26.5, Y, 11.5], color: 'lila' },
       { kind: 'liegestuhl', pos: [-4.5, Y, 7.5], yaw: -0.3, color: 'rot' }, { kind: 'liegestuhl', pos: [24, Y, 9.5], yaw: 0.4, color: 'lila' },
       { kind: 'strandball', pos: [2.5, Y, 1.5] }, { kind: 'strandball', pos: [-15, Y, -10], size: 0.7 },
       { kind: 'muscheln', pos: [0, Y, 2], size: [60, 24], n: 30, shadow: false, avoid: [[0, 10, 2], [9.6, -1, 3.8], [-12, -2, 2.6]] },
-      { kind: 'duenen', pos: [0, Y, 15.5], size: [60, 3], n: 6, shadow: false },
+      // Dünen nur an den Seiten (hinten am Strand verdeckten sie die Kamera)
+      { kind: 'duenen', pos: [-36, Y, 8], size: [5, 10], n: 2, shadow: false }, { kind: 'duenen', pos: [33, Y, 14.5], size: [4, 2], n: 1, shadow: false },
     ] },
     // Fels im Flachwasser (Schlüssel 3), Fels hinter den Bullen (Schlüssel 5), Bullen-Mäuerchen
     rock(K3ROCK.x - 1.6, K3ROCK.x + 1.6, K3ROCK.z + 1.6, K3ROCK.z - 1.6, K3ROCK.top, K3ROCK.top - SEA + 1, LILA),
