@@ -409,6 +409,29 @@ function install() {
       c.setInput({});
       return n;
     },
+    /** Aufschlüsselung des nächsten Bildes je Objekt (Name der nächsten benannten Hülle bzw. Entitäts-Art): Aufrufe, Dreiecke. */
+    detail: () => new Promise((res) => {
+      const v = c.view, r = v.renderer;
+      for (const e of L.entities) e.model?.root?.traverse((o) => { o.userData.__perf = `E:${e.kind}`; });
+      const label = (o) => { if (o.userData.__perf) return o.userData.__perf; for (let q = o; q; q = q.parent) if (q.name) return q.name.replace(/:\d+$/, ''); return o.type; };
+      const acc = new Map();
+      const orig = r.renderBufferDirect;
+      r.renderBufferDirect = function (camera, scene, geometry, material, object, group) {
+        const t0 = r.info.render.triangles;
+        orig.call(this, camera, scene, geometry, material, object, group);
+        const key = `${scene ? '' : 'S:'}${label(object)}`;
+        const a = acc.get(key) ?? { calls: 0, tris: 0 };
+        a.calls++; a.tris += r.info.render.triangles - t0;
+        acc.set(key, a);
+      };
+      const f0 = v.frame;
+      const wait = () => {
+        if (v.frame < f0 + 1) { requestAnimationFrame(wait); return; }
+        r.renderBufferDirect = orig;
+        res([...acc.entries()].map(([k, a]) => [k, a.calls, a.tris]).sort((x, y) => y[2] - x[2]).slice(0, 16));
+      };
+      requestAnimationFrame(wait);
+    }),
     rt: () => L.runtime.info(),
     info: () => P().info(),
     kinds: () => { const m = {}; for (const e of L.entities) m[e.kind] = (m[e.kind] ?? 0) + 1; return m; },
@@ -454,6 +477,10 @@ async function shot(name, wait = 600) {
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
   await page.screenshot({ path: `${OUT}w5a_${name}.png` });
+  if (process.env.DETAIL) {
+    const d = await sc(() => window.__w5.detail());
+    for (const [n, c, t] of d) console.log(`        ${n.slice(0, 40).padEnd(40)} ${String(c).padStart(4)} ${String(Math.round(t / 1000)).padStart(5)}k`);
+  }
   return s;
 }
 

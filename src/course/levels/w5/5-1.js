@@ -25,7 +25,7 @@
 import { RiverChannel } from '../../archetypes/RiverNet.js';
 import {
   isl, rock, line, arc, ring, column, areaMoods, sandSkulpturen, kruemelHoehle, rettungsturm, leuchtturm, strandtuecher,
-  krabben, delfine, brandung, kristalle, tropfsteine, lichtschaechte, grottenStaub, holzsteg, tiefwasser,
+  krabben, delfine, brandung, kristalle, tropfsteine, lichtschaechte, grottenStaub, holzsteg, tiefwasser, schattenDiaet,
 } from './_helpers_a.js';
 import { bakeModel } from '../../blocks/w2kit.js';
 
@@ -105,12 +105,12 @@ function setup(level) {
 
   // ---------------- 1 Sandstrand: Sandskulpturen (links Münzen, Mitte Mini-Pilzlinge, rechts Stern 0)
   sandSkulpturen(level, [
-    { id: 'skulptur_l', pos: [6, Y, -1], height: 2.4, content: { coins: 5 } },
-    { id: 'skulptur_m', pos: [9.6, Y, -1], height: 2.6, minis: 6 },
-    { id: 'skulptur_r', pos: [13.2, Y, -1], height: 2.4, content: { star: 0 }, sparkle: true },
+    { id: 'skulptur_l', pos: [6, Y, -1], height: 2.4, content: { coins: 5 }, shadow: false },
+    { id: 'skulptur_m', pos: [9.6, Y, -1], height: 2.6, minis: 6, shadow: false },
+    { id: 'skulptur_r', pos: [13.2, Y, -1], height: 2.4, content: { star: 0 }, sparkle: true, shadow: false },
   ]);
   // Krümel in der Wandhöhle
-  kruemelHoehle(level, { pos: [48, Y + 0.9, CAVE.z1 + 1.6], yaw: -Math.PI / 2, task: 'aufgabe_hoehle' });
+  kruemelHoehle(level, { pos: [51.3, Y + 0.9, CAVE.z1 + 1.4], yaw: -Math.PI / 2 - 0.4, task: 'aufgabe_hoehle' });
   rettungsturm(level, TOWER[0], TOWER[1], TOWER[2], { top: 3.2 });
   leuchtturm(level, 8.5, Y, -238, { h: 9 });
   strandtuecher(level, [
@@ -138,12 +138,12 @@ function setup(level) {
     [[GOAL.x0 - 0.3, WT, GOAL.z0], [GOAL.x0 - 0.3, WT, GOAL.z1]], [[GOAL.x1 + 0.3, WT, GOAL.z0], [GOAL.x1 + 0.3, WT, GOAL.z1]],
   ]);
   // Strandkörbe, Muscheln (Registry-Modelle, verschmolzen)
-  for (const [x, z, color, yaw] of [[-9.5, 8.4, 'blau', -Math.PI / 2 - 0.3], [-13, 8.8, 'rot', -Math.PI / 2 + 0.2], [23, 8, 'lila', -Math.PI / 2 - 0.4], [-5, -232, 'gruen', -Math.PI / 2 + 0.3]]) {
+  for (const [x, z, color, yaw] of [[-9.5, 8.4, 'blau', -Math.PI / 2 - 0.3], [-13, 8.8, 'rot', -Math.PI / 2 + 0.2], [-5, -232, 'gruen', -Math.PI / 2 + 0.3]]) {
     bakeModel(level, 'strandkorb', { color }, x, Y, z, yaw);
     level.world.add({ type: 'cyl', x, z, r: 0.7, y0: Y, y1: Y + 1.6, tag: 'strandkorb' });
   }
-  for (const [x, z, kind, s] of [[-3, 4, 'faecher', 1.2], [4.5, 9, 'schnecke', 1], [-17, 1, 'stern', 1.3], [18, -6, 'faecher', 1], [28, 11, 'stern', 1.1], [-24, -6, 'schnecke', 1.2], [2, -235, 'stern', 1.2], [-6, -222, 'faecher', 1]]) {
-    bakeModel(level, 'muschel', { kind, size: s }, x, z < -200 ? Y : Y, z, x * 0.7);
+  for (const [x, z, kind, s] of [[-3, 4, 'faecher', 1.2], [-17, 1, 'stern', 1.3], [28, 11, 'schnecke', 1.1], [2, -235, 'stern', 1.2]]) {
+    bakeModel(level, 'muschel', { kind, size: s }, x, Y, z, x * 0.7, 1, {}, { castShadow: false });
   }
 
   // ---------------- Wandhöhle: Kristalle, Laterne
@@ -168,6 +168,8 @@ function setup(level) {
   lichtschaechte(level, [[2, 12, -100, 1.8, 12], [-2, 12, -138, 2.2, 12.5], [2, 12, -172, 1.8, 12.5], [-9, 12, -199, 2, 12]], { opacity: 0.16 });
   tiefwasser(level, HOLE.x0, HOLE.x1, HOLE.z0, HOLE.z1, WT - 0.08, HOLE.bot);
   grottenStaub(level, { inside: (p) => !!p && p.pos.z < -66 && p.pos.z > -206 && Math.abs(p.pos.x) < 20, y0: 0 });
+  // ---------------- Budget: Gegner werfen den Sonnenschatten nur mit ihrem größten Teil
+  schattenDiaet(level, ['panzerkroete', 'rammbock_bulle', 'krabbelkaefer', 'flatterkaefer', 'sandtaucher', 'muenzmarder', 'pilzling'], 1);
 }
 
 export const LEVEL = {
@@ -181,7 +183,7 @@ export const LEVEL = {
   start: { pos: [0, Y, 10], yaw: Math.PI / 2 },
   killY: -7,
   instances: { coin: { farHide: 44, shadow: false }, krabbelkaefer: { farHide: 40, shadowDist: 16 } },
-  farHide: 46,
+  farHide: 34,
   ride: {
     section: true,
     raft: [0, 0, -82.6],
@@ -210,15 +212,15 @@ export const LEVEL = {
   ],
   segments: [
     // =============================================================== 1  Sandstrand
-    isl(BEACH.x0, BEACH.x1, BEACH.z0, BEACH.z1, Y, 13, { top: 'sand' }),
-    isl(BEACH.x1, MASSIF.x1, BEACH.z0, MASSIF.z0, Y, 13, { top: 'sand' }),
+    isl(BEACH.x0, BEACH.x1, BEACH.z0, BEACH.z1, Y, 13, { top: 'sand', shadow: false }),
+    isl(BEACH.x1, MASSIF.x1, BEACH.z0, MASSIF.z0, Y, 13, { top: 'sand', shadow: false }),
     // Flachwasser: Meeresboden (um das Meeresloch herum), linker Uferstreifen
-    isl(SHALLOW.x0, HOLE.x0, SHALLOW.z0, SHALLOW.z1, SEA, 12.7, { top: 'sand' }),
-    isl(HOLE.x1, SHALLOW.x1, SHALLOW.z0, SHALLOW.z1, SEA, 12.7, { top: 'sand' }),
-    isl(HOLE.x0, HOLE.x1, SHALLOW.z0, HOLE.z0, SEA, 12.7, { top: 'sand' }),
-    isl(HOLE.x0, HOLE.x1, HOLE.z1, SHALLOW.z1, SEA, 12.7, { top: 'sand' }),
-    isl(HOLE.x0, HOLE.x1, HOLE.z0, HOLE.z1, HOLE.bot, 9.4, { top: 'sand' }),
-    isl(SHALLOW.x0, BEACH.x0, BEACH.z0, BEACH.z1, SEA, 12.7, { top: 'sand' }),
+    isl(SHALLOW.x0, HOLE.x0, SHALLOW.z0, SHALLOW.z1, SEA, 12.7, { top: 'sand', shadow: false }),
+    isl(HOLE.x1, SHALLOW.x1, SHALLOW.z0, SHALLOW.z1, SEA, 12.7, { top: 'sand', shadow: false }),
+    isl(HOLE.x0, HOLE.x1, SHALLOW.z0, HOLE.z0, SEA, 12.7, { top: 'sand', shadow: false }),
+    isl(HOLE.x0, HOLE.x1, HOLE.z1, SHALLOW.z1, SEA, 12.7, { top: 'sand', shadow: false }),
+    isl(HOLE.x0, HOLE.x1, HOLE.z0, HOLE.z1, HOLE.bot, 9.4, { top: 'sand', shadow: false }),
+    isl(SHALLOW.x0, BEACH.x0, BEACH.z0, BEACH.z1, SEA, 12.7, { top: 'sand', shadow: false }),
     { type: 'water', pos: [(SHALLOW.x0 + SHALLOW.x1) / 2, SEA, (SHALLOW.z0 + SHALLOW.z1) / 2], size: [SHALLOW.x1 - SHALLOW.x0, WT - SEA, SHALLOW.z0 - SHALLOW.z1] },
     { type: 'water', pos: [(SHALLOW.x0 + BEACH.x0) / 2, SEA, (BEACH.z0 + BEACH.z1) / 2], size: [BEACH.x0 - SHALLOW.x0, WT - SEA, BEACH.z0 - BEACH.z1] },
     { type: 'water', pos: [(HOLE.x0 + HOLE.x1) / 2, HOLE.bot, (HOLE.z0 + HOLE.z1) / 2], size: [HOLE.x1 - HOLE.x0, WT - HOLE.bot, HOLE.z0 - HOLE.z1], show: false },
@@ -244,8 +246,8 @@ export const LEVEL = {
       { kind: 'sonnenschirm', pos: [-20, Y, -7.5], color: 'blau' }, { kind: 'sonnenschirm', pos: [26.5, Y, 11.5], color: 'lila' },
       { kind: 'liegestuhl', pos: [-4.5, Y, 7.5], yaw: -0.3, color: 'rot' }, { kind: 'liegestuhl', pos: [24, Y, 9.5], yaw: 0.4, color: 'lila' },
       { kind: 'strandball', pos: [2.5, Y, 1.5] }, { kind: 'strandball', pos: [-15, Y, -10], size: 0.7 },
-      { kind: 'muscheln', pos: [0, Y, 2], size: [60, 24], n: 40, avoid: [[0, 10, 2], [9.6, -1, 3.8], [-12, -2, 2.6]] },
-      { kind: 'duenen', pos: [0, Y, 15.5], size: [60, 3], n: 6 },
+      { kind: 'muscheln', pos: [0, Y, 2], size: [60, 24], n: 30, shadow: false, avoid: [[0, 10, 2], [9.6, -1, 3.8], [-12, -2, 2.6]] },
+      { kind: 'duenen', pos: [0, Y, 15.5], size: [60, 3], n: 6, shadow: false },
     ] },
     // Fels im Flachwasser (Schlüssel 3), Fels hinter den Bullen (Schlüssel 5), Bullen-Mäuerchen
     rock(K3ROCK.x - 1.6, K3ROCK.x + 1.6, K3ROCK.z + 1.6, K3ROCK.z - 1.6, K3ROCK.top, K3ROCK.top - SEA + 1, LILA),
@@ -310,9 +312,9 @@ export const LEVEL = {
     sign(-3.2, DK, -199.5, 'Zur Zielinsel', { size: [2.2, 0.75] }),
 
     // =============================================================== 4  Zielinsel
-    isl(GOAL.x0, GOAL.x1, GOAL.z0, GOAL.z1, Y, 13, { top: 'sand' }),
-    isl(GOAL.x0 - 6, GOAL.x0, GOAL.z0, GOAL.z1, SEA, 12.7, { top: 'sand' }),
-    isl(GOAL.x1, GOAL.x1 + 6, GOAL.z0, GOAL.z1, SEA, 12.7, { top: 'sand' }),
+    isl(GOAL.x0, GOAL.x1, GOAL.z0, GOAL.z1, Y, 13, { top: 'sand', shadow: false }),
+    isl(GOAL.x0 - 6, GOAL.x0, GOAL.z0, GOAL.z1, SEA, 12.7, { top: 'sand', shadow: false }),
+    isl(GOAL.x1, GOAL.x1 + 6, GOAL.z0, GOAL.z1, SEA, 12.7, { top: 'sand', shadow: false }),
     { type: 'water', pos: [GOAL.x0 - 3, SEA, (GOAL.z0 + GOAL.z1) / 2], size: [6, WT - SEA, GOAL.z0 - GOAL.z1] },
     { type: 'water', pos: [GOAL.x1 + 3, SEA, (GOAL.z0 + GOAL.z1) / 2], size: [6, WT - SEA, GOAL.z0 - GOAL.z1] },
     { type: 'pipe', id: 'p_ziel_ein', pos: [0, Y, -216], height: 1.2 },
@@ -414,13 +416,13 @@ export const LEVEL = {
     line([0, Y + 0.6, -219.5], [0, Y + 0.6, -232], 6),
     { kind: 'chest', id: 'truhe_leuchtturm', pos: [10.2, Y, -240.6], yaw: Math.PI, content: 'oneup' },
     // ---------------- Aufgabe in der Wandhöhle: alle Krabbelkäfer besiegt → Krümel gibt den Stern
-    { kind: 'task', id: 'aufgabe_hoehle', area: { min: [CAVE.x0, Y - 0.5, CAVE.z1], max: [CAVE.x1, Y + CAVE.h, CAVE.z0] }, star: 2, pos: [48, Y + 1.0, CAVE.z1 + 4] },
+    { kind: 'task', id: 'aufgabe_hoehle', area: { min: [CAVE.x0, Y - 0.5, CAVE.z1], max: [CAVE.x1, Y + CAVE.h, CAVE.z0] }, star: 2, pos: [49.6, Y + 1.0, CAVE.z1 + 4.2] },
   ],
   checkpoint: { pos: [0, ISLE.top, -45.5], yaw: Math.PI / 2 },
   stars: [
     { pos: [13.2, Y + 1.0, -1], hidden: true, id: 'stern_skulptur' },              // 0: rechte Sandskulptur
     { pos: [(ROOM.x0 + ROOM.x1) / 2 + 0.8, Y + 1.6, (ROOM.z0 + ROOM.z1) / 2 - 0.6], hidden: true, id: 'stern_farbfeld' },  // 1: Farbfeld-Raum
-    { pos: [48, Y + 1.0, CAVE.z1 + 4], hidden: true, id: 'stern_hoehle' },          // 2: Wandhöhle (Krümel)
+    { pos: [49.6, Y + 1.0, CAVE.z1 + 4.2], hidden: true, id: 'stern_hoehle' },          // 2: Wandhöhle (Krümel)
   ],
   stamp: STAMP,
   goal: { pos: [0, Y, -237], height: 9 },

@@ -676,3 +676,31 @@ export function tiefwasser(level, x0, x1, z0, z1, top, bot) {
   addObject(level, mesh);
   brandung(level, [[[x0, top, zA], [x1, top, zA]], [[x0, top, zB], [x1, top, zB]], [[x0, top, zA], [x0, top, zB]], [[x1, top, zA], [x1, top, zB]]], { speed: 2.2 });
 }
+
+/**
+ * Schatten-Diät (Budget): Modelle der Entitäten dieser Arten werfen ihren Sonnenschatten nur noch mit den keep größten
+ * Teilen (der Blob-Schatten bleibt); keep 0 = gar nicht. Auch später erzeugte Entitäten (Mini-Pilzlinge) werden erfasst.
+ */
+export function schattenDiaet(level, kinds, keep = 1) {
+  if (!level.view) return;
+  const set = new Set(kinds);
+  const done = new WeakSet();
+  const apply = () => {
+    for (const e of level.entities) {
+      if (!set.has(e.kind) || !e.model || done.has(e)) continue;
+      done.add(e);
+      const meshes = [];
+      e.model.root.traverse((o) => {
+        if (!o.isMesh || !o.castShadow) return;
+        if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+        const s = o.getWorldScale(new THREE.Vector3());
+        meshes.push([o, (o.geometry.boundingSphere?.radius ?? 0) * Math.max(s.x, s.y, s.z) * (o.isInstancedMesh ? Math.sqrt(o.count) : 1)]);
+      });
+      meshes.sort((a, b) => b[1] - a[1]);
+      meshes.forEach(([o], i) => { if (i >= keep) o.castShadow = false; });
+    }
+  };
+  apply();
+  let t = 0;
+  level.onStep((dt) => { t += dt; if (t > 0.5) { t = 0; apply(); } });
+}
