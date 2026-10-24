@@ -29,7 +29,7 @@ const PARTS = (process.env.P5_PARTS ?? 'trapeze,cannon,extra').split(',').filter
 const on = (p) => PARTS.includes(p);
 const f2 = (v) => (typeof v === 'number' ? v.toFixed(2) : String(v));
 
-await page.goto(`http://localhost:${port}/?course=0-17&scale=2&adapt=0`, { waitUntil: 'load', timeout: 120000 });
+await page.goto(`http://localhost:${port}/?course=0-17&scale=2&adapt=0${process.env.P5_DEBUG ? "&p5debug=1" : ""}`, { waitUntil: 'load', timeout: 120000 });
 try {
   await page.waitForFunction(() => window.__course && window.__course.level && window.__game.scene.isActive('CourseUI'), null, { timeout: 90000 });
 } catch {
@@ -47,7 +47,7 @@ await sc(() => {
   try { window.__game.scene.getScene('CourseUI').cameras.main.setVisible(false); } catch (_) { /* egal */ }
   const V3 = c.view.camera.position.constructor;
   const V = (x = 0, y = 0, z = 0) => new V3(x, y, z);
-  const H = window.__p5 = { V, t: c.view.time, cam: null, drive: false };
+  const H = window.__p5 = { V, t: c.view.time, cam: null, drive: false, debug: new URLSearchParams(location.search).has('p5debug') };
   // Avatar im Takt der Simulation: die Echtzeit-Zeichenschleife ruft HeroRig.update weiter auf, das wirkt aber nur, wenn
   // der Prüfstand es freigibt (H.drive) – je Simulationsschritt genau ein Avatar-Bild mit dt = 1/120 s
   // (In der Strandwerkstatt ist c.rig ein RideRig – zu Fuß zeichnet dessen footRig, ein normaler HeroRig, die Heldin.)
@@ -168,7 +168,8 @@ await sc(() => {
     const av = H.hr().avatar, cur = av.blender.cur, p = P(), k = H.hr().proxy.course;
     const r = (v) => +(+v).toFixed(3);
     return { state: p.state, mode: p.mode, course: k.state, label: av.blender.state, blendT: r(av.blender.t), phase: r(k.phase ?? 0), swing: r(k.swing ?? 0), swingVel: r(k.swingVel ?? 0),
-      speed: r(k.speed ?? 0), vy: r(k.vy ?? 0), kneeN: r(cur.kneeN), kneeF: r(cur.kneeF), thighZn: r(cur.thighZn), pitch: r(cur.pitch), hidden: p.hidden, hero: av.variant };
+      speed: r(k.speed ?? 0), vy: r(k.vy ?? 0), kneeN: r(cur.kneeN), kneeF: r(cur.kneeF), thighZn: r(cur.thighZn), pitch: r(cur.pitch), hidden: p.hidden, hero: av.variant,
+      ...(H.debug && av.maneChain ? (() => { const q = av.torso.getWorldQuaternion(new av.torso.quaternion.constructor()).invert(); const d = av.maneChain.dirs[0].clone().applyQuaternion(q); return { mane: [r(d.x), r(d.y), r(d.z)], maneW: av.maneChain.dirs[0].toArray().map(r) }; })() : {}) };
   };
 });
 

@@ -1414,6 +1414,9 @@ export class HeroAvatar extends Avatar3D {
       // bei Saltos nicht mehr waagerecht hinaus), nach vorn kaum (nie in den Rücken), seitlich mäßig
       this.maneChain = new HangChain([0.42], { gravity: 32, drag: 0.5, damping: 5, stiffness: 28, rootCone: { back: 1.15, front: 0.12, out: 0.4, inward: 0.4 } });
       this.maneRest = V(-0.13, -1, 0).normalize();
+      // Ansatz (Aufhängung der Kette) und Ruhe-Drehung des Haar-Meshes; das Mesh dreht sichtbar um die Kopfmitte (s. setMane)
+      this.manePivot = this.mane.position.clone();
+      this.maneQ0i = new THREE.Quaternion().setFromUnitVectors(DOWN, this.maneRest).invert();
     }
     this.ensureW3Rig();
   }
@@ -1460,7 +1463,7 @@ export class HeroAvatar extends Avatar3D {
     this.torso.rotation.set(0, 0, 0);
     this.model.rotation.set(0, 0, 0);
     this.model.scale.set(1, 1, 1);
-    if (this.mane) { this.mane.rotation.set(0, 0, 0); this.locks.rotation.set(0, 0, 0); }
+    if (this.mane) { this.mane.rotation.set(0, 0, 0); this.mane.position.copy(this.manePivot ?? this.mane.position); this.locks.rotation.set(0, 0, 0); }
     this.spin.x = this.spin.y = this.spin.z = 0;
   }
 
@@ -1654,7 +1657,7 @@ export class HeroAvatar extends Avatar3D {
         }
       }
     }
-    if (this.maneChain) { this.mane.quaternion.setFromUnitVectors(DOWN, this.maneRest); this.locks.quaternion.identity().slerp(this.mane.quaternion, 0.45); }
+    if (this.maneChain) this.setMane(this.maneRest);
   }
 
   thawHair() {
@@ -1662,7 +1665,7 @@ export class HeroAvatar extends Avatar3D {
     if (this.maneChain) {
       this.head.updateWorldMatrix(true, false);
       this.head.matrixWorld.decompose(_p, _q, _s);
-      _p.copy(this.mane.position).applyMatrix4(this.head.matrixWorld).multiplyScalar(this.chainUnits());
+      _p.copy(this.manePivot).applyMatrix4(this.head.matrixWorld).multiplyScalar(this.chainUnits());
       this.torso.getWorldQuaternion(_q);
       this.maneChain.rest[0].copy(this.maneRest).applyQuaternion(_q);
       this.maneChain.reset(_p);
@@ -1756,7 +1759,7 @@ export class HeroAvatar extends Avatar3D {
     const ch = this.maneChain;
     this.head.updateWorldMatrix(true, false);
     this.head.matrixWorld.decompose(_p, _q, _s);
-    _p.copy(this.mane.position).applyMatrix4(this.head.matrixWorld).multiplyScalar(this.chainUnits());
+    _p.copy(this.manePivot).applyMatrix4(this.head.matrixWorld).multiplyScalar(this.chainUnits());
     this.torso.getWorldQuaternion(_qt);
     ch.frame.copy(_qt);
     // Saltos (Drehkanäle aktiv): Haar bleibt enger am Rücken, statt waagerecht hinauszufliegen
@@ -1766,8 +1769,20 @@ export class HeroAvatar extends Avatar3D {
     ch.update(_p, dt);
     _qi.copy(_q).invert();
     _v.copy(ch.dirs[0]).applyQuaternion(_qi);
-    this.mane.quaternion.setFromUnitVectors(DOWN, _v);
-    this.locks.quaternion.identity().slerp(this.mane.quaternion, 0.45);
+    this.setMane(_v);
+  }
+
+  /**
+   * Haar-Mesh auf die Richtung dir (kopf-lokal) stellen. Gedreht wird – gegenüber der Ruhelage – um die Kopfmitte statt um den
+   * Ansatz oben: Kippt das Haar gegenüber dem Kopf nach hinten (Kopf im Nacken, Saltos, Fahrtwind), fällt es so vom
+   * Hinterkopf statt vom Scheitel, und der obere Teil bleibt in der Haarschale. Strähnen vorn folgen halb.
+   */
+  setMane(dir) {
+    const m = this.mane;
+    m.quaternion.setFromUnitVectors(DOWN, dir);
+    _qt.copy(m.quaternion).multiply(this.maneQ0i);
+    m.position.copy(this.manePivot).sub(HEAD_C).applyQuaternion(_qt).add(HEAD_C);
+    this.locks.quaternion.identity().slerp(m.quaternion, 0.45);
   }
 
   /** Angel mit Möhre beim Reiten (Kurs): Lage aus der nahen Hand, Pendel aus der Beschleunigung (speed in m/s). */
