@@ -410,6 +410,22 @@ export function stoneWallGeo(len, dark, seed = 1) {
   return b.geometry();
 }
 
+/** Savannen-Rand: niedrige Lehmkante mit goldenen Grasbüscheln. */
+export function tuftEdgeGeo(len, seed = 1) {
+  const b = new Build();
+  const rnd = new Rnd(seed);
+  b.box(len, 0.3, 0.6, { v: (x, y, z, nx, ny) => mix(0xa85a34, 0xd49050, ny * 0.5 + 0.5) }, { p: [0, 0.15, 0] }, 0);
+  const n = Math.max(1, Math.round(len / 0.7));
+  for (let i = 0; i < n; i++) {
+    const x = -len / 2 + (i + 0.5) * (len / n);
+    for (let k = 0; k < 3; k++) {
+      const a = k * 2.1 + i;
+      b.cone(0.07, rnd.real(0.5, 0.8), { v: (px, py) => mix(0xc89a3a, 0xf6dc78, py + 0.5) }, { p: [x + Math.cos(a) * 0.12, 0.55, Math.sin(a) * 0.12], r: [Math.sin(a) * 0.3, 0, -Math.cos(a) * 0.3] }, 3);
+    }
+  }
+  return b.geometry();
+}
+
 /** Rand-Optik der Lila-Welt nach Art, sonst null. */
 export function lilaEdgeGeo(kind, len, seed) {
   switch (kind) {
@@ -419,6 +435,7 @@ export function lilaEdgeGeo(kind, len, seed) {
     case 'cream': return creamEdgeGeo(len, seed);
     case 'fortwall': return stoneWallGeo(len + 0.1, true, seed);
     case 'templewall': return stoneWallGeo(len + 0.1, false, seed);
+    case 'tufts': return tuftEdgeGeo(len + 0.1, seed);
     default: return null;
   }
 }

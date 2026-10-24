@@ -14,18 +14,18 @@
 //
 // Bereiche (begehbar, Höhe):                 Eingänge:
 //   A  Ankunftsbucht            y 1            W4         Glasröhre zurück          (−16, 1, 42)
-//   N  Beerenhaus-Nische        y 1            5-1        Sonnenstrand              (14, 1, 37)
+//   N  Beerenhaus-Nische        y 1            5-1        Sonnenstrand              (18.5, 1, 36)
 //   B  Zirkus-Insel             y 2            5-2        Zirkuszelt                (−4, 2, −4)
 //   BA Arena-Insel              y 1.6          5-A        Arena-Käfig (Gruppe)      (−38, 1.6, −5)
 //   BH Höhlen-Insel             y 2            5-3        Höhleneingang (ab 90 ★)   (35, 2, −6)
-//   C  Savanne                  y 3.5          5-4        Savannenberg              (−6, 3.5, −50)
-//   CG Spuk-Insel               y 3.5          5-Kapitän  Geisterhaus-Diorama       (−50, 3.5, −44)
-//   D  Minen-Insel              y 4.5          5-5        Minen-Eingang             (30, 4.5, −57)
+//   C  Savanne                  y 3.5          5-4        Savannenberg              (−9, 3.5, −59.5)
+//   CG Spuk-Insel               y 3.5          5-Kapitän  Geisterhaus-Diorama       (−50, 3.5, −45)
+//   D  Minen-Insel              y 4.5          5-5        Minen-Eingang             (30, 4.5, −59.5)
 //   DL Lava-Felsen              y 2            5-B        Lava-Felsen (Gruppe)      (76, 2, −52)
 //   E  Torten-Insel             y 5.5          5-6        Riesentorte               (46, 5.5, −102)
-//   F  Schleich-Festung         y 6            5-7        Festung mit Suchscheinwerfer (−4, 6, −110)
-//   G  Goldzug-Bahnhof          y 6            5-Zug      Bahnhof mit Goldzug       (−46, 6, −110)
-//   H  Ruinen-Tempel            y 7            5-Burg     Stufenpyramide (ab 100 ★) (10, 7, −150)
+//   F  Schleich-Festung         y 6            5-7        Festung mit Suchscheinwerfer (−4, 6, −112.5)
+//   G  Goldzug-Bahnhof          y 6            5-Zug      Bahnhof mit Goldzug       (−46, 6, −109)
+//   H  Ruinen-Tempel            y 7            5-Burg     Stufenpyramide (ab 100 ★) (10, 7, −149)
 //   I  Röhren-Insel             y 7            W6         Glasröhre (bald)          (54, 7, −158)
 
 const PI = Math.PI;
@@ -95,7 +95,7 @@ export const MAP = {
     g(44, -14, 52, 4, 4.5, { style: 'lilarock' }),
     // ---- C Savanne mit Savannenberg, Spuk-Insel (5-Kapitän)
     g(-24, -64, 14, -28, 3.5, { style: 'savanna', walk: W }),
-    g(-24, -86, 8, -64, 6.5, { style: 'savannahill', hill: { h: 5.5, at: [-9, -75], r: 11 } }),
+    g(-24, -86, 8, -64, 4.5, { style: 'savannahill', hill: { h: 7, at: [-9, -72], r: 11 }, edge: 'tufts' }),
     g(8, -88, 22, -64, 5.5, { style: 'lilarock' }),
     g(-62, -60, -38, -32, 3.5, { style: 'spook', walk: W }),
     g(-66, -70, -36, -60, 6, { style: 'spook', trees: 1.2 }),
@@ -143,7 +143,7 @@ export const MAP = {
   paths: [
     [[2, 47.5], [2, 38], [0, 34], [0, 16]],
     [[2, 43], [-10, 43], [-16, 44.6]],
-    [[2, 39], [9, 38.8], [14, 39.6]],
+    [[2, 39], [12, 38.6], [18.5, 38.6]],
     [[-10, 43], [-20, 41.2], [-30, 41.2]],
     [[0, 8], [0, 0], [-4, -1.4]],
     [[0, 0], [8, -3], [8, -16]],
@@ -151,7 +151,7 @@ export const MAP = {
     [[8, -3], [10, -4], [14, -4]],
     [[-26, -4], [-28.5, -4]],
     [[26, -4], [32, -3.4], [35, -3.4]],
-    [[8, -28], [8, -36], [0, -44], [-9, -53.9]],
+    [[8, -28], [8, -36], [0, -44], [-9, -52], [-9, -56.9]],
     [[0, -44], [-14, -46], [-24, -46]],
     [[8, -36], [10, -48], [14, -48]],
     [[-38, -46], [-46, -42.4], [-50, -42.4]],
@@ -164,8 +164,8 @@ export const MAP = {
     [[16, -106], [6, -106], [-4, -109.9]],
     [[6, -106], [10, -112], [10, -124]],
     [[-4, -109.9], [-10, -110], [-16, -110]],
-    [[-30, -110], [-40, -107.4], [-46, -107.4]],
-    [[-40, -107.4], [-52, -101], [-60, -100.5]],
+    [[-30, -110], [-40, -106.4], [-46, -106.4]],
+    [[-40, -106.4], [-52, -101], [-60, -100.5]],
     [[10, -138], [10, -146.4]],
     [[10, -143], [24, -150], [30, -158], [34, -158]],
     [[46, -158], [54, -155.4]],
@@ -175,23 +175,23 @@ export const MAP = {
     { id: 'W4', kind: 'pipe', pos: [-16, 1, 42], decor: [-16, 1, 38.9],
       pipe: [[0, 0, 0], [0, 3.5, 0], [-0.8, 5.6, 0.2], [-5, 6.8, 0.8], [-16, 7.4, 2.5], [-40, 7, 7], [-80, 5.5, 14], [-140, 4, 26], [-205, 1.5, 40]], pipeDetail: 'low',
       arriveCam: { up: 6, ahead: 6, drop: 2.5 } },
-    { id: '5-1', kind: 'seaside', pos: [14, 1, 37], decor: [31, 0.6, 38], waves: [{ x: 46, z0: 23, z1: 56, dir: 1 }] },
+    { id: '5-1', kind: 'seaside', pos: [18.5, 1, 36], decor: [31, 0.6, 38], waves: [{ x: 46, z0: 23, z1: 56, dir: 1 }] },
     { id: '5-2', kind: 'bigtop', pos: [-4, 2, -4], decor: [-4, 2, -11], trapeze: [-11.4, -9.5, 8] },
     { id: '5-A', kind: 'bullcage', pos: [-38, 1.6, -5], decor: [-38, 1.6, -5], exit: [-28.5, 1.6, -4],
       cage: [[-47.5, -15.5, -28.5, -15.5], [-47.5, 5.5, -28.5, 5.5], [-47.5, -15.5, -47.5, 5.5], [-28.5, -15.5, -28.5, -7.4], [-28.5, -0.6, -28.5, 5.5]],
       towers: [[-47.5, -15.5], [-28.5, -15.5], [-47.5, 5.5], [-28.5, 5.5]], gateAt: [-28.5, -4, 0] },
     { id: '5-3', kind: 'bluecave', pos: [35, 2, -6], decor: [35, 2, -14] },
-    { id: '5-4', kind: 'savanna', pos: [-9, 3.5, -56.5], decor: [-9, 3.5, -56.5],
-      cannon: [-9, 12, -75, 0.6], acacias: [[-17, 6.5, -69, 5.2], [0, 6.5, -67.5, 4.6], [-19.5, 6.5, -81, 4.8], [2.5, 6.5, -82, 5.4], [-13, 3.5, -33, 4.4], [10.5, 3.5, -60, 4.6],
+    { id: '5-4', kind: 'savanna', pos: [-9, 3.5, -59.5], decor: [-9, 3.5, -59.5],
+      cannon: [-9, 11.5, -72, 0.6], acacias: [[-21.5, 4.5, -67, 5], [5, 4.5, -67.5, 4.6], [-20, 4.5, -83, 4.8], [4, 4.5, -83.5, 5.2], [-9, 4.5, -84.6, 4.4], [-13, 3.5, -33, 4.4], [10.5, 3.5, -60, 4.6],
         [-19.5, 3.5, -49, 4.8], [-2, 3.5, -32.5, 4.0]],
       termites: [[-20.5, 3.5, -40, 1.0], [11, 3.5, -38.5, 0.8], [-21, 3.5, -60.5, 1.1], [1, 3.5, -61, 0.8]], bunnies: [[-12, -38, 3.2], [4, -54, 3.4], [-17, -55, 2.6]] },
     { id: '5-Kapitän', kind: 'ghostdiorama', pos: [-50, 3.5, -45], decor: [-50, 3.5, -52], kruemel: [-45.4, 3.5, -47.8], disc: '5-K' },
     { id: '5-5', kind: 'mine', pos: [30, 4.5, -59.5], decor: [30, 4.5, -66], rail: { x: 38.5, z0: -66, z1: -54 } },
     { id: '5-B', kind: 'lavarocks', pos: [76, 2, -52], decor: [76, 2, -52], exit: [66.4, 2, -52],
       pillars: [[60.5, -42, 2.6], [92, -38, 3.0], [92, -66, 2.4], [60.5, -68, 2.8]], tower: [82.5, -58.5], braziers: [[66, -55.6], [66, -48.4]], lavaRing: 14 },
-    { id: '5-6', kind: 'cakeisle', pos: [46, 5.5, -102], decor: [46, 5.5, -110.5], flipper: [35, -98.5, 3, 1.6] },
+    { id: '5-6', kind: 'cakeisle', pos: [46, 5.5, -102], decor: [46, 5.5, -110.5], flipper: [33.5, -96, 3, 1.6] },
     { id: '5-7', kind: 'sneakfort', pos: [-4, 6, -112.5], decor: [-4, 6, -120.5], lamp: [-11.2, 15.8, -120.3], sweep: [-3, -107, 5.5] },
-    { id: '5-Zug', kind: 'goldstation', pos: [-46, 6, -110], decor: [-46, 6, -120], rail: { z: -121, x0: -65, x1: -31, train: -44 } },
+    { id: '5-Zug', kind: 'goldstation', pos: [-46, 6, -109], decor: [-46, 6, -118], rail: { z: -115.5, x0: -65, x1: -31, train: -46 } },
     { id: '5-Burg', kind: 'kipptemple', pos: [10, 7, -149], decor: [10, 7, -159.5], labelY: 2.8 },
     { id: 'W6', kind: 'pipe', pos: [54, 7, -158], decor: [54, 7, -161.1],
       pipe: [[0, 0, 0], [0, 3.5, 0], [0.8, 5.6, -0.3], [5, 8, -1.5], [16, 11, -5], [40, 16, -12], [80, 22, -24], [140, 30, -40], [205, 38, -56]], pipeDetail: 'low',
@@ -284,8 +284,8 @@ export const MAP = {
     { kind: 'tiki', pos: [-14.4, 6, -95.6] }, { kind: 'tiki', pos: [14.4, 6, -95.6] }, { kind: 'crates', pos: [13.6, 6, -118.4] },
     // G Bahnhof: Palmen, Lavendel
     { kind: 'palm5', pos: [-64.4, 6, -97.6], size: 4.8 }, { kind: 'lavender', pos: [-32, 6, -97.8], size: 0.6 },
-    { kind: 'bench5', pos: [-38, 6, -98.6] }, { kind: 'lamppost5', pos: [-34.4, 6, -100.2] }, { kind: 'lamppost5', pos: [-54.6, 6, -113.6] },
-    { kind: 'luggage', pos: [-36.6, 6, -113.8] },
+    { kind: 'bench5', pos: [-38, 6, -98.6] }, { kind: 'lamppost5', pos: [-34.4, 6, -100.2] }, { kind: 'lamppost5', pos: [-54.6, 6, -112.2] },
+    { kind: 'luggage', pos: [-36.4, 6, -111.4] },
     // H Tempel: Säulenreste, Obelisk
     { kind: 'templecolumn', pos: [-11.6, 7, -140.4], size: 4 }, { kind: 'templecolumn', pos: [31.6, 7, -140.4], size: 2.6, broken: true },
     { kind: 'templecolumn', pos: [-11.6, 7, -168], size: 2.2, broken: true }, { kind: 'obelisk5', pos: [31.4, 7, -167.4], size: 5 },

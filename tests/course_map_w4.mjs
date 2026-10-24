@@ -3,8 +3,8 @@
 //   Welt 4 gesperrt, solange 3-Zug offen ist; nach 3-Zug: Glasröhre am Ende von Welt 3 → Fahrt übers Meer → Ankunft am
 //   Start von Welt 4 (Bilder, Kennzahlen); Eingänge zeigen Titel bzw. „Bald“ (mapAlias); Sternschranken 60/70/80 mit
 //   Hinweis „Benötigt N Sterne (x/N)“; Gegnergruppen (Lavabrocken, Feuer-Werfer) starten 4-A/4-B; Piep-Blöcke am
-//   Lautsprecherturm wechseln im Takt der Kartenmusik (Taktuhr, manuell vorgespult); Welt-Warp aus 4-2 nach Welt 5
-//   endet auf der Welt-4-Karte an der Welt-5-Röhre mit „Welt 5 kommt bald!“ (Röhre entdeckt, Schranke offen, „Bald“);
+//   Lautsprecherturm wechseln im Takt der Kartenmusik (Taktuhr, manuell vorgespult); Welt-Warp aus 4-2 landet (seit es
+//   die Welt-5-Karte gibt) in Welt 5, zurück durch die Röhre an der entdeckten Welt-5-Röhre der Welt 4;
 //   Beerenhaus, Glückshaus; Trampoline federn; gespeicherte Welt bleibt nach Neuladen; Rückweg nach Welt 3;
 //   Kennzahlen (< 120 Zeichenaufrufe, < 300 k Dreiecke an jeder Ansicht inkl. Ankunft und Anflug).
 // Simulation deterministisch über window.__courseMap.step(n)/setInput; Bilder tests/out/cmap4_*.png zur Sichtprüfung.
@@ -418,7 +418,10 @@ if (part(8)) {
   await shot('wiese', 800);
 }
 
-// ------------------------------------------------------------------ 9) Welt-Warp aus 4-2 nach Welt 5 (gibt es noch nicht)
+// ------------------------------------------------------------------ 9) Welt-Warp aus 4-2 nach Welt 5
+// Seit es die Welt-5-Karte gibt (worlds/w5.js), endet der Warp ohne Codeänderung in Welt 5 (Ankunft an deren
+// Rückweg-Röhre W4); zurück durch diese Röhre kommt die Figur an der Welt-5-Röhre der Welt 4 an – Röhre entdeckt,
+// Schranke versinkt, Ziel „Lila Strand-Insel“. (Der Rückfall „Welt n kommt bald!“ prüft tests/course_map_w5.mjs mit Welt 6.)
 if (part(9)) {
   lv = w123(true);
   lv['4-1'] = lvl(false);
@@ -433,30 +436,32 @@ if (part(9)) {
   await waitCourse();
   // wie map/warp.js (Röhre mit warpWorld: 5): Welt 5 freischalten, Level ohne Zielmast verlassen
   await sc(() => { window.__courseSave.openWorld(5); window.__course.exitToMap({ warpWorld: 5 }); });
+  await waitMap(5);
+  st = await sc(() => window.__courseMap.state());
+  console.log('  Warp-Ankunft', JSON.stringify(st.travel), st.soonWorld);
+  check('Welt-Warp aus 4-2 endet in Welt 5: Ankunft durch deren Rückweg-Röhre W4 (keine „bald“-Meldung)', st.world === 5 && st.travel?.mode === 'arrive' && st.travel.entrance === 'W4'
+    && st.soonWorld === null && st.worlds.includes(5));
+  r = await stepUntil((s) => !s.travel, 900);
+  await sc(() => window.__courseMap.step(20));
+  // zurück nach Welt 4: Rückweg-Röhre in Welt 5
+  r = await walkTo(-16, 42, (s) => s.onPad === 'W4', 400);
+  await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); });
+  r = await stepUntil(() => false, 900);
   await waitMap(4);
   st = await sc(() => window.__courseMap.state());
-  console.log('  Warp-Ankunft', JSON.stringify(st.travel), st.soonWorld, JSON.stringify(st.entrances.W5));
-  check('Welt-Warp 5 ohne Welt-5-Karte endet in Welt 4: Ankunft durch die Welt-5-Röhre (kein Fehler)', st.world === 4 && st.travel?.mode === 'arrive' && st.travel.entrance === 'W5'
-    && st.soonWorld === 5 && st.worlds.includes(5));
-  check('Welt-5-Röhre entdeckt (Welt 5 gemerkt), Weg frei, Eingang „Bald“', st.entrances.W5.discovered === true && !st.entrances.W5.locked && st.entrances.W5.soon && !st.entrances.W5.enterable
-    && st.entrances.W5.title === 'Bald');
+  check('Zurück durch die Röhre: Ankunft in Welt 4 an der Welt-5-Röhre', st.world === 4 && st.travel?.mode === 'arrive' && st.travel.entrance === 'W5');
   r = await stepUntil((s) => s.travel?.t > 1.4, 400);
   await shot('warp_ankunft', 400);
   r = await stepUntil((s) => !s.travel, 900);
-  const msg = await toast();
   st = await sc(() => window.__courseMap.state());
-  console.log('  Meldung:', msg, '| Schwenk', st.cinematic, st.gates.W5);
-  check('Nach der Ankunft: Meldung „Welt 5 kommt bald!“, Schranke zur Röhre versinkt (Schwenk)', msg === 'Welt 5 kommt bald!' && st.cinematic);
+  console.log('  Schwenk', st.cinematic, st.gates.W5, JSON.stringify(st.entrances.W5));
+  check('Welt-5-Röhre entdeckt (Welt 5 gemerkt), Weg frei, Ziel „Lila Strand-Insel“, Schranke versinkt (Schwenk)', st.entrances.W5.discovered === true && !st.entrances.W5.locked
+    && st.entrances.W5.enterable && st.entrances.W5.title === 'Lila Strand-Insel' && st.cinematic);
   r = await stepUntil((s) => !s.cinematic, 1800);
   await sc(() => window.__courseMap.step(20));
   st = await sc(() => window.__courseMap.state());
   check('Figur steht vor der Welt-5-Röhre, Schranke offen', Math.hypot(st.player.x - 64, st.player.z + 121.4) < 0.8 && st.gates.W5 === 'open' && !st.cinematic);
   await shot('warp_ende', 600);
-  r = await walkTo(64, -124, (s) => s.onPad === 'W5', 400);
-  await sc(() => { const m = window.__courseMap; m.hud.toast('', 0.01); m.step(2); m.enter(); m.step(1); });
-  const msg2 = await toast();
-  st = await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); return m.step(5); });
-  check('Enter/A auf dem Podest der Welt-5-Röhre: keine Fahrt, „Welt 5 kommt bald!“', r.s.onPad === 'W5' && !st.travel && !st.leaving && msg2 === 'Welt 5 kommt bald!');
   // zurück über die Schranken von hinten bis auf die Ruinen-Insel
   await sc(() => { const m = window.__courseMap; m.teleport(44, 6.3, -112, Math.PI / 2); m.step(20); });
   r = await walkTo(44, -93, (s) => s.player.z > -94, 900);

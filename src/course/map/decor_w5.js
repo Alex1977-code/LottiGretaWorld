@@ -1170,37 +1170,37 @@ function goldStation(ev, x, y, z) {
     return b.geometry();
   }, (rl.x0 + rl.x1) / 2, y, RZ, 0, false);
   for (const s of [-1, 1]) solidBox(ev, (s < 0 ? rl.x0 : rl.x1) - 0.4, y, RZ - 1.2, (s < 0 ? rl.x0 : rl.x1) + 0.4, y + 0.7, RZ + 1.2, 'prellbock');
-  // Bahnsteig mit Dach, Bahnhofshäuschen mit Uhr
+  // Bahnsteig mit Dach hinter dem Gleis (der Zug steht davor, zur Kamera hin), Bahnhofshäuschen mit Uhr am Ostende
   addGeo(ev, 'w5m:platform', () => {
     const b = new Build();
     b.box(14, 0.4, 3.2, { v: (px, py, pz, nx, ny) => (ny > 0.5 ? 0xd8c8dc : 0x9a8aa8) }, { p: [0, 0.2, 0] }, 0.04, 1);
-    b.box(14, 0.05, 0.3, 0xffd23a, { p: [0, 0.42, -1.45] }, 0);
-    for (const px of [-5.5, 0, 5.5]) b.cyl(0.12, 0.14, 3.4, 0xffc21a, { p: [px, 2.1, 0.6] }, 8);
-    b.box(15, 0.25, 4.2, (px, py, pz, nx, ny) => (ny > 0.5 ? (Math.floor(px + 20) % 2 ? 0x9a4ad8 : 0xfff6ff) : 0x7a3ab8), { p: [0, 3.85, 0.1], r: [0.08, 0, 0] }, 0.05, 1);
-    for (let i = 0; i < 15; i++) b.cone(0.3, 0.4, i % 2 ? 0xffc21a : 0x9a4ad8, { p: [-7 + i, 3.55, -2.0], r: [Math.PI, 0, 0], s: [1, 1, 0.3] }, 3);
-    // Häuschen (lila, goldenes Dach, Uhr)
-    b.box(3.6, 2.8, 2.6, { v: (px, py, pz, nx) => mix(0x8a4ac8, 0xb47ae0, py / 2.8 + 0.3) }, { p: [4.6, 1.8, 3.1] }, 0.06, 1);
-    b.cone(2.9, 1.4, 0xffc21a, { p: [4.6, 3.9, 3.1], r: [0, Math.PI / 4, 0], s: [1, 1, 0.75] }, 4);
-    b.cyl(0.55, 0.55, 0.12, 0xfff8e8, { p: [4.6, 2.3, 4.45], r: [Math.PI / 2, 0, 0] }, 16);
-    b.torus(0.58, 0.07, 0xffc21a, { p: [4.6, 2.3, 4.5] }, 4, 16);
+    b.box(14, 0.05, 0.3, 0xffd23a, { p: [0, 0.42, 1.45] }, 0);
+    for (const px of [-5.5, 0, 5.5]) b.cyl(0.12, 0.14, 3.4, 0xffc21a, { p: [px, 2.1, -0.6] }, 8);
+    b.box(15, 0.25, 4.2, (px, py, pz, nx, ny) => (ny > 0.5 ? (Math.floor(px + 20) % 2 ? 0x9a4ad8 : 0xfff6ff) : 0x7a3ab8), { p: [0, 3.85, -0.1], r: [-0.08, 0, 0] }, 0.05, 1);
+    for (let i = 0; i < 15; i++) b.cone(0.3, 0.4, i % 2 ? 0xffc21a : 0x9a4ad8, { p: [-7 + i, 3.55, 2.0], r: [Math.PI, 0, 0], s: [1, 1, 0.3] }, 3);
+    // Häuschen (lila, goldenes Dach, Uhr) am Ostende, Front zur Kamera
+    b.box(3.6, 2.8, 2.6, { v: (px, py, pz, nx) => mix(0x8a4ac8, 0xb47ae0, py / 2.8 + 0.3) }, { p: [9.6, 1.4, -0.6] }, 0.06, 1);
+    b.cone(2.9, 1.4, 0xffc21a, { p: [9.6, 3.5, -0.6], r: [0, Math.PI / 4, 0], s: [1, 1, 0.75] }, 4);
+    b.cyl(0.55, 0.55, 0.12, 0xfff8e8, { p: [9.6, 1.9, 0.75], r: [Math.PI / 2, 0, 0] }, 16);
+    b.torus(0.58, 0.07, 0xffc21a, { p: [9.6, 1.9, 0.8] }, 4, 16);
     const door = new THREE.Shape();
-    door.moveTo(-0.5, 0); door.lineTo(-0.5, 1.3); door.absarc(0, 1.3, 0.5, Math.PI, 0, true); door.lineTo(0.5, 0); door.lineTo(-0.5, 0);
-    b.extrude(door, 0.1, 0x3a1a4a, { p: [3.4, 0.4, 4.42] }, 0, 6);
+    door.moveTo(-0.45, 0); door.lineTo(-0.45, 0.9); door.absarc(0, 0.9, 0.45, Math.PI, 0, true); door.lineTo(0.45, 0); door.lineTo(-0.45, 0);
+    b.extrude(door, 0.1, 0x3a1a4a, { p: [8.4, 0, 0.72] }, 0, 6);
     return b.geometry();
-  }, x, y, RZ + 2.9);
-  solidBox(ev, x - 7, y, RZ + 1.3, x + 7, y + 0.4, RZ + 4.5, 'bahnsteig');
-  solidBox(ev, x + 2.8, y, RZ + 4.7, x + 6.4, y + 4.5, RZ + 7.3, 'bahnhaus');
-  for (const px of [-5.5, 0]) solidCyl(ev, x + px, RZ + 3.5, 0.18, y, y + 3.8, 'saeule');
+  }, x, y, RZ - 2.9);
+  solidBox(ev, x - 7, y, RZ - 4.5, x + 7, y + 0.4, RZ - 1.3, 'bahnsteig');
+  solidBox(ev, x + 7.8, y, RZ - 4.8, x + 11.4, y + 4.2, RZ - 2.2, 'bahnhaus');
+  for (const px of [-5.5, 0, 5.5]) solidCyl(ev, x + px, RZ - 3.5, 0.18, y, y + 3.8, 'saeule');
   // Uhrzeiger (dreht sich)
   const hand = new THREE.Mesh(cached('w5m:stationhand', () => { const b = new Build(); b.box(0.06, 0.42, 0.03, 0x2a1a4a, { p: [0, 0.18, 0] }, 0); b.box(0.05, 0.3, 0.03, 0xe8283a, { p: [0, 0.12, 0.02] }, 0); return b.geometry(); }), vcol(0.4, {}, 'w5hand'));
-  hand.position.set(x + 4.6, y + 2.3, RZ + 2.9 + 4.53);
+  hand.position.set(x + 9.6, y + 1.9, RZ - 2.9 + 0.83);
   hand.name = 'w5:bahnhofsuhr';
   ev.view.add(hand);
   // goldener Zug: Lok + zwei Münzwagen (Ursprung Gleismitte), Fahrtrichtung −X
   const tx = rl.train ?? x - 1;
   addGeo(ev, 'w5m:goldtrain', () => {
     const b = new Build();
-    const gold = { v: (px, py, pz, nx, ny) => mix(0xd89a10, 0xfff0a0, Math.max(0, ny) * 0.5 + 0.3 + Math.abs(nz5(nx, ny)) * 0.1) };
+    const gold = { v: (px, py, pz, nx, ny) => mix(0xd08a00, 0xffd23a, Math.max(0, ny) * 0.6 + 0.25 + Math.abs(nz5(nx, ny)) * 0.1) };
     // Lok (vorn bei −X)
     b.box(5.4, 0.5, 2.2, 0x3a2a4a, { p: [-6, 0.6, 0] }, 0.05, 1);
     b.cyl(0.95, 0.95, 3.4, gold, { p: [-7.0, 1.75, 0], r: [0, 0, Math.PI / 2] }, 14);

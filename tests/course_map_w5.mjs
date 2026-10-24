@@ -285,14 +285,14 @@ if (part(4)) {
   check('Start in Welt 5: 5-1 frei, alle anderen zu, Rückweg-Röhre frei, Welt-6-Röhre zu, alle Schranken zu, 8 Gegner unterwegs',
     !st.entrances['5-1'].locked && st.entrances.W4.enterable && W5IDS.slice(1).every((id) => st.entrances[id].locked) && st.entrances.W6.locked
     && st.entrances.W6.discovered === false && Object.values(st.gates).every((g) => g === 'closed') && st.roamers.length === 8);
-  await tp(15.5, 1.3, 40.5, Math.PI / 2, 30);
+  await tp(19.5, 1.3, 39.5, Math.PI / 2, 30);
   await shot('strand', 800);
   await loadWith({}, '&mapAlias=5-1:0-0');
   await waitMap(5);
   st = await sc(() => window.__courseMap.state());
   check('mapAlias: 5-1 zeigt den Titel des Ersatz-Levels und ist startbar', st.entrances['5-1'].title !== 'Bald' && st.entrances['5-1'].enterable);
-  await tp(14, 1.3, 40, Math.PI / 2, 20);
-  r = await walkTo(14, 37, (s) => s.onPad === '5-1', 900);
+  await tp(18.5, 1.3, 39, Math.PI / 2, 20);
+  r = await walkTo(18.5, 36, (s) => s.onPad === '5-1', 900);
   await sc(() => { const m = window.__courseMap; m.enter(); m.step(1); });
   st = await sc(() => window.__courseMap.state());
   check('Enter auf dem Podest 5-1 startet das (Ersatz-)Level', st.leaving && st.lastStart?.entrance === '5-1' && st.lastStart?.id === '0-0');
@@ -301,7 +301,7 @@ if (part(4)) {
   await waitMap(5);
   st = await sc(() => window.__courseMap.state());
   check('Rückkehr aus dem Level: Welt 5, vor dem Strand, Ergebnis auf 5-1 übertragen, Schranke zur Zirkus-Insel versinkt',
-    st.world === 5 && Math.hypot(st.player.x - 14, st.player.z - 39.6) < 0.8 && st.entrances['5-1'].done && st.cinematic);
+    st.world === 5 && Math.hypot(st.player.x - 18.5, st.player.z - 38.6) < 0.8 && st.entrances['5-1'].done && st.cinematic);
   r = await stepUntil((s) => !s.cinematic, 1800);
   check('Weg zur Zirkus-Insel offen, 5-2 frei', r.s.gates['5-2'] === 'open' && !r.s.entrances['5-2'].locked);
 }
@@ -461,7 +461,7 @@ if (part(8)) {
     && lightB.step === (lightA.step + 4) % 8 && alarmOn === true && lightB.alarm === false);
   await sc(() => window.__audio.music.setManualClock(false));
   // Rot-Blau-Flipper auf der Torten-Insel: jeder Sprung wechselt die Farbe
-  await tp(39, 5.8, -96, -Math.PI / 2, 40);
+  await tp(38.5, 5.8, -95, -Math.PI / 2, 40);
   const f0 = (await sc(() => window.__courseMap.state().decor.flipper));
   const jump = () => sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); m.step(90); return m.state().decor.flipper; });
   const f1 = await jump();
@@ -491,8 +491,8 @@ if (part(9)) {
   const done6 = ['5-1', '5-2', '5-4', '5-5', '5-6'];
   await loadWith({ levels: with5(w1234(true), done6), mapOpened: [...OPENED_1234, ...opened5(done6)], world: 5, worlds: WORLDS5, mapPos: null }, '&mapAlias=5-1:0-0');
   await waitMap(5);
-  await tp(14, 1.3, 40, Math.PI / 2, 20);
-  r = await walkTo(14, 37, (s) => s.onPad === '5-1', 900);
+  await tp(18.5, 1.3, 39, Math.PI / 2, 20);
+  r = await walkTo(18.5, 36, (s) => s.onPad === '5-1', 900);
   await sc(() => { const m = window.__courseMap; m.enter(); m.step(1); });
   await waitCourse();
   await sc(() => { window.__courseSave.openWorld(6); window.__course.exitToMap({ warpWorld: 6 }); });
@@ -544,7 +544,7 @@ if (part(11)) {
   const all = W5IDS.filter((id) => !['5-A', '5-B'].includes(id));
   await loadWith({ levels: with5(w1234(true), all), mapOpened: [...OPENED_1234, ...opened5([...all, '5-A', '5-B'])], world: 5, worlds: WORLDS5, mapPos: null });
   await waitMap(5);
-  for (const [name, pos, yaw] of [['zirkus', [-6, 2, -1.5]], ['savanne', [-9, 3.5, -53.5]], ['spuk', [-49, 3.5, -42.5]], ['mine', [32, 4.5, -56.5]],
+  for (const [name, pos, yaw] of [['zirkus', [-6, 2, -1.5]], ['savanne', [-9, 3.5, -56.5]], ['spuk', [-49, 3.5, -42.5]], ['mine', [32, 4.5, -56.5]],
     ['bahnhof', [-46, 6, -107.5]], ['steg', [8, 2.4, -19], Math.PI]]) {
     await tp(pos[0], pos[1] + 0.3, pos[2], yaw ?? -Math.PI / 2, 30);
     await shot(name, 300);
