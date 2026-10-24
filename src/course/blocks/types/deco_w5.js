@@ -487,6 +487,12 @@ const SINGLE = {
   grubenbalken, grubenlampe, kristalle,
 };
 
+// Kollision der Arten, deren Aussehen ein Registry-Modell übernimmt (gleiche Formen wie die eigene Geometrie oben)
+const MODEL_SOLID = {
+  akazie: (level, it, p, s) => { if (it.solid) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: 0.3 * s, y0: p.y, y1: p.y + (it.height ?? 5) * 0.7 * s, tag: 'akazie' }); },
+  zuckerstange: (level, it, p, s) => { if (it.solid) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: 0.18 * s, y0: p.y, y1: p.y + (it.height ?? 3) * s, tag: 'zuckerstange' }); },
+};
+
 export function buildDecoW5(level, spec) {
   const items = spec.items ?? [spec];
   const parts = { shadow: [], flat: [] };
@@ -497,7 +503,11 @@ export function buildDecoW5(level, spec) {
     const rnd = new Rnd((it.seed ?? Math.floor(p.x * 73 + p.z * 37 + p.y * 11)) >>> 0);
     const P = it.shadow === false ? parts.flat : parts.shadow;
     // Kulissen-Modell der Registry, sobald es den Namen gibt (deco_w5_<kind>)
-    if (hasModel(`deco_w5_${it.kind}`)) { bakeModel(level, `deco_w5_${it.kind}`, it, p.x, p.y, p.z, it.yaw ?? 0, it.scale ?? 1, {}, { castShadow: it.shadow !== false }); continue; }
+    if (hasModel(`deco_w5_${it.kind}`)) {
+      bakeModel(level, `deco_w5_${it.kind}`, it, p.x, p.y, p.z, it.yaw ?? 0, it.scale ?? 1, {}, { castShadow: it.shadow !== false });
+      MODEL_SOLID[it.kind]?.(level, it, p, it.scale ?? 1);   // Kollision wie bei der eigenen Geometrie
+      continue;
+    }
     const scat = (fn, n, sz, gap, mk) => { for (const [x, z] of scatter(p, it.size ?? sz, it.n ?? n, it.gap ?? gap, it.avoid, rnd)) fn(level, { shadow: it.shadow, ...mk() }, { x, y: p.y, z }, rnd, P, glow); };
     switch (it.kind) {
       case 'palmen': { const [h0, h1] = range(it.height, [4, 6.5]); scat(palme, 5, [14, 14], 3, () => ({ height: rnd.real(h0, h1), lean: rnd.real(0.1, 0.35), solid: it.solid })); break; }
