@@ -31,12 +31,14 @@ const ENEMIES = [
   ['feuerring', { radius: 3 }, { anim: 'pulse', progress: 0.55 }, ['idle', { anim: 'pulse', progress: 0.25 }, { anim: 'pulse', progress: 0.7 }, 'off', { anim: 'idle', radius: 2, angle: 1 }]],
   ['hackbeil_pilz', {}, 'idle', ['idle', { anim: 'hop', progress: 0.5 }, 'raise', { anim: 'chop', progress: 0.6 }, { anim: 'chop', progress: 1 }, 'stuck', 'squashed']],
   ['funkenling', {}, 'move', ['move', 'idle', 'defeated']],
+  ['glutball', {}, 'rise', ['rise', 'fall', 'idle', 'defeated']],
 ];
 const GROUPS = [
   ['sandtaucher', { ground: 'wasser' }, 'hide', ['hide', 'peek']],
   ['funkenling', { color: 'blau' }, 'idle', ['idle', 'move']],
   ['funkenling', { color: 'pink' }, 'move', ['move']],
   ['feuerring', { radius: 2.5, color: 'blau' }, { anim: 'pulse', progress: 0.5 }, [{ anim: 'pulse', progress: 0.5 }]],
+  ['glutball', { color: 'rot' }, 'fall', ['fall']],
 ];
 const BOSSES = [
   ['kippquader_koenig', {}, 'idle', ['idle', 'walk', { anim: 'tilt', progress: 0.45 }, { anim: 'tilt', progress: 1 }, 'land', 'hit', 'stunned', { anim: 'rise', progress: 0.5 }, { anim: 'idle', hp: 1 }, 'defeated']],
@@ -380,7 +382,7 @@ if (part('checks')) {
   if (props.chop) check('Hackbeil-Pilz ≈1,1–1,3 m; chop: Schneide schlägt vorn am Boden auf (blade() x > 0,9 m, y < 0,4 m)', props.chop[0] > 1.05 && props.chop[0] < 1.35 && props.chop[2] > 0.9 && props.chop[3] < 0.4);
   if (props.spark) check('Funkenling Ø ≈0,5–0,8 m', props.spark[0] > 0.45 && props.spark[0] < 0.85);
   if (props.king) check('Kippquader-König 3,5–5 m hoch; land: liegt vorn (+X) flach; userData.lying', props.king[1] > 3.5 && props.king[1] < 5 && props.king[3] < 2.2 && props.king[4] > 3 && !!props.king[5]);
-  if (props.kq) check('Kippquader: Maße = size (Mitte im Ursprung)', Math.abs(props.kq[0] - 2) < 0.25 && Math.abs(props.kq[1] - 4) < 0.25 && Math.abs(props.kq[2] - 2) < 0.3 && Math.abs(props.kq[3] + 2) < 0.15);
+  if (props.kq) check(`Kippquader: Maße = size (Mitte im Ursprung; Gesicht/Rückenfeld stehen ≤ 0,45 m vor) ${JSON.stringify(props.kq)}`, Math.abs(props.kq[0] - 2) < 0.25 && Math.abs(props.kq[1] - 4) < 0.25 && props.kq[2] > 1.95 && props.kq[2] < 2.45 && Math.abs(props.kq[3] + 2) < 0.15);
   if (props.mark) check('Landemarke: Maße = size, flach am Boden', Math.abs(props.mark[0] - 3) < 0.2 && Math.abs(props.mark[1] - 2) < 0.2 && props.mark[2] < 0.15);
   if (props.trapez) check('Trapez: hängt vom Ursprung bis −length (Stange), Breite ≈ width', props.trapez[1] < 0.3 && Math.abs(props.trapez[0] + 3.05) < 0.2 && props.trapez[2] > 1.1 && props.trapez[2] < 1.8);
   if (props.pendel) check('Pendelplattform: Oberseite bei y = 0, Seile bis zur Aufhängung (length)', Math.abs(props.pendel[0] - 3) < 0.4 && props.pendel[1] > 3.6 && Math.abs(props.pendel[2] + 0.4) < 0.15);

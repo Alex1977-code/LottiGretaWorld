@@ -77,11 +77,11 @@ function keyCoinBodyGeo() {
     const prof = [[0, 0.05], [0.33, 0.05], [0.37, 0.072], [0.42, 0.078], [0.455, 0.06], [0.465, 0.025], [0.465, -0.025], [0.455, -0.06], [0.42, -0.078], [0.37, -0.072], [0.33, -0.05], [0, -0.05]];
     const g = new THREE.LatheGeometry(prof.map(([x, y]) => new THREE.Vector2(x, y)), 56);
     g.rotateX(Math.PI / 2);
-    b.add(g, gradV(0xd89a10, 0xfff0a0, 0.5, 0.5));
+    b.add(g, gradV(0xc87800, 0xffd84a, 0.5, 0.5));
     // Perlkranz auf beiden Seiten
     for (const s of [1, -1]) for (let i = 0; i < 24; i++) {
       const a = (i / 24) * TAU;
-      b.sphere(0.018, 0xfff2b0, { p: [Math.cos(a) * 0.36, Math.sin(a) * 0.36, s * 0.058] }, 8, 5);
+      b.sphere(0.018, 0xffe680, { p: [Math.cos(a) * 0.36, Math.sin(a) * 0.36, s * 0.058] }, 8, 5);
     }
     return b.geometry();
   });
@@ -94,7 +94,7 @@ function keyReliefGeo() {
       g.scale(0.56, 0.56, 1);
       g.rotateZ(0.6);
       if (s < 0) g.rotateY(Math.PI);
-      b.add(g, gradV(0xe0a018, 0xfff6c0, 0.6, 0.5), { p: [0, 0, s * 0.06] });
+      b.add(g, gradV(0xd08000, 0xffe878, 0.6, 0.5), { p: [0, 0, s * 0.06] });
     }
     return b.geometry();
   });
@@ -106,10 +106,11 @@ function buildSchluesselmuenze() {
   const relief = mesh(keyReliefGeo(), metal('w5keyrelief', { color: 0xffffff, vertexColors: true, metalness: 0.5, roughness: 0.2, emissive: 0x4a3000 }, 1.2), {});
   coin.add(body, relief);
   root.add(coin);
-  const spark = sparkleSprite(0xfff6c0, 0.42);
-  spark.position.set(0.26, KEY_CY + 0.3, 0.1);
+  const spark = sparkleSprite(0xfff6c0, 0.3);
+  spark.position.set(0.3, KEY_CY + 0.34, 0.12);
   root.add(spark);
   const clk = new Clock();
+  clk.t = 0; // Vorlage für view.pool: Ruhelage (Münze gerade, Mitte bei KEY_CY)
   const update = (dt, st) => {
     const anim = st.anim ?? 'idle';
     clk.tick(dt, anim);
@@ -127,7 +128,7 @@ function buildSchluesselmuenze() {
       coin.scale.setScalar(1);
     }
     const tw = Math.max(0, Math.sin(t * 3.1));
-    spark.scale.setScalar(0.12 + tw * 0.32);
+    spark.scale.setScalar(0.06 + tw * 0.2);
     spark.material.rotation = t;
   };
   return makeModel('schluesselmuenze', root, update, [], { initial: 'idle' });

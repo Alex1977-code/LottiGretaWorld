@@ -401,6 +401,22 @@ export function sahneGeo(lo = false) {
 }
 export const sahneMat = () => vcol(0.35, {}, 'w5sahne');
 
+// ------------------------------------------------------------------ Zellmuster
+/** Abstand zur nächsten Zellgrenze (Voronoi, Zellgröße 1/s): klein = nahe einer Grenze (Netzmuster, Risse). */
+export function cellEdge(x, y, z, s) {
+  const X = x * s, Yy = y * s, Z = z * s;
+  const ix = Math.floor(X), iy = Math.floor(Yy), iz = Math.floor(Z);
+  let d1 = 9, d2 = 9;
+  for (let a = -1; a <= 1; a++) for (let c = -1; c <= 1; c++) for (let e = -1; e <= 1; e++) {
+    const cx = ix + a, cy = iy + c, cz = iz + e;
+    const h = hash1(cx * 17.1 + cy * 31.7 + cz * 7.3);
+    const px = cx + h, py = cy + hash1(h * 91 + 3), pz = cz + hash1(h * 53 + 7);
+    const d = Math.hypot(px - X, py - Yy, pz - Z);
+    if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
+  }
+  return d2 - d1;
+}
+
 // ------------------------------------------------------------------ Kleinkram
 /** Matrix eines Stabs (Achse +Y der Einheitsgeometrie) von a nach b. */
 export function rodMatrix(a, b, r = 1, out = new THREE.Matrix4()) {

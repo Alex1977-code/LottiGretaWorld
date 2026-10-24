@@ -21,7 +21,7 @@ import {
   setInst, placed,
 } from '../lib/kit.js';
 import { stick } from '../lib/kit_w3.js';
-import { gradV, steppengrasGeo, grassMat, noise3, hash1, mouthShape, puffyGeo } from '../lib/w5Geos.js';
+import { gradV, steppengrasGeo, grassMat, noise3, hash1, mouthShape, puffyGeo, cellEdge } from '../lib/w5Geos.js';
 import { displace } from '../lib/w4Geos.js';
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
@@ -161,20 +161,6 @@ function buildSteppengras() {
 // =============================================================================================
 // Savannentiere (gemeinsamer Vierbeiner-Bau)
 // =============================================================================================
-/** Netzmuster (Giraffe): Abstand zur nächsten Zellgrenze (Voronoi). */
-function cellEdge(x, y, z, s) {
-  const X = x * s, Yy = y * s, Z = z * s;
-  const ix = Math.floor(X), iy = Math.floor(Yy), iz = Math.floor(Z);
-  let d1 = 9, d2 = 9;
-  for (let a = -1; a <= 1; a++) for (let c = -1; c <= 1; c++) for (let e = -1; e <= 1; e++) {
-    const cx = ix + a, cy = iy + c, cz = iz + e;
-    const h = hash1(cx * 17.1 + cy * 31.7 + cz * 7.3);
-    const px = cx + h, py = cy + hash1(h * 91 + 3), pz = cz + hash1(h * 53 + 7);
-    const d = Math.hypot(px - X, py - Yy, pz - Z);
-    if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
-  }
-  return d2 - d1;
-}
 const SPECIES = {
   giraffe: {
     hipY: 1.38, legLen: 1.22, legR: 0.095, hoof: 0x5a3a2a, hips: [[0.4, 0.2], [0.4, -0.2], [-0.4, 0.2], [-0.4, -0.2]],

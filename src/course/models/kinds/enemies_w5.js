@@ -42,6 +42,11 @@
 //   opts  { color: 'rot' (Standard) | 'blau' | 'pink' }
 //   state { anim: 'move'|'idle'|'defeated', speed (m/s; move Standard 2) }
 //         move: zappelt/hüpft, neigt sich in Laufrichtung, Funken nach −X; defeated: verpufft (0,6 s).
+// glutball      Ø ≈0,55 m (Zusatz für 5-3 „blaue Lava“; rot wie Welt 4 möglich)  Glutball: Kugel aus dunklen Krustenschollen,
+//   durch deren Risse der glühende Kern leuchtet, grimmige Brauen, große Augen, Flammenschweif, Schein. Ursprung = Unterkante,
+//   Mitte bei y = 0,3.  opts { color: 'blau' (Standard) | 'rot' }
+//   state { anim: 'rise'|'fall'|'idle'|'defeated' }  rise: Schweif nach unten gestreckt; fall: Schweif nach oben;
+//         idle: schwebt (kurzer Schweif); defeated: verlischt mit Dampf (0,6 s).  (Wie 'lavafunke' aus Welt 4 ansteuerbar.)
 
 import {
   THREE, TAU, Build, cached, vcol, basic, std, mesh, joint, eyes, makeModel, Clock, Blinker, damp, clamp, mix,
@@ -49,7 +54,8 @@ import {
   smoothNormals,
 } from '../lib/kit.js';
 import { Puffs, stick } from '../lib/kit_w3.js';
-import { W5, ownMat, glowVcol, gradV, mouthShape, puffyGeo, flameGeo, FLAME, hash1, noise3 } from '../lib/w5Geos.js';
+import { W5, ownMat, glowVcol, gradV, mouthShape, puffyGeo, flameGeo, FLAME, hash1, noise3, cellEdge } from '../lib/w5Geos.js';
+import { displace } from '../lib/w4Geos.js';
 
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 /** sparsame Kugelkappe für Tupfen-Aufkleber (Fläche nach +Z). */
@@ -62,7 +68,7 @@ const easeIn = (x) => x * x * x;
 // Sandtaucher
 // =============================================================================================
 const SD = {
-  body: 0xff8a45, hi: 0xffc488, low: 0xe0602e, belly: 0xffe8d4, spot: 0xfff0c0, fin: 0x8a48e0, finHi: 0xc89aff, finLow: 0x5a2aa8,
+  body: 0xff8a45, hi: 0xffc488, low: 0xe0602e, belly: 0xffdcd4, spot: 0xfff0c0, fin: 0x8a48e0, finHi: 0xc89aff, finLow: 0x5a2aa8,
   stripe: 0xfff8ff, mouth: 0x5a1430, tongue: 0xff7a8a, tooth: 0xffffff, cheek: 0xff9ab8,
 };
 const SDB = { c: [0, 0, 0], r: [0.43, 0.34, 0.35] };
@@ -492,7 +498,7 @@ function buildFeuerring(opts = {}) {
     H = damp(H, tH * fade, 14, dt);
     angle = st.angle !== undefined ? st.angle : angle + dt * 1.2;
     root.userData.ring = R; root.userData.flameH = H;
-    const w = clamp((TAU * R / N) * 1.25, 0.18, 0.55);
+    const w = clamp((TAU * R / N) * 1.45, 0.22, 0.65);
     for (let i = 0; i < N; i++) {
       const a = angle + (i / N) * TAU;
       const fl = 1 + Math.sin(t * 17 + i * 2.3) * 0.18 + Math.sin(t * 29 + i * 5.1) * 0.08;
@@ -567,7 +573,7 @@ function hbBladeGeo() {
     const b = new Build();
     const s = new THREE.Shape();
     s.moveTo(-0.4, 0); s.lineTo(0.4, 0); s.absellipse(0, 0, 0.4, 0.44, 0, Math.PI, false, 0);
-    const g = puffyGeo(s, 0.05, 0.022, 26, 2);
+    const g = puffyGeo(s, 0.07, 0.03, 26, 2);
     b.add(g, { v: (x, y) => {
       const r = Math.hypot(x / 0.4, y / 0.44);
       if (y < 0.1) return mix(0x2a3040, 0x4a5468, smoothstep(y / 0.1));
@@ -749,10 +755,91 @@ function buildFunkenling(opts = {}) {
   return makeModel('funkenling', root, update, own, { initial: 'move' });
 }
 
+// =============================================================================================
+// Glutball (Zusatz: 5-3 „blaue Lava“)
+// =============================================================================================
+const GB = {
+  blau: { crust: 0x1e2a52, crustHi: 0x4a5a9a, glow: [0xe8ffff, 0x5ad8ff, 0x2a5aff], halo: 0x4ab8ff },
+  rot: { crust: 0x3a1a1a, crustHi: 0x7a3a2a, glow: [0xfff2a0, 0xffa020, 0xff4a10], halo: 0xff7a2a },
+};
+const GB_R = 0.27;
+function gbCrustGeo(color) {
+  const C = GB[color];
+  return cached(`w5:gb:crust:${color}`, () => {
+    // Krustenschollen: Kugel, deren Dreiecke entlang der Zellgrenzen (Voronoi) entfernt werden → glühende Risse
+    const g0 = displace(new THREE.SphereGeometry(GB_R, 40, 30), 0.012, 9, 3.3, true);
+    const P = g0.attributes.position, N = g0.attributes.normal;
+    const pos = [], nor = [];
+    for (let i = 0; i < P.count; i += 3) {
+      const cx = (P.getX(i) + P.getX(i + 1) + P.getX(i + 2)) / 3, cy = (P.getY(i) + P.getY(i + 1) + P.getY(i + 2)) / 3, cz = (P.getZ(i) + P.getZ(i + 1) + P.getZ(i + 2)) / 3;
+      if (cellEdge(cx, cy, cz, 9) < 0.13) continue;
+      for (let k = 0; k < 3; k++) { pos.push(P.getX(i + k), P.getY(i + k), P.getZ(i + k)); nor.push(N.getX(i + k), N.getY(i + k), N.getZ(i + k)); }
+    }
+    g0.dispose();
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    const b = new Build();
+    b.add(g, { v: (x, y, z, nx, ny) => mix(C.crust, C.crustHi, smoothstep(ny * 0.5 + 0.5 + nx * 0.2)) }, { s: 1.04 });
+    // grimmige Brauen auf der Kruste
+    for (const s of [1, -1]) b.capsule(0.022, 0.08, 0x0e1428, { p: [0.235, 0.115, s * 0.085], r: [Math.PI / 2 - s * 0.5, -s * 0.35, 0], order: 'YXZ' }, 3, 8);
+    return b.geometry();
+  });
+}
+const gbCoreGeo = (color) => cached(`w5:gb:core:${color}`, () => {
+  const C = GB[color].glow;
+  return new Build().sphere(GB_R * 0.98, { v: (x, y, z, nx, ny) => mix(C[2], C[0], smoothstep(nx * 0.4 + ny * 0.3 + 0.5)) }, {}, 24, 18).geometry();
+});
+function buildGlutball(opts = {}) {
+  const color = opts.color === 'rot' ? 'rot' : 'blau';
+  const C = GB[color];
+  const root = new THREE.Group();
+  const own = [];
+  const pose = joint([0, GB_R + 0.03, 0]);
+  const core = mesh(gbCoreGeo(color), glowVcol(), {});
+  const crust = mesh(gbCrustGeo(color), vcol(0.5, {}, 'w5crust'), {}, true);
+  const eye = eyes([{ p: [0.22, 0.04, 0.085], r: 0.07, sy: 1.3, dir: [1, 0.05, 0.4] }, { p: [0.22, 0.04, -0.085], r: 0.07, sy: 1.3, dir: [1, 0.05, -0.4] }],
+    { key: 'w5:gb', iris: C.glow[2], pupil: 0.6, depth: 0.5 });
+  const tail = joint([0, 0, 0], mesh(flameGeo(color === 'blau' ? 'blau' : 'rot', 14), glowVcol(), { s: [0.7, 0.75, 0.7] }));
+  const glow = glowSprite(C.halo, 1.3, 0.6);
+  glow.material = glow.material.clone(); own.push(glow.material);
+  pose.add(core, crust, eye, tail, glow);
+  const steam = new Puffs(10, 0xe8f0ff, { opacity: 0.8, radius: 3, cy: 0.4 });
+  own.push(steam);
+  root.add(pose, steam.mesh);
+  const clk = new Clock(), blink = new Blinker();
+  let dir = 0;
+  const update = (dt, st) => {
+    const anim = st.anim ?? 'idle';
+    clk.tick(dt, anim);
+    const t = clk.t, age = clk.age;
+    const dead = anim === 'defeated';
+    // Schweif: steigt → nach unten gestreckt, fällt → nach oben
+    dir = damp(dir, anim === 'rise' ? 1 : anim === 'fall' ? -1 : 0.25, 10, dt);
+    const len = 0.5 + Math.abs(dir) * 0.5;
+    tail.rotation.z = dir >= 0 ? Math.PI : 0;
+    tail.position.y = dir >= 0 ? -GB_R * 0.55 : GB_R * 0.55;
+    tail.scale.set(1 + Math.sin(t * 19) * 0.08, len * (1 + Math.sin(t * 13) * 0.1), 1);
+    crust.rotation.y = t * 0.6;
+    crust.rotation.x = Math.sin(t * 0.8) * 0.2;
+    const k = dead ? Math.max(0.001, 1 - smoothstep(age / 0.6)) : 1;
+    pose.scale.setScalar(k * (1 + Math.sin(t * 9) * 0.02));
+    pose.position.y = GB_R + 0.03 + (anim === 'idle' ? Math.sin(t * 2.6) * 0.04 : 0);
+    glow.material.opacity = (0.5 + Math.sin(t * 11) * 0.12) * k;
+    if (dead && clk.entered) steam.burst([0, GB_R, 0], { count: 10, speed: 1.6, up: 1.8, size: 0.2, life: 0.8, spread: 0.2, force: true });
+    steam.step(dt);
+    let bk = blink.update(dt);
+    if (dead) bk = 0.1;
+    eye.userData.blink(bk);
+  };
+  return makeModel('glutball', root, update, own, { initial: 'idle' });
+}
+
 export const MODELS = {
   sandtaucher: buildSandtaucher,
   zuendkopf: buildZuendkopf,
   feuerring: buildFeuerring,
   hackbeil_pilz: buildHackbeilPilz,
   funkenling: buildFunkenling,
+  glutball: buildGlutball,
 };
