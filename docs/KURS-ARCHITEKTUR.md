@@ -4022,3 +4022,86 @@ alle Sterne, Stempel und Extraleben samt Gegenproben (Stern/Stempel nicht ohne d
 Floß auf (Bein `{ bridge: [id, 'low' | 'high' | 'start'] }`); Messgang entlang der Route. Gemessen (scale 2, inkl.
 Schattenpass): 5-1 bis ≈ 112 Zeichenaufrufe / ≈ 285 k Dreiecke (offener Strand – dort ist kaum noch Luft), 5-2 bis ≈ 92 /
 ≈ 260 k (Riesen-Gasse).
+
+## Präzisierung (Level 5-3, 5-A, 5-4 und 5-Kapitän)
+
+Additiv zur Welt-5-Liste: Titel und Besonderheiten der Level 5-3, 5-A, 5-4 und 5-Kapitän. Dateien
+`src/course/levels/w5/5-3.js`, `5-A.js`, `5-4.js`, `5-Kapitän.js`, eigene Hilfen `src/course/levels/w5/_helpers_b.js`
+(kein `LEVEL`, nur für diese vier Level), Test `tests/course_w5b.mjs`. Kein Motor-Code geändert; alle Sonderteile sind
+level-lokal (Hilfsdatei, Haken `LEVEL.build`/`LEVEL.setup`).
+
+### 5-3 „Klon-Gewusel in den Blauglut-Gassen“ (parcours · bluelava · course_bluelava · 100 s)
+
+- Unterirdische Höhlenstadt (≈ 40 × 20 m, Boden y 1) über einem **eigenen** blauen Lavasee (`blueLavaSea`: Tötungs-Quader
+  `kill: 'lava'` + zwei laufende Voronoi-Ebenen; der Motor-Baustein `lava` zeigt bei 0,12 m Abstand Körper-Oberkante ↔
+  Wellenebene dunkle Flecken). Start Südgasse neben der **rissigen Fliese**, Ziel gegenüber in der Nordgasse (Höhlenausgang
+  mit Tageslicht). West- und Ostgasse mit Lavaspalten und Glutbällen; Abkürzung über die **Marktinsel** (Uhrturm, Brunnen,
+  Marktstände) über zwei Brücken, je von einer Feuer-Schnappblume bewacht. Checkpoint vor dem 4er-Lift.
+- Sterne: 0 Stampfattacke auf die rissige Fliese (`crackTile`: `breakable`-Form, `owner.onHit('pound')`), Stern in der
+  Grube darunter (Darüberlaufen/-springen bricht sie nicht) · 1 zwei Spiegelfrucht-Kristalle (`fruitCrystal`), drei
+  Figuren auf dem 3er-Lift in der Nische der Marktinsel → Uhrturm-Terrasse · 2 vier Figuren auf dem 4er-Lift →
+  Felsterrasse (Liftschacht mit `camIgnore`-Wänden hält die Klone auf dem Lift) **oder** Krallen-Anzug aus dem ?-Block und
+  die Kletterwand daneben. Stempel: **Figurenschalter** (`hero: 'greta'`, „Pilzkopf-Figur“ = Greta) in der Ostgasse →
+  Kristallstufen (`appear`) aufs Dach eines Oberstadt-Hauses; Lotti drückt ihn nicht.
+- Extraleben: unsichtbarer Block über dem Blauglut-Brunnen. Budget: Zielmast, Checkpoint, Lifte, Schilder, Pilzlinge und
+  Feuer-Schnappblumen ohne Sonnenschatten (`quietShadows`, Blob-Schatten bleiben) – mit drei Klonen im Bild ≤ 115 Aufrufe.
+
+### 5-A „Hörnerherde am Lila Strand“ (arena · grass · course_arena · 200 s, 1 Stern)
+
+- Gelber Gitterkäfig (`arena_cage`, Innenradius 11 m ≈ 22 × 22 m) auf einer runden Insel mit lila Sand im türkisen Meer,
+  Tribünen links/rechts/hinten, Wimpel mit Wimpelketten, Fackeln, Palmen, Sandburg, Strandtücher, Krebse,
+  Rettungsschwimmer-Turm, Segelboote, Möwen.
+- Fünf Rammbock-Bullen in **zwei Wellen** (`bullWaves`): zwei im Käfig; drei warten draußen auf Sandsteinfelsen (Arenahöhe,
+  die Kamera sieht sie über den Plattformrand) und springen nach dem Sieg über die ersten zwei nacheinander in hohem Bogen
+  über das Gitter (Ansage, Staub, Ring, Jubel). Geparkte Bullen sind nicht berührbar und laufen nicht; der Arena-Archetyp
+  zählt alle fünf („noch 5“). Tod: Arena-Neustart (frische Bullen) und die Wellen parken wieder (`onRespawn` nach dem
+  Archetyp-`respawn`). ?-Block mit Funkenblüte (trifft von weitem), Münzblock, unsichtbarer Extraleben-Block über dem
+  Sternmosaik.
+
+### 5-4 „Kanonenflug über die Goldsavanne“ (parcours · savanna · course_savanna · 400 s)
+
+- Gebänderte Tafelberge ragen aus der goldenen Ebene (Thema-Boden y −22); Flanken `cliffSkirt` (Umriss-Prisma mit Bändern,
+  nach unten breiter, nur Darstellung), Böden `savannaFloor` (Grasflecken, Blumen, Büsche), Trampelpfade, Giraffen,
+  Heißluftballons. Abschnitte (≈ 280 m): **Startsäule** (y 10) mit Röhrenkanone ≈ 43 m zum **Kletterberg** (Terrassen
+  7 → 10,5 → 14,5 → 19: Ameisenkreise, Rampe, Glasröhren, Wuschel, Ameisen-Wandspur, Gipfel mit **Drehbrücke** und
+  zweiter Kanone) → **dritter Berg** (60 × 74 m, y 9: Checkpoint, Wasserlöcher, Hasen, Ameisenstrom in das Loch eines
+  Ameisenhügels) → **Hohe Wand** (30 m: ?-Block mit Funkelstern am Eingang, Glasröhre zum Sims mit drei Wuscheln, zweite
+  Glasröhre ganz hinauf) → **Plateau** (y 39) mit zwei Drehbalken (`drehplattform`), Insel mit Sternring, Zielmast.
+- Sterne: 0 Mulde bei der ersten Glasröhren-Gruppe (Abzweig der linken Röhre nach links; ein Wuschel kreist um den Stern;
+  auch von der Terrasse hinabspringen) · 1 grün leuchtender Hase (`bunny` mit `star: 1`, Schein und Funken `bunnyGlow`) ·
+  2 Sternring (acht Sternmünzen auf der Insel und dem Zielplateau, 16 s). Stempel: **Ameisenloch** = eingelassene Warp-Box
+  (Modell ausgeblendet, `antHill` zeichnet Krater und Loch, Ameisen laufen mit `mode: 'once'` hinein) → Ameisenbau
+  (Unterbereich x 392 … 416, eigene Kameraschiene `area`, warme Höhlen-Stimmung `areaMood`, beim Warp sofort) → der
+  Stempel reitet auf dem Lastdeck der Riesenameise (`stampOnAnt`), Warp-Box zurück ins Loch.
+- Extraleben: unsichtbarer Block am Gipfel neben der Drehbrücke, zwei kleine Hasen. Münzbögen in den Kanonen-Flugbahnen
+  (`cannonCoins` rechnet die Bahn von `flightCtl` nach).
+
+### 5-Kapitän „Krümel im Kicherschlösschen“ (diorama · ghost · course_diorama · 400 s, 5 Sterne)
+
+- Spuk-Diorama (≈ 28 × 28 m) auf einem Felssockel über violettem Nebel, Mondlicht (Stimmung `aussen`). Ebenen: Hof y −3,
+  Garten y 0 (Start, Mondschein-Rasen), Terrasse y 3, Balkonreihe y 7 (mit Lücken), Dach y 11; Schlösschen mit Zinnen,
+  Spitzdach-Türmen, Uhrtürmchen und Fenstern ringsum (`castleBlock`), Grabsteine mit Herzchen, Kürbislaternen, kahle
+  Bäume, Eisenzäune, Leuchtpilze, Fledermäuse, Irrlichter. Krümel springt nicht; sechs `spuk_tuer` verbinden die Ebenen.
+- Sterne (Bauplan): 1 Tür im Gruft-Häuschen am Start → rechter Balkon, **Kristallplattform** (`antipp`, `appear`)
+  antippen → Erker · 2 Hang hinab in den Hof, **linke** Tür → linker Balkon (die rechte führt aufs Dach zum Großspuk) ·
+  3 vom linken Balkon zwei **Tippblöcke** antippen (`antipp`, `slide` aus der Wand) → mittlerer Erker · 4 Weg durch den
+  **Kreisgeist-Ring** (7, Radius 3 m, 1 m/s – Lücke abwarten) zum Brunnen-Sockel · 5 Rampe hinter dem Ring zur Terrasse,
+  von der Kante auf die **Donut-Blöcke** (`schoko`) fallen, darüber zur Säule. Gegner: Spuk (1, Hof), Kreisgeist (7),
+  Großspuk (1, Dach). Schatzstellen: Garten, Hof, Dach.
+
+### Test `tests/course_w5b.mjs`
+
+Port 4480 (+ `PORT_BASE`), Aufruf `node tests/course_w5b.mjs [5-3|5-A|5-4|5-Kapitän]`, Teilläufe
+`PARTS=load,route,targets,extra,sweep,shots` (je Lauf < 10 min), `HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`,
+`DETAIL=1` (Zeichenaufrufe je Objekt), Bilder `tests/out/w5b_*.png`. Bot mit echter Eingabe (`setInput`/`step`, Stick
+relativ zur Kamera-Gier); Beine u. a. `poundAt`, `gather`/`liftTop` (Klone, Lifte), `climbOnto`, `ride` (Kanone, Röhre,
+Warp-Box, Tür), `rideInput` (Stick in der Röhre: Abzweig), `bar` (Drehbalken: Arm abwarten, zur Nabe, Arm zum Ziel,
+Absprung), `until: 'brueckeZneu'`, `tap` (Bildschirm-Tipp auf die Zielmitte, Strahl wie im Spiel), `ring` (Kreisgeist-Lücke
+vorausrechnen), Arena-Bot `fight` (Kopfsprünge, Ausweichen, Stern). Geprüft: Laden ohne Konsolenfehler, Metadaten,
+Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel; alle Sterne und Stempel mit Gegenproben (Fliese nicht ohne
+Stampfen, 3er-Lift nicht mit zwei Figuren, Lotti drückt den Greta-Schalter nicht, Kristall-Lücke nicht ohne Antippen),
+Extraleben, alles in einem Lauf (5-3 43,5 s; 5-4 68,9 s; 5-Kapitän 39,2 s), Arena: Wellen-Regeln, Tod setzt zurück,
+Funkenblüte; Messgang. Gemessen (scale 2, inkl. Schattenpass): 5-3 32–115 Zeichenaufrufe (115 mit drei Klonen auf dem
+Uhrturm) / ≤ 256 k Dreiecke · 5-A 59–93 / ≤ 242 k · 5-4 35–71 / ≤ 265 k · 5-Kapitän 47–83 / ≤ 241 k.
+Bekannt: Donut-Blöcke fallen nicht, solange die Figur genau auf der Fuge zwischen zwei Blöcken steht (Motor, 5-Kapitän:
+Gehen genügt); Stimmungswechsel blenden im Kopflos-Browser langsam über (Bildrate), im Spiel ≈ 1 s.
