@@ -15,6 +15,7 @@
 //   state { sway (0..1 Wind; Standard 0,3) }
 // liegestuhl             Liegestuhl ≈0,9 m hoch, 1,5 m lang: Holzgestell, durchhängender Streifenstoff, Kopfkissen.
 //   opts { color: 'rot'|'blau'|'gruen'|'lila' }  state –
+// deco_w5_sonnenschirm / deco_w5_liegestuhl  dieselben Modelle für den Baustein deco_w5 (Eintrag { color, height } wie dort).
 // muschel                Muschel/Seestern (Deko am Boden): opts { kind: 'faecher' (Fächermuschel) | 'schnecke' (Spiralschnecke)
 //   | 'stern' (Seestern), size (Faktor, 1), color }  Größe ≈0,35–0,45 m.  state –
 
@@ -323,6 +324,9 @@ function buildMuschel(opts = {}) {
 }
 
 export const MODELS = {
+  // Kulissen-Modelle für den Baustein deco_w5 (opts = Eintrag des Bausteins; wird in die statische Geometrie verschmolzen)
+  deco_w5_sonnenschirm: (it = {}) => buildSonnenschirm({ color: it.color ?? 'rot', height: it.height ?? 2.6, radius: it.radius ?? 1.4, tilt: it.tilt ?? 0.1 }),
+  deco_w5_liegestuhl: (it = {}) => buildLiegestuhl({ color: it.color ?? 'blau' }),
   sandskulptur_pilzling: buildSandskulptur,
   strandkorb: buildStrandkorb,
   sonnenschirm: buildSonnenschirm,

@@ -62,6 +62,13 @@ const GIMMICKS = [
   ['goldzug_waggon', { kind: 'lok' }, { anim: 'drive', speed: 4 }, ['idle', { anim: 'drive', speed: 6 }]],
   ['goldzug_waggon', { kind: 'wagen' }, 'idle', ['idle', { anim: 'drive', speed: 6 }]],
   ['push_switch_gold', {}, 'idle', ['idle', 'pressed']],
+  ['flussbruecke', { length: 8, width: 2.6, thick: 0.45 }, { state: 'low' }, [{ state: 'low' }, { state: 'up' }]],
+];
+const DECO = [
+  ['deco_w5_sonnenschirm', { kind: 'sonnenschirm', color: 'gelb' }, 'idle', ['idle']],
+  ['deco_w5_liegestuhl', { kind: 'liegestuhl' }, 'idle', ['idle']],
+  ['deco_w5_akazie', { kind: 'akazie', height: 5.5 }, 'idle', ['idle']],
+  ['deco_w5_zuckerstange', { kind: 'zuckerstange', height: 3 }, 'idle', ['idle']],
 ];
 const STRAND = [
   ['sandskulptur_pilzling', { height: 2.6 }, 'idle', ['idle', { anim: 'crumble', progress: 0.5 }]],
@@ -113,7 +120,7 @@ const FESTUNG = [
   ['tempeltreppe', { steps: 5, width: 3 }, 'idle', ['idle']],
   ['brummbaer_relief', {}, 'idle', ['idle']],
 ];
-const ALL = [...ENEMIES, ...GROUPS, ...BOSSES, ...GIMMICKS, ...STRAND, ...SAVANNE, ...MINE, ...TORTE, ...FESTUNG];
+const ALL = [...ENEMIES, ...GROUPS, ...BOSSES, ...GIMMICKS, ...STRAND, ...SAVANNE, ...MINE, ...TORTE, ...FESTUNG, ...DECO];
 const ENEMY_NAMES = new Set(ENEMIES.map(([n]) => n));
 const BOSS_NAMES = new Set(['kippquader_koenig']);
 const INST_W5 = ['flipper_feld', 'lila_ziegel', 'donut_block', 'steppengras', 'sahnetupfer'];
@@ -173,7 +180,7 @@ await sc(async () => {
   const live = [];
   // hängende/schwebende Modelle (Ursprung oben, in der Mitte oder an der Oberseite) anheben
   const LIFT = {
-    trapez: (o) => (o.length ?? 3) + 0.4, pendelplattform: () => 0.6, suchscheinwerfer: (o) => (o.mount ? 1.12 : 1.2), grubenlaterne: (o) => (o.hang ? 2.6 : 0),
+    trapez: (o) => (o.length ?? 3) + 0.4, pendelplattform: () => 0.6, flussbruecke: () => 0.5, suchscheinwerfer: (o) => (o.mount ? 1.12 : 1.2), grubenlaterne: (o) => (o.hang ? 2.6 : 0),
     flipper_feld: (o) => (o.thick ?? 1) / 2 + 0.3, kippquader: (o) => (o.size?.[1] ?? 4) / 2, drehbruecke: () => 0.6, alarmlampe: () => 1.6,
     landemarke: () => 0.01,
   };
@@ -373,6 +380,7 @@ if (part('checks')) {
     if (has('schluesselmuenze')) { const k = box('schluesselmuenze', {}, 'idle'); out.key = [k.maxY, Math.max(k.x, k.z)]; }
     if (has('goldzug_waggon')) { const w = box('goldzug_waggon', { kind: 'wagen' }, 'idle'); out.zug = [w.x, w.z, with_('goldzug_waggon', { kind: 'wagen' }, (m) => m.root.userData.top)]; }
     if (has('lila_ziegel')) { const z = box('lila_ziegel', {}, 'idle'); out.ziegel = [z.x, z.y, z.minY]; }
+    if (has('flussbruecke')) { const f = box('flussbruecke', { length: 8, width: 2.6, thick: 0.45, rails: false }, { state: 'low' }); out.fluss = [f.x, f.z, f.maxY, f.minY]; }
     return out;
   });
   console.log('  Eigenschaften:', JSON.stringify(props));
@@ -393,6 +401,7 @@ if (part('checks')) {
   if (props.donut) check('Donut-Block 1 m, Ursprung = Mitte der Unterseite, erstes Mesh trägt den Look', Math.abs(props.donut[0] - 1) < 0.08 && Math.abs(props.donut[1]) < 0.03 && props.donut[2] < 1.15 && props.donutMesh);
   if (props.key) check('Schlüsselmünze: groß (Ø 0,8–1 m), schwebt über dem Fußpunkt', props.key[1] > 0.8 && props.key[1] < 1.05 && props.key[0] < 1.1);
   if (props.zug) check('Goldzug-Wagen 3 m breit, userData.top gesetzt', Math.abs(props.zug[1] - 3) < 0.4 && props.zug[2] > 1.5);
+  if (props.fluss) check('Flussbrücke: Länge/Breite = opts, Lauffläche bei y ≈ 0, Träger bis −thick', Math.abs(props.fluss[0] - 8.1) < 0.2 && Math.abs(props.fluss[1] - 2.6) < 0.1 && props.fluss[2] < 0.15 && props.fluss[3] > -0.6);
   if (props.ziegel) check('Lila Ziegel: 1-m-Block, Ursprung unten', Math.abs(props.ziegel[0] - 1) < 0.1 && Math.abs(props.ziegel[1] - 1) < 0.1 && Math.abs(props.ziegel[2]) < 0.03);
 
   // Instanz-Helfer (neue Arten + Rückwärtskompatibilität)
@@ -447,6 +456,7 @@ if (part('gallery')) {
   await gallery('mine', MINE, 0.25, 0.6, 4);
   await gallery('torte', TORTE, 0.25, 0.5, 5);
   await gallery('festung', FESTUNG, 0.25, 0.8, 4);
+  await gallery('deco', DECO, 0.25, 0.8, 4);
 }
 
 // Zustände: je Modell ein Bild mit allen Zuständen nebeneinander (cm5_st_<name>.png)

@@ -40,8 +40,9 @@
 //   Ringen, rotes Alarm-Leuchtfeuer oben. **Ursprung = Drehpunkt** (Baustein: lampRoot, den er selbst dreht).
 //   opts  { mount: false (true: Gabel + Drehteller bis y = −1,1; dann dreht state.aim), color (Lichtfarbe 0xfff2b0),
 //           cone: false (true: eigener Lichtkegel), length (Kegel, 8) }
-//   state { aim: [yaw, pitch] (rad; nur mit mount oder ungedrehtem root), alarm (bool | 0..1: Linse rot blinkend,
-//           Leuchtfeuer kreist), seen (bool: Linse orange) }
+//   state { aim: [yaw, pitch] (rad; nur mit mount oder ungedrehtem root; mit mount auch yaw/pitch einzeln), alarm (bool |
+//           0..1: Linse rot blinkend, Leuchtfeuer kreist), seen (bool: Linse orange) }  Ohne mount dreht der Baustein root
+//           selbst (yaw/pitch im state werden dann ignoriert).
 // donut_block       Donut-Block 1 m (auch 'donutblock'): Keks-Sockel mit Zuckerperlen, darauf ein glasierter Donut mit
 //   Streuseln. **Ursprung = Mitte der Unterseite**; das erste Mesh trägt den ganzen Look (der Baustein instanziert es).
 //   opts  { color: 'rosa' | 'schoko' | 'gelb' }  state { anim: 'idle'|'shake'|'fall' }  shake: zittert und sinkt ein;
@@ -52,6 +53,10 @@
 //          Treibrädern mit Goldfelgen; wagen: goldener Kastenwagen mit Prägefeldern, randvoll mit Bitcoin-Münzen.
 //   state { anim: 'idle'|'drive', speed (m/s, Räder; drive Standard 6) }
 //   root.userData.top → begehbare Oberkante (Münzberg bzw. Dach), root.userData.length → Länge.
+// flussbruecke      Hubbrücke über dem Ritt-Fluss (Baustein flussbruecke, blocks/types/w5_river.js): Holzbohlen mit Nieten,
+//   Längsträger mit gelb-schwarzen Warnstreifen zum Fluss hin, Hebe-Ösen, Geländer mit Goldknäufen. **Ursprung = Mitte der
+//   Lauffläche**, Brücke entlang X (Pfosten zeichnet der Baustein).  opts { length (8), width (2,6), thick (0,45), rails: true }
+//   state { state: 'low'|'up'|'high'|'down'|'hold' (bewegt: leichtes Rütteln), y }
 // (goldener P-Schalter: das Welt-2-Modell 'push_switch_gold' passt und wird wiederverwendet.)
 
 import {
@@ -580,7 +585,7 @@ function buildSuchscheinwerfer(opts = {}) {
   const update = (dt, st) => {
     clk.tick(dt, 'idle');
     const t = clk.t;
-    const aim = Array.isArray(st.aim) ? st.aim : st.aim ? [st.aim.yaw ?? 0, st.aim.pitch ?? 0] : null;
+    const aim = Array.isArray(st.aim) ? st.aim : st.aim ? [st.aim.yaw ?? 0, st.aim.pitch ?? 0] : (opts.mount && (st.yaw !== undefined || st.pitch !== undefined) ? [st.yaw ?? 0, st.pitch ?? 0] : null);
     if (aim) { yawJ.rotation.y = aim[0]; head.rotation.z = aim[1]; }
     const alarm = typeof st.alarm === 'number' ? st.alarm : st.alarm ? 1 : 0;
     const blink = alarm > 0 ? 0.5 + 0.5 * Math.sin(t * 18) : 0;
@@ -778,6 +783,55 @@ function buildGoldzug(opts = {}) {
   return makeModel('goldzug_waggon', root, update, [...own, small, big], { initial: 'idle' });
 }
 
+// =============================================================================================
+// Flussbrücke (Hubbrücke über dem Ritt-Fluss, Baustein flussbruecke)
+// =============================================================================================
+const FBR = { plank: 0xe0a868, plankB: 0xc88a4a, low: 0x7a4a26, beam: 0x8a5a2e, rail: 0xf0c88a, cap: 0xffc21a, warnA: 0xffd23a, warnB: 0x2a2a36, iron: 0x4a4a5a };
+function flussbrueckeGeo(L, W, t, rails) {
+  return cached(`w5:fbr:${L}:${W}:${t}:${rails}`, () => {
+    const b = new Build();
+    const n = Math.max(3, Math.round(L / 0.5));
+    for (let i = 0; i < n; i++) {
+      const x = -L / 2 + (i + 0.5) * (L / n), c = i % 2 ? FBR.plank : FBR.plankB;
+      b.box(L / n - 0.05, t * 0.5, W, { v: (xx, y, z, nx, ny) => mix(FBR.low, c, smoothstep(ny * 0.6 + 0.6)) }, { p: [x, -t * 0.25, 0] }, 0.03, 1);
+      for (const s of [1, -1]) b.sphere(0.025, FBR.iron, { p: [x, 0.005, s * (W / 2 - 0.22)], s: [1, 0.4, 1] }, 6, 4);
+    }
+    // Längsträger mit gelb-schwarzen Warnstreifen (zum Fluss hin, ±Z)
+    for (const s of [1, -1]) {
+      b.box(L + 0.1, t * 0.55, 0.22, (x, y, z, nx, ny, nz) => (Math.abs(nz) > 0.6 ? ((((Math.floor((x + y) * 3.2) % 2) + 2) % 2) ? FBR.warnA : FBR.warnB) : FBR.beam), { p: [0, -t * 0.66, s * (W / 2 - 0.11)] }, 0.03, 1);
+      // Hebe-Ösen an den Enden
+      for (const ex of [-1, 1]) b.torus(0.08, 0.022, FBR.iron, { p: [ex * (L / 2 - 0.2), -t * 0.45, s * (W / 2 + 0.02)], r: [0, 0, 0] }, 6, 14);
+      if (rails) {
+        b.box(L - 0.2, 0.1, 0.1, gradV(FBR.beam, FBR.rail, 0.5, 0.5), { p: [0, 0.85, s * (W / 2 - 0.08)] }, 0.04, 2);
+        const m = Math.max(2, Math.round(L / 1.2));
+        for (let k = 0; k <= m; k++) {
+          const x = -L / 2 + 0.1 + k * (L - 0.2) / m;
+          b.cyl(0.05, 0.055, 0.85, FBR.beam, { p: [x, 0.425, s * (W / 2 - 0.08)] }, 10);
+          b.sphere(0.07, FBR.cap, { p: [x, 0.9, s * (W / 2 - 0.08)] }, 10, 8);
+        }
+      }
+    }
+    return b.geometry();
+  });
+}
+function buildFlussbruecke(opts = {}) {
+  const L = Math.max(1, opts.length ?? 8), W = Math.max(0.8, opts.width ?? 2.6), t = Math.max(0.15, opts.thick ?? 0.45);
+  const root = new THREE.Group();
+  const m = mesh(flussbrueckeGeo(L, W, t, opts.rails !== false), vcol(0.6, {}, 'w5wood2'), {}, true);
+  m.receiveShadow = true;
+  root.add(m);
+  const clk = new Clock();
+  let shake = 0;
+  const update = (dt, st) => {
+    clk.tick(dt, 'idle');
+    const moving = st.state === 'up' || st.state === 'down';
+    shake = damp(shake, moving ? 1 : 0, 8, dt);
+    m.rotation.x = Math.sin(clk.t * 23) * 0.004 * shake;
+    m.position.y = Math.sin(clk.t * 31) * 0.006 * shake;
+  };
+  return makeModel('flussbruecke', root, update, [], { initial: 'idle' });
+}
+
 export const MODELS = {
   schluesselmuenze: buildSchluesselmuenze,
   trapez: buildTrapez,
@@ -790,4 +844,5 @@ export const MODELS = {
   donut_block: buildDonutBlock,
   donutblock: (opts) => { const m = buildDonutBlock(opts); m.root.name = 'modell:donutblock'; m.root.userData.modelName = 'donutblock'; return m; },
   goldzug_waggon: buildGoldzug,
+  flussbruecke: buildFlussbruecke,
 };

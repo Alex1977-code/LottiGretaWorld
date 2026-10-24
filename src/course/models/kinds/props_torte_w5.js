@@ -12,7 +12,8 @@
 // erdbeere        Erdbeere ≈0,5 m (glänzend rot, gelbe Nüsschen, Blätterkrone mit Stiel).  opts { size (Faktor, 1) }  state –
 // keks            Keks Ø ≈0,7 m, liegend: 'schoko' (Butterkeks mit Schokostücken) | 'doppel' (Doppelkeks mit Creme und
 //                 Prägemuster).  opts { kind, size (Faktor) }  state –
-// zuckerstange    Zuckerstange ≈1,6 m (rot-weiße Spirale, Haken nach +X).  opts { height (1,6), color (0xff2a3a) }  state –
+// zuckerstange    Zuckerstange ≈1,6 m (rot-weiße Spirale, Haken nach +X; Dicke wächst mit der Höhe).  opts { height (1,6),
+//                 color (0xff2a3a) }  state –   deco_w5_zuckerstange: dasselbe für den Baustein deco_w5 ({ height }, 3 m).
 // streusel        Streusel-Fleck am Boden (bunte Stäbchen, liegen flach).  opts { radius (1), count (60) }  state –
 
 import {
@@ -224,7 +225,7 @@ function buildKeks(opts = {}) {
 // =============================================================================================
 function zuckerGeo(H, color) {
   return cached(`w5:zucker:${H}:${color}`, () => {
-    const R = 0.075, hook = 0.24;
+    const R = clamp(H * 0.047, 0.05, 0.2), hook = H * 0.15;
     const pts = [];
     const straight = H - hook - 0.05;
     for (let i = 0; i <= 8; i++) pts.push(new THREE.Vector3(0, (i / 8) * straight, 0));
@@ -287,6 +288,7 @@ function buildStreusel(opts = {}) {
 }
 
 export const MODELS = {
+  deco_w5_zuckerstange: (it = {}) => buildZuckerstange({ height: it.height ?? 3 }),
   torten_plateau: buildTortenPlateau,
   sahnetupfer: buildSahnetupfer,
   torten_kerze: buildTortenKerze,

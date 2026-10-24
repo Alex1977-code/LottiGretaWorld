@@ -4,6 +4,7 @@
 //
 // akazie          Schirmakazie ≈5 m: knorriger, gegabelter Stamm, breite, flache Krone aus weichen Laubpolstern.
 //                 opts { height (5), radius (Kronenradius, 2,8) }  state { sway (0..1, Standard 0,3) }
+//                 deco_w5_akazie: dasselbe Modell für den Baustein deco_w5 ({ height }).
 // termitenhuegel  Termitenhügel ≈2,5 m: gebündelte, knubbelige Lehmtürme (rotorange, Schichten, Luftlöcher).
 //                 opts { height (2,5) }  state –
 // felsenberg      großer Savannen-Felsberg: bauchiger Fels in roten/ockerfarbenen Schichten mit Grasdecke oben und
@@ -359,6 +360,7 @@ function buildAnimal(kind) {
 }
 
 export const MODELS = {
+  deco_w5_akazie: (it = {}) => buildAkazie({ height: it.height ?? 5, radius: (it.height ?? 5) * 0.56 }),
   akazie: buildAkazie,
   termitenhuegel: buildTermitenhuegel,
   felsenberg: buildFelsenberg,
