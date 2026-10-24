@@ -3525,3 +3525,28 @@ Welt-1-Themen in `src/audio/themes.js` (`course_grass`, `course_cave`, `course_c
   Akzent. 128–150 BPM.
 - Welt-Charakter über Klangfarben/Percussion (z. B. Darbuka in der Wüste, Glöckchen im Schnee), nie auf Kosten der
   Melodie.
+
+## Welt 5 – Level-Liste und Freischaltung (Hauptsitzung)
+
+Welt 5 „Lila Strand-Insel“ wird nach Sieg über `4-Burg` frei (oder früher über den Welt-Warp in 4-2). Sternbedarf zählt
+**alle** gesammelten Sterne (Welt 1–4 bieten zusammen 109).
+
+| Id | Archetyp | Thema | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `5-1` | parcours + ride (Strand, 5 Schlüsselmünzen öffnen die Warp-Box, Pflaume im Höhlenfluss) | beach | course_beach | 3 + Stempel | Welt 5 offen |
+| `5-2` | parcours (Zirkus: Trapeze zum Schwingen, Seilbahnen, Pendelplattformen) | circus | course_trapeze | 3 + Stempel | 5-1 |
+| `5-3` | parcours kurz (100 s, unterirdisch, blaue Lava, 3er-/4er-Lifte, Spiegelfrüchte) | bluelava | course_bluelava | 3 + Stempel | 5-2 **und ≥ 90 Sterne** |
+| `5-A` | arena (Käfig, 5 Rammbock-Bullen) | grass | course_arena | 1 | 5-2 |
+| `5-4` | parcours offen (Savannenberge, Röhrenkanone, Hasen) | savanna | course_savanna | 3 + Stempel | 5-2 |
+| `5-Kapitän` | diorama (Geisterhaus, Kreisgeister, Tipp- und Donut-Blöcke) | ghost | course_diorama | 5 | 5-4 |
+| `5-5` | parcours (Höhle, Zündköpfe, POW-Blöcke, lila Ziegelwand) | mine | course_mine | 3 + Stempel | 5-4 |
+| `5-B` | arena (Lava, steigende Steinsäulen, Feuer-Werfer auf Pilzlingsturm, 100 s) | lava | course_arena | 1 | 5-5 |
+| `5-6` | parcours (Torten-Welt, Rot-Blau-Flipper wechseln bei jedem Sprung, Feuerringe) | cake | course_cake | 3 + Stempel | 5-5 |
+| `5-7` | parcours (Schleich-Festung: Suchscheinwerfer, entdeckt → Suchkopf-Welle) | sneak | course_sneak | 3 + Stempel | 5-6 |
+| `5-Zug` | autoscroller (Bonus: Goldzug voller Münzen, Glückshaus am Ende) | train | course_goldtrain | 0 | 5-7 |
+| `5-Burg` | parcours + boss (Ruinen-Tempel mit Kippquadern, Boss Kippquader-König) | temple | course_temple | 3 + Stempel | 5-7 **und ≥ 100 Sterne** |
+
+Welt 5 hat 31 Sterne. „Kapitän“ = Krümel, „Münz-Dieb“ = Münzmarder, „Pilzkopf-Figur“ (Figurenschalter 5-3) = Lotti
+bzw. Greta, „Reittier“ = Pflaume. Neu: Schlüsselmünzen, Trapez, Röhrenkanone, Drehbrücke, Rot-Blau-Flipper,
+Schiebekugel (auf P-Feld bugsieren), Suchscheinwerfer, Kippquader, Donut-Block; Gegner Sandtaucher, Zündkopf,
+Feuerring, Hackbeil-Pilz, Funkenling, Glutball; Boss **Kippquader-König** (nur Sprung auf den Rücken trifft).
