@@ -20,7 +20,7 @@
 // goal_pole           Zielmast: Steinblock 1 m, weißer Mast mit Korallen-Spirale, goldener Stern oben, Fahne.
 //                     opts { height (8, Gesamthöhe ohne Stern) }  state { flagY (0 = unten am Block .. 1 = oben), anim }
 //                     root.userData.flagHeight(flagY) → Höhe der Fahnenmitte.
-// bunny_small         kleiner flinker Hase ≈0,5 m (karamell, Cremebauch, rotes Halstuch).
+// bunny_small         kleiner flinker Hase ≈0,5 m (karamell, Cremebauch, rotes Halstuch), Figurenstil wie die Heldinnen.
 //                     state { anim: 'idle'|'hop'|'caught' }  hop: Sprungzyklus 0,45 s (Bogen 0,35 m);
 //                     caught: dreht sich glücklich, schrumpft in 0,7 s weg (Glitzern).
 // fairy_spotter       Waldkobold ≈0,65 m: grüner Kittel, rote Zipfelmütze mit Bommel, goldenes Fernglas.
@@ -36,6 +36,7 @@ import {
   smoothstep, glowSprite, sparkleSprite, spriteMat, glowTexture, instMesh, setInst, gold, puffyStarGeo, starShape,
   canvasTexture, roundedBox, SIDE, metal,
 } from '../lib/kit.js';
+import { HeadShape, gridGeo, decalGeo, stripGeo, toonEyeGeos, mergeColored, dirAE as dirV } from '../../../three/lib/figures.js';
 
 // =============================================================================================
 // Warp-Röhre
@@ -437,35 +438,120 @@ function buildGoal(opts = {}) {
 }
 
 // =============================================================================================
-// Kleiner Hase
+// Kleiner Hase (Krümel-Modell) – Figurenstil wie die Heldinnen: großer runder Kopf mit Pausbacken, große glänzende Augen
+// (Aufkleber, Blinzeln mit Lidbogen), Cremeschnäuzchen, rundlicher Körper mit Cremebauch, kleine Pfoten, Puschelschwanz,
+// lange Ohren mit rosa Innenseite, rotes Halstuch. Aufbau wie bisher: root → hop → [Körper, Augen-Gruppe (userData.blink),
+// Ohr-Gelenke (je ein Mesh, y > 0,4)] – Krümel (gimmicks_w2.js) und KruemelRig (Mütze/Rucksack am hop) bauen darauf.
 // =============================================================================================
-const BN = { fur: 0xd99a5a, furLight: 0xf0c890, belly: 0xfff2dc, ear: 0xffa8c0, nose: 0xff6f9a, scarf: 0xe8322a };
+const BN = { fur: 0xd99a5a, furLight: 0xf0c890, furDark: 0xb87a3e, belly: 0xfff2dc, ear: 0xffa8c0, nose: 0xff6f9a, scarf: 0xe8322a, mouth: 0x8a3a2a };
+const BHEAD = new HeadShape(new THREE.Vector3(0.1, 0.37, 0), 0.15, { sx: 1.0, sy: 0.95, sz: 1.06, bulges: [{ az: 0.6, el: -0.45, w: 0.42, a: 0.012, sym: true }, { az: 0, el: -0.28, w: 0.32, a: 0.012 }] });
+const bcol = (c) => new THREE.Color(c);
 function bunnyGeo() {
-  return cached('bunny:body', () => {
-    const b = new Build();
-    b.sphere(1, { v: (x, y, z, nx) => mix(BN.fur, BN.belly, smoothstep((nx - 0.3) / 0.4)) }, { p: [0, 0.2, 0], s: [0.17, 0.16, 0.15] }, 18, 14);
-    b.sphere(0.14, BN.fur, { p: [0.12, 0.38, 0] }, 18, 14);
-    b.sphere(1, BN.belly, { p: [0.23, 0.35, 0], s: [0.06, 0.05, 0.08] }, 12, 8);
-    b.sphere(0.025, BN.nose, { p: [0.285, 0.37, 0] }, 8, 6);
-    b.sphere(0.07, 0xffffff, { p: [-0.17, 0.22, 0] }, 12, 8); // Puschelschwanz
-    b.torus(0.105, 0.03, BN.scarf, { p: [0.08, 0.28, 0], r: [Math.PI / 2, 0, 0.35] }, 6, 18);
-    b.box(0.03, 0.09, 0.06, BN.scarf, { p: [0.03, 0.22, 0.09], r: [0.3, 0, 0.3] }, 0.01, 1);
-    for (const s of [1, -1]) b.sphere(1, BN.fur, { p: [-0.02, 0.06, s * 0.09], s: [0.12, 0.045, 0.055] }, 12, 8); // Hinterpfoten
-    return b.geometry();
+  return cached('bunny:body2', () => {
+    const fur = bcol(BN.fur), light = bcol(BN.furLight), belly = bcol(BN.belly), dark = bcol(BN.furDark);
+    const furAt = (p, y0) => fur.clone().lerp(light, 0.35 * smoothstep((p.y - y0) / 0.08));
+    const C = BHEAD.c, d = new THREE.Vector3();
+    const gs = [];
+    // Körper: rundlicher Sitz-Bauch (unten breiter), Cremebauch vorn
+    gs.push(gridGeo({
+      nu: 22, nv: 16, point: (u, v, out) => {
+        const az = u * TAU, el = -Math.PI / 2 + v * Math.PI, dd = dirV(az, el);
+        const wide = 1 + 0.14 * Math.max(0, -dd.y);
+        out.set(-0.012 + dd.x * 0.15 * wide, 0.17 + dd.y * 0.16, dd.z * 0.145 * wide);
+        if (out.y < 0.03) out.y = 0.03 - (0.03 - out.y) * 0.4;
+        return out;
+      },
+      color: (u, v, p) => furAt(p, 0.22).lerp(belly, smoothstep(((p.x + 0.012) / 0.15 - 0.3) / 0.35) * smoothstep((0.3 - p.y) / 0.08)),
+    }));
+    // Kopf: Fell, Cremeschnäuzchen und Wangen, rosa Nase (Kuppe), Mund „ω“, Wangenröte
+    gs.push(gridGeo({
+      nu: 24, nv: 16, point: (u, v, out) => BHEAD.point(dirV(u * TAU, -Math.PI / 2 + v * Math.PI), 0, out),
+      color: (u, v, p) => {
+        d.copy(p).sub(C).normalize();
+        const muz = Math.exp(-((Math.acos(Math.max(-1, Math.min(1, d.dot(new THREE.Vector3(...[Math.cos(-0.3), Math.sin(-0.3), 0]))))) / 0.42) ** 2));
+        return furAt(p, 0.44).lerp(belly, smoothstep((muz - 0.35) / 0.25));
+      },
+    }));
+    const nose = bcol(BN.nose);
+    const nr = (x, y) => Math.hypot(x / 0.018, y / 0.014);
+    gs.push(decalGeo(BHEAD, BHEAD.frame(0, -0.12), { rings: 3, segs: 14, shape: (r, th) => [0.018 * r * Math.cos(th), 0.014 * r * Math.sin(th)], lift: (x, y) => 0.01 * Math.sqrt(Math.max(0, 1 - nr(x, y) ** 2)) - 0.001, color: () => nose }));
+    const mouth = bcol(BN.mouth);
+    for (const s of [1, -1]) gs.push(stripGeo(BHEAD, BHEAD.frame(0, -0.33), { n: 8, across: 2, curve: (t) => [s * 0.022 * t, -0.008 * Math.sin(Math.PI * t) + 0.003 * t], width: () => 0.0024, lift: () => 0.001, color: () => mouth }));
+    const blush = bcol(0xff8f8f);
+    for (const s of [1, -1]) gs.push(decalGeo(BHEAD, BHEAD.frame(s * 0.78, -0.28), { rings: 3, segs: 14, shape: (r, th) => [0.03 * r * Math.cos(th), 0.019 * r * Math.sin(th)], lift: () => 0.0008, color: (x, y, r) => furAt(new THREE.Vector3(0, 0.3, 0), 0.44).lerp(blush, 0.7 * (1 - smoothstep((r - 0.3) / 0.7))) }));
+    // Vorderpfötchen (creme), Hinterfüße (oval, Zehen creme), Puschelschwanz
+    const ell = (c, r, color, ws = 12, hs = 8) => { const g = new THREE.SphereGeometry(1, ws, hs); g.scale(r[0], r[1], r[2]); g.translate(c[0], c[1], c[2]); return paintGeo(g, color); };
+    for (const s of [1, -1]) {
+      gs.push(ell([0.125, 0.115, s * 0.06], [0.04, 0.032, 0.034], (p) => belly));
+      gs.push(ell([0.05, 0.03, s * 0.088], [0.075, 0.032, 0.045], (p) => fur.clone().lerp(belly, smoothstep((p.x - 0.08) / 0.04)), 14, 8));
+    }
+    const white = bcol(0xffffff);
+    for (const [x, y, z, r] of [[-0.165, 0.15, 0, 0.055], [-0.18, 0.19, 0.02, 0.035], [-0.18, 0.12, -0.025, 0.035]]) gs.push(ell([x, y, z], [r, r, r], () => white, 10, 8));
+    // Halstuch: Ring um den Hals, Knoten und zwei Zipfel vorn seitlich
+    const scarf = bcol(BN.scarf);
+    const ring = new THREE.TorusGeometry(0.118, 0.03, 8, 22); ring.rotateX(Math.PI / 2); ring.rotateZ(-0.35); ring.translate(0.05, 0.27, 0);
+    gs.push(paintGeo(ring, () => scarf));
+    gs.push(ell([0.15, 0.228, 0.072], [0.028, 0.026, 0.024], () => scarf.clone().multiplyScalar(0.85), 10, 6));
+    for (const s of [0, 1]) { const g = new THREE.SphereGeometry(1, 10, 6); g.scale(0.018, 0.045, 0.03); g.rotateX(0.35 + s * 0.5); g.translate(0.158, 0.19, 0.08 + s * 0.022); gs.push(paintGeo(g, () => scarf)); }
+    const m = mergeColored(gs.map((g) => [g, null, null]));
+    for (const g of gs) g.dispose();
+    m.computeBoundingSphere();
+    return m;
   });
 }
-const earGeo = () => cached('bunny:ear', () => {
-  const b = new Build();
-  b.sphere(1, BN.fur, { p: [0, 0.14, 0], s: [0.04, 0.15, 0.06] }, 12, 10);
-  b.sphere(1, BN.ear, { p: [0.022, 0.14, 0], s: [0.02, 0.12, 0.04] }, 10, 8);
-  return b.geometry();
+/** Vertexfarbe je Punkt (Funktion von Position). */
+function paintGeo(g, fn) {
+  const P = g.attributes.position, a = new Float32Array(P.count * 3), p = new THREE.Vector3();
+  for (let i = 0; i < P.count; i++) { p.fromBufferAttribute(P, i); const c = fn(p); a.set([c.r, c.g, c.b], i * 3); }
+  g.setAttribute('color', new THREE.BufferAttribute(a, 3));
+  return g;
+}
+/** Langes Ohr (gelenk-lokal, nach +Y): schmal am Ansatz, breit und rund oben, Innenseite (+X) rosa, Spitze leicht nach hinten. */
+const earGeo = () => cached('bunny:ear2', () => {
+  const fur = bcol(BN.fur), pink = bcol(BN.ear), L = 0.28;
+  const e = (v) => Math.sqrt(Math.sin((Math.PI / 2) * Math.min(1, v / 0.08))) * (v > 0.72 ? Math.sqrt(Math.max(0, 1 - ((v - 0.72) / 0.28) ** 2)) : 1);
+  const g = gridGeo({
+    nu: 12, nv: 12,
+    point: (u, v, out) => {
+      const th = u * TAU, ev = e(v);
+      const wz = (0.026 + 0.022 * Math.sin(Math.PI * Math.min(1, v * 1.25))) * ev, wx = 0.015 * ev + 0.003;
+      return out.set(wx * Math.cos(th) - 0.04 * v * v, L * v, wz * Math.sin(th));
+    },
+    color: (u, v) => { const th = u * TAU; const k = smoothstep((Math.cos(th) - 0.2) / 0.5) * (1 - smoothstep((Math.abs(Math.sin(th)) - 0.6) / 0.3)) * smoothstep((v - 0.12) / 0.1) * (1 - smoothstep((v - 0.86) / 0.1)); return fur.clone().lerp(pink, 0.9 * k); },
+  });
+  g.computeBoundingSphere();
+  return g;
 });
+/** Augen-Gruppe (Aufkleber-Augen, Glanzpunkte, Lidbogen): userData.blink(k) – k < 0,32 → geschlossen (glücklich). */
+function bunnyEyes() {
+  const E = cached('bunny:eyes2', () => {
+    const r = toonEyeGeos(BHEAD, { az: 0.42, el: 0.04, w: 0.05, h: 0.062, iris: '#5a3018', pupil: '#120a08', look: 0.1, irisW: 0.84, irisH: 0.9, bulge: 0.012, base: 0.0015, closedColor: '#4a2818', hlSide: 1 });
+    const g = r.open; g.userData.hl = r.hl; g.userData.closed = r.closed; g.userData.eyeY = r.eyeY;
+    return g;
+  });
+  const eyeMesh = new THREE.Mesh(E, vcol(0.16, {}, 'eye'));
+  const hl = new THREE.Mesh(E.userData.hl, basic('white', { color: 0xffffff }));
+  const closed = new THREE.Mesh(E.userData.closed, vcol(0.16, {}, 'eye'));
+  closed.visible = false;
+  eyeMesh.add(hl);
+  const g = new THREE.Group();
+  g.position.y = E.userData.eyeY;
+  g.add(eyeMesh, closed);
+  g.userData.blink = (k) => {
+    const shut = k < 0.32;
+    eyeMesh.visible = !shut; closed.visible = shut;
+    const s = Math.max(0.06, k), w = s < 1 ? 1 + 0.04 * (1 - s) : 1;
+    eyeMesh.scale.set(w, s, w);
+  };
+  g.userData.eyes = eyeMesh; g.userData.hl = hl;
+  return g;
+}
 function buildBunny() {
   const root = new THREE.Group();
   const hop = joint();
-  const body = mesh(bunnyGeo(), vcol(0.5), {}, true);
-  const eye = eyes([{ p: [0.215, 0.42, 0.065], r: 0.045, sy: 1.25, dir: [1, 0.1, 0.6] }, { p: [0.215, 0.42, -0.065], r: 0.045, sy: 1.25, dir: [1, 0.1, -0.6] }], { key: 'bunny', iris: 0x3a2214, pupil: 0.6, depth: 0.55 });
-  const ears = [1, -1].map((s) => joint([0.08, 0.49, s * 0.05], mesh(earGeo(), vcol(0.5), {}, true)));
+  const body = mesh(bunnyGeo(), vcol(0.6), {}, true);
+  const eye = bunnyEyes();
+  const ears = [1, -1].map((s) => joint([0.05, 0.47, s * 0.058], mesh(earGeo(), vcol(0.6), {}, true)));
   hop.add(body, eye, ...ears);
   const sp = sparkleSprite(0xffffff, 0.5); sp.position.y = 0.45;
   root.add(hop, sp);
@@ -474,10 +560,11 @@ function buildBunny() {
     const anim = st.anim ?? 'idle';
     clk.tick(dt, anim);
     const t = clk.t, age = clk.age;
-    let y = 0, tilt = 0, earBack = 0, sc = 1, spin = 0;
+    let y = 0, tilt = 0, earBack = 0, sc = 1, spin = 0, sx = 1, sy = 1;
     if (anim === 'hop') {
-      const p = (age % 0.45) / 0.45;
-      y = Math.sin(p * Math.PI) * 0.35; tilt = (0.5 - p) * 0.6; earBack = Math.sin(p * Math.PI) * 0.8;
+      const p = (age % 0.45) / 0.45, air = Math.sin(p * Math.PI), ground = Math.pow(Math.max(0, Math.cos(p * TAU)), 4);
+      y = air * 0.35; tilt = (0.5 - p) * 0.6; earBack = air * 0.8;
+      sx = 1 + 0.12 * ground - 0.05 * air; sy = 1 - 0.15 * ground + 0.1 * air;   // Stauchen am Boden, Strecken in der Luft
     } else if (anim === 'caught') {
       const k = clamp(age / 0.7, 0, 1);
       y = Math.sin(k * Math.PI) * 0.4; spin = k * TAU * 2; sc = 1 - smoothstep((k - 0.5) * 2);
@@ -488,7 +575,8 @@ function buildBunny() {
     hop.position.y = y;
     hop.rotation.z = tilt;
     if (anim !== 'idle') hop.rotation.y = spin;
-    hop.scale.setScalar(Math.max(0.001, sc));
+    if (anim === 'idle') { const br = Math.sin(t * 2.6); sx = 1 - 0.01 * br; sy = 1 + 0.02 * br; }   // Atmen
+    hop.scale.set(Math.max(0.001, sc * sx), Math.max(0.001, sc * sy), Math.max(0.001, sc * sx));
     hop.visible = sc > 0.01;
     ears.forEach((e, i) => { e.rotation.z = -0.15 - earBack + (anim === 'idle' ? Math.sin(t * 3 + i) * 0.08 : 0); e.rotation.x = (i ? -1 : 1) * 0.2; });
     const twitch = anim === 'idle' ? Math.max(0, Math.sin(t * 9)) * 0.02 : 0;
