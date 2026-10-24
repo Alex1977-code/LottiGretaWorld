@@ -215,27 +215,26 @@ export function risswand(level, spec) {
   }
   g.computeVertexNormals();
   rockB.add(g, { v: (px, py, pz, nX, nY) => mixHex(0x5a4a40, 0x9a8474, 0.45 + nY * 0.3 + hash(px * 4, py * 4, pz * 4) * 0.25) }, { p: [0, h / 2, 0] });
-  // Risse: gezackte Linien auf beiden großen Seiten (Normalen ±X, wenn d > w, sonst ±Z)
-  const faceX = d >= w;
-  for (const s of [-1, 1]) {
-    let cy = h * 0.15, cu = (hash(s, 1) - 0.5) * 0.6;
-    for (let k = 0; k < 7; k++) {
-      const ny2 = cy + h * 0.12, nu = cu + (hash(k, s) - 0.5) * (faceX ? d : w) * 0.35;
-      const len = Math.hypot(ny2 - cy, nu - cu), ang = Math.atan2(ny2 - cy, nu - cu);
-      const off = (faceX ? w : d) / 2 + 0.015;
-      const o = faceX ? { p: [s * off, (cy + ny2) / 2, (cu + nu) / 2], r: [ang - Math.PI / 2 * 0 + 0, 0, 0] } : { p: [(cu + nu) / 2, (cy + ny2) / 2, s * off], r: [0, 0, ang] };
-      if (faceX) glowB.box(0.03, 0.09, len + 0.06, { v: () => 0xffa040 }, { p: o.p, r: [-ang, 0, 0] }, 0, 1);
-      else glowB.box(len + 0.06, 0.09, 0.03, { v: () => 0xffa040 }, o, 0, 1);
-      // Seitenast
-      if (k % 2 === 1) {
-        const bl = 0.4 + hash(k, s, 3) * 0.4;
-        if (faceX) glowB.box(0.03, 0.06, bl, { v: () => 0xffc870 }, { p: [s * off, ny2, nu + bl * 0.4], r: [0.6, 0, 0] }, 0, 1);
-        else glowB.box(bl, 0.06, 0.03, { v: () => 0xffc870 }, { p: [nu + bl * 0.4, ny2, s * off], r: [0, 0, 0.6] }, 0, 1);
+  // Risse: gezackte, hell glühende Linien auf allen vier Seiten (je zwei Äste) – auch von der Kamera aus gut lesbar
+  const crack = (faceX, s, seed) => {
+    const span = faceX ? d : w, off = (faceX ? w : d) / 2 + 0.02;
+    for (const branch of [0, 1]) {
+      let cy = h * (0.08 + branch * 0.1), cu = (hash(s, seed, branch) - 0.5) * span * 0.5;
+      for (let k = 0; k < 8; k++) {
+        const ny2 = cy + h * 0.105, nu = Math.max(-span / 2 + 0.15, Math.min(span / 2 - 0.15, cu + (hash(k, s, seed + branch) - 0.5) * span * 0.45));
+        const len = Math.hypot(ny2 - cy, nu - cu), ang = Math.atan2(ny2 - cy, nu - cu);
+        const wd = 0.15 - k * 0.012;
+        const col = k < 3 ? 0xfff0a0 : 0xffa040;
+        if (faceX) glowB.box(0.03, wd, len + 0.08, { v: () => col }, { p: [s * off, (cy + ny2) / 2, (cu + nu) / 2], r: [-ang, 0, 0] }, 0, 1);
+        else glowB.box(len + 0.08, wd, 0.03, { v: () => col }, { p: [(cu + nu) / 2, (cy + ny2) / 2, s * off], r: [0, 0, ang] }, 0, 1);
+        cy = ny2; cu = nu;
+        if (cy > h - 0.3) break;
       }
-      cy = ny2; cu = nu;
     }
-  }
+  };
+  crack(true, -1, 1); crack(true, 1, 2); crack(false, -1, 3); crack(false, 1, 4);
   const group = new THREE.Group();
+  group.name = 'zier:risswand';
   const rockM = new THREE.Mesh(rockB.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }));
   rockM.castShadow = true; rockM.receiveShadow = true;
   const glowM = new THREE.Mesh(glowB.geometry(), new THREE.MeshBasicMaterial({ vertexColors: true }));
@@ -355,6 +354,209 @@ export function planks(level, list) {
   bake(level, b, { castShadow: false });
 }
 
+/**
+ * Bohlenweg (Stollenboden aus Brettern quer zur Laufrichtung, zwei Längsbalken, Nagelköpfe), 6 cm über dem Boden:
+ * [x0, x1, zA, zB, y]. Ohne Kollision (liegt flach auf dem Boden).
+ */
+export function walkways(level, list) {
+  const b = new Build();
+  for (const [x0, x1, za, zb, y] of list) {
+    const z0 = Math.min(za, zb), z1 = Math.max(za, zb), W = x1 - x0, cx = (x0 + x1) / 2;
+    const n = Math.max(1, Math.round((z1 - z0) / 0.42));
+    for (let i = 0; i < n; i++) {
+      const z = z0 + (i + 0.5) * (z1 - z0) / n, t = hash(i, x0, z0);
+      const w = W - 0.1 - (t > 0.8 ? 0.3 : 0);
+      b.box(w, 0.07, (z1 - z0) / n - 0.05, { v: (px, py, pz, nx, ny) => mixHex(0x8a5428, 0xd09858, 0.35 + ny * 0.2 + t * 0.3) }, { p: [cx + (t - 0.5) * 0.12, y + 0.045, z], r: [0, (t - 0.5) * 0.04, 0] }, 0, 1);
+      if (i % 3 === 0) for (const s of [-1, 1]) b.box(0.05, 0.03, 0.05, 0x3a3a48, { p: [cx + s * (W / 2 - 0.25), y + 0.095, z] }, 0, 1);
+    }
+    for (const s of [-1, 1]) b.box(0.16, 0.12, z1 - z0, { v: (px, py, pz, nx, ny) => mixHex(0x6a4020, 0xa06a38, 0.4 + ny * 0.3) }, { p: [cx + s * (W / 2 + 0.06), y + 0.06, (z0 + z1) / 2] }, 0, 1);
+  }
+  bake(level, b, { castShadow: false });
+}
+
+/** Steinplatten und Kiesel auf dem Stollenboden (flach, kein Schatten): [x0, x1, zA, zB, y, n, palette]. */
+export function floorStones(level, list) {
+  const b = new Build();
+  const PAL = { grau: [0x7a6a62, 0x9a8a7e, 0x5e5048], lila: [0x8a6a9a, 0xa88ab8, 0x6a5078], gold: [0xb8925a, 0xd8b070, 0x8a6a3a] };
+  for (const [x0, x1, za, zb, y, n = 20, pal = 'grau'] of list) {
+    const z0 = Math.min(za, zb), z1 = Math.max(za, zb), P = PAL[pal] ?? PAL.grau;
+    for (let i = 0; i < n; i++) {
+      const x = x0 + hash(i, x0, z1) * (x1 - x0), z = z0 + hash(z0, i, x1) * (z1 - z0);
+      const big = hash(i, 3, x0) > 0.55;
+      const r = big ? 0.35 + hash(i, 5) * 0.35 : 0.08 + hash(i, 7) * 0.1;
+      const g = new THREE.CylinderGeometry(r, r * 1.08, big ? 0.06 : 0.1, big ? 6 : 5, 1);
+      b.add(g, { v: (px, py, pz, nx, ny) => mixHex(P[2], ny > 0.5 ? P[1] : P[0], 0.5 + ny * 0.4) }, { p: [x, y + (big ? 0.025 : 0.05), z], r: [0, hash(i, 9) * 3, 0], s: [1, 1, 0.75 + hash(i, 11) * 0.4] });
+    }
+  }
+  bake(level, b, { castShadow: false });
+}
+
+/**
+ * Wandverkleidung aus lila Ziegeln (Mauerwerk im Verband, Fugen dunkel) auf einer Felswand: [x|z, y0, a0, a1, h, face].
+ * face '+x' | '-x': Wand liegt bei x, Fläche zeigt nach ±x, a0..a1 = z-Bereich; '+z' | '-z': bei z, a0..a1 = x-Bereich.
+ */
+export function brickPanels(level, list) {
+  const b = new Build();
+  for (const [w, y0, a0, a1, h, face] of list) {
+    const BW = 0.62, BH = 0.31, rows = Math.max(1, Math.round(h / BH));
+    const len = Math.abs(a1 - a0), lo = Math.min(a0, a1);
+    const sgn = face[0] === '+' ? 1 : -1, alongZ = face[1] === 'x';
+    // Fugenplatte dahinter
+    if (alongZ) b.box(0.06, h, len, 0x3a1e4a, { p: [w + sgn * 0.03, y0 + h / 2, lo + len / 2] }, 0, 1);
+    else b.box(len, h, 0.06, 0x3a1e4a, { p: [lo + len / 2, y0 + h / 2, w + sgn * 0.03] }, 0, 1);
+    for (let r = 0; r < rows; r++) {
+      const off = (r % 2) * BW / 2;
+      const nb = Math.ceil(len / BW) + 1;
+      for (let k = 0; k < nb; k++) {
+        const a = lo - off + k * BW + BW / 2;
+        const aa = Math.max(lo + 0.02, a - BW / 2 + 0.03), ab = Math.min(lo + len - 0.02, a + BW / 2 - 0.03);
+        if (ab - aa < 0.12) continue;
+        const t = hash(r, k, w);
+        const col = mixHex(0x7a3aa8, 0xc07aff, 0.3 + t * 0.45);
+        const yy = y0 + r * BH + BH / 2;
+        // Ziegel als Fläche (2 Dreiecke) vor der Fugenplatte; obere Kante etwas heller
+        const q = new THREE.PlaneGeometry(ab - aa, BH - 0.05);
+        const hi = mixHex(col, 0xffffff, 0.18);
+        if (alongZ) b.add(q, { v: (px, py) => (py > (BH - 0.05) * 0.3 ? hi : col) }, { p: [w + sgn * 0.07, yy, (aa + ab) / 2], r: [0, sgn * Math.PI / 2, 0] });
+        else b.add(q, { v: (px, py) => (py > (BH - 0.05) * 0.3 ? hi : col) }, { p: [(aa + ab) / 2, yy, w + sgn * 0.07], r: [0, sgn > 0 ? 0 : Math.PI, 0] });
+      }
+    }
+  }
+  bake(level, b, { castShadow: false });
+}
+
+/**
+ * Holz-Stützen an den Stollenwänden (Pfosten + schräge Strebe + Kappe), alle `every` m: [x, y, zA, zB, h, face, every].
+ * face '+x' | '-x' = Wand bei x (Stütze steht davor).
+ */
+export function wallTimbers(level, list) {
+  const b = new Build();
+  const wood = (t) => ({ v: (px, py, pz, nx, ny) => mixHex(0x6a4020, 0xb07a40, 0.35 + nx * 0.15 + ny * 0.2 + t * 0.2) });
+  for (const [x, y, za, zb, h = 5, face = '+x', every = 5] of list) {
+    const z0 = Math.min(za, zb), z1 = Math.max(za, zb), sgn = face === '+x' ? 1 : -1;
+    const n = Math.max(1, Math.round((z1 - z0) / every));
+    for (let i = 0; i <= n; i++) {
+      const z = z0 + i * (z1 - z0) / n, t = hash(i, x);
+      b.box(0.3, h, 0.3, wood(t), { p: [x + sgn * 0.18, y + h / 2, z] }, 0.04, 1);
+      b.box(0.5, 0.26, 0.5, 0x3a3a48, { p: [x + sgn * 0.2, y + h - 0.13, z] }, 0.03, 1);
+      if (i < n) b.box(0.18, Math.hypot((z1 - z0) / n, 1.4), 0.18, wood(t * 0.7), { p: [x + sgn * 0.14, y + h - 0.9, z + (z1 - z0) / n / 2], r: [Math.atan2((z1 - z0) / n, 1.4) * (i % 2 ? 1 : -1), 0, 0] }, 0.03, 1);
+    }
+    b.box(0.26, 0.3, z1 - z0 + 0.3, wood(0.5), { p: [x + sgn * 0.16, y + h + 0.15, (z0 + z1) / 2] }, 0.04, 1);
+  }
+  bake(level, b, {});
+}
+
+/**
+ * Leuchtender Kristallsee tief unten in Schlucht und Grube (eine Fläche, unbeleuchtet, schimmert): o: { x0, x1, z0, z1, y }.
+ * Dazu große Kristallspitzen, die aus dem See ragen (statisch, Glüh-Material).
+ */
+export function crystalLake(level, o) {
+  if (!level.view) return;
+  const W = o.x1 - o.x0, D = Math.abs(o.z1 - o.z0), cx = (o.x0 + o.x1) / 2, cz = (o.z0 + o.z1) / 2;
+  const g = new THREE.PlaneGeometry(W, D, 1, 1);
+  g.rotateX(-Math.PI / 2);
+  const mat = new THREE.ShaderMaterial({
+    transparent: false, depthWrite: true,
+    uniforms: { uT: { value: 0 }, uA: { value: new THREE.Color(o.colorA ?? 0x2a0a5a) }, uB: { value: new THREE.Color(o.colorB ?? 0xb06aff) }, uC: { value: new THREE.Color(o.colorC ?? 0x5ae0ff) } },
+    vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+    fragmentShader: 'uniform float uT; uniform vec3 uA; uniform vec3 uB; uniform vec3 uC; varying vec3 vW; void main(){ float a = sin(vW.x*0.35 + uT*0.6) * sin(vW.z*0.28 - uT*0.45); float b = sin(vW.x*0.9 - vW.z*0.7 + uT*1.3); float k = smoothstep(0.2, 1.0, a*0.5+0.5); float s = smoothstep(0.85, 1.0, b*0.5+0.5); vec3 col = mix(uA, uB, k*0.7) + uC * s * 0.35; gl_FragColor = vec4(col, 1.0);\n#include <colorspace_fragment>\n}',
+  });
+  const m = new THREE.Mesh(g, mat);
+  m.position.set(cx, o.y, cz);
+  m.name = 'kristallsee';
+  const holder = {};
+  addObject(level, m, (dt) => { mat.uniforms.uT.value += visDt(level, holder, dt); });
+  const spikes = [];
+  for (let i = 0; i < (o.spikes ?? 10); i++) {
+    const x = o.x0 + hash(i, 1, o.y) * W, z = Math.min(o.z0, o.z1) + hash(i, 2, o.y) * D;
+    spikes.push([x, o.y, z, 2 + hash(i, 3) * 3, [0xb07aff, 0x7ae8ff, 0xff7ad8][i % 3], 0.2]);
+  }
+  crystals(level, spikes, { n: 4 });
+}
+
+/** Moosteppich (Glühpilz-Wiese): weiche, unregelmäßige Flecken in Türkis/Grün mit Halmen: [x0, x1, zA, zB, y, n]. */
+export function mossPatches(level, list) {
+  const b = new Build();
+  for (const [x0, x1, za, zb, y, n = 14] of list) {
+    const z0 = Math.min(za, zb), z1 = Math.max(za, zb);
+    for (let i = 0; i < n; i++) {
+      const x = x0 + hash(i, 2, x0) * (x1 - x0), z = z0 + hash(i, 4, z0) * (z1 - z0), r = 0.7 + hash(i, 6) * 0.9;
+      const g = new THREE.CircleGeometry(r, 9);
+      const P = g.attributes.position;
+      for (let k = 1; k < P.count; k++) { const kk = 0.75 + hash(i, k) * 0.4; P.setXY(k, P.getX(k) * kk, P.getY(k) * kk); }
+      g.rotateX(-Math.PI / 2);
+      b.add(g, { v: (px, py, pz) => mixHex(0x1e6a5a, 0x4ac08a, 0.35 + hash(Math.round(px * 3), Math.round(pz * 3)) * 0.5) }, { p: [x, y + 0.015 + i * 0.0005, z] });
+      for (let k = 0; k < 4; k++) {
+        const a = k * 1.7 + i, rr = r * 0.6 * hash(i, k, 3);
+        b.cone(0.05, 0.22 + hash(k, i) * 0.2, { v: (px, py) => (py > 0 ? 0x8af0b0 : 0x2a8a6a) }, { p: [x + Math.cos(a) * rr, y + 0.12, z + Math.sin(a) * rr], r: [Math.sin(a) * 0.3, 0, Math.cos(a) * 0.3] }, 4);
+      }
+    }
+  }
+  bake(level, b, { castShadow: false });
+}
+
+/** Warmer Lichtschein um Lampen (ein Punkte-Objekt, additiv): list = [[x, y, z, size, color]]. Flackert sacht. */
+export function lampHalos(level, list, o = {}) {
+  if (!level.view) return null;
+  const n = list.length;
+  const pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
+  list.forEach(([x, y, z, s, c = 0xffb44a], i) => {
+    pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z;
+    const C = new THREE.Color(c); col[i * 3] = C.r; col[i * 3 + 1] = C.g; col[i * 3 + 2] = C.b;
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const mat = new THREE.PointsMaterial({ map: glowTexture(), size: o.size ?? 2.6, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.55, sizeAttenuation: true });
+  const pts = new THREE.Points(g, mat);
+  pts.name = 'zier:lampenschein';
+  pts.frustumCulled = false;
+  pts.renderOrder = 3;
+  const holder = {};
+  let t = 0;
+  addObject(level, pts, (dt) => { t += visDt(level, holder, dt); mat.opacity = 0.5 + 0.08 * Math.sin(t * 7.3) + 0.05 * Math.sin(t * 13.1); });
+  return pts;
+}
+
+/** Glasur-Kleckse (Torte): flache, wellig gerandete Flecken mit glänzendem Rand: [x, y, z, r, color]. */
+export function icingSplats(level, list) {
+  const b = new Build();
+  list.forEach(([x, y, z, r = 1, col = 0xffd23d], i) => {
+    const g = new THREE.CircleGeometry(r, 14);
+    const P = g.attributes.position;
+    for (let k = 1; k < P.count; k++) { const a = Math.atan2(P.getY(k), P.getX(k)); const kk = 0.8 + 0.2 * Math.sin(a * 5 + i) + 0.1 * Math.sin(a * 9 + i * 2); P.setXY(k, P.getX(k) * kk, P.getY(k) * kk); }
+    g.rotateX(-Math.PI / 2);
+    b.add(g, { v: (px, py, pz) => (Math.hypot(px, pz) > r * 0.6 ? mixHex(col, 0xffffff, 0.12) : col) }, { p: [x, y + 0.02 + i * 0.0007, z] });
+    b.sphere(r * 0.18, mixHex(col, 0xffffff, 0.5), { p: [x - r * 0.3, y + 0.03, z - r * 0.2], s: [1, 0.25, 1] }, 8, 3);
+  });
+  bake(level, b, { castShadow: false });
+}
+
+/** Schokotropfen (kleine braune Tropfenkegel) verstreut: [x0, x1, zA, zB, y, n]. */
+export function chocoDrops(level, list) {
+  const b = new Build();
+  for (const [x0, x1, za, zb, y, n = 10] of list) {
+    const z0 = Math.min(za, zb), z1 = Math.max(za, zb);
+    for (let i = 0; i < n; i++) {
+      const x = x0 + hash(i, 13, x0) * (x1 - x0), z = z0 + hash(z0, 17, i) * (z1 - z0), s = 0.6 + hash(i, 19) * 0.6;
+      b.lathe([[0, 0], [0.18 * s, 0.03 * s], [0.16 * s, 0.12 * s], [0.07 * s, 0.24 * s], [0, 0.34 * s]], { v: (px, py, pz, nx, ny) => mixHex(0x4a200e, 0x8a4a2a, 0.4 + ny * 0.3 + nx * 0.2) }, { p: [x, y, z] }, 7);
+    }
+  }
+  bake(level, b, { castShadow: false });
+}
+
+/** Streusel auf einer Rampe (steigt entlang z von y0 bei z0 auf y1 bei z1): [x0, x1, z0, z1, y0, y1, n]. */
+export function rampSprinkles(level, list) {
+  const b = new Build();
+  for (const [x0, x1, z0, z1, y0, y1, n = 40] of list) {
+    for (let i = 0; i < n; i++) {
+      const t = hash(i, 21, z0), x = x0 + hash(i, 23, x0) * (x1 - x0), z = z0 + (z1 - z0) * t, y = y0 + (y1 - y0) * t;
+      b.capsule(0.035, 0.16, SPRINKLE[i % SPRINKLE.length], { p: [x, y + 0.05, z], r: [Math.PI / 2, hash(i, 7) * TAU, 0], order: 'YXZ' }, 1, 4);
+    }
+  }
+  bake(level, b, { castShadow: false });
+}
+
 /** Grubenwimpel (Wimpelkette zwischen zwei Punkten): [[x,y,z], [x,y,z], n]. */
 export function pennantLines(level, list) {
   const b = new Build();
@@ -397,6 +599,7 @@ export function lightShaft(level, o) {
   });
   const m = new THREE.Mesh(g, mat);
   m.position.set(x, y + h / 2, z);
+  m.name = 'zier:lichtschacht';
   m.renderOrder = 3;
   const holder = {};
   addObject(level, m, (dt) => { mat.uniforms.uT.value += visDt(level, holder, dt); });
@@ -446,14 +649,16 @@ export function steinsaeule(level, spec) {
   const oct = new THREE.CylinderGeometry(S * 0.62, S * 0.66, 1, 8, 4);
   oct.rotateY(Math.PI / 8);
   oct.translate(0, 0.5, 0);
-  body.add(oct, { v: (px, py, pz, nx, ny) => mixHex(0x2e2630, 0x6a5a66, 0.35 + nx * 0.2 + nz2(pz) * 0.15 + hash(Math.floor(py * 4), Math.round(Math.atan2(pz, px) * 2)) * 0.2) });
+  body.add(oct, { v: (px, py, pz, nx, ny) => mixHex(0x4a3a4e, 0x9a86a0, 0.35 + nx * 0.2 + nz2(pz) * 0.15 + hash(Math.floor(py * 4), Math.round(Math.atan2(pz, px) * 2)) * 0.25) });
   const capB = new Build();
-  capB.cyl(S * 0.7, S * 0.7, 0.32, { v: (px, py, pz, nx, ny) => (ny > 0.5 ? mixHex(0x8a7a84, 0xb8a8b0, hash(Math.floor(px * 2), Math.floor(pz * 2))) : 0x4a3e48) }, { p: [0, -0.16, 0], r: [0, Math.PI / 8, 0] }, 8);
+  capB.cyl(S * 0.7, S * 0.7, 0.32, { v: (px, py, pz, nx, ny) => (ny > 0.5 ? (Math.hypot(px, pz) > S * 0.55 ? 0xffc83a : mixHex(0xb8a0c0, 0xe0d0e8, hash(Math.floor(px * 2), Math.floor(pz * 2)))) : 0x6a4a3a) }, { p: [0, -0.16, 0], r: [0, Math.PI / 8, 0] }, 8);
+  capB.torus(S * 0.66, 0.07, 0xffd04a, { p: [0, 0.0, 0], r: [Math.PI / 2, 0, 0] }, 4, 24);
   for (let k = 0; k < 8; k++) {
     const a = (k / 8) * TAU + Math.PI / 8;
     glow.box(0.42, 0.42, 0.04, { v: () => 0xffffff }, { p: [Math.cos(a) * S * 0.62 * 0.93, -0.75, Math.sin(a) * S * 0.62 * 0.93], r: [0, -a + Math.PI / 2, Math.PI / 4] }, 0, 1);
   }
   const group = new THREE.Group();
+  group.name = 'zier:steinsaeule';
   const bodyM = new THREE.Mesh(body.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }));
   bodyM.castShadow = true; bodyM.receiveShadow = true;
   const capM = new THREE.Mesh(capB.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 }));
@@ -564,9 +769,10 @@ const SPRINKLE = [0xff5a8a, 0x5ad0ff, 0xffe04a, 0x7aff9a, 0xffffff, 0xc87aff];
 /** Sahnetupfer-Kranz entlang eines Rechteckrands (Inselkante): [x0, x1, z0, z1, y, every, color]. */
 export function creamRims(level, list) {
   const b = new Build();
+  // Sahnetupfer als gedrehter Kegel mit Wulst (Drehkörper, 6 Segmente ≈ 36 Dreiecke)
   const tuft = (x, y, z, s, col) => {
-    b.cone(0.2 * s, 0.34 * s, { v: (px, py) => (py > 0.05 * s ? col : mixHex(col, 0xe8c0d0, 0.3)) }, { p: [x, y + 0.17 * s, z] }, 8);
-    b.sphere(0.17 * s, col, { p: [x, y + 0.08 * s, z], s: [1, 0.6, 1] }, 8, 4);
+    const lo = mixHex(col, 0xe8c0d0, 0.35);
+    b.lathe([[0, 0], [0.2 * s, 0.02 * s], [0.21 * s, 0.1 * s], [0.13 * s, 0.2 * s], [0.06 * s, 0.32 * s], [0, 0.4 * s]], { v: (px, py) => (py > 0.08 * s ? col : lo) }, { p: [x, y, z], r: [0, x * 3 + z, 0] }, 6);
   };
   for (const [x0, x1, za, zb, y, every = 0.9, col = CAKE.sahne, sides = 'all'] of list) {
     const z0 = Math.min(za, zb), z1 = Math.max(za, zb);
@@ -718,6 +924,24 @@ export function candyFence(level, list) {
   bake(level, b, {});
 }
 
+/**
+ * Rot-Blau-Flipper ohne Sonnenschatten (Level-Haken, nur Darstellung): Die Felder liegen über dem Abgrund – ihre
+ * Schatten sähe man kaum, kosteten aber im Schattenpass alle Feld-Instanzen noch einmal. Die Instanz-Meshes entstehen
+ * im ersten Bild; danach wird castShadow einmal abgeschaltet.
+ */
+export function flipperNoShadow(level) {
+  const v = level.view;
+  if (!v) return;
+  let done = false;
+  v.onFrame?.(() => {
+    if (done) return;
+    const g = v.three.getObjectByName('flipper');
+    if (!g || !g.children.length) return;
+    for (const m of g.children) m.castShadow = false;
+    done = true;
+  });
+}
+
 /** Schwebende Sahnewolken (Kulisse, kein Schatten): [x, y, z, size]. */
 export function creamClouds(level, list) {
   const b = new Build();
@@ -744,7 +968,9 @@ export function sparkleField(level, o) {
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   const mat = new THREE.PointsMaterial({ map: glowTexture(), color: o.color ?? 0xffe8ff, size: o.size ?? 0.3, sizeAttenuation: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: o.opacity ?? 0.85 });
   const pts = new THREE.Points(g, mat);
-  pts.frustumCulled = false;
+  pts.name = 'zier:funkeln';
+  // feste Hüllkugel um den Bereich: außerhalb des Bildes kein Zeichenaufruf
+  g.boundingSphere = new THREE.Sphere(new THREE.Vector3((o.min[0] + o.max[0]) / 2, (o.min[1] + o.max[1]) / 2, (o.min[2] + o.max[2]) / 2), Math.hypot(o.max[0] - o.min[0], o.max[1] - o.min[1], o.max[2] - o.min[2]) / 2 + 1);
   pts.renderOrder = 4;
   const holder = {};
   let t = 0;

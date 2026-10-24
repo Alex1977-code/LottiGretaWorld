@@ -27,7 +27,7 @@
 
 import {
   isl, rock, line, ring, arc, sign, rails, lore, parkedLore, risswand, crystals, dripstones, glowShrooms, boulders, oreVeins,
-  pennantLines, lightShaft, sparkleField, planks,
+  pennantLines, lightShaft, sparkleField, walkways, floorStones, brickPanels, wallTimbers, crystalLake, mossPatches, lampHalos,
 } from './_helpers_c.js';
 import { giveStar } from '../../entities/gimmick.js';
 
@@ -52,7 +52,7 @@ function build(level) {
   lore(level, { id: 'lore2', path: [[-5.2, Y1 - RAIL, -70], [5.2, Y1 - RAIL, -70]], speed: 2.2, wait: 0.8, phase: 0.25, load: 'kristall' });
   parkedLore(level, [[5, Y1, 1.5, Math.PI / 2, 'kristall', 1.3], [-4.5, Y1, -89.5, 0, 'erz', 1.3], [2.5, YG, -224, 0, 'gold', 1.3]]);
   // ---------------------------------------------------------------- rissige Wand (Stempel-Geheimgang)
-  risswand(level, { id: 'risswand', pos: [-10.5, Y2, -131.5], size: [1, 3.6, 4] });
+  risswand(level, { id: 'risswand', pos: [-10.1, Y2, -131.5], size: [1.8, 3.6, 4] });
   // ---------------------------------------------------------------- Kristalle, Tropfsteine, Pilze, Felsen, Erz
   crystals(level, [
     [-6.2, Y1, 8.4, 1.1, 0x7ae8ff], [6.4, Y1, -6.5, 0.9, 0xff7ad8], [-6.3, Y1, -16, 1.2, 0xb07aff], [6.2, Y1, -25, 1.0, 0x7ae8ff],
@@ -93,10 +93,52 @@ function build(level) {
     [-10.02, Y2 + 5, -112, '+x', 8, 3, 0x7ae8ff], [10.02, Y2 + 6, -106, '-x', 8, 3], [10.02, Y2 + 4, -134, '-x', 6, 2, 0xff7ad8],
     [-5.02, Y3 + 4, -150, '+x', 5, 2], [8.02, Y4 + 3, -186, '-x', 6, 2.5, 0x7ae8ff], [-8.02, YG + 4, -214, '+x', 7, 3],
   ]);
-  planks(level, [[-4, 4, -91.5, -97, Y2 - 0.02 + 0, 'x'], [-3, 3, 9.6, 3, Y1, 'x']]);
+  // ---------------------------------------------------------------- Stollenboden: Bohlenwege, Steinplatten, Kiesel
+  walkways(level, [
+    [-1.5, 1.5, 9.6, -27.4, Y1], [-1.5, 1.5, -29.6, -43.6, Y1], [-1.4, 1.4, -60.4, -65.6, Y1], [3.4, 6.6, -73.4, -81.6, Y1],
+    [-1.5, 1.5, -104.4, -140.6, Y2], [-1.5, 1.5, -172.4, -191.8, Y4], [-1.5, 1.5, -205.4, -217.6, YG],
+    [-20.6, -10.2, -130.6, -132.4, Y2], [-28.4, -21, -130.6, -132.4, Y2],
+  ]);
+  floorStones(level, [
+    [-6.6, 6.6, 9.4, -27, Y1, 46, 'grau'], [-6.6, 6.6, -30, -43.4, Y1, 26, 'lila'], [-3.2, 3.2, -60.4, -65.6, Y1, 10, 'grau'],
+    [-8.6, 8.6, -73.6, -91.6, Y1, 34, 'lila'], [-9.6, 9.6, -97.6, -140.6, Y2, 70, 'grau'], [-4.6, 4.6, -141.4, -142.6, Y2, 6, 'grau'],
+    [-4.6, 4.6, -158.4, -171.6, Y3 - 4, 16, 'gold'], [-7.6, 7.6, -172.4, -195.6, Y4, 40, 'lila'], [-7.6, 7.6, -205.4, -226.6, YG, 36, 'gold'],
+    [-28.6, -21.4, -126, -137, Y2, 16, 'gold'],
+  ]);
+  // ---------------------------------------------------------------- Wände: lila Ziegelverkleidung, Holzstützen
+  brickPanels(level, [
+    [-27.6, Y1, -7, -2, 7, '+z'], [-27.6, Y1, 2, 7, 7, '+z'],            // Torrahmen (Felspfeiler-Vorderseiten)
+    [-7, Y1, -1, -8, 4.2, '+x'], [7, Y1, -12, -19, 4.2, '-x'], [-7, Y1, -31, -40, 3.6, '+x'],
+    [-9, Y1, -78, -84, 4, '+x'], [9, Y1, -86, -91, 4, '-x'],
+    [-92, Y1, -9, -1.5, 4.2, '+z'],                                         // Felswand vor der Halle (Sims-B-Seite)
+    [-10, Y2, -99, -108, 5, '+x'], [10, Y2, -114, -126, 5, '-x'], [-10, Y2, -134, -140.6, 5, '+x'],
+    [-8, Y4, -178, -188, 4.4, '+x'], [8, Y4, -194, -196.6, 4.4, '-x'],
+    [-8, YG, -214, -224, 5, '+x'], [8, YG, -206, -214, 5, '-x'],
+  ]);
+  wallTimbers(level, [
+    [-7, Y1, 8, -26, 5.2, '+x', 6], [7, Y1, 8, -26, 5.2, '-x', 6], [-9, Y1, -75, -91, 5.6, '+x', 5.4], [9, Y1, -75, -91, 5.6, '-x', 5.4],
+    [-10, Y2, -110, -128, 6.6, '+x', 6], [10, Y2, -98, -112, 6.6, '-x', 7], [10, Y2, -128, -140, 6.6, '-x', 6],
+    [-8, Y4, -173, -186, 6, '+x', 6.5], [8, Y4, -173, -188, 6, '-x', 7.5], [-8, YG, -206, -212, 5.8, '+x', 6], [8, YG, -216, -226, 5.8, '-x', 5],
+  ]);
+  crystalLake(level, { x0: -9, x1: 9, z0: -44, z1: -73.2, y: Y1 - 15, spikes: 12 });
+  mossPatches(level, [[-9.4, -2.8, -111.2, -125.6, Y2, 16], [-28.4, -21.6, -126.2, -137, Y2, 6]]);
+  // Kristalle und Tropfsteine auf den Wandkronen (die Kamera sieht von oben auf die Felswände)
+  crystals(level, [
+    [-9.2, Y1 + 7, 4, 1.6, 0x7ae8ff], [9.4, Y1 + 7, -6, 1.4, 0xff7ad8], [-9.1, Y1 + 7, -22, 1.5, 0xb07aff], [9.2, Y1 + 7, -38, 1.3, 0xffd04a],
+    [-11, Y1 + 7, -60, 1.6, 0x7ae8ff], [11, Y1 + 7, -52, 1.5, 0xb07aff], [11.2, Y1 + 7, -80, 1.4, 0xff7ad8],
+    [-12, Y2 + 11, -104, 1.8, 0xff7ad8], [12, Y2 + 11, -118, 1.7, 0x7ae8ff], [-12, Y2 + 11, -138, 1.6, 0xffd04a],
+    [-10, Y4 + 8, -180, 1.5, 0xb07aff], [10, Y4 + 8, -190, 1.4, 0x7ae8ff], [10, YG + 8, -216, 1.6, 0xff7ad8], [-10, YG + 8, -208, 1.5, 0xffd04a],
+    // große Leuchtkristalle in den Hallenecken
+    [-8.4, Y2, -104.2, 2.8, 0xb07aff], [8.6, Y2, -136.6, 3.0, 0x7ae8ff], [-8.6, Y2, -137.2, 2.4, 0xff7ad8],
+  ]);
+  dripstones(level, [[-8.4, Y1 + 7, -12, 1.8, 0.5], [8.8, Y1 + 7, -28, 2.2, 0.6], [-10.6, Y1 + 7, -84, 1.6, 0.5], [12, Y2 + 11, -130, 2.4, 0.7], [-12, Y2 + 11, -112, 2, 0.6]]);
+  // Nebengleis in der Halle mit einer Kristall-Lore
+  rails(level, [{ from: [7.6, Y2, -126.4], to: [7.6, Y2, -140], gauge: 1.17, buffers: ['from'] }]);
+  parkedLore(level, [[7.6, Y2, -131.6, Math.PI / 2, 'kristall', 1.3]]);
   pennantLines(level, [
     [[-6.8, Y1 + 5.4, 2], [6.8, Y1 + 5.4, 2], 10, 0.9], [[-6.8, Y1 + 5.4, -20], [6.8, Y1 + 5.4, -20], 10, 0.9],
-    [[-9.8, Y2 + 6.5, -104], [9.8, Y2 + 6.5, -104], 13, 1.1], [[-7.8, YG + 5.5, -210], [7.8, YG + 5.5, -210], 10, 0.9],
+    [[-9.6, Y2 + 7.4, -101], [-9.6, Y2 + 7.4, -126], 18, 1.4], [[9.6, Y2 + 7.4, -101], [9.6, Y2 + 7.4, -138], 22, 1.6],
+    [[-7.8, YG + 5.5, -210], [7.8, YG + 5.5, -210], 10, 0.9],
   ]);
   // Glühpilz-Wiese: weiches Moos (dunkelgrün-türkis) als flache Scheiben
   if (level.view) {
@@ -105,6 +147,14 @@ function build(level) {
 }
 
 function setup(level) {
+  lampHalos(level, [
+    [0, Y1 + 4.95, 3.5, 3], [0, Y1 + 4.95, -9.5, 3], [0, Y1 + 4.95, -36, 3], [-6.4, Y1 + 3.95, -16, 2.4], [6.4, Y1 + 3.95, -24, 2.4],
+    [-8.6, Y1 + 4.55, -50, 2.4], [8.6, Y1 + 4.55, -62, 2.4], [-8.6, Y1 + 4.35, -78, 2.4], [8.6, Y1 + 4.35, -88, 2.4], [0, Y1 + 5.35, -76.5, 3],
+    [0, Y2 + 6.65, -100, 3.2], [0, Y2 + 6.65, -138.5, 3.2], [-9.6, Y2 + 5.35, -116, 2.6], [9.6, Y2 + 5.35, -112, 2.6], [-9.6, Y2 + 4.35, -124, 2.4],
+    [-25, Y2 + 4.75, -137, 2.4], [6.8, Y2 + 16.35, -121.5, 2.6], [-4.6, Y2 + 3.75, -148, 2.4], [4.6, Y2 + 3.75, -154, 2.4],
+    [0, Y4 + 5.65, -176, 3], [-7.6, Y4 + 4.35, -186, 2.4], [7.6, Y4 + 4.35, -182, 2.4], [0, Y3 - 1.25, -165, 2.4],
+    [0, YG + 5.65, -213, 3], [-7.6, YG + 4.35, -222, 2.4], [7.6, YG + 4.35, -218, 2.4],
+  ]);
   // Kristallstaub in Schlucht und Halle, Funkeln am Ausgang
   sparkleField(level, { min: [-8, Y1 - 6, -74], max: [8, Y1 + 5, -44], n: 36, size: 0.32, color: 0xa8e8ff });
   sparkleField(level, { min: [-9, Y2 + 1, -140], max: [9, Y2 + 9, -100], n: 40, size: 0.3, color: 0xffc8ff });
@@ -185,7 +235,7 @@ export const LEVEL = {
     rock(-29, -21, -137.5, -138.6, Y2 + 6, 10), rock(-30, -29, -125.5, -138.6, Y2 + 6, 10),
     rock(-29, -21, -124.6, -125.5, Y2 + 1.2, 6),
     { type: 'pipe', id: 'zk_roehre2', pos: [-7.6, Y2, -125.6], height: 1.2, radius: 0.7, color: 'red' },
-    sign(-6.2, Y2, -136.8, 'Risse? Kawumm!', { size: [2.2, 0.8] }),
+    sign(-7.2, Y2, -127.8, 'Risse? Kawumm!', { size: [2.2, 0.8], yaw: -0.5 }),
     { type: 'deco', items: [
       { kind: 'fence', from: [-9.6, Y2, -110.6], to: [-2.2, Y2, -110.6] }, { kind: 'fence', from: [-2.2, Y2, -110.6], to: [-2.2, Y2, -115.5] },
       { kind: 'fence', from: [-2.2, Y2, -120.5], to: [-2.2, Y2, -126] }, { kind: 'fence', from: [-9.6, Y2, -126], to: [-2.2, Y2, -126] },
@@ -194,7 +244,7 @@ export const LEVEL = {
       { kind: 'grubenbalken', pos: [0, Y2, -100], width: 19.6, height: 7.5, yaw: Math.PI / 2, lamp: true },
       { kind: 'grubenbalken', pos: [0, Y2, -138.5], width: 19.6, height: 7.5, yaw: Math.PI / 2, lamp: true },
       { kind: 'grubenlampe', pos: [-9.6, Y2 + 6, -116] }, { kind: 'grubenlampe', pos: [9.6, Y2 + 6, -112] },
-      { kind: 'grubenlampe', pos: [-9.6, Y2 + 5, -128] }, { kind: 'grubenlampe', pos: [-25, Y2 + 5.4, -137] },
+      { kind: 'grubenlampe', pos: [-9.6, Y2 + 5, -124] }, { kind: 'grubenlampe', pos: [-25, Y2 + 5.4, -137] },
       { kind: 'grubenlampe', pos: [6.8, Y2 + 17, -121.5] },
       { kind: 'kristalle', pos: [-25.5, Y2, -128], n: 5, size: 1.2 },
     ] },
@@ -203,7 +253,6 @@ export const LEVEL = {
     { type: 'ramp', pos: [0, Y3, -146.6], size: [10, Y2 - Y3, 11.2], axis: 'z', dir: 1 },
     rock(-9, -5, -141, -158, Y2 + 7, 14), rock(5, 9, -141, -158, Y2 + 7, 14),
     { type: 'boost', pos: [0, Y2, -142.6], dir: [0, -1], size: [2.4, 2.4] },
-    { type: 'boost', pos: [0, Y3, -153.8], dir: [0, -1], size: [2.4, 2.4] },
     { type: 'boost', pos: [0, Y3, -156.8], dir: [0, -1], size: [2.4, 2.4] },
     sign(-3.6, Y2, -141.6, 'Boost – und springen!', { size: [2.4, 0.8] }),
     isl(-5, 5, -158, -172, Y3 - 4, 4, { under: 2 }),                       // Grube (weich)
@@ -254,8 +303,8 @@ export const LEVEL = {
     { kind: 'zuendkopf', id: 'zk1', pos: [2.6, Y1, -18.6], sight: 7 },
     { kind: 'zuendkopf', id: 'zk2', pos: [-3.2, Y1, -22.4], sight: 7 },
     { kind: 'zuendkopf', id: 'zk3', pos: [-5, Y4, -187], sight: 7 },
-    { kind: 'zuendkopf', id: 'zk_quelle1', pos: [1.4, Y1 + 1.3, -86.2], vel: [0, 5.5, 1.6], behavior: 'walk', trigger: 0, path: [[-2.4, Y1, -83.2], [2.4, Y1, -83.2]], spawner: { every: 5, max: 1, first: 1, range: 16 } },
-    { kind: 'zuendkopf', id: 'zk_quelle2', pos: [-7.6, Y2 + 1.3, -125.6], vel: [0, 5.5, -1.6], behavior: 'walk', trigger: 0, path: [[-7.8, Y2, -127.6], [-7.8, Y2, -135.4]], spawner: { every: 5, max: 1, first: 1, range: 16 } },
+    { kind: 'zuendkopf', id: 'zk_quelle1', pos: [1.4, Y1 + 1.3, -86.2], vel: [0, 5.5, 1.6], behavior: 'walk', trigger: 0, path: [[-2.4, Y1, -83.2], [2.4, Y1, -83.2]], spawner: { every: 5, max: 1, first: 1, range: 10 } },
+    { kind: 'zuendkopf', id: 'zk_quelle2', pos: [-7.6, Y2 + 1.3, -125.6], vel: [0, 5.5, -1.6], behavior: 'walk', trigger: 0, path: [[-7.8, Y2, -127.6], [-7.8, Y2, -135.4]], spawner: { every: 5, max: 1, first: 1, range: 10 } },
     // Pilzlingstürme (4)
     { kind: 'pilzlingsturm', id: 't1', pos: [3, Y1, -38], count: 3 },
     { kind: 'pilzlingsturm', id: 't2', pos: [3, Y2, -125], count: 4 },

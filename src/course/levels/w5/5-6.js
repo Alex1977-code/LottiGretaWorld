@@ -29,7 +29,7 @@
 
 import {
   isl, line, ring, arc, sign, creamRims, icingDrips, sprinkles, candles, berries, cookies, candyCanes, sugarCubes, lollipops,
-  cakeTowers, candyFence, creamClouds, sparkleField, CAKE,
+  cakeTowers, candyFence, creamClouds, sparkleField, flipperNoShadow, icingSplats, chocoDrops, rampSprinkles, CAKE,
 } from './_helpers_c.js';
 
 const Y0 = 1;      // Start, Felder
@@ -55,7 +55,7 @@ const plat = (list, w = 2.8, d = 2.4) => list.map(([x, y, z, color]) => ({ pos: 
 function build(level) {
   // ---------------------------------------------------------------- Sahne, Glasur, Streusel an den Tortenplatten
   creamRims(level, [
-    [-7, 7, 9, -4, Y0, 0.9, CAKE.sahne], [-7, 7, -10, -14, Y0, 0.9, CAKE.sahne, '+z,-z'], [-6, 6, -28.4, -32, Y0, 0.9, CAKE.sahne, '+z,-z'],
+    [-7, 7, 9, -4, Y0, 0.9, CAKE.sahne], [-7, 7, -10, -14, Y0, 0.9, CAKE.sahne, '+z,-z'], [-6, 6, -26.4, -32, Y0, 0.9, CAKE.sahne, '+z,-z'],
     [-7, 7, -46, -54, Y0, 0.9, 0xfff4c0], [-6, 6, -76.6, -80, Y1, 0.9, CAKE.sahne, '+z'],
     [-8, 8, -108, -120, Y2, 0.9, CAKE.sahne], [-8, 8, -120, -160, Y2, 1.0, 0xffe0f0, '-x,+x'],
     [-4.4, 4.4, -175, -182.6, Y3, 0.8, CAKE.sahne], [-8, 8, -194.4, -214, Y4, 0.9, CAKE.sahne],
@@ -66,7 +66,7 @@ function build(level) {
     [-4.4, 4.4, -175, Y3, CAKE.minze], [-8, 8, -194.4, Y4, CAKE.pink], [XR - 8, XR + 8, -108, Y2, CAKE.schoko],
   ]);
   sprinkles(level, [
-    [-6, 6, 8, -3, Y0, 60], [-5, 5, -10.4, -13.6, Y0, 20], [-5, 5, -28.6, -31.8, Y0, 18], [-6, 6, -46.4, -53.6, Y0, 34],
+    [-6, 6, 8, -3, Y0, 60], [-5, 5, -10.4, -13.6, Y0, 20], [-5, 5, -26.6, -31.8, Y0, 22], [-6, 6, -46.4, -53.6, Y0, 34],
     [-5, 5, -77.2, -79.8, Y1, 14], [-7, 7, -108.4, -119.6, Y2, 44], [-7, 7, -121, -159, Y2, 90], [-3.6, 3.6, -176, -182.2, Y3, 24],
     [-7, 7, -195.4, -213.6, Y4, 60], [XR - 7, XR + 7, -109, -127, Y2, 50],
   ]);
@@ -100,9 +100,27 @@ function build(level) {
     [28, -15, -126, 10, 3], [-30, -14, -160, 9, 3], [27, -13, -192, 8, 4], [-22, -12, -224, 8, 3], [16, -12, -236, 9, 3],
   ]);
   creamClouds(level, [[-18, 14, -20, 4], [20, 18, -60, 5], [-22, 22, -110, 4.5], [18, 24, -150, 5], [-14, 26, -205, 4]]);
+  // Glasur-Kleckse, Schokotropfen, Streusel auf dem Sahnehang
+  icingSplats(level, [
+    [-3.6, Y0, 6.2, 1.1, 0xffe070], [3.8, Y0, -1.2, 0.9, 0x9ae8ff], [-4.2, Y0, -30.6, 0.8, 0xc8a8ff], [3.4, Y0, -48.2, 1.0, 0x9af0c8],
+    [-4.8, Y2, -114.4, 1.2, 0xffe070], [4.6, Y2, -118.6, 0.9, 0xc8a8ff], [-4.4, Y2, -126, 1.3, 0x9ae8ff], [4.8, Y2, -136, 1.1, 0xffe070],
+    [-4.6, Y2, -151, 1.2, 0x9af0c8], [4.4, Y2, -157, 0.9, 0xff9ad8], [-2.6, Y3, -176.2, 0.7, 0xffe070], [-5, Y4, -207.6, 1.3, 0x9ae8ff],
+    [4.6, Y4, -196.4, 0.9, 0xffe070], [-3.6, Y4, -212, 1.0, 0xc8a8ff], [XR + 4.6, Y2, -112, 1.2, 0xffe070], [XR - 5, Y2, -120.6, 1.0, 0x9ae8ff],
+  ]);
+  chocoDrops(level, [
+    [-6, 6, 8, -3, Y0, 8], [-6, 6, -46.4, -53.6, Y0, 6], [-7, 7, -108.6, -119.4, Y2, 8], [-7, 7, -121, -159, Y2, 16], [-7, 7, -196, -213, Y4, 10],
+  ]);
+  rampSprinkles(level, [[-4.4, 4.4, -80.4, -106.6, Y1, Y2, 70]]);
+  // Geburtstagstorte hinter dem Zielmast
+  cakeTowers(level, [[0, Y4 - 5.5, -223, 6.5, 3, CAKE.rosa]]);
+  // Zuckerwürfel auf der Mauer im Kugel-Raum
+  const cubes = [];
+  for (let i = 0; i < 19; i++) cubes.push([XR - 7.7 + i * 0.6, Y2 + 1.2, -118, 0.56, i % 4 === 1 ? 0xffd8ec : 0xffffff, (i % 3) * 0.08]);
+  sugarCubes(level, cubes);
 }
 
 function setup(level) {
+  flipperNoShadow(level);
   sparkleField(level, { min: [-10, Y0, -60], max: [10, Y0 + 8, 6], n: 40, size: 0.32, color: 0xffd8f8 });
   sparkleField(level, { min: [-10, Y2, -214], max: [10, Y4 + 10, -110], n: 50, size: 0.32, color: 0xfff0c0 });
 }
@@ -134,13 +152,13 @@ export const LEVEL = {
   segments: [
     // ============================================================ 1 Tortenstart + Übungsfeld
     isl(-7, 7, 9, -4, Y0, 5),
-    isl(-5.2, 5.2, -4, -10, Y0 - 1.6, 3.4, { under: 0 }),                // Sahnemulde unter dem Übungsfeld
-    { type: 'flipper', id: 'uebung', pos: [0, Y0, -7], grid: [5, 3], cell: 2, pattern: 'rows', first: 'rot' },
+    isl(-4.2, 4.2, -4, -10, Y0 - 1.6, 3.4, { under: 0 }),                // Sahnemulde unter dem Übungsfeld
+    { type: 'flipper', id: 'uebung', pos: [0, Y0, -7], grid: [3, 3], cell: 2, pattern: 'rows', first: 'rot' },
     sign(-4.4, Y0, 2.2, 'Jeder Sprung\nwechselt die Farbe!', { size: [3.0, 1.0] }),
     // ============================================================ 2 Rot-Blau-Felder
     isl(-7, 7, -10, -14, Y0, 5),
-    { type: 'flipper', id: 'feld1', pos: [0, Y0, -21.2], grid: [5, 7], cell: 2, pattern: 'checker', first: 'blau' },
-    isl(-6, 6, -28.4, -32, Y0, 5),
+    { type: 'flipper', id: 'feld1', pos: [0, Y0, -20.2], grid: [5, 6], cell: 2, pattern: 'checker', first: 'blau' },
+    isl(-6, 6, -26.4, -32, Y0, 5),
     { type: 'flipper', id: 'feld2', pos: [0, Y0, -39], map: ['rb.brb', 'brbrbr', 'r.rbr.', 'brbr.r', 'rbrbrb', 'brbrbr'], cell: 2 },
     // ============================================================ 3 ?-Blöcke
     isl(-7, 7, -46, -54, Y0, 5),
@@ -220,7 +238,7 @@ export const LEVEL = {
     ] },
     // Münzen
     line([0, Y0 + 0.6, 2], [0, Y0 + 0.6, -3], 4),
-    line([0, Y0 + 0.6, -15.2], [0, Y0 + 0.6, -27.2], 7),
+    line([0, Y0 + 0.6, -15.2], [0, Y0 + 0.6, -25.2], 6),
     ...arc([0, Y0 + 0.5, -33], [0, Y0 + 0.5, -45], 7, 0.8),
     ring([0, Y0 + 0.7, -50.6], 2.4, 8),
     ...WP1.map(([x, y, z]) => ({ kind: 'coin', pos: [x, y + 0.6, z] })),
@@ -241,7 +259,7 @@ export const LEVEL = {
   stamp: [5, Y4 + 6.6, -208.6],
   goal: [0, Y4, -208.6],
   marks: {
-    uebung: [0, Y0, -7], feld1: [0, Y0, -21.2], feld2: [0, Y0, -39], bloecke: [0, Y0, -50], wechsel1: [0, Y0, -56],
+    uebung: [0, Y0, -7], feld1: [0, Y0, -20.2], feld2: [0, Y0, -39], bloecke: [0, Y0, -50], wechsel1: [0, Y0, -56],
     hang: [0, Y1, -82], checkpoint: [0, Y2, -112], roehre: [-5, Y2, -116.4], ringe: [0, Y2, -129], wechsel2: [0, Y2, -162.6],
     sternring: [0, Y3, -176.8], ziel: [0, Y4, -208.6], kugelraum: [XR, Y2, -118],
   },

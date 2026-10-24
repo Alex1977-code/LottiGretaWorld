@@ -51,6 +51,10 @@ const ROUTES = {
       { expect: 'amAusgang' },
       { name: 'Zielmast', to: [0, -220.3], within: 0.2 },
     ],
+    mainMech: [
+      [(m) => `POW öffnet das lila Tor, zwei Loren tragen über die Schlucht (${m.rides} Loren, ${m.carried} Schritte auf Loren)`, (m) => m.rides >= 2 && m.carried > 300],
+      [(m) => `Glasröhre in die Halle und Röhre zum Ausgang benutzt (${m.pipes} Fahrten)`, (m) => m.pipes >= 2],
+    ],
     targets: [
       { name: 'Stern 0: POW zerbricht die lila Wand, Glasröhre hinauf auf den Kristallbalkon', star: 0, from: [0, Y1, -75.4],
         legs: [{ to: [0, -77], jump: 22, jumpAt: 1.5, within: 0.4, run: false }, { wait: 30 }, { expect: 'wandSternOffen' },
@@ -73,8 +77,8 @@ const ROUTES = {
       { name: 'Stempel: Zündkopf gegen die rissige Wand werfen, Geheimgang zur Kammer', stamp: true, from: [-6, Y2, -124],
         legs: [{ pickup: 'zuendkopf', near: [-7.8, -129], r: 7 }, { throwAt: [-10.5, -131.5], from: [-7.6, -131.5] }, { expect: 'rissOffen' },
           { to: [-15, -131.5], within: 0.4, run: false }, { to: [-25.4, -131.5], within: 0.3, run: false }, { wait: 20 }], shot: 'stempel', mech: { thrown: true } },
-      { name: 'Stempel nicht ohne Sprengung: Stampfen und Kopfstoß lassen die rissige Wand stehen', stamp: true, expectNot: true, from: [-8.6, Y2, -131.5], heroes: ['lotti'],
-        legs: [{ to: [-9.4, -131.5], within: 0.2, run: false }, { hop: 30 }, { stomp: true }, { to: [-12, -131.5], within: 0.3, run: false, max: 200, noFail: true }, { wait: 30 }, { expect: 'rissZu' }] },
+      { name: 'Stempel nicht ohne Sprengung: Stampfen und Kopfstoß lassen die rissige Wand stehen', stamp: true, expectNot: true, from: [-7.8, Y2, -131.5], heroes: ['lotti'],
+        legs: [{ to: [-8.85, -131.5], within: 0.25, run: false }, { hop: 30 }, { stomp: true }, { to: [-12, -131.5], within: 0.3, run: false, max: 200, noFail: true }, { wait: 30 }, { expect: 'rissZu' }] },
     ],
     extra: [
       { name: 'Extraleben: versteckter Block über der Mittelinsel', from: [-1.4, Y1, -61.4], heroes: ['lotti'], expectLives: 1,
@@ -128,8 +132,8 @@ const ROUTES = {
       { name: 'Reihe 2 (blau)', tile: [0, -7] }, { name: 'Reihe 3 (rot)', tile: [0, -9] },
       { name: 'Rastplatte', to: [0, -11.6], jump: 14, within: 0.5, run: false },
       { to: [0, -13.2], within: 0.3, run: false },
-      { name: 'Feld 1', tile: [0, -15.2] }, { tile: [0, -17.2] }, { tile: [0, -19.2] }, { tile: [0, -21.2] }, { tile: [0, -23.2] }, { tile: [0, -25.2] }, { tile: [0, -27.2] },
-      { name: 'Rastplatte 2', to: [0, -29.6], jump: 14, within: 0.5, run: false },
+      { name: 'Feld 1', tile: [0, -15.2] }, { tile: [0, -17.2] }, { tile: [0, -19.2] }, { tile: [0, -21.2] }, { tile: [0, -23.2] }, { tile: [0, -25.2] },
+      { name: 'Rastplatte 2', to: [0, -27.6], jump: 14, within: 0.5, run: false },
       { to: [1, -31.6], within: 0.3, run: false },
       { name: 'Feld 2', tile: [1, -34] }, { tile: [1, -36] }, { tile: [1, -38] }, { tile: [1, -40] }, { tile: [1, -42] }, { tile: [1, -44] },
       { name: '?-Block-Insel', to: [1, -46.8], jump: 14, within: 0.5, run: false },
@@ -240,7 +244,7 @@ function install() {
     aufEmpore: () => P().pos.y > 8.5 && P().pos.x > 3,
     farbfeldFertig: () => !!ent('farbfeld')?.done,
     rissOffen: () => !!ent('risswand')?.broken,
-    rissZu: () => !ent('risswand')?.broken && P().pos.x > -10.2,
+    rissZu: () => !ent('risswand')?.broken && P().pos.x > -11.1,
     inGrube: () => P().pos.y < -10 && P().pos.z < -158,
     ausGrube: () => P().pos.y > -7.5 && P().pos.z > -159,
     tuermeUm: () => ['t3', 't4'].every((id) => ent(id)?.defeated),
@@ -687,6 +691,25 @@ async function shot(name, wait = 600) {
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
   await page.screenshot({ path: `${OUT}w5c_${name}.png` });
+  if (process.env.DETAIL) {
+    // größte Posten eines Bildes (Objektname bzw. Entitätsart → Aufrufe/Dreiecke; „S:“ = Schattenpass)
+    const d = await sc(() => new Promise((res) => {
+      const c = window.__course, v = c.view, r = v.renderer;
+      for (const e of c.level.entities) e.model?.root?.traverse((o) => { o.userData.__perf = `E:${e.kind}`; });
+      const label = (o) => { if (o.userData.__perf) return o.userData.__perf; for (let q = o; q; q = q.parent) if (q.name) return q.name.replace(/:\d+$/, ''); return o.type; };
+      const acc = new Map(), orig = r.renderBufferDirect;
+      r.renderBufferDirect = function (camera, scene, geometry, material, object, group) {
+        const t0 = r.info.render.triangles;
+        orig.call(this, camera, scene, geometry, material, object, group);
+        const key = `${scene ? '' : 'S:'}${label(object)}`;
+        const a = acc.get(key) ?? { calls: 0, tris: 0 }; a.calls++; a.tris += r.info.render.triangles - t0; acc.set(key, a);
+      };
+      const f0 = v.frame;
+      const wait = () => { if (v.frame < f0 + 1) { requestAnimationFrame(wait); return; } r.renderBufferDirect = orig; res([...acc.entries()].map(([k, a]) => [k, a.calls, a.tris]).sort((x, y) => y[1] - x[1])); };
+      requestAnimationFrame(wait);
+    }));
+    for (const [k, n, t] of d.slice(0, 18)) console.log(`        ${k.padEnd(36)} ${String(n).padStart(3)} ${String(Math.round(t / 1000)).padStart(4)} k`);
+  }
   return s;
 }
 
