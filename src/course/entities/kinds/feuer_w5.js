@@ -22,9 +22,10 @@
 // funkenling – wuseliges Feuerbällchen. Läuft auf einer Bahn (path/rail, auch senkrecht an Wänden: Punkte mit Höhe),
 //   rund um den oberen Rand eines Blocks (block: { pos, size }), im Kreis (center + radius) oder frei: mode 'wusel'
 //   (Standard ohne Bahn) – flitzt hüpfend hin und her, kehrt an Kanten und Wänden um, mit behavior 'chase' rückt er
-//   langsam an eine Figur in sight m heran. **Jede Berührung verletzt (auch von oben).** Besiegbar **nur mit
-//   Power-ups**: Tatzenhieb und Sturzflug (Krallen-Anzug), Schwanzhieb (Gleitblatt), Kanonenkugel (Kanonen-Helm),
-//   Riesentrank, Funkelstern – dazu Explosionen. Feuerbälle prallen ab (Feuerwesen), Draufspringen verbrennt.
+//   langsam an eine Figur in sight m heran; Lava schadet ihm nicht. **Jede Berührung verletzt (auch von oben).**
+//   Besiegbar **nur mit Power-ups**: Tatzenhieb und Sturzflug (Krallen-Anzug), Schwanzhieb (Gleitblatt), Kanonenkugel
+//   (Kanonen-Helm), Riesentrank, Funkelstern – dazu Explosionen. Feuerbälle prallen ab (Feuerwesen), Draufspringen
+//   verbrennt.
 //   Daten: { kind: 'funkenling', path?|rail?, loop?, block?: { pos, size }, center?, radius?: 2.5, cw?: false, speed?: 2,
 //            phase?: 0..1, count?: 1, spacing?: 1.5 (m entlang der Bahn), wait?: 0, mode?: 'wusel', pos, dir?,
 //            behavior?: 'walk' | 'chase', sight?: 6, color?: 'rot' | 'blau' | 'pink', id?, drop? }
@@ -222,6 +223,9 @@ class Funkenling extends EnemyW2 {
   }
 
   get s() { return this.mover?.s ?? 0; }
+
+  /** Feuerwesen: Lava schadet ihm nicht. */
+  checkLava() { return false; }
 
   update(dt) {
     this.stateT += dt;
