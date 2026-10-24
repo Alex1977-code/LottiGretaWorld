@@ -793,6 +793,8 @@ const kk = await sc(() => {
   const st = L.entities.find((e) => e.kind === 'star' && !e.removed);
   if (st) t.place([st.pos.x, st.pos.y, st.pos.z], { settle: 60 });
   out.starTaken = !L.entities.some((e) => e.kind === 'star' && !e.removed);
+  c.step(90);
+  out.gone.escortsRun = ['kq_l', 'kq_r'].map((id) => t.ent(id).running);
   const w = t.ent('warp_sieg');
   t.place([w.pos.x, w.pos.y + 1.6, w.pos.z], { settle: 0 });
   let arrived = false;
@@ -814,7 +816,7 @@ check(`Phase 2 mit eigener Ansage (${kk.phase2.banners.join(' | ')})`, kk.phase2
 check('Stehend: seitliche Berührung verletzt, Kopfsprung prallt ab – kein Treffer für ihn', kk.standing.side && kk.standing.head && !kk.standing.headHurt && kk.standing.hp === 2);
 check('Zweiter Treffer per Stampfattacke auf das Feld (2 → 1); die hinteren Ecken brechen', kk.hit2.hit && kk.hit2.hp === 1 && kk.hit2.pound === true && kk.corners2.every((s) => s !== 'solid'));
 check(`Phase 3: Ansage, Schockwelle beim Aufschlag (verletzt am Boden), Begleit-Kippquader kippen mit (${kk.escorts.join('/')})`, kk.phase3.phase === 3 && kk.phase3.banners.some((x) => /Welle/.test(x)) && kk.shock.shocks >= 1 && kk.shock.hurt && kk.shock.escortTips === 2 && kk.escorts.every((n) => n >= 1));
-check('Dritter Treffer besiegt ihn: zerbröckelt → gone, Archetyp siegt, Stern erscheint, Warp-Box sichtbar', kk.hit3.hit && kk.hit3.hp === 0 && kk.hit3.defeated && kk.gone.state === 'gone' && !kk.gone.visible && kk.gone.won && kk.gone.warp === false && kk.gone.star === 1 && !kk.gone.lying);
+check('Dritter Treffer besiegt ihn: zerbröckelt → gone, Archetyp siegt, Stern erscheint, Warp-Box sichtbar', kk.hit3.hit && kk.hit3.hp === 0 && kk.hit3.defeated && kk.gone.state === 'gone' && !kk.gone.visible && kk.gone.won && kk.gone.warp === false && kk.gone.star === 1 && !kk.gone.lying && kk.gone.escortsRun.every((r) => !r));
 check('Stern einsammeln, Warp-Box führt zum Zielplateau, Zielmast beendet das Level', kk.starTaken && kk.finish.arrived && kk.finish.finished);
 
 // Tod im Kampf setzt alles zurück (König, Ecken, Begleit-Kippquader); Klon: er zielt auf die nächste Figur
@@ -945,6 +947,12 @@ S.welle = await SHOT('w5e', 'suchkopf_welle', () => {
   t.face(12, t.Z(5, 13));
 });
 S.alt = await SHOT('w5e', 'vorhandene', () => { const t = window.__t; t.place([0, 1, t.Z(6, 1)], { settle: 120 }); t.face(0, t.Z(6, 8)); });
+S.turm = await SHOT('w5e', 'werferturm', () => {
+  const c = window.__course, t = window.__t, tw = t.ent('wturm');
+  t.place([tw.pos.x - 1, 1, t.Z(6, -1)], { settle: 2 });
+  c.step(120);
+  t.face(tw.pos.x, tw.pos.z);
+});
 // Modelle im Einzelporträt: Zündkopf, Hackbeil, Funkenling nah
 S.nah = await SHOT('w5e', 'nah_zuendkopf_hackbeil', () => {
   const c = window.__course, t = window.__t, L = c.level;

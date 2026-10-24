@@ -538,6 +538,13 @@ class KippquaderKoenig extends EnemyW2 {
     this.touch = false;
     this.hint.hide();
     this.clearWaves();
+    // Begleit-Kippquader kommen nach dem Sieg zur Ruhe (bleiben, wo sie liegen)
+    for (const id of LIST(this.spec.escorts)) {
+      const q = this.level.named.get(id);
+      if (!q?.stop) continue;
+      const rest = () => { q.stop(); if (q.state === 'warn') { q.state = 'wait'; q.t = 0; } q.hint?.hide?.(); };
+      if (q.state === 'tip' && q.onLand) { const off = q.onLand(() => { off(); rest(); }); } else rest();
+    }
     if (this.model) this.model.root.visible = false;
     this.level.effects?.dust(this.pos, 14, 2);
     const st = this.spec.star;
@@ -621,9 +628,8 @@ class KippquaderKoenig extends EnemyW2 {
 /** Begleit-Kippquader (Baustein) an seinen Ausgangsplatz zurücksetzen (Neustart des Kampfs). */
 function resetKippquader(q) {
   if (!q?.home || !q.R) return;
-  if (q.state === 'tip') return;
   q.R.copy(q.home.R); q.c.copy(q.home.c);
-  q.anim = null; q.queue = null; q.state = 'wait'; q.t = 0; q.idx = 0; q.dirSign = 1;
+  q.anim = null; q.riders = []; q.queue = null; q.state = 'wait'; q.t = 0; q.idx = 0; q.dirSign = 1;
   q.running = q.startMode === 'auto';
   q.hint?.hide?.();
   q.place?.();

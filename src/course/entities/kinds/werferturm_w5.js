@@ -80,6 +80,7 @@ class Werferturm extends EnemyW2 {
     const w = this.rider;
     if (!w) return;
     if (w.removed || w.defeated) { this.rider = null; return; }
+    if (this.removed || this.fellOut) { this.detach(); return; }   // Turm in Lava/Abgrund: Werfer springt ab
     const t = this.top();
     w.pos.set(t.x, t.y, t.z);
     w.vel.set(0, 0, 0);
