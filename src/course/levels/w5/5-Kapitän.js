@@ -17,7 +17,7 @@
 
 import {
   isl, line, ring, cliffSkirt, rectPoly, castleBlock, towerRoofs, heartGraves, pumpkins, ironFence, deadTrees, glowPoints,
-  mushroomLamps, SPUK, mistSea, savannaFloor,
+  mushroomLamps, SPUK, mistSea, savannaFloor, bats, wisps,
 } from './_helpers_b.js';
 
 const YB = -3, YA = 0, YT = 3, YK = 7, YR = 11;     // Hof, Garten, Terrasse, Balkone, Dach
@@ -35,11 +35,14 @@ function scene(level) {
   });
   // ---------------- Schlösschen: Unterbau (bis zu den Balkonen), Oberbau, Türme
   castleBlock(level, -14, 14, -8, YK, -8, -14, {
-    windows: [[-8.6, -1.6, 0.9, 1.3], [-4.2, -1.6, 0.9, 1.3], [1.3, -1.6, 0.9, 1.3], [5.2, 4.1, 0.9, 1.2], [8.2, 4.1, 0.9, 1.2], [-8.6, 2.8, 0.9, 1.3], [-3.6, 2.8, 0.9, 1.3]],
+    windows: [[-8.6, -1.6, 0.9, 1.3], [-4.2, -1.6, 0.9, 1.3], [1.3, -1.6, 0.9, 1.3], [5.2, 4.1, 0.9, 1.2], [8.2, 4.1, 0.9, 1.2], [-8.6, 2.8, 0.9, 1.3], [-3.6, 2.8, 0.9, 1.3],
+      // Rückseite und Seiten (Orbit-Kamera sieht ringsum)
+      [-9, 0.6, 0.9, 1.3, 0, '-z'], [-3, 0.6, 0.9, 1.3, 0, '-z'], [3, 0.6, 0.9, 1.3, 0, '-z'], [9, 0.6, 0.9, 1.3, 0, '-z'], [-6, 4, 0.9, 1.3, 0, '-z'], [0, 4, 1.4, 1.4, 'rund', '-z'], [6, 4, 0.9, 1.3, 0, '-z'],
+      [-11, 0.6, 0.9, 1.3, 0, '+x'], [-11, 4, 0.9, 1.3, 0, '+x'], [-11, 0.6, 0.9, 1.3, 0, '-x'], [-11, 4, 0.9, 1.3, 0, '-x']],
   });
-  castleBlock(level, -10, 10, YK, YR, -8, -14, { crenel: ['+z', '+x', '-x'], windows: [[-6.6, 8.1, 0.9, 1.3], [0, 8.4, 1.6, 1.6, 'rund'], [6.6, 8.1, 0.9, 1.3]] });
-  castleBlock(level, 10, 14, YK, 13.4, -8, -14, { crenel: 'all', windows: [[12, 10.8, 0.8, 1.1]] });
-  castleBlock(level, -14, -10, YK, 13.4, -8, -14, { crenel: 'all', windows: [[-12, 10.8, 0.8, 1.1]] });
+  castleBlock(level, -10, 10, YK, YR, -8, -14, { crenel: ['+z', '+x', '-x', '-z'], windows: [[-6.6, 8.1, 0.9, 1.3], [0, 8.4, 1.6, 1.6, 'rund'], [6.6, 8.1, 0.9, 1.3], [-4, 8.1, 0.9, 1.3, 0, '-z'], [4, 8.1, 0.9, 1.3, 0, '-z']] });
+  castleBlock(level, 10, 14, YK, 13.4, -8, -14, { crenel: 'all', windows: [[12, 10.8, 0.8, 1.1], [-11, 9.6, 0.8, 1.1, 0, '+x'], [12, 9.6, 0.8, 1.1, 0, '-z']] });
+  castleBlock(level, -14, -10, YK, 13.4, -8, -14, { crenel: 'all', windows: [[-12, 10.8, 0.8, 1.1], [-11, 9.6, 0.8, 1.1, 0, '-x'], [-12, 9.6, 0.8, 1.1, 0, '-z']] });
   castleBlock(level, -2, 2, YR, 15, -10, -13, { crenel: 'all', windows: [[0, 12.6, 0.8, 1.1, 'rund']] });   // Uhrtürmchen
   towerRoofs(level, [[12, 13.4, -11, 2.7, 4.6, SPUK.roof, 0xff7ac0], [-12, 13.4, -11, 2.7, 4.6, SPUK.roof2, 0xffd23a], [0, 15, -11.5, 2.1, 3.4, SPUK.roof, 0x6ad0ff]]);
   // Balkonplatten (Kollision: isl in den Daten) – Geländer vorn als Zier, Trennpfeiler zwischen den Erkern
@@ -60,6 +63,11 @@ function scene(level) {
   ironFence(level, [2.4, YT, -2.1], [9.6, YT, -2.1], 0.9);
   for (const [x0, x1] of [[-14, -8.6], [-3, 1.4], [2.6, 6.4], [9.1, 14]]) ironFence(level, [x0, YK, -5.05], [x1, YK, -5.05], 0.8);
   mushroomLamps(level, [[-10.6, YB, 11.4, 1, 0x8aff8a], [-4.4, YB, 6.2, 0.8, 0xff8ad8], [3, YA, 12.6, 0.9, 0x8ad0ff]]);
+  // Hof: Moos und Pfützen zwischen den Steinplatten
+  savannaFloor(level, [[-14, -3, 14, -8, YB, 14], [-3, 2, 3, -8, YB, 4]], {
+    palette: [0x5a7a6a, 0x4a6a5e, 0x7a6a9a, 0x5a5a8a], flowers: [0xc8a8ff, 0xffffff], bushes: false, seed: 13,
+    avoid: [[-12, 5, 0.8], [-9.6, 4, 0.8], [-12.4, 9.4, 0.8], [-7.4, 12.6, 0.8], [-12.6, 0.2, 0.8], [-5, -5, 1.6]],
+  });
   // Brunnen-Sockel in der Ring-Mitte (Stern 4) und Säule hinter den Donuts (Stern 5)
   const b = [];
   glowPoints(level, [[5.8, 0.9, 9, 2.2], [-5, 2.4, -5, 2]], { color: 0x9a7aff, size: 2, opacity: 0.45, pulse: 0.5 });
@@ -71,6 +79,8 @@ function scene(level) {
 function setup(level) {
   // Außen bei Nacht: kühles Mondlicht
   level.view?.setMood?.('aussen', { time: 0 });
+  bats(level, { spots: [[12, 16.5, -11, 3], [-12, 16, -11, 3.4], [0, 18.5, -8, 5]], n: 2 });
+  wisps(level, [[-9, YB + 1.4, 8, 2.4, 0x9affd8], [-6, YB + 1.2, -2, 1.8, 0xc8a8ff], [2, YA + 1.4, 11, 1.6, 0x9ad8ff], [9, YT + 1.2, -5, 1.6, 0x9affd8]]);
 }
 
 export const LEVEL = {

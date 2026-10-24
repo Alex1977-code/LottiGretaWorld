@@ -1760,19 +1760,25 @@ export function castleBlock(level, x0, x1, y0, y1, zA, zB, o = {}) {
       b.box(along ? 0.6 : 0.6, 0.6, along ? 0.6 : 0.6, cx, y1, cz, litTop(o.color ?? SPUK.stone), { r: 0.05 });
     }
   }
-  // Fenster (Vorderseite +z)
-  for (const [wx, wy, ww, wh, kind] of o.windows ?? []) {
-    const fz = z0 + 0.02;
-    b.box(ww + 0.3, 0.16, 0.14, wx, wy - 0.12, fz, litTop(SPUK.wood), { r: 0.03 });
+  // Fenster: [a, y, w, h, 'rund'?, Seite '+z' (Standard) | '-z' | '+x' | '-x'] – a = x (Seiten ±z) bzw. z (Seiten ±x)
+  for (const [a, wy, ww, wh, kind, face = '+z'] of o.windows ?? []) {
+    const alongX = face === '+z' || face === '-z', sg = face === '+z' || face === '+x' ? 1 : -1;
+    const zf = face === '+z' ? z0 + 0.02 : z1 - 0.02, xf = face === '+x' ? x1 + 0.02 : x0 - 0.02;
+    const P = (u, dz) => (alongX ? [a + u, zf + sg * dz] : [xf + sg * dz, a + u]);
+    const yaw = alongX ? 0 : Math.PI / 2, disc = alongX ? { rx: Math.PI / 2 } : { rz: Math.PI / 2 };
+    let [px, pz] = P(0, 0);
+    b.box(ww + 0.3, 0.16, 0.14, px, wy - 0.12, pz, litTop(SPUK.wood), { r: 0.03, yaw });
     if (kind === 'rund') {
-      b.torus(ww / 2 + 0.08, 0.1, wx, wy + wh / 2, fz + 0.02, SPUK.wood, { ts: 18 });
-      w.cyl(ww / 2, ww / 2, 0.04, wx, wy + wh / 2, fz, SPUK.glow, 16, { rx: Math.PI / 2 });
+      w.cyl(ww / 2, ww / 2, 0.04, px, wy + wh / 2, pz, SPUK.glow, 16, disc);
+      [px, pz] = P(0, 0.02);
+      b.torus(ww / 2 + 0.08, 0.1, px, wy + wh / 2, pz, SPUK.wood, { ts: 18, yaw });
     } else {
-      w.box(ww, wh, 0.04, wx, wy, fz, SPUK.glow, { r: 0 });
-      w.cyl(ww / 2, ww / 2, 0.04, wx, wy + wh, fz, SPUK.glow, 12, { rx: Math.PI / 2 });
-      b.box(0.08, wh + ww / 2, 0.06, wx, wy, fz + 0.03, SPUK.wood, { r: 0 });
-      b.box(ww, 0.08, 0.06, wx, wy + wh * 0.55, fz + 0.03, SPUK.wood, { r: 0 });
-      for (const sx of [-1, 1]) b.box(0.12, wh + 0.2, 0.12, wx + sx * (ww / 2 + 0.06), wy - 0.05, fz + 0.02, litTop(SPUK.wood), { r: 0.02 });
+      w.box(ww, wh, 0.04, px, wy, pz, SPUK.glow, { r: 0, yaw });
+      w.cyl(ww / 2, ww / 2, 0.04, px, wy + wh, pz, SPUK.glow, 12, disc);
+      [px, pz] = P(0, 0.03);
+      b.box(0.08, wh + ww / 2, 0.06, px, wy, pz, SPUK.wood, { r: 0, yaw });
+      b.box(ww, 0.08, 0.06, px, wy + wh * 0.55, pz, SPUK.wood, { r: 0, yaw });
+      for (const sx of [-1, 1]) { [px, pz] = P(sx * (ww / 2 + 0.06), 0.02); b.box(0.12, wh + 0.2, 0.12, px, wy - 0.05, pz, litTop(SPUK.wood), { r: 0.02 }); }
     }
   }
   b.flush(level);
@@ -1871,4 +1877,20 @@ export function mistSea(level, pos, r = 40, n = 30) {
     b.sphere(rr, cx + Math.cos(a) * d, cy + rnd.real(-2, 1.2), cz + Math.sin(a) * d, gradY(cols[i % 4], 0x7a6aaa, cy - 2, cy + 3), { s: [1, rnd.real(0.3, 0.45), rnd.real(0.8, 1.2)], ws: 9, hs: 5 });
   }
   b.flush(level, { castShadow: false });
+}
+
+/** Irrlichter: schwebende Leuchtpunkte, die langsam im Kreis treiben und auf- und absteigen. list [[cx, y, cz, r, farbe], …]. */
+export function wisps(level, list) {
+  const f = glowField(level);
+  if (!f) return;
+  list.forEach(([cx, y, cz, r, color = 0x9affd8], i) => {
+    let t = i * 1.7;
+    const d = f.alloc(2, { color, size: 1.1, opacity: 0.9, pulse: 2.2 }, (dt) => {
+      t += dt;
+      for (let k = 0; k < 2; k++) {
+        const a = t * (0.5 + k * 0.17) + k * 2.6;
+        d.set(k, cx + Math.cos(a) * r * (1 - k * 0.4), y + Math.sin(t * 0.9 + k) * 0.5, cz + Math.sin(a) * r * (1 - k * 0.4));
+      }
+    });
+  });
 }
