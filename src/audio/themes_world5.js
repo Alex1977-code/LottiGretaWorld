@@ -17,7 +17,7 @@
 // Glitzer-Glocken und Dampfpfeife (Goldzug), Tempel-Gong, Chor-Pad und Taiko-Toms (Tempel).
 
 import {
-  dr, K4, KH, CL, HH, H8, H8O, HOF, CR, rep, rest, tr, octaves, chordBar, bassBar, padBar, pat, voicing,
+  dr, K4, KH, CL, HH, H8, CR, rest, tr, octaves, chordBar, bassBar, padBar, pat, voicing,
   B_BOUNCE, B_PUMP, B_GALLOP, B_HALF, form, bySection, groove,
 } from './themeParts.js';
 
@@ -37,13 +37,13 @@ const FILL_S = [K4, dr('.... c... .... ....'), dr('h.h. h.h. .... ....'), dr('..
 // (Sechzehntel-Vorschlag vor der Zählzeit), die Antwort wiederholt die Figur eine Terz tiefer.
 const beProg = ['D', 'Bm', 'G', 'A', 'G', 'A', 'F#m', 'Bm', 'G', 'A', 'Bm', 'A', 'D', 'Bm', 'G', 'A', 'D', 'Bm', 'Em', 'A', 'Em', 'F#m', 'G', 'A'];
 const beHook = ['F#5:2 A5:3 B5:1 A5:2 F#5:3 E5:1 D5:2 E5:2', 'D5:2 F#5:3 G5:1 F#5:2 D5:3 C#5:1 B4:2 C#5:2',
-  'B4:2 D5:3 E5:1 G5:2 B5:3 A5:1 G5:2 E5:2', 'F#5:4 E5:2 C#5:2 A4:4 -:2 C#5:1 E5:1'];
+  'B4:2 D5:3 E5:1 G5:2 B5:3 A5:1 G5:2 E5:2', 'E5:4 D5:2 C#5:2 A4:4 -:2 C#5:1 E5:1'];
 const beChorus = [...beHook, beHook[0], beHook[1], 'E5:2 G5:3 A5:1 B5:2 G5:3 F#5:1 E5:2 G5:2', 'A5:4 G5:2 F#5:2 E5:4 C#5:4'];
 const beV = ['B4:4 A4:2 G4:2 A4:2 B4:2 D5:4', 'C#5:4 B4:2 A4:2 B4:2 C#5:2 E5:4', 'F#5:4 E5:2 C#5:2 A4:4 C#5:4'];
 const beVerse = [...beV, 'D5:6 C#5:2 B4:8', beV[0], beV[1], 'D5:4 C#5:2 B4:2 F#5:4 D5:4', 'E5:4 C#5:2 D5:2 E5:4 -:2 E5:2'];
 const beBridge = ['B4:8 E5:8', 'C#5:8 F#5:8', 'D5:8 G5:8', 'C#5:6 E5:2 A5:8'];
-const steel = (c) => pat(tones(c, 'F#4').slice(0, 2), '..0. ..1. ..0. ..1.');   // Steel-Drum-Anschläge auf der „und“
 const marimba = (c) => pat(tones(c, 'D4'), '0.2. 1.2. 0.2. 1.2.');
+const marimbaOff = (c) => pat(tones(c, 'F#4'), '..0. ..1. ..2. ..1.');   // Marimba auf der „und“ (Strophe)
 const CLAVE = [dr('p... ..p. .... p...'), dr('.... p... p... ....')];                // 3-2-Son-Clave über zwei Takte
 const CONGA = dr('.... ..d. .... ..dd');
 const SHAKE = dr('j.j. j.j. j.j. j.j.');
@@ -54,7 +54,7 @@ const beach = (i, extra = []) => [K4, CL, SHAKE, CLAVE[i % 2], CONGA, ...extra];
 // 6 + 6 + 4 Sechzehnteln) über dem durchlaufenden Four-on-the-floor – das schwingt wie ein Trapez. Intro F a B C
 // (die Orgel spielt die Hook) | Strophe d B F C | d B g C (vi–IV–I–V) | Refrain F a B C | F a g C (I–iii–IV–V) |
 // Überleitung B C d C (die Lotus-Flöte gleitet in jeden Ton: „fliegen“). Hook „Taaa di-da TAAA di-da ta-ta“:
-// aufwärts schwingen, die Antwort schwingt abwärts.
+// zweimal aufwärts schwingen (das Trapez holt Schwung), die Antwort schwingt abwärts.
 const tzProg = ['F', 'Am', 'Bb', 'C', 'Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'Gm', 'C', 'F', 'Am', 'Bb', 'C', 'F', 'Am', 'Gm', 'C', 'Bb', 'C', 'Dm', 'C'];
 const tzHook = ['C5:4 F5:1 G5:1 A5:4 F5:1 G5:1 A5:2 C6:2', 'C6:4 A5:1 G5:1 E5:4 G5:1 F5:1 E5:2 C5:2',
   'D5:4 F5:1 G5:1 Bb5:4 F5:1 G5:1 Bb5:2 D6:2', 'C6:4 Bb5:1 A5:1 G5:4 E5:1 F5:1 G5:4'];
@@ -82,10 +82,10 @@ const plop = (c) => pat(tones(c, 'G3'), '..0. ..1. ..0. ..2.');     // Lava-Blub
 // ================================================================ Savanne ====
 // A-Dur, 130 BPM, weit und offen. Intro D A E fis (die Penny-Whistle spielt die Hook über Djembe und Kalimba) |
 // Strophe fis D A E | fis D h E (vi–IV–I–V) | Refrain D A E fis | D A E E (IV–I–V–vi) | Überleitung h cis D E.
-// Hook als langer Ruf „Heeey – ja-ja-jo“: langer Ton, Quarte abwärts, in Schritten wieder hinauf (pentatonisch),
-// als Sequenz über D – A – E.
+// Hook als Ruf über die Weite: pentatonischer Lauf hinauf zum langen Ton („e fis a h – DEEE“), die Antwort läuft
+// hinab; dieselbe Figur als Sequenz über D – A – E – fis.
 const svProg = ['D', 'A', 'E', 'F#m', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'Bm', 'E', 'D', 'A', 'E', 'F#m', 'D', 'A', 'E', 'E', 'Bm', 'C#m', 'D', 'E'];
-const svHook = ['E5:2 F#5:2 A5:2 B5:2 -:2 C#6:6', 'C#6:2 B5:2 A5:2 F#5:2 -:2 E5:6', 'B4:2 C#5:2 E5:2 F#5:2 -:2 G#5:6', 'A5:2 G#5:2 F#5:2 E5:2 -:2 C#5:6'];
+const svHook = ['E5:2 F#5:2 A5:2 B5:2 -:2 D6:6', 'C#6:2 B5:2 A5:2 F#5:2 -:2 E5:6', 'B4:2 C#5:2 E5:2 F#5:2 -:2 G#5:6', 'A5:2 G#5:2 F#5:2 E5:2 -:2 C#5:6'];
 const svChorus = [...svHook, svHook[0], svHook[1], 'B4:2 C#5:2 E5:2 F#5:2 -:2 B5:6', 'B5:2 A5:2 G#5:2 F#5:2 -:2 E5:6'];
 const svV = ['C#5:4 A4:2 F#4:2 A4:2 B4:2 C#5:4', 'D5:4 C#5:2 A4:2 F#4:2 A4:2 B4:4', 'C#5:4 E5:2 F#5:2 E5:2 C#5:2 A4:4'];
 const svVerse = [...svV, 'B4:6 G#4:2 B4:4 -:4', svV[0], svV[1], 'D5:4 C#5:2 B4:2 A4:2 B4:2 D5:4', 'E5:4 D5:2 B4:2 G#4:4 B4:2 D5:2'];
@@ -113,11 +113,11 @@ const MINE = [K4, CL, H8, PICK];
 
 // ================================================================ Torten-Welt ====
 // E-Dur, 144 BPM, zuckersüß. Intro E A cis H (das Glockenspiel spielt die Hook) | Strophe A H gis cis | A H fis H
-// (IV–V–iii–vi) | Refrain E A cis H | E A fis H (I–IV–vi–V) | Überleitung A H cis H. Hook hüpft punktiert:
-// „BEE-di E fis GEE-di CIS H“ – Sprung abwärts, Schritte, Sprung aufwärts, Nebennote; das Glockenspiel singt im
-// Refrain mit, Pizzicato tupft auf der „und“.
+// (IV–V–iii–vi) | Refrain E A cis H | E A fis H (I–IV–vi–V) | Überleitung A H cis H. Hook in gebrochenen Terzen
+// aufwärts – „e gis fis a gis h cis h“, Stockwerk für Stockwerk die Torte hinauf –, die Antwort mit Seufzer; das
+// Glockenspiel singt im Refrain mit, Pizzicato tupft auf der „und“.
 const caProg = ['E', 'A', 'C#m', 'B', 'A', 'B', 'G#m', 'C#m', 'A', 'B', 'F#m', 'B', 'E', 'A', 'C#m', 'B', 'E', 'A', 'F#m', 'B', 'A', 'B', 'C#m', 'B'];
-const caHook = ['E5:2 G#5:2 F#5:2 A5:2 G#5:2 B5:2 C#6:2 B5:2', 'C#6:3 B5:1 A5:2 E5:2 F#5:4 -:2 E5:1 F#5:1',
+const caHook = ['E5:2 G#5:2 F#5:2 A5:2 G#5:2 B5:2 C#6:2 B5:2', 'C#6:3 B5:1 A5:2 E5:2 F#5:4 -:2 E5:1 D#5:1',
   'C#5:2 E5:2 D#5:2 F#5:2 E5:2 G#5:2 A5:2 G#5:2', 'F#5:3 E5:1 D#5:2 B4:2 D#5:4 F#5:4'];
 const caChorus = [...caHook, caHook[0], caHook[1], 'F#5:2 A5:2 G#5:2 B5:2 A5:2 C#6:2 B5:2 A5:2', 'B5:4 A5:2 F#5:2 D#5:4 B4:4'];
 const caV = ['C#5:2 E5:2 A5:3 G#5:1 F#5:2 E5:2 C#5:4', 'D#5:2 F#5:2 B5:3 A5:1 G#5:2 F#5:2 D#5:4', 'B4:2 D#5:2 G#5:3 F#5:1 E5:2 D#5:2 B4:4'];
@@ -131,8 +131,8 @@ const CAKE = [K4, CL, H8, WOOD];
 // ================================================================ Schleich-Festung ====
 // b-Moll, 130 BPM, geheimnisvoll und gedämpft, aber mit Hook. Intro b Ges es F (das gedämpfte Piano spielt die Hook) |
 // Strophe b b Ges F | b b es F (pochender Bass, Pizzicato auf Zehenspitzen, Uhr-Ticken) | Refrain b Ges es F ×2
-// (i–VI–iv–V) | Überleitung Ges As b F (Suchlicht = Riser). Hook setzt nach der Eins ein: „(.) Faaa – ges – f – des b“,
-// der lange Ton hallt im Echo nach; die Antwort schleicht eine Terz tiefer nach.
+// (i–VI–iv–V) | Überleitung Ges As b F (Suchlicht = Riser). Hook schleicht in Sechzehntel-Paaren zu langen Tönen:
+// „b-c DEEES . c-des FAA . es-des“, die langen Töne hallen im Echo nach; die Antwort schleicht zurück.
 const snProg = ['Bbm', 'Gb', 'Ebm', 'F', 'Bbm', 'Bbm', 'Gb', 'F', 'Bbm', 'Bbm', 'Ebm', 'F', 'Bbm', 'Gb', 'Ebm', 'F', 'Bbm', 'Gb', 'Ebm', 'F', 'Gb', 'Ab', 'Bbm', 'F'];
 const snHook = ['Bb4:1 C5:1 Db5:4 -:2 C5:1 Db5:1 F5:3 -:1 Eb5:1 Db5:1', 'Bb4:1 C5:1 Db5:4 -:2 Eb5:1 Db5:1 Bb4:3 -:1 Gb4:1 Ab4:1',
   'Bb4:1 C5:1 Eb5:4 -:2 Db5:1 Eb5:1 Gb5:3 -:1 F5:1 Eb5:1', 'A4:4 C5:4 F5:4 Eb5:2 C5:2'];
@@ -152,7 +152,7 @@ const SNEAK_C = [K4, CL, HH, CLOCK];
 // Hook im Galopp: „Faa-di fa ha DEE-di cis HAAA“ – die Tonleiter hinauf zum Grundton, Sprung zur Terz, Lösung.
 const goProg = ['B', 'F#', 'G#m', 'E', 'B', 'D#m', 'E', 'F#', 'B', 'D#m', 'E', 'F#', 'B', 'F#', 'G#m', 'E', 'B', 'F#', 'E', 'F#', 'G#m', 'E', 'B', 'F#'];
 const goHook = ['F#5:3 G#5:1 A#5:2 B5:2 D#6:3 C#6:1 B5:4', 'A#5:3 B5:1 C#6:2 A#5:2 F#5:3 G#5:1 A#5:4',
-  'B5:3 C#6:1 D#6:2 B5:2 G#5:3 A#5:1 B5:4', 'G#5:3 F#5:1 E5:2 G#5:2 B5:4 A#5:4'];
+  'B5:3 C#6:1 D#6:2 B5:2 G#5:3 A#5:1 B5:4', 'G#5:3 F#5:1 E5:2 G#5:2 B5:4 G#5:2 E5:2'];
 const goChorus = [...goHook, goHook[0], goHook[1], 'G#5:3 A#5:1 B5:2 C#6:2 E6:3 D#6:1 C#6:4', 'C#6:3 B5:1 A#5:2 F#5:2 A#5:8'];
 const goV = ['F#4:2 B4:2 C#5:2 D#5:4 C#5:2 B4:4', 'F#4:2 A#4:2 C#5:2 D#5:4 F#5:2 D#5:4', 'G#4:2 B4:2 E5:2 F#5:4 E5:2 B4:4'];
 const goVerse = [...goV, 'A#4:4 C#5:4 F#5:6 -:2', goV[0], goV[1], 'G#4:2 B4:2 E5:2 G#5:4 F#5:2 E5:4', 'C#5:4 D#5:2 E5:2 F#5:4 -:2 E5:2'];
@@ -164,12 +164,13 @@ const GOLD = [K4, CL, CHUG];
 // ================================================================ Ruinen-Tempel ====
 // gis-Moll, 146 BPM, dramatisch. Intro gis E H Fis (Tempel-Gong, Stabs im Hook-Rhythmus) | Strophe gis gis cis Dis |
 // gis gis E Dis (i–iv–V) | Refrain gis E H Fis | gis E cis Dis (i–VI–III–VII) | Überleitung E Fis gis Dis. Hook als
-// Moll-Fanfare: lange Töne, jeweils mit zwei Sechzehntel-Vorschlägen angesprungen – „HAAA-di-di DIIIS-di-di“.
+// Moll-Fanfare in zwei Anläufen: lange Töne, jeweils über zwei Sechzehntel-Vorschläge angesprungen („DIIIS gis-ais
+// HAAA cis-dis“), dann der Gipfel „EEE dis-E H GIS“.
 const teProg = ['G#m', 'E', 'B', 'F#', 'G#m', 'G#m', 'C#m', 'D#', 'G#m', 'G#m', 'E', 'D#', 'G#m', 'E', 'B', 'F#', 'G#m', 'E', 'C#m', 'D#', 'E', 'F#', 'G#m', 'D#'];
 const teHook = ['D#5:6 G#5:1 A#5:1 B5:6 C#6:1 D#6:1', 'E6:4 D#6:2 E6:2 B5:4 G#5:4', 'F#5:6 G#5:1 A#5:1 B5:6 C#6:1 D#6:1', 'B5:4 A#5:2 F#5:2 C#5:4 D#5:4'];
 const teChorus = [...teHook, teHook[0], teHook[1], 'E5:6 G#5:1 A#5:1 B5:6 C#6:1 D#6:1', 'D#6:4 A#5:2 G5:2 D#5:4 G5:4'];
 const teV = ['D#5:4 B4:2 G#4:2 A#4:2 B4:2 D#5:4', 'E5:4 D#5:2 B4:2 A#4:2 G#4:2 F#4:4', 'E5:4 C#5:2 G#4:2 A#4:2 B4:2 C#5:4'];
-const teVerse = [...teV, 'A#4:4 G4:4 A#4:6 -:2', teV[0], teV[1], 'G#4:2 B4:2 E5:4 D#5:2 B4:2 G#4:4', 'G4:4 A#4:2 D#5:2 G5:4 -:2 A#5:2'];
+const teVerse = [...teV, 'A#4:4 G4:4 A#4:6 -:2', teV[0], teV[1], 'G#4:2 B4:2 E5:4 D#5:2 B4:2 G#4:4', 'G4:4 A#4:2 D#5:2 G5:4 -:2 A#4:2'];
 const teBridge = ['E5:8 G#5:8', 'F#5:8 A#5:8', 'G#5:8 B5:8', 'A#5:4 G5:4 D#5:8'];
 const TAIKO = dr('t... ..t. t... t.t.');
 const TEMPLE = [K4, CL, H8, TAIKO];
@@ -186,8 +187,7 @@ const W5MAP = [KH, CL, dr('j.j. j.j. j.j. j.j.'), dr('p... ..p. .... p...')];
 
 export const WORLD5_THEMES = {
   // Sonnenstrand (5-1, Strand mit Höhlenfluss): 132 BPM, D-Dur, 24 Takte, fröhlich. Intro: die Steel-Drum spielt die
-  // Hook über Marimba und Pad | Strophe (G A fis h | G A h A): Lead in der Mittellage, Steel-Drum-Anschläge auf der
-  // „und“ | Refrain (D h G A | D h e A, I–vi–IV–V): Calypso-Hook, die Steel-Drum singt eine Oktave tiefer mit, Piano
+  // Hook über Marimba und Pad | Strophe (G A fis h | G A h A): Lead in der Mittellage, Marimba auf der „und“ | Refrain (D h G A | D h e A, I–vi–IV–V): Calypso-Hook, die Steel-Drum singt eine Oktave tiefer mit, Piano
   // auf der „und“, Stabs | Überleitung: lange Töne, Marimba, Riser. Shaker, 3-2-Clave und Congas statt Hi-Hats.
   course_beach: {
     bpm: 132,
@@ -203,8 +203,8 @@ export const WORLD5_THEMES = {
     kit: { tek: { freq: 2500, volume: 0.13 }, doum: { freq: 190, volume: 0.26, decay: 0.18 }, jingle: { volume: 0.16 }, tom: { freq: 320, volume: 0.3 }, clap: { volume: 0.28 } },
     fx: { delay: { steps: 3, feedback: 0.3, lowpass: 3200, wet: 0.28, send: { bell: 0.35, arp: 0.3, lead: 0.15 } } },
     lead: [...rest(4), ...beVerse, ...beChorus, ...beBridge],
-    bell: bySection(beProg, SONG, { intro: (c, i) => beHook[i], verse: steel, chorus: (c, i) => tr(beChorus, -12)[i] }),
-    arp: bySection(beProg, SONG, { intro: marimba, bridge: marimba }),
+    bell: bySection(beProg, SONG, { intro: (c, i) => beHook[i], chorus: (c, i) => tr(beChorus, -12)[i] }),
+    arp: bySection(beProg, SONG, { intro: marimba, verse: marimbaOff, bridge: marimba }),
     piano: bySection(beProg, SONG, { chorus: (c) => chordBar(c, OFF, 'F#4'), bridge: (c) => chordBar(c, LONG, 'F#4') }),
     stabs: bySection(beProg, SONG, { chorus: (c) => chordBar(c, ST24) }),
     pad: bySection(beProg, SONG, { intro: (c) => padBar(c), verse: (c) => padBar(c), bridge: (c) => padBar(c) }),
@@ -365,7 +365,7 @@ export const WORLD5_THEMES = {
 
   // Torten-Welt (5-6, Rot-Blau-Flipper): 144 BPM, E-Dur, 24 Takte, zuckersüß und verspielt. Intro: das Glockenspiel
   // spielt die Hook | Strophe (A H gis cis | A H fis H): Lead, Pizzicato auf der „und“, Holzblock | Refrain (E A cis H |
-  // E A fis H): punktiert hüpfende Hook, das Glockenspiel singt in den Hook-Takten mit, Piano 3-3-2, Stabs |
+  // E A fis H): Hook in gebrochenen Terzen, das Glockenspiel singt in den Hook-Takten mit, Piano 3-3-2, Stabs |
   // Überleitung: lange Töne, Zuckerstreusel (hohe Glocken-Arpeggien), Riser.
   course_cake: {
     bpm: 144,
@@ -402,8 +402,8 @@ export const WORLD5_THEMES = {
 
   // Schleich-Festung (5-7, Suchscheinwerfer): 130 BPM, b-Moll, 24 Takte, geheimnisvoll, gedämpft, aber mit Hook. Intro:
   // das gedämpfte Piano spielt die Hook in Oktaven | Strophe (b b Ges F | b b es F): Lead tief und leise, Pizzicato auf
-  // Zehenspitzen, pochender Oktav-Bass, Rim-Klick statt Clap, Uhr-Ticken | Refrain (b Ges es F ×2): Hook setzt nach der
-  // Eins ein und hallt im Echo nach, Sechzehntel-Hats, Clap | Überleitung: Suchlicht-Riser über die vier Takte.
+  // Zehenspitzen, pochender Oktav-Bass, Rim-Klick statt Clap, Uhr-Ticken | Refrain (b Ges es F ×2): Hook in Sechzehntel-Paaren, die
+  // langen Töne hallen im Echo nach, Sechzehntel-Hats, Clap | Überleitung: Suchlicht-Riser über die vier Takte.
   // Tiefpass auf Piano, Stabs und Pad, Lead weich (2,4 kHz) – die Melodie bleibt vorn.
   course_sneak: {
     bpm: 130,
