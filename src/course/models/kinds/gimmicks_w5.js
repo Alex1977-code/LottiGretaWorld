@@ -74,7 +74,8 @@ const KEY_CY = 0.48;
 function keyCoinBodyGeo() {
   return cached('w5:key:body', () => {
     const b = new Build();
-    const prof = [[0, 0.05], [0.33, 0.05], [0.37, 0.072], [0.42, 0.078], [0.455, 0.06], [0.465, 0.025], [0.465, -0.025], [0.455, -0.06], [0.42, -0.078], [0.37, -0.072], [0.33, -0.05], [0, -0.05]];
+    // Profil von unten (−) nach oben (+), damit die Flächen nach außen zeigen
+    const prof = [[0, -0.05], [0.33, -0.05], [0.37, -0.072], [0.42, -0.078], [0.455, -0.06], [0.465, -0.025], [0.465, 0.025], [0.455, 0.06], [0.42, 0.078], [0.37, 0.072], [0.33, 0.05], [0, 0.05]];
     const g = new THREE.LatheGeometry(prof.map(([x, y]) => new THREE.Vector2(x, y)), 56);
     g.rotateX(Math.PI / 2);
     b.add(g, gradV(0xc87800, 0xffd84a, 0.5, 0.5));

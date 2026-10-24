@@ -759,7 +759,7 @@ function buildFunkenling(opts = {}) {
 // Glutball (Zusatz: 5-3 „blaue Lava“)
 // =============================================================================================
 const GB = {
-  blau: { crust: 0x1e2a52, crustHi: 0x4a5a9a, glow: [0xe8ffff, 0x5ad8ff, 0x2a5aff], halo: 0x4ab8ff },
+  blau: { crust: 0x2a3462, crustHi: 0x6a78b8, glow: [0xe8ffff, 0x5ad8ff, 0x2a5aff], halo: 0x4ab8ff },
   rot: { crust: 0x3a1a1a, crustHi: 0x7a3a2a, glow: [0xfff2a0, 0xffa020, 0xff4a10], halo: 0xff7a2a },
 };
 const GB_R = 0.27;
@@ -767,12 +767,12 @@ function gbCrustGeo(color) {
   const C = GB[color];
   return cached(`w5:gb:crust:${color}`, () => {
     // Krustenschollen: Kugel, deren Dreiecke entlang der Zellgrenzen (Voronoi) entfernt werden → glühende Risse
-    const g0 = displace(new THREE.SphereGeometry(GB_R, 40, 30), 0.012, 9, 3.3, true);
+    const g0 = displace(new THREE.SphereGeometry(GB_R, 48, 36), 0.012, 9, 3.3, true);
     const P = g0.attributes.position, N = g0.attributes.normal;
     const pos = [], nor = [];
     for (let i = 0; i < P.count; i += 3) {
       const cx = (P.getX(i) + P.getX(i + 1) + P.getX(i + 2)) / 3, cy = (P.getY(i) + P.getY(i + 1) + P.getY(i + 2)) / 3, cz = (P.getZ(i) + P.getZ(i + 1) + P.getZ(i + 2)) / 3;
-      if (cellEdge(cx, cy, cz, 9) < 0.13) continue;
+      if (cellEdge(cx, cy, cz, 6.5) < 0.075) continue;
       for (let k = 0; k < 3; k++) { pos.push(P.getX(i + k), P.getY(i + k), P.getZ(i + k)); nor.push(N.getX(i + k), N.getY(i + k), N.getZ(i + k)); }
     }
     g0.dispose();
@@ -782,7 +782,7 @@ function gbCrustGeo(color) {
     const b = new Build();
     b.add(g, { v: (x, y, z, nx, ny) => mix(C.crust, C.crustHi, smoothstep(ny * 0.5 + 0.5 + nx * 0.2)) }, { s: 1.04 });
     // grimmige Brauen auf der Kruste
-    for (const s of [1, -1]) b.capsule(0.022, 0.08, 0x0e1428, { p: [0.235, 0.115, s * 0.085], r: [Math.PI / 2 - s * 0.5, -s * 0.35, 0], order: 'YXZ' }, 3, 8);
+    for (const s of [1, -1]) b.capsule(0.024, 0.085, 0x0e1428, { p: [0.262, 0.14, s * 0.09], r: [Math.PI / 2 - s * 0.5, -s * 0.33, 0], order: 'YXZ' }, 3, 8);
     return b.geometry();
   });
 }
@@ -798,7 +798,7 @@ function buildGlutball(opts = {}) {
   const pose = joint([0, GB_R + 0.03, 0]);
   const core = mesh(gbCoreGeo(color), glowVcol(), {});
   const crust = mesh(gbCrustGeo(color), vcol(0.5, {}, 'w5crust'), {}, true);
-  const eye = eyes([{ p: [0.22, 0.04, 0.085], r: 0.07, sy: 1.3, dir: [1, 0.05, 0.4] }, { p: [0.22, 0.04, -0.085], r: 0.07, sy: 1.3, dir: [1, 0.05, -0.4] }],
+  const eye = eyes([{ p: [0.262, 0.04, 0.09], r: 0.075, sy: 1.3, dir: [1, 0.05, 0.38] }, { p: [0.262, 0.04, -0.09], r: 0.075, sy: 1.3, dir: [1, 0.05, -0.38] }],
     { key: 'w5:gb', iris: C.glow[2], pupil: 0.6, depth: 0.5 });
   const tail = joint([0, 0, 0], mesh(flameGeo(color === 'blau' ? 'blau' : 'rot', 14), glowVcol(), { s: [0.7, 0.75, 0.7] }));
   const glow = glowSprite(C.halo, 1.3, 0.6);
@@ -820,8 +820,7 @@ function buildGlutball(opts = {}) {
     tail.rotation.z = dir >= 0 ? Math.PI : 0;
     tail.position.y = dir >= 0 ? -GB_R * 0.55 : GB_R * 0.55;
     tail.scale.set(1 + Math.sin(t * 19) * 0.08, len * (1 + Math.sin(t * 13) * 0.1), 1);
-    crust.rotation.y = t * 0.6;
-    crust.rotation.x = Math.sin(t * 0.8) * 0.2;
+    crust.scale.setScalar(1 + Math.sin(t * 7) * 0.012);
     const k = dead ? Math.max(0.001, 1 - smoothstep(age / 0.6)) : 1;
     pose.scale.setScalar(k * (1 + Math.sin(t * 9) * 0.02));
     pose.position.y = GB_R + 0.03 + (anim === 'idle' ? Math.sin(t * 2.6) * 0.04 : 0);
