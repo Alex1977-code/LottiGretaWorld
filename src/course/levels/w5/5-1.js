@@ -178,6 +178,8 @@ function setup(level) {
   // Grottenstrand: Leuchtpilze an den Wänden, Karottenkorb für Pflaume
   leuchtpilze(level, [[-7.4, DK, -189.6, 1.1, 0x7ae8ff], [7.6, DK, -195.4, 1.2, 0xff8ae0], [-7.8, DK, -199.8, 0.9, 0xb08aff], [7.2, DK, -203.4, 1, 0x7ae8ff], [-4.4, DK, -204.2, 0.8, 0xff8ae0]]);
   karottenkorb(level, 4.4, DK, -198.8);
+  // Wandhöhle: Leuchtpilze in den Ecken (Krümels Höhle soll gemütlich leuchten)
+  leuchtpilze(level, [[CAVE.x0 + 0.9, Y, CAVE.z0 - 1.6, 0.9, 0xff8ae0], [CAVE.x0 + 1.2, Y, CAVE.z1 + 3.4, 1, 0x7ae8ff], [CAVE.x1 - 0.9, Y, CAVE.z0 - 2.2, 0.8, 0xb08aff]], { seed: 7 });
   lichtschaechte(level, [[2, 12, -100, 1.8, 12], [-2, 12, -138, 2.2, 12.5], [2, 12, -172, 1.8, 12.5], [-9, 12, -199, 2, 12]], { opacity: 0.16 });
   tiefwasser(level, HOLE.x0, HOLE.x1, HOLE.z0, HOLE.z1, WT - 0.08, HOLE.bot);
   grottenStaub(level, { inside: (p) => !!p && p.pos.z < -66 && p.pos.z > -206 && Math.abs(p.pos.x) < 20, y0: 0 });

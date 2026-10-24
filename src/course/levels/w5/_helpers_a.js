@@ -710,7 +710,8 @@ export function holzsteg(level, x0, x1, z0, z1, top, o = {}) {
  * Höhlentor vor einer Felswand (Wand zeigt nach +Z): Felsbogen aus Brocken um die Türöffnung, Tropfstein-Zähne am
  * Sturz, Moospolster auf der Kante und Ranken, die seitlich der Öffnung herabhängen (nicht vor die Sicht in die Höhle).
  * x = Mitte der Tür, y = Boden, z = Wandfläche; o: { w: 2.8 (Türbreite), h: 3.2, top: Wandoberkante, span: 7 (halbe
- * Breite der bemoosten Kante), rock: [dunkel, hell] }. Statisch (keine zusätzlichen Zeichenaufrufe).
+ * Breite der bemoosten Kante), rock: [dunkel, hell], inside(player) }. Ein Objekt (blendet aus, solange inside gilt –
+ * Standard: Figur hinter der Wandfläche), dazu der dunkle Schlund in der Öffnung.
  */
 export function hoehlenTor(level, x, y, z, o = {}) {
   if (!level.view) return;
@@ -770,8 +771,12 @@ export function hoehlenTor(level, x, y, z, o = {}) {
       soft.push(colorize(ni(lf), (p, n, oo) => mixc(vine, leaf, smooth(-0.3, 0.9, n.y + n.z * 0.5), oo)));
     }
   }
-  addStatic(level, merge(parts), { castShadow: true });
-  addStatic(level, merge(soft), { castShadow: false });
+  // eigenes Objekt: verschwindet, solange die Figur in der Höhle ist (sonst verdeckten Bogen und Moos die Sicht hinein)
+  const tor = new THREE.Mesh(merge([...parts, ...soft]), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }));
+  tor.name = 'zier:hoehlentor';
+  tor.castShadow = true; tor.receiveShadow = true;
+  const inside = o.inside ?? ((p) => p.pos.z < z - 0.4 && Math.abs(p.pos.x - x) < span);
+  addObject(level, tor, () => { tor.visible = !(level.player && inside(level.player)); });
   // dunkler Höhlenschlund in der Öffnung (nur Optik): blendet aus, sobald die Figur nahe am Tor oder drinnen ist
   if (o.dark === false) return;
   const g = new THREE.PlaneGeometry(W, H);
