@@ -9,6 +9,9 @@
 // Inselchen mit Tannen, leiser Schneefall um die Kamera (ein Punkte-Objekt); Nachbarwelt-Stil 'snow'.
 // Welt 4 (map.kit 'canyon'): Thema 'map_canyon' (canyon.js), rote Canyon-Inselchen mit Felsnadeln und Kakteen;
 // Nachbarwelt-Stil 'canyon' (rote Tafelberge, Felsnadeln, Felsbogen – Ziel der Welt-4-Röhre in Welt 3).
+// Welt 5 (map.kit 'lila'): Thema 'map_lila' (beach5.js), helle Sand-Inselchen mit Palmen oder violetten Felsen;
+// Nachbarwelt-Stil 'lila' (violette Klippen, Strand, Palmen, Leuchtturm – Ziel der Welt-5-Röhre in Welt 4);
+// map.birdStyle 'gull' zeichnet die Vögel als weiße Möwen.
 
 import * as THREE from 'three';
 import { THEMES } from '../view/themes.js';
@@ -17,6 +20,7 @@ import { islandParts } from '../blocks/kit.js';
 import { palmGeo, pyramidGeo, place } from './desert.js';
 import { snowGround, snowNeighborParts, firLiteGeo, iceFloeGeo } from './snow.js';
 import { canyonNeighborParts, canyonIsletParts } from './canyon.js';
+import { lilaNeighborParts, lilaIsletParts } from './beach5.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 
 // Thema der Wüsteninsel (Welt 2): warmes Sonnenlicht, blasser, sandiger Horizont, Nebel ins Goldene.
@@ -83,7 +87,7 @@ export class MapScenery {
       if (this.clouds) this.clouds.castShadow = false;   // Wolken über dem Meer: kein Schattenpass (dichte Schneeinsel)
     }
     for (const nb of map.neighbors ?? []) this.buildNeighbor(nb);
-    if (map.birds?.length) this.buildBirds(map.birds);
+    if (map.birds?.length) this.buildBirds(map.birds, map.birdStyle);
     view.three.add(this.group);
   }
 
@@ -243,10 +247,10 @@ export class MapScenery {
         n++;
         continue;
       }
-      if (this.kit === 'canyon') {
-        // Canyon-Inselchen: ohne Schattenwurf, je Meeressektor ein Mesh (wie Welt 3)
+      if (this.kit === 'canyon' || this.kit === 'lila') {
+        // Canyon-/Lila-Inselchen: ohne Schattenwurf, je Meeressektor ein Mesh (wie Welt 3)
         const sea = { castShadow: false, tile: this.seaSector(x, z) };
-        for (const g of canyonIsletParts(x, z, w, d, top, rnd)) this.view.addStatic(g, sea);
+        for (const g of (this.kit === 'lila' ? lilaIsletParts : canyonIsletParts)(x, z, w, d, top, rnd)) this.view.addStatic(g, sea);
         this.rects.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]);
         n++;
         continue;
@@ -314,12 +318,14 @@ export class MapScenery {
     const desert = nb.style === 'desert';
     if (nb.style === 'snow') parts.push(...snowNeighborParts(nb, rnd));
     if (nb.style === 'canyon') parts.push(...canyonNeighborParts(nb, rnd));
-    const blocks = nb.style === 'snow' || nb.style === 'canyon' ? [] : [[-0.5, -0.5, 0.5, 0.5, 2.5], [-0.35, -0.42, 0.1, 0.1, 6], [0.05, -0.3, 0.38, 0.2, 4.5]];
+    if (nb.style === 'lila') parts.push(...lilaNeighborParts(nb, rnd));
+    const own = nb.style === 'snow' || nb.style === 'canyon' || nb.style === 'lila';
+    const blocks = own ? [] : [[-0.5, -0.5, 0.5, 0.5, 2.5], [-0.35, -0.42, 0.1, 0.1, 6], [0.05, -0.3, 0.38, 0.2, 4.5]];
     for (const [a, c, e, f, top] of blocks) {
       const g = islandParts(x + a * w, -3, z + c * d, x + e * w, top, z + f * d, desert ? { ...theme, dirt: 0xd9a060, dirtDeep: 0xa86a3a } : THEMES.grass, { under: 0, rnd, top: desert ? 'sand' : 'grass', cell: 4 });
       parts.push(...g);
     }
-    if (nb.style === 'snow' || nb.style === 'canyon') { /* Schnee-/Canyon-Insel: oben gebaut */ } else if (desert) {
+    if (own) { /* Schnee-/Canyon-/Lila-Insel: oben gebaut */ } else if (desert) {
       parts.push(place(pyramidGeo(18, 13, 6), x - 0.12 * w, 6, z - 0.15 * d));
       for (let i = 0; i < 4; i++) parts.push(place(palmGeo(5, 0.8, i + 3), x + rnd.real(-0.4, 0.4) * w, 2.5, z + rnd.real(0.25, 0.45) * d, rnd.real(0, 6)));
     } else {
@@ -351,17 +357,18 @@ export class MapScenery {
     this.rects.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]);
   }
 
-  /** Segelnde Vögel (Hackvögel) über der Insel: birds = [{ c: [x, y, z], r, n }] – eine InstancedMesh für alle. */
-  buildBirds(list) {
+  /** Segelnde Vögel (Hackvögel, Welt 5: Möwen) über der Insel: birds = [{ c: [x, y, z], r, n }] – eine InstancedMesh für alle. */
+  buildBirds(list, style) {
     const b = [];
     const body = new THREE.SphereGeometry(0.17, 7, 5); body.scale(1.6, 0.8, 0.8);
     const head = new THREE.SphereGeometry(0.11, 6, 4); head.translate(0.3, 0.07, 0);
     const beak = new THREE.ConeGeometry(0.04, 0.18, 4); beak.rotateZ(-Math.PI / 2); beak.translate(0.45, 0.05, 0);
     const wing = (s) => { const g = new THREE.ConeGeometry(0.22, 0.95, 3); g.rotateX(s * Math.PI / 2); g.scale(1, 0.25, 1); g.translate(-0.02, 0.06, s * 0.5); g.rotateX(s * -0.3); return g; };
     const tail = new THREE.ConeGeometry(0.12, 0.3, 3); tail.rotateZ(Math.PI / 2); tail.scale(1, 0.3, 1); tail.translate(-0.36, 0.01, 0);
-    const purple = lin(0x5a3a7a), light = lin(0x8a6ab8), orange = lin(0xffb43a), white = lin(0xf6f0ff);
+    const gull = style === 'gull';
+    const purple = lin(gull ? 0xf4f6fa : 0x5a3a7a), light = lin(gull ? 0xc8ccd8 : 0x8a6ab8), orange = lin(0xffb43a), white = lin(0xf6f0ff);
     const paint = (g, c) => colorize(g, (p, n, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; });
-    b.push(paint(body, purple), paint(head, light), paint(beak, orange), paint(wing(1), light), paint(wing(-1), light), paint(tail, purple));
+    b.push(paint(body, purple), paint(head, gull ? white : light), paint(beak, orange), paint(wing(1), light), paint(wing(-1), light), paint(tail, purple));
     const g = merge(b);
     this.birdData = [];
     for (const { c, r, n = 2 } of list) for (let i = 0; i < n; i++) this.birdData.push({ c, r: r * (1 - i * 0.18), ph: (i / n) * Math.PI * 2, sp: 0.32 + i * 0.05 });

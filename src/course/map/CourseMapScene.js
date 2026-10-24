@@ -764,7 +764,7 @@ export class CourseMapScene extends Phaser.Scene {
       roamers: this.roamers.filter((r) => r.alive).map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]),
       stars: this.worldStars(), starsMax: this.worldStarsMax(), lives: courseSave.lives, coins: courseSave.coins,
       leaving: this.leaving, lastStart: this.lastStart, goVisible: !!this.hud?.goBtn.visible,
-      soonWorld: this.arriveInfo?.soonWorld ?? null, beep: this.beepInfo(),
+      soonWorld: this.arriveInfo?.soonWorld ?? null, beep: this.beepInfo(), decor: this.decorInfo(),
     };
   }
 
@@ -772,6 +772,13 @@ export class CourseMapScene extends Phaser.Scene {
   beepInfo() {
     for (const ev of this.built?.entrances?.values() ?? []) if (ev.beep) return { ...ev.beep.info(), shown: ev.beep.shown };
     return null;
+  }
+
+  /** Lebendige Kulissen (Welt 5: Suchscheinwerfer, Rot-Blau-Flipper, Kippquader …): ev.liveInfo() aller Eingänge. */
+  decorInfo() {
+    const out = {};
+    for (const ev of this.built?.entrances?.values() ?? []) if (ev.liveInfo) Object.assign(out, ev.liveInfo());
+    return out;
   }
 
   stats() {
