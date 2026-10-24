@@ -107,6 +107,7 @@ import {
 } from '../lib/figures.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { leafSolidGeo, bushyTailGeo, skinChain, StoneSkin, PuffFx } from '../lib/heroWorld3.js';
+import { applyToyLook } from '../lib/toyLook.js';
 
 const U = 1 / GAME.tile;             // Weltpixel → Einheiten
 const BIAS = 0.42;                   // Drehung zur Kamera (3/4-Ansicht), für Heldin und Pflaume gleich
@@ -2253,7 +2254,7 @@ export class HeroAvatar extends Avatar3D {
 // Figurenstil: rundlicher, flauschiger Körper (Laib mit vollen Keulen, weiße Brust, Puschelschwänzchen), runder Kopf mit
 // Pausbacken und großen glänzenden Augen, weiche breite Schlappohren (innen rosa), kurze stämmige Beine mit runden Pfoten,
 // weiße Zehen am nahen Hinterfuß. Gelenke wie bisher (Reiten, Floß, Ausrüstung); alles Fell teilt ein Material (Bündel).
-const FUR_C = '#2a2630', FURW_C = '#f4f1f8', PINK_C = '#ffa3c6', FUR_HI = '#4f4860';
+const FUR_C = '#1f1c24', FURW_C = '#f4f1f8', PINK_C = '#ffa3c6', FUR_HI = '#3a3544';
 const HEAD_PIV = V(0.44, 0.74, 0);   // Halsansatz (Kopf-Drehpunkt)
 const HC = V(0.12, 0.20, 0);         // Kopfmitte, kopf-lokal → Welt ≈ (0.56, 0.94)
 /** Kopfform: rund, Pausbacken unten seitlich, kleine Schnauze vorn. */
@@ -2472,7 +2473,8 @@ function backpackParts() {
 export class PflaumeAvatar extends Avatar3D {
   buildModel() {
     this.usesFacing = false;
-    const fur = SURF.cloth(), gloss = SURF.gloss();
+    // eigenes Fell-Material: schwaches Randlicht/Glanz, damit das schwarze Fell im Spielzeug-Look nicht grau wirkt
+    const fur = applyToyLook(mat('pflaume:fur', { vertexColors: true, roughness: 0.8 }), { rim: 0.3, spec: 0.3 }), gloss = SURF.gloss();
     const smesh = (g, m, shadow = true) => { const me = new THREE.Mesh(g, m); me.castShadow = shadow; return me; };
     this.bandanaMat = this.track(new THREE.MeshStandardMaterial({ color: POWER_COLORS.none.Z, roughness: 0.5 }));
     this.powerKey = null;
