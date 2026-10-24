@@ -155,7 +155,7 @@ export const LEVEL = {
   ],
   enemies: [
     { kind: 'kreisgeist_kreis', id: 'ring', pos: [5.8, YA + 0.15, 9], count: 7, radius: 3, speed: 1.0 },
-    { kind: 'spuk', id: 'spuk', pos: [-12.2, YB, 11.6], sight: 10, speed: 1.3 },
+    { kind: 'spuk', id: 'spuk', pos: [0.5, YB, 1.2], sight: 9, speed: 1.3 },
     { kind: 'spuk', id: 'grossspuk', pos: [-4, YR, -11], size: 2.5, speed: 0.9, sight: 12 },
   ],
   stars: [

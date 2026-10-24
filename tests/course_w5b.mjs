@@ -231,7 +231,7 @@ const ROUTES = {};
   const S1_BACK = [{ to: [12, -6.4], within: 0.25 }, { name: 'Tür zurück in den Garten', to: [12, -9.6], ride: true }];
   const S5 = [{ to: [10.2, 7], within: 0.3 }, { to: [10.4, 3.2], within: 0.3 }, { to: [11.5, 2.4], within: 0.3 }, { name: 'Rampe hinter den Kreisgeistern', to: [11.5, -3.2], within: 0.3 }, { to: [3.2, -5], within: 0.25 },
     { name: 'Terrassenkante → Donut-Blöcke → Säule', to: [-5, -5], within: 0.3, max: 900 }, { star: 4 }];
-  const TO_HOF = [{ to: [-1.2, 10.5], within: 0.3 }, { name: 'Hang hinab', to: [-9, 10.5], within: 0.3 }, { to: [-8, 3], within: 0.3 }];
+  const TO_HOF = [{ to: [9.6, 12.2], within: 0.3 }, { to: [5.8, 13.2], within: 0.3 }, { to: [2, 13.2], within: 0.3 }, { to: [-1.2, 10.5], within: 0.3 }, { name: 'Hang hinab', to: [-9, 10.5], within: 0.3 }, { to: [-8, 3], within: 0.3 }];
   const S2 = [{ to: [-11.5, -5.6], within: 0.2 }, { name: 'linke Tür', to: [-11.5, -9.6], ride: true }, { to: [-9.6, -6.4], within: 0.25 }, { star: 1 }];
   const S3 = [{ to: [-8.9, -6.6], within: 0.2 }, { tap: 'tipp1' }, { tap: 'tipp2' }, { to: [-0.8, -6.5], within: 0.25 }, { star: 2 }];
   ROUTES['5-Kapitän'] = {
