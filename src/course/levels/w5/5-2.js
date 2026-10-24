@@ -17,7 +17,7 @@
 // Gegner: Schnappblume 16, Riesenschnappblume 4, Funkenling 4, Pilzling 6 (Riesentrank-Gasse).
 
 import {
-  line, arc, ring, column, areaMoods, schattenDiaet, zirkusScheiben,
+  line, arc, ring, column, areaMoods, schattenDiaet, zirkusScheiben, konfettiRegen,
 } from './_helpers_a.js';
 
 const Y0 = 1, Y1 = 9, YC = 5, YD = 10, YF = 14;
@@ -68,6 +68,8 @@ function setup(level) {
   }, [{ min: [ROOM.x0 - 2, ROOM.z1 - 2], max: [ROOM.x1 + 2, ROOM.z0 + 2], mood: 'raum' }]);
   schattenDiaet(level, ['schnappblume', 'riesenschnappblume', 'pilzling', 'funkenling'], 1);
   level.world.add({ type: 'box', min: [ROOM.x0 - 0.6, YF + 5, ROOM.z1 - 0.6], max: [ROOM.x1 + 0.6, YF + 5.6, ROOM.z0 + 0.6], camIgnore: true, tag: 'raum:decke' });
+  // Konfetti rieselt über der Zielbühne
+  konfettiRegen(level, { min: [J.x0, YF + 0.1, J.z1 + 1], max: [J.x1, YF + 9, J.z0 - 3], n: 150, near: (p) => p.pos.z < -205 && p.pos.x < 40 });
   zirkusScheiben(level, DISCS.map((z, i) => ({ id: `scheibe${i + 1}`, pos: [0, YF - 0.5, z], r: 3.2, thick: 0.5,
     colors: i === 1 ? [0x2f7bff, 0xfff4e0, 0xff6fb5, 0xfff4e0, 0x35c24a, 0xfff4e0, 0xffc21a, 0xfff4e0] : undefined })));
 }

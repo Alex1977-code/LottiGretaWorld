@@ -1008,3 +1008,42 @@ export function zirkusScheiben(level, list) {
     addObject(level, mesh, () => { mesh.rotation.y = h.angle; });
   }
 }
+
+/**
+ * Konfetti-Regen (bunte Plättchen rieseln, flattern seitlich) über einem Bereich; nur sichtbar, solange near(player).
+ * o: { min: [x, y, z], max: [x, y, z], n: 140, size: 0.16, near }. 1 Zeichenaufruf.
+ */
+export function konfettiRegen(level, o) {
+  if (!level.view) return;
+  const n = o.n ?? 140;
+  const [x0, y0, z0] = o.min, [x1, y1, z1] = o.max;
+  const g = new THREE.BufferGeometry(), arr = new Float32Array(n * 3), col = new Float32Array(n * 3);
+  const cols = [0xe8323a, 0xffd23a, 0x2f7bff, 0x35c24a, 0xff6fb5, 0xa865ff, 0xffffff].map((c) => new THREE.Color(c));
+  const rnd = new Rnd(o.seed ?? 31);
+  const seeds = [];
+  for (let i = 0; i < n; i++) {
+    seeds.push({ x: rnd.real(x0, x1), y: rnd.real(y0, y1), z: rnd.real(z0, z1), v: rnd.real(0.5, 1.1), ph: rnd.real(0, TAU) });
+    const c = cols[i % cols.length]; col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.boundingSphere = new THREE.Sphere(new THREE.Vector3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), Math.hypot(x1 - x0, y1 - y0, z1 - z0) / 2 + 1);
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({ size: o.size ?? 0.16, vertexColors: true }));
+  pts.name = 'zier:konfetti';
+  const holder = {};
+  addObject(level, pts, (dt) => {
+    const d = visDt(level, holder, dt);
+    const on = !o.near || (level.player && o.near(level.player));
+    pts.visible = on;
+    if (!on) return;
+    const t = level.time;
+    for (let i = 0; i < n; i++) {
+      const s = seeds[i];
+      s.y -= d * s.v; if (s.y < y0) s.y += y1 - y0;
+      arr[i * 3] = s.x + Math.sin(t * 2.1 + s.ph) * 0.35;
+      arr[i * 3 + 1] = s.y;
+      arr[i * 3 + 2] = s.z + Math.cos(t * 1.7 + s.ph) * 0.25;
+    }
+    g.attributes.position.needsUpdate = true;
+  });
+}
