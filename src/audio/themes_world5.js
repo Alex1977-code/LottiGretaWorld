@@ -5,10 +5,14 @@
 // neu komponierten Welten 2–4: jedes Thema ist ein Lied in Dur oder Moll – Intro (Hook-Riff auf einer
 // Farb-Stimme) → Strophe (tiefer, ruhiger) → Refrain (höher, zweitaktige Hook A A' A A'') → Überleitung
 // (Breakdown, lange Töne, Riser) –, Eurodance-Akkordfolgen, der Lead-Synth trägt die Melodie fast durchgehend,
-// Off-Beat-Stabs, Piano, Pad, Oktav-Bass, Four-on-the-floor. Jede Hook hat ihr eigenes Rhythmus-Profil
-// (Calypso-Wiege, Dreier-Schwung, Sechzehntel-Zellen, lange Rufe, Sechzehntel-Auftakte, Hüpf-Punktierung,
-// Einsatz nach der Eins, Galopp-Aufstieg, Fanfare mit Vorschlägen) und ihre eigene Kontur; die Hook-Prüfung in
-// tests/audio.mjs vergleicht sie mit allen Themen der Welten 1–5.
+// Off-Beat-Stabs, Piano, Pad, Oktav-Bass, Four-on-the-floor. Jede Hook hat ihr eigenes Profil: Calypso-Wiege
+// (Strand), Dreier-Schwung 3+3+2 (Trapez), rennende Sechzehntel-Zellen als Sequenz (blaue Lava), pentatonischer
+// Lauf zum langen Ruf (Savanne), Dreiklang mit Sechzehntel-Vorschlägen (Höhle), gebrochene Terzen aufwärts
+// (Torte), Sechzehntel-Paare, die zu langen Tönen schleichen (Festung), Galopp die Tonleiter hinauf (Goldzug),
+// Moll-Fanfare in zwei Anläufen (Tempel), Calypso-Bögen (Karte). Die Hook-Prüfung in tests/audio.mjs vergleicht
+// sie mit allen Themen der Welten 1–5 (Einsatz + Intervall, dazu die Kontur ohne Rhythmus); beim Komponieren fielen
+// so zu nahe Konturen auf (z. B. 3-2-1-5-4-3 wie course_beep, gebrochene Dreiklänge wie course_plaza) und wurden
+// ersetzt.
 //
 // Welt-Farbe nur über Klang: Steel-Drum und Marimba, Shaker, Claves und Congas (Strand, Karte), Kalliope-Orgel,
 // Lotus-Flöte (Pfeife mit Glissando) und Dreier-Hats (Trapez), kalte Glas-Pings und Lava-Blubbern (blaue Lava),
