@@ -32,6 +32,28 @@ export function adaptQuality(delta) {
 /** Aktuelle Qualitätsstufe (1 = volle Auflösung). */
 export const getQualityScale = () => quality.scale;
 
+// Tonemapping je Ansicht: alle Ansichten zeichnen ohne Tonemapping (Farben von Gelände, Himmel und Figuren sind darauf
+// abgestimmt). Geprüft für den Spielzeug-Look (tests/toylook.mjs): „Neutral“ (Khronos PBR Neutral) staucht schon
+// mittelhelles Gras und den hellen Himmel (Gras dunkler, Himmel grau), ACES/AgX zusätzlich Farbstich/Entsättigung –
+// die weiche Lichter-Schulter sitzt deshalb nur in den Figuren-Materialien (three/lib/toyLook.js).
+const TONE = { none: THREE.NoToneMapping, neutral: THREE.NeutralToneMapping, aces: THREE.ACESFilmicToneMapping, agx: THREE.AgXToneMapping };
+
+/**
+ * Tonemapping und Belichtung setzen (Wechsel übersetzt die betroffenen Shader einmal neu). urlOverride: Vergleichs-
+ * schalter ?tone=neutral|aces|agx|none und ?exposure=1.1 aus der Adresse übernehmen (Kurs-Ansicht mit Spielzeug-Look).
+ */
+export function setToneMapping(renderer, mode = 'none', exposure = 1, urlOverride = false) {
+  if (urlOverride) {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      if (TONE[q.get('tone')] !== undefined) mode = q.get('tone');
+      if (q.has('exposure') && Number.isFinite(+q.get('exposure'))) exposure = +q.get('exposure');
+    } catch { /* kein window */ }
+  }
+  renderer.toneMapping = TONE[mode] ?? THREE.NoToneMapping;
+  renderer.toneMappingExposure = exposure;
+}
+
 /** Renderer und Leinwand holen (beim ersten Aufruf erzeugen). */
 export function getRenderer() {
   if (shared) return shared;
