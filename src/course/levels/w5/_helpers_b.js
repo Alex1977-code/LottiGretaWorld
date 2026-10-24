@@ -1322,3 +1322,366 @@ export function bullWaves(level, waves, wait, o = {}) {
   level.named.set(o.id ?? 'wellen', st);
   return st;
 }
+
+// =====================================================================================================================
+// 5-4 Goldsavanne
+// =====================================================================================================================
+
+/** Rechteck x0..x1 × zA..zB als Umriss mit abgeschrägten Ecken (ch m). */
+export function rectPoly(x0, x1, zA, zB, ch = 0.8) {
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+  return [[x0 + ch, z0], [x1 - ch, z0], [x1, z0 - ch], [x1, z1 + ch], [x1 - ch, z1], [x0 + ch, z1], [x0, z1 + ch], [x0, z0 - ch]];
+}
+
+const MESA_BANDS = [0xd88a4a, 0xc8743e, 0xe8a868, 0xb8643a, 0xdc9a5a, 0xc07040];
+
+/**
+ * Tafelberg-Flanke (gebänderter Lehm-/Sandstein-Fels der Savanne): senkrechte Felswand rund um den Umriss poly
+ * ([[x, z], …]) von top (knapp unter der Grasdecke) bis bottom; je Band leicht vor- und zurückspringend, nach unten
+ * etwas breiter (Geröllfuß). Nur Darstellung (die Kollision liefert die Insel). o: { step 1.8, band 2.4, flare 0.05,
+ * seed, colors, shadow }.
+ */
+export function cliffSkirt(level, poly, top, bottom, o = {}) {
+  if (!level.view) return;
+  const step = o.step ?? 1.8, band = o.band ?? 2.4, flare = o.flare ?? 0.05;
+  const cols = (o.colors ?? MESA_BANDS).map((c) => new THREE.Color(c));
+  // Umlaufsinn bestimmen (nach außen zeigende Normalen)
+  let area = 0;
+  for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length]; area += a[0] * b[1] - b[0] * a[1]; }
+  const sgn = area > 0 ? -1 : 1;
+  const pts = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(L / step));
+    for (let k = 0; k < n; k++) { const t = k / n; pts.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
+  }
+  const N = pts.length;
+  const nrm = pts.map((p, i) => {
+    const a = pts[(i - 1 + N) % N], b = pts[(i + 1) % N];
+    const tx = b[0] - a[0], tz = b[1] - a[1], l = Math.hypot(tx, tz) || 1;
+    return [sgn * tz / l, -sgn * tx / l];
+  });
+  const ys = [top - 0.3, top - 1.1];
+  for (let y = top - 1.1 - band; y > bottom; y -= band) ys.push(y);
+  ys.push(bottom);
+  const seed = o.seed ?? 3;
+  const off = (i, k) => (k === 0 ? 0.03 : 0.1 + 0.32 * (0.5 + 0.5 * Math.sin(i * 1.93 + k * 2.71 + seed)) * (0.6 + 0.4 * Math.sin(i * 0.37 + seed))) + flare * (top - ys[k]);
+  const P = (i, k) => { const ii = i % N, d = off(ii, k); return [pts[ii][0] + nrm[ii][0] * d, ys[k], pts[ii][1] + nrm[ii][1] * d]; };
+  const pos = [], col = [];
+  const c = new THREE.Color(), sun = new THREE.Vector3(-0.55, 0.3, 0.42).normalize();
+  for (let k = 0; k < ys.length - 1; k++) {
+    const bc = cols[(Math.floor((top - ys[k]) / band) + seed) % cols.length];
+    for (let i = 0; i < N; i++) {
+      const A = P(i, k), B = P(i + 1, k), C = P(i + 1, k + 1), D = P(i, k + 1);
+      const m = nrm[i];
+      const lit = 0.78 + 0.3 * Math.max(0, m[0] * sun.x + m[1] * sun.z) + (k === 0 ? 0.08 : 0);
+      c.copy(bc).multiplyScalar(lit * (0.92 + 0.08 * Math.sin(i * 2.3 + k)));
+      for (const q of sgn > 0 ? [A, B, C, A, C, D] : [A, C, B, A, D, C]) { pos.push(q[0], q[1], q[2]); col.push(c.r, c.g, c.b); }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  addStatic(level, g, { castShadow: o.shadow !== false });
+}
+
+/**
+ * Wasserloch auf der Grasebene: Steinrand (Kollision: niedrige Kanten, begehbar), Schilf, Seerosen, ein Frosch.
+ * Das Wasser selbst ist ein Segment `water` (Daten). x0..x1 × zA..zB, Boden y.
+ */
+export function waterholeRim(level, x0, x1, zA, zB, y, o = {}) {
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+  const rnd = new Rnd(o.seed ?? 11);
+  const rim = 0.7, hh = o.rim ?? 0.35;
+  for (const [ax0, ax1, az0, az1] of [[x0 - rim, x1 + rim, z0 + rim, z0], [x0 - rim, x1 + rim, z1, z1 - rim], [x0 - rim, x0, z0, z1], [x1, x1 + rim, z0, z1]]) {
+    level.world.add({ type: 'box', min: [ax0, y, Math.min(az0, az1)], max: [ax1, y + hh, Math.max(az0, az1)], tag: 'wasserloch' });
+  }
+  if (!level.view) return;
+  const b = new Bld();
+  const per = 2 * (x1 - x0 + z0 - z1);
+  for (let s = 0; s < per; s += 0.9) {
+    let x, z;
+    if (s < x1 - x0) { x = x0 + s; z = z0 + rim / 2; } else if (s < x1 - x0 + z0 - z1) { x = x1 + rim / 2; z = z0 - (s - (x1 - x0)); }
+    else if (s < 2 * (x1 - x0) + z0 - z1) { x = x1 - (s - (x1 - x0) - (z0 - z1)); z = z1 - rim / 2; } else { x = x0 - rim / 2; z = z1 + (s - 2 * (x1 - x0) - (z0 - z1)); }
+    b.sphere(rnd.real(0.42, 0.6), x, y + hh * 0.45, z, litTop(rnd.frac() < 0.5 ? 0xd8c8a8 : 0xc8b490), { s: [1, 0.62, 1], ws: 7, hs: 5 });
+  }
+  for (const [cx, cz] of [[x0 + 0.5, z0 - 0.5], [x1 - 0.5, z1 + 0.5], [x1 - 0.6, z0 - 0.7]]) {
+    for (let k = 0; k < 5; k++) {
+      const px = cx + rnd.real(-0.5, 0.5), pz = cz + rnd.real(-0.5, 0.5), h = rnd.real(1.0, 1.6);
+      b.cyl(0.03, 0.04, h, px, y, pz, 0x6a9a3a, 4);
+      b.cyl(0.07, 0.07, 0.32, px, y + h - 0.1, pz, 0x7a4a2a, 6);
+    }
+  }
+  const wy = y + (o.depth ?? 0.6) + 0.02;
+  for (let k = 0; k < (o.lilies ?? 4); k++) {
+    const px = rnd.real(x0 + 0.8, x1 - 0.8), pz = rnd.real(z1 + 0.8, z0 - 0.8);
+    b.cyl(0.5, 0.5, 0.04, px, wy, pz, 0x4ab04a, 9);
+    if (k % 2 === 0) b.sphere(0.13, px + 0.15, wy + 0.1, pz, 0xff8ac8, { ws: 6, hs: 4 });
+  }
+  if (o.frog !== false) {
+    const fx = x0 - 0.35, fz = (z0 + z1) / 2;
+    b.sphere(0.28, fx, y + hh + 0.2, fz, litTop(0x5ac84a), { s: [1, 0.75, 1.1] });
+    for (const s of [-0.12, 0.12]) { b.sphere(0.09, fx + 0.1, y + hh + 0.42, fz + s, 0xffffff, { ws: 6, hs: 4 }); b.sphere(0.045, fx + 0.17, y + hh + 0.43, fz + s, 0x1a1a1a, { ws: 5, hs: 4 }); }
+  }
+  b.flush(level);
+}
+
+/**
+ * Ameisenhügel mit Loch obenauf (Eingang einer eingelassenen Warp-Box: Fußpunkt pos, Box-Oberkante pos.y + 1,2):
+ * Lehmkegel mit Krater, dunkles Loch, Krümel. Kollision: drei flache Stufen-Zylinder um die Box (hinaufgehen ohne
+ * Sprung), die Box trägt die Mitte.
+ */
+export function antHill(level, pos, o = {}) {
+  const [x, y, z] = pos, top = y + 1.2;
+  [[2.5, 0.3], [2.05, 0.6], [1.6, 0.9]].forEach(([r, h]) => level.world.add({ type: 'cyl', x, z, r, y0: y - 0.5, y1: y + h, tag: 'ameisenhuegel' }));
+  if (!level.view) return;
+  const b = new Bld(), rnd = new Rnd(o.seed ?? 5);
+  const clay = gradY(0xa8582e, 0xd88a4a, y, top + 0.3);
+  b.cyl(1.25, 2.7, 1.22, x, y - 0.02, z, clay, 14);
+  b.torus(1.05, 0.26, x, top + 0.04, z, litTop(0xd08848), { rx: Math.PI / 2, ts: 16 });
+  b.cyl(0.84, 0.84, 0.03, x, top + 0.005, z, 0x140c08, 16);
+  for (let k = 0; k < 14; k++) {
+    const a = rnd.real(0, TAU), r = rnd.real(1.4, 2.7);
+    b.sphere(rnd.real(0.08, 0.16), x + Math.sin(a) * r, y + 0.05 + Math.max(0, 1.2 * (2.7 - r) / 1.45) * 0.85, z + Math.cos(a) * r, litTop(0xb86a3a), { ws: 5, hs: 4 });
+  }
+  b.flush(level);
+}
+
+/** Eingelassene Warp-Box unsichtbar machen (Ameisenloch: der Hügel zeichnet die Öffnung). */
+export function hideBoxModel(level, id) {
+  const e = level.named.get(id);
+  e?.model?.root?.traverse((o) => { o.visible = false; });
+}
+
+/**
+ * Ameisenbau-Höhle (Unterbereich hinter der Warp-Box): Lehmboden x0..x1 × zA..zB bei y, Wände (Höhe h, vorn niedrig
+ * für die Kamera), Tunnelbögen, Wurzeln, Ameisen-Eier, leuchtende Kristalle und Pilze. Kollision: Boden + Wände.
+ */
+export function antCave(level, x0, x1, zA, zB, y, o = {}) {
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), h = o.h ?? 7, t = 1.2;
+  const W = level.world;
+  W.add({ type: 'box', min: [x0 - t, y - 3, z1 - t], max: [x1 + t, y, z0 + t], tag: 'hoehle' });
+  W.add({ type: 'box', min: [x0 - t, y, z1 - t], max: [x0, y + h, z0 + t], tag: 'hoehle' });
+  W.add({ type: 'box', min: [x1, y, z1 - t], max: [x1 + t, y + h, z0 + t], tag: 'hoehle' });
+  W.add({ type: 'box', min: [x0, y, z1 - t], max: [x1, y + h, z1], tag: 'hoehle' });
+  W.add({ type: 'box', min: [x0, y, z0], max: [x1, y + 1.2, z0 + t], tag: 'hoehle', camIgnore: true });
+  if (!level.view) return;
+  const rnd = new Rnd(o.seed ?? 21);
+  const b = new Bld();
+  const earth = gradY(0x6a3a22, 0xb06a3a, y, y + h);
+  b.box(x1 - x0 + 2 * t, 3, z0 - z1 + 2 * t, (x0 + x1) / 2, y - 3, (z0 + z1) / 2, litTop(0xa8683a), { r: 0.1 });
+  for (let k = 0; k < 18; k++) b.cyl(rnd.real(0.6, 1.4), rnd.real(0.6, 1.4), 0.03, rnd.real(x0 + 1, x1 - 1), y, rnd.real(z1 + 1, z0 - 1), rnd.frac() < 0.5 ? 0x9a5a30 : 0xb8784a, 8);
+  const wall = (ax0, ax1, az0, az1, hh) => {
+    for (let yy = y, k = 0; yy < y + hh - 0.01; yy += 1.4, k++) {
+      const hb = Math.min(1.4, y + hh - yy), j = (k % 2) * 0.18;
+      b.box(ax1 - ax0 + j, hb, Math.abs(az1 - az0) + j, (ax0 + ax1) / 2, yy, (az0 + az1) / 2, earth, { r: 0.25 });
+    }
+  };
+  wall(x0 - t, x0, z1 - t, z0 + t, h);
+  wall(x1, x1 + t, z1 - t, z0 + t, h);
+  wall(x0, x1, z1 - t, z1, h);
+  wall(x0, x1, z0, z0 + t, 1.2);
+  for (const tx of o.tunnels ?? [x0 + 4, x1 - 4]) {
+    b.cyl(1.25, 1.25, 0.05, tx, y + 1.25, z1 + 0.03, 0x1a0e08, 16, { rx: Math.PI / 2 });
+    b.box(2.5, 1.25, 0.05, tx, y, z1 + 0.03, 0x1a0e08, { r: 0 });
+    b.torus(1.35, 0.22, tx, y + 1.25, z1 + 0.08, litTop(0xc07a48), { arc: Math.PI, ts: 12 });
+  }
+  for (let k = 0; k < 10; k++) {
+    const rx = rnd.real(x0 + 1, x1 - 1), wz = z1 + rnd.real(0.25, 0.9);
+    const L = rnd.real(1.2, 2.8);
+    b.cyl(0.05, 0.1, L, rx, y + h - L, wz, 0x5a3a20, 5);
+  }
+  for (const [ex, ez] of o.eggs ?? [[x0 + 2.2, z1 + 2], [x1 - 2.4, z0 - 2.2]]) {
+    for (let k = 0; k < 6; k++) b.sphere(0.24, ex + rnd.real(-0.7, 0.7), y + 0.22 + (k > 3 ? 0.3 : 0), ez + rnd.real(-0.6, 0.6), litTop(0xfff4e0), { s: [1, 1.35, 1], ws: 8, hs: 6 });
+  }
+  b.flush(level);
+  const g = new Bld(), glow = [];
+  for (const [cx, cz, s] of o.crystals ?? [[x0 + 1.2, z1 + 1.2, 1], [x1 - 1.2, z1 + 1.4, 1.2], [x0 + 1, z0 - 1.5, 0.8]]) {
+    for (let k = 0; k < 4; k++) {
+      const hh = s * rnd.real(0.8, 1.6), a = rnd.real(-0.4, 0.4);
+      g.cone(0.22 * s, hh, cx + rnd.real(-0.5, 0.5), y, cz + rnd.real(-0.5, 0.5), k % 2 ? 0x7ae0ff : 0xffd06a, 5, { rx: a, rz: rnd.real(-0.4, 0.4) });
+    }
+    glow.push([cx, y + 0.9 * s, cz, 2.2 * s]);
+  }
+  g.flush(level, { material: 'glow', castShadow: false });
+  glowPoints(level, glow, { color: 0xffc070, size: 2.2, opacity: 0.55, pulse: 0.6 });
+  mushroomLamps(level, o.mushrooms ?? [[x0 + 3.4, y, z0 - 1.2], [x1 - 1.4, y, (z0 + z1) / 2]]);
+}
+
+/** Grün leuchtender Hase (Stern-Hase): Leuchtschein und Funken folgen der Entität id, bis sie gefangen ist. */
+export function bunnyGlow(level, id, o = {}) {
+  const f = glowField(level);
+  if (!f) return;
+  const e = () => level.named.get(id);
+  let t = 0;
+  const d = f.alloc(4, { color: o.color ?? 0x5aff7a, size: 1.6, opacity: 0.85, pulse: 1.6 }, (dt) => {
+    t += dt;
+    const b = e();
+    if (!b || b.removed || b.caught || b.state === 'caught') { for (let i = 0; i < 4; i++) d.hide(i); return; }
+    d.set(0, b.pos.x, b.pos.y + 0.45, b.pos.z);
+    for (let i = 1; i < 4; i++) { const a = t * 2.4 + i * 2.1; d.set(i, b.pos.x + Math.sin(a) * 0.55, b.pos.y + 0.3 + ((t * 0.8 + i * 0.33) % 1) * 0.9, b.pos.z + Math.cos(a) * 0.55); }
+  });
+  f.size[d.i0] = 2.6;
+  f.geo.attributes.size.needsUpdate = true;
+}
+
+/** Stempel reitet auf dem Lastdeck der Riesenameise antId (Deck-Mitte, knapp über der Oberkante). */
+export function stampOnAnt(level, antId) {
+  const stamp = level.entities.find((x) => x.kind === 'stamp');
+  if (!stamp) return;
+  const deckX = -0.22;
+  const sync = () => {
+    const a = level.named.get(antId);
+    if (!a || stamp.removed) return;
+    const f = { x: Math.cos(a.yaw), z: -Math.sin(a.yaw) };
+    stamp.pos.set(a.pos.x + f.x * deckX, (a.deckTop ?? a.pos.y + 1.25) + 0.15, a.pos.z + f.z * deckX);
+  };
+  sync();
+  level.onStep(sync);
+}
+
+/** Giraffen (Kulisse, ohne Kollision): list [[x, y, z, yaw, größe], …]. */
+export function giraffes(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  for (const [x, y, z, yaw = 0, s = 1] of list) {
+    const c = Math.cos(yaw), sn = Math.sin(yaw);
+    const P = (u, v, n = 0) => [x + (c * u + sn * n) * s, y + v * s, z + (-sn * u + c * n) * s];
+    const fur = litTop(0xf2c050), spot = 0xb8652a;
+    for (const [u, n] of [[-0.5, -0.25], [-0.5, 0.25], [0.5, -0.25], [0.5, 0.25]]) { const p = P(u, 0, n); b.cyl(0.08 * s, 0.1 * s, 1.5 * s, p[0], p[1], p[2], fur, 6); }
+    const bd = P(0, 1.75); b.sphere(0.62 * s, bd[0], bd[1], bd[2], fur, { s: [1.35, 0.75, 0.8], yaw });
+    const nk = P(0.62, 1.95); b.cyl(0.13 * s, 0.2 * s, 1.7 * s, nk[0], nk[1], nk[2], fur, 7, { rz: -0.35, yaw });
+    const hd = P(0.98, 3.55); b.sphere(0.24 * s, hd[0], hd[1], hd[2], fur, { s: [1.5, 0.85, 0.8], yaw });
+    for (const n of [-0.1, 0.1]) { const o = P(0.85, 3.72, n); b.cyl(0.03 * s, 0.03 * s, 0.22 * s, o[0], o[1], o[2], 0x8a5a2a, 4); b.sphere(0.05 * s, o[0], o[1] + 0.24 * s, o[2], 0x8a5a2a, { ws: 5, hs: 4 }); }
+    for (const n of [-0.13, 0.13]) { const ey = P(1.1, 3.6, n); b.sphere(0.05 * s, ey[0], ey[1], ey[2], 0x1a1a1a, { ws: 5, hs: 4 }); }
+    const rnd = new Rnd(Math.round(Math.abs(x * 7 + z)) + 1);
+    for (let k = 0; k < 9; k++) { const p = P(rnd.real(-0.6, 0.6), rnd.real(1.6, 2.0), rnd.frac() < 0.5 ? -0.46 : 0.46); b.sphere(0.13 * s, p[0], p[1], p[2], spot, { s: [1, 1, 0.3], yaw: yaw + Math.PI / 2, ws: 6, hs: 4 }); }
+    const tl = P(-0.85, 1.0); b.cyl(0.03 * s, 0.03 * s, 0.7 * s, tl[0], tl[1], tl[2], fur, 4, { rz: 0.3, yaw });
+  }
+  b.flush(level);
+}
+
+/**
+ * Stimmung je Bereich (wie 4-1): moods ({ name: { fog, background, hemi, sun, dome } }, Format view/mood.js) für dieses
+ * Level anmelden und je Bereich zones = [{ min: [x, z], max: [x, z], mood }] umschalten (auch nach Warp und Neustart).
+ * Die Ansicht bekommt eine eigene Kopie des Themas (das Thema der Registry bleibt unberührt). level.moodNow für Tests.
+ */
+export function areaMood(level, moods, zones) {
+  const v = level.view;
+  level.moodNow = null;
+  if (v) v.theme = { ...v.theme, moods: { ...(v.theme.moods ?? {}), ...moods } };
+  const pick = (p) => {
+    for (const zn of zones) if (p.pos.x >= zn.min[0] && p.pos.x <= zn.max[0] && p.pos.z >= zn.min[1] && p.pos.z <= zn.max[1]) return zn.mood ?? null;
+    return null;
+  };
+  const apply = (fast) => {
+    const p = level.player;
+    if (!p) return;
+    const m = pick(p);
+    if (m === level.moodNow) return;
+    level.moodNow = m;
+    v?.setMood?.(m, { time: fast ? 0 : 1.1 });
+  };
+  apply(true);
+  level.onStep(() => apply(false));
+}
+
+/** Münzen entlang der Flugbahn einer Röhrenkanone (flightCtl: Start an der Öffnung − 0,6 m, Schwerkraft 30). */
+export function cannonCoins(pos, height, to, n, o = {}) {
+  const g = o.gravity ?? 30;
+  const from = [pos[0], pos[1] + height - 0.6, pos[2]];
+  const dist = Math.hypot(to[0] - from[0], to[2] - from[2]);
+  const apex = Math.max(from[1], to[1]) + (o.arc ?? Math.max(6, dist * 0.3));
+  const vy0 = Math.sqrt(2 * g * (apex - from[1]));
+  const T = vy0 / g + Math.sqrt(2 * (apex - to[1]) / g);
+  const out = [];
+  const a = o.skip ?? 0.12, b = 1 - (o.skipEnd ?? 0.12);
+  for (let i = 0; i < n; i++) {
+    const t = T * (a + (b - a) * (n === 1 ? 0.5 : i / (n - 1)));
+    out.push({ kind: 'coin', pos: [from[0] + (to[0] - from[0]) * t / T, from[1] + vy0 * t - 0.5 * g * t * t + 0.7, from[2] + (to[2] - from[2]) * t / T] });
+  }
+  return out;
+}
+
+const PATCH = [0xb8b048, 0xc8c060, 0xa8a840, 0xd8b058, 0xbca04a, 0xc89058];
+
+/**
+ * Lebendiger Savannenboden: unregelmäßige Grasflecken (oliv bis goldgelb, ab und zu rötlicher Lehm), Blumentupfer und
+ * runde Büsche auf den Plateaus. rects: [[x0, x1, zA, zB, top, n], …]; o.avoid: [[x, z, r], …] (Röhren, Blöcke).
+ */
+export function savannaFloor(level, rects, o = {}) {
+  if (!level.view) return;
+  const rnd = new Rnd(o.seed ?? 77);
+  const pos = [], col = [];
+  const c = new THREE.Color();
+  const avoid = o.avoid ?? [];
+  const free = (x, z, r) => !avoid.some((a) => Math.hypot(a[0] - x, a[1] - z) < (a[2] ?? 1.5) + r * 0.5);
+  const b = new Bld(), fl = new Bld();
+  let k = 0;
+  for (const [x0, x1, zA, zB, top, n] of rects) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+    for (let i = 0; i < n; i++) {
+      const r = rnd.real(0.9, 2.6);
+      const cx = rnd.real(x0 + r * 0.8, x1 - r * 0.8), cz = rnd.real(z1 + r * 0.8, z0 - r * 0.8);
+      if (!free(cx, cz, r)) continue;
+      c.set(PATCH[rnd.int(0, PATCH.length - 1)]);
+      const y = top + 0.03 + (k++ % 7) * 0.004;
+      const N = 10, rr = Array.from({ length: N }, () => r * rnd.real(0.7, 1.15));
+      for (let j = 0; j < N; j++) {
+        const a0 = (j / N) * TAU, a1 = ((j + 1) / N) * TAU;
+        const P0 = [cx + Math.sin(a0) * rr[j], y, cz + Math.cos(a0) * rr[j]], P1 = [cx + Math.sin(a1) * rr[(j + 1) % N], y, cz + Math.cos(a1) * rr[(j + 1) % N]];
+        for (const q of [[cx, y, cz], P0, P1]) { pos.push(q[0], q[1], q[2]); col.push(c.r, c.g, c.b); }
+      }
+    }
+    // Blumentupfer
+    for (let i = 0; i < Math.round(n * 0.6); i++) {
+      const cx = rnd.real(x0 + 1, x1 - 1), cz = rnd.real(z1 + 1, z0 - 1);
+      if (!free(cx, cz, 1)) continue;
+      const fc = [0xffffff, 0xff8ac8, 0xffe04a, 0xc08aff, 0xff6a4a][rnd.int(0, 4)];
+      for (let j = 0; j < 5; j++) {
+        const fx = cx + rnd.real(-0.45, 0.45), fz = cz + rnd.real(-0.45, 0.45), h = rnd.real(0.18, 0.34);
+        fl.cyl(0.015, 0.015, h, fx, top, fz, 0x6a9a3a, 3);
+        fl.sphere(0.07, fx, top + h + 0.02, fz, fc, { ws: 5, hs: 3 });
+      }
+    }
+    // runde Büsche
+    for (let i = 0; i < Math.round(n * 0.25); i++) {
+      const cx = rnd.real(x0 + 1.2, x1 - 1.2), cz = rnd.real(z1 + 1.2, z0 - 1.2);
+      if (!free(cx, cz, 1.4)) continue;
+      const s = rnd.real(0.7, 1.1);
+      b.sphere(0.6 * s, cx, top + 0.35 * s, cz, litTop(0x8a9a3a), { s: [1, 0.8, 1], ws: 8, hs: 6 });
+      b.sphere(0.45 * s, cx + 0.5 * s, top + 0.28 * s, cz + 0.2 * s, litTop(0x9aaa44), { s: [1, 0.8, 1], ws: 7, hs: 5 });
+      b.sphere(0.4 * s, cx - 0.4 * s, top + 0.25 * s, cz - 0.3 * s, litTop(0x7a8a34), { s: [1, 0.8, 1], ws: 7, hs: 5 });
+    }
+  }
+  if (pos.length) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.computeVertexNormals();
+    addStatic(level, g, { castShadow: false });
+  }
+  fl.flush(level, { castShadow: false });
+  b.flush(level);
+}
+
+/** Rötlicher Trampelpfad (flache Lehmstreifen mit runden Stößen) entlang pts [[x, z], …] auf Höhe top, Breite w. */
+export function dirtPath(level, pts, top, w = 1.6) {
+  if (!level.view) return;
+  const b = new Bld();
+  const y = top + 0.02;
+  for (let i = 0; i < pts.length; i++) {
+    const [x, z] = pts[i];
+    b.cyl(w * 0.55, w * 0.55, 0.02, x, y, z, 0xc88a52, 12);
+    if (i + 1 < pts.length) {
+      const [x2, z2] = pts[i + 1], L = Math.hypot(x2 - x, z2 - z);
+      b.box(w, 0.02, L, (x + x2) / 2, y, (z + z2) / 2, 0xc88a52, { yaw: Math.atan2(x2 - x, z2 - z), r: 0 });
+      for (let s = 0.6; s < L; s += 1.1) {
+        const t = s / L;
+        b.sphere(0.07, x + (x2 - x) * t + (Math.sin(s * 7.1) * w * 0.35), y + 0.02, z + (z2 - z) * t + Math.cos(s * 5.3) * 0.2, 0xa86a3a, { s: [1, 0.5, 1], ws: 5, hs: 3 });
+      }
+    }
+  }
+  b.flush(level, { castShadow: false });
+}

@@ -114,6 +114,89 @@ const ROUTES = {};
 }
 
 // =====================================================================================================================
+// 5-4 Kanonenflug über die Goldsavanne
+// =====================================================================================================================
+{
+  const S1 = 10, T2 = 10.5, T3 = 14.5, T4 = 19, Y3 = 9, LEDGE = 24, TOP = 39;
+  const CAVE_BOX = [395.4, -152.6];
+  const RIDE_LEFT = { x: -1, y: 0 };            // Stick nach links (Kamera blickt nach −Z): Abzweig in die Mulde
+  ROUTES['5-4'] = {
+    start: [0, S1, 3.6],
+    meta: { stars: 3, dataStars: 1, stamp: true, time: 400, theme: 'savanna', music: 'course_savanna', archetype: 'parcours' },
+    enemies: { wuschel: 8, riesenameise: 1, ameisensoldat_horn: 2 },
+    timeMax: 200,
+    main: [
+      { name: 'Röhrenkanone 1', to: [0, -2.6], jump: 30, jumpAt: 1.4, within: 0.3, run: false, ride: true, max: 1500 },
+      { name: 'Landeplatz → Rampe', to: [5, -51], run: false },
+      { to: [5, -58.6], run: false },
+      { to: [4, -59.6], within: 0.3, run: false },
+      { name: 'Glasröhre B', to: [4, -63], ride: true, run: false },
+      { to: [3, -78.4], within: 0.3, run: false },
+      { name: 'Glasröhre C', to: [3, -82], ride: true, run: false },
+      { name: 'Gipfel', to: [1, -98.7], within: 0.25, run: false },
+      { until: 'brueckeZneu', max: 2400 },
+      { name: 'Drehbrücke', to: [1, -110.8], within: 0.4 },
+      { name: 'Röhrenkanone 2', to: [1, -114], jump: 30, jumpAt: 1.4, within: 0.3, run: false, ride: true, max: 1500 },
+      { name: 'Dritter Berg', to: [2, -187] },
+      { name: 'Glasröhre D (Hohe Wand)', to: [2, -192], ride: true, run: false },
+      { name: 'Sims', to: [-5, -201.6], within: 0.4, run: false },
+      { name: 'Glasröhre E', to: [-9, -201.6], ride: true, run: false },
+      { name: 'Plateau', to: [0, -221.3], within: 0.25, run: false, autoJump: false },
+      { name: 'Drehbalken 1', bar: 'balken1', arms: 2, L: 4.9, hub: [0, -227], to: [0, -234.6] },
+      { to: [0, -241.3], within: 0.25, run: false, autoJump: false },
+      { name: 'Drehbalken 2', bar: 'balken2', arms: 3, L: 4.9, hub: [0, -247], to: [0, -254.8] },
+      { name: 'Zielmast', to: [0, -272], within: 0.3 },
+    ],
+    targets: [
+      { name: 'Stern 0: Glasröhre A, Abzweig in die Mulde (Wuschel kreist um den Stern), wieder hinauf', star: 0, from: [-4, T2, -58.6],
+        legs: [{ to: [-4, -59.6], within: 0.25, run: false }, { to: [-4, -63], ride: true, run: false, rideInput: RIDE_LEFT }, { star: 0 },
+          { to: [-11.8, -80.9], within: 0.4, run: false }, { to: [-5.6, -80.9], jump: 30, jumpAt: 3.4, within: 0.6 }, { expect: 'aufT3' }], shot: 'mulde' },
+      { name: 'Stern 0: von der Terrasse in die Mulde springen', star: 0, from: [-5.5, T3, -76], heroes: ['greta'],
+        legs: [{ to: [-11, -76], run: false }, { star: 0 }] },
+      { name: 'Stern 1: grün leuchtenden Hasen fangen', star: 1, from: [6, Y3, -150],
+        legs: [{ chaseKind: 'bunny', filter: 'sternhase', max: 3600 }, { wait: 30 }, { star: 1 }], shot: 'hase' },
+      { name: 'Stern 2: Sternring auf Insel B, acht Sternmünzen bis aufs Zielplateau', star: 2, from: [0, TOP, -232.8],
+        legs: [{ to: [0, -237.6], run: false }, { to: [-3.4, -233.4], within: 0.4 }, { to: [3.4, -233.4], within: 0.4 },
+          { to: [3.4, -240.4], within: 0.4 }, { to: [-3.4, -240.4], within: 0.4 }, { to: [0, -241.3], within: 0.25, run: false, autoJump: false },
+          { name: 'Drehbalken 2', bar: 'balken2', arms: 3, L: 4.9, hub: [0, -247], to: [0, -254.8] }, { chaseKind: 'sternmuenze', max: 1200 }, { wait: 20 }, { star: 2 }], shot: 'sternring' },
+      { name: 'Stempel: Ameisenloch → Warp-Box → Ameisenbau, Stempel vom Rücken der Riesenameise, zurück', stamp: true, from: [-10, Y3, -176],
+        legs: [{ to: [-14, -179.4], within: 0.3, run: false }, { name: 'ins Loch', to: [-14, -182], jump: 24, jumpAt: 2.2, within: 0.25, run: false, ride: true }, { expect: 'imBau' },
+          { chaseKind: 'stamp', max: 2400 }, { expect: 'stempel' }, { to: [CAVE_BOX[0], CAVE_BOX[1]], jump: 24, jumpAt: 1.6, within: 0.25, run: false, ride: true }, { expect: 'zurueck' },
+          { to: [-14, -177], run: false, within: 0.5 }], shot: 'bau' },
+    ],
+    extra: [
+      { name: 'Funkelstern am Eingang der Hohen Wand, unverwundbar über den Wuschel-Sims', from: [-3, Y3, -183.5], heroes: ['lotti'],
+        legs: [{ to: [-3, -186.5], within: 0.15, run: false, slow: 0.5 }, { hop: 30 }, { wait: 10 }, { chaseKind: 'powerup', filter: 'stern', max: 900 }, { expect: 'sternKraft' },
+          { to: [2, -187] }, { to: [2, -192], ride: true, run: false }, { expect: 'aufSims' }, { to: [-5, -201.6], within: 0.4, run: false }, { to: [-9, -201.6], ride: true, run: false }, { expect: 'aufPlateau' }],
+        expectAlive: true, invuln: false },
+      { name: 'Extraleben: unsichtbarer Block am Gipfel neben der Drehbrücke', from: [-3.6, T4, -96.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-3.6, -98.2], within: 0.15, run: false, slow: 0.5 }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', filter: 'oneup', max: 900 }] },
+      { name: 'Extraleben: kleinen Hasen fangen', from: [-14, Y3, -188], heroes: ['lotti'], expectLives: 1,
+        legs: [{ chaseKind: 'bunny', filter: 'hase1', max: 3600 }, { wait: 30 }, { chaseKind: 'powerup', filter: 'oneup', max: 900 }] },
+    ],
+    sweepPts: [[0, S1, 3.6], [0, 7, -45], [0, T2, -62], [-10, 12, -77], [2, T3, -80], [1, T4, -96], [1, T4, -114], [0, Y3, -147], [-14, Y3, -178], [14, Y3, -160],
+      [0, Y3, -180], [2, Y3, -188], [-2, LEDGE, -201], [-10, TOP, -210], [0, TOP, -230], [0, TOP, -240], [0, TOP, -260], [0, TOP, -272], [404, 0, -156]],
+    shots: [
+      ['start', [0, S1, 3.6]],
+      ['flug', [0, S1, 3.6], 0, 'cannon1'],
+      ['landeplatz', [0, 7, -45]],
+      ['roehren', [0, T2, -58.6]],
+      ['terrasse', [0, T3, -77]],
+      ['gipfel', [1, T4, -97]],
+      ['checkpoint', [0, Y3, -148]],
+      ['wasserloch', [10, Y3, -168]],
+      ['ameisenloch', [-11, Y3, -177]],
+      ['hoehle', [398, 0, -154]],
+      ['wand', [2, Y3, -184]],
+      ['sims', [-1, LEDGE, -200.6]],
+      ['plateau', [-6, TOP, -213]],
+      ['balken', [0, TOP, -220.6]],
+      ['ziel', [0, TOP, -264]],
+    ],
+  };
+}
+
+// =====================================================================================================================
 // 5-A Hörnerherde am Lila Strand (Arena)
 // =====================================================================================================================
 {
@@ -189,6 +272,15 @@ function install() {
     vier: () => (named('vierer')?.trips ?? 0) > 0,
     stufen: () => !!named('stempelweg')?.want,
     keineStufen: () => !named('stempelweg')?.want,
+    // 5-4
+    brueckeZneu: (() => { let was = null; return () => { const b = named('drehbruecke'); const z = Math.abs(Math.sin(b.angle)) > 0.985; const ok = was === true && !b.turning && z; was = b.turning; return ok; }; })(),
+    stempel: () => !!L.runtime.stamp,
+    imBau: () => P().pos.x > 300,
+    zurueck: () => P().pos.x < 100,
+    aufT3: () => P().pos.y > 14,
+    sternKraft: () => P().power === 'stern',
+    aufSims: () => P().pos.y > 23.5 && P().pos.y < 30,
+    aufPlateau: () => P().pos.y > 38.5,
   };
   const W = {
     place(pos, o = {}) {
@@ -249,10 +341,11 @@ function install() {
         if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead) {
           let n = 0;
           while (P().mode === 'script' && n++ < 2400 && !P().dead && L.runtime.status === 'play') { if (hold) for (const f of L.players) f.invuln = Math.max(f.invuln, 5); c.setInput(Lg_?.rideInput ?? {}); c.step(1); steps++; }
+          rode = true;
           log.push(['fahrt', n, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
         }
       };
-      let Lg_ = null;
+      let Lg_ = null, rode = false;
       const goTo = (tx, tz, within = 0.25, max = 900) => {
         let i = 0;
         for (; i < max; i++) {
@@ -304,7 +397,7 @@ function install() {
         }
         if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]); continue; }
         if (Lg.chaseKind) {
-          const filter = Lg.filter ? (e) => e.spec?.power === Lg.filter || e.power === Lg.filter || e.name === Lg.filter : null;
+          const filter = Lg.filter ? (e) => e.spec?.power === Lg.filter || e.power === Lg.filter || e.name === Lg.filter || e.spec?.id === Lg.filter : null;
           const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter });
           log.push(['jagd', Lg.chaseKind, n, +P().pos.x.toFixed(1), +P().pos.y.toFixed(1), +P().pos.z.toFixed(1), P().power]);
           continue;
@@ -344,11 +437,41 @@ function install() {
           continue;
         }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)
+        if (Lg.bar) {
+          // Drehbalken (5-4): warten, bis ein Arm zur Figur zeigt, zur Nabe, warten, bis ein Arm zum Ziel zeigt, entlang des
+          // Arms zur Spitze, Absprung zum Ziel
+          const bar = named(Lg.bar), [hx, hz] = Lg.hub, L0 = Lg.L, n = Lg.arms;
+          const df = (a, w) => Math.atan2(Math.sin(a - w), Math.cos(a - w));
+          const best = (w) => { let b = null; for (let i = 0; i < n; i++) { const a = bar.angle + (i / n) * Math.PI * 2; if (b === null || Math.abs(df(a, w)) < Math.abs(df(b, w))) b = a; } return b; };
+          const back = Math.atan2(-(P().pos.z - hz), P().pos.x - hx);   // Richtung Nabe → Figur (Winkel wie die Arme)
+          const toA = Math.atan2(-(Lg.to[1] - hz), Lg.to[0] - hx);
+          const out = { w1: 0, w2: 0, ride: 0, jump: 0 };
+          for (; out.w1 < 2400 && (P().mode !== 'ground' || Math.abs(df(best(back), back)) > (Lg.tol ?? 0.1)); out.w1++) tick({});
+          for (let k = 0; k < 400; k++) { const q = P(); const d = Math.hypot(hx - q.pos.x, hz - q.pos.z); if (d < 0.6) break; tick({ ...this.stick(hx - q.pos.x, hz - q.pos.z, Math.min(1, 0.4 + d * 0.3)), run: false }); out.ride++; }
+          for (; out.w2 < 2400 && Math.abs(df(best(toA), toA)) > (Lg.tol2 ?? 0.12); out.w2++) { const q = P(); tick({ ...this.stick(hx - q.pos.x, hz - q.pos.z, 0.25), run: false }); }
+          let jumped = false, air = false;
+          for (let k = 0; k < 600; k++) {
+            const q = P();
+            if (q.dead || L.runtime.status !== 'play') break;
+            const d = Math.hypot(q.pos.x - hx, q.pos.z - hz);
+            if (!jumped && d > L0 - 1.0) jumped = true;
+            if (jumped) {
+              tick({ ...(q.mode === 'air' ? this.airSteer(Lg.to[0], Lg.to[1], 0, 0, 2.6, 8) : this.stick(Lg.to[0] - q.pos.x, Lg.to[1] - q.pos.z, 1)), jump: out.jump++ < 26, run: false });
+              if (P().mode === 'air') air = true; else if (air) break;
+            } else {
+              const a = best(toA);
+              tick({ ...this.stick(hx + Math.cos(a) * L0 - q.pos.x, hz - Math.sin(a) * L0 - q.pos.z, 1), run: false });
+            }
+          }
+          log.push([Lg.name ?? `balken ${Lg.bar}`, JSON.stringify(out), +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), P().mode]);
+          continue;
+        }
         const max = Lg.max ?? 900;
         const within = Lg.within ?? 0.6;
         const holdJ = Lg.jump === true ? 40 : (Lg.jump ?? 0);
         const tx = Lg.to[0] ?? P().pos.x, tz = Lg.to[1];
         let i = 0, airborne = false, landed = false;
+        rode = false;
         let best = Infinity, still = 0, auto = 0, j0 = Lg.jumpAt ? null : 0;
         for (; i < max; i++) {
           const q = P();
@@ -359,6 +482,7 @@ function install() {
           if (still > 45 && auto <= 0 && Lg.autoJump !== false) { auto = 26; still = 0; autoJumps++; }
           const done = dist < within && (!holdJ || Lg.land === false || (landed && (q.mode === 'ground' || q.mode === 'swim')));
           if (done && i > 0) break;
+          if (Lg.ride && rode) break;
           let mag = Lg.slow ?? 1;
           let st;
           if (q.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, 2.6, 11);
@@ -549,7 +673,7 @@ async function parcours(id) {
     for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
     const m = R.meta;
     check(`${id}: Welt 5, ${m.archetype}, ${m.stars} Sterne${m.stamp ? ' + Stempel' : ''}, ${m.time} s, Thema ${m.theme}, Musik ${m.music}`,
-      meta.world === 5 && meta.archetype === m.archetype && meta.stars === m.stars && (kinds.stamp ?? 0) === (m.stamp ? 1 : 0) && meta.timeLimit === m.time && meta.theme === m.theme && meta.music === m.music);
+      meta.world === 5 && meta.archetype === m.archetype && meta.stars === (m.dataStars ?? m.stars) && (kinds.stamp ?? 0) === (m.stamp ? 1 : 0) && meta.timeLimit === m.time && meta.theme === m.theme && meta.music === m.music);
     for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
     const s = await sc(() => { const c = window.__course; c.step(240); return c.state(); });
     check(`${id}: 2 s ohne Fehler`, errors.length === 0 && !s.player.dead);
@@ -612,7 +736,7 @@ async function parcours(id) {
         continue;
       }
       await W('place', t.from, { hero, settle: 10 });
-      const res = await W('drive', t.legs, {});
+      const res = await W('drive', t.legs, { invuln: t.invuln });
       const lives1 = await W('lives');
       let ok = true;
       if (t.expectCoins !== undefined) ok = ok && res.rt.coins - coins0 >= t.expectCoins;
@@ -647,7 +771,10 @@ async function parcours(id) {
   await load(id, true);
   for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2] of R.shots) {
     await W('place', pos, { settle: 10, yaw });
-    if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
+    if (input === 'cannon1') {
+      // Flugbild: über der Öffnung der ersten Röhrenkanone fallen lassen, bis zur Mitte des Flugs
+      await sc(() => { const c = window.__course, k = c.level.named.get('kanone1'); c.player.invuln = 99; c.teleport(0, 13.8, -2.6); for (let i = 0; i < 600 && k.state !== 'fly'; i++) c.step(1); c.step(70); });
+    } else if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
     await shot(`${id}_${name}`);
   }
 }
