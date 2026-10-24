@@ -6,6 +6,14 @@
 //   afterStep    → Checkpoints beim Vorbeifahren (Neustart im Fluss), Energie-Ebene der Musik beim Reiten
 //   render       → Blasen vor dem Auftauchen der Wühler (Vorwarnung), Wühler weit weg ausblenden (Zeichenaufrufe)
 // Level-Daten: LEVEL.ride (siehe RideController), Fluss-Bausteine blocks/types/river.js.
+//
+// Ritt-Abschnitt im Parcours (Präzisierung Motor und Bausteine Welt 5): archetype 'parcours_ride' (bzw. 'ride' mit
+// LEVEL.ride.section = true). Zu Fuß gilt die Standard-Kamera (Kameraschiene LEVEL.camera, CameraRig mit Kollision) und
+// die normale Darstellung der Heldin; beim Aufsteigen (Station `raft`/`dock`) übernimmt die Floß-Kamera ohne Sprung,
+// nach dem Absteigen (`beach`) gleitet sie zurück (footCamYaw, Standard 0) und übergibt wieder. Pflaume schwimmt selbst
+// (ride.swim, Standard true) und bleibt am Ende (ride.after 'stay' | 'follow').
+//   ride: { section: true, raft: [x, y, z], raftYaw, dock: { min: [x, z], max: [x, z] }, beach: { min, max, land, raft? },
+//           swim: true, after: 'stay', footCamYaw: 0 }
 
 import * as THREE from 'three';
 import { RideController } from '../RideController.js';
@@ -16,14 +24,32 @@ import { music } from '../../../audio/index.js';
 const BUBBLES = 48;
 const MOLE_FAR = 27;      // m: weiter entfernte Wühler werden nicht gezeichnet
 
+const TAU = Math.PI * 2;
+const wrap = (a) => { a %= TAU; if (a > Math.PI) a -= TAU; else if (a < -Math.PI) a += TAU; return a; };
+
 class RideArchetype {
-  constructor(scene) {
+  constructor(scene, opts = {}) {
     this.scene = scene;
     this.drums = null;
+    const cfg = scene.levelData?.ride ?? {};
+    this.section = !!(opts.section || cfg.section);
+    if (this.section && scene.levelData && !cfg.section) scene.levelData.ride = { ...cfg, section: true };
+    this.useRig = this.section;   // Ritt-Abschnitt: zu Fuß führt die Standard-Kamera
   }
 
   createPlayer(level, opts) { return new RideController(level, opts); }
-  createRig(view, player) { return new RideRig(view, player); }
+  createRig(view, player) {
+    const cfg = this.scene.levelData?.ride ?? {};
+    return new RideRig(view, player, { section: this.section, swim: cfg.swim, after: cfg.after });
+  }
+
+  /** Ritt-Abschnitt: führt gerade die Floß-Kamera? (aus der Simulation – deterministisch für die Steuerungs-Gier) */
+  rideCam(p) {
+    if (!this.section) return true;
+    if (p.dead && !p.riding) return false;
+    if (p.riding || p.script?.type === 'mount' || p.script?.type === 'dismount') return true;
+    return Math.abs(wrap((p.camYaw ?? 0) - (p.cfg?.footCamYaw ?? 0))) > 0.02;
+  }
 
   setup() {
     const sc = this.scene;
@@ -43,7 +69,7 @@ class RideArchetype {
     });
     this.buildBubbles();
     this.setDrums(!!this.player.riding);
-    this.level.controlYaw = this.cam.controlYaw(this.player);
+    if (this.rideCam(this.player)) this.level.controlYaw = this.cam.controlYaw(this.player);
   }
 
   setDrums(on) {
@@ -53,7 +79,8 @@ class RideArchetype {
   }
 
   beforeStep() {
-    this.level.controlYaw = this.cam.controlYaw(this.player);
+    // Ritt-Abschnitt zu Fuß: Steuerungs-Gier der Standard-Kamera (CourseScene hat sie schon gesetzt)
+    if (this.rideCam(this.player)) this.level.controlYaw = this.cam.controlYaw(this.player);
   }
 
   afterStep() {
@@ -136,13 +163,25 @@ class RideArchetype {
   }
 
   camera(dt, player) {
-    this.cam.update(dt, player);
-    return true;
+    if (!this.section) { this.cam.update(dt, player); return true; }
+    // Ritt-Abschnitt: Übergaben zwischen Standard- und Floß-Kamera ohne Sprung
+    if (this.rideCam(player)) {
+      if (this.useRig) { this.cam.adopt(this.view.rig, player); this.useRig = false; }
+      this.cam.update(dt, player);
+      return true;
+    }
+    if (!this.useRig) {
+      // Übergabe an die Kameraschiene nur, wenn die Ritt-Kamera noch bei der Figur ist (nach Teleport/snapCamera ohne
+      // gezeichnete Bilder behält die Schiene ihr eigenes Ziel)
+      if (this.cam.target.distanceTo(player.pos) < 14) this.cam.handOver(this.view.rig);
+      this.useRig = true;
+    }
+    return false;
   }
 
   info() {
     const p = this.player;
-    return { riding: !!p.riding, moored: !!p.raftMoored, dismounted: !!p.dismounted, plunging: !!p.plunging, camYaw: +(p.camYaw ?? 0).toFixed(3), cam: this.cam?.info() };
+    return { riding: !!p.riding, moored: !!p.raftMoored, dismounted: !!p.dismounted, plunging: !!p.plunging, camYaw: +(p.camYaw ?? 0).toFixed(3), cam: this.cam?.info(), section: this.section, rideCam: this.rideCam(p), raft: p.raftPos ? [+p.raftPos.x.toFixed(2), +p.raftPos.y.toFixed(2), +p.raftPos.z.toFixed(2)] : null };
   }
 
   dispose() {
@@ -151,4 +190,7 @@ class RideArchetype {
   }
 }
 
-export const ARCHETYPES = { ride: (scene) => new RideArchetype(scene) };
+export const ARCHETYPES = {
+  ride: (scene) => new RideArchetype(scene),
+  parcours_ride: (scene) => new RideArchetype(scene, { section: true }),   // Welt 5: Parcours mit Ritt-Abschnitt
+};

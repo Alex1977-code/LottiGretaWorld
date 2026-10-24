@@ -35,6 +35,13 @@
 //   Entitäten mit onWaterLevel(form, top, dy) erfahren jeden Schritt, in dem sich ein Wasserspiegel bewegt
 //   Angriffe mit attackInfo.around (Schwanzhieb) treffen rundum statt vor der Figur; spawn('powerup', { power:
 //   'schlittschuh' }) erzeugt die Entität schlittschuh; Berührung von oben auf dem Schlittschuh: player/skating.js.
+//
+// Ergänzungen (Präzisierung Motor und Bausteine Welt 5):
+//   level.onJump(fn(fig, kind)) → Abmelden   jeder Sprung einer Figur (auch Klone): Boden-, Wand-, Ranken-, Zaun-,
+//                                             Schwimm-, Floß- und Trapez-Absprung (kind = Sprungart); Rot-Blau-Flipper
+//   level.notifyJump(fig, kind)               von der Figur gerufen; level.jumps = Zähler aller Sprünge
+//   level.signal(name, data)                  benanntes Ereignis (Aktion { signal: name }, Suchscheinwerfer 'alarm' …)
+//   level.onSignal(name, fn(data, name)) → Abmelden   ('*' = alle Signale); level.signals[name] = Zähler
 
 import { CollisionWorld } from '../physics/CollisionWorld.js';
 import { getEntityKind, hasEntityKind } from '../entities/index.js';
@@ -77,6 +84,39 @@ export class Level {
     this.fences = [];
     this.waterMoves = new Map();   // Form-Id → { shape, target, speed } (setWaterLevel)
     this._floaters = 0;
+    // Welt 5: Sprung-Ereignis und benannte Signale
+    this.jumpFns = [];
+    this.jumps = 0;
+    this.signalFns = new Map();
+    this.signals = {};
+  }
+
+  // ------------------------------------------------------------------ Welt 5: Sprünge und Signale
+
+  /** Je Sprung einer Figur fn(fig, kind) (Rot-Blau-Flipper u. ä.) → Abmelde-Funktion. */
+  onJump(fn) {
+    this.jumpFns.push(fn);
+    return () => { const i = this.jumpFns.indexOf(fn); if (i >= 0) this.jumpFns.splice(i, 1); };
+  }
+
+  /** Von der Figur bei jedem Absprung gerufen. */
+  notifyJump(fig, kind) {
+    this.jumps++;
+    for (let i = 0; i < this.jumpFns.length; i++) this.jumpFns[i](fig, kind);
+  }
+
+  /** Benanntes Signal auslösen (Aktion { signal }); Empfänger über onSignal(name, fn). */
+  signal(name, data = null) {
+    if (!name) return;
+    this.signals[name] = (this.signals[name] ?? 0) + 1;
+    for (const key of [name, '*']) for (const fn of [...(this.signalFns.get(key) ?? [])]) fn(data, name);
+  }
+
+  onSignal(name, fn) {
+    if (!this.signalFns.has(name)) this.signalFns.set(name, []);
+    const list = this.signalFns.get(name);
+    list.push(fn);
+    return () => { const i = list.indexOf(fn); if (i >= 0) list.splice(i, 1); };
   }
 
   get effects() { return this.view?.effects ?? null; }
@@ -413,5 +453,7 @@ export class Level {
     for (const e of this.entities) e.dispose();
     this.entities.length = 0;
     this.steppers.length = 0;
+    this.jumpFns.length = 0;
+    this.signalFns.clear();
   }
 }

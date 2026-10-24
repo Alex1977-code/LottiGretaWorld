@@ -84,5 +84,29 @@ export class RideCamera {
     this.last.copy(p.pos);
   }
 
+  /**
+   * Ritt-Abschnitt (Präzisierung Motor und Bausteine Welt 5): Lage der Standard-Kamera (CameraRig) übernehmen, bevor die
+   * Floß-Kamera wieder führt – kein Sprung beim Aufsteigen.
+   */
+  adopt(rig, p) {
+    const r = rig.railAt(p.pos.x, p.pos.z, this.r);
+    this.yaw = (r.yaw + rig.userYaw) * DEG;
+    this.pitch = r.pitch;
+    this.dist = rig.distNow;
+    this.anchorY = rig.anchorY;
+    this.target.copy(rig.target);
+    this.lead.set(0, 0, 0);
+    this.last.copy(p.pos);
+    this.inited = true;
+  }
+
+  /** Umgekehrt: CameraRig auf die Lage der Floß-Kamera setzen (Absteigen → Standard-Kamera ohne Sprung). */
+  handOver(rig) {
+    rig.target.copy(this.target);
+    rig.anchorY = this.anchorY;
+    rig.distNow = this.dist;
+    rig.lead.set(0, 0, 0);
+  }
+
   info() { return { yaw: +(this.yaw / DEG).toFixed(1), pitch: +this.pitch.toFixed(1), dist: +this.dist.toFixed(2) }; }
 }

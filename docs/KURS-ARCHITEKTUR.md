@@ -1799,6 +1799,8 @@ Kennzahlen mit 1 und 5 Figuren. Bilder `tests/out/w2e_*.png`.
 
 **Neue Themen** (`music.play(name)`): Welt 2 `course_desert`, `course_space`, `course_shadow`, `course_hills`, `course_cherry`, `course_tank`, `course_house` · Welt 3 `course_snow`, `course_ghost`, `course_plaza`, `course_water`, `course_race`, `course_autumn`, `course_train`, `course_skyway` · Welt 4 `course_canyon`, `course_poison`, `course_beep`, `course_bounce`, `course_ruins`, `course_lavacastle` · Karten `course_world2_map`, `course_world3_map`, `course_world4_map`. Dateien: `src/audio/themes_world2.js` … `themes_world4.js`, Bausteine in `themeParts.js`.
 
+**Welt 5** (`src/audio/themes_world5.js`, nach der Musik-Richtlinie, Namen aus der Welt-5-Liste): `course_beach` (D-Dur, 132 BPM, Steel-Drum/Marimba, Energie-Ebene beim Reiten), `course_trapeze` (F-Dur, 138, Dreier-Gefühl 3+3+2 über Four-on-the-floor), `course_bluelava` (g-Moll, 150, 16 Takte), `course_savanna` (A-Dur, 130, Djembe/Kalimba/Penny-Whistle), `course_mine` (d-Moll, 136, Riff-Bass), `course_cake` (E-Dur, 144, Glockenspiel), `course_sneak` (b-Moll, 130, gedämpft), `course_goldtrain` (H-Dur, 156), `course_temple` (gis-Moll, 146, Gong/Taiko), `course_world5_map` (C-Dur, 128, 16 Takte). Alle 24 Takte (Lava 16, Karte 16); `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–5.
+
 **Neue Effekte** (`sfx(name)`): `clone`, `clone_lost`, `helm_on`, `helm_off`, `cannon`, `propeller`, `light`, `quicksand`, `sand_crumble`, `peck`, `bullet`, `boss_hit`, `boss_spin`, `house_tick`, `room_clear`, `ice_slide`, `snowball`, `ghost`, `splash_big`, `train_whistle`, `beep`, `beep_switch`.
 
 **Taktuhr** (für Piep-Blöcke u. ä.):
@@ -3550,3 +3552,179 @@ Welt 5 hat 31 Sterne. „Kapitän“ = Krümel, „Münz-Dieb“ = Münzmarder, 
 bzw. Greta, „Reittier“ = Pflaume. Neu: Schlüsselmünzen, Trapez, Röhrenkanone, Drehbrücke, Rot-Blau-Flipper,
 Schiebekugel (auf P-Feld bugsieren), Suchscheinwerfer, Kippquader, Donut-Block; Gegner Sandtaucher, Zündkopf,
 Feuerring, Hackbeil-Pilz, Funkenling, Glutball; Boss **Kippquader-König** (nur Sprung auf den Rücken trifft).
+
+## Präzisierung (Motor und Bausteine Welt 5)
+
+Ergänzung des Motor-/Bausteine-Agenten Welt 5 (Stand: Strandwerkstatt `0-17`). Nichts oben Festgelegtes wird geändert;
+alle Ergänzungen sind additiv. Alle Welt-5-Mechaniken sind parametrierbare Module, Level-Bauer setzen sie nur in Daten
+ein. Jede Datei dokumentiert ihre Parameter vollständig im Kopfkommentar; hier die Felder mit Beispielen. Aktionen im
+bekannten Format (Präzisierung Sonder-Bausteine) plus **`{ signal: name }`** (s. u.). Alle Bausteine sind über eine
+Hülle auch als `kind` in `items`/`enemies` erlaubt und die beiden Entitäts-Gimmicks auch als `type` in `segments`.
+
+### Präzisierung (Motor und Bausteine Welt 5): Dateien
+
+```
+src/course/player/swing.js              Trapez-Schwingen der Figur (tryGrabTrapeze, trapezeCtl, pendulumStep, SWING)
+src/course/player/Player.js             + level.notifyJump bei jedem Absprung, Trapez greifen in der Luft,
+                                        ride(ctl, { solo }) (solo: Klone folgen nicht), camTrack
+src/course/player/Squad.js              Klone reisen nur bei ride ohne solo mit (Röhrenkanone ja, Trapez/Kippquader nein)
+src/course/player/fencing.js            + notifyJump('fence')
+src/course/player/HeroRig.js            + Zustände 'trapeze' (Neigung um swingTilt) und 'cannon' (proxy.course)
+src/course/level/Level.js               + onJump/notifyJump/jumps, signal/onSignal/signals
+src/course/entities/gimmick.js          + Aktion { signal: name | [names] }
+src/course/view/CameraRig.js            + player.camTrack (schnelles Nachführen, Röhrenkanonen-Flug)
+src/course/archetypes/kinds/ride.js     + Archetyp 'parcours_ride' (Ritt-Abschnitt), Kamera-Übergabe
+src/course/archetypes/RideController.js + Abschnitt-Modus (Station, Strand), level.rideObstacles (Brücken)
+src/course/archetypes/RideCamera.js     + adopt(rig, p) / handOver(rig)
+src/course/archetypes/RideRig.js        + opts { section, swim, after } (zu Fuß normale Heldin, Pflaume schwimmt)
+src/course/blocks/w5kit.js              landingHint, keyHud, modelOr, rot90
+src/course/blocks/types/w5_circus.js    trapez, pendelplattform
+src/course/blocks/types/w5_savanna.js   roehrenkanone, drehbruecke
+src/course/blocks/types/w5_flipper.js   flipper (Feld-Raster, Wechselplattformen; System level.flipper)
+src/course/blocks/types/w5_temple.js    kippquader
+src/course/blocks/types/w5_donut.js     donutblock
+src/course/blocks/types/w5_sneak.js     suchscheinwerfer
+src/course/blocks/types/w5_river.js     flussbruecke (Hubbrücke über dem Ritt-Fluss)
+src/course/blocks/types/w5_misc.js      schluesselmuenze, schiebekugel, schluesselmuenzen als segments-type
+src/course/blocks/types/lava.js         + color: 'blau' (bzw. Thema lavaColor)
+src/course/blocks/types/deco_w5.js      Kulisse Welt 5 (verschmolzen; shadow: false für ferne Kulisse)
+src/course/entities/kinds/w5_gimmicks.js  schluesselmuenze, schiebekugel + kind-Hüllen der Welt-5-Bausteine
+src/course/view/theme_beach|bluelava|savanna|mine|cake|sneak|temple.js, backdrop_w5.js   Themen + Kulissen
+src/course/levels/w0/0-17.js            Strandwerkstatt (eine Station je Mechanik, marks für den Test)
+tests/course_w5_blocks.mjs              Port 4390, Bilder tests/out/w5b_*.png (je Thema w5b_thema_*.png)
+```
+
+Additiv geändert: `view/themes.js` (7 Registrierzeilen, `??=`). `src/three/*`, Modelle, Audio und Karte bleiben
+unverändert.
+
+### Präzisierung (Motor und Bausteine Welt 5): Sprung-Ereignis, Signale, Kamera
+
+- **Sprung-Ereignis:** `level.onJump(fn(fig, kind)) → abmelden`; jede Figur (auch Klone) meldet jeden Absprung über
+  `level.notifyJump(fig, kind)`; `level.jumps` zählt. `kind`: `'jump'` (Boden, auch Sand/Schlittschuh), `'walljump'`,
+  `'stalk'` (Ranke), `'fence'` (Kettenzaun), `'swim'` (aus dem Wasser), `'raft'` (Floß-Hüpfer), `'trapeze'`. Der
+  Rot-Blau-Flipper hört darauf (mehrere Figuren im selben Schritt → ein Wechsel).
+- **Signale:** `level.signal(name, data)` / `level.onSignal(name, fn(data, name)) → abmelden` (`'*'` = alle),
+  `level.signals[name]` = Zähler. Aktion `{ signal: 'alarm' }` (auch Liste) ruft `level.signal(name, { pos, source })`.
+  Der Suchscheinwerfer meldet „entdeckt“ standardmäßig als Signal **`'alarm'`** – die Suchkopf-Kanonen des Gegner-Agenten
+  hängen sich mit `level.onSignal('alarm', …)` oder `level.named.get(id).onDetect(fn)` daran.
+- **Kamera-Nachführung:** `player.camTrack` (1/s, 0 = aus) beschleunigt die Kameraschiene (Ziel und Standhöhe dämpfen
+  mit `max(Standard, camTrack)`); die Röhrenkanone setzt im Flug 16 und am Ende 0 (Neustart setzt 0).
+
+### Präzisierung (Motor und Bausteine Welt 5): Avatar-Zustände (HeroRig → `proxy.course`)
+
+Neue Werte von `proxy.course.state` für den Figuren-Agenten (Posen in `src/three/*`; bis dahin Rückfall-Pose):
+
+| state | Bedeutung | Zusatzfelder |
+| --- | --- | --- |
+| `'trapeze'` | hängt am Trapez: Hände an der Stange über dem Kopf, Körper hängt am Seil. Die Hülle ist schon um die Querachse der Blickrichtung um `player.swingTilt` geneigt (Drehpunkt: Fußpunkt der Hülle, den die Simulation entlang des Seils unter die Stange legt – die Hände liegen dann an der Stange) | `swing` (Seilwinkel rad, + = nach vorn), `swingVel` (rad/s), `phase` (Anteil der Ausschlagsgrenze 0..1) |
+| `'cannon'` | Flug aus der Röhrenkanone (gestreckt wie ein Geschoss, Arme vorn). In der Röhre ist die Figur unsichtbar (`player.hidden`, vorher kurz `'pipe'`) | `phase` = Flugfortschritt 0..1 |
+
+Weitere benutzte Zustände sind die bekannten (`'pipe'`, `'ride'`, Mitfahrt auf dem Kippquader = `'fall'`).
+
+### Präzisierung (Motor und Bausteine Welt 5): Trapez (Figur)
+
+Ein Trapez ist ein Pendel (Aufhängung `pos`, Seil `length`, Schwingebene `dir`). Die Figur greift die Stange im Sprung
+(Hände ≤ 0,8 m an der Stange; nach dem Loslassen 0,15 s Pause, dasselbe Trapez erst nach 0,6 s) und
+hängt im Skript-Modus (`player.ride` mit `solo: true` – Klone greifen selbst) darunter. Stick entlang der Schwingebene
+(vor oder zurück) schaukelt auf (Ziel-Ausschlag +26 °/s bis `maxAmp` 66°; mit Figur mindestens `riderAmp` 40°), Sprung
+springt ab (Bahngeschwindigkeit der Hände + 5 m/s nach oben + 2 m/s in Schwungrichtung), Ducken lässt fallen.
+**Zielhilfe:** liegt in Schwungrichtung ein freies Trapez 3–6,5 m weiter (seitlich ≤ 1,2 m), wird die waagerechte
+Geschwindigkeit im Band 0,4–1,8 × Schwung so gewählt, dass die Hände dessen (vorausgerechnete) Stange treffen –
+Trapeze für Ketten also **4–5 m auseinander, gleiche Höhe, gleiche Phase**. `SWING` in `player/swing.js` hält alle Werte.
+
+### Präzisierung (Motor und Bausteine Welt 5): Ritt-Abschnitt im Parcours
+
+`archetype: 'parcours_ride'` (oder `'ride'` mit `LEVEL.ride.section: true`): Parcours-Level mit einem Flussabschnitt
+(Fluss-Bausteine `river` wie 1-4, Präzisierung Ritt/Diorama). Zu Fuß gelten Kameraschiene (`LEVEL.camera`, CameraRig mit
+Kollision) und die normale Darstellung der Heldin; an der Station (`raft`, optional `dock`-Zone) steigt sie auf Pflaume,
+die Floß-Kamera übernimmt ohne Sprung; am Ende (`beach`-Zone) steigt sie ab (`land`), die Kamera gleitet auf
+`footCamYaw` zurück und übergibt. Pflaume **schwimmt** (`swim: true`: kein Blatt-Floß, Paddel-Pose, Körper 0,22 m
+eingetaucht) und bleibt am Ende im Wasser (`after: 'stay'`; `'follow'` = hoppelt hinterher wie 1-4). Stirbt die
+Figur im Fluss, beginnt sie am letzten Checkpoint; an Land außerhalb der Zonen wartet Pflaume an der Station, bis der
+Ritt geschafft ist.
+
+```
+ride: { section: true, raft: [x, y, z] (Station, Pflaume wartet im Wasser), raftYaw, dock: { min: [x, z], max: [x, z] },
+        beach: { min: [x, z], max: [x, z], land: [x, y, z], raft?: [x, y, z] }, swim: true, after: 'stay', footCamYaw: 0 }
+```
+
+Hindernisse für das Floß: Bausteine tragen sich in `level.rideObstacles` ein (`{ box() → { x0, x1, y0, y1, z0, z1 },
+hits, id }`); `RideController.collideObstacles()` lässt das Floß davor abprallen (warten). Die `flussbruecke` ist so ein
+Hindernis (unten versperrt, oben Durchfahrt).
+
+### Präzisierung (Motor und Bausteine Welt 5): Liste mit Daten-Beispielen
+
+| Typ / Art | Kern | Wichtige Felder (Standard) | Beispiel |
+| --- | --- | --- | --- |
+| `schluesselmuenze` (kind; auch type) | goldene Münze mit Schlüssel, HUD „Schlüssel n/N“, alle einer Gruppe → Aktion | `pos`, `group` 'schluessel', `onAll` (Aktion, an irgendeiner Münze der Gruppe), `of` (Standard: Zahl im Level), `id`, `hidden`; `level.keys[group] = { n, of, done }`; HUD `keyHud(level).state()` → `{ group, n, of, done, visible, text }` | `{ kind: 'schluesselmuenze', pos: [-6,1.2,-9], group: 'tor', onAll: { reveal: 'warp1' } }` |
+| `schluesselmuenzen` (type) | mehrere auf einmal | `group`, `onAll`, `of`, `coins: [[x,y,z]…]` | `{ type: 'schluesselmuenzen', group: 'tor', onAll: { reveal: 'warp1' }, coins: [[0,1.2,-9],[4,1.2,-9]] }` |
+| `trapez` | Trapez zum Schwingen (s. o.) | `pos` (Aufhängung), `length` 3, `dir` [0,−1] \| `yaw`, `swing` 30 (° leer), `phase` 0..1, `width` 1.2, `riderAmp` 40, `maxAmp` 66, `frame` true, `color` 'rot'\|'blau'\|'gold', `hidden`, `id` → `{ theta, omega, rider, grabs, releases, aimed, bar(), reveal(), hide(), info() }`; `level.trapezes` | `{ type: 'trapez', id: 't1', pos: [0,7.2,-84.5], length: 3, swing: 30 }` |
+| `pendelplattform` | Plattform am Pendel, bleibt waagerecht, trägt (mover) | `pos` (Aufhängung), `length` 4 (bis Oberseite), `size` [3,2.2], `thick` 0.4, `dir` [1,0] \| `yaw`, `amp` 35, `period` 2π√(L/9,81), `phase`, `idle`, `style` 'zirkus'\|'holz'\|'stein', `id` → `{ theta, top, pos, start(), stop(), info() }` | `{ type: 'pendelplattform', id: 'pendel', pos: [0,7,-108], length: 6, size: [3,2.2], dir: [0,-1] }` |
+| `roehrenkanone` | hineinspringen/ducken → laden → hoher Bogen genau auf `to` (≈ 40 m), Kamera folgt | `pos` (Fuß), `height` 2.2, `radius` 1, `to`, `arc` max(6, 0,3·Abstand), `gravity` 30, `charge` 0.55, `enter` 'both'\|'land'\|'crouch', `color` 'gruen'\|'gold'\|'rot', `onFire`, `hidden`, `id` → `{ shots, state ('idle'\|'load'\|'fly'), flightTime, from, to, fire(player), reveal(), hide(), info() }` | `{ type: 'roehrenkanone', id: 'kanone', pos: [0,1,-122.5], to: [0,1,-162.5] }` |
+| `drehbruecke` | Brücke dreht um senkrechte Achse (trägt mit, mover.dyaw) | `pos` (Mitte Oberseite), `length` 10, `width` 2.4, `thick` 0.4, `yaw` 0 (0 = entlang X), `mode` 'step'\|'spin'\|'signal', `step` 90, `wait` 2.5, `turn` 1.5, `warnT` 0.6, `speed` 0.5, `dir` 1, `phase`, `post`, `postDown` 8, `style` 'holz'\|'stein', `id` → `{ angle, turns, turning, warn, start(), stop(), toggle(), info() }` | `{ type: 'drehbruecke', id: 'dreh', pos: [0,1,-170.5], length: 11, yaw: Math.PI / 2, wait: 3 }` |
+| `flipper` | Rot-Blau-Flipper: aktive Farbe fest, andere durchlässig; jeder Sprung (auch Klon) wechselt | Raster: `pos` (Mitte Oberseite), `grid` [nx,nz], `cell` 2, `gap` 0.12, `thick` 0.35, `map` ['rb.b',…] (Zeilen von +Z nach −Z) \| `pattern` 'checker'\|'rows'\|'cols'\|'rot'\|'blau', `first` 'rot'; Wechselplattformen: `platforms: [{ pos, size: [w,d], color }]`; Start `LEVEL.flipperStart` 'rot'; `level.flipper = { color, flips, start, flip(), set(c), onFlip(fn), solidAt(x,z), info() }`, `id` → `{ tiles, info() }` | `{ type: 'flipper', id: 'felder', pos: [0,1,-190], grid: [4,6], cell: 2 }` |
+| `schiebekugel` (kind; auch type) | Kugel schieben/stoßen, rollt aus, zählt auf `pfeld` als Gewicht, Abgrund → zurück | `pos`, `size` 1.6, `weight` 1, `friction` 3.2, `kick` 6, `push` 1, `respawn` 1.2, `color` 'rosa'\|'blau'\|'gold'\|'grau', `id`, `hidden`; Laufzeit `onField`, `rolled`, `resets`, `speed()`, `info()` | `{ kind: 'schiebekugel', id: 'kugel', pos: [-4,1,-213] }` + `{ kind: 'pfeld', id: 'kugelfeld', pos: [4,1,-213], need: 1 }` |
+| `suchscheinwerfer` | Lichtfleck fährt Bahn; Figur im Licht (nicht verdeckt) → „entdeckt“: rotes Blinklicht, sfx 'alarm', Ansage, Aktion, Abklingzeit; Fleck folgt der Figur | `path` [[x,y,z]…] (Boden), `speed` 2.5, `radius` 2.2, `mode` 'pingpong'\|'loop', `wait` 0.5, `phase`, `lamp` (Standard 10 m über Bahnmitte, 6 m dahinter in −Z), `post`, `cooldown` 3, `alarmTime` 2, `track` true, `trackSpeed` 3.2, `occlude` true, `onDetect` { signal: 'alarm' }, `banner` 'Entdeckt!', `color`, `idle`, `id` → `{ spot, lamp, radius, seen, alarm, alarms, lastSeen, onDetect(fn(info)), start(), stop(), sees(fig), info() }`; `level.searchlights` | `{ type: 'suchscheinwerfer', id: 'licht', path: [[-8,1,-224],[8,1,-224]], lamp: [-2,10,-231] }` |
+| `kippquader` | kippt über die Kante auf Raster-Bahn, Warnung + roter Landeboden-Hinweis, Treffer beim Aufschlag, begehbar, nimmt Reiter mit; Rahmen mit Loch | `pos` (Mitte unten), `size` [2,4,2], `hole` [w,h], `steps` ['-z','-z'] ('±x'\|'±z'), `mode` 'pingpong'\|'loop'\|'once', `wait` 1.2, `turn` 0.55, `warn` 0.7, `phase`, `start` 'auto'\|'near'\|'signal', `near` 9, `hint` true, `style` 'tempel'\|'stein', `face` true, `id` → `{ state, tips, hits, carried, box, boxes, nextRects(), tip(dir), start(), stop(), hint, onLand(fn(boxes)), info() }` | `{ type: 'kippquader', id: 'kq1', pos: [-5,1,-241], size: [2,4,2], steps: ['-z','-z'] }` |
+| `donutblock` | fällt kurz nach dem Betreten (trägt mit), kommt wieder | `pos` \| `blocks` \| `from`/`to` \| `grid`+`pos`, `size` 1, `delay` 0.5, `respawn` 3, `life` 2.2, `sag` 0.12, `gravity` 18, `maxFall` 12, `color` 'rosa'\|'schoko'\|'gelb', `id` → `{ blocks: [{ x, y, z, y0, state }], drop(), falls, info() }` | `{ type: 'donutblock', id: 'donuts', from: [0,0,-270.5], to: [0,0,-277.5] }` |
+| `lava` + `color: 'blau'` | blaue Lava (tödlich wie rote, `deathCause 'lava'`); Thema `bluelava` färbt jede Lava blau | Felder von `lava`, `color` 'blau' (Form `lavaColor: 'blau'`) | `{ type: 'lava', pos: [0,-1.5,-274], size: [26,1,8], color: 'blau' }` |
+| `flussbruecke` | Hubbrücke über dem Ritt-Fluss: unten Sperre fürs Floß, oben Durchfahrt; zu Fuß bewegte Plattform | `from`/`to` (Enden der Lauffläche unten), `width` 2.6, `thick` 0.45, `lift` 2.8, `wait` 1.6, `speed` 1.8, `phase`, `start` 'low'\|'high', `idle`, `posts`, `rails`, `id` → `{ y, state, hits, box(), start(), stop(), hold('low'\|'high'), toggle(), info() }` | `{ type: 'flussbruecke', id: 'hubbruecke', from: [-5.2,0.35,-48], to: [5.2,0.35,-48], lift: 2.6 }` |
+| `multilift` (vorhanden) | 3er-/4er-Lift (Klone zählen) | `need` 3 \| 4, `rise`, `size` … (Präzisierung Motor Welt 2) | `{ type: 'multilift', id: 'dreier', pos: [-8,1,-262], rise: 4, need: 3 }` |
+| `figurenschalter` (vorhanden) | Pilzkopf-Figur-Schalter (5-3) | Präzisierung Motor Welt 2 | – |
+| `deco_w5` | Kulisse (verschmolzen) | `items: [{ kind, pos, … }]`, `shadow: false`; Strand `palme, palmen, sandburg, sandskulptur, muscheln, sonnenschirm, liegestuhl, strandball, duenen`; Savanne `akazie, akazien, baobab, termitenhuegel, savannengras, felsbrocken`; Torte `tortenstueck, torte, kerzen, sahnehaeubchen, kirsche, zuckerstange, keksstapel`; Tempel `tempelsaeule(n), steinkopf, obelisk, tempeltor, steinplatten`; Mine `grubenbalken(_reihe), grubenlampe, kristalle` | `{ type: 'deco_w5', items: [{ kind: 'akazie', pos: [8.5,1,-124.5], height: 5.5 }, { kind: 'savannengras', pos: [0,1,-122], size: [20,7], n: 12 }] }` |
+
+`landingHint(level, { color })` aus `blocks/w5kit.js` (`show(rects, y, k)`, `hide()`, `info()`) ist der rote
+Landeboden-Hinweis für den **Kippquader-König** (Gegner-Agent); `kippquader.nextRects()` liefert die Grundrisse.
+
+### Präzisierung (Motor und Bausteine Welt 5): Modelle
+
+Die Bausteine nutzen Registry-Modelle, sobald `hasModel(name)` gilt (sonst eigene Rückfall-Geometrie, gleiche Kollision):
+`trapez` ({ length, width }; state { theta, rider }), `pendelplattform` ({ size, thick, length }; { theta }),
+`roehrenkanone` ({ height, radius, color }; { anim 'idle'|'load'|'fire', k }), `drehbruecke` ({ length, width, thick,
+style }), `kippquader` ({ size, hole, style }, Ursprung Körpermitte; { anim 'idle'|'warn'|'tip', k }), `donutblock`
+(1 m, Ursprung Mitte unten), `suchscheinwerfer` (Lampe, Drehpunkt, Blick +X; { alarm, yaw, pitch }), `flussbruecke`
+({ length, width, thick }, Brücke entlang +X), `schluesselmuenze`, `schiebekugel` ({ roll, size }), Kulisse
+`deco_w5_<kind>` (Fußpunkt, Blick +X, wird verschmolzen). Der Flipper zeichnet bewusst eigene Instanz-Geometrie.
+
+### Präzisierung (Motor und Bausteine Welt 5): Themen
+
+| Thema | Stimmung | Kulisse (`buildBackdrop`) |
+| --- | --- | --- |
+| `beach` | strahlender Mittag am Meer, kräftige Sonne; heller Sand, Sandstein; Flüsse in Lagunen-Türkis (`river`-Palette) | türkises Meer mit Schaumbändern, lila Klippeninseln, Segelboote, Möwen |
+| `bluelava` | Höhle mit blauem Lavaglühen, Licht an Figur und Laternen; schieferblauer Basalt; **`lavaColor: 'blau'`** | blauer Lavasee tief unten, Tropfsteinsäulen mit blauem Saum, blaue Funken |
+| `savanna` | warmer Nachmittag, honiggelber Dunst; goldgelbes Trockengras auf rotbraunem Lehm | goldene Ebene, Akazien-Silhouetten, Tafelberge, ferne Berge, Geier |
+| `mine` | Bergwerk: warmes Dunkel, naher Staub-Nebel, Licht an Figur und Grubenlampen | Felswände mit Holz-Stützrahmen, Laternen, funkelnde Erzadern |
+| `cake` | Pastell-Torten-Welt, rosa-lila Himmel; Sahne-/Glasur-Decke, Biskuit | Erdbeermilch-Boden, Riesen-Torten, Kirschen, Sahnewolken, Streusel |
+| `sneak` | Nacht über einer Lava-Festung (Lichtkegel leuchten additiv); dunkler Burgstein | Lavasee, Burgmauern mit glühenden Fenstern, Mond, Sterne, Funken |
+| `temple` | Ruinen-Tempel am späten Nachmittag, goldener Dunst, lange Schatten; Sandstein-Platten | Stufenpyramiden mit Moos und goldenen Spitzen, Dschungel-Kranz, Staub |
+
+`circus` (5-2), `ghost` (5-Kapitän), `lava` (5-B), `train` (5-Zug), `grass` (5-A) bestehen schon. Die Strandwerkstatt
+lässt sich mit `?course=0-17&theme=<name>` in jedem Thema ansehen.
+
+### Präzisierung (Motor und Bausteine Welt 5): Welt 5 – Gimmick → Baustein
+
+| Level | Gimmick laut Bauplan | Bausteine |
+| --- | --- | --- |
+| 5-1 | Strand, 5 Schlüsselmünzen öffnen die Warp-Box, Höhlenfluss mit Pflaume, bewegliche Brücken | `schluesselmuenze` (`onAll: { reveal }`), `warpbox` (`hidden`), Archetyp `parcours_ride` (`ride.section`), `river`, `flussbruecke`, `deco_w5` (Strand), Thema `beach` |
+| 5-2 | Zirkus: Trapeze, Seilbahnen, Pendelplattformen | `trapez` (4–5 m Abstand), `pendelplattform`, vorhandene Seilbahn, Thema `circus` |
+| 5-3 | unterirdisch, blaue Lava, 3er-/4er-Lifte, Spiegelfrüchte, Figurenschalter | `lava` (blau bzw. Thema `bluelava`), `multilift` (`need` 3/4), `figurenschalter`, `donutblock` |
+| 5-4 | Savannenberge, Röhrenkanone ≈ 40 m, Gipfel mit Drehbrücke | `roehrenkanone`, `drehbruecke`, `deco_w5` (Savanne), Thema `savanna` |
+| 5-Kapitän | Geisterhaus, Tipp- und Donut-Blöcke | `donutblock` (`color: 'schoko'`), Thema `ghost` |
+| 5-5 | Höhle, Zündköpfe, POW-Blöcke | `deco_w5` (Mine: `grubenbalken_reihe`, `grubenlampe`, `kristalle`), Thema `mine` |
+| 5-6 | Torten-Welt, Rot-Blau-Flipper bei jedem Sprung, Kugel auf das P-Feld | `flipper` (Raster + Wechselplattformen), `schiebekugel` + `pfeld`, `deco_w5` (Torte), Thema `cake` |
+| 5-7 | Schleich-Festung, Suchscheinwerfer, entdeckt → Suchkopf-Welle | `suchscheinwerfer` (Signal `'alarm'`; Deckung = feste Quader zwischen Lampe und Figur), Thema `sneak` |
+| 5-Burg | Ruinen-Tempel mit Kippquadern, Boss Kippquader-König | `kippquader` (`hole`, `start: 'near'`), `landingHint`, `deco_w5` (Tempel), Thema `temple` |
+
+### Präzisierung (Motor und Bausteine Welt 5): Tests und Kennzahlen
+
+`tests/course_w5_blocks.mjs` (Port 4390, `PORT_BASE`; `W5B_SHOTS=0` ohne Bilder, `W5B_PART=mech|themes` je Teil, je
+unter 10 min): 51 Prüfungen deterministisch über `step(n)`/`setInput` in der Strandwerkstatt `0-17` – Schlüsselmünzen
+(HUD 0/5 … 5/5, Warp-Box erscheint erst mit der fünften), Ritt-Abschnitt (Hubbrücke versperrt, Durchfahrt, Absteigen,
+Pflaume bleibt, Standard-Kamera zurück), Trapez (greifen, mitschwingen, aufschaukeln, Absprung trifft das Trapez 4,5 m
+weiter, Kette bis aufs Plateau), Pendelplattform, Drehbrücke, Röhrenkanone (40 m genau ins Ziel, Zustand `cannon`,
+Kamera ≤ 9 m hinter der Figur), Rot-Blau-Flipper (jeder Sprung, durchfallen, Klone, Wechselplattformen),
+Schiebekugel (rollen, Druckfeld, Tatzenhieb), Suchscheinwerfer (entdeckt → Signal, Abklingzeit, Verfolgen, Deckung unter
+dem Dach), Kippquader (kippt, Hinweis, Treffer, begehbar, trägt, Loch sicher), Donut-Block (fällt nach ≈ 0,5 s, kommt
+wieder), blaue Lava tötet, 3er-Lift (2 Figuren nein, 3 ja), Ziel, keine Konsolenfehler; dazu 4 Themen-Prüfungen.
+Kennzahlen (960×540, scale 2): Stationen 59–78 Zeichenaufrufe, 122–150 k Dreiecke; Themen-Bilder 59–80 Aufrufe,
+115–145 k Dreiecke (Budget < 140 / < 400 k).
