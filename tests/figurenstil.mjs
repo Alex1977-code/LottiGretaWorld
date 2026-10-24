@@ -14,7 +14,7 @@
 //
 // Vorher-Bilder: einen zweiten Arbeitsbaum mit dem alten Stand anlegen und den Test mit FS_ROOT=<pfad> FS_LABEL=vorher laufen
 // lassen (Bilder landen trotzdem hier unter tests/out/).
-// Aufruf: PORT_BASE=3300 node tests/figurenstil.mjs   (Teilläufe unter Last: FS_PARTS=hero,costume,clones,pets,map und
+// Aufruf: PORT_BASE=3300 node tests/figurenstil.mjs   (Teilläufe unter Last: FS_PARTS=hero,costume,posen,clones,pets,map und
 // FS_HEROES=lotti,greta; Kennzahlen früherer Teilläufe bleiben in fs_<label>.json erhalten; Port 4350 + PORT_BASE)
 import { createServer } from 'vite';
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
@@ -23,7 +23,7 @@ import { launchBrowser, makeChecker, OUT } from './helpers.mjs';
 const PORT = 4350 + Number(process.env.PORT_BASE ?? 0);
 const ROOT = process.env.FS_ROOT ?? new URL('..', import.meta.url).pathname;
 const LABEL = process.env.FS_LABEL ?? 'nachher';
-const PARTS = (process.env.FS_PARTS ?? 'hero,costume,clones,pets,map').split(',').filter(Boolean);
+const PARTS = (process.env.FS_PARTS ?? 'hero,costume,posen,clones,pets,map').split(',').filter(Boolean);
 const HEROES = (process.env.FS_HEROES ?? 'lotti,greta').split(',').filter(Boolean);
 const on = (p) => PARTS.includes(p);
 const MAX_CALLS = Number(process.env.FS_MAX_CALLS ?? 11);
@@ -211,6 +211,36 @@ async function heroine(key) {
   await measure(`${key} idle`);
   if (on('hero')) await heroineBase(key);
   if (on('costume')) await heroineCostumes(key);
+  if (on('posen')) await heroinePoses(key);
+}
+
+/** Weitere Kurs-Posen (Sichtprüfung: nichts durchdringt sich, Proportionen tragen): Saltos, Hocke, Rutschen, Stampfen, Wand, Ranke, Schwimmen, Aktionen. */
+async function heroinePoses(key) {
+  const P = key, G = `${P}_posen`;
+  const S = { cam: { dist: 3.0 } };
+  for (const [st, ph] of [['jump3', 0.4], ['backflip', 0.45], ['sideflip', 0.5]]) {
+    await pose('hero', { state: st, phase: 0, grounded: false, vy: 5 }, 6);
+    for (let i = 1; i <= 8; i++) await pose('hero', { state: st, phase: (ph * i) / 8, grounded: false, vy: 5 - i }, 1);
+    await shot(`${P}_${st}`, 'side', G, S);
+  }
+  for (const [name, c, n, view] of [
+    ['longjump', { state: 'longjump', grounded: false, vy: 1, speed: 9 }, 20, 'side'],
+    ['crouch', { state: 'crouch' }, 20, 'front'],
+    ['slide', { state: 'slide', speed: 8 }, 20, 'side'],
+    ['groundpound', { state: 'groundpound', phase: 0.6, grounded: false, vy: -8 }, 12, 'side'],
+    ['wallslide', { state: 'wallslide', vy: -2, grounded: false }, 30, 'front'],
+    ['climb', { state: 'climb', vy: 3, grounded: false, power: 'krallen' }, 30, 'side'],
+    ['beanstalk', { state: 'beanstalk', vy: 2, grounded: false }, 30, 'back'],
+    ['swim', { state: 'swim', speed: 3 }, 30, 'side'],
+    ['throw', { state: 'throw', phase: 0.45 }, 4, 'front'],
+    ['claw', { state: 'claw', phase: 0.45, power: 'krallen' }, 4, 'front'],
+    ['hurt', { state: 'hurt', grounded: false }, 8, 'side'],
+    ['dead', { state: 'dead', grounded: false }, 20, 'front'],
+  ]) {
+    await pose('hero', c, n);
+    await shot(`${P}_${name}`, view, G, S);
+  }
+  await pose('hero', { state: 'idle', power: 'none' }, 40);
 }
 
 async function heroineBase(key) {
@@ -363,10 +393,10 @@ async function clones() {
   for (const k of ['hero', 'klon0', 'klon1']) await pose(k, { state: 'idle', power: 'none' }, 30);
 }
 
-if (on('hero') || on('costume') || on('pets') || on('clones')) {
+if (on('hero') || on('costume') || on('posen') || on('pets') || on('clones')) {
   await openCourse();
   check('Kurs 1-1 lädt ohne Konsolenfehler', errors.length === 0);
-  if (on('hero') || on('costume')) {
+  if (on('hero') || on('costume') || on('posen')) {
     for (const key of HEROES) {
       if (key === 'greta') {
         await sc(() => { const H = window.__fs, r = H.figs.hero.rig; r.player.hero = 'greta'; r.build('greta'); H.place('hero'); });
