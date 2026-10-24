@@ -601,6 +601,14 @@ const sw = await sc(() => {
   const s1 = [k1.shots, k2.shots];
   for (let i = 0; i < 360; i++) { p.pos.set(dach[0], dach[1], dach[2]); p.vel.set(0, 0, 0); c.step(1); }
   out.after = [k1.shots - s1[0], k2.shots - s1[1]];
+  // breaks (5-7): ein Kopf zertrümmert beim Aufprall einen Ziegel und einen grauen Steinblock, ohne breaks nicht
+  const z0 = t.Z(5, 1.5);
+  const br1 = L.spawn('brick', { pos: [10, 1, z0] }), br2 = L.spawn('steinblock', { pos: [10, 1, z0 - 2] }), br3 = L.spawn('brick', { pos: [10, 1, z0 - 4] });
+  L.spawn('projektilkopf', { pos: [6, 1.15, z0], dir: [1, 0], speed: 6, breaks: true });
+  L.spawn('projektilkopf', { pos: [6, 1.15, z0 - 2], dir: [1, 0], speed: 6, breaks: true });
+  L.spawn('projektilkopf', { pos: [6, 1.15, z0 - 4], dir: [1, 0], speed: 6 });
+  for (let i = 0; i < 240; i++) { p.pos.set(dach[0], dach[1], dach[2]); p.vel.set(0, 0, 0); c.step(1); }
+  out.breaks = { brick: br1.removed, stein: br2.removed, plain: br3.removed };
   delete p.hurt;
   return out;
 });
@@ -608,6 +616,7 @@ console.log(`  Suchkopf-Welle: ${JSON.stringify(sw)}`);
 check('Suchkopf-Kanonen schweigen ohne Alarm (Figur unter dem Dach)', sw.quiet.k1 === 0 && sw.quiet.k2 === 0 && sw.quiet.alarms === 0 && sw.quiet.state === 'ready');
 check(`Alarm des Suchscheinwerfers → Suchkopf-Welle: ${sw.wave.heads} Suchköpfe (2 je Kanone), danach wieder still`, sw.wave.spotted && sw.wave.signals >= 1 && sw.wave.shots[0] === 2 && sw.wave.shots[1] === 2 && sw.wave.heads === 4 && sw.wave.state === 'cool' && !sw.wave.active[0] && !sw.wave.active[1]);
 check('Suchkopf-Welle: Alarm in der Abklingzeit verpufft, danach wieder bereit, ohne Alarm keine Schüsse', sw.cool.ignored === 1 && sw.ready === 'ready' && sw.after[0] === 0 && sw.after[1] === 0);
+check('Köpfe mit breaks zertrümmern beim Aufprall Ziegel und Steinblock (ohne breaks nicht)', sw.breaks.brick && sw.breaks.stein && !sw.breaks.plain);
 const wt = await sc(() => {
   const c = window.__course, t = window.__t, p = c.player, L = c.level;
   const out = {};

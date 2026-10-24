@@ -10,7 +10,8 @@
 // Daten: { kind: 'suchkopf_welle', id?, signal?: 'alarm' | ['alarm', …], lights?: ['licht1', …], cannons?: ['k1', …],
 //          shots?: 3, every?: 1.2 (≥ 1,1 s je Kanone), stagger?: 0.35, cooldown?: 4, range?: 40 (Reichweite der Kanonen
 //          während der Welle), from?: [{ pos: [x, y, z] (Unterkante des Kopfs), dir: [dx, dz], shot?: 'suchkopf' }, …],
-//          shot?: 'suchkopf', speed?, seek?, turn?, life? (für die from-Köpfe), onWave?: Aktion (je Welle) }
+//          shot?: 'suchkopf', speed?, seek?, turn?, life?, breaks? (für die from-Köpfe; Kanonen: eigenes breaks),
+//          onWave?: Aktion (je Welle) }
 // Laufzeit: state ('ready' | 'wave' | 'cool'), waves, ignored, fired (Köpfe der from-Punkte), shotsBy (je Kanone in der
 //   letzten Welle), trigger(data) (Welle von Hand), info().
 
@@ -123,7 +124,7 @@ class SuchkopfWelle extends CourseEntity {
   fire(f) {
     const kind = f.shot ?? this.spec.shot ?? 'suchkopf';
     const spec = { pos: f.pos, dir: f.dir ?? [0, 1] };
-    for (const k of ['speed', 'seek', 'turn', 'life']) if (this.spec[k] !== undefined) spec[k] = this.spec[k];
+    for (const k of ['speed', 'seek', 'turn', 'life', 'breaks']) if (this.spec[k] !== undefined) spec[k] = this.spec[k];
     const h = this.level.spawn(kind, spec);
     if (h) this.fired++;
     this.level.sfx('bullet');
