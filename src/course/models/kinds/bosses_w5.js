@@ -126,7 +126,7 @@ function kingBodyGeo() {
       const shade = mix(KC.stoneLow, KC.stoneHi, smoothstep(ny * 0.4 + 0.55 + (y / H - 0.5) * 0.3 + nx * 0.08));
       const n = noise3(x * 2.2, y * 2.2, z * 2.2);
       return mix(shade, n > 0.62 ? KC.stoneHi : KC.stoneLow, Math.abs(n - 0.5) * 0.35);
-    } }, { p: [0, H / 2, 0] }, 0.3, 4);
+    } }, { p: [0, H / 2, 0] }, 0.3, 3);
     // Fugen als flache Rillen auf den Seiten (dünne dunklere Leisten)
     for (const sx of [1, -1]) {
       for (const y of [1.2, 2.4]) b.box(0.02, 0.05, W - 0.5, KC.seam, { p: [sx * (D / 2 + 0.002), y, 0] }, 0.01, 1);
@@ -145,8 +145,14 @@ function kingBodyGeo() {
     for (const s of [1, -1]) {
       b.capsule(0.15, 0.82, gradV(KC.stoneLow, KC.stoneHi, 0.5, 0.6), { p: [fx + 0.08, 3.08, s * 0.78], r: [Math.PI / 2 - s * 0.32, 0, 0] }, 4, 14);
     }
-    b.sphere(1, gradV(KC.stoneLow, KC.stoneHi, 0.5, 0.65), { p: [fx + 0.05, 2.05, 0], s: [0.34, 0.36, 0.38] }, 22, 16);
+    b.sphere(1, { v: (x, y, z, nx, ny) => mix(mix(KC.stoneLow, KC.stoneHi, smoothstep(ny * 0.5 + 0.65)), 0xffb0a0, smoothstep((nx - 0.6) / 0.4) * 0.35) }, { p: [fx + 0.05, 2.05, 0], s: [0.34, 0.36, 0.38] }, 22, 16);
     for (const s of [1, -1]) b.sphere(0.09, KC.stoneLow, { p: [fx + 0.27, 1.92, s * 0.13], s: [0.6, 0.6, 1] }, 10, 8);
+    // königlicher Stein-Schnurrbart (gezwirbelt, lila geädert)
+    for (const s of [1, -1]) {
+      b.tube([[fx + 0.24, 1.78, s * 0.04], [fx + 0.22, 1.72, s * 0.3], [fx + 0.18, 1.78, s * 0.55], [fx + 0.14, 1.95, s * 0.66], [fx + 0.13, 2.03, s * 0.58]], 0.075, gradV(KC.lilaLow, KC.lilaHi, 0.5, 0.55), null, 16, 8);
+      b.sphere(0.08, KC.lilaHi, { p: [fx + 0.13, 2.03, s * 0.58] }, 12, 8);
+    }
+    for (const s of [1, -1]) b.add(new THREE.SphereGeometry(1, 16, 8, 0, TAU, 0, Math.PI / 2).rotateX(Math.PI / 2), 0xffa890, placed(new THREE.Vector3(fx - 0.01, 1.95, s * 1.15), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0.24, 0.15, 0.04)));
     const mouth = puffyGeo(mouthShape('grim'), 0.08, 0.04, 16, 3);
     b.add(mouth, KC.mouth, placed(new THREE.Vector3(fx + 0.02, 1.32, 0), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0.82, 0.42, 1)));
     for (let i = 0; i < 6; i++) {

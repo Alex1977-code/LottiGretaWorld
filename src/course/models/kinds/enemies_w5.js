@@ -380,7 +380,7 @@ function buildZuendkopf() {
       const s = i ? -1 : 1;
       const ph = phase + i * Math.PI;
       let x = 0.02, y = 0, rz = 0;
-      if (moving) { x += Math.sin(ph) * 0.09; y = Math.max(0, Math.cos(ph)) * 0.06; rz = -Math.sin(ph) * 0.3; }
+      if (moving) { x += Math.sin(ph) * 0.09; rz = -Math.sin(ph) * 0.3; y = Math.max(0, Math.cos(ph)) * 0.06 + Math.abs(Math.sin(rz)) * 0.05; }
       if (carried) { x = 0.02 + Math.sin(t * 16 + i * 2) * 0.05; y = -0.06 + Math.cos(t * 16 + i * 2) * 0.03; rz = Math.sin(t * 16 + i * 2) * 0.4; }
       const sc = 1 - tuck * 0.5;
       setInst(feet, i, x, y + tuck * 0.12, s * 0.13, 0, s * 0.12, rz, sc);
