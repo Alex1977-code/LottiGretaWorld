@@ -53,7 +53,7 @@ export const MAP = {
   seaColors: [0x5ef2e2, 0x22c2dc, 0x1678c8],      // Türkis am Ufer, Tiefblau draußen
   birdStyle: 'gull',                               // Möwen statt Hackvögel
   // Kacheln wie Welt 4: 40 m (Ursprung so, dass die Inseln in wenige Kacheln fallen), Teile ohne Schattenwurf in 80 m
-  batch: { tile: 40, origin: [8, 8], freeTile: 80, freeOrigin: [-16, -16] },
+  batch: { tile: 48, origin: [-4, 4], freeTile: 128, freeOrigin: [-72, -72] },
   // Nachbarwelt am Horizont: Welt 4 (Canyon-Inseln) im Südwesten – dorthin führt die Rückweg-Röhre
   neighbors: [{ world: 4, pos: [-262, 112], size: [80, 54], style: 'canyon' }],
   birds: [{ c: [6, 12, 30], r: 8, n: 3 }, { c: [40, 13, -30], r: 9, n: 2 }, { c: [-20, 14, -100], r: 10, n: 2 }, { c: [60, 12, 30], r: 6, n: 2 }],
