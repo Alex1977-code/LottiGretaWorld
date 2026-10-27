@@ -112,6 +112,17 @@
 //    bleibt), Zöpfe/Haar wehen im Fahrtwind (Physik). Ab phase 0,8 Übergang in die Landepose (aufrichten, Beine vor,
 //    Arme seitlich). In der Röhre ist die Figur unsichtbar (HeroRig), davor 'pipe'.
 //  - Beide Posen halten den Mund geschlossen und die Augen ungestaucht (kein zusätzlicher Zeichenaufruf gegenüber idle).
+//
+// Halloween-Verkleidung (Vertrag „Präzisierung (Figuren Halloween): Verkleidung“; Schalter ../lib/outfit.js, Bausteine
+// ../lib/heroHalloween.js): Beide Avatare lesen je Bild currentOutfit() (Szene bzw. URL ?outfit=…); avatar.setOutfit('halloween'
+// | null) legt einzeln fest, 'auto' folgt wieder der Szene. Zubehör entsteht erst beim ersten Anziehen und hängt nur getragen
+// im Szenengraphen – ohne Verkleidung bleibt alles exakt wie bisher.
+//  - Lotti: Hexenhut (eigenes Mesh am Kopf, Stoff-Oberfläche → Figur-Bündel), ihre Schleife am Hut (Haar ohne Schleife).
+//  - Greta: Katzenohren im Haar-Mesh, Schnurrhaare/Näschen im Kopf-Mesh, Katzenschwanz (SkinnedMesh an einer HangChain am
+//    Becken, ohne Schatten: +1 Zeichenaufruf).
+//  - Pflaume: Streifen-Halstuch (Geometrie-/Materialtausch), Fledermausflügelchen (Fell-Material unter body, gebündelt).
+//  - Krallen-Anzug und Gleitblatt ersetzen Kopfschmuck und Schwanz; unter einem Trage-Helm (fremdes Kind am Kopf) ruht der
+//    Kopfschmuck; Stern-Glanz und Stein-Haut erfassen später angelegtes Zubehör (refreshSkins).
 
 import * as THREE from 'three';
 import { Avatar3D } from '../Avatar3D.js';

@@ -4268,3 +4268,58 @@ Kletterraum heilt, Checkpoints, Kippquader trifft, Tod im Kampf → Neustart am 
 Abfahrt ohne Einsteigen, Kontrollpunkt auf dem fahrenden Zug). Gemessen (scale 2, inkl. Schattenpass): 5-7 54–109
 Zeichenaufrufe / ≤ 233 k Dreiecke (Torturm-Dach mit Blick über zwei Höfe) · 5-Zug ≤ 78 / ≤ 244 k (Messgang während der
 Fahrt) · 5-Burg ≤ 86 / ≤ 143 k. Die Heldin (Figurenstil) braucht allein ≈ 20 Zeichenaufrufe.
+
+## Präzisierung (Figuren Halloween): Verkleidung
+
+Additiv zur Halloween-Welt „Kürbisinsel“ (Abschnitt „Verkleidung“). Dateien: Schalter `src/three/lib/outfit.js`, Bausteine
+`src/three/lib/heroHalloween.js`, Avatare `src/three/avatars/hero.js` (HeroAvatar, PflaumeAvatar), Hasenmodell
+`src/course/models/kinds/props.js` (`bunny_small`, damit auch `kruemel`), `src/course/archetypes/KruemelRig.js`; Anbindung
+`src/course/CourseScene.js`, `src/course/map/CourseMapScene.js`. Test `tests/outfit_hw.mjs`.
+
+**Schalter (ein Wert für alle Figuren):** `setOutfit(kind, owner)` / `clearOutfit(owner)` / `currentOutfit()` aus
+`three/lib/outfit.js`, `kind` = `'halloween'` | `null`.
+- `CourseScene.create` setzt `outfitForLevel(id, LEVEL)`: `LEVEL.outfit` hat Vorrang (auch `null` = aus), sonst Level-Id mit
+  Präfix `H-`, `LEVEL.world === 31` oder Halloween-Testlevel `0-20`/`0-21`/`0-22` → `'halloween'`; `window.__course.outfit`.
+- `CourseMapScene.create` setzt `outfitForMap(MAP)`: `MAP.outfit` (auch `null`), sonst Welt 31 → `'halloween'`;
+  `window.__courseMap.outfit`. Beide Szenen räumen beim Beenden auf (`clearOutfit` wirkt nur, wenn die Szene zuletzt gesetzt
+  hat – Reihenfolge der Szenenwechsel egal).
+- Alle Figuren lesen den Wert je Bild: HeroAvatar und PflaumeAvatar (Kurs und Klassik; damit auch Figurwechsel, Spiegelfrucht-
+  Klone, Ritt/Floß, Diorama) und das Modell `bunny_small`/`kruemel` (`state.outfit` hat Vorrang). Einzelne Avatare:
+  `avatar.setOutfit('halloween' | null)` (Vorrang vor der Szene), `avatar.setOutfit('auto')` folgt wieder der Szene.
+- URL-Schalter zum Testen: `?outfit=halloween` erzwingt die Verkleidung überall, `?outfit=0` schaltet sie überall ab.
+- Außerhalb der Halloween-Welt ist alles exakt wie bisher: Zubehör entsteht erst beim ersten Anziehen und hängt nur, solange
+  es getragen wird, im Szenengraphen (Figur-Bündel und Schatten-Stellvertreter unverändert; gleiche Zeichenaufrufe/Dreiecke,
+  auch nach An- und wieder Ausziehen – geprüft).
+
+**Je Figur** (Figurenstil, Bausteine in `heroHalloween.js`):
+- **Lotti:** kleiner, etwas schiefer Hexenhut – lila Krone mit weichen Knautschfalten und nach hinten umgeknickter Spitze,
+  orangefarbenes Band, gelbe Pausback-Sternchen, gewellte, seitlich schmalere (ovale) Krempe (Platz für erhobene Arme:
+  Trapez, Kanone, Tragen). Ihre rote Schleife sitzt hinten am Hutband (das Haar trägt dann keine), die Zöpfe hängen unter der
+  Krempe hervor. Eigenes Mesh am Kopf in der Stoff-Oberfläche → Figur-Bündel und Schatten-Stellvertreter: 0 zusätzliche
+  Zeichenaufrufe (+1 nur in den kurzen Stauch-Momenten, in denen die Figur ohnehin ungebündelt zeichnet).
+- **Greta:** Katzenohren (schwarz, innen rosa) am pinken Haarreif im Haar-Mesh (0), drei aufgemalte Schnurrhaare je Wange und
+  ein dunkles Katzen-Näschen als Kopf-Aufkleber (0), Katzenschwanz mit rosa Schleife: ein SkinnedMesh (acht Knochen = halbe
+  Kettenglieder, Ecken abgerundet) an einer `HangChain` aus vier Gliedern hinten am Rock – steht als Fragezeichen nach oben
+  (zur rechten Seite gekringelt), wedelt gemächlich, federt bei Sprung und Landung nach, weht beim Laufen und im Kanonenflug
+  nach hinten; Wurzelkegel (nie nach vorn zwischen die Beine), Kugel-Kollider am Rock, im Wasser Auftrieb, Statue starr.
+  Ohne Schattenwurf: +1 Zeichenaufruf.
+- **Pflaume:** orange-schwarz gestreiftes Halstuch statt des einfarbigen (Geometrie-/Materialtausch am Halstuch-Mesh; mit Kraft
+  `red`/`blue`/`yellow` Streifen in der Kraftfarbe – die Kraft bleibt erkennbar), Fledermausflügelchen (Armknochen, zwei Finger,
+  gezackter Hinterrand, Krällchen; zwei Meshes im Fell-Material unter `body`, folgen der Rumpf-Neigung, nicht dessen Atem-
+  Stauchung → gebündelt, 0 Aufrufe). Flügelschlag: Stand sacht mit Flatter-Schüben, Hoppeln/Galopp im Hoppel-Takt, Sprung/
+  Jubel schnell, Stampfen hoch gestellt; mit Reiterin hoch hinter ihrem Rücken (Platz für die Beine).
+- **Krümel:** Mini-Vampirumhang am hop-Gelenk von `bunny_small` – Stehkragen mit zwei Spitzen, außen nachtlila, innen rot
+  (Vorderkanten klappen auf), Fledermaus-Saum mit Kerbe für das Puschelschwänzchen; wallt beim Hüpfen; ohne Schattenwurf
+  (+1 Aufruf je Hasenmodell). `KruemelRig`: Kapitänsmütze bleibt, der Rucksack verschwindet unter dem Umhang (Aufrufe gleich).
+
+**Posen und Power-ups:** alle Kurs-Posen tragen die Verkleidung (Lauf, Sprünge, Saltos, Trapez, Kanone, Klettern, Ranke,
+Zaun, Wand, Gleiten, Schwimmen, Tauchen, Stampfen, Rutschen, Reiten, Jubel, Tod, klein). Krallen-Anzug (Kapuze, Ringelschweif)
+und Gleitblatt (Blatt-Reif, Blatt-Schweif) ersetzen Kopfschmuck und Schwanz der Verkleidung (Lottis Schleife sitzt dann
+wieder im Haar; Gretas Schnurrhaare bleiben). Funkenblüte: Verkleidung bleibt (Lottis Hut-Schleife feuerweiß, Gretas Ohren am
+roten Reif). Funkelstern: der Regenbogen-Glanz erfasst das Zubehör (auch später angelegtes). Riesentrank, Statue (Stein-Haut),
+Klone `lite` (ohne Schattenwurf): mit Verkleidung. Trage-Helm (HeroRig, fremdes Kind am Kopf): Hut bzw. Ohren ruhen darunter.
+
+**Kennzahlen** (`tests/outfit_hw.mjs`, je Figur, Differenz sichtbar/unsichtbar inkl. Schattenpass; ohne → mit Verkleidung):
+Lotti 9 → 9 Zeichenaufrufe, 28,6 k → 32,4 k Dreiecke (× 1,13) · Greta 9 → 10, 24,0 k → 26,0 k (× 1,09) · Pflaume 11 → 11,
+16,4 k → 18,3 k (× 1,12) · Krümel (Modell) 10 → 11, 9,8 k → 10,9 k (× 1,11) · KruemelRig 8 → 8 · Ritt in 1-4 (Heldin + Pflaume)
+17 → 17, 39,9 k → 44,9 k. Wieder ohne Verkleidung jeweils exakt wie vorher.
