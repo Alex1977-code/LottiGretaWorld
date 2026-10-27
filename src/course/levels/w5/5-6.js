@@ -135,6 +135,7 @@ export const LEVEL = {
   timeLimit: 400,
   flipperStart: 'rot',
   killY: -14,
+  farHide: 46,                      // Gegner weiter als 46 m von der Figur werden nicht gezeichnet (Feuerringe, Pilzlinge)
   build,
   setup,
   start: { pos: [0, Y0, 5], yaw: Math.PI / 2 },
@@ -220,10 +221,10 @@ export const LEVEL = {
     { kind: 'schnappblume', id: 'sb2', pos: [-6.4, Y2, -144], yaw: 0 },
     { kind: 'schnappblume', id: 'sb3', pos: [6.4, Y2, -126], yaw: Math.PI },
     // Feuerringe (4)
-    { kind: 'feuerring', id: 'fr1', pos: [0, Y2, -129], mode: 'puls', radius: 4.2, period: 2.4, wait: 0.8, phase: 0 },
-    { kind: 'feuerring', id: 'fr2', pos: [0, Y2, -141], mode: 'puls', radius: 4.2, period: 2.4, wait: 0.8, phase: 0.5 },
-    { kind: 'feuerring', id: 'fr3', pos: [0, Y2, -153.2], mode: 'rad', radius: 3, gaps: 1, gap: 85, speed: 1.0 },
-    { kind: 'feuerring', id: 'fr4', pos: [0, Y3, -180], mode: 'rad', radius: 1.4, gaps: 2, gap: 80, speed: -0.9, color: 'pink' },
+    { kind: 'feuerring', id: 'fr1', farHide: 46, pos: [0, Y2, -129], mode: 'puls', radius: 4.2, period: 2.4, wait: 0.8, phase: 0 },
+    { kind: 'feuerring', id: 'fr2', farHide: 46, pos: [0, Y2, -141], mode: 'puls', radius: 4.2, period: 2.4, wait: 0.8, phase: 0.5 },
+    { kind: 'feuerring', id: 'fr3', farHide: 46, pos: [0, Y2, -153.2], mode: 'rad', radius: 3, gaps: 1, gap: 85, speed: 1.0 },
+    { kind: 'feuerring', id: 'fr4', farHide: 46, pos: [0, Y3, -180], mode: 'rad', radius: 1.4, gaps: 2, gap: 80, speed: -0.9, color: 'pink' },
   ],
   items: [
     // Kugel-Rätsel
