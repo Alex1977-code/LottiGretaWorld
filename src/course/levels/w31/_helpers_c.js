@@ -672,6 +672,33 @@ export function kraeuterGarten(level, o) {
   if (glow.length) bake(level, glow, { material: 'glow', castShadow: false });
 }
 
+/**
+ * Sparsame Kürbislaternen (eigene Geometrie, ≈ 0,4 k Dreiecke statt ≈ 4,8 k des Registry-Modells – für viele Stücke an
+ * Wegen und Mauern): Kürbis mit leuchtendem Grinsegesicht, auf Pfahl mit Haken oder am Boden. Ohne Kollision.
+ * list = [{ pos: [x, y, z], size: 0.7, mount: 'pfahl' | 'boden', yaw (Gesicht, Standard zur Kamera +Z), light: true }]
+ */
+export function kuerbisLaternen(level, list) {
+  if (!level.view) return;
+  const parts = [], glow = [];
+  for (const it of list) {
+    const [x, y0, z] = it.pos, s = it.size ?? 0.7, yaw = it.yaw ?? -PI / 2;
+    let y = y0;
+    if (it.mount === 'pfahl') {
+      parts.push(zyl(0.07, 0.1, 1.6, x, y0, z, HWC.woodLow, { seg: 6 }));
+      parts.push(zyl(0.16, 0.12, 0.08, x, y0 + 1.56, z, HWC.wood, { seg: 8 }));
+      y = y0 + 1.6;
+    }
+    const pk = pumpkinGeo({ r: s / 2, shape: 'rund', color: 'orange', seg: 12, leafYaw: 1 });
+    const face = faceGeo({ r: s / 2, shape: 'rund', kind: 'grinsen' });
+    pk.body.rotateY(yaw); face.rotateY(yaw);
+    pk.body.translate(x, y, z); face.translate(x, y, z);
+    parts.push(pk.body); glow.push(face);
+    if (it.light !== false) level.view.addLantern?.(x, y + s * 0.6, z);
+  }
+  bake(level, parts, { castShadow: false });
+  bake(level, glow, { material: 'glow', castShadow: false });
+}
+
 /** Leuchtpunkte (additiv, ein Zeichenaufruf): pts [[x, y, z], …], Farbe, Größe (m). */
 export function funkelSpur(level, pts, color = 0xfff0a0, size = 0.9, o = {}) {
   if (!level.view || !pts.length) return null;

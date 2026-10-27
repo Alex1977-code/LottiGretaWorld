@@ -24,7 +24,7 @@
 
 import {
   isl, line, ring, arc, naschen, naschKreis, sign, teppich, zinnenMauer, torbogen, ahnenGalerie, tanzboden, kronleuchter,
-  schlossDach, kicherGeist, kruemelLaterne, kuerbisKutsche, bankett, bombenNachschub, stimmungen, turm, terrasse, funkelSpur,
+  schlossDach, kicherGeist, kruemelLaterne, kuerbisKutsche, bankett, bombenNachschub, stimmungen, turm, terrasse, funkelSpur, kuerbisLaternen,
   hexenKueche,
 } from './_helpers_c.js';
 
@@ -57,6 +57,12 @@ const kk = (id, a, b, o = {}) => ({ kind: 'klapperknochen', id, pos: [(a[0] + b[
 
 /** Aufbau-Haken: Teppiche, Mauern, Galerie, Saal, Dach-Arena (vor dem Verschmelzen; Kollision zählt zum Umriss). */
 function build(level) {
+  kuerbisLaternen(level, [
+    { pos: [-2.2, Y, 7.6], mount: 'pfahl' }, { pos: [2.2, Y, 7.6], mount: 'pfahl' }, { pos: [-2.2, Y, 1.6], mount: 'pfahl' }, { pos: [2.2, Y, 1.6], mount: 'pfahl' },
+    { pos: [-4.4, YT, -113], size: 0.6 }, { pos: [4.4, YT, -113], size: 0.6 },
+    { pos: [-3.3, YW + 1, -154], size: 0.55 }, { pos: [3.3, YW + 1, -160], size: 0.55 }, { pos: [-3.3, YW + 1, -172], size: 0.55 }, { pos: [3.3, YW + 1, -178], size: 0.55 },
+    { pos: [-5.3, YT2 + 1, -136.5], size: 0.5, light: false }, { pos: [5.3, YT2 + 1, -139.5], size: 0.5, light: false },
+  ]);
   teppich(level, [
     { x0: -1.3, x1: 1.3, z0: 11.4, z1: -4.8, y: Y },
     { x0: -1.3, x1: 1.3, z0: -15.2, z1: -59.6, y: Y },
@@ -171,10 +177,6 @@ export const LEVEL = {
       { kind: 'kuerbisse', pos: [6.6, Y, -2.6], size: [3, 3], n: 5, faces: 0.6 },
     ] },
     { type: 'deco_hw', items: [
-      { kind: 'kuerbislaterne', pos: [-2.2, Y, 7.6], mount: 'pfahl', size: 0.7 },
-      { kind: 'kuerbislaterne', pos: [2.2, Y, 7.6], mount: 'pfahl', size: 0.7 },
-      { kind: 'kuerbislaterne', pos: [-2.2, Y, 1.6], mount: 'pfahl', size: 0.7 },
-      { kind: 'kuerbislaterne', pos: [2.2, Y, 1.6], mount: 'pfahl', size: 0.7 },
       { kind: 'kerzen', pos: [7.4, Y, 9.6], n: 4 },
     ] },
     { type: 'bridge', from: [0, Y, -5], to: [0, Y, -15], width: 3.6 },
@@ -245,12 +247,6 @@ export const LEVEL = {
     { type: 'stairs', pos: [0, YT2, -142], dir: '-z', steps: 7, rise: 0.5, run: 0.9, width: 4.2, style: 'stone' },
     isl(-3, 3, -148.3, -186.5, YW),
     { type: 'deco_hw', items: [
-      { kind: 'kuerbislaterne', pos: [-4.4, YT, -113], size: 0.6 },
-      { kind: 'kuerbislaterne', pos: [4.4, YT, -113], size: 0.6 },
-      { kind: 'kuerbislaterne', pos: [-3.3, YW + 1, -154], size: 0.55 },
-      { kind: 'kuerbislaterne', pos: [3.3, YW + 1, -160], size: 0.55 },
-      { kind: 'kuerbislaterne', pos: [-3.3, YW + 1, -172], size: 0.55 },
-      { kind: 'kuerbislaterne', pos: [3.3, YW + 1, -178], size: 0.55 },
       { kind: 'fledermaus_girlande', from: [-4.6, YW + 4.4, -166], to: [4.6, YW + 4.4, -166], n: 8, sag: 0.8 },
       { kind: 'kerzen', pos: [-4.2, YT2, -140.6], n: 3 },
     ] },
