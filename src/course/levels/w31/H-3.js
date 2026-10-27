@@ -67,7 +67,7 @@ function scene(level) {
     [-1.3, 1.3, 7.5, -13], [-1.3, 1.3, -18, -30], [-1.3, 1.3, -62.5, -72], [-1.3, 1.3, -128, -140], [-1.3, 1.3, -152, -186],
     [-4.6, -1.3, -164.4, -167.0], [1.3, 4.4, -178.6, -181.6], [-1.3, 1.3, -194, -206],
   ], Y);
-  stonePath(level, [[-1.3, 1.3, -209, -216.4], [1.3, 4.6, -215.0, -222.6], [-3.6, -1.3, -219.6, -222.6]], PLAZA);
+  stonePath(level, [[-1.3, 1.3, -209, -215.0], [-3.6, 4.6, -215.0, -222.6]], PLAZA);
   floatRock(level, -8, 8, -62.5, -72, -4, 6, { n: 3, seed: 6 });
   floatRock(level, -9, 11, -74, -127, -4.2, 6, { n: 4, roots: 10, seed: 7 });
   floatRock(level, -9, 9, -128, -140, -4, 6, { n: 3, seed: 8 });
@@ -91,6 +91,10 @@ function scene(level) {
     [8.2, Y, -200.4, 0.42, 'grinsen'], [-8.6, PLAZA, -222.4, 0.4, 'lachen'], [9.4, PLAZA, -229.8, 0.5, 'staunen'],
     ...pumpkinPatch(-6, Y, -80, 2.6, 6, 5, { seed: 21 }), ...pumpkinPatch(7.6, Y, -118, 2.4, 6, 5, { seed: 22 }),
     ...pumpkinPatch(6.5, Y, -135, 3, 4, 4, { seed: 23 }),
+    // kleine Kürbislaternen säumen den Weg am Tor und hinauf zur Kapelle
+    ...[4.4, -1.2, -16.4, -22.6, -27.6].flatMap((z, i) => [[-1.75, Y, z, 0.2, i % 2 ? 'lachen' : 'grinsen', 'orange', -Math.PI / 2 + 0.5], [1.75, Y, z - 0.8, 0.2, i % 2 ? 'grinsen' : 'lachen', i === 2 ? 'gelb' : 'orange', -Math.PI / 2 - 0.5]]),
+    ...[-196.6, -200.4, -204.2].flatMap((z) => [[-1.8, Y, z, 0.2, 'lachen', 'orange', -Math.PI / 2 + 0.5], [1.8, Y, z, 0.2, 'grinsen', 'orange', -Math.PI / 2 - 0.5]]),
+    ...[-211.2, -214.2, -217.2].map((z, i) => [-1.8, PLAZA, z, 0.2, i % 2 ? 'staunen' : 'lachen', 'orange', -Math.PI / 2 + 0.5]),
   ]);
   lanternPosts(level, [
     [-2.6, Y, -6.6], [2.8, Y, -11.6], [-2.4, Y, -20.4], [2.6, Y, -28.6], [-3.6, Y, -70.6], [3.6, Y, -70.4],
