@@ -31,7 +31,7 @@ export function buildLava(level, spec) {
   mesh.position.set(p.x, top - 0.05, p.z);
   // Rand/Körper unter der Oberfläche (dunkle Kruste)
   const body = new THREE.Mesh(new THREE.BoxGeometry(s.x, s.y, s.z), new THREE.MeshStandardMaterial({ color: LC.body, roughness: 0.9, emissive: LC.glow }));
-  body.position.set(p.x, p.y + s.y / 2 - 0.06, p.z);
+  body.position.set(p.x, p.y + s.y / 2 - 0.16, p.z);   // Oberkante unter dem tiefsten Wellental (top − 0,10), sonst dunkle Flecken
   const group = new THREE.Group();
   group.add(mesh, body);
   const pos = g.attributes.position;
