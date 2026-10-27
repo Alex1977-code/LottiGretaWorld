@@ -4868,7 +4868,8 @@ zwei Level), Test `tests/course_hwc.mjs`. **Kein Motor-Code geändert**; alle So
   (Sprung 7,2 m) → großer Kronleuchter (begehbare Platte, y 8,6; vom Boden und von den Tafeln unerreichbar).
 - Extraleben: unsichtbarer Block in der Ahnengalerie; ?-Blöcke mit Wachstumsbeere im Vorhof und vor dem Treppenaufgang.
 - Gegner: Kürbling 5, Klapperknochen 4 (nur auf Flächen mit Wänden/Brüstungen), Großspuk 1, Kreisgeist-Kreis 1 (8 Geister),
-  Graf Brummbär (Werte wie im Vertrag; Arena r 9, Sperre an der Lücke vorn, Kampfkamera wie 0-22).
+  Graf Brummbär (Werte wie im Vertrag; Arena r 9, Sperre an der Lücke vorn, Kampfkamera wie 0-22). 39 Süßigkeiten, 36 Bitcoins
+  frei im Level (Teppich-Spuren, Ring um den Geisterreigen).
 - Überraschungen: `kicherGeist` (kleiner Halloween-Spuk lugt hinter dem Kreuz-Grabstein hervor, verschwindet kichernd, wenn
   man näher als 4,5 m kommt), `kruemelLaterne` (Krümel – mit Mini-Vampirumhang, sobald die Verkleidung im Motor ist –
   schwenkt am Siegerbalkon die Laterne, jubelt und sagt „Juhu! Was für eine Gruselgala!“), `kuerbisKutsche`, `bankett`,
@@ -4888,8 +4889,8 @@ kennt), Routen-Bot Lotti und Greta Start → Ziel (H-4 ≈ 53 s mit 4 Besen und 
 Kessel allein, Stern 2 nicht ohne Netz, Stempel nicht ohne Besen; Gruft nicht ohne Stampfen, Tresor nicht durch Stampfen,
 Kronleuchter nicht ohne Netz), Extras (winkender Kürbis, Extraleben, Besen wartet, Checkpoints auf Balkon und Glockenterrasse, kichernder
 Geist, Bomben-Nachschub, Geisterbrücke nur bei Licht, Krümel jubelt, Tod im Kampf → Neustart vor dem Dach, Graf 3/3).
-Gemessen (scale 2, inkl. Schattenpass): H-4 Messgang ≤ 87 Zeichenaufrufe / ≤ 226 k Dreiecke, Bilder 35–89 / ≤ 242 k;
-H-Burg Messgang ≤ 78 / ≤ 245 k, Bilder 41–84 / ≤ 242 k (Start 220 k nach dem Wechsel auf sparsame Kürbislaternen).
+Gemessen (scale 2, inkl. Schattenpass): H-4 Messgang ≤ 90 Zeichenaufrufe / ≤ 240 k Dreiecke, Bilder 35–89 / ≤ 240 k;
+H-Burg Messgang ≤ 78 / ≤ 245 k, Bilder 41–84 / ≤ 243 k (Start 220 k nach dem Wechsel auf sparsame Kürbislaternen).
 
 Hinweis an den Modell-Agenten: `hexenturm` (`towerBody`) liefert NaN-Positionen bei Höhen, deren Hälfte nicht exakt
 darstellbar ist (z. B. 3,2 oder 4,2: `Math.pow(y / H, 1.6)` mit y = −ε am Fuß) – die Level nutzen Höhen 3 und 4.
