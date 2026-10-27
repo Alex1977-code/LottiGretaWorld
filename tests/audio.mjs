@@ -317,12 +317,25 @@ const sc = (fn, arg) => page.evaluate(fn, arg);
 const audio = () => sc(() => { const a = window.__audio; return { ctx: a.engine.ctx ? a.engine.ctx.state : 'none', ready: a.engine.ready, theme: a.music.current, drums: a.music.drums, muted: a.engine.muted, pending: a.music.pending ?? null, energy: a.music.energyGain ? a.music.energyGain.gain.value : null }; });
 
 /** Läuft im Browser: Thema offline rendern und vermessen (optional ein übergebenes Themen-Objekt und ein Ausschnitt als WAV). */
-async function analyzeInPage({ name, seconds, energy, wantWav, beatMult = 1, wavSeconds = Infinity, theme = null, excerpt = null }) {
+async function analyzeInPage({ name, seconds, energy, wantWav, beatMult = 1, wavSeconds = Infinity, theme = null, excerpt = null, seamAt = null }) {
   const r = await window.__audio.music.renderTheme(name, seconds, { energy, theme });
   const x = r.buffer.getChannelData(0), sr = r.sampleRate;
   let peak = 0, sum = 0, peakAt = 0;
   for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > peak) { peak = a; peakAt = i / sr; } sum += x[i] * x[i]; }
   const rms = Math.sqrt(sum / x.length);
+
+  // Loop-Naht (optional): RMS je Zählzeit (Fenster = ein Schlag ab dem Themenstart) in den zwei Schlägen vor und nach
+  // der Naht gegen den Median aller Schläge, Spitze ±0,25 s um die Naht
+  let seam = null;
+  if (seamAt !== null) {
+    const wn = Math.round(60 / r.bpm * sr), wins = [];
+    for (let i = Math.round(0.02 * sr); i + wn <= x.length; i += wn) { let q = 0; for (let j = i; j < i + wn; j++) q += x[j] * x[j]; wins.push({ t: (i + wn / 2) / sr, rms: Math.sqrt(q / wn) }); }
+    const med = [...wins].sort((p, q) => p.rms - q.rms)[Math.floor(wins.length / 2)].rms;
+    const near = wins.filter((w) => Math.abs(w.t - seamAt) <= 2 * 60 / r.bpm);
+    let seamPeak = 0;
+    for (let i = Math.max(0, Math.round((seamAt - 0.25) * sr)); i < Math.min(x.length, Math.round((seamAt + 0.25) * sr)); i++) seamPeak = Math.max(seamPeak, Math.abs(x[i]));
+    seam = { at: seamAt, median: med, minNear: Math.min(...near.map((w) => w.rms)), maxNear: Math.max(...near.map((w) => w.rms)), peak: seamPeak };
+  }
 
   // Spektrum: FFT (8192, Hann), Leistung über alle Rahmen gemittelt
   const N = 8192;
@@ -389,7 +402,7 @@ async function analyzeInPage({ name, seconds, energy, wantWav, beatMult = 1, wav
   };
   const wav = wantWav ? pcm16(0, Math.round(Math.min(seconds, wavSeconds) * sr)) : null;
   const excerptWav = excerpt ? pcm16(Math.round(excerpt.from * sr), Math.round(excerpt.seconds * sr)) : null;
-  return { name, seconds, bpm: r.bpm, bars: r.bars, sampleRate: sr, peak, peakAt, rms, bands, beatLag: bestLag / rate, beatExpected: beat, acBest: best, acBeat, acEighth, acOff, nodesPerSecond: r.nodesPerSecond, oscPerSecond: r.oscillatorsPerSecond, inGameLevel: r.inGameLevel, wav, excerptWav };
+  return { name, seconds, bpm: r.bpm, bars: r.bars, sampleRate: sr, peak, peakAt, rms, seam, bands, beatLag: bestLag / rate, beatExpected: beat, acBest: best, acBeat, acEighth, acOff, nodesPerSecond: r.nodesPerSecond, oscPerSecond: r.oscillatorsPerSecond, inGameLevel: r.inGameLevel, wav, excerptWav };
 }
 
 /**
@@ -626,6 +639,7 @@ if (want('live')) {
   check('course_boss: Hoover-Riser und Stabs', ['riser', 'stabs'].every((k) => infos.find((i) => i?.name === 'course_boss')?.tracks.includes(k)));
   check('course_clear: höchstens 3 Takte, kein Loop', infos.find((i) => i?.name === 'course_clear')?.bars <= 3);
   check(`Alle ${CONTRACT_THEMES_W.length} Themen für Welt 2–4 vorhanden`, CONTRACT_THEMES_W.every((n) => infos.some((i) => i && i.name === n)));
+  check(`Alle ${CONTRACT_THEMES_H.length} Themen der Halloween-Welt vorhanden (themeInfo)`, CONTRACT_THEMES_H.every((n) => infos.some((i) => i && i.name === n)));
   for (const [name, spec] of Object.entries(COURSE_THEMES)) {
     if (!spec.has && !spec.drums && !spec.fx) continue;
     const i = infos.find((x) => x && x.name === name);
@@ -847,7 +861,8 @@ if (want('render')) {
   console.log(`\nKurs-Themen offline (RMS-Bereich = bestehende Themen ±3 dB: ${fmt(rmsLo)}–${fmt(rmsHi)})`);
   const courseResults = {}, refrains = {};
   const PREVIEW = 30, REFRAIN = 15;
-  const COLLECT = { 2: (sp) => !sp.map, 5: () => true }; // Sammel-Hörproben: Welt 2 ohne Karte, Welt 5 mit allen zehn Themen
+  const COLLECT = { 2: (sp) => !sp.map, 5: () => true, [HW]: () => true }; // Sammel-Hörproben: Welt 2 ohne Karte, Welt 5 und Halloween mit allen Themen
+  const wavName = (name, spec) => (spec.world === HW ? `hw_${name.replace('course_', '')}` : name); // Halloween: tests/out/hw_<thema>_30s.wav
   const jobs = [];
   for (const [name, spec] of Object.entries(COURSE_THEMES)) {
     if (ONLY && !ONLY.includes(name)) continue;
@@ -855,10 +870,13 @@ if (want('render')) {
     const info = infos.find((i) => i?.name === name);
     const preview = spec.preview !== undefined;
     const barSec = info.seconds / info.bars;
-    const seconds = info.loop ? Math.max(8, info.seconds, preview ? PREVIEW : 0) : info.seconds + 0.6;
+    // Halloween: 2 s über das Loop-Ende hinaus rendern, damit die Naht (letzter Takt → erster Takt) im Puffer liegt
+    const seam = spec.world === HW;
+    const seconds = info.loop ? Math.max(8, info.seconds + (seam ? 2 : 0), preview ? PREVIEW : 0) : info.seconds + 0.6;
     const theme = preview ? rotateTheme(THEMES[name], spec.preview) : null;
     const excerpt = preview && COLLECT[spec.world]?.(spec) ? { from: ((spec.hook - spec.preview + info.bars) % info.bars) * barSec, seconds: REFRAIN } : null;
-    jobs.push({ job: { name, seconds, energy: false, wantWav: true, wavSeconds: preview ? PREVIEW : 8, beatMult: spec.beatMult ?? 1, theme, excerpt }, spec, info, preview });
+    const seamAt = seam ? 0.02 + ((info.bars - (spec.preview ?? 0)) % info.bars || info.bars) * barSec : null;
+    jobs.push({ job: { name, seconds, energy: false, wantWav: true, wavSeconds: preview ? PREVIEW : 8, beatMult: spec.beatMult ?? 1, theme, excerpt, seamAt }, spec, info, preview });
     if (spec.energy) jobs.push({ job: { name, seconds, energy: true, wantWav: false, beatMult: spec.beatMult ?? 1, label: `${name}+energy` }, spec, info, preview: false });
   }
   // je zwei Themen gleichzeitig rendern (jeder OfflineAudioContext rechnet in einem eigenen Audio-Thread)
@@ -874,8 +892,9 @@ if (want('render')) {
       console.log(`   Spitze ${fmt(r.peak)} bei ${fmt(r.peakAt, 2)} s  RMS ${fmt(r.rms)} (im Spiel ${fmt(r.rms * r.inGameLevel)})  Knoten/s ${fmt(r.nodesPerSecond, 1)}  Oszillatoren/s ${fmt(r.oscPerSecond, 1)}`);
       console.log(`   Bänder: Bass ${fmt(b.bass.dB, 1)} dBFS (${fmt(b.bass.share * 100, 1)} %), Mitten ${fmt(b.mid.dB, 1)} dBFS (${fmt(b.mid.share * 100, 1)} %), Höhen ${fmt(b.high.dB, 1)} dBFS (${fmt(b.high.share * 100, 2)} %)`);
       if (!spec.noBeat) console.log(`   Beat: AK-Maximum bei ${fmt(r.beatLag)} s (erwartet ${fmt(r.beatExpected)} s = ${job.beatMult}·60/${r.bpm}); AK(Kick-Abstand) ${fmt(r.acBeat, 2)}, AK(halber) ${fmt(r.acEighth, 2)}, AK(3/4) ${fmt(r.acOff, 2)}`);
+      if (r.seam) console.log(`   Loop-Naht bei ${fmt(r.seam.at, 2)} s: RMS je Schlag (2 vor, 2 nach) ${fmt(r.seam.minNear)}–${fmt(r.seam.maxNear)} (Median aller Schläge ${fmt(r.seam.median)}), Spitze ±0,25 s ${fmt(r.seam.peak)}`);
       if (r.wav) {
-        const file = `${OUT}${name}${preview ? '_30s' : ''}.wav`;
+        const file = `${OUT}${wavName(name, spec)}${preview ? '_30s' : ''}.wav`;
         writeWav(file, r.wav, r.sampleRate);
         console.log(`   WAV: ${file}${preview ? ` (${PREVIEW} s ab Takt ${spec.preview + 1}: Strophe → Refrain ab Takt ${spec.hook + 1})` : ''}`);
       }
@@ -892,11 +911,23 @@ if (want('render')) {
     if (!r.spec.noBeat) {
       check(`${label}: Beat-Periodizität am Kick-Abstand ${fmt(r.beatExpected)} s (${fmt(r.beatLag)} s)`, Math.abs(r.beatLag - r.beatExpected) <= r.beatExpected * 0.03 && r.acBeat > r.acOff);
     }
+    if (r.seam) {
+      check(`${label}: Loop-Naht ohne Einbruch und ohne Spitze (RMS je Schlag an der Naht ≥ 50 % des Medians: ${fmt(r.seam.minNear)} / ${fmt(r.seam.median)}, Spitze ${fmt(r.seam.peak)} < 0,98)`, r.seam.minNear >= 0.5 * r.seam.median && r.seam.peak < 0.98);
+    }
+  }
+  // Pegel der Halloween-Themen wie Welt 5 (nur wenn beide Welten in diesem Lauf gerendert wurden): Median von RMS und
+  // Spitze je Welt, Abstand höchstens 1,5 dB
+  const byWorld = (w) => Object.values(courseResults).filter((r) => r.spec.world === w && !r.spec.map);
+  const db = (a, b) => 20 * Math.log10(a / b);
+  if (byWorld(5).length && byWorld(HW).length) {
+    const lv = (w, k) => median(byWorld(w).map((r) => r[k]));
+    console.log(`\nPegel (ohne Karten): Welt 5 RMS-Median ${fmt(lv(5, 'rms'))}, Spitze-Median ${fmt(lv(5, 'peak'))}; Halloween RMS-Median ${fmt(lv(HW, 'rms'))}, Spitze-Median ${fmt(lv(HW, 'peak'))}`);
+    check(`Halloween-Pegel wie Welt 5: RMS ${fmt(db(lv(HW, 'rms'), lv(5, 'rms')), 1)} dB, Spitze ${fmt(db(lv(HW, 'peak'), lv(5, 'peak')), 1)} dB (je höchstens ±1,5 dB)`, Math.abs(db(lv(HW, 'rms'), lv(5, 'rms'))) <= 1.5 && Math.abs(db(lv(HW, 'peak'), lv(5, 'peak'))) <= 1.5);
   }
 
-  // Sammel-Hörproben: Welt 2 (die sieben Kurs-Themen) und Welt 5 (alle zehn Themen) je 15 s ab dem Refrain
-  // (0,3 s ausgeblendet), 1 s Pause dazwischen
-  for (const [w, count] of [[2, 7], [5, 10]]) {
+  // Sammel-Hörproben: Welt 2 (die sieben Kurs-Themen), Welt 5 (alle zehn Themen) und die Halloween-Welt (alle sechs) je
+  // 15 s ab dem Refrain (0,3 s ausgeblendet), 1 s Pause dazwischen
+  for (const [w, count] of [[2, 7], [5, 10], [HW, 6]]) {
     const names = Object.entries(COURSE_THEMES).filter(([, sp]) => sp.world === w && COLLECT[w](sp)).map(([n]) => n);
     if (!names.every((n) => refrains[n])) continue;
     const sr = refrains[names[0]].sr, gap = Buffer.alloc(sr * 2), parts = [gap], order = [];
@@ -908,9 +939,10 @@ if (want('render')) {
       order.push(`${fmt(t, 1)} s ${n}`);
       t += samples / sr + 1;
     }
-    writeWav(`${OUT}hoerprobe_welt${w}.wav`, Buffer.concat(parts), sr);
-    console.log(`\nSammel-Hörprobe: ${OUT}hoerprobe_welt${w}.wav (${fmt(t, 1)} s): ${order.join(', ')}`);
-    check(`Sammel-Hörprobe Welt ${w} mit allen ${names.length} Themen je ${REFRAIN} s ab dem Refrain geschrieben`, order.length === count);
+    const file = `${OUT}hoerprobe_${w === HW ? 'halloween' : `welt${w}`}.wav`;
+    writeWav(file, Buffer.concat(parts), sr);
+    console.log(`\nSammel-Hörprobe: ${file} (${fmt(t, 1)} s): ${order.join(', ')}`);
+    check(`Sammel-Hörprobe ${w === HW ? 'Halloween' : `Welt ${w}`} mit allen ${names.length} Themen je ${REFRAIN} s ab dem Refrain geschrieben`, order.length === count);
   }
 
   // ---- Hall/Echo-Bus wirkt: ein einzelner Tropfen mit den Höhlen-Einstellungen, mit und ohne fx ----
