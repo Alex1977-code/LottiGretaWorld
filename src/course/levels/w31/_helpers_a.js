@@ -302,6 +302,20 @@ export function hoftor(level, o) {
  * list = [{ x0, x1, z0, z1, y, dir: 'z' (Furchen entlang z) | 'x', gap: 1.2 }].
  */
 export function ackerFurchen(level, list) {
+  // lange Beete in Stücke an den 16-m-Grenzen (z) teilen: so bleiben die 32-m-Abschnitte des Motors eng (Sichtprüfung)
+  const parts = [];
+  for (const f of list) {
+    const za = Math.max(f.z0, f.z1), zb = Math.min(f.z0, f.z1);
+    let z = za;
+    while (z > zb + 0.01) {
+      let zn = Math.floor(z / 16) * 16;
+      if (zn >= z - 1e-6) zn -= 16;
+      zn = Math.max(zb, zn);
+      parts.push({ ...f, z0: z, z1: zn });
+      z = zn;
+    }
+  }
+  list = parts;
   const P = [];
   const soil = L(0x5a3220), soilHi = L(0x8a5634), leaf = L(0x5aa03a), bed = L(0x4a2a1a);
   for (const f of list) {
@@ -455,10 +469,11 @@ export function maisStreu(level, f, o = {}) {
     }
   } else pts = streu(f.pos, f.size, f.n ?? 10, f.gap ?? 1.0, f.avoid, f.seed ?? 1);
   const y = f.y ?? f.pos[1];
-  // in Stücke je ≈ 12 m (z) teilen: Schatten nur für Stücke, deren Mitte nahe am Weg liegt (o.shadowX: [x0, x1])
+  // in Stücke je 16 m (z, an den 32-m-Abschnitten des Motors ausgerichtet) teilen; Schatten nur für Stücke nahe am Weg
+  // (o.shadowX: [x0, x1])
   const chunks = new Map();
   pts.forEach(([x, z], i) => {
-    const key = `${Math.floor(z / 12)}:${o.shadowX && (x < o.shadowX[0] || x > o.shadowX[1]) ? 0 : 1}`;
+    const key = `${Math.floor(z / 16)}:${o.shadowX && (x < o.shadowX[0] || x > o.shadowX[1]) ? 0 : 1}`;
     if (!chunks.has(key)) chunks.set(key, []);
     maisBueschel(x, y, z, i + (f.seed ?? 1) * 101, f.count ?? 2, h0, h1, chunks.get(key), f.leaves ?? 4);
   });

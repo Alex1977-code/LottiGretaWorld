@@ -7,7 +7,8 @@
 // Messgang entlang der Route (Zeichenaufrufe < 120 inkl. Schattenpass, Dreiecke < 300 k) und Bilder aus der Spielkamera
 // (tests/out/hwa_*.png).
 // Aufruf (nach npm run build): PORT_BASE=0 node tests/course_hwa.mjs [H-1|H-2]
-//   PARTS=load,route,sweep,targets,extra,shots (Standard alle; je Lauf ≤ 10 min) · HEROES=lotti,greta · ONLY=<Text> (nur
+//   PARTS=load,route,sweep,targets,extra,shots (Standard alle; shotsA/shotsB = erste/zweite Hälfte der Bilder; je Lauf
+//   ≤ 10 min: load,route · sweep · targets · extra · shotsA · shotsB getrennt) · HEROES=lotti,greta · ONLY=<Text> (nur
 //   Ziele/Extras mit diesem Namensteil) · VERBOSE=1 (Protokoll der Beine) · SHOTS=<Name|Name> (nur diese Bilder) ·
 //   DETAIL=1 (Zeichenaufrufe je Objekt in den Bildern)
 //
@@ -589,7 +590,7 @@ const stats = [];
 async function shot(name, wait = 600) {
   await sc(() => window.__course.snapCamera());
   const f0 = await sc(() => window.__course.view.frame);
-  await page.waitForFunction((f) => window.__course.view.frame >= f + 10, f0, { timeout: 90000 });
+  await page.waitForFunction((f) => window.__course.view.frame >= f + 5, f0, { timeout: 90000 });
   await page.waitForTimeout(wait);
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
@@ -693,11 +694,13 @@ for (const id of LEVELS) {
   }
 
   // ------------------------------------------------ Bilder je Abschnitt aus der Spielkamera
-  if (ONLY || !PARTS.has('shots')) continue;
+  if (ONLY || !(PARTS.has('shots') || PARTS.has('shotsA') || PARTS.has('shotsB'))) continue;
   loaded = null;
   await load(id);
-  for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2] of R.shots) {
+  const half = Math.ceil(R.shots.length / 2);
+  for (const [k, [name, pos, steps = 0, input = null, yaw = Math.PI / 2]] of R.shots.entries()) {
     if (SHOTS && !SHOTS.has(name)) continue;
+    if (!PARTS.has('shots') && (PARTS.has('shotsA') ? k >= half : k < half)) continue;
     await W('place', pos, { settle: 10, yaw });
     if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
     await shot(`${id}_${name}`);

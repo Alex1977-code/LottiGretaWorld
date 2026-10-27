@@ -114,9 +114,9 @@ function build(level) {
   maisStreu(level, { pos: [11, YP, -93], size: [6, 6], n: 7, seed: 5 }, { shadow: false });
   // Maisfeld in Reihen auf Ackerfurchen; frei bleiben Krümels Laternenweg und Lichtung, Rampen, Kanone, Mühle
   const KW = [...KRUEMEL_WEG.map((l) => [l.pos[0], l.pos[2], 1.6]), [-4, -141.2, 1.6], [KRUEMEL.pos[0], KRUEMEL.pos[2], 3.2], [-3.7, -140, 2.6], [-3.7, -164, 2.6], [-3.6, -147, 1.2]];
-  maisStreu(level, { x0: -18, x1: -2.4, z0: -124.6, z1: -169.4, y: YM, row: 1.8, step: 1.5, seed: 21, avoid: KW }, { shadowX: [-9, 9] });
-  maisStreu(level, { x0: 2.4, x1: 20, z0: -124.6, z1: -149, y: YM, row: 1.8, step: 1.5, seed: 24, avoid: [[KANONE_B.pos[0], KANONE_B.pos[2], 3.4], [3.7, -129, 2.6], [8.2, -133.2, 1.4]] }, { shadowX: [-9, 9] });
-  maisStreu(level, { x0: 2.4, x1: 24, z0: -166.6, z1: -169.4, y: YM, row: 1.8, step: 1.5, seed: 26, avoid: [[3.7, -167, 2.6]] }, { shadowX: [-9, 9] });
+  maisStreu(level, { x0: -18, x1: -2.4, z0: -124.6, z1: -169.4, y: YM, row: 1.8, step: 1.5, seed: 21, avoid: KW }, { shadowX: [-6, 6] });
+  maisStreu(level, { x0: 2.4, x1: 20, z0: -124.6, z1: -149, y: YM, row: 1.8, step: 1.5, seed: 24, avoid: [[KANONE_B.pos[0], KANONE_B.pos[2], 3.4], [3.7, -129, 2.6], [8.2, -133.2, 1.4]] }, { shadowX: [-6, 6] });
+  maisStreu(level, { x0: 2.4, x1: 24, z0: -166.6, z1: -169.4, y: YM, row: 1.8, step: 1.5, seed: 26, avoid: [[3.7, -167, 2.6]] }, { shadowX: [-6, 6] });
   ackerFurchen(level, [
     { x0: -18, x1: -1.8, z0: -124.4, z1: -169.6, y: YM, gap: 1.8 },
     { x0: 1.8, x1: 20.8, z0: -124.4, z1: -149.3, y: YM, gap: 1.8 },
@@ -148,7 +148,7 @@ export const LEVEL = {
     { from: -62, to: -98, pitch: 34, dist: 14, fov: 42, height: 1.6 },           // Kullerhang (hinauf)
     { from: -98, to: -124, pitch: 40, dist: 13, fov: 40 },                        // Scheunen-Plateau
     { from: -124, to: -170, pitch: 44, dist: 14, fov: 42 },                       // Laternenpfad
-    { from: -170, to: -186, pitch: 34, dist: 14, fov: 42, height: 1.6 },         // Kürbis-Kanone
+    { from: -170, to: -186, pitch: 40, dist: 13.5, fov: 42, height: 1.4 },       // Kürbis-Kanone
     { from: -186, to: -270, pitch: 40, dist: 13, fov: 40 },                       // Feld, Ziel
     { from: -120, to: -156, pitch: 40, dist: 14, fov: 42, area: [19, 34] },      // Windmühle
   ],
@@ -204,11 +204,11 @@ export const LEVEL = {
 
     // =============================================================== D  Laternenpfad im Maisfeld
     // Feld links und rechts (Höhe 3), Damm (Höhe 5) mit Lücken, Teich mit Stempel-Insel rechts
-    isl(-18, -1.7, -124, -170, YM, 7),
-    isl(-1.7, 1.7, -124, -170, YM, 7),
+    isl(-18, -1.7, -124, -160, YM, 7), isl(-18, -1.7, -160, -170, YM, 7),
+    isl(-1.7, 1.7, -124, -160, YM, 7), isl(-1.7, 1.7, -160, -170, YM, 7),
     isl(1.7, 30, -124, TEICH.z0, YM, 7),
-    isl(1.7, TEICH.x0, TEICH.z0, TEICH.z1, YM, 7),
-    isl(TEICH.x1, 30, TEICH.z0, TEICH.z1, YM, 7),
+    isl(1.7, TEICH.x0, TEICH.z0, -160, YM, 7), isl(1.7, TEICH.x0, -160, TEICH.z1, YM, 7),
+    isl(TEICH.x1, 30, TEICH.z0, -160, YM, 7), isl(TEICH.x1, 30, -160, TEICH.z1, YM, 7),
     isl(1.7, 30, TEICH.z1, -170, YM, 7),
     isl(TEICH.x0, TEICH.x1, TEICH.z0, TEICH.z1, TEICH.bed, 5),
     { type: 'water', pos: [(TEICH.x0 + TEICH.x1) / 2, TEICH.bed, (TEICH.z0 + TEICH.z1) / 2], size: [TEICH.x1 - TEICH.x0, TEICH.surf - TEICH.bed, TEICH.z0 - TEICH.z1] },
@@ -255,7 +255,6 @@ export const LEVEL = {
     { type: 'riesenkuerbis_roll', id: 'feld_r', pos: [11.4, YF, -236.5], dir: [-1, 0], every: 4.4, first: 2.6, max: 2, size: 1.6, speed: 3, vmax: 4, start: 'near', near: 20, life: 11 },
     { type: 'deco_hw', items: [
       { kind: 'vogelscheuche', pos: [-6.5, YF, -232], size: 1.1 },
-      { kind: 'vogelscheuche', pos: [6.8, YF, -231.6], size: 1.0 },
       { kind: 'strohballen', pos: [12.6, YF, -227.5], form: 'rund', yaw: 0 },
       { kind: 'strohballen', pos: [-12.6, YF, -236.5], form: 'rund', yaw: 0 },
       { kind: 'zaun', from: [LANDE.x0 + 0.4, YF, -209], to: [LANDE.x0 + 0.4, YF, -224], style: 'holz' },
