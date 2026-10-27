@@ -2,7 +2,8 @@
 // (tests/course_hw_enemies.mjs) mit Archetyp 'boss'. Rundes Schlossdach (Innenradius 9,6 m, Oberseite y = 2) mit Brüstung
 // und Zinnen über dem Abgrund, vorn ein Steg mit Lücke in der Brüstung (Sperre während des Kampfs), dahinter der Vollmond.
 // Der Graf steht hinten und blickt zur Figur; der Kampf beginnt beim Schritt vom Steg aufs Dach. Nach dem Sieg: Stern vorn,
-// Warp-Box in der Mitte zum Zielplateau. Thema 'ghost' (Stimmung 'aussen': Mondnacht), Musik course_brummula.
+// Warp-Box in der Mitte zum Zielplateau. Thema 'castle_night' (Vollmondnacht, Grundstimmung 'aussen'), Musik
+// course_brummula.
 
 import * as THREE from 'three';
 import { colorize, lin, mixc, smooth, addStatic, addObject, merge } from '../../blocks/kit.js';
@@ -99,7 +100,7 @@ export const LEVEL = {
   world: 0,
   title: 'Schlossdach des Grafen',
   archetype: 'boss',
-  theme: 'ghost',
+  theme: 'castle_night',
   music: 'course_brummula',
   halloween: true,
   timeLimit: 400,
@@ -131,8 +132,11 @@ export const LEVEL = {
   ],
   goal: [0, Y, -48],
   marks: { center: [0, Y, 0], start: [0, Y, 20], plateau: [0, Y, -40] },
+  // Dach im Aufbau-Haken (vor dem Verschmelzen und der Kulisse: zählt zu den Level-Grenzen)
+  build(level) { buildRoof(level); },
   setup(level) {
-    buildRoof(level);
-    level.view?.setMood?.('aussen');
+    // Kulissen-Fledermäuse des Themas castle_night fliegen über den Grenzen + 6 … 18 m – bei der hohen Kampfkamera (19 m,
+    // 50°) kreuzten sie sonst groß das Bild: höher legen
+    for (const bt of level.view?.sky?.bats?.bats ?? []) bt.cy += 14;
   },
 };

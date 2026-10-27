@@ -931,7 +931,7 @@ B.ring = await SHOT('hwe', 'graf_rundumwurf', () => {
 B.besiegt = await SHOT('hwe', 'graf_besiegt', () => {
   const c = window.__course, t = window.__t, g = t.boss(), p = c.player;
   t.throwBack([2, 2, 5]);
-  c.step(110);
+  c.step(170);
   p.pos.set(g.pos.x + 1.5, 2, g.pos.z + 4.5); p.vel.set(0, 0, 0);
   t.face(g.pos.x, g.pos.z);
 });

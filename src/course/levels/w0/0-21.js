@@ -38,7 +38,7 @@ export const LEVEL = {
   world: 0,
   title: 'Gruselwerkstatt',
   archetype: 'parcours',
-  theme: 'autumn',
+  theme: 'pumpkin',
   music: 'course_pumpkin',
   halloween: true,
   timeLimit: 999,

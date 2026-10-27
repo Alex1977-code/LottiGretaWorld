@@ -15,7 +15,8 @@
 //   Daten: { kind: 'kuerbling', pos, riese?: false, behavior?: 'chase' | 'patrol', sight?: 7, hop?: 1.1 (m je Hüpfer;
 //            Riese 1.4), height?: 0.5 (Riese 0.7), pause?: 0.35 (Riese 0.5), coins?: 1 (Riese: 2 + je 1 von den Kleinen),
 //            kids?: 3 (Riese), path?, loop?, dir?, wake?, edges?, drop?,
-//            vel?: [vx, vy, vz] (startet im Flug – z. B. springt er aus einer Süßigkeiten-Tür; landet und hüpft los) }
+//            vel?: [vx, vy, vz] (startet im Flug; landet und hüpft los), fromDoor?: id | true (Süßigkeiten-Tür der
+//            Bausteine: ohne vel hüpft er in Blickrichtung dir aus der Tür – 2,2 m/s vor, 5,5 m/s hoch) }
 //   Zustände: idle → rest ⇄ crouch → air → land; hurt (Riese, 0,6 s); burst (0,7 s, dann weg). Art (e.kind) des Riesen:
 //   'riesenkuerbling'.
 //   Laufzeit: hops, hp, kids (Entitäten der Kleinen), info(). Modell 'kuerbling' (state { anim: idle|hop|squashed|burst,
@@ -26,7 +27,7 @@
 //   federt die Krempe ab**: kein Treffer, aber ein hoher Abprall nach oben (bounce m/s, Standard 14 – zum Erreichen hoher
 //   Plattformen nutzbar). Seitlich verletzt. Feuer, Krallen, Panzer, Explosion, Stern, Riese besiegen ihn immer.
 //   Daten: { kind: 'hexenhut_huepfer', pos, behavior?: 'chase' | 'patrol', sight?: 7, hop?: 1.3, height?: 0.8,
-//            pause?: 0.55, bounce?: 14, path?, loop?, dir?, wake?, edges?, drop?, vel? }
+//            pause?: 0.55, bounce?: 14, path?, loop?, dir?, wake?, edges?, drop?, vel?, fromDoor? }
 //   Laufzeit: hops, brimBounces (Abpraller an der Krempe), info(). Modell 'hexenhut_huepfer' (state { anim:
 //   idle|hop|squashed, progress, height: 0 }).
 
@@ -48,10 +49,12 @@ class HwHuepfer extends EnemyW2 {
     this.hops = 0;
     this.airT = 0.5;
     this.state = 'idle';
-    if (Array.isArray(spec.vel)) {
-      this.vel.set(spec.vel[0], spec.vel[1], spec.vel[2]);
+    // Start im Flug: vel bzw. aus einer Süßigkeiten-Tür (fromDoor: hüpft in Blickrichtung dir heraus)
+    const v0 = Array.isArray(spec.vel) ? spec.vel : spec.fromDoor ? [this.dir.x * 2.2, 5.5, this.dir.z * 2.2] : null;
+    if (v0) {
+      this.vel.set(v0[0], v0[1], v0[2]);
       this.state = 'air';
-      this.airT = Math.max(0.3, (2 * Math.max(1, spec.vel[1])) / G);
+      this.airT = Math.max(0.3, (2 * Math.max(1, v0[1])) / G);
       this.grounded = false;
       this.wake = Math.max(this.wake, 999);
     }
