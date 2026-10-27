@@ -127,7 +127,7 @@ ROUTES['5-Zug'] = {
   loadChecks: [
     { name: 'Goldzug: Lok + Tender + 8 Goldwagen (Modell goldzug_waggon) + 4 Flachwagen, Wolkenwagen', fn: () => { const L = window.__course.level; const v = L.entities.filter((e) => e.kind === 'vehicle'); return { n: v.length, gold: v.filter((e) => e.spec.model === 'goldzug_waggon').length, lok: v.filter((e) => e.style === 'lok').length, wolke: !!L.named.get('wolke') }; }, ok: (v) => v.n === 15 && v.gold === 10 && v.lok === 1 && v.wolke },
     { name: 'keine Gegner, keine Sterne, kein Stempel (Bonus-Level), Stern-Plätze 0', fn: () => { const L = window.__course.level; return { enemies: L.entities.filter((e) => e.enemy).length, slots: L.data.starSlots, stars: L.entities.filter((e) => e.kind === 'star').length }; }, ok: (v) => v.enemies === 0 && v.slots === 0 && v.stars === 0 },
-    { name: 'Fahrplan: Fahrt ≈ 80 s, Halte-Pausen am Felswagen, Röhrenwagen, Blockwagen', fn: () => { const z = window.__course.level.data.zug; return { T: +z.ride.T.toFixed(1), D: +z.ride.D.toFixed(1), marks: z.ride.marks.length }; }, ok: (v) => v.T > 60 && v.T < 100 && v.marks === 6 },
+    { name: 'Fahrplan: Fahrt ≈ 90 s, Halte-Pausen am Felswagen, Röhrenwagen, Blockwagen', fn: () => { const z = window.__course.level.data.zug; return { T: +z.ride.T.toFixed(1), D: +z.ride.D.toFixed(1), marks: z.ride.marks.length }; }, ok: (v) => v.T > 60 && v.T < 100 && v.marks === 6 },
   ],
   // Spur der Bots: [c, x] – über den Kisten des Röhrenwagens rechts (x 1), am Blockwagen rechts an den Blöcken vorbei
   lane: [[0, 0.3], [58, 0.3], [59.5, 1.0], [69, 1.0], [70.5, 0.3], [98, 0.3], [99, 1.0], [108.5, 1.0], [109.5, 0.3], [140, 0.3]],
@@ -709,7 +709,7 @@ function installZug() {
   Z.ground = () => { const g = P().ground; return g?.mover?.vehicle?.spec?.id ?? g?.owner?.spec?.attach ?? g?.tag ?? null; };
   Z.park = () => { const p = P(); p.invuln = 1e9; p.mode = 'script'; p.script = { type: 'test', t: 0 }; };
   /** bis die Fenstermitte bei Zug-Koordinate cc steht (Figur geparkt). */
-  Z.waitWin = (cc, max = 120 * 200) => { Z.park(); let k = 0; while (Z.cw() < cc && L.scroll.state !== 'done' && k < max) { c.step(1); k++; } return k; };
+  Z.waitWin = (cc, max = 120 * 200) => { Z.park(); let k = 0; while (Z.cw() < cc && L.scroll.state !== 'done' && k < max) { c.step(1); k++; } if (cc > 1e6) for (let i = 0; i < 160; i++) c.step(1); return k; };
   /** Figur auf Zug-Koordinate cc, seitlich x setzen (Höhe: Fläche darunter, Strahl ab from). */
   Z.placeC = (cc, x, o = {}) => {
     const [X, , ZZ] = Z.at(cc, x, 0);
@@ -763,9 +763,10 @@ function installZug() {
   Z.board = (hero = 'lotti') => {
     const p = P();
     W.place(L.data.start.pos, { hero, settle: 2, invuln: 1e9 });
-    for (let i = 0; i < 240; i++) { c.setInput({ x: -1, jump: i < 30, run: false }); c.step(1); if (p.mode === 'ground' && i > 10) break; }
+    for (let i = 0; i < 240; i++) { c.setInput({ ...(p.mode === 'air' ? W.airSteer(0.3, p.pos.z, 0, 0, 3, 6) : { x: -1 }), jump: i < 30, run: false }); c.step(1); if (p.mode === 'ground' && i > 10) break; }
+    for (let i = 0; i < 20; i++) { c.setInput({}); c.step(1); }
     c.setInput({});
-    return { ground: Z.ground(), y: +p.pos.y.toFixed(2), time: +L.time.toFixed(2) };
+    return { ground: Z.ground(), x: +p.pos.x.toFixed(2), y: +p.pos.y.toFixed(2), time: +L.time.toFixed(2) };
   };
   Z.botStart = (lane, o = {}) => {
     const p = P();
@@ -777,7 +778,7 @@ function installZug() {
     const p = P(), w = L.scroll, B = Z.bs, log = B.log, o = B.o;
     for (let i = 0; i < n; i++) {
       log.steps++;
-      if (log.steps % 30 === 0) { B.trace.push([+Z.cOf(p.pos.z).toFixed(1), +p.pos.x.toFixed(1), +p.pos.y.toFixed(2), p.mode, p.state, Z.ground(), +Z.cw().toFixed(1)].join(' ')); if (B.trace.length > 24) B.trace.shift(); }
+      if (log.steps % (o.traceEvery ?? 30) === 0) { B.trace.push([log.steps, +Z.cOf(p.pos.z).toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), p.mode, p.state, Z.ground(), +Z.cw().toFixed(1), JSON.stringify(B.lastInp ?? '')].join(' ')); if (B.trace.length > (o.traceLen ?? 24)) B.trace.shift(); }
       if (p.dead) { log.deaths++; log.deathAt = +Z.cOf(p.pos.z).toFixed(1); log.cause = p.deathCause; log.trace = B.trace.slice(); return { dead: true }; }
       const cp = Z.cOf(p.pos.z), cw = Z.cw();
       log.maxC = Math.max(log.maxC, cp);
@@ -809,6 +810,7 @@ function installZug() {
       inp.jump = B.jumpHold > 0;
       if (B.jumpHold > 0) B.jumpHold--;
       B.prevJump = inp.jump;
+      B.lastInp = inp;
       c.setInput(inp);
       c.step(1);
     }
@@ -833,6 +835,29 @@ function installZug() {
     let got = 0;
     return { step() { for (const e of L.entities) if (e.kind === 'fallmuenze') { if (e.alive && !e.removed) seen.add(e); } for (const e of seen) if (!e.alive || e.removed) { if (e.age < e.life - 0.05) got++; seen.delete(e); } }, get got() { return got; } };
   };
+  /**
+   * Sammeln auf dem fahrenden Zug: immer das hinterste passende Ziel vor der hinteren Fenstergrenze (so schiebt die
+   * Grenze nicht weg, was noch fehlt); hochspringen, wenn es höher liegt oder es nicht vorangeht.
+   */
+  Z.collect = (match, max = 1200, onStep = null) => {
+    const p = P();
+    let k = 0, hold = 0, best = Infinity, still = 0, target = null;
+    for (; k < max; k++) {
+      if (p.dead) break;
+      onStep?.();
+      const back = Z.cw() - 4.2;
+      let e = null, bc = Infinity;
+      for (const x of L.entities) { if (!x.alive || x.removed || x.hidden || !match(x)) continue; const cx = Z.cOf(x.pos.z); if (cx < back) continue; if (cx < bc) { bc = cx; e = x; } }
+      if (!e) { if (onStep) { tick({}); continue; } break; }
+      if (e !== target) { target = e; best = Infinity; still = 0; }
+      const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz), dy = e.pos.y - p.pos.y;
+      if (d < best - 0.05) { best = d; still = 0; } else still++;
+      if (p.mode === 'ground' && hold <= 0 && ((dy > 0.9 && d < 1.8) || still > 40)) { hold = dy > 1.6 || still > 40 ? 30 : 16; still = 0; }
+      tick({ ...W.stick(dx, dz, Math.min(1, 0.3 + d)), run: d > 2.5, jump: hold > 0 });
+      if (hold > 0) hold--;
+    }
+    return k;
+  };
   Z.t_schalter = (hero) => {
     const p = P();
     Z.waitWin(29.5);
@@ -842,22 +867,26 @@ function installZug() {
     const j = Z.jumpTo(() => ({ x: sw.pos.x, z: sw.pos.z }), 'F1', { hold: 6, k: 3.6 });
     for (let i = 0; i < 30; i++) tick({});
     const pressed = sw.state !== 'idle';
-    // mit dem Bot weiter über die Goldwagen G3/G4 (der Regen fällt über G2–G4)
+    // aus der Spalte hinauf, dann die Fallmünzen einsammeln (sie fahren mit den Wagen mit)
     const rc = rainCounter();
-    // aus der Spalte: an der Felsstufe hinauf, dann der Spur nach
-    Z.botStart([[0, 0], [200, 0]], { lead: 0.6 });
-    for (let k = 0; k < 120 * 12 && !p.dead; k++) { rc.step(); const r = Z.botRun(1, 58); if (r.cw !== undefined && r.cw >= 58) break; }
+    const k = Z.collect((e) => e.kind === 'fallmuenze' && e.pos.y < P().pos.y + 3.2, 120 * 12, () => { rc.step(); });
     rc.step();
-    return { ok: pressed && sw.rained >= 50 && rc.got >= 12 && !p.dead, text: `Sprung ${JSON.stringify(j)}, Regen ${sw.rained} Münzen, eingesammelt ${rc.got}, Münzen +${coinsOf() - c0}`, coins: coinsOf() - c0 };
+    return { ok: pressed && sw.rained >= 50 && rc.got >= 20 && !p.dead, text: `Sprung ${JSON.stringify(j)}, Regen ${sw.rained} Münzen, eingesammelt ${rc.got} in ${(k / 120).toFixed(1)} s, Münzen +${coinsOf() - c0}`, coins: coinsOf() - c0 };
   };
   Z.t_schalterSanft = (hero) => {
     Z.waitWin(29.5);
     const sw = L.named.get('goldschalter');
-    const [X, , ZZ] = [sw.pos.x, 0, sw.pos.z];
-    W.place([X, sw.pos.y + 0.6, ZZ], { hero, settle: 3, invuln: 1e9 });
+    W.place([sw.pos.x, sw.pos.y + 0.6, sw.pos.z], { hero, settle: 3, invuln: 1e9 });
     for (let i = 0; i < 120; i++) tick({});
     const on = P().ground?.owner === sw;
     return { ok: sw.state === 'idle' && on, text: `Zustand ${sw.state}, steht auf dem Schalter ${on}` };
+  };
+  const crouchIn = () => {
+    const p = P();
+    for (let k = 0; k < 60 && p.mode !== 'script'; k++) { c.setInput({ crouch: true }); c.step(1); }
+    const used = p.mode === 'script';
+    for (let i = 0; i < 2400 && p.mode === 'script'; i++) { c.setInput({}); c.step(1); }
+    return used;
   };
   Z.t_roehre = (hero) => {
     const p = P();
@@ -866,28 +895,25 @@ function installZug() {
     Z.placeC(TR.R1.cc - 2.65, 0, { hero, from: 5 });
     const startY = +p.pos.y.toFixed(2);
     const pipe = L.named.get('roehre_geheim');
-    const j = Z.jumpTo(() => ({ x: pipe.pos.x, z: pipe.pos.z }), 'R1', { hold: 10 });
+    Z.jumpTo(() => ({ x: pipe.pos.x, z: pipe.pos.z }), 'R1', { hold: 10 });
     Z.walkTo(() => ({ x: pipe.pos.x, z: pipe.pos.z }), 0.12, 90);
     const onPipe = Math.hypot(p.pos.x - pipe.pos.x, p.pos.z - pipe.pos.z) < 0.5 && p.pos.y > pipe.pos.y + 0.6;
-    let k = 0;
-    for (; k < 60 && p.mode !== 'script'; k++) { c.setInput({ crouch: true }); c.step(1); }
-    for (let i = 0; i < 2400 && p.mode === 'script'; i++) { c.setInput({}); c.step(1); }
+    crouchIn();
     for (let i = 0; i < 20; i++) tick({});
-    const cloud = Z.ground();
-    // Münzen und Extraleben auf der Wolke
-    W.chase('coin', { filter: (e) => e.spec?.attach === 'wolke', max: 1500, walk: true });
-    W.chase('powerup', { filter: (e) => e.spec?.attach === 'wolke', max: 400, walk: true });
+    const cloud = Z.ground(), cwIn = +Z.cw().toFixed(1);
+    // Münzen und Extraleben auf der Wolke (von hinten nach vorn)
+    Z.collect((e) => e.spec?.attach === 'wolke' && (e.kind === 'coin' || e.kind === 'powerup'), 120 * 16);
     const coinsCloud = coinsOf() - c0, lifeGot = lives() - l0;
     // vorn in die goldene Rückröhre
     const out = L.named.get('wolke_aus');
     Z.walkTo(() => ({ x: out.pos.x, z: out.pos.z + 1.3 }), 0.4, 600);
-    const jo = Z.jumpTo(() => ({ x: out.pos.x, z: out.pos.z }), 'wolke', { hold: 14 });
-    for (k = 0; k < 60 && p.mode !== 'script'; k++) { c.setInput({ crouch: true }); c.step(1); }
-    for (let i = 0; i < 2400 && p.mode === 'script'; i++) { c.setInput({}); c.step(1); }
+    Z.jumpTo(() => ({ x: out.pos.x, z: out.pos.z }), 'wolke', { hold: 14 });
+    Z.walkTo(() => ({ x: out.pos.x, z: out.pos.z }), 0.15, 90);
+    crouchIn();
     for (let i = 0; i < 60; i++) tick({});
     const back = Z.ground();
-    const ok = onPipe && cloud === 'wolke' && coinsCloud >= 25 && lifeGot >= 1 && back === 'G6' && !p.dead;
-    return { ok, text: `Start auf der Kistenburg y ${startY}, auf der Röhre ${onPipe}, Wolke ${cloud}, Münzen +${coinsCloud}, Leben +${lifeGot}, Rückröhre → ${back} (Fenster c ${Z.cw().toFixed(1)})`, coins: coinsCloud };
+    const ok = onPipe && cloud === 'wolke' && coinsCloud >= 28 && lifeGot >= 1 && back === 'G6' && !p.dead;
+    return { ok, text: `Start auf der Kistenburg y ${startY}, auf der Röhre ${onPipe}, Wolke ${cloud} (Fenster c ${cwIn}), Münzen +${coinsCloud}, Leben +${lifeGot}, Rückröhre → ${back} (Fenster c ${Z.cw().toFixed(1)})`, coins: coinsCloud };
   };
   Z.t_roehreZu = (hero) => {
     const p = P();
@@ -898,35 +924,34 @@ function installZug() {
     for (let k = 0; k < 240; k++) { tick({ ...W.stick(pipe.pos.x - p.pos.x, pipe.pos.z - p.pos.z, 0.7), run: false }); best = Math.min(best, Math.hypot(p.pos.x - pipe.pos.x, p.pos.z - pipe.pos.z)); }
     return { ok: best > 0.9 && p.pos.y < 2, text: `nächster Abstand zur Röhre ${best.toFixed(2)} m, Höhe ${p.pos.y.toFixed(2)}` };
   };
+  const bump = () => { const p = P(); for (let i = 0; i < 200; i++) { tick({ jump: i < 16 }); if (i > 6 && p.mode === 'ground') break; } };
   Z.t_bloecke = (hero) => {
     const p = P();
     Z.waitWin(99.4);
-    const c0 = coinsOf();
     const end = L.named.get('dauerblock'), rou = L.named.get('roulette');
-    Z.placeC(TR.B1.cc, 0, { hero, from: 3 });
-    let hits = 0;
-    for (let n = 0; n < 10; n++) {
-      Z.walkTo(() => ({ x: end.pos.x, z: end.pos.z }), 0.2, 120);
-      for (let i = 0; i < 40; i++) { tick({ jump: i < 16 }); if (i > 6 && p.mode === 'ground') break; }
-      hits++;
-    }
-    const endless = coinsOf() - c0;
-    // ?-Block (dc −3): Funkenblüte
     const q = L.entities.find((e) => e.kind === 'question' && e.spec?.attach === 'B1');
+    Z.placeC(TR.B1.cc - 3, 0.9, { hero, from: 3 });
+    // ?-Block (dc −3): Funkenblüte
     Z.walkTo(() => ({ x: q.pos.x, z: q.pos.z }), 0.2, 240);
-    for (let i = 0; i < 40; i++) { tick({ jump: i < 16 }); if (i > 6 && p.mode === 'ground') break; }
-    for (let i = 0; i < 60; i++) tick({});
-    W.chase('powerup', { max: 600, walk: true });
+    bump();
+    for (let i = 0; i < 40; i++) tick({});
+    Z.collect((e) => e.kind === 'powerup' && Math.abs(Z.cOf(e.pos.z) - TR.B1.cc) < 6, 600);
     const power = p.power;
+    // Dauer-Münzblock (dc 0): sechs Treffer hintereinander
+    const c0 = coinsOf();
+    let hits = 0;
+    for (let n = 0; n < 6; n++) { Z.walkTo(() => ({ x: end.pos.x, z: end.pos.z }), 0.2, 120); bump(); hits++; }
+    const endless = coinsOf() - c0;
     // Roulette-Block (dc +3)
-    const lives0 = lives(), c1 = coinsOf();
+    const lives0 = lives(), c1 = coinsOf(), pw = p.power;
     Z.walkTo(() => ({ x: rou.pos.x, z: rou.pos.z }), 0.2, 360);
-    for (let i = 0; i < 40; i++) { tick({ jump: i < 16 }); if (i > 6 && p.mode === 'ground') break; }
-    for (let i = 0; i < 60; i++) tick({});
-    W.chase('powerup', { max: 600, walk: true });
+    bump();
+    for (let i = 0; i < 40; i++) tick({});
+    Z.collect((e) => e.kind === 'powerup' && Math.abs(Z.cOf(e.pos.z) - TR.B1.cc) < 6, 600);
     const rr = rou.info?.() ?? {};
-    const rouGot = (coinsOf() - c1) + (lives() - lives0) * 100 + (p.power !== power ? 1000 : 0);
-    return { ok: endless >= 6 && power === 'funken' && rouGot > 0 && !p.dead, text: `Dauerblock ${endless} Münzen (${hits} Sprünge), ?-Block → ${power}, Roulette ${JSON.stringify(rr).slice(0, 80)} → ${rouGot}` };
+    const got = { coins: coinsOf() - c1, lives: lives() - lives0, power: p.power !== pw ? p.power : null };
+    const ok = endless >= 5 && power === 'funken' && (got.coins > 0 || got.lives > 0 || got.power) && !p.dead;
+    return { ok, text: `?-Block → ${power}, Dauerblock ${endless} Münzen (${hits} Sprünge), Roulette ${JSON.stringify(got)} ${JSON.stringify(rr).slice(0, 60)}, Fenster c ${Z.cw().toFixed(1)}` };
   };
   Z.t_lebenG8 = (hero) => {
     const p = P();
@@ -935,7 +960,7 @@ function installZug() {
     const b = L.named.get('block_leben');
     Z.placeC(TR.G8.cc + 2.5, 0, { hero, from: 4 });
     Z.walkTo(() => ({ x: b.pos.x, z: b.pos.z }), 0.2, 120);
-    for (let i = 0; i < 40; i++) { tick({ jump: i < 20 }); if (i > 6 && p.mode === 'ground') break; }
+    bump();
     for (let i = 0; i < 40; i++) tick({});
     W.chase('powerup', { max: 900, walk: true });
     return { ok: lives() - l0 >= 1 && !p.dead, text: `Block ${b.hidden ? 'versteckt' : 'gefunden'}, Leben +${lives() - l0}` };
@@ -943,7 +968,7 @@ function installZug() {
   Z.t_glueck = (hero) => {
     const p = P(), G = L._glueck, mk = L.data.marks;
     Z.waitWin(1e9);                      // Fahrt vorbei (Fenstergrenzen fallen weg)
-    const hop = () => { for (let i = 0; i < 40; i++) { tick({ jump: i < 14 }); if (i > 6 && p.mode === 'ground') break; } for (let i = 0; i < 20; i++) tick({}); };
+    const hop = () => { for (let i = 0; i < 240; i++) { tick({ jump: i < 14 }); if (i > 6 && p.mode === 'ground') break; } for (let i = 0; i < 20; i++) tick({}); };
     const wait = () => { for (let i = 0; i < 480 && G.slot.busy; i++) tick({}); for (let i = 0; i < 10; i++) tick({}); };
     W.place([mk.pad[0], mk.pad[1] + 0.1, mk.pad[2]], { hero, settle: 10 });
     const out = {};
@@ -1005,7 +1030,7 @@ async function zugSuite(id, R) {
   for (const hero of ONLY || !PARTS.has('route') ? [] : HEROES) {
     await prep();
     const board = await Z('board', hero);
-    await Z('botStart', R.lane, { stopC: 126 });
+    await Z('botStart', R.lane, { stopC: 126, ...(process.env.TRACE ? { traceEvery: 3, traceLen: 120 } : {}) });
     const shots = hero === HEROES[0] && PARTS.has('shots') ? R.rideShots.slice() : [];
     const sweep = hero === HEROES[0] && PARTS.has('sweep');
     let worst = { calls: 0, tris: 0, atC: null, atT: null }, samples = 0, st = null;
@@ -1073,6 +1098,7 @@ async function zugSuite(id, R) {
   for (const [name, mark] of R.shots) {
     if (SHOTS && !SHOTS.has(name)) continue;
     await prep();
+    if (mark !== 'start') await Z('waitWin', 1e9);       // Fahrt vorbei: die Fenstergrenzen gelten nicht mehr
     const pos = await sc((m) => window.__course.level.data.marks[m], mark);
     await W('place', [pos[0], pos[1] + 0.1, pos[2] - (mark === 'garden' ? 3 : 0)], { settle: 30 });
     await shot(`${id}_${name}`);
@@ -1106,6 +1132,8 @@ async function load(id) {
 const W = (name, ...args) => sc(([n, a]) => window.__w5[n](...a), [name, args]);
 const stats = [];
 async function shot(name, wait = 600) {
+  // laufende Ansagen (Banner) erst ausblenden lassen – sie verdecken sonst die Bildmitte
+  await sc(() => { for (const b of window.__course.arch?.hud?.banners ?? []) b.setVisible?.(false); });
   await sc(() => window.__course.snapCamera());
   const f0 = await sc(() => window.__course.view.frame);
   await page.waitForFunction((f) => window.__course.view.frame >= f + 10, f0, { timeout: 90000 });

@@ -28,7 +28,7 @@ import { beachSea } from '../../view/backdrop_w5.js';
 import { birdFlock, animateBirds } from '../../view/backdrop_w4.js';
 import { SlotMachine } from '../../map/slot.js';
 import {
-  solveTrainRide, ZugRoehre, zugRules, trainCull, StaticCullE, skyDiet, heroShadowDiet, spawnLocal, shadowDiet, trackChunks,
+  solveTrainRide, ZugRoehre, zugRules, trainCull, StaticCullE, heroShadowDiet, spawnLocal, shadowDiet, trackChunks,
 } from '../w3/_helpers_e.js';
 
 export { solveTrainRide, trackChunks };
@@ -730,7 +730,7 @@ export class ZugGoldschalter extends Gimmick {
     while (this.acc >= 1) {
       this.acc -= 1;
       const z = this.pos.z - this.rnd.real(-(this.spec.behind ?? 6), this.spec.ahead ?? 16);
-      const x = this.rnd.real(-1.1, 1.1);
+      const x = this.rnd.real(-0.9, 0.9);
       let car = null;
       for (const v of veh) if (Math.abs(z - v.pos.z) < v.size.d / 2 + 0.4 && Math.abs(x - v.pos.x) < 2) { car = v; break; }
       const y = (car ? car.pos.y + car.size.h : this.pos.y) + (this.spec.height ?? 6.5);
@@ -894,7 +894,7 @@ export function gluecksHaus(level, def) {
     slot.step(dt);
     const p = level.player;
     if (!p) return;
-    const landed = prevMode === 'air' && slot.onPad(p) && (p.lastLandVy ?? 0) < -1.5;
+    const landed = prevMode === 'air' && slot.onPad(p) && (p.lastLandVy ?? 0) < -4.5;     // echter Hüpfer, kein Absatz
     prevMode = p.mode;
     if (!landed || slot.busy) return;
     const rt = level.runtime;
@@ -911,7 +911,9 @@ export function gluecksHaus(level, def) {
  * Küsten-Kulisse entlang der Strecke (statisch, Abschnitts-Meshes): bunte Strandhäuschen mit Streifen und Spitzdach,
  * ein rot-weißer Leuchtturm mit leuchtender Laterne, Holzstege in die Lagunen, schwimmende Bojen, Strandkörbe.
  * cfg = { huts: [[x, z, yaw, color]], lighthouse: [x, y, z], jetties: [[x, z, len, yaw]], buoys: [[x, z, color]],
- * baskets: [[x, z, yaw, color]], y: Strandhöhe }.
+ * baskets: [[x, z, yaw, color]], bunting: [{ x, z0, z1, every: 14, h: 3.4 }] (Wimpelketten an Masten neben dem Gleis),
+ * towels: [[x, z, yaw, colorA, colorB]] (Strandtücher), stars: [[x, z]] (Seesterne), pails: [[x, z, color]] (Eimer mit Schaufel),
+ * y: Strandhöhe }.
  */
 export function kuestenKulisse(level, cfg) {
   if (!level.view) return;
@@ -988,6 +990,59 @@ export function kuestenKulisse(level, cfg) {
     const stripe = (g) => colorize(g, (p, n, o) => mixc(Math.floor((p.x + 0.7) / 0.23) % 2 ? c : w, w, 0, o));
     parts.push(rot(stripe(seat), yaw, x, y, z), rot(stripe(hood), yaw, x, y, z));
   }
+  // Wimpelketten: Masten mit bunten Dreieckswimpeln in leichtem Durchhang
+  const FLAGS = [0xff4f7a, 0xffd23a, 0x3ac8f0, 0x6ad04a, 0xb070ff, 0xff9a2e];
+  const flagParts = [];
+  for (const b of cfg.bunting ?? []) {
+    const every = b.every ?? 14, h = b.h ?? 3.4;
+    const zs = [];
+    for (let z = b.z0; z >= b.z1 - 1e-6; z -= every) zs.push(z);
+    for (const z of zs) {
+      const mast = new THREE.CylinderGeometry(0.09, 0.12, h + 0.3, 6).toNonIndexed();
+      mast.translate(b.x, y + (h + 0.3) / 2, z);
+      parts.push(colorize(mast, (p, n, o) => mixc(L(0xffffff), L(0x3a6ad8), Math.floor((p.y - y) / 0.5) % 2 ? 0.85 : 0.1, o)));
+      const knob = new THREE.SphereGeometry(0.16, 8, 6).toNonIndexed();
+      knob.translate(b.x, y + h + 0.38, z);
+      parts.push(flat(knob, 0xffc21a));
+    }
+    for (let i = 0; i < zs.length - 1; i++) {
+      const za = zs[i], zb = zs[i + 1], n = Math.max(4, Math.round((za - zb) / 0.9));
+      for (let k = 0; k < n; k++) {
+        const t = (k + 0.5) / n, z = za + (zb - za) * t, sag = Math.sin(t * Math.PI) * 0.7;
+        const tri = new THREE.BufferGeometry();
+        const yy = y + h - sag;
+        const pos = [b.x, yy, z - 0.28, b.x, yy, z + 0.28, b.x, yy - 0.55, z, b.x, yy, z + 0.28, b.x, yy, z - 0.28, b.x, yy - 0.55, z];
+        tri.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        tri.computeVertexNormals();
+        flagParts.push(flat(tri, FLAGS[(i * 3 + k) % FLAGS.length]));
+      }
+    }
+  }
+  if (flagParts.length) bakeParts(level, flagParts, { castShadow: false });
+  // Strandtücher, Seesterne, Eimer mit Schaufel
+  for (const [x, z, yaw = 0, ca = 0xff4f7a, cb = 0xffffff] of cfg.towels ?? []) {
+    const g = new THREE.BoxGeometry(1.1, 0.04, 2.0, 1, 1, 8).toNonIndexed();
+    g.translate(0, 0.03, 0);
+    const A = L(ca), B = L(cb);
+    parts.push(rot(colorize(g, (p, n, o) => mixc(Math.floor((p.z + 1) / 0.25) % 2 ? A : B, A, 0, o)), yaw, x, y, z));
+  }
+  for (const [x, z, col = 0xff7a4a] of cfg.stars ?? []) {
+    const sh = new THREE.Shape();
+    for (let i = 0; i < 10; i++) { const a = (i / 10) * TAU, r = i % 2 ? 0.12 : 0.32; const px = Math.cos(a) * r, pz = Math.sin(a) * r; if (i) sh.lineTo(px, pz); else sh.moveTo(px, pz); }
+    const g = new THREE.ExtrudeGeometry(sh, { depth: 0.06, bevelEnabled: false });
+    g.rotateX(Math.PI / 2);
+    g.translate(x, y + 0.07, z);
+    parts.push(flat(g, col));
+  }
+  for (const [x, z, col = 0x3ac8f0] of cfg.pails ?? []) {
+    const pail = new THREE.CylinderGeometry(0.28, 0.2, 0.4, 10).toNonIndexed();
+    pail.translate(x, y + 0.2, z);
+    parts.push(flat(pail, col));
+    const spade = new THREE.BoxGeometry(0.06, 0.6, 0.18).toNonIndexed();
+    spade.rotateZ(0.5);
+    spade.translate(x + 0.35, y + 0.28, z + 0.1);
+    parts.push(flat(spade, 0xffd23a));
+  }
   bakeParts(level, parts, { castShadow: true });
   if (glow.length) addStatic(level, merge(glow), { material: level.view.mats.glow, castShadow: false });
 }
@@ -1035,7 +1090,6 @@ export function goldzugSzene(level, cfg, M) {
     const sz = cfg.shadowZones ?? [];
     sc.cull = new StaticCullE(level, { shadowRange: 30, maxDist: 100, merge: true, shadowKeep: (b) => sz.some(([z0, z1]) => b.max.z > z1 && b.min.z < z0) });
     sc.trainCull = trainCull(level, { shadow: 18, wheels: 18, far: 1e9, attached: 40 });
-    sc.sky = skyDiet(level);
     heroShadowDiet(level, 0.12);
   }
   return sc;

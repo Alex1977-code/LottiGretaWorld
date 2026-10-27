@@ -63,9 +63,9 @@ const RIDE = solveTrainRide({
     { to: 30, r: 2.2 },        // Abfahrt, Goldwagen G1/G2
     { hold: 5 },               // Felswagen: goldener Schalter in der Spalte
     { to: 60, r: 2.0 },        // Goldregen über G3/G4
-    { hold: 7 },               // Röhrenwagen: Kistenburg mit der geheimen Röhre
-    { to: 100, r: 2.2 },       // Wolkenwagen / G5–G7
-    { hold: 5 },               // Blockwagen
+    { hold: 9 },               // Röhrenwagen: Kistenburg mit der geheimen Röhre
+    { to: 100, r: 2.0 },       // Wolkenwagen / G5–G7
+    { hold: 8 },               // Blockwagen
     { to: 128, r: 1.8 },       // G8, Tender, Lok – Halt am Muschelkap
   ],
 });
@@ -137,6 +137,22 @@ const items = [
   { kind: 'coins', from: [GX + 3.5, GY + 0.6, GZn + 2], to: [GX + 7.5, GY + 0.6, GZn - 2], n: 5 },
 ];
 
+/** Strandtücher, Seesterne und Eimer entlang der Sandstreifen (deterministisch verteilt). */
+function strandKram() {
+  const towels = [], stars = [], pails = [];
+  const TW = [0xff4f7a, 0x3ac8f0, 0xffd23a, 0x6ad04a, 0xb070ff];
+  let k = 0;
+  for (const [a, b] of [[30, -14], [-62, -200], [-250, -394], [-436, zH(142)]]) {
+    for (let z = a - 5; z > b; z -= 15, k++) {
+      const side = k % 2 ? 1 : -1, right = side > 0 && (z > -14 || z < -436);   // rechts an den Bahnhöfen: hinter dem Bahnsteig
+      towels.push([side * (right ? 9.5 : 6.5 + (k * 37) % 5), z, ((k * 0.7) % 1.2) - 0.6, TW[k % 5], 0xffffff]);
+      stars.push([-side * (5.5 + (k * 13) % 6), z - 6, [0xff7a4a, 0xff4f7a, 0xffb020][k % 3]]);
+      if (k % 3 === 0) pails.push([side * ((right ? 11 : 8.5) + (k % 3)), z - 1.4, [0x3ac8f0, 0xff4f7a, 0x6ad04a][k % 3]]);
+    }
+  }
+  return { towels, stars, pails };
+}
+
 export const LEVEL = {
   id: '5-Zug',
   world: 5,
@@ -173,6 +189,11 @@ export const LEVEL = {
       jetties: [[-11, -18.5, 12], [12, -206, 10], [-12, -399, 9]],
       buoys: [[-6, -30, 0xe8304a], [7, -44, 0xffd23a], [-8, -222, 0xffffff], [8, -236, 0xe8304a], [6, -414, 0xffd23a], [-5, -420, 0xe8304a]],
       baskets: [[-9, -70, 0.4, 0x3aa0e8], [-10.5, -74, 0.2, 0xe8304a], [9.5, -160, -0.3, 0xffb020], [-9, -320, 0.3, 0x3aa0e8], [10, -335, -0.2, 0xe8304a]],
+      bunting: [
+        { x: -3.9, z0: 26, z1: -14 }, { x: -3.9, z0: -64, z1: -198 }, { x: 3.9, z0: -64, z1: -198 },
+        { x: -3.9, z0: -252, z1: -392 }, { x: 3.9, z0: -252, z1: -392 }, { x: -3.9, z0: -438, z1: zH(142) },
+      ],
+      ...strandKram(),
     });
   },
   setup: (level) => {
