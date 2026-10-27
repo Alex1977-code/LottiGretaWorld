@@ -4893,4 +4893,4 @@ Gemessen (scale 2, inkl. Schattenpass): H-4 Messgang ≤ 90 Zeichenaufrufe / ≤
 H-Burg Messgang ≤ 78 / ≤ 245 k, Bilder 41–84 / ≤ 243 k (Start 220 k nach dem Wechsel auf sparsame Kürbislaternen).
 
 Hinweis an den Modell-Agenten: `hexenturm` (`towerBody`) liefert NaN-Positionen bei Höhen, deren Hälfte nicht exakt
-darstellbar ist (z. B. 3,2 oder 4,2: `Math.pow(y / H, 1.6)` mit y = −ε am Fuß) – die Level nutzen Höhen 3 und 4.
+darstellbar ist (z. B. 3,2 oder 4,2: `Math.pow(y / H, 1.6)` mit y = −ε am Fuß) – die Level nutzen Höhen 3 und 4. **Behoben** (Hauptsitzung): `leanAt` klemmt y/H auf ≥ 0, alle Höhen sind jetzt erlaubt.
