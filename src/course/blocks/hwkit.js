@@ -11,6 +11,10 @@
 //   hwLight(level)             Laternenlicht-System (eine je Level, `level.hwLight`), siehe unten
 //   ghostBatch(level)          alle Geisterplattformen eines Levels in einem Shader-Mesh (Lichtmaske je Pixel)
 //   hwHud(level)               Zähler oben rechts („Türen 3/8“, „Süßes 12“): set(key, { text, icon, done, color })
+//   modelGeometry(name, o, st) Registry-Modell zu einer Geometrie (Vertexfarben) backen; modelBox(model) Hüllquader
+//   ghostGeometry(size, color) einfache Form der Registry-Geisterplatte (für das Licht-Shader-Mesh)
+//   bakeInstanced(level, name, opts, list)  viele Kulissenstücke über die Instanz-Variante der Registry (einfachere
+//                              Form: kuerbis | grabstein | maisstaude) in die statische Welt backen
 //
 // Laternenlicht (`hwLight(level)`): Lichtquellen je Simulationsschritt –
 //   · Figuren mit Laterne (alle Figuren, sobald `carried`; Item `laterne` oder LEVEL.lantern: true | { carry, radius,
@@ -30,10 +34,12 @@ import Phaser from 'phaser';
 import { GAME } from '../../config.js';
 import { uiText } from '../../ui.js';
 import { SFX_NAMES } from '../../audio/sfx.js';
-import { colorize, merge, lin, mixc, smooth, hex } from './kit.js';
+import { colorize, merge, lin, mixc, smooth, hex, addStatic } from './kit.js';
 import { figures } from './w2kit.js';
 import { modelOr } from './w5kit.js';
 import { hasModel, getModel } from '../models/index.js';
+import * as HW_GIMMICK_MODELS from '../models/kinds/gimmicks_hw.js';
+import { createInstanced } from '../models/lib/instanced.js';
 import { LIGHT as HELM_LIGHT } from '../player/helmets.js';
 
 export { modelOr, figures };
@@ -541,6 +547,82 @@ export function modelGeometry(name, opts = {}, state = {}) {
   });
   m.dispose?.();
   return parts.length ? merge(parts) : null;
+}
+
+/** Geisterplatte für das Licht-Shader-Mesh: die einfache Form (lo) des Registry-Modells 'geisterplattform'
+ *  (ghostPlatformGeo aus models/kinds/gimmicks_hw.js; spart ≈⅔ der Dreiecke), sonst das ganze Modell gebacken. */
+export function ghostGeometry(size, color) {
+  const f = HW_GIMMICK_MODELS.ghostPlatformGeo;
+  if (typeof f !== 'function') return modelGeometry('geisterplattform', { size, color });
+  const src = f(size[0], size[1], size[2], color, true, true);
+  const g = src.index ? src.toNonIndexed() : src.clone();
+  for (const a of Object.keys(g.attributes)) if (a !== 'position' && a !== 'normal' && a !== 'color') g.deleteAttribute(a);
+  if (!g.attributes.normal) g.computeVertexNormals();
+  const c = g.attributes.color, n = g.attributes.position.count;
+  if (!c || c.itemSize !== 3) {
+    const arr = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { arr[i * 3] = c ? c.getX(i) : 1; arr[i * 3 + 1] = c ? c.getY(i) : 1; arr[i * 3 + 2] = c ? c.getZ(i) : 1; }
+    g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+  }
+  return g;
+}
+
+/** Rückseite einer nicht indizierten Geometrie (Dreiecke umgedreht, Normalen gespiegelt). */
+function flipped(g) {
+  const r = g.clone();
+  for (const name of Object.keys(r.attributes)) {
+    const a = r.attributes[name], k = a.itemSize, arr = a.array;
+    for (let t = 0; t < a.count; t += 3) for (let c = 0; c < k; c++) { const i1 = (t + 1) * k + c, i2 = (t + 2) * k + c; const tmp = arr[i1]; arr[i1] = arr[i2]; arr[i2] = tmp; }
+  }
+  const n = r.attributes.normal.array;
+  for (let i = 0; i < n.length; i++) n[i] = -n[i];
+  return r;
+}
+
+/** Viele gleiche Kulissenstücke über die Instanz-Variante der Registry (createInstanced(name, n, opts) – einfachere Form,
+ *  z. B. kuerbis | grabstein | maisstaude) in die statische Welt backen: list [{ x, y, z, yaw, scale, tilt }] (Ursprung
+ *  wie das Einzelmodell). false = Art nicht vorhanden (dann Einzelmodelle/eigene Geometrie). */
+export function bakeInstanced(level, name, opts, list, castShadow = true) {
+  if (!level.view || !list.length) return false;
+  let api = null;
+  try { api = createInstanced(name, list.length, opts); } catch { return false; }
+  const q = new THREE.Quaternion(), qt = new THREE.Quaternion(), ax = new THREE.Vector3(0, 1, 0), tx = new THREE.Vector3(1, 0, 0);
+  list.forEach((it, i) => {
+    q.setFromAxisAngle(ax, it.yaw ?? 0);
+    if (it.tilt) q.multiply(qt.setFromAxisAngle(tx, it.tilt));
+    api.setAt(i, [it.x, it.y, it.z], q.clone(), it.scale ?? 1, 'idle');
+  });
+  api.update?.(0);
+  api.root.updateMatrixWorld(true);
+  const world = [], glow = [];
+  const M = new THREE.Matrix4(), IM = new THREE.Matrix4();
+  api.root.traverse((o) => {
+    if (!o.isMesh || !o.visible) return;
+    const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+    if (!mat || mat.map || mat.transparent) return;
+    const out = mat.isMeshBasicMaterial ? glow : world;
+    const n = o.isInstancedMesh ? o.count : 1;
+    for (let i = 0; i < n; i++) {
+      if (o.isInstancedMesh) { o.getMatrixAt(i, IM); if (Math.abs(IM.determinant()) < 1e-9) continue; M.multiplyMatrices(o.matrixWorld, IM); } else M.copy(o.matrixWorld);
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+      for (const a of Object.keys(g.attributes)) if (a !== 'position' && a !== 'normal' && a !== 'color') g.deleteAttribute(a);
+      if (!g.attributes.normal) g.computeVertexNormals();
+      const c = mat.color ?? new THREE.Color(1, 1, 1), cnt = g.attributes.position.count;
+      const src = mat.vertexColors && g.attributes.color ? g.attributes.color : null;
+      const arr = new Float32Array(cnt * 3);
+      for (let k = 0; k < cnt; k++) {
+        arr[k * 3] = (src ? src.getX(k) : 1) * c.r; arr[k * 3 + 1] = (src ? src.getY(k) : 1) * c.g; arr[k * 3 + 2] = (src ? src.getZ(k) : 1) * c.b;
+      }
+      g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+      g.applyMatrix4(M);
+      out.push(g);
+      if (mat.side === THREE.DoubleSide) out.push(flipped(g));   // zweiseitige Blätter: Rückseite als eigene Dreiecke
+    }
+  });
+  api.dispose?.();
+  if (world.length) addStatic(level, merge(world), { material: 'world', castShadow });
+  if (glow.length) addStatic(level, merge(glow), { material: 'glow', castShadow: false });
+  return true;
 }
 
 /** Hüllquader eines Modells (lokal, ohne Lage/Drehung) → THREE.Box3; nur Meshes. largest: nur das größte Mesh. */

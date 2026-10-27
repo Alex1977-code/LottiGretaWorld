@@ -25,7 +25,7 @@
 import * as THREE from 'three';
 import { v3, sz3, lin, mixc, smooth, colorize, merge, hex, box } from '../kit.js';
 import { figuresIn } from '../w4kit.js';
-import { hwLight, ghostBatch, modelGeometry } from '../hwkit.js';
+import { hwLight, ghostBatch, ghostGeometry } from '../hwkit.js';
 import { visDt } from '../../entities/gimmick.js';
 
 // Farbnamen der Bausteine → Farben des Registry-Modells ('mint' | 'lila' | 'orange')
@@ -99,7 +99,7 @@ export function buildGeisterplattform(level, spec) {
     shape.owner = part;
     if (level.view) {
       // Registry-Modell 'geisterplattform' (Form und Farben) in das gemeinsame Licht-Shader-Mesh übernehmen
-      const mg = modelGeometry('geisterplattform', { size: [s.x, s.y, s.z], color: MODEL_COLOR[spec.color] ?? spec.color ?? 'lila' });
+      const mg = ghostGeometry([s.x, s.y, s.z], MODEL_COLOR[spec.color] ?? spec.color ?? 'lila');
       if (mg) mg.translate(p.x, p.y, p.z);
       part.gid = batch.add(mg ?? ghostSlab(p, s, spec.color ?? 'lila', spec.face !== false));
     }

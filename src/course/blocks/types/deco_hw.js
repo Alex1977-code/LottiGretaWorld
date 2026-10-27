@@ -31,13 +31,15 @@
 // Registry-Modelle: kuerbis, kuerbislaterne, vogelscheuche, strohballen (form → kind), maisstaude, suessigkeiten_haufen,
 // grabstein (style → kind, tilt, pumpkin), halloween_baum (krummer_baum: height, lanterns), spinnennetz (spinnweben: lage
 // 'ecke' | 'decke' → kind 'ecke' | 'rund'), eisenzaun (zaun style 'eisen'), kerzenleuchter, dorfhaus_nacht, hexenturm,
-// gruft – auch in den Streuungen; Gesichter/Türen zeigen ohne yaw zur Kamera (+Z).
+// gruft – auch in den Streuungen; Gesichter/Türen zeigen ohne yaw zur Kamera (+Z). Die Streuungen kuerbisse, grabsteine
+// und maisfeld nehmen die einfachere Instanz-Form der Registry (createInstanced, gebacken; ≈⅓ der Dreiecke), detail:
+// 'voll' → Einzelmodelle.
 
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, Rnd, addStatic, hex, box } from '../kit.js';
 import { bakeModel } from '../w2kit.js';
 import { hasModel } from '../../models/index.js';
-import { HWC, pumpkinGeo, faceGeo, candyGeo, CANDY_VARIANTS } from '../hwkit.js';
+import { HWC, pumpkinGeo, faceGeo, candyGeo, CANDY_VARIANTS, bakeInstanced } from '../hwkit.js';
 
 const C = (h) => lin(hex(h));
 const ni = (g) => (g.index ? g.toNonIndexed() : g);
@@ -443,6 +445,13 @@ const MODEL_SOLID = {
   gruft: (level, it, p, s) => { if (it.solid === false) return; const k = (it.size ?? 1) * s; level.world.add({ type: 'box', min: [p.x - 1.8 * k, p.y, p.z - 1.8 * k], max: [p.x + 1.8 * k, p.y + 2.6 * k, p.z + 1.8 * k], tag: 'gruft' }); },
 };
 
+// Streuungen über createInstanced (einfachere Form): Art → (Stück) → [Gruppenschlüssel, Instanz-Optionen, { scale, tilt }]
+const INST = {
+  kuerbis: (o) => { const f = o.face || false; return [`${o.shape}:${o.color}:${f}`, { shape: o.shape, color: o.color, face: f }, { scale: o.size ?? 0.9 }]; },
+  grabstein: (o) => [o.style ?? 'rund', { kind: o.style ?? 'rund' }, { scale: o.size ?? 1, tilt: o.tilt ?? 0 }],
+  maisstaude: (o) => ['mais', {}, { scale: (o.height ?? 2.2) / 2 }],
+};
+
 function modelName(kind) {
   if (hasModel(`deco_hw_${kind}`)) return [`deco_hw_${kind}`, (it) => it];
   const a = ALIAS[kind];
@@ -485,12 +494,18 @@ export function buildDecoHw(level, spec) {
     const P = it.shadow === false ? parts.flat : parts.shadow;
     if (it.kind === 'grabstein' && !it.style) it.style = ['rund', 'kreuz', 'spitz'][Math.floor(rnd.frac() * 3)];
     if (it.kind === 'zaun' ? bakeFence(level, it) : bakeKind(level, it.kind, it, p)) continue;
-    // Streuung: je Stück Registry-Modell (falls vorhanden) oder eigene Geometrie
+    // Streuung: Instanz-Variante der Registry (einfachere Form, gebacken), sonst je Stück Registry-Modell oder eigene Geometrie
     const scat = (kind, fn, n, sz, gap, mk) => {
-      for (const [x, z] of scatter(p, it.size ?? sz, it.n ?? n, it.gap ?? gap, it.avoid, rnd)) {
-        const one = { shadow: it.shadow, ...mk() }, q = { x, y: p.y, z };
-        if (!bakeKind(level, kind, one, q)) fn(level, one, q, rnd, P, glow);
+      const list = scatter(p, it.size ?? sz, it.n ?? n, it.gap ?? gap, it.avoid, rnd).map(([x, z]) => ({ one: { shadow: it.shadow, ...mk() }, q: { x, y: p.y, z } }));
+      const inst = INST[kind];
+      if (inst && level.view && it.detail !== 'voll' && modelName(kind)) {
+        const groups = new Map();
+        for (const e of list) { const [key, opts, place] = inst(e.one); const g = groups.get(key) ?? { opts, items: [] }; g.items.push({ ...e.q, ...place, yaw: e.one.yaw ?? 0 }); groups.set(key, g); }
+        let ok = true;
+        for (const g of groups.values()) ok = bakeInstanced(level, inst.name ?? kind, g.opts, g.items, it.shadow !== false) && ok;
+        if (ok) { for (const e of list) MODEL_SOLID[kind]?.(level, e.one, e.q, 1); return; }
       }
+      for (const { one, q } of list) if (!bakeKind(level, kind, one, q)) fn(level, one, q, rnd, P, glow);
     };
     switch (it.kind) {
       case 'kuerbisse': {

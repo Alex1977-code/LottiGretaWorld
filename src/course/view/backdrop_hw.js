@@ -41,14 +41,37 @@ function spriteTex(sky, draw, size = 128) {
   return t;
 }
 
-/** Große Ebene unter dem Level (Boden der Kulisse). */
-function plane(bounds, y, cell = 14, E = 420) {
+/** Große Ebene unter dem Level (Boden der Kulisse). fine = { cell, E }: nur im Umkreis E um den Level fein unterteilt
+ *  (für Muster in den Vertex-Farben), außen grobe Zellen – spart Dreiecke. */
+function plane(bounds, y, cell = 14, E = 420, fine = null) {
   const { x0, x1, z0, z1 } = sides(bounds);
   const w = (x1 - x0) + E * 2, d = (z1 - z0) + E * 2;
-  const g = new THREE.PlaneGeometry(w, d, Math.max(1, Math.round(w / cell)), Math.max(1, Math.round(d / cell)));
+  const nx = Math.max(1, Math.round(w / cell)), nz = Math.max(1, Math.round(d / cell));
+  const g = new THREE.PlaneGeometry(w, d, nx, nz);
   g.rotateX(-Math.PI / 2);
   g.translate((x0 + x1) / 2, y, (z0 + z1) / 2);
-  return g.toNonIndexed();
+  const out = g.toNonIndexed();
+  if (!fine) return out;
+  // innere Zellen (grobes Raster) bestimmen, dort grobe Dreiecke weglassen und fein neu aufbauen
+  const cw = w / nx, cd = d / nz, ox = (x0 + x1) / 2 - w / 2, oz = (z0 + z1) / 2 - d / 2;
+  const i0 = Math.max(0, Math.floor((x0 - fine.E - ox) / cw)), i1 = Math.min(nx, Math.ceil((x1 + fine.E - ox) / cw));
+  const j0 = Math.max(0, Math.floor((z0 - fine.E - oz) / cd)), j1 = Math.min(nz, Math.ceil((z1 + fine.E - oz) / cd));
+  const ax = ox + i0 * cw, bx = ox + i1 * cw, az = oz + j0 * cd, bz = oz + j1 * cd;
+  const P = out.attributes.position, keep = [];
+  for (let t = 0; t < P.count; t += 3) {
+    const cx = (P.getX(t) + P.getX(t + 1) + P.getX(t + 2)) / 3, cz = (P.getZ(t) + P.getZ(t + 1) + P.getZ(t + 2)) / 3;
+    if (cx > ax && cx < bx && cz > az && cz < bz) continue;
+    for (let k = 0; k < 3; k++) keep.push(P.getX(t + k), P.getY(t + k), P.getZ(t + k));
+  }
+  const outer = new THREE.BufferGeometry();
+  outer.setAttribute('position', new THREE.Float32BufferAttribute(keep, 3));
+  outer.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array(keep.length).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
+  const iw = bx - ax, id = bz - az;
+  const inner = new THREE.PlaneGeometry(iw, id, Math.max(1, Math.round(iw / fine.cell)), Math.max(1, Math.round(id / fine.cell)));
+  inner.rotateX(-Math.PI / 2);
+  inner.translate((ax + bx) / 2, y, (az + bz) / 2);
+  inner.deleteAttribute('uv');
+  return merge([outer, inner.toNonIndexed()]);
 }
 
 /** Punkte um den Level herum (seitlich und hinter dem Ziel), Abstand von bis. */
@@ -87,7 +110,7 @@ export function pumpkinFields(sky, bounds, rnd, yBase, o = {}) {
   const night = !!o.night;
   const soil = lin(night ? 0x2a1a2a : 0x6a3a2a), soil2 = lin(night ? 0x3a2a3a : 0x8a5434), vine = lin(night ? 0x2a4a3a : 0x6a9a3a);
   // Boden mit Furchen (Feldreihen in Streifen, je Feld andere Richtung)
-  addMesh(sky, colorize(plane(bounds, gy + 0.05, 6), (p, n, out) => {
+  addMesh(sky, colorize(plane(bounds, gy + 0.05, 30, 420, { cell: 6, E: 90 }), (p, n, out) => {
     const fx = Math.floor(p.x / 40), fz = Math.floor(p.z / 40);
     const dirX = ((fx * 7 + fz * 3) & 1) === 0;
     const rows = Math.sin((dirX ? p.x : p.z) * 1.2) > 0.2;
@@ -195,7 +218,7 @@ export function candyTown(sky, bounds, rnd, yBase, o = {}) {
   const walls = [0x8a6ab8, 0xb8784a, 0x5a8a7a, 0x7a7ab8, 0xa85a6a].map(lin);
   const roofs = [0x3a2a5a, 0x4a2a3a, 0x2a3a4a].map(lin);
   const win = lin(0xffc860), winHi = lin(0xfff0b0);
-  addMesh(sky, colorize(plane(bounds, gy + 0.05, 10), (p, n, out) => mixc(lin(0x2a3a3a), lin(0x3a4a3a), 0.5 + 0.5 * Math.sin(p.x * 0.07) * Math.sin(p.z * 0.06), out)), sky.view.mats.world);
+  addMesh(sky, colorize(plane(bounds, gy + 0.05, 24), (p, n, out) => mixc(lin(0x2a3a3a), lin(0x3a4a3a), 0.5 + 0.5 * Math.sin(p.x * 0.07) * Math.sin(p.z * 0.06), out)), sky.view.mats.world);
   const house = (x, z, s, yaw) => {
     const w = 6 * s, d = 6 * s, h = rnd.real(5, 8) * s;
     const lean = rnd.real(-0.06, 0.06);
@@ -251,7 +274,7 @@ export function graveHills(sky, bounds, rnd, yBase, o = {}) {
   const gy = (sky.theme.ground?.y ?? -16) + yBase;
   const parts = [], glow = [];
   const dark = lin(o.color ?? 0x232846), hi = lin(o.hi ?? 0x4a4e7a), stone = lin(0x6a6a8a), stoneHi = lin(0x9a9ab8);
-  addMesh(sky, colorize(plane(bounds, gy + 0.05, 10), (p, n, out) => mixc(lin(0x1a2a3a), lin(0x2a3a4a), 0.5 + 0.5 * Math.sin(p.x * 0.05 + p.z * 0.04), out)), sky.view.mats.world);
+  addMesh(sky, colorize(plane(bounds, gy + 0.05, 24), (p, n, out) => mixc(lin(0x1a2a3a), lin(0x2a3a4a), 0.5 + 0.5 * Math.sin(p.x * 0.05 + p.z * 0.04), out)), sky.view.mats.world);
   // Hügel mit Grabsteinen und Kreuzen
   for (const [x, z] of ringPoints(bounds, rnd, o.hills ?? 18, 26, 110)) {
     const r = rnd.real(12, 24), h = rnd.real(4, 9);
