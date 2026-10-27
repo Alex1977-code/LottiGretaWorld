@@ -15,7 +15,8 @@ const { check, summary } = makeChecker();
 // ------------------------------------------------------------------ 1) Weltdaten (Node)
 {
   const grid = buildWalkGrid(MAP);
-  const order = ['1-1', '1-2', '1-A', '1-3', '1-Schatz', '1-4', '1-5', '1-Burg', 'W2'];
+  // HW = Glasröhre zur Halloween-Welt 31 (immer frei, ohne Schranke – Präzisierung Mehrwelten-Karte, Halloween-Notiz)
+  const order = ['1-1', '1-2', '1-A', '1-3', '1-Schatz', '1-4', '1-5', '1-Burg', 'W2', 'HW'];
   const after = Object.fromEntries(MAP.levels.map((l) => [l.id, [].concat(l.after ?? [])]));
   let ok = true;
   // Jede Kombination „Vorgänger geschafft“ entlang der Reihenfolge: erreichbar sind genau die Eingänge mit offenem Weg
@@ -104,7 +105,7 @@ let st = await sc(() => window.__courseMap.state());
 console.log('  Start', JSON.stringify(st.player), 'Sterne', st.stars, '/', st.starsMax);
 check('Karte lädt (CourseMap aktiv, Figur am Startpunkt)', (await active('CourseMap')) && Math.abs(st.player.z - 40.5) < 0.5);
 const unlockedIds = Object.entries(st.entrances).filter(([, e]) => !e.locked).map(([id]) => id);
-check('Nur 1-1 frei', unlockedIds.join() === '1-1');
+check('Nur 1-1 frei (und die Halloween-Röhre HW)', unlockedIds.join() === '1-1,HW');
 check('Alle Schranken geschlossen', Object.values(st.gates).every((g) => g === 'closed'));
 check('Gesamtsterne 0/24 im HUD', st.stars === 0 && st.starsMax === 24 && (await sc(() => window.__courseMap.hud.starText.text)) === '0/24');
 check('1-Burg: gesperrt', st.entrances['1-Burg'].locked);
@@ -280,7 +281,7 @@ await page.waitForTimeout(300);
 await sc(() => { const b = window.__courseMap.hud.confirm.yes; window.__tap(b.x, b.y); window.__courseMap = null; });
 await waitMap();
 st = await sc(() => window.__courseMap.state());
-check('„Ja, löschen“: Spielstand leer, nur 1-1 frei', Object.entries(st.entrances).filter(([, e]) => !e.locked).map(([id]) => id).join() === '1-1' && st.stars === 0);
+check('„Ja, löschen“: Spielstand leer, nur 1-1 (und HW) frei', Object.entries(st.entrances).filter(([, e]) => !e.locked).map(([id]) => id).join() === '1-1,HW' && st.stars === 0);
 
 // Kennzahlen der Karte
 const stats = await sc(() => window.__courseMap.stats());

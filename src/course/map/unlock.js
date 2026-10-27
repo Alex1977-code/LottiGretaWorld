@@ -10,7 +10,7 @@
 //   - unlocked(id):  Eingang frei (pathOpen und genug Sterne) → Level startbar, sofern es das Level gibt.
 //   - reason(id):    null | 'locked' (Weg zu) | 'stars' (zu wenig Sterne) – für Hinweise.
 //   - worldOpen(getMap, save, n): Welt n betretbar (Welt 1 immer; sonst schon offen oder die Glasröhre der Welt n−1
-//                    dorthin ist frei).
+//                    dorthin ist frei). Sonderwelten mit MAP.alwaysOpen (Halloween-Welt 31) sind immer offen.
 // `save` ist ein CourseSave (oder eine Attrappe mit peek(id), starsInWorld(world), totalStars(), worldOpened(n)).
 
 const asList = (v) => (v === undefined || v === null ? [] : Array.isArray(v) ? v : [v]);
@@ -68,6 +68,7 @@ export function reason(worldDef, save, id) {
 export function worldOpen(getMap, save, n) {
   if (n === 1) return true;
   if (!getMap(n)) return false;
+  if (getMap(n).alwaysOpen) return true;   // Sonderwelt (Halloween): immer offen, kein Sternbedarf
   if (save.worldOpened?.(n)) return true;
   const prev = getMap(n - 1);
   const rule = prev?.levels.find((l) => l.next === n);

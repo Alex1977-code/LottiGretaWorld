@@ -5,6 +5,7 @@
 // Freischaltung (für die Weltkarte): unlocked(id, chain) + starsInWorld(world).
 
 import { saveGame } from '../../systems/SaveGame.js';
+import { worldPrefix, worldOfLevel } from '../map/worlds/index.js';
 
 const KEY = 'lotti-greta-course-v1';
 export const START_LIVES = 5;
@@ -16,6 +17,8 @@ const HEROES = ['lotti', 'greta'];
 // Mehrwelten-Karte (Präzisierung Mehrwelten-Karte, additiv): world = aktuelle Welt der Karte, worlds = Welten, die schon
 // offen sind (über die Glasröhre bereist oder per Welt-Warp-Röhre freigeschaltet), slotSpins = Zähler der Drehungen am
 // Spielautomaten im Glückshaus (Startwert des Zufallsgenerators – deterministisch).
+// Sonderwelten mit Buchstaben-Präfix (Halloween-Welt 31, Level-Ids „H-1“ …): Sternzählung und Freischaltung bilden das
+// Präfix über die Weltdaten (MAP.prefix, map/worlds/index.js) auf die Weltnummer ab; alte Stände ohne Welt 31 bleiben gültig.
 const empty = () => ({ version: 1, hero: null, lives: START_LIVES, coins: 0, world: 1, mapPos: null, levels: {}, carryPower: null, mapVisit: 0, berryVisit: -1, mapOpened: [], worlds: [1], slotSpins: 0 });
 
 export class CourseSave {
@@ -94,8 +97,9 @@ export class CourseSave {
   }
 
   starsInWorld(world) {
+    const pre = `${worldPrefix(world)}-`, num = `${world}-`;
     let n = 0;
-    for (const [id, l] of Object.entries(this.data.levels)) if (id.startsWith(`${world}-`)) n += l.stars.filter(Boolean).length;
+    for (const [id, l] of Object.entries(this.data.levels)) if (id.startsWith(num) || id.startsWith(pre)) n += (l.stars ?? []).filter(Boolean).length;
     return n;
   }
 
@@ -105,7 +109,7 @@ export class CourseSave {
   unlocked(id, chain = [], minStars = 0, world = null) {
     const i = chain.indexOf(id);
     if (i > 0 && !this.peek(chain[i - 1])?.done) return false;
-    if (minStars && this.starsInWorld(world ?? id.split('-')[0]) < minStars) return false;
+    if (minStars && this.starsInWorld(world ?? worldOfLevel(id) ?? id.split('-')[0]) < minStars) return false;
     return true;
   }
 

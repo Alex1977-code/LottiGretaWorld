@@ -24,6 +24,9 @@
 // mit der Röhre zu ihr: Ankunft durch diese Röhre (entdeckt: Welt n steht in courseSave.worlds, die Schranke öffnet
 // sich), Meldung „Welt n kommt bald!“ (state().soonWorld). Kommt die Karte der Welt n hinzu, landet derselbe Warp
 // ohne weitere Änderung dort.
+// Sonderwelt Halloween (Präzisierung Mehrwelten-Karte, Halloween-Notiz): Welt 31 mit Level-Präfix 'H' (MAP.prefix) –
+// worldOfLevel bildet „H-1“ über die Weltdaten auf Welt 31 ab; MAP.alwaysOpen (immer offen), MAP.worldLabel ersetzt
+// „Welt n“ in HUD/Schild, MAP.travelToast die Meldung der Röhrenfahrt; Regel-Feld sign = eigene Schild-Aufschrift.
 
 import Phaser from 'phaser';
 import * as THREE from 'three';
@@ -38,7 +41,7 @@ import { getPower, normalizePower } from '../player/powers.js';
 import { music, sfx, engine } from '../../audio/index.js';
 import { vibrate } from '../../systems/haptics.js';
 import { RENDER3D } from '../../render3d.js';
-import { getWorldMap } from './worlds/index.js';
+import { getWorldMap, worldOfLevel, listWorldMaps } from './worlds/index.js';
 import { buildMap, finalizeMap } from './MapBuilder.js';
 import { MapRuntime } from './MapRuntime.js';
 import { MapRoamer, MapItem, addEntity, instanceRoamers } from './entities.js';
@@ -220,7 +223,8 @@ export class CourseMapScene extends Phaser.Scene {
 
     // Fern-Ausblendung kleiner Objekte (Anflug, Röhrenfahrt mit Blick über die ganze Insel)
     const movers = [...this.roamers, this.item].filter((e) => e?.model?.root).map((e) => ({ root: e.model.root, pos: e.pos, r: 2 }));
-    this.lod = new MapLod(this.view, { exclude: [...this.batcher.meshes], movers });
+    // statische Kacheln bleiben, außer kompakte benannte (userData.lod, Halloween: eingebackene Modelle je Eingang)
+    this.lod = new MapLod(this.view, { exclude: this.batcher.meshes.filter((m) => !m.userData.lod), movers });
 
     this.events.on(Phaser.Scenes.Events.RENDER, this.renderFrame, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanup, this);
@@ -290,8 +294,9 @@ export class CourseMapScene extends Phaser.Scene {
   signOf(id) {
     const rule = unlock.levelRule(this.map, id);
     if (!rule?.next) return null;
+    if (rule.sign) return rule.sign;   // eigene Aufschrift (Halloween-Röhre in Welt 1: „Halloween!“)
     const m = getWorldMap(rule.next);
-    return `Welt ${rule.next}\n${m ? (m.short ?? m.title) : 'bald!'}`;
+    return `${m?.worldLabel ?? `Welt ${rule.next}`}\n${m ? (m.short ?? m.title) : 'bald!'}`;
   }
 
   /** Mit der Glasröhre zur nächsten/vorigen Welt fahren (Eingang id mit Regel next). */
@@ -310,7 +315,7 @@ export class CourseMapScene extends Phaser.Scene {
     this.inputLocked = true;
     sfx('select');
     vibrate(15);
-    this.hud?.toast(`Auf zu Welt ${target}!`, 2.4);
+    this.hud?.toast(getWorldMap(target)?.travelToast ?? `Auf zu Welt ${target}!`, 2.4);
     this.travel = new TubeTravel(this, {
       mode: 'depart', entrance: ent,
       onDone: () => {
@@ -397,7 +402,8 @@ export class CourseMapScene extends Phaser.Scene {
     return out;
   }
 
-  worldOfLevel(id) { const n = parseInt(String(id).split('-')[0], 10); return Number.isFinite(n) ? n : null; }
+  /** Welt einer Level-Id („2-3“ → 2; Sonderwelt über MAP.prefix: „H-1“ → 31). */
+  worldOfLevel(id) { return worldOfLevel(id); }
 
   labelOf(id) { return unlock.levelRule(this.map, id)?.label ?? id; }
 
@@ -724,6 +730,9 @@ export class CourseMapScene extends Phaser.Scene {
   }
 
   // ------------------------------------------------------------------ Tests
+
+  /** Welten mit Karte (numerisch sortiert, inkl. Sonderwelten wie 31) – Test-Schnittstelle. */
+  worldList() { return listWorldMaps(); }
 
   step(n = 1) {
     this.manual = true;

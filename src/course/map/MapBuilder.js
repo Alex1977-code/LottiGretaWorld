@@ -16,6 +16,10 @@
 // Zirkusplatz, Savanne mit Grashügel, Spukwiese, Minen-Schotter, Torte, Festung, Pflaster, Tempel …), Ränder
 // ('violetrock', 'driftwood', 'tropic', 'cream', 'fortwall', 'templewall' – auch als fence), Holzstege
 // (segments 'boardwalk') und Strand-/Savannen-/Torten-Requisiten (lilaPropGeo; Registry-Kulisse über lilaPropModel).
+// Halloween (Welt 31): map.kit = 'halloween' wählt die Geländestile der Kürbisinsel (halloween.js: Wiese auf violetten
+// Erdbändern, Kürbisfeld, Dorfpflaster, Friedhof, Hexenmoor, Burgplatten …), Ränder ('hwstone', 'hwpicket', 'hwiron',
+// 'hwhedge'), dunkle Holzstege mit Laternen (segments 'hwbridge'), Requisiten (buildHwProp) und die lebendige Kulisse
+// (HwLife: Fledermäuse, Nebelschwaden; Lichter im Material hwglow flackern im Takt der Kartenmusik).
 // Reihenfolge wichtig: Höhen für Hecken/Platten werden vom Gelände abgefragt, bevor Wände/Schranken entstehen;
 // erst am Ende wird die statische Geometrie verschmolzen (view.finalize).
 
@@ -35,6 +39,7 @@ import { SNOW_STYLES, snowGround, snowEdgeGeo, scatterSnow, snowPropGeo, snowPro
 import { canyonGround, canyonEdgeGeo, scatterCanyon, canyonPropGeo, canyonPropGlow, canyonPropShape, buildRopeBridge, buildRockArch } from './canyon.js';
 import { buildCableway } from './decor_w4.js';
 import { lilaGround, lilaEdgeGeo, scatterLila, lilaPropGeo, lilaPropGlow, lilaPropShape, lilaPropModel, buildBoardwalk } from './beach5.js';
+import { hwGround, hwEdgeGeo, scatterHalloween, buildHwProp, buildHwBridge, hwGlow, HwLife } from './halloween.js';
 
 const DESERT_STYLES = new Set(['desert', 'sandstone', 'dune', 'pink', 'lavarock', 'basin']);
 
@@ -51,6 +56,7 @@ export function buildMap(level, map, host) {
   const base = map.base ?? -3;
   const sea = map.sea ?? 0;
   const theme = level.view?.theme;
+  if (map.kit === 'halloween') hwGlow(level.view);   // Material hwglow (Lichter im Takt) vor dem ersten addStatic
 
   // 1) Gelände
   map.ground.forEach((b, i) => buildGround(level, b, base, theme, i, map));
@@ -61,6 +67,7 @@ export function buildMap(level, map, host) {
     if (seg.type === 'ropebridge') { buildRopeBridge(level, seg); continue; }   // Welt 4: Hängebrücke
     if (seg.type === 'rockarch') { buildRockArch(level, seg); continue; }       // Welt 4: Felsbogen
     if (seg.type === 'boardwalk') { buildBoardwalk(level, seg); continue; }     // Welt 5: Holzsteg
+    if (seg.type === 'hwbridge') { buildHwBridge(level, seg); continue; }       // Halloween: dunkler Steg mit Laternen
     const build = getBlockType(seg.type);
     if (!build) { console.warn(`[Weltkarte] unbekannter Baustein: ${seg.type}`); continue; }
     try { build(level, seg); } catch (err) { console.error(`[Weltkarte] Baustein ${seg.type} fehlgeschlagen:`, err); }
@@ -71,6 +78,7 @@ export function buildMap(level, map, host) {
   else if (map.kit === 'snow') scatterSnow(level, map, grid);
   else if (map.kit === 'canyon') scatterCanyon(level, map, grid);
   else if (map.kit === 'lila') scatterLila(level, map, grid);
+  else if (map.kit === 'halloween') scatterHalloween(level, map, grid);
   else scatterDeco(level, map, base, grid);
   buildProps(level, map, grid);
   const bounds = level.computeBounds();
@@ -82,7 +90,7 @@ export function buildMap(level, map, host) {
   const edgeParts = { hedge: [], fence: [] };
   for (const w of walls) borderDeco(w, ground, sea, edgeParts, groundBlock, map.edges);
   // Welt 3: niedrige Schneewälle/Zäune ohne Sonnenschatten (spart den Schattenpass auf der dichten Schneeinsel)
-  const edgeShadow = map.kit !== 'snow' && map.kit !== 'canyon' && map.kit !== 'lila';   // Welt 4 und 5 ebenso
+  const edgeShadow = map.kit !== 'snow' && map.kit !== 'canyon' && map.kit !== 'lila' && map.kit !== 'halloween';   // Welt 4, 5, 31 ebenso
   for (const g of edgeParts.hedge) level.view?.addStatic(g, { castShadow: edgeShadow });
   for (const g of edgeParts.fence) level.view?.addStatic(g, { castShadow: edgeShadow });
   out.hedges = edgeParts.hedge.length;
@@ -92,6 +100,14 @@ export function buildMap(level, map, host) {
 
   // 5) Meer, Wolken, Nachbarinseln (Inselchen gehen in die statische Geometrie)
   if (level.view) out.scenery = new MapScenery(level.view, map, bounds);
+
+  // 5a) Halloween: Fledermaus-Schwärme, Nebelschwaden (bewegt, je Bild)
+  if (map.kit === 'halloween' && level.view) {
+    const life = new HwLife(level, map);
+    out.updaters.push((dt, t) => life.update(dt, t));
+    out.own.push(life);
+    out.life = life;
+  }
 
   // 5b) Seilbahnen (Welt 4, Kulisse mit fahrender Gondel)
   for (const cw of map.cableways ?? []) {
@@ -174,6 +190,14 @@ function buildGround(level, b, base, theme, index, map) {
   const rnd = new Rnd(0x51ab + index * 977);
   level.world.add({ type: 'box', min: [x0, base, z0], max: [x1, top, z1], tag: b.walk ? 'karte' : 'gelaende', mapBlock: b, ice: !!b.ice });
   if (!theme) return;
+  if (map.kit === 'halloween') {
+    // Halloween: Stile der Kürbisinsel (flache Deckschichten ohne Schattenwurf)
+    for (const g of hwGround({ ...b, style: b.style ?? 'hwgrass' }, base, theme, rnd)) {
+      const mat = g.userData?.material, ns = g.userData?.noShadow;
+      level.view.addStatic(g, mat || ns ? { material: mat, castShadow: !ns } : undefined);
+    }
+    return;
+  }
   if (map.kit === 'lila') {
     // Welt 5: Stile der Lila Strand-Insel (flache Deckschichten ohne Schattenwurf, Leuchtendes über userData.material)
     for (const g of lilaGround({ ...b, style: b.style ?? 'lila' }, base, theme, rnd)) {
@@ -323,6 +347,7 @@ function scatterDesert(level, map, grid) {
 function buildProps(level, map, grid) {
   const add = (g, o) => level.view.addStatic(g, o);
   (map.props ?? []).forEach((it, i) => {
+    if (map.kit === 'halloween') { buildHwProp(level, map, grid, it, i); return; }   // Halloween: halloween.js
     // Modell aus der Registry (gleiche Optik wie in den Leveln), sonst eigene sparsame Geometrie
     const pm = level.view && it.model !== false ? (propModel(it) ?? (map.kit === 'lila' ? lilaPropModel(it) : null)) : null;
     const baked = pm ? bakeModel(add, pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
@@ -430,12 +455,12 @@ function borderDeco(w, ground, sea, out, groundBlock, edges = {}) {
       let g;
       if (c === 'hedge') {
         const seed = Math.floor(mid * 7 + 13) >>> 0;
-        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : snowEdgeGeo(st, L, seed) ?? canyonEdgeGeo(st, L, seed) ?? lilaEdgeGeo(st, L, seed) ?? hedgeGeo(L + 0.2, 1.1, 0.9, seed);
+        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : snowEdgeGeo(st, L, seed) ?? canyonEdgeGeo(st, L, seed) ?? lilaEdgeGeo(st, L, seed) ?? hwEdgeGeo(st, L, seed) ?? hedgeGeo(L + 0.2, 1.1, 0.9, seed);
         const off = w.side * (st === 'adobe' ? 0.35 : 0.45);
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
       } else {
-        g = st === 'rope' || st === 'chain' ? ropeFenceGeo(L, st === 'chain') : snowEdgeGeo(st, L, 1) ?? lilaEdgeGeo(st, L, 1) ?? fenceGeo(L);
+        g = st === 'rope' || st === 'chain' ? ropeFenceGeo(L, st === 'chain') : snowEdgeGeo(st, L, 1) ?? lilaEdgeGeo(st, L, 1) ?? hwEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? fenceGeo(L);
         const off = w.side * 0.12;
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
@@ -482,7 +507,7 @@ function buildPaths(level, map, grid, ground, sea) {
     if (hs.some((h) => h === null || Math.abs(h - hit.y) > 0.02)) continue;
     const base = mixc(a, b2, rnd.frac(), [0, 0, 0]);
     const box = new THREE.BoxGeometry(0.9, 0.1, 0.9);
-    if (map.kit === 'snow' || map.kit === 'lila') box.setIndex([...box.index.array.slice(0, 18), ...box.index.array.slice(24)]);   // Welt 3/5: ohne Unterseite
+    if (map.kit === 'snow' || map.kit === 'lila' || map.kit === 'halloween') box.setIndex([...box.index.array.slice(0, 18), ...box.index.array.slice(24)]);   // Welt 3/5: ohne Unterseite
     const g = colorize(box, (p, n, o) => { if (n.y > 0.6) { o[0] = base[0]; o[1] = base[1]; o[2] = base[2]; } else mixc(base, edge, 0.7, o); });
     g.translate(cx, hit.y + 0.01, cz);
     parts.push(g);
