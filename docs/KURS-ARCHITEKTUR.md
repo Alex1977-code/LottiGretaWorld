@@ -4808,3 +4808,55 @@ zurück) · Teil 4 Bilder `tests/out/hwe_*.png` und Zeichenaufrufe. Gemessen (sc
 35–83 Zeichenaufrufe (≤ 206 k Dreiecke, Thema pumpkin), Schlossdach 37–77 (≤ 163 k, Thema castle_night).
 Regressionen: `course_enemies`, `course_w5_enemies` (Teile 1–3), `course_physics` bestanden; `course_hw_blocks`
 (Teil mech) mit dem Kürbling aus der Tür bestanden.
+
+## Präzisierung (Level H-Kapitän und H-3)
+
+Additiv zur Halloween-Liste: Titel und Besonderheiten zweier Level der Kürbisinsel. Dateien
+`src/course/levels/w31/H-Kapitän.js`, `H-3.js`, eigene Hilfen `src/course/levels/w31/_helpers_b.js` (kein `LEVEL`, nur für
+diese beiden Level), Test `tests/course_hwb.mjs`. Kein Motor-Code geändert; Sonderteile sind level-lokal (Haken
+`LEVEL.build`/`LEVEL.setup`), die Mechanik kommt aus den Halloween-Bausteinen und -Gegnern.
+
+### H-Kapitän „Krümel im Kürbis-Kuddelmuddel“ (diorama · pumpkin_night · course_diorama · 400 s, 3 Sterne)
+
+- Kürbisfeld-Diorama bei Nacht (≈ 37 × 35 m mit Inseln): Kürbisstand-Insel (Start) → lila Geistersteg → Kürbisfeld mit
+  **Strohballen-Labyrinth** (5 × 5 Zellen à 2,6 m, Wände 1 m, `mazeWalls`/`strawWalls`) → Rampe → Terrasse (y 2,5) mit
+  **Riesenkürbis**, roter Scheune und blinkendem Laternenpfahl → **Vogelscheuchen-Insel**. Krümel (`figure: 'kruemel'`)
+  trägt von Anfang an die Laterne (`LEVEL.lantern: { carry: true, radius: 4.6 }`).
+- Sterne: 1 **Herz des Labyrinths** (richtiger Weg außen herum; Sackgassen mit Süßem, ein **Kürbis winkt zurück**,
+  `wavingPumpkin`) · 2 **Geistertreppe** um den Riesenkürbis (12 grüne Geisterplatten, Stufen 0,25 m – Krümel springt
+  nicht; nur im Laternenlicht) auf seinen Deckel, ein Kreisgeist kreuzt die Treppe · 3 **Pfahl-Brücke** (`light: 'pfahl'`,
+  blinkt [4,5 s an, 3 s aus]; die Handlaterne zeigt sie nicht) zur Insel. Der dritte gefundene Stern beendet das Level.
+- Gegner: Kürbling (2, Streife), Kreisgeist (1). Schatzstellen: Sackgasse, Kürbisbeet, Insel. Schilder „Kürbis-
+  Kuddelmuddel“, „Warte, bis die Laterne brennt!“.
+
+### H-3 „Gekicher auf dem Nebelfriedhof“ (parcours · graveyard · course_graveyard · 400 s)
+
+- Abschnitte (≈ 225 m, Plateaus y 1): **Friedhofstor** (Laterne liegt im Weg, Klapperknochen zum Üben, Nebelgraben mit
+  dem ersten lila Geistersteg – Hineinfallen harmlos) → **Nebelschlucht** (sieben lila Geisterplatten im Zickzack, Grabinsel
+  mit Kreisgeist und Flatterfledi) → **Glibberbach** (Checkpoint; Floß mit Pflaume, Ufer 5 m breit, **Gruft-Durchfahrt**
+  `cryptPassage`: hohe Quadermauern über beiden Ufern – zu Fuß kein Weg; Krümel winkt mit Laterne vom Ufer) →
+  **Gruftgarten** (Checkpoint; blinkender Laternenpfahl auf einer Felsnadel zeigt die blaue Brücke; Klappergarten;
+  Kreisgeist-Ring um die Gruft; Spuk; **Grabstein-Schalter** zündet dauerhaft den Pfahl der nächsten Brücke) →
+  **Kapellenhügel** (Checkpoint, Treppe, Klapperknochen, Kreisgeist, Zielmast vor der Kapelle, Glockenturm).
+- Sterne: 0 der **kichernde Geist** (`gigglingGhost`, „Hihi!“) huscht hinter den großen Grabstein – dahinter führen
+  unsichtbare Geisterstufen (Laterne) auf die schwebende Gruft · 1 über dem Glibberbach hinter der Durchfahrt: nur mit
+  einem **Floß-Hüpfer** erreichbar · 2 **Klappergarten**: drei Klapperknochen endgültig besiegen (Draufspringen →
+  Knochenhaufen, Stampfattacke auf den Haufen), `task` mit `ids` zeigt den Stern. Stempel: **Glockenturm** – lila Stufen
+  (Laterne) und blaue Stufen (nur wenn der Turm-Pfahl brennt, [3,6 s an, 2,4 s aus]) im Wechsel; auf lila warten.
+- Gegner: Klapperknochen (8), Kreisgeist (2), Kreisgeist-Kreis (1 × 8), Spuk (1), Flatterfledi (3).
+- Hinweise: Ufer des Glibberbachs mit `bank: 5` bilden die Friedhofsflächen (Kulisse muss 3,7 … 7,7 m von der Bachlinie
+  liegen); die Gruft-Mauern decken die Ufer ganz ab (Oberkante y 8 – auch der Dreifachsprung reicht nicht).
+
+### Test `tests/course_hwb.mjs`
+
+Port 4580 (+ `PORT_BASE`), Aufruf `node tests/course_hwb.mjs [H-Kapitän|H-3]`, Teilläufe
+`PARTS=load,route,targets,extra,sweep,shots` (je Lauf < 10 min; H-3-Bilder in zwei Hälften über `SHOTS='a|b'`),
+`HEROES=lotti,greta`, `ONLY=<Text|Text>`, `VERBOSE=1`, `DETAIL=1`, Bilder `tests/out/hwb_*.png`. Bot mit echter Eingabe;
+Beine u. a. `light`/`dark` (Laternenpfahl geht gerade an/aus), `clear` (Kreisgeist hinter dem Kürbis abwarten), `mount`/
+`ride` (Floß auf dem Glibberbach, `jump` je z-Bereich, `untilZ`), `bones` (Klapperknochen anspringen, Haufen stampfen;
+`noPound`), `pound`, `star`/`stamp`. Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; H-Kapitän: Krümel springt
+nicht, alle drei Sterne einzeln und in einem Lauf (≈ 62 s) samt Gegenproben (ohne Laterne kein Steg, Pfahl aus → keine
+Brücke), winkender Kürbis, Schatzstelle; H-3: Routen-Bot Lotti und Greta Start → Ziel (≈ 41 s), alle Sterne und Stempel mit
+beiden Heldinnen samt Gegenproben (ohne Laterne keine Stufen, ohne Hüpfer kein Stern, nur Draufspringen → kein Stern,
+blaue Stufe bei Pfahl aus trägt nicht), Nebelgraben harmlos, Glibber = Neustart am Checkpoint, Gruft-Mauer, Krümel winkt,
+Grabstein-Schalter (Greta); Messgang je Abschnitt.
