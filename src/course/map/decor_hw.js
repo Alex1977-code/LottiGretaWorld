@@ -390,10 +390,12 @@ function pumpkinMaze(ev, x, y, z) {
   const kp = ev.def.kruemel ?? [x + 2.6, y, z + 4.4];
   const kr = live(ev, 'kruemel', {}, kp, FRONT + 0.35, 1.6, () => ({ anim: Math.sin(ev.view.time * 0.5) > 0.92 ? 'cheer' : 'idle' }));
   if (kr) solidCyl(ev, kp[0], kp[2], 0.45, kp[1], kp[1] + 0.9, 'kruemel');
+  // Mini-Vampirumhang: hinten offen-halbrund (außen schwarz, innen rot), hoher Kragen
   const cape = mover(ev, cached('hw:cape', () => {
     const c = new Build();
-    c.cyl(0.32, 0.5, 0.62, { v: (px, py, pz) => (pz > 0.1 ? 0xc8203a : 0x2a1a30) }, { p: [0, 0.38, -0.06], s: [1, 1, 0.75] }, 10, true);
-    c.box(0.6, 0.18, 0.06, 0x2a1a30, { p: [0, 0.72, -0.14], r: [-0.3, 0, 0] }, 0.03, 1);
+    c.add(new THREE.CylinderGeometry(0.3, 0.46, 0.6, 10, 1, true, Math.PI * 0.55, Math.PI * 0.9), 0x2a1a30, { p: [0, 0.36, -0.02] });
+    c.add(new THREE.CylinderGeometry(0.28, 0.44, 0.58, 10, 1, true, Math.PI * 0.55, Math.PI * 0.9), 0xd02040, { p: [0, 0.37, -0.01] });
+    c.add(new THREE.CylinderGeometry(0.2, 0.17, 0.2, 8, 1, true, Math.PI * 0.5, Math.PI), 0xd02040, { p: [0, 0.74, -0.03], r: [-0.25, 0, 0] });
     return c.geometry();
   }), kp[0], kp[1], kp[2], 'hw:umhang');
   cape.rotation.y = 0.35;

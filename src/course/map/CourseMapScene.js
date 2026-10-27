@@ -41,7 +41,7 @@ import { getPower, normalizePower } from '../player/powers.js';
 import { music, sfx, engine } from '../../audio/index.js';
 import { vibrate } from '../../systems/haptics.js';
 import { RENDER3D } from '../../render3d.js';
-import { getWorldMap, worldOfLevel } from './worlds/index.js';
+import { getWorldMap, worldOfLevel, listWorldMaps } from './worlds/index.js';
 import { buildMap, finalizeMap } from './MapBuilder.js';
 import { MapRuntime } from './MapRuntime.js';
 import { MapRoamer, MapItem, addEntity, instanceRoamers } from './entities.js';
@@ -726,6 +726,9 @@ export class CourseMapScene extends Phaser.Scene {
   }
 
   // ------------------------------------------------------------------ Tests
+
+  /** Welten mit Karte (numerisch sortiert, inkl. Sonderwelten wie 31) – Test-Schnittstelle. */
+  worldList() { return listWorldMaps(); }
 
   step(n = 1) {
     this.manual = true;

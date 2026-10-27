@@ -83,10 +83,10 @@ export const MAP = {
     // ---- D Friedhofsvorplatz, Friedhof (Zaun aus der Kulisse), Wald dahinter
     g(0, -40, 32, -24, 3, { style: 'graveyard', walk: W }),
     g(0, -54, 32, -40, 3.15, { style: 'graveyard', noEdge: true }),
-    g(-14, -40, 0, -24, 3.6, { style: 'forest' }),
+    g(-14, -34, 0, -24, 3.6, { style: 'forest' }),
     g(32, -54, 42, -24, 2.2, { style: 'hwrock', trees: 0.6 }),
     // ---- E Hexenmoor, Felsen
-    g(-40, -66, -14, -40, 4, { style: 'moor', walk: W }),
+    g(-40, -66, -14, -36, 4, { style: 'moor', walk: W }),
     g(-50, -70, -40, -36, 5.2, { style: 'hwrock' }),
     g(-14, -66, -6, -50, 4.8, { style: 'hwrock' }),
     // ---- F Schlosshügel, Felsen ringsum
@@ -101,7 +101,7 @@ export const MAP = {
     [-6, 12, -2, 26],          // A → B
     [-26, -2, -14, 2],         // B → C
     [8, -24, 12, -8],          // B → D
-    [-14, -46, 0, -42],        // D → E
+    [-14, -40, 0, -36],        // D → E
     [-20, -78, -16, -66],      // E → F
   ],
 
@@ -114,9 +114,9 @@ export const MAP = {
     [[-4, 4], [4, -2], [10, -5], [10, -8]],
     [[-26, 0], [-30, 3.6], [-35, 3.6]],
     [[10, -24], [12, -28], [16, -30.0], [16, -32.9]],
-    [[12, -28], [4, -36], [2, -44], [0, -44]],
-    [[-14, -44], [-20, -46], [-26, -48.8], [-27, -50.9]],
-    [[-20, -46], [-17.4, -52], [-17.4, -60], [-18, -66]],
+    [[12, -28], [4, -34], [2, -38], [0, -38]],
+    [[-14, -38], [-20, -42], [-26, -48.4], [-27, -50.9]],
+    [[-20, -42], [-17.4, -50], [-17.4, -60], [-18, -66]],
     [[-18, -78], [-14, -84], [-6, -87], [-4, -88.4]],
   ],
 
@@ -136,7 +136,7 @@ export const MAP = {
     { for: 'H-2', at: [-4, 19], axis: 'z' },
     { for: 'H-Kapitän', at: [-20, 0], axis: 'x' },
     { for: 'H-3', at: [10, -16], axis: 'z' },
-    { for: 'H-4', at: [-7, -44], axis: 'x' },
+    { for: 'H-4', at: [-7, -38], axis: 'x' },
     { for: 'H-Burg', at: [-18, -72], axis: 'z' },
   ],
 
@@ -181,18 +181,18 @@ export const MAP = {
     { kind: 'leaves', pos: [-41.4, 2, 2.6], size: 1.0, solid: false, shadow: false }, { kind: 'pumpkin', pos: [-38.4, 2, 4.6], size: 0.5, face: 1 },
     // D Friedhofsvorplatz
     { kind: 'hwlantern', pos: [7.6, 3, -26.4] }, { kind: 'hwlantern', pos: [24.6, 3, -26.4], yaw: PI },
-    { kind: 'hwtree', pos: [29.6, 3, -27.0], size: 4.4 }, { kind: 'grave', pos: [2.4, 3, -38.0], size: 0.9 },
-    { kind: 'pumpkins', pos: [26.4, 3, -37.6], size: 0.8, face: true }, { kind: 'candles', pos: [5.0, 3, -37.8], solid: false },
+    { kind: 'hwtree', pos: [29.6, 3, -27.0], size: 4.4 }, { kind: 'grave', pos: [1.6, 3, -30.8], size: 0.9 },
+    { kind: 'pumpkins', pos: [26.4, 3, -37.6], size: 0.8, face: true }, { kind: 'candles', pos: [2.6, 3, -30.2], solid: false },
     { kind: 'leaves', pos: [22.6, 3, -30.4], size: 1.0, solid: false, shadow: false }, { kind: 'pumpkin', pos: [13.2, 3, -31.2], size: 0.55, face: 2 },
-    { kind: 'pumpkin', pos: [19.0, 3, -31.4], size: 0.5, face: 1 }, { kind: 'toadstool', pos: [3.2, 3, -27.6], solid: false },
+    { kind: 'pumpkin', pos: [19.0, 3, -31.4], size: 0.5, face: 1 }, { kind: 'toadstool', pos: [5.2, 3, -26.6], solid: false },
     // E Hexenmoor
-    { kind: 'hwlantern', pos: [-15.2, 4, -41.4], yaw: PI }, { kind: 'hwlantern', pos: [-21.6, 4, -63.6] },
+    { kind: 'hwlantern', pos: [-15.4, 4, -41.6], yaw: PI }, { kind: 'hwlantern', pos: [-21.6, 4, -63.6] },
     { kind: 'hwtree', pos: [-38.0, 4, -42.4], size: 4.6 }, { kind: 'hwtree', pos: [-37.4, 4, -63.4], size: 4.2 },
     { kind: 'toadstool', pos: [-33.4, 4, -43.0], solid: false }, { kind: 'toadstool', pos: [-16.4, 4, -60.4], solid: false },
     { kind: 'pumpkins', pos: [-35.8, 4, -48.4], size: 0.8, face: true }, { kind: 'witchhat', pos: [-31.6, 4, -44.2], size: 0.8 },
     { kind: 'heather', pos: [-36.4, 4, -53.6], solid: false }, { kind: 'heather', pos: [-33.2, 4, -59.4], size: 1.2, solid: false },
     { kind: 'heather', pos: [-16.6, 4, -48.2], solid: false }, { kind: 'heather', pos: [-38.0, 4, -58.8], size: 0.9, solid: false },
-    { kind: 'heather', pos: [-24.4, 4, -43.6], size: 1.1, solid: false }, { kind: 'heather', pos: [-31.0, 4, -64.0], solid: false },
+    { kind: 'heather', pos: [-25.4, 4, -39.2], size: 1.1, solid: false }, { kind: 'heather', pos: [-31.0, 4, -64.0], solid: false },
     { kind: 'heather', pos: [-15.6, 4, -64.2], size: 1.2, solid: false }, { kind: 'pumpkin', pos: [-29.6, 4, -50.0], size: 0.5, face: 2 },
     // F Schlosshügel
     { kind: 'hwlantern', pos: [-20.6, 6, -80.4] }, { kind: 'hwlantern', pos: [-15.4, 6, -80.4], yaw: PI },
@@ -206,7 +206,7 @@ export const MAP = {
     { type: 'hwbridge', from: [-4, 1, 26], to: [-4, 2, 12], width: 4 },
     { type: 'hwbridge', from: [-14, 2, 0], to: [-26, 2, 0], width: 4 },
     { type: 'hwbridge', from: [10, 2, -8], to: [10, 3, -24], width: 4 },
-    { type: 'hwbridge', from: [0, 3, -44], to: [-14, 4, -44], width: 4 },
+    { type: 'hwbridge', from: [0, 3, -38], to: [-14, 4, -38], width: 4 },
     { type: 'hwbridge', from: [-18, 4, -66], to: [-18, 6, -78], width: 4 },
   ],
 };
