@@ -4884,7 +4884,8 @@ und Greta Start → Ziel mit echter Mechanik (H-1: drei Bach-Kürbisse, acht Lat
 Markise auf die Stadtmauer); alle Sterne und Stempel samt Gegenproben (Sprung statt Stampfen, fünf statt sechs Türen,
 Rückwärtssalto statt Kanone/Schalter/Netz, Geisterplatten ohne Grabstein); Extras (Riesenkürbis trifft, Extraleben,
 Riesenkürbling → drei kleine, Checkpoint 2, Tür-Bitcoins, Kürbling aus der Tür, Markisen-Säule, kichernder Geist); Messgang
-entlang der Route. Die Verkleidung der Figuren meldet der Routen-Bot (Kennung am Avatar), sobald es sie gibt. Gemessen
+entlang der Route. Die Verkleidung prüft der Routen-Bot über `outfit` von Szene und Avatar ('halloween'), sobald der Motor
+sie kennt (wie `course_hwc`). Gemessen
 (scale 2, inkl. Schattenpass): H-1 bis ≈ 88 Zeichenaufrufe / ≈ 290 k Dreiecke (Kullerhang, Kanone), H-2 bis ≈ 85 /
 ≈ 245 k (Marktplatz, Stadtmauer).
 
