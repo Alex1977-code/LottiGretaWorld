@@ -662,16 +662,22 @@ async function hwLevelPart() {
   // Halloween-Testlevel (Werkstatt 0-20, Gruselwerkstatt 0-21, Schlossdach 0-22) ohne URL-Schalter: die Szene zieht an
   // dazu das erste vorhandene Level der Halloween-Welt (H-…), sobald es gebaut ist
   const hLevel = ['H-1', 'H-2', 'H-3', 'H-4', 'H-Burg'].find((id) => existsSync(`${ROOT}src/course/levels/w31/${id}.js`));
-  for (const id of ['0-20', '0-21', '0-22', ...(hLevel ? [hLevel] : [])]) {
+  const kLevel = existsSync(`${ROOT}src/course/levels/w31/H-Kapitän.js`) ? ['H-Kapitän'] : [];   // Krümel-Diorama
+  for (const id of ['0-20', '0-21', '0-22', ...(hLevel ? [hLevel] : []), ...kLevel]) {
     await waitCourse(`${base}/?course=${encodeURIComponent(id)}&scale=2&adapt=0`);
     const r = await sc(() => {
       const c = window.__course; c.setManual(true); c.level.muted = true;
       try { window.__game.scene.getScene('CourseUI').cameras.main.setVisible(false); } catch (_) { /* egal */ }
       for (let i = 0; i < 4; i++) c.renderFrame();
       const av = c.rig.avatar;
+      if (c.rig.kind === 'kruemel') {
+        let cape = false; c.rig.hull.traverse((o) => { if (o.name === 'umhang' && o.parent) cape = true; });
+        return { scene: c.outfit, rig: c.rig.constructor.name, cape, pack: c.rig.gear.pack.visible, cap: !!c.rig.gear.cap.parent };
+      }
       return { scene: c.outfit, av: av?.outfit ?? null, hat: !!av?.hw?.hat?.parent, rig: c.rig.constructor.name };
     });
-    check(`${id}: Halloween-Level – Verkleidung an, Lotti mit Hut (${JSON.stringify(r)})`, r.scene === 'halloween' && r.av === 'halloween' && r.hat);
+    if (r.rig === 'KruemelRig') check(`${id}: Krümel (KruemelRig) mit Umhang und Kapitänsmütze, Rucksack unter dem Umhang (${JSON.stringify(r)})`, r.scene === 'halloween' && r.cape && r.cap && !r.pack);
+    else check(`${id}: Halloween-Level – Verkleidung an, Lotti mit Hut (${JSON.stringify(r)})`, r.scene === 'halloween' && r.av === 'halloween' && r.hat);
     await page.screenshot({ path: `${OUT}outfit_hw_spiel_${id}.png` }); shots.push({ name: `spiel_${id}`, path: `${OUT}outfit_hw_spiel_${id}.png`, group: 'spiel' });
     if (id === '0-20') {
       await sc(() => { const c = window.__course; c.setHero('greta'); c.rig.update(1 / 60, 1); for (let i = 0; i < 4; i++) c.renderFrame(); });
