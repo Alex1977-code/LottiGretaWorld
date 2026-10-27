@@ -32,8 +32,8 @@ export const HW_COLORS = {
   cat: '#2c2433', catHi: '#4d4458', catPink: '#ff9ac4', tailBow: '#ff6fae',
   whisker: '#3b2632', catNose: '#6a3346',
   bandanaOrange: '#ff8a1e', bandanaDark: 0.09,
-  wing: '#3f2b5c', wingIn: '#7a52a6', wingBone: '#251a33', wingClaw: '#f3e6ff',
-  cape: '#2a2038', capeHi: '#4a3a66', capeIn: '#d8283c', capeInDark: '#a3172a',
+  wing: '#5d3c8c', wingIn: '#a77ddb', wingBone: '#2e2142', wingClaw: '#f3e6ff',
+  cape: '#3b2758', capeHi: '#6a52a0', capeIn: '#e2323f', capeInDark: '#b31e30',
 };
 
 /** Ellipsoid (Einheitskugel → Achsen ax, ay, az um c) mit Vertexfarbe (Farbe oder Funktion der Position). */
@@ -80,17 +80,17 @@ function puffyStarGeo(r, color = HW_COLORS.star, hi = HW_COLORS.starHi) {
 // ================================================================== Lotti: Hexenhut
 /** Maße des Huts (Einheiten, hut-lokal). */
 export const HAT = {
-  R0: 0.24,           // Kronen-Radius unten
-  brimIn: 0.17, brimOut: 0.41,
-  spine: [V(0, -0.012, 0), V(0.012, 0.19, 0), V(-0.015, 0.33, 0), V(-0.15, 0.4, 0.035)],
-  band: [0.025, 0.16],   // Band (Anteil der Kronenlänge)
+  R0: 0.325,          // Kronen-Radius unten (umschließt den Scheitel samt Haar)
+  brimIn: 0.25, brimOut: 0.45,
+  spine: [V(0, -0.012, 0), V(0.01, 0.24, 0), V(-0.035, 0.42, 0), V(-0.27, 0.42, 0.07)],   // Spitze knickt nach hinten um
+  band: [0.03, 0.15],    // Band (Anteil der Kronenlänge)
 };
 const hatSpine = new THREE.CubicBezierCurve3(...HAT.spine);
 
 /** Kronen-Radius bei t (0 unten … 1 Spitze): verjüngt, Band etwas erhaben, weiche Knautschfalten, runde Spitze. */
 function crownR(t, phi = 0) {
   const [b0, b1] = HAT.band;
-  let r = HAT.R0 * Math.pow(1 - t, 0.9);
+  let r = HAT.R0 * Math.pow(1 - t, 1.05);
   const band = smoothstep((t - b0) / 0.02) * smoothstep((b1 - t) / 0.02);
   r += 0.013 * band;
   r *= 1 + 0.05 * Math.sin(TAU * 2.2 * t + 0.6 + 0.35 * Math.cos(phi)) * smoothstep((t - b1 - 0.03) / 0.12);
@@ -127,23 +127,23 @@ export function witchHatGeo(accent = '#e83a30') {
     },
   }));
   // Krempe: flacher Ring mit gerolltem Rand, leicht gewellt (Unterseite dunkler)
-  const prof = smoothProfile2([[HAT.brimIn, -0.01], [0.3, -0.006], [HAT.brimOut - 0.004, 0.018], [HAT.brimOut + 0.008, 0.033], [HAT.brimOut - 0.002, 0.047], [0.3, 0.028], [HAT.brimIn, 0.016]], 13);
+  const prof = smoothProfile2([[HAT.brimIn, -0.01], [0.37, -0.006], [HAT.brimOut - 0.004, 0.02], [HAT.brimOut + 0.009, 0.036], [HAT.brimOut - 0.002, 0.052], [0.37, 0.03], [HAT.brimIn, 0.018]], 13);
   const nP = prof.length - 1;
-  const wave = (phi) => 0.022 * Math.cos(2 * phi + 0.3) + 0.01 * Math.cos(3 * phi + 1.1);
+  const wave = (phi) => 0.028 * Math.cos(2 * phi + 0.3) + 0.012 * Math.cos(3 * phi + 1.1);
   gs.push(gridGeo({
     nu: 36, nv: nP,
     point: (u, v, out) => {
       const phi = u * TAU, [r, y] = prof[Math.round(v * nP)];
-      const w = wave(phi) * smoothstep((r - 0.24) / 0.16);
+      const w = wave(phi) * smoothstep((r - 0.33) / 0.14);
       return out.set(Math.cos(phi) * r, y + w, Math.sin(phi) * r);
     },
     color: (u, v) => {
       const k = Math.round(v * nP), under = k < nP * 0.42;
-      return under ? dark.clone().lerp(hat, 0.15) : hat.clone().lerp(tip, 0.18 * smoothstep((prof[k][0] - 0.3) / 0.1));
+      return under ? dark.clone().lerp(hat, 0.15) : hat.clone().lerp(tip, 0.18 * smoothstep((prof[k][0] - 0.38) / 0.08));
     },
   }));
   // Sternchen (vorn, seitlich, hinten – aus der Kurs-Kamera hinter der Figur sichtbar)
-  for (const [t, phi, r, roll] of [[0.36, 0.55, 0.05, 0.2], [0.27, 2.75, 0.046, -0.3], [0.55, -2.0, 0.036, 0.5], [0.3, -0.9, 0.04, -0.1]]) {
+  for (const [t, phi, r, roll] of [[0.32, 0.45, 0.056, 0.2], [0.3, -2.6, 0.052, -0.3], [0.52, 2.3, 0.042, 0.5], [0.28, -1.05, 0.048, -0.1], [0.6, 1.2, 0.036, 0.3]]) {
     const { p, n, f } = crownPoint(t, phi, -0.004);
     const up = f.T.clone().addScaledVector(n, -f.T.dot(n)).normalize().applyAxisAngle(n, roll);
     const x = new THREE.Vector3().crossVectors(up, n);
@@ -153,11 +153,11 @@ export function witchHatGeo(accent = '#e83a30') {
   }
   // Lottis rote Schleife am Band (hinten zur nahen Seite)
   {
-    const tb = (HAT.band[0] + HAT.band[1]) / 2, phi = 2.2;
-    const { p, n, f } = crownPoint(tb, phi, 0.012);
+    const tb = HAT.band[1] - 0.025, phi = 2.45;
+    const { p, n, f } = crownPoint(tb, phi, 0.016);
     const T = f.N.clone().multiplyScalar(-Math.sin(phi)).addScaledVector(f.B, Math.cos(phi)).normalize();
     const B = new THREE.Vector3().crossVectors(T, n).normalize();
-    gs.push(...bowGeos(p, n, T, B, accent, 0.82));
+    gs.push(...bowGeos(p.addScaledVector(f.T, 0.012), n, T, B, accent, 1.12));
   }
   const m = mergeColored(gs.map((g) => [g, null, null]));
   for (const g of gs) g.dispose();
@@ -168,9 +168,9 @@ export function witchHatGeo(accent = '#e83a30') {
 // ================================================================== Greta: Katzenohren, Schwanz, Schnurrhaare
 /** Katzenohr: abgerundetes Dreieck, gemuldet (Innenseite +X rosa), Ansatz im Ursprung, Spitze +Y. */
 export function catEarGeo() {
-  const H = 0.19, W = 0.088, T = 0.022, cup = 0.03;
+  const H = 0.2, W = 0.118, T = 0.028, cup = 0.036;
   const blk = C(HW_COLORS.cat), hi = C(HW_COLORS.catHi), pink = C(HW_COLORS.catPink);
-  const width = (v) => W * Math.pow(1 - 0.92 * v, 0.85) * (v > 0.82 ? Math.sqrt(Math.max(0, 1 - ((v - 0.82) / 0.18) ** 2)) : 1) * Math.sqrt(Math.sin((Math.PI / 2) * Math.min(1, v / 0.05)));
+  const width = (v) => W * Math.pow(1 - 0.8 * v, 0.75) * (v > 0.7 ? Math.sqrt(Math.max(0, 1 - ((v - 0.7) / 0.3) ** 2)) : 1) * Math.sqrt(Math.sin((Math.PI / 2) * Math.min(1, v / 0.05)));
   return gridGeo({
     nu: 14, nv: 8, flip: true,
     point: (u, v, out) => {
@@ -187,7 +187,7 @@ export function catEarGeo() {
 }
 
 /** Katzenschwanz: Länge der Kettenglieder (Einheiten), Radien am Ansatz/vor der Spitze, Spitze; Knochen = halbe Glieder. */
-export const CAT_TAIL = { links: [0.13, 0.12, 0.115, 0.105], r0: 0.042, r1: 0.029, tip: 0.035 };
+export const CAT_TAIL = { links: [0.14, 0.14, 0.14, 0.13], r0: 0.05, r1: 0.034, tip: 0.043 };
 CAT_TAIL.len = CAT_TAIL.links.reduce((a, b) => a + b, 0);
 CAT_TAIL.bones = CAT_TAIL.links.flatMap((L, i) => { const y0 = CAT_TAIL.links.slice(0, i).reduce((a, b) => a + b, 0); return [y0, y0 + L / 2]; });
 
@@ -302,7 +302,7 @@ export function stripedBandanaGeo() {
 }
 
 /** Fledermausflügel: Spannweite, Tiefe am Ansatz; Fingerspitzen am Hinterrand. */
-export const BAT_WING = { span: 0.42, chord: 0.2, fingers: [0.4, 0.72] };
+export const BAT_WING = { span: 0.5, chord: 0.23, fingers: [0.4, 0.72] };
 export function batWingGeo(side = 1) {
   const { span, chord, fingers } = BAT_WING;
   const top = C(HW_COLORS.wing), under = C(HW_COLORS.wingIn), bone = C(HW_COLORS.wingBone);
@@ -359,36 +359,40 @@ export function batWingGeo(side = 1) {
 
 // ================================================================== Krümel: Mini-Vampirumhang
 /** Umhang (Ursprung = Halsansatz des Hasenmodells bei CAPE.pivot; Blick +X). */
-export const CAPE = { pivot: [-0.03, 0.3, 0], phi: 1.95, neckR: 0.118, hemR: 0.215, hemY: -0.235, collarH: 0.13 };
+export const CAPE = { pivot: [-0.03, 0.3, 0], phi: 1.9, neckR: 0.118, hemR: 0.205, hemY: -0.17, collarH: 0.16 };
 export function capeGeo() {
   const { phi: PHI, neckR, hemR, hemY, collarH } = CAPE;
   const out = C(HW_COLORS.cape), outHi = C(HW_COLORS.capeHi), lin = C(HW_COLORS.capeIn), linDark = C(HW_COLORS.capeInDark);
-  const VC = 0.3;   // Anteil des Stehkragens an v
-  const peaks = (a) => Math.pow(0.5 + 0.5 * Math.cos(7 * a), 6);
+  const VC = 0.32;   // Anteil des Stehkragens an v
+  // Saum: Fledermaus-Zacken (bei ±0,48 und ±1,43), in der Mitte eine Kerbe – dort schaut das Puschelschwänzchen hervor
+  const points = (a) => Math.pow(Math.abs(Math.sin(3.3 * a)), 3);
+  const notch = (a) => 0.085 * Math.exp(-((a / 0.28) ** 2));
   // v 0 = Kragenoberkante … VC = Halslinie … 1 = Saum; a = Winkel um den Rücken (0 = hinten, −X)
   const at = (u, v, inner, outp) => {
     const a = lerp(-PHI, PHI, u), back = Math.cos(a);
     let r, y;
     if (v < VC) {
       const k = v / VC;                                            // 0 oben … 1 Hals
-      const h = collarH * (0.35 + 0.65 * Math.max(0, back));       // hinten hoch, vorn niedrig
+      // Stehkragen: hinten hoch, zwei Spitzen seitlich, vorn niedrig; nach oben weit ausgestellt
+      const h = collarH * (0.4 + 0.6 * Math.max(0, back)) + 0.055 * Math.exp(-(((Math.abs(a) - 1.05) / 0.28) ** 2));
       y = h * (1 - k);
-      r = neckR + 0.05 * (1 - k) * (1 - k) * (0.6 + 0.4 * Math.max(0, back));   // nach oben ausgestellt
+      r = neckR + 0.1 * Math.pow(1 - k, 1.5) * (0.7 + 0.3 * Math.max(0, back));
     } else {
       const k = (v - VC) / (1 - VC);                               // 0 Hals … 1 Saum
-      y = lerp(0, hemY - 0.045 * peaks(a) + 0.02, k);
-      r = lerp(neckR, hemR, Math.pow(k, 0.75)) * (1 + 0.05 * Math.sin(Math.PI * k));
+      y = lerp(0, hemY - 0.05 * points(a) + notch(a), k);
+      r = lerp(neckR, hemR, Math.pow(k, 0.7)) * (1 + 0.06 * Math.sin(Math.PI * k));
+      r += 0.03 * smoothstep((Math.abs(a) - (PHI - 0.4)) / 0.4) * k;   // Vorderkanten klappen auf (rotes Futter zu sehen)
     }
     if (inner) r -= 0.006;
     return outp.set(-Math.cos(a) * r, y, Math.sin(a) * r);
   };
   const shell = (inner) => gridGeo({
-    nu: 20, nv: 12, wrapU: false, flip: inner,
+    nu: 22, nv: 12, wrapU: false, flip: inner,
     point: (u, v, o) => at(u, v, inner, o),
     color: (u, v) => {
       const a = lerp(-PHI, PHI, u);
       if (inner) return lin.clone().lerp(linDark, 0.35 * smoothstep((v - 0.6) / 0.4) + 0.2 * Math.abs(a) / PHI);
-      return out.clone().lerp(outHi, 0.45 * Math.pow(0.5 + 0.5 * Math.cos(7 * a), 3) * smoothstep((v - VC) / 0.3));
+      return out.clone().lerp(outHi, 0.5 * points(a) * smoothstep((v - VC - 0.2) / 0.4) + 0.18 * smoothstep((VC - v) / VC));
     },
   });
   const gs = [shell(false), shell(true)];

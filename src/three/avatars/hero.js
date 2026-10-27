@@ -983,11 +983,11 @@ function plinthParts() {
 // HangChain), drei aufgemalte Schnurrhaare je Wange und Katzen-Näschen (Kopf-Aufkleber). Hut, Ohren und Schwanz in der
 // Stoff-Oberfläche (Figur-Bündel mit Oberkörper/Rock), Schnurrhaare im Kopf-Mesh – kein zusätzlicher Zeichenaufruf.
 /** Hut-Lage (kopf-lokal): Mitte der Hutunterseite knapp über dem Scheitel, leicht zur nahen Seite und nach hinten gekippt. */
-const HAT_POS = V(HEAD_C.x - 0.03, HEAD_C.y + 0.215, 0.012);
-const HAT_ROT = new THREE.Euler(0.17, 0.25, 0.1, 'YXZ');
+const HAT_POS = V(HEAD_C.x - 0.025, HEAD_C.y + 0.135, 0.01);
+const HAT_ROT = new THREE.Euler(0.12, 0.3, 0.12, 'YXZ');
 /** Ansatz des Katzenschwanzes (becken-lokal, hinten am Rock unter der Taille) und Ruhelage der Glieder (Fragezeichen nach oben). */
 const CAT_ANCHOR = V(-0.215, 0.07, 0);
-const CAT_REST = [V(-0.85, -0.42, 0), V(-0.62, 0.6, 0), V(-0.12, 1, 0), V(0.55, 0.8, 0)].map((v) => v.normalize());
+const CAT_REST = [V(-0.92, -0.08, 0.12), V(-0.5, 0.82, 0.3), V(-0.08, 1, 0.35), V(0.15, 0.7, 0.7)].map((v) => v.normalize());
 
 /** Kopf mit aufgemalten Schnurrhaaren und Katzen-Näschen (Greta, Halloween). */
 function headHwGeo(st) {
@@ -1007,7 +1007,7 @@ function catEarsGeo(st) {
       const ph = s * 0.64;
       const d = V(-Math.sin(beta) * Math.cos(ph), Math.cos(beta) * Math.cos(ph), Math.sin(ph)).normalize();
       const base = onHair(st, d, 0.012);
-      const up = d.clone().add(V(0.02, 0, s * 0.1)).normalize();
+      const up = d.clone().add(V(0.02, 0, s * 0.16)).normalize();
       const fwd = V(1, 0, s * 0.32);
       const x = fwd.addScaledVector(up, -fwd.dot(up)).normalize();
       const z = new THREE.Vector3().crossVectors(x, up);
@@ -1667,7 +1667,7 @@ export class HeroAvatar extends Avatar3D {
     mesh.bind(new THREE.Skeleton(bones));
     mesh.frustumCulled = false;
     anchor.add(mesh);
-    const chain = new HangChain(CAT_TAIL.links, { gravity: 9, drag: 0.35, damping: 6, stiffness: 120, maxBend: 1.4, rootCone: { back: 1.95, front: 0.3, out: 1.05, inward: 1.05 } });
+    const chain = new HangChain(CAT_TAIL.links, { gravity: 6, drag: 0.35, damping: 7, stiffness: 260, maxBend: 1.4, rootCone: { back: 1.95, front: 0.3, out: 1.05, inward: 1.05 } });
     const skirt = chain.addCollider(0.3, 0);
     return { anchor, mesh, bones, chain, skirt, wagPh: 0, fresh: true, dirs: CAT_TAIL.links.map(() => new THREE.Vector3()) };
   }
@@ -1675,7 +1675,7 @@ export class HeroAvatar extends Avatar3D {
   /** Katzenschwanz je Bild (moving 0..1: Tempo). Statue: starr in Ruhelage (fresh → neu ablegen). */
   updateCatTail(dt, moving = 0) {
     const T = this.hw.tail, ch = T.chain;
-    const P = { base: [9, 0.35, 6], water: [-3, 2.0, 8], updraft: [-5, 0.35, 5] }[this.w3?.physics ?? 'base'] ?? [9, 0.35, 6];
+    const P = { base: [6, 0.35, 7], water: [-3, 2.0, 9], updraft: [-5, 0.35, 6] }[this.w3?.physics ?? 'base'] ?? [6, 0.35, 7];
     ch.gravity = P[0]; ch.drag = P[1]; ch.damping = P[2];
     this.pelvis.updateWorldMatrix(true, false);
     const u = this.chainUnits();
@@ -2997,16 +2997,17 @@ export class PflaumeAvatar extends Avatar3D {
     W.flutterT -= dt;
     if (W.flutterT <= 0) { W.flutter = 1; W.flutterT = 2.4 + Math.random() * 3; }
     W.flutter = Math.max(0, W.flutter - dt * 1.4);
-    let base = 0.42, amp = 0.07 + 0.3 * W.flutter, sweep = 0.4, rate = 2.4 + 13 * W.flutter, hop = false;
+    let base = 0.55, amp = 0.07 + 0.3 * W.flutter, sweep = 0.42, rate = 2.4 + 13 * W.flutter, hop = false;
     switch (state) {
-      case 'walk': case 'hop': base = 0.5; amp = 0.42; sweep = 0.45; hop = true; break;
-      case 'run': base = 0.45; amp = 0.5; sweep = 0.6; hop = true; break;
-      case 'jump': case 'fly': case 'panic': base = 0.62; amp = 0.5; rate = 15; sweep = 0.5; break;
-      case 'victory': base = 0.7; amp = 0.55; rate = 17; break;
-      case 'stomp': base = 1.0; amp = 0.04; break;
-      case 'gallop': base = 0.18; amp = 0.22; sweep = 1.05; hop = true; break;
-      case 'rideIdle': base = 0.12; amp = 0.05 + 0.15 * W.flutter; sweep = 1.05; break;
-      case 'paddle': case 'dig': base = 0.3; break;
+      case 'walk': case 'hop': base = 0.6; amp = 0.42; sweep = 0.45; hop = true; break;
+      case 'run': base = 0.55; amp = 0.5; sweep = 0.6; hop = true; break;
+      case 'jump': case 'fly': case 'panic': base = 0.75; amp = 0.5; rate = 15; sweep = 0.5; break;
+      case 'victory': base = 0.8; amp = 0.55; rate = 17; break;
+      case 'stomp': base = 1.1; amp = 0.04; break;
+      // mit Reiterin: hoch hinter ihrem Rücken gestellt (Platz für die Beine an den Flanken)
+      case 'gallop': base = 1.05; amp = 0.18; sweep = 0.95; hop = true; break;
+      case 'rideIdle': base = 1.05; amp = 0.04 + 0.12 * W.flutter; sweep = 0.95; break;
+      case 'paddle': case 'dig': base = 0.4; break;
       default: break;
     }
     const k = 1 - Math.exp(-8 * dt);
@@ -3015,7 +3016,7 @@ export class PflaumeAvatar extends Avatar3D {
     const a = W.base + W.amp * Math.sin(W.ph);
     const sx = this.torso.scale.x, sy = this.torso.scale.y;
     for (const piv of W.wings) {
-      piv.position.set(-0.1 * sx, 0.735 * sy, piv.side * 0.11);
+      piv.position.set(-0.06 * sx, 0.745 * sy, piv.side * 0.11);
       piv.rotation.set(-piv.side * a, -piv.side * W.sweep, 0);
     }
   }

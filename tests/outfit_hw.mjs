@@ -412,7 +412,7 @@ async function petsPart() {
   await pose('pflaume', { state: 'walk', speed: 2 }, 33); await shot('pflaume_hoppeln', 'side', 'pflaume_pose', { cam: { ...PC, dist: 4.4 } });
   await pose('pflaume', { state: 'walk', speed: 2 }, 9); await shot('pflaume_hoppeln2', 'back', 'pflaume_pose', { cam: { ...PC, dist: 4.4 } });
   await pose('pflaume', { state: 'run', speed: 6 }, 30); await shot('pflaume_galopp', 'side', 'pflaume_pose', { cam: { ...PC, dist: 4.4 } });
-  await pose('pflaume', { state: 'jump', vy: 4, grounded: false }, 14); await shot('pflaume_sprung', 'front', 'pflaume_pose', { cam: { ...PC, dist: 4.4 } });
+  await pose('pflaume', { state: 'jump', vy: 4, grounded: false }, 14); await shot('pflaume_sprung', 'side', 'pflaume_pose', { cam: { ...PC, dist: 4.4 } });
   await pose('pflaume', { state: 'victory' }, 20); await shot('pflaume_jubel', 'front', 'pflaume_pose', { cam: { ...PC, h: 0.7 } });
   await pose('pflaume', { state: 'idle', power: 'red' }, 20); await shot('pflaume_kraft_rot', 'front', 'pflaume_pose', { cam: PC });
   const red = await parts('pflaume');
@@ -443,6 +443,7 @@ async function petsPart() {
   await place('hero');
   await sc(() => window.__oh.setHero('lotti'));
   // Krümel (Modell)
+  await hide('hero');
   await focus('kruemel'); await place('kruemel');
   for (const k of [null, 'halloween']) {
     await outfit(k);
@@ -470,6 +471,7 @@ async function petsPart() {
   await pose('krig', { player: { vel: { x: 2, y: 0, z: 0 } } }, 20); await shot('kruemel_kapitaen_lauf', 'side', 'kruemel', { cam: { h: 0.55 } });
   await shot('kruemel_kapitaen_kurs', 'course', 'kruemel', { focus: 'krig' });
   await sc(() => { const H = window.__oh; H.figs.krig.rig.dispose(); delete H.figs.krig; });
+  await place('hero');
   // Gruppenbild: Lotti, Pflaume, Krümel, Greta
   await sc(() => window.__oh.setHero('lotti'));
   await place('hero', -1.05, 0, -Math.PI / 2 + 0.3); await place('pflaume', 0.15, -0.15, -Math.PI / 2 + 0.55); await place('kruemel', 1.25, 0.15, -Math.PI / 2 + 0.35);
