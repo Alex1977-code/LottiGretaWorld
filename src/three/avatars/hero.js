@@ -127,7 +127,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { leafSolidGeo, bushyTailGeo, skinChain, StoneSkin, PuffFx } from '../lib/heroWorld3.js';
 import { applyToyLook } from '../lib/toyLook.js';
 import { currentOutfit } from '../lib/outfit.js';
-import { witchHatGeo, catEarGeo, catTailLinkGeo, CAT_TAIL, whiskerGeos, stripedBandanaGeo, batWingGeo, HW_COLORS } from '../lib/heroHalloween.js';
+import { witchHatGeo, catEarGeo, catTailGeo, CAT_TAIL, whiskerGeos, stripedBandanaGeo, batWingGeo, HW_COLORS } from '../lib/heroHalloween.js';
 
 const U = 1 / GAME.tile;             // Weltpixel → Einheiten
 const BIAS = 0.42;                   // Drehung zur Kamera (3/4-Ansicht), für Heldin und Pflaume gleich
@@ -1528,15 +1528,25 @@ export class HeroAvatar extends Avatar3D {
     this.updateLook();
   }
 
+  /** Trägt die Figur gerade Kopfschmuck der Verkleidung? Nicht mit Krallen-Kapuze/Gleitblatt-Reif, nicht unter einem Helm. */
+  outfitHead() {
+    const kind = this.costume ?? 'none';
+    return this.outfit === 'halloween' && kind !== 'krallen' && kind !== 'gleitblatt' && !this.foreignHeadgear();
+  }
+
   /**
-   * Geometrien aus Kostüm (Power-up) und Verkleidung: Haar/Kapuze, Oberkörper, Rock, Kopf (Gretas Schnurrhaare), dann das
-   * Zubehör der Verkleidung. Lotti in der Verkleidung: Haar ohne Schleife (sie sitzt am Hut) – außer mit Kapuze (Krallen)
-   * bzw. Blatt-Reif (Gleitblatt), die den Hut ersetzen. Klassik-Modus (ohne Kurs-Teile): nur Haar und Kopf.
+   * Geometrien aus Kostüm (Power-up) und Verkleidung: Haar/Kapuze, Oberkörper, Rock, Kopf, dann das Zubehör der Verkleidung.
+   * Verkleidung im Haar-Mesh: Lotti ohne Schleife (sie sitzt am Hut), Greta mit Katzenohren am Haarreif; im Kopf-Mesh Gretas
+   * Schnurrhaare. Krallen-Kapuze und Gleitblatt-Reif ersetzen den Kopfschmuck der Verkleidung. Klassik-Modus (ohne Kurs-
+   * Teile): nur Haar, Kopf und Zubehör.
    */
   updateLook() {
     const st = STYLES[this.variant], key = (k) => `hero:${this.variant}:${k}`, g = this.cGeo;
     const kind = this.costume ?? 'none', hw = this.outfit === 'halloween';
-    const bow = !(hw && st.braids);
+    const head = this.outfitHead();
+    const bow = !(head && st.braids), ears = head && !!st.mane;
+    const tag = `${bow ? '' : ':hw'}${ears ? ':ohren' : ''}`;
+    const withEars = (parts, s) => (ears ? [...parts, [catEarsGeo(s), null, null]] : parts);
     if (kind === 'krallen') {
       this.hairMesh.geometry = geo(key('hood'), () => mergeColored(hoodParts(st)));
       this.hairMesh.material = vcolMat(0.72, THREE.DoubleSide);
@@ -1544,7 +1554,7 @@ export class HeroAvatar extends Avatar3D {
       this.skirtMesh.geometry = geo(key('skirt:krallen'), () => mergeColored([...skirtParts(st), ...tailParts(st)]));
     } else if (kind === 'funken') {
       const fs = fireStyle(st);
-      this.hairMesh.geometry = geo(key(bow ? 'hair:funken' : 'hair:funken:hw'), () => mergeColored(hairParts(fs, bow)));
+      this.hairMesh.geometry = geo(key(`hair:funken${tag}`), () => mergeColored(withEars(hairParts(fs, bow), fs)));
       this.hairMesh.material = g.hairMat;
       this.torsoMesh.geometry = geo(key('torso:funken'), () => mergeColored(torsoParts(fs)));
       this.skirtMesh.geometry = geo(key('skirt:funken'), () => mergeColored(skirtParts(fs)));
@@ -1555,11 +1565,12 @@ export class HeroAvatar extends Avatar3D {
       this.torsoMesh.geometry = geo(key('torso:gleitblatt'), () => mergeColored(torsoParts(ls)));
       this.skirtMesh.geometry = g.skirt;
     } else {
-      this.hairMesh.geometry = bow ? this.look0.hair : geo(key('hair:hw'), () => mergeColored(hairParts(st, false)));
+      this.hairMesh.geometry = tag ? geo(key(`hair${tag}`), () => mergeColored(withEars(hairParts(st, bow), st))) : this.look0.hair;
       this.hairMesh.material = this.look0.hairMat;
       if (g) { this.torsoMesh.geometry = g.torso; this.skirtMesh.geometry = g.skirt; }
     }
     this.headMesh.geometry = hw && st.mane ? headHwGeo(st) : this.look0.head;
+    this.lookHead = head;
     if (this.w3) {
       this.w3.tail.visible = kind === 'gleitblatt';
       this.w3.skirtBase = this.skirtMesh.geometry;
@@ -1581,56 +1592,54 @@ export class HeroAvatar extends Avatar3D {
     return this;
   }
 
-  /** Je Bild: gewünschte Verkleidung (Festlegung bzw. Szene) übernehmen; Zubehör an-/abhängen (Kostüm, Helm). */
+  /** Je Bild: gewünschte Verkleidung (Festlegung bzw. Szene) übernehmen; Kopfschmuck nach Helm umstellen. */
   syncOutfit() {
     const want = this.outfitPin !== undefined ? this.outfitPin : currentOutfit();
     const kind = want === 'halloween' ? 'halloween' : null;
-    if (kind !== this.outfit) { this.outfit = kind; this.updateLook(); } else if (this.hw) this.updateOutfitParts();
+    if (kind !== this.outfit) { this.outfit = kind; this.updateLook(); } else if (kind && this.outfitHead() !== this.lookHead) this.updateLook();
   }
 
-  /** Trägt der Kopf fremden Schmuck (Trage-Helm von HeroRig)? Dann ruht der Hut bzw. das Ohren-Paar. */
+  /** Trägt der Kopf fremden Schmuck (Trage-Helm von HeroRig)? Dann ruht der Kopfschmuck der Verkleidung. */
   foreignHeadgear() {
     for (const c of this.head.children) if (!this.headOwn.has(c)) return true;
     return false;
   }
 
   /**
-   * Zubehör an-/abhängen. Kopfschmuck (Lottis Hut, Gretas Katzenohren) nicht zusammen mit Krallen-Kapuze oder Gleitblatt-
-   * Reif (deren Kopfschmuck und Schweif ersetzen die Verkleidung) und nicht unter einem Trage-Helm; Gretas Katzenschwanz
-   * nicht zusammen mit dem Ringel- bzw. Blatt-Schweif. Feuer-Kleid: Lottis Hut-Schleife in Feuerweiß. Nur Getragenes hängt
-   * im Szenengraphen – so bleiben Figur-Bündel und Schatten-Stellvertreter ohne Verkleidung exakt wie bisher.
+   * Zubehör als eigene Teile: Lottis Hexenhut (Stoff-Oberfläche, am Kopf; Figur-Bündel mit Oberkörper/Rock), Gretas
+   * Katzenschwanz (SkinnedMesh, ohne Schattenwurf: +1 Zeichenaufruf). Hut wie der Kopfschmuck (outfitHead), Schwanz nicht
+   * zusammen mit dem Ringel- bzw. Blatt-Schweif (Krallen, Gleitblatt). Feuer-Kleid: Hut-Schleife in Feuerweiß. Nur Getragenes
+   * hängt im Szenengraphen – so bleiben Figur-Bündel und Schatten-Stellvertreter ohne Verkleidung exakt wie bisher.
    */
   updateOutfitParts() {
-    const st = STYLES[this.variant], hw = this.outfit === 'halloween', kind = this.costume ?? 'none';
-    const own = kind === 'krallen' || kind === 'gleitblatt';
-    const headOn = hw && !own && !this.foreignHeadgear();
-    const tailOn = hw && !own && !!st.mane;
-    if (!this.hw && !headOn && !tailOn) return;
-    const H = this.hw ??= { head: null, headKey: null, headOn: false, tail: null, tailOn: false };
+    const st = STYLES[this.variant], kind = this.costume ?? 'none';
+    const hatOn = !!st.braids && this.lookHead;
+    const tailOn = !!st.mane && this.outfit === 'halloween' && kind !== 'krallen' && kind !== 'gleitblatt';
+    if (!this.hw && !hatOn && !tailOn) return;
+    const H = this.hw ??= { hat: null, hatKey: null, hatOn: false, tail: null, tailOn: false };
     let changed = false;
-    if (headOn) {
+    if (hatOn) {
       const accent = kind === 'funken' ? fireStyle(st).accent : st.accent;
-      const hk = st.braids ? `hat:${accent}` : 'ears';
-      if (!H.head) {
-        H.head = new THREE.Mesh(this.look0.head, SURF.cloth());
-        H.head.name = st.braids ? 'hexenhut' : 'katzenohren';
-        if (st.braids) { H.head.position.copy(HAT_POS); H.head.rotation.copy(HAT_ROT); }
-        this.headOwn.add(H.head);
+      if (!H.hat) {
+        H.hat = new THREE.Mesh(geo(`hero:hat:${accent}`, () => witchHatGeo(accent)), SURF.cloth());
+        H.hat.name = 'hexenhut';
+        H.hat.position.copy(HAT_POS); H.hat.rotation.copy(HAT_ROT);
+        this.headOwn.add(H.hat);
       }
-      if (H.headKey !== hk) { H.head.geometry = st.braids ? geo(`hero:hat:${accent}`, () => witchHatGeo(accent)) : catEarsGeo(st); H.headKey = hk; }
+      if (H.hatKey !== accent) { H.hat.geometry = geo(`hero:hat:${accent}`, () => witchHatGeo(accent)); H.hatKey = accent; }
     }
-    if (headOn !== H.headOn) { H.headOn = headOn; this.attachPart(this.head, H.head, headOn); changed = true; }
+    if (hatOn !== H.hatOn) { H.hatOn = hatOn; this.attachPart(this.head, H.hat, hatOn, true); changed = true; }
     if (tailOn && !H.tail) H.tail = this.buildCatTail();
-    if (tailOn !== H.tailOn) { H.tailOn = tailOn; this.attachPart(this.pelvis, H.tail?.anchor, tailOn); if (H.tail) H.tail.fresh = true; changed = true; }
+    if (tailOn !== H.tailOn) { H.tailOn = tailOn; this.attachPart(this.pelvis, H.tail?.anchor, tailOn, false); if (H.tail) H.tail.fresh = true; changed = true; }
     if (changed) this.refreshSkins();
   }
 
-  /** Teil an-/abhängen; Schattenwurf wie die Figur (Klone `lite` ohne), Ausgangswert für HeroRig.applyLite vermerkt. */
-  attachPart(parent, obj, on) {
+  /** Teil an-/abhängen; Schattenwurf (shadow) wie die Figur (Klone `lite` ohne), Ausgangswert für HeroRig.applyLite vermerkt. */
+  attachPart(parent, obj, on, shadow) {
     if (!obj) return;
     if (!on) { obj.parent?.remove(obj); return; }
     const lite = this.liteLook;
-    obj.traverse((o) => { if (o.isMesh) { o.userData.cs0 = true; o.castShadow = !lite; } });
+    obj.traverse((o) => { if (o.isMesh) { o.userData.cs0 = shadow; o.castShadow = shadow && !lite; } });
     parent.add(obj);
   }
 
@@ -1642,26 +1651,25 @@ export class HeroAvatar extends Avatar3D {
   }
 
   /**
-   * Gretas Katzenschwanz: vier Glieder (je ein Mesh) an einem Ansatz hinten am Rock, geführt von einer Kette in Welt-
-   * koordinaten (HangChain): leichte Schwerkraft, kräftige Feder zur Ruhelage (Fragezeichen nach oben) – er steht, federt
-   * bei Sprüngen und Landungen nach, weht beim Laufen und im Kanonenflug nach hinten; Wurzelkegel (nie nach vorn zwischen
-   * die Beine) und Kugel-Kollider am Rock.
+   * Gretas Katzenschwanz: ein SkinnedMesh (acht Knochen = halbe Kettenglieder) am Ansatz hinten am Rock, geführt von einer
+   * Kette aus vier Gliedern in Weltkoordinaten (HangChain): leichte Schwerkraft, kräftige Feder zur Ruhelage (Fragezeichen
+   * nach oben) – er steht, wedelt gemächlich, federt bei Sprüngen und Landungen nach, weht beim Laufen und im Kanonenflug
+   * nach hinten; Wurzelkegel (nie nach vorn zwischen die Beine) und Kugel-Kollider am Rock. Die halben Knochen runden die
+   * Knicke zwischen den Gliedern ab (Eckenschnitt).
    */
   buildCatTail() {
     const anchor = new THREE.Group(); anchor.name = 'katzenschwanz';
     anchor.position.copy(CAT_ANCHOR);
-    const links = [];
-    let parent = anchor;
-    CAT_TAIL.links.forEach((len, k) => {
-      const link = new THREE.Group();
-      if (k > 0) link.position.y = -CAT_TAIL.links[k - 1];
-      const m = new THREE.Mesh(geo(`hero:catTail:${k}`, () => catTailLinkGeo(k)), SURF.cloth());
-      m.castShadow = true;
-      link.add(m); parent.add(link); links.push(link); parent = link;
-    });
+    const ys = CAT_TAIL.bones, bones = ys.map(() => new THREE.Bone());
+    bones.forEach((b, i) => { if (i > 0) { b.position.y = ys[i] - ys[i - 1]; bones[i - 1].add(b); } });
+    const mesh = new THREE.SkinnedMesh(geo('hero:catTail', catTailGeo), SURF.cloth());
+    mesh.add(bones[0]);
+    mesh.bind(new THREE.Skeleton(bones));
+    mesh.frustumCulled = false;
+    anchor.add(mesh);
     const chain = new HangChain(CAT_TAIL.links, { gravity: 9, drag: 0.35, damping: 6, stiffness: 120, maxBend: 1.4, rootCone: { back: 1.95, front: 0.3, out: 1.05, inward: 1.05 } });
     const skirt = chain.addCollider(0.3, 0);
-    return { anchor, links, chain, skirt, wagPh: 0, fresh: true };
+    return { anchor, mesh, bones, chain, skirt, wagPh: 0, fresh: true, dirs: CAT_TAIL.links.map(() => new THREE.Vector3()) };
   }
 
   /** Katzenschwanz je Bild (moving 0..1: Tempo). Statue: starr in Ruhelage (fresh → neu ablegen). */
@@ -1681,11 +1689,19 @@ export class HeroAvatar extends Avatar3D {
     _qt.setFromAxisAngle(UP, (0.3 - 0.14 * moving) * Math.sin(T.wagPh));
     for (let i = 0; i < ch.n; i++) ch.rest[i].copy(CAT_REST[i]).applyQuaternion(_qt).applyQuaternion(_q);
     if (T.fresh) { ch.reset(_p); T.fresh = false; } else ch.update(_p, dt);
-    for (let i = 0; i < ch.n; i++) {
-      _qi.copy(_q).invert();
-      _v.copy(ch.dirs[i]).applyQuaternion(_qi);
-      T.links[i].quaternion.setFromUnitVectors(DOWN, _v);
-      _q.multiply(T.links[i].quaternion);
+    // Gliedrichtungen → halbe Knochen (Eckenschnitt: Anfang ¾ eigenes + ¼ voriges Glied, Ende ¾ eigenes + ¼ nächstes)
+    const n = ch.n, d = ch.dirs;
+    _qi.copy(_q);
+    for (let i = 0; i < n; i++) {
+      for (let h = 0; h < 2; h++) {
+        const o = h === 0 ? d[Math.max(0, i - 1)] : d[Math.min(n - 1, i + 1)];
+        _v.copy(d[i]).multiplyScalar(0.75).addScaledVector(o, 0.25).normalize();
+        const b = T.bones[2 * i + h];
+        _qt.copy(_qi).invert();
+        _v.applyQuaternion(_qt);
+        b.quaternion.setFromUnitVectors(UP, _v);
+        _qi.multiply(b.quaternion);
+      }
     }
   }
 
