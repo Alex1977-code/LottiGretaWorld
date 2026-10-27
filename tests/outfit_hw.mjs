@@ -16,6 +16,8 @@
 //   clones   Spiegelfrucht-Klone (lite) mit Verkleidung: ohne Schatten, Kennzahl
 //   level    Schalter im Spiel: outfitForLevel/outfitForMap, CourseScene (LEVEL.outfit, Neustart), URL ?outfit=halloween,
 //            echte Kurs-Kamera in 1-1, 1-4 (Ritt), 3-Kapitän (Krümel) – Gesamt-Zeichenaufrufe mit/ohne
+//   w5       Trapez und Röhrenkanone im echten Motor (Strandwerkstatt 0-17, ?outfit=halloween): Fäuste an der Stange, Zubehör
+//            getragen, Zeichenaufrufe ≤ Stand-Pose; Bilder Seite/Kurs-Kamera
 //   map      Kurs-Weltkarte: MAP.outfit setzt die Verkleidung, Karte ohne bleibt unverändert
 // Bilder tests/out/outfit_hw_*.png, Übersichtsbögen outfit_hw_sheet_<gruppe>.png, Kennzahlen outfit_hw.json.
 // Keine Konsolenfehler.
@@ -27,7 +29,7 @@ import { launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
 const PORT = 4550 + Number(process.env.PORT_BASE ?? 0);
 const ROOT = new URL('..', import.meta.url).pathname;
-const PARTS = (process.env.OH_PARTS ?? 'metrics,close,posen,costume,pets,clones,level,map').split(',').filter(Boolean);
+const PARTS = (process.env.OH_PARTS ?? 'metrics,close,posen,costume,pets,clones,level,w5,map').split(',').filter(Boolean);
 const HEROES = (process.env.OH_HEROES ?? 'lotti,greta').split(',').filter(Boolean);
 const on = (p) => PARTS.includes(p);
 
@@ -678,6 +680,109 @@ async function mapPart() {
   await sc(async () => { const w = await import('/src/course/map/worlds/index.js'); delete w.getWorldMap(1).outfit; });
 }
 
+// ---------------------------------------------------------------- Welt 5 im echten Motor (Strandwerkstatt 0-17, ?outfit=halloween)
+/** Trapez und Röhrenkanone wie tests/posen_w5.mjs, mit Verkleidung: Fäuste an der Stange, Aufrufe wie die Stand-Pose, Bilder in
+ *  Seitenansicht und Kurs-Kamera. */
+async function w5Part() {
+  for (const hero of HEROES) {
+    await waitCourse(`${base}/?course=0-17&scale=2&adapt=0&outfit=halloween`);
+    await sc((h) => {
+      const c = window.__course;
+      c.setManual(true); c.level.muted = true;
+      try { window.__game.scene.getScene('CourseUI').cameras.main.setVisible(false); } catch (_) { /* egal */ }
+      const V3 = c.view.camera.position.constructor, V = (x = 0, y = 0, z = 0) => new V3(x, y, z);
+      const rig = c.rig, upd = Object.getPrototypeOf(rig).update;
+      const W = window.__w5 = { t: c.view.time, drive: false, cam: null, V };
+      rig.update = function (dt, t) { if (W.drive) upd.call(this, dt, t); };
+      W.hr = () => rig.footRig ?? rig;
+      W.tick = (n = 1) => { for (let i = 0; i < n; i++) { c.step(1); W.t += 1 / 120; W.drive = true; rig.update(1 / 120, W.t); W.drive = false; } };
+      const P = () => c.player, L = () => c.level;
+      W.place = (pos, o = {}) => {
+        const p = P();
+        c.setInput(null); c.setInput({});
+        p.dead = false; p.hidden = false; p.big = o.big ?? true; p.power = 'none'; p.powerTime = 0;
+        p.reset(pos, o.yaw ?? Math.PI / 2); p.skidTurnTime = 0; p.invuln = 0; p.updateHalf();
+        L().runtime.status = 'play'; L().runtime.save.lives = 99;
+        L().controlYaw = c.view.rig.controlYaw(p.pos);
+        c.view.rig.snap(p);
+        W.tick(o.settle ?? 30);
+      };
+      W.play = (segs) => { for (const [inp, n] of segs) { c.setInput(inp); W.tick(n); } c.setInput({}); };
+      W.until = (cond, max = 1200) => { for (let i = 0; i < max; i++) { if (cond()) return i; W.tick(1); } return -1; };
+      W.center = () => { const av = W.hr().avatar; av.root.updateWorldMatrix(true, true); const w = V(); av.pelvis.getWorldPosition(w); const hd = V(); av.head.getWorldPosition(hd); return w.lerp(hd, 0.35); };
+      W.screen = () => { const v = W.center(); v.project(c.view.camera); return { x: (v.x + 1) / 2 * window.innerWidth, y: (1 - v.y) / 2 * window.innerHeight }; };
+      c.view.rig.custom = () => {
+        const k = W.cam;
+        if (!k) return false;
+        const cam = c.view.camera, tg = W.center();
+        const az = W.hr().hull.rotation.y + Math.PI / 2 + k.rel, d = k.dist, el = k.el;
+        cam.position.set(tg.x + d * Math.cos(el) * Math.sin(az), tg.y + d * Math.sin(el), tg.z + d * Math.cos(el) * Math.cos(az));
+        cam.lookAt(tg);
+        if (Math.abs(cam.fov - 34) > 0.01) { cam.fov = 34; cam.updateProjectionMatrix(); }
+        c.view.rig.target.copy(tg);
+        return true;
+      };
+      const grab = () => { c.renderFrame(); const r = c.view.renderer.info.render; return { calls: r.calls, tris: r.triangles }; };
+      W.cost = () => {
+        const hull = W.hr().hull, cam0 = W.cam;
+        W.cam = { rel: -Math.PI / 2, dist: 3.6, el: 0.06 };
+        const once = () => { grab(); const a = grab(); hull.visible = false; grab(); const b = grab(); hull.visible = true; grab(); return { calls: a.calls - b.calls, tris: a.tris - b.tris }; };
+        const a = once(), b = once();
+        W.cam = cam0;
+        return a.calls === b.calls ? a : once();
+      };
+      W.hands = (tr) => {
+        for (const f of c.view.frameFns) if (f.obj === tr.root) f.fn(0, c.view.time);
+        let m = null; tr.root.children[0].traverse((o) => { if (!m && o.isMesh) m = o; });
+        m.updateWorldMatrix(true, false);
+        const c0 = m.localToWorld(V(0, -tr.L, 0)), ax = m.localToWorld(V(1, -tr.L, 0)).sub(c0).normalize();
+        const av = W.hr().avatar; av.root.updateWorldMatrix(true, true);
+        return [av.armN, av.armF].map((sh) => { const w = V(); sh.carm.hand.getWorldPosition(w); const d = w.sub(c0), al = d.dot(ax); return +d.addScaledVector(ax, -al).length().toFixed(3); });
+      };
+      W.parts = () => { const av = W.hr().avatar; return { outfit: av.outfit, hat: !!av.hw?.hat?.parent, ears: !!av.lookHead && !av.braids, tail: !!av.hw?.tail?.anchor.parent, label: av.blender.state }; };
+      c.setHero(h); W.tick(2);
+    }, hero);
+    const w5shot = async (name, view) => {
+      if (view === 'kurs') await sc(() => { const W = window.__w5; W.cam = null; window.__course.view.rig.snap(window.__course.player); });
+      else await sc(() => { window.__w5.cam = { rel: -Math.PI / 2 + 0.5, dist: 4.0, el: 0.08 }; });
+      await sc(() => { for (let i = 0; i < 3; i++) window.__course.renderFrame(); });
+      const p = await sc(() => window.__w5.screen());
+      const w = view === 'kurs' ? 260 : 300, h = view === 'kurs' ? 200 : 340;
+      const clip = { x: Math.round(Math.max(0, Math.min(960 - w, p.x - w / 2))), y: Math.round(Math.max(0, Math.min(540 - h, p.y - h / 2))), width: w, height: h };
+      const path = `${OUT}outfit_hw_w5_${hero}_${name}_${view}.png`;
+      try { await page.screenshot({ path, clip, timeout: 120000 }); shots.push({ name: `${hero} ${name} ${view}`, path, group: 'w5' }); } catch (err) { console.log(`  (Bild übersprungen: ${err.message.split('\n')[0]})`); }
+      await sc(() => { window.__w5.cam = null; });
+    };
+    // Trapez t1: greifen, aufschaukeln, Umkehrpunkt vorn
+    await sc(() => {
+      const W = window.__w5, c = window.__course, tr = c.level.named.get('t1'), b = tr.bar({});
+      W.place([b.x, b.y - 1.21 - 0.15, b.z + 0.1], { settle: 0 });
+      c.player.vel.y = 2; W.tick(45);
+      W.play([[{ y: 1 }, 240]]);
+      W.until(() => tr.omega <= 0 && tr.theta > 0.3, 900);
+    });
+    const tr = await sc(() => { const W = window.__w5, tr = window.__course.level.named.get('t1'); return { parts: W.parts(), hands: W.hands(tr), cost: W.cost() }; });
+    await w5shot('trapez', 'seite'); await w5shot('trapez', 'kurs');
+    await sc(() => { const W = window.__w5, tr = window.__course.level.named.get('t1'); W.until(() => tr.omega < -1 && Math.abs(tr.theta) < 0.06, 900); });
+    await w5shot('trapez_durch', 'seite');
+    // Röhrenkanone: Flug bis zum Scheitel
+    await sc(() => { const W = window.__w5; W.place([0, 4.6, -122.5], { settle: 0 }); W.until(() => window.__course.player.state === 'cannon', 600); W.until(() => (window.__course.player.phase ?? 0) >= 0.45 || window.__course.player.state !== 'cannon', 600); });
+    const kn = await sc(() => { const W = window.__w5; return { parts: W.parts(), cost: W.cost() }; });
+    await w5shot('kanone', 'seite'); await w5shot('kanone', 'kurs');
+    // Vergleich: Stand-Pose an derselben Stelle (wie posen_w5 „Rückfall“)
+    const idle = await sc(() => {
+      const W = window.__w5, av = W.hr().avatar, keep = av.obj.course, saved = { ...keep };
+      for (let i = 0; i < 40; i++) { av.obj.course = { ...saved, state: 'idle' }; av.animate(1 / 60, W.t + i / 60); if (av.mouthO) av.mouthO.visible = av.mouthO.scale.x > 0.004; }
+      const r = W.cost(); av.obj.course = keep; return r;
+    });
+    console.log(`  ${hero} Welt 5: Trapez ${JSON.stringify(tr)}; Kanone ${JSON.stringify(kn)}; Stand ${JSON.stringify(idle)}`);
+    const worn = (p) => (hero === 'lotti' ? p.hat : p.tail);
+    check(`${hero} Trapez (Motor, verkleidet): Pose trapeze, Fäuste an der Stange (${tr.hands.join('/')} m), Zubehör getragen, Aufrufe ${tr.cost.calls} ≤ Stand ${idle.calls}`,
+      tr.parts.label === 'trapeze' && tr.hands.every((h) => h <= 0.05) && worn(tr.parts) && tr.cost.calls <= idle.calls);
+    check(`${hero} Kanone (Motor, verkleidet): Pose cannon, Zubehör getragen, Aufrufe ${kn.cost.calls} ≤ Stand ${idle.calls}`, kn.parts.label === 'cannon' && worn(kn.parts) && kn.cost.calls <= idle.calls);
+  }
+}
+
 // ---------------------------------------------------------------- Ablauf
 if (on('metrics') || on('close') || on('posen') || on('costume') || on('pets') || on('clones')) {
   await openBench();
@@ -690,6 +795,7 @@ if (on('metrics') || on('close') || on('posen') || on('costume') || on('pets') |
   if (on('clones')) await clonesPart();
 }
 if (on('level')) await levelPart();
+if (on('w5')) await w5Part();
 if (on('map')) await mapPart();
 
 writeFileSync(`${OUT}outfit_hw.json`, JSON.stringify(metrics, null, 1));
