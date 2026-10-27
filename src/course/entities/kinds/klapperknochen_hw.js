@@ -5,6 +5,7 @@
 // zusammen** (collapse 0,5 s). Der Haufen ist **harmlos und begehbar** (Berührung tut nichts, man läuft hindurch). Nach
 // pile s (Standard 4, gezählt ab dem Zusammenfallen) **setzt er sich klappernd wieder zusammen**: zuerst **zittern die
 // Knochen** (warn s, Standard 0,8 – Vorwarnung, Klapper-Geräusch), dann rebuild (0,8 s, harmlos) und er läuft weiter.
+// Eine Stampfattacke auf den Stehenden wirft ihn nur um (ihre eigene Stampfwelle zählt dann nicht).
 // **Endgültig besiegt** nur durch: **Stampfattacke auf den Haufen** (bzw. Stampfwelle daneben, solange er liegt), Feuer,
 // Krallen (Tatzenhieb/Sturzflug), Panzer, Explosion, Kanonenkugel, Funkelstern, Riesentrank, Rutschen → defeated (zerfällt
 // und verblasst, 0,9 s), Beute drop. Seitliche Berührung des stehenden Klapperknochens verletzt.
@@ -37,6 +38,7 @@ class Klapperknochen extends EnemyW2 {
     this.rebuilds = 0;
     this.rattleT = 0;
     this.grace = 0;
+    this.poundGuard = 0;
     this.state = 'idle';
     this.standHalf();
     if (level.view) this.setModel(getModel('klapperknochen'));
@@ -53,6 +55,7 @@ class Klapperknochen extends EnemyW2 {
   update(dt) {
     this.stateT += dt;
     if (this.grace > 0) this.grace -= dt;
+    if (this.poundGuard > 0) this.poundGuard -= dt;
     if (this.rattleT > 0) this.rattleT -= dt;
     if (this.state === 'defeated') { this.stand(dt); if (this.stateT >= DEFEAT) this.kill(); return; }
     if (this.updateDefeat(dt)) return;
@@ -116,7 +119,7 @@ class Klapperknochen extends EnemyW2 {
     if (this.defeated) return 'none';
     if (this.lying) {
       // Haufen: harmlos und begehbar – nur die Stampfattacke besiegt ihn
-      if (contact.pound) { this.finish(player); return 'none'; }
+      if (contact.pound && this.poundGuard <= 0) { this.finish(player); return 'none'; }
       if (contact.fromAbove && this.rattleT <= 0) { this.rattleT = 0.4; this.level.sfx('step'); }
       return 'none';
     }
@@ -125,7 +128,7 @@ class Klapperknochen extends EnemyW2 {
       return 'none';
     }
     if (this.slideAttack(player, contact)) return 'none';
-    if (contact.pound) { this.collapse(); return 'none'; }
+    if (contact.pound) { this.collapse(); this.poundGuard = 0.4; return 'none'; }
     if (contact.fromAbove) { this.collapse(); return 'stomp'; }
     if (contact.dive) { this.onHit('claw', player); return 'none'; }
     if (this.grace > 0) return 'none';
@@ -137,6 +140,7 @@ class Klapperknochen extends EnemyW2 {
     if (FINAL.has(kind)) { this.finish(source); return; }
     if (kind === 'pound') {
       if (source?.pos && Math.abs(source.pos.y - this.pos.y) > 0.8) return;
+      if (this.poundGuard > 0) return;   // Stampfwelle derselben Stampfattacke, die ihn gerade umgeworfen hat
       if (this.lying) this.finish(source); else this.collapse();
       return;
     }

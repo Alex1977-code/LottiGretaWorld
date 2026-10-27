@@ -96,8 +96,13 @@ class HwHuepfer extends EnemyW2 {
       const t = this.toPlayer(this._tp ?? (this._tp = {}));
       this.dir.x = t.x; this.dir.z = t.z;
       this.hopDir = { x: t.x, z: t.z, s: Math.min(1, t.d / this.hopLen) };
-    } else if (this.behavior === 'patrol' || this.path) {
-      if (this.path) this.followPath();
+    } else if (this.path) {
+      // Bahn: genau auf den Wegpunkt hüpfen, dann zum nächsten
+      let tp = this.path[this.target], d = Math.hypot(tp.x - this.pos.x, tp.z - this.pos.z);
+      if (d < 0.3) { this.nextTarget(); tp = this.path[this.target]; d = Math.hypot(tp.x - this.pos.x, tp.z - this.pos.z); }
+      if (d > 1e-3) { this.dir.x = (tp.x - this.pos.x) / d; this.dir.z = (tp.z - this.pos.z) / d; }
+      this.hopDir = { x: this.dir.x, z: this.dir.z, s: Math.min(1, d / this.hopLen) };
+    } else if (this.behavior === 'patrol') {
       this.hopDir = { x: this.dir.x, z: this.dir.z, s: 1 };
     } else {
       this.hopDir = { x: this.dir.x, z: this.dir.z, s: 0 };   // ohne Ziel: auf der Stelle
