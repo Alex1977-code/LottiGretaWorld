@@ -4134,3 +4134,41 @@ Funkenblüte; Messgang. Gemessen (scale 2, inkl. Schattenpass): 5-3 32–115 Zei
 Uhrturm) / ≤ 256 k Dreiecke · 5-A 59–93 / ≤ 242 k · 5-4 35–71 / ≤ 265 k · 5-Kapitän 47–83 / ≤ 241 k.
 Bekannt: Donut-Blöcke fallen nicht, solange die Figur genau auf der Fuge zwischen zwei Blöcken steht (Motor, 5-Kapitän:
 Gehen genügt); Stimmungswechsel blenden im Kopflos-Browser langsam über (Bildrate), im Spiel ≈ 1 s.
+
+## Halloween-Welt „Kürbisinsel“ – Level-Liste und Freischaltung (Hauptsitzung)
+
+Sonderwelt auf Wunsch des Auftraggebers („helloweenwelt“), **nicht** im Bauplan – eigene Ideen, kindgerecht-gruselig
+(niedlich, nie erschreckend): Abendrot und Mondnacht, Kürbisse mit Gesichtern, Laternen, Spinnweben, Fledermäuse,
+Grabsteine mit Lachgesichtern, Hexenkessel, Süßigkeiten. Münzen bleiben Bitcoins.
+
+**Erreichbarkeit:** sofort für alle – auf der **Welt-1-Karte** steht nahe der Ankunft eine mit Kürbissen und Laternen
+geschmückte Glasröhre `HW` (immer frei, kein Sternbedarf). Ankunft in der Halloween-Welt an der Rückweg-Röhre `W1`.
+Interne Weltnummer **31** (31. Oktober), Level-Ids mit Präfix **`H-`** (`H-1` …); die Karte bildet das Präfix über
+`MAP.prefix: 'H'` auf Welt 31 ab (`worldOfLevel`, Sternzählung `starsInWorld`, Speicherstand – additiv, Welt-Zahlen
+1–8 bleiben unberührt). Anzeige auf Podest/HUD: „H-1“, Weltname „Halloween · Kürbisinsel“.
+
+| Id | Archetyp | Thema | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `H-1` | parcours (Kürbisfeld im Abendrot: Kürbis-Hüpfer, rollende Kürbisse, Vogelscheuchen, Laternenpfad) | pumpkin | course_pumpkin | 3 + Stempel | Welt offen |
+| `H-2` | parcours offen (Süßes-oder-Saures-Dorf bei Nacht: Türen klingeln → Bitcoins/Süßes oder ein Kürbling springt heraus) | candyvillage | course_candyvillage | 3 + Stempel | H-1 |
+| `H-Kapitän` | diorama (Krümel mit Laterne im Kürbislabyrinth) | pumpkin (Nacht-Stimmung) | course_diorama | 3 | H-2 |
+| `H-3` | parcours (Nebelfriedhof: Laternenlicht macht Geisterplattformen sichtbar, Klapperknochen, Kreisgeister, Floß auf dem Glibberbach) | graveyard | course_graveyard | 3 + Stempel | H-2 |
+| `H-4` | parcours vertikal (Hexenturm: fliegende Besen-Plattformen, Hexenkessel-Trampoline, Zaubertrank-Blasen) | witchtower | course_witchtower | 3 + Stempel | H-3 |
+| `H-Burg` | parcours + boss (Gruselschloss, Boss **Graf Brummbär** – Baron Brummbär im Vampirumhang) | castle_night | course_brummula | 3 + Stempel | H-4 |
+
+18 Sterne, 5 Stempel. Kartenmusik `course_halloween_map`.
+
+**Neu (Halloween):**
+- Gegner: **Kürbling** (hüpfender Kürbis mit Gesicht und Blatt-Mütze; Draufspringen → zerplatzt in Kerne/Münzen),
+  **Klapperknochen** (niedliches Skelett, zerfällt beim Draufspringen zu einem Knochenhaufen und setzt sich nach 4 s
+  wieder zusammen; nur Stampfattacke/Power-up besiegt endgültig), **Flatterfledi** (Fledermaus, sturzflug im Bogen),
+  **Hexenhut-Hüpfer** (Hexenhut auf Füßen), dazu vorhandene Spuke/Kreisgeister/Großspuk in Halloween-Farben.
+- Gimmicks: Laternenlicht (Geisterplattformen nur im Lichtkegel sichtbar und begehbar), Besen-Plattformen (fliegen
+  Bahnen), Hexenkessel (Trampolin, Blubber), Kürbis-Kanone, Süßigkeiten-Tür (klingeln = Stampfen/Antippen), rollender
+  Riesenkürbis, Spinnennetz-Trampolin, Grabstein-Schalter.
+- Boss **Graf Brummbär**: Baron Brummbär (Zylinder, Monokel) im Vampirumhang auf dem Schlossdach; wirft
+  Kürbis-Bomben (aufheben, zurückwerfen trifft), fliegt als Fledermaus-Schwarm über die Arena, 3 Treffer; besiegt →
+  Fledermäuse flattern davon, Konfetti aus Süßigkeiten.
+- **Verkleidung:** In der Halloween-Welt (Karte und Level) tragen die Figuren automatisch Kostüm-Zubehör: Lotti einen
+  kleinen Hexenhut (mit ihrer roten Schleife), Greta Katzenohren am pinken Haarreif und einen Katzenschwanz, Pflaume
+  ein orange-schwarzes Halstuch und Fledermausflügelchen, Krümel einen Mini-Vampirumhang.
