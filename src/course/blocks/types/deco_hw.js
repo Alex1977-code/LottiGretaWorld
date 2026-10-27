@@ -54,7 +54,7 @@ function scatter(p, size, n, gap, avoid, rnd) {
 // ------------------------------------------------------------------ Kürbisfeld
 
 function kuerbis(level, it, p, rnd, parts, glow) {
-  const s = it.size ?? 0.9, yaw = it.yaw ?? rnd.real(0, 6.28);
+  const s = it.size ?? 0.9, yaw = it.yaw ?? (it.face ? -Math.PI / 2 + rnd.real(-0.4, 0.4) : rnd.real(0, 6.28));
   const pk = pumpkinGeo({ r: s / 2, shape: it.shape ?? 'rund', color: it.color ?? 'orange', leafYaw: rnd.real(0, 6.28), seg: s > 1 ? 24 : 16 });
   parts.push(at(pk.body, p.x, p.y, p.z, yaw));
   if (it.face) glow.push(at(faceGeo({ r: s / 2, shape: it.shape ?? 'rund', kind: it.face }), p.x, p.y, p.z, yaw));

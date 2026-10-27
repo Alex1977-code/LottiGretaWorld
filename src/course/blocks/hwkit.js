@@ -13,8 +13,8 @@
 //   hwHud(level)               Zähler oben rechts („Türen 3/8“, „Süßes 12“): set(key, { text, icon, done, color })
 //
 // Laternenlicht (`hwLight(level)`): Lichtquellen je Simulationsschritt –
-//   · Figuren mit Laterne (alle Figuren, sobald `carried`; Item `laterne` oder LEVEL.lantern: true | { radius, soft,
-//     lose }), Licht in Handhöhe, Radius `radius` (Standard 5 m)
+//   · Figuren mit Laterne (alle Figuren, sobald `carried`; Item `laterne` oder LEVEL.lantern: true | { carry, radius,
+//     soft, lose, helmet }), Licht in Handhöhe, Radius `radius` (Standard 5 m)
 //   · Laternenpfähle (Entität `laternenpfahl`, an/aus/blinken) über addPost()
 //   · angezündete Höhlen-Laternen (Entität `lantern`, Welt 1) mit ihrem Radius
 //   · Licht-Helm (Kegel nach vorn, drei Lichtkugeln entlang des Kegels)
@@ -291,7 +291,7 @@ class HwLight {
     const cfg = d.lantern && typeof d.lantern === 'object' ? d.lantern : {};
     this.radius = cfg.radius ?? 5;
     this.soft = cfg.soft ?? 1.2;
-    this.carried = !!d.lantern;
+    this.carried = d.lantern === true || !!cfg.carry;
     this.lose = !!cfg.lose;
     this.helmet = cfg.helmet !== false;
     this.handLantern = true;

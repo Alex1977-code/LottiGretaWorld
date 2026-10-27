@@ -250,8 +250,9 @@ function candyTemplate(variant) {
   return () => {
     if (hasModel('suessigkeit')) return getModel('suessigkeit', { variant }).root;
     const i = Math.max(0, CANDY_VARIANTS.indexOf(variant));
-    const m = new THREE.Mesh(candyGeo(variant, i), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3 }));
-    m.position.y = 0.35;
+    const m = new THREE.Mesh(candyGeo(variant, i), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, emissive: 0x2a1a22 }));
+    m.position.y = 0.42;
+    m.scale.setScalar(1.45);
     const g = new THREE.Group(); g.add(m);
     return g;
   };
@@ -285,15 +286,17 @@ class Suessigkeit extends Gimmick {
       if (this.pos.y < this.level.killY) this.kill();
     }
     // Figuren im Skript-Modus (Kanonenflug, Floß-Ritt) sammeln mit
-    if (this.hidden) return;
+    if (!this.grabbable) return;
     for (const f of this.level.players) {
       if (f.dead || f.hidden || f.mode !== 'script' && f.mode !== 'mount') continue;
       if (Math.abs(f.pos.x - this.pos.x) < 0.9 && Math.abs(f.pos.z - this.pos.z) < 0.9 && Math.abs(f.pos.y + f.half.y - this.pos.y - 0.35) < 1.1) { this.collect(); break; }
     }
   }
 
-  onPlayer() { if (this.hidden) return 'none'; this.collect(); return 'collect'; }
-  onHit(kind) { if (!this.hidden && (kind === 'claw' || kind === 'mega' || kind === 'fire')) this.collect(); }
+  // aus Türen geworfene Süßigkeiten erst nach 0,35 s einsammelbar (sie springen sichtbar heraus)
+  get grabbable() { return !this.hidden && (!this.spec.vel || this.age > 0.35); }
+  onPlayer() { if (!this.grabbable) return 'none'; this.collect(); return 'collect'; }
+  onHit(kind) { if (this.grabbable && (kind === 'claw' || kind === 'mega' || kind === 'fire')) this.collect(); }
 
   collect() {
     if (!this.alive || this.hidden) return;
@@ -490,12 +493,13 @@ class SuessigkeitenTuer extends Gimmick {
     const content = spec.content ?? 'suesses';
     const n = spec.n ?? 5;
     let what = content;
+    this.out = 0;
     if (content === 'muenzen' || content === 'coins') {
       for (let i = 0; i < n; i++) {
         const lat = (i - (n - 1) / 2) * 0.75, d = 1.7 + (i % 2) * 0.7;
         const q = front(d, lat);
         const ground = L.world.raycastDown(q[0], p.y + 1.5, q[2], 4);
-        L.spawn('coin', { pos: [q[0], (ground?.y ?? p.y) + 0.15, q[2]] });
+        if (L.spawn('coin', { pos: [q[0], (ground?.y ?? p.y) + 0.15, q[2]] })) this.out++;
         L.effects?.coinPop({ x: q[0], y: p.y + 0.6, z: q[2] });
       }
       hwSfx(L, 'muenzregen', 'coin');
@@ -503,14 +507,14 @@ class SuessigkeitenTuer extends Gimmick {
       for (let i = 0; i < n; i++) {
         const lat = (i - (n - 1) / 2) * 0.55;
         const q = front(0.5, lat * 0.3);
-        L.spawn('suessigkeit', { pos: [q[0], p.y + 1.1, q[2]], vel: [this.nx * (2.4 + (i % 3) * 0.6) - this.nz * lat * 1.6, 5.5 + (i % 2), this.nz * (2.4 + (i % 3) * 0.6) + this.nx * lat * 1.6] });
+        if (L.spawn('suessigkeit', { pos: [q[0], p.y + 1.1, q[2]], vel: [this.nx * (2.4 + (i % 3) * 0.6) - this.nz * lat * 1.6, 5.5 + (i % 2), this.nz * (2.4 + (i % 3) * 0.6) + this.nx * lat * 1.6] })) this.out++;
       }
       hwSfx(L, 'suessigkeit', 'berry');
     } else if (content === 'kuerbling' || (typeof content === 'string' && content !== 'nichts' && L.hasKind(content))) {
       const kind = content === 'kuerbling' && !L.hasKind('kuerbling') ? 'pilzling' : content;
       what = kind;
       const q = front(1.1);
-      L.spawn(kind, { ...(spec.enemy ?? {}), pos: q, yaw: this.yaw, dir: [this.nx, this.nz], fromDoor: this.spec.id ?? true });
+      if (L.spawn(kind, { ...(spec.enemy ?? {}), pos: q, yaw: this.yaw, dir: [this.nx, this.nz], fromDoor: this.spec.id ?? true })) this.out++;
       L.effects?.dust({ x: q[0], y: q[1], z: q[2] }, 6, 1);
       hwSfx(L, 'buh', 'ghost');
     } else if (content && typeof content === 'object') runAction(L, content, { pos: front(1.4), source: this });
@@ -566,7 +570,7 @@ class SuessigkeitenTuer extends Gimmick {
     this.leafModel?.update?.(d, { open: this.openK, ring: this.ringK, lit: this.lit });
   }
 
-  info() { return { state: this.state, rings: this.rings, via: this.via, lit: this.lit, group: this.group, count: this.level.hwDoors?.[this.group] ?? null }; }
+  info() { return { state: this.state, rings: this.rings, via: this.via, lit: this.lit, out: this.out ?? 0, group: this.group, count: this.level.hwDoors?.[this.group] ?? null }; }
 }
 
 // ============================================================================================ Grabstein-Schalter

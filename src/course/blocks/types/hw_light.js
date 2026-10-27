@@ -4,7 +4,7 @@
 //   { type: 'laternenlicht', radius: 5 (m Lichtradius der Handlaterne), soft: 1.2 (m weicher Rand), carry: false (true =
 //     alle Figuren tragen von Anfang an eine Laterne, wie LEVEL.lantern: true), lose: false (true = Laterne geht beim Tod
 //     verloren, das Item `laterne` erscheint wieder), helmet: true (Licht-Helm-Kegel leuchtet mit) }
-//   Gleichwertig: LEVEL.lantern = true | { radius, soft, lose, helmet }. Item zum Aufheben: { kind: 'laterne', pos }.
+//   Gleichwertig: LEVEL.lantern = true (alle tragen) | { carry, radius, soft, lose, helmet }. Item zum Aufheben: { kind: 'laterne', pos }.
 //   Feste Laternen: { kind: 'laternenpfahl', pos, radius: 4.5, … } (entities/kinds/hw_gimmicks.js).
 //
 // geisterplattform – Plattform, die nur im Licht sichtbar und begehbar ist: jede Lichtquelle (Handlaterne, Laternenpfahl,
