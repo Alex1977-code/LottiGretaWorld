@@ -4487,7 +4487,8 @@ Markierung** (`boss_marker`); gelandet brennt ihre Lunte `fuse` s. **Nur eine vo
 in `walk`/`throw` trifft, zählt** (`onBombHit`) → `hit` (0,6 s, Zylinder fliegt; Lebensleiste, Ansage „Treffer!“) →
 `stunned` (0,7 s, Schwindel-Fledermäuse) → `bats` (0,9 s: wickelt sich in den Umhang, verpufft) → `swarm`: `swarm`
 Fledermäuse (Entitäten `graf_fledermaus`, eine Instanz-Gruppe) umkreisen den Anführer mit Zylinder (Modell
-`fledermaus_schwarm`, unberührbar) in Hüfthöhe (`swarmY`) und fliegen `swarmLegs` Bögen über die Arena; **Berührung
+`fledermaus_schwarm`, unberührbar) in Hüfthöhe (`swarmY`) und fliegen `swarmLegs` Bögen über die Arena (jeder zweite
+Bogen zur Figur hin, höchstens 0,65 · r von der Mitte; Bogenmitten ≤ 0,75 · r); **Berührung
 verletzt, Draufspringen auf eine Fledermaus besiegt sie und gibt einen Bitcoin**. Die Landestelle ist der Ringpunkt
 (0,5 · r) am weitesten weg von der Figur → `land` (0,9 s: übrige Fledermäuse fliegen zurück, Verwandlung rückwärts) →
 `walk` (nächste Phase). 3. Treffer → `defeated` (2,4 s: setzt sich, Fledermäuse flattern davon, **Konfetti aus

@@ -30,7 +30,7 @@
 //   Laufzeit: hops, brimBounces (Abpraller an der Krempe), info(). Modell 'hexenhut_huepfer' (state { anim:
 //   idle|hop|squashed, progress, height: 0 }).
 
-import { EnemyW2, figures, activeFigure, clamp, STRONG } from '../EnemyW2.js';
+import { EnemyW2, clamp, STRONG } from '../EnemyW2.js';
 import { spawnLoot } from '../Enemy.js';
 import { getModel } from '../../models/index.js';
 

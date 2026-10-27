@@ -10,7 +10,8 @@
 //   **Die Figur hebt eine Bombe auf (Aktion bzw. Rennen + Berührung) und wirft sie zurück**: trifft die geworfene Bombe ihn
 //   (onBombHit, Zielhilfe: Würfe grob in seine Richtung lenken zu ihm ein), ist das ein **Treffer** → hit (0,6 s, Zylinder
 //   fliegt) → stunned (0,7 s, Schwindel-Fledermäuse) → bats (0,9 s: wickelt sich in den Umhang und verpufft) → **swarm**:
-//   er fliegt als **Fledermaus-Schwarm** (swarm Fledermäuse um den Anführer mit Zylinder) in Bögen über die Arena –
+//   er fliegt als **Fledermaus-Schwarm** (swarm Fledermäuse um den Anführer mit Zylinder) in Bögen über die Arena (jeder
+//   zweite Bogen zur Figur hin) –
 //   Berührung verletzt (ausweichen), **Draufspringen auf eine einzelne Fledermaus gibt einen Bitcoin** – und landet
 //   (land 0,9 s) an einer Stelle weit weg von der Figur → walk (Phase 2/3: mehr und schnellere Bomben, Schwarm größer).
 //   3. Treffer → defeated (2,4 s: setzt sich, Fledermäuse flattern davon, **Konfetti aus Süßigkeiten**, Fanfare über den
@@ -54,7 +55,7 @@
 //   Laufzeit: lit, fuse (s übrig), exploded, fizzled, thrownBy, assisted (Zielhilfe aktiv), info().
 
 import * as THREE from 'three';
-import { EnemyW2, figures, activeFigure, clamp, wrapAngle, toWorld, localOffset } from '../EnemyW2.js';
+import { EnemyW2, figures, activeFigure, clamp, toWorld, localOffset } from '../EnemyW2.js';
 import { CourseEntity } from '../CourseEntity.js';
 import { spawnLoot } from '../Enemy.js';
 import { explodeAt } from './zuendkopf_w5.js';
@@ -724,6 +725,13 @@ class GrafBrummbaer extends EnemyW2 {
     for (let i = 0; i < n; i++) {
       th += 2.5;
       let to = { x: A.x + Math.cos(th) * rho, z: A.z - Math.sin(th) * rho };
+      if (i % 2 === 1 && i < n - 1 && activeFigure(p)) {
+        // jeder zweite Bogen fliegt zur Figur hin (ausweichen!), höchstens 0,65 · r von der Mitte
+        const px = p.pos.x - A.x, pz = p.pos.z - A.z, pd = Math.hypot(px, pz);
+        const rr = Math.min(A.r * 0.65, pd);
+        if (pd > 0.3) to = { x: A.x + (px / pd) * rr, z: A.z + (pz / pd) * rr };
+        if (Math.hypot(to.x - from.x, to.z - from.z) < 2) to = { x: A.x + Math.cos(th) * rho, z: A.z - Math.sin(th) * rho };
+      }
       if (i === n - 1 && activeFigure(p)) {
         // Landestelle: der Ringpunkt am weitesten weg von der Figur
         let best = -1;
@@ -735,7 +743,13 @@ class GrafBrummbaer extends EnemyW2 {
       }
       const dx = to.x - from.x, dz = to.z - from.z, L = Math.hypot(dx, dz) || 1;
       const side = i % 2 ? -1 : 1;
-      const mid = { x: (from.x + to.x) / 2 - (dz / L) * L * 0.45 * side, z: (from.z + to.z) / 2 + (dx / L) * L * 0.45 * side };
+      // Ausbuchtung des Bogens: die Bogenmitte bleibt innerhalb von 0,75 · r (über dem Dach)
+      let bulge = 0.45, mid;
+      for (let k = 0; k < 6; k++, bulge *= 0.6) {
+        mid = { x: (from.x + to.x) / 2 - (dz / L) * L * bulge * side, z: (from.z + to.z) / 2 + (dx / L) * L * bulge * side };
+        const cx = (from.x + 2 * mid.x + to.x) / 4 - A.x, cz = (from.z + 2 * mid.z + to.z) / 4 - A.z;
+        if (Math.hypot(cx, cz) <= A.r * 0.75) break;
+      }
       let len = 0;
       const q0 = { x: from.x, z: from.z }, q1 = { x: 0, z: 0 };
       for (let s = 1; s <= 10; s++) { quad(from, mid, to, s / 10, q1); len += Math.hypot(q1.x - q0.x, q1.z - q0.z); q0.x = q1.x; q0.z = q1.z; }
