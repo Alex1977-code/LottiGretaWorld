@@ -42,13 +42,14 @@ export const MAP = {
   camera: [{ from: 200, to: -300, pitch: 50, dist: 16, fov: 40, ahead: 3.6, lead: 0.7, height: 1.0 }],
   intro: { from: [6, 22, 104], look: [0, 5, -46], duration: 3.2 },
   edges: { hedge: 'hwstone', fence: 'hwpicket' },
-  pathColors: [0xfae4b6, 0xeed29e, 0x9a6a44],      // warme, helle Steinplatten (leuchten im Abendlicht)
+  pathColors: [0xece4dc, 0xdcd0c8, 0x7a6a6a],      // helle, alte Steinplatten (im Abendlicht warm)
   seaColors: [0x5aa6cc, 0x3a6cb4, 0x22327c],      // Türkis am Ufer, Violett-Nachtblau draußen
   batch: { tile: 40, origin: [-4, 6], freeTile: 128, freeOrigin: [-72, -72] },
   // Nachbarwelt am Horizont: Welt 1 (grüne Blockinsel) im Westen – dorthin führt die Rückweg-Röhre
   neighbors: [{ world: 1, pos: [-258, 70], size: [72, 50], style: 'grass' }],
   // Fledermaus-Schwärme (halloween.js HwLife): über dem Schloss, um den Hexenturm, am Friedhof, über der Bucht
-  bats: [{ c: [-4, 15, -96], r: 8, n: 7 }, { c: [-26, 15, -57], r: 6, n: 4, speed: 0.9 }, { c: [16, 8, -44], r: 6, n: 3 }, { c: [-2, 8, 30], r: 9, n: 3, speed: 0.5 }],
+  bats: [{ c: [-4, 14, -97], r: 8, n: 7 }, { c: [-26, 13, -58], r: 5.5, n: 4, speed: 0.9 }, { c: [16, 6.5, -42], r: 6, n: 3 }, { c: [0, 5, 32], r: 8, n: 3, speed: 0.5 },
+    { c: [-2, 6, -6], r: 7, n: 3, speed: 0.6 }],
   fog: { n: 46 },
 
   // Freischaltung (Vertrag: Halloween-Welt – Level-Liste): H-1 frei, sobald die Welt offen ist (immer)
@@ -140,7 +141,7 @@ export const MAP = {
   ],
 
   signs: [
-    { pos: [4.4, 1, 43.4], yaw: -0.15, text: 'Kürbis-\ninsel' },
+    { pos: [-9.2, 1, 44.0], yaw: 0.2, text: 'Kürbis-\ninsel' },
   ],
 
   props: [
@@ -154,27 +155,51 @@ export const MAP = {
     { kind: 'hay', pos: [12.4, 1, 40.8], yaw: 0.3 }, { kind: 'pumpkin', pos: [13.6, 1, 41.0], size: 0.6, face: true },
     { kind: 'rowboat', pos: [-8, 0, 21], yaw: 0.6, solid: false }, { kind: 'hwrock', pos: [4, 0, 16.4], size: 1.4, solid: false },
     { kind: 'hwrock', pos: [-17, 0, 18], size: 1.8, solid: false },
+    // Laternenkürbisse säumen den Weg, Laub, Süßigkeiten-Wagen
+    { kind: 'hwlantern', pos: [-12.6, 1, 36.4] }, { kind: 'hwlantern', pos: [0.4, 1, 42.4], yaw: PI },
+    { kind: 'pumpkin', pos: [-0.3, 1, 38.8], size: 0.55, face: 1 }, { kind: 'pumpkin', pos: [-3.7, 1, 35.6], size: 0.6, face: 2, yaw: 0.2 },
+    { kind: 'pumpkin', pos: [10.2, 1, 35.6], size: 0.55, face: true, yaw: -0.2 }, { kind: 'pumpkin', pos: [-14.2, 1, 40.6], size: 0.6, face: 1 },
+    { kind: 'leaves', pos: [-8.6, 1, 33.4], size: 1.1, solid: false, shadow: false }, { kind: 'leaves', pos: [3.4, 1, 31.4], size: 0.9, solid: false, shadow: false },
+    { kind: 'leaves', pos: [-19.6, 1, 34.6], size: 1.0, solid: false, shadow: false }, { kind: 'leaves', pos: [14.6, 1, 32.4], size: 0.8, solid: false, shadow: false },
+    { kind: 'candycart', pos: [6.4, 1, 42.4], yaw: -0.3 }, { kind: 'toadstool', pos: [-16.8, 1, 44.2], solid: false },
+    { kind: 'grave', pos: [-22.4, 1, 39.2], size: 0.9, yaw: 0.4 }, { kind: 'cobweb', pos: [-21.6, 1.4, 29.2], size: 0.7, solid: false, shadow: false },
     // B Gruseldorf: Laternen, Bank-Kürbisse, Süßigkeiten
     { kind: 'hwlantern', pos: [-7.4, 2, 10.2] }, { kind: 'hwlantern', pos: [-0.6, 2, 10.2], yaw: PI },
-    { kind: 'hwlantern', pos: [12.6, 2, -2], yaw: PI }, { kind: 'hwlantern', pos: [-12.6, 2, -6.4] },
-    { kind: 'pumpkins', pos: [11.6, 2, 9.6], size: 0.8, face: true }, { kind: 'candy', pos: [-12.4, 2, 9.6], size: 1.0 },
+    { kind: 'hwlantern', pos: [12.6, 2, -2], yaw: PI }, { kind: 'hwlantern', pos: [-12.6, 2, -3.2] },
+    { kind: 'pumpkins', pos: [11.6, 2, 9.6], size: 0.8, face: true }, { kind: 'candy', pos: [-8.6, 2, 10.6], size: 1.0 },
+    // Häuschen rings um den Platz (Fenster leuchten)
+    { kind: 'hwhouse', pos: [-11.6, 2, 8.0], yaw: PI / 2, size: [3.2, 3], color: 0x9a7ab8, roof: 0x3a2a5a },
+    { kind: 'hwhouse', pos: [-11.8, 2, -5.4], yaw: PI / 2, size: [3.0, 2.8], color: 0x6a9a9a, roof: 0x2e3e5a },
+    { kind: 'hwhouse', pos: [11.6, 2, 3.2], yaw: -PI / 2, size: [3.2, 3], color: 0xc88a5a, roof: 0x4a2a4a },
     { kind: 'pumpkin', pos: [6.6, 2, 3.4], size: 0.7, face: 1 }, { kind: 'witchhat', pos: [-12.2, 2, 3.2], size: 0.9 },
+    { kind: 'candycart', pos: [8.8, 2, 7.6], yaw: -0.5 }, { kind: 'leaves', pos: [5.6, 2, 9.6], size: 0.9, solid: false, shadow: false },
+    { kind: 'leaves', pos: [-9.4, 2, -5.8], size: 1.0, solid: false, shadow: false }, { kind: 'pumpkin', pos: [-5.6, 2, -6.6], size: 0.6, face: 2 },
+    { kind: 'pumpkin', pos: [1.8, 2, -6.8], size: 0.55, face: 1 }, { kind: 'hay', pos: [-8.6, 2, -6.8], yaw: 1.2 },
     // C Labyrinth-Wiese
     { kind: 'hwlantern', pos: [-27.4, 2, 6.6], yaw: PI }, { kind: 'pumpkins', pos: [-42.4, 2, 6.0], size: 0.9, face: true },
     { kind: 'toadstool', pos: [-42.6, 2, -1.4], solid: false }, { kind: 'pumpkin', pos: [-28.2, 2, -8.4], size: 0.6, face: 2 },
+    { kind: 'leaves', pos: [-41.4, 2, 2.6], size: 1.0, solid: false, shadow: false }, { kind: 'pumpkin', pos: [-38.4, 2, 4.6], size: 0.5, face: 1 },
     // D Friedhofsvorplatz
     { kind: 'hwlantern', pos: [7.6, 3, -26.4] }, { kind: 'hwlantern', pos: [24.6, 3, -26.4], yaw: PI },
     { kind: 'hwtree', pos: [29.6, 3, -27.0], size: 4.4 }, { kind: 'grave', pos: [2.4, 3, -38.0], size: 0.9 },
     { kind: 'pumpkins', pos: [26.4, 3, -37.6], size: 0.8, face: true }, { kind: 'candles', pos: [5.0, 3, -37.8], solid: false },
+    { kind: 'leaves', pos: [22.6, 3, -30.4], size: 1.0, solid: false, shadow: false }, { kind: 'pumpkin', pos: [13.2, 3, -31.2], size: 0.55, face: 2 },
+    { kind: 'pumpkin', pos: [19.0, 3, -31.4], size: 0.5, face: 1 }, { kind: 'toadstool', pos: [3.2, 3, -27.6], solid: false },
     // E Hexenmoor
     { kind: 'hwlantern', pos: [-15.2, 4, -41.4], yaw: PI }, { kind: 'hwlantern', pos: [-21.6, 4, -63.6] },
     { kind: 'hwtree', pos: [-38.0, 4, -42.4], size: 4.6 }, { kind: 'hwtree', pos: [-37.4, 4, -63.4], size: 4.2 },
     { kind: 'toadstool', pos: [-33.4, 4, -43.0], solid: false }, { kind: 'toadstool', pos: [-16.4, 4, -60.4], solid: false },
     { kind: 'pumpkins', pos: [-35.8, 4, -48.4], size: 0.8, face: true }, { kind: 'witchhat', pos: [-31.6, 4, -44.2], size: 0.8 },
+    { kind: 'heather', pos: [-36.4, 4, -53.6], solid: false }, { kind: 'heather', pos: [-33.2, 4, -59.4], size: 1.2, solid: false },
+    { kind: 'heather', pos: [-16.6, 4, -48.2], solid: false }, { kind: 'heather', pos: [-38.0, 4, -58.8], size: 0.9, solid: false },
+    { kind: 'heather', pos: [-24.4, 4, -43.6], size: 1.1, solid: false }, { kind: 'heather', pos: [-31.0, 4, -64.0], solid: false },
+    { kind: 'heather', pos: [-15.6, 4, -64.2], size: 1.2, solid: false }, { kind: 'pumpkin', pos: [-29.6, 4, -50.0], size: 0.5, face: 2 },
     // F Schlosshügel
     { kind: 'hwlantern', pos: [-20.6, 6, -80.4] }, { kind: 'hwlantern', pos: [-15.4, 6, -80.4], yaw: PI },
     { kind: 'pumpkins', pos: [11.4, 6, -80.8], size: 1.0, face: true }, { kind: 'grave', pos: [-19.8, 6, -101.4], size: 1.0 },
     { kind: 'hwtree', pos: [10.6, 6, -101.4], size: 4.6 }, { kind: 'candy', pos: [-19.4, 6, -86.4], size: 1.0 },
+    { kind: 'pumpkin', pos: [-6.8, 6, -86.6], size: 0.55, face: 1 }, { kind: 'pumpkin', pos: [-1.2, 6, -86.8], size: 0.5, face: 2 },
+    { kind: 'hwlantern', pos: [6.4, 6, -86.0], yaw: PI }, { kind: 'leaves', pos: [8.6, 6, -92.6], size: 1.0, solid: false, shadow: false },
   ],
 
   segments: [

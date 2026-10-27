@@ -46,9 +46,9 @@ if (!THEMES.map_halloween) {
     background: 0x3e2860,
     fog: { color: 0x5c4686, near: 80, far: 300 },
     // Mondlicht als lila Himmelslicht, Abendrot als warmes, tief stehendes Hauptlicht von Westen
-    hemi: { sky: 0xb8a4ff, ground: 0x6a4a6a, intensity: 1.18 },
-    sun: { color: 0xffd4aa, intensity: 2.35, dir: [-0.55, 0.85, 0.45] },
-    toy: { sky: 0xa890ff, skyMix: 0.1, rim: 1.35 },
+    hemi: { sky: 0xa898ff, ground: 0x403050, intensity: 0.95 },
+    sun: { color: 0xffc898, intensity: 1.75, dir: [-0.55, 0.85, 0.45] },
+    toy: { rim: 1.3 },
     ground: null,
     clouds: false,
     sunDisc: false,
@@ -137,10 +137,8 @@ const PALETTES = {
   hwgrass: {
     bands: SOIL, side: 0x3e8a5a, rim: 0xa2e092,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(checker(ax, az) ? 0x5cbc72 : 0x54b06a, 0x66c47a, rnd.frac() * 0.35);
-      const h = hash2(Math.floor(ax / 2) + 3, Math.floor(az / 2) - 5);
-      if (h > 0.95) mixc(o, lin(0xc8a040), 0.22, o);         // ein Hauch Herbstlaub
-      else if (h < 0.05) mixc(o, lin(0x3e8a5a), 0.35, o);    // dunkleres Moos
+      const o = tone(checker(ax, az) ? 0x56be76 : 0x4fb46e, 0x62c680, rnd.frac() * 0.3);
+      if (hash2(Math.floor(ax / 2) + 3, Math.floor(az / 2) - 5) < 0.06) mixc(o, lin(0x3e9a62), 0.3, o);   // dunkleres Moos
       return o;
     },
   },
@@ -189,9 +187,8 @@ const PALETTES = {
   moor: {
     bands: SOIL, side: 0x7a52a0, rim: 0xc49ae0,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(checker(ax, az) ? 0x62ac74 : 0x5aa26c, 0x70b880, rnd.frac() * 0.3);
-      const h = hash2(Math.floor(ax / 2) + 2, Math.floor(az / 2) + 8);
-      if (h > 0.8) mixc(o, lin(0xa874d0), 0.42, o);          // Heidekraut-Flecken
+      const o = tone(checker(ax, az) ? 0x6aae7e : 0x64a678, 0x78b88a, rnd.frac() * 0.3);
+      if (hash2(Math.floor(ax / 2) + 2, Math.floor(az / 2) + 8) > 0.86) mixc(o, lin(0x9a7ac0), 0.18, o);   // Hauch Heidekraut
       return o;
     },
   },
@@ -579,6 +576,50 @@ function rowboatGlowGeo() {
   return b.geometry();
 }
 
+/** Laubhaufen (orange, rot, gelb – flach, zum Draufschauen). */
+function leavesGeo(s = 1, seed = 1) {
+  const b = new Build();
+  const rnd = new Rnd(seed);
+  const cols = [0xe8702a, 0xffa23a, 0xc8401a, 0xf0c040, 0xb8501a];
+  b.sphere(0.5 * s, { v: (x, y, z, nx, ny) => mix(0xb8501a, 0xe8802a, ny * 0.5 + 0.5) }, { p: [0, 0.05, 0], s: [1.2, 0.32, 1] }, 8, 4);
+  for (let i = 0; i < 9; i++) {
+    const a = rnd.real(0, TAU), r = rnd.real(0.25, 1.0) * s;
+    b.box(0.2, 0.02, 0.12, cols[i % cols.length], { p: [Math.cos(a) * r, 0.03 + (r < 0.5 * s ? 0.12 : 0), Math.sin(a) * r], r: [rnd.real(-0.3, 0.3), rnd.real(0, TAU), 0] }, 0);
+  }
+  return b.geometry();
+}
+/** Heidekraut-Büschel (lila Rispen auf grünem Fuß), auch auf begehbarem Moor (ohne Kollision). */
+function heatherClumpGeo(s = 1, seed = 1) {
+  const b = new Build();
+  const rnd = new Rnd(seed);
+  b.sphere(0.32 * s, 0x5a9a5e, { p: [0, 0.12 * s, 0], s: [1.4, 0.5, 1.2] }, 7, 4);
+  for (let i = 0; i < 5; i++) b.sphere(rnd.real(0.16, 0.24) * s, i % 2 ? 0xb47ae0 : 0x9a5ac8, { p: [rnd.real(-0.3, 0.3) * s, rnd.real(0.24, 0.36) * s, rnd.real(-0.25, 0.25) * s], s: [0.9, 1.3, 0.9] }, 6, 4);
+  return b.geometry();
+}
+/** Süßigkeiten-Wagen: Holzkarren mit gestreiftem Dach, Bonbongläsern und Lutschern. Vorderseite +Z. */
+function candyCartGeo() {
+  const b = new Build();
+  b.box(2.0, 0.9, 1.0, { v: (px, py, pz, nx, ny, nz) => (nz > 0.5 ? 0xb46ad0 : 0x8a4aa8) }, { p: [0, 0.75, 0] }, 0.06, 1);
+  b.box(2.1, 0.08, 1.1, 0xffe6b0, { p: [0, 1.22, 0] }, 0.03, 1);
+  for (const sx of [-1, 1]) {
+    b.torus(0.32, 0.07, 0x5a3a2a, { p: [sx * 0.7, 0.32, 0.52] }, 4, 12);
+    b.cyl(0.04, 0.04, 1.4, 0xffffff, { p: [sx * 0.95, 1.9, -0.35] }, 5);
+  }
+  for (let i = 0; i < 6; i++) b.box(0.36, 0.06, 1.3, i % 2 ? 0xffffff : 0xff6a2a, { p: [-0.9 + i * 0.36, 2.62, 0.05], r: [0.22, 0, 0] }, 0.02, 1);
+  for (let i = 0; i < 6; i++) b.cone(0.18, 0.22, i % 2 ? 0xffffff : 0xff6a2a, { p: [-0.9 + i * 0.36, 2.38, 0.72], r: [Math.PI, 0, 0] }, 3);
+  const jar = [0xff5a9a, 0x6ad8ff, 0xffd23a];
+  for (let i = 0; i < 3; i++) {
+    b.cyl(0.18, 0.18, 0.36, mix(jar[i], 0xffffff, 0.35), { p: [-0.6 + i * 0.6, 1.44, 0.05] }, 8);
+    b.cyl(0.19, 0.19, 0.06, 0x6a4a34, { p: [-0.6 + i * 0.6, 1.65, 0.05] }, 8);
+    b.sphere(0.12, jar[i], { p: [-0.6 + i * 0.6, 1.42, 0.08] }, 6, 4);
+  }
+  for (const sx of [-0.85, 0.85]) {
+    b.cyl(0.02, 0.02, 0.5, 0xffffff, { p: [sx, 1.5, 0.42] }, 4);
+    b.cyl(0.16, 0.16, 0.05, (px, py, pz) => (Math.floor((Math.atan2(pz, px) / TAU + 0.5) * 8) % 2 ? 0xff5a9a : 0xffffff), { p: [sx, 1.82, 0.42], r: [Math.PI / 2, 0, 0] }, 10);
+  }
+  return b.geometry();
+}
+
 /** Kerzengruppe (drei Kerzen mit Wachstropfen; Flammen separat). */
 function candlesGeo(seed = 1) {
   const b = new Build();
@@ -639,6 +680,9 @@ export function hwPropGeo(it, seed) {
     case 'rowboat': return rowboatGeo();
     case 'candles': return candlesGeo(seed);
     case 'witchhat': return witchHatGeo(s ?? 1);
+    case 'leaves': return leavesGeo(s ?? 1, seed);
+    case 'heather': return heatherClumpGeo(s ?? 1, seed);
+    case 'candycart': return candyCartGeo();
     case 'ironfence': return ironFenceGeo(it.len ?? 4, seed);
     case 'picket': return picketFenceGeo(it.len ?? 4, seed);
     case 'hwhedge': return hwHedgeGeo(it.len ?? 3, it.h ?? 1.2, seed);
@@ -674,6 +718,10 @@ export function hwPropShape(it) {
     case 'candy': return cyl(0.3 * s, 1.1 * s);
     case 'owl': return cyl(0.4 * s, 1.3 * s);
     case 'hwrock': return cyl(0.9 * s, 1.0 * s);
+    case 'candycart': {
+      const yaw = it.yaw ?? 0, c = Math.abs(Math.cos(yaw)), sn = Math.abs(Math.sin(yaw));
+      return { type: 'box', min: [x - (1.05 * c + 0.6 * sn), y - 0.2, z - (1.05 * sn + 0.6 * c)], max: [x + (1.05 * c + 0.6 * sn), y + 2.6, z + (1.05 * sn + 0.6 * c)], tag: 'deko:wagen' };
+    }
     case 'hwhouse': {
       const [w, d] = Array.isArray(it.size) ? it.size : [3.4, 3];
       const yaw = it.yaw ?? 0, c = Math.abs(Math.cos(yaw)), sn = Math.abs(Math.sin(yaw));
@@ -722,6 +770,8 @@ export function buildHwProp(level, map, grid, it, i) {
     }
     const gl = baked && it.kind === 'pumpkin' ? null : hwPropGlow(it, seed);
     if (gl) { hwGlow(view); view.addStatic(place(gl, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { material: 'hwglow', castShadow: false }); }
+    const L = it.light === false ? null : propLight(it);
+    if (L) hwGlow(view).spot(L.p[0], L.p[1], L.p[2], L.s, L.pool, L.g);
   }
   if (it.solid === false) return;
   if (it.solid || grid.isWalk(it.pos[0], it.pos[2])) {
@@ -738,7 +788,7 @@ export function buildHwProp(level, map, grid, it, i) {
  * Heidekraut und Pilze im Hexenmoor, Treibholz am Strand. Ein Teil der Kürbisse leuchtet (hwglow, im Takt).
  */
 export function scatterHalloween(level, map, grid) {
-  const parts = [], glow = [], flatParts = [];
+  const parts = [], glow = [], flatParts = [], spots = [];
   map.ground.forEach((b, i) => {
     const style = b.style ?? 'hwgrass';
     if (b.walk || b.noDeco || ['cobble', 'castle'].includes(style)) return;
@@ -768,8 +818,9 @@ export function scatterHalloween(level, map, grid) {
             if (rnd.frac() < 0.2) continue;
             const s = rnd.real(0.55, 1.05), face = rnd.frac() < 0.22;
             const yaw = face ? rnd.real(-0.35, 0.35) : rnd.real(0, TAU);
-            parts.push(place(pumpkinGeo(s, rnd.int(1, 999), true), x, y, z + rnd.real(-0.3, 0.3), yaw));
-            if (face) glow.push(place(pumpkinFaceGeo(s, rnd.int(0, 2)).clone(), x, y, z, yaw));
+            const dz = rnd.real(-0.3, 0.3);
+            parts.push(place(pumpkinGeo(s, rnd.int(1, 999), true), x, y, z + dz, yaw));
+            if (face) { glow.push(place(pumpkinFaceGeo(s, rnd.int(0, 2)).clone(), x, y, z + dz, yaw)); spots.push([x, y + 0.4 * s, z + dz + 0.5 * s, 1.2 * s]); }
             else if (rnd.frac() < 0.5) flatParts.push(place(leafGeo(rnd.int(1, 99)), x + 0.6, y, z, rnd.real(0, TAU)));
           }
         }
@@ -793,14 +844,14 @@ export function scatterHalloween(level, map, grid) {
         put(Math.floor(area / 110), 2.2, (r) => hwRockGeo(r.real(0.5, 0.9), r.int(1, 99)));
         return;
       case 'village':
-        put(Math.floor(area / 30), 1.6, (r, x, z) => { const s = r.real(0.5, 0.8); glow.push(place(pumpkinFaceGeo(s, r.int(0, 2)).clone(), x, y, z, 0)); return pumpkinGeo(s, r.int(1, 999), true); }, parts, 0.8);
+        put(Math.floor(area / 30), 1.6, (r, x, z) => { const s = r.real(0.5, 0.8); glow.push(place(pumpkinFaceGeo(s, r.int(0, 2)).clone(), x, y, z, 0)); spots.push([x, y + 0.4 * s, z + 0.5 * s, 1.2 * s]); return pumpkinGeo(s, r.int(1, 999), true); }, parts, 0.8);
         return;
       default: {   // hwgrass, forest, maze
         put(Math.max(1, Math.floor((area / (style === 'forest' ? 42 : 80)) * dens)), 3.2, (r) => spookTreeGeo(r.real(3.6, 5.2), r.int(1, 999)));
         put(Math.floor(area / 70), 1.8, (r) => toadstoolGeo(r.real(0.7, 1.1), r.int(1, 999)));
         put(Math.floor(area / 90), 1.6, (r, x, z) => {
           const s = r.real(0.5, 0.8);
-          if (r.frac() < 0.5) glow.push(place(pumpkinFaceGeo(s, r.int(0, 2)).clone(), x, y, z, 0));
+          if (r.frac() < 0.5) { glow.push(place(pumpkinFaceGeo(s, r.int(0, 2)).clone(), x, y, z, 0)); spots.push([x, y + 0.4 * s, z + 0.5 * s, 1.2 * s]); }
           return pumpkinGeo(s, r.int(1, 999), true);
         });
       }
@@ -810,7 +861,7 @@ export function scatterHalloween(level, map, grid) {
   if (!view) return;
   for (const g of parts) view.addStatic(g, { castShadow: true });
   for (const g of flatParts) view.addStatic(g, { castShadow: false });
-  if (glow.length) { hwGlow(view); for (const g of glow) view.addStatic(g, { material: 'hwglow', castShadow: false }); }
+  if (glow.length) { const L = hwGlow(view); for (const g of glow) view.addStatic(g, { material: 'hwglow', castShadow: false }); for (const [x, y, z, s] of spots) L.spot(x, y, z, s); }
 }
 
 /** Kürbisblätter am Boden (flach). */
@@ -853,6 +904,7 @@ export function buildHwBridge(level, spec) {
   const yaw = Math.atan2(-dz / L, dx / L);
   const rnd = new Rnd(Math.round(L * 31 + a[0] * 7 + a[2]));
   const b = new Build(), gb = new Build();
+  const lamps = [];
   const Ld = Math.hypot(L, dy);
   b.box(Ld + 0.1, 0.16, w, 0x3a2a24, { p: [L / 2, dy / 2 - 0.09, 0], r: [0, 0, pitch] }, 0);
   const np = Math.max(1, Math.floor(Ld / 0.55));
@@ -884,14 +936,20 @@ export function buildHwBridge(level, spec) {
       const px = t * L + (t ? -0.3 : 0.3), py = t * dy;
       b.parts.push(place(lanternPostGeo(2.1), px, py, s * (w / 2 + 0.35), s > 0 ? Math.PI : 0));
       gb.parts.push(place(lanternPostGlowGeo(2.1), px, py, s * (w / 2 + 0.35), s > 0 ? Math.PI : 0));
+      lamps.push([px + (s > 0 ? -0.5 : 0.5), py, s * (w / 2 + 0.35)]);
     }
   }
   if (L > 8) b.parts.push(place(cobwebGeo(0.7).clone(), L * 0.5, dy * 0.5 + H - 0.05, w / 2 + 0.06, 0));
   const g = b.geometry(); g.rotateY(yaw); g.translate(a[0], a[1], a[2]);
   view.addStatic(g, { castShadow: true });
   const gg = gb.geometry(); gg.rotateY(yaw); gg.translate(a[0], a[1], a[2]);
-  hwGlow(view);
+  const lights = hwGlow(view);
   view.addStatic(gg, { material: 'hwglow', castShadow: false });
+  const cy = Math.cos(yaw), sy = Math.sin(yaw);
+  for (const [lx, ly, lz] of lamps) {
+    const wx = a[0] + lx * cy + lz * sy, wz = a[2] - lx * sy + lz * cy;
+    lights.spot(wx, a[1] + ly + 2.1 - 0.42, wz, 1.5, 2.0, [wx, a[1] + ly, wz]);
+  }
 }
 
 // ------------------------------------------------------------------ Nachbarwelt und Inselchen
@@ -967,24 +1025,102 @@ export function hwGlow(view) {
   if (view.hwLights) return view.hwLights;
   const mat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: true });
   view.mats.hwglow = mat;
+  const spots = [];
+  let halos = null, pools = null, haloMat = null, poolMat = null;
   const api = {
     mat,
     shown: null,
+    spots,
     info(t = view.time) {
       const bt = hwBeatNow(t);
       const { pulse, k } = lanternLevel(bt.beat, t);
       return { beat: +bt.beat.toFixed(3), step: Math.floor(bt.beat), pulse: +pulse.toFixed(3), k: +k.toFixed(3), source: bt.source, theme: bt.theme, bpm: bt.bpm };
     },
+    /**
+     * Lichtschein an einer Leuchte: weicher, additiver Schein (Billboard, s m groß) und – mit pool > 0 – ein warmer
+     * Lichtfleck am Boden (Radius pool m, bei ground = [x, y, z]). Alle Scheine/Flecken einer Ansicht sind je eine
+     * Instanz-Fläche (zwei Zeichenaufrufe), sie pulsieren mit den Laternen im Takt.
+     */
+    spot(x, y, z, s = 1, pool = 0, ground = null, color = null) { spots.push({ x, y, z, s, pool, g: ground, c: color }); },
+    info2() { return { halos: spots.length, pools: spots.filter((p) => p.pool > 0).length }; },
+  };
+  const _mm = new THREE.Matrix4(), _qq = new THREE.Quaternion(), _pp = new THREE.Vector3(), _ss = new THREE.Vector3(), _cc = new THREE.Color();
+  const buildHalos = () => {
+    haloMat = new THREE.MeshBasicMaterial({ map: glowTex(), color: 0xffffff, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, fog: true });
+    halos = new THREE.InstancedMesh(cached('hw:haloquad', () => new THREE.PlaneGeometry(1, 1)), haloMat, spots.length);
+    halos.frustumCulled = false; halos.renderOrder = 6; halos.name = 'hw:lichtschein';
+    const lit = spots.filter((p) => p.pool > 0);
+    poolMat = new THREE.MeshBasicMaterial({ map: glowTex(), color: 0xffffff, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false, fog: true, polygonOffset: true, polygonOffsetFactor: -2 });
+    if (lit.length) {
+      pools = new THREE.InstancedMesh(cached('hw:poolquad', () => new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2)), poolMat, lit.length);
+      pools.frustumCulled = false; pools.renderOrder = 2; pools.name = 'hw:lichtflecken';
+      lit.forEach((p, i) => {
+        const [gx, gy, gz] = p.g ?? [p.x, 0, p.z];
+        _mm.compose(_pp.set(gx, gy + 0.035, gz), _qq.identity(), _ss.set(p.pool, 1, p.pool));
+        pools.setMatrixAt(i, _mm);
+        pools.setColorAt(i, _cc.setHex(p.c ?? 0xffa040));
+      });
+      pools.instanceMatrix.needsUpdate = true;
+      if (pools.instanceColor) pools.instanceColor.needsUpdate = true;
+      view.add(pools);
+    }
+    spots.forEach((p, i) => halos.setColorAt(i, _cc.setHex(p.c ?? 0xffb04a)));
+    if (halos.instanceColor) halos.instanceColor.needsUpdate = true;
+    view.add(halos);
+  };
+  /** Scheine und Flecken freigeben (Aufräumen der Karte; mehrfach aufrufbar). */
+  api.dispose = () => {
+    for (const o of [halos, pools]) { o?.parent?.remove(o); o?.dispose(); }
+    haloMat?.dispose(); poolMat?.dispose();
+    halos = pools = haloMat = poolMat = null;
+    spots.length = 0;
   };
   const update = (dt, t) => {
     const st = api.info(t);
     mat.color.setScalar(st.k);
     api.shown = { step: st.step, k: st.k };
+    if (!halos && spots.length && view.frame > 0) buildHalos();
+    if (halos) {
+      haloMat.opacity = 0.5 + 0.45 * st.pulse;
+      poolMat.opacity = 0.34 + 0.36 * st.pulse;
+      const q = view.camera.quaternion;
+      const k = 0.85 + 0.25 * st.pulse;
+      spots.forEach((p, i) => { _mm.compose(_pp.set(p.x, p.y, p.z), q, _ss.setScalar(p.s * k)); halos.setMatrixAt(i, _mm); });
+      halos.instanceMatrix.needsUpdate = true;
+    }
   };
   update(0, 0);
   view.onFrame(update);
   view.hwLights = api;
   return api;
+}
+
+let glowTexCache = null;
+/** Weicher, runder Schein (warm, für additive Lichter). */
+function glowTex() {
+  if (glowTexCache) return glowTexCache;
+  glowTexCache = canvasTexture('hw:glow', 64, 64, (c, w, h) => {
+    const g = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.3, 'rgba(255,255,255,0.5)'); g.addColorStop(0.65, 'rgba(255,255,255,0.14)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+  }, { srgb: false });
+  return glowTexCache;
+}
+
+/** Lichtpunkt einer Requisite (Weltlage): Laterne, Kürbisgesicht, Kerzen, Bootslaterne – für hwGlow(view).spot. */
+export function propLight(it) {
+  const [x, y, z] = it.pos, yaw = it.yaw ?? 0, c = Math.cos(yaw), sn = Math.sin(yaw);
+  const at = (lx, ly, lz) => [x + lx * c + lz * sn, y + ly, z - lx * sn + lz * c];
+  const s = typeof it.size === 'number' ? it.size : 1;
+  switch (it.kind) {
+    case 'hwlantern': { const h = it.size ?? 2.6; const p = at(0.5, h - 0.42, 0); return { p, s: 1.7, pool: 2.4, g: [p[0], y, p[2]] }; }
+    case 'pumpkin': return it.face === false || it.face === undefined ? null : { p: at(0, 0.4 * s, 0.5 * s), s: 1.3 * s, pool: 1.0 * s + 0.4, g: [x, y, z] };
+    case 'pumpkins': return it.face === false ? null : { p: at(0, 0.4 * s, 0.5 * s), s: 1.3 * s, pool: 1.4 * s, g: [x, y, z] };
+    case 'candles': return { p: at(0, 0.45, 0.05), s: 0.8, pool: 0.9, g: [x, y, z] };
+    case 'rowboat': return { p: at(1.32, 1.0, 0), s: 1.2, pool: 1.6, g: at(1.32, 0, 0) };
+    case 'hwhouse': { const [w, d] = Array.isArray(it.size) ? it.size : [3.4, 3]; return { p: at(w * 0.24, 1.45, d / 2 + 0.3), s: 1.6, pool: 0 }; }
+    default: return null;
+  }
 }
 
 // ------------------------------------------------------------------ Lebendige Kulisse: Fledermäuse, Nebel
@@ -1105,6 +1241,7 @@ export class HwLife {
   dispose() {
     for (const o of this.own) { o.parent?.remove(o); o.dispose?.(); }
     this.own.length = 0;
+    this.view?.hwLights?.dispose();
   }
 }
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3();

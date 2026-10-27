@@ -22,7 +22,7 @@
 // Startlage (Fern-Ausblendung lod.js). ev.liveInfo() meldet den Zustand für Tests (state().decor).
 
 import * as THREE from 'three';
-import { mix, TAU, cached, vcol, glowTexture } from '../models/lib/kit.js';
+import { mix, TAU, cached, vcol } from '../models/lib/kit.js';
 import { getModel, hasModel } from '../models/index.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 import { Rnd } from '../../three/world/geometry.js';
@@ -63,16 +63,25 @@ function addGlow(ev, g, x, y, z, yaw = 0) {
   hwGlow(ev.view);
   ev.addStatic(place(g, x, y, z, yaw), { material: 'hwglow', castShadow: false });
 }
-/** Kürbis (mit Laternengesicht) einbacken; face: false | 0 | 1 | 2. */
-function pumpkinAt(ev, x, y, z, s = 1, face = 0, yaw = 0, seed = 1) {
+/** Kürbis (mit Laternengesicht) einbacken; face: false | 0 | 1 | 2. pool: Lichtfleck am Boden (Radius, 0 = keiner). */
+function pumpkinAt(ev, x, y, z, s = 1, face = 0, yaw = 0, seed = 1, pool = 1) {
   const m = hwModel(ev, face === false ? 'kuerbis' : 'kuerbislaterne', { size: s }, [x, y, z], yaw);
   if (!m) ev.addStatic(place(pumpkinGeo(s, seed), x, y, z, yaw), { castShadow: true });
   if (face !== false && !m) addGlow(ev, pumpkinFaceGeo(s, face).clone(), x, y, z, yaw);
+  if (face !== false) light(ev, x + Math.sin(yaw) * 0.5 * s, y + 0.4 * s, z + Math.cos(yaw) * 0.5 * s, 1.3 * s, pool ? (s + 0.4) * pool : 0, [x, y, z]);
 }
-/** Laternenmast mit Licht im Takt. */
+/** Laternenmast mit Licht im Takt (Schein und Lichtfleck). */
 function lanternAt(ev, x, y, z, yaw = 0, h = 2.6) {
   ev.addStatic(place(lanternPostGeo(h), x, y, z, yaw), { castShadow: true });
   addGlow(ev, lanternPostGlowGeo(h), x, y, z, yaw);
+  const lx = x + Math.cos(yaw) * 0.5, lz = z - Math.sin(yaw) * 0.5;
+  light(ev, lx, y + h - 0.42, lz, 1.7, 2.4, [lx, y, lz]);
+}
+/** Lichtschein (und Lichtfleck) im Takt an (x, y, z) – halloween.js hwGlow(view).spot. */
+function light(ev, x, y, z, s = 1, pool = 0, ground = null, color = null) {
+  const L = hwGlow(ev.view);
+  L.spot(x, y, z, s, pool, ground, color);
+  if (!ev.own.includes(L)) ev.own.push(L);   // Aufräumen der Scheine (mehrfach aufrufbar)
 }
 // Kandidaten der parallel gebauten Halloween-Modelle (Endung _hw.js): Kulissenname → [[Name, Optionen, max. Dreiecke]]
 const HW_MODELS = {
@@ -114,16 +123,6 @@ function mover(ev, geo, x, y, z, name, shadow = true) {
   m.name = name;
   ev.view.add(m);
   return m;
-}
-/** Leuchtender Schein (additives Sprite). */
-function glowSprite(ev, color, size, x, y, z, opacity = 0.7) {
-  const mat = new THREE.SpriteMaterial({ map: glowTexture(), color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, fog: true });
-  ev.own.push(mat);
-  const s = new THREE.Sprite(mat);
-  s.position.set(x, y, z);
-  s.scale.setScalar(size);
-  ev.view.add(s);
-  return s;
 }
 /** Zustand für Tests (state().decor) ergänzen. */
 function addInfo(ev, fn) {
@@ -248,7 +247,8 @@ export function dressPipeHW(ev, x, y, z) {
     pumpkinAt(ev, ax + 0.7, ay, az + 0.5, 0.5, 2, 0, 77);
   }
   const lights = hwGlow(ev.view);
-  addInfo(ev, () => ({ lanterns: { ...lights.info(), shown: lights.shown } }));
+  if (!ev.own.includes(lights)) ev.own.push(lights);
+  addInfo(ev, () => ({ lanterns: { ...lights.info(), shown: lights.shown, ...lights.info2() } }));
   return true;
 }
 
@@ -292,6 +292,7 @@ function pumpkinField(ev, x, y, z) {
     face.position.set(0, 1.86, 0);
     crow.add(face);
     ev.updaters.push((dt, t) => { crow.rotation.z = Math.sin(t * 0.9) * 0.05; crow.rotation.y = Math.sin(t * 0.6) * 0.08; });
+    light(ev, x, y + 2.1, z + 0.4, 1.2);
   }
   // Riesenkürbis mit Laternengesicht, Strohballen mit Kürbissen, Schubkarre
   pumpkinAt(ev, x + 3.6, y, z + 0.6, 2.3, 0, -0.25, 3);
@@ -337,6 +338,7 @@ function spookVillage(ev, x, y, z) {
     const hx = x + dx, hz = z + dz;
     ev.addStatic(place(spookHouseGeo(w, d, seed, wall, roof), hx, y, hz, yaw), { castShadow: true });
     winB.parts.push(place(spookHouseGlowGeo(w, d, seed), hx, y, hz, yaw));
+    light(ev, hx + Math.sin(yaw) * (d / 2 + 0.3) + Math.cos(yaw) * w * 0.24, y + 1.45, hz + Math.cos(yaw) * (d / 2 + 0.3) - Math.sin(yaw) * w * 0.24, 1.6, 0, null, 0xffc060);
     // Kürbisse vor der Tür
     pumpkinAt(ev, hx - w * 0.18 * Math.cos(yaw) + 0.75, y, hz + d / 2 + 0.55, 0.55, seed % 3, 0, seed);
   }
@@ -405,7 +407,7 @@ function pumpkinMaze(ev, x, y, z) {
   const flameMesh = new THREE.Mesh(cached('hw:lanflame', () => { const s = new Build(); s.box(0.14, 0.18, 0.14, 0xffc04a, { p: [0, -0.43, 0] }, 0); return s.geometry(); }), hwGlow(ev.view).mat);
   lan.add(stick, flameMesh);
   ev.view.add(lan);
-  glowSprite(ev, 0xffc860, 1.4, kp[0] + 0.55, kp[1] + 0.75, kp[2] + 0.25, 0.55);
+  light(ev, kp[0] + 0.55, kp[1] + 0.73, kp[2] + 0.25, 1.4, 1.6, [kp[0] + 0.5, kp[1], kp[2] + 0.3]);
   ev.updaters.push((dt, t) => { lan.rotation.z = Math.sin(t * 2.2) * 0.18; });
   addInfo(ev, () => ({ maze: { walls: walls.length, kruemel: !!kr } }));
 }
@@ -480,13 +482,14 @@ function fogGraveyard(ev, x, y, z) {
   const door = new THREE.Shape(); door.moveTo(-0.5, 0); door.lineTo(-0.5, 1.2); door.absarc(0, 1.2, 0.5, Math.PI, 0, true); door.lineTo(0.5, 0); door.closePath();
   const dg = new Build(); dg.extrude(door, 0.04, 0xd8ff8a, { p: [0, 0, 1.52] }, 0, 8);
   addGlow(ev, dg.geometry(), cx, y + 0.15, cz);
-  glowSprite(ev, 0xc8ff7a, 3.2, cx, y + 1.3, cz + 1.9, 0.35);
+  light(ev, cx, y + 1.0, cz + 1.8, 2.4, 2.2, [cx, y + 0.15, cz + 2.4], 0x9aff6a);
   const graves = [[-3.2, -2.4, 1.1], [-1.2, -3.6, 0.9], [1.4, -2.6, 1.0], [3.4, -2.0, 1.2], [5.6, -3.2, 0.95], [-8.6, -2.0, 1.0], [8.0, -2.4, 1.05], [10.4, -3.6, 0.9]];
   graves.forEach(([dx, dz, s], i) => { if (!hwModel(ev, 'grabstein', { size: s, variant: i % 3 }, [x + dx, y + 0.15, z + dz], (i % 3 - 1) * 0.2)) ev.addStatic(place(graveGeo(i * 7 + 3, s), x + dx, y + 0.15, z + dz, (i % 3 - 1) * 0.2), { castShadow: true }); });
   ev.addStatic(place(spookTreeGeo(5.2, 77), x + 7.2, y + 0.15, z - 5.4, 0), { castShadow: true });
   ev.addStatic(place(hwPropGeo({ kind: 'owl', size: 0.9 }, 1), x + 9.6, y + 0.15, z - 5.0, -0.3), { castShadow: true });
   ev.addStatic(place(hwPropGeo({ kind: 'candles' }, 5), x + 1.4, y + 0.15, z - 2.0, 0), { castShadow: false });
   addGlow(ev, hwPropGlowCandles(5), x + 1.4, y + 0.15, z - 2.0);
+  light(ev, x + 1.4, y + 0.6, z - 1.95, 0.8);
   // Geist schaut hinter dem großen Grabstein hervor (alle 7 s: hoch, zur Seite lehnen, winken, wieder weg)
   const gp = ev.def.ghost ?? [x + 3.4, y + 0.15, z - 2.0];
   ev.addStatic(place(graveGeo(4, 1.6), gp[0], gp[1], gp[2], 0.05), { castShadow: true });
@@ -616,7 +619,7 @@ function witchTower(ev, x, y, z) {
   brew.position.set(kx, ky + 1.18, kz);
   brew.name = 'hw:trank';
   ev.view.add(brew);
-  glowSprite(ev, 0x8aff6a, 3.6, kx, ky + 1.6, kz, 0.45);
+  light(ev, kx, ky + 1.5, kz, 2.6, 2.6, [kx, ky, kz], 0x8aff6a);
   const NB = 8;
   const bubMat = new THREE.MeshBasicMaterial({ color: 0xb4ff8a, transparent: true, opacity: 0.85, fog: true });
   ev.own.push(bubMat);
