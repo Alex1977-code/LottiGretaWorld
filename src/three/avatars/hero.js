@@ -991,8 +991,8 @@ function plinthParts() {
 // ================================================================== Halloween-Verkleidung (Bausteine in ../lib/heroHalloween.js)
 // Lotti: kleiner, etwas schiefer Hexenhut (lila, orangefarbenes Band, Sternchen) mit ihrer Schleife; das Haar ohne Schleife,
 // die Zöpfe hängen unter der Krempe hervor. Greta: Katzenohren am pinken Haarreif, Katzenschwanz (Kette am Becken,
-// HangChain), drei aufgemalte Schnurrhaare je Wange und Katzen-Näschen (Kopf-Aufkleber). Hut, Ohren und Schwanz in der
-// Stoff-Oberfläche (Figur-Bündel mit Oberkörper/Rock), Schnurrhaare im Kopf-Mesh – kein zusätzlicher Zeichenaufruf.
+// HangChain), drei aufgemalte Schnurrhaare je Wange und Katzen-Näschen (Kopf-Aufkleber). Hut in der Stoff-Oberfläche
+// (Figur-Bündel mit Oberkörper/Rock), Ohren im Haar-, Schnurrhaare im Kopf-Mesh (0 Aufrufe); Schwanz als SkinnedMesh (+1).
 /** Hut-Lage (kopf-lokal): Mitte der Hutunterseite knapp über dem Scheitel, leicht zur nahen Seite und nach hinten gekippt. */
 const HAT_POS = V(HEAD_C.x - 0.025, HEAD_C.y + 0.135, 0.01);
 const HAT_ROT = new THREE.Euler(0.12, 0.15, 0.12, 'YXZ');

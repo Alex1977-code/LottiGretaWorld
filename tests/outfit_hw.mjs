@@ -19,7 +19,8 @@
 //   hwlevel  Halloween-Testlevel 0-20/0-21/0-22 (ohne URL-Schalter): Szene setzt die Verkleidung, Bilder im Halloween-Thema
 //   w5       Trapez und Röhrenkanone im echten Motor (Strandwerkstatt 0-17, ?outfit=halloween): Fäuste an der Stange, Zubehör
 //            getragen, Zeichenaufrufe ≤ Stand-Pose; Bilder Seite/Kurs-Kamera
-//   map      Kurs-Weltkarte: MAP.outfit setzt die Verkleidung, Karte ohne bleibt unverändert
+//   map      Kurs-Weltkarte: Welt 1 ohne, MAP.outfit setzt die Verkleidung; Halloween-Welt 31 (Kürbisinsel): Heldin verkleidet,
+//            Krümel am Kürbislabyrinth mit Umhang
 // Bilder tests/out/outfit_hw_*.png, Übersichtsbögen outfit_hw_sheet_<gruppe>.png, Kennzahlen outfit_hw.json.
 // Keine Konsolenfehler.
 // Aufruf: PORT_BASE=0 node tests/outfit_hw.mjs   (Port 4550 + PORT_BASE; OH_PARTS=metrics,close OH_HEROES=lotti,greta;
@@ -702,6 +703,46 @@ async function mapPart() {
   const clip = { x: Math.round(Math.max(0, Math.min(960 - 240, p.x - 120))), y: Math.round(Math.max(0, Math.min(540 - 180, p.y - 90))), width: 240, height: 180 };
   await page.screenshot({ path: `${OUT}outfit_hw_karte_nah.png`, clip }); shots.push({ name: 'karte_nah', path: `${OUT}outfit_hw_karte_nah.png`, group: 'karte' });
   await sc(async () => { const w = await import('/src/course/map/worlds/index.js'); delete w.getWorldMap(1).outfit; });
+  // Halloween-Welt 31 (Kürbisinsel, worlds/w31.js): Karte zieht die Verkleidung an, Krümel am Kürbislabyrinth trägt den Umhang
+  const has31 = await sc(async () => { const w = await import('/src/course/map/worlds/index.js'); return !!w.getWorldMap(31); });
+  if (!has31) { console.log('  (Welt 31 noch ohne Karte – übersprungen)'); return; }
+  await sc(() => { const m = window.__courseMap; m.leaving = true; window.__game.scene.getScene('CourseMap').scene.restart({ world: 31 }); });
+  await page.waitForFunction(() => window.__courseMap && window.__courseMap.player && window.__courseMap.map?.world === 31 && window.__game.scene.isActive('CourseMap'), null, { timeout: 240000 });
+  await sc(() => { const m = window.__courseMap; m.setManual(true); m.level.muted = true; m.setInput({}); });
+  await page.waitForTimeout(3500);
+  const c31 = await sc(() => {
+    const m = window.__courseMap;
+    for (let i = 0; i < 3; i++) m.renderFrame?.();
+    let capes = 0; m.view.three.traverse((o) => { if (o.name === 'umhang') capes++; });
+    return { world: m.map.world, scene: m.outfit, av: m.rig.avatar.outfit, hat: !!m.rig.avatar.hw?.hat?.parent, capes };
+  });
+  check(`Weltkarte Welt 31 (Kürbisinsel): Verkleidung an, Lotti mit Hut, Krümel-Modelle mit Umhang (${JSON.stringify(c31)})`, c31.world === 31 && c31.scene === 'halloween' && c31.av === 'halloween' && c31.hat && c31.capes >= 1);
+  await page.screenshot({ path: `${OUT}outfit_hw_karte31.png` }); shots.push({ name: 'karte31', path: `${OUT}outfit_hw_karte31.png`, group: 'karte' });
+  const p31 = await sc(() => {
+    const m = window.__courseMap, v = m.view, pos = m.player.pos.clone(); pos.y += 0.5;
+    pos.project(v.camera);
+    return { x: (pos.x + 1) / 2 * window.innerWidth, y: (1 - pos.y) / 2 * window.innerHeight };
+  });
+  const clip31 = { x: Math.round(Math.max(0, Math.min(960 - 240, p31.x - 120))), y: Math.round(Math.max(0, Math.min(540 - 180, p31.y - 90))), width: 240, height: 180 };
+  await page.screenshot({ path: `${OUT}outfit_hw_karte31_nah.png`, clip: clip31 }); shots.push({ name: 'karte31_nah', path: `${OUT}outfit_hw_karte31_nah.png`, group: 'karte' });
+  // Krümel am Kürbislabyrinth aus der Nähe (Kamera kurz vor den Umhang)
+  const kp = await sc(() => {
+    const m = window.__courseMap, v = m.view;
+    let cape = null; v.three.traverse((o) => { if (!cape && o.name === 'umhang') cape = o; });
+    if (!cape) return null;
+    const w = cape.getWorldPosition(v.camera.position.clone());
+    const cam = v.camera, keep = v.rig.custom;
+    v.rig.custom = () => { cam.position.set(w.x + 1.6, w.y + 1.1, w.z + 2.6); cam.lookAt(w.x, w.y + 0.1, w.z); return true; };
+    for (let i = 0; i < 3; i++) m.renderFrame?.();
+    window.__ohKeep = keep;
+    const q = w.clone(); q.project(cam);
+    return { x: (q.x + 1) / 2 * window.innerWidth, y: (1 - q.y) / 2 * window.innerHeight };
+  });
+  if (kp) {
+    const clip = { x: Math.round(Math.max(0, Math.min(960 - 300, kp.x - 150))), y: Math.round(Math.max(0, Math.min(540 - 260, kp.y - 140))), width: 300, height: 260 };
+    await page.screenshot({ path: `${OUT}outfit_hw_karte31_kruemel.png`, clip }); shots.push({ name: 'karte31_kruemel', path: `${OUT}outfit_hw_karte31_kruemel.png`, group: 'karte' });
+    await sc(() => { const v = window.__courseMap.view; v.rig.custom = window.__ohKeep ?? null; });
+  }
 }
 
 // ---------------------------------------------------------------- Welt 5 im echten Motor (Strandwerkstatt 0-17, ?outfit=halloween)
