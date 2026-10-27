@@ -555,14 +555,8 @@ function install() {
     lives: () => L.runtime.save.lives,
     named: (id) => { const e = L.named.get(id); return e?.info?.() ?? (e ? { ...e } : null); },
     cond: (k) => COND[k](),
-    /** Halloween-Verkleidung der Figur (Vertrag „Figuren Halloween“): Kennung am Avatar bzw. benannte Kostümteile. */
-    costume: () => {
-      const a = c.rig?.avatar ?? null;
-      const tags = [];
-      a?.root?.traverse?.((o) => { if (/hexenhut|katzen|kostuem|kostüm|halloween|witch|cat_/i.test(o.name ?? '')) tags.push(o.name); });
-      const flag = a?.hwOutfit ?? a?.halloweenOutfit ?? a?.outfit ?? null;
-      return { halloween: !!(flag && flag !== 'none') || tags.length > 0, flag, tags: tags.slice(0, 4), hero: P().hero };
-    },
+    /** Halloween-Verkleidung (Präzisierung Figuren Halloween): Szene und Avatar tragen outfit 'halloween'. */
+    costume: () => ({ has: 'outfit' in c, scene: c.outfit ?? null, avatar: c.rig?.avatar?.outfit ?? null, hero: P().hero }),
   };
   window.__hwa = W;
   return Object.keys(W);
@@ -633,11 +627,15 @@ for (const id of LEVELS) {
   for (const hero of ONLY || !PARTS.has('route') || !R.main.length ? [] : HEROES) {
     await load(id);
     await W('place', R.start, { hero, settle: 2 });
+    // erst ein paar Bilder zeichnen: der Avatar zieht sein Zubehör beim Zeichnen an (auch nach dem Figurwechsel)
+    const fr0 = await sc(() => window.__course.view.frame);
+    await page.waitForFunction((f) => window.__course.view.frame >= f + 3, fr0, { timeout: 90000 });
     const cos = await W('costume');
     const res = await W('drive', R.main, {});
     const reached = res.status === 'goal' || res.status === 'done';
-    console.log(`  ${hero}${cos.halloween ? ` (verkleidet: ${cos.flag ?? cos.tags.join(', ')})` : ' (ohne erkennbare Verkleidung)'}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Mechanik ${JSON.stringify(res.mech)}`);
+    console.log(`  ${hero}${cos.has ? ` (Verkleidung: Szene ${cos.scene}, Avatar ${cos.avatar})` : ' (der Motor kennt noch keine Verkleidung)'}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Mechanik ${JSON.stringify(res.mech)}`);
     if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+    if (cos.has) check(`${id}: ${hero} in Verkleidung (Szene ${cos.scene}, Avatar ${cos.avatar})`, cos.scene === 'halloween' && cos.avatar === 'halloween');
     check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
     check(`${id}: ${hero} Zeit bis zum Ziel < 240 s (${res.time.toFixed(1)} s)`, reached && res.time < 240);
     if (hero === HEROES[0] && PARTS.has('sweep')) sweepTrack = res.track;
