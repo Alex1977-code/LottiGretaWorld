@@ -16,6 +16,7 @@
 //   clones   Spiegelfrucht-Klone (lite) mit Verkleidung: ohne Schatten, Kennzahl
 //   level    Schalter im Spiel: outfitForLevel/outfitForMap, CourseScene (LEVEL.outfit, Neustart), URL ?outfit=halloween,
 //            echte Kurs-Kamera in 1-1, 1-4 (Ritt), 3-Kapitän (Krümel) – Gesamt-Zeichenaufrufe mit/ohne
+//   hwlevel  Halloween-Testlevel 0-20/0-21/0-22 (ohne URL-Schalter): Szene setzt die Verkleidung, Bilder im Halloween-Thema
 //   w5       Trapez und Röhrenkanone im echten Motor (Strandwerkstatt 0-17, ?outfit=halloween): Fäuste an der Stange, Zubehör
 //            getragen, Zeichenaufrufe ≤ Stand-Pose; Bilder Seite/Kurs-Kamera
 //   map      Kurs-Weltkarte: MAP.outfit setzt die Verkleidung, Karte ohne bleibt unverändert
@@ -29,7 +30,7 @@ import { launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
 const PORT = 4550 + Number(process.env.PORT_BASE ?? 0);
 const ROOT = new URL('..', import.meta.url).pathname;
-const PARTS = (process.env.OH_PARTS ?? 'metrics,close,posen,costume,pets,clones,level,w5,map').split(',').filter(Boolean);
+const PARTS = (process.env.OH_PARTS ?? 'metrics,close,posen,costume,pets,clones,level,hwlevel,w5,map').split(',').filter(Boolean);
 const HEROES = (process.env.OH_HEROES ?? 'lotti,greta').split(',').filter(Boolean);
 const on = (p) => PARTS.includes(p);
 
@@ -583,13 +584,14 @@ async function levelPart() {
     return {
       h1: o.outfitForLevel('H-1', { world: 31 }), hk: o.outfitForLevel('H-Kapitän', {}), t20: o.outfitForLevel('0-20', { world: 0 }), t22: o.outfitForLevel('0-22', {}),
       w1: o.outfitForLevel('1-1', { world: 1 }), own: o.outfitForLevel('1-1', { outfit: 'halloween' }), off: o.outfitForLevel('H-2', { outfit: null }), w31: o.outfitForLevel('X-1', { world: 31 }),
+      flag: o.outfitForLevel('0-99', { world: 0, halloween: true }),
       m31: o.outfitForMap({ world: 31 }), m1: o.outfitForMap({ world: 1 }), mo: o.outfitForMap({ world: 1, outfit: 'halloween' }), m31off: o.outfitForMap({ world: 31, outfit: null }),
       scene: window.__course.outfit, av: window.__course.rig.avatar.outfit,
     };
   });
   console.log(`  Schalter: ${JSON.stringify(logic)}`);
-  check('outfitForLevel: H-…, Welt 31, Testlevel 0-20/0-22, LEVEL.outfit → halloween; 1-1, LEVEL.outfit null → aus',
-    logic.h1 === 'halloween' && logic.hk === 'halloween' && logic.t20 === 'halloween' && logic.t22 === 'halloween' && logic.w1 === null && logic.own === 'halloween' && logic.off === null && logic.w31 === 'halloween');
+  check('outfitForLevel: H-…, Welt 31, LEVEL.halloween, Testlevel 0-20/0-22, LEVEL.outfit → halloween; 1-1, LEVEL.outfit null → aus',
+    logic.h1 === 'halloween' && logic.hk === 'halloween' && logic.t20 === 'halloween' && logic.t22 === 'halloween' && logic.w1 === null && logic.own === 'halloween' && logic.off === null && logic.w31 === 'halloween' && logic.flag === 'halloween');
   check('outfitForMap: Welt 31 bzw. MAP.outfit → halloween, Welt 1 → aus', logic.m31 === 'halloween' && logic.m1 === null && logic.mo === 'halloween' && logic.m31off === null);
   check('1-1: Szene und Heldin ohne Verkleidung', logic.scene === null && logic.av === null);
   // Gesamtbild 1-1 ohne Verkleidung (Standbild) – Vergleichswert
@@ -647,6 +649,28 @@ async function levelPart() {
     const a = m.ohne.fig, b = m.halloween.fig;
     console.log(`  ${id} (${a.hulls}): Figuren ohne ${a.calls} Aufrufe / ${a.tris} Dreiecke, Halloween ${b.calls} / ${b.tris}; Gesamtbild ohne ${m.ohne.total.calls} / ${m.ohne.total.tris}, Halloween ${m.halloween.total.calls} / ${m.halloween.total.tris}`);
     check(`${id} (${label}): Zeichenaufrufe der Figuren mit Verkleidung ${b.calls} ≤ ohne ${a.calls} + ${figs}, Dreiecke ${b.tris} ≤ 1,2 × ${a.tris}`, b.calls <= a.calls + figs && b.tris <= 1.2 * a.tris);
+  }
+}
+
+// ---------------------------------------------------------------- Halloween-Testlevel
+async function hwLevelPart() {
+  // Halloween-Testlevel (Werkstatt 0-20, Gruselwerkstatt 0-21, Schlossdach 0-22) ohne URL-Schalter: die Szene zieht an
+  for (const id of ['0-20', '0-21', '0-22']) {
+    await waitCourse(`${base}/?course=${id}&scale=2&adapt=0`);
+    const r = await sc(() => {
+      const c = window.__course; c.setManual(true); c.level.muted = true;
+      try { window.__game.scene.getScene('CourseUI').cameras.main.setVisible(false); } catch (_) { /* egal */ }
+      for (let i = 0; i < 4; i++) c.renderFrame();
+      const av = c.rig.avatar;
+      return { scene: c.outfit, av: av?.outfit ?? null, hat: !!av?.hw?.hat?.parent, rig: c.rig.constructor.name };
+    });
+    check(`${id}: Halloween-Testlevel – Verkleidung an, Lotti mit Hut (${JSON.stringify(r)})`, r.scene === 'halloween' && r.av === 'halloween' && r.hat);
+    await page.screenshot({ path: `${OUT}outfit_hw_spiel_${id}.png` }); shots.push({ name: `spiel_${id}`, path: `${OUT}outfit_hw_spiel_${id}.png`, group: 'spiel' });
+    if (id === '0-20') {
+      await sc(() => { const c = window.__course; c.setHero('greta'); c.rig.update(1 / 60, 1); for (let i = 0; i < 4; i++) c.renderFrame(); });
+      await page.screenshot({ path: `${OUT}outfit_hw_spiel_${id}_greta.png` }); shots.push({ name: `spiel_${id}_greta`, path: `${OUT}outfit_hw_spiel_${id}_greta.png`, group: 'spiel' });
+      await sc(() => { window.__course.setHero('lotti'); });
+    }
   }
 }
 
@@ -795,6 +819,7 @@ if (on('metrics') || on('close') || on('posen') || on('costume') || on('pets') |
   if (on('clones')) await clonesPart();
 }
 if (on('level')) await levelPart();
+if (on('hwlevel')) await hwLevelPart();
 if (on('w5')) await w5Part();
 if (on('map')) await mapPart();
 

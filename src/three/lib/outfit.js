@@ -9,8 +9,9 @@
 //   setOutfit(kind, owner)   Verkleidung der Szene setzen ('halloween' | null); owner = setzende Szene (für clearOutfit)
 //   clearOutfit(owner)       beim Beenden der Szene: zurück auf null – nur, wenn owner sie zuletzt gesetzt hat
 //   currentOutfit()          gültige Verkleidung (URL-Schalter ?outfit=halloween | ?outfit=0 hat Vorrang)
-//   outfitForLevel(id, data) Verkleidung eines Kurs-Levels: data.outfit (auch null), sonst Präfix 'H-', Welt 31 oder ein
-//                            Halloween-Testlevel (0-20, 0-21, 0-22) → 'halloween'
+//   outfitForLevel(id, data) Verkleidung eines Kurs-Levels: data.outfit (auch null), sonst Präfix 'H-', Welt 31,
+//                            LEVEL.halloween: true (wie die Halloween-Optik der Spuke) oder ein Halloween-Testlevel (0-20,
+//                            0-21, 0-22) → 'halloween'
 //   outfitForMap(map)        Verkleidung einer Kurs-Weltkarte: map.outfit (auch null), sonst Welt 31 → 'halloween'
 //
 // Außerhalb der Halloween-Welt bleibt alles exakt wie bisher (Zubehör entsteht erst beim ersten Anziehen und hängt nur im
@@ -56,7 +57,7 @@ export function currentOutfit() {
 export function outfitForLevel(id, data = null) {
   if (data && data.outfit !== undefined) return norm(data.outfit);
   const s = String(id ?? '');
-  if (s.startsWith(HALLOWEEN_PREFIX) || HALLOWEEN_TEST_LEVELS.has(s) || data?.world === HALLOWEEN_WORLD) return 'halloween';
+  if (s.startsWith(HALLOWEEN_PREFIX) || HALLOWEEN_TEST_LEVELS.has(s) || data?.world === HALLOWEEN_WORLD || data?.halloween === true) return 'halloween';
   return null;
 }
 

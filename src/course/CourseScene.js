@@ -17,8 +17,8 @@
 //   squad          Figurengruppe (Spiegelfrucht-Klone, player/Squad.js); addClone(), figures() (Präzisierung Motor Welt 2)
 //   setHero wechselt die Heldin aller Figuren (Pause-Menü „Figur“), teleport sammelt die Klone um die Haupt-Figur.
 //   underwater     Unterwasser-Ansicht (player/underwater.js, Präzisierung Motor Welt 3): info() → { k, cameraUnder, … }
-//   outfit         Verkleidung der Figuren in diesem Level ('halloween' | null; Präzisierung Figuren Halloween): Level-Id mit
-//                  Präfix 'H-', LEVEL.outfit, Welt 31 oder Halloween-Testlevel – gesetzt über three/lib/outfit.js
+//   outfit         Verkleidung der Figuren in diesem Level ('halloween' | null; Präzisierung Figuren Halloween): LEVEL.outfit,
+//                  sonst Level-Id mit Präfix 'H-', Welt 31, LEVEL.halloween oder Halloween-Testlevel – über three/lib/outfit.js
 
 import Phaser from 'phaser';
 import { getLevel } from './levels/index.js';

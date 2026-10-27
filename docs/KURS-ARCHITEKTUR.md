@@ -4741,7 +4741,8 @@ Additiv zur Halloween-Welt „Kürbisinsel“ (Abschnitt „Verkleidung“). Dat
 **Schalter (ein Wert für alle Figuren):** `setOutfit(kind, owner)` / `clearOutfit(owner)` / `currentOutfit()` aus
 `three/lib/outfit.js`, `kind` = `'halloween'` | `null`.
 - `CourseScene.create` setzt `outfitForLevel(id, LEVEL)`: `LEVEL.outfit` hat Vorrang (auch `null` = aus), sonst Level-Id mit
-  Präfix `H-`, `LEVEL.world === 31` oder Halloween-Testlevel `0-20`/`0-21`/`0-22` → `'halloween'`; `window.__course.outfit`.
+  Präfix `H-`, `LEVEL.world === 31`, `LEVEL.halloween: true` (wie die Halloween-Optik der Spuke) oder Halloween-Testlevel
+  `0-20`/`0-21`/`0-22` → `'halloween'`; `window.__course.outfit`.
 - `CourseMapScene.create` setzt `outfitForMap(MAP)`: `MAP.outfit` (auch `null`), sonst Welt 31 → `'halloween'`;
   `window.__courseMap.outfit`. Beide Szenen räumen beim Beenden auf (`clearOutfit` wirkt nur, wenn die Szene zuletzt gesetzt
   hat – Reihenfolge der Szenenwechsel egal).
