@@ -65,7 +65,7 @@ const KB_TOP = pkPoint(KB_P, 0, 1.25).p.y;  // Höhe der Kuhle oben (relativ zur
 function kbBodyGeo() {
   return cached('hw:kb:body', () => {
     const b = new Build();
-    b.parts.push(pumpkinGeo(KB_P, PK_COLORS.orange));
+    b.parts.push(pumpkinGeo(KB_P, PK_COLORS.orange, 'mid'));
     const surf = pkSurf(KB_P);
     // Wangen, freche Brauen (dunkelbraun, schräg nach innen-oben)
     for (const s of [1, -1]) {
@@ -79,7 +79,7 @@ function kbBodyGeo() {
 function kbGlowGeos() {
   return memo('hw:kb:face', () => {
     const body = new Build(), gl = new Build();
-    addFace(body, gl, pkSurf(KB_P), { kind: 'mund', az: 0, el: -0.02, w: 0.4, h: 0.42 });
+    addFace(body, gl, pkSurf(KB_P), { kind: 'mund', az: 0, el: -0.02, w: 0.4, h: 0.42, sub: 1 });
     return { rim: body.geometry(), glow: gl.geometry() };
   });
 }
@@ -94,7 +94,7 @@ function kbCapGeo() {
     leaf.rotateZ(-0.32); leaf.rotateY(0.75);
     leaf.translate(-0.06, top + 0.07, 0.05);
     b.parts.push(leaf);
-    const leaf2 = leafGeo(0.26, false, 0.35).clone();
+    const leaf2 = leafGeo(0.26, true, 0.35).clone();
     leaf2.rotateZ(-0.45); leaf2.rotateY(Math.PI * 0.85);
     leaf2.translate(0.0, top + 0.05, 0.0);
     b.parts.push(leaf2);
@@ -228,14 +228,14 @@ const SKULL_C = [0.02, 0.0, 0], SKULL_R = [0.25, 0.23, 0.26];
 const KK_SKULL_Y = 1.0;
 /** Knochenstab mit Doppelknubbeln an beiden Enden (Achse −Y ab Ursprung, Länge len). */
 function addBone(b, len, r = 0.034, y0 = 0) {
-  b.capsule(r, len, boneV, { p: [0, y0 - len / 2, 0] }, 3, 12);
-  for (const yy of [y0, y0 - len]) for (const s of [1, -1]) b.sphere(r * 1.32, boneV, { p: [0, yy, s * r * 0.8] }, 12, 8);
+  b.capsule(r, len, boneV, { p: [0, y0 - len / 2, 0] }, 2, 8);
+  for (const yy of [y0, y0 - len]) for (const s of [1, -1]) b.sphere(r * 1.32, boneV, { p: [0, yy, s * r * 0.8] }, 8, 5);
 }
 function kkSkullGeo() {
   return cached('hw:kk:skull', () => {
     const b = new Build();
     // Schädel: runde Kugel, Stirnglanz
-    b.sphere(1, { v: (x, y, z, nx, ny) => mix(KK.low, mix(KK.bone, KK.hi, smoothstep(ny * 0.8 + nx * 0.3 - 0.2)), smoothstep(ny * 0.55 + 0.75)) }, { p: SKULL_C, s: SKULL_R }, 40, 28);
+    b.sphere(1, { v: (x, y, z, nx, ny) => mix(KK.low, mix(KK.bone, KK.hi, smoothstep(ny * 0.8 + nx * 0.3 - 0.2)), smoothstep(ny * 0.55 + 0.75)) }, { p: SKULL_C, s: SKULL_R }, 28, 18);
     const surf = ellSurf(SKULL_C, SKULL_R);
     // große Augenhöhlen (dunkel-lila), Herznase, Wangen
     for (const s of [1, -1]) {
@@ -250,7 +250,7 @@ function kkSkullGeo() {
     // obere Zahnreihe (Grinsen) auf der Unterkante des Schädels
     for (let i = -3; i <= 3; i++) {
       const h = surf(i * 0.12, -0.5);
-      b.box(0.042, 0.05, 0.03, i % 2 ? 0xfffaf0 : 0xffffff, placed(h.p.clone().addScaledVector(h.n, -0.008), h.n, new THREE.Vector3(1, 1, 1)), 0.012, 1);
+      b.box(0.042, 0.05, 0.03, i % 2 ? 0xfffaf0 : 0xffffff, placed(h.p.clone().addScaledVector(h.n, -0.008), h.n, new THREE.Vector3(1, 1, 1)), 0, 1);
     }
     const gl = surf(0, -0.36);
     b.torus(0.15, 0.012, KK.ink, placed(gl.p.clone().addScaledVector(gl.n, -0.01), gl.n, new THREE.Vector3(1, 0.55, 1)).multiply(new THREE.Matrix4().makeRotationZ(Math.PI * 1.08)), 6, 20, Math.PI * 0.84);
@@ -261,9 +261,9 @@ function kkJawGeo() {
   return cached('hw:kk:jaw', () => {
     const b = new Build();
     // Unterkiefer: runde Schale (vorn breit), Zähnchen oben; Drehpunkt hinten oben (Ursprung)
-    b.sphere(1, boneV, { p: [0.09, -0.06, 0], s: [0.15, 0.075, 0.19] }, 28, 14);
-    b.sphere(1, KK.ink, { p: [0.12, -0.035, 0], s: [0.11, 0.035, 0.15] }, 20, 8);
-    for (let i = -2; i <= 2; i++) b.box(0.04, 0.045, 0.028, 0xffffff, { p: [0.2 - Math.abs(i) * 0.012, -0.022, i * 0.052], r: [0, i * 0.3, 0] }, 0.012, 1);
+    b.sphere(1, boneV, { p: [0.09, -0.06, 0], s: [0.15, 0.075, 0.19] }, 22, 12);
+    b.sphere(1, KK.ink, { p: [0.12, -0.035, 0], s: [0.11, 0.035, 0.15] }, 16, 6);
+    for (let i = -2; i <= 2; i++) b.box(0.04, 0.045, 0.028, 0xffffff, { p: [0.2 - Math.abs(i) * 0.012, -0.022, i * 0.052], r: [0, i * 0.3, 0] }, 0, 1);
     b.sphere(1, HW.tongue, { p: [0.12, -0.04, 0.02], s: [0.06, 0.02, 0.06] }, 12, 6);
     return b.geometry();
   });
@@ -272,14 +272,14 @@ function kkTorsoGeo() {
   return cached('hw:kk:torso', () => {
     const b = new Build();
     // Wirbelsäule (Perlen), drei Rippenbögen, Brustbein; Ursprung = Beckenmitte oben (y 0)
-    for (let i = 0; i < 6; i++) b.sphere(0.04 - i * 0.002, boneV, { p: [-0.05, 0.03 + i * 0.065, 0], s: [1, 0.75, 1] }, 12, 8);
+    for (let i = 0; i < 6; i++) b.sphere(0.04 - i * 0.002, boneV, { p: [-0.05, 0.03 + i * 0.065, 0], s: [1, 0.75, 1] }, 8, 5);
     for (let i = 0; i < 3; i++) {
       const y = 0.17 + i * 0.075, R = 0.15 - i * 0.012;
-      b.torus(R, 0.024, boneV, { p: [0.0, y, 0], r: [Math.PI / 2, 0, 0], s: [1, 1.18, 1] }, 8, 28, Math.PI * 1.55);
+      b.torus(R, 0.024, boneV, { p: [0.0, y, 0], r: [Math.PI / 2, 0, 0], s: [1, 1.18, 1] }, 5, 18, Math.PI * 1.55);
     }
-    b.capsule(0.03, 0.14, boneV, { p: [0.14, 0.24, 0], r: [0, 0, 0.12] }, 3, 10);
+    b.capsule(0.03, 0.14, boneV, { p: [0.14, 0.24, 0], r: [0, 0, 0.12] }, 2, 8);
     // Halstuch (orange-lila geringelt) mit Knoten und Zipfeln vorn
-    b.torus(0.1, 0.042, (x, y, z) => (Math.floor((Math.atan2(z, x) / TAU + 1) * 10) % 2 ? KK.scarfA : KK.scarfB), { p: [-0.02, 0.38, 0], r: [Math.PI / 2, 0, 0] }, 10, 28);
+    b.torus(0.1, 0.042, (x, y, z) => (Math.floor((Math.atan2(z, x) / TAU + 1) * 10) % 2 ? KK.scarfA : KK.scarfB), { p: [-0.02, 0.38, 0], r: [Math.PI / 2, 0, 0] }, 8, 20);
     b.sphere(0.048, KK.scarfA, { p: [0.1, 0.36, 0.04] }, 12, 8);
     b.capsule(0.03, 0.09, KK.scarfB, { p: [0.13, 0.29, 0.07], r: [0.35, 0, 0.2] }, 3, 8);
     b.capsule(0.03, 0.08, KK.scarfA, { p: [0.14, 0.3, 0.01], r: [-0.2, 0, 0.25] }, 3, 8);
@@ -288,27 +288,27 @@ function kkTorsoGeo() {
 }
 const kkPelvisGeo = () => cached('hw:kk:pelvis', () => {
   const b = new Build();
-  b.sphere(1, boneV, { p: [0, -0.02, 0], s: [0.12, 0.07, 0.15] }, 22, 12);
-  for (const s of [1, -1]) b.sphere(1, boneV, { p: [-0.01, 0.0, s * 0.1], s: [0.08, 0.06, 0.06] }, 14, 8);
+  b.sphere(1, boneV, { p: [0, -0.02, 0], s: [0.12, 0.07, 0.15] }, 16, 8);
+  for (const s of [1, -1]) b.sphere(1, boneV, { p: [-0.01, 0.0, s * 0.1], s: [0.08, 0.06, 0.06] }, 10, 6);
   return b.geometry();
 });
 const kkArmGeo = () => cached('hw:kk:arm', () => {
   const b = new Build();
   addBone(b, 0.24, 0.03);
   // Fäustling-Hand mit drei Fingerknubbeln
-  b.sphere(1, boneV, { p: [0.01, -0.3, 0], s: [0.06, 0.065, 0.045] }, 16, 10);
-  for (let i = -1; i <= 1; i++) b.sphere(0.022, boneV, { p: [0.04, -0.35, i * 0.026] }, 10, 6);
-  b.sphere(0.022, boneV, { p: [0.05, -0.29, 0.04] }, 10, 6);
+  b.sphere(1, boneV, { p: [0.01, -0.3, 0], s: [0.06, 0.065, 0.045] }, 12, 8);
+  for (let i = -1; i <= 1; i++) b.sphere(0.022, boneV, { p: [0.04, -0.35, i * 0.026] }, 6, 4);
+  b.sphere(0.022, boneV, { p: [0.05, -0.29, 0.04] }, 6, 4);
   return b.geometry();
 });
 const kkLegGeo = () => cached('hw:kk:leg', () => {
   const b = new Build();
   addBone(b, 0.2, 0.034);
   // Stiefelchen (lila) mit hellem Rand und Sohle
-  b.sphere(1, { v: (x, y, z, nx, ny) => mix(KK.boot, KK.bootHi, smoothstep(ny * 0.6 + 0.3)) }, { p: [0.04, -0.29, 0], s: [0.1, 0.06, 0.07] }, 18, 10);
-  b.cyl(0.05, 0.055, 0.05, KK.boot, { p: [0.0, -0.25, 0] }, 14);
-  b.torus(0.052, 0.012, KK.sole, { p: [0.0, -0.225, 0], r: [Math.PI / 2, 0, 0] }, 6, 16);
-  b.cyl(0.075, 0.08, 0.02, KK.sole, { p: [0.04, -0.34, 0], s: [1.3, 1, 0.95] }, 18);
+  b.sphere(1, { v: (x, y, z, nx, ny) => mix(KK.boot, KK.bootHi, smoothstep(ny * 0.6 + 0.3)) }, { p: [0.04, -0.29, 0], s: [0.1, 0.06, 0.07] }, 14, 8);
+  b.cyl(0.05, 0.055, 0.05, KK.boot, { p: [0.0, -0.25, 0] }, 12);
+  b.torus(0.052, 0.012, KK.sole, { p: [0.0, -0.225, 0], r: [Math.PI / 2, 0, 0] }, 4, 12);
+  b.cyl(0.075, 0.08, 0.02, KK.sole, { p: [0.04, -0.34, 0], s: [1.3, 1, 0.95] }, 14);
   return b.geometry();
 });
 const KK_EYES = [1, -1].map((s) => { const h = ellSurf(SKULL_C, SKULL_R)(s * 0.36, 0.1); return { p: h.p.clone().addScaledVector(h.n, -0.012).toArray(), r: 0.08, sy: 1.18, dir: h.n.clone().lerp(new THREE.Vector3(1, 0, 0), 0.35).toArray() }; });
@@ -333,7 +333,7 @@ function buildKlapperknochen() {
   armL.add(mesh(kkArmGeo(), mat, {}, true)); armR.add(mesh(kkArmGeo(), mat, {}, true));
   legL.add(mesh(kkLegGeo(), mat, {}, true)); legR.add(mesh(kkLegGeo(), mat, {}, true));
   const parts = { skull, torso, pelvis, armL, armR, legL, legR };
-  const puffs = new Puffs(8, 0xe8dcf8, { opacity: 0.85, radius: 2, cy: 0.3 });
+  const puffs = new Puffs(6, 0xe8dcf8, { opacity: 0.85, radius: 2, cy: 0.3 });
   own.push(puffs);
   const dizzy = dizzyStars(0.24, 0.06);
   root.add(skull, torso, pelvis, armL, armR, legL, legR, puffs.mesh, dizzy);

@@ -12,10 +12,10 @@
 //         idle: wiegt sich, Umhang weht, zwirbelt den Bart; walk: stapft, Umhang flattert nach hinten;
 //         throw: holt mit einer Kürbis-Bombe in der rechten Tatze aus (0–0,45), wirft bei progress 0,5 – ab da die
 //                Bombe im Motor erzeugen (Position: model.hand()); hit: Zylinder fliegt hoch, Augen zu, blitzt (0,6 s);
-//         stunned: Schwindelsterne, wankt; bats: wickelt sich in den Umhang (0–0,4) und verpufft in lila Rauch mit
+//         stunned: drei kleine „Schwindel-Fledermäuse“ kreisen um den Kopf, wankt; bats: wickelt sich in den Umhang (0–0,4) und verpufft in lila Rauch mit
 //                Fledermäusen (0,4–1) – progress 1 = weg (root.userData.hidden), rückwärts abspielen = Wiederkehr; den
 //                Schwarm selbst zeigt 'fledermaus_schwarm'; defeated: setzt sich auf den Boden, Zylinder schief,
-//                Schwindelsterne, kleine Fledermäuse flattern aus dem Umhang davon.
+//                Schwindel-Fledermäuse, dann flattern kleine Fledermäuse aus dem Umhang davon.
 //         hp: ≤ 2 Monokel fällt heraus und baumelt an der Kette; ≤ 1 Zylinder verbeult und schief, Brauen besorgt.
 //   model.hand(out?: Vector3) → Weltposition der Bombe in der Wurf-Tatze.
 //   root.userData.hidden → true, solange er als Schwarm unterwegs ist (bats ≥ 0,98).
@@ -54,12 +54,12 @@ const prog = (st, clk, dur) => (st.progress !== undefined ? clamp(Number(st.prog
 const KBB_P = { R: 0.31, Hh: 0.25, ribs: 8, depth: 0.12, dimple: 0.2, bottom: 0.86 };
 const KBB_CY = KBB_P.Hh * KBB_P.bottom - 0.01;
 const KBB_COL = [0xf0701a, 0xffa040, 0xb8480a, 0x8a3008];
-function bombGeos() {
-  return memo('hw:kbb:geos', () => {
+function bombGeos(lo = false) {
+  return memo(`hw:kbb:geos:${lo}`, () => {
     const b = new Build(), gl = new Build();
-    b.parts.push(pumpkinGeo(KBB_P, KBB_COL));
+    b.parts.push(pumpkinGeo(KBB_P, KBB_COL, lo ? true : 'mid'));
     const surf = pkSurf(KBB_P);
-    addFace(b, gl, surf, { kind: 'grinsen', az: 0, el: 0.02, w: 0.5, h: 0.38 });
+    addFace(b, gl, surf, { kind: 'grinsen', az: 0, el: 0.02, w: 0.5, h: 0.38, sub: lo ? 1 : 2 });
     // Metallkappe oben mit Nietenkranz (Zündschnur-Halter)
     const top = surf(0, 1.35).p.y;
     for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; b.sphere(0.014, 0xd8d4e8, { p: [Math.cos(a) * 0.09, top + 0.0, Math.sin(a) * 0.09] }, 8, 6); }
@@ -170,13 +170,13 @@ const BAT = { fur: 0x6a3ac8, furHi: 0xa47aff, furLow: 0x3a1a7a, ear: 0xff9ac8 };
 /** kleine Fledermaus (Körper Ø 0,18 m, Mitte im Ursprung, Blick +X) mit eingebauten Augen. */
 const smallBatGeo = () => cached('hw:bat:small', () => {
   const b = new Build();
-  b.sphere(1, { v: (x, y, z, nx, ny) => mix(BAT.furLow, BAT.fur, smoothstep(ny * 0.6 + 0.55)) }, { s: [0.095, 0.09, 0.09] }, 16, 10);
+  b.sphere(1, { v: (x, y, z, nx, ny) => mix(BAT.furLow, BAT.fur, smoothstep(ny * 0.6 + 0.55)) }, { s: [0.095, 0.09, 0.09] }, 12, 8);
   for (const s of [1, -1]) {
-    b.cone(0.035, 0.09, BAT.fur, { p: [-0.01, 0.1, s * 0.045], r: [s * 0.35, 0, 0] }, 8);
-    b.sphere(1, 0xffffff, { p: [0.072, 0.02, s * 0.035], s: [0.025, 0.032, 0.026] }, 10, 8);
-    b.sphere(1, 0x1a0a20, { p: [0.09, 0.018, s * 0.035], s: [0.012, 0.02, 0.016] }, 8, 6);
-    b.sphere(0.006, 0xffffff, { p: [0.1, 0.03, s * 0.03] }, 6, 4);
-    b.cone(0.007, 0.02, 0xffffff, { p: [0.088, -0.045, s * 0.015], r: [Math.PI, 0, 0] }, 4);
+    b.cone(0.035, 0.09, BAT.fur, { p: [-0.01, 0.1, s * 0.045], r: [s * 0.35, 0, 0] }, 6);
+    b.sphere(1, 0xffffff, { p: [0.072, 0.02, s * 0.035], s: [0.025, 0.032, 0.026] }, 8, 6);
+    b.sphere(1, 0x1a0a20, { p: [0.09, 0.018, s * 0.035], s: [0.012, 0.02, 0.016] }, 6, 4);
+    b.sphere(0.006, 0xffffff, { p: [0.1, 0.03, s * 0.03] }, 4, 3);
+    b.cone(0.007, 0.02, 0xffffff, { p: [0.088, -0.045, s * 0.015], r: [Math.PI, 0, 0] }, 3);
   }
   return b.geometry();
 });
@@ -291,23 +291,23 @@ function gbTorsoGeo() {
       if (ny > 0.8) return GB.fur;
       return mix(GB.vest, GB.vestHi, smoothstep(ny * 0.4 + nx * 0.4));
     } };
-    b.sphere(1, vestV, { p: [0, 0.62, 0], s: [0.56, 0.66, 0.62] }, 40, 28);
-    b.sphere(1, furV, { p: [0, 1.16, 0], s: [0.38, 0.2, 0.46] }, 22, 12);
+    b.sphere(1, vestV, { p: [0, 0.62, 0], s: [0.56, 0.66, 0.62] }, 30, 20);
+    b.sphere(1, furV, { p: [0, 1.16, 0], s: [0.38, 0.2, 0.46] }, 18, 10);
     // Fliege und Goldknöpfe
-    for (const s of [1, -1]) b.sphere(1, GB.bow, { p: [0.44, 1.1, s * 0.11], s: [0.08, 0.085, 0.13], r: [s * 0.2, 0, 0] }, 14, 10);
+    for (const s of [1, -1]) b.sphere(1, GB.bow, { p: [0.44, 1.1, s * 0.11], s: [0.08, 0.085, 0.13], r: [s * 0.2, 0, 0] }, 12, 8);
     b.sphere(0.055, GB.bow, { p: [0.48, 1.1, 0] }, 10, 8);
     const vs = ellSurf([0, 0.62, 0], [0.56, 0.66, 0.62]);
     for (let i = 0; i < 3; i++) stick(b, vs(0.42, -0.02 - i * 0.24), GB.button, [0.045, 0.045, 0.03], 0.3);
     // Kopf
-    b.sphere(1, furV, { p: GB_HC, s: GB_HR }, 40, 28);
-    b.sphere(1, { v: (x, y, z, nx, ny) => mix(0xd8a87a, GB.muzzle, smoothstep(ny * 0.5 + nx * 0.4 + 0.2)) }, { p: [0.5, 1.37, 0], s: [0.21, 0.18, 0.26] }, 26, 16);
-    b.sphere(1, { v: (x, y, z, nx, ny) => mix(GB.nose, 0x5a4a48, smoothstep(ny * 0.7 + nx * 0.2 - 0.1)) }, { p: [0.69, 1.44, 0], s: [0.1, 0.075, 0.12] }, 18, 12);
+    b.sphere(1, furV, { p: GB_HC, s: GB_HR }, 30, 22);
+    b.sphere(1, { v: (x, y, z, nx, ny) => mix(0xd8a87a, GB.muzzle, smoothstep(ny * 0.5 + nx * 0.4 + 0.2)) }, { p: [0.5, 1.37, 0], s: [0.21, 0.18, 0.26] }, 20, 12);
+    b.sphere(1, { v: (x, y, z, nx, ny) => mix(GB.nose, 0x5a4a48, smoothstep(ny * 0.7 + nx * 0.2 - 0.1)) }, { p: [0.69, 1.44, 0], s: [0.1, 0.075, 0.12] }, 14, 10);
     for (const s of [1, -1]) {
       // Ohren mit hellem Innenohr
-      b.sphere(1, furV, { p: [0.0, 1.85, s * 0.37], s: [0.13, 0.15, 0.14] }, 18, 12);
-      b.sphere(1, GB.muzzle, { p: [0.08, 1.85, s * 0.375], s: [0.05, 0.095, 0.095] }, 14, 10);
+      b.sphere(1, furV, { p: [0.0, 1.85, s * 0.37], s: [0.13, 0.15, 0.14] }, 14, 10);
+      b.sphere(1, GB.muzzle, { p: [0.08, 1.85, s * 0.375], s: [0.05, 0.095, 0.095] }, 10, 8);
       // gezwirbelter Schnurrbart (Spitzen rollen sich nach oben ein)
-      b.tube([[0.66, 1.34, s * 0.03], [0.69, 1.31, s * 0.16], [0.63, 1.31, s * 0.31], [0.58, 1.4, s * 0.38], [0.61, 1.47, s * 0.34], [0.65, 1.44, s * 0.3]], 0.048, GB.stache, null, 28, 10);
+      b.tube([[0.66, 1.34, s * 0.03], [0.69, 1.31, s * 0.16], [0.63, 1.31, s * 0.31], [0.58, 1.4, s * 0.38], [0.61, 1.47, s * 0.34], [0.65, 1.44, s * 0.3]], 0.048, GB.stache, null, 22, 8);
       b.sphere(0.038, GB.stache, { p: [0.65, 1.44, s * 0.3] }, 10, 8);
       // Wangenrot
       stick(b, ellSurf(GB_HC, GB_HR)(s * 0.62, -0.18), 0xff8a8a, [0.07, 0.045, 0.02], 0.3);
@@ -366,19 +366,19 @@ const gbHatGeo = () => cached('hw:gb:hat', () => {
 /** Arm (Ursprung = Schulter, hängt nach −Y): violetter Ärmel, Rüschen-Manschette, Tatze mit Ballen. */
 const gbArmGeo = () => cached('hw:gb:arm', () => {
   const b = new Build();
-  b.capsule(0.15, 0.36, { v: (x, y, z, nx, ny) => mix(GB.vest, GB.vestHi, smoothstep(nx * 0.4 + 0.3)) }, { p: [0, -0.22, 0] }, 4, 16);
-  b.torus(0.14, 0.04, GB.shirt, { p: [0, -0.48, 0], r: [Math.PI / 2, 0, 0] }, 8, 18);
-  b.sphere(0.18, furV, { p: [0.02, -0.62, 0] }, 22, 16);
-  b.sphere(1, GB.muzzle, { p: [0.13, -0.66, 0], s: [0.07, 0.09, 0.11] }, 14, 10);
-  for (let i = -1; i <= 1; i++) b.sphere(0.035, GB.furDark, { p: [0.13, -0.77, i * 0.07] }, 8, 6);
+  b.capsule(0.15, 0.36, { v: (x, y, z, nx, ny) => mix(GB.vest, GB.vestHi, smoothstep(nx * 0.4 + 0.3)) }, { p: [0, -0.22, 0] }, 3, 12);
+  b.torus(0.14, 0.04, GB.shirt, { p: [0, -0.48, 0], r: [Math.PI / 2, 0, 0] }, 6, 14);
+  b.sphere(0.18, furV, { p: [0.02, -0.62, 0] }, 16, 12);
+  b.sphere(1, GB.muzzle, { p: [0.13, -0.66, 0], s: [0.07, 0.09, 0.11] }, 10, 8);
+  for (let i = -1; i <= 1; i++) b.sphere(0.035, GB.furDark, { p: [0.13, -0.77, i * 0.07] }, 6, 4);
   return b.geometry();
 });
 /** Bein (Ursprung = Hüfte): Fellbein, Gamasche, Lackschuh. */
 const gbLegGeo = () => cached('hw:gb:leg', () => {
   const b = new Build();
-  b.capsule(0.2, 0.22, furV, { p: [0, -0.2, 0] }, 4, 16);
-  b.cyl(0.17, 0.19, 0.14, GB.spat, { p: [0.0, -0.42, 0] }, 18);
-  b.sphere(1, { v: (x, y, z, nx, ny) => mix(GB.shoe, 0x5a5468, smoothstep(ny * 0.7 + nx * 0.2 - 0.1)) }, { p: [0.09, -0.48, 0], s: [0.27, 0.1, 0.19] }, 22, 12);
+  b.capsule(0.2, 0.22, furV, { p: [0, -0.2, 0] }, 3, 12);
+  b.cyl(0.17, 0.19, 0.14, GB.spat, { p: [0.0, -0.42, 0] }, 14);
+  b.sphere(1, { v: (x, y, z, nx, ny) => mix(GB.shoe, 0x5a5468, smoothstep(ny * 0.7 + nx * 0.2 - 0.1)) }, { p: [0.09, -0.48, 0], s: [0.27, 0.1, 0.19] }, 16, 10);
   b.cyl(0.2, 0.22, 0.03, 0x2a2430, { p: [0.08, -0.535, 0], s: [1.3, 1, 0.9] }, 18);
   return b.geometry();
 });
@@ -436,28 +436,26 @@ function buildGrafBrummbaer() {
   const shL = joint([0.02, 1.08, 0.58]), shR = joint([0.02, 1.08, -0.58]);
   const pawR = joint([0.06, -0.85, 0]);
   shR.add(pawR);
-  const bomb = mesh(bombGeos().body, vcol(0.3), { p: [0, -KBB_CY, 0], s: 0.9 });
-  const bombFace = mesh(bombGeos().face, glow(), { p: [0, -KBB_CY, 0], s: 0.9 });
-  const bombJ = joint([0, 0, 0], bomb, bombFace);
+  const bomb = mesh(bombGeos(true).body, vcol(0.3), { p: [0, -KBB_CY, 0], s: 0.9 });
+  const bombJ = joint([0, 0, 0], bomb);
   pawR.add(bombJ);
   // Umhang (eigene Geometrie, weht)
   const capeG = capeGeo(); own.push(capeG);
   const cape = mesh(capeG, vcol(0.55, {}, 'hwcape'), { p: [-0.06, 0, 0] }, true);
   const base = capeG.attributes.position.array.slice();
-  const dizzy = dizzyStars(0.6, 0.13); dizzy.position.set(0.1, 2.2, 0);
-  body.add(torso, eye, hatJ, mono, arms, shL, shR, cape, dizzy);
+  body.add(torso, eye, hatJ, mono, arms, shL, shR, cape);
   hip.add(body);
   const legs = instMesh(gbLegGeo(), flash, 2, 2, 0.3);
   legs.castShadow = true;
   all.add(hip, legs);
-  const puffs = new Puffs(12, 0x9a6ae8, { opacity: 0.9, radius: 4, cy: 1.5 });
+  const puffs = new Puffs(8, 0x9a6ae8, { opacity: 0.9, radius: 4, cy: 1.5 });
   own.push(puffs);
-  const flock = new BatFlock(8, 6);
+  const flock = new BatFlock(6, 6);   // Verwandlung, Niederlage und „Schwindel-Fledermäuse“ über dem Kopf (stunned)
   root.add(all, puffs.mesh, flock.bodies, flock.wings);
   const clk = new Clock(), blink = new Blinker();
   let slump = 0, hatPop = 0, wrap = 0, puffed = false, monoK = 0, dent = 0, dz = 0;
   const hatHome = new THREE.Vector3(0.08, 1.86, 0);
-  const bat0 = Array.from({ length: 8 }, (_, i) => ({ a: (i / 8) * TAU + hash1(i) * 0.4, up: 1.2 + hash1(i * 3) * 1.2, out: 1 + hash1(i * 7) * 1.4, fl: 10 + hash1(i * 5) * 6 }));
+  const bat0 = Array.from({ length: 6 }, (_, i) => ({ a: (i / 6) * TAU + hash1(i) * 0.4, up: 1.2 + hash1(i * 3) * 1.2, out: 1 + hash1(i * 7) * 1.4, fl: 10 + hash1(i * 5) * 6 }));
   const tmpQ = new THREE.Quaternion();
   const setArm = (i, j) => { j.updateMatrix(); arms.setMatrixAt(i, j.matrix); };
   const update = (dt, st) => {
@@ -540,13 +538,22 @@ function buildGrafBrummbaer() {
     const vanish = smoothstep((bp - 0.35) / 0.4);
     all.scale.setScalar(Math.max(0.001, 1 - vanish));
     all.visible = vanish < 0.999;
-    if (anim === 'bats' && bp > 0.35 && !puffed) { puffs.burst([0, 1.5, 0], { count: 12, speed: 2.4, up: 1, size: 0.6, life: 0.8, spread: 0.6 }); puffed = true; }
+    if (anim === 'bats' && bp > 0.35 && !puffed) { puffs.burst([0, 1.5, 0], { count: 8, speed: 2.4, up: 1, size: 0.75, life: 0.8, spread: 0.6 }); puffed = true; }
     if (anim !== 'bats' || bp < 0.3) puffed = false;
     root.userData.hidden = anim === 'bats' && bp >= 0.98;
     // Fledermäuse: bei der Verwandlung und bei der Niederlage
     const showBats = (anim === 'bats' && bp > 0.35) || (defeated && age > 0.6);
-    for (let i = 0; i < 8; i++) {
+    const dizzyOn = anim === 'stunned' || (defeated && age > 0.4 && age < 0.9);
+    for (let i = 0; i < 6; i++) {
       const it = bat0[i];
+      if (dizzyOn && !showBats) {
+        // drei kleine Fledermäuse kreisen um den Kopf (statt Sternchen)
+        if (i >= 3) { flock.set(i, _v, 0, 0, 0); continue; }
+        const a = t * 3.2 + (i / 3) * TAU;
+        _v.set(Math.cos(a) * 0.62 + 0.1, hip.position.y + 1.95 + Math.sin(t * 6 + i) * 0.05 - slump * 0.1, Math.sin(a) * 0.62);
+        flock.set(i, _v.clone(), -a - Math.PI / 2 + Math.PI, t * 14 + i, 1.1);
+        continue;
+      }
       if (!showBats) { flock.set(i, _v, 0, 0, 0); continue; }
       const k = anim === 'bats' ? (bp - 0.35) / 0.65 : clamp((age - 0.6 - i * 0.12) / 1.6, 0, 1);
       if (k <= 0) { flock.set(i, _v, 0, 0, 0); continue; }
@@ -561,8 +568,6 @@ function buildGrafBrummbaer() {
     let bk = blink.update(dt);
     if (anim === 'hit' || defeated) bk = 0.12; else if (anim === 'stunned') bk = 0.4; else if (anim === 'throw') bk = 0.85; else if (anim === 'bats') bk = 1 - wrap * 0.6;
     eye.userData.blink(bk);
-    dizzy.visible = anim === 'stunned' || (defeated && age > 0.4);
-    dizzy.rotation.y = t * 3.5;
     tmpQ.identity();
   };
   const model = makeModel('graf_brummbaer', root, update, [...own, arms, legs, flock.bodies, flock.wings], { initial: 'idle' });

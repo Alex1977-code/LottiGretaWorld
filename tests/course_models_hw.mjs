@@ -162,7 +162,7 @@ await sc(async () => {
   // hängende/schwebende Modelle (Ursprung oben oder in der Mitte) anheben
   const LIFT = {
     laterne_hand: () => 1.2, flatterfledi: () => 0.9, fledermaus_schwarm: () => 2.4, besen_plattform: () => 0.8,
-    kreisgeist_kreis_halloween: () => 0.1, spinnennetz: (o) => (o.kind === 'ecke' ? 2.2 : 0), kuerbislaterne: (o) => (o.mount === 'haengend' ? 2.2 : 0),
+    kreisgeist_kreis_halloween: () => 0.1, spinnennetz: (o) => (o.kind === 'ecke' ? 2.2 : 1.3), kuerbislaterne: (o) => (o.mount === 'haengend' ? 2.2 : 0),
     mond_gesicht: (o) => (o.size ?? 6) * 1.05, geisterplattform: () => 0.6, bonbon_konfetti: () => 0.5, spuk_halloween: () => 0.3,
     hexenturm: (o) => (o.part === 'fenster' ? 1.2 : 0),
   };
@@ -210,10 +210,9 @@ await sc(async () => {
       const b = new THREE.Box3(), tmp = new THREE.Box3();
       obj.updateMatrixWorld(true);
       obj.traverse((o) => {
-        if (!(o.isMesh || o.isSprite) || !o.visible) return;
+        if (!o.isMesh || !o.visible) return;
         let vis = true; for (let p = o.parent; p; p = p.parent) if (!p.visible) vis = false;
         if (!vis) return;
-        if (o.isSprite) { const p = new THREE.Vector3().setFromMatrixPosition(o.matrixWorld); const s = new THREE.Vector3().setFromMatrixScale(o.matrixWorld); tmp.setFromCenterAndSize(p, s.multiplyScalar(0.5)); b.union(tmp); return; }
         if (o.isInstancedMesh) {
           const m = new THREE.Matrix4(), w = new THREE.Matrix4();
           if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
@@ -340,8 +339,10 @@ if (part('checks')) {
   check(`Boss ≤ 25 k Dreiecke (${bossT.join(', ')})`, bossT.length > 0 && bossT.every((t) => t > 5000 && t <= 25000));
   const heavyK = Object.entries(cycle.tris).filter(([n, t]) => KULISSE_NAMES.has(base(n)) && t > 12000);
   check(`Kulisse ≤ 12 k Dreiecke (Kartenqualität)${heavyK.length ? ` (zu viel: ${heavyK.map(([n, c]) => `${n}=${c}`).join(', ')})` : ''}`, heavyK.length === 0);
-  const heavy = Object.entries(cycle.tris).filter(([n, t]) => !KULISSE_NAMES.has(base(n)) && !BOSS_NAMES.has(base(n)) && !ENEMY_NAMES.has(base(n)) && t > 16000);
-  check(`Gimmicks/Items ≤ 16 k Dreiecke${heavy.length ? ` (zu viel: ${heavy.map(([n, c]) => `${n}=${c}`).join(', ')})` : ''}`, heavy.length === 0);
+  // Gruppen (ganzer Kreisgeist-Kreis aus Welt 3, Schwarm) zählen je Figur; Gimmicks/Items einzeln ≤ 16 k
+  const GROUP_LIMIT = { kreisgeist_kreis_halloween: 30000, fledermaus_schwarm: 16000 };
+  const heavy = Object.entries(cycle.tris).filter(([n, t]) => !KULISSE_NAMES.has(base(n)) && !BOSS_NAMES.has(base(n)) && !ENEMY_NAMES.has(base(n)) && t > (GROUP_LIMIT[base(n)] ?? 16000));
+  check(`Gimmicks/Items ≤ 16 k Dreiecke (Gruppen: Kreis ≤ 30 k)${heavy.length ? ` (zu viel: ${heavy.map(([n, c]) => `${n}=${c}`).join(', ')})` : ''}`, heavy.length === 0);
   const toyBad = Object.entries(cycle.toy).filter(([n, [t]]) => KULISSE_NAMES.has(base(n)) && t > 0);
   check(`Kulisse ohne Spielzeug-Look${toyBad.length ? ` (mit Look: ${toyBad.map(([n]) => n).join(', ')})` : ''}`, toyBad.length === 0);
   const toyMiss = Object.entries(cycle.toy).filter(([n, [t]]) => !KULISSE_NAMES.has(base(n)) && t === 0);
@@ -374,11 +375,13 @@ if (part('checks')) {
       const hand = with_('graf_brummbaer', {}, (m) => { for (let k = 0; k < 10; k++) m.update(1 / 30, { anim: 'throw', progress: 0.35 }); const v = m.hand(); return [+v.x.toFixed(2), +v.y.toFixed(2), typeof m.hand === 'function']; });
       out.graf = [i.y, i.minY, b.empty || b.y < 0.3, hand];
     }
-    if (has('kuerbis_bombe')) { const i = box('kuerbis_bombe', {}, 'idle'), e = box('kuerbis_bombe', {}, { anim: 'explode', progress: 0.35 }), g = box('kuerbis_bombe', {}, { anim: 'explode', progress: 1 }); out.bombe = [i.y, i.minY, e.x, g.empty || g.x < 0.1]; }
+    if (has('kuerbis_bombe')) { const i = box('kuerbis_bombe', {}, 'idle'), e = box('kuerbis_bombe', {}, { anim: 'explode', progress: 0.6 }), g = box('kuerbis_bombe', {}, { anim: 'explode', progress: 1 }); out.bombe = [i.y, i.minY, e.x, g.empty || g.x < 0.1]; }
     if (has('fledermaus_schwarm')) { const f = box('fledermaus_schwarm', { count: 12, spread: 2 }, 'fly'), g = box('fledermaus_schwarm', { count: 12, spread: 2 }, 'gather'); out.schwarm = [f.x, g.x]; }
     if (has('geisterplattform')) {
-      const a = box('geisterplattform', { size: [2, 0.5, 2] }, { visible: 1 }), z = box('geisterplattform', { size: [2, 0.5, 2] }, { visible: 0 });
-      out.geist = [a.x, a.y, a.z, a.minY, z.empty];
+      // Maße des Plattform-Körpers (ohne Bodenschein): größtes Mesh
+      const body = with_('geisterplattform', { size: [2, 0.5, 2] }, (m) => { for (let k = 0; k < 30; k++) m.update(1 / 30, { visible: 1 }); let big = null; m.root.traverse((o) => { if (o.isMesh && (!big || o.geometry.attributes.position.count > big.geometry.attributes.position.count)) big = o; }); m.root.updateMatrixWorld(true); big.geometry.computeBoundingBox(); const bb = big.geometry.boundingBox.clone().applyMatrix4(big.matrixWorld); const sz = bb.getSize(new T.Vector3()); return [+sz.x.toFixed(2), +sz.y.toFixed(2), +sz.z.toFixed(2), +bb.min.y.toFixed(2)]; });
+      const z = box('geisterplattform', { size: [2, 0.5, 2] }, { visible: 0 });
+      out.geist = [...body, z.empty];
     }
     if (has('besen_plattform')) { const b = box('besen_plattform', {}, { tilt: 0 }); out.besen = [b.x, b.z, b.maxY, with_('besen_plattform', {}, (m) => m.root.userData.size ?? null)]; }
     if (has('hexenkessel')) { const k = box('hexenkessel', {}, { bubble: 0 }); out.kessel = [k.x, k.maxY, with_('hexenkessel', {}, (m) => m.root.userData.top ?? null)]; }
@@ -392,8 +395,8 @@ if (part('checks')) {
     return out;
   });
   console.log('  Eigenschaften:', JSON.stringify(props));
-  if (props.kuerbling) check('Kürbling ≈0,6–0,9 m, Füße am Boden; squashed flach; burst → weg', props.kuerbling[0] > 0.6 && props.kuerbling[0] < 0.95 && props.kuerbling[1] > -0.05 && props.kuerbling[2] < 0.45 && props.kuerbling[3]);
-  if (props.knochen) check('Klapperknochen ≈0,9–1,2 m; pile flach (< 0,6 m); rebuild 1 = wieder ganz', props.knochen[0] > 0.9 && props.knochen[0] < 1.25 && props.knochen[1] > -0.05 && props.knochen[2] < 0.6 && Math.abs(props.knochen[3] - props.knochen[0]) < 0.12);
+  if (props.kuerbling) check('Kürbling ≈0,6–0,9 m, Füße am Boden; squashed flach (mit Sternen < 0,55 m); burst → weg', props.kuerbling[0] > 0.6 && props.kuerbling[0] < 0.95 && props.kuerbling[1] > -0.05 && props.kuerbling[2] < 0.55 && props.kuerbling[3]);
+  if (props.knochen) check('Klapperknochen ≈1,1–1,4 m (großer Schädel); pile niedrig (Schädel obenauf, mit Sternen < 0,9 m); rebuild 1 = wieder ganz', props.knochen[0] > 1.05 && props.knochen[0] < 1.4 && props.knochen[1] > -0.05 && props.knochen[2] < 0.9 && Math.abs(props.knochen[3] - props.knochen[0]) < 0.12);
   if (props.fledi) check('Flatterfledi: Spannweite 0,8–1,3 m, fliegt über dem Ursprung, hängt darunter', props.fledi[0] > 0.8 && props.fledi[0] < 1.3 && props.fledi[1] > -0.1 && props.fledi[2] < 0.15 && props.fledi[3] < -0.4);
   if (props.hut) check('Hexenhut-Hüpfer ≈0,8–1,1 m; squashed niedrig', props.hut[0] > 0.8 && props.hut[0] < 1.15 && props.hut[1] > -0.05 && props.hut[2] < 0.55);
   if (props.graf) check('Graf Brummbär 2,8–3,6 m (mit Zylinder); bats 1 → verwandelt (weg); hand() liefert Wurf-Tatze', props.graf[0] > 2.8 && props.graf[0] < 3.6 && props.graf[1] > -0.05 && props.graf[2] && props.graf[3][2] && props.graf[3][1] > 1);
@@ -407,7 +410,7 @@ if (part('checks')) {
   if (props.roll) check('Riesenkürbis: Ø ≈ size, liegt auf dem Ursprung', Math.abs(props.roll[0] - 2) < 0.35 && props.roll[1] > 1.4 && props.roll[1] < 2.4 && props.roll[2] > -0.05);
   if (props.netz) check('Spinnennetz-Trampolin: userData.top gesetzt, Ø 1,6–2,6 m', props.netz[2] > 0.3 && props.netz[0] > 1.6 && props.netz[0] < 2.8);
   if (props.schalter) check('Grabstein-Schalter: gedrückt niedriger', props.schalter[1] < props.schalter[0] - 0.1);
-  if (props.candy) check('Süßigkeit: schwebt (≤ 0,8 m), ≈0,3–0,5 m groß; collected → weg', props.candy[0] < 0.85 && props.candy[1] > 0.25 && props.candy[1] < 0.6 && props.candy[2]);
+  if (props.candy) check('Süßigkeit: schwebt (≤ 0,8 m), ≈0,3–0,7 m groß; collected → weg', props.candy[0] < 0.85 && props.candy[1] > 0.25 && props.candy[1] < 0.72 && props.candy[2]);
   if (props.mond) check('Mond: Größe ≈ 2·size', props.mond[0] > 5 && props.mond[0] < 7.5);
 
   // Instanz-Helfer

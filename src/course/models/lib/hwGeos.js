@@ -19,6 +19,7 @@
 import {
   THREE, TAU, Build, cached, vcol, basic, std, col, mix, clamp, smoothstep, smoothNormals, placed, canvasTexture,
 } from './kit.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { puffyGeo, roundRectShape, gradV, heightV, mixV } from './w5Geos.js';
 import { noise3, hash1 } from './w4Geos.js';
 import { plainTree } from '../../../three/lib/toyLook.js';
@@ -185,10 +186,10 @@ export function pkPoint(P, az, el) {
   if (n.dot(_d.copy(p)) < 0) n.negate();
   return { p, n };
 }
-/** Kürbiskörper (Mitte im Ursprung) mit Vertexfarben: Rippen, Rinnen dunkler, oben Glanz. */
+/** Kürbiskörper (Mitte im Ursprung) mit Vertexfarben: Rippen, Rinnen dunkler, oben Glanz. lo: false | 'mid' | true. */
 export function pumpkinGeo(P, colors = PK_COLORS.orange, lo = false) {
   const [base, hi, low, groove] = colors;
-  const g = new THREE.SphereGeometry(1, lo ? 28 : 52, lo ? 14 : 26);
+  const g = new THREE.SphereGeometry(1, lo === 'mid' ? 40 : lo ? 28 : 52, lo === 'mid' ? 20 : lo ? 14 : 26);
   const Pp = g.attributes.position, v = new THREE.Vector3();
   for (let i = 0; i < Pp.count; i++) { pkDeform(Pp.getX(i), Pp.getY(i), Pp.getZ(i), P, v); Pp.setXYZ(i, v.x, v.y, v.z); }
   const sm = smoothNormals(g);
@@ -225,9 +226,16 @@ export function leafGeo(len = 0.4, lo = false, curl = 0.35) {
     const ring = [[180, 0.46], [205, 0.3], [235, 0.44], [268, 0.2], [300, 0.52], [330, 0.24], [360, 0.56], [30, 0.24], [60, 0.52], [92, 0.2], [125, 0.44], [155, 0.3]];
     const pts = ring.map(([a, r]) => [C[0] + Math.cos(a * deg) * r, C[1] + Math.sin(a * deg) * r]);
     const s = polyShape(roundPoly(pts, 0.32, lo ? 3 : 5));
-    const g = subdivide(puffyGeo(s, 0.02 / len, 0.022 / len, 1, lo ? 1 : 2), lo ? 1 : 2);
-    g.scale(len, len, len);
-    g.rotateX(-Math.PI / 2);
+    // zwei Lagen (oben/unten) aus der fein unterteilten Fläche – wölbt sich weich, ohne dicke Kanten-Dreiecke
+    const top = subdivide(new THREE.ShapeGeometry(s, 1), lo ? 1 : 2);
+    top.rotateX(-Math.PI / 2);
+    top.scale(len, len, len);
+    const bot = top.clone();
+    const BA = bot.attributes.position.array;
+    for (let i = 0; i < BA.length; i += 9) for (let k = 0; k < 3; k++) { const t = BA[i + 3 + k]; BA[i + 3 + k] = BA[i + 6 + k]; BA[i + 6 + k] = t; }
+    bot.translate(0, -0.012 * len / 0.4, 0);
+    const g = mergeGeometries([top, bot], false);
+    top.dispose(); bot.dispose();
     // Rand hängt nach unten, Mittelrippe leicht gewölbt
     const P = g.attributes.position;
     for (let i = 0; i < P.count; i++) {
@@ -405,11 +413,12 @@ export function batWingShape() {
 export function batWingGeo(span = 0.45, color = HW.lila, finger = HW.lilaDeep, lo = false, key = 'w') {
   return cached(`hw:batwing:${span}:${color}:${finger}:${lo}:${key}`, () => {
     const b = new Build();
-    const g = puffyGeo(batWingShape(), 0.02, 0.025, lo ? 6 : 12, lo ? 1 : 2);
+    const g = lo ? new THREE.ShapeGeometry(batWingShape(), 4) : puffyGeo(batWingShape(), 0.02, 0.025, 12, 2);
     g.scale(span, span, span);
     b.add(g, { v: (x, y) => mix(mix(color, 0xffffff, 0.15), color, smoothstep(x / span)) });
     for (const [x, y] of [[0.86, -0.14], [0.58, -0.16], [0.3, -0.12], [1.0, 0.16]]) {
-      b.tube([[0.02 * span, 0.14 * span, 0], [x * 0.55 * span, (0.25 + y * 0.3) * span, 0.004], [x * span, y * span, 0]], 0.012 * span / 0.45, finger, null, lo ? 4 : 8, lo ? 3 : 5);
+      if (lo) { b.tube([[0.02 * span, 0.14 * span, 0.004], [x * span, y * span, 0.004]], 0.014 * span / 0.45, finger, null, 1, 3); continue; }
+      b.tube([[0.02 * span, 0.14 * span, 0], [x * 0.55 * span, (0.25 + y * 0.3) * span, 0.004], [x * span, y * span, 0]], 0.012 * span / 0.45, finger, null, 8, 5);
     }
     b.sphere(0.022 * span / 0.45, finger, { p: [0.62 * span, 0.3 * span, 0] }, 6, 4);
     return b.geometry();
@@ -514,6 +523,36 @@ export function fogTexture() {
       ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
     }
   });
+}
+
+/**
+ * Röhre mit veränderlichem Radius (Äste, Stängel): pts = [[x,y,z], …] (Catmull-Rom), r(t) Radius je Anteil t (0..1).
+ * Liefert eine nicht farbige Geometrie (für Build.add). Enden zu (Spitze r → 0 schließt von selbst).
+ */
+export function taperTube(pts, r, seg = 16, rs = 8) {
+  const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)));
+  const frames = curve.computeFrenetFrames(seg, false);
+  const pos = [], idx = [];
+  const P = new THREE.Vector3(), N = new THREE.Vector3();
+  for (let i = 0; i <= seg; i++) {
+    const t = i / seg;
+    curve.getPointAt(t, P);
+    const rr = typeof r === 'function' ? r(t) : r;
+    for (let j = 0; j <= rs; j++) {
+      const a = (j / rs) * TAU;
+      N.copy(frames.normals[i]).multiplyScalar(-Math.cos(a)).addScaledVector(frames.binormals[i], Math.sin(a));
+      pos.push(P.x + N.x * rr, P.y + N.y * rr, P.z + N.z * rr);
+    }
+  }
+  for (let i = 0; i < seg; i++) for (let j = 0; j < rs; j++) {
+    const a = i * (rs + 1) + j, b = (i + 1) * (rs + 1) + j;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
 }
 
 /** Punktrichtung → Ellipsoid-Fläche (für eigene Gesichter auf runden Körpern). */
