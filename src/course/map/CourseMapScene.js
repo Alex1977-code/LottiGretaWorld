@@ -220,7 +220,8 @@ export class CourseMapScene extends Phaser.Scene {
 
     // Fern-Ausblendung kleiner Objekte (Anflug, Röhrenfahrt mit Blick über die ganze Insel)
     const movers = [...this.roamers, this.item].filter((e) => e?.model?.root).map((e) => ({ root: e.model.root, pos: e.pos, r: 2 }));
-    this.lod = new MapLod(this.view, { exclude: [...this.batcher.meshes], movers });
+    // statische Kacheln bleiben, außer kompakte benannte (userData.lod, Halloween: eingebackene Modelle je Eingang)
+    this.lod = new MapLod(this.view, { exclude: this.batcher.meshes.filter((m) => !m.userData.lod), movers });
 
     this.events.on(Phaser.Scenes.Events.RENDER, this.renderFrame, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanup, this);

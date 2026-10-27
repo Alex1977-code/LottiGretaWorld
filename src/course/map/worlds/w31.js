@@ -42,7 +42,7 @@ export const MAP = {
   camera: [{ from: 200, to: -300, pitch: 50, dist: 16, fov: 40, ahead: 3.6, lead: 0.7, height: 1.0 }],
   intro: { from: [6, 22, 104], look: [0, 5, -46], duration: 3.2 },
   edges: { hedge: 'hwstone', fence: 'hwpicket' },
-  pathColors: [0xece4dc, 0xdcd0c8, 0x7a6a6a],      // helle, alte Steinplatten (im Abendlicht warm)
+  pathColors: [0xe2dec4, 0xd2ccb0, 0x76705a],      // helle, alte Steinplatten (im lila-warmen Abendlicht neutral)
   seaColors: [0x5aa6cc, 0x3a6cb4, 0x22327c],      // Türkis am Ufer, Violett-Nachtblau draußen
   batch: { tile: 32, origin: [-4, 6], freeTile: 96, freeOrigin: [-56, -56] },
   // Nachbarwelt am Horizont: Welt 1 (grüne Blockinsel) im Westen – dorthin führt die Rückweg-Röhre

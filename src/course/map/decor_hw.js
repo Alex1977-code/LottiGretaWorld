@@ -103,7 +103,7 @@ const hwOk = (name, opts, max) => hasModel(name) && modelTris(name, opts) <= max
  */
 function bakeHw(ev, name, opts, pos, yaw = 0, max = 8000, { scale = 1, state = null, tile = `hw:${ev.id}`, shadow = true } = {}) {
   if (!hwOk(name, opts, max)) return false;
-  const add = (g, o) => ev.addStatic(g, { ...o, ...(shadow ? {} : { castShadow: false }), ...(tile ? { tile } : {}) });
+  const add = (g, o) => ev.addStatic(g, { ...o, ...(shadow ? {} : { castShadow: false }), ...(tile ? { tile, lod: true } : {}) });
   return !!bakeModel(add, name, opts, pos, yaw + FRONT, scale, state);
 }
 /** Registry-Modell als bewegtes Objekt (null, wenn es fehlt oder zu schwer ist); yaw wie bakeHw (Vorderseite +Z bei 0). */

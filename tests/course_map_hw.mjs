@@ -295,11 +295,14 @@ if (part(5)) {
   const h1 = titles['H-1'];
   await tp(18, 1.3, 36.6, Math.PI / 2, 20);
   r = await walkTo(18, 33, (s) => s.onPad === 'H-1', 400);
+  await sc(() => window.__courseMap.step(30));
   if (!h1[1]) {
     await sc(() => { const m = window.__courseMap; m.hud.toast('', 0.01); m.step(2); m.enter(); m.step(1); });
     const msg = await toast();
-    st = await sc(() => window.__courseMap.step(5));
-    check('H-1 frei, aber „Bald“: Enter zeigt „Bald!“ und startet nichts', r.s.onPad === 'H-1' && h1[2] && !h1[3] && msg === 'Bald!' && !st.leaving && (await banner()) === 'Bald');
+    st = await sc(() => window.__courseMap.step(20));
+    await frames(3);
+    const bn = await banner();
+    check('H-1 frei, aber „Bald“: Enter zeigt „Bald!“ und startet nichts', r.s.onPad === 'H-1' && h1[2] && !h1[3] && msg === 'Bald!' && !st.leaving && bn === 'Bald');
   } else check('H-1 gibt es schon: Eingang startbar', h1[3]);
   await shot('feld', 600);
   // Ersatz-Level über mapAlias: startbar, Rückkehr mit Ergebnis → Schranke zum Gruseldorf versinkt

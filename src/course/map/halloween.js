@@ -786,7 +786,7 @@ export function buildHwProp(level, map, grid, it, i) {
     const pm = it.model !== false ? hwPropModel(it) : null;
     // Registry-Modelle je 16-m-Feld in einer eigenen Kachel (zählen nur in Ansichten, die sie sehen)
     const tile = `hw:prop:${Math.floor(it.pos[0] / 16)}:${Math.floor(it.pos[2] / 16)}`;
-    const baked = pm ? bakeModel((g, o) => view.addStatic(g, { ...o, tile }), pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
+    const baked = pm ? bakeModel((g, o) => view.addStatic(g, { ...o, tile, lod: true }), pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
     if (!baked) {
       const g = hwPropGeo(it, seed);
       if (g) view.addStatic(place(g, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: it.shadow !== false });

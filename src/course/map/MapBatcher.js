@@ -11,7 +11,8 @@ export const TILE = 32;
 // Optionen je Karte (map.batch, z. B. Welt 3): { tile, origin: [x, z], freeTile, freeOrigin } – Kachelgröße und
 // -ursprung, für Teile ohne Schattenwurf eigene (größere) Kacheln: Sie fehlen im Schattenpass, größere Kacheln
 // sparen dort Zeichenaufrufe. add(g, { tile: 'name' }) legt Teile in eine benannte Kachel (z. B. verstreute
-// Kleinteile im Meer eines Sektors), unabhängig von ihrer Lage.
+// Kleinteile im Meer eines Sektors), unabhängig von ihrer Lage. add(g, { tile, lod: true }) (Halloween: eingebackene
+// Registry-Modelle eines Eingangs): die Kachel darf von der Fern-Ausblendung (lod.js) erfasst werden (userData.lod).
 
 export class MapBatcher {
   /** @param {import('../view/CourseView.js').CourseView} view */
@@ -41,7 +42,7 @@ export class MapBatcher {
     const tx = Math.floor(((bb.min.x + bb.max.x) / 2 - ox) / T), tz = Math.floor(((bb.min.z + bb.max.z) / 2 - oz) / T);
     const key = `${mat}|${opts.tile ?? `${tx}|${tz}`}|${cast ? 1 : 0}|${recv ? 1 : 0}`;
     let b = this.buckets.get(key);
-    if (!b) { b = { mat, cast, recv, parts: [] }; this.buckets.set(key, b); }
+    if (!b) { b = { mat, cast, recv, parts: [], lod: !!opts.lod }; this.buckets.set(key, b); }
     b.parts.push(g);
     this.stats.parts++;
   }
@@ -58,6 +59,7 @@ export class MapBatcher {
       mesh.matrixAutoUpdate = false;
       mesh.updateMatrix();
       mesh.name = `karte:statisch:${b.mat}`;
+      if (b.lod) mesh.userData.lod = true;   // kompakte benannte Kachel: Fern-Ausblendung erlaubt
       this.view.three.add(mesh);
       this.meshes.push(mesh);
       this.stats.meshes++;
