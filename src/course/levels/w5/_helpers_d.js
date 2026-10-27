@@ -722,7 +722,7 @@ export function ohneZeitlimit(level) {
 }
 
 /**
- * Goldener Schalter in der Felsspalte (Bauplan 5-Zug „Geheimnis: goldener P-Schalter in einer Felsspalte“): fährt auf
+ * Goldener Schalter in der Felsspalte (Bauplan 5-Zug „Geheimnis: goldener Druckschalter in einer Felsspalte“): fährt auf
  * dem Felswagen mit (attach). Wer mit Schwung darauf landet (oder stampft), löst time s lang einen Goldregen aus: rate
  * Münzen/s fallen über dem Zug (ahead m voraus, behind m dahinter), jede hängt am Wagen darunter und fährt mit ihm
  * (auch im Fallen). Modell 'push_switch_gold' (Welt 2). spec { id, pos, attach, time: 8, rate: 7, ahead: 16, behind: 6,

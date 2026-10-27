@@ -4179,7 +4179,7 @@ Spielautomat der Karte `map/slot.js` (`SlotMachine`), Strand-Thema und Meer-Kuli
   Welt-3-Modell. Fahrplan (`solveTrainRide`, Gleis und Fensterpfad bei x 0): Halte-Pausen am Felswagen 5 s, Röhrenwagen
   9 s, Blockwagen 8 s; Fahrt ≈ 86 s, ≈ 510 m an der Goldküste (Sandstreifen, drei Lagunen auf Holzgerüsten mit
   Schwimmringen, Entchen und Segelbooten, Strandhäuschen, Leuchtturm, Wimpelketten, Palmen).
-- Geheimnisse: **goldener Schalter in der Felsspalte** (Bauplan „P-Schalter in einer Felsspalte“, `ZugGoldschalter`):
+- Geheimnisse: **goldener Schalter in der Felsspalte** (Bauplan: goldener Druckschalter in einer Felsspalte, `ZugGoldschalter`):
   hineinspringen oder stampfen (Daraufstellen genügt nicht) → 8 s Goldregen, 56 Münzen fallen über G2–G4 und fahren mit
   dem Wagen darunter mit · **geheime Röhre** in der Kistenburg des Röhrenwagens (nur von oben erreichbar) → **Wolkenwagen**
   (unsichtbares Fahrzeug links oberhalb des Zugs, Optik `WolkenWagen` mit Durchsicht): 33 Münzen und ein Extraleben,

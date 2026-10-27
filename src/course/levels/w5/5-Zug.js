@@ -1,5 +1,5 @@
 // 5-Zug „Bimmelbahn voller Bitcoins“ – Bonus-Level der Welt 5 (Archetyp autoscroller, Bauplan Detail 5-Zug: „Kein
-// Zeitlimit · Goldzug voller Münzen, Autoscroll; Endröhre zu einem Glückshaus. Geheimnis: goldener P-Schalter in einer
+// Zeitlimit · Goldzug voller Münzen, Autoscroll; Endröhre zu einem Glückshaus. Geheimnis: goldener Druckschalter in einer
 // Felsspalte“). Am Bahnhof Goldbucht steht die goldene Bimmelbahn unter Dampf – jeder Wagen randvoll mit Bitcoins.
 // Kaum ist man eingestiegen, bimmelt sie los an der Goldküste der Lila Strand-Insel entlang, über Lagunen auf
 // Holzgerüsten, vorbei an Strandhäuschen, Palmen und dem Leuchtturm. Das Bildfenster gleitet am Zug entlang nach vorn
