@@ -586,11 +586,11 @@ async function levelPart() {
   void res;
   await page.waitForFunction(() => window.__course && window.__course.level && window.__course.outfit === 'halloween' && window.__game.scene.isActive('CourseUI'), null, { timeout: 120000 });
   await page.waitForTimeout(800);
-  const st1 = await sc(() => { const c = window.__course; c.setManual(true); for (let i = 0; i < 5; i++) c.renderFrame(); const av = c.rig.avatar; return { scene: c.outfit, av: av.outfit, hat: !!av.hw?.head?.parent }; });
+  const st1 = await sc(() => { const c = window.__course; c.setManual(true); for (let i = 0; i < 5; i++) c.renderFrame(); const av = c.rig.avatar; return { scene: c.outfit, av: av.outfit, hat: !!av.hw?.hat?.parent }; });
   check(`CourseScene mit LEVEL.outfit: Verkleidung gesetzt, Lotti trägt den Hut (${JSON.stringify(st1)})`, st1.scene === 'halloween' && st1.av === 'halloween' && st1.hat);
   await page.screenshot({ path: `${OUT}outfit_hw_spiel_1-1.png` }); shots.push({ name: 'spiel_1-1', path: `${OUT}outfit_hw_spiel_1-1.png`, group: 'spiel' });
   // Figurwechsel zur Laufzeit (HeroRig baut den Avatar neu): Greta trägt die Verkleidung sofort
-  const sw = await sc(() => { const c = window.__course; c.setHero('greta'); c.rig.update(1 / 60, 1); for (let i = 0; i < 3; i++) c.renderFrame(); const av = c.rig.avatar; return { variant: av.variant, ears: !!av.hw?.head?.parent, tail: !!av.hw?.tail?.anchor.parent }; });
+  const sw = await sc(() => { const c = window.__course; c.setHero('greta'); c.rig.update(1 / 60, 1); for (let i = 0; i < 3; i++) c.renderFrame(); const av = c.rig.avatar; return { variant: av.variant, ears: !!av.lookHead && av.hairMesh.geometry !== av.look0.hair, tail: !!av.hw?.tail?.anchor.parent }; });
   check(`Figurwechsel: neue Heldin trägt die Verkleidung (${JSON.stringify(sw)})`, sw.variant === 'greta' && sw.ears && sw.tail);
   await page.screenshot({ path: `${OUT}outfit_hw_spiel_1-1_greta.png` }); shots.push({ name: 'spiel_1-1_greta', path: `${OUT}outfit_hw_spiel_1-1_greta.png`, group: 'spiel' });
   await sc(() => { const c = window.__course; c.setHero('lotti'); });
@@ -598,22 +598,36 @@ async function levelPart() {
   await sc(async () => { const lv = await import('/src/course/levels/index.js'); delete lv.getLevel('1-1').outfit; window.__course.restartLevel(); });
   await page.waitForFunction(() => window.__course && window.__course.level && window.__course.outfit === null && window.__game.scene.isActive('CourseUI'), null, { timeout: 120000 });
   await page.waitForTimeout(500);
-  const st2 = await sc(() => { const c = window.__course; for (let i = 0; i < 3; i++) c.renderFrame(); return { av: c.rig.avatar.outfit, hat: !!c.rig.avatar.hw?.head?.parent }; });
+  const st2 = await sc(() => { const c = window.__course; for (let i = 0; i < 3; i++) c.renderFrame(); return { av: c.rig.avatar.outfit, hat: !!c.rig.avatar.hw?.hat?.parent }; });
   check('Neustart ohne LEVEL.outfit: keine Verkleidung', st2.av === null && !st2.hat);
-  // Echte Level mit URL-Schalter (Standbild ?still=1): Gesamt-Zeichenaufrufe mit/ohne
+  // Echte Level mit URL-Schalter (Standbild ?still=1, echte Rigs): Kosten der Figuren (Hüllen „heldin“, „ritt“, „pflaume“,
+  // „kruemel“ sichtbar/unsichtbar, häufigstes von drei Messungen) mit/ohne; Gesamtbild zur Information
   for (const [id, figs, label] of [['1-1', 1, 'heldin'], ['1-4', 2, 'heldin + pflaume (ritt)'], ['3-Kapitän', 1, 'krümel'], ['1-Schatz', 1, 'pflaume (diorama)']]) {
     const m = {};
     for (const k of ['', 'halloween']) {
-      await waitCourse(`${base}/?course=${encodeURIComponent(id)}&scale=2&adapt=0&still=1${k ? `&outfit=${k}` : ''}`);
+      await waitCourse(`${base}/?course=${encodeURIComponent(id)}&scale=1&adapt=0&still=1${k ? `&outfit=${k}` : ''}`);
       await sc(() => { const c = window.__course; c.setManual(true); c.level.muted = true; try { window.__game.scene.getScene('CourseUI').cameras.main.setVisible(false); } catch (_) { /* egal */ } });
       for (let i = 0; i < 3; i++) await stat();
-      m[k || 'ohne'] = await stat();
+      const fig = await sc(() => {
+        const c = window.__course, v = c.view;
+        const hulls = v.three.children.filter((o) => ['heldin', 'ritt', 'pflaume', 'kruemel'].includes(o.name) && o.visible);
+        const grab = () => { c.renderFrame(); const r = v.renderer.info.render; return { calls: r.calls, tris: r.triangles }; };
+        const once = () => { grab(); const a = grab(); for (const h of hulls) h.visible = false; grab(); const b = grab(); for (const h of hulls) h.visible = true; grab(); return { calls: a.calls - b.calls, tris: a.tris - b.tris }; };
+        // Rigs setzen die Sichtbarkeit ihrer Hülle je Bild (Blinken) – während der Messung angehalten (Standbild)
+        const upd = c.rig.update; c.rig.update = () => {};
+        const seen = new Map();
+        for (let i = 0; i < 3; i++) { const r = once(), key = `${r.calls}/${r.tris}`; seen.set(key, { r, n: (seen.get(key)?.n ?? 0) + 1 }); }
+        c.rig.update = upd;
+        return { ...[...seen.values()].sort((x, y) => y.n - x.n)[0].r, hulls: hulls.map((h) => h.name).join('+') };
+      });
+      m[k || 'ohne'] = { fig, total: await stat() };
       const name = `spiel_${id}_${k || 'ohne'}`.replace('ä', 'ae');
       await page.screenshot({ path: `${OUT}outfit_hw_${name}.png` }); shots.push({ name, path: `${OUT}outfit_hw_${name}.png`, group: 'spiel' });
     }
     metrics[`spiel ${id}`] = m;
-    console.log(`  ${id}: ohne ${m.ohne.calls} Aufrufe / ${m.ohne.tris} Dreiecke, Halloween ${m.halloween.calls} / ${m.halloween.tris}`);
-    check(`${id} (${label}): Gesamt-Zeichenaufrufe mit Verkleidung ${m.halloween.calls} ≤ ohne ${m.ohne.calls} + ${figs}`, m.halloween.calls <= m.ohne.calls + figs);
+    const a = m.ohne.fig, b = m.halloween.fig;
+    console.log(`  ${id} (${a.hulls}): Figuren ohne ${a.calls} Aufrufe / ${a.tris} Dreiecke, Halloween ${b.calls} / ${b.tris}; Gesamtbild ohne ${m.ohne.total.calls} / ${m.ohne.total.tris}, Halloween ${m.halloween.total.calls} / ${m.halloween.total.tris}`);
+    check(`${id} (${label}): Zeichenaufrufe der Figuren mit Verkleidung ${b.calls} ≤ ohne ${a.calls} + ${figs}, Dreiecke ${b.tris} ≤ 1,2 × ${a.tris}`, b.calls <= a.calls + figs && b.tris <= 1.2 * a.tris);
   }
 }
 
@@ -634,7 +648,7 @@ async function mapPart() {
   await page.waitForFunction(() => window.__courseMap && window.__courseMap.player && window.__courseMap.outfit === 'halloween', null, { timeout: 240000 });
   await sc(() => { const m = window.__courseMap; m.setManual(true); m.level.muted = true; m.setInput({}); });
   await page.waitForTimeout(2500);
-  const b = await sc(() => { const m = window.__courseMap; for (let i = 0; i < 3; i++) m.renderFrame?.(); return { scene: m.outfit, av: m.rig.avatar.outfit, hat: !!m.rig.avatar.hw?.head?.parent }; });
+  const b = await sc(() => { const m = window.__courseMap; for (let i = 0; i < 3; i++) m.renderFrame?.(); return { scene: m.outfit, av: m.rig.avatar.outfit, hat: !!m.rig.avatar.hw?.hat?.parent }; });
   check(`Weltkarte mit MAP.outfit: Heldin verkleidet (${JSON.stringify(b)})`, b.scene === 'halloween' && b.av === 'halloween' && b.hat);
   await page.screenshot({ path: `${OUT}outfit_hw_karte.png` }); shots.push({ name: 'karte', path: `${OUT}outfit_hw_karte.png`, group: 'karte' });
   const p = await sc(() => {
