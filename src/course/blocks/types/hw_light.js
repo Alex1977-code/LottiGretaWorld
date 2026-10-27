@@ -18,6 +18,8 @@
 //     'laterne' (nur Handlaterne/Helm) | 'pfahl' (nur feste Laternen), face: true (Geistergesicht vorn), oneWay: false,
 //     always: false (immer fest – zum Ausprobieren) }
 //   level.named.get(id) = { parts: [{ lit, k, solid, warn, box }], lit, solid, info() }; Kollision tag 'geisterplattform'.
+//   light 'laterne' | 'pfahl' gilt auch für die Lichtmaske im Shader: eine Pfahl-Platte zeigt sich nicht im Licht der
+//   Handlaterne (sie trüge dort auch nicht) und umgekehrt (Ergänzung Level H-3/H-Kapitän).
 // Modelle: die Platten zeichnet ein gemeinsames Shader-Mesh (hwkit ghostBatch: 1 Zeichenaufruf für bis zu 64 Platten);
 //   gibt es das Registry-Modell 'geisterplattform' ({ size, color: 'mint' | 'lila' | 'orange' }), übernimmt das Mesh
 //   dessen Form und Farben (schlafendes Gesicht, Lakensaum; color 'blau'/'gruen' → 'mint').
@@ -101,7 +103,7 @@ export function buildGeisterplattform(level, spec) {
       // Registry-Modell 'geisterplattform' (Form und Farben) in das gemeinsame Licht-Shader-Mesh übernehmen
       const mg = ghostGeometry([s.x, s.y, s.z], MODEL_COLOR[spec.color] ?? spec.color ?? 'lila');
       if (mg) mg.translate(p.x, p.y, p.z);
-      part.gid = batch.add(mg ?? ghostSlab(p, s, spec.color ?? 'lila', spec.face !== false));
+      part.gid = batch.add(mg ?? ghostSlab(p, s, spec.color ?? 'lila', spec.face !== false), spec.light === 'laterne' ? [1, 0] : spec.light === 'pfahl' ? [0, 1] : [1, 1]);
     }
     return part;
   });

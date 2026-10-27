@@ -4975,6 +4975,65 @@ H-Burg Messgang ≤ 78 / ≤ 245 k, Bilder 41–84 / ≤ 243 k (Start 220 k nach
 Hinweis an den Modell-Agenten: `hexenturm` (`towerBody`) liefert NaN-Positionen bei Höhen, deren Hälfte nicht exakt
 darstellbar ist (z. B. 3,2 oder 4,2: `Math.pow(y / H, 1.6)` mit y = −ε am Fuß) – die Level nutzen Höhen 3 und 4. **Behoben** (Hauptsitzung): `leanAt` klemmt y/H auf ≥ 0, alle Höhen sind jetzt erlaubt.
 
+## Präzisierung (Level H-Kapitän und H-3)
+
+Additiv zur Halloween-Liste: Titel und Besonderheiten zweier Level der Kürbisinsel. Dateien
+`src/course/levels/w31/H-Kapitän.js`, `H-3.js`, eigene Hilfen `src/course/levels/w31/_helpers_b.js` (kein `LEVEL`, nur für
+diese beiden Level), Test `tests/course_hwb.mjs`. Kein Motor-Code geändert; Sonderteile sind level-lokal (Haken
+`LEVEL.build`/`LEVEL.setup`), die Mechanik kommt aus den Halloween-Bausteinen und -Gegnern. Einzige Baustein-Ergänzung
+(additiv, `blocks/hwkit.js` + `blocks/types/hw_light.js`): die Lichtmaske im Geister-Shader beachtet jetzt `light` – eine
+Platte mit `light: 'pfahl'` leuchtet im Licht der Handlaterne nicht mehr auf (vorher sichtbar, aber nicht begehbar: eine
+Falle für Kinder), eine `'laterne'`-Platte nicht im Pfahl-Licht; `'alle'` unverändert (`ghostBatch.add(geo, mask)`,
+Attribut `aMask`, Uniform `uK`). `course_hw_blocks` (Teil mech) bestanden.
+
+### H-Kapitän „Krümel im Kürbis-Kuddelmuddel“ (diorama · pumpkin_night · course_diorama · 400 s, 3 Sterne)
+
+- Kürbisfeld-Diorama bei Nacht (≈ 37 × 35 m mit Inseln): Kürbisstand-Insel (Start) → lila Geistersteg → Kürbisfeld mit
+  **Strohballen-Labyrinth** (5 × 5 Zellen à 2,6 m, Wände 1 m, `mazeWalls`/`strawWalls`) → Rampe → Terrasse (y 2,5) mit
+  **Riesenkürbis**, roter Scheune und blinkendem Laternenpfahl → **Vogelscheuchen-Insel**. Krümel (`figure: 'kruemel'`)
+  trägt von Anfang an die Laterne (`LEVEL.lantern: { carry: true, radius: 4.6 }`).
+- Sterne: 1 **Herz des Labyrinths** (richtiger Weg außen herum; Sackgassen mit Süßem, ein **Kürbis winkt zurück**,
+  `wavingPumpkin`) · 2 **Geistertreppe** um den Riesenkürbis (12 grüne Geisterplatten, Stufen 0,25 m – Krümel springt
+  nicht; nur im Laternenlicht) auf seinen Deckel, ein Kreisgeist kreuzt die Treppe · 3 **Pfahl-Brücke** (`light: 'pfahl'`,
+  blinkt [4,5 s an, 3 s aus]; die Handlaterne zeigt sie nicht) zur Insel. Der dritte gefundene Stern beendet das Level.
+- Gegner: Kürbling (2, Streife), Kreisgeist (1). Schatzstellen: Sackgasse, Kürbisbeet, Insel. Schilder „Kürbis-
+  Kuddelmuddel“, „Warte, bis die Laterne brennt!“.
+
+### H-3 „Gekicher auf dem Nebelfriedhof“ (parcours · graveyard · course_graveyard · 400 s)
+
+- Abschnitte (≈ 225 m, Plateaus y 1): **Friedhofstor** (Laterne liegt im Weg, Klapperknochen zum Üben, Nebelgraben mit
+  dem ersten lila Geistersteg – Hineinfallen harmlos) → **Nebelschlucht** (sieben lila Geisterplatten im Zickzack, Grabinsel
+  mit Kreisgeist und Flatterfledi) → **Glibberbach** (Checkpoint; Floß mit Pflaume, Ufer 5 m breit, **Gruft-Durchfahrt**
+  `cryptPassage`: hohe Quadermauern über beiden Ufern – zu Fuß kein Weg; Krümel winkt mit Laterne vom Ufer) →
+  **Gruftgarten** (Checkpoint; blinkender Laternenpfahl auf einer Felsnadel zeigt die blaue Brücke; Klappergarten;
+  Kreisgeist-Ring um die Gruft; Spuk; **Grabstein-Schalter** zündet dauerhaft den Pfahl der nächsten Brücke) →
+  **Kapellenhügel** (Checkpoint, Treppe, Klapperknochen, Kreisgeist, Zielmast vor der Kapelle, Glockenturm).
+- Sterne: 0 der **kichernde Geist** (`gigglingGhost`, „Hihi!“) huscht hinter den großen Grabstein – dahinter führen
+  unsichtbare Geisterstufen (Laterne) auf die schwebende Gruft · 1 über dem Glibberbach hinter der Durchfahrt: nur mit
+  einem **Floß-Hüpfer** erreichbar · 2 **Klappergarten**: drei Klapperknochen endgültig besiegen (Draufspringen →
+  Knochenhaufen, Stampfattacke auf den Haufen), `task` mit `ids` zeigt den Stern. Stempel: **Glockenturm** – lila Stufen
+  (Laterne) und blaue Stufen (nur wenn der Turm-Pfahl brennt, [3,6 s an, 2,4 s aus]) im Wechsel; auf lila warten.
+- Gegner: Klapperknochen (8), Kreisgeist (2), Kreisgeist-Kreis (1 × 8), Spuk (1), Flatterfledi (3).
+- Hinweise: Ufer des Glibberbachs mit `bank: 5` bilden die Friedhofsflächen (Kulisse muss 3,7 … 7,7 m von der Bachlinie
+  liegen); die Gruft-Mauern decken die Ufer ganz ab (Oberkante y 8 – auch der Dreifachsprung reicht nicht).
+
+### Test `tests/course_hwb.mjs`
+
+Port 4580 (+ `PORT_BASE`), Aufruf `node tests/course_hwb.mjs [H-Kapitän|H-3]`, Teilläufe
+`PARTS=load,route,targets,extra,sweep,shots` (je Lauf < 10 min; H-3-Bilder in zwei Hälften über `SHOTS='a|b'`),
+`HEROES=lotti,greta`, `ONLY=<Text|Text>`, `VERBOSE=1`, `DETAIL=1`, Bilder `tests/out/hwb_*.png`. Bot mit echter Eingabe;
+Beine u. a. `light`/`dark` (Laternenpfahl geht gerade an/aus), `clear` (Kreisgeist hinter dem Kürbis abwarten), `mount`/
+`ride` (Floß auf dem Glibberbach, `jump` je z-Bereich, `untilZ`), `bones` (Klapperknochen anspringen, Haufen stampfen;
+`noPound`), `pound`, `star`/`stamp`. Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; H-Kapitän: Krümel springt
+nicht, alle drei Sterne einzeln und in einem Lauf (≈ 62 s) samt Gegenproben (ohne Laterne kein Steg, Pfahl aus → keine
+Brücke), winkender Kürbis, Schatzstelle; H-3: Routen-Bot Lotti und Greta Start → Ziel (≈ 41 s), alle Sterne und Stempel mit
+beiden Heldinnen samt Gegenproben (ohne Laterne keine Stufen, ohne Hüpfer kein Stern, nur Draufspringen → kein Stern,
+blaue Stufe bei Pfahl aus trägt nicht), Nebelgraben harmlos, Glibber = Neustart am Checkpoint, Gruft-Mauer, Krümel winkt,
+Grabstein-Schalter (Greta) samt Gegenprobe (ungedrückt keine Brücke); Messgang je Abschnitt. Verkleidung: geprüft über
+`__course.outfit`/`rig.avatar.outfit`, sobald der Motor sie kennt (sonst Hinweis). Gemessen (scale 2, inkl. Schattenpass):
+H-Kapitän 42–81 Zeichenaufrufe / ≤ 255 k Dreiecke (Überblick: ganzes Diorama im Bild) · H-3 Messgang je Abschnitt Ø 56–72,
+max 89 Aufrufe / ≤ 229 k Dreiecke (Gruftgarten), Bilder 47–95 / ≤ 240 k (Floß in der Gruft-Durchfahrt am teuersten).
+
 ## Präzisierung (Figuren Halloween): Verkleidung
 
 Additiv zur Halloween-Welt „Kürbisinsel“ (Abschnitt „Verkleidung“). Dateien: Schalter `src/three/lib/outfit.js`, Bausteine

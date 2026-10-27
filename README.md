@@ -200,6 +200,18 @@ Welt 5):
 | 5-Zug | Bimmelbahn voller Bitcoins | Bonus-Autoscroller auf dem Goldzug, Glücksgarten |
 | 5-Burg | Rumpeltempel des Kippquader-Königs | Ruinen-Tempel, Boss Kippquader-König (nur Sprung auf den Rücken trifft) |
 
+**Halloween · Kürbisinsel** (Sonderwelt, sofort offen über die geschmückte Röhre „HW“ auf der Welt-1-Karte; Lotti,
+Greta, Pflaume und Krümel tragen dort Verkleidung):
+
+| Id | Titel | Art |
+| --- | --- | --- |
+| H-1 | Kullerkürbisse im Abendrot | Kürbisfeld: rollende Riesenkürbisse, Laternenpfad, Kürbis-Kanone |
+| H-2 | Klingelstreich im Schlummerdorf | Süßes-oder-Saures-Dorf: 13 Türen zum Klingeln, Markisen-Hüpfer |
+| H-Kapitän | Krümel im Kürbis-Kuddelmuddel | Diorama: Strohballen-Labyrinth, Geistertreppe, Pfahl-Brücke |
+| H-3 | Gekicher auf dem Nebelfriedhof | Laternenlicht macht Geisterplattformen sichtbar, Klapperknochen, Floß auf dem Glibberbach |
+| H-4 | Hokuspokus-Hochhaus | Hexentürme: Besen, Hexenkessel, Spinnennetze, Zaubertrank-Blasen |
+| H-Burg | Gruselgala auf Schloss Schlotterstein | Gruselschloss, Boss Graf Brummbär (nur zurückgeworfene Kürbis-Bomben treffen) |
+
 - **Tastatur:** Pfeile/WASD laufen (relativ zur Kamera), **Shift** rennen (Druck = Aktion, auch **X**:
   Feuerball, Krallenhieb, Aufheben/Werfen), **Leertaste** springen (Höhe nach Haltedauer), **Strg/C**
   ducken/rutschen (in der Luft: Stampfattacke), **Q/E** Kamera drehen, **Z** Zoom, **Tab** Figur (Karte),
