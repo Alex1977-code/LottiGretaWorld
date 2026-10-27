@@ -13,8 +13,9 @@
 //   (nur Ziele/Extras mit diesem Namensteil) · VERBOSE=1 (Protokoll der Beine)
 //
 // Der Bot lenkt je Schritt zum nächsten Wegpunkt (Stick relativ zur Kamera-Gier wie im Spiel). Die Figur ist während der
-// Fahrt unverwundbar (nur als Sicherung); Treffer-Versuche werden gezählt, und die Hauptrouten von 5-5 und 5-6 müssen
-// ohne einen einzigen Treffer auskommen (Ausweichen: Feuerkugeln, Feuerringe, Pilzlinge – siehe { dodge }).
+// Fahrt unverwundbar (nur als Sicherung); Treffer-Versuche werden gezählt, und die Hauptrouten von 5-5 und 5-6 sowie
+// der Arena-Kampf in 5-B müssen ohne einen einzigen Treffer auskommen (Ausweichen: Feuerkugeln, Feuerringe, Pilzlinge –
+// siehe { dodge }, ballThreat).
 // DETAIL=1: Zeichenaufrufe je Objekt in den Bildern.
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
@@ -329,6 +330,28 @@ function install() {
       for (let t = 0; t < T; t += 0.05) { x += v * 0.05; if (x > b) { x = 2 * b - x; v = -v; } if (x < a) { x = 2 * a - x; v = -v; } }
       return x;
     },
+    /** Höhe (Unterkante) einer Feuerkugel in tau s: 'bounce' mit Schwerkraft 40 und Abprall (6 m/s) auf Höhe floor. */
+    ballY(e, tau, floor) {
+      if (e.mode === 'straight') return e.pos.y + (e.vel?.y ?? 0) * tau;
+      let y = e.pos.y, vy = e.vel?.y ?? 0;
+      for (let t = 0; t < tau - 1e-6; t += 0.01) { vy = Math.max(vy - 40 * 0.01, -18); y += vy * 0.01; if (y < floor && vy < 0) { y = floor; vy = 6; } }
+      return y;
+    },
+    /** Nächste drohende Feuerkugel (Arena): { tau, vx, vz } oder null. */
+    ballThreat(lead = 0.3) {
+      const p = P();
+      for (let tau = 0.02; tau <= lead + 1e-6; tau += 0.02) {
+        const px = p.pos.x + p.vel.x * tau, pz = p.pos.z + p.vel.z * tau;
+        for (const e of L.entities) {
+          if (e.kind !== 'feuerkugel' || !e.alive || e.removed) continue;
+          const bx = e.pos.x + e.vel.x * tau, bz = e.pos.z + e.vel.z * tau, by = this.ballY(e, tau, p.pos.y) + 0.18;
+          if (Math.hypot(px - bx, pz - bz) < 0.18 + p.half.x + 0.35 && by > p.pos.y - 0.25 && by < p.pos.y + p.half.y * 2 + 0.25) {
+            return { tau, vx: e.vel.x, vz: e.vel.z };
+          }
+        }
+      }
+      return null;
+    },
     /** Droht in den nächsten ≈ 0,3 s ein Treffer (Flammenring, Brennerkern, Pilzling)? Dann jetzt springen. */
     danger(list, lead = 0.22) {
       const p = P();
@@ -342,7 +365,8 @@ function install() {
         const px = p.pos.x + p.vel.x * tau, pz = p.pos.z + p.vel.z * tau;
         for (const e of ents) {
           if (e.kind === 'feuerkugel') {
-            const bx = e.pos.x + (e.vel?.x ?? 0) * tau, by = e.pos.y + 0.18 + (e.vel?.y ?? 0) * tau, bz = e.pos.z + (e.vel?.z ?? 0) * tau;
+            const bx = e.pos.x + (e.vel?.x ?? 0) * tau, bz = e.pos.z + (e.vel?.z ?? 0) * tau;
+            const by = this.ballY(e, tau, p.pos.y) + 0.18;
             if (Math.hypot(px - bx, pz - bz) < 0.18 + p.half.x + 0.25 && by > p.pos.y - 0.25 && by < p.pos.y + p.half.y * 2 + 0.2) return 'feuerkugel';
             continue;
           }
@@ -947,11 +971,29 @@ for (const id of LEVELS) {
         p.setHero(heroName);
         const W5 = window.__w5;
         const stick = (dx, dz, mag = 1) => W5.stick(dx, dz, mag);
-        const out = { log: [], hurts: 0 };
+        const out = { log: [], hurts: 0, hurtLog: [] };
         const hurt = p.hurt.bind(p);
-        p.hurt = (src) => { out.hurts++; return hurt(src); };
+        p.hurt = (src) => { out.hurts++; if (out.hurtLog.length < 12) out.hurtLog.push([src?.kind ?? String(src), +(L.time - start).toFixed(2), +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.mode, out.log.length]); return hurt(src); };
         const start = L.time;
-        const step = (inp) => { p.invuln = Math.max(p.invuln, 3); c.setInput(inp); c.step(1); };
+        // Feuerkugeln des Werfers: am Boden kurz vor dem Einschlag hochhüpfen (Unverwundbarkeit nur als Sicherung)
+        // (seitlich zur Inselmitte hin ausweichen – ein Hüpfer landete bei Greta zu oft auf der nächsten Kugel)
+        let sideT = 0, side = null;
+        out.dodges = 0; out.dlog = [];
+        const step = (inp) => {
+          p.invuln = Math.max(p.invuln, 3);
+          if (!inp.jump && sideT <= 0 && p.mode === 'ground') {
+            const th = W5.ballThreat(0.34);
+            if (th) {
+              const l = Math.hypot(th.vx, th.vz) || 1;
+              let sx = -th.vz / l, sz = th.vx / l;
+              if (sx * -p.pos.x + sz * -p.pos.z < 0) { sx = -sx; sz = -sz; }
+              side = stick(sx, sz, 1); sideT = 26; out.dodges++;
+              if (out.dlog.length < 16) out.dlog.push([+(L.time - start).toFixed(2), +p.pos.x.toFixed(1), +p.pos.z.toFixed(1)]);
+            }
+          }
+          if (sideT > 0) { sideT--; inp = { ...inp, ...side }; }
+          c.setInput(inp); c.step(1);
+        };
         const tower = () => L.entities.find((e) => e.kind === 'werferturm' && !e.removed && !e.defeated) ?? null;
         const rider = () => { const t = L.named.get('werfer'); return t && !t.defeated && !t.removed ? t : null; };
         const pillars = [L.named.get('saeule_l'), L.named.get('saeule_r')];
@@ -966,6 +1008,8 @@ for (const id of LEVELS) {
           goTo(wx, wz, 0.4);
           let k = 0;
           for (; k < 1400 && pl.state !== 'low'; k++) step({});
+          for (k = 0; k < 120 && p.mode !== 'ground'; k++) step({});   // erst landen (Ausweich-Hüpfer)
+          if (Math.hypot(p.pos.x - wx, p.pos.z - wz) > 0.6) { goTo(wx, wz, 0.4, 300); if (pl.state !== 'low') continue; }   // nach dem Ausweichen zurück
           // 2) auf die Säule hüpfen
           let left = false;
           for (k = 0; k < 200; k++) {
@@ -981,7 +1025,7 @@ for (const id of LEVELS) {
           for (k = 0; k < 1600; k++) {
             const dx = ctr.x - p.pos.x, dz = ctr.z - p.pos.z;
             step(Math.hypot(dx, dz) > 0.3 ? { ...stick(dx, dz, 0.4) } : {});
-            if (p.ground?.tag !== 'steinsaeule') break;
+            if (p.mode === 'ground' && p.ground?.tag !== 'steinsaeule') break;
             if (pl.state === 'down' && pl.y < 6) break;
             const tg = rider() ?? tower();
             if (!tg) break;
@@ -1042,6 +1086,7 @@ for (const id of LEVELS) {
       const riderHit = r.log.some((l) => l[0] === 'Werfer' && l[1] === 1);
       check(`5-B: ${hero} – von der Steinsäule auf den Werfer gesprungen (besiegt)`, riderHit);
       check(`5-B: ${hero} – Turm Stufe für Stufe abgetragen, Stern eingesammelt, Ziel nach ${r.time} s (< 100 s), gespeichert`, r.left === 0 && r.got && r.finished && r.time < 100 && r.save?.done === true);
+      check(`5-B: ${hero} – ganzer Kampf ohne Treffer (${r.dodges}× Feuerkugeln seitlich ausgewichen, ${r.hurts} Treffer)`, r.hurts === 0);
       if (hero === HEROES[0]) await shot('5-B_ergebnis');
     }
     // Tod → Arena neu: Turm mit Werfer obenauf, kein doppelter Werfer

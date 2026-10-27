@@ -4209,11 +4209,12 @@ Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier); Beine
 aufspringen, mitfahren), `pickup`/`throwAt` (Zündkopf), `enter` (Glasröhre), `cannon`, `chaseId` (Hase), `tile`
 (Flipper-Hüpfer: Zielfarbe muss vor dem Sprung durchlässig sein), `push` (Kugel), `stompOn`, `dodge`/`dodgeLead`/`speed`
 (rechtzeitig springen vor Feuerkugel, Feuerring, Pilzling; Tempo regeln), `pulsWait` (Puls-Ring abwarten, kein Pilzling
-quert), Arena-Bot (Säule abwarten, auf den Werfer, Turm abtragen, Stern). Geprüft: Laden ohne Konsolenfehler, Metadaten,
+quert), Arena-Bot (Säule abwarten, auf den Werfer, Turm abtragen, Stern; Feuerkugeln seitlich zur Inselmitte hin
+ausweichen, `ballThreat` rechnet Schwerkraft und Abprall der Kugel voraus). Geprüft: Laden ohne Konsolenfehler, Metadaten,
 Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel **ohne einen Treffer** (5-5 ≈ 44 s mit zwei Loren und zwei
 Röhren; 5-6 ≈ 59 s, 41 Sprünge = 41 Farbwechsel); alle Sterne und Stempel mit Gegenproben (Röhre hinter der lila Wand
 versperrt, rissige Wand hält Stampfen/Kopfstoß, 2er-Lift fährt nicht mit einer Figur); Extraleben; 5-B: Säulen im
-Wechsel, Turm 9 + Werfer, Kampf (≈ 53 s), Tod setzt zurück (ein Turm, ein Werfer), Zeitlimit 100 s, Funkenblüte.
+Wechsel, Turm 9 + Werfer, Kampf (≈ 53 s, ohne Treffer), Tod setzt zurück (ein Turm, ein Werfer), Zeitlimit 100 s, Funkenblüte.
 Gemessen (scale 2, inkl. Schattenpass): 5-5 45–99 Zeichenaufrufe (Bilder an den Stern-Zielen bis 112) /
 ≤ 233 k Dreiecke · 5-B 50–81 / ≤ 157 k · 5-6 51–106 / ≤ 250 k.
 Wünsche an den Motor: `switch_tile` instanzieren (Farbfeld 3 × 3 = 18 Aufrufe), Flipper-Instanzen mit Frustum-Culling
