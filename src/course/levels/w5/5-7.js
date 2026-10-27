@@ -160,7 +160,7 @@ function setup(level) {
     { pos: [-12.5, Y + 5, -108], yaw: 0 },
     { pos: [5, YT + 0.9, -204], yaw: PI / 2 },
   ]);
-  scheinwerferSparen(level, 40);
+  scheinwerferSparen(level, 34);
   rissWand(level, { wall: 'risswand', x: RISS.x + 0.5, y: Y, z: RISS.z, w: RISS.w, h: RISS.h, face: '+x' });
   kletterRaum(level, { area: [RX - 8, RX + 8, RZ - 8, RZ + 8], blocks: KR_BLOCKS, star: 1 });
   steinStern(level, 'stein_stern', 2);
