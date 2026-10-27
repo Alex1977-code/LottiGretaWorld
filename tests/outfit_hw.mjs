@@ -16,7 +16,8 @@
 //   clones   Spiegelfrucht-Klone (lite) mit Verkleidung: ohne Schatten, Kennzahl
 //   level    Schalter im Spiel: outfitForLevel/outfitForMap, CourseScene (LEVEL.outfit, Neustart), URL ?outfit=halloween,
 //            echte Kurs-Kamera in 1-1, 1-4 (Ritt), 3-Kapitän (Krümel) – Gesamt-Zeichenaufrufe mit/ohne
-//   hwlevel  Halloween-Testlevel 0-20/0-21/0-22 (ohne URL-Schalter): Szene setzt die Verkleidung, Bilder im Halloween-Thema
+//   hwlevel  Halloween-Testlevel 0-20/0-21/0-22 und das erste vorhandene H-Level (ohne URL-Schalter): Szene setzt die
+//            Verkleidung, Bilder im Halloween-Thema
 //   w5       Trapez und Röhrenkanone im echten Motor (Strandwerkstatt 0-17, ?outfit=halloween): Fäuste an der Stange, Zubehör
 //            getragen, Zeichenaufrufe ≤ Stand-Pose; Bilder Seite/Kurs-Kamera
 //   map      Kurs-Weltkarte: Welt 1 ohne, MAP.outfit setzt die Verkleidung; Halloween-Welt 31 (Kürbisinsel): Heldin verkleidet,
@@ -659,8 +660,10 @@ async function levelPart() {
 // ---------------------------------------------------------------- Halloween-Testlevel
 async function hwLevelPart() {
   // Halloween-Testlevel (Werkstatt 0-20, Gruselwerkstatt 0-21, Schlossdach 0-22) ohne URL-Schalter: die Szene zieht an
-  for (const id of ['0-20', '0-21', '0-22']) {
-    await waitCourse(`${base}/?course=${id}&scale=2&adapt=0`);
+  // dazu das erste vorhandene Level der Halloween-Welt (H-…), sobald es gebaut ist
+  const hLevel = ['H-1', 'H-2', 'H-3', 'H-4', 'H-Burg'].find((id) => existsSync(`${ROOT}src/course/levels/w31/${id}.js`));
+  for (const id of ['0-20', '0-21', '0-22', ...(hLevel ? [hLevel] : [])]) {
+    await waitCourse(`${base}/?course=${encodeURIComponent(id)}&scale=2&adapt=0`);
     const r = await sc(() => {
       const c = window.__course; c.setManual(true); c.level.muted = true;
       try { window.__game.scene.getScene('CourseUI').cameras.main.setVisible(false); } catch (_) { /* egal */ }
@@ -668,7 +671,7 @@ async function hwLevelPart() {
       const av = c.rig.avatar;
       return { scene: c.outfit, av: av?.outfit ?? null, hat: !!av?.hw?.hat?.parent, rig: c.rig.constructor.name };
     });
-    check(`${id}: Halloween-Testlevel – Verkleidung an, Lotti mit Hut (${JSON.stringify(r)})`, r.scene === 'halloween' && r.av === 'halloween' && r.hat);
+    check(`${id}: Halloween-Level – Verkleidung an, Lotti mit Hut (${JSON.stringify(r)})`, r.scene === 'halloween' && r.av === 'halloween' && r.hat);
     await page.screenshot({ path: `${OUT}outfit_hw_spiel_${id}.png` }); shots.push({ name: `spiel_${id}`, path: `${OUT}outfit_hw_spiel_${id}.png`, group: 'spiel' });
     if (id === '0-20') {
       await sc(() => { const c = window.__course; c.setHero('greta'); c.rig.update(1 / 60, 1); for (let i = 0; i < 4; i++) c.renderFrame(); });
