@@ -4355,3 +4355,185 @@ Gemessen (scale 2, inkl. Schattenpass): 5-5 45–99 Zeichenaufrufe (Bilder an de
 ≤ 233 k Dreiecke · 5-B 50–81 / ≤ 157 k · 5-6 51–106 / ≤ 250 k.
 Wünsche an den Motor: `switch_tile` instanzieren (Farbfeld 3 × 3 = 18 Aufrufe), Flipper-Instanzen mit Frustum-Culling
 (jedes Feld wird immer gezeichnet), Reiter-Spec des Werferturms mit `kind` (dann entfällt `arenaTowerFix`).
+
+## Präzisierung (Motor und Bausteine Halloween)
+
+Ergänzung des Motor-/Bausteine-Agenten der Halloween-Welt „Kürbisinsel“ (Stand: Halloween-Werkstatt `0-20`). Nichts oben
+Festgelegtes wird geändert; alles ist additiv. Alle Halloween-Mechaniken sind parametrierbare Module, Level-Bauer setzen sie
+nur in Daten ein. Jede Datei dokumentiert ihre Parameter vollständig im Kopfkommentar; hier die Felder mit Beispielen.
+Aktionen im bekannten Format (Präzisierung Sonder-Bausteine, mit `{ signal }` aus Welt 5). Entitäts-Gimmicks sind auch als
+`type` in `segments` erlaubt (`hw_misc.js`), die Bausteine `geisterplattform`, `besen_plattform`, `hexenkessel`,
+`spinnennetz_trampolin`, `kuerbis_kanone`, `riesenkuerbis_roll` auch als `kind` (Hülle wie Welt 5).
+
+### Präzisierung (Motor und Bausteine Halloween): Dateien
+
+```
+src/course/blocks/hwkit.js               HWC (Farben), hwSfx (Halloween-Klang mit Ersatz), modelOr, pumpkinGeo/faceGeo,
+                                         lanternParts, candyGeo, softTexture/fogTexture, hwLight (Laternenlicht-System),
+                                         ghostBatch (Geisterplatten in einem Shader-Mesh), hwHud (Zähler oben rechts),
+                                         modelGeometry/modelBox/ghostGeometry/bakeInstanced (Registry-Modelle backen)
+src/course/blocks/types/hw_light.js      laternenlicht, geisterplattform
+src/course/blocks/types/hw_broom.js      besen_plattform
+src/course/blocks/types/hw_cauldron.js   hexenkessel (+ Zaubertrank-Blasen), spinnennetz_trampolin
+src/course/blocks/types/hw_cannon.js     kuerbis_kanone (Röhrenkanone aus w5_savanna.js, Mechanik unverändert)
+src/course/blocks/types/hw_glibber.js    glibberbach (Rasterfluss aus river.js als Glibber), nebel
+src/course/blocks/types/hw_misc.js       riesenkuerbis_roll (Spender) + Entitäts-Gimmicks als segments-type
+src/course/blocks/types/deco_hw.js       Kulisse Halloween (verschmolzen; shadow: false für ferne Kulisse)
+src/course/entities/kinds/hw_gimmicks.js laterne, laternenpfahl, suessigkeit(en), suessigkeiten_tuer, grabstein_schalter,
+                                         riesenkuerbis + kind-Hüllen der Halloween-Bausteine
+src/course/view/theme_pumpkin|pumpkin_night|candyvillage|graveyard|witchtower|castle_night.js, backdrop_hw.js
+src/course/levels/w0/0-20.js             Halloween-Werkstatt (eine Station je Mechanik, marks für den Test)
+tests/course_hw_blocks.mjs               Port 4530, Bilder tests/out/hwb_*.png (je Thema hwb_thema_*.png)
+```
+
+Additiv geändert: `view/themes.js` (6 Registrierzeilen, `??=`). Kein Motor-Code geändert: `src/three/*`, Modelle, Audio,
+Karte, Player/HeroRig und die Welt-5-Bausteine bleiben unverändert (die Kürbis-Kanone nutzt `buildRoehrenkanone` über eine
+Level-Hülle ohne Ansicht und zeichnet selbst; der Glibberbach baut den Rasterfluss `river` und wandelt dessen Wasserzellen
+beim Anlegen in Glibber-Formen um).
+
+### Präzisierung (Motor und Bausteine Halloween): Laternenlicht
+
+`hwLight(level)` (= `level.hwLight`, eines je Level, entsteht mit dem ersten Halloween-Baustein) sammelt je
+Simulationsschritt die Lichtquellen `list = [{ x, y, z, r, kind }]`:
+
+| Quelle | kind | Lage / Radius |
+| --- | --- | --- |
+| Handlaterne jeder Figur (auch Klone), sobald `carried` | `'figur'` | Handhöhe (0,62 · Figurhöhe), `radius` (Standard 5 m) |
+| Licht-Helm (Motor Welt 2) | `'helm'` | drei Lichtkugeln entlang des Kegels (1,6 / 3,6 / 5,6 m, Radius 0,5 + 0,52 · Abstand) |
+| Laternenpfahl (Entität) | `'pfahl'` | Lampe, eigener `radius` (Standard 4,5 m), nur wenn an |
+| Höhlen-Laterne `lantern` (Welt 1), angezündet | `'laterne'` | Lampe, ihr `radius` |
+
+`at(x, y, z)` und `box({ x0, x1, y0, y1, z0, z1 }, kinds?)` liefern 0..1 (Abstand mit gestauchter Höhe dy · 0,7, weicher
+Rand `soft` 1,2 m); `carry(on)`, `configure({ radius, soft, carry, lose, helmet })`, `info()`. Tragen: Item `laterne`
+oder `LEVEL.lantern = true | { carry, radius, soft, lose, helmet }` bzw. Baustein `laternenlicht`. Mit `lose: true` geht
+die Laterne beim Tod verloren und das Item erscheint wieder. Darstellung: Handlaterne an der rechten Hand jeder Figur
+(pendelt, Modell `laterne_hand`), warmer Lichtkreis am Boden unter jeder Quelle (eine InstancedMesh), das Figurenlicht des
+Themas (`playerLight`) wird zur warmen Laterne in der Hand; Laternenpfähle nutzen `view.addLantern` (Punktlicht im Thema mit
+`lanternLight`).
+
+**Schnittstelle für Figuren-/Kostüm-Agenten:** `player.hwLantern` ist `true`, solange die Figur eine Laterne trägt (je
+Schritt gesetzt). Hält der Avatar die Laterne selbst (Hand-Pose, eigenes Modell), `level.hwLight.handLantern = false`
+setzen – dann zeichnen die Bausteine keine eigene Handlaterne (Licht und Lichtkreis bleiben).
+
+**Geisterplattformen** zeichnet ein gemeinsames Shader-Mesh (`ghostBatch`, ein Zeichenaufruf für bis zu 64 Platten):
+Lichtmaske je Pixel aus den nächsten 8 Quellen (heller Rand am Lichtkreis, Funkeln), dazu je Platte eine
+Grund-Sichtbarkeit (0,3 im Licht, Flackern in der Vorwarnung), im Dunkeln ein zarter Schimmer (`hint`).
+
+### Präzisierung (Motor und Bausteine Halloween): Signale, Zähler, HUD, Klänge
+
+- **`level.signal('klingeln', { id, group, content, n, of, pos, via, source })`** je geklingelter Tür (`via` = `'walk'` |
+  `'stomp'` | `'tap'` | `'action'` | `'code'`; `content` = tatsächlicher Inhalt, z. B. `'pilzling'` als Ersatz für den
+  Kürbling); Zähler `level.hwDoors[group] = { n, of, done }`; sind alle Türen der Gruppe geklingelt, laufen die
+  `onAll`-Aktionen ihrer Türen. Für Level-Aufgaben („alle 8 Türen“) genügt `onAll` bzw. `level.onSignal('klingeln', …)`.
+- **Schnittstelle für den Gegner-Agenten:** `content: 'kuerbling'` erzeugt `level.spawn('kuerbling', { …enemy, pos (1,1 m
+  vor der Tür), yaw (Blick aus der Tür), dir: [dx, dz], fromDoor: id | true })` – `fromDoor` erlaubt eine eigene
+  Heraushüpf-Animation; bis es `kuerbling` gibt, kommt `pilzling`.
+- Grabstein-Schalter: optional `signal: name` → `level.signal(name, { pos, source, via, pressed })` beim Drücken und
+  Loslassen (`pressed: false`).
+- `level.hwCandy` zählt gesammelte Süßigkeiten (jede +1 Bitcoin über `level.addCoins(1)`).
+- **HUD** `hwHud(level).set(key, { text, icon: 'tuer' | 'bonbon' | 'kuerbis' | 'laterne', done, color, hold })` – Zeilen
+  oben rechts (unter einer evtl. Schlüssel-Anzeige); Türen zeigen „Türen n/N“ (`hud: false` schaltet ab), Süßigkeiten
+  „Süßes n“ mit `LEVEL.candyHud: true`. `state()` für Tests.
+- **Klänge** über `hwSfx(level, name, ersatz)`: spielt den Halloween-Klang, sobald es ihn in `src/audio` gibt, sonst den
+  Ersatz: `suessigkeit` (berry), `klingel` (key), `tuer` (gate), `muenzregen` (coin), `buh` (ghost), `alle_tueren` (key),
+  `laterne` (light), `laterne_aus` (vanish), `kessel` (bounce), `netz` (bounce), `blase` (vanish), `grabstein` (ghost),
+  `kuerbis_platzt` (brickbreak). Wunsch an den Audio-Agenten: diese Namen als eigene Effekte.
+
+### Präzisierung (Motor und Bausteine Halloween): Liste mit Daten-Beispielen
+
+| Typ / Art | Kern | Wichtige Felder (Standard) | Beispiel |
+| --- | --- | --- | --- |
+| `laternenlicht` (type) | stellt das Laternenlicht ein | `radius` 5, `soft` 1.2, `carry` false, `lose` false, `helmet` true | `{ type: 'laternenlicht', radius: 5 }` |
+| `laterne` (kind; auch type) | Handlaterne zum Aufheben → alle Figuren tragen eine | `pos` (Fußpunkt, schwebt darüber), `radius` (setzt den Lichtradius), `banner` 'Laterne!' ('' = keine), `id`, `hidden` | `{ kind: 'laterne', pos: [0,1,-11] }` |
+| `laternenpfahl` (kind; auch type) | feste Laterne auf Pfahl, Lichtquelle; blinkt mit Vorwarnung; schaltbar | `pos`, `radius` 4.5, `height` 2.4, `on` true, `blink` null \| [an, aus], `phase`, `warn` 0.6, `style` 'kuerbis' \| 'laterne', `yaw` (Arm-Richtung, −π/2), `id` → `{ on, toggles, toggle(), start(), stop(), info() }`; Feuer/Tatze zündet an | `{ kind: 'laternenpfahl', id: 'pfahl1', pos: [-5.2,1,-40], radius: 6, blink: [4, 2.5], yaw: 0 }` |
+| `geisterplattform` | nur im Licht sichtbar und begehbar, Vorwarnung, wird nicht fest, solange eine Figur darin steckt | `pos`+`size` [2.4,0.5,2.4] \| `parts: [{ pos, size }]` \| `from`/`to`/`n`, `linger` 0.8, `hint` 0.06, `color` 'lila' \| 'blau' \| 'gruen', `light` 'alle' \| 'laterne' \| 'pfahl', `face` true, `oneWay`, `always`, `id` → `{ parts: [{ lit, k, solid, warn, waits }], lit, solid, info() }`; Form tag `geisterplattform` | `{ type: 'geisterplattform', id: 'geist1', light: 'laterne', from: [0,0.5,-16.5], to: [0,0.5,-26.5], n: 4 }` |
+| `besen_plattform` | fliegender Hexenbesen mit Sitzbrett trägt die Figur (mover), wippt, neigt sich, dreht an den Enden | `path` (Mitte Unterseite), `size` [3, 1.3] (Länge × Breite), `thick` 0.35, `axis` 'auto' \| 'x' \| 'z', `speed` 2.5, `wait` 0.8, `mode` 'pingpong' \| 'loop', `phase`, `start` 'auto' \| 'stand' \| 'signal', `once`, `bob` 0.06, `tilt` 7, `reset` true, `color` 'lila' \| 'rot' \| 'gruen', `trail` true, `id` → `{ pos, mover, shape, running, riders, rides, start(), stop(), reset(), info() }` | `{ type: 'besen_plattform', id: 'besen', path: [[0,0.65,-54.5],[0,1.4,-61],[0,0.65,-67.5]], start: 'stand' }` |
+| `hexenkessel` | Trampolin mit Blubber (bounce), Spritzer je Abprall; optional Zaubertrank-Blasen als aufsteigende Plattformen (von unten durchlässig, tragen nach oben, wackeln, platzen) | `pos`, `size` 2, `height` 1.2, `strength` 20 \| `jump` m, `color` 'gruen' \| 'lila' \| 'orange', `light` true, `potions` false \| true \| { `every` 2.6, `rise` 1.6, `height` 8, `size` 1.7, `wobble` 0.7, `max` 3, `offset` [dx,dz], `first` 0.5 }, `id` → `{ bounces, top, strength, bubbles, pops, spawned, info() }`; Formen tag `hexenkessel`, `zaubertrank_blase` | `{ type: 'hexenkessel', id: 'kessel2', pos: [7,1,-93], potions: { every: 2.4, height: 7 } }` |
+| `spinnennetz_trampolin` | Netz zwischen vier krummen Pfählen federt (bounce), dellt sich ein, Spinne am Faden | `pos` (Boden unter der Mitte), `size` [3,3], `height` 1, `strength` 17 \| `jump` m, `spider` true, `posts` true, `id` → `{ bounces, sag, top, info() }` | `{ type: 'spinnennetz_trampolin', pos: [-7,1,-91], jump: 5.5 }` |
+| `kuerbis_kanone` | Röhrenkanone im Kürbis-Look (Gesicht glüht beim Laden, Deckel mit Stiel lehnt daneben) | Felder von `roehrenkanone` (`pos`, `to`, `arc`, `gravity`, `charge` 0.6, `enter`, `onFire`, `hidden`) + `size` 1.3 (Registry-Modell; Kollision aus dessen Hüllquader) bzw. `height` 2.0, `radius` 1.1 (eigene Optik), `yaw` −π/2 (Gesicht +Z; mit Registry-Modell zum Ziel gedreht), `face` 'grinsen', `color` 'orange' \| 'gelb' \| 'weiss', `mark` true; Griff wie `roehrenkanone` | `{ type: 'kuerbis_kanone', id: 'kanone', pos: [0,1,-104.5], to: [0,1,-134] }` |
+| `suessigkeiten_tuer` (kind; auch type) | Haustür mit Häuschen: Stampfen auf die Schwelle / Antippen / Hinlaufen = klingeln → Glocke, Tür auf, Inhalt, Tür zu, Türlampe brennt | `pos` (Schwellenmitte), `yaw` −π/2 (Tür zeigt +Z), `content` 'muenzen' \| 'suesses' \| 'kuerbling' \| 'nichts' \| Gegner-Art \| Aktion, `n` 5, `enemy` {…}, `ring` ['stomp','tap','walk'], `group` 'tueren', `onAll`, `of`, `hud` true, `house` true, `color` 'lila' \| 'orange' \| 'gruen' \| 'blau', `once` true, `id` → `{ state, rings, via, out, lit, info() }` | `{ type: 'suessigkeiten_tuer', id: 'tuer1', pos: [-8,1,-148], yaw: 0, content: 'muenzen', onAll: { coins: 5 } }` |
+| `suessigkeit` / `suessigkeiten` (kind; auch type) | Sammel-Item, +1 Bitcoin, `level.hwCandy`, eigener Klang; mit `vel` fliegt es zuerst (erst nach 0,35 s einsammelbar); Figuren im Kanonenflug/Floß sammeln mit | `pos`, `variant` 'bonbon' \| 'lolli' \| 'zuckermais' \| 'schoko', `vel`, `hidden`; Reihe/Kreis `from`/`to`/`n` \| `pos`/`r`/`n` | `{ kind: 'suessigkeiten', from: [-3,1,-2], to: [3,1,-2], n: 4 }` |
+| `riesenkuerbis` (kind; auch type) | rollender Riesenkürbis (auf der Seite, wie ein Rad): bergab schneller, seitlich Treffer + Stoß, von oben Abprall, Stampfen/Angriffe zerplatzen ihn; Wand/Lava/Glibber/Abgrund/`life` → platzt | `pos`, `dir` \| `yaw`, `size` 1.8, `speed` 3, `max` 9, `path` (Bodenpunkte; folgt kinematisch, bergab schneller, platzt am Ende), `life` 16, `hurt` true (false = nur wegstoßen), `face` true, `drop` (Aktion), `color`, `id` → `{ state, rolled, speed(), info() }` | `{ kind: 'riesenkuerbis', pos: [0,1,-194], dir: [1,0] }` |
+| `riesenkuerbis_roll` | Spender (Holzverschlag mit Kürbisstapel) stößt Riesenkürbisse aus; ohne `every` ein einzelner (respawn) | `pos` (Austritt), `dir` \| `yaw`, `every` 3.5 (0 = einzeln), `first` 0.5, `max` 3, `start` 'auto' \| 'near' \| 'signal', `near` 20, `spawner` true, `respawn` 0, `vmax`, …Kürbis-Felder, `id` → `{ spawned, alive, running, start(), stop(), spawn(), info() }` | `{ type: 'riesenkuerbis_roll', id: 'spender', pos: [-12.6,4,-186], dir: [1,0], every: 4, start: 'near' }` |
+| `grabstein_schalter` (kind; auch type) | Druckschalter: Grabplatte vor einem Grabstein mit Lachgesicht; Platte sinkt, Augen leuchten | `pos`, `yaw` −π/2 (Gesicht und Platte zur Kamera), `on`, `off`, `signal`, `time` 0 (Zeitanzeige, dann zurück), `toggle`, `once`, `press` 'stand' \| 'pound', `face` true, `id`, `hidden` → `{ pressed, presses, press(), release(), info() }`; Signale `open`/`toggle`/`start`/`stop` | `{ type: 'grabstein_schalter', id: 'schalter', pos: [-4,1,-205], on: { reveal: 'grabweg' } }` |
+| `glibberbach` | grüner Glibber-Bach (Rasterfluss `river` Form B mit Ufern/Strömung): Floß `raft` (Pflaume) fährt darauf, Hineinfallen = Neustart am Checkpoint (`kill: 'glibber'`, deathCause `'fall'`), Gegner versinken, Blasen und Klumpen | `path` (y = Oberfläche), `width` 6, `depth` 2, `speed` 3 \| `speeds`, `bank` 2.5, `bankH` 1, `banks`, `bed`, `open`, `color` 'gruen' \| 'lila', `bubbles` 26, `blobs` 10, `id` → `{ river, sunk, contains(x,z), surfaceAt(x,z), info() }` | `{ type: 'glibberbach', id: 'glibber', path: [[0,-0.5,-239],[0,-0.5,-252],[2.5,-0.6,-262],[0,-0.6,-276]], bankH: 1.5 }` + `{ kind: 'raft', pos: [0,-0.5,-241.5], exit: [0,-0.6,-276], exitR: 0.9 }` |
+| `nebel` | Bodennebel-Feld, rein optisch (Schichten, treibt, Ränder weich, um die Figur dünner) | `pos` (Mitte am Boden), `size` [14,14], `height` 1.3, `layers` 3, `density` 0.35, `color` 0xc8d2f4, `drift` [0.25,0.08], `edge` 2 | `{ type: 'nebel', pos: [0,1,-301], size: [24,18] }` |
+| `deco_hw` | Kulisse (verschmolzen) | `items: [{ kind, pos, … }]`, `shadow: false`; Arten `kuerbis` (size, shape, color, face), `kuerbisse`, `kuerbislaterne` (mount 'boden' \| 'pfahl', light), `vogelscheuche`, `strohballen` (form 'eckig' \| 'rund'), `maisstaude`, `maisfeld`, `krummer_baum`, `krumme_baeume`, `grabstein` (style 'rund' \| 'kreuz' \| 'spitz', face), `grabsteine`, `zaun` (from, to, style 'holz' \| 'eisen', solid), `spinnweben` (lage 'ecke' \| 'decke'), `kerzen` (n, light), `fledermaus_girlande` (from, to, n, sag), `suessigkeiten` (Haufen), `dorfhaus`, `hexenturm`, `gruft`, `kerzenleuchter` (nur mit Registry-Modell); Streuungen mit `detail: 'voll'` als Einzelmodelle | `{ type: 'deco_hw', items: [{ kind: 'kuerbisse', pos: [-9,1,1], size: [6,8], n: 7, faces: 0.5 }, { kind: 'vogelscheuche', pos: [9.5,1,-1] }] }` |
+
+Hinweise für Level-Bauer: Geisterplatten für die Handlaterne höchstens ≈ 3,5 m auseinander (Radius 5 m, die nächste
+Platte muss vor dem Absprung im Licht liegen); `light: 'pfahl'` für Brücken, die nur ein (blinkender) Laternenpfahl zeigt.
+Floß-Ende (`exit`) dicht vor die Uferwand legen (das Absteigen springt nur ≈ 1,5 m vor). Türen in Gassen seitlich
+(`yaw: 0` bzw. `π`); Hinlaufen braucht den Blick zur Tür.
+
+### Präzisierung (Motor und Bausteine Halloween): Modelle
+
+Die Bausteine übernehmen die Halloween-Modelle der Registry, sobald `hasModel(name)` gilt (sonst eigene Ersatz-Geometrie,
+gleiche Kollision und Mechanik). Stand mit den Modellen aus `gimmicks_hw.js`, `props_*_hw.js`:
+
+| Modell | genutzt von | Optionen / Zustand aus dem Baustein |
+| --- | --- | --- |
+| `laterne_hand` | Handlaterne an jeder Figur (× 0,7), Item `laterne` (× 1,15, ohne eigenen Schein) | state { swing (rad), lit } |
+| `kuerbislaterne` | `laternenpfahl` mit `style: 'kuerbis'`; `deco_hw` kuerbislaterne | { mount: 'pfahl' } bzw. { size, mount, face } |
+| `laternenpfahl` | `laternenpfahl` (`style: 'laterne'`), noch kein Registry-Modell → eigene Optik | { height, style }; state { lit 0..1 } |
+| `geisterplattform` | Form und Farben (einfache Form `ghostPlatformGeo(…, lo)`) im Licht-Shader-Mesh, Farbe lila → 'lila', blau/grün → 'mint', orange | { size: [w, h, d], color } |
+| `besen_plattform` | Besen; Ursprung = Brett-Oberseite (Lauffläche) | { length, width, stick: 1,45 · length, color }; state { tilt, roll, bank, speed, moving } |
+| `hexenkessel` | Kessel, auf `height` gestreckt (Höhe/userData.top) | { size: 2R / 1,7 }; state { bounce (Einfedern), bubble: 1 } |
+| `spinnennetz_trampolin` | Netz (ohne eigene Pfähle) | { radius: min(w, d) / 2, height }; state { bounce: Durchhang / 0,7 } |
+| `kuerbis_kanone` | Kanone, dreht zum Ziel, Rohr folgt dem Abschusswinkel; Kollision aus dem Hüllquader des größten Teils | { size 1,3 }; state { anim 'idle' \| 'load' \| 'fire', k, aim (rad) } |
+| `suessigkeiten_tuer` | Tür im Häuschen (Wandöffnung mit Vorraum 1,45 m, Tür 1,3 × 2,4 m, öffnet nach innen) | { width, height, color }; state { open, ring, lit } |
+| `grabstein_schalter` | Schalter; Kollision aus dem Hüllquader (man kann darauf springen), Knopf = Druckplatte | state { pressed 0..1, glow } |
+| `riesenkuerbis_roll` | rollender Riesenkürbis (Spender und `riesenkuerbis`) | { size, color, face }; state { roll (Strecke / Radius), speed, anim 'roll' \| 'burst', progress } |
+| `suessigkeit` | Pool-Vorlage der Süßigkeiten | { kind: bonbon → 'bonbon', lolli → 'lolli', zuckermais → 'mais', schoko → 'riegel', color: Index } |
+
+Kulisse `deco_hw`: erst `deco_hw_<kind>`, sonst `kuerbis`, `kuerbislaterne`, `vogelscheuche`, `strohballen` (form → kind),
+`maisstaude`, `suessigkeiten_haufen`, `grabstein` (style → kind, tilt, pumpkin), `halloween_baum` (krummer_baum),
+`spinnennetz` (spinnweben: 'ecke' → 'ecke', 'decke' → 'rund'), `eisenzaun` (zaun style 'eisen'), `kerzenleuchter`,
+`dorfhaus_nacht`, `hexenturm`, `gruft` – gebacken in die statische Geometrie, Kollision bleibt; Gesichter/Türen zeigen ohne
+`yaw` zur Kamera (+Z). Die Streuungen `kuerbisse`, `grabsteine`, `maisfeld` backen die einfachere Instanz-Form
+(`createInstanced`, `bakeInstanced` in hwkit; ≈ ⅓ der Dreiecke), `detail: 'voll'` nimmt die Einzelmodelle. Neu (nur mit
+Registry-Modell): `dorfhaus` (width 3, depth 2.6, height 2.4, color, door, lean), `hexenturm` (height 5, radius 1.3, lean,
+windows, part), `gruft` (size), `kerzenleuchter` (arms, height, light). Noch ohne Modell (eigene Optik): Zaubertrank-Blase,
+Laternenpfahl-Stil 'laterne', Spender-Verschlag, Glibber, Nebel.
+
+### Präzisierung (Motor und Bausteine Halloween): Themen
+
+| Thema | Stimmung | Kulisse (`buildBackdrop`) |
+| --- | --- | --- |
+| `pumpkin` | Abendrot: lila Zenit, rosa Band, glühender Orange-Horizont, tiefe warme Sonne mit langen Schatten; herbstliches Grün auf Ackererde; Stimmung `nacht` (view.setMood) | Kürbisfelder mit Furchen bis zum Horizont, Maisreihen, rote Scheunen, lila Hügel, Krähen, fallendes Herbstlaub |
+| `pumpkin_night` | Nacht-Variante für das Diorama (H-Kapitän): tiefblau-lila Nacht, Mond mit Gesicht | dieselben Felder, überall leuchtende Kürbisgesichter, Sterne, Glühwürmchen |
+| `candyvillage` | sternklare Nacht, Mond mit schläfrig-lächelndem Gesicht, warme Fensterlichter | schiefe Häuschen mit warmen Fenstern und Schornsteinen, runde Bäume, Hügel, Fledermäuse |
+| `graveyard` | Mondnacht in kühlem Blau-Lila, Bodennebel | Friedhofshügel mit Grabsteinen und Kreuzen, kahle Bäume, Kapelle mit warmem Fenster, treibende Nebelbänke, Irrlichter |
+| `witchtower` | Nacht zwischen lila Wolken, sanfter Blitzschimmer (weich an/ab, kein Knall), grünes Kessellicht von unten | Wolkenbänke und Wolkenmeer, schiefe Hexentürme mit grünen Fenstern, aufsteigende Zaubertrank-Funken |
+| `castle_night` | Vollmond über dem Gruselschloss; rote Teppiche mit Goldkante als Decke; Stimmung `innen` (Kerzenschein) | Türme mit lila Spitzdächern und Kerzenfenstern, Hauptburg hinter dem Ziel, Sterne, Fledermäuse |
+
+Alle sechs Themen haben `playerLight` (Figurenlicht) und `lanternLight` und gelten damit als dunkle Themen für den
+Spielzeug-Look (kräftigeres Randlicht, Figuren lesbar). Die Werkstatt lässt sich mit `?course=0-20&theme=<name>` in jedem
+Thema ansehen.
+
+### Präzisierung (Motor und Bausteine Halloween): Halloween – Gimmick → Baustein
+
+| Level | Gimmick | Bausteine |
+| --- | --- | --- |
+| H-1 | Kürbisfeld im Abendrot, Kürbis-Hüpfer, rollende Kürbisse, Vogelscheuchen, Laternenpfad | `riesenkuerbis_roll` (Hang, Spender bzw. `path`), `riesenkuerbis`, `laternenpfahl`, `kuerbis_kanone`, `suessigkeiten`, `deco_hw` (kuerbisse, maisfeld, vogelscheuche, strohballen, zaun), Thema `pumpkin` |
+| H-2 | Süßes-oder-Saures-Dorf: Türen klingeln → Bitcoins/Süßes oder Kürbling | `suessigkeiten_tuer` (`content`, `group`, `onAll`; Signal `klingeln`), `suessigkeit`, `LEVEL.candyHud`, `deco_hw` (kuerbislaterne, fledermaus_girlande, suessigkeiten, zaun), Thema `candyvillage` |
+| H-Kapitän | Krümel mit Laterne im Kürbislabyrinth | `LEVEL.lantern: true` (bzw. `laternenlicht` carry), `geisterplattform`, `laternenpfahl`, `deco_hw` (kuerbisse, maisfeld), Thema `pumpkin_night` (oder `pumpkin` mit `setMood('nacht')`) |
+| H-3 | Nebelfriedhof: Laternenlicht zeigt Geisterplattformen, Floß auf dem Glibberbach | `laterne`, `geisterplattform` (`light`), `laternenpfahl` (`blink`), `grabstein_schalter`, `glibberbach` + `raft`, `nebel`, `deco_hw` (grabsteine, krumme_baeume, zaun eisen, spinnweben), Thema `graveyard` |
+| H-4 | Hexenturm vertikal: Besen-Plattformen, Hexenkessel-Trampoline, Zaubertrank-Blasen | `besen_plattform`, `hexenkessel` (`potions`), `spinnennetz_trampolin`, `deco_hw` (kerzen, spinnweben), Thema `witchtower` |
+| H-Burg | Gruselschloss, Graf Brummbär | `grabstein_schalter`, `laternenpfahl`, `deco_hw` (kerzen, fledermaus_girlande), Thema `castle_night` (`setMood('innen')`) |
+
+### Präzisierung (Motor und Bausteine Halloween): Tests und Kennzahlen
+
+`tests/course_hw_blocks.mjs` (Port 4530, `PORT_BASE`; `HWB_SHOTS=0` ohne Bilder, `HWB_PART=mech|themes` je Teil, je unter
+10 min, `HWB_DEBUG=1`): deterministisch über `step(n)`/`setInput` in der Halloween-Werkstatt `0-20` – Geisterplattform
+(ohne Laterne fällt die Figur hindurch, Laterne aufheben, mit Laterne fest und nur im Radius, Vorwarnung 0,8 s, wird nicht
+fest, solange die Figur darin steckt), blinkender Laternenpfahl (Brücke nur bei Licht, Handlaterne allein zeigt sie nicht),
+Besen (startet beim Draufstellen, trägt über die Schlucht), Hexenkessel (+7,4 m), Zaubertrank-Blase (trägt ≈ 3 m nach oben,
+platzt), Spinnennetz (+5,5 m), Kürbis-Kanone (lädt, Flug im Zustand `cannon`, landet genau), drei Türen (Hinlaufen →
+Bitcoins, Stampfen → sechs Süßigkeiten fliegen heraus, Antippen → Gegner; Signale `klingeln` 1/3 … 3/3, `onAll`, HUD),
+Süßigkeiten (+1 Bitcoin je Stück, HUD „Süßes n“), Riesenkürbis (Spender startet in der Nähe, bergab bis 9 m/s, Treffer,
+Stampfen zerplatzt ihn, Bahn `path`), Grabstein-Schalter (Weg erscheint, Signal; Zeit-Schalter mit Laternenpfahl),
+Glibberbach (Hineinfallen = Neustart am Checkpoint, Floßfahrt mit Pflaume bis ans Ende, Gegner versinken), Nebel, Ziel,
+keine Konsolenfehler (37 Prüfungen); dazu Themen-Bilder aller sechs Themen (4 Prüfungen). Kennzahlen mit den
+Registry-Modellen (960×540, scale 2, inkl. Schattenpass): Stationen 39–70 Zeichenaufrufe, 89–201 k Dreiecke (Türen am
+meisten); Themen-Bilder 51–73 Aufrufe, 94–181 k Dreiecke (Budget < 120 / < 300 k). Teuer sind einzelne Kulissenmodelle
+(Vogelscheuche ≈ 9 k, Dorfhaus ≈ 11 k, Tür ≈ 10,5 k, Riesenkürbis ≈ 11,5 k): für viele Stücke die Streuungen nehmen.
