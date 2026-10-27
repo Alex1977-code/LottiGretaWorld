@@ -94,7 +94,7 @@ const gyV = ['G4:3 Bb4:1 -:2 D5:2 D5:2 C5:2 Bb4:4', 'G4:3 Bb4:1 -:2 D5:2 G5:2 F5
 const gyVerse = [...gyV, gyV[0], gyV[1], 'G4:3 C5:1 -:2 Eb5:2 G5:2 F5:2 Eb5:4', 'A4:3 C5:1 -:2 D5:2 F#5:2 D5:2 A4:4'];
 const gyBridge = ['G5:8 Bb5:8', 'A5:8 C6:8', 'Bb5:8 D6:8', 'C6:4 A5:4 F#5:4 D5:4'];
 const gyIntro = [gyHook[0], gyHook[1], gyHook[2], 'C5:3 D5:1 F5:2 A5:2 G5:2 F5:2 C5:2 A4:2'];   // Theremin, Takt 4 führt zur Strophe
-const TOLL = (c, i) => (i % 4 ? '-:16' : `${tones(c, 'G3')[0]}:16`);     // Friedhofsglocke auf dem Grundton
+const TOLL = (c, i) => (i % 4 ? '-:16' : 'G3:16');                      // Friedhofsglocke auf G, alle vier Takte
 const FOG = [K4, CL, HOF];
 
 // ================================================================ Hexenturm ====
@@ -111,6 +111,7 @@ const wtV = ['C5:2 E5:1 E5:1 D5:2 C5:2 A4:2 C5:1 D5:1 E5:4', 'C5:2 E5:1 E5:1 D5:
 const wtVerse = [...wtV, wtV[0], wtV[1], 'A4:2 C5:1 C5:1 D5:2 C5:2 A4:2 C5:1 E5:1 F5:4', wtV[3]];
 const wtBridge = ['A5:8 C6:8', 'B5:8 D6:8', 'C6:8 E6:8', 'D6:4 B5:4 G#5:4 E5:4'];
 const cembalo = (c) => pat(tones(c, 'E4'), '0121 0121 0121 0121');   // Alberti-Bass des Cembalos in Sechzehnteln
+const cembalo8 = (c) => pat(tones(c, 'E4'), '0.2. 1.2. 0.2. 1.2.');   // im Refrain in Achteln (Platz für die Hook)
 const bubble = (c) => pat(tones(c, 'A3'), '0... ..1. .2.. 1...');      // Kessel-Blubbern (Sinus gleitet aufwärts)
 const TOWER = [K4, CL, HH];
 
@@ -189,7 +190,7 @@ export const HALLOWEEN_THEMES = {
   course_candyvillage: {
     bpm: 140,
     voice: {
-      lead: { ...SYNTH, cutoff: 5000, volume: 0.15 },
+      lead: { ...SYNTH, cutoff: 5000, volume: 0.16 },
       bell: { type: 'triangle', volume: 0.13, decay: 0.12, ratio: 3, partial: 0.45 },
       arp: { type: 'triangle', volume: 0.09, decay: 0.05 },
       piano: { volume: 0.08, oscs: 1 },
@@ -279,7 +280,7 @@ export const HALLOWEEN_THEMES = {
     fx: { lowpass: { arp: 4200 }, delay: { steps: 3, feedback: 0.3, lowpass: 3400, wet: 0.28, send: { bell: 0.4, echo: 0.4, lead: 0.14, arp: 0.15 } } },
     lead: [...rest(4), ...wtVerse, ...wtChorus, ...wtBridge],
     bell: [...wtHook, ...rest(8), wtChorus[0], wtChorus[1], ...rest(2), wtChorus[4], wtChorus[5], ...rest(6)],
-    arp: bySection(wtProg, SONG, { intro: cembalo, verse: cembalo, chorus: cembalo }),
+    arp: bySection(wtProg, SONG, { intro: cembalo, verse: cembalo, chorus: cembalo8 }),
     echo: bySection(wtProg, SONG, { bridge: bubble }),
     piano: bySection(wtProg, SONG, { chorus: (c) => chordBar(c, OFF, 'E4'), bridge: (c) => chordBar(c, LONG, 'E4') }),
     stabs: bySection(wtProg, SONG, { verse: (c) => chordBar(c, '.... ..x. .... ..x.'), chorus: (c) => chordBar(c, ST24) }),
@@ -306,7 +307,7 @@ export const HALLOWEEN_THEMES = {
     voice: {
       lead: { ...SYNTH, cutoff: 4600, volume: 0.17 },
       organ: { volume: 0.06, cutoff: 2200 },
-      bell: { type: 'sine', volume: 0.1, decay: 1.4, ratio: 2, partial: 0.45 },
+      bell: { type: 'sine', volume: 0.09, decay: 1.5, ratio: 2.4, partial: 0.5 },
       arp: { type: 'square', volume: 0.025, decay: 0.03 },
       stabs: { volume: 0.13, cutoff: 6000, cutoffEnd: 1600 },
       piano: { volume: 0.09 },
@@ -322,7 +323,7 @@ export const HALLOWEEN_THEMES = {
       chorus: (c) => chordBar(c, 'x___ .... x___ ....', 'G3'),
       bridge: (c) => chordBar(c, LONG, 'G3'),
     }),
-    bell: bySection(brProg, SONG, { intro: (c, i) => (i % 2 ? '-:16' : 'C3:16'), bridge: (c, i) => (i % 2 ? '-:16' : `${tones(c, 'G2')[0]}:16`) }),
+    bell: bySection(brProg, SONG, { intro: (c, i) => (i % 2 ? '-:16' : 'C4:16'), bridge: (c, i) => (i % 2 ? '-:16' : `${tones(c, 'G3')[0]}:16`) }),
     arp: bySection(brProg, SONG, { bridge: flutter }),
     stabs: bySection(brProg, SONG, { verse: (c) => chordBar(c, '.... ..x. .... ..x.'), chorus: (c) => chordBar(c, ST24) }),
     piano: bySection(brProg, SONG, { chorus: (c) => chordBar(c, OFF, 'G4') }),
@@ -345,11 +346,11 @@ export const HALLOWEEN_THEMES = {
   course_halloween_map: {
     bpm: 126,
     voice: {
-      lead: { ...SYNTH, voices: 3, cutoff: 3000, volume: 0.17 },
+      lead: { ...SYNTH, voices: 3, cutoff: 3000, volume: 0.18 },
       bell: { type: 'sine', volume: 0.11, decay: 0.6, ratio: 3, partial: 0.35 },
       whistle: { type: 'sine', volume: 0.1, vibrato: 35, rate: 5, slide: 2, attack: 0.1, gate: 0.9 },
       arp: { type: 'triangle', volume: 0.08, decay: 0.06 },
-      piano: { volume: 0.1, cutoff: 3800 },
+      piano: { volume: 0.09, cutoff: 3800 },
       pad: { volume: 0.05, bright: 0.85 },
       bass: { cutoff: 650 },
     },
