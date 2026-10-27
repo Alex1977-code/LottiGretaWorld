@@ -4827,7 +4827,7 @@ zwei Level), Test `tests/course_hwc.mjs`. **Kein Motor-Code geändert**; alle So
   winkender Kürbis, erster Kessel zum Lernen) → **Besenflug** (Besen 1 waagerecht, Türmchen mit kreisender Flatterfledi,
   Besen 2 steigt) → **Bücherturm** → **Kesselküche** (Tische, Regale, Kräuterbalken mit hängender Flatterfledi, Spuk mit
   Hexenhut; Kessel-Hopser auf den Balkon, Checkpoint) → **Besenwirbel** (Besen 3 fliegt selbständig einen Bogen – Timing;
-  Spinnenturm, Netz auf die Glockenterrasse) → **Hutkrempe** (oranger Kessel, Besen 4, Brücke zur Krempe).
+  Spinnenturm, Netz auf die Glockenterrasse mit Checkpoint 2) → **Hutkrempe** (oranger Kessel, Besen 4, Brücke zur Krempe).
 - Alle Besen außer Besen 3 starten erst, wenn man draufsteht (`start: 'stand'`, 1,6 s Pause an den Enden), Turmränder haben
   Brüstungen mit Lücken an Besen und Brücken. Kessel `jump` 6 / 8,2 / 8 m, Netze 5,6 / 7,4 / 11 m (immer ≥ 1,5 m über der
   Zielkante).
@@ -4886,7 +4886,7 @@ Geprüft: Laden ohne Konsolenfehler, Metadaten (Welt 31), Gegnerzahlen, Verkleid
 kennt), Routen-Bot Lotti und Greta Start → Ziel (H-4 ≈ 53 s mit 4 Besen und 4 Federn; H-Burg ≈ 64–75 s mit Bosskampf
 ≈ 33–36 s, 3 Treffer, 4–6 Würfe), alle Sterne und Stempel samt Gegenproben (Stern 0 nicht ohne Besen, Stern 1 nicht mit dem
 Kessel allein, Stern 2 nicht ohne Netz, Stempel nicht ohne Besen; Gruft nicht ohne Stampfen, Tresor nicht durch Stampfen,
-Kronleuchter nicht ohne Netz), Extras (winkender Kürbis, Extraleben, Besen wartet, Checkpoint auf dem Balkon, kichernder
+Kronleuchter nicht ohne Netz), Extras (winkender Kürbis, Extraleben, Besen wartet, Checkpoints auf Balkon und Glockenterrasse, kichernder
 Geist, Bomben-Nachschub, Geisterbrücke nur bei Licht, Krümel jubelt, Tod im Kampf → Neustart vor dem Dach, Graf 3/3).
 Gemessen (scale 2, inkl. Schattenpass): H-4 Messgang ≤ 87 Zeichenaufrufe / ≤ 226 k Dreiecke, Bilder 35–89 / ≤ 242 k;
 H-Burg Messgang ≤ 78 / ≤ 245 k, Bilder 41–84 / ≤ 242 k (Start 220 k nach dem Wechsel auf sparsame Kürbislaternen).

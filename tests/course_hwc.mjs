@@ -83,6 +83,8 @@ const ROUTES = {
         legs: [{ wait: 600 }, { expect: 'broomIdle' }] },
       { name: 'Checkpoint auf dem Balkon: Tod auf Besen 3 → Neustart auf dem Balkon', from: [-3, 16.8, -95], heroes: ['lotti'], invuln: false, expectAlive: false,
         legs: [{ to: [-3, -95.4], within: 0.6 }, { to: [-7.5, -103], within: 0.5, max: 300, autoJump: false }, { wait: 500 }, { expect: 'respawnBalkon' }] },
+      { name: 'Checkpoint 2 auf der Glockenterrasse: Sturz neben dem orangen Kessel → Neustart auf der Terrasse', from: [0, 23.5, -127], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ to: [-3.4, -128.6], within: 0.6 }, { to: [9, -136], within: 0.5, max: 300, autoJump: false }, { wait: 500 }, { expect: 'respawnTerrasse' }] },
     ],
     shots: [
       ['start', [0, 0, 7]],
@@ -232,6 +234,7 @@ function install() {
     broomIdle: () => !L.named.get('besen1')?.running,
     waved: () => (L.named.get('winkekuerbis')?.waves ?? 0) >= 1,
     respawnBalkon: () => Math.abs(P().pos.z + 95) < 2.5 && P().pos.y > 16.5 && !P().dead,
+    respawnTerrasse: () => Math.abs(P().pos.z + 128.4) < 2.5 && P().pos.y > 23.3 && !P().dead,
     onChimney: () => P().pos.y > 37.4,
     // H-Burg
     onBalkon: () => P().pos.z < -226 && P().pos.y > 9.5,

@@ -248,7 +248,7 @@ export const LEVEL = {
     naschKreis([T7.x, Y5 + 0.6, T7.z], 1.6, 5, 'lolli'),
     naschen([HUT.x - 3, Y5 + 0.6, -179.6], [HUT.x + 3, Y5 + 0.6, -179.6], 4),
   ],
-  checkpoint: [{ pos: [-3, Y3, -95], yaw: PI / 2 }],
+  checkpoint: [{ pos: [-3, Y3, -95], yaw: PI / 2 }, { pos: [-3.4, Y4, -128.4], yaw: PI / 2 }],
   stars: [
     { pos: [WOLKE.x, WOLKE.top + 1.2, WOLKE.z - 0.4] },                 // 0: Wolkeninsel (Geheimbesen)
     { pos: [MOND.x, MOND.top + 1.2, MOND.z] },                          // 1: Mondturm (Zaubertrank-Blase)
