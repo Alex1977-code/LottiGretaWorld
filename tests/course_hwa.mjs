@@ -114,6 +114,88 @@ const ROUTES = {
       ['ziel', [0, 7, -251]],
     ],
   },
+  'H-2': {
+    start: [0, Y, 11],
+    meta: { stars: 3, time: 400, theme: 'candyvillage', music: 'course_candyvillage', archetype: 'parcours', world: 31 },
+    enemies: { kuerbling: 4, hexenhut_huepfer: 3, flatterfledi_schwarm: 1, flatterfledi_glied: 5, flatterfledi: 1, suessigkeiten_tuer: 13 },
+    main: [
+      { name: 'erste Tür klingeln', door: 'tuer_e' },
+      { name: 'Dorfeingang', to: [0, -18] },
+      { name: 'Marktplatz', to: [3, -34] },
+      { to: [3, -56] },
+      { name: 'Gasse', to: [0, -74] },
+      { to: [0, -112] },
+      { name: 'Checkpoint (Brunnen)', to: [2, -118.5] },
+      { name: 'Kirchplatz', to: [0, -144.4], within: 0.4 },
+      { name: 'Markise → Stadtmauer', bounce: [0, -151.6], at: [0, -147.4], steerBelow: 30 },
+      { expect: 'aufDerMauer' },
+      { name: 'Treppe hinab', to: [0, -166] },
+      { name: 'Kürbisfest', to: [0, -196], within: 0.4 },
+      { name: 'Bühne', to: [0, -200.4], jump: 16, within: 0.5, run: false },
+      { name: 'Zielmast', to: [0, -204.6], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'über eine federnde Markise auf die Stadtmauer (Tor bleibt zu)', ok: (r) => (r.mech.bounces ?? 0) >= 1 },
+      { name: 'Eingangstür geklingelt (Hinlaufen)', ok: (r) => r.mech.rings.some((x) => x[0] === 'tuer_e' && x[1] === 1 && x[2] === 'walk') },
+    ],
+    targets: [
+      { name: 'Stern 0: alle sechs Markt-Türen klingeln (Hinlaufen, Antippen, Stampfen) → Stern über dem Kessel, mit dem Kessel hinauf', star: 0, from: [0, Y, -22],
+        legs: [{ door: 'markt1' }, { tapDoor: 'markt2' }, { door: 'markt3' }, { to: [0, -50], within: 0.6 }, { stompDoor: 'markt6' }, { door: 'markt5' }, { door: 'markt4' },
+          { expect: 'marktAlle' }, { expect: 'marktHud' }, { expect: 'marktStern' }, { to: [0, -46.4], within: 0.4, run: false },
+          { name: 'Kessel-Brunnen', bounce: [2.8, -43], at: [0, -43] }, { star: 0 }], shot: 'stern0',
+        mech: (r) => r.mech.rings.map((x) => x[2]).join(',') === 'walk,action,walk,stomp,walk,walk', mechText: (r) => `Klingeln: ${r.mech.rings.map((x) => x[2]).join(', ')}` },
+      { name: 'Stern 0 nicht mit fünf Türen (Kessel allein)', star: 0, expectNot: true, from: [0, Y, -22], heroes: ['lotti'],
+        legs: [{ door: 'markt1' }, { door: 'markt2' }, { door: 'markt3' }, { door: 'markt4' }, { door: 'markt5' }, { to: [0, -46.4], within: 0.4, run: false },
+          { name: 'Kessel-Brunnen', bounce: [2.8, -43], at: [0, -43] }, { wait: 60 }] },
+      { name: 'Stern 1: Durchgang in den Hinterhof, die rosa Tür klingeln', star: 1, from: [0, 2, -90],
+        legs: [{ name: 'Durchgang', to: [6, -90], within: 0.5, run: false }, { to: [10.5, -91.4], within: 0.5, run: false }, { door: 'geheim' }, { wait: 30 }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stern 2: Lach-Grabstein im Kirchhof → Steinstufen zur Glockenstube', star: 2, from: [-6, 3, -127],
+        legs: [{ name: 'auf den Grabstein', to: [-10.2, -131.2], jump: 20, within: 0.4, run: false }, { wait: 60 }, { expect: 'turmweg' },
+          { to: [-6.6, -132], within: 0.4, run: false },
+          { name: 'Stufe 1', to: [-6.6, -133.6], jump: 22, within: 0.5, run: false },
+          { name: 'Stufe 2', to: [-5.2, -136.2], jump: 26, within: 0.5, run: false },
+          { name: 'Stufe 3', to: [-6.6, -138.8], jump: 26, within: 0.5, run: false },
+          { name: 'Stufe 4', to: [-8.3, -136.4], jump: 26, within: 0.5, run: false },
+          { name: 'Stufe 5', to: [-10.4, -136.8], jump: 26, within: 0.5, run: false },
+          { name: 'Glockenstube', to: [-11, -139.4], jump: 26, within: 0.5, run: false }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne Grabstein (Rückwärtssalto am Turm)', star: 2, expectNot: true, from: [-11, 3, -137.6], heroes: ['lotti'],
+        legs: [{ to: [-11, -137.9], within: 0.2, run: false }, { backflip: true }, { wait: 60 }] },
+      { name: 'Stempel: Spinnennetz-Trampolin → oben auf den Kürbis-Turm', stamp: true, from: [-8.6, 3, -196.6],
+        legs: [{ name: 'Netz', bounce: [-15, -203], at: [-12.2, -200.2], steerBelow: 30 }, { expect: 'aufDemTurm' }, { hop: 20 }, { wait: 30 }], shot: 'stempel' },
+      { name: 'Stempel nicht ohne Netz (Rückwärtssalto am Kürbis-Turm)', stamp: true, expectNot: true, from: [-13.6, 3, -201.6], heroes: ['lotti'],
+        legs: [{ to: [-13.7, -201.7], within: 0.2, run: false }, { backflip: true }, { wait: 60 }] },
+    ],
+    extra: [
+      { name: 'Tür am Eingang: Hinlaufen klingelt, fünf Bitcoins kommen heraus', from: [-3, Y, -4], heroes: ['lotti'], expectCoins: 5,
+        legs: [{ door: 'tuer_e' }, { chaseKind: 'coin', max: 900, ids: null }] },
+      { name: 'Kürbling hüpft aus der Tür (Markt 3) und zerplatzt beim Draufspringen', from: [-8, Y, -52], heroes: ['lotti'],
+        legs: [{ door: 'markt3' }, { expect: 'kuerblingAusTuer' }, { stompKind: 'kuerbling', near: [-9, -55] }],
+        mech: (r) => r.mech.kbStomped >= 1, mechText: (r) => `Kürblinge zerplatzt ${r.mech.kbStomped}` },
+      { name: 'Markise auf dem Marktplatz federt zur Bitcoin-Säule', from: [-6.6, Y, -58], heroes: ['lotti'], expectCoins: 3,
+        legs: [{ bounce: [-6.6, -58.6], at: [-6.6, -61.1], steerBelow: -3 }] },
+      { name: 'Extraleben: unsichtbarer Block im Hinterhof', from: [10.5, 2, -95.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [10.5, -96.4], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Kichernder Geist verschwindet hinter dem Grabstein', from: [-10, 3, -127], heroes: ['lotti'],
+        legs: [{ to: [-14, -129.4], within: 0.5, run: false }, { wait: 30 }, { expect: 'geistVersteckt' }] },
+    ],
+    shots: [
+      ['start', [0, Y, 11]],
+      ['eingangstuer', [-2.6, Y, -4]],
+      ['markt', [0, Y, -24]],
+      ['kessel', [0, Y, -36]],
+      ['markt_hinten', [0, Y, -54]],
+      ['gasse', [0, Y, -74], 240],
+      ['gasse_oben', [0, 2, -92]],
+      ['hinterhof', [9, 2, -89]],
+      ['brunnen', [2, 3, -117]],
+      ['kirchhof', [-6, 3, -127]],
+      ['marktstaende', [0, 3, -142]],
+      ['mauer', [0, 8, -151.6]],
+      ['fest', [0, 3, -168]],
+      ['kuerbisturm', [-8, 3, -194]],
+      ['ziel', [0, 3, -196]],
+    ],
+  },
 };
 
 const PORT = 4570;
@@ -163,6 +245,15 @@ function install() {
     kuerbisTraf: () => (P().hurtTries ?? 0) > 0,
     riesenKids: () => (named('kb_riese')?.kids?.length ?? 0) >= 3,
     respawnLande: () => Math.abs(P().pos.z + 218.5) < 2 && P().pos.y > 3.5 && !P().dead,
+    // H-2
+    aufDerMauer: () => P().pos.y > 7.8 && P().pos.z < -150 && P().pos.z > -153,
+    marktAlle: () => !!L.hwDoors?.markt?.done,
+    marktHud: () => L._hwHud?.state()?.['tueren:markt']?.text === 'Türen 6/6',
+    marktStern: () => L.entities.some((e) => e.kind === 'star' && e.index === 0 && !e.hidden && !e.removed),
+    turmweg: () => !!L.named.get('turmweg')?.shown,
+    aufDemTurm: () => P().pos.y > 10.5 && Math.hypot(P().pos.x + 15, P().pos.z + 203) < 1.6 && P().mode === 'ground',
+    kuerblingAusTuer: () => L.entities.some((e) => e.kind === 'kuerbling' && e.spec?.fromDoor === 'markt3' && !e.removed),
+    geistVersteckt: () => (L.named.get('kichergeist')?.hides ?? 0) >= 1,
   };
   const W = {
     place(pos, o = {}) {
@@ -328,6 +419,23 @@ function install() {
           log.push(['Trampolin', bounced, landed, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           if (!bounced || !landed) { log.push(['FEHLER: Trampolin', Lg.at]); break; }
           mech.bounces = (mech.bounces ?? 0) + 1;
+          continue;
+        }
+        // ------------------------------------------------ nächsten Gegner einer Art (nahe near) von oben besiegen
+        if (Lg.stompKind) {
+          const [nx, nz] = Lg.near ?? [p.pos.x, p.pos.z];
+          const list = L.entities.filter((e) => e.kind === Lg.stompKind && e.alive && !e.removed && !e.defeated).sort((a, b) => Math.hypot(a.pos.x - nx, a.pos.z - nz) - Math.hypot(b.pos.x - nx, b.pos.z - nz));
+          const e = list[0];
+          let k = 0;
+          for (; e && k < 1200 && e.alive && !e.defeated && !e.removed; k++) {
+            const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            if (p.mode === 'ground' && d < 2.0) { tick({ ...this.stick(dx, dz, 0.5), jump: true, run: false }); continue; }
+            if (p.mode === 'air') { const ev = e.vel ?? { x: 0, z: 0 }; tick({ ...this.airSteer(e.pos.x + ev.x * 0.2, e.pos.z + ev.z * 0.2, ev.x, ev.z, 3.6, 7), jump: p.vel.y > 0 }); continue; }
+            tick({ ...this.stick(dx, dz, Math.min(1, d / 2)), run: false });
+          }
+          if (e && (!e.alive || e.defeated || e.removed)) mech.kbStomped = (mech.kbStomped ?? 0) + 1;
+          for (let i = 0; i < 60; i++) tick({});
+          log.push(['zerplatzt', Lg.stompKind, !!e, k]);
           continue;
         }
         // ------------------------------------------------ Gegner (Id-Anfang) nacheinander von oben besiegen

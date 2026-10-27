@@ -738,12 +738,13 @@ export function kruemelLaterne(level, o) {
  * Laternenpfad: Laternen auf krummen Holzpfählen gehen nacheinander an, sobald eine Figur näher als r m kommt, und bleiben
  * an (warmer Pfad durchs Feld; Klang 'laterne'). Sparsam gezeichnet: Pfähle und Laternengehäuse statisch, alle Gläser eine
  * Instanz-Gruppe (dunkel → leuchtend), alle Scheine ein Punkt-Mesh; jede brennende Laterne wird Lichtquelle des Themas
- * (lanternLight). list = [{ id, pos (Fußpunkt), yaw (Arm-Richtung, 0 = +X), height: 2.2 }]. level.named 'laternenpfad' =
+ * (lanternLight). list = [{ id, pos (Fußpunkt), yaw (Arm-Richtung, 0 = +X), height: 2.2 }]; o: { allOn (brennen von Anfang
+ * an, Dorf), id ('laternenpfad') }. level.named 'laternenpfad' =
  * { lit (Anzahl), on: [bool …], info() }.
  */
-export function laternenPfad(level, list, r = 7) {
-  const st = { lit: 0, on: list.map(() => false), info: () => ({ lit: st.lit, of: list.length }) };
-  level.named.set('laternenpfad', st);
+export function laternenPfad(level, list, r = 7, o = {}) {
+  const st = { lit: 0, on: list.map(() => !!o.allOn), info: () => ({ lit: st.lit, of: list.length }) };
+  level.named.set(o.id ?? 'laternenpfad', st);
   const lamps = list.map((l) => {
     const H = l.height ?? 2.2, yaw = l.yaw ?? 0;
     return { x: l.pos[0] + Math.cos(yaw) * 0.5, y: l.pos[1] + H - 0.12, z: l.pos[2] - Math.sin(yaw) * 0.5, fx: l.pos[0], fz: l.pos[2] };
@@ -773,7 +774,10 @@ export function laternenPfad(level, list, r = 7) {
     im = new THREE.InstancedMesh(glass, new THREE.MeshBasicMaterial({ vertexColors: true }), list.length);
     im.name = 'laternenpfad:glas';
     const m = new THREE.Matrix4();
-    lamps.forEach((q, i) => { m.makeTranslation(q.x, q.y, q.z); im.setMatrixAt(i, m); im.setColorAt(i, OFF); });
+    lamps.forEach((q, i) => {
+      m.makeTranslation(q.x, q.y, q.z); im.setMatrixAt(i, m); im.setColorAt(i, st.on[i] ? ON : OFF);
+      if (st.on[i]) level.view.lanternSpots?.push(new THREE.Vector3(q.x, q.y - 0.27, q.z));
+    });
     im.instanceColor.needsUpdate = true;
     im.computeBoundingSphere();
     const pg = new THREE.BufferGeometry();
@@ -833,4 +837,283 @@ function lanternPartsCheap(s = 1.7) {
   const gl = new THREE.CylinderGeometry(0.08 * s, 0.08 * s, 0.2 * s, 6); gl.translate(0, -0.27 * s, 0);
   const glass = colorize(ni(gl), (p, n, out) => mixc(L(HWC.glowEdge), L(HWC.glowCore), smooth(-0.37 * s, -0.2 * s, p.y), out));
   return { body: merge(parts), glass };
+}
+
+// =====================================================================================================================
+// Dorf (H-2): Häuschen, Marktstände, Stadtmauer, Kirchlein, Brunnen, kichernder Geist
+// =====================================================================================================================
+
+const DORF = {
+  lila: { wall: 0x9a6ad8, wallLow: 0x6a42a8, roof: 0x3a2a5a, roofHi: 0x5a4a8a },
+  gruen: { wall: 0x6ac08a, wallLow: 0x3a8a5a, roof: 0x5a2a3a, roofHi: 0x8a4a5a },
+  orange: { wall: 0xf0a060, wallLow: 0xc06a3a, roof: 0x3a2a4a, roofHi: 0x5a4a6a },
+  blau: { wall: 0x6a9ae8, wallLow: 0x3a62b8, roof: 0x4a2a2a, roofHi: 0x7a4a4a },
+  rosa: { wall: 0xf0a0c8, wallLow: 0xc06a9a, roof: 0x2a3a5a, roofHi: 0x4a5a8a },
+  creme: { wall: 0xf4e4c8, wallLow: 0xc8b090, roof: 0x5a3a2a, roofHi: 0x8a5a3a },
+};
+
+/** Lokale Platzierung: (lx = nach vorn, ly, lz = quer) relativ zu p mit Blickrichtung yaw (0 = +X). */
+const LOC = (g, p, yaw, lx, ly, lz) => { g.translate(lx, ly, lz); g.rotateY(yaw); g.translate(p[0], p[1], p[2]); return g; };
+
+/** Satteldach-Prisma: First entlang lz (quer), Breite d (lx), Länge len (lz), Höhe rh; Ursprung Mitte der Traufe unten. */
+function roofPrism(d, len, rh) {
+  const g = new THREE.BufferGeometry();
+  const a = d / 2, l = len / 2;
+  const v = [
+    // vordere und hintere Dachfläche
+    a, 0, -l, 0, rh, -l, 0, rh, l, a, 0, -l, 0, rh, l, a, 0, l,
+    -a, 0, l, 0, rh, l, 0, rh, -l, -a, 0, l, 0, rh, -l, -a, 0, -l,
+    // Giebel
+    -a, 0, -l, 0, rh, -l, a, 0, -l,
+    a, 0, l, 0, rh, l, -a, 0, l,
+  ];
+  g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * Schiefes Häuschen (Kulisse, sparsam ≈ 300 Dreiecke): Putz in Farbe mit dunklem Fachwerk, steiles Dach mit Überstand,
+ * Schornstein, warm leuchtende Fenster (Glüh-Material), Rundfenster im Giebel, Tür (zu). Kollision: Quader bis zur Traufe.
+ * list = [{ pos (Mitte der Vorderseite am Boden), yaw (Blick der Vorderseite, 0 = +X), w (Breite quer, 4), d (Tiefe, 3.4),
+ * h (Wandhöhe, 3.2), color, windows: 2, door: true, roof (Firsthöhe über der Wand, 2) }].
+ */
+export function haeuschen(level, list) {
+  const P = [], G = [];
+  // schlichte Quader (12 Dreiecke) für Balken, Rahmen, Schornstein – die Häuschen sind Kulisse
+  const bx = (w, h, d, col) => fill(new THREE.BoxGeometry(w, h, d), col);
+  list.forEach((o, i) => {
+    const p = o.pos, yaw = o.yaw ?? 0, w = o.w ?? 4, d = o.d ?? 3.4, h = o.h ?? 3.2, rh = o.roof ?? 2;
+    const C0 = DORF[o.color ?? 'lila'] ?? DORF.lila;
+    const wall = box(d, h, w, 0, 0, 0, C0.wall, { r: 0.06, seg: 1 });
+    P.push(colorize(LOC(wall, p, yaw, -d / 2, h / 2, 0), (q, n, out) => mixc(L(C0.wallLow), L(C0.wall), smooth(p[1], p[1] + h * 0.8, q.y), out)));
+    for (const lz of [-w / 2 + 0.1, w / 2 - 0.1]) P.push(LOC(bx(0.16, h, 0.18, 0x4a2c1c), p, yaw, 0.02, h / 2, lz));
+    P.push(LOC(bx(0.14, 0.16, w, 0x4a2c1c), p, yaw, 0.03, h * 0.5, 0));
+    // Dach mit Überstand, leicht schief
+    const roof = roofPrism(d + 0.8, w + 0.7, rh);
+    roof.rotateZ((hash(i * 7 + 1) - 0.5) * 0.06);
+    P.push(colorize(ni(LOC(roof, p, yaw, -d / 2, h - 0.05, 0)), (q, n, out) => mixc(L(C0.roof), L(C0.roofHi), smooth(-0.2, 0.9, n.y) * 0.7 + (Math.sin(q.y * 9) > 0.55 ? 0.18 : 0), out)));
+    P.push(colorize(ni(LOC(new THREE.BoxGeometry(0.45, 1.3, 0.45), p, yaw, -d * 0.62, h + rh * 0.55, w * 0.22)), (q, n, out) => mixc(L(0x6a3a2a), L(0xa86a52), smooth(-0.5, 0.9, n.y + n.x * 0.3), out)));
+    // Fenster vorn (leuchtend) mit Kreuz und Bank, Tür, Rundfenster in den Giebeln
+    const nw = o.windows ?? 2;
+    const door = o.door !== false;
+    const slots = nw === 1 ? [door ? w * 0.22 : 0] : nw === 2 ? [-w * 0.28, w * 0.28] : [-w * 0.32, 0, w * 0.32];
+    for (const lz of slots) {
+      const wy = door && Math.abs(lz) < 0.6 ? h * 0.72 : h * 0.55;
+      G.push(colorize(LOC(new THREE.PlaneGeometry(0.66, 0.78).rotateY(Math.PI / 2), p, yaw, 0.03, wy, lz), (q, n, out) => mixc(L(0xff8a2a), L(0xfff0a0), smooth(p[1] + wy - 0.4, p[1] + wy + 0.4, q.y), out)));
+      P.push(LOC(bx(0.05, 0.84, 0.06, 0x3a2418), p, yaw, 0.05, wy, lz));
+      P.push(LOC(bx(0.05, 0.06, 0.72, 0x3a2418), p, yaw, 0.05, wy, lz));
+      P.push(LOC(bx(0.16, 0.07, 0.8, 0x5a3a2a), p, yaw, 0.09, wy - 0.44, lz));
+    }
+    if (door) {
+      const dz = nw === 1 ? -w * 0.18 : 0;
+      P.push(LOC(bx(0.1, 1.9, 0.95, 0x6a3a2a), p, yaw, 0.04, 0.95, dz));
+      P.push(LOC(bx(0.06, 0.06, 0.06, 0xffd060), p, yaw, 0.1, 0.95, dz + 0.3));
+    }
+    for (const sd of [-1, 1]) {
+      const ring = new THREE.CircleGeometry(0.28, 8); ring.rotateY(sd > 0 ? 0 : Math.PI);
+      G.push(fill(LOC(ring, p, yaw, -d / 2, h + 0.55, sd * (w / 2 + 0.36)), 0xffe08a));
+    }
+    // Kollision (Wände bis knapp über die Traufe)
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    const cx = p[0] - c * d / 2, cz = p[2] + s * d / 2;
+    const ex = Math.abs(c) * d / 2 + Math.abs(s) * w / 2, ez = Math.abs(s) * d / 2 + Math.abs(c) * w / 2;
+    level.world.add({ type: 'box', min: [cx - ex, p[1], cz - ez], max: [cx + ex, p[1] + h + rh * 0.6, cz + ez], tag: 'haeuschen' });
+  });
+  addStatic(level, merge(P));
+  addStatic(level, merge(G), { material: 'glow', castShadow: false });
+}
+
+/**
+ * Marktstand mit gestreifter Markise, die federt (Markisen-Trampolin, bounce): Tresen mit Süßigkeiten (fest), vier
+ * Pfosten, schräge Markise. o: { pos (Mitte am Boden), yaw (Tresen-Vorderseite, 0 = +X), w (3.2), d (2.2), h (Markise,
+ * 2.6), colors: [a, b], bounce: 15 (m/s; 0 = fest) }. Kollision: Tresen (1 m) + Markise (dünner Quader mit bounce).
+ */
+export function marktstand(level, o) {
+  const p = o.pos, yaw = o.yaw ?? 0, w = o.w ?? 3.2, d = o.d ?? 2.2, h = o.h ?? 2.6;
+  const [ca, cb] = o.colors ?? [0xff5a8a, 0xfff2e0];
+  const P = [];
+  P.push(colorize(LOC(box(d * 0.55, 1.0, w, 0, 0, 0, HWC.wood, { r: 0.05, seg: 1 }), p, yaw, d * 0.12, 0.5, 0), (q, n, out) => mixc(L(HWC.woodLow), L(HWC.wood), smooth(-0.4, 0.9, n.y + n.x * 0.3) * 0.8 + (Math.sin(q.y * 14) > 0.7 ? 0.15 : 0), out)));
+  for (let k = 0; k < 9; k++) {
+    const b = new THREE.SphereGeometry(0.13, 6, 4);
+    P.push(fill(LOC(b, p, yaw, d * 0.12 + (hash(k) - 0.5) * d * 0.4, 1.1, (k / 8 - 0.5) * (w - 0.6)), HWC.candy[k % HWC.candy.length]));
+  }
+  for (const lx of [-d / 2 + 0.1, d / 2 - 0.1]) for (const lz of [-w / 2 + 0.1, w / 2 - 0.1]) {
+    const ph = h + (lx < 0 ? 0.3 : 0);
+    P.push(shadeY(LOC(new THREE.CylinderGeometry(0.06, 0.07, ph, 5), p, yaw, lx, ph / 2, lz), HWC.woodLow, HWC.wood));
+  }
+  const stripes = 8, sw = (w + 0.4) / stripes;
+  for (let k = 0; k < stripes; k++) {
+    const g = new THREE.BoxGeometry(d + 0.5, 0.08, sw);
+    const gp = g.attributes.position;
+    for (let v = 0; v < gp.count; v++) gp.setY(v, gp.getY(v) - (gp.getX(v) / (d + 0.5)) * 0.35);
+    g.computeVertexNormals();
+    P.push(fill(LOC(g, p, yaw, 0, h + 0.17, -w / 2 - 0.2 + sw * (k + 0.5)), k % 2 ? cb : ca));
+    const flap = new THREE.CylinderGeometry(sw / 2, sw / 2, 0.05, 6, 1, false, 0, Math.PI);
+    flap.rotateZ(Math.PI / 2); flap.rotateX(-Math.PI / 2);
+    P.push(fill(LOC(flap, p, yaw, d / 2 + 0.25, h - 0.02, -w / 2 - 0.2 + sw * (k + 0.5)), k % 2 ? cb : ca));
+  }
+  addStatic(level, merge(P));
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  const ext = (dx, dz) => [Math.abs(c) * dx + Math.abs(s) * dz, Math.abs(s) * dx + Math.abs(c) * dz];
+  const [tx, tz] = ext(d * 0.275, w / 2), tcx = p[0] + c * d * 0.12, tcz = p[2] - s * d * 0.12;
+  level.world.add({ type: 'box', min: [tcx - tx, p[1], tcz - tz], max: [tcx + tx, p[1] + 1.0, tcz + tz], tag: 'marktstand' });
+  const [ax, az] = ext(d / 2 + 0.25, w / 2 + 0.2);
+  const shape = { type: 'box', min: [p[0] - ax, p[1] + h, p[2] - az], max: [p[0] + ax, p[1] + h + 0.22, p[2] + az], tag: 'markise' };
+  if (o.bounce !== 0) shape.bounce = o.bounce ?? 15;
+  level.world.add(shape);
+}
+
+/**
+ * Stadtmauer quer (entlang x) mit Zinnen und geschlossenem Tor in der Mitte: Steinquader (oben begehbar), Holztor mit
+ * Eisenbändern, Kürbislaterne darüber. o: { x0, x1, z (Vorderkante), depth (3), y (Boden), h (Höhe, 5), gate: true }.
+ */
+export function stadtmauer(level, o) {
+  const x0 = o.x0, x1 = o.x1, z = o.z, D = o.depth ?? 3, y = o.y, H = o.h ?? 5;
+  const P = [], G = [];
+  const stone = L(0x8a84a0), stoneHi = L(0xb8b2cc), stoneLow = L(0x5a5470);
+  const wall = new THREE.BoxGeometry(x1 - x0, H, D, Math.max(1, Math.round((x1 - x0) / 1.5)), Math.max(1, Math.round(H / 0.5)), 1);
+  wall.translate((x0 + x1) / 2, y + H / 2, z - D / 2);
+  P.push(colorize(ni(wall), (q, n, out) => {
+    const row = Math.floor((q.y - y + 0.01) / 0.5);
+    const shade = 0.75 + 0.25 * hash(row * 31 + Math.floor((q.x + (row % 2) * 0.75) / 1.5) * 7);
+    mixc(stoneLow, stone, smooth(-0.5, 0.9, n.z * 0.5 + n.y * 0.6 + 0.3) * shade, out);
+    if (n.y > 0.5) mixc(out, stoneHi, 0.3, out);
+  }));
+  const gap = o.backGap ?? null;
+  for (const zz of [z - 0.25, z - D + 0.25]) for (let x = x0 + 0.5; x < x1 - 0.4; x += 1.4) {
+    if (zz < z - 1 && gap && x + 0.6 > gap[0] && x - 0.2 < gap[1]) continue;
+    P.push(box(0.8, 0.6, 0.5, x + 0.2, y + H + 0.3, zz, 0x8a84a0, { r: 0.05, seg: 1 }));
+  }
+  if (o.gate !== false) {
+    const gx = (x0 + x1) / 2;
+    P.push(colorize(box(3.0, 3.4, 0.2, gx, y + 1.7, z + 0.05, 0x6a3a22, { r: 0.05, seg: 1 }), (q, n, out) => mixc(L(0x4a2414), L(0x8a5230), Math.sin(q.x * 9) > 0.8 ? 0.2 : 0.6, out)));
+    for (const yy of [0.8, 2.6]) P.push(box(3.0, 0.14, 0.08, gx, y + yy, z + 0.18, 0x2e2a36, { r: 0.02, seg: 1 }));
+    const arch = new THREE.TorusGeometry(1.6, 0.25, 4, 12, Math.PI); arch.translate(gx, y + 3.4, z + 0.12);
+    P.push(fill(arch, 0x5a5470));
+    const pk = pumpkinGeo({ r: 0.4, color: 'orange', leaf: true });
+    P.push(at(pk.body, gx, y + 4.4, z + 0.45));
+    G.push(at(faceGeo({ r: 0.4, kind: 'grinsen' }), gx, y + 4.4, z + 0.45, -Math.PI / 2));
+    level.view?.addLantern?.(gx, y + 4.8, z + 1);
+  }
+  addStatic(level, merge(P));
+  if (G.length) addStatic(level, merge(G), { material: 'glow', castShadow: false });
+  level.world.add({ type: 'box', min: [x0, y, z - D], max: [x1, y + H, z], tag: 'stadtmauer' });
+  level.world.add({ type: 'box', min: [x0, y + H, z - 0.5], max: [x1, y + H + 0.6, z], tag: 'stadtmauer:zinnen' });
+  const zb = z - D;
+  if (gap) { level.world.add({ type: 'box', min: [x0, y + H, zb], max: [gap[0], y + H + 0.6, zb + 0.5], tag: 'stadtmauer:zinnen' }); level.world.add({ type: 'box', min: [gap[1], y + H, zb], max: [x1, y + H + 0.6, zb + 0.5], tag: 'stadtmauer:zinnen' }); }
+  else level.world.add({ type: 'box', min: [x0, y + H, zb], max: [x1, y + H + 0.6, zb + 0.5], tag: 'stadtmauer:zinnen' });
+}
+
+/**
+ * Kirchlein mit Glockenturm: Schiff (Satteldach, Rosette, Tür zur Kamera) neben dem Turm; oben eine offene Glockenstube
+ * (begehbare Plattform, Brüstung hinten und seitlich, vier Pfeiler, spitzes Dach, goldene Glocke). o: { pos (Mitte der
+ * Turm-Unterseite), tower: 9 (Plattform über dem Boden), nave: 'links' | 'rechts' }. level.named 'kirchturm' = { top, x, z }.
+ */
+export function kirchlein(level, o) {
+  const [x, y, z] = o.pos;
+  const T = o.tower ?? 9, tw = 3.2;
+  const side = o.nave === 'rechts' ? 1 : -1;
+  const P = [], G = [];
+  const wallC = 0xe8dcc8, wallLow = 0xa89880, roofC = 0x4a3a6a, roofHi = 0x7a6aa8;
+  P.push(colorize(box(tw, T, tw, x, y + T / 2, z, wallC, { r: 0.08, seg: 1 }), (q, n, out) => mixc(L(wallLow), L(wallC), smooth(y, y + T * 0.6, q.y), out)));
+  for (const [dx, dz, w, d] of [[0, -tw / 2 + 0.12, tw, 0.24], [tw / 2 - 0.12, 0, 0.24, tw], [-tw / 2 + 0.12, 0, 0.24, tw]]) {
+    P.push(box(w, 0.6, d, x + dx, y + T + 0.3, z + dz, wallC, { r: 0.04, seg: 1 }));
+  }
+  // Treppchen-Kante vorn (Stufe zur Glockenstube)
+  P.push(box(tw, 0.12, 0.3, x, y + T + 0.06, z + tw / 2 - 0.15, 0xc8b898, { r: 0.03, seg: 1 }));
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(box(0.26, 2.6, 0.26, x + sx * (tw / 2 - 0.15), y + T + 1.3, z + sz * (tw / 2 - 0.15), wallC, { r: 0.04, seg: 1 }));
+  const spire = new THREE.ConeGeometry(tw * 0.8, 3.4, 4, 1); spire.rotateY(Math.PI / 4); spire.translate(x, y + T + 2.6 + 1.7, z);
+  P.push(colorize(ni(spire), (q, n, out) => mixc(L(roofC), L(roofHi), smooth(-0.2, 0.9, n.y + n.z * 0.3) * 0.7 + (Math.sin(q.y * 7) > 0.6 ? 0.15 : 0), out)));
+  G.push(fill(at(new THREE.OctahedronGeometry(0.3, 0), x, y + T + 6.3, z), 0xffd040));
+  const bell = new THREE.CylinderGeometry(0.22, 0.5, 0.7, 8, 1); bell.translate(x, y + T + 2.0, z);
+  P.push(colorize(ni(bell), (q, n, out) => mixc(L(0xb8862a), L(0xffe08a), smooth(-0.3, 0.9, n.y + n.z * 0.4), out)));
+  G.push(fill(at(new THREE.CircleGeometry(0.55, 12), x, y + T * 0.7, z + tw / 2 + 0.03), 0xfff0c0));
+  P.push(fill(at(new THREE.RingGeometry(0.55, 0.72, 12), x, y + T * 0.7, z + tw / 2 + 0.04), 0x5a4a8a));
+  for (let k = 0; k < 12; k++) { const a = (k / 12) * TAU; P.push(fill(at(new THREE.PlaneGeometry(0.05, 0.14), x + Math.cos(a) * 0.42, y + T * 0.7 + Math.sin(a) * 0.42, z + tw / 2 + 0.05), 0x5a4a8a)); }
+  G.push(fill(at(new THREE.PlaneGeometry(0.5, 1.0), x, y + T * 0.38, z + tw / 2 + 0.03), 0xffc060));
+  // Schiff
+  const nw = 5, nd = 7, nh = 4.2;
+  const nx = x + side * (tw / 2 + nw / 2 + (o.gap ?? 0) - 0.1), nz = z - 1.2;
+  P.push(colorize(box(nw, nh, nd, nx, y + nh / 2, nz, wallC, { r: 0.08, seg: 1 }), (q, n, out) => mixc(L(wallLow), L(wallC), smooth(y, y + nh * 0.7, q.y), out)));
+  const roof = roofPrism(nw + 0.8, nd + 0.6, 2.6);
+  roof.translate(nx, y + nh - 0.05, nz);
+  P.push(colorize(ni(roof), (q, n, out) => mixc(L(roofC), L(roofHi), smooth(-0.2, 0.9, n.y) * 0.7 + (Math.sin(q.y * 8) > 0.6 ? 0.15 : 0), out)));
+  G.push(fill(at(new THREE.CircleGeometry(0.75, 14), nx, y + nh - 1.0, nz + nd / 2 + 0.03), 0xffb8e0));
+  P.push(fill(at(new THREE.RingGeometry(0.75, 0.92, 14), nx, y + nh - 1.0, nz + nd / 2 + 0.04), 0x5a4a8a));
+  for (const sx of [-1, 1]) G.push(fill(at(new THREE.PlaneGeometry(0.55, 1.2), nx + sx * 1.5, y + 1.8, nz + nd / 2 + 0.03), 0xffc060));
+  P.push(colorize(box(1.3, 2.2, 0.12, nx, y + 1.1, nz + nd / 2 + 0.05, 0x6a3a2a, { r: 0.05, seg: 1 }), (q, n, out) => mixc(L(0x4a2418), L(0x8a5032), 0.5, out)));
+  addStatic(level, merge(P));
+  addStatic(level, merge(G), { material: 'glow', castShadow: false });
+  level.world.add({ type: 'box', min: [x - tw / 2, y, z - tw / 2], max: [x + tw / 2, y + T, z + tw / 2], tag: 'kirchturm' });
+  // Brüstung hinten und seitlich (vorn offen: dort kommt man vom Weg herauf)
+  level.world.add({ type: 'box', min: [x - tw / 2, y + T, z - tw / 2], max: [x + tw / 2, y + T + 0.6, z - tw / 2 + 0.24], tag: 'kirchturm:bruestung' });
+  for (const sx of [-1, 1]) level.world.add({ type: 'box', min: [x + (sx < 0 ? -tw / 2 : tw / 2 - 0.24), y + T, z - tw / 2], max: [x + (sx < 0 ? -tw / 2 + 0.24 : tw / 2), y + T + 0.6, z + tw / 2], tag: 'kirchturm:bruestung' });
+  level.world.add({ type: 'box', min: [nx - nw / 2, y, nz - nd / 2], max: [nx + nw / 2, y + nh, nz + nd / 2], tag: 'kirche' });
+  // steiles Satteldach (rutschig): man kann nicht darauf stehen
+  level.world.add({ type: 'ramp', axis: 'x', dir: 1, min: [nx - nw / 2 - 0.4, y + nh, nz - nd / 2 - 0.3], max: [nx, y + nh + 2.6, nz + nd / 2 + 0.3], low: y + nh, ice: true, camIgnore: true, tag: 'kirche:dach' });
+  level.world.add({ type: 'ramp', axis: 'x', dir: -1, min: [nx, y + nh, nz - nd / 2 - 0.3], max: [nx + nw / 2 + 0.4, y + nh + 2.6, nz + nd / 2 + 0.3], low: y + nh, ice: true, camIgnore: true, tag: 'kirche:dach' });
+  level.named.set('kirchturm', { top: y + T, x, z });
+}
+
+/** Dorfbrunnen: runde Steineinfassung mit Holzdach und Eimer (fest, Rand begehbar). o: { pos, r: 1.1 }. */
+export function brunnen(level, o) {
+  const [x, y, z] = o.pos, r = o.r ?? 1.1;
+  const P = [];
+  const rim = new THREE.CylinderGeometry(r, r * 1.05, 0.9, 14, 3, true); rim.translate(x, y + 0.45, z);
+  P.push(colorize(ni(rim), (q, n, out) => mixc(L(0x6a6480), L(0xa8a2bc), (Math.floor((q.y - y) * 3.3) + Math.floor((Math.atan2(q.z - z, q.x - x) + 4) * 2.2)) % 2 ? 0.35 : 0.75, out)));
+  const top = new THREE.TorusGeometry(r, 0.14, 4, 16); top.rotateX(Math.PI / 2); top.translate(x, y + 0.9, z);
+  P.push(fill(top, 0xb8b2cc));
+  const water = new THREE.CircleGeometry(r * 0.95, 14); water.rotateX(-Math.PI / 2); water.translate(x, y + 0.5, z);
+  P.push(fill(water, 0x2a3a7a));
+  for (const s of [-1, 1]) P.push(box(0.14, 2.0, 0.14, x + s * r * 0.9, y + 1.9, z, HWC.wood, { r: 0.03, seg: 1 }));
+  const roof = new THREE.ConeGeometry(r * 1.4, 0.9, 4); roof.rotateY(Math.PI / 4); roof.translate(x, y + 3.25, z);
+  P.push(shadeY(roof, 0x5a2a3a, 0x8a4a5a));
+  P.push(box(r * 1.8, 0.1, 0.1, x, y + 2.6, z, HWC.woodLow, { r: 0.02, seg: 1 }));
+  P.push(fill(at(new THREE.CylinderGeometry(0.16, 0.12, 0.26, 7), x + 0.2, y + 2.0, z), 0x8a5a30));
+  addStatic(level, merge(P));
+  level.world.add({ type: 'cyl', x, z, r: r + 0.1, y0: y, y1: y + 0.9, tag: 'brunnen' });
+}
+
+/**
+ * Kichernder Geist: ein kleiner Halloween-Spuk (Modell spuk_halloween) lugt hinter einem Grabstein hervor, kichert
+ * („Hihi!“) und verschwindet blitzschnell hinter dem Stein, sobald die Figur näher als near m kommt; nach ein paar
+ * Sekunden lugt er wieder hervor. Harmlos (keine Berührung). o: { pos (hinter dem Stein am Boden), side: 1 | −1, near: 5 }.
+ * level.named 'kichergeist' = { hides }.
+ */
+export function kicherGeist(level, o) {
+  const st = { k: 1, hide: 0, t: 0, hides: 0 };
+  level.named.set(o.id ?? 'kichergeist', st);
+  const [x, y, z] = o.pos;
+  const side = o.side ?? 1, near = o.near ?? 5;
+  level.onStep((dt) => {
+    st.t += dt;
+    const { d } = nearest(level, x, z);
+    if (d < near && st.hide <= 0) { st.hide = 3.5; st.hides++; hwSfx(level, 'buh', 'ghost'); }
+    if (st.hide > 0) st.hide -= dt;
+  });
+  if (!level.view || !hasModel('spuk_halloween')) return st;
+  const m = getModel('spuk_halloween', { size: 0.7, hat: 'kuerbis' });
+  const grp = new THREE.Group();
+  m.root.traverse((q) => { if (q.isMesh) q.castShadow = false; });
+  grp.add(m.root);
+  const hihi = bubbleSprite('Hihi!', null, { ink: '#5a3a8a' });
+  hihi.scale.set(1.5, 0.75, 1);
+  hihi.visible = false;
+  grp.add(hihi);
+  const holder = {};
+  addObject(level, grp, (dt) => {
+    const d = visDt(level, holder, dt);
+    const want = st.hide > 0 ? 0 : 1;
+    st.k += (want - st.k) * Math.min(1, d * (want ? 1.6 : 9));
+    const k = st.k;
+    m.root.position.set(x + side * (0.1 + 0.6 * k), y + 0.3 + Math.sin(st.t * 2.4) * 0.08, z);
+    m.root.rotation.set(0, -Math.PI / 2 + side * 0.5, -side * 0.3 * k);
+    m.root.scale.setScalar(0.2 + 0.8 * k);
+    m.root.visible = k > 0.05;
+    m.update?.(d, { anim: st.hide > 0 ? 'shy' : 'idle' });
+    hihi.visible = st.hide > 2.0;
+    hihi.position.set(x + side * 0.5, y + 1.9, z);
+  });
+  return st;
 }
