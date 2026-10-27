@@ -4560,8 +4560,10 @@ src/course/entities/kinds/graf_brummbaer_hw.js     graf_brummbaer (Boss H-Burg, 
                                                    kuerbis_bombe
 src/course/entities/kinds/spuk.js                  + Option halloween (spuk/Großspuk, kreisgeist, kreisgeist_kreis);
                                                    isHalloweenLevel(level)
-src/course/levels/w0/0-21.js                       Gruselwerkstatt (5 Reihen Gehege, Z(r, dz) wie 0-18, LEVEL.halloween)
-src/course/levels/w0/0-22.js                       Schlossdach des Grafen (Archetyp boss, runde Arena mit Zinnen, Vollmond)
+src/course/levels/w0/0-21.js                       Gruselwerkstatt (5 Reihen Gehege, Z(r, dz) wie 0-18, LEVEL.halloween,
+                                                   Thema pumpkin)
+src/course/levels/w0/0-22.js                       Schlossdach des Grafen (Archetyp boss, runde Arena mit Zinnen im Haken
+                                                   build, Thema castle_night, Vollmond)
 tests/course_hw_enemies.mjs                        Port 4540, HWE_PART=1|2|3|4, Bilder tests/out/hwe_*.png
 ```
 
@@ -4588,7 +4590,9 @@ Trefferzone springt mit).
   (`BatFlockView` über `modelInstances('flatterfledi')`, ≈ 5 Zeichenaufrufe); jedes Glied ist eine eigene Entität.
 - **Signale/Haken:** `level.onEnemyDefeated(e)` (je besiegtem Gegner, auch Schwarm-Fledermäuse), `level.onExplosion`,
   Boss: `level.onBossHit(boss, 'bombe')`, `level.onBossDefeated(boss)`. Aus Gimmicks erzeugbar: `level.spawn('kuerbling',
-  { pos, vel: [vx, vy, vz], dir })` (springt z. B. aus einer Süßigkeiten-Tür, landet und hüpft los).
+  { pos, vel: [vx, vy, vz], dir })`; die Süßigkeiten-Tür der Bausteine (`content: 'kuerbling'`) erzeugt ihn mit `fromDoor`
+  – ohne `vel` hüpft er dann in Blickrichtung `dir` aus der Tür (2,2 m/s vor, 5,5 m/s hoch), landet und hüpft los
+  (geprüft in `course_hw_blocks`: „Gegner heraus 1 (kuerbling)“); Hexenhut-Hüpfer ebenso.
 - **Sound** nur über vorhandene `level.sfx`-Namen: `stomp`, `bounce`, `blockhit`, `step`, `switch`, `vanish`, `hover`,
   `swoop`, `land`, `slam`, `ghost`, `panic`, `boss_hit`, `powerdown`; Fanfare `course_clear` über den Boss-Archetyp.
 
@@ -4609,7 +4613,7 @@ Trefferzone springt mit).
 enemies: [
   // Kürbling: behavior 'chase' (Standard ohne path) | 'patrol', sight 7, hop 1.1 (m je Hüpfer), height 0.5 (Sprunghöhe),
   //   pause 0.35 (s nach der Landung), coins 1 (Bitcoins beim Zerplatzen), path, loop, dir, wake, edges, drop,
-  //   vel [vx, vy, vz] (startet im Flug, z. B. aus einer Tür)
+  //   vel [vx, vy, vz] (startet im Flug), fromDoor (id | true: hüpft aus einer Süßigkeiten-Tür in Richtung dir)
   { kind: 'kuerbling', id: 'kb_jaeger', pos: [-11.5, 1, -14], sight: 7 },
   { kind: 'kuerbling', pos: [-14, 1, -19], behavior: 'patrol', path: [[-17, 1, -19], [-7, 1, -19]], sight: 0, coins: 2 },
   // Riesenkürbling (×1,8, hp 2): riese: true bzw. kind 'riesenkuerbling'; hop 1.4, height 0.7, pause 0.5, coins 2, kids 3
@@ -4627,7 +4631,7 @@ enemies: [
   //   cw, phase, bob 0.35, scale 1, drop (je Fledermaus); Glieder: level.named `${id}_${i}`
   { kind: 'flatterfledi_schwarm', id: 'ff_schwarm', pos: [10.5, 1.9, -55], count: 6, radius: 2.6 },
   // Hexenhut-Hüpfer: behavior 'chase' | 'patrol', sight 7, hop 1.3, height 0.8, pause 0.55, bounce 14 (m/s Abprall von der
-  //   Krempe), path, loop, dir, wake, edges, drop, vel
+  //   Krempe), path, loop, dir, wake, edges, drop, vel, fromDoor
   { kind: 'hexenhut_huepfer', pos: [-11, 1, -74], sight: 7 },
   // Halloween-Spuke (Felder wie Welt 3) + halloween (Standard nach Welt), hat (Spuk)
   { kind: 'spuk', pos: [-9, 1.4, -98], size: 2.5, hat: 'hexe' },
@@ -4700,6 +4704,11 @@ bounces, swarms, batsDown, bats, hidden, swarmPath()`.
 - Kürbis-Bomben als Werkzeug: neben Ziegel/`lila_ziegelwand`/Gegnergruppen legen; `fuse` lang genug zum Tragen.
 - H-Burg-Arena: runde Fläche r ≥ 9 m mit Brüstung (Bomben explodieren an Wänden), Eingang mit `boss.lock`,
   `arena.center` = Mitte des Daches, Stern vorn (`star`), Warp-Box `hidden` in der Mitte; die Musik `course_brummula`.
+  Eigene Arena-Geometrie im Haken `LEVEL.build(level)` anlegen (vor dem Verschmelzen und vor den Level-Grenzen – sonst
+  zählt sie nicht zu `bounds`/`killY`), Beispiel `0-22`. Thema `castle_night`: dessen Kulissen-Fledermäuse fliegen
+  6–18 m über den Level-Grenzen und kreuzen bei der hohen Kampfkamera (19 m, 50°) groß das Bild – `0-22` hebt sie in
+  `setup` um 14 m an (`level.view.sky.bats.bats[i].cy`); Wunsch an den Motor: Höhe der Kulissen-Fledermäuse an der
+  Kamera ausrichten.
 
 ### Präzisierung (Gegner Halloween): Tests und Kennzahlen
 
@@ -4717,5 +4726,6 @@ Spuke · Teil 3 Graf Brummbär vollständig (Auftritt, Würfe mit Markierung 1,4
 Angriffe zählen nicht, Treffer nur mit zurückgeworfener Bombe, Verwandlung, Fledermaus-Bitcoin, Schwarm verletzt, Landung
 ≥ 5 m von der Figur, Phase 2 zwei Bomben, Schwarm 12, Phase 3 Rundumwurf r 2,8 m, Konfetti, Stern, Warp → Ziel, Tod setzt
 zurück) · Teil 4 Bilder `tests/out/hwe_*.png` und Zeichenaufrufe. Gemessen (scale 2, inkl. Schattenpass): Gruselwerkstatt
-33–82 Zeichenaufrufe (≤ 206 k Dreiecke, Thema autumn), Schlossdach 34–75 (≤ 165 k, Thema ghost/Mondnacht).
-Regressionen: `course_enemies`, `course_w5_enemies` (Teile 1–3), `course_physics` bestanden.
+35–83 Zeichenaufrufe (≤ 206 k Dreiecke, Thema pumpkin), Schlossdach 37–77 (≤ 163 k, Thema castle_night).
+Regressionen: `course_enemies`, `course_w5_enemies` (Teile 1–3), `course_physics` bestanden; `course_hw_blocks`
+(Teil mech) mit dem Kürbling aus der Tür bestanden.
