@@ -34,7 +34,7 @@
 //   state { open (0..1), ring (bool | 0..1: Knopf leuchtet, Noten hüpfen, Glöckchen bimmelt) }
 // riesenkuerbis_roll  rollender Riesenkürbis (Ø = size, 2 m) mit leuchtendem Staunegesicht und Blattkrause am Stiel.
 //   **Ursprung = Auflagepunkt.**  opts { size (2), face ('staunen') }
-//   state { roll (rad; Drehung um lokal Z → rollt nach +X bei negativem Winkel… wie schiebekugel: roll wächst → +X),
+//   state { roll (rad; wächst beim Rollen nach +X – z. B. zurückgelegte Strecke / (size/2); wie schiebekugel),
 //           speed (m/s; Staubwolken) }
 // spinnennetz_trampolin  waagerechtes Spinnennetz-Trampolin in einem Ring aus knorrigen Ästen auf vier Stummelbeinen; eine
 //   freundliche Spinne mit Schleife sitzt am Rand. **Ursprung = Fußpunkt (Mitte)**; Netz bei y = height.
@@ -147,8 +147,8 @@ export const GHOST_COLORS = {
   orange: { top: 0xfff8ec, side: 0xffdcb0, low: 0xf0a868, glow: 0xffb060, face: 0x6a3018, cheek: 0xff8aa0 },
 };
 /** Geisterplatte (Mitte der Unterseite im Ursprung): Polsterplatte, Wellen-Saum, Gesicht vorn (+X), Sternchen oben. */
-export function ghostPlatformGeo(w = 2, h = 0.5, d = 2, color = 'mint', lo = false) {
-  return cached(`hw:gp:${w}:${h}:${d}:${color}:${lo}`, () => {
+export function ghostPlatformGeo(w = 2, h = 0.5, d = 2, color = 'mint', lo = false, sleep = true) {
+  return cached(`hw:gp:${w}:${h}:${d}:${color}:${lo}:${sleep}`, () => {
     const C = GHOST_COLORS[color] ?? GHOST_COLORS.mint;
     const b = new Build();
     const r = Math.min(0.22, h * 0.45, w * 0.2, d * 0.2);
@@ -181,13 +181,23 @@ export function ghostPlatformGeo(w = 2, h = 0.5, d = 2, color = 'mint', lo = fal
     // schlafendes Gesicht vorn: geschlossene Bogenaugen, kleiner Mund, Wangen
     const fx = w / 2 + 0.005, fy = h - slabH * 0.5;
     for (const s of [1, -1]) {
-      b.torus(0.075, 0.018, C.face, { p: [fx, fy + 0.03, s * 0.2], r: [0, Math.PI / 2, Math.PI] }, lo ? 4 : 6, lo ? 8 : 14, Math.PI);
+      if (sleep) b.add(sleepArc(lo), C.face, { p: [fx, fy + 0.03, s * 0.2] });
       b.sphere(1, C.cheek, { p: [fx - 0.01, fy - 0.04, s * 0.33], s: [0.02, 0.04, 0.07] }, lo ? 6 : 10, lo ? 4 : 6);
     }
     b.torus(0.04, 0.014, C.face, { p: [fx, fy - 0.04, 0], r: [0, Math.PI / 2, Math.PI] }, 6, 12, Math.PI);
     return b.geometry();
   });
 }
+/** geschlossenes Bogenauge (∪, schlafend) in der YZ-Ebene. */
+const sleepArc = (lo) => { const g = new THREE.TorusGeometry(0.075, 0.018, lo ? 4 : 6, lo ? 8 : 14, Math.PI); g.rotateZ(Math.PI); g.rotateY(Math.PI / 2); return g; };
+/** Gesicht schlafend: nur die beiden Bogenaugen (Einzelmodell blendet zwischen schlafend und wach um). */
+const ghostSleepGeo = (w, h, color) => cached(`hw:gp:sleep:${w}:${h}:${color}`, () => {
+  const C = GHOST_COLORS[color] ?? GHOST_COLORS.mint;
+  const b = new Build();
+  const fx = w / 2 + 0.005, fy = h - h * 0.62 * 0.5;
+  for (const s of [1, -1]) b.add(sleepArc(false), C.face, { p: [fx, fy + 0.03, s * 0.2] });
+  return b.geometry();
+});
 /** Gesicht wach: zwei große Ovalaugen mit Glanzpunkt (für wake). */
 const ghostEyesGeo = (w, h, color) => cached(`hw:gp:eyes:${w}:${h}:${color}`, () => {
   const C = GHOST_COLORS[color] ?? GHOST_COLORS.mint;
@@ -209,15 +219,16 @@ function buildGeisterplattform(opts = {}) {
   const mat = ownMat(vcol(0.3, {}, 'hwghostplat'), { transparent: true, opacity: 0.8, emissive: new THREE.Color(C.glow).multiplyScalar(0.35), depthWrite: false });
   own.push(mat);
   const float = joint();
-  const body = mesh(ghostPlatformGeo(w, h, d, color), mat, {}, true);
+  const body = mesh(ghostPlatformGeo(w, h, d, color, false, false), mat, {}, true);
   body.renderOrder = 2;
   const eyesM = mesh(ghostEyesGeo(w, h, color), mat);
   eyesM.visible = false;
+  const sleepM = mesh(ghostSleepGeo(w, h, color), mat);
   const glowM = mesh(cached(`hw:gp:glow:${w}:${d}`, () => { const g = new THREE.PlaneGeometry(w + 1.4, d + 1.4); g.rotateX(-Math.PI / 2); return g; }), ownMat(add(`gp:${color}`, C.glow, 0.3), { map: glowTexture() }), { p: [0, 0.02, 0] });
   own.push(glowM.material);
   glowM.renderOrder = 1;
   const sparkle = sparkleSprite(0xffffff, 0.5); sparkle.position.set(0, h + 0.3, 0);
-  float.add(body, eyesM, sparkle);
+  float.add(body, eyesM, sleepM, sparkle);
   root.add(float, glowM);
   root.userData.size = { w, h, d };
   const clk = new Clock();
@@ -239,7 +250,7 @@ function buildGeisterplattform(opts = {}) {
     glowM.material.opacity = 0.28 * vis;
     float.position.y = Math.sin(t * 1.6) * 0.015 * vis;
     float.scale.set(1, 0.92 + vis * 0.08, 1);
-    eyesM.visible = !!st.wake;
+    eyesM.visible = !!st.wake; sleepM.visible = !st.wake;
     sparkle.visible = vis > 0.5;
     sparkle.position.set(Math.sin(t * 0.7) * w * 0.35, h + 0.15 + Math.abs(Math.sin(t * 1.3)) * 0.2, Math.cos(t * 0.9) * d * 0.35);
     sparkle.scale.setScalar(0.25 + Math.abs(Math.sin(t * 3)) * 0.3);

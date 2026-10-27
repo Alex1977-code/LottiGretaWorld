@@ -334,7 +334,7 @@ export function addFace(body, glowB, surf, o = {}) {
     const inner = new THREE.ShapeGeometry(polyShape(part.pts, part.c, 1), 1);
     const cy = part.c[1];
     const gcol = lit
-      ? { v: (x, y, z) => mix(HW.glowEdge, HW.glowCore, smoothstep(0.35 + (y - map(0, cy).p.y) * 3)) }
+      ? { v: (x, y, z) => mix(HW.glowEdge, HW.glowCore, smoothstep(0.55 + (y - map(0, cy).p.y) * 3)) }
       : { v: (x, y) => mix(0x2a0e06, 0x5a2408, smoothstep(0.5 + (y - map(0, cy).p.y) * 4)) };
     (lit ? glowB : body).add(conform(subdivide(inner, sub), map, 0.006), gcol);
   }
