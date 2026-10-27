@@ -984,7 +984,7 @@ function plinthParts() {
 // Stoff-Oberfläche (Figur-Bündel mit Oberkörper/Rock), Schnurrhaare im Kopf-Mesh – kein zusätzlicher Zeichenaufruf.
 /** Hut-Lage (kopf-lokal): Mitte der Hutunterseite knapp über dem Scheitel, leicht zur nahen Seite und nach hinten gekippt. */
 const HAT_POS = V(HEAD_C.x - 0.025, HEAD_C.y + 0.135, 0.01);
-const HAT_ROT = new THREE.Euler(0.12, 0.3, 0.12, 'YXZ');
+const HAT_ROT = new THREE.Euler(0.12, 0.15, 0.12, 'YXZ');
 /** Ansatz des Katzenschwanzes (becken-lokal, hinten am Rock unter der Taille) und Ruhelage der Glieder (Fragezeichen nach oben). */
 const CAT_ANCHOR = V(-0.215, 0.07, 0);
 const CAT_REST = [V(-0.92, -0.08, 0.12), V(-0.5, 0.82, 0.3), V(-0.08, 1, 0.35), V(0.15, 0.7, 0.7)].map((v) => v.normalize());

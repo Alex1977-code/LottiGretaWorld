@@ -133,8 +133,10 @@ export function witchHatGeo(accent = '#e83a30') {
   gs.push(gridGeo({
     nu: 36, nv: nP,
     point: (u, v, out) => {
-      const phi = u * TAU, [r, y] = prof[Math.round(v * nP)];
-      const w = wave(phi) * smoothstep((r - 0.33) / 0.14);
+      const phi = u * TAU, [r0, y] = prof[Math.round(v * nP)];
+      // ovale Krempe: seitlich schmaler (Platz für erhobene Arme: Trapez, Kanone, Tragen)
+      const r = r0 * (1 - 0.24 * Math.sin(phi) ** 2 * smoothstep((r0 - 0.3) / 0.12));
+      const w = wave(phi) * smoothstep((r0 - 0.33) / 0.14);
       return out.set(Math.cos(phi) * r, y + w, Math.sin(phi) * r);
     },
     color: (u, v) => {
@@ -153,11 +155,11 @@ export function witchHatGeo(accent = '#e83a30') {
   }
   // Lottis rote Schleife am Band (hinten zur nahen Seite)
   {
-    const tb = HAT.band[1] - 0.025, phi = 2.45;
+    const tb = HAT.band[1] - 0.025, phi = 2.75;
     const { p, n, f } = crownPoint(tb, phi, 0.016);
     const T = f.N.clone().multiplyScalar(-Math.sin(phi)).addScaledVector(f.B, Math.cos(phi)).normalize();
     const B = new THREE.Vector3().crossVectors(T, n).normalize();
-    gs.push(...bowGeos(p.addScaledVector(f.T, 0.012), n, T, B, accent, 1.12));
+    gs.push(...bowGeos(p.addScaledVector(f.T, 0.016), n, T, B, accent, 1.3));
   }
   const m = mergeColored(gs.map((g) => [g, null, null]));
   for (const g of gs) g.dispose();
@@ -187,7 +189,7 @@ export function catEarGeo() {
 }
 
 /** Katzenschwanz: Länge der Kettenglieder (Einheiten), Radien am Ansatz/vor der Spitze, Spitze; Knochen = halbe Glieder. */
-export const CAT_TAIL = { links: [0.14, 0.14, 0.14, 0.13], r0: 0.05, r1: 0.034, tip: 0.043 };
+export const CAT_TAIL = { links: [0.14, 0.14, 0.14, 0.13], r0: 0.054, r1: 0.038, tip: 0.05 };
 CAT_TAIL.len = CAT_TAIL.links.reduce((a, b) => a + b, 0);
 CAT_TAIL.bones = CAT_TAIL.links.flatMap((L, i) => { const y0 = CAT_TAIL.links.slice(0, i).reduce((a, b) => a + b, 0); return [y0, y0 + L / 2]; });
 

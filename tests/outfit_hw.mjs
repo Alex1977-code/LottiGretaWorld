@@ -56,7 +56,9 @@ async function waitCourse(url) {
 
 /** Prüfstand in 1-1 (wie figurenstil): HeroRig festgehalten, Pflaume (Hülle „pflaume“), Krümel-Modell, Kamera-Haken. */
 async function openBench() {
-  await waitCourse(`${base}/?course=1-1&scale=2&adapt=0`);
+  // nur Kennzahlen: Auflösung 1 (Aufrufe/Dreiecke hängen nicht davon ab, Software-WebGL rechnet schneller)
+  const scale = PARTS.some((p) => ['close', 'posen', 'costume', 'pets', 'clones'].includes(p)) ? 2 : 1;
+  await waitCourse(`${base}/?course=1-1&scale=${scale}&adapt=0`);
   await sc(async () => {
     const c = window.__course;
     c.setManual(true);
@@ -161,7 +163,20 @@ async function openBench() {
       grab();
       return { calls: a.calls - b.calls, tris: a.tris - b.tris };
     };
+    // Mehrfach messen, häufigstes Ergebnis (Szenen-Culling wechselt gelegentlich zwischen zwei Bildern)
+    const cost1 = H.cost;
+    H.cost = (keys) => {
+      const seen = new Map();
+      for (let i = 0; i < 3; i++) { const r = cost1(keys), k = `${r.calls}/${r.tris}`; seen.set(k, { r, n: (seen.get(k)?.n ?? 0) + 1 }); }
+      return [...seen.values()].sort((x, y) => y.n - x.n)[0].r;
+    };
     H.frames = (n) => { for (let i = 0; i < n; i++) c.renderFrame(); };
+    /** Sichtbare Teile einer Figur (Fehlersuche bei abweichenden Kennzahlen). */
+    H.vis = (key) => {
+      const out = [];
+      H.figs[key].hull.traverseVisible((o) => { if (o.isMesh || o.isSprite || o.isLine) out.push(`${o.type}:${o.name || '-'}:${o.geometry?.index ? o.geometry.index.count / 3 : (o.geometry?.attributes.position.count ?? 0) / 3}`); });
+      return out.join(' ');
+    };
     /** Zustand des Zubehörs (Prüfungen). */
     H.parts = (key) => {
       const f = H.figs[key];
@@ -219,14 +234,19 @@ const log = (name, m) => console.log(`  ${name.padEnd(34)} Aufrufe ${String(m.ca
 async function triple(label, key, cc, keys = [key], n = 40) {
   await cam(VIEWS.front);
   await sc(() => { window.__oh.noBlink = true; });
+  const vis = (k) => sc((x) => window.__oh.vis(x), k);
   await outfit(null); await pose(key, cc, n);
-  await cost(keys);   // Aufwärmen (Bündel/Stellvertreter neu aufgebaut, Shader übersetzt)
+  await sc(() => window.__oh.frames(6));   // Aufwärmen (Bündel/Stellvertreter neu aufgebaut, Shader übersetzt)
   const off = await cost(keys);
+  const v0 = await vis(key);
   await outfit('halloween'); await pose(key, cc, n);
+  await sc(() => window.__oh.frames(4));
   const hw = await cost(keys);
   const p = await parts(key);
   await outfit(null); await pose(key, cc, n);
+  await sc(() => window.__oh.frames(4));
   const off2 = await cost(keys);
+  if (off2.calls !== off.calls || off2.tris !== off.tris) console.log(`    vorher: ${v0}\n    nachher: ${await vis(key)}`);
   await sc(() => { window.__oh.noBlink = false; });
   metrics[label] = { off, hw, off2 };
   log(`${label} ohne`, off); log(`${label} Halloween`, hw); log(`${label} wieder ohne`, off2);
