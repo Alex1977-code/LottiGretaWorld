@@ -4593,8 +4593,9 @@ Trefferzone springt mit).
   { pos, vel: [vx, vy, vz], dir })`; die Süßigkeiten-Tür der Bausteine (`content: 'kuerbling'`) erzeugt ihn mit `fromDoor`
   – ohne `vel` hüpft er dann in Blickrichtung `dir` aus der Tür (2,2 m/s vor, 5,5 m/s hoch), landet und hüpft los
   (geprüft in `course_hw_blocks`: „Gegner heraus 1 (kuerbling)“); Hexenhut-Hüpfer ebenso.
-- **Sound** nur über vorhandene `level.sfx`-Namen: `stomp`, `bounce`, `blockhit`, `step`, `switch`, `vanish`, `hover`,
-  `swoop`, `land`, `slam`, `ghost`, `panic`, `boss_hit`, `powerdown`; Fanfare `course_clear` über den Boss-Archetyp.
+- **Sound** nur über vorhandene `level.sfx`-Namen: `stomp`, `bounce`, `brickbreak` (Kürbling zerplatzt), `blockhit`
+  (Knochen fallen), `step` (Klappern beim Zittern), `switch` (Aufbau), `vanish`, `hover` (Lunte), `swoop`, `land`, `slam`,
+  `ghost` (Graf lacht), `panic` (Schwarm), `boss_hit`, `powerdown`; Fanfare `course_clear` über den Boss-Archetyp.
 
 | Gegner | Verhalten | besiegt durch | verletzt |
 | --- | --- | --- | --- |
