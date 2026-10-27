@@ -33,7 +33,8 @@
 //   Draufspringen/Draufstellen (press 'stand') bzw. nur Stampfattacke ('pound') drückt sie: Platte sinkt, die Augen des
 //   Grabsteins leuchten, Aktion on (+ signal). time > 0: springt nach time s zurück (Zeitanzeige, Aktion off); toggle:
 //   erneutes Drücken schaltet zurück.
-//   { kind: 'grabstein_schalter', pos (Fußpunkt der Platte), yaw: 0 (Grabstein steht auf −X-Seite, Gesicht zeigt +X),
+//   { kind: 'grabstein_schalter', pos (Fußpunkt der Platte), yaw: −π/2 (Grabstein hinten, Gesicht und Platte zur Kamera
+//     (+Z); 0 = Gesicht nach +X),
 //     on: Aktion, off: Aktion, signal: Name, time: 0, toggle: false, once: false, press: 'stand' | 'pound', id, hidden }
 //   Laufzeit: pressed, presses, press(), release(), info()
 // riesenkuerbis – rollender Riesenkürbis (Ø size): rollt in dir (bzw. eine Bahn path entlang), bergab schneller; seitliche
@@ -603,7 +604,7 @@ class GrabsteinSchalter extends Gimmick {
     super(level, spec, 'grabstein_schalter');
     this.touch = false;
     this.shadow = 0;
-    this.yaw = snapYaw(spec.yaw ?? 0);
+    this.yaw = snapYaw(spec.yaw ?? -Math.PI / 2);
     this.half.set(0.7, 0.2, 0.7);
     this.pressed = false;
     this.presses = 0;
@@ -717,7 +718,7 @@ class Riesenkuerbis extends Gimmick {
     super(level, spec, 'riesenkuerbis');
     this.size = spec.size ?? 1.8;
     const R = this.R = this.size / 2;
-    this.half.set(R * 0.92, R * 0.8, R * 0.92);
+    this.half.set(R * 0.92, R * 1.02, R * 0.92);
     this.shadow = R * 0.9;
     this.speed0 = spec.speed ?? 3;
     this.vmax = spec.max ?? 9;
@@ -745,16 +746,19 @@ class Riesenkuerbis extends Gimmick {
       const m = modelOr('riesenkuerbis_roll', { size: this.size, color }, () => {
         const pk = pumpkinGeo({ r: R, shape: 'dick', color, ribs: 12, seg: 30 });
         const g = new THREE.Group();
+        // liegt auf der Seite: Stielachse quer zur Rollrichtung (lokal ±Z), rollt wie ein Rad
         const spin = new THREE.Group();
-        spin.position.y = R * 0.9 * 0.94;
-        pk.body.translate(0, -R * 0.9 * 0.94, 0);
-        const mb = new THREE.Mesh(pk.body, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 }));
+        const ry = R * 0.9, rx = R * 1.1;
+        spin.position.y = rx * 0.97;
+        pk.body.translate(0, -ry * 0.94, 0);
+        pk.body.rotateX(Math.PI / 2);
+        const mb = new THREE.Mesh(pk.body, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, emissive: 0x3a1400 }));
         mb.castShadow = true;
         spin.add(mb);
         if (spec.face !== false) {
           const f = faceGeo({ r: R, shape: 'dick', kind: 'grinsen' });
-          f.translate(0, -R * 0.9 * 0.94, 0);
-          f.rotateY(-Math.PI / 2);
+          f.translate(0, -ry * 0.94, 0);
+          f.rotateX(Math.PI / 2);
           spin.add(new THREE.Mesh(f, new THREE.MeshBasicMaterial({ vertexColors: true })));
         }
         g.add(spin);
@@ -808,7 +812,7 @@ class Riesenkuerbis extends Gimmick {
     }
     const moved = Math.hypot(this.pos.x - x0, this.pos.z - z0);
     this.rolled += moved;
-    this.roll += moved / this.R;
+    this.roll += moved / (this.R * 1.1);
   }
 
   burst() {

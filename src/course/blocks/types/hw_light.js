@@ -14,7 +14,7 @@
 //   sie erst fest, wenn die Figur heraus ist. Im Dunkeln nur ein zarter Schimmer (hint).
 //   { type: 'geisterplattform', id, pos: [x, y, z] (Mitte der Unterseite), size: [w, h, d] (Standard [2.4, 0.5, 2.4])
 //     | parts: [{ pos, size }, …] | from: [x, y, z], to: [x, y, z], n: 4 (Reihe von Trittplatten, size je Platte),
-//     linger: 0.8, hint: 0.1 (0 = im Dunkeln ganz unsichtbar), color: 'lila' | 'blau' | 'gruen', light: 'alle' |
+//     linger: 0.8, hint: 0.06 (0 = im Dunkeln ganz unsichtbar), color: 'lila' | 'blau' | 'gruen', light: 'alle' |
 //     'laterne' (nur Handlaterne/Helm) | 'pfahl' (nur feste Laternen), face: true (Geistergesicht vorn), oneWay: false,
 //     always: false (immer fest – zum Ausprobieren) }
 //   level.named.get(id) = { parts: [{ lit, k, solid, warn, box }], lit, solid, info() }; Kollision tag 'geisterplattform'.
@@ -78,7 +78,7 @@ function ghostSlab(p, s, color, face) {
 export function buildGeisterplattform(level, spec) {
   const sys = hwLight(level);
   const batch = ghostBatch(level);
-  if (spec.hint !== undefined || batch.shared.uHint.value === 0) batch.shared.uHint.value = spec.hint ?? 0.1;
+  if (spec.hint !== undefined || batch.shared.uHint.value === 0) batch.shared.uHint.value = spec.hint ?? 0.06;
   const s0 = sz3(spec.size, [2.4, 0.5, 2.4]);
   let defs;
   if (spec.parts) defs = spec.parts.map((q) => ({ p: v3(q.pos), s: sz3(q.size ?? spec.size, [s0.x, s0.y, s0.z]) }));

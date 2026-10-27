@@ -122,9 +122,9 @@ export const LEVEL = {
     // ---------------- S7 Grabstein-Schalter
     plat(-200, -210),
     sign(-11, 1, -201, 'Grabstein-Schalter'),
-    { type: 'grabstein_schalter', id: 'schalter', pos: [-4, 1, -205], yaw: 0, on: { reveal: 'grabweg' }, signal: 'grabstein' },
+    { type: 'grabstein_schalter', id: 'schalter', pos: [-4, 1, -205], on: { reveal: 'grabweg' }, signal: 'grabstein' },
     { type: 'appear', id: 'grabweg', style: 'stone', parts: [{ pos: [0, 0.5, -212.5], size: [3, 0.5, 3] }, { pos: [0, 0.5, -216], size: [3, 0.5, 3] }, { pos: [0, 0.5, -219.5], size: [3, 0.5, 3] }] },
-    { type: 'grabstein_schalter', id: 'zeitschalter', pos: [5, 1, -205], yaw: Math.PI, time: 5, on: { start: 'pfahl2' }, off: { stop: 'pfahl2' } },
+    { type: 'grabstein_schalter', id: 'zeitschalter', pos: [5, 1, -205], time: 5, on: { start: 'pfahl2' }, off: { stop: 'pfahl2' } },
     { type: 'laternenpfahl', id: 'pfahl2', pos: [9, 1, -208.5], on: false, radius: 4.5, style: 'laterne' },
     plat(-222, -232),
 
@@ -137,7 +137,7 @@ export const LEVEL = {
     // ---------------- S9 Nebel und Kulisse
     plat(-290, -312),
     sign(-11, 1, -291, 'Nebel und Kulisse'),
-    { type: 'nebel', pos: [0, 1, -301], size: [24, 18], height: 1.4, density: 0.55 },
+    { type: 'nebel', pos: [0, 1, -301], size: [24, 18], height: 1.4 },
     { type: 'deco_hw', items: [
       { kind: 'grabsteine', pos: [-8, 1, -300], size: [6, 10], n: 5 },
       { kind: 'krumme_baeume', pos: [9, 1, -302], size: [5, 14], n: 2 },
@@ -171,7 +171,7 @@ export const LEVEL = {
     pfahl: [0, 1, -32], geist2: [0, 1.05, -36.5], geist2b: [0, 1.05, -40], besen0: [0, 1, -50], besen: [0, 1.1, -54.5], besenEnde: [0, 1, -71],
     kessel: [0, 1, -81], kesselTop: [0, 2.3, -84], kessel2: [7, 1, -89], netz: [-7, 2.1, -91], kanone: [0, 1, -102],
     kanoneZiel: [0, 1, -134], tueren: [0, 1, -144], tuer1: [-6.6, 1, -148], tuer2: [6.6, 1, -154], tuer3: [-6.6, 1, -162],
-    kuerbis: [0, 1, -178], kuerbisBahn: [-2, 1, -186], schalter: [-3.5, 1.4, -205], grabweg: [0, 1, -216], zeitschalter: [4.5, 1.4, -205],
+    kuerbis: [0, 1, -178], kuerbisBahn: [-2, 1, -186], schalter: [-4, 1.4, -204.5], grabweg: [0, 1, -216], zeitschalter: [5, 1.4, -204.5],
     glibber: [0, 1, -236], glibberMitte: [0, 1, -250], glibberEnde: [0, 1, -280], nebel: [0, 1, -298], goal: [0, 1, -314],
   },
 };

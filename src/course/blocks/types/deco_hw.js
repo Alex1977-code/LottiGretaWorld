@@ -141,7 +141,7 @@ function maisstaude(level, it, p, rnd, parts) {
     parts.push(shadeY(at(new THREE.CylinderGeometry(0.03, 0.05, h, 5), p.x + ox, p.y + h / 2, p.z + oz), stalkD, stalk));
     for (let l = 0; l < 4; l++) {
       const a = rnd.real(0, 6.28), y = p.y + h * (0.25 + l * 0.17), len = rnd.real(0.6, 0.9);
-      const g = new THREE.PlaneGeometry(len, 0.12, 4, 1);
+      const g = new THREE.PlaneGeometry(len, 0.2, 4, 1);
       const pos = g.attributes.position;
       for (let i = 0; i < pos.count; i++) { const x = pos.getX(i) + len / 2; pos.setXYZ(i, x, -x * x * 0.5 + pos.getY(i) * 0.3, pos.getY(i)); }
       g.rotateY(-a); g.translate(p.x + ox, y, p.z + oz);
@@ -222,20 +222,22 @@ function zaun(level, it, p, rnd, parts) {
   if (L < 0.1) return;
   const yaw = Math.atan2(-(b.z - a.z), b.x - a.x);
   const eisen = it.style === 'eisen';
-  const n = Math.max(2, Math.round(L / (eisen ? 0.32 : 0.45)) + 1);
+  const n = Math.max(2, Math.round(L / (eisen ? 0.32 : 0.36)) + 1);
   const col = eisen ? [C(HWC.iron), C(HWC.ironHi)] : [C(HWC.woodLow), C(0xd8c8a8)];
   for (let i = 0; i < n; i++) {
     const u = i / (n - 1), x = a.x + (b.x - a.x) * u, z = a.z + (b.z - a.z) * u, y = a.y + (b.y - a.y) * u;
-    const h = H * (eisen ? 1 : 0.85 + 0.15 * Math.sin(i * 1.7));
-    const lean = eisen ? 0 : Math.sin(i * 2.3) * 0.08;
-    const g = eisen ? new THREE.CylinderGeometry(0.025, 0.025, h, 5) : new THREE.BoxGeometry(0.16, h, 0.05);
-    g.translate(0, h / 2, 0); g.rotateZ(lean);
-    const tip = eisen ? new THREE.ConeGeometry(0.06, 0.16, 4) : new THREE.ConeGeometry(0.09, 0.14, 4);
-    tip.translate(0, h + 0.07, 0); tip.rotateZ(lean);
+    const h = H * (eisen ? 1 : 0.88 + 0.12 * Math.sin(i * 1.7));
+    const lean = eisen ? 0 : Math.sin(i * 2.3) * 0.035;
+    const g = eisen ? new THREE.CylinderGeometry(0.025, 0.025, h, 5) : new THREE.BoxGeometry(0.06, h, 0.24);
+    g.translate(0, h / 2, 0); g.rotateX(lean);
+    // Spitze: Eisen = kleine Lanzenspitze, Holz = flacher Giebel (Latte)
+    const tip = eisen ? new THREE.ConeGeometry(0.06, 0.16, 4) : new THREE.CylinderGeometry(0.0, 0.17, 0.12, 4, 1);
+    if (!eisen) { tip.rotateY(Math.PI / 4); tip.scale(0.35, 1, 1); }
+    tip.translate(0, h + 0.06, 0); tip.rotateX(lean);
     for (const q of [g, tip]) { q.rotateY(yaw); q.translate(x, y, z); parts.push(shadeY(q, col[0], col[1])); }
   }
   for (const hh of eisen ? [0.15, H - 0.12] : [0.3, H * 0.65]) {
-    const rail = eisen ? new THREE.CylinderGeometry(0.03, 0.03, L, 5) : new THREE.BoxGeometry(0.06, 0.1, L);
+    const rail = eisen ? new THREE.CylinderGeometry(0.03, 0.03, L, 5) : new THREE.BoxGeometry(0.08, 0.12, L);
     if (eisen) rail.rotateX(Math.PI / 2);
     rail.rotateY(yaw + Math.PI / 2); rail.translate((a.x + b.x) / 2, (a.y + b.y) / 2 + hh, (a.z + b.z) / 2);
     parts.push(shadeY(rail, col[0], col[1]));

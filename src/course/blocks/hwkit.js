@@ -88,7 +88,7 @@ export function pumpkinGeo(o = {}) {
     const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
     const a = Math.atan2(z, x);
     const rib = Math.pow(Math.abs(Math.cos(a * ribs / 2)), 0.6);   // 1 = Rippe, 0 = Furche
-    const k = 0.88 + 0.12 * rib;
+    const k = 0.9 + 0.1 * rib;
     // oben und unten eingedellt
     const dent = 1 - 0.22 * Math.pow(1 - Math.min(1, Math.hypot(x, z)), 3) * (y > 0 ? 1.4 : 1);
     pos.setXYZ(i, x * r * sx * k, y * ry * dent, z * r * sx * k);
@@ -171,11 +171,12 @@ export function faceGeo(o = {}) {
   }
   const g = new THREE.ShapeGeometry(shapes, 6);
   const pos = g.attributes.position;
-  // auf die Kürbisfläche legen (+X-Seite): Gesichtsfläche (u, v) → Punkt auf dem Ellipsoid
+  // auf die Kürbisfläche legen (+X-Seite): Gesichtsfläche (u, v) → Punkt knapp vor den Rippen (Ellipsoid mit dem
+  // Rippen-Radius), so verdecken die Rippen das Gesicht nicht
   for (let i = 0; i < pos.count; i++) {
-    const u = pos.getX(i) * R * 1.05, v = pos.getY(i) * ry * 1.2;
+    const u = pos.getX(i) * R * 1.0, v = pos.getY(i) * ry * 1.15;
     const t = 1 - (u * u) / (R * R) - (v * v) / (ry * ry);
-    const x = R * 0.9 * Math.sqrt(Math.max(0.02, t)) + 0.012;
+    const x = R * Math.sqrt(Math.max(0.02, t)) + 0.01 + 0.012 * R;
     pos.setXYZ(i, x, cy + v, -u);
   }
   g.computeVertexNormals();
@@ -221,7 +222,7 @@ export function candyGeo(variant = 'bonbon', tint = 0) {
     parts.push(colorize(ni(disc), (p, n, out) => {
       const a = Math.atan2(p.y - 0.08, p.x), d = Math.hypot(p.x, p.y - 0.08);
       const sw = Math.sin(a * 2 + d * 26) > 0;
-      mixc(sw ? col : white, white, Math.abs(n.z) > 0.5 ? 0 : 0.25, out);
+      mixc(sw ? col : C(0xff5a8a), white, Math.abs(n.z) > 0.5 ? 0 : 0.2, out);
     }));
     const stick = new THREE.CylinderGeometry(0.018, 0.018, 0.3, 6); stick.translate(0, -0.2, 0);
     parts.push(sh(stick, C(0xe8e0d0), white));
@@ -235,7 +236,7 @@ export function candyGeo(variant = 'bonbon', tint = 0) {
     parts.push(sh(wrap, col, C(0xffffff)));
   } else {
     const ball = new THREE.SphereGeometry(0.15, 14, 10); ball.scale(1.25, 1, 1);
-    parts.push(colorize(ni(ball), (p, n, out) => { const st = Math.sin(p.x * 30 + p.y * 18) > 0.3; mixc(st ? white : col, white, smooth(0.5, 1, n.y) * 0.4, out); }));
+    parts.push(colorize(ni(ball), (p, n, out) => { const st = Math.sin(p.x * 30 + p.y * 18) > 0.55; mixc(st ? white : col, white, smooth(0.6, 1, n.y) * 0.25, out); }));
     for (const sd of [-1, 1]) {
       const tw = new THREE.ConeGeometry(0.12, 0.16, 8); tw.rotateZ(sd * Math.PI / 2); tw.translate(sd * 0.25, 0, 0);
       parts.push(sh(tw, col, white));
@@ -443,14 +444,14 @@ class HwLightView {
         const H = f.half.y * 2;
         const x = f.pos.x - fz * 0.34 * H + fx * 0.1, z = f.pos.z + fx * 0.34 * H + fz * 0.1, y = f.pos.y + H * 0.6;
         // Pendeln: Beschleunigung der Hand schiebt die Laterne nach hinten
-        const d = Math.min(0.1, Math.max(1e-3, dt));
-        if (h.last) {
-          const ax = (x - h.last.x) / d;
-          const az = (z - h.last.z) / d;
-          const along = ax * fx + az * fz;
-          h.swingV += (-along * 0.06 - h.swing * 30) * d - h.swingV * 4 * d;
+        const d = Math.min(0.25, Math.max(1e-3, dt));
+        const along = h.last ? ((x - h.last.x) * fx + (z - h.last.z) * fz) / d : 0;
+        // gedämpftes Pendel in Teilschritten (stabil bei großen Bild-Abständen)
+        for (let rem = d; rem > 1e-6; rem -= 1 / 120) {
+          const s = Math.min(rem, 1 / 120);
+          h.swingV += (-along * 0.06 - h.swing * 30 - h.swingV * 4) * s;
+          h.swing += h.swingV * s;
         }
-        h.swing += h.swingV * d;
         h.swing = Math.max(-0.6, Math.min(0.6, h.swing));
         h.last = { x, z };
         h.root.position.set(x, y, z);
@@ -464,10 +465,11 @@ class HwLightView {
     if (pl && this.base) {
       if (show && main && !main.dead) {
         const h = this.hands.get(main);
-        if (h?.root.visible) pl.position.set(h.root.position.x, h.root.position.y + 0.25, h.root.position.z);
+        // über der Hand, etwas höher (keine grellen Flecken auf nahen Flächen)
+        if (h?.root.visible) pl.position.set(h.root.position.x, main.pos.y + main.half.y * 2 + 1.1, h.root.position.z);
         pl.color.copy(this.warm);
-        pl.intensity = Math.max(pl.intensity, 16);
-        pl.distance = sys.radius * 2.4;
+        pl.intensity = Math.max(pl.intensity, 11);
+        pl.distance = sys.radius * 2.2;
       }
     }
     // Lichtkreise am Boden

@@ -221,7 +221,7 @@ function webGeo(w, d) {
     const ex = Math.cos(a), ez = Math.sin(a);
     // bis zum Rechteckrand
     const k = 1 / Math.max(Math.abs(ex), Math.abs(ez));
-    strand(0, 0, ex * k * R, ez * k * R, 0.035);
+    strand(0, 0, ex * k * R, ez * k * R, 0.026);
   }
   const rings = 6;
   for (let j = 1; j <= rings; j++) {
@@ -230,7 +230,7 @@ function webGeo(w, d) {
       const a0 = (i / spokes) * Math.PI * 2, a1 = ((i + 1) / spokes) * Math.PI * 2;
       const k0 = 1 / Math.max(Math.abs(Math.cos(a0)), Math.abs(Math.sin(a0))), k1 = 1 / Math.max(Math.abs(Math.cos(a1)), Math.abs(Math.sin(a1)));
       const s0 = rr * (0.92 + 0.08 * k0), s1 = rr * (0.92 + 0.08 * k1);
-      strand(Math.cos(a0) * s0, Math.sin(a0) * s0, Math.cos(a1) * s1, Math.sin(a1) * s1, 0.028);
+      strand(Math.cos(a0) * s0, Math.sin(a0) * s0, Math.cos(a1) * s1, Math.sin(a1) * s1, 0.02);
     }
   }
   const g = new THREE.BufferGeometry();
@@ -272,7 +272,7 @@ export function buildSpinnennetzTrampolin(level, spec) {
   if (hasModel('spinnennetz_trampolin')) { model = getModel('spinnennetz_trampolin', { size: [w, d], height: H }); model.root.position.y = -(H - 0.02); root.add(model.root); }
   else {
     web = webGeo(w, d);
-    const mesh = new THREE.Mesh(web.g, new THREE.MeshBasicMaterial({ color: 0xf4f0ff, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }));
+    const mesh = new THREE.Mesh(web.g, new THREE.MeshBasicMaterial({ color: 0xe8e0ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
     mesh.renderOrder = 2;
     root.add(mesh);
   }
@@ -303,9 +303,12 @@ export function buildSpinnennetzTrampolin(level, spec) {
   const hold = {};
   addObject(level, root, (dt, t) => {
     const dd = visDt(level, hold, dt);
-    // gedämpfte Feder der Netzmitte
-    st.sagV += (-60 * st.sag - 5 * st.sagV) * dd;
-    st.sag += st.sagV * dd;
+    // gedämpfte Feder der Netzmitte (Teilschritte: stabil, auch wenn zwischen zwei Bildern viel Simulationszeit liegt)
+    for (let rem = Math.min(dd, 0.5); rem > 1e-6; rem -= 1 / 120) {
+      const h = Math.min(rem, 1 / 120);
+      st.sagV += (-60 * st.sag - 5 * st.sagV) * h;
+      st.sag += st.sagV * h;
+    }
     if (Math.abs(st.sag) < 1e-4 && Math.abs(st.sagV) < 1e-3) { st.sag = 0; st.sagV = 0; }
     if (web) {
       const a = web.g.attributes.position.array;

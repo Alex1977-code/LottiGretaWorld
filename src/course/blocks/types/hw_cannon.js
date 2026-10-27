@@ -57,9 +57,9 @@ export function buildKuerbisKanone(level, spec) {
   const model = modelOr('kuerbis_kanone', { height: h, radius: r, color, face: spec.face ?? 'grinsen' }, () => {
     const pk = pumpkinGeo({ r: R, shape: 'dick', color, hole: 0.6, ribs: 12, seg: 36 });
     const g = new THREE.Group();
-    const body = new THREE.Mesh(pk.body, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 }));
+    const body = new THREE.Mesh(pk.body, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, emissive: 0x3a1400 }));
     body.castShadow = true; body.receiveShadow = true;
-    faceMat = new THREE.MeshBasicMaterial({ vertexColors: true, color: 0xd8d8d8 });
+    faceMat = new THREE.MeshBasicMaterial({ vertexColors: true, color: 0xb8b8b8 });
     const glowParts = [faceGeo({ r: R, shape: 'dick', kind: spec.face ?? 'grinsen' })];
     if (pk.glow) glowParts.push(pk.glow);
     g.add(body, new THREE.Mesh(merge(glowParts), faceMat));
@@ -72,14 +72,19 @@ export function buildKuerbisKanone(level, spec) {
       leaves.push(colorize(lf.toNonIndexed(), (q, n, o) => mixc(lin(hex(HWC.leafLow)), lin(hex(HWC.leaf)), 0.5 + 0.3 * Math.sin(q.x * 6), o)));
     }
     g.add(new THREE.Mesh(merge(leaves), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, side: THREE.DoubleSide })));
+    // abgeschnittener Deckel mit Stiel lehnt am Kürbis (liest sich sofort als „Kürbis“)
+    const lid = pumpkinGeo({ r: R * 0.42, shape: 'flach', color, leaf: true, ribs: 12 });
+    lid.body.rotateX(0.5); lid.body.translate(-R * 0.35, 0, R * 1.05);
+    const lm = new THREE.Mesh(lid.body, body.material);
+    lm.castShadow = true;
+    g.add(lm);
     return { root: g };
   });
   root.add(model.root);
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTexture(), color: 0xffa040, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
-  glow.scale.set(R * 3.2, R * 2.4, 1);
-  glow.position.set(R * 0.9, h * 0.5, 0);
+  glow.scale.set(R * 2.4, R * 1.6, 1);
+  glow.position.set(0, h + 0.3, 0);
   root.add(glow);
-  level.view.addLantern?.(p.x, p.y + h * 0.5, p.z);
   if (spec.mark !== false) {
     const mark = new THREE.Mesh(markGeo(1.3), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.75, depthWrite: false }));
     mark.position.set(to.x, to.y + 0.04, to.z);
@@ -108,8 +113,8 @@ export function buildKuerbisKanone(level, spec) {
     root.position.x = p.x + Math.sin(tt * 61) * sh; root.position.z = p.z + Math.cos(tt * 53) * sh;
     const bl = 0.08 * k - 0.06 * Math.sin(puff * Math.PI);
     root.scale.set(1 + bl, 1 - bl * 0.6 + 0.08 * Math.sin(puff * Math.PI), 1 + bl);
-    if (faceMat) { const f = 0.78 + 0.08 * Math.sin(tt * 9) + 0.3 * k + 0.4 * puff; faceMat.color.setScalar(Math.min(1.25, f)); }
-    glow.material.opacity = 0.28 + 0.4 * k + 0.4 * puff + 0.05 * Math.sin(tt * 7);
+    if (faceMat) { const f = 0.62 + 0.06 * Math.sin(tt * 9) + 0.35 * k + 0.4 * puff; faceMat.color.setScalar(Math.min(1.2, f)); }
+    glow.material.opacity = 0.12 + 0.4 * k + 0.45 * puff + 0.04 * Math.sin(tt * 7);
     model.update?.(d, { anim: s === 'load' ? 'load' : s === 'fly' ? 'fire' : 'idle', k });
   });
   return handle;

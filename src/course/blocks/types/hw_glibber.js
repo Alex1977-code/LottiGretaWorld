@@ -15,7 +15,7 @@
 // nebel – Bodennebel-Feld (rein optisch): mehrere weiche, langsam treibende Nebelschichten über dem Boden, an den Rändern
 //   ausgeblendet; um die Figur dünner (Figur bleibt lesbar). Ein Zeichenaufruf je Feld.
 //   { type: 'nebel', pos: [x, y, z] (Mitte, Bodenhöhe), size: [w, d] (Standard [14, 14]), height: 1.3, layers: 3,
-//     density: 0.5 (0..1), color: 0xdfe6ff, drift: [0.25, 0.08] (m/s), edge: 2 (m weicher Rand) }
+//     density: 0.35 (0..1), color: 0xc8d2f4, drift: [0.25, 0.08] (m/s), edge: 2 (m weicher Rand) }
 
 import * as THREE from 'three';
 import { v3, hex, addObject, Rnd } from '../kit.js';
@@ -175,8 +175,8 @@ void main() {
   float e = min(uRect.z - abs(vWp.x - uRect.x), uRect.w - abs(vWp.z - uRect.y));
   float edge = smoothstep(0.0, uEdge, e);
   float lay = 1.0 - vLayer / max(1.0, uLayers) * 0.55;
-  float hole = mix(0.35, 1.0, smoothstep(0.6, 1.9, length(vWp.xz - uHole.xz)));
-  float a = clamp(n * 1.35, 0.0, 1.0) * uDensity * edge * lay * hole;
+  float hole = mix(0.25, 1.0, smoothstep(0.8, 2.6, length(vWp.xz - uHole.xz)));
+  float a = clamp(n * 1.1, 0.0, 1.0) * uDensity * edge * lay * hole;
   if (a < 0.004) discard;
   gl_FragColor = vec4(uColor, a);
   #include <colorspace_fragment>
@@ -215,7 +215,7 @@ export function buildNebel(level, spec) {
   const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog]);
   Object.assign(uniforms, {
     uTex: { value: fogTexture() }, uTime: { value: 0 }, uDrift: { value: new THREE.Vector2(drift[0], drift[1]) },
-    uColor: { value: new THREE.Color(spec.color ?? 0xdfe6ff) }, uDensity: { value: spec.density ?? 0.5 },
+    uColor: { value: new THREE.Color(spec.color ?? 0xc8d2f4) }, uDensity: { value: spec.density ?? 0.35 },
     uRect: { value: new THREE.Vector4(p.x, p.z, w / 2, d / 2) }, uEdge: { value: spec.edge ?? 2 }, uHole: { value: new THREE.Vector3(0, -1e4, 0) },
     uLayers: { value: layers },
   });

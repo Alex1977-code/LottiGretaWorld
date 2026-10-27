@@ -223,8 +223,7 @@ console.log('Halloween-Werkstatt 0-20');
   console.log(`  Besen: wartet ${!b0.running}, startet beim Draufstellen ${ride.started}; trägt die Figur ${f2(ride.onT)} s bis z ${f2(ride.minZ)} (Scheitel y ${f2(ride.maxY)})`);
   check('Besen-Plattform: wartet, bis eine Figur draufsteht (start stand), fliegt dann los', !b0.running && ride.started);
   check('Besen-Plattform: trägt die Figur über die Schlucht (Bahn mit Bogen)', ride.onT > 5 && ride.minZ < -66 && ride.maxY > 1.6 && !ride.dead);
-  await T('place', [0, 1.4, -58], { settle: 0 });
-  await sc(() => { const t = window.__t, b = t.named('besen'); b.reset(); b.start(); t.tick(150); });
+  await sc((m) => { const t = window.__t, b = t.named('besen'); b.reset(); t.tick(2); t.place([m[0], m[1] + 0.4, m[2]], { settle: 150 }); }, marks.besen);
   await shot('besen', 1500);
 }
 
@@ -381,6 +380,25 @@ console.log('Halloween-Werkstatt 0-20');
     return { st };
   });
   check('Riesenkürbis: Stampfattacke von oben lässt ihn zerplatzen (ohne Treffer)', !!pd.st && pd.st.big && pd.st.inv === 0);
+  // Bahn (path): folgt den Punkten, bergab schneller, zerplatzt am Ende
+  const pa = await sc(() => {
+    const t = window.__t, c = window.__course, L = c.level;
+    t.place([-6, 1, -175], { settle: 0 });
+    const e = L.spawn('riesenkuerbis', { path: [[8, 3, -172], [8, 1, -180], [4, 1, -196]], speed: 2 });
+    let maxDx = 0, maxV = 0, burstAt = null;
+    for (let i = 0; i < 12 * 120 && burstAt === null; i++) {
+      t.tick(1);
+      if (e.state === 'burst') { burstAt = i / 120; break; }
+      // Abstand zur Polylinie (nur xz)
+      const z = e.pos.z, x = e.pos.x;
+      const ex = z > -180 ? 8 : 8 - (z + 180) / -16 * 4;
+      maxDx = Math.max(maxDx, Math.abs(x - ex));
+      if (z > -180) maxV = Math.max(maxV, e.speed());
+    }
+    return { maxDx, maxV, burstAt, end: [+e.pos.x.toFixed(2), +e.pos.z.toFixed(2)] };
+  });
+  console.log(`  Riesenkürbis auf Bahn: Abweichung ≤ ${f2(pa.maxDx)} m, bergab bis ${f2(pa.maxV)} m/s, zerplatzt am Ende nach ${f2(pa.burstAt)} s bei ${JSON.stringify(pa.end)}`);
+  check('Riesenkürbis auf einer Bahn (path): folgt den Punkten, bergab schneller, zerplatzt am Ende', pa.maxDx < 0.05 && pa.maxV > 2.5 && pa.burstAt !== null && Math.abs(pa.end[1] + 196) < 0.6);
   await sc(() => window.__course.level.named.get('spender').start());
   await T('place', marks.kuerbis, { settle: 4 * 120 });
   await shot('kuerbis', 1500);
