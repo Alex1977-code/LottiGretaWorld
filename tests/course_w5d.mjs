@@ -118,6 +118,40 @@ const ROUTES = {
   },
 };
 
+// 5-Zug: eigener Ablauf (Zug-Koordinaten, Routen-Bot auf dem fahrenden Zug; zugSuite unten)
+ROUTES['5-Zug'] = {
+  zug: true,
+  start: [3.2, 1.1, 7.5],
+  meta: { stars: 0, stamp: false, time: 999, theme: 'train', music: 'course_goldtrain', archetype: 'autoscroller' },
+  enemies: { vehicle: 15, zugroehre: 4, goldschalter_zug: 1, felsladung: 1, wolkenwagen: 1, crate: 13, endlessblock: 1, rouletteblock: 1 },
+  loadChecks: [
+    { name: 'Goldzug: Lok + Tender + 8 Goldwagen (Modell goldzug_waggon) + 4 Flachwagen, Wolkenwagen', fn: () => { const L = window.__course.level; const v = L.entities.filter((e) => e.kind === 'vehicle'); return { n: v.length, gold: v.filter((e) => e.spec.model === 'goldzug_waggon').length, lok: v.filter((e) => e.style === 'lok').length, wolke: !!L.named.get('wolke') }; }, ok: (v) => v.n === 15 && v.gold === 10 && v.lok === 1 && v.wolke },
+    { name: 'keine Gegner, keine Sterne, kein Stempel (Bonus-Level), Stern-Plätze 0', fn: () => { const L = window.__course.level; return { enemies: L.entities.filter((e) => e.enemy).length, slots: L.data.starSlots, stars: L.entities.filter((e) => e.kind === 'star').length }; }, ok: (v) => v.enemies === 0 && v.slots === 0 && v.stars === 0 },
+    { name: 'Fahrplan: Fahrt ≈ 80 s, Halte-Pausen am Felswagen, Röhrenwagen, Blockwagen', fn: () => { const z = window.__course.level.data.zug; return { T: +z.ride.T.toFixed(1), D: +z.ride.D.toFixed(1), marks: z.ride.marks.length }; }, ok: (v) => v.T > 60 && v.T < 100 && v.marks === 6 },
+  ],
+  // Spur der Bots: [c, x] – über den Kisten des Röhrenwagens rechts (x 1), am Blockwagen rechts an den Blöcken vorbei
+  lane: [[0, 0.3], [58, 0.3], [59.5, 1.0], [69, 1.0], [70.5, 0.3], [98, 0.3], [99, 1.0], [108.5, 1.0], [109.5, 0.3], [140, 0.3]],
+  rideShots: [['goldwagen', 13], ['felswagen', 30], ['regen', 44], ['roehrenwagen', 60], ['goldwagen2', 86], ['blockwagen', 100], ['lok', 126]],
+  targets: [
+    { name: 'Geheimnis: goldener Schalter in der Felsspalte – hineinspringen, 8 s Goldregen über dem Zug, Münzen fahren mit', fn: 't_schalter', shot: 'schalter' },
+    { name: 'Schalter nur mit Schwung (daraufgestellt: kein Goldregen)', fn: 't_schalterSanft', heroes: ['lotti'] },
+    { name: 'Geheime Röhre in der Kistenburg → Wolkenwagen (Münzen, Extraleben) → Rückröhre auf G6', fn: 't_roehre', shot: 'wolke' },
+    { name: 'Röhre nur von oben: vom Deck aus versperren die Kisten den Weg', fn: 't_roehreZu', heroes: ['lotti'] },
+    { name: 'Blockwagen: Dauer-Münzblock, ?-Block (Funkenblüte), Roulette-Block', fn: 't_bloecke', shot: 'bloecke' },
+    { name: 'Extraleben: unsichtbarer Block über G8', fn: 't_lebenG8', heroes: ['lotti'] },
+    { name: 'Glückshaus: Spielautomat (Einsatz 10 Bitcoins; 3 × Bitcoin, 3 × Herz, 3 × Krallen-Anzug, zu wenig Bitcoins)', fn: 't_glueck', heroes: ['lotti'], shot: 'glueck' },
+  ],
+  extra: [
+    { name: 'Kein Zeitlimit: Uhr steht, Anzeige „– – –“', fn: 't_zeit', heroes: ['lotti'] },
+    { name: 'Nicht eingestiegen: Abfahrt nach 3 s, ans Bahnsteigende geschoben → Absturz in die Lagune', fn: 't_abfahrt', heroes: ['lotti'] },
+    { name: 'Kontrollpunkt auf G5: Neustart auf dem fahrenden Zug', fn: 't_checkpoint', heroes: ['lotti'] },
+  ],
+  shots: [
+    ['bahnhof', 'start'],
+    ['garten', 'garden'],
+  ],
+};
+
 const Y3 = 4, AZ = -200;
 ROUTES['5-Burg'] = {
   start: [0, Y, 8],
@@ -255,6 +289,8 @@ function install() {
     kampf: () => !!c.arch?.started,
     respawnSteg: () => Math.abs(P().pos.z + 183.5) < 2.5 && !P().dead,
     koenigVoll: () => { const b = L.named.get('koenig'); return b?.hp === 3 && !c.arch?.started; },
+    imGarten: () => P().pos.x > 30 && !P().dead,
+    slotFertig: () => (L._glueck?.pulls ?? 0) >= 1 && !L._glueck.slot.busy,
   };
   const PRE = {
     rissAuf: () => { const w = L.named.get('risswand'); for (const col of w?.columns ?? []) col.onHit?.('bomb', null); },
@@ -661,6 +697,388 @@ function install() {
   return Object.keys(W);
 }
 
+/** 5-Zug: Hilfen in der Seite (Zug-Koordinaten, Routen-Bot auf dem fahrenden Zug, Prüfungen der Geheimnisse). */
+function installZug() {
+  const c = window.__course, L = c.level, P = () => c.player, W = window.__w5;
+  const TR = L.data.train;
+  const ref = L.named.get('A1');
+  const Z = W.zug = {};
+  Z.cOf = (z) => TR.A1.cc - (z - ref.pos.z);
+  Z.at = (cc, x, y) => [x, y, ref.pos.z - (cc - TR.A1.cc)];
+  Z.cw = () => Z.cOf(L.scroll.center.z);
+  Z.ground = () => { const g = P().ground; return g?.mover?.vehicle?.spec?.id ?? g?.owner?.spec?.attach ?? g?.tag ?? null; };
+  Z.park = () => { const p = P(); p.invuln = 1e9; p.mode = 'script'; p.script = { type: 'test', t: 0 }; };
+  /** bis die Fenstermitte bei Zug-Koordinate cc steht (Figur geparkt). */
+  Z.waitWin = (cc, max = 120 * 200) => { Z.park(); let k = 0; while (Z.cw() < cc && L.scroll.state !== 'done' && k < max) { c.step(1); k++; } return k; };
+  /** Figur auf Zug-Koordinate cc, seitlich x setzen (Höhe: Fläche darunter, Strahl ab from). */
+  Z.placeC = (cc, x, o = {}) => {
+    const [X, , ZZ] = Z.at(cc, x, 0);
+    const hit = c.world.raycastDown(X, o.from ?? 12, ZZ, 16, {});
+    return W.place([X, (hit?.y ?? 4) + 0.05, ZZ], { hero: o.hero ?? 'lotti', settle: o.settle ?? 3, invuln: o.invuln ?? 1e9 });
+  };
+  const veh = (id) => L.named.get(id);
+  const vel = (id) => { const m = veh(id)?.mover; return m ? [m.vx, m.vz] : [0, 0]; };
+  const tick = (inp) => { const p = P(); if (p.invuln < 1e8) p.invuln = Math.max(p.invuln, 5); c.setInput(inp); c.step(1); if (p.mode === 'script' && !p.dead) { let k = 0; while (p.mode === 'script' && k++ < 2400 && !p.dead) { c.setInput({}); c.step(1); } } };
+  /** auf ein fahrendes Ziel springen: get() → { x, z } (Weltlage jetzt), car: Fahrzeug-Id (Tempo). */
+  Z.jumpTo = (get, car, o = {}) => {
+    const p = P();
+    let k = 0, air = false;
+    for (; k < (o.max ?? 240); k++) {
+      const t = get(), [vx, vz] = vel(car);
+      if (p.mode === 'air') air = true;
+      if (air && p.mode === 'ground' && k > 6) break;
+      const st = p.mode === 'air' ? W.airSteer(t.x, t.z, vx, vz, o.k ?? 3.2, 12) : W.stick(t.x - p.pos.x, t.z - p.pos.z, 0.6);
+      tick({ ...st, jump: k < (o.hold ?? 26), run: false });
+    }
+    return { k, x: +(p.pos.x - get().x).toFixed(2), z: +(p.pos.z - get().z).toFixed(2), y: +p.pos.y.toFixed(2), ground: Z.ground() };
+  };
+  /** auf dem Zug zu einem mitfahrenden Punkt gehen. */
+  Z.walkTo = (get, within = 0.25, max = 600) => {
+    const p = P();
+    let k = 0;
+    for (; k < max; k++) {
+      const t = get(), dx = t.x - p.pos.x, dz = t.z - p.pos.z, d = Math.hypot(dx, dz);
+      if (d < within && p.mode === 'ground') break;
+      tick({ ...W.stick(dx, dz, Math.max(0.25, Math.min(1, d / 1.2))), run: false });
+    }
+    return k < max;
+  };
+  const coinsOf = () => L.runtime.coins;
+  const lives = () => L.runtime.save.lives;
+
+  // ------------------------------------------------------------------ Routen-Bot über den fahrenden Zug
+  const laneAt = (lane, cc) => {
+    if (cc <= lane[0][0]) return lane[0][1];
+    for (let i = 1; i < lane.length; i++) if (cc <= lane[i][0]) { const [c0, x0] = lane[i - 1], [c1, x1] = lane[i]; return x0 + (x1 - x0) * ((cc - c0) / (c1 - c0)); }
+    return lane[lane.length - 1][1];
+  };
+  const SOLID = (s) => s.solid !== false && !s.oneWay && !s.trigger && !s.water && !s.kill;
+  // Höhe der Fläche d m voraus (Strahl von oben: Kisten, Felsen, Wagenstirnen zählen als Stufe), −∞ = Lücke
+  const probe = (p, d, x = p.pos.x) => { const h = c.world.raycastDown(x, p.pos.y + 3.3, p.pos.z - d, 6.5, {}); return h && !h.shape.kill ? h.y : -Infinity; };
+  const groundAhead = (p, d, x = p.pos.x) => probe(p, d, x) > p.pos.y - 2.6;
+  const stepAhead = (p, maxD = 0.95) => { for (let d = 0.35; d <= maxD; d += 0.15) { const y = probe(p, d); if (y > p.pos.y + 0.35) return d; if (y < p.pos.y - 2.6) return Infinity; } return Infinity; };
+  const wallAhead = (p, d) => c.world.overlapAABB({ x: p.pos.x, y: p.pos.y + 0.6, z: p.pos.z - d }, { x: 0.22, y: 0.32, z: 0.12 }, { filter: SOLID }).length > 0;
+  const farSide = (p) => { for (let d = 1.0; d < 6.5; d += 0.25) if (groundAhead(p, d)) return d; return Infinity; };
+  /** Einsteigen: vom Bahnsteig quer auf den Startwagen A1. */
+  Z.board = (hero = 'lotti') => {
+    const p = P();
+    W.place(L.data.start.pos, { hero, settle: 2, invuln: 1e9 });
+    for (let i = 0; i < 240; i++) { c.setInput({ x: -1, jump: i < 30, run: false }); c.step(1); if (p.mode === 'ground' && i > 10) break; }
+    c.setInput({});
+    return { ground: Z.ground(), y: +p.pos.y.toFixed(2), time: +L.time.toFixed(2) };
+  };
+  Z.botStart = (lane, o = {}) => {
+    const p = P();
+    p.invuln = 1e9;
+    Z.bs = { lane, o, log: { jumps: 0, climbs: 0, cars: [], deaths: 0, steps: 0, done: false, maxC: -1e9, coins0: coinsOf(), switchPresses: 0 }, jumpHold: 0, prevJump: false, commit: false, trace: [] };
+    return true;
+  };
+  Z.botRun = (n, untilCw = Infinity) => {
+    const p = P(), w = L.scroll, B = Z.bs, log = B.log, o = B.o;
+    for (let i = 0; i < n; i++) {
+      log.steps++;
+      if (log.steps % 30 === 0) { B.trace.push([+Z.cOf(p.pos.z).toFixed(1), +p.pos.x.toFixed(1), +p.pos.y.toFixed(2), p.mode, p.state, Z.ground(), +Z.cw().toFixed(1)].join(' ')); if (B.trace.length > 24) B.trace.shift(); }
+      if (p.dead) { log.deaths++; log.deathAt = +Z.cOf(p.pos.z).toFixed(1); log.cause = p.deathCause; log.trace = B.trace.slice(); return { dead: true }; }
+      const cp = Z.cOf(p.pos.z), cw = Z.cw();
+      log.maxC = Math.max(log.maxC, cp);
+      if (w.state === 'done' && p.mode === 'ground' && cp >= (o.stopC ?? 126)) { log.done = true; return { done: true }; }
+      if (cw >= untilCw) return { cw };
+      const id = Z.ground();
+      if (id && log.cars[log.cars.length - 1] !== id && /^[A-Z]/.test(id)) log.cars.push(id);
+      const lx = laneAt(B.lane, cp + 0.8);
+      const inp = { x: Math.max(-1, Math.min(1, (lx - p.pos.x) * 1.6)) };
+      const ahead = cw + (o.lead ?? 1.6);
+      let jump = false;
+      if (p.mode === 'ground') {
+        B.commit = false;
+        let edge = Infinity;
+        for (let d = 0.5; d < 3.4; d += 0.25) if (!groundAhead(p, d)) { edge = d; break; }
+        let far = Infinity;
+        if (edge < Infinity) { const pz = p.pos.z; p.pos.z -= edge - 0.25; far = farSide(p) + edge - 0.25; p.pos.z = pz; }
+        const ready = far < 7.5 && cp + far + 1.2 < cw + 7.4;
+        if (edge <= 0.75) {
+          if (ready && p.gs > 2.5) { jump = true; inp.y = 1; B.commit = true; log.jumps++; }
+          else inp.y = -0.5;
+        } else if ((wallAhead(p, 0.55) || stepAhead(p) < Infinity) && cp < ahead + 4) { jump = true; inp.y = 1; B.commit = true; log.climbs++; }
+        else if (edge < 1.4) inp.y = ready ? 1 : 0;
+        else if (edge < 3.4) inp.y = ready ? 1 : (cp < ahead ? 0.5 : 0);
+        else if (cp < ahead) inp.y = 1;
+        if (o.stopC !== undefined && cp >= o.stopC && edge > 0.75) inp.y = 0;
+      } else if (B.commit) inp.y = 1;
+      if (jump && !B.prevJump) B.jumpHold = 34;
+      inp.jump = B.jumpHold > 0;
+      if (B.jumpHold > 0) B.jumpHold--;
+      B.prevJump = inp.jump;
+      c.setInput(inp);
+      c.step(1);
+    }
+    return { cw: Z.cw(), c: Z.cOf(p.pos.z), state: w.state };
+  };
+  Z.botLog = () => {
+    const B = Z.bs, log = { ...B.log };
+    c.setInput({});
+    log.finalC = +Z.cOf(P().pos.z).toFixed(1);
+    log.coins = coinsOf() - log.coins0;
+    log.state = L.scroll.state;
+    log.pushes = c.arch?.pushes;
+    log.hero = P().hero;
+    log.switch = L.named.get('goldschalter')?.info?.();
+    return log;
+  };
+
+  // ------------------------------------------------------------------ Geheimnisse
+  /** Fallmünzen zählen, die eingesammelt wurden (nicht abgelaufen). */
+  const rainCounter = () => {
+    const seen = new Set();
+    let got = 0;
+    return { step() { for (const e of L.entities) if (e.kind === 'fallmuenze') { if (e.alive && !e.removed) seen.add(e); } for (const e of seen) if (!e.alive || e.removed) { if (e.age < e.life - 0.05) got++; seen.delete(e); } }, get got() { return got; } };
+  };
+  Z.t_schalter = (hero) => {
+    const p = P();
+    Z.waitWin(29.5);
+    Z.placeC(TR.F1.cc - 2.5, 0.3, { hero });
+    const sw = L.named.get('goldschalter');
+    const c0 = coinsOf();
+    const j = Z.jumpTo(() => ({ x: sw.pos.x, z: sw.pos.z }), 'F1', { hold: 6, k: 3.6 });
+    for (let i = 0; i < 30; i++) tick({});
+    const pressed = sw.state !== 'idle';
+    // mit dem Bot weiter über die Goldwagen G3/G4 (der Regen fällt über G2–G4)
+    const rc = rainCounter();
+    // aus der Spalte: an der Felsstufe hinauf, dann der Spur nach
+    Z.botStart([[0, 0], [200, 0]], { lead: 0.6 });
+    for (let k = 0; k < 120 * 12 && !p.dead; k++) { rc.step(); const r = Z.botRun(1, 58); if (r.cw !== undefined && r.cw >= 58) break; }
+    rc.step();
+    return { ok: pressed && sw.rained >= 50 && rc.got >= 12 && !p.dead, text: `Sprung ${JSON.stringify(j)}, Regen ${sw.rained} Münzen, eingesammelt ${rc.got}, Münzen +${coinsOf() - c0}`, coins: coinsOf() - c0 };
+  };
+  Z.t_schalterSanft = (hero) => {
+    Z.waitWin(29.5);
+    const sw = L.named.get('goldschalter');
+    const [X, , ZZ] = [sw.pos.x, 0, sw.pos.z];
+    W.place([X, sw.pos.y + 0.6, ZZ], { hero, settle: 3, invuln: 1e9 });
+    for (let i = 0; i < 120; i++) tick({});
+    const on = P().ground?.owner === sw;
+    return { ok: sw.state === 'idle' && on, text: `Zustand ${sw.state}, steht auf dem Schalter ${on}` };
+  };
+  Z.t_roehre = (hero) => {
+    const p = P();
+    Z.waitWin(59.6);
+    const l0 = lives(), c0 = coinsOf();
+    Z.placeC(TR.R1.cc - 2.65, 0, { hero, from: 5 });
+    const startY = +p.pos.y.toFixed(2);
+    const pipe = L.named.get('roehre_geheim');
+    const j = Z.jumpTo(() => ({ x: pipe.pos.x, z: pipe.pos.z }), 'R1', { hold: 10 });
+    Z.walkTo(() => ({ x: pipe.pos.x, z: pipe.pos.z }), 0.12, 90);
+    const onPipe = Math.hypot(p.pos.x - pipe.pos.x, p.pos.z - pipe.pos.z) < 0.5 && p.pos.y > pipe.pos.y + 0.6;
+    let k = 0;
+    for (; k < 60 && p.mode !== 'script'; k++) { c.setInput({ crouch: true }); c.step(1); }
+    for (let i = 0; i < 2400 && p.mode === 'script'; i++) { c.setInput({}); c.step(1); }
+    for (let i = 0; i < 20; i++) tick({});
+    const cloud = Z.ground();
+    // Münzen und Extraleben auf der Wolke
+    W.chase('coin', { filter: (e) => e.spec?.attach === 'wolke', max: 1500, walk: true });
+    W.chase('powerup', { filter: (e) => e.spec?.attach === 'wolke', max: 400, walk: true });
+    const coinsCloud = coinsOf() - c0, lifeGot = lives() - l0;
+    // vorn in die goldene Rückröhre
+    const out = L.named.get('wolke_aus');
+    Z.walkTo(() => ({ x: out.pos.x, z: out.pos.z + 1.3 }), 0.4, 600);
+    const jo = Z.jumpTo(() => ({ x: out.pos.x, z: out.pos.z }), 'wolke', { hold: 14 });
+    for (k = 0; k < 60 && p.mode !== 'script'; k++) { c.setInput({ crouch: true }); c.step(1); }
+    for (let i = 0; i < 2400 && p.mode === 'script'; i++) { c.setInput({}); c.step(1); }
+    for (let i = 0; i < 60; i++) tick({});
+    const back = Z.ground();
+    const ok = onPipe && cloud === 'wolke' && coinsCloud >= 25 && lifeGot >= 1 && back === 'G6' && !p.dead;
+    return { ok, text: `Start auf der Kistenburg y ${startY}, auf der Röhre ${onPipe}, Wolke ${cloud}, Münzen +${coinsCloud}, Leben +${lifeGot}, Rückröhre → ${back} (Fenster c ${Z.cw().toFixed(1)})`, coins: coinsCloud };
+  };
+  Z.t_roehreZu = (hero) => {
+    const p = P();
+    Z.waitWin(59.6);
+    Z.placeC(TR.R1.cc + 1.5, 0, { hero, from: 2.5 });
+    const pipe = L.named.get('roehre_geheim');
+    let best = 99;
+    for (let k = 0; k < 240; k++) { tick({ ...W.stick(pipe.pos.x - p.pos.x, pipe.pos.z - p.pos.z, 0.7), run: false }); best = Math.min(best, Math.hypot(p.pos.x - pipe.pos.x, p.pos.z - pipe.pos.z)); }
+    return { ok: best > 0.9 && p.pos.y < 2, text: `nächster Abstand zur Röhre ${best.toFixed(2)} m, Höhe ${p.pos.y.toFixed(2)}` };
+  };
+  Z.t_bloecke = (hero) => {
+    const p = P();
+    Z.waitWin(99.4);
+    const c0 = coinsOf();
+    const end = L.named.get('dauerblock'), rou = L.named.get('roulette');
+    Z.placeC(TR.B1.cc, 0, { hero, from: 3 });
+    let hits = 0;
+    for (let n = 0; n < 10; n++) {
+      Z.walkTo(() => ({ x: end.pos.x, z: end.pos.z }), 0.2, 120);
+      for (let i = 0; i < 40; i++) { tick({ jump: i < 16 }); if (i > 6 && p.mode === 'ground') break; }
+      hits++;
+    }
+    const endless = coinsOf() - c0;
+    // ?-Block (dc −3): Funkenblüte
+    const q = L.entities.find((e) => e.kind === 'question' && e.spec?.attach === 'B1');
+    Z.walkTo(() => ({ x: q.pos.x, z: q.pos.z }), 0.2, 240);
+    for (let i = 0; i < 40; i++) { tick({ jump: i < 16 }); if (i > 6 && p.mode === 'ground') break; }
+    for (let i = 0; i < 60; i++) tick({});
+    W.chase('powerup', { max: 600, walk: true });
+    const power = p.power;
+    // Roulette-Block (dc +3)
+    const lives0 = lives(), c1 = coinsOf();
+    Z.walkTo(() => ({ x: rou.pos.x, z: rou.pos.z }), 0.2, 360);
+    for (let i = 0; i < 40; i++) { tick({ jump: i < 16 }); if (i > 6 && p.mode === 'ground') break; }
+    for (let i = 0; i < 60; i++) tick({});
+    W.chase('powerup', { max: 600, walk: true });
+    const rr = rou.info?.() ?? {};
+    const rouGot = (coinsOf() - c1) + (lives() - lives0) * 100 + (p.power !== power ? 1000 : 0);
+    return { ok: endless >= 6 && power === 'funken' && rouGot > 0 && !p.dead, text: `Dauerblock ${endless} Münzen (${hits} Sprünge), ?-Block → ${power}, Roulette ${JSON.stringify(rr).slice(0, 80)} → ${rouGot}` };
+  };
+  Z.t_lebenG8 = (hero) => {
+    const p = P();
+    Z.waitWin(110);
+    const l0 = lives();
+    const b = L.named.get('block_leben');
+    Z.placeC(TR.G8.cc + 2.5, 0, { hero, from: 4 });
+    Z.walkTo(() => ({ x: b.pos.x, z: b.pos.z }), 0.2, 120);
+    for (let i = 0; i < 40; i++) { tick({ jump: i < 20 }); if (i > 6 && p.mode === 'ground') break; }
+    for (let i = 0; i < 40; i++) tick({});
+    W.chase('powerup', { max: 900, walk: true });
+    return { ok: lives() - l0 >= 1 && !p.dead, text: `Block ${b.hidden ? 'versteckt' : 'gefunden'}, Leben +${lives() - l0}` };
+  };
+  Z.t_glueck = (hero) => {
+    const p = P(), G = L._glueck, mk = L.data.marks;
+    Z.waitWin(1e9);                      // Fahrt vorbei (Fenstergrenzen fallen weg)
+    const hop = () => { for (let i = 0; i < 40; i++) { tick({ jump: i < 14 }); if (i > 6 && p.mode === 'ground') break; } for (let i = 0; i < 20; i++) tick({}); };
+    const wait = () => { for (let i = 0; i < 480 && G.slot.busy; i++) tick({}); for (let i = 0; i < 10; i++) tick({}); };
+    W.place([mk.pad[0], mk.pad[1] + 0.1, mk.pad[2]], { hero, settle: 10 });
+    const out = {};
+    L.runtime.coins = 4;
+    hop();
+    out.poor = G.poor; out.pullsPoor = G.pulls;
+    // Testaufbau: Bitcoins gutschreiben (wie nach der Fahrt), dann drei festgelegte Drehungen
+    L.addCoins(56);
+    const c0 = L.runtime.coins;
+    G.force(['coin', 'coin', 'coin']); hop(); wait();
+    out.coins3 = L.runtime.coins - c0;
+    const l0 = lives();
+    G.force(['oneup', 'oneup', 'oneup']); hop(); wait();
+    out.life = lives() - l0;
+    G.force(['krallen', 'krallen', 'krallen']); hop(); wait();
+    out.power = L.runtime.save.carryPower;
+    G.force(['baron', 'coin', 'stern']); hop(); wait();
+    out.none = G.prizes[G.prizes.length - 1];
+    out.pulls = G.pulls;
+    L.runtime.save.carryPower = null;
+    const ok = out.poor === 1 && out.pullsPoor === 0 && out.coins3 === 20 && out.life === 1 && out.power === 'krallen' && out.none === 'none:0' && out.pulls === 4;
+    return { ok, text: JSON.stringify(out) };
+  };
+  Z.t_zeit = () => {
+    const rt = L.runtime;
+    Z.park();
+    for (let i = 0; i < 120 * 40; i++) c.step(1);
+    const ui = window.__game.scene.getScene('CourseUI');
+    return { ok: rt.timeLeft === rt.timeLimit && rt.status === 'play' && ui?.timeText?.text === '– – –', text: `Uhr ${rt.timeLeft} / ${rt.timeLimit} nach 40 s, Anzeige „${ui?.timeText?.text}“` };
+  };
+  Z.t_abfahrt = (hero) => {
+    const p = P();
+    W.place(L.data.start.pos, { hero, settle: 2, invuln: 0 });
+    let n = 0, t0 = null;
+    for (; n < 120 * 30 && !p.dead; n++) { c.setInput({}); c.step(1); if (t0 === null && L.scroll.state === 'run') t0 = L.time; }
+    return { ok: p.dead && p.deathCause === 'fall' && t0 !== null && Math.abs(t0 - 3) < 0.1, text: `Abfahrt ${t0?.toFixed(2)} s, ${p.deathCause} nach ${(n / 120).toFixed(1)} s` };
+  };
+  Z.t_checkpoint = (hero) => {
+    const p = P();
+    Z.waitWin(70);
+    Z.placeC(TR.G5.cc - 3, 0, { hero, from: 5 });
+    for (let i = 0; i < 30; i++) tick({});
+    const cp = !!L.runtime.checkpoint;
+    p.invuln = 0;
+    p.die('hit');
+    for (let i = 0; i < 2400 && (p.dead || L.runtime.status !== 'play'); i++) { c.setInput({}); c.step(1); }
+    for (let i = 0; i < 60; i++) { c.setInput({}); c.step(1); }
+    const g = Z.ground();
+    return { ok: cp && g === 'G5' && !p.dead && L.scroll.state === 'run', text: `Kontrollpunkt ${cp}, Neustart auf ${g}, Fenster ${L.scroll.state} (c ${Z.cw().toFixed(1)})` };
+  };
+  return Object.keys(Z);
+}
+
+/** 5-Zug: Route (Lotti, Greta), Messgang während der Fahrt, Geheimnisse, Extras, Bilder. */
+async function zugSuite(id, R) {
+  const Z = (name, ...args) => sc(([n, a]) => window.__w5.zug[n](...a), [name, args]);
+  const prep = async () => { await load(id); await sc(installZug); };
+  // ------------------------------------------------ Route: einsteigen, Bot bis zum Halt, Röhre, Glückshaus, Zielmast
+  for (const hero of ONLY || !PARTS.has('route') ? [] : HEROES) {
+    await prep();
+    const board = await Z('board', hero);
+    await Z('botStart', R.lane, { stopC: 126 });
+    const shots = hero === HEROES[0] && PARTS.has('shots') ? R.rideShots.slice() : [];
+    const sweep = hero === HEROES[0] && PARTS.has('sweep');
+    let worst = { calls: 0, tris: 0, atC: null, atT: null }, samples = 0, st = null;
+    for (let k = 0; k < 400; k++) {
+      const next = shots.length ? shots[0][1] : Infinity;
+      st = await Z('botRun', 240, next);
+      if (st.dead || st.done) break;
+      if (shots.length && st.cw >= next) { const [nm] = shots.shift(); await shot(`${id}_${nm}`); continue; }
+      if (sweep) {
+        const f0 = await sc(() => { window.__course.snapCamera(); return window.__course.view.frame; });
+        await page.waitForFunction((f) => window.__course.view.frame >= f + 6, f0, { timeout: 90000 });
+        const s = await sc(() => window.__course.stats());
+        samples++;
+        if (s.calls > worst.calls) { worst.calls = s.calls; worst.atC = st.cw; }
+        if (s.triangles > worst.tris) { worst.tris = s.triangles; worst.atT = st.cw; }
+      }
+    }
+    const log = await Z('botLog');
+    const trace = log.trace; delete log.trace;
+    console.log(`  ${hero}: Einsteigen ${JSON.stringify(board)}; Bot ${JSON.stringify(log)}`);
+    if (!log.done && trace) for (const t of trace) console.log('     ', t);
+    check(`${id}: ${hero} steigt vom Bahnsteig auf den Startwagen A1 (${board.ground})`, board.ground === 'A1');
+    check(`${id}: ${hero} fährt ohne Absturz bis zum Halt am Muschelkap (c ${log.finalC}, ${log.jumps} Lückensprünge, ${log.climbs} Klettersprünge)`, log.done && log.deaths === 0 && log.state === 'done');
+    check(`${id}: ${hero} trägt jeder Wagen (${log.cars.join(' → ')})`, ['A1', 'G1', 'G2', 'F1', 'G3', 'G4', 'R1', 'G5', 'G6', 'G7', 'B1', 'G8', 'T1', 'L1'].every((x) => log.cars.includes(x)));
+    if (st?.done) {
+      const mk = await sc(() => window.__course.level.data.marks);
+      const legs = [
+        { name: 'auf den Bahnsteig', to: [3.6, mk.pipe[2] + 2.6], within: 0.5, run: false },
+        { name: 'goldene Röhre', to: [mk.pipe[0], mk.pipe[2]], jump: 26, within: 0.3, run: false },
+        { crouch: 50 },
+        { expect: 'imGarten' },
+        { name: 'Matte des Spielautomaten', to: [mk.pad[0], mk.pad[2]], within: 0.3, run: false },
+        { wait: 30 },
+        { hop: 14 },
+        { until: 'slotFertig', max: 700 },
+        { name: 'Zielmast', to: [mk.goal[0], mk.goal[2]], within: 0.2 },
+      ];
+      const c0 = (await W('rt')).coins;
+      const res = await W('drive', legs, {});
+      const reached = res.status === 'goal' || res.status === 'done';
+      const g = await sc(() => window.__course.level._glueck.info());
+      console.log(`    Ziel: Status ${res.status}, Münzen vor dem Glückshaus ${c0}, Automat ${JSON.stringify(g).slice(0, 160)}, ${res.time.toFixed(1)} s nach dem Halt`);
+      if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+      check(`${id}: ${hero} – goldene Röhre → Glücksgarten, eine Drehung am Spielautomaten (${g.pulls}), Zielmast erreicht`, reached && g.pulls >= 1);
+      check(`${id}: ${hero} sammelt auf der Spur ohne Umwege ≥ 30 Bitcoins (${log.coins})`, log.coins >= 30);
+    }
+    if (sweep && samples) {
+      check(`${id}: Messgang während der Fahrt (${samples} Bilder) – Zeichenaufrufe < 120 (max ${worst.calls} bei c ${worst.atC?.toFixed(0)})`, worst.calls < 120);
+      check(`${id}: Messgang – Dreiecke < 300 k (max ${Math.round(worst.tris / 1000)} k bei c ${worst.atT?.toFixed(0)})`, worst.tris < 300000);
+    }
+  }
+  // ------------------------------------------------ Geheimnisse und Extras
+  for (const [part, list] of [['targets', R.targets], ['extra', R.extra]]) {
+    for (const t of !PARTS.has(part) ? [] : pick(list ?? [])) {
+      for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
+        await prep();
+        const r = await Z(t.fn, hero);
+        check(`${id}: ${t.name} (${hero}: ${r.text})`, !!r.ok);
+        if (t.shot && hero === HEROES[0] && PARTS.has('shots')) await shot(`${id}_${t.shot}`);
+      }
+    }
+  }
+  // ------------------------------------------------ Bilder (Bahnhof, Glücksgarten)
+  if (ONLY || !PARTS.has('shots')) return;
+  for (const [name, mark] of R.shots) {
+    if (SHOTS && !SHOTS.has(name)) continue;
+    await prep();
+    const pos = await sc((m) => window.__course.level.data.marks[m], mark);
+    await W('place', [pos[0], pos[1] + 0.1, pos[2] - (mark === 'garden' ? 3 : 0)], { settle: 30 });
+    await shot(`${id}_${name}`);
+  }
+}
+
 const allErrors = [];
 let loaded = null;
 async function load(id) {
@@ -719,6 +1137,7 @@ for (const id of LEVELS) {
     if (R.lights) check(`${id}: ${R.lights} Suchscheinwerfer (${kinds.__lights})`, kinds.__lights === R.lights);
     if (R.loadChecks) for (const lc of R.loadChecks) { const v = await sc(lc.fn); check(`${id}: ${lc.name} (${JSON.stringify(v)})`, lc.ok(v)); }
   }
+  if (R.zug) { await zugSuite(id, R); continue; }
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
   let sweepTrack = null;

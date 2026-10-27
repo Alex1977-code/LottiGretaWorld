@@ -9,18 +9,29 @@
 //                       Alarmlampen, Markisen), rissWand (Riss in der grauen Mauer, Hinweis-Glitzer), kletterRaum
 //                       (Rätselraum: Steinblöcke kommen beim Wiederbetreten zurück), steinStern (Stern im Steinblock),
 //                       schleichZaehler (Entdeckungen je Scheinwerfer, für Tests und Ansagen)
-//   3) Goldzug 5-Zug    siehe unten (Wagenreihe, Fahrplan, Goldschalter im Felswagen, Wolkenwagen, Glückshaus, Küste)
+//   3) Goldzug 5-Zug    Wagenreihe (goldLineUp, goldWagen: Goldwagen/Lok mit Modell goldzug_waggon), Theme-Variante
+//                       Goldküste, ohneZeitlimit, ZugGoldschalter (Goldregen aus der Felsspalte), FelsLadung,
+//                       WolkenWagen, gluecksHaus (Spielautomat), kuestenKulisse, goldzugSzene (Welt-3-Zug-Hilfen)
 //   4) Tempel 5-Burg    siehe unten (Lochstern, Tempel-Kulisse, Baron-Szene)
 // Statische Teile gehen über addStatic in die Abschnitts-Meshes (keine zusätzlichen Zeichenaufrufe), belebte
 // Kleinigkeiten sind je ein Mesh bzw. eine Instanz-Gruppe ohne Sonnenschatten.
 
 import * as THREE from 'three';
-import { colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
+import { colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd, box } from '../../blocks/kit.js';
 import { bakeModel, figures } from '../../blocks/w2kit.js';
 import { banner as hudBanner } from '../../blocks/w3kit.js';
-import { runAction, visDt } from '../../entities/gimmick.js';
+import { runAction, visDt, Gimmick, countdown } from '../../entities/gimmick.js';
 import { glowTexture } from '../../blocks/w4kit.js';
 import { getModel, hasModel } from '../../models/index.js';
+import { BEACH_THEME } from '../../view/theme_beach.js';
+import { beachSea } from '../../view/backdrop_w5.js';
+import { birdFlock, animateBirds } from '../../view/backdrop_w4.js';
+import { SlotMachine } from '../../map/slot.js';
+import {
+  solveTrainRide, ZugRoehre, zugRules, trainCull, StaticCullE, skyDiet, heroShadowDiet, spawnLocal, shadowDiet, trackChunks,
+} from '../w3/_helpers_e.js';
+
+export { solveTrainRide, trackChunks };
 import {
   lavaSee, lavaFaelle, glutSaum, burgBoden, tuerme, fackeln, banner, ketten, funkenFlug, glowPoints, bakeParts, blk, cyl,
   sph, cone, quadG,
@@ -543,6 +554,492 @@ export function gluehwuermchen(level, boxes, o = {}) {
 }
 
 export { TAU, clamp, L };
+
+// =====================================================================================================================
+// 3) Goldzug (5-Zug)
+// =====================================================================================================================
+//
+// Zug-Koordinate c: Meter entlang des Zugs nach vorn (−Z) ab dem Heck des letzten Wagens, gemessen beim Fahrtbeginn
+// (Weltlage z = ZR − c). Das Gleis liegt bei x = 0, der Fensterpfad auch (anders als 3-Zug kein Parallelgleis). Der Zug
+// fährt mit VT; das Bildfenster gleitet schneller am Zug entlang nach vorn (Fahrplan mit Halte-Pausen: solveTrainRide
+// der Welt-3-Hilfen). Am Ende halten Fenster und Zug gemeinsam am Muschelkap.
+
+export const GZ = { VT: 6, ZP: 30, ZR: 14, ACCEL: 6, BRAKE: 3, GAP: 0.8 };
+/** Weltlage (Fahrtbeginn) zu Zug-Koordinate c, seitlich x, Höhe y. */
+export const gzP = (c, x = 0, y = 0) => [x, y, GZ.ZR - c];
+/** Pfadlänge des Fensterpfads (x = 0, Start bei z = ZP) zu Zug-Koordinate c beim Fahrtbeginn. */
+export const gzS = (c) => GZ.ZP - (GZ.ZR - c);
+/** Begehbare Oberkanten: Münzberg der Goldwagen, Holzdeck der Flachwagen, Führerhaus-Dach der Lok. */
+export const WAGEN_TOP = { gold: 2.9, flach: 1.39, lok: 3.5 };
+
+/** Wagenreihe von hinten nach vorn: cars = [{ id, kind: 'gold' | 'flach' | 'lok', len, parts }] → { list, byId }. */
+export function goldLineUp(cars, c0 = 0) {
+  const list = [];
+  let c = c0;
+  for (const car of cars) {
+    const len = car.len ?? (car.kind === 'lok' ? 8 : 9);
+    const it = { ...car, len, c0: c, c1: c + len, cc: c + len / 2 };
+    list.push(it);
+    c += len + GZ.GAP;
+  }
+  return { list, byId: Object.fromEntries(list.map((x) => [x.id, x])) };
+}
+/** Weltlage (Fahrtbeginn) eines Punkts auf einem Wagen (dc vorn, dx rechts, y über der Schiene). */
+export const aufWagen = (car, dc, dx, y) => gzP(car.cc + dc, dx, y);
+/** Aufbau auf einem Wagen (Wagen-Koordinaten dc vorn, dx rechts, y Unterkante) → vehicle-part. */
+export const teil = (dc, dx, y, size, o = {}) => ({ pos: [dx, y, -dc], size, ...o });
+
+/**
+ * Wagen → Baustein vehicle (fährt mit VT, hält nach ride.D Metern). Goldwagen und Lok zeigen das Modell
+ * 'goldzug_waggon' (Räder und Dampf über den Zug-Stil 'flach' bzw. 'lok'), Flachwagen das Welt-3-Modell mit Holzdeck.
+ * Kollision der Goldwagen und der Lok über eigene unsichtbare Teile (Kasten, Münzberg; Rahmen, Kessel, Führerhaus);
+ * über der Kupplungslücke eine unsichtbare Platte auf Höhe der niedrigeren Oberkante (wie 3-Zug).
+ */
+export function goldWagen(car, ride, next = null) {
+  const L2 = car.len / 2;
+  const parts = [...(car.parts ?? [])];
+  let spec;
+  if (car.kind === 'gold') {
+    parts.push({ pos: [0, 0.6, 0], size: [3, 1.9, car.len - 0.1], visible: false, tag: 'goldwagen' });
+    parts.push({ pos: [0, 2.5, 0], size: [2.7, 0.4, car.len - 0.5], visible: false, tag: 'muenzberg' });
+    spec = { style: 'flach', size: [3, WAGEN_TOP.gold, car.len], model: 'goldzug_waggon', modelOpts: { kind: 'wagen', length: car.len }, deck: false };
+  } else if (car.kind === 'lok') {
+    parts.push({ pos: [0, 0.45, 0], size: [3, 0.81, car.len], visible: false, tag: 'lok:rahmen' });
+    parts.push({ pos: [0, 1.26, -0.95], size: [2.0, 1.79, 4.8], visible: false, tag: 'lok:kessel' });
+    parts.push({ pos: [0, 1.26, L2 - 1.25], size: [3, 2.24, 2.5], visible: false, tag: 'lok:fuehrerhaus' });
+    spec = { style: 'lok', size: [3, WAGEN_TOP.lok, car.len], model: 'goldzug_waggon', modelOpts: { kind: 'lok', length: car.len }, deck: false };
+  } else {
+    spec = { style: 'flach', size: [3, WAGEN_TOP.flach, car.len] };
+  }
+  if (next) {
+    const back = (k) => (k === 'gold' ? WAGEN_TOP.gold : k === 'lok' ? 1.26 : WAGEN_TOP.flach);
+    const front = (k) => (k === 'gold' ? WAGEN_TOP.gold : k === 'lok' ? 3.05 : WAGEN_TOP.flach);
+    const y = Math.min(front(car.kind), back(next.kind));
+    parts.push({ pos: [0, y - 0.15, -(L2 + GZ.GAP / 2)], size: [2.4, 0.15, GZ.GAP + 0.06], visible: false, tag: 'uebergang' });
+  }
+  const at = gzS(car.cc);
+  return { type: 'vehicle', id: car.id, ...spec, at, speed: GZ.VT, stop: at + ride.D, brake: GZ.BRAKE, offset: [0, 0], parts };
+}
+
+/**
+ * Lokale Theme-Variante „Goldküste“ (LEVEL.prebuild, wie das Abendrot in 2-Panzer): Thema train (Zugfahrt) im goldenen
+ * Spätnachmittag an der Lila Strand-Insel – Himmel von Tiefblau über Pfirsich zu Lila, warmes tiefes Sonnenlicht,
+ * Sand statt Schnee (Farben des Strand-Themas), ringsum das Meer mit Lila-Klippen und Segelbooten, Möwen. Das
+ * gemeinsame Thema bleibt unverändert.
+ */
+export function goldkuestenThema(level) {
+  const v = level.view;
+  if (!v) return null;
+  const th = {
+    ...BEACH_THEME,
+    label: 'Goldküste',
+    sky: [[1, 0x2a58c4], [0.5, 0x4c86dc], [0.24, 0x9cc0ee], [0.09, 0xffd2b0], [0.02, 0xffb48a], [0, 0xffc4a0], [-0.1, 0xe6a6c6], [-1, 0x9a76c8]],
+    background: 0xf8d8c2,
+    fog: { color: 0xf6d6c6, near: 95, far: 340 },
+    hemi: { sky: 0xffeedd, ground: 0xd8a070, intensity: 1.42 },
+    sun: { color: 0xffd8a2, intensity: 2.8, dir: [-0.5, 0.66, 0.42] },
+    buildBackdrop(sky, bounds, rnd) {
+      beachSea(sky, bounds, rnd, 0, { y: -0.95 });
+      sky.birds = birdFlock(sky, bounds, rnd, { n: 9, color: 0xfff8f0 });
+    },
+    updateBackdrop(sky, dt) { animateBirds(sky.birds, dt); },
+  };
+  const k = v.toyLight;
+  v.theme = th;
+  if (v.three.background?.isColor) v.three.background.set(th.background);
+  if (v.three.fog) { v.three.fog.color.set(th.fog.color); v.three.fog.near = th.fog.near; v.three.fog.far = th.fog.far; }
+  if (v.hemi) { v.hemi.color.set(th.hemi.sky); v.hemi.groundColor.set(th.hemi.ground); v.hemi.intensity = th.hemi.intensity * (k?.hemi ?? 1); }
+  if (v.sun) { v.sun.color.set(th.sun.color); v.sun.intensity = th.sun.intensity * (k?.sun ?? 1); }
+  v.sunDir?.set(...th.sun.dir).normalize();
+  const sky = v.sky;
+  if (sky) {
+    sky.theme = th;
+    if (sky.domeGroup) sky.group.remove(sky.domeGroup);
+    sky.buildDome();
+  }
+  return th;
+}
+
+/**
+ * Kein Zeitlimit (Bonus-Level, Bauplan „Kein Zeitlimit“): die Uhr bleibt stehen, die Zeitwarnung entfällt; die
+ * Uhr-Anzeige im HUD zeigt „– – –“ statt einer Zahl (nur in diesem Level, über die Anzeige selbst).
+ */
+export function ohneZeitlimit(level) {
+  const rt = level.runtime;
+  const upd = rt.update.bind(rt);
+  rt.update = (dt) => { upd(dt); if (rt.status === 'play') { rt.timeLeft = rt.timeLimit; rt.warned = true; } };
+  rt.warned = true;
+  let done = false;
+  level.onStep(() => {
+    if (done) return;
+    const ui = level.scene?.game?.scene?.getScene?.('CourseUI') ?? globalThis.__game?.scene?.getScene?.('CourseUI');
+    const tt = ui?.timeText;
+    if (!tt) return;
+    done = true;
+    const set = tt.setText.bind(tt);
+    tt.setText = () => tt;
+    tt.setColor = () => tt;
+    set('– – –');
+  });
+}
+
+/**
+ * Goldener Schalter in der Felsspalte (Bauplan 5-Zug „Geheimnis: goldener P-Schalter in einer Felsspalte“): fährt auf
+ * dem Felswagen mit (attach). Wer mit Schwung darauf landet (oder stampft), löst time s lang einen Goldregen aus: rate
+ * Münzen/s fallen über dem Zug (ahead m voraus, behind m dahinter), jede hängt am Wagen darunter und fährt mit ihm
+ * (auch im Fallen). Modell 'push_switch_gold' (Welt 2). spec { id, pos, attach, time: 8, rate: 7, ahead: 16, behind: 6,
+ * height: 6.5 } – info(): { state, rained, presses }.
+ */
+export class ZugGoldschalter extends Gimmick {
+  constructor(level, spec) {
+    super(level, spec, 'goldschalter_zug');
+    this.half.set(0.5, 0.28, 0.5);
+    this.touch = false;
+    const p = this.pos;
+    this.btn = this.addSolid({ type: 'box', min: [p.x - 0.5, p.y, p.z - 0.5], max: [p.x + 0.5, p.y + 0.55, p.z + 0.5], tag: 'goldschalter' });
+    this.state = 'idle'; this.t = 0; this.acc = 0; this.rained = 0; this.presses = 0;
+    this.rnd = new Rnd(31);
+    if (level.view && hasModel('push_switch_gold')) this.setModel(getModel('push_switch_gold'));
+  }
+
+  onPound() { this.press(); }
+
+  press() {
+    if (this.state !== 'idle') return;
+    this.state = 'rain'; this.t = 0; this.presses++;
+    this.level.sfx('slam'); this.level.sfx('key');
+    this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + 0.6, z: this.pos.z }, 18);
+    const s = this.btn;
+    s.max = [s.x1, this.pos.y + 0.2, s.z1]; s.min = [s.x0, this.pos.y, s.z0];
+    if (s.id !== undefined) this.level.world.update(s.id);
+    hudBanner(this.level, 'Goldregen!', { color: '#ffd23a', size: 20, hold: 1.2 });
+  }
+
+  update(dt) {
+    if (this.state === 'idle') {
+      const hard = figures(this.level).some((p) => p.mode === 'ground' && p.ground?.owner === this && (p.lastLandVy ?? 0) < -2 && p.stateTime < 0.1);
+      if (hard) this.press();
+      return;
+    }
+    if (this.state !== 'rain') return;
+    this.t += dt;
+    const T = this.spec.time ?? 8;
+    countdown(this.level).show(this, T - this.t, 'Goldregen!', '#ffc21a');
+    this.acc += dt * (this.spec.rate ?? 7);
+    const veh = (this.level._zug?.vehicles ?? []).filter((v) => !v.removed && v.pos.y < 2);
+    while (this.acc >= 1) {
+      this.acc -= 1;
+      const z = this.pos.z - this.rnd.real(-(this.spec.behind ?? 6), this.spec.ahead ?? 16);
+      const x = this.rnd.real(-1.1, 1.1);
+      let car = null;
+      for (const v of veh) if (Math.abs(z - v.pos.z) < v.size.d / 2 + 0.4 && Math.abs(x - v.pos.x) < 2) { car = v; break; }
+      const y = (car ? car.pos.y + car.size.h : this.pos.y) + (this.spec.height ?? 6.5);
+      this.level.spawn('fallmuenze', { pos: [x, y, z], vel: [0, -2, 0], life: 10, ...(car ? { attach: car.spec.id } : {}) });
+      this.rained++;
+    }
+    if (this.t >= T) { this.state = 'done'; countdown(this.level).hide(this); }
+  }
+
+  modelState() { return { anim: this.state === 'idle' ? 'idle' : 'pressed' }; }
+  info() { return { state: this.state, rained: this.rained, presses: this.presses, t: +this.t.toFixed(2) }; }
+  dispose() { countdown(this.level).hide(this); super.dispose(); }
+}
+
+/**
+ * Felsbrocken auf dem Felswagen (nur Darstellung; Kollision liefern unsichtbare Teile des Wagens): lila-graue
+ * Felsblöcke mit Goldadern, Moospolstern und Strandblümchen, dazwischen die Spalte mit Goldnuggets und einer kleinen
+ * Felsstufe zum Hinausklettern. Fährt mit (attach). spec { id, pos (Wagenmitte auf dem Deck), attach, rocks: [{ dc, len,
+ * h }], step: { dc, dx, w, len, h }, w: 3 }.
+ */
+export class FelsLadung extends Gimmick {
+  constructor(level, spec) {
+    super(level, spec, 'felsladung');
+    this.touch = false;
+    this.shadow = 0;
+    if (!level.view) return;
+    const rnd = new Rnd(17);
+    const W = spec.w ?? 3;
+    const rock = L(0x9a84b8), rockD = L(0x5e4a86), rockL = L(0xc8b4e0), gold = L(0xffc83a), moss = L(0x5ab04a), mossL = L(0x9ad86a);
+    const parts = [];
+    const shade = (g, seed) => colorize(g, (p, n, o) => {
+      mixc(rockD, rock, smooth(-0.7, 0.8, n.y * 0.7 + n.x * 0.2 - n.z * 0.2), o);
+      if (n.y > 0.6) mixc(o, rockL, 0.35, o);
+      const vein = Math.sin(p.x * 3.1 + p.y * 4.7 + p.z * 1.9 + seed) + Math.sin(p.z * 5.3 - p.y * 2.2);
+      if (vein > 1.72) mixc(o, gold, 0.9, o);
+      if (n.y > 0.8 && Math.sin(p.x * 2.3 + p.z * 1.7 + seed * 3) > 0.55) mixc(o, moss, 0.75, o);
+    });
+    spec.rocks.forEach((r, i) => {
+      const h = r.h, z = -r.dc;
+      parts.push(shade(box(W, h, r.len, 0, h / 2, z, 0xffffff, { r: 0.42, seg: 2 }), i * 1.7));
+      // Buckel an den Flanken (überragen die Oberkante nicht)
+      for (let k = 0; k < 5; k++) {
+        const g = new THREE.DodecahedronGeometry(0.55 + rnd.real(0, 0.3), 0);
+        const sx = k % 2 ? 1 : -1;
+        g.scale(0.7, 1, 1);
+        g.translate(sx * (W / 2 - 0.05), rnd.real(0.5, h - 0.7), z + rnd.real(-r.len / 2 + 0.5, r.len / 2 - 0.5));
+        parts.push(shade(g, k));
+      }
+      // Moospolster und Blümchen oben
+      for (let k = 0; k < 4; k++) {
+        const g = new THREE.SphereGeometry(0.32 + rnd.real(0, 0.2), 8, 5, 0, TAU, 0, Math.PI / 2).toNonIndexed();
+        g.scale(1.3, 0.35, 1);
+        g.translate(rnd.real(-W / 2 + 0.5, W / 2 - 0.5), h - 0.04, z + rnd.real(-r.len / 2 + 0.5, r.len / 2 - 0.5));
+        parts.push(colorize(g, (p, n, o) => mixc(moss, mossL, smooth(0, 1, n.y), o)));
+      }
+      for (let k = 0; k < 6; k++) {
+        const g = new THREE.IcosahedronGeometry(0.09, 0);
+        g.translate(rnd.real(-W / 2 + 0.3, W / 2 - 0.3), h + 0.06, z + rnd.real(-r.len / 2 + 0.3, r.len / 2 - 0.3));
+        const col = L([0xff5a8a, 0xffd23a, 0xffffff, 0xb070ff][k % 4]);
+        parts.push(colorize(g, (p, n, o) => { o[0] = col[0]; o[1] = col[1]; o[2] = col[2]; }));
+      }
+    });
+    if (spec.step) {
+      const s = spec.step;
+      parts.push(shade(box(s.w, s.h, s.len, s.dx, s.h / 2, -s.dc, 0xffffff, { r: 0.2, seg: 1 }), 9));
+    }
+    // Goldnuggets auf dem Spaltboden
+    for (let i = 0; i < 7; i++) {
+      const g = new THREE.IcosahedronGeometry(0.13 + rnd.real(0, 0.08), 0);
+      g.translate(rnd.real(-W / 2 + 0.3, W / 2 - 0.3), 0.08, rnd.real(-0.5, 0.5) - (spec.gapDc ?? 0));
+      parts.push(colorize(g, (p, n, o) => mixc(L(0xc88a10), gold, smooth(-0.5, 1, n.y), o)));
+    }
+    const m = new THREE.Mesh(merge(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.06 }));
+    m.castShadow = true; m.receiveShadow = true;
+    const root = new THREE.Group();
+    root.name = 'felsladung';
+    root.add(m);
+    this.setModel({ root, update: () => {}, dispose: () => { m.geometry.dispose(); m.material.dispose(); } });
+  }
+}
+
+/**
+ * Wolkenwagen (Ziel der geheimen Röhre): eine weiße, rosa schattierte Wolke aus Kugeln auf dem unsichtbaren Fahrzeug
+ * spec.attach (fährt neben dem Zug über dem Strand mit); wird durchscheinend, wenn sie die Figur verdeckt. spec { id,
+ * pos (Mitte der Oberseite), attach, len: 18, w: 3.6 }.
+ */
+export class WolkenWagen extends Gimmick {
+  constructor(level, spec) {
+    super(level, spec, 'wolkenwagen');
+    this.touch = false;
+    this.shadow = 0;
+    if (!level.view) return;
+    const len = spec.len ?? 18, w = spec.w ?? 3.6;
+    const rnd = new Rnd(5);
+    const parts = [];
+    const white = L(0xffffff), shade = L(0xdce4ff), pink = L(0xffd6ea);
+    const n = Math.round(len / 1.15);
+    for (let i = 0; i < n; i++) {
+      for (const sx of [-1, 0, 1]) {
+        const r = (sx === 0 ? 1.0 : 0.78) + rnd.real(0, 0.22);
+        const g = new THREE.SphereGeometry(r, 10, 7).toNonIndexed();
+        g.scale(1, 0.62, 1);
+        g.translate(sx * (w / 2 - 0.55), -0.42 + rnd.real(-0.05, 0.1), -len / 2 + (i + 0.5) * (len / n));
+        colorize(g, (p, nn, o) => mixc(nn.y > 0 ? shade : pink, white, smooth(-0.3, 0.7, nn.y), o));
+        parts.push(g);
+      }
+    }
+    // Unterseite: ein paar hängende Wölkchen
+    for (let i = 0; i < 6; i++) {
+      const g = new THREE.SphereGeometry(0.7 + rnd.real(0, 0.3), 9, 6).toNonIndexed();
+      g.scale(1, 0.55, 1);
+      g.translate(rnd.real(-0.8, 0.8), -0.95, -len / 2 + 1.5 + i * (len - 3) / 5);
+      colorize(g, (p, nn, o) => mixc(pink, shade, smooth(-0.8, 0.5, nn.y), o));
+      parts.push(g);
+    }
+    this.mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, emissive: 0x403850, emissiveIntensity: 0.6 });
+    const m = new THREE.Mesh(merge(parts), this.mat);
+    m.castShadow = true; m.receiveShadow = false;
+    m.name = 'wolkenwagen';
+    const root = new THREE.Group();
+    root.add(m);
+    this.len = len; this.w = w;
+    this.box3 = new THREE.Box3();
+    this.setModel({ root, update: () => {}, dispose: () => { m.geometry.dispose(); this.mat.dispose(); } });
+    level.view.xray(m, this.box3, { min: 0.3 });
+  }
+
+  render(dt, t) {
+    super.render(dt, t);
+    if (!this.box3) return;
+    const p = this.pos;
+    this.box3.min.set(p.x - this.w / 2 - 0.6, p.y - 1.4, p.z - this.len / 2 - 0.6);
+    this.box3.max.set(p.x + this.w / 2 + 0.6, p.y + 0.5, p.z + this.len / 2 + 0.6);
+  }
+}
+
+/**
+ * Glückshaus am Ende (Bauplan 5-Zug „Endröhre zu einem Glückshaus“): Haus mit Spielautomat der Kurs-Karte
+ * (map/slot.js, nur benutzt). Auf die Matte hüpfen (mit einem Sprung landen) zieht den Hebel – Einsatz 10 Bitcoins
+ * aus diesem Level; Gewinne wie auf der Karte: 3 × Bitcoin 30 Bitcoins, 3 × Herz ein Leben (+ 10), 3 × Power-up fürs
+ * nächste Level, zwei gleiche Einsatz zurück. def = { pos (Haus), machine, pad, stake } → level._glueck
+ * { slot, pulls, prizes, poor, force(symbols), info() }.
+ */
+export function gluecksHaus(level, def) {
+  const slot = new SlotMachine(level, def);
+  const save = () => level.runtime?.save;
+  const st = level._glueck = { slot, pulls: 0, prizes: [], poor: 0, force: (s) => slot.force(s), info: () => ({ ...slot.info(), pulls: st.pulls, prizes: st.prizes.slice(), poor: st.poor }) };
+  const LABEL = { funken: 'Funkenblüte', krallen: 'Krallen-Anzug', stern: 'Funkelstern' };
+  slot.onPrize = (prize) => {
+    st.prizes.push(prize.kind === 'power' ? `power:${prize.power}` : `${prize.kind}:${prize.n ?? 0}`);
+    const rt = level.runtime;
+    if (prize.kind === 'coins') level.addCoins(prize.n);
+    else if (prize.kind === 'life') { rt.addLife(1); level.sfx('oneup'); if (prize.coins) level.addCoins(prize.coins); }
+    else if (prize.kind === 'power') { save().carryPower = prize.power; level.sfx('powerup'); }
+    const text = prize.text ?? (prize.kind === 'power' ? `3 × ${LABEL[prize.power] ?? prize.power} – fürs nächste Level!` : '');
+    if (text) hudBanner(level, text, { color: prize.kind === 'none' ? '#ffd0c0' : '#ffe066', size: 15, hold: 1.8 });
+    level.effects?.sparks({ x: slot.pos.x, y: slot.pos.y + 2.4, z: slot.pos.z + 0.6 }, prize.kind === 'none' ? 4 : 22);
+  };
+  let prevMode = 'ground';
+  level.onStep((dt) => {
+    slot.step(dt);
+    const p = level.player;
+    if (!p) return;
+    const landed = prevMode === 'air' && slot.onPad(p) && (p.lastLandVy ?? 0) < -1.5;
+    prevMode = p.mode;
+    if (!landed || slot.busy) return;
+    const rt = level.runtime;
+    if (rt.coins < slot.stake) { st.poor++; level.sfx('bump'); hudBanner(level, `Zu wenig Bitcoins – ${slot.stake} nötig!`, { color: '#ffb0a0', size: 13, hold: 1.4 }); return; }
+    const r = slot.pull(save());
+    if (r === 'spin') { st.pulls++; rt.coins -= slot.stake; }
+    else if (r === 'poor') st.poor++;
+  });
+  if (level.view) level.view.onFrame((dt) => slot.render(dt, level.time));
+  return st;
+}
+
+/**
+ * Küsten-Kulisse entlang der Strecke (statisch, Abschnitts-Meshes): bunte Strandhäuschen mit Streifen und Spitzdach,
+ * ein rot-weißer Leuchtturm mit leuchtender Laterne, Holzstege in die Lagunen, schwimmende Bojen, Strandkörbe.
+ * cfg = { huts: [[x, z, yaw, color]], lighthouse: [x, y, z], jetties: [[x, z, len, yaw]], buoys: [[x, z, color]],
+ * baskets: [[x, z, yaw, color]], y: Strandhöhe }.
+ */
+export function kuestenKulisse(level, cfg) {
+  if (!level.view) return;
+  const y = cfg.y ?? -0.35;
+  const parts = [], glow = [];
+  const rot = (g, yaw, x, yy, z) => { if (yaw) g.rotateY(yaw); g.translate(x, yy, z); return g; };
+  const flat = (g, hexc) => { const k = L(hexc); return colorize(g, (p, n, o) => { o[0] = k[0]; o[1] = k[1]; o[2] = k[2]; }); };
+  for (const [x, z, yaw = 0, col = 0x4ab8f0] of cfg.huts ?? []) {
+    const P = [];
+    const c = L(col), w = L(0xffffff);
+    const body = new THREE.BoxGeometry(2.4, 2.2, 2.0, 6, 1, 1).toNonIndexed();
+    body.translate(0, 1.1 + 0.3, 0);
+    P.push(colorize(body, (p, n, o) => { const s = Math.floor((p.x + 1.2) / 0.4 + 0.01) % 2; mixc(s ? c : w, w, Math.abs(n.y) > 0.5 ? 0.5 : 0, o); }));
+    const roof = new THREE.ConeGeometry(2.0, 1.2, 4, 1).toNonIndexed();
+    roof.rotateY(Math.PI / 4);
+    roof.scale(1, 1, 0.85);
+    roof.translate(0, 3.2, 0);
+    P.push(colorize(roof, (p, n, o) => mixc(L(0xd83a4a), L(0xff7a6a), smooth(-0.2, 0.8, n.y), o)));
+    const door = new THREE.BoxGeometry(0.7, 1.3, 0.06).toNonIndexed();
+    door.translate(0, 0.95, 1.02);
+    P.push(flat(door, 0x7a4a2a));
+    const deck = new THREE.BoxGeometry(2.8, 0.3, 2.6).toNonIndexed();
+    deck.translate(0, 0.15, 0.3);
+    P.push(colorize(deck, (p, n, o) => mixc(L(0x9a6a3a), L(0xd8a46a), smooth(-0.5, 1, n.y), o)));
+    for (const g of P) parts.push(rot(g, yaw, x, y, z));
+  }
+  if (cfg.lighthouse) {
+    const [x, ly, z] = cfg.lighthouse;
+    const red = L(0xe8304a), w = L(0xfff6ee);
+    const tower = new THREE.CylinderGeometry(1.3, 2.1, 12, 18, 6).toNonIndexed();
+    tower.translate(x, ly + 6, z);
+    parts.push(colorize(tower, (p, n, o) => mixc(Math.floor((p.y - ly) / 2) % 2 ? red : w, w, 0, o)));
+    const base = new THREE.CylinderGeometry(3.2, 3.6, 1.2, 18).toNonIndexed();
+    base.translate(x, ly + 0.6, z);
+    parts.push(colorize(base, (p, n, o) => mixc(L(0x8a74a8), L(0xc8b4e0), smooth(-0.5, 1, n.y), o)));
+    const gal = new THREE.CylinderGeometry(1.8, 1.8, 0.3, 18).toNonIndexed();
+    gal.translate(x, ly + 12.15, z);
+    parts.push(flat(gal, 0x3a3a4a));
+    const cap = new THREE.ConeGeometry(1.4, 1.4, 18).toNonIndexed();
+    cap.translate(x, ly + 14.4, z);
+    parts.push(colorize(cap, (p, n, o) => mixc(L(0xb81e34), red, smooth(0, 1, n.y), o)));
+    const lamp = new THREE.CylinderGeometry(1.0, 1.0, 1.4, 14).toNonIndexed();
+    lamp.translate(x, ly + 13.0, z);
+    glow.push(flat(lamp, 0xfff0a0));
+  }
+  for (const [x, z, len, yaw = 0] of cfg.jetties ?? []) {
+    const P = [];
+    const plank = new THREE.BoxGeometry(1.8, 0.18, len, 1, 1, Math.max(1, Math.round(len / 0.5))).toNonIndexed();
+    plank.translate(0, 0, -len / 2);
+    P.push(colorize(plank, (p, n, o) => mixc(L(0x8a5a32), L(0xd8a46a), (Math.floor(-p.z / 0.5) % 2 ? 0.45 : 0.9) * smooth(-0.5, 1, n.y), o)));
+    for (let i = 0; i <= Math.floor(len / 2); i++) for (const sx of [-0.8, 0.8]) {
+      const post = new THREE.CylinderGeometry(0.12, 0.12, 2.2, 6).toNonIndexed();
+      post.translate(sx, -1.0, -i * 2);
+      P.push(flat(post, 0x7a5232));
+    }
+    for (const g of P) parts.push(rot(g, yaw, x, y - 0.1, z));
+  }
+  for (const [x, z, col = 0xe8304a] of cfg.buoys ?? []) {
+    const g = new THREE.SphereGeometry(0.45, 10, 7).toNonIndexed();
+    g.translate(x, -0.9, z);
+    const c = L(col), w = L(0xffffff);
+    parts.push(colorize(g, (p, n, o) => mixc(Math.abs(p.y + 0.9) < 0.12 ? w : c, c, 0, o)));
+    const stick = new THREE.CylinderGeometry(0.06, 0.06, 1.0, 5).toNonIndexed();
+    stick.translate(x, -0.35, z);
+    parts.push(flat(stick, 0x3a3a4a));
+  }
+  for (const [x, z, yaw = 0, col = 0x3aa0e8] of cfg.baskets ?? []) {
+    const c = L(col), w = L(0xfff4e0);
+    const seat = new THREE.BoxGeometry(1.4, 0.8, 0.9, 6, 1, 1).toNonIndexed();
+    seat.translate(0, 0.4, 0);
+    const hood = new THREE.CylinderGeometry(0.75, 0.75, 1.4, 10, 1, false, 0, Math.PI).toNonIndexed();
+    hood.rotateZ(Math.PI / 2);
+    hood.translate(0, 1.0, -0.2);
+    const stripe = (g) => colorize(g, (p, n, o) => mixc(Math.floor((p.x + 0.7) / 0.23) % 2 ? c : w, w, 0, o));
+    parts.push(rot(stripe(seat), yaw, x, y, z), rot(stripe(hood), yaw, x, y, z));
+  }
+  bakeParts(level, parts, { castShadow: true });
+  if (glow.length) addStatic(level, merge(glow), { material: level.view.mats.glow, castShadow: false });
+}
+
+/**
+ * Szene des Goldzugs (LEVEL.setup): Mitfahr-Regeln der Welt-3-Hilfen (zugRules: neue Dinge über einem Wagen fahren mit,
+ * Röhren auf Wagen), Röhren aus cfg.pipes (ZugRoehre), Felsladung, Wolkenwagen, Goldschalter, Abfahrt-/Halt-Ansagen,
+ * Budget (Wagen/Schatten nur nah, statische Abschnitte nur vor der Kamera, Himmel-Kulisse nur mit Horizont im Bild).
+ * cfg = LEVEL.zug = { pipes: [{ id, car | veh+pos, dc, dx, y, target, h, r, color, arrow }], fels: { car, rocks, step },
+ * wolke: { veh, len }, schalter: { car, dc, dx, y }, endHint: [x, z], shadowZones } → level._goldzug.
+ */
+export function goldzugSzene(level, cfg, M) {
+  const sc = level._goldzug = { pipes: {}, said: {}, schalter: null };
+  zugRules(level);
+  for (const p of cfg.pipes ?? []) {
+    const car = p.car ? M[p.car] : null;
+    const pos = car ? aufWagen(car, p.dc, p.dx ?? 0, p.y) : p.pos;
+    sc.pipes[p.id] = spawnLocal(level, new ZugRoehre(level, { id: p.id, attach: car ? car.id : p.veh, pos, target: p.target, height: p.h ?? 1.1, radius: p.r ?? 0.85, color: p.color ?? 0x2fbf4a, arrow: !!p.arrow }));
+  }
+  if (cfg.fels) {
+    const car = M[cfg.fels.car];
+    sc.fels = spawnLocal(level, new FelsLadung(level, { id: 'felsladung', attach: car.id, pos: aufWagen(car, 0, 0, WAGEN_TOP.flach), rocks: cfg.fels.rocks, step: cfg.fels.step, gapDc: cfg.fels.gapDc ?? 0 }));
+  }
+  if (cfg.wolke) {
+    const v = level.named.get(cfg.wolke.veh);
+    if (v) sc.wolke = spawnLocal(level, new WolkenWagen(level, { id: 'wolkendeko', attach: v.spec.id, pos: [v.pos.x, v.pos.y, v.pos.z], len: cfg.wolke.len }));
+  }
+  if (cfg.schalter) {
+    const s = cfg.schalter, car = M[s.car];
+    sc.schalter = spawnLocal(level, new ZugGoldschalter(level, { id: 'goldschalter', attach: car.id, pos: aufWagen(car, s.dc, s.dx ?? 0, s.y ?? WAGEN_TOP.flach), time: s.time ?? 8, rate: s.rate ?? 7, ahead: s.ahead ?? 16, behind: s.behind ?? 6 }));
+  }
+  level.onStep((dt) => {
+    const w = level.scroll, hud = level.archetype?.hud;
+    if (!w) return;
+    if (w.state === 'run' && !sc.said.go) { sc.said.go = true; hud?.banner?.('Abfahrt!', { hold: 1.2, size: 18, color: '#ffe066' }); level.sfx('pfiff'); }
+    if (w.state === 'done' && !sc.said.end && (sc.endT = (sc.endT ?? 0) + dt) > 2.0) {
+      sc.said.end = true;
+      const p = level.player;
+      if (p && cfg.endHint && Math.abs(p.pos.z - cfg.endHint[1]) < 40) hud?.banner?.('Ab in die Röhre – zum Glückshaus!', { hold: 2.2, size: 13, y: 0.38, color: '#ffe066' });
+    }
+  });
+  if (level.view) {
+    for (const v of level.entities) if (v.kind === 'vehicle') v.model?.root.traverse((o) => { if (o.isInstancedMesh) o.castShadow = false; });
+    shadowDiet(level, ['crate', 'checkpoint_flag', 'endlessblock', 'rouletteblock', 'question'], 0);
+    const sz = cfg.shadowZones ?? [];
+    sc.cull = new StaticCullE(level, { shadowRange: 30, maxDist: 100, merge: true, shadowKeep: (b) => sz.some(([z0, z1]) => b.max.z > z1 && b.min.z < z0) });
+    sc.trainCull = trainCull(level, { shadow: 18, wheels: 18, far: 1e9, attached: 40 });
+    sc.sky = skyDiet(level);
+    heroShadowDiet(level, 0.12);
+  }
+  return sc;
+}
 
 // =====================================================================================================================
 // 4) Rumpeltempel (5-Burg)
