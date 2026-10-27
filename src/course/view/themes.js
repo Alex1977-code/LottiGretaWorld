@@ -100,5 +100,12 @@ import { MINE_THEME } from './theme_mine.js'; THEMES.mine ??= MINE_THEME;
 import { CAKE_THEME } from './theme_cake.js'; THEMES.cake ??= CAKE_THEME;
 import { SNEAK_THEME } from './theme_sneak.js'; THEMES.sneak ??= SNEAK_THEME;
 import { TEMPLE_THEME } from './theme_temple.js'; THEMES.temple ??= TEMPLE_THEME;
+// Halloween-Welt „Kürbisinsel“ (Motor und Bausteine Halloween): nur eintragen, wenn das Thema nicht schon anders registriert ist
+import { PUMPKIN_THEME } from './theme_pumpkin.js'; THEMES.pumpkin ??= PUMPKIN_THEME;
+import { PUMPKIN_NIGHT_THEME } from './theme_pumpkin_night.js'; THEMES.pumpkin_night ??= PUMPKIN_NIGHT_THEME;
+import { CANDYVILLAGE_THEME } from './theme_candyvillage.js'; THEMES.candyvillage ??= CANDYVILLAGE_THEME;
+import { GRAVEYARD_THEME } from './theme_graveyard.js'; THEMES.graveyard ??= GRAVEYARD_THEME;
+import { WITCHTOWER_THEME } from './theme_witchtower.js'; THEMES.witchtower ??= WITCHTOWER_THEME;
+import { CASTLE_NIGHT_THEME } from './theme_castle_night.js'; THEMES.castle_night ??= CASTLE_NIGHT_THEME;
 
 export function getTheme(name) { return THEMES[name] ?? THEMES.grass; }
