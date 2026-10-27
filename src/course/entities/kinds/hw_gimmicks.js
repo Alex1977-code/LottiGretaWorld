@@ -33,7 +33,8 @@
 //   Draufspringen/Draufstellen (press 'stand') bzw. nur Stampfattacke ('pound') drückt sie: Platte sinkt, die Augen des
 //   Grabsteins leuchten, Aktion on (+ signal). time > 0: springt nach time s zurück (Zeitanzeige, Aktion off); toggle:
 //   erneutes Drücken schaltet zurück.
-//   { kind: 'grabstein_schalter', pos (Fußpunkt der Platte), yaw: −π/2 (Grabstein hinten, Gesicht und Platte zur Kamera
+//   { kind: 'grabstein_schalter', pos (Fußpunkt der Platte; mit Registry-Modell Fußpunkt des Sockels, der Knopf oben ist
+//     die Platte – man springt auf den Schalter), yaw: −π/2 (Grabstein hinten, Gesicht und Platte zur Kamera
 //     (+Z); 0 = Gesicht nach +X),
 //     on: Aktion, off: Aktion, signal: Name, time: 0, toggle: false, once: false, press: 'stand' | 'pound', id, hidden }
 //   Laufzeit: pressed, presses, press(), release(), info()
