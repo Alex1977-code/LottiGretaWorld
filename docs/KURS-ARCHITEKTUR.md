@@ -4863,4 +4863,7 @@ nicht, alle drei Sterne einzeln und in einem Lauf (≈ 62 s) samt Gegenproben (o
 Brücke), winkender Kürbis, Schatzstelle; H-3: Routen-Bot Lotti und Greta Start → Ziel (≈ 41 s), alle Sterne und Stempel mit
 beiden Heldinnen samt Gegenproben (ohne Laterne keine Stufen, ohne Hüpfer kein Stern, nur Draufspringen → kein Stern,
 blaue Stufe bei Pfahl aus trägt nicht), Nebelgraben harmlos, Glibber = Neustart am Checkpoint, Gruft-Mauer, Krümel winkt,
-Grabstein-Schalter (Greta); Messgang je Abschnitt.
+Grabstein-Schalter (Greta) samt Gegenprobe (ungedrückt keine Brücke); Messgang je Abschnitt. Verkleidung: geprüft über
+`__course.outfit`/`rig.avatar.outfit`, sobald der Motor sie kennt (sonst Hinweis). Gemessen (scale 2, inkl. Schattenpass):
+H-Kapitän 42–81 Zeichenaufrufe / ≤ 255 k Dreiecke (Überblick: ganzes Diorama im Bild) · H-3 Messgang je Abschnitt Ø 56–72,
+max 89 Aufrufe / ≤ 229 k Dreiecke (Gruftgarten), Bilder 47–95 / ≤ 240 k (Floß in der Gruft-Durchfahrt am teuersten).
