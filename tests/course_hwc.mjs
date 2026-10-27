@@ -671,10 +671,14 @@ for (const id of LEVELS) {
   for (const hero of ONLY || !PARTS.has('route') || !R.main.length ? [] : HEROES) {
     await load(id);
     await W('place', R.start, { hero, settle: 2 });
+    // Verkleidung (Präzisierung Figuren Halloween): Szene und Avatar tragen 'halloween' – sobald der Motor sie kennt
+    const look = await sc(() => { const c = window.__course; return { has: 'outfit' in c, scene: c.outfit ?? null, avatar: c.rig?.avatar?.outfit ?? null, hero: c.player.hero }; });
     const res = await W('drive', R.main, {});
     const reached = res.status === 'goal' || res.status === 'done';
     console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Mechanik ${JSON.stringify(res.mech)}`);
     if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+    if (look.has) check(`${id}: ${hero} in Verkleidung (Szene ${look.scene}, Avatar ${look.avatar})`, look.scene === 'halloween' && look.avatar === 'halloween');
+    else console.log(`  (Verkleidung: der Motor kennt noch keine – Szene ohne outfit)`);
     check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
     check(`${id}: ${hero} Zeit bis zum Ziel < 240 s (${res.time.toFixed(1)} s)`, reached && res.time < 240);
     if (hero === HEROES[0] && PARTS.has('sweep')) sweepTrack = res.track;
