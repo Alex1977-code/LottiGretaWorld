@@ -13,14 +13,19 @@
 // und Kontur ohne Rhythmus):
 //   Kürbisfeld   Scotch-Snaps „di-DAA di-DAA“ zwei Stufen hinauf, dann schrittweise zurück; dieselbe Hook spielt die
 //                Celesta im Intro in e-Moll (zwei Leiterstufen tiefer), der Refrain bringt sie hell in G-Dur
-//   Dorf         „SÜ-ßes O-der SAU-res“: Trochäen in fallenden Terzen als Sequenz, die Antwort klingelt nach oben
+//   Dorf         „SÜ-ßes O-der SAU-res“: Trochäen in fallenden Terzen als Sequenz, die Antwort klingelt stufenweise
+//                hinauf zur kleinen Septime
 //   Friedhof     Auftakt aus zwei Achteln, Pause, synkopierter Hochton auf der „e“ nach Zählzeit 2, Tanzschritte zurück
-//   Hexenturm    Wendeltreppe: Quint hinauf, zwei Schritte hinab – dreimal, jedes Mal höher (aufsteigende Hook)
+//   Hexenturm    Wendeltreppe aus stapfenden Tonwiederholungen „da-da DAA“ den Moll-Akkord hinauf, Takt für Takt höher
+//                (Gipfel a – c – e), die Antwort fällt zurück
 //   Graf         Kopf des Baron-Brummbär-Motivs (course_boss, Bossstraße 1-Burg) „C . c Es C“, dann der Fledermaus-
-//                Sprung zur Oktave und ein Seufzer abwärts; im Intro spielt die Kirchenorgel das Baron-Motiv in
-//                doppelter Notenlänge
+//                Sprung zur Oktave (eine Sechzehntel vor Zählzeit 3) und ein Seufzer abwärts; die Antwort holt Atem;
+//                im Intro spielt die Kirchenorgel das Baron-Motiv in doppelter Notenlänge
 //   Karte        Wiegen: Anlauf über eine Quarte zum langen Ton, um ihn herum schaukeln; die Antwort sinkt in langen
 //                Tönen (Spieluhr-Celesta in der Strophe)
+// Beim Komponieren aufgefallen und ersetzt: die erste Hexenturm-Treppe (Quint hinauf, zwei Schritte hinab) hatte die
+// Kontur von course_beep (50 %), der Fledermaus-Sprung genau auf Zählzeit 3 glich course_lavacastle (Einsatz +
+// Intervall 47 %), die Dorf-Hook hatte zu viele Quartsprünge (Schritte 76 % statt ≥ 79 % wie Welt 1).
 //
 // Halloween-Farbe nur über Klang: Celesta, Glöckchen und hohles Kürbis-Klopfen (Kürbisfeld), Knochen-Xylofon,
 // Pizzicato und Klapper-Hölzer (Dorf), Theremin, Orgel-Stabs und Friedhofsglocke (Nebelfriedhof), Cembalo, Glocken
