@@ -16,11 +16,12 @@
 //   E  Kürbis-Kanone       z −169 … −182 große Kürbis-Kanone über die Kürbisschlucht (Süßes und Bitcoins im Flug)
 //   F  Vogelscheuchen-Feld z −208 … −246 Checkpoint 2, Kürbisse rollen von beiden Seiten, Kürblinge (Kombinieren)
 //   G  Zielhügel           z −244 … −264 Rampe hinauf, Zielmast zwischen Kürbislaternen
-// Gegner: Kürbling 9, Flatterfledi 2, Hexenhut-Hüpfer 2 (bis die Halloween-Gegner da sind: Ersatz pilzling, siehe Hilfen).
+// Gegner: Kürbling 8 + Riesenkürbling 1, Flatterfledi 2 (kreisen), Hexenhut-Hüpfer 2.
 
 import {
-  isl, line, arc, ring, candy, candyRing, candyArc, sign, spawnEnemies, rampe, scheune, windmuehle, hoftor, ackerFurchen,
-  kuerbisSteineDeco, kuerbisSteine, kuerbisTop, kraehen, winkeKuerbisse, kruemelLaterne, laternenPfad,
+  isl, line, arc, ring, candy, candyRing, candyArc, sign, rampe, scheune, windmuehle, hoftor, ackerFurchen,
+  kuerbisSteineDeco, kuerbisSteine, kuerbisTop, kraehen, winkeKuerbisse, kruemelLaterne, laternenPfad, kuerbisDeko, kuerbisStreu,
+  maisStreu,
 } from './_helpers_a.js';
 
 const Y0 = 1, YP = 5, YM = 3, YF = 4, YG = 7;
@@ -37,7 +38,7 @@ export const M1 = {
   LANDE: { x0: -14, x1: 14, z0: -208, z1: -246 },
   ZIEL: { x0: -9, x1: 9, z0: -244, z1: -264 },
   TEICH: { x0: 3, x1: 22, z0: -149.5, z1: -166, bed: 1.4, surf: 2.9 },
-  INSEL: { x0: 14, x1: 17.6, z0: -155, z1: -161, top: 7.5 },
+  INSEL: { x0: 13.2, x1: 17, z0: -155, z1: -161, top: 7.5 },
   MUEHLE: { x: 25, z: -137, base: YM, height: 15, gallery: 7.5 },
 };
 const { HOF, BACH, PLATEAU, DAMM, KANONE, LANDE, ZIEL, TEICH, INSEL, MUEHLE } = M1;
@@ -68,8 +69,8 @@ const FLUG_A = flug([KANONE_A.pos[0], KANONE_A.pos[1] + 2, KANONE_A.pos[2]], KAN
 
 // Laternen am Damm (gehen an, sobald man vorbeikommt), versteckter Laternenweg zu Krümel
 const LATERNEN = [[-1.45, -127], [1.45, -132], [-1.45, -138], [1.45, -143], [-1.45, -150], [1.45, -155.5], [-1.45, -162], [1.45, -167]]
-  .map(([x, z], i) => ({ id: `lp${i + 1}`, pos: [x, YP, z] }));
-const KRUEMEL_WEG = [[-5.2, -141.5], [-8.6, -145.5], [-11.6, -149]].map(([x, z], i) => ({ id: `kw${i + 1}`, pos: [x, YM, z] }));
+  .map(([x, z], i) => ({ id: `lp${i + 1}`, pos: [x, YP, z], yaw: x < 0 ? Math.PI : 0 }));
+const KRUEMEL_WEG = [[-5.2, -141.5], [-8.6, -145.5], [-11.6, -149]].map(([x, z], i) => ({ id: `kw${i + 1}`, pos: [x, YM, z], yaw: Math.PI / 2, height: 1.8 }));
 const KRUEMEL = { pos: [-13.6, YM, -151.6] };
 
 function build(level) {
@@ -85,25 +86,45 @@ function build(level) {
     { x0: -13, x1: -4, z0: -212, z1: -222, y: YF }, { x0: 4, x1: 13, z0: -212, z1: -222, y: YF },
   ]);
   kuerbisSteine(level, STEINE);
+  // sparsame Kulissen-Kürbisse, Laternen und Mais (eigene Geometrie)
+  kuerbisDeko(level, [
+    { pos: [3.6, Y0, 9], size: 1.0, face: 'grinsen', shape: 'dick' },
+    { pos: [-2.2, Y0, -1], size: 0.6, face: 'lachen' }, { pos: [2.2, Y0, -1], size: 0.6, face: 'lachen' },
+    { pos: [-9, BACH.bed, -31], size: 1.6, shape: 'flach' }, { pos: [8.5, BACH.bed, -35.5], size: 1.4, color: 'gelb' },
+    { pos: [-6.6, hangY(-76), -76], size: 0.55, face: 'lachen' }, { pos: [6.6, hangY(-84.5), -84.5], size: 0.55, face: 'grinsen' },
+    { pos: [-6.6, hangY(-93), -93], size: 0.55, face: 'lachen' },
+    { pos: [-5.2, YP, -105.5], size: 0.7, face: 'lachen', light: true },
+    { pos: [-14.8, YM, -150.2], size: 0.55, face: 'staunen' },
+    { pos: [8.2, YM, -133.2], size: 1.3, face: 'staunen', color: 'gelb' },
+    { pos: [-4.2, YP, -181.2], size: 0.7, face: 'lachen', mount: 'pfahl', light: true }, { pos: [4.2, YP, -181.2], size: 0.7, face: 'grinsen', mount: 'pfahl', light: true },
+    { pos: [-2.5, YF, -209.5], size: 0.6, face: 'lachen' }, { pos: [2.5, YF, -209.5], size: 0.6, face: 'lachen' },
+    { pos: [-3.4, YG, -254], size: 1.1, face: 'lachen', mount: 'pfahl', light: true }, { pos: [3.4, YG, -254], size: 1.1, face: 'grinsen', mount: 'pfahl', light: true },
+    { pos: [-6.5, YG, -259], size: 2.2, face: 'lachen', shape: 'dick' }, { pos: [6.6, YG, -259.5], size: 1.8, face: 'grinsen', color: 'gelb' },
+  ]);
+  kuerbisStreu(level, { pos: [-9.5, Y0, -17.5], size: [8, 9], n: 9, faces: 0.4, seed: 3 });
+  kuerbisStreu(level, { pos: [10, Y0, -18.5], size: [7, 8], n: 8, faces: 0.4, seed: 7, avoid: [[9.5, -10.5, 2.4]] });
+  kuerbisStreu(level, { pos: [-10.5, YP, -82], size: [6, 20], n: 9, faces: 0.3, seed: 11 }, { shadow: false });
+  kuerbisStreu(level, { pos: [10.5, YP, -74], size: [6, 16], n: 8, faces: 0.3, seed: 12 }, { shadow: false });
+  kuerbisStreu(level, { pos: [9.5, YP, -116], size: [8, 10], n: 9, faces: 0.5, seed: 4 });
+  kuerbisStreu(level, { pos: [-12, YM, -126.5], size: [8, 3], n: 5, faces: 0.6, seed: 27 });
+  kuerbisStreu(level, { pos: [-10, YF, -217], size: [7, 8], n: 8, faces: 0.4, seed: 31 });
+  kuerbisStreu(level, { pos: [10, YF, -217], size: [7, 8], n: 8, faces: 0.4, seed: 32 });
+  maisStreu(level, { pos: [-13.4, Y0, -23.4], size: [2, 1.2], n: 2, seed: 2 });
+  maisStreu(level, { pos: [13.4, Y0, -23.4], size: [2, 1.2], n: 2, seed: 3 });
+  maisStreu(level, { pos: [11, YP, -93], size: [6, 6], n: 7, seed: 5 }, { shadow: false });
+  // Maisfeld in Reihen auf Ackerfurchen; frei bleiben Krümels Laternenweg und Lichtung, Rampen, Kanone, Mühle
+  const KW = [...KRUEMEL_WEG.map((l) => [l.pos[0], l.pos[2], 1.6]), [-4, -141.2, 1.6], [KRUEMEL.pos[0], KRUEMEL.pos[2], 3.2], [-3.7, -140, 2.6], [-3.7, -164, 2.6], [-3.6, -147, 1.2]];
+  maisStreu(level, { x0: -18, x1: -2.4, z0: -124.6, z1: -169.4, y: YM, row: 1.8, step: 1.5, seed: 21, avoid: KW }, { shadowX: [-9, 9] });
+  maisStreu(level, { x0: 2.4, x1: 20, z0: -124.6, z1: -149, y: YM, row: 1.8, step: 1.5, seed: 24, avoid: [[KANONE_B.pos[0], KANONE_B.pos[2], 3.4], [3.7, -129, 2.6], [8.2, -133.2, 1.4]] }, { shadowX: [-9, 9] });
+  maisStreu(level, { x0: 2.4, x1: 24, z0: -166.6, z1: -169.4, y: YM, row: 1.8, step: 1.5, seed: 26, avoid: [[3.7, -167, 2.6]] }, { shadowX: [-9, 9] });
+  ackerFurchen(level, [
+    { x0: -18, x1: -1.8, z0: -124.4, z1: -169.6, y: YM, gap: 1.8 },
+    { x0: 1.8, x1: 20.8, z0: -124.4, z1: -149.3, y: YM, gap: 1.8 },
+  ]);
   kraehen(level, [[-14.6, 2.15, 2], [14.6, 2.15, -8, -2.2], [-14.6, 2.15, -20], [-9.5, 9.7, -107], [14.4, 5.15, -230, -2.2]]);
   winkeKuerbisse(level, [{ id: 'winke', pos: [9.5, Y0, -10.5], size: 2.4, content: { star: 0 } }]);
   kruemelLaterne(level, { id: 'kruemel', pos: KRUEMEL.pos, yaw: -0.4, content: { star: 1 } });
-  laternenPfad(level, [...LATERNEN.map((l) => l.id), ...KRUEMEL_WEG.map((l) => l.id)], 7);
-  spawnEnemies(level, [
-    { kind: 'kuerbling', id: 'kb1', pos: [-3, Y0, -15] },
-    { kind: 'kuerbling', id: 'kb2', pos: [3.5, Y0, -19] },
-    { kind: 'kuerbling', id: 'kb3', pos: [-4, Y0, -46.5] },
-    { kind: 'kuerbling', id: 'kb4', pos: [4.5, Y0, -49] },
-    { kind: 'kuerbling', id: 'kb5', pos: [4, YP, -118] },
-    { kind: 'kuerbling', id: 'kb6', pos: [0, YP, -141] },
-    { kind: 'kuerbling', id: 'kb7', pos: [0, YP, -165] },
-    { kind: 'kuerbling', id: 'kb8', pos: [-5, YF, -232] },
-    { kind: 'kuerbling', id: 'kb9', pos: [5, YF, -241] },
-    { kind: 'flatterfledi', id: 'ff1', pos: [-3, YP + 4.5, -152], fallback: 'brummer' },
-    { kind: 'flatterfledi', id: 'ff2', pos: [3, YF + 4.5, -226], fallback: 'brummer' },
-    { kind: 'hexenhut_huepfer', id: 'hh1', pos: [-8, YF, -238] },
-    { kind: 'hexenhut_huepfer', id: 'hh2', pos: [8, YF, -232] },
-  ]);
+  laternenPfad(level, [...LATERNEN, ...KRUEMEL_WEG], 7);
 }
 
 export const LEVEL = {
@@ -143,11 +164,6 @@ export const LEVEL = {
       { kind: 'strohballen', pos: [-6, Y0, -10], form: 'eckig', yaw: 0.1 },
       { kind: 'strohballen', pos: [-6.4, Y0, -11.4], form: 'eckig', yaw: 0.3 },
       { kind: 'suessigkeiten', pos: [-5.4, Y0, 3], size: 1.1 },
-      { kind: 'kuerbisse', pos: [-9.5, Y0, -17.5], size: [8, 9], n: 9, faces: 0.4, seed: 3 },
-      { kind: 'kuerbisse', pos: [10, Y0, -18.5], size: [7, 8], n: 8, faces: 0.4, seed: 7, avoid: [[9.5, -10.5, 2.4]] },
-      { kind: 'kuerbis', pos: [3.6, Y0, 9], size: 1.0, face: 'grinsen', shape: 'dick' },
-      { kind: 'kuerbislaterne', pos: [-2.2, Y0, -1], size: 0.6, light: false },
-      { kind: 'kuerbislaterne', pos: [2.2, Y0, -1], size: 0.6, light: false },
       { kind: 'zaun', from: [HOF.x0 + 0.4, Y0, 15], to: [HOF.x0 + 0.4, Y0, -24], style: 'holz' },
       { kind: 'zaun', from: [HOF.x1 - 0.4, Y0, 15], to: [HOF.x1 - 0.4, Y0, -24], style: 'holz' },
       { kind: 'zaun', from: [HOF.x0 + 0.4, Y0, 15.4], to: [-3, Y0, 15.4], style: 'holz' },
@@ -162,10 +178,6 @@ export const LEVEL = {
     { type: 'ramp', pos: [-11.5, BACH.bed, BACH.z1 + 1.6], size: [4, Y0 - BACH.bed, 3.2], axis: 'z', dir: -1, top: 'stone' },
     { type: 'deco_hw', items: [
       ...kuerbisSteineDeco(STEINE).map((k, i) => ({ ...k, face: i === 1 ? 'staunen' : false, seed: i })),
-      { kind: 'kuerbis', pos: [-9, BACH.bed, -31], size: 1.6, shape: 'flach' },
-      { kind: 'kuerbis', pos: [8.5, BACH.bed, -35.5], size: 1.4, color: 'gelb' },
-      { kind: 'maisstaude', pos: [-13.6, Y0, -23.6], height: 2.2 },
-      { kind: 'maisstaude', pos: [13.4, Y0, -23.4], height: 2.0 },
     ] },
     sign(-4.6, Y0, -22.8, 'Kürbis-\nHüpfer', { size: [1.9, 0.8] }),
 
@@ -183,22 +195,11 @@ export const LEVEL = {
       // Fangballen (rechts) und Nischen am Hohlweg
       { kind: 'strohballen', pos: [14, Y0, -55.8], form: 'rund', yaw: 1.57 },
       { kind: 'strohballen', pos: [14, Y0, -57.4], form: 'rund', yaw: 1.57 },
-      { kind: 'kuerbislaterne', pos: [-6.6, hangY(-76), -76], size: 0.5, light: false },
-      { kind: 'kuerbislaterne', pos: [6.6, hangY(-84.5), -84.5], size: 0.5, light: false },
-      { kind: 'kuerbislaterne', pos: [-6.6, hangY(-93), -93], size: 0.5, light: false },
       { kind: 'vogelscheuche', pos: [-9.5, YP, -70], size: 1.1 },
-      { kind: 'vogelscheuche', pos: [9.6, YP, -86], size: 1.0 },
-      { kind: 'kuerbisse', pos: [-10.5, YP, -82], size: [6, 20], n: 8, faces: 0.3, seed: 11 },
-      { kind: 'kuerbisse', pos: [10.5, YP, -74], size: [6, 16], n: 7, faces: 0.3, seed: 12 },
-      { kind: 'maisfeld', pos: [11, YP, -93], size: [6, 6], n: 6, seed: 5 },
       // Plateau
       { kind: 'strohballen', pos: [-3.8, YP, -104.5], form: 'rund', yaw: 0.4 },
       { kind: 'strohballen', pos: [-4.6, YP, -103], form: 'eckig', yaw: 1.2 },
-      { kind: 'suessigkeiten', pos: [-5.4, YP, -116.5], size: 1.2 },
-      { kind: 'kuerbislaterne', pos: [-5.2, YP, -105.5], size: 0.7 },
-      { kind: 'kuerbisse', pos: [9.5, YP, -116], size: [8, 10], n: 8, faces: 0.5, seed: 4 },
       { kind: 'zaun', from: [PLATEAU.x1 - 0.4, YP, -97], to: [PLATEAU.x1 - 0.4, YP, -123], style: 'holz' },
-      { kind: 'krummer_baum', pos: [-13.2, YP, -121], height: 5.5 },
     ] },
 
     // =============================================================== D  Laternenpfad im Maisfeld
@@ -220,8 +221,6 @@ export const LEVEL = {
     { type: 'ramp', pos: [-3.7, YM, -164], size: [4, YP - YM, 3], axis: 'x', dir: 1 },
     { type: 'ramp', pos: [3.7, YM, -167], size: [4, YP - YM, 3], axis: 'x', dir: -1 },
     // Laternen
-    ...LATERNEN.map((l) => ({ type: 'laternenpfahl', ...l, on: false, radius: 4.5, yaw: l.pos[0] < 0 ? Math.PI : 0 })),
-    ...KRUEMEL_WEG.map((l) => ({ type: 'laternenpfahl', ...l, on: false, radius: 4, height: 2, style: 'laterne', yaw: -Math.PI / 2 })),
     // Lach-Grabstein schaltet zwei Laternen im Teich für 12 s an: Geisterbrücke zur Stempel-Insel
     { type: 'grabstein_schalter', id: 'schalter', pos: [1, YP, -151.6], time: 12, on: { start: ['gp1', 'gp2'] }, off: { stop: ['gp1', 'gp2'] } },
     isl(5.1, 6.1, -151.2, -152.2, TEICH.surf + 0.1, 1.6, { top: 'rock' }),
@@ -237,17 +236,7 @@ export const LEVEL = {
     { type: 'kuerbis_kanone', id: 'kanone_muehle', pos: KANONE_B.pos, to: KANONE_B.to, arc: KANONE_B.arc, color: 'gelb', face: 'staunen' },
     sign(-3.4, YP, -121.6, 'Laternenpfad', { size: [2.2, 0.8] }),
     { type: 'deco_hw', items: [
-      { kind: 'maisfeld', pos: [-10, YM, -131], size: [14, 12], n: 14, seed: 21, avoid: [[-5.2, -141.5, 2]] },
-      { kind: 'maisfeld', pos: [-7, YM, -158], size: [10, 14], n: 12, seed: 22, avoid: [[-11.6, -149, 2.2], [-13.6, -151.6, 3], [-3.7, -164, 2.5]] },
-      { kind: 'maisfeld', pos: [-15.5, YM, -162], size: [4, 14], n: 6, seed: 23 },
-      { kind: 'maisfeld', pos: [6, YM, -136], size: [7, 18], n: 12, seed: 24, avoid: [[KANONE_B.pos[0], KANONE_B.pos[2], 3.2], [3.7, -129, 2.5]] },
-      { kind: 'maisfeld', pos: [16, YM, -128], size: [10, 6], n: 8, seed: 25, avoid: [[KANONE_B.pos[0], KANONE_B.pos[2], 3.2]] },
-      { kind: 'maisfeld', pos: [10, YM, -168], size: [14, 3], n: 7, seed: 26, avoid: [[3.7, -167, 2.5]] },
-      { kind: 'kuerbisse', pos: [-12, YM, -126.5], size: [8, 3], n: 5, faces: 0.6, seed: 27 },
-      { kind: 'vogelscheuche', pos: [-3.6, YM, -147], size: 1.0 },
       { kind: 'strohballen', pos: [-12.6, YM, -153.4], form: 'rund', yaw: 0.6 },
-      { kind: 'kuerbislaterne', pos: [-14.8, YM, -150.2], size: 0.55, light: false },
-      { kind: 'kuerbis', pos: [8.2, YM, -133.2], size: 1.3, face: 'staunen', color: 'gelb' },
       { kind: 'strohballen', pos: [21.5, YM, -131.5], form: 'rund', yaw: 0.3 },
       { kind: 'krummer_baum', pos: [28, YM, -146], height: 6 },
     ] },
@@ -257,10 +246,7 @@ export const LEVEL = {
     { type: 'kuerbis_kanone', id: 'kanone', pos: KANONE_A.pos, to: KANONE_A.to, arc: KANONE_A.arc, face: 'grinsen' },
     sign(-3.4, YP, -171, 'Hinein in\nden Kürbis!', { size: [2.2, 0.9] }),
     { type: 'deco_hw', items: [
-      { kind: 'kuerbislaterne', pos: [-4.2, YP, -181.2], size: 0.7 },
-      { kind: 'kuerbislaterne', pos: [4.2, YP, -181.2], size: 0.7 },
       { kind: 'strohballen', pos: [3.6, YP, -171.5], form: 'eckig', yaw: 0.2 },
-      { kind: 'suessigkeiten', pos: [3.4, YP, -174], size: 0.9 },
     ] },
 
     // =============================================================== F  Vogelscheuchen-Feld
@@ -270,30 +256,39 @@ export const LEVEL = {
     { type: 'deco_hw', items: [
       { kind: 'vogelscheuche', pos: [-6.5, YF, -232], size: 1.1 },
       { kind: 'vogelscheuche', pos: [6.8, YF, -231.6], size: 1.0 },
-      { kind: 'vogelscheuche', pos: [-1.5, YF, -242.5], size: 0.9 },
       { kind: 'strohballen', pos: [12.6, YF, -227.5], form: 'rund', yaw: 0 },
       { kind: 'strohballen', pos: [-12.6, YF, -236.5], form: 'rund', yaw: 0 },
-      { kind: 'kuerbisse', pos: [-10, YF, -217], size: [7, 8], n: 7, faces: 0.4, seed: 31 },
-      { kind: 'kuerbisse', pos: [10, YF, -217], size: [7, 8], n: 7, faces: 0.4, seed: 32 },
       { kind: 'zaun', from: [LANDE.x0 + 0.4, YF, -209], to: [LANDE.x0 + 0.4, YF, -224], style: 'holz' },
       { kind: 'zaun', from: [LANDE.x1 - 0.4, YF, -209], to: [LANDE.x1 - 0.4, YF, -224], style: 'holz' },
-      { kind: 'kuerbislaterne', pos: [-2.5, YF, -209.5], size: 0.6 },
-      { kind: 'kuerbislaterne', pos: [2.5, YF, -209.5], size: 0.6 },
     ] },
 
     // =============================================================== G  Zielhügel
     isl(ZIEL.x0, ZIEL.x1, -251, ZIEL.z1, YG, 11),
     { type: 'deco_hw', items: [
-      { kind: 'kuerbislaterne', pos: [-3.4, YG, -254], size: 1.1 },
-      { kind: 'kuerbislaterne', pos: [3.4, YG, -254], size: 1.1 },
-      { kind: 'kuerbis', pos: [-6.5, YG, -259], size: 2.2, face: 'lachen', shape: 'dick' },
-      { kind: 'kuerbis', pos: [6.6, YG, -259.5], size: 1.8, face: 'grinsen', color: 'gelb' },
       { kind: 'strohballen', pos: [-6.6, YF, -246], form: 'rund', yaw: 0.2 },
       { kind: 'strohballen', pos: [6.6, YF, -246], form: 'rund', yaw: -0.2 },
       { kind: 'strohballen', pos: [-6.8, YF, -247.6], form: 'eckig', yaw: 0.1 },
       { kind: 'suessigkeiten', pos: [5.6, YG, -255.5], size: 1.2 },
       { kind: 'fledermaus_girlande', from: [-5, YG + 5.6, -256.5], to: [5, YG + 5.6, -256.5], n: 9, sag: 0.8 },
     ] },
+  ],
+  enemies: [
+    // Kürblinge: Verfolger und Streifen (hüpfen nicht über Kanten), ein Riesenkürbling auf dem Plateau
+    { kind: 'kuerbling', id: 'kb1', pos: [-3, Y0, -15], sight: 6 },
+    { kind: 'kuerbling', id: 'kb2', pos: [3, Y0, -19.5], behavior: 'patrol', path: [[2, Y0, -19.5], [8, Y0, -19.5]], sight: 0, coins: 2 },
+    { kind: 'kuerbling', id: 'kb3', pos: [-3, Y0, -47], behavior: 'patrol', path: [[-7, Y0, -47], [-1, Y0, -47]], sight: 0 },
+    { kind: 'kuerbling', id: 'kb4', pos: [5, Y0, -50], sight: 6 },
+    { kind: 'kuerbling', id: 'kb_riese', riese: true, pos: [6, YP, -116.5], sight: 7 },
+    { kind: 'kuerbling', id: 'kb6', pos: [0, YP, -138], behavior: 'patrol', path: [[0, YP, -137], [0, YP, -144]], sight: 0 },
+    { kind: 'kuerbling', id: 'kb7', pos: [0, YP, -166], sight: 5 },
+    { kind: 'kuerbling', id: 'kb8', pos: [-5, YF, -232], sight: 6 },
+    { kind: 'kuerbling', id: 'kb9', pos: [5, YF, -241], sight: 6 },
+    // Flatterfledis kreisen in Kopfhöhe (drüberspringen oder draufspringen)
+    { kind: 'flatterfledi', id: 'ff1', center: [0, YP + 0.8, -153], radius: 1.4, flySpeed: 1.6 },
+    { kind: 'flatterfledi', id: 'ff2', center: [6.5, YF + 0.8, -226.5], radius: 1.8, flySpeed: 1.8 },
+    // Hexenhut-Hüpfer im Vogelscheuchen-Feld (nur gelandet von oben besiegbar)
+    { kind: 'hexenhut_huepfer', id: 'hh1', pos: [-8, YF, -239], sight: 6 },
+    { kind: 'hexenhut_huepfer', id: 'hh2', pos: [8.5, YF, -233.5], sight: 6 },
   ],
   blocks: [
     { kind: 'question', pos: [-1.3, Y0 + 2.6, -5], content: 'coins:3' },
@@ -329,7 +324,7 @@ export const LEVEL = {
     candy([0, YP, -161], [0, YP, -167], 3),
     candy([-3.4, YM, -143], [-10.2, YM, -147.5], 3),
     ...arc([2, YP + 0.6, -153], [INSEL.x0 + 0.8, INSEL.top + 0.6, -158], 5, 1.2),
-    { kind: 'powerup', power: 'oneup', pos: [16.6, INSEL.top, -156.4] },
+    { kind: 'powerup', power: 'oneup', pos: [16.2, INSEL.top, -156.2] },
     // E: im Flug
     ...FLUG_A.map((p, i) => (i % 2 ? { kind: 'suessigkeit', pos: [p[0], p[1] - 0.4, p[2]] } : { kind: 'coin', pos: p })),
     // F
@@ -344,7 +339,7 @@ export const LEVEL = {
   stars: [
     { pos: [9.5, Y0 + 1.0, -8.2], hidden: true, id: 'stern_winke' },               // 0: Winke-Kürbis stampfen
     { pos: [KRUEMEL.pos[0] + 1.4, YM + 1.0, KRUEMEL.pos[2] + 0.8], hidden: true, id: 'stern_kruemel' }, // 1: Krümel finden
-    [MUEHLE.x - 1.6, MUEHLE.base + MUEHLE.gallery + 1.1, MUEHLE.z + 3.1],          // 2: Galerie der Windmühle
+    [MUEHLE.x - 2.09, MUEHLE.base + MUEHLE.gallery + 0.75, MUEHLE.z + 2.09],       // 2: Galerie der Windmühle
   ],
   stamp: [(INSEL.x0 + INSEL.x1) / 2, INSEL.top + 1.1, (INSEL.z0 + INSEL.z1) / 2 - 0.6],
   goal: { pos: [0, YG, -256], height: 9 },

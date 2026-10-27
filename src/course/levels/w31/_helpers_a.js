@@ -100,18 +100,6 @@ function nearest(level, x, z) {
   return { f: best, d };
 }
 
-/**
- * Gegner der Halloween-Welt mit Ersatz: Arten, die es (noch) nicht gibt, werden durch fallback (Standard pilzling)
- * ersetzt; Zusatzfelder bleiben. Für LEVEL.build: spawnt die Liste selbst.
- */
-export function spawnEnemies(level, list) {
-  for (const e of list) {
-    const kind = level.hasKind(e.kind) ? e.kind : (e.fallback ?? 'pilzling');
-    const { fallback, ...spec } = e;
-    level.spawn(kind, spec);
-  }
-}
-
 // =====================================================================================================================
 // Kürbisfeld (H-1): Kulisse
 // =====================================================================================================================
@@ -343,6 +331,138 @@ export function ackerFurchen(level, list) {
     }
   }
   if (P.length) addStatic(level, merge(P), { castShadow: false });
+}
+
+/** Deterministischer Zufall (0..1) aus einer Zahl. */
+const hash = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+
+/** Punkte gestreut in size [w, d] um pos (Abstand gap, meidet avoid [[x, z, r], …]); deterministisch über seed. */
+function streu(pos, size, n, gap, avoid, seed) {
+  const [w, d] = Array.isArray(size) ? size : [size, size];
+  const out = [];
+  for (let t = 0; t < n * 40 && out.length < n; t++) {
+    const x = pos[0] + (hash(seed * 31 + t * 2) - 0.5) * w, z = pos[2] + (hash(seed * 31 + t * 2 + 1) - 0.5) * d;
+    if (out.some((q) => Math.hypot(q[0] - x, q[1] - z) < gap)) continue;
+    if ((avoid ?? []).some((a) => Math.hypot(a[0] - x, a[1] - z) < (a[2] ?? 2))) continue;
+    out.push([x, z]);
+  }
+  return out;
+}
+
+/**
+ * Sparsame Kulissen-Kürbisse (eigene Geometrie, ≈ 200–300 Dreiecke statt ≈ 2,5–5,7 k des Registry-Modells; für viele
+ * Stücke). list = [{ pos, size: 0.9 (Ø), shape, color, face: false | 'lachen' | 'grinsen' | 'staunen', yaw (Gesicht;
+ * Standard zur Kamera), mount: 'pfahl' (Laterne auf Pfahl), light: Punktlicht im Thema }]. o: { shadow: true }.
+ */
+export function kuerbisDeko(level, list, o = {}) {
+  if (!level.view || !list.length) return;
+  const P = [], G = [];
+  list.forEach((k, i) => {
+    const s = k.size ?? 0.9, r = s / 2;
+    const yaw = k.yaw ?? (-Math.PI / 2 + (hash(i * 7 + 3) - 0.5) * 0.7);
+    let y = k.pos[1];
+    if (k.mount === 'pfahl') {
+      const post = new THREE.CylinderGeometry(0.06, 0.09, 1.5, 5); post.translate(k.pos[0], y + 0.75, k.pos[2]);
+      P.push(shadeY(post, HWC.woodLow, HWC.wood));
+      y += 1.5;
+    }
+    const pk = pumpkinGeo({ r, shape: k.shape ?? 'rund', color: k.color ?? 'orange', seg: s > 1.4 ? 16 : 12, leaf: k.leaf ?? s > 0.6, leafYaw: hash(i) * TAU });
+    P.push(at(pk.body, k.pos[0], y, k.pos[2], yaw + Math.PI / 2));
+    if (k.face) G.push(at(faceGeo({ r, shape: k.shape ?? 'rund', kind: k.face }), k.pos[0], y, k.pos[2], yaw));
+    if (k.light) level.view.addLantern?.(k.pos[0], y + r, k.pos[2]);
+  });
+  addStatic(level, merge(P), { castShadow: o.shadow !== false });
+  if (G.length) addStatic(level, merge(G), { material: 'glow', castShadow: false });
+}
+
+/** Gestreute sparsame Kürbisse: { pos, size: [w, d], n, sizes: [0.5, 1.1], faces: 0.3, colors, seed, avoid, gap }. */
+export function kuerbisStreu(level, f, o = {}) {
+  const pts = streu(f.pos, f.size, f.n ?? 8, f.gap ?? 1.2, f.avoid, f.seed ?? 1);
+  const [s0, s1] = f.sizes ?? [0.5, 1.1];
+  const cols = f.colors ?? ['orange', 'orange', 'orange', 'gelb', 'weiss', 'orange'];
+  const shapes = ['rund', 'flach', 'dick', 'rund', 'hoch'];
+  const faces = ['lachen', 'grinsen', 'staunen'];
+  kuerbisDeko(level, pts.map(([x, z], i) => {
+    const h = hash((f.seed ?? 1) * 13 + i);
+    return { pos: [x, f.pos[1], z], size: s0 + (s1 - s0) * hash(i * 3 + (f.seed ?? 1)), shape: shapes[Math.floor(h * 5)], color: cols[Math.floor(hash(i * 5 + 2) * cols.length)], face: hash(i * 11 + 5) < (f.faces ?? 0.3) ? faces[Math.floor(h * 3)] : false };
+  }), o);
+}
+
+/** Ein Mais-Büschel (count Stängel) in Weltkoordinaten; liefert Geometrie-Teile. */
+function maisBueschel(x, y, z, i, count, h0, h1, P, leaves = 4) {
+  const stalkC = [L(0x7a8a2e), L(0xc8b860)], leafA = L(0x6e9a2c), leafB = L(0xd0bc5a), cobC = L(0xffd24a), husk = L(0xb8b060), tas = L(0xc89a4a);
+  for (let k = 0; k < count; k++) {
+    const a = hash(i * 9 + k) * TAU, rr = k ? 0.22 + 0.06 * k : 0;
+    const sx = x + Math.cos(a) * rr, sz = z + Math.sin(a) * rr;
+    const H = h0 + (h1 - h0) * hash(i * 17 + k * 3 + 1);
+    const lean = (hash(i * 5 + k) - 0.5) * 0.12;
+    const st = new THREE.CylinderGeometry(0.028, 0.045, H, 4, 1); st.rotateZ(lean); st.translate(sx - lean * H / 2, y + H / 2, sz);
+    P.push(colorize(ni(st), (p, n, out) => mixc(stalkC[0], stalkC[1], smooth(y, y + H, p.y), out)));
+    // Blätter: breite, gebogene, hängende Streifen, beidseitig
+    for (let j = 0; j < leaves; j++) {
+      const ly = y + H * (0.2 + j * (0.62 / leaves)), ya = a + j * 2.4 + k * 1.3;
+      const len = 1.0 - j * 0.08;
+      const lf = new THREE.PlaneGeometry(0.2, len, 1, 2);
+      const lp = lf.attributes.position;
+      for (let v = 0; v < lp.count; v++) {
+        const t = (lp.getY(v) + len / 2) / len;
+        lp.setX(v, lp.getX(v) * (1 - t * 0.75));
+        lp.setY(v, t * 0.5 - t * t * 0.62);
+        lp.setZ(v, t * len * 0.85);
+      }
+      lf.computeVertexNormals();
+      lf.rotateY(ya); lf.translate(sx - lean * (ly - y), ly, sz);
+      const tint = hash(i * 3 + j + k * 7);
+      const col = (p, n, out) => mixc(leafA, leafB, 0.15 + 0.55 * tint + 0.2 * smooth(ly, ly - 0.3, p.y), out);
+      P.push(colorize(ni(lf.clone()), col));
+      const back = ni(lf); const pa = back.attributes.position;
+      for (let t = 0; t < pa.count; t += 3) { const x1 = pa.getX(t + 1), y1 = pa.getY(t + 1), z1 = pa.getZ(t + 1); pa.setXYZ(t + 1, pa.getX(t + 2), pa.getY(t + 2), pa.getZ(t + 2)); pa.setXYZ(t + 2, x1, y1, z1); }
+      back.computeVertexNormals();
+      P.push(colorize(back, col));
+    }
+    if (k % 2 === 0) {
+      const cob = new THREE.CylinderGeometry(0.055, 0.04, 0.3, 5); cob.rotateZ(0.4); cob.rotateY(a);
+      cob.translate(sx + Math.cos(a) * 0.07, y + H * 0.52, sz - Math.sin(a) * 0.07);
+      P.push(colorize(ni(cob), (p, n, out) => mixc(husk, cobC, smooth(-0.2, 0.8, n.y + 0.3), out)));
+    }
+    const t1 = new THREE.ConeGeometry(0.1, 0.36, 4); t1.translate(sx - lean * H, y + H + 0.14, sz);
+    P.push(fill(t1, tas));
+  }
+}
+
+/**
+ * Sparsames Maisfeld (eigene Geometrie, ≈ 330 Dreiecke je Büschel aus vier Stängeln statt ≈ 1,2 k je Registry-Staude):
+ * hängende Blätter, Kolben, Rispen, ohne Kollision. Gestreut: f { pos, size: [w, d], n, height: [2.0, 2.6], seed, avoid,
+ * gap } bzw. in Reihen: f { x0, x1, z0, z1, y, row: 1.5 (Reihenabstand in x), step: 1.3 (in z), avoid, seed }.
+ */
+export function maisStreu(level, f, o = {}) {
+  if (!level.view) return;
+  const [h0, h1] = f.height ?? [2.0, 2.6];
+  const P = [];
+  let pts;
+  if (f.x0 !== undefined) {
+    pts = [];
+    const row = f.row ?? 1.5, step = f.step ?? 1.3;
+    let i = 0;
+    for (let x = Math.min(f.x0, f.x1) + row / 2; x < Math.max(f.x0, f.x1); x += row) {
+      for (let z = Math.min(f.z0, f.z1) + step / 2; z < Math.max(f.z0, f.z1); z += step) {
+        i++;
+        const jx = x + (hash(i * 3 + (f.seed ?? 1)) - 0.5) * row * 0.35, jz = z + (hash(i * 7 + (f.seed ?? 1)) - 0.5) * step * 0.4;
+        if ((f.avoid ?? []).some((q) => Math.hypot(q[0] - jx, q[1] - jz) < (q[2] ?? 2))) continue;
+        if (hash(i * 13 + (f.seed ?? 1)) < (f.holes ?? 0.08)) continue;
+        pts.push([jx, jz]);
+      }
+    }
+  } else pts = streu(f.pos, f.size, f.n ?? 10, f.gap ?? 1.0, f.avoid, f.seed ?? 1);
+  const y = f.y ?? f.pos[1];
+  // in Stücke je ≈ 12 m (z) teilen: Schatten nur für Stücke, deren Mitte nahe am Weg liegt (o.shadowX: [x0, x1])
+  const chunks = new Map();
+  pts.forEach(([x, z], i) => {
+    const key = `${Math.floor(z / 12)}:${o.shadowX && (x < o.shadowX[0] || x > o.shadowX[1]) ? 0 : 1}`;
+    if (!chunks.has(key)) chunks.set(key, []);
+    maisBueschel(x, y, z, i + (f.seed ?? 1) * 101, f.count ?? 2, h0, h1, chunks.get(key), f.leaves ?? 4);
+  });
+  for (const [key, parts] of chunks) addStatic(level, merge(parts), { castShadow: o.shadow !== false && key.endsWith(':1') });
 }
 
 /**
@@ -615,21 +735,102 @@ export function kruemelLaterne(level, o) {
 }
 
 /**
- * Laternenpfad: Laternenpfähle (Entitäten laternenpfahl mit on: false) gehen an, sobald eine Figur näher als r m kommt,
- * und bleiben an (warmer Pfad durchs Feld). ids: Liste der Daten-Ids. Liefert { lit: Anzahl }.
+ * Laternenpfad: Laternen auf krummen Holzpfählen gehen nacheinander an, sobald eine Figur näher als r m kommt, und bleiben
+ * an (warmer Pfad durchs Feld; Klang 'laterne'). Sparsam gezeichnet: Pfähle und Laternengehäuse statisch, alle Gläser eine
+ * Instanz-Gruppe (dunkel → leuchtend), alle Scheine ein Punkt-Mesh; jede brennende Laterne wird Lichtquelle des Themas
+ * (lanternLight). list = [{ id, pos (Fußpunkt), yaw (Arm-Richtung, 0 = +X), height: 2.2 }]. level.named 'laternenpfad' =
+ * { lit (Anzahl), on: [bool …], info() }.
  */
-export function laternenPfad(level, ids, r = 7) {
-  const st = { lit: 0 };
+export function laternenPfad(level, list, r = 7) {
+  const st = { lit: 0, on: list.map(() => false), info: () => ({ lit: st.lit, of: list.length }) };
   level.named.set('laternenpfad', st);
+  const lamps = list.map((l) => {
+    const H = l.height ?? 2.2, yaw = l.yaw ?? 0;
+    return { x: l.pos[0] + Math.cos(yaw) * 0.5, y: l.pos[1] + H - 0.12, z: l.pos[2] - Math.sin(yaw) * 0.5, fx: l.pos[0], fz: l.pos[2] };
+  });
+  for (const l of list) level.world.add({ type: 'cyl', x: l.pos[0], z: l.pos[2], r: 0.12, y0: l.pos[1], y1: l.pos[1] + (l.height ?? 2.2), camIgnore: true, tag: 'laterne' });
+  let im = null, pts = null, colAttr = null;
+  const OFF = new THREE.Color(0.22, 0.14, 0.08), ON = new THREE.Color(1, 1, 1);
+  if (level.view) {
+    const P = [];
+    list.forEach((l, i) => {
+      const H = l.height ?? 2.2, yaw = l.yaw ?? 0;
+      const post = new THREE.CylinderGeometry(0.07, 0.11, H, 6, 3);
+      const pp = post.attributes.position;
+      for (let k = 0; k < pp.count; k++) { const y = pp.getY(k) + H / 2; pp.setX(k, pp.getX(k) + Math.sin(y * 1.8 + i) * 0.035); }
+      post.computeVertexNormals();
+      post.translate(0, H / 2, 0);
+      const arm = new THREE.BoxGeometry(0.6, 0.08, 0.08); arm.translate(0.26, H - 0.06, 0);
+      const brace = new THREE.BoxGeometry(0.34, 0.06, 0.06); brace.rotateZ(0.8); brace.translate(0.1, H - 0.22, 0);
+      const { body } = lanternPartsCheap();
+      body.translate(0.5, H - 0.12, 0);
+      const g = merge([shadeY(post, HWC.woodLow, HWC.wood), shadeY(arm, HWC.woodLow, HWC.wood), shadeY(brace, HWC.woodLow, HWC.wood), body]);
+      g.rotateY(yaw); g.translate(l.pos[0], l.pos[1], l.pos[2]);
+      P.push(g);
+    });
+    addStatic(level, merge(P));
+    const glass = lanternPartsCheap().glass;
+    im = new THREE.InstancedMesh(glass, new THREE.MeshBasicMaterial({ vertexColors: true }), list.length);
+    im.name = 'laternenpfad:glas';
+    const m = new THREE.Matrix4();
+    lamps.forEach((q, i) => { m.makeTranslation(q.x, q.y, q.z); im.setMatrixAt(i, m); im.setColorAt(i, OFF); });
+    im.instanceColor.needsUpdate = true;
+    im.computeBoundingSphere();
+    const pg = new THREE.BufferGeometry();
+    pg.setAttribute('position', new THREE.Float32BufferAttribute(lamps.flatMap((q) => [q.x, q.y - 0.27, q.z]), 3));
+    colAttr = new THREE.Float32BufferAttribute(new Float32Array(lamps.length * 3), 3);
+    pg.setAttribute('color', colAttr);
+    pts = new THREE.Points(pg, new THREE.PointsMaterial({ size: 2.4, map: glowTexture(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    pts.name = 'laternenpfad:schein';
+    const grp = new THREE.Group();
+    grp.add(im, pts);
+    const holder = {};
+    addObject(level, grp, (dt) => {
+      visDt(level, holder, dt);
+      const t = level.time;
+      lamps.forEach((q, i) => {
+        const k = st.on[i] ? 0.78 + 0.1 * Math.sin(t * 7 + i * 1.7) + 0.05 * Math.sin(t * 13.3 + i) : 0;
+        colAttr.setXYZ(i, k, k * 0.62, k * 0.25);
+      });
+      colAttr.needsUpdate = true;
+    });
+  }
   level.onStep(() => {
     let n = 0;
-    for (const id of ids) {
-      const e = level.named.get(id);
-      if (!e) continue;
-      if (!e.on) { const { d } = nearest(level, e.pos.x, e.pos.z); if (d < r) e.start(); }
-      if (e.on) n++;
-    }
+    lamps.forEach((q, i) => {
+      if (!st.on[i]) {
+        const { d } = nearest(level, q.fx, q.fz);
+        if (d < r) {
+          st.on[i] = true;
+          hwSfx(level, 'laterne', 'light');
+          if (level.view) {
+            level.view.lanternSpots?.push(new THREE.Vector3(q.x, q.y - 0.27, q.z));
+            im.setColorAt(i, ON); im.instanceColor.needsUpdate = true;
+            level.effects?.sparks?.({ x: q.x, y: q.y - 0.2, z: q.z }, 6);
+          }
+        }
+      }
+      if (st.on[i]) n++;
+    });
     st.lit = n;
   });
   return st;
+}
+
+/** Laternengehäuse (Eisen, Goldringe) und Glas, sparsam (Ursprung = Griff oben, hängt nach unten). */
+function lanternPartsCheap(s = 1.7) {
+  const dark = L(HWC.iron), hi = L(HWC.ironHi), gold = L(0xd8a040), goldHi = L(0xffe08a);
+  const sh = (g, a = dark, b = hi) => colorize(ni(g), (p, n, out) => mixc(a, b, smooth(-0.5, 0.9, n.y * 0.6 + n.x * 0.4), out));
+  const cap = new THREE.ConeGeometry(0.12 * s, 0.1 * s, 6); cap.translate(0, -0.1 * s, 0);
+  const top = new THREE.CylinderGeometry(0.11 * s, 0.11 * s, 0.03 * s, 6); top.translate(0, -0.16 * s, 0);
+  const bot = new THREE.CylinderGeometry(0.1 * s, 0.12 * s, 0.05 * s, 6); bot.translate(0, -0.39 * s, 0);
+  const parts = [sh(cap), sh(top, gold, goldHi), sh(bot, gold, goldHi)];
+  for (let k = 0; k < 4; k++) {
+    const a = (k / 4) * TAU + Math.PI / 4;
+    const bar = new THREE.BoxGeometry(0.02 * s, 0.22 * s, 0.02 * s); bar.translate(Math.cos(a) * 0.088 * s, -0.27 * s, Math.sin(a) * 0.088 * s);
+    parts.push(sh(bar));
+  }
+  const gl = new THREE.CylinderGeometry(0.08 * s, 0.08 * s, 0.2 * s, 6); gl.translate(0, -0.27 * s, 0);
+  const glass = colorize(ni(gl), (p, n, out) => mixc(L(HWC.glowEdge), L(HWC.glowCore), smooth(-0.37 * s, -0.2 * s, p.y), out));
+  return { body: merge(parts), glass };
 }
