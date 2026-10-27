@@ -571,10 +571,14 @@ function report(res, ok) {
 
 /** Verkleidung (Kostüm-Zubehör) der Figur, sofern die Figuren-Ansicht sie meldet. */
 const costumeInfo = () => sc(() => {
-  const c = window.__course, rig = c.rig;
-  const i = rig?.info?.() ?? {};
-  return { costume: i.verkleidung ?? i.hwCostume ?? rig?.verkleidung ?? rig?.hwCostume ?? null, kind: i.kind ?? rig?.kind ?? null };
+  const c = window.__course;
+  return { has: 'outfit' in c, scene: c.outfit ?? null, avatar: c.rig?.avatar?.outfit ?? null, kind: c.rig?.kind ?? null };
 });
+/** Verkleidung prüfen, sobald der Motor sie kennt (Präzisierung „Figuren Halloween: Verkleidung“), sonst nur melden. */
+function checkCostume(id, who, ci, avatar = true) {
+  if (!ci.has) { console.log(`  (Verkleidung: der Motor kennt noch keine – Szene ohne outfit)`); return; }
+  check(`${id}: ${who} in Verkleidung (Szene ${ci.scene}${avatar ? `, Avatar ${ci.avatar}` : ''})`, ci.scene === 'halloween' && (!avatar || ci.avatar === 'halloween'));
+}
 
 // ------------------------------------------------------------------------------------------------------- Diorama
 async function diorama(id) {
@@ -597,8 +601,7 @@ async function diorama(id) {
       meta.world === 31 && meta.archetype === 'diorama' && meta.stars === m.stars && meta.hud === m.stars && !meta.stamp && meta.timeLimit === m.time && meta.theme === m.theme
       && meta.music === m.music && meta.figure === 'kruemel' && meta.rig?.kind === 'kruemel' && meta.lantern);
     for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
-    const ci = await costumeInfo();
-    console.log(`  Verkleidung: ${JSON.stringify(ci)}`);
+    checkCostume(id, 'Krümel', await costumeInfo(), false);
     const nj = await sc(() => {
       const c = window.__course, p = c.player;
       c.step(20);
@@ -700,7 +703,8 @@ async function parcours(id) {
     const ci = await costumeInfo();
     const res = await W('drive', R.main, {});
     const reached = res.status === 'goal' || res.status === 'done';
-    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Berührungen ${res.mech.episodes} ${JSON.stringify(res.mech.by)}, Münzen ${res.rt.coins}, Verkleidung ${JSON.stringify(ci)}`);
+    checkCostume(id, hero, ci);
+    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Berührungen ${res.mech.episodes} ${JSON.stringify(res.mech.by)}, Münzen ${res.rt.coins}`);
     report(res, reached);
     check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
     check(`${id}: ${hero} Zeit bis zum Ziel < 240 s (${res.time.toFixed(1)} s)`, reached && res.time < 240);

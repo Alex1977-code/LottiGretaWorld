@@ -1034,7 +1034,8 @@ export function gigglingGhost(level, pos, hide, o = {}) {
 
 /**
  * Krümel mit Laterne am Ufer: jubelt (cheer), sobald eine Figur näher als near m ist, sonst steht er da und lässt die
- * Laterne pendeln; trägt den Mini-Vampirumhang der Halloween-Verkleidung. pos = Fußpunkt, yaw = Blickrichtung.
+ * Laterne pendeln (den Mini-Vampirumhang bringt die Halloween-Verkleidung des Modells 'kruemel' mit). pos = Fußpunkt,
+ * yaw = Blickrichtung.
  */
 export function kruemelCameo(level, pos, yaw = -Math.PI / 2, o = {}) {
   const st = { cheers: 0, on: false };
@@ -1065,10 +1066,6 @@ export function kruemelCameo(level, pos, yaw = -Math.PI / 2, o = {}) {
   glow.scale.set(1.6, 1.6, 1);
   glow.position.set(0.12, 0.38, 0.34);
   root.add(glow);
-  // Mini-Vampirumhang: dunkles Cape am Rücken
-  const cape = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.55, 10, 1, true, Math.PI * 0.55, Math.PI * 0.9), new THREE.MeshStandardMaterial({ color: 0x2a1838, roughness: 0.6, side: THREE.DoubleSide }));
-  cape.position.set(-0.08, 0.42, 0);
-  root.add(cape);
   addObject(level, root);
   const hold = {};
   let t = 0;
