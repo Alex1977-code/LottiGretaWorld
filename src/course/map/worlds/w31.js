@@ -150,7 +150,7 @@ export const MAP = {
     { kind: 'hwlantern', pos: [5.2, 1, 35.0] }, { kind: 'hwlantern', pos: [-9.4, 1, 41.2] },
     { kind: 'pumpkins', pos: [-12.4, 1, 28.6], size: 1.0, face: true }, { kind: 'pumpkins', pos: [7.4, 1, 28.4], size: 0.9, yaw: -0.3 },
     { kind: 'pumpkin', pos: [2.6, 1, 44.4], size: 0.8, face: 2 }, { kind: 'pumpkin', pos: [-20.6, 1, 44.0], size: 0.7, face: 1 },
-    { kind: 'hwtree', pos: [-21.6, 1, 28.6], size: 4.8 }, { kind: 'hwtree', pos: [8.6, 1, 44.2], size: 4.2 },
+    { kind: 'hwtree', pos: [-21.6, 1, 28.6], size: 4.8, model: true, lanterns: 2 }, { kind: 'hwtree', pos: [8.6, 1, 44.2], size: 4.2 },
     { kind: 'toadstool', pos: [-18.6, 1, 28.2], solid: false }, { kind: 'candy', pos: [-6.2, 1, 44.4], size: 0.9 },
     { kind: 'hay', pos: [12.4, 1, 40.8], yaw: 0.3 }, { kind: 'pumpkin', pos: [13.6, 1, 41.0], size: 0.6, face: true },
     { kind: 'rowboat', pos: [-8, 0, 21], yaw: 0.6, solid: false }, { kind: 'hwrock', pos: [4, 0, 16.4], size: 1.4, solid: false },
@@ -201,7 +201,7 @@ export const MAP = {
     // F Schlosshügel
     { kind: 'hwlantern', pos: [-20.6, 6, -80.4] }, { kind: 'hwlantern', pos: [-15.4, 6, -80.4], yaw: PI },
     { kind: 'pumpkins', pos: [11.4, 6, -80.8], size: 1.0, face: true }, { kind: 'grave', pos: [-19.8, 6, -101.4], size: 1.0 },
-    { kind: 'hwtree', pos: [10.6, 6, -101.4], size: 4.6 }, { kind: 'candy', pos: [-19.4, 6, -86.4], size: 1.0 },
+    { kind: 'hwtree', pos: [10.6, 6, -101.4], size: 4.6, model: true }, { kind: 'candy', pos: [-19.4, 6, -86.4], size: 1.0 },
     { kind: 'pumpkin', pos: [-6.8, 6, -86.6], size: 0.55, face: 1 }, { kind: 'pumpkin', pos: [-1.2, 6, -86.8], size: 0.5, face: 2 },
     { kind: 'hwlantern', pos: [6.4, 6, -86.0], yaw: PI }, { kind: 'leaves', pos: [8.6, 6, -92.6], size: 1.0, solid: false, shadow: false },
     { kind: 'grave', pos: [-20.0, 6, -91.0], size: 0.9, yaw: 0.3 }, { kind: 'grave', pos: [-19.6, 6, -96.0], size: 1.0, yaw: 0.5 },

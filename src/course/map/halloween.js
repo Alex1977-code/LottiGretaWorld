@@ -23,7 +23,7 @@ import { mix, TAU, cached } from '../models/lib/kit.js';
 import { roundedBox, SIDE, colorize, lin, mixc, smooth, Rnd } from '../../three/world/geometry.js';
 import { alignedGrid } from '../blocks/kit.js';
 import { THEMES } from '../view/themes.js';
-import { hasModel } from '../models/index.js';
+import { getModel, hasModel } from '../models/index.js';
 import { starField, hillRing } from '../view/backdrop_w2.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 import { music } from '../../audio/index.js';
@@ -60,10 +60,29 @@ if (!THEMES.map_halloween) {
     water: 0x4a6ab0, waterDeep: 0x2a3a7a,
     buildBackdrop(sky, bounds, rnd, yBase) {
       starField(sky, rnd, 650, { size: 2, tints: [0xffffff, 0xfff0c8, 0xd8d0ff, 0xffd8f0] });
-      faceMoon(sky, [0.16, 0.12, -1], 24);
+      if (!modelMoon(sky, [0.16, 0.12, -1], 24)) faceMoon(sky, [0.16, 0.12, -1], 24);
       hillRing(sky, bounds, rnd, yBase, { near: [0x5a3c82, 0x2e1c4a], far: [0x7a5aa6, 0x40306a] });
     },
+    updateBackdrop(sky, dt) { sky.hwMoon?.update?.(dt, {}); },
   };
+}
+
+/**
+ * Mond aus der Registry ('mond_gesicht', Halloween-Modelle: leuchtende Kugel mit Kratern, Lächeln, Bäckchen, Schein) in
+ * der Kuppel (folgt der Kamera), Gesicht zur Kamera; false, wenn es das Modell nicht gibt (dann faceMoon).
+ */
+function modelMoon(sky, dir, r) {
+  if (!hasModel('mond_gesicht') || modelTris('mond_gesicht', { size: r, fog: false }) > 6000) return false;
+  const m = getModel('mond_gesicht', { size: r, fog: false });
+  const d = new THREE.Vector3(...dir).normalize().multiplyScalar(290);
+  m.root.position.copy(d);
+  m.root.rotation.y = Math.atan2(d.z, -d.x);   // Gesicht (+X) zur Kuppelmitte
+  m.root.traverse((o) => { o.renderOrder = -9; });
+  m.root.name = 'hw:mond';
+  sky.domeGroup.add(m.root);
+  sky.track(m);
+  sky.hwMoon = m;
+  return true;
 }
 
 /** Großer Mond mit freundlichem Gesicht (Kuppel, folgt der Kamera) und weichem Schein. */
@@ -734,15 +753,17 @@ export function hwPropShape(it) {
 
 // ------------------------------------------------------------------ Registry-Modelle der Halloween-Welt
 
-// Kandidaten je Requisite: [Name, Optionen, Dreiecks-Obergrenze]; Namen der parallel gebauten Modelle (Endung _hw.js).
-// Werden die Modelle gebaut oder leichter, greifen sie ohne Codeänderung; sonst eigene Geometrie (hwPropGeo).
+// Kandidaten je Requisite: [Name, Optionen, Dreiecks-Obergrenze] – Modelle der Halloween-Welt (models/kinds/*_hw.js).
+// Die Obergrenzen halten die Karte im Budget: Grabsteine (≈ 1,3–1,7 k), Halloween-Bäume ohne Laternen (≈ 2,7 k),
+// Strohballen (≈ 0,9 k) und Süßigkeiten-Haufen (≈ 5,8 k, nur als einzelne Requisite) werden benutzt; Kürbisse (≈ 2,6 k,
+// mit Gesicht ≈ 6,2 k) und Kürbislaternen (≈ 4,8 k) säumen die Wege zu zahlreich – dort bleibt die eigene Geometrie.
+// Werden die Modelle leichter, greifen sie ohne Codeänderung.
 const HW_PROP_MODELS = {
-  pumpkin: (it) => (it.face ? [['kuerbislaterne', { size: it.size ?? 1 }, 1600], ['kuerbis_laterne', { size: it.size ?? 1 }, 1600]] : [['kuerbis', { size: it.size ?? 1 }, 1200]]),
-  grave: (it) => [['grabstein', { size: it.size ?? 1, variant: (it.seed ?? 0) % 3 }, 1200], ['grabstein_hw', { size: it.size ?? 1 }, 1200]],
-  hwlantern: (it) => [['laterne_hw', { height: it.size ?? 2.6 }, 1500], ['laternenmast', { height: it.size ?? 2.6 }, 1500]],
-  hwtree: (it) => [['spukbaum', { height: it.size ?? 4.2 }, 2500], ['spukbaum_hw', { height: it.size ?? 4.2 }, 2500]],
-  hay: () => [['strohballen', {}, 800]],
-  candy: () => [['lutscher', {}, 1000]],
+  pumpkin: (it) => (it.face ? [['kuerbis', { size: it.size ?? 1, face: 'grinsen' }, 1600]] : [['kuerbis', { size: it.size ?? 1 }, 1600]]),
+  grave: (it) => [['grabstein', { kind: ['rund', 'kreuz', 'spitz'][(it.variant ?? Math.round(Math.abs(it.pos[0] * 7 + it.pos[2]))) % 3], size: (it.size ?? 1) * 1.1 }, 2000]],
+  hwtree: (it) => (it.model ? [['halloween_baum', { height: (it.size ?? 4.2) * 1.05, lanterns: it.lanterns ?? 0, seed: Math.round(Math.abs(it.pos[0] + it.pos[2])) % 4 }, it.lanterns ? 8000 : 3000]] : []),
+  hay: () => [['strohballen', { kind: 'eckig' }, 1500]],
+  candy: (it) => (it.heap ? [['suessigkeiten_haufen', { size: it.size ?? 1 }, 6000]] : []),
 };
 
 /** Requisite → Registry-Modell [name, opts, yaw-Korrektur, scale] (vorhanden und leicht genug) oder null. */
@@ -763,7 +784,9 @@ export function buildHwProp(level, map, grid, it, i) {
     const add = (g, o) => view.addStatic(g, o);
     const seed = 0x7a11 + i * 37;
     const pm = it.model !== false ? hwPropModel(it) : null;
-    const baked = pm ? bakeModel(add, pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
+    // Registry-Modelle je 16-m-Feld in einer eigenen Kachel (zählen nur in Ansichten, die sie sehen)
+    const tile = `hw:prop:${Math.floor(it.pos[0] / 16)}:${Math.floor(it.pos[2] / 16)}`;
+    const baked = pm ? bakeModel((g, o) => view.addStatic(g, { ...o, tile }), pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
     if (!baked) {
       const g = hwPropGeo(it, seed);
       if (g) view.addStatic(place(g, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: it.shadow !== false });
