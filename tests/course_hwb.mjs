@@ -552,6 +552,9 @@ async function shot(name, wait = 300) {
   return s;
 }
 
+/** Level mit Laternen-Item (H-3): Bilder hinter dem Fundort zeigen die Figur mit Laterne. */
+const L_has_lantern_item = (id) => id === 'H-3';
+
 /** Bild aus der nahen Zoomstufe der Orbit-Kamera (Diorama). */
 async function nearShot(name) {
   await sc(() => { const o = window.__course.arch?.orbit; if (o && o.zoom === 0) o.toggleZoom(); });
@@ -777,6 +780,7 @@ async function parcours(id) {
       continue;
     }
     await W('place', pos, { settle: 10, yaw });
+    if (pos[2] < -6 && L_has_lantern_item(id)) { await W('giveLantern'); await sc(() => window.__course.step(12)); }
     if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
     await shot(`${id}_${name}`);
   }

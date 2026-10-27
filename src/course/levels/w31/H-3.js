@@ -21,7 +21,7 @@
 
 import {
   isl, line, arc, sweets, sweetRing, floatRock, pumpkinsOn, pumpkinPatch, lanternPosts, glowPoints, fireflies, cemeteryGate,
-  chapel, bellTower, cryptPassage, boneGarden, rockNeedle, gigglingGhost, kruemelCameo, stonePath, glowShrooms,
+  chapel, bellTower, cryptPassage, boneGarden, rockNeedle, gigglingGhost, kruemelCameo, stonePath, glowShrooms, meadow,
 } from './_helpers_b.js';
 
 const Y = 1;
@@ -73,6 +73,10 @@ function scene(level) {
   floatRock(level, -9, 9, -128, -140, -4, 6, { n: 3, seed: 8 });
   floatRock(level, -14, 10, -152, -186, -4, 7, { n: 4, roots: 8, seed: 9 });
   floatRock(level, -11, 11, -194, -236, -4, 7, { n: 4, roots: 8, seed: 10 });
+  meadow(level, [[-1.5, 8.5, -41, -48.5]], Y + 1.2, { seed: 7, density: 0.3 });
+  meadow(level, [[-9, 9, 8, -13], [-9, 9, -18, -30], [-8, 8, -62.5, -72], [-9, 9, -128, -140], [-14, 10, -152, -186], [-10, 10, -194, -206]], Y,
+    { avoid: [[-1.6, 1.6, 8, -240], [GARDEN.x0, GARDEN.x1, GARDEN.z0, GARDEN.z1], [1.5, 8.5, -164.5, -171.5]], density: 0.3 });
+  meadow(level, [[-11, 11, -209, -236]], PLAZA, { avoid: [[-1.6, 4.8, -209, -236], [-1, 7.6, -223.5, -236], [-10.8, -3.2, -224, -233.4]], density: 0.3, seed: 5 });
   glowShrooms(level, [
     [-7.6, Y, 6.4, 1.1], [7.8, Y, 5.8], [-7.4, Y, -11.6], [7.6, Y, -16.2, 0.8], [-7.0, Y, -28.6], [8.0, Y, -29.0, 1.2],
     [-19.8, Y + 3.2, -23.4], [-17.2, Y + 3.2, -26.4, 0.8], [0.2, Y + 1.2, -47.6], [7.6, Y + 1.2, -42.0, 0.9],

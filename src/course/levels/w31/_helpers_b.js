@@ -903,6 +903,35 @@ export function stonePath(level, rects, y, o = {}) {
   addStatic(level, g, { castShadow: false });
 }
 
+/**
+ * Friedhofswiese: Grasbüschel (dunkel/hell) und winzige Blümchen (weiß, lila, rosa) verstreut über Rechtecke
+ * rects [[x0, x1, zA, zB], …] auf Höhe y; avoid [[x0, x1, zA, zB], …] bleibt frei (Wege). Ohne Kollision.
+ */
+export function meadow(level, rects, y, o = {}) {
+  if (!level.view) return;
+  const rnd = new Rnd(o.seed ?? 31);
+  const b = new Bld();
+  const grass = [0x3e6e62, 0x5a907e, 0x4a7e6c, 0x6aa08a], flowers = [0xffffff, 0xd8b0ff, 0xff9ad0, 0xfff09a];
+  const inAvoid = (x, z) => (o.avoid ?? []).some(([a0, a1, zA, zB]) => x > a0 && x < a1 && z < Math.max(zA, zB) && z > Math.min(zA, zB));
+  for (const [x0, x1, zA, zB] of rects) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+    const n = Math.round((x1 - x0) * (z0 - z1) * (o.density ?? 0.35));
+    for (let i = 0; i < n; i++) {
+      const x = rnd.real(x0 + 0.3, x1 - 0.3), z = rnd.real(z1 + 0.3, z0 - 0.3);
+      if (inAvoid(x, z)) continue;
+      if (rnd.frac() < 0.72) {
+        const c = grass[rnd.int(0, 3)], hh = rnd.real(0.18, 0.36);
+        for (let k = 0; k < 3; k++) b.cone(0.05, hh * (0.8 + k * 0.15), x + (k - 1) * 0.06, y, z + ((k * 7) % 3 - 1) * 0.05, litTop(c, 0.6), 3, { rz: (k - 1) * 0.35, yaw: rnd.real(0, 3) });
+      } else {
+        const c = flowers[rnd.int(0, 3)];
+        b.cyl(0.012, 0.012, 0.2, x, y, z, 0x4a7a5a, 3);
+        b.sphere(0.06, x, y + 0.22, z, c, { ws: 5, hs: 3 });
+      }
+    }
+  }
+  b.flush(level, { castShadow: false });
+}
+
 /** Leuchtpilze (bunte Kappen leuchten, weicher Schein): list [[x, y, z, größe?, farbe?], …]. */
 export function glowShrooms(level, list) {
   if (!level.view) return;
