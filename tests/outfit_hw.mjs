@@ -19,7 +19,8 @@
 //   map      Kurs-Weltkarte: MAP.outfit setzt die Verkleidung, Karte ohne bleibt unverändert
 // Bilder tests/out/outfit_hw_*.png, Übersichtsbögen outfit_hw_sheet_<gruppe>.png, Kennzahlen outfit_hw.json.
 // Keine Konsolenfehler.
-// Aufruf: PORT_BASE=0 node tests/outfit_hw.mjs   (Port 4550 + PORT_BASE; OH_PARTS=metrics,close OH_HEROES=lotti,greta)
+// Aufruf: PORT_BASE=0 node tests/outfit_hw.mjs   (Port 4550 + PORT_BASE; OH_PARTS=metrics,close OH_HEROES=lotti,greta;
+// Kennzahlen-Teilläufe OH_ONLY=heldin bzw. OH_ONLY=pflaume,ritt,kruemel – unter Software-WebGL je Teil < 10 min)
 import { createServer } from 'vite';
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { launchBrowser, makeChecker, OUT } from './helpers.mjs';
@@ -166,9 +167,10 @@ async function openBench() {
     // Mehrfach messen, häufigstes Ergebnis (Szenen-Culling wechselt gelegentlich zwischen zwei Bildern)
     const cost1 = H.cost;
     H.cost = (keys) => {
-      const seen = new Map();
-      for (let i = 0; i < 3; i++) { const r = cost1(keys), k = `${r.calls}/${r.tris}`; seen.set(k, { r, n: (seen.get(k)?.n ?? 0) + 1 }); }
-      return [...seen.values()].sort((x, y) => y.n - x.n)[0].r;
+      const a = cost1(keys), b = cost1(keys);
+      if (a.calls === b.calls && a.tris === b.tris) return a;
+      const c3 = cost1(keys);
+      return c3.calls === b.calls && c3.tris === b.tris ? b : a;
     };
     H.frames = (n) => { for (let i = 0; i < n; i++) c.renderFrame(); };
     /** Sichtbare Teile einer Figur (Fehlersuche bei abweichenden Kennzahlen). */
@@ -233,33 +235,35 @@ const log = (name, m) => console.log(`  ${name.padEnd(34)} Aufrufe ${String(m.ca
 
 // ---------------------------------------------------------------- Kennzahlen
 /** ohne → mit → wieder ohne; Pose/Modellzustand cc, n Bilder je Schritt. */
-async function triple(label, key, cc, keys = [key], n = 40) {
-  await cam(VIEWS.front);
+async function triple(label, key, cc, keys = [key], n = 40, poser = null) {
+  const doPose = () => (poser ? poser(n) : pose(key, cc, n));
+  await cam(VIEWS.front, { dist: 4.5 });   // ganze Figur samt Ohren/Hut sicher im Bild (kein Kamera-Culling einzelner Teile)
   await sc(() => { window.__oh.noBlink = true; });
   const vis = (k) => sc((x) => window.__oh.vis(x), k);
-  await outfit(null); await pose(key, cc, n);
+  await outfit(null); await doPose();
   await sc(() => window.__oh.frames(6));   // Aufwärmen (Bündel/Stellvertreter neu aufgebaut, Shader übersetzt)
   const off = await cost(keys);
   const v0 = await vis(key);
-  await outfit('halloween'); await pose(key, cc, n);
+  await outfit('halloween'); await doPose();
   await sc(() => window.__oh.frames(4));
   const hw = await cost(keys);
   const p = await parts(key);
-  await outfit(null); await pose(key, cc, n);
+  await outfit(null); await doPose();
   await sc(() => window.__oh.frames(4));
   const off2 = await cost(keys);
   if (off2.calls !== off.calls || off2.tris !== off.tris) console.log(`    vorher: ${v0}\n    nachher: ${await vis(key)}`);
   await sc(() => { window.__oh.noBlink = false; });
   metrics[label] = { off, hw, off2 };
   log(`${label} ohne`, off); log(`${label} Halloween`, hw); log(`${label} wieder ohne`, off2);
-  check(`${label}: Zeichenaufrufe mit Verkleidung ${hw.calls} ≤ ohne ${off.calls} + 1`, hw.calls <= off.calls + 1);
+  check(`${label}: Zeichenaufrufe mit Verkleidung ${hw.calls} ≤ ohne ${off.calls} + ${keys.length}`, hw.calls <= off.calls + keys.length);
   check(`${label}: Dreiecke mit Verkleidung ${hw.tris} ≤ 1,2 × ${off.tris} (${(hw.tris / Math.max(1, off.tris)).toFixed(2)}×)`, hw.tris <= 1.2 * off.tris);
   check(`${label}: wieder ohne Verkleidung exakt wie vorher (${off2.calls}/${off2.tris} = ${off.calls}/${off.tris})`, off2.calls === off.calls && off2.tris === off.tris);
   return { off, hw, off2, parts: p };
 }
 
 async function metricsPart() {
-  for (const key of HEROES) {
+  const only = (process.env.OH_ONLY ?? 'heldin,pflaume,ritt,kruemel').split(',');
+  for (const key of only.includes('heldin') ? HEROES : []) {
     await sc((k) => window.__oh.setHero(k), key);
     await focus('hero'); await place('hero');
     const r = await triple(`${key} idle`, 'hero', { state: 'idle' });
@@ -275,10 +279,23 @@ async function metricsPart() {
   }
   await place('hero'); await hide('hero');
   await focus('pflaume'); await place('pflaume');
-  const pr = await triple('pflaume idle', 'pflaume', { state: 'idle' });
-  check(`Pflaume: Flügelchen und Streifen-Halstuch (orange: ${pr.parts.color})`, pr.parts.wings && pr.parts.bandana && pr.parts.color === 'ff8a1e');
-  await triple('pflaume hoppeln', 'pflaume', { state: 'walk', speed: 2 });
+  if (only.includes('pflaume')) {
+    const pr = await triple('pflaume idle', 'pflaume', { state: 'idle' });
+    check(`Pflaume: Flügelchen und Streifen-Halstuch (orange: ${pr.parts.color})`, pr.parts.wings && pr.parts.bandana && pr.parts.color === 'ff8a1e');
+    await triple('pflaume hoppeln', 'pflaume', { state: 'walk', speed: 2 });
+  }
+  // Ritt: Heldin (erste aus OH_HEROES) auf Pflaume (beide Hüllen 1 m wie im Floß-Level), zwei Figuren → höchstens +2
+  await place('pflaume', 0, 0, Math.PI / 2 - 1.1); await place('hero', 0, 0, Math.PI / 2 - 1.1, true, 0.5);
+  await sc(() => { const H = window.__oh; H.figs.pflaume.hull.scale.setScalar(1 / 1.5); });
+  // Stand (speed 0): Hoppel-Takt und offener Mund wechseln sonst zwischen den Messungen
+  const ridePose = (n) => sc((n) => {
+    const H = window.__oh, av = H.figs.hero.avatar;
+    for (let i = 0; i < n; i++) { H.pose('hero', { state: 'ride', speed: 0 }, 1); H.t -= H.dt; H.pose('pflaume', { state: 'ride', speed: 0, rider: av }, 1); }
+  }, n);
+  if (only.includes('ritt')) await triple('ritt', 'pflaume', {}, ['hero', 'pflaume'], 40, ridePose);
+  await place('pflaume'); await place('hero'); await hide('hero');
   await hide('pflaume');
+  if (!only.includes('kruemel')) { await place('hero'); await outfit('halloween'); return; }
   await focus('kruemel'); await place('kruemel');
   const kr = await triple('kruemel idle', 'kruemel', { anim: 'idle' });
   check('Krümel (Modell): Mini-Vampirumhang', kr.parts.cape);
