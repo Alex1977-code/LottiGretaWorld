@@ -44,7 +44,7 @@ export const MAP = {
   edges: { hedge: 'hwstone', fence: 'hwpicket' },
   pathColors: [0xece4dc, 0xdcd0c8, 0x7a6a6a],      // helle, alte Steinplatten (im Abendlicht warm)
   seaColors: [0x5aa6cc, 0x3a6cb4, 0x22327c],      // Türkis am Ufer, Violett-Nachtblau draußen
-  batch: { tile: 40, origin: [-4, 6], freeTile: 128, freeOrigin: [-72, -72] },
+  batch: { tile: 32, origin: [-4, 6], freeTile: 96, freeOrigin: [-56, -56] },
   // Nachbarwelt am Horizont: Welt 1 (grüne Blockinsel) im Westen – dorthin führt die Rückweg-Röhre
   neighbors: [{ world: 1, pos: [-258, 70], size: [72, 50], style: 'grass' }],
   // Fledermaus-Schwärme (halloween.js HwLife): über dem Schloss, um den Hexenturm, am Friedhof, über der Bucht
@@ -194,12 +194,20 @@ export const MAP = {
     { kind: 'heather', pos: [-16.6, 4, -48.2], solid: false }, { kind: 'heather', pos: [-38.0, 4, -58.8], size: 0.9, solid: false },
     { kind: 'heather', pos: [-25.4, 4, -39.2], size: 1.1, solid: false }, { kind: 'heather', pos: [-31.0, 4, -64.0], solid: false },
     { kind: 'heather', pos: [-15.6, 4, -64.2], size: 1.2, solid: false }, { kind: 'pumpkin', pos: [-29.6, 4, -50.0], size: 0.5, face: 2 },
+    { kind: 'toadstool', pos: [-36.6, 4, -38.6], solid: false }, { kind: 'heather', pos: [-38.4, 4, -45.6], size: 1.0, solid: false },
+    { kind: 'heather', pos: [-21.4, 4, -50.8], size: 0.9, solid: false }, { kind: 'heather', pos: [-33.6, 4, -48.6], size: 1.1, solid: false },
+    { kind: 'leaves', pos: [-15.8, 4, -54.6], size: 0.9, solid: false, shadow: false }, { kind: 'candles', pos: [-23.4, 4, -62.8], solid: false },
+    { kind: 'grave', pos: [-38.2, 4, -51.0], size: 0.8, yaw: 0.5 }, { kind: 'cobweb', pos: [-37.6, 5.2, -62.6], size: 0.8, solid: false, shadow: false },
     // F Schlosshügel
     { kind: 'hwlantern', pos: [-20.6, 6, -80.4] }, { kind: 'hwlantern', pos: [-15.4, 6, -80.4], yaw: PI },
     { kind: 'pumpkins', pos: [11.4, 6, -80.8], size: 1.0, face: true }, { kind: 'grave', pos: [-19.8, 6, -101.4], size: 1.0 },
     { kind: 'hwtree', pos: [10.6, 6, -101.4], size: 4.6 }, { kind: 'candy', pos: [-19.4, 6, -86.4], size: 1.0 },
     { kind: 'pumpkin', pos: [-6.8, 6, -86.6], size: 0.55, face: 1 }, { kind: 'pumpkin', pos: [-1.2, 6, -86.8], size: 0.5, face: 2 },
     { kind: 'hwlantern', pos: [6.4, 6, -86.0], yaw: PI }, { kind: 'leaves', pos: [8.6, 6, -92.6], size: 1.0, solid: false, shadow: false },
+    { kind: 'grave', pos: [-20.0, 6, -91.0], size: 0.9, yaw: 0.3 }, { kind: 'grave', pos: [-19.6, 6, -96.0], size: 1.0, yaw: 0.5 },
+    { kind: 'hwtree', pos: [-20.2, 6, -84.0], size: 4.2 }, { kind: 'pumpkins', pos: [-12.6, 6, -80.6], size: 0.8, face: true },
+    { kind: 'toadstool', pos: [12.0, 6, -89.4], solid: false }, { kind: 'witchhat', pos: [11.4, 6, -96.4], size: 0.8 },
+    { kind: 'leaves', pos: [-12.4, 6, -92.4], size: 1.1, solid: false, shadow: false }, { kind: 'candles', pos: [-19.0, 6, -93.4], solid: false },
   ],
 
   segments: [

@@ -15,7 +15,8 @@
 //                            leuchtende Fenster, wehende Fledermaus-Fahne; Fledermäuse kreisen (Weltdaten bats)
 //   pipe + dress: 'halloween'  Glasröhre (Welt 1: HW, Welt 31: W1) geschmückt mit Kürbissen, zwei Laternen und einer
 //                            Fledermaus-Girlande; def.ownSign: eigenes Schild „Halloween!“ (orange, mit Fledermaus),
-//                            def.arrowSign: [x, y, z, yaw] Wegweiser „Halloween“ zur Röhre
+//                            def.arrowSign: [x, y, z, yaw] Wegweiser „Halloween“ zur Röhre; def.deco: Requisiten wie
+//                            map.props der Kürbisinsel (Laub, Kürbisse …) – auch in Welt 1 (halloween.js buildHwProp)
 // Registry-Modelle der Halloween-Welt (models/kinds/*_hw.js) werden benutzt, sobald es sie gibt (Kandidatenlisten mit
 // Dreiecks-Obergrenze, hwModel); sonst eigene sparsame Geometrie. Lichter (Kürbisgesichter, Laternen) im Material
 // hwglow – sie flackern im Takt der Kartenmusik (halloween.js). Bewegte Objekte stehen schon beim Bau an ihrer
@@ -32,7 +33,7 @@ import { wavingFlag } from './decor_w2.js';
 import { modelTris } from './beach5.js';
 import {
   hwGlow, glowing, pumpkinGeo, pumpkinFaceGeo, lanternPostGeo, lanternPostGlowGeo, spookTreeGeo, graveGeo, spookHouseGeo,
-  spookHouseGlowGeo, hwHedgeGeo, toadstoolGeo, cobwebGeo, hwPropGeo,
+  spookHouseGlowGeo, hwHedgeGeo, cobwebGeo, hwPropGeo, buildHwProp, mistGeo, mistTexture,
 } from './halloween.js';
 
 /** Kulisse für eine Halloween-Art bauen; false = unbekannte Art. */
@@ -241,6 +242,7 @@ export function dressPipeHW(ev, x, y, z) {
     const sp = d.signPos ?? [-2.9, 0, 2.6];
     hwSign(ev, typeof d.ownSign === 'string' ? d.ownSign : 'Halloween!', ev.pos.x + sp[0], ev.pos.y + sp[1], ev.pos.z + sp[2], d.signYaw ?? 0.35);
   }
+  (d.deco ?? []).forEach((it, i) => buildHwProp(ev.level, null, { isWalk: () => true }, it, 900 + i));
   if (d.arrowSign) {
     const [ax, ay, az, ayaw] = d.arrowSign;
     hwSign(ev, '→ Halloween', ax, ay, az, ayaw ?? 0, 0.75);
@@ -521,10 +523,9 @@ function fogGraveyard(ev, x, y, z) {
   ev.updaters.push((dt, t) => placeGhost(t));
   // Nebelschwaden zwischen den Gräbern (Instanzen, ziehen langsam)
   const N = 9;
-  const fogMat = new THREE.MeshBasicMaterial({ color: 0xe0d4f8, transparent: true, opacity: 0.22, depthWrite: false, fog: true });
+  const fogMat = new THREE.MeshBasicMaterial({ map: mistTexture(), color: 0xeae0ff, transparent: true, opacity: 0.55, depthWrite: false, fog: true });
   ev.own.push(fogMat);
-  const fogGeo = cached('hw:gravefog', () => { const g = new THREE.IcosahedronGeometry(1, 1); g.scale(1.8, 0.3, 1.0); return g; });
-  const fog = new THREE.InstancedMesh(fogGeo, fogMat, N);
+  const fog = new THREE.InstancedMesh(mistGeo(), fogMat, N);
   fog.frustumCulled = false; fog.renderOrder = 2; fog.name = 'hw:friedhofsnebel';
   ev.view.add(fog);
   ev.own.push(fog);
@@ -533,9 +534,9 @@ function fogGraveyard(ev, x, y, z) {
     for (let i = 0; i < N; i++) {
       const ph = i * 2.1, span = 24;
       const fx = x - 12 + ((i * 3.1 + t * 0.35 + Math.sin(ph) * 3) % span + span) % span;
-      p.set(fx, y + 0.35 + Math.sin(t * 0.8 + ph) * 0.06, z - 1.6 - (i % 3) * 1.6 + Math.sin(t * 0.3 + ph) * 0.4);
+      p.set(fx, y + 0.45 + (i % 3) * 0.12 + Math.sin(t * 0.8 + ph) * 0.06, z - 1.6 - (i % 3) * 1.6 + Math.sin(t * 0.3 + ph) * 0.4);
       const k = 1.1 + 0.3 * Math.sin(t * 0.5 + ph);
-      sc.set(k, k, k);
+      sc.set(k * 4.2, 1, k * 2.6);
       m4.compose(p, q, sc);
       fog.setMatrixAt(i, m4);
     }

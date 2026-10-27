@@ -135,6 +135,10 @@ export const MAP = {
     // Halloween-Röhre: geschmückt (decor_hw.js), eigenes Schild „Halloween!“, Wegweiser am Strand; Röhre nach Osten
     { id: 'HW', kind: 'pipe', pos: [21.5, 1, 34], decor: [21.5, 1, 30.9], dress: 'halloween', ownSign: 'Halloween!', signPos: [-3.7, 0, 2.2], signYaw: -0.35,
       arrowSign: [15.2, 1, 42.2, -0.55], disc: 'HW',
+      deco: [{ kind: 'leaves', pos: [18.0, 1, 30.0], size: 1.0, solid: false, shadow: false }, { kind: 'leaves', pos: [25.4, 1, 37.4], size: 0.9, solid: false, shadow: false },
+        { kind: 'leaves', pos: [17.4, 1, 38.4], size: 0.8, solid: false, shadow: false }, { kind: 'pumpkins', pos: [25.2, 1, 27.8], size: 0.8, face: true },
+        { kind: 'hay', pos: [17.8, 1, 27.6], yaw: 0.4 }, { kind: 'pumpkin', pos: [17.8, 1, 28.5], size: 0.5, face: 2, solid: false }, { kind: 'toadstool', pos: [25.6, 1, 32.4], solid: false },
+        { kind: 'candy', pos: [25.2, 1, 39.0], size: 0.8 }],
       pipe: [[0, 0, 0], [0, 3.5, 0], [0.8, 5.6, 0.2], [5, 6.8, 0.8], [16, 7.4, 2.5], [40, 7, 6], [80, 5.5, 12], [140, 4, 19], [205, 1.5, 27]], pipeDetail: 'low',
       arriveCam: { up: 6, ahead: 6, drop: 2.5 } },
   ],
