@@ -206,13 +206,34 @@ export function turm(level, t) {
   const fl = new THREE.CircleGeometry(r + 0.12, Math.max(18, Math.round(r * 9))).toNonIndexed();
   fl.rotateX(-PI / 2); fl.translate(t.x, top + 0.012, t.z);
   const wood = (t.floor ?? 'holz') === 'holz';
+  if (wood) {
+    // Dielen als eigene Vierecke (an der Rundung auf die Sehne gekürzt) über dunklem Fugen-Grund
+    const pos = [], col = [], tmp = [0, 0, 0], g0 = 0.035, y = top + 0.018;
+    const pw = 0.42, n = Math.ceil((2 * r) / pw);
+    for (let i = 0; i < n; i++) {
+      const ax = -r + i * pw, bx = Math.min(r, ax + pw), xm = Math.max(Math.abs(ax), Math.abs(bx));
+      if (xm >= r) continue;
+      const h = Math.sqrt(r * r - xm * xm) - 0.05;
+      let z = -h - ((i * 0.73) % 2.1);
+      for (let k = 0; z < h; k++, z += 2.1) {
+        const az = Math.max(-h, z), bz = Math.min(h, z + 2.1);
+        if (bz - az < 0.1) continue;
+        mixc(f0, f1, (Math.sin(i * 2.7 + k * 1.9) * 0.5 + 0.5) * 0.75, tmp);
+        const [x0q, x1q, z0q, z1q] = [t.x + ax + g0, t.x + bx - g0, t.z + az + g0, t.z + bz - g0];
+        pos.push(x0q, y, z0q, x0q, y, z1q, x1q, y, z1q, x0q, y, z0q, x1q, y, z1q, x1q, y, z0q);
+        for (let q = 0; q < 6; q++) col.push(tmp[0], tmp[1], tmp[2]);
+      }
+    }
+    const pl = new THREE.BufferGeometry();
+    pl.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    pl.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((v, i) => (i % 3 === 1 ? 1 : 0)), 3));
+    pl.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    parts.push(pl);
+  }
   parts.push(colorize(fl, (p, n, o) => {
     const dx = p.x - t.x, dz = p.z - t.z, rr = Math.hypot(dx, dz);
     if (wood) {
-      const plank = Math.floor((dx + 50) / 0.42);
-      const seam = ((dx + 50) / 0.42) % 1 < 0.08 || (((dz + 50) + (plank % 3) * 0.7) / 2.1) % 1 < 0.03;
-      mixc(f0, f1, (Math.sin(plank * 2.7) * 0.5 + 0.5) * 0.7, o);
-      if (seam) mixc(o, f2, 0.75, o);
+      mixc(f2, f1, 0.2, o);
     } else {
       const ringI = Math.floor(rr / 0.9), a = angOf(dx, dz);
       const seam = (rr / 0.9) % 1 < 0.07 || ((a / TAU) * (6 + ringI * 5) % 1 + 1) % 1 < 0.04;
@@ -340,23 +361,43 @@ export function terrasse(level, t) {
   // Boden
   const wood = t.floor === 'holz';
   const [f0, f1, f2] = (wood ? FLOORS.holz : FLOORS.stein).map(C);
-  const fl = new THREE.PlaneGeometry(x1 - x0, zF - zB, Math.max(1, Math.round((x1 - x0) * 1.2)), Math.max(1, Math.round((zF - zB) * 1.2))).toNonIndexed();
-  fl.rotateX(-PI / 2); fl.translate((x0 + x1) / 2, top + 0.012, (zF + zB) / 2);
-  parts.push(colorize(fl, (p, n, o) => {
-    if (wood) {
-      const plank = Math.floor((p.x + 50) / 0.42);
-      const seam = ((p.x + 50) / 0.42) % 1 < 0.08 || (((p.z + 50) + (plank % 3) * 0.7) / 2.1) % 1 < 0.03;
-      mixc(f0, f1, (Math.sin(plank * 2.7) * 0.5 + 0.5) * 0.7, o);
-      if (seam) mixc(o, f2, 0.75, o);
-    } else {
-      const i = Math.floor((p.x + 100) / 1.2), j = Math.floor((p.z + 100) / 1.2);
-      const seam = ((p.x + 100) / 1.2) % 1 < 0.05 || ((p.z + 100) / 1.2) % 1 < 0.05;
-      mixc(f0, f1, ((i + j) % 2) * 0.45 + 0.1 * Math.sin(i * 3.1 + j * 1.7), o);
-      if (seam) mixc(o, f2, 0.6, o);
+  // Fugen-Grund (dunkel) und darauf je Platte/Diele ein eigenes Viereck (scharfe Kanten statt verwaschener Vertexfarben)
+  const base = new THREE.PlaneGeometry(x1 - x0, zF - zB).toNonIndexed();
+  base.rotateX(-PI / 2); base.translate((x0 + x1) / 2, top + 0.008, (zF + zB) / 2);
+  parts.push(fill(base, f2));
+  const pos = [], col = [];
+  const quad = (ax, az, bx, bz, c) => {
+    pos.push(ax, top + 0.016, az, ax, top + 0.016, bz, bx, top + 0.016, bz, ax, top + 0.016, az, bx, top + 0.016, bz, bx, top + 0.016, az);
+    for (let k = 0; k < 6; k++) col.push(c[0], c[1], c[2]);
+  };
+  const tmp = [0, 0, 0];
+  const g0 = 0.035;
+  if (wood) {
+    const pw = 0.42, nx = Math.ceil((x1 - x0) / pw);
+    for (let i = 0; i < nx; i++) {
+      const ax = x0 + i * pw, bx = Math.min(x1, ax + pw);
+      let z = zB - ((i * 0.73) % 2.1);
+      for (let k = 0; z < zF; k++, z += 2.1) {
+        const az = Math.max(zB, z), bz = Math.min(zF, z + 2.1);
+        if (bz - az < 0.1) continue;
+        mixc(f0, f1, (Math.sin(i * 2.7 + k * 1.9) * 0.5 + 0.5) * 0.75, tmp);
+        quad(ax + g0, az + g0, bx - g0, bz - g0, tmp);
+      }
     }
-    const e = Math.min(p.x - x0, x1 - p.x, p.z - zB, zF - p.z);
-    if (e < 0.25) mixc(o, s1, 0.7, o);
-  }));
+  } else {
+    const cs = 1.2, nx = Math.ceil((x1 - x0) / cs), nz = Math.ceil((zF - zB) / cs);
+    for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+      const ax = x0 + i * cs, bx = Math.min(x1, ax + cs), az = zB + j * cs, bz = Math.min(zF, az + cs);
+      mixc(f0, f1, ((i + j) % 2) * 0.45 + 0.12 * (Math.sin(i * 3.1 + j * 1.7) * 0.5 + 0.5), tmp);
+      if (i === 0 || j === 0 || i === nx - 1 || j === nz - 1) mixc(tmp, s1, 0.45, tmp);
+      quad(ax + g0, az + g0, bx - g0, bz - g0, tmp);
+    }
+  }
+  const tiles = new THREE.BufferGeometry();
+  tiles.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  tiles.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((v, i) => (i % 3 === 1 ? 1 : 0)), 3));
+  tiles.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  parts.push(tiles);
   // Fenster in der Vorderseite
   const gl = C(t.glow ?? 0x8aff6a), glHi = C(0xf0ffd0);
   for (const [u, dy] of t.windows ?? []) {
