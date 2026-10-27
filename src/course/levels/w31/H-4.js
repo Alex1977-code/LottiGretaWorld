@@ -71,7 +71,7 @@ function build(level) {
     { kind: 'besen', pos: [-8.2, Y2, -84], yaw: PI / 2 + 0.3 },
   ]);
   // ---------------------------------------------------------------- winkender Kürbis am Start
-  winkeKuerbis(level, { id: 'winkekuerbis', pos: [-4.6, 0, 4.2], size: 1.35, near: 5.5 });
+  winkeKuerbis(level, { id: 'winkekuerbis', pos: [4.6, 0, 4.4], size: 1.35, near: 5.5 });
   // Glitzer-Hinweise: Geheimbesen, Süßigkeiten-Leiter über dem zweiten Netz, Besen-Aufzug
   funkelSpur(level, [[-7, Y2 + 1.2, -59.7], [-11, Y2 + 2.2, -59.7], [-15, Y2 + 3.2, -59.7]], 0xb8ff9a, 0.8, { name: 'hinweis-besen' });
   funkelSpur(level, [[SCHORNSTEIN.x, SCHORNSTEIN.top + 2.2, SCHORNSTEIN.z], [MOND.x, MOND.top + 2.4, MOND.z]], 0xfff0a0, 1.4, { name: 'hinweis-spitzen' });
@@ -108,9 +108,9 @@ export const LEVEL = {
     sign(-2.6, 0, 9.4, 'Hokuspokus-Hochhaus\nBitte nach oben fliegen!', { size: [3, 1.0] }),
     sign(4.8, 0, -4.6, 'Kessel-Hopser:\nrein und hui!', { size: [2.4, 0.9] }),
     { type: 'hexenkessel', id: 'kessel0', pos: [T1.x, 0, -8.2], size: 2, jump: 6 },
-    { type: 'spinnennetz_trampolin', id: 'netz0', pos: [5.2, 0, 4.2], size: [2.4, 2.4], height: 1, jump: 5.6 },
+    { type: 'spinnennetz_trampolin', id: 'netz0', pos: [-4.4, 0, -0.4], size: [2.4, 2.4], height: 1, jump: 5.6 },
     { type: 'deco_hw', items: [
-      { kind: 'kuerbisse', pos: [-5.2, 0, -4.5], size: [3.6, 5], n: 6, faces: 0.5, avoid: [[-3.5, -3, 2.2]] },
+      { kind: 'kuerbisse', pos: [-5.4, 0, -6.4], size: [3, 3.6], n: 5, faces: 0.6 },
       { kind: 'kuerbislaterne', pos: [-6.3, 0, 9.2], size: 0.7 },
       { kind: 'kuerbislaterne', pos: [6.3, 0, 9.2], size: 0.7 },
       { kind: 'kerzen', pos: [6.2, 0, -8.6], n: 5, size: 1.1 },
@@ -181,13 +181,13 @@ export const LEVEL = {
     { type: 'killplane', y: -14 },
   ],
   blocks: [
-    { kind: 'hidden', id: 'geheim_netz', pos: [5.2, 5.4, 4.2], content: 'oneup' },
+    { kind: 'hidden', id: 'geheim_netz', pos: [-4.4, 5.4, -0.4], content: 'oneup' },
     { kind: 'coinblock', pos: [T3.x + 2.6, Y2 + 2.3, T3.z + 0.6], count: 6 },
     { kind: 'question', pos: [-1.6, Y2 + 2.3, -71.6], content: 'wachstumsbeere' },
     { kind: 'question', pos: [0, Y4 + 2.3, -131.5], content: 'coins:5' },
   ],
   enemies: [
-    hut('hh1', [-3.5, 0, -2.6], { behavior: 'patrol', path: [[-5.6, 0, -2.6], [-1.2, 0, -2.6]], sight: 0 }),
+    hut('hh1', [3.5, 0, -2.4], { behavior: 'patrol', path: [[2.2, 0, -2.4], [6, 0, -2.4]], sight: 0 }),
     hut('hh2', [-2, Y2, T3.z - 1.5], { sight: 5 }),
     hut('hh3', [0, Y2, -81], { behavior: 'patrol', path: [[-1.8, Y2, -81], [3.4, Y2, -81]], sight: 0 }),
     hut('hh6', [2, Y3, -98.4], { behavior: 'patrol', path: [[-0.5, Y3, -98.4], [5, Y3, -98.4]], sight: 0 }),

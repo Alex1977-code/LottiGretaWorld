@@ -73,10 +73,10 @@ const ROUTES = {
         legs: [{ to: [13, -185.2], jump: 40, within: 0.4, max: 300, land: false }, { wait: 90 }] },
     ],
     extra: [
-      { name: 'Winkender Kürbis winkt zurück', from: [-1.5, 0, 6], heroes: ['lotti'],
-        legs: [{ to: [-2.6, 4.4], within: 0.4, run: false }, { wait: 60 }, { expect: 'waved' }] },
-      { name: 'Extraleben: unsichtbarer Block über dem Spinnennetz am Start', from: [5.2, 0, 7.4], heroes: ['lotti'], expectLives: 1,
-        legs: [{ bounce: [5.2, 6.4], at: [5.2, 4.2], steerBelow: 4 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Winkender Kürbis winkt zurück', from: [0.5, 0, 7], heroes: ['lotti'],
+        legs: [{ to: [2.4, 5], within: 0.4, run: false }, { wait: 60 }, { expect: 'waved' }] },
+      { name: 'Extraleben: unsichtbarer Block über dem Spinnennetz am Start', from: [-4.4, 0, 3], heroes: ['lotti'], expectLives: 1,
+        legs: [{ bounce: [-2.2, -0.4], at: [-4.4, -0.4], center: true, steerBelow: -1 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
       { name: 'Extraleben: Kiste auf der Wolkeninsel (Stampfattacke)', from: [-3.6, 9.4, -59.7], heroes: ['lotti'], expectLives: 1,
         legs: [{ broom: 'besen_stern', exit: [-22.6, -58.3] }, { pound: [-24.7, -58.3] }, { wait: 40 }, { chaseKind: 'powerup', max: 1200 }] },
       { name: 'Besen 1 wartet, bis man draufsteht', from: [1, 4.6, -16], heroes: ['lotti'],
@@ -257,8 +257,10 @@ function install() {
               continue;
             }
             apex = Math.max(apex, p.pos.y);
-            const steer = p.vel.y < (Lg.steerBelow ?? 9);
-            tick({ ...(steer ? this.airSteer(tx, tz, 0, 0, 2.6, 8) : {}), jump: true });
+            // center: im Steigen über der Federmitte bleiben (Kopfstoß an einen Block darüber), erst im Fallen zum Ziel
+            const up = Lg.center && p.vel.y > 0;
+            const steer = up || p.vel.y < (Lg.steerBelow ?? 9);
+            tick({ ...(steer ? this.airSteer(up ? ax : tx, up ? az : tz, 0, 0, up ? 4 : 2.6, 8) : {}), jump: true });
             if (p.mode === 'ground') { landed = true; break; }
           }
           log.push(['Federn', Lg.name ?? '', bounced, landed, k, ...P3(), +apex.toFixed(2)]);
