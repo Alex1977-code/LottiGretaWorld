@@ -73,7 +73,7 @@ const stoneCol = (u, v, seed = 0) => {
 function towerBody(H, R, lean, nWin, door) {
   return memo(`hw:tower:${H}:${R}:${lean}:${nWin}:${door}`, () => {
     const b = new Build(), gl = new Build();
-    const leanAt = (y) => lean * Math.pow(y / H, 1.6);
+    const leanAt = (y) => lean * Math.pow(Math.max(0, y / H), 1.6);   // y kann am Fuß −ε sein (Rundung) → sonst NaN
     const rAt = (y) => R * (1 + 0.06 * Math.sin((y / H) * Math.PI) - 0.08 * (y / H));
     const g = new THREE.CylinderGeometry(1, 1, H, 32, Math.max(6, Math.round(H * 3)), false);
     g.translate(0, H / 2, 0);
