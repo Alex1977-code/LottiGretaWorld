@@ -19,7 +19,7 @@
 
 import {
   isl, line, ring, sweets, sweetRing, mazeWalls, mazeCell, strawWalls, mazeFloor, giantPumpkin, barn, pumpkinStand, floatRock,
-  pumpkinsOn, pumpkinPatch, lanternPosts, bales, cornStalks, fireflies, glowPoints, wavingPumpkin,
+  pumpkinsOn, pumpkinPatch, lanternPosts, bales, cornStalks, fireflies, glowPoints, wavingPumpkin, meadow,
 } from './_helpers_b.js';
 
 const YF = 0, YT = 2.5;                     // Kürbisfeld, Terrasse
@@ -76,6 +76,11 @@ function scene(level) {
     [-1.2, YT, -12.6, 0.45, 'staunen'], [6.1, YT, -12.3, 0.38, 'lachen'], [12.8, YT, -12.4, 0.5, 'grinsen'],
     [12.6, YF, 12.6, 0.4, 'lachen'], [2.2, YF, 12.8, 0.34, 'grinsen'], [10.2, YF, 18.0, 0.3, null, 'gelb'],
   ]);
+  // Wiese mit Grasbüscheln und Blümchen (Wege, Labyrinth, Rampe, Scheune, Kürbis bleiben frei)
+  const GRASS = { grass: [0x4e7a40, 0x6a9a58, 0x5a8a48, 0x7aaa62], flowers: [0xffffff, 0xffd86a, 0xff9ad0, 0xc8a8ff], density: 0.32 };
+  meadow(level, [[0.6, 13.6, 13.3, -3.8], [3.2, 11.8, 22.3, 17.2]], YF, { ...GRASS, avoid: [[8.8, 12.6, 2, -4], [3.6, 6.6, 19.6, 18.4], [6, 9, 17.5, 13]] });
+  meadow(level, [[-13.8, 13.8, -4.2, -13.3], [18.2, 22.8, -5.7, -10.3]], YT, { ...GRASS, seed: 9,
+    avoid: [[-10.6, -4.4, -6.3, -11.7], [-0.2, 5.2, -8.8, -13], [-11.8, -3.2, -4.6, -6.2], [-11.8, -10.2, -6, -9.4], [8.8, 12.6, -3.8, -5.4]] });
   glowPoints(level, [[HEART[0], YF + 0.3, HEART[1], 3.2]], { color: 0xffc040, size: 1, opacity: 0.35, pulse: 0.5 });
   return [];
 }

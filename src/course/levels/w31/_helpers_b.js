@@ -911,7 +911,7 @@ export function meadow(level, rects, y, o = {}) {
   if (!level.view) return;
   const rnd = new Rnd(o.seed ?? 31);
   const b = new Bld();
-  const grass = [0x3e6e62, 0x5a907e, 0x4a7e6c, 0x6aa08a], flowers = [0xffffff, 0xd8b0ff, 0xff9ad0, 0xfff09a];
+  const grass = o.grass ?? [0x3e6e62, 0x5a907e, 0x4a7e6c, 0x6aa08a], flowers = o.flowers ?? [0xffffff, 0xd8b0ff, 0xff9ad0, 0xfff09a];
   const inAvoid = (x, z) => (o.avoid ?? []).some(([a0, a1, zA, zB]) => x > a0 && x < a1 && z < Math.max(zA, zB) && z > Math.min(zA, zB));
   for (const [x0, x1, zA, zB] of rects) {
     const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
