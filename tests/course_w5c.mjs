@@ -13,7 +13,9 @@
 //   (nur Ziele/Extras mit diesem Namensteil) · VERBOSE=1 (Protokoll der Beine)
 //
 // Der Bot lenkt je Schritt zum nächsten Wegpunkt (Stick relativ zur Kamera-Gier wie im Spiel). Die Figur ist während der
-// Fahrt unverwundbar (Treffer-Versuche werden gezählt), damit Geometrie und Mechanik geprüft werden.
+// Fahrt unverwundbar (nur als Sicherung); Treffer-Versuche werden gezählt, und die Hauptrouten von 5-5 und 5-6 müssen
+// ohne einen einzigen Treffer auskommen (Ausweichen: Feuerkugeln, Feuerringe, Pilzlinge – siehe { dodge }).
+// DETAIL=1: Zeichenaufrufe je Objekt in den Bildern.
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
 const Y1 = 1, Y2 = -4, Y3 = -7, Y4 = -8, YG = 3;   // 5-5
@@ -22,7 +24,9 @@ const Y1 = 1, Y2 = -4, Y3 = -7, Y4 = -8, YG = 3;   // 5-5
 // { hop } (Sprung auf der Stelle) · { stomp } · { crouch } (Röhre) · { star: i } · { chaseKind } · { expect } (COND) ·
 // { until } · { mover: id, when, until } (Lore: abwarten, aufspringen, mitfahren) · { pickup: kind } (nächstes Objekt
 // aufheben) · { throwAt: [x, z] } (Gehaltenes werfen) · { face: [x, z] } · { tile: [x, z] } (ein Flipper-Hüpfer auf ein
-// Feld) · { clone } (Spiegelfrucht-Klon abwarten)
+// Feld) · { clone } (Spiegelfrucht-Klon abwarten) · Wegpunkt-Zusätze { dodge: [ids | 'pilzling' | 'feuerkugel'],
+// dodgeLead, speed, noHurt } (rechtzeitig springen, Tempo regeln, Treffer im Bein melden) · { pulsWait: ringId, at, clear }
+// (am Rand abwarten, bis der Puls-Ring groß ist und kein Pilzling den Weg quert) · { waitClear }
 const ROUTES = {
   '5-5': {
     start: [0, Y1, 6],
@@ -36,7 +40,7 @@ const ROUTES = {
       { name: 'Schluchtkante', to: [0, -43.5], within: 0.3, run: false },
       { name: 'Lore 1', mover: 'lore1', when: { axis: 'z', gt: -47.5 }, until: { axis: 'z', lt: -56.4 }, run: false },
       { name: 'Mittelinsel', to: [0, -61.2], jump: 26, within: 0.5, run: false },
-      { name: 'Lore 2', mover: 'lore2', runup: [0, -62.4], when: { axis: 'x', gt: -5.0, lt: -4.0, dir: 1 }, jumpAt: 5.6, lead: 0.9, until: { axis: 'x', gt: -100 }, run: false, jump: 30 },
+      { name: 'Lore 2', mover: 'lore2', runup: [0, -62.4], when: { axis: 'x', gt: -5.0, lt: -4.0, dir: 1 }, jumpAt: 5.6, lead: 0.9, until: { axis: 'x', gt: -100 }, run: false, jump: 30, dodge: ['feuerkugel'] },
       { name: 'Sims B', to: [null, -75.6], jump: 30, jumpAt: 5.4, within: 0.6, run: false },
       { to: [5, -80.4], within: 0.3, run: false },
       { name: 'Glasröhre zur Halle', enter: [5, -85] },
@@ -54,6 +58,7 @@ const ROUTES = {
     mainMech: [
       [(m) => `POW öffnet das lila Tor, zwei Loren tragen über die Schlucht (${m.rides} Loren, ${m.carried} Schritte auf Loren)`, (m) => m.rides >= 2 && m.carried > 300],
       [(m) => `Glasröhre in die Halle und Röhre zum Ausgang benutzt (${m.pipes} Fahrten)`, (m) => m.pipes >= 2],
+      [(m) => `ganze Route ohne Treffer – Feuerkugeln beim Warten auf die Lore ausgewichen (${m.hurts} Treffer)`, (m) => m.hurts === 0],
     ],
     targets: [
       { name: 'Stern 0: POW zerbricht die lila Wand, Glasröhre hinauf auf den Kristallbalkon', star: 0, from: [0, Y1, -75.4],
@@ -157,7 +162,8 @@ const ROUTES = {
       { name: 'Zielmast', to: [0, -208.4], within: 0.2 },
     ],
     mainMech: [[(m) => `jeder Sprung wechselt die Farbe (${m.jumps} Sprünge, ${m.flipsAll} Farbwechsel, ${m.tiles} Landungen auf Flippern)`, (m) => m.jumps >= 30 && m.flipsAll === m.jumps && m.tiles >= 25],
-      [(m) => `Feuerring-Platz ohne Treffer: rechtzeitig über die Ringe gesprungen (${JSON.stringify(m.legHurts)})`, (m) => m.legHurts.length === 0]],
+      [(m) => `Feuerring-Platz ohne Treffer: rechtzeitig über die Ringe gesprungen (${JSON.stringify(m.legHurts)})`, (m) => m.legHurts.length === 0],
+      [(m) => `ganze Route ohne Treffer (${m.hurts} Treffer)`, (m) => m.hurts === 0]],
     targets: [
       { name: 'Stern 0: blaues Feld in der hinteren linken Ecke von Feld 2', star: 0, from: [-5, 1, -31.6],
         legs: [{ tile: [-5, -34] }, { tile: [-5, -36] }, { tile: [-5, -38] }, { tile: [-5, -40] }, { tile: [-5, -42] }, { tile: [-5, -44] }, { wait: 10 }, { star: 0 }], shot: 'stern0' },
@@ -329,12 +335,17 @@ function install() {
       const t0 = L.time;
       const ents = [];
       for (const id of list) {
-        if (id === 'pilzling') { for (const e of L.entities) if (e.kind === 'pilzling' && e.alive && !e.defeated && !e.removed) ents.push(e); }
+        if (id === 'pilzling' || id === 'feuerkugel') { for (const e of L.entities) if (e.kind === id && e.alive && !e.defeated && !e.removed) ents.push(e); }
         else { const e = ent(id); if (e) ents.push(e); }
       }
       for (let tau = 0.02; tau <= lead + 1e-6; tau += 0.02) {
         const px = p.pos.x + p.vel.x * tau, pz = p.pos.z + p.vel.z * tau;
         for (const e of ents) {
+          if (e.kind === 'feuerkugel') {
+            const bx = e.pos.x + (e.vel?.x ?? 0) * tau, by = e.pos.y + 0.18 + (e.vel?.y ?? 0) * tau, bz = e.pos.z + (e.vel?.z ?? 0) * tau;
+            if (Math.hypot(px - bx, pz - bz) < 0.18 + p.half.x + 0.25 && by > p.pos.y - 0.25 && by < p.pos.y + p.half.y * 2 + 0.2) return 'feuerkugel';
+            continue;
+          }
           if (e.kind === 'pilzling') {
             const ex = e.pos.x + (e.vel?.x ?? 0) * tau, ez = e.pos.z + (e.vel?.z ?? 0) * tau;
             if (Math.abs(e.pos.y - p.pos.y) < 1.2 && Math.hypot(px - ex, pz - ez) < 1.25) return 'pilzling';
@@ -646,7 +657,13 @@ function install() {
           const ok = () => { const v = Lg.when.axis === 'x' ? m.pm.pos.x : m.pm.pos.z; return (Lg.when.lt === undefined || v < Lg.when.lt) && (Lg.when.gt === undefined || v > Lg.when.gt) && (Lg.when.dir === undefined || Math.sign(m.mover.vx + m.mover.vz) === Lg.when.dir); };
           if (Lg.runup) goTo(Lg.runup[0], Lg.runup[1], 0.3);
           let k = 0;
-          for (; k < 3000 && !ok(); k++) tick({});
+          let dodged = 0;
+          for (; k < 3000 && !ok(); k++) {
+            // beim Warten auf die Lore: Feuerkugeln (Feuer-Schnappblume) mit einem Hüpfer ausweichen
+            if (Lg.dodge && p.mode === 'ground' && this.danger(Lg.dodge, 0.16)) { dodged++; for (let q = 0; q < 10; q++) tick({ jump: true }); continue; }
+            tick({});
+          }
+          if (Lg.dodge) log.push(['ausweichen', dodged]);
           let j = 0, on = false, left = false, j0 = Lg.jumpAt ? null : 0;
           for (; j < 400; j++) {
             const mv = m.mover ?? { vx: 0, vz: 0 };
