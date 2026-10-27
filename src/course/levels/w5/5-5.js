@@ -27,7 +27,7 @@
 
 import {
   isl, rock, line, ring, arc, sign, rails, lore, parkedLore, risswand, crystals, dripstones, glowShrooms, boulders, oreVeins,
-  pennantLines, lightShaft, sparkleField, walkways, floorStones, brickPanels, wallTimbers, crystalLake, mossPatches, lampHalos,
+  pennantLines, lightShaft, sparkleField, walkways, floorStones, brickPanels, wallTimbers, crystalLake, mossPatches, lampHalos, lightPools,
 } from './_helpers_c.js';
 import { giveStar } from '../../entities/gimmick.js';
 
@@ -154,6 +154,15 @@ function setup(level) {
     [-25, Y2 + 4.75, -137, 2.4], [6.8, Y2 + 16.35, -121.5, 2.6], [-4.6, Y2 + 3.75, -148, 2.4], [4.6, Y2 + 3.75, -154, 2.4],
     [0, Y4 + 5.65, -176, 3], [-7.6, Y4 + 4.35, -186, 2.4], [7.6, Y4 + 4.35, -182, 2.4], [0, Y3 - 1.25, -165, 2.4],
     [0, YG + 5.65, -213, 3], [-7.6, YG + 4.35, -222, 2.4], [7.6, YG + 4.35, -218, 2.4],
+  ]);
+  // warme Lichtkegel der Grubenlampen auf dem Boden (Balkenlampen mittig, Wandlampen etwas zur Wegmitte)
+  lightPools(level, [
+    [0, Y1, 3.5, 3.6], [0, Y1, -9.5, 3.6], [0, Y1, -36, 3.6], [-5.2, Y1, -16, 2.8], [5.2, Y1, -24, 2.8],
+    [-7.6, Y1, -78, 2.6], [7.6, Y1, -88, 2.6], [0, Y1, -76.5, 3.8],
+    [0, Y2, -100, 4.2], [0, Y2, -138.5, 4.2], [-8.4, Y2, -116, 3], [8.4, Y2, -112, 3], [-8.4, Y2, -124, 2.8], [-24.4, Y2, -135.8, 2.8],
+    [6.8, Y2 + 13, -121.5, 2.6],
+    [0, Y4, -176, 3.8], [-6.6, Y4, -186, 2.8], [6.6, Y4, -182, 2.8], [0, Y3 - 4, -165, 2.8],
+    [0, YG, -213, 3.8], [-6.6, YG, -222, 2.8], [6.6, YG, -218, 2.8],
   ]);
   // Kristallstaub in Schlucht und Halle, Funkeln am Ausgang
   sparkleField(level, { min: [-8, Y1 - 6, -74], max: [8, Y1 + 5, -44], n: 36, size: 0.32, color: 0xa8e8ff });

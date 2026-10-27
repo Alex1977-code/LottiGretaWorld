@@ -518,6 +518,41 @@ export function lampHalos(level, list, o = {}) {
   return pts;
 }
 
+/**
+ * Warme Lichtkegel auf dem Boden unter Lampen (additive Leuchtflecken, alle in einem Objekt = 1 Zeichenaufruf):
+ * [x, y (Boden), z, r, color].
+ */
+export function lightPools(level, list, o = {}) {
+  if (!level.view || !list.length) return null;
+  const n = list.length;
+  const pos = new Float32Array(n * 12), uv = new Float32Array(n * 8), col = new Float32Array(n * 12), idx = [];
+  list.forEach(([x, y, z, r = 3, c = 0xffb050], i) => {
+    const C = new THREE.Color(c);
+    const P = [[-r, -r], [r, -r], [r, r], [-r, r]];
+    P.forEach(([dx, dz], k) => {
+      pos.set([x + dx, y + 0.13 + i * 0.0005, z + dz], i * 12 + k * 3);
+      col.set([C.r, C.g, C.b], i * 12 + k * 3);
+    });
+    uv.set([0, 0, 1, 0, 1, 1, 0, 1], i * 8);
+    const b = i * 4;
+    idx.push(b, b + 2, b + 1, b, b + 3, b + 2);
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setIndex(idx);
+  g.computeBoundingSphere();
+  const mat = new THREE.MeshBasicMaterial({ map: glowTexture(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: o.opacity ?? 0.6, toneMapped: false });
+  const m = new THREE.Mesh(g, mat);
+  m.name = 'zier:lichtkegel';
+  m.renderOrder = 2;
+  const holder = {};
+  let t = 0;
+  addObject(level, m, (dt) => { t += visDt(level, holder, dt); mat.opacity = (o.opacity ?? 0.6) * (0.92 + 0.06 * Math.sin(t * 7.3) + 0.03 * Math.sin(t * 13.1)); });
+  return m;
+}
+
 /** Glasur-Kleckse (Torte): flache, wellig gerandete Flecken mit glänzendem Rand: [x, y, z, r, color]. */
 export function icingSplats(level, list) {
   const b = new Build();
