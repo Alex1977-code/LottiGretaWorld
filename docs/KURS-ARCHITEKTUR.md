@@ -4172,3 +4172,99 @@ Interne Weltnummer **31** (31. Oktober), Level-Ids mit Präfix **`H-`** (`H-1` �
 - **Verkleidung:** In der Halloween-Welt (Karte und Level) tragen die Figuren automatisch Kostüm-Zubehör: Lotti einen
   kleinen Hexenhut (mit ihrer roten Schleife), Greta Katzenohren am pinken Haarreif und einen Katzenschwanz, Pflaume
   ein orange-schwarzes Halstuch und Fledermausflügelchen, Krümel einen Mini-Vampirumhang.
+
+## Präzisierung (Level 5-7, 5-Zug und 5-Burg)
+
+Additiv zur Welt-5-Liste: Titel und Besonderheiten der letzten drei Level der Lila Strand-Insel. Dateien
+`src/course/levels/w5/5-7.js`, `5-Zug.js`, `5-Burg.js`, eigene Hilfen `src/course/levels/w5/_helpers_d.js` (kein `LEVEL`,
+nur für diese drei Level), Test `tests/course_w5d.mjs`. Kein Motor-Code geändert; alle Sonderteile sind level-lokal
+(Hilfsdatei, Haken `LEVEL.prebuild`/`LEVEL.build`/`LEVEL.setup`, `level.onStep`, `view.onFrame`). Mitbenutzt (nur
+gelesen/importiert): Welt-4-Hilfen `levels/w4/_helpers_d.js` (Lavasee, Türme, Fackeln, Banner, Ketten), Welt-3-Zughilfen
+`levels/w3/_helpers_e.js` (`solveTrainRide`, `trackChunks`, `ZugRoehre`, `zugRules`, `trainCull`, `StaticCullE`),
+Spielautomat der Karte `map/slot.js` (`SlotMachine`), Strand-Thema und Meer-Kulisse (`view/theme_beach.js`,
+`view/backdrop_w5.js`).
+
+### 5-7 „Auf Zehenspitzen durch die Glutfestung“ (parcours · sneak · course_sneak · 400 s)
+
+- Nacht über Baron Brummbärs Lava-Festung, Parcours nach −Z (≈ 215 m, Burghof y 2, Lava y 0,6): **Startplattform**
+  (Übungs-Scheinwerfer ohne Kanonen, Markise als Versteck) → Zugbrücke → **Hof der Arkaden** (Lichtfleck kreist im
+  Viereck; unter den gestreiften Arkadendächern bleibt man im Schatten) → **Hof der Wachhäuser** (zwei Lichter queren den
+  Weg) → **Bastion** (Checkpoint) → **Hof der rissigen Mauer** → Säulengang mit Verfolger-Licht → **Lavagräben** mit
+  schmalen Stegen → **Treppe** (drei Läufe, 15 m, Checkpoint 2 auf dem Absatz) → **Turmterrasse** mit Krümel und Zielmast.
+- Entdeckt (Lichtfleck trifft die Figur): Alarmlampen blinken, die Suchkopf-Kanonen der Mauer feuern eine Welle
+  (`suchkopf_welle`); Dächer (`daecher`: Kollision mit `camIgnore`, eigenes Mesh mit Durchsicht) verstecken. Lob-Ansage,
+  wer einen Hof unentdeckt durchquert (`schleichZaehler`). Gegner: Hackbeil-Pilz 8, Suchkopf-Kanone 13, Scheinwerfer 11.
+- Sterne: 0 Sprungfeder vor dem Torturm (Sprung halten) → Turmdach · 1 im Hof der rissigen Mauer im Licht warten, bis ein
+  Suchkopf kommt, und ihn gegen den Riss lenken (Mega-Wand bricht) → Rätselbox → **Kletterraum** (x 72): Steinblock-Treppe
+  hinauf, bevor die Suchköpfe der zwei Raumkanonen sie zertrümmern; beim Wiederbetreten ist sie wieder heil
+  (`kletterRaum`) · 2 auf der Turmterrasse im Licht warten – ein Suchkopf zertrümmert die Steinblock-Mauer, dahinter der
+  Stern (`steinStern`; Stampfen allein öffnet sie nicht). Stempel: über den drei ?-Blöcken der Bastion, genau im
+  Lichtkegel.
+- Extraleben: unsichtbarer Block über der Zugbrücke, Kiste auf der Lavainsel im Graben (Sprung hinüber, Stampfattacke).
+- Kulisse: eigene schiefer-lila Mauern mit Zinnen und Glutschlitzen (`festungsMauern`, ohne Sonnenschatten), lila
+  Hofpflaster mit warmem Weg, Laternen, Wimpelleinen über den Höfen, Blumenkübel, Glühwürmchen, Lavafälle.
+  Budget: Scheinwerfer-Optik nur bis 34 m um das Blickziel (`scheinwerferSparen`), Alarmlampen nur bis 26 m.
+
+### 5-Zug „Bimmelbahn voller Bitcoins“ (autoscroller · train · course_goldtrain · kein Zeitlimit, 0 Sterne)
+
+- Bonus-Level ohne Gegner, Sterne und Stempel (`starSlots: 0`). Lokale Themen-Variante **Goldküste** (`LEVEL.prebuild`,
+  wie das Abendrot in 2-Panzer): Thema `train` im goldenen Spätnachmittag, Farben und Meer des Strand-Themas; das
+  gemeinsame Thema bleibt unverändert. Kein Zeitlimit: `timeLimit: 999`, die Uhr bleibt stehen (`ohneZeitlimit`), die
+  Uhr-Anzeige zeigt in diesem Level „– – –“.
+- Goldzug (14 Wagen, ≈ 133 m, Zug-Koordinate c ab dem Heck): Startwagen A1 → Goldwagen G1/G2 → **Felswagen F1** → G3/G4 →
+  **Röhrenwagen R1** → G5–G7 (Kontrollpunkt auf G5) → **Blockwagen B1** → G8 → Tender → Lok. Goldwagen und Lok zeigen das
+  Modell `goldzug_waggon` (Kollision über unsichtbare Teile: Münzberg 2,9 m, Führerhaus-Dach 3,5 m), Flachwagen das
+  Welt-3-Modell. Fahrplan (`solveTrainRide`, Gleis und Fensterpfad bei x 0): Halte-Pausen am Felswagen 5 s, Röhrenwagen
+  9 s, Blockwagen 8 s; Fahrt ≈ 86 s, ≈ 510 m an der Goldküste (Sandstreifen, drei Lagunen auf Holzgerüsten mit
+  Schwimmringen, Entchen und Segelbooten, Strandhäuschen, Leuchtturm, Wimpelketten, Palmen).
+- Geheimnisse: **goldener Schalter in der Felsspalte** (Bauplan: goldener Druckschalter in einer Felsspalte, `ZugGoldschalter`):
+  hineinspringen oder stampfen (Daraufstellen genügt nicht) → 8 s Goldregen, 56 Münzen fallen über G2–G4 und fahren mit
+  dem Wagen darunter mit · **geheime Röhre** in der Kistenburg des Röhrenwagens (nur von oben erreichbar) → **Wolkenwagen**
+  (unsichtbares Fahrzeug links oberhalb des Zugs, Optik `WolkenWagen` mit Durchsicht): 33 Münzen und ein Extraleben,
+  goldene Rückröhre auf G6 · Blockwagen: ?-Block (Funkenblüte), Dauer-Münzblock, Roulette-Block · unsichtbarer Block mit
+  Extraleben über G8.
+- Am Muschelkap hält der Zug; die goldene Röhre auf dem Bahnsteig führt in den **Glücksgarten**: Glückshaus mit dem
+  Spielautomaten der Karte (`gluecksHaus` → `SlotMachine`): mit einem Sprung auf der Matte landen zieht den Hebel,
+  Einsatz 10 Bitcoins dieses Levels (sonst Hinweis), Gewinne wie auf der Karte (3 × Bitcoin +30, 3 × Herz Extraleben,
+  3 × Power-up fürs nächste Level, Paar = Einsatz zurück). Zielmast im Garten.
+- Wer nicht einsteigt, wird nach der Abfahrt (3 s) ans Bahnsteigende geschoben und fällt in die Lagune.
+
+### 5-Burg „Rumpeltempel des Kippquader-Königs“ (parcours + boss · temple · course_temple · 400 s, ab 100 Sternen)
+
+- Goldener Ruinen-Tempel, Parcours nach −Z (Plätze y 2, ab Warp-Box 1 y 4): **Vorhof** (Übungs-Kippquader, ?-Blöcke) →
+  **Bullenplatz** (zwei Rammbock-Bullen, Kippquader am Rand) → bewegliche Plattform → **Sternring-Platz** → Warp-Box 1 über
+  die eingestürzte Brücke → **Galerie** (Checkpoint) → **Gang der Wandspalten** (drei Kippquader kippen aus Nischen) →
+  **Platz der Mutprobe** und **Würfel-Ring** (zwei 2-m-Würfel rollen um den Mittelpfeiler) → Platz mit Kletterturm und
+  Warp-Box 2 → **Bossarena** (20 × 20 m, wie Testlevel 0-19, Checkpoint am Steg) → Baron-Auftritt → Warp-Box →
+  Zielplateau.
+- Boss Kippquader-König: wandert, der rote Boden zeigt die Landestelle; Treffer nur per Sprung auf das blaue Sternfeld auf
+  seinem Rücken, drei Treffer, nach jedem brechen Arena-Ecken weg (`bruchplatte`), zwei Begleit-Kippquader. Danach braust
+  Baron Brummbär auf der Brücke hinter der Arena heran, schimpft und fährt davon (`baronAuftritt`, Banner „Welt 5
+  geschafft!“).
+- Sterne: 0 Sternring (acht Sternmünzen in 10 s, zwei auf Säulenstümpfen) · 1 **Mutprobe**: auf dem grünen Stern im Loch
+  des Rahmen-Kippquaders stehen bleiben, er fällt über die Figur (nur wer beim Kippen im Loch stand, bekommt ihn:
+  `lochStern`) · 2 Krallen-Anzug aus dem ?-Block, Kletterwand neben Warp-Box 2 hinauf (Bauplan „Wand neben Warp-Box 2“).
+  Stempel: vom rollenden Würfel auf den Wandsims (vom Boden aus zu hoch).
+- Extraleben: unsichtbarer Block neben den ?-Blöcken im Vorhof, Kiste auf dem Mittelpfeiler des Würfel-Rings.
+- Farbtupfer: Tempeltore mit türkisem Fries und Sonnenscheibe (Sturz wird durchsichtig, wenn er die Figur verdeckt:
+  `tempelTore`), Mosaikwege in Türkis/Lila/Gold, Blumenkübel, lila und türkise Wandtücher; Gangwände 3,2 m hoch (die
+  Kamera sieht über sie hinweg).
+
+### Test `tests/course_w5d.mjs`
+
+Port 4500 (+ `PORT_BASE`), Aufruf `node tests/course_w5d.mjs [5-7|5-Zug|5-Burg]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,shots` (je Lauf < 10 min), `HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`,
+`SHOTS='a|b'`, `DETAIL=1`, `TRACE=1` (5-Zug: feine Bot-Spur), Bilder `tests/out/w5d_*.png`. Bot mit echter Eingabe
+(`setInput`/`step`, Stick relativ zur Kamera-Gier); Beine u. a. `lure` (im Licht auf einen Suchkopf warten, ausweichen),
+`bounce` (Sprungfeder), `warp`, `mover`, `climb`, `cube` (Würfel-Ring), `boss` (Kampf: nur Sprünge auf das Rückenfeld).
+5-Zug eigener Ablauf (`installZug`/`zugSuite`): Zug-Koordinaten, Spur-Bot über den fahrenden Zug (Lücken- und
+Klettersprünge), Messgang während der Fahrt, Sammel-Bot (hinterstes Ziel vor der hinteren Fenstergrenze).
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel (5-7 ≈ 30 s,
+5-Burg ≈ 66 s mit Bosskampf ≈ 22 s, 5-Zug Fahrt bis zum Halt, Röhre, eine Drehung am Automaten, Zielmast); alle Sterne,
+Stempel und Extraleben samt Gegenproben (Stern 0 nicht ohne Feder, Rätselbox nicht bei stehender Mauer, Stern 2 nicht
+durch Stampfen, Mutprobe nicht neben dem Loch, Stern 2 nicht ohne Krallen, Stempel nicht vom Boden, Schalter nicht durch
+Daraufstellen, Röhre nicht vom Deck aus, Automat nicht ohne 10 Bitcoins); Extras (Schleichen/Entdeckt/Verfolger,
+Kletterraum heilt, Checkpoints, Kippquader trifft, Tod im Kampf → Neustart am Steg, König wieder 3/3; kein Zeitlimit,
+Abfahrt ohne Einsteigen, Kontrollpunkt auf dem fahrenden Zug). Gemessen (scale 2, inkl. Schattenpass): 5-7 54–109
+Zeichenaufrufe / ≤ 233 k Dreiecke (Torturm-Dach mit Blick über zwei Höfe) · 5-Zug ≤ 78 / ≤ 244 k (Messgang während der
+Fahrt) · 5-Burg ≤ 86 / ≤ 143 k. Die Heldin (Figurenstil) braucht allein ≈ 20 Zeichenaufrufe.
