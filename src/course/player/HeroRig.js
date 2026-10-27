@@ -208,6 +208,10 @@ export class HeroRig {
     }
     this.squashV += (-90 * this.squash - 12 * this.squashV) * dt;
     this.squash += this.squashV * dt;
+    // Ausgeschwungen → genau 0: eine Rest-Stauchung (< 0,2 %, unsichtbar) machte die Hülle sekundenlang ungleichmäßig skaliert,
+    // dann zerfiel das Figur-Bündel (view/ShadowProxy.js) in Einzelaufrufe (z. B. 18 statt 9 im Kanonenflug nach der Landung
+    // auf der Röhre)
+    if (Math.abs(this.squash) < 2e-3 && Math.abs(this.squashV) < 2e-2) { this.squash = 0; this.squashV = 0; }
     const sq = Math.max(-0.35, Math.min(0.35, this.squash));
     let sy = 1 + sq, sxz = 1 - sq * 0.5;
     if (p.state === 'crouch' || (p.state === 'slide' && !this.courseMode)) { sy *= 0.72; sxz *= 1.08; }
