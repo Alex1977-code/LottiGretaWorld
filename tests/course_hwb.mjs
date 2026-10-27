@@ -108,7 +108,7 @@ const ROUTES = {};
     meta: { stars: 3, time: 400, theme: 'graveyard', music: 'course_graveyard', archetype: 'parcours' },
     enemies: { klapperknochen: 8, kreisgeist: 2, kreisgeist_kreis: 1, kreisgeist_glied: 8, spuk: 1, flatterfledi: 3, laterne: 1, laternenpfahl: 3, grabstein_schalter: 1, raft: 1 },
     sections: [['1 Friedhofstor', 12, -30], ['2 Nebelschlucht', -30, -62], ['3 Glibberbach', -62, -140], ['4 Gruftgarten', -140, -194], ['5 Kapellenhügel', -194, -240]],
-    sweepExtra: [[-8, Y, -84], [9, Y, -80], [-9, Y, -94], [-8, Y, -112], [9, Y, -118], [-9, Y, -165], [6, Y, -168], [-6, PL, -226], [-7, 8.1, -229]],
+    sweepExtra: [[-5.5, Y, -84], [5.6, Y, -80], [-2, Y, -93], [-5, Y, -112], [7, Y, -118], [-9, Y, -165], [6, Y, -168], [-6, PL, -226], [-7, 8.1, -229]],
     main: [...GATE, ...DITCH, ...CHASM, ...RAFT, RIDE(false), ...GRUFT, ...HILL],
     routeChecks: [
       { name: 'Laterne getragen, Floßfahrt auf dem Glibberbach (Pflaume) bis ans Ende', ok: (r) => r.mech.ride > 120 * 8 },
@@ -138,11 +138,12 @@ const ROUTES = {};
       { name: 'Nebelgraben: Hineinfallen ist harmlos (wieder hinausspringen)', from: [0, Y, -10], heroes: ['lotti'], noLantern: true,
         legs: [{ to: [0, -13.6], within: 0.5, run: false, autoJump: false, max: 200 }, { wait: 60 }, { to: [0, -15.5], within: 0.6, run: false }, { name: 'hinaus', to: [0, -19.0], jump: 34, within: 0.7, run: false }],
         check: '(L) => !L.player.dead && L.player.pos.y > 0.9 && L.player.pos.z < -18' },
-      { name: 'Glibberbach: Hineinfallen = Neustart am Checkpoint', from: [0, Y, -66.2], heroes: ['lotti'], invuln: false, expectAlive: false,
-        legs: [{ to: [0, -71.2], within: 0.4, run: false }, { name: 'in den Glibber', to: [-1.6, -80], jump: 10, within: 0.6, max: 400 }, { wait: 600 }],
+      { name: 'Glibberbach: Hineinfallen = Neustart am Checkpoint', from: [0, Y, -63.6], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ name: 'Checkpoint', to: [0, -66.6], within: 0.5, run: false }, { to: [-5.2, -80], within: 0.5, run: false }, { to: [-5.2, -88], within: 0.4, run: false },
+          { name: 'in den Glibber', to: [0, -88], jump: 12, within: 0.8, max: 300, lenient: true }], after: 900,
         check: '(L) => !L.player.dead && Math.abs(L.player.pos.z + 66) < 2.5' },
-      { name: 'Gruft-Durchfahrt: zu Fuß führt kein Weg am Bach entlang (Mauer)', from: [-8, Y, -88], heroes: ['lotti'],
-        legs: [{ to: [-8, -104], within: 0.5, max: 500, lenient: true }], check: '(L) => L.player.pos.z > -97.2' },
+      { name: 'Gruft-Durchfahrt: zu Fuß führt kein Weg am Ufer entlang (Mauer)', from: [-4.5, Y, -88], heroes: ['lotti'],
+        legs: [{ to: [-4.5, -104], within: 0.5, max: 500, lenient: true }], check: '(L) => L.player.pos.z > -97.2' },
       { name: 'Krümel winkt mit der Laterne vom Ufer, wenn das Floß vorbeifährt', from: [0, Y, -70.6], heroes: ['lotti'],
         legs: [{ to: [0, -71.2], within: 0.4, run: false }, { mount: [0, -75.5] }, RIDE(false)], check: '(L) => L.named.get("kruemel_ufer").info().cheers >= 1', shot: 'kruemel' },
       { name: 'Grabstein-Schalter: Greta springt drauf → Pfahl brennt, blaue Brücke trägt', from: [0, Y, -176], heroes: ['greta'],
@@ -158,9 +159,12 @@ const ROUTES = {};
       ['schlucht', [0, Y, -29.0]],
       ['insel', [3.4, Y + 1.2, -42.6]],
       ['dock', [0, Y, -70.6]],
-      ['bach', [-8, Y, -86]],
-      ['tunnel', [-9, Y, -95]],
-      ['ufer', [8.6, Y, -108]],
+      ['bach', [-4.8, Y, -86]],
+      ['tunnel', [-3.0, Y, -93.5]],
+      ['ufer', [4.6, Y, -108.5]],
+      ['floss', { from: [0, Y, -70.6], legs: [{ to: [0, -71.2], within: 0.4, run: false }, { mount: [0, -75.5] }, { ride: CREEK, untilZ: -88, partial: true }] }],
+      ['floss_gruft', { from: [0, Y, -70.6], legs: [{ to: [0, -71.2], within: 0.4, run: false }, { mount: [0, -75.5] }, { ride: CREEK, untilZ: -99, partial: true }] }],
+      ['floss_kruemel', { from: [0, Y, -70.6], legs: [{ to: [0, -71.2], within: 0.4, run: false }, { mount: [0, -75.5] }, { ride: CREEK, untilZ: -106.5, partial: true }] }],
       ['landung', [0, Y, -131]],
       ['pfahl', [0, Y, -139.4]],
       ['garten', [-2.6, Y, -163]],
@@ -361,6 +365,7 @@ function install() {
             const q = P();
             if (q.dead) break;
             if (q.mode !== 'mount') { if (k > 30 && q.mode === 'ground') break; tick({}); continue; }
+            if (Lg.untilZ !== undefined && q.pos.z < Lg.untilZ) break;
             while (seg < pts.length - 1 && q.pos.z < pts[seg][1] + 0.5) seg++;
             const [tx, tz] = pts[seg];
             const jumpHere = (Lg.jump ?? []).some(([z0, z1]) => q.pos.z <= z0 && q.pos.z >= z1);
@@ -450,7 +455,7 @@ function install() {
           else if (airborne) landed = true;
         }
         log.push([Lg.name ?? `leg${li}`, i, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), P().mode, P().state]);
-        if (i >= max && !o.lenient) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, Lg.to]); break; }
+        if (i >= max && !o.lenient && !Lg.lenient) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, Lg.to]); break; }
       }
       c.setInput({});
       mech.hurts = P().hurtTries ?? 0;
@@ -518,11 +523,11 @@ async function load(id, fresh = false) {
 
 const W = (name, ...args) => sc(([n, a]) => window.__hw[n](...a), [name, args]);
 const stats = [];
-async function shot(name, wait = 500) {
+async function shot(name, wait = 300) {
   // Bot-Unverwundbarkeit aus (sonst blinkt die Figur und fehlt im Bild); im Handbetrieb läuft keine Simulation weiter
   await sc(() => { const c = window.__course; c.player.invuln = 0; c.snapCamera(); if (c.arch?.orbit) c.arch.orbit.inited = false; });
   const f0 = await sc(() => window.__course.view.frame);
-  await page.waitForFunction((f) => window.__course.view.frame >= f + 10, f0, { timeout: 90000 });
+  await page.waitForFunction((f) => window.__course.view.frame >= f + 6, f0, { timeout: 90000 });
   await page.waitForTimeout(wait);
   const s = await sc(() => window.__course.stats());
   stats.push([name, s.calls, s.triangles]);
@@ -748,6 +753,7 @@ async function parcours(id) {
       if (t.noLantern) await W('noLantern');
       else if (t.from[2] < -6) await W('giveLantern');
       const res = await W('drive', t.legs, { invuln: t.invuln });
+      if (t.after) await sc((n) => { const c = window.__course; c.setInput({}); for (let i = 0; i < n; i++) c.step(1); }, t.after);
       let ok = !res.log.some((l) => String(l[0]).startsWith('FEHLER'));
       if (t.expectAlive !== false) ok = ok && !res.dead;
       if (t.mech && !t.mech(res)) ok = false;
@@ -761,6 +767,15 @@ async function parcours(id) {
   await load(id, true);
   for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2] of R.shots ?? []) {
     if (SHOTS && !SHOTS.has(name)) continue;
+    if (pos?.legs) {
+      // Bild unterwegs (z. B. auf dem Floß): Beine fahren, dann knipsen
+      await load(id);
+      await W('place', pos.from, { settle: 10 });
+      if (pos.from[2] < -6) await W('giveLantern');
+      await W('drive', pos.legs, { lenient: true });
+      await shot(`${id}_${name}`);
+      continue;
+    }
     await W('place', pos, { settle: 10, yaw });
     if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
     await shot(`${id}_${name}`);

@@ -94,6 +94,31 @@ export class Bld {
     this.n++; return this;
   }
   add(g, color, o) { this.b.add(g, color, o); this.n++; return this; }
+  /**
+   * Quadermauer: Quader (Mitte unten x, y, z) aus Steinblöcken – unterteilt in ≈ cell × row große Felder, jedes Feld in
+   * eigener Steinfarbe (hell/dunkel um base), oben heller, unterhalb mossY (Teil-Koordinaten) moosig. o { cell, row, yaw,
+   * hi, lo, moss, mossY }.
+   */
+  stones(w, h, d, x, y, z, base, o = {}) {
+    const cw = o.cell ?? 0.9, rh = o.row ?? 0.55;
+    const sx = Math.max(1, Math.round(w / cw)), sy = Math.max(1, Math.round(h / rh)), sz = Math.max(1, Math.round(d / cw));
+    const B = new THREE.Color(base), H = new THREE.Color(o.hi ?? 0xc8c4dc), D = new THREE.Color(o.lo ?? 0x4e4a62), M = new THREE.Color(o.moss ?? 0x5a8a5a), c = new THREE.Color();
+    const mossY = o.mossY ?? -1e9;
+    const hsh = (i, j) => { const s = Math.sin(i * 127.1 + j * 311.7 + (o.seed ?? 0) * 17.3) * 43758.5453; return s - Math.floor(s); };
+    const fn = (px, py, pz, nx, ny, nz) => {
+      const row = Math.floor((py + h / 2) / (h / sy) + 1e-4);
+      const side = Math.abs(nx) > 0.5;
+      const u = side ? Math.floor((pz + d / 2) / (d / sz) + 1e-4) : Math.floor((px + w / 2) / (w / sx) + 1e-4);
+      const r = hsh(row + (side ? 50 : 0) + (nz < -0.5 || nx < -0.5 ? 25 : 0), u);
+      c.copy(B).lerp(r > 0.5 ? H : D, Math.abs(r - 0.5) * 0.75);
+      if (ny > 0.5) c.lerp(H, 0.3);
+      else if (ny < -0.5) c.lerp(D, 0.5);
+      if (py < mossY && ny < 0.5) c.lerp(M, 0.55);
+      return c;
+    };
+    this.b.add(new THREE.BoxGeometry(w, h, d, sx, sy, sz), fn, { p: [x, y + h / 2, z], r: [0, o.yaw ?? 0, 0] });
+    this.n++; return this;
+  }
   geometry() {
     if (!this.n) return null;
     this.n = 0;
@@ -666,7 +691,7 @@ export function cemeteryGate(level, x, y, z, width = 3.2, fence = 8) {
   if (!level.view) return;
   const b = new Bld(), g = new Bld(), dark = 0x2a2438;
   for (const cx of px) {
-    b.box(0.8, 2.3, 0.8, cx, y, z, masonry(-1.15), { r: 0.04 });
+    b.stones(0.8, 2.3, 0.8, cx, y, z, STONE, { cell: 0.4, row: 0.38, mossY: -0.8, seed: cx });
     b.box(1.0, 0.18, 1.0, cx, y + 2.3, z, litTop(STONE_HI, 0.6), { r: 0.04 });
     const p = pumpkinGeo({ r: 0.32, seg: 14, leafYaw: cx });
     p.body.translate(cx, y + 2.48, z);
@@ -708,7 +733,7 @@ export function chapel(level, x0, x1, zA, zB, y, h = 4, o = {}) {
   level.world.add({ type: 'box', min: [x0, y, z1], max: [x1, y + h, z0], tag: 'kapelle' });
   if (!level.view) return;
   const b = new Bld(), g = new Bld();
-  b.box(w, h, d, cx, y, cz, masonry(-h / 2), { r: 0.05 });
+  b.stones(w, h, d, cx, y, cz, STONE, { mossY: -h / 2 + 0.5, seed: 2 });
   // Satteldach (First entlang z)
   const rh = o.roof ?? 2.6, half = w / 2 + 0.35, sl = Math.hypot(half, rh), ang = Math.atan2(rh, half);
   const roof = litTop(o.roofColor ?? 0x4a3a7a, 0.6);
@@ -746,7 +771,7 @@ export function bellTower(level, x0, x1, zA, zB, y, top) {
   level.world.add({ type: 'box', min: [x0, y, z1], max: [x1, top, z0], tag: 'turm' });
   if (!level.view) return;
   const b = new Bld(), g = new Bld();
-  b.box(w, top - y, d, cx, y, cz, masonry(-(top - y) / 2), { r: 0.04 });
+  b.stones(w, top - y, d, cx, y, cz, STONE, { cell: 0.66, mossY: -(top - y) / 2 + 0.5, seed: 3 });
   b.box(w + 0.3, 0.2, d + 0.3, cx, top - 0.2, cz, litTop(STONE_HI, 0.6), { r: 0.04 });
   for (const [ex, ez] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) b.box(0.35, 0.45, 0.35, ex, top, ez, masonry(-9), { r: 0.03 });
   // Glocke im Holzrahmen (hinten, ohne Kollision)
@@ -763,25 +788,29 @@ export function bellTower(level, x0, x1, zA, zB, y, top) {
 /**
  * Gruft-Durchfahrt über einem Bach: hohe Mauern (Kollision) links und rechts des Bachs von zA bis zB – sie decken die
  * Ufer ab (zu Fuß kein Weg vorbei, nur mit dem Floß hindurch). center(z) → x der Bachmitte, half = halbe Bachbreite + Rand.
- * Mauern von xL bzw. bis xR, Höhe h ab y; Rundbogen über Ein- und Ausfahrt mit Kürbis, Kerzen an den Innenwänden.
+ * Mauern von xL bzw. bis xR (oder o.thick m dick ab dem Bachrand), Höhe h ab y; Rundbogen über Ein- und Ausfahrt mit Kürbis,
+ * Kerzen an den Innenwänden, Zinnen obenauf.
  */
 export function cryptPassage(level, zA, zB, center, half, xL, xR, y, h, o = {}) {
-  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), step = o.step ?? 1;
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), step = o.step ?? 2;
   const slices = [];
   for (let za = z0; za > z1 + 1e-6; za -= step) {
     const zb = Math.max(z1, za - step);
     const cA = center(za), cB = center(zb);
     const left = Math.min(cA, cB) - half, right = Math.max(cA, cB) + half;
-    slices.push([za, zb, left, right]);
-    level.world.add({ type: 'box', min: [xL, y, zb], max: [left, y + h, za], tag: 'gruftmauer' });
-    level.world.add({ type: 'box', min: [right, y, zb], max: [xR, y + h, za], tag: 'gruftmauer' });
+    const l0 = o.thick ? Math.min(cA, cB) - half - o.thick : xL, r1 = o.thick ? Math.max(cA, cB) + half + o.thick : xR;
+    slices.push([za, zb, left, right, l0, r1]);
+    level.world.add({ type: 'box', min: [l0, y, zb], max: [left, y + h, za], tag: 'gruftmauer' });
+    level.world.add({ type: 'box', min: [right, y, zb], max: [r1, y + h, za], tag: 'gruftmauer' });
   }
   if (!level.view) return;
   const b = new Bld(), g = new Bld(), pts = [];
-  for (const [za, zb, left, right] of slices) {
+  for (const [za, zb, left, right, l0, r1] of slices) {
     const zc = (za + zb) / 2, dz = za - zb;
-    b.box(left - xL, h, dz, (xL + left) / 2, y, zc, masonry(-h / 2 + (o.ground ?? 0)), { r: 0 });
-    b.box(xR - right, h, dz, (right + xR) / 2, y, zc, masonry(-h / 2 + (o.ground ?? 0)), { r: 0 });
+    b.stones(left - l0, h, dz, (l0 + left) / 2, y, zc, STONE, { cell: 1.1, row: 0.7, mossY: -h / 2 + (o.ground ?? 0) + 0.6, seed: za });
+    b.stones(r1 - right, h, dz, (right + r1) / 2, y, zc, STONE, { cell: 1.1, row: 0.7, mossY: -h / 2 + (o.ground ?? 0) + 0.6, seed: za + 7 });
+    // Zinnen obenauf
+    for (const [a, e] of [[l0, left], [right, r1]]) b.box(Math.min(0.7, e - a), 0.5, Math.min(0.7, dz * 0.6), (a + e) / 2, y + h, zc, litTop(STONE_HI, 0.6), { r: 0.03 });
   }
   for (const zz of [z0, z1]) {
     const c = center(zz), R = half + 0.2;
@@ -822,7 +851,7 @@ export function boneGarden(level, x0, x1, zA, zB, y, gate) {
   if (!level.view) return;
   const b = new Bld(), dark = 0x2a2438;
   for (const [ax, bx, az, bz] of rects) {
-    b.box(bx - ax, h, bz - az, (ax + bx) / 2, y, (az + bz) / 2, masonry(-h / 2), { r: 0.03 });
+    b.stones(bx - ax, h, bz - az, (ax + bx) / 2, y, (az + bz) / 2, STONE, { cell: 0.7, row: 0.38, mossY: -0.1, seed: ax + az });
     const along = bx - ax > bz - az, L0 = along ? bx - ax : bz - az, n = Math.max(1, Math.round(L0 / 0.35));
     for (let i = 0; i <= n; i++) {
       const u = i / n, px = along ? ax + (bx - ax) * u : (ax + bx) / 2, pz = along ? (az + bz) / 2 : az + (bz - az) * u;
@@ -837,6 +866,61 @@ export function boneGarden(level, x0, x1, zA, zB, y, gate) {
     b.sphere(0.16, bxp + 0.1, y + 0.3, bzp + 0.1, bone, { ws: 8, hs: 6 });
   }
   b.flush(level);
+}
+
+/**
+ * Plattenweg (Grabweg aus unregelmäßigen Steinplatten mit Moosfugen) über Rechtecke rects [[x0, x1, zA, zB], …] knapp über
+ * y – rein optisch, ein Raster aus 0,6-m-Platten mit Fugen.
+ */
+export function stonePath(level, rects, y, o = {}) {
+  if (!level.view) return;
+  const cell = o.cell ?? 0.6, gap = 0.06;
+  const pos = [], col = [];
+  const base = new THREE.Color(o.color ?? 0x9a94b4), hi = new THREE.Color(0xc4bed8), moss = new THREE.Color(0x4e7a5a), c = new THREE.Color();
+  const hsh = (i, j) => { const s = Math.sin(i * 127.1 + j * 311.7) * 43758.5453; return s - Math.floor(s); };
+  const quad = (xa, xb, za, zb, yy) => {
+    for (const [px, pz] of [[xa, za], [xb, za], [xb, zb], [xa, za], [xb, zb], [xa, zb]]) { pos.push(px, yy, pz); col.push(c.r, c.g, c.b); }
+  };
+  for (const [x0, x1, zA, zB] of rects) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+    // Fugen (Moos) als Grundfläche
+    c.copy(moss).multiplyScalar(0.8);
+    quad(x0, x1, z0, z1, y + 0.012);
+    const nx = Math.max(1, Math.round((x1 - x0) / cell)), nz = Math.max(1, Math.round((z0 - z1) / cell));
+    const cw = (x1 - x0) / nx, cd = (z0 - z1) / nz;
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+      const r = hsh(i + Math.round(x0 * 7), j + Math.round(z0 * 3));
+      if (r < 0.06) continue;   // hier und da fehlt eine Platte
+      c.copy(base).lerp(hi, r * 0.5).multiplyScalar(0.86 + 0.18 * hsh(j, i));
+      const xa = x0 + i * cw + gap, xb = x0 + (i + 1) * cw - gap, za = z0 - j * cd - gap, zb = z0 - (j + 1) * cd + gap;
+      quad(xa, xb, za, zb, y + 0.025 + r * 0.01);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  addStatic(level, g, { castShadow: false });
+}
+
+/** Leuchtpilze (bunte Kappen leuchten, weicher Schein): list [[x, y, z, größe?, farbe?], …]. */
+export function glowShrooms(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld(), pts = [];
+  const cols = [0xc88aff, 0x7ae8ff, 0xff8ad8, 0x9aff8a];
+  list.forEach(([x, y, z, s = 1, c], i) => {
+    const color = c ?? cols[i % cols.length];
+    for (let k = 0; k < 3; k++) {
+      const a = i * 2.1 + k * 2.2, d = k ? 0.22 * s : 0, sc = s * (k ? 0.6 : 1);
+      const px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d;
+      b.cyl(0.04 * sc, 0.06 * sc, 0.22 * sc, px, y, pz, 0xf0e8ff, 5);
+      g.sphere(0.14 * sc, px, y + 0.22 * sc, pz, color, { s: [1, 0.55, 1], ws: 8, hs: 4 });
+    }
+    pts.push([x, y + 0.3 * s, z, s]);
+  });
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow', castShadow: false });
+  glowPoints(level, pts, { color: 0xb88aff, size: 1.6, opacity: 0.45, pulse: 0.5 });
 }
 
 /** Felsnadel aus dem Abgrund (Kollision bis top): Mitte (x, z), Breite w, von bottom bis top, mit Moos obenauf. */

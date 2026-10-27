@@ -21,7 +21,7 @@
 
 import {
   isl, line, arc, sweets, sweetRing, floatRock, pumpkinsOn, pumpkinPatch, lanternPosts, glowPoints, fireflies, cemeteryGate,
-  chapel, bellTower, cryptPassage, boneGarden, rockNeedle, gigglingGhost, kruemelCameo,
+  chapel, bellTower, cryptPassage, boneGarden, rockNeedle, gigglingGhost, kruemelCameo, stonePath, glowShrooms,
 } from './_helpers_b.js';
 
 const Y = 1;
@@ -54,7 +54,7 @@ function scene(level) {
   // ---------------- 2 Nebelschlucht
   floatRock(level, -1.5, 8.5, -41, -48.5, -0.8, 4, { n: 3, seed: 5 });
   // ---------------- 3 Glibberbach: Gruft-Durchfahrt (Mauern über beide Ufer)
-  cryptPassage(level, TUNNEL.z0, TUNNEL.z1, creekX, 4.0, -16, 16, Y - 4, 9.5, { ground: 4 });
+  cryptPassage(level, TUNNEL.z0, TUNNEL.z1, creekX, 4.0, -16, 16, Y - 4, 11, { ground: 4, thick: 5.6 });
   // ---------------- 4 Gruftgarten
   rockNeedle(level, -4.6, -146, Y, 1.6, -9);
   boneGarden(level, GARDEN.x0, GARDEN.x1, GARDEN.z0, GARDEN.z1, Y, { side: 'e', from: -164, to: -167.4 });
@@ -62,13 +62,30 @@ function scene(level) {
   // ---------------- 5 Kapellenhügel
   chapel(level, -0.6, 7.4, -224, -234, PLAZA, 4, { door: 3.4 });
   bellTower(level, TOWER.x0, TOWER.x1, TOWER.z0, TOWER.z1, PLAZA, TOWER.top);
+  // Plattenwege entlang der Route, schwebende Felsen unter den Plateaus
+  stonePath(level, [
+    [-1.3, 1.3, 7.5, -13], [-1.3, 1.3, -18, -30], [-1.3, 1.3, -62.5, -72], [-1.3, 1.3, -128, -140], [-1.3, 1.3, -152, -186],
+    [-4.6, -1.3, -164.4, -167.0], [1.3, 4.4, -178.6, -181.6], [-1.3, 1.3, -194, -206],
+  ], Y);
+  stonePath(level, [[-1.3, 1.3, -209, -216.4], [1.3, 4.6, -215.0, -222.6], [-3.6, -1.3, -219.6, -222.6]], PLAZA);
+  floatRock(level, -8, 8, -62.5, -72, -4, 6, { n: 3, seed: 6 });
+  floatRock(level, -9, 11, -74, -127, -4.2, 6, { n: 4, roots: 10, seed: 7 });
+  floatRock(level, -9, 9, -128, -140, -4, 6, { n: 3, seed: 8 });
+  floatRock(level, -14, 10, -152, -186, -4, 7, { n: 4, roots: 8, seed: 9 });
+  floatRock(level, -11, 11, -194, -236, -4, 7, { n: 4, roots: 8, seed: 10 });
+  glowShrooms(level, [
+    [-7.6, Y, 6.4, 1.1], [7.8, Y, 5.8], [-7.4, Y, -11.6], [7.6, Y, -16.2, 0.8], [-7.0, Y, -28.6], [8.0, Y, -29.0, 1.2],
+    [-19.8, Y + 3.2, -23.4], [-17.2, Y + 3.2, -26.4, 0.8], [0.2, Y + 1.2, -47.6], [7.6, Y + 1.2, -42.0, 0.9],
+    [-7.0, Y, -70.6], [-6.2, Y, -76], [7.4, Y, -90], [-5.6, Y, -110], [5.8, Y, -107], [-7.6, Y, -138.6, 1.1],
+    [-12.6, Y, -153.6], [8.8, Y, -160.4], [-1.8, Y, -185.0, 0.8], [-8.6, Y, -195.6], [8.8, Y, -204.6, 1.1], [-10.0, PLAZA, -234.4], [9.6, PLAZA, -233.0],
+  ]);
   // Kürbisse mit Gesichtern überall
   pumpkinsOn(level, [
     [-3.2, Y, 2.4, 0.42, 'lachen'], [3.4, Y, 2.6, 0.36, 'grinsen'], [-6.8, Y, -8.6, 0.5, 'staunen'], [6.6, Y, -4.2, 0.3, null, 'weiss'],
     [7.2, Y, -26.4, 0.45, 'lachen'], [5.2, 2.2, -42.0, 0.4, 'grinsen'], [-6.4, Y, -63.6, 0.48, 'lachen'], [6.8, Y, -69.6, 0.34, 'staunen', 'gelb'],
     [-6.6, Y, -130.6, 0.4, 'grinsen'], [7.2, Y, -137.6, 0.45, 'lachen'], [8.4, Y, -155.2, 0.38, 'grinsen'], [-2.6, Y, -183.6, 0.42, 'lachen'],
     [8.2, Y, -200.4, 0.42, 'grinsen'], [-8.6, PLAZA, -222.4, 0.4, 'lachen'], [9.4, PLAZA, -229.8, 0.5, 'staunen'],
-    ...pumpkinPatch(-9.5, Y, -80, 5, 6, 6, { seed: 21 }), ...pumpkinPatch(11, Y, -118, 6, 8, 7, { seed: 22 }),
+    ...pumpkinPatch(-6, Y, -80, 2.6, 6, 5, { seed: 21 }), ...pumpkinPatch(7.6, Y, -118, 2.4, 6, 5, { seed: 22 }),
     ...pumpkinPatch(6.5, Y, -135, 3, 4, 4, { seed: 23 }),
   ]);
   lanternPosts(level, [
@@ -136,13 +153,7 @@ export const LEVEL = {
     ], color: 'lila' },
     // ================= 3 Glibberbach (z −62 … −140)
     isl(-8, 8, -62.5, -72, Y, 5),
-    { type: 'glibberbach', id: 'glibber', path: CREEK, width: 6, bank: 1.2, bankH: 1.5, depth: 2, speed: 3, open: ['start', 'end'], bubbles: 30, blobs: 12 },
-    // Friedhofsflächen neben dem Bach (vor und hinter der Gruft-Durchfahrt)
-    isl(-16, -3.9, -72, -97, Y, 4),
-    isl(4.4, 16, -72, -85, Y, 4),
-    isl(7.0, 16, -85, -97, Y, 4),
-    isl(-16, -5.0, -105, -128, Y, 4),
-    isl(6.0, 16, -105, -128, Y, 4),
+    { type: 'glibberbach', id: 'glibber', path: CREEK, width: 6, bank: 5, bankH: 1.5, depth: 2, speed: 3, open: ['start', 'end'], bubbles: 30, blobs: 12 },
     isl(-9, 9, -128, -140, Y, 5),
     // ================= 4 Gruftgarten (z −140 … −194)
     { type: 'laternenpfahl', id: 'pfahl_schlucht', pos: [-4.6, Y, -146], radius: 6, blink: [5, 2.6], warn: 0.8, style: 'laterne', yaw: 0 },
@@ -170,16 +181,24 @@ export const LEVEL = {
       { kind: 'kerzen', pos: [4.6, Y, -27.0], n: 3 },
       { kind: 'grabstein', pos: [3.6, Y + 1.2, -44.8], style: 'kreuz', size: 1.2 },
       { kind: 'krummer_baum', pos: [7.2, Y + 1.2, -47.0], height: 4.4 },
-      { kind: 'grabsteine', pos: [-11, Y, -88], size: [6, 12], n: 6 },
-      { kind: 'grabsteine', pos: [10.5, Y, -78], size: [6, 8], n: 4 },
-      { kind: 'krumme_baeume', pos: [-11, Y, -118], size: [5, 14], n: 2 },
-      { kind: 'grabsteine', pos: [11, Y, -124], size: [6, 6], n: 3 },
+      { kind: 'grabsteine', pos: [-5.0, Y, -85], size: [2, 8], n: 4 },
+      { kind: 'grabsteine', pos: [5.6, Y, -78], size: [2.4, 6], n: 3 },
+      { kind: 'krummer_baum', pos: [-4.8, Y, -114], height: 4.6 },
+      { kind: 'krummer_baum', pos: [-3.6, Y, -122.4], height: 3.8 },
+      { kind: 'grabsteine', pos: [5.6, Y, -124], size: [2, 3], n: 2 },
       { kind: 'gruft', pos: [5.0, Y, -168.0], size: 1.1 },
       { kind: 'grabsteine', pos: [0, Y, -205], size: [16, 4], n: 6, avoid: [[0, -201, 2.5]] },
       { kind: 'krummer_baum', pos: [-8.4, PLAZA, -212.6], height: 4.6 },
       { kind: 'grabsteine', pos: [8.5, PLAZA, -217], size: [4, 8], n: 3 },
       { kind: 'spinnweben', pos: [7.2, PLAZA + 2.6, -224.2], size: 1.2, yaw: 0.2 },
       { kind: 'kerzen', pos: [-1.6, PLAZA, -222.6], n: 5 },
+      { kind: 'gruft', pos: [-19.4, Y + 3.2, -25.8], size: 0.8 },
+      { kind: 'kerzen', pos: [-17.4, Y + 3.2, -23.4], n: 3 },
+      { kind: 'suessigkeiten', pos: [6.8, Y, 4.6], size: 1.1 },
+      { kind: 'suessigkeiten', pos: [-6.2, Y, -68.8], size: 1.0 },
+      { kind: 'suessigkeiten', pos: [7.8, PLAZA, -233.4], size: 1.2 },
+      { kind: 'fledermaus_girlande', from: [-0.4, PLAZA + 4.1, -223.7], to: [7.2, PLAZA + 4.1, -223.7], n: 8, sag: 0.5 },
+      { kind: 'fledermaus_girlande', from: [-2.1, Y + 2.3, 0.5], to: [-8.6, Y + 1.2, 0.5], n: 5, sag: 0.3 },
     ] },
     { type: 'sign', pos: [-5.6, Y, 3.2], text: 'Nebelfriedhof\nBitte leise kichern', yaw: 0.3 },
   ],
