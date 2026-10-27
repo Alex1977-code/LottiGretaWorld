@@ -229,6 +229,7 @@ class Kuerbling extends HwHuepfer {
     this.touch = false;
     this.vel.set(0, 0, 0);
     const c = this.center();
+    this.level.sfx('brickbreak');
     this.level.effects?.sparks(c, 8);
     this.level.effects?.debris?.(c, 0xff8a1a, 6);
     if (this.coins > 0) spawnLoot(this.level, this.coins === 1 ? 'coin' : `coins:${this.coins}`, this.pos.x, this.pos.y, this.pos.z);
@@ -308,7 +309,7 @@ class Hexenhut extends HwHuepfer {
         return 'none';
       }
       this.squash(0.7);
-      this.level.sfx('stomp');
+      if (contact.pound) this.level.sfx('stomp');   // sonst spielt die Laufzeit 'stomp' zum Abprall
       return contact.pound ? 'none' : 'stomp';
     }
     if (contact.dive) { this.onHit('claw', player); return 'none'; }
