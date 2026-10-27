@@ -22,7 +22,7 @@
 //                                               Schornstein (Stempel)
 // Gegner: Hexenhut-Hüpfer 6, Flatterfledi 4 (drei kreisen um Türme, eine hängt am Kräuterbalken), Spuk mit Hexenhut 2.
 
-import { turm, terrasse, hexenHut, hexenKueche, winkeKuerbis, funkelSpur, kraeuterGarten, isl, line, ring, arc, naschen, naschKreis, sign } from './_helpers_c.js';
+import { turm, terrasse, hexenHut, hexenKueche, winkeKuerbis, funkelSpur, kraeuterGarten, kuerbisLaternen, wimpel, besenKatze, isl, line, ring, arc, naschen, naschKreis, sign } from './_helpers_c.js';
 
 const PI = Math.PI;
 const Y1 = 4.6, Y2 = 9.4, Y3 = 16.8, Y4 = 23.5, Y5 = 30.6;
@@ -80,6 +80,22 @@ function build(level) {
     beds: [{ x0: -7, x1: -3.6, z0: 6.4, z1: 2.6 }, { x0: 3.6, x1: 7, z0: -0.4, z1: -3.6 }],
     path: [[0, 9.6], [0.3, 8.1], [0.1, 6.6], [0.4, 5.1], [0.2, 3.6], [0.5, 2.1], [0.4, 0.6], [0.8, -0.9], [0.6, -2.4], [1, -3.9], [0.9, -5.4]],
   });
+  // Farbtupfer: Wimpelleinen über den Türmen, sparsame Kürbislaternen auf den Brüstungen, Besen-Katze am Himmel
+  const rimAt = (T, a, top, s = 0.5) => ({ pos: [T.x + Math.sin(a) * (T.r - 0.22), top + 0.7, T.z + Math.cos(a) * (T.r - 0.22)], size: s, light: false });
+  kuerbisLaternen(level, [
+    rimAt(T1, 2.4, Y1), rimAt(T1, -2.3, Y1), rimAt(T2, 2.0, Y1, 0.45), rimAt(T3, 2.2, Y2), rimAt(T3, -2.6, Y2), rimAt(T4, 2.3, Y3),
+    rimAt(T4, -2.3, Y3), rimAt(T6, 2.2, Y5), rimAt(T6, -2.2, Y5), rimAt(T7, 2.3, Y5, 0.45),
+    { pos: [-8.4, Y3, -99.8], size: 0.6 }, { pos: [6.2, Y3, -99.6], size: 0.6 },
+  ]);
+  wimpel(level, [
+    { a: [T1.x - 4.6, Y1 + 2.6, T1.z - 0.6], b: [T1.x + 4.6, Y1 + 2.6, T1.z - 0.6], sag: 0.7, poles: 2.6 },
+    { a: [T3.x - 5.1, Y2 + 2.8, T3.z - 1], b: [T3.x + 5.1, Y2 + 2.8, T3.z - 1], sag: 0.8, poles: 2.8, colors: [0x6ad86a, 0xff8a1a, 0xc59aff] },
+    { a: [-8.6, Y2 + 3.4, -69], b: [8.6, Y2 + 3.4, -69], sag: 1.0, poles: 3.4 },
+    { a: [-8.6, Y3 + 2.8, -100.4], b: [6.6, Y3 + 2.8, -100.4], sag: 0.9, poles: 2.8, colors: [0xffd23a, 0x8a4ae0, 0xff5a8a] },
+    { a: [-10.6, Y4 + 3, -140.6], b: [5.6, Y4 + 3, -140.6], sag: 1.0, poles: 3, colors: [0xff8a1a, 0x6ad86a, 0x8a4ae0] },
+    { a: [T6.x - 3.7, Y5 + 2.6, T6.z], b: [T6.x + 3.7, Y5 + 2.6, T6.z], sag: 0.6, poles: 2.6 },
+  ]);
+  besenKatze(level, { center: [0, 26, -100], r: 36, speed: 0.1 });
   // Glitzer-Hinweise: Geheimbesen, Süßigkeiten-Leiter über dem zweiten Netz, Besen-Aufzug
   funkelSpur(level, [[-7, Y2 + 1.2, -59.7], [-11, Y2 + 2.2, -59.7], [-15, Y2 + 3.2, -59.7]], 0xb8ff9a, 0.8, { name: 'hinweis-besen' });
   funkelSpur(level, [[SCHORNSTEIN.x, SCHORNSTEIN.top + 2.2, SCHORNSTEIN.z], [MOND.x, MOND.top + 2.4, MOND.z]], 0xfff0a0, 1.4, { name: 'hinweis-spitzen' });

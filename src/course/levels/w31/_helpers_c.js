@@ -699,6 +699,83 @@ export function kuerbisLaternen(level, list) {
   bake(level, glow, { material: 'glow', castShadow: false });
 }
 
+/**
+ * Wimpelleinen (Halloween-Farben): durchhängende Schnur von a nach b mit dreieckigen Wimpeln. Nur Optik, ohne Schatten.
+ * lines = [{ a: [x, y, z], b: [x, y, z], sag: 0.8, colors: [..], size: 0.36 }]
+ */
+export function wimpel(level, lines) {
+  const parts = [];
+  for (const l of lines) {
+    const [ax, ay, az] = l.a, [bx, by, bz] = l.b;
+    const len = Math.hypot(bx - ax, by - ay, bz - az), sag = l.sag ?? 0.8, s = l.size ?? 0.36;
+    const cols = (l.colors ?? [0xff8a1a, 0x8a4ae0, 0x6ad86a, 0xffd23a]).map(C);
+    const n = Math.max(3, Math.floor(len / (s * 1.6)));
+    const P = (t) => [ax + (bx - ax) * t, ay + (by - ay) * t - 4 * sag * t * (1 - t), az + (bz - az) * t];
+    for (let i = 0; i < 24; i++) {
+      const p0 = P(i / 24), p1 = P((i + 1) / 24);
+      const d = Math.hypot(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]);
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]).normalize());
+      const g = new THREE.CylinderGeometry(0.015, 0.015, d, 3).toNonIndexed();
+      g.translate(0, d / 2, 0); g.applyQuaternion(q); g.translate(p0[0], p0[1], p0[2]);
+      parts.push(fill(g, C(0x3a2a2a)));
+    }
+    if (l.poles) for (const [px, py, pz] of [l.a, l.b]) parts.push(zyl(0.05, 0.06, l.poles + 0.1, px, py - l.poles, pz, HWC.woodLow, { seg: 6, top: 0xffd04a }));
+    const dirx = (bx - ax) / len, dirz = (bz - az) / len;
+    for (let i = 1; i < n; i++) {
+      const t = i / n, [px, py, pz] = P(t);
+      const tri = new THREE.BufferGeometry();
+      const hw = s / 2;
+      tri.setAttribute('position', new THREE.Float32BufferAttribute([px - dirx * hw, py, pz - dirz * hw, px + dirx * hw, py, pz + dirz * hw, px, py - s * 1.1, pz,
+        px + dirx * hw, py, pz + dirz * hw, px - dirx * hw, py, pz - dirz * hw, px, py - s * 1.1, pz], 3));
+      tri.computeVertexNormals();
+      parts.push(fill(tri, cols[i % cols.length]));
+    }
+  }
+  bake(level, parts, { castShadow: false });
+}
+
+/**
+ * Kleine Überraschung am Himmel: eine schwarze Katze mit Hexenhütchen fliegt auf einem Besen große Runden um den Turm
+ * (Modell 'besen_plattform' bzw. eigene Form), winkt mit dem Schwanz. Nur Kulisse. o = { center: [x, y, z], r: 30, speed: 0.12 }
+ */
+export function besenKatze(level, o) {
+  if (!level.view) return;
+  const [cx, cy, cz] = o.center, R = o.r ?? 30, w = o.speed ?? 0.12;
+  const root = new THREE.Group();
+  root.name = 'besenkatze';
+  if (hasModel('besen_plattform')) {
+    const m = getModel('besen_plattform', { length: 1.4, width: 0.6, stick: 2.2, color: 'lila' });
+    root.add(m.root);
+  }
+  const mat = new THREE.MeshStandardMaterial({ color: 0x241a30, roughness: 0.6 });
+  const cat = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), mat); body.scale.set(1.2, 0.9, 0.9); body.position.y = 0.3;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), mat); head.position.set(0.32, 0.62, 0);
+  cat.add(body, head);
+  for (const sd of [-1, 1]) { const ear = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.16, 4), mat); ear.position.set(0.32, 0.85, sd * 0.11); cat.add(ear); }
+  const eyeM = new THREE.MeshBasicMaterial({ color: 0xffe04a });
+  for (const sd of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 4), eyeM); e.position.set(0.5, 0.66, sd * 0.08); cat.add(e); }
+  const hatM = new THREE.MeshStandardMaterial({ color: 0x7a42d8, roughness: 0.6 });
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.03, 12), hatM); brim.position.set(0.3, 0.84, 0);
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.36, 10), hatM); cone.position.set(0.28, 1.02, 0); cone.rotation.z = 0.3;
+  cat.add(brim, cone);
+  const tail = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 5, 10, PI * 1.2), mat); tail.position.set(-0.36, 0.42, 0); tail.rotation.y = PI / 2;
+  cat.add(tail);
+  cat.position.y = 0.05;
+  root.add(cat);
+  root.scale.setScalar(1.6);
+  const hold = {};
+  let a = o.phase ?? 0;
+  addObject(level, root, (dt, t) => {
+    const d = visDt(level, hold, dt);
+    a += w * d;
+    const x = cx + Math.cos(a) * R, z = cz - Math.sin(a) * R, y = cy + Math.sin(a * 2.3) * 2.5;
+    root.position.set(x, y, z);
+    root.rotation.set(0, a + PI / 2 + PI, Math.sin(t * 1.4) * 0.12);
+    tail.rotation.z = Math.sin(t * 5) * 0.4;
+  });
+}
+
 /** Leuchtpunkte (additiv, ein Zeichenaufruf): pts [[x, y, z], …], Farbe, Größe (m). */
 export function funkelSpur(level, pts, color = 0xfff0a0, size = 0.9, o = {}) {
   if (!level.view || !pts.length) return null;
