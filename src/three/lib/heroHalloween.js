@@ -155,11 +155,11 @@ export function witchHatGeo(accent = '#e83a30') {
   }
   // Lottis rote Schleife am Band (hinten zur nahen Seite)
   {
-    const tb = HAT.band[1] - 0.025, phi = 2.75;
-    const { p, n, f } = crownPoint(tb, phi, 0.016);
+    const tb = HAT.band[1] - 0.012, phi = 2.75;
+    const { p, n, f } = crownPoint(tb, phi, 0.02);
     const T = f.N.clone().multiplyScalar(-Math.sin(phi)).addScaledVector(f.B, Math.cos(phi)).normalize();
     const B = new THREE.Vector3().crossVectors(T, n).normalize();
-    gs.push(...bowGeos(p.addScaledVector(f.T, 0.016), n, T, B, accent, 1.3));
+    gs.push(...bowGeos(p.addScaledVector(f.T, 0.022), n, T, B, accent, 1.3));
   }
   const m = mergeColored(gs.map((g) => [g, null, null]));
   for (const g of gs) g.dispose();
