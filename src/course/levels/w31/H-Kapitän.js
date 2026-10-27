@@ -19,7 +19,7 @@
 
 import {
   isl, line, ring, sweets, sweetRing, mazeWalls, mazeCell, strawWalls, mazeFloor, giantPumpkin, barn, pumpkinStand, floatRock,
-  pumpkinsOn, pumpkinPatch, lanternPosts, bales, cornStalks, fireflies, glowPoints, wavingPumpkin, meadow,
+  pumpkinsOn, pumpkinPatch, lanternPosts, bales, cornStalks, fireflies, glowPoints, wavingPumpkin, meadow, glowShrooms,
 } from './_helpers_b.js';
 
 const YF = 0, YT = 2.5;                     // Kürbisfeld, Terrasse
@@ -81,6 +81,8 @@ function scene(level) {
   meadow(level, [[0.6, 13.6, 13.3, -3.8], [3.2, 11.8, 22.3, 17.2]], YF, { ...GRASS, avoid: [[8.8, 12.6, 2, -4], [3.6, 6.6, 19.6, 18.4], [6, 9, 17.5, 13]] });
   meadow(level, [[-13.8, 13.8, -4.2, -13.3], [18.2, 22.8, -5.7, -10.3]], YT, { ...GRASS, seed: 9,
     avoid: [[-10.6, -4.4, -6.3, -11.7], [-0.2, 5.2, -8.8, -13], [-11.8, -3.2, -4.6, -6.2], [-11.8, -10.2, -6, -9.4], [8.8, 12.6, -3.8, -5.4]] });
+  glowShrooms(level, [[13.2, YF, 12.4, 1.1], [1.4, YF, -3.4], [-13.3, YF, 12.9, 0.9], [-13.4, YF, -3.2], [-5.0, YT, -12.9, 1.0], [13.4, YT, -6.0, 0.8],
+    [22.6, YT, -5.9, 0.8], [3.4, YF, 21.9, 0.9], [11.6, YF, 21.8]]);
   glowPoints(level, [[HEART[0], YF + 0.3, HEART[1], 3.2]], { color: 0xffc040, size: 1, opacity: 0.35, pulse: 0.5 });
   return [];
 }
@@ -138,6 +140,8 @@ export const LEVEL = {
       { kind: 'zaun', from: [14, YF, 13.3], to: [9.6, YF, 13.3], style: 'holz' },
       { kind: 'zaun', from: [5.4, YF, 13.3], to: [1, YF, 13.3], style: 'holz' },
       { kind: 'krummer_baum', pos: [-12.6, YT, -12.3], height: 4.2 },
+      { kind: 'fledermaus_girlande', from: [6.0, YF + 1.6, 17.4], to: [9.0, YF + 1.6, 17.4], n: 4, sag: 0.25 },
+      { kind: 'fledermaus_girlande', from: [0.9, YF + 1.55, 9.0], to: [0.9, YF + 1.55, 12.4], n: 4, sag: 0.25 },
       { kind: 'spinnweben', pos: [-12.3, YT + 2.6, -12.1], size: 1.1, yaw: 0.4 },
     ] },
     { type: 'sign', pos: [10.9, YF, 18.6], text: 'Kürbis-\nKuddelmuddel', yaw: -0.35 },
