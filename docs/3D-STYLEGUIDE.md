@@ -65,7 +65,7 @@ bleiben eigene (Farben, Frisuren, Kleider, Merkmale). Bausteine in `src/three/li
   Wimpern; geschlossene Augen als Lidbogen „◡“ (Blinzeln, Statue, Jubel).
 - **Haar:** `hairShellGeo` – Haarschale über der Kopfform mit gerolltem Rand (sauberer Haaransatz, keine
   Durchdringung zweier Kugeln), Strähnen-Rillen und Glanzband in Vertexfarben. Lottis Zöpfe bleiben eine
-  Verlet-Kette (`HangChain`, `strictBend`), Gretas langes Haar ein Haarvorhang mit Locken.
+  Verlet-Kette (`HangChain`, `strictBend`), Gretas langes Haar ein runder Schopf mit sieben Strähnen und Spitzen (ein Mesh, Pendel mit Grenzkegel im Rumpf-System).
 - **Proportionen:** Kopf ≈ 40 % der Höhe, kräftige weiche Arme und Beine, runde Fäustlings-Hände, große glänzende
   Schuhe. Gelenke und Kurs-Anker sind unverändert (Spielphysik).
 - **Oberflächen = Materialien:** Haut (weich, leicht warm aufgehellt), Stoff (samtig), Haar (seidig), Glanz

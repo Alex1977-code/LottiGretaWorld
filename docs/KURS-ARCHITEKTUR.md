@@ -3706,6 +3706,33 @@ springt ab (Bahngeschwindigkeit der Hände + 5 m/s nach oben + 2 m/s in Schwungr
 Geschwindigkeit im Band 0,4–1,8 × Schwung so gewählt, dass die Hände dessen (vorausgerechnete) Stange treffen –
 Trapeze für Ketten also **4–5 m auseinander, gleiche Höhe, gleiche Phase**. `SWING` in `player/swing.js` hält alle Werte.
 
+### Präzisierung (Figuren Welt 5): Posen 'trapeze' und 'cannon'
+
+Ergänzung des Figuren-Agenten (additiv; Posen in `src/three/avatars/hero.js`: `poseTrapeze`, `poseCannon`, Arm-IK `reachTo`).
+Gilt für Lotti und Greta, groß/klein, Kostüme, Stern, Klone (`lite`).
+
+- **`'trapeze'`:** Der Avatar dreht die Figur **nicht** (die Hülle ist schon um `swingTilt` geneigt), er posiert im Seil-System.
+  Liest `swing` (Beine, Kopf, Rock) und `swingVel` (Beine laufen nach, am Umkehrpunkt Knie angezogen); `phase` bleibt ungenutzt.
+  Die Fäuste liegen per Arm-IK an der Stange: Stangenmitte = Körperhöhe der Hitbox (0,95 m / klein 0,65 m) + `SWING.arm`
+  (0,26 m) − 0,06 m Durchbiegung des Modells `trapez` über dem Fußpunkt (Tabelle `TRAPEZE` in hero.js – bei Änderung von
+  `SWING.arm`, `HITBOX` oder der Durchbiegung dort nachziehen). Gemessen: Fäuste 3–4 cm von der Stangenachse, ±0,37 m von der
+  Mitte (klein ±0,26 m). Arme gestreckt im weiten V um den Kopf (Gummi-Arme). Riesentrank: Stange in Brusthöhe → die Figur
+  hängt 0,45 Avatar-Einheiten hinter der Stange und hält sie vor dem Bauch. Absprung (`'jump'`) bzw. Fallenlassen (`'fall'`)
+  direkt aus `'trapeze'` blenden 0,3 s über.
+- **`'cannon'`:** Liest `phase`, `speed`, `vy`; die Hülle blickt waagerecht in Flugrichtung (`flightCtl` setzt `yaw`), die
+  Körperachse folgt (`speed`, `vy`) (kopfüber höchstens 129°), führende Faust voraus, Beine geschlossen, Rock flattert, Haar
+  und Zöpfe wehen über die Physik. Ab `phase` 0,8 Landepose (aufrecht, Arme im V, Beine vor).
+- **Neue Pose-Kanäle** (Kurs-Modus, im Klassik-Modus wirkungslos): `reachN/reachF` (Streckung der Kurs-Arme), `armKn/armKf`
+  (gleichmäßiger Arm-Maßstab), `skirtX/skirtZ` (Drehung des Rocks). Alle gleichmäßig → Figur-Bündel bleibt.
+- **HeroRig:** ausgeschwungene Rest-Stauchung (< 0,2 %) wird genau 0 – sonst war die Hülle bis ≈ 1,7 s nach jeder Landung
+  nicht ähnlichkeitstreu und das Figur-Bündel zerfiel (Kanonenflug 18 statt 9 Zeichenaufrufe).
+- **Gretas Haar:** runder Schopf mit Strähnen (ein Mesh wie bisher); Grenzkegel im Rumpf-System (liegt auf dem Rücken, auch
+  mit Kopf im Nacken), in Saltos enger; das Mesh dreht sichtbar um die Kopfmitte.
+- **Test** `tests/posen_w5.mjs` (Port 4360 + `PORT_BASE`; `P5_SHOTS=0`, `P5_HEROES`, `P5_PARTS=trapeze,cannon,extra`,
+  `P5_DEBUG=1`): Strandwerkstatt 0-17, Avatar im Takt der Simulation; Bilder `tests/out/posen_w5_*`, Bögen
+  `posen_w5_sheet_<heldin>.png`. Kennzahlen: beide Posen 9 Zeichenaufrufe (= idle), Dreiecke wie idle (Lotti 28,6 k, Greta
+  24,0 k inkl. Schattenpass; Gretas neues Haar +2,5 k).
+
 ### Präzisierung (Motor und Bausteine Welt 5): Ritt-Abschnitt im Parcours
 
 `archetype: 'parcours_ride'` (oder `'ride'` mit `LEVEL.ride.section: true`): Parcours-Level mit einem Flussabschnitt
