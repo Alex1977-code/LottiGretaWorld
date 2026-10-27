@@ -27,10 +27,10 @@ function buildRoof(level) {
     W.add({ type: 'cyl', x: Math.sin(a) * (R + 0.45), z: Math.cos(a) * (R + 0.45), r: 0.46, y0: Y, y1: Y + (merlon ? 1.6 : 0.8), camIgnore: true, noWallSlide: true, tag: 'zinne' });
   }
   if (!level.view) return;
-  const slate = lin(0x5a4e72), slateHi = lin(0x7a6c96), slateDk = lin(0x3e3454), stone = lin(0x8a82a0), stoneDk = lin(0x4e4664), mortar = lin(0x34304a);
+  const slate = lin(0x9a8cb8), slateHi = lin(0xb4a8d0), slateDk = lin(0x7a6c98), stone = lin(0xb0a8c4), stoneDk = lin(0x6e6688), mortar = lin(0x5a5470);
   const parts = [];
   // Boden: Schieferplatten in Ringen, Mitte mit hellem Kreis (Rosette)
-  const mid0 = lin(0xd8c8ff), mid1 = lin(0xb8a0e8);
+  const mid0 = lin(0xf0e6ff), mid1 = lin(0xcab8f0);
   const ringG = [];
   for (let r0 = 0; r0 < R + 0.9; r0 += 1.6) {
     const g = new THREE.RingGeometry(Math.max(0.01, r0), Math.min(R + 0.9, r0 + 1.6), 72, 1).toNonIndexed();

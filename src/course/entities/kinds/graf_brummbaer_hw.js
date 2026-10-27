@@ -29,7 +29,7 @@
 //          arena?: { center: [x, y, z], r: 9 } (Standard: center = pos; er läuft, landet und zielt nur darin), hp?: 3,
 //          speed?: [1.3, 1.7, 2.1] (Gehen m/s), keep?: [3.6, 5.6] (Wunschabstand zur Figur in m),
 //          every?: [2.8, 2.3, 2.0] (s zwischen Würfen), first?: 1.2 (s bis zum ersten Wurf), bombs?: [1, 2, 2] (je Wurf),
-//          max?: [2, 4, 6] (lebende Bomben höchstens), flight?: [1.1, 1.0, 0.9], fuse?: [3.4, 3.0, 2.6] (s nach der
+//          max?: [2, 3, 5] (lebende Bomben höchstens), flight?: [1.1, 1.0, 0.9], fuse?: [3.4, 3.0, 2.6] (s nach der
 //          Landung), radius?: 1.5, ring?: [0, 0, 4], ringEvery?: 3, ringR?: 2.8,
 //          swarm?: [8, 8, 12] (Fledermäuse; Index = Phase nach dem Treffer), swarmLegs?: [3, 3, 4] (Bögen),
 //          swarmSpeed?: [3.6, 3.6, 4.4] (m/s), swarmSpread?: [1.3, 1.3, 1.7] (m), swarmY?: 0.95 (Höhe der Schwarmmitte),
@@ -71,6 +71,26 @@ const pick = (v, ph, def) => (Array.isArray(v) ? v[Math.min(v.length - 1, ph - 1
 // =====================================================================================================================
 const EXPLODE = 0.6, FIZZLE = 0.5;
 const BOMB_KINDS = new Set(['kuerbis_bombe', 'zuendkopf', 'kickbombe']);
+
+/** Kurzer Explosionsblitz (wachsende, verblassende Kugel, lila-orange). */
+function flash(level, c, r) {
+  const view = level.view;
+  if (!view) return;
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffa070, transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending });
+  const geo = new THREE.SphereGeometry(1, 16, 10);
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(c.x, c.y, c.z);
+  m.scale.setScalar(0.3);
+  let t = 0;
+  view.add(m, (dt) => {
+    t += dt;
+    const k = Math.min(1, t / 0.28);
+    m.scale.setScalar(0.3 + r * 0.8 * Math.sqrt(k));
+    mat.opacity = 0.6 * (1 - k);
+    mat.color.setRGB(1, 0.62 - 0.25 * k, 0.44 + 0.4 * k);
+    if (k >= 1) { view.remove(m); geo.dispose(); mat.dispose(); }
+  });
+}
 
 class KuerbisBombe extends CourseEntity {
   constructor(level, spec) {
@@ -312,7 +332,17 @@ class KuerbisBombe extends CourseEntity {
     this.carryable = false;
     this.vel.set(0, 0, 0);
     this.setState('explode');
-    this.explosion = explodeAt(this.level, this.center().clone(), this.radius, this);
+    const c = this.center().clone();
+    this.explosion = explodeAt(this.level, c, this.radius, this, { fx: false });
+    // eigene, kindgerechte Wirkung: lila-oranger Puff (Modell), Funken, Kürbis-Stückchen, Druckring
+    const lv = this.level, fx = lv.effects;
+    lv.sfx('slam');
+    lv.sfx('stomp');
+    lv.shake(0.35);
+    fx?.sparks(c, 16);
+    fx?.debris(c, 0xffa040, 3);
+    fx?.dust({ x: c.x, y: c.y - 0.3, z: c.z }, 3, 1.0);
+    flash(lv, c, this.radius);
   }
 
   /** Entschärfen (Stern/Riese, Sieg über den Grafen): Puff, keine Explosion. */
@@ -326,8 +356,8 @@ class KuerbisBombe extends CourseEntity {
     this.carryable = false;
     this.vel.set(0, 0, 0);
     this.setState('fizzle');
-    this.level.effects?.dust(this.center(), 6, 0.9);
-    this.level.effects?.sparks(this.center(), 6);
+    this.level.effects?.dust(this.center(), 2, 0.5);
+    this.level.effects?.sparks(this.center(), 5);
     this.level.sfx('vanish');
   }
 
@@ -481,6 +511,7 @@ class GrafBrummbaer extends EnemyW2 {
     this.bombList = this.bombList.filter((b) => !b.removed);
     this.bats = this.bats.filter((m) => !m.removed);
     this.markers.update(dt);
+    if (this.confetti && this.level.time - this.confettiT0 > 2.2) this.dropConfetti();
     this.run(dt);
     this.syncArch();
   }
@@ -592,7 +623,7 @@ class GrafBrummbaer extends EnemyW2 {
   tryThrow() {
     const p = this.player;
     if (!activeFigure(p)) { this.throwT = 0.5; return; }
-    if (this.bombs >= this.val('max', [2, 4, 6])) { this.throwT = 0.6; return; }
+    if (this.bombs >= this.val('max', [2, 3, 5])) { this.throwT = 0.6; return; }
     this.throwCount++;
     const ring = this.val('ring', [0, 0, 4]);
     this.ringNow = ring > 0 && this.throwCount % (this.spec.ringEvery ?? 3) === 0;
@@ -736,7 +767,7 @@ class GrafBrummbaer extends EnemyW2 {
     this.swarmN = n;
     this.spread = this.val('swarmSpread', [1.3, 1.3, 1.7]);
     for (let i = 0; i < n; i++) {
-      const m = new Flatterfledi(this.level, { pos: [this.pos.x, this.pos.y + 1, this.pos.z], scale: 0.75, drop: 'coin' }, this, i, 'graf_fledermaus');
+      const m = new Flatterfledi(this.level, { pos: [this.pos.x, this.pos.y + 1, this.pos.z], scale: 1, drop: 'coin' }, this, i, 'graf_fledermaus');
       m.wake = 0;
       this.level.entities.push(m);
       if (m.shadow > 0 && this.level.view) this.level.view.shadows.add({ pos: m.pos, radius: m.shadow, alive: () => !m.removed, visible: () => m.alive && !m.defeated });
@@ -797,20 +828,15 @@ class GrafBrummbaer extends EnemyW2 {
 
   // ------------------------------------------------------------------ Sieg
 
+  /** Konfetti aus Süßigkeiten (läuft über die Simulationszeit, 1,8 s; danach weg). */
   burstConfetti() {
+    this.confettiT0 = this.level.time;
     if (!this.level.view) return;
     this.dropConfetti();
     const m = getModel('bonbon_konfetti', { count: 36, radius: 3.2 });
     m.root.position.set(this.pos.x, this.pos.y + 1.8, this.pos.z);
-    let t = 0;
-    const self = this;
     this.confetti = m;
-    this.level.view.add(m.root, (dt) => {
-      if (self.confetti !== m) return;
-      t += dt;
-      m.update(dt, { anim: 'burst', progress: Math.min(1, t / 1.8) });
-      if (t > 2.0) self.dropConfetti();
-    });
+    this.level.view.add(m.root);
   }
 
   dropConfetti() {
@@ -902,6 +928,7 @@ class GrafBrummbaer extends EnemyW2 {
     super.render(dt, t);
     this.markers.render(dt);
     this.flock.render(dt, this.bats, { anim: 'fly', speed: 4 });
+    this.confetti?.update(dt, { anim: 'burst', progress: Math.min(1, (this.level.time - this.confettiT0) / 1.8) });
     if (this.leader) {
       const on = this.state === 'swarm' || (this.state === 'land' && this.stateT < GATHER);
       this.leader.root.visible = on;

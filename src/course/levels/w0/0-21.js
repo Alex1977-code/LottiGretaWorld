@@ -28,8 +28,8 @@ const R = (r, h) => pen(4, 19, Z(r, 0), Z(r, 14), h);
 const sign = (x, r, text) => ({ type: 'sign', pos: [x, Y, Z(r, -0.8)], text, size: [2.8, 0.8] });
 const at = (x, r, dz, y = Y) => [x, y, Z(r, dz)];
 
-// Reihe 3 links: Balken, unter dem die Flatterfledis hängen (Unterkante 4,4 m über dem Boden)
-const BEAM = { x: -11.5, z: Z(3, 7), y: Y + 4.4, w: 12, d: 1 };
+// Reihe 3 links: Balken, unter dem die Flatterfledis hängen (Unterkante 2,8 m über dem Boden – höher sieht die Kurs-Kamera sie kaum)
+const BEAM = { x: -11.5, z: Z(3, 7), y: Y + 2.8, w: 12, d: 1 };
 // Reihe 4 links: hohes Podest (nur mit dem Krempen-Abprall erreichbar)
 const PODEST = { x: -16, z: Z(4, 11), h: 3.2, w: 2.4, d: 2.4 };
 

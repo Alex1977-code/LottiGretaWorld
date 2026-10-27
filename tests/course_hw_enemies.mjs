@@ -755,7 +755,191 @@ check('Keine Konsolenfehler (Teil 3)', errors.length === 0);
 if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
 }
 
-// __TEIL4__
+// =====================================================================================================================
+// Teil 4: Bilder (Kurs-Kamera) und Zeichenaufrufe
+// =====================================================================================================================
+if (want(4)) {
+await load('0-21');
+console.log('Teil 4: Bilder');
+const S = {};
+S.kuerbling = await SHOT('hwe', 'kuerbling_huepft', () => {
+  const c = window.__course, t = window.__t, p = c.player, j = t.ent('kb_jaeger');
+  const fig = [-7.5, 1, t.Z(1, 2.5)];
+  t.place(fig, { settle: 1 });
+  for (let i = 0; i < 1200 && !(j.state === 'air' && j.stateT > j.airT * 0.45 && Math.hypot(j.pos.x - fig[0], j.pos.z - fig[2]) < 3.2); i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  t.face(j.pos.x, j.pos.z);
+});
+S.riese = await SHOT('hwe', 'riesenkuerbling_zerfaellt', () => {
+  const c = window.__course, t = window.__t, g = t.ent('kb_riese');
+  t.stomp(g);
+  c.step(90);
+  t.stomp(g);
+  c.step(16);
+  c.player.pos.set(g.pos.x - 3.5, 1, g.pos.z + 2.5); c.player.vel.set(0, 0, 0); c.player.mode = 'ground';
+  t.face(g.pos.x, g.pos.z);
+});
+S.knochen = await SHOT('hwe', 'klapperknochen_haufen', () => {
+  const c = window.__course, t = window.__t, k = t.ent('kk_streife'), k2 = t.ent('kk_jaeger');
+  t.stomp(k);
+  c.step(60);
+  t.place([k.pos.x + 2.4, 1, k.pos.z + 2], { settle: 2 });
+  t.face(k.pos.x, k.pos.z);
+});
+S.aufbau = await SHOT('hwe', 'klapperknochen_zittert', () => {
+  const c = window.__course, t = window.__t, k = t.ent('kk_streife'), p = c.player;
+  const fig = [p.pos.x, p.pos.y, p.pos.z];
+  for (let i = 0; i < 900 && k.state !== 'shiver'; i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  c.step(40);
+  t.face(k.pos.x, k.pos.z);
+});
+S.rebuild = await SHOT('hwe', 'klapperknochen_aufbau', () => {
+  const c = window.__course, t = window.__t, k = t.ent('kk_streife'), p = c.player;
+  const fig = [p.pos.x, p.pos.y, p.pos.z];
+  for (let i = 0; i < 900 && !(k.state === 'rebuild' && k.stateT > 0.4); i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  t.face(k.pos.x, k.pos.z);
+});
+S.haengt = await SHOT('hwe', 'flatterfledi_haengt', () => {
+  const c = window.__course, t = window.__t, f = t.ent('ff_haeng');
+  t.place([f.anchor.x + 0.5, 1, f.anchor.z + 5.6], { settle: 30 });
+  t.face(f.anchor.x, f.anchor.z);
+});
+S.sturz = await SHOT('hwe', 'flatterfledi_sturzflug', () => {
+  const c = window.__course, t = window.__t, p = c.player, f = t.ent('ff_haeng');
+  const fig = [f.anchor.x + 2.2, 1, f.anchor.z + 0.8];
+  for (let i = 0; i < 1200 && !(f.state === 'dive' && f.stateT > f.diveT * 0.38); i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  t.face(f.anchor.x, f.anchor.z + 6);
+});
+S.schwarm = await SHOT('hwe', 'fledermaus_schwarm', () => {
+  const t = window.__t;
+  t.place([8, 1, t.Z(3, 0.8)], { settle: 30 });
+  t.face(12, t.Z(3, 8));
+});
+S.hut = await SHOT('hwe', 'hexenhut_krempe', () => {
+  const c = window.__course, t = window.__t, p = c.player, h = t.ent('hh_jaeger');
+  t.place([-12, 1, t.Z(4, 1.5)], { settle: 1 });
+  for (let i = 0; i < 900 && !(h.state === 'air' && h.vel.y > 1.5); i++) { p.pos.set(-12, 1, t.Z(4, 1.5)); p.vel.set(0, 0, 0); c.step(1); }
+  p.pos.set(h.pos.x, h.pos.y + 2 * h.half.y + 0.12, h.pos.z); p.vel.set(0, -2, 0); p.mode = 'air';
+  for (let i = 0; i < 40 && h.brimBounces === 0; i++) c.step(1);
+  c.step(10);
+  t.face(h.pos.x + 3, h.pos.z - 3);
+});
+S.bombe = await SHOT('hwe', 'kuerbis_bombe_tragen', () => {
+  const c = window.__course, t = window.__t, p = c.player, b = t.ent('kbb_1');
+  t.place([b.pos.x - 0.75, 1, b.pos.z], { settle: 10, yaw: 0 });
+  t.face(b.pos.x, b.pos.z);
+  t.action();
+  c.step(60);
+  t.face(b.pos.x + 4, b.pos.z - 3);
+});
+S.boom = await SHOT('hwe', 'kuerbis_bombe_explosion', () => {
+  const c = window.__course, t = window.__t, p = c.player, tg = t.ent('kbb_ziel');
+  p.pos.set(tg.pos.x - 3.4, 1, tg.pos.z); p.vel.set(0, 0, 0);
+  c.step(4);
+  t.face(tg.pos.x, tg.pos.z);
+  c.step(1);
+  t.action();
+  const b = c.level.entities.find((e) => e.kind === 'kuerbis_bombe' && e.state === 'thrown');
+  for (let i = 0; i < 160 && b && !b.exploded; i++) c.step(1);
+  c.step(10);
+});
+S.spuk = await SHOT('hwe', 'halloween_spuke', () => {
+  const c = window.__course, t = window.__t, p = c.player;
+  const fig = [-6.5, 1, t.Z(5, 2.5)];
+  t.place(fig, { settle: 1 });
+  for (let i = 0; i < 160; i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); p.yaw = 0; c.step(1); }
+  t.face(-12, t.Z(5, 8));
+});
+S.kreis = await SHOT('hwe', 'halloween_kreisgeister', () => {
+  const c = window.__course, t = window.__t;
+  t.place([6, 1, t.Z(5, 0.8)], { settle: 60 });
+  t.face(11, t.Z(5, 8));
+});
+// Porträt: alle Halloween-Gegner nebeneinander auf dem Mittelweg
+S.nah = await SHOT('hwe', 'nah_alle', () => {
+  const c = window.__course, t = window.__t, L = c.level;
+  t.place([0, 1, t.Z(2, -2)], { settle: 2 });
+  const z = t.Z(2, 1.5);
+  L.spawn('kuerbling', { pos: [-3.2, 1, z], dir: [0, 1], sight: 0, wake: 0.01, pause: 99 });
+  L.spawn('klapperknochen', { pos: [-1.8, 1, z - 0.3], dir: [0, 1], speed: 0.001, wake: 99 });
+  L.spawn('flatterfledi', { pos: [-0.4, 1.9, z], hang: false });
+  L.spawn('hexenhut_huepfer', { pos: [1.0, 1, z - 0.2], dir: [0, 1], sight: 0, wake: 0.01, pause: 99 });
+  L.spawn('kuerbis_bombe', { pos: [2.3, 1, z + 0.2], lit: true, fuse: 60 });
+  L.spawn('spuk', { pos: [3.6, 1.5, z - 0.4], sight: 0, hat: 'kuerbis' });
+  c.step(60);
+  t.face(0, z - 4);
+});
+const zmax = Math.max(...Object.values(S).map((s) => s.calls));
+console.log(`  Zeichenaufrufe Gruselwerkstatt: ${Object.entries(S).map(([k, s]) => `${k} ${s.calls}`).join(', ')}; höchstens ${Math.round(Math.max(...Object.values(S).map((s) => s.triangles)) / 1000)} k Dreiecke`);
+check(`Gruselwerkstatt: Zeichenaufrufe < 140 (höchstens ${zmax})`, zmax < 140);
+
+await load('0-22');
+await sc(BOSS_HELPERS, ['graf', 20]);
+const B = {};
+B.intro = await SHOT('hwe', 'graf_auftritt', () => { const c = window.__course, t = window.__t; t.enter(); for (let i = 0; i < 150; i++) c.step(1); });
+B.wurf = await SHOT('hwe', 'graf_wurf', () => {
+  const c = window.__course, t = window.__t, g = t.boss(), p = c.player;
+  const fig = [-2, 2, 4];
+  p.hurt = () => false;
+  for (let i = 0; i < 2400 && !(g.state === 'throw' && g.stateT > 0.7); i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  t.face(g.pos.x, g.pos.z);
+});
+B.tragen = await SHOT('hwe', 'graf_bombe_tragen', () => {
+  const c = window.__course, t = window.__t, g = t.boss(), p = c.player, L = c.level;
+  let b = null;
+  for (let i = 0; i < 2400 && !b; i++) { b = L.entities.find((e) => e.kind === 'kuerbis_bombe' && e.state === 'lit' && e.owner === g && e.fuse > 1.5) ?? null; if (!b) { p.pos.set(-2, 2, 4); p.vel.set(0, 0, 0); c.step(1); } }
+  if (!b) return;
+  const dx = b.pos.x - g.pos.x, dz = b.pos.z - g.pos.z, d = Math.hypot(dx, dz) || 1;
+  p.pos.set(b.pos.x + (dx / d) * 0.7, b.pos.y, b.pos.z + (dz / d) * 0.7); p.vel.set(0, 0, 0);
+  c.step(2);
+  t.face(b.pos.x, b.pos.z);
+  t.action();
+  t.face(g.pos.x, g.pos.z);
+  c.step(20);
+  t.face(g.pos.x, g.pos.z);
+});
+B.treffer = await SHOT('hwe', 'graf_treffer', () => {
+  const c = window.__course, t = window.__t, g = t.boss(), p = c.player;
+  t.face(g.pos.x, g.pos.z);
+  c.step(1);
+  t.action();
+  for (let i = 0; i < 300 && g.state !== 'hit'; i++) c.step(1);
+  c.step(26);
+});
+B.schwarm = await SHOT('hwe', 'graf_schwarm', () => {
+  const c = window.__course, t = window.__t, g = t.boss(), p = c.player;
+  t.untilSafe('swarm', 900, [2, 2, 4]);
+  for (let i = 0; i < 150; i++) { p.pos.set(2, 2, 5); p.vel.set(0, 0, 0); c.step(1); }
+  t.face(g.pos.x, g.pos.z);
+});
+B.landung = await SHOT('hwe', 'graf_landung', () => {
+  const c = window.__course, t = window.__t, g = t.boss(), p = c.player;
+  t.untilSafe('land', 2400, [2, 2, 5]);
+  c.step(60);
+  t.face(g.pos.x, g.pos.z);
+});
+B.ring = await SHOT('hwe', 'graf_rundumwurf', () => {
+  const c = window.__course, t = window.__t, g = t.boss(), p = c.player;
+  t.untilSafe('walk', 900, [2, 2, 5]);
+  t.throwBack([2, 2, 5]);
+  t.untilSafe('walk', 3000, [2, 2, 5]);
+  let last = g.bombsThrown, ring = false;
+  p.hurt = () => false;
+  for (let i = 0; i < 120 * 20 && !ring; i++) { p.pos.set(2, 2, 5); p.vel.set(0, 0, 0); c.step(1); if (g.bombsThrown - last === 4) ring = true; last = g.bombsThrown; }
+  c.step(50);
+  t.face(g.pos.x, g.pos.z);
+});
+B.besiegt = await SHOT('hwe', 'graf_besiegt', () => {
+  const c = window.__course, t = window.__t, g = t.boss(), p = c.player;
+  t.throwBack([2, 2, 5]);
+  c.step(110);
+  p.pos.set(g.pos.x + 1.5, 2, g.pos.z + 4.5); p.vel.set(0, 0, 0);
+  t.face(g.pos.x, g.pos.z);
+});
+const bmax = Math.max(...Object.values(B).map((s) => s.calls));
+console.log(`  Zeichenaufrufe Schlossdach: ${Object.entries(B).map(([k, s]) => `${k} ${s.calls}`).join(', ')}; höchstens ${Math.round(Math.max(...Object.values(B).map((s) => s.triangles)) / 1000)} k Dreiecke`);
+check(`Schlossdach: Zeichenaufrufe < 140 (höchstens ${bmax})`, bmax < 140);
+check('Keine Konsolenfehler (Teil 4)', errors.length === 0);
+}
 
 check('Keine Konsolenfehler', errors.length === 0);
 if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
