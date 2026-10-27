@@ -80,6 +80,44 @@ export function pfosten(r) {
 }
 export const roof = (r) => ({ x0: r.x0, x1: r.x1, zA: r.zA, zB: r.zB, y: r.floor + (r.h ?? 2.6), colors: r.colors });
 
+/**
+ * Wimpelleinen (Festschmuck, statisch, ohne Schatten): bunte Dreieckswimpel an einer durchhängenden Leine zwischen a und
+ * b. lines [{ a: [x, y, z], b: [x, y, z], sag: 0.8, every: 0.8, colors }]. Ein Zeichenaufruf je 32-m-Abschnitt.
+ */
+export function wimpelLeinen(level, lines) {
+  if (!level.view) return;
+  const parts = [];
+  const DEF = [0xff4f7a, 0xffd23a, 0x3ac8f0, 0x6ad04a, 0xb070ff, 0xff9a2e];
+  for (const ln of lines) {
+    const [ax, ay, az] = ln.a, [bx, by, bz] = ln.b;
+    const len = Math.hypot(bx - ax, by - ay, bz - az), sag = ln.sag ?? 0.8, cols = ln.colors ?? DEF;
+    const n = Math.max(3, Math.round(len / (ln.every ?? 0.8)));
+    const tx = (bx - ax) / len, tz = (bz - az) / len;              // Leinenrichtung (waagerecht)
+    const pt = (t) => [ax + (bx - ax) * t, ay + (by - ay) * t - Math.sin(t * Math.PI) * sag, az + (bz - az) * t];
+    const rope = [];
+    for (let k = 0; k < n; k++) {
+      const t = (k + 0.5) / n, [x, y, z] = pt(t), w = 0.26;
+      const v = [x - tx * w, y, z - tz * w, x + tx * w, y, z + tz * w, x, y - 0.5, z];
+      const tri = new THREE.BufferGeometry();
+      tri.setAttribute('position', new THREE.Float32BufferAttribute([...v, v[3], v[4], v[5], v[0], v[1], v[2], v[6], v[7], v[8]], 3));
+      tri.computeVertexNormals();
+      const c = L(cols[k % cols.length]);
+      parts.push(colorize(tri, (p, nn, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
+      const [x0, y0, z0] = pt(k / n), [x1, y1, z1] = pt((k + 1) / n);
+      rope.push(x0, y0 + 0.01, z0, x1, y1 + 0.01, z1);
+    }
+    // Leine als dünnes Band
+    for (let i = 0; i < rope.length; i += 6) {
+      const g = new THREE.BufferGeometry();
+      const [x0, y0, z0, x1, y1, z1] = rope.slice(i, i + 6);
+      g.setAttribute('position', new THREE.Float32BufferAttribute([x0, y0, z0, x1, y1, z1, x1, y1 + 0.05, z1, x0, y0, z0, x1, y1 + 0.05, z1, x0, y0 + 0.05, z0], 3));
+      g.computeVertexNormals();
+      parts.push(colorize(g, (p, nn, o) => { o[0] = 0.9; o[1] = 0.85; o[2] = 0.75; }));
+    }
+  }
+  bakeParts(level, parts, { castShadow: false, material: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, side: THREE.DoubleSide }) });
+}
+
 // =====================================================================================================================
 // 2) Glutfestung (5-7)
 // =====================================================================================================================
@@ -912,7 +950,7 @@ export function gluecksHaus(level, def) {
  * ein rot-weißer Leuchtturm mit leuchtender Laterne, Holzstege in die Lagunen, schwimmende Bojen, Strandkörbe.
  * cfg = { huts: [[x, z, yaw, color]], lighthouse: [x, y, z], jetties: [[x, z, len, yaw]], buoys: [[x, z, color]],
  * baskets: [[x, z, yaw, color]], bunting: [{ x, z0, z1, every: 14, h: 3.4 }] (Wimpelketten an Masten neben dem Gleis),
- * towels: [[x, z, yaw, colorA, colorB]] (Strandtücher), stars: [[x, z]] (Seesterne), pails: [[x, z, color]] (Eimer mit Schaufel),
+ * islets: [[x, z, r]] (Sandbänke), boats: [[x, z, yaw, color]] (Segelboote), towels: [[x, z, yaw, colorA, colorB]] (Strandtücher), stars: [[x, z]] (Seesterne), pails: [[x, z, color]] (Eimer mit Schaufel),
  * y: Strandhöhe }.
  */
 export function kuestenKulisse(level, cfg) {
@@ -989,6 +1027,32 @@ export function kuestenKulisse(level, cfg) {
     hood.translate(0, 1.0, -0.2);
     const stripe = (g) => colorize(g, (p, n, o) => mixc(Math.floor((p.x + 0.7) / 0.23) % 2 ? c : w, w, 0, o));
     parts.push(rot(stripe(seat), yaw, x, y, z), rot(stripe(hood), yaw, x, y, z));
+  }
+  // Sandbänke in den Lagunen und kleine Segelboote
+  for (const [x, z, r] of cfg.islets ?? []) {
+    const g = new THREE.SphereGeometry(1, 16, 6, 0, TAU, 0, Math.PI / 2).toNonIndexed();
+    g.scale(r * 1.3, 0.55, r);
+    g.translate(x, -0.95, z);
+    parts.push(colorize(g, (p, n, o) => mixc(L(0xe8c07a), L(0xfff0c8), smooth(0.1, 0.9, n.y), o)));
+  }
+  for (const [x, z, yaw = 0, col = 0xe8304a] of cfg.boats ?? []) {
+    const P = [];
+    const hull = new THREE.CylinderGeometry(0.75, 0.75, 3.0, 12, 1, false, Math.PI / 2, Math.PI).toNonIndexed();
+    hull.rotateX(Math.PI / 2);
+    hull.scale(1, 0.7, 1);
+    hull.translate(0, 0.05, 0);
+    P.push(colorize(hull, (p, n, o) => mixc(L(col), L(0xffffff), p.y > -0.08 ? 0.75 : 0, o)));
+    const deck = new THREE.BoxGeometry(1.4, 0.08, 2.8).toNonIndexed();
+    deck.translate(0, 0.06, 0);
+    P.push(flat(deck, 0xd8a46a));
+    const mast = new THREE.CylinderGeometry(0.05, 0.06, 3.0, 6).toNonIndexed();
+    mast.translate(0, 1.55, 0.2);
+    P.push(flat(mast, 0x7a5232));
+    const sail = new THREE.BufferGeometry();
+    sail.setAttribute('position', new THREE.Float32BufferAttribute([0, 0.4, 0.3, 0, 2.9, 0.25, 0, 0.4, -1.3, 0, 2.9, 0.25, 0, 0.4, 0.3, 0, 0.4, -1.3], 3));
+    sail.computeVertexNormals();
+    P.push(colorize(sail, (p, n, o) => mixc(L(0xffffff), L(col), Math.floor(p.y / 0.5) % 2 ? 0.55 : 0, o)));
+    for (const g of P) parts.push(rot(g, yaw, x, -0.9, z));
   }
   // Wimpelketten: Masten mit bunten Dreieckswimpeln in leichtem Durchhang
   const FLAGS = [0xff4f7a, 0xffd23a, 0x3ac8f0, 0x6ad04a, 0xb070ff, 0xff9a2e];
@@ -1154,6 +1218,154 @@ export function mutPlatz(level, x, y, z, r = 0.7) {
   const holder = {};
   let t = 0;
   addObject(level, m, (dt) => { t += visDt(level, holder, dt); mat.opacity = 0.45 + 0.35 * Math.sin(t * 3.4); m.rotation.y = t * 0.6; });
+}
+
+// ---------------------------------------------------------------- Tempel-Kulisse mit Farbtupfern (5-Burg)
+
+const flatCol = (g, hexc) => { const k = L(hexc); return colorize(g, (p, n, o) => { o[0] = k[0]; o[1] = k[1]; o[2] = k[2]; }); };
+
+/**
+ * Tempeltore quer über dem Weg (Durchgang entlang z): zwei Sandstein-Pfeiler mit lila Band und goldenem Kapitell
+ * (statisch, fest), darüber der Sturz mit türkisem Fries, goldener Sonnenscheibe und lila Zinnen – als eigenes Mesh,
+ * das durchscheinend wird, sobald es die Figur verdeckt (Kamera steht hinter der Figur). list [{ x, y, z, width, height }].
+ */
+export function tempelTore(level, list) {
+  const stone = L(0xe8c88e), stoneD = L(0xb88e56), lila = L(0x9a62d8), gold = L(0xffc83a), tq = L(0x2ac8c0);
+  const pillars = [];
+  for (const t of list) {
+    const W = t.width ?? 4.4, H = t.height ?? 5, { x, y, z } = t;
+    for (const s of [-1, 1]) {
+      const px = x + s * (W / 2 + 0.45);
+      const g = new THREE.BoxGeometry(0.9, H, 0.9, 1, 6, 1).toNonIndexed();
+      g.translate(px, y + H / 2, z);
+      pillars.push(colorize(g, (p, n, o) => {
+        mixc(stoneD, stone, smooth(-0.6, 0.8, n.y * 0.6 + n.z * 0.3 - n.x * 0.2), o);
+        const hy = p.y - y;
+        if (hy > H * 0.62 && hy < H * 0.72) mixc(o, lila, 0.85, o);
+        if (hy < 0.35) mixc(o, stoneD, 0.4, o);
+      }));
+      const cap = new THREE.BoxGeometry(1.15, 0.3, 1.15).toNonIndexed();
+      cap.translate(px, y + H - 0.15, z);
+      pillars.push(flatCol(cap, 0xffc83a));
+      level.world.add({ type: 'box', min: [px - 0.45, y, z - 0.45], max: [px + 0.45, y + H, z + 0.45], tag: 'tempeltor' });
+    }
+    // Sturz (eigenes Mesh mit Durchsicht)
+    if (!level.view) continue;
+    const P = [];
+    const LW = W + 1.9;
+    const beam = new THREE.BoxGeometry(LW, 0.95, 1.2, 8, 1, 1).toNonIndexed();
+    beam.translate(0, 0.475, 0);
+    P.push(colorize(beam, (p, n, o) => { mixc(stoneD, stone, smooth(-0.6, 0.8, n.y * 0.7 + n.z * 0.3), o); if (n.z > 0.5 && p.y > 0.25 && p.y < 0.7) mixc(o, tq, 0.85, o); }));
+    for (let i = 0; i < Math.round(LW / 0.9); i++) {
+      const m = new THREE.ConeGeometry(0.22, 0.42, 4).toNonIndexed();
+      m.rotateY(Math.PI / 4);
+      m.translate(-LW / 2 + 0.45 + i * 0.9, 1.16, 0);
+      P.push(flatCol(m, i % 2 ? 0x9a62d8 : 0xffc83a));
+    }
+    for (const zz of [0.61, -0.61]) {
+      const sun = new THREE.CylinderGeometry(0.36, 0.36, 0.08, 18).toNonIndexed();
+      sun.rotateX(Math.PI / 2);
+      sun.translate(0, 0.48, zz);
+      P.push(colorize(sun, (p, n, o) => mixc(L(0xffa020), gold, smooth(0, 0.35, Math.hypot(p.x, p.y - 0.48) < 0.2 ? 0.4 : 0), o)));
+      for (let k = 0; k < 8; k++) {
+        const ray = new THREE.BoxGeometry(0.08, 0.2, 0.05).toNonIndexed();
+        ray.translate(0, 0.46, 0);
+        ray.rotateZ((k / 8) * TAU);
+        ray.translate(0, 0.48, zz);
+        P.push(flatCol(ray, 0xffd23a));
+      }
+    }
+    const mesh = new THREE.Mesh(merge(P), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72 }));
+    mesh.position.set(x, y + H, z);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.name = 'tempeltor-sturz';
+    addObject(level, mesh);
+    level.view.xray(mesh, new THREE.Box3(new THREE.Vector3(x - LW / 2, y + H - 0.2, z - 0.8), new THREE.Vector3(x + LW / 2, y + H + 1.5, z + 0.8)), { min: 0.25 });
+  }
+  if (level.view && pillars.length) bakeParts(level, pillars, { castShadow: true });
+}
+
+/**
+ * Mosaikwege auf den Tempelplätzen (Bodendekor, ohne Kollision): Fliesen in Türkis und Lila mit goldenem Rand und
+ * hier und da einem weißen Sternfeld; die Fugen zeigen den Sandstein. list [{ x0, x1, z0, z1, y }].
+ */
+export function mosaikWege(level, list) {
+  if (!level.view) return;
+  const parts = [];
+  const cell = 0.6, pad = 0.035;
+  const C = { tq: 0x2ac8c0, tqD: 0x1a98a8, lila: 0x9a62d8, lilaD: 0x7a46b8, gold: 0xffc83a, white: 0xfff6e8 };
+  for (const r of list) {
+    const xa = Math.min(r.x0, r.x1), xb = Math.max(r.x0, r.x1), za = Math.min(r.z0, r.z1), zb = Math.max(r.z0, r.z1);
+    const nx = Math.max(1, Math.round((xb - xa) / cell)), nz = Math.max(1, Math.round((zb - za) / cell));
+    const cx = (xb - xa) / nx, cz = (zb - za) / nz;
+    for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+      const border = i === 0 || i === nx - 1 || j === 0 || j === nz - 1;
+      const star = !border && (i + j * 3) % 11 === 5;
+      const col = border ? C.gold : star ? C.white : ((i + j) % 2 ? (j % 4 < 2 ? C.tq : C.tqD) : (i % 3 ? C.lila : C.lilaD));
+      const g = new THREE.PlaneGeometry(cx - pad * 2, cz - pad * 2).toNonIndexed();
+      g.rotateX(-Math.PI / 2);
+      g.translate(xa + (i + 0.5) * cx, r.y + 0.03, za + (j + 0.5) * cz);
+      parts.push(flatCol(g, col));
+    }
+  }
+  bakeParts(level, parts, { castShadow: false });
+}
+
+/**
+ * Blumenkübel (Terrakotta mit Goldrand, darin ein runder Busch mit bunten Blüten), fest. pts [[x, y, z, Blütenfarbe]].
+ */
+export function blumenKuebel(level, pts) {
+  const parts = [];
+  for (const [x, y, z, col = 0xff5a9a] of pts) {
+    level.world.add({ type: 'box', min: [x - 0.5, y, z - 0.5], max: [x + 0.5, y + 0.8, z + 0.5], tag: 'kuebel' });
+    if (!level.view) continue;
+    const pot = new THREE.CylinderGeometry(0.55, 0.42, 0.8, 12).toNonIndexed();
+    pot.translate(x, y + 0.4, z);
+    parts.push(colorize(pot, (p, n, o) => mixc(L(0xb8582e), L(0xe88a4e), smooth(-0.5, 0.8, n.x * 0.4 + n.z * 0.6), o)));
+    const rim = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 12).toNonIndexed();
+    rim.translate(x, y + 0.8, z);
+    parts.push(flatCol(rim, 0xffc83a));
+    const bush = new THREE.IcosahedronGeometry(0.62, 1);
+    bush.scale(1, 0.8, 1);
+    bush.translate(x, y + 1.2, z);
+    parts.push(colorize(bush, (p, n, o) => mixc(L(0x2a8a3a), L(0x6ad04a), smooth(-0.4, 0.9, n.y), o)));
+    for (let k = 0; k < 7; k++) {
+      const a = (k / 7) * TAU + x, rr = 0.48;
+      const f = new THREE.IcosahedronGeometry(0.11, 0);
+      f.translate(x + Math.cos(a) * rr, y + 1.25 + Math.sin(a * 3) * 0.2, z + Math.sin(a) * rr);
+      parts.push(flatCol(f, k % 3 === 2 ? 0xffe066 : col));
+    }
+  }
+  if (parts.length) bakeParts(level, parts, { castShadow: true });
+}
+
+/**
+ * Wandtücher (lila bzw. türkis mit goldener Sonne und Fransen), an Wänden aufgehängt. list [{ x, y (Oberkante), z,
+ * yaw (Vorderseite bei 0 nach +Z), w: 1.2, h: 2.4, color }].
+ */
+export function wandTuecher(level, list) {
+  if (!level.view) return;
+  const parts = [];
+  for (const t of list) {
+    const w = t.w ?? 1.2, h = t.h ?? 2.4, col = L(t.color ?? 0x8a52c8), gold = L(0xffc83a);
+    const cloth = new THREE.PlaneGeometry(w, h, 1, 6).toNonIndexed();
+    cloth.translate(0, -h / 2, 0.06);
+    const pos = cloth.attributes.position;
+    for (let i = 0; i < pos.count; i++) pos.setZ(i, pos.getZ(i) + Math.sin((pos.getY(i) / h) * Math.PI) * 0.05);
+    cloth.computeVertexNormals();
+    const P = [colorize(cloth, (p, n, o) => {
+      mixc(col, col, 0, o);
+      const r = Math.hypot(p.x, p.y + h * 0.42);
+      if (r < w * 0.26) mixc(o, gold, 1, o);
+      if (Math.abs(p.x) > w / 2 - 0.08 || p.y < -h + 0.12) mixc(o, gold, 0.9, o);
+    })];
+    const rod = new THREE.CylinderGeometry(0.05, 0.05, w + 0.3, 6).toNonIndexed();
+    rod.rotateZ(Math.PI / 2);
+    rod.translate(0, 0.02, 0.08);
+    P.push(flatCol(rod, 0xffc83a));
+    for (const g of P) { g.rotateY(t.yaw ?? 0); g.translate(t.x, t.y, t.z); parts.push(g); }
+  }
+  bakeParts(level, parts, { castShadow: false });
 }
 
 /**

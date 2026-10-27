@@ -22,6 +22,7 @@
 import {
   isl, line, ring, arc, pfosten, roof, daecher, hofPflaster, laternen, festungsMauern, alarmLampen, rissWand, kletterRaum,
   steinStern, schleichZaehler, scheinwerferSparen, gluehwuermchen, lavaSee, lavaFaelle, glutSaum, tuerme, fackeln, banner, ketten, funkenFlug,
+  wimpelLeinen, blumenKuebel,
 } from './_helpers_d.js';
 import { bakeModel } from '../../blocks/w2kit.js';
 import { hasModel } from '../../models/index.js';
@@ -138,6 +139,17 @@ function build(level) {
   }
   // Glühwürmchen über den Arkaden und dem Säulengang (Mondnacht)
   gluehwuermchen(level, [[-10, -6, -14, -34, Y], [6, 10, -100, -114, Y], [-5, 5, -186, -200, YT]], { n: 36 });
+  // Festschmuck des Barons (die Festung feiert – und schläft halb): Wimpelleinen über den Höfen, Blumenkübel
+  wimpelLeinen(level, [
+    { a: [-10.4, Y + 5.6, -17], b: [10.4, Y + 5.6, -19], sag: 1.0 }, { a: [-10.4, Y + 5.6, -29], b: [10.4, Y + 5.6, -27], sag: 1.0 },
+    { a: [-10.4, Y + 4.6, -44], b: [10.4, Y + 4.6, -46], sag: 0.9 }, { a: [-10.4, Y + 4.6, -56], b: [10.4, Y + 4.6, -54], sag: 0.9 },
+    { a: [-12.9, Y + 5.6, -91], b: [10.4, Y + 4.6, -93], sag: 1.1 },
+    { a: [-8.6, YT + 4.4, -188], b: [8.6, YT + 4.4, -188], sag: 0.8 },
+  ]);
+  blumenKuebel(level, [
+    [-5.4, Y, 2, 0xff5a9a], [5.4, Y, 2, 0xb070ff],
+    [-7.9, YT, -186.4, 0xff5a9a], [7.9, YT, -186.4, 0xffd23a], [-7.9, YT, -202.4, 0xb070ff], [7.9, YT, -202.4, 0xff5a9a],
+  ]);
 }
 
 /** Level-Haken nach dem Aufbau: Alarmlampen, Riss, Kletterraum, Stern im Steinblock, Entdeckungen zählen. */

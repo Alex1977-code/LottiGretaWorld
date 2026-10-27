@@ -20,7 +20,8 @@
 // Extraleben: unsichtbarer Block neben den ?-Blöcken im Vorhof, Kiste auf dem Mittelpfeiler des Würfel-Rings.
 
 import {
-  isl, line, ring, arc, lochStern, mutPlatz, baronAuftritt, fackeln, blk, bakeParts, glowPoints,
+  isl, line, ring, arc, lochStern, mutPlatz, baronAuftritt, fackeln, blk, bakeParts, glowPoints, tempelTore, mosaikWege,
+  blumenKuebel, wandTuecher,
 } from './_helpers_d.js';
 import { bakeModel } from '../../blocks/w2kit.js';
 import { hasModel } from '../../models/index.js';
@@ -75,6 +76,32 @@ function build(level) {
     { pos: [-2.6, Y, AZ + A + 8.6], post: 1.4 }, { pos: [2.6, Y, AZ + A + 8.6], post: 1.4 },
     { pos: [-3, Y, AZ - 41], post: 1.4 }, { pos: [3, Y, AZ - 41], post: 1.4 },
   ], { glow: 2 });
+  // Tempeltore (Sturz wird durchsichtig, wenn er die Figur verdeckt), Mosaikwege, Blumenkübel, Wandtücher
+  tempelTore(level, [
+    { x: 0, y: Y, z: -18.6, width: 4.2, height: 5 },
+    { x: 0, y: Y3, z: -106.3, width: 6, height: 5.5 },
+    { x: 0, y: Y, z: AZ - 52.5, width: 4.4, height: 5.5 },
+  ]);
+  mosaikWege(level, [
+    { x0: 3.4, x1: 5.8, z0: 10.4, z1: -16.6, y: Y }, { x0: -1.2, x1: 1.2, z0: -27, z1: -43.4, y: Y },
+    { x0: -1.2, x1: 1.2, z0: -60.6, z1: -77.4, y: Y }, { x0: -1.2, x1: 1.2, z0: -96.4, z1: -105.6, y: Y3 },
+    { x0: -2.7, x1: -0.3, z0: -138.4, z1: -151.6, y: Y3 }, { x0: -1.2, x1: 1.2, z0: -152.4, z1: -165, y: Y3 },
+    { x0: -1.2, x1: 1.2, z0: AZ + A + 0.6, z1: AZ + A + 8.4, y: Y }, { x0: -1.2, x1: 1.2, z0: AZ - 36.6, z1: AZ - 45.6, y: Y },
+  ]);
+  blumenKuebel(level, [
+    [-7, Y, 6.75, 0xff5a9a], [7, Y, 6.75, 0xffd23a], [-7, Y, -6.25, 0xb070ff], [7, Y, -6.25, 0xff5a9a],
+    [-8, Y, -36, 0xffd23a], [8, Y, -40, 0xff5a9a], [-7, Y, -68, 0xb070ff], [7, Y, -69, 0xffd23a],
+    [-7, Y3, -98.6, 0xff5a9a], [7, Y3, -98.6, 0xb070ff], [-6.6, Y3, -160, 0xffd23a], [6.6, Y3, -161, 0xff5a9a],
+    [-6, Y, AZ - 40, 0xb070ff], [6, Y, AZ - 40, 0xff5a9a],
+  ]);
+  const tq = 0x1aa8b0, li = 0x8a52c8;
+  wandTuecher(level, [
+    { x: -5.17, y: Y3 + 3.0, z: -108.5, yaw: PI / 2, color: li, h: 2 }, { x: -5.17, y: Y3 + 3.0, z: -118, yaw: PI / 2, color: tq, h: 2 },
+    { x: -5.17, y: Y3 + 3.0, z: -127.5, yaw: PI / 2, color: li, h: 2 }, { x: 5.17, y: Y3 + 3.0, z: -110, yaw: -PI / 2, color: tq, h: 2 },
+    { x: 5.17, y: Y3 + 3.0, z: -126, yaw: -PI / 2, color: li, h: 2 },
+    { x: 11.17, y: Y3 + 5.6, z: -134, yaw: -PI / 2, color: tq, h: 3 }, { x: 11.17, y: Y3 + 5.6, z: -148, yaw: -PI / 2, color: li, h: 3 },
+    { x: -1.8, y: Y3 + 5.6, z: -169.97, yaw: 0, color: li }, { x: 4.8, y: Y3 + 5.6, z: -169.97, yaw: 0, color: tq },
+  ]);
   // goldene Glitzerpunkte über dem Mut-Platz und dem Würfel-Ring (Hinweise)
   glowPoints(level, [[LOCH.x, Y3 + 2.2, LOCH.z], [SIMS.x, SIMS.top + 2, SIMS.z]], 0xfff0a0, 1.2, { opacity: 0.55, name: 'hinweis-schein' });
 }
@@ -122,7 +149,6 @@ export const LEVEL = {
     sign(4.6, Y, -2.6, 'Roter Boden:\nhier rumpelt’s gleich!', { size: [2.6, 0.9] }),
     kq('kq_vorhof', [-5, Y, -8], ['+x', '+x'], { wait: 1.7 }),
     { type: 'deco_w5', items: [
-      { kind: 'tempeltor', pos: [0, Y, -18.6], width: 4.2, height: 5, yaw: PI / 2 },
       { kind: 'tempelsaeulen', from: [-7, Y, 10], to: [-7, Y, -16], every: 6.5 },
       { kind: 'tempelsaeulen', from: [7, Y, 10], to: [7, Y, -16], every: 6.5 },
       { kind: 'steinkopf', pos: [-6.2, Y, 2.5], size: 2.2, yaw: -PI / 2 + 0.5 },
@@ -154,15 +180,15 @@ export const LEVEL = {
     isl(-8, 8, -96, -106, Y3),
     // Gang der Wandspalten: Boden, Seitenwände mit Nischen (je ein Kippquader darin)
     isl(-5.2, 5.2, -106, -130, Y3),
-    wand(-6.4, -5.2, -106, -110.9, Y3), wand(-6.4, -5.2, -113.1, -122.9, Y3), wand(-6.4, -5.2, -125.1, -130, Y3),
-    wand(5.2, 6.4, -106, -116.9, Y3), wand(5.2, 6.4, -119.1, -130, Y3),
+    // Seitenwände nur 3,2 m hoch: die Kamera sieht am Gang-Ende über sie hinweg auf den Platz der Mutprobe
+    wand(-6.4, -5.2, -106, -110.9, Y3, 3.2), wand(-6.4, -5.2, -113.1, -122.9, Y3, 3.2), wand(-6.4, -5.2, -125.1, -130, Y3, 3.2),
+    wand(5.2, 6.4, -106, -116.9, Y3, 3.2), wand(5.2, 6.4, -119.1, -130, Y3, 3.2),
     isl(-8.3, -5.2, -110.6, -113.4, Y3), wand(-8.9, -8.3, -110.4, -113.6, Y3, 6),
     isl(-8.3, -5.2, -122.6, -125.4, Y3), wand(-8.9, -8.3, -122.4, -125.6, Y3, 6),
     isl(5.2, 8.3, -116.6, -119.4, Y3), wand(8.3, 8.9, -116.4, -119.6, Y3, 6),
     kq('kq_spalte1', [-6.3, Y3, -112], ['+x', '+x'], { start: 'near', near: 12, wait: 1.5 }),
     kq('kq_spalte2', [6.3, Y3, -118], ['-x', '-x'], { start: 'near', near: 12, wait: 1.5, phase: 0.8 }),
     kq('kq_spalte3', [-6.3, Y3, -124], ['+x', '+x'], { start: 'near', near: 12, wait: 1.5, phase: 1.6 }),
-    { type: 'deco_w5', items: [{ kind: 'tempeltor', pos: [0, Y3, -106.3], width: 6, height: 5.5, yaw: PI / 2 }] },
     // Platz der Mutprobe, Würfel-Ring, Bullen
     isl(-11, 11, -130, -152, Y3),
     wand(11.2, 12.4, -130, -152, Y3, 7),
@@ -199,7 +225,6 @@ export const LEVEL = {
     isl(-8, 8, AZ - 36, AZ - 54, Y),
     { type: 'deco_w5', items: [
       { kind: 'obelisk', pos: [-6, Y, AZ - 50], height: 6 }, { kind: 'obelisk', pos: [6, Y, AZ - 50], height: 6 },
-      { kind: 'tempeltor', pos: [0, Y, AZ - 52.5], width: 4.4, height: 5.5, yaw: PI / 2 },
     ] },
     { type: 'killplane', y: -12 },
   ],

@@ -64,7 +64,7 @@ const ROUTES = {
       { name: 'Stern 1: Suchkopf gegen die rissige Mauer lenken → Rätselbox → Kletterraum, Steinblock-Treppe hinauf', star: 1, from: [-5, Y, -93],
         legs: [{ lure: { at: [-6.4, -96.4], until: 'rissOffen', max: 3000 } }, { expect: 'rissOffen' }, { to: [-9.2, -96], within: 0.4, run: false },
           { warp: [-10.6, -96] }, { expect: 'imRaum' },
-          { to: [66.4, -104], within: 0.35, run: true }, { to: [67.5, -104], jump: 14, within: 0.35, run: false }, { to: [68.5, -104], jump: 16, within: 0.35, run: false },
+          { to: [66.4, -100], within: 0.5, run: true }, { to: [66.4, -104], within: 0.35, run: false }, { to: [67.5, -104], jump: 14, within: 0.35, run: false }, { to: [68.5, -104], jump: 16, within: 0.35, run: false },
           { to: [69.5, -104], jump: 16, within: 0.35, run: false }, { to: [70.5, -104], jump: 16, within: 0.35, run: false }, { to: [71.5, -104], jump: 16, within: 0.35, run: false },
           { wait: 20 }, { star: 1 }], shot: 'stern1', mechText: (r) => `Mauer: ${r.mech.lure ?? '-'}` },
       { name: 'Rätselbox nicht erreichbar, solange die Mauer steht', star: 1, expectNot: true, from: [-6.4, Y, -96], heroes: ['lotti'],

@@ -193,6 +193,8 @@ export const LEVEL = {
         { x: -3.9, z0: 26, z1: -14 }, { x: -3.9, z0: -64, z1: -198 }, { x: 3.9, z0: -64, z1: -198 },
         { x: -3.9, z0: -252, z1: -392 }, { x: 3.9, z0: -252, z1: -392 }, { x: -3.9, z0: -438, z1: zH(142) },
       ],
+      islets: [[-15, -40, 3.2], [13, -226, 2.6], [-11, -416, 2.4]],
+      boats: [[9, -31, 0.5, 0xe8304a], [-13, -222, -0.4, 0x3a8ae8], [10.5, -409, 0.25, 0xffb020], [-20, -50, 1.2, 0x6ad04a]],
       ...strandKram(),
     });
   },
@@ -245,6 +247,7 @@ export const LEVEL = {
       { kind: 'muscheln', pos: [-12, SAND, 12], size: [12, 20], n: 12 },
     ] },
     { type: 'deco_w5', items: [
+      { kind: 'palme', pos: [-15, -0.45, -40], height: 4.6, lean: 0.35 }, { kind: 'palme', pos: [13, -0.45, -226], height: 4.2 },
       { kind: 'palmen', pos: [-15, SAND, -131], size: [14, 140], n: 10, gap: 6, height: [4.5, 6.8], seed: 11 },
       { kind: 'palmen', pos: [15, SAND, -131], size: [14, 140], n: 10, gap: 6, height: [4.5, 6.8], seed: 12 },
       { kind: 'sonnenschirm', pos: [-8, SAND, -72], color: 'gelb' }, { kind: 'sonnenschirm', pos: [9, SAND, -158], color: 'lila' },
