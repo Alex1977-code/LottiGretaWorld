@@ -112,7 +112,7 @@ const ROUTES = {};
     main: [...GATE, ...DITCH, ...CHASM, ...RAFT, RIDE(false), ...GRUFT, ...HILL],
     routeChecks: [
       { name: 'Laterne getragen, Floßfahrt auf dem Glibberbach (Pflaume) bis ans Ende', ok: (r) => r.mech.ride > 120 * 8 },
-      { name: 'auf den blinkenden Laternenpfahl gewartet (blaue Brücke nur im Pfahl-Licht)', ok: (r) => r.mech.lightWait >= 0 },
+      { name: 'auf den blinkenden Laternenpfahl gewartet (blaue Brücke nur im Pfahl-Licht)', ok: (r) => r.mech.lightWait > 0 },
     ],
     targets: [
       { name: 'Stern 0: kichernder Geist huscht hinter den Grabstein – unsichtbare Geisterstufen (Laterne) zur schwebenden Gruft', star: 0, from: [0, Y, -20],
@@ -146,6 +146,9 @@ const ROUTES = {};
         legs: [{ to: [-4.5, -104], within: 0.5, max: 500, lenient: true }], check: '(L) => L.player.pos.z > -97.2' },
       { name: 'Krümel winkt mit der Laterne vom Ufer, wenn das Floß vorbeifährt', from: [0, Y, -70.6], heroes: ['lotti'],
         legs: [{ to: [0, -71.2], within: 0.4, run: false }, { mount: [0, -75.5] }, RIDE(false)], check: '(L) => L.named.get("kruemel_ufer").info().cheers >= 1', shot: 'kruemel' },
+      { name: 'Gegenprobe Grabstein-Schalter: ungedrückt bleibt der Pfahl aus, die blaue Brücke fehlt', from: [0, Y, -183.6], heroes: ['lotti'], expectAlive: false,
+        legs: [{ to: [0, -185.4], within: 0.4, run: false }, { to: [0, -195.0], within: 0.6, autoJump: false, max: 300, lenient: true }],
+        check: '(L) => !L.named.get("pfahl_bruecke").on && (L.player.dead || L.player.pos.y < 0)' },
       { name: 'Grabstein-Schalter: Greta springt drauf → Pfahl brennt, blaue Brücke trägt', from: [0, Y, -176], heroes: ['greta'],
         legs: [GRUFT[4], GRUFT[5], GRUFT[6], ...HILL.slice(0, 2)], check: '(L) => L.player.pos.z < -194 && L.player.pos.y > 0.9' },
     ],
