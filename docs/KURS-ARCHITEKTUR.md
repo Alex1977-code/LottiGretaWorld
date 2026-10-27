@@ -4809,6 +4809,172 @@ zurück) · Teil 4 Bilder `tests/out/hwe_*.png` und Zeichenaufrufe. Gemessen (sc
 Regressionen: `course_enemies`, `course_w5_enemies` (Teile 1–3), `course_physics` bestanden; `course_hw_blocks`
 (Teil mech) mit dem Kürbling aus der Tür bestanden.
 
+## Präzisierung (Level H-1 und H-2)
+
+Additiv zur Halloween-Level-Liste: Titel und Besonderheiten der beiden ersten Level der Kürbisinsel. Dateien
+`src/course/levels/w31/H-1.js`, `H-2.js` (`LEVEL.world = 31`, Ids mit Präfix H), eigene Hilfen
+`src/course/levels/w31/_helpers_a.js` (kein `LEVEL`, nur für diese beiden Level), Test `tests/course_hwa.mjs`. Kein
+Motor-Code geändert; alle Sonderteile sind level-lokal (Hilfsdatei, Haken `LEVEL.build`). Kindgerecht: breite Wege, Stürze
+in Bach, Mais, Teich oder Gasse sind ungefährlich; nur die Kürbisschlucht in H-1 (Kanonenflug) und der Rand des Hinterhofs
+sind tief.
+
+### H-1 „Kullerkürbisse im Abendrot“ (parcours · pumpkin · course_pumpkin · 400 s)
+
+- Abschnitte (nach −Z, ≈ 270 m): **Hof** (Hoftor mit Kürbislaternen, rote Scheune, Vogelscheuche, Krähen auf dem Zaun,
+  Winke-Kürbis) → **Kürbisbach** (über drei riesige Kürbisse hüpfen, Hineinfallen = schwimmen, Rampen hinaus) →
+  **Kullerhang** (Lernen: Riesenkürbisse rollen quer übers Feld in Strohballen · Steigern: Hohlweg hinauf, ein Verschlag stößt
+  Riesenkürbisse aus, die auf einer Zickzack-Bahn `path` herabkullern; Nischen am Rand bleiben frei) → **Scheunen-Plateau**
+  (Checkpoint, Riesenkürbling) → **Laternenpfad** (Damm durchs Maisfeld mit drei Lücken; die Laternen gehen an, sobald man
+  vorbeikommt; Mais in Reihen auf Ackerfurchen) → **Kürbis-Kanone** über die Kürbisschlucht (Bitcoins und Süßes im Flug) →
+  **Vogelscheuchen-Feld** (Checkpoint 2, Kürbisse rollen von beiden Seiten, Kürblinge, Hexenhut-Hüpfer – Kombinieren) →
+  **Zielhügel**.
+- Sterne: 0 Winke-Kürbis (winkt zurück, sobald man näher als 10 m ist, „Stampf mal auf mich!“) – Stampfattacke auf ihn,
+  Draufspringen allein nicht · 1 versteckter Laternenweg vom Damm in den Mais: Krümel hat sich mit seiner Laterne verlaufen
+  („Huhu? Ich hab mich verlaufen!“), wer ihn erreicht, bekommt den Stern · 2 gelbe Kürbis-Kanone im Mais rechts → Galerie der
+  Windmühle (7,5 m über dem Boden; Rückwärtssalto reicht nicht). Stempel: Lach-Grabstein-Schalter auf dem Damm schaltet zwei
+  Laternen im Teich 12 s an, nur dann tragen drei Geisterplatten (`light: 'pfahl'`) zur Stempel-Insel (mit Extraleben).
+- Extraleben: unsichtbarer Block an der Scheune, 1-up auf der Stempel-Insel. Gegner: Kürbling 8 + Riesenkürbling 1,
+  Flatterfledi 2 (kreisen in Kopfhöhe), Hexenhut-Hüpfer 2; Riesenkürbisse aus drei Spendern.
+
+### H-2 „Klingelstreich im Schlummerdorf“ (parcours offen · candyvillage · course_candyvillage · 400 s)
+
+- Abschnitte (≈ 230 m, Bodenhöhen 1 → 2 → 3): **Dorfeingang** (Kürbistor, erste Tür mit Schild „Klingeln: vor die Tür
+  stellen!“) → **Marktplatz** (sechs Türen der Gruppe `markt` mit HUD „Türen n/6“, Kessel-Brunnen in der Mitte, vier
+  Marktstände mit federnden Markisen und Süßigkeiten-Säulen, Flatterfledi-Schwarm) → **Schiefe Gasse** (steigt über zwei
+  Rampen, Türen auf beiden Seiten, Hexenhut-Hüpfer; ein Durchgang rechts führt in den Hinterhof) → **Brunnenplatz**
+  (Checkpoint) → **Kirchplatz** (Kirchlein mit Glockenturm, Kirchhof mit Lach-Grabsteinen und kicherndem Geist; Stadtmauer mit
+  verschlossenem Tor – über die federnden Markisen davor auf die Mauer, Treppe hinab) → **Kürbisfest** (Festplatz mit Bühne,
+  Marktständen, Strohballen, zwei Türen, Kürbis-Turm, Zielmast auf der Bühne).
+- 13 Süßigkeiten-Türen (Inhalt Bitcoins, Süßes oder ein Kürbling, der aus der Tür hüpft); klingeln durch Hinlaufen, Antippen
+  bzw. Aktionstaste oder Stampfen auf die Matte. Nur die sechs Markt-Türen zählen im HUD (`group: 'markt'`), die übrigen
+  laufen in Gruppen ohne Anzeige (`hud: false`).
+- Sterne: 0 alle sechs Markt-Türen klingeln → Stern erscheint hoch über dem Kessel-Brunnen, mit dem Hexenkessel hinauf · 1
+  Hinterhof hinter der Gasse („Psst!“): die rosa Tür gibt den Stern (`content: { star: 1 }`) · 2 einer der Grabsteine im
+  Kirchhof ist ein Schalter → fünf Steinstufen erscheinen und führen zur Glockenstube (13 m). Stempel: Spinnennetz-Trampolin
+  am Festplatz → oben auf den Kürbis-Turm (vier gestapelte Riesenkürbisse, 8 m; Kollision eine glatte Säule).
+- Extraleben: unsichtbarer Block im Hinterhof. Gegner: Kürbling 4 (+ 4 aus Türen), Hexenhut-Hüpfer 3,
+  Flatterfledi-Schwarm (5) über dem Marktplatz, Flatterfledi an der Stadtmauer.
+
+### Hilfen (`_helpers_a.js`) und Hinweise
+
+- Daten: `isl`, `line`/`arc`/`ring` (Bitcoins), `candy`/`candyRing`/`candyArc` (Süßigkeiten), `sign`. Kulisse sparsam als
+  eigene Geometrie (statt der teuren Registry-Einzelmodelle für viele Stücke): `kuerbisDeko`/`kuerbisStreu` (≈ 250 statt
+  2,5–5,7 k Dreiecke je Kürbis), `maisStreu` (Maisreihen in 16-m-Stücken, Schatten nur nahe am Weg), `ackerFurchen` (an den
+  16-m-Grenzen geteilt, damit die 32-m-Abschnitte eng bleiben), `haeuschen` (≈ 270 Dreiecke), `laternenPfad` (Laternen gehen
+  beim Vorbeilaufen an bzw. `allOn`; Gläser eine Instanz-Gruppe, Scheine ein Punkt-Mesh, Licht über `lanternSpots`).
+  Bauwerke: `scheune` (Dach begehbar), `windmuehle` (Galerie begehbar, Flügel drehen), `hoftor`, `marktstand` (Markise
+  `bounce`), `stadtmauer` (Zinnen, Tor, Lücke hinten), `kirchlein` (Glockenstube, rutschiges Schiffsdach, Abstand zum Turm),
+  `brunnen`. Belebt: `winkeKuerbisse`, `kruemelLaterne`, `kicherGeist`, `kraehen`, `rampe` (Rampe mit `camIgnore`),
+  `ohneSonnenschatten` (Riesenkürbisse werfen nur den Schatten-Blob).
+- **Kamera und Rampen:** Die Kamera prüft Formen als Quader. Läuft die Figur eine lange Rampe (Baustein `ramp`) hinauf, liegt
+  der Rampenquader hinter ihr im Kamerastrahl und die Kamera rückt bis auf 3 m heran – lange Rampen daher mit `camIgnore`
+  (Hilfe `rampe`). Ein ?-Block direkt hinter/über der Figur zieht die Kamera ebenso heran.
+- **Leistung:** Registry-Modelle wie Vogelscheuche (≈ 9,4 k), Riesenkürbis (≈ 12,7 k), Kürbling (≈ 11 k), Tür (≈ 10,6 k),
+  Kürbislaterne (≈ 4,8 k) sparsam einsetzen; lange statische Teile (Beete, Inseln) an den 32-m-Grenzen teilen, sonst zählt
+  ein großer Abschnitt auch von dahinter mit.
+- Markisen als Weg auf eine Mauer: Stand dicht (≤ 0,4 m) vor die Mauer stellen, `bounce` 16,5 – sonst reicht der Bogen nicht
+  über die Zinnen.
+
+### Test `tests/course_hwa.mjs`
+
+Port 4570 (+ `PORT_BASE`), Aufruf `node tests/course_hwa.mjs [H-1|H-2]`, Teilläufe `PARTS=load,route,sweep,targets,extra,
+shotsA,shotsB` (jeder Teil getrennt unter 10 min), `HEROES=lotti,greta`, `ONLY=<Text>`, `SHOTS='a|b'`, `DETAIL=1`, Bilder
+`tests/out/hwa_*.png`. Geprüft: Laden ohne Konsolenfehler, Meta (Welt 31), Gegnerzahlen, 10 s Simulation; Routen-Bot Lotti
+und Greta Start → Ziel mit echter Mechanik (H-1: drei Bach-Kürbisse, acht Laternen gehen an, Kanonenflug; H-2: Tür klingeln,
+Markise auf die Stadtmauer); alle Sterne und Stempel samt Gegenproben (Sprung statt Stampfen, fünf statt sechs Türen,
+Rückwärtssalto statt Kanone/Schalter/Netz, Geisterplatten ohne Grabstein); Extras (Riesenkürbis trifft, Extraleben,
+Riesenkürbling → drei kleine, Checkpoint 2, Tür-Bitcoins, Kürbling aus der Tür, Markisen-Säule, kichernder Geist); Messgang
+entlang der Route. Die Verkleidung prüft der Routen-Bot über `outfit` von Szene und Avatar ('halloween'), sobald der Motor
+sie kennt (wie `course_hwc`). Gemessen
+(scale 2, inkl. Schattenpass): H-1 bis ≈ 88 Zeichenaufrufe / ≈ 290 k Dreiecke (Kullerhang, Kanone), H-2 bis ≈ 85 /
+≈ 245 k (Marktplatz, Stadtmauer).
+
+## Präzisierung (Level H-4 und H-Burg)
+
+Additiv zur Halloween-Level-Liste: Titel und Besonderheiten der letzten beiden Level der Kürbisinsel. Dateien
+`src/course/levels/w31/H-4.js`, `H-Burg.js`, eigene Hilfen `src/course/levels/w31/_helpers_c.js` (kein `LEVEL`, nur für diese
+zwei Level), Test `tests/course_hwc.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`/`LEVEL.setup`, `level.onStep`, `view.onFrame`). Benutzte Bausteine/Gegner unverändert: `besen_plattform`,
+`hexenkessel` (+ `potions`), `spinnennetz_trampolin`, `grabstein_schalter` (`press: 'pound'`, `time`), `appear`,
+`geisterplattform` + `laternenpfahl` (`light: 'pfahl'`, `blink`), `nebel`, `deco_hw`, `lila_ziegel(wand)`, `kuerbis_bombe`,
+`hexenhut_huepfer`, `flatterfledi`, `spuk` (`hat: 'hexe'`, Großspuk), `kreisgeist_kreis`, `kuerbling`, `klapperknochen`,
+`graf_brummbaer`.
+
+### H-4 „Hokuspokus-Hochhaus“ (parcours vertikal · witchtower · course_witchtower · 400 s)
+
+- Nacht zwischen lila Wolken; von Turm zu Turm hinauf (y 0 → 30,6, ≈ 190 m nach −Z) bis auf die begehbare Krempe des
+  Riesen-Hexenhuts, der das Dach des Hauptturms bildet (Zielmast). Abschnitte: **Kräutergarten** (Start, Beete, Trittsteine,
+  winkender Kürbis, erster Kessel zum Lernen) → **Besenflug** (Besen 1 waagerecht, Türmchen mit kreisender Flatterfledi,
+  Besen 2 steigt) → **Bücherturm** → **Kesselküche** (Tische, Regale, Kräuterbalken mit hängender Flatterfledi, Spuk mit
+  Hexenhut; Kessel-Hopser auf den Balkon, Checkpoint) → **Besenwirbel** (Besen 3 fliegt selbständig einen Bogen – Timing;
+  Spinnenturm, Netz auf die Glockenterrasse mit Checkpoint 2) → **Hutkrempe** (oranger Kessel, Besen 4, Brücke zur Krempe).
+- Alle Besen außer Besen 3 starten erst, wenn man draufsteht (`start: 'stand'`, 1,6 s Pause an den Enden), Turmränder haben
+  Brüstungen mit Lücken an Besen und Brücken. Kessel `jump` 6 / 8,2 / 8 m, Netze 5,6 / 7,4 / 11 m (immer ≥ 1,5 m über der
+  Zielkante).
+- Sterne: 0 **Geheimbesen** links am Bücherturm (grüner Glitzer, Zuckermais in der Luft) → Wolkeninsel (17 m vom Turm:
+  ohne Besen unerreichbar) · 1 **Zaubertrank-Blase** des lila Kessels in der Küchenecke (steigt 13 m) → Mondturm (y 24,6;
+  vom Balkon 7,8 m zu hoch, Kessel allein reicht nicht) · 2 **zweites Spinnennetz** hinter dem Türmchen der Glockenterrasse
+  (Sprung 11 m, Süßigkeiten-Leiter) → Stern hoch über dem Türmchen (y 34,8). **Stempel**: Besen-Aufzug am rechten
+  Krempenrand (steigt senkrecht 4,8 m, wartet oben 2,2 s) → Schornstein (y 37,6; von der Krempe 7 m zu hoch).
+- Extraleben: unsichtbarer Block über dem Spinnennetz am Start; Kiste auf der Wolkeninsel (Stampfattacke).
+- Gegner: Hexenhut-Hüpfer 6, Flatterfledi 4 (drei kreisen um Türme, eine hängt am Kräuterbalken), Spuk mit Hexenhut 2.
+  54 Süßigkeiten (`candyHud`), Bitcoin-Bögen entlang der Besenbahnen.
+- Kulisse/Überraschungen: `turm` (runde Türme: Bruchstein, Moos, Kragsteine, Bogenfenster mit grünem Licht, Zauberkreis
+  auf dem Boden, spitz in die Wolken auslaufender Sockel), `terrasse` (rechteckige Turm-Terrassen ebenso), `hexenHut`
+  (lila Riesenhut mit orangem Band, Goldschnalle, Glüh-Sternchen und -Monden), `hexenKueche`, `kraeuterGarten`,
+  `winkeKuerbis` (dreht sich zur Figur, hüpft und winkt mit dem Ranken-Ärmchen), `wimpel`, `kuerbisLaternen` (sparsame
+  Kürbislaternen ≈ 0,4 k Dreiecke statt ≈ 4,8 k), `besenKatze` (schwarze Katze mit Hexenhütchen fliegt auf einem Besen
+  Runden um den Turm).
+
+### H-Burg „Gruselgala auf Schloss Schlotterstein“ (parcours + boss · castle_night · course_brummula · 400 s)
+
+- Graf Brummbär lädt zur Gruselgala: roter Teppich über die Zugbrücke ins Schloss. Abschnitte: **Vorhof** (Lach-Grabsteine,
+  Kürbiskutsche, Kürbislaternen auf Pfählen, zwei Kürblinge, Zugbrücke über den Nebelgraben, Torbogen mit Türmen) →
+  **Ahnengalerie** (acht Gemälde der Familie Brummbär als Leinwand-Atlas in einem Zeichenaufruf: Ur-Opa mit Monokel, Oma
+  Brumhilde mit Hexenhut, Baby Brummbärchen im Kürbis …; Kerzenleuchter, zwei Klapperknochen) mit der **Gruft** rechts →
+  **Spukball-Saal** (Tanzboden mit Geisterreigen = `kreisgeist_kreis`, Großspuk mit Hexenhut, Bankett-Tafeln mit Torte und
+  Süßigkeiten, zwei Kronleuchter, Checkpoint) → **Turmaufgang** (Treppe, Geisterbrücke, die nur ein blinkender
+  Laternenpfahl zeigt – Lücke 13 m, ohne Licht nicht zu überspringen –, Treppe, Wehrgang mit Zinnen, Checkpoint vor dem
+  Dach) → **Schlossdach** (Arena wie `0-22`, `schlossDach`, Mitte z −197, y 10) → Warp-Box → **Siegerbalkon** mit Krümel
+  und Zielmast.
+- Stimmung `innen` (Kerzenschein) in Galerie, Gruft und Saal (`stimmungen`, Bereich x −12,5 … 21, z −105 … −20,5), sonst
+  die Vollmond-Grundstimmung. Kulissen-Fledermäuse des Themas im `setup` um 14 m angehoben (wie 0-22).
+- Sterne: 0 **Gruft**: Grabstein-Schalter nur mit der Stampfattacke (Daraufspringen genügt nicht) → drei Steinstufen
+  erscheinen für 12 s (`appear`) → Nische hoch oben (y 8,5; Rückwärtssalto/Dreisprung reichen nicht) · 1 **Bonbon-Tresor**:
+  Hohlwürfel aus lila Ziegeln (3 × 3 × 3) mit dem Stern innen – nur eine Kürbis-Bombe vom Karren daneben öffnet ihn
+  (Stampfen nicht); `bombenNachschub` legt alle 2 s eine neue Bombe auf den Karren, bis der Tresor offen ist · 2 **Graf
+  Brummbär besiegt**: versteckter Stern `stern_graf` (LEVEL.stars[2], `hidden`) erscheint vorn auf dem Dach, sobald der Graf
+  `gone` ist (der Graf selbst ohne `star`, damit `LEVEL.stars` drei Einträge hat). **Stempel**: Spinnennetz in der Saal-Ecke
+  (Sprung 7,2 m) → großer Kronleuchter (begehbare Platte, y 8,6; vom Boden und von den Tafeln unerreichbar).
+- Extraleben: unsichtbarer Block in der Ahnengalerie; ?-Blöcke mit Wachstumsbeere im Vorhof und vor dem Treppenaufgang.
+- Gegner: Kürbling 5, Klapperknochen 4 (nur auf Flächen mit Wänden/Brüstungen), Großspuk 1, Kreisgeist-Kreis 1 (8 Geister),
+  Graf Brummbär (Werte wie im Vertrag; Arena r 9, Sperre an der Lücke vorn, Kampfkamera wie 0-22). 39 Süßigkeiten, 36 Bitcoins
+  frei im Level (Teppich-Spuren, Ring um den Geisterreigen).
+- Überraschungen: `kicherGeist` (kleiner Halloween-Spuk lugt hinter dem Kreuz-Grabstein hervor, verschwindet kichernd, wenn
+  man näher als 4,5 m kommt), `kruemelLaterne` (Krümel – mit Mini-Vampirumhang, sobald die Verkleidung im Motor ist –
+  schwenkt am Siegerbalkon die Laterne, jubelt und sagt „Juhu! Was für eine Gruselgala!“), `kuerbisKutsche`, `bankett`,
+  `tanzboden`, `kronleuchter`, `teppich`, `zinnenMauer`, `torbogen`, `ahnenGalerie`, `terrasse` (Gruftnische).
+
+### Test `tests/course_hwc.mjs`
+
+Port 4590 (+ `PORT_BASE`), Aufruf `node tests/course_hwc.mjs [H-4|H-Burg]`, Teilläufe `PARTS=load,route,sweep,targets,extra,shots`
+(empfohlen je Level zwei Läufe: `load,route,sweep` ≈ 3 / 4,5 min und `load,targets,extra,shots` ≈ 5 / 7 min), `HEROES`,
+`ONLY`, `VERBOSE`, `SHOTS`, `DETAIL`; Bilder `tests/out/hwc_*.png`. Bot mit echter Eingabe (`setInput`/`step`), Beine u. a.
+`broom` (Besen abwarten, aufsteigen, mitfliegen, absteigen/abspringen), `bounce` (Kessel/Netz, `center` für Kopfstöße),
+`bubble` (Zaubertrank-Blase besteigen und oben hinüber), `lightOn` (Laternenpfahl frisch an), `bomb` (Kürbis-Bombe
+aufheben, tragen, werfen), `boss` (gelandete Bomben des Grafen aufheben und auf ihn zurückwerfen, Schwarm abwarten).
+Geprüft: Laden ohne Konsolenfehler, Metadaten (Welt 31), Gegnerzahlen, Verkleidung der Heldinnen (sobald der Motor sie
+kennt), Routen-Bot Lotti und Greta Start → Ziel (H-4 ≈ 53 s mit 4 Besen und 4 Federn; H-Burg ≈ 64–75 s mit Bosskampf
+≈ 33–36 s, 3 Treffer, 4–6 Würfe), alle Sterne und Stempel samt Gegenproben (Stern 0 nicht ohne Besen, Stern 1 nicht mit dem
+Kessel allein, Stern 2 nicht ohne Netz, Stempel nicht ohne Besen; Gruft nicht ohne Stampfen, Tresor nicht durch Stampfen,
+Kronleuchter nicht ohne Netz), Extras (winkender Kürbis, Extraleben, Besen wartet, Checkpoints auf Balkon und Glockenterrasse, kichernder
+Geist, Bomben-Nachschub, Geisterbrücke nur bei Licht, Krümel jubelt, Tod im Kampf → Neustart vor dem Dach, Graf 3/3).
+Gemessen (scale 2, inkl. Schattenpass): H-4 Messgang ≤ 90 Zeichenaufrufe / ≤ 240 k Dreiecke, Bilder 35–89 / ≤ 240 k;
+H-Burg Messgang ≤ 78 / ≤ 245 k, Bilder 41–84 / ≤ 243 k (Start 220 k nach dem Wechsel auf sparsame Kürbislaternen).
+
+Hinweis an den Modell-Agenten: `hexenturm` (`towerBody`) liefert NaN-Positionen bei Höhen, deren Hälfte nicht exakt
+darstellbar ist (z. B. 3,2 oder 4,2: `Math.pow(y / H, 1.6)` mit y = −ε am Fuß) – die Level nutzen Höhen 3 und 4. **Behoben** (Hauptsitzung): `leanAt` klemmt y/H auf ≥ 0, alle Höhen sind jetzt erlaubt.
+
 ## Präzisierung (Level H-Kapitän und H-3)
 
 Additiv zur Halloween-Liste: Titel und Besonderheiten zweier Level der Kürbisinsel. Dateien
