@@ -114,6 +114,10 @@ function build(level) {
   kuerbisStreu(level, { pos: [-12, YM, -126.5], size: [8, 3], n: 5, faces: 0.6, seed: 27 });
   kuerbisStreu(level, { pos: [-10, YF, -217], size: [7, 8], n: 8, faces: 0.4, seed: 31 });
   kuerbisStreu(level, { pos: [10, YF, -217], size: [7, 8], n: 8, faces: 0.4, seed: 32 });
+  // Zielhügel: Kürbisbeete links und rechts, Laternen-Kürbisse am Rand
+  ackerFurchen(level, [{ x0: -8.6, x1: -5.4, z0: -252, z1: -263.5, y: YG, gap: 1.6 }, { x0: 5.4, x1: 8.6, z0: -252, z1: -263.5, y: YG, gap: 1.6 }]);
+  kuerbisStreu(level, { pos: [-7, YG, -257.5], size: [3, 10], n: 6, faces: 0.6, seed: 41, avoid: [[-6.5, -259, 1.6]] });
+  kuerbisStreu(level, { pos: [7, YG, -257.5], size: [3, 10], n: 6, faces: 0.6, seed: 42, avoid: [[6.6, -259.5, 1.4], [5.6, -255.5, 1.2]] });
   maisStreu(level, { pos: [-13.4, Y0, -23.4], size: [2, 1.2], n: 2, seed: 2 });
   maisStreu(level, { pos: [13.4, Y0, -23.4], size: [2, 1.2], n: 2, seed: 3 });
   maisStreu(level, { pos: [11, YP, -93], size: [6, 6], n: 7, seed: 5 }, { shadow: false });
@@ -279,6 +283,9 @@ export const LEVEL = {
       { kind: 'strohballen', pos: [-6.8, YF, -247.6], form: 'eckig', yaw: 0.1 },
       { kind: 'suessigkeiten', pos: [5.6, YG, -255.5], size: 1.2 },
       { kind: 'fledermaus_girlande', from: [-5, YG + 5.6, -256.5], to: [5, YG + 5.6, -256.5], n: 9, sag: 0.8 },
+      { kind: 'zaun', from: [ZIEL.x0 + 0.4, YG, -263.6], to: [ZIEL.x1 - 0.4, YG, -263.6], style: 'holz' },
+      { kind: 'strohballen', pos: [-2.6, YG, -261.5], form: 'eckig', yaw: 0.1 },
+      { kind: 'strohballen', pos: [2.8, YG, -261.8], form: 'rund', yaw: 0.3 },
     ] },
   ],
   enemies: [
