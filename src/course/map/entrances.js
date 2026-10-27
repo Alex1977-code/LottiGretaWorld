@@ -1,7 +1,8 @@
 // Eingänge der Kurs-Weltkarte: rundes Podest mit Nummernscheibe (frei = farbig mit Leuchtring, gesperrt = grau mit
 // schwebendem Schloss, geschafft = Fahne), dazu je Art eine Kulisse (Wiesentor, Höhlenmaul, Arena-Gitter, Bohnenranke,
 // Diorama-Vitrine, Blatt-Floß und Wasserfall, Zirkuszelt, Festung mit Baron-Flagge, Glasröhre; Welt 2: decor_w2.js,
-// Welt 3: decor_w3.js, Welt 4: decor_w4.js, Welt 5: decor_w5.js).
+// Welt 3: decor_w3.js, Welt 4: decor_w4.js, Welt 5: decor_w5.js, Halloween-Welt 31: decor_hw.js; Glasröhren mit
+// def.dress = 'halloween' bekommen Halloween-Schmuck, def.ownSign ersetzt das Holzschild).
 // Große, unbewegte Teile gehen in die verschmolzene statische Geometrie (view.addStatic), bewegte sind eigene Objekte.
 //
 // Weltdaten je Eingang: { id, kind, pos, exit?, decor?: [x, y, z] (Lage der Kulisse), cage?: [[x0, z0, x1, z1], …],
@@ -24,6 +25,7 @@ import { decorateW2 } from './decor_w2.js';
 import { decorateW3 } from './decor_w3.js';
 import { decorateW4 } from './decor_w4.js';
 import { decorateW5 } from './decor_w5.js';
+import { decorateHW, dressPipeHW } from './decor_hw.js';
 
 
 /** Geometrie in Weltkoordinaten kopieren (gedreht um yaw, verschoben). */
@@ -221,8 +223,8 @@ export class EntranceView {
         W.add({ type: 'cyl', x, z, r: 3.45, y0: y, y1: y + 4.4, tag: 'deko' });
         break;
       case 'castle': this.decorateCastle(x, y, z); break;
-      case 'pipe': this.decoratePipe(x, y, z); break;
-      default: if (!decorateW2(this, this.kind, x, y, z) && !decorateW3(this, this.kind, x, y, z) && !decorateW4(this, this.kind, x, y, z)) decorateW5(this, this.kind, x, y, z); break;
+      case 'pipe': this.decoratePipe(x, y, z); dressPipeHW(this, x, y, z); break;
+      default: if (!decorateW2(this, this.kind, x, y, z) && !decorateW3(this, this.kind, x, y, z) && !decorateW4(this, this.kind, x, y, z) && !decorateW5(this, this.kind, x, y, z)) decorateHW(this, this.kind, x, y, z); break;
     }
   }
 
@@ -326,7 +328,8 @@ export class EntranceView {
       b.torus(1.2, 0.13, 0xffffff, { p: [p.x, p.y, p.z], r: [e.x, e.y, e.z] }, s < 40 ? 5 : 4, s < 40 ? 22 : 14);
     }
     this.addStatic(b.geometry(), { castShadow: false });
-    // Schild an der Röhre (Zielwelt, z. B. „Welt 2 – Wüste“ oder „Welt 3 – bald!“)
+    // Schild an der Röhre (Zielwelt, z. B. „Welt 2 – Wüste“ oder „Welt 3 – bald!“); def.ownSign: eigenes Schild (decor_hw)
+    if (this.def.ownSign) return;
     const text = this.sign ?? 'Welt 2\nbald!';
     const sign = new THREE.Group();
     sign.add(new THREE.Mesh(signGeo(), vcol(0.6)), signTextMesh(text, `pipe:${text.replace(/[^A-Za-z0-9]+/g, '_')}`));
