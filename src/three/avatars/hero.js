@@ -2643,6 +2643,7 @@ export class HeroAvatar extends Avatar3D {
 // Pausbacken und großen glänzenden Augen, weiche breite Schlappohren (innen rosa), kurze stämmige Beine mit runden Pfoten,
 // weiße Zehen am nahen Hinterfuß. Gelenke wie bisher (Reiten, Floß, Ausrüstung); alles Fell teilt ein Material (Bündel).
 const FUR_C = '#1f1c24', FURW_C = '#f4f1f8', PINK_C = '#ffa3c6', FUR_HI = '#3a3544';
+const WING_PITCH = 0.85;   // Halloween-Flügelchen: Flügeltiefe zeigt nach hinten-unten (Membran hängt vom Armknochen)
 const HEAD_PIV = V(0.44, 0.74, 0);   // Halsansatz (Kopf-Drehpunkt)
 const HC = V(0.12, 0.20, 0);         // Kopfmitte, kopf-lokal → Welt ≈ (0.56, 0.94)
 /** Kopfform: rund, Pausbacken unten seitlich, kleine Schnauze vorn. */
@@ -3017,7 +3018,7 @@ export class PflaumeAvatar extends Avatar3D {
     const sx = this.torso.scale.x, sy = this.torso.scale.y;
     for (const piv of W.wings) {
       piv.position.set(-0.06 * sx, 0.745 * sy, piv.side * 0.11);
-      piv.rotation.set(-piv.side * a, -piv.side * W.sweep, 0);
+      piv.rotation.set(-piv.side * a, -piv.side * W.sweep, WING_PITCH);   // Tiefe des Flügels nach hinten-unten: Membran von hinten und oben sichtbar
     }
   }
 
