@@ -763,6 +763,7 @@ class GrafBrummbaer extends EnemyW2 {
 
   startLand() {
     this.setState('land');
+    this.hidden = false;
     this.vel.set(0, 0, 0);
     for (const m of this.bats) { m.touch = false; m.gatherFrom = m.pos.clone(); }
     this.level.sfx('slam');

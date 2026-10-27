@@ -527,7 +527,233 @@ check('Keine Konsolenfehler (Teil 2)', errors.length === 0);
 if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
 }
 
-// __TEIL3__
+// =====================================================================================================================
+// Teil 3: Graf Brummbär (0-22)
+// =====================================================================================================================
+const BOSS_HELPERS = ([id, startZ]) => {
+  const c = window.__course, t = window.__t, L = c.level;
+  t.boss = () => t.ent(id);
+  t.arch = () => c.state().archetype;
+  t.enter = () => {
+    t.place([0, 2, startZ], { settle: 2 });
+    for (let i = 0; i < 1200 && !c.arch.started; i++) { c.setInput({ y: 0.6 }); c.step(1); }
+    c.setInput({});
+    return t.arch();
+  };
+  t.banners = [];
+  const hud = c.arch?.hud;
+  if (hud && !hud._hw) { const orig = hud.banner.bind(hud); hud.banner = (text, o) => { t.banners.push(text); orig(text, o); }; hud._hw = true; }
+  /** Bis Zustand s; Figur unverwundbar an pos (null = bleibt). */
+  t.untilSafe = (s, n = 3000, pos = null) => {
+    const b = t.boss(), p = c.player;
+    p.hurt = () => false;
+    let i = 0;
+    for (; i < n && b.state !== s; i++) { if (pos) { p.pos.set(pos[0], pos[1], pos[2]); p.vel.set(0, 0, 0); } c.step(1); }
+    delete p.hurt;
+    return i;
+  };
+  /** Eine gelandete Bombe des Grafen aufheben und auf ihn zurückwerfen (Figur unverwundbar). */
+  t.throwBack = (pos) => {
+    const g = t.boss(), p = c.player;
+    p.hurt = () => false;
+    let b = null;
+    for (let i = 0; i < 4000 && !b; i++) {
+      const cand = L.entities.find((e) => e.kind === 'kuerbis_bombe' && !e.removed && e.state === 'lit' && e.owner === g && e.fuse > 1.2);
+      if (cand && g.vulnerable && t.dist(cand, g) > 2.5) { b = cand; break; }
+      p.pos.set(pos[0], pos[1], pos[2]); p.vel.set(0, 0, 0);
+      c.step(1);
+    }
+    if (!b) { delete p.hurt; return { found: false }; }
+    const dx = b.pos.x - g.pos.x, dz = b.pos.z - g.pos.z, d = Math.hypot(dx, dz) || 1;
+    p.pos.set(b.pos.x + (dx / d) * 0.7, b.pos.y, b.pos.z + (dz / d) * 0.7); p.vel.set(0, 0, 0);
+    c.step(2);
+    t.face(b.pos.x, b.pos.z);
+    t.action();
+    const picked = p.holding === b;
+    t.face(g.pos.x, g.pos.z);
+    c.step(1);
+    const hp0 = g.hp, dist = +Math.hypot(g.pos.x - p.pos.x, g.pos.z - p.pos.z).toFixed(2);
+    t.action();
+    let steps = 0;
+    for (let i = 0; i < 240 && !b.exploded && !b.removed; i++) { c.step(1); steps++; }
+    delete p.hurt;
+    return { found: true, picked, assisted: b.assisted, exploded: b.exploded, hit: g.hp < hp0, hp: g.hp, dist, flight: +(steps / 120).toFixed(2) };
+  };
+};
+
+if (want(3)) {
+await load('0-22');
+await sc(BOSS_HELPERS, ['graf', 20]);
+console.log('Teil 3: Graf Brummbär 0-22');
+const gb = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const g = t.boss();
+  const out = {};
+  out.before = { state: g.state, hp: g.hp, maxHp: g.maxHp, model: t.model(g) };
+  const a = t.enter();
+  out.start = { started: a.started, state: g.state, hud: a.hud?.boss?.hp, name: a.hud?.boss?.name, lock: a.lock };
+  // Auftritt → spazieren und werfen: Bomben fliegen mit roter Markierung und landen kurz vor der Figur
+  const fig = [-2, 2, 4];
+  t.untilSafe('walk', 600, fig);
+  const thrown0 = g.bombsThrown;
+  let markerMax = 0, keepMin = 99, keepMax = 0, rMax = 0, markerModel = null;
+  const land = [];
+  const seen = new Set();
+  p.hurt = () => false;
+  for (let i = 0; i < 120 * 9; i++) {
+    p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0);
+    c.step(1);
+    markerMax = Math.max(markerMax, g.markers.list.length);
+    if (g.markers.list[0]?.model) markerModel = g.markers.list[0].model.root?.userData?.modelName ?? g.markers.list[0].model.root?.name;
+    for (const b of L.entities) {
+      if (b.kind !== 'kuerbis_bombe' || seen.has(b) || b.state !== 'lit') continue;
+      seen.add(b);
+      land.push(+Math.hypot(b.pos.x - fig[0], b.pos.z - fig[2]).toFixed(2));
+    }
+    if (g.state === 'walk') { const d = Math.hypot(g.pos.x - fig[0], g.pos.z - fig[2]); keepMin = Math.min(keepMin, d); keepMax = Math.max(keepMax, d); }
+    rMax = Math.max(rMax, Math.hypot(g.pos.x, g.pos.z));
+  }
+  delete p.hurt;
+  out.throws = { n: g.bombsThrown - thrown0, markerMax, land, keep: [+keepMin.toFixed(2), +keepMax.toFixed(2)], rMax: +rMax.toFixed(2), model: markerModel };
+  // Kopfsprung prallt ab (kein Treffer), seitliche Berührung verletzt, Angriffe und Explosion daneben zählen nicht
+  t.untilSafe('walk', 900, fig);
+  const head = t.stomp(g, { h: 0.8 });
+  out.head = { ...head, hp: g.hp, bounces: g.bounces };
+  t.untilSafe('walk', 900, fig);
+  out.side = t.touch(g, 10);
+  g.onHit('fire', p); g.onHit('claw', p); g.onHit('star', p); g.onHit('mega', p); g.onHit('shell', p);
+  const nb = L.spawn('kuerbis_bombe', { pos: [g.pos.x + 1.0, 2, g.pos.z], lit: true, fuse: 0.05 });
+  p.hurt = () => false;
+  c.step(30);
+  delete p.hurt;
+  out.attacks = { hp: g.hp, exploded: nb.exploded, misses: g.misses };
+  // Treffer 1: eine gelandete Bombe aufheben und zurückwerfen
+  const h1 = t.throwBack(fig);
+  out.hit1 = { ...h1, hud: t.arch().hud?.boss?.hp, state: g.state, log: g.hitLog[0] ?? null };
+  // Verwandlung in den Fledermaus-Schwarm
+  const seq = [g.state];
+  p.hurt = () => false;
+  for (let i = 0; i < 900 && g.state !== 'swarm'; i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); if (seq[seq.length - 1] !== g.state) seq.push(g.state); }
+  delete p.hurt;
+  out.trans = { seq: seq.join('>'), hidden: g.hidden, touch: g.touch, bats: g.bats.length, legs: g.swarmPath().length, total: +g.swarmTotal.toFixed(2), banners: t.banners.slice() };
+  // Draufspringen auf eine einzelne Fledermaus gibt einen Bitcoin; Berührung des Schwarms verletzt
+  const bat = g.bats[0];
+  const c0 = t.coins();
+  const bs = t.stomp(bat, { h: 0.6 });
+  c.step(2);
+  out.bat = { ...bs, defeated: bat.defeated, coins: t.coins() - c0, batsDown: g.batsDown, kind: bat.kind };
+  const bat2 = g.bats.find((m) => !m.defeated);
+  out.batHurt = bat2 ? t.touch(bat2, 4) : null;
+  // Bögen über die Arena, Landung weit weg von der Figur
+  let rSwarm = 0;
+  const cx = [];
+  p.hurt = () => false;
+  for (let i = 0; i < 2400 && g.state === 'swarm'; i++) {
+    p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0);
+    c.step(1);
+    rSwarm = Math.max(rSwarm, Math.hypot(g.pos.x, g.pos.z));
+    if (i % 60 === 0) cx.push([+g.pos.x.toFixed(1), +g.pos.z.toFixed(1)]);
+  }
+  delete p.hurt;
+  out.land = { state: g.state, dFig: +Math.hypot(g.pos.x - fig[0], g.pos.z - fig[2]).toFixed(2), rSwarm: +rSwarm.toFixed(2), path: cx };
+  t.untilSafe('walk', 600, fig);
+  out.land.after = { state: g.state, hidden: g.hidden, touch: g.touch, bats: L.entities.filter((e) => e.kind === 'graf_fledermaus' && !e.removed).length, phase: g.phase };
+  // Phase 2: zwei Bomben je Wurf
+  const n0 = g.bombsThrown;
+  let per2 = null;
+  p.hurt = () => false;
+  for (let i = 0; i < 120 * 8 && per2 === null; i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); if (g.bombsThrown > n0) per2 = g.bombsThrown - n0; }
+  delete p.hurt;
+  out.phase2 = { phase: g.phase, per: per2, banners: t.banners.slice(-3) };
+  // Treffer 2 → größerer Schwarm
+  const h2 = t.throwBack(fig);
+  p.hurt = () => false;
+  for (let i = 0; i < 900 && g.state !== 'swarm'; i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  delete p.hurt;
+  out.hit2 = { ...h2, swarm: g.bats.length, legs: g.swarmPath().length };
+  t.untilSafe('walk', 3000, fig);
+  // Phase 3: kurzer Rundumwurf (4 Bomben im Kreis um ihn)
+  let ring = null, per3 = [];
+  let last = g.bombsThrown;
+  p.hurt = () => false;
+  for (let i = 0; i < 120 * 20 && !ring; i++) {
+    p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0);
+    c.step(1);
+    if (g.bombsThrown > last) {
+      const n = g.bombsThrown - last;
+      per3.push(n);
+      last = g.bombsThrown;
+      if (n === 4) ring = g.markers.list.slice(-4).map((m) => +Math.hypot(m.x - g.pos.x, m.z - g.pos.z).toFixed(2));
+    }
+  }
+  delete p.hurt;
+  out.phase3 = { phase: g.phase, per: per3, ring, banners: t.banners.slice(-3) };
+  // Treffer 3: besiegt → Konfetti, Fanfare (Archetyp), gone → Stern, Warp-Box
+  const h3 = t.throwBack(fig);
+  out.hit3 = { ...h3, defeated: g.defeated, state: g.state, confetti: !!g.confetti, live: g.bombs, banners: t.banners.slice(-2) };
+  t.untilSafe('gone', 900, fig);
+  c.step(4);
+  out.gone = { state: g.state, visible: g.visible, won: t.arch().won, warp: t.ent('warp_sieg').hidden, star: t.count('star'), bats: t.count('graf_fledermaus'), markers: g.markers.list.length };
+  // Stern einsammeln, Warp-Box → Plateau → Zielmast
+  const st = L.entities.find((e) => e.kind === 'star' && !e.removed);
+  if (st) t.place([st.pos.x, st.pos.y, st.pos.z], { settle: 60 });
+  out.starTaken = !L.entities.some((e) => e.kind === 'star' && !e.removed);
+  const w = t.ent('warp_sieg');
+  t.place([w.pos.x, w.pos.y + 1.6, w.pos.z], { settle: 0 });
+  let arrived = false;
+  for (let i = 0; i < 1600; i++) { c.step(1); if (p.pos.z < -30 && p.mode !== 'script') { arrived = true; break; } }
+  for (let i = 0; i < 2400 && !c.finished && L.runtime.status === 'play'; i++) { c.setInput({ y: 1 }); c.step(1); }
+  c.setInput({});
+  for (let i = 0; i < 3600 && !c.finished; i++) c.step(1);
+  out.finish = { arrived, finished: c.finished };
+  out.info = g.info();
+  return out;
+});
+console.log(`  Graf Brummbär: ${JSON.stringify(gb)}`);
+check(`Kampf beginnt beim Betreten (Auftritt, Lebensleiste „${gb.start.name}“ 3/3, Sperre)`, gb.before.state === 'wait' && gb.before.model === 'graf_brummbaer' && gb.start.started && gb.start.state === 'intro' && gb.start.hud === 3 && gb.start.name === 'Graf Brummbär' && gb.start.lock);
+check(`Er wirft gezündete Kürbis-Bomben (${gb.throws.n} in 9 s) mit roter Markierung; sie landen kurz vor der Figur (${gb.throws.land.join(', ')} m)`, gb.throws.n >= 2 && gb.throws.markerMax >= 1 && gb.throws.model === 'boss_marker' && gb.throws.land.length >= 2 && gb.throws.land.every((d) => d < 2.2));
+check(`Er hält Abstand zur Figur (${gb.throws.keep.join(' … ')} m) und bleibt auf dem Dach (r ≤ ${gb.throws.rMax} m)`, gb.throws.keep[0] > 2.5 && gb.throws.keep[1] < 9 && gb.throws.rMax < 8.2);
+check('Kopfsprung prallt ab (kein Schaden für beide), seitliche Berührung verletzt', gb.head.bounced && !gb.head.hurt && gb.head.hp === 3 && gb.head.bounces >= 1 && gb.side);
+check('Feuer, Krallen, Stern, Riese, Panzer und eine Explosion daneben zählen nicht', gb.attacks.hp === 3 && gb.attacks.exploded);
+check(`Zurückgeworfene Bombe trifft (${gb.hit1.dist} m, Zielhilfe ${gb.hit1.assisted}): 3 → 2, Lebensleiste folgt`, gb.hit1.found && gb.hit1.picked && gb.hit1.hit && gb.hit1.hp === 2 && gb.hit1.hud === 2 && gb.hit1.state === 'hit');
+check(`Verwandlung in den Fledermaus-Schwarm (${gb.trans.seq}; ${gb.trans.bats} Fledermäuse, ${gb.trans.legs} Bögen, ${gb.trans.total} s)`, gb.trans.seq === 'hit>stunned>bats>swarm' && gb.trans.hidden && !gb.trans.touch && gb.trans.bats === 8 && gb.trans.legs === 3 && gb.trans.banners.some((x) => /Schwarm/.test(x)));
+check(`Draufspringen auf eine Fledermaus: Abprall, ${gb.bat.coins} Bitcoin; Berührung des Schwarms verletzt`, gb.bat.bounced && gb.bat.defeated && gb.bat.coins === 1 && gb.bat.batsDown === 1 && gb.bat.kind === 'graf_fledermaus' && gb.batHurt === true);
+check(`Schwarm fliegt in Bögen über die Arena (r ≤ ${gb.land.rSwarm} m) und landet weit weg von der Figur (${gb.land.dFig} m); danach wieder verwundbar, Phase 2`, gb.land.state === 'land' && gb.land.dFig > 5 && gb.land.rSwarm < 8 && gb.land.after.state === 'walk' && !gb.land.after.hidden && gb.land.after.touch && gb.land.after.bats === 0 && gb.land.after.phase === 2);
+check(`Phase 2: ${gb.phase2.per} Bomben je Wurf, eigene Ansage (${gb.phase2.banners.join(' | ')})`, gb.phase2.phase === 2 && gb.phase2.per === 2 && gb.phase2.banners.includes('Jetzt fliegen mehr Bomben!'));
+check(`Treffer 2 (2 → 1): größerer Schwarm (${gb.hit2.swarm} Fledermäuse, ${gb.hit2.legs} Bögen)`, gb.hit2.hit && gb.hit2.hp === 1 && gb.hit2.swarm === 12 && gb.hit2.legs === 4);
+check(`Phase 3: kurzer Rundumwurf (Würfe ${gb.phase3.per.join('/')}, Ring ${JSON.stringify(gb.phase3.ring)} m), Ansage`, gb.phase3.phase === 3 && gb.phase3.ring && gb.phase3.ring.every((d) => Math.abs(d - 2.8) < 0.5) && gb.phase3.banners.includes('Vorsicht – Rundumwurf!'));
+check('Treffer 3 besiegt ihn: Konfetti aus Süßigkeiten, Bomben entschärft, Sieg-Ansage', gb.hit3.hit && gb.hit3.hp === 0 && gb.hit3.defeated && gb.hit3.state === 'defeated' && gb.hit3.confetti && gb.hit3.live === 0 && gb.hit3.banners.some((x) => /Graf Brummbär ist besiegt/.test(x)));
+check('Danach: gone, Archetyp siegt, Stern erscheint, Warp-Box sichtbar, kein Schwarm/keine Markierung mehr', gb.gone.state === 'gone' && !gb.gone.visible && gb.gone.won && gb.gone.warp === false && gb.gone.star === 1 && gb.gone.bats === 0 && gb.gone.markers === 0);
+check('Stern einsammeln, Warp-Box führt zum Zielplateau, Zielmast beendet das Level', gb.starTaken && gb.finish.arrived && gb.finish.finished);
+
+// Tod im Kampf setzt alles zurück (Graf 3/3 am Start, keine Bomben, kein Schwarm); Kampf von vorn
+await load('0-22');
+await sc(BOSS_HELPERS, ['graf', 20]);
+const gr = await sc(() => {
+  const c = window.__course, t = window.__t, L = c.level, p = c.player;
+  const g = t.boss();
+  const out = {};
+  t.enter();
+  const fig = [2, 2, 3];
+  t.untilSafe('walk', 600, fig);
+  const h = t.throwBack(fig);
+  p.hurt = () => false;
+  for (let i = 0; i < 900 && g.state !== 'swarm'; i++) { p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0); c.step(1); }
+  delete p.hurt;
+  out.before = { hit: h.hit, hp: g.hp, state: g.state, bats: t.count('graf_fledermaus') };
+  p.die('hit');
+  for (let i = 0; i < 2400 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1);
+  c.step(10);
+  out.reset = { state: g.state, hp: g.hp, hidden: g.hidden, visible: g.visible, z: +g.pos.z.toFixed(2), bats: t.count('graf_fledermaus'), bombs: t.count('kuerbis_bombe'), markers: g.markers.list.length, started: t.arch().started, deaths: t.arch().deaths, hud: t.arch().hud?.boss };
+  const a = t.enter();
+  out.again = { started: a.started, state: g.state, hp: g.hp };
+  return out;
+});
+console.log(`  Graf Brummbär Tod: ${JSON.stringify(gr)}`);
+check('Tod im Kampf: Neustart, Graf 3/3 am Startplatz, keine Bomben, kein Schwarm, keine Markierung, Kampf von vorn', gr.before.hit && gr.before.state === 'swarm' && gr.before.bats === 8 && gr.reset.state === 'wait' && gr.reset.hp === 3 && !gr.reset.hidden && gr.reset.visible && gr.reset.z === -4 && gr.reset.bats === 0 && gr.reset.bombs === 0 && gr.reset.markers === 0 && !gr.reset.started && gr.reset.deaths === 1 && gr.again.started && gr.again.state === 'intro' && gr.again.hp === 3);
+check('Keine Konsolenfehler (Teil 3)', errors.length === 0);
+if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
+}
 
 // __TEIL4__
 
