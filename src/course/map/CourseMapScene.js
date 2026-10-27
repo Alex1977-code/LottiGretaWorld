@@ -50,6 +50,7 @@ import { TubeTravel } from './travel.js';
 import { MapLod, pauseShadows } from './lod.js';
 import { THEMES as MUSIC_THEMES } from '../../audio/themes.js';
 import { STAND_INS } from './decor_w4.js';
+import { setOutfit, clearOutfit, outfitForMap } from '../../three/lib/outfit.js';
 
 export const DT = 1 / 120;
 const MAX_STEPS = 8;
@@ -112,6 +113,8 @@ export class CourseMapScene extends Phaser.Scene {
     const arrive = this.translateArrival(this.arrive);
     this.map = this.chooseWorld(arrive);
     const map = this.map;
+    // Verkleidung der Figuren (MAP.outfit bzw. Halloween-Welt 31) – vor Figur und Karten-Deko
+    this.outfit = setOutfit(outfitForMap(map), this);
     if (arrive.via === 'tube' && arrive.world !== map.world) arrive.via = null;   // Zielwelt gesperrt → normal ankommen
     this.arriveInfo = arrive;
     courseSave.data.world = map.world;
@@ -839,6 +842,7 @@ export class CourseMapScene extends Phaser.Scene {
     const kb = this.input.keyboard;
     if (kb) { kb.off('keydown-ENTER', this.onEnterKey, this); kb.off('keydown-TAB', this.onTabKey, this); kb.off('keydown-M', this.toggleMute, this); }
     if (window.__courseMap === this) window.__courseMap = null;
+    clearOutfit(this);
     if (this.player && !this.leaving) this.rememberPos();
     this.hud?.destroy();
     this.hud = null;

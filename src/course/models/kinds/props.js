@@ -21,8 +21,10 @@
 //                     opts { height (8, Gesamthöhe ohne Stern) }  state { flagY (0 = unten am Block .. 1 = oben), anim }
 //                     root.userData.flagHeight(flagY) → Höhe der Fahnenmitte.
 // bunny_small         kleiner flinker Hase ≈0,5 m (karamell, Cremebauch, rotes Halstuch), Figurenstil wie die Heldinnen.
-//                     state { anim: 'idle'|'hop'|'caught' }  hop: Sprungzyklus 0,45 s (Bogen 0,35 m);
-//                     caught: dreht sich glücklich, schrumpft in 0,7 s weg (Glitzern).
+//                     state { anim: 'idle'|'hop'|'caught', outfit? }  hop: Sprungzyklus 0,45 s (Bogen 0,35 m);
+//                     caught: dreht sich glücklich, schrumpft in 0,7 s weg (Glitzern). Halloween-Verkleidung (state.outfit,
+//                     sonst die der Szene, three/lib/outfit.js): Mini-Vampirumhang mit Stehkragen und rotem Futter (ein
+//                     Mesh am hop-Gelenk, ohne Schattenwurf; wallt beim Hüpfen) – Krümel (kruemel, KruemelRig) trägt ihn mit.
 // fairy_spotter       Waldkobold ≈0,65 m: grüner Kittel, rote Zipfelmütze mit Bommel, goldenes Fernglas.
 //                     state { anim: 'idle'|'look'|'cheer' }  look: Fernglas an den Augen, sucht hin und her;
 //                     cheer: hüpft und winkt.
@@ -37,6 +39,8 @@ import {
   canvasTexture, roundedBox, SIDE, metal,
 } from '../lib/kit.js';
 import { HeadShape, gridGeo, decalGeo, stripGeo, toonEyeGeos, mergeColored, dirAE as dirV } from '../../../three/lib/figures.js';
+import { currentOutfit } from '../../../three/lib/outfit.js';
+import { capeGeo, CAPE } from '../../../three/lib/heroHalloween.js';
 
 // =============================================================================================
 // Warp-Röhre
@@ -556,10 +560,14 @@ function buildBunny() {
   const sp = sparkleSprite(0xffffff, 0.5); sp.position.y = 0.45;
   root.add(hop, sp);
   const clk = new Clock(), blink = new Blinker();
+  let cape = null, billow = 0;   // Halloween: Mini-Vampirumhang (entsteht beim ersten Anziehen, hängt nur getragen am hop)
   const update = (dt, st) => {
     const anim = st.anim ?? 'idle';
     clk.tick(dt, anim);
     const t = clk.t, age = clk.age;
+    const hw = (st.outfit !== undefined ? st.outfit : currentOutfit()) === 'halloween';
+    if (hw && !cape) { cape = mesh(cached('bunny:cape', capeGeo), vcol(0.6), { p: CAPE.pivot }, false); cape.name = 'umhang'; }
+    if (cape && hw !== (cape.parent === hop)) { if (hw) hop.add(cape); else hop.remove(cape); }
     let y = 0, tilt = 0, earBack = 0, sc = 1, spin = 0, sx = 1, sy = 1;
     if (anim === 'hop') {
       const p = (age % 0.45) / 0.45, air = Math.sin(p * Math.PI), ground = Math.pow(Math.max(0, Math.cos(p * TAU)), 4);
@@ -584,6 +592,12 @@ function buildBunny() {
     eye.userData.blink(anim === 'caught' ? 0.15 : blink.update(dt));
     const k = anim === 'caught' ? Math.sin(clamp(age / 0.8, 0, 1) * Math.PI) : 0;
     sp.visible = k > 0.03; sp.scale.setScalar(Math.max(0.001, k * 0.7));
+    if (hw) {
+      // Umhang wallt: in der Luft nach hinten-oben, am Boden sacht (Atmen, Wind)
+      const want = anim === 'hop' ? 0.12 + 0.42 * Math.sin(((age % 0.45) / 0.45) * Math.PI) : anim === 'caught' ? 0.5 : 0.07 + 0.04 * Math.sin(t * 1.9);
+      billow += (want - billow) * (1 - Math.exp(-10 * dt));
+      cape.rotation.set(0.03 * Math.sin(t * 1.3), 0, -billow);
+    }
   };
   return makeModel('bunny_small', root, update);
 }

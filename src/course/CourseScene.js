@@ -17,6 +17,8 @@
 //   squad          Figurengruppe (Spiegelfrucht-Klone, player/Squad.js); addClone(), figures() (Präzisierung Motor Welt 2)
 //   setHero wechselt die Heldin aller Figuren (Pause-Menü „Figur“), teleport sammelt die Klone um die Haupt-Figur.
 //   underwater     Unterwasser-Ansicht (player/underwater.js, Präzisierung Motor Welt 3): info() → { k, cameraUnder, … }
+//   outfit         Verkleidung der Figuren in diesem Level ('halloween' | null; Präzisierung Figuren Halloween): Level-Id mit
+//                  Präfix 'H-', LEVEL.outfit, Welt 31 oder Halloween-Testlevel – gesetzt über three/lib/outfit.js
 
 import Phaser from 'phaser';
 import { getLevel } from './levels/index.js';
@@ -33,6 +35,7 @@ import { RENDER3D } from '../render3d.js';
 import { createArchetype } from './archetypes/index.js';
 import { installWorldWarps } from './map/warp.js';
 import { installUnderwaterView } from './player/underwater.js';
+import { setOutfit, clearOutfit, outfitForLevel } from '../three/lib/outfit.js';
 
 export const DT = 1 / 120;
 const MAX_STEPS = 8;
@@ -69,6 +72,8 @@ export class CourseScene extends Phaser.Scene {
     if (!data) { console.error(`[Kurs] Level ${this.levelId} nicht gefunden`); this.scene.start(mapSceneKey(this), {}); return; }
     if (!RENDER3D.enabled) { console.error('[Kurs] Der Kurs-Modus braucht die 3D-Darstellung (WebGL2).'); this.scene.start(mapSceneKey(this), {}); return; }
     this.levelData = data;
+    // Verkleidung der Figuren (Halloween-Welt) – vor Figur, Modellen und Archetyp, damit alles sie gleich trägt
+    this.outfit = setOutfit(outfitForLevel(this.levelId, data), this);
     this.cinput = new CourseInput(this);
     this.view = new CourseView(this, data);
     this.level = new Level(this, data, { view: this.view, save: courseSave });
@@ -249,6 +254,7 @@ export class CourseScene extends Phaser.Scene {
   cleanup() {
     this.events.off(Phaser.Scenes.Events.RENDER, this.renderFrame, this);
     if (window.__course === this) window.__course = null;
+    clearOutfit(this);
     this.arch?.dispose?.();
     this.arch = null;
     this.underwater?.dispose();

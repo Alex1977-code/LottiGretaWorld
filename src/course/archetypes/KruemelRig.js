@@ -2,10 +2,13 @@
 // aus levels/w3/_helpers_c.js in den Motor übernommen). Registry-Modell `kruemel` × 1,35 mit Kapitänsmütze, Rucksack mit
 // Kartenrolle und rot-weißem Schwimmring beim Schwimmen; Animationen idle/hop/cheer/scared, swim/pipe/dig; info() für
 // Tests. Steuerung bleibt der DioramaController (kein Sprung, 3,5 m/s).
+// Halloween-Verkleidung (three/lib/outfit.js; das Modell zieht den Mini-Vampirumhang selbst an): die Kapitänsmütze bleibt,
+// der Rucksack verschwindet unter dem Umhang (kein Buckel; der Umhang ersetzt seinen Zeichenaufruf).
 
 import * as THREE from 'three';
 import { getModel } from '../models/index.js';
 import { Build, TAU } from '../models/lib/kit.js';
+import { currentOutfit } from '../../three/lib/outfit.js';
 
 const KRUEMEL_SCALE = 1.35;       // Modell ≈ 0,55 m Kopf, Ohren bis 0,78 m → ≈ 0,75 / 1,05 m
 const wrap = (a) => { a %= TAU; if (a > Math.PI) a -= TAU; else if (a < -Math.PI) a += TAU; return a; };
@@ -109,6 +112,7 @@ export class KruemelRig {
     const blink = (p.invuln > 0 && Math.floor(t * 16) % 2 === 0) || (p.dead && p.deathCause === 'fall' && p.script?.t > 0.3);
     this.hull.visible = !blink;
     try { this.model.update(dt, { anim }); } catch (err) { console.error('Krümel-Animation fehlgeschlagen:', err); }
+    this.gear.pack.visible = currentOutfit() !== 'halloween';
   }
 
   info() { return { kind: this.kind, anim: this.anim, ring: this.gear.ring.visible, cap: !!this.gear.cap.parent, pack: !!this.gear.pack.parent }; }
