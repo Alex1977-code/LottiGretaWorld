@@ -10,14 +10,15 @@
 //     reset: true (nach dem Tod der Figur zurück an den Start, außer start 'auto'), color: 'lila' | 'rot' | 'gruen',
 //     trail: true (Funkelsterne) }
 //   level.named.get(id) = { pos, mover, shape, running, riders, rides, start(), stop(), reset(), info() }
-// Modell 'besen_plattform' aus der Registry ({ length, width, color }; Ursprung = Mitte der Lauffläche unten, Stiel
-// entlang +X; state { tilt (rad, Nase hoch +), roll (rad), speed, moving }), sonst eigene Geometrie.
+// Modell 'besen_plattform' aus der Registry ({ length, width, stick, color }; Ursprung = Brett-Oberseite, Stiel entlang +X;
+// state { tilt (rad, Nase hoch +), bank (rad), speed }), sonst eigene Geometrie.
 
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, hex, box, addObject } from '../kit.js';
 import { PathMover } from '../../level/PathMover.js';
 import { visDt } from '../../entities/gimmick.js';
 import { modelOr, HWC, figures } from '../hwkit.js';
+import { hasModel } from '../../models/index.js';
 
 const CUSH = { lila: [0x8a4ae0, 0xc59aff], rot: [0xd83a4a, 0xff8a8a], gruen: [0x3aa85a, 0x9af0a0] };
 
@@ -116,13 +117,15 @@ export function buildBesenPlattform(level, spec) {
   if (level.view) {
     const root = new THREE.Group();
     root.name = 'besen';
-    const model = modelOr('besen_plattform', { length: L, width: W, color: spec.color ?? 'lila' }, () => {
+    const reg = hasModel('besen_plattform');
+    const model = modelOr('besen_plattform', { length: L, width: W, stick: L * 1.45, color: spec.color ?? 'lila' }, () => {
       const m = new THREE.Mesh(broomGeo(L, W, T, spec.color ?? 'lila'), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.65 }));
       m.castShadow = true; m.receiveShadow = true;
       return { root: m };
     });
     const tilter = new THREE.Group();
     tilter.add(model.root);
+    if (reg) model.root.position.y = T;   // Registry-Modell: Ursprung = Brett-Oberseite
     root.add(tilter);
     const hold = {};
     let yaw = axis === 'x' ? 0 : -Math.PI / 2, tilt = 0, roll = 0, trailT = 0, lastY = cur.y;
@@ -146,7 +149,7 @@ export function buildBesenPlattform(level, spec) {
       for (const f of riders) { const lx = (f.pos.x - cur.x) * Math.sin(yaw) + (f.pos.z - cur.z) * Math.cos(yaw); side += lx; }
       roll += (Math.max(-0.12, Math.min(0.12, side * 0.08 + Math.sin(t * 1.7) * 0.025)) - roll) * Math.min(1, d * 5);
       tilter.rotation.set(roll, 0, tilt, 'YXZ');
-      model.update?.(d, { tilt, roll, speed: Math.hypot(vx, mover.vy, vz), moving: st.running });
+      model.update?.(d, { tilt, roll, bank: roll, speed: Math.hypot(vx, mover.vy, vz), moving: st.running });
       // Funkelsterne am Reisig
       if (spec.trail !== false && st.running && (trailT -= d) <= 0) {
         trailT = 0.18;

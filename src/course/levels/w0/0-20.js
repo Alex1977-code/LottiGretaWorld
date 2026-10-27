@@ -171,7 +171,7 @@ export const LEVEL = {
     pfahl: [0, 1, -32], geist2: [0, 1.05, -36.5], geist2b: [0, 1.05, -40], besen0: [0, 1, -50], besen: [0, 1.1, -54.5], besenEnde: [0, 1, -71],
     kessel: [0, 1, -81], kesselTop: [0, 2.3, -84], kessel2: [7, 1, -89], netz: [-7, 2.1, -91], kanone: [0, 1, -102],
     kanoneZiel: [0, 1, -134], tueren: [0, 1, -144], tuer1: [-6.6, 1, -148], tuer2: [6.6, 1, -154], tuer3: [-6.6, 1, -162],
-    kuerbis: [0, 1, -178], kuerbisBahn: [-2, 1, -186], schalter: [-4, 1.4, -204.5], grabweg: [0, 1, -216], zeitschalter: [5, 1.4, -204.5],
+    kuerbis: [0, 1, -178], kuerbisBahn: [-2, 1, -186], schalter: [-4, 1.4, -205], schalterBlick: [-1, 1, -202.5], grabweg: [0, 1, -216], zeitschalter: [5, 1.4, -205],
     glibber: [0, 1, -236], glibberMitte: [0, 1, -250], glibberEnde: [0, 1, -280], nebel: [0, 1, -298], goal: [0, 1, -314],
   },
 };

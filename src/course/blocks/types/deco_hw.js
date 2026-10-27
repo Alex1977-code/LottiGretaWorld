@@ -24,7 +24,14 @@
 //   spinnweben (size 1.4, yaw, lage 'ecke' (senkrecht, in einer Ecke) | 'decke' (waagerecht)) ·
 //   kerzen (Gruppe leuchtender Kerzen: n 3, size 1, light false) ·
 //   fledermaus_girlande (Leine mit Papier-Fledermäusen: from, to (Aufhängepunkte), n 7, sag 0.6) ·
-//   suessigkeiten (Süßigkeiten-Haufen: size 1.2, seed)
+//   suessigkeiten (Süßigkeiten-Haufen: size 1.2, seed) ·
+//   dorfhaus (schiefes Fachwerkhaus, Tür vorn: width 3, depth 2.6, height 2.4, color 'lila' | 'gruen' | 'orange' | 'blau',
+//            door, lean, yaw −π/2, solid true) · hexenturm (height 5, radius 1.3, lean, windows 3, part 'ganz' | 'turm' |
+//            'dach', solid true) · gruft (size 1, yaw, solid true) · kerzenleuchter (arms 3 | 5, height 1.5, light, solid)
+// Registry-Modelle: kuerbis, kuerbislaterne, vogelscheuche, strohballen (form → kind), maisstaude, suessigkeiten_haufen,
+// grabstein (style → kind, tilt, pumpkin), halloween_baum (krummer_baum: height, lanterns), spinnennetz (spinnweben: lage
+// 'ecke' | 'decke' → kind 'ecke' | 'rund'), eisenzaun (zaun style 'eisen'), kerzenleuchter, dorfhaus_nacht, hexenturm,
+// gruft – auch in den Streuungen; Gesichter/Türen zeigen ohne yaw zur Kamera (+Z).
 
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, Rnd, addStatic, hex, box } from '../kit.js';
@@ -350,17 +357,73 @@ function suessigkeiten(level, it, p, rnd, parts) {
   }
 }
 
+// ------------------------------------------------------------------ Große Kulissen-Stücke (Modell oder einfacher Ersatz)
+
+function dorfhaus(level, it, p, rnd, parts, glow) {
+  const W = it.width ?? 3, D = it.depth ?? 2.6, H = it.height ?? 2.4, yaw = it.yaw ?? -Math.PI / 2;
+  const cols = { lila: 0xb48ae8, gruen: 0x9ad0a0, orange: 0xf0a868, blau: 0x9ab8f0 };
+  const wc = C(cols[it.color] ?? cols.lila);
+  const L = (g) => { g.rotateY(yaw); g.translate(p.x, p.y, p.z); return g; };
+  parts.push(L(colorize(ni(box(D, H, W, 0, H / 2, 0, 0xffffff, { r: 0.06, seg: 1 })), (q, n, o) => mixc([wc[0] * 0.6, wc[1] * 0.6, wc[2] * 0.6], wc, smooth(0, H, q.y), o))));
+  const roof = new THREE.ConeGeometry(Math.max(W, D) * 0.78, H * 0.9, 4); roof.rotateY(Math.PI / 4); roof.scale(D / Math.max(W, D), 1, W / Math.max(W, D)); roof.translate(0, H + H * 0.45, 0);
+  parts.push(L(shadeY(roof, C(0x2a1a3a), C(0x5a3a7a))));
+  for (const lz of [-W * 0.28, W * 0.28]) glow.push(L(fill(new THREE.BoxGeometry(0.06, 0.7, 0.55).translate(D / 2 + 0.02, H * 0.6, lz), C(0xffd070))));
+  if (it.door !== false) parts.push(L(fill(new THREE.BoxGeometry(0.06, 1.5, 0.8).translate(D / 2 + 0.02, 0.75, 0), C(0x6a3a8a))));
+}
+
+function hexenturm(level, it, p, rnd, parts, glow) {
+  const H = it.height ?? 5, R = it.radius ?? 1.3;
+  parts.push(colorize(ni(new THREE.CylinderGeometry(R * 0.9, R, H, 12, 3).translate(p.x, p.y + H / 2, p.z)), (q, n, o) => mixc(C(0x4a3a5a), C(0x8a7aa0), smooth(-0.5, 0.9, n.x * 0.5 + n.y), o)));
+  parts.push(shadeY(new THREE.ConeGeometry(R * 1.4, H * 0.7, 12).translate(p.x, p.y + H + H * 0.35, p.z), C(0x2a1a4a), C(0x6a4aa8)));
+  for (let k = 0; k < (it.windows ?? 3); k++) {
+    const a = k * 2.1 + 0.4, y = p.y + H * (0.35 + 0.2 * k);
+    glow.push(fill(new THREE.BoxGeometry(0.1, 0.6, 0.45).rotateY(-a).translate(p.x + Math.cos(a) * R * 0.95, y, p.z + Math.sin(a) * R * 0.95), C(0xffd070)));
+  }
+}
+
+function gruft(level, it, p, rnd, parts, glow) {
+  const k = it.size ?? 1, yaw = it.yaw ?? -Math.PI / 2;
+  const L = (g) => { g.scale(k, k, k); g.rotateY(yaw); g.translate(p.x, p.y, p.z); return g; };
+  parts.push(L(colorize(ni(box(3, 2.6, 3.6, 0, 1.3, 0, 0xffffff, { r: 0.06, seg: 1 })), (q, n, o) => mixc(C(HWC.stoneLow), C(HWC.stoneHi), smooth(-0.5, 1, n.y * 0.6 + n.x * 0.3), o))));
+  parts.push(L(shadeY(new THREE.ConeGeometry(2.7, 1.4, 4).rotateY(Math.PI / 4).scale(0.85, 1, 1).translate(0, 3.3, 0), C(0x3a3450), C(0x6a6488))));
+  parts.push(L(fill(new THREE.BoxGeometry(0.06, 1.7, 1.1).translate(1.52, 0.85, 0), C(0x5a2a8a))));
+  for (const sd of [-1, 1]) glow.push(L(fill(new THREE.CircleGeometry(0.16, 10).rotateY(Math.PI / 2).translate(1.56, 1.25, sd * 0.25), C(0xffd070))));
+}
+
+function kerzenleuchter(level, it, p, rnd, parts, glow) {
+  const H = it.height ?? 1.5;
+  parts.push(shadeY(new THREE.CylinderGeometry(0.04, 0.06, H, 6).translate(p.x, p.y + H / 2, p.z), C(HWC.iron), C(HWC.ironHi)));
+  parts.push(shadeY(new THREE.CylinderGeometry(0.3, 0.32, 0.06, 10).translate(p.x, p.y + 0.03, p.z), C(HWC.iron), C(HWC.ironHi)));
+  kerzen(level, { n: it.arms ?? 3, size: 0.8, light: it.light }, { x: p.x, y: p.y + H, z: p.z }, rnd, parts, glow);
+}
+
 // ------------------------------------------------------------------ Aufbau
 
 const SINGLE = {
   kuerbis, kuerbislaterne, vogelscheuche, strohballen, maisstaude, krummer_baum: krummerBaum, grabstein, zaun, spinnweben, kerzen,
-  fledermaus_girlande: fledermausGirlande, suessigkeiten,
+  fledermaus_girlande: fledermausGirlande, suessigkeiten, dorfhaus, hexenturm, gruft, kerzenleuchter,
 };
 
-// Registry-Modelle ohne Präfix (Halloween-Modelle des Modell-Agenten); Optionen wie die Felder hier
-const ALIAS = { kuerbis: 'kuerbis', kuerbislaterne: 'kuerbislaterne', vogelscheuche: 'vogelscheuche', strohballen: 'strohballen', maisstaude: 'maisstaude', suessigkeiten: 'suessigkeiten_haufen' };
+// Registry-Modelle ohne Präfix (Halloween-Modelle des Modell-Agenten): Art → [Modell, Optionen aus den Feldern hier]
+const ALIAS = {
+  kuerbis: ['kuerbis', (it) => it],
+  kuerbislaterne: ['kuerbislaterne', (it) => it],
+  vogelscheuche: ['vogelscheuche', (it) => it],
+  strohballen: ['strohballen', (it) => ({ ...it, kind: it.form ?? 'eckig' })],
+  maisstaude: ['maisstaude', (it) => ({ ...it, count: it.count ?? 4, height: it.height ?? 2.2 })],
+  suessigkeiten: ['suessigkeiten_haufen', (it) => it],
+  grabstein: ['grabstein', (it) => ({ kind: it.style ?? 'rund', size: it.size ?? 1, tilt: it.tilt ?? 0, pumpkin: !!it.pumpkin })],
+  krummer_baum: ['halloween_baum', (it) => ({ height: it.height ?? 5, lanterns: it.lanterns ?? 3, seed: it.treeSeed ?? 0 })],
+  spinnweben: ['spinnennetz', (it) => ({ kind: it.lage === 'decke' ? 'rund' : 'ecke', size: it.size ?? 1.4 })],
+  kerzenleuchter: ['kerzenleuchter', (it) => ({ arms: it.arms ?? 3, height: it.height ?? 1.5 })],
+  dorfhaus: ['dorfhaus_nacht', (it) => ({ width: it.width ?? 3, depth: it.depth ?? 2.6, height: it.height ?? 2.4, color: it.color ?? 'lila', door: it.door !== false, lean: it.lean ?? 0.12 })],
+  hexenturm: ['hexenturm', (it) => ({ part: it.part ?? 'ganz', height: it.height ?? 5, radius: it.radius ?? 1.3, lean: it.lean ?? 0.35, windows: it.windows ?? 3 })],
+  gruft: ['gruft', (it) => ({ size: it.size ?? 1 })],
+};
+// Blickrichtung der Modelle (Vorderseite +X): Gesichter, Türen, Fenster ohne yaw zur Kamera (+Z)
+const FRONT = new Set(['kuerbislaterne', 'vogelscheuche', 'grabstein', 'dorfhaus', 'gruft']);
 
-// Kollision der Arten, deren Aussehen ein Registry-Modell übernimmt (gleiche Formen wie die eigene Geometrie oben)
+// Kollision der Arten (auch wenn ein Registry-Modell das Aussehen übernimmt; gleiche Formen wie die eigene Geometrie)
 const MODEL_SOLID = {
   kuerbis: (level, it, p, s) => { const d = (it.size ?? 0.9) * s; if (it.solid ?? d >= 1.2) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: d * 0.45, y0: p.y, y1: p.y + d * 0.8, tag: 'kuerbis' }); },
   kuerbislaterne: (level, it, p, s) => { if (it.light !== false) level.view?.addLantern?.(p.x, p.y + (it.mount === 'pfahl' ? 1.9 : 0.4) * s, p.z); if (it.solid) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: 0.3 * s, y0: p.y, y1: p.y + (it.mount === 'pfahl' ? 2.2 : 0.6) * s, tag: 'kuerbislaterne' }); },
@@ -369,12 +432,46 @@ const MODEL_SOLID = {
   krummer_baum: (level, it, p, s) => { const H = (it.height ?? 5) * s; if (it.solid !== false) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: H * 0.06, y0: p.y, y1: p.y + H * 0.45, tag: 'baum' }); },
   grabstein: (level, it, p, s) => { const k = (it.size ?? 1) * s; if (it.solid !== false) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: 0.38 * k, y0: p.y, y1: p.y + k, tag: 'grabstein' }); },
   kerzen: (level, it, p, s) => { if (it.light) level.view?.addLantern?.(p.x, p.y + (it.size ?? 1) * 0.6 * s, p.z); },
+  kerzenleuchter: (level, it, p, s) => { if (it.light) level.view?.addLantern?.(p.x, p.y + (it.height ?? 1.5) * s, p.z); if (it.solid) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: 0.25 * s, y0: p.y, y1: p.y + (it.height ?? 1.5) * s, tag: 'kerzenleuchter' }); },
+  dorfhaus: (level, it, p, s) => {
+    if (it.solid === false) return;
+    const yaw = it.yaw ?? -Math.PI / 2, c = Math.abs(Math.cos(yaw)), sn = Math.abs(Math.sin(yaw));
+    const hx = (((it.depth ?? 2.6) * c + (it.width ?? 3) * sn) / 2) * s, hz = (((it.depth ?? 2.6) * sn + (it.width ?? 3) * c) / 2) * s;
+    level.world.add({ type: 'box', min: [p.x - hx, p.y, p.z - hz], max: [p.x + hx, p.y + (it.height ?? 2.4) * s, p.z + hz], tag: 'dorfhaus' });
+  },
+  hexenturm: (level, it, p, s) => { if (it.solid !== false) level.world.add({ type: 'cyl', x: p.x, z: p.z, r: (it.radius ?? 1.3) * s, y0: p.y, y1: p.y + (it.height ?? 5) * s, tag: 'hexenturm' }); },
+  gruft: (level, it, p, s) => { if (it.solid === false) return; const k = (it.size ?? 1) * s; level.world.add({ type: 'box', min: [p.x - 1.8 * k, p.y, p.z - 1.8 * k], max: [p.x + 1.8 * k, p.y + 2.6 * k, p.z + 1.8 * k], tag: 'gruft' }); },
 };
 
 function modelName(kind) {
-  if (hasModel(`deco_hw_${kind}`)) return `deco_hw_${kind}`;
+  if (hasModel(`deco_hw_${kind}`)) return [`deco_hw_${kind}`, (it) => it];
   const a = ALIAS[kind];
-  return a && hasModel(a) ? a : null;
+  return a && hasModel(a[0]) ? a : null;
+}
+
+/** Kulissen-Modell der Registry backen (falls vorhanden) – Kollision wie die eigene Geometrie. true = erledigt. */
+function bakeKind(level, kind, it, p) {
+  if (!level.view) return false;
+  const m = modelName(kind);
+  if (!m) return false;
+  const yaw = it.yaw ?? (FRONT.has(kind) || (kind === 'kuerbis' && it.face) ? -Math.PI / 2 : 0);
+  bakeModel(level, m[0], m[1](it), p.x, p.y, p.z, yaw, it.scale ?? 1, {}, { castShadow: it.shadow !== false });
+  MODEL_SOLID[kind]?.(level, it, p, it.scale ?? 1);
+  return true;
+}
+
+/** Eisenzaun als Registry-Modell (entlang X, Mitte im Ursprung) zwischen from und to. */
+function bakeFence(level, it) {
+  if (!level.view || it.style !== 'eisen' || !hasModel('eisenzaun')) return false;
+  const a = v3(it.from ?? it.pos), b = v3(it.to ?? it.pos);
+  const L = Math.hypot(b.x - a.x, b.z - a.z);
+  if (L < 0.5) return false;
+  bakeModel(level, 'eisenzaun', { length: L, height: it.height ?? 1.2 }, (a.x + b.x) / 2, Math.min(a.y, b.y), (a.z + b.z) / 2, Math.atan2(-(b.z - a.z), b.x - a.x), 1, {}, { castShadow: it.shadow !== false });
+  if (it.solid) {
+    const x0 = Math.min(a.x, b.x) - 0.08, x1 = Math.max(a.x, b.x) + 0.08, z0 = Math.min(a.z, b.z) - 0.08, z1 = Math.max(a.z, b.z) + 0.08;
+    level.world.add({ type: 'box', min: [x0, Math.min(a.y, b.y), z0], max: [x1, Math.max(a.y, b.y) + (it.height ?? 1.2), z1], tag: 'zaun' });
+  }
+  return true;
 }
 
 export function buildDecoHw(level, spec) {
@@ -382,32 +479,34 @@ export function buildDecoHw(level, spec) {
   const parts = { shadow: [], flat: [] };
   const glow = [];
   for (const it0 of items) {
-    const it = spec.items && spec.shadow === false && it0.shadow === undefined ? { ...it0, shadow: false } : it0;
+    const it = spec.items && spec.shadow === false && it0.shadow === undefined ? { ...it0, shadow: false } : { ...it0 };
     const p = v3(it.pos ?? it.from);
     const rnd = new Rnd((it.seed ?? Math.floor(p.x * 73 + p.z * 37 + p.y * 11)) >>> 0);
     const P = it.shadow === false ? parts.flat : parts.shadow;
-    const name = it.kind && level.view ? modelName(it.kind) : null;
-    if (name) {
-      const opts = it.kind === 'strohballen' ? { ...it, kind: it.form ?? 'eckig' } : it.kind === 'maisstaude' ? { ...it, count: it.count ?? 4 } : it;
-      bakeModel(level, name, opts, p.x, p.y, p.z, it.yaw ?? (it.kind === 'kuerbislaterne' ? -Math.PI / 2 : 0), it.scale ?? 1, {}, { castShadow: it.shadow !== false });
-      MODEL_SOLID[it.kind]?.(level, it, p, it.scale ?? 1);
-      continue;
-    }
-    const scat = (fn, n, sz, gap, mk) => { for (const [x, z] of scatter(p, it.size ?? sz, it.n ?? n, it.gap ?? gap, it.avoid, rnd)) fn(level, { shadow: it.shadow, ...mk() }, { x, y: p.y, z }, rnd, P, glow); };
+    if (it.kind === 'grabstein' && !it.style) it.style = ['rund', 'kreuz', 'spitz'][Math.floor(rnd.frac() * 3)];
+    if (it.kind === 'zaun' ? bakeFence(level, it) : bakeKind(level, it.kind, it, p)) continue;
+    // Streuung: je Stück Registry-Modell (falls vorhanden) oder eigene Geometrie
+    const scat = (kind, fn, n, sz, gap, mk) => {
+      for (const [x, z] of scatter(p, it.size ?? sz, it.n ?? n, it.gap ?? gap, it.avoid, rnd)) {
+        const one = { shadow: it.shadow, ...mk() }, q = { x, y: p.y, z };
+        if (!bakeKind(level, kind, one, q)) fn(level, one, q, rnd, P, glow);
+      }
+    };
     switch (it.kind) {
       case 'kuerbisse': {
         const [s0, s1] = range(it.sizes, [0.45, 1.1]);
         const cols = it.colors ?? ['orange', 'orange', 'orange', 'gelb', 'weiss', 'gruen'];
-        scat(kuerbis, 8, [10, 10], 1.1, () => ({ size: rnd.real(s0, s1), color: cols[Math.floor(rnd.frac() * cols.length)], shape: ['rund', 'flach', 'hoch', 'dick'][Math.floor(rnd.frac() * 4)], face: rnd.frac() < (it.faces ?? 0.3) ? ['lachen', 'grinsen', 'staunen'][Math.floor(rnd.frac() * 3)] : false, yaw: -Math.PI / 2 + rnd.real(-0.6, 0.6), solid: it.solid }));
+        scat('kuerbis', kuerbis, 8, [10, 10], 1.1, () => ({ size: rnd.real(s0, s1), color: cols[Math.floor(rnd.frac() * cols.length)], shape: ['rund', 'flach', 'hoch', 'dick'][Math.floor(rnd.frac() * 4)], face: rnd.frac() < (it.faces ?? 0.3) ? ['lachen', 'grinsen', 'staunen'][Math.floor(rnd.frac() * 3)] : false, yaw: -Math.PI / 2 + rnd.real(-0.6, 0.6), solid: it.solid, seed: Math.floor(rnd.frac() * 8) }));
         break;
       }
-      case 'maisfeld': { const [h0, h1] = range(it.height, [1.8, 2.5]); scat(maisstaude, 12, [8, 8], 0.9, () => ({ height: rnd.real(h0, h1) })); break; }
-      case 'krumme_baeume': { const [h0, h1] = range(it.height, [4, 6]); scat(krummerBaum, 4, [16, 16], 4, () => ({ height: rnd.real(h0, h1), solid: it.solid })); break; }
-      case 'grabsteine': scat(grabstein, 6, [10, 8], 1.4, () => ({ size: rnd.real(0.8, 1.15) * (it.scaleStone ?? 1), style: it.style, face: it.face, solid: it.solid })); break;
+      case 'maisfeld': { const [h0, h1] = range(it.height, [1.8, 2.5]); scat('maisstaude', maisstaude, 12, [8, 8], 0.9, () => ({ height: rnd.real(h0, h1), yaw: rnd.real(0, 6.28) })); break; }
+      case 'krumme_baeume': { const [h0, h1] = range(it.height, [4, 6]); scat('krummer_baum', krummerBaum, 4, [16, 16], 4, () => ({ height: rnd.real(h0, h1), solid: it.solid, yaw: rnd.real(0, 6.28), treeSeed: Math.floor(rnd.frac() * 4) })); break; }
+      case 'grabsteine': scat('grabstein', grabstein, 6, [10, 8], 1.4, () => ({ size: rnd.real(0.8, 1.15) * (it.scaleStone ?? 1), style: it.style ?? ['rund', 'kreuz', 'spitz'][Math.floor(rnd.frac() * 3)], face: it.face, solid: it.solid, yaw: -Math.PI / 2 + rnd.real(-0.25, 0.25), tilt: rnd.real(-0.08, 0.08) })); break;
       default: {
         const fn = SINGLE[it.kind];
         if (fn) fn(level, it, p, rnd, P, glow);
         else console.warn(`[deco_hw] unbekannte Art ${it.kind}`);
+        if (fn && ['dorfhaus', 'hexenturm', 'gruft', 'kerzenleuchter'].includes(it.kind)) MODEL_SOLID[it.kind]?.(level, it, p, 1);
       }
     }
   }

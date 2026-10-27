@@ -33,6 +33,7 @@ import { SFX_NAMES } from '../../audio/sfx.js';
 import { colorize, merge, lin, mixc, smooth, hex } from './kit.js';
 import { figures } from './w2kit.js';
 import { modelOr } from './w5kit.js';
+import { hasModel, getModel } from '../models/index.js';
 import { LIGHT as HELM_LIGHT } from '../player/helmets.js';
 
 export { modelOr, figures };
@@ -418,13 +419,18 @@ class HwLightView {
       return { root: r };
     });
     root.add(model.root);
-    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTexture(), color: 0xffc860, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
-    glow.scale.set(1.3, 1.3, 1);
-    glow.position.y = -0.27;
-    model.root.add(glow);
+    const reg = hasModel('laterne_hand');
+    if (!reg) {
+      // Ersatz-Optik: eigener Schein (das Registry-Modell hat einen)
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTexture(), color: 0xffc860, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
+      glow.scale.set(1.3, 1.3, 1);
+      glow.position.y = -0.27;
+      model.root.add(glow);
+      root.traverse((o) => { if (o.isMesh || o.isSprite) o.userData.owned = true; });
+    }
     this.level.view.add(root);
-    root.traverse((o) => { if (o.isMesh || o.isSprite) o.userData.owned = true; });
-    h = { root, model, swing: 0, swingV: 0, last: null };
+    // Registry-Laterne ≈ 0,6 m → in der Hand ≈ 0,42 m (Figur 0,95 m)
+    h = { root, model, swing: 0, swingV: 0, last: null, k: reg ? 0.7 : 1 };
     this.hands.set(f, h);
     return h;
   }
@@ -456,8 +462,8 @@ class HwLightView {
         h.last = { x, z };
         h.root.position.set(x, y, z);
         h.root.rotation.set(0, f.yaw, h.swing, 'YXZ');
-        h.root.scale.setScalar(H / 0.95);
-        h.model.update?.(dt, { swing: h.swing, lit: true });
+        h.root.scale.setScalar((H / 0.95) * h.k);
+        h.model.update?.(dt, { lit: true, swing: h.swing });
       }
     }
     // Figurenlicht als warme Laterne
@@ -491,6 +497,71 @@ class HwLightView {
     this.pools.count = n;
     this.pools.instanceMatrix.needsUpdate = true;
   }
+}
+
+/**
+ * Geometrie eines Registry-Modells (Modell-Raum, Ursprung wie das Modell) als ein nicht indiziertes Mesh mit position,
+ * normal, color – für eigene Shader (Geisterplatten). Nur sichtbare Meshes ohne Textur; Instanz-Teile je Instanz;
+ * einfarbige Teile bekommen ihre Materialfarbe. null, wenn es das Modell nicht gibt.
+ */
+export function modelGeometry(name, opts = {}, state = {}) {
+  if (!hasModel(name)) return null;
+  const m = getModel(name, opts);
+  m.update?.(0, state);
+  const root = m.root;
+  root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); root.scale.set(1, 1, 1);
+  root.updateMatrixWorld(true);
+  const parts = [];
+  const M = new THREE.Matrix4(), IM = new THREE.Matrix4();
+  root.traverse((o) => {
+    if (!o.isMesh || !o.visible) return;
+    for (let q = o.parent; q; q = q.parent) if (!q.visible) return;
+    const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+    if (!mat || mat.map || mat.blending === THREE.AdditiveBlending) return;
+    const mats = [];
+    if (o.isInstancedMesh) for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, IM); if (Math.abs(IM.determinant()) > 1e-9) mats.push(M.clone().multiplyMatrices(o.matrixWorld, IM)); }
+    else mats.push(o.matrixWorld.clone());
+    for (const W of mats) {
+      let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+      for (const a of Object.keys(g.attributes)) if (a !== 'position' && a !== 'normal' && a !== 'color') g.deleteAttribute(a);
+      if (!g.attributes.normal) g.computeVertexNormals();
+      if (!g.attributes.color || !mat.vertexColors) {
+        const c = mat.color ?? new THREE.Color(1, 1, 1), n = g.attributes.position.count;
+        const arr = new Float32Array(n * 3);
+        for (let i = 0; i < n; i++) { arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b; }
+        g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+      } else if (g.attributes.color.itemSize !== 3) {
+        const src = g.attributes.color, n = src.count, arr = new Float32Array(n * 3);
+        for (let i = 0; i < n; i++) { arr[i * 3] = src.getX(i); arr[i * 3 + 1] = src.getY(i); arr[i * 3 + 2] = src.getZ(i); }
+        g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+      }
+      g.applyMatrix4(W);
+      parts.push(g);
+    }
+  });
+  m.dispose?.();
+  return parts.length ? merge(parts) : null;
+}
+
+/** Hüllquader eines Modells (lokal, ohne Lage/Drehung) → THREE.Box3; nur Meshes. largest: nur das größte Mesh. */
+export function modelBox(model, largest = false) {
+  const root = model.root;
+  const p = root.position.clone(), r = root.rotation.clone(), s = root.scale.clone();
+  root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); root.scale.set(1, 1, 1);
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3(), tmp = new THREE.Box3();
+  let best = -1;
+  root.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || !o.geometry) return;
+    for (let q = o; q; q = q.parent) if (!q.visible) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    tmp.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+    if (largest) { const v = tmp.getSize(new THREE.Vector3()); const vol = v.x * v.y * v.z; if (vol > best) { best = vol; box.copy(tmp); } }
+    else box.union(tmp);
+  });
+  root.position.copy(p); root.rotation.copy(r); root.scale.copy(s);
+  root.updateMatrixWorld(true);
+  return box;
 }
 
 /** Laternenlicht-System des Levels (eine Instanz, `level.hwLight`). */

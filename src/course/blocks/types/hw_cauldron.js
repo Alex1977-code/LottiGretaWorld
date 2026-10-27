@@ -15,9 +15,9 @@
 //   { type: 'spinnennetz_trampolin', id, pos: [x, y, z] (Boden unter der Netzmitte), size: [3, 3] (w × d), height: 1.0
 //     (Netz über pos), strength: 17 | jump: m, spider: true, posts: true }
 //   level.named.get(id) = { bounces, sag, info() }
-// Modelle aus der Registry, sobald es sie gibt: 'hexenkessel' ({ size, height, color }; state { squash, bubble, brew }),
-//   'zaubertrank_blase' ({ size }; state { wobble }), 'spinnennetz_trampolin' ({ size: [w, d], height }; state { sag,
-//   spider }); sonst eigene Geometrie.
+// Modelle aus der Registry, sobald es sie gibt: 'hexenkessel' ({ size: Faktor auf Ø 1,7 m }, auf die Randhöhe gestreckt;
+//   state { bounce 0..1, bubble }), 'spinnennetz_trampolin' ({ radius, height }; state { bounce 0..1 }; dann ohne eigene
+//   Pfähle); sonst eigene Geometrie. Zaubertrank-Blasen zeichnet der Baustein selbst (Instanzen).
 
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, hex, addObject, addStatic } from '../kit.js';
@@ -129,7 +129,9 @@ export function buildHexenkessel(level, spec) {
   // Darstellung
   const root = new THREE.Group();
   root.position.set(p.x, p.y, p.z);
-  const model = modelOr('hexenkessel', { size: R * 2, height: H, color }, () => {
+  // Registry-Modell 'hexenkessel' (Ø ≈ 1,7 m · size, Blubber-Oberfläche userData.top): auf Ø und Randhöhe gebracht
+  const reg = hasModel('hexenkessel');
+  const model = modelOr('hexenkessel', { size: (R * 2) / 1.7, height: H, color }, () => {
     const { body, glow } = cauldronGeo(R, H, color);
     const g = new THREE.Group();
     const mb = new THREE.Mesh(body, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.35 }));
@@ -138,6 +140,7 @@ export function buildHexenkessel(level, spec) {
     return { root: g };
   });
   root.add(model.root);
+  if (reg && model.root.userData.top > 0.1) model.root.scale.y = H / model.root.userData.top;
   const [, bc, bh] = (BREW[color] ?? BREW.gruen);
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTexture(), color: bc, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending }));
   halo.scale.set(R * 4.2, R * 2.6, 1); halo.position.set(0, H + 0.5, 0);
@@ -162,10 +165,9 @@ export function buildHexenkessel(level, spec) {
   addObject(level, root, (dt, t) => {
     const d = visDt(level, hold, dt);
     st.squash = Math.max(0, st.squash - d * 4);
-    const sq = Math.sin(st.squash * Math.PI) * 0.08;
-    root.scale.set(1 + sq, 1 - sq, 1 + sq);
+    if (!reg) { const sq = Math.sin(st.squash * Math.PI) * 0.08; root.scale.set(1 + sq, 1 - sq, 1 + sq); }
     halo.material.opacity = 0.42 + 0.12 * Math.sin(t * 3) + st.splash * 0.4;
-    model.update?.(d, { squash: st.squash, bubble: 0.5 + 0.5 * Math.sin(t * 4), brew: color });
+    model.update?.(d, { squash: st.squash, bounce: st.squash, bubble: 1, brew: color });
     // Blubbern: kleine Blasen wachsen und platzen; nach einem Abprall spritzen Blasen hoch
     if (st.splash > 0.99) for (let i = NB; i < NB + 8; i++) { const b = bs[i]; b.t = 0; b.y = 0; b.vy = 3 + (i % 4) * 0.8; }
     st.splash = Math.max(0, st.splash - d * 2);
@@ -180,6 +182,7 @@ export function buildHexenkessel(level, spec) {
         if (b.y < 0) { b.y = 0; b.vy = 0; continue; }
         y = H - 0.08 + b.y; s = 0.09;
       } else {
+        if (reg) continue;   // das Registry-Modell blubbert selbst
         if (b.t > b.life) { b.t = 0; b.a = (b.a + 2.1) % 6.28; }
         const k = b.t / b.life;
         y = H - 0.1 + k * 0.05; s = 0.04 + k * 0.12;
@@ -247,7 +250,9 @@ export function buildSpinnennetzTrampolin(level, spec) {
   const st = { bounces: 0, sag: 0, sagV: 0 };
   const owner = { onBounce(f) { st.bounces++; st.sagV -= 6; st.hit = f ? { x: f.pos.x - p.x, z: f.pos.z - p.z } : null; hwSfx(level, 'netz', 'bounce'); } };
   level.world.add({ type: 'box', min: [p.x - w / 2, top - 0.22, p.z - d / 2], max: [p.x + w / 2, top, p.z + d / 2], bounce: strength, owner, tag: 'spinnennetz' });
-  const posts = spec.posts !== false;
+  // Registry-Modell 'spinnennetz_trampolin': rundes Netz im Astring auf Stummelbeinen – dann keine eigenen Pfähle
+  const regNet = hasModel('spinnennetz_trampolin');
+  const posts = spec.posts !== false && !regNet;
   if (posts) for (const sx of [-1, 1]) for (const sz of [-1, 1]) level.world.add({ type: 'cyl', x: p.x + sx * (w / 2 + 0.12), z: p.z + sz * (d / 2 + 0.12), r: 0.14, y0: p.y, y1: top + 0.45, tag: 'spinnennetz:pfahl' });
   const handle = { get bounces() { return st.bounces; }, get sag() { return st.sag; }, top, strength, info: () => ({ bounces: st.bounces, sag: +st.sag.toFixed(3) }) };
   if (spec.id) level.named.set(spec.id, handle);
@@ -269,7 +274,7 @@ export function buildSpinnennetzTrampolin(level, spec) {
   const root = new THREE.Group();
   root.position.set(p.x, top - 0.02, p.z);
   let model = null, web = null;
-  if (hasModel('spinnennetz_trampolin')) { model = getModel('spinnennetz_trampolin', { size: [w, d], height: H }); model.root.position.y = -(H - 0.02); root.add(model.root); }
+  if (regNet) { model = getModel('spinnennetz_trampolin', { radius: Math.min(w, d) / 2, height: H, size: [w, d] }); model.root.position.y = -(H - 0.02); root.add(model.root); }
   else {
     web = webGeo(w, d);
     const mesh = new THREE.Mesh(web.g, new THREE.MeshBasicMaterial({ color: 0xe8e0ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
@@ -315,7 +320,7 @@ export function buildSpinnennetzTrampolin(level, spec) {
       for (let i = 0; i < web.rk.length; i++) { const k = 1 - web.rk[i] * web.rk[i]; a[i * 3 + 1] = web.base[i * 3 + 1] + st.sag * 0.5 * k; }
       web.g.attributes.position.needsUpdate = true;
     }
-    model?.update?.(dd, { sag: st.sag, spider: Math.sin(t * 1.4) });
+    model?.update?.(dd, { sag: st.sag, bounce: Math.max(0, Math.min(1, -st.sag / 0.7)), spider: Math.sin(t * 1.4) });
     if (spider) {
       const L = 0.5 + 0.25 * Math.sin(t * 1.1);
       spider.position.y = 1.0 - L;

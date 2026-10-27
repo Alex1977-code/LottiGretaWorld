@@ -59,7 +59,7 @@ import { surfaceNormal } from '../../physics/shapes.js';
 import { lin, mixc, smooth, colorize, merge, hex, box, addStatic } from '../../blocks/kit.js';
 import { yawBox, rotXZ, snapYaw, banner } from '../../blocks/w3kit.js';
 import { tapTargets } from '../tap.js';
-import { hwLight, hwHud, hwSfx, modelOr, figures, HWC, pumpkinGeo, faceGeo, lanternParts, candyGeo, softTexture, CANDY_VARIANTS } from '../../blocks/hwkit.js';
+import { hwLight, hwHud, hwSfx, modelOr, modelBox, figures, HWC, pumpkinGeo, faceGeo, lanternParts, candyGeo, softTexture, CANDY_VARIANTS } from '../../blocks/hwkit.js';
 import { buildGeisterplattform } from '../../blocks/types/hw_light.js';
 import { buildBesenPlattform } from '../../blocks/types/hw_broom.js';
 import { buildHexenkessel, buildSpinnennetzTrampolin } from '../../blocks/types/hw_cauldron.js';
@@ -96,11 +96,16 @@ class Laterne extends Gimmick {
       const g = new THREE.Group();
       const m = lanternModel(1.6);
       m.root.position.y = 1.25;
-      const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTexture(), color: 0xffc860, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending }));
-      glow.scale.set(1.6, 1.6, 1); glow.position.y = 0.82;
-      g.add(m.root, glow);
+      g.add(m.root);
+      if (!hasModel('laterne_hand')) {
+        // Ersatz-Optik: eigener Schein (das Registry-Modell hat einen)
+        const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTexture(), color: 0xffc860, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending }));
+        glow.scale.set(1.6, 1.6, 1); glow.position.y = 0.82;
+        g.add(glow);
+        this.glow = glow;
+      } else m.root.scale.setScalar(1.15);
       this.setModel({ root: g, update: (dt, s) => m.update?.(dt, s), dispose() {} });
-      this.lm = m; this.glow = glow;
+      this.lm = m;
     }
   }
 
@@ -246,10 +251,11 @@ class Laternenpfahl extends Gimmick {
 
 // ============================================================================================ Süßigkeit
 
-const candyTemplates = new Map();
+// Sorten der Bausteine → Sorten des Registry-Modells 'suessigkeit'
+const MODEL_CANDY = { bonbon: 'bonbon', lolli: 'lolli', zuckermais: 'mais', schoko: 'riegel' };
 function candyTemplate(variant) {
   return () => {
-    if (hasModel('suessigkeit')) return getModel('suessigkeit', { variant }).root;
+    if (hasModel('suessigkeit')) return getModel('suessigkeit', { kind: MODEL_CANDY[variant] ?? variant, color: Math.max(0, CANDY_VARIANTS.indexOf(variant)) }).root;
     const i = Math.max(0, CANDY_VARIANTS.indexOf(variant));
     const m = new THREE.Mesh(candyGeo(variant, i), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, emissive: 0x2a1a22 }));
     m.position.y = 0.42;
@@ -351,14 +357,31 @@ const HOUSE = {
 const DOOR_W = 1.1, DOOR_H = 1.95;
 
 /** Häuschen (lokal: Tür-Vorderseite bei lx = 0, Haus nach −lx; lz quer). → { body, glow } in Weltkoordinaten. */
-function houseGeo(p, yaw, color, house) {
+function houseGeo(p, yaw, color, house, reg = false) {
   const P = HOUSE[color] ?? HOUSE.lila;
   const parts = [], glow = [];
-  const W = 3.6, D = 3.0, H = 3.0;
+  const W = reg ? 4.0 : 3.6, D = 3.0, H = 3.0;
+  // Registry-Tür (öffnet nach innen): Wand mit Türöffnung und kleinem Flur dahinter
+  const hw = reg ? 0.82 : 0, hh = reg ? 2.62 : 0, back = reg ? 1.45 : 0;
+  const winZ = reg ? 1.4 : 1.15;
   const L = (g, lx, ly, lz) => { g.translate(lx, ly, lz); g.rotateY(yaw); g.translate(p.x, p.y, p.z); return g; };
+  const wallCol = (q, n, o) => { mixc(C(P.wallLow), C(P.wall), smooth(p.y, p.y + H * 0.7, q.y), o); };
   if (house) {
-    const wall = box(D, H, W, 0, 0, 0, P.wall, { r: 0.08, seg: 1 });
-    parts.push(colorize(L(wall, -D / 2, H / 2, 0), (q, n, o) => { mixc(C(P.wallLow), C(P.wall), smooth(p.y, p.y + H * 0.7, q.y), o); }));
+    if (!reg) parts.push(colorize(L(box(D, H, W, 0, 0, 0, P.wall, { r: 0.08, seg: 1 }), -D / 2, H / 2, 0), wallCol));
+    else {
+      parts.push(colorize(L(box(D - back, H, W, 0, 0, 0, P.wall, { r: 0.08, seg: 1 }), -back - (D - back) / 2, H / 2, 0), (q, n, o) => {
+        // Rückwand des Flurs (hinter der Tür) warm und dunkel
+        if (Math.abs(q.y - p.y - 1.2) < 1.4) { wallCol(q, n, o); o[0] *= 0.45; o[1] *= 0.32; o[2] *= 0.3; } else wallCol(q, n, o);
+      }));
+      const side = (W / 2 - hw) / 2;
+      for (const sd of [-1, 1]) {
+        parts.push(colorize(L(box(0.26, H, W / 2 - hw, 0, 0, 0, P.wall, { r: 0.04, seg: 1 }), -0.13, H / 2, sd * (hw + side)), wallCol));
+        parts.push(colorize(L(box(back - 0.25, H, 0.12, 0, 0, 0, P.wall, { r: 0.02, seg: 1 }), -0.25 - (back - 0.25) / 2, H / 2, sd * (W / 2 - 0.06)), wallCol));
+      }
+      parts.push(colorize(L(box(0.26, H - hh, hw * 2, 0, 0, 0, P.wall, { r: 0.03, seg: 1 }), -0.13, hh + (H - hh) / 2, 0), wallCol));
+      // Flur-Decke
+      parts.push(colorize(L(box(back, 0.1, W - 0.2, 0, 0, 0, P.wallLow, { r: 0.01, seg: 1 }), -back / 2, H - 0.05, 0), (q, n, o) => { const c = C(P.wallLow); o[0] = c[0] * 0.5; o[1] = c[1] * 0.4; o[2] = c[2] * 0.4; }));
+    }
     // Fachwerk-Balken vorn
     for (const lz of [-W / 2 + 0.12, W / 2 - 0.12]) parts.push(colorize(L(box(0.14, H, 0.18, 0, 0, 0, HWC.woodLow, { r: 0.03, seg: 1 }), 0.02, H / 2, lz), (q, n, o) => mixc(C(HWC.woodLow), C(HWC.wood), 0.4, o)));
     parts.push(colorize(L(box(0.14, 0.18, W, 0, 0, 0, HWC.woodLow, { r: 0.03, seg: 1 }), 0.02, H - 0.1, 0), (q, n, o) => mixc(C(HWC.woodLow), C(HWC.wood), 0.4, o)));
@@ -375,11 +398,12 @@ function houseGeo(p, yaw, color, house) {
     // Fenster (leuchtend) links und rechts der Tür
     for (const sd of [-1, 1]) {
       const win = box(0.06, 0.8, 0.7, 0, 0, 0, 0xffd27a, { r: 0.02, seg: 1 });
-      glow.push(colorize(L(win, 0.03, 1.7, sd * 1.15), (q, n, o) => mixc(C(0xff9a2a), C(0xfff0a0), smooth(p.y + 1.3, p.y + 2.1, q.y), o)));
-      for (const [h, w, dy, dz] of [[0.86, 0.06, 0, 0], [0.06, 0.76, 0, 0]]) parts.push(colorize(L(box(0.08, h, w, 0, 0, 0, P.trim, { r: 0.01, seg: 1 }), 0.06, 1.7 + dy, sd * 1.15 + dz), (q, n, o) => { const c = C(P.trim); o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
-      parts.push(colorize(L(box(0.2, 0.08, 0.86, 0, 0, 0, P.trim, { r: 0.02, seg: 1 }), 0.1, 1.26, sd * 1.15), (q, n, o) => { const c = C(P.trim); o[0] = c[0] * 0.9; o[1] = c[1] * 0.9; o[2] = c[2] * 0.9; }));
+      glow.push(colorize(L(win, 0.03, 1.7, sd * winZ), (q, n, o) => mixc(C(0xff9a2a), C(0xfff0a0), smooth(p.y + 1.3, p.y + 2.1, q.y), o)));
+      for (const [h, w, dy, dz] of [[0.86, 0.06, 0, 0], [0.06, 0.76, 0, 0]]) parts.push(colorize(L(box(0.08, h, w, 0, 0, 0, P.trim, { r: 0.01, seg: 1 }), 0.06, 1.7 + dy, sd * winZ + dz), (q, n, o) => { const c = C(P.trim); o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
+      parts.push(colorize(L(box(0.2, 0.08, 0.86, 0, 0, 0, P.trim, { r: 0.02, seg: 1 }), 0.1, 1.26, sd * winZ), (q, n, o) => { const c = C(P.trim); o[0] = c[0] * 0.9; o[1] = c[1] * 0.9; o[2] = c[2] * 0.9; }));
     }
   }
+  if (reg) return { body: merge(parts), glow: merge(glow) };   // Rahmen, Schwelle, Matte, Licht bringt das Türmodell mit
   // Türrahmen und Schwelle
   for (const sd of [-1, 1]) parts.push(colorize(L(box(0.18, DOOR_H + 0.15, 0.16, 0, 0, 0, P.trim, { r: 0.03, seg: 1 }), 0.04, (DOOR_H + 0.15) / 2, sd * (DOOR_W / 2 + 0.08)), (q, n, o) => mixc(C(P.trim), C(0xffffff), 0.2, o)));
   parts.push(colorize(L(box(0.18, 0.16, DOOR_W + 0.32, 0, 0, 0, P.trim, { r: 0.03, seg: 1 }), 0.04, DOOR_H + 0.08, 0), (q, n, o) => mixc(C(P.trim), C(0xffffff), 0.2, o)));
@@ -428,17 +452,21 @@ class SuessigkeitenTuer extends Gimmick {
     this.given = false;
     const p = this.pos, yaw = this.yaw;
     const house = spec.house !== false;
+    // Registry-Modell 'suessigkeiten_tuer' (Tür mit Rahmen, Lampe, Matte; öffnet nach innen) – sonst eigenes Türblatt
+    const reg = this.reg = hasModel('suessigkeiten_tuer');
+    const dw = this.dw = reg ? 1.3 : DOOR_W, dh = this.dh = reg ? 2.4 : DOOR_H;
     this.nx = Math.cos(yaw); this.nz = -Math.sin(yaw);   // Blickrichtung der Tür (nach außen)
-    if (house) this.addSolid({ type: 'box', ...yawBox(p.x, p.y, p.z, -3.0, -0.06, 3.0, -1.8, 1.8, yaw), tag: 'haus' });
-    else this.addSolid({ type: 'box', ...yawBox(p.x, p.y, p.z, -0.3, -0.02, DOOR_H + 0.2, -DOOR_W / 2 - 0.2, DOOR_W / 2 + 0.2, yaw), tag: 'haus' });
-    // Schwelle (Stampfen = klingeln)
-    this.addSolid({ type: 'box', ...yawBox(p.x, p.y, p.z, -0.02, 0.8, 0.2, -0.8, 0.8, yaw), tag: 'tuerschwelle' });
+    const hw = reg ? 2.0 : 1.8;
+    if (house) this.addSolid({ type: 'box', ...yawBox(p.x, p.y, p.z, -3.0, -0.06, 3.0, -hw, hw, yaw), tag: 'haus' });
+    else this.addSolid({ type: 'box', ...yawBox(p.x, p.y, p.z, -0.3, -0.02, dh + 0.2, -dw / 2 - 0.2, dw / 2 + 0.2, yaw), tag: 'haus' });
+    // Schwelle (Stampfen = klingeln) – nur zur eigenen Optik; die Registry-Tür hat eine flache Matte
+    if (!reg) this.addSolid({ type: 'box', ...yawBox(p.x, p.y, p.z, -0.02, 0.8, 0.2, -0.8, 0.8, yaw), tag: 'tuerschwelle' });
     const counts = (level.hwDoors ??= {});
     const c = counts[this.group] ??= { n: 0, of: 0, done: false, ids: [] };
     c.of++;
     if (spec.of) c.fixedOf = spec.of;
     if (level.view) {
-      const { body, glow } = houseGeo(p, yaw, spec.color ?? 'lila', house);
+      const { body, glow } = houseGeo(p, yaw, spec.color ?? 'lila', house, reg);
       addStatic(level, body);
       addStatic(level, glow, { material: 'glow', castShadow: false });
       const g = new THREE.Group();
@@ -446,25 +474,26 @@ class SuessigkeitenTuer extends Gimmick {
       const leafRoot = new THREE.Group();
       leafRoot.position.set(0, 0, -DOOR_W / 2);
       leafRoot.add(hinge);
-      const m = modelOr('suessigkeiten_tuer', { color: spec.color ?? 'lila' }, () => {
+      const m = modelOr('suessigkeiten_tuer', { color: spec.color ?? 'lila', width: dw, height: dh }, () => {
         const mesh = new THREE.Mesh(doorLeafGeo(spec.color ?? 'lila'), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }));
         mesh.receiveShadow = true;
         return { root: mesh };
       });
-      hinge.add(m.root);
-      g.add(leafRoot);
-      // Türlampe (brennt nach dem Klingeln)
+      if (reg) g.add(m.root);   // ganze Tür im Ursprung (Schwelle), dreht selbst auf
+      else { hinge.add(m.root); g.add(leafRoot); }
+      // Türlampe (brennt nach dem Klingeln) – mit Registry-Tür als Wandlampe neben der Tür
       const lamp = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTexture(), color: 0xffb040, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending }));
-      lamp.scale.set(1.2, 1.2, 1); lamp.position.set(0.25, DOOR_H + 0.45, 0); lamp.visible = false;
+      lamp.scale.set(1.2, 1.2, 1); lamp.visible = false;
+      if (reg) lamp.position.set(0.3, 2.0, dw / 2 + 0.55); else lamp.position.set(0.25, DOOR_H + 0.45, 0);
       g.add(lamp);
-      this.hinge = hinge; this.leafModel = m; this.lamp = lamp;
+      this.hinge = reg ? null : hinge; this.leafModel = m; this.lamp = lamp;
       this.setModel({ root: g, update: (dt, s) => m.update?.(dt, s), dispose() {} });
     }
     if (LIST(spec.ring ?? ['stomp', 'tap', 'walk']).includes('tap')) {
       const taps = tapTargets(level);
       this.tap = taps.add({
         owner: this,
-        box: () => { const b = yawBox(p.x, p.y, p.z, -0.1, 0.25, DOOR_H, -DOOR_W / 2, DOOR_W / 2, yaw); return b; },
+        box: () => yawBox(p.x, p.y, p.z, -0.1, 0.25, dh, -dw / 2, dw / 2, yaw),
         enabled: () => this.canRing(),
         reach: 3.5,
         hint: true,
@@ -524,7 +553,16 @@ class SuessigkeitenTuer extends Gimmick {
 
   update(dt) {
     const spec = this.spec;
-    if (this.state === 'idle' && LIST(spec.ring ?? ['stomp', 'tap', 'walk']).includes('walk')) {
+    const ways = LIST(spec.ring ?? ['stomp', 'tap', 'walk']);
+    // Stampfen vor der Tür (Schwelle/Matte): gerade mit einer Stampfattacke gelandet
+    if (this.state === 'idle' && ways.includes('stomp')) {
+      for (const f of figures(this.level)) {
+        if (f.mode !== 'ground' || f.state !== 'land' || !f.poundLanded || (f.stateTime ?? 0) > 0.05) continue;
+        const { lx, lz } = this.local(f);
+        if (lx > -0.1 && lx < 1.3 && Math.abs(lz) < 0.95) { this.ring('stomp'); break; }
+      }
+    }
+    if (this.state === 'idle' && ways.includes('walk')) {
       for (const f of figures(this.level)) {
         if (f.mode !== 'ground') { this.dwell.delete(f); continue; }
         const { lx, lz } = this.local(f);
@@ -561,12 +599,12 @@ class SuessigkeitenTuer extends Gimmick {
 
   render(dt, t) {
     super.render(dt, t);
-    if (!this.hinge) return;
+    if (!this.leafModel) return;
     const d = visDt(this.level, this._vh ??= {}, dt);
     const want = this.state === 'open' ? 1 : 0;
     this.openK += (want - this.openK) * Math.min(1, d * 7);
     this.ringK = this.state === 'ring' ? 1 : Math.max(0, this.ringK - d * 3);
-    this.hinge.rotation.y = this.openK * 1.75 + Math.sin(t * 40) * 0.025 * this.ringK;
+    if (this.hinge) this.hinge.rotation.y = this.openK * 1.75 + Math.sin(t * 40) * 0.025 * this.ringK;
     if (this.lamp) { this.lamp.visible = this.lit; this.lamp.material.opacity = 0.75 + 0.1 * Math.sin(t * 5); }
     this.leafModel?.update?.(d, { open: this.openK, ring: this.ringK, lit: this.lit });
   }
@@ -612,13 +650,24 @@ class GrabsteinSchalter extends Gimmick {
     this.k = 0;
     this.wasOn = false;
     const p = this.pos, yaw = this.yaw;
-    this.plateTop = p.y + 0.3;
-    // Grabplatte (Druckfläche) vor dem Stein: lokal lx 0..1.4, lz ±0.65; Grabstein bei lx −0.45
-    this.plate = this.addSolid({ type: 'box', ...yawBox(p.x, p.y, p.z, -0.15, 1.25, 0.3, -0.6, 0.6, yaw), tag: 'grabstein_schalter' });
-    this.addSolid({ type: 'box', ...yawBox(p.x, p.y, p.z, -0.62, -0.28, 1.5, -0.62, 0.62, yaw), tag: 'grabstein' });
+    // Registry-Modell 'grabstein_schalter': Grabstein auf Sockel, Knopf oben (sinkt 0,35 m) – man springt oben drauf.
+    // Sonst eigene Optik: Grabplatte (Druckfläche) vor dem Stein (lokal lx −0,15..1,25, lz ±0,6), Grabstein bei lx −0,45.
+    const reg = hasModel('grabstein_schalter');
+    const regModel = reg ? getModel('grabstein_schalter') : null;
+    if (regModel) {
+      const b = modelBox(regModel);
+      this.plateUp = Math.max(0.3, b.max.y); this.plateDown = this.plateUp - 0.35;
+      this.plate = this.addSolid({ type: 'box', ...yawBox(p.x, p.y, p.z, b.min.x, b.max.x, this.plateUp, b.min.z, b.max.z, yaw), tag: 'grabstein_schalter' });
+    } else {
+      this.plateUp = 0.3; this.plateDown = 0.1;
+      this.plate = this.addSolid({ type: 'box', ...yawBox(p.x, p.y, p.z, -0.15, 1.25, 0.3, -0.6, 0.6, yaw), tag: 'grabstein_schalter' });
+      this.addSolid({ type: 'box', ...yawBox(p.x, p.y, p.z, -0.62, -0.28, 1.5, -0.62, 0.62, yaw), tag: 'grabstein' });
+    }
+    this.plateTop = p.y + this.plateUp;
+    if (!level.view) regModel?.dispose?.();
     if (level.view) {
       const g = new THREE.Group();
-      const stone = modelOr('grabstein_schalter', {}, () => {
+      const stone = regModel ?? modelOr('grabstein_schalter', {}, () => {
         const { body, glow } = graveGeo(spec.face !== false);
         const r = new THREE.Group();
         const mb = new THREE.Mesh(body, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }));
@@ -672,7 +721,7 @@ class GrabsteinSchalter extends Gimmick {
 
   setPlate(down) {
     const s = this.plate;
-    const top = this.pos.y + (down ? 0.1 : 0.3);
+    const top = this.pos.y + (down ? this.plateDown : this.plateUp);
     s.max = [s.max[0], top, s.max[2]];
     const id = this.shapes[0];
     if (id !== undefined) this.level.world.update(id);
@@ -743,7 +792,7 @@ class Riesenkuerbis extends Gimmick {
     }
     if (level.view) {
       const color = spec.color ?? 'orange';
-      const m = modelOr('riesenkuerbis_roll', { size: this.size, color }, () => {
+      const m = modelOr('riesenkuerbis_roll', { size: this.size, color, face: spec.faceKind ?? 'staunen' }, () => {
         const pk = pumpkinGeo({ r: R, shape: 'dick', color, ribs: 12, seg: 30 });
         const g = new THREE.Group();
         // liegt auf der Seite: Stielachse quer zur Rollrichtung (lokal ±Z), rollt wie ein Rad
@@ -850,9 +899,15 @@ class Riesenkuerbis extends Gimmick {
     const spin = this.model.root.userData.spin;
     if (spin) {
       spin.rotation.z = -this.roll;
-      if (this.state === 'burst') { const k = Math.min(1, this.stateT / 0.25); spin.scale.set(1 + k * 0.4, 1 - k * 0.7, 1 + k * 0.4); this.model.root.visible = this.stateT < 0.3; }
+      if (this.state === 'burst') { const k = Math.min(1, this.stateT / 0.25); spin.scale.set(1 + k * 0.4, 1 - k * 0.7, 1 + k * 0.4); }
+    } else if (this.state === 'burst') {
+      // Registry-Modell: kurz aufblähen, dann weg (Trümmer zeigen die Effekte)
+      const k = Math.min(1, this.stateT / 0.25);
+      this.model.root.scale.set(1 + k * 0.3, 1 - k * 0.6, 1 + k * 0.3);
     }
-    this.model.update?.(d, { roll: this.roll, anim: this.state === 'burst' ? 'burst' : 'roll', progress: this.state === 'burst' ? Math.min(1, this.stateT / 0.7) : undefined });
+    if (this.state === 'burst') this.model.root.visible = this.stateT < 0.3;
+    // Registry: roll = Strecke / Radius (rollt nach +X), speed für Staub
+    this.model.update?.(d, { roll: spin ? this.roll : this.rolled / (this.size / 2), speed: this.speed(), anim: this.state === 'burst' ? 'burst' : 'roll', progress: this.state === 'burst' ? Math.min(1, this.stateT / 0.7) : undefined });
   }
 
   info() { return { state: this.state, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), speed: +this.speed().toFixed(2), rolled: +this.rolled.toFixed(2), age: +this.age.toFixed(2) }; }

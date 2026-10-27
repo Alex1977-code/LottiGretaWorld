@@ -19,13 +19,17 @@
 //     always: false (immer fest – zum Ausprobieren) }
 //   level.named.get(id) = { parts: [{ lit, k, solid, warn, box }], lit, solid, info() }; Kollision tag 'geisterplattform'.
 // Modelle: die Platten zeichnet ein gemeinsames Shader-Mesh (hwkit ghostBatch: 1 Zeichenaufruf für bis zu 64 Platten);
-//   ein Registry-Modell 'geisterplattform' wird nur als Vorlage für die Form genutzt, wenn es Geometrie liefert.
+//   gibt es das Registry-Modell 'geisterplattform' ({ size, color: 'mint' | 'lila' | 'orange' }), übernimmt das Mesh
+//   dessen Form und Farben (schlafendes Gesicht, Lakensaum; color 'blau'/'gruen' → 'mint').
 
 import * as THREE from 'three';
 import { v3, sz3, lin, mixc, smooth, colorize, merge, hex, box } from '../kit.js';
 import { figuresIn } from '../w4kit.js';
-import { hwLight, ghostBatch } from '../hwkit.js';
+import { hwLight, ghostBatch, modelGeometry } from '../hwkit.js';
 import { visDt } from '../../entities/gimmick.js';
+
+// Farbnamen der Bausteine → Farben des Registry-Modells ('mint' | 'lila' | 'orange')
+const MODEL_COLOR = { lila: 'lila', blau: 'mint', gruen: 'mint', mint: 'mint', orange: 'orange' };
 
 const GCOL = {
   lila: [0xb8a0ff, 0xf0e8ff, 0x7a5ad8],
@@ -93,7 +97,12 @@ export function buildGeisterplattform(level, spec) {
     const shape = { type: 'box', min: [box.x0, box.y0, box.z0], max: [box.x1, box.y1, box.z1], oneWay: !!spec.oneWay, tag: 'geisterplattform' };
     const part = { p, s, box, shape, id: null, lit: false, k: 0, solid: false, warn: false, left: 0, vis: 0, gid: -1, waits: 0 };
     shape.owner = part;
-    if (level.view) part.gid = batch.add(ghostSlab(p, s, spec.color ?? 'lila', spec.face !== false));
+    if (level.view) {
+      // Registry-Modell 'geisterplattform' (Form und Farben) in das gemeinsame Licht-Shader-Mesh übernehmen
+      const mg = modelGeometry('geisterplattform', { size: [s.x, s.y, s.z], color: MODEL_COLOR[spec.color] ?? spec.color ?? 'lila' });
+      if (mg) mg.translate(p.x, p.y, p.z);
+      part.gid = batch.add(mg ?? ghostSlab(p, s, spec.color ?? 'lila', spec.face !== false));
+    }
     return part;
   });
   const handle = {

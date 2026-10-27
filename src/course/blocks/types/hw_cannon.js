@@ -6,17 +6,19 @@
 //   { type: 'kuerbis_kanone', id, pos: [x, y, z] (Fuß, Mitte), to: [x, y, z] (Landepunkt), height: 2.0, radius: 1.1
 //     (Kollision; Öffnung = 0,85·radius), arc, gravity: 30, charge: 0.6, enter: 'both' | 'land' | 'crouch', yaw: −π/2
 //     (Gesicht zeigt nach +Z, zur Kamera), face: 'grinsen' | 'lachen' | 'staunen', color: 'orange' | 'gelb' | 'weiss',
-//     onFire: Aktion, hidden, mark: true (Zielmarke am Landepunkt) }
+//     onFire: Aktion, hidden, mark: true (Zielmarke am Landepunkt), size: 1.3 (nur Registry-Modell) }
 //   level.named.get(id) = Griff der Röhrenkanone { shots, state ('idle' | 'load' | 'fly'), flightTime, from, to,
 //     fire(player), reveal(), hide(), info() }
-// Modell 'kuerbis_kanone' aus der Registry ({ height, radius, color, face }, Ursprung Fuß, Gesicht +X; state { anim:
-//   'idle' | 'load' | 'fire', k }), sonst eigener Kürbis (blocks/hwkit.js pumpkinGeo + faceGeo).
+// Modell 'kuerbis_kanone' aus der Registry ({ size }, Ursprung Fuß, Rohr nach +X; state { anim: 'idle' | 'load' | 'fire',
+//   k, aim }): dreht sich zum Ziel, das Rohr zeigt den Abflugwinkel; Höhe/Radius der Kollision aus dem Kürbiskörper (sofern
+//   nicht angegeben). Sonst eigener Kürbis mit Öffnung oben (blocks/hwkit.js pumpkinGeo + faceGeo), Gesicht nach yaw.
 
 import * as THREE from 'three';
 import { v3, lin, mixc, colorize, merge, hex, addObject } from '../kit.js';
 import { buildRoehrenkanone } from './w5_savanna.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
-import { modelOr, pumpkinGeo, faceGeo, HWC, softTexture } from '../hwkit.js';
+import { modelOr, modelBox, pumpkinGeo, faceGeo, HWC, softTexture } from '../hwkit.js';
+import { hasModel, getModel } from '../../models/index.js';
 
 /** Zielmarke: oranger Ring mit kleinen Kürbis-Zacken. */
 function markGeo(r) {
@@ -33,20 +35,32 @@ function markGeo(r) {
 
 export function buildKuerbisKanone(level, spec) {
   const p = v3(spec.pos);
-  const h = spec.height ?? 2.0, r = spec.radius ?? 1.1;
+  // Registry-Modell 'kuerbis_kanone' (Kürbis auf Kufen, Rohr oben, zielt nach +X): Kollision aus dem Kürbiskörper
+  const regModel = hasModel('kuerbis_kanone') ? getModel('kuerbis_kanone', { size: spec.size ?? 1.3 }) : null;
+  let h = spec.height ?? 2.0, r = spec.radius ?? 1.1;
+  if (regModel) {
+    const b = modelBox(regModel, true);
+    if (spec.height === undefined) h = Math.max(1, b.max.y - 0.05);
+    if (spec.radius === undefined) r = Math.max(0.6, (Math.min(b.max.x - b.min.x, b.max.z - b.min.z) / 2) * 0.9);
+  }
   // Mechanik der Röhrenkanone ohne deren Optik (Hülle ohne Ansicht); Aktionen laufen im echten Level
   const lv = Object.create(level);
   lv.view = null;
   const onFire = spec.onFire;
   const handle = buildRoehrenkanone(lv, { ...spec, height: h, radius: r, charge: spec.charge ?? 0.6, onFire: onFire ? (_, ctx) => runAction(level, onFire, ctx) : undefined });
-  if (!level.view) return handle;
+  if (!level.view) { regModel?.dispose?.(); return handle; }
   const to = handle.to;
   // Sichtbarkeit folgt reveal()/hide() der Röhrenkanone
   const st = { hidden: !!spec.hidden };
   const reveal = handle.reveal, hide = handle.hide;
   handle.reveal = () => { st.hidden = false; reveal(); };
   handle.hide = () => { st.hidden = true; hide(); };
-  const yaw = spec.yaw ?? -Math.PI / 2;
+  // Registry-Modell zielt mit dem Rohr aufs Ziel: Gier zum Ziel, Erhebung = Abflugwinkel des Bogens (wie flightCtl)
+  const g = spec.gravity ?? 30, fromY = p.y + h - 0.6, dist = Math.hypot(to.x - p.x, to.z - p.z);
+  const apex = Math.max(fromY, to.y) + (spec.arc ?? Math.max(6, dist * 0.3));
+  const vy0 = Math.sqrt(2 * g * Math.max(0.1, apex - fromY)), T = vy0 / g + Math.sqrt(2 * Math.max(0.01, apex - to.y) / g);
+  const aim = Math.atan2(vy0, dist / T);
+  const yaw = regModel ? Math.atan2(-(to.z - p.z), to.x - p.x) : spec.yaw ?? -Math.PI / 2;
   const root = new THREE.Group();
   root.position.set(p.x, p.y, p.z);
   root.rotation.y = yaw;
@@ -54,7 +68,7 @@ export function buildKuerbisKanone(level, spec) {
   // Kürbis so groß, dass die Öffnung oben auf Höhe h liegt (Form 'dick': Höhe = 1,69·R)
   const R = h / 1.692;
   let faceMat = null;
-  const model = modelOr('kuerbis_kanone', { height: h, radius: r, color, face: spec.face ?? 'grinsen' }, () => {
+  const model = regModel ?? modelOr('kuerbis_kanone', { height: h, radius: r, color, face: spec.face ?? 'grinsen' }, () => {
     const pk = pumpkinGeo({ r: R, shape: 'dick', color, hole: 0.6, ribs: 12, seg: 36 });
     const g = new THREE.Group();
     const body = new THREE.Mesh(pk.body, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, emissive: 0x3a1400 }));
@@ -115,7 +129,7 @@ export function buildKuerbisKanone(level, spec) {
     root.scale.set(1 + bl, 1 - bl * 0.6 + 0.08 * Math.sin(puff * Math.PI), 1 + bl);
     if (faceMat) { const f = 0.62 + 0.06 * Math.sin(tt * 9) + 0.35 * k + 0.4 * puff; faceMat.color.setScalar(Math.min(1.2, f)); }
     glow.material.opacity = 0.12 + 0.4 * k + 0.45 * puff + 0.04 * Math.sin(tt * 7);
-    model.update?.(d, { anim: s === 'load' ? 'load' : s === 'fly' ? 'fire' : 'idle', k });
+    model.update?.(d, { anim: s === 'load' ? 'load' : s === 'fly' ? 'fire' : 'idle', k, aim });
   });
   return handle;
 }

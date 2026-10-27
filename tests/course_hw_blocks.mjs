@@ -410,16 +410,17 @@ console.log('Halloween-Werkstatt 0-20');
     const t = window.__t, c = window.__course, L = c.level, h = t.named('schalter');
     let sig = 0; L.onSignal('grabstein', () => sig++);
     const before = t.ray(0, 3, -216);
-    t.place(m, { settle: 0 });
+    const plate0 = h.info().top;
+    t.place([m[0], plate0 + 0.4, m[2]], { settle: 0 });
     for (let i = 0; i < 120; i++) t.tick(1);
-    return { pressed: h.pressed, presses: h.presses, sig, before, after: t.ray(0, 3, -216), plate: h.info().top };
+    return { pressed: h.pressed, presses: h.presses, sig, before, after: t.ray(0, 3, -216), plate0, plate: h.info().top };
   }, marks.schalter);
-  console.log(`  Grabstein-Schalter: gedrückt ${gs.pressed} (${gs.presses}×, Signal ${gs.sig}), Platte oben ${gs.plate}; Weg vorher ${JSON.stringify(gs.before)} → nachher ${JSON.stringify(gs.after)}`);
-  check('Grabstein-Schalter: Draufspringen drückt (Platte sinkt), Aktion on (Weg erscheint) und Signal', gs.pressed && gs.presses === 1 && gs.sig === 1 && gs.plate < 1.2 && (!gs.before || gs.before.y < 0) && gs.after?.tag === 'appear');
+  console.log(`  Grabstein-Schalter: gedrückt ${gs.pressed} (${gs.presses}×, Signal ${gs.sig}), Druckfläche ${gs.plate0} → ${gs.plate}; Weg vorher ${JSON.stringify(gs.before)} → nachher ${JSON.stringify(gs.after)}`);
+  check('Grabstein-Schalter: Draufspringen drückt (Druckfläche sinkt), Aktion on (Weg erscheint) und Signal', gs.pressed && gs.presses === 1 && gs.sig === 1 && gs.plate < gs.plate0 - 0.15 && (!gs.before || gs.before.y < 0) && gs.after?.tag === 'appear');
   const zs = await sc((m) => {
     const t = window.__t, c = window.__course, h = t.named('zeitschalter'), pf = t.named('pfahl2');
     const off0 = pf.on;
-    t.place(m, { settle: 0 });
+    t.place([m[0], h.info().top + 0.4, m[2]], { settle: 0 });
     for (let i = 0; i < 60; i++) t.tick(1);
     const on1 = pf.on;
     t.place([0, 1, -207], { settle: 0 });
@@ -429,7 +430,7 @@ console.log('Halloween-Werkstatt 0-20');
   }, marks.zeitschalter);
   console.log(`  Zeit-Schalter: Laterne vorher ${zs.off0}, gedrückt → an ${zs.on1}; geht nach ${f2(zs.offAt)} s wieder aus`);
   check('Grabstein-Schalter mit time: schaltet die Laterne an (start) und nach der Zeit wieder aus (off)', zs.off0 === false && zs.on1 === true && zs.offAt > 3.5 && zs.offAt < 5.5 && !zs.pressed);
-  await T('place', marks.schalter, { settle: 30 });
+  await T('place', marks.schalterBlick, { settle: 30 });
   await shot('schalter', 1500);
 }
 
@@ -499,7 +500,7 @@ if (errors.length) for (const e of errors.slice(0, 10)) console.log('   ', e);
 // ---------------------------------------------------------------- Themen (?theme=) mit Bildern
 if (PART !== 'mech' && SHOTS) {
   console.log('Halloween-Themen');
-  const VIEWS = { pumpkin: ['start', 'kanoneZiel'], pumpkin_night: ['start'], candyvillage: ['tueren'], graveyard: ['geist1:l'], witchtower: ['kessel'], castle_night: ['schalter'] };
+  const VIEWS = { pumpkin: ['start', 'kanoneZiel'], pumpkin_night: ['start'], candyvillage: ['tueren'], graveyard: ['geist1:l'], witchtower: ['kessel'], castle_night: ['schalterBlick'] };
   const labels = {};
   const t0 = stats.length;
   for (const th of Object.keys(VIEWS)) {
