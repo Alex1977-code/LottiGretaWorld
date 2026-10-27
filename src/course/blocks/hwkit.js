@@ -658,15 +658,18 @@ const GHOST_N = 64;
 
 const GHOST_VERT = `
 attribute float aGid;
+attribute vec2 aMask;
 uniform float uVis[${GHOST_N}];
 varying vec3 vWp;
 varying vec3 vN;
 varying vec3 vCol;
 varying float vVis;
+varying vec2 vMask;
 #include <common>
 #include <fog_pars_vertex>
 void main() {
   vCol = color;
+  vMask = aMask;
   vVis = uVis[int(aGid + 0.5)];
   vec4 wp = modelMatrix * vec4(position, 1.0);
   vWp = wp.xyz;
@@ -678,6 +681,7 @@ void main() {
 
 const GHOST_FRAG = `
 uniform vec4 uL[${MAXL}];
+uniform float uK[${MAXL}];
 uniform int uN;
 uniform float uSoft;
 uniform float uTime;
@@ -687,6 +691,7 @@ varying vec3 vWp;
 varying vec3 vN;
 varying vec3 vCol;
 varying float vVis;
+varying vec2 vMask;
 #include <common>
 #include <fog_pars_fragment>
 void main() {
@@ -695,7 +700,9 @@ void main() {
     if (i >= uN) break;
     vec4 L = uL[i];
     vec3 d = vWp - L.xyz; d.y *= 0.7;
-    m = max(m, 1.0 - smoothstep(L.w - uSoft, L.w, length(d)));
+    // Lichtart der Quelle (uK: 0 = Figur/Helm, 1 = Pfahl/Laterne) muss zur Platte passen (light 'laterne' | 'pfahl')
+    float w = uK[i] < 0.5 ? vMask.x : vMask.y;
+    m = max(m, w * (1.0 - smoothstep(L.w - uSoft, L.w, length(d))));
   }
   float vis = max(m, vVis);
   float sh = 0.5 + 0.5 * sin(vWp.x * 2.3 + vWp.z * 1.7 + uTime * 2.0);
@@ -717,15 +724,19 @@ class GhostBatch {
     this.items = [];          // { geo, vis }
     this.meshes = [];
     this.dirty = false;
-    this.shared = { uL: { value: Array.from({ length: MAXL }, () => new THREE.Vector4(0, -1e4, 0, 0)) }, uN: { value: 0 }, uSoft: { value: 1.2 }, uTime: { value: 0 }, uHint: { value: 0 }, uRim: { value: new THREE.Color(HWC.ghostRim) } };
+    this.shared = { uL: { value: Array.from({ length: MAXL }, () => new THREE.Vector4(0, -1e4, 0, 0)) }, uK: { value: new Float32Array(MAXL) }, uN: { value: 0 }, uSoft: { value: 1.2 }, uTime: { value: 0 }, uHint: { value: 0 }, uRim: { value: new THREE.Color(HWC.ghostRim) } };
     if (level.view) level.view.onFrame((dt, t) => this.frame(dt, t));
   }
 
-  /** Geometrie (Weltkoordinaten, nicht indiziert, mit color) anmelden → Index für setVis. */
-  add(geo) {
+  /** Geometrie (Weltkoordinaten, nicht indiziert, mit color) anmelden → Index für setVis. mask [Figur, Pfahl]: welche
+   *  Lichtquellen die Platte im Licht-Shader zeigen (Geisterplattform light 'laterne' → [1, 0], 'pfahl' → [0, 1]). */
+  add(geo, mask = [1, 1]) {
     const i = this.items.length;
     const n = geo.attributes.position.count;
     geo.setAttribute('aGid', new THREE.Float32BufferAttribute(new Float32Array(n).fill(i % GHOST_N), 1));
+    const mk = new Float32Array(n * 2);
+    for (let k = 0; k < n; k++) { mk[k * 2] = mask[0]; mk[k * 2 + 1] = mask[1]; }
+    geo.setAttribute('aMask', new THREE.Float32BufferAttribute(mk, 2));
     this.items.push({ geo, vis: 0 });
     this.dirty = true;
     return i;
@@ -768,6 +779,7 @@ class GhostBatch {
     for (let i = 0; i < MAXL; i++) {
       const q = list[i];
       if (i < n) s.uL.value[i].set(q.x, q.y, q.z, q.r); else s.uL.value[i].set(0, -1e4, 0, 0);
+      s.uK.value[i] = i < n && (q.kind === 'pfahl' || q.kind === 'laterne') ? 1 : 0;
     }
     s.uN.value = n;
     for (const m of this.meshes) {

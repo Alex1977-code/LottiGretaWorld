@@ -4814,7 +4814,11 @@ Regressionen: `course_enemies`, `course_w5_enemies` (Teile 1–3), `course_physi
 Additiv zur Halloween-Liste: Titel und Besonderheiten zweier Level der Kürbisinsel. Dateien
 `src/course/levels/w31/H-Kapitän.js`, `H-3.js`, eigene Hilfen `src/course/levels/w31/_helpers_b.js` (kein `LEVEL`, nur für
 diese beiden Level), Test `tests/course_hwb.mjs`. Kein Motor-Code geändert; Sonderteile sind level-lokal (Haken
-`LEVEL.build`/`LEVEL.setup`), die Mechanik kommt aus den Halloween-Bausteinen und -Gegnern.
+`LEVEL.build`/`LEVEL.setup`), die Mechanik kommt aus den Halloween-Bausteinen und -Gegnern. Einzige Baustein-Ergänzung
+(additiv, `blocks/hwkit.js` + `blocks/types/hw_light.js`): die Lichtmaske im Geister-Shader beachtet jetzt `light` – eine
+Platte mit `light: 'pfahl'` leuchtet im Licht der Handlaterne nicht mehr auf (vorher sichtbar, aber nicht begehbar: eine
+Falle für Kinder), eine `'laterne'`-Platte nicht im Pfahl-Licht; `'alle'` unverändert (`ghostBatch.add(geo, mask)`,
+Attribut `aMask`, Uniform `uK`). `course_hw_blocks` (Teil mech) bestanden.
 
 ### H-Kapitän „Krümel im Kürbis-Kuddelmuddel“ (diorama · pumpkin_night · course_diorama · 400 s, 3 Sterne)
 
