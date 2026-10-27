@@ -326,9 +326,11 @@ export function terrasse(level, t) {
     parts.push(colorize(g, (p, n, o) => wallCol(ux ? p.x : p.z, top - p.y, o)));
   }
   // Sockel: umgedrehte Pyramide unter dem Boden
-  const pyr = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 3, true).toNonIndexed();
-  pyr.rotateY(PI / 4); pyr.rotateX(PI); pyr.scale(x1 - x0, under, zF - zB); pyr.translate((x0 + x1) / 2, yb - under / 2, (zF + zB) / 2);
-  parts.push(colorize(pyr, (p, n, o) => { wallCol(p.x + p.z, top - p.y, o); mixc(o, s2, 0.35, o); }));
+  if (under > 0.05) {
+    const pyr = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 3, true).toNonIndexed();
+    pyr.rotateY(PI / 4); pyr.rotateX(PI); pyr.scale(x1 - x0, under, zF - zB); pyr.translate((x0 + x1) / 2, yb - under / 2, (zF + zB) / 2);
+    parts.push(colorize(pyr, (p, n, o) => { wallCol(p.x + p.z, top - p.y, o); mixc(o, s2, 0.35, o); }));
+  }
   // Kragstein-Leiste unter der Kante
   for (const f of faces) {
     const g = blk(f.w + 0.3, 0.32, 0.36, 0, 0, 0, 0x7a6a98, { top: 0x9a8ab8 });

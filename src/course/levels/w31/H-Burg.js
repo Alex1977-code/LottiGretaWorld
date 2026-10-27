@@ -24,7 +24,7 @@
 
 import {
   isl, line, ring, arc, naschen, naschKreis, sign, teppich, zinnenMauer, torbogen, ahnenGalerie, tanzboden, kronleuchter,
-  schlossDach, kicherGeist, kruemelLaterne, kuerbisKutsche, bankett, bombenNachschub, stimmungen, turm, funkelSpur,
+  schlossDach, kicherGeist, kruemelLaterne, kuerbisKutsche, bankett, bombenNachschub, stimmungen, turm, terrasse, funkelSpur,
   hexenKueche,
 } from './_helpers_c.js';
 
@@ -104,6 +104,8 @@ function build(level) {
   ]);
   // Schlossdach (Arena wie 0-22)
   schlossDach(level, { x: 0, z: AZ, y: YW, R, gap: 0.24 });
+  // Gruftnische (Stern 0): gemauerter Block mit warm erleuchteten Grabkammer-Fenstern
+  terrasse(level, { x0: NISCHE.x0, x1: NISCHE.x1, z0: NISCHE.z0, z1: NISCHE.z1, top: NISCHE.top, depth: 6.5, under: 0, floor: 'stein', color: 'grau', glow: 0xffc860, windows: [[0.3, -2.4], [0.72, -4.6]], tag: 'gruftnische' });
   funkelSpur(level, [[TRESOR.x, Y + 3.6, TRESOR.z], [LEUCHTER.x, LEUCHTER.top + 1.6, LEUCHTER.z]], 0xfff0a0, 1.2, { name: 'hinweis-glitzer' });
 }
 
@@ -159,17 +161,20 @@ export const LEVEL = {
     isl(-9, 9, 12, -5, Y, 6),
     sign(-3.6, Y, 10.4, 'Schloss Schlotterstein\nHeute: Gruselgala!', { size: [3, 1.0] }),
     sign(3.4, Y, -3.4, 'Bitte die Skelette\nnicht erschrecken!', { size: [2.6, 0.9] }),
-    { type: 'deco_hw', items: [
+    // Lach-Grabsteine, Zaun, Baum, Kürbisse: ohne Sonnenschatten (Mondnacht; spart den Schattenpass am Start)
+    { type: 'deco_hw', shadow: false, items: [
       { kind: 'grabsteine', pos: [-6.2, Y, 5.2], size: [4, 5], n: 4 },
       { kind: 'grabstein', pos: [-6.4, Y, 0.6], style: 'kreuz', size: 1.2 },
       { kind: 'grabstein', pos: [-4.6, Y, -1.6], style: 'rund' },
       { kind: 'zaun', from: [-3.4, Y, 9.6], to: [-3.4, Y, 2.4], style: 'eisen' },
-      { kind: 'krummer_baum', pos: [-7.6, Y, -3.4], height: 5 },
+      { kind: 'krummer_baum', pos: [-7.6, Y, -3.4], height: 5, lanterns: 0 },
+      { kind: 'kuerbisse', pos: [6.6, Y, -2.6], size: [3, 3], n: 5, faces: 0.6 },
+    ] },
+    { type: 'deco_hw', items: [
       { kind: 'kuerbislaterne', pos: [-2.2, Y, 7.6], mount: 'pfahl', size: 0.7 },
       { kind: 'kuerbislaterne', pos: [2.2, Y, 7.6], mount: 'pfahl', size: 0.7 },
       { kind: 'kuerbislaterne', pos: [-2.2, Y, 1.6], mount: 'pfahl', size: 0.7 },
       { kind: 'kuerbislaterne', pos: [2.2, Y, 1.6], mount: 'pfahl', size: 0.7 },
-      { kind: 'kuerbisse', pos: [6.6, Y, -2.6], size: [3, 3], n: 5, faces: 0.6 },
       { kind: 'kerzen', pos: [7.4, Y, 9.6], n: 4 },
     ] },
     { type: 'bridge', from: [0, Y, -5], to: [0, Y, -15], width: 3.6 },
@@ -184,7 +189,6 @@ export const LEVEL = {
     isl(GRUFT.x0, GRUFT.x1, GRUFT.z0, GRUFT.z1, Y, 6),
     wand(GRUFT.x0, GRUFT.x1 + 0.8, GRUFT.z1, GRUFT.z1 - 0.8, Y, 7.5),
     wand(GRUFT.x1, GRUFT.x1 + 0.8, GRUFT.z0, GRUFT.z1, Y, 7.5),
-    isl(NISCHE.x0, NISCHE.x1, NISCHE.z0, NISCHE.z1, NISCHE.top, 6.5),
     { type: 'grabstein_schalter', id: 'gruftschalter', pos: SCHALTER, yaw: -PI / 2, press: 'pound', time: 12, on: { reveal: 'gruftweg' }, off: { hide: 'gruftweg' } },
     { type: 'appear', id: 'gruftweg', style: 'stone', delay: 0.15, parts: [
       { pos: [9.6, Y + 1.2, -44.8], size: [1.6, 0.5, 1.8] },
