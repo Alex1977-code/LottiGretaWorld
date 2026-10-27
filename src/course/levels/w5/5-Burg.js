@@ -90,7 +90,7 @@ function build(level) {
   ]);
   blumenKuebel(level, [
     [-7, Y, 6.75, 0xff5a9a], [7, Y, 6.75, 0xffd23a], [-7, Y, -6.25, 0xb070ff], [7, Y, -6.25, 0xff5a9a],
-    [-8, Y, -36, 0xffd23a], [8, Y, -40, 0xff5a9a], [-7, Y, -68, 0xb070ff], [7, Y, -69, 0xffd23a],
+    [-8, Y, -36, 0xffd23a], [8, Y, -40, 0xff5a9a], [-7.3, Y, -61.6, 0xb070ff], [7.3, Y, -61.6, 0xffd23a],
     [-7, Y3, -98.6, 0xff5a9a], [7, Y3, -98.6, 0xb070ff], [-6.6, Y3, -160, 0xffd23a], [6.6, Y3, -161, 0xff5a9a],
     [-6, Y, AZ - 40, 0xb070ff], [6, Y, AZ - 40, 0xff5a9a],
   ]);
