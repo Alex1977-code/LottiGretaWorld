@@ -192,8 +192,8 @@ export const LEVEL = {
       { kind: 'grabsteine', pos: [8.5, PLAZA, -217], size: [4, 8], n: 3 },
       { kind: 'spinnweben', pos: [7.2, PLAZA + 2.6, -224.2], size: 1.2, yaw: 0.2 },
       { kind: 'kerzen', pos: [-1.6, PLAZA, -222.6], n: 5 },
-      { kind: 'gruft', pos: [-19.4, Y + 3.2, -25.8], size: 0.8 },
-      { kind: 'kerzen', pos: [-17.4, Y + 3.2, -23.4], n: 3 },
+      { kind: 'gruft', pos: [-20.0, Y + 3.2, -26.0], size: 0.7 },
+      { kind: 'kerzen', pos: [-20.3, Y + 3.2, -23.3], n: 3 },
       { kind: 'suessigkeiten', pos: [6.8, Y, 4.6], size: 1.1 },
       { kind: 'suessigkeiten', pos: [-6.2, Y, -68.8], size: 1.0 },
       { kind: 'suessigkeiten', pos: [7.8, PLAZA, -233.4], size: 1.2 },
@@ -214,7 +214,7 @@ export const LEVEL = {
     sweets([-2, Y - 2, -15.5], [2, Y - 2, -15.5], 3),
     arc([0, Y + 0.5, -13.6], [0, Y + 0.5, -18.4], 4, 1.2),
     sweets([-10.4, Y + 0.6, -24.6], [-15.0, Y + 2.3, -24.4], 3),
-    sweetRing([-18.8, Y + 3.2, -24.8], 1.3, 6),
+    sweetRing([-17.9, Y + 3.2, -24.3], 1.1, 5),
     // 2 Nebelschlucht
     line([0, Y + 0.6, -32.0], [3.2, Y + 1.8, -38.8], 3),
     sweetRing([3.6, Y + 1.2, -44.8], 2.0, 6),
@@ -254,14 +254,14 @@ export const LEVEL = {
   ],
   checkpoint: [[0, Y, -66], [0, Y, -134], [5.8, Y, -184]],
   stars: [
-    [-18.8, Y + 3.2, -24.8],                                             // 0: schwebende Gruft hinter dem kichernden Geist
+    [-17.9, Y + 3.2, -24.3],                                             // 0: schwebende Gruft hinter dem kichernden Geist
     [creekX(-113), 1.6, -113],                                           // 1: über dem Glibberbach (Floß-Hüpfer)
     { pos: [-9.1, Y + 0.9, -165.6], hidden: true, id: 'stern_garten' },  // 2: Klappergarten
   ],
   stamp: [-7.4, TOWER.top, -229.4],
   goal: [3.4, PLAZA, -219.6],
   marks: {
-    start: [0, Y, 5], laterne: [0, Y, -5.4], graben: [0, Y, -12.6], geist: [-6.9, Y, -22.9], gruft0: [-18.8, Y + 3.2, -24.8],
+    start: [0, Y, 5], laterne: [0, Y, -5.4], graben: [0, Y, -12.6], geist: [-6.9, Y, -22.9], gruft0: [-17.9, Y + 3.2, -24.3],
     schlucht: [0, Y, -29.4], insel: [3.6, Y + 1.2, -42], dock: [0, Y, -71.4], tunnel: [creekX(-101), -0.5, -101], ufer: [6.4, Y, -110.4],
     landung: [0, Y, -130], pfahl: [0, Y, -139.6], garten: [-9.1, Y, -165.6], schalter: [5.6, Y, -180.4], bruecke: [0, Y, -185.4],
     huegel: [0, Y, -199], kapelle: [3.4, PLAZA, -217], turm: [-4.4, PLAZA, -224.4], goal: [3.4, PLAZA, -219.6],
