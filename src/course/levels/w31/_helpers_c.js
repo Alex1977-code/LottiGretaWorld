@@ -288,6 +288,90 @@ export function turm(level, t) {
 }
 
 /**
+ * Rechteckige Turm-Terrasse (Kollision: Quader bis top, darunter depth m): Bruchstein-Mauern mit Fugen und Moos,
+ * Kragsteinen und leuchtenden Bogenfenstern in der Vorderseite (+Z), Fliesen- oder Dielenboden, darunter ein spitz in die
+ * Wolken auslaufender Sockel (nur Optik).
+ *   t = { x0, x1, z0, z1, top, depth: 8, under: 10, floor: 'stein' | 'holz', color: 'lila' | …, windows: [[u, dy], …]
+ *         (u = 0..1 entlang der Vorderseite, dy relativ zu top), glow: 0x8aff6a }
+ */
+export function terrasse(level, t) {
+  const x0 = Math.min(t.x0, t.x1), x1 = Math.max(t.x0, t.x1), zF = Math.max(t.z0, t.z1), zB = Math.min(t.z0, t.z1);
+  const top = t.top, depth = t.depth ?? 8, under = t.under ?? 10, yb = top - depth;
+  level.world.add({ type: 'box', min: [x0, yb, zB], max: [x1, top, zF], tag: t.tag ?? 'terrasse' });
+  if (!level.view) return;
+  const [s0, s1, s2] = (STONE[t.color ?? 'lila'] ?? STONE.lila).map(C);
+  const moss = C(0x6a9a5a), mortar = C(0x4a3e5e);
+  const parts = [], glow = [];
+  const wallCol = (u, yy, o) => {
+    const row = Math.floor(yy / 0.55);
+    const k = (u + (row % 2) * 0.45) / 0.9;
+    const seam = (k % 1 + 1) % 1 < 0.07 || (yy % 0.55) < 0.07;
+    const tone = Math.sin(row * 1.7 + Math.floor(k) * 2.3) * 0.5 + 0.5;
+    mixc(s0, s1, 0.25 + tone * 0.45, o);
+    mixc(o, s2, smooth(0, depth + under * 0.5, yy) * 0.75, o);
+    if (seam) mixc(o, mortar, 0.55, o);
+    const m = smooth(0.25, 1.4, yy) * (1 - smooth(1.4, 3, yy)) * (0.5 + 0.5 * Math.sin(u * 1.7 + yy));
+    mixc(o, moss, m * 0.65, o);
+  };
+  // vier Mauern (Ebenen, nach außen gerichtet)
+  const faces = [
+    { w: x1 - x0, cx: (x0 + x1) / 2, cz: zF, ry: 0 }, { w: x1 - x0, cx: (x0 + x1) / 2, cz: zB, ry: PI },
+    { w: zF - zB, cx: x1, cz: (zF + zB) / 2, ry: PI / 2 }, { w: zF - zB, cx: x0, cz: (zF + zB) / 2, ry: -PI / 2 },
+  ];
+  for (const f of faces) {
+    const g = new THREE.PlaneGeometry(f.w, depth, Math.max(1, Math.round(f.w * 1.5)), Math.max(2, Math.round(depth * 1.8))).toNonIndexed();
+    g.translate(0, top - depth / 2, 0);
+    g.rotateY(f.ry); g.translate(f.cx, 0, f.cz);
+    const ux = f.ry === 0 || f.ry === PI;
+    parts.push(colorize(g, (p, n, o) => wallCol(ux ? p.x : p.z, top - p.y, o)));
+  }
+  // Sockel: umgedrehte Pyramide unter dem Boden
+  const pyr = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 3, true).toNonIndexed();
+  pyr.rotateY(PI / 4); pyr.rotateX(PI); pyr.scale(x1 - x0, under, zF - zB); pyr.translate((x0 + x1) / 2, yb - under / 2, (zF + zB) / 2);
+  parts.push(colorize(pyr, (p, n, o) => { wallCol(p.x + p.z, top - p.y, o); mixc(o, s2, 0.35, o); }));
+  // Kragstein-Leiste unter der Kante
+  for (const f of faces) {
+    const g = blk(f.w + 0.3, 0.32, 0.36, 0, 0, 0, 0x7a6a98, { top: 0x9a8ab8 });
+    g.translate(0, top - 0.42, 0.06); g.rotateY(f.ry); g.translate(f.cx, 0, f.cz);
+    parts.push(g);
+  }
+  // Boden
+  const wood = t.floor === 'holz';
+  const [f0, f1, f2] = (wood ? FLOORS.holz : FLOORS.stein).map(C);
+  const fl = new THREE.PlaneGeometry(x1 - x0, zF - zB, Math.max(1, Math.round((x1 - x0) * 1.2)), Math.max(1, Math.round((zF - zB) * 1.2))).toNonIndexed();
+  fl.rotateX(-PI / 2); fl.translate((x0 + x1) / 2, top + 0.012, (zF + zB) / 2);
+  parts.push(colorize(fl, (p, n, o) => {
+    if (wood) {
+      const plank = Math.floor((p.x + 50) / 0.42);
+      const seam = ((p.x + 50) / 0.42) % 1 < 0.08 || (((p.z + 50) + (plank % 3) * 0.7) / 2.1) % 1 < 0.03;
+      mixc(f0, f1, (Math.sin(plank * 2.7) * 0.5 + 0.5) * 0.7, o);
+      if (seam) mixc(o, f2, 0.75, o);
+    } else {
+      const i = Math.floor((p.x + 100) / 1.2), j = Math.floor((p.z + 100) / 1.2);
+      const seam = ((p.x + 100) / 1.2) % 1 < 0.05 || ((p.z + 100) / 1.2) % 1 < 0.05;
+      mixc(f0, f1, ((i + j) % 2) * 0.45 + 0.1 * Math.sin(i * 3.1 + j * 1.7), o);
+      if (seam) mixc(o, f2, 0.6, o);
+    }
+    const e = Math.min(p.x - x0, x1 - p.x, p.z - zB, zF - p.z);
+    if (e < 0.25) mixc(o, s1, 0.7, o);
+  }));
+  // Fenster in der Vorderseite
+  const gl = C(t.glow ?? 0x8aff6a), glHi = C(0xf0ffd0);
+  for (const [u, dy] of t.windows ?? []) {
+    const wx = x0 + (x1 - x0) * u, wy = top + dy, w = 0.7, h = 1.05;
+    const s = new THREE.Shape();
+    s.moveTo(-w / 2, 0); s.lineTo(w / 2, 0); s.lineTo(w / 2, h - w / 2); s.absarc(0, h - w / 2, w / 2, 0, PI, false); s.lineTo(-w / 2, 0);
+    const pane = ni(new THREE.ShapeGeometry(s, 8));
+    pane.translate(wx, wy, zF + 0.03);
+    glow.push(colorize(pane, (p, n, o) => mixc(gl, glHi, smooth(wy, wy + h, p.y) * 0.6, o)));
+    parts.push(blk(w + 0.24, 0.12, 0.3, wx, wy - 0.12, zF + 0.1, 0x5a3e2e, { top: 0x8a5a3a }));
+    for (const sd of [-1, 1]) parts.push(blk(0.28, h * 0.9, 0.06, wx + sd * (w / 2 + 0.2), wy + 0.04, zF + 0.05, sd < 0 ? 0x3a8a5a : 0x8a4ae0, { top: 0xffffff }));
+  }
+  bake(level, parts, { castShadow: true, receiveShadow: true });
+  if (glow.length) bake(level, glow, { material: 'glow', castShadow: false });
+}
+
+/**
  * Riesen-Hexenhut als Dach des Hauptturms: krummer, lila Spitzhut mit orangem Band, goldener Schnalle und gelben Sternchen;
  * die Krempe ist begehbar (Zielterrasse), darunter der Turm mit Fenstern.
  *   h = { x, z, y (Oberseite der Krempe), r: 5 (Hut unten), brim: 9.5, height: 13, bend: 2.6, tower: 6.4 (Turmradius
@@ -302,7 +386,7 @@ export function hexenHut(level, h) {
   level.world.add({ type: 'cyl', x, z, r: h.tower ?? 6.4, y0: y - (h.depth ?? 8), y1: y - 0.55, tag: 'hauptturm' });
   if (!level.view) return;
   const parts = [], glow = [];
-  const felt = C(0x6a34b0), feltHi = C(0x9a68e0), feltLow = C(0x3a1a6a), band = C(0xff8a1a), bandHi = C(0xffc04a), gold = C(0xffd04a), star = C(0xfff08a);
+  const felt = C(0x6a34b0), feltHi = C(0x9a68e0), feltLow = C(0x3a1a6a), band = C(0xff8a1a), bandHi = C(0xffc04a);
   // Kegel (Drehkörper mit Knautschfalten), Spitze nach links gebogen und eingerollt
   const prof = [];
   const N = 22;
@@ -320,14 +404,24 @@ export function hexenHut(level, h) {
   }
   cone.computeVertexNormals();
   cone.translate(x, 0, z);
-  const starAt = (a, yy) => { const u = (a / TAU) * 9, v = (yy - y) / 1.6; const fu = u - Math.round(u), fv = v - Math.round(v + 0.5 * (Math.round(u) % 2)) + 0.5 * (Math.round(u) % 2); return Math.hypot(fu * 1.6, fv * 1.2) < 0.18; };
   parts.push(colorize(cone, (p, n, o) => {
-    const k = (p.y - y) / H;
     mixc(feltLow, felt, smooth(-0.5, 0.6, n.y * 0.4 + n.z * 0.5 + n.x * 0.2), o);
     mixc(o, feltHi, smooth(0.3, 1, n.z * 0.6 + n.y * 0.3) * 0.5, o);
     if (p.y > y + 0.5 && p.y < y + 1.7) mixc(band, bandHi, smooth(-0.3, 0.9, n.z + n.y), o);
-    else if (k > 0.12 && starAt(angOf(p.x - x, p.z - z), p.y)) mixc(o, star, 0.85, o);
   }));
+  // Sternchen und Monde auf dem Hut (flache Glüh-Formen, zur Kamera hin verteilt)
+  const starShape = (ro, ri) => { const s = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = (i / 10) * TAU + PI / 2, rr = i % 2 ? ri : ro; if (i) s.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); else s.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); } s.closePath(); return s; };
+  const moonShape = (r0) => { const s = new THREE.Shape(); s.absarc(0, 0, r0, PI * 0.25, PI * 1.75, false); s.absarc(r0 * 0.45, 0, r0 * 0.78, PI * 1.62, PI * 0.38, true); return s; };
+  const slope = Math.atan2(R, H);
+  const deco = [[0.0, 0.2, 0], [-0.5, 0.3, 1], [0.6, 0.27, 0], [-1.1, 0.22, 0], [1.2, 0.34, 1], [0.25, 0.44, 0], [-0.35, 0.55, 0], [0.75, 0.6, 1], [-0.9, 0.42, 0], [1.5, 0.18, 0], [-1.6, 0.36, 1], [0.05, 0.7, 0]];
+  for (const [a, t, moon] of deco) {
+    const rad = R * Math.pow(1 - t, 1.15) + 0.06;
+    const sz = 0.42 * (1 - t * 0.6);
+    const g = ni(new THREE.ShapeGeometry(moon ? moonShape(sz * 0.8) : starShape(sz, sz * 0.45), 4));
+    g.rotateX(-slope); g.rotateY(a);
+    g.translate(x + Math.sin(a) * rad - bend * Math.pow(t, 2.6), y + t * H - bend * 0.35 * Math.pow(t, 4), z + Math.cos(a) * rad);
+    glow.push(fill(g, C(moon ? 0xd8f0ff : 0xfff08a)));
+  }
   // Krempe: Ring mit hochgebogenem Rand
   const brim = new THREE.RingGeometry(R * 0.9, B, 48, 3).toNonIndexed();
   brim.rotateX(-PI / 2); brim.translate(x, y + 0.01, z);
@@ -522,6 +616,58 @@ export function winkeKuerbis(level, o) {
     shoulder.rotation.x = -0.4 - st.k * 1.5 + Math.sin(t * (on ? 11 : 2)) * (0.15 + st.k * 0.45);
   });
   return st;
+}
+
+/**
+ * Kräutergarten der Hexe: Beete mit Holzrand, dunkler Erde und Reihen kleiner Pflanzen (Kräuter, Lavendel, Fliegenpilze,
+ * Mini-Kürbisse) und ein Pfad aus Trittsteinen. Nur Optik (flach genug zum Darüberlaufen).
+ * o = { y, beds: [{ x0, x1, z0, z1 }], path: [[x, z], …] }
+ */
+export function kraeuterGarten(level, o) {
+  const parts = [], glow = [];
+  const rnd = new Rnd(19);
+  const y = o.y ?? 0;
+  for (const b of o.beds ?? []) {
+    const x0 = Math.min(b.x0, b.x1), x1 = Math.max(b.x0, b.x1), z0 = Math.min(b.z0, b.z1), z1 = Math.max(b.z0, b.z1);
+    const w = x1 - x0, d = z1 - z0;
+    parts.push(blk(w, 0.12, d, (x0 + x1) / 2, y, (z0 + z1) / 2, 0x4a3426, { top: 0x5a4030 }));
+    for (const [bx, bz, bw, bd] of [[(x0 + x1) / 2, z0 + 0.06, w, 0.12], [(x0 + x1) / 2, z1 - 0.06, w, 0.12], [x0 + 0.06, (z0 + z1) / 2, 0.12, d], [x1 - 0.06, (z0 + z1) / 2, 0.12, d]]) {
+      parts.push(blk(bw, 0.2, bd, bx, y, bz, HWC.woodLow, { top: HWC.wood }));
+    }
+    const rows = Math.max(1, Math.floor((d - 0.3) / 0.55));
+    for (let r = 0; r < rows; r++) {
+      const zz = z0 + 0.35 + r * ((d - 0.7) / Math.max(1, rows - 1));
+      const n = Math.max(2, Math.floor((w - 0.3) / 0.5));
+      const kind = (r + Math.round(x0)) % 4;
+      for (let i = 0; i < n; i++) {
+        const xx = x0 + 0.3 + i * ((w - 0.6) / Math.max(1, n - 1)) + rnd.real(-0.06, 0.06);
+        if (kind === 0) {   // Kräuterbusch
+          const g = ni(new THREE.IcosahedronGeometry(0.2, 0)); g.scale(1, 0.8, 1); g.translate(xx, y + 0.24, zz);
+          parts.push(colorize(g, (p, n2, c) => mixc(C(0x3a8a3a), C(0x8ad86a), smooth(-0.5, 0.9, n2.y), c)));
+        } else if (kind === 1) {   // Lavendel (lila Ähren)
+          for (let k = 0; k < 3; k++) {
+            const g = new THREE.ConeGeometry(0.05, 0.36, 5).toNonIndexed(); g.translate(xx + (k - 1) * 0.07, y + 0.3, zz + rnd.real(-0.05, 0.05));
+            parts.push(colorize(g, (p, n2, c) => mixc(C(0x6a3aa8), C(0xc89aff), smooth(y + 0.15, y + 0.45, p.y), c)));
+          }
+        } else if (kind === 2) {   // Fliegenpilz
+          parts.push(zyl(0.04, 0.05, 0.18, xx, y + 0.1, zz, 0xfff4e0, { seg: 6 }));
+          const cap = new THREE.SphereGeometry(0.13, 8, 4, 0, TAU, 0, PI / 2).toNonIndexed(); cap.translate(xx, y + 0.26, zz);
+          parts.push(colorize(cap, (p, n2, c) => { mixc(C(0xd8303a), C(0xff6a6a), smooth(0, 1, n2.y), c); if (Math.sin(p.x * 60) * Math.sin(p.z * 60) > 0.6) mixc(c, C(0xffffff), 0.9, c); }));
+        } else {   // Mini-Kürbis
+          const pk = pumpkinGeo({ r: 0.16, shape: 'flach', color: i % 3 ? 'orange' : 'gelb', seg: 10, leaf: false });
+          pk.body.translate(xx, y + 0.1, zz);
+          parts.push(pk.body);
+        }
+      }
+    }
+  }
+  for (const [x, z] of o.path ?? []) {
+    const g = new THREE.CylinderGeometry(0.42, 0.46, 0.06, 9).toNonIndexed();
+    g.rotateY(rnd.real(0, 1)); g.scale(1, 1, rnd.real(0.8, 1)); g.translate(x, y + 0.03, z);
+    parts.push(colorize(g, (p, n2, c) => mixc(C(0x8a7ea0), C(0xc8bedc), smooth(-0.2, 1, n2.y), c)));
+  }
+  bake(level, parts, { castShadow: false });
+  if (glow.length) bake(level, glow, { material: 'glow', castShadow: false });
 }
 
 /** Leuchtpunkte (additiv, ein Zeichenaufruf): pts [[x, y, z], …], Farbe, Größe (m). */

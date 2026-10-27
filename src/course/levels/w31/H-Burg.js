@@ -204,7 +204,8 @@ export const LEVEL = {
       // Gruft
       { kind: 'grabsteine', pos: [9.6, Y, -39.4], size: [3, 3], n: 3, avoid: [[SCHALTER[0], SCHALTER[2], 1.8]] },
       { kind: 'kerzen', pos: [8, Y, -46.6], n: 4, light: true },
-      { kind: 'kerzen', pos: [18, Y + 6.5, -47], n: 3 },
+      { kind: 'kerzen', pos: [15.4, Y + 6.5, -47.2], n: 3, light: true },
+      { kind: 'gruft', pos: [17.8, Y + 6.5, -47.3], size: 0.55, solid: false },
       { kind: 'spinnweben', pos: [18.8, Y + 6, -31.4], size: 1.6, yaw: -0.8 },
     ] },
 

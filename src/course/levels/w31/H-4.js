@@ -22,7 +22,7 @@
 //                                               Schornstein (Stempel)
 // Gegner: Hexenhut-Hüpfer 6, Flatterfledi 4 (drei kreisen um Türme, eine hängt am Kräuterbalken), Spuk mit Hexenhut 2.
 
-import { turm, hexenHut, hexenKueche, winkeKuerbis, funkelSpur, isl, line, ring, arc, naschen, naschKreis, sign } from './_helpers_c.js';
+import { turm, terrasse, hexenHut, hexenKueche, winkeKuerbis, funkelSpur, kraeuterGarten, isl, line, ring, arc, naschen, naschKreis, sign } from './_helpers_c.js';
 
 const PI = Math.PI;
 const Y1 = 4.6, Y2 = 9.4, Y3 = 16.8, Y4 = 23.5, Y5 = 30.6;
@@ -59,19 +59,27 @@ function build(level) {
   turm(level, { x: SCHORNSTEIN.x, z: SCHORNSTEIN.z, r: SCHORNSTEIN.r, top: SCHORNSTEIN.top, rim: 0, depth: 8, under: 6, floor: 'stein', windows: [[-0.3, -2.4]], color: 'grau', circle: false, id: 'schornstein' });
   // Riesen-Hexenhut auf dem Hauptturm (Krempe = Zielterrasse)
   hexenHut(level, { x: HUT.x, z: HUT.z, y: HUT.y, r: 5, brim: HUT.brim, height: 13, bend: 2.8 });
-  // ---------------------------------------------------------------- Kesselküche
+  // ---------------------------------------------------------------- Terrassen (Küche, Balkon, Glockenterrasse) und Kesselküche
+  terrasse(level, { x0: -9, x1: 9, z0: -68, z1: -88, top: Y2, depth: 8, under: 10, floor: 'stein', windows: [[0.18, -2.8], [0.5, -4.6], [0.82, -2.8]] });
+  terrasse(level, { x0: -9, x1: 7, z0: -88, z1: -101, top: Y3, depth: 10, under: 10, floor: 'holz', windows: [[0.12, -2.4], [0.62, -2.4], [0.88, -4.8]] });
+  terrasse(level, { x0: -11, x1: 6, z0: -125.2, z1: -141, top: Y4, depth: 8, under: 10, floor: 'stein', color: 'rosa', windows: [[0.3, -2.6], [0.72, -2.6], [0.5, -5.2]] });
   hexenKueche(level, [
     { kind: 'regal', pos: [-8.45, Y2, -73.5], yaw: PI / 2, len: 4, h: 2.6 },
     { kind: 'regal', pos: [-8.45, Y2, -80], yaw: PI / 2, len: 3.4, h: 2.6 },
     { kind: 'tisch', pos: [-1.6, Y2, -75.5], len: 3.6 },
     { kind: 'tisch', pos: [3.2, Y2, -71], len: 2.6, yaw: 0.25 },
     { kind: 'fass', pos: [7.6, Y2, -69.6] }, { kind: 'fass', pos: [7.4, Y2, -71.2] },
-    { kind: 'balken', pos: [0, Y2, -79.2], len: 17.2, h: 3.2 },
+    { kind: 'balken', pos: [-4.4, Y2, -79.2], len: 8.4, h: 3.2 },
     { kind: 'besen', pos: [-8.2, Y2, -77], yaw: PI / 2 },
     { kind: 'besen', pos: [-8.2, Y2, -84], yaw: PI / 2 + 0.3 },
   ]);
   // ---------------------------------------------------------------- winkender Kürbis am Start
   winkeKuerbis(level, { id: 'winkekuerbis', pos: [4.6, 0, 4.4], size: 1.35, near: 5.5 });
+  kraeuterGarten(level, {
+    y: 0,
+    beds: [{ x0: -7, x1: -3.6, z0: 6.4, z1: 2.6 }, { x0: 3.6, x1: 7, z0: -0.4, z1: -3.6 }],
+    path: [[0, 9.6], [0.3, 8.1], [0.1, 6.6], [0.4, 5.1], [0.2, 3.6], [0.5, 2.1], [0.4, 0.6], [0.8, -0.9], [0.6, -2.4], [1, -3.9], [0.9, -5.4]],
+  });
   // Glitzer-Hinweise: Geheimbesen, Süßigkeiten-Leiter über dem zweiten Netz, Besen-Aufzug
   funkelSpur(level, [[-7, Y2 + 1.2, -59.7], [-11, Y2 + 2.2, -59.7], [-15, Y2 + 3.2, -59.7]], 0xb8ff9a, 0.8, { name: 'hinweis-besen' });
   funkelSpur(level, [[SCHORNSTEIN.x, SCHORNSTEIN.top + 2.2, SCHORNSTEIN.z], [MOND.x, MOND.top + 2.4, MOND.z]], 0xfff0a0, 1.4, { name: 'hinweis-spitzen' });
@@ -114,7 +122,7 @@ export const LEVEL = {
       { kind: 'kuerbislaterne', pos: [-6.3, 0, 9.2], size: 0.7 },
       { kind: 'kuerbislaterne', pos: [6.3, 0, 9.2], size: 0.7 },
       { kind: 'kerzen', pos: [6.2, 0, -8.6], n: 5, size: 1.1 },
-      { kind: 'kerzen', pos: [-6.4, 0, 7], n: 3 },
+      { kind: 'kerzen', pos: [-6.6, 0, 8.4], n: 3 },
       { kind: 'strohballen', pos: [6.4, 0, 0.6], form: 'rund', yaw: 0.6 },
       { kind: 'krummer_baum', pos: [-6.4, 0, -8.6], height: 4.6 },
       { kind: 'suessigkeiten', pos: [3.6, 0, 8.6], size: 0.9 },
@@ -131,17 +139,15 @@ export const LEVEL = {
       { kind: 'kerzen', pos: [T3.x + 3.6, Y2, T3.z - 2.6], n: 4 },
       { kind: 'spinnweben', pos: [T3.x - 4.4, Y2 + 0.3, T3.z - 3.2], size: 1.3, yaw: 0.8 },
       { kind: 'fledermaus_girlande', from: [T1.x - 4.2, Y1 + 1.2, -19], to: [T2.x - 2.8, Y1 + 1.2, -36.6], n: 9, sag: 1.2 },
-      { kind: 'hexenturm', pos: [T3.x + 3.6, Y2, T3.z + 1.8], height: 3, radius: 0.9, lean: 0.2, windows: 2 },
+      { kind: 'hexenturm', pos: [T3.x + 3.9, Y2, T3.z - 1.6], height: 3, radius: 0.9, lean: 0.2, windows: 2 },
     ] },
 
     // ================================================================ 3 Kesselküche
     { type: 'bridge', from: [0, Y2, -65], to: [0, Y2, -68.3], width: 2.6 },
-    isl(-9, 9, -68, -88, Y2, 8),
     { type: 'wall', pos: [-9.3, Y2, -77.5], size: [0.6, 3.4, 19], style: 'stone' },
     sign(5.2, Y2, -86.8, 'Hui! Kessel-Hopser\nauf den Balkon', { size: [2.5, 0.9] }),
     { type: 'hexenkessel', id: 'kessel1', pos: [-4, Y2, -85.6], size: 2.2, jump: 8.2 },
     { type: 'hexenkessel', id: 'kessel2', pos: [6.2, Y2, -82.5], size: 2, color: 'lila', potions: { every: 2.4, rise: 1.7, height: 13, size: 1.9, max: 3, first: 0.4 } },
-    isl(-9, 7, -88, -101, Y3, 10),
     { type: 'deco_hw', items: [
       { kind: 'kerzen', pos: [-6.8, Y2, -69.2], n: 4 },
       { kind: 'kerzen', pos: [-6.2, Y3, -99.6], n: 4 },
@@ -155,9 +161,8 @@ export const LEVEL = {
     // ================================================================ 4 Besenwirbel
     besen('besen3', [[0, Y3 - K, -102.6], [0, Y3 + 2.9 - K, -110], [0, Y3 - K, -117.4]], { color: 'gruen', start: 'auto', wait: 1.6, speed: 2.4 }),
     { type: 'spinnennetz_trampolin', id: 'netz1', pos: [T4.x, Y3, -122.4], size: [2.6, 2.6], height: 1, jump: 7.4 },
-    isl(-11, 6, -125.2, -141, Y4, 8),
     { type: 'deco_hw', items: [
-      { kind: 'hexenturm', pos: [TUERMCHEN.x, Y4, TUERMCHEN.z], height: 4, radius: 1.3, lean: 0.3, windows: 3 },
+      { kind: 'hexenturm', pos: [TUERMCHEN.x, Y4, TUERMCHEN.z], height: 3, radius: 1.1, lean: 0.3, windows: 2 },
       { kind: 'kerzen', pos: [4.6, Y4, -126.4], n: 4 },
       { kind: 'kerzen', pos: [-10, Y4, -139.6], n: 3 },
       { kind: 'spinnweben', pos: [5.4, Y4 + 0.2, -140.4], size: 1.6, yaw: -0.7 },
@@ -187,7 +192,7 @@ export const LEVEL = {
     { kind: 'question', pos: [0, Y4 + 2.3, -131.5], content: 'coins:5' },
   ],
   enemies: [
-    hut('hh1', [3.5, 0, -2.4], { behavior: 'patrol', path: [[2.2, 0, -2.4], [6, 0, -2.4]], sight: 0 }),
+    hut('hh1', [3.5, 0, -5.4], { behavior: 'patrol', path: [[2.2, 0, -5.4], [6.2, 0, -5.4]], sight: 0 }),
     hut('hh2', [-2, Y2, T3.z - 1.5], { sight: 5 }),
     hut('hh3', [0, Y2, -81], { behavior: 'patrol', path: [[-1.8, Y2, -81], [3.4, Y2, -81]], sight: 0 }),
     hut('hh6', [2, Y3, -98.4], { behavior: 'patrol', path: [[-0.5, Y3, -98.4], [5, Y3, -98.4]], sight: 0 }),
@@ -196,7 +201,7 @@ export const LEVEL = {
     { kind: 'flatterfledi', id: 'f1', center: [T2.x, Y1 + 0.8, T2.z], radius: 4.5, flySpeed: 1.6 },
     { kind: 'flatterfledi', id: 'f2', center: [T4.x, Y3 + 0.9, T4.z], radius: 5.4, flySpeed: 1.7, cw: true },
     { kind: 'flatterfledi', id: 'f3', center: [T7.x, Y5 + 0.9, T7.z], radius: 4.3, flySpeed: 1.6 },
-    { kind: 'flatterfledi', id: 'f4', pos: [2.6, Y2 + 3.2, -79.2], sight: 4 },
+    { kind: 'flatterfledi', id: 'f4', pos: [-3.4, Y2 + 3.2, -79.2], sight: 4 },
     { kind: 'spuk', id: 'spuk1', pos: [6, Y2 + 0.6, -74], hat: 'hexe', sight: 10 },
     { kind: 'spuk', id: 'spuk2', pos: [-4, Y4 + 0.6, -139], hat: 'hexe', sight: 9 },
   ],
