@@ -49,7 +49,7 @@ const GIMMICKS = [
   ['geisterplattform', { size: [2, 0.5, 2] }, { visible: 1 }, [{ visible: 1 }, { visible: 0.5 }, { visible: 0 }]],
   ['besen_plattform', {}, { tilt: 0.1 }, [{ tilt: 0 }, { tilt: 0.3 }, { tilt: -0.2, speed: 3 }]],
   ['hexenkessel', {}, { bubble: 1 }, [{ bubble: 1 }, { bounce: 0.6 }, { bounce: 1, bubble: 0 }]],
-  ['kuerbis_kanone', {}, 'idle', ['idle', { anim: 'load', k: 0.7 }, { anim: 'fire', fire: 0.3 }]],
+  ['kuerbis_kanone', {}, 'idle', ['idle', { anim: 'load', k: 0.7 }, { anim: 'fire', fire: 0.3 }, { anim: 'idle', aim: 0.3 }]],
   ['suessigkeiten_tuer', {}, { open: 0 }, [{ open: 0 }, { open: 0.5, ring: true }, { open: 1 }]],
   ['riesenkuerbis_roll', { size: 2 }, { roll: 0.3 }, [{ roll: 0 }, { roll: 2, speed: 4 }]],
   ['spinnennetz_trampolin', {}, { bounce: 0 }, [{ bounce: 0 }, { bounce: 0.7 }, { bounce: 1 }]],

@@ -24,7 +24,7 @@
 //   root.userData.top → Höhe der Blubber-Oberfläche (≈0,95 m · size).
 // kuerbis_kanone      Kürbis-Kanone: großer leuchtender Grinse-Kürbis (Ø ≈1,6 m) auf Holzkufen, oben ein Eisenrohr mit
 //   Goldringen statt Stiel. **Ursprung = Fußpunkt**; das Rohr zeigt nach +X schräg nach oben (opts.aim).
-//   opts  { aim (rad über der Waagerechten, 0,9), size (Faktor, 1) }
+//   opts  { aim (rad über der Waagerechten, 0,9), size (Faktor, 1) }   state.aim (rad) überschreibt opts.aim (Rohr schwenkt).
 //   state { anim: 'idle'|'load'|'fire', k (0..1 Ladung: Rohr bläht sich, Gesicht glüht), fire (0..1 Schuss; Standard: 'fire'
 //           spielt 0,5 s ab) }  fire: Rückstoß, Mündungsblitz (Stern), Rauchring.
 //   model.muzzle(out?) → Weltposition der Mündung; model.dir(out?) → Schussrichtung (Welt, normiert).
@@ -499,6 +499,7 @@ function buildKuerbisKanone(opts = {}) {
     const k = anim === 'load' ? clamp(st.k ?? clamp(clk.age / 0.8, 0, 1), 0, 1) : 0;
     const f = anim === 'fire' ? clamp(st.fire ?? clk.age / 0.5, 0, 1) : 0;
     const kick = anim === 'fire' ? Math.sin(Math.min(1, f * 3) * Math.PI) * (1 - f) : 0;
+    if (st.aim !== undefined) pivot.rotation.z = -(Math.PI / 2 - clamp(Number(st.aim) || 0, -0.2, Math.PI / 2));
     recoil.position.y = -kick * 0.25;
     barrel.scale.set(1 + k * 0.15 + Math.sin(t * 30) * 0.02 * k, 1 - k * 0.05, 1 + k * 0.15);
     squash.scale.set(1 + kick * 0.06 + k * 0.03, 1 - kick * 0.08 - k * 0.04, 1 + kick * 0.06 + k * 0.03);
@@ -756,7 +757,7 @@ function buildSpinnennetzTrampolin(opts = {}) {
   root.add(frame, web, fill, spiderJ);
   root.userData.top = H;
   const clk = new Clock(), blink = new Blinker();
-  let bo = 0, vel = 0;
+  let bo = 0, vel = 0, lastDepth = 0;
   const deform = (P, src, depth) => {
     const A = P.array;
     for (let i = 0; i < P.count; i++) { const x = src[i * 3], z = src[i * 3 + 2]; const r = Math.min(1, Math.hypot(x, z) / R); A[i * 3 + 1] = src[i * 3 + 1] - depth * (1 - r * r); }
@@ -770,9 +771,13 @@ function buildSpinnennetzTrampolin(opts = {}) {
     vel += ((target - bo) * 160 - vel * 12) * dt;
     bo += vel * dt;
     const depth = bo * 0.35;
-    deform(webG.attributes.position, base, depth);
-    deform(fillG.attributes.position, fbase, depth);
-    webG.computeBoundingSphere();
+    // Netz nur verformen, wenn es sich bewegt (in Ruhe kein Ecken-Update)
+    if (Math.abs(depth - lastDepth) > 2e-4) {
+      deform(webG.attributes.position, base, depth);
+      deform(fillG.attributes.position, fbase, depth);
+      webG.computeBoundingSphere();
+      lastDepth = depth;
+    }
     spiderJ.position.y = H + 0.02 + Math.abs(Math.sin(t * 2)) * 0.02 + Math.max(0, -vel) * 0.01;
     spiderJ.rotation.z = Math.sin(t * 1.5) * 0.05;
     spiderJ.children[1].userData.blink(blink.update(dt));
