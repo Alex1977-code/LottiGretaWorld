@@ -32,7 +32,7 @@ export const M2 = {
   HOF: { x0: 8, x1: 18, z0: -84, z1: -99 },          // Hinterhof (Höhe 2; Insel x 8 … 21, z −82 … −103)
   KIRCHE: { x0: -22, x1: 20, z0: -124, z1: -150 },
   MAUER: { z: -150, depth: 3, h: 5 },
-  FEST: { x0: -20, x1: 20, z0: -153, z1: -215 },
+  FEST: { x0: -15, x1: 15, z0: -153, z1: -215 },
   TURM: { x: -11, z: -140, T: 10 },
   KESSEL: { x: 0, z: -43 },
 };
@@ -43,7 +43,8 @@ const tuer = (id, x, y, z, yaw, content, o = {}) => ({ type: 'suessigkeiten_tuer
 export const TUEREN_MARKT = ['markt1', 'markt2', 'markt3', 'markt4', 'markt5', 'markt6'];
 
 // Kürbis-Turm (Stempel): vier gestapelte Riesenkürbisse, oben ein Holzteller
-export const KTURM = { x: -15, z: -203, sizes: [3.0, 2.8, 2.6, 2.4], r: 1.12 };
+export const KTURM = { x: -11, z: -203.5, sizes: [3.0, 2.8, 2.6, 2.4], r: 1.12 };
+export const NETZ = { x: -8, z: -200.2 };
 export const KTURM_TOP = Y3 + KTURM.sizes.reduce((a, s) => a + s * 0.74, 0) + 0.2;
 const kturmY = (i) => Y3 + KTURM.sizes.slice(0, i).reduce((a, s) => a + s * 0.74, 0);
 
@@ -72,6 +73,10 @@ function build(level) {
   kuerbisDeko(level, [{ pos: [KTURM.x, KTURM_TOP - 0.22, KTURM.z], size: 2.6, shape: 'flach', color: 'gelb', leaf: false }]);
   // Marktstände: auf dem Marktplatz zum Üben (Markisen federn), vor der Mauer als Weg hinauf
   marktstand(level, { pos: [-6.6, Y0, -62], yaw: -Math.PI / 2, colors: [0xff5a8a, 0xfff2e0], bounce: 14 });
+  marktstand(level, { pos: [-6.4, Y0, -27.5], yaw: 0, colors: [0xffd23a, 0xfff2e0], bounce: 14 });
+  marktstand(level, { pos: [6.4, Y0, -31], yaw: Math.PI, colors: [0x9a6aff, 0xfff2e0], bounce: 14 });
+  marktstand(level, { pos: [-8.6, Y3, -170], yaw: 0, colors: [0xff8a2a, 0xfff2e0], bounce: 14 });
+  marktstand(level, { pos: [8.6, Y3, -180], yaw: Math.PI, colors: [0x6aea7a, 0xfff2e0], bounce: 14 });
   marktstand(level, { pos: [6.6, Y0, -62], yaw: -Math.PI / 2, colors: [0x6ad8ff, 0xfff2e0], bounce: 14 });
   marktstand(level, { pos: [-6.5, Y3, -148.3], yaw: -Math.PI / 2, colors: [0x9a6aff, 0xfff2e0], bounce: 16.5 });
   marktstand(level, { pos: [0, Y3, -148.3], yaw: -Math.PI / 2, colors: [0xff8a2a, 0xfff2e0], bounce: 16.5 });
@@ -99,8 +104,8 @@ function build(level) {
     { pos: [-9, Y3, -113.5], yaw: -Math.PI / 2, color: 'lila', w: 4, windows: 1 }, { pos: [9.5, Y3, -114], yaw: -Math.PI / 2, color: 'gruen', w: 4.6 },
     { pos: [13, Y3, -129], yaw: Math.PI, color: 'rosa', w: 5 }, { pos: [13, Y3, -137], yaw: Math.PI, color: 'orange', w: 5, windows: 3 },
     // Festplatz
-    { pos: [-17, Y3, -164], yaw: 0, color: 'blau', w: 5, windows: 3 }, { pos: [17, Y3, -166], yaw: Math.PI, color: 'creme', w: 5 },
-    { pos: [17, Y3, -198], yaw: Math.PI, color: 'gruen', w: 5, windows: 3 }, { pos: [-17.5, Y3, -188], yaw: 0, color: 'orange', w: 4, windows: 1, door: false },
+    { pos: [-12, Y3, -164], yaw: 0, color: 'blau', w: 5, windows: 3 }, { pos: [12, Y3, -166], yaw: Math.PI, color: 'creme', w: 5 },
+    { pos: [12, Y3, -198], yaw: Math.PI, color: 'gruen', w: 5, windows: 3 }, { pos: [-12, Y3, -188], yaw: 0, color: 'orange', w: 4, windows: 1, door: false },
     { pos: [-9, Y3, -214.5], yaw: -Math.PI / 2, color: 'rosa', w: 6, windows: 3 }, { pos: [9, Y3, -214.5], yaw: -Math.PI / 2, color: 'lila', w: 6, windows: 3 },
   ]);
   kuerbisDeko(level, [
@@ -112,8 +117,10 @@ function build(level) {
     { pos: [9.5, Y2, -92], size: 0.6, face: 'lachen', light: true }, { pos: [12.5, Y2, -88.5], size: 0.7, face: 'grinsen' },
     { pos: [-7.4, Y3, -127.8], size: 0.55, face: 'lachen' },
     { pos: [-3.25, Y3, -148.8], size: 1.3, face: 'grinsen' }, { pos: [3.25, Y3, -149], size: 1.2, face: 'lachen', color: 'gelb' }, { pos: [-9.6, Y3, -149], size: 1.0, face: 'staunen' },
-    { pos: [-6, Y3 + 0.6, -203.5], size: 1.0, face: 'lachen', light: true }, { pos: [6, Y3 + 0.6, -203.5], size: 1.0, face: 'grinsen', light: true },
-    { pos: [-12.4, Y3, -170], size: 0.8, face: 'lachen' }, { pos: [12.4, Y3, -180], size: 0.8, face: 'staunen' },
+    { pos: [-4.2, Y3 + 0.6, -200.2], size: 0.9, face: 'lachen', light: true }, { pos: [4.2, Y3 + 0.6, -200.2], size: 0.9, face: 'grinsen', light: true },
+    { pos: [7, Y3, -191.5], size: 1.4, face: 'lachen' }, { pos: [8.3, Y3, -192.6], size: 1.0, color: 'gelb', face: 'grinsen' }, { pos: [7.6, Y3 + 1.0, -192], size: 0.8, color: 'weiss', face: 'staunen' },
+    { pos: [-2.4, Y3, -126], size: 0.9, face: 'lachen' }, { pos: [6.5, Y3, -121], size: 1.1, face: 'grinsen', color: 'gelb' }, { pos: [7.4, Y3, -122], size: 0.6 },
+    { pos: [-10.6, Y3, -181.5], size: 0.8, face: 'lachen' }, { pos: [10.6, Y3, -173], size: 0.8, face: 'staunen' },
   ]);
 }
 
@@ -222,19 +229,22 @@ export const LEVEL = {
 
     // =============================================================== E  Kürbisfest
     isl(FEST.x0, FEST.x1, MAUER.z - MAUER.depth, FEST.z1, Y3, 7, { top: 'stone' }),
-    isl(-6.5, 6.5, -199, -209, Y3 + 0.6, 1.2, { top: 'stone' }),                  // Bühne
-    tuer('fest1', -17.5, Y3, -176, 0, 'suesses', { n: 8, group: 'dorf', hud: false, color: 'gruen' }),
-    tuer('fest2', 17.5, Y3, -186, Math.PI, 'kuerbling', { group: 'dorf', hud: false, color: 'orange', enemy: { sight: 6 } }),
-    { type: 'spinnennetz_trampolin', id: 'netz', pos: [-12.2, Y3, -200.2], size: [3, 3], height: 1, jump: 8.5 },
-    sign(-8.6, Y3, -195.6, 'Kürbis-Turm', { size: [1.9, 0.7] }),
+    isl(-5, 5, -199, -209, Y3 + 0.6, 1.2, { top: 'stone' }),                      // Bühne
+    tuer('fest1', -12, Y3, -176, 0, 'suesses', { n: 8, group: 'dorf', hud: false, color: 'gruen' }),
+    tuer('fest2', 12, Y3, -186, Math.PI, 'kuerbling', { group: 'dorf', hud: false, color: 'orange', enemy: { sight: 6 } }),
+    { type: 'spinnennetz_trampolin', id: 'netz', pos: [NETZ.x, Y3, NETZ.z], size: [3, 3], height: 1, jump: 8.5 },
+    sign(-10.2, Y3, -195.4, 'Kürbis-Turm', { size: [1.9, 0.7] }),
     { type: 'deco_hw', items: [
       ...KTURM.sizes.map((s, i) => ({ kind: 'kuerbis', pos: [KTURM.x, kturmY(i), KTURM.z], size: s, face: ['lachen', 'grinsen', 'staunen', 'lachen'][i], color: ['orange', 'gelb', 'orange', 'weiss'][i], seed: i, solid: false })),
-      { kind: 'fledermaus_girlande', from: [-16, Y3 + 4.6, -170], to: [16, Y3 + 4.6, -172], n: 14, sag: 1.2 },
-      { kind: 'fledermaus_girlande', from: [-16, Y3 + 4.6, -188], to: [16, Y3 + 4.6, -186], n: 14, sag: 1.2 },
-      { kind: 'fledermaus_girlande', from: [-6, Y3 + 5.8, -207.5], to: [6, Y3 + 5.8, -207.5], n: 8, sag: 0.6 },
-      { kind: 'suessigkeiten', pos: [10.5, Y3, -176], size: 1.2 },
-      { kind: 'strohballen', pos: [-6.8, Y3, -180], form: 'rund', yaw: 0.2 },
-      { kind: 'strohballen', pos: [7.2, Y3, -192], form: 'eckig', yaw: 0.5 },
+      { kind: 'fledermaus_girlande', from: [-11, Y3 + 4.6, -170], to: [11, Y3 + 4.6, -172], n: 11, sag: 1.0 },
+      { kind: 'fledermaus_girlande', from: [-11, Y3 + 4.6, -188], to: [11, Y3 + 4.6, -186], n: 11, sag: 1.0 },
+      { kind: 'fledermaus_girlande', from: [-4.6, Y3 + 5.8, -207.5], to: [4.6, Y3 + 5.8, -207.5], n: 7, sag: 0.6 },
+      { kind: 'suessigkeiten', pos: [5.6, Y3, -174], size: 1.2 },
+      { kind: 'strohballen', pos: [-3.2, Y3, -194.4], form: 'eckig', yaw: 0 },
+      { kind: 'strohballen', pos: [3.2, Y3, -194.4], form: 'eckig', yaw: 0 },
+      { kind: 'strohballen', pos: [-3.6, Y3, -192.6], form: 'eckig', yaw: 0.1 },
+      { kind: 'strohballen', pos: [3.6, Y3, -192.6], form: 'eckig', yaw: -0.1 },
+      { kind: 'strohballen', pos: [-5.6, Y3, -181], form: 'rund', yaw: 0.2 },
     ] },
   ],
   enemies: [
@@ -264,6 +274,8 @@ export const LEVEL = {
     ...[0, 1, 2].map((i) => ({ kind: 'coin', pos: [-6.6, Y0 + 4.2 + i * 1.1, -61.3] })),
     ...[0, 1, 2].map((i) => ({ kind: 'suessigkeit', pos: [6.6, Y0 + 3.8 + i * 1.1, -61.3] })),
     line([0, Y0 + 0.6, -60], [0, Y0 + 0.6, -70], 4),
+    ...[0, 1, 2].map((i) => ({ kind: 'suessigkeit', pos: [-6.4, Y0 + 3.8 + i * 1.1, -27.5] })),
+    ...[0, 1, 2].map((i) => ({ kind: 'coin', pos: [6.4, Y0 + 4.2 + i * 1.1, -31] })),
     // C
     candy([0, Y0, -74], [0, Y0, -82], 3),
     candy([0, Y2, -90], [0, Y2, -99], 3),
@@ -275,9 +287,11 @@ export const LEVEL = {
     ...[0, 1, 2].map((i) => ({ kind: 'coin', pos: [0, Y3 + 4.6 + i * 1.2, -148.3] })),
     candyArc([0, MAUER.h + Y3, -151.5], [0, Y3, -165], 4, 1),
     // E
-    line([0, Y3 + 0.6, -168], [0, Y3 + 0.6, -196], 6),
+    line([0, Y3 + 0.6, -168], [0, Y3 + 0.6, -190], 5),
+    ...[0, 1, 2].map((i) => ({ kind: 'suessigkeit', pos: [-8.6, Y3 + 3.8 + i * 1.1, -170] })),
+    ...[0, 1, 2].map((i) => ({ kind: 'suessigkeit', pos: [8.6, Y3 + 3.8 + i * 1.1, -180] })),
     candyRing([0, Y3, -182], 3.2, 8),
-    candyArc([-12.2, Y3 + 4.5, -200.2], [KTURM.x, KTURM_TOP, KTURM.z], 3, 1.5),
+    candyArc([NETZ.x, Y3 + 4.5, NETZ.z], [KTURM.x, KTURM_TOP, KTURM.z], 3, 1.5),
   ],
   checkpoint: [{ pos: [2, Y3, -118.5], yaw: Math.PI / 2 }],
   stars: [
@@ -290,6 +304,6 @@ export const LEVEL = {
   marks: {
     start: [0, Y0, 11], tuer_e: [-5.4, Y0, -7.6], markt: [0, Y0, -24], kessel: [0, Y0, -39], gasse: [0, Y0, -74], hinterhof: [10, Y2, -91],
     brunnen: [2, Y3, -118.5], kirchhof: [-8, Y3, -128], turm: [TURM.x, Y3 + TURM.T, TURM.z], mauer: [0, Y3, -143], fest: [0, Y3, -170],
-    netz: [-12.2, Y3, -196.6], goal: [0, Y3 + 0.6, -202],
+    netz: [NETZ.x, Y3, -196.6], goal: [0, Y3 + 0.6, -202],
   },
 };
