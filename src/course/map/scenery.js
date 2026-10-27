@@ -12,6 +12,8 @@
 // Welt 5 (map.kit 'lila'): Thema 'map_lila' (beach5.js), helle Sand-Inselchen mit Palmen oder violetten Felsen;
 // Nachbarwelt-Stil 'lila' (violette Klippen, Strand, Palmen, Leuchtturm – Ziel der Welt-5-Röhre in Welt 4);
 // map.birdStyle 'gull' zeichnet die Vögel als weiße Möwen.
+// Halloween (map.kit 'halloween'): Thema 'map_halloween' (halloween.js), dunkle Inselchen mit Spukbaum, Riesenkürbis
+// oder Grabstein; Nachbarwelt-Stil 'halloween' (Kürbisinsel mit Burg und Hexenturm – Ziel der Halloween-Röhre in Welt 1).
 
 import * as THREE from 'three';
 import { THEMES } from '../view/themes.js';
@@ -21,6 +23,7 @@ import { palmGeo, pyramidGeo, place } from './desert.js';
 import { snowGround, snowNeighborParts, firLiteGeo, iceFloeGeo } from './snow.js';
 import { canyonNeighborParts, canyonIsletParts } from './canyon.js';
 import { lilaNeighborParts, lilaIsletParts } from './beach5.js';
+import { hwNeighborParts, hwIsletParts } from './halloween.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 
 // Thema der Wüsteninsel (Welt 2): warmes Sonnenlicht, blasser, sandiger Horizont, Nebel ins Goldene.
@@ -247,10 +250,10 @@ export class MapScenery {
         n++;
         continue;
       }
-      if (this.kit === 'canyon' || this.kit === 'lila') {
-        // Canyon-/Lila-Inselchen: ohne Schattenwurf, je Meeressektor ein Mesh (wie Welt 3)
+      if (this.kit === 'canyon' || this.kit === 'lila' || this.kit === 'halloween') {
+        // Canyon-/Lila-/Halloween-Inselchen: ohne Schattenwurf, je Meeressektor ein Mesh (wie Welt 3)
         const sea = { castShadow: false, tile: this.seaSector(x, z) };
-        for (const g of (this.kit === 'lila' ? lilaIsletParts : canyonIsletParts)(x, z, w, d, top, rnd)) this.view.addStatic(g, sea);
+        for (const g of (this.kit === 'lila' ? lilaIsletParts : this.kit === 'halloween' ? hwIsletParts : canyonIsletParts)(x, z, w, d, top, rnd)) this.view.addStatic(g, sea);
         this.rects.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]);
         n++;
         continue;
@@ -319,7 +322,8 @@ export class MapScenery {
     if (nb.style === 'snow') parts.push(...snowNeighborParts(nb, rnd));
     if (nb.style === 'canyon') parts.push(...canyonNeighborParts(nb, rnd));
     if (nb.style === 'lila') parts.push(...lilaNeighborParts(nb, rnd));
-    const own = nb.style === 'snow' || nb.style === 'canyon' || nb.style === 'lila';
+    if (nb.style === 'halloween') parts.push(...hwNeighborParts(nb, rnd));
+    const own = nb.style === 'snow' || nb.style === 'canyon' || nb.style === 'lila' || nb.style === 'halloween';
     const blocks = own ? [] : [[-0.5, -0.5, 0.5, 0.5, 2.5], [-0.35, -0.42, 0.1, 0.1, 6], [0.05, -0.3, 0.38, 0.2, 4.5]];
     for (const [a, c, e, f, top] of blocks) {
       const g = islandParts(x + a * w, -3, z + c * d, x + e * w, top, z + f * d, desert ? { ...theme, dirt: 0xd9a060, dirtDeep: 0xa86a3a } : THEMES.grass, { under: 0, rnd, top: desert ? 'sand' : 'grass', cell: 4 });
