@@ -599,6 +599,7 @@ export function winkeKuerbis(level, o) {
   hand.position.set(0.02, 0.68, -0.1);
   hand.rotation.y = PI / 2;
   shoulder.add(hand);
+  shoulder.scale.setScalar(1.45);
   body.add(shoulder);
   root.rotation.y = o.yaw ?? -PI / 2;
   const baseYaw = root.rotation.y;
@@ -1196,7 +1197,7 @@ export function kicherGeist(level, o) {
     else if (st.state === 'versteckt' && d > near + 3) st.state = 'lugt';
   });
   if (!level.view || !hasModel('spuk_halloween')) return st;
-  const m = getModel('spuk_halloween', { size: 0.8, hat: 'kuerbis' });
+  const m = getModel('spuk_halloween', { size: o.size ?? 0.8, hat: 'kuerbis' });
   const root = new THREE.Group();
   root.position.set(x, y, z);
   root.rotation.y = o.yaw ?? -PI / 2;
@@ -1206,7 +1207,7 @@ export function kicherGeist(level, o) {
     const d = visDt(level, hold, dt);
     const want = st.state === 'lugt' ? 1 : 0;
     st.k += (want - st.k) * Math.min(1, d * (want ? 2.5 : 6));
-    m.root.position.y = -0.9 * (1 - st.k) + Math.sin(t * 2.2) * 0.06 * st.k;
+    m.root.position.y = -1.3 * (1 - st.k) + Math.sin(t * 2.2) * 0.08 * st.k;
     m.root.position.x = Math.sin(t * 1.3) * 0.1;
     m.root.scale.setScalar(0.35 + 0.65 * st.k);
     m.root.visible = st.k > 0.04;

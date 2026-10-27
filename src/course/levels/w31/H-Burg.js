@@ -118,7 +118,7 @@ function build(level) {
 /** Haken nach dem Aufbau: Stimmungen, Geist, Krümel, Bomben-Nachschub, Stern des Grafen, Kulissen-Fledermäuse. */
 function setup(level) {
   stimmungen(level, [{ min: [-12.5, -105], max: [21, -20.5], mood: 'innen' }]);
-  kicherGeist(level, { id: 'kichergeist', pos: [-6.4, Y, -0.4], yaw: -PI / 2, near: 4.5 });
+  kicherGeist(level, { id: 'kichergeist', pos: [-6.4, Y + 0.55, -0.5], yaw: -PI / 2, near: 4.5, size: 1 });
   kruemelLaterne(level, { id: 'kruemel', pos: [3.4, YW, -239.4], yaw: -PI / 2 - 0.5, near: 7, text: 'Juhu!', sub: 'Was für eine Gruselgala!' });
   bombenNachschub(level, { id: 'nachschub', pos: KARREN, r: 3.2, delay: 2, until: () => (level.named.get('tresor_vorn')?.broken ?? 0) > 0 });
   // Stern 2 erscheint vorn auf dem Dach, sobald der Graf besiegt ist (er selbst wirft keinen Stern)
