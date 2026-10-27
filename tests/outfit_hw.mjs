@@ -193,7 +193,9 @@ async function openBench() {
         shadow: lotti && hw?.hat?.parent ? hw.hat.castShadow : null, whiskers: av.headMesh.geometry !== av.look0.head, bow: av.hairMesh.geometry === av.look0.hair,
       };
     };
-    H.setHero = (k) => { const r = H.figs.hero.rig; r.player.hero = k; r.build(k); H.place('hero'); };
+    // Heldin wechseln (nur bei anderer Variante: ein Neubau derselben Variante behält in view/ShadowProxy.js das alte
+    // Figur-Bündel – gleiche geteilte Geometrien, gleiche Signatur –, das verfälscht die Kennzahlen; im Spiel tritt das nicht auf)
+    H.setHero = (k) => { const r = H.figs.hero.rig; if (r.avatar?.variant !== k) { r.player.hero = k; r.build(k); } H.place('hero'); };
   });
 }
 
