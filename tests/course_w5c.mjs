@@ -142,7 +142,13 @@ const ROUTES = {
       { name: 'Hangfuß', to: [0, -77.6], jump: 24, within: 0.6, run: false },
       { name: 'Steigung', to: [0, -106] },
       { name: 'Checkpoint', to: [0, -113] },
-      { name: 'Feuerring-Platz', to: [0, -156] }, { to: [0, -159], within: 0.3, run: false },
+      { name: 'Feuerring-Platz', to: [1.8, -121], within: 0.5 }, { to: [1.8, -123.6], within: 0.25, run: false },
+      { pulsWait: 'fr1', at: 0.7, clear: [['p5', 1.8, 1.6, 3.2]] },
+      { name: 'Puls-Feuerring 1', to: [1.8, -136.1], within: 0.3, run: false, speed: 5, dodge: ['fr1', 'fr2', 'pilzling'], noHurt: true },
+      { pulsWait: 'fr2', at: 0.7, clear: [['p6', 1.8, 1.4, 3.4]] },
+      { name: 'Puls-Feuerring 2', to: [1.8, -148.1], within: 0.3, run: false, speed: 5, dodge: ['fr2', 'pilzling'], noHurt: true },
+      { waitClear: [['p6', 1.8, 0, 1.2]] },
+      { name: 'Flammenrad', to: [1.8, -157.6], run: false, speed: 3.5, dodgeLead: 0.08, dodge: ['fr3', 'pilzling'], noHurt: true }, { to: [0, -159], within: 0.3, run: false },
       { name: 'Wechselplattformen II', tile: [0, -162.6] }, { tile: [2.8, -165.8], hold: 22 }, { tile: [2.8, -169.4], hold: 22 }, { tile: [0, -172.6], hold: 22 },
       { name: 'Sternring-Torte', to: [0, -176], jump: 24, within: 0.6, run: false },
       { to: [-3, -177.6], within: 0.4, run: false }, { to: [-3, -182], within: 0.3, run: false },
@@ -150,7 +156,8 @@ const ROUTES = {
       { name: 'Zieltorte', to: [2, -195.6], jump: 24, within: 0.6, run: false },
       { name: 'Zielmast', to: [0, -208.4], within: 0.2 },
     ],
-    mainMech: [[(m) => `jeder Sprung wechselt die Farbe (${m.jumps} Sprünge, ${m.flipsAll} Farbwechsel, ${m.tiles} Landungen auf Flippern)`, (m) => m.jumps >= 30 && m.flipsAll === m.jumps && m.tiles >= 25]],
+    mainMech: [[(m) => `jeder Sprung wechselt die Farbe (${m.jumps} Sprünge, ${m.flipsAll} Farbwechsel, ${m.tiles} Landungen auf Flippern)`, (m) => m.jumps >= 30 && m.flipsAll === m.jumps && m.tiles >= 25],
+      [(m) => `Feuerring-Platz ohne Treffer: rechtzeitig über die Ringe gesprungen (${JSON.stringify(m.legHurts)})`, (m) => m.legHurts.length === 0]],
     targets: [
       { name: 'Stern 0: blaues Feld in der hinteren linken Ecke von Feld 2', star: 0, from: [-5, 1, -31.6],
         legs: [{ tile: [-5, -34] }, { tile: [-5, -36] }, { tile: [-5, -38] }, { tile: [-5, -40] }, { tile: [-5, -42] }, { tile: [-5, -44] }, { wait: 10 }, { star: 0 }], shot: 'stern0' },
@@ -175,8 +182,8 @@ const ROUTES = {
         legs: [{ setColorOf: [0, -21.2] }, { wait: 20 }, { hop: 12 }, { wait: 120 }, { expect: 'durchgefallen' }] },
       { name: 'Extraleben: versteckter Block über der Startplatte', from: [0, 1, 0.4], heroes: ['lotti'], expectLives: 1,
         legs: [{ to: [0, -1], within: 0.15, run: false, slow: 0.4 }, { hop: 30 }, { wait: 40 }, { chaseKind: 'powerup', max: 900 }] },
-      { name: 'Extraleben: Ziegel über der Zuckerwürfel-Mauer im Kugel-Raum', from: [74.4, 9, -116.6], heroes: ['lotti'], expectLives: 1,
-        legs: [{ to: [73.9, -118], within: 0.15, run: false, slow: 0.4 }, { hop: 30 }, { wait: 40 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Extraleben: Ziegel über der Lücke neben der Zuckerwürfel-Mauer im Kugel-Raum', from: [74.4, 9, -116.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [74.2, -118], within: 0.12, run: false, slow: 0.4 }, { hop: 30 }, { wait: 520 }] },   // das Extraleben läuft über die Blöcke, fällt in die Lücke und kommt zurück
       { name: 'Puls-Feuerring: rechtzeitig über die Flammen springen bleibt heil', from: [0, 9, -138.6], heroes: ['lotti'], expectAlive: true,
         legs: [{ ringJump: 'fr2' }, { expect: 'keinRingTreffer' }] },
     ],
@@ -295,6 +302,66 @@ function install() {
       return el > 0.05 ? this.stick(ex, ez, Math.min(1, el / 2.2)) : { x: 0, y: 0 };
     },
     face(x, z) { const p = P(); p.yaw = Math.atan2(-(z - p.pos.z), x - p.pos.x); },
+    /** Ringzustand eines Feuerrings zur Level-Zeit t (Formeln wie in der Entität). */
+    ringAt(e, t) {
+      const sm = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+      if (e.mode === 'puls') {
+        const cyc = e.period + Math.max(0, e.wait);
+        const u = ((t + e.phase * cyc) % cyc + cyc) % cyc;
+        if (u >= e.period) return { ring: 0.62, H: 0, angle: 0 };
+        const q = u / e.period;
+        return { ring: 0.6 + (e.radius - 0.6) * sm(q * 1.05), H: e.height * sm(q / 0.08) * (1 - sm((q - 0.88) / 0.12)), angle: 0 };
+      }
+      return { ring: e.radius, H: e.height, angle: e.angle0 + e.speed * t };
+    },
+    /** x eines Patrouillen-Pilzlings (Weg entlang x) in T s – mit Umkehr an den Wegenden. */
+    pilzX(e, T) {
+      const path = e.spec?.path;
+      if (!e.alive || e.defeated || e.removed || !path) return null;
+      const a = Math.min(path[0][0], path[path.length - 1][0]), b = Math.max(path[0][0], path[path.length - 1][0]);
+      let x = e.pos.x, v = Math.sign(e.vel?.x || 1) * (e.speed ?? 1.6);
+      for (let t = 0; t < T; t += 0.05) { x += v * 0.05; if (x > b) { x = 2 * b - x; v = -v; } if (x < a) { x = 2 * a - x; v = -v; } }
+      return x;
+    },
+    /** Droht in den nächsten ≈ 0,3 s ein Treffer (Flammenring, Brennerkern, Pilzling)? Dann jetzt springen. */
+    danger(list, lead = 0.22) {
+      const p = P();
+      const t0 = L.time;
+      const ents = [];
+      for (const id of list) {
+        if (id === 'pilzling') { for (const e of L.entities) if (e.kind === 'pilzling' && e.alive && !e.defeated && !e.removed) ents.push(e); }
+        else { const e = ent(id); if (e) ents.push(e); }
+      }
+      for (let tau = 0.02; tau <= lead + 1e-6; tau += 0.02) {
+        const px = p.pos.x + p.vel.x * tau, pz = p.pos.z + p.vel.z * tau;
+        for (const e of ents) {
+          if (e.kind === 'pilzling') {
+            const ex = e.pos.x + (e.vel?.x ?? 0) * tau, ez = e.pos.z + (e.vel?.z ?? 0) * tau;
+            if (Math.abs(e.pos.y - p.pos.y) < 1.2 && Math.hypot(px - ex, pz - ez) < 1.25) return 'pilzling';
+            continue;
+          }
+          const b = e.base ?? e.pos;
+          if (Math.abs(b.y - p.pos.y) > 1.5) continue;
+          const dx = px - b.x, dz = pz - b.z, d = Math.hypot(dx, dz);
+          const r = this.ringAt(e, t0 + tau);
+          if (d < 0.45 + p.half.x + 0.2) return 'kern';
+          if (r.H > 0.15 && Math.abs(d - r.ring) < 0.28 + p.half.x + 0.18) {
+            if (e.mode === 'rad' && e.gaps) {
+              const a = Math.atan2(-dz, dx);
+              let gap = false;
+              for (let k = 0; k < e.gaps; k++) {
+                const c = r.angle + (k / e.gaps) * Math.PI * 2;
+                let w = a - c; w = Math.atan2(Math.sin(w), Math.cos(w));
+                if (Math.abs(w) < e.gapW / 2 - 0.12) gap = true;
+              }
+              if (gap) continue;
+            }
+            return e.id ?? e.spec?.id ?? 'ring';
+          }
+        }
+      }
+      return null;
+    },
     drive(legs, o = {}) {
       const p = P();
       const log = [];
@@ -302,7 +369,7 @@ function install() {
       const hold = o.invuln !== false;
       const hist = [];
       let deadLogged = false;
-      const mech = { carried: 0, rides: 0, hurts: 0, thrown: 0, pipes: 0, flips: 0, tiles: 0 };
+      const mech = { carried: 0, rides: 0, hurts: 0, thrown: 0, pipes: 0, flips: 0, tiles: 0, legHurts: [] };
       const track = [];
       const hurtAt = new Map();
       let lastHurts = p.hurtTries ?? 0;
@@ -312,6 +379,7 @@ function install() {
         c.setInput(inp); c.step(1); steps++;
         if ((p.hurtTries ?? 0) > lastHurts) {
           lastHurts = p.hurtTries;
+          if (o.verbose) log.push(['treffer', p.lastHurt, +L.time.toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
           const k = `${p.lastHurt}@${Math.round(p.pos.x)},${Math.round(p.pos.z)}`;
           hurtAt.set(k, (hurtAt.get(k) ?? 0) + 1);
         }
@@ -470,6 +538,24 @@ function install() {
           if (k >= 9000) log.push(['FEHLER: Kugel nicht ans Ziel']);
           continue;
         }
+        // ------------------------------------------------ Puls-Feuerring: am Rand abwarten, bis der Ring groß ist (Flammen brennen) und kein Pilzling quert
+        if (Lg.pulsWait || Lg.waitClear) {
+          const e = Lg.pulsWait ? ent(Lg.pulsWait) : null;
+          const clear = () => (Lg.clear ?? Lg.waitClear ?? []).every(([id, x, t0, t1]) => {
+            const q = ent(id);
+            for (let T = t0; T <= t1; T += 0.1) { const px = q ? this.pilzX(q, T) : null; if (px !== null && Math.abs(px - x) < 2.2) return false; }
+            return true;
+          });
+          const at = Lg.at ?? 0.7;
+          let k = 0;
+          for (; k < (Lg.max ?? 1800); k++) {
+            if ((!e || (e.anim === 'pulse' && e.prog >= at && e.prog < at + 0.03)) && clear()) break;
+            tick({});
+          }
+          log.push(['abgewartet', Lg.pulsWait ?? 'frei', k, +(e?.prog ?? 0).toFixed(2), +(e?.ring ?? 0).toFixed(2)]);
+          if (k >= (Lg.max ?? 1800)) log.push(['FEHLER: Ring/Pilzling nicht passend', Lg.pulsWait]);
+          continue;
+        }
         // ------------------------------------------------ Puls-Feuerring: warten, bis die Welle naht, dann drüberspringen
         if (Lg.ringJump) {
           const e = ent(Lg.ringJump);
@@ -593,15 +679,22 @@ function install() {
         const tx = Lg.to[0] ?? p.pos.x, tz = Lg.to[1];
         let i = 0, airborne = false, landed = false;
         let best = Infinity, still = 0, auto = 0, j0 = Lg.jumpAt ? null : 0;
+        const dodges = [], legHurt0 = p.hurtTries ?? 0;
+        let spMag = 0.6;
         for (; i < max; i++) {
           if (p.dead || L.runtime.status !== 'play') break;
           const dx = tx - p.pos.x, dz = tz - p.pos.z;
           const dist = Math.hypot(dx, dz);
           if (dist < best - 0.05) { best = dist; still = 0; } else if (p.mode === 'ground') still++;
           if (still > 45 && auto <= 0 && Lg.autoJump !== false) { auto = 26; still = 0; autoJumps++; }
-          const done = dist < within && (!holdJ || Lg.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim')));
+          const done = dist < within && (!holdJ || Lg.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim'))) && (!Lg.dodge || p.mode === 'ground');
           if (done && i > 0) break;
           let mag = Lg.slow ?? 1;
+          if (Lg.speed) {
+            const hs = Math.hypot(p.vel.x, p.vel.z);
+            if (p.mode === 'ground') spMag = Math.min(1, Math.max(0.12, spMag + 0.012 * (Lg.speed - hs)));
+            mag = p.mode === 'air' && hs > Lg.speed ? 0.02 : spMag;   // in der Luft nicht nachbeschleunigen
+          }
           let st;
           if (p.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, 2.6, 11);
           else {
@@ -610,12 +703,18 @@ function install() {
           }
           if (Lg.stopIf && COND[Lg.stopIf]()) break;
           if (j0 === null && dist <= Lg.jumpAt) j0 = i;
+          if (Lg.dodge && p.mode === 'ground' && auto <= 0 && !(holdJ && j0 !== null && i - j0 < holdJ)) {
+            const why = this.danger(Lg.dodge, Lg.dodgeLead);
+            if (why) { auto = Lg.dodgeHold ?? 22; dodges.push(why); if (o.verbose) log.push(['sprung', why, +L.time.toFixed(2), +p.pos.x.toFixed(2), +p.pos.z.toFixed(2), +p.vel.z.toFixed(2)]); }
+          }
           const jump = (holdJ && j0 !== null ? (i - j0 < holdJ) : false) || auto > 0;
           if (auto > 0) auto--;
           tick({ ...st, run: Lg.run ?? true, jump });
           if (p.mode === 'air') airborne = true;
           else if (airborne) landed = true;
         }
+        if (Lg.dodge) log.push(['ausweichen', dodges.length, [...new Set(dodges)].join(',')]);
+        if (Lg.noHurt && (p.hurtTries ?? 0) > legHurt0) { mech.legHurts.push([Lg.name ?? `leg${li}`, (p.hurtTries ?? 0) - legHurt0]); }
         log.push([Lg.name ?? `leg${li}`, i, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
         if (i >= max && Lg.land !== false && !Lg.noFail) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, Lg.to]); break; }
       }
@@ -732,7 +831,7 @@ for (const id of LEVELS) {
   for (const hero of ONLY || !PARTS.has('route') || !R.main?.length ? [] : HEROES) {
     await load(id);
     await W('place', R.start, { hero, settle: 2 });
-    const res = await W('drive', R.main, {});
+    const res = await W('drive', R.main, { verbose: !!process.env.VERBOSE });
     const reached = res.status === 'goal' || res.status === 'done';
     console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Mechanik ${JSON.stringify(res.mech)}`);
     const failed = res.log.some((l) => String(l[0]).startsWith('FEHLER'));

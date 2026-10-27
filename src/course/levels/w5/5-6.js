@@ -204,8 +204,8 @@ export const LEVEL = {
     { kind: 'question', pos: [1.1, Y0 + 2.4, -50], content: 'coin' },
     { kind: 'question', pos: [3.2, Y0 + 2.4, -50], content: 'funken' },
     { kind: 'question', pos: [-2, Y1 + 3.6, -84], content: 'coins:5' },
-    { kind: 'coinblock', pos: [XR + 4.6, Y2 + 2.6, -118], count: 6 },
-    { kind: 'brick', pos: [XR + 3.6, Y2 + 2.6, -118], content: 'oneup' },
+    { kind: 'coinblock', pos: [XR + 5.2, Y2 + 2.6, -118], count: 6 },
+    { kind: 'brick', pos: [XR + 4.2, Y2 + 2.6, -118], content: 'oneup' },
   ],
   enemies: [
     // Pilzlinge (7)
@@ -214,7 +214,7 @@ export const LEVEL = {
     { kind: 'pilzling', id: 'p3', pos: [2, Y1 + 2, -95], path: [[2, Y1, -86], [2, Y1 + 4, -104]] },
     { kind: 'pilzling', id: 'p4', pos: [-2.5, Y1 + 3, -99], path: [[-2.5, Y1, -84], [-2.5, Y1 + 4.4, -105]] },
     { kind: 'pilzling', id: 'p5', pos: [-4, Y2, -134], path: [[-5, Y2, -134], [5, Y2, -134]] },
-    { kind: 'pilzling', id: 'p6', pos: [4, Y2, -148], path: [[-5, Y2, -148], [5, Y2, -148]] },
+    { kind: 'pilzling', id: 'p6', pos: [4, Y2, -146.8], path: [[-5, Y2, -146.8], [5, Y2, -146.8]] },
     { kind: 'pilzling', id: 'p7', pos: [0, Y4, -210], path: [[-4, Y4, -210.8], [4, Y4, -210.8]] },
     // Schnappblumen (3): eine auf der Röhre zum Kugel-Raum, zwei am Feuerring-Platz
     { kind: 'schnappblume', id: 'sb_roehre', pos: [-5, Y2 + 1.4, -116.4], base: 'pipe', yaw: -Math.PI / 2 },
