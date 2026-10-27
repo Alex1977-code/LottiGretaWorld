@@ -1942,15 +1942,17 @@ export class HeroAvatar extends Avatar3D {
       thighZn: -0.1, thighZf: -0.04, thighXn: -0.03, thighXf: 0.03, kneeN: 0.06, kneeF: 0.32, footN: 1.1, footF: 1.0,
       skirtX: 0.05 * f1, skirtZ: 0.07 * f2,
     };
-    // führende Faust voraus (nahe Hand, Gummi-Arm am Kopf vorbei); Greta beide Arme vorn, Lotti den anderen am Körper
-    o.armKn = TRAPEZE.armK;
-    this.reachTo(o, 1, 0.12, 1.58, 0.34);
-    if (this.variant === 'greta') { o.armKf = TRAPEZE.armK; this.reachTo(o, -1, 0.16, 1.36, -0.38); }
-    else Object.assign(o, { armZf: -0.18, armXf: 0.22, elbowF: 0.25, twistF: 0, reachF: 0 });
+    // führende Faust voraus (ferne/linke Hand, Gummi-Arm seitlich am Kopf vorbei); Greta beide Arme vorn (rechte Faust etwas
+    // zurück), Lotti den rechten Arm am Körper – so bleibt das Gesicht von der rechten Seite frei
+    o.armKf = TRAPEZE.armK;
+    this.reachTo(o, -1, 0.04, 1.66, -0.44);
+    if (this.variant === 'greta') { o.armKn = TRAPEZE.armK; this.reachTo(o, 1, 0.12, 1.24, 0.52); }
+    else Object.assign(o, { armZn: -0.18, armXn: -0.22, elbowN: 0.25, twistN: 0, reachN: 0 });
     if (k <= 0) return o;
     const land = {
       pitch: -0.1, headZ: 0.12,
-      armXn: -1.25, armXf: 1.25, armZn: 0.5, armZf: 0.45, elbowN: 0.3, elbowF: 0.3, reachN: 0, reachF: 0, armKn: 1, armKf: 1, twistN: 0, twistF: 0,
+      // Arme bleiben oben und öffnen sich zum V (kurzer Weg aus der Flughaltung, fröhliche Landung)
+      armXn: -0.95, armXf: 0.95, armZn: 2.2, armZf: 2.1, elbowN: 0.25, elbowF: 0.25, reachN: 0, reachF: 0, armKn: 1, armKf: 1, twistN: 0, twistF: 0,
       thighZn: 0.6, thighZf: 0.28, kneeN: 0.8, kneeF: 0.55, footN: 0.35, footF: 0.3, thighXn: -0.08, thighXf: 0.08,
       skirtX: 0.02 * f1, skirtZ: 0.03 * f2,
     };

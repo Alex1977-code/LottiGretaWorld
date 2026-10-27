@@ -186,7 +186,7 @@ const shotList = [];
 async function shots(hero, name, views = ['side', 'course']) {
   if (!SHOTS) return;
   for (const v of views) {
-    if (v === 'side') await sc((rope) => { window.__p5.cam = { mode: 'side', rel: -Math.PI / 2 + 0.5, dist: rope ? 4.2 : 3.4, el: 0.06, fov: 34, rope }; }, name.match(/^([1-6]|x)_/) !== null);
+    if (v === 'side') await sc((rope) => { window.__p5.cam = { mode: 'side', rel: -Math.PI / 2 + 0.5, dist: rope === true ? 4.2 : rope ? 4.0 : 3.4, el: 0.06, fov: 34, rope: rope === true }; }, name.match(/^([1-6]|x)_/) !== null ? true : name.startsWith('k') ? 'kanone' : false);
     else if (v === 'front') await sc(() => { window.__p5.cam = { mode: 'side', rel: -0.5, dist: 3.0, el: 0.12, fov: 34 }; });
     else await sc(() => { window.__p5.cam = { mode: 'course' }; window.__course.view.rig.snap(window.__course.player); });
     await sc(() => window.__p5.frames(3));
