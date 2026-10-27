@@ -24,7 +24,7 @@
 
 import {
   isl, line, ring, arc, naschen, naschKreis, sign, teppich, zinnenMauer, torbogen, ahnenGalerie, tanzboden, kronleuchter,
-  schlossDach, kicherGeist, kruemelLaterne, kuerbisKutsche, bankett, bombenNachschub, stimmungen, turm, terrasse, funkelSpur, kuerbisLaternen,
+  schlossDach, kicherGeist, kruemelLaterne, kuerbisKutsche, bankett, bombenNachschub, stimmungen, turm, terrasse, funkelSpur, kuerbisLaternen, wimpel,
   hexenKueche,
 } from './_helpers_c.js';
 
@@ -113,6 +113,12 @@ function build(level) {
   // Gruftnische (Stern 0): gemauerter Block mit warm erleuchteten Grabkammer-Fenstern
   terrasse(level, { x0: NISCHE.x0, x1: NISCHE.x1, z0: NISCHE.z0, z1: NISCHE.z1, top: NISCHE.top, depth: 6.5, under: 0, floor: 'stein', color: 'grau', glow: 0xffc860, windows: [[0.3, -2.4], [0.72, -4.6]], tag: 'gruftnische' });
   funkelSpur(level, [[TRESOR.x, Y + 3.6, TRESOR.z], [LEUCHTER.x, LEUCHTER.top + 1.6, LEUCHTER.z]], 0xfff0a0, 1.2, { name: 'hinweis-glitzer' });
+  wimpel(level, [
+    { a: [-11, Y + 4.8, -103.5], b: [-2.4, Y + 4.8, -103.5], sag: 0.7, colors: [0xc8303e, 0xf0c050, 0x6a3aa8] },
+    { a: [2.4, Y + 4.8, -103.5], b: [11, Y + 4.8, -103.5], sag: 0.7, colors: [0xc8303e, 0xf0c050, 0x6a3aa8] },
+    { a: [-6, Y + 5.2, -21.4], b: [6, Y + 5.2, -21.4], sag: 1.0, colors: [0xff8a1a, 0x6a3aa8, 0xf0c050] },
+    { a: [-3.3, YW + 3.2, -149], b: [3.3, YW + 3.2, -149], sag: 0.6, poles: 2.2, colors: [0xff8a1a, 0x6a3aa8, 0x6ad86a] },
+  ]);
 }
 
 /** Haken nach dem Aufbau: Stimmungen, Geist, Krümel, Bomben-Nachschub, Stern des Grafen, Kulissen-Fledermäuse. */
@@ -223,6 +229,7 @@ export const LEVEL = {
     { type: 'wall', pos: [0, Y + 4.4, -104.4], size: [4.4, HW - 4.4, 0.8], style: 'stone' },
     { type: 'spinnennetz_trampolin', id: 'saalnetz', pos: NETZ, size: [2.4, 2.4], height: 1, jump: 7.2 },
     sign(-4, Y, -89.6, 'Bonbon-Tresor:\nnur mit Kürbis-Bombe!', { size: [2.6, 0.9] }),
+    sign(4.4, Y, -102.4, 'Zum Schlossdach:\nder Graf wartet!', { size: [2.4, 0.9] }),
     { type: 'deco_hw', items: [
       { kind: 'kerzenleuchter', pos: [-10.2, Y, -62], arms: 5, height: 1.8, light: true },
       { kind: 'kerzenleuchter', pos: [10.2, Y, -62], arms: 5, height: 1.8, light: true },
