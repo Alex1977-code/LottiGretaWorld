@@ -1,14 +1,18 @@
-// Hilfen der Halloween-Level H-Kapitän „Krümel im Kicherkürbis-Labyrinth“ und H-3 „Gute Nacht am Gruselgrab“
+// Hilfen der Halloween-Level H-Kapitän „Krümel im Kürbis-Kuddelmuddel“ und H-3 „Gekicher auf dem Nebelfriedhof“
 // (Welt 31, „Kürbisinsel“). Kein LEVEL – nur für diese beiden Level (andere Halloween-Level haben eigene Hilfsdateien).
 // Alles hier ist Zier bzw. level-lokale Kleinmechanik für die Haken LEVEL.build/LEVEL.setup; die Spielmechanik kommt aus
 // den Halloween-Bausteinen (Präzisierung „Motor und Bausteine Halloween“) und -Gegnern.
 //
-//   Daten:    isl, line, ring, arc, sweets, sweetRing
-//   Zier:     Bld (Geometrie-Sammler), glowPoints/glowField (weiche Leuchtflecken, ein Zeichenaufruf), mazeWalls +
-//             strawWalls + mazeFloor (Strohballen-Labyrinth), giantPumpkin, barn, pumpkinStand, pumpkinsOn, floatRock,
-//             fireflies, chapel, cemeteryGate, rockNeedle, boneGarden, creekBridge, gravePath
-//   Szenen:   wavingPumpkin (winkt zurück), gigglingGhost (kichert, versteckt sich hinter dem Grabstein),
-//             kruemelCameo (Krümel mit Laterne winkt am Ufer), onRespawn
+//   Daten:    isl, line, ring, arc, sweets, sweetRing, onRespawn
+//   Zier:     Bld (Geometrie-Sammler: box, cyl, sphere, cone, torus, raw, stones = Quadermauer), gradY, litTop,
+//             glowField/glowPoints (weiche Leuchtflecken, ein Zeichenaufruf), fireflies,
+//             H-Kapitän: mazeWalls + mazeCell + strawWalls + mazeFloor (Strohballen-Labyrinth), giantPumpkin, barn,
+//             pumpkinStand, floatRock, pumpkinsOn, pumpkinPatch, lanternPosts, bales, cornStalks, meadow
+//             H-3: cemeteryGate, chapel, bellTower, cryptPassage (Gruft-Durchfahrt), boneGarden, stonePath, glowShrooms,
+//             rockNeedle
+//   Szenen:   wavingPumpkin (Kürbis winkt zurück), gigglingGhost (kichert, versteckt sich hinter dem Grabstein),
+//             kruemelCameo (Krümel mit Laterne jubelt am Ufer)
+// Bld färbt vor dem Verschieben: Farbfunktionen ({ v } bzw. Funktion) bekommen Teil-Koordinaten (Quader −h/2 … h/2).
 
 import * as THREE from 'three';
 import { box, colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
