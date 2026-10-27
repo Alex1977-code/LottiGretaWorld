@@ -46,11 +46,14 @@
 //   Laufzeit: state ('roll' | 'burst'), rolled, speed(), info()
 // Bausteine auch als kind: geisterplattform, besen_plattform, hexenkessel, spinnennetz_trampolin, kuerbis_kanone,
 //   riesenkuerbis_roll (Hülle wie Welt 5).
-// Modelle der Registry, sobald es sie gibt: 'laterne_hand' (state { swing, lit }), 'laternenpfahl' ({ height, style };
-//   state { lit (0..1) }) bzw. 'kuerbislaterne' ({ mount: 'pfahl' }), 'suessigkeit' ({ variant }), 'suessigkeiten_tuer'
-//   (nur die Tür, Angel links, Blick +X; { color }; state { open 0..1, ring 0..1, lit }), 'grabstein_schalter' (state
-//   { pressed 0..1, glow 0..1 }), 'riesenkuerbis_roll' ({ size, color }; state { roll (rad), anim: 'roll' | 'burst',
-//   progress }); sonst eigene Geometrie.
+// Modelle der Registry, sobald es sie gibt: 'laterne_hand' (Item laterne, × 1,15; state { swing, lit }),
+//   'laternenpfahl' ({ height, style }; state { lit (0..1) }) bzw. für style 'kuerbis' 'kuerbislaterne' ({ mount: 'pfahl' }),
+//   'suessigkeit' ({ kind: 'bonbon' | 'lolli' | 'mais' (zuckermais) | 'riegel' (schoko), color: Index }; Pool-Vorlage),
+//   'suessigkeiten_tuer' ({ width 1,3, height 2,4, color }; Ursprung Schwellenmitte, Tür blickt +X, öffnet nach innen –
+//   das Häuschen bekommt dann eine Wandöffnung mit Vorraum; state { open 0..1, ring 0..1, lit }), 'grabstein_schalter'
+//   (Ursprung Fußpunkt, Kollision aus dem Hüllquader, Knopf oben = Druckplatte, sinkt 0,35 m; state { pressed 0..1,
+//   glow }), 'riesenkuerbis_roll' ({ size, color, face }; state { roll (rad, Strecke / Radius), speed, anim: 'roll' |
+//   'burst', progress }); sonst eigene Geometrie.
 
 import * as THREE from 'three';
 import { Gimmick, runAction, countdown, visDt, playerOn } from '../gimmick.js';

@@ -4370,7 +4370,8 @@ Aktionen im bekannten Format (Präzisierung Sonder-Bausteine, mit `{ signal }` a
 ```
 src/course/blocks/hwkit.js               HWC (Farben), hwSfx (Halloween-Klang mit Ersatz), modelOr, pumpkinGeo/faceGeo,
                                          lanternParts, candyGeo, softTexture/fogTexture, hwLight (Laternenlicht-System),
-                                         ghostBatch (Geisterplatten in einem Shader-Mesh), hwHud (Zähler oben rechts)
+                                         ghostBatch (Geisterplatten in einem Shader-Mesh), hwHud (Zähler oben rechts),
+                                         modelGeometry/modelBox/ghostGeometry/bakeInstanced (Registry-Modelle backen)
 src/course/blocks/types/hw_light.js      laternenlicht, geisterplattform
 src/course/blocks/types/hw_broom.js      besen_plattform
 src/course/blocks/types/hw_cauldron.js   hexenkessel (+ Zaubertrank-Blasen), spinnennetz_trampolin
@@ -4449,7 +4450,7 @@ Grund-Sichtbarkeit (0,3 im Licht, Flackern in der Vorwarnung), im Dunkeln ein za
 | `besen_plattform` | fliegender Hexenbesen mit Sitzbrett trägt die Figur (mover), wippt, neigt sich, dreht an den Enden | `path` (Mitte Unterseite), `size` [3, 1.3] (Länge × Breite), `thick` 0.35, `axis` 'auto' \| 'x' \| 'z', `speed` 2.5, `wait` 0.8, `mode` 'pingpong' \| 'loop', `phase`, `start` 'auto' \| 'stand' \| 'signal', `once`, `bob` 0.06, `tilt` 7, `reset` true, `color` 'lila' \| 'rot' \| 'gruen', `trail` true, `id` → `{ pos, mover, shape, running, riders, rides, start(), stop(), reset(), info() }` | `{ type: 'besen_plattform', id: 'besen', path: [[0,0.65,-54.5],[0,1.4,-61],[0,0.65,-67.5]], start: 'stand' }` |
 | `hexenkessel` | Trampolin mit Blubber (bounce), Spritzer je Abprall; optional Zaubertrank-Blasen als aufsteigende Plattformen (von unten durchlässig, tragen nach oben, wackeln, platzen) | `pos`, `size` 2, `height` 1.2, `strength` 20 \| `jump` m, `color` 'gruen' \| 'lila' \| 'orange', `light` true, `potions` false \| true \| { `every` 2.6, `rise` 1.6, `height` 8, `size` 1.7, `wobble` 0.7, `max` 3, `offset` [dx,dz], `first` 0.5 }, `id` → `{ bounces, top, strength, bubbles, pops, spawned, info() }`; Formen tag `hexenkessel`, `zaubertrank_blase` | `{ type: 'hexenkessel', id: 'kessel2', pos: [7,1,-93], potions: { every: 2.4, height: 7 } }` |
 | `spinnennetz_trampolin` | Netz zwischen vier krummen Pfählen federt (bounce), dellt sich ein, Spinne am Faden | `pos` (Boden unter der Mitte), `size` [3,3], `height` 1, `strength` 17 \| `jump` m, `spider` true, `posts` true, `id` → `{ bounces, sag, top, info() }` | `{ type: 'spinnennetz_trampolin', pos: [-7,1,-91], jump: 5.5 }` |
-| `kuerbis_kanone` | Röhrenkanone im Kürbis-Look (Gesicht glüht beim Laden, Deckel mit Stiel lehnt daneben) | Felder von `roehrenkanone` (`pos`, `to`, `arc`, `gravity`, `charge` 0.6, `enter`, `onFire`, `hidden`) + `height` 2.0, `radius` 1.1, `yaw` −π/2 (Gesicht +Z), `face` 'grinsen', `color` 'orange' \| 'gelb' \| 'weiss', `mark` true; Griff wie `roehrenkanone` | `{ type: 'kuerbis_kanone', id: 'kanone', pos: [0,1,-104.5], to: [0,1,-134] }` |
+| `kuerbis_kanone` | Röhrenkanone im Kürbis-Look (Gesicht glüht beim Laden, Deckel mit Stiel lehnt daneben) | Felder von `roehrenkanone` (`pos`, `to`, `arc`, `gravity`, `charge` 0.6, `enter`, `onFire`, `hidden`) + `size` 1.3 (Registry-Modell; Kollision aus dessen Hüllquader) bzw. `height` 2.0, `radius` 1.1 (eigene Optik), `yaw` −π/2 (Gesicht +Z; mit Registry-Modell zum Ziel gedreht), `face` 'grinsen', `color` 'orange' \| 'gelb' \| 'weiss', `mark` true; Griff wie `roehrenkanone` | `{ type: 'kuerbis_kanone', id: 'kanone', pos: [0,1,-104.5], to: [0,1,-134] }` |
 | `suessigkeiten_tuer` (kind; auch type) | Haustür mit Häuschen: Stampfen auf die Schwelle / Antippen / Hinlaufen = klingeln → Glocke, Tür auf, Inhalt, Tür zu, Türlampe brennt | `pos` (Schwellenmitte), `yaw` −π/2 (Tür zeigt +Z), `content` 'muenzen' \| 'suesses' \| 'kuerbling' \| 'nichts' \| Gegner-Art \| Aktion, `n` 5, `enemy` {…}, `ring` ['stomp','tap','walk'], `group` 'tueren', `onAll`, `of`, `hud` true, `house` true, `color` 'lila' \| 'orange' \| 'gruen' \| 'blau', `once` true, `id` → `{ state, rings, via, out, lit, info() }` | `{ type: 'suessigkeiten_tuer', id: 'tuer1', pos: [-8,1,-148], yaw: 0, content: 'muenzen', onAll: { coins: 5 } }` |
 | `suessigkeit` / `suessigkeiten` (kind; auch type) | Sammel-Item, +1 Bitcoin, `level.hwCandy`, eigener Klang; mit `vel` fliegt es zuerst (erst nach 0,35 s einsammelbar); Figuren im Kanonenflug/Floß sammeln mit | `pos`, `variant` 'bonbon' \| 'lolli' \| 'zuckermais' \| 'schoko', `vel`, `hidden`; Reihe/Kreis `from`/`to`/`n` \| `pos`/`r`/`n` | `{ kind: 'suessigkeiten', from: [-3,1,-2], to: [3,1,-2], n: 4 }` |
 | `riesenkuerbis` (kind; auch type) | rollender Riesenkürbis (auf der Seite, wie ein Rad): bergab schneller, seitlich Treffer + Stoß, von oben Abprall, Stampfen/Angriffe zerplatzen ihn; Wand/Lava/Glibber/Abgrund/`life` → platzt | `pos`, `dir` \| `yaw`, `size` 1.8, `speed` 3, `max` 9, `path` (Bodenpunkte; folgt kinematisch, bergab schneller, platzt am Ende), `life` 16, `hurt` true (false = nur wegstoßen), `face` true, `drop` (Aktion), `color`, `id` → `{ state, rolled, speed(), info() }` | `{ kind: 'riesenkuerbis', pos: [0,1,-194], dir: [1,0] }` |
@@ -4457,7 +4458,7 @@ Grund-Sichtbarkeit (0,3 im Licht, Flackern in der Vorwarnung), im Dunkeln ein za
 | `grabstein_schalter` (kind; auch type) | Druckschalter: Grabplatte vor einem Grabstein mit Lachgesicht; Platte sinkt, Augen leuchten | `pos`, `yaw` −π/2 (Gesicht und Platte zur Kamera), `on`, `off`, `signal`, `time` 0 (Zeitanzeige, dann zurück), `toggle`, `once`, `press` 'stand' \| 'pound', `face` true, `id`, `hidden` → `{ pressed, presses, press(), release(), info() }`; Signale `open`/`toggle`/`start`/`stop` | `{ type: 'grabstein_schalter', id: 'schalter', pos: [-4,1,-205], on: { reveal: 'grabweg' } }` |
 | `glibberbach` | grüner Glibber-Bach (Rasterfluss `river` Form B mit Ufern/Strömung): Floß `raft` (Pflaume) fährt darauf, Hineinfallen = Neustart am Checkpoint (`kill: 'glibber'`, deathCause `'fall'`), Gegner versinken, Blasen und Klumpen | `path` (y = Oberfläche), `width` 6, `depth` 2, `speed` 3 \| `speeds`, `bank` 2.5, `bankH` 1, `banks`, `bed`, `open`, `color` 'gruen' \| 'lila', `bubbles` 26, `blobs` 10, `id` → `{ river, sunk, contains(x,z), surfaceAt(x,z), info() }` | `{ type: 'glibberbach', id: 'glibber', path: [[0,-0.5,-239],[0,-0.5,-252],[2.5,-0.6,-262],[0,-0.6,-276]], bankH: 1.5 }` + `{ kind: 'raft', pos: [0,-0.5,-241.5], exit: [0,-0.6,-276], exitR: 0.9 }` |
 | `nebel` | Bodennebel-Feld, rein optisch (Schichten, treibt, Ränder weich, um die Figur dünner) | `pos` (Mitte am Boden), `size` [14,14], `height` 1.3, `layers` 3, `density` 0.35, `color` 0xc8d2f4, `drift` [0.25,0.08], `edge` 2 | `{ type: 'nebel', pos: [0,1,-301], size: [24,18] }` |
-| `deco_hw` | Kulisse (verschmolzen) | `items: [{ kind, pos, … }]`, `shadow: false`; Arten `kuerbis` (size, shape, color, face), `kuerbisse`, `kuerbislaterne` (mount 'boden' \| 'pfahl', light), `vogelscheuche`, `strohballen` (form 'eckig' \| 'rund'), `maisstaude`, `maisfeld`, `krummer_baum`, `krumme_baeume`, `grabstein` (style 'rund' \| 'kreuz' \| 'spitz', face), `grabsteine`, `zaun` (from, to, style 'holz' \| 'eisen', solid), `spinnweben` (lage 'ecke' \| 'decke'), `kerzen` (n, light), `fledermaus_girlande` (from, to, n, sag), `suessigkeiten` (Haufen) | `{ type: 'deco_hw', items: [{ kind: 'kuerbisse', pos: [-9,1,1], size: [6,8], n: 7, faces: 0.5 }, { kind: 'vogelscheuche', pos: [9.5,1,-1] }] }` |
+| `deco_hw` | Kulisse (verschmolzen) | `items: [{ kind, pos, … }]`, `shadow: false`; Arten `kuerbis` (size, shape, color, face), `kuerbisse`, `kuerbislaterne` (mount 'boden' \| 'pfahl', light), `vogelscheuche`, `strohballen` (form 'eckig' \| 'rund'), `maisstaude`, `maisfeld`, `krummer_baum`, `krumme_baeume`, `grabstein` (style 'rund' \| 'kreuz' \| 'spitz', face), `grabsteine`, `zaun` (from, to, style 'holz' \| 'eisen', solid), `spinnweben` (lage 'ecke' \| 'decke'), `kerzen` (n, light), `fledermaus_girlande` (from, to, n, sag), `suessigkeiten` (Haufen), `dorfhaus`, `hexenturm`, `gruft`, `kerzenleuchter` (nur mit Registry-Modell); Streuungen mit `detail: 'voll'` als Einzelmodelle | `{ type: 'deco_hw', items: [{ kind: 'kuerbisse', pos: [-9,1,1], size: [6,8], n: 7, faces: 0.5 }, { kind: 'vogelscheuche', pos: [9.5,1,-1] }] }` |
 
 Hinweise für Level-Bauer: Geisterplatten für die Handlaterne höchstens ≈ 3,5 m auseinander (Radius 5 m, die nächste
 Platte muss vor dem Absprung im Licht liegen); `light: 'pfahl'` für Brücken, die nur ein (blinkender) Laternenpfahl zeigt.
@@ -4466,18 +4467,33 @@ Floß-Ende (`exit`) dicht vor die Uferwand legen (das Absteigen springt nur ≈ 
 
 ### Präzisierung (Motor und Bausteine Halloween): Modelle
 
-Die Bausteine übernehmen Registry-Modelle, sobald `hasModel(name)` gilt (sonst eigene Ersatz-Geometrie, gleiche Kollision):
-`laterne_hand` (Ursprung = Griff oben, hängt nach −Y, ≈ 0,42 m; opts { scale }; state { swing (rad), lit }),
-`laternenpfahl` ({ height, style }; state { lit 0..1 }) bzw. für `style: 'kuerbis'` `kuerbislaterne` ({ mount: 'pfahl' }),
-`besen_plattform` ({ length, width, color }, Ursprung Mitte der Lauffläche unten, Stiel +X; state { tilt, roll, speed,
-moving }), `hexenkessel` ({ size, height, color }; state { squash, bubble, brew }), `spinnennetz_trampolin` ({ size: [w, d],
-height }, Ursprung Boden; state { sag, spider }), `kuerbis_kanone` ({ height, radius, color, face }, Gesicht +X; state {
-anim: 'idle' | 'load' | 'fire', k }), `suessigkeiten_tuer` (nur das Türblatt, Angel im Ursprung, Tür erstreckt sich nach
-+Z, Vorderseite +X; { color }; state { open 0..1, ring 0..1, lit }), `grabstein_schalter` (Ursprung Plattenmitte; state {
-pressed 0..1, glow 0..1 }), `riesenkuerbis_roll` ({ size, color }, Ursprung Bodenpunkt; state { roll (rad), anim: 'roll' |
-'burst', progress }), `suessigkeit` ({ variant }, Pool-Vorlage, nicht animiert); Geisterplatten zeichnet immer das
-Shader-Mesh. Kulisse: `deco_hw_<kind>`, sonst die Halloween-Modelle `kuerbis`, `kuerbislaterne`, `vogelscheuche`,
-`strohballen` (opts.kind = form), `maisstaude`, `suessigkeiten_haufen` (gebacken, Kollision bleibt).
+Die Bausteine übernehmen die Halloween-Modelle der Registry, sobald `hasModel(name)` gilt (sonst eigene Ersatz-Geometrie,
+gleiche Kollision und Mechanik). Stand mit den Modellen aus `gimmicks_hw.js`, `props_*_hw.js`:
+
+| Modell | genutzt von | Optionen / Zustand aus dem Baustein |
+| --- | --- | --- |
+| `laterne_hand` | Handlaterne an jeder Figur (× 0,7), Item `laterne` (× 1,15, ohne eigenen Schein) | state { swing (rad), lit } |
+| `kuerbislaterne` | `laternenpfahl` mit `style: 'kuerbis'`; `deco_hw` kuerbislaterne | { mount: 'pfahl' } bzw. { size, mount, face } |
+| `laternenpfahl` | `laternenpfahl` (`style: 'laterne'`), noch kein Registry-Modell → eigene Optik | { height, style }; state { lit 0..1 } |
+| `geisterplattform` | Form und Farben (einfache Form `ghostPlatformGeo(…, lo)`) im Licht-Shader-Mesh, Farbe lila → 'lila', blau/grün → 'mint', orange | { size: [w, h, d], color } |
+| `besen_plattform` | Besen; Ursprung = Brett-Oberseite (Lauffläche) | { length, width, stick: 1,45 · length, color }; state { tilt, roll, bank, speed, moving } |
+| `hexenkessel` | Kessel, auf `height` gestreckt (Höhe/userData.top) | { size: 2R / 1,7 }; state { bounce (Einfedern), bubble: 1 } |
+| `spinnennetz_trampolin` | Netz (ohne eigene Pfähle) | { radius: min(w, d) / 2, height }; state { bounce: Durchhang / 0,7 } |
+| `kuerbis_kanone` | Kanone, dreht zum Ziel, Rohr folgt dem Abschusswinkel; Kollision aus dem Hüllquader des größten Teils | { size 1,3 }; state { anim 'idle' \| 'load' \| 'fire', k, aim (rad) } |
+| `suessigkeiten_tuer` | Tür im Häuschen (Wandöffnung mit Vorraum 1,45 m, Tür 1,3 × 2,4 m, öffnet nach innen) | { width, height, color }; state { open, ring, lit } |
+| `grabstein_schalter` | Schalter; Kollision aus dem Hüllquader (man kann darauf springen), Knopf = Druckplatte | state { pressed 0..1, glow } |
+| `riesenkuerbis_roll` | rollender Riesenkürbis (Spender und `riesenkuerbis`) | { size, color, face }; state { roll (Strecke / Radius), speed, anim 'roll' \| 'burst', progress } |
+| `suessigkeit` | Pool-Vorlage der Süßigkeiten | { kind: bonbon → 'bonbon', lolli → 'lolli', zuckermais → 'mais', schoko → 'riegel', color: Index } |
+
+Kulisse `deco_hw`: erst `deco_hw_<kind>`, sonst `kuerbis`, `kuerbislaterne`, `vogelscheuche`, `strohballen` (form → kind),
+`maisstaude`, `suessigkeiten_haufen`, `grabstein` (style → kind, tilt, pumpkin), `halloween_baum` (krummer_baum),
+`spinnennetz` (spinnweben: 'ecke' → 'ecke', 'decke' → 'rund'), `eisenzaun` (zaun style 'eisen'), `kerzenleuchter`,
+`dorfhaus_nacht`, `hexenturm`, `gruft` – gebacken in die statische Geometrie, Kollision bleibt; Gesichter/Türen zeigen ohne
+`yaw` zur Kamera (+Z). Die Streuungen `kuerbisse`, `grabsteine`, `maisfeld` backen die einfachere Instanz-Form
+(`createInstanced`, `bakeInstanced` in hwkit; ≈ ⅓ der Dreiecke), `detail: 'voll'` nimmt die Einzelmodelle. Neu (nur mit
+Registry-Modell): `dorfhaus` (width 3, depth 2.6, height 2.4, color, door, lean), `hexenturm` (height 5, radius 1.3, lean,
+windows, part), `gruft` (size), `kerzenleuchter` (arms, height, light). Noch ohne Modell (eigene Optik): Zaubertrank-Blase,
+Laternenpfahl-Stil 'laterne', Spender-Verschlag, Glibber, Nebel.
 
 ### Präzisierung (Motor und Bausteine Halloween): Themen
 
@@ -4517,6 +4533,7 @@ Bitcoins, Stampfen → sechs Süßigkeiten fliegen heraus, Antippen → Gegner; 
 Süßigkeiten (+1 Bitcoin je Stück, HUD „Süßes n“), Riesenkürbis (Spender startet in der Nähe, bergab bis 9 m/s, Treffer,
 Stampfen zerplatzt ihn, Bahn `path`), Grabstein-Schalter (Weg erscheint, Signal; Zeit-Schalter mit Laternenpfahl),
 Glibberbach (Hineinfallen = Neustart am Checkpoint, Floßfahrt mit Pflaume bis ans Ende, Gegner versinken), Nebel, Ziel,
-keine Konsolenfehler (38 Prüfungen); dazu Themen-Bilder aller sechs Themen (4 Prüfungen). Kennzahlen (960×540, scale 2, inkl.
-Schattenpass): Stationen 40–72 Zeichenaufrufe, 87–140 k Dreiecke; Themen-Bilder 47–77 Aufrufe, 84–166 k Dreiecke (Budget
-< 120 / < 300 k).
+keine Konsolenfehler (37 Prüfungen); dazu Themen-Bilder aller sechs Themen (4 Prüfungen). Kennzahlen mit den
+Registry-Modellen (960×540, scale 2, inkl. Schattenpass): Stationen 39–70 Zeichenaufrufe, 89–201 k Dreiecke (Türen am
+meisten); Themen-Bilder 51–73 Aufrufe, 94–181 k Dreiecke (Budget < 120 / < 300 k). Teuer sind einzelne Kulissenmodelle
+(Vogelscheuche ≈ 9 k, Dorfhaus ≈ 11 k, Tür ≈ 10,5 k, Riesenkürbis ≈ 11,5 k): für viele Stücke die Streuungen nehmen.
