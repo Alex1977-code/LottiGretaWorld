@@ -19,7 +19,7 @@
 
 import {
   isl, line, candy, candyRing, candyArc, sign, rampe, hoftor, kuerbisDeko, laternenPfad, haeuschen, marktstand,
-  stadtmauer, kirchlein, brunnen, kicherGeist,
+  stadtmauer, kirchlein, brunnen, kicherGeist, buehne,
 } from './_helpers_a.js';
 
 const Y0 = 1, Y2 = 2, Y3 = 3;
@@ -67,6 +67,7 @@ function build(level) {
   stadtmauer(level, { x0: KIRCHE.x0, x1: KIRCHE.x1, z: MAUER.z, depth: MAUER.depth, y: Y3, h: MAUER.h, backGap: [-2.6, 2.6] });
   kirchlein(level, { pos: [TURM.x, Y3, TURM.z], tower: TURM.T, nave: 'links', gap: 4.5 });
   brunnen(level, { pos: [-5.5, Y3, -119.5] });
+  buehne(level, { x0: -5, x1: 5, z0: -199, z1: -209, y: Y3 + 0.6, h: 3.6 });
   kicherGeist(level, { pos: [-16.4, Y3, -131.6], side: 1, near: 5 });
   // Kürbis-Turm: eine glatte Säule (keine Simse zum Hochklettern), oben ein Holzteller
   level.world.add({ type: 'cyl', x: KTURM.x, z: KTURM.z, r: KTURM.r, y0: Y3, y1: KTURM_TOP, tag: 'kuerbisturm' });
@@ -234,6 +235,7 @@ export const LEVEL = {
     tuer('fest2', 12, Y3, -186, Math.PI, 'kuerbling', { group: 'dorf', hud: false, color: 'orange', enemy: { sight: 6 } }),
     { type: 'spinnennetz_trampolin', id: 'netz', pos: [NETZ.x, Y3, NETZ.z], size: [3, 3], height: 1, jump: 8.5 },
     sign(-10.2, Y3, -195.4, 'Kürbis-Turm', { size: [1.9, 0.7] }),
+    sign(-2.6, Y3 + 0.6, -207.6, 'Kürbisfest!', { size: [2.6, 0.9], post: 2.0 }),
     { type: 'deco_hw', items: [
       ...KTURM.sizes.map((s, i) => ({ kind: 'kuerbis', pos: [KTURM.x, kturmY(i), KTURM.z], size: s, face: ['lachen', 'grinsen', 'staunen', 'lachen'][i], color: ['orange', 'gelb', 'orange', 'weiss'][i], seed: i, solid: false })),
       { kind: 'fledermaus_girlande', from: [-11, Y3 + 4.6, -170], to: [11, Y3 + 4.6, -172], n: 11, sag: 1.0 },

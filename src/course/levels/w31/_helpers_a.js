@@ -1184,3 +1184,34 @@ export function kicherGeist(level, o) {
   });
   return st;
 }
+
+/**
+ * Bühnen-Zier (ohne eigene Kollision außer der Rückwand): Holzschürze mit Kürbis-Zacken vorn, gestreifte Rückwand (lila/
+ * orange) mit Bogenkante und leuchtenden Lämpchen. o: { x0, x1, z0 (vorn), z1 (hinten), y (Bühnenboden), h (Rückwand, 3.6) }.
+ */
+export function buehne(level, o) {
+  const { x0, x1, z0, z1, y } = o, H = o.h ?? 3.6, w = x1 - x0;
+  const P = [], G = [];
+  // Schürze vorn: Bretter abwechselnd orange/lila
+  const n = Math.round(w / 0.8);
+  for (let i = 0; i < n; i++) {
+    const bw = w / n;
+    P.push(fill(at(new THREE.BoxGeometry(bw - 0.04, 0.62, 0.08), x0 + bw * (i + 0.5), y - 0.31, z0 + 0.04), i % 2 ? 0x8a4ae0 : 0xff8a1a));
+    const tri = new THREE.ConeGeometry(0.16, 0.24, 3); tri.rotateZ(Math.PI); tri.translate(x0 + bw * (i + 0.5), y - 0.68, z0 + 0.06);
+    P.push(fill(tri, i % 2 ? 0xff8a1a : 0x8a4ae0));
+  }
+  // Rückwand mit Streifen und Bogen
+  const m = Math.round(w / 0.7);
+  for (let i = 0; i < m; i++) {
+    const bw = w / m, cx = x0 + bw * (i + 0.5);
+    const hh = H + Math.sin((i / (m - 1)) * Math.PI) * 0.9;
+    P.push(fill(at(new THREE.BoxGeometry(bw, hh, 0.16), cx, y + hh / 2, z1 + 0.08), i % 2 ? 0x5a2a9a : 0x7a3ac0));
+    if (i % 2 === 0) G.push(fill(at(new THREE.SphereGeometry(0.09, 6, 4), cx, y + hh + 0.06, z1 + 0.2), [0xffd040, 0xff7ab0, 0x7aff8a][(i / 2) % 3]));
+  }
+  // Mond und Fledermaus-Silhouetten auf der Rückwand
+  G.push(fill(at(new THREE.CircleGeometry(0.8, 16), x0 + w * 0.78, y + H * 0.62, z1 + 0.18), 0xfff0b0));
+  P.push(fill(at(new THREE.CircleGeometry(0.66, 16), x0 + w * 0.78 + 0.3, y + H * 0.66, z1 + 0.19), 0x7a3ac0));
+  addStatic(level, merge(P));
+  addStatic(level, merge(G), { material: 'glow', castShadow: false });
+  level.world.add({ type: 'box', min: [x0, y, z1], max: [x1, y + H, z1 + 0.16], tag: 'buehne:wand' });
+}
