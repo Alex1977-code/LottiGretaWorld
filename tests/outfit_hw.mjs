@@ -170,11 +170,14 @@ async function openBench() {
     };
     // Mehrfach messen, häufigstes Ergebnis (Szenen-Culling wechselt gelegentlich zwischen zwei Bildern)
     const cost1 = H.cost;
+    // Szene steht während der Messung (dt = 0: Münzen/Kulisse bewegen sich nicht über Bildrand und Pyramiden-Grenzen)
     H.cost = (keys) => {
+      const still = c.still; c.still = true;
       const a = cost1(keys), b = cost1(keys);
-      if (a.calls === b.calls && a.tris === b.tris) return a;
-      const c3 = cost1(keys);
-      return c3.calls === b.calls && c3.tris === b.tris ? b : a;
+      let r = a;
+      if (a.calls !== b.calls || a.tris !== b.tris) { const c3 = cost1(keys); r = c3.calls === b.calls && c3.tris === b.tris ? b : a; }
+      c.still = still;
+      return r;
     };
     H.frames = (n) => { for (let i = 0; i < n; i++) c.renderFrame(); };
     /** Sichtbare Teile einer Figur (Fehlersuche bei abweichenden Kennzahlen). */
