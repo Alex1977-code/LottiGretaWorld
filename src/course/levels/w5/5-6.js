@@ -9,7 +9,7 @@
 // Abschnitte:
 //   1  Tortenstart        z   9 …  −4   Startplatte mit Kerzen, Riesen-Erdbeeren, Keksen; Regel-Schild.
 //      Übungsfeld        z  −4 … −10   drei Reihen Rot/Blau über einer flachen Sahnemulde (harmlos: hinausspringen).
-//   2  Rot-Blau-Felder   z −10 … −46   Rastplatte, Feld 1 (5 × 7 Schachbrett über dem Abgrund), Rastplatte mit Pilzling,
+//   2  Rot-Blau-Felder   z −10 … −46   Rastplatte, Feld 1 (5 × 6 Schachbrett über dem Abgrund), Rastplatte mit Pilzling,
 //                                     Feld 2 (6 × 6 mit Lücken) – in seiner hinteren linken Ecke steht Stern 0 auf
 //                                     einem blauen Feld.
 //   3  ?-Blöcke          z −46 … −54   Keks-Insel mit vier ?-Blöcken (Spiegelfrucht, Münzen, Funkenblüte), Pilzlinge.

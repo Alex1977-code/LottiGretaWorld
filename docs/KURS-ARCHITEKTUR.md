@@ -4107,3 +4107,87 @@ Funkenblüte; Messgang. Gemessen (scale 2, inkl. Schattenpass): 5-3 32–115 Zei
 Uhrturm) / ≤ 256 k Dreiecke · 5-A 59–93 / ≤ 242 k · 5-4 35–71 / ≤ 265 k · 5-Kapitän 47–83 / ≤ 241 k.
 Bekannt: Donut-Blöcke fallen nicht, solange die Figur genau auf der Fuge zwischen zwei Blöcken steht (Motor, 5-Kapitän:
 Gehen genügt); Stimmungswechsel blenden im Kopflos-Browser langsam über (Bildrate), im Spiel ≈ 1 s.
+
+## Präzisierung (Level 5-5, 5-B und 5-6)
+
+Additiv zur Welt-5-Liste: Titel und Besonderheiten der Level 5-5, 5-B und 5-6. Dateien `src/course/levels/w5/5-5.js`,
+`5-B.js`, `5-6.js`, eigene Hilfen `src/course/levels/w5/_helpers_c.js` (kein `LEVEL`, nur für diese drei Level), Test
+`tests/course_w5c.mjs`. Kein Motor-Code geändert; alle Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`/`LEVEL.setup`).
+
+### 5-5 „Kawumm im Kristallstollen“ (parcours · mine · course_mine · 400 s)
+
+- Bergwerk unter der Lila Strand-Insel, ≈ 230 m nach −Z, drei Stufen hinab (y 1 → −4 → −8) und per Röhre hinauf zum
+  Ausgang (y 3). Abschnitte: **Stolleneingang** (Grubenbalken mit Lampen, abgestellte Kristall-Lore; der POW vor dem
+  lila Ziegeltor zwischen zwei Felspfeilern öffnet es – Einführung) → **Kristallschlucht** (Lore 1 längs, Mittelinsel mit
+  Schnappblume, Lore 2 quer auf Gleisgerüsten, Feuer-Schnappblume auf dem Felsvorsprung, leuchtender Kristallsee tief
+  unten) → **Sims B** (lila Ziegelwand vor der Glasröhre zum Kristallbalkon, Nachschub-Röhre für Zündköpfe, zweite
+  Glasröhre über die Felswand in die Halle) → **Kristallhalle** (Checkpoint, Wolkenkanone zur Empore, Glühpilz-Wiese mit
+  zwei Hasen, rissige Felswand, Nebengleis, Pilzlingstürme) → **Boost-Feld** (Rampe mit zwei Boost-Platten, 14-m-Sprung;
+  zu kurz = weiche Grube mit Treppe zurück) → **Landesims** (?-Block mit Funkelstern, POW gegen zwei Pilzlingstürme,
+  Röhre) → **Stollenausgang** im Lichtschacht („Glück auf!“, Zielmast).
+- Sterne: 0 lila Ziegelwand auf Sims B mit POW, geworfenem Zündkopf oder Tatzenhieb öffnen → Glasröhre auf den
+  Kristallbalkon · 1 Stern-Hase auf der Glühpilz-Wiese fangen (`reward` als Aktion: der Stern erscheint, wo er gefangen
+  wurde) · 2 Wolkenkanone auf die Empore, Farbfeld 3 × 3 ganz färben. Stempel: **rissige Wand** (`risswand`: Form mit
+  `breakable: 'bomb'`, `owner.onHit` bricht nur bei `'bomb'`/`'mega'` – Zündkopf dagegen werfen; Stampfen und Kopfstoß
+  lassen sie stehen) → Geheimgang zur Stempelkammer.
+- Extraleben: versteckter Block über der Mittelinsel, zweiter Hase auf der Wiese. Gegner: Zündkopf 3 (+ 2
+  Nachschub-Röhren `zuendkopf_quelle`, `range` 10), Pilzlingsturm 4, Schnappblume 5, Feuer-Schnappblume 2; POW 5.
+- Hilfen: `rails` (Schienen, Schwellen, Gerüst, Prellböcke), `lore` (MovingBox + PathMover, Modell `lore`, trägt die
+  Figur), `parkedLore`, `risswand`, `crystals`, `dripstones`, `glowShrooms`, `oreVeins`, `walkways`, `floorStones`,
+  `brickPanels` (Ziegel als Flächen statt Kästen – Dreiecksbudget), `wallTimbers`, `crystalLake`, `lampHalos`,
+  `lightPools` (warme Lichtkegel unter den Grubenlampen, additiv, ein Objekt), `lightShaft`, `sparkleField` (Punkte mit
+  fester Hüllkugel: außerhalb des Bildes kein Zeichenaufruf).
+
+### 5-B „Wackelturm am Glutsee“ (arena · lava · course_arena · 100 s, 1 Stern)
+
+- Weite, wellig gerandete Felsfläche (R ≈ 11,8 m, `rockIsland`) im Glutsee; Basaltwaben, glimmende Spalten, lila
+  Kristalle, Lager der Werfer-Bande, Kraterwand mit Lavafällen, Vulkane. **Werferturm** aus 9 Pilzlingen mit Feuer-Werfer
+  obenauf (`werferturm` count 9, `riderId`), die Arena zählt Turm und Werfer („noch 2“). Zwei **Steinsäulen**
+  (`steinsaeule`: MovingBox, deren Höhe je Schritt wächst/schrumpft, `mover.dy` trägt die Figur; Zustände
+  low/up/high/down) hinten links und rechts steigen im Wechsel bis 7,6 m – nie beide oben. ?-Block mit Funkenblüte,
+  Münzblock. Konter: von der steigenden Säule auf den Werfer springen, dann den Turm Stufe für Stufe abtragen (oder mit
+  Feuerbällen einzeln abschießen); Stern in der Mitte.
+- `arenaTowerFix(level, towerId, riderId)`: Der Arena-Archetyp setzt bei Tod aus den gezählten Specs zurück; die vom Turm
+  erzeugte Reiter-Spec hat kein `kind` (Warnung „unbekannte Entität“, sonst doppelter Werfer). Der Haken filtert Specs ohne
+  `kind`, entfernt überzählige Werfer und zählt den neuen Reiter mit.
+
+### 5-6 „Flipp-Flapp-Tortenland“ (parcours · cake · course_cake · 400 s)
+
+- Torten-Welt mit Rot-Blau-Flippern (`flipperStart: 'rot'`; jeder Sprung – auch eines Klons – wechselt die feste Farbe),
+  ≈ 215 m nach −Z, stufenweise hinauf (y 1 → 4 → 9 → 12). Abschnitte: **Tortenstart** (Regel-Schild) und Übungsfeld über
+  einer harmlosen Sahnemulde → **Rot-Blau-Felder** (Feld 1: 5 × 6 Schachbrett, Feld 2: 6 × 6 mit Lücken) → **?-Insel**
+  (Spiegelfrucht, Münzen, Funkenblüte) → **Wechselplattformen I** (sechs, Zickzack) → **Sahnehang** → **Checkpoint**
+  (Röhre mit Schnappblume zur Konditorei) → **Feuerring-Platz** (zwei versetzte Puls-Ringe, ein Flammenrad, Pilzlinge,
+  Schnappblumen) → **Wechselplattformen II**, **Sternring-Torte**, **Wechselplattformen III** → **Zieltorte** (2er-Lift,
+  Stempel-Etage, Zielmast). Konditorei (Kugel-Raum) abseits bei x ≈ 70.
+- Sterne: 0 blaues Feld in der hinteren linken Ecke von Feld 2 · 1 Schnappblume auf der Röhre besiegen, in der
+  Konditorei die Bonbon-Kugel (`schiebekugel`) um die Zuckerwürfel-Mauer auf das P-Feld schieben · 2 Sternring (acht
+  Sternmünzen in 10 s, drei davon über den Wechselplattformen III; Flammenrad mit zwei Lücken in der Tortenmitte).
+  Stempel: Spiegelfrucht auf der Zieltorte, mit dem Klon auf den **2er-Lift** (`multilift` need 2) → Stempel-Etage.
+- Feuerring-Platz fair: am Rand warten, bis der Puls-Ring groß ist, und über die Flammen springen (Füße über
+  0,8 × Flammenhöhe); das Flammenrad überspringen oder die Lücke nutzen.
+- Extraleben: versteckter Block über der Startplatte; Ziegel über der Mauerlücke in der Konditorei (das Extraleben läuft
+  über die Blöcke, fällt in die Lücke und kommt zurück). Gegner: Feuerring 4, Schnappblume 3, Pilzling 7.
+- Budget/Zier: Flipper werfen keinen Sonnenschatten (`flipperNoShadow`), Feuerringe und Gegner `farHide: 46`;
+  Glasur-Kacheln je Tortenplatte in eigener Sorte (`glazeTops`: Erdbeer, Minze, Blaubeer, Zitrone, Lavendel, Karamell),
+  schwebende Macarons und Donuts (`floatingSweets`), Sahnetupfen, Glasur, Streusel, Kerzen, Etagentorten.
+
+### Test `tests/course_w5c.mjs`
+
+Port 4490 (+ `PORT_BASE`), Aufruf `node tests/course_w5c.mjs [5-5|5-B|5-6]`, Teilläufe
+`PARTS=route,sweep,targets,extra,shots,arena` (je Lauf < 10 min; der Messgang `sweep` folgt der Spur von `route`),
+`HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`, `DETAIL=1` (Zeichenaufrufe je Objekt), Bilder `tests/out/w5c_*.png`.
+Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier); Beine u. a. `mover` (Lore abwarten,
+aufspringen, mitfahren), `pickup`/`throwAt` (Zündkopf), `enter` (Glasröhre), `cannon`, `chaseId` (Hase), `tile`
+(Flipper-Hüpfer: Zielfarbe muss vor dem Sprung durchlässig sein), `push` (Kugel), `stompOn`, `dodge`/`dodgeLead`/`speed`
+(rechtzeitig springen vor Feuerkugel, Feuerring, Pilzling; Tempo regeln), `pulsWait` (Puls-Ring abwarten, kein Pilzling
+quert), Arena-Bot (Säule abwarten, auf den Werfer, Turm abtragen, Stern). Geprüft: Laden ohne Konsolenfehler, Metadaten,
+Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel **ohne einen Treffer** (5-5 ≈ 44 s mit zwei Loren und zwei
+Röhren; 5-6 ≈ 59 s, 41 Sprünge = 41 Farbwechsel); alle Sterne und Stempel mit Gegenproben (Röhre hinter der lila Wand
+versperrt, rissige Wand hält Stampfen/Kopfstoß, 2er-Lift fährt nicht mit einer Figur); Extraleben; 5-B: Säulen im
+Wechsel, Turm 9 + Werfer, Kampf (≈ 53 s), Tod setzt zurück (ein Turm, ein Werfer), Zeitlimit 100 s, Funkenblüte.
+Gemessen (scale 2, inkl. Schattenpass): 5-5 45–99 Zeichenaufrufe (Bilder an den Stern-Zielen bis 112) /
+≤ 233 k Dreiecke · 5-B 50–81 / ≤ 157 k · 5-6 51–106 / ≤ 250 k.
+Wünsche an den Motor: `switch_tile` instanzieren (Farbfeld 3 × 3 = 18 Aufrufe), Flipper-Instanzen mit Frustum-Culling
+(jedes Feld wird immer gezeichnet), Reiter-Spec des Werferturms mit `kind` (dann entfällt `arenaTowerFix`).
