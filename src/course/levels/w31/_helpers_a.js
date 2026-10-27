@@ -481,6 +481,39 @@ export function maisStreu(level, f, o = {}) {
 }
 
 /**
+ * Teich-Zier ohne Kollision: Seerosenblätter (mit Kerbe, ein paar rosa Blüten) auf der Wasseroberfläche und Schilfbüschel
+ * mit Rohrkolben an den Ufern. f: { x0, x1, z0, z1, y (Oberfläche), n: 14, reeds: 8, seed, avoid }.
+ */
+export function teichDeko(level, f) {
+  if (!level.view) return;
+  const P = [];
+  const pads = streu([(f.x0 + f.x1) / 2, f.y, (f.z0 + f.z1) / 2], [Math.abs(f.x1 - f.x0) - 1.5, Math.abs(f.z1 - f.z0) - 1.5], f.n ?? 14, 1.1, f.avoid, f.seed ?? 3);
+  pads.forEach(([x, z], i) => {
+    const r = 0.35 + hash(i * 3 + 1) * 0.3;
+    const g = new THREE.CircleGeometry(r, 9, 0.35, TAU - 0.35); g.rotateX(-Math.PI / 2); g.rotateY(hash(i) * TAU); g.translate(x, f.y + 0.02, z);
+    P.push(colorize(ni(g), (q, n, o) => mixc(L(0x3a7a2a), L(0x6ab84a), 0.4 + 0.4 * hash(i + 7), o)));
+    if (i % 4 === 0) {
+      for (let k = 0; k < 5; k++) {
+        const pe = new THREE.SphereGeometry(0.09, 5, 3); pe.scale(1, 0.6, 1.8); pe.rotateY((k / 5) * TAU);
+        pe.translate(x + Math.cos((k / 5) * TAU) * 0.08, f.y + 0.1, z - Math.sin((k / 5) * TAU) * 0.08);
+        P.push(fill(pe, 0xffa0d0));
+      }
+    }
+  });
+  const reeds = streu([(f.x0 + f.x1) / 2, f.y, (f.z0 + f.z1) / 2], [Math.abs(f.x1 - f.x0), Math.abs(f.z1 - f.z0)], 40, 0.8, f.avoid, (f.seed ?? 3) + 5)
+    .filter(([x, z]) => Math.min(Math.abs(x - f.x0), Math.abs(x - f.x1), Math.abs(z - f.z0), Math.abs(z - f.z1)) < 0.9).slice(0, f.reeds ?? 8);
+  reeds.forEach(([x, z], i) => {
+    for (let k = 0; k < 4; k++) {
+      const h = 1.1 + hash(i * 5 + k) * 0.7, a = hash(i * 9 + k) * TAU;
+      const st = new THREE.CylinderGeometry(0.015, 0.03, h, 3); st.rotateZ((hash(i + k) - 0.5) * 0.3); st.translate(x + Math.cos(a) * 0.15, f.y + h / 2 - 0.2, z + Math.sin(a) * 0.15);
+      P.push(fill(st, 0x5a8a3a));
+      if (k % 2 === 0) { const c = new THREE.CylinderGeometry(0.05, 0.05, 0.28, 5); c.translate(x + Math.cos(a) * 0.15, f.y + h - 0.3, z + Math.sin(a) * 0.15); P.push(fill(c, 0x6a3a1e)); }
+    }
+  });
+  addStatic(level, merge(P), { castShadow: false });
+}
+
+/**
  * Kürbis-Trittsteine: große Kulissen-Kürbisse (Baustein deco_hw, ohne eigene Kollision) bekommen eine Zylinder-Kollision,
  * deren Oberseite zur Schulter des Registry-Kürbisses passt (rund ≈ 0,74·size, dick ≈ 0,8·size, flach ≈ 0,5·size).
  * list = [{ pos: [x, y, z] (Fußpunkt), size, shape }]. Liefert die deco_hw-Einträge (solid: false) für segments.

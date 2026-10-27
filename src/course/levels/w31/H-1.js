@@ -21,7 +21,7 @@
 import {
   isl, line, arc, ring, candy, candyRing, candyArc, sign, rampe, scheune, windmuehle, hoftor, ackerFurchen,
   kuerbisSteineDeco, kuerbisSteine, kuerbisTop, kraehen, winkeKuerbisse, kruemelLaterne, laternenPfad, kuerbisDeko, kuerbisStreu,
-  maisStreu, ohneSonnenschatten,
+  maisStreu, ohneSonnenschatten, teichDeko,
 } from './_helpers_a.js';
 
 const Y0 = 1, YP = 5, YM = 3, YF = 4, YG = 7;
@@ -87,6 +87,8 @@ function build(level) {
     { x0: -13, x1: -4, z0: -212, z1: -222, y: YF }, { x0: 4, x1: 13, z0: -212, z1: -222, y: YF },
   ]);
   kuerbisSteine(level, STEINE);
+  teichDeko(level, { x0: TEICH.x0, x1: TEICH.x1, z0: TEICH.z0, z1: TEICH.z1, y: TEICH.surf, n: 12, reeds: 7, seed: 4, avoid: [[(INSEL.x0 + INSEL.x1) / 2, (INSEL.z0 + INSEL.z1) / 2, 3.2], [5.6, -151.7, 1], [12.1, -153.9, 1]] });
+  teichDeko(level, { x0: HOF.x0, x1: HOF.x1, z0: BACH.z0, z1: BACH.z1, y: BACH.surf, n: 9, reeds: 9, seed: 8, avoid: STEINE.map((k) => [k.pos[0], k.pos[2], k.size * 0.6]).concat([[11.5, -39.4, 2.4], [-11.5, -39.4, 2.4]]) });
   // sparsame Kulissen-Kürbisse, Laternen und Mais (eigene Geometrie)
   kuerbisDeko(level, [
     { pos: [3.6, Y0, 9], size: 1.0, face: 'grinsen', shape: 'dick' },
