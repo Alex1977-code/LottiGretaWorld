@@ -511,7 +511,7 @@ function hhHatGeo() {
 const hhShadeGeo = () => cached('hw:hh:shade', () => {
   const b = new Build();
   // dunkler, runder Körper im Hut (nur unten zu sehen) – die Augen leuchten daraus hervor
-  b.sphere(1, { v: (x, y, z, nx) => mix(0x0e0618, HH.shade, smoothstep(nx * 0.5 + 0.5)) }, { p: [0, 0.07, 0], s: [0.22, 0.17, 0.22] }, 26, 16);
+  b.sphere(1, { v: (x, y, z, nx) => mix(0x0e0618, HH.shade, smoothstep(nx * 0.5 + 0.5)) }, { p: [0, 0.02, 0], s: [0.23, 0.15, 0.23] }, 26, 16);
   return b.geometry();
 });
 const hhLegGeo = () => cached('hw:hh:leg', () => {
@@ -523,7 +523,7 @@ const hhLegGeo = () => cached('hw:hh:leg', () => {
   b.sphere(0.022, 0xffd84a, { p: [0.135, -HH_LEG + 0.1, 0] }, 8, 6);
   return b.geometry();
 });
-const HH_EYES = [1, -1].map((s) => ({ p: [0.17, 0.03, s * 0.075], r: 0.072, sy: 1.15, dir: [1, -0.05, s * 0.35] }));
+const HH_EYES = [1, -1].map((s) => ({ p: [0.19, -0.03, s * 0.08], r: 0.08, sy: 1.15, dir: [1, -0.1, s * 0.35] }));
 function buildHexenhut() {
   const root = new THREE.Group();
   const pose = joint();
@@ -559,7 +559,7 @@ function buildHexenhut() {
     squash.position.y = HH_LEG * (1 - sq * 0.85);
     squash.scale.set(sx * (1 + sq * 0.25), sy * (1 - sq * 0.55), sx * (1 + sq * 0.25));
     squash.rotation.z = lean;
-    hatJ.rotation.z = tip * 0.3 + sq * 0.12;
+    hatJ.rotation.z = 0.2 + tip * 0.3 + sq * 0.12;
     hatJ.rotation.x = sq * 0.15 + Math.sin(t * 1.9) * 0.03;
     for (let i = 0; i < 2; i++) {
       const s = i ? -1 : 1;
