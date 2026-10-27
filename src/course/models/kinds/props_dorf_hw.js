@@ -125,7 +125,7 @@ function roofGeo(R) {
       P.setXYZ(i, P.getX(i) * scal - t * t * R * 0.55, y - (t < 0.02 ? Math.max(0, Math.sin(a * 16)) * 0.06 : 0) - t * t * t * R * 0.25, P.getZ(i) * scal);
     }
     g.computeVertexNormals();
-    b.add(g, (x, y, z) => { const row = Math.floor(y / 0.22); const k = hash1(row * 3.1 + Math.floor((Math.atan2(z, x) / TAU + 1) * 18 + (row % 2) * 0.5)); return mix(row % 2 ? 0x4a2a7a : 0x5a3490, k > 0.5 ? 0x8a5ac8 : 0x2e1a52, Math.abs(k - 0.5) * 0.8); });
+    b.add(g, { v: (x, y, z, nx, ny) => { const row = Math.floor(y / 0.24); const f = y / 0.24 - row; return mix(mix(row % 2 ? 0x4a2a7a : 0x5a3490, 0x2e1a52, smoothstep((0.25 - f) / 0.25) * 0.6), 0x8a5ac8, smoothstep(nx * 0.4 + ny * 0.3) * 0.45); } });
     // Unterseite (Traufe) dunkel, damit der offene Kegel von unten geschlossen wirkt
     const cap = new THREE.CircleGeometry(R * 1.32, 32); cap.rotateX(Math.PI / 2);
     b.add(cap, 0x1a1028, { p: [0, 0.02, 0] });
@@ -202,8 +202,10 @@ function houseGeos(Wz, Dx, H, color, door, lean) {
       b.add(tg, (x, y) => mix(plLow, pl, 0.6), { p: [0, H, s * (Wz / 2 - 0.05)] });
     }
     const slope = Math.atan2(rh, Dx / 2), len = Math.hypot(rh, Dx / 2) + 0.35;
-    const shingle = (x, y, z, nx, ny) => { if (ny < 0) return 0x1a1028; const row = Math.floor((y - H) / 0.2 + 50); const k = hash1(row * 2.3 + Math.floor(z / 0.3 + (row % 2) * 0.5)); return mix(row % 2 ? 0x3a2a5a : 0x4a3470, k > 0.5 ? 0x7a5aa8 : 0x24183a, Math.abs(k - 0.5)); };
-    for (const s of [1, -1]) b.box(len, 0.12, Wz + 0.5, shingle, { p: [s * (Dx / 4 + 0.08), H + rh / 2 - 0.02, 0], r: [0, 0, -s * slope] }, 0.04, 2);
+    // Schindeln: Reihen entlang der Dachschräge (lokal x der Dachplatte), je Reihe versetzt, leicht wechselnde Töne
+    const nxS = Math.round(len / 0.24), nzS = Math.round((Wz + 0.5) / 0.32);
+    const shingle = (x, y, z, nx, ny) => { if (ny < 0) return 0x1a1028; const row = Math.floor((x + len / 2) / (len / nxS)); const k = hash1(row * 2.3 + Math.floor((z + (Wz + 0.5) / 2) / ((Wz + 0.5) / nzS)) * 1.7); return mix(row % 2 ? 0x4a3478 : 0x5a4290, k > 0.5 ? 0x8a6ac0 : 0x2e2048, Math.abs(k - 0.5) * 0.6); };
+    for (const s of [1, -1]) b.add(new THREE.BoxGeometry(len, 0.12, Wz + 0.5, nxS, 1, nzS), shingle, { p: [s * (Dx / 4 + 0.08), H + rh / 2 - 0.02, 0], r: [0, 0, -s * slope] });
     b.cyl(0.09, 0.09, Wz + 0.55, { v: (x, y, z, nx, ny) => mix(0x24183a, 0x7a5aa8, smoothstep(ny * 0.5 + 0.5)) }, { p: [0, H + rh + 0.04, 0], r: [Math.PI / 2, 0, 0] }, 10);
     b.add(taperTube([[-Dx * 0.2, H + rh * 0.45, Wz * 0.28], [-Dx * 0.22, H + rh + 0.3, Wz * 0.3], [-Dx * 0.15, H + rh + 0.8, Wz * 0.31]], 0.17, 6, 4), (x, y, z) => (Math.floor(y * 6) % 2 ? 0x8a4a3a : 0xa85a42));
     b.cyl(0.24, 0.22, 0.12, 0x5a3a3a, { p: [-Dx * 0.15, H + rh + 0.86, Wz * 0.31] }, 8);

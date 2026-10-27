@@ -154,7 +154,7 @@ function makeGeisterplattform(count, opts = {}) {
   op.setUsage(THREE.DynamicDrawUsage);
   geo.setAttribute('instOpacity', op);
   const mat = ghostMaterial(color);
-  const body = makeMesh(geo, mat, n, true);
+  const body = makeMesh(geo, mat, n, false);   // halbdurchsichtig: kein Schattenwurf (je Platz nicht abschaltbar)
   body.renderOrder = 2;
   const target = (s) => (s.state === 'hidden' ? 0 : clamp(Number(s.st.visible ?? 1), 0, 1));
   const write = (i, s) => {

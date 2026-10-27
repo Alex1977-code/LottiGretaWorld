@@ -234,6 +234,7 @@ function buildGeisterplattform(opts = {}) {
     const flick = vis < 0.98 ? (Math.sin(t * 23) * 0.5 + 0.5) * 0.12 * (1 - vis) : 0;
     mat.opacity = clamp(0.82 * vis - flick, 0, 1);
     mat.depthWrite = vis > 0.97;
+    body.castShadow = vis > 0.6;      // nur fast feste Plattformen werfen Schatten
     mat.emissive.set(C.glow).multiplyScalar(0.3 + 0.12 * Math.sin(t * 2.4));
     glowM.material.opacity = 0.28 * vis;
     float.position.y = Math.sin(t * 1.6) * 0.015 * vis;
@@ -733,7 +734,7 @@ function buildSpinnennetzTrampolin(opts = {}) {
   const base = webG.attributes.position.array.slice();
   const web = mesh(webG, vcol(0.3, { emissive: 0x2a2a3a }, 'hwweb'), { p: [0, H, 0] });
   // zarte, durchscheinende Netzfläche
-  const fillMat = noToy(ownMat(basic('hwwebfill', { color: 0xffffff, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide })));
+  const fillMat = noToy(ownMat(basic('hwwebfill', { color: 0xf0e8ff, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide })));
   own.push(fillMat);
   const fillG = new THREE.CircleGeometry(R, 30); fillG.rotateX(-Math.PI / 2); own.push(fillG);
   const fbase = fillG.attributes.position.array.slice();

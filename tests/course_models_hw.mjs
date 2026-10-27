@@ -396,7 +396,7 @@ if (part('checks')) {
   });
   console.log('  Eigenschaften:', JSON.stringify(props));
   if (props.kuerbling) check('Kürbling ≈0,6–0,9 m, Füße am Boden; squashed flach (mit Sternen < 0,55 m); burst → weg', props.kuerbling[0] > 0.6 && props.kuerbling[0] < 0.95 && props.kuerbling[1] > -0.05 && props.kuerbling[2] < 0.55 && props.kuerbling[3]);
-  if (props.knochen) check('Klapperknochen ≈1,1–1,4 m (großer Schädel); pile niedrig (Schädel obenauf, mit Sternen < 0,9 m); rebuild 1 = wieder ganz', props.knochen[0] > 1.05 && props.knochen[0] < 1.4 && props.knochen[1] > -0.05 && props.knochen[2] < 0.9 && Math.abs(props.knochen[3] - props.knochen[0]) < 0.12);
+  if (props.knochen) check('Klapperknochen ≈1,0–1,25 m (großer Schädel); pile niedrig (Schädel obenauf, mit Sternen < 0,8 m); rebuild 1 = wieder ganz', props.knochen[0] > 1.0 && props.knochen[0] < 1.25 && props.knochen[1] > -0.05 && props.knochen[2] < 0.8 && Math.abs(props.knochen[3] - props.knochen[0]) < 0.12);
   if (props.fledi) check('Flatterfledi: Spannweite 0,8–1,3 m, fliegt über dem Ursprung, hängt darunter', props.fledi[0] > 0.8 && props.fledi[0] < 1.3 && props.fledi[1] > -0.1 && props.fledi[2] < 0.15 && props.fledi[3] < -0.4);
   if (props.hut) check('Hexenhut-Hüpfer ≈0,8–1,1 m; squashed niedrig', props.hut[0] > 0.8 && props.hut[0] < 1.15 && props.hut[1] > -0.05 && props.hut[2] < 0.55);
   if (props.graf) check('Graf Brummbär 2,8–3,6 m (mit Zylinder); bats 1 → verwandelt (weg); hand() liefert Wurf-Tatze', props.graf[0] > 2.8 && props.graf[0] < 3.6 && props.graf[1] > -0.05 && props.graf[2] && props.graf[3][2] && props.graf[3][1] > 1);
@@ -490,6 +490,7 @@ if (part('views')) {
     ['kuerbling', {}, 'idle', 0.4, 2.0], ['klapperknochen', {}, 'walk', 0.6, 2.6], ['flatterfledi', {}, 'fly', 1.15, 2.2],
     ['hexenhut_huepfer', {}, 'idle', 0.5, 2.3], ['graf_brummbaer', {}, 'idle', 2.2, 5.5], ['kuerbis_bombe', {}, { anim: 'lit', fuse: 0.6 }, 0.35, 1.9],
     ['spuk_halloween', {}, 'idle', 0.85, 2.4], ['kreisgeist_halloween', {}, 'peek', 0.5, 2.0], ['graf_brummbaer', {}, { anim: 'throw', progress: 0.3 }, 2.0, 6],
+    ['spinnennetz_trampolin', {}, { bounce: 1 }, 0.4, 3.6], ['geisterplattform', { size: [2, 0.5, 2] }, { visible: 1, wake: true }, 0.4, 3.8], ['hexenhut_huepfer', {}, 'squashed', 0.3, 2.2],
   ];
   for (let i = 0; i < PORTRAITS.length; i += 3) {
     const nm = `portrait_${i / 3 + 1}`;
@@ -613,8 +614,8 @@ if (part('views')) {
       const pk = mk('kuerbis', 16, {}), pkf = mk('kuerbis', 8, { face: 'lachen', lit: true }), gr = mk('grabstein', 10, {}), gp = mk('geisterplattform', 6, { size: [2, 0.4, 2] });
       const sw = mk('suessigkeit', 12, { kind: 'bonbon' }), ms = mk('maisstaude', 14, {});
       if (pk) for (let i = 0; i < 16; i++) pk.setAt(i, p.set(-11 + (i % 8) * 1.2 + Math.sin(i) * 0.3, 0, 1 + Math.floor(i / 8) * 1.3), i * 0.7, 0.6 + (i % 3) * 0.25, 'idle');
-      if (pkf) for (let i = 0; i < 8; i++) pkf.setAt(i, p.set(-1 + i * 1.3, 0, 2.5), Math.PI / 2 - 0.3, 0.9, 'idle');
-      if (gr) for (let i = 0; i < 10; i++) gr.setAt(i, p.set(-9 + i * 1.5, 0, -3 - (i % 2) * 0.8), Math.PI / 2 - 0.2 + (i % 3) * 0.15, 1, 'idle');
+      if (pkf) for (let i = 0; i < 8; i++) pkf.setAt(i, p.set(-1 + i * 1.3, 0, 2.5), -Math.PI / 2 + 0.3, 0.9, 'idle');
+      if (gr) for (let i = 0; i < 10; i++) gr.setAt(i, p.set(-9 + i * 1.5, 0, -3 - (i % 2) * 0.8), -Math.PI / 2 - 0.2 + (i % 3) * 0.15, 1, 'idle');
       if (gp) for (let i = 0; i < 6; i++) gp.setAt(i, p.set(-6 + i * 2.4, 1 + i * 0.3, -6.5), 0, 1, { visible: i / 5 });
       if (sw) for (let i = 0; i < 12; i++) sw.setAt(i, p.set(-5 + i * 0.8, 0, 0), 0, 1, 'idle');
       if (ms) for (let i = 0; i < 14; i++) ms.setAt(i, p.set(5 + (i % 7) * 0.9, 0, -1 - Math.floor(i / 7) * 1.1), i, 1, 'idle');

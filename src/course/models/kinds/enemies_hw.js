@@ -13,7 +13,7 @@
 //         squashed: platt gedrückt, Augen zu, Schwindelsterne;
 //         burst: zerplatzt in Schalenstücke und Kerne (Münzen erzeugt der Motor), danach unsichtbar.
 //   root.userData.bodyY → Höhe der Körpermitte über dem Ursprung (Trefferzone Radius ≈0,36 m).
-// klapperknochen     ≈1,1 m  Klapperknochen: niedliches Skelett mit großem runden Schädel (Glanzaugen in den Augenhöhlen,
+// klapperknochen     ≈1,15 m  Klapperknochen: niedliches Skelett mit großem runden Schädel (Glanzaugen in den Augenhöhlen,
 //   Herznase, breites Grinsen mit Blockzähnen), Rippenbögen, Wirbel, lila-oranges Halstuch, Knubbelgelenke, Stiefelchen.
 //   state { anim: 'walk'|'idle'|'collapse'|'pile'|'rebuild'|'defeated', speed (m/s; walk Standard 1,2),
 //           progress? (collapse 0..1 in 0,5 s; rebuild 0..1 in 0,8 s; defeated 0..1 in 0,9 s) }
@@ -226,6 +226,7 @@ const KK = { bone: HW.bone, hi: HW.boneHi, low: HW.boneLow, shade: HW.boneShade,
 const boneV = { v: (x, y, z, nx, ny) => mix(KK.low, KK.bone, smoothstep(ny * 0.5 + 0.62)) };
 const SKULL_C = [0.02, 0.0, 0], SKULL_R = [0.25, 0.23, 0.26];
 const KK_SKULL_Y = 1.0;
+const KK_SCALE = 0.88;
 /** Knochenstab mit Doppelknubbeln an beiden Enden (Achse −Y ab Ursprung, Länge len). */
 function addBone(b, len, r = 0.034, y0 = 0) {
   b.capsule(r, len, boneV, { p: [0, y0 - len / 2, 0] }, 2, 8);
@@ -336,7 +337,10 @@ function buildKlapperknochen() {
   const puffs = new Puffs(6, 0xe8dcf8, { opacity: 0.85, radius: 2, cy: 0.3 });
   own.push(puffs);
   const dizzy = dizzyStars(0.24, 0.06);
-  root.add(skull, torso, pelvis, armL, armR, legL, legR, puffs.mesh, dizzy);
+  // etwas kleiner als die Heldin (≈1,15 m mit großem Schädel)
+  const scaleJ = joint(); scaleJ.scale.setScalar(KK_SCALE);
+  scaleJ.add(skull, torso, pelvis, armL, armR, legL, legR, puffs.mesh, dizzy);
+  root.add(scaleJ);
   const clk = new Clock(), blink = new Blinker();
   const stand = {}, pile = {}, qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), pa = new THREE.Vector3();
   for (const k of KK_PARTS) { stand[k] = { p: new THREE.Vector3(), q: new THREE.Quaternion() }; pile[k] = { p: new THREE.Vector3(...PILE[k][0]), q: new THREE.Quaternion().setFromEuler(new THREE.Euler(...PILE[k][1])) }; }
@@ -393,7 +397,7 @@ function buildKlapperknochen() {
     eye.visible = shrink > 0.05;
     dizzy.visible = anim === 'pile' || (anim === 'rebuild' && k > 0.9);
     if (dizzy.visible) { dizzy.position.set(skull.position.x, skull.position.y + 0.32, skull.position.z); dizzy.rotation.y = t * 4; }
-    root.userData.headY = skull.position.y;
+    root.userData.headY = skull.position.y * KK_SCALE;
   };
   return makeModel('klapperknochen', root, update, own, { initial: 'walk' });
 }
@@ -448,8 +452,10 @@ function buildFlatterfledi() {
   const wingGeo = batWingGeo(0.44, FF.fur, FF.furLow);
   const wingMat = vcol(0.45, { side: THREE.DoubleSide }, 'hwwing');
   // rechter Flügel (−Z): Spannweite entlang −Z; linker gespiegelt
-  const wR = joint([-0.02, 0.03, -0.12], mesh(wingGeo, wingMat, { r: [0, Math.PI / 2, 0] }, true));
-  const wL = joint([-0.02, 0.03, 0.12], mesh(wingGeo, wingMat, { r: [0, Math.PI / 2, 0] }, true));
+  // Flügelfläche um die Spannweiten-Achse nach oben gekippt (von der Kurs-Kamera schräg oben gut zu sehen)
+  const wingMesh = () => { const m = mesh(wingGeo, wingMat, {}, true); m.rotation.set(0, Math.PI / 2, 0.65, 'ZYX'); return m; };
+  const wR = joint([-0.02, 0.03, -0.12], wingMesh());
+  const wL = joint([-0.02, 0.03, 0.12], wingMesh());
   wR.rotation.order = wL.rotation.order = 'YXZ';
   wL.scale.z = -1;
   body.add(bodyM, eye, wR, wL);
@@ -469,9 +475,11 @@ function buildFlatterfledi() {
     const flap = Math.sin(ph);
     // Flügel: Schlag um die Vorwärtsachse (X), beim Sturzflug nach hinten angelegt, beim Hängen eingewickelt
     const up = flap * 0.75 * (1 - dive) * (1 - hang);
-    const wrap = hang * 1.35, back = dive * 1.1;
-    wR.rotation.set(up + dive * 0.35 - hang * 0.2, back - wrap, 0);
-    wL.rotation.set(-(up + dive * 0.35 - hang * 0.2), -back + wrap, 0);
+    const wrap = hang * 1.25, back = dive * 1.25;
+    wR.rotation.set(up - dive * 0.5 - hang * 0.5, back - wrap, 0);
+    wL.rotation.set(-(up - dive * 0.5 - hang * 0.5), -back + wrap, 0);
+    const ws = 1 - hang * 0.4 - dive * 0.15;
+    wR.scale.set(ws, ws, ws); wL.scale.set(ws, ws, -ws);
     // Körper: wippt im Flügeltakt; Sturzflug Nase nach unten; Hängen kopfüber unter dem Ursprung
     const bob = (1 - hang) * (-flap * 0.04 + Math.sin(t * 2.1) * 0.02);
     pose.position.y = FF_CY * (1 - hang) - hang * (FF_R + 0.13) + bob * (1 - dive);

@@ -12,7 +12,7 @@
 //                  davor) }  state –   Viele → createInstanced('grabstein', n, { kind }).
 // eisenzaun        schmiedeeiserner Zaun entlang X (Mitte im Ursprung): Pfosten mit Kürbis-Knäufen, Stäbe mit Speerspitzen,
 //                  Kringel zwischen den Querstangen.  opts { length (4), height (1,2) }  state –
-// gruft            kleine Gruft (≈3,2 × 3 × 3,6 m): Stufen, Säulen, Giebel mit Fledermaus-Rosette, Kuppeldach mit Kürbis,
+// gruft            kleine Gruft (≈3,6 × 3 × 4,3 m): Stufen, Säulen, Giebel mit Fledermaus-Rosette, Zeltdach mit Kürbis,
 //                  lila Tür mit zwei leuchtenden Bullaugen (Gesicht) und Laternen.  opts { size (Faktor, 1) }
 //                  state { lit (bool, Standard true) }
 // spinnennetz      Spinnennetz mit kleiner Spinne.  opts { kind: 'ecke' (Eck-Netz in der YZ-Ebene, **Ursprung = Ecke oben**,
@@ -206,11 +206,13 @@ function gruftGeos() {
     bat.moveTo(0, 0.25); bat.quadraticCurveTo(0.35, 0.55, 1, 0.35); bat.quadraticCurveTo(0.8, 0.1, 0.75, -0.1); bat.quadraticCurveTo(0.6, 0.05, 0.45, -0.15); bat.quadraticCurveTo(0.3, 0.0, 0, -0.25);
     bat.quadraticCurveTo(-0.3, 0.0, -0.45, -0.15); bat.quadraticCurveTo(-0.6, 0.05, -0.75, -0.1); bat.quadraticCurveTo(-0.8, 0.1, -1, 0.35); bat.quadraticCurveTo(-0.35, 0.55, 0, 0.25);
     b.add(puffyGeo(bat, 0.15, 0.08, 6, 2), 0x2a2038, { p: [1.57, 3.0, 0], r: [0, Math.PI / 2, 0], s: 0.18 });
-    // Kuppeldach mit Kürbis obendrauf
-    b.dome(1.55, { v: (x, y, z, nx, ny) => mix(0x3a2e58, 0x8a7ab8, smoothstep(ny * 0.6 + nx * 0.2) * (0.7 + (Math.floor(Math.atan2(z, x) / TAU * 16 + 16) % 2) * 0.3)) }, { p: [-0.1, 2.5, 0], s: [1, 0.6, 1] }, 32, 10);
-    b.torus(1.5, 0.08, STONEV, { p: [-0.1, 2.52, 0], r: [Math.PI / 2, 0, 0] }, 6, 40);
-    b.parts.push(pumpkinGeo({ R: 0.28, Hh: 0.22, ribs: 8, depth: 0.12, dimple: 0.2, bottom: 0.9 }, PK_COLORS.orange, true).translate(-0.1, 3.62, 0));
-    b.cyl(0.04, 0.05, 0.14, HW.stemLow, { p: [-0.1, 3.86, 0] }, 6);
+    // Gesims und Zeltdach (vier Seiten, Schieferreihen) mit Kürbis obendrauf
+    b.box(2.9, 0.2, 2.9, STONEV, { p: [0, 2.6, 0] }, 0.06, 1);
+    const roof = new THREE.ConeGeometry(2.0, 1.15, 4, 5, true);
+    roof.rotateY(Math.PI / 4);
+    b.add(roof, (x, y, z, nx, ny) => { const row = Math.floor((y + 0.6) / 0.19); return mix(row % 2 ? 0x3a2e58 : 0x4a3a70, 0x8a7ab8, smoothstep(nx * 0.3 + ny * 0.4) * 0.6); }, { p: [0, 3.27, 0] });
+    b.parts.push(pumpkinGeo({ R: 0.28, Hh: 0.22, ribs: 8, depth: 0.12, dimple: 0.2, bottom: 0.9 }, PK_COLORS.orange, true).translate(0, 3.98, 0));
+    b.cyl(0.04, 0.05, 0.14, HW.stemLow, { p: [0, 4.22, 0] }, 6);
     // Tür (lila Bohlen, Eisenbänder) mit zwei Bullaugen-Fenstern (leuchten) und einem Lächeln aus Eisen
     const door = new THREE.Shape(); door.moveTo(-0.55, 0); door.lineTo(0.55, 0); door.lineTo(0.55, 1.15); door.absarc(0, 1.15, 0.55, 0, Math.PI, false); door.lineTo(-0.55, 0);
     const dg = new THREE.ExtrudeGeometry(door, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1, curveSegments: 14 });

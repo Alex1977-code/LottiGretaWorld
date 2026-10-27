@@ -79,7 +79,7 @@ function buildKuerbis(opts = {}) {
     const gm = noToy(ownMat(glow()));
     own.push(gm);
     glowM = mesh(G.glow, gm);
-    halo = glowSprite(0xffa030, 1.5, 0.45); halo.position.set(0.45, G.h * 0.45, 0);
+    halo = glowSprite(0xffa030, 1.1, 0.32); halo.position.set(0.45, G.h * 0.45, 0);
     s.add(glowM, halo);
   }
   root.add(s);
@@ -90,7 +90,7 @@ function buildKuerbis(opts = {}) {
     const f = st.flicker ?? 1, t = clk.t;
     const k = 0.9 + (Math.sin(t * 9.1) * 0.05 + Math.sin(t * 14.7) * 0.05) * f;
     glowM.material.color.setScalar(k);
-    halo.scale.setScalar(1.4 + (k - 0.9) * 2);
+    halo.scale.setScalar(1.05 + (k - 0.9) * 2);
   };
   return makeModel('kuerbis', kulisse(root), update, own);
 }
@@ -257,7 +257,8 @@ function baleGeo(kind) {
     const b = new Build();
     if (kind === 'rund') {
       // Rolle: Achse z, Spirale auf den Stirnseiten
-      b.cyl(0.6, 0.6, 1.0, (x, y, z, nx, ny) => (Math.abs(ny) > 0.6 ? strawStripe(Math.hypot(x, z) * 3 + Math.atan2(z, x) * 0.08) : strawStripe(Math.atan2(z, x) * 2 + y * 0.3)), { p: [0, 0.6, 0], r: [Math.PI / 2, 0, 0] }, 32);
+      // Mantel: gewickelte Halme (Streifen quer zur Achse), Stirnseiten: Spirale
+      b.add(new THREE.CylinderGeometry(0.6, 0.6, 1.0, 32, 14), (x, y, z, nx, ny) => (Math.abs(ny) > 0.6 ? strawStripe(Math.hypot(x, z) * 3.2 + Math.atan2(z, x) * 0.16) : strawStripe(y * 2.2 + Math.sin(Math.atan2(z, x) * 5) * 0.06)), { p: [0, 0.6, 0], r: [Math.PI / 2, 0, 0] });
       for (const s of [1, -1]) b.torus(0.6, 0.035, (x, y, z) => strawStripe(x * 9 + y * 7), { p: [0, 0.6, s * 0.5], r: [0, 0, 0] }, 6, 32);
       for (const z of [-0.25, 0.25]) b.torus(0.605, 0.012, 0xc85a1a, { p: [0, 0.6, z] }, 4, 32);
       return b.geometry();
@@ -285,20 +286,20 @@ function buildStrohballen(opts = {}) {
 export function maisGeo(count = 4, height = 2, lo = false) {
   return cached(`hw:mais:${count}:${height}:${lo}`, () => {
     const b = new Build();
-    const stalkV = (seed) => ({ v: (x, y) => mix(0x6a8a2a, mix(0xb8b84a, HW.straw, hash1(seed) * 0.6), smoothstep(y / height)) });
-    const leafV = (seed) => ({ v: (x, y, z, nx, ny) => mix(mix(0x5a8a2a, 0xc8c050, hash1(seed * 3.1)), HW.strawHi, smoothstep(y / height - 0.3) * 0.5) });
+    const stalkV = (seed) => ({ v: (x, y) => mix(0x5a9a2a, mix(0xb8c04a, HW.straw, hash1(seed) * 0.6), smoothstep(y / height)) });
+    const leafV = (seed) => ({ v: (x, y, z, nx, ny) => mix(mix(0x4a9a2a, 0xc8c050, hash1(seed * 3.1) * 0.8), HW.strawHi, smoothstep(y / height - 0.4) * 0.45) });
     for (let i = 0; i < count; i++) {
       const a = (i / count) * TAU + hash1(i) * 0.8, r = count > 1 ? 0.18 + hash1(i * 2) * 0.12 : 0;
       const x0 = Math.cos(a) * r, z0 = Math.sin(a) * r;
       const h = height * (0.8 + hash1(i * 4.3) * 0.3);
       const lean = (hash1(i * 6.1) - 0.5) * 0.25;
-      b.add(taperTube([[x0, 0, z0], [x0 + lean * 0.3, h * 0.5, z0], [x0 + lean, h, z0 + lean * 0.3]], (t) => 0.035 - t * 0.022, lo ? 5 : 8, lo ? 4 : 6), stalkV(i));
+      b.add(taperTube([[x0, 0, z0], [x0 + lean * 0.3, h * 0.5, z0], [x0 + lean, h, z0 + lean * 0.3]], (t) => 0.05 - t * 0.032, lo ? 5 : 8, lo ? 4 : 6), stalkV(i));
       // Blätter: lange, gebogene Bänder (zweiseitig)
       const nl = lo ? 3 : 5;
       for (let k = 0; k < nl; k++) {
         const y0 = h * (0.18 + k * 0.15), ang = a + k * 2.2 + hash1(i * 9 + k) * 0.6;
-        const len = 0.55 + hash1(i + k * 1.7) * 0.35;
-        const g = new THREE.PlaneGeometry(len, 0.09, lo ? 4 : 8, 1);
+        const len = 0.7 + hash1(i + k * 1.7) * 0.4;
+        const g = new THREE.PlaneGeometry(len, 0.2, lo ? 4 : 8, 1);
         g.translate(len / 2, 0, 0);
         const P = g.attributes.position;
         for (let j = 0; j < P.count; j++) { const x = P.getX(j), t = x / len; P.setY(j, P.getY(j) * (1 - t * 0.8) + Math.sin(t * Math.PI * 0.9) * len * 0.35 - t * t * len * 0.5); P.setZ(j, P.getY(j) * 0.2); }
@@ -309,7 +310,7 @@ export function maisGeo(count = 4, height = 2, lo = false) {
       // Kolben mit Hüllblättern (bei jedem zweiten Stängel), Rispe oben
       if (i % 2 === 0) {
         const yy = h * 0.55;
-        b.sphere(1, { v: (x, y, z) => (Math.sin(y * 120) > 0 ? 0xffd23a : 0xffb81a) }, { p: [x0 + Math.cos(a) * 0.07, yy, z0 + Math.sin(a) * 0.07], s: [0.045, 0.12, 0.045], r: [Math.sin(a) * 0.4, 0, -Math.cos(a) * 0.4] }, lo ? 8 : 10, lo ? 6 : 8);
+        b.sphere(1, { v: (x, y, z) => (Math.sin(y * 90) > 0 ? 0xffd23a : 0xffb81a) }, { p: [x0 + Math.cos(a) * 0.08, yy, z0 + Math.sin(a) * 0.08], s: [0.06, 0.15, 0.06], r: [Math.sin(a) * 0.4, 0, -Math.cos(a) * 0.4] }, lo ? 8 : 10, lo ? 6 : 8);
         b.sphere(1, 0x8ab84a, { p: [x0 + Math.cos(a) * 0.05, yy - 0.06, z0 + Math.sin(a) * 0.05], s: [0.05, 0.1, 0.03], r: [Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5] }, lo ? 6 : 8, lo ? 4 : 6);
       }
       for (let k = 0; k < (lo ? 2 : 4); k++) b.cone(0.012, 0.22, HW.straw, { p: [x0 + lean, h + 0.08, z0 + lean * 0.3], r: [Math.sin(k * 1.6) * 0.5, 0, Math.cos(k * 1.6) * 0.5] }, 4);
