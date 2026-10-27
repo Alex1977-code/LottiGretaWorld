@@ -678,7 +678,10 @@ for (const id of LEVELS) {
   for (const hero of ONLY || !PARTS.has('route') || !R.main.length ? [] : HEROES) {
     await load(id);
     await W('place', R.start, { hero, settle: 2 });
-    // Verkleidung (Präzisierung Figuren Halloween): Szene und Avatar tragen 'halloween' – sobald der Motor sie kennt
+    // Verkleidung (Präzisierung Figuren Halloween): Szene und Avatar tragen 'halloween' – sobald der Motor sie kennt (erst ein
+    // paar Bilder zeichnen: der Avatar zieht sein Zubehör beim Zeichnen an, auch nach dem Figurwechsel)
+    const fr0 = await sc(() => window.__course.view.frame);
+    await page.waitForFunction((f) => window.__course.view.frame >= f + 3, fr0, { timeout: 90000 });
     const look = await sc(() => { const c = window.__course; return { has: 'outfit' in c, scene: c.outfit ?? null, avatar: c.rig?.avatar?.outfit ?? null, hero: c.player.hero }; });
     const res = await W('drive', R.main, {});
     const reached = res.status === 'goal' || res.status === 'done';
