@@ -24,12 +24,14 @@
 //                                     Etage, Zielmast.
 //   Kugel-Rätselraum (abseits, x ≈ 70): Konditorei-Backbrett mit Zuckerwürfel-Mauer, Kugel und P-Feld.
 // Sterne (Index): 0 blaue Ecke von Feld 2, 1 Kugel-Rätsel, 2 Sternring. Stempel: oben über dem 2er-Lift.
-// Extraleben: im Kugel-Raum (Münzblock auf der Mauer) und versteckter Block über dem Übungsfeld.
+// Extraleben: im Kugel-Raum (Ziegel über der Lücke neben der Zuckerwürfel-Mauer) und versteckter Block über der
+// Startplatte.
 // Gegner: Feuerring 4, Schnappblume 3, Pilzling 7.
 
 import {
   isl, line, ring, arc, sign, creamRims, icingDrips, sprinkles, candles, berries, cookies, candyCanes, sugarCubes, lollipops,
   cakeTowers, candyFence, creamClouds, sparkleField, flipperNoShadow, icingSplats, chocoDrops, rampSprinkles, CAKE,
+  glazeTops, floatingSweets,
 } from './_helpers_c.js';
 
 const Y0 = 1;      // Start, Felder
@@ -53,6 +55,30 @@ const WP3 = [
 const plat = (list, w = 2.8, d = 2.4) => list.map(([x, y, z, color]) => ({ pos: [x, y, z], size: [w, d], color }));
 
 function build(level) {
+  // ---------------------------------------------------------------- Glasur-Kacheln: jede Tortenplatte eine Sorte
+  glazeTops(level, [
+    [-6.4, 6.4, 8.4, -3.4, Y0, CAKE.rosa, 0xfff0f6],                    // Start: Erdbeer-Vanille
+    [-6.4, 6.4, -10.4, -13.6, Y0, CAKE.minze, 0xe6fff4, 1.6],           // Rastplatte 1: Minze
+    [-5.4, 5.4, -26.8, -31.6, Y0, CAKE.himmel, 0xeefaff, 1.6],          // Rastplatte 2: Blaubeer
+    [-6.4, 6.4, -46.4, -53.6, Y0, 0xffe680, 0xfff8d8, 1.8],             // ?-Insel: Zitrone
+    [-5.4, 5.4, -77, -79.6, Y1, CAKE.lila, 0xf2eaff, 1.3],              // Hangfuß: Lavendel
+    [-7.4, 7.4, -108.4, -119.6, Y2, 0xf4c070, 0xffeccc],                // Checkpoint: Karamell
+    [-7.4, 7.4, -120.4, -159.6, Y2, 0xff8ac0, 0xfff4f8],                // Feuerring-Platz: Erdbeer
+    [-3.8, 3.8, -175.4, -182.2, Y3, CAKE.minze, 0xe6fff4, 1.5],         // Sternring-Torte: Minze
+    [-7.4, 7.4, -194.8, -213.6, Y4, CAKE.lila, 0xf2eaff],               // Zieltorte: Lavendel
+    [2.9, 7.1, -206.7, -210.3, Y4 + 6.5, 0xffe680, 0xfff8d8, 1.4],      // Stempel-Etage: Zitrone
+    [XR - 7.4, XR + 7.4, -108.4, -127.6, Y2, CAKE.himmel, 0xeefaff],    // Kugel-Raum: Blaubeer
+  ]);
+  // Kulisse: schwebende Macarons und Donuts links und rechts der Strecke (unter den Platten, ohne Schatten)
+  floatingSweets(level, [
+    [-12.5, Y0 - 3, -8, 2.6, 'macaron', CAKE.minze], [13.5, Y0 - 4, -24, 3, 'macaron', CAKE.lila, 0.4],
+    [-13, Y0 - 2.5, -40, 2.4, 'donut', 0xff7ab8, 0.5], [12.5, Y0 - 3, -60, 2.8, 'macaron', CAKE.zitrone],
+    [-12.5, Y1 - 4, -86, 3, 'donut', 0x9ad8ff, -0.4], [13, Y1 - 3, -100, 2.6, 'macaron', 0xff9ad0],
+    [-14, Y2 - 4, -132, 3, 'macaron', CAKE.himmel], [14.5, Y2 - 5, -150, 3.2, 'donut', 0xffe070, 0.3],
+    [-12.5, Y2 - 3, -168, 2.6, 'macaron', CAKE.lila], [12, Y3 - 4, -184, 2.4, 'macaron', CAKE.minze],
+    [-13.5, Y4 - 4, -204, 3, 'donut', 0xff7ab8, -0.3], [14, Y4 - 5, -216, 2.8, 'macaron', CAKE.zitrone],
+    [XR + 13, Y2 - 4, -114, 2.8, 'macaron', 0xff9ad0], [XR - 13, Y2 - 3, -124, 2.6, 'donut', 0x9af0c8],
+  ]);
   // ---------------------------------------------------------------- Sahne, Glasur, Streusel an den Tortenplatten
   creamRims(level, [
     [-7, 7, 9, -4, Y0, 0.9, CAKE.sahne], [-7, 7, -10, -14, Y0, 0.9, CAKE.sahne, '+z,-z'], [-6, 6, -26.4, -32, Y0, 0.9, CAKE.sahne, '+z,-z'],

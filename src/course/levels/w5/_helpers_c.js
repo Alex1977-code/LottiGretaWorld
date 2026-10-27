@@ -526,8 +526,8 @@ export function icingSplats(level, list) {
     const P = g.attributes.position;
     for (let k = 1; k < P.count; k++) { const a = Math.atan2(P.getY(k), P.getX(k)); const kk = 0.8 + 0.2 * Math.sin(a * 5 + i) + 0.1 * Math.sin(a * 9 + i * 2); P.setXY(k, P.getX(k) * kk, P.getY(k) * kk); }
     g.rotateX(-Math.PI / 2);
-    b.add(g, { v: (px, py, pz) => (Math.hypot(px, pz) > r * 0.6 ? mixHex(col, 0xffffff, 0.12) : col) }, { p: [x, y + 0.02 + i * 0.0007, z] });
-    b.sphere(r * 0.18, mixHex(col, 0xffffff, 0.5), { p: [x - r * 0.3, y + 0.03, z - r * 0.2], s: [1, 0.25, 1] }, 8, 3);
+    b.add(g, { v: (px, py, pz) => (Math.hypot(px, pz) > r * 0.6 ? mixHex(col, 0xffffff, 0.12) : col) }, { p: [x, y + 0.03 + i * 0.0007, z] });
+    b.sphere(r * 0.18, mixHex(col, 0xffffff, 0.5), { p: [x - r * 0.3, y + 0.04, z - r * 0.2], s: [1, 0.25, 1] }, 8, 3);
   });
   bake(level, b, { castShadow: false });
 }
@@ -940,6 +940,62 @@ export function flipperNoShadow(level) {
     for (const m of g.children) m.castShadow = false;
     done = true;
   });
+}
+
+/**
+ * Glasur-Kacheln auf einer Tortenplatte (flache Vierecke knapp über der Oberseite, Fugen = Platten-Rosa):
+ * [x0, x1, zA, zB, y, colA, colB, cell = 2]. Jede Kachel bekommt einen helleren Glanzstreifen oben links.
+ */
+export function glazeTops(level, list) {
+  const b = new Build();
+  for (const [x0, x1, za, zb, y, colA, colB, cell = 2] of list) {
+    const z0 = Math.min(za, zb), z1 = Math.max(za, zb);
+    const nx = Math.max(1, Math.round((x1 - x0) / cell)), nz = Math.max(1, Math.round((z1 - z0) / cell));
+    const cw = (x1 - x0) / nx, cd = (z1 - z0) / nz, gap = 0.07;
+    for (let i = 0; i < nx; i++) {
+      for (let k = 0; k < nz; k++) {
+        const base = (i + k) % 2 ? colB : colA;
+        const col = mixHex(base, 0xffffff, hash(i, k, x0) * 0.08);
+        const hi = mixHex(col, 0xffffff, 0.35);
+        const w = cw - gap * 2, d = cd - gap * 2;
+        const g = new THREE.PlaneGeometry(w, d, 2, 2);
+        g.rotateX(-Math.PI / 2);
+        b.add(g, { v: (px, py, pz) => (px < -w * 0.2 && pz < -d * 0.2 ? hi : col) }, { p: [x0 + (i + 0.5) * cw, y + 0.012, z0 + (k + 0.5) * cd] });
+      }
+    }
+  }
+  bake(level, b, { castShadow: false });
+}
+
+/**
+ * Schwebende Naschereien als Kulisse (kein Schatten): [x, y, z, size, type ('macaron' | 'donut'), color, yaw].
+ * Macaron: zwei gewölbte Schalen mit Füßchen und Cremefüllung; Donut: Ring mit Glasur und Streuseln.
+ */
+export function floatingSweets(level, list) {
+  const b = new Build();
+  list.forEach(([x, y, z, s = 2, type = 'macaron', col = 0xff9ad0, yaw = 0], i) => {
+    if (type === 'donut') {
+      // Ring liegt fast flach (lokale +z zeigt nach oben, leicht zur Kamera gekippt); Glasur auf der Oberseite
+      const eu = new THREE.Euler(-(Math.PI / 2 - 0.35), yaw, 0, 'YXZ');
+      b.torus(s * 0.62, s * 0.34, { v: (px, py, pz) => (pz > s * 0.06 ? col : 0xe8a860) }, { p: [x, y, z], r: [eu.x, eu.y, 0], order: 'YXZ' }, 8, 18);
+      const v = new THREE.Vector3();
+      for (let k = 0; k < 14; k++) {
+        const a = k * 0.45 + i, r = s * (0.46 + hash(k, i) * 0.32);
+        v.set(Math.cos(a) * r, Math.sin(a) * r, s * 0.33).applyEuler(eu);
+        b.capsule(0.035 * s, 0.12 * s, SPRINKLE[(k + i) % SPRINKLE.length], { p: [x + v.x, y + v.y, z + v.z], r: [Math.PI / 2, a * 2.3, 0], order: 'YXZ' }, 1, 4);
+      }
+      return;
+    }
+    const shell = { v: (px, py, pz, nx, ny) => mixHex(col, 0xffffff, 0.1 + Math.max(0, ny) * 0.25) };
+    const prof = [[0, 0], [s * 0.5, 0.0], [s * 0.52, s * 0.08], [s * 0.46, s * 0.18], [s * 0.3, s * 0.27], [0, s * 0.3]];
+    b.lathe(prof, shell, { p: [x, y + s * 0.1, z] }, 14);
+    b.lathe(prof, shell, { p: [x, y - s * 0.1, z], r: [Math.PI, 0, 0] }, 14);
+    b.cyl(s * 0.47, s * 0.47, s * 0.16, 0xfff6f0, { p: [x, y, z] }, 14);
+    // Füßchen (rauer Rand)
+    b.torus(s * 0.5, s * 0.035, mixHex(col, 0x000000, 0.08), { p: [x, y + s * 0.1, z], r: [Math.PI / 2, 0, 0] }, 4, 14);
+    b.torus(s * 0.5, s * 0.035, mixHex(col, 0x000000, 0.08), { p: [x, y - s * 0.1, z], r: [Math.PI / 2, 0, 0] }, 4, 14);
+  });
+  bake(level, b, { castShadow: false });
 }
 
 /** Schwebende Sahnewolken (Kulisse, kein Schatten): [x, y, z, size]. */
