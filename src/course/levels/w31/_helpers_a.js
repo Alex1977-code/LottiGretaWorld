@@ -750,6 +750,25 @@ export function kruemelLaterne(level, o) {
 }
 
 /**
+ * Kein Sonnenschatten für Entitäten der Arten kinds (z. B. rollende Riesenkürbisse: ihr Modell ist teuer, der Schatten-Blob
+ * unter ihnen bleibt). Prüft neue Entitäten alle 0,25 s.
+ */
+export function ohneSonnenschatten(level, kinds) {
+  if (!level.view) return;
+  const set = new Set(kinds), done = new WeakSet();
+  let t = 0;
+  const apply = () => {
+    for (const e of level.entities) {
+      if (!set.has(e.kind) || !e.model || done.has(e)) continue;
+      done.add(e);
+      e.model.root.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+    }
+  };
+  apply();
+  level.onStep((dt) => { t += dt; if (t > 0.25) { t = 0; apply(); } });
+}
+
+/**
  * Laternenpfad: Laternen auf krummen Holzpfählen gehen nacheinander an, sobald eine Figur näher als r m kommt, und bleiben
  * an (warmer Pfad durchs Feld; Klang 'laterne'). Sparsam gezeichnet: Pfähle und Laternengehäuse statisch, alle Gläser eine
  * Instanz-Gruppe (dunkel → leuchtend), alle Scheine ein Punkt-Mesh; jede brennende Laterne wird Lichtquelle des Themas

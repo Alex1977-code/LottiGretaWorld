@@ -21,7 +21,7 @@
 import {
   isl, line, arc, ring, candy, candyRing, candyArc, sign, rampe, scheune, windmuehle, hoftor, ackerFurchen,
   kuerbisSteineDeco, kuerbisSteine, kuerbisTop, kraehen, winkeKuerbisse, kruemelLaterne, laternenPfad, kuerbisDeko, kuerbisStreu,
-  maisStreu,
+  maisStreu, ohneSonnenschatten,
 } from './_helpers_a.js';
 
 const Y0 = 1, YP = 5, YM = 3, YF = 4, YG = 7;
@@ -74,6 +74,7 @@ const KRUEMEL_WEG = [[-5.2, -141.5], [-8.6, -145.5], [-11.6, -149]].map(([x, z],
 const KRUEMEL = { pos: [-13.6, YM, -151.6] };
 
 function build(level) {
+  ohneSonnenschatten(level, ['riesenkuerbis']);
   rampe(level, { x0: -7, x1: 7, z0: M1.HANG.z0, z1: M1.HANG.z1, y: Y0, h: YP - Y0, path: 3.2 });
   rampe(level, { x0: -4, x1: 4, z0: -245, z1: -251, y: YF, h: YG - YF });
   scheune(level, { pos: [-10, Y0, -4], w: 7, d: 8, h: 4 });
@@ -93,6 +94,8 @@ function build(level) {
     { pos: [-9, BACH.bed, -31], size: 1.6, shape: 'flach' }, { pos: [8.5, BACH.bed, -35.5], size: 1.4, color: 'gelb' },
     { pos: [-6.6, hangY(-76), -76], size: 0.55, face: 'lachen' }, { pos: [6.6, hangY(-84.5), -84.5], size: 0.55, face: 'grinsen' },
     { pos: [-6.6, hangY(-93), -93], size: 0.55, face: 'lachen' },
+    { pos: [6.5, hangY(-67), -67], size: 0.9 }, { pos: [6.3, hangY(-69), -69], size: 0.6, color: 'gelb' }, { pos: [-6.4, hangY(-66.5), -66.5], size: 0.8, shape: 'flach' },
+    { pos: [-6.5, hangY(-86), -86], size: 1.0, shape: 'dick' }, { pos: [6.5, hangY(-93.5), -93.5], size: 0.7, color: 'weiss' }, { pos: [6.4, hangY(-77), -77], size: 0.5 },
     { pos: [-5.2, YP, -105.5], size: 0.7, face: 'lachen', light: true },
     { pos: [-14.8, YM, -150.2], size: 0.55, face: 'staunen' },
     { pos: [8.2, YM, -133.2], size: 1.3, face: 'staunen', color: 'gelb' },
@@ -125,6 +128,7 @@ function build(level) {
   winkeKuerbisse(level, [{ id: 'winke', pos: [9.5, Y0, -10.5], size: 2.4, content: { star: 0 } }]);
   kruemelLaterne(level, { id: 'kruemel', pos: KRUEMEL.pos, yaw: -0.4, content: { star: 1 } });
   laternenPfad(level, [...LATERNEN, ...KRUEMEL_WEG], 7);
+  laternenPfad(level, [[-7.6, -69], [7.6, -76], [-7.6, -83], [7.6, -90]].map(([x, z], i) => ({ id: `hl${i}`, pos: [x, YP, z], yaw: x < 0 ? 0 : Math.PI, height: 2.4 })), 9, { id: 'hanglaternen' });
 }
 
 export const LEVEL = {
@@ -145,7 +149,7 @@ export const LEVEL = {
     { from: 20, to: -24, pitch: 40, dist: 12.5, fov: 40 },
     { from: -24, to: -44, pitch: 42, dist: 13, fov: 40 },                         // Kürbisbach
     { from: -44, to: -62, pitch: 40, dist: 13, fov: 40 },
-    { from: -62, to: -98, pitch: 34, dist: 14, fov: 42, height: 1.6 },           // Kullerhang (hinauf)
+    { from: -62, to: -98, pitch: 31, dist: 14, fov: 42, height: 2.4, ahead: 3 }, // Kullerhang (hinauf, Blick den Hang hoch)
     { from: -98, to: -124, pitch: 40, dist: 13, fov: 40 },                        // Scheunen-Plateau
     { from: -124, to: -170, pitch: 44, dist: 14, fov: 42 },                       // Laternenpfad
     { from: -170, to: -186, pitch: 40, dist: 13.5, fov: 42, height: 1.4 },       // Kürbis-Kanone
@@ -188,7 +192,7 @@ export const LEVEL = {
     // Hohlweg: Rampe 1 → 5, Hänge links und rechts; oben stößt ein Verschlag Riesenkürbisse aus, die im Zickzack herabkullern
     isl(HOF.x0, -7, M1.HANG.z0, M1.HANG.z1, YP, 9),
     isl(7, HOF.x1, M1.HANG.z0, M1.HANG.z1, YP, 9),
-    { type: 'riesenkuerbis_roll', id: 'kuller', pos: BAHN[0], dir: [0, 1], path: BAHN, every: 3.8, first: 0.3, max: 4, size: 1.8, speed: 3, vmax: 6, start: 'near', near: 44 },
+    { type: 'riesenkuerbis_roll', id: 'kuller', pos: BAHN[0], dir: [0, 1], path: BAHN, every: 4.2, first: 0.3, max: 3, size: 1.8, speed: 3, vmax: 6, start: 'near', near: 44 },
     isl(PLATEAU.x0, PLATEAU.x1, PLATEAU.z0, PLATEAU.z1, YP, 9),
     sign(-3.2, Y0, -59, 'Achtung,\nKullerkürbis!', { size: [2.2, 0.9] }),
     { type: 'deco_hw', items: [
@@ -196,6 +200,9 @@ export const LEVEL = {
       { kind: 'strohballen', pos: [14, Y0, -55.8], form: 'rund', yaw: 1.57 },
       { kind: 'strohballen', pos: [14, Y0, -57.4], form: 'rund', yaw: 1.57 },
       { kind: 'vogelscheuche', pos: [-9.5, YP, -70], size: 1.1 },
+      { kind: 'strohballen', pos: [6.4, hangY(-72.5), -72.5], form: 'eckig', yaw: 1.57 },
+      { kind: 'strohballen', pos: [-6.4, hangY(-79.5), -79.5], form: 'eckig', yaw: 1.57 },
+      { kind: 'strohballen', pos: [6.4, hangY(-88), -88], form: 'eckig', yaw: 1.57 },
       // Plateau
       { kind: 'strohballen', pos: [-3.8, YP, -104.5], form: 'rund', yaw: 0.4 },
       { kind: 'strohballen', pos: [-4.6, YP, -103], form: 'eckig', yaw: 1.2 },
