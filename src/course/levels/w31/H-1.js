@@ -117,9 +117,9 @@ function build(level) {
   maisStreu(level, { pos: [11, YP, -93], size: [6, 6], n: 7, seed: 5 }, { shadow: false });
   // Maisfeld in Reihen auf Ackerfurchen; frei bleiben Krümels Laternenweg und Lichtung, Rampen, Kanone, Mühle
   const KW = [...KRUEMEL_WEG.map((l) => [l.pos[0], l.pos[2], 1.6]), [-4, -141.2, 1.6], [KRUEMEL.pos[0], KRUEMEL.pos[2], 3.2], [-3.7, -140, 2.6], [-3.7, -164, 2.6], [-3.6, -147, 1.2]];
-  maisStreu(level, { x0: -18, x1: -2.4, z0: -124.6, z1: -169.4, y: YM, row: 1.8, step: 1.5, seed: 21, avoid: KW }, { shadowX: [-6, 6] });
-  maisStreu(level, { x0: 2.4, x1: 20, z0: -124.6, z1: -149, y: YM, row: 1.8, step: 1.5, seed: 24, avoid: [[KANONE_B.pos[0], KANONE_B.pos[2], 3.4], [3.7, -129, 2.6], [8.2, -133.2, 1.4]] }, { shadowX: [-6, 6] });
-  maisStreu(level, { x0: 2.4, x1: 24, z0: -166.6, z1: -169.4, y: YM, row: 1.8, step: 1.5, seed: 26, avoid: [[3.7, -167, 2.6]] }, { shadowX: [-6, 6] });
+  maisStreu(level, { x0: -18, x1: -2.4, z0: -124.6, z1: -169.4, y: YM, row: 1.9, step: 1.6, seed: 21, avoid: KW }, { shadowX: [-6, 6] });
+  maisStreu(level, { x0: 2.4, x1: 20, z0: -124.6, z1: -149, y: YM, row: 1.9, step: 1.6, seed: 24, avoid: [[KANONE_B.pos[0], KANONE_B.pos[2], 3.4], [3.7, -129, 2.6], [8.2, -133.2, 1.4]] }, { shadowX: [-6, 6] });
+  maisStreu(level, { x0: 2.4, x1: 24, z0: -166.6, z1: -169.4, y: YM, row: 1.9, step: 1.6, seed: 26, avoid: [[3.7, -167, 2.6]] }, { shadowX: [-6, 6] });
   ackerFurchen(level, [
     { x0: -18, x1: -1.8, z0: -124.4, z1: -169.6, y: YM, gap: 1.8 },
     { x0: 1.8, x1: 20.8, z0: -124.4, z1: -149.3, y: YM, gap: 1.8 },
@@ -149,7 +149,8 @@ export const LEVEL = {
     { from: 20, to: -24, pitch: 40, dist: 12.5, fov: 40 },
     { from: -24, to: -44, pitch: 42, dist: 13, fov: 40 },                         // Kürbisbach
     { from: -44, to: -62, pitch: 40, dist: 13, fov: 40 },
-    { from: -62, to: -98, pitch: 31, dist: 14, fov: 42, height: 2.4, ahead: 3 }, // Kullerhang (hinauf, Blick den Hang hoch)
+    { from: -62, to: -84, pitch: 31, dist: 14, fov: 42, height: 2.4, ahead: 3 }, // Kullerhang (hinauf, Blick den Hang hoch)
+    { from: -84, to: -98, pitch: 37, dist: 13.5, fov: 42, height: 1.8 },
     { from: -98, to: -124, pitch: 40, dist: 13, fov: 40 },                        // Scheunen-Plateau
     { from: -124, to: -170, pitch: 44, dist: 14, fov: 42 },                       // Laternenpfad
     { from: -170, to: -186, pitch: 40, dist: 13.5, fov: 42, height: 1.4 },       // Kürbis-Kanone

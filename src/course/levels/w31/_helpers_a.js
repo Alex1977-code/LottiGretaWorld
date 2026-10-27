@@ -404,7 +404,7 @@ export function kuerbisStreu(level, f, o = {}) {
 
 /** Ein Mais-Büschel (count Stängel) in Weltkoordinaten; liefert Geometrie-Teile. */
 function maisBueschel(x, y, z, i, count, h0, h1, P, leaves = 4) {
-  const stalkC = [L(0x7a8a2e), L(0xc8b860)], leafA = L(0x6e9a2c), leafB = L(0xd0bc5a), cobC = L(0xffd24a), husk = L(0xb8b060), tas = L(0xc89a4a);
+  const stalkC = [L(0x7a8a2e), L(0xc8b860)], leafA = L(0x6e9a2c), leafB = L(0xc8c068), cobC = L(0xffd24a), husk = L(0xb8b060), tas = L(0xead8a0);
   for (let k = 0; k < count; k++) {
     const a = hash(i * 9 + k) * TAU, rr = k ? 0.22 + 0.06 * k : 0;
     const sx = x + Math.cos(a) * rr, sz = z + Math.sin(a) * rr;
@@ -439,7 +439,7 @@ function maisBueschel(x, y, z, i, count, h0, h1, P, leaves = 4) {
       cob.translate(sx + Math.cos(a) * 0.07, y + H * 0.52, sz - Math.sin(a) * 0.07);
       P.push(colorize(ni(cob), (p, n, out) => mixc(husk, cobC, smooth(-0.2, 0.8, n.y + 0.3), out)));
     }
-    const t1 = new THREE.ConeGeometry(0.1, 0.36, 4); t1.translate(sx - lean * H, y + H + 0.14, sz);
+    const t1 = new THREE.ConeGeometry(0.06, 0.26, 4); t1.translate(sx - lean * H, y + H + 0.1, sz);
     P.push(fill(t1, tas));
   }
 }

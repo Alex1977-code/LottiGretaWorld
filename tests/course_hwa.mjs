@@ -555,7 +555,14 @@ function install() {
     lives: () => L.runtime.save.lives,
     named: (id) => { const e = L.named.get(id); return e?.info?.() ?? (e ? { ...e } : null); },
     cond: (k) => COND[k](),
-    costume: () => { const rig = c.rig ?? c.heroRig ?? null; const a = rig?.avatar ?? P().rig?.avatar ?? null; return { halloween: !!(a?.costume || a?.halloween || c.view?.costume || L.halloween || a?.root?.getObjectByName?.('kostuem') || a?.root?.getObjectByName?.('costume')), hero: P().hero }; },
+    /** Halloween-Verkleidung der Figur (Vertrag „Figuren Halloween“): Kennung am Avatar bzw. benannte Kostümteile. */
+    costume: () => {
+      const a = c.rig?.avatar ?? null;
+      const tags = [];
+      a?.root?.traverse?.((o) => { if (/hexenhut|katzen|kostuem|kostüm|halloween|witch|cat_/i.test(o.name ?? '')) tags.push(o.name); });
+      const flag = a?.hwOutfit ?? a?.halloweenOutfit ?? a?.outfit ?? null;
+      return { halloween: !!(flag && flag !== 'none') || tags.length > 0, flag, tags: tags.slice(0, 4), hero: P().hero };
+    },
   };
   window.__hwa = W;
   return Object.keys(W);
@@ -629,7 +636,7 @@ for (const id of LEVELS) {
     const cos = await W('costume');
     const res = await W('drive', R.main, {});
     const reached = res.status === 'goal' || res.status === 'done';
-    console.log(`  ${hero}${cos.halloween ? ' (verkleidet)' : ''}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Mechanik ${JSON.stringify(res.mech)}`);
+    console.log(`  ${hero}${cos.halloween ? ` (verkleidet: ${cos.flag ?? cos.tags.join(', ')})` : ' (ohne erkennbare Verkleidung)'}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Mechanik ${JSON.stringify(res.mech)}`);
     if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
     check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
     check(`${id}: ${hero} Zeit bis zum Ziel < 240 s (${res.time.toFixed(1)} s)`, reached && res.time < 240);
