@@ -10,8 +10,9 @@
 // tests/out/posen_w5_sheet_<heldin>.png.
 // Prüfungen: Pose-Zustand (Blender) 'trapeze' / 'cannon', Hände an der Stange (Abstand der Fäuste zur Stangenachse des
 // Modells), Beine laufen nach (Füße hinter der Körperachse im Durchschwung vorwärts), Knie am Umkehrpunkt angezogen,
-// Körperachse im Flug entlang der Geschwindigkeit, Landepose aufrecht, Zeichenaufrufe je Heldin ≤ Rückfall-Pose (idle an
-// derselben Stelle), klein und mit Kostüm, keine Konsolenfehler.
+// Absprung blendet weich über, Körperachse im Flug entlang der Geschwindigkeit, Landepose aufrecht, Zeichenaufrufe je
+// Heldin ≤ Rückfall-Pose (idle an derselben Stelle) und ≤ 11 (Figur-Bündel greift), klein, Krallen-Anzug, Riesentrank
+// (hält die Stange vor dem Bauch), keine Konsolenfehler. P5_DEBUG=1: Bündel-Zustand und Gretas Haar-Richtung ausgeben.
 // Aufruf: npm run build && PORT_BASE=0 node tests/posen_w5.mjs   (Port 4360; P5_SHOTS=0 ohne Bilder, P5_HEROES=lotti,greta,
 // P5_PARTS=trapeze,cannon,extra)
 import { readFileSync } from 'node:fs';
@@ -119,7 +120,15 @@ await sc(() => {
     hull.visible = false; grab(); const b = grab();
     hull.visible = true; grab();
     H.cam = cam0;
-    return { calls: a.calls - b.calls, tris: a.tris - b.tris };
+    const r = { calls: a.calls - b.calls, tris: a.tris - b.tris };
+    if (H.debug) {
+      // Figur-Bündel der Heldin (view/ShadowProxy.js): Gruppen, gebündelte Teile, Maßstab der Hülle
+      const bu = c.view.proxies.bundles.find((x) => x.root === hull);
+      const sc = hull.scale;
+      r.bundle = bu ? bu.groups.map((g) => `${g.parts.length}:${g.on.filter(Boolean).length}${g.any ? '' : '!'}`).join(' ') : 'keins';
+      r.hullScale = [sc.x, sc.y, sc.z].map((v) => +(v * 1.5).toFixed(6));
+    }
+    return r;
   };
   /** Rückfall-Vergleich: dieselbe Stelle, Avatar für n Bilder im Zustand 'idle' (so sah die Figur vorher aus), dann zurück. */
   H.costIdle = (n = 40) => {
@@ -306,13 +315,13 @@ for (const hero of HEROES) {
     console.log(`  Hängen: ${JSON.stringify(t.hang)}; Hände ${JSON.stringify(t.hangHands)}`);
     for (const k of ['front', 'down', 'back', 'fwd']) console.log(`  ${k.padEnd(6)} ${JSON.stringify(t[k])}`);
     console.log(`  Absprung: ${JSON.stringify(t.rel1)} → ${JSON.stringify(t.rel2)} → ${JSON.stringify(t.rel3)}`);
-    console.log(`  Zeichenaufrufe Trapez ${t.cost.calls} (Rückfall idle ${t.costIdle.calls}), Dreiecke ${t.cost.tris} (${t.costIdle.tris})`);
+    console.log(`  Zeichenaufrufe Trapez ${t.cost.calls} (Rückfall idle ${t.costIdle.calls}), Dreiecke ${t.cost.tris} (${t.costIdle.tris}) ${t.cost.bundle ? JSON.stringify(t.cost) : ""}`);
   }
   if (on('cannon')) {
     r.kn = await cannon(hero);
     const k = r.kn;
     for (const ph of k.phases) console.log(`  Kanone ${ph.name.padEnd(12)} ${JSON.stringify(ph)}`);
-    console.log(`  Kanone Ende: ${JSON.stringify(k.end)}; Zeichenaufrufe ${k.cost?.calls} (Rückfall idle ${k.costIdle?.calls})`);
+    console.log(`  Kanone Ende: ${JSON.stringify(k.end)}; Zeichenaufrufe ${k.cost?.calls} (Rückfall idle ${k.costIdle?.calls}) ${k.cost?.bundle ? JSON.stringify(k.cost) : ""}`);
   }
   if (on('extra')) {
     r.small = await trapezeQuick(hero, 'klein', { big: false });
@@ -333,14 +342,14 @@ for (const [hero, r] of Object.entries(results)) {
     check(`${H} Trapez: Beine laufen nach (vorwärts ${t.fwd.legs.feetFwd} m, rückwärts ${t.down.legs.feetFwd} m vor der Körperachse)`, t.fwd.legs.feetFwd < -0.04 && t.down.legs.feetFwd > 0.03);
     check(`${H} Trapez: Knie am Umkehrpunkt angezogen (vorn ${t.front.kneeN}, hinten ${t.back.kneeN}), im Durchschwung gestreckt (${t.down.kneeN}/${t.fwd.kneeN})`, t.front.kneeN > 1 && t.back.kneeN > 1 && t.down.kneeN < 0.45 && t.fwd.kneeN < 0.45);
     check(`${H} Trapez: Absprung blendet weich in den Sprung (nach 0,03 s ${t.rel1.label} ${t.rel1.blendT} s, nach 0,13 s noch in der Überblendung)`, t.rel1.label === 'jump' && t.rel2.label === 'jump' && t.rel2.blendT < 0.29 && t.rel3.blendT > 0.3);
-    check(`${H} Trapez: Zeichenaufrufe ${t.cost.calls} ≤ Rückfall-Pose ${t.costIdle.calls}`, t.cost.calls <= t.costIdle.calls);
+    check(`${H} Trapez: Zeichenaufrufe ${t.cost.calls} ≤ Rückfall-Pose ${t.costIdle.calls} und ≤ 11`, t.cost.calls <= t.costIdle.calls && t.cost.calls <= 11);
   }
   if (r.kn) {
     const k = r.kn, fly = k.phases.filter((q) => ['1_start', '2_steigen', '3_scheitel', '4_sinken'].includes(q.name)), last = k.phases.find((q) => q.name === '6_aufsetzen');
     check(`${H} Kanone: Pose 'cannon' im ganzen Flug`, k.phases.every((q) => q.label === 'cannon' && q.state === 'cannon'));
     check(`${H} Kanone: Körperachse entlang der Flugrichtung (${fly.map((q) => q.align.vel).join('/')}°)`, fly.every((q) => q.align.vel < 12));
     check(`${H} Kanone: Landepose am Ende aufrecht (${last?.align.up}° zur Senkrechten), sicher gelandet`, !!last && last.align.up < 25 && k.end.mode === 'ground');
-    check(`${H} Kanone: Zeichenaufrufe ${k.cost?.calls} ≤ Rückfall-Pose ${k.costIdle?.calls}`, !!k.cost && k.cost.calls <= k.costIdle.calls);
+    check(`${H} Kanone: Zeichenaufrufe ${k.cost?.calls} ≤ Rückfall-Pose ${k.costIdle?.calls} und ≤ 11 (Figur-Bündel greift im Flug)`, !!k.cost && k.cost.calls <= k.costIdle.calls && k.cost.calls <= 11);
   }
   if (r.small) check(`${H} klein am Trapez: Fäuste an der Stange (${r.small.hands.map((h) => h.perp).join('/')} m)`, r.small.label === 'trapeze' && handsOk(r.small.hands));
   if (r.krallen) check(`${H} Krallen-Anzug am Trapez: Fäuste an der Stange (${r.krallen.hands.map((h) => h.perp).join('/')} m)`, r.krallen.label === 'trapeze' && handsOk(r.krallen.hands));
