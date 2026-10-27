@@ -1089,9 +1089,18 @@ export function kirchlein(level, o) {
   }
   // Treppchen-Kante vorn (Stufe zur Glockenstube)
   P.push(box(tw, 0.12, 0.3, x, y + T + 0.06, z + tw / 2 - 0.15, 0xc8b898, { r: 0.03, seg: 1 }));
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(box(0.26, 2.6, 0.26, x + sx * (tw / 2 - 0.15), y + T + 1.3, z + sz * (tw / 2 - 0.15), wallC, { r: 0.04, seg: 1 }));
+  // Pfeiler und Spitzdach der Glockenstube: eigenes Mesh mit Durchsicht (view.xray) – steht die Figur oben, verdeckt das
+  // Dach sie nicht
+  const S = [];
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) S.push(box(0.26, 2.6, 0.26, x + sx * (tw / 2 - 0.15), y + T + 1.3, z + sz * (tw / 2 - 0.15), wallC, { r: 0.04, seg: 1 }));
   const spire = new THREE.ConeGeometry(tw * 0.8, 3.4, 4, 1); spire.rotateY(Math.PI / 4); spire.translate(x, y + T + 2.6 + 1.7, z);
-  P.push(colorize(ni(spire), (q, n, out) => mixc(L(roofC), L(roofHi), smooth(-0.2, 0.9, n.y + n.z * 0.3) * 0.7 + (Math.sin(q.y * 7) > 0.6 ? 0.15 : 0), out)));
+  S.push(colorize(ni(spire), (q, n, out) => mixc(L(roofC), L(roofHi), smooth(-0.2, 0.9, n.y + n.z * 0.3) * 0.7 + (Math.sin(q.y * 7) > 0.6 ? 0.15 : 0), out)));
+  if (level.view) {
+    const sm = new THREE.Mesh(merge(S), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 }));
+    sm.castShadow = true; sm.receiveShadow = true; sm.name = 'kirchturm:dach';
+    addObject(level, sm);
+    level.view.xray?.(sm, new THREE.Box3(new THREE.Vector3(x - tw / 2 - 0.4, y + T, z - tw / 2 - 0.4), new THREE.Vector3(x + tw / 2 + 0.4, y + T + 6.2, z + tw / 2 + 0.4)), { min: 0.25 });
+  }
   G.push(fill(at(new THREE.OctahedronGeometry(0.3, 0), x, y + T + 6.3, z), 0xffd040));
   const bell = new THREE.CylinderGeometry(0.22, 0.5, 0.7, 8, 1); bell.translate(x, y + T + 2.0, z);
   P.push(colorize(ni(bell), (q, n, out) => mixc(L(0xb8862a), L(0xffe08a), smooth(-0.3, 0.9, n.y + n.z * 0.4), out)));
