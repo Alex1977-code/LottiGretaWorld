@@ -36,7 +36,7 @@ const ROUTES = {};
     { name: 'Pfahl-Brücke', to: [18.6, -8.0], within: 0.3 }, { star: 2 }];
   ROUTES['H-Kapitän'] = {
     kind: 'diorama',
-    start: [7.5, 0, 19.2],
+    start: [8.6, 0, 20.4],
     orbit: 16,
     meta: { stars: 3, time: 400, theme: 'pumpkin_night', music: 'course_diorama' },
     enemies: { kuerbling: 2, kreisgeist: 1, laternenpfahl: 1 },
@@ -58,11 +58,11 @@ const ROUTES = {};
         { to: C(1, 3), within: 0.3 }, { to: C(2, 3), within: 0.2 }, { wait: 240 }], check: '(L) => L.archetype.info().digs >= 1' },
     ],
     shots: [
-      ['ueberblick', [7.5, 0, 19.2], 16, false],
-      ['ueberblick_links', [7.5, 0, 19.2], -40, false],
-      ['ueberblick_rechts', [7.5, 0, 19.2], 70, false],
-      ['hinten', [7.5, 0, 19.2], 165, false],
-      ['start', [7.5, 0, 19.2], 16, true],
+      ['ueberblick', [8.6, 0, 20.4], 16, false],
+      ['ueberblick_links', [8.6, 0, 20.4], -40, false],
+      ['ueberblick_rechts', [8.6, 0, 20.4], 70, false],
+      ['hinten', [8.6, 0, 20.4], 165, false],
+      ['start', [8.6, 0, 20.4], 16, true],
       ['steg', [7.5, 0, 15.2], 16, true],
       ['labyrinth', [-6.5, 0, 8.1], 10, true],
       ['herz_nah', [-6.5, 0, 5.5], 30, true],
@@ -70,6 +70,107 @@ const ROUTES = {};
       ['deckel', [-7.9, 5.0, -8.8], 35, true],
       ['scheune', [2.5, YT, -6.0], 0, true],
       ['pfahl', [13.0, YT, -8.0], 30, true],
+    ],
+  };
+}
+
+// =====================================================================================================================
+// H-3 „Gekicher auf dem Nebelfriedhof“ (Parcours, Thema graveyard)
+// =====================================================================================================================
+{
+  const Y = 1, PL = 2.5;
+  const CREEK = [[0, -80], [0, -84], [3, -94], [-1, -106], [2, -116], [0, -127.6]];
+  const GATE = [{ name: 'Laterne aufheben', to: [0, -5.4], within: 0.5 }, { expect: 'lantern' }];
+  const DITCH = [{ to: [0, -12.4], within: 0.4, run: false }, { name: 'Geistersteg über den Nebelgraben', to: [0, -19.2], within: 0.5, run: false, autoJump: false }];
+  const CHASM = [{ to: [0, -29.2], within: 0.35, run: false },
+    { name: 'Geisterplatte 1', to: [0, -32.0], jump: 14, within: 0.7, run: false }, { name: 'Geisterplatte 2', to: [1.6, -35.4], jump: 26, within: 0.7, run: false },
+    { name: 'Geisterplatte 3', to: [3.2, -38.8], jump: 26, within: 0.7, run: false }, { name: 'Grabinsel', to: [3.2, -42.4], jump: 24, within: 0.7, run: false },
+    { to: [2.2, -47.8], within: 0.4, run: false }, { name: 'Geisterplatte 4', to: [2.0, -50.4], jump: 14, within: 0.7, run: false },
+    { name: 'Geisterplatte 5', to: [0.0, -53.8], jump: 26, within: 0.7, run: false }, { name: 'Geisterplatte 6', to: [-2.0, -57.2], jump: 16, within: 0.7, run: false },
+    { name: 'Geisterplatte 7', to: [-0.4, -60.4], jump: 16, within: 0.7, run: false }, { name: 'Steg am Glibberbach', to: [0, -64.0], jump: 16, within: 0.7, run: false }];
+  const RAFT = [{ name: 'Checkpoint', to: [0, -66.2], within: 0.6 }, { to: [0, -71.2], within: 0.4, run: false }, { name: 'zu Pflaume aufs Floß', mount: [0, -75.5] }];
+  const RIDE = (jump) => ({ name: 'Floßfahrt auf dem Glibberbach', ride: CREEK, ...(jump ? { jump: [[-110.6, -114.2]] } : {}) });
+  const GRUFT = [{ to: [0, -139.2], within: 0.4, run: false }, { light: 'pfahl_schlucht', name: 'warten, bis der Laternenpfahl brennt' },
+    { name: 'blaue Pfahl-Brücke', to: [0, -153.2], within: 0.6, autoJump: false }, { to: [0, -176.0], within: 0.6 },
+    { to: [5.6, -178.8], within: 0.3, run: false }, { name: 'Grabstein-Schalter', to: [5.6, -180.4], jump: 30, within: 0.35, run: false }, { until: 'brueckeAn', max: 120 }];
+  const HILL = [{ to: [0, -185.6], within: 0.4, run: false }, { name: 'Pfahl-Brücke zum Kapellenhügel', to: [0, -195.0], within: 0.6, autoJump: false },
+    { name: 'Treppe hinauf', to: [0, -211.0], within: 0.6 }, { name: 'Zielmast', to: [3.4, -219.6], within: 0.2 }];
+  const TOWER = [{ to: [-3.4, -224.4], within: 0.3, run: false }, { name: 'Stufe 1 (lila)', to: [-4.4, -227.0], jump: 22, within: 0.6, run: false }, { light: 'pfahl_turm' },
+    { name: 'Stufe 2 (blau)', to: [-4.4, -230.6], jump: 26, within: 0.6, run: false }, { name: 'Stufe 3 (lila)', to: [-7.0, -232.0], jump: 26, within: 0.6, run: false },
+    { light: 'pfahl_turm' }, { name: 'Stufe 4 (blau)', to: [-9.6, -230.6], jump: 26, within: 0.6, run: false }, { name: 'Stufe 5 (lila)', to: [-9.6, -227.4], jump: 26, within: 0.6, run: false },
+    { light: 'pfahl_turm' }, { name: 'Stufe 6 (blau)', to: [-7.0, -226.0], jump: 26, within: 0.6, run: false }, { name: 'Turmspitze', to: [-7.0, -228.7], jump: 28, within: 0.6, run: false }, { stamp: true }];
+  const SECRET = [{ to: [-7.6, -23.0], within: 0.4, run: false }, { to: [-8.6, -24.2], within: 0.3, run: false },
+    { name: 'Geisterstufe A', to: [-10.4, -24.6], jump: 20, within: 0.6, run: false }, { name: 'Geisterstufe B', to: [-12.9, -25.4], jump: 28, within: 0.6, run: false },
+    { name: 'Geisterstufe C', to: [-15.0, -24.4], jump: 28, within: 0.6, run: false }, { name: 'schwebende Gruft', to: [-18.2, -24.8], jump: 30, within: 0.6, run: false }];
+  ROUTES['H-3'] = {
+    kind: 'parcours',
+    start: [0, Y, 5],
+    meta: { stars: 3, time: 400, theme: 'graveyard', music: 'course_graveyard', archetype: 'parcours' },
+    enemies: { klapperknochen: 8, kreisgeist: 2, kreisgeist_kreis: 1, kreisgeist_glied: 8, spuk: 1, flatterfledi: 3, laterne: 1, laternenpfahl: 3, grabstein_schalter: 1, raft: 1 },
+    sections: [['1 Friedhofstor', 12, -30], ['2 Nebelschlucht', -30, -62], ['3 Glibberbach', -62, -140], ['4 Gruftgarten', -140, -194], ['5 Kapellenhügel', -194, -240]],
+    sweepExtra: [[-8, Y, -84], [9, Y, -80], [-9, Y, -94], [-8, Y, -112], [9, Y, -118], [-9, Y, -165], [6, Y, -168], [-6, PL, -226], [-7, 8.1, -229]],
+    main: [...GATE, ...DITCH, ...CHASM, ...RAFT, RIDE(false), ...GRUFT, ...HILL],
+    routeChecks: [
+      { name: 'Laterne getragen, Floßfahrt auf dem Glibberbach (Pflaume) bis ans Ende', ok: (r) => r.mech.ride > 120 * 8 },
+      { name: 'auf den blinkenden Laternenpfahl gewartet (blaue Brücke nur im Pfahl-Licht)', ok: (r) => r.mech.lightWait >= 0 },
+    ],
+    targets: [
+      { name: 'Stern 0: kichernder Geist huscht hinter den Grabstein – unsichtbare Geisterstufen (Laterne) zur schwebenden Gruft', star: 0, from: [0, Y, -20],
+        legs: [...SECRET, { star: 0 }], shot: 'stern0', check: '(L) => L.named.get("kichergeist").info().giggles >= 1' },
+      { name: 'Gegenprobe Stern 0: ohne Laterne keine Stufen (Sprung ins Leere)', star: 0, expectNot: true, noLantern: true, from: [0, Y, -20], heroes: ['lotti'],
+        legs: [SECRET[0], SECRET[1], { ...SECRET[2], max: 300 }, { wait: 120 }], check: '(L) => L.player.dead || L.player.pos.y < 0' },
+      { name: 'Stern 1: über dem Glibberbach mit dem Floß hochhüpfen', star: 1, from: [0, Y, -70.6],
+        legs: [{ to: [0, -71.2], within: 0.4, run: false }, { mount: [0, -75.5] }, RIDE(true)], shot: 'stern1', mechText: (r) => `Scheitel y ${(r.mech.maxRideY ?? 0).toFixed(2)}` },
+      { name: 'Gegenprobe Stern 1: ohne Hüpfer bleibt der Stern hängen', star: 1, expectNot: true, from: [0, Y, -70.6], heroes: ['lotti'],
+        legs: [{ to: [0, -71.2], within: 0.4, run: false }, { mount: [0, -75.5] }, RIDE(false)] },
+      { name: 'Stern 2: Klappergarten – alle drei Klapperknochen mit der Stampfattacke auf den Knochenhaufen besiegen', star: 2, from: [0, Y, -160],
+        legs: [{ to: [-2.8, -165.7], within: 0.4, run: false }, { to: [-6.2, -165.7], within: 0.5, run: false }, { bones: 'kg_' }, { star: 2 }], shot: 'stern2',
+        mech: (r) => (r.mech.bones ?? []).length === 3, mechText: (r) => `besiegt ${(r.mech.bones ?? []).length}, Stampfer ${r.mech.pounds}` },
+      { name: 'Gegenprobe Stern 2: nur draufspringen – die Klapperknochen bauen sich wieder auf, kein Stern', star: 2, expectNot: true, from: [0, Y, -160], heroes: ['lotti'],
+        legs: [{ to: [-2.8, -165.7], within: 0.4, run: false }, { to: [-6.2, -165.7], within: 0.5, run: false }, { bones: 'kg_', noPound: true }, { wait: 600 }],
+        check: '(L) => L.entities.filter((e) => e.kind === "klapperknochen" && /^kg_/.test(e.spec?.id ?? "") && !e.defeated && !e.removed).length === 3' },
+      { name: 'Stempel: Glockenturm – lila Stufen (Laterne) und blaue Stufen (nur wenn der Turm-Pfahl brennt) im Wechsel', stamp: true, from: [-1.6, PL, -221.4],
+        legs: TOWER, shot: 'stempel' },
+      { name: 'Gegenprobe Stempel: blaue Stufe bei ausgeschaltetem Pfahl trägt nicht', stamp: true, expectNot: true, from: [-1.6, PL, -221.4], heroes: ['lotti'],
+        legs: [TOWER[0], TOWER[1], { dark: 'pfahl_turm' }, { ...TOWER[3], max: 260 }, { wait: 90 }], check: '(L) => L.player.pos.y < 3.6' },
+    ],
+    extra: [
+      { name: 'Nebelgraben: Hineinfallen ist harmlos (wieder hinausspringen)', from: [0, Y, -10], heroes: ['lotti'], noLantern: true,
+        legs: [{ to: [0, -13.6], within: 0.5, run: false, autoJump: false, max: 200 }, { wait: 60 }, { to: [0, -15.5], within: 0.6, run: false }, { name: 'hinaus', to: [0, -19.0], jump: 34, within: 0.7, run: false }],
+        check: '(L) => !L.player.dead && L.player.pos.y > 0.9 && L.player.pos.z < -18' },
+      { name: 'Glibberbach: Hineinfallen = Neustart am Checkpoint', from: [0, Y, -66.2], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ to: [0, -71.2], within: 0.4, run: false }, { name: 'in den Glibber', to: [-1.6, -80], jump: 10, within: 0.6, max: 400 }, { wait: 600 }],
+        check: '(L) => !L.player.dead && Math.abs(L.player.pos.z + 66) < 2.5' },
+      { name: 'Gruft-Durchfahrt: zu Fuß führt kein Weg am Bach entlang (Mauer)', from: [-8, Y, -88], heroes: ['lotti'],
+        legs: [{ to: [-8, -104], within: 0.5, max: 500, lenient: true }], check: '(L) => L.player.pos.z > -97.2' },
+      { name: 'Krümel winkt mit der Laterne vom Ufer, wenn das Floß vorbeifährt', from: [0, Y, -70.6], heroes: ['lotti'],
+        legs: [{ to: [0, -71.2], within: 0.4, run: false }, { mount: [0, -75.5] }, RIDE(false)], check: '(L) => L.named.get("kruemel_ufer").info().cheers >= 1', shot: 'kruemel' },
+      { name: 'Grabstein-Schalter: Greta springt drauf → Pfahl brennt, blaue Brücke trägt', from: [0, Y, -176], heroes: ['greta'],
+        legs: [GRUFT[4], GRUFT[5], GRUFT[6], ...HILL.slice(0, 2)], check: '(L) => L.player.pos.z < -194 && L.player.pos.y > 0.9' },
+    ],
+    shots: [
+      ['start', [0, Y, 5]],
+      ['tor', [0, Y, 1.5]],
+      ['laterne', [0, Y, -4.4]],
+      ['graben', [0, Y, -12.4], 30, { y: 0 }],
+      ['geist', [-4.6, Y, -21.6]],
+      ['gruft0', [-17.4, Y + 3.2, -24.8]],
+      ['schlucht', [0, Y, -29.0]],
+      ['insel', [3.4, Y + 1.2, -42.6]],
+      ['dock', [0, Y, -70.6]],
+      ['bach', [-8, Y, -86]],
+      ['tunnel', [-9, Y, -95]],
+      ['ufer', [8.6, Y, -108]],
+      ['landung', [0, Y, -131]],
+      ['pfahl', [0, Y, -139.4]],
+      ['garten', [-2.6, Y, -163]],
+      ['gruftring', [1.4, Y, -168]],
+      ['schalter', [5.6, Y, -177.6]],
+      ['bruecke', [0, Y, -185.0]],
+      ['huegel', [0, Y, -199]],
+      ['kapelle', [3.4, PL, -213.6]],
+      ['turm', [-3.4, PL, -222.4]],
+      ['turmspitze', [-7.0, 8.1, -228.6]],
     ],
   };
 }
@@ -117,6 +218,7 @@ function install() {
     noLantern: () => !L.hwLight?.carried,
     riding: () => P().mode === 'mount',
     stamp: () => !!L.runtime.stamp,
+    brueckeAn: () => !!named('pfahl_bruecke')?.on,
   };
   const W = {
     place(pos, o = {}) {
@@ -197,7 +299,10 @@ function install() {
           log.push(['hüpfer', +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
           continue;
         }
-        if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900, jump: Lg.jump }); log.push(['stern', Lg.star, n, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]); continue; }
+        if (Lg.star !== undefined) {
+          const vis = () => L.entities.some((e) => e.kind === 'star' && e.index === Lg.star && e.alive && !e.removed && !e.hidden);
+          for (let w = 0; w < 360 && !vis() && !L.runtime.stars[Lg.star]; w++) tick({});
+          const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900, jump: Lg.jump }); log.push(['stern', Lg.star, n, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]); continue; }
         if (Lg.stamp) { const n = this.chase('stamp', { max: 900 }); log.push(['stempel', n, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]); continue; }
         if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +P().pos.x.toFixed(1), +P().pos.y.toFixed(1), +P().pos.z.toFixed(1)]); continue; }
         // ------------------------------------------------ Laternenpfahl: warten, bis er gerade angeht (light) bzw. ausgeht (dark)
@@ -270,10 +375,10 @@ function install() {
         // ------------------------------------------------ Gegner (Id-Anfang) nacheinander anspringen, dann den Haufen stampfen
         if (Lg.bones) {
           const pre = Lg.bones;
-          const done = [];
+          const done = [], tried = new Set();
           let guard = 0;
           for (; guard < 40; guard++) {
-            const list = L.entities.filter((e) => e.kind === 'klapperknochen' && e.alive && !e.removed && !e.defeated && String(e.spec?.id ?? '').startsWith(pre));
+            const list = L.entities.filter((e) => e.kind === 'klapperknochen' && e.alive && !e.removed && !e.defeated && String(e.spec?.id ?? '').startsWith(pre) && !(Lg.noPound && tried.has(e)));
             if (!list.length) break;
             list.sort((a, b) => Math.hypot(a.pos.x - P().pos.x, a.pos.z - P().pos.z) - Math.hypot(b.pos.x - P().pos.x, b.pos.z - P().pos.z));
             const e = list[0];
@@ -287,6 +392,8 @@ function install() {
               tick({ ...this.stick(dx, dz, Math.min(1, d / 2)), run: false });
             }
             for (let w = 0; w < 240 && P().mode !== 'ground'; w++) tick({});
+            tried.add(e);
+            if (Lg.noPound) { if (e.lying) done.push(e.spec?.id); continue; }
             // 2) Stampfattacke auf den Haufen
             let j = 0;
             for (; j < 3 && !e.defeated && !e.removed && e.lying; j++) {
@@ -378,6 +485,8 @@ function install() {
     named: (id) => { const n = L.named.get(id); return n?.info?.() ?? null; },
     cond: (k) => COND[k](),
     noLantern: () => { L.hwLight?.carry(false); },
+    giveLantern: () => { L.hwLight?.carry(true); for (const e of L.entities) if (e.kind === 'laterne' && !e.hidden) { e.hidden = true; e.touch = false; if (e.model) e.model.root.visible = false; } },
+
   };
   window.__hw = W;
   return Object.keys(W);
@@ -438,6 +547,12 @@ async function shot(name, wait = 500) {
   return s;
 }
 
+/** Bild aus der nahen Zoomstufe der Orbit-Kamera (Diorama). */
+async function nearShot(name) {
+  await sc(() => { const o = window.__course.arch?.orbit; if (o && o.zoom === 0) o.toggleZoom(); });
+  return shot(name);
+}
+
 /** Ergebnis eines Bot-Laufs ausgeben (bei Fehler oder VERBOSE das ganze Protokoll). */
 function report(res, ok) {
   if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
@@ -447,7 +562,7 @@ function report(res, ok) {
 const costumeInfo = () => sc(() => {
   const c = window.__course, rig = c.rig;
   const i = rig?.info?.() ?? {};
-  return { costume: i.costume ?? i.kostuem ?? rig?.costume ?? rig?.avatar?.costume ?? null, kind: i.kind ?? rig?.kind ?? null };
+  return { costume: i.verkleidung ?? i.hwCostume ?? rig?.verkleidung ?? rig?.hwCostume ?? null, kind: i.kind ?? rig?.kind ?? null };
 });
 
 // ------------------------------------------------------------------------------------------------------- Diorama
@@ -499,7 +614,7 @@ async function diorama(id) {
     if (t.check) ok = ok && (await sc(new Function(`return (${t.check})(window.__course.level);`)));
     report(res, ok);
     check(`${id}: ${t.name} (${res.time.toFixed(1)} s, Berührungen ${res.mech.episodes})`, !!ok);
-    if (t.shot && ok) await shot(`${id}_${t.shot}`);
+    if (t.shot && ok) await nearShot(`${id}_${t.shot}`);
   }
   if (PARTS.has('route')) {
     const res = await runLegs(R.allInOne);
@@ -515,7 +630,7 @@ async function diorama(id) {
     if (t.check) ok = ok && (await sc(new Function(`return (${t.check})(window.__course.level);`)));
     report(res, ok);
     check(`${id}: ${t.name} (Münzen ${res.rt.coins})`, !!ok);
-    if (t.shot && ok) await shot(`${id}_${t.shot}`);
+    if (t.shot && ok) await nearShot(`${id}_${t.shot}`);
   }
   if (PARTS.has('sweep') || PARTS.has('shots')) {
     await load(id);
@@ -582,6 +697,7 @@ async function parcours(id) {
     for (const m of R.routeChecks ?? []) check(`${id}: ${hero} – ${m.name}`, m.ok(res));
   }
   if (sweepTrack?.length) {
+    sweepTrack.push(...(R.sweepExtra ?? []));
     await load(id);
     let worst = { calls: 0, tris: 0, at: null, atT: null };
     const per = [];
@@ -611,6 +727,7 @@ async function parcours(id) {
       await load(id);
       await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
       if (t.noLantern) await W('noLantern');
+      else if (t.from[2] < -6) await W('giveLantern');
       const res = await W('drive', t.legs, { invuln: t.invuln });
       const rt = await W('rt');
       let ok = t.star !== undefined ? rt.stars[t.star] : rt.stamp;
@@ -629,6 +746,7 @@ async function parcours(id) {
       const coins0 = (await W('rt')).coins;
       await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
       if (t.noLantern) await W('noLantern');
+      else if (t.from[2] < -6) await W('giveLantern');
       const res = await W('drive', t.legs, { invuln: t.invuln });
       let ok = !res.log.some((l) => String(l[0]).startsWith('FEHLER'));
       if (t.expectAlive !== false) ok = ok && !res.dead;

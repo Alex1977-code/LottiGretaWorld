@@ -5,7 +5,7 @@
 // Geisterbrücke zur Vogelscheuchen-Insel zeigt.
 //
 // Aufbau (vorn = +z zur Kamera, Felder y 0, Terrasse y 2,5):
-//   Kürbisstand-Insel (Start, x 4 … 11, z 17 … 21,5) – lila Geistersteg (3 Platten, Laternenlicht) aufs Kürbisfeld
+//   Kürbisstand-Insel (Start, x 3 … 12, z 17 … 22,5) – lila Geistersteg (3 Platten, Laternenlicht) aufs Kürbisfeld
 //   Kürbisfeld (x −14 … 14, z −4 … 13,5): links vorn das Labyrinth (5 × 5 Zellen à 2,6 m, Strohballen 1 m hoch, Eingang
 //     rechts vorn), rechts Vogelscheuche, Kürbisbeet, Kürbling auf Streife, Rampe hinauf zur Terrasse
 //   Terrasse (z −4 … −13,5): links der Riesenkürbis mit grüner Geistertreppe (10 Stufen à 0,25 m, beginnt vorn rechts) und
@@ -53,7 +53,7 @@ function pumpkinStairs() {
 function scene(level) {
   // schwebende Erdbrocken unter Feld, Terrasse und Inseln
   floatRock(level, -14, 14, 13.5, -13.5, -4, 7, { n: 4, roots: 8 });
-  floatRock(level, 4, 11, 21.5, 17, -3, 4, { n: 3 });
+  floatRock(level, 3, 12, 22.5, 17, -3, 4, { n: 3 });
   floatRock(level, 18, 23, -5.5, -10.5, -0.5, 4, { n: 3 });
   // Labyrinth: Boden, Strohballen-Wände mit Kürbissen
   mazeFloor(level, MAZE.x0, MAZE.x0 + MAZE.cell * MAZE.cols, MAZE.z0, MAZE.z0 - MAZE.cell * MAZE.rows, YF);
@@ -61,7 +61,7 @@ function scene(level) {
   // Riesenkürbis (Kollision: Schulter + Deckel zum Draufstehen)
   giantPumpkin(level, PK.x, YT, PK.z, PK.r, { top: PK.top, topR: 1.7, yaw: -Math.PI / 2 + 0.55, face: 'lachen' });
   barn(level, 2.5, YT, -10.9, 5.2, 4, 2.6);
-  pumpkinStand(level, 8.2, YF, 20.6);
+  pumpkinStand(level, 5.0, YF, 19.0);
   lanternPosts(level, [[6.0, YF, 17.4], [9.0, YF, 17.4], [5.9, YF, 12.7], [0.9, YF, 9.0], [8.4, YF, 1.8], [-13.2, YT, -4.7], [18.7, YT, -6.0, 1.2]]);
   bales(level, [[13, YF, 0.2, 'rund', 0.4], [1.4, YF, -2.7, 'eckig', 0.1], [-13.0, YT, -7.6, 'rund', 1.3], [12.9, YT, -12.4, 'eckig', 0.5]]);
   cornStalks(level, [[13.3, YF, 8.2, 2.2], [13.0, YF, 6.6, 1.9], [13.4, YF, 5.0, 2.3], [12.9, YF, 3.4, 2.0], [-13.4, YT, -12.4, 2.1], [-12.7, YT, -13.0, 1.8], [22.4, YT, -10.0, 1.9]]);
@@ -100,7 +100,7 @@ export const LEVEL = {
   killY: -14,
   lantern: { carry: true, radius: 4.6 },
   candyHud: true,
-  start: { pos: [7.5, YF, 19.2], yaw: Math.PI / 2 },
+  start: { pos: [8.6, YF, 20.4], yaw: Math.PI / 2 },
   diorama: {
     figure: 'kruemel',
     center: [4, 1.5, 3.5],
@@ -115,7 +115,7 @@ export const LEVEL = {
     // ---------------- Böden: Kürbisfeld, Terrasse, Kürbisstand-Insel, Vogelscheuchen-Insel
     isl(-14, 14, 13.5, -4, YF, 4),
     isl(-14, 14, -4, -13.5, YT, 6.5),
-    isl(4, 11, 21.5, 17, YF, 3),
+    isl(3, 12, 22.5, 17, YF, 3),
     isl(18, 23, -5.5, -10.5, YT, 3),
     // Rampe vom Feld hinauf zur Terrasse (rechts)
     { type: 'ramp', pos: [10.75, YF, -1.25], size: [3.5, YT - YF, 5.5], axis: 'z', dir: -1 },
@@ -135,11 +135,12 @@ export const LEVEL = {
       { kind: 'krummer_baum', pos: [-12.6, YT, -12.3], height: 4.2 },
       { kind: 'spinnweben', pos: [-12.3, YT + 2.6, -12.1], size: 1.1, yaw: 0.4 },
     ] },
-    { type: 'sign', pos: [5.0, YF, 18.6], text: 'Kürbis-\nKuddelmuddel', yaw: 0.35 },
+    { type: 'sign', pos: [10.9, YF, 18.6], text: 'Kürbis-\nKuddelmuddel', yaw: -0.35 },
+    { type: 'sign', pos: [11.4, YT, -10.6], text: 'Warte, bis die\nLaterne brennt!', yaw: -0.5 },
   ],
   items: [
     // Kürbisstand-Insel und Feld
-    sweets([9.8, YF, 19.4], [9.8, YF, 17.9], 3),
+    sweets([3.9, YF, 20.6], [6.3, YF, 20.6], 3),
     line([7.5, YF + 0.5, 12.2], [1.6, YF + 0.5, 10.7], 4),
     // Labyrinth: Hauptweg, Sackgassen voller Süßem
     line([C(3, 0)[0], YF + 0.5, C(3, 0)[1]], [C(1, 0)[0], YF + 0.5, C(1, 0)[1]], 4),
@@ -167,7 +168,7 @@ export const LEVEL = {
     [20.4, YT, -8.2],                               // 3: Vogelscheuchen-Insel
   ],
   marks: {
-    start: [7.5, YF, 19.2], steg: [7.5, YF, 15.2], feld: [7.5, YF, 11.5], tor: [0.6, YF, C(4, 0)[1]], herz: [HEART[0], YF, HEART[1]],
+    start: [8.6, YF, 20.4], steg: [7.5, YF, 15.2], feld: [7.5, YF, 11.5], tor: [0.6, YF, C(4, 0)[1]], herz: [HEART[0], YF, HEART[1]],
     winke: [WAVE[0], YF, WAVE[1]], sack: [SACK[0], YF, SACK[1]], rampe: [10.75, YF, 1.8], terrasse: [10.75, YT, -5],
     treppe: [-2.9, YT, -5.4], deckel: [PK.x, PK.top, PK.z], pfahl: [13.3, YT, -9.9], bruecke: [13.4, YT, -8], insel: [20.4, YT, -8.2],
   },

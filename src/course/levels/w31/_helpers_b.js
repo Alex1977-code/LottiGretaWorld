@@ -373,7 +373,7 @@ export function mazeFloor(level, x0, x1, zA, zB, y, o = {}) {
  */
 export function giantPumpkin(level, x, y, z, r, o = {}) {
   const shape = o.shape ?? 'flach';
-  const p = pumpkinGeo({ r, shape, color: o.color ?? 'orange', seg: 40, leafYaw: 1.2 });
+  const p = pumpkinGeo({ r, shape, color: o.color ?? 'orange', seg: 40, leaf: false });
   const topY = o.top ?? y + p.h * 0.86;
   level.world.add({ type: 'cyl', x, z, r: r * 1.0, y0: y, y1: y + p.h * 0.62, tag: 'riesenkuerbis' });
   level.world.add({ type: 'cyl', x, z, r: o.topR ?? r * 0.7, y0: y, y1: topY, tag: 'riesenkuerbis' });
@@ -445,7 +445,7 @@ export function pumpkinStand(level, x, y, z, o = {}) {
   b.box(3.0, 0.08, 1.05, x, y + 0.9, z, dark, { r: 0.02 });
   for (const sx of [-1, 1]) b.cyl(0.06, 0.06, 2.2, x + sx * 1.35, y, z - 0.35, dark, 6);
   // gestreiftes Dach
-  for (let i = 0; i < 6; i++) b.box(0.5, 0.06, 1.3, x - 1.25 + i * 0.5, y + 2.15, z - 0.05, i % 2 ? 0xffffff : 0xff7a2a, { r: 0, rx: 0.22 });
+  for (let i = 0; i < 6; i++) b.box(0.5, 0.06, 1.3, x - 1.25 + i * 0.5, y + 2.15, z - 0.05, i % 2 ? 0xfff2d8 : 0xff8a2a, { r: 0, rx: 0.22 });
   // Kürbisse auf der Theke
   [[-0.9, 0.24, 'orange', 'lachen'], [-0.2, 0.3, 'gelb', null], [0.55, 0.27, 'orange', 'grinsen'], [1.05, 0.2, 'weiss', null]].forEach(([dx, r, color, face], i) => {
     const p = pumpkinGeo({ r, color, seg: 12, leafYaw: i * 1.7 });
@@ -563,10 +563,10 @@ export function cornStalks(level, list) {
   const b = new Bld();
   list.forEach(([x, y, z, h = 2.0], i) => {
     const lean = (i % 3 - 1) * 0.06;
-    b.cyl(0.03, 0.05, h, x, y, z, gradY(0x7a8a3a, 0xc8b860, y, y + h), 5, { rz: lean });
+    b.cyl(0.03, 0.05, h, x, y, z, gradY(0x7a8a3a, 0xc8b860, -h / 2, h / 2), 5, { rz: lean });
     for (let k = 0; k < 4; k++) {
       const a = i * 1.7 + k * 1.9, yy = y + h * (0.3 + k * 0.16);
-      b.box(0.7, 0.03, 0.14, x + Math.cos(a) * 0.3, yy, z - Math.sin(a) * 0.3, gradY(0x6a8a3a, 0xd8c070, yy - 0.2, yy + 0.4), { r: 0, yaw: a, rz: -0.5 });
+      b.box(0.7, 0.03, 0.14, x + Math.cos(a) * 0.3, yy, z - Math.sin(a) * 0.3, k % 2 ? 0x8aa048 : 0xa8b058, { r: 0, yaw: a, rz: -0.5 });
     }
     b.cyl(0.07, 0.05, 0.3, x + 0.08, y + h * 0.55, z, 0xf0c840, 5, { rz: -0.4 });
     b.cone(0.05, 0.4, x, y + h, z, 0xd8b860, 4);
@@ -630,6 +630,337 @@ export function wavingPumpkin(level, pos, o = {}) {
     bob.position.y = k * Math.abs(Math.sin(t * 5.5)) * 0.16;
     bob.rotation.z = Math.sin(t * 2) * 0.03 + k * Math.sin(t * 5.5) * 0.08;
     face.scale.setScalar(1 + k * 0.08);
+  });
+  return st;
+}
+
+// =====================================================================================================================
+// H-3 Nebelfriedhof: Tor, Kapelle, Glockenturm, Gruft-Durchfahrt, Klappergarten, Felsnadel
+// =====================================================================================================================
+
+const STONE = 0x8a86a0, STONE_HI = 0xb8b4cc, STONE_LO = 0x4e4a62, MOSS = 0x5a8a5a;
+
+/** Bruchstein-Färbung (Fugenraster, moosige Unterkante ab y0) für Mauern – Bld-Farbe ({ v }); y0 in Teil-Koordinaten (Bld
+ *  färbt vor dem Verschieben: ein Quader der Höhe h reicht von −h/2 bis h/2). */
+const masonry = (y0, base = STONE) => {
+  const M = new THREE.Color(base), H = new THREE.Color(STONE_HI), D = new THREE.Color(STONE_LO), G = new THREE.Color(MOSS), c = new THREE.Color();
+  return { v: (x, y, z, nx, ny) => {
+    const row = Math.floor((y + 40) / 0.5), u = (Math.abs(nx) > 0.5 ? z : x) + (row % 2) * 0.4;
+    c.copy(M);
+    if (ny > 0.5) c.lerp(H, 0.4);
+    else if (ny < -0.5) c.lerp(D, 0.5);
+    const j = Math.abs(((y + 40) / 0.5) % 1 - 0.5) > 0.42 || Math.abs((u / 0.8) % 1) < 0.07;
+    if (j && ny < 0.5) c.lerp(D, 0.55);
+    if (y < y0 + 0.5 && ny < 0.5) c.lerp(G, 0.45 * (1 - (y - y0) / 0.5));
+    return c;
+  } };
+};
+
+/**
+ * Friedhofstor: zwei Steinpfeiler (Kollision) mit Kürbislaternen obendrauf, schmiedeeiserner Bogen mit Fledermaus in der
+ * Mitte, Eisenzaun links und rechts bis zur Breite fence. Mitte (x, y, z), Durchgang width.
+ */
+export function cemeteryGate(level, x, y, z, width = 3.2, fence = 8) {
+  const px = [x - width / 2 - 0.4, x + width / 2 + 0.4];
+  for (const cx of px) level.world.add({ type: 'box', min: [cx - 0.4, y, z - 0.4], max: [cx + 0.4, y + 2.4, z + 0.4], tag: 'tor' });
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld(), dark = 0x2a2438;
+  for (const cx of px) {
+    b.box(0.8, 2.3, 0.8, cx, y, z, masonry(-1.15), { r: 0.04 });
+    b.box(1.0, 0.18, 1.0, cx, y + 2.3, z, litTop(STONE_HI, 0.6), { r: 0.04 });
+    const p = pumpkinGeo({ r: 0.32, seg: 14, leafYaw: cx });
+    p.body.translate(cx, y + 2.48, z);
+    b.raw(p.body);
+    const f = faceGeo({ r: 0.32, kind: cx < x ? 'lachen' : 'grinsen' });
+    f.rotateY(-Math.PI / 2); f.translate(cx, y + 2.48, z);
+    g.raw(f);
+  }
+  // Bogen aus Eisen mit Spitzen, kleine Fledermaus oben
+  const R = width / 2 + 0.4;
+  b.torus(R, 0.06, x, y + 2.4, z, dark, { arc: Math.PI, ts: 20 });
+  b.torus(R - 0.25, 0.04, x, y + 2.4, z, dark, { arc: Math.PI, ts: 20 });
+  for (let i = 1; i < 8; i++) { const a = (i / 8) * Math.PI; b.cone(0.05, 0.22, x + Math.cos(a) * (R + 0.05), y + 2.4 + Math.sin(a) * (R + 0.05), z, 0xd8b04a, 4); }
+  const bat = new THREE.Shape();
+  bat.moveTo(0, 0.12); bat.lineTo(0.12, 0.2); bat.lineTo(0.2, 0.05); bat.lineTo(0.45, 0.16); bat.lineTo(0.32, -0.05); bat.lineTo(0.18, 0.02); bat.lineTo(0, -0.12);
+  bat.lineTo(-0.18, 0.02); bat.lineTo(-0.32, -0.05); bat.lineTo(-0.45, 0.16); bat.lineTo(-0.2, 0.05); bat.lineTo(-0.12, 0.2); bat.closePath();
+  b.add(new THREE.ExtrudeGeometry(bat, { depth: 0.05, bevelEnabled: false }), 0x3a2a4a, { p: [x, y + 2.4 + R + 0.1, z], s: 1.3 });
+  // Zaun links/rechts
+  for (const sgn of [-1, 1]) {
+    const a = x + sgn * (width / 2 + 0.85), e = x + sgn * fence, n = Math.max(1, Math.round(Math.abs(e - a) / 0.32));
+    for (let i = 0; i <= n; i++) {
+      const fx = a + (e - a) * (i / n), post = i % 6 === 0;
+      b.cyl(post ? 0.05 : 0.025, post ? 0.05 : 0.025, 1.2 + (post ? 0.15 : 0), fx, y, z, dark, 4);
+      b.cone(post ? 0.09 : 0.05, 0.14, fx, y + 1.2 + (post ? 0.15 : 0), z, post ? 0xd8b04a : dark, 4);
+    }
+    for (const yy of [0.28, 1.05]) b.box(Math.abs(e - a), 0.05, 0.05, (a + e) / 2, y + yy, z, dark, { r: 0 });
+  }
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+  glowPoints(level, px.map((cx) => [cx, y + 2.75, z + 0.3, 1]), { color: 0xff9a2a, size: 2.6, opacity: 0.55, pulse: 0.7 });
+}
+
+/**
+ * Kapelle (Kulisse + Kollision): Grundfläche x0..x1 × zA..zB ab y, Wandhöhe h, Satteldach (First entlang z), Tür vorn
+ * (+Z) mit warmem Licht, Spitzbogenfenster an den Seiten, Rosette über der Tür.
+ */
+export function chapel(level, x0, x1, zA, zB, y, h = 4, o = {}) {
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), w = x1 - x0, d = z0 - z1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  level.world.add({ type: 'box', min: [x0, y, z1], max: [x1, y + h, z0], tag: 'kapelle' });
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  b.box(w, h, d, cx, y, cz, masonry(-h / 2), { r: 0.05 });
+  // Satteldach (First entlang z)
+  const rh = o.roof ?? 2.6, half = w / 2 + 0.35, sl = Math.hypot(half, rh), ang = Math.atan2(rh, half);
+  const roof = litTop(o.roofColor ?? 0x4a3a7a, 0.6);
+  for (const s of [-1, 1]) b.box(sl, 0.18, d + 0.6, cx + s * half / 2, y + h + rh / 2 - 0.09, cz, roof, { rz: -s * ang, r: 0.03, order: 'YXZ' });
+  const tri = new THREE.Shape(); tri.moveTo(-w / 2, 0); tri.lineTo(w / 2, 0); tri.lineTo(0, rh - 0.08); tri.closePath();
+  for (const s of [-1, 1]) b.add(new THREE.ExtrudeGeometry(tri, { depth: 0.2, bevelEnabled: false }), masonry(-9, STONE_HI), { p: [cx, y + h, cz + s * (d / 2) - 0.1] });
+  // Kreuz auf dem Giebel
+  b.box(0.12, 0.9, 0.12, cx, y + h + rh - 0.1, z0 - 0.3, 0x3a3048, { r: 0 });
+  b.box(0.5, 0.1, 0.1, cx, y + h + rh + 0.45, z0 - 0.3, 0x3a3048, { r: 0 });
+  // Tür (leuchtend, Rundbogen) mit Rahmen
+  const dx = o.door ?? cx, zf = z0 + 0.03;
+  g.box(1.3, 2.0, 0.05, dx, y, zf, 0xffc060, { r: 0 });
+  g.cyl(0.65, 0.65, 0.05, dx, y + 2.0, zf, 0xffd080, 14, { rx: Math.PI / 2 });
+  b.box(1.6, 0.18, 0.12, dx, y + 2.65, zf + 0.02, litTop(STONE_HI, 0.6), { r: 0.02 });
+  for (const s of [-1, 1]) b.box(0.18, 2.6, 0.14, dx + s * 0.75, y, zf + 0.02, litTop(STONE_HI, 0.6), { r: 0.02 });
+  // Rosette über der Tür
+  g.cyl(0.55, 0.55, 0.05, cx, y + h + 0.9, zf, 0xff9ad8, 16, { rx: Math.PI / 2 });
+  b.torus(0.6, 0.08, cx, y + h + 0.9, zf + 0.03, STONE_HI, { ts: 18 });
+  for (let k = 0; k < 4; k++) b.box(1.1, 0.06, 0.04, cx, y + h + 0.87, zf + 0.04, STONE_HI, { r: 0, rz: (k / 4) * Math.PI });
+  // Spitzbogenfenster an den Seiten (warm, bunt)
+  const wins = [0xffc060, 0x9ad8ff, 0xff9ad8, 0xb8ff8a];
+  for (const s of [-1, 1]) for (let k = 0; k < 3; k++) {
+    const wz = z1 + d * (k + 1) / 4, xf = s > 0 ? x1 + 0.03 : x0 - 0.03, col = wins[(k + (s > 0 ? 1 : 0)) % 4];
+    g.box(0.05, 1.3, 0.7, xf, y + 1.2, wz, col, { r: 0 });
+    g.cyl(0.35, 0.35, 0.05, xf, y + 2.5, wz, col, 10, { rz: Math.PI / 2 });
+  }
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+  glowPoints(level, [[dx, y + 1.2, zf + 0.5, 1.6], [cx, y + h + 0.9, zf + 0.3, 0.8]], { color: 0xffb050, size: 2.6, opacity: 0.55, pulse: 0.4 });
+}
+
+/** Glockenturm (Kollision bis zur Plattform top): Grundfläche x0..x1 × zA..zB ab y; oben Ecksteine, Holzgerüst mit Glocke. */
+export function bellTower(level, x0, x1, zA, zB, y, top) {
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), w = x1 - x0, d = z0 - z1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  level.world.add({ type: 'box', min: [x0, y, z1], max: [x1, top, z0], tag: 'turm' });
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  b.box(w, top - y, d, cx, y, cz, masonry(-(top - y) / 2), { r: 0.04 });
+  b.box(w + 0.3, 0.2, d + 0.3, cx, top - 0.2, cz, litTop(STONE_HI, 0.6), { r: 0.04 });
+  for (const [ex, ez] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) b.box(0.35, 0.45, 0.35, ex, top, ez, masonry(-9), { r: 0.03 });
+  // Glocke im Holzrahmen (hinten, ohne Kollision)
+  const fz = z1 + 0.35;
+  for (const s of [-1, 1]) b.box(0.12, 1.5, 0.12, cx + s * 0.6, top, fz, litTop(0x7a4a2a, 0.6), { r: 0 });
+  b.box(1.4, 0.14, 0.14, cx, top + 1.5, fz, litTop(0x7a4a2a, 0.6), { r: 0 });
+  b.add(new THREE.LatheGeometry([[0, 0], [0.38, 0.02], [0.34, 0.12], [0.26, 0.4], [0.22, 0.62], [0.1, 0.7], [0, 0.72]].map(([r, hh]) => new THREE.Vector2(r, hh)), 14), litTop(0xffc83a, 0.55), { p: [cx, top + 0.72, fz] });
+  // Fensterschlitze (warm)
+  for (const k of [0.35, 0.65]) g.box(0.25, 0.8, 0.05, cx, y + (top - y) * k, z0 + 0.03, 0xffc060, { r: 0 });
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Gruft-Durchfahrt über einem Bach: hohe Mauern (Kollision) links und rechts des Bachs von zA bis zB – sie decken die
+ * Ufer ab (zu Fuß kein Weg vorbei, nur mit dem Floß hindurch). center(z) → x der Bachmitte, half = halbe Bachbreite + Rand.
+ * Mauern von xL bzw. bis xR, Höhe h ab y; Rundbogen über Ein- und Ausfahrt mit Kürbis, Kerzen an den Innenwänden.
+ */
+export function cryptPassage(level, zA, zB, center, half, xL, xR, y, h, o = {}) {
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), step = o.step ?? 1;
+  const slices = [];
+  for (let za = z0; za > z1 + 1e-6; za -= step) {
+    const zb = Math.max(z1, za - step);
+    const cA = center(za), cB = center(zb);
+    const left = Math.min(cA, cB) - half, right = Math.max(cA, cB) + half;
+    slices.push([za, zb, left, right]);
+    level.world.add({ type: 'box', min: [xL, y, zb], max: [left, y + h, za], tag: 'gruftmauer' });
+    level.world.add({ type: 'box', min: [right, y, zb], max: [xR, y + h, za], tag: 'gruftmauer' });
+  }
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld(), pts = [];
+  for (const [za, zb, left, right] of slices) {
+    const zc = (za + zb) / 2, dz = za - zb;
+    b.box(left - xL, h, dz, (xL + left) / 2, y, zc, masonry(-h / 2 + (o.ground ?? 0)), { r: 0 });
+    b.box(xR - right, h, dz, (right + xR) / 2, y, zc, masonry(-h / 2 + (o.ground ?? 0)), { r: 0 });
+  }
+  for (const zz of [z0, z1]) {
+    const c = center(zz), R = half + 0.2;
+    b.torus(R, 0.35, c, y + h - 0.2, zz, litTop(STONE_HI, 0.6), { arc: Math.PI, ts: 18, rs: 6 });
+    const p = pumpkinGeo({ r: 0.45, seg: 14, leafYaw: zz });
+    p.body.translate(c, y + h - 0.2 + R + 0.2, zz);
+    b.raw(p.body);
+    const f = faceGeo({ r: 0.45, kind: 'grinsen' }); f.rotateY(-Math.PI / 2); f.translate(c, y + h - 0.2 + R + 0.2, zz);
+    g.raw(f);
+    pts.push([c, y + h + R + 0.4, zz + 0.45, 1.4]);
+  }
+  for (let k = 0; k < slices.length; k += 2) {
+    const [za, zb, left, right] = slices[k], zc = (za + zb) / 2;
+    for (const [wx, s] of [[left, 1], [right, -1]]) {
+      g.cyl(0.05, 0.05, 0.22, wx + s * 0.06, y + 1.5, zc, 0xfff0c0, 6);
+      pts.push([wx + s * 0.15, y + 1.8, zc, 0.6]);
+    }
+  }
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+  glowPoints(level, pts, { color: 0xffb860, size: 1.6, opacity: 0.6, pulse: 1.4 });
+}
+
+/**
+ * Klappergarten: niedrige Mauer (0,75 m, Kollision) mit Eisenspitzen um x0..x1 × zA..zB ab y, Eingang gate = { side: 'n' |
+ * 's' | 'w' | 'e', from, to } (offener Abschnitt der Seite), Knochenhäufchen als Zier.
+ */
+export function boneGarden(level, x0, x1, zA, zB, y, gate) {
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), t = 0.4, h = 0.75;
+  const segs = [];
+  const side = (s, a0, a1) => {
+    if (gate?.side === s) { segs.push([s, a0, Math.min(gate.from, gate.to)]); segs.push([s, Math.max(gate.from, gate.to), a1]); }
+    else segs.push([s, a0, a1]);
+  };
+  side('n', x0, x1); side('s', x0, x1); side('w', z1, z0); side('e', z1, z0);
+  const rects = segs.filter(([, a, b2]) => b2 - a > 0.05).map(([s, a, b2]) => (s === 'n' ? [a, b2, z0 - t, z0] : s === 's' ? [a, b2, z1, z1 + t] : s === 'w' ? [x0, x0 + t, a, b2] : [x1 - t, x1, a, b2]));
+  for (const [ax, bx, az, bz] of rects) level.world.add({ type: 'box', min: [ax, y, az], max: [bx, y + h, bz], tag: 'gartenmauer' });
+  if (!level.view) return;
+  const b = new Bld(), dark = 0x2a2438;
+  for (const [ax, bx, az, bz] of rects) {
+    b.box(bx - ax, h, bz - az, (ax + bx) / 2, y, (az + bz) / 2, masonry(-h / 2), { r: 0.03 });
+    const along = bx - ax > bz - az, L0 = along ? bx - ax : bz - az, n = Math.max(1, Math.round(L0 / 0.35));
+    for (let i = 0; i <= n; i++) {
+      const u = i / n, px = along ? ax + (bx - ax) * u : (ax + bx) / 2, pz = along ? (az + bz) / 2 : az + (bz - az) * u;
+      b.cyl(0.022, 0.022, 0.55, px, y + h, pz, dark, 4);
+      b.cone(0.045, 0.13, px, y + h + 0.55, pz, i % 4 === 0 ? 0xd8b04a : dark, 4);
+    }
+  }
+  // Knochenhäufchen (Zier) in den Ecken
+  const bone = litTop(0xfff4e0, 0.7);
+  for (const [bxp, bzp] of [[x0 + 1.0, z1 + 1.0], [x1 - 1.2, z0 - 1.0], [x0 + 1.2, z0 - 1.3]]) {
+    for (let k = 0; k < 4; k++) b.cyl(0.04, 0.04, 0.55, bxp + (k % 2) * 0.2, y + 0.06 + k * 0.05, bzp + (k > 1 ? 0.15 : 0), bone, 5, { rz: Math.PI / 2, yaw: k * 0.9 });
+    b.sphere(0.16, bxp + 0.1, y + 0.3, bzp + 0.1, bone, { ws: 8, hs: 6 });
+  }
+  b.flush(level);
+}
+
+/** Felsnadel aus dem Abgrund (Kollision bis top): Mitte (x, z), Breite w, von bottom bis top, mit Moos obenauf. */
+export function rockNeedle(level, x, z, top, w = 1.6, bottom = top - 8) {
+  level.world.add({ type: 'box', min: [x - w / 2, bottom, z - w / 2], max: [x + w / 2, top, z + w / 2], tag: 'felsnadel' });
+  if (!level.view) return;
+  const b = new Bld();
+  const n = 4, hh = (top - bottom) / n;
+  for (let k = 0; k < n; k++) {
+    const s = w * (1 - k * 0.16);
+    b.box(s, hh + 0.05, s, x + (k % 2 ? 0.08 : -0.06), top - (k + 1) * hh, z + (k % 2 ? -0.05 : 0.07), litTop([0x6a6688, 0x5a5678, 0x4e4a6a, 0x44405e][k], 0.7), { r: 0.12 });
+  }
+  b.box(w + 0.2, 0.18, w + 0.2, x, top - 0.12, z, litTop(MOSS, 0.6), { r: 0.08 });
+  b.flush(level);
+}
+
+/** Text-Sprite (Canvas) – z. B. „Hihi!“ über einem Geist. */
+function textSprite(text, color = '#ffffff', size = 0.9) {
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 128;
+  const g = cv.getContext('2d');
+  g.font = 'bold 64px "Trebuchet MS", sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineWidth = 12; g.strokeStyle = 'rgba(40,20,70,0.85)'; g.strokeText(text, 128, 64);
+  g.fillStyle = color; g.fillText(text, 128, 64);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false }));
+  sp.scale.set(size * 2, size, 1);
+  sp.renderOrder = 6;
+  return sp;
+}
+
+/**
+ * Kichernder Geist: ein kleiner Halloween-Geist schaut neben einem Grabstein hervor (pos) und schwebt; kommt eine Figur
+ * näher als near m, kichert er („Hihi!“, Geister-Klang) und huscht hinter den Grabstein (hide), wo er verschwindet. Ist
+ * niemand mehr in der Nähe (far m), kommt er nach einer Weile wieder hervor. Liefert { giggles }.
+ */
+export function gigglingGhost(level, pos, hide, o = {}) {
+  const st = { giggles: 0, k: 0, want: 0, t: 0 };
+  level.named?.set(o.id ?? 'kichergeist', { info: () => ({ giggles: st.giggles, hidden: st.k > 0.95 }) });
+  const near = o.near ?? 5.5, far = o.far ?? 9;
+  level.onStep((dt) => {
+    const p = level.player;
+    if (!p) return;
+    const d = Math.hypot(p.pos.x - pos[0], p.pos.z - pos[2]);
+    if (st.want === 0 && d < near) { st.want = 1; st.giggles++; st.t = 0; level.sfx?.('ghost'); }
+    else if (st.want === 1 && d > far) { st.t += dt; if (st.t > 2.5) st.want = 0; }
+    st.k += (st.want - st.k) * Math.min(1, dt * 2.2);
+  });
+  if (!level.view) return st;
+  const root = new THREE.Group();
+  const model = hasModel('kreisgeist_halloween') ? getModel('kreisgeist_halloween') : null;
+  if (model) { model.root.scale.setScalar(o.scale ?? 1.1); root.add(model.root); }
+  const hihi = textSprite('Hihi!', '#f4ecff', 0.7);
+  hihi.position.set(0, 1.6, 0);
+  root.add(hihi);
+  addObject(level, root);
+  const hold = {};
+  let t = 0;
+  level.view.onFrame((dt) => {
+    const d = visDt(level, hold, dt);
+    t += d;
+    const k = st.k, e = k * k * (3 - 2 * k);
+    const x = pos[0] + (hide[0] - pos[0]) * e, z = pos[2] + (hide[2] - pos[2]) * e;
+    const y = pos[1] + Math.sin(t * 2.2) * 0.12 + (hide[1] - pos[1]) * e;
+    root.position.set(x, y, z);
+    root.rotation.y = -Math.PI / 2 + Math.sin(t * 1.3) * 0.25 + e * 1.4;
+    root.scale.setScalar(Math.max(0.05, 1 - e * 0.65));
+    root.visible = e < 0.97;
+    hihi.visible = st.want === 1 && e < 0.9;
+    hihi.position.y = 1.5 + e * 0.6;
+    hihi.material.opacity = 1 - e;
+    model?.update?.(d, { anim: e > 0.05 ? 'peek' : 'circle' });
+  });
+  return st;
+}
+
+/**
+ * Krümel mit Laterne am Ufer: jubelt (cheer), sobald eine Figur näher als near m ist, sonst steht er da und lässt die
+ * Laterne pendeln; trägt den Mini-Vampirumhang der Halloween-Verkleidung. pos = Fußpunkt, yaw = Blickrichtung.
+ */
+export function kruemelCameo(level, pos, yaw = -Math.PI / 2, o = {}) {
+  const st = { cheers: 0, on: false };
+  level.named?.set(o.id ?? 'kruemel_ufer', { info: () => ({ cheers: st.cheers, on: st.on }) });
+  const near = o.near ?? 7;
+  level.onStep(() => {
+    const p = level.player;
+    if (!p) return;
+    const on = Math.hypot(p.pos.x - pos[0], p.pos.z - pos[2]) < near;
+    if (on && !st.on) st.cheers++;
+    st.on = on;
+  });
+  if (!level.view || !hasModel('kruemel')) return st;
+  const root = new THREE.Group();
+  root.position.set(pos[0], pos[1], pos[2]);
+  root.rotation.y = yaw;
+  const m = getModel('kruemel');
+  m.root.scale.setScalar(1.35);
+  m.root.traverse((q) => { if (q.isMesh) q.castShadow = false; });
+  root.add(m.root);
+  // Laterne in der Pfote (pendelt), warmer Schein
+  const lant = new THREE.Group();
+  const lp = lanternParts(0.9);
+  lant.add(new THREE.Mesh(lp.body, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.3 })), new THREE.Mesh(lp.glass, new THREE.MeshBasicMaterial({ vertexColors: true })));
+  lant.position.set(0.12, 0.62, 0.34);
+  root.add(lant);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTexture(), color: 0xffc860, transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending }));
+  glow.scale.set(1.6, 1.6, 1);
+  glow.position.set(0.12, 0.38, 0.34);
+  root.add(glow);
+  // Mini-Vampirumhang: dunkles Cape am Rücken
+  const cape = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.55, 10, 1, true, Math.PI * 0.55, Math.PI * 0.9), new THREE.MeshStandardMaterial({ color: 0x2a1838, roughness: 0.6, side: THREE.DoubleSide }));
+  cape.position.set(-0.08, 0.42, 0);
+  root.add(cape);
+  addObject(level, root);
+  const hold = {};
+  let t = 0;
+  level.view.onFrame((dt) => {
+    const d = visDt(level, hold, dt);
+    t += d;
+    lant.rotation.x = Math.sin(t * 2.4) * (st.on ? 0.5 : 0.18);
+    glow.position.y = 0.38 + Math.sin(t * 2.4) * 0.03;
+    try { m.update(d, { anim: st.on ? 'cheer' : 'idle' }); } catch (_) { /* Modell ohne diese Animation */ }
   });
   return st;
 }
