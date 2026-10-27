@@ -950,7 +950,7 @@ export function gluecksHaus(level, def) {
  * ein rot-weißer Leuchtturm mit leuchtender Laterne, Holzstege in die Lagunen, schwimmende Bojen, Strandkörbe.
  * cfg = { huts: [[x, z, yaw, color]], lighthouse: [x, y, z], jetties: [[x, z, len, yaw]], buoys: [[x, z, color]],
  * baskets: [[x, z, yaw, color]], bunting: [{ x, z0, z1, every: 14, h: 3.4 }] (Wimpelketten an Masten neben dem Gleis),
- * islets: [[x, z, r]] (Sandbänke), boats: [[x, z, yaw, color]] (Segelboote), towels: [[x, z, yaw, colorA, colorB]] (Strandtücher), stars: [[x, z]] (Seesterne), pails: [[x, z, color]] (Eimer mit Schaufel),
+ * lagoons: [[z0, z1]] (Schaumkräusel, Schwimmringe, Entchen), islets: [[x, z, r]] (Sandbänke), boats: [[x, z, yaw, color]] (Segelboote), towels: [[x, z, yaw, colorA, colorB]] (Strandtücher), stars: [[x, z]] (Seesterne), pails: [[x, z, color]] (Eimer mit Schaufel),
  * y: Strandhöhe }.
  */
 export function kuestenKulisse(level, cfg) {
@@ -1027,6 +1027,37 @@ export function kuestenKulisse(level, cfg) {
     hood.translate(0, 1.0, -0.2);
     const stripe = (g) => colorize(g, (p, n, o) => mixc(Math.floor((p.x + 0.7) / 0.23) % 2 ? c : w, w, 0, o));
     parts.push(rot(stripe(seat), yaw, x, y, z), rot(stripe(hood), yaw, x, y, z));
+  }
+  // Lagunen: Schaumkräusel, Schwimmringe und Quietsche-Entchen auf dem Wasser
+  const lrnd = new Rnd(91);
+  for (const [z0, z1, xa = -30, xb = 30] of cfg.lagoons ?? []) {
+    for (let i = 0; i < 26; i++) {
+      const x = lrnd.real(xa, xb), z = lrnd.real(z1 + 1, z0 - 1);
+      if (Math.abs(x) < 2.2) continue;
+      const g = new THREE.RingGeometry(0.5 + lrnd.real(0, 0.6), 0.62 + lrnd.real(0, 0.65), 12, 1, lrnd.real(0, TAU), Math.PI * lrnd.real(0.5, 0.9)).toNonIndexed();
+      g.rotateX(-Math.PI / 2);
+      g.translate(x, -0.92, z);
+      parts.push(flat(g, 0xf4ffff));
+    }
+    for (let i = 0; i < 3; i++) {
+      const x = (i % 2 ? 1 : -1) * lrnd.real(5, 14), z = lrnd.real(z1 + 3, z0 - 3);
+      if (i < 2) {
+        const ring = new THREE.TorusGeometry(0.42, 0.16, 8, 16).toNonIndexed();
+        ring.rotateX(Math.PI / 2);
+        ring.translate(x, -0.9, z);
+        parts.push(colorize(ring, (p, n, o) => mixc(L(0xff3a4a), L(0xffffff), Math.floor((Math.atan2(p.z - z, p.x - x) / TAU + 1) * 8) % 2, o)));
+      } else {
+        const body = new THREE.SphereGeometry(0.32, 10, 7).toNonIndexed();
+        body.scale(1.25, 0.8, 1);
+        body.translate(x, -0.82, z);
+        const head = new THREE.SphereGeometry(0.2, 10, 7).toNonIndexed();
+        head.translate(x + 0.22, -0.48, z);
+        const beak = new THREE.ConeGeometry(0.08, 0.18, 6).toNonIndexed();
+        beak.rotateZ(-Math.PI / 2);
+        beak.translate(x + 0.46, -0.5, z);
+        parts.push(flat(body, 0xffd23a), flat(head, 0xffd23a), flat(beak, 0xff8a1a));
+      }
+    }
   }
   // Sandbänke in den Lagunen und kleine Segelboote
   for (const [x, z, r] of cfg.islets ?? []) {

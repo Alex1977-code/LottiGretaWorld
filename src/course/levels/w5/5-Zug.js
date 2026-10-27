@@ -193,6 +193,7 @@ export const LEVEL = {
         { x: -3.9, z0: 26, z1: -14 }, { x: -3.9, z0: -64, z1: -198 }, { x: 3.9, z0: -64, z1: -198 },
         { x: -3.9, z0: -252, z1: -392 }, { x: 3.9, z0: -252, z1: -392 }, { x: -3.9, z0: -438, z1: zH(142) },
       ],
+      lagoons: LAGOONS,
       islets: [[-15, -40, 3.2], [13, -226, 2.6], [-11, -416, 2.4]],
       boats: [[9, -31, 0.5, 0xe8304a], [-13, -222, -0.4, 0x3a8ae8], [10.5, -409, 0.25, 0xffb020], [-20, -50, 1.2, 0x6ad04a]],
       ...strandKram(),
@@ -220,13 +221,13 @@ export const LEVEL = {
   segments: [
     // Bahnhof Goldbucht: Strand, Bahnsteig, Bahnhofshaus
     { type: 'island', pos: [-1, SAND - 2, 13], size: [46, 2, 62], top: 'sand', under: 0 },
-    { type: 'bahnsteig', pos: [4.4, 0, GZ.ZR - 9], size: [5, 1.1, 34], edge: 'left', sign: 'Goldbucht' },
+    { type: 'bahnsteig', pos: [4.4, 0, GZ.ZR - 9], size: [5, 1.1, 34], edge: 'left', sign: 'Goldbucht', roof: false },
     { type: 'killplane', y: -14 },
     // Sandstreifen zwischen den Lagunen, Muschelkap mit Bahnsteig
     { type: 'island', pos: [-1, SAND - 2, (-58 - 205) / 2], size: [56, 2, 147], top: 'sand', under: 0 },
     { type: 'island', pos: [-1, SAND - 2, (-245 - 398) / 2], size: [56, 2, 153], top: 'sand', under: 0 },
     { type: 'island', pos: [3, SAND - 2, (-430 + LOK_Z - 46) / 2], size: [54, 2, -430 - (LOK_Z - 46)], top: 'sand', under: 0 },
-    { type: 'bahnsteig', pos: [4.4, 0, zH(118)], size: [5, 1.1, 44], edge: 'left', sign: 'Muschelkap' },
+    { type: 'bahnsteig', pos: [4.4, 0, zH(118)], size: [5, 1.1, 44], edge: 'left', sign: 'Muschelkap', roof: false },
     { type: 'pipe', id: 'glueck_rohr', pos: [4.6, 1.1, PIPE_Z], height: 1.0, radius: 0.85, color: 0xffc21a, target: 'garten_rohr' },
     { type: 'sign', pos: [6.4, 1.1, PIPE_Z + 2.4], text: 'Glückshaus', yaw: 0 },
     // Gleis (Gerüstbrücken über den Lagunen)
