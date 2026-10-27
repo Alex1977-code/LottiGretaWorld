@@ -105,6 +105,91 @@ const ROUTES = {
       ['ziel', [2, 30.6, -178.6]],
     ],
   },
+  'H-Burg': {
+    start: [0, 2, 9],
+    meta: { stars: 3, stamp: true, time: 400, theme: 'castle_night', music: 'course_brummula', archetype: 'boss' },
+    enemies: { kuerbling: 5, klapperknochen: 4, spuk: 1, kreisgeist_kreis: 1, graf_brummbaer: 1 },
+    main: [
+      { name: 'Vorhof', to: [0, -4.4], within: 0.6 },
+      { name: 'Zugbrücke', to: [0, -14.6], within: 0.6 },
+      { name: 'Burgtor', to: [0, -22], within: 0.6 },
+      { name: 'Ahnengalerie', to: [0, -58], within: 0.6 },
+      { name: 'Spukball-Saal', to: [-7.4, -70], within: 0.6 },
+      { to: [-7.4, -90], within: 0.6 },
+      { name: 'Checkpoint', to: [0, -100.2], within: 0.6 },
+      { name: 'Treppe', to: [0, -113.4], within: 0.6 },
+      { to: [0, -120.4], within: 0.4, run: false },
+      { name: 'Laternenpfahl abwarten', lightOn: 'bruckenpfahl' },
+      { name: 'Geisterbrücke 1', to: [0, -124.3], jump: 14, within: 0.6, run: false },
+      { name: 'Geisterbrücke 2', to: [0, -127.5], jump: 14, within: 0.6, run: false },
+      { name: 'Geisterbrücke 3', to: [0, -130.7], jump: 14, within: 0.6, run: false },
+      { name: 'Absatz 2', to: [0, -135.6], jump: 14, within: 0.6, run: false },
+      { name: 'Treppe 2', to: [0, -150], within: 0.6 },
+      { name: 'Wehrgang', to: [1.6, -183], within: 0.6 },
+      { name: 'Graf Brummbär', boss: 'graf' }, { wait: 60 },
+      { star: 2 },
+      { name: 'Warp-Box', to: [0, -203.5], jump: 30, within: 0.3, run: false, stopIf: 'onBalkon' },
+      { wait: 40 },
+      { expect: 'onBalkon' },
+      { name: 'Zielmast', to: [0, -243.2], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'Graf Brummbär mit zurückgeworfenen Kürbis-Bomben besiegt (3 Treffer), Stern 2', ok: (r) => r.mech.boss?.state === 'gone' && r.mech.boss?.hits === 3 && r.rt.stars[2] },
+    ],
+    targets: [
+      { name: 'Stern 0: Gruft – Grabstein-Schalter stampfen → Steinstufen zur Nische', star: 0, from: [3, 2, -36.3],
+        legs: [{ to: [9, -35.7], within: 0.2, run: false }, { pound: [9, -34.6], hold: 40, r: 0.35 }, { wait: 90 }, { expect: 'gruftwegOffen' },
+          { to: [9.6, -42.4], within: 0.4, run: false }, { to: [9.6, -44.8], jump: 24, jumpAt: 1.5, within: 0.5, run: false },
+          { to: [11.4, -44.8], jump: 24, within: 0.5, run: false }, { to: [13.2, -44.8], jump: 24, within: 0.5, run: false },
+          { to: [16, -45.2], jump: 30, within: 0.6, run: false }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Stampfen (Daraufspringen genügt nicht)', star: 0, expectNot: true, from: [7.6, 2, -36], heroes: ['lotti'],
+        legs: [{ to: [9, -34.6], jump: 30, within: 0.5, run: false }, { wait: 60 }, { expect: 'gruftwegZu' }, { to: [13.8, -42], within: 0.4, run: false }, { hop: 40 }, { wait: 40 }] },
+      { name: 'Stern 1: Kürbis-Bombe vom Karren auf den Bonbon-Tresor werfen', star: 1, from: [-3, 2, -90],
+        legs: [{ bomb: { pick: [-4.6, -93.2], from: [-8, -92.6], aim: [-8, -97] } }, { wait: 60 }, { expect: 'tresorOffen' }, { to: [-8, -97], within: 0.25, run: false, autoJump: false }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stern 1 nicht durch Stampfen (Tresor bleibt heil)', star: 1, expectNot: true, from: [-8, 2, -92.8], heroes: ['lotti'],
+        legs: [{ pound: [-8, -96] }, { wait: 30 }, { pound: [-8, -97] }, { wait: 30 }, { expect: 'tresorHeil' }] },
+      { name: 'Stern 2: Graf Brummbär besiegen (Kürbis-Bomben zurückwerfen)', star: 2, from: [0, 10, -181.6],
+        legs: [{ boss: 'graf' }, { wait: 60 }, { star: 2 }], shot: 'stern2', mechText: (r) => JSON.stringify(r.mech.boss) },
+      { name: 'Stempel: Spinnennetz in der Saal-Ecke → Kronleuchter', stamp: true, from: [7.4, 2, -93.6],
+        legs: [{ bounce: [6.2, -86], at: [8.6, -90.6], steerBelow: 30 }, { stamp: true }], shot: 'stempel' },
+      { name: 'Stempel nicht ohne Netz (Sprung unter dem Kronleuchter)', stamp: true, expectNot: true, from: [6.2, 2, -84], heroes: ['lotti'],
+        legs: [{ to: [6.2, -86], within: 0.3, run: false }, { hop: 40 }, { wait: 30 }] },
+    ],
+    extra: [
+      { name: 'Geist lugt hinter dem Grabstein hervor und verschwindet kichernd', from: [-1, 2, 8], heroes: ['lotti'],
+        legs: [{ to: [-3.6, 2], within: 0.5, run: false }, { wait: 30 }, { expect: 'kicherte' }] },
+      { name: 'Extraleben: unsichtbarer Block in der Ahnengalerie', from: [0, 2, -41.5], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [0, -44], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Bomben-Nachschub: Bombe weggeworfen → neue auf dem Karren', from: [-3, 2, -90], heroes: ['lotti'],
+        legs: [{ bomb: { pick: [-4.6, -93.2], from: [0, -88], aim: [4, -84] } }, { bomb: { pick: [-4.6, -93.2], from: [0, -88], aim: [4, -84] } }, { wait: 400 }, { expect: 'neueBombe' }, { expect: 'tresorHeil' }] },
+      { name: 'Geisterbrücke: fest nur bei Laternenlicht', from: [0, 6, -119], heroes: ['lotti'],
+        legs: [{ until: 'bruckeFest', max: 1200 }, { until: 'bruckeWeg', max: 1200 }] },
+      { name: 'Krümel mit Laterne jubelt am Siegerbalkon', from: [0, 10, -233], heroes: ['lotti'],
+        legs: [{ to: [1, -236.6], within: 0.4, run: false }, { wait: 30 }, { expect: 'kruemelJubelt' }] },
+      { name: 'Tod im Kampf → Neustart vor dem Dach, Graf wieder 3/3', from: [0, 10, -181.6], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ to: [0, -192], within: 0.6 }, { wait: 2400 }, { expect: 'respawnDach' }, { expect: 'grafVoll' }] },
+    ],
+    shots: [
+      ['start', [0, 2, 9]],
+      ['vorhof', [-3, 2, 1]],
+      ['bruecke', [0, 2, -8]],
+      ['tor', [0, 2, -14]],
+      ['galerie', [0, 2, -30]],
+      ['galerie2', [0, 2, -48]],
+      ['gruft', [10, 2, -36.5]],
+      ['saal', [0, 2, -66]],
+      ['saal2', [-5, 2, -86]],
+      ['tresor', [-6, 2, -91]],
+      ['leuchter', [7, 2, -88]],
+      ['treppe', [0, 2, -101]],
+      ['absatz', [0, 6, -114]],
+      ['geisterbruecke', [0, 6, -119]],
+      ['wehrgang', [0, 10, -152]],
+      ['wehrgang2', [0, 10, -172]],
+      ['dach', [0, 10, -184]],
+      ['ziel', [0, 10, -234]],
+    ],
+  },
 };
 
 const PORT = 4590;
@@ -144,6 +229,20 @@ function install() {
     waved: () => (L.named.get('winkekuerbis')?.waves ?? 0) >= 1,
     respawnBalkon: () => Math.abs(P().pos.z + 95) < 2.5 && P().pos.y > 16.5 && !P().dead,
     onChimney: () => P().pos.y > 37.4,
+    // H-Burg
+    onBalkon: () => P().pos.z < -226 && P().pos.y > 9.5,
+    gruftwegOffen: () => (L.named.get('gruftweg')?.parts ?? []).every((q) => q.shown),
+    gruftwegZu: () => !L.named.get('gruftweg')?.shown && !(L.named.get('gruftweg')?.parts ?? []).some((q) => q.shown),
+    tresorHeil: () => ['tresor_vorn', 'tresor_hinten', 'tresor_deckel'].every((id) => (L.named.get(id)?.broken ?? 0) === 0),
+    tresorOffen: () => (L.named.get('tresor_vorn')?.broken ?? 0) > 0,
+    kicherte: () => (L.named.get('kichergeist')?.giggles ?? 0) >= 1 && L.named.get('kichergeist')?.state === 'versteckt',
+    kruemelJubelt: () => L.named.get('kruemel')?.state === 'jubelt',
+    neueBombe: () => (L.named.get('nachschub')?.spawned ?? 0) >= 1 && L.entities.some((e) => e.kind === 'kuerbis_bombe' && !e.removed && Math.hypot(e.pos.x + 4.6, e.pos.z + 93.2) < 1.5),
+    bruckeFest: () => L.named.get('bruckenpfahl')?.on && (L.named.get('geisterbruecke')?.parts ?? []).every((q) => q.solid),
+    bruckeWeg: () => !L.named.get('bruckenpfahl')?.on && (L.named.get('geisterbruecke')?.parts ?? []).every((q) => !q.solid),
+    pfahlAus: () => !L.named.get('bruckenpfahl')?.on,
+    respawnDach: () => Math.abs(P().pos.z + 181.6) < 2.5 && P().pos.y > 9.5 && !P().dead,
+    grafVoll: () => { const g = L.named.get('graf'); return g.hp === g.maxHp && g.state === 'wait'; },
   };
   const W = {
     place(pos, o = {}) {
@@ -238,7 +337,7 @@ function install() {
           for (; k < 400; k++) {
             const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
             if (k > 5 && p.mode === 'ground') break;
-            if (!pounding && k > 8 && d < 0.4 && p.vel.y < 3) pounding = true;
+            if (!pounding && k > 8 && d < (Lg.r ?? 0.4) && p.vel.y < 3) pounding = true;
             tick(pounding ? { crouch: true } : { ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, d * 1.2))), jump: k < (Lg.hold ?? 34), run: false });
           }
           log.push(['stampfen auf', ...P3(), p.mode, p.state, pounding]);
@@ -348,6 +447,71 @@ function install() {
             if (a > 10 && p.mode === 'ground') break;
           }
           log.push(['von der Blase hinüber', r, a, ...P3(), p.ground?.tag]);
+          continue;
+        }
+        // ------------------------------------------------ Laternenpfahl: frisch angegangen abwarten (aus → an)
+        if (Lg.lightOn) {
+          const lp = L.named.get(Lg.lightOn);
+          let k = 0;
+          for (; k < 2400 && lp.on; k++) tick({});
+          for (; k < 4800 && !lp.on; k++) tick({});
+          log.push(['Licht an', Lg.lightOn, k, lp.on]);
+          continue;
+        }
+        // ------------------------------------------------ Kürbis-Bombe: aufheben, hintragen, in Richtung aim werfen
+        if (Lg.bomb) {
+          const B = Lg.bomb;
+          const near = () => L.entities.filter((e) => e.kind === 'kuerbis_bombe' && !e.removed && !e.carrier && (e.state === 'idle' || e.state === 'lit') && Math.hypot(e.pos.x - B.pick[0], e.pos.z - B.pick[1]) < 3.5)
+            .sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0];
+          let k = 0, bomb = null;
+          for (; k < 900 && !p.holding; k++) {
+            bomb = near();
+            if (!bomb) { tick({}); continue; }
+            const dx = bomb.pos.x - p.pos.x, dz = bomb.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            if (d < 0.95 && p.mode === 'ground') { tick({ ...this.stick(dx, dz, 0.3), action: true }); tick({}); continue; }
+            tick({ ...this.stick(dx, dz, Math.max(0.3, Math.min(1, d))), run: false });
+          }
+          log.push(['Bombe aufgehoben', !!p.holding, k, ...P3()]);
+          if (!p.holding) { log.push(['FEHLER: keine Bombe']); break; }
+          const held = p.holding;
+          goTo(B.from[0], B.from[1], 0.35, 600);
+          for (let i = 0; i < 8; i++) tick({ ...this.stick(B.aim[0] - p.pos.x, B.aim[1] - p.pos.z, 0.3) });
+          tick({ action: true }); tick({});
+          mech.bombs++;
+          let e = 0;
+          for (; e < 400 && !held.exploded && !held.removed; e++) tick({});
+          log.push(['Bombe geworfen', held.exploded, e, ...P3()]);
+          continue;
+        }
+        // ------------------------------------------------ Bosskampf Graf Brummbär: gelandete Bomben aufheben, zurückwerfen
+        if (Lg.boss) {
+          const g = L.named.get(Lg.boss);
+          const [cx, , cz] = g.home ? [g.home.x, g.home.y, g.home.z] : [0, 0, 0];
+          goTo(cx, cz + 6.5, 0.6, 900);
+          let k = 0, throws = 0, picks = 0, hits0 = g.hp;
+          const t0 = steps;
+          for (; k < 120 * 200 && g.state !== 'gone' && !p.dead; k++) {
+            if (p.holding) {
+              const dx = g.pos.x - p.pos.x, dz = g.pos.z - p.pos.z;
+              for (let i = 0; i < 6; i++) tick({ ...this.stick(dx, dz, 0.3) });
+              tick({ action: true }); tick({});
+              throws++;
+              continue;
+            }
+            const cand = g.vulnerable ? L.entities.filter((e) => e.kind === 'kuerbis_bombe' && !e.removed && !e.carrier && e.state === 'lit' && e.fuse > 1.1 && Math.hypot(e.pos.x - g.pos.x, e.pos.z - g.pos.z) > 2.2)
+              .sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0] : null;
+            if (cand) {
+              const dx = cand.pos.x - p.pos.x, dz = cand.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              if (d < 0.95 && p.mode === 'ground') { tick({ ...this.stick(dx, dz, 0.3), action: true }); tick({}); if (p.holding) picks++; continue; }
+              tick({ ...this.stick(dx, dz, Math.max(0.3, Math.min(1, d))), run: d > 2.5 });
+              continue;
+            }
+            const hx = cx, hz = cz + 4.5, dx = hx - p.pos.x, dz = hz - p.pos.z, d = Math.hypot(dx, dz);
+            tick(d > 0.8 ? { ...this.stick(dx, dz, Math.min(1, d / 2)), run: false } : {});
+          }
+          mech.boss = { state: g.state, hp: g.hp, hits: hits0 - g.hp, throws, picks, swarms: g.swarms ?? 0, time: +((steps - t0) / 120).toFixed(1) };
+          log.push(['kampf', JSON.stringify(mech.boss)]);
+          if (g.state !== 'gone') log.push(['FEHLER: Graf nicht besiegt', g.state, g.hp]);
           continue;
         }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)

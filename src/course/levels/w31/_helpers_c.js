@@ -536,3 +536,564 @@ export function funkelSpur(level, pts, color = 0xfff0a0, size = 0.9, o = {}) {
   addObject(level, P, (dt, t) => { m.opacity = (o.opacity ?? 0.75) * (0.7 + 0.3 * Math.sin(t * 3)); });
   return P;
 }
+
+/** Sprechblase (Sprite) mit Text und optionaler Unterzeile. */
+export function blase(text, sub, o = {}) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const g = c.getContext('2d');
+  const r = 46;
+  g.fillStyle = o.fill ?? '#fff8ec'; g.strokeStyle = o.ink ?? '#4a2a6a'; g.lineWidth = 10;
+  g.beginPath();
+  g.moveTo(30 + r, 20); g.lineTo(482 - r, 20); g.quadraticCurveTo(482, 20, 482, 20 + r); g.lineTo(482, 180 - r);
+  g.quadraticCurveTo(482, 180, 482 - r, 180); g.lineTo(290, 180); g.lineTo(240, 238); g.lineTo(236, 180); g.lineTo(30 + r, 180);
+  g.quadraticCurveTo(30, 180, 30, 180 - r); g.lineTo(30, 20 + r); g.quadraticCurveTo(30, 20, 30 + r, 20); g.closePath();
+  g.fill(); g.stroke();
+  g.fillStyle = o.ink ?? '#4a2a6a'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = 'bold 58px "Nunito", "Arial Rounded MT Bold", Arial, sans-serif';
+  g.fillText(text, 256, sub ? 78 : 100);
+  if (sub) { g.font = 'bold 34px "Nunito", "Arial Rounded MT Bold", Arial, sans-serif'; g.fillStyle = o.accent ?? '#e8742a'; g.fillText(sub, 256, 140); }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  sp.scale.set(2.4, 1.2, 1);
+  sp.renderOrder = 6;
+  return sp;
+}
+
+// =====================================================================================================================
+// 3) Gruselschloss (H-Burg)
+// =====================================================================================================================
+
+/** Stimmungen je Bereich (wie 5-1): zones = [{ min: [x, z], max: [x, z], mood }] (sonst Grundstimmung); level.moodNow. */
+export function stimmungen(level, zones, time = 1.0) {
+  level.moodNow = null;
+  const pick = (p) => {
+    for (const zn of zones) if (p.pos.x >= zn.min[0] && p.pos.x <= zn.max[0] && p.pos.z >= zn.min[1] && p.pos.z <= zn.max[1]) return zn.mood ?? null;
+    return null;
+  };
+  const apply = (fast) => {
+    const p = level.player;
+    if (!p) return;
+    const m = pick(p);
+    if (m === level.moodNow) return;
+    level.moodNow = m;
+    level.view?.setMood?.(m, { time: fast ? 0 : time });
+  };
+  apply(true);
+  level.onStep(() => apply(false));
+}
+
+/** Roter Gala-Teppich mit Goldkante und Rautenmuster: list = [{ x0, x1, z0, z1, y }] (flach, nur Optik). */
+export function teppich(level, list) {
+  const red = C(0xc8303e), redHi = C(0xe0505a), redLow = C(0x8a1a2a), gold = C(0xf0c050);
+  const parts = [];
+  for (const t of list) {
+    const x0 = Math.min(t.x0, t.x1), x1 = Math.max(t.x0, t.x1), z0 = Math.min(t.z0, t.z1), z1 = Math.max(t.z0, t.z1);
+    const w = x1 - x0, d = z1 - z0;
+    const g = new THREE.PlaneGeometry(w, d, Math.max(1, Math.round(w * 2)), Math.max(1, Math.round(d * 2))).toNonIndexed();
+    g.rotateX(-PI / 2); g.translate((x0 + x1) / 2, t.y + 0.025, (z0 + z1) / 2);
+    parts.push(colorize(g, (p, n, o) => {
+      const ex = Math.min(p.x - x0, x1 - p.x), ez = Math.min(p.z - z0, z1 - p.z), e = Math.min(ex, ez);
+      if (e < 0.16) { o[0] = gold[0]; o[1] = gold[1]; o[2] = gold[2]; return; }
+      const u = (p.x - (x0 + x1) / 2), v = p.z;
+      const dia = Math.abs(((u / 0.9 + v / 0.9) % 2 + 2) % 2 - 1) + Math.abs(((u / 0.9 - v / 0.9) % 2 + 2) % 2 - 1);
+      mixc(red, redLow, 0.25, o);
+      if (dia < 0.25) mixc(o, redHi, 0.6, o);
+      if (e < 0.3) mixc(o, redLow, 0.6, o);
+    }));
+  }
+  bake(level, parts, { castShadow: false });
+}
+
+/**
+ * Zinnenmauer (achsenparallel) von from nach to: Brüstung h m (fest, camIgnore) mit Zinnen-Kappen und Fugen.
+ * list = [{ from: [x, y, z], to: [x, y, z], h: 1.0, d: 0.6, zinnen: true, solid: true }]
+ */
+export function zinnenMauer(level, list) {
+  const parts = [];
+  const s0 = C(0xb8b0c8), s1 = C(0x8a82a0), mortar = C(0x5a5470);
+  for (const m of list) {
+    const [ax, ay, az] = m.from, [bx, , bz] = m.to;
+    const h = m.h ?? 1.0, d = m.d ?? 0.6;
+    const alongX = Math.abs(bx - ax) >= Math.abs(bz - az);
+    const len = alongX ? Math.abs(bx - ax) : Math.abs(bz - az);
+    const cx = (ax + bx) / 2, cz = (az + bz) / 2;
+    const sx = alongX ? len : d, sz = alongX ? d : len;
+    if (m.solid !== false) level.world.add({ type: 'box', min: [cx - sx / 2, ay, cz - sz / 2], max: [cx + sx / 2, ay + h, cz + sz / 2], camIgnore: true, noWallSlide: true, tag: 'zinnenmauer' });
+    if (!level.view) continue;
+    const g = new THREE.BoxGeometry(sx, h, sz, Math.max(1, Math.round(sx * 2)), 2, Math.max(1, Math.round(sz * 2))).toNonIndexed();
+    g.translate(cx, ay + h / 2, cz);
+    parts.push(colorize(g, (p, n, o) => {
+      const yy = p.y - ay, k = alongX ? p.x : p.z;
+      mixc(s0, s1, n.y > 0.5 ? 0.05 : 0.4 + 0.2 * Math.sin(k * 2.3), o);
+      if (n.y < 0.5 && ((yy % 0.5) < 0.05 || (((k + (Math.floor(yy / 0.5) % 2) * 0.4) / 0.8) % 1 + 1) % 1 < 0.06)) mixc(o, mortar, 0.6, o);
+    }));
+    if (m.zinnen !== false) {
+      const n = Math.floor(len / 1.2);
+      for (let i = 0; i < n; i++) {
+        if (i % 2) continue;
+        const u = -len / 2 + (i + 0.5) * (len / n);
+        parts.push(blk(alongX ? 0.6 : d + 0.04, 0.5, alongX ? d + 0.04 : 0.6, alongX ? cx + u : cx, ay + h, alongX ? cz : cz + u, 0xa8a0bc, { top: 0xd0c8e0 }));
+      }
+    }
+  }
+  bake(level, parts, { castShadow: true });
+}
+
+/** Torbogen (Burgtor): zwei Pfeiler (fest) und ein Rundbogen mit Schlussstein (Optik). list = [{ x, y, z, width: 4.4, height: 4.2, depth: 2 }] */
+export function torbogen(level, list) {
+  const parts = [], glow = [];
+  for (const t of list) {
+    const W = t.width ?? 4.4, H = t.height ?? 4.2, D = t.depth ?? 2;
+    for (const sd of [-1, 1]) {
+      const px = t.x + sd * (W / 2 + 0.5);
+      level.world.add({ type: 'box', min: [px - 0.5, t.y, t.z - D / 2], max: [px + 0.5, t.y + H, t.z + D / 2], camIgnore: true, tag: 'torpfeiler' });
+      parts.push(blk(1, H, D, px, t.y, t.z, 0x9a92b0, { top: 0xc8c0d8 }));
+      // Fackel-Laterne (Glühen) an der Vorderseite
+      glow.push(zyl(0.12, 0.12, 0.34, px, t.y + H * 0.6, t.z + D / 2 + 0.18, 0xffc860, { seg: 8 }));
+      parts.push(blk(0.32, 0.08, 0.32, px, t.y + H * 0.6 - 0.08, t.z + D / 2 + 0.18, 0x3a3440));
+      parts.push(blk(0.34, 0.06, 0.34, px, t.y + H * 0.6 + 0.34, t.z + D / 2 + 0.18, 0x3a3440));
+    }
+    // Bogen: halber Ring aus Keilsteinen
+    const N = 11, rO = W / 2 + 1, rI = W / 2;
+    for (let i = 0; i < N; i++) {
+      const a0 = (i / N) * PI, a1 = ((i + 1) / N) * PI;
+      const sh = new THREE.Shape();
+      sh.moveTo(Math.cos(a0) * rI, Math.sin(a0) * rI); sh.lineTo(Math.cos(a0) * rO, Math.sin(a0) * rO);
+      sh.lineTo(Math.cos(a1) * rO, Math.sin(a1) * rO); sh.lineTo(Math.cos(a1) * rI, Math.sin(a1) * rI); sh.closePath();
+      const g = ni(new THREE.ExtrudeGeometry(sh, { depth: D, bevelEnabled: false }));
+      g.translate(0, 0, -D / 2);
+      g.translate(t.x, t.y + H, t.z);
+      const key = i === (N >> 1);
+      parts.push(colorize(g, (p, n, o) => mixc(C(key ? 0xd8b050 : (i % 2 ? 0xa8a0bc : 0x948ca8)), C(key ? 0xfff0a0 : 0xc8c0d8), smooth(-0.3, 1, n.y * 0.6 + n.z * 0.5), o)));
+    }
+    // Mauerstück über dem Bogen
+    parts.push(blk(W + 2, 1.2, D, t.x, t.y + H + rO - 0.4, t.z, 0x8a82a0, { top: 0xb8b0c8 }));
+  }
+  bake(level, parts, { castShadow: true });
+  bake(level, glow, { material: 'glow', castShadow: false });
+}
+
+// ------------------------------------------------------------------ Ahnengalerie: Gemälde der Familie Brummbär
+
+const AHNEN = [
+  { name: 'Ur-Opa Brummbär', bg: ['#6a4a9a', '#3a2a5a'], hat: 'zylinder', extra: 'monokel', fur: '#9a6a3a' },
+  { name: 'Oma Brumhilde', bg: ['#3a8a6a', '#1e4a3a'], hat: 'hexe', extra: 'brille', fur: '#b08050' },
+  { name: 'Baby Brummbärchen', bg: ['#e88a3a', '#8a3a1a'], hat: 'kuerbis', extra: 'schnuller', fur: '#c89060' },
+  { name: 'Tante Bärbel', bg: ['#c84a7a', '#6a1a3a'], hat: 'schleife', extra: 'fledermaus', fur: '#8a5a3a' },
+  { name: 'Graf Brummbär', bg: ['#8a2a3a', '#2a0a1a'], hat: 'zylinder', extra: 'umhang', fur: '#7a4a2a' },
+  { name: 'Onkel Bruno', bg: ['#2a6aa8', '#14305a'], hat: 'krone', extra: 'schnurrbart', fur: '#a07040' },
+];
+
+function paintAhnen() {
+  const W = 256, H = 320, c = document.createElement('canvas');
+  c.width = W * 3; c.height = H * 2;
+  const g = c.getContext('2d');
+  AHNEN.forEach((a, i) => {
+    const ox = (i % 3) * W, oy = Math.floor(i / 3) * H;
+    const grd = g.createRadialGradient(ox + W / 2, oy + H * 0.4, 20, ox + W / 2, oy + H * 0.45, W * 0.8);
+    grd.addColorStop(0, a.bg[0]); grd.addColorStop(1, a.bg[1]);
+    g.fillStyle = grd; g.fillRect(ox, oy, W, H);
+    const cx = ox + W / 2, cy = oy + 150;
+    // Körper / Kragen
+    g.fillStyle = a.extra === 'umhang' ? '#1a0a24' : '#3a2a4a';
+    g.beginPath(); g.ellipse(cx, oy + 300, 100, 90, 0, Math.PI, 0); g.fill();
+    if (a.extra === 'umhang') { g.fillStyle = '#c8203a'; g.beginPath(); g.moveTo(cx - 60, oy + 230); g.lineTo(cx, oy + 300); g.lineTo(cx + 60, oy + 230); g.closePath(); g.fill(); }
+    g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(cx - 22, oy + 222); g.lineTo(cx, oy + 262); g.lineTo(cx + 22, oy + 222); g.closePath(); g.fill();
+    // Kopf, Ohren, Schnauze
+    g.fillStyle = a.fur;
+    for (const sd of [-1, 1]) { g.beginPath(); g.arc(cx + sd * 58, cy - 58, 26, 0, Math.PI * 2); g.fill(); }
+    g.beginPath(); g.ellipse(cx, cy, 76, 70, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#f0c8a0'; for (const sd of [-1, 1]) { g.beginPath(); g.arc(cx + sd * 58, cy - 58, 13, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = '#f0d0a8'; g.beginPath(); g.ellipse(cx, cy + 26, 34, 26, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#2a1410'; g.beginPath(); g.ellipse(cx, cy + 14, 13, 9, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#2a1410'; g.lineWidth = 4; g.beginPath(); g.arc(cx, cy + 26, 14, 0.2, Math.PI - 0.2); g.stroke();
+    // Augen (fröhlich)
+    for (const sd of [-1, 1]) { g.beginPath(); g.arc(cx + sd * 28, cy - 12, 8, Math.PI, 0); g.stroke(); }
+    // Wangen
+    g.fillStyle = 'rgba(255,120,140,0.55)'; for (const sd of [-1, 1]) { g.beginPath(); g.arc(cx + sd * 48, cy + 14, 10, 0, Math.PI * 2); g.fill(); }
+    // Hüte
+    if (a.hat === 'zylinder') {
+      g.fillStyle = '#1a1220'; g.fillRect(cx - 40, cy - 150, 80, 84); g.fillRect(cx - 62, cy - 70, 124, 12);
+      g.fillStyle = '#c8203a'; g.fillRect(cx - 40, cy - 84, 80, 12);
+    } else if (a.hat === 'hexe') {
+      g.fillStyle = '#4a2a8a'; g.beginPath(); g.moveTo(cx - 70, cy - 58); g.lineTo(cx + 70, cy - 58); g.lineTo(cx + 26, cy - 100); g.quadraticCurveTo(cx + 10, cy - 170, cx + 60, cy - 165); g.quadraticCurveTo(cx - 20, cy - 160, cx - 26, cy - 100); g.closePath(); g.fill();
+      g.fillStyle = '#ff9a2a'; g.fillRect(cx - 32, cy - 84, 62, 10);
+    } else if (a.hat === 'kuerbis') {
+      g.fillStyle = '#ff8a1a'; g.beginPath(); g.ellipse(cx, cy - 70, 52, 30, 0, Math.PI, 0); g.fill();
+      g.fillStyle = '#4a8a2a'; g.fillRect(cx - 4, cy - 112, 8, 16);
+    } else if (a.hat === 'schleife') {
+      g.fillStyle = '#ff5aa8'; g.beginPath(); g.moveTo(cx, cy - 70); g.lineTo(cx - 44, cy - 96); g.lineTo(cx - 44, cy - 50); g.closePath(); g.moveTo(cx, cy - 70); g.lineTo(cx + 44, cy - 96); g.lineTo(cx + 44, cy - 50); g.closePath(); g.fill();
+      g.beginPath(); g.arc(cx, cy - 72, 10, 0, Math.PI * 2); g.fill();
+    } else if (a.hat === 'krone') {
+      g.fillStyle = '#ffd040'; g.beginPath(); g.moveTo(cx - 50, cy - 62); g.lineTo(cx - 50, cy - 104); g.lineTo(cx - 25, cy - 80); g.lineTo(cx, cy - 112); g.lineTo(cx + 25, cy - 80); g.lineTo(cx + 50, cy - 104); g.lineTo(cx + 50, cy - 62); g.closePath(); g.fill();
+    }
+    // Extras
+    g.lineWidth = 4;
+    if (a.extra === 'monokel') { g.strokeStyle = '#ffd040'; g.beginPath(); g.arc(cx + 28, cy - 10, 17, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.moveTo(cx + 44, cy); g.lineTo(cx + 50, cy + 60); g.stroke(); }
+    if (a.extra === 'brille') { g.strokeStyle = '#2a1410'; for (const sd of [-1, 1]) { g.beginPath(); g.arc(cx + sd * 28, cy - 10, 15, 0, Math.PI * 2); g.stroke(); } }
+    if (a.extra === 'schnuller') { g.fillStyle = '#6ad8ff'; g.beginPath(); g.arc(cx, cy + 40, 12, 0, Math.PI * 2); g.fill(); g.fillStyle = '#ffffff'; g.beginPath(); g.arc(cx, cy + 40, 5, 0, Math.PI * 2); g.fill(); }
+    if (a.extra === 'fledermaus') { g.fillStyle = '#2a1a3a'; g.beginPath(); g.ellipse(cx + 80, cy - 90, 10, 8, 0, 0, Math.PI * 2); g.moveTo(cx + 70, cy - 90); g.quadraticCurveTo(cx + 50, cy - 110, cx + 40, cy - 86); g.quadraticCurveTo(cx + 58, cy - 92, cx + 70, cy - 90); g.moveTo(cx + 90, cy - 90); g.quadraticCurveTo(cx + 110, cy - 110, cx + 120, cy - 86); g.quadraticCurveTo(cx + 102, cy - 92, cx + 90, cy - 90); g.fill(); }
+    if (a.extra === 'schnurrbart') { g.fillStyle = '#3a2010'; g.beginPath(); g.ellipse(cx - 18, cy + 32, 20, 7, 0.3, 0, Math.PI * 2); g.ellipse(cx + 18, cy + 32, 20, 7, -0.3, 0, Math.PI * 2); g.fill(); }
+    // Namensschild unten
+    g.fillStyle = '#e8c050'; g.fillRect(ox + 28, oy + H - 46, W - 56, 34);
+    g.fillStyle = '#4a2a10'; g.font = 'bold 22px "Nunito", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(a.name, ox + W / 2, oy + H - 29);
+  });
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/**
+ * Ahnengalerie: Gemälde der Familie Brummbär (ein Leinwand-Atlas, ein Zeichenaufruf) in Goldrahmen.
+ * list = [{ pos: [x, y, z] (Bildmitte), yaw (0 = Bild blickt nach +Z, π/2 = nach +X, −π/2 = nach −X), motiv: 0..5, size: 1.6 }]
+ */
+export function ahnenGalerie(level, list) {
+  if (!level.view) return;
+  const pos = [], uv = [], idx = [];
+  const frames = [];
+  for (const it of list) {
+    const [x, y, z] = it.pos, yaw = it.yaw ?? 0, k = it.size ?? 1.6;
+    const w = k * 0.8, h = k;
+    const m = it.motiv % 6, u0 = (m % 3) / 3, v0 = 1 - Math.floor(m / 3) / 2;
+    const cs = Math.cos(yaw), sn = Math.sin(yaw);
+    // lokale Ecke (lx, ly) → Welt (Bildfläche 0,08 vor der Wand)
+    const P = (lx, ly) => [x + lx * cs + 0.09 * sn, y + ly, z - lx * sn + 0.09 * cs];
+    const base = pos.length / 3;
+    for (const [lx, ly, uu, vv] of [[-w / 2, -h / 2, u0, v0 - 0.5], [w / 2, -h / 2, u0 + 1 / 3, v0 - 0.5], [w / 2, h / 2, u0 + 1 / 3, v0], [-w / 2, h / 2, u0, v0]]) {
+      pos.push(...P(lx, ly)); uv.push(uu, vv);
+    }
+    idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    // Goldrahmen (vier Leisten) und Kerzenhalter darunter
+    const fr = 0.12;
+    for (const [lx, ly, fw, fh] of [[0, h / 2 + fr / 2, w + 2 * fr, fr], [0, -h / 2 - fr / 2, w + 2 * fr, fr], [-w / 2 - fr / 2, 0, fr, h], [w / 2 + fr / 2, 0, fr, h]]) {
+      const g = blk(fw, fh, 0.12, 0, 0, 0, 0xd8a838, { top: 0xffe08a });
+      g.translate(lx, ly - fh / 2, 0.06);
+      g.rotateY(yaw); g.translate(x, y, z);
+      frames.push(g);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: paintAhnen(), color: 0xe8e0f0 }));
+  mesh.name = 'ahnengalerie';
+  addObject(level, mesh);
+  bake(level, frames, { castShadow: false });
+}
+
+/** Tanzboden: Schachbrett in Lila und Rosa mit Goldkante, Sternchen in der Mitte. o = { x0, x1, z0, z1, y } */
+export function tanzboden(level, o) {
+  const x0 = Math.min(o.x0, o.x1), x1 = Math.max(o.x0, o.x1), z0 = Math.min(o.z0, o.z1), z1 = Math.max(o.z0, o.z1);
+  const a = C(0x6a3aa8), b = C(0xf0a8d8), gold = C(0xf0c050);
+  const cell = o.cell ?? 1.5;
+  const g = new THREE.PlaneGeometry(x1 - x0, z1 - z0, Math.round((x1 - x0) / cell) * 2, Math.round((z1 - z0) / cell) * 2).toNonIndexed();
+  g.rotateX(-PI / 2); g.translate((x0 + x1) / 2, o.y + 0.03, (z0 + z1) / 2);
+  colorize(g, (p, n, out) => {
+    const e = Math.min(p.x - x0, x1 - p.x, p.z - z0, z1 - p.z);
+    if (e < 0.2) { out[0] = gold[0]; out[1] = gold[1]; out[2] = gold[2]; return; }
+    const i = Math.floor((p.x - x0) / cell), j = Math.floor((p.z - z0) / cell);
+    const c = (i + j) % 2 ? a : b;
+    out[0] = c[0]; out[1] = c[1]; out[2] = c[2];
+  });
+  bake(level, [g], { castShadow: false });
+}
+
+/**
+ * Kronleuchter: runde, begehbare Platte (Kollision Zylinder, oben top) mit Kerzenkranz, Glaskugeln und Kette nach oben.
+ * o = { x, z, top, r: 1.7, chain: 6 }
+ */
+export function kronleuchter(level, o) {
+  const r = o.r ?? 1.7, top = o.top;
+  level.world.add({ type: 'cyl', x: o.x, z: o.z, r, y0: top - 0.45, y1: top, tag: 'kronleuchter' });
+  if (!level.view) return;
+  const parts = [], glow = [];
+  const gold = 0xd8a838, goldHi = 0xffe08a;
+  parts.push(zyl(r, r * 0.86, 0.45, o.x, top - 0.45, o.z, gold, { seg: 24, top: 0xb8862a }));
+  const ring = new THREE.TorusGeometry(r, 0.1, 6, 28).toNonIndexed();
+  ring.rotateX(PI / 2); ring.translate(o.x, top + 0.02, o.z);
+  parts.push(colorize(ring, (p, n, c) => mixc(C(gold), C(goldHi), smooth(-0.5, 1, n.y), c)));
+  // Boden der Platte: dunkles Samtpolster mit Goldstern (begehbar)
+  const pad = new THREE.CircleGeometry(r - 0.08, 24).toNonIndexed();
+  pad.rotateX(-PI / 2); pad.translate(o.x, top + 0.01, o.z);
+  parts.push(colorize(pad, (p, n, c) => { const rr = Math.hypot(p.x - o.x, p.z - o.z), a = angOf(p.x - o.x, p.z - o.z); mixc(C(0x6a1a3a), C(0x9a2a4a), 0.4 + 0.3 * Math.sin(a * 5), c); if (rr < 0.5 * (0.6 + 0.4 * Math.cos(a * 5))) mixc(c, C(goldHi), 0.8, c); }));
+  // Kerzenkranz am Rand (Glüh-Flammen)
+  const N = 10;
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * TAU, cx = o.x + Math.sin(a) * (r + 0.25), cz = o.z + Math.cos(a) * (r + 0.25);
+    parts.push(blk(0.32, 0.06, 0.32, cx, top - 0.1, cz, gold, { top: goldHi }));
+    parts.push(zyl(0.06, 0.07, 0.34, cx, top - 0.04, cz, 0xfff4e0, { seg: 6 }));
+    glow.push(zyl(0.0, 0.07, 0.18, cx, top + 0.3, cz, 0xffc040, { seg: 6 }));
+    const drop = new THREE.SphereGeometry(0.1, 6, 4).toNonIndexed(); drop.translate(Math.sin(a) * (r - 0.3) + o.x, top - 0.7, Math.cos(a) * (r - 0.3) + o.z);
+    glow.push(fill(drop, C(i % 2 ? 0xc8a8ff : 0xffd8f0)));
+  }
+  // Kette nach oben (Glieder)
+  const ch = o.chain ?? 6;
+  for (let k = 0; k < ch / 0.35; k++) {
+    const t = new THREE.TorusGeometry(0.1, 0.03, 4, 8).toNonIndexed();
+    if (k % 2) t.rotateY(PI / 2);
+    t.translate(o.x, top + 0.9 + k * 0.35, o.z);
+    parts.push(fill(t, C(0x5a5466)));
+  }
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * TAU + 0.4;
+    const s = new THREE.CylinderGeometry(0.025, 0.025, Math.hypot(r * 0.9, 0.9), 4).toNonIndexed();
+    s.rotateX(Math.atan2(r * 0.9, 0.9)); s.rotateY(a); s.translate(o.x + Math.sin(a) * r * 0.45, top + 0.45, o.z + Math.cos(a) * r * 0.45);
+    parts.push(fill(s, C(0x5a5466)));
+  }
+  bake(level, parts, { castShadow: true });
+  bake(level, glow, { material: 'glow', castShadow: false });
+  level.view.addLantern?.(o.x, top + 0.6, o.z);
+}
+
+/**
+ * Schlossdach-Arena (wie Testlevel 0-22): rundes Dach (Kollision Zylinder r = R + 0,9, Oberseite y) mit Brüstung und
+ * Zinnen (Kollision, Lücke vorn zur Kamera hin), Schieferring-Boden mit heller Rosette, Turmwand darunter, Kürbislaternen.
+ * o = { x, z, y, R: 9.6, gap: 0.24 }
+ */
+export function schlossDach(level, o) {
+  const { x: X, z: Z, y: Y } = o;
+  const R = o.R ?? 9.6, GAP = o.gap ?? 0.24;
+  const W = level.world;
+  W.add({ type: 'cyl', x: X, z: Z, r: R + 0.9, y0: Y - 5, y1: Y, tag: 'schlossdach' });
+  const N = Math.round((TAU * (R + 0.45)) / 0.7);
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * TAU;
+    const off = Math.abs(Math.atan2(Math.sin(a), Math.cos(a)));
+    if (off < GAP + 0.03) continue;
+    const merlon = i % 4 < 2;
+    W.add({ type: 'cyl', x: X + Math.sin(a) * (R + 0.45), z: Z + Math.cos(a) * (R + 0.45), r: 0.46, y0: Y, y1: Y + (merlon ? 1.6 : 0.8), camIgnore: true, noWallSlide: true, tag: 'zinne' });
+  }
+  if (!level.view) return;
+  const slate = C(0x9a8cb8), slateHi = C(0xb4a8d0), slateDk = C(0x7a6c98), stone = C(0xb0a8c4), stoneDk = C(0x6e6688), mortar = C(0x5a5470);
+  const parts = [];
+  const mid0 = C(0xf0e6ff), mid1 = C(0xcab8f0);
+  for (let r0 = 0; r0 < R + 0.9; r0 += 1.6) {
+    const g = new THREE.RingGeometry(Math.max(0.01, r0), Math.min(R + 0.9, r0 + 1.6), 72, 1).toNonIndexed();
+    g.rotateX(-PI / 2);
+    g.translate(X, Y + 0.01, Z);
+    const ringI = Math.round(r0 / 1.6);
+    parts.push(colorize(g, (p, n, c) => {
+      const a = Math.atan2(p.x - X, p.z - Z) + ringI * 0.13;
+      const k = Math.floor(((a / TAU) + 1) * (12 + ringI * 6)) % 2;
+      const rr = Math.hypot(p.x - X, p.z - Z);
+      mixc(k ? slate : slateHi, slateDk, ringI === 0 ? 0 : 0.15 + 0.1 * Math.sin(ringI * 2.3), c);
+      if (ringI === 0) mixc(mid0, mid1, smooth(0, 1.6, rr), c);
+      if (rr - r0 < 0.06 || r0 + 1.6 - rr < 0.06) mixc(c, mortar, 0.6, c);
+    }));
+  }
+  const wall = new THREE.CylinderGeometry(R + 0.9, R + 0.6, 9, 72, 8, true).toNonIndexed();
+  wall.translate(X, Y - 4.5, Z);
+  parts.push(colorize(wall, (p, n, c) => {
+    const yy = Y - p.y, row = Math.floor(yy / 0.55);
+    const a = Math.atan2(p.x - X, p.z - Z) + (row % 2) * 0.05;
+    const seam = Math.abs(((a / TAU) * 60) % 1) < 0.06 || (yy % 0.55) < 0.05;
+    mixc(stone, stoneDk, smooth(0, 9, yy) * 0.75, c);
+    if (seam) mixc(c, mortar, 0.7, c);
+  }));
+  const prof = [[R + 0.9, Y], [R + 0.9, Y + 0.8], [R, Y + 0.8], [R, Y]].map(([r, y]) => new THREE.Vector2(r, y));
+  const par = new THREE.LatheGeometry(prof, 80, GAP, TAU - 2 * GAP).toNonIndexed();
+  par.translate(X, 0, Z);
+  parts.push(colorize(par, (p, n, c) => {
+    const a = Math.atan2(p.x - X, p.z - Z);
+    const seam = Math.abs(((a / TAU) * 70) % 1) < 0.05;
+    mixc(stone, stoneDk, n.y > 0.5 ? 0 : 0.35, c);
+    if (seam && n.y < 0.5) mixc(c, mortar, 0.6, c);
+  }));
+  const NM = 28;
+  for (let i = 0; i < NM; i++) {
+    const a = ((i + 0.5) / NM) * TAU;
+    const off = Math.abs(Math.atan2(Math.sin(a), Math.cos(a)));
+    if (off < GAP + 0.12) continue;
+    const g = new THREE.BoxGeometry(0.85, 0.8, 1.1, 1, 1, 1).toNonIndexed();
+    g.translate(0, Y + 1.2, R + 0.45);
+    g.rotateY(a);
+    g.translate(X, 0, Z);
+    parts.push(colorize(g, (p, n, c) => mixc(stone, stoneDk, n.y > 0.5 ? 0 : 0.3, c)));
+  }
+  addStatic(level, merge(parts), { castShadow: true });
+  if (hasModel('kuerbislaterne')) {
+    for (const a of [0.8, 2.2, -0.8, -2.2]) {
+      const m = getModel('kuerbislaterne', { mount: 'boden', size: 0.6 });
+      m.root.position.set(X + Math.sin(a) * (R + 0.45), Y + 0.8, Z + Math.cos(a) * (R + 0.45));
+      m.root.rotation.y = a + PI / 2;
+      addObject(level, m.root, (dt) => m.update(dt, { lit: true }));
+    }
+  }
+}
+
+/**
+ * Kichernder Geist: lugt hinter einem Grabstein hervor (Modell 'spuk_halloween', klein, Kürbis-Hütchen); kommt eine Figur
+ * näher als near m, kichert er (sfx 'ghost'), duckt sich und verschwindet hinter dem Stein; ist sie wieder weg, lugt er
+ * wieder hervor. level.named.get(id) = { state: 'lugt' | 'versteckt', giggles }. o = { id, pos: [x, y, z] (hinter dem
+ * Stein), yaw, near: 4.5 }
+ */
+export function kicherGeist(level, o) {
+  const [x, y, z] = o.pos;
+  const st = { state: 'lugt', giggles: 0, k: 1 };
+  if (o.id) level.named.set(o.id, st);
+  const near = o.near ?? 4.5;
+  level.onStep(() => {
+    const p = level.player;
+    const d = p ? Math.hypot(p.pos.x - x, p.pos.z - z) : 99;
+    if (st.state === 'lugt' && d < near) { st.state = 'versteckt'; st.giggles++; if (!level.muted) level.sfx('ghost'); level.effects?.sparks({ x, y: y + 0.9, z }, 8); }
+    else if (st.state === 'versteckt' && d > near + 3) st.state = 'lugt';
+  });
+  if (!level.view || !hasModel('spuk_halloween')) return st;
+  const m = getModel('spuk_halloween', { size: 0.8, hat: 'kuerbis' });
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = o.yaw ?? -PI / 2;
+  root.add(m.root);
+  const hold = {};
+  addObject(level, root, (dt, t) => {
+    const d = visDt(level, hold, dt);
+    const want = st.state === 'lugt' ? 1 : 0;
+    st.k += (want - st.k) * Math.min(1, d * (want ? 2.5 : 6));
+    m.root.position.y = -0.9 * (1 - st.k) + Math.sin(t * 2.2) * 0.06 * st.k;
+    m.root.position.x = Math.sin(t * 1.3) * 0.1;
+    m.root.scale.setScalar(0.35 + 0.65 * st.k);
+    m.root.visible = st.k > 0.04;
+    m.update?.(d, { anim: st.state === 'lugt' ? 'idle' : 'shy' });
+  });
+  return st;
+}
+
+/**
+ * Krümel mit Laterne (Modell 'kruemel' + 'laterne_hand'): wartet am Ziel, schwenkt die Laterne, jubelt, wenn eine Figur
+ * näher als near m kommt, Sprechblase. level.named.get(id) = { state: 'wartet' | 'jubelt', t }. o = { id, pos, yaw, near: 6,
+ * text, sub }
+ */
+export function kruemelLaterne(level, o) {
+  const [x, y, z] = o.pos;
+  const st = { state: 'wartet', t: 0 };
+  if (o.id) level.named.set(o.id, st);
+  level.world.add({ type: 'cyl', x, z, r: 0.35, y0: y, y1: y + 0.9, tag: 'kruemel' });
+  const near = o.near ?? 6;
+  level.onStep((dt) => {
+    const p = level.player;
+    const d = p ? Math.hypot(p.pos.x - x, p.pos.z - z) : 99;
+    st.t += dt;
+    if (st.state === 'wartet' && d < near) { st.state = 'jubelt'; st.t = 0; }
+  });
+  if (!level.view || !hasModel('kruemel')) return st;
+  const m = getModel('kruemel');
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = o.yaw ?? -PI / 2;
+  m.root.scale.setScalar(1.3);
+  root.add(m.root);
+  let lamp = null;
+  if (hasModel('laterne_hand')) {
+    lamp = getModel('laterne_hand');
+    lamp.root.scale.setScalar(0.62);
+    lamp.root.position.set(0.18, 0.62, -0.34);
+    root.add(lamp.root);
+  }
+  const sp = blase(o.text ?? 'Juhu!', o.sub ?? 'Willkommen zur Gruselgala!');
+  sp.position.set(0, 1.9, 0);
+  sp.visible = false;
+  root.add(sp);
+  level.view.shadows?.add?.({ pos: new THREE.Vector3(x, y, z), radius: 0.4, alive: () => true, visible: () => true });
+  const hold = {};
+  addObject(level, root, (dt, t) => {
+    const d = visDt(level, hold, dt);
+    const happy = st.state === 'jubelt';
+    m.update?.(d, { anim: happy ? (st.t < 3 ? 'cheer' : 'hop') : 'idle' });
+    if (lamp) {
+      lamp.root.position.y = 0.62 + (happy ? Math.abs(Math.sin(t * 5)) * 0.25 : 0);
+      lamp.update?.(d, { lit: true, sway: Math.sin(t * (happy ? 5 : 1.6)) * (happy ? 0.5 : 0.18) });
+    }
+    sp.visible = happy && st.t < 7;
+    sp.position.y = 1.9 + Math.sin(t * 3) * 0.05;
+  });
+  level.view.addLantern?.(x, y + 1, z);
+  return st;
+}
+
+/** Kürbiskutsche (Zier, fest): großer Kürbis mit Tür, Fenster, Goldranken und vier Rädern. o = { pos, yaw, size: 1.4 } */
+export function kuerbisKutsche(level, o) {
+  const [x, y, z] = o.pos, s = o.size ?? 1.4, yaw = o.yaw ?? 0;
+  level.world.add({ type: 'cyl', x, z, r: s * 1.05, y0: y, y1: y + s * 2.1, tag: 'kutsche' });
+  if (!level.view) return;
+  const parts = [], glow = [];
+  const pk = pumpkinGeo({ r: s, shape: 'rund', color: 'orange', seg: 28, leaf: false });
+  pk.body.translate(0, s * 0.42, 0);
+  parts.push(pk.body);
+  // Tür (lila mit Goldrand) und Fenster (leuchtet)
+  const door = blk(0.08, s * 0.95, s * 0.62, s * 0.98, s * 0.55, 0, 0x6a2aa8, { top: 0x9a5ad8 });
+  parts.push(door);
+  const win = new THREE.CircleGeometry(s * 0.2, 12).toNonIndexed(); win.rotateY(PI / 2); win.translate(s * 1.04, s * 1.25, 0);
+  glow.push(fill(win, C(0xffd070)));
+  // Räder
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const w = new THREE.TorusGeometry(s * 0.36, s * 0.06, 6, 16).toNonIndexed(); w.translate(sx * s * 0.62, s * 0.36, sz * s * 0.88);
+    parts.push(colorize(w, (p, n, c) => mixc(C(0xb8862a), C(0xffe08a), smooth(-0.4, 1, n.y), c)));
+    for (let k = 0; k < 4; k++) { const sp = blk(s * 0.05, s * 0.68, s * 0.05, 0, 0, 0, 0xd8a838); sp.translate(0, -s * 0.34, 0); sp.rotateZ((k / 4) * PI); sp.translate(sx * s * 0.62, s * 0.36, sz * s * 0.88); parts.push(sp); }
+  }
+  // Goldranke oben mit Krönchen
+  parts.push(zyl(0.06, 0.1, s * 0.5, 0, s * 2.05, 0, 0x4a8a2a, { seg: 6 }));
+  for (let k = 0; k < 5; k++) { const a = (k / 5) * TAU; parts.push(zyl(0, 0.08, 0.22, Math.sin(a) * 0.14, s * 2.5, Math.cos(a) * 0.14, 0xffd040, { seg: 4 })); }
+  for (const g of [...parts, ...glow]) { g.rotateY(yaw); g.translate(x, y, z); }
+  bake(level, parts, { castShadow: true });
+  bake(level, glow, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Bankett-Tafel (fest): langer Tisch mit lila Tischdecke, Torte mit Kerzen, Süßigkeiten-Schalen, Kerzenleuchtern.
+ * list = [{ pos: [x, y, z], len: 4, yaw: 0 }]
+ */
+export function bankett(level, list) {
+  const parts = [], glow = [];
+  const rnd = new Rnd(77);
+  for (const it of list) {
+    const [x, y, z] = it.pos, len = it.len ?? 4, yaw = it.yaw ?? 0;
+    const cs = Math.cos(yaw), sn = Math.sin(yaw);
+    const P = (lx, lz) => [x + lx * cs + lz * sn, z - lx * sn + lz * cs];
+    const hx = (Math.abs(cs) * len + Math.abs(sn) * 1.4) / 2, hz = (Math.abs(sn) * len + Math.abs(cs) * 1.4) / 2;
+    level.world.add({ type: 'box', min: [x - hx, y, z - hz], max: [x + hx, y + 0.95, z + hz], tag: 'tafel' });
+    parts.push(blk(len, 0.1, 1.4, x, y + 0.85, z, 0x7a3ab8, { top: 0x9a5ad8, yaw }));
+    parts.push(blk(len + 0.06, 0.45, 1.46, x, y + 0.42, z, 0x5a2a8a, { yaw }));
+    for (let k = 0; k < Math.floor(len / 0.5); k++) { const [px, pz] = P(-len / 2 + 0.25 + k * 0.5, 0.74); parts.push(zyl(0.05, 0.05, 0.08, px, y + 0.4, pz, 0xf0c050, { seg: 5 })); }
+    // Torte in der Mitte
+    const [tx, tz] = P(0, 0);
+    parts.push(zyl(0.42, 0.42, 0.3, tx, y + 0.95, tz, 0xff9ac8, { seg: 16, top: 0xfff0f8 }));
+    parts.push(zyl(0.3, 0.3, 0.24, tx, y + 1.25, tz, 0xc8a8ff, { seg: 16, top: 0xfff0f8 }));
+    for (let k = 0; k < 5; k++) { const a = (k / 5) * TAU; parts.push(zyl(0.025, 0.025, 0.16, tx + Math.sin(a) * 0.18, y + 1.49, tz + Math.cos(a) * 0.18, 0xffffff, { seg: 4 })); glow.push(zyl(0, 0.035, 0.08, tx + Math.sin(a) * 0.18, y + 1.65, tz + Math.cos(a) * 0.18, 0xffc040, { seg: 4 })); }
+    // Süßigkeiten-Schalen und Kürbisbecher
+    for (const lx of [-len / 2 + 0.5, len / 2 - 0.5, -len / 4, len / 4]) {
+      const [bx, bz] = P(lx, rnd.real(-0.25, 0.25));
+      parts.push(zyl(0.26, 0.14, 0.14, bx, y + 0.95, bz, 0xf0e8ff, { seg: 10 }));
+      for (let k = 0; k < 6; k++) { const a = rnd.real(0, TAU), rr = rnd.real(0, 0.16); const s = new THREE.SphereGeometry(0.06, 6, 4).toNonIndexed(); s.translate(bx + Math.sin(a) * rr, y + 1.12 + rnd.real(0, 0.06), bz + Math.cos(a) * rr); parts.push(fill(s, C(HWC.candy[(k + Math.round(lx * 3)) % HWC.candy.length]))); }
+    }
+  }
+  bake(level, parts, { castShadow: true });
+  bake(level, glow, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Bomben-Nachschub: liegt im Umkreis r um pos keine Kürbis-Bombe mehr (und trägt keine Figur eine), erscheint nach delay s
+ * eine neue an pos (aus dem Kürbiskarren); solange until() nicht gilt. level.named.get(id) = { spawned }.
+ */
+export function bombenNachschub(level, o) {
+  const [x, y, z] = o.pos;
+  const st = { spawned: 0, t: 0 };
+  if (o.id) level.named.set(o.id, st);
+  const r = o.r ?? 3;
+  level.onStep((dt) => {
+    if (o.until?.()) return;
+    const near = level.entities.some((e) => e.kind === 'kuerbis_bombe' && !e.removed && (e.carrier || Math.hypot(e.pos.x - x, e.pos.z - z) < r));
+    if (near) { st.t = 0; return; }
+    st.t += dt;
+    if (st.t >= (o.delay ?? 2)) {
+      st.t = 0; st.spawned++;
+      level.spawn('kuerbis_bombe', { pos: [x, y + 0.3, z] });
+      level.effects?.sparks({ x, y: y + 0.8, z }, 10);
+    }
+  });
+  return st;
+}
