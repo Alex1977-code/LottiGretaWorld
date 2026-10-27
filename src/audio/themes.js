@@ -11,12 +11,13 @@
 // course_circus, course_river, course_boss, course_arena, course_diorama, course_map, course_clear,
 // course_star, course_gameover. Ab Welt 2 liegen die Kurs-Themen je Welt in eigenen Dateien
 // (themes_world2.js … themes_world5.js, Bausteine in themeParts.js) und werden hier
-// in THEMES eingehängt.
+// in THEMES eingehängt; ebenso die Halloween-Sonderwelt „Kürbisinsel“ (themes_halloween.js).
 
 import { WORLD2_THEMES } from './themes_world2.js';
 import { WORLD3_THEMES } from './themes_world3.js';
 import { WORLD4_THEMES } from './themes_world4.js';
 import { WORLD5_THEMES } from './themes_world5.js';
+import { HALLOWEEN_THEMES } from './themes_halloween.js';
 
 // ---- Drum-Bausteine ----
 const K4 = 'k...k...k...k...';   // Four-on-the-floor
@@ -658,4 +659,4 @@ export const THEMES = {
 };
 
 // Kurs-Themen ab Welt 2 (eigene Dateien je Welt)
-Object.assign(THEMES, WORLD2_THEMES, WORLD3_THEMES, WORLD4_THEMES, WORLD5_THEMES);
+Object.assign(THEMES, WORLD2_THEMES, WORLD3_THEMES, WORLD4_THEMES, WORLD5_THEMES, HALLOWEEN_THEMES);

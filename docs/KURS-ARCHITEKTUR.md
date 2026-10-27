@@ -1875,6 +1875,8 @@ Kennzahlen mit 1 und 5 Figuren. Bilder `tests/out/w2e_*.png`.
 
 **Welt 5** (`src/audio/themes_world5.js`, nach der Musik-Richtlinie, Namen aus der Welt-5-Liste): `course_beach` (D-Dur, 132 BPM, Steel-Drum/Marimba, Energie-Ebene beim Reiten), `course_trapeze` (F-Dur, 138, Dreier-Gefühl 3+3+2 über Four-on-the-floor), `course_bluelava` (g-Moll, 150, 16 Takte), `course_savanna` (A-Dur, 130, Djembe/Kalimba/Penny-Whistle), `course_mine` (d-Moll, 136, Riff-Bass), `course_cake` (E-Dur, 144, Glockenspiel), `course_sneak` (b-Moll, 130, gedämpft), `course_goldtrain` (H-Dur, 156), `course_temple` (gis-Moll, 146, Gong/Taiko), `course_world5_map` (C-Dur, 128, 16 Takte). Alle 24 Takte (Lava 16, Karte 16); `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–5.
 
+**Halloween-Welt „Kürbisinsel“** (`src/audio/themes_halloween.js`, `HALLOWEEN_THEMES`, nach der Musik-Richtlinie, Namen aus der Halloween-Level-Liste): `course_pumpkin` (e-Moll/G-Dur, 136 BPM – die Celesta spielt die Hook im Intro in Moll, der Refrain bringt sie in Dur; Kürbis-Klopfen), `course_candyvillage` (F-Dur, 140, Knochen-Xylofon, Pizzicato, Klapper-Hölzer), `course_graveyard` (g-Moll, 132, Theremin, Orgel-Stabs, Friedhofsglocke), `course_witchtower` (a-Moll, 144, Cembalo, Glocken, aufsteigende Hook), `course_brummula` (c-Moll, 148, Kirchenorgel, Chor-Pad, Turmglocke, Pauken), `course_halloween_map` (d-Moll, 126, 16 Takte, Spieluhr-Celesta, Kick auf 1 und 3). Alle 24 Takte (Karte 16), Refrain ab Takt 13 (Karte 9); kein `sync`, keine Energie-Ebene. **Baron-Brummbär-Motiv** (Leitmotiv, aus `course_boss` Lead Takt 5: „C . c Es C G . f Es D“): die Kirchenorgel spielt es im Intro von `course_brummula` in doppelter Notenlänge, die Refrain-Hook des Grafen beginnt mit seinem Kopf. `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–5 und untereinander, dazu Tempo, Loop-Naht und Pegel wie Welt 5 (`AUDIO_WORLD=halloween`); Hörproben `tests/out/hw_<thema>_30s.wav` und `tests/out/hoerprobe_halloween.wav`.
+
 **Neue Effekte** (`sfx(name)`): `clone`, `clone_lost`, `helm_on`, `helm_off`, `cannon`, `propeller`, `light`, `quicksand`, `sand_crumble`, `peck`, `bullet`, `boss_hit`, `boss_spin`, `house_tick`, `room_clear`, `ice_slide`, `snowball`, `ghost`, `splash_big`, `train_whistle`, `beep`, `beep_switch`.
 
 **Taktuhr** (für Piep-Blöcke u. ä.):
@@ -4268,6 +4270,466 @@ Kletterraum heilt, Checkpoints, Kippquader trifft, Tod im Kampf → Neustart am 
 Abfahrt ohne Einsteigen, Kontrollpunkt auf dem fahrenden Zug). Gemessen (scale 2, inkl. Schattenpass): 5-7 54–109
 Zeichenaufrufe / ≤ 233 k Dreiecke (Torturm-Dach mit Blick über zwei Höfe) · 5-Zug ≤ 78 / ≤ 244 k (Messgang während der
 Fahrt) · 5-Burg ≤ 86 / ≤ 143 k. Die Heldin (Figurenstil) braucht allein ≈ 20 Zeichenaufrufe.
+
+## Präzisierung (Level 5-5, 5-B und 5-6)
+
+Additiv zur Welt-5-Liste: Titel und Besonderheiten der Level 5-5, 5-B und 5-6. Dateien `src/course/levels/w5/5-5.js`,
+`5-B.js`, `5-6.js`, eigene Hilfen `src/course/levels/w5/_helpers_c.js` (kein `LEVEL`, nur für diese drei Level), Test
+`tests/course_w5c.mjs`. Kein Motor-Code geändert; alle Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`/`LEVEL.setup`).
+
+### 5-5 „Kawumm im Kristallstollen“ (parcours · mine · course_mine · 400 s)
+
+- Bergwerk unter der Lila Strand-Insel, ≈ 230 m nach −Z, drei Stufen hinab (y 1 → −4 → −8) und per Röhre hinauf zum
+  Ausgang (y 3). Abschnitte: **Stolleneingang** (Grubenbalken mit Lampen, abgestellte Kristall-Lore; der POW vor dem
+  lila Ziegeltor zwischen zwei Felspfeilern öffnet es – Einführung) → **Kristallschlucht** (Lore 1 längs, Mittelinsel mit
+  Schnappblume, Lore 2 quer auf Gleisgerüsten, Feuer-Schnappblume auf dem Felsvorsprung, leuchtender Kristallsee tief
+  unten) → **Sims B** (lila Ziegelwand vor der Glasröhre zum Kristallbalkon, Nachschub-Röhre für Zündköpfe, zweite
+  Glasröhre über die Felswand in die Halle) → **Kristallhalle** (Checkpoint, Wolkenkanone zur Empore, Glühpilz-Wiese mit
+  zwei Hasen, rissige Felswand, Nebengleis, Pilzlingstürme) → **Boost-Feld** (Rampe mit zwei Boost-Platten, 14-m-Sprung;
+  zu kurz = weiche Grube mit Treppe zurück) → **Landesims** (?-Block mit Funkelstern, POW gegen zwei Pilzlingstürme,
+  Röhre) → **Stollenausgang** im Lichtschacht („Glück auf!“, Zielmast).
+- Sterne: 0 lila Ziegelwand auf Sims B mit POW, geworfenem Zündkopf oder Tatzenhieb öffnen → Glasröhre auf den
+  Kristallbalkon · 1 Stern-Hase auf der Glühpilz-Wiese fangen (`reward` als Aktion: der Stern erscheint, wo er gefangen
+  wurde) · 2 Wolkenkanone auf die Empore, Farbfeld 3 × 3 ganz färben. Stempel: **rissige Wand** (`risswand`: Form mit
+  `breakable: 'bomb'`, `owner.onHit` bricht nur bei `'bomb'`/`'mega'` – Zündkopf dagegen werfen; Stampfen und Kopfstoß
+  lassen sie stehen) → Geheimgang zur Stempelkammer.
+- Extraleben: versteckter Block über der Mittelinsel, zweiter Hase auf der Wiese. Gegner: Zündkopf 3 (+ 2
+  Nachschub-Röhren `zuendkopf_quelle`, `range` 10), Pilzlingsturm 4, Schnappblume 5, Feuer-Schnappblume 2; POW 5.
+- Hilfen: `rails` (Schienen, Schwellen, Gerüst, Prellböcke), `lore` (MovingBox + PathMover, Modell `lore`, trägt die
+  Figur), `parkedLore`, `risswand`, `crystals`, `dripstones`, `glowShrooms`, `oreVeins`, `walkways`, `floorStones`,
+  `brickPanels` (Ziegel als Flächen statt Kästen – Dreiecksbudget), `wallTimbers`, `crystalLake`, `lampHalos`,
+  `lightPools` (warme Lichtkegel unter den Grubenlampen, additiv, ein Objekt), `lightShaft`, `sparkleField` (Punkte mit
+  fester Hüllkugel: außerhalb des Bildes kein Zeichenaufruf).
+
+### 5-B „Wackelturm am Glutsee“ (arena · lava · course_arena · 100 s, 1 Stern)
+
+- Weite, wellig gerandete Felsfläche (R ≈ 11,8 m, `rockIsland`) im Glutsee; Basaltwaben, glimmende Spalten, lila
+  Kristalle, Lager der Werfer-Bande, Kraterwand mit Lavafällen, Vulkane. **Werferturm** aus 9 Pilzlingen mit Feuer-Werfer
+  obenauf (`werferturm` count 9, `riderId`), die Arena zählt Turm und Werfer („noch 2“). Zwei **Steinsäulen**
+  (`steinsaeule`: MovingBox, deren Höhe je Schritt wächst/schrumpft, `mover.dy` trägt die Figur; Zustände
+  low/up/high/down) hinten links und rechts steigen im Wechsel bis 7,6 m – nie beide oben. ?-Block mit Funkenblüte,
+  Münzblock. Konter: von der steigenden Säule auf den Werfer springen, dann den Turm Stufe für Stufe abtragen (oder mit
+  Feuerbällen einzeln abschießen); Stern in der Mitte.
+- `arenaTowerFix(level, towerId, riderId)`: Der Arena-Archetyp setzt bei Tod aus den gezählten Specs zurück; die vom Turm
+  erzeugte Reiter-Spec hat kein `kind` (Warnung „unbekannte Entität“, sonst doppelter Werfer). Der Haken filtert Specs ohne
+  `kind`, entfernt überzählige Werfer und zählt den neuen Reiter mit.
+
+### 5-6 „Flipp-Flapp-Tortenland“ (parcours · cake · course_cake · 400 s)
+
+- Torten-Welt mit Rot-Blau-Flippern (`flipperStart: 'rot'`; jeder Sprung – auch eines Klons – wechselt die feste Farbe),
+  ≈ 215 m nach −Z, stufenweise hinauf (y 1 → 4 → 9 → 12). Abschnitte: **Tortenstart** (Regel-Schild) und Übungsfeld über
+  einer harmlosen Sahnemulde → **Rot-Blau-Felder** (Feld 1: 5 × 6 Schachbrett, Feld 2: 6 × 6 mit Lücken) → **?-Insel**
+  (Spiegelfrucht, Münzen, Funkenblüte) → **Wechselplattformen I** (sechs, Zickzack) → **Sahnehang** → **Checkpoint**
+  (Röhre mit Schnappblume zur Konditorei) → **Feuerring-Platz** (zwei versetzte Puls-Ringe, ein Flammenrad, Pilzlinge,
+  Schnappblumen) → **Wechselplattformen II**, **Sternring-Torte**, **Wechselplattformen III** → **Zieltorte** (2er-Lift,
+  Stempel-Etage, Zielmast). Konditorei (Kugel-Raum) abseits bei x ≈ 70.
+- Sterne: 0 blaues Feld in der hinteren linken Ecke von Feld 2 · 1 Schnappblume auf der Röhre besiegen, in der
+  Konditorei die Bonbon-Kugel (`schiebekugel`) um die Zuckerwürfel-Mauer auf das P-Feld schieben · 2 Sternring (acht
+  Sternmünzen in 10 s, drei davon über den Wechselplattformen III; Flammenrad mit zwei Lücken in der Tortenmitte).
+  Stempel: Spiegelfrucht auf der Zieltorte, mit dem Klon auf den **2er-Lift** (`multilift` need 2) → Stempel-Etage.
+- Feuerring-Platz fair: am Rand warten, bis der Puls-Ring groß ist, und über die Flammen springen (Füße über
+  0,8 × Flammenhöhe); das Flammenrad überspringen oder die Lücke nutzen.
+- Extraleben: versteckter Block über der Startplatte; Ziegel über der Mauerlücke in der Konditorei (das Extraleben läuft
+  über die Blöcke, fällt in die Lücke und kommt zurück). Gegner: Feuerring 4, Schnappblume 3, Pilzling 7.
+- Budget/Zier: Flipper werfen keinen Sonnenschatten (`flipperNoShadow`), Feuerringe und Gegner `farHide: 46`;
+  Glasur-Kacheln je Tortenplatte in eigener Sorte (`glazeTops`: Erdbeer, Minze, Blaubeer, Zitrone, Lavendel, Karamell),
+  schwebende Macarons und Donuts (`floatingSweets`), Sahnetupfen, Glasur, Streusel, Kerzen, Etagentorten.
+
+### Test `tests/course_w5c.mjs`
+
+Port 4490 (+ `PORT_BASE`), Aufruf `node tests/course_w5c.mjs [5-5|5-B|5-6]`, Teilläufe
+`PARTS=route,sweep,targets,extra,shots,arena` (je Lauf < 10 min; der Messgang `sweep` folgt der Spur von `route`),
+`HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`, `DETAIL=1` (Zeichenaufrufe je Objekt), Bilder `tests/out/w5c_*.png`.
+Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier); Beine u. a. `mover` (Lore abwarten,
+aufspringen, mitfahren), `pickup`/`throwAt` (Zündkopf), `enter` (Glasröhre), `cannon`, `chaseId` (Hase), `tile`
+(Flipper-Hüpfer: Zielfarbe muss vor dem Sprung durchlässig sein), `push` (Kugel), `stompOn`, `dodge`/`dodgeLead`/`speed`
+(rechtzeitig springen vor Feuerkugel, Feuerring, Pilzling; Tempo regeln), `pulsWait` (Puls-Ring abwarten, kein Pilzling
+quert), Arena-Bot (Säule abwarten, auf den Werfer, Turm abtragen, Stern; Feuerkugeln seitlich zur Inselmitte hin
+ausweichen, `ballThreat` rechnet Schwerkraft und Abprall der Kugel voraus). Geprüft: Laden ohne Konsolenfehler, Metadaten,
+Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel **ohne einen Treffer** (5-5 ≈ 44 s mit zwei Loren und zwei
+Röhren; 5-6 ≈ 59 s, 41 Sprünge = 41 Farbwechsel); alle Sterne und Stempel mit Gegenproben (Röhre hinter der lila Wand
+versperrt, rissige Wand hält Stampfen/Kopfstoß, 2er-Lift fährt nicht mit einer Figur); Extraleben; 5-B: Säulen im
+Wechsel, Turm 9 + Werfer, Kampf (≈ 53 s, ohne Treffer), Tod setzt zurück (ein Turm, ein Werfer), Zeitlimit 100 s, Funkenblüte.
+Gemessen (scale 2, inkl. Schattenpass): 5-5 45–99 Zeichenaufrufe (Bilder an den Stern-Zielen bis 112) /
+≤ 233 k Dreiecke · 5-B 50–81 / ≤ 157 k · 5-6 51–106 / ≤ 250 k.
+Wünsche an den Motor: `switch_tile` instanzieren (Farbfeld 3 × 3 = 18 Aufrufe), Flipper-Instanzen mit Frustum-Culling
+(jedes Feld wird immer gezeichnet), Reiter-Spec des Werferturms mit `kind` (dann entfällt `arenaTowerFix`).
+
+## Präzisierung (Motor und Bausteine Halloween)
+
+Ergänzung des Motor-/Bausteine-Agenten der Halloween-Welt „Kürbisinsel“ (Stand: Halloween-Werkstatt `0-20`). Nichts oben
+Festgelegtes wird geändert; alles ist additiv. Alle Halloween-Mechaniken sind parametrierbare Module, Level-Bauer setzen sie
+nur in Daten ein. Jede Datei dokumentiert ihre Parameter vollständig im Kopfkommentar; hier die Felder mit Beispielen.
+Aktionen im bekannten Format (Präzisierung Sonder-Bausteine, mit `{ signal }` aus Welt 5). Entitäts-Gimmicks sind auch als
+`type` in `segments` erlaubt (`hw_misc.js`), die Bausteine `geisterplattform`, `besen_plattform`, `hexenkessel`,
+`spinnennetz_trampolin`, `kuerbis_kanone`, `riesenkuerbis_roll` auch als `kind` (Hülle wie Welt 5).
+
+### Präzisierung (Motor und Bausteine Halloween): Dateien
+
+```
+src/course/blocks/hwkit.js               HWC (Farben), hwSfx (Halloween-Klang mit Ersatz), modelOr, pumpkinGeo/faceGeo,
+                                         lanternParts, candyGeo, softTexture/fogTexture, hwLight (Laternenlicht-System),
+                                         ghostBatch (Geisterplatten in einem Shader-Mesh), hwHud (Zähler oben rechts),
+                                         modelGeometry/modelBox/ghostGeometry/bakeInstanced (Registry-Modelle backen)
+src/course/blocks/types/hw_light.js      laternenlicht, geisterplattform
+src/course/blocks/types/hw_broom.js      besen_plattform
+src/course/blocks/types/hw_cauldron.js   hexenkessel (+ Zaubertrank-Blasen), spinnennetz_trampolin
+src/course/blocks/types/hw_cannon.js     kuerbis_kanone (Röhrenkanone aus w5_savanna.js, Mechanik unverändert)
+src/course/blocks/types/hw_glibber.js    glibberbach (Rasterfluss aus river.js als Glibber), nebel
+src/course/blocks/types/hw_misc.js       riesenkuerbis_roll (Spender) + Entitäts-Gimmicks als segments-type
+src/course/blocks/types/deco_hw.js       Kulisse Halloween (verschmolzen; shadow: false für ferne Kulisse)
+src/course/entities/kinds/hw_gimmicks.js laterne, laternenpfahl, suessigkeit(en), suessigkeiten_tuer, grabstein_schalter,
+                                         riesenkuerbis + kind-Hüllen der Halloween-Bausteine
+src/course/view/theme_pumpkin|pumpkin_night|candyvillage|graveyard|witchtower|castle_night.js, backdrop_hw.js
+src/course/levels/w0/0-20.js             Halloween-Werkstatt (eine Station je Mechanik, marks für den Test)
+tests/course_hw_blocks.mjs               Port 4530, Bilder tests/out/hwb_*.png (je Thema hwb_thema_*.png)
+```
+
+Additiv geändert: `view/themes.js` (6 Registrierzeilen, `??=`). Kein Motor-Code geändert: `src/three/*`, Modelle, Audio,
+Karte, Player/HeroRig und die Welt-5-Bausteine bleiben unverändert (die Kürbis-Kanone nutzt `buildRoehrenkanone` über eine
+Level-Hülle ohne Ansicht und zeichnet selbst; der Glibberbach baut den Rasterfluss `river` und wandelt dessen Wasserzellen
+beim Anlegen in Glibber-Formen um).
+
+### Präzisierung (Motor und Bausteine Halloween): Laternenlicht
+
+`hwLight(level)` (= `level.hwLight`, eines je Level, entsteht mit dem ersten Halloween-Baustein) sammelt je
+Simulationsschritt die Lichtquellen `list = [{ x, y, z, r, kind }]`:
+
+| Quelle | kind | Lage / Radius |
+| --- | --- | --- |
+| Handlaterne jeder Figur (auch Klone), sobald `carried` | `'figur'` | Handhöhe (0,62 · Figurhöhe), `radius` (Standard 5 m) |
+| Licht-Helm (Motor Welt 2) | `'helm'` | drei Lichtkugeln entlang des Kegels (1,6 / 3,6 / 5,6 m, Radius 0,5 + 0,52 · Abstand) |
+| Laternenpfahl (Entität) | `'pfahl'` | Lampe, eigener `radius` (Standard 4,5 m), nur wenn an |
+| Höhlen-Laterne `lantern` (Welt 1), angezündet | `'laterne'` | Lampe, ihr `radius` |
+
+`at(x, y, z)` und `box({ x0, x1, y0, y1, z0, z1 }, kinds?)` liefern 0..1 (Abstand mit gestauchter Höhe dy · 0,7, weicher
+Rand `soft` 1,2 m); `carry(on)`, `configure({ radius, soft, carry, lose, helmet })`, `info()`. Tragen: Item `laterne`
+oder `LEVEL.lantern = true | { carry, radius, soft, lose, helmet }` bzw. Baustein `laternenlicht`. Mit `lose: true` geht
+die Laterne beim Tod verloren und das Item erscheint wieder. Darstellung: Handlaterne an der rechten Hand jeder Figur
+(pendelt, Modell `laterne_hand`), warmer Lichtkreis am Boden unter jeder Quelle (eine InstancedMesh), das Figurenlicht des
+Themas (`playerLight`) wird zur warmen Laterne in der Hand; Laternenpfähle nutzen `view.addLantern` (Punktlicht im Thema mit
+`lanternLight`).
+
+**Schnittstelle für Figuren-/Kostüm-Agenten:** `player.hwLantern` ist `true`, solange die Figur eine Laterne trägt (je
+Schritt gesetzt). Hält der Avatar die Laterne selbst (Hand-Pose, eigenes Modell), `level.hwLight.handLantern = false`
+setzen – dann zeichnen die Bausteine keine eigene Handlaterne (Licht und Lichtkreis bleiben).
+
+**Geisterplattformen** zeichnet ein gemeinsames Shader-Mesh (`ghostBatch`, ein Zeichenaufruf für bis zu 64 Platten):
+Lichtmaske je Pixel aus den nächsten 8 Quellen (heller Rand am Lichtkreis, Funkeln), dazu je Platte eine
+Grund-Sichtbarkeit (0,3 im Licht, Flackern in der Vorwarnung), im Dunkeln ein zarter Schimmer (`hint`).
+
+### Präzisierung (Motor und Bausteine Halloween): Signale, Zähler, HUD, Klänge
+
+- **`level.signal('klingeln', { id, group, content, n, of, pos, via, source })`** je geklingelter Tür (`via` = `'walk'` |
+  `'stomp'` | `'tap'` | `'action'` | `'code'`; `content` = tatsächlicher Inhalt, z. B. `'pilzling'` als Ersatz für den
+  Kürbling); Zähler `level.hwDoors[group] = { n, of, done }`; sind alle Türen der Gruppe geklingelt, laufen die
+  `onAll`-Aktionen ihrer Türen. Für Level-Aufgaben („alle 8 Türen“) genügt `onAll` bzw. `level.onSignal('klingeln', …)`.
+- **Schnittstelle für den Gegner-Agenten:** `content: 'kuerbling'` erzeugt `level.spawn('kuerbling', { …enemy, pos (1,1 m
+  vor der Tür), yaw (Blick aus der Tür), dir: [dx, dz], fromDoor: id | true })` – `fromDoor` erlaubt eine eigene
+  Heraushüpf-Animation; bis es `kuerbling` gibt, kommt `pilzling`.
+- Grabstein-Schalter: optional `signal: name` → `level.signal(name, { pos, source, via, pressed })` beim Drücken und
+  Loslassen (`pressed: false`).
+- `level.hwCandy` zählt gesammelte Süßigkeiten (jede +1 Bitcoin über `level.addCoins(1)`).
+- **HUD** `hwHud(level).set(key, { text, icon: 'tuer' | 'bonbon' | 'kuerbis' | 'laterne', done, color, hold })` – Zeilen
+  oben rechts (unter einer evtl. Schlüssel-Anzeige); Türen zeigen „Türen n/N“ (`hud: false` schaltet ab), Süßigkeiten
+  „Süßes n“ mit `LEVEL.candyHud: true`. `state()` für Tests.
+- **Klänge** über `hwSfx(level, name, ersatz)`: spielt den Halloween-Klang, sobald es ihn in `src/audio` gibt, sonst den
+  Ersatz: `suessigkeit` (berry), `klingel` (key), `tuer` (gate), `muenzregen` (coin), `buh` (ghost), `alle_tueren` (key),
+  `laterne` (light), `laterne_aus` (vanish), `kessel` (bounce), `netz` (bounce), `blase` (vanish), `grabstein` (ghost),
+  `kuerbis_platzt` (brickbreak). Wunsch an den Audio-Agenten: diese Namen als eigene Effekte.
+
+### Präzisierung (Motor und Bausteine Halloween): Liste mit Daten-Beispielen
+
+| Typ / Art | Kern | Wichtige Felder (Standard) | Beispiel |
+| --- | --- | --- | --- |
+| `laternenlicht` (type) | stellt das Laternenlicht ein | `radius` 5, `soft` 1.2, `carry` false, `lose` false, `helmet` true | `{ type: 'laternenlicht', radius: 5 }` |
+| `laterne` (kind; auch type) | Handlaterne zum Aufheben → alle Figuren tragen eine | `pos` (Fußpunkt, schwebt darüber), `radius` (setzt den Lichtradius), `banner` 'Laterne!' ('' = keine), `id`, `hidden` | `{ kind: 'laterne', pos: [0,1,-11] }` |
+| `laternenpfahl` (kind; auch type) | feste Laterne auf Pfahl, Lichtquelle; blinkt mit Vorwarnung; schaltbar | `pos`, `radius` 4.5, `height` 2.4, `on` true, `blink` null \| [an, aus], `phase`, `warn` 0.6, `style` 'kuerbis' \| 'laterne', `yaw` (Arm-Richtung, −π/2), `id` → `{ on, toggles, toggle(), start(), stop(), info() }`; Feuer/Tatze zündet an | `{ kind: 'laternenpfahl', id: 'pfahl1', pos: [-5.2,1,-40], radius: 6, blink: [4, 2.5], yaw: 0 }` |
+| `geisterplattform` | nur im Licht sichtbar und begehbar, Vorwarnung, wird nicht fest, solange eine Figur darin steckt | `pos`+`size` [2.4,0.5,2.4] \| `parts: [{ pos, size }]` \| `from`/`to`/`n`, `linger` 0.8, `hint` 0.06, `color` 'lila' \| 'blau' \| 'gruen', `light` 'alle' \| 'laterne' \| 'pfahl', `face` true, `oneWay`, `always`, `id` → `{ parts: [{ lit, k, solid, warn, waits }], lit, solid, info() }`; Form tag `geisterplattform` | `{ type: 'geisterplattform', id: 'geist1', light: 'laterne', from: [0,0.5,-16.5], to: [0,0.5,-26.5], n: 4 }` |
+| `besen_plattform` | fliegender Hexenbesen mit Sitzbrett trägt die Figur (mover), wippt, neigt sich, dreht an den Enden | `path` (Mitte Unterseite), `size` [3, 1.3] (Länge × Breite), `thick` 0.35, `axis` 'auto' \| 'x' \| 'z', `speed` 2.5, `wait` 0.8, `mode` 'pingpong' \| 'loop', `phase`, `start` 'auto' \| 'stand' \| 'signal', `once`, `bob` 0.06, `tilt` 7, `reset` true, `color` 'lila' \| 'rot' \| 'gruen', `trail` true, `id` → `{ pos, mover, shape, running, riders, rides, start(), stop(), reset(), info() }` | `{ type: 'besen_plattform', id: 'besen', path: [[0,0.65,-54.5],[0,1.4,-61],[0,0.65,-67.5]], start: 'stand' }` |
+| `hexenkessel` | Trampolin mit Blubber (bounce), Spritzer je Abprall; optional Zaubertrank-Blasen als aufsteigende Plattformen (von unten durchlässig, tragen nach oben, wackeln, platzen) | `pos`, `size` 2, `height` 1.2, `strength` 20 \| `jump` m, `color` 'gruen' \| 'lila' \| 'orange', `light` true, `potions` false \| true \| { `every` 2.6, `rise` 1.6, `height` 8, `size` 1.7, `wobble` 0.7, `max` 3, `offset` [dx,dz], `first` 0.5 }, `id` → `{ bounces, top, strength, bubbles, pops, spawned, info() }`; Formen tag `hexenkessel`, `zaubertrank_blase` | `{ type: 'hexenkessel', id: 'kessel2', pos: [7,1,-93], potions: { every: 2.4, height: 7 } }` |
+| `spinnennetz_trampolin` | Netz zwischen vier krummen Pfählen federt (bounce), dellt sich ein, Spinne am Faden | `pos` (Boden unter der Mitte), `size` [3,3], `height` 1, `strength` 17 \| `jump` m, `spider` true, `posts` true, `id` → `{ bounces, sag, top, info() }` | `{ type: 'spinnennetz_trampolin', pos: [-7,1,-91], jump: 5.5 }` |
+| `kuerbis_kanone` | Röhrenkanone im Kürbis-Look (Gesicht glüht beim Laden, Deckel mit Stiel lehnt daneben) | Felder von `roehrenkanone` (`pos`, `to`, `arc`, `gravity`, `charge` 0.6, `enter`, `onFire`, `hidden`) + `size` 1.3 (Registry-Modell; Kollision aus dessen Hüllquader) bzw. `height` 2.0, `radius` 1.1 (eigene Optik), `yaw` −π/2 (Gesicht +Z; mit Registry-Modell zum Ziel gedreht), `face` 'grinsen', `color` 'orange' \| 'gelb' \| 'weiss', `mark` true; Griff wie `roehrenkanone` | `{ type: 'kuerbis_kanone', id: 'kanone', pos: [0,1,-104.5], to: [0,1,-134] }` |
+| `suessigkeiten_tuer` (kind; auch type) | Haustür mit Häuschen: Stampfen auf die Schwelle / Antippen / Hinlaufen = klingeln → Glocke, Tür auf, Inhalt, Tür zu, Türlampe brennt | `pos` (Schwellenmitte), `yaw` −π/2 (Tür zeigt +Z), `content` 'muenzen' \| 'suesses' \| 'kuerbling' \| 'nichts' \| Gegner-Art \| Aktion, `n` 5, `enemy` {…}, `ring` ['stomp','tap','walk'], `group` 'tueren', `onAll`, `of`, `hud` true, `house` true, `color` 'lila' \| 'orange' \| 'gruen' \| 'blau', `once` true, `id` → `{ state, rings, via, out, lit, info() }` | `{ type: 'suessigkeiten_tuer', id: 'tuer1', pos: [-8,1,-148], yaw: 0, content: 'muenzen', onAll: { coins: 5 } }` |
+| `suessigkeit` / `suessigkeiten` (kind; auch type) | Sammel-Item, +1 Bitcoin, `level.hwCandy`, eigener Klang; mit `vel` fliegt es zuerst (erst nach 0,35 s einsammelbar); Figuren im Kanonenflug/Floß sammeln mit | `pos`, `variant` 'bonbon' \| 'lolli' \| 'zuckermais' \| 'schoko', `vel`, `hidden`; Reihe/Kreis `from`/`to`/`n` \| `pos`/`r`/`n` | `{ kind: 'suessigkeiten', from: [-3,1,-2], to: [3,1,-2], n: 4 }` |
+| `riesenkuerbis` (kind; auch type) | rollender Riesenkürbis (auf der Seite, wie ein Rad): bergab schneller, seitlich Treffer + Stoß, von oben Abprall, Stampfen/Angriffe zerplatzen ihn; Wand/Lava/Glibber/Abgrund/`life` → platzt | `pos`, `dir` \| `yaw`, `size` 1.8, `speed` 3, `max` 9, `path` (Bodenpunkte; folgt kinematisch, bergab schneller, platzt am Ende), `life` 16, `hurt` true (false = nur wegstoßen), `face` true, `drop` (Aktion), `color`, `id` → `{ state, rolled, speed(), info() }` | `{ kind: 'riesenkuerbis', pos: [0,1,-194], dir: [1,0] }` |
+| `riesenkuerbis_roll` | Spender (Holzverschlag mit Kürbisstapel) stößt Riesenkürbisse aus; ohne `every` ein einzelner (respawn) | `pos` (Austritt), `dir` \| `yaw`, `every` 3.5 (0 = einzeln), `first` 0.5, `max` 3, `start` 'auto' \| 'near' \| 'signal', `near` 20, `spawner` true, `respawn` 0, `vmax`, …Kürbis-Felder, `id` → `{ spawned, alive, running, start(), stop(), spawn(), info() }` | `{ type: 'riesenkuerbis_roll', id: 'spender', pos: [-12.6,4,-186], dir: [1,0], every: 4, start: 'near' }` |
+| `grabstein_schalter` (kind; auch type) | Druckschalter: Grabplatte vor einem Grabstein mit Lachgesicht; Platte sinkt, Augen leuchten | `pos`, `yaw` −π/2 (Gesicht und Platte zur Kamera), `on`, `off`, `signal`, `time` 0 (Zeitanzeige, dann zurück), `toggle`, `once`, `press` 'stand' \| 'pound', `face` true, `id`, `hidden` → `{ pressed, presses, press(), release(), info() }`; Signale `open`/`toggle`/`start`/`stop` | `{ type: 'grabstein_schalter', id: 'schalter', pos: [-4,1,-205], on: { reveal: 'grabweg' } }` |
+| `glibberbach` | grüner Glibber-Bach (Rasterfluss `river` Form B mit Ufern/Strömung): Floß `raft` (Pflaume) fährt darauf, Hineinfallen = Neustart am Checkpoint (`kill: 'glibber'`, deathCause `'fall'`), Gegner versinken, Blasen und Klumpen | `path` (y = Oberfläche), `width` 6, `depth` 2, `speed` 3 \| `speeds`, `bank` 2.5, `bankH` 1, `banks`, `bed`, `open`, `color` 'gruen' \| 'lila', `bubbles` 26, `blobs` 10, `id` → `{ river, sunk, contains(x,z), surfaceAt(x,z), info() }` | `{ type: 'glibberbach', id: 'glibber', path: [[0,-0.5,-239],[0,-0.5,-252],[2.5,-0.6,-262],[0,-0.6,-276]], bankH: 1.5 }` + `{ kind: 'raft', pos: [0,-0.5,-241.5], exit: [0,-0.6,-276], exitR: 0.9 }` |
+| `nebel` | Bodennebel-Feld, rein optisch (Schichten, treibt, Ränder weich, um die Figur dünner) | `pos` (Mitte am Boden), `size` [14,14], `height` 1.3, `layers` 3, `density` 0.35, `color` 0xc8d2f4, `drift` [0.25,0.08], `edge` 2 | `{ type: 'nebel', pos: [0,1,-301], size: [24,18] }` |
+| `deco_hw` | Kulisse (verschmolzen) | `items: [{ kind, pos, … }]`, `shadow: false`; Arten `kuerbis` (size, shape, color, face), `kuerbisse`, `kuerbislaterne` (mount 'boden' \| 'pfahl', light), `vogelscheuche`, `strohballen` (form 'eckig' \| 'rund'), `maisstaude`, `maisfeld`, `krummer_baum`, `krumme_baeume`, `grabstein` (style 'rund' \| 'kreuz' \| 'spitz', face), `grabsteine`, `zaun` (from, to, style 'holz' \| 'eisen', solid), `spinnweben` (lage 'ecke' \| 'decke'), `kerzen` (n, light), `fledermaus_girlande` (from, to, n, sag), `suessigkeiten` (Haufen), `dorfhaus`, `hexenturm`, `gruft`, `kerzenleuchter` (nur mit Registry-Modell); Streuungen mit `detail: 'voll'` als Einzelmodelle | `{ type: 'deco_hw', items: [{ kind: 'kuerbisse', pos: [-9,1,1], size: [6,8], n: 7, faces: 0.5 }, { kind: 'vogelscheuche', pos: [9.5,1,-1] }] }` |
+
+Hinweise für Level-Bauer: Geisterplatten für die Handlaterne höchstens ≈ 3,5 m auseinander (Radius 5 m, die nächste
+Platte muss vor dem Absprung im Licht liegen); `light: 'pfahl'` für Brücken, die nur ein (blinkender) Laternenpfahl zeigt.
+Floß-Ende (`exit`) dicht vor die Uferwand legen (das Absteigen springt nur ≈ 1,5 m vor). Türen in Gassen seitlich
+(`yaw: 0` bzw. `π`); Hinlaufen braucht den Blick zur Tür.
+
+### Präzisierung (Motor und Bausteine Halloween): Modelle
+
+Die Bausteine übernehmen die Halloween-Modelle der Registry, sobald `hasModel(name)` gilt (sonst eigene Ersatz-Geometrie,
+gleiche Kollision und Mechanik). Stand mit den Modellen aus `gimmicks_hw.js`, `props_*_hw.js`:
+
+| Modell | genutzt von | Optionen / Zustand aus dem Baustein |
+| --- | --- | --- |
+| `laterne_hand` | Handlaterne an jeder Figur (× 0,7), Item `laterne` (× 1,15, ohne eigenen Schein) | state { swing (rad), lit } |
+| `kuerbislaterne` | `laternenpfahl` mit `style: 'kuerbis'`; `deco_hw` kuerbislaterne | { mount: 'pfahl' } bzw. { size, mount, face } |
+| `laternenpfahl` | `laternenpfahl` (`style: 'laterne'`), noch kein Registry-Modell → eigene Optik | { height, style }; state { lit 0..1 } |
+| `geisterplattform` | Form und Farben (einfache Form `ghostPlatformGeo(…, lo)`) im Licht-Shader-Mesh, Farbe lila → 'lila', blau/grün → 'mint', orange | { size: [w, h, d], color } |
+| `besen_plattform` | Besen; Ursprung = Brett-Oberseite (Lauffläche) | { length, width, stick: 1,45 · length, color }; state { tilt, roll, bank, speed, moving } |
+| `hexenkessel` | Kessel, auf `height` gestreckt (Höhe/userData.top) | { size: 2R / 1,7 }; state { bounce (Einfedern), bubble: 1 } |
+| `spinnennetz_trampolin` | Netz (ohne eigene Pfähle) | { radius: min(w, d) / 2, height }; state { bounce: Durchhang / 0,7 } |
+| `kuerbis_kanone` | Kanone, dreht zum Ziel, Rohr folgt dem Abschusswinkel; Kollision aus dem Hüllquader des größten Teils | { size 1,3 }; state { anim 'idle' \| 'load' \| 'fire', k, aim (rad) } |
+| `suessigkeiten_tuer` | Tür im Häuschen (Wandöffnung mit Vorraum 1,45 m, Tür 1,3 × 2,4 m, öffnet nach innen) | { width, height, color }; state { open, ring, lit } |
+| `grabstein_schalter` | Schalter; Kollision aus dem Hüllquader (man kann darauf springen), Knopf = Druckplatte | state { pressed 0..1, glow } |
+| `riesenkuerbis_roll` | rollender Riesenkürbis (Spender und `riesenkuerbis`) | { size, color, face }; state { roll (Strecke / Radius), speed, anim 'roll' \| 'burst', progress } |
+| `suessigkeit` | Pool-Vorlage der Süßigkeiten | { kind: bonbon → 'bonbon', lolli → 'lolli', zuckermais → 'mais', schoko → 'riegel', color: Index } |
+
+Kulisse `deco_hw`: erst `deco_hw_<kind>`, sonst `kuerbis`, `kuerbislaterne`, `vogelscheuche`, `strohballen` (form → kind),
+`maisstaude`, `suessigkeiten_haufen`, `grabstein` (style → kind, tilt, pumpkin), `halloween_baum` (krummer_baum),
+`spinnennetz` (spinnweben: 'ecke' → 'ecke', 'decke' → 'rund'), `eisenzaun` (zaun style 'eisen'), `kerzenleuchter`,
+`dorfhaus_nacht`, `hexenturm`, `gruft` – gebacken in die statische Geometrie, Kollision bleibt; Gesichter/Türen zeigen ohne
+`yaw` zur Kamera (+Z). Die Streuungen `kuerbisse`, `grabsteine`, `maisfeld` backen die einfachere Instanz-Form
+(`createInstanced`, `bakeInstanced` in hwkit; ≈ ⅓ der Dreiecke), `detail: 'voll'` nimmt die Einzelmodelle. Neu (nur mit
+Registry-Modell): `dorfhaus` (width 3, depth 2.6, height 2.4, color, door, lean), `hexenturm` (height 5, radius 1.3, lean,
+windows, part), `gruft` (size), `kerzenleuchter` (arms, height, light). Noch ohne Modell (eigene Optik): Zaubertrank-Blase,
+Laternenpfahl-Stil 'laterne', Spender-Verschlag, Glibber, Nebel.
+
+### Präzisierung (Motor und Bausteine Halloween): Themen
+
+| Thema | Stimmung | Kulisse (`buildBackdrop`) |
+| --- | --- | --- |
+| `pumpkin` | Abendrot: lila Zenit, rosa Band, glühender Orange-Horizont, tiefe warme Sonne mit langen Schatten; herbstliches Grün auf Ackererde; Stimmung `nacht` (view.setMood) | Kürbisfelder mit Furchen bis zum Horizont, Maisreihen, rote Scheunen, lila Hügel, Krähen, fallendes Herbstlaub |
+| `pumpkin_night` | Nacht-Variante für das Diorama (H-Kapitän): tiefblau-lila Nacht, Mond mit Gesicht | dieselben Felder, überall leuchtende Kürbisgesichter, Sterne, Glühwürmchen |
+| `candyvillage` | sternklare Nacht, Mond mit schläfrig-lächelndem Gesicht, warme Fensterlichter | schiefe Häuschen mit warmen Fenstern und Schornsteinen, runde Bäume, Hügel, Fledermäuse |
+| `graveyard` | Mondnacht in kühlem Blau-Lila, Bodennebel | Friedhofshügel mit Grabsteinen und Kreuzen, kahle Bäume, Kapelle mit warmem Fenster, treibende Nebelbänke, Irrlichter |
+| `witchtower` | Nacht zwischen lila Wolken, sanfter Blitzschimmer (weich an/ab, kein Knall), grünes Kessellicht von unten | Wolkenbänke und Wolkenmeer, schiefe Hexentürme mit grünen Fenstern, aufsteigende Zaubertrank-Funken |
+| `castle_night` | Vollmond über dem Gruselschloss; rote Teppiche mit Goldkante als Decke; Stimmung `innen` (Kerzenschein) | Türme mit lila Spitzdächern und Kerzenfenstern, Hauptburg hinter dem Ziel, Sterne, Fledermäuse |
+
+Alle sechs Themen haben `playerLight` (Figurenlicht) und `lanternLight` und gelten damit als dunkle Themen für den
+Spielzeug-Look (kräftigeres Randlicht, Figuren lesbar). Die Werkstatt lässt sich mit `?course=0-20&theme=<name>` in jedem
+Thema ansehen.
+
+### Präzisierung (Motor und Bausteine Halloween): Halloween – Gimmick → Baustein
+
+| Level | Gimmick | Bausteine |
+| --- | --- | --- |
+| H-1 | Kürbisfeld im Abendrot, Kürbis-Hüpfer, rollende Kürbisse, Vogelscheuchen, Laternenpfad | `riesenkuerbis_roll` (Hang, Spender bzw. `path`), `riesenkuerbis`, `laternenpfahl`, `kuerbis_kanone`, `suessigkeiten`, `deco_hw` (kuerbisse, maisfeld, vogelscheuche, strohballen, zaun), Thema `pumpkin` |
+| H-2 | Süßes-oder-Saures-Dorf: Türen klingeln → Bitcoins/Süßes oder Kürbling | `suessigkeiten_tuer` (`content`, `group`, `onAll`; Signal `klingeln`), `suessigkeit`, `LEVEL.candyHud`, `deco_hw` (kuerbislaterne, fledermaus_girlande, suessigkeiten, zaun), Thema `candyvillage` |
+| H-Kapitän | Krümel mit Laterne im Kürbislabyrinth | `LEVEL.lantern: true` (bzw. `laternenlicht` carry), `geisterplattform`, `laternenpfahl`, `deco_hw` (kuerbisse, maisfeld), Thema `pumpkin_night` (oder `pumpkin` mit `setMood('nacht')`) |
+| H-3 | Nebelfriedhof: Laternenlicht zeigt Geisterplattformen, Floß auf dem Glibberbach | `laterne`, `geisterplattform` (`light`), `laternenpfahl` (`blink`), `grabstein_schalter`, `glibberbach` + `raft`, `nebel`, `deco_hw` (grabsteine, krumme_baeume, zaun eisen, spinnweben), Thema `graveyard` |
+| H-4 | Hexenturm vertikal: Besen-Plattformen, Hexenkessel-Trampoline, Zaubertrank-Blasen | `besen_plattform`, `hexenkessel` (`potions`), `spinnennetz_trampolin`, `deco_hw` (kerzen, spinnweben), Thema `witchtower` |
+| H-Burg | Gruselschloss, Graf Brummbär | `grabstein_schalter`, `laternenpfahl`, `deco_hw` (kerzen, fledermaus_girlande), Thema `castle_night` (`setMood('innen')`) |
+
+### Präzisierung (Motor und Bausteine Halloween): Tests und Kennzahlen
+
+`tests/course_hw_blocks.mjs` (Port 4530, `PORT_BASE`; `HWB_SHOTS=0` ohne Bilder, `HWB_PART=mech|themes` je Teil, je unter
+10 min, `HWB_DEBUG=1`): deterministisch über `step(n)`/`setInput` in der Halloween-Werkstatt `0-20` – Geisterplattform
+(ohne Laterne fällt die Figur hindurch, Laterne aufheben, mit Laterne fest und nur im Radius, Vorwarnung 0,8 s, wird nicht
+fest, solange die Figur darin steckt), blinkender Laternenpfahl (Brücke nur bei Licht, Handlaterne allein zeigt sie nicht),
+Besen (startet beim Draufstellen, trägt über die Schlucht), Hexenkessel (+7,4 m), Zaubertrank-Blase (trägt ≈ 3 m nach oben,
+platzt), Spinnennetz (+5,5 m), Kürbis-Kanone (lädt, Flug im Zustand `cannon`, landet genau), drei Türen (Hinlaufen →
+Bitcoins, Stampfen → sechs Süßigkeiten fliegen heraus, Antippen → Gegner; Signale `klingeln` 1/3 … 3/3, `onAll`, HUD),
+Süßigkeiten (+1 Bitcoin je Stück, HUD „Süßes n“), Riesenkürbis (Spender startet in der Nähe, bergab bis 9 m/s, Treffer,
+Stampfen zerplatzt ihn, Bahn `path`), Grabstein-Schalter (Weg erscheint, Signal; Zeit-Schalter mit Laternenpfahl),
+Glibberbach (Hineinfallen = Neustart am Checkpoint, Floßfahrt mit Pflaume bis ans Ende, Gegner versinken), Nebel, Ziel,
+keine Konsolenfehler (37 Prüfungen); dazu Themen-Bilder aller sechs Themen (4 Prüfungen). Kennzahlen mit den
+Registry-Modellen (960×540, scale 2, inkl. Schattenpass): Stationen 39–70 Zeichenaufrufe, 89–201 k Dreiecke (Türen am
+meisten); Themen-Bilder 51–73 Aufrufe, 94–181 k Dreiecke (Budget < 120 / < 300 k). Teuer sind einzelne Kulissenmodelle
+(Vogelscheuche ≈ 9 k, Dorfhaus ≈ 11 k, Tür ≈ 10,5 k, Riesenkürbis ≈ 11,5 k): für viele Stücke die Streuungen nehmen.
+
+## Präzisierung (Gegner Halloween)
+
+Ergänzung des Gegner-Agenten der Halloween-Welt „Kürbisinsel“ (Stand: Gruselwerkstatt `0-21`, Schlossdach des Grafen
+`0-22`). Nichts oben Festgelegtes wird geändert; alles ist additiv. Level-Bauer schreiben nur Daten; alle Felder sind
+optional, sofern nicht anders vermerkt. Gemeinsame Felder und Konter aus „Präzisierung (Gegner/Power-ups)“ und „(Gegner
+Welt 2–5)“ gelten weiter (`id, pos, dir|yaw, path, loop, wake, edges, drop`; Ziel = nächste Figur, Lava/Absturz = besiegt,
+`STRONG` = cannon, bomb, mega, star). Jede Datei dokumentiert ihre Parameter vollständig im Kopfkommentar. Kindgerecht:
+niemand erschrickt – Kürblinge zerplatzen in Kerne und Bitcoins, Skelette fallen klappernd um, der Graf fliegt als
+lustiger Fledermaus-Schwarm mit Zylinder.
+
+### Präzisierung (Gegner Halloween): Dateien
+
+```
+src/course/entities/kinds/huepfer_hw.js            kuerbling (+ Riesenkürbling: riese: true bzw. kind 'riesenkuerbling'),
+                                                   hexenhut_huepfer
+src/course/entities/kinds/klapperknochen_hw.js     klapperknochen
+src/course/entities/kinds/flatterfledi_hw.js       flatterfledi, flatterfledi_schwarm (Glieder 'flatterfledi_glied');
+                                                   Hilfen BatFlockView (Instanz-Gruppe), Klasse Flatterfledi
+src/course/entities/kinds/graf_brummbaer_hw.js     graf_brummbaer (Boss H-Burg, Schwarm-Glieder 'graf_fledermaus'),
+                                                   kuerbis_bombe
+src/course/entities/kinds/spuk.js                  + Option halloween (spuk/Großspuk, kreisgeist, kreisgeist_kreis);
+                                                   isHalloweenLevel(level)
+src/course/levels/w0/0-21.js                       Gruselwerkstatt (5 Reihen Gehege, Z(r, dz) wie 0-18, LEVEL.halloween,
+                                                   Thema pumpkin)
+src/course/levels/w0/0-22.js                       Schlossdach des Grafen (Archetyp boss, runde Arena mit Zinnen im Haken
+                                                   build, Thema castle_night, Vollmond)
+tests/course_hw_enemies.mjs                        Port 4540, HWE_PART=1|2|3|4, Bilder tests/out/hwe_*.png
+```
+
+Modelle (fertig, `src/course/models/kinds/*_hw.js`): `kuerbling`, `klapperknochen`, `flatterfledi`, `hexenhut_huepfer`,
+`spuk_halloween`, `kreisgeist_halloween`, `kreisgeist_kreis_halloween`, `graf_brummbaer` (`model.hand()`), `kuerbis_bombe`,
+`fledermaus_schwarm` (Anführer mit Zylinder), `bonbon_konfetti`; Landemarkierung `boss_marker`. Kein Ersatzmodell nötig.
+Die Hüpfer setzen `state.height: 0` und `progress` aus der Simulation (die Höhe des Hüpfers ist echte Bewegung, die
+Trefferzone springt mit).
+
+### Präzisierung (Gegner Halloween): gemeinsame Regeln
+
+- **Halloween-Optik automatisch:** `spuk`, `kreisgeist`, `kreisgeist_kreis` zeichnen in der Halloween-Welt (LEVEL.world
+  31, Id `H-…` oder `LEVEL.halloween: true`) die Halloween-Modelle; je Gegner überschreibbar mit `halloween: true|false`,
+  Spuk zusätzlich `hat: 'kuerbis' (Standard) | 'hexe' | 'kein'`. Verhalten unverändert (Großspuk = `spuk` mit `size: 2.5`).
+- **Hüpfen:** Kürbling und Hexenhut-Hüpfer bewegen sich nur in Hüpfern (ducken 0,1 s → Bogen → landen 0,1 s → Pause);
+  an Kanten springen sie nicht hinunter (`edges: false` erlaubt es), Bahnen (`path`) treffen sie Wegpunkt für Wegpunkt.
+- **Tragen/Werfen** der Kürbis-Bombe über das Trage-System (wie Zündkopf): Aktion in Reichweite bzw. Rennen + Berührung
+  hebt auf (zündet; Lunte dann ≥ `carryFuse`), Aktion wirft, Ducken + Aktion setzt ab. Geworfen explodiert sie am ersten
+  Hindernis (Wand, Gegner, Endgegner – `onBombHit(bomb)` vorher). **Zielhilfe:** liegt ein Endgegner (`boss` +
+  `onBombHit`) höchstens 40° neben der Wurfrichtung und ≤ 10 m weit, fliegt die Bombe im Bogen zu ihm (`assisted`).
+- **Explosion** der Kürbis-Bombe: `explodeAt` aus `zuendkopf_w5.js` (Radius 1,5 m; Gegner `onHit('bomb')`, Zerbrechliches,
+  Figuren bis 0,9 × Radius, `level.onExplosion`) mit eigener Wirkung (lila-oranger Puff des Modells, Funken, Stückchen).
+- **Fledermaus-Schwärme** (`flatterfledi_schwarm`, Schwarm des Grafen) zeichnen alle Glieder als **eine Instanz-Gruppe**
+  (`BatFlockView` über `modelInstances('flatterfledi')`, ≈ 5 Zeichenaufrufe); jedes Glied ist eine eigene Entität.
+- **Signale/Haken:** `level.onEnemyDefeated(e)` (je besiegtem Gegner, auch Schwarm-Fledermäuse), `level.onExplosion`,
+  Boss: `level.onBossHit(boss, 'bombe')`, `level.onBossDefeated(boss)`. Aus Gimmicks erzeugbar: `level.spawn('kuerbling',
+  { pos, vel: [vx, vy, vz], dir })`; die Süßigkeiten-Tür der Bausteine (`content: 'kuerbling'`) erzeugt ihn mit `fromDoor`
+  – ohne `vel` hüpft er dann in Blickrichtung `dir` aus der Tür (2,2 m/s vor, 5,5 m/s hoch), landet und hüpft los
+  (geprüft in `course_hw_blocks`: „Gegner heraus 1 (kuerbling)“); Hexenhut-Hüpfer ebenso.
+- **Sound** nur über vorhandene `level.sfx`-Namen: `stomp`, `bounce`, `brickbreak` (Kürbling zerplatzt), `blockhit`
+  (Knochen fallen), `step` (Klappern beim Zittern), `switch` (Aufbau), `vanish`, `hover` (Lunte), `swoop`, `land`, `slam`,
+  `ghost` (Graf lacht), `panic` (Schwarm), `boss_hit`, `powerdown`; Fanfare `course_clear` über den Boss-Archetyp.
+
+| Gegner | Verhalten | besiegt durch | verletzt |
+| --- | --- | --- | --- |
+| kuerbling | hüpft in Bögen auf die Figur zu (sight) bzw. auf seiner Bahn | Draufspringen (zerplatzt, Abprall, coins Bitcoins), alle Angriffe | seitlich |
+| riesenkuerbling | wie Kürbling, ×1,8, nach Treffer 1 schneller | 2 Treffer → zerfällt in 3 kleine Kürblinge; Explosion/Stern/Riese ganz | seitlich |
+| klapperknochen | läuft hin und her (bzw. verfolgt); Draufspringen → Knochenhaufen (harmlos, begehbar), zittert 0,8 s, steht nach 4 s wieder auf | **Stampfattacke auf den Haufen**, Feuer, Krallen, Panzer, Explosion, Stern, Riese | stehend seitlich |
+| flatterfledi | hängt kopfüber, wacht auf, Sturzflug-Bogen durch die Figur, zurück; Kreis/Bahn/Schweben | Draufspringen, alle Angriffe | Berührung (auch im Sturzflug) |
+| flatterfledi_schwarm | count Fledermäuse kreisen wippend um pos | je Fledermaus wie oben | Berührung |
+| hexenhut_huepfer | hüpft unter der Krempe heran | **nur gelandet** von oben (platt); Feuer, Krallen, Panzer, Explosion, Stern, Riese immer | seitlich |
+| kuerbis_bombe | liegt bzw. brennt; tragen, werfen, Aufprall explodiert | Stern/Riese entschärfen | Explosion (1,5 m) |
+| graf_brummbaer | Boss H-Burg (siehe unten) | nur zurückgeworfene Kürbis-Bomben (3×) | stehend seitlich, Schwarm, Bomben |
+
+### Präzisierung (Gegner Halloween): Gegner-Daten (exakt, mit Beispiel)
+
+```js
+enemies: [
+  // Kürbling: behavior 'chase' (Standard ohne path) | 'patrol', sight 7, hop 1.1 (m je Hüpfer), height 0.5 (Sprunghöhe),
+  //   pause 0.35 (s nach der Landung), coins 1 (Bitcoins beim Zerplatzen), path, loop, dir, wake, edges, drop,
+  //   vel [vx, vy, vz] (startet im Flug), fromDoor (id | true: hüpft aus einer Süßigkeiten-Tür in Richtung dir)
+  { kind: 'kuerbling', id: 'kb_jaeger', pos: [-11.5, 1, -14], sight: 7 },
+  { kind: 'kuerbling', pos: [-14, 1, -19], behavior: 'patrol', path: [[-17, 1, -19], [-7, 1, -19]], sight: 0, coins: 2 },
+  // Riesenkürbling (×1,8, hp 2): riese: true bzw. kind 'riesenkuerbling'; hop 1.4, height 0.7, pause 0.5, coins 2, kids 3
+  { kind: 'kuerbling', id: 'kb_riese', riese: true, pos: [11.5, 1, -16], sight: 8 },
+  // Klapperknochen: speed 1.2, behavior 'walk' | 'chase', sight 6, chaseSpeed 1.6, pile 4 (s bis zum Wiederaufbau, ab dem
+  //   Umfallen), warn 0.8 (s Zittern davor), path, loop, dir, wake, edges, drop
+  { kind: 'klapperknochen', pos: [-12, 1, -33], path: [[-17, 1, -33], [-7, 1, -33]] },
+  { kind: 'klapperknochen', pos: [-11.5, 1, -39], behavior: 'chase', sight: 6, drop: 'coin' },
+  // Flatterfledi: pos = Aufhängepunkt (hängt darunter); hang true, sight 5 (waagerecht), reach 7 (m tiefer), speed 6 (m/s im
+  //   Sturzflug), cooldown 1.5, scale 1, drop; ohne Aufhängen: center + radius 2.5 (Kreis, y = Fußpunkt), flySpeed 2.2, cw,
+  //   phase | path, loop | hang: false (schwebt an pos)
+  { kind: 'flatterfledi', pos: [-9, 3.8, -55], sight: 5 },
+  { kind: 'flatterfledi', center: [16, 1.7, -59.5], radius: 1.6, flySpeed: 1.8 },
+  // Flatterfledi-Schwarm: pos = Mitte (y = Fußpunkt der Fledermäuse), count 6 (≤ 24), radius 2.5, speed 2 (m/s am Umfang),
+  //   cw, phase, bob 0.35, scale 1, drop (je Fledermaus); Glieder: level.named `${id}_${i}`
+  { kind: 'flatterfledi_schwarm', id: 'ff_schwarm', pos: [10.5, 1.9, -55], count: 6, radius: 2.6 },
+  // Hexenhut-Hüpfer: behavior 'chase' | 'patrol', sight 7, hop 1.3, height 0.8, pause 0.55, bounce 14 (m/s Abprall von der
+  //   Krempe), path, loop, dir, wake, edges, drop, vel, fromDoor
+  { kind: 'hexenhut_huepfer', pos: [-11, 1, -74], sight: 7 },
+  // Halloween-Spuke (Felder wie Welt 3) + halloween (Standard nach Welt), hat (Spuk)
+  { kind: 'spuk', pos: [-9, 1.4, -98], size: 2.5, hat: 'hexe' },
+  { kind: 'kreisgeist_kreis', pos: [13, 1.2, -97], count: 8, radius: 3 },
+],
+items: [
+  // Kürbis-Bombe: lit false, fuse 3 (s), radius 1.5, carryFuse 1.6 (Mindest-Lunte nach dem Aufheben), vel (Flug; Lunte
+  //   brennt erst ab der Landung), owner (trifft ihn nicht, bis eine Figur sie geworfen hat), id
+  { kind: 'kuerbis_bombe', pos: [7, 1, -71] },
+],
+```
+
+Laufzeit (für Tests und Gimmicks): Hüpfer `state` (idle | rest | crouch | air | land | hurt | burst | squashed | flipped),
+`hops`, `hp`, `kids` (Riese), `brimBounces` (Hexenhut), `airborne`, `info()`; Klapperknochen `state` (idle | walk | collapse
+| pile | shiver | rebuild | defeated), `lying`, `collapses`, `rebuilds`, `pileLeft`, `info()`; Flatterfledi `state` (hang |
+wake | dive | return | fly | defeated), `mode` (hang | circle | path | hover | flock), `dives`, `anchor`, `diveFrom/diveLow/
+diveTo`, `body()`, `info()`; Schwarm `angle`, `aliveCount`, `members`, `info()`; Kürbis-Bombe `state` (idle | lit | air |
+carried | thrown | slide | explode | fizzle), `lit`, `fuse`, `exploded`, `fizzled`, `thrownBy`, `assisted`, `explosion`,
+`info()`.
+
+### Präzisierung (Gegner Halloween): Graf Brummbär
+
+```js
+{ kind: 'graf_brummbaer', id: 'graf', pos: [0, 2, -4] (Start, Fußpunkt), dir: [0, 1] (Start-Blick),
+  arena: { center: [0, 2, 0], r: 9 }, hp: 3, speed: [1.3, 1.7, 2.1], keep: [3.6, 5.6], every: [2.8, 2.3, 2.0], first: 1.2,
+  bombs: [1, 2, 2], max: [2, 3, 5], flight: [1.1, 1.0, 0.9], fuse: [3.4, 3.0, 2.6], radius: 1.5,
+  ring: [0, 0, 4], ringEvery: 3, ringR: 2.8,
+  swarm: [8, 8, 12], swarmLegs: [3, 3, 4], swarmSpeed: [3.6, 3.6, 4.4], swarmSpread: [1.3, 1.3, 1.7], swarmY: 0.95,
+  star: { pos: [0, 2.4, 5], index: 0 }, wakeR: 10, drop, seed }
+boss: { id: 'graf', name: 'Graf Brummbär', speed: 0, trigger, lock, warp: 'warp_sieg', warpPos, warpTo, frame: 0.45,
+        center: [0, 2, 0], musicAfter: 'course_halloween_map' }
+```
+
+Ablauf: `wait` → `intro` (2,2 s, lacht) → `walk` (spaziert im Wunschabstand `keep` um die Figur, blickt sie an, bleibt
+r − 1,2 m in der Arena) ⇄ `throw` (1,0 s; bei 50 % verlassen die Bomben die Tatze – `model.hand()`, einmal vermessen):
+Phase 1 eine Bombe 1,3 m vor die Figur, Phase 2/3 zwei Bomben je 1,7 m links/rechts davon, Phase 3 jeder dritte Wurf ein
+**kurzer Rundumwurf** (`ring` Bomben im Kreis `ringR` um ihn, 0,75 s Flug). Jede fliegende Bombe zeigt am Ziel eine **rote
+Markierung** (`boss_marker`); gelandet brennt ihre Lunte `fuse` s. **Nur eine von der Figur zurückgeworfene Bombe, die ihn
+in `walk`/`throw` trifft, zählt** (`onBombHit`) → `hit` (0,6 s, Zylinder fliegt; Lebensleiste, Ansage „Treffer!“) →
+`stunned` (0,7 s, Schwindel-Fledermäuse) → `bats` (0,9 s: wickelt sich in den Umhang, verpufft) → `swarm`: `swarm`
+Fledermäuse (Entitäten `graf_fledermaus`, eine Instanz-Gruppe) umkreisen den Anführer mit Zylinder (Modell
+`fledermaus_schwarm`, unberührbar) in Hüfthöhe (`swarmY`) und fliegen `swarmLegs` Bögen über die Arena (jeder zweite
+Bogen zur Figur hin, höchstens 0,65 · r von der Mitte; Bogenmitten ≤ 0,75 · r); **Berührung
+verletzt, Draufspringen auf eine Fledermaus besiegt sie und gibt einen Bitcoin**. Die Landestelle ist der Ringpunkt
+(0,5 · r) am weitesten weg von der Figur → `land` (0,9 s: übrige Fledermäuse fliegen zurück, Verwandlung rückwärts) →
+`walk` (nächste Phase). 3. Treffer → `defeated` (2,4 s: setzt sich, Fledermäuse flattern davon, **Konfetti aus
+Süßigkeiten** `bonbon_konfetti`, übrige Bomben verpuffen, Fanfare über den Archetyp) → `gone` (Stern, Archetyp: Warp-Box).
+Kopfsprung/Stampfen = Abprall ohne Schaden; Feuer, Krallen, Panzer, Stern, Riese, Explosionen daneben zählen nicht.
+Ansagen (ersetzen die Standardtexte): „Graf Brummbär!“ (Archetyp), „Wirf die Kürbis-Bomben zurück!“, „Ein
+Fledermaus-Schwarm – ausweichen!“, „Jetzt fliegen mehr Bomben!“, „Vorsicht – Rundumwurf!“, „Graf Brummbär ist besiegt!“.
+Tod im Kampf (`reset`): Graf 3/3 am Startplatz, Bomben, Markierungen, Schwarm, Konfetti weg, Kampf beim nächsten Betreten
+von vorn. Schnittstelle wie Kippquader-König: `begin, reset, state, stateT, hp, maxHp, phase, visible, home` (= Arenamitte
+für die Kampfkamera), `half, carHits 0, vulnerable, info()`. Laufzeit: `throws, bombsThrown, bombs, hits, hitLog, misses,
+bounces, swarms, batsDown, bats, hidden, swarmPath()`.
+
+### Präzisierung (Gegner Halloween): Hinweise für Level-Bauer
+
+- **Bestand je Level** (Halloween-Level-Liste): H-1 Kürbisfeld `kuerbling` (Verfolger und Streifen, ein
+  `riesenkuerbling`), `flatterfledi` an Bäumen; H-2 Dorf `kuerbling` mit `vel` aus den Süßigkeiten-Türen (Gimmick ruft
+  `level.spawn`), `hexenhut_huepfer`, `flatterfledi_schwarm`; H-3 Nebelfriedhof `klapperknochen`, `kreisgeist` /
+  `kreisgeist_kreis` (Halloween-Optik automatisch), `spuk`, hängende `flatterfledi`; H-4 Hexenturm `hexenhut_huepfer`
+  (Krempen-Abprall zu höheren Plattformen), `flatterfledi` (Kreis/Bahn um den Turm), `spuk` mit `hat: 'hexe'`;
+  H-Burg Parcours `kuerbling`, `klapperknochen`, Großspuk (`spuk`, `size: 2.5`), `kuerbis_bombe` (Wurfziele, Ziegel),
+  Boss `graf_brummbaer`. Alle Arten liegen in `0-21` bereit (0-22: Boss).
+- Hängende Flatterfledis höchstens ≈ 3 m über dem Weg aufhängen (`pos.y` = Ast/Decke): höher sieht die Kurs-Kamera
+  (Neigung 45°) sie kaum. Unter ihnen sollte Platz für den Sturzflug-Bogen sein (er reicht `|Figur − Start|` m weiter).
+- Klapperknochen auf Flächen ohne Abgrund daneben (er fällt sonst mit den Knochen hinunter und gilt als besiegt).
+- Hexenhut-Hüpfer vor einer Stufe, die nur mit dem Krempen-Abprall (Scheitel ≈ 3,5 m) erreichbar ist, belohnt Timing.
+- Riesenkürbling braucht ≈ 3 m Platz ringsum (die drei Kleinen fliegen 1–1,5 m weit).
+- Kürbis-Bomben als Werkzeug: neben Ziegel/`lila_ziegelwand`/Gegnergruppen legen; `fuse` lang genug zum Tragen.
+- H-Burg-Arena: runde Fläche r ≥ 9 m mit Brüstung (Bomben explodieren an Wänden), Eingang mit `boss.lock`,
+  `arena.center` = Mitte des Daches, Stern vorn (`star`), Warp-Box `hidden` in der Mitte; die Musik `course_brummula`.
+  Eigene Arena-Geometrie im Haken `LEVEL.build(level)` anlegen (vor dem Verschmelzen und vor den Level-Grenzen – sonst
+  zählt sie nicht zu `bounds`/`killY`), Beispiel `0-22`. Thema `castle_night`: dessen Kulissen-Fledermäuse fliegen
+  6–18 m über den Level-Grenzen und kreuzen bei der hohen Kampfkamera (19 m, 50°) groß das Bild – `0-22` hebt sie in
+  `setup` um 14 m an (`level.view.sky.bats.bats[i].cy`); Wunsch an den Motor: Höhe der Kulissen-Fledermäuse an der
+  Kamera ausrichten.
+
+### Präzisierung (Gegner Halloween): Tests und Kennzahlen
+
+`tests/course_hw_enemies.mjs` (Port 4540, `?course=0-21|0-22&scale=2&adapt=0`, deterministisch über `step(n)`
+(1 Schritt = 1/120 s) und `setInput`; Hilfen `window.__t`: `Z(r, dz)`, `place`, `stomp`, `touch`, `fresh`, `hold`,
+`action`, `face`, `coins`, Boss: `enter`, `untilSafe`, `throwBack`; `HWE_PART=1|2|3|4`, je Teil 2–4 min): Laden (alle Arten,
+Halloween-Modelle ohne Platzhalter, Spuke in Halloween-Optik, Schwarm als Instanz-Gruppe, 10 s ohne Fehler) · Teil 1
+Kürbling (Hüpf-Bögen heran, seitlich verletzt, Draufspringen zerplatzt + 1 Bitcoin, Streife auf der Bahn), Riesenkürbling
+(2 Treffer → 3 Kleine im Flug, die danach hüpfen, 2 Bitcoins; Explosion ganz), Klapperknochen (Streife, Haufen harmlos und
+begehbar, Zittern ab 3,2 s, Aufbau ab 4,0 s, Stampfattacke auf den Stehenden nur Haufen, auf den Haufen besiegt, Sprung auf
+den Haufen nicht, Feuerball besiegt) · Teil 2 Flatterfledi (schläft, `wake>dive>return>hang`, Bogen genau durch die Figur,
+trifft, Kreis, Draufspringen), Schwarm (kreist, einzeln besiegbar), Hexenhut (Krempe: 14 m/s, Scheitel 3,5 m, gelandet
+platt), Kürbis-Bombe (aufheben, tragen, werfen, Aufprall, Lunte 3,0 s, Kette, Ziegel, Stern entschärft, Klapperknochen),
+Spuke · Teil 3 Graf Brummbär vollständig (Auftritt, Würfe mit Markierung 1,4 m vor der Figur, Abstand, Kopfsprung,
+Angriffe zählen nicht, Treffer nur mit zurückgeworfener Bombe, Verwandlung, Fledermaus-Bitcoin, Schwarm verletzt, Landung
+≥ 5 m von der Figur, Phase 2 zwei Bomben, Schwarm 12, Phase 3 Rundumwurf r 2,8 m, Konfetti, Stern, Warp → Ziel, Tod setzt
+zurück) · Teil 4 Bilder `tests/out/hwe_*.png` und Zeichenaufrufe. Gemessen (scale 2, inkl. Schattenpass): Gruselwerkstatt
+35–83 Zeichenaufrufe (≤ 206 k Dreiecke, Thema pumpkin), Schlossdach 37–77 (≤ 163 k, Thema castle_night).
+Regressionen: `course_enemies`, `course_w5_enemies` (Teile 1–3), `course_physics` bestanden; `course_hw_blocks`
+(Teil mech) mit dem Kürbling aus der Tür bestanden.
 
 ## Präzisierung (Figuren Halloween): Verkleidung
 

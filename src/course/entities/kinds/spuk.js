@@ -26,16 +26,29 @@
 //            cw?: false, phase?: 0..1 (Startdrehung), fade?: 0.6, peek?: 2.5 (m über den Ring hinaus) }
 //   Laufzeit: angle, alive (Zahl), members (Entitäten), mask. Beispiel:
 //     { kind: 'kreisgeist_kreis', pos: [0, 1.2, -40], count: 10, radius: 4, speed: 2 }
+//
+// Halloween-Optik (Präzisierung Gegner Halloween, additiv): alle drei Arten nehmen `halloween: true | false`; Standard ist
+//   true in der Halloween-Welt (LEVEL.world 31, Id 'H-…' oder LEVEL.halloween: true), sonst false. Dann zeichnen sie die
+//   Modelle 'spuk_halloween' (opts { size, hat: 'kuerbis' (Standard) | 'hexe' | 'kein' } – spec.hat), 'kreisgeist_halloween'
+//   bzw. 'kreisgeist_kreis_halloween'. Verhalten unverändert. Laufzeit: halloween (bool).
 
 import { EnemyW2, figures, activeFigure, looksAt } from '../EnemyW2.js';
 import { PathMover } from '../../level/PathMover.js';
-import { getModel } from '../../models/index.js';
+import { getModel, hasModel } from '../../models/index.js';
 
 const TAU = Math.PI * 2;
 const HIT = 0.4, VANISH = 0.6;
 
 /** Starke Wirkung gegen Geister: nur Funkelstern und Riesentrank. */
 const BANISH = new Set(['star', 'mega']);
+
+/** Halloween-Welt? (LEVEL.halloween, Welt 31, Id 'H-…') */
+export function isHalloweenLevel(level) {
+  const d = level?.data ?? {};
+  return d.halloween === true || d.world === 31 || /^H-/.test(String(d.id ?? level?.id ?? ''));
+}
+/** Halloween-Optik für diese Entität (spec.halloween, sonst nach Welt) und vorhandenes Modell. */
+const halloweenOf = (level, spec, model) => (spec.halloween ?? isHalloweenLevel(level)) === true && hasModel(model);
 
 // =====================================================================================================================
 // Spuk / Großspuk
@@ -64,7 +77,8 @@ class Spuk extends EnemyW2 {
     this.edges = false;
     this.baseY = this.pos.y;
     this.state = 'idle';
-    if (level.view) this.setModel(getModel('spuk', { size: this.size }));
+    this.halloween = halloweenOf(level, spec, 'spuk_halloween');
+    if (level.view) this.setModel(this.halloween ? getModel('spuk_halloween', { size: this.size, hat: spec.hat }) : getModel('spuk', { size: this.size }));
     this.initShadows(1);
   }
 
@@ -173,7 +187,7 @@ class Spuk extends EnemyW2 {
   }
 
   info() {
-    return { state: this.state, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), looked: this.looked, light: +this.light.toFixed(2), size: this.size, defeated: this.defeated };
+    return { state: this.state, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), looked: this.looked, light: +this.light.toFixed(2), size: this.size, defeated: this.defeated, halloween: this.halloween };
   }
 }
 
@@ -205,7 +219,8 @@ class Kreisgeist extends EnemyW2 {
         this.mover = new PathMover(spec.path, { speed: this.speed, mode: (spec.loop ?? spec.path.length >= 3) ? 'loop' : 'pingpong', wait: 0.3, phase: spec.phase ?? 0 });
         const p = this.mover.pos; this.pos.set(p.x, p.y, p.z);
       }
-      if (level.view) this.setModel(getModel('kreisgeist'));
+      this.halloween = halloweenOf(level, spec, 'kreisgeist_halloween');
+      if (level.view) this.setModel(getModel(this.halloween ? 'kreisgeist_halloween' : 'kreisgeist'));
       this.initShadows(1);
     }
   }
@@ -284,7 +299,7 @@ class Kreisgeist extends EnemyW2 {
     this.model.root.scale.setScalar(1 - k * 0.35);
   }
 
-  info() { return { state: this.state, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), light: +this.light.toFixed(2), defeated: this.defeated }; }
+  info() { return { state: this.state, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), light: +this.light.toFixed(2), defeated: this.defeated, halloween: !!(this.halloween ?? this.ring?.halloween) }; }
 }
 
 // =====================================================================================================================
@@ -309,7 +324,8 @@ class KreisgeistKreis extends EnemyW2 {
     this.mask = 0;
     this.members = [];
     this.peek = false;
-    if (level.view) this.setModel(getModel('kreisgeist_kreis', { count: this.count, radius: this.radius }));
+    this.halloween = halloweenOf(level, spec, 'kreisgeist_kreis_halloween');
+    if (level.view) this.setModel(getModel(this.halloween ? 'kreisgeist_kreis_halloween' : 'kreisgeist_kreis', { count: this.count, radius: this.radius }));
     const ms = { speed: this.speed, fade: spec.fade };
     for (let i = 0; i < this.count; i++) {
       const g = new Kreisgeist(level, { ...ms, pos: [this.pos.x, this.pos.y, this.pos.z], id: spec.id ? `${spec.id}_${i}` : undefined }, this, i);
@@ -369,7 +385,7 @@ class KreisgeistKreis extends EnemyW2 {
     this.model.root.rotation.y = 0;
   }
 
-  info() { return { angle: +this.angle.toFixed(3), alive: this.aliveCount, count: this.count, mask: this.mask, peek: this.peek }; }
+  info() { return { angle: +this.angle.toFixed(3), alive: this.aliveCount, count: this.count, mask: this.mask, peek: this.peek, halloween: this.halloween }; }
 }
 
 export const KINDS = {

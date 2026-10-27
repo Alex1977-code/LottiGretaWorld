@@ -168,8 +168,8 @@ Luft), Schlittschuhe, rutschiges Eis, rollende Schneebälle, Kettenzäune zum Kl
 | 3-7 | Ahornklamm | Herbstwald mit Schalttafeln auf Schienen |
 | 3-Zug | Volldampf durchs Schneetal | Zugfahrt als Autoscroller, Boss Schattenläuferin |
 
-**Welt 4 „Canyon-Inselkette“** (frei nach 3-Zug; Sternschranken 60/70/80; die Welt-Warp-Röhre in 4-2 zeigt „Welt 5
-kommt bald!“):
+**Welt 4 „Canyon-Inselkette“** (frei nach 3-Zug; Sternschranken 60/70/80; die Welt-Warp-Röhre in 4-2 führt nach
+Welt 5):
 
 | Id | Titel | Art |
 | --- | --- | --- |
@@ -182,6 +182,23 @@ kommt bald!“):
 | 4-5 | Säulenstadt der Stachelwalzen | Ruinenstadt, Walzenwerfer, Stachelstangen, Räuberleiter |
 | 4-B | Blaugitter-Bastion der Feuer-Werfer | Arena: drei Feuer-Werfer in 100 s |
 | 4-Burg | Glutburg des Felsenkönigs | Lava-Burg, Boss Lavafelsen-König (nur geworfene Lavabrocken treffen) |
+
+**Welt 5 „Lila Strand-Insel“** (frei nach 4-Burg oder über den Welt-Warp in 4-2; Sternschranken 90/100):
+
+| Id | Titel | Art |
+| --- | --- | --- |
+| 5-1 | Schlüsselsuche am Muschelstrand | Strand, 5 Schlüsselmünzen öffnen die Warp-Box, Ritt auf Pflaume durch den Höhlenfluss |
+| 5-2 | Zirkus Schwingeschwung | Zirkus: Trapeze, Seilbahnen, Pendelplattformen, Riesen-Gasse |
+| 5-3 | Klon-Gewusel in den Blauglut-Gassen | Höhlenstadt über blauer Lava, 100 s, 3er-/4er-Lifte mit Klonen |
+| 5-A | Hörnerherde am Lila Strand | Arena: fünf Rammbock-Bullen |
+| 5-4 | Kanonenflug über die Goldsavanne | Savannenberge, Röhrenkanone, Hasen, Ameisenbau |
+| 5-Kapitän | Krümel im Kicherschlösschen | Diorama: Geisterschloss, Kreisgeister, Donut-Blöcke |
+| 5-5 | Kawumm im Kristallstollen | Mine: Zündköpfe, POW-Blöcke, lila Ziegelwände, Loren |
+| 5-B | Wackelturm am Glutsee | Arena: Werferturm aus Pilzlingen, steigende Steinsäulen, 100 s |
+| 5-6 | Flipp-Flapp-Tortenland | Tortenwelt: Rot-Blau-Felder wechseln bei jedem Sprung, Feuerringe |
+| 5-7 | Auf Zehenspitzen durch die Glutfestung | Schleich-Festung: Suchscheinwerfer, Alarm ruft Suchköpfe |
+| 5-Zug | Bimmelbahn voller Bitcoins | Bonus-Autoscroller auf dem Goldzug, Glücksgarten |
+| 5-Burg | Rumpeltempel des Kippquader-Königs | Ruinen-Tempel, Boss Kippquader-König (nur Sprung auf den Rücken trifft) |
 
 - **Tastatur:** Pfeile/WASD laufen (relativ zur Kamera), **Shift** rennen (Druck = Aktion, auch **X**:
   Feuerball, Krallenhieb, Aufheben/Werfen), **Leertaste** springen (Höhe nach Haltedauer), **Strg/C**
