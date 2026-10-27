@@ -4537,3 +4537,196 @@ keine Konsolenfehler (37 Prüfungen); dazu Themen-Bilder aller sechs Themen (4 P
 Registry-Modellen (960×540, scale 2, inkl. Schattenpass): Stationen 39–70 Zeichenaufrufe, 89–201 k Dreiecke (Türen am
 meisten); Themen-Bilder 51–73 Aufrufe, 94–181 k Dreiecke (Budget < 120 / < 300 k). Teuer sind einzelne Kulissenmodelle
 (Vogelscheuche ≈ 9 k, Dorfhaus ≈ 11 k, Tür ≈ 10,5 k, Riesenkürbis ≈ 11,5 k): für viele Stücke die Streuungen nehmen.
+
+## Präzisierung (Gegner Halloween)
+
+Ergänzung des Gegner-Agenten der Halloween-Welt „Kürbisinsel“ (Stand: Gruselwerkstatt `0-21`, Schlossdach des Grafen
+`0-22`). Nichts oben Festgelegtes wird geändert; alles ist additiv. Level-Bauer schreiben nur Daten; alle Felder sind
+optional, sofern nicht anders vermerkt. Gemeinsame Felder und Konter aus „Präzisierung (Gegner/Power-ups)“ und „(Gegner
+Welt 2–5)“ gelten weiter (`id, pos, dir|yaw, path, loop, wake, edges, drop`; Ziel = nächste Figur, Lava/Absturz = besiegt,
+`STRONG` = cannon, bomb, mega, star). Jede Datei dokumentiert ihre Parameter vollständig im Kopfkommentar. Kindgerecht:
+niemand erschrickt – Kürblinge zerplatzen in Kerne und Bitcoins, Skelette fallen klappernd um, der Graf fliegt als
+lustiger Fledermaus-Schwarm mit Zylinder.
+
+### Präzisierung (Gegner Halloween): Dateien
+
+```
+src/course/entities/kinds/huepfer_hw.js            kuerbling (+ Riesenkürbling: riese: true bzw. kind 'riesenkuerbling'),
+                                                   hexenhut_huepfer
+src/course/entities/kinds/klapperknochen_hw.js     klapperknochen
+src/course/entities/kinds/flatterfledi_hw.js       flatterfledi, flatterfledi_schwarm (Glieder 'flatterfledi_glied');
+                                                   Hilfen BatFlockView (Instanz-Gruppe), Klasse Flatterfledi
+src/course/entities/kinds/graf_brummbaer_hw.js     graf_brummbaer (Boss H-Burg, Schwarm-Glieder 'graf_fledermaus'),
+                                                   kuerbis_bombe
+src/course/entities/kinds/spuk.js                  + Option halloween (spuk/Großspuk, kreisgeist, kreisgeist_kreis);
+                                                   isHalloweenLevel(level)
+src/course/levels/w0/0-21.js                       Gruselwerkstatt (5 Reihen Gehege, Z(r, dz) wie 0-18, LEVEL.halloween,
+                                                   Thema pumpkin)
+src/course/levels/w0/0-22.js                       Schlossdach des Grafen (Archetyp boss, runde Arena mit Zinnen im Haken
+                                                   build, Thema castle_night, Vollmond)
+tests/course_hw_enemies.mjs                        Port 4540, HWE_PART=1|2|3|4, Bilder tests/out/hwe_*.png
+```
+
+Modelle (fertig, `src/course/models/kinds/*_hw.js`): `kuerbling`, `klapperknochen`, `flatterfledi`, `hexenhut_huepfer`,
+`spuk_halloween`, `kreisgeist_halloween`, `kreisgeist_kreis_halloween`, `graf_brummbaer` (`model.hand()`), `kuerbis_bombe`,
+`fledermaus_schwarm` (Anführer mit Zylinder), `bonbon_konfetti`; Landemarkierung `boss_marker`. Kein Ersatzmodell nötig.
+Die Hüpfer setzen `state.height: 0` und `progress` aus der Simulation (die Höhe des Hüpfers ist echte Bewegung, die
+Trefferzone springt mit).
+
+### Präzisierung (Gegner Halloween): gemeinsame Regeln
+
+- **Halloween-Optik automatisch:** `spuk`, `kreisgeist`, `kreisgeist_kreis` zeichnen in der Halloween-Welt (LEVEL.world
+  31, Id `H-…` oder `LEVEL.halloween: true`) die Halloween-Modelle; je Gegner überschreibbar mit `halloween: true|false`,
+  Spuk zusätzlich `hat: 'kuerbis' (Standard) | 'hexe' | 'kein'`. Verhalten unverändert (Großspuk = `spuk` mit `size: 2.5`).
+- **Hüpfen:** Kürbling und Hexenhut-Hüpfer bewegen sich nur in Hüpfern (ducken 0,1 s → Bogen → landen 0,1 s → Pause);
+  an Kanten springen sie nicht hinunter (`edges: false` erlaubt es), Bahnen (`path`) treffen sie Wegpunkt für Wegpunkt.
+- **Tragen/Werfen** der Kürbis-Bombe über das Trage-System (wie Zündkopf): Aktion in Reichweite bzw. Rennen + Berührung
+  hebt auf (zündet; Lunte dann ≥ `carryFuse`), Aktion wirft, Ducken + Aktion setzt ab. Geworfen explodiert sie am ersten
+  Hindernis (Wand, Gegner, Endgegner – `onBombHit(bomb)` vorher). **Zielhilfe:** liegt ein Endgegner (`boss` +
+  `onBombHit`) höchstens 40° neben der Wurfrichtung und ≤ 10 m weit, fliegt die Bombe im Bogen zu ihm (`assisted`).
+- **Explosion** der Kürbis-Bombe: `explodeAt` aus `zuendkopf_w5.js` (Radius 1,5 m; Gegner `onHit('bomb')`, Zerbrechliches,
+  Figuren bis 0,9 × Radius, `level.onExplosion`) mit eigener Wirkung (lila-oranger Puff des Modells, Funken, Stückchen).
+- **Fledermaus-Schwärme** (`flatterfledi_schwarm`, Schwarm des Grafen) zeichnen alle Glieder als **eine Instanz-Gruppe**
+  (`BatFlockView` über `modelInstances('flatterfledi')`, ≈ 5 Zeichenaufrufe); jedes Glied ist eine eigene Entität.
+- **Signale/Haken:** `level.onEnemyDefeated(e)` (je besiegtem Gegner, auch Schwarm-Fledermäuse), `level.onExplosion`,
+  Boss: `level.onBossHit(boss, 'bombe')`, `level.onBossDefeated(boss)`. Aus Gimmicks erzeugbar: `level.spawn('kuerbling',
+  { pos, vel: [vx, vy, vz], dir })`; die Süßigkeiten-Tür der Bausteine (`content: 'kuerbling'`) erzeugt ihn mit `fromDoor`
+  – ohne `vel` hüpft er dann in Blickrichtung `dir` aus der Tür (2,2 m/s vor, 5,5 m/s hoch), landet und hüpft los
+  (geprüft in `course_hw_blocks`: „Gegner heraus 1 (kuerbling)“); Hexenhut-Hüpfer ebenso.
+- **Sound** nur über vorhandene `level.sfx`-Namen: `stomp`, `bounce`, `brickbreak` (Kürbling zerplatzt), `blockhit`
+  (Knochen fallen), `step` (Klappern beim Zittern), `switch` (Aufbau), `vanish`, `hover` (Lunte), `swoop`, `land`, `slam`,
+  `ghost` (Graf lacht), `panic` (Schwarm), `boss_hit`, `powerdown`; Fanfare `course_clear` über den Boss-Archetyp.
+
+| Gegner | Verhalten | besiegt durch | verletzt |
+| --- | --- | --- | --- |
+| kuerbling | hüpft in Bögen auf die Figur zu (sight) bzw. auf seiner Bahn | Draufspringen (zerplatzt, Abprall, coins Bitcoins), alle Angriffe | seitlich |
+| riesenkuerbling | wie Kürbling, ×1,8, nach Treffer 1 schneller | 2 Treffer → zerfällt in 3 kleine Kürblinge; Explosion/Stern/Riese ganz | seitlich |
+| klapperknochen | läuft hin und her (bzw. verfolgt); Draufspringen → Knochenhaufen (harmlos, begehbar), zittert 0,8 s, steht nach 4 s wieder auf | **Stampfattacke auf den Haufen**, Feuer, Krallen, Panzer, Explosion, Stern, Riese | stehend seitlich |
+| flatterfledi | hängt kopfüber, wacht auf, Sturzflug-Bogen durch die Figur, zurück; Kreis/Bahn/Schweben | Draufspringen, alle Angriffe | Berührung (auch im Sturzflug) |
+| flatterfledi_schwarm | count Fledermäuse kreisen wippend um pos | je Fledermaus wie oben | Berührung |
+| hexenhut_huepfer | hüpft unter der Krempe heran | **nur gelandet** von oben (platt); Feuer, Krallen, Panzer, Explosion, Stern, Riese immer | seitlich |
+| kuerbis_bombe | liegt bzw. brennt; tragen, werfen, Aufprall explodiert | Stern/Riese entschärfen | Explosion (1,5 m) |
+| graf_brummbaer | Boss H-Burg (siehe unten) | nur zurückgeworfene Kürbis-Bomben (3×) | stehend seitlich, Schwarm, Bomben |
+
+### Präzisierung (Gegner Halloween): Gegner-Daten (exakt, mit Beispiel)
+
+```js
+enemies: [
+  // Kürbling: behavior 'chase' (Standard ohne path) | 'patrol', sight 7, hop 1.1 (m je Hüpfer), height 0.5 (Sprunghöhe),
+  //   pause 0.35 (s nach der Landung), coins 1 (Bitcoins beim Zerplatzen), path, loop, dir, wake, edges, drop,
+  //   vel [vx, vy, vz] (startet im Flug), fromDoor (id | true: hüpft aus einer Süßigkeiten-Tür in Richtung dir)
+  { kind: 'kuerbling', id: 'kb_jaeger', pos: [-11.5, 1, -14], sight: 7 },
+  { kind: 'kuerbling', pos: [-14, 1, -19], behavior: 'patrol', path: [[-17, 1, -19], [-7, 1, -19]], sight: 0, coins: 2 },
+  // Riesenkürbling (×1,8, hp 2): riese: true bzw. kind 'riesenkuerbling'; hop 1.4, height 0.7, pause 0.5, coins 2, kids 3
+  { kind: 'kuerbling', id: 'kb_riese', riese: true, pos: [11.5, 1, -16], sight: 8 },
+  // Klapperknochen: speed 1.2, behavior 'walk' | 'chase', sight 6, chaseSpeed 1.6, pile 4 (s bis zum Wiederaufbau, ab dem
+  //   Umfallen), warn 0.8 (s Zittern davor), path, loop, dir, wake, edges, drop
+  { kind: 'klapperknochen', pos: [-12, 1, -33], path: [[-17, 1, -33], [-7, 1, -33]] },
+  { kind: 'klapperknochen', pos: [-11.5, 1, -39], behavior: 'chase', sight: 6, drop: 'coin' },
+  // Flatterfledi: pos = Aufhängepunkt (hängt darunter); hang true, sight 5 (waagerecht), reach 7 (m tiefer), speed 6 (m/s im
+  //   Sturzflug), cooldown 1.5, scale 1, drop; ohne Aufhängen: center + radius 2.5 (Kreis, y = Fußpunkt), flySpeed 2.2, cw,
+  //   phase | path, loop | hang: false (schwebt an pos)
+  { kind: 'flatterfledi', pos: [-9, 3.8, -55], sight: 5 },
+  { kind: 'flatterfledi', center: [16, 1.7, -59.5], radius: 1.6, flySpeed: 1.8 },
+  // Flatterfledi-Schwarm: pos = Mitte (y = Fußpunkt der Fledermäuse), count 6 (≤ 24), radius 2.5, speed 2 (m/s am Umfang),
+  //   cw, phase, bob 0.35, scale 1, drop (je Fledermaus); Glieder: level.named `${id}_${i}`
+  { kind: 'flatterfledi_schwarm', id: 'ff_schwarm', pos: [10.5, 1.9, -55], count: 6, radius: 2.6 },
+  // Hexenhut-Hüpfer: behavior 'chase' | 'patrol', sight 7, hop 1.3, height 0.8, pause 0.55, bounce 14 (m/s Abprall von der
+  //   Krempe), path, loop, dir, wake, edges, drop, vel, fromDoor
+  { kind: 'hexenhut_huepfer', pos: [-11, 1, -74], sight: 7 },
+  // Halloween-Spuke (Felder wie Welt 3) + halloween (Standard nach Welt), hat (Spuk)
+  { kind: 'spuk', pos: [-9, 1.4, -98], size: 2.5, hat: 'hexe' },
+  { kind: 'kreisgeist_kreis', pos: [13, 1.2, -97], count: 8, radius: 3 },
+],
+items: [
+  // Kürbis-Bombe: lit false, fuse 3 (s), radius 1.5, carryFuse 1.6 (Mindest-Lunte nach dem Aufheben), vel (Flug; Lunte
+  //   brennt erst ab der Landung), owner (trifft ihn nicht, bis eine Figur sie geworfen hat), id
+  { kind: 'kuerbis_bombe', pos: [7, 1, -71] },
+],
+```
+
+Laufzeit (für Tests und Gimmicks): Hüpfer `state` (idle | rest | crouch | air | land | hurt | burst | squashed | flipped),
+`hops`, `hp`, `kids` (Riese), `brimBounces` (Hexenhut), `airborne`, `info()`; Klapperknochen `state` (idle | walk | collapse
+| pile | shiver | rebuild | defeated), `lying`, `collapses`, `rebuilds`, `pileLeft`, `info()`; Flatterfledi `state` (hang |
+wake | dive | return | fly | defeated), `mode` (hang | circle | path | hover | flock), `dives`, `anchor`, `diveFrom/diveLow/
+diveTo`, `body()`, `info()`; Schwarm `angle`, `aliveCount`, `members`, `info()`; Kürbis-Bombe `state` (idle | lit | air |
+carried | thrown | slide | explode | fizzle), `lit`, `fuse`, `exploded`, `fizzled`, `thrownBy`, `assisted`, `explosion`,
+`info()`.
+
+### Präzisierung (Gegner Halloween): Graf Brummbär
+
+```js
+{ kind: 'graf_brummbaer', id: 'graf', pos: [0, 2, -4] (Start, Fußpunkt), dir: [0, 1] (Start-Blick),
+  arena: { center: [0, 2, 0], r: 9 }, hp: 3, speed: [1.3, 1.7, 2.1], keep: [3.6, 5.6], every: [2.8, 2.3, 2.0], first: 1.2,
+  bombs: [1, 2, 2], max: [2, 3, 5], flight: [1.1, 1.0, 0.9], fuse: [3.4, 3.0, 2.6], radius: 1.5,
+  ring: [0, 0, 4], ringEvery: 3, ringR: 2.8,
+  swarm: [8, 8, 12], swarmLegs: [3, 3, 4], swarmSpeed: [3.6, 3.6, 4.4], swarmSpread: [1.3, 1.3, 1.7], swarmY: 0.95,
+  star: { pos: [0, 2.4, 5], index: 0 }, wakeR: 10, drop, seed }
+boss: { id: 'graf', name: 'Graf Brummbär', speed: 0, trigger, lock, warp: 'warp_sieg', warpPos, warpTo, frame: 0.45,
+        center: [0, 2, 0], musicAfter: 'course_halloween_map' }
+```
+
+Ablauf: `wait` → `intro` (2,2 s, lacht) → `walk` (spaziert im Wunschabstand `keep` um die Figur, blickt sie an, bleibt
+r − 1,2 m in der Arena) ⇄ `throw` (1,0 s; bei 50 % verlassen die Bomben die Tatze – `model.hand()`, einmal vermessen):
+Phase 1 eine Bombe 1,3 m vor die Figur, Phase 2/3 zwei Bomben je 1,7 m links/rechts davon, Phase 3 jeder dritte Wurf ein
+**kurzer Rundumwurf** (`ring` Bomben im Kreis `ringR` um ihn, 0,75 s Flug). Jede fliegende Bombe zeigt am Ziel eine **rote
+Markierung** (`boss_marker`); gelandet brennt ihre Lunte `fuse` s. **Nur eine von der Figur zurückgeworfene Bombe, die ihn
+in `walk`/`throw` trifft, zählt** (`onBombHit`) → `hit` (0,6 s, Zylinder fliegt; Lebensleiste, Ansage „Treffer!“) →
+`stunned` (0,7 s, Schwindel-Fledermäuse) → `bats` (0,9 s: wickelt sich in den Umhang, verpufft) → `swarm`: `swarm`
+Fledermäuse (Entitäten `graf_fledermaus`, eine Instanz-Gruppe) umkreisen den Anführer mit Zylinder (Modell
+`fledermaus_schwarm`, unberührbar) in Hüfthöhe (`swarmY`) und fliegen `swarmLegs` Bögen über die Arena (jeder zweite
+Bogen zur Figur hin, höchstens 0,65 · r von der Mitte; Bogenmitten ≤ 0,75 · r); **Berührung
+verletzt, Draufspringen auf eine Fledermaus besiegt sie und gibt einen Bitcoin**. Die Landestelle ist der Ringpunkt
+(0,5 · r) am weitesten weg von der Figur → `land` (0,9 s: übrige Fledermäuse fliegen zurück, Verwandlung rückwärts) →
+`walk` (nächste Phase). 3. Treffer → `defeated` (2,4 s: setzt sich, Fledermäuse flattern davon, **Konfetti aus
+Süßigkeiten** `bonbon_konfetti`, übrige Bomben verpuffen, Fanfare über den Archetyp) → `gone` (Stern, Archetyp: Warp-Box).
+Kopfsprung/Stampfen = Abprall ohne Schaden; Feuer, Krallen, Panzer, Stern, Riese, Explosionen daneben zählen nicht.
+Ansagen (ersetzen die Standardtexte): „Graf Brummbär!“ (Archetyp), „Wirf die Kürbis-Bomben zurück!“, „Ein
+Fledermaus-Schwarm – ausweichen!“, „Jetzt fliegen mehr Bomben!“, „Vorsicht – Rundumwurf!“, „Graf Brummbär ist besiegt!“.
+Tod im Kampf (`reset`): Graf 3/3 am Startplatz, Bomben, Markierungen, Schwarm, Konfetti weg, Kampf beim nächsten Betreten
+von vorn. Schnittstelle wie Kippquader-König: `begin, reset, state, stateT, hp, maxHp, phase, visible, home` (= Arenamitte
+für die Kampfkamera), `half, carHits 0, vulnerable, info()`. Laufzeit: `throws, bombsThrown, bombs, hits, hitLog, misses,
+bounces, swarms, batsDown, bats, hidden, swarmPath()`.
+
+### Präzisierung (Gegner Halloween): Hinweise für Level-Bauer
+
+- **Bestand je Level** (Halloween-Level-Liste): H-1 Kürbisfeld `kuerbling` (Verfolger und Streifen, ein
+  `riesenkuerbling`), `flatterfledi` an Bäumen; H-2 Dorf `kuerbling` mit `vel` aus den Süßigkeiten-Türen (Gimmick ruft
+  `level.spawn`), `hexenhut_huepfer`, `flatterfledi_schwarm`; H-3 Nebelfriedhof `klapperknochen`, `kreisgeist` /
+  `kreisgeist_kreis` (Halloween-Optik automatisch), `spuk`, hängende `flatterfledi`; H-4 Hexenturm `hexenhut_huepfer`
+  (Krempen-Abprall zu höheren Plattformen), `flatterfledi` (Kreis/Bahn um den Turm), `spuk` mit `hat: 'hexe'`;
+  H-Burg Parcours `kuerbling`, `klapperknochen`, Großspuk (`spuk`, `size: 2.5`), `kuerbis_bombe` (Wurfziele, Ziegel),
+  Boss `graf_brummbaer`. Alle Arten liegen in `0-21` bereit (0-22: Boss).
+- Hängende Flatterfledis höchstens ≈ 3 m über dem Weg aufhängen (`pos.y` = Ast/Decke): höher sieht die Kurs-Kamera
+  (Neigung 45°) sie kaum. Unter ihnen sollte Platz für den Sturzflug-Bogen sein (er reicht `|Figur − Start|` m weiter).
+- Klapperknochen auf Flächen ohne Abgrund daneben (er fällt sonst mit den Knochen hinunter und gilt als besiegt).
+- Hexenhut-Hüpfer vor einer Stufe, die nur mit dem Krempen-Abprall (Scheitel ≈ 3,5 m) erreichbar ist, belohnt Timing.
+- Riesenkürbling braucht ≈ 3 m Platz ringsum (die drei Kleinen fliegen 1–1,5 m weit).
+- Kürbis-Bomben als Werkzeug: neben Ziegel/`lila_ziegelwand`/Gegnergruppen legen; `fuse` lang genug zum Tragen.
+- H-Burg-Arena: runde Fläche r ≥ 9 m mit Brüstung (Bomben explodieren an Wänden), Eingang mit `boss.lock`,
+  `arena.center` = Mitte des Daches, Stern vorn (`star`), Warp-Box `hidden` in der Mitte; die Musik `course_brummula`.
+  Eigene Arena-Geometrie im Haken `LEVEL.build(level)` anlegen (vor dem Verschmelzen und vor den Level-Grenzen – sonst
+  zählt sie nicht zu `bounds`/`killY`), Beispiel `0-22`. Thema `castle_night`: dessen Kulissen-Fledermäuse fliegen
+  6–18 m über den Level-Grenzen und kreuzen bei der hohen Kampfkamera (19 m, 50°) groß das Bild – `0-22` hebt sie in
+  `setup` um 14 m an (`level.view.sky.bats.bats[i].cy`); Wunsch an den Motor: Höhe der Kulissen-Fledermäuse an der
+  Kamera ausrichten.
+
+### Präzisierung (Gegner Halloween): Tests und Kennzahlen
+
+`tests/course_hw_enemies.mjs` (Port 4540, `?course=0-21|0-22&scale=2&adapt=0`, deterministisch über `step(n)`
+(1 Schritt = 1/120 s) und `setInput`; Hilfen `window.__t`: `Z(r, dz)`, `place`, `stomp`, `touch`, `fresh`, `hold`,
+`action`, `face`, `coins`, Boss: `enter`, `untilSafe`, `throwBack`; `HWE_PART=1|2|3|4`, je Teil 2–4 min): Laden (alle Arten,
+Halloween-Modelle ohne Platzhalter, Spuke in Halloween-Optik, Schwarm als Instanz-Gruppe, 10 s ohne Fehler) · Teil 1
+Kürbling (Hüpf-Bögen heran, seitlich verletzt, Draufspringen zerplatzt + 1 Bitcoin, Streife auf der Bahn), Riesenkürbling
+(2 Treffer → 3 Kleine im Flug, die danach hüpfen, 2 Bitcoins; Explosion ganz), Klapperknochen (Streife, Haufen harmlos und
+begehbar, Zittern ab 3,2 s, Aufbau ab 4,0 s, Stampfattacke auf den Stehenden nur Haufen, auf den Haufen besiegt, Sprung auf
+den Haufen nicht, Feuerball besiegt) · Teil 2 Flatterfledi (schläft, `wake>dive>return>hang`, Bogen genau durch die Figur,
+trifft, Kreis, Draufspringen), Schwarm (kreist, einzeln besiegbar), Hexenhut (Krempe: 14 m/s, Scheitel 3,5 m, gelandet
+platt), Kürbis-Bombe (aufheben, tragen, werfen, Aufprall, Lunte 3,0 s, Kette, Ziegel, Stern entschärft, Klapperknochen),
+Spuke · Teil 3 Graf Brummbär vollständig (Auftritt, Würfe mit Markierung 1,4 m vor der Figur, Abstand, Kopfsprung,
+Angriffe zählen nicht, Treffer nur mit zurückgeworfener Bombe, Verwandlung, Fledermaus-Bitcoin, Schwarm verletzt, Landung
+≥ 5 m von der Figur, Phase 2 zwei Bomben, Schwarm 12, Phase 3 Rundumwurf r 2,8 m, Konfetti, Stern, Warp → Ziel, Tod setzt
+zurück) · Teil 4 Bilder `tests/out/hwe_*.png` und Zeichenaufrufe. Gemessen (scale 2, inkl. Schattenpass): Gruselwerkstatt
+35–83 Zeichenaufrufe (≤ 206 k Dreiecke, Thema pumpkin), Schlossdach 37–77 (≤ 163 k, Thema castle_night).
+Regressionen: `course_enemies`, `course_w5_enemies` (Teile 1–3), `course_physics` bestanden; `course_hw_blocks`
+(Teil mech) mit dem Kürbling aus der Tür bestanden.
