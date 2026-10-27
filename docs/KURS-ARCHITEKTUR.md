@@ -1474,11 +1474,11 @@ Kollisionsformen.
   Kürbisse und Laternen an den Wegen und im Feld (zu zahlreich – `kuerbis` ≈ 2,6 k, mit Gesicht ≈ 6,2 k, `kuerbislaterne`
   ≈ 4,8 k), Eisenzaun (`eisenzaun` ≈ 12,7 k je 13 m), Häuschen am Dorfplatz. Fehlt ein Modell, zeichnen `halloween.js`/
   `decor_hw.js` eigene Geometrie (gleiche Lage).
-- Test: `tests/course_map_hw.mjs` (Port 4260, Bilder `tests/out/cmaphw_*.png`), Teilläufe `HW_TEIL=1|2|3` (Abschnitte 2–4,
-  5–7, 8–10, je mit den Node-Prüfungen; gemessen ≈ 4 / 3,5 / 7,5 min).
+- Test: `tests/course_map_hw.mjs` (Port 4260, Bilder `tests/out/cmaphw_*.png`), Teilläufe `HW_TEIL=1|2|3|4` (Abschnitte
+  2–4, 5–7, 8, 9–10, je mit den Node-Prüfungen; gemessen bei Rechnerlast ≈ 20: 6,5 / 5 / 6,5 / 3 min).
 
 Gemessen (scale 2, `tests/course_map_hw.mjs`, mit den Halloween-Modellen): statische Kulisse Welt 31
-51 Kachel-Meshes, ≈ 215 k Dreiecke, 180 Kollisionsformen; je Ansicht (Zeichenaufrufe inkl. Schattenpass / Dreiecke) Ankunft
+51 Kachel-Meshes, ≈ 215 k Dreiecke, ≈ 175 Kollisionsformen; je Ansicht (Zeichenaufrufe inkl. Schattenpass / Dreiecke) Ankunft
 92–94 / 248 k, Kürbisfeld 75 / 216 k, Gruseldorf 66 / 273 k (Höchstwert), Labyrinth 73 / 231 k, Friedhof 57 / 241 k,
 Hexenturm 65 / 194 k, Gruselschloss 68 / 183 k, Anflug 91 / 225 k (Modell-Kacheln fern ausgeblendet). Welt 1 mit der
 Halloween-Röhre höchstens 81 / 265 k (Startstrand vorher ≈ 72 / 240 k).

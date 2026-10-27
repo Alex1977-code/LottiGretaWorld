@@ -7,7 +7,7 @@
 //   Ersatzuhr; lebendige Kulisse (Fledermäuse, Nebel, Geist, Kessel, Vogelscheuche); Kennzahlen (< 120 Zeichenaufrufe,
 //   < 300 k Dreiecke an jeder Ansicht inkl. Ankunft und Anflug); keine Konsolenfehler.
 // Simulation deterministisch über window.__courseMap.step(n)/setInput; Bilder tests/out/cmaphw_*.png zur Sichtprüfung.
-// Aufruf: npm run build && node tests/course_map_hw.mjs   (Teilläufe: HW_TEIL=1, 2, 3 – s. u.; PORT_BASE verschiebt den Port)
+// Aufruf: npm run build && node tests/course_map_hw.mjs   (Teilläufe: HW_TEIL=1, 2, 3, 4 – s. u.; PORT_BASE verschiebt den Port)
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 import { MAP as W31 } from '../src/course/map/worlds/w31.js';
 import { MAP as W1 } from '../src/course/map/worlds/w1.js';
@@ -159,11 +159,12 @@ const setLevels = (levels) => sc((l) => {
   return st;
 }, levels);
 
-// Teilläufe (HW_TEIL=1|2|3) für langsame Rechner, je unter 10 min; ohne Angabe alle Abschnitte.
-//   1: Abschnitte 2–4 (Röhre HW → Welt 31 → zurück, Präfix/Speicherstand), 2: 5–7 (Eingänge „Bald“, Freischalt-Kette,
-//   Laternen im Takt, lebendige Kulisse), 3: 8–10 (Bilder/Kennzahlen aller Bereiche, Anflug, Welt 1 an der Röhre)
+// Teilläufe (HW_TEIL=1|2|3|4) für langsame Rechner, je unter 10 min (auch unter hoher Rechnerlast); ohne Angabe alle
+// Abschnitte. 1: Abschnitte 2–4 (Röhre HW → Welt 31 → zurück, Präfix/Speicherstand), 2: 5–7 (Eingänge „Bald“,
+// Freischalt-Kette, Laternen im Takt, lebendige Kulisse), 3: 8 (Bilder/Kennzahlen aller Bereiche), 4: 9–10 (Anflug,
+// Welt 1 an der Röhre)
 const TEIL = process.env.HW_TEIL ?? '';
-const PARTS = { 1: [2, 4], 2: [5, 7], 3: [8, 10] };
+const PARTS = { 1: [2, 4], 2: [5, 7], 3: [8, 8], 4: [9, 10] };
 const T0 = Date.now();
 const part = (n) => { const on = !PARTS[TEIL] || (n >= PARTS[TEIL][0] && n <= PARTS[TEIL][1]); if (on) console.log(`  — Abschnitt ${n} (${Math.round((Date.now() - T0) / 1000)} s)`); return on; };
 let st, r;
