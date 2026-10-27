@@ -21,7 +21,7 @@
 
 import {
   isl, line, ring, arc, lochStern, mutPlatz, baronAuftritt, fackeln, blk, bakeParts, glowPoints, tempelTore, mosaikWege,
-  blumenKuebel, wandTuecher,
+  blumenKuebel, wandTuecher, wimpelLeinen,
 } from './_helpers_d.js';
 import { bakeModel } from '../../blocks/w2kit.js';
 import { hasModel } from '../../models/index.js';
@@ -101,6 +101,14 @@ function build(level) {
     { x: 5.17, y: Y3 + 3.0, z: -126, yaw: -PI / 2, color: li, h: 2 },
     { x: 11.17, y: Y3 + 5.6, z: -134, yaw: -PI / 2, color: tq, h: 3 }, { x: 11.17, y: Y3 + 5.6, z: -148, yaw: -PI / 2, color: li, h: 3 },
     { x: -1.8, y: Y3 + 5.6, z: -169.97, yaw: 0, color: li }, { x: 4.8, y: Y3 + 5.6, z: -169.97, yaw: 0, color: tq },
+  ]);
+  // Tempelfest: Wimpelleinen in Lila, Türkis und Gold zwischen den Säulen
+  const FEST = [0x9a62d8, 0x2ac8c0, 0xffc83a, 0xff5a9a];
+  wimpelLeinen(level, [
+    { a: [-7, Y + 4.6, 3.5], b: [7, Y + 4.6, 3.5], sag: 0.9, colors: FEST }, { a: [-7, Y + 4.6, -9.5], b: [7, Y + 4.6, -9.5], sag: 0.9, colors: FEST },
+    { a: [-7, Y + 4.4, -62], b: [7, Y + 4.4, -62], sag: 0.8, colors: FEST },
+    { a: [-10, Y3 + 4.4, -138], b: [-10, Y3 + 4.4, -150], sag: 0.7, colors: FEST },
+    { a: [-6, Y + 5, AZ - 50], b: [6, Y + 5, AZ - 50], sag: 1.0, colors: FEST },
   ]);
   // goldene Glitzerpunkte über dem Mut-Platz und dem Würfel-Ring (Hinweise)
   glowPoints(level, [[LOCH.x, Y3 + 2.2, LOCH.z], [SIMS.x, SIMS.top + 2, SIMS.z]], 0xfff0a0, 1.2, { opacity: 0.55, name: 'hinweis-schein' });

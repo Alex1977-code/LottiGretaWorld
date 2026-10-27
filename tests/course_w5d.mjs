@@ -155,6 +155,7 @@ ROUTES['5-Zug'] = {
 const Y3 = 4, AZ = -200;
 ROUTES['5-Burg'] = {
   start: [0, Y, 8],
+  goalShot: 'ziel',
   meta: { stars: 3, stamp: true, time: 400, theme: 'temple', music: 'course_temple', archetype: 'boss' },
   enemies: { rammbock_bulle: 4, kippquader_koenig: 1, bruchplatte: 4, warpbox: 4, starring: 1 },
   loadChecks: [
@@ -236,7 +237,6 @@ ROUTES['5-Burg'] = {
     ['turm', [0, Y3, -158]],
     ['steg', [0, Y, AZ + 14]],
     ['arena', [0, Y, AZ + 6], 240, { x: 0, y: 0.3 }],
-    ['ziel', [0, Y, AZ - 38]],
   ],
 };
 
@@ -1184,6 +1184,8 @@ for (const id of LEVELS) {
     check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
     check(`${id}: ${hero} Zeit bis zum Ziel < 240 s (${res.time.toFixed(1)} s)`, reached && res.time < 240);
     if (hero === HEROES[0] && PARTS.has('sweep')) sweepTrack = res.track;
+    // Zielbild nach der echten Route (der Sieg über den Boss gehört dazu)
+    if (R.goalShot && reached && hero === HEROES[0] && PARTS.has('shots')) await shot(`${id}_${R.goalShot}`);
     for (const m of R.routeChecks ?? []) check(`${id}: ${hero} – ${m.name}`, m.ok(res));
   }
 
