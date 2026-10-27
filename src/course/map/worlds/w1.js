@@ -16,6 +16,11 @@
 //   E  Zirkuswiese                  y 1        W2   Glasröhre (bald)   (−10, 5, −88)
 //   F  Burgberg                     y 5
 //   P  Röhrenplatz                  y 5
+//   H  Halloween-Landzunge          y 1        HW   Glasröhre zur Halloween-Welt 31 (immer frei)  (21.5, 1, 34)
+//
+// Halloween (Präzisierung Mehrwelten-Karte, Halloween-Notiz): östlich des Startstrands eine kleine Landzunge mit der
+// geschmückten Glasröhre HW (Kürbisse, Laternen, Fledermaus-Girlande, Schild „Halloween!“) zur Kürbisinsel am Horizont.
+// Immer frei (kein after, keine Schranke); alles andere in Welt 1 bleibt, wie es war.
 
 const PI = Math.PI;
 const g = (x0, z0, x1, z1, top, opts = {}) => ({ rect: [x0, z0, x1, z1], top, ...opts });
@@ -45,6 +50,7 @@ export const MAP = {
     { id: '1-5', after: '1-4', stars: 3, stamp: true },
     { id: '1-Burg', after: '1-5', minStars: 10, stars: 3, stamp: true },
     { id: 'W2', after: '1-Burg', world: 2, stars: 0, label: 'Welt 2', next: 2 },
+    { id: 'HW', world: 31, next: 31, label: 'Halloween', stars: 0, sign: 'Halloween!' },   // immer frei
   ],
 
   // Gelände: Blöcke mit Grasdecke (walk: begehbar). style: 'grass' | 'rock' | 'meadow' (Blumenwiese, nicht begehbar)
@@ -85,6 +91,8 @@ export const MAP = {
     g(-12, 46, 16, 50, 0.45, { style: 'sand', noEdge: true }), g(-40, 18, -26, 34, 0.45, { style: 'sand', noEdge: true }),
     g(40, -48, 46, 12, 0.45, { style: 'sand', noEdge: true }), g(42, -66, 47, -48, 0.45, { style: 'sand', noEdge: true }),
     g(-30, -76, -24, -50, 0.45, { style: 'sand', noEdge: true }),
+    // Halloween-Landzunge östlich des Startstrands (Glasröhre HW)
+    g(16, 26, 27, 40, 1, { walk: W }),
   ],
 
   // Zusätzlich begehbar (ohne eigenen Geländeblock): Strand inkl. Teich, Treppen, Brücke, Steg
@@ -124,6 +132,15 @@ export const MAP = {
     { id: '1-Burg', kind: 'castle', pos: [-18, 5, -61.5], decor: [-18, 5, -67], exit: [-18, 5, -58.6] },
     { id: 'W2', kind: 'pipe', pos: [-10, 5, -88.5], decor: [-10, 5, -91.6], exit: [-10, 5, -85.5],
       pipe: [[0, 0, 0], [0, 3.5, 0], [0.8, 5.6, -0.3], [5, 6.8, -1.2], [16, 7, -3.5], [40, 6.2, -9], [80, 5, -18], [140, 4, -34], [205, 1.5, -50]] },
+    // Halloween-Röhre: geschmückt (decor_hw.js), eigenes Schild „Halloween!“, Wegweiser am Strand; Röhre nach Osten
+    { id: 'HW', kind: 'pipe', pos: [21.5, 1, 34], decor: [21.5, 1, 30.9], dress: 'halloween', ownSign: 'Halloween!', signPos: [-3.7, 0, 2.2], signYaw: -0.35,
+      arrowSign: [15.2, 1, 42.2, -0.55], disc: 'HW',
+      deco: [{ kind: 'leaves', pos: [18.0, 1, 30.0], size: 1.0, solid: false, shadow: false }, { kind: 'leaves', pos: [25.4, 1, 37.4], size: 0.9, solid: false, shadow: false },
+        { kind: 'leaves', pos: [17.4, 1, 38.4], size: 0.8, solid: false, shadow: false }, { kind: 'pumpkins', pos: [25.2, 1, 27.8], size: 0.8, face: true },
+        { kind: 'hay', pos: [17.8, 1, 27.6], yaw: 0.4 }, { kind: 'pumpkin', pos: [17.8, 1, 28.5], size: 0.5, face: 2, solid: false }, { kind: 'toadstool', pos: [25.6, 1, 32.4], solid: false },
+        { kind: 'candy', pos: [25.2, 1, 39.0], size: 0.8 }],
+      pipe: [[0, 0, 0], [0, 3.5, 0], [0.8, 5.6, 0.2], [5, 6.8, 0.8], [16, 7.4, 2.5], [40, 7, 6], [80, 5.5, 12], [140, 4, 19], [205, 1.5, 27]], pipeDetail: 'low',
+      arriveCam: { up: 6, ahead: 6, drop: 2.5 } },
   ],
 
   // Schranken: sperren den Weg zu `for`, bis er frei ist. at = [x, z], axis = Laufrichtung des Wegs.
@@ -139,7 +156,7 @@ export const MAP = {
   ],
 
   // Nachbarwelt am Horizont: dorthin führt die Glasröhre (Welt 2, Wüste mit Pyramide)
-  neighbors: [{ world: 2, pos: [222, -150], size: [72, 50], style: 'desert' }],
+  neighbors: [{ world: 2, pos: [222, -150], size: [72, 50], style: 'desert' }, { world: 31, pos: [258, 66], size: [64, 44], style: 'halloween' }],
 
   // Wandernde Gegnergruppe: Berührung startet das Level (wenn frei); nach dem Sieg verschwindet sie.
   roamers: [

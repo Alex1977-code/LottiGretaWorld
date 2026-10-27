@@ -74,13 +74,14 @@ export class MapHud {
     // ---- Weltname
     const map = scene.map;
     // Weltname: groß beim Betreten, blendet nach ein paar Sekunden aus (oben bleibt Platz für die Beschriftungen)
-    this.title = uiText(scene, W / 2, 104, `Welt ${map.world}\n${map.title}`, { size: 17, color: '#ffffff', stroke: '#3a2a6a', thickness: 4, align: 'center' }).setDepth(70);
+    const wl = map.worldLabel ?? `Welt ${map.world}`;   // Sonderwelt: eigener Name statt „Welt n“ (Halloween)
+    this.title = uiText(scene, W / 2, 104, `${wl}\n${map.title}`, { size: 17, color: '#ffffff', stroke: '#3a2a6a', thickness: 4, align: 'center' }).setDepth(70);
     this.titleT = scene.arrive?.from && !scene.arrive?.warpWorld ? 0 : 3.2;   // nur beim Betreten der Welt, nicht nach jedem Level
     this.title.setVisible(this.titleT > 0);
     // kleines Weltschild oben in der Mitte: Weltname und alle gesammelten Sterne
     this.worldPill = scene.add.container(W / 2 - 4, 15).setDepth(40);
     this.worldPillBg = scene.add.graphics();
-    this.worldName = uiText(scene, 0, -4.5, `Welt ${map.world} · ${map.short ?? map.title}`, { size: 7.5, thickness: 2.5 });
+    this.worldName = uiText(scene, 0, -4.5, `${wl} · ${map.short ?? map.title}`, { size: 7.5, thickness: 2.5 });
     this.totalIcon = scene.add.graphics();
     this.totalText = uiText(scene, 4, 5.5, '', { size: 7, originX: 0, color: '#eaffea', thickness: 2, shadow: false });
     this.worldPill.add([this.worldPillBg, this.worldName, this.totalIcon, this.totalText]);

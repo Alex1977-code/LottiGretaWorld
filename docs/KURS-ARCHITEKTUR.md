@@ -1405,6 +1405,84 @@ inkl. Schattenpass, 119–258 k Dreiecke; Ankunft durch die Glasröhre 73–88 /
 Lila-Insel am Horizont 108 / 274 k). Statische Kulisse Welt 5: 38 Kachel-Meshes, ≈ 167 k Dreiecke, ≈ 295
 Kollisionsformen.
 
+### Präzisierung (Mehrwelten-Karte): Halloween-Welt (Notiz)
+
+- Dateien: `worlds/w31.js` (Daten: `MAP.world = 31`, `prefix: 'H'`, `alwaysOpen: true`, `worldLabel: 'Halloween'`, `title`/
+  `short: 'Kürbisinsel'` → Weltname „Halloween · Kürbisinsel“, `travelToast`, Musik `course_halloween_map`, Rückfall
+  `course_map`), `halloween.js` (Thema `map_halloween`: Abendrot und lila Nacht, großer Mond mit Gesicht – Registry-Modell
+  `mond_gesicht`, sonst Canvas-Mond –, Sterne, lila Hügelkranz; Geländestile, Ränder, Requisiten, Streudeko, Stege `hwbridge`,
+  Nachbarwelt-Stil `'halloween'`, Inselchen, Licht im Takt `hwGlow`, lebendige Kulisse `HwLife`), `decor_hw.js` (Kulissen der
+  Halloween-Eingänge, geschmückte Glasröhre `dressPipeHW`). Additiv angebunden: `MapBuilder.js` (`map.kit === 'halloween'`),
+  `scenery.js`, `entrances.js` (`decorateHW`, `dressPipeHW`, `def.ownSign`), `props.js` (Podestfarben), `MapBatcher.js`
+  (`lod`), `CourseMapScene.js` (Präfix, `travelToast`, Regel-Feld `sign`, `worldList()`, Fern-Ausblendung), `MapHud.js`
+  (`worldLabel`), `unlock.js` (`alwaysOpen`), `worlds/index.js` (Präfix-Tabelle), `level/CourseSave.js` (Sternzählung),
+  `worlds/w1.js` (Röhre `HW`, Landzunge, Nachbarwelt).
+- **Präfix-Mechanik:** `worlds/index.js` baut aus `MAP.prefix` die Tabelle Präfix → Welt: `worldOfLevel(id)` („H-1“ → 31,
+  Zahl-Ids wie bisher, Unbekanntes → `null`), `worldPrefix(n)`; `listWorldMaps()` bleibt numerisch sortiert (1 … 5, 31).
+  Benutzt von `CourseMapScene.worldOfLevel` (Rückkehr aus einem H-Level zeigt Welt 31), `courseSave.starsInWorld(31)` (zählt
+  `31-…` und `H-…`) und `courseSave.unlocked(id, chain, minStars)` (Welt aus dem Präfix der Id). `unlock.worldOpen`: Welten
+  mit `MAP.alwaysOpen` sind immer offen (kein Sternbedarf, auch ohne Eintrag in `worlds`). Alte Speicherstände laden
+  unverändert (Welt 31 kommt erst beim Besuch in `worlds`); Welt-Zahlen 1–8 bleiben frei. `totalStars()` zählt die
+  Halloween-Sterne mit (Sternschranken mit `starScope: 'all'` in Welt 2+).
+- Weltdaten zusätzlich (alles optional): `worldLabel` (statt „Welt n“ im HUD-Weltschild, im großen Titel und auf dem Schild
+  einer Röhre dorthin), `travelToast` (Meldung beim Abfahren dorthin), Regel-Feld `sign` (eigene Aufschrift des
+  Röhrenschilds), `bats: [{ c: [x, y, z], r, n, speed }]`, `fog: { n } | false`; Eingangsfelder `dress: 'halloween'`
+  (Glasröhre geschmückt), `ownSign` (Schild „Halloween!“ statt Holzschild, `signPos`, `signYaw`), `arrowSign: [x, y, z, yaw]`
+  (Wegweiser), `deco: [Requisiten wie map.props]` (auch in Welt 1). Geländestile `hwgrass` (Standard)|`field` (Kürbisfeld in
+  Furchen)|`cobble`|`village`|`maze`|`graveyard`|`moor`|`castle`|`hwrock`|`forest`|`hwbeach`; Ränder `edges: { hedge: 'hwstone',
+  fence: 'hwpicket' }`, je Block auch `'hwiron'`|`'hwhedge'`. Requisiten `pumpkin` (`face: true|1|2`)|`pumpkins`|`hwlantern`|
+  `hwtree` (`model: true` → Registry `halloween_baum`, `lanterns`)|`grave`|`hay`|`toadstool`|`candy`|`candycart`|`leaves`|
+  `heather`|`cobweb`|`owl`|`hwhouse`|`hwrock`|`rowboat`|`candles`|`witchhat`|`ironfence`|`picket`|`hwhedge`. Kacheln
+  `batch: { tile: 32, origin: [−4, 6], freeTile: 96, freeOrigin: [−56, −56] }`.
+- Insel (begehbar, Höhe) und Eingänge (`kind`): A Ankunftsbucht y 1 – `W1` Glasröhre zurück (−16, 1, 36; nach Westen zur
+  grünen Blockinsel am Horizont); A2 Lichtung im Kürbisfeld y 1 – `H-1` `pumpkinfield` (18, 1, 33; Vogelscheuche, Riesenkürbis,
+  Strohballen, Maisstauden, Schubkarre); B Dorfplatz y 2 – `H-2` `spookvillage` (−2, 2, −3.6; Häuserzeile mit Licht, Katze auf
+  dem Dach, Girlanden; Häuschen rings um den Platz); C Labyrinth-Wiese y 2 – `H-Kapitän` `pumpkinmaze` (−35, 2, 1; Hecken-
+  Labyrinth mit Laternenkürbissen, Krümel `def.kruemel` mit Mini-Vampirumhang und Laterne, Scheibe „H-K“); D Friedhofsvorplatz
+  y 3 – `H-3` `foggraveyard` (16, 3, −35.5; Tor zwischen Pfeilern mit Kürbislaternen, Eisenzaun `def.fence`, Gruft, Grabsteine
+  mit Lachgesicht, Halloween-Baum mit Eule, Geist `def.ghost`, Nebel; der Friedhof dahinter ist nicht begehbar); E Hexenmoor
+  y 4 – `H-4` `witchtower` (−27, 4, −53.5; schiefer Hexenturm, Hexenkessel `def.cauldron`, fliegender Besen); F Schlosshügel
+  y 6 – `H-Burg` `spookcastle` (−4, 6, −91; Schloss mit Türmen und Fledermaus-Fahne, Graf Brummbär am Tor, Fledermaus-Schwarm,
+  Scheibe „H-B“). Fünf dunkle Holzstege mit Laternen (`segments` `hwbridge`), fünf Schranken je 4 m: `H-2` (−4, 19),
+  `H-Kapitän` (−20, 0), `H-3` (10, −16), `H-4` (−7, −38), `H-Burg` (−18, −72).
+- Freischaltung laut „Halloween-Welt – Level-Liste“: `H-1` frei, sobald die Welt offen ist (immer); `H-2` nach H-1;
+  `H-Kapitän` und `H-3` nach H-2; `H-4` nach H-3; `H-Burg` nach H-4; kein Sternbedarf. 18 Sterne, 5 Stempel. Eingänge zeigen
+  „Bald“, solange es die Level nicht gibt.
+- **Zugang aus Welt 1:** Landzunge (x 16…27, z 26…40) östlich des Startstrands mit der Glasröhre `HW` (21.5, 1, 34),
+  Regel `{ id: 'HW', world: 31, next: 31, label: 'Halloween', stars: 0, sign: 'Halloween!' }` ohne `after` und ohne Schranke
+  (immer frei), geschmückt mit Kürbissen, zwei Laternen, Fledermaus- und Wimpel-Girlande, Schild „Halloween!“, Wegweiser am
+  Strand, Laub, Stroh. Die Röhre fährt nach Osten zur Kürbisinsel am Horizont (`neighbors` Stil `'halloween'`, `[258, 66]`);
+  Ankunft in Welt 31 an `W1`, Rückweg dorthin; zurück in Welt 1 an `HW`. Welt 1 sonst unverändert (8 Schranken, 24 Sterne);
+  `tests/course_map.mjs` zählt `HW` zu den von Anfang an freien Eingängen.
+- **Licht im Takt:** Kürbisgesichter, Laternen und Kerzen teilen das Material `view.mats.hwglow` (in den Kacheln verschmolzen);
+  dazu je Leuchte ein additiver Lichtschein (Billboard) und ein warmer Lichtfleck am Boden (je eine Instanz-Fläche, zusammen
+  zwei Zeichenaufrufe). Helligkeit k = 0,58 + 0,42 · e^(−3,4 · Bruchteil der Zählzeit) (+ leichtes Kerzenflackern) aus
+  `music.beat()` der Kartenmusik; ohne laufende Musik Ersatzuhr (Kartenzeit) im Tempo von `course_halloween_map` (fehlt das
+  Thema: `course_map`). `state().decor.lanterns = { beat, step, pulse, k, source, theme, bpm, shown, halos, pools }` – auch in
+  Welt 1 an der geschmückten Röhre. Tests stellen die Uhr mit `__audio.music.setManualClock(true)` / `advanceClock(s)`.
+- Lebendige Kulisse (`state().decor`): `HwLife` – Fledermaus-Schwärme (`map.bats`, Instanzen mit Flügelschlag) und
+  Nebelschwaden über dem Wasser (weiche Nebelkarten an den Ufern); `scarecrow { sway, model }`, `village { windows,
+  houseModels }`, `maze { walls, kruemel }`, `ghost { phase: hidden|rise|peek|hide, peek, peeks, model }` (alle 7 s schaut der
+  Geist hinter dem großen Grabstein hervor), `cauldron { bubbles, pops, model }`, `castle { graf, swarm }`.
+- Registry-Modelle der Halloween-Welt (`models/kinds/*_hw.js`) mit Dreiecks-Obergrenze je Einsatz (`decor_hw.js` `bakeHw`/
+  `live`, `halloween.js` `HW_PROP_MODELS`): eingebacken in eine kompakte Kachel je Eingang (`tile: 'hw:<Id>'`, Requisiten je
+  16-m-Feld) mit `lod: true` – `MapBatcher` markiert sie (`userData.lod`), `MapLod` blendet sie jenseits von 90 m aus (Anflug,
+  Ankunft); bewegte als eigene Objekte. Benutzt: `vogelscheuche` (wiegt sich), `kuerbis` (Riesenkürbis), `strohballen`,
+  `maisstaude`, `dorfhaus_nacht` (nur das mittlere Haus, ohne Schattenwurf – drei Häuser à ≈ 11 k wären für die Ansicht des
+  Dorfplatzes zu schwer), `laterne_hand` (Krümel), `gruft`, `grabstein`, `halloween_baum`, `kreisgeist_halloween` (schaut
+  hervor), `hexenturm`, `hexenkessel`, `graf_brummbaer`, `fledermaus_schwarm`, `mond_gesicht`. Bewusst eigene Geometrie:
+  Kürbisse und Laternen an den Wegen und im Feld (zu zahlreich – `kuerbis` ≈ 2,6 k, mit Gesicht ≈ 6,2 k, `kuerbislaterne`
+  ≈ 4,8 k), Eisenzaun (`eisenzaun` ≈ 12,7 k je 13 m), Häuschen am Dorfplatz. Fehlt ein Modell, zeichnen `halloween.js`/
+  `decor_hw.js` eigene Geometrie (gleiche Lage).
+- Test: `tests/course_map_hw.mjs` (Port 4260, Bilder `tests/out/cmaphw_*.png`), Teilläufe `HW_TEIL=1|2|3|4` (Abschnitte
+  2–4, 5–7, 8, 9–10, je mit den Node-Prüfungen; gemessen bei Rechnerlast ≈ 20: 6,5 / 5 / 6,5 / 3 min).
+
+Gemessen (scale 2, `tests/course_map_hw.mjs`, mit den Halloween-Modellen): statische Kulisse Welt 31
+51 Kachel-Meshes, ≈ 215 k Dreiecke, ≈ 175 Kollisionsformen; je Ansicht (Zeichenaufrufe inkl. Schattenpass / Dreiecke) Ankunft
+92–94 / 248 k, Kürbisfeld 75 / 216 k, Gruseldorf 66 / 273 k (Höchstwert), Labyrinth 73 / 231 k, Friedhof 57 / 241 k,
+Hexenturm 65 / 194 k, Gruselschloss 68 / 183 k, Anflug 91 / 225 k (Modell-Kacheln fern ausgeblendet). Welt 1 mit der
+Halloween-Röhre höchstens 81 / 265 k (Startstrand vorher ≈ 72 / 240 k).
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
