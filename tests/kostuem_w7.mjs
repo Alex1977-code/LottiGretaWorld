@@ -13,7 +13,8 @@
 //   ride     Pflaume-Ritt mit Kostüm (Umhang über Pflaumes Rücken, Sichel steckt weg, Angel in der Hand)
 // Bilder tests/out/kostuem_w7_*.png, Übersichtsbögen tests/out/kostuem_w7_sheet_<gruppe>.png. Keine Konsolenfehler.
 // Aufruf: npm run build && PORT_BASE=0 KW7_HEROES=lotti node tests/kostuem_w7.mjs, dann KW7_HEROES=greta (je Heldin ≈ 9 min unter
-// Software-WebGL; Port 4375 + PORT_BASE; KW7_PARTS=mech|close|ride einzeln, KW7_SHOTS=0 ohne Bilder, KW7_DEBUG=1)
+// Software-WebGL; unter Last die Teile einzeln: KW7_PARTS=mech bzw. close bzw. ride, je 2–6 min; Port 4375 + PORT_BASE;
+// KW7_SHOTS=0 ohne Bilder, KW7_DEBUG=1)
 import { createServer } from 'vite';
 import { readFileSync } from 'node:fs';
 import { launchBrowser, makeChecker, OUT } from './helpers.mjs';

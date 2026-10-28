@@ -6380,7 +6380,7 @@ Test `tests/kostuem_w7.mjs`.
   Greta: Katzenohren an der Mütze; Schnurrhaare und Katzenschwanz bleiben), Umhang-Futter orange. Trage-Helm: Mütze und Kamm
   ruhen (Haar mit Schleife/Haarreif wie sonst). Pflaume-Ritt: Mütze und Umhang bleiben, Sichel steckt weg (Angel in der Hand).
 - **Test** `tests/kostuem_w7.mjs` (Vite-Entwicklungsserver, Port 4375 + PORT_BASE, Lavawerkstatt `0-26`; je Heldin
-  `KW7_HEROES=lotti` bzw. `greta` < 10 min; `KW7_PARTS=mech,close,ride`): echter Motor – Item aufnehmen, Wurf (Phasen), Flug,
+  `KW7_HEROES=lotti` bzw. `greta`, unter Last die Teile einzeln `KW7_PARTS=mech` / `close` / `ride`): echter Motor – Item aufnehmen, Wurf (Phasen), Flug,
   Fang, Wurf im Lauf, Klone; Bank – Nahansichten, Posen, Wurf-Phasen, Fang, Verlust, Halloween, Helm, klein; Ritt mit Pflaume.
   Bilder `tests/out/kostuem_w7_*.png`, Bögen `kostuem_w7_sheet_<heldin>_<gruppe>.png`; keine Konsolenfehler.
 
