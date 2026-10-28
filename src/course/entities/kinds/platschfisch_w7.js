@@ -89,6 +89,14 @@ class Platschfisch extends EnemyW2 {
 
   place(h, dy) { this.pos.set(h.x, h.y + dy, h.z); }
 
+  /** Offene Lava an t (keine Plattform darüber)? */
+  openLava(t) {
+    const l = lavaAt(this.level, t.x, t.z, t.y - 2, t.y + 2);
+    if (!l) return false;
+    const hit = this.level.world.raycastDown(t.x, l.top + 4, t.z, 4);
+    return !hit || !!hit.shape.kill || hit.y <= l.top + 0.05;
+  }
+
   get hidden() { return this.state === 'wait'; }
 
   update(dt) {
@@ -115,7 +123,7 @@ class Platschfisch extends EnemyW2 {
         return;
       case 'surface':
       case 'spit': {
-        this.place(this.cur, -0.12);
+        this.place(this.cur, 0.02);
         this.facePlayer(dt, 10);
         if (this.state === 'surface') { if (this.stateT >= 0.2) this.setState('spit'); return; }
         if (!this.spat && this.stateT >= SPIT * SPIT_AT) this.spit();
@@ -153,10 +161,11 @@ class Platschfisch extends EnemyW2 {
           const s = Math.min(this.dist * k, d);
           t.set(this.cur.x + (dx / d) * s, this.cur.y, this.cur.z + (dz / d) * s);
           if (Math.hypot(t.x - this.home.x, t.z - this.home.z) > this.range) continue;
-          if (lavaAt(this.level, t.x, t.z, t.y - 2, t.y + 2)) return { pos: t, hole: -1 };
+          if (this.openLava(t)) return { pos: t, hole: -1 };
         }
       }
-      // zurück Richtung Ausgangsstelle (bzw. auf der Stelle)
+      // Figur in Sicht, aber kein näherer Platz: auf der Stelle springen; sonst zurück Richtung Ausgangsstelle
+      if (activeFigure(p) && this.canSee(this.sight, 9)) return { pos: this.cur.clone(), hole: -1 };
       const hx = this.home.x - this.cur.x, hz = this.home.z - this.cur.z, hd = Math.hypot(hx, hz);
       if (hd > 0.5) { const s = Math.min(this.dist, hd); t.set(this.cur.x + (hx / hd) * s, this.cur.y, this.cur.z + (hz / hd) * s); return { pos: t, hole: -1 }; }
       return { pos: this.cur.clone(), hole: -1 };
@@ -206,11 +215,15 @@ class Platschfisch extends EnemyW2 {
     if (!activeFigure(p)) return;
     const m = toWorld(this.pos, this.yaw, this.mouth.x, this.mouth.y, this.mouth.z, {});
     const c = p.center();
+    c.y += p.half.y * 0.5;     // auf die obere Körperhälfte (über Plattformkanten hinweg)
     let dx = c.x - m.x, dy = c.y - m.y, dz = c.z - m.z;
     const d = Math.hypot(dx, dy, dz) || 1;
     dx /= d; dy /= d; dz /= d;
     const s = this.spitSpeed;
-    this.level.spawn('feuerkugel', { pos: [m.x, m.y - 0.17, m.z], vel: [dx * s, dy * s, dz * s], mode: 'straight', owner: this, color: this.color, life: 2.6 });
+    // Kugel knapp über der Lava starten (sonst erlischt sie sofort in ihr)
+    const y0 = Math.max(m.y - 0.17, this.cur.y + 0.22);
+    this.level.spawn('feuerkugel', { pos: [m.x, y0, m.z], vel: [dx * s, dy * s, dz * s], mode: 'straight', owner: this, color: this.color, life: 2.6 });
+    this.lastShot = { mode: 'straight', v: s, dir: [+dx.toFixed(2), +dy.toFixed(2), +dz.toFixed(2)] };
     this.spits++;
     this.level.sfx('fireball');
   }

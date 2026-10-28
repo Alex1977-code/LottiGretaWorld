@@ -12,7 +12,7 @@
 // **Feuer prallt ab**, Draufspringen/Stampfen verletzt (heiß!). Besiegt: Augen zu, Schwindelsterne, Dampf, er versinkt (1,6 s).
 //
 // Daten: { kind: 'lavadrache', pos: [x, y, z] (Austrittspunkt, y = Lava-Oberfläche), spots?: [[x, y, z], …] (Auftauchstellen;
-//          pos = erste, falls pos fehlt), aim?: false, sight?: 16, hide?: 2.0, shots?: 2, interval?: 1.1, flight?: 1.15,
+//          pos = erste, falls pos fehlt), aim?: false, sight?: 16, hide?: 2.0, shots?: 2, interval?: 1.1, flight?: 0.95,
 //          lead?: 0, speed?: 0 (m/s waagerecht beim Hüpfen der Kugel; 0 = Flugtempo), hp?: 1, phase?: 0..1 (Vorlauf im
 //          Versteck), color?: 'rot' | 'blau', segments?: 7, drop? }
 //   Beispiel: { kind: 'lavadrache', spots: [[-6, 0.5, -80], [6, 0.5, -84]], shots: 2, sight: 14 }
@@ -46,7 +46,7 @@ class Lavadrache extends EnemyW2 {
     this.hideT = spec.hide ?? 2.0;
     this.shots = Math.max(1, spec.shots ?? 2);
     this.interval = Math.max(SPIT, spec.interval ?? 1.1);
-    this.flight = spec.flight ?? 1.15;
+    this.flight = spec.flight ?? 0.95;
     this.lead = spec.lead ?? 0;
     this.maxHp = spec.hp ?? 1;
     this.hp = this.maxHp;
@@ -264,15 +264,15 @@ class Lavadrache extends EnemyW2 {
     if (kind === 'fire') this.level.effects?.sparks(this.head(), 3);   // Feuer prallt ab
   }
 
+  /** Modellzustand – die Auftauch-Stellung kommt immer aus der Simulation (rise), damit Bild und Trefferkugel übereinstimmen. */
   modelState() {
-    const s = this.state;
-    if (s === 'hidden') return { anim: 'hidden' };
-    if (s === 'rise') return { anim: 'rise', progress: clamp(this.stateT / RISE, 0, 1) };
-    if (s === 'spit') return { anim: 'spit', progress: clamp(this.stateT / SPIT, 0, 1) };
-    if (s === 'sink') return { anim: 'sink', progress: clamp(this.stateT / SINK, 0, 1) };
-    if (s === 'hit') return { anim: 'sink', progress: clamp(this.stateT / HIT, 0, 1) };
-    if (s === 'defeated') return { anim: 'defeated', progress: clamp(this.stateT / DEFEAT, 0, 1) };
-    return { anim: 'idle' };
+    const s = this.state, rise = this.riseK;
+    if (s === 'hidden') return { anim: 'hidden', rise: 0 };
+    if (s === 'rise') return { anim: 'rise', rise, progress: clamp(this.stateT / RISE, 0, 1) };
+    if (s === 'spit') return { anim: 'spit', rise, progress: clamp(this.stateT / SPIT, 0, 1) };
+    if (s === 'sink' || s === 'hit') return { anim: 'sink', rise };
+    if (s === 'defeated') return { anim: 'defeated', rise, progress: clamp(this.stateT / DEFEAT, 0, 1) };
+    return { anim: 'idle', rise };
   }
 
   syncModel() {

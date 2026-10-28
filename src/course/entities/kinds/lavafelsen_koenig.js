@@ -26,9 +26,11 @@
 // Laufzeit: brocken (lebende gerufene), summoned, feuer (Feuerbrocken gesamt), hitLog, info().
 // Welt 7 (additiv, Präzisierung Gegner Welt 7, 7-A): variant?: 'hell' (heller Tuffstein-König mit violettem Umhang, Modell
 //   lavafelsen_koenig { variant: 'hell' }) und fish?: { count: [2, 3, 4], ring: r + 1.6, height: 3.2, every: [3.0, 2.6, 2.2],
-//   flight: 1.15, inside: 0.9, spit: 0, color: 'rot' } | true (Standard bei variant 'hell') | false: **Platschfische** springen
-//   im Lavasee rings um die Arena in Bögen über den Arenarand (Sehne count je Phase gleichmäßig verteilt, reicht inside m
-//   in die Arena hinein) – ab dem Auftritt, je Phase mehr; Tod im Kampf und Sieg nehmen sie weg. Laufzeit: fish (lebende).
+//   flight: 1.15, inside: 0.9, spit: 0, color: 'rot', gate: null, gateHalf: 0.35 } | true (Standard bei variant 'hell') |
+//   false: **Platschfische** springen im Lavasee rings um die Arena in Bögen über den Arenarand (Sehne count je Phase
+//   gleichmäßig verteilt, reicht inside m in die Arena hinein) – ab dem Auftritt, je Phase mehr; Tod im Kampf und Sieg nehmen
+//   sie weg. gate (rad, Richtung des Eingangs: x = cos, z = sin; +Z = π/2) hält den Bereich ±gateHalf frei (Steg).
+//   Laufzeit: fish (lebende).
 //   Wird der Kampf über LEVEL.bosses gesteuert, gilt das wie LEVEL.boss (bossManaged).
 //
 // feuerbrocken – brennender Brocken (vom König verstreut, auch einzeln): fliegt im Bogen, landet, brennt burn s und
@@ -104,8 +106,11 @@ class LavafelsenKoenig extends EnemyW2 {
     const A = this.arena, R0 = F.ring, inner = Math.max(1, A.r - (F.inside ?? 0.9));
     const half = Math.acos(clamp(inner / R0, -1, 1));       // halbe Sehnenöffnung: die Sehne reicht bis inner
     const every = pick(F.every, this.phase, [3.0, 2.6, 2.2]);
+    const gate = Number.isFinite(F.gate) ? F.gate : null, gh = F.gateHalf ?? 0.35;
     for (let i = 0; i < n; i++) {
-      const a = (i / n) * TAU + 0.35 + this.phase * 0.5;
+      // Sehnen-Mitte: gleichmäßig verteilt bzw. ohne den Eingangsbereich (gate ± gateHalf)
+      const a = gate === null ? (i / n) * TAU + 0.35 + this.phase * 0.5
+        : gate + gh + half + ((i + 0.5) / n) * (TAU - 2 * (gh + half));
       const P = (b) => [A.x + Math.cos(b) * R0, A.y - 0.4, A.z + Math.sin(b) * R0];
       const e = this.level.spawn('platschfisch', {
         holes: [P(a - half), P(a + half)], height: F.height ?? 3.2, every, flight: F.flight ?? 1.15, phase: i / n,

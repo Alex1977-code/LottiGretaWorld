@@ -106,10 +106,11 @@ class Funkenflaemmchen extends EnemyW2 {
       dist = Math.min(dist, Math.max(0.05, Math.hypot(t.x - this.pos.x, t.z - this.pos.z)));
     }
     // nicht von Kanten hüpfen
-    if (this.edges && this.grounded && !this.groundAhead(this.dir.x, this.dir.z, Math.max(0.1, dist - this.half.x), 1.1)) {
+    // (Stufe ≤ 0,4 m zählt als Boden; tiefer ist eine Kante)
+    if (this.edges && this.grounded && !this.groundAhead(this.dir.x, this.dir.z, Math.max(0.1, dist - this.half.x), 0.4)) {
       if (this.path) this.turn(); else { this.dir.x = -this.dir.x; this.dir.z = -this.dir.z; }
       if (this.behavior === 'chase') dist = 0;
-      else if (!this.groundAhead(this.dir.x, this.dir.z, Math.max(0.1, dist - this.half.x), 1.1)) dist = 0;
+      else if (!this.groundAhead(this.dir.x, this.dir.z, Math.max(0.1, dist - this.half.x), 0.4)) dist = 0;
     }
     const h = dist / this.airT;
     this.vel.set(this.dir.x * h, this.vy0, this.dir.z * h);
