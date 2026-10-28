@@ -352,6 +352,65 @@ export function seerosen(level, list, o = {}) {
 }
 
 /**
+ * Schilfbüschel im Giftsee (6-4, rein optisch, statisch): schlanke Halme mit Farbverlauf und ein paar Rohrkolben.
+ * list: [[x, y (Wasserspiegel), z, n?], …]. o: { seed, height }.
+ */
+export function schilf(level, list, o = {}) {
+  if (!level.view) return;
+  const rnd = new Rnd(o.seed ?? 31);
+  const parts = [];
+  const base = L(0x2a6a2a), tip = L(0xc8e85a), stalk = L(0x5a8a3a), kolben = L(0x7a4a22);
+  for (const [x, y, z, n0] of list) {
+    const n = n0 ?? 7, H0 = o.height ?? 1.7;
+    for (let i = 0; i < n; i++) {
+      const a = rnd.real(0, TAU), rr = rnd.real(0, 0.5), h = H0 * rnd.real(0.6, 1.15);
+      const g = new THREE.ConeGeometry(rnd.real(0.04, 0.07), h, 4, 1, true).toNonIndexed();
+      g.translate(0, h / 2, 0);
+      g.rotateZ(rnd.real(-0.22, 0.22)); g.rotateX(rnd.real(-0.22, 0.22));
+      g.translate(x + Math.cos(a) * rr, y - 0.05, z + Math.sin(a) * rr);
+      parts.push(colorize(g, (p, nn, c) => mixc(base, tip, smooth(y, y + h, p.y), c)));
+    }
+    for (let k = 0; k < 2; k++) {
+      const a = rnd.real(0, TAU), rr = rnd.real(0.1, 0.35), h = H0 * rnd.real(0.85, 1.2);
+      const px = x + Math.cos(a) * rr, pz = z + Math.sin(a) * rr;
+      const s = new THREE.CylinderGeometry(0.025, 0.03, h, 4, 1, true).toNonIndexed(); s.translate(px, y + h / 2, pz);
+      parts.push(colorize(s, (p, nn, c) => { c[0] = stalk[0]; c[1] = stalk[1]; c[2] = stalk[2]; }));
+      const kg = new THREE.CylinderGeometry(0.08, 0.08, 0.36, 6).toNonIndexed(); kg.translate(px, y + h - 0.28, pz);
+      parts.push(colorize(kg, (p, nn, c) => { c[0] = kolben[0]; c[1] = kolben[1]; c[2] = kolben[2]; }));
+    }
+  }
+  addStatic(level, merge(parts), { castShadow: false });
+}
+
+/**
+ * Moospolster an einer senkrechten Felskante (6-4 Schlucht, rein optisch): überhängende Kissen mit Blütenpunkten.
+ * o: { x (Wandfläche), face (+1: Wand zeigt nach +X), z0, z1, top (Oberkante), seed }.
+ */
+export function moospolster(level, o) {
+  if (!level.view) return;
+  const rnd = new Rnd(o.seed ?? 5);
+  const parts = [];
+  const hi = L(0x9ae85a), lo = L(0x2a7a3a), fl = [L(0xff7ac0), L(0xffd84a), L(0xffffff), L(0xc04aff)];
+  const zA = Math.max(o.z0, o.z1), zB = Math.min(o.z0, o.z1);
+  for (let z = zA - 0.6; z > zB + 0.6;) {
+    const w = rnd.real(0.8, 1.5), dh = rnd.real(0.6, 1.4);
+    const cy = o.top - dh * 0.35, zc = z - w * 0.5;
+    const g = new THREE.SphereGeometry(1, 9, 6).toNonIndexed();
+    g.scale(0.38, dh * 0.65, w); g.translate(o.x, cy, zc);
+    parts.push(colorize(g, (p, n, c) => mixc(lo, hi, smooth(cy - dh * 0.6, cy + dh * 0.5, p.y) * 0.8 + Math.max(0, n.y) * 0.2, c)));
+    for (let k = 0; k < 3; k++) {
+      if (rnd.frac() < 0.35) continue;
+      const fg = new THREE.SphereGeometry(0.09, 5, 4).toNonIndexed();
+      const col = fl[(rnd.frac() * fl.length) | 0];
+      fg.translate(o.x + o.face * 0.36, cy + rnd.real(-dh * 0.35, dh * 0.3), zc + rnd.real(-w * 0.6, w * 0.6));
+      parts.push(colorize(fg, (p, n, c) => { c[0] = col[0]; c[1] = col[1]; c[2] = col[2]; }));
+    }
+    z -= w * rnd.real(1.3, 1.9);
+  }
+  addStatic(level, merge(parts), { castShadow: false });
+}
+
+/**
  * Blaues Tor (6-4 Stempel): zwei blau lackierte Holzpfeiler, oben ein breiter Querbalken (begehbar) und ein schmaler darunter,
  * goldene Knäufe, Kletterranken – Fantasie-Tor ohne reale Symbolik. Kollision: Pfeiler und oberer Balken.
  * o: { x, y, z (Mitte unten), span (Abstand der Pfeiler), h (Oberkante der Pfeiler), w (Pfeilerbreite) }.

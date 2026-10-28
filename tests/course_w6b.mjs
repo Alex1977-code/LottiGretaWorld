@@ -185,14 +185,14 @@ const ROUTES = {
       ['start', [0, 1, 6]],
       ['aussicht', [-12.5, 6, 0.5]],
       ['floss1', [0, 1.2, -9.5], 120, { y: 0.01 }],
-      ['brummer', [-5, 1.2, -36], 0],
-      ['deckengitter', [5, 1.2, -60]],
+      ['brummer', [0, 1.2, -9.5], 560, { raft: 'floss1' }],
+      ['deckengitter', [0, 1.2, -9.5], 1230, { raft: 'floss1' }],
       ['torinsel', [16, 1, -60]],
       ['baumhaus', [20.5, 10, -76.5]],
       ['checkpoint', [-2, 1, -100]],
       ['sternring', [-8, 1, -104]],
-      ['floss2', [0, 1.2, -128]],
-      ['ranken', [6, 1.2, -146]],
+      ['floss2', [0, 1.2, -116.3], 240, { raft: 'floss2' }],
+      ['ranken', [0, 1.2, -116.3], 640, { raft: 'floss2' }],
       ['schlucht', [0, -1, -222]],
       ['landeinsel', [0, -3, -251]],
       ['klippe', [-5, 4, -268.5]],
@@ -890,7 +890,14 @@ for (const id of LEVELS) {
   for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2] of R.shots) {
     if (SHOTS && !SHOTS.has(name)) continue;
     await W('place', pos, { settle: 10, yaw });
-    if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
+    if (steps) await sc(([n, inp]) => {
+      const c = window.__course, p = c.player, f = inp.raft && c.level.named.get(inp.raft);
+      p.invuln = 99; c.setInput({});
+      if (!f) c.step(n);
+      // Bild vom Floß: die Figur bleibt in der Floßmitte (Brummer-Abpraller werfen sie sonst ins Gift)
+      else for (let i = 0; i < n; i++) { p.pos.x = f.mb.pos.x; p.pos.z = f.mb.pos.z; p.vel.x = p.vel.z = 0; c.step(1); }
+      p.invuln = 0; c.setInput(null);
+    }, [steps, input ?? {}]);
     await shot(`${id}_${name}`);
   }
 }

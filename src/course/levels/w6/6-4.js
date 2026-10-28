@@ -17,7 +17,7 @@
 //   7  Ruinenplateau       z −278 … −304  (per Warp-Box) Ruinen, Steinfrösche, Zielmast
 // Gegner: Brummer 4, Rankenschnapper 6. Extraleben: ?-Block auf dem Aussichtsfelsen, unsichtbarer Block auf der Tor-Insel.
 
-import { isl, line, ring, arc, sign, seerosen, blauesTor, baumhaus, felsen, ruinen, glimmer, zier } from './_helpers_b.js';
+import { isl, line, ring, arc, sign, seerosen, schilf, moospolster, blauesTor, baumhaus, felsen, ruinen, glimmer, zier } from './_helpers_b.js';
 
 const PI = Math.PI;
 const WS = 0.4;          // Giftsee (oben)
@@ -47,6 +47,8 @@ const { DECKE, TOR, TORGITTER, BAUM, ROEHRE } = M64;
 
 /** Rankenschnapper aus dem Gift quer über den Floßweg. */
 const ranke = (id, x, z, dx, o = {}) => ({ kind: 'rankenschnapper', id, pos: [x, WS, z], dir: [dx, 0], length: 5, height: 1.5, grow: { out: 1.2, hold: 2.2, back: 1.1, wait: 1.8 }, ...o });
+const RANKEN = [['r1', -3.2, -124, 1], ['r2', 9.6, -146, -1, { phase: 0.3 }], ['r3', 2.4, -152, 1, { phase: 0.65 }],
+  ['r4', -7.6, -172, 1, { phase: 0.1 }], ['r5', -0.4, -179, -1, { phase: 0.55 }], ['r6', 3.6, -197, -1, { phase: 0.25 }]];
 /** Brummer kreist über dem Floßweg. */
 const brummer = (id, x, y, z, r, o = {}) => ({ kind: 'brummer', id, center: [x, y, z], radius: r, speed: 2.2, sight: 5.5, ...o });
 
@@ -70,6 +72,29 @@ function build(level) {
   };
   padLine(PATH1, 1, 0); padLine(PATH1, -1, 2); padLine(PATH2.slice(0, 8), 1, 1); padLine(PATH2.slice(0, 8), -1, 3);
   seerosen(level, pads, { flowers: 0.4 });
+  // Schilfbüschel am Floßweg – nicht in Inseln, nicht auf den Linien der Rankenschnapper
+  const rects = LEVEL.segments.filter((g) => g.type === 'island').map((g) => [g.pos[0] - g.size[0] / 2 - 0.7, g.pos[0] + g.size[0] / 2 + 0.7, g.pos[2] - g.size[2] / 2 - 0.7, g.pos[2] + g.size[2] / 2 + 0.7]);
+  const free = (x, z) => !rects.some(([a, b, c, d]) => x > a && x < b && z > c && z < d)
+    && !RANKEN.some(([, rx, rz, dx]) => Math.abs(z - rz) < 2.2 && (x - rx) * dx > -2 && (x - rx) * dx < 7);
+  const reeds = [];
+  const reedLine = (pts, seed) => {
+    let k = seed;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, , az] = pts[i], [bx, , bz] = pts[i + 1];
+      const L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.floor(L / 3.8));
+      for (let j = 0; j < n; j++, k++) {
+        const t = (j + 0.4) / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t;
+        const side = k % 2 ? 1 : -1, off = (3.9 + (k * 5 % 7) * 0.22) * side;
+        const px = x - ((bz - az) / L) * off, pz = z + ((bx - ax) / L) * off;
+        if (free(px, pz)) reeds.push([px, WS, pz, 5 + (k % 4)]);
+      }
+    }
+  };
+  reedLine(PATH1, 0); reedLine(PATH2.slice(0, 8), 1);
+  schilf(level, reeds);
+  // Moospolster an den Schluchtkanten
+  moospolster(level, { x: -3.6, face: 1, z0: -200, z1: -248.4, top: 3, seed: 3 });
+  moospolster(level, { x: 3.6, face: -1, z0: -200, z1: -248.4, top: 3, seed: 9 });
   // Schluchtwände der Abwärtsströmung (gestuft, rein optisch – die Kollision liefern die Inseln)
   // Felsbrocken an den Schluchtkanten (oben auf den Wänden)
   felsen(level, [[-5.2, 3, -208, 1.6, 1.1, 1.8, 0.4], [5.4, 3, -217, 1.4, 0.9, 1.6, -0.3], [-5.0, 3, -229, 1.2, 0.8, 1.4, 0.2], [5.2, 3, -242, 1.8, 1.2, 2, -0.5]], { color: 0x7a8a6a });
@@ -173,7 +198,7 @@ export const LEVEL = {
     isl(-16, -9, -146, -160, Y1, 4), isl(11.5, 17, -160, -176, Y1, 4),
     isl(-16, -10, -186, -198, Y1, 4), isl(6.5, 14, -188, -200, Y1, 4),
     // ---------------- 5 Schlucht der Abwärtsströmung (Wände)
-    isl(-12, -3.6, -200, -248.4, 3, 18, { top: 'rock' }), isl(3.6, 12, -200, -248.4, 3, 18, { top: 'rock' }),
+    isl(-12, -3.6, -200, -248.4, 3, 18), isl(3.6, 12, -200, -248.4, 3, 18),
     // ---------------- 6 Landeinsel, Felswand mit Kletterranke
     isl(-12, 12, -248.4, -266, YL, 5),
     isl(-12, 12, -266, -272, M64.KLIPPE.top, 9, { top: 'rock' }),
@@ -212,6 +237,9 @@ export const LEVEL = {
       { kind: 'pilze', pos: [-7.5, 3, -236], n: 6 }, { kind: 'pilze', pos: [7.5, 3, -212], n: 6 },
       { kind: 'dschungelbaum', pos: [-8.5, 3, -224], height: 10 }, { kind: 'dschungelbaum', pos: [9, 3, -240], height: 9 },
       { kind: 'liane', pos: [-2, 8, -214], length: 3.4 }, { kind: 'liane', pos: [2.4, 8, -228], length: 3 },
+      // Lianen an den Schluchtwänden (hängen von der Kante herab)
+      ...[-206, -213, -221, -229, -238, -245].map((z, i) => ({ kind: 'liane', pos: [i % 2 ? 3.8 : -3.8, 3.2, z], length: 2.6 + (i % 3) * 0.7 })),
+      ...[-209, -217, -225, -234, -242].map((z, i) => ({ kind: 'liane', pos: [i % 2 ? -3.8 : 3.8, 3.2, z], length: 2.2 + (i % 2) * 1.2 })),
     ] },
     { type: 'deco_w4', items: [{ kind: 'giftwasserfall', pos: [-3.7, -1.6, -219], width: 2.2, height: 4.6, yaw: PI / 2 }, { kind: 'giftwasserfall', pos: [3.7, -2.6, -236], width: 2.2, height: 5.6, yaw: -PI / 2 }] },
   ],
@@ -227,12 +255,7 @@ export const LEVEL = {
     brummer('b2', 1.5, 3.6, -50, 2.4, { phase: 0.4 }),
     brummer('b3', 3, 3.4, -77, 2.4, { phase: 0.2 }),
     brummer('b4', -1, 3.6, -89, 2.0, { phase: 0.7 }),
-    ranke('r1', -3.2, -124, 1),
-    ranke('r2', 9.6, -146, -1, { phase: 0.3 }),
-    ranke('r3', 2.4, -152, 1, { phase: 0.65 }),
-    ranke('r4', -7.6, -172, 1, { phase: 0.1 }),
-    ranke('r5', -0.4, -179, -1, { phase: 0.55 }),
-    ranke('r6', 3.6, -197, -1, { phase: 0.25 }),
+    ...RANKEN.map(([id, x, z, dx, o]) => ranke(id, x, z, dx, o)),
   ],
   items: [
     line([-1.5, Y1 + 0.5, 3], [1.5, Y1 + 0.5, 3], 3),
