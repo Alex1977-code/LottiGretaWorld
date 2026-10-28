@@ -698,3 +698,66 @@ export function tempel72(level, o) {
   b.flush(level, { castShadow: false });
   g.flush(level, { material: 'glow', castShadow: false });
 }
+
+// =====================================================================================================================
+// 7-A: Glutkönig im Platschkessel
+// =====================================================================================================================
+
+/**
+ * Arena-Kampf gegen einen Endgegner (Archetyp arena, wie 6-A): der Arena-Archetyp zählt nur den Boss (LEVEL.arena.enemies:
+ * []), zeigt seine Lebensleiste und lässt nach seinem Sieg (state 'gone' → level.onBossDefeated) den Arena-Stern erscheinen.
+ * Tod der Figur: Boss zurück (volle Treffer, wartet wieder), Lebensleiste aus. o: { id, name }.
+ * → level.named.get('bossKampf') = { boss, started, gone }
+ */
+export function bossKampf(level, o) {
+  const arch = level.archetype;
+  const boss = level.named.get(o.id);
+  if (!arch || !boss) return null;
+  const st = { gone: false };
+  const claim = () => { arch.counted.add(boss); arch.total = arch.left = 1; arch.hud.hideArena?.(); };
+  claim();
+  arch.boss = boss;
+  const prevDef = level.onBossDefeated;
+  level.onBossDefeated = (b) => { prevDef?.(b); if (b === boss) arch.onDefeated(boss); };
+  const rt = level.runtime;
+  const respawn = rt.respawn.bind(rt);
+  rt.respawn = () => {
+    respawn();
+    boss.reset?.();
+    claim();
+    arch.hud.hideBoss?.();
+    st.gone = false;
+  };
+  level.onStep(() => {
+    const started = boss.state !== 'wait';
+    if (started && boss.state !== 'gone') arch.hud.boss?.({ name: o.name, hp: boss.hp, max: boss.maxHp });
+    else if (boss.state === 'gone' && !st.gone) { st.gone = true; arch.hud.hideBoss?.(); }
+  });
+  const handle = { boss, get started() { return boss.state !== 'wait'; }, get gone() { return st.gone; } };
+  level.named.set('bossKampf', handle);
+  return handle;
+}
+
+/** 7-A: Kessel-Kulisse – Basaltring mit Brummbär-Bannern, Lavabrocken-Nester, Platschfisch-Schilder. o: { Y, LAVA, R }. */
+export function kessel7A(level, o) {
+  const { Y, LAVA, R } = o;
+  const rnd = new Rnd(7171 + 7);
+  const b = new Bld(), g = new Bld();
+  // Basalt-Pfeiler auf dem Kesselrand (hinten und seitlich; vorn frei für die Kamera) mit Glutfugen und Bannern
+  for (let i = 0; i < 14; i++) {
+    const a = Math.PI * (0.62 + (i / 13) * 1.76);   // von links vorn über hinten nach rechts vorn
+    const r = R + 2.6 + (i % 2) * 0.8, x = Math.cos(a) * r, z = Math.sin(a) * r;
+    const h = 3.2 + ((i * 5) % 4) * 1.1;
+    b.cyl(0.9, 1.1, h, x, LAVA - 0.5, z, gradY(0x2a2228, 0x6a5a5e, LAVA, LAVA + h), 6);
+    b.cyl(1.0, 0.9, 0.3, x, LAVA - 0.5 + h, z, litTop(0x8a7a7e, 0.6), 6);
+    g.torus(1.02, 0.05, x, LAVA + 0.4, z, 0xff8a2a, { rx: Math.PI / 2, ts: 6, rs: 3 });
+    if (i % 3 === 1) {
+      const fy = LAVA - 0.5 + h - 0.6, nx = -Math.cos(a), nz = -Math.sin(a);
+      b.box(1.2, 2.2, 0.06, x + nx * 0.95, fy - 2.2, z + nz * 0.95, 0xd8323a, { yaw: -a - Math.PI / 2, r: 0 });
+      b.box(1.3, 0.12, 0.08, x + nx * 0.95, fy, z + nz * 0.95, 0xffc23a, { yaw: -a - Math.PI / 2, r: 0 });
+      g.sphere(0.32, x + nx * 1.0, fy - 1.0, z + nz * 1.0, 0xffc23a, { s: [1, 1, 0.3], ws: 10, hs: 6 });
+    }
+  }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow', castShadow: false });
+}

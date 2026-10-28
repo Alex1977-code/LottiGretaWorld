@@ -25,6 +25,19 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 const Y = 1, RX = 72;
 const HX = 19;
 const ROUTES = {
+  '7-A': {
+    start: [0, 2, 9.4],
+    meta: { stars: 1, arena: true, boss: 'koenig', time: 200, theme: 'lava', music: 'course_arena', archetype: 'arena' },
+    enemies: { lavafelsen_koenig: 1 },
+    main: [],
+    shots: [
+      ['start', [0, 2, 9.4]],
+      ['mitte', [0, 2, 2]],
+      ['links', [-6, 2, 0]],
+      ['rechts', [6, 2, -2]],
+      ['hinten', [0, 2, -7]],
+    ],
+  },
   '7-2': {
     start: [0, Y, 4.5],
     meta: { stars: 3, time: 400, theme: 'darkruins', music: 'course_switchruins', archetype: 'parcours' },
@@ -767,6 +780,91 @@ function install() {
       c.setInput({}); c.step(3);
       return { ok: done(e), steps: n };
     },
+    /** Arena-Kampf gegen den Lavafelsen-König mit echter Eingabe: Brocken betäuben, aufheben, werfen; rollt er heran, ausweichen. */
+    bossFight(id, o = {}) {
+      const p = P(), b = L.named.get(id), log = [], hits = [];
+      let throws = 0;
+      const t0 = L.time;
+      const tick = (inp) => { p.invuln = Math.max(p.invuln, 5); c.setInput(inp); c.step(1); };
+      const dist = (e) => Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z);
+      const brocken = () => L.entities.filter((e) => e.kind === 'lavabrocken' && !e.removed && !e.defeated && e.alive && e.owner === b);
+      const danger = () => (b.state === 'roll' && dist(b) < 5) || (b.state === 'spin' && dist(b) < 3.2);
+      const dodge = () => {
+        const l = Math.hypot(b.vel.x, b.vel.z) || 1;
+        let sx = -b.vel.z / l, sz = b.vel.x / l;
+        const rx = p.pos.x - b.pos.x, rz = p.pos.z - b.pos.z;
+        if (b.state === 'spin' || l < 0.5) { sx = rx; sz = rz; } else if (sx * rx + sz * rz < 0) { sx = -sx; sz = -sz; }
+        const pr = Math.hypot(p.pos.x, p.pos.z + 0.6);
+        if (pr > 8.2) { sx = sx * 0.3 - p.pos.x / pr; sz = sz * 0.3 - (p.pos.z + 0.6) / pr; }
+        tick({ ...this.stick(sx, sz, 1), run: true });
+      };
+      for (let i = 0; i < 900 && b.state === 'wait'; i++) tick({ ...this.stick(-p.pos.x, -1 - p.pos.z, 0.7), run: false });
+      const fighting = () => b.state !== 'gone' && b.state !== 'defeated' && !p.dead && L.runtime.status === 'play';
+      for (let guard = 0; guard < 40 && fighting(); guard++) {
+        if (o.stopAfterHits && hits.length >= o.stopAfterHits) break;
+        // 1) einen Brocken am Boden betäuben (draufspringen) und aufheben
+        if (!p.holding) {
+          let br = null;
+          for (let i = 0; i < 1800 && !br && fighting(); i++) {
+            br = brocken().filter((e) => e.grounded && e.state !== 'air' && Math.hypot(e.pos.x, e.pos.z + 0.6) < 9.5).sort((a, q) => dist(a) - dist(q))[0] ?? null;
+            if (!br) { if (danger()) dodge(); else tick({}); }
+          }
+          if (!br) { log.push(['kein Brocken', b.state]); continue; }
+          for (let i = 0; i < 700 && br.state !== 'stunned' && !br.removed && fighting(); i++) {
+            if (danger() && p.mode === 'ground') { dodge(); continue; }
+            const dx = br.pos.x - p.pos.x, dz = br.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            if (p.mode === 'air') {
+              const vx = dx * 4 + (br.vel?.x ?? 0), vz = dz * 4 + (br.vel?.z ?? 0), ex = vx - p.vel.x, ez = vz - p.vel.z, el = Math.hypot(ex, ez);
+              tick({ ...(el > 0.05 ? this.stick(ex, ez, Math.min(1, el / 2.5)) : {}), jump: p.vel.y > 0 });
+            } else tick({ ...this.stick(dx, dz, 1), run: d > 3, jump: d < 1.9 });
+          }
+          if (br.removed || br.state !== 'stunned') { log.push(['nicht betäubt', br.state]); continue; }
+          let dbg = null;
+          for (let i = 0; i < 500 && p.holding !== br && !br.removed && br.state === 'stunned' && fighting(); i++) {
+            if (p.mode !== 'ground') {
+              // nach dem Abprall neben dem Brocken landen (zur Arenamitte hin), nicht wieder auf ihm
+              let ax = -br.pos.x, az = -0.6 - br.pos.z; const al = Math.hypot(ax, az) || 1; ax /= al; az /= al;
+              tick(this.airSteer(br.pos.x + ax * 1.2, br.pos.z + az * 1.2, 0, 0, 4, 5));
+              continue;
+            }
+            if (danger()) { dodge(); continue; }
+            const dx = br.pos.x - p.pos.x, dz = br.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            const fv = p.facingVec(), dot = (fv.x * dx + fv.z * dz) / (d || 1);
+            dbg = [+d.toFixed(2), +dot.toFixed(2), p.state, br.carryable, br.canCarry?.(p), +(br.pos.y - p.pos.y).toFixed(2)];
+            if (d > 0.85) { tick({ ...this.stick(dx, dz, Math.min(1, d / 1.5 + 0.2)), run: false }); continue; }
+            if (dot < 0.9) { tick({ ...this.stick(dx, dz, 0.15), run: false }); continue; }
+            tick({ action: i % 8 === 0 });
+          }
+          if (p.holding !== br) { log.push(['nicht aufgehoben', br.state, dbg]); continue; }
+          log.push(['Brocken', +(L.time - t0).toFixed(1)]);
+        }
+        // 2) werfen, sobald der König nicht rollt/wirbelt: auf 3–5 m heran, zielen, Aktion
+        const hp0 = b.hp;
+        let thrown = false;
+        for (let i = 0; i < 3000 && p.holding && fighting(); i++) {
+          if (!['summon', 'rest'].includes(b.state)) { if (danger()) dodge(); else tick({}); continue; }
+          const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+          if (d > 5) { tick({ ...this.stick(dx, dz, 1), run: false }); continue; }
+          if (d < 3) { tick({ ...this.stick(-dx, -dz, 1), run: false }); continue; }
+          const fv = p.facingVec(), dot = (fv.x * dx + fv.z * dz) / (d || 1);
+          if (dot < 0.97) { tick({ ...this.stick(dx, dz, 0.12), run: false }); continue; }
+          tick({ action: true }); throws++; thrown = true; tick({});
+        }
+        for (let i = 0; i < 160 && b.hp === hp0 && thrown; i++) tick({});
+        if (b.hp < hp0) hits.push(+(L.time - t0).toFixed(1));
+        log.push(['Wurf', throws, b.hp, b.state]);
+      }
+      // 3) Sieg: Stern abwarten und einsammeln
+      if (!o.stopAfterHits) {
+        for (let i = 0; i < 900 && !this.arch().starTouch && !p.dead; i++) tick({});
+        const star = L.entities.find((x) => x.kind === 'star' && x.alive);
+        if (star) this.drive([{ to: [star.pos.x, star.pos.z], within: 0.2, run: true, max: 900 }], {});
+        for (let i = 0; i < 900 && !c.finished; i++) c.step(1);
+      }
+      c.setInput({});
+      return { gone: b.state === 'gone' || b.hp === 0, hits, throws, time: +(L.time - t0).toFixed(1), got: !!L.runtime.stars[0], finished: !!c.finished,
+        save: this.save().levels?.[L.id] ?? null, hurts: p.hurtTries ?? 0, log };
+    },
     rt: () => L.runtime.info(),
     info: () => P().info(),
     kinds: () => { const m = {}; for (const e of L.entities) m[e.kind] = (m[e.kind] ?? 0) + 1; return m; },
@@ -909,104 +1007,61 @@ for (const id of LEVELS) {
     }
   }
 
-  // ------------------------------------------------ Arena: Werfer werfen und springen, Kampf, Tod setzt zurück, Zeitlimit
+  // ------------------------------------------------ Arena 7-A: Kampf gegen den Glutkönig mit echter Eingabe, Tod setzt zurück, Zeitlimit
   if (R.meta.arena && PARTS.has('arena') && !ONLY) {
-    await load(id);
-    const ws = await sc(() => { const m = {}; for (const e of window.__course.level.entities) if (e.kind === 'feuer_werfer') m[e.weapon] = (m[e.weapon] ?? 0) + 1; return m; });
-    check(`${id}: Werfer-Waffen ${JSON.stringify(ws)}`, Object.entries(R.weapons).every(([k, n]) => ws[k] === n));
-    let r = await sc(() => {
-      const c = window.__course, L = c.level, p = c.player;
-      p.invuln = 1e9;
-      const kinds = new Set();
-      let high = 0;
-      for (let i = 0; i < 1800; i++) {
-        c.step(1);
-        for (const e of L.entities) if (e.alive && e.kind !== 'feuer_werfer' && e.kind !== 'coin' && e.owner?.kind === 'feuer_werfer') kinds.add(e.kind);
-        for (const e of L.entities) if (e.alive && e.kind !== 'feuer_werfer' && /kugel|hammer|bumerang/.test(e.kind)) kinds.add(e.kind);
-        high = Math.max(high, L.entities.filter((e) => e.kind === 'feuer_werfer' && e.tier === 'high').length);
-      }
-      p.invuln = 0;
-      const throws = Object.fromEntries(L.entities.filter((e) => e.kind === 'feuer_werfer').map((e) => [e.spec.id, e.throws]));
-      const jumps = Object.fromEntries(L.entities.filter((e) => e.kind === 'feuer_werfer').map((e) => [e.spec.id, e.jumps]));
-      return { throws, jumps, high, kinds: [...kinds] };
-    });
-    console.log(`  Werfer: ${JSON.stringify(r)}`);
-    check(`${id}: alle fünf Werfer werfen (${Object.values(r.throws).join('/')}) und springen (${Object.values(r.jumps).join('/')}, ${r.high} gleichzeitig oben), Geschosse ${r.kinds.join(', ')}`,
-      Object.values(r.throws).every((n) => n > 0) && Object.values(r.jumps).every((n) => n > 0) && r.high >= 1);
-    await shot(`${id}_kampf`);
     for (const hero of HEROES) {
       await load(id);
       await W('place', R.start, { hero, settle: 2 });
-      r = await sc(() => {
-        const c = window.__course, L = c.level, W = window.__w7, p = c.player;
-        const out = { hits: [] };
-        const start = L.time;
-        for (let n = 0; n < 8 && W.arch().left > 0; n++) {
-          const e = L.entities.filter((x) => x.kind === 'feuer_werfer' && x.alive && !x.removed && !x.defeated).sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0];
-          if (!e) break;
-          const res = W.jumpOn(e, { safe: true, max: 3000 });
-          out.hits.push({ id: e.spec.id, ok: res.ok, steps: res.steps, y: +e.pos.y.toFixed(1), left: W.arch().left });
-        }
-        for (let i = 0; i < 400 && !W.arch().starTouch; i++) c.step(1);
-        const star = L.entities.find((x) => x.kind === 'star' && x.alive);
-        if (star) W.drive([{ to: [star.pos.x, star.pos.z], within: 0.2, run: true, max: 900 }], {});
-        for (let i = 0; i < 900 && !c.finished; i++) c.step(1);
-        out.time = +(L.time - start).toFixed(1);
-        out.finished = !!c.finished;
-        out.got = !!L.runtime.stars[0];
-        out.save = W.save().levels?.['6-B'] ?? null;
-        out.hurts = p.hurtTries ?? 0;
-        return out;
-      });
-      console.log(`  ${hero} Kampf: ${JSON.stringify(r)}`);
-      check(`${id}: ${hero} besiegt alle fünf Werfer draufspringend (${r.hits.map((h) => `${h.id}@${h.y}`).join(', ')})`, r.hits.length === 5 && r.hits.every((h) => h.ok));
-      check(`${id}: ${hero} Stern auf dem Altarstein, Ziel nach ${r.time} s (< 100 s), gespeichert`, r.got && r.finished && r.time < 100 && r.save?.done === true);
+      const r = await W('bossFight', R.meta.boss, {});
+      console.log(`  ${hero} Kampf: ${JSON.stringify({ ...r, log: undefined })}`);
+      if (process.env.VERBOSE) for (const l of r.log) console.log('     ', JSON.stringify(l));
+      check(`${id}: ${hero} besiegt den Glutkönig mit drei geworfenen Lavabrocken (${r.throws} Würfe, Treffer ${r.hits.join('/')}, ${r.time} s)`, r.gone && r.hits.length === 3);
+      check(`${id}: ${hero} Stern in der Mitte, Ziel nach ${r.time} s (< 200 s), gespeichert`, r.got && r.finished && r.time < 200 && r.save?.done === true);
       if (hero === HEROES[0]) { await page.waitForTimeout(500); await page.screenshot({ path: `${OUT}w7a_${id}_ergebnis.png` }); }
     }
-    // Tod setzt die Arena zurück (alle fünf Werfer neu)
+    // Nur geworfene Lavabrocken treffen: Draufspringen und Feuerbälle zählen nicht
+    await load(id);
+    let r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__w7, p = c.player, b = L.named.get('koenig');
+      W.place([0, 2, 6], { power: 'funken' });
+      p.invuln = 1e9;
+      for (let i = 0; i < 600 && b.state === 'wait'; i++) { c.setInput(W.stick(0, -1, 0.6)); c.step(1); }
+      c.setInput({});
+      for (let i = 0; i < 1200 && b.state !== 'rest'; i++) c.step(1);
+      const hp0 = b.hp;
+      // Feuerbälle auf den König
+      for (let i = 0; i < 240; i++) { const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z; c.setInput({ ...W.stick(dx, dz, i % 30 < 3 ? 0.2 : 0), action: i % 30 === 5 }); c.step(1); }
+      const afterFire = b.hp;
+      for (let i = 0; i < 1200 && b.state !== 'rest'; i++) c.step(1);
+      const j = W.jumpOn(b, { safe: true, max: 400, until: () => false });
+      return { hp0, afterFire, afterJump: b.hp, state: b.state, j: j.steps };
+    });
+    check(`${id}: Feuerbälle und Draufspringen schaden dem König nicht (${r.hp0} → ${r.afterFire} → ${r.afterJump})`, r.hp0 === 3 && r.afterFire === 3 && r.afterJump === 3);
+    // Tod setzt den Kampf zurück
     await load(id);
     r = await sc(() => {
-      const c = window.__course, L = c.level, W = window.__w7, p = c.player;
-      const ids = ['bumerang1', 'bumerang2'];
-      for (const id of ids) { const e = L.entities.find((x) => x.spec?.id === id); if (e) W.jumpOn(e, { safe: true, max: 3000 }); }
-      const before = W.arch().left;
+      const c = window.__course, L = c.level, W = window.__w7, p = c.player, b = L.named.get('koenig');
+      W.place([0, 2, 9.4], {});
+      const res = W.bossFight('koenig', { stopAfterHits: 1 });
+      const before = { hp: b.hp, state: b.state };
       p.invuln = 0;
       p.die('fall');
       for (let i = 0; i < 600 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1);
       c.step(30);
-      return { before, left: W.arch().left, n: L.entities.filter((x) => x.kind === 'feuer_werfer' && x.alive && !x.defeated && !x.removed).length, resets: W.arch().resets };
+      return { hits: res.hits.length, before, hp: b.hp, state: b.state, brocken: L.entities.filter((e) => e.kind === 'lavabrocken' && !e.removed).length, left: W.arch().left };
     });
-    check(`${id}: Tod setzt die Arena zurück (vorher noch ${r.before}, danach ${r.left}, ${r.n} Werfer)`, r.before === 3 && r.left === 5 && r.n === 5);
-    // Funkenblüte aus dem ?-Block: Feuerbälle besiegen einen Werfer von weitem
-    await load(id);
-    r = await sc(() => {
-      const c = window.__course, L = c.level, W = window.__w7, p = c.player;
-      W.place([-2.8, 2, 6.2], {});
-      W.drive([{ hop: 20 }, { chaseKind: 'powerup', max: 600 }], {});
-      const power = p.power;
-      const e = L.entities.find((x) => x.spec?.id === 'bumerang1');
-      let k = 0;
-      for (; k < 900 && e.alive && !e.defeated && !e.removed; k++) {
-        p.invuln = Math.max(p.invuln, 3);
-        const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
-        c.setInput({ ...W.stick(dx, dz, d > 4 ? 1 : 0.15), action: k % 20 < 2 });
-        c.step(1);
-      }
-      c.setInput({});
-      return { power, defeated: !e.alive || e.defeated || e.removed, k, left: W.arch().left };
-    });
-    check(`${id}: Funkenblüte aus dem ?-Block, Feuerball besiegt einen Bumerang-Werfer (${r.power}, ${r.k} Schritte, noch ${r.left})`, r.power === 'funken' && r.defeated && r.left === 4);
-    // Zeitlimit 100 s: Zeit um → Tod
+    check(`${id}: Tod setzt den Kampf zurück (vorher ${r.before.hp}/3, danach ${r.hp}/3, ${r.state}, Brocken ${r.brocken})`, r.hits === 1 && r.before.hp === 2 && r.hp === 3 && r.state === 'wait' && r.brocken === 0 && r.left === 1);
+    // Zeitlimit 200 s: Zeit um → Tod
     await load(id);
     r = await sc(() => {
       const c = window.__course, L = c.level, p = c.player;
       const h = p.hurt; p.hurt = () => false;
       let dead = false, cause = null;
-      for (let i = 0; i < 101 * 120 && !dead; i++) { c.step(1); if (p.dead) { dead = true; cause = p.deathCause; } }
+      for (let i = 0; i < 201 * 120 && !dead; i++) { c.step(1); if (p.dead) { dead = true; cause = p.deathCause; } }
       p.hurt = h;
       return { dead, cause, t: +L.time.toFixed(1) };
     });
-    check(`${id}: nach 100 s ist die Zeit um (${r.cause} bei ${r.t} s)`, r.dead && r.cause === 'time');
+    check(`${id}: nach 200 s ist die Zeit um (${r.cause} bei ${r.t} s)`, r.dead && r.cause === 'time');
   }
 
   // ------------------------------------------------ Bilder je Abschnitt aus der Spielkamera
