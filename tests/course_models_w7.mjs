@@ -444,7 +444,7 @@ if (part('checks')) {
   if (P.drache) check('Lavadrache: hidden unter der Lava (nur Glut), idle ≈3–4 m hoch, mehr Glieder → höher, mouth() vorn oben', P.drache[0] < 0.8 && P.drache[1] > 2.8 && P.drache[1] < 4.2 && P.drache[4] >= P.drache[1] - 0.05 && P.drache[5][0][1] > 2 && P.drache[5][0][0] > 0.8 && P.drache[5][1] > 0.95);
   if (P.quappe) check('Wutkaulquappe ≈0,8–1,2 m lang (size 1,25), puff → Kugel ≥ 0,9 m, Radius wächst', P.quappe[0] > 0.8 && P.quappe[0] < 1.25 && P.quappe[2] > 0.9 && P.quappe[3] > 0.45);
   if (P.flamme) check('Funkenflämmchen ≈0,45–0,7 m (+ Funken), steht auf dem Boden, hop hebt ab, defeated → weg', P.flamme[0] > 0.45 && P.flamme[0] < 0.95 && P.flamme[1] > -0.05 && P.flamme[2] > 0.25 && P.flamme[3]);
-  if (P.kugel) check('Blaue Feuerkugel Ø ≈0,36 m, liegt auf dem Ursprung', P.kugel[0] > 0.3 && P.kugel[0] < 0.6 && P.kugel[1] > -0.1);
+  if (P.kugel) check('Blaue Feuerkugel Ø ≈0,36 m (Flammenkranz bis ≈0,6 m), Mitte über dem Ursprung', P.kugel[0] > 0.3 && P.kugel[0] < 0.7 && P.kugel[1] > -0.16);
   if (P.wagen) check('Kampfwagen ≈4,5–6 m lang, Hut ≈3–4 m, auf dem Boden; hand() und muzzle() vorn, userData.radius', P.wagen[0] > 4.5 && P.wagen[0] < 6.2 && P.wagen[1] > 3 && P.wagen[1] < 4.3 && P.wagen[3] > -0.05 && P.wagen[4][1][0] > 2 && P.wagen[4][0][1] > 1.5 && P.wagen[4][2] > 2);
   if (P.sichel) check('Wurfsichel-Item schwebt (Unterkante ≥ 0,08 m, Oberkante ≤ 1,4 m), collected → weg', P.sichel[0] > 0.08 && P.sichel[1] < 1.45 && P.sichel[3]);
   if (P.geschoss) check('Wurfsichel-Geschoss ≈0,45–0,8 m (Hüllquader des gedrehten Wirbels bis ≈1,1 m), flach', P.geschoss[0] > 0.45 && P.geschoss[0] < 1.1 && P.geschoss[1] < 0.35);

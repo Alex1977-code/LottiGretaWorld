@@ -224,3 +224,7 @@ export const MODELS = {
   wurfsichel_geschoss: buildGeschoss,
   wurfsichel_kostuem: buildKostuem,
 };
+
+// Vorlagen für den Figuren-Agenten (Geometrien geteilt, Materialien: vcol(0.42, {}, 'w7cap') / vcol(0.6, {}, 'w7cape') /
+// sichelMat() aus lib/w7Geos.js): Mütze (Kopfbreite 1), Umhang (Ursprung Halsmitte oben), Schließe mit Kordel.
+export { capGeo as kostuemMuetzeGeo, capeBase as kostuemUmhangGeo, claspGeo as kostuemSchliesseGeo, KO as KOSTUEM_FARBEN };
