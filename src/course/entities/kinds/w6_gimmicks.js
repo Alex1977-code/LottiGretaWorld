@@ -67,7 +67,7 @@ function spikeBallModel(size) {
     const parts = [];
     const core = new THREE.IcosahedronGeometry(0.5, 2);
     const a = lin(0x6a6a7a), b = lin(0xb8bcc8);
-    parts.push(colorize(core.toNonIndexed(), (p, n, o) => mixc(a, b, smooth(-0.6, 0.9, n.y * 0.7 + n.x * 0.3), o)));
+    parts.push(colorize(core, (p, n, o) => mixc(a, b, smooth(-0.6, 0.9, n.y * 0.7 + n.x * 0.3), o)));
     const ico = new THREE.IcosahedronGeometry(0.5, 0);
     const v = ico.attributes.position;
     const seen = new Set();
@@ -432,15 +432,21 @@ class Wurfball extends Gimmick {
 function targetModel(size) {
   if (hasModel('zielscheibe')) return getModel('zielscheibe', { size });
   const R = size / 2;
-  const disc = new THREE.CylinderGeometry(R, R, 0.12, 28);
-  disc.rotateZ(Math.PI / 2);
   const red = lin(0xe83a3a), white = lin(0xffffff), back = lin(0x6a4a2a);
-  const geo = colorize(disc.toNonIndexed(), (p, n, o) => {
-    if (n.x < -0.5) { o[0] = back[0]; o[1] = back[1]; o[2] = back[2]; return; }
-    const r = Math.hypot(p.y, p.z) / R;
-    const ring = Math.floor(r * 4.5) % 2 === 0;
-    mixc(ring ? red : white, white, 0, o);
-  });
+  // Rückseite (Holzscheibe) und Vorderseite aus Farbringen (je Ring flach gefärbt, blickt +X)
+  const disc = new THREE.CylinderGeometry(R, R, 0.1, 28);
+  disc.rotateZ(Math.PI / 2);
+  const parts = [colorize(disc, (p, n, o) => { o[0] = back[0]; o[1] = back[1]; o[2] = back[2]; })];
+  const N = 5;
+  for (let i = 0; i < N; i++) {
+    const r0 = (i / N) * R * 0.98, r1 = ((i + 1) / N) * R * 0.98;
+    const g = i === 0 ? new THREE.CircleGeometry(r1, 24) : new THREE.RingGeometry(r0, r1, 28, 1);
+    g.rotateY(Math.PI / 2);
+    g.translate(0.052, 0, 0);
+    const c = i % 2 ? white : red;
+    parts.push(colorize(g, (p, n, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
+  }
+  const geo = merge(parts);
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, emissive: 0x2aff4a, emissiveIntensity: 0 });
   const flip = new THREE.Group();
   const m = new THREE.Mesh(geo, mat);
@@ -516,7 +522,7 @@ class Zielscheibe extends Gimmick {
 
   render(dt, t) {
     super.render(dt, t);
-    if (this.flipG) this.flipG.rotation.z = this.flipK * Math.PI;
+    if (this.flipG) this.flipG.rotation.z = this.flipK * 1.25;   // getroffen: kippt nach hinten weg
     if (this.mat) this.mat.emissiveIntensity = this.flipK * 0.6;
   }
 }
