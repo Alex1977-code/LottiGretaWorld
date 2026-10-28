@@ -226,7 +226,7 @@ function setup(level) {
   // Leistung: unter Wasser reicht die Sicht ≈ 58 m – fernere Abschnitte nicht zeichnen; Fische und Kisten ohne Sonnenschatten
   fernSicht(level, 62);
   tiefSicht(level, { sea: SEA, far: 64 });
-  gegnerSicht(level, { rammfisch: { shadow: false, dist: 60 }, wutkaulquappe: { shadow: false, dist: 40 } });
+  gegnerSicht(level, { rammfisch: { shadow: false, dist: 48 }, wutkaulquappe: { shadow: false, dist: 40 } });
   // Funkenblüte verbrennt die Stachelkugel in der Glasröhre (Seeigel aus Riff-Stacheln)
   const kugel = level.named.get('seeigel') ?? level.entities.find((e) => e.spec?.id === 'seeigel');
   if (kugel) {
