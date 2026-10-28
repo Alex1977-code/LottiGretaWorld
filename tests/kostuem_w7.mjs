@@ -340,6 +340,11 @@ async function closePart(hero) {
     ['kanone', { state: 'cannon', phase: 0.4, speed: 10, vy: 2, grounded: false }, 30, 'side'],
     ['tragen', { state: 'idle', holding: 'over' }, 30, 'front'],
     ['verletzt', { state: 'hurt' }, 10, 'side'],
+    ['rutschen', { state: 'slide', speed: 6 }, 30, 'side'],
+    ['weitsprung', { state: 'longjump', grounded: false, vy: 1, speed: 9 }, 20, 'side'],
+    ['stampfen', { state: 'groundpound', phase: 0.6, grounded: false, vy: -8 }, 12, 'side'],
+    ['schlittschuh', { state: 'skate', speed: 5 }, 40, 'back'],
+    ['luftwurf', { state: 'throw', phase: 0.3, grounded: false, vy: 2, sichelFlying: 1 }, 6, 'back'],
   ];
   r.poses = {};
   for (const [name, cc, n, view] of list) {
@@ -375,6 +380,14 @@ async function closePart(hero) {
   r.poses.fang2 = await S(() => window.__kw.pose({ state: 'idle' }, 6));
   await shot(`${hero}_fang2_vorn`, 'front', GP);
   r.poses.fangEnde = await S(() => { const H = window.__kw; const a = H.pose({ state: 'idle' }, 60); H.base.sichelCatch = 0; H.pose({ state: 'idle' }, 2); return a; });
+  // verloren (Motor: nach 3,5 s ohne Fang): taucht ohne Fang-Geste wieder in der Hand auf (wächst kurz)
+  r.poses.verloren = await S(() => {
+    const H = window.__kw;
+    H.pose({ state: 'idle', sichelFlying: 1 }, 30);
+    const a = H.pose({ state: 'idle', sichelFlying: 0 }, 3);
+    const b = H.pose({ state: 'idle', sichelFlying: 0 }, 30);
+    return { a, b };
+  });
   // Halloween: Mütze mit Halloween-Motiv
   r.hw = await S(() => { const H = window.__kw; H.av().setOutfit('halloween'); return H.pose({ state: 'idle' }, 40); });
   for (const v of ['front', 'back', 'side']) await shot(`${hero}_hw_${v}`, v, G);
@@ -507,6 +520,8 @@ for (const [hero, R] of Object.entries(results)) {
     check(`${N}: Wurf-Phasen – vorher Sichel in der Hand (${p.vorWurf.hand}), mit dem Wurf (sichelFlying 1) leer (${['a', 'b', 'c', 'd', 'e'].map((k) => p[`wurf_${k}`].hand).join('/')}); Arm ${['a', 'b', 'c', 'd', 'e'].map((k) => p[`wurf_${k}`].armZn).join(' → ')}`,
       p.vorWurf.hand && ['a', 'b', 'c', 'd', 'e'].every((k) => !p[`wurf_${k}`].hand) && p.wurf_b.armZn < -1 && p.wurf_c.armZn > p.wurf_b.armZn + 1 && p.wurf_d.armZn > 1.0);
     check(`${N}: Fang-Geste (Augen ◡ ${p.fang.eyesClosed}, Arm ${p.fang.armZn}) → Ende (Augen offen, Arm ${p.fangEnde.armZn})`, p.fang.hand && p.fang.eyesClosed && p.fang.armZn > 0.6 && !p.fangEnde.eyesClosed && p.fangEnde.armZn < 0.6);
+    check(`${N}: verlorene Sichel taucht ohne Fang-Geste wieder in der Hand auf (wächst ${p.verloren.a.handScale} → ${p.verloren.b.handScale}, Augen offen)`,
+      p.verloren.a.hand && p.verloren.a.handScale < 1 && !p.verloren.a.eyesClosed && p.verloren.b.handScale === 1);
     const hwOk = hero === 'lotti' ? !c.hw.hat && c.hw.cap : c.hw.cap && c.hw.tail;
     check(`${N}: Halloween – Mütze ersetzt ${hero === 'lotti' ? 'den Hexenhut (Kürbis-Bommel)' : 'die Katzenohren (sitzen an der Mütze), Katzenschwanz bleibt'}`, hwOk && c.hwOff.cap && !c.hwOff.tail);
     check(`${N}: Trage-Helm – Mütze und Kamm ruhen, danach wieder da`, !c.helm.cap && !c.helm.crest && c.helm.cape && c.helmOff.cap && c.helmOff.crest);

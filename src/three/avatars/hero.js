@@ -1823,7 +1823,7 @@ export class HeroAvatar extends Avatar3D {
         this.root.updateWorldMatrix(true, true);
         S.handMesh.getWorldPosition(_p);
         this.root.getWorldScale(_s);
-        this.w3.fx.dust(_p, 0.06 * _s.y, 0.03, 7, '#ffe27a', { spread: 2.2, up: 1.4, life: 0.4, yJit: 0.08 * _s.y });
+        this.w3.fx.dust(_p, 0.06 * _s.y, 0.03, 7, '#ffb000', { spread: 2.2, up: 1.4, life: 0.4, yJit: 0.08 * _s.y });
       }
     }
     this.updateCape(c, state, dt, t);
