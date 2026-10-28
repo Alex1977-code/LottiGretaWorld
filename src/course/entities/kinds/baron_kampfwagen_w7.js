@@ -789,9 +789,12 @@ class BaronKampfwagen extends CourseEntity {
     const hk = (k % hopT) / hopT;
     const n = Math.floor(k / hopT);
     if (n !== f.hops) { f.hops = n; this.level.sfx('hop'); }
-    f.z = f.z0 - Math.min(k, FLEE) * 4.2 - 1.5 * Math.min(1, k / 0.5);
-    f.x = f.x0 + Math.sin(k * 3.3) * 0.9;
-    f.y = this.pos.y + (k < 0.5 ? 1.4 + Math.sin(k / 0.5 * Math.PI) * 1.6 - (k / 0.5) * 1.4 : 4 * 0.75 * hk * (1 - hk));
+    // erst seitlich aus dem Wagen (Fahrbahnrand), dann im Zickzack davon – bleibt im Bild
+    const out = Math.min(1, k / 0.5), side = f.x0 > 0 ? -1 : 1;
+    const run = Math.max(0, Math.min(k, FLEE) - 0.5);
+    f.z = f.z0 + 1.2 * out - run * 2.8;
+    f.x = f.x0 + side * 2.2 * out + Math.sin(run * 3.3) * 0.7;
+    f.y = this.pos.y + (k < 0.5 ? 1.4 + Math.sin(out * Math.PI) * 1.6 - out * 1.4 : 4 * 0.75 * hk * (1 - hk));
     if (this.stateT >= FLEE) this.vanish();
   }
 

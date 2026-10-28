@@ -1079,10 +1079,10 @@ S.spucken = await SHOT('w7e', 'platschfisch_spuckt', () => {
 });
 S.strom = await SHOT('w7e', 'platschfisch_endlos', () => {
   const c = window.__course, t = window.__t, q = t.ent('pf_strom');
-  const fig = [11.5, 2.2, t.Z(2, 11)];
+  const fig = [9.5, 1.2, t.Z(2, -2)];
   t.place(fig, { settle: 1 });
   t.until(() => q.kids.filter((k) => k.state === 'jump').length >= 2, 120 * 12, fig);
-  t.face(11.5, t.Z(2, 6.5));
+  t.face(9.5, t.Z(2, 6.5));
 });
 S.drache = await SHOT('w7e', 'lavadrache_speit', () => {
   const c = window.__course, t = window.__t, d = t.ent('ld_rot');
