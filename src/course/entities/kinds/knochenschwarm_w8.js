@@ -26,7 +26,9 @@
 //          formation?: 'ring' | 'linie' | 'welle' | 'keil', radius?: 1.8 (Ring), spacing?: 1.5 (Linie/Welle/Keil),
 //          center?: [x, y, z] + orbit?: 4 + cw? | path?: [[x, y, z], …] + loop?, speed?: 2.2 (m/s), spin?: 0.7 (rad/s, Ring),
 //          sight?: 7, reach?: 7, dive?: 8.5 (m/s), warn?: 0.8 (s), cooldown?: 2.6 (s), respawn?: 4 (s) | false, rebuild?: 1.2 (s),
-//          bob?: 0.15, phase?: 0..1 (Start auf der Bahn), drop? (je Flieger, nur endgültig) }
+//          bob?: 0.15, phase?: 0..1 (Start auf der Bahn), drop? (je Flieger, nur endgültig), onAll?: Aktion (alle endgültig
+//          besiegt; Format entities/gimmick.js, z. B. { star: 2 } bzw. { reveal: 'id' }) }
+//   Signal level.signal('knochenGruppe', { id, count, pos }), wenn der letzte Flieger endgültig besiegt ist.
 //   Beispiel: { kind: 'knochenflieger_gruppe', id: 'kg1', pos: [0, 5, -60], count: 6, formation: 'ring', center: [0, 5, -60], orbit: 3 }
 // Laufzeit: Gruppe state (fly | warn | dive), dives, members, aliveCount (nicht endgültig besiegt), formed (in Formation), rebuilds,
 //   info(); Glied state (form | wait | dive | rise | bones | rebuild | gone), bonesT, rebuilds, defeated (endgültig), info().
@@ -36,6 +38,7 @@
 import * as THREE from 'three';
 import { EnemyW2, activeFigure, clamp, maskedFrom, sharedSlot } from '../EnemyW2.js';
 import { Track, groundBelow, POWER_HIT } from '../w8help.js';
+import { runAction } from '../gimmick.js';
 
 const TAU = Math.PI * 2;
 const SHAKE = 0.8, GONE = 0.9, BONES_P = 0.36;   // Knochenhaufen: Pose 'bones' bei progress 0,36 (Teile liegen lose beieinander)
@@ -122,6 +125,15 @@ class KnochenGruppe extends EnemyW2 {
   }
 
   get aliveCount() { return this.members.filter((m) => !m.defeated).length; }
+
+  /** Ein Flieger ist endgültig besiegt; der letzte → Aktion onAll und Signal 'knochenGruppe'. */
+  memberGone(m) {
+    if (this.allGone || this.aliveCount > 0) return;
+    this.allGone = true;
+    const p = [m.pos.x, m.pos.y, m.pos.z];
+    if (this.spec.onAll) runAction(this.level, this.spec.onAll, { pos: p, source: this });
+    this.level.signal?.('knochenGruppe', { id: this.spec.id ?? null, count: this.count, pos: p });
+  }
   get formed() { return this.members.filter((m) => m.state === 'form').length; }
 
   update(dt) {
@@ -362,6 +374,7 @@ class KnochenGlied extends EnemyW2 {
     this.level.sfx(wasPile ? 'poof' : 'blockhit');
     this.level.effects?.dust(this.body, 8, 1);
     this.markDefeated();
+    this.group.memberGone?.(this);
   }
 
   onPlayer(player, contact) {

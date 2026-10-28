@@ -327,6 +327,11 @@ const kg = await sc(() => {
   const sk = t.stomp(k0, { h: 0.8 });
   t.hold(far, 120 * 6);
   out.keil = { ...sk, state: k0.state, defeated: k0.defeated, removed: k0.removed };
+  const kw0 = t.sig('keilWeg').length;
+  out.keil.seq = [];
+  for (const mm of kl.members.slice(1)) { mm.defeat(p); c.step(2); out.keil.seq.push(t.sig('keilWeg').length - kw0); }
+  out.keil.onAll = t.sig('keilWeg').length - kw0;
+  out.keil.gruppe = t.sig('knochenGruppe').filter((x) => x.data.id === 'kg_keil').map((x) => x.data.count);
   return out;
 });
 console.log(`  Knochenflieger-Gruppe: ${JSON.stringify(kg)}`);
@@ -337,6 +342,7 @@ check('Stampfattacke auf den Knochenhaufen besiegt endgültig (zählt)', kg.pile
 check(`Power-up (Feuer) und Wurfsichel besiegen endgültig (${kg.power.alive} übrig); seitliche Berührung verletzt`, kg.power.fire && kg.power.sichel && kg.power.alive === 2 && kg.side === true);
 check(`Kette: einer nach dem anderen (${kg.linie.starts.length} Flieger, ${kg.linie.spread} s gestaffelt)`, kg.linie.form === 'linie' && kg.linie.starts.length === 4 && kg.linie.spread >= 0.5);
 check(`Welle nebeneinander (${kg.welle.span} m breit), Keil ohne Neu-Zusammensetzen (Draufspringen endgültig)`, kg.welle.form === 'welle' && kg.welle.span > 5 && kg.keil.bounced && kg.keil.defeated && kg.keil.state === 'gone');
+check(`Alle Keil-Flieger endgültig besiegt → Aktion onAll (${kg.keil.onAll}×) und Signal knochenGruppe (${kg.keil.gruppe.join()})`, kg.keil.onAll === 1 && kg.keil.seq.join() === '0,0,0,1' && kg.keil.gruppe.length === 1 && kg.keil.gruppe[0] === 5);
 
 // ---- Sandfiguren, Flatterkäfer mit Stern
 const fig = await sc(() => {
@@ -465,6 +471,7 @@ const g2 = await sc(() => {
     r.fall = t.sig('schubserFall').slice(f0).filter((x) => x.data.group === 'riesenrad').map((x) => x.data.left);
     r.gruppe = t.sig('schubserGruppe').slice(g0).map((x) => x.data);
     r.defeated = rs.map((e) => e.defeated);
+    r.onGroup = t.sig('radStern').length;
     out.rad = r;
   }
   // ---- Bestand: Mini-Pilzlinge (Draufspringen), Krallen-Pilzling, Riesenschnappblume (Wurfsichel = 1 Treffer), Hackvogel
@@ -549,7 +556,7 @@ check(`Großspuk-Jäger lauert (${g2.lurk.state}) bis zum Auslöser (${g2.trigge
 check(`Licht-Helm besiegt den Großspuk (${g2.light.t} s Licht)`, g2.light.defeated && g2.light.t >= 2.1 && g2.light.t < 2.5);
 check(`Hörner-Ameisen-Reihen: ${g2.ants.spawned} Ameisen aus ${g2.ants.streams} Löchern (${g2.ants.holes} Erdlöcher), Horn verletzt von oben, Wurfsichel besiegt`, g2.ants.spawned >= 4 && g2.ants.streams === 2 && g2.ants.holes === 2 && g2.ants.stompHurt === true && g2.ants.sichel === true);
 check(`Schubser vom Podest gestoßen (fallDefeat) → besiegt, Signale schubserFall (${g2.schubser.fall.map((f) => f.left).join(', ')}) und schubserGruppe`, g2.schubser.s1 && g2.schubser.s2 && g2.schubser.fall.length === 2 && g2.schubser.fall[0].left === 1 && g2.schubser.fall[1].left === 0 && g2.schubser.fall[0].by === 'fall' && g2.schubser.gruppe.length === 1 && g2.schubser.gruppe[0].group === 'rad' && g2.schubser.gruppe[0].count === 2);
-check(`Riesenrad (Motor): 4 Schubser stehen auf Gondeln und fahren mit (${g2.rad.dy.join(' / ')} m), hinuntergestoßen → besiegt (${g2.rad.fall.join(', ')}), schubserGruppe 'riesenrad' (${g2.rad.gruppe[0]?.count})`, g2.rad.onStart.every(Boolean) && g2.rad.onGondel.every(Boolean) && g2.rad.turned > 0.25 && g2.rad.dy.some((d) => Math.abs(d) > 0.3) && g2.rad.defeated.every(Boolean) && g2.rad.fall.join() === '3,2,1,0' && g2.rad.gruppe.length === 1 && g2.rad.gruppe[0].group === 'riesenrad' && g2.rad.gruppe[0].count === 4);
+check(`Riesenrad (Motor): 4 Schubser stehen auf Gondeln und fahren mit (${g2.rad.dy.join(' / ')} m), hinuntergestoßen → besiegt (${g2.rad.fall.join(', ')}), schubserGruppe 'riesenrad' (${g2.rad.gruppe[0]?.count})`, g2.rad.onStart.every(Boolean) && g2.rad.onGondel.every(Boolean) && g2.rad.turned > 0.25 && g2.rad.dy.some((d) => Math.abs(d) > 0.3) && g2.rad.defeated.every(Boolean) && g2.rad.fall.join() === '3,2,1,0' && g2.rad.gruppe.length === 1 && g2.rad.gruppe[0].group === 'riesenrad' && g2.rad.gruppe[0].count === 4 && g2.rad.onGroup === 1);
 check(`Bestand: Mini-Pilzling von oben, Riesenschnappblume verliert mit der Wurfsichel einen Treffer (${g2.riesen.hp0} → ${g2.riesen.hp1}), Hackvogel, Krallen-Pilzling`, g2.mini.defeated && g2.riesen.hp1 === g2.riesen.hp0 - 1 && g2.hack.kind === 'hackvogel' && g2.hack.krallen === 'krallen_pilzling');
 check(`Wandstück: Vorwarnung ${g2.stueck.warnT} s, bricht, stürzt und verletzt darunter (${g2.stueck.seq}), lässt sich zurücksetzen`, /ganz>warn>fall>weg/.test(g2.stueck.seq) && Math.abs(g2.stueck.warnT - 1) < 0.05 && g2.stueck.hurtUnder && g2.stueck.restored);
 check('Schockwelle verletzt am Boden, nicht im Sprung darüber', g2.welle.ground === true && g2.welle.jump === false && g2.welle.model);
@@ -898,7 +905,7 @@ const bg = await sc(() => {
   t.until(() => b.state === 'gone', 120 * 8, [6, G, ZG + 6]);
   t.hold([6, G, ZG + 6], 240);
   const warp = t.ent('glasroehre');
-  out.win = { state: b.state, won: t.arch().won, glass: b.glassState, finale: t.sig('finaleWon').length - sig0, frei: t.sig('freundeFrei').length, warpHidden: warp?.hidden, banners: t.banners.filter((x) => /Freunde|Ojemine|besiegt/.test(x)) };
+  out.win = { state: b.state, won: t.arch().won, glass: b.glassState, finale: t.sig('finaleWon').length - sig0, frei: t.sig('freundeFrei').length, warpHidden: warp?.hidden, credits: L.creditsWanted ?? null, banners: t.banners.filter((x) => /Freunde|Ojemine|besiegt/.test(x)) };
   // in die Glasröhre → Zielplateau
   t.place([warp.pos.x, warp.pos.y + 2.2, warp.pos.z], { settle: 0 });
   for (let i = 0; i < 400 && p.pos.z < -300 === false; i++) { p.hurt = () => false; c.step(1); }
@@ -911,7 +918,7 @@ check(`Gipfel: Super-POW-Block (${bg.begin.block}), Glas der Freunde, Baron oben
 check(`Phase 1: Feuerbälle mit Landemarken (${bg.fire.n})`, bg.fire.n >= 1 && bg.fire.marks >= 1);
 check(`Super-POW-Block 4× angestoßen (${bg.log.map((l) => `${l.hp}`).join(' → ')}): je Stoß hochgeschleudert und taumelnd, Lebensleiste 4 Stufen`, bg.log.length === 4 && bg.log.every((l) => l.hit) && bg.log.map((l) => l.hp).join() === '3,2,1,0' && bg.log.slice(0, 3).every((l) => /launched>stunned/.test(l.seq)) && /defeated>flyaway/.test(bg.log[3].seq) && bg.log[2].hud === 1);
 check(`Phasen: Sprung-Schockwellen (${JSON.stringify(bg.phases)}) und Doppelgänger`, bg.phases[0]?.waves >= 1 && bg.phases[1]?.clones >= 2);
-check(`Nach dem 4. Stoß fliegt er davon, das Glas zerbricht, die Freunde jubeln, Glasröhre erscheint, Signal finaleWon`, bg.win.state === 'gone' && bg.win.won && bg.win.glass.break === 1 && bg.win.glass.cheer === 1 && bg.win.finale === 1 && bg.win.frei === 1 && bg.win.warpHidden === false);
+check(`Nach dem 4. Stoß fliegt er davon, das Glas zerbricht, die Freunde jubeln, Glasröhre erscheint, Signal finaleWon, Abspann angefordert (${bg.win.credits})`, bg.win.state === 'gone' && bg.win.won && bg.win.glass.break === 1 && bg.win.glass.cheer === 1 && bg.win.finale === 1 && bg.win.frei === 1 && bg.win.warpHidden === false && bg.win.credits === 'nach-ziel');
 check(`Glasröhre führt zum Zielplateau (z ${bg.warp.z})`, bg.warp.z < -300);
 
 // ---- Neustart nach Tod auf dem Gipfel (frisches Level)

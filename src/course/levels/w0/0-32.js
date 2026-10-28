@@ -80,7 +80,7 @@ export const LEVEL = {
     { kind: 'knochenflieger_gruppe', id: 'kg_linie', count: 4, formation: 'linie', path: [at(7, 2, 3, Y + 4.4), at(16, 2, 3, Y + 4.4), at(16, 2, 11, Y + 4.4), at(7, 2, 11, Y + 4.4)], loop: true, sight: 5.5 },
     // ---- 3 Knochenflieger-Gruppen
     { kind: 'knochenflieger_gruppe', id: 'kg_welle', pos: at(-11.5, 3, 7, Y + 3.4), count: 5, formation: 'welle', spacing: 1.4, sight: 0 },
-    { kind: 'knochenflieger_gruppe', id: 'kg_keil', pos: at(11.5, 3, 7, Y + 4.6), count: 5, formation: 'keil', respawn: false, sight: 6 },
+    { kind: 'knochenflieger_gruppe', id: 'kg_keil', pos: at(11.5, 3, 7, Y + 4.6), count: 5, formation: 'keil', respawn: false, sight: 6, onAll: { signal: 'keilWeg' } },
     // ---- 4 Flatterkäfer mit Stern
     { kind: 'flatterkaefer', id: 'fk_stern', path: [at(7, 4, 4, Y + 2.2), at(16, 4, 4, Y + 2.2), at(16, 4, 10, Y + 2.2), at(7, 4, 10, Y + 2.2)], loop: true, speed: 1.6, star: 2 },
     // ---- 5 Geister
@@ -110,7 +110,7 @@ export const LEVEL = {
     { kind: 'knochenflieger_gruppe', id: 'm_kf2', pos: at(0, 9, 24, Y + 5.5), count: 8, formation: 'welle', spacing: 1.4, sight: 0 },
     { kind: 'knochenflieger_gruppe', id: 'm_kf3', pos: at(10, 9, 22, Y + 5), count: 8, formation: 'keil', sight: 0 },
     // ---- 10 Schubser auf den Riesenrad-Gondeln 1, 2, 4, 5 (fahren mit; hinuntergestoßen = besiegt)
-    ...[1, 2, 4, 5].map((i, k) => ({ kind: 'schubser', id: `rs${k + 1}`, pos: gondel(i), behavior: 'guard', sight: 2.5, group: 'riesenrad', fallDefeat: 1.6 })),
+    ...[1, 2, 4, 5].map((i, k) => ({ kind: 'schubser', id: `rs${k + 1}`, pos: gondel(i), behavior: 'guard', sight: 2.5, group: 'riesenrad', fallDefeat: 1.6, ...(k === 0 ? { onGroup: { signal: 'radStern' } } : {}) })),
   ],
   items: [
     // ---- 4 Sandfiguren

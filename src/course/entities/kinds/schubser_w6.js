@@ -36,11 +36,13 @@
 //   Steht er auf einer bewegten Plattform (Gondel, mover), fährt sein Heimplatz (guard) mit.
 //   Signale: level.signal('schubserFall', { id, group, by ('fall' | 'lava' | 'wasser' | 'besiegt'), pos, left }) je besiegtem Schubser
 //   (left = übrige seiner Gruppe), level.signal('schubserGruppe', { group, count }) wenn der letzte seiner Gruppe besiegt ist
-//   (8-Burg Stern 2: „alle 4 Schubser vom Riesenrad stoßen“ → Aktion { signal } bzw. Empfänger über level.onSignal).
+//   (8-Burg Stern 2: „alle 4 Schubser vom Riesenrad stoßen“). onGroup?: Aktion (Format entities/gimmick.js, z. B. { star: 2 } bzw.
+//   { reveal: 'stern2' }) – an einem (beliebigen) Schubser der Gruppe; läuft einmal, wenn der letzte der Gruppe besiegt ist.
 
 import { EnemyW2, clamp } from '../EnemyW2.js';
 import { getModel } from '../../models/index.js';
 import { shoveFigure, approachSpeed, dirFromTo, waterIn } from '../w6help.js';
+import { runAction } from '../gimmick.js';
 
 const PUSHED_ANIM = 0.5, RECOVER = 0.4, DEFEAT = 0.85, BUMP = 0.3;
 const SOFT = new Set(['bump']);
@@ -94,6 +96,7 @@ export class Schubser extends EnemyW2 {
     this.state = 'idle';
     this.group = spec.group ?? null;
     if (this.group) { const G = (level.schubserGroups ??= {}); G[this.group] = (G[this.group] ?? 0) + 1; }
+    if (this.group && spec.onGroup) (level.schubserGroupActions ??= {})[this.group] ??= spec.onGroup;
     this.fallDefeat = spec.fallDefeat ?? 0;
     this.standY = this.pos.y;
     if (level.view) this.setModel(getModel('schubser', { size: this.size }));
@@ -107,7 +110,11 @@ export class Schubser extends EnemyW2 {
     const g = this.group;
     const left = g ? this.level.entities.filter((e) => e.kind === 'schubser' && e !== this && e.group === g && !e.defeated && !e.removed).length : 0;
     this.level.signal?.('schubserFall', { id: this.spec.id ?? null, group: g, by: this.fellBy ?? 'besiegt', pos: [this.pos.x, this.pos.y, this.pos.z], left });
-    if (g && left === 0) this.level.signal?.('schubserGruppe', { group: g, count: this.level.schubserGroups?.[g] ?? 1 });
+    if (g && left === 0) {
+      const act = this.level.schubserGroupActions?.[g];
+      if (act) runAction(this.level, act, { pos: [this.home.x, this.home.y, this.home.z], source: this });
+      this.level.signal?.('schubserGruppe', { group: g, count: this.level.schubserGroups?.[g] ?? 1 });
+    }
   }
 
   /** Welt 8: Heimplatz fährt auf bewegten Plattformen mit; tiefer Fall von der Plattform = hinuntergestoßen. */
