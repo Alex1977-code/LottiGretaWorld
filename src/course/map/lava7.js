@@ -86,63 +86,64 @@ const SLATE7 = [0x4e4656, 0x5a5262, 0x443c4c, 0x625a6c];
 const checker2 = (ax, az) => (Math.floor((ax + 1.01) / 2) + Math.floor((az + 1.01) / 2)) & 1;
 
 const PALETTES = {
+  // warmer, heller Tuff mit leichter Plattenstruktur (gut lesbar, kein Schachbrett), selten Asche- und Basaltplatten
   ash: {
-    bands: BASALT, side: 0x5e4a4c, rim: 0x947a6c, cell: 2, cellOff: 4, cracks: 0.45,
+    bands: BASALT, side: 0x6a5652, rim: 0xb49886, cell: 2, cellOff: 4, cracks: 0.45,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(checker2(ax, az) ? 0x8a7268 : 0x7c665e, 0x96806e, rnd.frac() * 0.3);
+      const o = tone(checker2(ax, az) ? 0xa89282 : 0xa08a7a, 0xb29c88, rnd.frac() * 0.35);
       const h = hash2(Math.floor(ax / 2) + 3, Math.floor(az / 2) - 7);
-      if (h > 0.9) mixc(o, lin(0xb08a62), 0.45, o);          // Ascheplatte, ockerfarben
-      else if (h < 0.07) mixc(o, lin(0x5a4648), 0.5, o);     // dunkle Basaltplatte
+      if (h > 0.9) mixc(o, lin(0xc8a47a), 0.45, o);          // Ascheplatte, ockerfarben
+      else if (h < 0.07) mixc(o, lin(0x76625e), 0.45, o);    // dunkle Basaltplatte
       return o;
     },
   },
   arena: {
-    bands: BASALT, side: 0x7a5e56, rim: 0xc4a08a, cell: 2, cracks: 0.9,
-    tile: (rnd) => (i, j, ax, az) => tone(checker2(ax, az) ? 0xb4927c : 0xa8866e, 0xc29e84, rnd.frac() * 0.35),
+    bands: BASALT, side: 0x8a6a5e, rim: 0xd8b49a, cell: 2, cracks: 0.9,
+    tile: (rnd) => (i, j, ax, az) => tone(checker2(ax, az) ? 0xc6a48c : 0xbe9c84, 0xd0ae94, rnd.frac() * 0.35),
   },
   temple: {
     bands: TERRA, side: 0x9a5a44, rim: 0xe0a47a, cell: 2,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(checker2(ax, az) ? 0xd29468 : 0xc4845c, 0xdca476, rnd.frac() * 0.3);
+      const o = tone(checker2(ax, az) ? 0xd29468 : 0xc88c62, 0xdca476, rnd.frac() * 0.3);
       if (hash2(Math.floor(ax / 2) - 5, Math.floor(az / 2) + 2) > 0.92) mixc(o, lin(0x9a5a3e), 0.4, o);
       return o;
     },
   },
   track: {
     bands: BASALT, side: 0x4a4a54, rim: 0x8a8a96, cell: 2,
-    tile: (rnd) => () => tone(0x5a5a66, 0x50505c, rnd.frac()),
+    tile: (rnd) => () => tone(0x62626e, 0x5a5a66, rnd.frac()),
   },
   bluerock: {
-    bands: BLUEB, side: 0x48526c, rim: 0x8a98b4, cell: 2, cracks: 0.6, crackColor: 'blau',
-    tile: (rnd) => (i, j, ax, az) => tone(checker2(ax, az) ? 0x6e7890 : 0x626c84, 0x7a86a0, rnd.frac() * 0.35),
+    bands: BLUEB, side: 0x56607a, rim: 0x9aa8c4, cell: 2, cracks: 0.6, crackColor: 'blau',
+    tile: (rnd) => (i, j, ax, az) => tone(checker2(ax, az) ? 0x8a94ac : 0x848ea6, 0x96a0b8, rnd.frac() * 0.35),
   },
   fort: {
-    bands: SLATE7, side: 0x5a5262, rim: 0xa89cb0, cell: 2,
-    tile: (rnd) => (i, j, ax, az) => tone(checker2(ax, az) ? 0x8a7e90 : 0x7a6e80, 0x948aa0, rnd.frac() * 0.3),
+    bands: SLATE7, side: 0x625a6c, rim: 0xb4a8bc, cell: 2,
+    tile: (rnd) => (i, j, ax, az) => tone(checker2(ax, az) ? 0xa298ac : 0x9a90a6, 0xaaa0b4, rnd.frac() * 0.3),
   },
   crater: {
-    bands: SCORIA, side: 0x7a4436, rim: 0xc08a68, cell: 2, cellOff: 4, cracks: 0.8,
+    bands: SCORIA, side: 0x7a4436, rim: 0xc89070, cell: 2, cellOff: 4, cracks: 0.8,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(checker2(ax, az) ? 0x9a6650 : 0x8c5a46, 0xa87258, rnd.frac() * 0.35);
-      if (hash2(Math.floor(ax / 2) + 9, Math.floor(az / 2)) > 0.9) mixc(o, lin(0x5a3a34), 0.45, o);
+      const o = tone(checker2(ax, az) ? 0xb4806a : 0xac7862, 0xbc8a72, rnd.frac() * 0.35);
+      if (hash2(Math.floor(ax / 2) + 9, Math.floor(az / 2)) > 0.9) mixc(o, lin(0x6a4a42), 0.4, o);
       return o;
     },
   },
   castle: {
-    bands: BASALT, side: 0x4e4248, rim: 0x86747c, cell: 2, cracks: 1.0,
-    tile: (rnd) => (i, j, ax, az) => tone(checker2(ax, az) ? 0x6e6068 : 0x62545c, 0x7a6a72, rnd.frac() * 0.3),
+    bands: BASALT, side: 0x4e4248, rim: 0x9a8a92, cell: 2, cracks: 0.6,
+    tile: (rnd) => (i, j, ax, az) => tone(checker2(ax, az) ? 0x8e7e88 : 0x887882, 0x988892, rnd.frac() * 0.3),
   },
   blacksand: {
-    bands: BASALT, side: 0x4a4244, rim: 0x6e6466, cell: 2, cellOff: 2, capH: 0.26,
+    bands: BASALT, side: 0x4a4244, rim: 0x7a7072, cell: 2, cellOff: 2, capH: 0.26,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(0x5e5658, 0x6a6062, rnd.frac());
+      const o = tone(0x6e6668, 0x7a7072, rnd.frac());
       if (hash2(ax * 0.7 + 1, az * 0.7 - 2) > 0.94) mixc(o, lin(0xd8c0a8), 0.35, o);   // helle Muschelsplitter
       return o;
     },
   },
   rock: {
-    bands: BASALT, side: 0x4e4044, rim: 0x766264, cellOff: 4, jitter: 0.22, layer: 1.1,
-    tile: (rnd) => () => tone(0x6a5658, 0x5c4a4e, rnd.frac() * 0.8),
+    bands: BASALT, side: 0x4e4044, rim: 0x7e6a6a, cellOff: 4, jitter: 0.22, layer: 1.1,
+    tile: (rnd) => () => tone(0x76625e, 0x6a5856, rnd.frac() * 0.8),
   },
   cliff: {
     bands: BASALT, side: 0x4e4044, rim: 0x7a6466, cellOff: 3, jitter: 0.1, layer: 1.4,
@@ -910,36 +911,47 @@ function setI(m, i, x, y, z, ry = 0, s = 1, rx = 0, rz = 0) {
   m.setMatrixAt(i, _m4);
 }
 
-/** Lava-Textur (Kacheln 128 px): Grundglut, helle Adern, dunkle Krustenschollen mit Glutrand. */
+/** Lava-Textur (Kacheln 128 px): helle Grundglut, gelb-weiße Fließadern, wenige dünne Krustenschollen mit Glutrand. */
 function lavaTexture(kind) {
   const blue = kind === 'blau';
   return canvasTexture(`w7:lava:${kind}`, 128, 128, (ctx, w, h) => {
     const C = blue
-      ? { base: '#2a74e8', mid: '#4aa8ff', hot: '#aaf0ff', crust: '#1a2a6a', crust2: '#24387e' }
-      : { base: '#ff5a14', mid: '#ff8a24', hot: '#ffe27a', crust: '#6a1e0e', crust2: '#8a2c14' };
+      ? { base: '#3a94ff', mid: '#6ac8ff', hot: '#d8fbff', vein: 'rgba(224,252,255,0.85)', crust: '#2a62d8', crust2: '#3472e4' }
+      : { base: '#ff6a18', mid: '#ff9a2a', hot: '#fff0a0', vein: 'rgba(255,236,140,0.9)', crust: '#b8401a', crust2: '#cc5420' };
     ctx.fillStyle = C.base; ctx.fillRect(0, 0, w, h);
     const R = new Rnd(blue ? 77 : 33);
+    const wrap = (fn) => { for (const [dx, dy] of [[0, 0], [-w, 0], [w, 0], [0, -h], [0, h]]) fn(dx, dy); };
     // weiche helle Flecken
-    for (let i = 0; i < 18; i++) {
-      const x = R.real(0, w), y = R.real(0, h), r = R.real(8, 22);
-      for (const [dx, dy] of [[0, 0], [-w, 0], [w, 0], [0, -h], [0, h]]) {
+    for (let i = 0; i < 16; i++) {
+      const x = R.real(0, w), y = R.real(0, h), r = R.real(10, 26);
+      wrap((dx, dy) => {
         const g = ctx.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
         g.addColorStop(0, i % 3 ? C.mid : C.hot); g.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = g; ctx.fillRect(x + dx - r, y + dy - r, r * 2, r * 2);
-      }
+      });
     }
-    // Krustenschollen (Vielecke mit hellem Glutrand)
-    for (let i = 0; i < 9; i++) {
-      const x = R.real(0, w), y = R.real(0, h), r = R.real(6, 13), n = 6;
+    // Fließadern (geschwungene helle Linien entlang v)
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 7; i++) {
+      const x0 = R.real(0, w), amp = R.real(4, 12), ph = R.real(0, 6), lw = R.real(1.5, 3.5);
+      wrap((dx) => {
+        ctx.beginPath();
+        for (let y = -4; y <= h + 4; y += 4) { const x = x0 + Math.sin(y / h * TAU * 2 + ph) * amp; if (y === -4) ctx.moveTo(x + dx, y); else ctx.lineTo(x + dx, y); }
+        ctx.strokeStyle = C.vein; ctx.lineWidth = lw; ctx.stroke();
+      });
+    }
+    // wenige Krustenschollen (dünn, mit hellem Glutrand)
+    for (let i = 0; i < 6; i++) {
+      const x = R.real(0, w), y = R.real(0, h), r = R.real(5, 10), n = 7;
       const pts = [];
-      for (let k = 0; k < n; k++) { const a = (k / n) * TAU + R.real(-0.3, 0.3); pts.push([Math.cos(a) * r * R.real(0.7, 1.1), Math.sin(a) * r * R.real(0.7, 1.1)]); }
-      for (const [dx, dy] of [[0, 0], [-w, 0], [w, 0], [0, -h], [0, h]]) {
+      for (let k = 0; k < n; k++) { const a = (k / n) * TAU + R.real(-0.3, 0.3); pts.push([Math.cos(a) * r * R.real(0.6, 1.1), Math.sin(a) * r * R.real(0.6, 1.1)]); }
+      wrap((dx, dy) => {
         ctx.beginPath();
         pts.forEach(([px, py], k) => (k ? ctx.lineTo(x + dx + px, y + dy + py) : ctx.moveTo(x + dx + px, y + dy + py)));
         ctx.closePath();
         ctx.fillStyle = i % 2 ? C.crust : C.crust2; ctx.fill();
-        ctx.lineWidth = 2.5; ctx.strokeStyle = C.hot; ctx.stroke();
-      }
+        ctx.lineWidth = 2; ctx.strokeStyle = C.hot; ctx.stroke();
+      });
     }
   }, { repeat: true });
 }

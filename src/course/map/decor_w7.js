@@ -249,7 +249,7 @@ function spikeRollerGeo(len = 3, r = 0.55) {
 }
 /** Festungsmauer-Stück mit Zinnen (entlang +X, Länge len, Höhe h), Farben je Stil. */
 function wallGeo(len, h, pal = 'stein') {
-  const P = pal === 'blau' ? [0x2e3650, 0x4a5676, 0x6a7898, 0x2a4a98] : pal === 'burg' ? [0x3a2e34, 0x5a484e, 0x7a666a, 0x2e2428] : [0x4e4452, 0x6e6272, 0x9a8a94, 0x443a48];
+  const P = pal === 'blau' ? [0x2e3650, 0x4a5676, 0x6a7898, 0x2a4a98] : pal === 'burg' ? [0x3a2e34, 0x5a484e, 0x7a666a, 0x2e2428] : [0x6a5e6e, 0x857888, 0xb4a6b0, 0x5a4e5e];
   const b = new Build();
   const brick = (px, py, pz, nx, ny) => (ny > 0.6 ? P[2] : ((Math.floor(py * 1.6) + Math.floor((px + pz) * 0.8)) & 1) ? P[0] : P[1]);
   b.box(len, h, 1.0, brick, { p: [0, h / 2, 0] }, 0);
@@ -294,52 +294,52 @@ function blueFort(ev, x, y, z) {
     for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; b.add(new THREE.DodecahedronGeometry(1.2, 0), (qx, qy, qz, nx, ny) => mix(0x2a2430, 0x4e4458, ny * 0.5 + 0.5), { p: [Math.cos(a) * 7.4, 0.2, Math.sin(a) * 5.6], s: [1.2, 0.8, 1] }); }
     return b.geometry();
   }, x, y, z);
-  ev.addStatic(place(wallGeo(11, 3, 'blau'), x, top, z + 4.4), { castShadow: true });
-  ev.addStatic(place(wallGeo(9, 3, 'blau'), x - 6.4, top, z), { castShadow: true });
-  ev.addStatic(place(wallGeo(9, 3, 'blau').rotateY(Math.PI / 2), x + 6.4, top, z), { castShadow: true });
+  ev.addStatic(place(wallGeo(11, 2.4, 'blau'), x, top, z + 4.4), { castShadow: true });
+  ev.addStatic(place(wallGeo(9, 2.4, 'blau').rotateY(Math.PI / 2), x - 6.4, top, z), { castShadow: true });
+  ev.addStatic(place(wallGeo(9, 2.4, 'blau').rotateY(Math.PI / 2), x + 6.4, top, z), { castShadow: true });
   addGeo(ev, 'w7m:fortkeep', () => {
     const b = new Build();
-    b.box(6, 7, 4.6, { v: (px, py, pz, nx, ny) => (ny > 0.6 ? 0x6a7898 : ((Math.floor(py * 1.6) + Math.floor((px + pz) * 0.8)) & 1) ? 0x2e3650 : 0x3e4866) }, { p: [0, 3.5, 0] }, 0.06, 1);
-    for (let i = 0; i < 6; i++) b.box(0.6, 0.6, 4.7, 0x2a4a98, { p: [-2.6 + i * 1.04, 7.3, 0] }, 0);
-    b.cone(2.4, 2.6, 0x2a4ab8, { p: [0, 8.9, 0], r: [0, Math.PI / 4, 0] }, 4);
+    b.box(6, 6, 4.6, { v: (px, py, pz, nx, ny) => (ny > 0.6 ? 0x6a7898 : ((Math.floor(py * 1.6) + Math.floor((px + pz) * 0.8)) & 1) ? 0x2e3650 : 0x3e4866) }, { p: [0, 3, 0] }, 0);
+    for (let i = 0; i < 6; i++) b.box(0.6, 0.6, 4.7, 0x2a4a98, { p: [-2.6 + i * 1.04, 6.3, 0] }, 0);
+    b.cone(2.4, 2.4, 0x2a4ab8, { p: [0, 7.8, 0], r: [0, Math.PI / 4, 0] }, 4);
     return b.geometry();
   }, x, top, z - 2.6);
   addGeo(ev, 'w7m:fortkeepwin', () => {
     const b = new Build();
-    for (const [px, py] of [[-1.5, 4.4], [0, 4.4], [1.5, 4.4], [0, 2.0]]) b.box(0.5, 0.8, 0.05, 0x8ae0ff, { p: [px, py, 2.32] }, 0);
+    for (const [px, py] of [[-1.5, 3.9], [0, 3.9], [1.5, 3.9], [0, 1.8]]) b.box(0.5, 0.8, 0.05, 0x8ae0ff, { p: [px, py, 2.32] }, 0);
     return b.geometry();
   }, x, top, z - 2.6, 0, false, 'glow');
   // Rundtürme (Registry 'festungsturm' mit blauer Fensterglut, sonst eigene)
   for (const sx of [-1, 1]) {
     const tx = x + sx * 6.4, tz = z + 4.4;
-    if (!bake7(ev, 'festungsturm', { height: 5.5, radius: 1.7, color: 'blau' }, [tx, top, tz], FRONT, 1, null, true, 6000)) {
-      addGeo(ev, 'w7m:tower:5.5:1.7:blue', () => roundTowerGeo(5.5, 1.7, 0x2a4ab8, 'blau'), tx, top, tz);
-      addGeo(ev, 'w7m:towerwin:blue', () => towerWindowsGeo(5.5, 1.7, 0x8ae0ff), tx, top, tz, 0, false, 'glow');
+    if (!bake7(ev, 'festungsturm', { height: 4.2, radius: 1.5, color: 'blau' }, [tx, top, tz], FRONT, 1, null, true, 6000)) {
+      addGeo(ev, 'w7m:tower:4.2:1.5:blue', () => roundTowerGeo(4.2, 1.5, 0x2a4ab8, 'blau'), tx, top, tz);
+      addGeo(ev, 'w7m:towerwin:blue', () => towerWindowsGeo(4.2, 1.5, 0x8ae0ff), tx, top, tz, 0, false, 'glow');
     }
   }
   solidBox(ev, x - 8, y, z - 6, x + 8, top + 4, z + 5.8, 'festung');
   // H-förmiges Glasröhren-Netz: zwei Röhren steigen aus der Lava, Querröhre dazwischen; eine Röhre bis ans Ufer
   const ly = y + 0.3;
-  glassPipe(ev, [[x - 3, ly, z + 8.6], [x - 3, ly + 3, z + 8.2], [x - 3, top + 4.6, z + 6.4]], 0.7, { collarEnd: true });
-  glassPipe(ev, [[x + 3, ly, z + 8.6], [x + 3, ly + 3, z + 8.2], [x + 3, top + 4.6, z + 6.4]], 0.7, { collarEnd: true });
-  glassPipe(ev, [[x - 3, ly + 3.2, z + 8.1], [x, ly + 3.4, z + 8.2], [x + 3, ly + 3.2, z + 8.1]], 0.6, { collarStart: false, ringStep: 1.6 });
-  const shore = glassPipe(ev, [[x - 6.6, top + 2.6, z + 5.2], [x - 9, top + 3.4, z + 4.6], [x - 12, top + 2.6, z + 3.4], [x - 13, y + 1.4, z + 2.6]], 0.6, { collarEnd: true });
+  glassPipe(ev, [[x + 9.6, ly, z - 3], [x + 9.4, ly + 3, z - 3], [x + 7.6, top + 3.8, z - 3]], 0.7, { collarEnd: true });
+  glassPipe(ev, [[x + 9.6, ly, z + 3], [x + 9.4, ly + 3, z + 3], [x + 7.6, top + 3.8, z + 3]], 0.7, { collarEnd: true });
+  glassPipe(ev, [[x + 9.5, ly + 3.2, z - 3], [x + 9.6, ly + 3.4, z], [x + 9.5, ly + 3.2, z + 3]], 0.6, { collarStart: false, ringStep: 1.6 });
+  const shore = glassPipe(ev, [[x - 6.6, top + 2.2, z + 1], [x - 9, top + 3.2, z + 1.4], [x - 11.4, top + 2.0, z + 1.8], [x - 12.6, y + 1.4, z + 2]], 0.6, { collarEnd: true });
   void shore;
   // blaue Flammen auf den Türmen, Feuerbälle der (unsichtbaren) Werfer fliegen über die Röhren
-  flames(ev, [[x - 6.4, top + 6.3, z + 4.4, 1.3, 'blau'], [x + 6.4, top + 6.3, z + 4.4, 1.3, 'blau'], [x - 2.4, top + 3.6, z + 4.4, 0.9, 'blau'], [x + 2.4, top + 3.6, z + 4.4, 0.9, 'blau']], 'festung-flammen');
+  flames(ev, [[x - 2.4, top + 3.0, z + 4.4, 0.9, 'blau'], [x + 2.4, top + 3.0, z + 4.4, 0.9, 'blau']], 'festung-flammen');
   const NB = 3;
   const balls = instanced(ev, orbGeo(0.32), NB, { name: 'feuerbaelle', material: glowMat(ev, 0xffffff, { vertexColors: true }) });
   const putB = (t) => {
     for (let i = 0; i < NB; i++) {
       const u = ((t * 0.45 + i / NB) % 1);
-      const ax = x - 4 + i * 4, az = z + 4.4, bx = x - 8 + i * 6, bz = z + 12;
-      setInst(balls, i, ax + (bx - ax) * u, top + 3.6 + Math.sin(u * Math.PI) * 4 - u * 4.4, az + (bz - az) * u, t * 4, u > 0.95 ? 0.001 : 1);
+      const ax = x - 3 + i * 3, az = z + 4.4, bx = x + 8 + i * 3, bz = z + 9 + i;
+      setInst(balls, i, ax + (bx - ax) * u, top + 3.4 + Math.sin(u * Math.PI) * 4 - u * 4.2, az + (bz - az) * u, t * 4, u > 0.95 ? 0.001 : 1);
     }
     balls.instanceMatrix.needsUpdate = true;
   };
   putB(0);
   ev.updaters.push((dt, t) => putB(t));
-  cullByView(ev, balls, x, top + 4, z + 6, 10);
+  cullByView(ev, balls, x + 4, top + 4, z + 6, 12);
   modelsInfo(ev);
 }
 
@@ -508,8 +508,9 @@ function lavaRace(ev, x, y, z) {
     if (lamps.instanceColor) lamps.instanceColor.needsUpdate = true;
   });
   // Rennstrecke: vom Startbogen nach Norden über die Lava, Bogen nach Osten und zurück an den Ostrand des Startplatzes
-  const pts = [[x, y, z - 0.6], [x, y + 0.6, z - 8], [x + 4, y + 1.6, z - 15], [x + 13, y + 2.4, z - 18], [x + 21, y + 2.4, z - 13], [x + 23, y + 2, z - 3],
-    [x + 20, y + 1.2, z + 6], [x + 14, y + 0.4, z + 8.6], [x + 9.4, y, z + 8.6]];
+  // Rundkurs um den Startplatz: vom Startbogen nach Norden, im Bogen über Osten und Süden, zurück an die Westkante
+  const pts = [[0, 0.06, -0.6], [0, 0.6, -6.4], [3.5, 1.4, -11], [9.5, 1.8, -11.6], [13, 1.8, -6.5], [13.5, 1.4, 2.6], [12, 1.0, 11.6], [7.5, 0.8, 16.4], [0, 0.8, 17.6],
+    [-7, 0.8, 17], [-11, 1.0, 13], [-12.4, 1.0, 6.6], [-11.4, 0.6, 1.6], [-8.6, 0.08, 0.4]].map(([a, b, c]) => [x + a, y + b, z + c]);
   const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)), false, 'centripetal');
   const L = curve.getLength(), N = Math.round(L / 1.0);
   const deck = new Build(), glow = new Build();
@@ -671,19 +672,19 @@ function blueCage(ev, x, y, z) {
     // Torbau (blau), darin das hochgezogene Fallgitter (Registry 'fallgitter', sonst eigene Gitterstäbe)
     addGeo(ev, 'w7m:cagegate', () => {
       const b = new Build();
-      for (const s of [-1, 1]) b.box(0.9, 3.4, 1.0, { v: (px, py) => mix(0x2e3650, 0x6a7898, py / 3.4 + 0.5) }, { p: [0, 1.7, s * 2.8] }, 0.05);
-      b.box(1.0, 0.7, 6.6, 0x4a5676, { p: [0, 3.75, 0] }, 0.05);
-      b.box(0.12, 0.5, 1.4, 0x5ab4ff, { p: [0.55, 3.75, 0] }, 0);
+      for (const s of [-1, 1]) { b.box(0.9, 2.8, 1.0, { v: (px, py) => mix(0x4a5676, 0x9aa8c8, py / 2.8 + 0.5) }, { p: [0, 1.4, s * 2.8] }, 0); b.box(1.0, 0.16, 1.1, 0xffc23a, { p: [0, 2.85, s * 2.8] }, 0); }
+      b.box(0.8, 0.5, 6.6, 0x6a7898, { p: [0, 3.15, 0] }, 0);
+      b.box(0.12, 0.4, 1.4, 0x5ab4ff, { p: [0.45, 3.15, 0] }, 0);
       return b.geometry();
     }, gx, y, gz);
-    if (!bake7(ev, 'fallgitter', { width: 4.4, height: 3.3 }, [gx, y, gz], 0, 1, { open: 0.9 }, true, 3500)) {
+    if (!bake7(ev, 'fallgitter', { width: 4.4, height: 2.8 }, [gx, y, gz], 0, 1, { open: 0.9 }, true, 4400)) {
       addGeo(ev, 'w7m:cagebars', () => {
         const b = new Build();
-        for (let i = 0; i < 7; i++) b.box(0.08, 0.7, 0.08, 0x3a4458, { p: [0.2, 3.1, -2.1 + i * 0.7] }, 0);
+        for (let i = 0; i < 7; i++) b.box(0.08, 0.5, 0.08, 0x3a4458, { p: [0.2, 2.6, -2.1 + i * 0.7] }, 0);
         return b.geometry();
       }, gx, y, gz);
     }
-    for (const s of [-1, 1]) solidBox(ev, gx - 0.45, y, gz + s * 2.8 - 0.5, gx + 0.45, y + 3.6, gz + s * 2.8 + 0.5, 'tor');
+    for (const s of [-1, 1]) solidBox(ev, gx - 0.45, y, gz + s * 2.8 - 0.5, gx + 0.45, y + 3.0, gz + s * 2.8 + 0.5, 'tor');
   }
   addGeo(ev, 'w7m:cagering', () => new Build().torus(5.6, 0.1, 0x5ab4ff, { p: [0, 0.03, 0], r: [Math.PI / 2, 0, 0], s: [1, 1, 0.2] }, 3, 40).geometry(), x, y, z, 0, false, 'glow');
   modelsInfo(ev);
@@ -718,10 +719,11 @@ function lavaTower(ev, x, y, z) {
     for (const [yy, a] of [[4.5, 0.3], [7.5, -0.4], [10.5, 0.5], [13, -0.2]]) b.box(0.5, 0.8, 0.06, 0xffb44a, { p: [Math.sin(a) * 3.12, yy, Math.cos(a) * 3.12], r: [0, a, 0] }, 0);
     return b.geometry();
   }, x, ly, z, 0, false, 'glow');
-  // Damm vom Ufer zum Turmfuß (Kulisse)
-  addGeo(ev, 'w7m:towerdam', () => {
+  // Damm vom Ufer zum Turmfuß (Kulisse): Steinblöcke bis ans Ufer vor dem Podest
+  const nDam = Math.max(1, Math.round((ev.def.pos[2] - 2.6 - (z + 5.6)) / 1.6));
+  addGeo(ev, `w7m:towerdam:${nDam}`, () => {
     const b = new Build();
-    for (let i = 0; i < 9; i++) b.box(2.2, 1.2, 1.5, { v: (px, py, pz, nx, ny) => (ny > 0.6 ? 0x8a7a72 : 0x4a3e44) }, { p: [0, 0.3, 6.0 + i * 1.6] }, 0.08);
+    for (let i = 0; i < nDam; i++) b.box(2.2, 1.2, 1.5, { v: (px, py, pz, nx, ny) => (ny > 0.6 ? 0x8a7a72 : 0x4a3e44) }, { p: [0, 0.3, 5.6 + i * 1.6] }, 0);
     return b.geometry();
   }, x, ly, z);
   // Stampfstein auf dem Sims (Registry, sonst eigener Block mit Gesicht)
@@ -968,6 +970,9 @@ function werferHall(ev, x, y, z) {
     g.box(20.4, 1.2, 3.0, { v: (px, py, pz, nx, ny) => (ny > 0.6 ? 0x9a8a94 : mix(0x4e4452, 0x6e6272, 0.6)) }, { p: [0, 0.6, 0] }, 0.05, 1);
     for (let i = 0; i < 3; i++) g.box(4, 0.4, 0.5, 0x8a7a86, { p: [0, 0.2 + i * 0.4, 1.75 - i * 0.5 + 0.5] }, 0.03, 1);
     g.box(20.6, 0.1, 0.2, 0xffc23a, { p: [0, 1.22, 1.45] }, 0);
+    // roter Läufer vom Eingang bis zur Empore (Goldkante)
+    g.box(2.4, 0.03, 15.6, 0xc8303a, { p: [0, 0.015, 9.6] }, 0);
+    for (const s of [-1, 1]) g.box(0.12, 0.035, 15.6, 0xffc23a, { p: [s * 1.2, 0.02, 9.6] }, 0);
     return g.geometry();
   }, x, y, zn + 1.7);
   r.add({ type: 'box', min: [x0, y, zn + 0.2], max: [x1, y + 1.2, zn + 3.2], tag: 'empore' });
@@ -1001,28 +1006,60 @@ function werferHall(ev, x, y, z) {
 
 // ------------------------------------------------------------------ 7-7 Vulkankrater
 
+/**
+ * Kraterwand als Hufeisen (Öffnung um +Z, halber Öffnungswinkel gap): Außenwand, Deckfläche und Innenwand je Winkelschritt;
+ * die Wandhöhe steigt von lip an der Öffnung bis h nach hinten an. rOut(h)/rIn(h): Radien je Höhe.
+ */
+function craterWallGeo(rOut, rIn, H, lip, gap, N = 40) {
+  const pos = [];
+  const tri = (a, b, c) => pos.push(...a, ...b, ...c);
+  const pt = (r, y, phi) => [r * Math.sin(phi), y, r * Math.cos(phi)];
+  const top = (phi) => {
+    const d = Math.min(phi, TAU - phi);
+    const u = Math.min(1, Math.max(0, (d - gap) / (Math.PI / 2)));
+    return lip + (H - lip) * u * u * (3 - 2 * u);
+  };
+  for (let i = 0; i < N; i++) {
+    const p0 = gap + ((TAU - 2 * gap) * i) / N, p1 = gap + ((TAU - 2 * gap) * (i + 1)) / N;
+    const h0 = top(p0), h1 = top(p1);
+    const OB0 = pt(rOut(lip), lip, p0), OB1 = pt(rOut(lip), lip, p1), OT0 = pt(rOut(h0), h0, p0), OT1 = pt(rOut(h1), h1, p1);
+    const IB0 = pt(rIn(lip), lip, p0), IB1 = pt(rIn(lip), lip, p1), IT0 = pt(rIn(h0), h0, p0), IT1 = pt(rIn(h1), h1, p1);
+    tri(OB0, OB1, OT1); tri(OB0, OT1, OT0);          // außen
+    tri(OT0, OT1, IT1); tri(OT0, IT1, IT0);          // Deckfläche
+    tri(IB1, IB0, IT0); tri(IB1, IT0, IT1);          // innen
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  return g;
+}
+/** Vertexfarben je Dreieck (Funktion wie Build: (x, y, z, nx, ny, nz) → Farbe). */
+function paintGeo(g, fn) {
+  const P = g.attributes.position, Nn = g.attributes.normal, col = new Float32Array(P.count * 3);
+  for (let i = 0; i < P.count; i += 3) {
+    const cx = (P.getX(i) + P.getX(i + 1) + P.getX(i + 2)) / 3, cy = (P.getY(i) + P.getY(i + 1) + P.getY(i + 2)) / 3, cz = (P.getZ(i) + P.getZ(i + 1) + P.getZ(i + 2)) / 3;
+    _c.set(fn(cx, cy, cz, Nn.getX(i), Nn.getY(i), Nn.getZ(i)));
+    for (let k = 0; k < 3; k++) { col[(i + k) * 3] = _c.r; col[(i + k) * 3 + 1] = _c.g; col[(i + k) * 3 + 2] = _c.b; }
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
+
+
 function crater(ev, x, y, z) {
   // Kegel mit offener Vorderseite: unten ein voller Ring (Lavarand, 2,4 m), darüber ein Hufeisen mit der Öffnung zur
   // Kamera (Süden); Außen- und Innenwand als Drehkörper (Innenwand mit nach innen gerichteten Flächen), Lavasee darin
-  const R = 11, Rin = 6.2, H = 8.4, LIP = 2.4, GAP = 0.6;
-  const rOut = (h) => R - (R - Rin) * (h / H), rIn = (h) => 4.6 + (Rin - 0.2 - 4.6) * (h / H);
+  const R = 7.4, Rin = 4.6, H = 6, LIP = 1.0, GAP = 0.78;
+  const rOut = (h) => R - (R - Rin) * (h / H), rIn = (h) => 3.6 + (Rin - 0.2 - 3.6) * (h / H);
   addGeo(ev, 'w7m:cratercone', () => {
     const b = new Build();
-    const rock = { v: (px, py, pz, nx, ny) => mix(0x4a2e2a, 0xa86a54, Math.min(1, py / H) * 0.7 + Math.max(0, ny) * 0.3) };
-    const inner = { v: (px, py) => mix(0x2a1a18, 0x6a3a30, Math.min(1, py / H)) };
-    const lathe = (pts, phi0, len, col) => b.add(new THREE.LatheGeometry(pts.map(([r, h]) => new THREE.Vector2(r, h)), 24, phi0, len), col);
-    lathe([[rOut(0), 0], [rOut(LIP), LIP]], 0, TAU, rock);
-    lathe([[rOut(LIP), LIP], [rOut(H * 0.6), H * 0.6], [rOut(H), H]], GAP, TAU - 2 * GAP, rock);
-    lathe([[rIn(LIP), LIP], [rIn(0.3), 0.3]], 0, TAU, inner);
-    lathe([[rIn(H), H], [rIn(LIP), LIP]], GAP, TAU - 2 * GAP, inner);
-    // Kraterrand oben (Hufeisen) und Lavarand vorn
-    b.torus((rOut(H) + rIn(H)) / 2, 0.55, 0xb07a5e, { r: [-Math.PI / 2, -Math.PI / 2 + GAP, 0], order: 'YXZ' }, 5, 20, TAU - 2 * GAP);
-    b.torus((rOut(LIP) + rIn(LIP)) / 2, (rOut(LIP) - rIn(LIP)) / 2, 0x8a5a48, { p: [0, LIP, 0], r: [-Math.PI / 2, 0, 0] }, 4, 28);
-    // Schnittflächen der Öffnung
-    for (const s of [-1, 1]) {
-      const a = s * GAP, rm = (rOut((LIP + H) / 2) + rIn((LIP + H) / 2)) / 2;
-      b.box(rOut(LIP) - rIn(LIP), H - LIP, 0.5, 0x6a4038, { p: [Math.sin(a) * rm, (LIP + H) / 2, Math.cos(a) * rm], r: [0, a + Math.PI / 2, 0] }, 0);
-    }
+    const rock = { v: (px, py, pz, nx, ny) => mix(0x5a3630, 0xb8785c, Math.min(1, py / H) * 0.65 + Math.max(0, ny) * 0.35) };
+    // unten ein voller Ring bis zum Lavarand (Außen- und Innenwand)
+    b.add(new THREE.LatheGeometry([[rOut(0), 0], [rOut(LIP), LIP]].map(([r, h]) => new THREE.Vector2(r, h)), 32), rock);
+    b.add(new THREE.LatheGeometry([[rIn(LIP), LIP], [rIn(0.3), 0.3]].map(([r, h]) => new THREE.Vector2(r, h)), 32), { v: (px, py) => mix(0x2a1a18, 0x6a3a30, py / LIP) });
+    b.add(new THREE.RingGeometry(rIn(LIP), rOut(LIP), 32, 1).rotateX(-Math.PI / 2), 0xa8705a, { p: [0, LIP, 0] });   // flacher Lavarand
+    // darüber das Hufeisen: Wand steigt von der Öffnung (vorn, zur Kamera) nach hinten an – so sieht man in den Krater
+    b.parts.push(paintGeo(craterWallGeo(rOut, rIn, H, LIP, GAP, 40), (px, py, pz, nx, ny) => (ny > 0.7 ? 0xc08a6a : mix(0x4a2c28, 0xa86a54, Math.min(1, py / H) * 0.7 + Math.max(0, nx * 0.15)))));
     return b.geometry();
   }, x, y, z);
   // Lavasee im Krater (eigene Fläche, steigt und sinkt) mit Fließtextur der Lava
@@ -1034,19 +1071,19 @@ function crater(ev, x, y, z) {
     g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
   });
   lavaM.map = tex;
-  const disc = new THREE.Mesh(cached('w7m:craterdisc', () => new THREE.CircleGeometry(rIn(2.0) + 0.05, 24).rotateX(-Math.PI / 2)), lavaM);
+  const disc = new THREE.Mesh(cached('w7m:craterdisc', () => new THREE.CircleGeometry(rIn(0.9) + 0.05, 24).rotateX(-Math.PI / 2)), lavaM);
   disc.name = 'w7:kraterlava';
-  disc.position.set(x, y + 1.8, z);
+  disc.position.set(x, y + 0.75, z);
   ev.view.add(disc);
-  let level = 1.8;
+  let level = 0.75;
   ev.updaters.push((dt, t) => {
-    level = 1.8 + Math.sin(t * TAU / 9) * 0.55;
+    level = 0.75 + Math.sin(t * TAU / 9) * 0.18;
     disc.position.y = y + level;
     lavaM.color.setScalar(0.9 + Math.sin(t * 2.1) * 0.1);
   });
   // Gitterboden-Steg über die Lava (Registry 'gitterboden', sonst eigenes Gitter)
   for (const k of [-1, 0, 1]) {
-    const gp = [x + k * 2.0 - 2, y + 3.0, z + 3.4];
+    const gp = [x + k * 2.0 - 1.4, y + 1.8, z - 2.6];
     if (!bake7(ev, 'gitterboden', { size: [2, 2] }, gp, 0, 1, null, true, 1200)) {
       addGeo(ev, 'w7m:grid', () => {
         const b = new Build();
@@ -1058,7 +1095,7 @@ function crater(ev, x, y, z) {
   }
   addGeo(ev, 'w7m:gridposts', () => {
     const b = new Build();
-    for (const sx of [-5, 1]) b.box(0.3, 3.0, 0.3, 0x3a3a46, { p: [sx, 1.5, 3.4] }, 0);
+    for (const sx of [-4.4, 1.6]) b.box(0.3, 1.8, 0.3, 0x3a3a46, { p: [sx, 0.9, -2.6] }, 0);
     return b.geometry();
   }, x, y, z);
   // Lavadrache taucht auf und ab (eigener freundlich-frecher Drachenkopf mit Halsgliedern)
@@ -1074,14 +1111,14 @@ function crater(ev, x, y, z) {
     }
     for (let i = 0; i < 4; i++) b.cone(0.14, 0.42, 0xff8a2a, { p: [0.15 * i - 0.2, i * 0.7 + 0.5, 0], r: [0, 0, 0.6] }, 4);
     return b.geometry();
-  }), x - 2.6, y + level - 4.6, z - 1.8, 'lavadrache', false);
+  }), x + 1.6, y + level - 4.6, z - 1.4, 'lavadrache', false);
   dragon.rotation.y = -Math.PI / 2 + 0.4;
   let rise = 0;
   ev.updaters.push((dt, t) => {
     const p = (t % 9) / 9;
     rise = p < 0.15 ? p / 0.15 : p < 0.55 ? 1 : p < 0.7 ? 1 - (p - 0.55) / 0.15 : 0;
     const e = rise * rise * (3 - 2 * rise);
-    dragon.position.y = y + level - 4.8 + e * 4.6;
+    dragon.position.y = y + level - 4.8 + e * 4.4;
     dragon.rotation.z = Math.sin(t * 1.6) * 0.08 * e;
     dragon.visible = e > 0.02;
   });
@@ -1134,7 +1171,7 @@ function lavaKeep(ev, x, y, z) {
     solidCyl(ev, tx, tz, 2.4, y, y + 12, 'burgturm');
   }
   // Fallgitter im Tor (hochgezogen), Banner des Barons (wehen)
-  if (!bake7(ev, 'fallgitter', { width: 3.4, height: 4.0 }, [x, y, fz + 1.25], FRONT, 1, { open: 0.7 }, true, 3500)) {
+  if (!bake7(ev, 'fallgitter', { width: 3.4, height: 4.0 }, [x, y, fz + 1.25], FRONT, 1, { open: 0.7 }, true, 4400)) {
     addGeo(ev, 'w7m:keepbars', () => {
       const b = new Build();
       for (let i = -3; i <= 3; i++) b.box(0.12, 1.6, 0.12, 0x6a6a74, { p: [i * 0.5, 3.6, 1.32] }, 0, 1);
