@@ -35,12 +35,12 @@ export const ALP_BANDS = [0xa29eb8, 0x928ea8, 0xb0acc4, 0x86829c, 0xbab6cc, 0x98
  */
 export function gipfel(level, x0, x1, zA, zB, top, o = {}) {
   const poly = o.poly ?? rectPoly(x0, x1, zA, zB, o.ch ?? 1.2);
-  cliffSkirt(level, poly, top, o.bottom ?? -34, { colors: o.colors ?? ALP_BANDS, flare: o.flare ?? 0.14, band: o.band ?? 2.2, step: o.step ?? 1.7, seed: o.seed ?? 5, shadow: o.shadow });
+  cliffSkirt(level, poly, top, o.bottom ?? -34, { colors: o.colors ?? ALP_BANDS, flare: o.flare ?? 0.14, band: o.band ?? 2.2, step: o.step ?? 1.7, seed: o.seed ?? 5, shadow: o.shadow ?? false });
 }
 
 /** Felsstufe zwischen zwei Ebenen (senkrecht, kaum ausladend): Rechteck, top → bottom. */
 export function grat(level, x0, x1, zA, zB, top, bottom, o = {}) {
-  cliffSkirt(level, o.poly ?? rectPoly(x0, x1, zA, zB, o.ch ?? 0.6), top, bottom, { colors: o.colors ?? ALP_BANDS, flare: o.flare ?? 0.02, band: 1.8, step: 1.4, seed: o.seed ?? 9, shadow: o.shadow });
+  cliffSkirt(level, o.poly ?? rectPoly(x0, x1, zA, zB, o.ch ?? 0.6), top, bottom, { colors: o.colors ?? ALP_BANDS, flare: o.flare ?? 0.02, band: 1.8, step: 1.4, seed: o.seed ?? 9, shadow: o.shadow ?? false });
 }
 
 const MEADOW = [0x6cd24c, 0x5ec442, 0x7ede5a, 0x8ae262, 0x58b83e, 0x98e46e, 0x74cc50];
@@ -102,17 +102,17 @@ export function trockenmauer(level, a, b, y, o = {}) {
   if (!level.view) return;
   const rnd = new Rnd(o.seed ?? Math.round(Math.abs(a[0] * 7 + a[1] * 3)) + 3);
   const bb = new Bld();
-  const rows = Math.max(2, Math.round(h / 0.38));
+  const rows = Math.max(2, Math.round(h / 0.5));
   for (let r = 0; r < rows; r++) {
-    for (let s = (r % 2) * 0.3; s < L; s += 0.62) {
+    for (let s = (r % 2) * 0.38; s < L; s += 0.76) {
       const k = s / L, x = a[0] + dx * k, z = a[1] + dz * k;
-      const sz = rnd.real(0.3, 0.4);
-      bb.sphere(sz, x + rnd.real(-0.06, 0.06), y + 0.2 + r * (h - 0.2) / rows, z + rnd.real(-0.06, 0.06), litTop(rnd.frac() < 0.5 ? 0xc0bcc8 : 0xa8a4b4), { s: [1.15, 0.72, 1], ws: 7, hs: 5, yaw: rnd.real(0, 3) });
+      const sz = rnd.real(0.36, 0.46);
+      bb.sphere(sz, x + rnd.real(-0.06, 0.06), y + 0.22 + r * (h - 0.25) / rows, z + rnd.real(-0.06, 0.06), litTop(rnd.frac() < 0.5 ? 0xc0bcc8 : 0xa8a4b4), { s: [1.15, 0.8, 1], ws: 6, hs: 4, yaw: rnd.real(0, 3) });
     }
   }
   // Moos obenauf
-  for (let s = 0.2; s < L; s += 0.9) { const k = s / L; bb.sphere(0.22, a[0] + dx * k, y + h - 0.02, a[1] + dz * k, 0x6ab84a, { s: [1.4, 0.4, 1.1], ws: 6, hs: 4 }); }
-  bb.flush(level);
+  for (let s = 0.2; s < L; s += 1.3) { const k = s / L; bb.sphere(0.24, a[0] + dx * k, y + h - 0.02, a[1] + dz * k, 0x6ab84a, { s: [1.5, 0.4, 1.1], ws: 5, hs: 3 }); }
+  bb.flush(level, { castShadow: false });
 }
 
 /**
@@ -289,7 +289,7 @@ export function wimpelkette(level, a, b, n = 12, sag = 0.6) {
     const t = i / n;
     pts.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - 4 * sag * t * (1 - t), a[2] + (b[2] - a[2]) * t]);
   }
-  bb.tube(pts, 0.02, 0x6a5a4a, null, n * 3, 4);
+  bb.b.tube(pts, 0.02, 0x6a5a4a, null, n * 3, 4); bb.n++;
   const yaw = Math.atan2(-(b[2] - a[2]), b[0] - a[0]);
   for (let i = 0; i < n; i++) {
     const p = pts[i], q = pts[i + 1];
@@ -621,4 +621,464 @@ export function geisterlaternen(level, list) {
   }
   b.flush(level, { castShadow: false });
   glow.flush(level, { material: 'glow', castShadow: false });
+}
+
+// =====================================================================================================================
+// 6-1 Kulisse (zweite Runde): Grasbüschel, Wasserfälle, Felsvorsprünge mit Kiefern, Seilbahn, Murmeltiere
+// =====================================================================================================================
+
+/** Grasbüschel (je drei schmale Halme) verstreut in rects [[x0, x1, zA, zB, top, n], …]; avoid [[x, z, r]]. */
+export function grasbueschel(level, rects, o = {}) {
+  if (!level.view) return;
+  const rnd = new Rnd(o.seed ?? 23);
+  const b = new Bld();
+  const avoid = o.avoid ?? [];
+  const cols = [0x4aa83a, 0x5cbc44, 0x3e9a34, 0x6ccc4e];
+  for (const [x0, x1, zA, zB, top, n] of rects) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+    for (let i = 0; i < n; i++) {
+      const x = rnd.real(x0 + 0.5, x1 - 0.5), z = rnd.real(z1 + 0.5, z0 - 0.5);
+      if (avoid.some((a) => Math.hypot(a[0] - x, a[1] - z) < (a[2] ?? 1.2))) continue;
+      const c = cols[i % cols.length], h = rnd.real(0.28, 0.5);
+      for (let k = 0; k < 3; k++) {
+        const a = k * 2.1 + i;
+        b.cone(0.05, h * (0.8 + k * 0.15), x + Math.cos(a) * 0.07, top, z + Math.sin(a) * 0.07, c, 4, { rx: Math.sin(a) * 0.25, rz: Math.cos(a) * 0.25 });
+      }
+    }
+  }
+  b.flush(level, { castShadow: false });
+}
+
+/**
+ * Wasserfall: Bergbach, der über eine Felskante (x, yTop, z) ins Wolkenmeer stürzt – Bachlauf oben (Wasserrinne, nur
+ * Optik), Fallband mit hellen Streifen, Gischtwolke unten (verblasst in den Wolken). o: { w 1.4, yaw (Fallrichtung um Y;
+ * 0 = nach +Z), bottom, len (Bachlauf oben, m) }.
+ */
+export function wasserfall(level, x, yTop, z, o = {}) {
+  if (!level.view) return;
+  const w = o.w ?? 1.4, bottom = o.bottom ?? yTop - 18, yaw = o.yaw ?? 0;
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  const at = (u, v, y) => [x + u * c + v * s, y, z - u * s + v * c];   // u quer, v in Fallrichtung
+  const b = new Bld(), glow = new Bld();
+  // Bachrinne oben (blaue Bänder auf dem Gras), hinter der Kante
+  const len = o.len ?? 3;
+  for (let k = 0; k < Math.ceil(len / 0.5); k++) {
+    const q = at(Math.sin(k * 1.3) * 0.15, -0.25 - k * 0.5, yTop + 0.03);
+    b.box(w * (0.85 + 0.15 * Math.sin(k)), 0.03, 0.55, q[0], q[1], q[2], k % 2 ? 0x5ad0ff : 0x7ae0ff, { yaw, r: 0 });
+  }
+  // Fallband: senkrechte Streifen, leicht nach außen gekrümmt
+  const H = yTop - bottom, n = Math.ceil(H / 0.9);
+  for (let i = 0; i < n; i++) {
+    const y0 = yTop - i * 0.9, out = 0.25 + Math.min(1.2, i * 0.08);
+    for (let j = -1; j <= 1; j++) {
+      const q = at(j * (w / 3), out, y0 - 0.95);
+      b.box(w / 3.1, 0.95, 0.14, q[0], q[1], q[2], (i + j) % 3 === 0 ? 0xeaf8ff : (i + j) % 3 === 1 ? 0x9ae4ff : 0x6ad0f8, { yaw, r: 0 });
+    }
+  }
+  // Gischt oben an der Kante und unten
+  for (let k = 0; k < 5; k++) { const q = at((k - 2) * w * 0.22, 0.35, yTop - 0.15); glow.sphere(0.22, q[0], q[1], q[2], 0xffffff, { ws: 6, hs: 4 }); }
+  for (let k = 0; k < 7; k++) { const q = at((k - 3) * w * 0.3, 1.3 + (k % 2) * 0.4, bottom + 0.5 + (k % 3) * 0.4); b.sphere(0.9 + (k % 2) * 0.4, q[0], q[1], q[2], 0xffffff, { s: [1.3, 0.7, 1.1], ws: 8, hs: 5 }); }
+  b.flush(level, { castShadow: false });
+  glow.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Felsvorsprünge an einer Gipfelflanke (unterhalb der Kante, nur Optik): list [[x, y, z, größe, kiefer?], …] – graue
+ * Felsnasen mit Moos und (optional) einer kleinen Bergkiefer obendrauf.
+ */
+export function felsnasen(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  for (const [x, y, z, s = 1.4, kiefer = true] of list) {
+    b.sphere(s, x, y, z, litTop(0xa29eb8), { s: [1.2, 0.55, 1], ws: 8, hs: 5, yaw: x * 0.3 });
+    b.sphere(s * 0.7, x + s * 0.3, y + s * 0.25, z, 0x6ab84a, { s: [1.2, 0.3, 1], ws: 7, hs: 4 });
+    if (kiefer) {
+      const h = s * 1.9;
+      b.cyl(0.07 * s, 0.1 * s, h * 0.3, x, y + s * 0.3, z, 0x7a5232, 6);
+      for (let k = 0; k < 3; k++) b.cone(s * (0.55 - k * 0.13), h * 0.38, x, y + s * 0.3 + h * (0.18 + k * 0.22), z, k % 2 ? 0x2e8a4a : 0x3a9a52, 7);
+    }
+  }
+  b.flush(level);
+}
+
+/**
+ * Seilbahn im Hintergrund: Seil zwischen zwei Stützen (a, b = [x, y, z] Seilenden), eine rote Gondel fährt hin und her.
+ * Zwei Meshes (Seil/Stützen statisch, Gondel bewegt), ohne Schatten.
+ */
+export function seilbahn(level, a, bp, o = {}) {
+  if (!level.view) return;
+  const b = new Bld();
+  for (const q of [a, bp]) {
+    b.box(0.5, q[1] - (o.foot ?? q[1] - 8), 0.5, q[0], o.foot ?? q[1] - 8, q[2], litTop(0xc8ccd8), { r: 0.06 });
+    b.box(1.6, 0.3, 0.4, q[0], q[1] - 0.1, q[2], 0xe8283a, { r: 0.05 });
+  }
+  const pts = [];
+  const N = 24;
+  for (let i = 0; i <= N; i++) { const t = i / N; pts.push([a[0] + (bp[0] - a[0]) * t, a[1] + (bp[1] - a[1]) * t - 4 * (o.sag ?? 1.2) * t * (1 - t), a[2] + (bp[2] - a[2]) * t]); }
+  b.b.tube(pts, 0.04, 0x3a3a46, null, N * 2, 4); b.n++;
+  b.flush(level, { castShadow: false });
+  const g = new Bld();
+  g.cyl(0.02, 0.02, 1.2, 0, -1.2, 0, 0x3a3a46, 4);
+  g.box(1.5, 1.2, 1.1, 0, -2.4, 0, litTop(o.color ?? 0xe8283a), { r: 0.18 });
+  g.box(1.3, 0.5, 1.12, 0, -1.95, 0, 0xd8f0ff, { r: 0.1 });
+  g.box(1.6, 0.1, 1.2, 0, -1.3, 0, 0xf6f4ef, { r: 0.04 });
+  const mesh = new THREE.Mesh(g.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }));
+  mesh.name = 'seilbahn';
+  const hv = {};
+  let t = o.phase ?? 0;
+  addObject(level, mesh, (dt) => {
+    t += visDt(level, hv, dt) / (o.period ?? 26);
+    const u = 0.5 - 0.5 * Math.cos(t * TAU);
+    const i = Math.min(N - 1, Math.floor(u * N)), f = u * N - i;
+    const p0 = pts[i], p1 = pts[i + 1];
+    mesh.position.set(p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f, p0[2] + (p1[2] - p0[2]) * f);
+    mesh.rotation.y = Math.atan2(-(bp[2] - a[2]), bp[0] - a[0]);
+    mesh.rotation.x = Math.sin(t * 9) * 0.03;
+  });
+}
+
+/** Murmeltiere: aufrecht sitzend vor ihrem Bau (braun, cremiger Bauch) – list [[x, y, z, yaw]]. */
+export function murmeltiere(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  for (const [x, y, z, yaw = 0] of list) {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    const at = (u, h, v) => [x + u * c + v * s, y + h, z - u * s + v * c];
+    let q = at(-0.5, 0, 0); b.sphere(0.4, q[0], q[1] + 0.02, q[2], 0x4a3020, { s: [1, 0.3, 1], ws: 8, hs: 4 });
+    q = at(0, 0, 0); b.sphere(0.2, q[0], q[1] + 0.28, q[2], litTop(0xa8703e), { s: [1, 1.5, 0.95], ws: 9, hs: 7 });
+    q = at(0.08, 0, 0); b.sphere(0.12, q[0], q[1] + 0.26, q[2], 0xe8d0a8, { s: [0.8, 1.6, 1], ws: 7, hs: 5 });
+    q = at(0, 0, 0); b.sphere(0.13, q[0], q[1] + 0.62, q[2], litTop(0xa8703e), { ws: 9, hs: 7 });
+    q = at(0.12, 0, 0); b.sphere(0.06, q[0], q[1] + 0.6, q[2], 0xe8d0a8, { ws: 6, hs: 4 });
+    q = at(0.17, 0, 0); b.sphere(0.025, q[0], q[1] + 0.62, q[2], 0x2a1a10, { ws: 5, hs: 3 });
+    for (const sd of [-1, 1]) {
+      q = at(0.09, 0, sd * 0.06); b.sphere(0.022, q[0], q[1] + 0.68, q[2], 0x1a1a22, { ws: 5, hs: 3 });
+      q = at(-0.02, 0, sd * 0.1); b.sphere(0.035, q[0], q[1] + 0.74, q[2], 0x8a5a30, { ws: 5, hs: 3 });
+      q = at(0.1, 0, sd * 0.1); b.sphere(0.045, q[0], q[1] + 0.4, q[2], 0x8a5a30, { s: [0.7, 1.2, 0.7], ws: 5, hs: 4 });
+    }
+  }
+  b.flush(level);
+}
+
+// =====================================================================================================================
+// 6-2 Kulisse: Nebelschwaden, Irrlichter, Treibgut, Felsnadeln, Schatzhaufen, Frachtnetze
+// =====================================================================================================================
+
+/**
+ * Nebelschwaden über dem Meer: weiche, flache, halbdurchsichtige Bäusche (ein Mesh), die langsam treiben und atmen.
+ * list [[x, y, z, größe], …]; o: { drift [vx, vz] m/s, opacity 0.5 }.
+ */
+export function nebelschwaden(level, list, o = {}) {
+  if (!level.view || !list.length) return;
+  const b = new Bld();
+  for (const [x, y, z, s = 3] of list) {
+    for (let k = 0; k < 4; k++) {
+      const a = k * 1.7 + x;
+      b.sphere(s * (0.6 + 0.25 * Math.sin(a * 3)), x + Math.cos(a) * s * 0.7, y + 0.1 * k, z + Math.sin(a) * s * 0.4, 0xe8e0f0, { s: [1.6, 0.28, 1], ws: 12, hs: 6 });
+    }
+  }
+  const mesh = new THREE.Mesh(b.geometry(), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: o.opacity ?? 0.42, depthWrite: false, fog: true }));
+  mesh.name = 'nebelschwaden';
+  mesh.renderOrder = 3;
+  const [vx, vz] = o.drift ?? [0.35, 0.1];
+  const hv = {};
+  let t = 0;
+  addObject(level, mesh, (dt) => {
+    t += visDt(level, hv, dt);
+    const span = o.span ?? 14;
+    mesh.position.set(((t * vx + span) % (2 * span)) - span, Math.sin(t * 0.3) * 0.15, ((t * vz + span) % (2 * span)) - span);
+    mesh.material.opacity = (o.opacity ?? 0.42) * (0.85 + 0.15 * Math.sin(t * 0.5));
+  });
+}
+
+/** Irrlichter: grünlich leuchtende Kugeln, die über dem Wasser/im Laderaum schweben (ein Mesh, Glüh-Material). list [[x, y, z]]. */
+export function irrlichter(level, list, o = {}) {
+  if (!level.view || !list.length) return;
+  const root = new THREE.Group();
+  root.name = 'irrlichter';
+  const mat = level.view.mats?.glow ?? new THREE.MeshBasicMaterial({ color: 0x9affc8 });
+  const geo = new THREE.SphereGeometry(o.size ?? 0.16, 8, 6);
+  const col = new THREE.Color(o.color ?? 0x9affc8);
+  const pos = geo.attributes.position;
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(new Array(pos.count * 3).fill(0).map((_, i) => [col.r, col.g, col.b][i % 3]), 3));
+  const ms = list.map(([x, y, z], i) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.userData.home = [x, y, z, i * 1.37]; root.add(m); return m; });
+  const hv = {};
+  let t = 0;
+  addObject(level, root, (dt) => {
+    t += visDt(level, hv, dt);
+    for (const m of ms) {
+      const [x, y, z, ph] = m.userData.home;
+      m.position.set(x + Math.sin(t * 0.6 + ph) * 0.6, y + Math.sin(t * 1.3 + ph * 2) * 0.25, z + Math.cos(t * 0.5 + ph) * 0.6);
+      m.scale.setScalar(0.8 + 0.3 * Math.sin(t * 3 + ph));
+    }
+  });
+}
+
+/** Treibgut: Fässer, Kisten und Planken, die auf dem Meer schaukeln (ein Mesh je Stück). list [[x, z, art, yaw]], Wasserhöhe y. */
+export function treibgut(level, y, list) {
+  if (!level.view) return;
+  const root = new THREE.Group();
+  root.name = 'treibgut';
+  const items = [];
+  for (const [x, z, art = 'fass', yaw = 0] of list) {
+    const b = new Bld();
+    if (art === 'fass') { b.cyl(0.4, 0.4, 1.0, 0, -0.5, 0, { v: (qx, qy) => (Math.abs(qy) > 0.3 && Math.abs(qy) < 0.38 ? 0x3a3a48 : 0x8a5a32) }, 10, { rz: Math.PI / 2 }); }
+    else if (art === 'kiste') b.box(0.9, 0.9, 0.9, 0, -0.55, 0, litTop(0x8a6a42), { r: 0.04 });
+    else { for (let k = 0; k < 3; k++) b.box(2.2, 0.12, 0.32, 0, -0.06, (k - 1) * 0.36, litTop(0x6a5440), { r: 0.03 }); b.box(0.12, 0.14, 1.1, 0.6, 0, 0, 0x4a3a2a, { r: 0.02 }); }
+    const m = new THREE.Mesh(b.geometry(), level.view.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true }));
+    m.position.set(x, y, z);
+    m.rotation.y = yaw;
+    m.castShadow = false;
+    root.add(m);
+    items.push([m, x * 0.7 + z * 0.3]);
+  }
+  const hv = {};
+  let t = 0;
+  addObject(level, root, (dt) => {
+    t += visDt(level, hv, dt);
+    for (const [m, ph] of items) { m.position.y = y + Math.sin(t * 1.4 + ph) * 0.12; m.rotation.x = Math.sin(t * 1.1 + ph) * 0.12; m.rotation.z = Math.cos(t * 0.9 + ph) * 0.1; }
+  });
+}
+
+/** Felsnadeln aus dem Meer (dunkler Fels, Moos, Schaumkranz): list [[x, z, höhe, radius]], Wasserhöhe y. Mit Kollision (cyl). */
+export function felsnadeln(level, y, list, o = {}) {
+  const b = level.view ? new Bld() : null;
+  for (const [x, z, h = 6, r = 1.6] of list) {
+    if (o.solid) level.world.add({ type: 'cyl', x, z, r: r * 0.85, y0: y - 3, y1: y + h, tag: 'felsnadel' });
+    if (!b) continue;
+    const g = new THREE.CylinderGeometry(r * 0.25, r, h + 2, 7, 5);
+    const P = g.attributes.position;
+    for (let k = 0; k < P.count; k++) { const px = P.getX(k), py = P.getY(k), pz = P.getZ(k); const n = 0.85 + 0.3 * Math.abs(Math.sin(px * 3.1 + py * 1.7 + pz * 2.3 + x)); P.setXYZ(k, px * n, py, pz * n); }
+    g.computeVertexNormals();
+    b.add(g, { v: (px, py, pz, nx, ny) => (ny > 0.55 ? 0x5a8a5a : py < -(h + 2) / 2 + 1.2 ? 0x2a2a34 : 0x4a4858) }, { p: [x, y - 2 + (h + 2) / 2, z], r: [0, x, 0] });
+    b.torus(r * 1.05, 0.14, x, y + 0.04, z, 0xdff4f0, { rx: Math.PI / 2, rs: 5, ts: 18 });
+  }
+  b?.flush(level, { castShadow: o.shadow !== false });
+}
+
+/** Schatzhaufen (Laderaum): Truhe mit offenem Deckel und Bitcoin-Berg (golden leuchtend). */
+export function schatzhaufen(level, x, y, z, yaw = 0) {
+  if (!level.view) return;
+  const b = new Bld(), glow = new Bld();
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  b.box(1.4, 0.8, 0.9, x, y, z, litTop(0x8a5a2a), { yaw, r: 0.06 });
+  for (const sy of [0.05, 0.6]) b.box(1.44, 0.1, 0.94, x, y + sy, z, 0xd8a83a, { yaw, r: 0.02 });
+  b.box(1.4, 0.12, 0.9, x - s * 0.5, y + 1.2, z - c * 0.5, litTop(0x8a5a2a), { yaw, rx: -1.1 * c, rz: 1.1 * s, r: 0.05 });
+  for (let k = 0; k < 14; k++) {
+    const a = k * 2.4, r = 0.25 + (k % 4) * 0.12;
+    glow.cyl(0.13, 0.13, 0.04, x + Math.cos(a) * r, y + 0.78 + (k % 3) * 0.05, z + Math.sin(a) * r * 0.6, 0xffc83a, 10, { rx: Math.sin(a) * 0.4 });
+  }
+  for (let k = 0; k < 10; k++) { const a = k * 1.9; glow.cyl(0.13, 0.13, 0.04, x + Math.cos(a) * 1.1, y + 0.02, z + Math.sin(a) * 0.9, 0xffc83a, 10); }
+  b.flush(level);
+  glow.flush(level, { material: 'glow', castShadow: false });
+}
+
+/** Frachtnetz mit Säcken, das von einem Haken hängt (Laderaum): list [[x, yHaken, z, länge]]. */
+export function frachtnetze(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  for (const [x, y, z, len = 2] of list) {
+    b.cyl(0.03, 0.03, len, x, y - len, z, 0x8a7a5a, 4);
+    b.sphere(0.65, x, y - len - 0.5, z, 0xa89060, { s: [1, 0.9, 1], ws: 8, hs: 6 });
+    for (let k = 0; k < 4; k++) b.torus(0.62 - Math.abs(k - 1.5) * 0.08, 0.02, x, y - len - 0.9 + k * 0.3, z, 0x5a4a32, { rx: Math.PI / 2, rs: 3, ts: 14 });
+  }
+  b.flush(level, { castShadow: false });
+}
+
+/**
+ * Schnappblumen-Garten (6-1 Feld): Erdbeete mit Steinkante unter den Töpfen, Gießkannen, Schubkarre, Blumenrabatten am
+ * Rand. beds: [[x, z, r]] (runde Beete), y Bodenhöhe; o: { rabatten: [[x0, x1, z]] }.
+ */
+export function blumengarten(level, y, beds, o = {}) {
+  if (!level.view) return;
+  const b = new Bld();
+  const rnd = new Rnd(o.seed ?? 31);
+  for (const [x, z, r = 1.3] of beds) {
+    b.cyl(r, r + 0.05, 0.05, x, y, z, { v: (px, py, pz) => (Math.sin(px * 9 + pz * 7) > 0.6 ? 0x6a4428 : 0x7a5032) }, 14);
+    for (let k = 0; k < 10; k++) { const a = (k / 10) * TAU; b.sphere(0.16, x + Math.cos(a) * (r + 0.08), y + 0.06, z + Math.sin(a) * (r + 0.08), litTop(k % 2 ? 0xc8c4d4 : 0xb0acc0), { s: [1.2, 0.7, 1], ws: 6, hs: 4 }); }
+  }
+  for (const [x0, x1, z] of o.rabatten ?? []) {
+    for (let x = x0; x < x1; x += 0.45) {
+      const c = [0xff5a7a, 0xffd23d, 0xffffff, 0xb06aff, 0xff8a3a][Math.floor(rnd.frac() * 5)];
+      const h = rnd.real(0.25, 0.45);
+      b.cyl(0.015, 0.015, h, x, y, z + rnd.real(-0.25, 0.25), 0x4a9a3a, 3);
+      b.sphere(0.09, x, y + h, z + rnd.real(-0.25, 0.25), c, { ws: 6, hs: 4 });
+      b.sphere(0.13, x + 0.2, y + 0.08, z, 0x4aa83a, { s: [1, 0.6, 1], ws: 6, hs: 4 });
+    }
+  }
+  // Gießkannen
+  for (const [x, z, yaw = 0] of o.kannen ?? []) {
+    b.cyl(0.22, 0.25, 0.42, x, y, z, litTop(0x3d8bff), 12);
+    b.cyl(0.04, 0.05, 0.5, x + Math.cos(yaw) * 0.32, y + 0.3, z - Math.sin(yaw) * 0.32, 0x3d8bff, 6, { rz: Math.cos(yaw) * 0.9, rx: Math.sin(yaw) * 0.9 });
+    b.torus(0.15, 0.03, x, y + 0.5, z, 0x2a6ad0, { yaw, rs: 4, ts: 12 });
+  }
+  // Schubkarre
+  for (const [x, z, yaw = 0] of o.karren ?? []) {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    b.box(1.0, 0.36, 0.7, x, y + 0.3, z, litTop(0xe8283a), { yaw, r: 0.08 });
+    b.cyl(0.2, 0.2, 0.1, x + c * 0.55, y + 0.2, z - s * 0.55, 0x2a2a30, 10, { rx: Math.PI / 2 * Math.cos(yaw), rz: Math.PI / 2 * Math.sin(yaw) });
+    for (const sd of [-1, 1]) b.box(0.6, 0.06, 0.06, x - c * 0.7 + s * sd * 0.28, y + 0.4, z + s * 0.7 + c * sd * 0.28, 0x8a5a2a, { yaw, r: 0.02 });
+    b.sphere(0.32, x, y + 0.62, z, 0x6a4428, { s: [1.2, 0.5, 0.9], ws: 7, hs: 4 });
+  }
+  b.flush(level, { castShadow: false });
+}
+
+/**
+ * Gipfelglück (6-1 Ziel): Steinmann (gestapelte Steine), Rastbank, Fernrohr auf Dreibein, Regenbogen hinter dem Gipfel.
+ * o: { steinmann: [x, z], bank: [x, z, yaw], fernrohr: [x, z, yaw], regenbogen: [x, y, z, r] }, Bodenhöhe y.
+ */
+export function gipfelglueck(level, y, o = {}) {
+  if (!level.view) return;
+  const b = new Bld();
+  if (o.steinmann) {
+    const [x, z] = o.steinmann;
+    let h = y;
+    for (let k = 0; k < 6; k++) { const r = 0.62 - k * 0.08; b.sphere(r, x + Math.sin(k * 2.1) * 0.05, h + r * 0.55, z, litTop(k % 2 ? 0xc8c4d4 : 0xa8a4b8), { s: [1.2, 0.6, 1], ws: 8, hs: 5, yaw: k }); h += r * 1.05; }
+  }
+  if (o.bank) {
+    const [x, z, yaw = 0] = o.bank;
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    b.box(1.8, 0.1, 0.5, x, y + 0.45, z, litTop(0xb07a44), { yaw, r: 0.03 });
+    b.box(1.8, 0.4, 0.08, x - s * 0.24, y + 0.62, z - c * 0.24, litTop(0xa06a3a), { yaw, r: 0.03 });
+    for (const sd of [-0.75, 0.75]) b.box(0.1, 0.45, 0.45, x + c * sd, y, z - s * sd, 0x7a4a26, { yaw, r: 0.02 });
+  }
+  if (o.fernrohr) {
+    const [x, z, yaw = 0] = o.fernrohr;
+    for (const a of [0, 2.1, 4.2]) b.cyl(0.03, 0.04, 1.3, x + Math.cos(a + yaw) * 0.32, y, z + Math.sin(a + yaw) * 0.32, 0x8a5a2a, 5, { rx: Math.sin(a + yaw) * 0.25, rz: -Math.cos(a + yaw) * 0.25 });
+    b.cyl(0.09, 0.13, 0.8, x, y + 1.32, z, litTop(0xd8a83a), 10, { rz: Math.PI / 2 - 0.25, yaw });
+  }
+  b.flush(level);
+  if (o.regenbogen) {
+    const [x, ry, z, r = 9] = o.regenbogen;
+    const rb = new Bld();
+    [0xff4a4a, 0xffa23a, 0xffe14a, 0x5ad05a, 0x4a9aff, 0x9a6aff].forEach((col, i) => rb.torus(r - i * 0.42, 0.22, x, ry, z, col, { rs: 4, ts: 30, arc: Math.PI }));
+    rb.flush(level, { castShadow: false, material: 'glow' });
+  }
+}
+
+/** Seilzaun (Pfosten mit gelben Kappen, zwei weiße Seile) von a nach b ([x, z]) auf Höhe y – nur Optik. */
+export function seilzaun(level, a, bp, y, step = 2) {
+  if (!level.view) return;
+  const b = new Bld();
+  const dx = bp[0] - a[0], dz = bp[1] - a[1], L = Math.hypot(dx, dz), n = Math.max(1, Math.round(L / step));
+  for (let i = 0; i <= n; i++) {
+    const x = a[0] + (dx * i) / n, z = a[1] + (dz * i) / n;
+    b.cyl(0.06, 0.07, 0.8, x, y, z, 0x9a6a3a, 5);
+    b.sphere(0.08, x, y + 0.82, z, 0xffc21a, { ws: 5, hs: 3 });
+  }
+  for (const h of [0.45, 0.72]) b.box(L, 0.04, 0.04, (a[0] + bp[0]) / 2, y + h, (a[1] + bp[1]) / 2, 0xf6f4ef, { yaw: Math.atan2(-dz, dx), r: 0 });
+  b.flush(level, { castShadow: false });
+}
+
+/** Laternenpfähle (Anleger): Pfahl mit Querarm und hängender Geisterlaterne (Laternenlicht des Themas). list [[x, y, z, yaw]]. */
+export function laternenpfaehle(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), glow = new Bld();
+  for (const [x, y, z, yaw = 0] of list) {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    b.cyl(0.1, 0.13, 2.8, x, y, z, litTop(0x4a3c30), 7);
+    b.box(0.9, 0.1, 0.1, x + c * 0.4, y + 2.7, z - s * 0.4, 0x4a3c30, { yaw, r: 0.02 });
+    const lx = x + c * 0.78, lz = z - s * 0.78;
+    b.cyl(0.015, 0.015, 0.35, lx, y + 2.35, lz, 0x2a2a30, 4);
+    b.cyl(0.2, 0.24, 0.08, lx, y + 2.3, lz, 0x3a3a44, 8);
+    b.cyl(0.24, 0.2, 0.08, lx, y + 1.74, lz, 0x3a3a44, 8);
+    glow.cyl(0.17, 0.17, 0.48, lx, y + 1.82, lz, 0x9affc8, 8);
+    level.view.addLantern?.(lx, y + 2.0, lz);
+  }
+  b.flush(level);
+  glow.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Sonnenschatten nur nahe der Figur (Budget): Die Stachelkugeln (≈ 5700 Dreiecke, Schattenpass doppelt) werfen nur
+ * innerhalb von dist m (waagerecht) einen Sonnenschatten; weiter weg reicht der Bodenfleck. kinds: Entitäts-Arten.
+ */
+export function schattenNah(level, kinds, dist = 12) {
+  if (!level.view) return;
+  const set = new Set(kinds);
+  let t = 0;
+  addObject(level, new THREE.Group(), (dt) => {
+    t -= dt;
+    if (t > 0) return;
+    t = 0.2;
+    const p = level.player;
+    if (!p) return;
+    for (const e of level.entities) {
+      if (!set.has(e.kind) || !e.model?.root) continue;
+      const on = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < dist;
+      if (e.__sun === on) continue;
+      e.__sun = on;
+      e.model.root.traverse((o) => { if (o.isMesh) o.castShadow = on; });
+    }
+  });
+}
+
+/**
+ * Felswand mit Durchsicht (6-1 Felsgrat): gebänderte Alpenfels-Haut um ein Rechteck (x0..x1 × zA..zB) von top bis bottom,
+ * als eigenes Mesh bei view.xray angemeldet – wird wie der Inselblock darunter durchscheinend, wenn sie zwischen Kamera
+ * und Figur steht. Nur Optik (die Kollision liefert der Block).
+ */
+export function felswand(level, x0, x1, zA, zB, top, bottom, o = {}) {
+  if (!level.view) return;
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+  const step = o.step ?? 1.4, band = o.band ?? 1.8, seed = o.seed ?? 2;
+  const cols = (o.colors ?? ALP_BANDS).map((c) => new THREE.Color(c));
+  // Umlauf gegen den Uhrzeigersinn (von oben, +X rechts, −Z vorn): Vorderkante, rechte Seite, Hinterkante, linke Seite
+  const corners = [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
+  const pts = [], nrm = [];
+  for (let i = 0; i < 4; i++) {
+    const a = corners[i], b = corners[(i + 1) % 4];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(L / step));
+    const tx = (b[0] - a[0]) / L, tz = (b[1] - a[1]) / L;
+    for (let k = 0; k < n; k++) { pts.push([a[0] + (b[0] - a[0]) * (k / n), a[1] + (b[1] - a[1]) * (k / n)]); nrm.push([-tz, tx]); }
+  }
+  const N = pts.length;
+  const ys = [top - 0.05, top - 0.7];
+  for (let y = top - 0.7 - band; y > bottom; y -= band) ys.push(y);
+  ys.push(bottom);
+  const off = (i, k) => (k === 0 ? 0.02 : 0.08 + 0.26 * (0.5 + 0.5 * Math.sin(i * 1.93 + k * 2.71 + seed)) * (0.6 + 0.4 * Math.sin(i * 0.37 + seed)));
+  const P = (i, k) => { const ii = i % N, d = off(ii, k); return [pts[ii][0] + nrm[ii][0] * d, ys[k], pts[ii][1] + nrm[ii][1] * d]; };
+  const pos = [], col = [];
+  const c = new THREE.Color(), sun = new THREE.Vector3(-0.55, 0.3, 0.42).normalize();
+  for (let k = 0; k < ys.length - 1; k++) {
+    const bc = cols[(k + seed) % cols.length];
+    for (let i = 0; i < N; i++) {
+      const A = P(i, k), B = P(i + 1, k), C = P(i + 1, k + 1), D = P(i, k + 1);
+      const m = nrm[i];
+      c.copy(bc).multiplyScalar((0.8 + 0.28 * Math.max(0, m[0] * sun.x + m[1] * sun.z) + (k === 0 ? 0.08 : 0)) * (0.92 + 0.08 * Math.sin(i * 2.3 + k)));
+      for (const q of [A, D, C, A, C, B]) { pos.push(q[0], q[1], q[2]); col.push(c.r, c.g, c.b); }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  const mat = (level.view.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true })).clone();
+  const mesh = new THREE.Mesh(g, mat);
+  mesh.castShadow = false; mesh.receiveShadow = true; mesh.name = 'durchsicht:felswand';
+  addObject(level, mesh);
+  const box = new THREE.Box3(new THREE.Vector3(x0 - 0.8, bottom, z1 - 0.8), new THREE.Vector3(x1 + 0.8, top + 0.3, z0 + 0.8));
+  level.view.xray?.(mesh, box, { min: o.min ?? 0.3 });
+  // Moospolster mit Blüten und Grasbüschel auf den Felsbändern (eigenes Mesh, ebenfalls durchscheinend)
+  const n = o.moos ?? 0;
+  if (!n) return;
+  const rnd = new Rnd(seed * 7 + 3), b = new Bld();
+  const faces = [[x0, x1, z0 + 0.32, 0, 1], [x0, x1, z1 - 0.32, 0, -1], [x1 + 0.32, x1 + 0.32, z0, z1, 0], [x0 - 0.32, x0 - 0.32, z0, z1, 0]];
+  for (let i = 0; i < n; i++) {
+    const f = faces[i % 5 === 4 ? 2 + (i % 2) : i % 3 === 2 ? 1 : 0];
+    const t = rnd.frac();
+    const x = f[4] !== 0 ? f[0] + 1 + (f[1] - f[0] - 2) * t : f[0];
+    const z = f[4] !== 0 ? f[2] : f[2] + (f[3] - f[2]) * t;
+    const k = 1 + Math.floor(rnd.frac() * (ys.length - 2));
+    const y = Math.min(top - 0.5, ys[k] + 0.1);
+    const r = rnd.real(0.45, 0.8);
+    b.sphere(r, x, y, z, litTop(rnd.frac() < 0.5 ? 0x6ac84a : 0x58b43e), { s: [1.7, 0.42, 0.9], ws: 7, hs: 4 });
+    for (let j = 0; j < 3; j++) b.sphere(0.07, x + rnd.real(-r, r), y + r * 0.4, z + rnd.real(-0.2, 0.2), [0xffffff, 0xffe04a, 0xff8ac8, 0x6a8aff][(i + j) % 4], { ws: 4, hs: 3 });
+  }
+  for (let x = x0 + 0.6; x < x1; x += rnd.real(1.4, 2.4)) b.cone(0.16, rnd.real(0.35, 0.6), x, top - 0.02, z0 + 0.12, 0x5ec442, 4);
+  const mg = b.geometry();
+  if (!mg) return;
+  const mm = new THREE.Mesh(mg, mat.clone());
+  mm.castShadow = false; mm.receiveShadow = true; mm.name = 'durchsicht:moos';
+  addObject(level, mm);
+  level.view.xray?.(mm, box, { min: o.min ?? 0.3 });
 }

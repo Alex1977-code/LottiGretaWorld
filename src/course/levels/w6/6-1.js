@@ -18,8 +18,10 @@
 
 import {
   isl, line, ring, arc, column, gipfel, grat, bergwiese, steinpfad, trockenmauer, glasgang, lochinsel, almhuette, kuehe,
-  gipfelfahnen, wimpelkette, vogelschwarm, wolkenkranz,
+  gipfelfahnen, wimpelkette, vogelschwarm, wolkenkranz, grasbueschel, wasserfall, felsnasen, seilbahn, murmeltiere,
+  blumengarten, gipfelglueck, seilzaun, schattenNah, felswand,
 } from './_helpers_a.js';
+import { balloons } from '../w5/_helpers_b.js';
 
 const Y1 = 1, RIDGE = 8.5;              // Startgipfel, Felsgrat
 const Y2 = 7;                           // Gegnerstrecke, Checkpoint
@@ -42,6 +44,7 @@ const key = (x, y, z) => ({ kind: 'schluesselmuenze', pos: [x, y, z], group: 'to
 function build(level) {
   // ---------------- Gipfelflanken bis ins Wolkenmeer
   gipfel(level, -13, 13, 9, -46, Y1, { seed: 1 });
+  felswand(level, -13, 13, -17, -23.5, RIDGE, Y1 - 0.2, { seed: 2, moos: 22 });
   gipfel(level, -9, 9, -50, -64, Y2, { seed: 3, poly: [[-9, -50], [9, -50], [9, -63], [6, -64], [6, -80], [-6, -80], [-6, -64], [-9, -63]] });
   gipfel(level, -12, 11, -93, -112, Y2, { seed: 4 });
   grat(level, -12, 11, -112, -125, T2, Y2, { seed: 5 });
@@ -68,12 +71,48 @@ function build(level) {
   trockenmauer(level, [-12.6, -45.6], [12.6, -45.6], Y1);
   almhuette(level, -8.6, Y1, -2.5, { yaw: Math.PI / 2 - 0.25 });
   kuehe(level, [[7.5, Y1, -1.5, 2.6], [9.6, Y1, -9.5, 0.4, 0.95], [-6.5, Y1, 6.5, -0.4, 0.9]]);
+  murmeltiere(level, [[10.2, Y1, 0.6, 2.2], [11.3, Y1, -0.6, 2.6], [-10.6, T2, -112.8, 1.2], [13.6, Y4, -170.6, -2.4]]);
+  wimpelkette(level, [-10.4, Y1 + 2.6, 0.2], [-3.6, Y1 + 2.2, 4.4], 10, 0.5);
+
+  // ---------------- Grasbüschel, Felsnasen, Wasserfälle
+  grasbueschel(level, [
+    [-13, 13, 9, -17, Y1, 70], [-12.6, 12.6, -23.5, -45.6, Y1, 50], [-9, 9, -50, -64, Y2, 30], [-6, 6, -64, -80, Y2, 22],
+    [-12, 11, -93, -112, Y2, 40], [-12, 11, -112, -125, T2, 26], [-12, 11, -125, -139, T3, 26], [-11, 11, -139, -160, T4, 34],
+    [-16, 16, -166, -214, Y4, 80], [-9, 9, -222, -246, Y5, 30],
+  ], { avoid: [[0, -14.4, 1.4], [0, 4, 1.2], [GX, -36.6, 1.6], [GX, -40, 1.6]] });
+  felsnasen(level, [
+    [-14.6, Y1 - 3.5, -4, 1.6], [14.8, Y1 - 5, -20, 1.4], [-14.4, Y1 - 6, -38, 1.8], [14.5, Y1 - 3, -40, 1.2, false],
+    [-10.2, Y2 - 4, -57, 1.5], [10.4, Y2 - 6, -60, 1.3], [-7.4, Y2 - 3, -74, 1.2, false], [7.4, Y2 - 5, -70, 1.4],
+    [-13.6, Y2 - 4, -100, 1.6], [12.6, Y2 - 3, -96, 1.3], [-13.4, T2 - 2.5, -119, 1.2, false], [12.4, T3 - 3, -131, 1.4],
+    [-12.4, T4 - 3.5, -150, 1.5], [17.6, Y4 - 4, -180, 1.7], [-17.4, Y4 - 3, -200, 1.5], [-10.4, Y5 - 4, -232, 1.4],
+  ]);
+  wasserfall(level, -13, Y1, -10, { yaw: -Math.PI / 2, bottom: -16, w: 1.6, len: 2.6 });
+  wasserfall(level, 11, Y2, -104.6, { yaw: Math.PI / 2, bottom: -12, w: 1.3, len: 2.2 });
+  wasserfall(level, -16, Y4, -205, { yaw: -Math.PI / 2, bottom: -6, w: 1.5, len: 2.4 });
+  wolkenkranz(level, 0, -18, 16, 26, Y1 - 9, { n: 34, seed: 2, size: 1.6 });
+  wolkenkranz(level, 0, -82, 13, 34, Y2 - 10, { n: 30, seed: 4, size: 1.6 });
+  wolkenkranz(level, 0, -136, 14, 26, Y2 - 7, { n: 28, seed: 6, size: 1.6 });
+  wolkenkranz(level, 0, -190, 18, 26, Y4 - 8, { n: 32, seed: 8, size: 1.7 });
+  wolkenkranz(level, 0, -234, 11, 14, Y5 - 7, { n: 20, seed: 9, size: 1.5 });
+
+  // ---------------- Gratweg mit Seilzaun, Schnappblumen-Garten, Gipfelglück
+  seilzaun(level, [-5.7, -64.4], [-5.7, -79.4], Y2);
+  seilzaun(level, [5.7, -64.4], [5.7, -79.4], Y2);
+  blumengarten(level, Y4, [[-8, -180], [-3.5, -177.5], [3.5, -177.5], [8, -183], [-9, -190], [-4.6, -194.6], [4.6, -194.6], [9, -190], [-6, -203], [6, -203]].map(([x, z]) => [x, z, 1.25]), {
+    rabatten: [[-15, -6, -166.6], [6, 15, -166.6], [-15, -3, -213.4], [3, 15, -213.4]],
+    kannen: [[-11.6, -186, 0.6], [12.2, -194, 2.4]], karren: [[11.8, -170.4, 0.4]],
+  });
+  almhuette(level, -12.4, Y4, -209.6, { yaw: Math.PI / 2 + 0.2, size: 0.8 });
+  gipfelglueck(level, Y5, { steinmann: [-5.6, -236], bank: [5, -233.2, -0.4], fernrohr: [6.6, -238.6, 0.6], regenbogen: [0, Y5 - 2, -252, 11] });
 }
 
 function setup(level) {
   gipfelfahnen(level, [[11.2, Y1, 7.6, 0xe8283a, 4.4], [-8.2, Y5, -244.5, 0x3d8bff, 5], [8.2, Y5, -244.5, 0xffd23d, 5]]);
   vogelschwarm(level, { pos: [18, 14, -40], r: 9, n: 6 });
   vogelschwarm(level, { pos: [-22, 28, -150], r: 11, n: 7, speed: -0.2 });
+  seilbahn(level, [30, 26, -60], [44, 40, -170], { foot: -14, period: 30, sag: 2 });
+  balloons(level, [[-24, 16, -66, 0xff5a5a, 0xffe04a, 1.2], [27, 33, -138, 0x5ac8ff, 0xffffff, 1.3], [-22, 38, -222, 0xb07aff, 0xffa040, 1.1]]);
+  schattenNah(level, ['stachelkugel'], 11);
 }
 
 export const LEVEL = {
@@ -86,6 +125,7 @@ export const LEVEL = {
   timeLimit: 400,
   killY: -12,
   farHide: 70,
+  instances: { coin: { farHide: 44, shadow: false } },
   build,
   setup,
   start: { pos: [0, Y1, 4], yaw: Math.PI / 2 },
@@ -129,7 +169,17 @@ export const LEVEL = {
       nodes: { A: [0, Y2 + P, -75], B: [0, Y2 + P, -96] },
       pipes: [{ from: 'A', to: 'B', coins: 4 }] },
     { type: 'deco_w6', items: [
+      { kind: 'bergkiefern', pos: [-9.6, RIDGE, -20.2], size: [5, 4], n: 3 }, { kind: 'bergkiefern', pos: [9.6, RIDGE, -20.2], size: [5, 4], n: 3 },
+      { kind: 'felsen', pos: [-3.6, RIDGE, -19.4], size: [1.6, 3], n: 2 }, { kind: 'bergblumen', pos: [4, RIDGE, -21], size: [3, 4], n: 6 },
       { kind: 'bergkiefern', pos: [-7, Y2, -52], size: [3, 3], n: 2 }, { kind: 'felsen', pos: [7, Y2, -52.5], size: [3, 3], n: 2 },
+      { kind: 'bergkiefern', pos: [-8, Y2, -62], size: [2, 2], n: 2 }, { kind: 'felsen', pos: [8, Y2, -61.6], size: [2, 2], n: 2 },
+      { kind: 'bergkiefern', pos: [-10, Y2, -95], size: [2, 3], n: 2 }, { kind: 'felsen', pos: [9.6, Y2, -95.4], size: [2, 2], n: 2 },
+      { kind: 'bergkiefern', pos: [-10.6, T2, -124], size: [2, 2], n: 2 }, { kind: 'bergkiefern', pos: [9.8, T3, -137.6], size: [2, 2], n: 2 },
+      { kind: 'felsen', pos: [-10.6, T3, -137.4], size: [2, 2], n: 2 }, { kind: 'bergkiefern', pos: [-9.6, T4, -158.4], size: [2, 2], n: 2 },
+      { kind: 'bergkiefern', pos: [9.6, T4, -158.6], size: [2, 2], n: 2 }, { kind: 'felsen', pos: [9.8, T4, -141], size: [2, 2], n: 2 },
+      { kind: 'bergkiefern', pos: [-14.6, Y4, -168.4], size: [2, 2], n: 2 }, { kind: 'bergkiefern', pos: [15, Y4, -205], size: [2, 3], n: 2 },
+      { kind: 'bergkiefern', pos: [-7.6, Y5, -244.4], size: [2, 2], n: 2 }, { kind: 'bergkiefern', pos: [7.8, Y5, -224], size: [2, 2], n: 2 },
+      { kind: 'felsen', pos: [-7.8, Y5, -224.6], size: [2, 2], n: 2 }, { kind: 'bergblumen', pos: [0, Y5, -236], size: [14, 18], n: 18, avoid: [[0, -240, 1.6], [0, -226, 1.6], [-5.6, -236, 1], [5, -233.2, 1.2], [6.6, -238.6, 0.8]] },
       { kind: 'bergkiefer', pos: [-9.6, Y2, -110], height: 4.6 }, { kind: 'bergkiefer', pos: [9.4, Y2, -108.5], height: 4.2 },
       { kind: 'wolkenfels', pos: [-22, 0, -84], size: 5, shadow: false }, { kind: 'wolke', pos: [14, 4, -86], size: 3.4, shadow: false },
     ] },

@@ -118,7 +118,7 @@ const ROUTES = {
       ['warp1', [4, Y1, -38]],
       ['gipfel2', [0, Y2, -57]],
       ['gratweg', [0, Y2, -70]],
-      ['wuschelroehre', [0, Y2, -77]],
+      ['wuschelroehre', [-2.6, Y2, -77.4]],
       ['checkpoint', [0, Y2, -100]],
       ['bogen', [6, Y2, -103]],
       ['terrasse2', [0, T2, -116]],
