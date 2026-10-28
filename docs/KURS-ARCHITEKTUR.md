@@ -197,7 +197,8 @@ Effekte (`sfx(name)`): `jump`, `jump2`, `jump3`, `backflip`, `longjump`, `wallju
 
 Vertragsnotiz (ergänzte Effekte, `MORE_SFX` = `engine.effects.more`): die bisher stumm aufgerufenen Namen sind eigene
 Effekte – Figur `skid`, `glide`, `wallslide`, `swim`, `fence` (Zaun/Deckengitter), `grab`/`swing` (Trapez), `victory`
-(Siegespose, kleine Fanfare ≈ 0,9 s; läuft über der Level-Musik bzw. `course_clear`); Fahrt/Bausteine `fall`, `boost`,
+(Siegespose, kleine Fanfare ≈ 0,9 s über der Level-Musik; läuft schon die Musik-Fanfare `course_clear`, z. B. in der
+Arena, spielt `sfx()` nur Jubel-Glitzer – Rezepte bekommen dann `{ overFanfare: true }`); Fahrt/Bausteine `fall`, `boost`,
 `chain`, `alarm`, `flip`, `donut`, `pfiff`, `note0`–`note7` (Tastenstein, C-Dur-Pentatonik); Gegner `hop`, `dash`, `kick`,
 `dizzy`, `boomerang`, `dig`, `throw`, `fuse`, `burn`. Lautheit wie die übrigen Effekte (Median −23 LUFS, Wiederholklänge
 −25), höchstens 26 Knoten. **Drosselung:** derselbe Name klingt erst nach einem Mindestabstand wieder (`SFX_GAP` in
