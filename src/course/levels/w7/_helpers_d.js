@@ -517,6 +517,102 @@ export function blauePlatte(level, id, o = {}) {
   addObject(level, mesh, () => { mesh.position.set(m.pm.pos.x, m.pm.pos.y, m.pm.pos.z); });
 }
 
+// =====================================================================================================================
+// 4) 7-Burg: Glutfeste (Lava-Burg)
+// =====================================================================================================================
+
+export const FESTE = {
+  brick: [0x6e4440, 0x7c4c48, 0x5e3836, 0x885652, 0x744644],
+  mortar: 0x2a1616, cap: 0xc0a8a4, capDark: 0x6a5254, gold: 0xffc23a, red: 0xd8323a, iron: 0x3a3438, ironHi: 0x8a8088,
+  glow: 0xff8a2a, slit: 0xffb04a,
+};
+
+/**
+ * Burgmauer entlang x oder z (Ziegel in Glutfeste-Farben, Zinnen, leuchtende Schießscharten): m = { from: [x, z], to: [x, z],
+ * y, h 3, t 0.8, faces [±1] (Ziegelseiten; bei Mauern entlang z: +1 = +x-Seite), merlons true, slits true, solid true,
+ * camIgnore }. Kollision über die ganze Mauer (mit Zinnen).
+ */
+export function burgMauer(level, b, g, m, rnd) {
+  const [ax, az] = m.from, [bx, bz] = m.to;
+  const alongX = Math.abs(bx - ax) >= Math.abs(bz - az);
+  const H = m.h ?? 3, T = m.t ?? 0.8, y = m.y;
+  const a0 = alongX ? Math.min(ax, bx) : Math.min(az, bz), a1 = alongX ? Math.max(ax, bx) : Math.max(az, bz);
+  const c = alongX ? az : ax, L = a1 - a0, mid = (a0 + a1) / 2;
+  const box = (w, h, d, u, yy, v, col, o) => (alongX ? b.box(w, h, d, u, yy, v, col, o) : b.box(d, h, w, v, yy, u, col, o));
+  box(L, H, T - 0.12, mid, y, c, FESTE.mortar, { r: 0 });
+  for (const dir of m.faces ?? [1, -1]) ziegel(b, { axis: alongX ? 'x' : 'z', at: c + dir * (T / 2 - 0.06), a0, a1, y0: y + 0.05, y1: y + H - 0.25, dir, pal: FESTE.brick }, rnd);
+  box(L + 0.1, 0.24, T + 0.12, mid, y + H - 0.24, c, litTop(FESTE.cap, 0.6), { r: 0 });
+  if (m.merlons !== false) {
+    const n = Math.max(1, Math.round(L / 1.3));
+    for (let i = 0; i < n; i++) box(Math.min(0.74, L / n - 0.3), 0.62, T - 0.05, a0 + (i + 0.5) * (L / n), y + H, c, litTop(FESTE.cap, 0.55), { r: 0 });
+  }
+  if (m.slits !== false && H > 2.2) {
+    const n = Math.max(1, Math.floor(L / 3.2));
+    for (const dir of m.faces ?? [1, -1]) for (let i = 0; i < n; i++) {
+      const u = a0 + (i + 0.5) * (L / n), v = c + dir * (T / 2 + 0.05);
+      if (alongX) g.box(0.2, 0.66, 0.06, u, y + H * 0.45, v, FESTE.slit, { r: 0 }); else g.box(0.06, 0.66, 0.2, v, y + H * 0.45, u, FESTE.slit, { r: 0 });
+    }
+  }
+  if (m.solid !== false) {
+    const top = y + H + (m.merlons === false ? 0 : 0.6);
+    level.world.add(alongX ? { type: 'box', min: [a0, y, c - T / 2], max: [a1, top, c + T / 2], tag: 'burgmauer', camIgnore: !!m.camIgnore }
+      : { type: 'box', min: [c - T / 2, y, a0], max: [c + T / 2, top, a1], tag: 'burgmauer', camIgnore: !!m.camIgnore });
+  }
+}
+
+/** Ziegelfassaden an Inselseiten (+z, ±x, −z nach sides 'fxlb') mit Glutsaum an der Lava: rects [[x0, x1, zA, zB, top, sides], …]. */
+export function burgFassaden(b, g, rects, lavaY, rnd) {
+  for (const [x0, x1, zA, zB, top, sides] of rects) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), y0 = lavaY - 0.3, y1 = top - 0.08;
+    const S = sides ?? 'fxl';
+    if (S.includes('f')) ziegel(b, { axis: 'x', at: z0, a0: x0, a1: x1, y0, y1, dir: 1, depth: 0.12, pal: FESTE.brick }, rnd);
+    if (S.includes('l')) ziegel(b, { axis: 'z', at: x0, a0: z1, a1: z0, y0, y1, dir: -1, depth: 0.12, shift: 1, pal: FESTE.brick }, rnd);
+    if (S.includes('x')) ziegel(b, { axis: 'z', at: x1, a0: z1, a1: z0, y0, y1, dir: 1, depth: 0.12, shift: 1, pal: FESTE.brick }, rnd);
+    if (S.includes('b')) ziegel(b, { axis: 'x', at: z1, a0: x0, a1: x1, y0, y1, dir: -1, depth: 0.12, pal: FESTE.brick }, rnd);
+    const sy = lavaY + 0.02, c = FESTE.glow;
+    if (S.includes('f')) g.box(x1 - x0 + 0.3, 0.16, 0.12, (x0 + x1) / 2, sy, z0 + 0.14, c, { r: 0 });
+    if (S.includes('b')) g.box(x1 - x0 + 0.3, 0.16, 0.12, (x0 + x1) / 2, sy, z1 - 0.14, c, { r: 0 });
+    if (S.includes('l')) g.box(0.12, 0.16, z0 - z1 + 0.3, x0 - 0.14, sy, (z0 + z1) / 2, c, { r: 0 });
+    if (S.includes('x')) g.box(0.12, 0.16, z0 - z1 + 0.3, x1 + 0.14, sy, (z0 + z1) / 2, c, { r: 0 });
+    if (S.includes('f')) b.box(x1 - x0 + 0.08, 0.16, 0.22, (x0 + x1) / 2, top - 0.2, z0 + 0.06, litTop(FESTE.cap, 0.65), { r: 0 });
+  }
+}
+
+/**
+ * Eisengitter (Optik; Kollision legt der Level an): senkrecht ('x' = Fläche entlang x bei z = at, 'z' = entlang z bei x = at)
+ * oder waagerecht ('y': Rost bei y = at über x0..x1 × z0..z1). Stäbe alle cell m, Rahmen, Nieten.
+ */
+export function eisenGitter(b, o) {
+  const cell = o.cell ?? 0.42, bar = o.bar ?? 0.08, col = litTop(FESTE.iron, 0.7), hi = litTop(FESTE.ironHi, 0.7);
+  if (o.axis === 'y') {
+    const { x0, x1, z0, z1, at: y } = o;
+    for (let x = x0 + cell / 2; x < x1; x += cell) b.box(bar, bar, z1 - z0, x, y, (z0 + z1) / 2, col, { r: 0 });
+    for (let z = z0 + cell / 2; z < z1; z += cell) b.box(x1 - x0, bar * 0.8, bar, (x0 + x1) / 2, y + 0.02, z, col, { r: 0 });
+    for (const z of [z0, z1]) b.box(x1 - x0 + 0.1, 0.16, 0.16, (x0 + x1) / 2, y - 0.04, z, hi, { r: 0 });
+    for (const x of [x0, x1]) b.box(0.16, 0.16, z1 - z0 + 0.1, x, y - 0.04, (z0 + z1) / 2, hi, { r: 0 });
+    return;
+  }
+  const { a0, a1, y0, y1, at } = o, alongX = o.axis === 'x';
+  const B = (w, h, d, u, y, col2) => (alongX ? b.box(w, h, d, u, y, at, col2, { r: 0 }) : b.box(d, h, w, at, y, u, col2, { r: 0 }));
+  for (let u = a0 + cell / 2; u < a1; u += cell) B(bar, y1 - y0, bar, u, y0, col);
+  for (let y = y0 + 0.6; y < y1 - 0.2; y += 1.2) B(a1 - a0, 0.1, 0.12, (a0 + a1) / 2, y, col);
+  B(a1 - a0 + 0.16, 0.18, 0.18, (a0 + a1) / 2, y1 - 0.18, hi);
+  for (const u of [a0, a1]) B(0.2, y1 - y0, 0.2, u, y0, hi);
+  for (let u = a0 + 0.3; u < a1; u += 0.9) B(0.12, 0.12, 0.2, u, y1 - 0.38, FESTE.gold);
+}
+
+/** Wandbehang/Banner-Reihe in Burgfarben auf einer Fläche (Optik): list [[x, y, z, yaw, farbe], …] (yaw: Vorderseite). */
+export function burgBanner(b, g, list) {
+  for (const [x, y, z, yaw = -Math.PI / 2, col = FESTE.red] of list) {
+    const nx = Math.cos(yaw), nz = -Math.sin(yaw);
+    const px = x + nx * 0.06, pz = z + nz * 0.06, ry = yaw + Math.PI / 2;
+    b.box(1.1, 2.0, 0.04, px, y - 2.0, pz, col, { yaw: ry, r: 0 });
+    b.box(1.3, 0.1, 0.1, px, y, pz, FESTE.gold, { yaw: ry, r: 0 });
+    b.cone(0.56, 0.5, px, y - 2.0, pz, col, 3, { rx: Math.PI, yaw: ry, s: [1, 1, 0.08] });
+    g.sphere(0.24, px + nx * 0.03, y - 1.0, pz + nz * 0.03, FESTE.gold, { s: nx ? [0.3, 1, 1] : [1, 1, 0.3], ws: 10, hs: 6 });
+  }
+}
+
 /** Bimsstein-Ente (schwimmt auf Lava): Geometrie mit Vertexfarben, Ursprung = Schwimmlinie. */
 function enteGeo() {
   const bl = new Bld();

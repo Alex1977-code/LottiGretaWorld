@@ -161,6 +161,75 @@ const ROUTES = {
       ['ziel', [0, 2, -250]],
     ],
   },
+  '7-Burg': {
+    start: [0, 2, 5],
+    meta: { stars: 3, time: 500, theme: 'lavacastle', music: 'course_keep', archetype: 'boss' },
+    enemies: { feuer_werfer: 7, lavablase: 12, baron_kampfwagen: 1, kampfwagen_strasse: 1, bomb_cannon: 1, druckknopf: 1 },
+    weapons: { bumerang: 3, feuer: 2, hammer: 2 },
+    main: [
+      { name: 'Vorplatz', to: [0, -7], within: 0.6 },
+      { name: 'Bumerang-Werfer mit Wurfsichel', stompAll: 'bumerang1' },
+      { name: 'Wurfsichel aufheben', chaseKind: 'powerup', max: 900 }, { expect: 'sichel' },
+      { name: 'Bumerang-Werfer auf dem Podest', stompAll: 'bumerang2' },
+      { to: [-1.2, -27.4], within: 0.4, run: false }, { wait: 15 },
+      { name: 'Trittsteine', to: [-1.2, -30.2], jump: 18, within: 0.7, run: false },
+      { to: [1.2, -32.6], jump: 18, within: 0.7, run: false },
+      { to: [0, -35.6], jump: 18, within: 0.7, run: false },
+      { name: 'dritter Bumerang-Werfer', stompAll: 'bumerang3' },
+      { to: [0, -47], within: 0.6 },
+      { name: 'Ufer am Burggraben', to: [0, -51.4], within: 0.5 },
+      { to: [8.5, -50.4], within: 0.4, run: false },
+      { name: 'Kickbombe der Burgkanone gegen die Blockwand', bombe: true, at: [8.5, -51.6], done: 'wandWeg' },
+      { name: 'Druckknopf im Wachturm', to: [8.5, -58.2], within: 0.4, run: false },
+      { to: [8.5, -60.2], jump: 20, within: 0.5, run: false }, { until: 'brueckeUnten', max: 600 },
+      { to: [8.5, -52], within: 0.4, run: false },
+      { to: [2, -52.4], within: 0.5, run: false },
+      { name: 'Zugbrücke', to: [0, -59], within: 0.6 },
+      { to: [0, -71], within: 0.6 },
+      { name: 'Kontrollpunkt', to: [0, -77], within: 0.6 },
+      { expect: 'burgCp' },
+      { to: [1.9, -92.4], within: 0.5 },
+      { name: 'Klappstampfer-Gang', to: [1.9, -98.4], within: 0.5 },
+      { to: [-1.9, -99], within: 0.5 },
+      { to: [-1.9, -104.6], within: 0.5 },
+      { to: [0, -105.4], within: 0.5 },
+      { name: 'großer Klappstampfer liegt', until: 'klapp3Liegt', max: 900 },
+      { to: [0, -113], within: 0.6 },
+      { name: 'schmaler Steg', to: [0, -125], within: 0.6 },
+      { to: [0, -150.6], within: 0.6 },
+      { name: 'zwei Hammer-Werfer', stompAll: 'hammer' },
+      { until: 'warpBoss', max: 300 },
+      { name: 'Warp-Box zum Boss', warp: [0, -161.4] },
+      { expect: 'bossStart' },
+      { to: [0, -205], within: 0.6 },
+      { name: 'Baron Brummbär im Kampfwagen', boss: true },
+      { until: 'warpSieg', max: 900 },
+      { name: 'Warp-Box nach dem Sieg', warp: [3.5, -346] },
+      { expect: 'siegerplateau' },
+      { name: 'Zielmast', to: [0, -392.4], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'Blockwand mit einer Kickbombe der Burgkanone gesprengt, Zugbrücke per Druckknopf gesenkt', ok: (r) => r.mech.wall && r.mech.bridge === 'unten' },
+      { name: 'Baron im Kampfwagen besiegt (9 Treffer aus zurückgekickten Bomben und Wurfsichel-Kratzern, über alle Lavalücken)', ok: (r) => r.mech.boss?.state === 'gone' && r.mech.boss.hits >= 9 && r.mech.boss.bombHits + r.mech.boss.sichelTreffer === r.mech.boss.hits && r.mech.boss.gapJumps >= 3 },
+    ],
+    shots: [
+      ['start', [0, 2, 5]],
+      ['schacht', [-5, 2, -1]],
+      ['vorhof', [0, 2, -16]],
+      ['hof2', [0, 2, -36]],
+      ['ufer', [0, 2, -52]],
+      ['turm', [6, 2, -50.6]],
+      ['bruecke', [-3, 2, -58]],
+      ['cp', [0, 2, -77]],
+      ['vordach', [7, 2, -84.5]],
+      ['gang', [0, 2, -94]],
+      ['hof3', [0, 2, -116]],
+      ['steg', [0, 2, -132]],
+      ['buehne', [0, 2, -153]],
+      ['boss', [0, 2, -203]],
+      ['ziel', [0, 2, -384]],
+    ],
+  },
 };
 
 const PORT = 4750;
@@ -216,6 +285,18 @@ function install() {
     seeFlut: () => { const t = seeT(); return t >= 7.2 && t < 8.5; },
     grubeEbbe: () => { const t = grubeT(); return t >= 11.2 || t < 0.8; },
     grubeFlut: () => { const t = grubeT(); return t >= 7.4 && t < 8.6; },
+    // 7-Burg
+    wandWeg: () => (L.named.get('turmwand')?.broken ?? 0) > 0,
+    brueckeUnten: () => L.named.get('bruecke')?.state === 'unten',
+    brueckeOben: () => L.named.get('bruecke')?.state === 'oben',
+    klapp3Liegt: () => L.named.get('klapp3')?.state === 'liegt',
+    klapp3Oben: () => L.named.get('klapp3')?.state === 'oben',
+    warpBoss: () => L.named.get('warp_boss') && !L.named.get('warp_boss').hidden,
+    warpSieg: () => L.named.get('warp_sieg') && !L.named.get('warp_sieg').hidden,
+    burgCp: () => at(-9.5, 9.5, 1.5, -72.8, -92.2),
+    buehne: () => at(-8.5, 8.5, 1.5, -149.8, -164.2),
+    bossStart: () => at(-7.5, 7.5, 1.5, -197.5, -212),
+    siegerplateau: () => at(-8.5, 8.5, 1.5, -377.5, -398.5),
   };
   const W = {
     place(pos, o = {}) {
@@ -396,6 +477,33 @@ function install() {
           for (let n = 0; n < 400 && L.entities.some((e) => e.kind === 'wurfsichel' && !e.removed); n++, k++) tick({});
           log.push(['wurfsichel', thrown, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           if (!thrown) log.push(['FEHLER: Wurfsichel nicht geworfen']);
+          continue;
+        }
+        // ------------------------------------------------ Kickbombe (Kanone) an der Stelle at abwarten und nach Norden (−z) kicken, bis until gilt
+        if (Lg.bombe) {
+          const [ax, az] = Lg.at;
+          let k = 0, kicked = 0;
+          for (; k < (Lg.max ?? 3600) && !p.dead && !COND[Lg.done](); k++) {
+            const bomb = L.entities.find((e) => e.kind === 'kickbombe' && !e.removed && !e.kicker && e.grounded && Math.hypot(e.pos.x - ax, e.pos.z - az) < 2.2);
+            let tx = ax, tz = az + 1.4;
+            if (bomb) { tx = bomb.pos.x; tz = p.pos.z > bomb.pos.z + 0.3 && Math.abs(p.pos.x - bomb.pos.x) < 0.45 ? bomb.pos.z - 1 : bomb.pos.z + 1.1; }
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            const was = L.entities.filter((e) => e.kind === 'kickbombe' && e.kicker).length;
+            tick({ ...(d > 0.12 ? this.stick(dx, dz, Math.min(1, Math.max(0.35, d / 1.2))) : {}), run: false });
+            if (L.entities.filter((e) => e.kind === 'kickbombe' && e.kicker).length > was) kicked++;
+          }
+          for (let i = 0; i < 60; i++) tick({});
+          mech.kicks = (mech.kicks ?? 0) + kicked;
+          log.push(['kickbombe', Lg.done, COND[Lg.done](), kicked, k, +p.pos.x.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!COND[Lg.done]()) log.push(['FEHLER: Kickbombe', Lg.done]);
+          continue;
+        }
+        // ------------------------------------------------ Baron Brummbär im Kampfwagen mit echter Eingabe besiegen
+        if (Lg.boss) {
+          const r = this.baronFight({ tick, ...Lg });
+          mech.boss = r;
+          log.push(['baron', r.state, `Treffer ${r.hits} (Bomben ${r.bombHits}, Wurfsichel ${r.sichelTreffer} aus ${r.sichelHits} Kratzern)`, `Lückensprünge ${r.gapJumps}`, `${r.time} s`]);
+          if (r.state !== 'gone') { log.push(['FEHLER: Baron nicht besiegt', r.hp]); break; }
           continue;
         }
         // ------------------------------------------------ Schubser in Richtung dir vom Schiff stoßen (Anlauf von der Gegenseite)
@@ -690,7 +798,68 @@ function install() {
       mech.lives = L.runtime.save?.lives;
       mech.stars = L.runtime.stars.slice();
       mech.stamp = !!L.runtime.stamp;
+      mech.wall = (L.named.get('turmwand')?.broken ?? 0) > 0;
+      mech.bridge = L.named.get('bruecke')?.state ?? null;
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
+    },
+    /**
+     * Baron im Kampfwagen mit echter Eingabe: im Kampffenster mitlaufen (Spur neben der Mittellücke), über Lavalücken springen,
+     * gelandete eigene Bomben von hinten anlaufen und nach vorn kicken (Zielhilfe lenkt sie zum Wagen), mit der Wurfsichel werfen.
+     */
+    baronFight(o = {}) {
+      const p = P(), b = L.named.get(o.id ?? 'baron'), road = L.named.get(o.road ?? 'strasse');
+      const t0 = L.time;
+      const tick = o.tick ?? ((inp) => { p.invuln = Math.max(p.invuln, 5); c.setInput(inp); c.step(1); });
+      let gapJumps = 0, sichelThrows = 0, kicks = 0;
+      for (let i = 0; i < 1500 && b.state === 'wait' && !p.dead; i++) tick({ ...this.stick(-p.pos.x * 0.3, -1, 1), run: false });
+      const mine = () => L.entities.some((e) => e.kind === 'wurfsichel' && !e.removed && e.owner === p);
+      for (let n = 0; n < (o.max ?? 120 * 240) && !p.dead && b.state !== 'gone' && L.runtime.status === 'play'; n++) {
+        if (o.stopAfterHits && b.hits >= o.stopAfterHits) break;
+        if (p.mode === 'ground') {
+          const g = road.gapsBetween(p.pos.z - 0.1, p.pos.z - 1.8)[0];
+          if (g && p.pos.z > g.near) {
+            const tz = g.far - 1.8;
+            for (let k = 0; k < 140 && !p.dead; k++) {
+              tick({ ...(p.mode === 'air' ? this.airSteer(p.pos.x, tz, 0, 0, 3, 9) : this.stick(0, -1, 1)), jump: k < 24, run: true });
+              if (k > 8 && p.mode === 'ground') break;
+            }
+            gapJumps++;
+            continue;
+          }
+        }
+        const side = Math.sign(p.pos.x - road.cx || 1);
+        const crosses = (z1, z2) => road.gapsBetween(Math.max(z1, z2) + 0.3, Math.min(z1, z2) - 0.3);
+        const midIn = (z1, z2) => road.midAt(Math.max(z1, z2) + 0.8, Math.min(z1, z2) - 0.8);
+        const mid = midIn(p.pos.z + 1.5, p.pos.z - 5);
+        const laneX = mid ? road.cx + side * (mid.half + 1.5) : road.cx;
+        // nur Bomben ohne Lücke dazwischen (keine Querlücke, nicht über die Mittellücke)
+        const bomb = L.entities.filter((e) => e.kind === 'kickbombe' && !e.removed && !e.kicker && e.owner === b && e.state === 'lit' && e.grounded
+          && e.pos.z < p.pos.z + 2.5 && road.solidAt(e.pos.x, e.pos.z + 1.1, 0.25) && !crosses(p.pos.z, e.pos.z + 1.1).length
+          && !(midIn(p.pos.z, e.pos.z) && Math.sign(e.pos.x - road.cx || 1) !== side))
+          .sort((a, q) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(q.pos.x - p.pos.x, q.pos.z - p.pos.z))[0];
+        let tx, tz;
+        if (bomb && b.vulnerable) {
+          const behind = p.pos.z > bomb.pos.z + 0.35 && Math.abs(p.pos.x - bomb.pos.x) < 0.45;
+          tx = bomb.pos.x; tz = behind ? bomb.pos.z - 1 : bomb.pos.z + 1.1;
+        } else {
+          tx = laneX; tz = b.pos.z + 7.5;
+          // eben über eine Lücke gekommen: nicht zurücklaufen
+          const g = crosses(p.pos.z, tz)[0];
+          if (g && p.pos.z < g.z) tz = Math.min(tz, g.far - 0.9);
+        }
+        const m2 = midIn(Math.max(p.pos.z, tz), Math.min(p.pos.z, tz));
+        if (m2 && Math.abs(tx - road.cx) < m2.half + 0.7) tx = road.cx + side * (m2.half + 0.7);
+        const fv = p.facingVec();
+        const act = p.power === 'sichel' && !mine() && p.mode === 'ground' && fv.z < -0.9 && Math.abs(p.pos.z - b.pos.z) < 8.5 && Math.abs(p.pos.x - b.pos.x) < 2.5 && b.vulnerable;
+        if (act) sichelThrows++;
+        const was = L.entities.filter((e) => e.kind === 'kickbombe' && e.kicker).length;
+        const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+        tick({ ...(d > 0.12 ? this.stick(dx, dz, Math.min(1, Math.max(0.3, d / 1.4))) : {}), run: d > 3, action: act });
+        if (L.entities.filter((e) => e.kind === 'kickbombe' && e.kicker).length > was) kicks++;
+      }
+      const by = (k) => (b.hitLog ?? []).filter((h) => h.kind === k).length;
+      return { state: b.state, hp: b.hp, hits: b.hits, bombHits: by('bombe'), sichelTreffer: by('sichel'), kicks, gapJumps, sichelThrows, sichelHits: b.sichelHits ?? 0, carHits: b.carHits ?? 0,
+        bounces: b.bounces ?? 0, time: +(L.time - t0).toFixed(1), dead: p.dead, phase: b.phase, jumps: b.jumps, pushes: b.pushes };
     },
     chase(kind, o = {}) {
       const p = P();
@@ -923,6 +1092,10 @@ for (const id of LEVELS) {
     check(`${id}: ${R.meta.stars} Stern(e)${R.meta.arena ? '' : ', Stempel'}, ${R.meta.time} s, Thema ${R.meta.theme}, Musik ${R.meta.music}, Archetyp ${R.meta.archetype}`,
       starsOk && meta.timeLimit === R.meta.time && meta.theme === R.meta.theme && meta.music === R.meta.music && meta.archetype === R.meta.archetype);
     for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
+    if (R.weapons) {
+      const ws = await sc(() => { const m = {}; for (const e of window.__course.level.entities) if (e.kind === 'feuer_werfer') m[e.weapon] = (m[e.weapon] ?? 0) + 1; return m; });
+      check(`${id}: Werfer-Waffen ${JSON.stringify(ws)}`, Object.entries(R.weapons).every(([k, n]) => ws[k] === n));
+    }
   }
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
@@ -1101,6 +1274,57 @@ for (const id of LEVELS) {
       return { dead, cause, t: +L.time.toFixed(1) };
     });
     check(`${id}: nach 100 s ist die Zeit um (${r.cause} bei ${r.t} s)`, r.dead && r.cause === 'time');
+  }
+
+  // ------------------------------------------------ 7-Burg: Baron nur mit Kickbomben (ohne Wurfsichel), Abprall, Tod setzt zurück
+  if (id === '7-Burg' && PARTS.has('boss') && !ONLY) {
+    for (const hero of HEROES) {
+      await load(id);
+      await W('place', [0, 2, -204], { hero, settle: 4 });
+      const r = await sc(() => {
+        const c = window.__course, L = c.level, W = window.__w7d, p = c.player;
+        const fight = W.baronFight({});
+        const out = { fight };
+        for (let i = 0; i < 900 && L.named.get('warp_sieg')?.hidden; i++) c.step(1);
+        out.warp = !L.named.get('warp_sieg')?.hidden;
+        const res = W.drive([{ warp: [3.5, -346] }, { to: [-4.6, -386.4], within: 0.8 }, { wait: 60 }, { to: [0, -392.4], within: 0.2 }], {});
+        for (let i = 0; i < 900 && !c.finished; i++) c.step(1);
+        out.finished = !!c.finished;
+        out.friend = L.named.get('kruemel')?.freed ?? L.entities.find((e) => e.kind === 'rescue_friend')?.freed;
+        out.status = res.status;
+        out.save = W.save().levels?.['7-Burg'] ?? null;
+        return out;
+      });
+      const f = r.fight;
+      console.log(`  ${hero} Boss: ${JSON.stringify({ ...r, save: undefined })}`);
+      check(`${id}: ${hero} besiegt Baron Brummbär nur mit zurückgekickten Kickbomben (${f.bombHits}/9 Bomben-Treffer, ${f.gapJumps} Lückensprünge, ${f.time} s)`, f.state === 'gone' && f.bombHits === 9 && f.sichelTreffer === 0 && f.gapJumps >= 3);
+      check(`${id}: ${hero} – Warp-Box nach dem Sieg, Krümel befreit, Zielmast, gespeichert`, r.warp && r.finished && r.save?.done === true);
+      if (hero === HEROES[0]) { await page.waitForTimeout(500); await page.screenshot({ path: `${OUT}w7d_${id}_ergebnis.png` }); }
+    }
+    // Draufspringen auf den Wagen: Abprall ohne Schaden; Tod im Kampf setzt den Baron zurück (9/9, wartet)
+    await load(id);
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__w7d, p = c.player, b = L.named.get('baron');
+      W.place([0, 2, -204], {});
+      W.baronFight({ stopAfterHits: 2 });
+      const hp0 = b.hp, bounces0 = b.bounces ?? 0;
+      // auf den Wagen springen (unverwundbar), bis ein Abprall gezählt ist
+      for (let i = 0; i < 1200 && (b.bounces ?? 0) === bounces0 && !p.dead; i++) {
+        p.invuln = Math.max(p.invuln, 3);
+        const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+        c.setInput({ ...(p.mode === 'air' ? W.airSteer(b.pos.x, b.pos.z, b.vel?.x ?? 0, b.vel?.z ?? 0, 4, 9) : W.stick(dx, dz, 1)), jump: p.mode === 'ground' ? d < 4 : p.vel.y > 0, run: true });
+        c.step(1);
+      }
+      const after = { hp: b.hp, bounces: (b.bounces ?? 0) - bounces0 };
+      p.invuln = 0;
+      p.die('fall');
+      for (let i = 0; i < 900 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1);
+      c.step(30);
+      return { hp0, after, hp: b.hp, state: b.state, pos: [+p.pos.x.toFixed(1), +p.pos.z.toFixed(1)], bombs: L.entities.filter((e) => e.kind === 'kickbombe' && !e.removed).length };
+    });
+    console.log(`  Abprall/Tod: ${JSON.stringify(r)}`);
+    check(`${id}: Draufspringen auf den Kampfwagen prallt ab ohne Schaden (${r.hp0} → ${r.after.hp}, Abpraller ${r.after.bounces})`, r.after.bounces >= 1 && r.after.hp === r.hp0);
+    check(`${id}: Tod im Kampf setzt den Baron zurück (vorher ${r.hp0}/9, danach ${r.hp}/9, ${r.state}, Neustart bei z ${r.pos[1]}, Bomben ${r.bombs})`, r.hp0 === 7 && r.hp === 9 && r.state === 'wait' && r.pos[1] > -212 && r.pos[1] < -198 && r.bombs === 0);
   }
 
   // ------------------------------------------------ Bilder je Abschnitt aus der Spielkamera
