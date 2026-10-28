@@ -259,17 +259,19 @@ function buildKnochenGruppe(opts = {}) {
 // =============================================================================================
 // Kristall-Felsklotz
 // =============================================================================================
-const KK = { rock: W8.rock, rockHi: W8.rockHi, rockLow: W8.rockLow, moss: 0x7a6a8a, teal: W8.crystalTeal, tealHi: W8.crystalTealHi, vio: W8.crystal, vioHi: W8.crystalHi, mouth: 0x2a0e2a, tongue: 0xff7a9a, brow: 0x3a2e48 };
+const KK = { rock: 0x8a7a9e, rockHi: 0xc8b8dc, rockLow: 0x4a3a5a, moss: 0x7a6a8a, teal: W8.crystalTeal, tealHi: W8.crystalTealHi, vio: W8.crystal, vioHi: W8.crystalHi, mouth: 0x2a0e2a, tongue: 0xff7a9a, brow: 0x3a2e48 };
 /** Kristallbüschel (3–4 sechseckige Spitzen, Fuß im Ursprung, wächst nach +Z). */
 function crystalCluster(b, M, color, hi, seed, s = 1) {
   const k = 3 + (hash1(seed) > 0.5 ? 1 : 0);
   for (let i = 0; i < k; i++) {
-    const h = (0.35 + hash1(seed + i) * 0.35) * s, r = (0.07 + hash1(seed + i * 3) * 0.04) * s;
-    const g = new THREE.CylinderGeometry(r * 0.15, r, h, 6, 1);
-    g.translate(0, h / 2, 0);
-    const tilt = new THREE.Matrix4().compose(new THREE.Vector3((hash1(seed + i * 5) - 0.5) * 0.12 * s, 0, (hash1(seed + i * 7) - 0.5) * 0.12 * s), new THREE.Quaternion().setFromEuler(new THREE.Euler((hash1(seed + i * 2) - 0.5) * 0.9, 0, (hash1(seed + i * 4) - 0.5) * 0.9)), new THREE.Vector3(1, 1, 1));
+    const h = (0.28 + hash1(seed + i) * 0.22) * s, r = (0.09 + hash1(seed + i * 3) * 0.05) * s;
+    const g = new THREE.CylinderGeometry(r * 0.9, r, h * 0.7, 6, 1);
+    g.translate(0, h * 0.35, 0);
+    const tip = new THREE.ConeGeometry(r * 0.9, h * 0.3, 6, 1); tip.translate(0, h * 0.85, 0);
+    b.add(tip, hi, M.clone().multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2)).multiply(new THREE.Matrix4().compose(new THREE.Vector3((hash1(seed + i * 5) - 0.5) * 0.14 * s, 0, (hash1(seed + i * 7) - 0.5) * 0.14 * s), new THREE.Quaternion().setFromEuler(new THREE.Euler((hash1(seed + i * 2) - 0.5) * 0.9, 0, (hash1(seed + i * 4) - 0.5) * 0.9)), new THREE.Vector3(1, 1, 1))));
+    const tilt = new THREE.Matrix4().compose(new THREE.Vector3((hash1(seed + i * 5) - 0.5) * 0.14 * s, 0, (hash1(seed + i * 7) - 0.5) * 0.14 * s), new THREE.Quaternion().setFromEuler(new THREE.Euler((hash1(seed + i * 2) - 0.5) * 0.9, 0, (hash1(seed + i * 4) - 0.5) * 0.9)), new THREE.Vector3(1, 1, 1));
     const toZ = new THREE.Matrix4().makeRotationX(Math.PI / 2);
-    b.add(g, { v: (x, y) => mix(color, hi, smoothstep(y / h)) }, M.clone().multiply(toZ).multiply(tilt));
+    b.add(g, { v: (x, y) => mix(color, hi, smoothstep(y / (h * 0.7))) }, M.clone().multiply(toZ).multiply(tilt));
   }
 }
 function kkRockGeo(shape) {
@@ -289,23 +291,27 @@ function kkRockGeo(shape) {
       b.box(0.07, 0.07, 0.24, KK.brow, { p: [fx + 0.02, 0.2, s * 0.15], r: [s * -0.35, -s * 0.25, 0], order: 'YXZ' }, 0.03, 1);
       b.sphere(1, 0xc89ad8, { p: [fx - 0.02, -0.04, s * 0.22], s: [0.03, 0.05, 0.07] }, 8, 6);
     }
-    b.torus(0.09, 0.026, KK.mouth, { p: [fx + 0.015, -0.12, 0], r: [0, Math.PI / 2, 0] }, 6, 14, Math.PI);
-    b.sphere(1, KK.tongue, { p: [fx + 0.01, -0.15, 0.03], s: [0.02, 0.025, 0.04] }, 8, 6);
+    b.sphere(1, KK.mouth, { p: [fx - 0.005, -0.15, 0], s: [0.035, 0.05, 0.11] }, 14, 8);
+    b.sphere(1, KK.tongue, { p: [fx + 0.01, -0.175, 0.02], s: [0.02, 0.022, 0.05] }, 8, 6);
+    b.capsule(0.022, 0.2, KK.brow, { p: [fx + 0.012, -0.105, 0], r: [Math.PI / 2, 0, 0] }, 2, 8);
     return b.geometry();
   });
 }
 function kkCrystalGeo(shape) {
   return cached(`w8:kk:crys:${shape}`, () => {
     const b = new Build();
-    const spots = shape === 'wuerfel'
-      ? [[0.3, 0.5, 0.3], [-0.3, 0.5, -0.25], [0, 0.5, -0.35], [-0.5, 0.25, 0.2], [-0.5, -0.2, -0.25], [0.2, -0.3, 0.5], [-0.25, 0.3, 0.5], [0.25, 0.3, -0.5], [-0.2, -0.3, -0.5], [0.0, -0.5, 0.0]]
-      : [[0.15, 0.48, 0.2], [-0.3, 0.38, -0.25], [-0.42, 0.1, 0.25], [-0.3, -0.25, -0.35], [0.1, 0.1, 0.49], [0.05, 0.2, -0.48], [-0.1, -0.45, 0.2], [0.3, -0.3, -0.3], [-0.45, -0.15, -0.05]];
-    spots.forEach((p, i) => {
-      const n = new THREE.Vector3(...p).normalize();
-      const pos = shape === 'wuerfel' ? new THREE.Vector3(...p) : n.clone().multiplyScalar(0.47);
+    // Kristallbüschel nur an den Seiten (±Z, um die Rollachse) und kurz – die Lauffläche oben bleibt frei
+    const spots = [];
+    for (const s of [1, -1]) {
+      const zf = shape === 'wuerfel' ? 0.5 : 0.44;
+      spots.push([0, 0.05, s * zf, s], [-0.22, 0.22, s * (zf - 0.06), s], [0.18, -0.24, s * (zf - 0.06), s], [-0.25, -0.2, s * (zf - 0.08), s], [0.24, 0.2, s * (zf - 0.1), s]);
+    }
+    spots.forEach(([x, y, z, s], i) => {
+      const n = shape === 'wuerfel' ? new THREE.Vector3(x * 0.6, y * 0.6, s).normalize() : new THREE.Vector3(x, y, z).normalize();
+      const pos = shape === 'wuerfel' ? new THREE.Vector3(x, y, z) : n.clone().multiplyScalar(0.46);
       const M = new THREE.Matrix4().compose(pos, new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), n), new THREE.Vector3(1, 1, 1));
       const teal = i % 2 === 0;
-      crystalCluster(b, M, teal ? KK.teal : KK.vio, teal ? KK.tealHi : KK.vioHi, i * 11 + (shape === 'wuerfel' ? 5 : 0), 0.85);
+      crystalCluster(b, M, teal ? KK.teal : KK.vio, teal ? KK.tealHi : KK.vioHi, i * 11 + (shape === 'wuerfel' ? 5 : 0), i % 5 === 0 ? 0.62 : 0.45);
     });
     return b.geometry();
   });
@@ -368,7 +374,7 @@ function buildFelsklotz(opts = {}) {
 // =============================================================================================
 // Baron-Sandstatue
 // =============================================================================================
-const SAND = { lo: 0xa8703a, mid: 0xe8b468, hi: 0xfff0c0, dark: 0x8a5a2a };
+const SAND = { lo: 0xb08458, mid: 0xe2c08c, hi: 0xfff4d8, dark: 0x8a6440 };
 /** Statue: Welt-1-Baron (ohne Auto, steht) in Sandtönen; Ursprung = Fußpunkt der Figur. */
 const statueGeo = () => memo('w8:statue:baron', () => {
   const h = harvest('baron_w1_stand', () => B1.baron_brummbaer({ withCar: false }), (m) => m.update(0, { anim: 'idle' }));
@@ -397,7 +403,7 @@ function buildSandstatue(opts = {}) {
   const root = new THREE.Group();
   const own = [];
   const scaleJ = joint(); scaleJ.scale.setScalar(S);
-  const sandMat = vcol(0.85, {}, 'w8sand');
+  const sandMat = vcol(0.95, { toy: { spec: 0.1 } }, 'w8sand');
   const ped = mesh(pedestalGeo(), sandMat, {}, true);
   ped.receiveShadow = true;
   const fig = joint([0, 1.01, 0]);
