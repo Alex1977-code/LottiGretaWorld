@@ -78,7 +78,7 @@ const FORT = [K4, CL, H8, CRACKLE];
 // Sechzehntel später nach – „CIS-cis . a H-h . gis“ –, die Terzen-Kette fällt, die Antwort sinkt in einen langen Ton.
 const srProg = ['F#m', 'Bm', 'E', 'C#', 'F#m', 'F#m', 'D', 'E', 'F#m', 'F#m', 'Bm', 'C#', 'F#m', 'Bm', 'E', 'A', 'F#m', 'Bm', 'D', 'C#', 'D', 'E', 'F#m', 'C#'];
 const srHook = ['C#6:3 C#6:1 -:2 A5:2 B5:3 B5:1 -:2 G#5:2', 'A5:3 A5:1 -:2 F#5:2 D5:4 -:2 F#5:2',
-  'B5:3 B5:1 -:2 G#5:2 A5:3 A5:1 -:2 B5:2', 'C#6:3 C#6:1 -:2 A5:2 E5:4 -:2 G#5:2'];
+  'B5:3 B5:1 -:2 G#5:2 E5:3 E5:1 -:2 B5:2', 'C#6:3 C#6:1 -:2 A5:2 E5:4 -:2 G#5:2'];
 const srChorus = [...srHook, srHook[0], srHook[1], 'A5:3 A5:1 -:2 F#5:2 B5:3 B5:1 -:2 A5:2', 'G#5:3 G#5:1 -:2 E#5:2 C#5:4 -:2 E#5:2'];
 const srIntro = [srHook[0], srHook[1], srHook[2], 'G#5:3 G#5:1 -:2 E#5:2 G#5:4 -:2 B5:2'];   // Takt 4 führt zur Strophe
 const srV = ['C#5:4 B4:2 A4:2 C#5:4 F#5:2 E5:2', 'C#5:4 B4:2 A4:2 G#4:4 A4:2 B4:2', 'A4:4 B4:2 C#5:2 D5:4 F#5:2 E5:2', 'E5:4 D5:2 C#5:2 B4:4 G#4:2 B4:2'];
@@ -125,11 +125,11 @@ const B_STOMP = 'L__. H__. L__. H_H_';                                        //
 const BELT = [K4, CL, H8, STOMP];
 
 // ================================================================ Fluchtturm (7-5, vertikal) ====
-// h-Moll, 146 BPM, aufsteigend. Intro h G D A (das Turm-Glockenspiel spielt die Hook) | Strophe h h G A | h h e Fis (i–VI–
-// VII | i–iv–V, Herzklopf-Ostinato, Kettenrasseln der Seilbahn, die Lava steigt alle vier Takte) | Refrain h G D A | h G e
-// Fis (i–VI–III–VII | i–VI–iv–V) | Überleitung G A h Fis (Alarm-Sirene, Riser über zwei Takte). Hook „Galopp-Treppe“:
+// h-Moll, 146 BPM, aufsteigend. Intro h A D A (das Turm-Glockenspiel spielt die Hook) | Strophe h h G A | h h e Fis (i–VI–
+// VII | i–iv–V, Herzklopf-Ostinato, Kettenrasseln der Seilbahn, die Lava steigt alle vier Takte) | Refrain h A D A | h A e
+// Fis (i–VII–III–VII | i–VII–iv–V) | Überleitung G A h Fis (Alarm-Sirene, Riser über zwei Takte). Hook „Galopp-Treppe“:
 // Achtel + zwei Sechzehntel Stufe für Stufe eine Oktave hinauf; die Antwort rutscht ab und klettert gleich wieder.
-const ttProg = ['Bm', 'G', 'D', 'A', 'Bm', 'Bm', 'G', 'A', 'Bm', 'Bm', 'Em', 'F#', 'Bm', 'G', 'D', 'A', 'Bm', 'G', 'Em', 'F#', 'G', 'A', 'Bm', 'F#'];
+const ttProg = ['Bm', 'A', 'D', 'A', 'Bm', 'Bm', 'G', 'A', 'Bm', 'Bm', 'Em', 'F#', 'Bm', 'A', 'D', 'A', 'Bm', 'A', 'Em', 'F#', 'G', 'A', 'Bm', 'F#'];
 const ttHook = ['B4:2 C#5:1 D5:1 D5:2 E5:1 F#5:1 F#5:2 G5:1 A5:1 B5:4', 'A5:2 G5:1 F#5:1 F#5:2 E5:1 D5:1 E5:2 F#5:1 G5:1 A5:4',
   'D5:2 E5:1 F#5:1 F#5:2 G5:1 A5:1 A5:2 B5:1 C#6:1 D6:4', 'C#6:2 B5:1 A5:1 A5:2 G5:1 F#5:1 E5:2 D5:1 C#5:1 A4:4'];
 const ttChorus = [...ttHook, ttHook[0], ttHook[1], 'E5:2 F#5:1 G5:1 G5:2 A5:1 B5:1 B5:2 C#6:1 D6:1 E6:4', 'C#6:2 A#5:1 F#5:1 F#5:2 E5:1 C#5:1 C#5:2 A#4:1 C#5:1 F#5:4'];
@@ -182,12 +182,13 @@ const LAKE = [K4, CL, H8, TAIKO_V];
 // Takt 5–8, unverändert) | Strophe c c f G | c c As G (i–iv–V, Kampfwagen-Galopp, Kettenrasseln) | Refrain c B As G |
 // c B f G (i–VII–VI–V, Andalusische Kadenz | i–VII–iv–V; Orgel-Akkorde, Chor-Pad) | Überleitung As B c G (Chor-Stimme,
 // Orgel, Riser über zwei Takte). Hook: 3+3+2-Stöße auf einem Ton mit oberer Nebennote, dann stufenweise hinab
-// („G . . g . . as G F Es D“), die Antwort eine Stufe tiefer; Takt 3 bringt die Hook auf As (Gipfel), Takt 4 die Dominante.
+// („G . . g . . as G F Es D“), die Antwort dieselbe Figur eine Quarte tiefer auf B („D . . d . . es D C F“); Takt 3 bringt
+// die Hook auf As (Gipfel), Takt 4 die Dominante.
 const kpProg = ['Cm', 'Ab', 'Bb', 'G', 'Cm', 'Cm', 'Fm', 'G', 'Cm', 'Cm', 'Ab', 'G', 'Cm', 'Bb', 'Ab', 'G', 'Cm', 'Bb', 'Fm', 'G', 'Ab', 'Bb', 'Cm', 'G'];
 // Baron-Brummbär-Motiv: course_boss, Lead Takt 5–8 (Cm As B G) – Note für Note
 const kpBaron = ['C5:2 -:1 C5:1 Eb5:2 C5:2 G5:3 F5:1 Eb5:2 D5:2', 'C5:2 -:1 C5:1 Eb5:2 C5:2 Ab5:3 G5:1 F5:2 Eb5:2',
   'D5:2 -:1 D5:1 F5:2 D5:2 Bb5:3 Ab5:1 G5:2 F5:2', 'G5:3 F5:1 Eb5:2 D5:2 B4:4 -:2 G4:1 B4:1'];
-const kpHook = ['G5:3 G5:3 Ab5:2 G5:2 F5:2 Eb5:2 D5:2', 'Eb5:3 Eb5:3 F5:2 Eb5:2 D5:2 F5:4',
+const kpHook = ['G5:3 G5:3 Ab5:2 G5:2 F5:2 Eb5:2 D5:2', 'D5:3 D5:3 Eb5:2 D5:2 C5:2 F5:4',
   'Ab5:3 Ab5:3 Bb5:2 Ab5:2 G5:2 F5:2 Eb5:2', 'F5:3 F5:3 Eb5:2 D5:2 B4:2 D5:2 F5:2'];
 const kpChorus = [...kpHook, kpHook[0], kpHook[1], 'Ab5:3 Ab5:3 G5:2 F5:2 Eb5:2 D5:2 C5:2', 'B4:3 B4:3 C5:2 D5:2 F5:2 Eb5:2 D5:2'];
 const kpV = ['C5:2 C5:1 C5:1 Eb5:2 Eb5:1 Eb5:1 G5:4 F5:2 Eb5:2', 'C5:2 C5:1 C5:1 Eb5:2 Eb5:1 Eb5:1 D5:4 C5:2 G4:2',
@@ -203,9 +204,10 @@ const KEEP = [K4, CL, H8, RATTLE];
 // g-Moll, 126 BPM, 16 Takte, bedrohlich-gemütlich. Strophe g F Es D | g F Es D (i–VII–VI–V, das Piano singt gebrochene
 // Akkorde, Pizzicato auf der „und“) | Refrain g Es B F | g Es c D (i–VI–III–VII | i–VI–iv–V, weicher Lead schaukelt um den
 // Grundton, Lava blubbert tief in den Phrasen-Pausen). Kick auf 1 und 3, fernes Grollen (tiefe Toms) am Phrasen-Ende.
+// Die Strophe steigt Takt für Takt eine Stufe hinab (gebrochene Akkorde mit Durchgang).
 const m7Prog = ['Gm', 'F', 'Eb', 'D', 'Gm', 'F', 'Eb', 'D', 'Gm', 'Eb', 'Bb', 'F', 'Gm', 'Eb', 'Cm', 'D'];
-const m7Piano = ['G4:2 Bb4:2 D5:2 Bb4:2 C5:4 D5:4', 'C5:2 A4:2 F4:2 A4:2 Bb4:4 C5:4', 'Bb4:2 G4:2 Eb4:2 G4:2 F4:4 G4:4', 'A4:2 F#4:2 D4:2 F#4:2 G4:4 A4:4',
-  'G4:2 Bb4:2 D5:2 Bb4:2 C5:4 D5:4', 'C5:2 A4:2 F4:2 A4:2 Bb4:4 C5:4', 'Bb4:2 G4:2 Eb4:2 G4:2 Bb4:4 C5:4', 'D5:2 A4:2 F#4:2 A4:2 D5:4 -:4'];
+const m7Piano = ['G4:2 Bb4:2 D5:2 C5:2 Bb4:4 D5:4', 'C5:2 A4:2 F4:2 G4:2 A4:4 C5:4', 'Bb4:2 G4:2 Eb4:2 F4:2 G4:4 Bb4:4', 'A4:2 F#4:2 D4:2 E4:2 F#4:4 A4:4',
+  'G4:2 Bb4:2 D5:2 C5:2 Bb4:4 D5:4', 'C5:2 A4:2 F4:2 G4:2 A4:4 C5:4', 'Bb4:2 G4:2 Eb4:2 F4:2 G4:4 Bb4:4', 'A4:2 C5:2 D5:2 C5:2 D5:4 -:4'];
 const m7Lead = ['D5:3 G5:1 Bb5:4 A5:2 G5:2 F#5:2 G5:2', 'G5:3 Eb5:1 Bb4:4 -:2 C5:1 D5:1 Eb5:4', 'D5:3 F5:1 Bb5:4 A5:2 G5:2 F5:2 D5:2', 'F5:3 C5:1 A4:4 -:2 Bb4:1 C5:1 D5:4',
   'D5:3 G5:1 Bb5:4 A5:2 G5:2 F#5:2 G5:2', 'G5:3 Eb5:1 Bb4:4 -:2 C5:1 D5:1 Eb5:4', 'Eb5:3 G5:1 C6:4 Bb5:2 A5:2 G5:2 Eb5:2', 'F#5:3 D5:1 A4:4 -:2 A4:1 C5:1 D5:4'];
 const lavaBlubb = (c) => pat(tones(c, 'G3'), '.... ..0. .... .1..');         // Lava blubbert tief (Sinus gleitet aufwärts)
@@ -367,8 +369,8 @@ export const WORLD7_THEMES = {
   },
 
   // Fluchtturm (7-5, vertikal, Seilbahn, Giftnebel und steigende Lava): 146 BPM, h-Moll, 24 Takte, aufsteigend. Intro
-  // (h G D A): das Turm-Glockenspiel spielt die Hook | Strophe (h h G A | h h e Fis): Lead mit pochenden Tonwiederholungen,
-  // Herzklopf-Ostinato, Kettenrasseln, die Lava steigt (Riser alle vier Takte) | Refrain (h G D A | h G e Fis): Galopp-
+  // (h A D A): das Turm-Glockenspiel spielt die Hook | Strophe (h h G A | h h e Fis): Lead mit pochenden Tonwiederholungen,
+  // Herzklopf-Ostinato, Kettenrasseln, die Lava steigt (Riser alle vier Takte) | Refrain (h A D A | h A e Fis): Galopp-
   // Treppe, Piano auf der „und“, Stabs | Überleitung (G A h Fis): lange Töne, die Alarm-Sirene steigt, Riser über zwei Takte.
   course_traptower: {
     bpm: 146,
