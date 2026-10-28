@@ -38,8 +38,18 @@
 // Baron-Brummbär-Motiv aus course_boss (doppelte Notenlänge), Refrain-Hook des Grafen mit dessen Kopf. Hörproben:
 // tests/out/hw_<thema>_30s.wav (ab der Strophe) und tests/out/hoerprobe_halloween.wav (alle sechs je 15 s ab dem Refrain).
 //
+// Welt 6 („Wolkeninseln“, Welt-6-Liste im Vertrag): die neun neuen Themen mit denselben Messungen und derselben
+// Melodie-Prüfung, Hook und Kontur eigenständig gegen alle Themen (Welten 1–6 und Halloween); Tempo 128–150 BPM
+// (Wuschel-Mine 148–152, Karte 126–128), 16–32 Takte, Loop-Naht wie Halloween (Daten und gerendert), Pegel wie Welt 5
+// (wenn beide Welten im selben Lauf gerendert werden). Klangfarben aus den Daten: Glas-Glocken (Glasröhren), Akkordeon,
+// Schiffsglocke und Schunkel-Rhythmus (Geisterschiff), Bambusflöte, Koto, Gong und pentatonische Hook über Moll-Harmonik
+// (Fernost), Marimba und Trommeln (Dschungel), Glöckchen, Schellen und Windböen (Wind-Schnee), Amboss, Metall und
+// Förderband (Maschinenhalle), Zirkus-Orgel und Pauken (Würfelblase); die Arenen, 6-Haus und 6-Panzer nutzen vorhandene
+// Themen. Hörproben: tests/out/w6_<thema>_30s.wav (ab der Strophe) und tests/out/hoerprobe_welt6.wav (alle neun je 15 s
+// ab dem Refrain).
+//
 // Aufteilen (kürzere Läufe): AUDIO_PART=melodie,live,render,sfx (Standard: alles). „melodie“ läuft ohne Browser.
-// AUDIO_THEMES=course_desert,course_space bzw. AUDIO_WORLD=1,2 (1 = Welt-1-Themen, halloween = Halloween-Welt 31)
+// AUDIO_THEMES=course_desert,course_space bzw. AUDIO_WORLD=1,2 (1 = Welt-1-Themen, halloween = Halloween-Welt 31, 6 = Welt 6)
 // beschränken die Offline-Messung der Kurs-Themen; die Kurs-Themen werden je zwei gleichzeitig gerendert. Unter hoher
 // Rechnerlast z.B. in zwei Läufen: AUDIO_PART=melodie,live,sfx und AUDIO_PART=render.
 import { writeFileSync } from 'node:fs';
@@ -120,6 +130,16 @@ const COURSE_THEMES = {
   course_witchtower: { bpm: 144, bars: [24, 24], loop: true, has: ['lead', 'bell', 'arp', 'echo', 'riser'], key: 'Am', mel: ['lead', 'bell'], hook: 12, preview: 4, world: HW },
   course_brummula: { bpm: 148, bars: [24, 24], loop: true, has: ['lead', 'organ', 'pad', 'bell', 'stabs', 'riser'], drums: 't', key: 'Cm', mel: ['lead', 'organ'], hook: 12, preview: 4, world: HW },
   course_halloween_map: { bpm: 126, bars: [16, 16], loop: true, beatMult: 2, has: ['lead', 'bell', 'whistle', 'arp'], key: 'Dm', mel: ['lead', 'bell'], hook: 8, preview: 0, world: HW, map: true },
+  // Welt 6 „Wolkeninseln“
+  course_clearpipe: { bpm: 140, bars: [24, 24], loop: true, has: ['lead', 'bell', 'echo', 'arp', 'piano', 'stabs', 'riser'], drums: 'd', fx: 'delay', key: 'G', mel: ['lead', 'bell'], hook: 12, preview: 4, world: 6 },
+  course_wreck: { bpm: 132, bars: [24, 24], loop: true, has: ['lead', 'organ', 'bell', 'whistle', 'piano', 'stabs'], drums: 'x', fx: 'delay', key: 'Em', mel: ['lead', 'organ'], hook: 12, preview: 4, world: 6 },
+  course_fareast: { bpm: 140, bars: [24, 24], loop: true, has: ['lead', 'whistle', 'arp', 'bell', 'piano', 'stabs'], drums: 'p', fx: 'lowpass', key: 'Bm', mel: ['lead', 'whistle'], hook: 12, preview: 4, world: 6 },
+  course_jungle: { bpm: 136, bars: [24, 24], loop: true, has: ['lead', 'bell', 'arp', 'echo', 'piano', 'stabs'], drums: 'dpjt', fx: 'delay', key: 'F', mel: ['lead', 'bell'], hook: 12, preview: 4, world: 6 },
+  course_snowwind: { bpm: 134, bars: [24, 24], loop: true, has: ['lead', 'bell', 'echo', 'arp', 'pad', 'riser', 'piano'], drums: 'j', fx: 'delay', key: 'A', mel: ['lead', 'bell'], hook: 12, preview: 4, world: 6 },
+  course_factory: { bpm: 144, bars: [24, 24], loop: true, has: ['lead', 'piano', 'arp', 'bell', 'stabs', 'riser'], drums: 'xt', fx: 'lowpass', key: 'Dm', mel: ['lead', 'piano'], hook: 12, preview: 4, world: 6 },
+  course_fuzzymine: { bpm: 150, bars: [24, 24], loop: true, has: ['lead', 'piano', 'arp', 'stabs', 'riser'], drums: 'xt', key: 'Cm', mel: ['lead', 'piano'], hook: 12, preview: 4, world: 6 },
+  course_bossblob: { bpm: 146, bars: [24, 24], loop: true, has: ['lead', 'organ', 'echo', 'stabs', 'piano', 'riser'], drums: 't', key: 'Gm', mel: ['lead', 'organ'], hook: 12, preview: 4, world: 6 },
+  course_world6_map: { bpm: 128, bars: [16, 16], loop: true, beatMult: 2, has: ['lead', 'piano', 'bell', 'arp'], key: 'D', mel: ['lead', 'piano'], hook: 8, preview: 0, world: 6, map: true },
 };
 // Musiknamen Welt 2–4 (Auftrag/Vertrag) und Karten-Themen je Welt
 const CONTRACT_THEMES_W = ['course_desert', 'course_space', 'course_shadow', 'course_hills', 'course_cherry', 'course_tank', 'course_house',
@@ -131,6 +151,10 @@ const CONTRACT_THEMES_W5 = ['course_beach', 'course_trapeze', 'course_bluelava',
   'course_goldtrain', 'course_temple', 'course_world5_map'];
 // Musiknamen der Halloween-Welt (Vertrag: Level-Liste „Kürbisinsel“) und ihre Karte
 const CONTRACT_THEMES_H = ['course_pumpkin', 'course_candyvillage', 'course_graveyard', 'course_witchtower', 'course_brummula', 'course_halloween_map'];
+// Musiknamen Welt 6 (Welt-6-Liste im Vertrag) und die Welt-6-Karte; Arenen, 6-Haus und 6-Panzer nutzen vorhandene Themen
+const CONTRACT_THEMES_W6 = ['course_clearpipe', 'course_wreck', 'course_fareast', 'course_jungle', 'course_snowwind', 'course_factory',
+  'course_fuzzymine', 'course_bossblob', 'course_world6_map'];
+const REUSED_W6 = ['course_arena', 'course_house', 'course_tank'];
 const BEEP_BPM = THEMES.course_beep.bpm;
 
 // ---- Melodie-Prüfung (aus den Themen-Daten, ohne Browser) ----
@@ -218,7 +242,7 @@ if (want('melodie')) {
   };
   console.log(`   Grenzen: Melodie-Takte ≥ ${fmt(lim.barShare * 100, 0)} %, ≤ 4 HT ≥ ${fmt(lim.steps * 100, 0)} %, > 7 HT ≤ ${fmt(lim.leaps * 100, 0)} %, Rhythmus-Wdh. ≥ ${fmt(lim.rhythmRep * 100, 0)} %, Umfang ≤ ${lim.range} HT (Welt 1 bis ${Math.max(...w1.map((r) => r.range))}), leitereigen ≥ 90 %, Hook ≥ 2×`);
   const fresh = Object.entries(COURSE_THEMES).filter(([n, s]) => s.key && THEMES[n]).map(([n, s]) => ({ name: n, spec: s, ...melodyStats(THEMES[n], s) }));
-  console.log('Melodie Welt 2–5:');
+  console.log('Melodie Welt 2–6 und Halloween:');
   for (const r of fresh) console.log(`   ${row(r)}  [${r.spec.key}, ${THEMES[r.name].bpm} BPM]`);
   for (const r of fresh) {
     check(`${r.name}: Melodie in ${fmt(r.barShare * 100, 0)} % der Takte (Welt 1 im Mittel ${fmt(lim.barShare * 100, 0)} %)`, r.barShare >= lim.barShare - 1e-9);
@@ -226,12 +250,12 @@ if (want('melodie')) {
     check(`${r.name}: Refrain-Hook kehrt wieder (${r.hookCount}×), Rhythmus-Wiederholung ${fmt(r.rhythmRep * 100, 0)} %`, r.hookCount >= 2 && r.rhythmRep >= lim.rhythmRep);
     check(`${r.name}: ${fmt(r.diatonic * 100, 0)} % der Melodietöne leitereigen in ${r.spec.key}`, r.diatonic >= 0.9);
   }
-  // Abwechslung: keine zwei Hooks gleichen sich – alle Themen der Welten 1–5 und der Halloween-Welt paarweise, in beide
+  // Abwechslung: keine zwei Hooks gleichen sich – alle Themen der Welten 1–6 und der Halloween-Welt paarweise, in beide
   // Richtungen (Anteil gemeinsamer Einsätze mit gleichem Abstand zum ersten Ton in den zwei Refrain-Takten). Die Hooks
-  // der Welt 5 und der Halloween-Welt zusätzlich über die Kontur gegen alle Themen: Intervallfolge ohne Rhythmus, Anteil
-  // gemeinsamer Vierton-Figuren (drei aufeinanderfolgende Intervalle) – so fällt auch eine umrhythmisierte oder versetzte
-  // Melodie auf. (Unter den Themen der Welten 1–4 erreicht die Kontur bis 60 %; diese Themen bleiben unverändert,
-  // geprüft wird sie für Welt 5 und die Halloween-Welt.)
+  // der Welten 5 und 6 und der Halloween-Welt zusätzlich über die Kontur gegen alle Themen: Intervallfolge ohne Rhythmus,
+  // Anteil gemeinsamer Vierton-Figuren (drei aufeinanderfolgende Intervalle) – so fällt auch eine umrhythmisierte oder
+  // versetzte Melodie auf. (Unter den Themen der Welten 1–4 erreicht die Kontur bis 60 %; diese Themen bleiben
+  // unverändert, geprüft wird sie für Welt 5, Welt 6 und die Halloween-Welt.)
   const every = [...w1.map((r) => ({ ...r, spec: { world: 1 } })), ...fresh];
   const simSig = (p, q) => { const A = new Set(p.hookSig); return q.hookSig.filter((x) => A.has(x)).length / Math.max(A.size, q.hookSig.length); };
   const figures = (ns) => { const iv = ns.slice(1).map((n, i) => n - ns[i]); return iv.slice(2).map((_, i) => iv.slice(i, i + 3).join(',')); };
@@ -246,15 +270,15 @@ if (want('melodie')) {
       if (every[i].spec.world < 5 && every[j].spec.world < 5 && shape > oldShape.sim) oldShape = { sim: shape, a: every[i].name, b: every[j].name };
     }
   }
-  check(`Hooks verschieden (Welt 1–5 und Halloween, ${every.length} Themen): größte Ähnlichkeit zweier Refrain-Hooks ${fmt(worst.sim * 100, 0)} % (${worst.a} / ${worst.b}) < 50 %`, worst.sim < 0.5);
+  check(`Hooks verschieden (Welt 1–6 und Halloween, ${every.length} Themen): größte Ähnlichkeit zweier Refrain-Hooks ${fmt(worst.sim * 100, 0)} % (${worst.a} / ${worst.b}) < 50 %`, worst.sim < 0.5);
   console.log(`   Kontur der Hooks unter den Themen der Welten 1–4: höchstens ${fmt(oldShape.sim * 100, 0)} % (${oldShape.a} / ${oldShape.b})`);
-  for (const r of fresh.filter((x) => x.spec.world === 5 || x.spec.world === HW)) {
+  for (const r of fresh.filter((x) => x.spec.world === 5 || x.spec.world === 6 || x.spec.world === HW)) {
     const others = every.filter((o) => o.name !== r.name);
     const top = (f) => others.map((o) => ({ o: o.name, v: both(f, r, o) })).sort((p, q) => q.v - p.v)[0];
     const x = top(simSig), y = top(simShape);
     check(`${r.name}: Hook eigenständig gegen alle Themen – Einsatz+Intervall höchstens ${fmt(x.v * 100, 0)} % (${x.o}), Kontur höchstens ${fmt(y.v * 100, 0)} % (${y.o}), je < 50 %`, x.v < 0.5 && y.v < 0.5);
   }
-  for (const w of [2, 3, 4, 5, HW]) {
+  for (const w of [2, 3, 4, 5, 6, HW]) {
     const keys = fresh.filter((r) => r.spec.world === w).map((r) => r.spec.key);
     if (keys.length) check(`${w === HW ? 'Halloween-Welt' : `Welt ${w}`}: jede Melodie in eigener Tonart (${keys.join(', ')})`, new Set(keys).size === keys.length);
   }
