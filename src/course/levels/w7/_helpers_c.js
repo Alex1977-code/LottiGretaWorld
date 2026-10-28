@@ -6,11 +6,14 @@
 // Turmstufen, Zinnen, Plattenböden – alles statisch und verschmolzen über LEVEL.build), dann kleine level-lokale Mechanik
 // (Aufzug, der losfährt, wenn man daraufsteht; Giftnebel startet die Lava), zuletzt Belebtes (Funken, Blasen, Glut).
 //
-// Gemeinsam:   isl, line, ring, arc, column, sign, glimmer, Bld (aus Welt 5/6), C (Farbe), brickBox, brickCyl, merlons,
-//              merlonsRound, slits, tiles, tilesRound, aufzug, kette (Zierketten), funken
-// 7-5:         fortressTier (eckige Turmetage), roundTier (runde Turmstufe), seilStation, nebelLava, brickCube (Ziegel-Würfel)
-// 7-Kapitän:   machinePlate (Stahlplatte mit Nieten), gearWall, pipeRun, kruemelWinkt
-// 7-6:         reefFloor (Sandboden mit Korallen), volcanoIsland, bubbles
+// Daten:       isl, line, ring, arc, column, sign, glimmer, Bld, onRespawn (aus Welt 6/7 weitergereicht), C (Farbe)
+// Geometrie:   Quads (Vierecke mit flacher Farbe), STONE (Steinpaletten burg/rot/dunkel/basalt/sand/stahl/messing/ziegel),
+//              brickFace, tiles, brickBox (Mauerquader mit Kollision), carpet (Läufer-Muster), slits (glühende Fenster),
+//              merlons, merlonsRound (Zinnen), gelaender (gelb-schwarzes Geländer), flushQ, roundTier (runde Turmstufe)
+// Belebtes:    ketten, funken (aufsteigende Glut)
+// Leistung:    fernSicht (statische Abschnitte nur bis dist), fernModelle (Kleinkram in der Ferne über layers aus),
+//              tiefSicht (unter Wasser zeichnet die Kamera nur bis in den Nebel)
+// Mechanik:    aufzug (fährt los, wenn man daraufsteht), nebelLava (Giftnebel startet die steigende Lava)
 
 import * as THREE from 'three';
 import { colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd, box } from '../../blocks/kit.js';
