@@ -45,6 +45,8 @@ class Quads {
 }
 export { Quads };
 
+/** Detail-Vierecke (Steine, Platten, Kanten) ohne Sonnenschatten – den Schattenumriss werfen die Fugen-Flächen. */
+const dq = (Q) => (Q.detail ??= new Quads());
 const hash = (a, b, c = 0) => { const s = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return s - Math.floor(s); };
 
 /** Steinfarben (Burgstein des Themas lavatower / lavamachine / reef). */
@@ -83,7 +85,7 @@ export function brickFace(Q, f, P) {
       if (f.hotY !== undefined) mixc(tmp, P.hot, smooth(f.hotY + 3, f.hotY, wy) * 0.65, tmp);
       if (f.soot) mixc(tmp, P.s2, f.soot * smooth(oy + f.h * 0.4, oy + f.h, wy) * 0.5, tmp);
       const col = [tmp[0], tmp[1], tmp[2]];
-      Q.quad(at(a + g, y0 + g, lift), at(b - g, y0 + g, lift), at(b - g, y1 - g, lift), at(a + g, y1 - g, lift), [nx, 0, nz], col);
+      dq(Q).quad(at(a + g, y0 + g, lift), at(b - g, y0 + g, lift), at(b - g, y1 - g, lift), at(a + g, y1 - g, lift), [nx, 0, nz], col);
     }
   }
 }
@@ -100,8 +102,11 @@ export function tiles(Q, x0, x1, z0, z1, y, P, o = {}) {
       const edge = o.rim && (a <= x0 + 1e-3 || b >= x1 - 1e-3 || c <= za + 1e-3 || d >= zb - 1e-3);
       const k = hash(Math.round(a * 2), Math.round(c * 2), y);
       if (edge) mixc(P.rim, P.top0, k * 0.4, tmp); else mixc(P.top0, P.top1, k, tmp);
-      if (o.pattern?.(a + cell / 2, c + cell / 2)) mixc(tmp, C(o.patternColor ?? 0xd8483a), 0.75, tmp);
-      Q.quad([a + g, y + 0.012, d - g], [b - g, y + 0.012, d - g], [b - g, y + 0.012, c + g], [a + g, y + 0.012, c + g], [0, 1, 0], [tmp[0], tmp[1], tmp[2]]);
+      if (o.pattern?.((a + b) / 2, (c + d) / 2)) {
+        const pc = C(o.patternColor ?? 0xc8283a);
+        mixc(pc, C(0xffffff), (k - 0.5) * 0.12, tmp);
+      }
+      dq(Q).quad([a + g, y + 0.012, d - g], [b - g, y + 0.012, d - g], [b - g, y + 0.012, c + g], [a + g, y + 0.012, c + g], [0, 1, 0], [tmp[0], tmp[1], tmp[2]]);
     }
   }
 }
@@ -119,12 +124,13 @@ export function brickBox(level, Q, b) {
   if (!level.view) return;
   const P = pal(b.stone ?? 'burg');
   const faces = b.faces ?? '+z+x-x-z';
-  const h = top - y0;
+  const yv = b.hot !== undefined ? Math.max(y0, b.hot - 0.6) : y0;   // unter der Lava sieht man nichts
+  const h = top - yv;
   const F = {
-    '+z': { o: [b.x0, y0, zb], u: [1, 0, 0], n: [0, 0, 1], w: b.x1 - b.x0 },
-    '-z': { o: [b.x1, y0, za], u: [-1, 0, 0], n: [0, 0, -1], w: b.x1 - b.x0 },
-    '+x': { o: [b.x1, y0, zb], u: [0, 0, -1], n: [1, 0, 0], w: zb - za },
-    '-x': { o: [b.x0, y0, za], u: [0, 0, 1], n: [-1, 0, 0], w: zb - za },
+    '+z': { o: [b.x0, yv, zb], u: [1, 0, 0], n: [0, 0, 1], w: b.x1 - b.x0 },
+    '-z': { o: [b.x1, yv, za], u: [-1, 0, 0], n: [0, 0, -1], w: b.x1 - b.x0 },
+    '+x': { o: [b.x1, yv, zb], u: [0, 0, -1], n: [1, 0, 0], w: zb - za },
+    '-x': { o: [b.x0, yv, za], u: [0, 0, 1], n: [-1, 0, 0], w: zb - za },
   };
   for (const k of ['+z', '-z', '+x', '-x']) if (faces.includes(k)) brickFace(Q, { ...F[k], h, hotY: b.hot, soot: b.soot ?? 0.3, row0: Math.round(top * 2) }, P);
   if (!b.skipTop) tiles(Q, b.x0, b.x1, za, zb, top, P, { cell: b.cell ?? 1.0, rim: b.rim ?? true, pattern: b.pattern, patternColor: b.patternColor });
@@ -136,9 +142,33 @@ export function brickBox(level, Q, b) {
     const o = f.o;
     const s0 = [o[0] + nx * lip, top - lh, o[2] + nz * lip];
     const at = (s, t) => [s0[0] + ux * s, s0[1] + t, s0[2] + uz * s];
-    Q.quad(at(-lip, 0), at(f.w + lip, 0), at(f.w + lip, lh), at(-lip, lh), [nx, 0, nz], P.rim);
+    dq(Q).quad(at(-lip, 0), at(f.w + lip, 0), at(f.w + lip, lh), at(-lip, lh), [nx, 0, nz], P.rim);
   };
   for (const k of ['+z', '-z', '+x', '-x']) if (faces.includes(k) && b.lip !== false) sideLip(k);
+  // Gesimsbänder (hellere, vorstehende Steinreihen) auf halber Höhe großer Mauern
+  for (const yb of b.bands ?? []) {
+    for (const k of ['+z', '-z', '+x', '-x']) {
+      if (!faces.includes(k)) continue;
+      const f = F[k];
+      const [ux, , uz] = f.u, [nx, , nz] = f.n;
+      const at = (s2, t) => [f.o[0] + nx * 0.1 + ux * s2, yb + t, f.o[2] + nz * 0.1 + uz * s2];
+      dq(Q).quad(at(-0.1, 0), at(f.w + 0.1, 0), at(f.w + 0.1, 0.3), at(-0.1, 0.3), [nx, 0, nz], P.rim);
+      dq(Q).quad(at(-0.1, 0.3), at(f.w + 0.1, 0.3), [f.o[0] + ux * (f.w + 0.1), yb + 0.3, f.o[2] + uz * (f.w + 0.1)], [f.o[0] - ux * 0.1, yb + 0.3, f.o[2] - uz * 0.1], [0, 1, 0], P.top0);
+    }
+  }
+}
+
+/** Teppich-Muster für tiles/brickBox: Zellen mit Abstand ≤ hw zur Linie durch pts [[x, z], …]. */
+export function carpet(pts, hw = 0.8) {
+  return (x, z) => {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[i + 1];
+      const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2));
+      if (Math.hypot(x - ax - dx * t, z - az - dz * t) <= hw) return true;
+    }
+    return false;
+  };
 }
 
 /**
@@ -247,7 +277,9 @@ export function flushQ(level, Q, opts) {
   if (g) parts.push(g);
   if (Q.extra?.length) parts.push(...Q.extra.map((x) => (x.index ? x.toNonIndexed() : x)));
   if (parts.length) addStatic(level, merge(parts), opts);
-  Q.P = []; Q.N = []; Q.Cc = []; Q.extra = [];
+  const d = Q.detail?.geometry();
+  if (d) addStatic(level, d, { ...opts, castShadow: false });
+  Q.P = []; Q.N = []; Q.Cc = []; Q.extra = []; Q.detail = null;
 }
 
 // =====================================================================================================================
@@ -266,7 +298,8 @@ export function roundTier(level, Q, t) {
   if (t.merlons !== false) merlonsRound(level, Q, t.x, t.z, t.r - 0.3, t.top, { gaps: t.gaps ?? [], solid: t.solidMerlons !== false });
   if (!level.view) return;
   const P = pal(t.stone ?? 'burg');
-  const r = t.r, h = t.top - y0;
+  const yv = t.hot !== undefined ? Math.max(y0, t.hot - 0.6) : y0;
+  const r = t.r, h = t.top - yv;
   const bw = 1.2, bh = 0.6;
   const rows = Math.max(1, Math.round(h / bh));
   const rh = h / rows;
@@ -280,11 +313,11 @@ export function roundTier(level, Q, t) {
     // nur die vordere Hälfte und Seiten (Kamera blickt nach −Z); hinten genügt der Fugengrund
     const am = (a0 + a1) / 2;
     const back = Math.cos(am) < -0.55;
-    Q.quad(ring(r, a0, y0), ring(r, a1, y0), ring(r, a1, t.top), ring(r, a0, t.top), nrm(am), P.mortar);
+    Q.quad(ring(r, a0, yv), ring(r, a1, yv), ring(r, a1, t.top), ring(r, a0, t.top), nrm(am), P.mortar);
     if (back) continue;
   }
   for (let rI = 0; rI < rows; rI++) {
-    const ya = y0 + rI * rh, yb = ya + rh;
+    const ya = yv + rI * rh, yb = ya + rh;
     const off = (rI % 2) * 0.5;
     for (let i = 0; i < n; i++) {
       const a0 = ((i + off) / n) * TAU, a1 = ((i + off + 1) / n) * TAU;
@@ -297,13 +330,13 @@ export function roundTier(level, Q, t) {
       if (t.hot !== undefined) mixc(tmp, P.hot, smooth(t.hot + 3, t.hot, (ya + yb) / 2) * 0.65, tmp);
       mixc(tmp, P.s2, smooth(t.top - h * 0.6, t.top, (ya + yb) / 2) * 0.12, tmp);
       const rr = r + 0.035;
-      Q.quad(ring(rr, a0 + g, ya + 0.045), ring(rr, a1 - g, ya + 0.045), ring(rr, a1 - g, yb - 0.045), ring(rr, a0 + g, yb - 0.045), nrm(am), [tmp[0], tmp[1], tmp[2]]);
+      dq(Q).quad(ring(rr, a0 + g, ya + 0.045), ring(rr, a1 - g, ya + 0.045), ring(rr, a1 - g, yb - 0.045), ring(rr, a0 + g, yb - 0.045), nrm(am), [tmp[0], tmp[1], tmp[2]]);
     }
   }
   // Kantenring (hell) unter der Oberkante
   for (let i = 0; i < n; i++) {
     const a0 = (i / n) * TAU, a1 = ((i + 1) / n) * TAU, am = (a0 + a1) / 2;
-    Q.quad(ring(r + 0.12, a0, t.top - 0.24), ring(r + 0.12, a1, t.top - 0.24), ring(r + 0.12, a1, t.top), ring(r + 0.12, a0, t.top), nrm(am), P.rim);
+    dq(Q).quad(ring(r + 0.12, a0, t.top - 0.24), ring(r + 0.12, a1, t.top - 0.24), ring(r + 0.12, a1, t.top), ring(r + 0.12, a0, t.top), nrm(am), P.rim);
   }
   // Boden: Ring aus Platten (konzentrisch) zwischen inner und r
   const ri = t.inner ?? 0;
@@ -319,7 +352,7 @@ export function roundTier(level, Q, t) {
       const g = 0.04;
       const y = t.top + 0.012;
       const ra2 = Math.max(0, ra + (ra > 0 ? g : 0)), rb2 = rb - g, ga = g / Math.max(0.5, rb);
-      Q.quad(ring(ra2, a0 + ga, y), ring(rb2, a0 + ga, y), ring(rb2, a1 - ga, y), ring(ra2, a1 - ga, y), [0, 1, 0], [tmp[0], tmp[1], tmp[2]]);
+      dq(Q).quad(ring(ra2, a0 + ga, y), ring(rb2, a0 + ga, y), ring(rb2, a1 - ga, y), ring(ra2, a1 - ga, y), [0, 1, 0], [tmp[0], tmp[1], tmp[2]]);
     }
   }
   // Fugen-Boden darunter

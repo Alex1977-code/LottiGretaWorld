@@ -26,7 +26,7 @@
 // Gegner: Stampfstein 3, Knochenflieger 3, Zauberkröte 3, Funkenflämmchen 6.
 
 import {
-  isl, line, ring, arc, column, sign, C, Quads, brickBox, slits, merlons, roundTier, flushQ, ketten, funken, aufzug, nebelLava,
+  isl, line, ring, arc, column, sign, C, Quads, brickBox, slits, merlons, roundTier, flushQ, ketten, funken, aufzug, nebelLava, carpet,
 } from './_helpers_c.js';
 import { Bld, glimmer } from '../w6/_helpers_b.js';
 
@@ -53,14 +53,15 @@ function build(level) {
   const Q = new Quads();
   const hot = SEA;
   // ---------------- Erster Turm: Etagen (Burgmauer, Plattenboden), Steg
-  brickBox(level, Q, { x0: -4.5, x1: 4.5, z0: 13, z1: 2, top: E0, y0: -3, hot, faces: '+z+x-x', stone: 'dunkel', cell: 1.5, tag: 'steg' });
-  brickBox(level, Q, { x0: -9, x1: 9, z0: 2, z1: -12, top: E0, y0: -3, hot, faces: '+z+x-x', tag: 'etage0' });
-  brickBox(level, Q, { x0: -9, x1: 9, z0: -12, z1: -22, top: E1, y0: -3, hot, faces: '+z+x-x', tag: 'etage1' });
-  brickBox(level, Q, { x0: -12, x1: -4, z0: -22, z1: -32, top: E2, y0: -3, hot, faces: '+z+x-x', tag: 'etage2' });
-  brickBox(level, Q, { x0: 4, x1: 9, z0: -22, z1: -32, top: E2, y0: -3, hot, faces: '+z+x-x', tag: 'etage2' });
-  brickBox(level, Q, { x0: -9, x1: 12, z0: -32, z1: -42, top: E3, y0: -3, hot, faces: '+z+x-x', tag: 'etage3' });
-  brickBox(level, Q, { x0: -8, x1: 8, z0: -42, z1: -54, top: TOP, y0: -3, hot, faces: '+z+x-x-z', stone: 'rot', tag: 'spitze',
-    pattern: (x, z) => Math.hypot(x, z + 48) < 2.6 && Math.hypot(x, z + 48) > 1.6, patternColor: 0xffc23a });
+  // Teppich (roter Läufer) zeigt den Weg zum nächsten Kniff
+  brickBox(level, Q, { x0: -4.5, x1: 4.5, z0: 13, z1: 2, top: E0, y0: -3, hot, faces: '+z+x-x', stone: 'dunkel', tag: 'steg', pattern: carpet([[0, 13], [0, 2]]) });
+  brickBox(level, Q, { x0: -9, x1: 9, z0: 2, z1: -12, top: E0, y0: -3, hot, faces: '+z+x-x', tag: 'etage0', pattern: carpet([[0, 2], [0, -3.5], [3.6, -7.6]]) });
+  brickBox(level, Q, { x0: -9, x1: 9, z0: -12, z1: -22, top: E1, y0: -3, hot, faces: '+z+x-x', tag: 'etage1', bands: [2.4], pattern: carpet([[4, -12], [3, -16.4], [-6, -19.4], [-9, -20.5]]) });
+  brickBox(level, Q, { x0: -12, x1: -4, z0: -22, z1: -32, top: E2, y0: -3, hot, faces: '+z+x-x', tag: 'etage2', bands: [8.6], pattern: carpet([[-10.5, -22], [-8, -25.5], [-4, -27]]) });
+  brickBox(level, Q, { x0: 4, x1: 9, z0: -22, z1: -32, top: E2, y0: -3, hot, faces: '+z+x-x', tag: 'etage2', bands: [8.6], pattern: carpet([[4, -27], [6.4, -28], [9, -30.5]]) });
+  brickBox(level, Q, { x0: -9, x1: 12, z0: -32, z1: -42, top: E3, y0: -3, hot, faces: '+z+x-x', tag: 'etage3', bands: [14.6], pattern: carpet([[10.5, -32], [6, -35.4], [-3.6, -38.4]]) });
+  brickBox(level, Q, { x0: -8, x1: 8, z0: -42, z1: -54, top: TOP, y0: -3, hot, faces: '+z+x-x-z', stone: 'rot', tag: 'spitze', bands: [20.6],
+    pattern: (x, z) => (Math.hypot(x, z + 48) < 2.6 && Math.hypot(x, z + 48) > 1.6) || carpet([[0, -50.6], [0, -54]])(x, z), patternColor: 0xffc23a });
   // Kletterpfeiler am Aufzug 2 (nur die linke Seite ist eine Kletterwand)
   brickBox(level, Q, { x0: 12, x1: 14.6, z0: -29, z1: -32, top: 27, y0: -3, hot, faces: '+z+x', stone: 'rot', tag: 'kletterwand', climbable: true });
   const climbFace = new Bld();
@@ -93,7 +94,8 @@ function build(level) {
   ketten(level, [[-8.4, 5.7, -12.3, 3.2], [8.4, 5.7, -12.3, 2.4], [-11.4, 11.7, -22.3, 3.6], [3.6, 17.7, -32.3, 2.8], [-8.4, 23.7, -42.3, 3.4], [7.4, 23.7, -42.3, 2.6]]);
 
   // ---------------- Funkenturm: Vorhof, Warp-Terrasse, Glutbrücke, runde Stufen
-  brickBox(level, Q, { x0: -10, x1: 10, z0: -88, z1: -99, top: G1, y0: -3, hot, faces: '+z+x-x', tag: 'vorhof' });
+  brickBox(level, Q, { x0: -10, x1: 10, z0: -88, z1: -99, top: G1, y0: -3, hot, faces: '+z+x-x', tag: 'vorhof', bands: [5.6, 11.6],
+    pattern: carpet([[0, -88], [-1.6, -91.4], [-5, -92.6], [-5, -99]]) });
   brickBox(level, Q, { x0: 3, x1: 10.6, z0: -99, z1: -104, top: G1, y0: -3, hot, faces: '+x', tag: 'vorhof', skipTop: false });
   brickBox(level, Q, { x0: 16, x1: 22, z0: -88, z1: -98, top: W, y0: -3, hot, faces: '+z+x-x-z', stone: 'rot', tag: 'warpterrasse' });
   brickBox(level, Q, { x0: 10, x1: 16, z0: -89.5, z1: -96.5, top: BR, y0: -3, hot, faces: '+z-z', stone: 'basalt', tag: 'glutbruecke', cell: 1.25 });
@@ -146,6 +148,11 @@ function build(level) {
   B.box(1.8, 0.12, 0.5, -3.2, 0.45, 9, 0x8a5a32).box(0.12, 0.45, 0.4, -4, 0, 9, 0x5a3a22).box(0.12, 0.45, 0.4, -2.4, 0, 9, 0x5a3a22);
   for (const [x, z] of [[3.4, 11.2], [3.7, 10.2], [-7.6, -10.4]]) B.cyl(0.4, 0.42, 0.95, x, 0, z, 0x8a5a32, 12).torus(0.41, 0.04, x, 0.3, z, 0x4a4a52, { rx: PI / 2 }).torus(0.41, 0.04, x, 0.7, z, 0x4a4a52, { rx: PI / 2 });
   for (const [x, z] of [[7.6, -9.6], [7.9, -10.3], [7.3, -10.4]]) B.sphere(0.26, x, 0.26, z, 0x2a2a30);
+  // Speier (Löwenmaul-Steine) über den Lavafällen
+  for (const [x, y, z, dx, dz] of [[-9.2, E1 - 1.2, -17, -1, 0], [12.2, E3 - 1.4, -37.5, 1, 0], [onRing(-110, RR[0], 0)[0], R1 - 2, onRing(-110, RR[0], 0)[2], Math.sin(-110 * D2R), Math.cos(-110 * D2R)]]) {
+    B.box(1.1, 0.7, 1.1, x + dx * 0.3, y - 0.1, z + dz * 0.3, 0x6a5a62, { r: 0.12 });
+    B.sphere(0.32, x + dx * 0.75, y + 0.25, z + dz * 0.75, 0xffc23a, { s: [1, 0.6, 1] });
+  }
   B.flush(level);
   // Glutfunken aus dem Lavasee (rund um die Türme)
   funken(level, [[-16, 16, SEA, 8, 0, -60], [-16, 24, SEA, 12, -80, -130]], { n: 90, rise: 0.4, size: 0.22, seed: 7 });
@@ -178,7 +185,7 @@ export const LEVEL = {
   instances: { coin: { farHide: 46, shadow: false } },
   farHide: 48,
   camera: [
-    { from: 16, to: 2, pitch: 36, dist: 14, height: 1.6, ahead: 2, fov: 40 },
+    { from: 16, to: 2, pitch: 31, dist: 14.5, height: 1.8, ahead: 2.2, fov: 42 },
     { from: 2, to: -54, pitch: 29, dist: 15.5, height: 2.4, ahead: 1.4, fov: 42 },
     { from: -54, to: -88, pitch: 26, dist: 16, height: 1.8, ahead: 3, fov: 42 },
     { from: -88, to: -100, pitch: 31, dist: 15, height: 2.2, ahead: 1.4, fov: 42 },
@@ -192,7 +199,11 @@ export const LEVEL = {
     sign(-2.6, E0, 8.6, 'Stampfsteinturm\nGanz nach oben!', { size: [2.6, 0.9] }),
     sign(1.6, E0, -7.4, 'Stampfstein:\nweglocken, draufhüpfen,\nmitfahren!', { size: [2.6, 1.1] }),
     { type: 'deco_w7', items: [
-      { kind: 'burgturm', pos: [-6.2, E0, 0.8], height: 7, radius: 1.3, solid: true }, { kind: 'burgturm', pos: [6.2, E0, 0.8], height: 7, radius: 1.3, solid: true },
+      { kind: 'burgturm', pos: [-7.8, E0, 0.9], height: 5.2, radius: 1.05, solid: true }, { kind: 'burgturm', pos: [7.8, E0, 0.9], height: 5.2, radius: 1.05, solid: true },
+      // Lavafälle aus Speiern an den Turmwänden (nur Optik)
+      { kind: 'lavafall', pos: [-9.35, SEA, -17], width: 2.2, height: E1 - 1.2 - SEA, yaw: -PI / 2 },
+      { kind: 'lavafall', pos: [12.35, SEA, -37.5], width: 2.4, height: E3 - 1.4 - SEA, yaw: PI / 2 },
+      { kind: 'lavafall', pos: [onRing(-110, RR[0] + 0.3, 0)[0], SEA, onRing(-110, RR[0] + 0.3, 0)[2]], width: 3, height: R1 - 2 - SEA, yaw: -110 * D2R },
       { kind: 'fahne', pos: [5.2, E0, 11.6], height: 4.2, solid: true },
       fackel(-4.6, 1.6, 2.05), fackel(4.6, 1.6, 2.05),
       banner(-4.5, 5.6, -11.95), banner(1.2, 5.6, -11.95, 3.2, 'lila'),
@@ -277,7 +288,7 @@ export const LEVEL = {
     flamme('ff2', arcPath(-100, -86, 11.6, R1, 3), { phase: 0.3 }),
     flamme('ff3', arcPath(-22, 4, 8.6, R2, 4), { phase: 0.6 }),
     flamme('ff4', arcPath(40, 64, 6.2, R3, 4), { phase: 0.1 }),
-    flamme('ff5', arcPath(30, 56, 9.2, R2, 4), { phase: 0.5 }),
+    flamme('ff5', arcPath(46, 68, 9.2, R2, 4), { phase: 0.5 }),
     flamme('ff6', arcPath(50, 70, 12.2, R1, 3), { phase: 0.8 }),
   ],
   items: [

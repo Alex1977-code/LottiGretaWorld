@@ -115,6 +115,8 @@ const ROUTES = {
       { name: 'drei Stampfstein-Fahrten, zwei Aufzüge, Fähre, Seilbahn, Sprungfeder, Pfeilplattform', ok: (r) => r.mech.stampfFahrten === 3 && r.mech.aufzug >= 2 && r.mech.gondel && r.mech.feder },
       { name: 'fünf Schlüsselmünzen, Warp-Box erschienen und benutzt', ok: (r) => r.mech.keys === 5 && r.mech.warps === 1 },
       { name: 'Giftnebel gejagt, Lava gestiegen, Flucht gelungen (nicht im Nebel gestorben)', ok: (r) => r.mech.nebel === 'jagt' || r.mech.nebel === 'ende' ? r.mech.lavaTop > 0 && !r.dead : false },
+      { name: 'Flucht von der Krone bis in die Warp-Box < 16 s (Nebel erreicht Ring 1 erst nach ≈ 23 s, die Lava die Glutbrücke nach ≈ 28 s)', ok: (r) => r.mech.flucht !== null && r.mech.flucht < 16 },
+      { name: 'ohne einen Treffer-Versuch', ok: (r) => r.mech.hurts === 0 },
     ],
     targets: [
       { name: 'Stern 0: Krallen-Anzug aus dem ?-Block, Aufzug 2, Kletterpfeiler hinauf', star: 0, from: [6, E2, -27.6],
@@ -161,6 +163,7 @@ const ROUTES = {
       ['pfeiler', [10.5, E2, -28]],
       ['etage3', [2, E3, -36]],
       ['spitze', [0, TOP, -47]],
+      ['spitzeVorn', [-4, TOP, -43]],
       ['wolke', [-5, TOP, -47, 0, Math.PI]],
       ['seilbahn', [0, TOP, -56.2], 360],
       ['vorhof', [0, G1, -92]],
@@ -289,7 +292,8 @@ function install() {
       const hold = o.invuln !== false;
       const hist = [];
       let deadLogged = false;
-      const mech = { hurts: 0, keys: 0, warps: 0, rides: 0, stampfFahrten: 0, aufzug: 0, gondel: false, feder: false, hurtList: [], lavaTop: -99, nebel: null };
+      const mech = { hurts: 0, keys: 0, warps: 0, rides: 0, stampfFahrten: 0, aufzug: 0, gondel: false, feder: false, hurtList: [], lavaTop: -99, nebel: null, flucht: null };
+      let fogT0 = null;
       const track = [];
       let lastHurts = p.hurtTries ?? 0;
       let lastStampf = null;
@@ -301,6 +305,7 @@ function install() {
         if (p.mode === 'ground' && g?.tag === 'stampfstein' && g.owner !== lastStampf && g.owner?.state === 'rise') { lastStampf = g.owner; mech.stampfFahrten++; }
         if (p.mode === 'ground' && g?.tag === 'seilbahn') mech.gondel = true;
         if (p.vel.y > 15 && p.pos.y > 24 && p.pos.y < 27) mech.feder = true;
+        if (fogT0 === null && ['verzoegert', 'jagt'].includes(named('nebel')?.state)) fogT0 = steps;
         if (p.mode === 'ground' && !p.dead) {
           const t = track[track.length - 1];
           if (!t || Math.hypot(p.pos.x - t[0], p.pos.z - t[2]) > 7 || Math.abs(p.pos.y - t[1]) > 2.5) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
@@ -410,7 +415,7 @@ function install() {
           }
           settle();
           for (let q = 0; q < 30; q++) tick({});
-          if (rode) mech.warps++;
+          if (rode) { mech.warps++; if (fogT0 !== null && mech.flucht === null) mech.flucht = +((steps - fogT0) / 120).toFixed(1); }
           log.push(['warp', `${Lg.warp}`, rode, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           if (!rode) { log.push(['FEHLER: Warp-Box nicht benutzt', Lg.warp]); break; }
           continue;
