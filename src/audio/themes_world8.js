@@ -28,8 +28,14 @@
 //   Abspann          Danke-Seufzer: drei Stufen hinab, eine Quarte tiefer Luft holen, in Achteln zurück hinauf – als
 //                    Sequenz über I–V–vi–IV
 //   Karte            Karussell: punktierte „Ka-rus-sell“-Schwünge um den Ton, ein Sprung, ein langer Ton
-// Beim Komponieren aufgefallen und ersetzt: Sprünge über eine Sexte an den Taktgrenzen (Dünen-Intro, Express-Strophe,
-// Inferno-Refrain und -Strophe) – die Takte beginnen jetzt dort, wo der vorige endet.
+// Beim Komponieren aufgefallen und ersetzt: eine Keks-Hook mit gebrochenem Dreiklang hinab und wieder hinauf hatte die
+// Kontur der Dünen-Hook (62 %), ein Donner-Ruf mit fallender Sechzehntel-Leiter die von course_beep (50 %), eine Heldenhook
+// mit stufenweise fallender Antwort die von course_canyon (50 %); dazu ein Oktavsprung in die Wiederholung der Dünen-Hook
+// und Sprünge über eine Sexte an Taktgrenzen (Regen-Strophe, Inferno-Refrain). Nach einer Harmonie-Prüfung (lange
+// Melodietöne und Töne auf 1 und 3 gegen den Akkord) stehen auf den schweren Zählzeiten Akkordtöne – Quarten in der
+// Express- und Spukhaus-Strophe, in den Inferno-Antworten und im Turm-Refrain sind ersetzt; bewusst bleiben die None als
+// Vorhalt im Kolben-Stoß und die „Seufzer“ (None, Sexte, die sich auflösen) in der Abspann-Strophe. Die Wüstenflöte
+// spielt die Dünen-Hook in Originallage (eine Oktave tiefer war sie auf Handy-Lautsprechern zu dünn).
 //
 // Welt-Farbe nur über Klang: Regen-Tropfen (Sinus-Plinks), Regenrauschen (Schellen), Donner (abwärts gleitender Riser
 // mit Rauschen, tiefe Toms) und Festungshörner (Regen-Festung); Wüstenflöte, Kanun-Zupfer, Darbuka und Schellen,
@@ -67,7 +73,7 @@ const rfHook = ['C#5:3 C#5:1 G#5:4 E5:1 F#5:1 E5:1 D#5:1 C#5:2 B4:2', 'A4:3 A4:1
   'E5:3 E5:1 B5:4 G#5:1 A5:1 G#5:1 F#5:1 E5:4', 'D#5:3 D#5:1 F#5:4 D#5:1 E5:1 D#5:1 C#5:1 B4:4'];
 const rfChorus = chorusOf(rfHook, 'F#5:3 F#5:1 C#6:4 A5:1 B5:1 A5:1 G#5:1 F#5:4', 'G#5:3 G#5:1 D#6:4 B#5:1 C#6:1 B#5:1 A5:1 G#5:4');
 const rfIntro = [rfHook[0], rfHook[1], rfHook[2], 'D#5:3 D#5:1 G#5:4 F#5:1 E5:1 D#5:1 C#5:1 B#4:4'];   // Takt 4 führt zur Strophe
-const rfV = ['G#4:4 G#4:2 C#5:2 B4:2 A4:2 G#4:4', 'E4:4 E4:2 G#4:2 A4:2 B4:2 C#5:4', 'C#5:4 C#5:2 E5:2 D#5:2 C#5:2 A4:4', 'B4:4 B4:2 D#5:2 F#5:2 E5:2 D#5:4'];
+const rfV = ['G#4:4 G#4:2 C#5:2 E5:2 D#5:2 C#5:4', 'E5:4 E5:2 C#5:2 G#4:2 B4:2 C#5:4', 'C#5:4 C#5:2 E5:2 C#5:2 B4:2 A4:4', 'B4:4 B4:2 D#5:2 F#5:2 E5:2 D#5:4'];
 const rfVerse = [...rfV, rfV[0], rfV[1], 'A4:4 A4:2 C#5:2 F#5:2 E5:2 C#5:4', 'B#4:4 B#4:2 D#5:2 G#5:2 F#5:2 D#5:4'];
 const rfBridge = ['C#5:8 E5:8', 'D#5:8 F#5:8', 'E5:8 G#5:8', 'D#5:8 B#4:8'];
 const RAIN_R = ['.0.. ..1. .... 2..0', '...1 .0.. ..2. ....', '..0. ...2 .1.. ..0.', '.2.. 0... ..1. ...2'];
@@ -77,7 +83,7 @@ const THUNDER = dr('t.tt .... .... ....');                                  // D
 const RAINFORT = [K4, CL, HH, RAINN];
 
 // ================================================================ Dünen-Abfahrt (8-2, Reiten) ====
-// A-Dur, 144 BPM, schwungvoll. Intro A E fis D (die Wüstenflöte spielt die Hook eine Oktave tiefer) | Strophe fis D A E |
+// A-Dur, 144 BPM, schwungvoll. Intro A E fis D (die Wüstenflöte spielt die Hook) | Strophe fis D A E |
 // fis D h E (vi–IV–I–V, Kanun-Zupfer, Darbuka) | Refrain A E fis D | A E D E (I–V–vi–IV | I–V–IV–V, Galopp-Bass) |
 // Überleitung D E fis E (Sandwehen). Energie-Ebene beim Reiten: Lead eine Oktave höher, Offbeat-Stabs. Hook
 // „Dünen-Schwung“: der Dreiklang rutscht in Sechzehnteln hinab, dann in Achteln wieder hinauf.
@@ -85,10 +91,10 @@ const dnProg = ['A', 'E', 'F#m', 'D', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'Bm', 'E
 const dnHook = ['E6:2 C#6:1 A5:1 E5:2 A5:2 -:2 C#6:2 B5:2 A5:2', 'B5:2 G#5:1 E5:1 B4:2 E5:2 -:2 G#5:2 F#5:2 E5:2',
   'C#6:2 A5:1 F#5:1 C#5:2 F#5:2 -:2 A5:2 B5:2 C#6:2', 'D6:2 A5:1 F#5:1 D5:2 F#5:2 -:2 A5:2 B5:2 C#6:2'];   // D endet auf cis → zurück zum E
 const dnChorus = chorusOf(dnHook, 'A5:2 F#5:1 D5:1 A4:2 D5:2 -:2 F#5:2 A5:2 B5:2', 'B5:2 G#5:1 E5:1 B4:2 E5:2 -:2 G#5:2 B5:2 D6:2');
-const dnIntro = dnHook;   // die Flöte spielt die Hook eine Oktave tiefer, endet auf cis → Strophe
-const dnV = ['C#5:3 B4:1 A4:2 C#5:2 F#5:4 E5:2 C#5:2', 'D5:3 C#5:1 B4:2 D5:2 F#5:4 E5:2 D5:2', 'C#5:3 B4:1 A4:2 C#5:2 E5:4 D5:2 C#5:2', 'B4:3 A4:1 G#4:2 B4:2 E5:4 -:4'];
-const dnVerse = [...dnV, dnV[0], dnV[1], 'D5:3 C#5:1 B4:2 D5:2 F#5:4 D5:2 B4:2', 'G#4:3 A4:1 B4:2 E5:2 G#5:4 B5:4'];
-const dnBridge = ['D6:8 A5:8', 'B5:8 G#5:8', 'A5:8 C#6:8', 'B5:8 G#5:8'];
+const dnIntro = [dnHook[0], dnHook[1], dnHook[2], 'D6:2 A5:1 F#5:1 D5:2 F#5:2 -:2 A5:2 G#5:2 E5:2'];   // Takt 4 endet auf e → Strophe
+const dnV = ['C#5:3 B4:1 A4:2 C#5:2 F#5:4 E5:2 C#5:2', 'D5:3 C#5:1 B4:2 D5:2 F#5:4 E5:2 D5:2', 'C#5:3 B4:1 A4:2 C#5:2 E5:4 D5:2 C#5:2', 'B4:3 A4:1 G#4:2 A4:2 B4:4 -:4'];
+const dnVerse = [...dnV, dnV[0], dnV[1], 'D5:3 C#5:1 B4:2 D5:2 F#5:4 D5:2 B4:2', 'B4:3 C#5:1 D5:2 E5:2 G#5:4 B5:4'];
+const dnBridge = ['D6:8 A5:8', 'B5:8 G#5:8', 'A5:8 C#6:8', 'G#5:8 B5:8'];
 const DARB = dr('d..p ..p. d.d. p...');                                     // Darbuka (Doum-Tek)
 const SHAKE = dr('..j. ..j. ..j. .jj.');                                    // Schellenkranz
 const DUNE = [K4, CL, H8, DARB];
@@ -120,8 +126,8 @@ const bxProg = ['Gm', 'Eb', 'Bb', 'F', 'Gm', 'F', 'Eb', 'D', 'Gm', 'F', 'Cm', 'D
 const bxHook = ['D5:1 D5:1 D5:1 D5:1 G5:2 Bb5:2 A5:3 G5:1 F5:2 D5:2', 'Eb5:1 Eb5:1 Eb5:1 Eb5:1 G5:2 Bb5:2 G5:3 F5:1 Eb5:2 Bb4:2',
   'F5:1 F5:1 F5:1 F5:1 Bb5:2 D6:2 C6:3 Bb5:1 A5:2 F5:2', 'C5:1 C5:1 C5:1 C5:1 F5:2 A5:2 C6:3 Bb5:1 A5:2 F5:2'];
 const bxChorus = chorusOf(bxHook, 'C5:1 C5:1 C5:1 C5:1 Eb5:2 G5:2 C6:3 Bb5:1 G5:2 Eb5:2', 'D5:1 D5:1 D5:1 D5:1 F#5:2 A5:2 D6:3 C6:1 A5:2 F#5:2');
-const bxV = ['G4:3 Bb4:3 D5:2 C5:3 Bb4:3 A4:2', 'F4:3 A4:3 C5:2 Bb4:3 A4:3 F4:2', 'G4:3 Bb4:3 Eb5:2 D5:3 C5:3 Bb4:2', 'A4:3 F#4:3 A4:2 D5:3 C5:3 A4:2'];
-const bxVerse = [...bxV, bxV[0], bxV[1], 'G4:3 C5:3 Eb5:2 D5:3 C5:3 G4:2', 'F#4:3 A4:3 C5:2 D5:4 -:4'];
+const bxV = ['G4:3 Bb4:3 D5:2 D5:3 C5:3 Bb4:2', 'F4:3 A4:3 C5:2 C5:3 Bb4:3 A4:2', 'G4:3 Bb4:3 Eb5:2 Eb5:3 D5:3 Bb4:2', 'A4:3 F#4:3 A4:2 D5:3 C5:3 A4:2'];
+const bxVerse = [...bxV, bxV[0], bxV[1], 'G4:3 C5:3 Eb5:2 Eb5:3 D5:3 C5:2', 'F#4:3 A4:3 C5:2 D5:4 -:4'];
 const bxBridge = ['G5:8 Bb5:8', 'A5:8 C6:8', 'Bb5:8 D6:8', 'A5:8 F#5:8'];
 const PFIFF = 'D6:6 -:2 Bb5:8';                                             // Dampfpfeife (gleitet von unten in den Ton)
 const CHUG = dr('j.jj j.jj j.jj j.jj');                                     // Dampfstöße „tsch – tsch-tsch“
@@ -171,8 +177,8 @@ const bdProg = ['Am', 'Dm', 'G', 'C', 'Am', 'Am', 'F', 'E', 'Am', 'Am', 'Dm', 'E
 const bdHook = ['E5:2 E5:1 F5:1 E5:2 C5:2 A4:2 B4:1 C5:1 D5:2 B4:2', 'F5:2 F5:1 G5:1 F5:2 D5:2 A4:2 B4:1 C5:1 D5:2 F5:2',
   'G5:2 G5:1 A5:1 G5:2 D5:2 B4:2 C5:1 D5:1 B4:2 G4:2', 'E5:2 E5:1 F5:1 G5:2 E5:2 C5:2 D5:1 E5:1 D5:2 C5:2'];
 const bdChorus = chorusOf(bdHook, 'G#5:2 G#5:1 A5:1 G#5:2 E5:2 B4:2 C5:1 D5:1 E5:2 D5:2', 'C5:2 C5:1 B4:1 A4:2 E5:2 A5:4 -:4');
-const bdV = ['A4:3 A4:1 C5:2 E5:2 D5:3 C5:1 B4:2 C5:2', 'A4:3 A4:1 C5:2 E5:2 A5:4 G5:2 E5:2', 'F5:3 E5:1 D5:2 C5:2 A4:4 C5:2 F5:2', 'E5:3 D5:1 C5:2 B4:2 G#4:4 B4:2 E5:2'];
-const bdVerse = [...bdV, bdV[0], bdV[1], 'D5:3 D5:1 F5:2 A5:2 G5:3 F5:1 E5:2 D5:2', 'E5:3 F5:1 E5:2 D5:2 B4:4 D5:2 E5:2'];
+const bdV = ['A4:3 A4:1 C5:2 E5:2 E5:3 D5:1 C5:2 B4:2', 'A4:3 A4:1 C5:2 E5:2 A5:4 G5:2 E5:2', 'F5:3 E5:1 D5:2 C5:2 A4:4 C5:2 F5:2', 'E5:3 D5:1 C5:2 B4:2 G#4:4 B4:2 E5:2'];
+const bdVerse = [...bdV, bdV[0], bdV[1], 'D5:3 D5:1 F5:2 A5:2 A5:3 G5:1 F5:2 E5:2', 'E5:3 F5:1 E5:2 D5:2 B4:4 D5:2 E5:2'];
 const bdBridge = ['A4:8 C5:8', 'B4:8 D5:8', 'C5:8 E5:8', 'D5:8 B4:8'];
 const BOO = ['A5:16', 'B5:16', 'C6:16', 'B5:8 G#5:8'];                       // Geister-„Huuu“ (Theremin) in der Überleitung
 const KNOCK = dr('.... .... .... .p.p');                                    // Klopf-klopf
@@ -185,9 +191,9 @@ const SPOOK = [K4, CL, H8, CLOCK, KNOCK];
 // alle vier Takte) | Überleitung B C d A. Hook „Felsklotz-Rollen“: „da-da-DUM da-da-DUM“, der Dreiklang rollt zweimal
 // hinauf, dann in Achteln weiter.
 const ifProg = ['Dm', 'Bb', 'F', 'C', 'Dm', 'Dm', 'Bb', 'C', 'Dm', 'Dm', 'Gm', 'A', 'Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'Gm', 'A', 'Bb', 'C', 'Dm', 'A'];
-const ifHook = ['D5:1 F5:1 A5:2 D5:1 F5:1 A5:2 G5:2 F5:2 E5:2 F5:2', 'Bb4:1 D5:1 F5:2 Bb4:1 D5:1 F5:2 G5:2 F5:2 D5:2 C5:2',
-  'F5:1 A5:1 C6:2 F5:1 A5:1 C6:2 Bb5:2 A5:2 G5:2 F5:2', 'C5:1 E5:1 G5:2 C5:1 E5:1 G5:2 Bb5:2 A5:2 G5:2 E5:2'];
-const ifChorus = chorusOf(ifHook, 'G4:1 Bb4:1 D5:2 G4:1 Bb4:1 D5:2 F5:2 E5:2 D5:2 Bb4:2', 'A4:1 C#5:1 E5:2 A4:1 C#5:1 E5:2 G5:2 F5:2 E5:2 C#5:2');
+const ifHook = ['D5:1 F5:1 A5:2 D5:1 F5:1 A5:2 A5:2 G5:2 F5:2 E5:2', 'Bb4:1 D5:1 F5:2 Bb4:1 D5:1 F5:2 D5:2 C5:2 Bb4:2 C5:2',
+  'F5:1 A5:1 C6:2 F5:1 A5:1 C6:2 C6:2 Bb5:2 A5:2 G5:2', 'C5:1 E5:1 G5:2 C5:1 E5:1 G5:2 G5:2 F5:2 E5:2 D5:2'];
+const ifChorus = chorusOf(ifHook, 'G4:1 Bb4:1 D5:2 G4:1 Bb4:1 D5:2 D5:2 C5:2 Bb4:2 A4:2', 'A4:1 C#5:1 E5:2 A4:1 C#5:1 E5:2 E5:2 F5:2 E5:2 C#5:2');
 const ifV = ['A4:2 A4:2 D5:2 E5:2 F5:4 E5:2 D5:2', 'A4:2 A4:2 D5:2 E5:2 F5:4 G5:2 A5:2', 'F5:2 F5:2 D5:2 F5:2 Bb5:4 A5:2 F5:2', 'E5:2 E5:2 C5:2 E5:2 G5:4 F5:2 E5:2'];
 const ifVerse = [...ifV, ifV[0], ifV[1], 'D5:2 D5:2 Bb4:2 D5:2 G5:4 F5:2 D5:2', 'C#5:2 C#5:2 A4:2 C#5:2 E5:4 G5:2 E5:2'];
 const ifBridge = ['D5:8 F5:8', 'E5:8 G5:8', 'F5:8 A5:8', 'E5:8 C#5:8'];
@@ -209,7 +215,7 @@ const fnBaron = ['C5:2 -:1 C5:1 Eb5:2 C5:2 G5:3 F5:1 Eb5:2 D5:2', 'C5:2 -:1 C5:1
   'D5:2 -:1 D5:1 F5:2 D5:2 Bb5:3 Ab5:1 G5:2 F5:2', 'G5:3 F5:1 Eb5:2 D5:2 B4:4 -:2 G4:1 B4:1'];
 const fnHook = ['C5:2 Eb5:1 G5:1 C6:6 D6:2 Eb6:2 D6:2', 'C6:4 Bb5:2 Ab5:2 Eb5:4 F5:2 G5:2',
   'D5:2 F5:1 Bb5:1 D6:6 C6:2 Bb5:2 D6:2', 'B5:4 C6:2 D6:2 G5:4 F5:2 D5:2'];
-const fnChorus = chorusOf(fnHook, 'D5:2 F5:1 Bb5:1 D6:4 Eb6:2 D6:2 C6:2 Bb5:2', 'B5:4 G5:2 F5:2 D5:4 B4:2 D5:2');
+const fnChorus = chorusOf(fnHook, 'D5:2 F5:1 Bb5:1 D6:6 C6:2 Bb5:2 F5:2', 'B5:4 G5:2 F5:2 D5:4 B4:2 D5:2');
 const fnV = ['G4:2 G4:1 G4:1 C5:2 D5:2 Eb5:4 D5:2 C5:2', 'G4:2 G4:1 G4:1 C5:2 D5:2 Eb5:4 F5:2 G5:2',
   'Ab5:2 Ab5:1 Ab5:1 G5:2 F5:2 Eb5:4 C5:2 Eb5:2', 'F5:2 F5:1 F5:1 D5:2 Bb4:2 F5:4 Eb5:2 D5:2'];
 const fnVerse = [...fnV, fnV[0], fnV[1], 'C5:2 C5:1 C5:1 F5:2 G5:2 Ab5:4 G5:2 F5:2', 'G5:2 G5:1 G5:1 F5:2 D5:2 B4:4 -:4'];
@@ -234,7 +240,7 @@ const abHook = ['B5:3 A5:1 G5:2 D5:2 -:2 G5:2 A5:2 B5:2', 'A5:3 G5:1 F#5:2 D5:2 
   'G5:3 F#5:1 E5:2 B4:2 -:2 E5:2 F#5:2 G5:2', 'E5:3 F#5:1 G5:2 C6:2 -:2 B5:2 A5:2 G5:2'];
 const abChorus = chorusOf(abHook, 'E5:3 D5:1 C5:2 G4:2 -:2 C5:2 D5:2 E5:2', 'F#5:4 G5:2 A5:2 D6:4 C6:2 A5:2');
 const abIntro = [abHook[0], abHook[1], abHook[2], 'E5:3 F#5:1 G5:2 C6:2 -:2 B5:2 A5:2 F#5:2'];   // Takt 4 führt zur Strophe
-const abV = ['B4:2 B4:2 E5:2 G5:2 F#5:4 E5:2 B4:2', 'C5:2 C5:2 E5:2 G5:2 A5:4 G5:2 E5:2', 'B4:2 B4:2 D5:2 G5:2 F#5:4 D5:2 B4:2', 'A4:2 A4:2 D5:2 F#5:2 E5:4 D5:2 A4:2'];
+const abV = ['B4:2 B4:2 E5:2 G5:2 F#5:4 E5:2 B4:2', 'C5:2 C5:2 E5:2 G5:2 A5:4 G5:2 E5:2', 'B4:2 B4:2 D5:2 G5:2 A5:4 G5:2 D5:2', 'A4:2 A4:2 D5:2 F#5:2 E5:4 D5:2 A4:2'];
 const abVerse = [...abV, abV[0], abV[1], 'C5:2 C5:2 E5:2 A5:2 G5:4 E5:2 C5:2', 'A4:2 C5:2 D5:2 F#5:2 A5:4 -:4'];
 // Zitate aus Welt 1 (eigene Kompositionen des Projekts): course_grass Lead Takt 5–8 (G D e C) eine Oktave höher …
 const abGrass = tr(['G4:2 B4:1 D5:1 -:1 D5:2 E5:1 D5:2 B4:2 A4:2 G4:2', 'F#4:2 -:1 A4:1 D5:3 C#5:1 -:2 A4:2 F#4:1 -:1 A4:2',
@@ -252,8 +258,8 @@ const ABS = [K4, CL, H8O];
 // As B Es Es (IV–V–iii–vi | IV–V–I): der Lead singt die Karussell-Hook, die Drehorgel macht „pa-pa“, Karussell-Glöckchen.
 // Four-on-the-floor (weich), Schellen, Clap auf 2 und 4. Hook „Karussell“: punktierte Schwünge um den Ton, Sprung, langer Ton.
 const m8Prog = ['Eb', 'Cm', 'Ab', 'Bb', 'Eb', 'Cm', 'Fm', 'Bb', 'Ab', 'Bb', 'Gm', 'Cm', 'Ab', 'Bb', 'Eb', 'Eb'];
-const m8Organ = ['Eb5:4 F5:2 G5:2 Bb5:6 G5:2', 'G5:4 F5:2 Eb5:2 C5:6 Eb5:2', 'F5:4 G5:2 Ab5:2 C6:6 Ab5:2', 'G5:4 F5:2 Eb5:2 D5:4 F5:4',
-  'Eb5:4 F5:2 G5:2 Bb5:6 G5:2', 'G5:4 Ab5:2 G5:2 Eb5:6 C5:2', 'F5:4 Ab5:2 G5:2 F5:6 Ab5:2', 'G5:4 F5:2 Eb5:2 D5:4 F5:4'];
+const m8Organ = ['Eb5:4 F5:2 G5:2 Bb5:6 G5:2', 'G5:4 F5:2 Eb5:2 C5:6 Eb5:2', 'Eb5:4 F5:2 Ab5:2 C6:6 Ab5:2', 'F5:4 G5:2 F5:2 D5:4 F5:4',
+  'Eb5:4 F5:2 G5:2 Bb5:6 G5:2', 'G5:4 Ab5:2 G5:2 Eb5:6 C5:2', 'F5:4 Ab5:2 G5:2 F5:6 Ab5:2', 'F5:4 G5:2 F5:2 D5:4 F5:4'];
 const m8Hook = ['Ab5:3 G5:1 Ab5:2 C6:3 Bb5:1 Ab5:2 Eb5:4', 'F5:3 Eb5:1 F5:2 Bb5:3 Ab5:1 G5:2 D5:4',
   'G5:3 F5:1 G5:2 D6:3 C6:1 Bb5:2 G5:4', 'Eb5:3 D5:1 Eb5:2 G5:3 F5:1 Eb5:2 C5:4'];
 const m8Lead = [...m8Hook, m8Hook[0], m8Hook[1], 'G5:3 F5:1 G5:2 Bb5:3 Ab5:1 G5:2 Eb5:4', 'Bb4:4 Eb5:2 G5:2 Eb5:8'];
@@ -303,7 +309,7 @@ export const WORLD8_THEMES = {
   },
 
   // Dünen-Abfahrt (8-2, Reiten auf Pflaume, Schubfelder, Sandflosser, Baron-Sandstatuen): 144 BPM, A-Dur, 24 Takte,
-  // schwungvoll. Intro (A E fis D): die Wüstenflöte spielt die Hook eine Oktave tiefer, Darbuka | Strophe (fis D A E |
+  // schwungvoll. Intro (A E fis D): die Wüstenflöte spielt die Hook, Darbuka | Strophe (fis D A E |
   // fis D h E): Lead in der Mittellage, Kanun-Zupfer, Schellenkranz | Refrain (A E fis D | A E D E): Dünen-Schwung,
   // Galopp-Bass, Piano auf der „und“, Stabs | Überleitung (D E fis E): lange Töne, die Flöte singt, Sandwehen (Riser mit
   // Rauschen). Energie-Ebene beim Reiten: Lead eine Oktave höher gedoppelt, Offbeat-Stabs.
@@ -322,7 +328,7 @@ export const WORLD8_THEMES = {
     },
     kit: { kick: { volume: 0.54 }, clap: { volume: 0.3 }, doum: { freq: 95, volume: 0.3, decay: 0.2 }, tek: { volume: 0.18, freq: 820 }, jingle: { volume: 0.11, off: 0.08, duration: 0.09 }, hat: { volume: 0.24, off: 0.15 }, tom: { freq: 120, volume: 0.36 } },
     fx: { lowpass: { arp: 2800 }, delay: { steps: 3, feedback: 0.3, lowpass: 3000, wet: 0.26, send: { whistle: 0.4, lead: 0.12, arp: 0.25 } } },
-    whistle: [...tr(dnIntro, -12), ...rest(16), '-:8 F#5:8', '-:8 E5:8', '-:8 A5:8', '-:8 E5:8'],   // Überleitung: unter dem Lead
+    whistle: [...dnIntro, ...rest(16), '-:8 F#5:8', '-:8 E5:8', '-:8 A5:8', '-:8 E5:8'],   // Überleitung: unter dem Lead
     lead: [...rest(4), ...dnVerse, ...dnChorus, ...dnBridge],
     arp: bySection(dnProg, SONG, { verse: (c) => pat(tones(c, 'A4'), '0.1. 2.1. 0.12 .1..') }),
     piano: bySection(dnProg, SONG, { chorus: (c) => chordBar(c, OFF, 'A4'), bridge: (c) => chordBar(c, LONG, 'A4') }),

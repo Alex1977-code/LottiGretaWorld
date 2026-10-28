@@ -566,8 +566,8 @@ if (want('melodie')) {
   }
   {
     const t = T8.course_dunes;
-    check('course_dunes: Wüstenflöte (Sinus, Vibrato, Gleiten) spielt die Hook im Intro eine Oktave tiefer, Kanun-Zupfer (Sägezahn hinter Tiefpass) in der Strophe, Darbuka (Doum und Tek), Schellenkranz, Sandwehen (Riser mit Rauschen), Galopp-Bass im Refrain; Energie-Ebene beim Reiten (Lead-Doppelung, Offbeat-Stabs); Dünen-Schwung: drei Sechzehntel-Stufen hinab, in Achteln wieder hinauf',
-      [0, 1, 2].every((b) => sameNotes(t.whistle[b], t.lead[12 + b], -12)) && t.voice.whistle.vibrato >= 15 && t.voice.whistle.slide >= 1 && t.voice.arp.type === 'sawtooth' && t.fx.lowpass.arp <= 3200
+    check('course_dunes: Wüstenflöte (Sinus, Vibrato, Gleiten) spielt die Hook im Intro, Kanun-Zupfer (Sägezahn hinter Tiefpass) in der Strophe, Darbuka (Doum und Tek), Schellenkranz, Sandwehen (Riser mit Rauschen), Galopp-Bass im Refrain; Energie-Ebene beim Reiten (Lead-Doppelung, Offbeat-Stabs); Dünen-Schwung: drei Sechzehntel-Stufen hinab, in Achteln wieder hinauf',
+      [0, 1, 2].every((b) => sameNotes(t.whistle[b], t.lead[12 + b])) && t.voice.whistle.vibrato >= 15 && t.voice.whistle.slide >= 1 && t.voice.arp.type === 'sawtooth' && t.fx.lowpass.arp <= 3200
       && [4, 5, 6].every((b) => noteList([t.arp[b]]).length >= 6) && ['d', 'p', 'j'].every((ch) => hasDrum(t, ch)) && t.voice.riser.noise >= 0.1
       && onsetsOf(t.bass[12]) === '0,2,4,6,8,10,12,14' && t.energyDouble === 1 && noteList(t.energy).length >= 24
       && [12, 13, 14, 15].every((b) => { const p = pitches(t.lead[b]); return p[0] > p[1] && p[1] > p[2] && p[2] > p[3] && p[4] > p[3]; }));
