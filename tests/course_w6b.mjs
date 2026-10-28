@@ -552,7 +552,7 @@ function install() {
             const q = f.mb.pos;
             if (prev) { rvx = (q.x - prev[0]) * 120; rvz = (q.z - prev[1]) * 120; }
             prev = [q.x, q.z];
-            let tx = q.x, tz = q.z, best = 99;
+            let tx = q.x, tz = q.z, best = 99, diving = false;
             if (Lg.dodge !== false) {
               const hs = [];
               for (const e of L.entities) {
@@ -562,6 +562,8 @@ function install() {
                 const v = o ? [(c.x - o[0]) * 120, (c.y - o[1]) * 120, (c.z - o[2]) * 120] : [0, 0, 0];
                 hzPrev.set(e, [c.x, c.y, c.z]);
                 if (Math.hypot(c.x - q.x, c.z - q.z) < 10) hs.push({ c: [c.x, c.y, c.z], v, r: e.kind === 'rankenschnapper' ? 0.45 : 0.42 });
+                if (e.kind === 'brummer' && e.state !== 'warn' && e.state !== 'dive') e.__side = null;
+                if (e.kind === 'brummer' && (e.state === 'warn' || e.state === 'dive') && Math.hypot(c.x - q.x, c.z - q.z) < 7 && !diving) diving = e;
               }
               const sp = Math.hypot(rvx, rvz), ax = sp > 0.1 ? rvx / sp : 0, az = sp > 0.1 ? rvz / sp : -1, lx = -az, lz = ax;
               const py = p.pos.y + (p.half?.y ?? 0.8);
@@ -577,7 +579,7 @@ function install() {
               let pick = [0, 0];
               best = score(0, 0);
               if (best < 0.9) {
-                for (const a of [-0.9, -0.45, 0, 0.45, 0.9]) for (const l of [-1, -0.5, 0, 0.5, 1]) {
+                for (const a of [-0.6, -0.3, 0, 0.3, 0.6]) for (const l of [-0.85, -0.45, 0, 0.45, 0.85]) {
                   const sc = score(a, l) - (Math.abs(a) + Math.abs(l)) * 0.05;
                   if (sc > best + 0.05) { best = sc; pick = [a, l]; }
                 }
@@ -585,12 +587,26 @@ function install() {
               if (best < 0.9 && wasSafe) dodges++;
               wasSafe = best >= 0.9;
               // das Floß ist ein achsparalleler Quader (3 × 3 m): Ziel höchstens 0,95 m von der Mitte (Figur ≈ 0,3 m dick)
-              tx = q.x + Math.max(-0.95, Math.min(0.95, ax * pick[0] + lx * pick[1])); tz = q.z + Math.max(-0.95, Math.min(0.95, az * pick[0] + lz * pick[1]));
+              tx = q.x + Math.max(-0.85, Math.min(0.85, ax * pick[0] + lx * pick[1])); tz = q.z + Math.max(-0.85, Math.min(0.85, az * pick[0] + lz * pick[1]));
+              // Brummer warnt: erst an die eine Floßkante, kurz vor dem Sturzflug quer zu ihm an die andere – er zielt auf die
+              // Stelle beim Absprung und verfehlt die laufende Figur
+              // (quer zur Sturzflug-Richtung; Seite so, dass die Floßfahrt mithilft)
+              if (diving) {
+                const c = diving.center?.() ?? diving.pos;
+                let Dx = diving.state === 'dive' && diving.aim ? diving.aim.x : p.pos.x - c.x, Dz = diving.state === 'dive' && diving.aim ? diving.aim.z : p.pos.z - c.z;
+                const Dl = Math.hypot(Dx, Dz) || 1; Dx /= Dl; Dz /= Dl;
+                const Px = -Dz, Pz = Dx;
+                if (!diving.__side) diving.__side = rvx * Px + rvz * Pz >= 0 ? 1 : -1;
+                const go = diving.state === 'dive' || diving.stateT > 0.66, k2 = diving.__side * (go ? 0.85 : -0.85);
+                tx = q.x + Math.max(-0.85, Math.min(0.85, Px * k2)); tz = q.z + Math.max(-0.85, Math.min(0.85, Pz * k2));
+                best = go ? 0 : 0.5;
+              }
             }
             const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
             if (p.mode === 'air') tick({ ...this.airSteer(tx, tz, rvx, rvz, 3, 7), jump: p.vel.y > 0 });
+            else if (diving) tick(d > 0.08 ? { ...this.stick(dx, dz, Math.min(1, d * 2)), run: false } : {});
             else if (best < 0.15) { hops++; tick({ ...this.stick(dx, dz, Math.min(1, d * 1.5)), jump: true }); }
-            else tick(d > 0.12 ? { ...this.stick(dx, dz, Math.min(1, d * 1.5)), run: best < 0.9 } : {});
+            else tick(d > 0.12 ? { ...this.stick(dx, dz, Math.min(0.75, d * 1.2)), run: false } : {});   // gehen, nicht rennen (kein Rutschen über die Kante)
             if (p.mode === 'ground' && p.ground?.tag !== 'floss') { lost = true; break; }
           }
           log.push(['Ausweichen', dodges, 'Sprünge', hops]);
