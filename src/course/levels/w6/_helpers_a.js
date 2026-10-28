@@ -602,8 +602,8 @@ export function laderaum(level, o) {
   }
   // Schott hinten
   for (let yy = y - 0.4; yy < y + h; yy += 0.5) b.box(w + 1, 0.48, 0.5, x, yy, z1 - 0.3, plank(((yy * 2) | 0) % 2 ? 0x5a4a3c : 0x4e4034), { r: 0.02 });
-  // Querbalken oben nur an den Enden (dazwischen offen – die Kamera schaut von hinten oben hinein)
-  for (const z of [z0 - 0.6, z1 + 0.8]) b.box(w + 1.2, 0.45, 0.5, x, y + h - 0.2, z, plank(0x4a3c30), { r: 0.06 });
+  // Querbalken oben nur am hinteren Ende (vorn und dazwischen offen – die Kamera schaut von hinten oben hinein)
+  b.box(w + 1.2, 0.45, 0.5, x, y + h - 0.2, z1 + 0.8, plank(0x4a3c30), { r: 0.06 });
   for (const bm of o.beams ?? []) b.box(w + 0.4, bm.h ?? 0.5, bm.d ?? 1.6, x, bm.y, bm.z, plank(0x5a4a3a), { r: 0.06 });
   b.flush(level);
 }
@@ -1152,4 +1152,29 @@ export function bojen(level, y, list) {
       it.grp.rotation.x = Math.cos(t * 0.9 + it.ph) * 0.08;
     }
   });
+}
+
+/** Picknickdecke (rot-weiß kariert) mit Korb, Äpfeln und Saftflasche – nur Optik, flach begehbar. */
+export function picknick(level, x, y, z, yaw = 0) {
+  if (!level.view) return;
+  const b = new Bld();
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  const at = (lx, lz) => [x + lx * c + lz * s, z - lx * s + lz * c];
+  b.box(2.2, 0.03, 1.7, x, y + 0.07, z, 0xffffff, { yaw, r: 0 });
+  for (let i = 0; i < 8; i++) for (let j = 0; j < 6; j++) {
+    if ((i + j) % 2) continue;
+    const [qx, qz] = at(-1.1 + 0.1375 + i * 0.275, -0.85 + 0.1417 + j * 0.2833);
+    b.box(0.275, 0.034, 0.2833, qx, y + 0.072, qz, 0xe8283a, { yaw, r: 0 });
+  }
+  let [px, pz] = at(-0.55, -0.3);
+  b.box(0.62, 0.36, 0.44, px, y + 0.05, pz, litTop(0xc8944a), { yaw: yaw + 0.2, r: 0.06 });
+  b.torus(0.26, 0.03, px, y + 0.41, pz, 0x8a5a2a, { yaw: yaw + 0.2, arc: Math.PI, rs: 4, ts: 10 });
+  for (const [ax, az, col] of [[0.3, 0.2, 0xe8283a], [0.48, 0.05, 0x7ad83a], [0.2, -0.1, 0xe8283a]]) {
+    [px, pz] = at(ax, az);
+    b.sphere(0.1, px, y + 0.13, pz, col, { ws: 8, hs: 6 });
+  }
+  [px, pz] = at(0.7, -0.45);
+  b.cyl(0.08, 0.08, 0.32, px, y + 0.04, pz, 0xffa23a, 8);
+  b.cyl(0.03, 0.05, 0.1, px, y + 0.36, pz, 0xffffff, 6);
+  b.flush(level, { castShadow: false });
 }

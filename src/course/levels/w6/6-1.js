@@ -19,7 +19,7 @@
 import {
   isl, line, ring, arc, column, gipfel, grat, bergwiese, steinpfad, trockenmauer, glasgang, lochinsel, almhuette, kuehe,
   gipfelfahnen, wimpelkette, vogelschwarm, wolkenkranz, grasbueschel, wasserfall, felsnasen, seilbahn, murmeltiere,
-  blumengarten, gipfelglueck, seilzaun, schattenNah, felswand,
+  blumengarten, gipfelglueck, seilzaun, schattenNah, felswand, picknick,
 } from './_helpers_a.js';
 import { balloons } from '../w5/_helpers_b.js';
 
@@ -104,6 +104,7 @@ function build(level) {
   });
   almhuette(level, -12.4, Y4, -209.6, { yaw: Math.PI / 2 + 0.2, size: 0.8 });
   gipfelglueck(level, Y5, { steinmann: [-5.6, -236], bank: [5, -233.2, -0.4], fernrohr: [6.6, -238.6, 0.6], regenbogen: [0, Y5 - 2, -252, 11] });
+  picknick(level, -3.4, Y5, -230.5, 0.3);
 }
 
 function setup(level) {
@@ -179,7 +180,7 @@ export const LEVEL = {
       { kind: 'bergkiefern', pos: [9.6, T4, -158.6], size: [2, 2], n: 2 }, { kind: 'felsen', pos: [9.8, T4, -141], size: [2, 2], n: 2 },
       { kind: 'bergkiefern', pos: [-14.6, Y4, -168.4], size: [2, 2], n: 2 }, { kind: 'bergkiefern', pos: [15, Y4, -205], size: [2, 3], n: 2 },
       { kind: 'bergkiefern', pos: [-7.6, Y5, -244.4], size: [2, 2], n: 2 }, { kind: 'bergkiefern', pos: [7.8, Y5, -224], size: [2, 2], n: 2 },
-      { kind: 'felsen', pos: [-7.8, Y5, -224.6], size: [2, 2], n: 2 }, { kind: 'bergblumen', pos: [0, Y5, -236], size: [14, 18], n: 18, avoid: [[0, -240, 1.6], [0, -226, 1.6], [-5.6, -236, 1], [5, -233.2, 1.2], [6.6, -238.6, 0.8]] },
+      { kind: 'felsen', pos: [-7.8, Y5, -224.6], size: [2, 2], n: 2 }, { kind: 'bergblumen', pos: [0, Y5, -236], size: [14, 18], n: 18, avoid: [[0, -240, 1.6], [0, -226, 1.6], [-5.6, -236, 1], [5, -233.2, 1.2], [6.6, -238.6, 0.8], [-3.4, -230.5, 1.6]] },
       { kind: 'bergkiefer', pos: [-9.6, Y2, -110], height: 4.6 }, { kind: 'bergkiefer', pos: [9.4, Y2, -108.5], height: 4.2 },
       { kind: 'wolkenfels', pos: [-22, 0, -84], size: 5, shadow: false }, { kind: 'wolke', pos: [14, 4, -86], size: 3.4, shadow: false },
     ] },
