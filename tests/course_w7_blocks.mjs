@@ -173,18 +173,30 @@ console.log('Lavawerkstatt 0-26');
     t.action();
     t.tick(240);
     const qCoins = L.runtime.coins - c1;
+    // grüner Stern über der Lava (Bauplan 7-7/7-Burg: „mit der Wurfsichel“): die Sichel holt ihn für die Werferin
+    const st0 = !!L.runtime.stars[1];
+    const star = L.spawn('star', { pos: [0, 0.35, -15], index: 1 });
+    t.place([0, 0, -10], { settle: 10, power: 'sichel' });
+    t.tick(30);
+    const starIdle = !!L.runtime.stars[1];
+    t.action();
+    t.tick(260);
+    const starGot = !!L.runtime.stars[1] && !st0;
+    if (star && !star.removed) star.kill();
+    L.runtime.stars[1] = st0;
     // Wand: die Sichel kehrt früh um
     t.place([-8, 0, -22], { settle: 10, power: 'sichel' });
     t.action();
     const s = t.ents('wurfsichel')[0];
     let turnAt = null;
     for (let i = 0; i < 240 && s && !s.removed; i++) { if (s.state === 'zurueck' && turnAt === null) turnAt = +s.dist.toFixed(2); t.tick(1); }
-    return { idle, got, stay, hitFoe, sideOk, qCoins, qKind: qb?.kind, turnAt };
+    return { idle, got, stay, hitFoe, sideOk, qCoins, qKind: qb?.kind, turnAt, starIdle, starGot };
   });
-  console.log(`  Wurfsichel unterwegs: Münzen ohne Wurf +${m.idle}, mit Wurf +${m.got} (Figur bleibt ${m.stay}); Pilzling getroffen ${m.hitFoe}, seitlicher heil ${m.sideOk}; ?-Block +${m.qCoins} (${m.qKind}); Wand → Wende bei ${m.turnAt} m`);
+  console.log(`  Wurfsichel unterwegs: Münzen ohne Wurf +${m.idle}, mit Wurf +${m.got} (Figur bleibt ${m.stay}); Pilzling getroffen ${m.hitFoe}, seitlicher heil ${m.sideOk}; ?-Block +${m.qCoins} (${m.qKind}); Stern ${m.starIdle} → ${m.starGot}; Wand → Wende bei ${m.turnAt} m`);
   check('Wurfsichel: sammelt Münzen über der Lava ein (Gegenprobe ohne Wurf: keine)', m.idle === 0 && m.got >= 3 && m.stay);
   check('Wurfsichel: trifft Gegner auf der Bahn (onHit throw); Gegenprobe: Gegner abseits bleibt', m.hitFoe && m.sideOk);
   check('Wurfsichel: löst ?-Blöcke aus und kehrt an Wänden früh um', m.qCoins >= 1 && m.turnAt !== null && m.turnAt < 3);
+  check('Wurfsichel: holt einen grünen Stern über der Lava (Gegenprobe ohne Wurf: liegt noch)', !m.starIdle && m.starGot);
   const h = await sc(() => {
     const t = window.__t, c = window.__course, p = c.player;
     t.place([0, 0, 2], { settle: 5, power: 'sichel' });
@@ -582,7 +594,29 @@ console.log('Lavawerkstatt 0-26');
   check('Giftnebel: Betreten des Bereichs startet die Jagd (Gegenprobe davor: wartet)', r.s0 === 'wartet' && r.quiet === 'wartet' && r.states.includes('jagt'));
   check('Giftnebel: wer stehen bleibt, stirbt im Nebel (deathCause gift); wer flieht, bleibt heil', r.died && r.cause === 'gift' && r.fled && r.fz < -206);
   check('Giftnebel: Neustart vor dem Bereich setzt die Front zurück (wartet)', r.after === 'wartet' && r.afterFront === 0);
-  await sc(() => { const t = window.__t, n = t.named('nebel'); n.reset(); t.place([0, 0, -203], { settle: 2 }); t.tick(200); });
+  const v = await sc(async () => {
+    const t = window.__t, c = window.__course, L = c.level, p = c.player;
+    // Giftnebel von oben (Turm-Flucht): senkt sich ab y 8 bis y 0,6 über dem Boden – wer oben steht, stirbt; wer unten
+    // (unter der End-Lage) bleibt, ist heil
+    L.world.add({ type: 'box', min: [8, 0, -214], max: [12, 2.5, -210], tag: 'testsockel' });
+    L.spawn('giftnebel', { id: 'nebel2', pos: [10, 8, -212], size: [6, 6], dir: 'down', speed: 3, to: 5.2, delay: 0.2, start: 'signal' });
+    await new Promise((res) => setTimeout(res, 0));
+    const n2 = t.named('nebel2');
+    t.place([10, 2.5, -212], { settle: 20 });
+    n2.start();
+    let died = false;
+    for (let i = 0; i < 4 * 120 && !died; i++) { t.tick(1); died = p.dead; }
+    const cause = p.deathCause, front = +n2.front.toFixed(2);
+    n2.reset();
+    t.place([8.5, 0, -209], { settle: 2 });
+    n2.start();
+    let low = true;
+    for (let i = 0; i < 4 * 120; i++) { t.tick(1); if (p.dead) low = false; }
+    return { died, cause, front, low, state: n2.state };
+  });
+  console.log(`  Giftnebel von oben: Figur auf dem Sockel tot ${v.died} (${v.cause}, Front ${v.front} m); unten am Boden heil ${v.low} (${v.state})`);
+  check('Giftnebel von oben (dir down): erreicht die Figur oben (Tod), unter der End-Lage bleibt sie heil', v.died && v.cause === 'gift' && v.low && v.state === 'ende');
+  await sc(() => { const t = window.__t, n = t.named('nebel'); n.reset(); t.named('nebel2')?.reset(); t.place([0, 0, -203], { settle: 2 }); t.tick(200); });
   await shot('giftnebel', 600);
   await sc(() => { window.__t.named('nebel').reset(); });
 }
