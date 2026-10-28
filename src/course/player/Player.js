@@ -48,6 +48,10 @@
 //  - Deckengitter (player/hanging.js): `hang` ({ obj, t }), mode 'wall', state 'hang', `hangMove` ({ x, y } −1..1).
 //  - Pilz-Maske (Trage-Helm 'maske', entities/kinds/w6_gimmicks.js): `masked` = trägt die Maske (Gegner, denen die Figur
 //    zugewandt ist, sehen sie nicht: level.isMaskedFrom(gegner, figur)).
+//
+// Ergänzungen (Präzisierung Motor-Feinschliff nach Welt 6):
+//  - Stampfattacke über einem fahrenden Träger (Form mit `mover` unter der Figur: Plattform, Panzer, Floß, Zug) fährt
+//    waagerecht mit ihm (poundCarry); Verschiebungen durch Level-Haken im selben Schritt werden nicht verdoppelt.
 
 import * as THREE from 'three';
 import { HERO_VARIANTS } from '../../config.js';

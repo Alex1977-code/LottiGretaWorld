@@ -47,6 +47,10 @@
 //   level.isMaskedFrom(enemy, fig?, angleDeg = 75)   trägt die Figur (Standard: nächste zum Gegner) die Pilz-Maske und blickt
 //                                             sie zum Gegner (±angleDeg)? → der Gegner sieht sie nicht (Gegner-Agent)
 //   level.hangGrids                           Deckengitter (player/hanging.js); level.w6 = Sammelstelle der Welt-6-Bausteine
+//
+// Ergänzungen (Präzisierung Motor-Feinschliff nach Welt 6):
+//   isMaskedFrom ist in der Luft robust (über dem Gegner zugewandt, 0,35 s Nachhalten); render() blendet auch nach
+//   LEVEL.instances[kind].farHide aus (Regel je Art, wie view.instanceRule).
 
 import { CollisionWorld } from '../physics/CollisionWorld.js';
 import { getEntityKind, hasEntityKind } from '../entities/index.js';
