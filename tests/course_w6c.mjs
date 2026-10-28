@@ -5,7 +5,9 @@
 // Prüfungs-Haus (alle fünf Räume mit Wurfbällen in je < 10 s, Gegenproben, Zeitablauf), Kennzahlen je Abschnitt
 // (Zeichenaufrufe < 120 inkl. Schattenpass, Dreiecke < 300 k) und Bilder aus der Spielkamera (tests/out/w6c_*.png).
 // Aufruf (nach npm run build): PORT_BASE=0 node tests/course_w6c.mjs [6-5|6-6|6-Haus]
-//   PARTS=load,route,sweep,targets,extra,shots,haus,haus-extra (Standard alle; je Lauf ≤ 10 min) · HEROES=lotti,greta ·
+//   PARTS=load,route,sweep,targets,extra,shots,haus,haus-extra (Standard alle) · je Lauf ≤ 10 min: 6-5 und 6-Haus ganz
+//   (≈ 8½ bzw. 4 min), 6-6 in zwei Teilläufen PARTS=load,route,sweep (≈ 2 min) und PARTS=targets,extra,shots (≈ 7½ min) ·
+//   HEROES=lotti,greta ·
 //   ONLY=<Text> (nur Ziele/Extras mit diesem Namensteil) · VERBOSE=1 (Protokoll der Beine) · SHOTS=<Name|Name> · DETAIL=1
 //   (Zeichenaufrufe je Objekt) · RAUM=n (6-Haus: nur dieser Raum)
 //
@@ -1102,6 +1104,7 @@ async function parcours(id) {
     if (!reached || VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
     check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
     check(`${id}: ${hero} Zeit bis zum Ziel < 300 s (${res.time.toFixed(1)} s)`, reached && res.time < 300);
+    check(`${id}: ${hero} ohne einen Treffer (${res.mech.hurts})`, reached && res.mech.hurts === 0);
     if (hero === HEROES[0] && PARTS.has('sweep')) sweepTrack = res.track;
     for (const m of R.routeChecks ?? []) check(`${id}: ${hero} – ${m.name}`, m.ok(res));
   }
