@@ -103,6 +103,7 @@ function buildSchubser(opts = {}) {
   pose.add(tilt, feet);
   scaleJ.add(pose);
   const puffs = new Puffs(10, 0xf4ecff, { opacity: 0.85, radius: 3, cy: 0.4 });
+  puffs.mesh.userData.fx = true;   // Effekt (Dampf), kein Körper – Maß-Prüfungen lassen ihn aus
   own.push(puffs);
   const dizzy = dizzyStars(0.32, 0.075);
   root.add(scaleJ, puffs.mesh, dizzy);

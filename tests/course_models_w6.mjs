@@ -215,7 +215,7 @@ await sc(async () => {
       const b = new THREE.Box3(), tmp = new THREE.Box3();
       obj.updateMatrixWorld(true);
       obj.traverse((o) => {
-        if (!o.isMesh || !o.visible) return;
+        if (!o.isMesh || !o.visible || o.userData.fx) return;   // Effekt-Puffs (Dampf, Rauch) zählen nicht zum Körper
         let vis = true; for (let p = o.parent; p; p = p.parent) if (!p.visible) vis = false;
         if (!vis) return;
         if (o.isInstancedMesh) {
