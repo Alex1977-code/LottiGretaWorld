@@ -51,6 +51,7 @@ export const LEVEL = {
   theme: 'circus',
   music: 'course_bossblob',
   timeLimit: 400,
+  starSlots: 3,                 // zwei Sterne im Level + der Stern der Würfelblase (star.index 2)
   killY: -14,
   start: { pos: [0, Y0, 13.5], yaw: Math.PI / 2 },
   checkpoint: [{ pos: [0, SY, -48.6], yaw: Math.PI / 2 }, { pos: [1.4, AY, -89.0], yaw: Math.PI / 2 }],
