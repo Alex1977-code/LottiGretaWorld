@@ -6988,6 +6988,106 @@ Krallen-Anzug** (Feuerbälle, Wandklettern, Krallenhiebe, Spiegelfrucht-Doppelg�
 **Abspann:** nach dem Sieg eine eigene, liebevolle Abspann-Szene (befreite Freunde, Lotti und Greta, Pflaume, Krümel,
 Musik `course_abspann`), danach zurück zur Karte; der Spielstand merkt sich „Spiel geschafft“.
 
+## Präzisierung (Level 7-5, 7-Kapitän und 7-6)
+
+Additiv zur Welt-7-Liste: Titel und Besonderheiten der Level 7-5, 7-Kapitän und 7-6. Dateien `src/course/levels/w7/7-5.js`,
+`7-Kapitän.js`, `7-6.js`, eigene Hilfen `src/course/levels/w7/_helpers_c.js` (kein `LEVEL`, nur für diese drei Level; reicht
+`isl`, `line`, `ring`, `arc`, `column`, `sign`, `glimmer`, `Bld` aus `w6/_helpers_b.js` und `onRespawn` aus `w7kit.js` weiter),
+Test `tests/course_w7c.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`/`LEVEL.setup`). Bausteine nach „Präzisierung (Motor und Bausteine Welt 7)“, Gegner nach „Präzisierung (Gegner
+Welt 7)“.
+
+### 7-5 „Stampfsteinturm und Giftnebel-Flucht“ (parcours · lavatower · course_traptower · 400 s)
+
+- Zwei Festungstürme im Lavaschacht, ≈ 165 m nach −Z, von y 0 bis y 40. **Erster Turm** (z 13 … −54): Stufenturm aus fünf
+  Etagen (je 6 m höher, 10 m weiter hinten; gemauerte Seiten aus einzelnen Steinen, Plattenböden mit rotem Läufer, glühende
+  Bogenfenster, Zinnen, Brummbär-Banner, Lavafälle). Die **Stampfsteine sind Fahrstühle**: locken, auf den gelandeten Stein
+  springen, mit ihm eine Etage hinauffahren (Erdgeschoss → Etage 1; Etage 3 → Turmspitze). Dazwischen **Aufzug 1** (y 6 → 12,
+  fährt los, sobald man daraufsteht, kehrt leer zurück), die **Fähre** über den Schacht in Etage 2, **Aufzug 2** (y 12 → 18)
+  neben dem kletterbaren Pfeiler. Auf der Turmspitze drei **Zauberkröten**, links unten die **Sinkwolke**. → **Seilbahn**
+  (z −54 … −88, Gondel `seilbahn` mit Stationsrahmen, y 26 → 22) → **Funkenturm** (z −88 … −126): Vorhof mit Checkpoint und
+  Wurfsichel, Treppe auf Ring 1 (r 13, y 25), **Sprungfeder** auf Ring 2 (y 30), **Pfeilplattform aus der Wand** auf Ring 3
+  (y 35), Stampfstein 3 auf die Turmkrone (y 40). Sechs **Funkenflämmchen** hüpfen auf Bögen über die Ringe, die Zinnen haben
+  Lücken (Durchgänge wechseln die Seiten).
+- **Flucht**: die fünfte Schlüsselmünze liegt auf der Krone – sobald man sie hat, sinkt der **Giftnebel** (`giftnebel`
+  `dir: 'down'`, 0,9 m/s, Stimmung `flucht`) von oben, und der **Lavaspiegel** `glutsee` (`mode: 'signal'`, `rise` bis y 16,2)
+  steigt (`nebelLava`). Rechts die Ringe hinunter, Treppe zur **Glutbrücke** (flutet nach ≈ 28 s), Warp-Terrasse (y 16,8, bleibt
+  trocken). Die **Warp-Box** erscheint erst mit allen fünf Schlüsseln (`schluesselmuenze` Gruppe `tor`, `onAll` → `reveal`)
+  und bringt zur Zinnenterrasse mit dem Zielmast. Neustart: Nebel und Lava zurück, Schlüssel bleiben.
+- Sterne: 0 oben auf dem **Kletterpfeiler** bei Aufzug 2 (nur mit **Krallen-Anzug** aus dem ?-Block in Etage 2) · 1 alle
+  **drei Zauberkröten** auf der Turmspitze besiegen (`task` → versteckter Stern) · 2 im **Ziegel-Würfel** vor Ring 1 (26
+  Ziegel; Stampfattacke von oben, Springen allein reicht nicht). Stempel: von der Turmspitze links hinunter auf die
+  **Sinkwolke**, sie fährt mit einem hinab (von Etage 3 aus zu hoch). Geheimnisse: Sinkwolke, Ziegel-Würfel, unsichtbarer
+  Block mit Extraleben in Etage 1, Wachstumsbeere in Etage 2.
+- Gegner: Stampfstein 3, Knochenflieger 3, Zauberkröte 3, Funkenflämmchen 6. Kameraschienen: Turm (Neigung 29°, Abstand 15,5),
+  Seilbahn, Vorhof, Ringe (30°/16), Ziel. Rundstufen-Kollision `camIgnore` (die Kamera-Probe sieht Zylinder als Quader).
+
+### 7-Kapitän „Krümel in der Zahnradschmiede“ (diorama · lavamachine · course_diorama · 400 s, 5 Sterne)
+
+- Maschinen-Diorama 28 × 32 m mitten im Lavasee (`lavaspiegel` `mode: 'fest'`, y −1,2), Figur **Krümel** (springt nicht),
+  Kamera Gier 18°, Neigung 46°. Ebenen: Boden y 0 (Startplatz mit blauem Läufer, Ziegel-Insel, Maschinenboden), Deck y 4,5,
+  Dach y 9. Stahlplatten mit gelber Warnkante, Ziegel, Messing; gelb-schwarze Geländer an allen Lavakanten (Kollision, Krümel
+  fällt nicht hinunter). **Förderband** (`foerderband`, rollt nach vorn, 1,6 m/s) über den Lavasee; **Stampfsteine als
+  Trittstufen**: gelockt fallen sie bündig in ihre Lavagrube – Brücke oder Fahrstuhl. **Kanonentürme** mit Projektilköpfen
+  (quer übers Band und über das Deck, 4,5 s Takt). **Fahrplattform** (Aufzug, y 4 → 8,5) aufs Kesselturm-Dach.
+- Sterne (Bauplan): 1 **hinter dem sichtbaren Stampfstein** (Insel jenseits des Lavagrabens; der Stein liegt als Brücke) ·
+  2 **Fahrplattform** hinauf, ins **Loch** im Kesselturm-Dach fallen (die Kammertür ist für Krümel eine zu hohe Stufe) · 3
+  **auf dem Förderband** (gegen das Band laufen; wer stehen bleibt, wird zurückgetragen) · 4 **auf Stampfstein 2** nach dem
+  Band (locken, draufgehen, mitfahren) · 5 durch das **Loch** im Maschinenblock, **Stampfstein 3** hinauf aufs Dach, in den
+  **Schacht** fallen. Der fünfte Stern beendet das Level. Schatzstellen (`dig`): Startplatz, Deck, Kesselturm-Dach.
+- Zier: Zahnräder, Rohre, Schlote, Kessel mit Manometer und Dampf, Ventilräder, Warnstreifen-Pfosten, Brummbär-Banner und
+  Dachfahne, Standfackeln, zwei Lavafälle aus Rohrstutzen, Glutfunken. Gegner: Stampfstein 3, Kanonenturm 2.
+
+### 7-6 „Rammfisch-Riff am Feuerberg“ (parcours · reef · course_rammreef · 400 s)
+
+- ≈ 250 m nach −Z, Meeresspiegel y 0. **Riff** (z 14 … −92, Becken bis y −8): Startstrand (Palmen, Sonnenschirm, Liegestuhl,
+  Muscheln) → Kammer A (Nische hinter Kisten) → Riffwand 1 (Kistentunnel oder Rammfisch-Lücke) → Kammer B → Riffwand 2
+  (Kistentunnel) → Kammer C (Zickzack-Gänge) → Sandrampe zur Felsplattform mit **Warp-Box** → **Vulkaninsel** (z −95 … −160,
+  y 1,2: Checkpoint, Gezeitenbecken mit drei **Wutkaulquappen**, Trittsteine über das zweite Becken, Feuerberg mit Glutkrater,
+  Glutrisse, Palmen, Moos- und Sandflecken, Farne, Hibiskus) → Klippe hinab ins **Finale** (Becken bis y −9: Riffwand mit
+  drei Fenstern, in denen **Rammfische auf und ab** ziehen; zwei **große Rammfische** kreisen vor dem Zielriff) → Sandrampe
+  aufs **Zielriff** (Palmenstrand, Glasröhre, Zielmast).
+- **Zerbrechliche Kisten** (`kiste_wasser`, 7 Stück) brechen beim Schwimmstoß (und wenn ein Rammfisch hineinrammt); langsames
+  Schwimmen lässt sie heil. Kamera unter Wasser flach (Neigung 10°, Abstand 9, Höhe 0,7) und immer unter der Oberfläche,
+  klare Sicht (`setup`: Nebel 7 … 58 m, zarte Lichtflecken).
+- Sterne: 0 in der **Nische hinter Kisten** gleich am Start · 1 trägt der **Rammfisch in einer Blase** (`carries: 'star:1'`,
+  rammt nicht; von oben anschwimmen) · 2 hinten in der **Glasröhre** auf dem Zielriff hinter den großen Rammfischen; die
+  lila **Stachelkugel** darin verbrennt nur die **Funkenblüte** aus dem ?-Block davor (`onHit` 'fire' → wie 'bomb'). Stempel:
+  oben auf dem **Felsturm** hinter der Fensterwand (durchs Fenster, wenn der Rammfisch unten ist). Extraleben: Kiste am Rand
+  von Kammer B, unsichtbarer Block auf der Vulkaninsel.
+- Gegner: Rammfisch 10 (2 groß, 3 auf und ab, 1 mit Stern), Wutkaulquappe 3.
+- Leistung: `fernSicht` (statische Abschnitte bis 62 m), `tiefSicht` (unter Wasser zeichnet die Kamera nur bis 64 m – der
+  Nebel verdeckt ohnehin alles; ≈ 40 Zeichenaufrufe weniger), `fernModelle` (Schilder, Becken, Warp-Boxen, Sterne, Zielmast
+  über 85 m per `layers` aus), Rammfische ohne Sonnenschatten und erst ab 48 m Nähe sichtbar.
+
+### Hilfen `_helpers_c.js`
+
+Geometrie: `Quads`, `STONE` (Paletten burg, rot, dunkel, basalt, sand, stahl, messing, ziegel), `brickFace`, `tiles`,
+`brickBox` (Mauerquader mit Kollision, Steinen, Platten, Läufer, Fenstern; `climbable`, `camIgnore`), `carpet`, `slits`,
+`merlons`, `merlonsRound`, `gelaender`, `flushQ` (Hauptgeometrie mit Schatten, Detail-Vierecke ohne), `roundTier` · Belebtes:
+`ketten`, `funken` · Leistung: `fernSicht`, `fernModelle`, `tiefSicht` · Mechanik: `aufzug` (Mover/Wolke fährt los, wenn eine
+Figur daraufsteht, wartet oben, fährt leer zurück; Neustart setzt zurück; `name` → `level.named`), `nebelLava`.
+
+### Test `tests/course_w7c.mjs`
+
+Port 4730 (+ `PORT_BASE`), Aufruf `node tests/course_w7c.mjs [7-5|7-Kapitän|7-6]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,shots` (je Lauf < 10 min; je Level `load,route,sweep` und `load,targets,extra` und
+`shots` getrennt), `HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`, `TRACE=1`, `SHOTS=<Name|…>`, `DETAIL=1`, Bilder
+`tests/out/w7c_*.png`. Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier), auf der Route unverwundbar
+(Treffer-Versuche werden gezählt; Nebel, Lava und Absturz töten trotzdem); Beine u. a. `wait`/`until` (Bedingungen wie
+Stampfstein gelandet, Aufzug oben, Gondel angekommen, Pfeilplattform draußen, Band frei), `climbOnto`, `poundAt`, `toads`,
+`chaseKind`, `swim`/`swimTo` (Schwimmstöße, `noStroke`), `clearFish`, `fire` (Funkenblüte), `warp`. Diorama: ein Lauf mit Krümel.
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel **ohne einen
+Treffer-Versuch** (7-5 ≈ 85/78 s mit drei Stampfstein-Fahrten, zwei Aufzügen, Fähre, Seilbahn, Sprungfeder, Pfeilplattform,
+fünf Schlüsseln und der Flucht in ≈ 10 s; 7-Kapitän ≈ 63 s, alle fünf Sterne; 7-6 ≈ 71/69 s mit Kistentunnel, Warp und
+Finale); alle Sterne und Stempel mit Gegenproben (Pfeiler ohne Krallen-Anzug, Ziegel ohne Stampfen, Stempel von Etage 3,
+Graben ohne Stein, Stein 2 vom Boden, Kammertür, Schachttür, Kisten bei langsamem Schwimmen, Röhre ohne Funkenblüte); Extras
+(Extraleben, versteckte Warp-Box, Nebel-Tod auf der Krone, Lava flutet die Glutbrücke, Neustart nach Nebel-Tod, Krümel springt
+nicht, Projektilkopf und Stampfstein treffen, Band trägt zurück, Rammfisch und Wutkaulquappe treffen, Checkpoint auf der
+Insel). Gemessen (scale 2, inkl. Schattenpass; Messgang entlang der Route und Bilder je Abschnitt): 7-5 52–111 Zeichenaufrufe
+in den Bildern, Messgang ≤ 115 (beim Hinauffahren auf Stampfstein 2) / ≤ 243 k Dreiecke · 7-Kapitän ≤ 104 / ≤ 154 k · 7-6
+45–89 / ≤ 186 k.
+
 ## Präzisierung (Level 7-C, 7-7 und 7-Burg)
 
 Additiv zur Welt-7-Liste: Titel und Besonderheiten der Level 7-C, 7-7 und 7-Burg. Dateien `src/course/levels/w7/7-C.js`,
