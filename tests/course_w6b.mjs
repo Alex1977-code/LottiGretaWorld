@@ -186,7 +186,7 @@ const ROUTES = {
       ['aussicht', [-12.5, 6, 0.5]],
       ['floss1', [0, 1.2, -9.5], 120, { y: 0.01 }],
       ['brummer', [0, 1.2, -9.5], 560, { raft: 'floss1' }],
-      ['deckengitter', [0, 1.2, -9.5], 1230, { raft: 'floss1' }],
+      ['deckengitter', [0, 1.2, -9.5], 1900, { raft: 'floss1' }],
       ['torinsel', [16, 1, -60]],
       ['baumhaus', [20.5, 10, -76.5]],
       ['checkpoint', [-2, 1, -100]],

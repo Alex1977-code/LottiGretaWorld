@@ -383,29 +383,33 @@ export function schilf(level, list, o = {}) {
 }
 
 /**
- * Moospolster an einer senkrechten Felskante (6-4 Schlucht, rein optisch): überhängende Kissen mit Blütenpunkten.
- * o: { x (Wandfläche), face (+1: Wand zeigt nach +X), z0, z1, top (Oberkante), seed }.
+ * Moospolster an einer senkrechten Felskante (6-4 Schlucht, Ruinenmauer; rein optisch): überhängende Kissen mit
+ * Blütenpunkten. o: { x (Wandfläche), face (+1: Wand zeigt nach +X), z0, z1, top (Oberkante), seed } – oder mit
+ * axis 'z': { z (Wandfläche), face (+1: zeigt nach +Z), x0, x1, top, seed }.
  */
 export function moospolster(level, o) {
   if (!level.view) return;
   const rnd = new Rnd(o.seed ?? 5);
   const parts = [];
   const hi = L(0x9ae85a), lo = L(0x2a7a3a), fl = [L(0xff7ac0), L(0xffd84a), L(0xffffff), L(0xc04aff)];
-  const zA = Math.max(o.z0, o.z1), zB = Math.min(o.z0, o.z1);
-  for (let z = zA - 0.6; z > zB + 0.6;) {
+  const alongX = o.axis === 'z';
+  const a0 = alongX ? Math.max(o.x0, o.x1) : Math.max(o.z0, o.z1), a1 = alongX ? Math.min(o.x0, o.x1) : Math.min(o.z0, o.z1);
+  const c = alongX ? o.z : o.x;
+  for (let a = a0 - 0.6; a > a1 + 0.6;) {
     const w = rnd.real(0.8, 1.5), dh = rnd.real(0.6, 1.4);
-    const cy = o.top - dh * 0.35, zc = z - w * 0.5;
+    const cy = o.top - dh * 0.35, ac = a - w * 0.5;
     const g = new THREE.SphereGeometry(1, 9, 6).toNonIndexed();
-    g.scale(0.38, dh * 0.65, w); g.translate(o.x, cy, zc);
-    parts.push(colorize(g, (p, n, c) => mixc(lo, hi, smooth(cy - dh * 0.6, cy + dh * 0.5, p.y) * 0.8 + Math.max(0, n.y) * 0.2, c)));
+    if (alongX) { g.scale(w, dh * 0.65, 0.38); g.translate(ac, cy, c); } else { g.scale(0.38, dh * 0.65, w); g.translate(c, cy, ac); }
+    parts.push(colorize(g, (p, n, cc) => mixc(lo, hi, smooth(cy - dh * 0.6, cy + dh * 0.5, p.y) * 0.8 + Math.max(0, n.y) * 0.2, cc)));
     for (let k = 0; k < 3; k++) {
       if (rnd.frac() < 0.35) continue;
       const fg = new THREE.SphereGeometry(0.09, 5, 4).toNonIndexed();
       const col = fl[(rnd.frac() * fl.length) | 0];
-      fg.translate(o.x + o.face * 0.36, cy + rnd.real(-dh * 0.35, dh * 0.3), zc + rnd.real(-w * 0.6, w * 0.6));
-      parts.push(colorize(fg, (p, n, c) => { c[0] = col[0]; c[1] = col[1]; c[2] = col[2]; }));
+      const fa = ac + rnd.real(-w * 0.6, w * 0.6), fy = cy + rnd.real(-dh * 0.35, dh * 0.3), fc = c + o.face * 0.36;
+      if (alongX) fg.translate(fa, fy, fc); else fg.translate(fc, fy, fa);
+      parts.push(colorize(fg, (p, n, cc) => { cc[0] = col[0]; cc[1] = col[1]; cc[2] = col[2]; }));
     }
-    z -= w * rnd.real(1.3, 1.9);
+    a -= w * rnd.real(1.3, 1.9);
   }
   addStatic(level, merge(parts), { castShadow: false });
 }
@@ -620,6 +624,13 @@ export function saalDecke(level, o) {
   const planks = Math.round(d / 0.5);
   for (let i = 0; i < planks; i++) b.box(w - 0.04, 0.08, d / planks - 0.03, cx, y - 0.08, zB + (i + 0.5) * (d / planks), i % 2 ? 0xe2b880 : 0xd8a86a, { r: 0 });
   b.box(w + 0.1, T + 0.1, 0.3, cx, y - T - 0.05, zF - 0.1, litTop(LACK, 0.65), { r: 0 });
+  // Läufer entlang des Laufwegs (gehört zur Decke: wird mit ihr durchsichtig)
+  if (o.runner) {
+    const R = o.runner, ra = R.from ?? x0 + 0.8, rb = R.to ?? x1 - 0.8, rw = R.w ?? 1.8, rm = (ra + rb) / 2;
+    b.box(rb - ra, 0.03, rw, rm, y, R.z, litTop(R.color ?? LACK, 0.85), { r: 0 });
+    for (const sd of [-1, 1]) b.box(rb - ra, 0.04, 0.12, rm, y, R.z + sd * (rw / 2 - 0.12), GOLD, { r: 0 });
+    for (let x = ra + 0.9; x < rb - 0.5; x += 1.8) b.cyl(0.2, 0.2, 0.045, x, y, R.z, R.dot ?? 0xffb8d8, 8);
+  }
   if (o.rail !== false) {
     const z = zF - 0.15;
     b.box(rx1 - rx0, 0.12, 0.16, (rx0 + rx1) / 2, y + 0.86, z, litTop(LACK, 0.7), { r: 0 });

@@ -95,6 +95,10 @@ function build(level) {
   // Moospolster an den Schluchtkanten
   moospolster(level, { x: -3.6, face: 1, z0: -200, z1: -248.4, top: 3, seed: 3 });
   moospolster(level, { x: 3.6, face: -1, z0: -200, z1: -248.4, top: 3, seed: 9 });
+  // Ruinenmauer des Zielplateaus und Felssims: Moos an den Oberkanten
+  moospolster(level, { axis: 'z', z: -278, face: 1, x0: -12, x1: 12, top: YG, seed: 13 });
+  moospolster(level, { axis: 'z', z: -266, face: 1, x0: -12, x1: -6.8, top: M64.KLIPPE.top, seed: 17 });
+  moospolster(level, { axis: 'z', z: -266, face: 1, x0: -3.2, x1: 12, top: M64.KLIPPE.top, seed: 19 });
   // Schluchtwände der Abwärtsströmung (gestuft, rein optisch – die Kollision liefern die Inseln)
   // Felsbrocken an den Schluchtkanten (oben auf den Wänden)
   felsen(level, [[-5.2, 3, -208, 1.6, 1.1, 1.8, 0.4], [5.4, 3, -217, 1.4, 0.9, 1.6, -0.3], [-5.0, 3, -229, 1.2, 0.8, 1.4, 0.2], [5.2, 3, -242, 1.8, 1.2, 2, -0.5]], { color: 0x7a8a6a });
@@ -126,6 +130,9 @@ function build(level) {
     // Landeinsel, Ruinenplateau
     { kind: 'moos', pos: [0, YL, -257], size: [20, 14], n: 14, flower: 0xffb02a }, { kind: 'stamm', pos: [7.5, YL, -261], length: 3.4, yaw: -0.2 },
     { kind: 'moos', pos: [0, YG, -291], size: [20, 22], n: 14, flower: 0xffffff },
+    // Felssims (Stern 2): Moos und Blumen neben dem Kletterausstieg
+    { kind: 'moos', pos: [5, M64.KLIPPE.top, -269], size: [12, 4.5], n: 6, flower: 0xff7ac0 },
+    { kind: 'blumen', pos: [9.5, M64.KLIPPE.top, -270.5], size: [3, 1], colors: [0xff5a3a, 0xffd84a, 0xc04aff] },
     { kind: 'blumen', pos: [-9.5, YG, -284], size: [1.4, 4], colors: [0xff5a3a, 0xffd84a] }, { kind: 'blumen', pos: [9.5, YG, -284], size: [1.4, 4], colors: [0xc04aff, 0xff7ac0] },
   ]);
 }
@@ -205,7 +212,7 @@ export const LEVEL = {
     { type: 'klettergitter', id: 'klippe', mode: 'wand', pos: M64.KLIPPE.gitter, size: [3.2, 7], yaw: -PI / 2, style: 'liane' },
     sign(-8.5, YL, -251, 'Warp-Box zum Ziel', { size: [2.6, 0.9] }),
     // ---------------- 7 Ruinenplateau
-    isl(-12, 12, -278, -304, YG, 18, { top: 'stone' }),
+    isl(-12, 12, -278, -304, YG, 18, { top: 'stone', color: 0x9a9480 }),
     // ---------------- Kulisse
     { type: 'deco_w6', items: [
       { kind: 'dschungelbaum', pos: [-12, Y1, 9], height: 10 }, { kind: 'dschungelbaum', pos: [12, Y1, -2], height: 9 },
@@ -228,6 +235,9 @@ export const LEVEL = {
       { kind: 'riesenblatt', pos: [-12, Y1, -188], size: 2.2, yaw: 0.3 }, { kind: 'giftbluete', pos: [9, Y1, -190] },
       { kind: 'farne', pos: [0, YL, -258], size: [18, 10], n: 7, avoid: [[5, -256, 2], [-5, -264, 2.5]] }, { kind: 'pilze', pos: [-8, YL, -258], n: 5 },
       { kind: 'dschungelbaum', pos: [10, YL, -262], height: 9 }, { kind: 'giftbluete', pos: [-10.5, YL, -256] },
+      { kind: 'farne', pos: [6, M64.KLIPPE.top, -269.5], size: [10, 4], n: 4 }, { kind: 'pilze', pos: [-10, M64.KLIPPE.top, -270], n: 4 },
+      { kind: 'riesenblatt', pos: [1.5, M64.KLIPPE.top, -271], size: 1.8, yaw: 0.5 },
+      ...[-10, -6, -1.5, 3, 7.5, 11].map((x, i) => ({ kind: 'liane', pos: [x, YG + 0.2, -277.8], length: 3 + (i % 3) * 1.1 })),
       { kind: 'dschungelbaum', pos: [-10, YG, -300], height: 10 }, { kind: 'dschungelbaum', pos: [10.5, YG, -300], height: 11 },
       { kind: 'farne', pos: [0, YG, -290], size: [20, 14], n: 8, avoid: [[0, -297, 2.5], [0, -282, 2.5]] },
       { kind: 'liane', pos: [-6, 9.5, -27], length: 4 }, { kind: 'liane', pos: [3, 9.5, -51], length: 3.6 }, { kind: 'liane', pos: [-2, 9.5, -79], length: 4 },

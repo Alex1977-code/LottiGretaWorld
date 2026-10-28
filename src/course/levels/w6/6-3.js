@@ -99,8 +99,8 @@ function build(level) {
   // ---------------- Saal: Rückwände mit Türen, Seitenwände, Decken (Durchsicht), Brüstungen, Treppen, Nischen
   for (let k = 0; k < 3; k++) rueckwand(level, b, k);
   for (const x of [XL - 0.3, XR + 0.3]) level.world.add({ type: 'box', min: [x - 0.3, Y0, ZB - 0.6], max: [x + 0.3, F[2] + 4.6, ZF + 0.6], tag: 'saalwand' });
-  saalDecke(level, { x0: XL, x1: ST, z0: ZF, z1: ZB, y: F[1], lower: F[0] });
-  saalDecke(level, { x0: -ST, x1: XR, z0: ZF, z1: ZB, y: F[2], lower: F[1] });
+  saalDecke(level, { x0: XL, x1: ST, z0: ZF, z1: ZB, y: F[1], lower: F[0], runner: { z: PZ, color: 0xc8323a } });
+  saalDecke(level, { x0: -ST, x1: XR, z0: ZF, z1: ZB, y: F[2], lower: F[1], runner: { z: PZ, color: 0x2a5ac8, dot: 0xffd84a } });
   // Treppenhaus-Kanten: Geländer an der offenen Deckenkante (damit man nicht aus Versehen hinunterfällt)
   level.world.add({ type: 'box', min: [ST - 0.3, F[1], ZF], max: [ST, F[1] + 1.0, -47.2], camIgnore: true, tag: 'bruestung' });
   for (let z = ZF - 0.1; z >= -47.2; z -= 1.14) b0.box(0.12, 0.98, 0.12, ST - 0.15, F[1], z, litTop(0xd8443a, 0.7), { r: 0 });
