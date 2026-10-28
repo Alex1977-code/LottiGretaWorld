@@ -82,14 +82,22 @@ const pastel = mix(W8.suit, W8.cream, 0.62);
 function baronTorsoGeo(dmg = 0) {
   return cached(`w8:baron:torso:${dmg}`, () => {
     const b = new Build();
-    // Overall-Rumpf: Creme-Bauchfleck vorn, Flieder-Ringel auf dem Rücken
-    const torsoC = { v: (x, y, z, nx, ny, nz) => {
-      const ly = (y - BELLY.c[1]) / BELLY.r[1], lz = z / BELLY.r[2];
-      if (nx > 0.35 && Math.hypot(ly + 0.12, lz * 1.05) < 0.62) return mix(0xe8d2b8, W8.cream, smoothstep(nx * 0.8));
-      if (nx < -0.25 && Math.abs(Math.sin((y - 0.1) * 9)) > 0.86 && Math.abs(nz) < 0.85) return pastel;
-      return suitV.v(x, y, z, nx, ny);
+    // Overall-Rumpf mit weich abgesetztem Creme-Bauchfleck vorn
+    const torsoC = { v: (x, y, z, nx, ny) => {
+      const ly = (y - BELLY.c[1]) / BELLY.r[1] + 0.12, lz = z / BELLY.r[2] * 1.05;
+      const d = Math.hypot(ly, lz), front = smoothstep((nx - 0.25) / 0.2);
+      const k = smoothstep((0.6 - d) / 0.07) * front;
+      return mix(suitV.v(x, y, z, nx, ny), mix(0xe8d2b8, W8.cream, smoothstep(nx * 0.8)), k);
     } };
-    b.sphere(1, torsoC, { p: BELLY.c, s: BELLY.r }, 28, 20);
+    b.sphere(1, torsoC, { p: BELLY.c, s: BELLY.r }, 40, 28);
+    // Flieder-Ringel quer über den Rücken (Bögen hinten)
+    for (const y of [0.18, 0.42, 0.66]) {
+      const k = Math.sqrt(Math.max(0, 1 - ((y - BELLY.c[1]) / BELLY.r[1]) ** 2));
+      const rx = BELLY.r[0] * k + 0.008, rz = BELLY.r[2] * k + 0.008, arc = Math.PI * 1.1;
+      const g = new THREE.TorusGeometry(1, 0.045 / ((rx + rz) / 2), 5, 28, arc);
+      g.rotateZ(Math.PI - arc / 2); g.rotateX(Math.PI / 2);
+      b.add(g, pastel, { p: [BELLY.c[0], y, 0], s: [rx, 1, rz] });
+    }
     // Kragen-Bündchen, Hals
     b.torus(0.4, 0.07, W8.cream, { p: [0.02, 1.1, 0], r: [Math.PI / 2, 0, 0], s: [1, 1.08, 1] }, 8, 24);
     b.sphere(1, furV, { p: [0.04, 1.16, 0], s: [0.36, 0.14, 0.42] }, 16, 8);
@@ -104,7 +112,7 @@ function baronTorsoGeo(dmg = 0) {
     b.box(0.05, 0.1, 0.04, W8.gold, { p: [0.47, 0.98, 0.0], r: [0, 0, 0.25] }, 0.015, 1);
     // Schaden: Rußflecken, Flicken mit Kreuzstichen
     if (dmg >= 1) {
-      for (const [az, el, r] of [[0.9, 0.1, 0.13], [-1.6, -0.2, 0.16], [2.6, 0.35, 0.14], [-0.6, -0.55, 0.11]]) stick(b, BELLY_SURF(az, el), 0x2a2030, [r, r * 0.8, 0.02], 0.4);
+      for (const [az, el, r] of [[0.95, 0.15, 0.1], [-1.6, -0.2, 0.12], [2.6, 0.35, 0.11], [-0.7, -0.6, 0.08]]) stick(b, BELLY_SURF(az, el), 0x3e3048, [r, r * 0.75, 0.015], 0.45);
       const pt = BELLY_SURF(0.25, -0.18);
       stick(b, pt, 0xff9a3a, [0.12, 0.12, 0.02], 0.2, new THREE.BoxGeometry(2, 2, 1), 0.2);
       // Kreuzstiche an den Rändern des Flickens
@@ -236,13 +244,12 @@ const baronTailGeo = () => cached('w8:baron:tail', () => {
   const b = new Build();
   const pts = [[0, 0, 0], [-0.18, -0.02, 0], [-0.34, 0.06, 0], [-0.45, 0.22, 0], [-0.5, 0.4, 0], [-0.46, 0.56, 0]];
   const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)));
-  const n = 9;
+  const n = 18;
   for (let i = 0; i < n; i++) {
     const p = curve.getPointAt(i / (n - 1));
-    const r = 0.1 - i * 0.004;
-    b.sphere(r, i % 2 ? pastel : suitV, { p: p.toArray() }, 12, 8);
+    b.sphere(0.105 - i * 0.002, Math.floor(i / 3) % 2 ? pastel : suitV, { p: p.toArray() }, 12, 8);
   }
-  b.sphere(0.13, { v: (x, y, z, nx, ny) => mix(0xe8d8c8, W8.cream, smoothstep(ny * 0.5 + 0.5)) }, { p: curve.getPointAt(1).add(new THREE.Vector3(0.02, 0.08, 0)).toArray() }, 14, 10);
+  b.sphere(0.14, { v: (x, y, z, nx, ny) => mix(0xe8d8c8, W8.cream, smoothstep(ny * 0.5 + 0.5)) }, { p: curve.getPointAt(1).add(new THREE.Vector3(0.02, 0.09, 0)).toArray() }, 14, 10);
   return b.geometry();
 });
 /** Offenes Maul (unbeleuchtet: dunkler Rachen, Zunge) – Ursprung = Mundmitte, Öffnung nach +X. */
@@ -300,7 +307,7 @@ function buildBaronKrallen(opts = {}) {
   trail.visible = false;
   const dizzy = dizzyStars(0.6, 0.13); dizzy.position.set(0.12, 2.15, 0);
   bodyJ.add(torso, eye, hat, arms, legs, tailJ, mouthJ, trail, dizzy);
-  const fx = fxPuffs(14, isClone ? 0xff7ae8 : 0xfff2c8, { opacity: 0.9, radius: 5, cy: 1.5, detail: 0 });
+  const fx = fxPuffs(14, isClone ? 0xff8af0 : 0xfff2c8, { opacity: 0.9, radius: 5, cy: 1.5, detail: isClone ? 1 : 0, emissive: isClone ? 0x8a2a7a : 0x6a5a20 });
   own.push(fx);
   root.add(bodyJ, fx.mesh);
   if (isClone) {
@@ -409,7 +416,7 @@ function buildBaronKrallen(opts = {}) {
       else { spin = TAU; A[0].f = A[1].f = 2.7 + Math.sin(t * 9) * 0.1; A[0].o = A[1].o = 0.95; mouth = 0.8; by = Math.abs(Math.sin(t * 8)) * 0.05; }
       ry = spin;
       emit -= dt;
-      if (emit <= 0 && p < 0.9) { fx.burst([Math.cos(t * 7) * 0.9, 1.4 + Math.sin(t * 5) * 0.8, Math.sin(t * 7) * 0.9], { count: 2, speed: 0.6, up: 0.6, size: 0.1, life: 0.6, spread: 0.3 }); emit = 0.05; }
+      if (emit <= 0 && p < 0.9) { fx.burst([Math.cos(t * 7) * 0.9, 1.4 + Math.sin(t * 5) * 0.8, Math.sin(t * 7) * 0.9], { count: 2, speed: 0.6, up: 0.6, size: 0.06, life: 0.6, spread: 0.3 }); emit = 0.05; }
       bk = p > 0.6 ? 0.3 : 1;
     } else if (dead) {
       A[0].f = A[1].f = 0.1; A[0].o = A[1].o = 0.5;
@@ -463,7 +470,7 @@ function buildBaronKrallen(opts = {}) {
     // Doppelgänger funkelt immer leicht
     if (isClone && anim !== 'clone') {
       emit -= dt;
-      if (emit <= 0) { fx.burst([(Math.random() - 0.5) * 1.2, 0.6 + Math.random() * 2, (Math.random() - 0.5) * 1.2], { count: 1, speed: 0.3, up: 0.5, size: 0.07, life: 0.5, spread: 0.1 }); emit = 0.18; }
+      if (emit <= 0) { fx.burst([(Math.random() - 0.5) * 1.2, 0.6 + Math.random() * 2, (Math.random() - 0.5) * 1.2], { count: 1, speed: 0.3, up: 0.5, size: 0.045, life: 0.5, spread: 0.1 }); emit = 0.18; }
     }
     fx.step(dt);
     eye.userData.blink(bk);
@@ -480,7 +487,7 @@ function buildBaronKrallen(opts = {}) {
 // =============================================================================================
 // Super-Wumm-Block
 // =============================================================================================
-const SP = { blue: 0x4a3ae0, blueHi: 0x7a6aff, blueLow: 0x22128a, grey: 0x5a5280, gold: 0xffc21a, goldHi: 0xfff0a0, goldLow: 0xb87a0a, orange: 0xff7a1a, yellow: 0xffe03a, crack: 0x140a3a };
+const SP = { blue: 0x4a3ae0, blueHi: 0x7a6aff, blueLow: 0x22128a, grey: 0x5a5280, gold: 0xffc21a, goldHi: 0xfff0a0, goldLow: 0xb87a0a, orange: 0xff8a1a, yellow: 0xffe84a, crack: 0x140a3a };
 export const POW_FACTOR = (hits) => 1 - 0.16 * clamp(hits, 0, 4);
 /** Block (Kante 1, Ursprung = Mitte der Unterseite) mit Kantenschienen, Knallsternen und Rissen je Trefferzahl. */
 function powBlockGeo(hits = 0) {
@@ -495,13 +502,13 @@ function powBlockGeo(hits = 0) {
     b.add(new THREE.BoxGeometry(1, 1, 1, 4, 4, 4), body, { p: [0, 0.5, 0] });
     // goldene Kantenschienen mit Nieten
     const goldV = { v: (x, y, z, nx, ny) => mix(SP.goldLow, SP.goldHi, smoothstep(ny * 0.5 + 0.45)) };
-    const e = 0.07;
+    const e = 0.07, q = 0.5 - e / 2 + 0.012;
     for (const a of [-1, 1]) for (const c of [-1, 1]) {
-      b.box(1.02, e, e, goldV, { p: [0, 0.5 + a * 0.5, c * 0.5] }, 0.02, 1);
-      b.box(e, 1.02, e, goldV, { p: [a * 0.5, 0.5, c * 0.5] }, 0.02, 1);
-      b.box(e, e, 1.02, goldV, { p: [a * 0.5, 0.5 + c * 0.5, 0] }, 0.02, 1);
+      b.box(1.0, e, e, goldV, { p: [0, 0.5 + a * q, c * q] }, 0.02, 1);
+      b.box(e, 1.0, e, goldV, { p: [a * q, 0.5, c * q] }, 0.02, 1);
+      b.box(e, e, 1.0, goldV, { p: [a * q, 0.5 + c * q, 0] }, 0.02, 1);
     }
-    for (const x of [-1, 1]) for (const y of [0, 1]) for (const z of [-1, 1]) b.sphere(0.05, SP.goldHi, { p: [x * 0.5, y, z * 0.5] }, 8, 6);
+    for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) b.sphere(0.045, SP.goldHi, { p: [x * q, 0.5 + y * q, z * q] }, 8, 6);
     // Knallsterne auf den vier Seiten (verbraucht: blasser)
     const sides = [[0, 1, Math.PI / 2], [0, -1, -Math.PI / 2], [2, 1, 0], [2, -1, Math.PI]];
     for (const [ax, sg, ry] of sides) {
@@ -631,7 +638,7 @@ const shardGeo = () => cached('w8:jar:shard', () => {
   g.computeVertexNormals();
   return g;
 });
-const FRIEND_SPOTS = [[0.38, 0.32, 0.25, 1.15], [0.32, -0.36, -0.35, 1.1], [-0.36, 0.36, 0.35, 1.1], [-0.3, -0.34, -0.2, 0.92]];   // x, z, yaw, Maßstab
+const FRIEND_SPOTS = [[0.4, 0.34, 0.25, 1.35], [0.34, -0.38, -0.35, 1.3], [-0.34, 0.38, 0.35, 1.3], [-0.3, -0.34, -0.2, 1.0]];   // x, z, yaw, Maßstab
 function buildFreundeGlas(opts = {}) {
   const S = clamp(num(opts.size, 2.4), 0.6, 10) / 2.4;
   const keys = (Array.isArray(opts.friends) ? opts.friends : FRIEND_KEYS).filter((k) => FRIEND_KEYS.includes(k)).slice(0, 4);

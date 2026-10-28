@@ -102,7 +102,7 @@ const SZENE = [
 ];
 const ALL = [...BOSSES, ...VARIANTS, ...ENEMIES, ...GIMMICKS, ...KULISSE1, ...KULISSE2, ...KULISSE3, ...KULISSE4, ...SZENE];
 const ENEMY_NAMES = new Set(['sandflosser', 'knochenflieger_gruppe', 'kristall_felsklotz', 'baron_sandstatue']);
-const BOSS_NAMES = new Set(['baron_krallen', 'schlangenkoenig', 'wuerfelblase', 'schattenlaeuferin']);
+const BOSS_NAMES = new Set(['baron_krallen', 'freunde_glas', 'schlangenkoenig', 'wuerfelblase', 'schattenlaeuferin']);
 const KULISSE_NAMES = new Set([...KULISSE1, ...KULISSE2, ...KULISSE3, ...KULISSE4].map(([n]) => n));
 const INST_W8 = ['leuchtsteg', 'knochenflieger', 'brummbaer_ballon'];
 const W8_NEW = [...new Set([...BOSSES, ...ENEMIES, ...GIMMICKS, ...KULISSE1, ...KULISSE2, ...KULISSE3, ...KULISSE4, ...SZENE].map(([n]) => n))];
@@ -395,12 +395,9 @@ if (part('checks')) {
   const same = (a, b) => a && b && a.meshes === b.meshes && Math.abs(a.h - b.h) < 0.6;
   check('Varianten: gleicher Aufbau wie der Standard (Meshes, Höhe)', same(std0.schlangenkoenig, std0['schlangenkoenig{"color":"rosa"}']) && same(std0.wuerfelblase, std0['wuerfelblase{"color":"gold"}']));
   // Standard unverändert: Referenzwerte vor den Erweiterungen (gemessen auf master)
-  const REF = { schlangenkoenig: { meshes: 9, tris: 0 } };
-  const ref = std0.schlangenkoenig;
-  console.log('  Referenz Schlangenkönig (Standard):', JSON.stringify(ref), '(master: siehe REF_SK)');
-  const REF_SK = { meshes: Number(process.env.REF_SK_MESHES ?? 0), tris: Number(process.env.REF_SK_TRIS ?? 0) };
-  if (REF_SK.meshes) check(`Standard des Schlangenkönigs unverändert (${JSON.stringify(REF_SK)})`, ref.meshes === REF_SK.meshes && Math.abs(ref.tris - REF_SK.tris) < 2);
-  void REF;
+  const REF = { schlangenkoenig: { meshes: 9, tris: 19000 }, wuerfelblase: { meshes: 9, tris: 5598 } };
+  const changed = Object.entries(REF).filter(([n, r]) => std0[n] && (std0[n].meshes !== r.meshes || Math.abs(std0[n].tris - r.tris) > r.tris * 0.03));
+  check(`Standard der erweiterten Modelle unverändert${changed.length ? ` (geändert: ${changed.map(([n]) => `${n}=${JSON.stringify(std0[n])}`).join(', ')})` : ''}`, changed.length === 0);
 
   // Eigenschaften (Maße und Schnittstellen, nach denen Motor/Gegner/Level programmieren)
   const props = await sc(() => {
