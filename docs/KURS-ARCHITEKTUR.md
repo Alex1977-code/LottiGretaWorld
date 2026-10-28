@@ -6950,3 +6950,96 @@ Spiegel mit Spiegelbild-Stern (8-6); Gegner Sandflosser, Knochenflieger-Gruppe (
 Krallen-Anzug** (Feuerbälle, Wandklettern, Krallenhiebe, Spiegelfrucht-Doppelgänger, Super-POW auf der Turmspitze).
 **Abspann:** nach dem Sieg eine eigene, liebevolle Abspann-Szene (befreite Freunde, Lotti und Greta, Pflaume, Krümel,
 Musik `course_abspann`), danach zurück zur Karte; der Spielstand merkt sich „Spiel geschafft“.
+
+## Präzisierung (Level 7-C, 7-7 und 7-Burg)
+
+Additiv zur Welt-7-Liste: Titel und Besonderheiten der Level 7-C, 7-7 und 7-Burg. Dateien `src/course/levels/w7/7-C.js`,
+`7-7.js`, `7-Burg.js`, eigene Hilfen `src/course/levels/w7/_helpers_d.js` (kein `LEVEL`, nur für diese drei Level; nutzt
+`Bld`, `litTop`, `gradY`, `glowField`, `onRespawn` aus `w5/_helpers_b.js`, `ziegel`, `werferKram`, `wappenMosaik` aus
+`_helpers_a.js` (nur gelesen), `fireMaterial` aus `blocks/w7kit.js`; 7-7 zusätzlich `steamVents` aus `w4/_helpers_c.js`),
+Test `tests/course_w7d.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`/`LEVEL.setup`). Bausteine nach „Präzisierung (Motor und Bausteine Welt 7)“, Gegner nach „Präzisierung (Gegner
+Welt 7)“.
+
+### 7-C „Siebenfeuer-Saal der Werfer-Bande“ (arena · fortress · course_arena · 100 s, 1 Stern)
+
+- Versteck der Werfer-Bande: Halle 20 × 20 m aus dunkelrotem Backstein hoch über dem Lavasee (Saalboden y 2). Vorn der
+  gekachelte Saal mit dem **Siebenfeuer-Mosaik** (sieben goldene Flammen im Kreis), zwei Gitterroste (`gitterboden`) über
+  glühender Lava in den vorderen Ecken, niedrige Zinnen-Brüstung vorn (unsichtbare Wand, Kamera sieht darüber). Hinten die
+  **Empore** (+2 m, Treppe mit rotem Läufer), darauf die hölzerne **Kanzel** des Anführers (+2,4 m, Einweg); links und rechts
+  je ein **Holzbalkon** (Einweg, +2,4 m). An der Rückwand der Empore **sieben Feuerschalen** – je Werfer eine; besiegt erlischt
+  seine Schale (`siebenFeuer`, benannt `siebenfeuer` mit `lit`/`out`).
+- 7 Feuer-Werfer (zwei im Saal, zwei zwischen Saal und Balkon, zwei auf der Empore, der Anführer zwischen Empore und Kanzel).
+  Arena-Zählung und Neustart nach Tod über den Archetyp (`LEVEL.arena.enemies: 'all'`, Stern auf dem Mosaik). Draufspringen in
+  der Wurfpause besiegt, ebenso die Wurfsichel (?-Block vorn links). Münzblock vorn rechts, unsichtbarer Block mit Extraleben
+  über der rechten Emporen-Ecke. `instances.feuer_werfer.shadowDist: 8` (Zeichenaufruf-Budget).
+
+### 7-7 „Ebbe und Glut im Brodelkrater“ (parcours · volcano · course_volcano · 400 s)
+
+- Vulkankrater ≈ 265 m nach −Z (Inseln y 2). Abschnitte: **Start** (Basaltplateau, ?-Block mit Wurfsichel, Pegelmesser) →
+  **Lavasee** (`lavaspiegel` im Zyklus 12,5 s: Ebbe 0,2 m, Vorwarnung, Flut 1,6 m; hohe Inseln 2 m und Hochsteine 1,85 m
+  bleiben trocken, **Bimsstein-Trittsteine 1 m nur bei Ebbe**; Bimsstein-Enten schaukeln auf dem Spiegel; Platschfische –
+  zwei endlos nachkommend –, Knochenflieger, Steinbogen von Insel 3 zu Insel 4) → **Glasröhre** hoch über die Lava zum
+  Kontrollpunkt → **Fontänenfeld** (Gitterrost über der Stempel-Grube mit eigenem Lavaspiegel, großer Gitterboden mit heißen
+  Fontänen, zwei tragende Fontänen mit Krustenplatten hinauf zur Basaltterrasse, Steg zur **großen blauen Quadratplattform**
+  (6 × 6 m, `mover` mit blauer Haut `blauePlatte`), die quer über das Lavabecken zum Anleger fährt) → **Drachenbucht**
+  (Zickzack-Weg, acht Lavadrachen, Vulkanfelsen als Deckung, Zaun aus Basaltsäulen) → **Ziel** (Forscherzelt mit Thermometer).
+- Sterne: 0 **hoch über der Lava neben Insel 1** – nur mit der Wurfsichel im Sprung vom Wurf-Podest erreichbar · 1
+  **Sternenring** auf Insel 4: acht Sternmünzen in 14 s, drei davon über Bimssteinen (nur bei Ebbe) · 2 **von der blauen
+  Plattform nach Süden** auf einen Basaltsockel springen. Stempel: **unter dem Gitter nach dem Kontrollpunkt** – nur bei Ebbe
+  der Grube (durch das Loch neben dem Gitter hinab; bei Flut füllt sich die Grube).
+- Extraleben: unsichtbarer Block auf Insel 3, 1-Up auf der Säule neben der östlichen Krustenplatte (`speed: 0`, läuft nicht
+  weg). Wachstumsbeere am Kontrollpunkt, Wurfsichel auf der Terrasse. Gegner: Knochenflieger 7, Platschfisch 7, Lavadrache 8
+  (`instances`: Schattenweite 12–14 m, Platschfische/Lavadrachen mit `farHide`).
+- Kulisse (`krater77` u. a.): Kraterwände mit Lavafällen, sechseckiges Basaltpflaster mit glühenden Fugen, Glutlilien,
+  Schwefelschlote mit Dampf, Drachennester, Pegelmesser.
+
+### 7-Burg „Kampfwagen-Duell in der Glutfeste“ (boss · lavacastle · course_keep · 500 s)
+
+- Lava-Burg ≈ 165 m + Boss-Straße ≈ 150 m nach −Z (Höfe y 2 über Lava y 0). Abschnitte: **Vorplatz** (links zwei Mauerpfeiler
+  über der Lava: Wandsprung-Schacht) → **Vorhof** (Lavablasen-Bögen, Bumerang-Werfer – einer trägt eine goldene Wurfsichel und
+  lässt sie besiegt fallen –, Trittsteine, zweiter Hof zwischen Lavabecken) → **Zugbrücke** (Wachturm mit grauer Blockwand
+  `megawall`; die `bomb_cannon` auf dem Torhaus schießt Kickbomben vor den Turm; eine gekickte Bombe sprengt die Wand und legt
+  den `druckknopf` frei, er schaltet die `zugbruecke` um – nochmal drücken hebt sie wieder; ist die Wand weg, schweigt die
+  Kanone. Im Graben ein Eisengitter vor der hochgezogenen Brücke) → **Wachhof** (Kontrollpunkt, Feuer-Werfer auf der
+  Brüstung, Gitter-Vordach über der Lava) → **Klappstampfer-Gang** über der Lava → **Steg** zur **Hammer-Bühne** (zwei
+  Hammer-Werfer besiegen → `task` zeigt die Warp-Box zum Boss) → **Boss-Straße** (`kampfwagen_strasse` mit Lavalücken,
+  Mittellücke und Stachelfallen; **Baron Brummbär im Kampfwagen** `baron_kampfwagen`, 9 Treffer aus zurückgekickten Kickbomben
+  oder je zwei Wurfsichel-Kratzern; Kontrollpunkt am Startplatz, Tod setzt den Baron zurück) → Warp-Box nach dem Sieg zum
+  **Siegerplateau** mit Krümel im Käfig (`rescue_friend`) und Zielmast. `LEVEL.boss` mit `trigger` vor dem Startplatz,
+  `warpBanner` „Ab in die Warp-Box!“.
+- Sterne: 0 **nahe dem Start per Wandsprung** zwischen den Mauerpfeilern über der Lava (oben auf dem inneren Pfeiler; vom
+  Vorplatz mit dem Dreifachsprung nicht erreichbar) · 1 **oben auf der hochgezogenen Zugbrücke** (Wandsprung zwischen
+  Grabengitter und Brücke) · 2 **nach dem Kontrollpunkt unter dem Gitter-Vordach über der Lava** – nur mit der Wurfsichel aus
+  dem ?-Block am Kontrollpunkt (Springen stößt an das Gitter). Stempel: im **Wachturm per Wandsprung über dem Druckknopf**
+  (erst nach der Kickbombe offen).
+- Extraleben: unsichtbarer Block auf der Hammer-Bühne. Gegner: Bumerang-Werfer 3, Feuer-Werfer 2, Hammer-Werfer 2,
+  Lavablase 12, Klappstampfer 3, Baron im Kampfwagen.
+- Kulisse: Ziegelfassaden mit Lavasaum, Zinnenmauern, Torhaus mit Fallgitter, Eisengitter (Kamera sieht hindurch:
+  `camIgnore`), Banner, Brummbär-Statuen, Lava-Brunnen, Wappen-Mosaike, roter Läufer, Lager der Bande, Wimpel am Ziel.
+
+### Hilfen `_helpers_d.js`
+
+Daten: `isl`, `line`, `ring`, `arc`, `column`, `sign` · gemeinsam: `kacheln`, `bogenFenster`, `flammeGeo` · 7-C: `SAAL`,
+`siebenfeuerMosaik`, `saal7C`, `siebenFeuer` · 7-7: `KRATER`, `krater77`, `basaltPflaster`, `glutlilien`, `schwefel`,
+`drachenNest`, `forscherZelt`, `blauePlatte`, `bimsEnten`, `pegel` · 7-Burg: `FESTE`, `burgMauer`, `burgFassaden`,
+`eisenGitter`, `burgBanner`, `baerStatue`, `lavaBrunnen`.
+
+### Test `tests/course_w7d.mjs`
+
+Port 4750 (+ `PORT_BASE`), Aufruf `node tests/course_w7d.mjs [7-C|7-7|7-Burg]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,arena,boss,shots` (je Lauf < 10 min: `load,route,sweep` und `targets,extra` getrennt,
+7-Burg `boss` einzeln), `HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`, `TRACE=1`, `SHOTS=<Name|…>`, `DETAIL=1`, Bilder
+`tests/out/w7d_*.png`. Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier), auf der Route
+unverwundbar; Bedingungen nach Lavapegel (`until: 'seeEbbe'` …), Beine u. a. `walls` (Wandrutschen und Wandsprung im
+Schacht), `sichelAt` (Wurfsichel im Sprung), `bombe` (Kickbombe gegen die Wand), `carry` (Krustenplatte), `ride` mit
+`jumpAt`, `pipe`, `warp`, `chaseKind` (mit `near`), `boss` (Kampfwagen-Duell).
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegner- und Bausteinzahlen; Routen-Bot Lotti und Greta Start → Ziel (7-7
+≈ 91/90 s mit Ebbe-Warten, Glasröhre, Krustenplatte und blauer Plattform; 7-Burg ≈ 109/105 s mit Kickbombe, Druckknopf,
+Zugbrücke, Klappstampfern, Warp-Box und Baron-Kampf); 7-C-Kampf ≈ 23/24 s (die Schalen erlöschen der Reihe nach, Tod setzt die
+Arena zurück, Wurfsichel trifft Werfer aus 2,5–7 m, Zeitlimit 100 s); 7-Burg-Boss nur mit zurückgekickten Kickbomben (9/9,
+≈ 111 s, über alle drei Lavalücken), Abprall auf dem Kampfwagen ohne Schaden, Tod setzt den Baron zurück; alle Sterne und
+Stempel mit Gegenproben (Stern 0 der Burg nicht per Dreifachsprung, Vordach-Stern nicht ohne Sichel, Turmschacht hinter der
+Blockwand verschlossen, Bimssteine bei Flut tödlich, Hochsteine bleiben trocken, Zugbrücke ohne Knopf oben, Knopf hebt sie
+wieder); Extraleben aller drei Level. Gemessen (scale 2, inkl. Schattenpass, Messgang alle ~7 m der Route und Bilder je
+Abschnitt): 7-C 74–106 Zeichenaufrufe / ≤ 254 k Dreiecke · 7-7 43–93 / ≤ 183 k · 7-Burg 43–84 / ≤ 187 k.
