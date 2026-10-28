@@ -3,8 +3,8 @@
 //
 // Abendrot über einem nebligen Meer (wer hineinfällt, versinkt im Nebel); alte Geisterschiffe schaukeln in den Wellen.
 // Abschnitte (nach −Z):
-//   1. Schiffsdeck (z 10 … −58): Bootsanleger → Kippschiff 1 (Schubser, Walzenwerfer auf der Felsnadel daneben wirft
-//      Stachelwalzen quer übers Deck) → 1 m breiter Kippsteg → Kippschiff 2 (Stern-Schubser: vom Schiff stoßen → Stern 0)
+//   1. Schiffsdeck (z 10 … −58): Bootsanleger → Kippschiff 1 (Walzenwerfer auf dem Felsen daneben wirft Stachelwalzen
+//      quer übers Deck) → 1 m breiter Kippsteg → Kippschiff 2 ohne Reling (großer Schubser: vom Schiff stoßen → Stern 0)
 //      → Wrackfelsen mit Warp-Box in den Laderaum.
 //   2. Laderaum (abseits bei x ≈ 100, z −8 … −62): offener Schiffsbauch im Laternenlicht (Stimmung laderaum). Kisten und
 //      Fässer, ein Kreisgeist-Ring über einem **Loch im Boden** (hinab in die Bilge: Stern 1, Kisten hinauf), ein gefluteter
@@ -23,16 +23,7 @@ const Y = 1;           // Decks und Inseln
 const LX = 100, LY = 4; // Laderaum (x, Boden – über dem Nebelmeer der Kulisse)
 const SEA = -1.6;      // Nebelmeer (Absturz)
 
-/** Schubser (Welt-6-Gegner): erst setzen, wenn es die Art gibt (Gegner-Agent arbeitet parallel). */
-const SCHUBSER = [
-  { kind: 'schubser', id: 'schubser1', pos: [1.6, Y, -18], sight: 7 },
-  { kind: 'schubser', id: 'schubser2', pos: [0, Y, -43.4], sight: 7 },
-  { kind: 'schubser', id: 'boss1', pos: [-1.8, Y, -128], sight: 8 },
-  { kind: 'schubser', id: 'boss2', pos: [1.8, Y, -134], sight: 8 },
-];
-
 function build(level) {
-  if (level.hasKind?.('schubser')) for (const s of SCHUBSER) level.spawn(s.kind, s);
   holzsteg(level, -4.6, 4.6, 9.6, -6.4, Y, { bottom: -3 });
   holzsteg(level, -5.6, 5.6, -74.4, -85.8, Y, { bottom: -3, seed: 4 });
   holzsteg(level, -7.6, 7.6, -160.4, -177.6, Y, { bottom: -3, seed: 7 });
@@ -84,7 +75,7 @@ export const LEVEL = {
     isl(-9.4, -7, -15.2, -17.6, Y + 1.2, 6, { top: 'rock' }),
     { type: 'kippschiff', id: 'schiff1', pos: [0, Y, -15.2], length: 16, width: 7, style: 'geist', wave: { amp: 5, period: 5.5 } },
     { type: 'kippsteg', id: 'steg', from: [0, Y, -23.6], to: [0, Y, -33.2], width: 1, style: 'geist' },
-    { type: 'kippschiff', id: 'schiff2', pos: [0, Y, -41.8], length: 16, width: 7, style: 'geist', wave: { amp: 5, period: 5.5, phase: 0.5 } },
+    { type: 'kippschiff', id: 'schiff2', pos: [0, Y, -41.8], length: 16, width: 7, style: 'geist', rails: false, weight: 1.4, slide: 1.4, maxTilt: 12, wave: { amp: 5, period: 5.5, phase: 0.5 } },
     isl(-4, 4, -50.4, -57.4, Y, 5, { top: 'rock' }),
     { type: 'deco_w6', items: [
       { kind: 'fass', pos: [-3.6, Y, 3] }, { kind: 'fass', pos: [-3.1, Y, 1.9], size: 0.9 }, { kind: 'kiste', pos: [3.6, Y, 2.4] },
@@ -113,11 +104,15 @@ export const LEVEL = {
     { type: 'kippsteg', id: 'bruecke3', from: [0, Y, -111], to: [0, Y, -120.2], width: 1, style: 'geist', wave: { amp: 7, period: 3.0, phase: 0.2 } },
 
     // ================================================================ 4 Letztes Schiff, Zielinsel
-    { type: 'kippschiff', id: 'schiff3', pos: [0, Y, -130.6], length: 20, width: 8, style: 'geist', masts: 3, wave: { amp: 4, period: 6 } },
+    { type: 'kippschiff', id: 'schiff3', pos: [0, Y, -130.6], length: 20, width: 8, style: 'geist', masts: 3, rails: false, weight: 1.2, slide: 1.4, maxTilt: 12, wave: { amp: 4, period: 6 } },
     isl(-4, 4, -140.8, -148, Y, 5, { top: 'rock' }),
     isl(-8, 8, -160, -178, Y, 5, { top: 'rock' }),
   ],
   enemies: [
+    // Schubser (stoßen ohne Schaden): sie bewachen ihren Platz (gehen gegen das Rutschen zurück) – der große auf Schiff 2 trägt den Stern
+    { kind: 'schubser', id: 'schubser2', pos: [0, Y, -43.4], behavior: 'guard', sight: 6, warn: 0.8, push: 6.5, lift: 4.5, size: 1.15, weight: 1.3, wake: 80 },
+    { kind: 'schubser', id: 'boss1', pos: [-1.8, Y, -127.6], behavior: 'guard', sight: 6, warn: 0.8, push: 6.5, lift: 4.5, wake: 400 },
+    { kind: 'schubser', id: 'boss2', pos: [1.8, Y, -133.6], behavior: 'guard', sight: 6, warn: 0.8, push: 6.5, lift: 4.5, wake: 400 },
     { kind: 'walzenwerfer', id: 'walze', pos: [-8.2, Y + 1.2, -16.4], dir: [1, 0], aim: 'dir', interval: 3.4, first: 1.5, speed: 3.4, life: 6, max: 2 },
     { kind: 'kreisgeist_kreis', id: 'ring1', pos: [LX, LY + 0.3, -24], count: 8, radius: 3.0, speed: 1.4 },
     { kind: 'kreisgeist_kreis', id: 'ring2', pos: [LX, LY + 0.3, -53], count: 8, radius: 3.2, speed: 1.6, cw: true },

@@ -22,6 +22,7 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 // { chaseKind, ids } · { expect: Bedingung } · { until: Bedingung } · { pipe: [x, z], stick } (in eine Glasröhren-Öffnung
 // laufen, unterwegs Stick halten – Abzweig an Kreuzungen) · { warp: [x, z] } (auf Warp-Box/Kanone springen und
 // mitfahren) · { stompAll: Id-Anfang } · { clear: [Ids], at: [x, z], r } (warten, bis die Stachelkugeln weg sind)
+const L2X = 100;     // 6-2 Laderaum
 const GX = -9.4, Y1 = 1, Y2 = 7, T2 = 11.5, T3 = 16, T4 = 20.5, Y4 = 15, Y5 = 24, HX = -46, YH = 42;
 const ROUTES = {
   '6-1': {
@@ -145,6 +146,85 @@ const ROUTES = {
       ['rechts', [5, 2, -1]],
     ],
   },
+  '6-2': {
+    start: [0, 1, 6],
+    meta: { stars: 3, time: 400, theme: 'wreck', music: 'course_wreck', archetype: 'parcours' },
+    enemies: { schubser: 3, walzenwerfer: 1, kreisgeist_kreis: 2, kreisgeist_glied: 16, spuk: 2 },
+    main: [
+      { to: [0, -5.4], within: 0.5 },
+      { name: 'Kippschiff 1', to: [0, -9.6], jump: 14, within: 0.6, run: false },
+      { to: [0, -22.8], within: 0.4, run: false },
+      { name: '1-m-Kippsteg', to: [0, -33.2], within: 0.4, run: false },
+      { name: 'Kippschiff 2', to: [0, -36.4], within: 0.5, run: false },
+      { name: 'Stern-Schubser vom Schiff stoßen', push: 'schubser2', dir: [1, 0] },
+      { to: [0, -49.2], within: 0.4, run: false },
+      { name: 'Warp-Box in den Laderaum', warp: [0, -54.6] },
+      { expect: 'laderaum' },
+      { to: [L2X + 4, -12], within: 0.6, run: false },
+      { to: [L2X + 6, -20], within: 0.6, run: false },
+      { name: 'am Loch vorbei', to: [L2X + 6, -29.2], within: 0.5, run: false },
+      { name: 'gefluteter Laderaum', to: [L2X + 6, -44.6], within: 0.8, max: 2400 },
+      { to: [L2X + 6, -48], jump: 20, within: 0.6, run: false },
+      { to: [L2X + 6, -56.5], within: 0.6, run: false },
+      { name: 'Warp-Box hinaus', warp: [L2X, -59.4] },
+      { expect: 'cpInsel' },
+      { name: 'Checkpoint', to: [0, -80], within: 0.6 },
+      { to: [0, -85.6], within: 0.4, run: false },
+      { name: 'Kippbrücke 1', to: [0, -96.9], within: 0.4, run: false },
+      { name: 'Kippbrücke 2', to: [0, -109.3], within: 0.4, run: false },
+      { name: 'Kippbrücke 3', to: [0, -121.6], within: 0.4, run: false },
+      { name: 'Schubser 1 vom letzten Schiff', push: 'boss1', dir: [-1, 0] },
+      { name: 'Schubser 2 vom letzten Schiff', push: 'boss2', dir: [1, 0] },
+      { until: 'zielOffen', max: 240 },
+      { to: [0, -139.6], within: 0.4, run: false },
+      { name: 'Warp-Box zur Zielinsel', warp: [0, -145.4] },
+      { name: 'Zielmast', to: [0, -172.4], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'drei Schubser ins Nebelmeer gestoßen, Warp-Boxen in den Laderaum, hinaus und zum Ziel', ok: (r) => r.mech.pushedOff === 3 && r.mech.warps === 3 },
+    ],
+    targets: [
+      { name: 'Stern 0: großen Schubser vom zweiten Schiff stoßen', star: 0, from: [0, 1, -35.2],
+        legs: [{ push: 'schubser2', dir: [1, 0] }, { wait: 60 }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht durch Draufspringen (Schubser federt nur)', star: 0, expectNot: true, from: [0, 1, -38.4], heroes: ['lotti'],
+        legs: [{ stompAll: 'schubser2', max: 3 }, { wait: 120 }], mech: (r) => (r.mech.bounced ?? 0) > 0, mechText: (r) => `Abpraller ${r.mech.bounced ?? 0}` },
+      { name: 'Stern 1: durch die Lücke im Kreisgeist-Ring ins Loch, über die Kisten wieder hinauf', star: 1, from: [L2X + 5.5, 4, -16],
+        legs: [{ to: [L2X + 4.4, -19.4], within: 0.3, run: false }, { ringGap: 'ring1', to: [L2X, -23.2] }, { star: 1 }, { expect: 'imLoch' },
+          { to: [L2X + 1.2, -26.4], within: 0.3, run: false }, { to: [L2X + 2.6, -26.4], jump: 20, within: 0.4, run: false },
+          { hop: 24 }, { to: [L2X + 5.2, -26.4], jump: 24, within: 0.6, run: false }, { expect: 'ausLoch' }], shot: 'stern1' },
+      { name: 'Stern 2: auf der letzten Kippbrücke hochspringen', star: 2, from: [0, 1, -109.3],
+        legs: [{ to: [0, -115.6], within: 0.3, run: false }, { hop: 30 }, { wait: 20 }], shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne Sprung (über die Brücke laufen)', star: 2, expectNot: true, from: [0, 1, -109.3], heroes: ['lotti'],
+        legs: [{ to: [0, -121], within: 0.4, run: false }] },
+      { name: 'Stempel: Kisten hinauf, Sprung auf den Querbalken über dem zweiten Kreisgeist-Ring', stamp: true, from: [L2X - 6.6, 4, -46.4],
+        legs: [{ to: [L2X - 6.6, -47.6], within: 0.3, run: false }, { to: [L2X - 6.6, -49.4], jump: 30, within: 0.3, run: false }, { expect: 'aufKisten' },
+          { to: [L2X - 6.4, -53], jump: 30, within: 0.4, run: false }, { expect: 'aufBalken' }, { to: [L2X, -53], within: 0.4, run: false }], shot: 'stempel' },
+      { name: 'Stempel nicht vom Boden aus (Balken im Weg)', stamp: true, expectNot: true, from: [L2X - 4.5, 4, -53], heroes: ['lotti'],
+        legs: [{ hop: 40 }, { wait: 20 }] },
+    ],
+    extra: [
+      { name: 'Warp-Box zur Zielinsel versteckt, solange die Schubser auf dem letzten Schiff sind', from: [0, 1, -141.6], heroes: ['lotti'],
+        legs: [{ to: [0, -145.4], jump: 30, within: 0.3, run: false, max: 300 }, { wait: 60 }, { expect: 'nichtZielinsel' }] },
+    ],
+    shots: [
+      ['start', [0, 1, 6]],
+      ['schiff1', [0, 1, -11]],
+      ['steg', [0, 1, -25]],
+      ['schiff2', [0, 1, -36]],
+      ['wrack', [0, 1, -51]],
+      ['laderaum', [L2X, 4, -12]],
+      ['loch', [L2X + 5, 4, -18]],
+      ['flut', [L2X + 4, 4, -28.6]],
+      ['flut2', [L2X, 1.6, -38]],
+      ['balken', [L2X - 4, 4, -47]],
+      ['checkpoint', [0, 1, -78]],
+      ['bruecke', [0, 1, -90]],
+      ['bruecke3', [0, 1, -110]],
+      ['schiff3', [0, 1, -123]],
+      ['zielinsel', [0, 1, -164]],
+      ['ziel', [0, 1, -168]],
+    ],
+  },
 };
 
 const PORT = 4640;
@@ -197,6 +277,15 @@ function install() {
     funkelstern: () => P().power === 'stern',
     aufRoehre: () => P().pos.y > 8.7 && Math.abs(P().pos.x) < 1 && P().mode === 'ground',
     aufBogen: () => P().pos.y > 14 && P().ground?.tag === 'glasnetz',
+    // 6-2
+    laderaum: () => P().pos.x > 85 && P().pos.y > 3,
+    cpInsel: () => at(-6, 6, 0.5, -74, -86),
+    zielOffen: () => !L.named.get('w_ziel')?.hidden,
+    nichtZielinsel: () => !(P().pos.z < -155 && P().pos.y > 0.5),
+    imLoch: () => P().pos.y < 1 && P().pos.x > 96 && P().pos.x < 104,
+    ausLoch: () => P().pos.y > 3.5 && P().pos.x > 100,
+    aufKisten: () => P().pos.y > 6.5,
+    aufBalken: () => P().pos.y > 8.2,
   };
   const W = {
     place(pos, o = {}) {
@@ -330,6 +419,77 @@ function install() {
           if (!rode) { log.push(['FEHLER: Warp-Box/Kanone nicht benutzt', Lg.warp]); break; }
           continue;
         }
+        // ------------------------------------------------ Schubser in Richtung dir vom Schiff stoßen (Anlauf von der Gegenseite)
+        if (Lg.push) {
+          const e = L.entities.find((x) => x.spec?.id === Lg.push);
+          const dl = Math.hypot(Lg.dir[0], Lg.dir[1]) || 1;
+          let dx = Lg.dir[0] / dl, dz = Lg.dir[1] / dl;
+          const cx = Lg.center ?? 0;   // Schiffsmitte (x): Anlaufpunkt nie näher als 1,3 m an die Deckkante
+          let tries = 0;
+          const gone = () => !e || !e.alive || e.removed || e.defeated || e.state === 'defeated' || e.state === 'fall' || e.pos.y < (e.home?.y ?? 0) - 1.5;
+          for (; tries < 10 && !gone() && !p.dead; tries++) {
+            // auf die Gegenseite des Schubsers gehen (nah, damit die Figur nicht an die Deckkante gerät)
+            // zur näheren Deckkante stoßen
+            if (Math.abs(e.pos.x - cx) > 0.4) { dx = Math.sign(e.pos.x - cx); dz = 0; }
+            // Anlauf zügig: auf die Gegenseite (≈ 2,6 m vor ihm, nie näher als 1,3 m an die Deckkante), von dort gleich abspringen
+            for (let k = 0; k < 500 && !gone(); k++) {
+              const ax = Math.max(cx - 2.2, Math.min(cx + 2.2, e.pos.x - dx * (Lg.back ?? 2.6))), az = e.pos.z - dz * (Lg.back ?? 2.6);
+              const qx = ax - p.pos.x, qz = az - p.pos.z, d = Math.hypot(qx, qz);
+              if (d < 0.6 && p.mode === 'ground') break;
+              tick({ ...this.stick(qx, qz, Math.min(1, Math.max(0.5, d / 1.0))), run: d > 2 });
+            }
+            const p0 = e.pushes ?? 0;
+            // Sprung auf ihn (Ziel knapp vor seiner Mitte auf unserer Seite), über ihm Stampfattacke → er rutscht in dir
+            let pounding = false;
+            for (let k = 0; k < 220 && !gone() && (e.pushes ?? 0) === p0 && !p.dead; k++) {
+              const tx = Math.max(cx - 2.4, Math.min(cx + 2.4, e.pos.x - dx * 0.3)), tz = e.pos.z - dz * 0.3;
+              const hd = Math.hypot(tx - p.pos.x, tz - p.pos.z);
+              if (!pounding && k > 6 && hd < 0.45 && p.vel.y < 3 && p.pos.y > e.pos.y + 1.2) pounding = true;
+              if (pounding) { tick({ crouch: true }); continue; }
+              tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, e.vel?.x ?? 0, e.vel?.z ?? 0, 3.4, 7) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: k < 26, run: false });
+            }
+            // nach dem Stoß in der Luft zur Deckmitte lenken, dann kurz warten
+            for (let k = 0; k < 240 && p.mode !== 'ground' && !p.dead; k++) tick({ ...this.airSteer(Math.max(cx - 1.6, Math.min(cx + 1.6, p.pos.x)), p.pos.z, 0, 0, 3, 5) });
+            for (let k = 0; k < 150 && !gone(); k++) tick({});
+          }
+          for (let k = 0; k < 120 && e?.alive && !e?.removed && !e?.defeated; k++) tick({});
+          if (gone()) mech.pushedOff = (mech.pushedOff ?? 0) + 1;
+          log.push(['schubser', Lg.push, gone(), tries, e?.state, e?.fellBy, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!gone()) { log.push(['FEHLER: Schubser nicht hinuntergestoßen', Lg.push]); break; }
+          continue;
+        }
+        // ------------------------------------------------ durch die Lücke eines Kreisgeist-Rings zum Ziel (Lücke vorausrechnen)
+        if (Lg.ringGap) {
+          const ring = L.entities.find((x) => x.spec?.id === Lg.ringGap);
+          const members = () => (ring?.members ?? []).filter((x) => x.alive && !x.removed);
+          const [tx, tz] = Lg.to;
+          // warten, bis auf dem Weg zum Ziel kein Geist näher als 1,35 m kommt (Vorausschau 1,2 s mit Ringdrehung)
+          const safe = () => {
+            const c = ring.pos, w = (ring.speed ?? 1.6) / Math.max(0.1, ring.radius ?? 3) * (ring.cw ? -1 : 1);
+            const vx = 0, vz = 0; void vx; void vz;
+            for (let t = 0; t <= 1.2; t += 0.1) {
+              const k = Math.min(1, t / 0.9), px = p.pos.x + (tx - p.pos.x) * k, pz = p.pos.z + (tz - p.pos.z) * k;
+              for (const m of members()) {
+                const a0 = Math.atan2(m.pos.z - c.z, m.pos.x - c.x), r = Math.hypot(m.pos.x - c.x, m.pos.z - c.z);
+                for (const sg of [1, -1]) {
+                  const a = a0 + sg * w * t;
+                  if (Math.hypot(c.x + Math.cos(a) * r - px, c.z + Math.sin(a) * r - pz) < 1.35) return false;
+                }
+              }
+            }
+            return true;
+          };
+          let k = 0;
+          for (; k < 1200 && !safe(); k++) tick({});
+          let j = 0;
+          for (; j < 400 && !p.dead; j++) {
+            const qx = tx - p.pos.x, qz = tz - p.pos.z, d = Math.hypot(qx, qz);
+            if (d < 0.4 && p.mode === 'ground') break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz) : this.stick(qx, qz, 1)), run: true });
+          }
+          log.push(['ringlücke', Lg.ringGap, k, j, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
         // ------------------------------------------------ Gegner (Id-Anfang) nacheinander von oben besiegen
         if (Lg.stompAll) {
           const pre = Lg.stompAll;
@@ -340,13 +500,16 @@ function install() {
             list.sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z));
             const e = list[0];
             let k = 0;
+            const pu0 = e.pushes ?? 0;
             for (; k < 900 && e.alive && !e.defeated && !e.removed; k++) {
+              if (Lg.max && (e.pushes ?? 0) > pu0) { mech.bounced = (mech.bounced ?? 0) + 1; break; }
               const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
               if (p.mode === 'ground' && d < 2.0) { tick({ ...this.stick(dx, dz, 0.5), jump: true, run: false }); continue; }
               if (p.mode === 'air') { const ev = e.vel ?? { x: 0, z: 0 }; tick({ ...this.airSteer(e.pos.x + ev.x * 0.2, e.pos.z + ev.z * 0.2, ev.x, ev.z, 3.6, 7), jump: p.vel.y > 0 }); continue; }
               tick({ ...this.stick(dx, dz, Math.min(1, d / 2)), run: false });
             }
             if (!e.alive || e.defeated || e.removed) mech.stomped.push(e.spec?.id);
+            if (Lg.max && guard + 1 >= Lg.max) break;
           }
           for (let i = 0; i < 60; i++) tick({});
           log.push(['besiegt', mech.stomped.length, mech.stomped.join(' ')]);
