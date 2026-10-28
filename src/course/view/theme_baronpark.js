@@ -26,6 +26,6 @@ export const BARONPARK_THEME = {
   lava: 0xff6a1a,
   lights: [],
   lanternLight: { color: 0xffd890, intensity: 14, distance: 8 },
-  buildBackdrop(sky, bounds, rnd, yBase) { sky.w8 = baronPark(sky, bounds, rnd, yBase, { y: -14 }); },
+  buildBackdrop(sky, bounds, rnd, yBase) { sky.w8 = baronPark(sky, bounds, rnd, yBase, { y: -22 }); },
   updateBackdrop(sky, dt, camera) { animateW8(sky.w8, dt, camera); },
 };

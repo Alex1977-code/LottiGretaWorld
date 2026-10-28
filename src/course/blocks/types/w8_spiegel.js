@@ -33,7 +33,7 @@ function frameGeo(w, h) {
   const gold = lin(hex(0xe8b84a)), goldHi = lin(hex(0xfff0a8)), goldLo = lin(hex(0x8a5a1a));
   const parts = [];
   const T = 0.32, D = 0.28;
-  const col = (g) => colorize(g.toNonIndexed(), (p, n, o) => mixc(goldLo, gold, smooth(-0.6, 0.6, n.z * 0.7 + n.y * 0.3), o));
+  const col = (g) => colorize(g.index ? g.toNonIndexed() : g, (p, n, o) => mixc(goldLo, gold, smooth(-0.6, 0.6, n.z * 0.7 + n.y * 0.3), o));
   parts.push(col(box(w + T * 2, T, D, 0, -T / 2, 0, 0xe8b84a, { r: 0.08 })));
   parts.push(col(box(w + T * 2, T, D, 0, h + T / 2, 0, 0xe8b84a, { r: 0.08 })));
   parts.push(col(box(T, h, D, -w / 2 - T / 2, h / 2, 0, 0xe8b84a, { r: 0.08 })));
@@ -53,7 +53,7 @@ function frameGeo(w, h) {
   hg.translate(0, h + T + Math.min(1.2, w * 0.22) * 0.4, D / 2 - 0.04);
   parts.push(colorize(hg.toNonIndexed(), (p, n, o) => mixc(lin(hex(0xc8304a)), lin(hex(0xff7a9a)), smooth(-0.2, 1, n.z), o)));
   // Rückwand
-  parts.push(colorize(box(w + T * 2, h + T * 2, 0.08, 0, h / 2, -D / 2, 0x4a2a1a, { r: 0.02, seg: 0 }).toNonIndexed(), (p, n, o) => { const c = lin(hex(0x4a2a1a)); o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
+  parts.push(colorize(box(w + T * 2, h + T * 2, 0.08, 0, h / 2, -D / 2, 0x4a2a1a, { r: 0.02, seg: 0 }), (p, n, o) => { const c = lin(hex(0x4a2a1a)); o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
   return merge(parts);
 }
 

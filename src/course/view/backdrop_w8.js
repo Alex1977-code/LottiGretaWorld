@@ -435,12 +435,22 @@ export function crystalInferno(sky, bounds, rnd, yBase, o = {}) {
 
 export function baronPark(sky, bounds, rnd, yBase, o = {}) {
   const { x0, x1, z0, z1 } = sides(bounds);
-  const gy = (o.y ?? -14) + yBase;
+  const gy = (o.y ?? -22) + yBase;
   const cx = (x0 + x1) / 2;
   const parts = [], glowList = [];
-  // Boden (Kopfsteinpflaster-Ebene) tief unten
-  const floor = new THREE.PlaneGeometry((x1 - x0) + 600, (z1 - z0) + 600, 1, 1); floor.rotateX(-Math.PI / 2); floor.translate(cx, gy, (z0 + z1) / 2);
-  parts.push(fill(floor, 0x3a3048));
+  // Rummel-Boden tief unten: Pflasterfelder (Schachbrett großer Platten) mit Laternen-Lichtern und Wegen
+  const FW = (x1 - x0) + 600, FD = (z1 - z0) + 600, fz = (z0 + z1) / 2;
+  const floor = new THREE.PlaneGeometry(FW, FD, 30, 30); floor.rotateX(-Math.PI / 2); floor.translate(cx, gy, fz);
+  const fa = C(0x3e3450), fb = C(0x4a3e5e), path = C(0x7a6a5a);
+  parts.push(colorize(ni(floor), (p, n, out) => {
+    const ix = Math.floor((p.x - cx) / 14), iz = Math.floor((p.z - fz) / 14);
+    const c = (Math.abs(p.x - cx) % 60 < 5 || Math.abs(p.z) % 70 < 5) ? path : (ix + iz) & 1 ? fa : fb;
+    out[0] = c[0]; out[1] = c[1]; out[2] = c[2];
+  }));
+  for (let x = cx - FW / 2 + 20; x < cx + FW / 2; x += 30) for (let z = fz - FD / 2 + 20; z < fz + FD / 2; z += 35) {
+    if (x > x0 - 8 && x < x1 + 8 && z > z0 - 8 && z < z1 + 8) continue;
+    glowList.push({ x: x + rnd.real(-6, 6), y: gy + 3, z: z + rnd.real(-6, 6), c: [0xfff0a0, 0xff8ac8, 0x9af0ff][Math.floor(rnd.frac() * 3)] });
+  }
   // der große Turm des Barons hinten in der Mitte
   const tz = z0 - (o.towerDist ?? 90), th = o.towerH ?? 120;
   parts.push(shade(new THREE.CylinderGeometry(12, 16, th, 16, 6).translate(cx, gy + th / 2, tz), 0x4a1a3a, 0x9a3a6a));
