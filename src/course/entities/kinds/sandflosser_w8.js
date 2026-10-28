@@ -3,7 +3,8 @@
 // Bögen aus dem Sand springt. Modell 'sandflosser' (Ursprung = Sandoberfläche; im Sprung = Bauch), sonst Ersatz 'glotzfisch' (gelb).
 //
 // Verhalten: schwimmt seine Bahn (path + loop | center + radius + cw | pos + dir · dist hin und her | ohne Bahn: an pos) mit speed
-//   m/s. Alle every s (phase versetzt) **kündigt er den Sprung an** (warn s): er hält an, der Sand brodelt (Wellenmarke: Staubring
+//   m/s (ohne Bahn springt er abwechselnd hin und her um pos: pos ± dir · jump/2). Alle every s (phase versetzt) **kündigt er den
+//   Sprung an** (warn s): er hält an, der Sand brodelt (Wellenmarke: Staubring
 //   am Absprung) und an der **Landestelle erscheint eine rote Schattenmarke** – auch beim Pflaume-Ritt gut lesbar. Dann springt er
 //   (flight s) im Bogen (height m über dem Sand) jump m weit seine Bahn entlang; mit aim springt er der nächsten Figur in sight m
 //   entgegen (Landestelle = ihre Lage in lead s, 0,6 … 1,6 · jump m weit) und schwimmt danach zu seiner Bahn zurück.
@@ -153,7 +154,9 @@ class Sandflosser extends EnemyW2 {
       const q = this.track.peek(this.jumpLen, {});
       bx = q.x; bz = q.z; s1 = { s: q.s, dir: q.dir };
     } else {
-      bx = ax + this.dir.x * this.jumpLen; bz = az + this.dir.z * this.jumpLen;
+      // ohne Bahn: abwechselnd hin und her um den Startplatz (pos ± dir · jump/2)
+      this.side = -(this.side ?? -1);
+      bx = this.home.x + this.dir.x * this.jumpLen * 0.5 * this.side; bz = this.home.z + this.dir.z * this.jumpLen * 0.5 * this.side;
     }
     const by = this.sandAt(bx, bz);
     this.jump = { ax, ay, az, bx, by, bz, T: this.flightT, H: this.height, s1 };

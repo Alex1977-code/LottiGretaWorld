@@ -212,11 +212,15 @@ export function fallingStar(level, index, x, y, z, floorY = null) {
   if (!st) return null;
   level.effects?.sparks({ x, y: y + 0.6, z }, 18);
   level.sfx('powerup_appear');
+  // erst sichtbar erscheinen (0,35 s unberührbar), dann fallen
+  st.touch = false;
+  let wait = 0.35;
   const floor = floorY ?? groundBelow(level, x, y + 0.5, z, 40);
-  if (floor === null) return st;
   let vy = 2.5;
   const off = level.onStep((dt) => {
     if (!st.alive || st.removed) { off(); return; }
+    if (wait > 0) { wait -= dt; if (wait <= 0) st.touch = true; return; }
+    if (floor === null) { off(); return; }
     vy -= 22 * dt;
     st.pos.y = Math.max(floor + 0.15, st.pos.y + vy * dt);
     if (st.pos.y <= floor + 0.15 + 1e-6) { off(); st.landed = true; level.effects?.dust(st.pos, 4, 0.6); }
