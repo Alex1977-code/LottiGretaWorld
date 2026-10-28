@@ -6581,3 +6581,12 @@ Port 4710 (+ `PORT_BASE`), Aufruf `node tests/course_w7a.mjs [7-1|7-2|7-A]`, Tei
 Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier); Beine u. a. `pipe` (Glasröhre, Stick an der Kreuzung), `warp`,
 `stompAll`, `clear` (Lücke abwarten), `pound` (Stampfattacke), `roll` (Kugel schieben), `fire` (Feuerbälle auf ein Ziel),
 `ride` (Fahrplattform), `tiles` (Schaltfelder), Arena `bossFight` (Brocken betäuben, aufheben, werfen, ausweichen).
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel (7-1 ≈ 88/76 s mit H-Röhre,
+Röhrengabel, Röhrenstern, Feuerstäben am Rand, Werfer auf dem Turm, Warp-Box, Stampfsteinen, Marschblöcken, Zugbrücke; 7-2
+≈ 73/72 s **ohne einen Treffer-Versuch**, vier Schaltgruppen, Stachelpanzer mit Feuerbällen, Fahrplattform, Zielröhre; 7-A
+Kampf ≈ 27/42 s mit echten Würfen, Platschfische bis zu vier gleichzeitig); alle Sterne und Stempel mit Gegenproben
+(Geradeausfahrt, Mulde ohne Kugel, Stempel ohne Anheben, Fackeln ohne Feuer, Blockkette ohne Kopfstoß, 3 von 4 Feldern); Extras
+(versteckte Warp-Box, geschlossene Zugbrücke, Wurfsichel, feste Mauer neben der Scheinwand, vier Extraleben); 7-A: Feuer und
+Draufspringen schaden dem König nicht, Tod setzt den Kampf zurück, Zeitlimit 200 s. Gemessen (scale 2, inkl. Schattenpass,
+Messgang alle ~7 m der Route und Bilder je Abschnitt): 7-1 30–84 Zeichenaufrufe / ≤ 198 k Dreiecke · 7-2 35–79 / ≤ 127 k ·
+7-A 45–75 / ≤ 135 k.
