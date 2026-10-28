@@ -121,6 +121,17 @@
 //    (Anfahren/Bremsen, Schwung je Griff, im Stand sachtes Schaukeln), Knie leicht angezogen; am Gitterrand bleiben die
 //    Griffe im Gitter. Mund zu, Augen ungestaucht: Zeichenaufrufe wie idle.
 //
+// Welt 7 (Kurs-Modus; Vertrag „Präzisierung (Figuren Welt 7): Wurfsichel-Kostüm und Wurf-Pose“, Bausteine ../lib/heroSichel.js):
+//  - Power 'sichel' = Wurfsichel-Kostüm: türkise Schirmmütze mit Goldband, rosa Bommel und goldenem Mondsichel-Kamm (Lotti mit
+//    ihrer Schleife am Band, Gretas Haarreif ruht), kurzer Umhang auf dem Rücken (innen rosa, Goldpaspel, Mondsichel-Saum,
+//    goldene Mondsichel mit Sternchen), Kordel mit Sichel-Schließe, Wurfsichel in der nahen Hand. Mütze/Umhang Stoff, Kamm/Sichel
+//    Glanz (Figur-Bündel), Kordel im Oberkörper-Mesh: 0 zusätzliche Zeichenaufrufe. Umhang = Feder um den Nacken (Schwerkraft in
+//    Weltlage, Fahrtwind, Flattern); Gretas Haar liegt darauf. Halloween: Mütze statt Hexenhut/Katzenohren (Lotti Kürbis-Bommel,
+//    Greta Katzenohren an der Mütze; Schnurrhaare und Katzenschwanz bleiben), Futter orange. Trage-Helm: Mütze und Kamm ruhen.
+//  - obj.course.sichelFlying (0 = Sichel in der Hand), sichelCatch (Wechsel = Fang): Sichel nur in Zuständen mit freier Hand
+//    (SICHEL_HAND; nicht beim Tragen) und solange keine fliegt; 'throw' mit Sichel = Seitarm-Wurf (SICHEL_THROW); Fang-Geste
+//    (Hand schnappt vor, Augen „◡“, Funkeln, Sichel kreiselt in der Hand aus); verlorene Sichel erscheint wieder (wächst kurz).
+//
 // Halloween-Verkleidung (Vertrag „Präzisierung (Figuren Halloween): Verkleidung“; Schalter ../lib/outfit.js, Bausteine
 // ../lib/heroHalloween.js): Beide Avatare lesen je Bild currentOutfit() (Szene bzw. URL ?outfit=…); avatar.setOutfit('halloween'
 // | null) legt einzeln fest, 'auto' folgt wieder der Szene. Zubehör entsteht erst beim ersten Anziehen und hängt nur getragen

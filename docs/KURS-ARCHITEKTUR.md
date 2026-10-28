@@ -6344,6 +6344,43 @@ Giftnebel (Bereich startet, stehen bleiben = Tod, fliehen = heil, Neustart setzt
 `flucht`, Unterwasser). 48 + 4 Prüfungen (Gegner-Sichel eingeschlossen). Kennzahlen (inkl. Schattenpass, mit Welt-7-Modellen): Stationen 47–77
 Zeichenaufrufe / 98–149 k Dreiecke, Themen 59–82 / 96–146 k (Grenzen 120 / 300 k).
 
+
+## Präzisierung (Figuren Welt 7): Wurfsichel-Kostüm und Wurf-Pose
+
+Ergänzung des Figuren-Agenten (additiv; Motor, Modelle, Level unverändert). Dateien: `src/three/lib/heroSichel.js` (Bausteine,
+Gestaltung nach der Vorlage `wurfsichel_kostuem`, Farben wie dort), `src/three/avatars/hero.js` (Kostüm `'sichel'`, Posen),
+`src/course/player/HeroRig.js` (+3 Zeilen: `proxy.course.sichelFlying`, `sichelReady`, `sichelCatch` aus der Figur),
+Test `tests/kostuem_w7.mjs`.
+
+- **Kostüm** (`proxy.course.power = 'sichel'`, beide Heldinnen, groß/klein): türkise Schirmmütze mit Goldband, rosa Bommel hinten
+  und goldenem Mondsichel-Kamm (Lotti trägt ihre Schleife am Band, Gretas Haarreif ruht unter der Mütze); kurzer Umhang auf dem
+  Rücken (innen rosa, Goldpaspel, Saum als Mondsichel, goldene Mondsichel mit Sternchen), goldene Kordel mit Sichel-Schließe;
+  Wurfsichel in der nahen (rechten) Hand. Umhang schwingt um den Nacken (Schwerkraft in Weltlage, Fahrtwind aus Tempo/Fallen,
+  Flattern; Kanone, Wasser, Ritt, Wand eigene Lagen); Gretas langes Haar liegt auf dem Umhang.
+- **Zeichenaufrufe:** Mütze und Umhang in der Stoff-, Kamm und Hand-Sichel in der Glanz-Oberfläche (Figur-Bündel), Kordel und
+  Schließe im Oberkörper-Mesh – Stand mit Kostüm 9 = ohne 9 Aufrufe (inkl. Schattenpass), Dreiecke ≈ 1,17×. Schatten wirft nur
+  der Umhang (die Haarschale unter der Mütze wirft fast dieselbe Silhouette). Klone (lite) tragen alles ohne Schattenwurf.
+- **Sichel in der Hand:** sichtbar, solange `sichelFlying` 0 ist und die Hand frei ist (Stand, Laufen, Springen, Saltos, Fallen,
+  Landen, Hocke, Rutschen, Stampfen, Wandsprung, Treffer, Jubel, Schlittschuh); beim Klettern, an Wand/Zaun/Gitter/Trapez, in
+  der Kanone, beim Schwimmen, Reiten (Angel), in der Röhre, als Statue und beim Tragen steckt sie weg. Der Motor erzeugt die
+  fliegende Sichel mit der Aktion – deshalb verschwindet sie sofort aus der Hand (die Wurf-Pose holt mit leerer Hand aus).
+  Im Fang-Schritt zählt `sichelFlying` die Sichel noch mit – der Wechsel von `sichelCatch` zeigt sie sofort. Verlorene Sichel
+  (nach 3,5 s) erscheint ohne Fang-Geste wieder (wächst kurz).
+- **Wurf-Pose** (`'throw'` mit Kostüm, Phase aus `throwTime`/`throwDur`): Seitarm-Wurf wie eine Frisbee (passt zur flach
+  kreiselnden Sichel): bis Phase 0,14 ausholen (nahe Hand seitlich hinten in Schulterhöhe, Rumpf zurückgedreht, ferne Hand
+  zeigt aufs Ziel), bis 0,34 fegt der Arm über die Seite nach vorn (Rumpf dreht mit, Mund auf), dann Ausschwingen quer vor den
+  Körper; im Stand Wurfstellung (ferner Fuß vor, Füße per Bein-IK am Boden), im Lauf/Sprung laufen die Beine weiter.
+  Greta zeigt beim Jubel kein Peace-Zeichen, sondern hält die Sichel hoch.
+- **Fang-Geste** (Wechsel von `sichelCatch`, 0,45 s): nahe Hand schnappt nach vorn und holt die Sichel heran, Augen „◡“, kleiner
+  Hüpfer im Stand, goldenes Funkeln (PuffFx, nur solange sichtbar, nicht bei Klonen), Sichel kreiselt in der Hand aus.
+- **Kombinationen:** Halloween – die Mütze ersetzt Hexenhut bzw. Katzenohren wie Krallen-Kapuze/Gleitblatt (Lotti: Kürbis-Bommel,
+  Greta: Katzenohren an der Mütze; Schnurrhaare und Katzenschwanz bleiben), Umhang-Futter orange. Trage-Helm: Mütze und Kamm
+  ruhen (Haar mit Schleife/Haarreif wie sonst). Pflaume-Ritt: Mütze und Umhang bleiben, Sichel steckt weg (Angel in der Hand).
+- **Test** `tests/kostuem_w7.mjs` (Vite-Entwicklungsserver, Port 4375 + PORT_BASE, Lavawerkstatt `0-26`; je Heldin
+  `KW7_HEROES=lotti` bzw. `greta` < 10 min; `KW7_PARTS=mech,close,ride`): echter Motor – Item aufnehmen, Wurf (Phasen), Flug,
+  Fang, Wurf im Lauf, Klone; Bank – Nahansichten, Posen, Wurf-Phasen, Fang, Verlust, Halloween, Helm, klein; Ritt mit Pflaume.
+  Bilder `tests/out/kostuem_w7_*.png`, Bögen `kostuem_w7_sheet_<heldin>_<gruppe>.png`; keine Konsolenfehler.
+
 ## Präzisierung (Gegner Welt 7)
 
 Ergänzung des Gegner-Agenten Welt 7 „Lava-Festung“ (Stand: Lava-Gegnerzoo `0-27`, Lava-Bossarenen `0-28`). Nichts oben

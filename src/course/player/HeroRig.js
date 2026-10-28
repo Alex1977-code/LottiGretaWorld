@@ -47,6 +47,9 @@
 //              'trapeze' (gleiche Handhöhe, Seilwinkel 0). proxy.course.hangGrid = Deckengitter ({ x0, x1, z0, z1, y }, sonst
 //              null) – der HeroAvatar hält die Griffe damit im Gitter (am Rand).
 //   Die Pilz-Maske ist ein Trage-Helm (player.helmet = 'maske'): Modell wie die anderen Helme am Kopf.
+//
+// Ergänzung (Präzisierung Figuren Welt 7): proxy.course.sichelFlying / sichelReady / sichelCatch = player.sichelFlying (0 =
+// Wurfsichel in der Hand) / sichelReady / sichelCatch (Zähler, Wechsel = Fang-Geste) für das Wurfsichel-Kostüm.
 
 import * as THREE from 'three';
 import { createAvatar } from '../../three/avatars/index.js';

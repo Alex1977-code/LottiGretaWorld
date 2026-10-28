@@ -12,7 +12,8 @@
 //            Wurf-Phasen, Fang), klein, Halloween (Kürbis-Bommel bzw. Katzenohren an der Mütze), Trage-Helm (Mütze ruht)
 //   ride     Pflaume-Ritt mit Kostüm (Umhang über Pflaumes Rücken, Sichel steckt weg, Angel in der Hand)
 // Bilder tests/out/kostuem_w7_*.png, Übersichtsbögen tests/out/kostuem_w7_sheet_<gruppe>.png. Keine Konsolenfehler.
-// Aufruf: PORT_BASE=0 node tests/kostuem_w7.mjs   (Port 4375 + PORT_BASE; KW7_SHOTS=0 ohne Bilder, KW7_DEBUG=1)
+// Aufruf: npm run build && PORT_BASE=0 KW7_HEROES=lotti node tests/kostuem_w7.mjs, dann KW7_HEROES=greta (je Heldin ≈ 9 min unter
+// Software-WebGL; Port 4375 + PORT_BASE; KW7_PARTS=mech|close|ride einzeln, KW7_SHOTS=0 ohne Bilder, KW7_DEBUG=1)
 import { createServer } from 'vite';
 import { readFileSync } from 'node:fs';
 import { launchBrowser, makeChecker, OUT } from './helpers.mjs';
@@ -343,8 +344,8 @@ async function closePart(hero) {
     ['rutschen', { state: 'slide', speed: 6 }, 30, 'side'],
     ['weitsprung', { state: 'longjump', grounded: false, vy: 1, speed: 9 }, 20, 'side'],
     ['stampfen', { state: 'groundpound', phase: 0.6, grounded: false, vy: -8 }, 12, 'side'],
-    ['schlittschuh', { state: 'skate', speed: 5 }, 40, 'back'],
     ['luftwurf', { state: 'throw', phase: 0.3, grounded: false, vy: 2, sichelFlying: 1 }, 6, 'back'],
+    ['schlittschuh', { state: 'skate', speed: 5 }, 40, 'back'],
   ];
   r.poses = {};
   for (const [name, cc, n, view] of list) {
