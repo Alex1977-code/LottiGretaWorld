@@ -978,6 +978,9 @@ function installZug() {
     // Reste früherer Ziele (z. B. ein nicht eingesammeltes 1-Up, das auf dem Zug bis zum Muschelkap fährt) entfernen,
     // damit nur die Gewinne des Automaten zählen
     for (const x of L.entities) if (x.kind === 'powerup' && x.alive && !x.removed) x.kill();
+    // Bitcoin-Konto des Spielstands leeren: Herz-Gewinn bringt auch Bitcoins, und je volle 100 im Konto gibt es ein
+    // weiteres Leben – nach Route/Messgang (vorherige Teilläufe) lag das Konto knapp unter 100
+    L.runtime.save.data.coins = 0;
     W.place([mk.pad[0], mk.pad[1] + 0.1, mk.pad[2]], { hero, settle: 10 });
     const out = {};
     L.runtime.coins = 4;
