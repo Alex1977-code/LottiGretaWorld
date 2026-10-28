@@ -150,20 +150,25 @@ export function buildGrosserSpiegel(level, spec) {
   const origCam = refl.getReflectionCamera.bind(refl);
   refl.getReflectionCamera = (cam) => { const rc = origCam(cam); rc.layers.mask = cam.layers.mask; rc.layers.enable(MIRROR_LAYER); return rc; };
   // Spiegel-Durchgang sparsam: alles, was weiter als reach m vom Spiegel entfernt ist oder ganz hinter der Spiegelebene liegt,
-  // zeichnet die Spiegelkamera nicht (Zeichenaufrufe); Instanz-Gruppen und Figuren-Bündel (Skinning) bleiben
+  // zeichnet die Spiegelkamera nicht (Zeichenaufrufe); Figuren mit Skinning und Instanz-Gruppen ohne Gesamtgrenze bleiben
   const reach = spec.reach ?? 24;
   const hidden = [];
   const cullFar = (scene) => {
     const cx = p.x, cy = p.y + h / 2, cz = p.z;
     scene.traverse((o) => {
-      if (!o.visible || o === refl || o.isInstancedMesh || o.isSkinnedMesh || !(o.isMesh || o.isPoints || o.isLine)) return;
+      if (!o.visible || o === refl || o.isSkinnedMesh || !(o.isMesh || o.isPoints || o.isLine || o.isSprite)) return;
+      // Instanz-Gruppen nur mit bekannter Gesamtgrenze (sonst bleiben sie)
+      if (o.isInstancedMesh && !o.boundingSphere) return;
       const g = o.geometry;
-      if (!g?.attributes?.position || o.frustumCulled === false) return;
-      if (!g.boundingSphere) g.computeBoundingSphere();
-      _s.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
+      if (!g?.attributes?.position) return;
+      if (o.isInstancedMesh) _s.copy(o.boundingSphere);
+      else { if (!g.boundingSphere) g.computeBoundingSphere(); _s.copy(g.boundingSphere); }
+      _s.applyMatrix4(o.matrixWorld);
+      // ohne Sichtbarkeitsprüfung (verformt sich im Shader, Sprites): großzügiger Rand
+      const slack = o.frustumCulled === false ? 3 : 0;
       const q = _s.center, d = Math.hypot(q.x - cx, q.y - cy, q.z - cz);
       const side = (q.x - cx) * dx + (q.z - cz) * dz;
-      if (d - _s.radius > reach || side < -_s.radius - 0.5) { o.visible = false; hidden.push(o); }
+      if (d - _s.radius - slack > reach || side < -_s.radius - slack - 0.5) { o.visible = false; hidden.push(o); }
     });
   };
   const origBefore = refl.onBeforeRender;
