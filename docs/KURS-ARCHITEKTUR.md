@@ -1483,6 +1483,91 @@ Gemessen (scale 2, `tests/course_map_hw.mjs`, mit den Halloween-Modellen): stati
 Hexenturm 65 / 194 k, Gruselschloss 68 / 183 k, Anflug 91 / 225 k (Modell-Kacheln fern ausgeblendet). Welt 1 mit der
 Halloween-Röhre höchstens 81 / 265 k (Startstrand vorher ≈ 72 / 240 k).
 
+### Präzisierung (Mehrwelten-Karte): Welt 6 „Wolkeninseln“ (Notiz)
+
+- Dateien: `worlds/w6.js` (Daten, `MAP.world = 6`, `kit: 'sky'`, Musik `course_world6_map`, Rückfall `course_map`), `sky6.js`
+  (Thema `map_sky`: Himmelsverlauf, Sonne, ferne Wolkenberge; Materialien `w6glass`/`w6rainbow`, Geländestile mit Inselflanken
+  und Unterseiten, Wolkenkragen, Ränder, Requisiten, Streudeko, Brücken-Segmente, Wolkenmeer `CloudSea`, Inselchen,
+  Nachbarwelt-Stile `'sky'`/`'lavafort'`, lebendige Kulisse `SkyLife`, Taktuhr `beatNow6`), `decor_w6.js` (Kulissen der
+  zwölf Welt-6-Eingänge, Stellvertreter `STAND_INS_W6`). Additiv angebunden: `MapBuilder.js` (`map.kit === 'sky'`: Gelände,
+  Segmente, Streudeko, Requisiten-Ketten, `SkyLife`; Registry-Requisiten der Karte in Kacheln je 16-m-Feld mit `lod`),
+  `scenery.js` (Wolkenmeer statt Meer/Schaum, tiefe Wolken ohne Schatten, Inselchen in einer Kachel, Nachbarwelt-Stile),
+  `entrances.js` (`decorateW6`), `props.js` (Podestfarben), `CourseMapScene.js` (s. u.), `MapBatcher.js` (`zones`),
+  `travel.js` (`departAlong`), `bake.js` (optionales `dt`). `worlds/w5.js` ist unverändert.
+- Inseln (begehbar, Höhe) und Eingänge (`kind`), alle über einem Wolkenmeer (`sea: 0`), nach Norden ansteigend:
+  A Ankunftsinsel y 10 mit Beerenhaus (−8, 10, 31.4) – `W5` Glasröhre zurück (−16, 10, 45; Röhre nach Südwesten zur
+  Lila-Insel am Horizont), `6-1` `pipehills` Bergland mit Glasröhren-Netz (12, 10, 36; Münzen sausen durch die Röhren,
+  Stachelkugeln, Warp-Box, Wolkenkanone mit Münzhimmel); S Steinkreis-Insel y 10.5 – `6-B` `stonecircle` (−45, 10.5, 24;
+  Menhire mit Runen, Feuerschalen, Gegnergruppe 5 × `feuer_werfer` mit `memberOpts` Feuer/Hammer/Bumerang, Ausgang
+  `exit` (−37.4, 10.5, 32)); B Geisterschiff-Bucht y 11 (Becken y 10.1) – `6-2` `ghostbay` (−6, 11, −4.6; schwankendes
+  Geisterschiff, Kreisgeister, Wrack); C Fernost-Insel y 12.5 – `6-3` `fareast` Fernost-Halle (−56, 12.5, −12, „ab 110 ★“;
+  zweistöckige Fantasie-Halle, Gong im Takt, Laternenbogen); D Dschungel-Insel y 12 um den lila Giftsee (y 11.2) – `6-4`
+  `junglelake` (43, 12, −9.5; Floß, Giftblasen, Klettergitter, Giftblüten); E Festungs-Insel y 12.5 – `6-A` `pipefort`
+  (75, 12.5, −22; Mauern mit Glasröhren, `cage`/`towers`/`gateAt`, Gegnergruppe 1 × `schubser_prinz`, Ausgang (67.4, 12.5,
+  −22)); F Schnee-Wolkenberg y 14 (Gipfel y 17.5; fünf der sieben Windräder) – `6-5` `snowwind` (40, 14, −66; Pustewolke, Eisteich
+  mit Glotzfisch, Iglu); G Himmelsfabrik y 15 mit Glückshaus (−20, 15, −73) – `6-6` `skyfactory` (−9, 15, −74; Zahnräder,
+  Förderband, Dampf, Kessel); H Haus-Insel y 15 – `6-Haus` `throwhouse` Prüfungs-Haus (−51, 15, −76; Wurfmaschine,
+  Zielscheibe); I Minen-Insel y 16 – `6-7` `minetower` (−15, 16, −117; Fördergerüst mit Seilrad und Aufzugkorb, Wuschel-
+  Horde); J Wolkenstraße y 16.5 – `6-Panzer` `tankroad` (36, 16.5, −117; Panzerkolonne, Riesen-?-Block-Türme, Zündköpfe);
+  K Zirkus-Gipfel y 20 (höchste Insel) – `6-C` `skycircus` Zirkuszelt (46, 20, −153, „ab 120 ★“; Würfelblase, Gelee-Brocken,
+  Seilbahn hinab zur Wolkenstraße); L Röhren-Insel y 20 – `W7` Glasröhre (80, 20, −157; nach Nordosten zur Lava-Festung am
+  Horizont). Zwölf Verbindungen (`segments`): Glasröhren (`glasstube`, begehbar wie Stege, Glasmantel mit Ringen und
+  Leuchtstreifen), Wolkenbrücken (`cloudbridge`), rote Bogenbrücke (`redbridge`), Regenbogenbrücke (`rainbowbridge`, J → K);
+  elf Schranken je 4 m.
+- Freischaltung laut „Welt 6 – Level-Liste und Freischaltung“: `6-1` und `6-B` frei, sobald Welt 6 offen ist; `6-2` nach 6-1;
+  `6-3` (≥ 110 ★) und `6-4` nach 6-2; `6-A` und `6-5` nach 6-4; `6-6` nach 6-5; `6-Haus` und `6-7` nach 6-6; `6-Panzer` nach
+  6-7; `6-C` (≥ 120 ★) nach 6-Panzer; `W7` (`{ id: 'W7', world: 7, next: 7 }`) nach 6-C. `starScope: 'all'`, 34 Sterne,
+  Stempel auf 6-1 … 6-7, 6-Panzer, 6-C. Schilder „ab 110 ★“, „ab 120 ★“, „Welt 6 / Wolkeninseln“.
+- Weltdaten zusätzlich (alles optional): Geländestile `meadow` (Standard)|`hill`|`stone`|`rock`|`bay`|`pool`|`poison`|
+  `fareast`|`jungle`|`fort`|`snow`|`snowpeak`|`metal`|`mine`|`cloud`|`circus`, je Block `under: { rect, depth, lite } | false`
+  (Inselunterseite: Felsringe, Tropfsteine, Ranken, Leuchtkristalle), `sideTo` (Flanke bis zum Nachbarblock); Ränder `edges:
+  { hedge: 'cloudhedge', fence: 'skyrail' }`, je Block `'quay'`|`'bamboo'`|`'rocks'`|`'snowbank'`. Requisiten `skytree`|
+  `flowerbed`|`mushroom`|`skylamp`|`bush6`|`barrels`|`blossom`|`stonelantern`|`bamboo`|`jungletree6`|`fern`|`fir`|`snowman`|
+  `icecrystal`|`snowdrift`|`crates6`|`gearpile`|`balloons6`|`drum6`. Lebendige Kulisse: `windmills: [[x, y, z, Höhe, yaw]]`,
+  `airships: [{ c, r, speed, color }]` (ein InstancedMesh), `waterfalls: [{ at: [x, z], w, top, face: 'S'|'E'|'W' }]` (ein
+  Mesh mit laufender Textur, Gischt), `rainbows: [{ c, r, yaw }]`, `cableways` (wie Welt 4), schwebende Felsbrocken
+  (`SkyLife`, 28, Kachel `w6:schwebesteine`), `birdStyle: 'gull'`. **Kacheln:** `batch.zones: [[x0, z0, x1, z1, name]]` –
+  Teile ohne benannte Kachel, deren Mitte in einer Zone liegt, kommen in die Kachel dieser Zone (je Insel ein Mesh je
+  Material/Schattenwurf statt vieler angeschnittener Rasterkacheln); außerhalb gilt das Raster (`tile`/`origin`).
+- **Windräder im Takt:** Die Flügel drehen je Zählzeit der Kartenmusik eine Achtelrunde weiter (`music.beat()`, Bewegung in
+  den ersten 40 % der Zählzeit; Türme statisch, Rotoren als Instanzen); der Gong der Fernost-Halle schlägt bei jedem
+  Taktanfang. Ohne laufende Musik zählt eine Ersatzuhr (Kartenzeit, `source: 'zeit'`) im Tempo von `course_world6_map`
+  (fehlt das Thema: `course_map`). Test-Schnittstelle (additiv): `state().decor` = Vereinigung von `ev.liveInfo()` aller
+  Eingänge und `built.life.liveInfo()` – `windmills { beat, step, moving, angle, source, theme, bpm, n, shown }`,
+  `airships { n }`, `waterfalls { n }`, `floaters { n }`, `ship { roll, ghosts }`, `gong { strikes, bar, beat, source, theme }`,
+  `raft { x, z }`, `pitch { throws }`, `mine { cage, wuschel }`, `w6models` (benutzte Registry-Modelle), `w6heavy` (zu
+  schwere: Name → Dreiecke); `built.life.windInfo(t)`.
+- Registry-Modelle (Obergrenze je Einsatz, `beach5.modelTris`; unbewegte in eine kompakte Kachel je Eingang `w6:<Id>` mit
+  `lod: true`, bewegte als eigene Objekte; fehlt ein Modell, zeichnet `decor_w6.js` eigene Geometrie an gleicher Stelle):
+  Welt 6 – `geisterschiff` (schwankt, Segel im Wind), `geisterschiff_wrack` (Bug, Mast), `gong` (`ring` mit progress aus der
+  Taktuhr), `pilz_maske` (`mode: 'kopf'` am Obergeschoss der Halle), `giftbluete`, `riesenblatt`, `klettergitter`, `zahnrad`
+  (vier, gegenläufig), `foerderband` (Band läuft mit den Kisten), `kessel`, `schacht_geruest` (12 m), `wuschel_horde`,
+  `riesen_frageblock` (`grow: 1`, eingebacken mit `dt`), `pustewolke` (holt Luft/pustet), `glotzfisch` (Eisloch),
+  `wuerfelblase` (hüpft), `createInstanced('gelee_brocken')`, `schubser_prinz` (Gegnergruppe 6-A, `anims: { walk: 'charge' }`),
+  `kirschbaum` (Requisite `blossom`); vorhandene: `warp_box`, `cloud_cannon`, `schlittschuhe`, `iglu`, `kanone_turm`, `lore`,
+  `panzer_fahrzeug`, `zirkuszelt`, `powerup_spiegel`, `feuer_werfer`, `seilbahn_gondel`. Bewusst eigene Geometrie (auf der
+  Karte zu schwer bzw. zu zahlreich): `stachelkugel` (≈ 6,9 k je Kugel × 4), `wurfball` (≈ 6,7 k), `rankenschnapper` (≈ 8,5 k),
+  `zuendkopf` (≈ 11 k), `feuer_schnappblume` (≈ 5,5 k, gleich an der Ankunftsinsel), Glasröhren (`glasroehre_teil` – die
+  begehbaren Röhren-Brücken sind eigene Segmente), Papierlaternen, Fernost-Dächer.
+- Gemeinsame Teile (additiv): `CourseMapScene.roamersOf(id)` (mehrere Gegnergruppen je Welt), Gegnergruppen-Feld
+  `memberOpts: [opts, …]` (Modell-Optionen je Mitglied, reihum), Stellvertreter aus `STAND_INS_W6`; `travel.js` Eingangsfeld
+  `departAlong: true` (Abfahrt in Richtung der ersten 24 m der Röhrenbahn statt geradeaus – Rückweg-Röhre `W5`).
+- Übergänge: Die Welt-5-Röhre `W6` und ein Welt-Warp nach Welt 6 führen ohne Codeänderung nach Welt 6 (Ankunft an `W5`,
+  Kamera `arriveCam`); die Aussage „Welt 6 kommt bald!“ der Welt-5-Notiz ist damit überholt. Zurück durch `W5` landet man an
+  der Röhre `W6` in Welt 5 (entdeckt, Schranke 5-Burg von hinten passierbar). Die Röhre `W7` zeigt „Welt 7 kommt bald!“;
+  ein Welt-Warp nach Welt 7 endet über den vorhandenen Rückfall an dieser Röhre. `tests/course_map_w5.mjs` Abschnitt 9
+  prüft jetzt die Ankunft in Welt 6, `tests/course_map_hw.mjs` die Weltenliste 1–6, 31.
+- Test: `tests/course_map_w6.mjs` (Port 4270, Bilder `tests/out/cmap6_*.png`), Teilläufe `W6_TEIL=1|2|3|4` (Abschnitte
+  2–4, 5–7, 8–10, 11–14, je mit den Node-Prüfungen; gemessen ≈ 3,8 / 3,5 / 2,6 / 4,3 min). Noch nicht in `npm test`.
+
+Gemessen (scale 2, `tests/course_map_w6.mjs`, mit den Welt-6-Modellen): statische Kulisse Welt 6 51 Kachel-Meshes, ≈ 276 k
+Dreiecke, ≈ 310 Kollisionsformen; je Ansicht (Zeichenaufrufe inkl. Schattenpass / Dreiecke) Ankunft durch die Glasröhre
+82–103 / 241–247 k, Start 85 / 213 k, Steinkreis 86 / 239 k, Bucht 92–95 / 241–254 k, Fernost 79 / 197 k, Dschungel
+86 / 229 k, Festung 71 / 188 k, Schnee/Windräder 75–92 / 224–242 k, Fabrik 78 / 230 k, Glückshaus 95 / 222 k, Haus 58 /
+158 k, Mine 62 / 196 k, Wolkenstraße 72 / 236 k, Zirkus 77–83 / 177–183 k, Röhren-Insel 53–63 / 138–141 k, Anflug 109 /
+279 k (Höchstwert; Modell-Kacheln fern ausgeblendet). Welt 5 an der Röhre nach Welt 6 und bei der Rückkehr höchstens
+53 / 116 k.
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
@@ -5528,3 +5613,118 @@ Zielmast; Tod setzt jeden Kampf zurück · Teil 4 Bilder `tests/out/w6e_*.png` u
 (≤ 169 k, Thema fortress); Simulation im Zoo (≈ 44 Entitäten) 0,09–0,34 ms je Schritt. Regressionen `course_enemies`,
 `course_w5_enemies` (1–3), `course_hw_enemies` (1–3), `course_w2_enemies`, `course_w1_combat`, `course_physics`,
 `course_w6_blocks` (mech) bestanden.
+
+## Präzisierung (Level 6-1, 6-B und 6-2)
+
+Additiv zur Welt-6-Liste: Titel und Besonderheiten der Level 6-1, 6-B und 6-2. Dateien `src/course/levels/w6/6-1.js`,
+`6-B.js`, `6-2.js`, eigene Hilfen `src/course/levels/w6/_helpers_a.js` (kein `LEVEL`, nur für diese drei Level; nutzt
+`Bld`, `cliffSkirt`, `savannaFloor` u. a. aus `w5/_helpers_b.js`, `leuchtturm`/`brandung` aus `w5/_helpers_a.js`,
+`moewen` aus `w3/_helpers_d.js`), Test `tests/course_w6a.mjs`. Kein Motor-Code geändert; alle Sonderteile sind
+level-lokal (Hilfsdatei, Haken `LEVEL.build`/`LEVEL.setup`). Gegner nach „Präzisierung (Gegner Welt 6)“.
+
+### 6-1 „Röhrenreise über die Wolkengipfel“ (parcours · clearpipe · course_clearpipe · 400 s)
+
+- Grüne Berggipfel über dem Wolkenmeer, ≈ 240 m nach −Z, stufenweise hinauf (y 1 → 7 → 11,5 → 16 → 20,5 → 15 → 24).
+  Abschnitte: **Startgipfel** (Almwiese mit Hütte, Kühen, Murmeltieren; ein 7,5 m hoher Felsgrat quert den Gipfel – nur
+  das Glasröhren-Netz führt hinüber, Kreuzung über dem Grat mit **Weiche**: ohne Stick rechts zum Hauptweg, Stick links
+  zum Glasgang) → **Hinterwiese** (Feuer-Schnappblumen, querrollende Stachelkugeln, Glasgang, Warp-Box) →
+  **Gegnerstrecke** (Gratweg mit Seilzaun, Schnappblumen und Stachelkugeln; gerade **Wuschel-Röhre** über die Kluft, drei
+  Wuschel kreisen um sie; Checkpoint) → **Röhrensteigung** (Röhrenbogen, Röhren mit Weiche, Steigröhre über drei
+  Terrassen, Wuschel-Kreise, versteckte Wolkenkanone in den **Münzhimmel** bei x ≈ −46, y ≈ 42 mit eigener
+  Kameraschiene, Röhre zurück; Warp-Box 2) → **Schnappblumen-Feld** (Blumengarten, fünf Schlüsselmünzen öffnen die
+  versteckte Warp-Box 3) → **Zielgipfel** (Steinmann, Rastbank, Fernrohr, Picknickdecke, Regenbogen, Zielmast).
+- Sterne: 0 hinten im **Glasgang** (lange Glasröhre mit drei großen Stachelkugeln; nur mit dem Funkelstern aus dem
+  ?-Block davor – mit Treffer-Blinken kommt man nicht durch) · 1 oben auf der Wuschel-Röhre (hinaufklettern, zwischen den
+  kreisenden Wuscheln; beim Durchfahren nicht erreichbar) · 2 Münzhimmel (Wolkenkanone, Wolkenkette). Stempel: über dem
+  Röhrenbogen (von Terrasse 2 auf den Bogen, dann Sprung; von der Terrasse aus zu hoch).
+- Wuschel-Kreise und Kugelreihen liegen neben bzw. hinter den Röhrenausgängen (wer aus einer Röhre kommt, hat erst
+  Platz); die Kugelreihe vor der Warp-Box 2 lässt links den Ausgang der Münzhimmel-Röhre frei.
+- Extraleben: versteckter Block vor der Tür der Almhütte. Gegner: Stachelkugel 19, Wuschel 28, Schnappblume 17,
+  Feuer-Schnappblume 4; Schlüsselmünzen 5, Warp-Boxen 6 (3 Paare).
+- Budget: Stachelkugeln (≈ 5700 Dreiecke je Stück, im Schattenpass doppelt) werfen nur im Umkreis von 11 m einen
+  Sonnenschatten (`schattenNah`, Haken in `setup`); Gipfelflanken (`gipfel`/`grat`) ohne Schattenwurf; Münzen
+  `instances.coin { farHide: 44, shadow: false }`. Der Felsgrat (`isl` mit `xray`) trägt eine eigene gebänderte Felswand
+  mit Moospolstern (`felswand`, ebenfalls bei `view.xray` angemeldet – wird mit dem Block durchscheinend).
+
+### 6-B „Werfer-Wirbel im Steinkreis“ (arena · stonecircle · course_arena · 100 s, 1 Stern)
+
+- Runde Schwebeinsel (R 11,6 m, `wolkeninsel` mit Zylinder-Kollision) über dem Wolkenmeer; innerer Steinkreis aus
+  bemoosten Menhiren (hinten und seitlich, vorn frei für die Kamera) und drei **Trilithen** (Deckstein 2,8 m, Einweg von
+  unten). Feuer-Werfer hinten, je ein Hammer-Werfer links/rechts springen zwischen Boden und Deckstein (`heights`), zwei
+  Bumerang-Werfer vorn auf der Wiese. Flacher **Altarstein** in der Mitte (dort erscheint der Stern), Werferlager,
+  Fackeln, Wimpel, Blumen, Grasbüschel, Murmeltiere, Vogelschwarm, Wolkenkragen.
+- ?-Block mit Funkenblüte und Münzblock vorn. Tod setzt die Arena zurück (alle fünf Werfer neu, Zeit voll).
+
+### 6-2 „Schaukelschiffe im Nebelmeer“ (parcours · wreck · course_wreck · 400 s)
+
+- Abendrot über dem Nebelmeer (Absturz bei y −1,6), ≈ 180 m nach −Z. Abschnitte: **Anleger** (Laternenpfähle, Wimpel,
+  Rettungsringe, bunte Fischkisten) → **Kippschiff 1** (mit Reling; Walzenwerfer auf dem Felsen daneben rollt Walzen
+  übers Deck) → 1 m breiter **Kippsteg** → **Kippschiff 2** ohne Reling mit großem **Schubser** (bewacht seinen Platz,
+  `guard`) → **Wrackfelsen** mit Warp-Box in den **Laderaum** (abseits bei x ≈ 100, y 4, Stimmung `laderaum`: Kreisgeist-Ring
+  über einem Loch im Boden, gefluteter Mittelteil mit zwei Spuken und Münzen am Grund, zweiter Kreisgeist-Ring unter dem
+  Querbalken, Schatzhaufen, Frachtnetze; Warp-Box hinaus) → **Checkpoint-Anleger** → drei **Kippbrücken** (1,4 / 1,2 /
+  1 m) zwischen Pfahlinseln → **letztes Schiff** (20 × 8 m, drei Masten, ohne Reling) mit zwei Schubsern – beide ins
+  Meer stoßen (`task` mit `reward: { reveal }`) → versteckte Warp-Box auf dem Bugfelsen → **Zielinsel** mit Leuchtturm.
+- Sterne: 0 Stern-Schubser von Kippschiff 2 ins Meer stoßen (`task` mit `star`; Draufspringen federt nur) · 1 im Loch
+  unter dem ersten Kreisgeist-Ring (durch die Lücke hinab, über Kisten wieder hinauf) · 2 über der letzten Kippbrücke
+  (hochspringen). Stempel: im Laderaum über die Kisten auf den Querbalken über dem zweiten Ring (vom Boden aus versperrt
+  der Balken).
+- Extraleben: versteckter Block auf dem Wrackfelsen, Schatztruhe (`chest`) im Laderaum. Gegner: Schubser 3,
+  Walzenwerfer 1, Kreisgeist-Kreis 2 (16 Glieder), Spuk 2.
+- Kulisse: Felsnadeln mit Schaumkranz, Schaumsäume um alle Inseln (`brandung`), schaukelnde Bojen und Treibgut,
+  Nebelschwaden, Irrlichter, Möwen, Deko-Geisterschiff und Wrackbug. Der Laderaum hat nur hinten einen Querbalken oben
+  (vorn verdeckte er die Figur).
+
+### Hilfen `_helpers_a.js`
+
+Berg: `gipfel`, `grat`, `felswand`, `bergwiese`, `grasbueschel`, `steinpfad`, `trockenmauer`, `felsnasen`, `wasserfall`,
+`almhuette`, `kuehe`, `murmeltiere`, `seilzaun`, `blumengarten`, `gipfelglueck`, `picknick`, `gipfelfahnen`,
+`wimpelkette`, `vogelschwarm`, `wolkenkranz`, `seilbahn`, `glasgang` (Glasröhre als begehbarer Gang mit Decke,
+`camIgnore`), `lochinsel`, `schattenNah` · Steinkreis: `wolkeninsel`, `steinkreis`, `werferlager`, `altarstein` ·
+Schiffe: `holzsteg`, `kisten`, `laderaum`, `geisterlaternen`, `laternenpfaehle`, `hafenkram`, `bojen`, `nebelschwaden`,
+`irrlichter`, `treibgut`, `felsnadeln`, `schatzhaufen`, `frachtnetze`.
+
+### Test `tests/course_w6a.mjs`
+
+Port 4640 (+ `PORT_BASE`), Aufruf `node tests/course_w6a.mjs [6-1|6-B|6-2]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,arena,shots` (je Lauf < 10 min; der Messgang `sweep` folgt der Spur von `route`),
+`HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`, `TRACE=1`, `SHOTS=<Name|…>`, `DETAIL=1`, Bilder `tests/out/w6a_*.png`.
+Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier); Beine u. a. `pipe` (in eine
+Glasröhren-Öffnung laufen, Stick während der Fahrt – Weiche), `warp` (Warp-Box/Kanone), `clear` (Stachelkugeln abwarten),
+`star` (Funkelstern), `push` (Schubser: anlaufen, seinen Stößen ausweichen, Stampfattacke, zur Schiffsmitte
+zurück), `ringGap` (Lücke im Kreisgeist-Ring vorausberechnen), `stompAll`, `chaseKind`, `hop`, `crouch`. Geprüft: Laden
+ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel **ohne einen Treffer-Versuch**
+(6-1 ≈ 66/59 s mit fünf Schlüsselmünzen, drei Warp-Boxen, sechs Röhrenfahrten, Lücken in Kugelreihen und im
+Wuschel-Kreis um Schlüssel 3 abgewartet – Bein `gap`; 6-2 ≈ 51/42 s, drei Schubser ins Meer); alle Sterne und
+Stempel mit Gegenproben (Glasgang ohne Funkelstern tödlich, Stern 1 nicht beim Durchfahren, Stempel nicht von der
+Terrasse, Stern-Schubser nicht durch Draufspringen, Stern 2 nicht ohne Sprung, Stempel nicht vom Boden); Extras (Weiche
+links, versteckte Warp-Boxen, drei Extraleben); 6-B: Werfen und Springen der Werfer, Kampf beider Figuren (≈ 16 s),
+Tod setzt zurück, Funkenblüte, Zeitlimit 100 s. Gemessen (scale 2, inkl. Schattenpass): 6-1 30–98 Zeichenaufrufe /
+≤ 279 k Dreiecke (Glasgang) · 6-B 74 / 186 k · 6-2 32–75 / ≤ 202 k.
+
+## Welt 7 – Level-Liste und Freischaltung (Hauptsitzung)
+
+Welt 7 „Lava-Festung“ wird nach Sieg über `6-C` frei (Glasröhre `W7` auf der Welt-6-Karte, bisher „Welt 7 kommt
+bald!“). Sternbedarf zählt **alle** gesammelten Sterne (Welt 1–6: 174, dazu die Halloween-Welt). Die drei Arenen liegen
+als Nebenwege am Rand der Insel.
+
+| Id | Archetyp | Thema | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `7-1` | parcours (Werfer-Festung: blaue Lava, Glasröhren-Netz mit H-Röhre, Feuerstäbe, Pilzlingstürme, Stampfsteine, Marschblöcke) | bluelava | course_fortfire | 3 + Stempel | Welt 7 offen |
+| `7-2` | parcours (dunkler unterirdischer Tempel: Kipp-Schaltfelder machen den Weg sichtbar, Stachelpanzer, Fackeln mit Funkenblüte) | darkruins | course_switchruins | 3 + Stempel | 7-1 |
+| `7-A` | arena (große Felsfläche in Lava, Lavabrocken, heller Lavafelsen-König mit Platschfischen, 200 s) | lava | course_arena | 1 | 7-1 |
+| `7-3` | parcours Sprint (100 s, ≈ 450 m, Boost-Pfeile, Donut-Blöcke, Stachelwalzen, Dreifach-Gabelung) | lavarun | course_redhot | 3 + Stempel | 7-2 |
+| `7-4` | parcours (blaue Lava: auftauchende Pfeilplattformen, Zylinder, rotierende Stachelwalzen, Pendelstacheln, Schubser, Knochenflieger) | bluelava | course_bluebelt | 3 + Stempel | 7-2 |
+| `7-B` | arena (Käfig mit Glasröhren, blauer Schubser-Prinz mit 3 blauen Feuerbällen in einer Kurve) | fortress | course_arena | 1 | 7-4 |
+| `7-5` | parcours vertikal (Turm in Lava: Stampfsteine, Knochenflieger, Seilbahn, Funkenflämmchen, 5 Schlüsselmünzen, Flucht vor Giftnebel und steigender Lava) | lavatower | course_traptower | 3 + Stempel | 7-4 |
+| `7-Kapitän` | diorama (Maschinen-Diorama in Lava: Förderbänder, Stampfsteine als Trittstufen, Projektilköpfe) | lavamachine | course_diorama | 5 | 7-5 |
+| `7-6` | parcours unterwasser (Rammfisch-Riff, zerbrechliche Kisten, Vulkaninsel mit Wutkaulquappen, große rotierende Rammfische) | reef | course_rammreef | 3 + Stempel | 7-5 |
+| `7-C` | arena (Raum mit erhöhtem hinterem Teil, 7 Feuer-Werfer, 100 s) | fortress | course_arena | 1 | 7-6 |
+| `7-7` | parcours (Vulkan-Lavasee mit steigender/sinkender Lava, Fontänenfeld mit Gitterboden, Platschfische, Lavadrachen) | volcano | course_volcano | 3 + Stempel | 7-6 |
+| `7-Burg` | parcours + boss (Lava-Burg: Lavablasen, Bumerang-Werfer mit Wurfsichel, Zugbrücke per Kickbombe/P-Schalter, Klappstampfer; Boss **Baron Brummbär im Kampfwagen** auf einer Straße mit Stachelfallen und Lavalücken, 9 Treffer) | lavacastle | course_keep | 3 + Stempel | 7-7 **und ≥ 150 Sterne** |
+
+Welt 7 hat 32 Sterne. Neu: Power-up **Wurfsichel** (Bumerang, sammelt Münzen ein), Feuerstab, Lavablase, auftauchende
+Pfeilplattformen, Zylinder, rotierende Stachelwalzen, Pendelstachel, steigende/sinkende Lava, Lava-Fontänen, Gitterboden,
+Giftnebel-Flucht, Klappstampfer; Gegner Knochenflieger, Platschfisch, Lavadrache, Wutkaulquappe, Funkenflämmchen,
+Stachelpanzer (vorhanden prüfen); Varianten heller Lavafelsen-König, blauer Schubser-Prinz; Boss Baron Brummbär im
+Kampfwagen (wirft Kickbomben – zurückkicken –, spuckt Feuer; Wurfsichel macht Zusatzschaden).

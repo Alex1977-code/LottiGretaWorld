@@ -80,6 +80,13 @@ export class TubeTravel {
     this.phase = this.mode === 'depart' ? 'hop' : 'ride';
     this.done = false;
     this.dir = new THREE.Vector3(0, 0, -1);     // Fahrtrichtung (für die Kamera)
+    // def.departAlong (Welt 6): bei der Abfahrt blickt die Verfolger-Kamera gleich entlang der Röhre hinaus (statt erst
+    // nach Norden über die ganze Inselkette – weniger Zeichenaufrufe im ersten Moment)
+    if (this.mode === 'depart' && this.def.departAlong) {
+      pointAt(this.track, 0, _a); pointAt(this.track, 24, _b);
+      _b.sub(_a); _b.y *= 0.35;
+      if (_b.lengthSq() > 1e-6) this.dir.copy(_b.normalize());
+    }
     this.center = new THREE.Vector3();
     this.camPos = null;
     this.camLook = new THREE.Vector3();

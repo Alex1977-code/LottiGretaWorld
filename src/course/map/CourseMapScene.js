@@ -27,6 +27,9 @@
 // Sonderwelt Halloween (Präzisierung Mehrwelten-Karte, Halloween-Notiz): Welt 31 mit Level-Präfix 'H' (MAP.prefix) –
 // worldOfLevel bildet „H-1“ über die Weltdaten auf Welt 31 ab; MAP.alwaysOpen (immer offen), MAP.worldLabel ersetzt
 // „Welt n“ in HUD/Schild, MAP.travelToast die Meldung der Röhrenfahrt; Regel-Feld sign = eigene Schild-Aufschrift.
+// Welt 6 (Präzisierung Mehrwelten-Karte, Welt-6-Notiz): Gegnergruppen mit memberOpts (Modell-Optionen je Mitglied, z. B.
+// Feuer-/Hammer-/Bumerang-Werfer), Stellvertreter STAND_INS_W6; Beschriftung/Nähe einer Gruppe nur über ihre eigenen
+// Mitglieder; state().decor enthält zusätzlich die lebendige Kulisse der Karte (built.life.liveInfo(), Windräder …).
 
 import Phaser from 'phaser';
 import * as THREE from 'three';
@@ -53,6 +56,7 @@ import { TubeTravel } from './travel.js';
 import { MapLod, pauseShadows } from './lod.js';
 import { THEMES as MUSIC_THEMES } from '../../audio/themes.js';
 import { STAND_INS } from './decor_w4.js';
+import { STAND_INS_W6 } from './decor_w6.js';
 import { setOutfit, clearOutfit, outfitForMap } from '../../three/lib/outfit.js';
 
 export const DT = 1 / 120;
@@ -442,10 +446,11 @@ export class CourseMapScene extends Phaser.Scene {
   /** Ankerpunkt der Beschriftung (über dem Podest bzw. über der wandernden Gruppe). */
   labelAnchor(id, out) {
     const st = this.status(id);
-    if (st?.roamer && this.roamers.length) {
+    const group = st?.roamer ? this.roamersOf(id) : null;
+    if (group?.length) {
       out.set(0, 0, 0);
-      for (const r of this.roamers) out.add(r.pos);
-      out.multiplyScalar(1 / this.roamers.length);
+      for (const r of group) out.add(r.pos);
+      out.multiplyScalar(1 / group.length);
       out.y += 2.9;
       return out;
     }
@@ -470,7 +475,11 @@ export class CourseMapScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ Kartenelemente
 
+  /** Mitglieder der Gegnergruppe des Eingangs id (mehrere Gruppen je Welt: jede für sich). */
+  roamersOf(id) { return this.roamers.filter((r) => r.spec?.level === id && !r.removed); }
+
   spawnRoamers() {
+    const standIns = { ...STAND_INS, ...STAND_INS_W6 };
     for (const r of this.map.roamers ?? []) {
       const st = this.status(r.level);
       if (!st || st.done) continue;
@@ -480,7 +489,8 @@ export class CourseMapScene extends Phaser.Scene {
         const spec = r.circle
           ? { ...r, start: (i + 0.5) / n, dir: 1 }
           : { ...r, start: n > 1 ? 0.15 + (0.7 * i) / (n - 1) : 0.5, dir: i % 2 ? -1 : 1 };
-        if (r.standIn && STAND_INS[r.standIn]) spec.makeStandIn = STAND_INS[r.standIn];   // Welt 4: Stellvertreter-Modell
+        if (r.standIn && standIns[r.standIn]) spec.makeStandIn = standIns[r.standIn];   // Welt 4/6: Stellvertreter-Modell
+        if (r.memberOpts?.length) spec.modelOpts = r.memberOpts[i % r.memberOpts.length];   // Welt 6: Optionen je Mitglied
         const e = new MapRoamer(this.level, spec, (ro) => this.onRoamerTouch(r.level, ro));
         addEntity(this.level, e);
         this.roamers.push(e);
@@ -650,7 +660,8 @@ export class CourseMapScene extends Phaser.Scene {
       if (ev.hidden) continue;   // noch nicht erschienen (def.appear)
       const st = this.status(id);
       let x = ev.pos.x, z = ev.pos.z;
-      if (st?.roamer && this.roamers.length) { x = 0; z = 0; for (const r of this.roamers) { x += r.pos.x; z += r.pos.z; } x /= this.roamers.length; z /= this.roamers.length; }
+      const group = st?.roamer ? this.roamersOf(id) : null;
+      if (group?.length) { x = 0; z = 0; for (const r of group) { x += r.pos.x; z += r.pos.z; } x /= group.length; z /= group.length; }
       const d = (p.pos.x - x) ** 2 + (p.pos.z - z) ** 2;
       if (d < bd && Math.abs(p.pos.y - ev.pos.y) < 3) { bd = d; best = { id }; }
     }
@@ -790,6 +801,7 @@ export class CourseMapScene extends Phaser.Scene {
   decorInfo() {
     const out = {};
     for (const ev of this.built?.entrances?.values() ?? []) if (ev.liveInfo) Object.assign(out, ev.liveInfo());
+    if (this.built?.life?.liveInfo) Object.assign(out, this.built.life.liveInfo());   // Welt 6: Windräder, Luftschiffchen …
     return out;
   }
 
