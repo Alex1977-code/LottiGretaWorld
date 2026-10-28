@@ -8,6 +8,7 @@
 //   4 (−68 … −82)     links Stachelwerfer (Kugeln prallen an der Gehegewand ab) · rechts Stachelwerfer oben an einer Rampe
 //   5 (−88 … −102)    Werfer-Brüder wie 6-B: links Hammer- und Bumerang-Werfer · rechts Feuer-, Hammer-, Bumerang-Werfer
 //   6 (−108 … −122)   links senkrechter Schacht mit Wolkenstufen und Wuschel-Horde von unten · rechts waagerechte Horde
+//                     (jagt nach +Z, zur Kamera)
 //   7 (−128 … −142)   Pilz-Maske: links Pilzling-Verfolger, Krallen-Pilzling, Spuk · rechts Schubser, Stachelwerfer,
 //                     Pustewolke, Hackbeil-Pilz (alle „sehenden“ Gegner)
 //   8 (−148 … −162)   Bestand für die Welt-6-Liste: Wuschel, Kreisgeist, Rankenschnapper, Brummer, Projektilkopf-Kanone,
@@ -107,7 +108,7 @@ export const LEVEL = {
     // ---- 6 Wuschel-Horden (Jagd beginnt beim Betreten des Geheges)
     { kind: 'wuschel_horde', id: 'horde_y', pos: [-11.5, -0.5, Z(6, 7)], axis: 'y', size: [14, 13], speed: 1.2, end: 13,
       trigger: { min: [-19, 0, Z(6, 14)], max: [-4, 20, Z(6, 0)] } },
-    { kind: 'wuschel_horde', id: 'horde_z', pos: [11.5, Y, Z(6, -2)], axis: '-z', size: [14, 3], speed: 2, end: Z(6, 13),
+    { kind: 'wuschel_horde', id: 'horde_z', pos: [11.5, Y, Z(6, 15)], axis: 'z', size: [14, 3], speed: 2, end: Z(6, 1),
       trigger: { min: [4, 0, Z(6, 14)], max: [19, 6, Z(6, 0)] }, count: 40 },
     // ---- 7 Pilz-Maske: sehende Gegner
     { kind: 'pilzling', id: 'pm_pilz', pos: at(-14, 7, 7), behavior: 'chase', sight: 7, speed: 0.001 },

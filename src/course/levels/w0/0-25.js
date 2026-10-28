@@ -61,9 +61,9 @@ export const LEVEL = {
   segments: [
     // ---- A: Festungsplattform mit Käfig und Glasröhren
     { type: 'island', pos: [0, -1, -2], size: [44, Y + 1, 44], top: 'stone', under: 3 },
-    { type: 'wall', pos: [-W - 0.3, Y, 0], size: [0.6, 4.2, 2 * W + 1.2], style: 0xd9c9e8 },
-    { type: 'wall', pos: [W + 0.3, Y, 0], size: [0.6, 4.2, 2 * W + 1.2], style: 0xd9c9e8 },
-    { type: 'wall', pos: [0, Y, -W - 0.3], size: [2 * W + 1.2, 4.2, 0.6], style: 0xd9c9e8 },
+    { type: 'wall', pos: [-W - 0.3, Y, 0], size: [0.6, 3.2, 2 * W + 1.2], style: 0xd9c9e8 },
+    { type: 'wall', pos: [W + 0.3, Y, 0], size: [0.6, 3.2, 2 * W + 1.2], style: 0xd9c9e8 },
+    { type: 'wall', pos: [0, Y, -W - 0.3], size: [2 * W + 1.2, 3.2, 0.6], style: 0xd9c9e8 },
     { type: 'wall', pos: [-(W + 2.4) / 2 - 0.3, Y, W + 0.3], size: [W - 1.8, 1.0, 0.6], style: 0xd9c9e8, camIgnore: true },
     { type: 'wall', pos: [(W + 2.4) / 2 + 0.3, Y, W + 0.3], size: [W - 1.8, 1.0, 0.6], style: 0xd9c9e8, camIgnore: true },
     { type: 'glasnetz', id: 'roehren', radius: 1, nodes: NODES, pipes: PIPES, ends: ENDS },
@@ -105,9 +105,9 @@ export const LEVEL = {
     const W2 = W + 0.6;
     level.world.add({ type: 'box', min: [-W2, Y + 1, W], max: [-2.4, Y + 6, W2], camIgnore: true, tag: 'kaefig-vorn' });
     level.world.add({ type: 'box', min: [2.4, Y + 1, W], max: [W2, Y + 6, W2], camIgnore: true, tag: 'kaefig-vorn' });
-    level.world.add({ type: 'box', min: [-W2, Y + 4.2, -W2], max: [-W, Y + 6, W2], camIgnore: true, tag: 'kaefig-wand' });
-    level.world.add({ type: 'box', min: [W, Y + 4.2, -W2], max: [W2, Y + 6, W2], camIgnore: true, tag: 'kaefig-wand' });
-    level.world.add({ type: 'box', min: [-W2, Y + 4.2, -W2], max: [W2, Y + 6, -W], camIgnore: true, tag: 'kaefig-wand' });
+    level.world.add({ type: 'box', min: [-W2, Y + 3.2, -W2], max: [-W, Y + 6, W2], camIgnore: true, tag: 'kaefig-wand' });
+    level.world.add({ type: 'box', min: [W, Y + 3.2, -W2], max: [W2, Y + 6, W2], camIgnore: true, tag: 'kaefig-wand' });
+    level.world.add({ type: 'box', min: [-W2, Y + 3.2, -W2], max: [W2, Y + 6, -W], camIgnore: true, tag: 'kaefig-wand' });
     level.world.add({ type: 'box', min: [-W2, Y + 6, -W2], max: [W2, Y + 6.4, W2], camIgnore: true, tag: 'kaefig-decke' });
   },
 };

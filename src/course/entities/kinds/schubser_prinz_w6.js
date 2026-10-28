@@ -94,7 +94,7 @@ class SchubserPrinz extends EnemyW2 {
     this.dizzy = null;
     if (level.view) {
       this.setModel(getModel('schubser_prinz'));
-      this.dizzy = dizzyStars(0.65, 0.15);
+      this.dizzy = dizzyStars(0.8, 0.2);
       level.view.add(this.dizzy);
     }
     this.initShadows(3);
@@ -635,7 +635,7 @@ class SchubserPrinz extends EnemyW2 {
     const d = this.dizzy;
     if (d) {
       d.visible = this.state === 'stunned' && this.visible;
-      if (d.visible) { d.position.set(this.pos.x, this.pos.y + 2.45, this.pos.z); d.rotation.y += dt * 3.5; }
+      if (d.visible) { d.position.set(this.pos.x, this.pos.y + 2.95, this.pos.z); d.rotation.y += dt * 3.5; }
     }
   }
 

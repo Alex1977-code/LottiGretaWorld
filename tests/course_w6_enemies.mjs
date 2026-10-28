@@ -525,7 +525,7 @@ const wh = await sc(() => {
   for (let i = 0; i < 2400 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1);
   c.step(2);
   out.reset = { front: t.r2(h.front), resets: h.resets, state: h.state };
-  // waagerechte Horde: jagt nach −z, Rückstoß in Jagdrichtung
+  // waagerechte Horde: jagt nach +z (zur Kamera), Rückstoß in Jagdrichtung
   const z = t.ent('horde_z');
   const zf = [11.5, 1, t.Z(6, 7)];
   t.place(zf, { settle: 1 });
@@ -539,7 +539,7 @@ console.log(`  Wuschel-Horde: ${JSON.stringify(wh)}`);
 check(`Wuschel-Horde wartet bis zum Betreten (${wh.wait}), steigt dann (${wh.bite.y0} → ${wh.bite.front} m in ${wh.bite.t} s) und verletzt (Rückstoß nach oben ${wh.bite.vy} m/s)`, wh.wait === 'wait' && wh.bite.state === 'run' && wh.bite.hits >= 1 && wh.bite.hurt && wh.bite.t > 0.8 && wh.bite.t < 2 && wh.bite.vy > 5);
 check(`Oben auf der Wolkenstufe sicher, bis die Front die Füße erreicht (Treffer bei Front ${wh.top.firstHit} m, Füße ${wh.top.feet} m)`, wh.top.firstHit > 10.5 && wh.top.firstHit <= 11.3);
 check(`Tod → Neustart: die Front springt zurück (${wh.reset.front} m, ${wh.reset.resets}×)`, wh.reset.resets >= 1 && wh.reset.front < 0);
-check(`Waagerechte Horde jagt nach −z und verletzt (nach ${wh.flat.t} s, Front z ${wh.flat.front}, Rückstoß vz ${wh.flat.vz})`, wh.flat.hits >= 1 && wh.flat.t > 2 && wh.flat.vz < -2);
+check(`Waagerechte Horde jagt nach +z und verletzt (nach ${wh.flat.t} s, Front z ${wh.flat.front}, Rückstoß vz ${wh.flat.vz})`, wh.flat.hits >= 1 && wh.flat.t > 2 && wh.flat.vz > 2);
 
 const pm = await sc(() => {
   const c = window.__course, t = window.__t, p = c.player, L = c.level;
@@ -965,9 +965,9 @@ console.log('Teil 4: Bilder');
 const S = {};
 S.schubser = await SHOT('w6e', 'schubser_rammt', () => {
   const c = window.__course, t = window.__t, p = c.player, s = t.ent('sb_lava');
-  const fig = [-11.5, 2.5, -16.8];
+  const fig = [-11.2, 2.5, -11.9];
   t.place(fig, { settle: 1 });
-  t.until(() => s.state === 'charge' && s.stateT > 0.15, 600, fig);
+  t.until(() => s.state === 'charge' && s.stateT > 0.12, 600, fig);
   t.face(s.pos.x, s.pos.z);
 });
 S.gestossen = await SHOT('w6e', 'schubser_gestossen', () => {
@@ -1031,9 +1031,9 @@ S.horde = await SHOT('w6e', 'wuschel_horde_schacht', () => {
 });
 S.horde2 = await SHOT('w6e', 'wuschel_horde_jagd', () => {
   const c = window.__course, t = window.__t, h = t.ent('horde_z');
-  const fig = [11.5, 1, t.Z(6, 9)];
-  t.until(() => h.state === 'run' && h.front * -1 < t.Z(6, 3.5) + 0.1, 1500, fig);
-  t.face(11.5, t.Z(6, 0));
+  const fig = [11.5, 1, t.Z(6, 2.5)];
+  t.until(() => h.state === 'run' && h.front > t.Z(6, 7), 1500, fig);
+  t.face(11.5, t.Z(6, 14));
 });
 S.maske = await SHOT('w6e', 'pilz_maske', () => {
   const c = window.__course, t = window.__t, pil = t.ent('pm_pilz');
@@ -1083,8 +1083,8 @@ B.steckt = await SHOT('w6e', 'prinz_steckt', () => {
 B.roehre = await SHOT('w6e', 'prinz_in_der_roehre', () => {
   const c = window.__course, t = window.__t, b = t.ent('prinz');
   b.onHit('claw', { pos: { x: -3, y: 2, z: 0 } });
-  t.until(() => b.state === 'pipe' && b.stateT > b.trip.T * 0.45, 400, [0, 2, -4]);
-  t.face(0, -14);
+  t.until(() => b.state === 'pipe' && b.stateT > b.trip.T * 0.16, 400, [-7, 2, 3]);
+  t.face(-12, -6);
 });
 B.benommen = await SHOT('w6e', 'prinz_benommen', () => {
   const c = window.__course, t = window.__t, b = t.ent('prinz');
@@ -1092,9 +1092,10 @@ B.benommen = await SHOT('w6e', 'prinz_benommen', () => {
   t.place([b.pos.x - 2.5, 2, b.pos.z + 2.5], { settle: 1 });
   t.face(b.pos.x, b.pos.z);
 });
+await load('0-25');
+await sc(BOSS_HELPERS);
 B.blase = await SHOT('w6e', 'wuerfelblase_sammelt', () => {
   const c = window.__course, t = window.__t, b = t.ent('blase');
-  c.player.reset([0, 2.3, -50.5]);
   t.enter([0, 2, -50.5], 'blase');
   t.until(() => b.state === 'gather' && b.stateT > 1.0, 900, [3, 2, -53]);
 });
@@ -1117,9 +1118,10 @@ B.flucht = await SHOT('w6e', 'wuerfelblase_flieht', () => {
   c.step(2);
   t.face(b.pos.x, b.pos.z);
 });
+await load('0-25');
+await sc(BOSS_HELPERS);
 B.attrappen = await SHOT('w6e', 'wirbelbrocken_attrappen', () => {
   const c = window.__course, t = window.__t, b = t.ent('wirbel6');
-  c.player.reset([0, 2.3, -101.5]);
   t.enter([0, 2, -101.5], 'wirbel6');
   t.until(() => b.state === 'stunned', 120 * 20, [4, 2, -106]);
   t.stomp(b, { h: 0.8 });
