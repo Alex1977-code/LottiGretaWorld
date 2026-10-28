@@ -16,13 +16,16 @@
 //                         prallt leicht zurück
 //   Angriffe              Feuer, Tatze, Panzer, Wurf, Rutschen, Schwanzhieb, Faust, Biss, Stampfwelle daneben: 7 m/s;
 //                         Explosion/Kanonenkugel: 11 m/s im Bogen
-//   Funkelstern, Riesentrank   besiegen ihn (dreht sich und verpufft)
+//   Funkelstern, Riesentrank, Quetschblock (onHit('crush'))   besiegen ihn (dreht sich und verpufft)
+// Welt-6-Bausteine: auf Kippschiff/Kippsteg/Wippe zählt er mit weight (Standard 1) als Last, sein Rammstoß kippt das Deck
+// einmalig um tilt° (6) zur Seite der Figur (tilter.push); in Glasröhren-Netzen reist er mit (enemy).
 // Langsame Berührung (beide gehen) stößt die Figur sanft weg (0,55 · push) und ihn ein Stück zurück. Rammt er, ist jede
 // Berührung ein Stoß. Nach jedem Stoß 0,3 s Ruhe für Berührungen (kein Mehrfach-Stoß).
 //
 // Daten: { kind: 'schubser', pos, dir|yaw, behavior?: 'chase' | 'patrol' | 'guard', path?, loop?, speed?: 1.5 (gehen),
 //          charge?: 5.5 (m/s), chargeTime?: 1.8, sight?: 8, warn?: 0.55, cool?: 0.9, push?: 9, lift?: 5.5,
-//          friction?: 6 (m/s² Rutschen), weight?: 1 (> 1 rutscht kürzer), size?: 1, wake?, edges?, drop? }
+//          friction?: 6 (m/s² Rutschen), weight?: 1 (> 1 rutscht kürzer, kippt Decks stärker), tilt?: 6, size?: 1, wake?,
+//          edges?, drop? }
 //   Beispiel: { kind: 'schubser', pos: [0, 1, -20], sight: 7 }
 // Zustände: idle | walk | warn | charge | skid | cool | pushed | fall | recover | defeated. Laufzeit: rams (Stöße auf die
 //   Figur), pushes (von der Figur gestoßen), slide (Rutschtempo m/s), fellBy ('fall'|'lava'|'wasser'), info().
@@ -256,6 +259,9 @@ export class Schubser extends EnemyW2 {
     const x = this.chargeDir.x * 0.7 + away.x * 0.3, z = this.chargeDir.z * 0.7 + away.z * 0.3;
     if (shoveFigure(player, x, z, this.push, this.lift, 0.4)) {
       this.rams++;
+      // auf einem Kippschiff/-steg bzw. einer Wippe (Welt-6-Bausteine): der Stoß kippt das Deck zur Seite der Figur
+      const tl = this.ground?.owner;
+      if (tl && typeof tl.push === 'function' && tl.deck?.offset) tl.push(-Math.sign(tl.deck.offset(player.pos.x, player.pos.z) || 1) * (this.spec.tilt ?? 6));
       this.level.sfx('bounce');
       this.level.effects?.sparks(player.center(), 6);
     }
@@ -290,7 +296,7 @@ export class Schubser extends EnemyW2 {
 
   onHit(kind, source) {
     if (this.defeated || this.state === 'defeated') return;
-    if (kind === 'star' || kind === 'mega') { this.defeat(source); return; }
+    if (kind === 'star' || kind === 'mega' || kind === 'crush') { this.defeat(source); return; }
     if (kind === 'bump') { if (this.grounded) { this.vel.y = 6; this.grounded = false; } return; }
     if (kind === 'pound' && source?.pos && Math.abs(source.pos.y - this.pos.y) > 1.2) return;
     if (kind === 'bomb' || kind === 'cannon') { this.shoveBy(source, 11, kind, 7); return; }

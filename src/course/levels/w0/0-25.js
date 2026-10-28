@@ -1,8 +1,9 @@
 // Wolken-Bossarenen (0-25): Testlevel für die Endgegner der Welt 6 (tests/course_w6_enemies.mjs) mit Archetyp 'boss' und drei
 // Kämpfen nacheinander (LEVEL.bosses, Präzisierung Gegner Welt 6):
 //   A (z ≈ 0)     Festungskäfig 20 × 20 m (Innenfläche x/z −10 … 10, Boden y = 2) mit 2 × 3 Glasröhren an den Seitenwänden
-//                 (Mündungen bei z −6, 0, 6; je eine Röhre verbindet links und rechts auf gleicher Höhe und läuft hinter dem
-//                 Käfig herum – Baustein glasspipe, nur Optik) – **Schubser-Prinz** (6-A). Die Figur startet vor dem Käfig
+//                 (Glasröhren-Netz 'roehren' der Welt-6-Bausteine: Öffnungen L-6/L0/L6 und R-6/R0/R6, je eine Röhre verbindet
+//                 links und rechts auf gleicher Höhe und läuft hinter dem Käfig herum; für die Figur gesperrt) –
+//                 **Schubser-Prinz** (6-A, net: 'roehren'). Die Figur startet vor dem Käfig
 //                 (z 14) und geht durch das Tor (Sperre im Kampf). Sieg → Stern, Warp-Box in der Mitte → Arena B.
 //   B (z ≈ −60)   Zirkus-Rundkäfig r 12 mit Tribünen – **Würfelblase** (6-C) mit Gelee-Brocken. Sieg → Stern, Warp-Box → C.
 //   C (z ≈ −110)  Rundkäfig r 10,6 – **Wirbelbrocken mit Attrappen** (6-Panzer). Sieg → Stern, Warp-Box → Zielplateau (z −150).
@@ -14,12 +15,14 @@ const ZB = -60, RB = 12;        // Würfelblasen-Arena
 const ZC = -110, RC = 10.6;     // Wirbelbrocken-Arena
 const PZ = [-6, 0, 6];          // Röhren-Mündungen (z) an beiden Seitenwänden
 
-/** Röhre von der linken Mündung (z) hinter dem Käfig herum zur rechten Mündung (gleiches z); m = Schachtelung (innen 0). */
-function pipeRoute(z, m) {
+/** Glasröhren-Netz: linke Öffnung (z) hinter dem Käfig herum zur rechten (gleiches z); m = Schachtelung (innen 0). */
+const NODES = {}, PIPES = [], ENDS = {};
+PZ.forEach((z, m) => {
   const o = W + 1.3 + 2.3 * m, back = -(W + 1.3 + 2.3 * m), y = Y + 1;
-  return [[-W + 0.1, y, z], [-o, y, z], [-o, y, back], [o, y, back], [o, y, z], [W - 0.1, y, z]];
-}
-const ROUTES = PZ.map((z, i) => pipeRoute(z, i));   // z −6 innen, 0 Mitte, 6 außen (schneiden sich nicht)
+  NODES[`L${z}`] = [-W + 0.05, y, z]; NODES[`R${z}`] = [W - 0.05, y, z];
+  ENDS[`L${z}`] = { enter: false }; ENDS[`R${z}`] = { enter: false };
+  PIPES.push({ from: `L${z}`, to: `R${z}`, via: [[-o, y, z], [-o, y, back], [o, y, back], [o, y, z]] });
+});   // z −6 innen, 0 Mitte, 6 außen (schneiden sich nicht)
 
 export const LEVEL = {
   id: '0-25',
@@ -63,7 +66,7 @@ export const LEVEL = {
     { type: 'wall', pos: [0, Y, -W - 0.3], size: [2 * W + 1.2, 4.2, 0.6], style: 0xd9c9e8 },
     { type: 'wall', pos: [-(W + 2.4) / 2 - 0.3, Y, W + 0.3], size: [W - 1.8, 1.0, 0.6], style: 0xd9c9e8, camIgnore: true },
     { type: 'wall', pos: [(W + 2.4) / 2 + 0.3, Y, W + 0.3], size: [W - 1.8, 1.0, 0.6], style: 0xd9c9e8, camIgnore: true },
-    ...ROUTES.map((path, i) => ({ type: 'glasspipe', id: `roehre_${i}`, path, radius: 1, solid: false, enter: [] })),
+    { type: 'glasnetz', id: 'roehren', radius: 1, nodes: NODES, pipes: PIPES, ends: ENDS },
     { type: 'torches', h: 2.2, items: [[-W - 1.6, Y, W + 1.6], [W + 1.6, Y, W + 1.6]] },
     { type: 'pennants', items: [{ pos: [-W - 1, Y + 4.2, -W - 1], color: 0x8a5ae0, h: 4 }, { pos: [W + 1, Y + 4.2, -W - 1], color: 0xe8322a, h: 4 }] },
     // ---- B: Zirkus-Rundkäfig
@@ -80,10 +83,7 @@ export const LEVEL = {
   enemies: [
     {
       kind: 'schubser_prinz', id: 'prinz', pos: [0, Y, -5], dir: [0, 1], arena: { min: [-W, -W], max: [W, W], y: Y },
-      pipes: [
-        ...PZ.map((z, i) => ({ id: `L${z}`, pos: [-W, Y, z], dir: [1, 0], to: `R${z}`, route: ROUTES[i] })),
-        ...PZ.map((z) => ({ id: `R${z}`, pos: [W, Y, z], dir: [-1, 0], to: `L${z}` })),
-      ],
+      net: 'roehren',
       star: { pos: [0, Y + 0.4, 6.5], index: 0 },
     },
     {

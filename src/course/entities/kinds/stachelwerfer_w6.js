@@ -46,6 +46,8 @@ class StachelWurf extends CourseEntity {
     this.life = spec.life ?? 6;
     this.bounceK = spec.bounce ?? 0.45;
     this.owner = spec.owner ?? null;
+    this.spiky = true;               // wie die Stachelkugel der Bausteine: verletzt auch von oben
+    this.windK = 0;
     this.age = 0;
     this.bounces = 0;
     this.rolled = 0;

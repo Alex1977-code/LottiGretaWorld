@@ -8,8 +8,8 @@
 //   ±height m hoch) → rest …
 //   Der Wind schiebt Figuren (auch Klone) mit strength m/s (vorn voll, am Kegelende 60 %), am Boden × ground (gegen den Wind
 //   laufen geht langsam), in der Luft voll – Sprünge verwehen, über Abgründen gefährlich. Leichte Entitäten (windK > 0, z. B.
-//   Wurfball) treiben mit. Während des Pustens meldet sie sich als Windquelle (windAt der Welt-6-Bausteine, sobald es sie
-//   gibt: w6(level).winds).
+//   Wurfball) treiben mit. Schieben über pushFigures der Welt-6-Bausteine (blocks/w6kit.js); während des Pustens ist sie eine
+//   Windquelle für windAt(level, x, y, z) (angemeldet in w6(level).winds, liefert nur im Kegel Schub).
 // Konter: **in der Atempause** (rest/inhale) draufspringen bzw. Stampfattacke besiegt sie (Abprall); während sie pustet
 //   prallt man nur ab. Treffer (Feuer, Tatze, Panzer, Wurf, Rutschen, Schwanzhieb, Kanone, Explosion, Stern, Riese …)
 //   besiegen sie immer. Seitliche Berührung schadet nicht (die Wolke ist weich: kleiner Schubs).
@@ -23,14 +23,14 @@
 //   Figuren verschoben hat), inCone(x, y, z), info().
 // Sound: 'hover' (Luft holen), 'swoop' (Pusten), 'stomp', 'vanish'.
 
-import { EnemyW2, figures, activeFigure, clamp } from '../EnemyW2.js';
+import { EnemyW2, activeFigure, clamp } from '../EnemyW2.js';
 import { getModel } from '../../models/index.js';
 import { PathMover } from '../../level/PathMover.js';
 import { shoveAABB, dirFromTo } from '../w6help.js';
+import { w6, pushFigures } from '../../blocks/w6kit.js';
 
 const HIT = 0.3, DEFEAT = 0.9;
 const DEG = Math.PI / 180;
-const FREE = new Set(['ground', 'air', 'swim']);
 
 class Pustewolke extends EnemyW2 {
   constructor(level, spec) {
@@ -59,11 +59,15 @@ class Pustewolke extends EnemyW2 {
     this.pushed = 0;
     this.clock = 0;
     this.state = 'idle';
-    // Windquelle für die Welt-6-Bausteine (windAt): wird beim Merge mit den Bausteinen angemeldet (w6(level).winds)
+    // Windquelle für die Welt-6-Bausteine (windAt)
+    const self = this;
     this.windHandle = {
-      add: (x, y, z, out) => { if (this.state === 'blow' && this.inCone(x, y, z)) { const k = this.falloff(x, z); out.x += this.blowDir.x * this.strength * k; out.z += this.blowDir.z * this.strength * k; } return out; },
-      get state() { return 'boe'; }, get k() { return 1; },
+      source: 'pustewolke',
+      add: (x, y, z, out) => { if (self.state === 'blow' && !self.removed && self.inCone(x, y, z)) { const k = self.falloff(x, z); out.x += self.blowDir.x * self.strength * k; out.z += self.blowDir.z * self.strength * k; } return out; },
+      get state() { return self.state === 'blow' ? 'boe' : 'ruhe'; }, get k() { return self.state === 'blow' ? 1 : 0; },
+      info: () => ({ state: self.state, blows: self.blows }),
     };
+    w6(level).winds.push(this.windHandle);
     if (level.view) this.setModel(getModel('pustewolke'));
     this.initShadows(1);
   }
@@ -130,16 +134,18 @@ class Pustewolke extends EnemyW2 {
     this.yaw += d * Math.min(1, dt * rate);
   }
 
-  /** Windkegel: Figuren (am Boden × ground) und leichte Entitäten schieben. */
+  /** Windkegel: Figuren (am Boden × ground, pushFigures der Bausteine) und leichte Entitäten schieben. */
   blowStep(dt) {
     const vx = this.blowDir.x * this.strength, vz = this.blowDir.z * this.strength;
-    for (const f of figures(this.level)) {
-      if (!FREE.has(f.mode) || f.dead || f.removedFigure) continue;
-      const c = f.center();
-      if (!this.inCone(c.x, c.y, c.z)) continue;
-      const k = this.falloff(c.x, c.z) * (f.mode === 'ground' ? this.groundK : 1);
-      const m = shoveAABB(this.level, f, vx * k * dt, 0, vz * k * dt);
-      this.pushed += Math.hypot(m.x, m.z);
+    // zwei Ringe (vordere Kegelhälfte voll, hintere 60 % … 80 %): Abfall mit der Entfernung
+    for (const [a, b, k] of [[-0.3, this.reach * 0.5, 0.9], [this.reach * 0.5, this.reach, 0.7]]) {
+      const inside = (x, y, z) => {
+        if (!this.inCone(x, y, z)) return false;
+        const m = this.mouth(), along = (x - m.x) * this.blowDir.x + (z - m.z) * this.blowDir.z;
+        return along >= a && along < b;
+      };
+      const n = pushFigures(this.level, inside, vx * k, 0, vz * k, dt, this.groundK);
+      this.pushed += n * this.strength * k * dt;
     }
     for (const e of this.level.entities) {
       if (!(e.windK > 0) || !e.alive || e.removed || e.carrier || e.hidden) continue;
@@ -149,6 +155,12 @@ class Pustewolke extends EnemyW2 {
       const k = this.falloff(c.x, c.z) * e.windK;
       shoveAABB(this.level, e, vx * k * dt, 0, vz * k * dt, own.size ? (q) => own.has(q.id) : null);
     }
+  }
+
+  dispose() {
+    const list = this.level.w6?.winds;
+    if (list) { const i = list.indexOf(this.windHandle); if (i >= 0) list.splice(i, 1); }
+    super.dispose();
   }
 
   get resting() { return this.state === 'rest' || this.state === 'inhale' || this.state === 'idle'; }

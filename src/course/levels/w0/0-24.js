@@ -45,7 +45,7 @@ export const LEVEL = {
   world: 0,
   title: 'Wolken-Gegnerzoo',
   archetype: 'parcours',
-  theme: 'skyway',
+  theme: 'clearpipe',
   music: 'course_grass',
   timeLimit: 999,
   start: { pos: [0, Y, 6], yaw: Math.PI / 2 },
@@ -134,7 +134,10 @@ export const LEVEL = {
     { kind: 'gelee_brocken', id: 'b_gelee', pos: at(9, 8, 8), behavior: 'chase', color: 'blau' },
     { kind: 'spuk', id: 'b_spuk', pos: at(16, 8, 12.5, Y + 0.4) },
   ],
-  items: [],
+  items: [
+    // 7: Pilz-Maske (Baustein der Welt 6) auf dem Mittelweg
+    { kind: 'pilz_maske', id: 'maske', pos: [0, Y, Z(7, 1)] },
+  ],
   goal: [0, Y, -172],
   marks: { lava: [-11.5, POD, Z(1, 7)], wasser: [11.5, POD, Z(1, 7)], eis: [-11.5, ICE, HZ], steg: [10, 2.55, Z(3, 7)] },
 };

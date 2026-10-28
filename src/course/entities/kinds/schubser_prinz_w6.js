@@ -29,9 +29,13 @@
 // Daten: { kind: 'schubser_prinz', id: 'prinz', pos (Start, Fußpunkt), dir?: [0, 1] (Start-Blick),
 //          arena?: { center: [x, y, z], size: [w, d] } | { min: [x, z], max: [x, z], y } (Käfig-Innenfläche; Standard
 //                  center = pos, 18 × 18),
-//          pipes: [{ id?, pos: [x, y, z] (Mündung: Mitte unten an der Käfigwand), dir: [dx, dz] (Öffnung zeigt in die Arena),
+//          net?: 'id' eines Glasröhren-Netzes (Baustein glasnetz, Präzisierung Motor und Bausteine Welt 6): alle Öffnungen des
+//                Netzes sind Mündungen (Öffnung = Knotenmitte; Mündung am Boden darunter, Richtung = aus der Röhre heraus);
+//                er fährt die Röhren entlang (an Kreuzungen in Richtung der Weiche bzw. der ersten anderen Röhre) bis zur
+//                nächsten Öffnung – sichtbar im Glas. Das Netz nimmt ihn nicht selbst mit (boss).
+//          pipes?: [{ id?, pos: [x, y, z] (Mündung: Mitte unten an der Käfigwand), dir: [dx, dz] (Öffnung zeigt in die Arena),
 //                    to?: Index | id (Ausgang), route?: [[x, y, z], …] (Röhrenmitte von dieser Mündung zur Ausgangsmündung,
-//                    sichtbare Fahrt) }, …],
+//                    sichtbare Fahrt) }, …]   (statt net: eigene Mündungen, z. B. mit Baustein glasspipe als Optik),
 //          hp?: 3, charge?: [6, 7, 8] (m/s), chargeTime?: [2.2, 2.0, 1.8], turn?: [0.5, 0.7, 0.9] (rad/s), warn?: [0.9, 0.7,
 //          0.55], skid?: [1.0, 0.85, 0.7], fire?: [1, 2, 3], fireSpeed?: 6.5, stuck?: 3.5, stun?: [3.0, 2.6, 2.2],
 //          push?: 12, lift?: 7 (Rammstoß auf die Figur), knock?: 6 (m/s Rutschen bei Draufspringen/Gegenrennen; Angriffe 7),
@@ -74,10 +78,11 @@ class SchubserPrinz extends EnemyW2 {
       this.home = new THREE.Vector3(c[0], c[1], c[2]);
     }
     this.startYaw = Array.isArray(spec.dir) ? Math.atan2(-spec.dir[1], spec.dir[0]) : -Math.PI / 2;
-    this.pipes = (spec.pipes ?? []).map((p, i) => {
+    this.pipeList = (spec.pipes ?? []).map((p, i) => {
       const d = p.dir ?? [0, 1], l = Math.hypot(d[0], d[1]) || 1;
-      return { i, id: p.id ?? `r${i}`, x: p.pos[0], y: p.pos[1], z: p.pos[2], dx: d[0] / l, dz: d[1] / l, to: p.to, route: p.route ?? null };
+      return { i, id: p.id ?? `r${i}`, x: p.pos[0], y: p.pos[1], z: p.pos[2], dx: d[0] / l, dz: d[1] / l, to: p.to, route: p.route ?? null, drop: 1 };
     });
+    this.netPipes = null;
     this.maxHp = spec.hp ?? 3;
     this.hp = this.maxHp;
     this.carHits = 0;
@@ -114,6 +119,16 @@ class SchubserPrinz extends EnemyW2 {
     this.fired = false;
     this.squash = 1;
     this.rnd = new Lcg(this.spec.seed ?? 0x5b1d07);
+  }
+
+  /** Mündungen: eigene (pipes) bzw. die Öffnungen des Glasröhren-Netzes (net), einmal ausgelesen. */
+  get pipes() {
+    if (!this.spec.net) return this.pipeList;
+    if (this.netPipes) return this.netPipes;
+    const net = this.level.named.get(this.spec.net);
+    if (!net?.nodes) return this.pipeList;
+    this.netPipes = netMouths(net);
+    return this.netPipes;
   }
 
   get phase() { return clamp(this.maxHp - this.hp + 1, 1, 3); }
@@ -396,11 +411,12 @@ class SchubserPrinz extends EnemyW2 {
     // Weg: route dieser Mündung, sonst umgekehrte route der Gegenseite, sonst verborgen (gerade Linie)
     let pts = m.route?.length ? m.route.map((p) => ({ x: p[0], y: p[1], z: p[2] })) : null;
     if (!pts && t.route?.length && (this.exitOf(t) === m)) pts = t.route.map((p) => ({ x: p[0], y: p[1], z: p[2] })).reverse();
+    const drop = m.drop ?? 1;
     const visible = !!pts;
     if (!pts) pts = [{ x: m.x, y: m.y + 1, z: m.z }, { x: t.x, y: t.y + 1, z: t.z }];
     let L = 0;
     for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y, pts[i].z - pts[i - 1].z);
-    this.trip = { from: m, to: t, pts, L, T: clamp(L / (this.spec.travel ?? 18), 0.6, this.spec.travelMax ?? 2.2), visible };
+    this.trip = { from: m, to: t, pts, L, T: clamp(L / (this.spec.travel ?? 18), 0.6, this.spec.travelMax ?? 2.2), visible, drop };
     this.trips++;
     this.tripLog.push({ from: m.id, to: t.id });
     this.exit = t;
@@ -428,7 +444,7 @@ class SchubserPrinz extends EnemyW2 {
       }
       s -= l;
     }
-    this.pos.set(q.x, q.y - 1, q.z);
+    this.pos.set(q.x, q.y - tr.drop, q.z);
     if (k >= 1) {
       const t = tr.to;
       this.pos.set(t.x + t.dx * (R + 0.2), t.y, t.z + t.dz * (R + 0.2));
@@ -635,6 +651,40 @@ class SchubserPrinz extends EnemyW2 {
     if (this.dizzy) { this.level.view?.remove(this.dizzy); this.dizzy = null; }
     super.dispose();
   }
+}
+
+/**
+ * Mündungen aus einem Glasröhren-Netz (glasnetz-Handle { nodes, edges, R, switchOf }): je Öffnung { id, x, y (Boden unter der
+ * Öffnung), z, dx, dz (aus der Röhre heraus), to (Name der erreichten Öffnung), route (Röhrenmitte dorthin) }.
+ */
+function netMouths(net) {
+  const { nodes, edges } = net;
+  const R = net.R ?? 1;
+  const ptsOf = (e, fromA) => { const l = e.tr.pts.map((q) => [q.x, q.y, q.z]); return fromA ? l : l.reverse(); };
+  const out = [];
+  for (const n of nodes) {
+    if (!n.end || !n.out) continue;
+    // der Röhre folgen bis zur nächsten Öffnung
+    let cur = n, e = edges[n.edges[0]], route = [], guard = 0;
+    for (;;) {
+      const fromA = e.a === cur.i;
+      route = route.concat(ptsOf(e, fromA));
+      const next = nodes[fromA ? e.b : e.a];
+      if (next.end || ++guard > 32) { cur = next; break; }
+      const want = net.switchOf?.(next.name);
+      let ne = null;
+      for (const ei of next.edges) {
+        if (ei === e.i) continue;
+        const f = edges[ei], other = nodes[f.a === next.i ? f.b : f.a];
+        if (!ne || other.name === want) ne = f;
+      }
+      if (!ne) { cur = next; break; }
+      cur = next; e = ne;
+    }
+    const l = Math.hypot(n.out.x, n.out.z) || 1;
+    out.push({ i: out.length, id: n.name, x: n.pos.x, y: n.pos.y - R, z: n.pos.z, dx: n.out.x / l, dz: n.out.z / l, to: cur.name, route, drop: R });
+  }
+  return out;
 }
 
 export const KINDS = { schubser_prinz: (level, spec) => new SchubserPrinz(level, spec) };
