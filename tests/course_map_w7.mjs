@@ -478,11 +478,11 @@ if (part(8)) {
     const bpm = mu.beat().bpm, spb = 60 / bpm;
     const F = () => m.state().decor.fountains;
     const b0 = F();
-    mu.advanceClock((1 - (b0.beat % 1)) * spb + 0.1 * spb);   // nächste Zählzeit, Fontänen schießen hoch
+    mu.advanceClock((1 - (b0.beat % 1)) * spb + 0.13 * spb);  // nächste Zählzeit, Fontänen schießen hoch
     const b1 = F();
     mu.advanceClock(0.55 * spb);                              // dieselbe Zählzeit, Fontänen fallen
     const b2 = F();
-    mu.advanceClock(0.45 * spb);                              // nächste Zählzeit: andere Gruppe
+    mu.advanceClock(0.45 * spb);                              // nächste Zählzeit (13 %): andere Gruppe
     const b3 = F();
     return { theme, bpm, b0, b1, b2, b3 };
   });
@@ -582,7 +582,7 @@ if (part(9)) {
   st = await sc(() => window.__courseMap.state());
   const exit8 = exitPoint(W7.entrances.find((e) => e.id === 'W8'));
   check('Figur steht vor der Welt-8-Röhre, Schranke offen', Math.hypot(st.player.x - exit8[0], st.player.z - exit8[2]) < 0.8 && st.gates.W8 === 'open' && !st.cinematic);
-  await tp(30, 8.8, -100, Math.PI / 2, 20);
+  await tp(27, 8.8, -96, Math.PI / 2, 20);
   r = await walkTo(4, -96, (s) => s.player.x < 11, 900);
   check('Aus dem Burghof zurück: Schranke 7-Burg an der Zugbrücke lässt die Figur von hinten durch', r.s.player.x < 11 && r.s.gates['7-Burg'] === 'closed'
     && Math.abs(r.s.player.y - 7) < 0.1);
