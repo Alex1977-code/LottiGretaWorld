@@ -40,6 +40,18 @@
 //            range?: 12, stun?: 1.3, drop? }
 //   Zustände: swim → turn → charge → stunned → swim …; flipped. Laufzeit: rams. Modell 'rammfisch'
 //   (state { anim: swim|charge|turn|stunned }).
+//   Welt 7 (additiv, Präzisierung Gegner Welt 7, 7-6 Rammfisch-Riff):
+//     size?: 1          Größe (Modell und Hülle × size; „große“ Rammfische z. B. 2,2).
+//     center?: [x, y, z] + radius?: 4 + cw?   kreist ruhig um center (große rotierende Rammfische; rammt dann nicht,
+//                       außer ram: true); y = Schwimmhöhe der Unterkante.
+//     path mit Höhen    Wegpunkte, deren y sich unterscheiden (oder vertical: true), werden räumlich abgefahren –
+//                       „auf und ab ziehende“ Rammfische (z. B. [[x, 1, z], [x, 6, z]]); nach einem Rammstoß schwimmt er zur Bahn
+//                       zurück (state 'back').
+//     ram?: true        false = rammt nie (nur Bahn/Kreis; Berührung verletzt trotzdem).
+//     carries?: 'star:I'  trägt Stern I in einer Blase auf dem Rücken (Stern berühren = einsammeln, die Blase platzt; LEVEL.stars
+//                       listet ihn nicht). Besiegt (STRONG) bleibt der Stern an seiner Stelle.
+//     Wurfsichel, Feuer, Krallen, Panzer prallen ab (nur STRONG besiegt ihn). Rammt er eine Unterwasser-Kiste (kiste_wasser),
+//     zerbricht sie (onHit('ram')).
 
 import * as THREE from 'three';
 import { EnemyW2, STRONG, activeFigure, waterAt, wrapAngle, clamp } from '../EnemyW2.js';
@@ -449,7 +461,8 @@ const TURN = 0.5;
 class Rammfisch extends EnemyW2 {
   constructor(level, spec) {
     super(level, spec, 'rammfisch');
-    this.half.set(0.75, 0.42, 0.75);
+    this.size = spec.size ?? 1;
+    this.half.set(0.75 * this.size, 0.42 * this.size, 0.75 * this.size);
     this.shadow = 0;
     this.wake = 0;
     this.edges = false;
@@ -466,8 +479,45 @@ class Rammfisch extends EnemyW2 {
     this.homeY = this.pos.y;
     this.wantY = this.pos.y;
     this.state = 'swim';
+    // Welt 7: Kreis bzw. räumliche Bahn (auf und ab)
+    const ys = spec.path?.length >= 2 ? spec.path.map((q) => q[1]) : null;
+    const vertical = !!ys && (spec.vertical || Math.max(...ys) - Math.min(...ys) > 0.3);
+    this.ram = spec.ram ?? !spec.center;
+    if (spec.center || vertical) {
+      const pts = spec.center ? circlePath(spec.center, spec.radius ?? 4, 32, !!spec.cw) : spec.path;
+      const loop = spec.center ? true : (spec.loop ?? pts.length >= 3);
+      this.mover3 = new PathMover(pts, { speed: this.speed, mode: loop ? 'loop' : 'pingpong', wait: spec.center ? 0 : 0.5, phase: (((spec.phase ?? 0) % 1) + 1) % 1 });
+      this.path = null;
+      const q = this.mover3.pos;
+      this.pos.set(q.x, q.y, q.z);
+    }
+    this.carryStar = null;
+    this.bubble = null;
+    const cm = typeof spec.carries === 'string' ? /^star(?::(\d+))?$/.exec(spec.carries) : null;
+    if (cm) {
+      this.carryStar = level.spawn('star', { pos: [this.pos.x, this.pos.y + this.half.y * 2 + 0.5, this.pos.z], index: +(cm[1] ?? 0) });
+      if (level.view && this.carryStar) {
+        const mat = new THREE.MeshStandardMaterial({ color: 0xbfe8ff, transparent: true, opacity: 0.32, roughness: 0.1, metalness: 0.1, depthWrite: false });
+        this.bubble = new THREE.Mesh(new THREE.SphereGeometry(0.85, 20, 14), mat);
+        this.bubble.renderOrder = 3;
+        level.view.add(this.bubble);
+      }
+    }
     if (level.view) this.setModel(getModel('rammfisch'));
     this.initShadows(1);
+  }
+
+  /** Stern in der Blase auf dem Rücken mitführen (eingesammelt → Blase platzt). */
+  carry() {
+    const st = this.carryStar;
+    if (!st) return;
+    if (st.removed || !st.alive) {
+      this.carryStar = null;
+      if (this.bubble) { this.level.effects?.sparks(this.bubble.position, 10); this.level.view?.remove(this.bubble); this.bubble.geometry.dispose(); this.bubble.material.dispose(); this.bubble = null; }
+      return;
+    }
+    if (this.defeated) return;
+    st.pos.set(this.pos.x, this.pos.y + this.half.y * 2 + 0.35, this.pos.z);
   }
 
   /** Nächster Schritt in Richtung h mit Tempo v; false = Wand/Ufer (kein Wasser). */
@@ -476,8 +526,12 @@ class Rammfisch extends EnemyW2 {
     const nx = this.pos.x + dx * v * dt, nz = this.pos.z + dz * v * dt;
     const fx = nx + dx * this.half.x, fz = nz + dz * this.half.z, cy = this.pos.y + this.half.y;
     if (!waterIn(this.level, fx, cy, fz)) return false;
-    const solid = this.level.world.overlapAABB({ x: fx, y: cy, z: fz }, { x: 0.1, y: 0.3, z: 0.1 }).some((s) => s.solid && !s.oneWay && !s.water && s.owner !== this);
-    if (solid) return false;
+    const solid = this.level.world.overlapAABB({ x: fx, y: cy, z: fz }, { x: 0.1, y: 0.3, z: 0.1 }).find((s) => s.solid && !s.oneWay && !s.water && s.owner !== this);
+    if (solid) {
+      // Welt 7: rammt er eine Unterwasser-Kiste, zerbricht sie (onHit('ram'), Bausteine Welt 7)
+      if (this.state === 'charge' && solid.owner?.kind === 'kiste_wasser') solid.owner.onHit?.('ram', this);
+      return false;
+    }
     this.pos.x = nx; this.pos.z = nz;
     return true;
   }
@@ -488,6 +542,31 @@ class Rammfisch extends EnemyW2 {
       this.vel.y -= 20 * dt;
       this.pos.addScaledVector(this.vel, dt);
       if (this.stateT > 1.5) this.kill();
+      this.carry();
+      return;
+    }
+    this.run3(dt);
+    this.carry();
+  }
+
+  run3(dt) {
+    if (this.mover3 && (this.state === 'swim' || this.state === 'back')) {
+      const q = this.mover3.pos;
+      if (this.state === 'back') {
+        // nach dem Rammstoß zurück zur Bahn
+        const dx = q.x - this.pos.x, dy = q.y - this.pos.y, dz = q.z - this.pos.z, d = Math.hypot(dx, dy, dz);
+        const s = Math.min(d, this.speed * 2.2 * dt);
+        if (d > 1e-3) { this.pos.x += (dx / d) * s; this.pos.y += (dy / d) * s; this.pos.z += (dz / d) * s; }
+        if (Math.hypot(dx, dz) > 0.05) { this.heading += wrapAngle(Math.atan2(-dz, dx) - this.heading) * Math.min(1, dt * 4); this.yaw = this.heading; }
+        if (d < 0.2) this.setState('swim');
+        return;
+      }
+      const ox = this.pos.x, oz = this.pos.z;
+      this.mover3.step(dt);
+      this.pos.set(q.x, q.y, q.z);
+      const mx = this.pos.x - ox, mz = this.pos.z - oz;
+      if (Math.abs(mx) + Math.abs(mz) > 1e-5) { this.heading += wrapAngle(Math.atan2(-mz, mx) - this.heading) * Math.min(1, dt * 6); this.yaw = this.heading; }
+      if (this.ram && this.spots()) { this.setState('turn'); this.level.sfx('beep'); }
       return;
     }
     switch (this.state) {
@@ -503,7 +582,7 @@ class Rammfisch extends EnemyW2 {
         if (!this.advance(dt, this.heading, this.speed)) this.heading = wrapAngle(this.heading + Math.PI);
         this.toY(dt, this.homeY, 0.8);
         this.yaw = this.heading;
-        if (this.spots()) { this.setState('turn'); this.level.sfx('beep'); }
+        if (this.ram && this.spots()) { this.setState('turn'); this.level.sfx('beep'); }
         break;
       }
       case 'turn': {
@@ -524,7 +603,7 @@ class Rammfisch extends EnemyW2 {
         break;
       }
       case 'stunned':
-        if (this.stateT >= this.stunT) { this.heading = wrapAngle(this.heading + Math.PI); this.yaw = this.heading; this.setState('swim'); }
+        if (this.stateT >= this.stunT) { this.heading = wrapAngle(this.heading + Math.PI); this.yaw = this.heading; this.setState(this.mover3 ? 'back' : 'swim'); }
         break;
       default: break;
     }
@@ -583,9 +662,24 @@ class Rammfisch extends EnemyW2 {
     if (!this.model) return;
     super.syncModel();
     this.model.root.rotation.z = this.state === 'flipped' ? Math.PI : 0;
+    if (this.size !== 1) this.model.root.scale.setScalar(this.size);
   }
 
-  info() { return { state: this.state, rams: this.rams, x: +this.pos.x.toFixed(2), z: +this.pos.z.toFixed(2), heading: +this.heading.toFixed(2), defeated: this.defeated }; }
+  render(dt, t) {
+    super.render(dt, t);
+    if (this.bubble && this.carryStar) {
+      const st = this.carryStar;
+      this.bubble.position.set(st.pos.x, st.pos.y + 0.55, st.pos.z);
+      this.bubble.scale.setScalar(1 + Math.sin(t * 3.1) * 0.04);
+    }
+  }
+
+  dispose() {
+    if (this.bubble) { this.level.view?.remove(this.bubble); this.bubble.geometry.dispose(); this.bubble.material.dispose(); this.bubble = null; }
+    super.dispose();
+  }
+
+  info() { return { state: this.state, rams: this.rams, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), heading: +this.heading.toFixed(2), defeated: this.defeated, size: this.size, star: this.carryStar ? this.carryStar.index : null }; }
 }
 
 export const KINDS = {

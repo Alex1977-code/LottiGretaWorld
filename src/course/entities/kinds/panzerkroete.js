@@ -219,6 +219,12 @@ class Panzer extends Enemy {
       this.kick(source, f.x, f.z);
       return;
     }
+    if (kind === 'sichel' || source?.sichel) {
+      // Wurfsichel (Welt 7) stößt den Panzer von ihr weg (wie ein Tatzenhieb)
+      const k = source?.owner?.facingVec ? source.owner : this.level.nearestPlayer(this.pos);
+      if (k) this.kick(k, this.pos.x - (source?.pos?.x ?? k.pos.x), this.pos.z - (source?.pos?.z ?? k.pos.z));
+      return;
+    }
     if (kind === 'fire' || kind === 'pound') return;
     if (kind === 'shell' && source === this) return;
     this.flip(source);

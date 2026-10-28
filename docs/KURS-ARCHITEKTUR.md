@@ -6259,3 +6259,244 @@ Giftnebel (Bereich startet, stehen bleiben = Tod, fliehen = heil, Neustart setzt
 (Schwimmstoß, langsam nicht, Rammfisch), Hüllen als kind, Ziel; keine Konsolenfehler; Themen (Namen, Kulissen, Stimmung
 `flucht`, Unterwasser). 48 + 4 Prüfungen (Gegner-Sichel eingeschlossen). Kennzahlen (inkl. Schattenpass, mit Welt-7-Modellen): Stationen 47–77
 Zeichenaufrufe / 98–149 k Dreiecke, Themen 59–82 / 96–146 k (Grenzen 120 / 300 k).
+
+## Präzisierung (Gegner Welt 7)
+
+Ergänzung des Gegner-Agenten Welt 7 „Lava-Festung“ (Stand: Lava-Gegnerzoo `0-27`, Lava-Bossarenen `0-28`). Nichts oben
+Festgelegtes wird geändert; alles ist additiv. Level-Bauer schreiben nur Daten; alle Felder sind optional, sofern nicht anders
+vermerkt. Gemeinsame Felder und Konter aus „Präzisierung (Gegner/Power-ups)“ und „(Gegner Welt 2–6, Halloween)“ gelten weiter
+(`id, pos, dir|yaw, path, loop, wake, edges, drop`; Ziel = nächste Figur, Lava/Absturz = besiegt, `STRONG` = cannon, bomb,
+mega, star; Pilz-Maske über `maskedFrom`). Jede Datei dokumentiert ihre Parameter vollständig im Kopfkommentar. Kindgerecht:
+besiegte Gegner fallen klappernd auseinander, kühlen zu Stein ab, verpuffen oder versinken mit Schwindelsternen; der Baron
+flieht am Ende lustig mit dem Zylinder in der Tatze.
+
+### Präzisierung (Gegner Welt 7): Dateien
+
+```
+src/course/entities/w7help.js                     Hilfen (außerhalb kinds/): HOT_KILL, isSichel, hurtsFrom, lavaSurface (lavaTopAt),
+                                                  lavaColor (lavaColorAt), lavaAt, waterTop, arcVel (Wurfbogen), phaseOf
+src/course/entities/kinds/knochenflieger_w7.js    knochenflieger
+src/course/entities/kinds/platschfisch_w7.js      platschfisch (+ Spender spawner: endlos nachkommend)
+src/course/entities/kinds/lavadrache_w7.js        lavadrache
+src/course/entities/kinds/wutkaulquappe_w7.js     wutkaulquappe
+src/course/entities/kinds/funkenflaemmchen_w7.js  funkenflaemmchen
+src/course/entities/kinds/baron_kampfwagen_w7.js  baron_kampfwagen (Boss 7-Burg), kampfwagen_strasse (Boss-Straße), stachelfalle
+src/course/entities/kinds/feuer_werfer.js         + sichel (Bumerang-Werfer mit Wurfsichel), fireColor 'blau'
+src/course/entities/kinds/fische_w3.js            + Rammfisch: size, center/radius (Kreis), Bahn mit Höhen, ram, carries 'star:I',
+                                                  rammt Unterwasser-Kisten auf (onHit('ram'))
+src/course/entities/kinds/lavafelsen_koenig.js    + variant 'hell', fish (Platschfische rings um die Arena)
+src/course/entities/kinds/schubser_prinz_w6.js    + color 'blau' (blaue Feuerkugeln in einer Kurve, 3 → 4 → 5)
+src/course/entities/kinds/geschosse.js            + feuerkugel: color 'blau' (Modell feuerkugel_blau), curve (rad/s), curveFor (s)
+src/course/entities/kinds/panzerkroete.js, feuer_w5.js, klapperknochen_hw.js   + Wurfsichel (je eine Zeile, siehe unten)
+src/course/archetypes/hud.js                      + Lebensleiste mit mehr als 5 Herzen (kleiner, breiter; Baron 9)
+src/course/levels/w0/0-27.js                      Lava-Gegnerzoo (8 Reihen Gehege, Z(r, dz) = −8 − 20(r − 1) − dz, Thema lava)
+src/course/levels/w0/0-28.js                      Lava-Bossarenen (LEVEL.bosses: Basaltinsel, Prinzen-Käfig, Boss-Straße)
+tests/course_w7_enemies.mjs                       Port 4690, W7E_PART=1|2|3|4, Bilder tests/out/w7e_*.png
+```
+
+Modelle: die fertigen Welt-7-Modelle – `knochenflieger`, `platschfisch` ({ color }), `lavadrache` ({ color, segments };
+`userData.head()`, `model.mouth()`), `wutkaulquappe`, `funkenflaemmchen` ({ color }), `bumerang_werfer` ({ sichel: true };
+state `dropped`), `feuerkugel_blau`, `rammfisch` (× size), `lavafelsen_koenig` ({ variant: 'hell' }), `schubser_prinz`
+({ color: 'blau' }), `baron_kampfwagen` (`model.hand()`, `model.muzzle()`), `kampfwagen_strasse` (Fahrbahn-/Lücken-Teile),
+`stachelfalle`; zur Flucht `baron_brummbaer` { withCar: false } (Welt 1). Stachelpanzer, Zauberkröte, Pilzlingsturm,
+Hammer-/Feuer-Werfer sind die vorhandenen Arten (geprüft, unverändert bis auf die Wurfsichel).
+
+### Präzisierung (Gegner Welt 7): gemeinsame Regeln
+
+- **Heiße Gegner** (Platschfisch, Lavadrache, Funkenflämmchen): **nicht von oben** – Draufspringen/Stampfen verletzt die
+  Figur. Nur **Power-ups und Wurfsichel** besiegen sie (`HOT_KILL` = claw, sichel, shell, throw, cannon, bomb, mega, star,
+  punch, bite, crush, pow; claw = Tatzenhieb, Schwanzhieb, Krallen-Sturzflug). **Feuer prallt ab** (Funken). Rutschen und
+  Stampfwelle daneben wirken nicht.
+- **Wurfsichel** (Motor: `onSichelHit(sichel)`, sonst `onHit('throw', sichel)` mit `sichel.sichel === true`): wirkt wie ein
+  Wurf – Welt-7-Gegner (Knochenflieger, Wutkaulquappe, heiße Gegner) und alle Gegner, die ein Wurf besiegt, sind besiegt
+  (geprüft: 44 Arten, darunter Lavabrocken); zähe Gegner verlieren einen Trefferpunkt (Riesenschnappblume, Rammbock-Bulle,
+  Großrollpilz, Riesenkürbling, Münzmarder); unverwundbare bleiben heil (Stampfstein, Wuschel, Spuk, Kreisgeist, Stachelfisch,
+  Rammfisch, Funkenläufer, Riesenameise, Stachelwalze, Lavafunke, Glutball, Feuerring). Sonderfälle: Panzer gleitet weg
+  (`panzerkroete.js` erkennt `source.sichel`), Kickbombe/Zündkopf zünden, Schubser wird gestoßen, Pilzlingsturm verliert eine
+  Stufe, Funkenling und Klapperknochen sind besiegt (dort wie Krallen). Endgegner: Baron = Zusatzschaden (Kratzer), andere
+  Bosse wie bisher (Sichel = 'throw').
+- **Lava folgt dem Spiegel**: Platschfisch und Lavadrache lesen je Schritt `lavaTopAt` (über `lavaSurface(level, x, z, near)`
+  = höchste Lava bis near + 8 m); Farbe ohne `color` = `lavaColorAt` an `pos` (blaue Lava → blaue Fische/Drachen/Kugeln).
+- **Gegner-Sichel** (Bumerang-Werfer mit `sichel: true`): `level.spawn('wurfsichel', { pos, dir, owner: werfer, speed: 9,
+  range: clamp(Abstand + 1,5, 4, 9), curve })` – verletzt nur Figuren, kehrt zum Werfer zurück (`sichelCatch`), verschwindet
+  mit ihm. Besiegt lässt er das Power-up `{ kind: 'powerup', power: 'sichel' }` fallen (an seiner Stelle, nach Lava/Absturz an
+  `home`).
+- **Sound** nur über vorhandene `level.sfx`-Namen: `hover`, `swoop`, `blockhit`, `stomp`, `splash`, `burn`, `fireball`,
+  `boss_hit`, `dash`, `bounce`, `poof`, `hop`, `panic`, `slam`, `cannon`, `powerdown`, `land`, `switch`, `kick`, `boomerang`;
+  Fanfare `course_clear` über den Boss-Archetyp (`tests/sfx_namen.mjs` grün).
+
+| Gegner | Verhalten | besiegt durch | verletzt |
+| --- | --- | --- | --- |
+| knochenflieger | fliegt Kreis/Bahn/schwebt; Figur darunter → Ankündigung (klappert) → Sturzflug-Bogen genau durch die Figur → steigt zurück | Draufspringen/Stampfen, Krallen-Sturzflug, Rutschen, alle Angriffe (auch Feuer, Wurfsichel) | seitliche Berührung (auch im Sturzflug) |
+| platschfisch | verborgen in der Lava; lugt, springt im Takt im Bogen (Löcher reihum / pendelt / zielend); spuckt jeden n-ten Takt eine Feuerkugel geradeaus; endlos über `spawner` | nur HOT_KILL (Power-ups, Wurfsichel) – kühlt zu Stein ab | Berührung (aufgetaucht, im Sprung), **auch von oben**, Feuerkugel |
+| lavadrache | verborgen im Lavasee; Figur nah → taucht auf, speit Feuerbälle im Bogen auf sie (hüpfen weiter), taucht ab, wechselt die Stelle | nur HOT_KILL am aufgetauchten Kopf (hp Treffer) | Kopf (auch von oben), Hals, Feuerbälle |
+| wutkaulquappe | unter Wasser: paddelt/kreist; Figur im Wasser nah → schwimmt an, bläst sich auf, stößt als Stachelkugel | Angriffe (auch aufgeblasen), Draufspringen/Stampfen nur unaufgeblasen | Stachelkugel (Stoß weg), seitlich |
+| funkenflaemmchen | hüpft in kleinen Bögen (Bahn / geradeaus mit Kantenumkehr / jagt); fährt auf Plattformen mit, zählt auf Druckfeldern (weight) | nur HOT_KILL; Wasser löscht es | jede Berührung (auch von oben) |
+| bumerang_werfer + sichel | wirft die Wurfsichel statt des Bumerangs, fängt sie | wie Werfer (von oben, Angriffe) – lässt die Wurfsichel fallen | Sichel, Berührung |
+| rammfisch (Welt 7) | groß/kreisend, auf und ab, mit Stern in der Blase; rammt Unterwasser-Kisten auf | nur STRONG | Berührung |
+| lavafelsen_koenig hell | 4-Burg + Platschfische rings um die Arena | geworfene Lavabrocken (3×) | wie 4-Burg, Platschfische |
+| schubser_prinz blau | 6-A + blaue Feuerkugeln in einer Kurve (3/4/5) | Tritt nach der Röhrenfahrt (3×) | Rammstoß, Feuerkugeln |
+| baron_kampfwagen | Boss 7-Burg (siehe unten) | zurückgekickte Kickbomben (9×), Wurfsichel-Kratzer (2 = 1 Treffer) | Wagen, Bomben, Feuer, Stachelfallen |
+
+### Präzisierung (Gegner Welt 7): Gegner-Daten (exakt, mit Beispiel)
+
+```js
+enemies: [
+  // Knochenflieger: pos = Körpermitte (ohne Bahn schwebt er hier); center + radius 3 + cw false (Kreis, y = Flughöhe) |
+  //   path [[x, y, z], …] + loop (Flugbahn, Runde ab 3 Punkten); speed 2.4, phase 0..1, sight 7 (waagerecht), reach 7 (m tiefer),
+  //   dive 9 (m/s), warn 0.5 (s Ankündigung), cooldown 1.8, bob 0.18, drop
+  { kind: 'knochenflieger', center: [0, 5, -40], radius: 3.5, sight: 6 },
+  { kind: 'knochenflieger', pos: [-6, 5.5, -50], path: [[-8, 5.5, -50], [8, 5.5, -50]] },
+  // Platschfisch: pos = Lavastelle (y = Lava-Oberfläche); holes [[x, y, z], …] (reihum, zwei = hin und her) | pos + dir + dist 4
+  //   (pendelt); height 2.6, every 2.4, flight 1.1, phase 0..1, peek 0.4, aim false (springt dist m auf die Figur zu, nur über
+  //   offener Lava, höchstens range = 2·dist von pos), sight 9, spit 0 (jeder n-te Takt spuckt; true = 2), spitSpeed 7,
+  //   color 'rot' | 'blau' (Standard lavaColorAt), drop,
+  //   spawner { every 2.2, max 4, hops 3, first 0, range 30 } (unsichtbarer Spender: neue Fische springen hops Bögen in dir)
+  { kind: 'platschfisch', pos: [0, 0.6, -40], dir: [1, 0], dist: 5, spit: 2 },
+  { kind: 'platschfisch', pos: [-8, 0.6, -60], dir: [1, 0], dist: 4, spawner: { every: 2.5, max: 3, hops: 4 } },
+  // Lavadrache: pos = Austrittspunkt (y = Lava-Oberfläche) | spots [[x, y, z], …] (Auftauchstellen reihum; aim: die der Figur
+  //   nächste); sight 16, hide 2.0, shots 2, interval 1.1, flight 0.95, lead 0, speed 0 (Hüpfen der Kugel), hp 1, phase 0..1,
+  //   color 'rot' | 'blau' (Standard lavaColorAt), segments 7, drop
+  { kind: 'lavadrache', spots: [[-6, 0.5, -80], [6, 0.5, -84]], shots: 2, sight: 14 },
+  // Wutkaulquappe: pos = Körpermitte unter Wasser; path + loop | center + radius 2.5 + cw; speed 1.2, sight 6, chase 2.6,
+  //   puffR 1.8, puff 1.4 (s aufgeblasen), shove 6, push 7 (m/s Stoß auf die Figur), cooldown 1.2, range 8, size 1.25, drop
+  { kind: 'wutkaulquappe', pos: [4, -1.5, -40], center: [4, -1.5, -40], radius: 2 },
+  // Funkenflämmchen: pos = Fußpunkt; path + loop | dir (geradeaus, kehrt an Kanten/Wänden um; edges false = springt hinunter);
+  //   behavior 'hop' | 'chase', sight 6, hop 0.8, height 0.45, pause 0.12, phase 0..1, color 'rot' | 'blau', weight 0, wake, drop
+  { kind: 'funkenflaemmchen', pos: [3, 1, -30], path: [[1, 1, -30], [5, 1, -30]] },
+  // Bumerang-Werfer mit Wurfsichel (7-Burg); Feuer-Werfer mit blauen Kugeln (7-1)
+  { kind: 'bumerang_werfer', pos: [0, 2, -90], sichel: true },
+  { kind: 'feuer_werfer', pos: [6, 2, -90], fireColor: 'blau' },
+  // Rammfisch (Welt 7): size 1, center + radius 4 + cw (kreist, rammt nicht – außer ram: true), path mit Höhen | vertical
+  //   (auf und ab), ram true|false, carries 'star:I' (Stern I in der Blase; LEVEL.stars listet ihn nicht)
+  { kind: 'rammfisch', pos: [0, 1, -120], center: [0, 1, -120], radius: 3.4, size: 2 },
+  { kind: 'rammfisch', pos: [6, 1, -125], path: [[6, 1, -125], [6, 6, -125]] },
+  { kind: 'rammfisch', pos: [-6, 2, -125], carries: 'star:2' },
+],
+```
+
+Laufzeit (für Tests und Gimmicks): Knochenflieger `state` (fly | warn | dive | rise | defeated), `dives`, `diveFrom/diveLow/
+diveTo`, `mode` ('circle' | 'path' | 'hover'), `body()`; Platschfisch `state` (wait | peek | jump | surface | spit | defeated;
+Spender `source`), `jumps`, `spits`, `hole`, `apex`, `lastShot`, Spender `isSource`, `kids`, `spawned`; Lavadrache `state`
+(hidden | rise | idle | spit | sink | hit | defeated), `rises`, `fireballs`, `hits`, `spot`, `head()`, `rise` (0..1);
+Wutkaulquappe `state` (swim | chase | inflate | shove | puffed | deflate | defeated), `puffs`, `shoves`, `puffK`;
+Funkenflämmchen `state` (rest | crouch | air | land | defeated), `hops`, `airborne`; Werfer `sichel`, `sichelDropped`;
+Rammfisch `size`, `star`. Alle mit `info()`.
+
+### Präzisierung (Gegner Welt 7): Varianten (7-A, 7-B)
+
+```js
+// heller Lavafelsen-König (7-A): wie 4-Burg, dazu Platschfische rings um die Arena (Standard bei variant 'hell')
+{ kind: 'lavafelsen_koenig', id: 'koenig', pos, arena: { center, r }, variant: 'hell',
+  fish: { count: [2, 3, 4], ring: r + 1.6, height: 3.2, every: [3.0, 2.6, 2.2], flight: 1.15, inside: 0.9, spit: 0,
+          color: 'rot', gate: null (rad, Richtung des Eingangs: x = cos, z = sin; +Z = π/2), gateHalf: 0.35 } | true | false,
+  star: { pos, index } }
+// blauer Schubser-Prinz (7-B): wie 6-A, blaue Feuerkugeln in einer Kurve
+{ kind: 'schubser_prinz', id: 'prinz', color: 'blau', fire: [3, 4, 5], curve: 1.1, gap: 0.12, pos, dir, arena, net, star }
+```
+
+Heller König: Platschfische springen ab dem Auftritt im Lavasee rings um die Arena in Bögen über den Arenarand (Sehne reicht
+`inside` m hinein, `count` je Phase gleichmäßig verteilt, der Eingang ±`gateHalf` bleibt frei); Tod im Kampf und Sieg nehmen
+sie weg. Laufzeit `fish` (lebende), `fishList`. Blauer Prinz: spuckt `fire[Phase]` blaue Feuerkugeln (`feuerkugel` mit
+`color: 'blau'`, `curve`) kurz nacheinander (gap s) auf derselben Kurvenbahn – Start um curve · 0,5 s neben der Figur, jede
+zweite Salve zur anderen Seite –, eine Feuerschlange, die über die Figur hinwegfegt. Ansagen Phase 2/3: „Jetzt spuckt er
+vier Feuerbälle!“, „Jetzt spuckt er fünf Feuerbälle!“. Laufzeit `volleys`, `blue`.
+
+### Präzisierung (Gegner Welt 7): Baron Brummbär im Kampfwagen (7-Burg)
+
+```js
+items: [{ kind: 'kampfwagen_strasse', id: 'strasse', from: [x, y, z] (Mitte der Oberkante am Anfang, Straße nach −Z),
+          length: 150, width: 12, thick: 1.2, depth: 1.5, rails: true,
+          gaps: [{ at (m ab Anfang, Lückenmitte), width: 3 }], middle: [{ from, to, width: 2 }],
+          traps: [{ at, x: 0, size: [2, 3], phase: 0..1 }] }],
+enemies: [{ kind: 'baron_kampfwagen', id: 'baron', road: 'strasse', pos: [x, y, z] (Wagenmitte beim Kampfbeginn), hp: 9,
+            window: 14, speed: [2.4, 2.8, 3.2], lane: [-3.6, 3.6], endHold: 9, every: [2.7, 2.3, 2.0], bombs: [1, 2, 2],
+            shortEvery: [4, 3, 2], flight: 1.0, fuse: 2.8, shortFuse: 1.0, fire: [3, 2, 2], fireShots: [1, 3, 3],
+            fireSpeed: 7, traps: [3.4, 3.0, 2.0], sichel: 2, star: { pos, index } | [x, y, z], wakeR: 12, seed }],
+boss: { id: 'baron', name: 'Baron Brummbär', speed: 0, trigger (am Straßenanfang), warp, warpPos, warpTo, frame: 0.5, center }
+// freie Stachelfalle (auch ohne Straße): { kind: 'stachelfalle', pos (Oberseite), size: [2, 3], period: 3.2, up: 1.2,
+//   warn: 0.8, phase: 0..1, active: true, yaw }
+```
+
+Boss-Straße: Basalt-Fahrbahn mit Kollision; **Lavalücken** quer über die ganze Breite (Lava 1,2 m tiefer, hineinfallen =
+Lava), **Mittellücken** (links/rechts bleibt je eine Spur), **Stachelfallen** (Entität `stachelfalle`: Lampen blinken/Stacheln
+zucken `warn` s, dann `up` s draußen – jede Berührung bis 0,65 m über der Platte verletzt; im Kampf taktet der Baron sie mit
+`traps[Phase]` s, sonst eingefahren), unsichtbare Leitplanken an den Außenkanten (nicht über Lücken). Schnittstelle
+`solidAt(x, z)`, `gapsBetween(zHi, zLo)`, `midAt(zHi, zLo)`, `trapsOn`, `trapPeriod`, `traps`, `info()`.
+
+Ablauf: `wait` (unsichtbar) → `intro` (2,4 s, braust heran) → **Autoscroll**: das Kampffenster (`window` m) wandert mit
+`speed[Phase]` m/s; der Wagen fährt rückwärts an der Vorderkante (blickt zur Figur), die Hinterkante **schiebt die Figur** mit
+(auch in Lücken), am Wagen vorbei kommt sie nicht. Lavalücke → der Wagen **springt** hinüber (0,9 s) und wartet, bis das
+Fenster nachkommt; über Mittellücken fährt er mittig. Am Straßenende (`endHold` m davor) bleibt das Fenster stehen.
+Angriffe alle `every[Phase]` s: **Kickbomben werfen** (1 bzw. 2, 1,6 m vor die Figur, nie in eine Lücke, Landemarke; jede
+`shortEvery`-te mit kurzer Lunte `shortFuse` s – Ansage „Vorsicht – gleich explodiert sie!“), jeder `fire`-te Angriff **Feuer
+spucken** (Kanone, `fireShots` Kugeln, ab Phase 2 als Fächer = Feuerstoß). **Treffer**: zurückgekickte Kickbomben
+(`onBombHit`; Zielhilfe: gekickte Bomben, die grob auf den Wagen rollen, lenken ein und hüpfen über Lavalücken) → `hit`
+(0,6 s) → `stunned` (1,1 s) → weiter. **Wurfsichel = Zusatzschaden**: jede geworfene Sichel kratzt einmal (Hin- und Rückflug
+zusammen; Ansage „Kratzer!“, goldene Punkte in der Lebensleiste = `carHits`), `sichel` Kratzer = ein Treffer. 9 Treffer in 3
+Phasen: Phase 2 Doppelwurf + Feuerstoß („Mehr Bomben – und ein Feuerstoß!“), Phase 3 schneller, Stachelfallen öfter („Er wird
+schneller – Vorsicht, Stacheln!“). Draufspringen = Abprall ohne Schaden; Feuer, Krallen, Panzer, Stern, Riese, Explosionen
+daneben zählen nicht; Berührung des Wagens verletzt. Besiegt → `defeated` (2,2 s: Wagen bremst, sackt schief ab, qualmt,
+eigene Bomben verpuffen, Fallen fahren ein; Fanfare über den Archetyp) → `flee` (3,0 s: der Baron springt seitlich aus dem
+Wagen und hüpft schwindelig im Zickzack davon, den Zylinder in der Tatze) → `gone` (Stern; Archetyp: Warp-Box). Tod im Kampf
+(`reset`): Baron 9/9, Wagen und Fenster zurück, Bomben/Feuerkugeln weg, Fallen eingefahren. Schnittstelle wie Graf Brummbär
+(`begin, reset, state, stateT, hp, maxHp, phase, visible, home` (wandert mit – Kampfkamera), `half, carHits, vulnerable,
+info()`), `level.onBossHit(boss, 'bombe' | 'sichel')`, `level.onBossDefeated(boss)`, `boss: true`, kein `enemy`. Laufzeit:
+`s, frontZ, backZ, throws, bombsThrown, shortBombs, fires, fireballs, jumps, pushes, hits, hitLog, sichelHits, bounces`.
+HUD: Lebensleiste „Baron Brummbär“ mit 9 kleineren Herzen (`hud.boss` ab 6 Herzen).
+
+### Präzisierung (Gegner Welt 7): Hinweise für Level-Bauer
+
+- **Knochenflieger (7-4, 7-5, 7-7)**: Flughöhe 3,5–5 m über dem Weg (er stößt bis `reach` m tief herab; der Bogen endet auf
+  Starthöhe hinter der Figur); er fliegt durch Wände – über engen Turm-Wegen `radius` ≤ Wegbreite + 1. Mehrere mit `phase`
+  versetzen. Von oben besiegbar: an Stellen mit Absprungmöglichkeit (Podest, Stampfstein) stellen.
+- **Platschfisch (7-7, 7-A)**: `pos`/`holes` auf die Lava legen (y = Oberfläche; bei `lavaspiegel` folgt er von selbst).
+  Bögen über Wege zwischen zwei Löchern (`height` 2,6 m) – Abstand halten oder eine Taktlücke lassen. Spucken nur 1–2 je
+  Gruppe (`spit: 2` bzw. `3`). Endlos (`spawner`) entlang eines Uferwegs: `dir` parallel zum Weg, `range` ≈ Strecke, auf der
+  sie kommen sollen. `aim` nur über großer, offener Lava (er springt nicht unter Plattformen).
+- **Lavadrache (7-7 Drachenbucht)**: `spots` 4–8 m vom Weg, Deckung (Felsen) zwischen zwei Stellen; Feuerbälle landen bei
+  der Figur und hüpfen weiter (Weg ≥ 3 m breit). Besiegbar nur mit Power-up/Wurfsichel – ein Power-up davor anbieten oder ihn
+  als Hindernis behandeln. Blaue Lava → blauer Drache (ohne `color`).
+- **Wutkaulquappe (7-6)**: in Becken ≥ 2,5 m tief; `range` ≤ Beckengröße. Sie verlässt das Wasser nie – Inseln/Ufer sind
+  sicher. Angriffe unter Wasser (Tatzenhieb, Wurfsichel) besiegen sie auch aufgeblasen.
+- **Funkenflämmchen (7-2, 7-5)**: auf Plattformen/Schaltfeldern mit `path` oder `dir`; es springt nie von Kanten (außer
+  `edges: false`). Mit `weight: 1` drückt es Druckfelder (pfeld) – Rätsel „Flämmchen auf das Feld locken“ mit `behavior:
+  'chase'`. Wasser löscht es.
+- **Bumerang-Werfer mit Wurfsichel (7-Burg)**: `sichel: true` – die fallengelassene Wurfsichel ist das Power-up für den Rest
+  der Burg (Baron!). Steht er über Lava, erscheint sie an seinem Platz (`home`): `home` auf festen Boden legen.
+- **Rammfisch (7-6)**: große rotierende `size` 2–2,5 + `center/radius`; Stern-Träger `carries: 'star:I'` (Stern nicht
+  zusätzlich in `LEVEL.stars`/`items`); er bricht Unterwasser-Kisten (`kiste_wasser`) auf, wenn er hineinrammt.
+- **7-A (Archetyp arena)**: Lavafelsen-König mit `variant: 'hell'` auf einer runden Felsfläche r ≥ 10 m mit Lava ringsum
+  (Lava ≈ 1,4 m unter der Fläche, damit die Bögen gut sichtbar sind), `fish.gate` auf den Steg/Eingang. Ohne
+  `LEVEL.boss(es)` beginnt der König selbst (`wakeR`) und setzt den Stern; Neustart nach Tod und Arena-Zählung wie
+  `prinzKampf` in `levels/w6/_helpers_b.js` (König `reset()` im `respawn`, `arch.boss = koenig`, `onBossDefeated →
+  arch.onDefeated`).
+- **7-B (Archetyp arena)**: wie 6-A (Käfig 20 × 20 m, `glasnetz`, `prinzKampf`), nur `color: 'blau'` beim Prinzen.
+- **7-Burg**: Boss-Straße als Item (`kampfwagen_strasse`) nach dem Burg-Parcours; `boss.trigger` 1–5 m hinter dem
+  Straßenanfang, Startplatz/Checkpoint davor, `boss.center` in Straßenmitte; Lavasee unter der Straße (0-28: 3,2 m tiefer),
+  Lücken 2,6–3 m breit (der Wagen springt, die Figur auch), Mittellücke z. B. 20 m lang, Stachelfallen nicht in Lücken und
+  nicht in den ersten Metern; Stern und Warp-Box am Straßenende (`star` ≈ 16 m vor dem Ende, `warpPos` daneben). Kamera wie
+  0-28 (`pitch` 40, `dist` 17, `ahead` 1,2). Die Wurfsichel aus der Burg verkürzt den Kampf (2 Kratzer = 1 Treffer).
+
+### Präzisierung (Gegner Welt 7): Tests und Kennzahlen
+
+`tests/course_w7_enemies.mjs` (Port 4690, `?course=0-27|0-28&scale=2&adapt=0`, deterministisch über `step(n)`/`setInput`;
+Hilfen `window.__t`: `Z(r, dz)`, `place`, `stomp`, `touch`, `until`, `hold`, `face`, `sichel(e)` (Treffer wie die Wurfsichel des
+Motors), Boss: `enter`, `untilState`, `grab`, `throwAt`, `follow`, `untilB`, `kickBack`; `W7E_PART=1|2|3|4`, je Teil
+≈ 1 min, Teil 4 mit Bildern ≈ 5,5 min, vorher `npm run build`): Laden (alle Arten, Modelle ohne Platzhalter, 10 s ohne Fehler) · Teil 1
+Knochenflieger (Kreis r 3, Ankündigung → Sturzflug durch die Figur → zurück, Pilz-Maske, Draufspringen, Bahn, Feuer/Sichel,
+seitlich), Platschfisch (verborgen, Bogen 2,6 m, von oben heiß, Spucken, Feuer prallt ab, zielend, endlos ≤ 3 gleichzeitig),
+Lavadrache (verborgen, Zyklus, Feuerbälle landen bei der Figur, Kopf/Hals heiß, blau mit 2 hp), Wutkaulquappe (Platz,
+Anschwimmen → Aufblasen → Stoß, bleibt im Wasser, Angriff/Draufspringen, Kreis), Funkenflämmchen (Hüpfer, Kanten, heiß,
+Jäger, Wasser) · Teil 2 Bumerang-Werfer mit Gegner-Sichel (trifft, fängt, lässt das Power-up fallen, auch nach Lava), blaue
+Feuer-Werfer, echte Wurfsichel gegen einen Knochenflieger, Bestand (Stachelpanzer, Zauberkröte, Pilzlingsturm,
+Hammer-Werfer), Rammfisch (groß, kreisend, auf und ab, Stern in der Blase), Wurfsichel bei 61 Gegnerarten + Sonderfälle ·
+Teil 3 heller König (Platschfische 2 → 3 → 4, Steg frei, 3 Brocken-Treffer, Sieg), blauer Prinz (3 → 4 → 5 blaue Kugeln in der
+Kurve, 3 Tritte), Baron (Straße, Autoscroll 14,4 m in 6 s und Schieben, Bomben nie in Lücken, Sprung über die Lücke,
+7 Kick-Treffer + echte Wurfsichel 2 Kratzer = 1 Treffer, kurze Lunten, Feuerstoß, Phasen-Ansagen, Flucht, Stern, Warp-Box →
+Ziel), Stachelfalle, Tod im Kampf setzt Baron und König zurück · Teil 4 Bilder `tests/out/w7e_*.png` (20) und Zeichenaufrufe
+– 64 Prüfungen (25 + 12 + 24 + 3, dazu je Lauf 5 für Laden und Konsole). Gemessen (scale 2, inkl. Schattenpass): Gegnerzoo
+38–61 Zeichenaufrufe (≤ 286 k Dreiecke, Thema lava), Bossarenen 50–83 (≤ 242 k, Thema lavacastle); Simulation im Zoo
+(38 Entitäten) 0,1–0,34 ms je Schritt. Regressionen `course_enemies`, `course_w1_combat`, `course_w2_enemies`,
+`course_w3_enemies`, `course_w4_enemies` (zoo, boss), `course_w5_enemies` (2), `course_hw_enemies` (1), `course_w6_enemies`
+(1–4), `course_w7_blocks` (ohne Bilder), `course_physics`, `tests/sfx_namen.mjs` bestanden.

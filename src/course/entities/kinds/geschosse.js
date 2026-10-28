@@ -48,14 +48,24 @@ class Feuerkugel extends Geschoss {
     this.mode = spec.mode === 'straight' ? 'straight' : 'bounce';
     this.life = spec.life ?? (this.mode === 'straight' ? 2.5 : 3);
     this.bounces = 0;
+    this.color = spec.color === 'blau' ? 'blau' : 'rot';
+    this.curve = spec.curve ?? 0;
+    this.curveFor = spec.curveFor ?? Infinity;
     this._ign = (s) => this.ownShape(s);
-    if (level.view) this.setModel(getModel('feuerkugel'));
+    if (level.view) this.setModel(getModel(this.color === 'blau' ? 'feuerkugel_blau' : 'feuerkugel'));
   }
 
   update(dt) {
     this.age += dt;
     if (this.age > this.life) { this.poof(); return; }
     if (this.mode === 'bounce') this.vel.y = Math.max(this.vel.y - 40 * dt, -18);
+    if (this.curve && this.age <= this.curveFor) {
+      // waagerecht weiterdrehen (Kurvenflug)
+      const a = this.curve * dt, c = Math.cos(a), s = Math.sin(a);
+      const vx = this.vel.x * c + this.vel.z * s, vz = -this.vel.x * s + this.vel.z * c;
+      this.vel.x = vx; this.vel.z = vz;
+      this.yaw = Math.atan2(-vz, vx);
+    }
     const c = this.center();
     const res = this.level.world.moveAABB(c, this.half, { x: this.vel.x * dt, y: this.vel.y * dt, z: this.vel.z * dt }, { step: 0.1, ignore: this._ign });
     this.pos.set(c.x, c.y - this.half.y, c.z);

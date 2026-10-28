@@ -2,7 +2,8 @@
 // Hängt sich an die laufende Phaser-Szene 'CourseUI' (480 × 270, über der 3D-Leinwand), sobald sie aktiv ist –
 // CourseUIScene.js bleibt unverändert. Je Bild tick() aufrufen (aus archetype.render).
 //
-//   hud.boss({ name, hp, max, car })   Leiste unter der Stern-Zeile (Herzen; car = Blechschäden 0..2 als Punkte)
+//   hud.boss({ name, hp, max, car })   Leiste unter der Stern-Zeile (Herzen; car = Blechschäden 0..2 als Punkte; mehr als
+//                                      5 Herzen: kleiner und eine breitere Leiste – Baron im Kampfwagen, 9 Treffer)
 //   hud.arena({ left, total })         Bullenköpfe (übrig = farbig, besiegt = grau mit Kreuz) + „noch N“
 //   hud.banner(text, { color, size, hold }) große Ansage in der Bildmitte (blendet ein und aus)
 //   hud.hideBoss(), hud.hideArena(), hud.state() (für Tests), hud.dispose()
@@ -109,18 +110,20 @@ export class ArchHud {
     o.bossName.setText(''); o.arenaText.setText('');
     const W = GAME.width;
     if (boss) {
-      const w = 150, x = W - 90, y = 42;   // rechts unter der Uhr (die Mitte bleibt für den Endgegner frei)
+      // mehr als 5 Herzen (Baron im Kampfwagen, 9 Treffer): kleinere Herzen, breitere Leiste (rechter Rand bleibt)
+      const many = boss.max > 5, hs = many ? 10 : 15, sc = many ? 0.78 : 1;
+      const w = many ? 98 + boss.max * hs : 150, x = W - 15 - w / 2, y = 42;   // rechts unter der Uhr (die Mitte bleibt für den Endgegner frei)
       g.fillStyle(0x2a1030, 0.62); g.fillRoundedRect(x - w / 2, y - 9, w, 20, 9);
       g.lineStyle(1, 0xffc21a, 0.7); g.strokeRoundedRect(x - w / 2 + 0.5, y - 8.5, w - 1, 19, 9);
       o.bossName.setPosition(x - w / 2 + 8, y).setOrigin(0, 0.5).setText(boss.name ?? 'Boss');
       for (let i = 0; i < boss.max; i++) {
-        const hx = x + w / 2 - 14 - (boss.max - 1 - i) * 15, hy = y + 0.5;
-        this.heart(g, hx, hy, i < boss.hp);
+        const hx = x + w / 2 - 14 - (boss.max - 1 - i) * hs, hy = y + 0.5;
+        this.heart(g, hx, hy, i < boss.hp, sc);
       }
-      // Blechschäden (drei = ein Treffer)
+      // Blechschäden (drei = ein Treffer) bzw. Sichel-Kratzer
       for (let i = 0; i < 2; i++) {
         g.fillStyle(i < (boss.car ?? 0) ? 0xffc21a : 0x000000, i < (boss.car ?? 0) ? 1 : 0.3);
-        g.fillCircle(x + w / 2 - 14 - boss.max * 15 - 4 - i * 6, y + 5, 2);
+        g.fillCircle(x + w / 2 - 14 - boss.max * hs - 4 - i * 6 + (many ? 4 : 0), y + 5, 2);
       }
     }
     if (arena) {
@@ -132,13 +135,13 @@ export class ArchHud {
     }
   }
 
-  heart(g, x, y, full) {
+  heart(g, x, y, full, s = 1) {
     const draw = () => {
-      g.fillCircle(x - 2.6, y - 1.5, 3.2); g.fillCircle(x + 2.6, y - 1.5, 3.2);
-      g.fillTriangle(x - 5.6, y - 0.6, x + 5.6, y - 0.6, x, y + 5.6);
+      g.fillCircle(x - 2.6 * s, y - 1.5 * s, 3.2 * s); g.fillCircle(x + 2.6 * s, y - 1.5 * s, 3.2 * s);
+      g.fillTriangle(x - 5.6 * s, y - 0.6 * s, x + 5.6 * s, y - 0.6 * s, x, y + 5.6 * s);
     };
     g.fillStyle(full ? 0xff3a5a : 0x000000, full ? 1 : 0.35); draw();
-    if (full) { g.fillStyle(0xffffff, 0.7); g.fillCircle(x - 3.2, y - 2.4, 1); }
+    if (full) { g.fillStyle(0xffffff, 0.7); g.fillCircle(x - 3.2 * s, y - 2.4 * s, 1 * s); }
   }
 
   bullHead(g, x, y, alive) {
