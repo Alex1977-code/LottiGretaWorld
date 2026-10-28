@@ -17,7 +17,7 @@
 //   7  Ruinenplateau       z −278 … −304  (per Warp-Box) Ruinen, Steinfrösche, Zielmast
 // Gegner: Brummer 4, Rankenschnapper 6. Extraleben: ?-Block auf dem Aussichtsfelsen, unsichtbarer Block auf der Tor-Insel.
 
-import { isl, line, ring, arc, sign, seerosen, blauesTor, baumhaus, felsen, ruinen, glimmer } from './_helpers_b.js';
+import { isl, line, ring, arc, sign, seerosen, blauesTor, baumhaus, felsen, ruinen, glimmer, zier } from './_helpers_b.js';
 
 const PI = Math.PI;
 const WS = 0.4;          // Giftsee (oben)
@@ -71,12 +71,8 @@ function build(level) {
   padLine(PATH1, 1, 0); padLine(PATH1, -1, 2); padLine(PATH2.slice(0, 8), 1, 1); padLine(PATH2.slice(0, 8), -1, 3);
   seerosen(level, pads, { flowers: 0.4 });
   // Schluchtwände der Abwärtsströmung (gestuft, rein optisch – die Kollision liefern die Inseln)
-  const rocks = [];
-  for (let k = 0; k < 6; k++) {
-    const z = -205 - k * 7.5, y = WS - 1 - (k * 4) / 5.2;
-    rocks.push([-6.2, y - 2, z, 4.4, 6 - k * 0.2, 7.6, 0.05], [6.2, y - 2, z, 4.4, 6.4 - k * 0.3, 7.6, -0.05]);
-  }
-  felsen(level, rocks, { color: 0x6a7a5a });
+  // Felsbrocken an den Schluchtkanten (oben auf den Wänden)
+  felsen(level, [[-5.2, 3, -208, 1.6, 1.1, 1.8, 0.4], [5.4, 3, -217, 1.4, 0.9, 1.6, -0.3], [-5.0, 3, -229, 1.2, 0.8, 1.4, 0.2], [5.2, 3, -242, 1.8, 1.2, 2, -0.5]], { color: 0x7a8a6a });
   felsen(level, [[-9, YL, -248.5, 2.4, 1.6, 2, 0.4], [9.5, YL, -250, 2.6, 2.2, 2.4, -0.3], [-10.5, YL, -262, 2, 3, 2.4, 0.2], [10.8, YL, -263, 2.6, 3.6, 2.6, -0.5],
     [-15, Y1, 8, 2.6, 2, 2.4, 0.3], [14.6, Y1, 9, 2.2, 1.4, 2, -0.4]], { color: 0x7a8a6a });
   ruinen(level, [
@@ -85,6 +81,27 @@ function build(level) {
     { kind: 'liegend', pos: [5.5, YG, -288.5], h: 3.6, yaw: 0.4 }, { kind: 'block', pos: [-4.8, YG, -289], w: 1.4, h: 0.9 },
     { kind: 'frosch', pos: [-3.6, YG, -300.5], size: 1.1 }, { kind: 'frosch', pos: [3.6, YG, -300.5], size: 1.1 },
     { kind: 'frosch', pos: [-10, YL, -252], size: 0.8 }, { kind: 'block', pos: [8.5, Y1, -110], w: 1.2, h: 0.7 },
+  ]);  zier(level, [
+    // Startufer: Hütte, Stamm, Blumen, Moos, Trittsteine zum Steg
+    { kind: 'huette', pos: [8.5, Y1, 5.5], size: 1.1 }, { kind: 'stamm', pos: [-5.5, Y1, -2.5], length: 4.2, yaw: 0.4 },
+    { kind: 'blumen', pos: [-3.6, Y1, 9.5], size: [3, 1.2], colors: [0xff5a3a, 0xffb02a, 0xc04aff, 0xff7ac0] },
+    { kind: 'moos', pos: [0, Y1, 3], size: [14, 9], n: 12, flower: 0xffd84a }, { kind: 'steine', pos: [0, Y1, 1], to: [0, Y1, -5.4], n: 5 },
+    // Inseln am Floßweg
+    { kind: 'moos', pos: [-12.5, Y1, -17], size: [5, 8], n: 6, flower: 0xff7ac0 }, { kind: 'moos', pos: [12, Y1, -20], size: [4, 9], n: 6 },
+    { kind: 'moos', pos: [-14, Y1, -43], size: [5, 10], n: 7, flower: 0xffb02a }, { kind: 'stamm', pos: [13, Y1, -45.5], length: 3.4, yaw: -0.3 },
+    { kind: 'moos', pos: [-12.5, Y1, -67], size: [6, 10], n: 7 }, { kind: 'blumen', pos: [-12.5, Y1, -72.5], size: [3, 1], colors: [0xff5a3a, 0xc04aff] },
+    // Tor-Insel
+    { kind: 'moos', pos: [17, Y1, -63], size: [8, 14], n: 10, flower: 0x5ac8ff }, { kind: 'blumen', pos: [20.6, Y1, -66], size: [1.4, 5], colors: [0xff7ac0, 0xffd84a, 0xffffff] },
+    // Checkpoint-Insel
+    { kind: 'moos', pos: [2, Y1, -105], size: [18, 14], n: 14, flower: 0xffd84a }, { kind: 'stamm', pos: [6, Y1, -112.6], length: 3.6, yaw: 0.1 },
+    { kind: 'blumen', pos: [9.6, Y1, -101], size: [1.2, 4], colors: [0xff5a3a, 0xffb02a] },
+    // Floßweg II
+    { kind: 'moos', pos: [-10, Y1, -127], size: [6, 12], n: 7 }, { kind: 'moos', pos: [14, Y1, -168], size: [5, 14], n: 7, flower: 0xc04aff },
+    { kind: 'stamm', pos: [-12.5, Y1, -194], length: 3.2, yaw: 1.2 },
+    // Landeinsel, Ruinenplateau
+    { kind: 'moos', pos: [0, YL, -257], size: [20, 14], n: 14, flower: 0xffb02a }, { kind: 'stamm', pos: [7.5, YL, -261], length: 3.4, yaw: -0.2 },
+    { kind: 'moos', pos: [0, YG, -291], size: [20, 22], n: 14, flower: 0xffffff },
+    { kind: 'blumen', pos: [-9.5, YG, -284], size: [1.4, 4], colors: [0xff5a3a, 0xffd84a] }, { kind: 'blumen', pos: [9.5, YG, -284], size: [1.4, 4], colors: [0xc04aff, 0xff7ac0] },
   ]);
 }
 
@@ -103,6 +120,8 @@ export const LEVEL = {
   music: 'course_jungle',
   timeLimit: 400,
   killY: -14,
+  // tiefer liegender Giftsee am Horizont (die Abwärtsströmung führt 4 m unter den oberen See)
+  prebuild(level) { if (level.view?.sky) level.view.sky.theme = { ...level.view.sky.theme, seaLevel: -7 }; },
   build,
   setup,
   start: { pos: [0, Y1, 6], yaw: PI / 2 },
@@ -118,7 +137,7 @@ export const LEVEL = {
   segments: [
     { type: 'killplane', y: -14 },
     // ---------------- Giftsee (oben), Strömung, unteres Becken
-    { type: 'giftwasser', id: 'giftsee', pos: [0, WS - 3, -95], size: [70, 3, 218], bubbles: true },
+    { type: 'giftwasser', id: 'giftsee', pos: [0, WS - 9, -95], size: [70, 9, 218], bubbles: true },
     { type: 'stroemung', id: 'strom', from: [0, WS, -204], to: [0, WL, -244], width: 7, speed: 6, fluid: 'gift' },
     { type: 'giftwasser', id: 'becken', pos: [0, WL - 3, -246.3], size: [16, 3, 4.6], bubbles: true },
 
@@ -134,7 +153,7 @@ export const LEVEL = {
     isl(-18, -10.5, -36, -50, Y1, 4), isl(10, 16, -38, -48, Y1, 4),
     isl(-17, -8.5, -60, -74, Y1, 4), isl(9, 14, -82, -92, Y1, 4), isl(-13, -6, -84, -92, Y1, 4),
     // Tor-Insel mit Lianen-Deckengitter, blauem Tor, Kletterranke, Glasröhren zum Baumhaus und zur Checkpoint-Insel
-    { type: 'klettergitter', id: 'decke', mode: 'decke', pos: DECKE.pos, size: DECKE.size, style: 'liane' },
+    { type: 'klettergitter', id: 'decke', mode: 'decke', pos: DECKE.pos, size: DECKE.size, style: 'liane', ceiling: false },
     isl(12, 22, -55, -72, Y1, 4),
     { type: 'klettergitter', id: 'torgitter', mode: 'wand', pos: TORGITTER, size: [1.2, 5.8], yaw: -PI / 2, style: 'liane' },
     { type: 'glasnetz', id: 'roehre', radius: 1, speed: 11,
@@ -161,7 +180,7 @@ export const LEVEL = {
     { type: 'klettergitter', id: 'klippe', mode: 'wand', pos: M64.KLIPPE.gitter, size: [3.2, 7], yaw: -PI / 2, style: 'liane' },
     sign(-8.5, YL, -251, 'Warp-Box zum Ziel', { size: [2.6, 0.9] }),
     // ---------------- 7 Ruinenplateau
-    isl(-12, 12, -278, -304, YG, 6, { top: 'stone' }),
+    isl(-12, 12, -278, -304, YG, 18, { top: 'stone' }),
     // ---------------- Kulisse
     { type: 'deco_w6', items: [
       { kind: 'dschungelbaum', pos: [-12, Y1, 9], height: 10 }, { kind: 'dschungelbaum', pos: [12, Y1, -2], height: 9 },
@@ -188,8 +207,13 @@ export const LEVEL = {
       { kind: 'farne', pos: [0, YG, -290], size: [20, 14], n: 8, avoid: [[0, -297, 2.5], [0, -282, 2.5]] },
       { kind: 'liane', pos: [-6, 9.5, -27], length: 4 }, { kind: 'liane', pos: [3, 9.5, -51], length: 3.6 }, { kind: 'liane', pos: [-2, 9.5, -79], length: 4 },
       { kind: 'liane', pos: [3, 9.5, -136], length: 3.6 }, { kind: 'liane', pos: [-5, 9.5, -176], length: 4 },
+      // Schlucht: Farne und Pilze auf den Wänden, Lianen über der Strömung
+      { kind: 'farne', pos: [-7.5, 3, -215], size: [6, 20], n: 7 }, { kind: 'farne', pos: [7.5, 3, -232], size: [6, 20], n: 7 },
+      { kind: 'pilze', pos: [-7.5, 3, -236], n: 6 }, { kind: 'pilze', pos: [7.5, 3, -212], n: 6 },
+      { kind: 'dschungelbaum', pos: [-8.5, 3, -224], height: 10 }, { kind: 'dschungelbaum', pos: [9, 3, -240], height: 9 },
+      { kind: 'liane', pos: [-2, 8, -214], length: 3.4 }, { kind: 'liane', pos: [2.4, 8, -228], length: 3 },
     ] },
-    { type: 'deco_w4', items: [{ kind: 'giftwasserfall', pos: [-12, 6, -2], width: 2.4, height: 5.4, yaw: PI / 2 }, { kind: 'giftwasserfall', pos: [7.5, 3, -230], width: 2.6, height: 6, yaw: -PI / 2 }] },
+    { type: 'deco_w4', items: [{ kind: 'giftwasserfall', pos: [-3.7, -1.6, -219], width: 2.2, height: 4.6, yaw: PI / 2 }, { kind: 'giftwasserfall', pos: [3.7, -2.6, -236], width: 2.2, height: 5.6, yaw: -PI / 2 }] },
   ],
   blocks: [
     { kind: 'question', pos: [-12.5, 6 + 2.3, 0], content: 'oneup' },

@@ -95,7 +95,12 @@ export function glimmer(level, boxes, o = {}) {
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   const mat = new THREE.PointsMaterial({ size: o.size ?? 0.22, map: dotTex(), color: o.color ?? 0xfff2a0, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, opacity: o.opacity ?? 0.95 });
   const pts = new THREE.Points(geo, mat);
-  pts.frustumCulled = false;
+  // Begrenzungskugel über alle Quader (+ Ausschlag): außerhalb des Bildes kein Zeichenaufruf
+  const bb = new THREE.Box3();
+  for (const q of boxes) bb.union(new THREE.Box3(new THREE.Vector3(q[0], q[2], Math.min(q[4], q[5])), new THREE.Vector3(q[1], q[3], Math.max(q[4], q[5]))));
+  geo.boundingSphere = bb.getBoundingSphere(new THREE.Sphere());
+  geo.boundingSphere.radius += (o.drift ?? 0.6) + 0.5;
+  geo.computeBoundingSphere = () => {};
   pts.renderOrder = 4;
   const drift = o.drift ?? 0.6, speed = o.speed ?? 0.7;
   const hv = {};
@@ -407,13 +412,15 @@ export function baumhaus(level, o) {
     b.cyl(0.07, 0.07, 0.9, x + Math.cos(a) * (r - 0.2), top, z - Math.sin(a) * (r - 0.2), 0x7a5230, 5);
   }
   b.torus(r - 0.2, 0.06, x, top + 0.9, z, 0x8a5a32, { rx: HALF_PI, ts: 32, rs: 4 });
-  // Blätterdach über der Plattform
-  for (let k = 0; k < 7; k++) {
-    const a = (k / 7) * TAU;
-    b.sphere(2.2, x + Math.cos(a) * 2.4, top + 6.2 + (k % 2) * 0.6, z + Math.sin(a) * 2.4, litTop(0x3aa83a, 0.55), { ws: 9, hs: 6, s: [1, 0.6, 1] });
+  // Blätterkrone hinter der Plattform (−Z, damit sie die Kamera nicht verdeckt), Äste und Lianen
+  const cz = z - r - 2.2;
+  b.cyl(0.35, 0.55, 7, tx, top, tz, 0x6a4428, 8, { rx: -0.35 });
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 6) * TAU;
+    b.sphere(1.9, x + Math.cos(a) * 2.6, top + 6.4 + (k % 2) * 0.7, cz + Math.sin(a) * 1.6, litTop(0x3aa83a, 0.55), { ws: 9, hs: 6, s: [1, 0.65, 1] });
   }
-  b.sphere(2.6, x, top + 7.2, z, litTop(0x4cbc3a, 0.55), { ws: 10, hs: 7, s: [1, 0.6, 1] });
-  b.cyl(0.35, 0.5, 6, x, top, z, 0x6a4428, 8);
+  b.sphere(2.4, x, top + 7.4, cz, litTop(0x4cbc3a, 0.55), { ws: 10, hs: 7, s: [1, 0.65, 1] });
+  for (const dx of [-2.6, 0.8, 2.9]) b.cyl(0.04, 0.04, 3.2, x + dx, top + 3, cz + 1.6, 0x3a8a2a, 4);
   b.flush(level);
 }
 
@@ -924,6 +931,25 @@ export function zier(level, list, o = {}) {
           flat.cyl(0.02, 0.02, 0.3, px, y + 0.1, pz, 0x3a8a3a, 3);
           g.sphere(0.1, px, y + 0.42, pz, cols[k % cols.length], { ws: 5, hs: 4 });
         }
+        break;
+      }
+      case 'huette': {
+        // Stelzenhütte mit Strohdach (nur Optik; Kollision: Stelzen-Quader)
+        const s = it.size ?? 1;
+        solid(x - 1.6 * s, x + 1.6 * s, y, y + 1.4 * s, z - 1.4 * s, z + 1.4 * s);
+        for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) b.cyl(0.12 * s, 0.14 * s, 1.4 * s, x + sx * 1.4 * s, y, z + sz * 1.2 * s, 0x6a4428, 6);
+        b.box(3.2 * s, 0.2 * s, 2.8 * s, x, y + 1.3 * s, z, litTop(WOOD_LT, 0.7), { r: 0 });
+        b.box(2.8 * s, 1.5 * s, 2.4 * s, x, y + 1.5 * s, z, litTop(0xc89a5a, 0.7), { r: 0.04 });
+        b.box(0.8 * s, 1.1 * s, 0.06, x + 0.4 * s, y + 1.5 * s, z + 1.22 * s, 0x3a2414, { r: 0 });
+        b.cone(2.6 * s, 1.8 * s, x, y + 3.0 * s, z, litTop(0xd8b860, 0.6), 4, { yaw: Math.PI / 4, s: [1, 1, 0.9] });
+        g.box(0.5 * s, 0.4 * s, 0.06, x - 0.7 * s, y + 2.1 * s, z + 1.22 * s, 0xffd890, { r: 0 });
+        break;
+      }
+      case 'stamm': {
+        // umgestürzter Baumstamm (moosig), längs yaw
+        const L2 = it.length ?? 4, r = it.r ?? 0.45;
+        solid(x - Math.abs(Math.cos(yaw)) * L2 / 2 - r, x + Math.abs(Math.cos(yaw)) * L2 / 2 + r, y, y + r * 1.6, z - Math.abs(Math.sin(yaw)) * L2 / 2 - r, z + Math.abs(Math.sin(yaw)) * L2 / 2 + r);
+        b.cyl(r, r * 1.1, L2, x, y + r, z, { v: (px, py, pz, nx, ny) => new THREE.Color(ny > 0.5 ? 0x5aa83a : 0x7a5232) }, 9, { rz: HALF_PI, yaw });
         break;
       }
       default: break;

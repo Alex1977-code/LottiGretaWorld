@@ -31,6 +31,7 @@ import * as THREE from 'three';
 import {
   isl, line, ring, arc, sign, doorWall, nische, saalDecke, treppe, scheinwand, saalZier, glimmer, Bld, litTop, daecher, laternen, zier,
 } from './_helpers_b.js';
+import { schattenDiaet } from '../w5/_helpers_a.js';
 
 const PI = Math.PI;
 const Y0 = 1;                    // Hof, Korridor, Erdgeschoss
@@ -75,10 +76,9 @@ function rueckwand(level, b, k) {
 const tuer = (id, x, y, z, o = {}) => ({ type: 'schiebetuer', id, pos: [x, y, z], width: 2.4, height: 3, yaw: -PI / 2, slide: 'beide', ...o });
 
 /** Aufbau-Haken (vor dem Verschmelzen): Korridor, Saal, Treppen, Nischen, Scheinwände, Tempel, Käfig, Garten. */
-const EXP = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('exp') ?? '' : '';
 function build(level) {
   const b0 = new Bld();
-  const b = EXP.includes('w') ? null : b0;
+  const b = b0;
   // ---------------- Korridor: Seitenwände mit zwei Türöffnungen, Querwände mit Mitteltür, Abschlusswand
   doorWall(level, b, { axis: 'z', a0: -28.6, a1: -2, c: -3.3, d: 0.6, y0: Y0, y1: Y0 + 3.4, doors: [-10.5], dw: 2.9, dh: 3.2, face: 1 });
   doorWall(level, b, { axis: 'z', a0: -28.6, a1: -2, c: 3.3, d: 0.6, y0: Y0, y1: Y0 + 3.4, doors: [-17.5], dw: 2.9, dh: 3.2, face: -1 });
@@ -118,7 +118,7 @@ function build(level) {
   scheinwand(level, { id: 'schein2', x: M63.SCHEIN[1][0], y: F[2], z: M63.SCHEIN[1][1], w: 2.5, h: 3.2, seed: 8 });
   // Sockel für Maske, Gong-Podest
   b0.box(1.1, 0.4, 1.1, M63.MASKE_SAAL[0], F[0], M63.MASKE_SAAL[2], litTop(0x9a2a24, 0.7), { r: 0.06 });
-  if (!EXP.includes('z')) saalZier(level, { x0: XL, x1: XR, zF: ZF, zB: ZB, floors: F, roof: F[2] + 4.6, paintings: [[-16, F[0] + 1.6], [0, F[0] + 1.6], [16, F[0] + 1.6], [-14, F[1] + 1.6], [2, F[1] + 1.6], [-14, F[2] + 1.6], [18, F[2] + 1.6]] });
+  saalZier(level, { x0: XL, x1: XR, zF: ZF, zB: ZB, floors: F, roof: F[2] + 4.6, paintings: [[-16, F[0] + 1.6], [0, F[0] + 1.6], [16, F[0] + 1.6], [-14, F[1] + 1.6], [2, F[1] + 1.6], [-14, F[2] + 1.6], [18, F[2] + 1.6]] });
   // ---------------- Käfig der Rätselbox (Nebenbereich): Wände ringsum (vorn hinter der Figur fest: Kugeln prallen ab)
   const K = M63.KAEFIG;
   const kw = (x0, x1, z0, z1, h, cam) => level.world.add({ type: 'box', min: [x0, K.y, z0], max: [x1, K.y + h, z1], camIgnore: !!cam, tag: 'kaefig' });
@@ -138,7 +138,7 @@ function build(level) {
     }
     b0.box(14.8, 0.9, 0.5, K.x, K.y, K.z + 7.3, litTop(0x9a2a24, 0.7), { r: 0.05 });
   }
-  b0.flush(level);
+  b0.flush(level, { castShadow: false });   // Innenwände ohne Sonnenschatten (überdachter Saal; spart den Schattenpass)
   // Dächer (sparsam): über dem Saal, unter den Tempelterrassen, auf dem obersten Dach, im Gong-Garten
   daecher(level, [
     { pos: [0, F[2] + 5.6, -57], width: 56, depth: 10, height: 4.4, color: 'blau' },
@@ -219,13 +219,22 @@ function setup(level) {
     if (o.position.z < ZF && o.position.z > ZB - 2) doors.push(o);
     o.traverse((m) => { if (!m.isMesh) return; m.castShadow = false; if (m.material?.blending === THREE.AdditiveBlending) hints.push(m); });
   });
+  // Im Saal leuchtet der Antipp-Schein nur an den Türen des eigenen Stockwerks (die anderen sieht man durch die Decke).
+  const hintDoor = new Map();
+  for (const m of hints) { let q = m; while (q && q.name !== 'schiebetuer') q = q.parent; hintDoor.set(m, q); }
   if (level.view) level.view.onFrame(() => {
-    for (const m of hints) m.visible = m.material.opacity > 0.01;
     const p = level.player;
     const inHall = p && p.pos.z < ZF + 2 && p.pos.z > ZB - 3 && Math.abs(p.pos.x) < XR + 1;
     const floor = !inHall ? -1 : p.pos.y >= F[2] - 0.5 ? 2 : p.pos.y >= F[1] - 0.5 ? 1 : 0;
     for (const d of doors) d.visible = floor < 0 || d.position.y > F[floor] - 0.5;
+    for (const m of hints) {
+      const d = hintDoor.get(m);
+      const own = floor < 0 || !d || doors.indexOf(d) < 0 || Math.abs(d.position.y - F[floor]) < 0.5;
+      m.visible = own && m.material.opacity > 0.01;
+    }
   });
+  // Gegner im überdachten Saal ohne Sonnenschatten (Blob-Schatten bleiben) – Zeichenaufruf-Budget mit drei Stockwerken im Bild
+  schattenDiaet(level, ['pilzling', 'krallen_pilzling', 'rollpilz', 'stachelwerfer', 'stachelkugel_wurf', 'pilz_maske', 'helm_maske'], 0);
   // Pilz-Maske bleibt im Saal: wer mit Maske auf der Tempelaußenseite ankommt, setzt sie ab (Platz für den Propeller-Helm)
   level.onStep(() => {
     const p = level.player;
@@ -252,10 +261,6 @@ export const LEVEL = {
   setup,
   // im überdachten Saal kein Sonnenschatten der Gegner (Blob-Schatten bleiben) – spart Zeichenaufrufe
   instances: { pilzling: { shadow: false }, krallen_pilzling: { shadow: false }, stachelwerfer: { shadow: false }, pilz_maske: { shadow: false }, helm_maske: { shadow: false }, schluesselmuenze: { shadow: false }, coin: { shadow: false } },
-  prebuild(level) {
-    const drop = { k: 'kirschbaum', b: 'bambus', l: 'laternenpfahl', h: 'laterne', a: 'dach', c: 'wolken', p: 'paravent' };
-    for (const x of level.data.segments) if (x.type === 'deco_w6') x.items = x.items.filter((it) => !Object.entries(drop).some(([k, kind]) => EXP.includes(k) && it.kind === kind));
-    if (EXP.includes('d')) level.data.segments = level.data.segments.filter((x) => x.type !== 'deco_w6'); if (EXP.includes('i')) for (const x of level.data.segments) if (x.type === 'island') x.top = 'none'; },
   start: { pos: [0, Y0, 7], yaw: PI / 2 },
   camera: [
     { from: 16, to: -30, pitch: 44, dist: 13, area: [-40, 40] },
@@ -280,7 +285,7 @@ export const LEVEL = {
     sign(-6.5, Y0, 4, 'Kirschblütensaal'),
     sign(-1.8, Y0, -3.2, 'Türen antippen!', { size: [2.2, 0.8] }),
     // ---------------- 2 Saal: Erdgeschoss (mit Garten davor), Röhre, Gong
-    isl(-27, 27, -28.8, -52, F[0], 6, { top: 'stone' }),
+    isl(-27, 27, -28.8, -52, F[0], 6, { top: 'stone', shadow: false }),
     { type: 'pipe', id: 'saalrohr', pos: M63.SAALROHR, height: 1.2, color: 0xd8443a },
     tuer('t0a', -8, F[0], ZB - 0.3), tuer('t0b', 8, F[0], ZB - 0.3, { behind: 'wand', onOpen: { coins: 3 } }),
     tuer('t1a', 10, F[1], ZB - 0.3), tuer('t1b', -8, F[1], ZB - 0.3, { behind: 'wand', onOpen: { coins: 3 } }),
