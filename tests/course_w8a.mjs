@@ -68,8 +68,41 @@ const ROUTES = {
       { expect: 'zielturm' },
       { name: 'Zielmast', to: [0, -299.4], within: 0.2 },
     ],
-    targets: [],
-    extra: [],
+    routeChecks: [
+      { name: 'drei Warp-Boxen, drei Werfer besiegt, drei Stachel-Schwebeplattformen', ok: (r) => r.mech.warps === 3 && r.mech.stomped.length >= 3 && r.log.filter((l) => l[0] === 'stachelblock').length === 3 },
+    ],
+    targets: [
+      { name: 'Stern 0: Krallen-Anzug aus dem ?-Block, links vom ersten Feuer-Werfer die Säule hinauf', star: 0, from: [0, Y, -70.5],
+        legs: [{ grab: [2.2, -73] }, { expect: 'krallen' },
+          { to: [0, -81.2], within: 0.4 }, { to: [0, -86.5], jump: 24, jumpAt: 9, within: 0.6 },
+          { to: [0, -90.4], within: 0.4 }, { to: [-4.4, -92.6], within: 0.3, run: false }, { climb: [-4.4, -95.6], top: Y + 7, then: [-4.4, -95.6] }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Krallen-Anzug (an der Säule nur Wandrutschen)', star: 0, expectNot: true, from: [-4.4, Y, -92.4], heroes: ['lotti'],
+        legs: [{ climb: [-4.4, -95.6], top: Y + 7, max: 400 }, { wait: 30 }], mech: (r) => r.pos[1] < Y + 3, mechText: (r) => `y ${r.pos[1].toFixed(1)}` },
+      { name: 'Stern 1: Krallen-Anzug am Kontrollpunkt, Kletterwand hinter dem Stempel, Rätselbox, Wache besiegen', star: 1, from: [0, Y, -157],
+        legs: [{ grab: [-2.5, -152] }, { expect: 'krallen' },
+          { to: [-7.5, -149.5], within: 0.4 }, { trap: 'falle7', at: [-9.2, -149.5], to: [-15, -149.5] }, { to: [-19, -149.6], within: 0.3, run: false },
+          { climb: [-19, -152.6], top: Y + 9 }, { warp: [-19, -153.5] }, { until: 'bonus', max: 600 }, { to: [BX - 2, -150], within: 0.5, run: false },
+          { name: 'Wache', stompAll: 'wache' }, { until: 'stern1da', max: 900 }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stern 1 nicht ohne Wache-Besiegen (Rätselbox allein reicht nicht)', star: 1, expectNot: true, from: [-19, Y + 9, -152.4], heroes: ['lotti'],
+        legs: [{ warp: [-19, -153.5] }, { until: 'bonus', max: 600 }, { to: [BX - 2, -150], within: 0.5, run: false }, { wait: 240 }] },
+      { name: 'Stern 2: nach der Keil-Gruppe über die einzelnen Fallblöcke hinaus', star: 2, from: [0, Y, -183],
+        legs: [{ to: [6.4, -186], within: 0.3 }, { to: [9.4, -186], jump: 20, jumpAt: 9, within: 0.5 }, { to: [12, -186.3], jump: 20, jumpAt: 9, within: 0.5 },
+          { to: [14.6, -186], jump: 20, jumpAt: 9, within: 0.5 }, { to: [17.2, -186.3], jump: 20, jumpAt: 9, within: 0.5 }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stempel: vom Kontrollpunkt nach Südwesten, an der Stachelfalle vorbei zum Stempel-Turm', stamp: true, from: [0, Y, -157],
+        legs: [{ to: [-7.5, -149.5], within: 0.4 }, { trap: 'falle7', at: [-9.2, -149.5], to: [-15, -149.5] }, { to: [-19, -146.6], within: 0.3 }], shot: 'stempel' },
+    ],
+    extra: [
+      { name: 'Stachelfalle verletzt, wer ohne Abwarten darüberläuft', from: [0, Y, -27.4], heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
+        legs: [{ until: '=ent(\'falle2\').state === \'warn\'', max: 900 }, { to: [0, -31], within: 0.3, run: false, max: 200 }, { wait: 150 }],
+        mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Graben nach Turm 2 zu breit zum Springen (nur die Warp-Box)', from: [0, Y, -46], heroes: ['lotti', 'greta'], expectAlive: false, allowFail: true,
+        legs: [{ to: [-3.5, -53.6], within: 0.3, run: true }, { to: [-3.5, -72], jump: 40, jumpAt: 20, within: 0.6, max: 300 }],
+        mech: (r) => r.dead, mechText: (r) => (r.dead ? 'abgestürzt' : `z ${r.pos[2].toFixed(1)}`) },
+      { name: 'Extraleben: unsichtbarer Block am Torhof', from: [5.5, Y, 9.8], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [5.5, 8], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Extraleben: unsichtbarer Block in der Wachstube', from: [BX + 6, Y, -154], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [BX + 6, -156], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+    ],
     shots: [
       ['start', [0, Y, 6]],
       ['steg1', [0, Y, -7]],
@@ -80,7 +113,7 @@ const ROUTES = {
       ['werfer2', [0, Y, -107]],
       ['cp', [0, Y, -150]],
       ['stempel', [-12, Y, -149.5]],
-      ['bonus', [BX, Y, -144]],
+      ['bonus', [BX - 2, Y, -148]],
       ['keil', [0, Y, -170]],
       ['fall', [6, Y, -186]],
       ['ring', [0, Y, -205]],
@@ -135,6 +168,7 @@ function install() {
     zielturm: () => at(-6, 6, 0.5, -288, -304),
     bonus: () => P().pos.x > 60 && P().pos.y > 0.5,
     krallen: () => P().power === 'krallen',
+    stern1da: () => L.entities.some((e) => e.kind === 'star' && e.index === 1 && !e.hidden && e.alive),
     funken: () => P().power === 'funken',
     sichel: () => P().power === 'sichel',
   };
@@ -568,6 +602,34 @@ function install() {
             tick(d > 0.15 && p.mode === 'ground' ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {});
           }
           log.push(['stachelblock', Lg.block, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Power-up aus einem ?-Block holen: darunter hüpfen, zurücktreten, auf den Block springen
+        if (Lg.grab) {
+          const [bx, bz] = Lg.grab;
+          const back = Lg.back ?? [bx, bz + 2.2];
+          const goTo = (x, z, r = 0.2) => { for (let n = 0; n < 400 && !p.dead; n++) { const dx = x - p.pos.x, dz = z - p.pos.z, d = Math.hypot(dx, dz); if (d < r && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.25, d / 1.2))), run: false }); } };
+          const pw0 = p.power;
+          goTo(bx, bz);
+          for (let k = 0; k < 90 && p.hSpeed() > 0.2; k++) tick({});
+          for (let k = 0; k < 20; k++) tick({ jump: true });
+          for (let k = 0; k < 240 && p.mode !== 'ground'; k++) tick({});
+          for (let k = 0; k < 60; k++) tick({});
+          let tries = 0;
+          for (; tries < 4 && p.power === pw0 && !p.dead; tries++) {
+            goTo(back[0], back[1]);
+            for (let k = 0; k < 40; k++) tick({});
+            for (let k = 0; k < 240 && !p.dead; k++) {
+              const dx = bx - p.pos.x, dz = bz - p.pos.z;
+              if (k > 10 && p.mode === 'ground') break;
+              tick({ ...(p.mode === 'air' ? this.airSteer(bx, bz, 0, 0, 3, 4) : this.stick(dx, dz, 0.5)), jump: k < 40, run: false });
+            }
+            for (let k = 0; k < 30; k++) tick({});
+          }
+          log.push(['power', Lg.grab.join(','), p.power, tries]);
+          if (p.power === pw0) log.push(['FEHLER: Power-up nicht geholt', Lg.grab]);
+          // vom Block herunter (nach back)
+          goTo(back[0], back[1], 0.4);
           continue;
         }
         // ------------------------------------------------ mit dem Krallen-Anzug an einer Wand hinauf: zur Wand springen und dagegen drücken

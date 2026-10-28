@@ -25,3 +25,21 @@ const TAU = Math.PI * 2;
 
 /** Stachelfalle (Welt-7-Entität, frei stehend): Stahlplatte mit Lochraster, Stacheln fahren im Takt heraus. y = Oberseite. */
 export const falle = (id, x, y, z, o = {}) => ({ kind: 'stachelfalle', id, pos: [x, y, z], size: o.size ?? [2.4, 2.2], period: o.period ?? 3.2, up: o.up ?? 1.2, warn: o.warn ?? 0.8, phase: o.phase ?? 0, ...(o.yaw !== undefined ? { yaw: o.yaw } : {}) });
+
+// =====================================================================================================================
+// 2) Mechanik
+// =====================================================================================================================
+
+/**
+ * Fallblöcke ohne Wackel-Schwung (8-1 Stern 2): Ein wackelnder Fallblock (Baustein fallblock_bruecke) schüttelt sich mit
+ * ±2,8 m/s; wer in dieser Zeit abspringt, erbte diese zufällige Seitengeschwindigkeit (der Hüpfer zum nächsten Block gelang
+ * dann mal, mal nicht). Dieser Haken (LEVEL.setup, läuft nach dem Baustein) lässt die Figur weiter mitwackeln, gibt beim
+ * Absprung aber keinen Schwung mehr mit. Nur dieses Level; der Baustein bleibt unverändert.
+ */
+export function fallblockRuhig(level, id) {
+  const h = level.named.get(id);
+  if (!h?.blocks) return;
+  level.onStep(() => {
+    for (const b of h.blocks) if (b.state === 'wackelt') { b.mb.mover.vx = 0; b.mb.mover.vz = 0; }
+  });
+}

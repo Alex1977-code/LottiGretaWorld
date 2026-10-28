@@ -14,7 +14,7 @@
 //   5. Stachel-Schwebeplattformen (z −228 … −273): Stachelblöcke (oben begehbar, ringsum Stacheln) tragen über den Abgrund;
 //      Warp-Box zum Zielturm.
 
-import { isl, line, ring, arc, column, sign, falle } from './_helpers_a.js';
+import { isl, line, ring, arc, column, sign, falle, fallblockRuhig } from './_helpers_a.js';
 
 const Y = 1;            // Laufhöhe der Festung
 const PI = Math.PI;
@@ -22,6 +22,10 @@ const BX = 90;          // Bonus-Hof (abseits)
 
 const steg = (zA, zB, w = 2.6, x = 0) => isl(x - w / 2, x + w / 2, zA, zB, Y, 1.6, { top: 'stone' });
 const werfer = (id, x, z, o = {}) => ({ kind: 'feuer_werfer', id, pos: [x, o.y ?? Y, z], axis: o.axis ?? [1, 0], pace: o.pace ?? 1.1, sight: o.sight ?? 11, interval: o.interval ?? 2.6, ...o });
+
+function setup(level) {
+  fallblockRuhig(level, 'fall_stern');
+}
 
 export const LEVEL = {
   id: '8-1',
@@ -34,6 +38,7 @@ export const LEVEL = {
   killY: -8,
   farHide: 60,
   instances: { coin: { farHide: 44, shadow: false } },
+  setup,
   start: { pos: [0, Y, 6], yaw: PI / 2 },
   camera: [
     { from: 16, to: -56, pitch: 44, dist: 13.5, fov: 40, x: 0, xLock: 0.3, area: [-40, 40] },
@@ -66,7 +71,7 @@ export const LEVEL = {
 
     // ================================================================ 3 Kontrollpunkt-Insel
     isl(-8, 8, -147, -165, Y, 7),
-    { type: 'bridge', from: [-8, Y, -149.5], to: [-16, Y, -149.5], width: 2 },        // Holzsteg nach Südwesten
+    isl(-16, -8, -148.3, -150.7, Y, 1.6),                           // Steg nach Südwesten (Stachelfalle)
     isl(-22, -16, -144, -152, Y, 7),                                // Stempel-Turm
     { type: 'wall', pos: [-19, Y, -153.5], size: [6, 9, 3], climbable: true },        // Kletterwand (Rätselbox oben)
 
@@ -76,7 +81,7 @@ export const LEVEL = {
     steg(-192, -208, 3),
     isl(-7, 7, -208, -220, Y, 7),                                   // Platz der großen Ring-Gruppe
     steg(-220, -228, 3),
-    { type: 'fallblock_bruecke', id: 'fall_stern', mode: 'einzeln', blocks: [[9.6, Y - 0.6, -186], [12.4, Y - 0.2, -186.4], [15.2, Y + 0.2, -186], [18, Y + 0.6, -186.4]], size: [1.6, 0.6, 1.6], respawn: 5 },
+    { type: 'fallblock_bruecke', id: 'fall_stern', mode: 'einzeln', blocks: [[9.4, Y - 0.6, -186], [12, Y - 0.3, -186.3], [14.6, Y, -186], [17.2, Y + 0.3, -186.3]], size: [1.6, 0.6, 1.6], respawn: 5 },
 
     // ================================================================ 5 Stachel-Schwebeplattformen
     isl(-5, 5, -228, -236, Y, 6),
@@ -86,15 +91,17 @@ export const LEVEL = {
     isl(3, 13, -264.4, -273, Y, 6),                                 // Warp-Turm
     isl(-6, 6, -288, -304, Y, 7),                                   // Zielturm
 
-    // ================================================================ Bonus-Hof (abseits)
+    // ================================================================ Bonus-Hof (abseits): Wachstube des Barons
     isl(BX - 9, BX + 9, -140, -160, Y, 6),
+    { type: 'room', pos: [BX, Y, -151.5], size: [15, 4.4, 15], floor: false, top: 'stone' },
+    sign(BX + 1.5, Y, -145.2, 'Besiege die Wache!', { size: [2.8, 0.9] }),
   ],
   blocks: [
-    { kind: 'question', pos: [-2.5, Y + 2.4, -1], content: 'krallen' },
+    { kind: 'question', pos: [-2.5, Y + 1.9, -1], content: 'krallen' },
     { kind: 'coinblock', pos: [2.5, Y + 2.4, -1], count: 6 },
     { kind: 'hidden', pos: [5.5, Y + 2.6, 8], content: 'oneup' },                     // Extraleben am Torhof
-    { kind: 'question', pos: [2.2, Y + 2.4, -73], content: 'krallen' },
-    { kind: 'question', pos: [-2.5, Y + 2.4, -152], content: 'krallen' },
+    { kind: 'question', pos: [2.2, Y + 1.9, -73], content: 'krallen' },
+    { kind: 'question', pos: [-2.5, Y + 1.9, -152], content: 'krallen' },
     { kind: 'question', pos: [2.5, Y + 2.4, -161], content: 'wachstumsbeere' },
     { kind: 'hidden', pos: [BX + 6, Y + 2.6, -156], content: 'oneup' },               // Extraleben im Bonus-Hof
   ],
@@ -102,6 +109,11 @@ export const LEVEL = {
     werfer('werfer1', 1.8, -94.5),
     werfer('werfer2', -1.6, -114.5, { pace: 1.4 }),
     werfer('werfer3', 1.6, -128.5, { weapon: 'hammer', pace: 0.8, interval: 3 }),
+    // Wachstube (Rätselbox): die Wache des Barons
+    { kind: 'pilzling', id: 'wache1', pos: [BX - 4, Y, -150], behavior: 'chase', sight: 6, wake: 30 },
+    { kind: 'pilzling', id: 'wache2', pos: [BX + 4, Y, -150], behavior: 'chase', sight: 6, wake: 30 },
+    { kind: 'krallen_pilzling', id: 'wache3', pos: [BX - 3, Y, -155], dir: [1, 0], wake: 30 },
+    { kind: 'krallen_pilzling', id: 'wache4', pos: [BX + 3, Y, -155], dir: [-1, 0], wake: 30 },
   ],
   items: [
     falle('falle1', 0, Y, -13, { size: [2.6, 2.2] }),
@@ -110,6 +122,7 @@ export const LEVEL = {
     falle('falle4', 0, Y, -41, { size: [2.4, 2.2], phase: 0.6 }),
     falle('falle5', 0, Y, -197, { size: [3, 2.2], phase: 0.2 }),
     falle('falle6', 0, Y, -203, { size: [3, 2.2], phase: 0.7 }),
+    falle('falle7', -12, Y, -149.5, { size: [2.2, 2.4], phase: 0.45 }),
     // Warp-Boxen: Graben (1 → 2), Kontrollpunkt, Zielturm
     { kind: 'warpbox', id: 'warp1', pos: [2.5, Y, -50.5], target: 'warp1b' },
     { kind: 'warpbox', id: 'warp1b', pos: [-2.5, Y, -73], target: 'warp1' },
@@ -119,8 +132,8 @@ export const LEVEL = {
     { kind: 'warpbox', id: 'warpZb', pos: [-3, Y, -292], target: 'warpZ' },
     // Rätselbox oben auf der Kletterwand → Bonus-Hof
     { kind: 'warpbox', id: 'raetsel', style: 'mystery', pos: [-19, Y + 9, -153.5], target: 'raetsel2' },
-    { kind: 'warpbox', id: 'raetsel2', style: 'mystery', pos: [BX, Y, -143.5], target: [-4, Y, -158],
-      task: { area: { min: [BX - 9, Y - 1, -160], max: [BX + 9, Y + 8, -140] }, star: 1, pos: [BX, Y + 1.2, -151] } },
+    { kind: 'warpbox', id: 'raetsel2', style: 'mystery', pos: [BX - 5.4, Y, -146.2], target: [-4, Y, -158],
+      task: { area: { min: [BX - 8, Y - 1, -159], max: [BX + 8, Y + 6, -144] }, star: 1, pos: [BX, Y + 1.2, -152] } },
     // Münzen
     line([0, Y + 0.6, 2], [0, Y + 0.6, -4], 4),
     line([0, Y + 0.6, -8], [0, Y + 0.6, -18], 5),
@@ -136,13 +149,13 @@ export const LEVEL = {
     line([0, Y + 0.6, -222], [0, Y + 0.6, -227], 3),
     line([-18.5, Y + 0.6, -150], [-11, Y + 0.6, -149.5], 4),
     ring([0, Y + 0.6, -298], 2.4, 10),
-    ring([BX, Y + 0.6, -151], 3, 10),
+    ring([BX, Y + 0.6, -152], 3, 10),
   ],
   checkpoint: { pos: [0, Y, -157], yaw: PI / 2 },
   stars: [
     [-4.4, Y + 7.1, -95.6],                                         // 0: oben auf der Kletter-Säule
-    { pos: [BX, Y + 1.2, -151], hidden: true, id: 'stern1' },       // 1: Bonus-Hof (Rätselbox)
-    [18, Y + 1.3, -186.4],                                          // 2: auf dem letzten Fallblock
+    { pos: [BX, Y + 1.2, -152], hidden: true, id: 'stern1' },       // 1: Wachstube (Rätselbox)
+    [17.2, Y + 1.0, -186.3],                                        // 2: auf dem letzten Fallblock
   ],
   stamp: [-19, Y + 0.6, -146.5],
   goal: [0, Y, -300],
