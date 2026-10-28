@@ -440,7 +440,9 @@ if (part(7)) {
   check('Nur 8-A geschafft (8-B offen): Turm-Schranke zu, 8-Burg gesperrt (Weg), kein Schwenk', st.gates['8-Burg'] === 'closed' && st.entrances['8-Burg'].reason === 'locked' && !st.cinematic);
   await tp(0, 7.8, -94, Math.PI / 2, 20);
   r = await walkTo(0, -112, (s) => s.player.z < -110, 700);
-  check('Die Zugbrücke ist an der Turm-Schranke versperrt (Figur kommt nicht auf den Turmplatz)', r.s.player.z > -104 && Math.abs(r.s.player.y - 7.5) < 0.6);
+  console.log('  vor der Turm-Schranke:', r.s.player.x.toFixed(2), r.s.player.y.toFixed(2), r.s.player.z.toFixed(2));
+  check('Die Zugbrücke ist an der Turm-Schranke versperrt (Figur bleibt auf der ansteigenden Brücke vor der Schranke, nicht auf dem Turmplatz)',
+    r.s.player.z > -104 && r.s.player.y > 7.4 && r.s.player.y < 8.6);
   await shot('turmschranke', 600);
   // jetzt auch 8-B: beim nächsten Besuch versinkt die Turm-Schranke im Schwenk
   await loadWith({ levels: with8(w1to7(true), [...doneA, '8-B']), mapOpened: [...OPENED_1_7, ...opened8(doneA)], mapPos: null });
