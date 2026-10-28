@@ -975,6 +975,9 @@ function installZug() {
     Z.waitWin(1e9);                      // Fahrt vorbei (Fenstergrenzen fallen weg)
     const hop = () => { for (let i = 0; i < 240; i++) { tick({ jump: i < 14 }); if (i > 6 && p.mode === 'ground') break; } for (let i = 0; i < 20; i++) tick({}); };
     const wait = () => { for (let i = 0; i < 480 && G.slot.busy; i++) tick({}); for (let i = 0; i < 10; i++) tick({}); };
+    // Reste früherer Ziele (z. B. ein nicht eingesammeltes 1-Up, das auf dem Zug bis zum Muschelkap fährt) entfernen,
+    // damit nur die Gewinne des Automaten zählen
+    for (const x of L.entities) if (x.kind === 'powerup' && x.alive && !x.removed) x.kill();
     W.place([mk.pad[0], mk.pad[1] + 0.1, mk.pad[2]], { hero, settle: 10 });
     const out = {};
     L.runtime.coins = 4;

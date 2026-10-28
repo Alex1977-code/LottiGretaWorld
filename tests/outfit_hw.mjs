@@ -689,6 +689,8 @@ async function hwLevelPart() {
 
 // ---------------------------------------------------------------- Kurs-Weltkarte
 async function mapPart() {
+  // frischer Spielstand: frühere Teile können ein Power-up mitgeben (Krallen-Anzug ersetzt den Hut absichtlich)
+  if (page.url().startsWith(base)) await page.evaluate(() => { try { localStorage.clear(); } catch {} });
   await page.goto(`${base}/?map=1&scale=2&adapt=0`, { waitUntil: 'load' });
   await page.waitForFunction(() => window.__courseMap && window.__courseMap.player && window.__game.scene.isActive('CourseMap'), null, { timeout: 240000 });
   await sc(() => { const m = window.__courseMap; m.setManual(true); m.level.muted = true; m.setInput({}); });
