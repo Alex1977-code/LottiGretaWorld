@@ -90,11 +90,11 @@ export const LEVEL = {
   setup,
   start: { pos: [0, Y1, 4], yaw: Math.PI / 2 },
   camera: [
-    { from: 14, to: -47, pitch: 44, dist: 13.5, fov: 40, x: 0, xLock: 0.25 },
-    { from: -47, to: -104, pitch: 44, dist: 13.5, fov: 40, x: 0, xLock: 0.35 },
-    { from: -104, to: -162, pitch: 46, dist: 14, fov: 40, x: 0, xLock: 0.25 },
-    { from: -162, to: -218, pitch: 47, dist: 14.5, fov: 40, x: 0, xLock: 0.2 },
-    { from: -218, to: -252, pitch: 40, dist: 13, fov: 40, x: 0, xLock: 0.4 },
+    { from: 14, to: -47, pitch: 44, dist: 13.5, fov: 40, x: 0, xLock: 0.25, area: [-27, 27] },
+    { from: -47, to: -104, pitch: 44, dist: 13.5, fov: 40, x: 0, xLock: 0.35, area: [-27, 27] },
+    { from: -104, to: -162, pitch: 46, dist: 14, fov: 40, x: 0, xLock: 0.25, area: [-27, 27] },
+    { from: -162, to: -218, pitch: 47, dist: 14.5, fov: 40, x: 0, xLock: 0.2, area: [-27, 27] },
+    { from: -218, to: -252, pitch: 40, dist: 13, fov: 40, x: 0, xLock: 0.4, area: [-27, 27] },
     // Münzhimmel (abseits, hoch oben)
     { from: -100, to: -170, pitch: 44, dist: 14, fov: 40, x: HX, xLock: 0.6, area: [HX - 24, HX + 18] },
   ],

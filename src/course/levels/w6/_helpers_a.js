@@ -17,7 +17,7 @@ import { colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } fr
 import { visDt } from '../../entities/gimmick.js';
 import { Bld, litTop, gradY, rectPoly, cliffSkirt, savannaFloor } from '../w5/_helpers_b.js';
 
-export { isl, line, ring, arc, column, rectPoly, Bld, litTop, gradY } from '../w5/_helpers_b.js';
+export { isl, line, ring, arc, column, rectPoly, Bld, litTop, gradY, areaMood } from '../w5/_helpers_b.js';
 
 const TAU = Math.PI * 2;
 
@@ -527,5 +527,98 @@ export function altarstein(level, x, y, z, r) {
     glow.add(g, 0xffd84a);
   }
   b.flush(level);
+  glow.flush(level, { material: 'glow', castShadow: false });
+}
+
+// =====================================================================================================================
+// 6-2 Geisterschiffe
+// =====================================================================================================================
+
+/**
+ * Holzsteg/Bootsanleger: Planken quer über x0..x1 × zA..zB auf Höhe y (nur Darstellung – die Kollision liefert die Insel
+ * darunter), Pfähle an den Rändern, die bis ins Wasser reichen. o: { posts: true, bottom: −3 }.
+ */
+export function holzsteg(level, x0, x1, zA, zB, y, o = {}) {
+  if (!level.view) return;
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+  const b = new Bld();
+  const rnd = new Rnd(o.seed ?? Math.round(Math.abs(x0 * 3 + z0 * 7)) + 1);
+  for (let z = z0 - 0.25; z > z1; z -= 0.5) {
+    const c = rnd.frac() < 0.25 ? 0x6a5a48 : rnd.frac() < 0.5 ? 0x8a7458 : 0x7a6650;
+    b.box(x1 - x0 - 0.1, 0.12, 0.46, (x0 + x1) / 2 + rnd.real(-0.06, 0.06), y - 0.1, z, litTop(c), { r: 0.03, yaw: rnd.real(-0.01, 0.01) });
+  }
+  // dunkle Unterlage (keine Lücken zwischen den Planken)
+  b.box(x1 - x0 - 0.12, 0.1, z0 - z1 - 0.04, (x0 + x1) / 2, y - 0.2, (z0 + z1) / 2, 0x2e241c, { r: 0 });
+  if (o.posts !== false) {
+    const bottom = o.bottom ?? -3;
+    for (let z = z0 - 0.3; z > z1 - 0.01; z -= Math.max(2.2, (z0 - z1) / Math.max(1, Math.round((z0 - z1) / 3)))) {
+      for (const x of [x0 + 0.15, x1 - 0.15]) b.cyl(0.17, 0.2, y + 0.5 - bottom, x, bottom, z, litTop(0x4a3c30), 7);
+    }
+  }
+  if (!o.xray) { b.flush(level); return; }
+  // Durchsicht: eigenes Mesh, das durchscheinend wird, solange es zwischen Kamera und Figur liegt (Bilge darunter)
+  const mesh = new THREE.Mesh(b.geometry(), (level.view.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true })).clone());
+  mesh.name = 'holzsteg_durchsicht';
+  mesh.receiveShadow = true;
+  addObject(level, mesh);
+  level.view.xray?.(mesh, new THREE.Box3(new THREE.Vector3(x0, y - 0.6, z1), new THREE.Vector3(x1, y + 0.1, z0)), { min: o.xray.min ?? 0.2 });
+}
+
+/** Holzkisten (fest, stapelbar): list [[x, y, z, größe, yaw?], …] (y = Unterkante). Eisenbeschläge an den Kanten. */
+export function kisten(level, list) {
+  const b = level.view ? new Bld() : null;
+  for (const [x, y, z, s = 1.2, yaw = 0] of list) {
+    level.world.add({ type: 'box', min: [x - s / 2, y, z - s / 2], max: [x + s / 2, y + s, z + s / 2], tag: 'kiste' });
+    if (!b) continue;
+    b.box(s, s, s, x, y, z, litTop(0x9a7448), { r: 0.04, yaw });
+    for (const sy of [0.02, s - 0.1]) b.box(s + 0.03, 0.08, s + 0.03, x, y + sy, z, 0x4a4a54, { r: 0.02, yaw });
+    b.box(s * 0.12, s * 0.9, s + 0.02, x, y + s * 0.05, z, 0x6a5232, { r: 0.01, yaw: yaw + Math.PI / 4 });
+  }
+  b?.flush(level);
+}
+
+/**
+ * Laderaum (6-2): offener Schiffsbauch (Puppenhaus-Schnitt, oben offen) entlang Z bei x, Boden y von z0 bis z1:
+ * Seitenwände (Kollision, camIgnore) mit Spanten, Querbalken oben (nur Optik), Bodenplanken (Darstellung), hinten das
+ * Schott. Der Boden selbst kommt aus den Daten (island-Segmente, damit Löcher und Becken möglich sind).
+ * o: { x, y, z0, z1, w: 16, h: 7, beams: [{ y, z, d, h }] (begehbare Querbalken: nur Optik, Kollision in den Daten) }.
+ */
+export function laderaum(level, o) {
+  const { x, y } = o, w = o.w ?? 16, h = o.h ?? 7;
+  const z0 = Math.max(o.z0, o.z1), z1 = Math.min(o.z0, o.z1);
+  for (const sx of [-1, 1]) level.world.add({ type: 'box', min: [x + sx * w / 2 - (sx > 0 ? 0 : 0.8), y - 6, z1], max: [x + sx * w / 2 + (sx > 0 ? 0.8 : 0), y + h, z0], camIgnore: true, tag: 'rumpf' });
+  level.world.add({ type: 'box', min: [x - w / 2, y - 6, z1 - 0.8], max: [x + w / 2, y + h, z1], camIgnore: true, tag: 'rumpf' });
+  if (!level.view) return;
+  const b = new Bld();
+  const plank = (c) => litTop(c, 0.6);
+  // Seitenwände: Plankenlagen mit leicht gebogener Form (nach oben breiter wie ein Rumpf)
+  for (const sx of [-1, 1]) {
+    for (let yy = y - 0.4; yy < y + h; yy += 0.5) {
+      const bulge = Math.sin(((yy - y) / h) * Math.PI) * 0.6;
+      b.box(0.5, 0.48, z0 - z1, x + sx * (w / 2 + 0.25 + bulge), yy, (z0 + z1) / 2, plank(((yy * 2) | 0) % 3 ? 0x5a4a3c : 0x4a3c30), { r: 0.02 });
+    }
+    // Spanten (Rippen) innen
+    for (let z = z0 - 1.5; z > z1; z -= 3) b.box(0.4, h + 0.4, 0.45, x + sx * (w / 2 - 0.1), y - 0.4, z, plank(0x3a2e24), { r: 0.06 });
+  }
+  // Schott hinten
+  for (let yy = y - 0.4; yy < y + h; yy += 0.5) b.box(w + 1, 0.48, 0.5, x, yy, z1 - 0.3, plank(((yy * 2) | 0) % 2 ? 0x5a4a3c : 0x4e4034), { r: 0.02 });
+  // Querbalken oben nur an den Enden (dazwischen offen – die Kamera schaut von hinten oben hinein)
+  for (const z of [z0 - 0.6, z1 + 0.8]) b.box(w + 1.2, 0.45, 0.5, x, y + h - 0.2, z, plank(0x4a3c30), { r: 0.06 });
+  for (const bm of o.beams ?? []) b.box(w + 0.4, bm.h ?? 0.5, bm.d ?? 1.6, x, bm.y, bm.z, plank(0x5a4a3a), { r: 0.06 });
+  b.flush(level);
+}
+
+/** Hängende Laternen (grünliches Geisterlicht) mit Laternenlicht des Themas: list [[x, y, z], …] (Aufhängepunkt). */
+export function geisterlaternen(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), glow = new Bld();
+  for (const [x, y, z, len = 1.2] of list) {
+    b.cyl(0.02, 0.02, len, x, y - len, z, 0x2a2a30, 4);
+    b.cyl(0.2, 0.24, 0.1, x, y - len - 0.05, z, 0x3a3a44, 8);
+    b.cyl(0.24, 0.2, 0.08, x, y - len - 0.62, z, 0x3a3a44, 8);
+    glow.cyl(0.17, 0.17, 0.48, x, y - len - 0.55, z, 0x9affc8, 8);
+    level.view.addLantern?.(x, y - len - 0.3, z);
+  }
+  b.flush(level, { castShadow: false });
   glow.flush(level, { material: 'glow', castShadow: false });
 }
