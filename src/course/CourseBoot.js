@@ -11,7 +11,8 @@ export class CourseBootScene extends BootScene {
     createAllTextures(this, GAME.width, GAME.height);
     this.createHeroAnimations();
     const id = this.registry.get('startCourse');
-    if (id) this.scene.start('Course', { id });
+    if (this.registry.get('startCredits')) this.scene.start('Credits', { from: '8-Burg' });   // ?credits=1 (Abspann, Welt 8)
+    else if (id) this.scene.start('Course', { id });
     else this.scene.start('CourseMap', {});
   }
 }

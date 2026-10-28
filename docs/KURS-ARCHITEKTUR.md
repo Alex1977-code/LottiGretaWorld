@@ -6988,6 +6988,106 @@ Krallen-Anzug** (Feuerbälle, Wandklettern, Krallenhiebe, Spiegelfrucht-Doppelg�
 **Abspann:** nach dem Sieg eine eigene, liebevolle Abspann-Szene (befreite Freunde, Lotti und Greta, Pflaume, Krümel,
 Musik `course_abspann`), danach zurück zur Karte; der Spielstand merkt sich „Spiel geschafft“.
 
+## Präzisierung (Level 7-5, 7-Kapitän und 7-6)
+
+Additiv zur Welt-7-Liste: Titel und Besonderheiten der Level 7-5, 7-Kapitän und 7-6. Dateien `src/course/levels/w7/7-5.js`,
+`7-Kapitän.js`, `7-6.js`, eigene Hilfen `src/course/levels/w7/_helpers_c.js` (kein `LEVEL`, nur für diese drei Level; reicht
+`isl`, `line`, `ring`, `arc`, `column`, `sign`, `glimmer`, `Bld` aus `w6/_helpers_b.js` und `onRespawn` aus `w7kit.js` weiter),
+Test `tests/course_w7c.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`/`LEVEL.setup`). Bausteine nach „Präzisierung (Motor und Bausteine Welt 7)“, Gegner nach „Präzisierung (Gegner
+Welt 7)“.
+
+### 7-5 „Stampfsteinturm und Giftnebel-Flucht“ (parcours · lavatower · course_traptower · 400 s)
+
+- Zwei Festungstürme im Lavaschacht, ≈ 165 m nach −Z, von y 0 bis y 40. **Erster Turm** (z 13 … −54): Stufenturm aus fünf
+  Etagen (je 6 m höher, 10 m weiter hinten; gemauerte Seiten aus einzelnen Steinen, Plattenböden mit rotem Läufer, glühende
+  Bogenfenster, Zinnen, Brummbär-Banner, Lavafälle). Die **Stampfsteine sind Fahrstühle**: locken, auf den gelandeten Stein
+  springen, mit ihm eine Etage hinauffahren (Erdgeschoss → Etage 1; Etage 3 → Turmspitze). Dazwischen **Aufzug 1** (y 6 → 12,
+  fährt los, sobald man daraufsteht, kehrt leer zurück), die **Fähre** über den Schacht in Etage 2, **Aufzug 2** (y 12 → 18)
+  neben dem kletterbaren Pfeiler. Auf der Turmspitze drei **Zauberkröten**, links unten die **Sinkwolke**. → **Seilbahn**
+  (z −54 … −88, Gondel `seilbahn` mit Stationsrahmen, y 26 → 22) → **Funkenturm** (z −88 … −126): Vorhof mit Checkpoint und
+  Wurfsichel, Treppe auf Ring 1 (r 13, y 25), **Sprungfeder** auf Ring 2 (y 30), **Pfeilplattform aus der Wand** auf Ring 3
+  (y 35), Stampfstein 3 auf die Turmkrone (y 40). Sechs **Funkenflämmchen** hüpfen auf Bögen über die Ringe, die Zinnen haben
+  Lücken (Durchgänge wechseln die Seiten).
+- **Flucht**: die fünfte Schlüsselmünze liegt auf der Krone – sobald man sie hat, sinkt der **Giftnebel** (`giftnebel`
+  `dir: 'down'`, 0,9 m/s, Stimmung `flucht`) von oben, und der **Lavaspiegel** `glutsee` (`mode: 'signal'`, `rise` bis y 16,2)
+  steigt (`nebelLava`). Rechts die Ringe hinunter, Treppe zur **Glutbrücke** (flutet nach ≈ 28 s), Warp-Terrasse (y 16,8, bleibt
+  trocken). Die **Warp-Box** erscheint erst mit allen fünf Schlüsseln (`schluesselmuenze` Gruppe `tor`, `onAll` → `reveal`)
+  und bringt zur Zinnenterrasse mit dem Zielmast. Neustart: Nebel und Lava zurück, Schlüssel bleiben.
+- Sterne: 0 oben auf dem **Kletterpfeiler** bei Aufzug 2 (nur mit **Krallen-Anzug** aus dem ?-Block in Etage 2) · 1 alle
+  **drei Zauberkröten** auf der Turmspitze besiegen (`task` → versteckter Stern) · 2 im **Ziegel-Würfel** vor Ring 1 (26
+  Ziegel; Stampfattacke von oben, Springen allein reicht nicht). Stempel: von der Turmspitze links hinunter auf die
+  **Sinkwolke**, sie fährt mit einem hinab (von Etage 3 aus zu hoch). Geheimnisse: Sinkwolke, Ziegel-Würfel, unsichtbarer
+  Block mit Extraleben in Etage 1, Wachstumsbeere in Etage 2.
+- Gegner: Stampfstein 3, Knochenflieger 3, Zauberkröte 3, Funkenflämmchen 6. Kameraschienen: Turm (Neigung 29°, Abstand 15,5),
+  Seilbahn, Vorhof, Ringe (30°/16), Ziel. Rundstufen-Kollision `camIgnore` (die Kamera-Probe sieht Zylinder als Quader).
+
+### 7-Kapitän „Krümel in der Zahnradschmiede“ (diorama · lavamachine · course_diorama · 400 s, 5 Sterne)
+
+- Maschinen-Diorama 28 × 32 m mitten im Lavasee (`lavaspiegel` `mode: 'fest'`, y −1,2), Figur **Krümel** (springt nicht),
+  Kamera Gier 18°, Neigung 46°. Ebenen: Boden y 0 (Startplatz mit blauem Läufer, Ziegel-Insel, Maschinenboden), Deck y 4,5,
+  Dach y 9. Stahlplatten mit gelber Warnkante, Ziegel, Messing; gelb-schwarze Geländer an allen Lavakanten (Kollision, Krümel
+  fällt nicht hinunter). **Förderband** (`foerderband`, rollt nach vorn, 1,6 m/s) über den Lavasee; **Stampfsteine als
+  Trittstufen**: gelockt fallen sie bündig in ihre Lavagrube – Brücke oder Fahrstuhl. **Kanonentürme** mit Projektilköpfen
+  (quer übers Band und über das Deck, 4,5 s Takt). **Fahrplattform** (Aufzug, y 4 → 8,5) aufs Kesselturm-Dach.
+- Sterne (Bauplan): 1 **hinter dem sichtbaren Stampfstein** (Insel jenseits des Lavagrabens; der Stein liegt als Brücke) ·
+  2 **Fahrplattform** hinauf, ins **Loch** im Kesselturm-Dach fallen (die Kammertür ist für Krümel eine zu hohe Stufe) · 3
+  **auf dem Förderband** (gegen das Band laufen; wer stehen bleibt, wird zurückgetragen) · 4 **auf Stampfstein 2** nach dem
+  Band (locken, draufgehen, mitfahren) · 5 durch das **Loch** im Maschinenblock, **Stampfstein 3** hinauf aufs Dach, in den
+  **Schacht** fallen. Der fünfte Stern beendet das Level. Schatzstellen (`dig`): Startplatz, Deck, Kesselturm-Dach.
+- Zier: Zahnräder, Rohre, Schlote, Kessel mit Manometer und Dampf, Ventilräder, Warnstreifen-Pfosten, Brummbär-Banner und
+  Dachfahne, Standfackeln, zwei Lavafälle aus Rohrstutzen, Glutfunken. Gegner: Stampfstein 3, Kanonenturm 2.
+
+### 7-6 „Rammfisch-Riff am Feuerberg“ (parcours · reef · course_rammreef · 400 s)
+
+- ≈ 250 m nach −Z, Meeresspiegel y 0. **Riff** (z 14 … −92, Becken bis y −8): Startstrand (Palmen, Sonnenschirm, Liegestuhl,
+  Muscheln) → Kammer A (Nische hinter Kisten) → Riffwand 1 (Kistentunnel oder Rammfisch-Lücke) → Kammer B → Riffwand 2
+  (Kistentunnel) → Kammer C (Zickzack-Gänge) → Sandrampe zur Felsplattform mit **Warp-Box** → **Vulkaninsel** (z −95 … −160,
+  y 1,2: Checkpoint, Gezeitenbecken mit drei **Wutkaulquappen**, Trittsteine über das zweite Becken, Feuerberg mit Glutkrater,
+  Glutrisse, Palmen, Moos- und Sandflecken, Farne, Hibiskus) → Klippe hinab ins **Finale** (Becken bis y −9: Riffwand mit
+  drei Fenstern, in denen **Rammfische auf und ab** ziehen; zwei **große Rammfische** kreisen vor dem Zielriff) → Sandrampe
+  aufs **Zielriff** (Palmenstrand, Glasröhre, Zielmast).
+- **Zerbrechliche Kisten** (`kiste_wasser`, 7 Stück) brechen beim Schwimmstoß (und wenn ein Rammfisch hineinrammt); langsames
+  Schwimmen lässt sie heil. Kamera unter Wasser flach (Neigung 10°, Abstand 9, Höhe 0,7) und immer unter der Oberfläche,
+  klare Sicht (`setup`: Nebel 7 … 58 m, zarte Lichtflecken).
+- Sterne: 0 in der **Nische hinter Kisten** gleich am Start · 1 trägt der **Rammfisch in einer Blase** (`carries: 'star:1'`,
+  rammt nicht; von oben anschwimmen) · 2 hinten in der **Glasröhre** auf dem Zielriff hinter den großen Rammfischen; die
+  lila **Stachelkugel** darin verbrennt nur die **Funkenblüte** aus dem ?-Block davor (`onHit` 'fire' → wie 'bomb'). Stempel:
+  oben auf dem **Felsturm** hinter der Fensterwand (durchs Fenster, wenn der Rammfisch unten ist). Extraleben: Kiste am Rand
+  von Kammer B, unsichtbarer Block auf der Vulkaninsel.
+- Gegner: Rammfisch 10 (2 groß, 3 auf und ab, 1 mit Stern), Wutkaulquappe 3.
+- Leistung: `fernSicht` (statische Abschnitte bis 62 m), `tiefSicht` (unter Wasser zeichnet die Kamera nur bis 64 m – der
+  Nebel verdeckt ohnehin alles; ≈ 40 Zeichenaufrufe weniger), `fernModelle` (Schilder, Becken, Warp-Boxen, Sterne, Zielmast
+  über 85 m per `layers` aus), Rammfische ohne Sonnenschatten und erst ab 48 m Nähe sichtbar.
+
+### Hilfen `_helpers_c.js`
+
+Geometrie: `Quads`, `STONE` (Paletten burg, rot, dunkel, basalt, sand, stahl, messing, ziegel), `brickFace`, `tiles`,
+`brickBox` (Mauerquader mit Kollision, Steinen, Platten, Läufer, Fenstern; `climbable`, `camIgnore`), `carpet`, `slits`,
+`merlons`, `merlonsRound`, `gelaender`, `flushQ` (Hauptgeometrie mit Schatten, Detail-Vierecke ohne), `roundTier` · Belebtes:
+`ketten`, `funken` · Leistung: `fernSicht`, `fernModelle`, `tiefSicht` · Mechanik: `aufzug` (Mover/Wolke fährt los, wenn eine
+Figur daraufsteht, wartet oben, fährt leer zurück; Neustart setzt zurück; `name` → `level.named`), `nebelLava`.
+
+### Test `tests/course_w7c.mjs`
+
+Port 4730 (+ `PORT_BASE`), Aufruf `node tests/course_w7c.mjs [7-5|7-Kapitän|7-6]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,shots` (je Lauf < 10 min; je Level `load,route,sweep` und `load,targets,extra` und
+`shots` getrennt), `HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`, `TRACE=1`, `SHOTS=<Name|…>`, `DETAIL=1`, Bilder
+`tests/out/w7c_*.png`. Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier), auf der Route unverwundbar
+(Treffer-Versuche werden gezählt; Nebel, Lava und Absturz töten trotzdem); Beine u. a. `wait`/`until` (Bedingungen wie
+Stampfstein gelandet, Aufzug oben, Gondel angekommen, Pfeilplattform draußen, Band frei), `climbOnto`, `poundAt`, `toads`,
+`chaseKind`, `swim`/`swimTo` (Schwimmstöße, `noStroke`), `clearFish`, `fire` (Funkenblüte), `warp`. Diorama: ein Lauf mit Krümel.
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel **ohne einen
+Treffer-Versuch** (7-5 ≈ 85/78 s mit drei Stampfstein-Fahrten, zwei Aufzügen, Fähre, Seilbahn, Sprungfeder, Pfeilplattform,
+fünf Schlüsseln und der Flucht in ≈ 10 s; 7-Kapitän ≈ 63 s, alle fünf Sterne; 7-6 ≈ 71/69 s mit Kistentunnel, Warp und
+Finale); alle Sterne und Stempel mit Gegenproben (Pfeiler ohne Krallen-Anzug, Ziegel ohne Stampfen, Stempel von Etage 3,
+Graben ohne Stein, Stein 2 vom Boden, Kammertür, Schachttür, Kisten bei langsamem Schwimmen, Röhre ohne Funkenblüte); Extras
+(Extraleben, versteckte Warp-Box, Nebel-Tod auf der Krone, Lava flutet die Glutbrücke, Neustart nach Nebel-Tod, Krümel springt
+nicht, Projektilkopf und Stampfstein treffen, Band trägt zurück, Rammfisch und Wutkaulquappe treffen, Checkpoint auf der
+Insel). Gemessen (scale 2, inkl. Schattenpass; Messgang entlang der Route und Bilder je Abschnitt): 7-5 52–111 Zeichenaufrufe
+in den Bildern, Messgang ≤ 115 (beim Hinauffahren auf Stampfstein 2) / ≤ 243 k Dreiecke · 7-Kapitän ≤ 104 / ≤ 154 k · 7-6
+45–89 / ≤ 186 k.
+
 ## Präzisierung (Level 7-C, 7-7 und 7-Burg)
 
 Additiv zur Welt-7-Liste: Titel und Besonderheiten der Level 7-C, 7-7 und 7-Burg. Dateien `src/course/levels/w7/7-C.js`,
@@ -7118,3 +7218,321 @@ Kurzübersicht der Welt-8-Modelle; die exakten `opts`/`state` stehen in den Kopf
   `userData.spots` für lotti, greta, pflaume, kruemel_kapitaen).
 - **Instanz-Varianten** (`instanced_w8.js`): `leuchtsteg`, `knochenflieger` (`'fly'|'dive'|{ anim: 'bones'|'assemble',
   progress }`), `brummbaer_ballon`.
+
+## Präzisierung (Motor und Bausteine Welt 8)
+
+Ergänzung des Motor-/Bausteine-Agenten für Welt 8 „Brummbär-Rummelplatz“ (Stand: Rummelwerkstatt `0-31`). Nichts oben
+Festgelegtes wird geändert; alles ist additiv. Alle Welt-8-Mechaniken sind parametrierbare Module, Level-Bauer setzen sie nur
+in Daten ein; jede Datei dokumentiert ihre Felder vollständig im Kopfkommentar. Aktionen im bekannten Format (Signal-Verben
+`reveal`/`hide`/`start`/`stop`/`toggle`/`open` rufen die gleichnamigen Methoden der benannten Handles), neu ist die Aktion
+`{ credits: true | 'sofort' }` (Abspann). Alle Welt-8-Bausteine sind auch als `kind` (Hülle wie Welt 7) erlaubt bzw. per
+`level.spawn(kind, spec)` zur Laufzeit erzeugbar. Richtungen im 90°-Raster; `yaw: −π/2` = Vorderseite zur Kamera (+Z);
+Level verlaufen nach −Z. Alle Takte laufen auf der Level-Uhr (`level.time`) – deterministisch, Reihen über `phase` versetzen.
+Jeder Baustein nutzt sein Registry-Modell (Welt-8-Modelle, `models/kinds/*_w8.js`, Übersicht „Präzisierung (Modelle Welt 8)“),
+sonst eigene Ersatz-Geometrie mit gleicher Kollision und Mechanik; `look: 'eigen'` erzwingt die eigene Geometrie. Wo das
+Modell Maße vorgibt (Riesenrad-Planken 1,2 m unter dem Aufhängepunkt, Zahnform, Super-POW wird je Stoß niedriger,
+Spukspiegel-Glas), folgt die Kollision dem Modell; die Tabelle „Modelle“ unten nennt die Abbildung.
+
+### Präzisierung (Motor und Bausteine Welt 8): Dateien
+
+```
+src/course/blocks/w8kit.js                 w8(level) Sammelstelle { stegs, rocks, pools, cubes, spikes, cookies, gears, fields,
+                                           wheels, rains, mirrors, pows, bridges, flashes, impacts }, flash/flashAt (Aufleuchten),
+                                           watchImpacts (Aufschläge erkennen), pathOf/pathAt (Pfade), regModel, stdMat, spikeGeo,
+                                           canvasTexture, bakeW8 (Modell backen, mit Instanzfarben); dazu die Hilfen aus w7kit
+                                           (figures, hurtFigures, cycle, onRespawn …)
+src/course/blocks/types/w8_leuchtsteg.js   leuchtsteg (Instanz-Kacheln je Level bzw. eigenes Shader-Mesh; 1 Zeichenaufruf)
+src/course/blocks/types/w8_felsklotz.js    kristall_felsklotz (Kugel und Würfel)
+src/course/blocks/types/w8_wasser.js       steigbecken, wasserkoerper
+src/course/blocks/types/w8_stachel.js      stachelblock (blau/rot), stachelwand
+src/course/blocks/types/w8_keks.js         keksrad, keks_zahnrad
+src/course/blocks/types/w8_schubfeld.js    schubfeld
+src/course/blocks/types/w8_riesenrad.js    riesenrad
+src/course/blocks/types/w8_lavaregen.js    lavabrocken_regen
+src/course/blocks/types/w8_spiegel.js      grosser_spiegel (MIRROR_LAYER 5)
+src/course/blocks/types/w8_pow.js          super_pow_block
+src/course/blocks/types/w8_fallblock.js    fallblock_bruecke
+src/course/blocks/types/deco_w8.js         Kulisse Welt 8 und Abspann (verschmolzen; Welt-8-Kulissenmodelle gebacken bzw. bewegt)
+src/course/entities/kinds/w8_gimmicks.js   Hüllen (alle Welt-8-Bausteine als kind), abspann_ausloeser
+src/course/credits.js                      Abspann-Ablauf ohne schwere Abhängigkeiten: CREDITS_KEY, requestCredits,
+                                           creditsWanted, startCreditsFrom
+src/course/CreditsScene.js                 Phaser-Szene 'Credits' (Abspann mit eigener 3D-Bühne)
+src/course/view/theme_rainfort|dunes|cookie|nightfort|dungeon|darkghost|inferno|baronpark|abspann.js, backdrop_w8.js
+src/course/levels/w0/0-31.js               Rummelwerkstatt (Stationen S0–S14 mit Schildern, marks für den Test)
+tests/course_w8_blocks.mjs                 Port 4760, W8B_PART=mech|themes|credits, Bilder tests/out/w8b_*.png
+```
+
+Additiv geändert (je wenige Zeilen, mit Kommentar): `src/main.js` (Szene `CreditsScene` registriert, `?credits=1` →
+Registry `startCredits`), `course/CourseBoot.js` (startet bei `startCredits` den Abspann), `course/CourseScene.js`
+(`exitToMap({ done })` führt in den Abspann, wenn `creditsWanted(scene)`), `course/entities/gimmick.js` (`runAction`: Aktion
+`credits`), `course/view/themes.js` (9 Registrierzeilen `??=`), `course/map/MapHud.js` (Pokal am Weltschild bei
+`courseSave.data.finished`, Meldung nach dem Abspann). Motor (Player, Level, Kollision) unverändert.
+
+### Präzisierung (Motor und Bausteine Welt 8): Liste mit Daten-Beispielen
+
+| Typ / Art | Kern | Wichtige Felder (Standard) | Beispiel |
+| --- | --- | --- | --- |
+| `leuchtsteg` | unsichtbarer, immer begehbarer Steg; sichtbar nur im Umkreis jeder Figur (mit Modell Kachel für Kachel, eigene Geometrie je Pixel mit weichem Rand und Lichtsaum) und großflächig für ≈ 2 s um jeden Aufschlag (Stampfstein landet, Suchkopf/Projektilkopf zerplatzt, Stampfattacke der Figur, Lavabrocken, Felsklotz-Absturz, Super-POW, Signal `aufschlag`); leuchtet selbst, wirft keinen Schatten | `pos` (Mitte Unterseite), `size` [2, 0.4, 6] \| `parts` [{ `pos`, `size` }] \| `from`, `to`, `n` 4 (Reihe/Treppe, size je Platte [1.6, 0.3, 1.4]), `radius` 3.2, `soft` 1.1, `flash` true, `color` 'gold' \| 'tuerkis' \| 'rosa' \| 'weiss', `hint` 0 (Grundschimmer), `always` false, `oneWay` false, `hidden` false → `{ parts [{ box, shape }], lit (Anteil sichtbarer Platten), visibleAt(x, y, z) → 0..1, flash(x, y, z, r), reveal(), hide(), info() }`; Form-Tag `leuchtsteg` | `{ type: 'leuchtsteg', id: 'steg1', pos: [0, -0.4, -18], size: [2.4, 0.4, 12] }`; Treppe: `{ type: 'leuchtsteg', from: [-7, 0.3, -26], to: [-10, 2.1, -32], n: 4, color: 'rosa' }` |
+| `kristall_felsklotz` | Fahrzeug über Lava: ruht (schaukelt), bis jemand draufsteht, wartet `wait` s und fährt den Pfad ab; Stampfattacke gibt Schub; senkrechte Pfad-Abschnitte (waagerecht < ⅓ der Höhe) = Abstürze (freier Fall, Aufprall rumpelt, Figur fällt mit); Hang bergab schneller; Ende: halt/sinken/zurück; Checkpoint-Neustart → zurück | `pos` (Mitte Unterseite am Start), `size` 3 (Ø bzw. Kante; Kollision Kugel [0,62·size, size, 0,62·size], Würfel size³; auch [w, h, d] für die eigene Geometrie), `path` [[x, y, z] …] (ab pos), `speed` 2.4, `accel` 1.4, `boost` 2.5, `maxSpeed` 7, `boostDecay` 0.9, `wait` 0.35, `slope` 1.6, `start` 'stand' \| 'signal' \| 'auto', `end` 'halt' \| 'sinken' \| 'zurueck', `sinkDelay` 1.2, `respawn` 3, `variant` 'kugel' (Standard; 'platte' = kugel) \| 'wuerfel', `color` 'lila' \| 'blau' \| 'gruen' (eigene Geometrie), `bob` 0.06 → `{ state ('ruhe'\|'wartet'\|'faehrt'\|'faellt'\|'ende'\|'sinkt'\|'weg'\|'zurueck'), s, speed, boosts, falls, mb, carries(f), start(), stop(), reset(), boostNow(), info() }`; MovingBox-Tag `felsklotz` | `{ type: 'kristall_felsklotz', id: 'klotz1', pos: [0, -2.55, -44.4], size: 2.6, path: [[0, -2.55, -50], [5, -2.55, -55]], end: 'sinken' }`; Würfel: `{ …, variant: 'wuerfel', size: 2.6, path: [[0, -2.55, -78.2], [0, -5.55, -78.4], [0, -5.55, -85.2]] }` |
+| `steigbecken` | Becken, dessen Spiegel im Takt steigt/sinkt (unten → Vorwarnung: blubbert, Pegel zittert → steigt → oben → sinkt); Figuren steigen mit (Motor `setWaterLevel`), stehende beginnen zu schwimmen; Pegelstriche (gelb hoch, blau tief) | `pos` (Mitte Beckenboden), `size` [w, h, d] (h = größte Tiefe), `low` 0.25, `high` h, `wait` 2.5, `warn` 0.8, `rise` 1.8, `hold` 2.5, `fall` 1.8, `phase`, `mode` 'takt' \| 'signal' (start füllt, stop leert), `current`, `walls` false (true: Steinrand 0,5 m, Höhe h + 0,3 – mit Modell `steigbecken`), `style` 'stein' \| 'festung' → `{ top, k, state ('unten'\|'warn'\|'steigt'\|'oben'\|'sinkt'), waterId (`${id}#w`), start(), stop(), info() }` | `{ type: 'steigbecken', id: 'becken', pos: [0, -4, -122], size: [14, 4.6, 16], walls: true, low: 0.3, hold: 2.5 }` |
+| `wasserkoerper` | schwebender Wasserwürfel: hinein = schwimmen, oben herausspringen, unten/seitlich hinaus = fallen; wabernde, durchscheinende Wände (Modell wabbelt beim Hinein-/Herausspringen) | `pos` (Mitte Unterseite), `size` [4, 4, 4] \| `parts` [{ `pos`, `size` }], `current`, `color` (sonst Thema), `wobble` 0.08 → `{ parts, inside(f), info() }`; Wasserform-Tag `wasserkoerper` | `{ type: 'wasserkoerper', id: 'wuerfel1', pos: [0, 0.3, -138.5], size: [4, 4, 4] }` |
+| `stachelblock` | Block mit Stacheln auf gewählten Seiten fährt seinen Pfad; Stacheln verletzen (Rückstoß weg von der Fläche), stachellose Seiten sind Wände/begehbar (trägt mit); eingeklemmt → herausgeschoben (`damage: 'tod'` = zerquetscht). blau: Takt mit Halt + Vorwarnung (zittert, Stacheln blinken); rot: wandert ohne Pause, glüht | `pos`, `size` [2, 2, 2], `color` 'blau' \| 'rot', `spikes` 'alle' \| ['+x', '-x', '+z', '-z', 'oben', 'unten'] (auch 'rechts'/'links'/'vorn'/'hinten'), `spikeLen` 0.45, `path` \| `move` [dx, dy, dz], `speed` blau 3 / rot 2.2, `wait` blau 1.2 / rot 0, `warn` 0.5, `mode` 'pingpong' \| 'loop' (rot ab 3 Punkten), `phase`, `idle`, `damage` 'treffer' \| 'tod' → `{ state ('wartet'\|'warn'\|'faehrt'\|'steht'), mb, spikes, hits, crushes, start(), stop(), info() }` | `{ type: 'stachelblock', id: 'blau1', pos: [-4, 0, -158], color: 'blau', move: [8, 0, 0] }` |
+| `stachelwand` | wandernde Stachelwand (wie stachelblock) | Standard `size` [10, 4, 1], `spikes` ['+z'], `move` [0, 0, 6], `speed` 2, `wait` 1.5, `color` 'blau' | `{ type: 'stachelwand', id: 'wand1', pos: [0, 0, -183], size: [14, 3, 1], move: [0, 0, 5] }` |
+| `keksrad` | drehender Riesenkeks: waagerecht (`axis: 'y'`) wie ein Drehteller (cyl mit mover.dyaw), senkrecht (`'x'`/`'z'`) läuft oben wie ein Band, zu den Seiten steil (senkrecht + = Oberseite läuft bei axis 'x' nach +Z, bei 'z' nach +X) | `pos` (waagerecht Mitte Unterseite, senkrecht Achsmitte), `radius` 2.5, `thick` 0.6 / 1.6, `axis` 'y' \| 'x' \| 'z', `speed` 0.7 (rad/s), `angle`, `idle`, `slice` 0.3, `icing` 'rosa' \| 'weiss' \| 'schoko' \| 'gruen', `post` true (`postDown` 5) → `{ angle, speed, axis, start(), stop(), reverse(), info() }` | `{ type: 'keksrad', id: 'keks1', pos: [0, -0.6, -191.5], radius: 3 }`; senkrecht `{ …, axis: 'x', pos: [0, -2.2, -199], radius: 2.4, thick: 3 }` |
+| `keks_zahnrad` | Keks-Zahnrad: waagerecht mit begehbaren Zähnen (zwei greifen ineinander: Achsabstand 2·radius + toothLen, Gegen-Drehsinn); senkrecht als Paternoster (Zähne = mitfahrende, waagerechte Plattformen, Radkörper läuft oben wie ein Band) | wie keksrad, dazu `radius` 3, `teeth` 8, `toothLen` 0.9 (mit Modell liegend: Zahnhöhe des Modells ≤ 0,45), `toothW` 1.1, `speed` 0.5 → `{ angle, speed, teeth [{ x, y, z }], start(), stop(), reverse(), info() }` | `{ type: 'keks_zahnrad', id: 'zahn2', axis: 'x', pos: [7, -1, -197], radius: 2.6, teeth: 8, speed: 0.4 }` |
+| `schubfeld` | Dünen-Schubfeld: im Ritt-Level (level.river) Temposchwelle des Netzes (+boost m/s für Pflaume), Reittier-Entitäten mit `boost(dir, v, t)` werden angeschoben, zu Fuß Boost-Auslöser | `pos` (Mitte, y = Oberfläche), `dir` [dx, dz] \| yaw (Standard Fließrichtung bzw. −Z), `size` [3, 4] (Breite, Länge), `boost` 5, `speed` 15, `time` 1.3, `color` 'gold' \| 'tuerkis' \| 'rosa' → `{ hits, wave, info() }` | `{ type: 'schubfeld', id: 'schub1', pos: [0, 0, -218], size: [3, 4] }` |
+| `riesenrad` | großes Rad dreht sich langsam; waagerechte Gondel-Plattformen (MovingBox) tragen Figuren und Gegner (Schubser fahren mit); Glühbirnen-Lauflicht, Ständer | `pos` (Achsmitte), `radius` 12, `gondolas` 8, `axis` 'z' \| 'x', `speed` 0.12 (+ = gegen den Uhrzeigersinn von vorn), `angle` 0, `size` [3.2, 0.45, 2.6] (Planke = Kollision), `hang` (Aufhängepunkt → Unterkante; mit Modell 1,2 + size.y, sonst 1,4), `stand` true, `ground` (pos.y − radius − 2,6; anders → eigene Böcke bis ground), `lights` true, `idle` → `{ angle, speed, gondolas [{ mb, a0 }], carried(), start(), stop(), reverse(), info() }`; Tag `riesenrad-gondel` | `{ type: 'riesenrad', id: 'rad', pos: [0, 9, -252], radius: 8, gondolas: 6, speed: 0.15, angle: -Math.PI / 2 }` |
+| `lavabrocken_regen` | Brocken fliegen in hohem Bogen aus dem Vulkan auf Ziele; rote Landemarke `warn` s vorher; Einschlag trifft im Radius, Funken, Aufleuchten, optional Glutpfütze | `area` [x0, z0, x1, z1] \| `targets` [[x, y, z] …], `y`, `from` (Standard 6 m seitlich, 30 m über und 45 m hinter der Bereichsmitte), `period` 1.6, `count` 1, `flight` 1.8, `warn` 1.2, `radius` 1.1, `size` 0.6, `puddle` 0, `aim` 0 (jeder aim-te auf die Figur), `phase`, `seed` 1, `start` 'auto' \| 'signal' \| { `box`: [x0, y0, z0, x1, y1, z1] } → `{ state ('aus'\|'an'), rocks, impacts, hits, start(), stop(), info() → { state, flying, warn, impacts, hits, waves, puddles } }` | `{ type: 'lavabrocken_regen', id: 'regen', area: [-8, -292, 8, -278], period: 1.4, start: { box: [-13, -1, -296, 13, 6, -274] } }` |
+| `grosser_spiegel` | großer Wandspiegel (Modell: Spukspiegel mit Bogen, Glas 0,72·h breit; eigener: rechteckiger Goldrahmen): echtes Spiegelbild (zweiter Durchgang mit gespiegelter Kamera, nur bis `reach` m vor dem Spiegel, nur wenn die Kamera näher als `near` m und davor ist); Spiegelwelt: Stern und Platten nur im Spiegel sichtbar (Ebene 5), im Raum unsichtbar, aber einsammelbar/begehbar | `pos` (Mitte Unterkante der Fläche), `size` [6, 4], `dir` [0, 1] \| `yaw`, `frame` true, `res` 512, `tint`, `near` 30, `reach` 24, `star` id (Stern aus LEVEL.stars mit { pos, id }) \| { `index`, `pos` }, `parts` [{ `pos`, `size` }], `solid` true → `{ active, renders, star, parts, inFront(x, z), mirror(x, y, z), info() }` | `{ type: 'grosser_spiegel', id: 'spiegel', pos: [0, 0, -320], size: [4.4, 6], reach: 16, star: 'spiegelstern', parts: [{ pos: [0.9, 1.1, -312.4], size: [1.6, 0.3, 1.6] }] }` |
+| `super_pow_block` | riesiger, schwebender POW-Block; jeder Stoß (Kopfstoß, Stampfattacke, Sichel/Panzer/Bombe/Riesentrank, `hit()`) zählt mit Sperre `cool`; je Stoß Stauchen, Schockwelle, Kamera wackelt, Aufleuchten, Gegner am Boden onHit('bump'), Aktion `onHit`, Signal; mit jedem Stoß wird er niedriger (Oberseite size·(1 − 0,16·4·hits/hits_gesamt), wer oben steht sackt mit); nach dem letzten: `onDone`, zerspringt | `pos` (Mitte Unterseite), `size` 4, `hits` 4, `cool` 0.6, `radius` 14, `height` 4, `signal` 'super_pow', `onHit`, `onDone`, `vanish` true, `hidden` false, `rise` 2.5 → `{ hits, left, done, top (y der Oberseite), state ('versteckt'\|'kommt'\|'bereit'\|'stoss'\|'fertig'), hit(via, source), reveal(), hide(), info() }`; Tag `super_pow` | `{ type: 'super_pow_block', id: 'superpow', pos: [0, 2.3, -362], size: 3, onDone: { signal: 'finale' } }` |
+| `fallblock_bruecke` | Brücke aus gelben Fallblöcken: Betreten (bzw. `start()`) → Einsturz Block für Block (`kette`, vom Anfang bzw. `beide` Richtungen) oder nur der betretene (`einzeln`); Vorwarnung wackeln; zurück nach `respawn` s; Checkpoint-Neustart setzt zurück | `from`, `to` \| `blocks` [[x, y, z] …], `size` [1.6, 0.6, 1.6], `n`, `mode` 'kette' \| 'einzeln', `dir` 'vor' \| 'beide', `delay` 0.28, `warn` 0.45, `respawn` 6, `color` 'gelb' \| 'orange' \| 'blau', `start` 'stand' \| 'signal' → `{ blocks, state ('ruhe'\|'stuerzt'\|'leer'), fallen, start(), reset(), info() → { blocks: '#'/'~'/'v'/'_' je Block } }` | `{ type: 'fallblock_bruecke', id: 'fallbr', from: [0, -0.6, -327.5], to: [0, -0.6, -342.5], size: [1.8, 0.6, 1.8] }` |
+| `abspann_ausloeser` (kind) | unsichtbarer Kasten: betritt eine Figur ihn (bzw. `start()`), wird der Abspann angefordert | `pos`, `size` [4, 3, 4], `when` 'nach-ziel' \| 'sofort', `id` → `{ fired }` | `{ kind: 'abspann_ausloeser', pos: [0, 0, -380], when: 'nach-ziel' }` |
+| `deco_w8` | Kulisse (eigene Geometrie verschmolzen; mit Welt-8-Kulissenmodell gebacken (statisch, mit Instanzfarben) bzw. bewegt: Karussell, Riesenrad-Kulisse, `animate: true`) | `items: [{ kind, pos, … }]`, `yaw` (Standard −π/2), `scale`, `shadow: false`, `solid: true` \| [w, h, d], `look: 'eigen'`; Rummel: bude (→ rummel_bude), wimpel (→ wimpelkette, waagerecht), gluehbirnen (→ gluehbirnenkette, waagerecht), lampions (lampionkette), mast, karussell (→ karussell), ballons (→ brummbaer_ballon), achterbahn (→ achterbahn gerade, waagerecht), torbogen, picknick · Regen: wasserspeier, pfuetze (→ regenfestung pfuetze), regentonne · Keks: keksstapel, ruehrschuessel, backofen, spritzbeutel, kruemel · Unterwasser: saeule (→ wasserfestung saeule), muscheln, anker, gitterfenster · Spukhaus: kerzenleuchter (Laternenlicht), bilderrahmen, spinnennetz, standuhr · nur als Modell: keksturm, fliessband, zuckerguss, regenmauer, regenturm, festungsfahne, algen, fallgitter, duene, autowrack, baron_turm, riesenrad_kulisse, modell ({ name, opts, state }) | `{ type: 'deco_w8', items: [{ kind: 'bude', pos: [-9, 0, -2], color: 'rot', yaw: 0, solid: true }, { kind: 'lampions', from: [-10, 4.5, -354], to: [10, 4.5, -354] }] }` |
+
+Hinweise für Level-Bauer: Leuchtstege brauchen keinen Boden darunter (Abgrund ist gewollt); Stampfsteine über einem Steg
+fallen bis auf den Steg (Raycast trifft ihn), ihr Aufschlag lässt Stege im Umkreis 8 m aufleuchten (Suchkopf 6,5 m, Stampfen
+7,5 m). Kristall-Felsklotz: Unterseite 0,2 m unter die Lava-Oberfläche legen, Oberkante ≈ Plateauhöhe (Figur steigt ohne
+Sprung auf); Absturz erst, wenn der Klotz die Stufe ganz verlassen hat (Mitte ≥ halbe Breite + 0,1 m hinter der Kante).
+Steigbecken: Beckenrand selbst bauen (island/wall) oder `walls: true`. Keks-Zahnräder waagerecht: zwei Räder mit gleichem
+`|speed|`, umgekehrtem Vorzeichen, Abstand 2·radius + toothLen greifen ineinander. Riesenrad: `angle` so wählen, dass zum
+Levelstart eine Gondel unten am Steg steht; Schubser auf eine Gondel stellen (pos = Gondel-Oberkante zum Startwinkel).
+Großer Spiegel: Spiegel-Stern und -Platten innerhalb der Spiegelbreite vor den Spiegel legen (sonst nie im Bild; mit dem
+Spukspiegel-Modell ist das Glas nur 0,72·h breit), `reach` klein halten (Zeichenaufrufe). Super-POW-Block: der Endgegner
+steht auf `top` (sinkt mit). Riesenrad mit Modell: ohne `ground` reicht das Modell-Gestell bis pos.y − radius − 2,6.
+
+### Präzisierung (Motor und Bausteine Welt 8): Signale, Zustände, Schnittstellen
+
+- **Aufschläge / Aufleuchten** (`w8kit`): `flash(level, x, y, z, r, { time, k, by })` lässt die Leuchtstege um den Punkt
+  aufleuchten (wächst in 0,25 s auf r, verblasst über `time` 2,2 s); `w8(level).flashes` (höchstens 6 gleichzeitig),
+  `w8(level).impacts` (Zähler). Erkannt werden automatisch: Stampfstein `state → 'land'` (8 m), Suchkopf/Projektilkopf
+  `burst` (6,5 m), Figur landet aus der Stampfattacke (7,5 m), Lavabrocken (6 m), Felsklotz-Absturz (7 m), Super-POW-Stoß
+  (≥ 10 m). **Neue Gegner** melden ihren Aufschlag mit `level.signal('aufschlag', { pos: [x, y, z], radius, by })`.
+- **Super-POW-Block**: Signal `super_pow` (bzw. `spec.signal`) je Stoß mit `{ hit, of, left, done, pos, source, via, id }`
+  (`via`: 'kopf' \| 'stampfen' \| 'shell' \| 'bomb' \| 'mega' \| 'throw' \| 'sichel' \| frei bei `hit(via)`); Aktionen
+  `onHit`/`onDone`; Gegner mit `superPowImmune = true` (z. B. der Baron auf dem Block) bekommen keine Schockwelle,
+  `flying` ebenso. Der Boss-Agent ruft `level.named.get(id).hit('boss')` nicht – Stöße kommen von den Figuren; `reveal()`
+  lässt einen versteckten Block auftauchen.
+- **Signal-Verben**: Felsklotz `start`/`stop`, Steigbecken (mode 'signal') `start` füllt / `stop` leert, Stachelblock/-wand,
+  Keksrad/-zahnrad, Riesenrad `start`/`stop`, Lavabrocken-Regen `start`/`stop`, Fallblock-Brücke `start`, Leuchtsteg und
+  Super-POW `reveal`/`hide`, Abspann-Auslöser `start`.
+- **Todesursachen**: Stachelblock (damage 'tod') `'crush'`; Lava wie Welt 7 (`'lava'`).
+- **Schnittstellen für Gegner-Agenten**: Sammelstelle `w8(level)` (z. B. Baron steuert alle `rains` per `start()`, liest
+  `wheels[0].gondolas`); Gondeln, Felsklötze, Stachelblöcke, Fallblöcke sind MovingBoxen (Gegner mit `moveWithGravity`
+  fahren mit); `grosser_spiegel`: `MIRROR_LAYER` (5) – Objekte nur im Spiegel zeigen: `obj.traverse((o) => o.layers.set(5))`
+  (z. B. ein Großspuk, den man nur im Spiegel sieht); `lavabrocken_regen` mit `targets` + `start: 'signal'` als Boss-Angriff
+  (geschleuderte Brocken mit Landemarken, `puddle` für Lavapfützen in 8-B).
+- **Schnittstellen für Level-Agenten**: `LEVEL.credits = true` (8-Burg) oder Aktion `{ credits: true }` (z. B. `onDone` des
+  Super-POW-Blocks bzw. `onDefeat` des Bosses) → nach Zielmast und Ergebnis führt „Weiter“ in den Abspann; `{ credits:
+  'sofort' }` beendet das Level und startet den Abspann sofort; `{ kind: 'abspann_ausloeser', … }` als Kasten.
+- **Klänge** (vorhandene Effekte über `level.sfx`): Felsklotz-Schub `boost`, Absturz `slam`; Steigbecken `splash_big`, Warnung
+  `blase`; Lavabrocken `slam`; Super-POW `slam` + `boss_hit`, fertig `victory`; Fallblock `rumble`/`blockhit`;
+  Super-POW auftauchen `rumble`. `tests/sfx_namen.mjs` prüft sie.
+
+### Präzisierung (Motor und Bausteine Welt 8): Abspann
+
+Phaser-Szene `'Credits'` (`src/course/CreditsScene.js`, registriert in `main.js`), eigene 3D-Bühne über CourseView + Level +
+Bausteine (Thema `abspann`, Sommerabend auf einer Wiese bis zum Horizont): in der Mitte die Festwiese `abspann_buehne`
+(Picknickdecke mit Torte, drei Lampion-Masten, die vier befreiten Freunde; ohne Modell: eigenes Picknick und Lampion-Geviert),
+außen Masten mit Wimpeln, Ballons, Karussell, Buden, Torbogen (Welt-8-Kulissenmodelle), Baumkranz, Glühwürmchen und
+Schmetterlinge; Lotti und Greta (auf `userData.spots`, einander zugewandt) jubeln (Avatar-Zustand `victory` im Wechsel mit
+`idle`), Pflaume macht Freudensprünge, Krümel (Platz `kruemel_kapitaen`) hüpft (`cheer`), fünf weitere Freunde (bunny_small,
+als Instanzen; ohne Festwiese sieben) tanzen im Reigen; die Freunde der Festwiese sitzen und wippen (`wave` 0,3–0,5) und
+hüpfen ab dem Feuerwerk ausgelassen (`wave` 1); Kamerafahrt (zwei Catmull-Rom-Kurven über die ganze Musik):
+Überblick → Lotti → Greta → Pflaume und Krümel → Reigen von hinten → Runde → hinauf ins Feuerwerk; Konfetti (220
+Instanzen) und Feuerwerk (ab 42 % der Zeit). Danksagungen (deutsch, keine Personennamen) rollen nach oben: Titel „Lotti &
+Greta“, „Mit Pflaume, Krümel und allen Freunden“, Heldinnen und Freunde mit Rollen, die Reise (Weltnamen aus den Weltkarten),
+„Mit dabei“, gefundene Sterne (wenn > 0), zuletzt „Danke fürs Spielen!“ (bleibt in der Bildmitte stehen). Musik
+`course_abspann` spielt einmal (`music.themeInfo('course_abspann').seconds` ≈ 76 s); danach noch 3 s, dann Weißblende zur
+Weltkarte (`CourseMap`, `{ from, credits: true }` – Meldung „Spiel geschafft – danke fürs Spielen!“). „Weiter ›“ bzw.
+Enter/Leertaste überspringt ab 3 s. Spielstand: `courseSave.data.finished = true` (additiv, schon beim Start des Abspanns),
+`courseSave.data.finishedVisits` zählt; die Karte zeigt dann einen goldenen Pokal rechts am Weltschild (`hud.trophyShown`).
+Die Kamerafahrt richtet sich nach den Plätzen der Figuren (Festwiese: `userData.spots`, y = Wölbung der Wiese).
+
+Aufruf: `this.scene.start('Credits', { from: '8-Burg' })`; aus dem Level siehe oben (`src/course/credits.js`:
+`requestCredits(level, 'nach-ziel' | 'sofort')`, `creditsWanted(scene)`, `startCreditsFrom(scene, from)`); URL `?credits=1`.
+Test-Schnittstelle `window.__credits`: `setManual(b)`, `advance(s)` (Zeitleiste in 1/30-s-Schritten), `state()` → { t,
+duration, end, music, playing, roll, lines, shown, finished, ending, actors, confetti, fireworks, stage, camera },
+`finish()`, `stats()`.
+
+### Präzisierung (Motor und Bausteine Welt 8): Modelle
+
+Abbildung der Bausteine auf die Welt-8-Modelle (genaue opts/state in den Kopfkommentaren von `models/kinds/*_w8.js`):
+
+| Baustein | Modell | opts / state aus dem Baustein |
+| --- | --- | --- |
+| `leuchtsteg` | `createInstanced('leuchtsteg', n, { thick: 0.3 })` | je Platte ≈ 1-m-Kacheln (`setAt(i, [x, y0, z], 0, [sx, h / 0,3, sz])`), state { glow: Sichtbarkeit der Kachelmitte bzw. Aufleuchten, flash } |
+| `kristall_felsklotz` | `kristall_felsklotz` | { size, shape 'kugel' \| 'wuerfel' }; state { anim 'idle' \| 'roll' \| 'fast', roll (Weg/Radius bzw. ¼ Drehung je Kante), speed }; Rollrichtung = Fahrtrichtung |
+| `steigbecken` (walls) | `steigbecken` | { size [w, d], height h + 0,3, wall 0,5 }; state { level = (Wasserspiegel − Boden) / height }; Motor-Wasser unsichtbar |
+| `wasserkoerper` | `wasserkoerper` | { size [w, h, d] }; state { wobble: 1 beim Hinein-/Herausspringen, abklingend, 0,25 solange jemand darin ist } |
+| `stachelblock`, `stachelwand` | `stachelblock_blau` / `stachelblock_rot` | { size, faces }: vier Seiten + oben → 'alle', vier Seiten → 'seiten', oben → 'oben', genau eine Seite → 'vorn' (gedreht, size [Tiefe, Höhe, Breite]); andere Kombinationen: eigene Geometrie; state { out: 1, warn } |
+| `keksrad` | `keksrad` | { size 2·radius, thick, axis, color: icing 'schoko' → 'schoko', sonst 'hell' }; state { angle } (axis 'z': −angle); liegend um thick/2 angehoben |
+| `keks_zahnrad` | `keks_zahnrad` | { radius (liegend: radius + Zahnhöhe), teeth, thick, axis }; state { angle }; Kollisions-Zähne bei (k + 0,375)/teeth·2π |
+| `schubfeld` | `schubfeld` | { size [Länge, Breite] }, gedreht auf `dir`; state { on: true, speed: 1 } |
+| `riesenrad` | `riesenrad` | { radius, count, plank [w, d], depth max(2,6, d + 0,4), stand }; state { angle }; Planken-Oberseite = Kollisions-Oberseite |
+| `lavabrocken_regen` | `lavabrocken_regen`, `landemarke`, `lavapfuetze` | Brocken { size }: 'fall' (Schweif gegen die Flugrichtung), 'land' mit progress über 0,8 s; Marke { size [2,6·radius, 2,6·radius], shape 'kreis' }, state { k }; Pfütze { size 1,6·radius }: 'grow' → 'idle' → 'cool' |
+| `grosser_spiegel` | `spukspiegel` | ohne opts, gleichmäßig skaliert (s = h / 3,05), Sockel unter pos.y versenkt; state { star: false, glow: 1 }; Spiegelfläche in der Bogenform des Glases |
+| `super_pow_block` | `super_pow_block` | { size }; state { hits (auf 0..4 umgerechnet), anim 'hit' mit progress 0,7 s nach jedem Stoß, sonst 'idle' } |
+| `fallblock_bruecke` | – | eigene Blöcke (eine InstancedMesh); ein künftiges Modell `fallblock` ({ size, color }, state { warn }) würde übernommen |
+| `deco_w8` | `rummel_bude`, `karussell`, `wimpelkette`, `gluehbirnenkette`, `brummbaer_ballon`, `achterbahn`, `regenfestung`, `keksfabrik`, `wasserfestung`, `duene`, `autowrack`, `baron_turm`, `riesenrad_kulisse` | siehe Liste oben; gebacken mit `bakeW8` (Instanzfarben), Karussell und Riesenrad-Kulisse bewegt |
+| Abspann | `abspann_buehne` | { size 1 }; state { wave, glow: 1 }; `userData.spots` → Plätze der Hauptfiguren |
+
+### Präzisierung (Motor und Bausteine Welt 8): Themen
+
+| Thema | Name | Stimmung / Hintergrund (`backdrop_w8.js`) |
+| --- | --- | --- |
+| `rainfort` | Regenfestung | Dauerregen (Regenstriche um die Kamera), Gewitterhimmel ohne Schreck (sanftes Wetterleuchten), Türme im Dunst, Fensterlichter spiegeln sich im nassen Graben, glänzendes Gelände (`toy.spec`) |
+| `dunes` | Dünen im Abendrot | Dünenmeer im Abendlicht, tiefe Sonne, Baron-Sandstatuen am Horizont, wehender Sand |
+| `cookie` | Keksfabrik | Fabrikhalle in Zuckerguss-Streifen, drehende Keks-Zahnräder, Förderbänder, Zuckerdampf, Puderzucker |
+| `nightfort` | Nacht-Festung | fast schwarz, blasse Sterne, Turm-Silhouetten mit wenigen Lichtern; Figurenlicht und kräftiges Randlicht (Figuren lesbar), Leuchtstege = Licht |
+| `dungeon` | Unterwasser-Festung | Bogenmauern, glimmende Gitterfenster, Ketten, Lichtschächte, Seetang, Blasen; Unterwasser-Stimmung automatisch |
+| `darkghost` | Finsteres Spukhaus | stockdunkel, schemenhafte Wände, blinzelnde Geisteraugen, Staub; schwaches Figurenlicht, Laternenlicht an Kerzen |
+| `inferno` | Lava-Inferno | Lavasee bis zum Horizont, Felsnadeln mit lila/eisblauen Kristallen, glühende Vulkane, Funken |
+| `baronpark` | Brummbär-Rummelplatz | Abendhimmel, großer Baron-Turm, Riesenrad (dreht), Achterbahn, Zelte mit Lichterketten, Rummel-Pflaster mit Laternen |
+| `abspann` | Abendwiese | Sommerabend, Wiese bis zum Horizont (Abspann; auch `?theme=abspann`) |
+
+`train`, `circus`, `house` sind vorhanden. Jedes Thema lässt sich in `0-31` mit `?theme=<name>` ansehen.
+
+### Präzisierung (Motor und Bausteine Welt 8): Welt 8 – Gimmick → Baustein
+
+| Gimmick (Bauplan) | Baustein |
+| --- | --- |
+| Stachelbrücken im Takt (8-1) | `stachelwalze_rot`/`klappstampfer` (Welt 7); Stacheln im Takt aus der Brücke: `stachelblock` (blau, `spikes: ['oben']`, Oberkante knapp unter der Brückenfläche, `move: [0, 0.6, 0]`, `wait`/`warn` als Takt) |
+| Schubfelder in der Wüste, Ritt auf Pflaume (8-2) | `schubfeld` (Ritt-Netz/raft/zu Fuß) |
+| drehende Kekse und Keks-Zahnräder (8-3) | `keksrad`, `keks_zahnrad` |
+| unsichtbare Stege, Aufleuchten bei Aufschlägen/Stampfen (8-4) | `leuchtsteg` (+ Stampfstein, Suchkopf, Signal `aufschlag`) |
+| Steigbecken, schwebende Wasserkörper (8-5) | `steigbecken`, `wasserkoerper` |
+| blaue/rote Stachelblöcke, wandernde Stachelwände (8-5) | `stachelblock`, `stachelwand` |
+| Fallblock-Brücke (8-5), Fallblock (8-1) | `fallblock_bruecke` (`mode: 'einzeln'` für einzelne Fallblöcke) |
+| großer Spiegel mit Spiegelbild-Stern (8-6) | `grosser_spiegel` (+ Thema `darkghost`, Licht-Helm) |
+| Kristall-Felsklötze, Würfel mit Abstürzen, Lavahang, Kurvenroute (8-7) | `kristall_felsklotz` (`variant`, `path`, `slope`) |
+| Lavabrocken-Regen aus dem Vulkan, Lavapfützen (8-Burg, 8-B) | `lavabrocken_regen` (`puddle`) |
+| Riesenrad mit 4 Schubsern (8-Burg) | `riesenrad` (+ `schubser` auf Gondeln) |
+| Super-POW-Block 4× anstoßen (8-Burg) | `super_pow_block` (Signal `super_pow`) |
+| Abspann nach dem Sieg (8-Burg) | `CreditsScene` (`LEVEL.credits`, Aktion `{ credits }`, `abspann_ausloeser`) |
+| Rummel-, Regenfestungs-, Keksfabrik-, Unterwasser-, Spukhaus-Kulisse | `deco_w8` |
+
+### Präzisierung (Motor und Bausteine Welt 8): Tests und Kennzahlen
+
+`tests/course_w8_blocks.mjs` (Port 4760, `W8B_PART=mech|themes|credits`, `W8B_SHOTS=0` ohne Bilder, `W8B_DEBUG=1`): je
+Mechanik mit Gegenprobe – Leuchtsteg (unsichtbar begehbar, sichtbar nur um die Figur, 5,8 m daneben unsichtbar;
+Stampfstein-Aufschlag, Stampfattacke und Signal lassen ihn aufleuchten, danach verblasst er), Kristall-Felsklotz (ruht ohne
+Figur, fährt mit ihr los, Stampfen beschleunigt, versinkt und kommt wieder; Würfel mit zwei Abstürzen, Figur fährt heil mit),
+Steigbecken (Takt, leer: steht, voll: schwimmt), Wasserkörper (drinnen schwimmen, daneben stehen, unten hinaus fallen),
+Stachelblock (Stacheln treffen, 1 m davor heil; blau Takt mit Pausen, rot ohne Pause, Wand rückt vor), Keksrad (Drehteller
+nimmt mit, angehalten nicht; senkrecht Band), Keks-Zahnrad (Zahn trägt), Schubfeld (drüber schnell, daneben normal),
+Riesenrad (dreht, Gondel trägt Figur, Schubser fährt auf seiner Gondel mit), Lavabrocken-Regen (startet erst im Bereich,
+Landemarken, trifft am Ziel, daneben heil), großer Spiegel (Spiegel-Durchgang, Stern nur auf Ebene 5, Spiegel-Stufen
+begehbar, Stern einsammelbar), Fallblock-Brücke (alle fest → Einsturz Block für Block, Figur fällt mit), Super-POW-Block
+(Kopfstoß und Stampfen zählen, Sperre, vier Signale, onDone), Abspann-Auslöser, Hüllen als kind, Ziel; Themen (acht Namen
+und Kulissen, nightfort/darkghost dunkel mit Figurenlicht, dungeon unter Wasser); Abspann (?credits=1 startet, Musik
+`course_abspann` ohne Schleife endet von selbst, Darsteller/Konfetti/Feuerwerk, Texte rollen von „Lotti & Greta“ bis „Danke
+fürs Spielen!“, `finished` gespeichert, zurück zur Karte mit Pokal, Weg aus dem Level über `{ credits }`); keine
+Konsolenfehler. Stand: mech 32/32, themes 4/4, credits 9/9 (je < 10 min, nacheinander); Regression course_physics 19/19,
+course 46/46, course_w7_blocks 48/48 + 4/4, course_w6_blocks (mech) 48/48, course_motor_fixes 37/37, course_map 46/46,
+sfx_namen grün.
+
+Kennzahlen der Bilder (Zeichenaufrufe inkl. Schattenpass und Spiegel-Durchgang / Dreiecke; Budget < 120 / < 300 k):
+
+| Bild | Aufrufe | Dreiecke | | Bild | Aufrufe | Dreiecke |
+| --- | --- | --- | --- | --- | --- | --- |
+| leuchtsteg | 57 | 123 k | | thema_rainfort | 62 | 123 k |
+| felsklotz | 69 | 93 k | | thema_dunes | 53 | 110 k |
+| wasser | 56 | 134 k | | thema_cookie | 56 | 177 k |
+| stachel | 63 | 212 k | | thema_nightfort | 40 | 59 k |
+| keks | 47 | 196 k | | thema_dungeon (+ Würfel, unter Wasser) | 52 / 69 / 54 | 96 k / 147 k / 152 k |
+| schubfeld | 41 | 103 k | | thema_darkghost (Spiegel) | 88 | 98 k |
+| riesenrad | 77 | 157 k | | thema_inferno | 63 | 79 k |
+| lavaregen | 38 | 82 k | | thema_baronpark (+ Start) | 84 / 58 | 144 k / 119 k |
+| spiegel (mit Spiegel-Durchgang) | 78 | 162 k | | abspann_start (Überblick) | 94 | 290 k |
+| fallblock | 64 | 147 k | | abspann_freunde | 93 | 277 k |
+| superpow | 43 | 92 k | | abspann_reise | 88 | 268 k |
+| start | 50 | 134 k | | abspann_danke | 67 | 212 k |
+
+Der Spiegel-Durchgang zeichnet nur, was näher als `reach` am Spiegel und vor ihm liegt (auch Sprites und Objekte ohne
+Sichtprüfung über ihre Grenzkugel + 3 m), und schaltet sich ab, wenn die Kamera weiter als `near` entfernt ist.
+
+## Bonuswelten – Level-Liste und Freischaltung (Hauptsitzung)
+
+Nach dem Finale (`8-Burg`, Spielstand `finished`) folgen vier Bonuswelten. Sie sind **Sonderwelten mit Buchstaben-Präfix**
+(wie die Halloween-Welt, `MAP.prefix`): Level-Ordner `src/course/levels/w<Welt>/`, Kartendatei
+`src/course/map/worlds/w<Welt>.js`. Pilz und Blume sind **Remixe** vorhandener Level (Basislevel + Remix-Regeln, siehe
+„Remix-Level“ unten), Stern bringt neue Level, Krone ist die Abschlussprüfung. Pilz- und Blumen-Level haben **keinen
+Stempel**. Sterne in der Schranke zählen immer **alle** gesammelten Sterne (Welt 1–8: 249, Halloween 18 → 267 vor den
+Bonuswelten).
+
+| Welt | Nr. | Präfix | Name | Karte frei nach | Musik Karte |
+| --- | --- | --- | --- | --- | --- |
+| Stern | 9 | `S` | „Sternenzelt“ (Weltraum, Regenbogenwege, Planetoiden) | Sieg in `8-Burg` (Röhre `WS` auf der Welt-8-Karte) | `course_worldstar_map` |
+| Pilz | 10 | `P` | „Pilz-Remix“ (bekannte Orte, neu gemischt) | `S-8` | `course_worldpilz_map` |
+| Blume | 11 | `B` | „Blumen-Remix“ | `P-6` | `course_worldblume_map` |
+| Krone | 12 | `K` | „Kronen-Gipfel“ (Abschlussprüfung) | `B-12` **und ≥ 330 Sterne** | `course_worldkrone_map` |
+
+### Welt Stern (9)
+
+| Id | Archetyp | Inhalt | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `S-1` | parcours | Regenbogen-Plattformen mit Hüpfmäusen, Trapeze, Reitfahrt auf schwimmendem Reittier, Fackelplatz, Riesentrank, P-Schalter-Münzregen | course_rainbow | 3 + Stempel | Welt offen |
+| `S-2` | parcours | Planetoiden-Hommage: kippende Drehplatten, Plattenbahnen, Boost-Strecke, Plattentreppe, Schachbrett; Abschluss schaltet das **Sternenglanz-Kostüm** für Lotti und Greta frei | course_galaxy | 3 + Stempel | S-1 |
+| `S-Kapitän` | diorama | mechanisches Diorama, per Schalter drehbar (Drehen ist Pflicht), Stern 4 nur mit gedrehter Kamera; 9 Funkenflämmchen | course_diorama | 5 | S-2 |
+| `S-3` | parcours | Holz-Athletik mit rollenden Schienenwalzen, Walzentrio, Walzenaufstieg, große Walze mit Seitenweg | course_rollingride | 3 + Stempel | S-2 |
+| `S-4` | verfolgung | der Zielmast bekommt Flügel und fliegt davon (wartet, wenn man zurückfällt), Boost-Pfeile, Glotzfische, Donut-Felder; 100 s ohne Zeitboni | course_goalpole | 3 + Stempel | S-3 |
+| `S-5` | parcours | Retro-Blockland aus Riesenblöcken: Grasinseln, Laufbomben, Gleitblätter, wachsende Riesen-?-Türme, Felsblock sprengen, 5 Schlüsselmünzen | course_blockland | 3 + Stempel | S-4 |
+| `S-6` | parcours (Draufsicht) | Kamera senkrecht von oben, Waben-Plattformen aus Lava/Eis, Wurfsichel, Spiegelfrucht, Käferfeld, Brummer, Zielturm | course_honeycomb | 3 + Stempel | S-5 |
+| `S-7` | parcours | Dschungel, alles übergroß: Riesen-Pilzlingstürme, Großrollpilze, Riesentrank-Feld, Unterwasser mit Strömungen | course_grotto | 3 + Stempel | S-6 |
+| `S-8` | parcours (Geister) | verschneiter Spukfriedhof im Nebel, 5 Schlüsselmünzen, Floßfahrt über Giftsumpf, auf- und absteigende Nebelplattformen | course_fogbog | 3 + Stempel | S-7 |
+| `S-9` | parcours | futuristischer Weltraum mit Kanonen-Helm: Schienenbrett-Fahrt, Kanonenkugel-Wand, Unterwassertunnel, Weichen umschießen | course_cosmic | 3 + Stempel | S-8 **und ≥ 280 Sterne** |
+
+Welt Stern hat 32 Sterne.
+
+### Welt Pilz (10) – Remix-Welt 1 (ohne Stempel)
+
+| Id | Basis | Remix-Regeln (Kurzfassung, Details im Bauplan) | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `P-1` | `2-4` | Nacht, kürzer, 30 s, Zeit-Uhren als Ideallinie, Stachel-Hüpfmäuse, Stachelkugler | Basis, Variante `nacht` | 3 | Welt offen |
+| `P-2` | `1-3` | Sonnenuntergang, Stachelkugler, Walzenwerfer, 3 Glockenbäume statt Gipfelbrücke, 5 Schlüsselmünzen, 500 s | Basis, Variante `abend` | 3 | P-1 |
+| `P-3` | `6-4` | stockdunkel, 4 Licht-Helme, Floß mit Spuken/Großspuken/Kreisgeistern | Basis, Variante `dunkel` | 3 | P-2 |
+| `P-4` | `2-3` | nur der Schatten-Abschnitt, 100 s, dicht mit Gegnern, Pilzlingsturm aus 30 Pilzlingen | Basis, Variante `schnell` | 3 | P-3 |
+| `P-5` | `6-3` | Tag, Werfer, Wurfbälle, 5 Schlüsselmünzen, pendelnd fliegender Zielmast | Basis | 3 | P-4 |
+| `P-Haus` | – | 10 Kampf-Räume à 10 s (je Raum alle Gegner besiegen) | course_house | 10 | P-4 |
+| `P-6` | `6-2` | Riesen-Wracks, mehr Schubser/Pustewolken/Krakenpilze, 5 Warp-Boxen | Basis | 3 | P-5 |
+| `P-7` | `7-4` | sinkende Plattformen über blauer Lava, Stachelwalzen, Gleitblatt | Basis, Variante `nacht` | 3 | P-6 **und ≥ 310 Sterne** |
+
+Welt Pilz hat 31 Sterne.
+
+### Welt Blume (11) – Remix-Welt 2 (ohne Stempel)
+
+| Id | Basis | Remix-Regeln | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `B-1` | `1-5` | Funkenflämmchen auf den Schaltfeldern, Hammer-Werfer | Basis | 3 | Welt offen |
+| `B-2` | `6-7` | schwebende Wasserwürfel statt Kippplattformen, zweite Wuschel-Horde | Basis | 3 | B-1 |
+| `B-5` | `5-4` | Morgen, viele Hasen + Riesenhase, Wolkenlifte, 500 s | Basis, Variante `morgen` | 3 | B-1 |
+| `B-3` | `4-2` | Nacht, 23 Fackeln in 3 Bereichen, schnellere Schiebeplattformen | Basis, Variante `nacht` | 3 | B-2 |
+| `B-4` | `7-1` | Start mit 30 s, nur Zeit-Uhren verlängern | Basis, Variante `schnell` | 3 | B-3 |
+| `B-6` | `3-3` | Schwarz-Weiß-Filter, Großspuk-Jagd, falsche Zielmasten | Basis, Variante `schwarzweiss` | 3 | B-4 |
+| `B-7` | `3-5` | Kanonen-Helme unter Wasser, Felsblockwände | Basis | 3 | B-6 |
+| `B-8` | `4-3` | Piep-Blöcke 4× schneller ohne Warnpiepen, Gleitblätter, viele Stacheln | Basis (Takt-Kopplung!) | 3 | B-7 |
+| `B-9` | `5-1` | nur der Strand, Sonnenuntergang, 4 Pilzlingstürme mit Feuer-Werfern, 100 s + Zeit-Uhren | Basis, Variante `abend` | 3 | B-8 |
+| `B-10` | `S-6` | Taghimmel statt Weltraum, schwerer | Basis, Variante `tag` | 3 | B-9 |
+| `B-11` | `8-1` (+ `5-7`) | Suchscheinwerfer über den Brücken: im Licht fahren Stacheln aus | Basis, Variante `nacht` | 3 | B-10 |
+| `B-12` | – | Boss-Marathon im Weltraum bei Nacht: Hub mit 6 Warp-Boxen, 5 Bosse geben je einen Schlüssel, dann Würfelblase | course_bossblitz | 3 | B-11 |
+
+Welt Blume hat 36 Sterne.
+
+### Welt Krone (12) – Abschlussprüfung
+
+| Id | Archetyp | Inhalt | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `K-Kapitän` | diorama | Lavaturm-Diorama 30 × 30 × 25 m, steigende/sinkende Lava | course_diorama | 5 + Stempel | Welt offen |
+| `K-Haus` | house | 30 Räume à 10 s am Stück | course_house | 30 | Welt offen |
+| `K-1` | parcours (extrem) | ≈ 900 m ohne Checkpoint und Power-ups, 4 Warp-Boxen, fast alle Gimmicks des Spiels hintereinander | course_champion | 3 + Stempel | **vollständige Sammlung**: alle Sterne und Stempel aller anderen Welten |
+
+Welt Krone hat 38 Sterne; das ganze Spiel hat damit 404 Sterne.
+
+### Remix-Level (Vertrag für Motor-, Musik- und Level-Agenten)
+
+- Ein Remix-Level ist eine eigene Level-Datei (`src/course/levels/w10/P-1.js` …), die das Basislevel **als Daten** übernimmt
+  und Regeln anwendet, statt es zu kopieren (Remix-Helfer des Motors, z. B. `remixOf('2-4', { … })`). Änderungen am
+  Basislevel wirken so automatisch mit; was ein Remix entfernt, ersetzt oder neu setzt, steht in der Remix-Datei.
+- Musik: Remix-Level spielen die Musik des Basislevels mit einer **Klang-Variante** des Musiksystems
+  (`nacht`, `abend`, `morgen`, `tag`, `dunkel`, `schnell`, `schwarzweiss`): andere Klangfarbe/Filter/Hall bzw. leicht
+  schnelleres Tempo, dieselbe Komposition. Ohne Variante klingt sie wie im Basislevel.
