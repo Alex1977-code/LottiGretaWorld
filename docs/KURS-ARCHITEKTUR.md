@@ -6915,5 +6915,5 @@ Stoß, Überqueren des Zylinders ohne Seitensprung, Weg über C); Extras (Verste
 Extraleben, Donut-Blöcke fallen in die Lava, Zeitlimit 100 s, Walze und Pendel verletzen, Pfeilplattform versinkt mit der
 Figur, Zylinder dreht zur Kamera, Kippplattform neigt sich, Knochenflieger vom Podest besiegt, Kippplattform-Aufgabe,
 7-B: Tor und Lebensleiste, 3/4/5 blaue Feuerbälle, Abprall ohne Röhre, Tod setzt den Kampf zurück). Gemessen (scale 2, inkl.
-Schattenpass, Messgang alle ~8 m der Route und Bilder je Abschnitt): 7-3 39–72 Zeichenaufrufe / ≤ 179 k Dreiecke · 7-4
-39–94 / ≤ 199 k · 7-B 47–80 / ≤ 259 k.
+Schattenpass, Messgang alle ~8 m der Route und Bilder je Abschnitt): 7-3 38–73 Zeichenaufrufe / ≤ 186 k Dreiecke · 7-4
+39–94 / ≤ 199 k · 7-B 47–80 / ≤ 254 k.
