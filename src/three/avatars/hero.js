@@ -807,6 +807,30 @@ const TRAPEZE = {
   release: 0.3,                       // s: Überblendung beim Absprung/Fallenlassen
 };
 const CANNON = { pitchMin: -2.25, pitchMax: -0.25, land: 0.8 };
+// Welt 6: Hangeln am Deckengitter (Maße in Metern, sofern nicht anders vermerkt; Motor player/hanging.js)
+const HANG_POSE = {
+  body: { big: 0.95, small: 0.65 },   // Körperhöhe der Hitbox (Motor: HITBOX.*.y · 2)
+  arm: 0.2,                           // Hände über dem Scheitel (Motor: HANG.arm) → Gitterebene body + arm über dem Fußpunkt
+  grip: 0.012,                        // Faustmitte so weit unter der Gitterebene (umschließt den Stab, ragt kaum in die Decke)
+  x0: 0.02,                           // Griffe in Ruhe so weit vor der Körperachse
+  width: 0.5,                         // Einheiten: Fäuste seitlich der Mitte (V um den Kopf)
+  stride: 1.2,                        // Weg je Doppelgriff: jede Hand greift einmal um so viel weiter (Takt = Tempo / stride)
+  dip: 0.15,                          // die nachgreifende Hand löst sich bis so weit unter das Gitter
+  L: 0.7,                             // Pendellänge Griff → Schwerpunkt
+  drive: 0.2,                         // Anteil der Beschleunigung, der den Körper anschwingt (Motor ändert das Tempo sprunghaft)
+  zeta: 0.33,                         // Dämpfung des Körperpendels (schwingt ein-, zweimal nach)
+  maxTilt: 0.35,                      // rad: größte Pendelneigung
+  catchSwing: 0.5,                    // rad/s: Schwung beim Greifen (Körper pendelt nach vorn aus)
+  sway: 0.05,                         // rad: sachtes Schaukeln im Stillstand
+  roll: 0.085,                        // rad: Körper pendelt beim Hangeln zur haltenden Hand
+  legK: 46, legC: 5.5,                // Beine als Feder-Pendel (baumeln dem Körper nach)
+  trail: 0.22,                        // rad: Beine schleifen beim Hangeln etwas nach hinten
+  clear: 1.6, hold: 0.45,             // Riesentrank (Einheiten): Gitter in Brusthöhe → Körper hängt dahinter, Griff vor dem Bauch
+};
+/** Kurs-Zustände mit eigener Pose (HeroRig zeigt für neue Zustände sonst eine Ersatz-Pose, z. B. 'hang' → 'trapeze'). */
+const COURSE_STATES = new Set(['idle', 'walk', 'run', 'skid', 'jump', 'jump2', 'jump3', 'backflip', 'sideflip', 'longjump', 'fall',
+  'land', 'crouch', 'slide', 'groundpound', 'wallslide', 'walljump', 'climb', 'beanstalk', 'swim', 'ride', 'pipe', 'hurt', 'dead',
+  'victory', 'throw', 'claw', 'tailswipe', 'glide', 'statue', 'skate', 'fence', 'swimUnder', 'trapeze', 'cannon', 'hang']);
 
 /** Kostüm-Farben „Funkenblüte“: Kleid feuerweiß, Ärmel/Kragen/Schürze rot, Haarschmuck weiß (Lotti) bzw. rot (Greta). */
 const fireStyle = (st) => ({ ...st, dress: FIRE_WHITE, sleeve: FIRE_RED, collar: FIRE_RED, apronC: FIRE_RED, accent: st.braids ? FIRE_WHITE : FIRE_RED });
@@ -1053,6 +1077,7 @@ export class HeroAvatar extends Avatar3D {
   buildModel() {
     this.usesFacing = false;
     this.drawsSkates = true;   // Welt 3: Kufen zeichnet der Avatar selbst (course.skates / state 'skate'), nicht die Entität
+    this.courseStates = COURSE_STATES;   // Welt 6: eigene Posen (u. a. 'hang') – HeroRig braucht dann keine Ersatz-Pose
     this.variant = STYLES[this.textureKey] ? this.textureKey : 'lotti';
     const st = STYLES[this.variant];
     const key = (k) => `hero:${this.variant}:${k}`;
@@ -1927,7 +1952,7 @@ export class HeroAvatar extends Avatar3D {
       case 'wallslide': rz = 2.5; curl = -0.25; wagA = 0.1; break;
       case 'dead': case 'hurt': rz = 1.9; curl = -0.2; wagA = 0.35; wagF = 7; break;
       // Welt 5: am Trapez hängt er (pendelt sacht), im Kanonenflug weht er gestreckt zu den Füßen (flattert)
-      case 'trapeze': rz = 2.6; curl = -0.22; wagA = 0.14; wagF = 1.2; break;
+      case 'trapeze': case 'hang': rz = 2.6; curl = -0.22; wagA = 0.14; wagF = 1.2; break;
       case 'cannon': rz = Math.PI - 0.3; curl = 0.05; wagA = 0.1; wagF = 9; rate = 14; break;
       default: break;
     }
@@ -2182,6 +2207,103 @@ export class HeroAvatar extends Avatar3D {
   }
 
   /**
+   * Deckengitter (Welt 6): hängt an beiden Händen unter dem Gitter und hangelt Hand über Hand. Die Gitterebene liegt
+   * Körperhöhe der Hitbox + HANG_POSE.arm über dem Fußpunkt (Motor player/hanging.js), in Avatar-Einheiten über den Maßstab
+   * der Hülle (Volumen – kurzes Stauchen verschiebt nichts). Takt aus dem tatsächlich zurückgelegten Weg entlang der
+   * Blickrichtung (am Gitterrand bleibt die Figur trotz Stick stehen), höchstens speed: die haltende Hand liegt fest im
+   * Gitter, die andere löst sich, schwingt nach vorn und greift HANG_POSE.stride / 2 weiter vorn. Der Körper pendelt um die
+   * Griffe (Feder-Pendel: Anfahren/Bremsen, Schwung beim Greifen, je Griff ein kleiner Schwung, im Stillstand sachtes
+   * Schaukeln) und seitlich zur haltenden Hand; die Beine baumeln als eigenes Feder-Pendel nach, Knie leicht angezogen.
+   * Die Hände setzt die Arm-IK (Gummi-Arme) – Ziele werden dazu in das gedrehte Figur-System umgerechnet.
+   */
+  poseHang(c, t, dt, st) {
+    const H = HANG_POSE;
+    this.root.updateWorldMatrix(true, false);
+    const me = this.root.matrixWorld, e = me.elements;
+    const U = 1 / Math.max(1e-6, Math.cbrt(Math.abs(me.determinant())));
+    const barY = ((c.big === false ? H.body.small : H.body.big) + H.arm) * U;
+    const low = smoothstep((H.clear - barY) / 0.35);   // Riesentrank: Gitter in Brusthöhe
+    const g = this.hang ??= { pos: new THREE.Vector3(), u: 0, v: 0, m: 0, acc: 0, th: 0, om: 0, ps: 0, pv: 0 };
+    // Tempo entlang der Blickrichtung (m/s) aus der Bewegung von root (Hülle ungeneigt: Spalte 0 = Blickrichtung)
+    _p.set(e[12], e[13], e[14]);
+    const fl = Math.hypot(e[0], e[2]) || 1;
+    if (st === 0 || dt <= 0) {
+      // Takt-Start bei u = 0,25: haltende Hand (nah) und nachgreifende Hand (fern, Mitte ihres Schwungs) beide über der Mitte
+      if (st === 0) Object.assign(g, { u: 0.25, v: 0, m: 0, acc: 0, th: 0, om: H.catchSwing, ps: 0, pv: 0 });
+    } else {
+      const d = ((_p.x - g.pos.x) * e[0] + (_p.z - g.pos.z) * e[2]) / fl;
+      const lim = Math.max(0, c.speed ?? 0) + 0.3;
+      const v = Math.abs(d) > 1 ? 0 : clamp(d / dt, -lim, lim);
+      const v0 = g.v;
+      g.v = damp(g.v, v, 14, dt);
+      g.acc = damp(g.acc, clamp((g.v - v0) / dt, -30, 30), 10, dt);
+      g.m = damp(g.m, smoothstep((Math.abs(g.v) - 0.15) / 0.6), 9, dt);
+      g.u = (((g.u + (g.v * dt) / H.stride) % 1) + 1) % 1;
+      // Körperpendel um die Griffe (θ > 0: Füße nach vorn): Anfahren schwingt die Füße zurück, Bremsen nach vorn
+      const w0 = Math.sqrt(9.81 / H.L);
+      g.om += (-w0 * w0 * g.th - 2 * H.zeta * w0 * g.om - (H.drive * g.acc) / H.L) * dt;
+      g.th = clamp(g.th + g.om * dt, -H.maxTilt, H.maxTilt);
+      if (Math.abs(g.th) >= H.maxTilt) g.om *= 0.5;
+    }
+    g.pos.copy(_p);
+    const m = g.m, u = g.u, free = 1 - low;
+    const pump = Math.cos(2 * TAU * u);   // je Griff ein kleiner Schwung
+    const pitch = free * (g.th + (1 - m) * H.sway * Math.sin(t * 2.9) + 0.045 * m * pump);
+    const roll = -free * H.roll * m * Math.sin(TAU * u);   // zur haltenden Hand (nah: +Z)
+    // Beine: Feder-Pendel in Weltlage (ψ), folgen der Körperneigung verzögert, beim Hangeln etwas nach hinten
+    const want = pitch - H.trail * m * Math.sign(g.v);
+    if (st === 0) { g.ps = pitch; g.pv = 0; }
+    g.pv += (H.legK * (want - g.ps) - H.legC * g.pv) * dt;
+    g.ps += g.pv * dt;
+    const leg = clamp(g.ps - pitch, -0.9, 0.9);
+    const kick = 0.12 * m * Math.sin(TAU * u + 0.7), idle = 1 - m;
+    const br = Math.sin(t * 2.2);
+    const look = Math.sin(t * 0.37) * smoothstep(Math.sin(t * 0.23) * 2);
+    // Fangen: die Gummi-Arme federn den Griff ab (Körper sackt kurz durch und schwingt zurück)
+    const drop = 0.05 * Math.exp(-6 * st) * Math.cos(15 * st) + 0.012 * m * (0.5 - 0.5 * pump);
+    const o = {
+      armKn: TRAPEZE.armK, armKf: TRAPEZE.armK, twistN: 1.1, twistF: -1.1,
+      lean: 0.02 + 0.01 * br * idle, torso: -0.02,
+      thighZn: leg + kick + 0.05 * idle, thighZf: leg - kick - 0.08 * idle,
+      thighXn: -0.07 - 0.03 * idle * (0.5 + 0.5 * br), thighXf: 0.07 + 0.03 * idle * (0.5 + 0.5 * br),
+      kneeN: 0.38 + 0.55 * Math.max(0, -(leg + kick)) + 0.15 * m, kneeF: 0.52 + 0.55 * Math.max(0, -(leg - kick)) + 0.15 * m,
+      footN: 0.5, footF: 0.58,
+      headZ: 0.1 - 0.55 * pitch, headX: -0.5 * roll + 0.03 * br * idle, headY: 0.35 * look * idle, eyes: 1, mouth: 0,
+      skirtZ: -0.5 * pitch, skirtX: -0.4 * roll,
+      pitch, roll, sq: 0,
+    };
+    // Lage der Figur: Drehung Q (wie applyCoursePose: Euler roll/pitch, 'YXZ') um den Griffpunkt G statt um den Schwerpunkt
+    // Versatz (Riesentrank: Körper hinter dem Gitter; Fangen: sackt durch); G = Griffpunkt im Figur-System (vor dem Versatz)
+    const ex = -H.hold * low, ey = -drop * U;
+    const gx0 = H.x0 * U - ex;
+    _e.set(roll, 0, pitch, 'YXZ');
+    _q.setFromEuler(_e);
+    _qi.copy(_q).invert();
+    const G = _sv.set(gx0, barY - ey, 0);
+    _v.set(gx0, barY - ey - PIVOT_Y, 0);
+    _s.copy(_v).applyQuaternion(_q);
+    o.figX = _v.x - _s.x + ex; o.figY = _v.y - _s.y + ey; o.figZo = _v.z - _s.z;
+    // Griffe: haltende Hand liegt fest im Gitter (läuft relativ zum Körper von +A nach −A), die andere schwingt nach vorn
+    const A = H.stride / 4;
+    const grip = (ph, s) => {
+      ph = ((ph % 1) + 1) % 1;
+      let x, dip = 0, inw = 0;
+      if (ph < 0.5) x = A - 4 * A * ph;
+      else { const k = (ph - 0.5) / 0.5, b = Math.sin(Math.PI * k); x = -A + 2 * A * smoothstep(k); dip = H.dip * b; inw = 0.08 * b; }
+      // Welt-Ziel (Modell-System) → Figur-System: q = G + Q⁻¹ (w − G − Versatz)
+      // Griffe nicht mit m überblendet (die haltende Hand bliebe sonst nicht liegen): im Stand ruhen beide gestaffelt im
+      // Gitter, nur das Lösen der nachgreifenden Hand (dip) setzt mit dem Tempo ein
+      _p.set((H.x0 + x) * U, barY - (H.grip + m * dip) * U, s * (H.width - m * inw));
+      _p.x -= ex; _p.y -= ey;
+      _p.sub(G).applyQuaternion(_qi).add(G);
+      this.reachTo(o, s, _p.x, _p.y, _p.z);
+    };
+    grip(u, 1);
+    grip(u + 0.5, -1);
+    return o;
+  }
+
+  /**
    * Zielpose aus obj.course. Zustände und Felder: siehe Kopfkommentar „Kurs-Modus“ unten in dieser Datei.
    * Saltos setzen this.spinSet exakt aus phase; alles andere geht durch den PoseBlender.
    */
@@ -2231,7 +2353,7 @@ export class HeroAvatar extends Avatar3D {
       }
       case 'jump':
         pose = P(this.poseJump(clamp(-vy / 6, 0, 1), clamp((vy - 2) / 6, 0, 1)));   // Strecken nur kurz nach dem Absprung
-        dur = this.cPrev === 'trapeze' ? TRAPEZE.release : 0.1;   // Absprung vom Trapez: weich aus der Hängelage
+        dur = this.cPrev === 'trapeze' || this.cPrev === 'hang' ? TRAPEZE.release : 0.1;   // Absprung vom Trapez: weich aus der Hängelage
         break;
       case 'jump2': {
         // zweiter Sprung: beide Arme hoch im V, beide Knie angezogen
@@ -2296,7 +2418,7 @@ export class HeroAvatar extends Avatar3D {
       }
       case 'fall':
         pose = P(this.poseFall(t));
-        dur = this.cPrev === 'trapeze' ? TRAPEZE.release : 0.2;
+        dur = this.cPrev === 'trapeze' || this.cPrev === 'hang' ? TRAPEZE.release : 0.2;   // Loslassen: weich aus der Hängelage
         break;
       case 'land': {
         // kurzes Einfedern: Knie beugen, Arme federn seitlich, Stauchung klingt ab
@@ -2632,6 +2754,11 @@ export class HeroAvatar extends Avatar3D {
         dur = 0.08;   // kommt unsichtbar aus der Röhre
         break;
       }
+      // ------------------------------------------------------------ Welt 6
+      case 'hang':
+        pose = P(this.poseHang(c, t, dt, st));
+        dur = 0.12;   // Griff ins Gitter (aus dem Sprung)
+        break;
       default:
         label = 'idle';
         pose = P(this.poseIdle(t));
