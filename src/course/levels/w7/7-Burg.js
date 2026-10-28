@@ -123,6 +123,8 @@ function build(level) {
     for (const dx of [-1.6, 1.6]) b.cyl(0.14, 0.16, 2.2, x + dx, Y, -158, litTop(0x5a3820, 0.7), 6);
   }
   burgBanner(b, g, [[0, Y + 4.2, -164.2, -Math.PI / 2]]);
+  // Startplatz: Banner am Schachtturm und am Wandsprung-Pfeiler (zeigen zum Weg)
+  burgBanner(b, g, [[-10.4, Y + 8.6, -0.6, 0, 0x8a4ad8], [-10.4, Y + 8.6, -3.6, 0], [-7, Y + 6.4, -2.0, 0, 0x8a4ad8]]);
   b.box(8, 4.4, 0.8, 0, Y, -164.4, litTop(FESTE.capDark, 0.7), { r: 0 });
   // Höfe: niedrige Zinnenmauern an den Seiten, Brummbär-Statuen, Lava-Brunnen, Wappen-Mosaike, Lager der Bande
   const M = (from, to, faces, h = 1.2) => burgMauer(level, b, g, { from, to, y: Y, h, t: 0.7, faces }, rnd);
