@@ -39,6 +39,13 @@
 //              (rad, + = nach vorn), swingVel (rad/s), phase = Anteil der Ausschlagsgrenze (0..1).
 //   'cannon'   Flug aus der Röhrenkanone (gestreckt wie ein Geschoss, Arme vorn); phase = Flugfortschritt 0..1. Während
 //              die Figur in der Röhre steckt, ist sie unsichtbar (player.hidden).
+//
+// Ergänzungen (Präzisierung Motor und Bausteine Welt 6) – neuer Wert von proxy.course.state:
+//   'hang'     hängt unter einem Deckengitter (Hände über dem Kopf am Gitter, 0,2 m über dem Scheitel wie am Trapez) und
+//              hangelt; proxy.course.hangMove = { x, y } (−1..1 Stick: x = rechts, y = vor), speed = Hangeltempo m/s.
+//              Solange der Avatar die Pose nicht anbietet (avatar.courseStates?.has('hang')), zeigt HeroRig ersatzweise
+//              'trapeze' (gleiche Handhöhe, Seilwinkel 0).
+//   Die Pilz-Maske ist ein Trage-Helm (player.helmet = 'maske'): Modell wie die anderen Helme am Kopf.
 
 import * as THREE from 'three';
 import { createAvatar } from '../../three/avatars/index.js';
@@ -57,6 +64,8 @@ const HELMET_K = 0.9;          // Helm-Modell (Meter) etwas kleiner als Kopfbrei
 
 /** Zustand der Spielfigur → Avatar-Zustand (Vertrag); interne Zustände werden abgebildet. */
 const STATE_MAP = { dive: 'longjump' };
+/** Welt 6: neue Zustände mit Ersatz-Pose, solange der Avatar sie nicht kennt (avatar.courseStates). */
+const FALLBACK_W6 = { hang: 'trapeze' };
 
 export class HeroRig {
   /**
@@ -235,7 +244,8 @@ export class HeroRig {
     c.state = p.throwTime > 0 && !p.dead ? 'throw'
       : p.tailTime > 0 && !p.dead && p.mode !== 'script' ? 'tailswipe'
       : p.clawTime > 0 && p.state !== 'dive' && !p.dead ? 'claw' : STATE_MAP[p.state] ?? p.state;
-    c.speed = p.mode === 'stalk' || (p.mode === 'wall' && !p.fence) ? 0 : speed;
+    if (FALLBACK_W6[c.state] && !av.courseStates?.has?.(c.state)) c.state = FALLBACK_W6[c.state];
+    c.speed = p.mode === 'stalk' || (p.mode === 'wall' && !p.fence && !p.hang) ? 0 : speed;
     c.vy = p.vel.y;
     c.grounded = grounded;
     // Wurf/Tatzenhieb: Fortschritt 0..1 aus der Restzeit (jeder neue Wurf beginnt von vorn)
@@ -246,6 +256,9 @@ export class HeroRig {
     c.fenceMove.y = p.fence ? p.fenceMove.y : 0;
     c.fencePunch = p.fence && p.punchTime > 0 ? Math.min(1, Math.max(0.01, 1 - p.punchTime / 0.28)) : 0;
     c.skates = !!p.skate;
+    c.hangMove ??= { x: 0, y: 0 };
+    c.hangMove.x = p.hang ? p.hangMove.x : 0;
+    c.hangMove.y = p.hang ? p.hangMove.y : 0;
     c.swing = p.state === 'trapeze' ? (p.swingTilt ?? 0) : 0;
     c.swingVel = p.state === 'trapeze' ? (p.swingVel ?? 0) : 0;
     c.power = p.power;
