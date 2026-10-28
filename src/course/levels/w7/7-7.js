@@ -115,6 +115,7 @@ export const LEVEL = {
     hi(-6, 6, 8, -9),                       // Start
     hoch(0, -11), hoch(0, -14.6),           // Hochsteine (Einführung: die Flut bleibt darunter)
     hi(-5, 5, -16.6, -26),                  // Insel 1 (Platschfische, Stern 0)
+    isl(3.6, 4.8, -20.8, -22, Y + 1.5, 1.5, { top: 'rock', topColor: 0xb08a5a }),   // Wurf-Podest am Rand von Insel 1
     ...EBBE.slice(0, 3).map(([x, z]) => ebbe(x, z)),
     hi(-7, 3, -36.2, -45.6),                // Insel 2
     ...EBBE.slice(3, 6).map(([x, z]) => ebbe(x, z)),
@@ -203,7 +204,7 @@ export const LEVEL = {
     { kind: 'question', pos: [-2.6, Y + 2.2, -2.6], content: 'sichel' },
     { kind: 'coinblock', pos: [2.6, Y + 2.2, -2.6], count: 6 },
     { kind: 'question', pos: [-3, Y + 2.2, -22.6], content: 'sichel' },
-    { kind: 'hidden', pos: [10.6, Y + 2.5, -62.4], content: 'oneup' },
+    { kind: 'hidden', pos: [4.6, Y + 2.5, -61.6], content: 'oneup' },
     { kind: 'question', pos: [-3.6, Y + 2.2, -115.6], content: 'wachstumsbeere' },
     { kind: 'question', pos: [-2.4, TT + 2.2, -161.4], content: 'sichel' },
   ],
@@ -242,7 +243,7 @@ export const LEVEL = {
     // Münzen: Bitcoin-Pfade über die Steine, Bogen zum Stern 0, Ringe
     line([0, Y + 0.6, 2.6], [0, Y + 0.6, -6.4], 4),
     ...arc([0, HS + 0.6, -11], [0, HS + 0.6, -14.6], 3, 0.6),
-    ...arc([6, Y + 1.6, -21.4], [10, Y + 4.4, -21.4], 3, 0.5),
+    ...arc([6.2, Y + 3.4, -21.4], [10, Y + 6, -21.4], 3, 0.5),
     ...EBBE.slice(0, 3).map(([x, z]) => ({ kind: 'coin', pos: [x, EB + 0.6, z] })),
     ring([-2, Y + 0.6, -41], 1.6, 6),
     ...EBBE.slice(3, 6).map(([x, z]) => ({ kind: 'coin', pos: [x, EB + 0.6, z] })),
@@ -260,11 +261,11 @@ export const LEVEL = {
     line([3.5, Y + 0.6, -209], [3.5, Y + 0.6, -217], 4),
     line([-1.5, Y + 0.6, -221], [-1.5, Y + 0.6, -230], 4),
     line([0, Y + 0.6, -233], [0, Y + 0.6, -243], 4),
-    { kind: 'powerup', id: 'leben_saeule', pos: [6.4, 4.9, -155], power: 'oneup' },
+    { kind: 'powerup', id: 'leben_saeule', pos: [6.4, 4.9, -155], power: 'oneup', speed: 0 },
   ],
   checkpoint: { pos: [0, Y, -117.4], yaw: Math.PI / 2 },
   stars: [
-    [12, Y + 4.55, -21.4],                                           // 0: hoch über der Lava (Wurfsichel im Sprung)
+    [12, Y + 5.4, -21.4],                                            // 0: hoch über der Lava (vom Wurf-Podest im Sprung die Wurfsichel werfen)
     { pos: [3.4, Y + 0.4, -76], hidden: true, id: 'stern_ring' },    // 1: Sternenring auf Insel 4
     [0, 4.0 + 0.4, -172.6],                                          // 2: Sockel südlich der blauen Plattform
   ],

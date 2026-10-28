@@ -110,13 +110,13 @@ const ROUTES = {
     ],
     targets: [
       { name: 'Stern 0: Wurfsichel aus dem ?-Block auf Insel 1, im Sprung auf den Stern hoch über der Lava werfen', star: 0, from: [-3, 2, -20.4],
-        legs: [{ to: [-3, -22.6], within: 0.15, run: false }, { hop: 20 }, { to: [-3, -20.4], within: 0.3, run: false }, { chaseKind: 'powerup', max: 900 }, { expect: 'sichel' },
-          { sichelAt: [12, -21.4], from: [4.4, -21.4], feet: 4.6 }, { wait: 60 }], shot: 'stern0' },
+        legs: [{ to: [-3, -22.6], within: 0.15, run: false }, { hop: 20 }, { to: [-3, -19.4], within: 0.3, run: false }, { wait: 20 }, { to: [-3, -22.6], jump: 30, jumpAt: 2.1, within: 0.5, run: false }, { expect: 'sichel' },
+          { to: [4.2, -21.4], jump: 24, jumpAt: 1.8, within: 0.3, run: false }, { sichelAt: [12, -21.4], from: [4.2, -21.4], feet: 6.1 }, { wait: 60 }], shot: 'stern0' },
       { name: 'Stern 0 nicht ohne Wurfsichel (Anlauf-Sprung vom Inselrand)', star: 0, expectNot: true, from: [-4, 2, -21.4], heroes: ['lotti'],
         legs: [{ to: [13, -21.4], jump: 40, jumpAt: 8.2, within: 0.3, max: 200, land: false }, { wait: 60 }] },
       { name: 'Stern 1: Sternenring auf Insel 4 – drei Sternmünzen über den Bimssteinen nur bei Ebbe', star: 1, from: [3.4, 2, -70.6],
         legs: [{ until: 'seeRing', max: 1700 }, { to: [3.4, -75], within: 0.6 }, { to: [2.4, -78.2], within: 0.5 }, { to: [8.4, -78.2], within: 0.5 }, { to: [8.4, -71.8], within: 0.5 },
-          { to: [-2, -71.8], within: 0.5 }, { to: [-3.6, -75], jump: 24, within: 0.6 }, { to: [-5.4, -73], within: 0.5 },
+          { to: [-2, -71.8], within: 0.5 }, { to: [-3.6, -75], jump: 24, jumpAt: 1.2, within: 0.6 }, { to: [-5.4, -73], within: 0.5 },
           { to: [-8.4, -72.4], jump: 16, within: 0.6, run: false }, { to: [-8.4, -75.4], jump: 16, within: 0.6, run: false }, { to: [-8.4, -78.4], jump: 16, within: 0.6, run: false },
           { to: [-4.6, -78], jump: 24, within: 0.6, run: false }, { wait: 60 }, { star: 1 }], shot: 'stern1' },
       { name: 'Stern 2: von der blauen Plattform nach Süden auf den Basaltsockel', star: 2, from: [-8.6, 4.5, -172],
@@ -135,8 +135,8 @@ const ROUTES = {
       { name: 'Hochsteine bleiben bei Flut trocken', from: [0, 2, -8.4], heroes: ['lotti'],
         legs: [{ until: 'seeFlut', max: 1700 }, { to: [0, -11], jump: 20, within: 0.7, run: false }, { wait: 120 }],
         mech: (r) => !r.dead && r.pos[1] > 1.8, mechText: (r) => `y ${r.pos[1].toFixed(2)}` },
-      { name: 'Extraleben: unsichtbarer Block auf Insel 3', from: [10.6, 2, -60.4], heroes: ['lotti'], expectLives: 1,
-        legs: [{ to: [10.6, -62.4], within: 0.15, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Extraleben: unsichtbarer Block auf Insel 3', from: [4.6, 2, -59.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [4.6, -61.6], within: 0.15, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
       { name: 'Extraleben: von der östlichen Krustenplatte auf die Säule', from: [3, 2, -149.4], heroes: ['lotti'], expectLives: 1,
         legs: [{ carry: 'platte2', board: [3, -155], to: [6.4, -155] }, { wait: 30 }] },
     ],
@@ -212,7 +212,7 @@ function install() {
     anleger: () => at(6.2, 12.2, 4, -181.4, -190.2),
     // Bimssteine (Füße 1,0 m) sind sicher, solange die Lava ≤ 1,12 m steht: Zyklus 11,0 … 6,0 s; losgehen bei 11,0 … 1,2 s
     seeEbbe: () => { const t = seeT(); return t >= 11.0 || t < 1.2; },
-    seeRing: () => { const t = seeT(); return t >= 9.6 && t < 10.2; },
+    seeRing: () => { const t = seeT(); return t >= 8.8 && t < 9.4; },
     seeFlut: () => { const t = seeT(); return t >= 7.2 && t < 8.5; },
     grubeEbbe: () => { const t = grubeT(); return t >= 11.2 || t < 0.8; },
     grubeFlut: () => { const t = grubeT(); return t >= 7.4 && t < 8.6; },
@@ -389,7 +389,7 @@ function install() {
           }
           let thrown = false;
           for (let n = 0; n < 120 && !p.dead; n++, k++) {
-            const act = !thrown && p.mode === 'air' && p.pos.y >= (Lg.feet ?? 0);
+            const act = !thrown && p.mode === 'air' && p.pos.y >= (Lg.feet ?? 0) && p.vel.y <= (Lg.vy ?? 0.8);   // am Scheitel werfen
             if (act) thrown = true;
             tick({ jump: n < 30, action: act });
           }
