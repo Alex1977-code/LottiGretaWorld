@@ -318,6 +318,8 @@ export function goalModel(opts = {}) {
 // ------------------------------------------------------------------ Power-ups
 
 const POWER_MODEL = { wachstumsbeere: 'powerup_wachstumsbeere', krallen: 'powerup_krallen', funken: 'powerup_funken', riese: 'powerup_riese', stern: 'powerup_stern', oneup: 'oneup' };
+// Welt 7: Wurfsichel – Item-Modell 'wurfsichel_item' (Modell-Agent Welt 7), sonst 'powerup_sichel', sonst Rückfall unten
+POWER_MODEL.sichel = hasModel('wurfsichel_item') ? 'wurfsichel_item' : 'powerup_sichel';
 
 export function powerupModel(power, opts = {}) {
   const name = POWER_MODEL[power] ?? `powerup_${power}`;
@@ -366,6 +368,17 @@ export function powerupModel(power, opts = {}) {
           add(new THREE.CylinderGeometry(0.02, 0.025, 0.32, 6), 0x3f9a2a, { x: 0, y: 0.18, z: s * 0.09, rx: s * 0.55 });
         }
         add(new THREE.SphereGeometry(0.11, 10, 8), 0x5fcf6a, { x: 0.05, y: 0.34, z: 0, sx: 1.5, sy: 0.35, sz: 0.8 });
+        break;
+      }
+      case 'sichel': {
+        // Wurfsichel (Welt 7, Rückfall): goldene Sichelklinge mit heller Schneide, rosa Blütenstern in der Mitte, aufrecht
+        add(new THREE.TorusGeometry(0.28, 0.07, 8, 20, Math.PI * 1.3), 0xffc23a, { rz: -0.4, sx: 1, sy: 1, sz: 0.55, metal: 0.45, rough: 0.25, emissive: 0x5a3a00 });
+        add(new THREE.TorusGeometry(0.345, 0.022, 5, 20, Math.PI * 1.25), 0xf4f6ff, { rz: -0.38, metal: 0.7, rough: 0.2 });
+        const sh = new THREE.Shape();
+        for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + (i / 10) * TAU, r = i % 2 ? 0.065 : 0.15; if (i) sh.lineTo(Math.cos(a) * r, Math.sin(a) * r); else sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+        const sg = new THREE.ExtrudeGeometry(sh, { depth: 0.06, bevelEnabled: false });
+        sg.translate(0, 0, -0.03);
+        add(sg, 0xff6ab0, { emissive: 0x4a0a28 });
         break;
       }
       case 'riese': {

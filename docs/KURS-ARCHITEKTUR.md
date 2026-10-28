@@ -6068,3 +6068,194 @@ Münzregen, fünf Schlüsselmünzen → Gong-Garten, Checkpoint, Floß wartet un
 Tor-Sperre, Abprall ohne Röhre, Tod setzt den Kampf zurück, fünf Extraleben). Gemessen (scale 2, inkl. Schattenpass,
 Messgang alle ~7 m der Route und Bilder je Abschnitt): 6-3 32–106 Zeichenaufrufe (Saal, 1./2. Stock; je nach Gegnerstand
 einmal 112 gemessen; Figur ≈ 20) / ≤ 218 k Dreiecke · 6-4 ≤ 84 / ≤ 285 k (Deckengitter samt Schatten ≈ 86 k) · 6-A ≤ 71 / ≤ 237 k.
+
+## Präzisierung (Motor und Bausteine Welt 7)
+
+Ergänzung des Motor-/Bausteine-Agenten für Welt 7 „Lava-Festung“ (Stand: Lavawerkstatt `0-26`). Nichts oben Festgelegtes
+wird geändert; alles ist additiv. Alle Welt-7-Mechaniken sind parametrierbare Module, Level-Bauer setzen sie nur in Daten
+ein; jede Datei dokumentiert ihre Felder vollständig im Kopfkommentar. Aktionen im bekannten Format (die Signal-Verben
+`reveal`/`hide`/`start`/`stop`/`toggle`/`open` rufen die gleichnamigen Methoden der benannten Handles). Die Entitäts-Gimmicks
+`lavablase`, `druckknopf`, `kiste_wasser` sind auch als `type` in `segments` erlaubt (`w7_misc.js`, Listen `list` bzw.
+`kisten`), die Bausteine `feuerstab`, `lava_fontaene`, `lavaspiegel`, `gitterboden`, `pfeilplattform`, `zylinder`,
+`stachelwalze_rot`, `pendelstachel`, `klappstampfer`, `zugbruecke`, `schaltfelder`, `giftnebel` auch als `kind` (Hülle wie
+Welt 5/6). Richtungen im 90°-Raster; `yaw: −π/2` = Vorderseite zur Kamera (+Z); Level verlaufen nach −Z. Alle Takte laufen
+auf der Level-Uhr (`level.time`) – deterministisch, Reihen über `phase` versetzen. Jeder Baustein übernimmt sein
+Registry-Modell (Welt-7-Modelle), sonst eigene Ersatz-Geometrie mit gleicher Kollision und Mechanik; `look: 'eigen'` erzwingt
+die eigene Geometrie.
+
+### Präzisierung (Motor und Bausteine Welt 7): Dateien
+
+```
+src/course/blocks/w7kit.js               w7(level) Sammelstelle { lavas, fogs, fountains, bars, rollers, pendulums, stompers,
+                                         bridges, arrows, groups, grates }, figures, modelOr, lavaTopAt, lavaColorAt,
+                                         sphereTouches, boxTouches, hurtFigures, killFigures, onRespawn, fireMaterial,
+                                         fireBallGeo, lavaMaterial (Lava-Shader), cycle (Takt-Phasen), glowTexture, rotXZ,
+                                         flatColor, shadeGeo, pulse, shove, ease, clamp
+src/course/blocks/types/w7_fire.js       feuerstab, lava_fontaene
+src/course/blocks/types/w7_lava.js       lavaspiegel (steigende/sinkende Lava), gitterboden
+src/course/blocks/types/w7_platforms.js  pfeilplattform, zylinder, stachelwalze_rot
+src/course/blocks/types/w7_traps.js      pendelstachel, klappstampfer
+src/course/blocks/types/w7_castle.js     zugbruecke (mit eingebautem Druckknopf), schaltfelder
+src/course/blocks/types/w7_escape.js     giftnebel (Flucht-Front)
+src/course/blocks/types/w7_misc.js       Entitäts-Gimmicks als segments-type (lavablase, druckknopf, kiste_wasser)
+src/course/blocks/types/deco_w7.js       Kulisse Welt 7 (verschmolzen; Registry-Modelle gebacken)
+src/course/entities/kinds/w7_gimmicks.js lavablase, wurfsichel (Geschoss), druckknopf, kiste_wasser + kind-Hüllen
+src/course/player/powers/sichel.js       Power-up Wurfsichel (POWERS.sichel)
+src/course/view/theme_darkruins|lavarun|lavatower|lavamachine|reef|volcano.js, backdrop_w7.js
+src/course/levels/w0/0-26.js             Lavawerkstatt (Stationen S0–S12 mit Schildern, marks für den Test)
+tests/course_w7_blocks.mjs               Port 4680, W7B_PART=mech|themes, Bilder tests/out/w7b_*.png
+```
+
+Additiv geändert (je wenige Zeilen, mit Kommentar): `player/powers.js` (Aliase `sichel`, `wurfsichel`, `wurf-sichel`,
+`bumerang`, `boomerang` → `'sichel'`), `entities/visuals.js` (Item-Modell `wurfsichel_item`, sonst `powerup_sichel`, sonst
+eigene Sichel), `CourseUIScene.js` (Power-ups dürfen `def.hudDraw(g, x, y, player)` und `def.hudKey(player)` haben – eigenes
+HUD-Symbol mit Zustand), `view/themes.js` (6 Registrierzeilen `??=`). Motor (Player, Level, Kollision) unverändert.
+
+### Präzisierung (Motor und Bausteine Welt 7): Liste mit Daten-Beispielen
+
+| Typ / Art | Kern | Wichtige Felder (Standard) | Beispiel |
+| --- | --- | --- | --- |
+| `feuerstab` | drehender Stab aus Feuerkugeln um einen festen Block (oben begehbar); jede Kugel verletzt; mit `block: 'frage'` gibt Kopfstoß/Stampfen den Inhalt, mit `lift` hebt Stampfen den Block auf einer Säule an (trägt die Figur über den Stab) | `pos` (Mitte Unterseite des Blocks), `block` 'stein' \| 'frage' \| false, `size` 1, `length` 6 (Kugeln je Arm, die erste im Block), `arms` 1 (1–4), `spacing` 0.5, `radius` 0.24, `speed` 1.6 (rad/s), `angle` 0, `plane` 'waagerecht' \| 'x' \| 'z', `content` 'coin' \| 'coins:N' \| Power-up \| 'star:I' \| Aktion, `lift` 0, `liftSpeed` 2.5, `onLift`, `idle`, `hidden` → `{ angle, hits, lifted, liftH, used, start(), stop(), reveal(), hide(), points(), info() }` | `{ type: 'feuerstab', id: 'stab2', pos: [5,0,-42], block: 'frage', length: 5, arms: 2, speed: -1.2, content: 'coins:3', lift: 3 }` |
+| `lava_fontaene` | Takt Ruhe → Vorwarnung (brodelt, Glutring) → Ausbruch → Halten → Zusammenfallen; `heiss` verletzt (Rückstoß), `tragen`: Krustenplatte reitet oben (trägt hinauf, in Ruhe schwimmt sie) | `pos` (Austritt; y Standard Lava dort, folgt steigender Lava), `height` 5, `radius` 0.7, `mode` 'heiss' \| 'tragen', `plate` 2.4, `wait` 2.5, `warn` 1, `rise` 0.45, `hold` 1.6, `fall` 0.9, `phase`, `trigger` 'takt' \| 'signal' \| 'nah', `near` 3, `color` 'rot' \| 'blau', `follow` true, `idle` → `{ state ('ruhe'\|'warn'\|'steigt'\|'oben'\|'sinkt'), height, top, eruptions, hits, start(), stop(), fire(), info() }`; Platte: MovingBox-Tag `fontaene-platte` | `{ type: 'lava_fontaene', id: 'fontaene2', pos: [3,-1.5,-132], height: 5.5, mode: 'tragen', plate: 2.6, wait: 3, hold: 2.5, phase: 1 }` |
+| `lavaspiegel` | Lava mit wechselndem Spiegel: tödliche Form und Oberfläche folgen dem Spiegel (Figuren sterben, Gegner versinken; Lavablasen/Fontänen folgen über `lavaTopAt`) | `pos` (Mitte Unterseite = Grund), `size` [w,h,d] (Ruhe-Spiegel y + h), `mode` 'zyklus' \| 'plan' \| 'signal' \| 'fest', `low`, `high` (low + 3), Zyklus `wait` 4 / `warn` 1.5 / `rise` 3 / `hold` 3 / `fall` 3 / `phase`; `plan` [[t,y]…] + `loop`; Signal `rise` { `to`, `speed` 0.6 }, `reset` true; `color`, `bubbles`, `body` → `{ top, state ('unten'\|'warn'\|'steigt'\|'oben'\|'sinkt'\|'faehrt'\|'ruht'), low, high, shape, setLevel(y, speed), start(), stop(), info() }` | `{ type: 'lavaspiegel', id: 'spiegel', pos: [0,-4,-127], size: [26,2.5,26], low: -1.5, high: 0.4, wait: 4, warn: 1.5, rise: 2.5, hold: 3, fall: 2.5 }` |
+| `gitterboden` | begehbarer Gitterrost über Lava (durch die Lücken glüht sie), auch bei hohem Spiegel | `pos` (Mitte Unterseite), `size` [w,d] (4×4), `thick` 0.2, `cell` 0.5, `bar` 0.07, `frame` 0.22, `style` 'eisen' \| 'rost' \| 'blau', `tile` 2 (Modell-Kacheln), `lava` false \| true \| { `depth` 2.2, …lavaspiegel-Felder } → `{ top, lava, info() }`; Form-Tag `gitterboden` | `{ type: 'gitterboden', id: 'gitter', pos: [7,0.3,-120], size: [6,6], thick: 0.2 }` |
+| `pfeilplattform` | taucht aus der Lava (oder seitlich aus einer Wand) auf, bleibt, versinkt; Vorwarnung vor beidem (glüht/brodelt; Pfeil blinkt rot, Platte zittert); wer beim Versinken bleibt, fährt mit in die Lava | `pos` (Mitte Unterseite ausgefahren), `size` [3,0.5,3], `from` 'lava' \| 'wand', `depth` size.y + 1.2, `dir` [dx,dz] (wand), `travel`, `arrow` [dx,dz], `mode` 'takt' \| 'signal' \| 'immer', `wait` 2, `warn` 0.8, `out` 0.6, `up` 3.2, `blink` 0.9, `in` 0.7, `phase`, `move` 0, `hidden`, `style` 'stein' \| 'blau' \| 'metall', `color` → `{ state ('weg'\|'warn'\|'kommt'\|'oben'\|'blinkt'\|'geht'), k, mb, carries(fig), reveal(), hide(), start(), stop(), info() }`; MovingBox-Tag `pfeilplattform` | `{ type: 'pfeilplattform', id: 'pfeil2', pos: [0,-0.4,-72], size: [3,0.4,3], arrow: [0,-1], phase: -1.2 }`; Wand: `{ type: 'pfeilplattform', from: 'wand', pos: [8.5,0.6,-72], size: [3,0.4,2.4], dir: [-1,0] }` |
+| `zylinder` | großer liegender Zylinder dreht sich; Oberseite trägt wie ein Band, zu den Seiten wird er steil; optional Stachelreihen | `pos` (Achsmitte), `radius` 2.5, `length` 8, `axis` 'x' \| 'z', `speed` 0.6 (+ = Oberseite läuft bei 'x' nach +Z), `slice` 0.3, `spikes` 0 (Reihen), `spikeLen` 0.5, `angle`, `style` 'stein' \| 'blau' \| 'rot' \| 'metall', `ends` true, `idle` → `{ angle, speed, hits, reach, ring, start(), stop(), reverse(), spikeAt(i), info() }`; Form-Tag `zylinder` | `{ type: 'zylinder', id: 'zylinder', pos: [0,-1.6,-91], radius: 2.5, length: 9, speed: 0.5 }` |
+| `stachelwalze_rot` | rote Walze dreht sich an Ort und Stelle; Standard rundum bestachelt (jede Berührung, auch von oben, verletzt); mit Zahl Stachelreihen (dazwischen begehbar) | wie `zylinder`, Standard `radius` 1.1, `length` 6, `speed` 1.4, `style` 'rot', `spikes` 'ringsum' (reach = radius + `spikeLen` 0.38) \| Zahl, `stand` false (true: Eisenböcke des Modells, nur Optik – `pos.y` = Boden + `standHeight` (radius + 0.55)) | `{ type: 'stachelwalze_rot', id: 'walze', pos: [0,0.55,-100], radius: 1.1, length: 7, speed: 1.3 }` |
+| `pendelstachel` | Stachelkugel an einer Kette pendelt; nur die Kugel verletzt | `pos` (Aufhängepunkt), `length` 4, `radius` 0.6, `swing` 60 (°), `period` 3, `phase` (0..1), `plane` 'x' \| 'z', `mount` true, `idle`, `color` 'eisen' \| 'rot' \| 'blau' → `{ angle, ball {x,y,z}, hits, start(), stop(), info() }` | `{ type: 'pendelstachel', id: 'pendel', pos: [0,5.4,-107], length: 4.6, swing: 55 }` |
+| `klappstampfer` | schwere Platte klappt im Takt um ihre Unterkante nach vorn und schlägt auf; Vorwarnung (zittert, Augen glühen, roter Landeboden-Hinweis); darunter: `treffer` (verletzt, oben auf die Platte geschoben) bzw. `tod` (`die('crush')`); Loch sicher; liegend Plattform | `pos` (Scharnier: Mitte Unterkante am Boden), `width` 3, `length` 4, `thick` 0.6, `dir` [0,1], `spikes` true, `damage` 'treffer' \| 'tod', `hole` [u0,u1,v0,v1] \| null, `wait` 2.4, `warn` 0.9, `fall` 0.32, `hold` 1.2, `up` 1.4, `phase`, `mode` 'takt' \| 'nah' \| 'signal', `near` 1.5, `hint` true, `style` 'stein' \| 'metall' \| 'holz', `face`, `idle` → `{ state ('oben'\|'warn'\|'faellt'\|'liegt'\|'hebt'), fold, slams, hits, hint, start(), stop(), fire(), footprint(), info() }` | `{ type: 'klappstampfer', id: 'klapp2', pos: [4,0,-150], width: 3.4, spikes: false, damage: 'tod', hole: [-0.7,0.7,1.4,2.8], phase: 1.2 }` |
+| `zugbruecke` | hochgezogen senkrechte Wand (oben schmal begehbar), Signal/Druckknopf senkt sie in `time` s (dazwischen Schräge), gesenkt fester Steg | `pos` (Scharnier: Mitte der Ufer-Kante auf Laufhöhe), `length` 8, `width` 3, `thick` 0.4, `dir` [0,−1], `state` 'oben' \| 'unten', `time` 2.5, `onDown`, `posts` true, `style` 'holz' \| 'eisen', `schalter` { `pos`, `id`, `hidden`, `color` } → `{ state ('oben'\|'senkt'\|'unten'\|'hebt'), k, open(), lower(), close(), raise(), toggle(), start(), info() }` | `{ type: 'zugbruecke', id: 'bruecke', pos: [0,0,-162], length: 8, schalter: { id: 'knopf', pos: [6,0,-160] } }` |
+| `schaltfelder` | Kipp-Schaltfeld-Gruppe (wie `switchtiles`); komplett → Weg-Plattformen erscheinen nacheinander (`alle`) bzw. je Feld ein Stück (`stueck`); blasse Umrisse vorher, leuchtende Kanten im Dunkeln | `pos` \| `tiles` \| `grid` \| `spacing`, `toggle`, `indicator`, `weg` [{ `pos`, `size`, `color` }], `modus` 'alle' \| 'stueck', `style` 'stone' \| 'block' \| 'cloud', `color`, `delay` 0.14, `hint` true, `glow` true, `onAll` → `{ tiles, count, done, shown, parts, reset(), info() }`; Teile `${id}_weg` bzw. `${id}_weg${i}` | `{ type: 'schaltfelder', id: 'schalt', pos: [0,0,-181], grid: [2,2], spacing: 1.8, weg: [{ pos: [0,-0.4,-185.5], size: [2.4,0.4,2.4] }, { pos: [0,-0.4,-188.3], size: [2.4,0.4,2.4] }] }` |
+| `giftnebel` | Nebelwand rückt wie eine Autoscroll-Front nach (von oben oder waagerecht); hinein = Tod (`gift`) bzw. Treffer + herausgeschoben; Start per Signal, automatisch oder Bereich; Neustart am Checkpoint: Front `gap` m hinter dem Neustart-Punkt, vor dem Bereich wieder wartend | `pos` (Mitte der Front), `size` [a,b], `dir` 'down' \| 'up' \| '±z' \| '±x', `speed` 1.2, `speeds` [{ `at`, `speed` }], `plan` [[t,m]], `to` 40, `depth` 0, `delay` 1.2, `start` 'signal' \| 'auto' \| { `box` }, `signal`, `gap` 4, `damage` 'tod' \| 'treffer', `color` 'lila' \| 'gruen', `puffs` 30, `mood` (z. B. 'flucht'), `visible` → `{ state ('wartet'\|'verzoegert'\|'jagt'\|'ende'), front, frontPos, kills, resets, start(), stop(), reset(), inside(fig), info() }` | `{ type: 'giftnebel', id: 'nebel', pos: [0,4,-197], size: [26,9], dir: '-z', speed: 2.2, to: 22, start: { box: [-13,-1,-204,13,6,-200] }, gap: 3 }` |
+| `lavablase` (kind; auch type, Liste `list`) | springt im Takt aus der Lava (Kopf voran), dreht am Scheitel, fällt zurück; Vorwarnung (Lava brodelt); mit `to` Bogen zu einem zweiten Lavapunkt; folgt steigender Lava; unbesiegbar außer Funkelstern, Riesentrank, Explosion | `pos` (Lava-Oberfläche; y Standard Lava dort), `height` 4, `period` 3, `phase` (0..1), `warn` 0.6, `to` [x,z], `color` 'rot' \| 'blau', `size` 1, `count` 1, `spacing` 1.6, `dir` [1,0], `stagger` 0.12, `follow` true, `id`; Zustände unten \| warn \| oben | `{ type: 'lavablase', height: 4, period: 3, list: [{ id: 'blase1', pos: [-4,-0.5,-55] }, { pos: [4,-0.5,-55], color: 'blau', phase: 0.5 }] }`; Bogen: `{ kind: 'lavablase', pos: [-9,-0.5,-53], to: [-9,-57], height: 3 }` |
+| `druckknopf` (kind; auch type) | großer Knopf (statt P-Schalter): Draufspringen/Stampfen, Wurfsichel, Geworfenes, Panzer, Explosion → `onPress` | `pos`, `onPress` (Aktion), `once` true, `reset` 4, `color` 'blau' \| 'rot', `id`, `hidden` → `{ pressed, presses, press(via), info() }` | `{ kind: 'druckknopf', id: 'knopf2', pos: [6,0,-160], onPress: { open: 'bruecke' } }` |
+| `kiste_wasser` (kind; auch type, Liste `kisten`) | zerbrechliche Kiste unter Wasser, versperrt Gänge; zerbricht durch Rammfisch (`onHit('ram')`), Schwimmstoß (≥ `dash` m/s), Wurfsichel, Panzer, Bombe, Riesentrank, Stern, Tatze, Stampfen; Inhalt steigt als Blasen auf | `pos` (Mitte Unterseite), `size` 1.2, `content` 'coin' \| 'coins:N' \| Aktion \| 'none', `dash` 3.2, `id`, `hidden` → `{ broken, by, info() }` | `{ type: 'kiste_wasser', kisten: [{ id: 'kiste1', pos: [-0.6,-6,-230], content: 'coins:2' }, { pos: [0.6,-6,-230] }] }` |
+| `deco_w7` | Kulisse (verschmolzen; Registry-Modelle gebacken, Fahne bewegt) | `items: [{ kind, pos, … }]`, `shadow: false`, `solid: true` (Kollision), `look: 'eigen'`; Arten: burgturm, zinnen (from→to), fahne (`hang`), wappen, kette, fackel (`mount` 'wand' \| 'stand'; Laternenlicht), knochen, rohr (from→to), schlot, zahnrad, basaltsaeule(n), vulkanfels(en), glutriss, lavafall (animiert, `kill` false), koralle(n), seetang | `{ type: 'deco_w7', items: [{ kind: 'fackel', pos: [-12,0,-146], mount: 'stand' }, { kind: 'burgturm', pos: [-6,0,-172], height: 6, radius: 1.3 }] }` |
+
+Hinweise für Level-Bauer: Feuerstab-Reichweite = `(length − 1) · spacing` + `radius` ab Blockmitte; mit `lift` über dem Block
+genug Luft lassen (Säule wächst mit der Figur). Lava immer als `lavaspiegel` (mode 'fest' für ruhige Lava) oder `lava`
+bauen, damit `lavaTopAt` sie findet. Pfeilplattformen einer Reihe über `phase` versetzen (z. B. 0 / 1,2 / 2,4 s), damit
+immer eine oben ist. Zylinder: Figur läuft gegen die Mitnahme an (≈ 1,2 m/s bei speed 0,5, radius 2,5); breite Zylinder
+(`length` ≥ 8) lesen sich besser. Klappstampfer-Loch in Plattenkoordinaten (u quer, v vom Scharnier). Zugbrücke: Graben
+breiter als `length` − 0,5 bauen, sonst springt man hinüber. Giftnebel: `start.box` an den Eingang des Fluchtbereichs,
+Checkpoints vor den Bereich (dann wartet der Nebel wieder) oder mit `gap` ≥ 3 hinein.
+
+### Präzisierung (Motor und Bausteine Welt 7): Power-up Wurfsichel
+
+`player.power = 'sichel'` (Name im Spiel „Wurfsichel“, `getPower('sichel').label`; Aliase `wurfsichel`, `bumerang`,
+`boomerang`). Item: `{ kind: 'powerup', power: 'sichel' }` bzw. ?-Block-Inhalt `'sichel'`. Aktion wirft eine Sichel
+(Entität `wurfsichel`) in Blickrichtung aus Kopfhöhe: 14 m/s, leichter Bogen (curve 0,7 m nach rechts), bis 7,5 m oder zur
+ersten Wand (Wand = früh umkehren, Wand-Besitzer bekommt `onSichelHit`/`onHit('shell')`), dann zurück zur Werferin (durch
+Wände), Fangradius 0,9 m, verloren nach 3,5 s. Höchstens eine Sichel je Figur gleichzeitig (`SICHEL_MAX` 1), danach
+`SICHEL_COOLDOWN` 0,2 s; Klone werfen je eine eigene. Unterwegs (Hin- und Rückflug): Münzen, blaue/Stern-/Schlüsselmünzen,
+Fallmünzen, grüne Sterne, Stempel, Power-ups → eingesammelt für die Werferin; POW, P-Schalter (`onPound`), Druckknopf
+(`press('sichel')`); ?-Blöcke, Ziegel, Münzblöcke, Kisten, Unterwasser-Kisten → `onHit('shell')`; Zielscheiben
+`onHit('throw')`; Gegner `onSichelHit(sichel)` sonst `onHit('throw', sichel)`; Gong `ring('sichel')`.
+
+Schnittstelle für den **Figuren-Agenten**: Kostüm-Zustand `proxy.course.power = 'sichel'` (Kostüm-Modell
+`wurfsichel_kostuem` { part 'muetze' \| 'umhang', size }); `player.sichelFlying` (Sicheln in der Luft – 0 = Sichel in der
+Hand zeigen), `player.sichelReady`, `player.sichelCatch` (Zähler; Wechsel = Fang-Moment für eine Fang-Geste); beim Wurf wie
+bei allen Würfen Zustand `'throw'` (`player.throwTime` > 0, Dauer `throwDur` 0,25 s). Modelle: `wurfsichel_item` (Item, state
+`anim` 'idle' \| 'collected'), `wurfsichel_geschoss` (state { anim 'spin', spin }). HUD: eigenes Symbol (goldener
+Sichelmond mit rosa Punkt, blass, solange sie fliegt) über `def.hudDraw`/`def.hudKey`.
+
+### Präzisierung (Motor und Bausteine Welt 7): Signale, Zustände, Schnittstellen
+
+- **Signale/Aktionen**: Zugbrücke `open`/`lower`/`start` (senken), `close`/`raise`, `toggle`; Druckknopf → `onPress` (Aktion,
+  z. B. `{ open: 'bruecke' }`); Pfeilplattform (mode 'signal') `reveal`/`start` = auftauchen und bleiben, `hide`/`stop` =
+  versinken; Fontäne (trigger 'signal') `start`/`fire` = ein Ausbruch; Klappstampfer (mode 'signal') `start`/`fire` = einmal;
+  Lavaspiegel (mode 'signal') `start` fährt hinauf, `stop` hält, `setLevel(y, speed)`; Giftnebel `start` (auch
+  `level.signal(spec.signal)`), `stop`, `reset`; Feuerstab/Walzen/Pendel `start`/`stop`; Schaltfelder → Weg-Teile erscheinen
+  (`appear`, Namen `${id}_weg…`) + `onAll`.
+- **Stimmungen**: `lavatower` hat `flucht` (`view.setMood('flucht')`, z. B. `giftnebel` mit `mood: 'flucht'`); `reef` schaltet
+  unter Wasser automatisch (Unterwasser-Stimmung).
+- **Todesursachen**: Lava `'lava'` (Form `kill: 'lava'`, folgt dem Spiegel), Giftnebel `'gift'`, Klappstampfer (damage 'tod')
+  `'crush'`.
+- **Schnittstellen für die Gegner-Agenten**:
+  - Wurfsichel: Gegner bekommen `onHit('throw', sichel)` mit `sichel.sichel === true`, `sichel.owner` (Figur), `sichel.pos`,
+    `sichel.vel`; wer anders reagieren will (z. B. Boss Zusatzschaden, Bumerang-Werfer fängt), definiert
+    `onSichelHit(sichel)` (Rückgabe egal; die Sichel fliegt weiter). Der Bumerang-Werfer kann dieselbe Entität benutzen:
+    `level.spawn('wurfsichel', { pos, dir, owner: gegner, speed, range, curve })` – mit einem Gegner als `owner` verletzt sie
+    nur Spielfiguren (Kugel 0,38 m um die Sichelmitte), sammelt und löst nichts aus, kehrt zum Gegner zurück (`caught`,
+    `gegner.sichelCatch` zählt) und verschwindet, wenn er besiegt/entfernt ist.
+  - Lava: `lavaTopAt(level, x, z, yMax?)` (Oberfläche der höchsten Lava dort, folgt `lavaspiegel`), `lavaColorAt(level, x, z)`;
+    Gegner, die aus der Lava springen (Platschfisch, Lavadrache), lesen die Höhe je Schritt.
+  - Klappstampfer: Gegner unter der Platte bekommen `onHit('crush', handle)`. Feuerstab, Fontäne (heiß), Lavablase,
+    Stachelwalze, Pendel verletzen nur Figuren (Gegner gehen durch).
+  - Kisten unter Wasser: Rammfisch ruft `onHit('ram')` an der Kiste (auch `onSichelHit`, Panzer/Bombe wie üblich).
+  - Druckknopf: `press(via)` von außen (z. B. Kickbombe/Panzer: `'shell'`, `'bomb'`); P-Schalter bleibt `pswitch`.
+  - Pfeilplattform: `reveal()` per Aktion `{ reveal: id }` (z. B. „3 Schubser besiegen → 3 Pfeilplattformen“ über `onDefeat`).
+  - Giftnebel: `handle.inside(f)` (steckt etwas im Nebel?), `handle.frontPos`.
+  - Sammelstelle `w7(level)` für Bosse/Gegner, die Gimmicks steuern (z. B. alle Fontänen `fire()`).
+- **Klänge** (vorhandene Effekte, direkt über `level.sfx`): Wurf `boomerang`, Fangen `grab`, Sichel-Treffer/Wand `bump`,
+  Feuerstab `burn`, Lavablase `blase`, Lava steigt/Klappstampfer-Warnung `rumble`, Fontäne `splash_big` (Warnung `blase`),
+  Klappstampfer-Aufschlag `slam`, Zugbrücke `chain`, Kiste `brickbreak`, Druckknopf `switch`, Giftnebel `wind`,
+  Pfeilplattform `bump`, Pendel `swoop`. Wunsch an den Audio-Agenten: eigene Effekte für Wurfsichel-Wurf/-Fang,
+  Fontäne und Giftnebel (Namen dann in den Bausteinen umstellen; `tests/sfx_namen.mjs` prüft sie).
+
+### Präzisierung (Motor und Bausteine Welt 7): Modelle
+
+| Modell | genutzt von | Optionen / Zustand aus dem Baustein |
+| --- | --- | --- |
+| `feuerstab` | `feuerstab` bei size 1 (?-Block zeichnet der Baustein; Stein-Block aus dem Modell) | { length: (length − 1)·spacing, count, arms, plane 'h' \| 'v', color, block }; state { angle } |
+| `lavablase` | `lavablase` (sonst `glutball` Welt 5) | { color, size }; state { anim 'hidden' \| 'swell' (grow) \| 'jump' \| 'fall' } |
+| `pfeilplattform` | `pfeilplattform` (lava und wand) | { size [w,d], thick, from, depth, dir (Pfeil, rad), color }; state { rise: k, warn: blinkt } |
+| `zylinder_walze` | `zylinder` (Stachelreihen zeichnet der Baustein) | { length, radius, color 'stein' \| 'blau' }; state { angle } |
+| `stachelwalze_rot` | `stachelwalze_rot` mit spikes 'ringsum' | { length, radius, stand, height }; state { angle } |
+| `pendelstachel` | `pendelstachel` (mit Deckenhalter) | { length, size: 2·radius }; state { angle } |
+| `klappstampfer` | `klappstampfer` ohne Loch (Stacheln setzt der Baustein auf die Stoßseite) | { size [length, width], thick }; state { fold: 0,5·(1 − fold), warn } |
+| `lava_fontaene` | `lava_fontaene` | { radius, color }; state { height, warn } |
+| `gitterboden` | `gitterboden` (Kacheln ≈ 2 m, gebacken) | { size [w,d], thick } |
+| `zerbrechliche_kiste` | `kiste_wasser` (sonst `crate`) | { size }; state { break, anim 'idle' \| 'hit' } |
+| `zugbruecke` | `zugbruecke` (Ketten des Modells zu den eigenen Torpfosten) | { length, width, thick, chains, anchor }; state { lower: k } |
+| `giftnebel_wand` | Front des `giftnebel` (Körper eigener Shader) | 'vorn' { width a, height b, depth ≤ 2,5 } bzw. 'unten' (dir 'down'); state { density } |
+| `wurfsichel_item`, `wurfsichel_geschoss` | Item, Geschoss | siehe Power-up |
+| `push_switch` | `druckknopf` | state { anim 'idle' \| 'pressed' } |
+| Kulisse | `deco_w7` (gebacken) | festungsturm (burgturm), basaltsaeule, vulkanfels (brocken), fackel, brummbaer_banner (fahne hang), burg_kette, zahnrad, riffkoralle, seetang; brummbaer_fahne bewegt (Wappen-Textur) |
+
+### Präzisierung (Motor und Bausteine Welt 7): Themen
+
+| Thema | Name | Stimmung / Hintergrund (`backdrop_w7.js`) |
+| --- | --- | --- |
+| `darkruins` | Dunkler Tempel | unterirdisches warmes Dunkel, Säulenring mit Bögen, Tropfsteine, Fackeln, Glutfunken; kräftiges Figuren- und Laternenlicht (`darktemple`) |
+| `lavarun` | Glutpiste | glühender Himmel, entgegenfließender Lavasee tief unten, Funkenstrom an der Kamera, Basaltsäulen, Vulkane (`lavarunway`) |
+| `lavatower` | Fallenturm | Turmschacht über Lava, runde Burgmauer mit Fensterschlitzen und Ketten, lila Giftnebel-Decke; Stimmung `flucht` (`lavatower`) |
+| `lavamachine` | Lava-Maschinenpark | Lavasee mit Messing-Zahnrädern, Kolben, Rohren, Schloten; helles Werkstattlicht (`lavamachine`) |
+| `reef` | Vulkan-Riff | Abendhimmel über Wasser; unter Wasser Blaugrün mit glimmenden Schloten, Korallen, Seetang, Blasen (`reef`, Unterwasser) |
+| `volcano` | Vulkan-Lavasee | Krater mit glühenden Adern, Lavasee, ferne pulsierende Fontänen, Rauchsäulen, Asche (`volcano`) |
+
+`bluelava`, `lava`, `fortress`, `lavacastle` sind vorhanden. Jedes Thema lässt sich in `0-26` mit `?theme=<name>` ansehen.
+
+### Präzisierung (Motor und Bausteine Welt 7): Welt 7 – Gimmick → Baustein
+
+| Gimmick (Bauplan) | Baustein |
+| --- | --- |
+| Wurfsichel / Bumerang, sammelt Münzen (7-Burg u. a.) | Power-up `sichel` (`powers/sichel.js`, Entität `wurfsichel`) |
+| Feuerstab-Plattformen, ?-Block in der Mitte hebt an (7-1) | `feuerstab` (`block: 'frage'`, `lift`) |
+| Lavablasen, blaue Variante (7-1, 7-Burg) | `lavablase` (`color`, `to`) |
+| auftauchende Pfeilplattformen, aus Wänden, per Sieg (7-4) | `pfeilplattform` (`from`, `mode: 'signal'`) |
+| Zylinderzone (7-4) | `zylinder` |
+| (rotierende) Stachelwalzen (7-3, 7-4) | `stachelwalze_rot` (rundum; Reihen mit `spikes: N`) |
+| Pendelstacheln (7-4) | `pendelstachel` |
+| steigende/sinkende Lava (7-5, 7-7) | `lavaspiegel` (zyklus/plan/signal) |
+| Fontänenfeld mit Gitterboden (7-7) | `lava_fontaene` (heiß/tragend), `gitterboden` |
+| Flucht vor Giftnebel (7-5) | `giftnebel` (+ Thema `lavatower`, Stimmung `flucht`) |
+| Klappstampfer im Wachbereich (7-Burg) | `klappstampfer` |
+| Zugbrücke per P-Schalter/Kickbombe (7-Burg) | `zugbruecke` (+ `druckknopf`, hinter `breakwall`/Blockwand versteckt: `hidden` + `reveal`) |
+| Kipp-Schaltfelder machen den Weg sichtbar (7-2) | `schaltfelder` |
+| zerbrechliche Kisten unter Wasser (7-6) | `kiste_wasser` |
+| Burg-, Vulkan-, Riff-Kulisse | `deco_w7` |
+
+### Präzisierung (Motor und Bausteine Welt 7): Tests und Kennzahlen
+
+`tests/course_w7_blocks.mjs` (Port 4680, `W7B_PART=mech|themes`, `W7B_SHOTS=0` ohne Bilder, `W7B_DEBUG=1`): je Mechanik mit
+Gegenprobe – Wurfsichel (Item, Wurf/Rückkehr/Fangen, nur eine gleichzeitig, Münzen über der Lava, Gegner vorn getroffen/seitlich
+nicht, ?-Block, grüner Stern, Wand = früh umkehren, HUD), Feuerstab (Drehung, Treffer/außerhalb heil, Stampfen hebt den
+?-Block samt Figur), Lavablasen (Takt mit Vorwarnung, rot/blau, Bogen, Treffer/Inselmitte heil, folgt steigender Lava),
+Pfeilplattformen (Takt, trägt, versinkt → Lava, Wand, Signal), Zylinder (Mitnahme/angehalten), Stachelwalze (oben getroffen,
+davor heil), Pendel, Lavaspiegel (Zyklus, tiefe Säule tot/hohe heil), Gitterboden, Fontänen (heiß, tragend), Klappstampfer
+(Vorwarnung, Treffer, Loch heil, zerquetscht), Zugbrücke + Druckknopf (auch per Wurfsichel), Schaltfelder (3 von 4: nichts),
+Giftnebel (Bereich startet, stehen bleiben = Tod, fliehen = heil, Neustart setzt zurück; von oben), Unterwasser-Kisten
+(Schwimmstoß, langsam nicht, Rammfisch), Hüllen als kind, Ziel; keine Konsolenfehler; Themen (Namen, Kulissen, Stimmung
+`flucht`, Unterwasser). 48 + 4 Prüfungen (Gegner-Sichel eingeschlossen). Kennzahlen (inkl. Schattenpass, mit Welt-7-Modellen): Stationen 47–77
+Zeichenaufrufe / 98–149 k Dreiecke, Themen 59–82 / 96–146 k (Grenzen 120 / 300 k).
