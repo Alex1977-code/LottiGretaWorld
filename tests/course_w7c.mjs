@@ -269,6 +269,30 @@ const ROUTES = {
       ['nah', [-3, 0, 10], 0, null, Math.PI / 2, 'nah'],
     ],
   },
+  '7-6': {
+    start: [0, 1, 10],
+    meta: { stars: 3, time: 400, theme: 'reef', music: 'course_rammreef', archetype: 'parcours' },
+    enemies: { rammfisch: 10, wutkaulquappe: 3, kiste_wasser: 7, stachelkugel: 1 },
+    main: [],
+    shots: [
+      ['start', [0, 1, 9]],
+      ['kammerA', [0, -4, -6]],
+      ['nische', [-9, -6.5, -8]],
+      ['wand1', [-0.5, -6.5, -19]],
+      ['kammerB', [0, -4, -34]],
+      ['wand2', [0, -6.5, -51]],
+      ['kammerC', [0, -4, -69.5]],
+      ['warp', [0, 1, -87]],
+      ['insel', [0, 1.2, -104]],
+      ['becken', [0, 1.2, -128]],
+      ['feuerberg', [0, 1.2, -146]],
+      ['finale', [0, -3, -168]],
+      ['fenster', [0, -4, -174]],
+      ['grosse', [0, -2.5, -195]],
+      ['glasroehre', [-13, 1, -217.5]],
+      ['ziel', [4, 1, -228]],
+    ],
+  },
 };
 
 const PORT = 4730;
