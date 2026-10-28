@@ -740,8 +740,8 @@ if (want('melodie')) {
   {
     const t = TS.course_honeycomb, hx = pitches(t.arp[12]);
     const trill = (b) => { const ns = pitches(t.lead[b]); return onsetsOf(t.lead[b]).startsWith('0,2,4,5,6,7,8') && ns[2] === ns[4] && ns[4] === ns[6] && ns[3] === ns[5] && Math.abs(ns[2] - ns[3]) <= 2 && ns[1] > ns[0] && ns[2] > ns[1]; };
-    check('course_honeycomb: summende Bienen-Stimme (Sägezahn mit schnellem Vibrato hinter Tiefpass) spielt die Hook im Intro, Waben-Ostinato (sechs Töne im Kreis über 16 Schritte) in Intro, Refrain und Überleitung, tiefes Brummen (dunkle Orgel ≤ 1000 Hz) in der Strophe; Summ-Waben: der Dreiklang hinauf, oben ein Sechzehntel-Triller',
-      t.voice.whistle.type === 'sawtooth' && t.voice.whistle.rate >= 9 && t.fx.lowpass.whistle <= 2000 && [0, 1, 2, 3].every((b) => sameNotes(t.whistle[b], t.lead[12 + b]))
+    check('course_honeycomb: summende Bienen-Stimme (Sägezahn mit schnellem Vibrato hinter Tiefpass) spielt die Hook im Intro und summt im ganzen Refrain mit, Waben-Ostinato (sechs Töne im Kreis über 16 Schritte) in Intro, Refrain und Überleitung, tiefes Brummen (dunkle Orgel ≤ 1000 Hz) in der Strophe; Summ-Waben: der Dreiklang hinauf, oben ein Sechzehntel-Triller',
+      t.voice.whistle.type === 'sawtooth' && t.voice.whistle.rate >= 9 && t.fx.lowpass.whistle <= 2000 && [0, 1, 2, 3].every((b) => sameNotes(t.whistle[b], t.lead[12 + b])) && [12, 13, 14, 15, 16, 17, 18, 19].every((b) => t.whistle[b] === t.lead[b])
       && hx.length === 16 && hx.every((m, i) => i < 6 || m === hx[i - 6]) && new Set(hx.slice(0, 6)).size === 3 && [0, 20].every((b) => noteList([t.arp[b]]).length === 16)
       && t.voice.organ.cutoff <= 1000 && [4, 5, 6, 7].every((b) => noteList([t.organ[b]]).length === 1) && [12, 13, 14, 15, 16, 17, 18, 19].every(trill));
   }

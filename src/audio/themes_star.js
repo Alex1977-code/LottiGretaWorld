@@ -27,6 +27,14 @@
 //   Nebelfriedhof     Schlotter-Schunkeln: punktierte „Hu-hu“-Schwünge mit der oberen Nebennote, in Terzen hinab
 //   Kanonen-Weltraum  Laser-Pingpong: Quinte hinab und wieder hinauf („pju – pju“), dann landet die Melodie in Achteln
 //   Karte             Sternenstaub: Ton mit Nachschlag und unterer Nebennote, eine Terz hinauf und sacht zurück
+// Beim Komponieren aufgefallen und ersetzt: eine Nebelfriedhof-Hook mit oberer Nebennote und Terzen hinab hatte die Kontur
+// von course_beamdark (55 %), eine Jagd-Antwort mit Dreiklang hinab und hinauf die von course_cave (57 %), eine
+// Planetoiden-Antwort als Tonleiter hinab die von course_rainfort (50 %); dazu Anlauf-Töne, die bei jedem Ziel zum Grundton
+// zurücksprangen (Jagd), zu viele Oktavsprünge (Planetoiden: jetzt nur in den Ruf-Takten), Sprünge über eine Sexte an den
+// Abschnitts-Grenzen (Regenbogen, Waben, Nebel, Kanonen, Karte) und zu wenige Schritte in den Strophen (Regenbogen,
+// Planetoiden, Jagd, Dschungel, Kanonen – jetzt stufig). Nach einer Harmonie-Prüfung (Melodietöne auf 1 und 3 und lange
+// Töne gegen den Akkord) stehen auf den schweren Zählzeiten Akkordtöne (die Blockland-Treppe über F beginnt dafür eine
+// Terz tiefer); bewusst bleibt die Septime über der Dominante am Ende der Nebel-Strophe.
 //
 // Welt-Farbe je Thema: aufsteigende Regenbogen-Arpeggien, Glitzer-Glocken und Energie-Ebene beim Reiten (Regenbogenweg);
 // Glockenspiel, Chor-Pad, weiter Hall und kreisende Planeten-Arpeggien (Planetoiden); Marimba, Holzblock, rollende
@@ -74,9 +82,10 @@ const rainbow = (c) => pat([...tones(c, 'E4'), ...tones(c, 'E5')], '0123 45.. 01
 const SPARKS = dr('..j. ..j. ..j. .jj.');                                                       // Glitzer-Schellen
 
 // ================================================================ Planetoiden (S-2) ====
-// As-Dur, 132 BPM, weit und schwebend. Intro As Es f Des (das Glockenspiel spielt die Hook, Chor-„Aah“) | Strophe f Des As Es |
-// f Des b Es (vi–IV–I–V | vi–IV–ii–V, kreisende Planeten-Arpeggien) | Refrain As Es f Des | As Es Des Es (I–V–vi–IV |
-// I–V–IV–V, das Glockenspiel singt mit) | Überleitung Des Es f Es. Pad in allen Takten, weiter Hall.
+// As-Dur, 132 BPM, weit und schwebend. Intro As Es f Des (das Glockenspiel spielt die Hook, Chor-„Aah“) | Strophe
+// f Des As Es | f Des b Es (vi–IV–I–V | vi–IV–ii–V, kreisende Planeten-Arpeggien) | Refrain As Es f Des | As Es Des Es
+// (I–V–vi–IV | I–V–IV–V, das Glockenspiel singt mit) | Überleitung Des Es f Es. Pad in allen Takten, weiter Hall. Der
+// Oktavsprung steht nur in den Ruf-Takten (Refrain-Takte 1, 3, 5), im Intro einmal; die Antwort gleitet ohne Sprung.
 const gxProg = ['Ab', 'Eb', 'Fm', 'Db', 'Fm', 'Db', 'Ab', 'Eb', 'Fm', 'Db', 'Bbm', 'Eb', 'Ab', 'Eb', 'Fm', 'Db', 'Ab', 'Eb', 'Db', 'Eb', 'Db', 'Eb', 'Fm', 'Eb'];
 const gxHook = ['Eb5:3 Eb6:5 C6:2 Db6:2 C6:2 Ab5:2', 'Bb5:6 C6:2 Bb5:2 G5:2 Eb5:4',
   'C5:3 C6:5 Ab5:2 Bb5:2 Ab5:2 F5:2', 'F5:2 Ab5:2 Db6:4 Ab5:2 Bb5:2 Ab5:4'];
@@ -134,7 +143,7 @@ const NOISE = dr('.... s... .... s...');                                        
 // ================================================================ Waben-Sternenweg (S-6, Draufsicht) ====
 // fis-Moll, 136 BPM, geheimnisvoll. Intro fis D A E (die summende Bienen-Stimme spielt die Hook) | Strophe fis fis D E |
 // fis fis h Cis (i–VI–VII | i–iv–V, tiefes Brummen) | Refrain fis D A E | fis D h Cis (i–VI–III–VII | i–VI–iv–V,
-// Waben-Ostinato) | Überleitung D E fis Cis.
+// Waben-Ostinato, die Bienen-Stimme summt die Hook mit) | Überleitung D E fis Cis.
 const hcProg = ['F#m', 'D', 'A', 'E', 'F#m', 'F#m', 'D', 'E', 'F#m', 'F#m', 'Bm', 'C#', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'Bm', 'C#', 'D', 'E', 'F#m', 'C#'];
 const hcHook = ['F#5:2 A5:2 C#6:1 B5:1 C#6:1 B5:1 C#6:2 B5:2 A5:2 E5:2', 'D5:2 F#5:2 A5:1 G#5:1 A5:1 G#5:1 A5:2 F#5:2 D5:2 C#5:2',
   'C#5:2 E5:2 A5:1 G#5:1 A5:1 G#5:1 A5:2 E5:2 C#5:2 B4:2', 'B4:2 E5:2 G#5:1 F#5:1 G#5:1 F#5:1 G#5:2 E5:2 B4:2 C#5:2'];
@@ -397,12 +406,13 @@ export const STAR_THEMES = {
   // Waben-Sternenweg (S-6, Draufsicht, Waben-Plattformen aus Lava und Eis, Brummer; auch B-10 bei Tag): 136 BPM, fis-Moll,
   // 24 Takte, summend und geheimnisvoll. Intro (fis D A E): die summende Bienen-Stimme spielt die Hook über dem Waben-
   // Ostinato | Strophe (fis fis D E | fis fis h Cis): Lead tief, tiefes Brummen | Refrain (fis D A E | fis D h Cis): Summ-
-  // Waben, Waben-Ostinato, Piano auf der „und“, Stabs | Überleitung (D E fis Cis): lange Töne, Brummen, Sternschnuppe.
+  // Waben, die Bienen-Stimme summt mit, Waben-Ostinato, Piano auf der „und“, Stabs | Überleitung (D E fis Cis): lange
+  // Töne, Brummen, Sternschnuppe.
   course_honeycomb: {
     bpm: 136,
     voice: {
       lead: { ...SYNTH, cutoff: 4400, volume: 0.16 },
-      whistle: { type: 'sawtooth', volume: 0.07, vibrato: 30, rate: 11, slide: 0, attack: 0.02, gate: 0.92 },
+      whistle: { type: 'sawtooth', volume: 0.06, vibrato: 30, rate: 11, slide: 0, attack: 0.02, gate: 0.92 },
       arp: { type: 'triangle', volume: 0.06, decay: 0.09 },
       organ: { volume: 0.045, cutoff: 900, octave: false, gate: 0.98 },
       piano: { volume: 0.08 },
@@ -413,7 +423,7 @@ export const STAR_THEMES = {
     },
     kit: { kick: { volume: 0.54 }, clap: { volume: 0.28 }, hat: { volume: 0.22, off: 0.14 }, tom: { freq: 120, volume: 0.36 } },
     fx: { lowpass: { whistle: 1800 }, delay: { steps: [3, 4], feedback: 0.4, lowpass: 2800, wet: 0.32, send: { arp: 0.35, whistle: 0.3, lead: 0.15, pad: 0.2 } } },
-    whistle: [...hcHook, ...rest(20)],
+    whistle: [...hcHook, ...rest(8), ...hcChorus, ...rest(4)],
     lead: [...rest(4), ...hcVerse, ...hcChorus, ...hcBridge],
     arp: bySection(hcProg, SONG, { intro: hex, chorus: hex, bridge: hex }),
     organ: bySection(hcProg, SONG, { verse: hum, bridge: hum }),
