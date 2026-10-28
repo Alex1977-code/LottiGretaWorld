@@ -195,6 +195,19 @@ Effekte (`sfx(name)`): `jump`, `jump2`, `jump3`, `backflip`, `longjump`, `wallju
 `pipe`, `checkpoint`, `goalpole`, `timewarn`, `claw`, `fireball`, `stomp`, `hurt`, `die`, `switch`,
 `bounce`. Fehlende Namen sind stumm (kein Fehler).
 
+Vertragsnotiz (ergänzte Effekte, `MORE_SFX` = `engine.effects.more`): die bisher stumm aufgerufenen Namen sind eigene
+Effekte – Figur `skid`, `glide`, `wallslide`, `swim`, `fence` (Zaun/Deckengitter), `grab`/`swing` (Trapez), `victory`
+(Siegespose, kleine Fanfare ≈ 0,9 s über der Level-Musik; läuft schon die Musik-Fanfare `course_clear`, z. B. in der
+Arena, spielt `sfx()` nur Jubel-Glitzer – Rezepte bekommen dann `{ overFanfare: true }`); Fahrt/Bausteine `fall`, `boost`,
+`chain`, `alarm`, `flip`, `donut`, `pfiff`, `note0`–`note7` (Tastenstein, C-Dur-Pentatonik); Gegner `hop`, `dash`, `kick`,
+`dizzy`, `boomerang`, `dig`, `throw`, `fuse`, `burn`. Lautheit wie die übrigen Effekte (Median −23 LUFS, Wiederholklänge
+−25), höchstens 26 Knoten. **Drosselung:** derselbe Name klingt erst nach einem Mindestabstand wieder (`SFX_GAP` in
+`src/audio/sfx.js`, z. B. `swim` 0,2 s, `wallslide` 0,35 s, `hop` 0,15 s, `chain` 0,5 s; alle übrigen 0,03 s – gleichzeitige
+Auslösungen im selben Bild klingen einmal). **Neue Namen** zuerst als Effekt anlegen: `node tests/sfx_namen.mjs` (auch in
+`tests/audio.mjs`, Teil `sfx`) sammelt alle Aufrufnamen in `src/**` (`sfx`/`level.sfx`/`w6Sfx`/`hwSfx`, `{ sfx: … }`,
+Ersatz-Tabelle `SFX6`) und meldet jeden ohne Effekt; dynamische Namen (Variablen, Template-Strings) dort in `DYNAMIC` mit
+den möglichen Namen eintragen. Hörprobe `tests/out/sfx_demo_fehlende.wav`.
+
 ## Speicherstand
 
 `lotti-greta-course-v1` im localStorage: `{ hero, lives, coins, world, mapPos, levels: { '1-1':
@@ -2041,6 +2054,8 @@ Kennzahlen mit 1 und 5 Figuren. Bilder `tests/out/w2e_*.png`.
 **Halloween-Welt „Kürbisinsel“** (`src/audio/themes_halloween.js`, `HALLOWEEN_THEMES`, nach der Musik-Richtlinie, Namen aus der Halloween-Level-Liste): `course_pumpkin` (e-Moll/G-Dur, 136 BPM – die Celesta spielt die Hook im Intro in Moll, der Refrain bringt sie in Dur; Kürbis-Klopfen), `course_candyvillage` (F-Dur, 140, Knochen-Xylofon, Pizzicato, Klapper-Hölzer), `course_graveyard` (g-Moll, 132, Theremin, Orgel-Stabs, Friedhofsglocke), `course_witchtower` (a-Moll, 144, Cembalo, Glocken, aufsteigende Hook), `course_brummula` (c-Moll, 148, Kirchenorgel, Chor-Pad, Turmglocke, Pauken), `course_halloween_map` (d-Moll, 126, 16 Takte, Spieluhr-Celesta, Kick auf 1 und 3). Alle 24 Takte (Karte 16), Refrain ab Takt 13 (Karte 9); kein `sync`, keine Energie-Ebene. **Baron-Brummbär-Motiv** (Leitmotiv, aus `course_boss` Lead Takt 5: „C . c Es C G . f Es D“): die Kirchenorgel spielt es im Intro von `course_brummula` in doppelter Notenlänge, die Refrain-Hook des Grafen beginnt mit seinem Kopf. `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–5 und untereinander, dazu Tempo, Loop-Naht und Pegel wie Welt 5 (`AUDIO_WORLD=halloween`); Hörproben `tests/out/hw_<thema>_30s.wav` und `tests/out/hoerprobe_halloween.wav`.
 
 **Welt 6 „Wolkeninseln“** (`src/audio/themes_world6.js`, `WORLD6_THEMES`, nach der Musik-Richtlinie, Namen aus der Welt-6-Liste): `course_clearpipe` (G-Dur, 140 BPM, Glas-Glocken, „Röhrenpost“-Hook mit Sechzehntel-Paaren, Röhren-Plopp), `course_wreck` (e-Moll, 132, Akkordeon, Schiffsglocke im Doppelschlag, Schunkel-Rhythmus 3+1, Humpa-Bass), `course_fareast` (h-Moll, 140, Bambusflöte, Koto, Gong, Holzblock – pentatonische Hook über i–VI–III–VII), `course_jungle` (F-Dur, 136, Marimba, Congas/Bongos, Vogel-Zwitschern), `course_snowwind` (A-Dur, 134, Glöckchen-„Bimmel“-Hook, Schlittenschellen, Wind-Pad, Windböen-Riser), `course_factory` (d-Moll, 144, Stakkato-Hook, Amboss, Metall-Klirren, Förderband-Ostinato), `course_fuzzymine` (c-Moll, 150, Kletter-Zickzack-Hook, Galopp-Bass), `course_bossblob` (g-Moll, 146, Zirkus-Orgel, Wabbel-Terzen-Hook, Pauken), `course_world6_map` (D-Dur, 128, 16 Takte, Kick auf 1 und 3, Glas-Windspiel). Alle 24 Takte (Karte 16), Refrain ab Takt 13 (Karte 9); kein `sync`, keine Energie-Ebene. Arenen (6-A, 6-B) spielen `course_arena`, 6-Haus `course_house`, 6-Panzer `course_tank`. `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–6 und der Halloween-Welt, dazu Tempo, Loop-Naht, Klangfarben und Pegel wie Welt 5 (`AUDIO_WORLD=6`, Pegelvergleich mit `AUDIO_WORLD=5,6`); Hörproben `tests/out/w6_<thema>_30s.wav` und `tests/out/hoerprobe_welt6.wav`.
+
+**Welt 7 „Lava-Festung“** (`src/audio/themes_world7.js`, `WORLD7_THEMES`, nach der Musik-Richtlinie, Namen aus der Welt-7-Liste): `course_fortfire` (d-Moll, 142 BPM, Fanfaren-Hook mit Quartsprung, Fanfaren-Bläser im Intro, Feuer-Whoosh vor jedem Abschnitt, fallende Feuerbälle, Knistern), `course_switchruins` (fis-Moll, 134, „Ruf und Echo“-Hook, Steinglocken, großer Hall, Tropfen, Tempelflöte, klackende Kipp-Schalter), `course_redhot` (E-Dur, 150, Countdown-Hook aus Sechzehntel-Paaren, Countdown-Piepser vor Refrain und Loop, Uhr-Ticken, Renn-Arpeggio), `course_bluebelt` (F-Dur, 138, Stampf-Hook in Vierteln, Bläser-Stabs, Stampf-Trommel), `course_traptower` (h-Moll, 146, Galopp-Treppe eine Oktave hinauf, Turm-Glockenspiel, Kettenrasseln, Lava-Riser alle vier Takte, Alarm-Sirene), `course_rammreef` (Es-Dur, 132, „Blubb-blubb“-Hook, Tiefpass auf Piano/Pad/Stabs, Wasserglocken, Blubbern, dumpfe Rammstöße, trotzdem Four-on-the-floor), `course_volcano` (e-Moll, 140, Ausbruch-Hook mit Sechzehntel-Lauf zum Gipfelton, Vulkan-Hörner, Taiko, Grollen), `course_keep` (c-Moll, 148, die Kirchenorgel spielt im Intro das Baron-Brummbär-Motiv aus `course_boss` Lead Takt 5–8 Note für Note; eigene Hook in 3+3+2-Stößen, Chor-Pad in allen Takten, Chor-Stimme, Pauken, Kettenrasseln des Kampfwagens), `course_world7_map` (g-Moll, 126, 16 Takte, Kick auf 1 und 3, Lava-Blubbern, fernes Grollen). Alle 24 Takte (Karte 16), Refrain ab Takt 13 (Karte 9); kein `sync`, keine Energie-Ebene. Arenen (7-A, 7-B, 7-C) spielen `course_arena`, 7-Kapitän `course_diorama`. `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–7 und der Halloween-Welt, dazu Tempo, Loop-Naht, Klangfarben und Pegel wie Welt 5 (`AUDIO_WORLD=7`, Pegelvergleich mit `AUDIO_WORLD=5,7`); Hörproben `tests/out/w7_<thema>_30s.wav` und `tests/out/hoerprobe_welt7.wav`.
 
 **Neue Effekte** (`sfx(name)`): `clone`, `clone_lost`, `helm_on`, `helm_off`, `cannon`, `propeller`, `light`, `quicksand`, `sand_crumble`, `peck`, `bullet`, `boss_hit`, `boss_spin`, `house_tick`, `room_clear`, `ice_slide`, `snowball`, `ghost`, `splash_big`, `train_whistle`, `beep`, `beep_switch`.
 
@@ -5384,6 +5399,33 @@ Wand-/Deckengitter (greifen, klettern, hangeln, Rand, loslassen), Windböen (Ruh
 großer ?-Block (Stampfen, Explosion), Wurfball (Gegner, Zielscheiben, vorbei = nichts, POW), Ziel; keine Konsolenfehler.
 Kennzahlen (inkl. Schattenpass): Stationen höchstens 63 Zeichenaufrufe / 163 k Dreiecke, Themen höchstens 72 / 174 k
 (Grenzen 120 / 300 k).
+
+### Präzisierung (Figuren und Klänge Welt 6): Pose 'hang', eigene Klänge
+
+Additiv. **Pose `'hang'`** (`src/three/avatars/hero.js`: `poseHang`, Tabelle `HANG_POSE`; Lotti und Greta, groß/klein, Kostüme,
+Stern, Riesentrank, Klone, Halloween-Verkleidung): `HeroAvatar.courseStates` (Set aller Kurs-Zustände mit eigener Pose) enthält
+`'hang'` – HeroRig zeigt keinen Ersatz `'trapeze'` mehr. Beide Fäuste per Arm-IK (Gummi-Arme wie am Trapez) im Gitter:
+Gitterebene = Körperhöhe der Hitbox (0,95 / 0,65 m) + `HANG.arm` (0,2 m) über dem Fußpunkt, Faustmitte 1,2 cm darunter (bei
+Änderung von `HANG.arm`/`HITBOX` in `HANG_POSE` nachziehen). Hand über Hand im Takt des tatsächlich zurückgelegten Wegs entlang
+der Blickrichtung (`speed` begrenzt; am Rand steht die Figur trotz Stick → kein Hangeln in der Luft), 1,0 m je Doppelgriff:
+die haltende Hand liegt fest im Gitter, die andere löst sich (bis 15 cm), schwingt vor und greift. Körper als Feder-Pendel um
+die Griffe (Anfahren: Füße zurück, Bremsen: vor, je Griff ein kleiner Schwung, seitlich zur haltenden Hand; im Stillstand sachtes
+Schaukeln), Beine als zweites Pendel mit Nachlauf, Knie leicht angezogen; Zöpfe/Haar/Schweife hängen über die Physik. HeroRig
+gibt zusätzlich `proxy.course.hangGrid` (Gitter-Rechteck des Motors) weiter: am Rand bleiben die Griffe im Gitter bzw. am
+Randstab (seitlich nicht näher als 0,4 Einheiten an der Körperachse). Riesentrank: Gitter in Brusthöhe → Griff vor dem Bauch
+(Kopf ragt durch die Decke wie am Trapez). Loslassen blendet 0,3 s in den Fall. Kennzahlen: Zeichenaufrufe und Dreiecke gleich
+der Stand-Pose (Lotti 9 / 28,6 k, Greta 9 / 24,0 k, Krallen-Anzug 10, mit Verkleidung wie im Stand). `view/Xray.js`: Prüfpunkt
+der kleinen Figur in 0,6 m Höhe (vorher 0,9 m – unter einem Deckengitter lag er in der Decke, die dann deckend blieb).
+Test `tests/posen_w6.mjs` (Port 4365 + `PORT_BASE`; `P6_SHOTS=0`, `P6_HEROES`, `P6_PARTS=hang,extra`, `P6_DEBUG=1`; Bilder
+`tests/out/posen_w6_*.png`, Bögen `posen_w6_sheet_<heldin>.png`).
+
+**Klänge:** eigene Synth-Effekte in `src/audio/sfx.js` (Listen `W6_SFX`, `HW_SFX`, auch `engine.effects.w6/hw`) – Welt 6:
+`gust`, `wind`, `rumble`, `door`, `poof`, `splash`, `bump`, `powerup_appear`, `gong`; Halloween: `klingel`, `tuer`,
+`alle_tueren`, `kessel`, `blase`, `netz`, `laterne`, `laterne_aus`, `suessigkeit`, `muenzregen`, `buh`, `grabstein`,
+`kuerbis_platzt`. `level.sfx(name)` findet sie direkt (auch die bisher stummen direkten Aufrufe `splash`, `bump`, `rumble`,
+`poof`, `powerup_appear` anderer Bausteine/Gegner). Die Ersatz-Tabelle in `w6Sfx` ist leer, die Ersatznamen der `hwSfx`-Aufrufe
+greifen nur noch für neue Namen. Lautheit wie die bestehenden Effekte (Median −22,7 LUFS), ≤ 21 Knoten, ≤ 1,1 s;
+Hörprobe `tests/out/sfx_demo_w6.wav` (`tests/audio.mjs`, `AUDIO_PART=sfx`).
 
 ## Präzisierung (Gegner Welt 6)
 
