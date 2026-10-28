@@ -7118,3 +7118,89 @@ Kurzübersicht der Welt-8-Modelle; die exakten `opts`/`state` stehen in den Kopf
   `userData.spots` für lotti, greta, pflaume, kruemel_kapitaen).
 - **Instanz-Varianten** (`instanced_w8.js`): `leuchtsteg`, `knochenflieger` (`'fly'|'dive'|{ anim: 'bones'|'assemble',
   progress }`), `brummbaer_ballon`.
+
+## Bonuswelten – Level-Liste und Freischaltung (Hauptsitzung)
+
+Nach dem Finale (`8-Burg`, Spielstand `finished`) folgen vier Bonuswelten. Sie sind **Sonderwelten mit Buchstaben-Präfix**
+(wie die Halloween-Welt, `MAP.prefix`): Level-Ordner `src/course/levels/w<Welt>/`, Kartendatei
+`src/course/map/worlds/w<Welt>.js`. Pilz und Blume sind **Remixe** vorhandener Level (Basislevel + Remix-Regeln, siehe
+„Remix-Level“ unten), Stern bringt neue Level, Krone ist die Abschlussprüfung. Pilz- und Blumen-Level haben **keinen
+Stempel**. Sterne in der Schranke zählen immer **alle** gesammelten Sterne (Welt 1–8: 249, Halloween 18 → 267 vor den
+Bonuswelten).
+
+| Welt | Nr. | Präfix | Name | Karte frei nach | Musik Karte |
+| --- | --- | --- | --- | --- | --- |
+| Stern | 9 | `S` | „Sternenzelt“ (Weltraum, Regenbogenwege, Planetoiden) | Sieg in `8-Burg` (Röhre `WS` auf der Welt-8-Karte) | `course_worldstar_map` |
+| Pilz | 10 | `P` | „Pilz-Remix“ (bekannte Orte, neu gemischt) | `S-8` | `course_worldpilz_map` |
+| Blume | 11 | `B` | „Blumen-Remix“ | `P-6` | `course_worldblume_map` |
+| Krone | 12 | `K` | „Kronen-Gipfel“ (Abschlussprüfung) | `B-12` **und ≥ 330 Sterne** | `course_worldkrone_map` |
+
+### Welt Stern (9)
+
+| Id | Archetyp | Inhalt | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `S-1` | parcours | Regenbogen-Plattformen mit Hüpfmäusen, Trapeze, Reitfahrt auf schwimmendem Reittier, Fackelplatz, Riesentrank, P-Schalter-Münzregen | course_rainbow | 3 + Stempel | Welt offen |
+| `S-2` | parcours | Planetoiden-Hommage: kippende Drehplatten, Plattenbahnen, Boost-Strecke, Plattentreppe, Schachbrett; Abschluss schaltet das **Sternenglanz-Kostüm** für Lotti und Greta frei | course_galaxy | 3 + Stempel | S-1 |
+| `S-Kapitän` | diorama | mechanisches Diorama, per Schalter drehbar (Drehen ist Pflicht), Stern 4 nur mit gedrehter Kamera; 9 Funkenflämmchen | course_diorama | 5 | S-2 |
+| `S-3` | parcours | Holz-Athletik mit rollenden Schienenwalzen, Walzentrio, Walzenaufstieg, große Walze mit Seitenweg | course_rollingride | 3 + Stempel | S-2 |
+| `S-4` | verfolgung | der Zielmast bekommt Flügel und fliegt davon (wartet, wenn man zurückfällt), Boost-Pfeile, Glotzfische, Donut-Felder; 100 s ohne Zeitboni | course_goalpole | 3 + Stempel | S-3 |
+| `S-5` | parcours | Retro-Blockland aus Riesenblöcken: Grasinseln, Laufbomben, Gleitblätter, wachsende Riesen-?-Türme, Felsblock sprengen, 5 Schlüsselmünzen | course_blockland | 3 + Stempel | S-4 |
+| `S-6` | parcours (Draufsicht) | Kamera senkrecht von oben, Waben-Plattformen aus Lava/Eis, Wurfsichel, Spiegelfrucht, Käferfeld, Brummer, Zielturm | course_honeycomb | 3 + Stempel | S-5 |
+| `S-7` | parcours | Dschungel, alles übergroß: Riesen-Pilzlingstürme, Großrollpilze, Riesentrank-Feld, Unterwasser mit Strömungen | course_grotto | 3 + Stempel | S-6 |
+| `S-8` | parcours (Geister) | verschneiter Spukfriedhof im Nebel, 5 Schlüsselmünzen, Floßfahrt über Giftsumpf, auf- und absteigende Nebelplattformen | course_fogbog | 3 + Stempel | S-7 |
+| `S-9` | parcours | futuristischer Weltraum mit Kanonen-Helm: Schienenbrett-Fahrt, Kanonenkugel-Wand, Unterwassertunnel, Weichen umschießen | course_cosmic | 3 + Stempel | S-8 **und ≥ 280 Sterne** |
+
+Welt Stern hat 32 Sterne.
+
+### Welt Pilz (10) – Remix-Welt 1 (ohne Stempel)
+
+| Id | Basis | Remix-Regeln (Kurzfassung, Details im Bauplan) | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `P-1` | `2-4` | Nacht, kürzer, 30 s, Zeit-Uhren als Ideallinie, Stachel-Hüpfmäuse, Stachelkugler | Basis, Variante `nacht` | 3 | Welt offen |
+| `P-2` | `1-3` | Sonnenuntergang, Stachelkugler, Walzenwerfer, 3 Glockenbäume statt Gipfelbrücke, 5 Schlüsselmünzen, 500 s | Basis, Variante `abend` | 3 | P-1 |
+| `P-3` | `6-4` | stockdunkel, 4 Licht-Helme, Floß mit Spuken/Großspuken/Kreisgeistern | Basis, Variante `dunkel` | 3 | P-2 |
+| `P-4` | `2-3` | nur der Schatten-Abschnitt, 100 s, dicht mit Gegnern, Pilzlingsturm aus 30 Pilzlingen | Basis, Variante `schnell` | 3 | P-3 |
+| `P-5` | `6-3` | Tag, Werfer, Wurfbälle, 5 Schlüsselmünzen, pendelnd fliegender Zielmast | Basis | 3 | P-4 |
+| `P-Haus` | – | 10 Kampf-Räume à 10 s (je Raum alle Gegner besiegen) | course_house | 10 | P-4 |
+| `P-6` | `6-2` | Riesen-Wracks, mehr Schubser/Pustewolken/Krakenpilze, 5 Warp-Boxen | Basis | 3 | P-5 |
+| `P-7` | `7-4` | sinkende Plattformen über blauer Lava, Stachelwalzen, Gleitblatt | Basis, Variante `nacht` | 3 | P-6 **und ≥ 310 Sterne** |
+
+Welt Pilz hat 31 Sterne.
+
+### Welt Blume (11) – Remix-Welt 2 (ohne Stempel)
+
+| Id | Basis | Remix-Regeln | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `B-1` | `1-5` | Funkenflämmchen auf den Schaltfeldern, Hammer-Werfer | Basis | 3 | Welt offen |
+| `B-2` | `6-7` | schwebende Wasserwürfel statt Kippplattformen, zweite Wuschel-Horde | Basis | 3 | B-1 |
+| `B-5` | `5-4` | Morgen, viele Hasen + Riesenhase, Wolkenlifte, 500 s | Basis, Variante `morgen` | 3 | B-1 |
+| `B-3` | `4-2` | Nacht, 23 Fackeln in 3 Bereichen, schnellere Schiebeplattformen | Basis, Variante `nacht` | 3 | B-2 |
+| `B-4` | `7-1` | Start mit 30 s, nur Zeit-Uhren verlängern | Basis, Variante `schnell` | 3 | B-3 |
+| `B-6` | `3-3` | Schwarz-Weiß-Filter, Großspuk-Jagd, falsche Zielmasten | Basis, Variante `schwarzweiss` | 3 | B-4 |
+| `B-7` | `3-5` | Kanonen-Helme unter Wasser, Felsblockwände | Basis | 3 | B-6 |
+| `B-8` | `4-3` | Piep-Blöcke 4× schneller ohne Warnpiepen, Gleitblätter, viele Stacheln | Basis (Takt-Kopplung!) | 3 | B-7 |
+| `B-9` | `5-1` | nur der Strand, Sonnenuntergang, 4 Pilzlingstürme mit Feuer-Werfern, 100 s + Zeit-Uhren | Basis, Variante `abend` | 3 | B-8 |
+| `B-10` | `S-6` | Taghimmel statt Weltraum, schwerer | Basis, Variante `tag` | 3 | B-9 |
+| `B-11` | `8-1` (+ `5-7`) | Suchscheinwerfer über den Brücken: im Licht fahren Stacheln aus | Basis, Variante `nacht` | 3 | B-10 |
+| `B-12` | – | Boss-Marathon im Weltraum bei Nacht: Hub mit 6 Warp-Boxen, 5 Bosse geben je einen Schlüssel, dann Würfelblase | course_bossblitz | 3 | B-11 |
+
+Welt Blume hat 36 Sterne.
+
+### Welt Krone (12) – Abschlussprüfung
+
+| Id | Archetyp | Inhalt | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `K-Kapitän` | diorama | Lavaturm-Diorama 30 × 30 × 25 m, steigende/sinkende Lava | course_diorama | 5 + Stempel | Welt offen |
+| `K-Haus` | house | 30 Räume à 10 s am Stück | course_house | 30 | Welt offen |
+| `K-1` | parcours (extrem) | ≈ 900 m ohne Checkpoint und Power-ups, 4 Warp-Boxen, fast alle Gimmicks des Spiels hintereinander | course_champion | 3 + Stempel | **vollständige Sammlung**: alle Sterne und Stempel aller anderen Welten |
+
+Welt Krone hat 38 Sterne; das ganze Spiel hat damit 404 Sterne.
+
+### Remix-Level (Vertrag für Motor-, Musik- und Level-Agenten)
+
+- Ein Remix-Level ist eine eigene Level-Datei (`src/course/levels/w10/P-1.js` …), die das Basislevel **als Daten** übernimmt
+  und Regeln anwendet, statt es zu kopieren (Remix-Helfer des Motors, z. B. `remixOf('2-4', { … })`). Änderungen am
+  Basislevel wirken so automatisch mit; was ein Remix entfernt, ersetzt oder neu setzt, steht in der Remix-Datei.
+- Musik: Remix-Level spielen die Musik des Basislevels mit einer **Klang-Variante** des Musiksystems
+  (`nacht`, `abend`, `morgen`, `tag`, `dunkel`, `schnell`, `schwarzweiss`): andere Klangfarbe/Filter/Hall bzw. leicht
+  schnelleres Tempo, dieselbe Komposition. Ohne Variante klingt sie wie im Basislevel.
