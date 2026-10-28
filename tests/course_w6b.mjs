@@ -22,6 +22,110 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 //   springen) · { hang: [x, z], to: [x, z] } (Deckengitter greifen, hangeln, loslassen) · { climb: [x, z], over: [x, z] }
 //   (Wandgitter hinauf, oben abspringen) · { prop: [x, z], rise } (Propeller-Helm: hochfliegen, langsam hinübergleiten)
 const ROUTES = {
+  '6-3': {
+    start: [0, 1, 7],
+    meta: { stars: 3, stamp: true, time: 400, theme: 'fareast', music: 'course_fareast', archetype: 'parcours' },
+    enemies: { pilzling: 3, rollpilz: 2, krallen_pilzling: 2, stachelwerfer: 3, stampfstein: 3, pilz_maske: 2, schluesselmuenze: 5 },
+    main: [
+      { name: 'vor Tür 1', to: [0, -4.6], within: 0.4, run: false },
+      { name: 'Tür 1 antippen', tap: 'tuer1', after: 90 },
+      { to: [0, -11.2], within: 0.4, run: false },
+      { name: 'Tür 2 antippen', tap: 'tuer2', after: 90 },
+      { to: [0, -18.2], within: 0.4, run: false },
+      { name: 'Tür 3 antippen', tap: 'tuer3', after: 90 },
+      { to: [0, -24], within: 0.4, run: false },
+      { name: 'rote Röhre', to: [0, -25.5], jump: 24, within: 0.25, run: false },
+      { crouch: 4 },
+      { expect: 'inHall' },
+      { name: 'Erdgeschoss', to: [-20.5, -44.5], within: 0.5, run: false },
+      { to: [22, -44.5], within: 0.6 },
+      { to: [24.4, -48.6], within: 0.4, run: false },
+      { name: 'Treppe zum 1. Stock', to: [16.5, -48.6], within: 0.5 },
+      { expect: 'onF2' },
+      { name: '1. Stock', to: [-23, -44.5], within: 0.6 },
+      { to: [-24.4, -48.6], within: 0.4, run: false },
+      { name: 'Treppe zum 2. Stock', to: [-16.5, -48.6], within: 0.5 },
+      { expect: 'onF3' },
+      { name: '2. Stock', to: [20.4, -46.9], within: 0.5 },
+      { name: 'Warp-Box zum Tempel', to: [23.4, -48.6], jump: 30, within: 0.3, run: false, stopIf: 'onExterior' },
+      { wait: 40 },
+      { expect: 'onExterior' },
+      { name: 'Checkpoint', to: [0, -76.8], within: 0.6 },
+      { to: [1.4, -83], within: 0.4, run: false },
+      { name: 'Dachfirst (an den Stampfsteinen vorbei)', to: [1.4, -101.5], within: 0.4 },
+      { name: 'Propeller-Helm', to: [3, -104.6], within: 0.35, run: false },
+      { expect: 'propeller' },
+      { to: [0, -109.3], within: 0.3, run: false },
+      { name: 'über die Lücke', prop: [0, -120.5], rise: 40 },
+      { expect: 'onE3' },
+      { to: [0, -126.6], within: 0.4, run: false },
+      { name: 'Dachstufe 1', to: [0, -129.8], jump: 30, within: 0.5, run: false },
+      { name: 'Dachstufe 2', to: [0, -133.3], jump: 30, within: 0.5, run: false },
+      { name: 'oberstes Dach', to: [0, -137.4], jump: 30, within: 0.6, run: false },
+      { name: 'Zielmast', to: [0, -140.9], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'drei Schiebetüren angetippt, Röhre in den Saal, drei Stockwerke, Warp-Box, Propeller-Flug', ok: (r) => r.mech.taps === 3 && r.mech.pipes >= 2 && r.mech.props === 1 },
+    ],
+    targets: [
+      { name: 'Stern 0: Tür im 2. Stock antippen, dahinter zwei Scheinwände antippen', star: 0, from: [6, 11, -46.4],
+        legs: [{ tap: 't2c', after: 120 }, { tap: 'schein1', after: 110 }, { tap: 'schein2', after: 110 }, { to: [6, -53.2], within: 0.4, run: false }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne die zweite Scheinwand', star: 0, expectNot: true, from: [6, 11, -46.4], heroes: ['lotti'],
+        legs: [{ tap: 't2c', after: 120 }, { tap: 'schein1', after: 110 }, { to: [6, -53.2], within: 0.4, run: false, max: 300, partial: true }, { wait: 60 }] },
+      { name: 'Stern 1: mit dem Propeller-Helm hoch über die 8-m-Lücke', star: 1, from: [0, 12, -108.6], place: { helmet: 'propeller' },
+        legs: [{ to: [0, -109.3], within: 0.3, run: false }, { prop: [0, -121], via: [0, -114], rise: 60, vmax: 4 }, { expect: 'onE3' }], shot: 'stern1' },
+      { name: 'Stern 1 nicht ohne Propeller (Weitsprung über die Lücke)', star: 1, expectNot: true, from: [0, 12, -103.5], heroes: ['lotti'],
+        legs: [{ name: 'Anlauf und Sprung', to: [0, -120], jump: 30, jumpAt: 1.2, within: 0.6, max: 400 }] , mech: (r) => true },
+      { name: 'Stempel: mit dem Propeller-Helm auf die Wolke über dem mittleren Dach', stamp: true, from: [-4.4, 12, -119.5], place: { helmet: 'propeller' },
+        legs: [{ prop: [-4.4, -123], rise: 50, vmax: 4 }, { expect: 'onCloud' }, { wait: 20 }], shot: 'stempel' },
+      { name: 'Stempel nicht ohne Propeller (Sprung vom Dach)', stamp: true, expectNot: true, from: [-4.4, 12, -120], heroes: ['lotti'],
+        legs: [{ to: [-4.4, -123], jump: 40, within: 0.4, max: 200, land: false }, { wait: 90 }] },
+      { name: 'Stern 2: Gong schlagen → Rätselbox → Stachelwerfer im Käfig besiegen', star: 2, from: [19.2, 11, -44.5],
+        legs: [{ expect: 'raetselHidden' }, { tap: 'gong', after: 90 }, { expect: 'raetselVisible' }, { to: [16.5, -46.6], within: 0.35, run: false },
+          { name: 'Rätselbox', to: [16.5, -48.4], jump: 30, within: 0.3, run: false, stopIf: 'inCage' }, { wait: 40 }, { expect: 'inCage' },
+          { stompAll: 'swk' }, { until: 'cageDone', max: 300 }, { star: 2 }], shot: 'stern2' },
+    ],
+    extra: [
+      { name: 'Schiebetür bleibt ohne Antippen zu (Gegenprobe), Aktionstaste öffnet sie auch', from: [0, 1, -4.6], heroes: ['lotti'],
+        legs: [{ to: [0, -9], within: 0.4, max: 240, partial: true }, { expect: 'beforeDoor1' }, { action: 2 }, { wait: 120 }, { to: [0, -9], within: 0.4 }] },
+      { name: 'Maskennische: rechte Tür antippen, Pilz-Maske aufsetzen', from: [1.4, 1, -17.5], heroes: ['lotti'],
+        legs: [{ tap: 'tuerR', after: 110 }, { to: [4.9, -17.5], within: 0.3, run: false }, { wait: 10 }, { expect: 'masked' }] },
+      { name: 'Pilz-Maske: zugewandte Stachelwerfer werfen nicht – ohne Maske schon', from: [12, 6, -44.5], heroes: ['lotti'], place: { yaw: Math.PI, helmet: 'maske' },
+        legs: [{ throwsZero: 'sw1' }, { to: [6.6, -44.5], within: 0.3, run: false, slow: 0.3 }, { wait: 180 }, { expect: 'sw1Quiet' }, { unmask: true }, { wait: 300 }, { expect: 'sw1Throws' }] },
+      { name: 'Gong im 2. Stock: Münzregen', from: [19.2, 11, -44.5], heroes: ['lotti'], expectCoins: 8,
+        legs: [{ tap: 'gong', after: 60 }, { chaseKind: 'fallmuenze', max: 900 }] },
+      { name: 'Extraleben: ?-Block in der Nische des 1. Stocks', from: [10, 6, -46.4], heroes: ['lotti'], expectLives: 1,
+        legs: [{ tap: 't1a', after: 120 }, { to: [10, -51.4], within: 0.25, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Fünf Schlüsselmünzen auf den Dächern → Warp-Box in den Gong-Garten → goldener Gong (Extraleben)', from: [-6.5, 12, -78], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-6.5, -80.5], within: 0.3, run: false }, { to: [0, -81.5], within: 0.4, run: false }, { to: [0, -93], within: 0.3 }, { to: [1.4, -101.5], within: 0.4 },
+          { to: [3, -104.6], within: 0.35, run: false }, { to: [0, -109.3], within: 0.3, run: false }, { prop: [0, -120.5], rise: 40 },
+          { to: [6.5, -126.5], within: 0.3, run: false }, { to: [0, -126.6], within: 0.4, run: false }, { to: [0, -129.8], jump: 30, within: 0.5, run: false },
+          { to: [-3.6, -133.6], jump: 30, within: 0.4, run: false }, { to: [0, -137.4], jump: 30, within: 0.6, run: false }, { to: [6.5, -146.5], within: 0.3, run: false },
+          { expect: 'keys5' }, { expect: 'gongwarpOpen' }, { to: [-3.6, -144.5], within: 0.3, run: false }, { name: 'Warp-Box Gong-Garten', to: [-5.5, -144.5], jump: 30, within: 0.3, run: false, stopIf: 'inGarden' },
+          { wait: 40 }, { expect: 'inGarden' }, { to: [100, -119.6], within: 0.4 }, { tap: 'goldgong', after: 60 }, { chaseKind: 'powerup', max: 1500 }] },
+      { name: 'Checkpoint: Absturz am Dachfirst → Neustart auf der Ankunftsterrasse', from: [0, 12, -73.5], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ to: [0, -76.8], within: 0.5 }, { to: [0, -85], within: 0.5 }, { to: [4, -85], within: 0.5, max: 400, partial: true }, { wait: 400 }, { expect: 'respawnTempel' }] },
+    ],
+    shots: [
+      ['start', [0, 1, 7]],
+      ['korridor', [0, 1, -10]],
+      ['maskennische', [1.5, 1, -17.5]],
+      ['roehre', [0, 1, -23]],
+      ['saal_eg', [-14, 1, -44.5]],
+      ['saal_eg_rechts', [12, 1, -44.5]],
+      ['saal_1st', [6, 6, -44.5]],
+      ['saal_1st_links', [-14, 6, -44.5]],
+      ['saal_2st', [0, 11, -44.5]],
+      ['saal_gong', [17, 11, -44.5]],
+      ['ankunft', [0, 12, -74]],
+      ['dachfirst', [1.4, 12, -88]],
+      ['helme', [0, 12, -104]],
+      ['mittleres_dach', [0, 12, -121]],
+      ['oberstes_dach', [0, 19.8, -138]],
+      ['kaefig', [100, 11, -40]],
+      ['gonggarten', [100, 0, -104]],
+    ],
+  },
   '6-4': {
     start: [0, 1, 6],
     meta: { stars: 3, stamp: true, time: 400, theme: 'jungle', music: 'course_jungle', archetype: 'parcours' },
@@ -165,7 +269,28 @@ function install() {
   wrapHurt();
   const hud = () => L.archetype?.hud?.state?.() ?? {};
   const raft = (id) => named(id);
+  const ent = (id) => L.entities.find((e) => e.spec?.id === id && !e.removed);
   const COND = {
+    // 6-3
+    inHall: () => P().pos.z < -40 && P().pos.z > -53 && Math.abs(P().pos.x) < 26,
+    onF2: () => P().mode === 'ground' && Math.abs(P().pos.y - 6) < 0.3 && P().pos.z < -40,
+    onF3: () => P().mode === 'ground' && Math.abs(P().pos.y - 11) < 0.3 && P().pos.z < -40,
+    onExterior: () => P().pos.z < -66 && P().pos.y > 11.5 && Math.abs(P().pos.x) < 20,
+    propeller: () => P().helmet === 'propeller',
+    onE3: () => P().mode === 'ground' && Math.abs(P().pos.y - 12) < 0.3 && P().pos.z < -117.8 && P().pos.z > -128.2,
+    onCloud: () => P().mode === 'ground' && P().pos.y > 19 && P().ground?.tag !== 'island',
+    beforeDoor1: () => P().pos.z > -6.7 && named('tuer1')?.state === 'zu',
+    masked: () => P().helmet === 'maske' && !!P().masked,
+    sw1Quiet: () => (ent('sw1')?.throws ?? 0) === (window.__sw1t0 ?? 0),
+    sw1Throws: () => (ent('sw1')?.throws ?? 0) > (window.__sw1t0 ?? 0),
+    raetselHidden: () => !!named('raetsel1')?.hidden,
+    raetselVisible: () => !named('raetsel1')?.hidden,
+    inCage: () => P().pos.x > 90 && P().pos.z > -52 && P().pos.z < -36,
+    cageDone: () => L.entities.some((e) => e.kind === 'star' && e.index === 2 && !e.hidden && !e.removed),
+    keys5: () => (L.keys?.dach?.n ?? 0) >= 5,
+    gongwarpOpen: () => !named('gongwarp')?.hidden,
+    inGarden: () => P().pos.x > 85 && P().pos.z < -95,
+    respawnTempel: () => !P().dead && Math.abs(P().pos.z + 76.5) < 1.5 && P().pos.y > 11.5,
     // 6-4
     onPlateau: () => P().pos.y > 8 && P().pos.z < -276,
     underGrid: () => { const q = raft('floss1').mb.pos; return q.z < -61.4 && q.z > -64; },
@@ -284,6 +409,7 @@ function install() {
         if (Lg.tap) {
           const h = named(Lg.tap);
           const t = L.taps?.targets.find((x) => x.owner === h);
+          c.snapCamera();   // im Test zeichnet zwischen den Schritten kein Bild – die Kamera auf den aktuellen Stand bringen
           const sp = t ? L.taps.screenPos(t) : null;
           const before = JSON.stringify(h?.info?.() ?? null);
           if (sp?.visible) L.taps.tapScreen(sp.x, sp.y);
@@ -305,6 +431,32 @@ function install() {
             tick(pounding ? { crouch: true } : { ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, d * 1.2))), jump: k < 34, run: false });
           }
           log.push(['stampfen auf', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, pounding]);
+          continue;
+        }
+        if (Lg.throwsZero) { window.__sw1t0 = ent(Lg.throwsZero)?.throws ?? 0; continue; }
+        if (Lg.unmask) { p.dropHelmet('gone'); window.__sw1t0 = ent('sw1')?.throws ?? 0; log.push(['Maske ab']); continue; }
+        // ------------------------------------------------ Gegner (Id-Anfang) nacheinander von oben besiegen
+        if (Lg.stompAll) {
+          const pre = Lg.stompAll;
+          const done = [];
+          let guard = 0;
+          for (; guard < 40; guard++) {
+            const list = L.entities.filter((e) => e.enemy && e.alive && !e.removed && !e.defeated && String(e.spec?.id ?? '').startsWith(pre));
+            if (!list.length) break;
+            const e = list[0];
+            let k = 0;
+            for (; k < 1800 && e.alive && !e.defeated && !e.removed; k++) {
+              const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              if (p.mode === 'ground' && d < 2.2 && !e.overhead) { tick({ ...this.stick(dx, dz, 0.5), jump: true, run: false }); continue; }
+              if (p.mode === 'air') { tick({ ...this.airSteer(e.pos.x, e.pos.z, 0, 0, 3.6, 7), jump: p.vel.y > 0 }); continue; }
+              if (d < 3 && e.overhead) { tick({}); continue; }
+              tick({ ...this.stick(dx, dz, Math.min(1, d / 2)), run: false });
+            }
+            if (!e.alive || e.defeated || e.removed) done.push(e.spec?.id);
+          }
+          for (let i = 0; i < 60; i++) tick({});
+          log.push(['besiegt', done.join(' ')]);
+          if (!done.length) log.push(['FEHLER: nichts besiegt', pre]);
           continue;
         }
         // ------------------------------------------------ Endgegner einmal von oben treffen (ohne Röhre: nur Abprall)
@@ -412,11 +564,13 @@ function install() {
           const [tx, tz] = Lg.prop;
           if (p.helmet !== 'propeller') log.push(['FEHLER: kein Propeller-Helm']);
           tick({ action: true });
-          let k = 0, apex = p.pos.y;
+          let k = 0, apex = p.pos.y, via = Lg.via ?? null;
           for (; k < 1500; k++) {
             apex = Math.max(apex, p.pos.y);
+            if (via && Math.hypot(via[0] - p.pos.x, via[1] - p.pos.z) < 0.6 && p.vel.y <= 0.5) via = null;
+            const [gx, gz] = via ?? [tx, tz];
             const rising = p.vel.y > 0 && k < (Lg.rise ?? 60);
-            const steer = rising && Lg.straight ? {} : this.airSteer(tx, tz, 0, 0, 2.2, Lg.vmax ?? 6);
+            const steer = rising && Lg.straight ? {} : this.airSteer(gx, gz, 0, 0, 2.2, Lg.vmax ?? 6);
             tick({ ...steer, run: true });
             if (k > 10 && p.mode === 'ground') break;
           }

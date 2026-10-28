@@ -15,7 +15,7 @@
 
 import * as THREE from 'three';
 import { colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
-import { visDt } from '../../entities/gimmick.js';
+import { visDt, runAction } from '../../entities/gimmick.js';
 import { tapTargets } from '../../entities/tap.js';
 import { Bld, litTop, gradY, onRespawn } from '../w5/_helpers_b.js';
 
@@ -255,7 +255,7 @@ export function zwinger(level, o) {
     for (let z = pz0 + 4; z < pz1 - 3; z += 6) for (const x of [px0 + 0.45, px1 - 0.45]) g.box(0.1, 1.5, 0.9, x, y, z + (k % 2) * 3, 0xffa040, { r: 0.1 });
   }
   b.flush(level);
-  g.flush(level, { material: 'glow' });
+  g.flush(level, { material: 'glow', castShadow: false });
 }
 
 /**
@@ -373,7 +373,7 @@ export function blauesTor(level, o) {
   // Ranken an den Pfeilern
   for (const s of [-1, 1]) for (let k = 0; k < 7; k++) b.sphere(0.22, x + s * (span / 2 + w / 2 + 0.05), y + 0.5 + k * 0.62, z + (k % 2 ? 0.35 : -0.3), 0x3aa83a, { ws: 6, hs: 5, s: [0.6, 1, 1] });
   b.flush(level);
-  g.flush(level, { material: 'glow' });
+  g.flush(level, { material: 'glow', castShadow: false });
 }
 
 /**
@@ -454,4 +454,337 @@ export function ruinen(level, list) {
     }
   }
   b.flush(level);
+}
+
+// =====================================================================================================================
+// 6-3: Fernost-Halle
+// =====================================================================================================================
+
+const WOOD = 0x8a5632, WOOD_DK = 0x5a3420, WOOD_LT = 0xd8a86a, LACK = 0xd8443a, LACK_DK = 0x9a2a24, PAPER = 0xfff4dc, GOLD = 0xffc84a;
+
+/**
+ * Papierwand mit Holzgitter (Fernost-Halle): Sockel aus dunklem Holz, Papierfelder mit Sprossen, rot lackierter Riegel oben,
+ * Pfosten an den Enden. Wand in der Ebene z = const (face: +1 Vorderseite nach +Z, −1 nach −Z) bzw. x = const (axis 'x').
+ * Nur Optik (in einen Bld). w: x0..x1 bzw. z0..z1, y0..y1, d = Dicke.
+ */
+function paperWall(b, o) {
+  const { y0, y1 } = o, h = y1 - y0, d = o.d ?? 0.4;
+  const alongX = o.axis !== 'z';
+  const a0 = alongX ? o.x0 : o.z0, a1 = alongX ? o.x1 : o.z1, c = alongX ? o.z : o.x;
+  const L = a1 - a0, mid = (a0 + a1) / 2;
+  const put = (w, hh, dd, along, y, off, col, r = 0.03) => {
+    if (alongX) b.box(w, hh, dd, along, y, c + off, col, { r });
+    else b.box(dd, hh, w, c + off, y, along, col, { r });
+  };
+  const f = o.face ?? 1;
+  put(L, h, d, mid, y0, 0, litTop(o.color ?? 0xf2e2c4, 0.85), 0.02);                     // Wandkörper
+  put(L, Math.min(0.9, h * 0.25), d + 0.06, mid, y0, 0, litTop(WOOD_DK, 0.7));             // Sockel
+  put(L, 0.22, d + 0.1, mid, y1 - 0.22, 0, litTop(LACK, 0.7));                             // Riegel oben
+  const n = Math.max(1, Math.round(L / 1.6));
+  for (let i = 0; i <= n; i++) put(0.16, h, d + 0.12, a0 + (i * L) / n, y0, 0, litTop(WOOD, 0.7));     // Pfosten
+  // Papierfelder mit Sprossen (Vorderseite)
+  const py0 = y0 + Math.min(0.9, h * 0.25) + 0.12, py1 = y1 - 0.34;
+  if (py1 - py0 > 0.6) for (let i = 0; i < n; i++) {
+    const s0 = a0 + (i * L) / n + 0.14, s1 = a0 + ((i + 1) * L) / n - 0.14, sm = (s0 + s1) / 2;
+    put(s1 - s0, py1 - py0, 0.04, sm, py0, f * (d / 2 + 0.02), PAPER, 0);
+    const nx = Math.max(1, Math.round((s1 - s0) / 0.45)), ny = Math.max(1, Math.round((py1 - py0) / 0.45));
+    for (let k = 1; k < nx; k++) put(0.035, py1 - py0, 0.05, s0 + ((s1 - s0) * k) / nx, py0, f * (d / 2 + 0.04), WOOD_DK, 0);
+    for (let k = 1; k < ny; k++) put(s1 - s0, 0.035, 0.05, sm, py0 + ((py1 - py0) * k) / ny, f * (d / 2 + 0.04), WOOD_DK, 0);
+  }
+}
+
+/** Wand-Kollision (Quader) entlang x bzw. z. */
+function wallBox(level, x0, x1, y0, y1, z0, z1, o = {}) {
+  level.world.add({ type: 'box', min: [Math.min(x0, x1), y0, Math.min(z0, z1)], max: [Math.max(x0, x1), y1, Math.max(z0, z1)], tag: o.tag ?? 'saalwand', camIgnore: !!o.camIgnore, noWallSlide: o.noWallSlide ?? false });
+}
+
+/**
+ * Wand mit Türöffnungen (Rückwand eines Stockwerks bzw. Korridorwand): Segmente zwischen den Türen (Kollision + Papierwand),
+ * über jeder Tür ein Sturz bis zur Wandoberkante. o: { axis 'x'|'z', a0, a1 (Ausdehnung), c (Lage der Wandmitte), d, y0, y1,
+ * doors: [Mitte, …], dw (Türbreite inkl. Rahmen), dh (Türhöhe), face, color }. b = Bld.
+ */
+export function doorWall(level, b, o) {
+  const d = o.d ?? 0.6, dw = o.dw ?? 2.9, dh = o.dh ?? 3.2;
+  const cuts = [o.a0, ...[...(o.doors ?? [])].sort((p, q) => p - q).flatMap((m) => [m - dw / 2, m + dw / 2]), o.a1];
+  const seg = (s0, s1, y0, y1) => {
+    if (s1 - s0 < 0.05 || y1 - y0 < 0.05) return;
+    if (o.axis === 'z') { wallBox(level, o.c - d / 2, o.c + d / 2, y0, y1, s0, s1, o); if (b) paperWall(b, { axis: 'z', z0: s0, z1: s1, x: o.c, y0, y1, d, face: o.face, color: o.color }); }
+    else { wallBox(level, s0, s1, y0, y1, o.c - d / 2, o.c + d / 2, o); if (b) paperWall(b, { x0: s0, x1: s1, z: o.c, y0, y1, d, face: o.face, color: o.color }); }
+  };
+  for (let i = 0; i < cuts.length; i += 2) seg(cuts[i], cuts[i + 1], o.y0, o.y1);
+  for (const m of o.doors ?? []) seg(m - dw / 2, m + dw / 2, o.y0 + dh, o.y1);
+}
+
+/**
+ * Nische hinter einer Tür (in einer Rückwand mit Vorderseite +Z): Boden, Seiten- und Rückwand (Kollision + Optik).
+ * o: { x, y, z (Türebene), w, depth, h }.
+ */
+export function nische(level, b, o) {
+  const { x, y, z } = o, w = o.w ?? 2.6, D = o.depth ?? 1.6, h = o.h ?? 3.2;
+  wallBox(level, x - w / 2 - 0.3, x - w / 2, y, y + h, z - D - 0.3, z);
+  wallBox(level, x + w / 2, x + w / 2 + 0.3, y, y + h, z - D - 0.3, z);
+  wallBox(level, x - w / 2, x + w / 2, y, y + h, z - D - 0.3, z - D);
+  wallBox(level, x - w / 2 - 0.3, x + w / 2 + 0.3, y - 0.5, y, z - D - 0.3, z, { tag: 'nische' });
+  wallBox(level, x - w / 2 - 0.3, x + w / 2 + 0.3, y + h, y + h + 0.3, z - D - 0.3, z, { tag: 'nische', camIgnore: true });
+  if (!b) return;
+  b.box(w, 0.06, D, x, y - 0.03, z - D / 2, litTop(WOOD_LT, 0.8), { r: 0 });
+  b.box(w, h, 0.3, x, y, z - D - 0.15, litTop(0xe8d4b0, 0.8), { r: 0.02 });
+  for (const s of [-1, 1]) b.box(0.3, h, D, x + s * (w / 2 + 0.15), y, z - D / 2, litTop(0xe0ccaa, 0.8), { r: 0.02 });
+  b.box(w + 0.6, 0.3, D + 0.3, x, y + h, z - D / 2, litTop(WOOD_DK, 0.7), { r: 0.02 });
+}
+
+/**
+ * Geschossdecke des Saals (Boden des oberen Stockwerks) samt Brüstung an der Vorderkante als eigenes Mesh mit Durchsicht
+ * (view.xray): helle Dielen oben, rot lackierte Stirnkante und Geländer vorn, dunkle Balken unten. Die Durchsicht-Box reicht
+ * vor der Decke bis zur Kamera und vom Stockwerk darunter bis knapp über die Decke: steht die Figur ein Stockwerk tiefer,
+ * kreuzt der Kamerastrahl die Box und die Decke wird durchscheinend; steht sie auf dieser Decke, liegt ihr Kopf in der Box
+ * und die Decke bleibt fest. Kollision (Decke, Brüstung 1 m) mit camIgnore.
+ * o: { x0, x1, z0 (vorn), z1 (hinten), y (Oberkante), lower (Boden darunter), rail: true, railFrom, railTo (x-Bereich der Brüstung) }.
+ */
+export function saalDecke(level, o) {
+  const { x0, x1, y } = o, zF = o.z0, zB = o.z1, T = 0.5;
+  level.world.add({ type: 'box', min: [x0, y - T, zB], max: [x1, y, zF], camIgnore: true, tag: 'saaldecke' });
+  const rx0 = o.railFrom ?? x0, rx1 = o.railTo ?? x1;
+  // Brüstung: sichtbar 1 m, Kollision 4 m hoch (camIgnore) – kein Sprung über das Geländer hinunter
+  if (o.rail !== false) wallBox(level, rx0, rx1, y, y + 4.0, zF - 0.3, zF, { camIgnore: true, noWallSlide: true, tag: 'bruestung' });
+  if (!level.view) return;
+  const b = new Bld();
+  const w = x1 - x0, d = zF - zB, cx = (x0 + x1) / 2, cz = (zF + zB) / 2;
+  b.box(w, T - 0.08, d, cx, y - T, cz, litTop(WOOD, 0.6), { r: 0 });
+  const planks = Math.round(d / 0.5);
+  for (let i = 0; i < planks; i++) b.box(w - 0.04, 0.08, d / planks - 0.03, cx, y - 0.08, zB + (i + 0.5) * (d / planks), i % 2 ? 0xe2b880 : 0xd8a86a, { r: 0 });
+  b.box(w + 0.1, T + 0.1, 0.3, cx, y - T - 0.05, zF - 0.1, litTop(LACK, 0.65), { r: 0 });
+  if (o.rail !== false) {
+    const z = zF - 0.15;
+    b.box(rx1 - rx0, 0.12, 0.16, (rx0 + rx1) / 2, y + 0.86, z, litTop(LACK, 0.7), { r: 0 });
+    b.box(rx1 - rx0, 0.08, 0.1, (rx0 + rx1) / 2, y + 0.3, z, LACK_DK, { r: 0 });
+    for (let x = rx0; x <= rx1 + 0.01; x += 1.2) b.box(0.12, 0.98, 0.12, Math.min(x, rx1), y, z, litTop(LACK, 0.7), { r: 0 });
+  }
+  const m = new THREE.Mesh(b.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 }));
+  m.castShadow = true; m.receiveShadow = true;
+  m.name = 'saaldecke';
+  addObject(level, m);
+  // Box: über dem Kopf einer Figur im Stockwerk darunter (lower + 2,1) bis knapp unter die Dielen, vorn bis zur Kamera
+  const minY = (o.lower ?? y - 5) + 2.1;
+  level.view.xray(m, new THREE.Box3(new THREE.Vector3(x0 - 1, minY, zB), new THREE.Vector3(x1 + 1, y - T + 0.3, zF + 16)), { min: 0.16 });
+}
+
+/**
+ * Brüstung an der Vorderkante eines Stockwerks: rot lackiertes Geländer (Pfosten, Handlauf, Zierbrett) mit Kollision
+ * (camIgnore, 1 m hoch). o: { x0, x1, z, y }.
+ */
+export function bruestung(level, b, o) {
+  const { x0, x1, z, y } = o;
+  wallBox(level, x0, x1, y, y + 1.0, z - 0.15, z + 0.15, { camIgnore: true, noWallSlide: true, tag: 'bruestung' });
+  if (!b) return;
+  b.box(x1 - x0, 0.12, 0.16, (x0 + x1) / 2, y + 0.86, z, litTop(LACK, 0.7), { r: 0.04 });
+  b.box(x1 - x0, 0.08, 0.1, (x0 + x1) / 2, y + 0.3, z, LACK_DK, { r: 0.02 });
+  for (let x = x0; x <= x1 + 0.01; x += 1.2) b.box(0.12, 0.98, 0.12, Math.min(x, x1), y, z, litTop(LACK, 0.7), { r: 0.03 });
+}
+
+/**
+ * Treppe aus einzelnen Stufen (Kollision je Stufe vom Boden bis zur Stufenhöhe, Optik Holzstufen mit roten Wangen).
+ * o: { x0 (unterste Stufe beginnt), dir (+1/−1 entlang x), n, run, y0 (Boden), y1 (oben), z0, z1 }.
+ */
+export function treppe(level, b, o) {
+  const { n, run, y0, y1, z0, z1, dir } = o;
+  const rise = (y1 - y0) / n;
+  for (let i = 0; i < n; i++) {
+    const a = o.x0 + dir * i * run, c = a + dir * run;
+    const top = y0 + (i + 1) * rise;
+    level.world.add({ type: 'box', min: [Math.min(a, c), y0, Math.min(z0, z1)], max: [Math.max(a, c), top, Math.max(z0, z1)], tag: 'treppe' });
+    if (b) {
+      b.box(run, top - y0, Math.abs(z1 - z0), (a + c) / 2, y0, (z0 + z1) / 2, litTop(WOOD, 0.6), { r: 0.01 });
+      b.box(run + 0.02, 0.06, Math.abs(z1 - z0) + 0.02, (a + c) / 2, top - 0.06, (z0 + z1) / 2, i % 2 ? 0xe2b880 : 0xd8a86a, { r: 0 });
+    }
+  }
+  if (b) {
+    const len = n * run, cx = o.x0 + dir * len / 2;
+    for (const z of [Math.max(z0, z1) + 0.08]) {
+      const g = new THREE.BoxGeometry(len + 0.3, 0.3, 0.16);
+      const ang = Math.atan2(y1 - y0, len);
+      g.rotateZ(dir * ang);
+      b.add(g, litTop(LACK, 0.7), { p: [cx, (y0 + y1) / 2 + 0.35, z] });
+    }
+  }
+}
+
+/**
+ * Scheinwand (6-3 Geheimnis „zwei Scheinwände hinter Schiebetüren“): sieht aus wie die bemalte Wand hinter einer Schiebetür
+ * (Himmel, grüne Hügel, Sonne), versperrt den Weg – lässt sich aber antippen (oder mit der Aktionstaste in Reichweite) und
+ * gleitet dann in den Boden. Ein leises Glitzern verrät sie. Antipp-Symbol nur in der Nähe (≤ 3 m).
+ * o: { id, x, y, z (Mitte unten, Wandebene quer zu Z), w: 2.4, h: 3, onOpen (Aktion), seed }
+ *   level.named.get(id) = { open(), state ('zu'|'oeffnet'|'auf'), k, info() }
+ */
+export function scheinwand(level, o) {
+  const { x, y, z } = o, w = o.w ?? 2.4, h = o.h ?? 3;
+  const st = { k: 0, want: 0, id: null, opened: false };
+  const shape = { type: 'box', min: [x - w / 2 - 0.05, y, z - 0.15], max: [x + w / 2 + 0.05, y + h, z + 0.15], tag: 'scheinwand', camIgnore: true };
+  st.id = level.world.add(shape);
+  const handle = {
+    get state() { return st.k <= 0 ? 'zu' : st.k >= 1 ? 'auf' : 'oeffnet'; }, get k() { return st.k; },
+    open() {
+      if (st.want === 1) return;
+      st.want = 1;
+      level.sfx('gate'); level.sfx('powerup_appear');
+      level.effects?.sparks({ x, y: y + 1.4, z: z + 0.3 }, 18);
+      if (!st.opened) { st.opened = true; if (o.onOpen) runAction(level, o.onOpen, { pos: [x, y + 1, z + 0.6], source: handle }); }
+    },
+    info: () => ({ state: handle.state, k: +st.k.toFixed(2) }),
+  };
+  if (o.id) level.named.set(o.id, handle);
+  const tap = tapTargets(level).add({
+    owner: handle,
+    box: () => ({ min: [x - w / 2, y, z - 0.2], max: [x + w / 2, y + h, z + 0.2] }),
+    enabled: () => st.want === 0,
+    reach: 3,
+    hint: false,
+    onTap: () => handle.open(),
+  });
+  level.onStep((dt) => {
+    if (st.want && st.k < 1) {
+      st.k = Math.min(1, st.k + dt / 0.8);
+      if (st.k > 0.6 && st.id !== null) { level.world.remove(st.id); st.id = null; }
+    }
+    // Antipp-Symbol erst in der Nähe (Geheimnis)
+    const p = level.player;
+    tap.hint = !!p && st.want === 0 && Math.hypot(p.pos.x - x, p.pos.z - z) < 3.2 && Math.abs(p.pos.y - y) < 1.5;
+  });
+  if (!level.view) return handle;
+  const g = new THREE.BoxGeometry(w, h, 0.24, 8, 6, 1).toNonIndexed();
+  g.translate(0, h / 2, 0);
+  const sky = L(0xf6e6c8), hill = L(0x7aa86a), hill2 = L(0x5a8a52), cloud = L(0xffffff), sun = L(0xff7a4a), frame = L(LACK);
+  const rnd = new Rnd(o.seed ?? 9);
+  const ph = rnd.real(0, 6);
+  colorize(g, (p, n, c) => {
+    if (Math.abs(p.x) > w / 2 - 0.12 || p.y < 0.12 || p.y > h - 0.12) { c[0] = frame[0]; c[1] = frame[1]; c[2] = frame[2]; return; }
+    const ridge = h * 0.34 + Math.sin(p.x * 1.6 + ph) * h * 0.1;
+    if (p.y < ridge) mixc(hill2, hill, smooth(0, ridge, p.y), c); else mixc(sky, cloud, smooth(h * 0.6, h, p.y) * 0.4, c);
+    if (Math.hypot(p.x - w * 0.2, p.y - h * 0.72) < h * 0.1) mixc(c, sun, 0.8, c);
+  });
+  const mesh = new THREE.Mesh(g, level.view.mats.world);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  mesh.position.set(x, y, z);
+  mesh.name = 'scheinwand';
+  // leises Glitzern (zwei Funken)
+  const spark = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array([-w * 0.25, h * 0.55, 0.14, w * 0.3, h * 0.3, 0.14]), 3)),
+    new THREE.PointsMaterial({ size: 0.35, map: dotTex(), color: 0xfff6c0, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  mesh.add(spark);
+  const hv = {};
+  let t = 0;
+  addObject(level, mesh, (dt) => {
+    t += visDt(level, hv, dt);
+    mesh.position.y = y - st.k * (h + 0.05);
+    mesh.visible = st.k < 1;
+    spark.material.opacity = st.want ? 0 : 0.35 + 0.65 * Math.max(0, Math.sin(t * 2.2));
+  });
+  return handle;
+}
+
+/**
+ * Saal-Kulisse (6-3): Seitenwände, Dach über dem Saal (geschwungene Dachkanten), Laternen unter den Decken, Wandbilder
+ * (Kirschzweig, Berge), Tatami-Läufer auf dem Boden. o: { x0, x1, zF, zB, floors: [y, …], roof (Oberkante der Wände) }.
+ */
+export function saalZier(level, o) {
+  if (!level.view) return;
+  const { x0, x1, zF, zB } = o;
+  const b = new Bld(), g = new Bld();
+  // Seitenwände außen (Optik; Kollision baut der Level)
+  for (const [x, f] of [[x0 - 0.3, 1], [x1 + 0.3, -1]]) paperWall(b, { axis: 'z', z0: zB - 0.6, z1: zF + 0.4, x, y0: o.floors[0], y1: o.roof, d: 0.6, face: f });
+  // Eckpfeiler vorn (rot) und Querbalken unter dem Dach
+  for (const x of [x0 - 0.3, x1 + 0.3]) b.box(0.8, o.roof - o.floors[0] + 0.6, 0.8, x, o.floors[0], zF + 0.2, litTop(LACK, 0.7), { r: 0.08 });
+  // Tatami-Läufer und Dielen auf dem untersten Boden
+  const y = o.floors[0];
+  for (let x = x0 + 1; x < x1 - 1; x += 2.1) {
+    b.box(1.9, 0.04, 2.8, x + 0.95, y, (zF + zB) / 2 + 1.6, x % 4 < 2 ? 0xc8c87a : 0xbcbc6e, { r: 0 });
+    b.box(1.95, 0.05, 0.08, x + 0.95, y, (zF + zB) / 2 + 3.02, 0x3a6a3a, { r: 0 });
+  }
+  // Wandbilder (Kirschzweig auf Papier, Berge) an den Rückwänden
+  for (const [px, py] of o.paintings ?? []) {
+    b.box(1.8, 1.2, 0.06, px, py, zB + 0.33, litTop(0xfff8ec, 0.9), { r: 0.02 });
+    b.box(1.95, 0.08, 0.08, px, py + 1.2, zB + 0.34, WOOD_DK, { r: 0.02 });
+    for (let k = 0; k < 5; k++) g.sphere(0.09, px - 0.6 + k * 0.28, py + 0.5 + Math.sin(k * 1.7) * 0.25, zB + 0.37, 0xff9ac8, { ws: 6, hs: 4 });
+    b.box(1.3, 0.04, 0.02, px - 0.1, py + 0.55, zB + 0.37, 0x5a3a24, { r: 0, rz: 0.2 });
+    b.cone(0.45, 0.6, px + 0.45, py + 0.05, zB + 0.37, 0x8aa0c8, 4, { s: [1, 1, 0.08] });
+  }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+const DACH = { blau: [0x1e3a6a, 0x4a7ac8], gruen: [0x1e5a4a, 0x4aa88a], rot: [0x8a1a1a, 0xd84a3a] };
+
+/**
+ * Sparsames Fernost-Dach (statt des Registry-Modells mit vielen Balkenköpfen): Walmdach aus einem flachen Drehkörper
+ * (Kreis → Rechteck, konkaves Profil, Ecken hochgezogen), lackierte Traufkante, goldene Eckknäufe und Firstzier.
+ * list: [{ pos: [x, y (Traufhöhe), z], width, depth, height, color: 'blau'|'gruen'|'rot', yaw }]. ≈ 400 Dreiecke je Dach.
+ */
+export function daecher(level, list, o = {}) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  for (const it of list) {
+    const [x, y, z] = it.pos, w = it.width ?? 6, d = it.depth ?? 4, h = it.height ?? 2, C = DACH[it.color] ?? DACH.blau;
+    const prof = [];
+    const N = 6;
+    for (let i = 0; i <= N; i++) { const t = i / N; prof.push(new THREE.Vector2(Math.max(0.001, 1 - t), h * (1 - Math.pow(1 - t, 0.55)) * 0.98 + 0.02)); }
+    const lg = new THREE.LatheGeometry(prof, 20);
+    const P = lg.attributes.position;
+    for (let i = 0; i < P.count; i++) {
+      const px = P.getX(i), py = P.getY(i), pz = P.getZ(i);
+      const r = Math.hypot(px, pz);
+      if (r < 1e-4) continue;
+      const a = Math.atan2(pz, px), c = Math.cos(a), s = Math.sin(a);
+      const sq = 1 / Math.max(Math.abs(c), Math.abs(s));
+      const corner = (sq - 1) / (Math.SQRT2 - 1);
+      const edge = smooth(0.7, 1, r);
+      P.setXYZ(i, c * r * sq * (w / 2 + 0.6), py + edge * edge * corner * corner * h * 0.38 + edge * h * 0.05, s * r * sq * (d / 2 + 0.6));
+    }
+    lg.computeVertexNormals();
+    const top = new THREE.Color(C[1]), dark = new THREE.Color(C[0]), cc = new THREE.Color();
+    b.add(lg, { v: (px, py, pz, nx, ny) => cc.copy(dark).lerp(top, Math.max(0, Math.min(1, ny * 0.6 + 0.25 + (py / h) * 0.2))) }, { p: [x, y, z], r: [0, it.yaw ?? 0, 0] });
+    // Traufkante (vier lackierte Leisten) und Unterseite
+    const cy = y + h * 0.06;
+    b.box(w + 1.3, 0.16, 0.18, x, cy, z + d / 2 + 0.6, LACK, { r: 0 }); b.box(w + 1.3, 0.16, 0.18, x, cy, z - d / 2 - 0.6, LACK, { r: 0 });
+    b.box(0.18, 0.16, d + 1.3, x + w / 2 + 0.6, cy, z, LACK, { r: 0 }); b.box(0.18, 0.16, d + 1.3, x - w / 2 - 0.6, cy, z, LACK, { r: 0 });
+    b.box(w + 1.1, 0.04, d + 1.1, x, y, z, WOOD_DK, { r: 0 });
+    for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) g.sphere(0.16, x + sx * (w / 2 + 0.6), y + h * 0.43, z + sz * (d / 2 + 0.6), GOLD, { ws: 8, hs: 6 });
+    g.sphere(0.2, x, y + h + 0.45, z, GOLD, { ws: 8, hs: 6 });
+    b.cyl(0.1, 0.18, 0.4, x, y + h, z, GOLD, 8);
+  }
+  b.flush(level, { castShadow: o.shadow ?? true });
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Laternen (sparsam, statisch): 'stein' = Steinlaterne mit leuchtendem Papierfenster, 'pfahl' = Holzpfahl mit Papierlaterne,
+ * 'haengend' = Papierlaterne an einer Schnur (pos = Aufhängung). list: [{ kind, pos, color }]. Leuchtendes im Glüh-Material.
+ */
+export function laternen(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  const paper = (x, y, z, col) => {
+    g.sphere(0.32, x, y, z, col ?? 0xffb860, { s: [1, 1.25, 1], ws: 10, hs: 7 });
+    b.cyl(0.2, 0.22, 0.08, x, y + 0.36, z, LACK_DK, 8); b.cyl(0.22, 0.2, 0.08, x, y - 0.44, z, LACK_DK, 8);
+  };
+  for (const it of list) {
+    const [x, y, z] = it.pos;
+    if (it.kind === 'stein') {
+      b.box(0.9, 0.25, 0.9, x, y, z, litTop(0xb8b0a0, 0.7), { r: 0.04 });
+      b.cyl(0.18, 0.22, 0.9, x, y + 0.25, z, 0xa8a090, 8);
+      b.box(0.7, 0.18, 0.7, x, y + 1.15, z, litTop(0xb8b0a0, 0.7), { r: 0.03 });
+      g.box(0.46, 0.46, 0.46, x, y + 1.33, z, it.color ?? 0xffd890, { r: 0.03 });
+      for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) b.box(0.08, 0.46, 0.08, x + sx * 0.25, y + 1.33, z + sz * 0.25, 0x8a8478, { r: 0 });
+      b.cone(0.62, 0.42, x, y + 1.79, z, litTop(0x9a9282, 0.7), 4, { yaw: Math.PI / 4 });
+      b.sphere(0.09, x, y + 2.25, z, 0x9a9282, { ws: 6, hs: 4 });
+    } else if (it.kind === 'pfahl') {
+      b.cyl(0.08, 0.1, 2.4, x, y, z, WOOD_DK, 6);
+      b.box(0.7, 0.08, 0.08, x + 0.3, y + 2.3, z, WOOD_DK, { r: 0 });
+      b.cyl(0.015, 0.015, 0.3, x + 0.6, y + 2.0, z, 0x3a2a1a, 4);
+      paper(x + 0.6, y + 1.6, z, it.color);
+    } else {
+      b.cyl(0.015, 0.015, 0.5, x, y - 0.5, z, 0x3a2a1a, 4);
+      paper(x, y - 0.9, z, it.color);
+    }
+  }
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
 }
