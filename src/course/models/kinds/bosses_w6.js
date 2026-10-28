@@ -13,6 +13,8 @@
 //         → dann die Feuerkugel ('feuerkugel') an model.mouth() erzeugen; defeated: kippt auf den Rücken, Krone fällt.
 //         hp ≤ 2: Krone sitzt schief; hp ≤ 1: rot glühende Wangen, Dampf aus den Nüstern.
 //   model.mouth(out?) → Weltposition vor dem Maul.  root.userData.radius → Kollisionsradius (≈0,99 m).
+//   opts  { color: Standard königsblau-violett | 'blau' (Welt 7, 7-B: himmelblauer Prinz mit türkisen Hufen und blauem
+//           Feuerstoß – Geschoss dann 'feuerkugel_blau') }
 // wuerfelblase  Kante ≈ size (1,2 m) + Hut ≈1,6 m  Würfelblase: glänzender, wabbeliger Gelee-Würfel mit großen Augen,
 //   breitem Grinsen und lila Melone mit Goldband und Feder (Schwachstelle: Kopftreffer auf den Hut).
 //   opts  { size (Kante, 1,2), color: 'rot'|'blau'|'gruen'|'gelb'|'lila'|'orange'|'rosa'|'silber'|'gold' (Standard 'rot';
@@ -56,6 +58,11 @@ const K = 2.3;
 const PR = {
   body: 0x4a2ca8, hi: 0x8a80f0, low: 0x1e1250, belly: 0xb8b0f4, horn: 0xfff4c8, hornTip: 0xffc21a,
   hoof: 0xffb02a, hoofHi: 0xffe08a, hoofLow: 0xc06a10, cheek: 0xff7ab8,
+};
+// Variante 'blau' (Welt 7): himmelblauer Körper, eisblauer Bauch, türkise Hufe
+const PR_BLAU = {
+  body: 0x1a78e8, hi: 0x8ad4ff, low: 0x0a2a8a, belly: 0xc0eaff, horn: 0xfff4c8, hornTip: 0xffc21a,
+  hoof: 0x2ad0e0, hoofHi: 0xb0fbff, hoofLow: 0x0a7a9a, cheek: 0xff7ab8,
 };
 const SB_MOUTH = onEllipsoid(SB.c, SB.r, 0, -0.42);
 const prOpenGeo = () => cached('w6:pr:open', () => {
@@ -121,7 +128,9 @@ const addCollar = (b) => {
   g.rotateZ(Math.PI - Math.PI * 0.525);
   b.add(g, (x, y, z) => (hash1(Math.floor(Math.atan2(y, x) * 14) * 3.1 + Math.floor(z * 9)) > 0.9 ? col(W6.erminePt) : col(W6.ermine)), { p: [-0.04, 0.76, 0], r: [Math.PI / 2, 0, 0], s: [0.37, 0.43, 0.37] });
 };
-function buildSchubserPrinz() {
+function buildSchubserPrinz(opts = {}) {
+  const blue = opts.color === 'blau';
+  const PP = blue ? PR_BLAU : PR;
   const root = new THREE.Group();
   const own = [];
   const flash = ownMat(vcol(0.22), { emissive: 0x000000 });
@@ -130,7 +139,7 @@ function buildSchubserPrinz() {
   const pose = joint();
   const tilt = joint([0, SB.c[1], 0]);
   const inner = joint([0, -SB.c[1], 0]);
-  const body = mesh(schubserBodyGeo('prinz', PR, { ws: 44, hs: 32, horn: 1.18, extra: addCollar }), flash, {}, true);
+  const body = mesh(schubserBodyGeo(blue ? 'prinz_blau' : 'prinz', PP, { ws: 44, hs: 32, horn: 1.18, extra: addCollar }), flash, {}, true);
   const eye = eyes(SB_EYES, { key: 'w6:pr', iris: 0xffb01a, pupil: 0.52, depth: 0.55 });
   const brows = instMesh(browGeo(0x140a2a, 0.03, 0.13), vcol(0.5), 2, 1, 0.8);
   const open = mesh(prOpenGeo(), vcol(0.4));
@@ -145,14 +154,14 @@ function buildSchubserPrinz() {
   const capeBasePos = capeGeo.attributes.position.array.slice();
   inner.add(body, eye, brows, open, crownJ, cape);
   tilt.add(inner);
-  const feet = instMesh(schubserFootGeo(PR), vcol(0.34), 2, 1, 0.2);
+  const feet = instMesh(schubserFootGeo(PP), vcol(0.34), 2, 1, 0.2);
   feet.castShadow = true;
   pose.add(tilt, feet);
   scaleJ.add(pose);
   // Feuerstoß am Maul
   const fire = joint([0.6, 0.3, 0]);
-  const flame = mesh(flameGeo('rot', 14), glowVcol(), { r: [0, 0, -Math.PI / 2], s: [0.5, 0.75, 0.5] });
-  const fglow = glowSprite(0xff8a2a, 1.1, 0.8);
+  const flame = mesh(flameGeo(blue ? 'blau' : 'rot', 14), glowVcol(), { r: [0, 0, -Math.PI / 2], s: [0.5, 0.75, 0.5] });
+  const fglow = glowSprite(blue ? 0x3a9aff : 0xff8a2a, 1.1, 0.8);
   fire.add(flame, fglow);
   fire.visible = false;
   inner.add(fire);
