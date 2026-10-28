@@ -60,6 +60,8 @@ const ROUTES = {
       { name: 'erschienener Weg 2', to: [0, -72.6], within: 0.6, run: false },
       { name: 'Rundsaal', to: [0, -88], within: 0.6 },
       { name: 'Kontrollpunkt', to: [0, -93], within: 0.6 },
+      { to: [-2.6, -97.6], within: 0.4, run: false },
+      { name: 'Lücke zwischen den Funkenflämmchen', clear: ['flamme1'], at: [-2.6, -99.6], r: 2.2 },
       { name: 'Schaltgruppe 3 (Feuer-Schnappblume)', tiles: [[-2.6, -102.6], [-0.6, -102.6], [1.4, -102.6], [1.4, -104.6], [-0.6, -104.6], [-2.6, -104.6]], group: 's3' },
       { until: 'weg3', max: 300 },
       { to: [0, -111], within: 0.4, run: false },
@@ -76,6 +78,7 @@ const ROUTES = {
     ],
     routeChecks: [
       { name: 'vier Schaltgruppen komplett, alle Wege erschienen', ok: (r) => r.log.filter((l) => l[0] === 'felder' && l[2] === true).length === 4 },
+      { name: 'ohne einen Treffer-Versuch (Stachelpanzer mit Feuerbällen, Lücke zwischen den Funkenflämmchen abgewartet)', ok: (r) => r.mech.hurts === 0 },
     ],
     targets: [
       { name: 'Stern 0: vier Fackelschalen mit Feuerbällen anzünden', star: 0, from: [0, Y, -73.4], place: { power: 'funken' },
@@ -90,6 +93,8 @@ const ROUTES = {
           { to: [-0.6, -195.2], jump: 40, jumpAt: 2.6, within: 0.4, run: false }, { expect: 'aufLaengs' }, { to: [0.9, -195.4], within: 0.2, run: false, slow: 0.4 },
           { to: [1.8, -197.9], jump: 40, within: 0.4, run: false }, { expect: 'aufKette1' }, { to: [2.2, -198.2], within: 0.15, run: false, slow: 0.4 },
           { to: [3.8, -199.4], jump: 40, within: 0.4, run: false }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne den Kopfstoß (Sprung vom Hallenrand zur Blockkette)', star: 2, expectNot: true, from: [2.5, Y, -194.5], heroes: ['lotti'],
+        legs: [{ to: [3.4, -196.6], within: 0.3, run: false }, { hop: 40 }, { wait: 60 }], mech: (r) => !r.mech.laengs, mechText: (r) => `Blockkette ${r.mech.laengs ? 'da' : 'verborgen'}` },
       { name: 'Stempel: im zweiten Saal ganz rechts über den Abgrund auf die Plattform', stamp: true, from: [4, Y, -48.2],
         legs: [{ to: [7.2, -48.2], within: 0.4 }, { to: [12.5, -48.4], jump: 40, within: 0.4 }], shot: 'stempel' },
     ],
@@ -187,6 +192,8 @@ const ROUTES = {
           { to: [-9.6, -161.6], jump: 40, within: 0.5, run: false }, { expect: 'aufTurm' },
           { to: [-10, -162.6], jump: 30, within: 0.25, run: false }, { crouch: 12 }, { until: 'saal', max: 600 },
           { roll: 'kugel', via: [[RX, -159.5, 0.3], [RX, -168.4, 0.5], [RX + 4.5, -171.5, 0.4]] }, { until: 'mulde', max: 300 }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stern 1 nicht ohne Kugel (auf der Mulde stehen löst nichts aus)', star: 1, expectNot: true, from: [RX + 4.5, Y, -169], heroes: ['lotti'],
+        legs: [{ to: [RX + 4.5, -171.5], within: 0.2, run: false }, { hop: 20 }, { wait: 120 }], mech: (r) => !r.mech.mulde, mechText: (r) => `Mulde ${r.mech.mulde ? 'aus' : 'leer'}` },
       { name: 'Stern 2: Sternenring – acht Sternmünzen um den ersten Feuerstab', star: 2, from: [5.5, Y, -81.5],
         legs: [{ to: [5.5, -90], within: 0.5 }, { to: [0, -91.2], within: 0.5 }, { to: [0, -95], within: 0.5 }, { to: [0, -97.5], within: 0.4 }, { to: [3.6, -98], within: 0.5, run: false },
           { to: [3.6, -105], within: 0.5, run: false }, { to: [-3.6, -105], within: 0.5, run: false }, { to: [-3.6, -98], within: 0.5, run: false }, { to: [-1.6, -99.6], within: 0.3, run: false },
@@ -712,6 +719,8 @@ function install() {
       mech.lives = L.runtime.save?.lives;
       mech.lit = L.entities.filter((e) => e.kind === 'fackelschale' && e.lit).length;
       mech.weg1 = wegDa('s1');
+      mech.laengs = L.named.get('laengsblock')?.shown === true;
+      mech.mulde = L.named.get('mulde')?.done === true;
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
