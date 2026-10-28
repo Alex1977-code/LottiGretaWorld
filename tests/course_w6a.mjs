@@ -108,6 +108,8 @@ const ROUTES = {
         legs: [{ pipe: [0, -14.4], stick: { x: -1, y: 0 } }, { expect: 'ausgangL' }] },
       { name: 'Warp-Box 3 versteckt, solange Schlüssel fehlen', from: [0, Y4, -205], heroes: ['lotti'],
         legs: [{ to: [0, -211], jump: 30, within: 0.3, run: false, max: 300 }, { wait: 60 }, { expect: 'nichtZiel' }] },
+      { name: 'Extraleben: unsichtbarer Block vor der Tür der Almhütte', from: [-4.4, Y1, 0.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-5, -2.5], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
     ],
     shots: [
       ['start', [0, Y1, 5]],
@@ -205,6 +207,10 @@ const ROUTES = {
     extra: [
       { name: 'Warp-Box zur Zielinsel versteckt, solange die Schubser auf dem letzten Schiff sind', from: [0, 1, -141.6], heroes: ['lotti'],
         legs: [{ to: [0, -145.4], jump: 30, within: 0.3, run: false, max: 300 }, { wait: 60 }, { expect: 'nichtZielinsel' }] },
+      { name: 'Extraleben: unsichtbarer Block auf dem Wrackfelsen', from: [-2.2, 1, -50.9], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-2.2, -52.6], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Extraleben: Schatztruhe im Laderaum', from: [L2X + 2.6, 4, -10.4], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [L2X + 5.1, -8.6], within: 0.4, run: false, max: 300 }, { wait: 60 }, { chaseKind: 'powerup', max: 1200 }] },
     ],
     shots: [
       ['start', [0, 1, 6]],

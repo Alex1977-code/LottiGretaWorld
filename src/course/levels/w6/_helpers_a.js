@@ -1082,3 +1082,74 @@ export function felswand(level, x0, x1, zA, zB, top, bottom, o = {}) {
   addObject(level, mm);
   level.view.xray?.(mm, box, { min: o.min ?? 0.3 });
 }
+
+// =====================================================================================================================
+// 6-2 Hafen: Rettungsringe, Taurollen, bunte Fischkisten, Bojen
+// =====================================================================================================================
+
+/**
+ * Hafenkram (nur Optik außer den Kisten): o.ringe [[x, y, z, yaw]] Rettungsringe (rot-weiß, senkrecht, Mitte bei y),
+ * o.taue [[x, y, z]] Taurollen, o.kisten [[x, y, z, größe, farbe, yaw]] bunte Fischkisten (fest), o.netze [[x, y, z, yaw]]
+ * Fischernetze mit orangen Schwimmern über einer Kante.
+ */
+export function hafenkram(level, o = {}) {
+  for (const [x, y, z, s = 0.8, , yaw = 0] of o.kisten ?? []) {
+    const c = Math.abs(Math.cos(yaw)), sn = Math.abs(Math.sin(yaw)), h = (c + sn) * s / 2;
+    level.world.add({ type: 'box', min: [x - h, y, z - h], max: [x + h, y + s * 0.7, z + h], tag: 'fischkiste' });
+  }
+  if (!level.view) return;
+  const b = new Bld();
+  for (const [x, y, z, yaw = 0] of o.ringe ?? []) {
+    for (let k = 0; k < 8; k++) b.torus(0.42, 0.11, x, y, z, k % 2 ? 0xffffff : 0xe8283a, { yaw, arc: Math.PI / 4 + 0.02, rz: (k * Math.PI) / 4, rs: 6, ts: 4 });
+    b.cyl(0.03, 0.03, 0.2, x, y + 0.5, z, 0x3a3a44, 4);
+  }
+  for (const [x, y, z] of o.taue ?? []) {
+    for (let k = 0; k < 3; k++) b.torus(0.36 - k * 0.04, 0.075, x, y + 0.07 + k * 0.13, z, k % 2 ? 0xd8c08a : 0xc8ac72, { rx: Math.PI / 2, rs: 5, ts: 14 });
+  }
+  for (const [x, y, z, s = 0.8, col = 0x3d8bff, yaw = 0] of o.kisten ?? []) {
+    b.box(s, s * 0.7, s, x, y, z, litTop(col), { yaw, r: 0.05 });
+    b.box(s * 1.02, s * 0.1, s * 1.02, x, y + s * 0.42, z, 0xffffff, { yaw, r: 0.02 });
+    b.box(s * 0.86, 0.04, s * 0.86, x, y + s * 0.7, z, 0x8ad8ff, { yaw, r: 0 });
+    for (let k = 0; k < 3; k++) b.sphere(s * 0.12, x + (k - 1) * s * 0.24 * Math.cos(yaw), y + s * 0.74, z - (k - 1) * s * 0.24 * Math.sin(yaw), 0xc8d8e8, { s: [1.8, 0.6, 0.8], ws: 6, hs: 3, yaw });
+  }
+  for (const [x, y, z, yaw = 0] of o.netze ?? []) {
+    const c = Math.cos(yaw), sn = Math.sin(yaw);
+    b.box(2.2, 0.12, 1.3, x, y, z, 0x3a6a5a, { yaw, r: 0.05 });
+    for (let k = 0; k < 5; k++) { const t = (k - 2) * 0.48; b.sphere(0.12, x + c * t, y + 0.14, z - sn * t, k % 2 ? 0xff8a1a : 0xffd23d, { ws: 6, hs: 4 }); }
+  }
+  b.flush(level);
+}
+
+/** Bojen im Meer (rot-weiß mit gelbem Licht), schaukeln (ein Objekt). list [[x, z, farbe]], Wasserhöhe y. */
+export function bojen(level, y, list) {
+  if (!level.view || !list.length) return;
+  const root = new THREE.Group();
+  root.name = 'bojen';
+  const items = [];
+  for (const [x, z, col = 0xe8283a] of list) {
+    const b = new Bld(), g = new Bld();
+    b.cyl(0.5, 0.62, 0.7, 0, -0.35, 0, col, 12);
+    b.cyl(0.36, 0.46, 0.5, 0, 0.35, 0, 0xffffff, 12);
+    b.cyl(0.22, 0.34, 0.4, 0, 0.85, 0, col, 10);
+    b.cyl(0.05, 0.05, 0.5, 0, 1.25, 0, 0x3a3a44, 5);
+    g.sphere(0.16, 0, 1.8, 0, 0xffe04a, { ws: 8, hs: 6 });
+    const m = new THREE.Mesh(b.geometry(), level.view.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true }));
+    const l = new THREE.Mesh(g.geometry(), level.view.mats?.glow ?? new THREE.MeshBasicMaterial({ color: 0xffe04a }));
+    const grp = new THREE.Group();
+    grp.add(m, l);
+    grp.position.set(x, y, z);
+    m.castShadow = false;
+    root.add(grp);
+    items.push({ grp, ph: x * 0.7 + z * 0.3 });
+  }
+  const hv = {};
+  let t = 0;
+  addObject(level, root, (dt) => {
+    t += visDt(level, hv, dt);
+    for (const it of items) {
+      it.grp.position.y = y + Math.sin(t * 1.3 + it.ph) * 0.12;
+      it.grp.rotation.z = Math.sin(t * 1.1 + it.ph) * 0.12;
+      it.grp.rotation.x = Math.cos(t * 0.9 + it.ph) * 0.08;
+    }
+  });
+}

@@ -233,6 +233,7 @@ export const LEVEL = {
   blocks: [
     { kind: 'question', pos: [-1.5, Y1 + 2.4, 0], content: 'coins:3' },
     { kind: 'question', pos: [-5.4, Y1 + 2.4, -33.2], content: 'stern' },
+    { kind: 'hidden', pos: [-5, Y1 + 2.4, -2.5], content: 'oneup' },     // Extraleben vor der Tür der Almhütte
   ],
   enemies: [
     // Startgipfel
