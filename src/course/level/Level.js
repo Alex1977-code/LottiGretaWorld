@@ -450,14 +450,15 @@ export class Level {
   /**
    * Darstellung je Bild (Modelle nachführen/animieren). Fern-Ausblendung (Präzisierung „Leistung und Level-Haken 2“):
    * Entitäten mit `farHide` (m; Gegner auch über LEVEL.farHide) werden weiter als farHide m (waagerecht) von der
-   * Haupt-Figur nicht gezeichnet – nur Darstellung, sie laufen weiter.
+   * Haupt-Figur nicht gezeichnet – nur Darstellung, sie laufen weiter. Präzisierung „Motor-Feinschliff nach Welt 6“:
+   * auch die Regel der Art aus LEVEL.instances[kind].farHide (bzw. view.instanceRule) gilt (vor LEVEL.farHide).
    */
   render(dt, t) {
-    const p = this.players[0], fhAll = this.data.farHide;
+    const p = this.players[0], fhAll = this.data.farHide, rules = this.view?.instanceRules;
     for (let i = 0; i < this.entities.length; i++) {
       const e = this.entities[i];
       e.render?.(dt, t);
-      const fh = e.farHide ?? (e.enemy ? fhAll : undefined);
+      const fh = e.farHide ?? rules?.[e.kind]?.farHide ?? (e.enemy ? fhAll : undefined);
       const root = e.model?.root;
       if (!(fh > 0) || !root) continue;
       const far = !!p && !e.removed && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > fh;

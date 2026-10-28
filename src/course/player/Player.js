@@ -516,10 +516,13 @@ export class Player {
       if (!this.powerDef.onAirCrouch?.(this, input)) this.startPound();
     }
     if (this.state === 'groundpound') {
+      // waagerecht steht die Figur still – über einem fahrenden Träger (Plattform, Panzer, Floß, Zug) fährt sie mit ihm
+      // (Präzisierung „Motor-Feinschliff nach Welt 6“, poundCarry)
+      const cv = this.poundCarry(dt);
       if (this.poundPhase === 'spin') {
-        this.vel.set(0, 0, 0);
+        this.vel.set(cv.x, 0, cv.z);
         if (this.stateTime >= MOVE.poundSpin) { this.poundPhase = 'drop'; this.vel.y = -MOVE.poundSpeed; }
-      } else this.vel.y = -MOVE.poundSpeed;
+      } else { this.vel.x = cv.x; this.vel.z = cv.z; this.vel.y = -MOVE.poundSpeed; }
       return;
     }
     if (this.state === 'dive') {
@@ -588,6 +591,32 @@ export class Player {
       if (!long && Math.abs(vy) < MOVE.apexBand && input.jump) g *= MOVE.apexMult;
     }
     this.vel.y = Math.max(vy - g * dt, -MOVE.maxFall);
+  }
+
+  /**
+   * Stampfattacke über einem fahrenden Träger (Präzisierung „Motor-Feinschliff nach Welt 6“): waagerechte Geschwindigkeit
+   * der obersten Form mit `mover` unter der Figur (bis 40 m tiefer) – Plattform, Panzer, Floß, Zugwaggon –, damit die
+   * Figur senkrecht über dem Ziel auf dem Träger landet. Hat in diesem Schritt schon etwas anderes die Figur mit dem
+   * Träger verschoben (Level-Haken wie in 6-Panzer), zählt diese Verschiebung entlang der Fahrtrichtung mit (nicht doppelt).
+   * → { x, z } in m/s (0 über festem Boden).
+   */
+  poundCarry(dt) {
+    const out = this._poundCarry ?? (this._poundCarry = { x: 0, z: 0, shape: null });
+    out.x = 0; out.z = 0; out.shape = null;
+    const hit = this.world.raycastDown(this.pos.x, this.pos.y + 0.05, this.pos.z, 40);
+    const m = hit?.shape?.mover;
+    if (!m || !(dt > 0)) return out;
+    let vx = m.vx ?? m.dx / dt, vz = m.vz ?? m.dz / dt;
+    const sp = Math.hypot(vx, vz);
+    if (sp < 1e-4) return out;
+    // schon von außen mitgenommen? (Verschiebung seit dem Ende des letzten eigenen Schritts)
+    const ep = this._moveEnd;
+    if (ep && Math.abs(ep.t - (this.time - dt)) < dt * 0.5) {
+      const along = ((this.pos.x - ep.x) * vx + (this.pos.z - ep.z) * vz) / sp;
+      if (along > 0) { const k = Math.max(0, 1 - along / (sp * dt)); vx *= k; vz *= k; }
+    }
+    out.x = vx; out.z = vz; out.shape = hit.shape;
+    return out;
   }
 
   startPound() {
@@ -838,6 +867,9 @@ export class Player {
     });
     this.pos.set(c.x, c.y - this.half.y, c.z);
     this.lastMove = res;
+    // Lage am Ende des eigenen Schritts (poundCarry erkennt Verschiebungen von außen bis zum nächsten Schritt)
+    const me = this._moveEnd ?? (this._moveEnd = { x: 0, z: 0, t: -1 });
+    me.x = this.pos.x; me.z = this.pos.z; me.t = this.time;
     this.sandSupport(res, dt);
     if (this.mode === 'script') return;
 
