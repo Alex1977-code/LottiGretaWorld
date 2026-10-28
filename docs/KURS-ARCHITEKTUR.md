@@ -6988,6 +6988,106 @@ Krallen-Anzug** (Feuerbälle, Wandklettern, Krallenhiebe, Spiegelfrucht-Doppelg�
 **Abspann:** nach dem Sieg eine eigene, liebevolle Abspann-Szene (befreite Freunde, Lotti und Greta, Pflaume, Krümel,
 Musik `course_abspann`), danach zurück zur Karte; der Spielstand merkt sich „Spiel geschafft“.
 
+## Präzisierung (Level 7-5, 7-Kapitän und 7-6)
+
+Additiv zur Welt-7-Liste: Titel und Besonderheiten der Level 7-5, 7-Kapitän und 7-6. Dateien `src/course/levels/w7/7-5.js`,
+`7-Kapitän.js`, `7-6.js`, eigene Hilfen `src/course/levels/w7/_helpers_c.js` (kein `LEVEL`, nur für diese drei Level; reicht
+`isl`, `line`, `ring`, `arc`, `column`, `sign`, `glimmer`, `Bld` aus `w6/_helpers_b.js` und `onRespawn` aus `w7kit.js` weiter),
+Test `tests/course_w7c.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`/`LEVEL.setup`). Bausteine nach „Präzisierung (Motor und Bausteine Welt 7)“, Gegner nach „Präzisierung (Gegner
+Welt 7)“.
+
+### 7-5 „Stampfsteinturm und Giftnebel-Flucht“ (parcours · lavatower · course_traptower · 400 s)
+
+- Zwei Festungstürme im Lavaschacht, ≈ 165 m nach −Z, von y 0 bis y 40. **Erster Turm** (z 13 … −54): Stufenturm aus fünf
+  Etagen (je 6 m höher, 10 m weiter hinten; gemauerte Seiten aus einzelnen Steinen, Plattenböden mit rotem Läufer, glühende
+  Bogenfenster, Zinnen, Brummbär-Banner, Lavafälle). Die **Stampfsteine sind Fahrstühle**: locken, auf den gelandeten Stein
+  springen, mit ihm eine Etage hinauffahren (Erdgeschoss → Etage 1; Etage 3 → Turmspitze). Dazwischen **Aufzug 1** (y 6 → 12,
+  fährt los, sobald man daraufsteht, kehrt leer zurück), die **Fähre** über den Schacht in Etage 2, **Aufzug 2** (y 12 → 18)
+  neben dem kletterbaren Pfeiler. Auf der Turmspitze drei **Zauberkröten**, links unten die **Sinkwolke**. → **Seilbahn**
+  (z −54 … −88, Gondel `seilbahn` mit Stationsrahmen, y 26 → 22) → **Funkenturm** (z −88 … −126): Vorhof mit Checkpoint und
+  Wurfsichel, Treppe auf Ring 1 (r 13, y 25), **Sprungfeder** auf Ring 2 (y 30), **Pfeilplattform aus der Wand** auf Ring 3
+  (y 35), Stampfstein 3 auf die Turmkrone (y 40). Sechs **Funkenflämmchen** hüpfen auf Bögen über die Ringe, die Zinnen haben
+  Lücken (Durchgänge wechseln die Seiten).
+- **Flucht**: die fünfte Schlüsselmünze liegt auf der Krone – sobald man sie hat, sinkt der **Giftnebel** (`giftnebel`
+  `dir: 'down'`, 0,9 m/s, Stimmung `flucht`) von oben, und der **Lavaspiegel** `glutsee` (`mode: 'signal'`, `rise` bis y 16,2)
+  steigt (`nebelLava`). Rechts die Ringe hinunter, Treppe zur **Glutbrücke** (flutet nach ≈ 28 s), Warp-Terrasse (y 16,8, bleibt
+  trocken). Die **Warp-Box** erscheint erst mit allen fünf Schlüsseln (`schluesselmuenze` Gruppe `tor`, `onAll` → `reveal`)
+  und bringt zur Zinnenterrasse mit dem Zielmast. Neustart: Nebel und Lava zurück, Schlüssel bleiben.
+- Sterne: 0 oben auf dem **Kletterpfeiler** bei Aufzug 2 (nur mit **Krallen-Anzug** aus dem ?-Block in Etage 2) · 1 alle
+  **drei Zauberkröten** auf der Turmspitze besiegen (`task` → versteckter Stern) · 2 im **Ziegel-Würfel** vor Ring 1 (26
+  Ziegel; Stampfattacke von oben, Springen allein reicht nicht). Stempel: von der Turmspitze links hinunter auf die
+  **Sinkwolke**, sie fährt mit einem hinab (von Etage 3 aus zu hoch). Geheimnisse: Sinkwolke, Ziegel-Würfel, unsichtbarer
+  Block mit Extraleben in Etage 1, Wachstumsbeere in Etage 2.
+- Gegner: Stampfstein 3, Knochenflieger 3, Zauberkröte 3, Funkenflämmchen 6. Kameraschienen: Turm (Neigung 29°, Abstand 15,5),
+  Seilbahn, Vorhof, Ringe (30°/16), Ziel. Rundstufen-Kollision `camIgnore` (die Kamera-Probe sieht Zylinder als Quader).
+
+### 7-Kapitän „Krümel in der Zahnradschmiede“ (diorama · lavamachine · course_diorama · 400 s, 5 Sterne)
+
+- Maschinen-Diorama 28 × 32 m mitten im Lavasee (`lavaspiegel` `mode: 'fest'`, y −1,2), Figur **Krümel** (springt nicht),
+  Kamera Gier 18°, Neigung 46°. Ebenen: Boden y 0 (Startplatz mit blauem Läufer, Ziegel-Insel, Maschinenboden), Deck y 4,5,
+  Dach y 9. Stahlplatten mit gelber Warnkante, Ziegel, Messing; gelb-schwarze Geländer an allen Lavakanten (Kollision, Krümel
+  fällt nicht hinunter). **Förderband** (`foerderband`, rollt nach vorn, 1,6 m/s) über den Lavasee; **Stampfsteine als
+  Trittstufen**: gelockt fallen sie bündig in ihre Lavagrube – Brücke oder Fahrstuhl. **Kanonentürme** mit Projektilköpfen
+  (quer übers Band und über das Deck, 4,5 s Takt). **Fahrplattform** (Aufzug, y 4 → 8,5) aufs Kesselturm-Dach.
+- Sterne (Bauplan): 1 **hinter dem sichtbaren Stampfstein** (Insel jenseits des Lavagrabens; der Stein liegt als Brücke) ·
+  2 **Fahrplattform** hinauf, ins **Loch** im Kesselturm-Dach fallen (die Kammertür ist für Krümel eine zu hohe Stufe) · 3
+  **auf dem Förderband** (gegen das Band laufen; wer stehen bleibt, wird zurückgetragen) · 4 **auf Stampfstein 2** nach dem
+  Band (locken, draufgehen, mitfahren) · 5 durch das **Loch** im Maschinenblock, **Stampfstein 3** hinauf aufs Dach, in den
+  **Schacht** fallen. Der fünfte Stern beendet das Level. Schatzstellen (`dig`): Startplatz, Deck, Kesselturm-Dach.
+- Zier: Zahnräder, Rohre, Schlote, Kessel mit Manometer und Dampf, Ventilräder, Warnstreifen-Pfosten, Brummbär-Banner und
+  Dachfahne, Standfackeln, zwei Lavafälle aus Rohrstutzen, Glutfunken. Gegner: Stampfstein 3, Kanonenturm 2.
+
+### 7-6 „Rammfisch-Riff am Feuerberg“ (parcours · reef · course_rammreef · 400 s)
+
+- ≈ 250 m nach −Z, Meeresspiegel y 0. **Riff** (z 14 … −92, Becken bis y −8): Startstrand (Palmen, Sonnenschirm, Liegestuhl,
+  Muscheln) → Kammer A (Nische hinter Kisten) → Riffwand 1 (Kistentunnel oder Rammfisch-Lücke) → Kammer B → Riffwand 2
+  (Kistentunnel) → Kammer C (Zickzack-Gänge) → Sandrampe zur Felsplattform mit **Warp-Box** → **Vulkaninsel** (z −95 … −160,
+  y 1,2: Checkpoint, Gezeitenbecken mit drei **Wutkaulquappen**, Trittsteine über das zweite Becken, Feuerberg mit Glutkrater,
+  Glutrisse, Palmen, Moos- und Sandflecken, Farne, Hibiskus) → Klippe hinab ins **Finale** (Becken bis y −9: Riffwand mit
+  drei Fenstern, in denen **Rammfische auf und ab** ziehen; zwei **große Rammfische** kreisen vor dem Zielriff) → Sandrampe
+  aufs **Zielriff** (Palmenstrand, Glasröhre, Zielmast).
+- **Zerbrechliche Kisten** (`kiste_wasser`, 7 Stück) brechen beim Schwimmstoß (und wenn ein Rammfisch hineinrammt); langsames
+  Schwimmen lässt sie heil. Kamera unter Wasser flach (Neigung 10°, Abstand 9, Höhe 0,7) und immer unter der Oberfläche,
+  klare Sicht (`setup`: Nebel 7 … 58 m, zarte Lichtflecken).
+- Sterne: 0 in der **Nische hinter Kisten** gleich am Start · 1 trägt der **Rammfisch in einer Blase** (`carries: 'star:1'`,
+  rammt nicht; von oben anschwimmen) · 2 hinten in der **Glasröhre** auf dem Zielriff hinter den großen Rammfischen; die
+  lila **Stachelkugel** darin verbrennt nur die **Funkenblüte** aus dem ?-Block davor (`onHit` 'fire' → wie 'bomb'). Stempel:
+  oben auf dem **Felsturm** hinter der Fensterwand (durchs Fenster, wenn der Rammfisch unten ist). Extraleben: Kiste am Rand
+  von Kammer B, unsichtbarer Block auf der Vulkaninsel.
+- Gegner: Rammfisch 10 (2 groß, 3 auf und ab, 1 mit Stern), Wutkaulquappe 3.
+- Leistung: `fernSicht` (statische Abschnitte bis 62 m), `tiefSicht` (unter Wasser zeichnet die Kamera nur bis 64 m – der
+  Nebel verdeckt ohnehin alles; ≈ 40 Zeichenaufrufe weniger), `fernModelle` (Schilder, Becken, Warp-Boxen, Sterne, Zielmast
+  über 85 m per `layers` aus), Rammfische ohne Sonnenschatten und erst ab 48 m Nähe sichtbar.
+
+### Hilfen `_helpers_c.js`
+
+Geometrie: `Quads`, `STONE` (Paletten burg, rot, dunkel, basalt, sand, stahl, messing, ziegel), `brickFace`, `tiles`,
+`brickBox` (Mauerquader mit Kollision, Steinen, Platten, Läufer, Fenstern; `climbable`, `camIgnore`), `carpet`, `slits`,
+`merlons`, `merlonsRound`, `gelaender`, `flushQ` (Hauptgeometrie mit Schatten, Detail-Vierecke ohne), `roundTier` · Belebtes:
+`ketten`, `funken` · Leistung: `fernSicht`, `fernModelle`, `tiefSicht` · Mechanik: `aufzug` (Mover/Wolke fährt los, wenn eine
+Figur daraufsteht, wartet oben, fährt leer zurück; Neustart setzt zurück; `name` → `level.named`), `nebelLava`.
+
+### Test `tests/course_w7c.mjs`
+
+Port 4730 (+ `PORT_BASE`), Aufruf `node tests/course_w7c.mjs [7-5|7-Kapitän|7-6]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,shots` (je Lauf < 10 min; je Level `load,route,sweep` und `load,targets,extra` und
+`shots` getrennt), `HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`, `TRACE=1`, `SHOTS=<Name|…>`, `DETAIL=1`, Bilder
+`tests/out/w7c_*.png`. Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier), auf der Route unverwundbar
+(Treffer-Versuche werden gezählt; Nebel, Lava und Absturz töten trotzdem); Beine u. a. `wait`/`until` (Bedingungen wie
+Stampfstein gelandet, Aufzug oben, Gondel angekommen, Pfeilplattform draußen, Band frei), `climbOnto`, `poundAt`, `toads`,
+`chaseKind`, `swim`/`swimTo` (Schwimmstöße, `noStroke`), `clearFish`, `fire` (Funkenblüte), `warp`. Diorama: ein Lauf mit Krümel.
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel **ohne einen
+Treffer-Versuch** (7-5 ≈ 85/78 s mit drei Stampfstein-Fahrten, zwei Aufzügen, Fähre, Seilbahn, Sprungfeder, Pfeilplattform,
+fünf Schlüsseln und der Flucht in ≈ 10 s; 7-Kapitän ≈ 63 s, alle fünf Sterne; 7-6 ≈ 71/69 s mit Kistentunnel, Warp und
+Finale); alle Sterne und Stempel mit Gegenproben (Pfeiler ohne Krallen-Anzug, Ziegel ohne Stampfen, Stempel von Etage 3,
+Graben ohne Stein, Stein 2 vom Boden, Kammertür, Schachttür, Kisten bei langsamem Schwimmen, Röhre ohne Funkenblüte); Extras
+(Extraleben, versteckte Warp-Box, Nebel-Tod auf der Krone, Lava flutet die Glutbrücke, Neustart nach Nebel-Tod, Krümel springt
+nicht, Projektilkopf und Stampfstein treffen, Band trägt zurück, Rammfisch und Wutkaulquappe treffen, Checkpoint auf der
+Insel). Gemessen (scale 2, inkl. Schattenpass; Messgang entlang der Route und Bilder je Abschnitt): 7-5 52–111 Zeichenaufrufe
+in den Bildern, Messgang ≤ 115 (beim Hinauffahren auf Stampfstein 2) / ≤ 243 k Dreiecke · 7-Kapitän ≤ 104 / ≤ 154 k · 7-6
+45–89 / ≤ 186 k.
+
 ## Präzisierung (Level 7-C, 7-7 und 7-Burg)
 
 Additiv zur Welt-7-Liste: Titel und Besonderheiten der Level 7-C, 7-7 und 7-Burg. Dateien `src/course/levels/w7/7-C.js`,
@@ -7350,3 +7450,89 @@ Kennzahlen der Bilder (Zeichenaufrufe inkl. Schattenpass und Spiegel-Durchgang /
 
 Der Spiegel-Durchgang zeichnet nur, was näher als `reach` am Spiegel und vor ihm liegt (auch Sprites und Objekte ohne
 Sichtprüfung über ihre Grenzkugel + 3 m), und schaltet sich ab, wenn die Kamera weiter als `near` entfernt ist.
+
+## Bonuswelten – Level-Liste und Freischaltung (Hauptsitzung)
+
+Nach dem Finale (`8-Burg`, Spielstand `finished`) folgen vier Bonuswelten. Sie sind **Sonderwelten mit Buchstaben-Präfix**
+(wie die Halloween-Welt, `MAP.prefix`): Level-Ordner `src/course/levels/w<Welt>/`, Kartendatei
+`src/course/map/worlds/w<Welt>.js`. Pilz und Blume sind **Remixe** vorhandener Level (Basislevel + Remix-Regeln, siehe
+„Remix-Level“ unten), Stern bringt neue Level, Krone ist die Abschlussprüfung. Pilz- und Blumen-Level haben **keinen
+Stempel**. Sterne in der Schranke zählen immer **alle** gesammelten Sterne (Welt 1–8: 249, Halloween 18 → 267 vor den
+Bonuswelten).
+
+| Welt | Nr. | Präfix | Name | Karte frei nach | Musik Karte |
+| --- | --- | --- | --- | --- | --- |
+| Stern | 9 | `S` | „Sternenzelt“ (Weltraum, Regenbogenwege, Planetoiden) | Sieg in `8-Burg` (Röhre `WS` auf der Welt-8-Karte) | `course_worldstar_map` |
+| Pilz | 10 | `P` | „Pilz-Remix“ (bekannte Orte, neu gemischt) | `S-8` | `course_worldpilz_map` |
+| Blume | 11 | `B` | „Blumen-Remix“ | `P-6` | `course_worldblume_map` |
+| Krone | 12 | `K` | „Kronen-Gipfel“ (Abschlussprüfung) | `B-12` **und ≥ 330 Sterne** | `course_worldkrone_map` |
+
+### Welt Stern (9)
+
+| Id | Archetyp | Inhalt | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `S-1` | parcours | Regenbogen-Plattformen mit Hüpfmäusen, Trapeze, Reitfahrt auf schwimmendem Reittier, Fackelplatz, Riesentrank, P-Schalter-Münzregen | course_rainbow | 3 + Stempel | Welt offen |
+| `S-2` | parcours | Planetoiden-Hommage: kippende Drehplatten, Plattenbahnen, Boost-Strecke, Plattentreppe, Schachbrett; Abschluss schaltet das **Sternenglanz-Kostüm** für Lotti und Greta frei | course_galaxy | 3 + Stempel | S-1 |
+| `S-Kapitän` | diorama | mechanisches Diorama, per Schalter drehbar (Drehen ist Pflicht), Stern 4 nur mit gedrehter Kamera; 9 Funkenflämmchen | course_diorama | 5 | S-2 |
+| `S-3` | parcours | Holz-Athletik mit rollenden Schienenwalzen, Walzentrio, Walzenaufstieg, große Walze mit Seitenweg | course_rollingride | 3 + Stempel | S-2 |
+| `S-4` | verfolgung | der Zielmast bekommt Flügel und fliegt davon (wartet, wenn man zurückfällt), Boost-Pfeile, Glotzfische, Donut-Felder; 100 s ohne Zeitboni | course_goalpole | 3 + Stempel | S-3 |
+| `S-5` | parcours | Retro-Blockland aus Riesenblöcken: Grasinseln, Laufbomben, Gleitblätter, wachsende Riesen-?-Türme, Felsblock sprengen, 5 Schlüsselmünzen | course_blockland | 3 + Stempel | S-4 |
+| `S-6` | parcours (Draufsicht) | Kamera senkrecht von oben, Waben-Plattformen aus Lava/Eis, Wurfsichel, Spiegelfrucht, Käferfeld, Brummer, Zielturm | course_honeycomb | 3 + Stempel | S-5 |
+| `S-7` | parcours | Dschungel, alles übergroß: Riesen-Pilzlingstürme, Großrollpilze, Riesentrank-Feld, Unterwasser mit Strömungen | course_grotto | 3 + Stempel | S-6 |
+| `S-8` | parcours (Geister) | verschneiter Spukfriedhof im Nebel, 5 Schlüsselmünzen, Floßfahrt über Giftsumpf, auf- und absteigende Nebelplattformen | course_fogbog | 3 + Stempel | S-7 |
+| `S-9` | parcours | futuristischer Weltraum mit Kanonen-Helm: Schienenbrett-Fahrt, Kanonenkugel-Wand, Unterwassertunnel, Weichen umschießen | course_cosmic | 3 + Stempel | S-8 **und ≥ 280 Sterne** |
+
+Welt Stern hat 32 Sterne.
+
+### Welt Pilz (10) – Remix-Welt 1 (ohne Stempel)
+
+| Id | Basis | Remix-Regeln (Kurzfassung, Details im Bauplan) | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `P-1` | `2-4` | Nacht, kürzer, 30 s, Zeit-Uhren als Ideallinie, Stachel-Hüpfmäuse, Stachelkugler | Basis, Variante `nacht` | 3 | Welt offen |
+| `P-2` | `1-3` | Sonnenuntergang, Stachelkugler, Walzenwerfer, 3 Glockenbäume statt Gipfelbrücke, 5 Schlüsselmünzen, 500 s | Basis, Variante `abend` | 3 | P-1 |
+| `P-3` | `6-4` | stockdunkel, 4 Licht-Helme, Floß mit Spuken/Großspuken/Kreisgeistern | Basis, Variante `dunkel` | 3 | P-2 |
+| `P-4` | `2-3` | nur der Schatten-Abschnitt, 100 s, dicht mit Gegnern, Pilzlingsturm aus 30 Pilzlingen | Basis, Variante `schnell` | 3 | P-3 |
+| `P-5` | `6-3` | Tag, Werfer, Wurfbälle, 5 Schlüsselmünzen, pendelnd fliegender Zielmast | Basis | 3 | P-4 |
+| `P-Haus` | – | 10 Kampf-Räume à 10 s (je Raum alle Gegner besiegen) | course_house | 10 | P-4 |
+| `P-6` | `6-2` | Riesen-Wracks, mehr Schubser/Pustewolken/Krakenpilze, 5 Warp-Boxen | Basis | 3 | P-5 |
+| `P-7` | `7-4` | sinkende Plattformen über blauer Lava, Stachelwalzen, Gleitblatt | Basis, Variante `nacht` | 3 | P-6 **und ≥ 310 Sterne** |
+
+Welt Pilz hat 31 Sterne.
+
+### Welt Blume (11) – Remix-Welt 2 (ohne Stempel)
+
+| Id | Basis | Remix-Regeln | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `B-1` | `1-5` | Funkenflämmchen auf den Schaltfeldern, Hammer-Werfer | Basis | 3 | Welt offen |
+| `B-2` | `6-7` | schwebende Wasserwürfel statt Kippplattformen, zweite Wuschel-Horde | Basis | 3 | B-1 |
+| `B-5` | `5-4` | Morgen, viele Hasen + Riesenhase, Wolkenlifte, 500 s | Basis, Variante `morgen` | 3 | B-1 |
+| `B-3` | `4-2` | Nacht, 23 Fackeln in 3 Bereichen, schnellere Schiebeplattformen | Basis, Variante `nacht` | 3 | B-2 |
+| `B-4` | `7-1` | Start mit 30 s, nur Zeit-Uhren verlängern | Basis, Variante `schnell` | 3 | B-3 |
+| `B-6` | `3-3` | Schwarz-Weiß-Filter, Großspuk-Jagd, falsche Zielmasten | Basis, Variante `schwarzweiss` | 3 | B-4 |
+| `B-7` | `3-5` | Kanonen-Helme unter Wasser, Felsblockwände | Basis | 3 | B-6 |
+| `B-8` | `4-3` | Piep-Blöcke 4× schneller ohne Warnpiepen, Gleitblätter, viele Stacheln | Basis (Takt-Kopplung!) | 3 | B-7 |
+| `B-9` | `5-1` | nur der Strand, Sonnenuntergang, 4 Pilzlingstürme mit Feuer-Werfern, 100 s + Zeit-Uhren | Basis, Variante `abend` | 3 | B-8 |
+| `B-10` | `S-6` | Taghimmel statt Weltraum, schwerer | Basis, Variante `tag` | 3 | B-9 |
+| `B-11` | `8-1` (+ `5-7`) | Suchscheinwerfer über den Brücken: im Licht fahren Stacheln aus | Basis, Variante `nacht` | 3 | B-10 |
+| `B-12` | – | Boss-Marathon im Weltraum bei Nacht: Hub mit 6 Warp-Boxen, 5 Bosse geben je einen Schlüssel, dann Würfelblase | course_bossblitz | 3 | B-11 |
+
+Welt Blume hat 36 Sterne.
+
+### Welt Krone (12) – Abschlussprüfung
+
+| Id | Archetyp | Inhalt | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `K-Kapitän` | diorama | Lavaturm-Diorama 30 × 30 × 25 m, steigende/sinkende Lava | course_diorama | 5 + Stempel | Welt offen |
+| `K-Haus` | house | 30 Räume à 10 s am Stück | course_house | 30 | Welt offen |
+| `K-1` | parcours (extrem) | ≈ 900 m ohne Checkpoint und Power-ups, 4 Warp-Boxen, fast alle Gimmicks des Spiels hintereinander | course_champion | 3 + Stempel | **vollständige Sammlung**: alle Sterne und Stempel aller anderen Welten |
+
+Welt Krone hat 38 Sterne; das ganze Spiel hat damit 404 Sterne.
+
+### Remix-Level (Vertrag für Motor-, Musik- und Level-Agenten)
+
+- Ein Remix-Level ist eine eigene Level-Datei (`src/course/levels/w10/P-1.js` …), die das Basislevel **als Daten** übernimmt
+  und Regeln anwendet, statt es zu kopieren (Remix-Helfer des Motors, z. B. `remixOf('2-4', { … })`). Änderungen am
+  Basislevel wirken so automatisch mit; was ein Remix entfernt, ersetzt oder neu setzt, steht in der Remix-Datei.
+- Musik: Remix-Level spielen die Musik des Basislevels mit einer **Klang-Variante** des Musiksystems
+  (`nacht`, `abend`, `morgen`, `tag`, `dunkel`, `schnell`, `schwarzweiss`): andere Klangfarbe/Filter/Hall bzw. leicht
+  schnelleres Tempo, dieselbe Komposition. Ohne Variante klingt sie wie im Basislevel.

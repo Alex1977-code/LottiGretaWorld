@@ -217,6 +217,23 @@ Welt 5):
 | 6-Panzer | Kawumm-Kolonne über den Wolken | Panzerkolonne, wachsende ?-Blöcke, Boss Wirbelbrocken mit Attrappen |
 | 6-C | Glibber-Gala im Wolkenzirkus | Spiegelbühne, Seilbahn, Boss Würfelblase |
 
+**Welt 7 „Lava-Festung“** (frei nach 6-C über die Röhre „W7“; 7-Burg ab 150 ★; Power-up **Wurfsichel**):
+
+| Id | Titel | Art |
+| --- | --- | --- |
+| 7-1 | Werferburg am Blauglutsee | Werfer-Festung an blauer Lava, Glasröhren-Netz, Feuerstäbe, Stampfsteine |
+| 7-2 | Schaltfelder im Finstertempel | Dunkler Tempel: Kipp-Schaltfelder machen den Weg sichtbar, Fackeln |
+| 7-A | Glutkönig im Platschkessel | Arena: heller Lavafelsen-König mit Platschfischen |
+| 7-3 | Pfeilflitzer über dem Glutstrom | Sprint in 100 s: Boost-Pfeile, Donut-Blöcke, Dreifach-Gabelung |
+| 7-4 | Schubser-Rummel im Blauglutkessel | Pfeilplattformen, Zylinder, Stachelwalzen, Schubser |
+| 7-B | Blaufeuer-Prinz im Glutzwinger | Arena: blauer Schubser-Prinz mit Feuerball-Kurven |
+| 7-5 | Stampfsteinturm und Giftnebel-Flucht | Turm in Lava: Stampfsteine als Aufzug, Seilbahn, Flucht vor Giftnebel |
+| 7-Kapitän | Krümel in der Zahnradschmiede | Diorama: Förderband, Stampfsteine als Trittstufen, Kanonentürme |
+| 7-6 | Rammfisch-Riff am Feuerberg | Unterwasser-Riff, Kistentunnel, Vulkaninsel, kreisende Rammfische |
+| 7-C | Siebenfeuer-Saal der Werfer-Bande | Arena: sieben Feuer-Werfer in 100 s |
+| 7-7 | Ebbe und Glut im Brodelkrater | Vulkan-Lavasee mit steigender und sinkender Lava, Lavadrachen |
+| 7-Burg | Kampfwagen-Duell in der Glutfeste | Lava-Burg, Zugbrücke, Boss Baron Brummbär im Kampfwagen |
+
 **Halloween · Kürbisinsel** (Sonderwelt, sofort offen über die geschmückte Röhre „HW“ auf der Welt-1-Karte; Lotti,
 Greta, Pflaume und Krümel tragen dort Verkleidung):
 
