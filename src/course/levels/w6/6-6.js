@@ -176,7 +176,7 @@ export const LEVEL = {
   blocks: [
     { kind: 'question', pos: [-2.5, YA + 3.4, 1.5], content: 'wachstumsbeere' },
     { kind: 'question', pos: [-1.5, YA + 3.4, 1.5], content: 'coins:5' },
-    { kind: 'hidden', id: 'extraleben', pos: [0, YC2 + 2.6, -53.4], content: 'oneup' },
+    { kind: 'hidden', id: 'extraleben', pos: [-3, YC2 + 2.6, -54.0], content: 'oneup' },
     { kind: 'brick', id: 'ziegel', pos: [3.5, YH + 2, -213] },
     { kind: 'question', pos: [-5.5, YF + 3.4, -197], content: 'krallen' },
   ],
@@ -216,7 +216,7 @@ export const LEVEL = {
   checkpoint: [[-3, YD, -91.5], [-5.5, YF, -195.5]],
   stars: [
     [2.6, YB + 7.1, -21.5],
-    { pos: [RX, YD + 4.2, -95], hidden: true, id: 'stern_rundband' },
+    { pos: [RX - 7.4, YD + 0.4, -91.6], hidden: true, id: 'stern_rundband' },
     [6.6, YF + 14.2, -205.5],
   ],
   stamp: [3.5, YH + 7.4, -213],

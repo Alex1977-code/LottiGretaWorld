@@ -70,8 +70,38 @@ const ROUTES = {
     routeChecks: [
       { name: 'Klettergitter, Aufzugsband, Warp-Box, Kanonen-Floß, Riesenprojektil, drei Bandwände mit Krallen', ok: (r) => r.mech.fence === 1 && r.mech.lifts === 1 && r.mech.warps >= 1 && r.mech.rides === 1 && r.mech.bullets === 1 && r.mech.climbs === 3 },
     ],
-    targets: [],
-    extra: [],
+    targets: [
+      { name: 'Stern 0: Schlot-Aufzugsband hoch – höchster Punkt des ersten Abschnitts', star: 0, from: [-1, 14, -17],
+        legs: [{ lift: 'schlotband', at: [0.15, -21.5], face: [1, 0], top: 21, exit: [2.4, -21.5] }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Aufzugsband (Sprung an den Schlot)', star: 0, expectNot: true, from: [-1, 14, -17], heroes: ['lotti'],
+        legs: [{ to: [0.3, -21.5], within: 0.3, run: false }, { hop: 40, dir: [1, 0] }, { wait: 60 }] },
+      { name: 'Stern 1: Rätselbox → Rundband-Raum, acht blaue Münzen rund ums Rundband in 10 s', star: 1, from: [0, 30, -92],
+        legs: [{ name: 'Rätselbox', to: [3.6, -94], jump: 24, within: 0.3, run: false, stopIf: 'inRaum' }, { wait: 30 }, { expect: 'inRaum' },
+          { to: [71.0, -95], within: 0.2, run: false }, { path: [[73.4, -95, false, 0.2]] },
+          { cleat: 'rundband', at: [73.5, -95], top: 34, minY: 31.5 },
+          { path: [[77, -95], [80, -95], [83.6, -95], [87.4, -95, 24], [86.6, -95], [82.5, -95, false, 0.5], [78, -95, false, 0.5], [72.6, -92.2]] },
+          { star: 1 }], shot: 'stern1', mechText: (r) => `Münzen ${r.rt.coins}` },
+      { name: 'Rätselbox: Zeit abgelaufen → Münzen weg, kein Stern', star: 1, expectNot: true, from: [71, 30, -95], heroes: ['lotti'],
+        legs: [{ path: [[73.9, -95, false, 0.2]] }, { to: [72, -99], within: 0.4 }, { wait: 1400 }] },
+      { name: 'Stern 2: linkes Senkrechtband hoch, oben nach rechts', star: 2, from: [-6, 34, -197],
+        legs: [{ lift: 'linksband', at: [-6.5, -205.2], face: [0, -1], top: 48, exit: [-6.8, -205.3], hold: 24 }, { to: [5.6, -205.5], within: 0.4, run: false }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stempel: vom Ziegel auf dem Sockel hochspringen', stamp: true, from: [1.6, 59, -211],
+        legs: [{ to: [3.5, -213], jump: 40, within: 0.3, run: false }, { wait: 30 }, { hop: 40 }, { wait: 30 }], shot: 'stempel' },
+      { name: 'Stempel nicht ohne Ziegel (Ziegel zerstampft, Sprung vom Sockel)', stamp: true, expectNot: true, from: [1.6, 59, -211], heroes: ['lotti'],
+        legs: [{ to: [3.5, -213], jump: 40, within: 0.3, run: false }, { wait: 30 }, { pound: [3.5, -213] }, { wait: 40 }, { expect: 'ziegelWeg' }, { hop: 40 }, { wait: 30 }] },
+    ],
+    extra: [
+      { name: 'Extraleben: versteckter Block über dem Aufzugsband', from: [-3, 20, -54.0], heroes: ['lotti'], expectLives: 1,
+        legs: [{ hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Kanonen-Floß wartet, bis man draufsteht', from: [0, 30, -96], heroes: ['lotti'],
+        legs: [{ wait: 600 }, { expect: 'flossSteht' }, { ride: 'kanonenfloss', at: [1, 2.6], exit: [1, -147.5] }, { expect: 'flossAmZiel' }] },
+      { name: 'Bandwand nicht ohne Krallen-Anzug', from: [0, 34, -203], heroes: ['lotti'], allowFail: true,
+        legs: [{ climb: [0, -206], top: 44, soft: true, max: 600 }, { expect: 'unterT1' }], mech: (r) => r.log.some((l) => l[0] === 'erwartet' && l[1] === 'unterT1' && l[2]) },
+      { name: 'Checkpoint-Deck nur per Warp-Box (Weitsprung von Deck C2 ins Leere)', from: [0, 20, -78], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ to: [0, -79.6], within: 0.3, run: false }, { to: [0, -90], jump: 40, within: 0.5, max: 300 }, { wait: 300 }, { expect: 'nichtD' }] },
+      { name: 'Checkpoint 2 am Förderband-Turm: Tod → Neustart auf Deck G', from: [0, 34, -196], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ to: [-5.5, -195.5], within: 0.4 }, { to: [0, -194], within: 0.4 }, { to: [10, -194], within: 0.4, max: 300 }, { to: [14, -194], max: 200 }, { wait: 500 }, { expect: 'neustartG' }] },
+    ],
     shots: [
       ['start', [0, 0, 5]], ['wand', [0, 0, -9]], ['wand_mitte', [-1.5, 6, -13.4]], ['block', [0, 14, -16]], ['wolken_c', [0, 14, -24]], ['deck_c1', [0, 14, -36]],
       ['aufzug', [0, 14, -50]], ['deck_c2', [0, 20, -56]], ['wolken_c2', [0, 20, -61]], ['warp', [0, 20, -72]], ['checkpoint', [-3, 30, -88]], ['raum', [73, 30, -90]],
@@ -85,6 +115,12 @@ function installCond() {
   const c = window.__course, L = c.level, P = () => c.player;
   window.__w6cond = {
     onD: () => P().pos.y > 29 && P().pos.z < -84 && P().pos.z > -100,
+    nichtD: () => !(P().pos.y > 29 && P().pos.z < -84 && P().pos.z > -100 && !P().dead),
+    flossSteht: () => (L.named.get('kanonenfloss')?.s ?? 1) < 0.01,
+    flossAmZiel: () => (L.named.get('kanonenfloss')?.s ?? 0) > 36.5,
+    unterT1: () => P().pos.y < 43,
+    ziegelWeg: () => !L.entities.some((e) => e.kind === 'brick' && !e.removed && e.alive !== false && Math.abs(e.pos.y - 61) < 0.2),
+    neustartG: () => Math.abs(P().pos.z + 195.5) < 2.5 && Math.abs(P().pos.y - 34) < 0.5 && !P().dead,
     claws: () => P().power === 'krallen',
     inRaum: () => P().pos.x > 60,
   };
@@ -241,6 +277,19 @@ function install() {
         }
         if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
         if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
+        // ------------------------------------------------ auf einen Punkt springen und dort stampfen
+        if (Lg.pound) {
+          const [tx, tz] = Lg.pound;
+          let k = 0, pounding = false;
+          for (; k < 400; k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            if (k > 5 && p.mode === 'ground') break;
+            if (!pounding && k > 8 && d < 0.4 && p.vel.y < 3) pounding = true;
+            tick(pounding ? { crouch: true } : { ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, d * 1.2))), jump: k < 34, run: false });
+          }
+          log.push(['stampfen auf', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, pounding]);
+          continue;
+        }
         // ------------------------------------------------ Klettergitter (Zaun): anspringen, klettern, oben abspringen
         if (Lg.fence) {
           const fe = L().fences?.find((f) => f.spec?.id === Lg.fence || f.id === Lg.fence) ?? L().named.get(Lg.fence)?.fence ?? null;
@@ -382,7 +431,7 @@ function install() {
           const fx = Lg.face?.[0] ?? 0, fz = Lg.face?.[1] ?? -1;
           goTo(wx - fx * 1.2, wz - fz * 1.2, 0.2, 600);
           let k = 0, climbed = false;
-          for (; k < 900; k++) {
+          for (; k < (Lg.max ?? 900); k++) {
             if (p.dead) break;
             tick({ ...this.stick(fx, fz, 1), jump: p.mode === 'ground' && k % 40 < 10 });
             if (p.state === 'climb') climbed = true;
@@ -390,7 +439,7 @@ function install() {
           }
           if (climbed) mech.climbs++;
           log.push(['Krallen', k, climbed, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.power]);
-          if (p.pos.y < Lg.top - 0.2) { log.push(['FEHLER: Wand nicht erklommen', Lg.climb]); break; }
+          if (p.pos.y < Lg.top - 0.2) { log.push([Lg.soft ? 'nicht erklommen (erwartet)' : 'FEHLER: Wand nicht erklommen', Lg.climb]); if (!Lg.soft) break; }
           continue;
         }
         // ------------------------------------------------ Rundband: auf einen Mitnehmer der Rückseite springen
@@ -400,12 +449,12 @@ function install() {
           goTo(ax, az, 0.15, 300);
           let k = 0, on = false;
           for (; k < 900 && !on; k++) {
-            const cl = band.cleats.find((cc) => cc.side === 'hinten' && cc.mb.pos.y > p.pos.y + 1.3 && cc.mb.pos.y < p.pos.y + 1.7);
+            const cl = band.cleats.find((cc) => cc.side === 'hinten' && cc.mb.pos.y > p.pos.y + (Lg.lo ?? 1.3) && cc.mb.pos.y < p.pos.y + (Lg.hi ?? 1.9));
             if (!cl || p.mode !== 'ground') { tick({}); continue; }
             let j = 0;
             for (; j < 100; j++) {
               const tx = cl.mb.pos.x, tz = cl.mb.pos.z;
-              tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 4, 4) : this.stick(tx - p.pos.x, tz - p.pos.z, 0.5)), jump: j < 22 });
+              tick({ ...(p.mode === 'air' ? this.airSteer(tx + (Lg.dx ?? 0), tz, 0, 0, 4, 4) : this.stick(tx - p.pos.x, tz - p.pos.z, 0.5)), jump: j < 30 });
               if (j > 6 && p.mode === 'ground') break;
             }
             on = p.mode === 'ground' && p.pos.y > Lg.minY;
