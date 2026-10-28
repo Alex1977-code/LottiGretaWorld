@@ -46,6 +46,7 @@ export const LEVEL = {
     { type: 'deco_w6', items: [
       { kind: 'bergkiefern', pos: [-10, 1, 1], size: [5, 8], n: 3 }, { kind: 'felsen', pos: [10, 1, 1], size: [5, 8], n: 3 },
       { kind: 'bergblumen', pos: [0, 1, 0], size: [20, 10], n: 14, avoid: [[0, 3, 2]] }, { kind: 'wolke', pos: [-9, 4.5, -3], size: 2.6 },
+      { kind: 'wolkenberg', pos: [-26, -6, -18], size: 12, height: 9, shadow: false }, { kind: 'wolkenfels', pos: [19, -3, -24], size: 4, shadow: false },
     ] },
 
     // ---------------- S1 Glasröhren-Netz
@@ -75,7 +76,8 @@ export const LEVEL = {
     { type: 'kippschiff', id: 'schiff', pos: [0, 1, -71.5], length: 14, width: 7, maxTilt: 14, wave: { amp: 4, period: 5 } },
     { type: 'kippsteg', id: 'steg', from: [0, 1, -78.6], to: [0, 1, -89], width: 1 },
     plat(-89, -100),
-    { type: 'deco_w6', items: [{ kind: 'fass', pos: [-9, 1, -93] }, { kind: 'kiste', pos: [9, 1, -94] }, { kind: 'anker', pos: [-10, 1, -97], yaw: 0.5 }, { kind: 'steuerrad', pos: [10, 1, -97.5] }] },
+    { type: 'deco_w6', items: [{ kind: 'fass', pos: [-9, 1, -93] }, { kind: 'kiste', pos: [9, 1, -94] }, { kind: 'anker', pos: [-10, 1, -97], yaw: 0.5 }, { kind: 'steuerrad', pos: [10, 1, -97.5] },
+      { kind: 'wrack', pos: [-16, -1, -78], part: 'bug', yaw: 0.6 }, { kind: 'geisterschiff', pos: [19, -1, -86], length: 10, width: 4, yaw: Math.PI / 2 }] },
 
     // ---------------- S4 Fernost-Halle
     plat(-100, -128),
@@ -83,6 +85,10 @@ export const LEVEL = {
     { type: 'wall', pos: [-7.5, 1, -106], size: [11, 3.4, 0.6], style: 'stone' },
     { type: 'wall', pos: [7.5, 1, -106], size: [11, 3.4, 0.6], style: 'stone' },
     { type: 'schiebetuer', id: 'tuer1', pos: [0, 1, -106], width: 2.4, height: 3, yaw: -Math.PI / 2 },
+    { type: 'deco_w6', items: [
+      { kind: 'dach', pos: [-7.8, 4.4, -106], width: 10.4, depth: 1.1, height: 0.5, color: 'blau' },
+      { kind: 'dach', pos: [7.8, 4.4, -106], width: 10.4, depth: 1.1, height: 0.5, color: 'blau' },
+    ] },
     { type: 'wall', pos: [-11.2, 1, -114], size: [0.6, 3.4, 4], style: 'stone' },
     { type: 'schiebetuer', id: 'tuer2', pos: [-10.6, 1, -114], width: 2.2, height: 2.8, yaw: 0, behind: 'wand', slide: 'beide', onOpen: { coins: 3 } },
     { type: 'gong', id: 'gong', pos: [8, 1, -120], yaw: -Math.PI / 2, coins: 8, onHit: { reveal: 'maske' }, signal: 'gong' },
@@ -106,11 +112,12 @@ export const LEVEL = {
     { type: 'deco_w6', items: [
       { kind: 'dschungelbaum', pos: [12, 0, -152], height: 8 }, { kind: 'farne', pos: [3, 0, -158], size: [4, 4], n: 4 },
       { kind: 'riesenblatt', pos: [-11, 0, -168], size: 2.2 }, { kind: 'pilze', pos: [10, 0, -170], n: 5 },
+      { kind: 'giftbluete', pos: [-12, 0, -174] }, { kind: 'giftpilz', pos: [12, 0, -166], height: 1.6, solid: true },
     ] },
 
     // ---------------- S6 Windböen
     sign(-11, 0, -171, 'Windböen'),
-    { type: 'windfeld', id: 'wind', pos: [0, -2, -178.5], size: [26, 8, 7], dir: [1, 0], strength: 6, period: 4, on: 1.6, warn: 1.0, source: 'wolke' },
+    { type: 'windfeld', id: 'wind', pos: [0, -2, -178.5], size: [26, 8, 7], dir: [1, 0], strength: 6, period: 4, on: 1.6, warn: 1.0, source: 'wolke', fahne: [-8, 0, -174.2] },
     plat(-181, -192, 0),
     { type: 'deco_w6', items: [{ kind: 'schneehaufen', pos: [-9, 0, -186] }, { kind: 'schneekiefer', pos: [10, 0, -188], height: 4 }] },
 
@@ -120,7 +127,8 @@ export const LEVEL = {
     { type: 'foerderband', id: 'band1', pos: [-6, 0, -199], size: [4, 0.5, 8], dir: [0, -1], speed: 3 },
     { type: 'foerderband', id: 'bandwand', mode: 'wand', pos: [6, 0, -200], width: 3, height: 8, yaw: -Math.PI / 2, speed: 2, ledges: 2.5, ledge: 0.7 },
     { type: 'foerderband', id: 'bandrund', mode: 'rund', pos: [0, 0, -213], length: 8, height: 3, width: 3, yaw: 0, speed: 2.5, ledges: 2 },
-    { type: 'deco_w6', items: [{ kind: 'zahnrad', pos: [11, 0, -206], size: 3, yaw: Math.PI / 2 }, { kind: 'rohr', from: [-12, 3, -218], to: [-12, 3, -206] }, { kind: 'warnstreifen', pos: [0, 0, -205], size: [6, 0.6] }] },
+    { type: 'deco_w6', items: [{ kind: 'zahnrad', pos: [11, 0, -206], size: 3, yaw: Math.PI / 2 }, { kind: 'rohr', from: [-12, 3, -218], to: [-12, 3, -206] }, { kind: 'warnstreifen', pos: [0, 0, -205], size: [6, 0.6] },
+      { kind: 'kessel', pos: [-11, 0, -212], height: 3, radius: 1.1, solid: true }] },
 
     // ---------------- S8 Mine
     plat(-222, -250, 0),
@@ -135,6 +143,7 @@ export const LEVEL = {
       { kind: 'minenbalken_reihe', from: [-12.5, 0, -224], to: [-12.5, 0, -248], every: 6, lamp: true },
       { kind: 'kristalle', pos: [11, 0, -246], n: 4 }, { kind: 'lore', pos: [10, 0, -232], yaw: Math.PI / 2 },
       { kind: 'schienen', from: [10, 0, -224], to: [10, 0, -234] },
+      { kind: 'schachtgeruest', pos: [12.2, 0, -248], width: 3, depth: 2.4, height: 5, yaw: Math.PI },
     ] },
 
     // ---------------- S9 Turm, Wurfball, Zielscheiben

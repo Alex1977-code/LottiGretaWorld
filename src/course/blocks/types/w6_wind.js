@@ -9,10 +9,11 @@
 //     (Schubrichtung), strength: 7 (m/s), mode: 'boe' | 'dauer' | 'signal', period: 4.5 (s), on: 1.8 (s Böe),
 //     warn: 1.0 (s Vorwarnung), phase: 0 (s Versatz), ramp: 0.25 (s An-/Abschwellen), ground: 0.7 (Faktor am Boden),
 //     items: true, streaks: 36 (Windlinien), source: 'none' | 'wolke' | 'ventil' (Quelle am Rand, gegen den Wind),
-//     idle: false (steht bis start()) }
+//     fahne: [x, y, z] (Windanzeige 'windboe_fahne' – Fußpunkt; true = an der Ecke gegen den Wind), idle: false (steht bis start()) }
 //   level.named.get(id) = { state ('ruhe'|'warn'|'boe'), k (0..1), gusts, pushed (m), start(), stop(), gust(), add(x,y,z,out),
 //                           info() }; w6(level).winds = alle Windfelder.
-// Modelle aus der Registry, sobald es sie gibt: 'windquelle_w6' ({ kind: 'wolke'|'ventil', size }, Blick +X = Windrichtung).
+// Modelle aus der Registry: 'windboe_fahne' (Windsack bläht sich bei der Böe, Windfahnen schon in der Vorwarnung) und – sobald
+// es sie gibt – 'windquelle_w6' ({ kind: 'wolke'|'ventil', size }, Blick +X = Windrichtung); sonst eigene Quelle.
 
 import * as THREE from 'three';
 import { v3, sz3, lin, mixc, smooth, colorize, merge, addObject, addStatic, Rnd } from '../kit.js';
@@ -149,6 +150,16 @@ function buildWindVisual(level, spec, p, s, dir, st) {
     }
     g.attributes.position.needsUpdate = true;
   });
+  // Windanzeige (Mast mit Windsack): Vorwarnung = Fahnen, Böe = Windsack bläht sich
+  if (spec.fahne && hasModel('windboe_fahne')) {
+    const f = Array.isArray(spec.fahne) ? v3(spec.fahne)
+      : { x: p.x - ax.x * (L / 2 - 0.6) - ax.z * (Wd / 2 + 0.8), y: p.y, z: p.z - ax.z * (L / 2 - 0.6) + ax.x * (Wd / 2 + 0.8) };
+    const m = getModel('windboe_fahne', { height: 2.6 });
+    m.root.position.set(f.x, f.y, f.z);
+    const wdir = Math.atan2(-dir.z, dir.x);
+    const hv = {};
+    addObject(level, m.root, (dt) => m.update?.(visDt(level, hv, dt), { wind: st.k, dir: wdir, gust: st.state !== 'ruhe' }));
+  }
   // Quelle am Rand (gegen den Wind)
   const src = spec.source ?? 'none';
   if (src !== 'none') {

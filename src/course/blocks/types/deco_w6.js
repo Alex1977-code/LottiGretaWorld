@@ -1,8 +1,9 @@
 // Baustein `deco_w6`: Kulisse für Welt 6 „Wolkeninseln“ (Bergland, Steinkreis, Geisterschiffe, Fernost-Halle, Dschungel,
-// Schneegipfel, Maschinenhalle, Minenschacht). Eigene Geometrie (bzw. Kulissen-Modelle der Registry, sobald es sie gibt:
-// Name 'deco_w6_<kind>', Ursprung = Fußpunkt, Blick +X) wird in die statische Geometrie verschmolzen (keine zusätzlichen
-// Zeichenaufrufe, Abschnitts-Culling); Leuchtendes (Laternen, Kristalle) geht ins Glüh-Material. Kollision nur mit `solid`
-// (bleibt auch erhalten, wenn ein Registry-Modell das Aussehen übernimmt).
+// Schneegipfel, Maschinenhalle, Minenschacht). Eigene Geometrie bzw. Kulissen-Modelle der Registry (Tabelle REG unten:
+// models/kinds/props_himmel_w6.js, props_halle_w6.js und wiederverwendete älterer Welten) wird in die statische Geometrie
+// verschmolzen (keine zusätzlichen Zeichenaufrufe, Abschnitts-Culling); Leuchtendes (Laternen, Kristalle) geht ins
+// Glüh-Material. Kollision nur mit `solid` (bleibt auch erhalten, wenn ein Registry-Modell das Aussehen übernimmt).
+// Fehlt ein Modell, zeichnen die Arten mit eigener Geometrie diese; reine Registry-Arten entfallen dann still.
 //
 // Einzeln:  { type: 'deco_w6', kind, pos: [x, y, z], … }   oder Liste: { type: 'deco_w6', items: [{ kind, pos, … }, …] }
 // pos = Fußpunkt; yaw in Radiant; Streuungen (Mehrzahl-Namen) verteilen deterministisch (seed) in size: [w, d] um pos,
@@ -24,6 +25,17 @@
 //   Mine         minenbalken (Stützrahmen: width 4, height 3.2, yaw) · minenbalken_reihe (from, to, every 4) ·
 //                minenlampe (hängende Grubenlampe, leuchtet, view.addLantern) · kristalle (n 4, size 1) · lore (yaw) ·
 //                schienen (from → to)
+//   Nur Registry (Modell → opts):  wolkenberg (size 10, height 6) · wolkenfels (size 4, height; solid: Fels-Zylinder) ·
+//                wrack (part 'bug'|'mast', size 1 → 'geisterschiff_wrack') · geisterschiff (ganzes Deko-Schiff: length 12,
+//                width 5, height 3; Deck bei pos.y) · dach (Fernost-Dach, Ursprung Traufhöhe: width 6, depth 4, height 2,
+//                color 'blau'|'gruen'|'rot') · holzbruecke (length 8, width 2,4, arch 1,1 – nur Optik, Lauffläche selbst
+//                bauen) · giftbluete (size 1,2) · giftpilz (height 2) · kessel (height 3, radius 1,1; solid) ·
+//                schachtgeruest (width 4, depth 3, height 6, ladder true; vorn +X offen) · eiszapfenbuendel (length 1, count 3,
+//                hängt von pos)
+//   Aussehen aus der Registry: bergkiefer/bergkiefern ('bergkiefer'; mit snow bzw. schneekiefer: 'tanne_schnee'),
+//                kirschbaum, laterne mit hang ('papierlaterne' hängend), laternenpfahl ('papierlaterne' am Pfahl; color
+//                'rot'|'weiss'|'gelb'), riesenblatt, liane ('dschungel_liane'), lore ('lore', load 'erz'|'kristall'|'gold'|
+//                'leer'), zahnrad mit axis 'z' ('zahnrad', color 'messing'|'stahl'|'kupfer').
 
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, Rnd, addStatic, hex, box } from '../kit.js';
@@ -429,8 +441,58 @@ const SINGLE = {
   minenbalken, minenlampe, kristalle, lore, schienen,
   schneekiefer: (level, it, p, rnd, parts) => bergkiefer(level, { ...it, snow: true, height: it.height ?? 5 }, p, rnd, parts),
 };
+// Registry-Modelle je Art: (it, rnd) → [Modell, opts, { yaw, dy, light: [dx, dy, dz] }] oder null (eigene Geometrie)
+const seedOf = (it, rnd) => it.seed ?? rnd.int(1, 6);
+const REG = {
+  bergkiefer: (it, rnd) => (it.snow ? ['tanne_schnee', { size: it.height ?? 4 }] : ['bergkiefer', { height: it.height ?? 4, seed: seedOf(it, rnd) }]),
+  schneekiefer: (it) => ['tanne_schnee', { size: it.height ?? 5 }],
+  kirschbaum: (it, rnd) => ['kirschbaum', { height: it.height ?? 5, seed: seedOf(it, rnd) }],
+  laterne: (it) => (it.hang ? ['papierlaterne', { mount: 'haengend', color: it.color ?? 'rot' }, { yaw: it.yaw ?? 0, light: [0, -0.6, 0] }] : null),
+  laternenpfahl: (it) => ['papierlaterne', { mount: 'pfahl', color: it.color ?? 'rot' }, { yaw: it.yaw ?? 0, light: [0.55, 1.75, 0] }],
+  riesenblatt: (it, rnd) => ['riesenblatt', { size: (it.size ?? 2) * 1.2, seed: seedOf(it, rnd) }],
+  liane: (it, rnd) => ['dschungel_liane', { length: it.length ?? 4, seed: seedOf(it, rnd) }],
+  lore: (it) => ['lore', { load: it.load ?? 'erz' }, { yaw: it.yaw ?? 0 }],
+  zahnrad: (it) => ((it.axis ?? 'z') === 'z' ? ['zahnrad', { radius: (it.size ?? 2) / 2, color: it.color ?? 'messing' }, { yaw: (it.yaw ?? 0) + Math.PI / 2, dy: (it.size ?? 2) / 2 }] : null),
+  wolkenberg: (it, rnd) => ['wolkenberg', { size: it.size ?? 10, height: it.height ?? 6, seed: seedOf(it, rnd) }],
+  wolkenfels: (it, rnd) => ['wolkenfels', { size: it.size ?? 4, height: it.height, seed: seedOf(it, rnd) }],
+  wrack: (it) => ['geisterschiff_wrack', { kind: it.part === 'mast' ? 'mast' : 'bug', size: it.size ?? 1 }],
+  geisterschiff: (it) => ['geisterschiff', { part: 'ganz', length: it.length ?? 12, width: it.width ?? 5, height: it.height ?? 3 }, { yaw: it.yaw ?? 0, light: [(it.length ?? 12) * 0.45, 1.5, 0] }],
+  dach: (it) => ['fernost_dach', { width: it.width ?? 6, depth: it.depth ?? 4, height: it.height ?? 2, color: it.color ?? 'blau' }],
+  holzbruecke: (it) => ['holzbruecke', { length: it.length ?? 8, width: it.width ?? 2.4, arch: it.arch ?? 1.1 }],
+  giftbluete: (it) => ['giftbluete', { size: it.size ?? 1.2 }],
+  giftpilz: (it) => ['giftpilz', { height: it.height ?? 2 }],
+  kessel: (it) => ['kessel', { height: it.height ?? 3, radius: it.radius ?? 1.1 }],
+  schachtgeruest: (it) => ['schacht_geruest', { width: it.width ?? 4, depth: it.depth ?? 3, height: it.height ?? 6, ladder: it.ladder !== false }],
+  eiszapfenbuendel: (it) => ['eiszapfen', { length: it.length ?? 1, count: it.count ?? 3 }],
+};
+// Kollision der reinen Registry-Arten (solid)
+const REG_SOLID = {
+  wolkenfels: (it, p) => ({ type: 'cyl', x: p.x, z: p.z, r: (it.size ?? 4) * 0.36, y0: p.y, y1: p.y + (it.height ?? (it.size ?? 4) * 1.3) * 0.85, tag: 'wolkenfels' }),
+  kessel: (it, p) => ({ type: 'cyl', x: p.x, z: p.z, r: (it.radius ?? 1.1) + 0.1, y0: p.y, y1: p.y + (it.height ?? 3), tag: 'kessel' }),
+  giftpilz: (it, p) => ({ type: 'cyl', x: p.x, z: p.z, r: 0.25, y0: p.y, y1: p.y + (it.height ?? 2), tag: 'giftpilz' }),
+};
 // Kollision der Arten, deren Aussehen ein Registry-Modell übernimmt (gleiche Formen wie die eigene Geometrie oben)
 const SOLID = new Set(['bergkiefer', 'fels', 'menhir', 'mast', 'fass', 'kiste', 'laternenpfahl', 'bambus', 'kirschbaum', 'dschungelbaum', 'zahnrad', 'schornstein', 'minenbalken', 'lore']);
+
+// natürliche Arten ohne yaw: zufällig gedreht (deterministisch); Bauwerke ohne yaw: 0 (Vorderseite +X)
+const TURN = new Set(['bergkiefer', 'schneekiefer', 'kirschbaum', 'riesenblatt', 'liane', 'wolkenberg', 'wolkenfels', 'giftbluete', 'giftpilz', 'eiszapfenbuendel']);
+
+/** Eine Art über ihr Registry-Modell backen (true) – sonst false (eigene Geometrie). */
+function placeReg(level, kind, it, p, rnd) {
+  const r = REG[kind]?.(it, rnd);
+  if (!r || !hasModel(r[0])) return false;
+  const [name, opts, o = {}] = r;
+  const yaw = o.yaw ?? it.yaw ?? (TURN.has(kind) ? rnd.real(0, Math.PI * 2) : 0);
+  if (level.view) bakeModel(level, name, opts, p.x, p.y + (o.dy ?? 0), p.z, yaw, it.scale ?? 1, {}, { castShadow: it.shadow !== false });
+  if (o.light && level.view?.addLantern) {
+    const y = yaw, [lx, ly, lz] = o.light;
+    level.view.addLantern(p.x + Math.cos(y) * lx + Math.sin(y) * lz, p.y + ly, p.z - Math.sin(y) * lx + Math.cos(y) * lz);
+  }
+  // Kollision wie bei der eigenen Geometrie: Geometrie bauen und verwerfen (nur die Formen bleiben)
+  if (it.solid && SOLID.has(kind)) { const dump = [], dg = []; SINGLE[kind]?.({ world: level.world, view: null }, it, p, rnd, dump, dg); for (const g of [...dump, ...dg]) g.dispose(); }
+  if (it.solid && REG_SOLID[kind]) level.world.add(REG_SOLID[kind](it, p));
+  return true;
+}
 
 export function buildDecoW6(level, spec) {
   const items = spec.items ?? [spec];
@@ -441,16 +503,13 @@ export function buildDecoW6(level, spec) {
     const p = v3(it.pos ?? it.from);
     const rnd = new Rnd((it.seed ?? Math.floor(p.x * 73 + p.z * 37 + p.y * 11)) >>> 0);
     const P = it.shadow === false ? parts.flat : parts.shadow;
-    if (hasModel(`deco_w6_${it.kind}`)) {
-      bakeModel(level, `deco_w6_${it.kind}`, it, p.x, p.y, p.z, it.yaw ?? 0, it.scale ?? 1, {}, { castShadow: it.shadow !== false });
-      // Kollision wie bei der eigenen Geometrie: Geometrie bauen und verwerfen (nur die Formen bleiben)
-      if (SOLID.has(it.kind)) { const dump = [], dg = []; SINGLE[it.kind]?.({ world: level.world, view: null }, it, p, rnd, dump, dg); for (const g of [...dump, ...dg]) g.dispose(); }
-      continue;
-    }
+    if (placeReg(level, it.kind, it, p, rnd)) continue;
+    if (REG[it.kind] && !SINGLE[it.kind]) continue;   // reine Registry-Art ohne Modell: entfällt
     const scat = (fn, n, sz, gap, mk) => { for (const [x, z] of scatter(p, it.size ?? sz, it.n ?? n, it.gap ?? gap, it.avoid, rnd)) fn(level, { shadow: it.shadow, ...mk() }, { x, y: p.y, z }, rnd, P, glow); };
+    const regOr = (kind, fn) => (lv, it2, q, r2, P2, g2) => { if (!placeReg(lv, kind, it2, q, r2)) fn(lv, it2, q, r2, P2, g2); };
     switch (it.kind) {
       case 'wolken': scat(wolke, 5, [16, 16], 4, () => ({ size: rnd.real(2.2, 4) })); break;
-      case 'bergkiefern': { const [h0, h1] = range(it.height, [3, 5.5]); scat(bergkiefer, 6, [14, 14], 2.5, () => ({ height: rnd.real(h0, h1), solid: it.solid, snow: it.snow })); break; }
+      case 'bergkiefern': { const [h0, h1] = range(it.height, [3, 5.5]); scat(regOr('bergkiefer', bergkiefer), 6, [14, 14], 2.5, () => ({ height: rnd.real(h0, h1), solid: it.solid, snow: it.snow })); break; }
       case 'felsen': scat(fels, 6, [14, 14], 1.8, () => ({ size: rnd.real(0.6, it.max ?? 1.6), solid: it.solid })); break;
       case 'bergblumen': scat(bergblume, 14, [10, 10], 0.5, () => ({})); break;
       case 'farne': scat(farn, 8, [12, 12], 1.4, () => ({ size: rnd.real(0.8, 1.5) })); break;

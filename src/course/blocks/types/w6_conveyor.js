@@ -66,7 +66,8 @@ function buildBoden(level, spec) {
   const along = Math.abs(dz) >= Math.abs(dx);
   const lenAlong = along ? s.z : s.x, lenAcross = along ? s.x : s.z;
   if (hasModel('foerderband')) {
-    const m = getModel('foerderband', { width: lenAcross, length: lenAlong, style: spec.style ?? 'gelb' });
+    // Registry-Band: Ursprung Mitte unten, Oberseite y = thick, Pfeile laufen nach +X → in die Laufrichtung gedreht
+    const m = getModel('foerderband', { length: lenAlong, width: lenAcross, thick: s.y });
     m.root.position.set(p.x, p.y, p.z);
     m.root.rotation.y = Math.atan2(-dz, dx);
     const hv = {};

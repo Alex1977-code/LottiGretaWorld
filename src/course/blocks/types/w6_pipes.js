@@ -24,7 +24,8 @@
 //       weichen: { K: { to: 'C', toggle: ['B', 'C'], signal: 'weiche' } } }
 //   level.named.get(id) = { nodes, edges, rides, carried, switchOf(k), setSwitch(k, to), toggle(k?), ride(fig, k), info() }
 // Eingang: in eine Öffnung hineinlaufen/-springen/-fallen. Fahrt im Skript-Modus (player.ride, state 'pipe'), Münzen im
-// Rohr werden gesammelt. Modell 'glasroehre_kreuzung' (Registry, Kreuzungsknoten) bzw. eigene Geometrie.
+// Rohr werden gesammelt. Kreuzungen: Registry-Modell 'glasroehre_teil' (kind 't' | 'kreuz', bei waagerechten, rechtwinkligen
+// Abgängen) bzw. eigene Glaskugel; Röhren selbst: eigene Geometrie (beliebig gebogen).
 
 import * as THREE from 'three';
 import { v3, lin, mixc, colorize, merge, addStatic, addObject, hex } from '../kit.js';
@@ -384,6 +385,34 @@ function windowList(e) {
   return out;
 }
 
+/**
+ * Registry-Kreuzung (glasroehre_teil, kind 't' | 'kreuz'), wenn die Röhren an der Kreuzung waagerecht und rechtwinklig
+ * abgehen (3 oder 4 Röhren); sonst null (dann eigene Glaskugel).
+ */
+function junctionModel(n, edges, R) {
+  const kind = { 3: 't', 4: 'kreuz' }[n.edges.length];
+  if (!kind || !hasModel('glasroehre_teil')) return null;
+  const heads = n.edges.map((ei) => {
+    const e = edges[ei];
+    return e.a === n.i ? tangentAt(e.tr, Math.min(e.tr.L, R * 1.6), new THREE.Vector3()) : tangentAt(e.tr, Math.max(0, e.tr.L - R * 1.6), new THREE.Vector3()).negate();
+  });
+  if (heads.some((h) => Math.abs(h.y) > 0.2)) return null;
+  let a = null, rest = [];
+  for (let i = 0; i < heads.length && !a; i++) {
+    for (let j = i + 1; j < heads.length; j++) {
+      if (heads[i].dot(heads[j]) < -0.96) { a = heads[i]; rest = heads.filter((_, k) => k !== i && k !== j); break; }
+    }
+  }
+  if (!a || rest.some((h) => Math.abs(h.x * a.x + h.z * a.z) > 0.2)) return null;
+  let yaw = Math.atan2(-a.z, a.x);
+  if (kind === 't' && Math.sin(yaw) * rest[0].x + Math.cos(yaw) * rest[0].z < 0) yaw += Math.PI;   // Abzweig (lokal +Z) zur dritten Röhre
+  const m = getModel('glasroehre_teil', { kind, radius: R });
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  m.root.position.set(n.pos.x - c * 2 * R, n.pos.y, n.pos.z + s * 2 * R);   // Kreuzungsmitte liegt lokal bei (2R, 0, 0)
+  m.root.rotation.y = yaw;
+  return m;
+}
+
 function buildVisual(level, net, nodes, edges, R, spec) {
   const glass = [], opaque = [], metal = [];
   const tan = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3();
@@ -436,11 +465,9 @@ function buildVisual(level, net, nodes, edges, R, spec) {
       opaque.push(ringGeo(n.pos, n.out, R + 0.05, 0.11, gold ? 0xffc21a : n.enter ? 0xffffff : 0xffb0a0));
       opaque.push(ringGeo(n.pos.clone().addScaledVector(n.out, -0.28), n.out, R + 0.03, 0.05, gold ? 0xff6a3a : 0x9fd8ff));
     } else if (n.edges.length > 1) {
-      if (hasModel('glasroehre_kreuzung')) {
-        const m = getModel('glasroehre_kreuzung', { radius: R, ways: n.edges.length });
-        m.root.position.set(n.pos.x, n.pos.y - R, n.pos.z);
-        objects.push(m);
-      } else {
+      const jm = junctionModel(n, edges, R);
+      if (jm) objects.push(jm);
+      else {
         const sph = new THREE.SphereGeometry(R * 1.22, 22, 14);
         sph.translate(n.pos.x, n.pos.y, n.pos.z);
         glass.push(sph.toNonIndexed());

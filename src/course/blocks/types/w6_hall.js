@@ -67,8 +67,7 @@ function leafGeo(w, h, style, frameCol) {
 function doorFrameGeo(w, h, frameCol) {
   const parts = [];
   parts.push(box(0.26, h + 0.3, 0.32, -w / 2 - 0.13, (h + 0.3) / 2, 0, frameCol, { r: 0.05 }), box(0.26, h + 0.3, 0.32, w / 2 + 0.13, (h + 0.3) / 2, 0, frameCol, { r: 0.05 }));
-  parts.push(box(w + 0.9, 0.28, 0.4, 0, h + 0.2, 0, frameCol, { r: 0.06 }));
-  parts.push(flatColor(box(w + 1.1, 0.1, 0.46, 0, h + 0.38, 0, 0xffc83a, { r: 0.03, seg: 1 }), 0xffc83a));
+  parts.push(box(w + 0.52, 0.28, 0.4, 0, h + 0.2, 0, frameCol, { r: 0.06 }));
   return merge(parts);
 }
 
@@ -128,7 +127,7 @@ export function buildSchiebetuer(level, spec) {
     get state() { return st.state; }, get k() { return st.k; }, get opens() { return st.opens; },
     open() {
       if (st.hidden || st.want === 1) return;
-      st.want = 1; st.openT = 0; st.opens++;
+      st.want = 1; st.openT = 0; st.opens++; st.tapT = 1;
       level.sfx('door');
       if (st.first) { st.first = false; runAction(level, spec.onOpen, { pos: [p.x + F.nx, p.y + 1, p.z + F.nz], source: handle }); }
     },
@@ -170,8 +169,16 @@ export function buildSchiebetuer(level, spec) {
     root.position.set(p.x, p.y, p.z);
     root.rotation.y = yaw + HALF_PI;   // lokal: Breite entlang X, Vorderseite +Z → Welt
     const leafRoots = [];
+    let model = null;
     if (hasModel('schiebetuer')) {
-      for (const lf of leaves) { const m = getModel('schiebetuer', { width: lf.w, height: H, style: spec.style ?? 'papier' }); const g = new THREE.Group(); g.add(m.root); g.userData.model = m; root.add(g); leafRoots.push(g); }
+      // Registry-Tür (Fläche Y-Z, Vorderseite +X, Flügel gleiten selbst nach state.open): in den Tür-Rahmen drehen,
+      // ein Flügel gleitet beim Modell nach −Z = hier „rechts“ – für „links“ gespiegelt
+      model = getModel('schiebetuer', { width: W, height: H, panels: slide === 'beide' ? 2 : 1 });
+      const mg = new THREE.Group();
+      mg.rotation.y = -HALF_PI;
+      if (slide === 'links') mg.scale.z = -1;
+      mg.add(model.root);
+      root.add(mg);
     } else {
       for (const lf of leaves) {
         const m = new THREE.Mesh(leafGeo(lf.w, H, spec.style ?? 'papier', frameCol), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, emissive: 0x2a2010, emissiveIntensity: 0.25 }));
@@ -179,7 +186,7 @@ export function buildSchiebetuer(level, spec) {
         const g = new THREE.Group(); g.add(m); root.add(g); leafRoots.push(g);
       }
     }
-    if (spec.frame !== false) {
+    if (spec.frame !== false && !model) {
       const fm = new THREE.Mesh(doorFrameGeo(W, H, frameCol), level.view.mats.world);
       fm.castShadow = true; fm.receiveShadow = true;
       root.add(fm);
@@ -193,10 +200,11 @@ export function buildSchiebetuer(level, spec) {
     addObject(level, root, (dt) => {
       const d = visDt(level, holder, dt);
       root.visible = !st.hidden;
+      st.tapT = Math.max(0, (st.tapT ?? 0) - d * 2.5);
+      if (model) { model.update?.(d, { open: st.k, hint: mode === 'tap' && st.want === 0 && !st.hidden, tap: st.tapT }); return; }
       leaves.forEach((lf, i) => {
         // root.rotation.y = yaw + π/2: lokal +X = Welt (ax, az) (Türbreite), lokal +Z = Vorderseite
         leafRoots[i].position.set(lf.c + lf.s * st.k * (lf.w - 0.12), 0, i % 2 ? 0.06 : 0);
-        leafRoots[i].userData.model?.update?.(d, { open: st.k });
       });
     });
   }
@@ -242,7 +250,11 @@ export function buildGong(level, spec) {
   const trig = new Set(spec.trigger ?? ['tap', 'pound', 'hit']);
   const rnd = new Rnd(Math.floor(p.x * 31 + p.z * 17) >>> 0);
   const st = { hits: 0, cool: 0, swing: 0, swingV: 0, glow: 0, hidden: !!spec.hidden, rain: [] };
-  const H = size + 1.6, cy = p.y + H - 0.45 - R;
+  // Registry-Gong: fester Bau (Scheibe Ø 1,44 m, Mitte 1,39 m hoch, Pfosten bei ±1,05 m) – auf size skaliert
+  const reg = !!level.view && hasModel('gong');
+  const gk = size / 1.44;
+  const H = reg ? 2.6 * gk : size + 1.6, cy = reg ? p.y + 1.39 * gk : p.y + H - 0.45 - R;
+  const postZ = reg ? 1.05 * gk : R + 0.35;
   const center = { x: p.x, y: cy, z: p.z };
   const handle = {
     get hits() { return st.hits; },
@@ -278,7 +290,7 @@ export function buildGong(level, spec) {
   const side = { x: -fz, z: fx };
   const shapes = [];
   for (const s of [-1, 1]) {
-    const x = p.x + side.x * s * (R + 0.35), z = p.z + side.z * s * (R + 0.35);
+    const x = p.x + side.x * s * postZ, z = p.z + side.z * s * postZ;
     shapes.push({ type: 'box', min: [x - 0.14, p.y, z - 0.14], max: [x + 0.14, p.y + H, z + 0.14], tag: 'gong:pfosten' });
   }
   const ex = Math.abs(side.x) * R + Math.abs(fx) * 0.12, ez = Math.abs(side.z) * R + Math.abs(fz) * 0.12;
@@ -323,7 +335,7 @@ export function buildGong(level, spec) {
     root.position.set(p.x, p.y, p.z);
     root.rotation.y = yaw;
     let model = null, discPivot = null, discMesh = null;
-    if (hasModel('gong')) { model = getModel('gong', { size }); root.add(model.root); }
+    if (reg) { model = getModel('gong', { size }); model.root.scale.setScalar(gk); root.add(model.root); }
     else {
       const g = gongGeo(size);
       const fm = new THREE.Mesh(g.frame, level.view.mats.world);
@@ -342,7 +354,7 @@ export function buildGong(level, spec) {
       const d = visDt(level, holder, dt);
       root.visible = !st.hidden;
       if (discPivot) { discPivot.rotation.z = -st.swing * 0.25; discMesh.material.emissiveIntensity = st.glow * 0.8; }
-      model?.update?.(d, { swing: st.swing, glow: st.glow });
+      model?.update?.(d, { anim: st.glow > 0.02 ? 'ring' : 'idle', ring: Math.min(1, st.glow * 1.2) });
     });
   }
   return handle;

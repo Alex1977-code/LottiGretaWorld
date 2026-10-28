@@ -15,8 +15,9 @@
 //            ceiling: true (feste Decke 0,5 m darüber)
 //     cell: 0.5 (Maschenweite), style: 'metall' | 'bambus' | 'liane' | 'holz', hidden }
 //   level.named.get(id) = { mode, climbers() (Figuren daran), reveal(), hide(), info() }
-// Modell aus der Registry, sobald es sie gibt: 'klettergitter' ({ width, height, cell, style }, senkrecht, Fläche entlang +X,
-// Vorderseite +Z, Ursprung Mitte unten); sonst eigene Geometrie (ein Zeichenaufruf, verschmolzen).
+// Modell aus der Registry für die Dschungel-Arten 'bambus' und 'liane': 'klettergitter' ({ size: [w, h] }, Fläche Y-Z,
+// Vorderseite +X, Ursprung Mitte unten; state.shake rüttelt, solange jemand daran klettert); 'metall' und 'holz' (Fabrik,
+// Mine) und Wände/Decken dahinter bleiben eigene Geometrie (ein Zeichenaufruf, verschmolzen).
 
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, addStatic, addObject, hex } from '../kit.js';
@@ -67,6 +68,14 @@ export function buildKlettergitter(level, spec) {
   const setSolid = (on) => { for (const id of ids) level.world.remove(id); ids = on ? solids.map((s) => level.world.add(s)) : []; };
   let handle;
   let obj = null;   // Darstellung (nur bei hidden als eigenes Objekt)
+  const useReg = !!level.view && (style === 'bambus' || style === 'liane') && hasModel('klettergitter');
+  let shake = 0;
+  const regUpdate = (m, root) => (dt) => {
+    root.visible = !st.hidden;
+    const n = handle?.climbers().length ?? 0;
+    shake = Math.max(n ? 0.35 : 0, shake - dt * 2);
+    m.update?.(dt, { shake });
+  };
   if (mode === 'wand') {
     const [w, h] = spec.size ?? [3, 4];
     const yaw = Math.round((spec.yaw ?? -HALF_PI) / HALF_PI) * HALF_PI;
@@ -96,25 +105,28 @@ export function buildKlettergitter(level, spec) {
       info: () => ({ mode, climbers: handle.climbers().length, hidden: st.hidden }),
     };
     if (level.view) {
-      const g = hasModel('klettergitter') ? null : latticeGeo(w, h, cell, style);
       const root = new THREE.Group();
       root.position.set(p.x + nx * 0.02, p.y, p.z + nz * 0.02);
       root.rotation.y = yaw + HALF_PI;   // lokal +X = (ax, az), lokal +Z = Vorderseite
-      if (g) {
-        if (spec.wall !== false) {
-          // Rückwand (Fels/Holz) hinter dem Gitter
-          const wall = new THREE.BoxGeometry(w + 0.1, h, wallD);
-          wall.translate(0, h / 2, -0.04 - wallD / 2);
-          const c0 = lin(0x6a6070), c1 = lin(0x9a90a0);
-          g.dispose?.();
-          const merged = merge([latticeGeo(w, h, cell, style), colorize(wall.toNonIndexed(), (q, n, o) => mixc(c0, c1, smooth(-0.5, 1, n.z * 0.6 + n.y * 0.4), o))]);
-          placeGeo(level, merged, root, st, spec);
-        } else placeGeo(level, g, root, st, spec);
-      } else {
-        const m = getModel('klettergitter', { width: w, height: h, cell, style });
-        root.add(m.root);
-        addObject(level, root, () => { root.visible = !st.hidden; });
+      const parts = useReg ? [] : [latticeGeo(w, h, cell, style)];
+      if (spec.wall !== false) {
+        // Rückwand (Fels/Holz) hinter dem Gitter
+        const wall = new THREE.BoxGeometry(w + 0.1, h, wallD);
+        wall.translate(0, h / 2, -0.04 - wallD / 2);
+        const c0 = lin(0x6a6070), c1 = lin(0x9a90a0);
+        parts.push(colorize(wall.toNonIndexed(), (q, n, o) => mixc(c0, c1, smooth(-0.5, 1, n.z * 0.6 + n.y * 0.4), o)));
       }
+      if (useReg) {
+        // eigenes Objekt für Modell (+ Rückwand), damit hidden/reveal und shake wirken
+        const m = getModel('klettergitter', { size: [w, h] });
+        const mg = new THREE.Group();
+        mg.rotation.y = -HALF_PI;   // Modell-Vorderseite +X → lokal +Z
+        mg.add(m.root);
+        root.add(mg);
+        if (parts.length) { const wm = new THREE.Mesh(merge(parts), level.view.mats.world); wm.castShadow = true; wm.receiveShadow = true; root.add(wm); }
+        root.visible = !st.hidden;
+        addObject(level, root, regUpdate(m, root));
+      } else placeGeo(level, merge(parts), root, st, spec);
       obj = root;
     }
   } else {
@@ -134,12 +146,17 @@ export function buildKlettergitter(level, spec) {
     };
     if (level.view) {
       const root = new THREE.Group();
-      root.position.set(p.x, p.y, p.z + d / 2);
-      root.rotation.x = -HALF_PI;   // lokal Y (Gitterhöhe) → Welt −Z: Gitter liegt waagerecht von z + d/2 nach z − d/2
-      if (hasModel('klettergitter')) {
-        root.add(getModel('klettergitter', { width: w, height: d, cell, style }).root);
-        addObject(level, root, () => { root.visible = !st.hidden; });
+      if (useReg) {
+        // Registry-Kachel: Fläche Y-Z, Vorderseite +X → um Z gedreht: Vorderseite nach unten, Höhe entlang +X
+        root.position.set(p.x - w / 2, p.y, p.z);
+        root.rotation.z = -HALF_PI;
+        const m = getModel('klettergitter', { size: [d, w] });
+        root.add(m.root);
+        root.visible = !st.hidden;
+        addObject(level, root, regUpdate(m, root));
       } else {
+        root.position.set(p.x, p.y, p.z + d / 2);
+        root.rotation.x = -HALF_PI;   // lokal Y (Gitterhöhe) → Welt −Z: Gitter liegt waagerecht von z + d/2 nach z − d/2
         placeGeo(level, latticeGeo(w, d, cell, style), root, st, spec);
       }
       obj = root;

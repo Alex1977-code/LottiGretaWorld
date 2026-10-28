@@ -61,8 +61,8 @@ const N = { x: 0, y: 1, z: 0 };
 // ------------------------------------------------------------------ Stachelkugel
 
 let spikeTpl = null;
-function spikeBallModel(size) {
-  if (hasModel('stachelkugel')) return getModel('stachelkugel', { size });
+function spikeBallModel(size, color) {
+  if (hasModel('stachelkugel')) return getModel('stachelkugel', { size, color: color ?? 'eisen' });
   if (!spikeTpl) {
     const parts = [];
     const core = new THREE.IcosahedronGeometry(0.5, 2);
@@ -115,7 +115,7 @@ class Stachelkugel extends Gimmick {
     if (this.pm) this.pos.set(this.pm.pos.x, this.pm.pos.y, this.pm.pos.z);
     else if (spec.vel) { this.vel.x = spec.vel[0] ?? 0; this.vel.z = spec.vel[1] ?? 0; }
     if (level.view) {
-      const m = spikeBallModel(this.size);
+      const m = spikeBallModel(this.size, spec.color);
       this.spin = m.spin ?? null;
       this.setModel(m);
     }
@@ -194,7 +194,7 @@ class Stachelkugel extends Gimmick {
     m.root.position.copy(this.pos);
     m.root.rotation.y = this.yaw;
     if (this.spin) this.spin.rotation.z = -this.roll;
-    m.update?.(dt, { roll: this.roll, size: this.size });
+    m.update?.(dt, { anim: 'roll', roll: this.roll, size: this.size });
   }
 
   info() { return { x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), lost: !!this.lost, roll: +this.roll.toFixed(2) }; }
@@ -256,7 +256,15 @@ class StachelkugelQuelle extends Gimmick {
 const BALL_COL = { weiss: [0xf8f6f0, 0xd83a3a], rot: [0xe84a3a, 0xffffff], gelb: [0xffd23a, 0x3a5ae8] };
 
 function ballModel(size, color) {
-  if (hasModel('wurfball')) return getModel('wurfball', { size, color });
+  if (hasModel('wurfball')) {
+    // Registry-Ball hat Ø 0,5 m → auf size skalieren (innere Gruppe; die äußere skaliert der Auftritt)
+    const m = getModel('wurfball', { color });
+    const root = new THREE.Group(), inner = new THREE.Group();
+    inner.scale.setScalar(size / 0.5);
+    inner.add(m.root);
+    root.add(inner);
+    return { root, update: (dt, st) => m.update?.(dt, st), dispose: () => m.dispose?.() };
+  }
   const [a, b] = (BALL_COL[color] ?? BALL_COL.weiss).map((c) => lin(c));
   const g = new THREE.SphereGeometry(size / 2, 18, 12);
   const geo = colorize(g.toNonIndexed(), (p, n, o) => {
@@ -420,7 +428,7 @@ class Wurfball extends Gimmick {
     if (this.spin) this.spin.rotation.z = -this.roll;
     const k = this.popT > 0 ? 1 - this.popT / 0.45 : 1;
     m.root.scale.setScalar(Math.max(0.05, k));
-    m.update?.(dt, { roll: this.roll });
+    m.update?.(dt, { anim: this.carrier ? 'carried' : this.thrown ? 'thrown' : 'idle', roll: this.roll });
   }
 
   info() { return { x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), thrown: this.thrown, hits: this.hits, lastHit: this.lastHit, gone: this.goneT >= 0, held: !!this.carrier }; }
@@ -562,7 +570,14 @@ function maskGeo() {
 
 function maskModel() {
   if (hasModel('helm_maske')) return getModel('helm_maske');
-  if (hasModel('pilz_maske')) return getModel('pilz_maske', { worn: true });
+  if (hasModel('pilz_maske')) {
+    // Registry-Maske als Kopf-Zubehör (Ursprung Kopfmitte, Gesicht +X); der Helm-Anker liegt ≈0,12 m über der Kopfmitte
+    const m = getModel('pilz_maske', { mode: 'kopf', size: 0.46 });
+    const root = new THREE.Group();
+    m.root.position.y = -0.12;
+    root.add(m.root);
+    return { root, update: (dt, st) => m.update?.(dt, st), dispose: () => m.dispose?.() };
+  }
   const geo = maskGeo();
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 });
   const m = new THREE.Mesh(geo, mat);
@@ -594,8 +609,9 @@ class MaskItem extends Gimmick {
     this.bob = 0;
     this.yaw = spec.yaw ?? -Math.PI / 2;
     if (level.view) {
-      const item = !this.dropped && hasModel('pilz_maske') ? getModel('pilz_maske') : maskModel();
-      if (!hasModel('pilz_maske') || this.dropped) item.root.position.y = 0.3;
+      this.regItem = !this.dropped && hasModel('pilz_maske');
+      const item = this.regItem ? getModel('pilz_maske', { mode: 'item' }) : maskModel();
+      if (!this.regItem) item.root.children.forEach((ch) => { ch.position.y += 0.42; });
       this.setModel(item);
     }
   }
@@ -625,7 +641,8 @@ class MaskItem extends Gimmick {
 
   render(dt, t) {
     super.render(dt, t);
-    if (this.model && !this.hidden) { this.model.root.position.y = this.pos.y + 0.04 + Math.sin(this.bob * 2.4) * 0.05; this.model.root.rotation.y = this.yaw + this.bob * 0.8; }
+    // eigene Optik: schweben und drehen (das Registry-Modell 'pilz_maske' im Modus item schwebt und dreht sich selbst)
+    if (this.model && !this.hidden && !this.regItem) { this.model.root.position.y = this.pos.y + 0.04 + Math.sin(this.bob * 2.4) * 0.05; this.model.root.rotation.y = this.yaw + this.bob * 0.8; }
   }
 }
 
@@ -716,7 +733,8 @@ class Riesenfrageblock extends Gimmick {
     const S = this.S;
     const root = new THREE.Group();
     let model = null;
-    if (hasModel('riesen_frageblock')) { model = getModel('riesen_frageblock', { size: S }); root.add(model.root); this.blockObj = model.root; }
+    // Registry-Modell wächst selbst zum Turm (state.grow), sonst eigener ?-Block auf einer Ziegelsäule
+    if (hasModel('riesen_frageblock')) { model = getModel('riesen_frageblock', { size: S, height: this.growTo }); root.add(model.root); this.regModel = true; }
     else {
       const q = blockTemplate('question'); q.scale.setScalar(S); root.add(q);
       const u = blockTemplate('used'); u.scale.setScalar(S); u.visible = false; root.add(u);
@@ -739,14 +757,18 @@ class Riesenfrageblock extends Gimmick {
     const g = this.model.root;
     g.visible = !this.hidden;
     g.position.copy(this.pos);
-    this.blockRoot.position.y = this.height;
     const h = this.height;
+    if (this.regModel) {
+      this.colMesh.visible = false;
+      this.model.update?.(dt, { anim: this.state === 'waechst' ? 'bump' : 'idle', grow: h / this.growTo });
+      return;
+    }
+    this.blockRoot.position.y = h;
     this.colMesh.visible = h > 0.02;
     if (h > 0.02) { this.colMesh.scale.y = h; this.colMesh.position.y = h / 2; this.colTex.repeat.set(1, h / (this.S / 2)); }
     if (this.qObj) { const used = this.state !== 'bereit'; this.qObj.visible = !used; this.uObj.visible = used; }
     const bounce = this.state === 'waechst' ? Math.sin(t * 30) * 0.03 : 0;
     this.blockRoot.scale.set(1 + bounce, 1 - bounce, 1 + bounce);
-    this.model.update?.(dt, { anim: this.state === 'bereit' ? 'idle' : 'used', grow: h / this.growTo });
   }
 
   info() { return { state: this.state, height: +this.height.toFixed(2), via: this.via ?? null }; }

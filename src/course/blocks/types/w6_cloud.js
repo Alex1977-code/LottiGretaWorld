@@ -9,8 +9,8 @@
 //     Signal start), sink: 0.2 (m Einsinken unter Last), vanish: 0 (s nach dem Betreten verpufft sie; 0 = bleibt),
 //     respawn: 3 (s bis sie wiederkommt), color: 'weiss' | 'grau' | 'rosa' | 'gold', oneWay: true, hidden }
 //   level.named.get(id) = { state ('da'|'zittert'|'weg'), load, start(), stop(), reveal(), hide(), info() }
-// Modell aus der Registry, sobald es sie gibt: 'wolkenplattform' ({ size: [w, h, d], color }, Ursprung Mitte unten;
-// state { k (0..1 sichtbar), wobble }); sonst eigene Geometrie (Wolken-Bäusche wie `cloud`).
+// Modell aus der Registry für weiße Wolken: 'wolkenplattform' ({ size: [w, h, d] }, Ursprung Mitte unten; state.anim 'step'
+// unter Last, Verpuffen/Wiederkommen skaliert der Baustein); getönte Wolken und ohne Registry: eigene Geometrie (Bäusche wie `cloud`).
 
 import * as THREE from 'three';
 import { v3, sz3, addObject, lin, colorize, mixc } from '../kit.js';
@@ -54,7 +54,7 @@ export function buildWolkenplattform(level, spec) {
     const root = new THREE.Group();
     root.name = 'wolkenplattform';
     let model = null;
-    if (hasModel('wolkenplattform')) { model = getModel('wolkenplattform', { size: [s.x, s.y, s.z], color: spec.color ?? 'weiss' }); root.add(model.root); }
+    if ((spec.color ?? 'weiss') === 'weiss' && hasModel('wolkenplattform')) { model = getModel('wolkenplattform', { size: [s.x, s.y, s.z] }); root.add(model.root); }
     else {
       let g = cloudGeo(s, Math.floor(p.x * 13 + p.z * 7 + p.y * 3) >>> 0);
       const tint = TINT[spec.color ?? 'weiss'];
@@ -74,7 +74,7 @@ export function buildWolkenplattform(level, spec) {
       const wob = st.state === 'zittert' ? Math.sin(tt * 40) * 0.06 : 0;
       root.position.set(mb.pos.x + wob, mb.pos.y + Math.sin(tt * 1.6 + p.x) * 0.03, mb.pos.z);
       root.scale.set(st.k, 0.6 + 0.4 * st.k, st.k);
-      model?.update?.(d, { k: st.k, wobble: wob });
+      model?.update?.(d, { anim: st.load > 0 || st.state === 'zittert' ? 'step' : 'idle' });
     });
   }
   return handle;

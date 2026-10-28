@@ -20,9 +20,11 @@
 //     entlang X, π/2 = entlang Z), maxTilt: 24, weight: 9 (° je m Hebel je Figur), response: 2.2, back: 0.6 (1/s zurück
 //     zur Waage ohne Last; 0 = bleibt), slide: 0, thick: 0.4, stand: true, style: 'holz' | 'metall' | 'mine' }
 // level.named.get(id) = { angle (°), target (°), load (Figuren darauf), deck (TiltDeck), push(deg), info() }
-// Modelle aus der Registry, sobald es sie gibt: 'geisterschiff' ({ length, width, hull, masts }, Ursprung = Deckmitte,
-// Bug nach +X), 'kippsteg' ({ length, width, thick }, Steg entlang +X, Ursprung = Mitte der Oberseite), 'wippe'
-// ({ length, width, thick }, Brett entlang +X, Ursprung = Drehpunkt); sonst eigene Geometrie.
+// Modelle aus der Registry: 'kippsteg' ({ length, width, thick }, Steg entlang +X, Ursprung = Mitte der Oberseite; der Baustein
+// kippt das Modell, state.warn knarzt bei starker Neigung) und 'wippe' ({ length, width, thick, height }, Ursprung =
+// Drehpunkt, Bock inklusive; state.tilt neigt nur das Brett). Das Kippschiff baut seinen Rumpf selbst: das Registry-
+// 'geisterschiff' hat ein erhöhtes Achterdeck und einen geschwungenen Deckssprung – die Lauffläche des Kippschiffs muss eben
+// zur Kollision (TiltDeck) passen; das Wrack-Modell dient als Kulisse (deco_w6 'geisterschiff', 'wrack').
 
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, hex, addObject, box, Rnd } from '../kit.js';
@@ -138,15 +140,17 @@ class Tilter {
   info() { return { angle: +(this.angle / DEG).toFixed(2), target: +(this.target / DEG).toFixed(2), load: this.load, slid: +this.slid.toFixed(2) }; }
 
   /** Darstellung: outer (Neigung um die Drehachse), inner (Gier) – Geometrie lokal: Länge entlang +X, Breite entlang Z. */
-  attach(root, inner, yawLocal) {
+  /** Darstellung anhängen: root kippt mit (rotate false: Modell kippt selbst über tick), tick(d) je Bild. */
+  attach(root, inner, yawLocal, { rotate = true, tick = null } = {}) {
     const o = this.o;
     root.position.set(o.cx, o.y, o.cz);
     inner.rotation.y = yawLocal;
     root.add(inner);
     const holder = {};
     addObject(this.level, root, (dt) => {
-      visDt(this.level, holder, dt);
-      if (o.axis === 'x') { root.rotation.z = this.angle; root.rotation.x = 0; } else { root.rotation.x = -this.angle; root.rotation.z = 0; }
+      const d = visDt(this.level, holder, dt);
+      if (rotate) { if (o.axis === 'x') { root.rotation.z = this.angle; root.rotation.x = 0; } else { root.rotation.x = -this.angle; root.rotation.z = 0; } }
+      tick?.(d);
     });
   }
 }
@@ -317,8 +321,7 @@ export function buildKippschiff(level, spec) {
   if (level.view) {
     const root = new THREE.Group(), inner = new THREE.Group();
     root.name = 'kippschiff';
-    if (hasModel('geisterschiff')) inner.add(getModel('geisterschiff', { length: L, width: W, hull: spec.hull ?? 2.4, masts: spec.masts ?? 2, style: spec.style ?? 'geist' }).root);
-    else {
+    {
       const g = shipGeo(L, W, spec.hull ?? 2.4, { ...spec, rails: spec.rails }, new Rnd(Math.floor(p.x * 7 + p.z * 13) >>> 0));
       inner.add(meshOf(g.body, { side: THREE.DoubleSide }));
       if (g.glow) { const gm = new THREE.Mesh(g.glow, level.view.mats.glow); gm.castShadow = false; inner.add(gm); }
@@ -355,9 +358,11 @@ export function buildKippsteg(level, spec) {
   if (level.view) {
     const root = new THREE.Group(), inner = new THREE.Group();
     root.name = 'kippsteg';
-    if (hasModel('kippsteg')) inner.add(getModel('kippsteg', { length: L, width: W, thick, style: spec.style ?? 'holz' }).root);
+    let model = null;
+    if (hasModel('kippsteg')) { model = getModel('kippsteg', { length: L, width: W, thick }); inner.add(model.root); }
     else inner.add(meshOf(plankGeo(L, W, thick, spec.style ?? 'holz')));
-    t.attach(root, inner, alongZ ? Math.PI / 2 : 0);
+    const maxT = (spec.maxTilt ?? 22) * DEG;
+    t.attach(root, inner, alongZ ? Math.PI / 2 : 0, { tick: (d) => model?.update?.(d, { tilt: 0, warn: Math.abs(t.angle) > maxT * 0.6 }) });
     if (spec.posts !== false) {
       // Pfähle an den Enden (fest, verschmolzen)
       const parts = [];
@@ -388,15 +393,20 @@ export function buildWippe(level, spec) {
     const root = new THREE.Group(), inner = new THREE.Group();
     root.name = 'wippe';
     const style = spec.style ?? 'holz';
-    if (hasModel('wippe')) inner.add(getModel('wippe', { length: L, width: W, thick, style }).root);
-    else {
+    const reg = hasModel('wippe');
+    let model = null;
+    if (reg) {
+      // Registry-Wippe: Bock inklusive (bis zur Kollisions-Stütze hinab), state.tilt hebt das lokale +X-Ende
+      model = getModel('wippe', { length: L, width: W, thick, height: spec.stand === false ? 1.1 : 2.2 });
+      inner.add(model.root);
+    } else {
       const parts = [plankGeo(L, W, thick, style)];
       // Griffe an den Enden
       for (const sx of [-1, 1]) parts.push(flatColor(box(0.12, 0.5, W * 0.7, sx * (L / 2 - 0.3), 0.25, 0, 0xffd23a, { r: 0.05, seg: 1 }), 0xffd23a));
       inner.add(meshOf(merge(parts)));
     }
-    t.attach(root, inner, alongX ? 0 : Math.PI / 2);
-    if (spec.stand !== false) {
+    t.attach(root, inner, alongX ? 0 : Math.PI / 2, reg ? { rotate: false, tick: (d) => model.update?.(d, { tilt: alongX ? t.angle : -t.angle }) } : {});
+    if (spec.stand !== false && !reg) {
       const S = WOOD[style] ?? WOOD.holz;
       const g = new THREE.CylinderGeometry(0.2, 0.75, 2.2, 3); g.rotateY(alongX ? 0 : Math.PI / 2);
       g.translate(p.x, p.y - thick - 1.1, p.z);

@@ -9,13 +9,14 @@
 //     dir: 'down' | 'up' | '+x' | '-x' | '+z' | '-z' (Stoßrichtung), travel: 3 (m Hub), out: 0.25 (s Stoß),
 //     hold: 0.6 (s ausgefahren), back: 1.1 (s zurück), wait: 1.4 (s Ruhe), warn: 0.7 (s Vorwarnung), phase: 0 (s Versatz
 //     im Takt), mode: 'takt' | 'nah' (stößt, wenn eine Figur näher als near m vor der Stoßseite ist) | 'signal' (start()
-//     = ein Stoß), near: 4, style: 'stein' | 'metall' | 'holz', face: true, spikes: false (Stoßseite verletzt bei
+//     = ein Stoß), near: 4, style: 'metall' | 'stein' | 'holz', face: true, spikes: false (Stoßseite verletzt bei
 //     Berührung), idle: false }
 //   level.named.get(id) = { state ('ruhe'|'warn'|'stoss'|'halt'|'zurueck'), k (0..1 ausgefahren), crushes, pushes, cycles,
 //                           start(), stop(), fire(), box(), info() }; w6(level).crushers
 //   Tod durch Einklemmen: player.die('crush') (deathCause 'crush').
-// Modell aus der Registry, sobald es sie gibt: 'quetschblock' ({ size: [w, h, d], style }, Stoßseite +X, Ursprung Mitte
-// unten; state { anim: 'idle'|'warn'|'stoss', k }); sonst eigene Geometrie (Block mit grimmigem Gesicht).
+// Modell aus der Registry für style 'metall' (Standard): 'quetschblock' ({ size: [x, y, z], rod }, Gesicht +X = Stoßseite,
+// Kolben hinten, Ursprung Körpermitte; state { warn, slam }); bei auf/ab blickt das Gesicht zur Kamera (ohne Kolben).
+// 'stein'/'holz' (und ohne Registry): eigene Geometrie (Block mit grimmigem Gesicht).
 
 import * as THREE from 'three';
 import { v3, sz3, box, merge, addObject, lin, mixc, smooth, colorize, hex } from '../kit.js';
@@ -190,23 +191,28 @@ export function buildQuetschblock(level, spec) {
     else inner.rotation.y = Math.atan2(-dv[2], dv[0]);
     const lw = dv[1] !== 0 ? s.z : Math.abs(dv[0]) ? s.x : s.z, ld = dv[1] !== 0 ? s.x : Math.abs(dv[0]) ? s.z : s.x;
     let model = null, mat = null;
-    if (hasModel('quetschblock')) { model = getModel('quetschblock', { size: [lw, s.y, ld], style: spec.style ?? 'stein' }); inner.add(model.root); }
-    else {
+    const style = spec.style ?? 'metall';
+    if (style === 'metall' && hasModel('quetschblock')) {
+      model = getModel('quetschblock', { size: [lw, s.y, ld], rod: dv[1] !== 0 ? 0 : Math.min(1.5, spec.travel ?? 3) });
+      model.root.position.y = s.y / 2;   // Modell: Ursprung Körpermitte
+      inner.add(model.root);
+    } else {
       mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, emissive: 0xff2a1a, emissiveIntensity: 0 });
-      const m = new THREE.Mesh(crusherGeo(lw, s.y, ld, spec.style ?? 'stein', spec.face !== false), mat);
+      const m = new THREE.Mesh(crusherGeo(lw, s.y, ld, style, spec.face !== false), mat);
       m.castShadow = true; m.receiveShadow = true;
       inner.add(m);
     }
     root.add(inner);
     const holder = {};
-    let tt = 0;
+    let tt = 0, slam = 0;
     addObject(level, root, (dt) => {
       const d = visDt(level, holder, dt);
       tt += d;
       const sh = st.state === 'warn' ? 0.05 : 0;
       root.position.set(mb.pos.x + Math.sin(tt * 57) * sh, mb.pos.y + Math.sin(tt * 43) * sh * 0.5, mb.pos.z + Math.cos(tt * 51) * sh);
       if (mat) mat.emissiveIntensity = st.state === 'warn' ? 0.25 + 0.2 * Math.sin(tt * 20) : st.state === 'stoss' || st.state === 'halt' ? 0.2 : 0;
-      model?.update?.(d, { anim: st.state === 'warn' ? 'warn' : st.state === 'stoss' || st.state === 'halt' ? 'stoss' : 'idle', k: st.k });
+      slam = st.state === 'stoss' || st.state === 'halt' ? 1 : Math.max(0, slam - d * 2.5);
+      model?.update?.(d, { anim: 'idle', warn: st.state === 'warn' ? 1 : 0, slam });
     });
   }
   return handle;
