@@ -48,9 +48,9 @@ export const M67 = {
   X0, X1, ZB, ZF, ZL, YT, YK, YQ, YS,
   NISCHE: { x0: X0, x1: -5.6, top: 2.6 },              // Stempel-Nische (Decke 2,6)
   Q0: { x: -4.6 },                                      // Quetschblock vor der Nische
-  STERN1: { x: -6.4, y: 8.4 },                          // Brett unter dem grauen Wolkenbausch
+  STERN1: { x: -7.0, y: 8.4 },                          // Felssporn unter dem grauen Wolkenbausch
   RILLE: { x0: -10.4, x1: X0, y0: YQ, y1: YQ + 3.4 },
-  QG: { x0: X0, x1: 3.8, top: YQ, crushers: [-6.2, -3.4, -0.6] },
+  QG: { x0: X0, x1: 3.8, top: YQ, crushers: [-6.0, -3.1, -0.2], gaps: [-4.55, -1.65] },
   W3: { z: -44, len: 10, raise: [0, -41] },
   TOR: { z: -64.5 },
 };
@@ -100,7 +100,7 @@ const ROCKS = [
   rock(X0, -5.0, 7.6, 8.4, ZB, ZF, { cell: 1 }),
   // Quetschgang (Fels als Gegenfläche der drei Quetschblöcke) und ihre Gehäuse
   rock(X0, 3.8, YQ - 1.6, YQ, ZB, ZF),
-  ...M67.QG.crushers.map((x) => rock(x - 1.1, x + 1.1, YQ + 4.8, YQ + 5.5, ZB, ZF - 0.6, { cell: 1.1 })),
+  ...M67.QG.crushers.map((x) => rock(x - 1.0, x + 1.0, YQ + 4.8, YQ + 5.5, ZB, ZF - 0.6, { cell: 1.0 })),
   // Felssims (rechts) mit Quetschblock Q6 vor dem Sprungfeld und dessen Gehäuse
   rock(3, X1, YS - 1.2, YS, ZB, ZF),
   rock(4.5, 6.7, YS + 4.4, YS + 5.0, ZB, ZF - 0.6, { cell: 1.1 }),
@@ -154,12 +154,12 @@ const CRYSTALS = [
 const cloud = (id, x, top, o = {}) => ({ type: 'wolkenplattform', id, pos: [x, top - 0.6, o.z ?? ZL], size: o.size ?? [3, 0.6, 3], ...o });
 const CLOUDS = [
   cloud('c3', 3.2, 9.8),
-  cloud('wolke_stern1', -6.2, 10.8, { color: 'grau', size: [3.4, 0.6, 3.4] }),     // grauer Bausch, Stern 1 darunter
-  cloud('v1', -5.8, 17.6, { vanish: 1.2, respawn: 2.2 }),
+  cloud('wolke_stern1', -5.0, 10.8, { color: 'grau', size: [3.2, 0.6, 3.4] }),     // grauer Bausch, Stern 1 halb darunter
+  cloud('v1', -5.8, 17.6),
   cloud('v2', -2.2, 20.2, { vanish: 1.2, respawn: 2.2 }),
-  cloud('v3', 1.6, 22.8, { vanish: 1.2, respawn: 2.2 }),
+  cloud('v3', 1.6, 22.8),
   cloud('c9', -1.6, 38.0),
-  cloud('c13', -1.4, 52.8, { vanish: 1.2, respawn: 2.2 }),
+  cloud('c13', -1.4, 52.8),
   cloud('c14', 1.2, 55.4, { vanish: 1.2, respawn: 2.2 }),
   cloud('c17', 0.6, 66.4),
   { type: 'wolkenplattform', id: 'c_fahrt', pos: [0.2, 70.4, ZL], size: [3, 0.6, 3], path: [[0.2, 70.4, ZL], [0.2, 72.4, ZL]], speed: 1.0, wait: 0.6 },
@@ -188,7 +188,7 @@ export const LEVEL = {
   scroll: {
     path: [[0, 3, ZL], [0, 120, ZL]],
     start: 0, end: 77,
-    speed: 1.0, speeds: [{ from: 14, speed: 1.15 }, { from: 24, speed: 0.75 }, { from: 34, speed: 1.25 }, { from: 41, speed: 1.0 }, { from: 52, speed: 1.3 }],
+    speed: 1.0, speeds: [{ from: 14, speed: 1.15 }, { from: 24, speed: 0.6 }, { from: 34, speed: 1.25 }, { from: 41, speed: 1.0 }, { from: 52, speed: 1.3 }],
     accel: 2, delay: 0.6,
     trigger: { min: [X0, 4.2, -4], max: [X1, 30, 3] },
     frame: { back: 6.5, front: 6.5, ahead: 1.0, followX: 0.3, turn: false, backMode: 'kill' },
@@ -242,7 +242,7 @@ export const LEVEL = {
     // ---------------------------------------------------------------- 4 Mittelstation
     { type: 'trampoline', id: 'sprung5', pos: [6.2, YK, ZL], strength: 19 },
     // ---------------------------------------------------------------- 5 Quetschgang: drei Quetschblöcke im Wellentakt
-    ...M67.QG.crushers.map((x, i) => q(`qg${i + 1}`, [x, YQ + 2.8, -0.95], { wait: 1.5, warn: 0.6, phase: 0.9 - i * 0.7 })),
+    ...M67.QG.crushers.map((x, i) => q(`qg${i + 1}`, [x, YQ + 2.8, -0.95], { size: [1.8, 2, 5], wait: 1.5, warn: 0.6, phase: -0.5 + i * 0.7 })),
     { type: 'trampoline', id: 'sprung6', pos: [6.6, YQ, ZL], strength: 17.5 },
     // ---------------------------------------------------------------- 6 Sprungfelder, seitlicher Quetschblock Q5, fahrende Goldwolke
     q('q5', [9.4, 41.2, -1.5], { size: [2, 2, 4], dir: '-x', travel: 3.0, wait: 2.0, hold: 0.5, back: 1.2, phase: 0.4 }),

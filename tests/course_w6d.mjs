@@ -34,8 +34,8 @@ const ROUTES = {
       { name: 'Wolke c3', to: [3.2, ZL], y: 9.6, jump: 30, jumpAt: 2.2 },
       { name: 'Bretter R4', to: [4.3, ZL], y: 12.2, jump: 30, jumpAt: 3 },
       { name: 'Bretter L5', to: [-0.6, ZL], y: 14.8, jump: 30, jumpAt: 4.4 },
-      { name: 'Puffwolke 1', to: [-5.6, ZL], y: 17.4, jump: 30, jumpAt: 2.4, win: 25.8 },
-      { name: 'Puffwolke 2', to: [-2.2, ZL], y: 20.0, jump: 30, jumpAt: 3.0 },
+      { name: 'Puffwolke 1', to: [-5.6, ZL], y: 17.4, jump: 30, jumpAt: 2.4 },
+      { name: 'Puffwolke 2', to: [-2.2, ZL], y: 20.0, jump: 30, jumpAt: 3.0, win: 22.8 },
       { name: 'Puffwolke 3', to: [1.6, ZL], y: 22.6, jump: 30, jumpAt: 3.4 },
       { name: 'Mittelstation', to: [2.6, ZL], y: 25.2, jump: 30 },
       { name: 'Kontrollpunkt 1', to: [-5.4, -2.0], within: 0.5 },
@@ -46,8 +46,8 @@ const ROUTES = {
       { name: 'Bretter R10', to: [2.6, ZL], y: 40.4, jump: 30, jumpAt: 3.2 },
       { name: 'Sprungfeld R10 → L11', bounce: [3.4, ZL], at: [4.2, ZL], y: 44.8 },
       { name: 'Goldwolke', mover: 'goldwolke', on: 'right', stand: [3.2, ZL], off: [-5.6, ZL], y: 50.0, rideUntil: 'goldLeft' },
-      { name: 'Puffwolke c13', to: [-1.4, ZL], y: 52.6, jump: 30, jumpAt: 3.0, win: 58.4 },
-      { name: 'Puffwolke c14', to: [0.6, ZL], y: 55.2, jump: 30, jumpAt: 3.0 },
+      { name: 'Puffwolke c13', to: [-1.4, ZL], y: 52.6, jump: 30, jumpAt: 3.0 },
+      { name: 'Puffwolke c14', to: [0.6, ZL], y: 55.2, jump: 30, jumpAt: 3.0, win: 58 },
       { name: 'Felssims', to: [3.8, ZL], y: 57.8, jump: 36, jumpAt: 4 },
       { crusher: 'q6' },
       { name: 'Sprungfeld am Felssims → R16', bounce: [5.6, ZL], at: [7.3, ZL], y: 63.6, keepX: 6.9 },
@@ -78,9 +78,69 @@ const ROUTES = {
       { name: 'Fahrt beendet, Horde folgte dem Bild (keine Absturz-Tode)', ok: (r) => r.mech.scrollDone && !r.dead },
       { name: 'Grubentor geöffnet', ok: (r) => r.mech.gate },
     ],
-    targets: [],
-    extra: [],
-    shots: [],
+    targets: [
+      { name: 'Stempel: in der Nische hinter dem Quetschblock (unter ihm durch, wenn er oben ist)', stamp: true, from: [0.5, 0, ZL],
+        legs: [{ to: [-3.0, ZL], within: 0.3 }, { crusher: 'q0' }, { to: [-7.0, ZL], within: 0.4 }, { wait: 30 }, { crusher: 'q0' }, { to: [-1, ZL], within: 0.4 }],
+        shot: 'stempel', mech: (r) => !r.dead },
+      { name: 'Stern 1: unter dem grauen Wolkenbausch (Felssporn links, gleich nach dem Stempel)', star: 0, from: [0.5, 0, ZL],
+        legs: [{ bounce: [5.6, ZL], at: [4.4, ZL], y: 4.4 }, { to: [0, ZL], y: 7, jump: 30, jumpAt: 2.8 }, { name: 'auf den grauen Bausch', to: [-4.6, ZL], y: 10.6, jump: 30, jumpAt: 3.6 },
+          { name: 'links hinunter auf den Felssporn', to: [-7.2, ZL], y: 8.2, within: 0.4 }, { wait: 30 }],
+        shot: 'stern1' },
+      { name: 'Stern 1 auch mit kurzem Hüpfer vom Brett', star: 0, from: [-2.6, 7.2, ZL], scroll: 4, heroes: ['lotti'],
+        legs: [{ to: [-7.0, ZL], y: 8.2, jump: 7, jumpAt: 4.3 }, { wait: 20 }] },
+      { name: 'Stern 1 nicht von der Sohle aus (Sprung unter dem Felssporn)', star: 0, expectNot: true, from: [-7.0, 0, ZL], heroes: ['lotti'],
+        legs: [{ hop: 40 }, { wait: 30 }] },
+      { name: 'Stern 3: Felsrille hinter der Quetschblock-Wand (unter drei Quetschblöcken hindurch)', star: 2, from: [4.8, 25.4, ZL], scroll: 22.4,
+        legs: [{ bounce: [5.4, ZL], at: [6.2, ZL], y: 30.8 }, { to: [1.4, ZL], within: 0.15 }, { crusher: 'qg3', fresh: false }, { to: [-1.65, ZL], within: 0.12 },
+          { crusher: 'qg2', fresh: false }, { to: [-4.55, ZL], within: 0.12 }, { crusher: 'qg1', fresh: false }, { to: [-9.3, -1.6], within: 0.4 }, { wait: 20 },
+          { to: [-8.7, -1.2], within: 0.2 }, { crusher: 'qg1', fresh: false }, { to: [-4.55, ZL], within: 0.12 }, { crusher: 'qg2', fresh: false }, { to: [-1.65, ZL], within: 0.12 },
+          { crusher: 'qg3', fresh: false }, { to: [1.6, ZL], within: 0.4 }, { name: 'zurück auf den Weg', bounce: [3.6, ZL], at: [6.6, ZL], y: 35.2 }],
+        shot: 'stern3', mech: (r) => !r.dead },
+      { name: 'Stern 2: über Wippe 3 – Quetschblock drückt das ferne Ende, das nahe schnellt hoch', star: 1, from: [0, 78, -34], scroll: 77,
+        legs: [{ crusher: 'q7' }, { to: [0, -38.2], within: 0.4 }, { to: [0, -41.0], within: 0.3, run: false }, { wippeStern: 'wippe3', minAngle: 25 }, { wait: 30 }],
+        shot: 'stern2', mechText: (r) => `Wippe ${r.mech.wippeAngle?.toFixed(1)}°, Scheitel y ${r.mech.maxY.toFixed(2)}` },
+      { name: 'Stern 2 nicht vom Felsen davor (Sprung und Rückwärtssalto)', star: 1, expectNot: true, from: [0, 78, -38.4], scroll: 77, heroes: ['lotti'],
+        legs: [{ hop: 40 }, { wait: 20 }, { backflip: [0, 1] }, { wait: 60 }] },
+      { name: 'Stern 2 nicht von der Wippe ohne Quetschblock (gleich nach dem Betreten gesprungen)', star: 1, expectNot: true, from: [0, 78, -38.2], scroll: 77, heroes: ['lotti', 'greta'],
+        legs: [{ to: [0, -41.0], within: 0.3, run: false }, { wait: 12 }, { hop: 40 }, { wait: 20 }],
+        mechText: (r) => `Scheitel y ${r.mech.maxY.toFixed(2)}` },
+    ],
+    extra: [
+      { name: 'Extraleben: unsichtbarer Block über der Sohle links vom Start', from: [-2.6, 0, ZL], heroes: ['lotti'], expectLives: 1,
+        legs: [{ hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Extraleben: Kiste in der Felsrille (Stampfattacke)', from: [-7.4, 31, -0.2], scroll: 26, heroes: ['lotti'], expectLives: 1,
+        legs: [{ pound: [-9.6, -0.2] }, { pound: [-9.6, -0.2] }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Fahrt beginnt erst, wenn die Heldin die Sohle verlässt', from: [0.5, 0, ZL], heroes: ['lotti'],
+        legs: [{ wait: 600 }, { expect: 'scrollWaits' }, { bounce: [5.6, ZL], at: [4.4, ZL], y: 4.4 }, { wait: 60 }, { expect: 'scrollRuns' }] },
+      { name: 'Wer unten bleibt: die Horde beißt (Rückstoß nach oben), dann fällt man aus dem Bild', from: [5.6, 4.6, ZL], scroll: 1, invuln: false, expectAlive: false, heroes: ['lotti'],
+        legs: [{ wait: 1500 }], mech: (r) => r.mech.died && r.mech.deathCause === 'fall' && r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}, Tod ${r.mech.deathCause}` },
+      { name: 'Quetschblock: wer darunter steht, wird zerquetscht', from: [-4.6, 0, ZL], invuln: false, expectAlive: false, heroes: ['lotti'],
+        legs: [{ wait: 600 }], mech: (r) => r.mech.died && r.mech.deathCause === 'crush', mechText: (r) => `Tod ${r.mech.deathCause}` },
+      { name: 'Kontrollpunkt Mittelstation: Neustart dort, Bild am Kontrollpunkt', from: [4.8, 25.4, ZL], scroll: 22.4, heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ to: [-5.4, -2.0], within: 0.5 }, { die: true }, { expect: 'where' }, { expect: 'respawnMittel' }, { wait: 240 }, { expect: 'alive' }], mech: (r) => r.log.some((l) => l[0] === 'erwartet' && l[1] === 'respawnMittel' && l[2]) },
+      { name: 'Grubentor zu, bis man davor steht; Galerie-Horde rollt los', from: [0, 78, -61], scroll: 77, heroes: ['lotti'],
+        legs: [{ expect: 'gateClosed' }, { to: [0, -63.4], within: 0.4 }, { wait: 60 }, { expect: 'gateOpen' }] },
+      { name: 'Galerie-Horde: startet beim Kontrollpunkt und rollt hinterher', from: [0, 78, -6], scroll: 77, heroes: ['lotti'],
+        legs: [{ expect: 'hordeWaits' }, { to: [0, -11.4], within: 0.4 }, { wait: 900 }, { expect: 'hordeRolls' }] },
+    ],
+    shots: [
+      ['start', [0.5, 0, ZL], 0],
+      ['nische', [-3.0, 0, ZL], 0],
+      ['bretter', [3.2, 9.8, ZL], 6],
+      ['puffwolken', [-5.6, 17.6, ZL], 15],
+      ['mittelstation', [0, 25.4, ZL], 22.4],
+      ['quetschgang', [1.4, 31, ZL], 28],
+      ['rille', [-6.0, 31, ZL], 28],
+      ['sprungfelder', [2.4, 40.6, ZL], 38],
+      ['goldwolke', [3.2, 45, ZL], 43],
+      ['felssims', [3.6, 58, ZL], 55],
+      ['krone', [2.4, 75.4, ZL], 73],
+      ['galerie', [0, 78, -9.4], 77],
+      ['wippen', [0, 78, -22.6], 77],
+      ['wippe3', [0, 78, -34], 77],
+      ['tor', [0, 78, -61], 77],
+      ['deck', [0, 78, -69], 77],
+    ],
   },
 };
 
@@ -122,6 +182,13 @@ function install() {
     goldLeft: () => { const m = named('goldwolke'); return m && m.mb.pos.x < -2.6; },
     cloudHigh: () => { const w = named('c_fahrt'); return w && w.mb.pos.y > 71.9; },
     gateOpen: () => !!named('grubentor')?.open,
+    gateClosed: () => !named('grubentor')?.open,
+    scrollWaits: () => L.scroll?.state === 'wait',
+    respawnMittel: () => !P().dead && Math.hypot(P().pos.x + 5.6, P().pos.z + 2) < 1.2 && Math.abs(P().pos.y - 25.4) < 0.3 && Math.abs(L.scroll.center.y - 25.4) < 4,
+    alive: () => !P().dead && L.runtime.status === 'play',
+    where: () => JSON.stringify({ pos: [P().pos.x, P().pos.y, P().pos.z].map((v) => +v.toFixed(2)), dead: P().dead, center: L.scroll?.center?.y, rp: L.runtime.respawnPoint?.() }),
+    hordeWaits: () => named('horde_galerie')?.state === 'wait',
+    hordeRolls: () => { const h = named('horde_galerie'); return h?.state === 'run' && h.info().front < -6; },
   };
   const W = {
     place(pos, o = {}) {
@@ -185,7 +252,7 @@ function install() {
         }
         if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.ground?.tag ?? '', +(L.scroll?.center?.y ?? 0).toFixed(1)]); if (hist.length > 40) hist.shift(); }
         if (window.__trace && window.__trace(p, steps)) log.push(['T', steps, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), p.mode, p.state, p.jumpKind, p.ground?.tag ?? '', +p.vel.y.toFixed(2), JSON.stringify(inp)]);
-        if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
+        if (p.dead && !deadLogged) { deadLogged = true; mech.died = true; mech.deathCause = p.deathCause; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
         if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead && !o.keepScript) {
           let n = 0;
           const kind = p.script?.type ?? p.script?.kind ?? '?';
@@ -229,13 +296,38 @@ function install() {
         }
         if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
         if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
+        if (Lg.die) { p.invuln = 0; p.die('hit'); let k = 0; for (; k < 2400 && (p.dead || L.runtime.status !== 'play'); k++) tick({}); log.push(['gestorben, Neustart nach', k]); continue; }
+        // ------------------------------------------------ Rückwärtssalto: kurz in Blickrichtung tippen, ducken, springen
+        if (Lg.backflip) {
+          const [fx, fz] = Lg.backflip;
+          for (let k = 0; k < 4; k++) tick({ ...this.stick(fx, fz, 0.35) });
+          for (let k = 0; k < 20 && Math.hypot(p.vel.x, p.vel.z) > 0.05; k++) tick({});
+          for (let k = 0; k < 12; k++) tick({ crouch: true });
+          for (let k = 0; k < 36; k++) tick({ crouch: k < 4, jump: true });
+          for (let k = 0; k < 300 && p.mode !== 'ground'; k++) tick({});
+          log.push(['Rückwärtssalto', p.jumpKind, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), +mech.maxY.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Stern über der Wippe: warten, bis das Ende oben ist, dann springen
+        if (Lg.wippeStern) {
+          const w = named(Lg.wippeStern);
+          const sgn = Lg.sign ?? 1;
+          let k = 0;
+          for (; k < 2400 && !(sgn * w.angle >= Lg.minAngle && p.mode === 'ground'); k++) tick({});
+          mech.wippeAngle = sgn * w.angle;
+          const y0 = p.pos.y;
+          for (let j = 0; j < 40; j++) tick({ jump: true });
+          for (let j = 0; j < 300 && p.mode !== 'ground'; j++) tick({});
+          log.push(['Wippen-Stern', k, +mech.wippeAngle.toFixed(1), +y0.toFixed(2), +mech.maxY.toFixed(2)]);
+          continue;
+        }
         // ------------------------------------------------ Quetschblock: warten, bis er gerade wieder oben ist
         if (Lg.crusher) {
           const q = named(Lg.crusher);
-          let k = 0, seenBack = q.state === 'zurueck';
+          let k = 0, seenBack = q.state === 'zurueck' || (Lg.fresh === false);
           for (; k < 1600; k++) {
             if (q.state === 'zurueck') seenBack = true;
-            if (seenBack && q.state === 'ruhe') break;
+            if ((seenBack || Lg.fresh === false) && q.state === 'ruhe') break;
             tick({});
           }
           log.push(['quetschblock', Lg.crusher, k, q.state]);
@@ -338,7 +430,7 @@ function install() {
           if (dist < best - 0.05) { best = dist; still = 0; } else if (p.mode === 'ground') still++;
           if (still > 45 && auto <= 0 && Lg.autoJump !== false) { auto = 26; still = 0; autoJumps++; }
           const highEnough = Lg.y === undefined || p.pos.y > Lg.y - 0.3;
-          const done = dist < within && highEnough && (!holdJ || Lg.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim')));
+          const done = dist < within && highEnough && (Lg.y === undefined || p.mode === 'ground') && (!holdJ || Lg.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim')));
           if (done && i > 0) break;
           // Sprung misslungen (wieder unten gelandet): neu anlaufen
           if (holdJ && landed && p.mode === 'ground' && !highEnough && i > 20) { landed = false; airborne = false; j0 = i + 1; gate(Lg.win ?? Lg.y); }
@@ -361,7 +453,7 @@ function install() {
       }
       c.setInput({});
       mech.hurts = p.hurtTries ?? 0;
-      return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
+      return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, deathCause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
       const p = P();
