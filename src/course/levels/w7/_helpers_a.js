@@ -367,6 +367,61 @@ export function inselFassaden(b, g, rects, lavaY, rnd, o = {}) {
   }
 }
 
+/**
+ * Steinplatten im Verband auf Inseloberseiten (die Fugen sind die Insel darunter): rects [[x0, x1, zA, zB, y], …];
+ * o: { pal (Farben), row 1.1, avoid: [[x0, x1, zA, zB], …], glow (Bld für glimmende Fugenrisse), cracks 0.04 }.
+ */
+export function fliesen(b, rects, rnd, o = {}) {
+  const pal = o.pal ?? [0x8e96c8, 0x868ec0, 0x9aa2d2, 0x7c84b6, 0x949cce];
+  const row = o.row ?? 1.1, gap = 0.07, col = new THREE.Color();
+  const avoid = o.avoid ?? [];
+  const free = (x, z) => !avoid.some((a) => x > a[0] && x < a[1] && z < Math.max(a[2], a[3]) && z > Math.min(a[2], a[3]));
+  for (const [x0, x1, zA, zB, y] of rects) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+    for (let z = z1 + 0.05, r = 0; z < z0 - 0.15; z += row, r++) {
+      const d = Math.min(row, z0 - 0.05 - z) - gap;
+      if (d < 0.2) continue;
+      let x = x0 + 0.05 - (r % 2 ? 0.55 : 0);
+      while (x < x1 - 0.15) {
+        const e = Math.min(x + rnd.real(0.9, 1.6), x1 - 0.05), s = Math.max(x, x0 + 0.05), w = e - s - gap;
+        const cx = (s + e) / 2, cz = z + d / 2;
+        if (w > 0.2 && free(cx, cz)) {
+          col.set(pal[rnd.int(0, pal.length - 1)]).multiplyScalar(0.92 + rnd.frac() * 0.14);
+          b.box(w, 0.05, d, cx, y, cz, col.clone(), { r: 0 });
+          if (o.glow && rnd.frac() < (o.cracks ?? 0.03)) o.glow.box(w * 0.45, 0.02, 0.05, cx, y + 0.05, cz + rnd.real(-0.2, 0.2), o.crackColor ?? 0x6ad8ff, { r: 0, yaw: rnd.real(-0.5, 0.5) });
+        }
+        x = e;
+      }
+    }
+  }
+}
+
+/** Brummbär-Wappen als Bodenmosaik (Kreis, Bärenkopf mit Zylinder und Monokel) bei (x, y, z), Radius r. */
+export function wappenMosaik(b, x, y, z, r = 2) {
+  b.cyl(r, r, 0.05, x, y, z, BURG.gold, 24);
+  b.cyl(r * 0.88, r * 0.88, 0.06, x, y, z, BURG.redDark, 24);
+  b.cyl(r * 0.5, r * 0.5, 0.07, x, y, z + r * 0.08, 0x8a5a34, 20);
+  for (const s of [-1, 1]) b.cyl(r * 0.17, r * 0.17, 0.07, x + s * r * 0.36, y, z - r * 0.3, 0x8a5a34, 12);
+  b.cyl(r * 0.2, r * 0.2, 0.075, x, y, z + r * 0.28, 0xd8b088, 14);
+  b.box(r * 0.5, 0.08, r * 0.34, x, y, z - r * 0.5, 0x1a1418, { r: 0 });
+  b.box(r * 0.78, 0.08, r * 0.08, x, y, z - r * 0.31, 0x1a1418, { r: 0 });
+  for (const s of [-1, 1]) b.cyl(r * 0.06, r * 0.06, 0.085, x + s * r * 0.17, y, z + r * 0.02, 0x1a1012, 8);
+  b.torus(r * 0.1, r * 0.018, x + r * 0.17, y + 0.09, z + r * 0.02, 0xffe080, { rx: Math.PI / 2, ts: 12, rs: 3 });
+}
+
+/** Gelbe Pfeile auf dem Boden (Hinweis): list [[x, y, z, yaw]] (yaw 0 = Spitze nach +X). */
+export function bodenPfeile(b, list) {
+  for (const [x, y, z, yaw = 0, s = 1] of list) {
+    const c = Math.cos(yaw), sn = Math.sin(yaw);
+    const tx = x + c * 0.5 * s, tz = z - sn * 0.5 * s;
+    b.box(0.85 * s, 0.03, 0.26 * s, x - c * 0.05 * s, y, z + sn * 0.05 * s, 0xffd23a, { yaw, r: 0 });
+    for (const k of [-1, 1]) {
+      const f = yaw + Math.PI + k * 0.65, fx = Math.cos(f), fz = -Math.sin(f);
+      b.box(0.55 * s, 0.035, 0.2 * s, tx + fx * 0.24 * s, y, tz + fz * 0.24 * s, 0xffd23a, { yaw: f, r: 0 });
+    }
+  }
+}
+
 /** Läufer (roter Teppich mit Goldkante) auf dem Boden: [x, y, zA, zB, breite]. */
 export function laeufer(b, list) {
   for (const [x, y, zA, zB, w = 1.8] of list) {
@@ -436,8 +491,23 @@ export function festung71(level, o) {
     b.cyl(r * 1.6, r * 2.1, 2.2, x, LAVA - 1, z, litTop(0x2a2a40, 0.5), 9);     // Basaltsockel
     T(x, LAVA + 1.1, z, r, h, BURG.roofs[k]);
   }
-  // ---------------- Teppiche, Lager
+  // ---------------- Steinplatten, Wappen-Mosaike, Teppiche, Lager
+  const RX = o.RX;
+  fliesen(b, [
+    [-9, 9, 9, -17, Y], [-9, 9, -31.5, -44, Y], [-11, -3, -59.5, -70, Y], [3, 11, -59.5, -70, Y], [-9, 9, -79.8, -92, Y],
+    [-1.3, 1.3, -92, -97, Y], [-4.5, 4.5, -97, -106, Y], [-1.3, 1.3, -106, -110, Y], [-4.5, 4.5, -110, -119, Y], [-8, 8, -124, -140, Y],
+    [-8, 8, -156, -166, Y], [-4.5, 4.5, -166, -212, Y], [-7, 7, -212, -220, Y], [-9, 9, -228.4, -248, Y],
+    [RX - 8, RX + 8, -150, -162.5, Y], [RX - 1.3, RX + 1.3, -162.5, -166.5, Y], [RX - 8, RX + 8, -166.5, -178, Y],
+  ], rnd, { glow: g, avoid: [[-1.1, 1.1, 4.5, -12.6], [-0.95, 0.95, -86.4, -91.6], [-1.1, 1.1, -157.3, -165.7], [-1.2, 1.2, -228.9, -238.7],
+    [-2.1, 2.1, -36.4, -40.6], [-2.1, 2.1, -129.9, -134.1], [RX + 3.1, RX + 5.9, -170.1, -172.9]] });
+  wappenMosaik(b, 0, Y + 0.01, -38.5, 2);
+  wappenMosaik(b, 0, Y + 0.01, -132, 2);
   laeufer(b, [[0, Y, 4.4, -12.5, 2], [0, Y, -86.5, -91.5, 1.8], [0, Y, -157.4, -165.6, 2], [0, Y, -229, -238.6, 2.2]]);
+  // Kugelsaal: Mauern, Pfeile von der Kugel über die Bahn zur Mulde
+  M([RX - 7.65, -150.4], [RX - 7.65, -177.6], LAVA - 0.4, 3.8, [1]); M([RX + 7.65, -150.4], [RX + 7.65, -177.6], LAVA - 0.4, 3.8, [-1]);
+  M([RX - 8, -177.65], [RX + 8, -177.65], Y, 2.6, [1]);
+  bodenPfeile(b, [[RX - 1.2, Y + 0.06, -159.4, -0.6], [RX, Y + 0.06, -161.6, -Math.PI / 2], [RX, Y + 0.06, -167.6, -Math.PI / 2], [RX + 1.8, Y + 0.06, -169.4, -0.7], [RX + 3.2, Y + 0.06, -170.4, -0.7]]);
+  for (const s of [-1, 1]) turm(level, b, g, { x: RX + s * 8.4, y: Y - 1.6, z: -178.2, r: 1.3, h: 6.4, roof: BURG.roofs[s < 0 ? 1 : 3] });
   werferKram(b, g, [[-6.6, Y, -40.8, 0.3], [-7.6, Y, -127.2, -0.2], [6.6, Y, -138.4, Math.PI], [-5.4, Y, -214.2, 0.2]], rnd);
   b.flush(level, { castShadow: false });
   g.flush(level, { material: 'glow', castShadow: false });

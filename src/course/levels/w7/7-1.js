@@ -29,7 +29,7 @@ const werfer = (id, x, z, o = {}) => ({ kind: 'feuer_werfer', id, pos: [x, o.y ?
 const stab = (id, z, o = {}) => ({ type: 'feuerstab', id, pos: [0, Y, z], ...o });
 
 function build(level) {
-  blueLavaSea(level, { x0: -70, x1: 110, z0: 34, z1: -290, y: LAVA, scale: 8 });
+  blueLavaSea(level, { x0: -70, x1: 110, z0: 34, z1: -290, y: LAVA, scale: 5.5 });
   festung71(level, { Y, LAVA, RX });
   sparksUp(level, { x0: -26, x1: 26, z0: 14, z1: -250, y: LAVA, n: 140, h: 10 });
 }
@@ -218,6 +218,8 @@ export const LEVEL = {
     blase(RX - 4.5, -164.5, { phase: 0.2, height: 2.6 }), blase(RX + 4.5, -164.5, { phase: 0.7, height: 2.6 }),
   ],
   items: [
+    // Hoppel, ein Kaninchen-Freund, sitzt im Käfig des Barons auf der Zielinsel
+    { kind: 'rescue_friend', id: 'hoppel', pos: [-5.6, Y, -240], yaw: 0.6, name: 'Hoppel' },
     // Werferturm besiegt → Warp-Box über den Glutsee zum Kontrollpunkt
     { kind: 'task', id: 'aufgabe_turm', area: { pos: [0, Y, -132], r: 10 }, ids: ['werfer4'], reward: [{ reveal: 'warp_cp' }, { sfx: 'switch' }] },
     { kind: 'warpbox', id: 'warp_cp', pos: [0, Y, -138.2], target: 'warp_cp2', hidden: true },
