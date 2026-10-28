@@ -139,6 +139,7 @@ const ROUTES = {
     start: [0, 1, 6],
     meta: { stars: 3, stamp: true, time: 400, theme: 'jungle', music: 'course_jungle', archetype: 'parcours' },
     enemies: { brummer: 4, rankenschnapper: 6 },
+    maxHurts: 0,
     main: [
       { name: 'Steg', to: [0, -6.9], within: 0.4, run: false },
       { name: 'auf Floß 1', board: 'floss1' },
@@ -535,17 +536,62 @@ function install() {
           continue;
         }
         // ------------------------------------------------ auf dem Floß mitfahren (Mitte halten) bis zum Ende bzw. Bedingung
+        // Ausweichen wie ein Kind auf dem Floß: Brummer (Sturzflug) und Köpfe der Rankenschnapper werden 0,8 s
+        // vorausberechnet; die Figur wählt einen Platz auf dem 3 × 3 m-Floß mit dem größten Abstand, und springt (über den
+        // Kopf hinweg bzw. darauf – Abprall), wenn kein Platz reicht. Lg.dodge === false: nur die Mitte halten.
         if (Lg.raft) {
           const f = named(Lg.raft);
-          let k = 0, lost = false;
+          let k = 0, lost = false, prev = null, rvx = 0, rvz = 0, hops = 0, dodges = 0, wasSafe = true;
+          const hzPrev = new Map();
           for (; k < (Lg.max ?? 9000); k++) {
             if (p.dead) break;
             if (Lg.until && COND[Lg.until]()) break;
             if (!Lg.until && f.state === 'ende' && p.mode === 'ground') break;
-            const q = f.mb.pos, dx = q.x - p.pos.x, dz = q.z - p.pos.z, d = Math.hypot(dx, dz);
-            tick(d > 0.35 && p.mode === 'ground' ? { ...this.stick(dx, dz, Math.min(1, d * 1.5)), run: false } : {});
+            const q = f.mb.pos;
+            if (prev) { rvx = (q.x - prev[0]) * 120; rvz = (q.z - prev[1]) * 120; }
+            prev = [q.x, q.z];
+            let tx = q.x, tz = q.z, best = 99;
+            if (Lg.dodge !== false) {
+              const hs = [];
+              for (const e of L.entities) {
+                if (e.removed || e.defeated || (e.kind !== 'brummer' && e.kind !== 'rankenschnapper')) continue;
+                const c = e.kind === 'rankenschnapper' ? e.headC : (e.center?.() ?? e.pos);
+                const o = hzPrev.get(e);
+                const v = o ? [(c.x - o[0]) * 120, (c.y - o[1]) * 120, (c.z - o[2]) * 120] : [0, 0, 0];
+                hzPrev.set(e, [c.x, c.y, c.z]);
+                if (Math.hypot(c.x - q.x, c.z - q.z) < 10) hs.push({ c: [c.x, c.y, c.z], v, r: e.kind === 'rankenschnapper' ? 0.45 : 0.42 });
+              }
+              const sp = Math.hypot(rvx, rvz), ax = sp > 0.1 ? rvx / sp : 0, az = sp > 0.1 ? rvz / sp : -1, lx = -az, lz = ax;
+              const py = p.pos.y + (p.half?.y ?? 0.8);
+              const score = (a, l) => {
+                let m = 99;
+                for (const h of hs) for (let t = 0; t <= 0.8; t += 0.1) {
+                  const px = q.x + rvx * t + ax * a + lx * l, pz = q.z + rvz * t + az * a + lz * l;
+                  const dd = Math.hypot(px - h.c[0] - h.v[0] * t, (py - h.c[1] - h.v[1] * t) * 0.8, pz - h.c[2] - h.v[2] * t) - h.r - 0.35;
+                  if (dd < m) m = dd;
+                }
+                return m;
+              };
+              let pick = [0, 0];
+              best = score(0, 0);
+              if (best < 0.9) {
+                for (const a of [-0.9, -0.45, 0, 0.45, 0.9]) for (const l of [-1, -0.5, 0, 0.5, 1]) {
+                  const sc = score(a, l) - (Math.abs(a) + Math.abs(l)) * 0.05;
+                  if (sc > best + 0.05) { best = sc; pick = [a, l]; }
+                }
+              }
+              if (best < 0.9 && wasSafe) dodges++;
+              wasSafe = best >= 0.9;
+              // das Floß ist ein achsparalleler Quader (3 × 3 m): Ziel höchstens 0,95 m von der Mitte (Figur ≈ 0,3 m dick)
+              tx = q.x + Math.max(-0.95, Math.min(0.95, ax * pick[0] + lx * pick[1])); tz = q.z + Math.max(-0.95, Math.min(0.95, az * pick[0] + lz * pick[1]));
+            }
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            if (p.mode === 'air') tick({ ...this.airSteer(tx, tz, rvx, rvz, 3, 7), jump: p.vel.y > 0 });
+            else if (best < 0.15) { hops++; tick({ ...this.stick(dx, dz, Math.min(1, d * 1.5)), jump: true }); }
+            else tick(d > 0.12 ? { ...this.stick(dx, dz, Math.min(1, d * 1.5)), run: best < 0.9 } : {});
             if (p.mode === 'ground' && p.ground?.tag !== 'floss') { lost = true; break; }
           }
+          log.push(['Ausweichen', dodges, 'Sprünge', hops]);
           mech.rafts++;
           if (Lg.raft === 'floss2') mech.raft2y = +f.mb.pos.y.toFixed(2);
           log.push(['Floßfahrt', Lg.raft, k, f.info(), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
