@@ -128,7 +128,7 @@ const FALL_CURVE = curveOf((x) => 1100 * Math.pow(0.2, x) * (1 + 0.03 * Math.sin
 const SWING_CURVE = curveOf((x) => 330 + 230 * Math.sin(x * Math.PI) - 40 * x, 32);
 /** Schwindelig: zwei Kreise auf und ab, darüber schnelles Trillern (kreisende Vöglein). */
 const DIZZY_CURVE = curveOf((x) => 1050 * (1 + 0.16 * Math.sin(x * Math.PI * 2 * 2)) * (1 + 0.06 * Math.sin(x * Math.PI * 2 * 10)), 128);
-/** Donut-Block: sinkt und wackelt dabei (9 Wackler). */
+/** Donut-Block: sinkt und wackelt dabei (vier Wackler in 0,42 s, gut 9 je Sekunde). */
 const DONUT_CURVE = curveOf((x) => (340 - 120 * x) * (1 + 0.1 * Math.sin(x * Math.PI * 2 * 4)));
 
 const SFX = {
