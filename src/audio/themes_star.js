@@ -46,7 +46,7 @@
 // Kanonen-Schläge (Kanonen-Weltraum); Sternenstaub-Glöckchen und Chor-„Aah“ (Karte).
 
 import {
-  dr, K4, KH, CL, HH, H8, H8O, HOF, CR, rest, chordBar, bassBar, padBar, pat, voicing,
+  dr, K4, KH, CL, HH, H8, H8O, HOF, CR, rest, chordBar, bassBar, bassNote, padBar, pat, voicing,
   B_BOUNCE, B_PUMP, B_GALLOP, B_DRIVE, B_HALF, form, bySection, groove,
 } from './themeParts.js';
 
@@ -152,7 +152,7 @@ const hcV = ['C#5:4 A4:2 F#4:2 A4:4 C#5:2 B4:2', 'A4:4 C#5:2 E5:2 F#5:4 E5:2 C#5
 const hcVerse = [...hcV, hcV[0], hcV[1], 'D5:4 B4:2 F#4:2 B4:4 D5:2 C#5:2', 'C#5:4 G#4:2 E#4:2 G#4:4 C#5:2 E#5:2'];
 const hcBridge = ['A4:8 D5:8', 'B4:8 E5:8', 'C#5:8 F#5:8', 'E#5:8 C#5:8'];
 const hex = (c) => pat(tones(c, 'C#5'), '0121 0201 2102 0121');      // Waben-Ostinato: sechs Töne im Kreis über 16 Schritte
-const hum = (c) => `${tones(c, 'F#3')[0]}:16`;                       // tiefes Brummen (Grundton)
+const hum = (c) => `${bassNote(c, 2)}:16`;                             // tiefes Brummen auf dem Grundton (E3–Dis4)
 
 // ================================================================ Riesen-Dschungel (S-7) ====
 // c-Moll, 130 BPM, tief und gewichtig. Intro c As Es B (die Riesen-Hörner spielen die Hook, große Trommeln) | Strophe
