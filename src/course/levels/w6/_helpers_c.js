@@ -15,6 +15,7 @@
 import * as THREE from 'three';
 import { lin, hex, mixc, smooth, colorize, merge, addObject, Rnd } from '../../blocks/kit.js';
 import { visDt, giveStar } from '../../entities/gimmick.js';
+import { hasModel, getModel } from '../../models/index.js';
 import {
   isl, line, ring, blk, cyl, sph, cone, quadG, bakeParts, glowPoints, canvasTex, hausRaum, hausFertig, raumHaken, wimpel,
   levelSetup, cullStatic, farHide, heroShadowDiet, teileInstanzen,
@@ -439,4 +440,141 @@ export function kullerRinne(level, o) {
     }
   });
   return st;
+}
+
+// ====================================================================== 3) Maschinenhalle (6-6)
+
+/** Neustart nach einem Tod verketten (wie der Archetyp house): fn() nach runtime.respawn. */
+export function nachNeustart(level, fn) {
+  const rt = level.runtime;
+  const prev = rt.respawn.bind(rt);
+  rt.respawn = () => { prev(); fn(); };
+}
+
+/**
+ * Fahrende Plattform startet erst, wenn eine Figur daraufsteht (Fahrzeug `vehicle` mit eigenem Pfad, mode 'once'):
+ * bis dahin ruht die Fahrt-Uhr (delay sehr groß); nach einem Tod steht sie wieder am Start. Liefert { started, info() }.
+ */
+export function startBeimDraufstehen(level, id) {
+  const v = level.named.get(id);
+  if (!v) return null;
+  const st = { started: false, t: 0 };
+  v.delay = 1e9;
+  level.onStep(() => {
+    if (st.started) return;
+    for (const f of level.players ?? [level.player]) {
+      if (f.mode === 'ground' && f.ground?.mover === v.mover) {
+        st.started = true;
+        v.delay = level.time - v.t0;
+        level.sfx('switch');
+        break;
+      }
+    }
+  });
+  nachNeustart(level, () => { st.started = false; v.delay = 1e9; });
+  st.info = () => ({ started: st.started, s: +v.s.toFixed(2) });
+  return st;
+}
+
+/**
+ * Krallen-Automat (6-6 vor der hohen Förderband-Wand): eine Kostüm-Kapsel, aus der immer wieder ein Krallen-Anzug
+ * steigt, solange die Figur keinen trägt und keiner daliegt (alle `every` s). Kulisse: Automat mit Glaskuppel, Lämpchen.
+ * o = { pos: [x, y, z], every: 1.5, yaw }. Liefert { given }.
+ */
+export function krallenAutomat(level, o) {
+  const [x, y, z] = o.pos;
+  const st = { given: 0, t: 0.3 };
+  level.onStep((dt) => {
+    const p = level.player;
+    if (!p || p.dead) return;
+    if (p.power === 'krallen') { st.t = 0.6; return; }
+    const lying = level.entities.some((e) => e.kind === 'powerup' && !e.removed && e.power === 'krallen' && Math.hypot(e.pos.x - x, e.pos.z - z) < 3);
+    if (lying) return;
+    st.t -= dt;
+    if (st.t > 0) return;
+    st.t = o.every ?? 1.5;
+    st.given++;
+    level.spawn('powerup', { pos: [x, y + 0.08, z], power: 'krallen', emerge: true });
+    level.sfx('powerup_appear');
+  });
+  if (level.view) {
+    const P = [];
+    P.push(cyl(0.85, 0.95, 0.08, x, y, z, 0xffc21a, 20, { top: 0xffe06a }));
+    for (let k = 0; k < 12; k++) { const a = (k / 12) * TAU; P.push(blk(0.14, 0.03, 0.14, x + Math.cos(a) * 0.78, y + 0.08, z + Math.sin(a) * 0.78, k % 2 ? 0x2a2a34 : 0xffffff)); }
+    // Rückwand mit Krallen-Schild (Pfote) und Lämpchen
+    const bz = z - 0.9;
+    P.push(blk(1.8, 2.6, 0.3, x, y, bz, 0x5a6476, { top: 0x8a92a8 }));
+    P.push(cyl(0.5, 0.5, 0.06, 0, 0, 0, 0xffffff, 18, { rx: Math.PI / 2, center: true }).translate(x, y + 1.9, bz + 0.18));
+    for (const [dx, dy, r] of [[0, -0.08, 0.2], [-0.2, 0.14, 0.08], [-0.07, 0.22, 0.08], [0.07, 0.22, 0.08], [0.2, 0.14, 0.08]]) P.push(sph(r, x + dx, y + 1.9 + dy, bz + 0.22, 0xff8a2a, { sy: 0.5 }));
+    bakeParts(level, P, { castShadow: true });
+    glowPoints(level, [[x - 0.6, y + 2.45, bz + 0.2], [x + 0.6, y + 2.45, bz + 0.2]], 0xffc21a, 0.6);
+  }
+  return st;
+}
+
+/** Stahlträger (Fachwerk) von a nach b (waagerecht oder senkrecht), Breite w; als verschmolzene Teile in parts. */
+export function traeger(parts, a, b, o = {}) {
+  const w = o.w ?? 0.5, col = o.color ?? 0xd8483a;
+  const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L2 = Math.hypot(dx, dy, dz);
+  const n = Math.max(1, Math.round(L2 / (o.cell ?? 1.2)));
+  const vert = Math.abs(dy) > Math.max(Math.abs(dx), Math.abs(dz));
+  const at = (t, off) => [a[0] + dx * t + (vert ? off : 0), a[1] + dy * t + (vert ? 0 : off), a[2] + dz * t];
+  const rod = (p, q, r) => {
+    const g = new THREE.CylinderGeometry(r, r, Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]), 5).toNonIndexed();
+    const c = L(col);
+    colorize(g, (pp, nn, out) => { const k = 0.75 + 0.25 * smooth(-1, 1, nn.y + nn.x * 0.3); out[0] = c[0] * k; out[1] = c[1] * k; out[2] = c[2] * k; });
+    const v = new THREE.Vector3(q[0] - p[0], q[1] - p[1], q[2] - p[2]).normalize();
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), v));
+    g.translate((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, (p[2] + q[2]) / 2);
+    parts.push(g);
+  };
+  rod(at(0, -w / 2), at(1, -w / 2), 0.07);
+  rod(at(0, w / 2), at(1, w / 2), 0.07);
+  for (let i = 0; i < n; i++) rod(at(i / n, (i % 2 ? 1 : -1) * w / 2), at((i + 1) / n, (i % 2 ? -1 : 1) * w / 2), 0.045);
+}
+
+/**
+ * Drehende Zahnräder (Kulisse, Registry-Modell 'zahnrad' – drehen sich; ohne Modell nichts). list [{ pos, radius, axis:
+ * 'x' | 'z', speed, color }]. Ein Objekt je Rad (wenige, große Räder an den Hallenwänden).
+ */
+export function zahnraeder(level, list) {
+  if (!level.view) return;
+  for (const z of list) {
+    if (!hasModel('zahnrad')) return;
+    const m = getModel('zahnrad', { radius: z.radius ?? 1.5, thick: z.thick ?? 0.35, color: z.color ?? 'messing' });
+    m.root.position.set(z.pos[0], z.pos[1], z.pos[2]);
+    if (z.axis === 'z') m.root.rotation.y = Math.PI / 2;
+    m.root.traverse((q) => { if (q.isMesh) { q.castShadow = false; q.receiveShadow = true; } });
+    let a = z.phase ?? 0;
+    const hv = {};
+    addObject(level, m.root, (dt) => { a += (z.speed ?? 0.4) * visDt(level, hv, dt); m.update?.(dt, { angle: a }); });
+  }
+}
+
+/** Dampfwölkchen über Schloten (Punkte, steigen auf; ein Objekt): list [[x, y, z], …]. */
+export function dampf(level, list, o = {}) {
+  if (!level.view || !list.length) return null;
+  const n = o.n ?? 6;
+  const pts = new Float32Array(list.length * n * 3);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pts, 3));
+  const tex = canvasTex(64, 64, (c, w, h) => { const gr = c.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); });
+  const mat = new THREE.PointsMaterial({ map: tex, size: o.size ?? 1.6, transparent: true, opacity: 0.75, depthWrite: false, color: o.color ?? 0xf4f6ff });
+  const P = new THREE.Points(g, mat);
+  P.name = 'dampf';
+  let t = 0;
+  const hv = {};
+  addObject(level, P, (dt) => {
+    t += visDt(level, hv, dt);
+    let i = 0;
+    for (const [x, y, z] of list) for (let k = 0; k < n; k++) {
+      const u = ((t * 0.35 + k / n) % 1);
+      pts[i++] = x + Math.sin(k * 2.1 + t * 0.7) * 0.3 * u;
+      pts[i++] = y + u * (o.rise ?? 3.2);
+      pts[i++] = z + Math.cos(k * 1.7) * 0.25 * u;
+    }
+    g.attributes.position.needsUpdate = true;
+  });
+  P.frustumCulled = false;
+  return P;
 }

@@ -30,6 +30,67 @@ const SHOTS = process.env.SHOTS ? new Set(process.env.SHOTS.split('|')) : null;
 const VERBOSE = !!process.env.VERBOSE;
 const SAVE = 'lotti-greta-course-v1';
 
+// ====================================================================== Routen (6-5, 6-6)
+const ROUTES = {
+  '6-6': {
+    start: [0, 0, 5],
+    meta: { stars: 3, time: 500, theme: 'factory', music: 'course_factory', archetype: 'parcours', world: 6, title: 'Kanonenturm im Wolkenwerk' },
+    enemies: { kanone_turm: 7, riesenkanone: 1, pilzling: 4 },
+    main: [
+      { name: 'Kletterwand', fence: 'kletterwand', lane: -1.5, exit: [-1.5, -15.6], cannon: 'kanone_wand', danger: [5.4, 8.6] },
+      { name: 'Blockende', to: [-1.2, -23.2], within: 0.4, run: false },
+      { name: 'Wolke 1', to: [-1.2, -27], jump: 24, within: 0.6, run: false },
+      { name: 'Wolke 2', to: [0, -30.6], jump: 24, within: 0.9, run: false, max: 400 },
+      { name: 'Deck C1', to: [-0.5, -34.2], jump: 24, within: 0.6, run: false },
+      { name: 'links am Gegenband', to: [-3.6, -38], within: 0.5, dodge: true },
+      { to: [-3.6, -51.6], within: 0.4, dodge: true },
+      { name: 'Aufzugsband', lift: 'aufzug_c', at: [0, -51.4], face: [0, -1], top: 20, exit: [0, -54.8] },
+      { name: 'Querband', to: [-1.5, -61.2], within: 0.4 },
+      { name: 'Wolke C3', to: [-2, -64], jump: 24, within: 0.5, run: false },
+      { name: 'Wolke C4', to: [2, -66.2], jump: 24, within: 0.6, run: false },
+      { name: 'Deck C2b', to: [1.5, -69.2], jump: 24, within: 0.6, run: false },
+      { to: [0, -75.4], within: 0.3, dodge: true },
+      { name: 'Warp-Box', to: [0, -77.6], jump: 24, within: 0.3, run: false, stopIf: 'onD' },
+      { wait: 20 },
+      { expect: 'onD' },
+      { name: 'Checkpoint', to: [-3, -91.5], within: 0.5 },
+      { name: 'Kanonen-Floß', ride: 'kanonenfloss', at: [1, 2.6], exit: [1, -147.5] },
+      { to: [0, -152.4], within: 0.3, run: false },
+      { name: 'Wolke F1', to: [0, -156.2], jump: 24, within: 0.5, run: false },
+      { name: 'Wolke F2', to: [2.4, -159.6], jump: 24, within: 0.5, run: false },
+      { name: 'Deck F1', to: [0.5, -163], jump: 24, within: 0.6, run: false, jumpAt: 3.2 },
+      { name: 'Riesenprojektil', bullet: 'riesenkanone', edge: [0, -167.7], exit: [0, -194], minY: 35 },
+      { name: 'Krallen-Automat', chaseKind: 'powerup', max: 900 },
+      { expect: 'claws' },
+      { name: 'Bandwand 1', climb: [0, -206], top: 44 },
+      { name: 'Bandwand 2', climb: [0, -207.5], top: 54 },
+      { name: 'Bandwand 3', climb: [0, -209], top: 59 },
+      { name: 'Zielmast', to: [0, -219.6], within: 0.25 },
+    ],
+    routeChecks: [
+      { name: 'Klettergitter, Aufzugsband, Warp-Box, Kanonen-Floß, Riesenprojektil, drei Bandwände mit Krallen', ok: (r) => r.mech.fence === 1 && r.mech.lifts === 1 && r.mech.warps >= 1 && r.mech.rides === 1 && r.mech.bullets === 1 && r.mech.climbs === 3 },
+    ],
+    targets: [],
+    extra: [],
+    shots: [
+      ['start', [0, 0, 5]], ['wand', [0, 0, -9]], ['wand_mitte', [-1.5, 6, -13.4]], ['block', [0, 14, -16]], ['wolken_c', [0, 14, -24]], ['deck_c1', [0, 14, -36]],
+      ['aufzug', [0, 14, -50]], ['deck_c2', [0, 20, -56]], ['wolken_c2', [0, 20, -61]], ['warp', [0, 20, -72]], ['checkpoint', [-3, 30, -88]], ['raum', [73, 30, -90]],
+      ['floss', [1, 30, -101]], ['f0', [0, 30, -147]], ['f1', [0, 34, -164]], ['turm', [0, 34, -195]], ['terrasse1', [0, 44, -206.8]], ['steg', [-6, 48, -205.4]], ['ziel', [0, 59, -212]],
+    ],
+  },
+};
+
+/** Bedingungen für expect/until/stopIf (in der Seite). */
+function installCond() {
+  const c = window.__course, L = c.level, P = () => c.player;
+  window.__w6cond = {
+    onD: () => P().pos.y > 29 && P().pos.z < -84 && P().pos.z > -100,
+    claws: () => P().power === 'krallen',
+    inRaum: () => P().pos.x > 60,
+  };
+  return true;
+}
+
 // ====================================================================== Seiten-Hilfen (allgemein)
 /** In der Seite: window.__w6 mit place, stick, drive (Wegpunkte), chase, Zustand. */
 function install() {
@@ -45,7 +106,7 @@ function install() {
     p.__hurtWrapped = true;
     p.hurtTries = 0;
     const orig = p.hurt.bind(p);
-    p.hurt = (src) => { p.hurtTries++; p.lastHurt = src?.kind ?? String(src); return orig(src); };
+    p.hurt = (src) => { p.hurtTries++; p.lastHurt = src?.kind ?? String(src); (p.hurtKinds ??= {})[p.lastHurt] = (p.hurtKinds[p.lastHurt] ?? 0) + 1; return orig(src); };
   };
   wrapHurt();
   const W = {
@@ -83,6 +144,355 @@ function install() {
       const wl = Math.hypot(wx, wz); if (wl > vmax) { wx *= vmax / wl; wz *= vmax / wl; }
       const ex = wx - p.vel.x, ez = wz - p.vel.z, el = Math.hypot(ex, ez);
       return el > 0.05 ? this.stick(ex, ez, Math.min(1, el / 2.2)) : { x: 0, y: 0 };
+    },
+    /**
+     * Routen-Bot: Beine (legs) nacheinander mit echten Eingaben. Beinarten:
+     *   { to: [x, z], jump, jumpAt, runUp, within, run, slow, max, land, dodge, stopIf, autoJump }  Wegpunkt (optional Sprung)
+     *   { wait } · { hop } · { expect: Bedingung } · { until: Bedingung, max } · { star: i } · { chaseKind, ids }
+     *   { fence: id, lane, exit: [x, z] }       Klettergitter: anspringen, hochklettern (Projektilköpfen ausweichen), oben
+     *                                           abspringen und auf die Plattform dahinter lenken
+     *   { lift: bandId, at: [x, z], exit: [x, z] }   Förderband-Aufzug (Wand mit Stufen): auf eine Stufe springen, mitfahren,
+     *                                           oben auf die Plattform springen
+     *   { ride: fahrzeugId, at: [x, z] (Stand relativ zur Fahrzeugmitte), exit: [x, z] }   mitfahren, Köpfen ausweichen
+     *   { bullet: kanoneId, edge: [x, z], exit: [x, z] }   auf ein Riesenprojektil springen, mitfahren, abspringen
+     *   { climb: [x, z] (Wandpunkt), top }      Krallen: an die Wand springen, hochklettern, oben über die Kante
+     *   { path: [[x, z, jump?], …] }            schnelle Punktfolge (Zeitring)
+     *   { cleat: bandId, at: [x, z] }           Rundband: auf einen Mitnehmer der Rückseite springen, hochfahren
+     */
+    drive(legs, o = {}) {
+      const p = P();
+      const log = [];
+      let steps = 0, autoJumps = 0;
+      const hold = o.invuln !== false;
+      const hist = [];
+      let deadLogged = false;
+      const mech = { hurts: 0, fence: 0, lifts: 0, rides: 0, bullets: 0, climbs: 0, dodges: 0, warps: 0, maxY: -99 };
+      const track = [];
+      const COND = window.__w6cond ?? {};
+      const tick = (inp) => {
+        if (hold) p.invuln = Math.max(p.invuln, 5);
+        c.setInput(inp); c.step(1); steps++;
+        if (p.pos.y > mech.maxY) mech.maxY = p.pos.y;
+        if (p.mode === 'ground' && !p.dead) {
+          const t = track[track.length - 1];
+          if (!t || Math.hypot(p.pos.x - t[0], p.pos.z - t[2]) > 7 || Math.abs(p.pos.y - t[1]) > 4) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+        }
+        if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.ground?.tag ?? '']); if (hist.length > 40) hist.shift(); }
+        if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
+        if (p.mode === 'script' && L().runtime.status === 'play' && !p.dead) {
+          let n = 0;
+          const kind = p.script?.type ?? p.script?.kind ?? '?';
+          while (p.mode === 'script' && n++ < 2400 && !p.dead && L().runtime.status === 'play') { if (hold) p.invuln = Math.max(p.invuln, 5); c.setInput({}); c.step(1); steps++; }
+          if (/warp|pipe/.test(kind)) mech.warps++;
+          log.push(['fahrt', kind, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+        }
+      };
+      /** Drohender Projektilkopf (Annäherung in ≤ horizon s näher als r m, gleiche Höhe ± 1,1 m)? */
+      const threat = (horizon = 0.5, r = 1.1) => {
+        for (const e of L().entities) {
+          if (e.kind === 'pilzling' && e.alive && !e.removed && !e.defeated && e.state !== 'squashed') {
+            const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, dd = Math.hypot(dx, dz);
+            const ahead = (dx * p.vel.x + dz * p.vel.z) / Math.max(0.1, dd * Math.hypot(p.vel.x, p.vel.z));
+            if (dd < 1.6 && Math.abs(e.pos.y - p.pos.y) < 1 && (ahead > 0.3 || dd < 0.9)) return { e, t: 0.2 };
+            continue;
+          }
+          if ((e.kind !== 'projektilkopf' && e.kind !== 'suchkopf') || e.removed || e.state === 'fall' || e.state === 'burst') continue;
+          const dir = e.dir ?? { x: Math.cos(e.yaw ?? 0), z: -Math.sin(e.yaw ?? 0) };
+          const sp = e.speed ?? 5;
+          const rvx = dir.x * sp - p.vel.x, rvz = dir.z * sp - p.vel.z;
+          const rx = e.pos.x - p.pos.x, rz = e.pos.z - p.pos.z;
+          if (Math.abs(e.pos.y + 0.33 - (p.pos.y + 0.5)) > 1.1) continue;
+          const vv = rvx * rvx + rvz * rvz;
+          const t = vv > 1e-6 ? Math.max(0, Math.min(horizon, -(rx * rvx + rz * rvz) / vv)) : 0;
+          if (Math.hypot(rx + rvx * t, rz + rvz * t) < r && t < horizon) return { e, t };
+        }
+        return null;
+      };
+      const goTo = (tx, tz, within = 0.25, max = 900, run = false) => {
+        let i = 0;
+        for (; i < max; i++) {
+          const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+          if (d < within && p.mode === 'ground') break;
+          tick({ ...this.stick(dx, dz, Math.max(0.2, Math.min(1, d / 1.2))), run });
+        }
+        return i < max;
+      };
+      const jumpTo = (tx, tz, o2 = {}) => {
+        let k = 0;
+        for (; k < (o2.max ?? 300); k++) {
+          if (p.dead) break;
+          const dx = tx - p.pos.x, dz = tz - p.pos.z;
+          tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, o2.vx ?? 0, o2.vz ?? 0, o2.k ?? 3.2, o2.vmax ?? 8) : this.stick(dx, dz, 1)), jump: k < (o2.hold ?? 30), run: false });
+          if (k > 6 && (p.mode === 'ground' || p.mode === 'wall')) break;
+        }
+        return k;
+      };
+      for (let li = 0; li < legs.length; li++) {
+        const Lg = legs[li];
+        if (p.dead || L().runtime.status !== 'play') break;
+        if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
+        if (Lg.expect) { const ok = COND[Lg.expect]?.(); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect]); continue; }
+        if (Lg.until) { let k = 0; for (; k < (Lg.max ?? 1200) && !COND[Lg.until](); k++) tick({}); log.push(['bis', Lg.until, k]); if (!COND[Lg.until]()) log.push(['FEHLER: bis', Lg.until]); continue; }
+        if (Lg.hop) {
+          for (let k = 0; k < Lg.hop; k++) tick({ jump: true, ...(Lg.dir ? this.stick(Lg.dir[0], Lg.dir[1], 0.3) : {}) });
+          for (let k = 0; k < 240 && p.mode !== 'ground'; k++) tick({});
+          log.push(['hüpfer', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
+        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
+        // ------------------------------------------------ Klettergitter (Zaun): anspringen, klettern, oben abspringen
+        if (Lg.fence) {
+          const fe = L().fences?.find((f) => f.spec?.id === Lg.fence || f.id === Lg.fence) ?? L().named.get(Lg.fence)?.fence ?? null;
+          const plane = (fe ?? L().fences?.[0])?.plane;
+          if (!plane) { log.push(['FEHLER: Gitter fehlt', Lg.fence]); break; }
+          const lane = Lg.lane ?? plane.x;
+          goTo(lane, plane.z + plane.nz * 1.0 + plane.nx * 0, 0.2, 600);
+          let k = 0;
+          for (; k < 120 && p.mode !== 'wall'; k++) tick({ ...this.stick(-plane.nx, -plane.nz, 1), jump: k < 20 });
+          if (p.mode !== 'wall') { log.push(['FEHLER: Gitter nicht gegriffen', Lg.fence, p.mode]); break; }
+          mech.fence++;
+          const top = plane.y + plane.h - p.half.y * 2 + 0.3;
+          const kan = Lg.cannon ? L().named.get(Lg.cannon) : null;
+          let stuck = 0, last = p.pos.y, waits = 0;
+          for (k = 0; k < 2400 && p.mode === 'wall'; k++) {
+            // Projektilkopf: unterhalb des Gefahrenbands warten, solange einer fliegt oder die Kanone lädt
+            const band = Lg.danger;
+            let up = 1;
+            if (band && kan) {
+              // vor dem Gefahrenband warten, bis ein Kopf gerade an der Figur vorbei ist (dann bleibt Zeit bis zum nächsten)
+              const dirx = Math.cos(kan.yaw ?? 0);
+              const passed = kan.heads?.some((h) => !h.removed && h.state !== 'fall' && (h.pos.x - p.pos.x) * dirx > 0.9);
+              if (p.pos.y < band[0] && p.pos.y > band[0] - 1.2 && !passed) { up = 0; waits++; }
+            }
+            tick({ x: 0, y: up });
+            if (p.pos.y >= top - 0.03) break;
+            if (Math.abs(p.pos.y - last) < 1e-4 && up) stuck++; else stuck = 0;
+            last = p.pos.y;
+            if (stuck > 30) break;
+          }
+          log.push(['geklettert', +p.pos.y.toFixed(2), k, waits]);
+          // oben: abspringen, zurück über die Kante lenken
+          const [ex, ez] = Lg.exit;
+          k = jumpTo(ex, ez, { hold: 24, k: 4, vmax: 6 });
+          log.push(['über die Kante', k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
+          if (p.mode !== 'ground' || p.pos.y < top) { log.push(['FEHLER: nicht oben', Lg.fence]); break; }
+          continue;
+        }
+        // ------------------------------------------------ Förderband-Aufzug: Stufe abwarten, aufspringen, oben absteigen
+        if (Lg.lift) {
+          const band = L().named.get(Lg.lift);
+          const [ax, az] = Lg.at;
+          goTo(ax, az, 0.2, 600);
+          const y0 = p.pos.y;
+          let k = 0, on = false;
+          for (; k < 1200 && !on; k++) {
+            // eine Stufe ist knapp über Fußhöhe und kommt hoch → aufspringen
+            const ly = band.ledgeInfo?.() ?? [];
+            const ready = ly.some((y) => y > y0 + (Lg.lo ?? 0.35) && y < y0 + (Lg.hi ?? 0.75));
+            if (!ready || p.mode !== 'ground') { tick({}); continue; }
+            const [fx, fz] = Lg.face;
+            let j = 0;
+            for (; j < 120; j++) {
+              tick({ ...this.stick(fx, fz, j < 6 ? 0.6 : 0.25), jump: j < 14 });
+              if (j > 6 && p.mode === 'ground') break;
+            }
+            on = p.mode === 'ground' && p.ground?.tag === 'foerderband:stufe';
+          }
+          if (!on) { log.push(['FEHLER: keine Stufe', Lg.lift, p.ground?.tag]); break; }
+          mech.lifts++;
+          // mitfahren bis oben, dann zur Ausstiegsstelle springen
+          let r = 0;
+          for (; r < 1500; r++) {
+            if (p.pos.y >= Lg.top - (Lg.early ?? 0.5)) break;
+            tick(p.mode === 'ground' ? { ...this.stick(Lg.face[0], Lg.face[1], 0.15) } : {});
+          }
+          const [ex, ez] = Lg.exit;
+          jumpTo(ex, ez, { hold: Lg.hold ?? 20, k: 3, vmax: 5 });
+          goTo(ex, ez, 0.3, 300);
+          log.push(['Aufzug', Lg.lift, k, r, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (Math.abs(p.pos.y - Lg.top) > 0.6) { log.push(['FEHLER: Aufzug oben nicht erreicht']); break; }
+          continue;
+        }
+        // ------------------------------------------------ Fahrzeug: draufsteigen, mitfahren, Köpfen ausweichen, absteigen
+        if (Lg.ride) {
+          const v = L().named.get(Lg.ride);
+          const [ox, oz] = Lg.at;
+          let k = 0;
+          for (; k < 900; k++) {
+            const tx = v.pos.x + ox, tz = v.pos.z + oz;
+            if (p.mode === 'ground' && p.ground?.mover === v.mover && Math.hypot(tx - p.pos.x, tz - p.pos.z) < 0.4) break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz) : this.stick(tx - p.pos.x, tz - p.pos.z, Math.min(1, Math.hypot(tx - p.pos.x, tz - p.pos.z)))), run: false });
+          }
+          mech.rides++;
+          let r = 0, still = 0;
+          for (; r < 6000; r++) {
+            if (p.dead) break;
+            const tx = v.pos.x + ox, tz = v.pos.z + oz;
+            const th = p.mode === 'ground' ? threat(0.45, 1.0) : null;
+            if (th) mech.dodges++;
+            const d = Math.hypot(tx - p.pos.x, tz - p.pos.z);
+            tick({ ...(d > 0.15 ? (p.mode === 'air' ? this.airSteer(tx, tz, v.mover.vx, v.mover.vz) : this.stick(tx - p.pos.x, tz - p.pos.z, Math.min(1, d))) : {}), jump: !!th });
+            if ((v.speedNow ?? 0) < 0.01 && r > 120) still++; else still = 0;
+            if (still > 60) break;
+          }
+          const [ex, ez] = Lg.exit;
+          goTo(ex, ez, 0.4, 600);
+          log.push(['Fahrt', Lg.ride, k, r, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Riesenprojektil: aufspringen, mitfahren, abspringen
+        if (Lg.bullet) {
+          const [ax, az] = Lg.edge;
+          goTo(ax, az + (Lg.runup ?? 2.2), 0.2, 600);
+          let k = 0, b = null;
+          for (; k < 1800 && !b; k++) {
+            b = L().entities.find((e) => e.kind === 'riesenprojektil' && !e.removed && e.state === 'fly' && e.pos.z < az - (Lg.near ?? 4.6) && e.pos.z > az - (Lg.far ?? 6.2)) ?? null;
+            if (!b) tick({});
+          }
+          if (!b) { log.push(['FEHLER: kein Riesenprojektil']); break; }
+          // anlaufen (vom Wartepunkt hinter der Kante), an der Kante abspringen, auf der Oberseite landen
+          let j = 0, on = false, jumped = false;
+          for (; j < 300; j++) {
+            const vz = (b.dir?.z ?? -1) * (b.speed ?? 3.5);
+            const tx = b.pos.x, tz = b.pos.z + (Lg.aim ?? 0.4);
+            if (!jumped && p.mode === 'ground' && p.pos.z <= az + 0.15) jumped = true;
+            if (!jumped) { tick({ ...this.stick(tx - p.pos.x, tz - p.pos.z, 1), run: true }); continue; }
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, vz, 3.2, 10) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: j < 200, run: true });
+            if (p.mode === 'ground' && p.pos.y > az * 0 + (Lg.minY ?? 34.5)) { on = true; break; }
+            if (p.pos.y < (Lg.minY ?? 34.5) - 3) break;
+          }
+          if (!on) { log.push(['FEHLER: nicht auf dem Riesenprojektil', p.ground?.tag, +p.pos.y.toFixed(2)]); break; }
+          mech.bullets++;
+          const [ex, ez] = Lg.exit;
+          let r = 0;
+          for (; r < 3000; r++) {
+            if (b.pos.z - 1.6 < ez + (Lg.lead ?? 4.5) || b.removed) break;
+            const tx = b.pos.x, tz = b.pos.z - 0.4;
+            tick(p.mode === 'ground' ? { ...this.stick(tx - p.pos.x, tz - p.pos.z, Math.min(1, Math.hypot(tx - p.pos.x, tz - p.pos.z))) } : {});
+          }
+          jumpTo(ex, ez, { hold: 26, k: 3, vmax: 7 });
+          goTo(ex, ez, 0.4, 300);
+          log.push(['Riesenprojektil', k, r, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Krallen: an die Wand, hochklettern, über die Kante
+        if (Lg.climb) {
+          const [wx, wz] = Lg.climb;
+          const fx = Lg.face?.[0] ?? 0, fz = Lg.face?.[1] ?? -1;
+          goTo(wx - fx * 1.2, wz - fz * 1.2, 0.2, 600);
+          let k = 0, climbed = false;
+          for (; k < 900; k++) {
+            if (p.dead) break;
+            tick({ ...this.stick(fx, fz, 1), jump: p.mode === 'ground' && k % 40 < 10 });
+            if (p.state === 'climb') climbed = true;
+            if (p.mode === 'ground' && p.pos.y > Lg.top - 0.2) break;
+          }
+          if (climbed) mech.climbs++;
+          log.push(['Krallen', k, climbed, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.power]);
+          if (p.pos.y < Lg.top - 0.2) { log.push(['FEHLER: Wand nicht erklommen', Lg.climb]); break; }
+          continue;
+        }
+        // ------------------------------------------------ Rundband: auf einen Mitnehmer der Rückseite springen
+        if (Lg.cleat) {
+          const band = L().named.get(Lg.cleat);
+          const [ax, az] = Lg.at;
+          goTo(ax, az, 0.15, 300);
+          let k = 0, on = false;
+          for (; k < 900 && !on; k++) {
+            const cl = band.cleats.find((cc) => cc.side === 'hinten' && cc.mb.pos.y > p.pos.y + 1.3 && cc.mb.pos.y < p.pos.y + 1.7);
+            if (!cl || p.mode !== 'ground') { tick({}); continue; }
+            let j = 0;
+            for (; j < 100; j++) {
+              const tx = cl.mb.pos.x, tz = cl.mb.pos.z;
+              tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 4, 4) : this.stick(tx - p.pos.x, tz - p.pos.z, 0.5)), jump: j < 22 });
+              if (j > 6 && p.mode === 'ground') break;
+            }
+            on = p.mode === 'ground' && p.pos.y > Lg.minY;
+          }
+          log.push(['Mitnehmer', k, on, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.ground?.tag]);
+          if (!on) { log.push(['FEHLER: kein Mitnehmer']); break; }
+          for (let r = 0; r < 400 && p.pos.y < Lg.top - 0.2; r++) tick({});
+          continue;
+        }
+        // ------------------------------------------------ schnelle Punktfolge
+        if (Lg.path) {
+          for (const [tx, tz, jmp, w] of Lg.path) {
+            if (jmp) jumpTo(tx, tz, { hold: jmp === true ? 26 : jmp, k: 3.4, vmax: 8 });
+            else {
+              let i = 0;
+              for (; i < 400; i++) {
+                const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+                if (d < (w ?? 0.35)) break;
+                tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz) : this.stick(dx, dz, 1)), run: true });
+              }
+            }
+          }
+          log.push(['Pfad', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Wegpunkt (optional mit Sprung)
+        const max = Lg.max ?? 900;
+        const within = Lg.within ?? 0.6;
+        const holdJ = Lg.jump === true ? 40 : (Lg.jump ?? 0);
+        const tx = Lg.to[0] ?? p.pos.x, tz = Lg.to[1];
+        let i = 0, airborne = false, landed = false;
+        let best = Infinity, still = 0, auto = 0, j0 = Lg.jumpAt || Lg.runUp ? null : 0;
+        if (holdJ) for (let w = 0; w < 240 && p.mode === 'air'; w++) tick({});
+        for (; i < max; i++) {
+          if (p.dead || L().runtime.status !== 'play') break;
+          const dx = tx - p.pos.x, dz = tz - p.pos.z;
+          const dist = Math.hypot(dx, dz);
+          if (dist < best - 0.05) { best = dist; still = 0; } else if (p.mode === 'ground') still++;
+          if (still > 45 && auto <= 0 && Lg.autoJump !== false) { auto = 26; still = 0; autoJumps++; }
+          const done = dist < within && (!holdJ || Lg.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim'))) && (!Lg.dodge || p.mode === 'ground');
+          if (done && i > 0) break;
+          let mag = Lg.slow ?? 1;
+          let st;
+          if (p.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, 2.6, 11);
+          else {
+            if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
+            st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
+          }
+          if (Lg.stopIf && COND[Lg.stopIf]?.()) break;
+          if (j0 === null && Lg.jumpAt && dist <= Lg.jumpAt) j0 = i;
+          if (j0 === null && Lg.runUp && p.mode === 'ground' && ((p.vel.x * dx + p.vel.z * dz) / Math.max(0.01, dist) > Lg.runUp || i > 40)) j0 = i;
+          const jump = (holdJ && j0 !== null ? (i - j0 < holdJ) : false) || auto > 0;
+          if (auto > 0) auto--;
+          let dodgeJ = false;
+          if (Lg.dodge && p.mode === 'ground') { const th = threat(0.4, 1.1); if (th) { dodgeJ = true; mech.dodges++; } }
+          tick({ ...st, run: Lg.run ?? true, jump: jump || dodgeJ });
+          if (p.mode === 'air') airborne = true;
+          else if (airborne) landed = true;
+        }
+        log.push([Lg.name ?? `leg${li}`, i, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
+        if (i >= max) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, Lg.to]); break; }
+      }
+      c.setInput({});
+      mech.hurts = p.hurtTries ?? 0;
+      mech.hurtKinds = p.hurtKinds ?? {};
+      return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L().runtime.status, info: p.info(), rt: L().runtime.info(), mech, power: p.power, track };
+    },
+    chase(kind, o = {}) {
+      const p = P();
+      let n = 0;
+      const max = o.max ?? 3600;
+      const match = (x) => x.kind === kind && x.alive && !x.removed && !x.defeated && !x.hidden && (!o.filter || o.filter(x));
+      for (; n < max; n++) {
+        if (p.dead || L().runtime.status !== 'play') break;
+        let e = null, best = Infinity;
+        for (const x of L().entities) { if (!match(x)) continue; const d = Math.hypot(x.pos.x - p.pos.x, x.pos.z - p.pos.z); if (d < best) { best = d; e = x; } }
+        if (!e) break;
+        const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, dist = Math.hypot(dx, dz);
+        const dy = e.pos.y - p.pos.y;
+        const jump = (o.jump !== false && (n % 48) < 20 && dist < 1.6) || (dy > 0.8 && (n % 48) < 30);
+        p.invuln = Math.max(p.invuln, 5);
+        c.setInput({ ...this.stick(dx, dz, Math.min(1, 0.3 + dist)), run: !o.walk && (dist > 1.5 || o.run), jump });
+        c.step(1);
+        if (p.mode === 'script') { let k = 0; while (p.mode === 'script' && k++ < 1200) { c.setInput({}); c.step(1); } }
+      }
+      c.setInput({});
+      return n;
     },
     rt: () => L().runtime.info(),
     info: () => P().info(),
@@ -372,12 +782,127 @@ async function haus() {
   }
 }
 
+// ====================================================================== Parcours (6-5, 6-6)
+async function parcours(id) {
+  const R = ROUTES[id];
+  console.log(`\nLevel ${id}`);
+  if (!(await load(id, { fresh: true }))) { check(`${id} lädt`, false); return; }
+  await sc(installCond);
+  const loadErrors = errors.slice();
+  if (PARTS.has('load')) {
+    const meta = await sc(() => { const d = window.__course.level.data; return { title: d.title, world: d.world, timeLimit: d.timeLimit, theme: d.theme, music: d.music, archetype: d.archetype, stars: d.stars.length }; });
+    const kinds = await W('kinds');
+    console.log(`  „${meta.title}“, Welt ${meta.world}, Thema ${meta.theme}, Musik ${meta.music}, Zeitlimit ${meta.timeLimit} s, Entitäten: ${JSON.stringify(kinds)}`);
+    check(`${id}: lädt ohne Konsolenfehler/-warnungen`, loadErrors.length === 0);
+    for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
+    check(`${id}: „${R.meta.title}“, Welt 6, ${R.meta.stars} Sterne, Stempel, ${R.meta.time} s, Thema ${R.meta.theme}, Musik ${R.meta.music}, Archetyp ${R.meta.archetype}`,
+      meta.title === R.meta.title && meta.world === 6 && meta.stars === R.meta.stars && kinds.stamp === 1 && meta.timeLimit === R.meta.time && meta.theme === R.meta.theme && meta.music === R.meta.music && meta.archetype === R.meta.archetype);
+    for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
+  }
+
+  // ------------------------------------------------ Fehlersuche: PARTS=probe FROM='[x,y,z]' LEGS='[…]' (Spur alle 6 Schritte)
+  if (PARTS.has('probe')) {
+    await W('place', JSON.parse(process.env.FROM), { hero: HEROES[0], settle: 10 });
+    await sc(() => { const c = window.__course, L = c.level; window.__trace = []; L.onStep(() => { const p = c.player; if (Math.round(L.time * 120) % 6 === 0) { const b = L.entities.find((e) => e.kind === 'riesenprojektil' && !e.removed); window.__trace.push([+L.time.toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.ground?.tag ?? '', b ? +b.pos.y.toFixed(2) : '', b ? +b.pos.z.toFixed(2) : '']); } }); });
+    const res = await W('drive', JSON.parse(process.env.LEGS), {});
+    for (const l of res.log) console.log('   ', JSON.stringify(l));
+    if (process.env.TRACE) for (const t of await sc(() => window.__trace)) console.log('     ', JSON.stringify(t));
+    console.log('   ', JSON.stringify(res.mech), res.status, JSON.stringify(res.rt.stars), res.rt.stamp);
+    return;
+  }
+
+  // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
+  let sweepTrack = null;
+  for (const hero of ONLY || !PARTS.has('route') || !R.main.length ? [] : HEROES) {
+    await load(id, { hero });
+    await sc(installCond);
+    await W('place', R.start, { hero, settle: 2 });
+    const res = await W('drive', R.main, {});
+    const reached = res.status === 'goal' || res.status === 'done';
+    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Mechanik ${JSON.stringify(res.mech)}`);
+    if (!reached || VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+    check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
+    check(`${id}: ${hero} Zeit bis zum Ziel < 300 s (${res.time.toFixed(1)} s)`, reached && res.time < 300);
+    if (hero === HEROES[0] && PARTS.has('sweep')) sweepTrack = res.track;
+    for (const m of R.routeChecks ?? []) check(`${id}: ${hero} – ${m.name}`, m.ok(res));
+  }
+
+  // ------------------------------------------------ Kennzahlen entlang der ganzen Route
+  if (sweepTrack?.length) {
+    await load(id);
+    let worst = { calls: 0, tris: 0, at: null, atT: null };
+    const per = [];
+    for (const pt of sweepTrack) {
+      await W('place', pt, { settle: 6 });
+      const f0 = await sc(() => { window.__course.snapCamera(); return window.__course.view.frame; });
+      await page.waitForFunction((f) => window.__course.view.frame >= f + 6, f0, { timeout: 90000 });
+      const st = await sc(() => window.__course.stats());
+      per.push([pt, st.calls, st.triangles]);
+      if (st.calls > worst.calls) { worst.calls = st.calls; worst.at = pt; }
+      if (st.triangles > worst.tris) { worst.tris = st.triangles; worst.atT = pt; }
+    }
+    if (VERBOSE) for (const [pt, cl, tr] of per) console.log(`      ${pt.join(', ').padEnd(26)} ${cl} Aufrufe ${Math.round(tr / 1000)} k`);
+    check(`${id}: Messgang über ${per.length} Punkte der Route – Zeichenaufrufe < 120 (max ${worst.calls} bei ${worst.at?.map((v) => v.toFixed(0)).join(', ')})`, worst.calls < 120);
+    check(`${id}: Messgang – Dreiecke < 300 k (max ${Math.round(worst.tris / 1000)} k bei ${worst.atT?.map((v) => v.toFixed(0)).join(', ')})`, worst.tris < 300000);
+  }
+
+  // ------------------------------------------------ Sterne und Stempel
+  for (const t of !PARTS.has('targets') ? [] : pick(R.targets)) {
+    for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
+      await load(id, { hero });
+      await sc(installCond);
+      await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
+      const res = await W('drive', t.legs, { invuln: t.invuln });
+      const rt = await W('rt');
+      let ok = t.star !== undefined ? rt.stars[t.star] : rt.stamp;
+      if (t.expectNot) ok = !ok;
+      if (!t.expectNot && res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
+      if (t.mech && !t.mech(res)) ok = false;
+      if (!ok || VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+      check(`${id}: ${t.name} (${hero}${t.mechText ? `, ${t.mechText(res)}` : ''})`, !!ok);
+      if (t.shot && hero === HEROES[0]) await shot(`${id}_${t.shot}`);
+    }
+  }
+
+  for (const t of !PARTS.has('extra') ? [] : pick(R.extra ?? [])) {
+    for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
+      await load(id, { hero });
+      await sc(installCond);
+      const lives0 = await W('lives');
+      const coins0 = (await W('rt')).coins;
+      await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
+      const res = await W('drive', t.legs, { invuln: t.invuln });
+      const lives1 = await W('lives');
+      let ok = true;
+      if (t.expectCoins !== undefined) ok = ok && res.rt.coins - coins0 >= t.expectCoins;
+      if (t.expectLives !== undefined) ok = ok && lives1 - lives0 >= t.expectLives;
+      if (t.expectAlive !== false) ok = ok && !res.dead;
+      if (t.mech && !t.mech(res)) ok = false;
+      if (res.log.some((l) => String(l[0]).startsWith('FEHLER')) && !t.allowFail) ok = false;
+      if (!ok || VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+      check(`${id}: ${t.name} (${hero}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}${t.mechText ? `, ${t.mechText(res)}` : ''})`, ok);
+      if (t.shot && hero === HEROES[0]) await shot(`${id}_${t.shot}`);
+    }
+  }
+
+  // ------------------------------------------------ Bilder je Abschnitt aus der Spielkamera
+  if (ONLY || !PARTS.has('shots')) return;
+  await load(id, { fresh: true });
+  for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2] of R.shots) {
+    if (SHOTS && !SHOTS.has(name)) continue;
+    await W('place', pos, { settle: 10, yaw });
+    if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
+    await shot(`${id}_${name}`);
+  }
+}
+
 // ====================================================================== Ablauf
 for (const id of LEVELS) {
   if (id === '6-Haus') {
     if (PARTS.has('haus') || PARTS.has('load')) await haus();
     continue;
   }
+  if (ROUTES[id]) await parcours(id);
 }
 
 if (stats.length) {
