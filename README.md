@@ -200,6 +200,23 @@ Welt 5):
 | 5-Zug | Bimmelbahn voller Bitcoins | Bonus-Autoscroller auf dem Goldzug, Glücksgarten |
 | 5-Burg | Rumpeltempel des Kippquader-Königs | Ruinen-Tempel, Boss Kippquader-König (nur Sprung auf den Rücken trifft) |
 
+**Welt 6 „Wolkeninseln“** (frei nach 5-Burg; Sternschranken 110/120; 6-B gleich am Weltanfang):
+
+| Id | Titel | Art |
+| --- | --- | --- |
+| 6-1 | Röhrenreise über die Wolkengipfel | Bergland mit verzweigtem Glasröhren-Netz, Stachelkugeln, Münzhimmel |
+| 6-B | Werfer-Wirbel im Steinkreis | Arena: Feuer-, Hammer- und Bumerang-Werfer in 100 s |
+| 6-2 | Schaukelschiffe im Nebelmeer | Kippende Geisterschiffe, Kippsteg, gefluteter Laderaum, Schubser |
+| 6-3 | Schiebetüren im Kirschblütensaal | Fernost-Halle: Schiebetüren, Gong, Pilz-Maske, Propeller-Helme |
+| 6-4 | Floßfahrt durch den Giftsee-Dschungel | Floß im Giftsee, Brummer, Rankenschnapper, Abwärtsströmung |
+| 6-A | Schubser-Prinz im Röhrenzwinger | Arena: Prinz in die Glasröhren stoßen, 3 Tritte |
+| 6-5 | Pustewind am Eisgipfel | Eisseen, Pustewolken, Windböen über Abgründen, Glotzfische |
+| 6-6 | Kanonenturm im Wolkenwerk | Vertikale Maschinenhalle, Förderbänder, Riesenprojektil |
+| 6-Haus | Haus Volltreffer | Prüfungs-Haus: 5 Räume à 10 s mit Wurfbällen |
+| 6-7 | Wuschelflucht im Glitzerschacht | Vertikaler Autoscroller, Wuschel-Horde, Quetschblöcke, Wippen |
+| 6-Panzer | Kawumm-Kolonne über den Wolken | Panzerkolonne, wachsende ?-Blöcke, Boss Wirbelbrocken mit Attrappen |
+| 6-C | Glibber-Gala im Wolkenzirkus | Spiegelbühne, Seilbahn, Boss Würfelblase |
+
 **Halloween · Kürbisinsel** (Sonderwelt, sofort offen über die geschmückte Röhre „HW“ auf der Welt-1-Karte; Lotti,
 Greta, Pflaume und Krümel tragen dort Verkleidung):
 
