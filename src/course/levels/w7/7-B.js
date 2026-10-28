@@ -72,15 +72,15 @@ export const LEVEL = {
   segments: [
     { type: 'killplane', y: -16 },
     // Festungsplattform (Kollision, Umriss für Himmel und Kulisse; Mauern, Käfig und Leib baut der Haken)
-    { type: 'island', pos: [0, Y - 4, 0], size: [42, 4, 42], top: 'stone', under: 0 },
+    { type: 'island', pos: [0, Y - 4, 0], size: [42, 4, 42], top: 'rock', topColor: 0x7a6870, sideColor: 0x3a2e34, cell: 2, under: 0 },
     { type: 'glasnetz', id: 'roehren', radius: 1, nodes: NODES, pipes: PIPES, ends: ENDS },
     { type: 'crowd', id: 'crowd', stands: [
       { from: [-19.4, Y, -9], to: [-19.4, Y, 9], rows: 3, face: [1, 0] },
       { from: [19.4, Y, 9], to: [19.4, Y, -9], rows: 3, face: [-1, 0] },
     ] },
     { type: 'deco_w7', items: [
-      { kind: 'burgturm', pos: [-W - 2.8, Y - 0.2, -W - 2.8], height: 8, radius: 1.8 }, { kind: 'burgturm', pos: [W + 2.8, Y - 0.2, -W - 2.8], height: 8, radius: 1.8 },
-      { kind: 'burgturm', pos: [-W - 2.8, Y - 0.2, W + 2.6], height: 7, radius: 1.7 }, { kind: 'burgturm', pos: [W + 2.8, Y - 0.2, W + 2.6], height: 7, radius: 1.7 },
+      { kind: 'burgturm', pos: [-W - 2.8, Y - 0.2, -W - 2.8], height: 8, radius: 1.8, look: 'eigen' }, { kind: 'burgturm', pos: [W + 2.8, Y - 0.2, -W - 2.8], height: 8, radius: 1.8, look: 'eigen' },
+      { kind: 'burgturm', pos: [-W - 2.8, Y - 0.2, W + 2.6], height: 7, radius: 1.7, look: 'eigen' }, { kind: 'burgturm', pos: [W + 2.8, Y - 0.2, W + 2.6], height: 7, radius: 1.7, look: 'eigen' },
       { kind: 'fackel', pos: [-GATE - 1.6, Y, W + 2], mount: 'stand', color: 'blau' }, { kind: 'fackel', pos: [GATE + 1.6, Y, W + 2], mount: 'stand', color: 'blau' },
       { kind: 'fackel', pos: [-17.5, Y, 17.5], mount: 'stand', color: 'blau' }, { kind: 'fackel', pos: [17.5, Y, 17.5], mount: 'stand', color: 'blau' },
       { kind: 'fahne', pos: [-9, Y, 18.6], height: 5 }, { kind: 'fahne', pos: [9, Y, 18.6], height: 5 },
