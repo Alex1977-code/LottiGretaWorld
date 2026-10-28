@@ -351,7 +351,7 @@ function buildFelsklotz(opts = {}) {
     else if (moving) roll += dt * num(st.speed, anim === 'fast' ? 4 : 2) / (S / 2);
     heat = damp(heat, anim === 'fast' ? 1 : moving ? 0.35 : 0.15 + Math.max(0, Math.sin(t * 1.7)) * 0.15, 4, dt);
     // Rollen: Kugel um die eigene Mitte; Würfel kippt über die Vorderkante (Mitte hebt sich)
-    let cy = S / 2;
+    let cy = S / 2 + (shape === 'kugel' ? S * 0.03 : 0);
     if (shape === 'wuerfel') { const ph = ((roll % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2); cy = (S / Math.SQRT2) * Math.sin(Math.PI / 4 + ph); }
     const breathe = anim === 'idle' ? 1 + Math.sin(t * 2) * 0.012 : 1;
     center.position.set(0, cy, 0);

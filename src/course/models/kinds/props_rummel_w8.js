@@ -169,16 +169,16 @@ function karussellGeo() {
     const b = new Build();
     const R = 4;
     // Drehscheibe mit Schürze (rot-weiß), Boden aus Holzdielen
-    b.cyl(R, R, 0.5, (x, y, z, nx, ny) => (ny > 0.5 ? (Math.floor(Math.hypot(x, z) * 2) % 2 ? col(W8.woodHi) : col(W8.wood)) : (Math.floor(((Math.atan2(z, x) / TAU) + 1) * 24) % 2 ? col(W8.red) : col(W8.white))), { p: [0, 0.45, 0] }, 48);
-    b.torus(R, 0.08, W8.gold, { p: [0, 0.7, 0], r: [Math.PI / 2, 0, 0] }, 6, 48);
+    b.cyl(R, R, 0.5, (x, y, z, nx, ny) => (ny > 0.5 ? (Math.floor(Math.hypot(x, z) * 2) % 2 ? col(W8.woodHi) : col(W8.wood)) : (Math.floor(((Math.atan2(z, x) / TAU) + 1) * 24) % 2 ? col(W8.red) : col(W8.white))), { p: [0, 0.45, 0] }, 36);
+    b.torus(R, 0.08, W8.gold, { p: [0, 0.7, 0], r: [Math.PI / 2, 0, 0] }, 5, 36);
     // Mittelsäule (Spiegel-Zylinder mit Gold)
-    b.cyl(0.9, 0.9, 4.6, { v: (x, y, z, nx) => mix(W8.purple, W8.purpleHi, smoothstep(nx * 0.5 + 0.4)) }, { p: [0, 3.0, 0] }, 24);
-    for (const y of [0.8, 2.9, 5.2]) b.torus(0.92, 0.09, W8.gold, { p: [0, y, 0], r: [Math.PI / 2, 0, 0] }, 6, 24);
+    b.cyl(0.9, 0.9, 4.6, { v: (x, y, z, nx) => mix(W8.purple, W8.purpleHi, smoothstep(nx * 0.5 + 0.4)) }, { p: [0, 3.0, 0] }, 18);
+    for (const y of [0.8, 2.9, 5.2]) b.torus(0.92, 0.09, W8.gold, { p: [0, y, 0], r: [Math.PI / 2, 0, 0] }, 5, 18);
     // Dach: gestreifter Kegel, Zackenrand, Kugel mit Wimpel
     const roof = new THREE.ConeGeometry(R + 0.6, 1.8, 24, 1, true); roof.translate(0, 6.2, 0);
     b.add(roof, (x, y, z) => (Math.floor(((Math.atan2(z, x) / TAU) + 1) * 12) % 2 ? col(W8.red) : col(W8.yellow)));
     const n = 24;
-    for (let i = 0; i < n; i++) { const a = ((i + 0.5) / n) * TAU; b.add(new THREE.SphereGeometry(0.55, 8, 6, 0, TAU, Math.PI / 2, Math.PI / 2), i % 2 ? W8.red : W8.yellow, { p: [Math.cos(a) * (R + 0.45), 5.3, Math.sin(a) * (R + 0.45)], s: [1, 0.9, 0.6], r: [0, -a + Math.PI / 2, 0] }); }
+    for (let i = 0; i < n; i++) { const a = ((i + 0.5) / n) * TAU; b.add(new THREE.SphereGeometry(0.55, 6, 3, 0, TAU, Math.PI / 2, Math.PI / 2), i % 2 ? W8.red : W8.yellow, { p: [Math.cos(a) * (R + 0.45), 5.3, Math.sin(a) * (R + 0.45)], s: [1, 0.9, 0.6], r: [0, -a + Math.PI / 2, 0] }); }
     b.cyl(R + 0.6, R + 0.6, 0.3, W8.gold, { p: [0, 5.3, 0] }, 24, true);
     b.sphere(0.45, W8.gold, { p: [0, 7.25, 0] }, 12, 8);
     b.cyl(0.05, 0.05, 1.2, W8.gold, { p: [0, 7.9, 0] }, 6);
@@ -192,16 +192,16 @@ const horseGeo = () => cached('w8:pferd2', () => {
   const b = new Build();
   const body = { v: (x, y, z, nx, ny) => mix(0xd8d8ec, 0xffffff, smoothstep(ny * 0.5 + 0.45)) };
   const mane = { v: (x, y, z, nx, ny) => mix(0xd84a8a, 0xff9ac8, smoothstep(ny * 0.5 + 0.5)) };
-  b.sphere(1, body, { s: [0.55, 0.27, 0.24] }, 12, 8);
-  b.sphere(1, body, { p: [0.33, 0.06, 0], s: [0.26, 0.25, 0.22] }, 10, 7);
+  b.sphere(1, body, { s: [0.55, 0.27, 0.24] }, 10, 7);
+  b.sphere(1, body, { p: [0.33, 0.06, 0], s: [0.26, 0.25, 0.22] }, 8, 6);
   b.capsule(0.13, 0.28, body, { p: [0.5, 0.34, 0], r: [0, 0, -0.55] }, 1, 7);
-  b.sphere(1, body, { p: [0.72, 0.56, 0], s: [0.25, 0.15, 0.14], r: [0, 0, -0.55] }, 10, 7);
+  b.sphere(1, body, { p: [0.72, 0.56, 0], s: [0.25, 0.15, 0.14], r: [0, 0, -0.55] }, 9, 6);
   b.sphere(1, 0xffd8e8, { p: [0.88, 0.45, 0], s: [0.11, 0.1, 0.11] }, 8, 6);
   for (const z of [1, -1]) {
     b.cone(0.045, 0.14, body, { p: [0.62, 0.76, z * 0.07], r: [z * 0.2, 0, 0.3] }, 6);
     b.sphere(1, 0x1a1020, { p: [0.8, 0.62, z * 0.105], s: [0.03, 0.04, 0.02] }, 6, 4);
   }
-  for (let i = 0; i < 5; i++) b.sphere(0.075 - i * 0.004, mane, { p: [0.36 + i * 0.07, 0.42 + i * 0.075, 0], s: [0.8, 1, 0.7] }, 7, 5);
+  for (let i = 0; i < 5; i++) b.sphere(0.075 - i * 0.004, mane, { p: [0.36 + i * 0.07, 0.42 + i * 0.075, 0], s: [0.8, 1, 0.7] }, 6, 4);
   b.tube([[-0.5, 0.1, 0], [-0.68, 0.02, 0], [-0.78, -0.2, 0], [-0.72, -0.4, 0]], 0.07, mane, null, 8, 5);
   b.box(0.4, 0.06, 0.5, 0xe8283a, { p: [0.0, 0.27, 0] }, 0.03, 1);
   b.box(0.42, 0.03, 0.52, W8.gold, { p: [0.0, 0.24, 0] }, 0.01, 1);
