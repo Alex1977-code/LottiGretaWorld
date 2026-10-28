@@ -5966,3 +5966,105 @@ Gemessen (scale 2, inkl. Schattenpass): 6-7 Route ≈ 97 s (Lotti/Greta, ohne Tr
 ≤ 86 / ≤ 225 k, Bilder 47–110 / ≤ 261 k (am teuersten: oben auf Turm C mit Blick über die Kolonne) · 6-C Route ≈ 89 s,
 Messgang ≤ 75 / ≤ 142 k, Bilder 38–74 / ≤ 151 k. Hinweis: die Trefferversuche im Bosskampf zählen jeden Berührungsschritt
 der unverwundbaren Bot-Figur (Fäuste der Attrappen, Riese), nicht einzelne Treffer.
+
+## Präzisierung (Level 6-3, 6-4 und 6-A)
+
+Additiv zur Welt-6-Liste: Titel und Besonderheiten der Level 6-3, 6-4 und 6-A. Dateien `src/course/levels/w6/6-3.js`,
+`6-4.js`, `6-A.js`, eigene Hilfen `src/course/levels/w6/_helpers_b.js` (kein `LEVEL`, nur für diese drei Level; nutzt
+`Bld`, `litTop`, `gradY`, `onRespawn` aus `w5/_helpers_b.js` und `schattenDiaet` aus `w5/_helpers_a.js`), Test
+`tests/course_w6b.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.prebuild`/`build`/`setup`). Gegner nach „Präzisierung (Gegner Welt 6)“, Bausteine nach „Präzisierung (Motor und
+Bausteine Welt 6)“. Eigene Fantasie-Gestaltung (Papierwände, lackierte Pfosten, geschwungene Dächer, Ruinen) ohne reale
+religiöse Symbole und ohne fremde Namen oder Figuren.
+
+### 6-3 „Schiebetüren im Kirschblütensaal“ (parcours · fareast · course_fareast · 400 s, frei nach 6-2 und ≥ 110 Sternen)
+
+- Rosiger Morgen, fallende Kirschblüten, ≈ 150 m nach −Z. Abschnitte: **Hof und Korridor** (z 12 … −28; Koi-Teich,
+  Steinlaternen, Lichterkette; drei Schiebetüren quer über den Gang – antippen bzw. Aktionstaste –, links eine Tür vor
+  einer bemalten Wand mit Münzen, rechts die **Maskennische** mit Papierwänden und Teppich, am Ende die rote Röhre) →
+  **Kirschblütensaal** (z −29 … −54, drei Stockwerke im Querschnitt, vorn offen: die Decken samt Brüstung werden
+  durchsichtig, wenn sie die Figur verdecken – eigenes `view.xray`-Netz je Decke mit Läufer; Erdgeschoss nach rechts mit
+  Maskensockel am Eingang, Pilzling, Rollpilz, Krallen-Pilzling; Treppe; 1. Stock nach links mit zwei Stachelwerfern und
+  einem Pilzling; Treppe; 2. Stock nach rechts mit Türenreihe, **Gong** und Warp-Box) → **Tempelaußenseite** (z −68 …
+  −128: Ankunftsterrasse mit Checkpoint, 6 m breiter Dachfirst mit drei Stampfsteinen abwechselnd links/rechts,
+  Helm-Station mit zwei **Propeller-Helmen** (kommen nach 3 s wieder), 8-m-Lücke, mittleres Dach mit rosa Wolke) →
+  **Oberstes Dach** (z −128 … −148: zwei Dachstufen, Zielmast vor einem Pavillon).
+- **Pilz-Maske** (Sockel am Saaleingang, Nische im Korridor): zugewandte Gegner sehen die Figur nicht (Stachelwerfer
+  werfen nicht, Krallen-Pilzlinge springen nicht, der Pilzling jagt nicht). Beim Warp auf die Tempelaußenseite fällt sie
+  ab (Hinweis-Banner), damit dort der Propeller-Helm passt.
+- Sterne: 0 hinter Tür 2c des 2. Stocks zwei **Scheinwände** (bemalte Wände, antippen bzw. Aktionstaste, gleiten nach
+  unten; erst die zweite gibt den Stern frei) · 1 hoch über der 8-m-Lücke (nur mit Propeller-Helm; Weitsprung reicht
+  nicht) · 2 Gong im 2. Stock schlagen (antippen, Kopfsprung oder Angriff: Münzregen im Radius 2,6 m und die versteckte
+  **Rätselbox** erscheint) → Käfig mit Stachelwerfer (Nebenbereich x ≈ 100, roter Läufer, Blumenkästen) besiegen (`task`
+  mit Stern). Stempel: auf der rosa Wolke über dem mittleren Dach (nur mit Propeller-Helm erreichbar).
+- Geheimnisse: fünf **Schlüsselmünzen** auf den Dächern (Inselecke, unter Stampfstein 1, Ecke des mittleren Dachs,
+  Dachstufe 2, oberstes Dach) öffnen die versteckte Warp-Box neben dem Pavillon → **Gong-Garten** (x ≈ 100, Koi-Teich,
+  vier bunte Gongs mit Münzregen, **goldener Gong → Extraleben**, Warp-Box zurück). Extraleben auch im ?-Block der Nische
+  hinter einer Tür im 1. Stock.
+- Gegner: Pilzling 3, Rollpilz 2, Krallen-Pilzling 2, Stachelwerfer 3 (einer im Käfig), Stampfstein 3; Pilz-Maske 2,
+  Warp-Boxen 5.
+- Budget: Saalwände und Innenausbau ohne Sonnenschatten, Schiebetüren ohne Schatten, ihr Antipp-Schein leuchtet nur am
+  eigenen Stockwerk, Türen tieferer Stockwerke zeichnen nicht (von oben verdeckt), `schattenDiaet` für die Saal-Gegner,
+  eigene leichte Dächer (Drehkörper) und Laternen statt Registry-Kulisse. Kameraschienen: Korridor, Saal (Neigung 28°,
+  Abstand 15), Tempel, Käfig, Gong-Garten.
+
+### 6-4 „Floßfahrt durch den Giftsee-Dschungel“ (parcours · jungle · course_jungle · 400 s)
+
+- Lila Giftsee im Dschungel, ≈ 300 m nach −Z. Abschnitte: **Startufer** (Hütte, Lianen-Kletterwand zum Aussichtsfelsen,
+  Steg) → **Floßstrecke I** (z −8 … −96; Floß 1 legt ab, sobald man draufsteht, ≈ 92 m zwischen Wurzelinseln, vier
+  Brummer kreisen über dem Weg; Abzweig: unter dem Lianen-**Deckengitter** vom Floß hochspringen, hinüberhangeln zur
+  **Tor-Insel** mit dem blauen Tor und der **Glasröhre** hinauf zum Baumhaus; eine zweite Röhre führt vom Baumhaus zur
+  Checkpoint-Insel und zurück) → **Checkpoint-Insel** (z −97 … −114, Checkpoint, Sternenring) → **Floßstrecke II**
+  (z −114 … −204, Floß 2, sechs Rankenschnapper wachsen aus dem Gift über den Weg) → **Abwärtsströmung** (z −204 … −244:
+  dasselbe Floß saust die 40 m lange Giftschlucht 4 m hinab; Giftwasserfälle, Moospolster und Lianen an den Kanten) →
+  **Landeinsel** (End-Warp-Box, kletterbare Felswand) → **Ruinenplateau** (z −278 … −304, per Warp-Box: Säulen,
+  Steinfrösche, Ruinenmauer mit Moos und Lianen, Zielmast).
+- Flöße (`floss`) warten ohne Figur und liegen nach einem Absturz wieder am Start. Der Horizont-See des Himmels liegt
+  tiefer (`prebuild`: `sky.theme.seaLevel = −7`), damit die untere Landeinsel nicht unter der Kulisse verschwindet.
+- Sterne: 0 im **Baumhaus** (nur über Deckengitter → Tor-Insel → Glasröhre; Sprung am Stamm reicht nicht) · 1
+  **Sternenring** auf der Checkpoint-Insel (acht Sternmünzen in 15 s, vier davon auf Baumstümpfen im Gift) · 2 auf dem
+  Sims über der **Felswand** neben der End-Warp-Box (Kletterranke; Sprung daneben reicht nicht). Stempel: oben auf dem
+  Querbalken des **blauen Tors** (Kletterranke am linken Pfeiler).
+- Extraleben: ?-Block auf dem Aussichtsfelsen (Kletterwand), unsichtbarer Block auf der Tor-Insel. Gegner: Brummer 4,
+  Rankenschnapper 6.
+- Kulisse: Riesenbäume, Farne, leuchtende Pilze, Giftblüten, Seerosen mit Lotusblüten, **Schilf mit Rohrkolben** am
+  Floßweg (frei von Inseln und Rankenlinien), Glühwürmchen. Wand-Klettergitter ohne Sonnenschatten.
+
+### 6-A „Schubser-Prinz im Röhrenzwinger“ (arena · fortress · course_arena · 300 s, 1 Stern)
+
+- Festungshof mit Zwinger (20 × 20 m, Goldgitter, Kronen-Mosaik in der Mitte, Wappen über den Röhrenmündungen), je drei
+  **Glasröhren-Mündungen** in der linken und rechten Wand (z −6 / 0 / 6), hinter dem Zwinger verschachtelte Schleifen wie
+  im Testlevel 0-25; vorn das **Kronentor** (schließt sich beim Betreten), Zuschauertribünen, Fackeln, Wimpel.
+- Kampf (`prinzKampf`, Arena-Anpassung: der Boss zählt als Gegner der Arena, Lebensleiste, Tor-Sperre): Der Prinz nimmt
+  Anlauf auf die Figur; wer vor einer Mündung seitlich ausweicht, lässt ihn sich darin festrammen, ein Stoß schiebt ihn
+  durch die Röhre, er kommt benommen aus der Gegenmündung – dann ein Tritt von oben. Drei Tritte → Sieg, Stern in der
+  Mitte. Draufspringen ohne Röhre ist nur ein Abprall. Tod: Neustart vor dem Tor, Prinz wieder 3/3, Tor offen.
+- ?-Block (5 Münzen) und Münzblock vor dem Tor, unsichtbarer Block rechts davor (Extraleben). Kamera: feste Schiene
+  (Neigung 52°, Abstand 24), sanfter Arena-Zug (`camPull` 0,18), damit der Start vor dem Tor im Bild bleibt.
+
+### Hilfen `_helpers_b.js`
+
+Allgemein: `isl`, `line`, `ring`, `arc`, `column`, `sign`, `glimmer` (Glühpunkte als `Points`, mit Begrenzungskugel) ·
+Fernost: `doorWall` (Papierwand mit Türöffnungen und Kollision), `nische`, `saalDecke` (Durchsicht-Decke mit Brüstung
+und Läufer), `bruestung`, `treppe`, `scheinwand` (bemalte Wand: antippen/Aktion, gleitet nach unten, `onOpen`),
+`saalZier`, `daecher`, `laternen`, `zier` (Trommel, Schirm, Kübel, Bonsai, Teich mit Koi, Lichterkette, Moos, Steine,
+Fahne, Bank, Blumen, Hütte, Stamm) · Dschungel: `seerosen`, `schilf`, `moospolster`, `blauesTor`, `baumhaus`, `felsen`,
+`ruinen` · Arena: `zwinger`, `prinzKampf`.
+
+### Test `tests/course_w6b.mjs`
+
+Port 4650 (+ `PORT_BASE`), Aufruf `node tests/course_w6b.mjs [6-3|6-4|6-A]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,shots` (je Lauf < 10 min), `HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`,
+`SHOTS=<Name|…>`, `DETAIL=1`, Bilder `tests/out/w6b_*.png`. Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur
+Kamera-Gier); Beine u. a. `tap` (Bildschirm-Tipp auf die Zielmitte nach `snapCamera`), `action`, `pound`, `stompAll`
+(Liste von Ids; Rollpilz per Stampfattacke; `lineUp`: Stachelwerfer zugewandt von vorn anspringen, ohne seine Mitte zu
+überqueren – die Pilz-Maske wirkt), `board`/`raft` (Floß; Brummer-Sturzflug und Rankenköpfe werden vorausberechnet, die
+Figur weicht auf dem Floß aus), `hang`, `climb`, `prop` (Propeller-Helm), `fight` (Schubser-Prinz), `chaseKind`, `star`.
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel **ohne einen
+Treffer-Versuch** und ohne Fehler im Protokoll (6-3 ≈ 63/56 s mit Pilz-Maske, Gegnern im Saal von oben, Propeller-Flug;
+6-4 ≈ 84/83 s, beide Floßstrecken samt Abwärtsströmung; 6-A ≈ 33 s, drei Röhrenfahrten und drei Tritte); alle Sterne
+und Stempel mit Gegenproben; Extras (Türen per Aktionstaste, Maskennische, Maske gegen Stachelwerfer mit Gegenprobe,
+Münzregen, fünf Schlüsselmünzen → Gong-Garten, Checkpoint, Floß wartet und kehrt nach Absturz zurück, Rückweg-Röhre,
+Tor-Sperre, Abprall ohne Röhre, Tod setzt den Kampf zurück, fünf Extraleben). Gemessen (scale 2, inkl. Schattenpass,
+Messgang alle ~7 m der Route und Bilder je Abschnitt): 6-3 32–106 Zeichenaufrufe (Saal, 1./2. Stock; je nach Gegnerstand
+einmal 112 gemessen; Figur ≈ 20) / ≤ 218 k Dreiecke · 6-4 ≤ 84 / ≤ 285 k (Deckengitter samt Schatten ≈ 86 k) · 6-A ≤ 71 / ≤ 237 k.
