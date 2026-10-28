@@ -5687,7 +5687,7 @@ level-lokal (Hilfsdatei, Haken `LEVEL.build`/`LEVEL.setup`, `level.onStep`).
      Mäusehauses auf den Stern; Glas darüber, Bällebad links und rechts.
   2. **Bühne frei** (reach) – Kraftfeld, Orchestergraben, rote **Hebebühne** trägt den Stern (`sternFolgt`): werfen,
      wenn sie oben ist; Vorhänge, Scheinwerferkegel.
-  3. **Sprungfeld** (reach) – Trampolin vor dem Kraftfeld (bis 12 m hoch), dahinter ein Ringelturm mit **Druckschalter**
+  3. **Sprungfeld** (reach) – Trampolin vor dem 12 m hohen Kraftfeld, dahinter ein Ringelturm mit **Druckschalter**
      oben: im Scheitel des Trampolinsprungs den Ball von oben auf den Schalter werfen → der Stern erscheint über dem
      Trampolin (`sternVersteckt`), Münzsäule.
   4. **Pilzling-Gehege** (defeatAll) – sechs Pilzlinge in der Grube hinter dem Kraftfeld, **POW** auf einem gelben
