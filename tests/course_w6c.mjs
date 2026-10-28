@@ -991,6 +991,75 @@ async function haus() {
   }
 }
 
+/** Gegenproben im Prüfungs-Haus: Mauseloch, Kraftfelder, Hebebühne unten, versteckter Stern, Zeitablauf. */
+async function hausExtra() {
+  const id = '6-Haus';
+  console.log(`\n${id}: Gegenproben`);
+  if (!(await load(id, { fresh: true, hero: 'lotti' }))) { check(`${id} lädt`, false); return; }
+  await sc(installHaus);
+  const g = await sc(() => {
+    const c = window.__course, L = c.level, Hs = window.__haus, H = L.data._haus, A = Hs.A, P = () => L.player;
+    const u = (i) => +(H.Z0[i] - P().pos.z).toFixed(2);
+    const go = (i) => { if (A().room !== i) c.arch.enterRoom(i); return Hs.waitPlay(i); };
+    const out = {};
+    // Raum 1: geduckt durch den Mäusetunnel? – die Figur (geduckt 0,6 m) passt nicht ins Mauseloch (0,56 m)
+    go(0);
+    const yE = H.R1.rinneEnd;
+    P().reset([0, yE + 0.6, H.Z0[0] - (H.R1.uE - 0.2)], Math.PI / 2);
+    for (let k = 0; k < 20; k++) Hs.step({});
+    let maxU = 0;
+    for (let k = 0; k < 300 && Hs.live(0); k++) { Hs.step({ ...window.__w6.stick(0, -1, 0.6), crouch: k > 4 }); maxU = Math.max(maxU, u(0)); }
+    for (let k = 0; k < 120 && Hs.live(0); k++) { Hs.step({ ...window.__w6.stick(0, -1, 1), jump: k % 30 < 10 }); maxU = Math.max(maxU, u(0)); }
+    out.loch = { maxU: +maxU.toFixed(2), u1: H.R1.u1, star: !!L.runtime.stars[0], crouch: P().crouching };
+    // Raum 2: Kraftfeld hält die Figur auf; Wurf bei unten stehender Hebebühne trifft den Stern nicht
+    go(1);
+    Hs.walkTo(1, 0, 12, { max: 240 });
+    out.feld2 = { u: u(1), feld: H.R2.feld };
+    Hs.grab(1, 'r2_ball3');
+    Hs.walkTo(1, 0, 7.4, { within: 0.25 });
+    const lift = L.named.get('r2_buehne');
+    const lo = H.R2.liftLo + 0.5;
+    let prev = lift.shape.y1, n = 0;
+    for (; n < 900 && Hs.live(1); n++) { const y = lift.shape.y1; if (y < lo + 0.12 && prev >= lo + 0.12) break; prev = y; Hs.step({}); }
+    Hs.throwToward(1, 0, H.Z0[1] - H.R2.lift, 4, 0.2);
+    for (let k = 0; k < 150 && Hs.live(1); k++) Hs.step({});
+    out.unten = { star: !!L.runtime.stars[1], cleared: A().cleared, liftY: +lift.shape.y1.toFixed(2) };
+    // Raum 3: Stern versteckt, bis der Druckschalter läuft; Kraftfeld vor dem Turm
+    go(2);
+    const st3 = L.entities.find((e) => e.kind === 'star' && e.index === 2 && !e.removed);
+    out.stern3 = { hidden: !!st3?.hidden, schalter: L.named.get('r3_schalter')?.state };
+    P().reset([3, H.Y + 0.1, H.Z0[2] - 7.4], Math.PI / 2);
+    for (let k = 0; k < 10; k++) Hs.step({});
+    Hs.walkTo(2, 3, 12, { max: 200 });
+    out.feld3 = { u: u(2), feld: H.R3.feld };
+    // Raum 4: Kraftfeld vor dem Gehege
+    go(3);
+    Hs.walkTo(3, 0, 11, { max: 240 });
+    out.feld4 = { u: u(3), feld: H.R4.feld, pilze: L.entities.filter((e) => e.kind === 'pilzling' && !e.removed && !e.defeated).length };
+    return out;
+  });
+  console.log('     ', JSON.stringify(g));
+  check(`${id}: Raum 1 – die Figur passt (auch geduckt) nicht durchs Mauseloch (bis u ${g.loch.maxU} < ${g.loch.u1}), kein Stern`, g.loch.maxU < g.loch.u1 - 0.2 && !g.loch.star);
+  check(`${id}: Raum 2 – Kraftfeld hält die Figur auf (u ${g.feld2.u} < ${g.feld2.feld})`, g.feld2.u < g.feld2.feld);
+  check(`${id}: Raum 2 – Wurf bei unten stehender Hebebühne verfehlt den Stern`, !g.unten.star && !g.unten.cleared);
+  check(`${id}: Raum 3 – Stern versteckt, bis der Druckschalter läuft (${g.stern3.schalter}); Kraftfeld hält die Figur auf (u ${g.feld3.u})`, g.stern3.hidden && g.stern3.schalter === 'idle' && g.feld3.u < g.feld3.feld);
+  check(`${id}: Raum 4 – Kraftfeld vor dem Gehege hält die Figur auf (u ${g.feld4.u}), ${g.feld4.pilze} Pilzlinge`, g.feld4.u < g.feld4.feld && g.feld4.pilze === 6);
+
+  // Zeitablauf: zwei Räume lösen, im dritten nichts tun → Haus verlassen, Ergebnis 2 von 5 gespeichert
+  if (!(await load(id, { fresh: true, hero: 'greta' }))) return;
+  await sc(installHaus);
+  const z = await sc(() => {
+    const c = window.__course, Hs = window.__haus;
+    const r = [Hs.solve(0), Hs.solve(1)].map((o) => [o.t, o.a.cleared]);
+    Hs.waitPlay(2);
+    let n = 0;
+    for (; n < 2400 && !c.finished; n++) Hs.step({});
+    return { r, n, a: c.arch.info(), res: c.lastResult ?? null, save: window.__w6.save().levels?.['6-Haus'] ?? null, finished: c.finished };
+  });
+  console.log('     ', JSON.stringify({ r: z.r, n: z.n, exited: z.a.exited, timeouts: z.a.timeouts, stars: z.res?.stars, save: z.save?.stars }));
+  check(`${id}: Zeitablauf in Raum 3 → Haus verlassen, Ergebnis 2 von 5 Sternen gespeichert`, z.finished && z.a.exited && z.a.timeouts === 1 && z.res?.stars?.filter(Boolean).length === 2 && z.save?.stars?.filter(Boolean).length === 2);
+}
+
 // ====================================================================== Parcours (6-5, 6-6)
 async function parcours(id) {
   const R = ROUTES[id];
@@ -1110,6 +1179,7 @@ async function parcours(id) {
 for (const id of LEVELS) {
   if (id === '6-Haus') {
     if (PARTS.has('haus') || PARTS.has('load')) await haus();
+    if (PARTS.has('haus-extra')) await hausExtra();
     continue;
   }
   if (ROUTES[id]) await parcours(id);
