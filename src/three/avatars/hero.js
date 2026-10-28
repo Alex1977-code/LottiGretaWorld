@@ -147,6 +147,7 @@ import { leafSolidGeo, bushyTailGeo, skinChain, StoneSkin, PuffFx } from '../lib
 import { applyToyLook } from '../lib/toyLook.js';
 import { currentOutfit } from '../lib/outfit.js';
 import { witchHatGeo, catEarGeo, catTailGeo, CAT_TAIL, whiskerGeos, stripedBandanaGeo, batWingGeo, HW_COLORS } from '../lib/heroHalloween.js';
+import { sichelBladeGeo, sichelCapGeo, sichelCapeGeo, sichelCordGeos, CAP, CAPE, SICHEL_GRIP } from '../lib/heroSichel.js';
 
 const U = 1 / GAME.tile;             // Weltpixel → Einheiten
 const BIAS = 0.42;                   // Drehung zur Kamera (3/4-Ansicht), für Heldin und Pflaume gleich
@@ -384,14 +385,14 @@ function headbandGeos(st) {
 }
 
 /** Haar-Mesh: Schale + Schleife und Zopfansätze (Lotti) bzw. Haarreif (Greta). Teile für mergeColored. bow = false: Lottis
- *  Schleife sitzt woanders (Halloween: am Hexenhut). */
-function hairParts(st, bow = true) {
+ *  Schleife sitzt woanders (Halloween: am Hexenhut, Wurfsichel: an der Mütze); band = false: Gretas Haarreif ruht (Mütze). */
+function hairParts(st, bow = true, band = true) {
   const gs = [hairShell(st)];
   if (st.braids) {
     if (bow) gs.push(...bowGeos(st));
     const hc = col3(st.hair);
     for (const s of [1, -1]) gs.push(ellipsoidGeo(V(BRAID.anchor.x, BRAID.anchor.y + 0.005, s * BRAID.anchor.z), V(0.066, 0, 0), V(0, 0.074, 0), V(0, 0, 0.066), hc, 16, 12));
-  } else gs.push(...headbandGeos(st));
+  } else if (band) gs.push(...headbandGeos(st));
   return own(gs);
 }
 
@@ -797,7 +798,7 @@ const CLIMB_STATES = new Set(['climb', 'beanstalk', 'wallslide', 'walljump', 'fe
 /** Zustände, in denen `holding` die Arme übernimmt (Tragen vorn bzw. über dem Kopf). */
 const HOLD_STATES = new Set(['idle', 'walk', 'run', 'skid', 'jump', 'jump2', 'fall', 'land', 'crouch', 'skate']);
 /** Kostüme per Geometrie-Tausch (power-Werte). */
-const COSTUMES = new Set(['krallen', 'funken', 'gleitblatt']);
+const COSTUMES = new Set(['krallen', 'funken', 'gleitblatt', 'sichel']);
 /** Zustände, in denen angelegte Schlittschuhe an bleiben (Sprünge vom Eis, Landung). */
 const SKATE_KEEP = new Set(['skate', 'jump', 'jump2', 'jump3', 'fall', 'land', 'longjump', 'backflip', 'sideflip', 'skid', 'hurt', 'throw', 'claw', 'tailswipe', 'glide']);
 
@@ -1081,6 +1082,36 @@ function mouthGeo() {
     g.computeVertexNormals();
     return g;
   });
+}
+
+// ================================================================== Welt 7: Wurfsichel-Kostüm (Bausteine in ../lib/heroSichel.js)
+// Mütze (Stoff, am Kopf) und Umhang (Stoff, am Rumpf, Drehpunkt im Nacken) bündeln mit Oberkörper/Rock, Kamm und Hand-Sichel
+// (Glanz) mit Augen/Schuhen, Kordel und Schließe verschmelzen mit dem Oberkörper – 0 zusätzliche Zeichenaufrufe.
+/** Zustände mit freier Hand: Die Wurfsichel liegt in der nahen Hand (sonst – Klettern, Wand, Zaun, Hangeln, Trapez, Kanone,
+ *  Schwimmen, Reiten mit der Angel, Röhre, Statue, Tragen – steckt sie weg und ist unsichtbar). */
+const SICHEL_HAND = new Set(['idle', 'walk', 'run', 'skid', 'jump', 'jump2', 'jump3', 'backflip', 'sideflip', 'longjump', 'fall', 'land',
+  'crouch', 'slide', 'groundpound', 'walljump', 'hurt', 'victory', 'throw', 'skate']);
+const SICHEL = {
+  R: 0.19,          // Außenradius der Hand-Sichel (Einheiten; ≈ 25 cm Durchmesser bei großer Figur)
+  release: 0.3,     // Wurf: bis zu dieser Phase bleibt die Sichel in der Hand sichtbar (Ausholen), dann fliegt sie
+  catchDur: 0.45,   // s: Fang-Geste (Hand schnappt nach vorn, holt die Sichel heran, Augen „◡“, Funkeln)
+  popDur: 0.24,     // s: Sichel erscheint in der Hand (Fang bzw. nach dem Verlieren) – wächst mit kurzem Überschwingen
+  twirl: 1.6,       // Umdrehungen, die die gefangene Sichel noch in der Hand kreiselt
+};
+/** Halt der Hand-Sichel (hand-lokal: Faust = Ursprung, −Y entlang des Unterarms, +X Daumen/vorn, +Z außen bei der nahen Hand). */
+const SICHEL_HOLD = { rz: 0.55, ry: 0.0, x: 0.0, y: -0.01 };
+/** Gretas Haar liegt mit Umhang etwas weiter hinten (auf dem Umhang statt darunter). */
+const MANE_REST_CAPE = V(-0.3, -1, 0).normalize();
+/** Mondsichel-Kamm vorn oben auf der Mütze (kopf-lokal): steht zwischen senkrecht und Flächennormale, Öffnung nach oben,
+ *  Fläche nach vorn, unten etwas in die Mütze gesteckt. */
+function crestGeo() {
+  const { az, el, R, tilt } = CAP.crest;
+  const up = V(0, 1, 0).lerp(HEAD.normal(dirAE(az, el)), tilt).normalize();
+  const side = V(0, 0, 1), face = new THREE.Vector3().crossVectors(up, side).normalize();
+  const center = HEAD.point(dirAE(az, el), CAP.lift(az, el)).addScaledVector(up, R - 0.035);
+  const g = sichelBladeGeo(R, { depth: 0.38 });
+  g.applyMatrix4(new THREE.Matrix4().makeBasis(up, side, face).setPosition(center));
+  return g;
 }
 
 // ================================================================== Heldin
@@ -1575,10 +1606,13 @@ export class HeroAvatar extends Avatar3D {
     this.updateLook();
   }
 
-  /** Trägt die Figur gerade Kopfschmuck der Verkleidung? Nicht mit Krallen-Kapuze/Gleitblatt-Reif, nicht unter einem Helm. */
+  /**
+   * Trägt die Figur gerade Kopfschmuck der Verkleidung? Nicht mit Krallen-Kapuze/Gleitblatt-Reif/Wurfsichel-Mütze (die Mütze
+   * trägt dann selbst ein Halloween-Motiv: Kürbis-Bommel bzw. Katzenohren), nicht unter einem Helm.
+   */
   outfitHead() {
     const kind = this.costume ?? 'none';
-    return this.outfit === 'halloween' && kind !== 'krallen' && kind !== 'gleitblatt' && !this.foreignHeadgear();
+    return this.outfit === 'halloween' && kind !== 'krallen' && kind !== 'gleitblatt' && kind !== 'sichel' && !this.foreignHeadgear();
   }
 
   /**
@@ -1611,6 +1645,13 @@ export class HeroAvatar extends Avatar3D {
       this.hairMesh.material = g.hairMat;
       this.torsoMesh.geometry = geo(key('torso:gleitblatt'), () => mergeColored(torsoParts(ls)));
       this.skirtMesh.geometry = g.skirt;
+    } else if (kind === 'sichel') {
+      // Wurfsichel: unter der Mütze ohne Schleife (sitzt an der Mütze) bzw. Haarreif; unter einem Trage-Helm ruht die Mütze
+      const capOn = !this.foreignHeadgear();
+      this.hairMesh.geometry = capOn ? geo(key('hair:sichel'), () => mergeColored(hairParts(st, false, false))) : this.look0.hair;
+      this.hairMesh.material = this.look0.hairMat;
+      this.torsoMesh.geometry = geo(key('torso:sichel'), () => mergeColored([...torsoParts(st), ...own(sichelCordGeos())]));
+      this.skirtMesh.geometry = g.skirt;
     } else {
       this.hairMesh.geometry = tag ? geo(key(`hair${tag}`), () => mergeColored(withEars(hairParts(st, bow), st))) : this.look0.hair;
       this.hairMesh.material = this.look0.hairMat;
@@ -1623,9 +1664,173 @@ export class HeroAvatar extends Avatar3D {
       this.w3.skirtBase = this.skirtMesh.geometry;
       if (this.w3.statue) this.updateSkirt();
     }
-    // Zöpfe weichen der Kapuze aus
-    if (this.braidColliders) this.braidColliders.head.r = kind === 'krallen' ? 0.37 : 0.33;
+    // Zöpfe weichen der Kapuze (bzw. Mütze) aus
+    if (this.braidColliders) this.braidColliders.head.r = kind === 'krallen' ? 0.37 : kind === 'sichel' ? 0.36 : 0.33;
     this.updateOutfitParts();
+    this.updateSichelParts();
+  }
+
+  // ================================================================ Welt 7: Wurfsichel-Kostüm
+  /**
+   * Teile des Wurfsichel-Kostüms an-/abhängen: Mütze (Stoff, am Kopf; Lotti mit ihrer Schleife, Halloween mit Kürbis-Bommel bzw.
+   * Katzenohren), Mondsichel-Kamm (Glanz, am Kopf), Umhang (Stoff, am Rumpf, schwingt um den Nacken), Sichel in der nahen
+   * Hand (Glanz, an der Faust des Kurs-Arms). Nur Getragenes hängt im Szenengraphen (wie die Verkleidung); Klone (lite) ohne
+   * Schattenwurf.
+   */
+  updateSichelParts() {
+    const on = (this.costume ?? 'none') === 'sichel' && !!this.cGeo;
+    if (!on && !this.sk) return;
+    const st = STYLES[this.variant], hw = this.outfit === 'halloween';
+    const S = this.sk ??= {
+      cap: null, capKey: null, crest: null, cape: null, capeKey: null, hand: null, handMesh: null,
+      capOn: false, capeOn: false, handOn: false, catchN: null, catchT: 9, popT: 9, flying: false, throwSichel: false, throwP: 0,
+      capeA: 0, capeV: 0, sparkle: false, show: false,
+    };
+    const capOn = on && !this.foreignHeadgear();
+    if (on) {
+      const capKey = `${this.variant}:${hw ? 1 : 0}`;
+      if (!S.cap) {
+        S.cap = new THREE.Mesh(sichelCapGeo(HEAD, {}), SURF.cloth()); S.cap.name = 'sichelmuetze';
+        S.crest = new THREE.Mesh(geo('hero:sichel:crest', crestGeo), SURF.gloss()); S.crest.name = 'sichelkamm';
+        this.headOwn.add(S.cap); this.headOwn.add(S.crest);
+        S.cape = new THREE.Mesh(sichelCapeGeo({}), SURF.cloth()); S.cape.name = 'sichelumhang';
+        S.cape.position.copy(CAPE.pivot);
+        S.hand = new THREE.Group(); S.hand.name = 'wurfsichel-hand';
+        S.hand.rotation.set(0, SICHEL_HOLD.ry, SICHEL_HOLD.rz);
+        S.hand.position.set(SICHEL_HOLD.x, SICHEL_HOLD.y, 0);
+        S.handMesh = new THREE.Mesh(geo('hero:sichel:hand', () => sichelBladeGeo(SICHEL.R, { hub: false }).translate(SICHEL_GRIP * SICHEL.R, 0, 0)), SURF.gloss());
+        S.hand.add(S.handMesh);
+      }
+      if (S.capKey !== capKey) {
+        S.capKey = capKey;
+        S.cap.geometry = geo(`hero:${this.variant}:sichelcap:${hw ? 1 : 0}`, () => sichelCapGeo(HEAD, { bow: st.braids ? st.accent : null, halloween: hw ? (st.mane ? 'katze' : 'kuerbis') : null }));
+        S.cape.geometry = geo(`hero:sichelcape:${hw ? 1 : 0}`, () => sichelCapeGeo({ halloween: hw }));
+      }
+    }
+    let changed = false;
+    if (capOn !== S.capOn) { S.capOn = capOn; this.attachPart(this.head, S.cap, capOn, true); this.attachPart(this.head, S.crest, capOn, false); changed = true; }
+    if (on !== S.capeOn) {
+      S.capeOn = on; S.capeA = 0; S.capeV = 0;
+      this.attachPart(this.torso, S.cape, on, true);
+      this.attachPart(this.armN.carm.hand, S.hand, on, true);   // an der Faust (hängt am Unterarm-Knochen)
+      S.catchN = null; S.catchT = 9; S.popT = 9;
+      changed = true;
+    }
+    if (changed) this.refreshSkins();
+  }
+
+  /** Je Bild vor der Pose: Fang (Zählerwechsel sichelCatch) und Verlust erkennen, Wurf mit Sichel merken. */
+  sichelTick(c, dt) {
+    const S = this.sk;
+    if (!S?.capeOn) return;
+    S.catchT += dt; S.popT += dt;
+    const n = c.sichelCatch ?? 0, fly = (c.sichelFlying ?? 0) > 0;
+    if (S.catchN === null) S.catchN = n;
+    else if (n !== S.catchN) { S.catchN = n; S.catchT = 0; S.popT = 0; S.sparkle = true; }
+    else if (S.flying && !fly) S.popT = 0;                   // verloren (nach 3,5 s): taucht wieder in der Hand auf
+    // Wurf mit Sichel: die Sichel flog bei Wurfbeginn los (Motor erzeugt sie mit der Aktion) – bis SICHEL.release noch zeigen
+    if ((c.state ?? 'idle') === 'throw') { if (this.cState !== 'throw') S.throwSichel = fly && !S.flying; } else S.throwSichel = false;
+    S.flying = fly;
+  }
+
+  /**
+   * Haltung mit Sichel und Fang-Geste (auf die fertige Zielpose, nur Zustände mit freier Hand): im Stand hält die nahe Hand die
+   * Sichel etwas vor sich; beim Fang schnappt die Hand nach vorn-oben und holt die Sichel heran, Augen „◡“, kleiner Hüpfer.
+   */
+  sichelArms(c, state, pose, st) {
+    const S = this.sk;
+    if (!S?.capeOn || !SICHEL_HAND.has(state) || c.holding || state === 'throw') return;
+    if ((c.sichelFlying ?? 0) === 0 && (state === 'idle' || state === 'land')) {
+      pose.armZn += 0.18; pose.armXn -= 0.06; pose.elbowN = Math.max(pose.elbowN, 0.75); pose.twistN += 0.35;
+    }
+    const k = S.catchT;
+    if (k >= SICHEL.catchDur) return;
+    const w = smoothstep(k / 0.05) * (1 - smoothstep((k - 0.12) / (SICHEL.catchDur - 0.12)));
+    pose.armZn = lerp(pose.armZn, 1.45, w); pose.armXn = lerp(pose.armXn, -0.32, w);
+    pose.elbowN = lerp(pose.elbowN, 0.3 + 0.5 * smoothstep((k - 0.1) / 0.2), w); pose.twistN = lerp(pose.twistN, 0.4, w);
+    pose.torsoY = lerp(pose.torsoY, 0.18, w); pose.lean = lerp(pose.lean, pose.lean + 0.05, w);
+    pose.headZ += 0.08 * w;
+    if (k > 0.03 && k < 0.32) pose.eyes = 0.07;
+    if (state === 'idle' || state === 'land') pose.bob += 0.025 * Math.sin(Math.PI * clamp(k / 0.3, 0, 1));
+  }
+
+  /** Wurf mit der Sichel (phase p 0..1, Grundpose o aus Stand/Lauf/Luft): Ausholen hinter den Kopf, Arm schnellt vor, Ausschwingen. */
+  poseSichelThrow(o, p) {
+    const a = smoothstep(p / 0.2), b = smoothstep((p - 0.18) / 0.2), e = smoothstep((p - 0.42) / 0.58);
+    const mix3 = (base, w, s, f) => lerp(lerp(lerp(base, w, a), s, b), f, e);
+    const tY = mix3(0, -0.5, 0.45, 0.18);
+    Object.assign(o, {
+      armZn: mix3(o.armZn ?? 0.1, 2.75, 1.5, 0.8), armXn: mix3(o.armXn ?? -0.14, -0.55, -0.2, 0.05),
+      elbowN: mix3(o.elbowN ?? 0.2, 1.65, 0.05, 0.35), twistN: mix3(o.twistN ?? 0, -0.3, 0, 0.2),
+      armZf: mix3(o.armZf ?? 0.1, 1.3, -0.3, 0.15), armXf: mix3(o.armXf ?? 0.14, 0.3, 0.45, 0.3), elbowF: mix3(o.elbowF ?? 0.2, 0.15, 0.55, 0.35),
+      torsoY: tY, lean: (o.lean ?? 0) + mix3(0, 0.07, -0.14, -0.05), headY: (o.headY ?? 0) - 0.65 * tY, headZ: (o.headZ ?? 0) + 0.05,
+      mouth: 0.5 * b * (1 - e), eyes: 1,
+    });
+    return o;
+  }
+
+  /** Je Bild nach der Pose: Hand-Sichel (sichtbar, Erscheinen, Kreiseln, Funkeln beim Fang), Umhang (Feder um den Nacken). */
+  updateSichel(c, dt, t) {
+    const S = this.sk;
+    if (!S?.capeOn) return;
+    const state = this.cState ?? 'idle';
+    const fly = (c.sichelFlying ?? 0) > 0;
+    const show = SICHEL_HAND.has(state) && !c.holding && (!fly || (state === 'throw' && S.throwSichel && S.throwP < SICHEL.release));
+    S.show = show;
+    S.hand.visible = show;
+    if (show) {
+      const k = S.popT / SICHEL.popDur;
+      const sc = k >= 1 ? 1 : Math.max(0.05, smoothstep(k / 0.55) + 0.28 * Math.sin(Math.PI * clamp((k - 0.3) / 0.7, 0, 1)));
+      S.hand.scale.setScalar(sc);
+      const tw = S.catchT < 0.4 ? SICHEL.twirl * TAU * Math.pow(1 - S.catchT / 0.4, 2) : 0;
+      S.handMesh.rotation.z = -tw;
+    }
+    if (S.sparkle) {
+      S.sparkle = false;
+      if (!this.liteLook && show) {
+        this.root.updateWorldMatrix(true, true);
+        S.handMesh.getWorldPosition(_p);
+        this.root.getWorldScale(_s);
+        this.w3.fx.dust(_p, 0.06 * _s.y, 0.03, 7, '#ffe27a', { spread: 2.2, up: 1.4, life: 0.4, yJit: 0.08 * _s.y });
+      }
+    }
+    this.updateCape(c, state, dt, t);
+  }
+
+  /**
+   * Umhang: Winkel a (rad, + = nach hinten gehoben) als gedämpfte Feder zur Ruhelage – Schwerkraft in Weltlage (lehnt sich die
+   * Figur vor, legt er sich auf den Rücken; nie in den Rücken), Fahrtwind aus Tempo und Fallen (hebt ihn), Flattern; eigene
+   * Lagen für Kanone (weht entlang des Körpers), Wasser (schwebt), Ritt, Wand hinter der Figur; Statue starr.
+   */
+  updateCape(c, state, dt, t) {
+    const S = this.sk;
+    if (this.w3.statue) { S.capeA = 0; S.capeV = 0; S.cape.rotation.z = 0; return; }
+    this.torso.updateWorldMatrix(true, false);
+    this.torso.getWorldQuaternion(_q);
+    _v.set(0, -1, 0).applyQuaternion(_q.invert());
+    const ag = Math.atan2(-_v.x, -_v.y);
+    const sp = Math.max(0, c.speed ?? 0), vy = c.vy ?? 0;
+    const air = clamp((sp + Math.abs(vy)) / 8, 0, 1);
+    let target = ag + 0.07 * sp + 0.06 * Math.max(0, -vy) - 0.025 * Math.max(0, vy);
+    let flutter = 0.07 * air * Math.sin(t * 13) + 0.04 * air * Math.sin(t * 21 + 1.3);
+    let lo = -0.04, hi = 1.3;
+    switch (state) {
+      case 'cannon': target = 0.12; flutter = 0.06 * Math.sin(t * 27); break;
+      case 'swim': case 'swimUnder': target = 0.35 + 0.5 * ag; flutter = 0.08 * Math.sin(t * 2.2); break;
+      case 'ride': target = 0.28 + 0.04 * sp; break;
+      case 'wallslide': hi = 0.08; break;
+      case 'trapeze': case 'hang': target = ag + 0.04 * sp; break;
+      default: break;
+    }
+    target = clamp(target + flutter, lo, hi);
+    let rem = Math.min(dt, 0.1);
+    while (rem > 1e-6) {
+      const h = Math.min(rem, 1 / 120);
+      S.capeV += (110 * (target - S.capeA) - 12 * S.capeV) * h;
+      S.capeA = clamp(S.capeA + S.capeV * h, lo, hi + 0.15);
+      rem -= h;
+    }
+    S.cape.rotation.z = -S.capeA;
   }
 
   // ================================================================ Verkleidung (Halloween)
@@ -1811,9 +2016,11 @@ export class HeroAvatar extends Avatar3D {
     if (power !== 'stern') this.glow.set(false);
     this.setCostume(COSTUMES.has(power) ? power : 'none');
     this.syncOutfit();
+    if (this.sk?.capeOn && this.sk.capOn === this.foreignHeadgear()) this.updateLook();   // Trage-Helm auf/ab: Mütze ruht
     this.updateW3(c, raw, power, dt);   // Stein-Haut vor dem Glanz (schließen sich aus)
     if (power === 'stern') this.glow.set(true);
     this.model.rotation.set(0, 0, 0);
+    this.sichelTick(c, dt);
     const { state, pose, dur } = this.coursePose(c, dt, t);
     const cur = this.blender.update(state, pose, dt, dur);
     this.applyPose(cur, t);
@@ -1821,6 +2028,7 @@ export class HeroAvatar extends Avatar3D {
     const glove = this.costume === 'krallen';
     this.setArmKinds(glove ? 'glove' : this.peace ? 'peace' : 'bare', glove ? 'glove' : 'bare');
     this.applyTail(dt, c, this.cState);
+    this.updateSichel(c, dt, t);
     if (this.w3.statue) this.freezeHair();
     else {
       if (this.w3.frozen) this.thawHair();
@@ -2022,7 +2230,9 @@ export class HeroAvatar extends Avatar3D {
     // Saltos (Drehkanäle aktiv): Haar bleibt enger am Rücken, statt waagerecht hinauszufliegen
     const S = this.spinSet, spin = !!S && (S.x !== null || S.z !== null);
     ch.rootCone.back = spin ? 0.6 : 1.15; ch.stiffness = spin ? 60 : 28;
-    ch.rest[0].copy(this.maneRestCur ?? this.maneRest).applyQuaternion(_qt);
+    // Ruhelage (Luft/Wasser/Aufwind); mit Umhang (Wurfsichel) liegt das Haar etwas weiter hinten – auf dem Umhang
+    const rest = this.maneRestCur ?? this.maneRest;
+    ch.rest[0].copy(rest === this.maneRest && this.sk?.capeOn ? MANE_REST_CAPE : rest).applyQuaternion(_qt);
     ch.update(_p, dt);
     _qi.copy(_q).invert();
     _v.copy(ch.dirs[0]).applyQuaternion(_qi);
@@ -2587,7 +2797,7 @@ export class HeroAvatar extends Avatar3D {
         const hop = st < 0.42 ? Math.sin((Math.PI * st) / 0.42) : 0, pump = 0.5 + 0.5 * Math.sin(st * 9);
         const legs = { thighZn: 0.05 + 0.95 * hop, kneeN: 0.08 + 1.3 * hop, footN: 0.5 * hop, thighZf: -0.05 + 0.3 * hop, kneeF: 0.1 + 0.4 * hop };
         if (greta) {
-          this.peace = st > 0.12 && this.costume !== 'krallen';
+          this.peace = st > 0.12 && this.costume !== 'krallen' && this.costume !== 'sichel';   // mit Sichel: hält sie hoch
           pose = P({ ...legs, bob: 0.22 * hop, armXn: -1.45, armZn: 0.25, twistN: -1.57, elbowN: 1.75, armXf: 2.2, armZf: 0.3, elbowF: 0.3 + 0.35 * Math.sin(st * 8), headX: -0.15, headZ: 0.14, mouth: 1 });
         } else {
           pose = P({ ...legs, bob: 0.22 * hop, armXn: -1.35, armZn: 0.35, twistN: -1.57, elbowN: 1.45 + 0.35 * pump, armZf: -0.15, armXf: 0.95, twistF: -1.45, elbowF: 1.9, headZ: 0.2, headX: 0.1, mouth: 1 });
@@ -2599,6 +2809,13 @@ export class HeroAvatar extends Avatar3D {
         // Wurf/Feuerball (über phase 0..1 oder 0,32 s): Ausholen hinter den Kopf → Schleudern nach vorn → Ausschwingen
         const p = (c.phase ?? 0) > 0 ? phase : clamp(st / 0.32, 0, 1);
         const o = this.poseLoco(speed, upm, dt, t, grounded, vy);
+        if (this.sk?.capeOn) {
+          // Welt 7: Wurfsichel – Ausholen hinter den Kopf (Sichel noch in der Hand), Arm schnellt vor, Ausschwingen
+          this.sk.throwP = p;
+          pose = P(this.poseSichelThrow(o, p));
+          dur = 0.05;
+          break;
+        }
         const w = smoothstep(p / 0.32), r = smoothstep((p - 0.32) / 0.26), e = smoothstep((p - 0.62) / 0.38);
         Object.assign(o, {
           armZn: lerp(lerp(lerp(o.armZn ?? 0.1, 3.5, w), 1.35, r), 0.7, e), armXn: -0.3, elbowN: lerp(lerp(lerp(o.elbowN ?? 0.2, 1.7, w), 0.1, r), 0.4, e),
@@ -2786,6 +3003,7 @@ export class HeroAvatar extends Avatar3D {
         pose = P(this.poseIdle(t));
     }
     if (c.holding && HOLD_STATES.has(state)) this.holdArms(pose, c.holding);
+    if (this.sk?.capeOn) this.sichelArms(c, state, pose, st);
     return { state: label, pose, dur };
   }
 
