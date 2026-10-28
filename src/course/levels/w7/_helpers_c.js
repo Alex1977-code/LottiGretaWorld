@@ -491,6 +491,25 @@ export function fernSicht(level, dist = 60) {
   return st;
 }
 
+/**
+ * Unter Wasser endet die Sicht im Nebel – die Kamera zeichnet dann nur bis far m (Zielmast, Sterne, Schilder und Modelle
+ * weiter vorn im Level kosten sonst Zeichenaufrufe, obwohl der Nebel sie ganz verdeckt). Über Wasser gilt wieder die
+ * ursprüngliche Sichtweite. o = { sea: Wasserhöhe (0), far: 62 }
+ */
+export function tiefSicht(level, o = {}) {
+  const v = level.view;
+  if (!v?.camera) return null;
+  const cam = v.camera, weit = cam.far, sea = o.sea ?? 0, nah = o.far ?? 62;
+  const st = { unter: false };
+  v.onFrame(() => {
+    const unter = cam.position.y < sea - 0.05;
+    const f = unter ? nah : weit;
+    st.unter = unter;
+    if (cam.far !== f) { cam.far = f; cam.updateProjectionMatrix(); }
+  });
+  return st;
+}
+
 // =====================================================================================================================
 // Mechanik
 // =====================================================================================================================

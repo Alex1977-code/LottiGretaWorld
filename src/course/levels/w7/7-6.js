@@ -21,18 +21,18 @@
 //                                  Stachelkugel (Funkenblüte aus dem ?-Block) – Stern 2, Zielmast auf dem Zielriff
 // Gegner: Rammfisch 10 (davon 2 groß, 3 auf und ab, 1 mit Stern), Wutkaulquappe 3.
 
-import { isl, line, ring, arc, column, sign, Quads, flushQ, glimmer, funken, onRespawn, fernSicht, C } from './_helpers_c.js';
+import { isl, line, ring, arc, column, sign, Quads, flushQ, glimmer, funken, onRespawn, fernSicht, tiefSicht, C } from './_helpers_c.js';
 import { glasgang } from '../w6/_helpers_a.js';
 import { gegnerSicht } from '../w3/_helpers_d.js';
 import { Bld } from '../w6/_helpers_b.js';
-import { colorize, merge, lin, mixc, smooth, hex, addStatic, Rnd } from '../../blocks/kit.js';
+import { colorize, merge, lin, mixc, smooth, hex, addStatic, Rnd, wedge } from '../../blocks/kit.js';
 import * as THREE from 'three';
 
 const PI = Math.PI;
 export const M76 = { SEA: 0, FLOOR: -8, FLOOR2: -9, BEACH: 1, ISLE: 1.2, POOL: 0.5 };
 const { SEA, FLOOR, FLOOR2, BEACH, ISLE } = M76;
 
-const ROCK = { topColor: 0x6a5a62, sideColor: 0x4a3a44 };
+const ROCK = { topColor: 0x8a6a7a, sideColor: 0x6e4e62 };
 const VULKAN = { topColor: 0x6e5856, sideColor: 0x4a3a3e };
 const rock = (x0, x1, zA, zB, top, bottom, o = {}) => isl(x0, x1, zA, zB, top, top - bottom, { top: 'rock', ...ROCK, ...o });
 const sand = (x0, x1, zA, zB, top, bottom, o = {}) => isl(x0, x1, zA, zB, top, top - bottom, { top: 'sand', ...o });
@@ -129,6 +129,14 @@ function pflanzen(level, y, list, seed = 7) {
   B.flush(level, { castShadow: false });
 }
 
+/** Sandrampe aus dem Wasser (wie Baustein ramp, steigt nach −Z, aber in Sandfarben). p = [x, y, z] Mitte unten, s = [w, h, d] */
+function sandRampe(level, p, s, low) {
+  const [x, y, z] = p, [w, h, d] = s;
+  const x0 = x - w / 2, x1 = x + w / 2, z0 = z - d / 2, z1 = z + d / 2;
+  level.world.add({ type: 'ramp', min: [x0, y, z0], max: [x1, y + h, z1], axis: 'z', dir: -1, low: y + low, ice: false, tag: 'ramp' });
+  if (level.view) addStatic(level, wedge(x0, y, z0, x1, y + h, z1, 'z', -1, y + low, 0xe2c48e, 0xb8966a));
+}
+
 /** Feuerberg: Kegel aus Vulkangestein mit glühendem Krater (Kollision: Zylinder-Stufen). */
 function feuerberg(level, x, z, y, r, h) {
   for (let k = 0; k < 4; k++) {
@@ -188,6 +196,13 @@ function build(level) {
     [15.4, -146.6, 'farn'], [13.2, -149.4, 'blume', 'rot'], [9, -141.4, 'blume', 'lila'], [-6.2, -126.4, 'farn'],
     [8.2, -102.6, 'blume', 'rosa'], [16.4, -158, 'farn'], [-16.4, -132, 'farn'],
   ]);
+  pflanzen(level, BEACH, [
+    [-14.6, -227.4, 'farn'], [-12, -230.6, 'blume', 'rosa'], [14.6, -224, 'farn'], [12.2, -221, 'blume', 'gelb'],
+    [14.4, -239, 'blume', 'rot'], [-14.2, -240, 'farn'], [-11, -243.4, 'blume', 'lila'], [9, -244, 'farn'],
+  ], 11);
+  // Sandrampen aus dem Wasser hinauf zur Warp-Plattform und aufs Zielriff
+  sandRampe(level, [0, FLOOR, -85.5], [6, BEACH - FLOOR, 5], 5.4);
+  sandRampe(level, [0, FLOOR2, -211], [6, BEACH - FLOOR2, 6], 6.4);
   // Glasröhre mit Stachelkugel auf dem Zielriff (Eingang links offen, rechts geschlossen)
   glasgang(level, { axis: 'x', z: -219, a: -12.2, b: -4.2, y: BEACH, closed: ['b'] });
   flushQ(level, Q);
@@ -210,6 +225,7 @@ function setup(level) {
   }
   // Leistung: unter Wasser reicht die Sicht ≈ 58 m – fernere Abschnitte nicht zeichnen; Fische und Kisten ohne Sonnenschatten
   fernSicht(level, 62);
+  tiefSicht(level, { sea: SEA, far: 64 });
   gegnerSicht(level, { rammfisch: { shadow: false, dist: 60 }, wutkaulquappe: { shadow: false, dist: 40 } });
   // Funkenblüte verbrennt die Stachelkugel in der Glasröhre (Seeigel aus Riff-Stacheln)
   const kugel = level.named.get('seeigel') ?? level.entities.find((e) => e.spec?.id === 'seeigel');
@@ -260,8 +276,6 @@ export const LEVEL = {
     rock(-16, -0.6, -55, -57.4, 1.2, FLOOR), rock(0.6, 16, -55, -57.4, 1.2, FLOOR), rock(-0.6, 0.6, -55, -57.4, 1.2, FLOOR + 2.4),
     // Kammer C: Zickzack-Gänge
     rock(-16, 7, -64, -66, 1.2, FLOOR), rock(-7, 16, -73, -75, 1.2, FLOOR), rock(-16, 7, -81, -83, 1.2, FLOOR),
-    // Sandrampe aus dem Wasser hinauf zur Felsplattform
-    { type: 'ramp', pos: [0, FLOOR, -85.5], size: [6, BEACH - FLOOR, 5], axis: 'z', dir: -1, low: 5.4, top: 'stone' },
     // Felsplattform mit Warp-Box
     rock(-6, 6, -88, -92.5, BEACH, FLOOR), rock(-16, -6, -92, -95.5, 2.4, FLOOR - 2), rock(6, 16, -92, -95.5, 2.4, FLOOR - 2), rock(-6, 6, -92.5, -95.5, 3, FLOOR - 2),
     { type: 'kiste_wasser', kisten: [
@@ -344,8 +358,21 @@ export const LEVEL = {
     rock(-6.6, -4.4, -202, -204.2, -3.6, FLOOR2), rock(4.4, 6.6, -202, -204.2, -3.6, FLOOR2),
     // Zielriff mit Sandrampe aus dem Wasser
     sand(-16, 16, -214, -246, BEACH, FLOOR2 - 2, { tag: 'zielriff' }),
-    { type: 'ramp', pos: [0, FLOOR2, -211], size: [6, BEACH - FLOOR2, 6], axis: 'z', dir: -1, low: 6.4, top: 'stone' },
-    sign(-14, BEACH, -216.4, 'Glasröhre:\nFunkenblüte hilft!', { size: [2.2, 0.8] }),
+    sign(-15.6, BEACH, -221.8, 'Glasröhre:\nFunkenblüte hilft!', { size: [2.2, 0.8] }),
+    // Zielriff: Palmenstrand mit Sonnenschirm, Muscheln und Seesternen
+    { type: 'deco_w2', items: [
+      { kind: 'palme', pos: [-13.4, BEACH, -229], height: 4.4, lean: 0.3, yaw: PI },
+      { kind: 'palme', pos: [13.6, BEACH, -222.4], height: 4, lean: 0.3, yaw: 0.2 },
+      { kind: 'palme', pos: [13, BEACH, -241], height: 5, lean: 0.3, yaw: -0.3 },
+      { kind: 'palme', pos: [-12.6, BEACH, -241.6], height: 4.6, lean: 0.25, yaw: PI + 0.4 },
+    ] },
+    { type: 'deco_w5', items: [
+      { kind: 'sonnenschirm', pos: [-6.4, BEACH, -231], color: 'rot' },
+      { kind: 'liegestuhl', pos: [-6.6, BEACH, -233], yaw: PI / 2, color: 'gelb' },
+      { kind: 'strandball', pos: [10, BEACH, -233], size: 0.8 },
+      { kind: 'muscheln', pos: [2, BEACH, -228], size: [22, 22], n: 18, seed: 6, avoid: [[4, -228, 2.2], [6, -236, 1.6], [0, -221, 3]] },
+      { kind: 'sandburg', pos: [-1.6, BEACH, -240.4], size: 1.6, solid: true },
+    ] },
   ],
   blocks: [
     { kind: 'question', pos: [-1.6, BEACH + 2.4, 6.6], content: 'coins:3' },
