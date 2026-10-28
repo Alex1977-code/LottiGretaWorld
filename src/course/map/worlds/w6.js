@@ -74,7 +74,7 @@ export const MAP = {
   // Seilbahn vom Zirkus-Gipfel hinab zur Wolkenstraße (Masten, Seil, pendelnde Gondel – decor_w4.buildCableway)
   cableways: [{ from: [31.6, 20, -173], to: [12.6, 16.5, -126.6], hFrom: 7, hTo: 6, sag: 2.2, period: 18 }],
   // Regenbögen: Mitte (Fußpunkt-Ebene), Radius, Drehung
-  rainbows: [{ c: [0, 4, 21], r: 17, yaw: 0 }, { c: [46, 9, -137], r: 15, yaw: 0 }, { c: [-50, 7, 9], r: 10, yaw: 0.35 }],
+  rainbows: [{ c: [0, 5, 20.5], r: 14.5, yaw: 0 }, { c: [46, 9, -137], r: 15, yaw: 0 }, { c: [-50, 7, 9], r: 10, yaw: 0.35 }],
 
   levels: [
     { id: 'W5', world: 5, next: 5, label: 'Welt 5', stars: 0 },

@@ -1499,7 +1499,7 @@ export class SkyLife {
 
   liveInfo() {
     return {
-      windmills: { ...this.wind, n: this.mills?.length ?? 0, shown: this.shown },
+      windmills: { ...this.windInfo(), n: this.mills?.length ?? 0, shown: this.shown },
       airships: { n: this.ships?.length ?? 0 },
       waterfalls: { n: this.falls?.length ?? 0 },
     };

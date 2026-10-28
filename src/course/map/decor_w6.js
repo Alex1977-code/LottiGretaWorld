@@ -79,6 +79,24 @@ function bake6(ev, name, opts, pos, yaw = FRONT, scale = 1, state = null, cast =
   if (ok) W6_USED.add(name);
   return ok;
 }
+/** Halber Grundriss (max. |x|, |z| um den Fußpunkt) eines Registry-Modells in m (gemerkt), null ohne Modell. */
+const FOOT = new Map();
+function footRadius(name, opts = {}) {
+  const key = `${name}|${JSON.stringify(opts)}`;
+  if (FOOT.has(key)) return FOOT.get(key);
+  let r = null;
+  if (hasModel(name)) {
+    const m = getModel(name, opts);
+    if (!m.placeholder) {
+      m.root.updateMatrixWorld(true);
+      const bb = new THREE.Box3().setFromObject(m.root);
+      if (!bb.isEmpty()) r = Math.max(Math.abs(bb.min.x), bb.max.x, Math.abs(bb.min.z), bb.max.z);
+    }
+    m.dispose?.();
+  }
+  FOOT.set(key, r);
+  return r;
+}
 /** Registry-Modell als bewegtes Objekt; state = Objekt/String oder Funktion (dt, t) → state. null, wenn es fehlt. */
 function live6(ev, name, opts, pos, yaw = FRONT, scale = 1, state = 'idle', shadow = true, maxTris = 5000) {
   if (!hasModel(name) || modelTris(name, opts) > maxTris) return null;
@@ -590,7 +608,7 @@ function farEast(ev, x, y, z) {
   const putGong = (dt, t) => {
     const bt = beatNow6(t);
     const bar = Math.floor(bt.beat / 4), ph = bt.beat - bar * 4;   // Zählzeiten seit dem Taktanfang
-    if (bar !== st.bar) { if (st.bar >= 0) st.strikes++; st.bar = bar; }
+    if (bar !== st.bar) { if (st.bar >= 0 && bar > st.bar) st.strikes += bar - st.bar; st.bar = bar; }   // verpasste Takte nachzählen
     st.beat = +bt.beat.toFixed(3); st.source = bt.source; st.theme = bt.theme;
     const k = Math.exp(-ph * 1.6);
     gong.rotation.set(Math.sin(ph * 9) * 0.22 * k, 0, 0);
@@ -1170,8 +1188,9 @@ function tankRoad(ev, x, y, z) {
 // ------------------------------------------------------------------ 6-C Zirkuszelt auf der höchsten Insel
 
 function skyCircus(ev, x, y, z) {
-  // Zelt: Registry 'zirkuszelt' (Welt 3), sonst eigenes großes Zelt mit Pastellstreifen
-  if (!bake6(ev, 'zirkuszelt', {}, [x, y, z], FRONT, 1.25, null, true, 9000)) {
+  // Zelt: Registry 'zirkuszelt' (Welt 3, auf ≈ 6 m Radius skaliert), sonst eigenes großes Zelt mit Pastellstreifen
+  const fr = footRadius('zirkuszelt');
+  if (!(fr && bake6(ev, 'zirkuszelt', {}, [x, y, z], FRONT, Math.min(1.3, 6.2 / fr), null, true, 9000))) {
     addGeo(ev, 'w6m:bigtent', () => {
       const b = new Build();
       const R = 5.6, H = 3.6;
