@@ -113,6 +113,14 @@
 //    Arme seitlich). In der Röhre ist die Figur unsichtbar (HeroRig), davor 'pipe'.
 //  - Beide Posen halten den Mund geschlossen und die Augen ungestaucht (kein zusätzlicher Zeichenaufruf gegenüber idle).
 //
+// Welt 6 (Kurs-Modus; Vertrag „Präzisierung (Figuren und Klänge Welt 6)“): avatar.courseStates = alle Kurs-Zustände mit eigener
+// Pose (HeroRig zeigt neue Zustände sonst ersatzweise anders, z. B. 'hang' als 'trapeze').
+//  - 'hang' (obj.course.speed, hangMove, optional hangGrid = { x0, x1, z0, z1 } des Deckengitters): hängt an beiden Händen
+//    unter dem Gitter (Gitterebene = Körperhöhe der Hitbox + HANG_POSE.arm über root), Fäuste per Arm-IK (Gummi-Arme) im
+//    Gitter, Hand über Hand im Takt des zurückgelegten Wegs (haltende Hand liegt fest), Körper und Beine als Feder-Pendel
+//    (Anfahren/Bremsen, Schwung je Griff, im Stand sachtes Schaukeln), Knie leicht angezogen; am Gitterrand bleiben die
+//    Griffe im Gitter. Mund zu, Augen ungestaucht: Zeichenaufrufe wie idle.
+//
 // Halloween-Verkleidung (Vertrag „Präzisierung (Figuren Halloween): Verkleidung“; Schalter ../lib/outfit.js, Bausteine
 // ../lib/heroHalloween.js): Beide Avatare lesen je Bild currentOutfit() (Szene bzw. URL ?outfit=…); avatar.setOutfit('halloween'
 // | null) legt einzeln fest, 'auto' folgt wieder der Szene. Zubehör entsteht erst beim ersten Anziehen und hängt nur getragen
