@@ -54,7 +54,7 @@ class StachelWurf extends CourseEntity {
     this.rolled = 0;
     this.angle = 0;
     this.rdir = { x: 0, z: 1 };
-    this._ign = (s) => !!this.owner && s.owner === this.owner;
+    this._ign = (s) => !!s.ballPass || (!!this.owner && s.owner === this.owner);   // ballPass: Kraftfeld „nur Bälle“
     if (Array.isArray(spec.vel)) {
       this.vel.set(spec.vel[0], spec.vel[1], spec.vel[2]);
       const h = Math.hypot(this.vel.x, this.vel.z);

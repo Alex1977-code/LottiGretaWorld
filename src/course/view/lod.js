@@ -6,6 +6,12 @@
 //   flatterkaefer, krabbelkaefer   Registry-Käfer ≈ 4500 Dreiecke → sparsame Nachbildung ≈ 650 (Panzer mit Punkten,
 //                                  Kopf, Augen, Fühler, Beine) ab 22 m Kameraabstand (Entität `lodDist` ändert den
 //                                  Abstand); die Flügel des Modells bleiben
+//   stachelkugel, stachelkugel_wurf  Registry-Stachelkugel ≈ 5,7 k Dreiecke → die sparsame Kugel derselben Bibliothek
+//                                  (spikeBallGeo lo, ≈ 0,9 k, gleiche Farben/Stacheln) ab 24 m Kameraabstand
+//                                  (Präzisierung „Motor-Feinschliff nach Welt 6“)
+//
+// Schatten-Stellvertreter (shadowStandIn(geometry) → sparsame Geometrie | null): Geometrien, deren Umriss auch sparsam
+// gleich aussieht, zeichnen im Schattenpass (EntityInstancer) immer die Vorlage – Stachelkugel (hi → lo).
 //
 // Motor-Pools nach Pool-Name (view.pool übernimmt sie automatisch, solange der Aufrufer keine eigene `lod`-Angabe
 // macht):
@@ -19,6 +25,7 @@ import * as THREE from 'three';
 import { questionGeo, usedGeo, brickGeo } from '../models/lib/blockGeos.js';
 import { colorize, merge, lin, mixc, smooth } from '../../three/world/geometry.js';
 import { hex } from '../blocks/kit.js';
+import { spikeBallGeo } from '../models/lib/w6Geos.js';
 
 const cache = new Map();
 const once = (k, f) => { let v = cache.get(k); if (!v) { v = f(); cache.set(k, v); } return v; };
@@ -161,7 +168,49 @@ const BUG = {
   keep: (m) => !!m.material?.transparent,     // Flügel
 };
 
-const MODEL_LOD = { flatterkaefer: BUG, krabbelkaefer: BUG };
+// ------------------------------------------------------------------ Stachelkugel (Welt 6)
+
+const SPIKE_COLORS = new Set(['eisen', 'lila', 'rot']);
+const STAND_IN = new Map();   // Geometrie → sparsame Geometrie (Schattenpass)
+
+/** Registry-Stachelkugel: Kugel-Mesh mit der vollen Bibliotheks-Geometrie suchen (sonst keine Detailstufe). */
+function spikeMeshOf(e) {
+  const color = SPIKE_COLORS.has(e.spec?.color) ? e.spec.color : 'eisen';
+  const hi = spikeBallGeo(color, false);
+  let hit = null;
+  e.model?.root?.traverse((o) => { if (!hit && o.isMesh && !o.isInstancedMesh && o.geometry === hi) hit = o; });
+  if (!hit) return null;
+  const lo = spikeBallGeo(color, true);
+  STAND_IN.set(hi, lo);
+  return { mesh: hit, lo };
+}
+
+const SPIKE = {
+  dist: 24,
+  make(e) {
+    const s = spikeMeshOf(e);
+    if (!s) return null;
+    // Vorlage im Raum des Gelenks (anchor), das die Kugel dreht und skaliert
+    const m = new THREE.Mesh(s.lo, s.mesh.material);
+    m.matrixAutoUpdate = false;
+    m.matrix.copy(s.mesh.matrix);
+    m.castShadow = s.mesh.castShadow; m.receiveShadow = s.mesh.receiveShadow;
+    const root = new THREE.Group();
+    root.add(m);
+    return root;
+  },
+  anchor: (root) => {
+    let a = null;
+    root.traverse((o) => { if (!a && o.isMesh && STAND_IN.has(o.geometry)) a = o.parent; });
+    return a ?? root;
+  },
+  keep: (m) => m.renderOrder !== 0 || !!m.material?.transparent,   // Staubwolke beim Zerplatzen
+};
+
+/** Sparsame Geometrie für den Schattenpass (oder null). */
+export function shadowStandIn(geo) { return STAND_IN.get(geo) ?? null; }
+
+const MODEL_LOD = { flatterkaefer: BUG, krabbelkaefer: BUG, stachelkugel: SPIKE, stachelkugel_wurf: SPIKE };
 
 /** Detailstufe für das Modell einer Entität (oder null). */
 export function modelLod(e) {

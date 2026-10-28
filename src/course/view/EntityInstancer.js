@@ -17,9 +17,18 @@
 //   das volle Modell zeichnet dann nur die Teile, die die Stufe behält (Flügel), dazu die sparsame Vorlage.
 // Abschalten: Entität `instancing = false` (bzw. spec.instancing: false), ganzes Level LEVEL.instancing = false.
 // Die Einzel-Meshes werden nur im Zeichnen übergangen (view/Culling.js: mesh.__inst), visible bleibt unangetastet.
+//
+// Präzisierung (Motor-Feinschliff nach Welt 6):
+//   - Regeln je Art aus `LEVEL.instances[kind]` bzw. `view.instanceRule(kind, rule)` gelten jetzt auch für die
+//     Entitäts-Modelle (vorher nur für Instanz-Gruppen/Pools): `shadow: false` – kein Sonnenschatten, `shadowDist: m` –
+//     weiter als m (waagerecht) von der Haupt-Figur kein Sonnenschatten; `farHide` blendet Level.render aus. Eine Art mit
+//     Regel zeichnet auch als einzelnes Exemplar über die Instanz-Gruppe (die Regel wirkt je Exemplar); Teile, die nicht
+//     instanziert werden können, überspringen nur den Schattenpass (mesh.__noSun, view/Culling.js).
+//   - Schatten-Stellvertreter (view/lod.js, shadowStandIn): Geometrien mit sparsamer Vorlage (Stachelkugel ≈ 5,7 k →
+//     ≈ 1 k Dreiecke) zeichnen im Schattenpass die Vorlage – auch als einzelnes Exemplar (Gruppe zwingend instanziert).
 
 import * as THREE from 'three';
-import { modelLod } from './lod.js';
+import { modelLod, shadowStandIn } from './lod.js';
 
 const DEFAULT_HOOK = THREE.Object3D.prototype.onBeforeRender;
 const DEFAULT_SHADOW_HOOK = THREE.Object3D.prototype.onBeforeShadow;
@@ -59,25 +68,40 @@ export class EntityInstancer {
     this.view = view;
     this.groups = new Map();     // Schlüssel → Gruppe { geo, mat, cast, recv, im, ims, cap, n, mats: Float32Array, force }
     this.found = [];
-    this.stats = { groups: 0, instanced: 0, lod: 0 };
+    this.stats = { groups: 0, instanced: 0, lod: 0, ruled: 0, shadowLow: 0 };
     this.lods = new WeakMap();   // Entität → { parts: [{ geometry, material, local, cast, recv }], anchor } | null
+    this.extra = [];             // Modelle von Bausteinen (view.instanceModel): { model: { root }, kind, pos }
+  }
+
+  /**
+   * Modell eines Bausteins (kein Entität, z. B. Kipp-Schaltfelder) wie ein Entitäts-Modell instanzieren lassen
+   * (Präzisierung „Motor-Feinschliff nach Welt 6“). root hängt direkt in der Szene (pos = root.position). → Abmelden.
+   */
+  addModel(root, kind) {
+    if (!root) return () => {};
+    const e = { model: { root }, kind, pos: root.position, spec: null };
+    this.extra.push(e);
+    return () => { const i = this.extra.indexOf(e); if (i >= 0) this.extra.splice(i, 1); };
   }
 
   group(geo, mat, cast, recv, kind) {
     const key = `${geo.id}|${mat.id}|${cast ? 1 : 0}|${recv ? 1 : 0}`;
     let G = this.groups.get(key);
     if (!G) {
-      G = { geo, mat, cast, recv, im: null, ims: null, cap: 0, n: 0, ns: 0, mats: new Float32Array(16 * 8), owners: [], force: false, kind, transparent: !!mat.transparent };
+      // Schattenpass mit sparsamer Vorlage (Stachelkugel …), sonst dieselbe Geometrie
+      const sgeo = (cast && shadowStandIn(geo)) || geo;
+      G = { geo, sgeo, mat, cast, recv, im: null, ims: null, cap: 0, n: 0, ns: 0, mats: new Float32Array(16 * 8), owners: [], nos: [], force: false, kind, transparent: !!mat.transparent };
       this.groups.set(key, G);
     }
     return G;
   }
 
-  /** Matrix (Elemente e) als Kandidat in G (owner = Mesh, das bei Instanzierung nicht selbst zeichnet). */
-  push(G, e, owner) {
+  /** Matrix (Elemente e) als Kandidat in G (owner = Mesh, das bei Instanzierung nicht selbst zeichnet; noSun = ohne Schatten). */
+  push(G, e, owner, noSun = false) {
     if (G.mats.length < (G.n + 1) * 16) { const a = new Float32Array(G.mats.length * 2); a.set(G.mats); G.mats = a; }
     G.mats.set(e, G.n * 16);
     G.owners[G.n] = owner;
+    G.nos[G.n] = noSun;
     G.n++;
   }
 
@@ -89,22 +113,26 @@ export class EntityInstancer {
     for (let i = 0; i < ch.length; i++) this.walk(ch[i], out);
   }
 
-  /** Mesh m (sichtbar) einsortieren; false = zeichnet selbst. */
-  addMesh(m, all, kind) {
-    if (!eligible(m, all)) return false;
+  /**
+   * Mesh m (sichtbar) einsortieren; false = zeichnet selbst. noSun: dieses Exemplar ohne Sonnenschatten (Regel der Art);
+   * force: Gruppe auch mit einem Exemplar instanziert zeichnen (Regel der Art).
+   */
+  addMesh(m, all, kind, noSun = false, force = false) {
+    if (!eligible(m, all)) { if (noSun) m.__noSun = this.view.frame; return false; }
     const G = this.group(m.geometry, m.material, m.castShadow, m.receiveShadow, kind);
+    if (force || G.sgeo !== G.geo) G.force = true;
     if (m.isInstancedMesh) {
       const n0 = G.n;
       for (let j = 0; j < m.count; j++) {
         m.getMatrixAt(j, _mi);
         _m.multiplyMatrices(m.matrixWorld, _mi);
-        if (!clean(_m.elements)) { G.n = n0; return false; }
-        this.push(G, _m.elements, null);
+        if (!clean(_m.elements)) { G.n = n0; if (noSun) m.__noSun = this.view.frame; return false; }
+        this.push(G, _m.elements, null, noSun);
       }
       G.owners[n0] = m;              // ganze Gruppe gehört einem Mesh
       return true;
     }
-    this.push(G, m.matrixWorld.elements, m);
+    this.push(G, m.matrixWorld.elements, m, noSun);
     return true;
   }
 
@@ -116,8 +144,11 @@ export class EntityInstancer {
     const found = this.found;
     const token = v.frame;
     const cam = culling.camPos;
-    let lodN = 0;
-    for (const e of level.entities) {
+    const rules = v.instanceRules ?? {};
+    const focus = level.players?.[0]?.pos ?? level.player?.pos ?? null;
+    let lodN = 0, ruled = 0;
+    const list = this.extra.length ? level.entities.concat(this.extra) : level.entities;
+    for (const e of list) {
       const root = e.model?.root;
       if (!root || !root.parent || e.instancing === false || e.spec?.instancing === false) continue;
       let vis = true;
@@ -127,6 +158,15 @@ export class EntityInstancer {
       this.walk(root, found);
       if (!found.length) continue;
       root.updateWorldMatrix(true, true);
+      // Regel der Art (LEVEL.instances[kind]): Sonnenschatten nur nah bzw. nie
+      const rule = rules[e.kind];
+      let noSun = false;
+      if (rule) {
+        ruled++;
+        if (rule.shadow === false) noSun = true;
+        else if (rule.shadowDist > 0 && focus && Math.hypot(e.pos.x - focus.x, e.pos.z - focus.z) > rule.shadowDist) noSun = true;
+      }
+      const force = !!rule;
       // Detailstufe ferner Exemplare
       const lod = this.lodOf(e);
       const all = e.instancing === 'all' || !!lod?.all;
@@ -134,21 +174,22 @@ export class EntityInstancer {
       if (lod && cam.distanceToSquared(e.pos) > ld * ld) {
         const anchor = lod.anchor(root);
         for (const m of found) {
-          if (lod.keep?.(m)) { if (!this.addMesh(m, true, e.kind)) continue; }
+          if (lod.keep?.(m)) { if (!this.addMesh(m, true, e.kind, noSun, force)) continue; }
           else m.__inst = token;
         }
         for (const p of lod.parts) {
           const G = this.group(p.geometry, p.material, p.cast && anchorCasts(found), p.recv, e.kind);
           G.force = true;
           _m.multiplyMatrices(anchor.matrixWorld, p.local);
-          this.push(G, _m.elements, null);
+          this.push(G, _m.elements, null, noSun);
         }
         lodN++;
         continue;
       }
-      for (const m of found) this.addMesh(m, all, e.kind);
+      for (const m of found) this.addMesh(m, all, e.kind, noSun, force);
     }
-    let inst = 0;
+    this.stats.ruled = ruled;
+    let inst = 0, lowS = 0;
     for (const G of this.groups.values()) {
       if (G.n < 2 && !G.force) continue;
       if (!G.im || G.cap < G.n) this.grow(G, Math.max(8, G.n * 2));
@@ -166,7 +207,7 @@ export class EntityInstancer {
         const e = G.mats.subarray(i * 16, i * 16 + 16);
         const s = sphereOf(G.geo, e);
         const inC = culling.sphereVisible(s.center.x, s.center.y, s.center.z, s.radius, false);
-        const inS = G.cast && culling.shadowVisible(s.center.x, s.center.y, s.center.z, s.radius);
+        const inS = G.cast && !G.nos[i] && culling.shadowVisible(s.center.x, s.center.y, s.center.z, s.radius);
         if (!inC && !inS) continue;
         _m.fromArray(e);
         if (G.transparent) { _m.elements[12] -= ox; _m.elements[13] -= oy; _m.elements[14] -= oz; }
@@ -176,9 +217,11 @@ export class EntityInstancer {
       G.im.count = n; G.im.visible = n > 0; G.im.instanceMatrix.needsUpdate = true;
       G.ns = ns;
       if (G.ims) { G.ims.count = ns; G.ims.visible = ns > 0; G.ims.instanceMatrix.needsUpdate = true; }
+      if (G.sgeo !== G.geo) lowS += ns;
       inst += n;
     }
     this.stats.lod = lodN;
+    this.stats.shadowLow = lowS;
     this.finish(inst);
   }
 
@@ -203,7 +246,7 @@ export class EntityInstancer {
   /** Haupt- (und bei Schattenwurf Schatten-)InstancedMesh mit Platz für cap Exemplare (Inhalt wird je Bild neu gefüllt). */
   grow(G, cap) {
     const make = (shadow) => {
-      const im = new THREE.InstancedMesh(G.geo, G.mat, cap);
+      const im = new THREE.InstancedMesh(shadow ? G.sgeo : G.geo, G.mat, cap);
       im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       im.castShadow = shadow;
       im.receiveShadow = G.recv;
@@ -242,6 +285,7 @@ export class EntityInstancer {
     for (const G of this.groups.values()) for (const im of [G.im, G.ims]) if (im) { im.parent?.remove(im); im.dispose(); }
     this.groups.clear();
     this.lods = new WeakMap();
+    this.extra.length = 0;
   }
 }
 

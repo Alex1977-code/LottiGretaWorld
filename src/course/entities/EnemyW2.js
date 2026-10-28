@@ -250,14 +250,16 @@ const SHARED = new WeakMap();
 /**
  * Eine createInstanced-Gruppe je Level und Art (z. B. alle Marschblöcke des Levels: 5 Zeichenaufrufe statt 5 je
  * Block). alloc() → { set(pos, yaw, scale, state), state(st), release() } oder null (ohne Darstellung).
- * Weitere Gruppen werden angelegt, wenn eine voll ist (chunk Plätze je Gruppe).
+ * Weitere Gruppen werden angelegt, wenn eine voll ist (chunk Plätze je Gruppe). Verschiedene opts (z. B. { color }) bekommen
+ * eigene Gruppen (Präzisierung „Motor-Feinschliff nach Welt 6“: Gelee-Brocken je Farbe); Regel-Name bleibt `name`.
  */
 export function sharedSlot(level, name, opts = {}, chunk = 48) {
   if (!level.view) return null;
   let byName = SHARED.get(level);
   if (!byName) { byName = new Map(); SHARED.set(level, byName); }
-  let groups = byName.get(name);
-  if (!groups) { groups = []; byName.set(name, groups); }
+  const key = opts && Object.keys(opts).length ? `${name}|${JSON.stringify(opts)}` : name;
+  let groups = byName.get(key);
+  if (!groups) { groups = []; byName.set(key, groups); }
   let g = groups.find((x) => x.free.length > 0);
   if (!g) {
     const inst = createInstanced(name, chunk, opts);

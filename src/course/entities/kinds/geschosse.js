@@ -51,7 +51,7 @@ class Feuerkugel extends Geschoss {
     this.color = spec.color === 'blau' ? 'blau' : 'rot';
     this.curve = spec.curve ?? 0;
     this.curveFor = spec.curveFor ?? Infinity;
-    this._ign = (s) => this.ownShape(s);
+    this._ign = (s) => this.ownShape(s) || !!s.ballPass;   // ballPass: Kraftfeld „nur Bälle“ lässt Geschosse durch
     if (level.view) this.setModel(getModel(this.color === 'blau' ? 'feuerkugel_blau' : 'feuerkugel'));
   }
 

@@ -35,7 +35,7 @@ class Fireball extends CourseEntity {
     if (this.age > this.life) { this.poof(); return; }
     this.vel.y = Math.max(this.vel.y - GRAVITY * dt, -20);
     const c = this.center();
-    const res = this.level.world.moveAABB(c, this.half, { x: this.vel.x * dt, y: this.vel.y * dt, z: this.vel.z * dt }, { step: 0.12 });
+    const res = this.level.world.moveAABB(c, this.half, { x: this.vel.x * dt, y: this.vel.y * dt, z: this.vel.z * dt }, { step: 0.12, ignore: BALL_PASS });
     this.pos.set(c.x, c.y - this.half.y, c.z);
     if (res.hitWall) {
       // Feste Entitäten mit eigener Trefferreaktion (Kisten, Truhen …) bekommen den Feuertreffer
@@ -69,5 +69,8 @@ class Fireball extends CourseEntity {
     this.kill();
   }
 }
+
+// Formen mit `ballPass` (Kraftfeld „nur Bälle“, Präzisierung „Motor-Feinschliff nach Welt 6“) lassen Geschosse durch
+function BALL_PASS(s) { return !!s.ballPass; }
 
 export const KINDS = { fireball: (level, spec) => new Fireball(level, spec) };

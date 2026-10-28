@@ -76,15 +76,24 @@ class Arena {
     }
   }
 
-  /** Tod der Figur: Arena neu – Gegner frisch (volle Treffer), Stern weg. */
+  /**
+   * Tod der Figur: Arena neu – Gegner frisch (volle Treffer), Stern weg. Präzisierung „Motor-Feinschliff nach Welt 6“:
+   * Gegner, die ein anderer Gegner erzeugt hat (spec.spawnedBy, z. B. der Werfer auf dem Werferturm), entstehen mit ihm
+   * neu und werden über dessen `rider` mitgezählt.
+   */
   resetArena() {
     const level = this.level;
     for (const e of this.members) if (!e.removed) e.kill();
     this.counted.clear();
     this.members = [];
     for (const spec of this.specs) {
+      if (spec?.spawnedBy) continue;
       const e = level.spawn(spec.kind, spec);
       if (e) { this.counted.add(e); this.members.push(e); }
+    }
+    for (const e of [...this.members]) {
+      const r = e.rider;
+      if (r?.enemy && !r.removed && !this.counted.has(r)) { this.counted.add(r); this.members.push(r); }
     }
     if (this.star && !this.star.removed) this.star.kill();
     this.star = null;

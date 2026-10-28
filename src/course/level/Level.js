@@ -47,6 +47,10 @@
 //   level.isMaskedFrom(enemy, fig?, angleDeg = 75)   trägt die Figur (Standard: nächste zum Gegner) die Pilz-Maske und blickt
 //                                             sie zum Gegner (±angleDeg)? → der Gegner sieht sie nicht (Gegner-Agent)
 //   level.hangGrids                           Deckengitter (player/hanging.js); level.w6 = Sammelstelle der Welt-6-Bausteine
+//
+// Ergänzungen (Präzisierung Motor-Feinschliff nach Welt 6):
+//   isMaskedFrom ist in der Luft robust (über dem Gegner zugewandt, 0,35 s Nachhalten); render() blendet auch nach
+//   LEVEL.instances[kind].farHide aus (Regel je Art, wie view.instanceRule).
 
 import { CollisionWorld } from '../physics/CollisionWorld.js';
 import { getEntityKind, hasEntityKind } from '../entities/index.js';
@@ -57,6 +61,7 @@ import { normalizePower } from '../player/powers.js';
 import { skateContact } from '../player/skating.js';
 
 const DEG = Math.PI / 180;
+const MASK_AIR_HOLD = 0.35;   // s: Pilz-Maske hält in der Luft nach dem letzten „zugewandt“ (Sprung über den Gegner)
 
 export class Level {
   /**
@@ -104,13 +109,28 @@ export class Level {
    * Sieht der Gegner die Figur NICHT, weil sie maskiert ist? true, wenn die Figur (Standard: die nächste zum Gegner) die
    * Pilz-Maske trägt (fig.masked) und dem Gegner zugewandt ist (waagerechter Blickkegel ±angleDeg um die Blickrichtung).
    * enemy: Entität (pos) oder Punkt {x, z} / [x, y, z]. Für Gegner, die die Figur bemerken/verfolgen (Gegner-Agent).
+   * Präzisierung „Motor-Feinschliff nach Welt 6“ – in der Luft robust: über dem Gegner (waagerecht höchstens Halbbreite
+   * des Gegners + Halbbreite der Figur + 0,3 m) gilt die maskierte Figur als zugewandt (die Blickrichtung zur Gegnermitte
+   * kippt dort), und war sie eben noch zugewandt, hält das in der Luft MASK_AIR_HOLD s nach (Sprung über den Gegner).
    */
   isMaskedFrom(enemy, fig = null, angleDeg = 75) {
     const pos = Array.isArray(enemy) ? { x: enemy[0], y: enemy[1], z: enemy[2] } : enemy?.pos ?? enemy;
     if (!pos) return false;
     const f = fig ?? this.nearestPlayer(pos);
     if (!f || !f.masked) return false;
-    return this.isFacing(f, pos, angleDeg);
+    const obj = enemy && typeof enemy === 'object' && !Array.isArray(enemy) ? enemy : null;
+    const air = f.mode === 'air';
+    const seen = () => { if (obj) (this._maskSeen ??= new WeakMap()).set(obj, { f, t: this.time }); return true; };
+    if (air && !f.dead) {
+      const r = (obj?.half?.x ?? 0.4) + (f.half?.x ?? 0.3) + 0.3;
+      if (Math.hypot(pos.x - f.pos.x, pos.z - f.pos.z) <= r) return seen();
+    }
+    if (this.isFacing(f, pos, angleDeg)) return seen();
+    if (air && obj) {
+      const last = this._maskSeen?.get(obj);
+      if (last && last.f === f && this.time - last.t <= MASK_AIR_HOLD) return true;
+    }
+    return false;
   }
 
   // ------------------------------------------------------------------ Welt 5: Sprünge und Signale
@@ -450,14 +470,15 @@ export class Level {
   /**
    * Darstellung je Bild (Modelle nachführen/animieren). Fern-Ausblendung (Präzisierung „Leistung und Level-Haken 2“):
    * Entitäten mit `farHide` (m; Gegner auch über LEVEL.farHide) werden weiter als farHide m (waagerecht) von der
-   * Haupt-Figur nicht gezeichnet – nur Darstellung, sie laufen weiter.
+   * Haupt-Figur nicht gezeichnet – nur Darstellung, sie laufen weiter. Präzisierung „Motor-Feinschliff nach Welt 6“:
+   * auch die Regel der Art aus LEVEL.instances[kind].farHide (bzw. view.instanceRule) gilt (vor LEVEL.farHide).
    */
   render(dt, t) {
-    const p = this.players[0], fhAll = this.data.farHide;
+    const p = this.players[0], fhAll = this.data.farHide, rules = this.view?.instanceRules;
     for (let i = 0; i < this.entities.length; i++) {
       const e = this.entities[i];
       e.render?.(dt, t);
-      const fh = e.farHide ?? (e.enemy ? fhAll : undefined);
+      const fh = e.farHide ?? rules?.[e.kind]?.farHide ?? (e.enemy ? fhAll : undefined);
       const root = e.model?.root;
       if (!(fh > 0) || !root) continue;
       const far = !!p && !e.removed && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > fh;

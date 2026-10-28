@@ -25,11 +25,18 @@
 // folgt die Kamera dem Schwerpunkt der aktiven Figuren (Tempo = Mittel, Standhöhe/Modus von der Haupt-Figur)
 // und zoomt mit der Streuung (größter waagerechter Abstand zum Schwerpunkt) weich heraus: ab 1,5 m, bis ×1,35 bei
 // 10,5 m (groupZoom). Weiter zurückgefallene Figuren gehen in der Simulation verloren (player/Squad.js).
+//
+// Kamera-Hindernisse (Präzisierung „Motor-Feinschliff nach Welt 6“): der Strahl prüft die echte Form
+// (CollisionWorld.raycastCam – Rampen als Keil, Zylinder rund; an Hängen rückt die Kamera nicht mehr heran, `camIgnore`
+// auf Rampen ist nicht mehr nötig); kleine, frei stehende Hindernisse (alle Kanten ≤ SMALL m, seitlich ohne feste
+// Nachbarn – z. B. ein einzelner ?-Block, Ziegel, eine Kiste) nahe der Figur (≤ SMALL_NEAR m vom Kopf) ziehen die Kamera
+// nicht heran – sie verdecken nur kurz einen kleinen Bildteil. Reihen und Mauern aus Blöcken zählen weiter.
 
 import * as THREE from 'three';
 
 export const CAM_DEFAULT = { pitch: 45, dist: 13, yaw: 0, fov: 38, x: null, xLock: 1, height: 1.0, lead: 1, ahead: 2.0 };
 const BLEND = 8;
+const SMALL = 2.2, SMALL_NEAR = 5;   // kleine Hindernisse nahe der Figur übergehen (m)
 const USER_STEP = 15, USER_MAX = 30;
 const ZOOMS = [1, 0.74];
 const DEG = Math.PI / 180;
@@ -185,12 +192,43 @@ export class CameraRig {
       for (let k = 0; k < 8; k++) {
         const d = want * (1 - k * 0.11);
         const end = this._b.copy(this.target).addScaledVector(dir, d);
-        if (!world.raycast(head, end)) { dist = d; break; }
+        if (!this.blocked(world, head, end)) { dist = d; break; }
         dist = Math.max(3, d);
       }
     }
     this.distNow = dist < this.distNow ? damp(this.distNow, dist, 18, dt) : damp(this.distNow, dist, 3, dt);
     this.place(r, dt);
+  }
+
+  /**
+   * Verdeckt etwas den Strahl Kopf → Kamera? Echte Formen (raycastCam); kleine Formen nahe dem Kopf zählen nicht.
+   * Ältere Welten ohne raycastCam (Test-Attrappen): Hüllquader wie bisher.
+   */
+  blocked(world, a, b) {
+    if (!world.raycastCam) return !!world.raycast(a, b);
+    const len = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+    let skip = null;
+    for (let k = 0; k < 6; k++) {
+      const h = world.raycastCam(a, b, skip);
+      if (!h) return false;
+      const s = h.shape;
+      const small = s.x1 - s.x0 <= SMALL && s.z1 - s.z0 <= SMALL && s.top - s.bot <= SMALL;
+      if (!small || h.t * len > SMALL_NEAR || !this.isolated(world, s)) return true;
+      (skip ??= new Set()).add(s);
+    }
+    return false;
+  }
+
+  /** Kleine Form ohne feste seitliche Nachbarn (Boden darunter, Decke darüber zählen nicht)? */
+  isolated(world, s) {
+    if (!world.overlapAABB) return true;
+    const c = this._ic ?? (this._ic = { x: 0, y: 0, z: 0 }), hh = this._ih ?? (this._ih = { x: 0, y: 0, z: 0 });
+    c.x = (s.x0 + s.x1) / 2; c.y = (s.bot + s.top) / 2; c.z = (s.z0 + s.z1) / 2;
+    hh.x = (s.x1 - s.x0) / 2 + 0.15; hh.y = Math.max(0.01, (s.top - s.bot) / 2 - 0.06); hh.z = (s.z1 - s.z0) / 2 + 0.15;
+    for (const o of world.overlapAABB(c, hh)) {
+      if (o !== s && o.solid && !o.camIgnore && !o.oneWay && !o.fromBelowOnly && !o.trigger) return false;
+    }
+    return true;
   }
 
   /** Einheitsvektor vom Ziel zur Kamera. */

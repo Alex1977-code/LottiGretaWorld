@@ -7,7 +7,8 @@
 //                                           wallShape, hits, stepped }
 //   raycastDown(x, y, z, maxDist, opts?) → { y, shape } | null
 //   overlapAABB(center, half, opts?) → shape[]
-// Zusätzlich: raycast(a, b, filter?) (Kamera), candidates(...), forEach(fn), count.
+// Zusätzlich: raycast(a, b, filter?) (Hüllquader), raycastCam(a, b, skip?) (Kamera: echte Form – Rampen als Keil,
+// Zylinder rund; Präzisierung „Motor-Feinschliff nach Welt 6“), candidates(...), forEach(fn), count.
 //
 // Bewegung (moveAABB) – Präzisierung (Motor):
 //  - Die Bewegung wird in Teilschritte ≤ 0,2 m zerlegt; je Teilschritt erst X, dann Z, dann Y (Gleiten an
@@ -24,7 +25,7 @@
 //    geschoben statt anzustoßen.
 //  - `ignore(shape)` blendet Formen aus (z. B. eigene Form eines Gegners).
 
-import { normalize, topUnder, topAt, overlapXZ, containsXZ, segmentAABB } from './shapes.js';
+import { normalize, topUnder, topAt, overlapXZ, containsXZ, segmentAABB, segmentShape } from './shapes.js';
 
 const EPS = 1e-4;
 const SKIN = 1e-3;
@@ -374,6 +375,22 @@ export class CollisionWorld {
     for (const s of cands) {
       if (filter ? !filter(s) : (!s.solid || s.camIgnore || s.oneWay || s.fromBelowOnly)) continue;
       const t = segmentAABB(s, a.x, a.y, a.z, b.x, b.y, b.z);
+      if (t >= 0 && (!best || t < best.t)) best = { t, shape: s };
+    }
+    return best;
+  }
+
+  /**
+   * Kamerastrahl a → b (Präzisierung „Motor-Feinschliff nach Welt 6“): wie raycast mit dem Standardfilter, aber gegen
+   * die echte Form – eine Rampe verdeckt nur unter ihrer Schräge (nicht mehr als ganzer Hüllquader), ein Zylinder nur
+   * rund. skip (Set) blendet einzelne Formen aus. Nur Darstellung (die Spiel-Abfragen nutzen weiter raycast).
+   */
+  raycastCam(a, b, skip = null) {
+    const cands = this.candidates(Math.min(a.x, b.x), Math.min(a.z, b.z), Math.max(a.x, b.x), Math.max(a.z, b.z));
+    let best = null;
+    for (const s of cands) {
+      if (!s.solid || s.camIgnore || s.oneWay || s.fromBelowOnly || (skip && skip.has(s))) continue;
+      const t = segmentShape(s, a.x, a.y, a.z, b.x, b.y, b.z);
       if (t >= 0 && (!best || t < best.t)) best = { t, shape: s };
     }
     return best;

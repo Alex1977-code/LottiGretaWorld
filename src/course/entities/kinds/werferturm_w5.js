@@ -53,7 +53,11 @@ class Werferturm extends EnemyW2 {
     if (level.view) this.setModel(stackedTower(this.max));
     if (spec.rider !== false) {
       const top = this.top();
-      const w = level.spawn(spec.weapon === 'hammer' ? 'hammer_werfer' : spec.weapon === 'bumerang' ? 'bumerang_werfer' : 'feuer_werfer', {
+      // Reiter-Spec mit `kind` und `spawnedBy` (Präzisierung „Motor-Feinschliff nach Welt 6“): die Arena baut ihn beim
+      // Neustart nicht aus den Daten nach, sondern zählt den Werfer des neuen Turms (kein doppelter Werfer, keine Warnung)
+      const riderKind = spec.weapon === 'hammer' ? 'hammer_werfer' : spec.weapon === 'bumerang' ? 'bumerang_werfer' : 'feuer_werfer';
+      const w = level.spawn(riderKind, {
+        kind: riderKind, spawnedBy: 'werferturm',
         id: spec.riderId, pos: [top.x, top.y, top.z], wake: 999, pace: 0, sight: spec.throwSight ?? 14,
         interval: spec.interval, volley: spec.volley, first: spec.first ?? 1.5, drop: spec.riderDrop,
       });

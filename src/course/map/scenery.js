@@ -17,6 +17,9 @@
 // Welt 6 (map.kit 'sky'): Thema 'map_sky' (sky6.js); statt Meer, Schaum und Glitzern ein Wolkenmeer (CloudSea: helle
 // Fläche + treibende Wolkenkuppen), Wolken ziehen tiefer zwischen den Inseln, kleine schwebende Inselchen;
 // Nachbarwelt-Stile 'sky' (Wolkeninseln) und 'lavafort' (ferne Lava-Festung – Ziel der Welt-7-Röhre).
+// Welt 7 (map.kit 'lava'): Thema 'map_lava' (lava7.js), Abendmeer (map.seaColors), kleine Vulkan-Inselchen mit
+// Basaltsäulen oder rauchendem Mini-Kegel; Nachbarwelt-Stil 'erzpark' (dunkles Land mit Turm und Riesenrad – Ziel der
+// Röhre nach Welt 8). Wolken ohne Schattenpass.
 
 import * as THREE from 'three';
 import { THEMES } from '../view/themes.js';
@@ -28,6 +31,7 @@ import { canyonNeighborParts, canyonIsletParts } from './canyon.js';
 import { lilaNeighborParts, lilaIsletParts } from './beach5.js';
 import { hwNeighborParts, hwIsletParts } from './halloween.js';
 import { CloudSea, skyIsletParts, skyNeighborParts } from './sky6.js';
+import { lavaIsletParts, lavaNeighborParts } from './lava7.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 
 // Thema der Wüsteninsel (Welt 2): warmes Sonnenlicht, blasser, sandiger Horizont, Nebel ins Goldene.
@@ -91,7 +95,7 @@ export class MapScenery {
     this.buildClouds(bounds);
     this.buildIslets(bounds);
     if (this.kit === 'desert') this.buildMesas(bounds);
-    if (this.kit === 'sky' && this.clouds) this.clouds.castShadow = false;   // Welt 6: Wolken zwischen den Inseln ohne Schattenpass
+    if ((this.kit === 'sky' || this.kit === 'lava') && this.clouds) this.clouds.castShadow = false;   // Welt 6/7: Wolken ohne Schattenpass
     if (this.kit === 'snow') {
       this.buildFloes(bounds);
       this.buildSnowfall(map.snowfall ?? {});
@@ -259,10 +263,10 @@ export class MapScenery {
         n++;
         continue;
       }
-      if (this.kit === 'canyon' || this.kit === 'lila' || this.kit === 'halloween' || this.kit === 'sky') {
+      if (this.kit === 'canyon' || this.kit === 'lila' || this.kit === 'halloween' || this.kit === 'sky' || this.kit === 'lava') {
         // Canyon-/Lila-/Halloween-Inselchen (Welt 6: schwebende Inselchen): ohne Schattenwurf, je Meeressektor ein Mesh
-        const sea = { castShadow: false, tile: this.kit === 'sky' ? 'w6:inselchen' : this.seaSector(x, z) };   // Welt 6: alle in einer Kachel
-        const make = this.kit === 'lila' ? lilaIsletParts : this.kit === 'halloween' ? hwIsletParts : this.kit === 'sky' ? skyIsletParts : canyonIsletParts;
+        const sea = { castShadow: false, tile: this.kit === 'sky' ? 'w6:inselchen' : this.kit === 'lava' ? 'w7:inselchen' : this.seaSector(x, z) };   // Welt 6/7: alle in einer Kachel
+        const make = this.kit === 'lila' ? lilaIsletParts : this.kit === 'halloween' ? hwIsletParts : this.kit === 'sky' ? skyIsletParts : this.kit === 'lava' ? lavaIsletParts : canyonIsletParts;
         for (const g of make(x, z, w, d, top, rnd)) {
           if (g.userData?.material) this.view.addStatic(g, { ...sea, material: g.userData.material });
           else this.view.addStatic(g, sea);
@@ -337,7 +341,8 @@ export class MapScenery {
     if (nb.style === 'lila') parts.push(...lilaNeighborParts(nb, rnd));
     if (nb.style === 'halloween') parts.push(...hwNeighborParts(nb, rnd));
     if (nb.style === 'sky' || nb.style === 'lavafort') parts.push(...skyNeighborParts(nb, rnd));
-    const own = nb.style === 'snow' || nb.style === 'canyon' || nb.style === 'lila' || nb.style === 'halloween' || nb.style === 'sky' || nb.style === 'lavafort';
+    if (nb.style === 'erzpark') parts.push(...lavaNeighborParts(nb, rnd));
+    const own = nb.style === 'snow' || nb.style === 'canyon' || nb.style === 'lila' || nb.style === 'halloween' || nb.style === 'sky' || nb.style === 'lavafort' || nb.style === 'erzpark';
     const blocks = own ? [] : [[-0.5, -0.5, 0.5, 0.5, 2.5], [-0.35, -0.42, 0.1, 0.1, 6], [0.05, -0.3, 0.38, 0.2, 4.5]];
     for (const [a, c, e, f, top] of blocks) {
       const g = islandParts(x + a * w, -3, z + c * d, x + e * w, top, z + f * d, desert ? { ...theme, dirt: 0xd9a060, dirtDeep: 0xa86a3a } : THEMES.grass, { under: 0, rnd, top: desert ? 'sand' : 'grass', cell: 4 });
