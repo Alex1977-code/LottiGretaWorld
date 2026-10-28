@@ -40,11 +40,12 @@ import {
 import {
   W7, LAVA7, lavaKey, kulMat7, kulMetal7, glow7, glow7T, plain, num, hash1, noise3, displace, flameGeo, Puffs, hexColumnGeo,
   crestTexture, taperTube, gradV, axisY, memo,
+  fxPuffs,
 } from '../lib/w7Geos.js';
 
 const ironK = { v: (x, y, z, nx, ny) => mix(W7.ironLow, W7.ironHi, smoothstep(ny * 0.5 + nx * 0.2 + 0.35)) };
 const rockK = (lo = W7.rockLow, hi = W7.rockHi) => ({ v: (x, y, z, nx, ny) => mix(lo, hi, smoothstep(ny * 0.5 + 0.45 + (noise3(x * 2.3, y * 2.3, z * 2.3) - 0.5) * 0.5)) });
-const plainPuffs = (n, color, o) => { const p = new Puffs(n, color, o); plain(p.mat); return p; };
+const plainPuffs = (n, color, o) => { const p = fxPuffs(n, color, o); plain(p.mat); return p; };
 
 // =============================================================================================
 // Basaltsäulen

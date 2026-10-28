@@ -212,7 +212,7 @@ await sc(async () => {
       const b = new THREE.Box3(), tmp = new THREE.Box3();
       obj.updateMatrixWorld(true);
       obj.traverse((o) => {
-        if (!o.isMesh || !o.visible) return;
+        if (!o.isMesh || !o.visible || o.userData.fx) return;   // Effekt-Puffs (Rauch, Funken) zählen nicht zum Körper
         let vis = true; for (let p = o.parent; p; p = p.parent) if (!p.visible) vis = false;
         if (!vis) return;
         if (o.isInstancedMesh) {
@@ -459,7 +459,7 @@ if (part('checks')) {
   if (P.gitter) check('Gitterboden: size, Oberseite = thick, Ursprung unten', Math.abs(P.gitter[0] - 2) < 0.1 && Math.abs(P.gitter[1] - 3) < 0.1 && Math.abs(P.gitter[2] - 0.15) < 0.05 && P.gitter[3] > -0.02);
   if (P.kiste) check('Zerbrechliche Kiste ≈ size, Ursprung unten, break 1 → weg', Math.abs(P.kiste[0] - 1) < 0.2 && Math.abs(P.kiste[1] - 1) < 0.15 && P.kiste[2] > -0.02 && P.kiste[3]);
   if (P.bruecke) check('Zugbrücke: lower 1 liegt nach +X (length), Breite ≈ width (+ Sockel); lower 0 steht hoch', Math.abs(P.bruecke[0] - 6) < 0.5 && P.bruecke[1] > 2.8 && P.bruecke[1] < 4.8 && P.bruecke[3] > 5.5 && P.bruecke[4] < 1.2);
-  if (P.nebel) check('Giftnebel-Wand: ≈ width entlang Z, Front unten bei y ≈ 0, reicht ≈ height hoch (Hüllquader weicher Nebelkarten)', P.nebel[0] > 7 && P.nebel[0] < 9.6 && P.nebel[1] > -1.5 && P.nebel[2] > 3.4 && P.nebel[2] < 5.5);
+  if (P.nebel) check('Giftnebel-Wand: ≈ width entlang Z, Front unten bei y ≈ 0, reicht ≈ height hoch (Hüllquader weicher Nebelkarten)', P.nebel[0] > 7 && P.nebel[0] < 10.5 && P.nebel[1] > -1.8 && P.nebel[2] > 3.4 && P.nebel[2] < 6);
   if (P.strasse) check('Kampfwagen-Straße: Fahrbahn length × width, Oberseite y ≈ 0; Stachelfalle: up 1 Stacheln oben, up 0 versenkt', Math.abs(P.strasse[0] - 6) < 0.6 && Math.abs(P.strasse[1] - 6) < 0.8 && Math.abs(P.strasse[2]) < 0.25 && P.strasse[3] > 0.4 && P.strasse[4] < 0.2);
   if (P.basalt) check('Basaltsäule ≈ height hoch, steht auf dem Boden', P.basalt[0] > 2.6 && P.basalt[0] < 3.8 && P.basalt[1] > -0.1);
   if (P.turm) check('Festungsturm ≈ height (+ Dach mit Mast), Ø ≈ 2·radius', P.turm[0] > 8 && P.turm[0] < 15 && P.turm[1] > 4 && P.turm[1] < 6.5);

@@ -64,6 +64,7 @@ import {
 import {
   W7, LAVA7, lavaKey, FIRE7, glow7, glow7T, prog, num, ZERO, boneTo, fireballSet, puffyGeo, gradV, ownMat, flameGeo, mouthShape,
   stick, Puffs, hash1, lavaRingGeo, dropletGeo, taperTube, fibDirs, spikeCone,
+  fxPuffs,
 } from '../lib/w7Geos.js';
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
@@ -171,7 +172,7 @@ function buildKnochenflieger() {
   headJ.add(headIn);
   const wings = [1, -1].map((s) => joint([0.06, 0.12, s * 0.15], mesh(kfWingGeo(s), flash, {}, true)));
   pose.add(bodyJ, headJ, ...wings);
-  const dust = new Puffs(10, 0xfff2dc, { opacity: 0.85, radius: 3, cy: 0, detail: 0 });
+  const dust = fxPuffs(10, 0xfff2dc, { opacity: 0.85, radius: 3, cy: 0, detail: 0 });
   own.push(dust);
   root.add(pose, dust.mesh);
   root.userData.radius = 0.4;
@@ -326,9 +327,9 @@ function buildPlatschfisch(opts = {}) {
   fire.visible = false;
   inner.add(glowBody, crust, eye, open, tail, pecs, fire);
   pose.add(inner);
-  const drops = new Puffs(10, L.hot, { opacity: 0.95, radius: 2.5, cy: 0.3, emissive: L.hot, detail: 0 });
+  const drops = fxPuffs(10, L.hot, { opacity: 0.95, radius: 2.5, cy: 0.3, emissive: L.hot, detail: 0 });
   drops.gravity = 6;
-  const steam = new Puffs(6, 0xe8e4ee, { opacity: 0.8, radius: 2, cy: 0.6 });
+  const steam = fxPuffs(6, 0xe8e4ee, { opacity: 0.8, radius: 2, cy: 0.6 });
   own.push(drops, steam);
   const halo = glowSprite(L.glow, 1.4, 0.4);
   halo.position.y = 0.3;
@@ -484,8 +485,8 @@ function buildLavadrache(opts = {}) {
   const ringMat = ownMat(glow7T(0.9));
   own.push(ringMat);
   const ring = mesh(lavaRingGeo(key), ringMat);
-  const bubbles = new Puffs(10, L.hotter, { opacity: 0.95, radius: 3, cy: 0.5, emissive: L.hot, detail: 0 });
-  const steam = new Puffs(6, 0xeee8f4, { opacity: 0.8, radius: 4, cy: 2 });
+  const bubbles = fxPuffs(10, L.hotter, { opacity: 0.95, radius: 3, cy: 0.5, emissive: L.hot, detail: 0 });
+  const steam = fxPuffs(6, 0xeee8f4, { opacity: 0.8, radius: 4, cy: 2 });
   own.push(bubbles, steam);
   const halo = glowSprite(L.glow, 2.2, 0.5);
   halo.position.y = 0.2;
@@ -647,7 +648,7 @@ function buildWutkaulquappe(opts = {}) {
   const tail = instMesh(wkFinGeo(), flash, 3, 1.5, 0);
   tail.castShadow = true;
   pose.add(bodyJ, tail);
-  const bubbles = new Puffs(10, 0xe0f8ff, { opacity: 0.7, radius: 2, cy: 0.2 });
+  const bubbles = fxPuffs(10, 0xe0f8ff, { opacity: 0.7, radius: 2, cy: 0.2 });
   own.push(bubbles);
   const dizzy = dizzyStars(0.24, 0.06);
   sizeJ.add(pose, bubbles.mesh, dizzy);
@@ -769,8 +770,8 @@ function buildFunkenflaemmchen(opts = {}) {
   const halo = glowSprite(key === 'blau' ? 0x3a8aff : 0xff7a1a, 1.1, 0.6);
   halo.position.y = 0.25;
   pose.add(halo);
-  const embers = new Puffs(8, key === 'blau' ? 0x8ad8ff : 0xffb02a, { opacity: 0.95, radius: 2, cy: 0.4, emissive: key === 'blau' ? 0x2a6aff : 0xff6a10, detail: 0 });
-  const smoke = new Puffs(8, 0xb8b0bc, { opacity: 0.85, radius: 2, cy: 0.4 });
+  const embers = fxPuffs(8, key === 'blau' ? 0x8ad8ff : 0xffb02a, { opacity: 0.95, radius: 2, cy: 0.4, emissive: key === 'blau' ? 0x2a6aff : 0xff6a10, detail: 0 });
+  const smoke = fxPuffs(8, 0xb8b0bc, { opacity: 0.85, radius: 2, cy: 0.4 });
   own.push(embers, smoke);
   root.add(pose, embers.mesh, smoke.mesh);
   const clk = new Clock(), blink = new Blinker();

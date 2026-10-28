@@ -67,6 +67,7 @@ import {
   W7, LAVA7, lavaKey, FIRE7, glow7, glow7T, add7, prog, num, ZERO, gradV, ownMat, flameGeo, puffyGeo, stick, Puffs, hash1,
   noise3, displace, spikeCone, spikeV, axisY, fireballLoGeo, fireFlamesGeo, grateGeo, crateGeo, cratePanelGeo, CRATE, dropletGeo,
   lavaRingGeo, spikeBallGeo, spikeMat, fibDirs, mouthShape,
+  fxPuffs,
 } from '../lib/w7Geos.js';
 import { fogTexture } from '../lib/hwGeos.js';
 
@@ -505,7 +506,7 @@ function buildKlappstampfer(opts = {}) {
   const eyeA = eyes([1, -1].map((s) => ({ p: [w * 0.55, t / 2 + 0.01, s * d * 0.2], r: er, sy: 1, dir: [0, 1, 0] })), { key: `w7:klapp:a:${w}:${d}:${t}`, iris: 0xff5a1a, pupil: 0.5, depth: 0.45 });
   const eyeB = eyes([1, -1].map((s) => ({ p: [w * 0.55, -t / 2 - 0.01, s * d * 0.2], r: er, sy: 1, dir: [0, -1, 0] })), { key: `w7:klapp:b:${w}:${d}:${t}`, iris: 0xff5a1a, pupil: 0.5, depth: 0.45 });
   flip.add(slab, eyeA, eyeB);
-  const dust = new Puffs(12, 0xd8ccd8, { opacity: 0.85, radius: w * 2.5, cy: 0.3 });
+  const dust = fxPuffs(12, 0xd8ccd8, { opacity: 0.85, radius: w * 2.5, cy: 0.3 });
   own.push(dust);
   root.add(hinge, flip, dust.mesh);
   const clk = new Clock(), blink = new Blinker();
@@ -642,7 +643,7 @@ function buildKiste(opts = {}) {
   const panels = instMesh(cratePanelGeo(1), flash, 6, 3 * s, 0.5 * s);
   panels.castShadow = true;
   panels.visible = false;
-  const splinters = new Puffs(10, CRATE.woodHi, { opacity: 1, radius: 3 * s, cy: 0.5 * s, detail: 0 });
+  const splinters = fxPuffs(10, CRATE.woodHi, { opacity: 1, radius: 3 * s, cy: 0.5 * s, detail: 0 });
   splinters.gravity = 7;
   own.push(splinters);
   root.add(wob, panels, splinters.mesh);

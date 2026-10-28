@@ -41,6 +41,7 @@ import {
 import {
   W7, LAVA7, prog, num, ZERO, gradV, ownMat, flameGeo, stick, Puffs, hash1, spikeCone, spikeV, glow7, ellSurf, taperTube,
   displace, noise3, memo,
+  fxPuffs,
 } from '../lib/w7Geos.js';
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
@@ -139,7 +140,7 @@ const KW = {
   red: 0xe8202a, redHi: 0xff6a5a, redLow: 0x8a0e18, iron: 0x3c3c4e, ironHi: 0x7a7a94, ironLow: 0x1c1c28, gold: 0xffc21a, goldHi: 0xfff0a0,
   spike: 0xf4ead0, tire: 0x1e1e26, tireHi: 0x3a3a48, seat: 0x6a1a1a, chrome: 0xe6eaf2, lamp: 0xfff6c8, soot: 0x2a2224, crack: 0x140c0c,
 };
-const WHEELS = [[1.62, 0.62, 1.12], [1.62, 0.62, -1.12], [-1.45, 0.62, 1.12], [-1.45, 0.62, -1.12]];
+const WHEELS = [[1.62, 0.67, 1.12], [1.62, 0.67, -1.12], [-1.45, 0.67, 1.12], [-1.45, 0.67, -1.12]];   // Stollen-Außenradius 0,67 → steht auf y = 0
 const redV = { v: (x, y, z, nx, ny) => mix(KW.redLow, mix(KW.red, KW.redHi, smoothstep(ny * 0.7 + nx * 0.2 - 0.2) * 0.45), smoothstep(ny * 0.6 + 0.55)) };
 const ironV = { v: (x, y, z, nx, ny) => mix(KW.ironLow, KW.ironHi, smoothstep(ny * 0.5 + nx * 0.2 + 0.35)) };
 function rivets(b, list, r = 0.035) { for (const p of list) b.sphere(r, KW.gold, { p, s: [1, 1, 1] }, 6, 4); }
@@ -165,8 +166,8 @@ function carGeo(dmg = 0) {
     // Kotflügel über den Rädern (rot mit Eisenkante)
     for (const [x, , z] of WHEELS) {
       const g = new THREE.CylinderGeometry(0.78, 0.78, 0.5, 16, 1, true, 0, Math.PI);
-      b.add(g, redV, { p: [x, 0.68, z], r: [Math.PI / 2, 0, Math.PI / 2], order: 'ZYX' });
-      b.torus(0.78, 0.045, ironV, { p: [x, 0.68, z + Math.sign(z) * 0.25], r: [0, 0, 0] }, 5, 16, Math.PI);
+      b.add(g, redV, { p: [x, 0.72, z], r: [Math.PI / 2, 0, Math.PI / 2], order: 'ZYX' });
+      b.torus(0.78, 0.045, ironV, { p: [x, 0.72, z + Math.sign(z) * 0.25], r: [0, 0, 0] }, 5, 16, Math.PI);
     }
     // Haube (schräg) mit Panzerplatte und Nieten
     b.box(1.6, 0.42, 1.76, redV, { p: [1.45, 1.42, 0], r: [0, 0, -0.08] }, 0.16, 2);
@@ -283,7 +284,7 @@ function buildKampfwagen() {
   bodyJ.add(torso, eye, hat, arms, bomb, dizzy);
   bear.add(bodyJ);
   car.add(bear);
-  const smoke = new Puffs(14, 0x8a8490, { opacity: 0.62, radius: 6, cy: 2 });
+  const smoke = fxPuffs(14, 0x8a8490, { opacity: 0.62, radius: 6, cy: 2 });
   own.push(smoke);
   root.add(car, smoke.mesh);
   root.userData.radius = 2.4;
@@ -305,7 +306,7 @@ function buildKampfwagen() {
     const dead = anim === 'defeated';
     const speed = dead ? 0 : num(st.speed, anim === 'drive' || anim === 'throw' || anim === 'fire' ? 8 : 0);
     // Wagen: Räder, Federn, Lenken, Beben
-    spinA -= dt * speed / 0.62;
+    spinA -= dt * speed / 0.67;
     steer = damp(steer, clamp(num(st.steer, 0), -1, 1) * 0.4, 6, dt);
     WHEELS.forEach(([x, y, z], i) => setInst(wheels, i, x, y - (dead && i % 2 === 0 ? 0.12 : 0), z, dead && i === 0 ? 0.25 : 0, i < 2 ? steer : 0, spinA));
     wheels.instanceMatrix.needsUpdate = true;

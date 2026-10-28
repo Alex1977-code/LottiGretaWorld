@@ -5,7 +5,7 @@
 //
 //  - W7, LAVA7, lavaKey   Paletten (Basalt, Knochen, Eisen, Gold, Brummbär-Rot) und Lavafarben 'rot' | 'blau'
 //  - kulMat7 … glow7      Materialien (Kulisse ohne Spielzeug-Look, unbeleuchtet vertexgefärbt, additiv)
-//  - prog, num            Zustands-Hilfen (Fortschritt 0..1, Zahl mit Standard)
+//  - prog, num            Zustands-Hilfen (Fortschritt 0..1, Zahl mit Standard); fxPuffs (Effekt-Puffs mit userData.fx)
 //  - boneTo(b, …)         Knochen (Schaft + Doppelknauf) zwischen zwei Punkten
 //  - fireballSet(color)   Feuerkugel-Teile (Kern, Hülle, Flammenkranz) rot/blau – Einzelmodell, Feuerstab, Kampfwagen
 //  - sichelShape/sichelGeo/blossomGeo  Wurfsichel (Halbmond-Bumerang mit Blüte) – Item, Geschoss, Kostüm, Werfer
@@ -63,6 +63,10 @@ export const glow7T = (opacity = 0.85) => basic(`vcol:w7glowT:${opacity}`, { ver
 export const add7 = (key, color, opacity = 0.7) => basic(`w7add:${key}`, { color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
 /** Eigenes Material für Kulissen-Zubehör (Spielzeug-Look aus). */
 export function plain(m) { m.userData.toy = false; return m; }
+
+/** Puffs (Rauch, Funken, Blasen, Spritzer) mit Kennung mesh.userData.fx = true: Effekt, kein Körper (Maß-Prüfungen lassen
+ *  ihn weg). Sonst wie kit_w3 Puffs. */
+export function fxPuffs(n, color, o) { const p = new Puffs(n, color, o); p.mesh.userData.fx = true; return p; }
 
 // ------------------------------------------------------------------ Zustands-Hilfen
 export const prog = (st, clk, dur, loop = false) => (st.progress !== undefined ? clamp(Number(st.progress) || 0, 0, 1) : loop ? (clk.age % dur) / dur : clamp(clk.age / dur, 0, 1));
