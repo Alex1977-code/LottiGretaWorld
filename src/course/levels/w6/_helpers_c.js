@@ -28,6 +28,16 @@ export {
 
 const TAU = Math.PI * 2;
 const L = (c) => lin(hex(c));
+
+/**
+ * Rampen für den Kamerastrahl durchlässig machen: CollisionWorld.raycast prüft Rampen als ganzen Quader, die Kamera
+ * rückte an Hängen bis auf 3 m heran (Blick über die Schräge). Setzt nur die Flagge camIgnore der Rampen dieses Levels.
+ */
+export function rampenKameraFrei(level) {
+  let n = 0;
+  level.world.forEach((s) => { if (s.type === 'ramp' && !s.camIgnore) { s.camIgnore = true; n++; } });
+  return n;
+}
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export { TAU, clamp };
 

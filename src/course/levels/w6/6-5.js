@@ -19,7 +19,7 @@
 // Sterne (Index): 0 über den ?-Blöcken und dem versteckten Block, 1 Rätselbox (Schlittschuh-Bahn), 2 über dem windigen Abgrund.
 // Stempel: Stachelplattform am Start (mit Schlittschuh). Extraleben: versteckter Block (Treppe am Start).
 
-import { isl, line, ring, farHide, levelSetup, cullStatic, heroShadowDiet } from './_helpers_c.js';
+import { isl, line, ring, blk, cyl, cone, bakeParts, wimpel, farHide, levelSetup, cullStatic, heroShadowDiet, rampenKameraFrei } from './_helpers_c.js';
 
 const Y0 = 0, YH = -10.5, YD = -6, YF = -6.5, YW = -7.6, YG = 4;
 const RX = 90;                          // Schlittschuh-Bahn (Rätselbox)
@@ -47,13 +47,77 @@ const FLOES = [[-3, 3, -200, -205], [-4.5, 0.5, -207.5, -212], [-0.5, 4.5, -214.
 const FISH_HOLES = [[[-3.6, YW, -206.25], [3.6, YW, -206.25]], [[5.6, YW, -213.25], [-3, YW, -213.25]], [[-3.4, YW, -220.25], [5.4, YW, -220.25]],
   [[5, YW, -227.25], [-4.4, YW, -227.25]], [[-3.6, YW, -234.25], [5, YW, -234.25]]];
 
+// Farben der Kulisse (bunte Holzteile im Schnee)
+const ROT = 0xe8483a, BLAU = 0x3a8ae8, GELB = 0xffc93a, HOLZ = 0x9a5a2e, WEISS = 0xf6faff, EIS = 0x8fd6ff;
+
+/** Kulisse (statisch verschmolzen): Slalomstangen am Hang, Holzzäune, Skihütte, Wimpelketten, Eiszapfen, Eiskristalle. */
+function build(level) {
+  const P = [];
+  const zaun = (x0, z0, x1, z1, y, o = {}) => {
+    const len = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(len / 1.6)), yaw = Math.atan2(-(z1 - z0), x1 - x0);
+    for (let k = 0; k <= n; k++) { const t = k / n; P.push(cyl(0.09, 0.11, 1.05, x0 + (x1 - x0) * t, y, z0 + (z1 - z0) * t, HOLZ, 6, { top: WEISS })); }
+    for (const [h, c] of [[0.45, o.color ?? ROT], [0.85, o.color ?? ROT]]) {
+      const g = blk(len, 0.12, 0.07, 0, 0, 0, c, { top: WEISS });
+      g.rotateY(yaw); g.translate((x0 + x1) / 2, y + h, (z0 + z1) / 2); P.push(g);
+    }
+    if (o.solid !== false) {
+      const xa = Math.min(x0, x1) - 0.08, xb = Math.max(x0, x1) + 0.08, za = Math.min(z0, z1) - 0.08, zb = Math.max(z0, z1) + 0.08;
+      level.world.add({ type: 'box', min: [xa, y, za], max: [xb, y + 1.0, zb], camIgnore: true, tag: 'zaun' });
+    }
+  };
+  // Start: Zaun links und vorn, rechts bis zur Rampe zur Stachelplattform
+  zaun(-8.7, 7.6, 8.7, 7.6, Y0);
+  zaun(-8.7, 7.6, -8.7, -13.4, Y0);
+  zaun(8.7, 7.6, 8.7, 0.6, Y0);
+  // Skihütte (Holz, rotes Dach mit Schnee, gelbe Fensterläden) links hinten am Start
+  {
+    const hx = -6.6, hz = -9.6;
+    P.push(blk(3.6, 2.4, 3.0, hx, Y0, hz, HOLZ, { top: 0xb87a40 }));
+    for (let k = 0; k < 5; k++) P.push(blk(3.66, 0.06, 3.06, hx, Y0 + 0.3 + k * 0.46, hz, 0x7a4220));
+    for (const [r, h, y, c] of [[3.0, 1.7, Y0 + 2.4, ROT], [1.75, 1.0, Y0 + 3.1, WEISS]]) { const g = cone(r, h, 0, 0, 0, c, 4); g.rotateY(Math.PI / 4); g.translate(hx, y, hz); P.push(g); }
+    P.push(blk(0.9, 1.5, 0.08, hx + 0.6, Y0, hz + 1.53, 0x5a3418, { top: GELB }));
+    for (const sx of [-1, 1]) { P.push(blk(0.7, 0.6, 0.06, hx - 0.9 + sx * 0.05, Y0 + 1.1, hz + 1.53, EIS)); P.push(blk(0.18, 0.66, 0.08, hx - 0.9 + sx * 0.45, Y0 + 1.07, hz + 1.55, GELB)); }
+    P.push(cyl(0.22, 0.22, 1.0, hx + 1.0, Y0 + 2.6, hz - 0.6, 0x8a8a96, 6));
+    level.world.add({ type: 'box', min: [hx - 1.8, Y0, hz - 1.5], max: [hx + 1.8, Y0 + 2.6, hz + 1.5], tag: 'huette' });
+  }
+  // Slalomstangen rot/blau an beiden Rändern des Pustewolken-Hangs
+  const hangY = (z) => (z > -55 ? Y0 : z > -66 ? Y0 - 4 * (-55 - z) / 11 : z > -70 ? -4 : z > -82 ? -4 - 4 * (-70 - z) / 12 : z > -86 ? -8 : z > -94 ? -8 - 2.5 * (-86 - z) / 8 : YH);
+  let k = 0;
+  for (let z = -57; z > -94; z -= 3.6, k++) {
+    for (const sx of [-1, 1]) {
+      const x = sx * 4.55, y = hangY(z), c = (k + (sx > 0 ? 1 : 0)) % 2 ? ROT : BLAU;
+      P.push(cyl(0.05, 0.05, 1.7, x, y, z, c, 6, { top: WEISS }));
+      const f = blk(0.62, 0.42, 0.03, x - sx * 0.33, y + 1.2, z, c, { top: c }); P.push(f);
+    }
+  }
+  // Eiszapfen an den Kanten der Schollen und unter dem Start-Plateau (helles Eisblau)
+  const zapfen = (x0, x1, z, y, step = 0.55) => { for (let x = x0 + 0.2; x < x1; x += step) { const h = 0.35 + ((Math.sin(x * 7.3 + z) + 1) / 2) * 0.55; P.push(cone(0.09 + h * 0.06, h, x, y - h, z, EIS, 5, { rx: Math.PI })); } };
+  for (const [z0, z1] of SCHOLLEN) { zapfen(-2.6, 2.6, z0 + 0.02, YD - 0.3); zapfen(-2.6, 2.6, z1 - 0.02, YD - 0.3); }
+  zapfen(-6, 6, -101.02, YH - 2.1, 0.7);
+  zapfen(-8, 8, -272.02, YG - 2.1, 0.7);
+  // Eiskristalle (bunte Eis-Spitzen) auf den Ufern und am Gipfel
+  const kristall = (x, y, z, s, c) => { P.push(cone(0.22 * s, 1.1 * s, x, y, z, c, 5)); P.push(cone(0.16 * s, 0.8 * s, x + 0.25 * s, y, z + 0.15 * s, c, 5, { rz: -0.35 })); P.push(cone(0.14 * s, 0.7 * s, x - 0.22 * s, y, z - 0.1 * s, c, 5, { rx: 0.35 })); };
+  for (const [x, y, z, s, c] of [[-8.6, Y0 + 0.5, -24, 1, 0x9ae6ff], [8.6, Y0 + 0.5, -33, 1.1, 0xc8a8ff], [-8.6, Y0 + 0.5, -46, 0.9, 0xffa8d8], [8.6, YD + 0.5, -146, 1, 0x9ae6ff],
+    [-8.6, YD + 0.5, -136, 1.1, 0xc8a8ff], [-6.5, YG, -258, 1.3, 0x9ae6ff], [6.5, YG, -266, 1.2, 0xffa8d8], [RX + 16.8, YD + 0.5, -120, 1.2, 0xc8a8ff], [RX - 16.8, YD + 0.5, -140, 1.2, 0x9ae6ff]]) kristall(x, y, z, s, c);
+  bakeParts(level, P);
+  wimpel(level, [
+    { x0: -8.6, x1: 8.6, y: Y0 + 4.2, z: 7.6, n: 16 },
+    { x0: -8.6, x1: 8.6, y: Y0 + 4.0, z: -53.6, n: 16, colors: [0x4aa8ff, 0xffffff, 0xff5a5a] },
+    { x0: -8, x1: 8, y: YD + 4.0, z: -118.4, n: 14 },
+    { x0: RX - 17, x1: RX + 17, y: YD + 4.2, z: -113.2, n: 26, colors: [0xff5a5a, 0xffd23d, 0x4aa8ff] },
+    { x0: -8, x1: 8, y: YG + 4.6, z: -258, n: 14 },
+  ]);
+}
+
 function setup(level) {
+  rampenKameraFrei(level);
   heroShadowDiet(level, 0.12);
   farHide(level, ['pustewolke', 'glotzfisch', 'pilzling_eis', 'star', 'schlittschuh'], 56);
 }
 
 export const LEVEL = {
   id: '6-5',
+  build,
   world: 6,
   title: 'Pustewind am Eisgipfel',
   archetype: 'parcours',
@@ -84,15 +148,20 @@ export const LEVEL = {
     sign(-6.5, Y0, 5.6, 'Eisgipfel'),
     sign(8, Y0, 2.2, 'Stacheln? Nur mit\nSchlittschuhen!', { size: [2.8, 1.0] }),
     { type: 'iglu', pos: [-6.8, Y0, 3.6], size: 3.4, yaw: 0.3 },
-    { type: 'deco_w3', items: [{ kind: 'schneemann', pos: [6.5, Y0, 6.2], yaw: -0.6 }, { kind: 'tannen', pos: [-7.5, Y0, -10], size: [3, 6], n: 3 }] },
+    { type: 'deco_w3', items: [{ kind: 'schneemann', pos: [6.5, Y0, 6.2], yaw: -0.6 }, { kind: 'tanne', pos: [-4.2, Y0, -12.6], size: 3.2 }] },
     { type: 'deco_w6', items: [{ kind: 'schneekiefer', pos: [7.5, Y0, -12], height: 4.5 }, { kind: 'schneehaufen', pos: [-4, Y0, 6.5] }, { kind: 'schneehaufen', pos: [3.5, Y0, -12.6], size: 1.1 }] },
 
     // ---------------- B Eissee
     { type: 'eisflaeche', pos: [0, Y0 - 1, -34], size: [16, 1, 40], edge: false },
     ...bank(-8, 8, -14, -54, Y0),
     { type: 'deco_w6', items: [
-      { kind: 'schneekiefer', pos: [-9.6, Y0 - 0.6, -22], height: 4 }, { kind: 'schneekiefer', pos: [9.8, Y0 - 0.6, -40], height: 5 },
+      { kind: 'schneekiefer', pos: [-8.6, Y0 + 0.5, -21], height: 4 }, { kind: 'schneekiefer', pos: [8.6, Y0 + 0.5, -41], height: 5 },
       { kind: 'wolke', pos: [-12, Y0 - 3, -30], size: 3 }, { kind: 'wolke', pos: [13, Y0 - 4, -46], size: 3.4 },
+    ] },
+    { type: 'deco_w3', items: [
+      { kind: 'laternen', from: [-8.6, Y0 + 0.5, -16], to: [-8.6, Y0 + 0.5, -52], every: 9 }, { kind: 'laternen', from: [8.6, Y0 + 0.5, -20], to: [8.6, Y0 + 0.5, -52], every: 10 },
+      { kind: 'laternen', from: [-8.6, YD + 0.5, -126], to: [-8.6, YD + 0.5, -158], every: 10 }, { kind: 'laternen', from: [8.6, YD + 0.5, -136], to: [8.6, YD + 0.5, -158], every: 11 },
+      { kind: 'schneemann', pos: [-6.4, YD, -119.6], yaw: 0.5 }, { kind: 'schneemann', pos: [-5.6, YG, -255.5], yaw: 0.4 },
     ] },
 
     // ---------------- C Pustewolken-Hang (drei Hangstücke, Absätze, Schneewälle mit Lücken), Glasröhre 1

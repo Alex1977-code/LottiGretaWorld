@@ -144,7 +144,7 @@ function setup(level) {
   level.named.set('r1_rinne', kullerRinne(level, { x0: -R1.hx, x1: R1.hx, z0: zu(0, R1.u0), z1: zu(0, R1.u1 + 3.5), top: rinneTop, vmax: 5, accel: 9 }));
 
   // ------------------------------------------------ Raum 2: Theater (Vorhänge, Scheinwerfer, Orchestergraben)
-  kraftfeld(level, { x0: -7, x1: 7, z: zu(1, R2.feld), y0: Y, y1: Y + 8 });
+  kraftfeld(level, { x0: -7, x1: 7, z: zu(1, R2.feld), y0: Y, y1: Y + 8, labelX: -4.6, labelY: 2.2 });
   theater(level, { z: zu(1, R2.graben[1] + 0.1), y: R2.buehne, ox0: -4.2, ox1: 4.2, yTop: Y + 7.6 });
   lichtkegel(level, [[-5.5, Y + 7.5, zu(1, 15), 0, R2.liftHi, zu(1, R2.lift), 0xfff2b0], [5.5, Y + 7.5, zu(1, 15), 0, R2.liftHi, zu(1, R2.lift), 0xffc8f0]], { r: 0.9, k: 0.16 });
   for (const [x, u] of [[-4.6, 10.5], [-2.4, 15.5], [3.2, 10.2], [4.8, 15.8]]) {        // Notenständer im Graben
@@ -156,7 +156,7 @@ function setup(level) {
   sternFolgt(level, 1, 'r2_buehne');
 
   // ------------------------------------------------ Raum 3: Sprungturm mit Fangwand, Druckschalter, Stern erst danach
-  kraftfeld(level, { x0: -7, x1: 7, z: zu(2, R3.feld), y0: Y, y1: Y + 12, labelY: 3.2 });
+  kraftfeld(level, { x0: -7, x1: 7, z: zu(2, R3.feld), y0: Y, y1: Y + 12, labelX: -4.6, labelY: 2.2 });
   const t3 = zu(2, R3.turm);
   for (let k = 0; k < 7; k++) deco.push(blk(2.44, (R3.top - Y) / 7, 2.44, 0, Y + k * (R3.top - Y) / 7, t3, k % 2 ? 0xffffff : 0xe8323a));
   deco.push(blk(2.7, 0.14, 2.7, 0, R3.top - 0.14, t3, 0x2a3a7a));
@@ -171,7 +171,7 @@ function setup(level) {
   const schalter = level.named.get('r3_schalter');
 
   // ------------------------------------------------ Raum 4: Gehege (Zaun, Heu, Futtertrog)
-  kraftfeld(level, { x0: -7, x1: 7, z: zu(3, R4.feld), y0: Y, y1: Y + 7 });
+  kraftfeld(level, { x0: -7, x1: 7, z: zu(3, R4.feld), y0: Y, y1: Y + 7, labelX: -4.6, labelY: 2.2 });
   const g0 = zu(3, R4.gu[0]), g1 = zu(3, R4.gu[1]);
   for (const sx of [-1, 1]) for (let u = R4.gu[0] + 0.3; u < R4.gu[1]; u += 1.3) deco.push(cyl(0.08, 0.1, 0.9, sx * (R4.gx + 0.25), Y, zu(3, u), 0x8a5a2e, 6));
   for (const sx of [-1, 1]) for (const yy of [0.35, 0.75]) deco.push(blk(0.08, 0.1, R4.gu[1] - R4.gu[0], sx * (R4.gx + 0.25), Y + yy, (g0 + g1) / 2, 0xa8743a));

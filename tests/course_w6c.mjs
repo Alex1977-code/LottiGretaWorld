@@ -1180,6 +1180,14 @@ for (const id of LEVELS) {
   if (id === '6-Haus') {
     if (PARTS.has('haus') || PARTS.has('load')) await haus();
     if (PARTS.has('haus-extra')) await hausExtra();
+    if (PARTS.has('shots') && !ONLY) {
+      // Bilder je Raum aus der Spielkamera (Figur am Raumstart, eine Sekunde gespielt)
+      await load(id, { fresh: true });
+      for (let i = 0; i < 5; i++) {
+        await sc((k) => { const c = window.__course; if (c.arch.info().room !== k) c.arch.enterRoom(k); let n = 0; while (!(c.arch.info().room === k && c.arch.info().phase === 'play') && n++ < 900) { c.setInput({}); c.step(1); } for (let j = 0; j < 90; j++) { c.setInput({}); c.step(1); } }, i);
+        await shot(`haus_raum${i + 1}`);
+      }
+    }
     continue;
   }
   if (ROUTES[id]) await parcours(id);
