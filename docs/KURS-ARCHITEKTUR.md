@@ -6917,3 +6917,33 @@ Figur, Zylinder dreht zur Kamera, Kippplattform neigt sich, Knochenflieger vom P
 7-B: Tor und Lebensleiste, 3/4/5 blaue Feuerbälle, Abprall ohne Röhre, Tod setzt den Kampf zurück). Gemessen (scale 2, inkl.
 Schattenpass, Messgang alle ~8 m der Route und Bilder je Abschnitt): 7-3 38–73 Zeichenaufrufe / ≤ 186 k Dreiecke · 7-4
 39–94 / ≤ 199 k · 7-B 47–80 / ≤ 254 k.
+
+## Welt 8 – Level-Liste und Freischaltung (Hauptsitzung)
+
+Welt 8 „Brummbär-Rummelplatz“ (Erzfeind-Vergnügungspark, dunkles Baron-Land mit Rummel, Achterbahnen und dem großen Turm)
+wird nach Sieg über `7-Burg` frei (Glasröhre `W8` auf der Welt-7-Karte, bisher „Welt 8 kommt bald!“). Sternbedarf zählt
+**alle** Sterne (Welt 1–7: 206, dazu die Halloween-Welt). Es ist das **Finale**: Baron Brummbär hält die befreiten Freunde
+der Reise (Krümel, Flocke, Hoppel und weitere kleine Tiere) in einem großen Glas auf der Turmspitze gefangen.
+
+| Id | Archetyp | Thema | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `8-1` | parcours (regnerische Außenfestung: Stachelbrücken im Takt, Feuer-Werfer, Knochenflieger-Gruppen, die sich neu zusammensetzen) | rainfort | course_rainfort | 3 + Stempel | Welt 8 offen |
+| `8-2` | ride (Wüsten-Abfahrt auf Pflaume: Schubfelder, Sandflosser, Pilzling-Sandskulpturen, Baron-Sandstatuen) | dunes | course_dunes | 3 + Stempel | 8-1 |
+| `8-3` | parcours (Keks-Fabrik: drehende Kekse und Keks-Zahnräder, Riesenschnappblumen, Zahnradwand, Hörner-Ameisen-Straße) | cookie | course_cookie | 3 + Stempel | 8-2 |
+| `8-Zug` | autoscroller + boss (Baron-Express: Hackvogel-Wagen, Wasserbecken, Mini-Pilzlinge, zweiter Kampf gegen die Schattenläuferin) | train | course_baronexpress | 3 + Stempel | 8-3 |
+| `8-4` | parcours (Nacht-Festung: unsichtbare Stege leuchten nur um die Figur und bei Aufschlägen/Stampfen auf) | nightfort | course_footlight | 3 + Stempel | 8-Zug |
+| `8-5` | parcours unterwasser (Unterwasser-Festung: Steigbecken, schwebende Wasserkörper, Stachelblöcke, kurzer Pflaume-Abschnitt) | dungeon | course_dungeon | 3 + Stempel | 8-4 |
+| `8-Haus` | house (10 Räume à 10 s, alles nur mit Krallen-Anzug kletternd) | house | course_house | 10 | 8-4 |
+| `8-6` | parcours (stockdunkles Spukhaus, Licht-Helm-Pflicht, Aufzugfahrten, großer Spiegel, Großspuk-Jagd) | darkghost | course_beamdark | 3 + Stempel | 8-5 |
+| `8-7` | parcours (Lava-Inferno: Kristall-Felsklötze rollen los, wenn man draufsteht, Stampfen beschleunigt) | inferno | course_inferno | 3 + Stempel | 8-6 |
+| `8-A` | parcours + boss (Anlauf, Seilbahn, Zirkusarena: **goldene Würfelblase**, Landungen mit Schockwellen) | circus | course_bossblob | 3 + Stempel | 8-7 |
+| `8-B` | parcours + boss (wie 3-B: **rosa Schlangenkönig**, geschleuderte Lavabrocken hinterlassen Lavapfützen) | circus | course_boss | 3 + Stempel | 8-7 |
+| `8-Burg` | parcours + boss, Finale (Rummelplatz um den großen Turm: Autowrack, Dächer mit Lavabrocken-Regen, Riesenrad mit 4 Schubsern, Turm hinauf; **Baron Brummbär im Krallen-Anzug** klettert, rutscht, reißt Wände ein, vervielfacht sich mit Spiegelfrüchten; Gipfel: Super-POW-Block 4× anstoßen, Glas der Freunde zerbricht, Abspann) | baronpark | course_finale | 3 + Stempel | 8-A **und** 8-B **und ≥ 190 Sterne** |
+
+Welt 8 hat 43 Sterne. Neu: unsichtbare Leuchtstege (8-4), Kristall-Felsklötze (8-7), Steigbecken/schwebende Wasserkörper
+(8-5), Keksräder und Keks-Zahnräder (8-3), Schubfelder in der Wüste (8-2), Riesenrad, Lavabrocken-Regen, Super-POW-Block,
+Spiegel mit Spiegelbild-Stern (8-6); Gegner Sandflosser, Knochenflieger-Gruppe (setzt sich neu zusammen), Hackvogel
+(vorhanden prüfen); Varianten goldene Würfelblase, rosa Schlangenkönig, Schattenläuferin 2; Endboss **Baron Brummbär im
+Krallen-Anzug** (Feuerbälle, Wandklettern, Krallenhiebe, Spiegelfrucht-Doppelgänger, Super-POW auf der Turmspitze).
+**Abspann:** nach dem Sieg eine eigene, liebevolle Abspann-Szene (befreite Freunde, Lotti und Greta, Pflaume, Krümel,
+Musik `course_abspann`), danach zurück zur Karte; der Spielstand merkt sich „Spiel geschafft“.
