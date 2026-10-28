@@ -75,7 +75,7 @@ export function felsGeo(x0, y0, z0, x1, y1, z1, o = {}) {
   g.computeVertexNormals();
   let geo = ni(g);
   if (o.skip?.length) geo = dropFaces(geo, o.skip, { x0, x1, y0, y1, z0, z1 });
-  const [cd, cm, ch] = (o.colors ?? [0x3a2c22, 0x5e4a3a, 0x8a7058]).map(C);
+  const [cd, cm, ch] = (o.colors ?? [0x4a3426, 0x76563c, 0xae8660]).map(C);
   const vein = o.vein !== undefined ? C(o.vein) : null;
   return colorize(geo, (p, n, out) => {
     const s = Math.sin(p.y * 0.9 + Math.sin(p.x * 0.5 + p.z * 0.4) * 1.3) * 0.5 + 0.5;
@@ -164,7 +164,8 @@ export function schachtBauen(level) {
   for (const r of S.rocks ?? []) {
     if (r.solid !== false) W.add({ type: 'box', min: r.min, max: r.max, tag: r.tag ?? 'fels', camIgnore: !!r.camIgnore });
     if (r.visible === false) continue;
-    addStatic(level, felsGeo(r.min[0], r.min[1], r.min[2], r.max[0], r.max[1], r.max[2], { seed: seed++, skip: r.skip, vein: r.vein ?? 0x58c8ff, cell: r.cell, colors: r.colors, bump: r.bump }), { castShadow: r.shadow !== false });
+    const vein = r.vein ?? [0x58c8ff, 0xff7ad8, 0x7affc8, 0xffd04a][seed % 4];
+    addStatic(level, felsGeo(r.min[0], r.min[1], r.min[2], r.max[0], r.max[1], r.max[2], { seed: seed++, skip: r.skip, vein, cell: r.cell, colors: r.colors ?? S.rockColors, bump: r.bump }), { castShadow: r.shadow !== false });
   }
   for (const b of S.planks ?? []) {
     W.add({ type: 'box', min: [b.x0, b.y - 0.32, b.z0], max: [b.x1, b.y, b.z1], oneWay: b.oneWay !== false, tag: b.tag ?? 'gerüst' });
@@ -226,10 +227,10 @@ export class Grubentor {
     this.k = 0; this.open = false; this.opened = 0;
     const W = this.W, H = this.H;
     // Rahmen (fest) und Flügel (Kollision, solange zu)
-    level.world.add({ type: 'box', min: [x - W / 2 - 0.6, y, z - 0.35], max: [x - W / 2, y + H + 0.6, z + 0.35], tag: 'grubentor:pfosten' });
-    level.world.add({ type: 'box', min: [x + W / 2, y, z - 0.35], max: [x + W / 2 + 0.6, y + H + 0.6, z + 0.35], tag: 'grubentor:pfosten' });
-    level.world.add({ type: 'box', min: [x - W / 2 - 0.6, y + H, z - 0.35], max: [x + W / 2 + 0.6, y + H + 0.6, z + 0.35], tag: 'grubentor:sturz' });
-    this.leafShape = { type: 'box', min: [x - W / 2, y, z - 0.12], max: [x + W / 2, y + H, z + 0.12], tag: 'grubentor:fluegel' };
+    level.world.add({ type: 'box', min: [x - W / 2 - 0.6, y, z - 0.35], max: [x - W / 2, y + H + 0.6, z + 0.35], tag: 'grubentor:pfosten', camIgnore: true });
+    level.world.add({ type: 'box', min: [x + W / 2, y, z - 0.35], max: [x + W / 2 + 0.6, y + H + 0.6, z + 0.35], tag: 'grubentor:pfosten', camIgnore: true });
+    level.world.add({ type: 'box', min: [x - W / 2 - 0.6, y + H, z - 0.35], max: [x + W / 2 + 0.6, y + H + 0.6, z + 0.35], tag: 'grubentor:sturz', camIgnore: true });
+    this.leafShape = { type: 'box', min: [x - W / 2, y, z - 0.12], max: [x + W / 2, y + H, z + 0.12], tag: 'grubentor:fluegel', camIgnore: true };
     this.leafId = level.world.add(this.leafShape);
     if (spec.id) level.named.set(spec.id, this);
     if (level.view) this.buildView();
@@ -380,10 +381,175 @@ export function fahrtAnsage(level, cfg) {
   level.onStep(() => {
     const w = level.scroll;
     if (said || !w || w.state === 'wait') return;
+    if (w.state === 'done' || w.clock > 2) { said = true; return; }   // (Bildfenster versetzt, z. B. Tests)
     said = true;
     level.archetype?.hud?.banner?.(cfg.text, { hold: cfg.hold ?? 1.8, size: cfg.size ?? 15, color: cfg.color ?? '#ffe066' });
     level.sfx('panic');
   });
+}
+
+/**
+ * „Glitzer“-Variante des Themas fuzzymine (6-7): etwas helleres, wärmeres Licht, kräftigere Laternen und ein hellerer
+ * Lichtkreis um die Heldin – der Schacht bleibt dunkel, aber freundlich. Aufbau-Haken (LEVEL.prebuild); das gemeinsame
+ * Thema bleibt unverändert.
+ */
+export function glitzerThema(level, o = {}) {
+  const v = level.view;
+  if (!v) return;
+  const base = v.theme;
+  const th = {
+    ...base,
+    hemi: { ...base.hemi, sky: o.hemiSky ?? 0xf4d0a0, intensity: o.hemi ?? 1.08 },
+    sun: { ...base.sun, intensity: o.sun ?? 1.5 },
+    lanternLight: { ...(base.lanternLight ?? {}), intensity: o.lantern ?? 30, distance: o.lanternDist ?? 12.5 },
+    playerLight: { ...(base.playerLight ?? {}), intensity: o.player ?? 28, distance: o.playerDist ?? 15 },
+  };
+  v.theme = th;
+  if (v.hemi) { v.hemi.color.set(th.hemi.sky); v.hemi.intensity = th.hemi.intensity; }
+  if (v.sun) v.sun.intensity = th.sun.intensity;
+  if (v.playerLight) { v.playerLight.intensity = th.playerLight.intensity; v.playerLight.distance = th.playerLight.distance; }
+}
+
+/** Punkt auf einer durchhängenden Leine a → b bei u (0..1), Durchhang sag m. */
+function sagAt(a, b, u, sag) {
+  return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u - Math.sin(u * Math.PI) * sag, a[2] + (b[2] - a[2]) * u];
+}
+
+/**
+ * Lichterketten und Wimpelleinen (statisch, ohne Schatten): eine dunkle Leine von a nach b (Durchhang sag) mit bunten
+ * Glühbirnen (Glüh-Material) bzw. Dreieckswimpeln. list: [{ a: [x, y, z], b: [x, y, z], sag: 0.8, every: 0.7, kind: 'licht' |
+ * 'wimpel', colors }]. Ein Zeichenaufruf je Material und 32-m-Abschnitt.
+ */
+export function lichterketten(level, list) {
+  if (!level.view) return;
+  const wire = [], glow = [], flags = [];
+  const LIGHT = [0xff5a7a, 0xffd23a, 0x5ae0ff, 0x8aff6a, 0xc07aff, 0xff9a3a];
+  const FLAG = [0xff4f7a, 0xffd23a, 0x3ac8f0, 0x6ad04a, 0xb070ff, 0xff9a2e];
+  for (const L of list) {
+    const a = L.a, b = L.b, sag = L.sag ?? 0.8;
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+    const n = Math.max(2, Math.round(len / (L.every ?? 0.7)));
+    const segs = Math.max(6, Math.round(len / 0.8));
+    for (let i = 0; i < segs; i++) {
+      const p = sagAt(a, b, i / segs, sag), q = sagAt(a, b, (i + 1) / segs, sag);
+      const d = new THREE.Vector3(q[0] - p[0], q[1] - p[1], q[2] - p[2]);
+      const l = d.length();
+      const g = new THREE.CylinderGeometry(0.02, 0.02, l, 3);
+      g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()));
+      g.translate((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, (p[2] + q[2]) / 2);
+      wire.push(colorize(ni(g), (pp, nn, out) => { out[0] = 0.04; out[1] = 0.03; out[2] = 0.03; }));
+    }
+    const cols = (L.colors ?? (L.kind === 'wimpel' ? FLAG : LIGHT)).map(C);
+    for (let i = 1; i < n; i++) {
+      const p = sagAt(a, b, i / n, sag), c = cols[i % cols.length];
+      if (L.kind === 'wimpel') {
+        // Dreieck (Vorder- und Rückseite)
+        const dx = (b[0] - a[0]) / len, dz = (b[2] - a[2]) / len, w = 0.24;
+        const A = [p[0] - dx * w, p[1], p[2] - dz * w], B = [p[0] + dx * w, p[1], p[2] + dz * w], D = [p[0], p[1] - 0.5, p[2]];
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.Float32BufferAttribute([...A, ...B, ...D, ...A, ...D, ...B], 3));
+        g.computeVertexNormals();
+        flags.push(colorize(g, (pp, nn, out) => { out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+      } else {
+        const g = new THREE.OctahedronGeometry(0.11, 0);
+        g.scale(1, 1.35, 1);
+        g.translate(p[0], p[1] - 0.14, p[2]);
+        glow.push(colorize(ni(g), (pp, nn, out) => { out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+      }
+    }
+  }
+  if (wire.length) addStatic(level, merge(wire), { castShadow: false });
+  if (glow.length) addStatic(level, merge(glow), { material: 'glow', castShadow: false });
+  if (flags.length) addStatic(level, merge(flags), { castShadow: false });
+}
+
+/** Lampenpfosten (Holzpfosten mit Querholz und Grubenlampe, leuchtet): pts [[x, y, z, seite (±1: Arm nach innen)], …]. */
+export function lampenPfosten(level, pts, h = 3.4) {
+  if (!level.view) return;
+  const wood = [], glow = [];
+  for (const [x, y, z, s = 1] of pts) {
+    wood.push(blk(0.26, h, 0.26, x, y + h / 2, z, 0x6a4424, { top: 0x8a5a30 }));
+    wood.push(blk(0.9, 0.16, 0.18, x + s * 0.4, y + h - 0.12, z, 0x7a4e2a));
+    wood.push(blk(0.3, 0.32, 0.3, x + s * 0.75, y + h - 0.5, z, 0x3a3a44, { top: 0x5a5a66 }));
+    const b = new THREE.SphereGeometry(0.13, 8, 6);
+    b.translate(x + s * 0.75, y + h - 0.52, z);
+    glow.push(colorize(ni(b), (p, n, out) => mixc(C(0xffb040), C(0xfff0b0), 0.5, out)));
+    level.view.addLantern(x + s * 0.75, y + h - 0.6, z);
+  }
+  addStatic(level, merge(wood));
+  addStatic(level, merge(glow), { material: 'glow', castShadow: false });
+}
+
+/** Himmelsbild (Leinwand): Blau-Verlauf, Sonne, Schäfchenwolken, schwebende Inseln mit Gras und Bäumchen, Regenbogen. */
+function himmelsBild(w = 512, h = 384) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  const sky = g.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, '#3a8cf0'); sky.addColorStop(0.55, '#8ccaff'); sky.addColorStop(1, '#eaf6ff');
+  g.fillStyle = sky; g.fillRect(0, 0, w, h);
+  // Regenbogen
+  const cols = ['#ff5a5a', '#ffa03a', '#ffe84a', '#6ad84a', '#4ab0ff', '#9a6aff'];
+  cols.forEach((col, i) => { g.strokeStyle = col; g.globalAlpha = 0.5; g.lineWidth = 9; g.beginPath(); g.arc(w * 0.62, h * 1.02, h * 0.62 - i * 9, Math.PI, Math.PI * 2); g.stroke(); });
+  g.globalAlpha = 1;
+  // Sonne
+  const sun = g.createRadialGradient(w * 0.2, h * 0.2, 4, w * 0.2, h * 0.2, 46);
+  sun.addColorStop(0, '#fffbe0'); sun.addColorStop(0.45, '#fff2a0'); sun.addColorStop(1, 'rgba(255,240,160,0)');
+  g.fillStyle = sun; g.fillRect(0, 0, w * 0.5, h * 0.5);
+  // schwebende Inseln
+  const isle = (x, y, s) => {
+    g.fillStyle = '#8a5a3a'; g.beginPath(); g.moveTo(x - 40 * s, y); g.lineTo(x + 40 * s, y); g.lineTo(x + 8 * s, y + 34 * s); g.lineTo(x - 6 * s, y + 30 * s); g.closePath(); g.fill();
+    g.fillStyle = '#6ad04a'; g.beginPath(); g.ellipse(x, y, 42 * s, 9 * s, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#3aa040'; for (const dx of [-18, 6, 22]) { g.beginPath(); g.arc(x + dx * s, y - 12 * s, 9 * s, 0, Math.PI * 2); g.fill(); }
+  };
+  isle(w * 0.78, h * 0.42, 1.0); isle(w * 0.36, h * 0.6, 0.7); isle(w * 0.1, h * 0.72, 0.5);
+  // Wolken
+  const cloud = (x, y, s) => { g.fillStyle = '#ffffff'; for (const [dx, dy, r] of [[0, 0, 22], [22, 4, 18], [-22, 5, 16], [10, -10, 16], [-8, -8, 14]]) { g.beginPath(); g.arc(x + dx * s, y + dy * s, r * s, 0, Math.PI * 2); g.fill(); } };
+  cloud(w * 0.5, h * 0.25, 1.1); cloud(w * 0.88, h * 0.18, 0.8); cloud(w * 0.15, h * 0.45, 0.9); cloud(w * 0.62, h * 0.82, 1.3); cloud(w * 0.3, h * 0.9, 1.0);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/**
+ * Ausblick ins Freie am Ende des Decks (6-7): Rundbogen aus Balken in der Felswand, dahinter Himmel mit Wolken, Inseln und
+ * Regenbogen (ein ungeleuchtetes Bild ohne Nebel), davor ein Geländer. cfg = { pos: [x, y, z] (Mitte unten, Wandfläche),
+ * width: 9, height: 6.5 }
+ */
+export function himmelsfenster(level, cfg) {
+  if (!level.view) return;
+  const [x, y, z] = cfg.pos, W = cfg.width ?? 9, H = cfg.height ?? 6.5;
+  const tex = himmelsBild();
+  const shape = new THREE.Shape();
+  shape.moveTo(-W / 2, 0); shape.lineTo(W / 2, 0); shape.lineTo(W / 2, H - W / 2);
+  shape.absarc(0, H - W / 2, W / 2, 0, Math.PI, false);
+  shape.lineTo(-W / 2, 0);
+  const g = new THREE.ShapeGeometry(shape, 24);
+  const uv = g.attributes.uv, pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) + W / 2) / W, pos.getY(i) / H);
+  const mat = new THREE.MeshBasicMaterial({ map: tex, fog: false, toneMapped: false });
+  const m = new THREE.Mesh(g, mat);
+  m.position.set(x, y, z + 0.05);
+  m.renderOrder = -1;
+  addObject(level, m);
+  // Bogen aus Balken
+  const parts = [];
+  for (const s of [-1, 1]) parts.push(blk(0.5, H - W / 2, 0.6, x + s * (W / 2 + 0.25), y + (H - W / 2) / 2, z + 0.3, 0x6a4424, { top: 0x8a5a30 }));
+  const n = 14;
+  for (let i = 0; i < n; i++) {
+    const a0 = (i / n) * Math.PI, a1 = ((i + 1) / n) * Math.PI, am = (a0 + a1) / 2;
+    const r = W / 2 + 0.25;
+    const seg = ni(new THREE.BoxGeometry(0.5, (Math.PI * r) / n + 0.06, 0.6));
+    seg.rotateZ(am);
+    seg.translate(x + Math.cos(am) * r, y + H - W / 2 + Math.sin(am) * r, z + 0.3);
+    parts.push(colorize(seg, (p, nn, out) => mixc(C(0x5a3a1e), C(0x8a5a30), smooth(-1, 1, nn.y + nn.z), out)));
+  }
+  // Geländer davor
+  for (let i = 0; i <= 6; i++) parts.push(blk(0.14, 1.0, 0.14, x - W / 2 + (W * i) / 6, y + 0.5, z + 0.9, 0x7a4e2a));
+  parts.push(blk(W + 0.3, 0.16, 0.18, x, y + 1.0, z + 0.9, 0x9a6a3a, { top: 0xb88450 }));
+  parts.push(blk(W + 0.3, 0.12, 0.14, x, y + 0.55, z + 0.9, 0x8a5a30));
+  addStatic(level, merge(parts));
+  level.world.add({ type: 'box', min: [x - W / 2 - 0.2, y, z + 0.8], max: [x + W / 2 + 0.2, y + 1.1, z + 1.0], tag: 'geländer' });
 }
 
 /** Staubkörnchen im Lampenschein und leuchtende Augen in den Felsritzen: kleine Freuden für 6-7 (ein Objekt je Art). */

@@ -30,7 +30,7 @@
 
 import {
   arc, column, line, ring, schachtBauen, schachtZier, Grubentor, wippenStoss, schachtAbsturz, schachtLeben, schattenDiaet, hordenSicht,
-  fahrtAnsage,
+  fahrtAnsage, glitzerThema, lichterketten, himmelsfenster, lampenPfosten,
 } from './_helpers_d.js';
 
 const PI = Math.PI;
@@ -116,8 +116,8 @@ const ROCKS = [
   rock(-12, -6.5, 54, 94, -80, -7, { skip: ['-x', '-y'], cell: 2.6 }),
   rock(6.5, 12, 54, 94, -80, -7, { skip: ['+x', '-y'], cell: 2.6 }),
   // Mauern neben dem Grubentor
-  rock(-6.5, -2.8, YT, YT + 4.4, -65, -64, { cell: 1.2 }),
-  rock(2.8, 6.5, YT, YT + 4.4, -65, -64, { cell: 1.2 }),
+  rock(-6.5, -2.8, YT, YT + 3.8, -65, -64, { cell: 1.2, camIgnore: true }),
+  rock(2.8, 6.5, YT, YT + 3.8, -65, -64, { cell: 1.2, camIgnore: true }),
 ];
 
 const PLANKS = [
@@ -148,6 +148,17 @@ const CRYSTALS = [
   { pos: [-7.2, 69, -3.1], size: 0.6 }, { pos: [6.6, 75.4, -3.2], size: 0.5, color: 'gold' },
   { pos: [-10.0, YQ, -2.4], size: 0.5, n: 2, color: 'gold' },                     // Felsrille (Glitzer als Hinweis)
   { pos: [-5.9, YT, -62.4], size: 0.6 }, { pos: [5.9, YT, -61.6], size: 0.6, color: 'rosa' },
+];
+
+// Lichterketten an der Rückwand des Schachts (bunte Glühbirnen), Wimpel an der Mittelstation, in der Galerie und auf dem Deck
+const KETTEN = [
+  ...[11, 23.6, 36.2, 48.6, 61.6, 74.2].map((y, i) => ({ a: [X0 + 0.3, y + (i % 2 ? 0.6 : 0), ZB + 0.35], b: [X1 - 0.3, y + (i % 2 ? 0 : 0.6), ZB + 0.35], sag: 1.4 })),
+  { a: [X0 + 0.3, YK + 3.8, ZF - 0.4], b: [X1 - 0.3, YK + 3.8, ZF - 0.4], sag: 0.9, kind: 'wimpel', every: 0.6 },
+  { a: [-6.3, YT + 5.2, -7.5], b: [-6.3, YT + 5.2, -60], sag: 0.8, every: 1.1 },
+  { a: [6.3, YT + 5.2, -7.5], b: [6.3, YT + 5.2, -60], sag: 0.8, every: 1.1 },
+  ...[-70.4, -81.4].map((z) => ({ a: [-6.3, YT + 6.2, z], b: [6.3, YT + 6.2, z], sag: 1.0, kind: 'wimpel', every: 0.55 })),
+  { a: [-6.3, YT + 6.4, -66.4], b: [-6.3, YT + 6.4, -81.4], sag: 1.1, kind: 'wimpel', every: 0.6 },
+  { a: [6.3, YT + 6.4, -66.4], b: [6.3, YT + 6.4, -81.4], sag: 1.1, kind: 'wimpel', every: 0.6 },
 ];
 
 // ---------------------------------------------------------------- Wolken (Baustein wolkenplattform: pos = Mitte unten, 0,6 hoch)
@@ -198,7 +209,8 @@ export const LEVEL = {
   // nach der Fahrt (Schachtkrone, Galerie, Deck) die normale Verfolgerkamera
   camera: [
     { from: 6, to: -8, pitch: 34, dist: 13, fov: 42 },
-    { from: -8, to: -92, pitch: 44, dist: 13, fov: 40, x: 0, xLock: 0.35 },
+    { from: -8, to: -62, pitch: 44, dist: 13, fov: 40, x: 0, xLock: 0.35 },
+    { from: -62, to: -92, pitch: 38, dist: 12, fov: 42, x: 0, xLock: 0.5, ahead: 2.5 },
   ],
   instances: { coin: { farHide: 30, shadow: false } },
   schacht: {
@@ -208,12 +220,16 @@ export const LEVEL = {
     frames: FRAMES,
     crystals: CRYSTALS,
   },
+  prebuild: (level) => glitzerThema(level),
   build(level) {
     schachtBauen(level);
     schachtZier(level);
+    lichterketten(level, KETTEN);
+    himmelsfenster(level, { pos: [0, YT, -84], width: 10, height: 9.6 });
+    lampenPfosten(level, [[-5.9, YT, -68.6, 1], [5.9, YT, -68.6, -1], [-5.9, YT, -76, 1], [5.9, YT, -76, -1]]);
   },
   setup(level) {
-    level._tor = new Grubentor(level, { pos: [0, YT, M67.TOR.z], width: 4.4, height: 3.8, id: 'grubentor' });
+    level._tor = new Grubentor(level, { pos: [0, YT, M67.TOR.z], width: 4.4, height: 3.2, id: 'grubentor' });
     level._wippe3 = wippenStoss(level, { wippe: 'wippe3', crusher: 'q8', raise: M67.W3.raise, kick: 85 });
     schachtAbsturz(level, { y: YT - 6, x: [X0, X1], z: [-3.4, 3] });
     fahrtAnsage(level, { text: 'Die Wuschel kommen – nach oben!' });
@@ -268,7 +284,6 @@ export const LEVEL = {
       { kind: 'minenlampe', pos: [-4.6, YT + 4.6, -9] }, { kind: 'minenlampe', pos: [4.6, YT + 4.6, -23] },
       { kind: 'minenlampe', pos: [-4.4, YT + 4.6, -42] }, { kind: 'minenlampe', pos: [4.4, YT + 4.6, -57] },
       { kind: 'kristalle', pos: [-5.4, YT, -10.6], n: 3, size: 0.6 }, { kind: 'lore', pos: [4.2, YT, -9.6], yaw: PI / 2, load: 'erz' },
-      { kind: 'minenbalken_reihe', from: [0, YT, -67], to: [0, YT, -79], every: 4, lamp: true },
       { kind: 'fass', pos: [-5.4, YT, -78.6] }, { kind: 'kiste', pos: [5.2, YT, -79], size: 0.9 }, { kind: 'kiste', pos: [5.4, YT + 0.9, -79.1], size: 0.7 },
     ] },
     { type: 'sign', pos: [-4.2, YT, -5.2], text: 'Wippen-\nGalerie', size: [2.2, 1] },
