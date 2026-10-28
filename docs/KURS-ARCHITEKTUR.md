@@ -5299,3 +5299,232 @@ Wand-/Deckengitter (greifen, klettern, hangeln, Rand, loslassen), Windböen (Ruh
 großer ?-Block (Stampfen, Explosion), Wurfball (Gegner, Zielscheiben, vorbei = nichts, POW), Ziel; keine Konsolenfehler.
 Kennzahlen (inkl. Schattenpass): Stationen höchstens 63 Zeichenaufrufe / 163 k Dreiecke, Themen höchstens 72 / 174 k
 (Grenzen 120 / 300 k).
+
+## Präzisierung (Gegner Welt 6)
+
+Ergänzung des Gegner-Agenten Welt 6 „Wolkeninseln“ (Stand: Wolken-Gegnerzoo `0-24`, Wolken-Bossarenen `0-25`). Nichts oben
+Festgelegtes wird geändert; alles ist additiv. Level-Bauer schreiben nur Daten; alle Felder sind optional, sofern nicht anders
+vermerkt. Gemeinsame Felder und Konter aus „Präzisierung (Gegner/Power-ups)“ und „(Gegner Welt 2–5, Halloween)“ gelten weiter
+(`id, pos, dir|yaw, path, loop, wake, edges, drop`; Ziel = nächste Figur, Lava/Absturz = besiegt, `STRONG` = cannon, bomb,
+mega, star). Jede Datei dokumentiert ihre Parameter vollständig im Kopfkommentar. Kindgerecht: Schubser stoßen **ohne Schaden**
+(gefährlich ist nur, wohin man fällt), Gelee-Brocken zerplatzen in Bitcoins, Attrappen verpuffen in lila Rauch.
+
+### Präzisierung (Gegner Welt 6): Dateien
+
+```
+src/course/entities/w6help.js                  Hilfen (außerhalb kinds/): shoveFigure (Stoß ohne Schaden), approachSpeed,
+                                               dirFromTo, shoveAABB, pushFigures (wie w6kit), waterIn, Lcg, bossManaged
+src/course/entities/kinds/schubser_w6.js       schubser (+ slideStep: Rutsch-Physik, auch für den Prinzen)
+src/course/entities/kinds/pustewolke_w6.js     pustewolke
+src/course/entities/kinds/glotzfisch_w6.js     glotzfisch
+src/course/entities/kinds/stachelwerfer_w6.js  stachelwerfer, stachelkugel_wurf (geworfene Stachelkugel)
+src/course/entities/kinds/wuschel_horde_w6.js  wuschel_horde
+src/course/entities/kinds/schubser_prinz_w6.js schubser_prinz (Boss 6-A)
+src/course/entities/kinds/wuerfelblase_w6.js   wuerfelblase (Boss 6-C), gelee_brocken
+src/course/entities/kinds/wirbelbrocken.js     + decoys (Teleport mit Attrappen, 6-Panzer), wirbelbrocken_attrappe
+src/course/archetypes/kinds/boss.js            + LEVEL.bosses (mehrere Kämpfe nacheinander in einem Level)
+src/course/entities/Enemy.js, EnemyW2.js       + maskedFrom(level, gegner, figur); canSee übersieht eine maskierte Figur
+src/course/entities/kinds/spuk.js, hackbeil_w5.js, flatterfledi_hw.js   + Pilz-Maske (je eine Zeile)
+src/course/levels/w0/0-24.js                   Wolken-Gegnerzoo (8 Reihen Gehege, Z(r, dz) wie 0-18/0-21, Thema clearpipe)
+src/course/levels/w0/0-25.js                   Wolken-Bossarenen (Prinz-Käfig mit glasnetz, Zirkus-Rundkäfig, Rundkäfig)
+tests/course_w6_enemies.mjs                    Port 4620, W6E_PART=1|2|3|4, Bilder tests/out/w6e_*.png
+```
+
+Modelle: die fertigen Welt-6-Modelle (`enemies_w6.js`, `bosses_w6.js`, Instanzen `instanced_w6.js`) – `schubser`,
+`pustewolke`, `glotzfisch`, `stachelwerfer`, `stachelkugel` (Kugel des Werfers), `wuschel_horde`, `wirbelbrocken_attrappe`,
+`schubser_prinz` (`model.mouth()`), `wuerfelblase`, `gelee_brocken` (Instanz-Gruppe je Farbe), `gelee_riese` (`form`), dazu
+`boss_marker` (Landemarke) und `dizzyStars` (Schwindelsterne des Prinzen). Hammer- und Bumerang-Werfer sind die vorhandenen
+`hammer_werfer`/`bumerang_werfer` (Welt 2, Modell `feuer_werfer`); ihr Bumerang kehrt zum Werfer zurück (Münzen sammelt er
+nicht – das ist ein Gegner-Geschoss).
+
+### Präzisierung (Gegner Welt 6): gemeinsame Regeln
+
+- **Stoß ohne Schaden** (`shoveFigure(fig, dx, dz, speed, lift, lock)`): die Figur fliegt weg (Zustand `'hurt'` = Stolpern,
+  `lock` s ohne Steuerung), verliert aber nichts; im Wasser treibt sie nur. Schubser rammen so; der Schubser-Prinz rammt
+  dagegen mit Schaden.
+- **Zurückstoßen** (Schubser, Prinz): Draufspringen (Abprall), Stampfattacke, Sprung oder Rennen gegen ihn (≥ 3 m/s auf ihn
+  zu, in der Luft ≥ 1,5 m/s), Angriffe (Feuer, Tatze, Panzer, Wurf/Wurfball, Rutschen, Schwanzhieb, Faust, Stampfwelle)
+  lassen ihn rutschen (Reibung, auf Eis kaum); er prallt von Wänden ab und fällt über Kanten.
+- **Pilz-Maske** (Bauplan 6-3): alle „sehenden“ Gegner fragen vor dem Bemerken `maskedFrom(level, gegner, figur)` =
+  `level.isMaskedFrom(gegner, figur)` (Motor und Bausteine Welt 6; Rückfall: `fig.masked` und Blick ±75°). Betroffen: alles
+  mit `canSee` (Pilzling, Krallen-Pilzling, Pilzlingsturm, Rollpilz, Rammbock-Bulle, Schnapp-/Feuer-Schnappblume, Brummer,
+  Kickbombe, Werfer-Brüder, Hackvogel, Hüpfqualle, Lavabrocken, Schneesäule, Eisläufer, Kürbling, Klapperknochen,
+  Funkenkäfer, Funkenling, Zauberkröte, Schubser, Stachelwerfer, Pustewolke, zielender Glotzfisch, Gelee-Brocken), dazu
+  Spuk (bleibt ruhig statt sich zu verstecken/zu folgen), Hackbeil-Pilz (`prey`), Flatterfledi (Sturzflug). Abgewandt sehen
+  sie die Figur wieder.
+- **Welt-6-Bausteine**: Pustewolke schiebt über `pushFigures` (blocks/w6kit.js) und ist während des Pustens eine Windquelle für
+  `windAt` (in `w6(level).winds`); Schubser zählt auf Kippschiff/Kippsteg/Wippe als Last (`weight`, Standard 1) und kippt das
+  Deck mit seinem Rammstoß einmalig (`tilter.push`, `tilt`°); Quetschblock (`onHit('crush')`) besiegt den Schubser; Gegner mit
+  `enemy` reisen durch `glasnetz`, Bosse nicht (der Prinz fährt mit eigener Logik durch die Röhren eines Netzes, `net`).
+  Die geworfene Stachelkugel des Werfers ist eine eigene Art (`stachelkugel_wurf`: Bogenflug, ein gebremster Hüpfer, dann
+  rollen); die rollenden Stachelkugeln der Strecken sind der Baustein `stachelkugel`.
+- **Sound** nur über vorhandene `level.sfx`-Namen: `step` (scharren), `swoop` (Anlauf, Pusten, Wurf), `bounce`, `slam`,
+  `splash_big`, `hover` (Luft holen, Brocken ploppen), `fireball`, `pipe`, `blockhit`, `brickbreak`, `panic` (Flucht, Horde),
+  `vanish`, `boss_hit`, `boss_spin`, `stomp`, `land`, `powerdown`; Fanfare `course_clear` über den Boss-Archetyp.
+
+| Gegner | Verhalten | besiegt durch | verletzt |
+| --- | --- | --- | --- |
+| schubser | sieht die Figur → scharrt (Vorwarnung) → rammt; bremst an Kanten; patrouilliert/folgt/bewacht | Hinunterstoßen (Absturz, Lava, Wasser), Funkelstern, Riesentrank, Quetschblock; **Draufspringen federt nur** | nie (Stoß ohne Schaden) |
+| pustewolke | schwebt; Atempause → holt Luft (Vorwarnung) → pustet einen Windkegel (dreht sich in der Pause zur Figur oder fest) | Draufspringen/Stampfen **in der Atempause**, jeder Treffer | nie (Wind) |
+| glotzfisch | verborgen, lugt, springt im Takt im Bogen von Loch zu Loch (reihum bzw. zielend) | von oben (im Sprung), alle Angriffe | Berührung im Sprung |
+| stachelwerfer | stemmt eine Stachelkugel über den Kopf und wirft sie (landet vor der Figur, rollt, prallt ab) | von oben (nicht mit Kugel über dem Kopf), alle Angriffe | von vorn/seitlich, Kugel über dem Kopf |
+| stachelkugel_wurf | Bogen, ein Hüpfer, rollt (hangab schneller), prallt an Wänden, zerfällt nach life | Stern, Riese, Explosion, Kanone (Feuer/Tatze/Wurf lenken sie ab) | jede Berührung (auch von oben) |
+| wuschel_horde | Front rückt nach Zeitplan/Tempo bzw. mit dem Autoscroll-Fenster nach | unbesiegbar | alles hinter der Front (Rückstoß von der Horde weg) |
+| gelee_brocken | hüpft umher/zur Figur; im Boss-Kampf Baustein des Riesen | Draufspringen (1 Bitcoin), alle Angriffe | seitlich (im Flug harmlos) |
+| schubser_prinz | Boss 6-A (siehe unten) | nur Tritt nach der Röhrenfahrt (3×) | Rammstoß, Feuerkugeln |
+| wuerfelblase | Boss 6-C (siehe unten) | nur Hut-Treffer in der Flucht (3×) | Riese (seitlich, Landung, Schockwelle), Brocken |
+| wirbelbrocken + decoys | Boss 6-Panzer: nach Treffer Teleport mit 1 bzw. 2 Attrappen | nur das Original, benommen (3×) | Fäuste (auch der Attrappen), Berührung |
+
+### Präzisierung (Gegner Welt 6): Gegner-Daten (exakt, mit Beispiel)
+
+```js
+enemies: [
+  // Schubser: behavior 'chase' (ohne path) | 'patrol' (path/geradeaus) | 'guard' (steht, kehrt heim), path, loop, speed 1.5,
+  //   charge 5.5 (m/s Rammen), chargeTime 1.8, sight 8, warn 0.55 (s scharren), cool 0.9, push 9 (m/s Stoß auf die Figur),
+  //   lift 5.5, friction 6 (m/s² Rutschen; Eis 1,2), weight 1 (> 1 rutscht kürzer, kippt Decks stärker), tilt 6 (°), size 1
+  { kind: 'schubser', id: 'sb1', pos: [0, 2.5, -15], behavior: 'guard', sight: 6 },
+  { kind: 'schubser', pos: [10, 2.5, -15], behavior: 'patrol', path: [[9, 2.5, -15], [14, 2.5, -15]] },
+  // Pustewolke: pos = Unterkante der schwebenden Wolke; dir|yaw (feste Blasrichtung; ohne: dreht sich zur Figur), turn (Standard: true ohne dir, false mit dir),
+  //   sight 10, reach 5.5 (m Kegel), angle 28 (°), height 2.2, strength 7.5 (m/s), ground 0.7, rest 1.6, inhale 0.7, blow 2.2,
+  //   phase 0 (s Vorlauf im Takt), path, loop, speed 1, bob 0.12
+  { kind: 'pustewolke', pos: [-16, 2.2, -33], dir: [1, 0], reach: 6 },
+  // Glotzfisch: holes [[x, y, z], …] (y = Wasser-/Eisoberfläche; reihum) | pos + dir + dist 4 (pendelt), height 2.4, every 2.6,
+  //   flight 1.1, phase 0..1, peek 0.45, aim false (true: Loch nächst der Figur, sight 6), color 'blau' | 'gelb' | 'rosa'
+  { kind: 'glotzfisch', holes: [[-16, 2, -55], [-11.5, 2, -55], [-7, 2, -55]], height: 2.6, every: 2.4 },
+  // Stachelwerfer: sight 10, interval 2.4, first 1.0, ball 0.55 (Ø), flight 0.8, lead 1.0 (m vor der Figur), range 8, roll 4,
+  //   life 6, max 3, aim 'player' | 'dir', pace 0 (m tänzeln entlang axis [1, 0]), speed 1, path, loop
+  { kind: 'stachelwerfer', pos: [-17, 1, -72], dir: [1, 0], sight: 11 },
+  // geworfene Stachelkugel (auch einzeln): vel [vx, vy, vz] (Flug) | dir + roll (rollt los), size 0.55, roll 4, life 6,
+  //   bounce 0.45, owner
+  { kind: 'stachelkugel_wurf', pos: [0, 1, -80], dir: [1, 0], roll: 3, life: 10 },
+  // Wuschel-Horde: pos = Mitte der Front beim Start (waagerecht: y = Unterkante), axis 'y' | '-y' | 'z' | '-z' | 'x' | '-x',
+  //   follow 'scroll' (Front = Fenstermitte − behind 7 m), schedule [[t, Lage], …] | speed 1.5 (+ speeds [{ at, speed }]),
+  //   delay 0, trigger { min, max }, end (Lage), size [quer1, quer2] (senkrecht [x, z] 8 × 8; waagerecht [Breite, Höhe] 8 × 3),
+  //   depth 12, gap 6 (Neustart: so weit unter dem Neustart-Punkt), count 48 (≤ 64 je Schicht), layers 2 | 1
+  { kind: 'wuschel_horde', id: 'horde', pos: [0, -6, -20], axis: 'y', follow: 'scroll', behind: 6.5, size: [10, 10] },
+  { kind: 'wuschel_horde', pos: [11.5, 1, -123], axis: 'z', speed: 2, end: -109, size: [14, 3], trigger: { min: [4, 0, -122], max: [19, 6, -108] } },
+  // Gelee-Brocken einzeln: size 0.5, color 'silber' (rot, blau, gruen, gelb, lila, orange, rosa, gold), speed 1.6,
+  //   height 0.55, behavior 'hop' | 'chase', sight 7, coins 1, vel (startet im Flug)
+  { kind: 'gelee_brocken', pos: [9, 1, -156], behavior: 'chase', color: 'blau' },
+  // Werfer-Brüder (6-B, vorhanden): { kind: 'hammer_werfer' | 'bumerang_werfer' | 'feuer_werfer', pos, heights, … }
+],
+items: [{ kind: 'pilz_maske', pos: [0, 1, -129] }],   // Baustein; die Gegner oben übersehen eine zugewandte Figur
+```
+
+Laufzeit (für Tests und Gimmicks): Schubser `state` (idle | walk | warn | charge | skid | cool | pushed | fall | recover |
+defeated), `rams`, `pushes`, `slide` (m/s), `fellBy` ('fall' | 'lava' | 'wasser'), `info()`; Pustewolke `state` (idle | rest |
+inhale | blow | hit | defeated), `blows`, `pushed`, `inCone(x, y, z)`, `info()`; Glotzfisch `state` (wait | peek | jump |
+defeated), `jumps`, `hole`, `next`, `apex`; Stachelwerfer `state` (idle | stand | throw | squashed | flipped), `throws`, `balls`, `overhead` (Kugel über dem Kopf); Kugel `state` (fly | roll | break),
+`landAt`, `bounces`, `rolled`; Horde `state` (wait | delay | run | done), `front` (Lage), `clock`, `hits`, `resets`, `info()`.
+
+### Präzisierung (Gegner Welt 6): Schubser-Prinz (6-A)
+
+```js
+{ kind: 'schubser_prinz', id: 'prinz', pos: [0, 2, -5] (Start), dir: [0, 1], arena: { min: [-10, -10], max: [10, 10], y: 2 }
+    | { center: [x, y, z], size: [w, d] }, net: 'roehren' (glasnetz-Id) | pipes: [{ id, pos (Mündung unten an der Wand),
+    dir (in die Arena), to, route }], hp: 3, charge: [6, 7, 8], chargeTime: [2.2, 2.0, 1.8], turn: [0.5, 0.7, 0.9],
+  warn: [0.9, 0.7, 0.55], skid: [1.0, 0.85, 0.7], fire: [1, 2, 3], fireSpeed: 6.5, stuck: 3.5, stun: [3.0, 2.6, 2.2],
+  push: 12, lift: 7, knock: 6, travel: 18, travelMax: 2.2, star: { pos, index }, wakeR: 10, drop, seed }
+boss: { id: 'prinz', name: 'Schubser-Prinz', speed: 0, trigger, lock, warp, warpPos, warpTo, frame: 0.45, center }
+segments: [{ type: 'glasnetz', id: 'roehren', nodes: { L0: [-9.95, 3, 0], R0: [9.95, 3, 0], … }, pipes: [{ from: 'L0', to: 'R0',
+            via: [[-13.6, 3, 0], [-13.6, 3, -13.6], [13.6, 3, -13.6], [13.6, 3, 0]] }, …], ends: { L0: { enter: false }, … } }]
+```
+
+Ablauf: `wait` → `intro` (2 s) → `aim` (warn s: dreht sich, scharrt) → `charge` (Rammen, lenkt nach; Berührung **verletzt** und
+schleudert weg) → `skid` (rutscht aus) → `fire` (0,8 s; 1 / 2 / 3 Feuerkugeln fächerförmig aus `model.mouth()`) → `aim` …
+Zurückstoßen (`pushed`, Reibung 5 m/s², Abprall an den Käfigwänden). Rutscht/rennt er rückwärts oder vorwärts in eine
+**Röhrenmündung** (≤ 1,55 m vor der Wand, quer ≤ 1,05 m, Bewegung zur Wand), steckt er fest (`stuck`, höchstens `stuck` s,
+danach hüpft er heraus). **Noch ein Stoß** (Berührung, Draufspringen, Angriff) → `pipe`: Fahrt durch die Röhre (gestaucht,
+im Glas sichtbar; Netz: der Röhre folgen bis zur nächsten Öffnung, an Kreuzungen Richtung Weiche) → `squeezed` (0,6 s, schießt
+aus der Gegenöffnung in die Arena) → `stunned` (Schwindelsterne): **Tritt** (Draufspringen/Stampfen) = Treffer → `hit` (0,6 s)
+→ `recover` → nächste Phase. Sonst ist Draufspringen nur ein Abprall (er rutscht davon); Feuer, Krallen, Panzer, Wurf,
+Explosion, Stern, Riese stoßen ihn nur. 3 Treffer → `defeated` (2 s) → `gone` (Stern; Archetyp: Fanfare, Warp-Box). Ansagen:
+„Stoß ihn in eine Glasröhre!“, „Noch einmal stoßen!“, „Jetzt draufspringen!“, „Er wird schneller!“, „Jetzt spuckt er drei
+Feuerbälle!“. Tod im Kampf (`reset`): Prinz 3/3 am Start, Feuerkugeln weg. Schnittstelle wie Graf Brummbär (`begin, reset,
+state, stateT, hp, maxHp, phase, visible, home, half, carHits 0, vulnerable, info()`, `level.onBossHit(boss, 'tritt')`,
+`level.onBossDefeated`), `boss: true`, kein `enemy`. Laufzeit: `charges, fireballs, pushes, stucks, trips, tripLog
+([{ from, to }]), hits, hitLog, bounces, rams, pipe, pipes` (Mündungen, aus `pipes` bzw. dem Netz).
+
+### Präzisierung (Gegner Welt 6): Würfelblase (6-C)
+
+```js
+{ kind: 'wuerfelblase', id: 'blase', pos: [0, 2, -63], arena: { center: [0, 2, -60], r: 11.4 }, hp: 3, bits: [10, 13, 16],
+  jumps: [3, 4, 5], size: 3.2, minSize: 1.6, bitSpeed: [1.6, 1.9, 2.2], air: [1.2, 1.05, 0.9], rest: [0.9, 0.75, 0.6],
+  height: 5, shockR: 6, shockSpeed: 7, flee: [4.5, 4.0, 3.5], fleeSpeed: [3.0, 3.6, 4.2], colors: ['rot', 'blau', 'gruen',
+  'gelb'], giantColor: 'silber', star: { pos, index }, wakeR: 12, drop, seed }
+boss: { id: 'blase', name: 'Würfelblase', speed: 0, trigger, warp, warpPos, warpTo, frame: 0.4, center }
+```
+
+Ablauf: `wait` → `intro` (2,4 s; bei 0,7 s ploppen `bits` bunte Gelee-Brocken aus ihr) → `gather` (die Brocken hüpfen zu ihr
+und gehen in ihr auf; sie ist dabei **geschützt**, höchstens 6 s) → `form` (0,7 s: **silberner Gelee-Riese**, Kante
+`S = minSize + (size − minSize) · n / bits[Phase]` aus den n aufgegangenen Brocken – **besiegte Brocken verkleinern ihn**; ohne
+Brocken flieht sie sofort) → je Sprung `gcrouch` (0,35 s) → `gair` (air s, Bogen `height` m auf die Stelle der Figur, rote
+**Landemarke** im Grundriss, wachsender Schatten) → `gland` (Aufprall verletzt im Grundriss, **Schockwelle** 0,45 m hoch bis
+`shockR` – drüberspringen) → `grest` … Nach dem letzten Sprung platzt der Riese (`split` 0,8 s, die Brocken hüpfen danach
+herum: Berührung verletzt, Draufspringen besiegt) und **die Würfelblase flieht** (`flee`, von der Figur weg, am Rand entlang):
+jetzt ist **ihr Hut verwundbar** (Draufspringen/Stampfen nach 0,35 s) → `hit` (0,6 s) → neue Brocken (`bits[P] − bits[P−1]`)
+→ `gather` … Flieht sie unversehrt, sammelt sie wieder ein (gleiche Phase). 3 Treffer → `defeated` (1,6 s, zerläuft, übrige
+Brocken zerplatzen) → `gone` (Stern; Archetyp: Fanfare, Warp-Box). Ansagen: „Weich dem Riesen aus – spring über die Welle!“,
+„Spring auf ihren Hut!“, „Der nächste Riese wird kleiner!“, „Mehr Gelee-Brocken!“, „Jetzt springt der Riese noch öfter!“.
+Tod im Kampf: alles zurück. Schnittstelle wie oben (`level.onBossHit(boss, 'hut')`), Laufzeit: `giants, sizes, giantSize,
+jumpsDone, landings, waves, merged, bitsDown, splits, flees, hits, hitLog, bounces, misses, markerShown, isGiant, S`.
+
+### Präzisierung (Gegner Welt 6): Wirbelbrocken mit Attrappen (6-Panzer)
+
+`{ kind: 'wirbelbrocken', id, pos, arena: { center, r }, decoys: true | [0, 1, 2], ring: 0.55, seed }` – wie Welt 2, aber nach
+einem Treffer statt der Panzerkugel: `teleport` (0,5 s, wirbelt und schrumpft) → `hidden` (0,5 s) → `appear` (0,7 s: fällt auf
+einen Platz eines Rings `ring · r`; auf den übrigen Plätzen erscheinen 1 bzw. 2 **Attrappen** `wirbelbrocken_attrappe`, die im
+selben Takt laufen, wirbeln und taumeln und ≥ 2,6 m Abstand halten). **Nur das Original zählt** (benommen: Draufspringen/
+Stampfen); eine Attrappe verpufft bei Draufspringen (Abprall) oder Angriff; ihre Fäuste verletzen. Ein Treffer am Original lässt
+alle Attrappen verpuffen. Ansage beim ersten Teleport „Nur der echte Wirbelbrocken zählt!“. Ohne `decoys` unverändert.
+Laufzeit: `teleports, decoys, decoysMade, decoysPopped`.
+
+### Präzisierung (Gegner Welt 6): Boss-Archetyp – mehrere Kämpfe (`LEVEL.bosses`)
+
+`bosses: [cfg, …]` statt `boss` (jeder Eintrag wie `LEVEL.boss`): der erste ist aktiv; betritt die Figur außerhalb eines Kampfs
+den `trigger` eines anderen, noch nicht gewonnenen Eintrags, wird er der aktive Kampf (Lebensleiste, Sperre, Warp-Box, Tod →
+nur dieser Kampf von vorn). `info().active` = Id des aktiven Endgegners. Endgegner erkennen „vom Archetyp gesteuert“ über
+`bossManaged(level, id)` (beide Formen). Ein einzelnes `boss` bleibt wie bisher.
+
+### Präzisierung (Gegner Welt 6): Hinweise für Level-Bauer
+
+- **Schubser (6-2, später 7-4)**: auf Decks/Plattformen mit Kanten stellen – er bremst selbst an Kanten, fällt nur gestoßen.
+  Ein Stoß auf ihn trägt ihn 2,5 m (Draufspringen) bis ≈ 5 m (Stampfen/Rennen); der Rammstoß trägt die Figur ≈ 4–5 m
+  (`push`/`lift`). Für „2 Schubser besiegen → Warp-Box“ eine Arena-/Aufgaben-Zählung über `level.onEnemyDefeated` (Absturz
+  zählt). Auf `kippschiff`/`kippsteg` kippt sein Rammstoß das Deck zusätzlich (`tilt`).
+- **Pustewolke (6-5)**: Wolken ≈ 1,2–1,6 m über dem Weg (Draufspringen muss erreichbar sein), Kegel `reach` ≤ Lücke + 2 m;
+  über Abgründen Windfelder der Bausteine und Pustewolken nicht überlagern (beides addiert sich). `phase` versetzt mehrere.
+- **Glotzfisch (6-5)**: `holes` auf die Löcher im Eis bzw. Wasserflächen legen (y = Oberfläche); der Bogen ist `height` m hoch –
+  Wege zwischen zwei Löchern werden überquert. Zielend (`aim`) nur mit mehreren Löchern sinnvoll.
+- **Stachelwerfer (6-3)**: im Käfig der Rätselbox eine Wand hinter der Figur: Kugeln prallen ab. Auf Rampen rollen die Kugeln
+  hangabwärts schneller (bis ×1,35).
+- **Wuschel-Horde (6-7)**: im senkrechten Autoscroller `follow: 'scroll'` mit `behind` ≈ `frame.back` + 1 (die Front ist
+  unten am Bildrand sichtbar), `size` = Schachtquerschnitt; ohne Autoscroller `speed`/`schedule` und `trigger`.
+- **Pilz-Maske (6-3)**: Gegner, die die Figur nicht sehen sollen, so stellen, dass sie ihr zugewandt sind (z. B. Pilzling-
+  Wachen vor Schiebetüren). Ohne Maske bemerken sie die Figur wie gewohnt.
+- **6-A**: Käfig ≈ 20 × 20 m, `glasnetz` mit Öffnungen an den Seitenwänden (Knotenmitte 1 m über dem Boden, an der Wand) und
+  Röhren, die hinter dem Käfig herumführen (sich nicht kreuzen); `ends: { …: { enter: false } }`, wenn die Figur nicht hinein
+  soll. Prinz mit `net` und `arena` (Rechteck = Innenfläche). Vorderwand niedrig mit unsichtbarer Kollision darüber (wie 0-25).
+- **6-C**: runde Arena r ≥ 11 m ohne tiefe Decke (der Riese springt 5 m + Kante hoch), Startplatz vorn, `boss.trigger` innen.
+- **6-Panzer**: `wirbelbrocken` mit `decoys: true` in der Arena nach der Fahrt (`scroll.with: 'boss'` wie 2-Panzer).
+
+### Präzisierung (Gegner Welt 6): Tests und Kennzahlen
+
+`tests/course_w6_enemies.mjs` (Port 4620, `?course=0-24|0-25&scale=2&adapt=0`, deterministisch über `step(n)`/`setInput`;
+Hilfen `window.__t`: `Z(r, dz)`, `place`, `stomp`, `touch`, `until`, `hold`, `mask`, `face`, Boss: `enter`, `untilState`;
+`W6E_PART=1|2|3|4`, je Teil 2–6 min): Laden (alle Arten, Modelle ohne Platzhalter, Horde als Instanz-Gruppe, 10 s ohne Fehler)
+· Teil 1 Schubser (scharrt → rammt ohne Schaden in die Lava, Draufspringen federt und schiebt, Stampfattacke stößt ihn in die
+Lava – zählt, Feuerball ins Wasser, Gegenrennen, sanfter Schubs, Angriffe stoßen, Funkelstern besiegt, bremst an der Kante),
+Pustewolke (Takt, Wind am Boden 0,92 m / in der Luft 1,31 m je 0,25 s, hinter ihr nichts, dreht sich, Atempause/Pusten,
+seitlich harmlos, Feuer), Glotzfisch (reihum, Scheitel 2,6 m, lugt, verborgen harmlos, Berührung im Sprung, von oben, zielend,
+Feuer) · Teil 2 Stachelwerfer (Kugel über dem Kopf, landet 6 m weit, prallt ab, von oben/seitlich gefährlich, Feuer lenkt ab,
+Stern zerstört, von hinten harmlos, Rampe 5,4 m/s), Werfer-Brüder, Wuschel-Horde (wartet, steigt 1,2 m/s, verletzt mit
+Rückstoß nach oben, Wolkenstufe sicher, Neustart, `follow: 'scroll'`, waagerecht), Pilz-Maske (Pilzling, Krallen-Pilzling,
+Spuk, Schubser, Stachelwerfer, Pustewolke, Hackbeil-Pilz mit/ohne Maske, zugewandt/abgewandt; über `level.isMaskedFrom`),
+Bestand · Teil 3 Schubser-Prinz vollständig (3 Röhrenfahrten L0→R0, R6→L6, L-6→R-6 über das glasnetz), Würfelblase vollständig
+(Riese 3,2 → 2,71 m nach 4 besiegten Brocken, Sprünge 3/4/5), Wirbelbrocken mit 1 bzw. 2 Attrappen, Sieg → Stern, Warp-Box,
+Zielmast; Tod setzt jeden Kampf zurück · Teil 4 Bilder `tests/out/w6e_*.png` und Zeichenaufrufe – 89 Prüfungen. Gemessen
+(scale 2, inkl. Schattenpass): Gegnerzoo 38–73 Zeichenaufrufe (≤ 250 k Dreiecke, Thema clearpipe), Bossarenen 42–69
+(≤ 169 k, Thema fortress); Simulation im Zoo (≈ 44 Entitäten) 0,09–0,34 ms je Schritt. Regressionen `course_enemies`,
+`course_w5_enemies` (1–3), `course_hw_enemies` (1–3), `course_w2_enemies`, `course_w1_combat`, `course_physics`,
+`course_w6_blocks` (mech) bestanden.

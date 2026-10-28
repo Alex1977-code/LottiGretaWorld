@@ -15,13 +15,14 @@
 //   Start), Zeitplan/Tempo laufen von dort weiter; mit follow 'scroll' übernimmt das Bildfenster.
 //
 // Daten: { kind: 'wuschel_horde', id?, pos: [x, y, z] (Mitte der Front beim Start; bei waagerechter Jagd y = Unterkante),
-//          axis?: 'y' (Standard) | '-z' | 'z' | 'x' | '-x', follow?: 'scroll', behind?: 7, schedule?, speed?: 1.5, speeds?,
+//          axis?: 'y' (Standard) | '-y' | '-z' | 'z' | 'x' | '-x', follow?: 'scroll', behind?: 7, schedule?, speed?: 1.5, speeds?,
 //          delay?: 0, trigger?: { min, max }, end?, size?: [Breite, Tiefe] quer zur Achse (senkrecht: [x, z], Standard [8, 8];
 //          waagerecht: [Breite, Höhe], Standard [8, 3]), depth?: 12 (m hinter der Front, die verletzen), gap?: 6,
 //          count?: 48 (sichtbare Wuschel, je Schicht ≤ 64), layers?: 2 (senkrecht) | 1 }
 //   Beispiel (6-7): { kind: 'wuschel_horde', id: 'horde', pos: [0, -6, -20], axis: 'y', follow: 'scroll', behind: 6.5,
 //                     size: [10, 10] }
-// Laufzeit: state ('wait' | 'run' | 'done'), front (Lage), clock (s seit Jagdbeginn), hits (Treffer auf Figuren), info().
+// Laufzeit: state ('wait' (trigger) | 'delay' | 'run' | 'done'), front (Lage), clock (s seit Jagdbeginn), hits (Treffer auf
+//   Figuren), resets (Neustarts), info().
 // Sound: 'panic' (Jagdbeginn).
 
 import * as THREE from 'three';

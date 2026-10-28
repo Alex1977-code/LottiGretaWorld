@@ -15,10 +15,10 @@
 //   besiegen sie immer. Seitliche Berührung schadet nicht (die Wolke ist weich: kleiner Schubs).
 //
 // Daten: { kind: 'pustewolke', pos (Unterkante der Wolke beim Schweben), dir?: [dx, dz] | yaw (feste Blasrichtung; ohne dir:
-//          zur Figur), turn?: true (in der Pause zur Figur drehen; false = immer dir), sight?: 10, reach?: 5.5, angle?: 28,
-//          height?: 2.2, strength?: 7.5, ground?: 0.7, rest?: 1.6, inhale?: 0.7, blow?: 2.2, phase?: 0 (s Vorlauf im Takt),
-//          path?, loop?, speed?: 1, bob?: 0.12, wake?, drop? }
-//   Beispiel: { kind: 'pustewolke', pos: [6, 3, -40], dir: [-1, 0], turn: false, reach: 6 }
+//          zur Figur), turn? (in der Pause zur Figur drehen; Standard: true ohne dir, false mit dir), sight?: 10,
+//          reach?: 5.5, angle?: 28, height?: 2.2, strength?: 7.5, ground?: 0.7, rest?: 1.6, inhale?: 0.7, blow?: 2.2,
+//          phase?: 0 (s Vorlauf im Takt), path?, loop?, speed?: 1, bob?: 0.12, wake?, drop? }
+//   Beispiel: { kind: 'pustewolke', pos: [6, 3, -40], dir: [-1, 0], reach: 6 }
 // Zustände: idle (keine Figur in Sicht) | rest | inhale | blow | hit | defeated. Laufzeit: blows, pushed (m, wie weit sie
 //   Figuren verschoben hat), inCone(x, y, z), info().
 // Sound: 'hover' (Luft holen), 'swoop' (Pusten), 'stomp', 'vanish'.

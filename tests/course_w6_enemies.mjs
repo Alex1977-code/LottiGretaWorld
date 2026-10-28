@@ -533,12 +533,25 @@ const wh = await sc(() => {
   p.hurt.bind(p);
   for (; k < 120 * 8 && z.hits === 0; k++) { p.pos.set(zf[0], zf[1], zf[2]); p.vel.set(0, 0, 0); p.mode = 'ground'; c.step(1); }
   out.flat = { hits: z.hits, front: t.r2(z.info().front), t: t.r2(k / 120), vz: t.r2(p.vel.z), state: z.state };
+  // follow 'scroll' (6-7): die Front folgt dem Bildfenster des Autoscrollers (behind m unter dessen Mitte)
+  const f = L.spawn('wuschel_horde', { pos: [-11.5, -5, t.Z(6, 7)], axis: 'y', follow: 'scroll', behind: 6, size: [6, 6], count: 8 });
+  const keep = L.scroll;
+  L.scroll = { center: { x: -11.5, y: 4, z: t.Z(6, 7) } };
+  c.step(2);
+  const f1 = f.front;
+  L.scroll.center.y = 9.5;
+  c.step(2);
+  out.follow = { f1: t.r2(f1), f2: t.r2(f.front), state: f.state };
+  L.scroll = keep;
+  f.kill();
+  c.step(1);
   return out;
 });
 console.log(`  Wuschel-Horde: ${JSON.stringify(wh)}`);
 check(`Wuschel-Horde wartet bis zum Betreten (${wh.wait}), steigt dann (${wh.bite.y0} → ${wh.bite.front} m in ${wh.bite.t} s) und verletzt (Rückstoß nach oben ${wh.bite.vy} m/s)`, wh.wait === 'wait' && wh.bite.state === 'run' && wh.bite.hits >= 1 && wh.bite.hurt && wh.bite.t > 0.8 && wh.bite.t < 2 && wh.bite.vy > 5);
 check(`Oben auf der Wolkenstufe sicher, bis die Front die Füße erreicht (Treffer bei Front ${wh.top.firstHit} m, Füße ${wh.top.feet} m)`, wh.top.firstHit > 10.5 && wh.top.firstHit <= 11.3);
 check(`Tod → Neustart: die Front springt zurück (${wh.reset.front} m, ${wh.reset.resets}×)`, wh.reset.resets >= 1 && wh.reset.front < 0);
+check(`Mit follow 'scroll' folgt die Front dem Bildfenster (Mitte 4 → 9,5 m: Front ${wh.follow.f1} → ${wh.follow.f2} m)`, wh.follow.f1 === -2 && wh.follow.f2 === 3.5 && wh.follow.state === 'run');
 check(`Waagerechte Horde jagt nach +z und verletzt (nach ${wh.flat.t} s, Front z ${wh.flat.front}, Rückstoß vz ${wh.flat.vz})`, wh.flat.hits >= 1 && wh.flat.t > 2 && wh.flat.vz > 2);
 
 const pm = await sc(() => {
