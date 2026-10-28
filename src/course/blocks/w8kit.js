@@ -18,8 +18,8 @@
 //     glowTexture, lavaTopAt, lavaMaterial, fireMaterial, fireBallGeo, rotXZ, flatColor, shadeGeo, pulse, shove
 
 import * as THREE from 'three';
-import { hasModel } from '../models/index.js';
-import { lin, mixc, smooth, colorize } from './kit.js';
+import { hasModel, getModel } from '../models/index.js';
+import { lin, mixc, smooth, colorize, addStatic } from './kit.js';
 import {
   figures, modelOr, hurtFigures, killFigures, sphereTouches, boxTouches, cycle, ease, clamp, TAU, onRespawn, glowTexture,
   lavaTopAt, lavaMaterial, fireMaterial, fireBallGeo, rotXZ, flatColor, shadeGeo, pulse, shove,
@@ -176,4 +176,63 @@ export function canvasTexture(key, w, h, draw) {
   t.colorSpace = THREE.SRGBColorSpace;
   TEX.set(key, t);
   return t;
+}
+
+const _bm = new THREE.Matrix4(), _bi = new THREE.Matrix4(), _bc = new THREE.Color();
+/**
+ * Registry-Modell in die statische Geometrie backen (wie bakeModel in w2kit, zusätzlich mit Instanzfarben – Wimpel,
+ * Glühbirnen): undurchsichtige Teile ins Welt-Material (Vertexfarben), MeshBasicMaterial ins Glüh-Material; durchsichtige
+ * und texturierte Teile entfallen. Liefert die Dreieckszahl (0 ohne Ansicht).
+ */
+export function bakeW8(level, name, opts, x, y, z, yaw = 0, scale = 1, state = {}, o = {}) {
+  if (!level.view) return 0;
+  const m = getModel(name, opts);
+  m.update?.(0, state);
+  const root = m.root;
+  root.position.set(x, y, z);
+  root.rotation.set(0, yaw, 0);
+  if (Array.isArray(scale)) root.scale.set(scale[0], scale[1], scale[2]); else root.scale.setScalar(scale);
+  root.updateMatrixWorld(true);
+  let tris = 0;
+  const parts = { world: [], glow: [] };
+  root.traverse((ob) => {
+    if (!ob.isMesh || !ob.visible) return;
+    for (let q = ob.parent; q; q = q.parent) if (!q.visible) return;
+    const mat = Array.isArray(ob.material) ? ob.material[0] : ob.material;
+    if (!mat || mat.map || mat.transparent || mat.visible === false) return;
+    const kind = mat.isMeshBasicMaterial ? 'glow' : 'world';
+    const list = [];
+    if (ob.isInstancedMesh) {
+      for (let i = 0; i < ob.count; i++) {
+        ob.getMatrixAt(i, _bi);
+        if (Math.abs(_bi.determinant()) < 1e-9) continue;
+        let col = null;
+        if (ob.instanceColor) { ob.getColorAt(i, _bc); col = _bc.clone(); }
+        list.push({ M: _bm.clone().multiplyMatrices(ob.matrixWorld, _bi), col });
+      }
+    } else list.push({ M: ob.matrixWorld.clone(), col: null });
+    for (const { M, col } of list) {
+      const g = ob.geometry.index ? ob.geometry.toNonIndexed() : ob.geometry.clone();
+      for (const a of Object.keys(g.attributes)) if (a !== 'position' && a !== 'normal' && a !== 'color') g.deleteAttribute(a);
+      if (!g.attributes.normal) g.computeVertexNormals();
+      const c = mat.color ?? new THREE.Color(1, 1, 1), e = mat.emissive;
+      const tint = [c.r * (col ? col.r : 1), c.g * (col ? col.g : 1), c.b * (col ? col.b : 1)];
+      const em = e ? [e.r, e.g, e.b] : [0, 0, 0];
+      const n = g.attributes.position.count;
+      const old = mat.vertexColors && g.attributes.color ? g.attributes.color.array : null;
+      const arr = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) for (let k = 0; k < 3; k++) {
+        arr[i * 3 + k] = old ? old[i * 3 + k] * tint[k] : Math.min(1, tint[k] + em[k] * 0.5);
+      }
+      g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+      g.applyMatrix4(M);
+      tris += n / 3;
+      parts[kind].push(g);
+    }
+  });
+  m.dispose?.();
+  const cast = o.castShadow !== false;
+  for (const g of parts.world) addStatic(level, g, { material: 'world', castShadow: cast });
+  for (const g of parts.glow) addStatic(level, g, { material: 'glow', castShadow: false });
+  return tris;
 }

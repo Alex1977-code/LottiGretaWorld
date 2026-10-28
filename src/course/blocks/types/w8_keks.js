@@ -11,8 +11,8 @@
 //     läuft bei axis 'x' nach +Z, bei axis 'z' nach +X), angle: 0, idle: false, slice: 0.3, icing: 'rosa' | 'weiss' |
 //     'schoko' | 'gruen', post: true (waagerecht: Stiel nach unten, postDown 5), look: 'eigen' }
 //   level.named.get(id) = { angle, speed, axis, start(), stop(), reverse(), info() }; w8(level).cookies.
-//   Modell: Registry 'keksrad' ({ radius, thick, icing }, liegend, Ursprung Mitte der Unterseite; state { angle }) – senkrecht
-//   aufgerichtet um die Achse gedreht; sonst eigener Keks.
+//   Modell: Registry 'keksrad' ({ size: 2·radius, thick, axis, color: icing 'schoko' → 'schoko', sonst 'hell' }, Ursprung
+//   Mitte; state { angle }) – liegend um thick/2 angehoben; sonst (bzw. look: 'eigen') eigener Keks.
 //   Beispiele: { type: 'keksrad', id: 'keks1', pos: [0, 0, -30], radius: 3, speed: 0.6 }
 //              { type: 'keksrad', id: 'keks2', axis: 'x', pos: [0, -1.2, -40], radius: 2.6, thick: 2, speed: 0.5 }
 //
@@ -25,8 +25,10 @@
 //   { type: 'keks_zahnrad', id, pos (waagerecht Mitte der Unterseite, senkrecht Achsmitte), radius: 3, thick: 0.6 (senkrecht
 //     1.6), teeth: 8, toothLen: 0.9, toothW: 1.1, axis, speed: 0.5, angle, idle, icing, look }
 //   level.named.get(id) = { angle, speed, teeth: [{ x, y, z }], start(), stop(), reverse(), info() }; w8(level).gears.
-//   Modell: Registry 'keks_zahnrad' ({ radius, thick, teeth, toothLen, icing }, liegend, Ursprung Mitte der Unterseite;
-//   state { angle }).
+//   Modell: Registry 'keks_zahnrad' ({ radius (Zahnspitzen), teeth, thick, axis }, Ursprung Mitte; state { angle }). Mit Modell
+//   folgen die Kollisions-Zähne dessen Zahnform: liegend Körper radius, Zähne bis radius + d (d = min(0,45, 0,22·Rm), toothLen
+//   wird dann ignoriert), Zahn k beim Winkel (k + 0,375)/teeth·2π; stehend ist der Modell-Radius = radius und die mitfahrenden
+//   Zahn-Plattformen sitzen vor den Modell-Zähnen.
 
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, hex, addObject } from '../kit.js';
@@ -123,8 +125,14 @@ function buildCookie(level, spec, kind) {
   const R = spec.radius ?? (gear ? 3 : 2.5);
   const thick = spec.thick ?? (flat ? 0.6 : 1.6);
   const teeth = gear ? Math.max(3, spec.teeth ?? 8) : 0;
-  const toothLen = gear ? spec.toothLen ?? 0.9 : 0;
+  const reg = gear ? 'keks_zahnrad' : 'keksrad';
+  const useModel = regModel(spec, reg);
+  let toothLen = gear ? spec.toothLen ?? 0.9 : 0;
   const toothW = gear ? spec.toothW ?? 1.1 : 0;
+  // Zahn k: Winkel-Lage (im Modell: Zahnspitze k bei (k + 0,375)/teeth·2π)
+  const toothB = (k) => (useModel ? (k + 0.375) / teeth : k / teeth) * TAU;
+  let modelR = R;
+  if (gear && useModel && flat) { const dM = Math.min(0.45, (R + 0.45) * 0.22); toothLen = dM; modelR = R + dM; }
   const st = { angle: spec.angle ?? 0, speed: spec.speed ?? (gear ? 0.5 : 0.7), running: !spec.idle };
   const W = w8(level);
   const handle = {
@@ -136,7 +144,11 @@ function buildCookie(level, spec, kind) {
     // Drehteller: Mittelscheibe (+ Zähne als kleine Zylinder) mit gemeinsamem mover (dyaw um die Mitte)
     const mover = { dx: 0, dy: 0, dz: 0, vx: 0, vy: 0, vz: 0, dyaw: 0, cx: p.x, cz: p.z };
     const discs = [{ dist: 0, a: 0, r: R, shape: null }];
-    if (teeth) for (let i = 0; i < teeth; i++) discs.push({ dist: R + toothLen * 0.45, a: (i / teeth) * TAU, r: Math.min(toothW * 0.55, toothLen * 0.7), shape: null });
+    if (teeth) {
+      const dist = useModel ? R + toothLen * 0.5 : R + toothLen * 0.45;
+      const r = useModel ? Math.min(toothLen * 0.8, (TAU * modelR / teeth) * 0.2) : Math.min(toothW * 0.55, toothLen * 0.7);
+      for (let i = 0; i < teeth; i++) discs.push({ dist, a: toothB(i), r, shape: null });
+    }
     for (const c of discs) {
       c.shape = { type: 'cyl', x: p.x + Math.cos(c.a + st.angle) * c.dist, z: p.z - Math.sin(c.a + st.angle) * c.dist, r: c.r, y0: p.y, y1: p.y + thick, mover, tag: kind, owner: handle };
       c.id = level.world.add(c.shape);
@@ -167,7 +179,9 @@ function buildCookie(level, spec, kind) {
     const tb = [];
     if (teeth) {
       for (let i = 0; i < teeth; i++) {
-        const a = (i / teeth) * TAU;
+        // Winkel 0 = oben, + Richtung +u; mit Modell vor dessen Zähnen (axis 'x': b + π, axis 'z': π/2 − b)
+        const b = toothB(i);
+        const a = !useModel ? b : axis === 'x' ? b + Math.PI : Math.PI / 2 - b;
         const tw = axis === 'x' ? [thick * 0.9, 0.45, toothW] : [toothW, 0.45, thick * 0.9];
         const mb = new MovingBox(level, p.x, p.y, p.z, tw[0], tw[1], tw[2], { tag: `${kind}-zahn` });
         mb.shape.owner = handle;
@@ -207,17 +221,20 @@ function buildCookie(level, spec, kind) {
   const holder = new THREE.Group();   // liegender Keks: Ursprung Mitte der Unterseite
   spin.add(holder);
   const icing = spec.icing ?? (gear ? 'weiss' : 'rosa');
-  const reg = gear ? 'keks_zahnrad' : 'keksrad';
   let model = null;
-  if (regModel(spec, reg)) {
-    model = getModel(reg, { radius: R, thick, teeth: flat ? teeth || undefined : 0, toothLen: toothLen || undefined, icing });
-    holder.add(model.root);
+  if (useModel) {
+    model = gear
+      ? getModel(reg, { radius: modelR, teeth, thick, axis })
+      : getModel(reg, { size: 2 * R, thick, axis, color: icing === 'schoko' ? 'schoko' : 'hell' });
+    // Modell: Ursprung Mitte, eigene Achse – liegend um thick/2 angehoben, nicht mitdrehen (Winkel über update)
+    if (flat) model.root.position.y = thick / 2;
+    root.add(model.root);
   } else {
     const mesh = new THREE.Mesh(cookieGeo(R, thick, icing, flat ? teeth : 0, toothLen, toothW), stdMat('w8keks', { roughness: 0.85 }));
     mesh.castShadow = true; mesh.receiveShadow = true;
     holder.add(mesh);
   }
-  if (!flat) {
+  if (!flat && !model) {
     // stehend: der liegende Keks wird um seine Mitte (y = thick/2) aufgestellt – Achse entlang X (axis 'x') bzw. Z
     holder.position.y = -thick / 2;
     root.rotation.z = axis === 'x' ? Math.PI / 2 : 0;
@@ -245,7 +262,9 @@ function buildCookie(level, spec, kind) {
     // root.rotation.z = π/2 (axis 'x'): lokal +X = Welt oben, lokal Z = Welt Z; root.rotation.x = π/2 (axis 'z'): lokal −Z = oben,
     // lokal X = Welt X – in beiden Fällen bringt −angle um die lokale Y-Achse die Oberseite nach +u
     else spin.rotation.y = -st.angle;
-    model?.update?.(dd, { angle: st.angle });
+    // Modell (Drehung um die eigene Achse): liegend + = gegen den Uhrzeigersinn von oben wie die Kollision; stehend bringt bei
+    // axis 'x' +angle die Oberseite nach +Z, bei axis 'z' −angle die Oberseite nach +X
+    model?.update?.(dd, { angle: flat || axis === 'x' ? st.angle : -st.angle });
     if (toothMeshes.length) {
       const W8 = handle.teeth;
       for (let i = 0; i < W8.length; i++) { M.makeTranslation(W8[i].x, W8[i].y, W8[i].z); toothMeshes[0].setMatrixAt(i, M); }

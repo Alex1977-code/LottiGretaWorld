@@ -1,8 +1,16 @@
 // Baustein `deco_w8`: Kulisse für Welt 8 „Brummbär-Rummelplatz“ (Rummel, Regenfestung, Keksfabrik, Unterwasserfestung,
 // Spukhaus) und den Abspann. Eigene Geometrie wird in die statische Geometrie verschmolzen (keine zusätzlichen Zeichenaufrufe),
-// Leuchtendes (Glühbirnen, Lampions, Kerzen, Ofenglut) ins Glüh-Material. Registry-Modelle werden gebacken, sobald es sie gibt:
-// `deco_w8_<kind>` (opts = die Felder des Eintrags; Ursprung Fußpunkt, Blick +X → yaw des Eintrags). Die Kollision (solid)
-// bleibt gleich; look: 'eigen' erzwingt die eigene Geometrie. Das Karussell dreht sich (eigenes Objekt).
+// Leuchtendes (Glühbirnen, Lampions, Kerzen, Ofenglut) ins Glüh-Material. Gibt es ein passendes Registry-Modell (Welt-8-Kulissen,
+// Tabelle REG unten), wird es stattdessen gebacken (bakeW8: statisch, mit Instanzfarben) bzw. – Karussell, Riesenrad-Kulisse,
+// animate: true – als bewegtes Objekt gesetzt; die Kollision (solid) bleibt gleich; look: 'eigen' erzwingt die eigene Geometrie.
+//   bude → 'rummel_bude' (color rot|gruen|blau|gelb, seed; Maßstab width/4) · wimpel / gluehbirnen → 'wimpelkette' /
+//   'gluehbirnenkette' (nur waagerecht: from.y = to.y; length, sag) · ballons → 'brummbaer_ballon' (count ⌈n/2⌉ ≤ 3, color) ·
+//   achterbahn → 'achterbahn' gerade (waagerecht, Mitte bei ground, height = from.y − ground + hump) · karussell → 'karussell'
+//   (Maßstab radius/4, dreht mit speed) · pfuetze → 'regenfestung' pfuetze · saeule → 'wasserfestung' saeule.
+// Nur als Modell (ohne Modell: Warnung): keksturm, fliessband (length), zuckerguss → 'keksfabrik'; regenmauer (length, height),
+//   regenturm (height), festungsfahne → 'regenfestung'; algen (height), fallgitter → 'wasserfestung'; duene (size, seed),
+//   autowrack, baron_turm (part, height), riesenrad_kulisse (radius, count, speed; dreht sich); modell (name, opts, state:
+//   beliebiges Registry-Modell). Kollision für diese: solid: [w, h, d] (Quader um pos, unten bei pos.y).
 //
 // Einzeln:  { type: 'deco_w8', kind, pos: [x, y, z], … }   oder Liste: { type: 'deco_w8', items: [{ kind, pos, … }, …] }
 // pos = Fußpunkt; yaw in Radiant (Vorderseite nach +X gedreht um yaw; Standard −π/2 = zur Kamera +Z); Ketten von from → to
@@ -28,8 +36,9 @@
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, Rnd, addStatic, addObject, hex } from '../kit.js';
 import { bakeModel } from '../w2kit.js';
-import { hasModel } from '../../models/index.js';
+import { hasModel, getModel } from '../../models/index.js';
 import { visDt } from '../../entities/gimmick.js';
+import { bakeW8 } from '../w8kit.js';
 
 const C = (h) => lin(hex(h));
 const ni = (g) => (g.index ? g.toNonIndexed() : g);
@@ -507,14 +516,80 @@ const SINGLE = {
   wasserspeier, pfuetze, regentonne, keksstapel, ruehrschuessel, backofen, spritzbeutel, kruemel,
   saeule, muscheln, anker, gitterfenster, kerzenleuchter, bilderrahmen, spinnennetz, standuhr,
 };
+
+// ------------------------------------------------------------------ Welt-8-Kulissenmodelle (Registry)
+
+const BUDE_COL = { rot: 'rot', gruen: 'gruen', blau: 'blau', gelb: 'gelb', lila: 'blau', rosa: 'rot', orange: 'gelb', tuerkis: 'gruen' };
+const BALL_COL = { rot: 'rot', gelb: 'gelb', blau: 'blau', lila: 'lila', rosa: 'rot', orange: 'gelb', gruen: 'blau' };
+/** Kette from → to als Modell (Ursprung linker Aufhängepunkt, reicht bis x = length): nur waagerecht. */
+const chainReg = (name) => (it) => {
+  const a = v3(it.from ?? it.pos), b = v3(it.to ?? it.pos);
+  if (Math.abs(a.y - b.y) > 0.05) return null;
+  const L = Math.hypot(b.x - a.x, b.z - a.z);
+  if (L < 1 || L > 40) return null;
+  return { name, opts: { length: L, sag: it.sag }, at: a, yaw: Math.atan2(-(b.z - a.z), b.x - a.x) };
+};
+const REG = {
+  bude: (it) => ({ name: 'rummel_bude', opts: { color: BUDE_COL[it.color] ?? 'rot', seed: it.seed ?? 1 }, scale: (it.width ?? 3) / 4 }),
+  wimpel: chainReg('wimpelkette'),
+  gluehbirnen: chainReg('gluehbirnenkette'),
+  ballons: (it) => ({ name: 'brummbaer_ballon', opts: { color: BALL_COL[it.color] ?? 'rot', count: Math.min(3, Math.max(1, Math.ceil((it.n ?? 5) / 2))) }, scale: (it.height ?? 3) / 3 }),
+  achterbahn: (it) => {
+    const a = v3(it.from ?? it.pos), b = v3(it.to ?? it.pos);
+    if (Math.abs(a.y - b.y) > 0.05) return null;
+    const L = Math.hypot(b.x - a.x, b.z - a.z), g = it.ground ?? Math.min(a.y, b.y) - 6;
+    if (L < 4 || L > 60) return null;
+    return { name: 'achterbahn', opts: { kind: 'gerade', length: L, height: Math.min(30, a.y - g + (it.hump ?? 3)) }, at: { x: (a.x + b.x) / 2, y: g, z: (a.z + b.z) / 2 }, yaw: Math.atan2(-(b.z - a.z), b.x - a.x) };
+  },
+  karussell: (it) => ({ name: 'karussell', opts: {}, scale: (it.radius ?? 3) / 4, live: true, state: { speed: it.speed ?? 0.6 } }),
+  pfuetze: (it) => ({ name: 'regenfestung', opts: { kind: 'pfuetze', size: Math.max(...(Array.isArray(it.size) ? it.size : [it.size ?? 2])) }, state: { rain: 0 } }),
+  saeule: () => ({ name: 'wasserfestung', opts: { kind: 'saeule' } }),
+  keksturm: () => ({ name: 'keksfabrik', opts: { kind: 'keksturm' } }),
+  fliessband: (it) => ({ name: 'keksfabrik', opts: { kind: 'band', length: it.length ?? 8 }, live: !!it.animate, state: { speed: it.speed ?? 1 } }),
+  zuckerguss: () => ({ name: 'keksfabrik', opts: { kind: 'zuckerguss' } }),
+  regenmauer: (it) => ({ name: 'regenfestung', opts: { kind: 'mauer', length: it.length ?? 8, height: it.height ?? 4, seed: it.seed ?? 1 } }),
+  regenturm: (it) => ({ name: 'regenfestung', opts: { kind: 'turm', height: it.height ?? 9 } }),
+  festungsfahne: () => ({ name: 'regenfestung', opts: { kind: 'fahne' }, state: { wind: 0.5 } }),
+  algen: (it) => ({ name: 'wasserfestung', opts: { kind: 'algen', height: it.height ?? 3, seed: it.seed ?? 1 } }),
+  fallgitter: () => ({ name: 'wasserfestung', opts: { kind: 'gitter' } }),
+  duene: (it) => ({ name: 'duene', opts: { size: it.size ?? 1, seed: it.seed ?? 1 } }),
+  autowrack: () => ({ name: 'autowrack', opts: {}, state: { smoke: false } }),
+  baron_turm: (it) => ({ name: 'baron_turm', opts: { part: it.part ?? 'ganz', height: it.height ?? 40 } }),
+  riesenrad_kulisse: (it) => ({ name: 'riesenrad_kulisse', opts: { radius: it.radius ?? 11, count: it.count ?? 12 }, live: true, state: { speed: it.speed ?? 0.12 } }),
+  modell: (it) => (it.name ? { name: it.name, opts: it.opts ?? {}, state: it.state ?? {} } : null),
+};
 const SOLID_REG = new Set(['bude', 'mast', 'torbogen', 'regentonne', 'keksstapel', 'ruehrschuessel', 'backofen', 'saeule', 'standuhr']);
 
-/** Registry-Modell deco_w8_<kind> backen → true; Kollision über die eigene Geometrie (gebaut und verworfen). */
+/** Bewegtes Registry-Modell (Karussell, Riesenrad-Kulisse, animate: true). */
+function liveModel(level, r, at, yaw, scale) {
+  const m = getModel(r.name, r.opts);
+  m.root.position.set(at.x, at.y, at.z);
+  m.root.rotation.y = yaw;
+  m.root.scale.setScalar(scale);
+  const st = r.state ?? {}, hold = {};
+  addObject(level, m.root, (dt) => m.update?.(visDt(level, hold, dt), st));
+}
+
+/** Registry-Modell zum Eintrag setzen → true; Kollision über die eigene Geometrie (gebaut und verworfen) bzw. solid: [w, h, d]. */
 function placeReg(level, it, p) {
-  if (it.look === 'eigen' || !hasModel(`deco_w8_${it.kind}`)) return false;
-  const { pos, kind, type, items, ...opts } = it;
-  if (level.view) bakeModel(level, `deco_w8_${kind}`, opts, p.x, p.y, p.z, it.yaw ?? -Math.PI / 2, it.scale ?? 1, {}, { castShadow: it.shadow !== false });
-  if ((it.solid || kind === 'torbogen') && SOLID_REG.has(kind)) {
+  if (it.look === 'eigen') return false;
+  const kind = it.kind;
+  let r = null;
+  if (hasModel(`deco_w8_${kind}`)) { const { pos, kind: k, type, items, ...opts } = it; r = { name: `deco_w8_${kind}`, opts }; }
+  else if (REG[kind]) r = REG[kind](it, p);
+  if (!r || !hasModel(r.name)) return false;
+  const at = r.at ?? p, yaw = r.yaw ?? it.yaw ?? -Math.PI / 2, scale = (it.scale ?? 1) * (r.scale ?? 1);
+  if (level.view) {
+    if (r.live || it.animate) liveModel(level, r, at, yaw, scale);
+    else bakeW8(level, r.name, r.opts, at.x, at.y, at.z, yaw, scale, r.state ?? {}, { castShadow: it.shadow !== false });
+  }
+  if (kind === 'karussell' && it.solid !== false) {
+    const R = it.radius ?? 3;
+    level.world.add({ type: 'cyl', x: p.x, z: p.z, r: R, y0: p.y, y1: p.y + 0.35, tag: 'karussell' });
+  } else if (Array.isArray(it.solid)) {
+    const [w, h, d] = it.solid;
+    level.world.add({ type: 'box', min: [p.x - w / 2, p.y, p.z - d / 2], max: [p.x + w / 2, p.y + h, p.z + d / 2], tag: `deco_w8_${kind}` });
+  } else if ((it.solid || kind === 'torbogen') && SOLID_REG.has(kind)) {
     const dump = [], dg = [];
     SINGLE[kind]?.({ world: level.world, view: null }, { ...it, solid: it.solid ?? true }, p, new Rnd(1), dump, dg);
     for (const g of [...dump, ...dg]) g.dispose();
@@ -531,8 +606,8 @@ export function buildDecoW8(level, spec) {
     const p = v3(it.pos ?? it.from);
     const rnd = new Rnd((it.seed ?? Math.floor(p.x * 73 + p.z * 37 + p.y * 11)) >>> 0);
     const P = it.shadow === false ? parts.flat : parts.shadow;
-    if (it.kind === 'karussell') { if (!placeReg(level, it, p)) karussell(level, it, p); continue; }
     if (placeReg(level, it, p)) continue;
+    if (it.kind === 'karussell') { karussell(level, it, p); continue; }
     const fn = SINGLE[it.kind];
     if (fn) fn(level, it, p, rnd, P, glow);
     else console.warn(`[deco_w8] unbekannte Art ${it.kind}`);

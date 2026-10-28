@@ -14,8 +14,11 @@
 //     mode: 'pingpong' | 'loop', phase: 0 (s Versatz), idle: false, damage: 'treffer' | 'tod', look: 'eigen' }
 //   level.named.get(id) = { state ('wartet'|'warn'|'faehrt'|'steht'), mb, spikes, hits, crushes, start(), stop(), info() };
 //   w8(level).spikes. Kollision: MovingBox (mover, tag 'stachelblock').
-//   Modelle: Registry 'stachelblock_blau' / 'stachelblock_rot' ({ size: [w, h, d], spikes: [Seiten], spikeLen }, Ursprung Mitte
-//   der Unterseite; state { warn, t }) – sonst eigener Metallblock mit Nieten, Gesicht und Stachelreihen.
+//   Modelle: Registry 'stachelblock_blau' / 'stachelblock_rot' ({ size: [x, y, z], faces }, Ursprung Mitte der Unterseite;
+//   state { out: 1, warn }), wenn sich die Stachel-Seiten abbilden lassen: alle vier Seiten + oben (± unten, das Modell zeichnet
+//   unten keine) → 'alle', die vier Seiten → 'seiten', nur oben → 'oben', genau eine Seite → 'vorn' (+X des Modells, dazu
+//   gedreht; size dann [Tiefe, Höhe, Breite]); sonst (bzw. look: 'eigen') eigener Metallblock mit Nieten, Gesicht und
+//   Stachelreihen.
 //   Beispiel: { type: 'stachelblock', id: 'blau1', pos: [-3, 0, -40], color: 'blau', move: [6, 0, 0], wait: 1.2 }
 //
 // stachelwand – wandernde Stachelwand: wie stachelblock mit Standard size [10, 4, 1], spikes ['+z'] (zur Kamera), color 'blau',
@@ -105,6 +108,23 @@ function blockGeo(s, color, faces, len) {
     }
   }
   return { body: merge(parts), spikes: merge(spikes) };
+}
+
+/** Stachel-Seiten → Modell-Variante { faces, yaw, size } (null: nicht abbildbar). */
+function modelFaces(faces, s) {
+  const has = (k) => faces.includes(k);
+  const sides = ['+x', '-x', '+z', '-z'].filter(has);
+  const plain = [s.x, s.y, s.z];
+  if (sides.length === 4 && has('oben')) return { faces: 'alle', yaw: 0, size: plain };
+  if (has('unten')) return null;
+  if (sides.length === 4 && !has('oben')) return { faces: 'seiten', yaw: 0, size: plain };
+  if (!sides.length && has('oben')) return { faces: 'oben', yaw: 0, size: plain };
+  if (sides.length === 1 && !has('oben')) {
+    const k = sides[0];
+    const yaw = { '+x': 0, '-x': Math.PI, '+z': -Math.PI / 2, '-z': Math.PI / 2 }[k];
+    return { faces: 'vorn', yaw, size: k === '+x' || k === '-x' ? plain : [s.z, s.y, s.x] };
+  }
+  return null;
 }
 
 function buildSpiky(level, spec, kind) {
@@ -205,8 +225,10 @@ function buildSpiky(level, spec, kind) {
   const P = PAL[color];
   let model = null, spikeMat = null;
   const reg = `stachelblock_${color}`;
-  if (regModel(spec, reg)) {
-    model = getModel(reg, { size: [s.x, s.y, s.z], spikes: faces, spikeLen: len });
+  const mf = modelFaces(faces, s);
+  if (mf && regModel(spec, reg)) {
+    model = getModel(reg, { size: mf.size, faces: mf.faces });
+    model.root.rotation.y = mf.yaw;
     root.add(model.root);
   } else {
     const g = blockGeo(s, color, faces, len);
@@ -227,7 +249,7 @@ function buildSpiky(level, spec, kind) {
     t += d;
     root.position.set(mb.pos.x, mb.pos.y, mb.pos.z);
     if (spikeMat) spikeMat.emissiveIntensity = color === 'rot' ? 0.18 + 0.12 * Math.sin(t * 6) : st.warnK > 0 ? (Math.sin(t * 40) > 0 ? 0.9 : 0.2) * clamp(st.warnK * 2, 0, 1) : 0;
-    model?.update?.(d, { warn: st.state === 'warn', t });
+    model?.update?.(d, { out: 1, warn: st.state === 'warn' });
   });
   return handle;
 }

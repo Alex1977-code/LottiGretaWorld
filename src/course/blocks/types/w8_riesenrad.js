@@ -10,9 +10,10 @@
 //     (Ständer bis ground), ground: y (Standard pos.y − radius − 2), lights: true, idle: false, look: 'eigen' }
 //   level.named.get(id) = { angle, speed, gondolas: [{ mb, x, y, z }], carried() (Figuren auf Gondeln), start(), stop(),
 //     reverse(), info() }; w8(level).wheels. Kollision: Gondeln als MovingBox (mover, tag 'riesenrad-gondel').
-//   Modelle: Registry 'riesenrad' (Rad mit Ständer, ohne Gondeln: { radius, spokes, stand, height (Achshöhe über ground) },
-//   Ursprung Achsmitte, Achse lokal Z; state { angle }) und 'riesenrad_gondel' ({ size: [w, h, d] }, Ursprung Mitte der
-//   Unterseite) – sonst eigene Geometrie.
+//   Modell: Registry 'riesenrad' (Rad mit Kranz, Glühbirnen, Ständer und den Gondel-Plattformen: { radius, count, plank: [w, d],
+//   depth, stand }, Ursprung Nabe, Radebene XY; state { angle }; Plattform-Oberseite 1,2 m unter dem Aufhängepunkt) – dann
+//   hängt die Kollision so, dass ihre Oberseite genau auf der gezeichneten Planke liegt (hang = 1,2 + size.y, Unterkante);
+//   sonst (bzw. look: 'eigen') eigene Geometrie mit hang (1,4) als Abstand Aufhängepunkt → Unterkante.
 //   Beispiel: { type: 'riesenrad', id: 'rad', pos: [0, 14, -150], radius: 12, gondolas: 8, speed: 0.12 }
 
 import * as THREE from 'three';
@@ -75,8 +76,9 @@ export function buildRiesenrad(level, spec) {
   const n = Math.max(2, spec.gondolas ?? 8);
   const axis = spec.axis === 'x' ? 'x' : 'z';
   const gs = sz3(spec.size, [3.2, 0.45, 2.6]);
-  const hang = spec.hang ?? 1.4;
-  const groundY = spec.ground ?? p.y - R - 2;
+  const useModel = regModel(spec, 'riesenrad');
+  const hang = spec.hang ?? (useModel ? 1.2 + gs.y : 1.4);
+  const groundY = spec.ground ?? p.y - R - (useModel ? 2.6 : 2);
   const st = { angle: spec.angle ?? 0, speed: spec.speed ?? 0.12, running: !spec.idle };
   // Gondel-Lage zum Winkel a (Ebene der Drehung: X-Y bei axis 'z', Z-Y bei axis 'x')
   const place = (a) => {
@@ -114,8 +116,8 @@ export function buildRiesenrad(level, spec) {
   const spin = new THREE.Group();
   root.add(spin);
   let model = null;
-  if (regModel(spec, 'riesenrad')) {
-    model = getModel('riesenrad', { radius: R, spokes: n, stand: spec.stand !== false, height: p.y - groundY });
+  if (useModel) {
+    model = getModel('riesenrad', { radius: R, count: n, plank: [gs.x, gs.z], depth: Math.max(2.6, gs.z + 0.4), stand: spec.stand !== false });
     root.add(model.root);
   } else {
     const g = wheelGeo(R, n, depth);
@@ -143,7 +145,7 @@ export function buildRiesenrad(level, spec) {
   }
   // Glühbirnen am Kranz (eine InstancedMesh, Lauflicht über die Farbe je Instanz)
   let bulbs = null;
-  const NB = spec.lights === false ? 0 : Math.round(R * 4);
+  const NB = spec.lights === false || model ? 0 : Math.round(R * 4);
   if (NB) {
     bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.16, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }), NB * 2);
     const M = new THREE.Matrix4();
@@ -158,10 +160,7 @@ export function buildRiesenrad(level, spec) {
   }
   // Gondeln: Plattform + Aufhängung (InstancedMesh je Teil)
   const plat = [];
-  let gm = null;
-  if (regModel(spec, 'riesenrad_gondel')) {
-    gm = gondolas.map(() => { const m = getModel('riesenrad_gondel', { size: [gs.x, gs.y, gs.z] }); level.view.add(m.root); return m; });
-  } else {
+  if (!model) {
     for (let i = 0; i < Math.min(n, GONDOLA_COLORS.length); i++) {
       const col = GONDOLA_COLORS[i];
       const parts = [];
@@ -203,8 +202,7 @@ export function buildRiesenrad(level, spec) {
       }
       bulbs.instanceColor.needsUpdate = true;
     }
-    if (gm) gondolas.forEach((g, i) => { gm[i].root.position.set(g.mb.pos.x, g.mb.pos.y, g.mb.pos.z); if (axis === 'x') gm[i].root.rotation.y = Math.PI / 2; });
-    else {
+    if (plat.length) {
       const cnt = new Array(gMeshes.length).fill(0);
       for (const g of gondolas) {
         const k = g.i % gMeshes.length;

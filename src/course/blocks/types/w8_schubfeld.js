@@ -9,8 +9,8 @@
 //     Ritt-Level, sonst −Z), size: [w, len] (Standard [3, 4]), boost: 5 (m/s zusätzlich im Ritt), speed: 15 (m/s zu Fuß),
 //     time: 1.3 (s, Reittier-Entitäten), color: 'gold' | 'tuerkis' | 'rosa', look: 'eigen' }
 //   level.named.get(id) = { hits (Figuren/Reittiere, die beschleunigt wurden), wave (Netz-Schwelle | null), info() };
-//   w8(level).fields. Modell: Registry 'schubfeld' ({ size: [len, w], color }, Ursprung Mitte, Pfeil nach +X; state { t }) –
-//   sonst eigene Sandplatte mit drei Lauflicht-Pfeilen.
+//   w8(level).fields. Modell: Registry 'schubfeld' ({ size: [len, w] }, Ursprung Mitte, Pfeile nach +X, Oberseite ≈ 0,06;
+//   state { on: true, speed: 1 }; Farbe vom Modell) – sonst (bzw. look: 'eigen') eigene Sandplatte mit drei Lauflicht-Pfeilen.
 //   Beispiel: { type: 'schubfeld', id: 'schub1', pos: [0, 0, -60], size: [3, 4], boost: 5 }
 
 import * as THREE from 'three';
@@ -67,7 +67,7 @@ export function buildSchubfeld(level, spec) {
   let model = null;
   const mats = [];
   if (regModel(spec, 'schubfeld')) {
-    model = getModel('schubfeld', { size: [len, w], color: spec.color ?? 'gold' });
+    model = getModel('schubfeld', { size: [len, w] });
     root.add(model.root);
   } else {
     const plate = box(len, 0.08, w, 0, 0.0, 0, C[2], { r: 0.04, seg: 1, topColor: C[0] });
@@ -99,7 +99,7 @@ export function buildSchubfeld(level, spec) {
       const a = Math.pow(Math.max(0, Math.sin(t * 7 - k * 1.25)), 3);
       mats[k].color.copy(base).lerp(hi, a);
     }
-    model?.update?.(d, { t });
+    model?.update?.(d, { on: true, speed: 1 });
   });
   return handle;
 }

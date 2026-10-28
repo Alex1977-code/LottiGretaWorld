@@ -15,8 +15,12 @@
 //   level.named.get(id) = { active (zeichnet gerade), renders (Zahl der Spiegel-Durchgänge), star (Entität | null), parts,
 //     inFront(x, z) (liegt der Punkt vor der Spiegelfläche?), mirror(x, y, z) → Spiegelpunkt, info() }; w8(level).mirrors.
 //   MIRROR_LAYER (5): eigene Spiegelwelt-Objekte (z. B. ein Gegner, der nur im Spiegel zu sehen ist): obj.traverse(o =>
-//   o.layers.set(MIRROR_LAYER)). Modell: Registry 'spiegel_rahmen' ({ size: [w, h] }, Ursprung Mitte Unterkante, Blick +X) für
-//   den Rahmen – sonst eigener Goldrahmen mit Ornamenten.
+//   o.layers.set(MIRROR_LAYER)).
+//   Modell: Registry 'spukspiegel' (violett-goldener Schnörkelrahmen mit Geisterkopf-Krone und Kerzen, Glas 2,2 × 3,05 m mit
+//   rundem Bogen oben; state { star: false, glow: 1 }) – gleichmäßig auf die Glashöhe size[1] skaliert (s = h / 3,05), die
+//   Glasbreite ist dann 0,72·h (size[0] gilt nicht); die Spiegelfläche hat dieselbe Bogenform, Sockel und Löwenfüße reichen
+//   unter pos.y (1,05·s; im Boden versenkt – sichtbar mit pos.y = Boden + 1,05·s). Sonst (bzw. look: 'eigen') eigener
+//   rechteckiger Goldrahmen mit Ornamenten.
 //   Beispiel: { type: 'grosser_spiegel', id: 'spiegel', pos: [0, 0, -120], size: [7, 4.5], star: 'spiegelstern',
 //              parts: [{ pos: [3, 1.2, -116], size: [1.4, 0.3, 1.4] }] }
 
@@ -60,7 +64,11 @@ function frameGeo(w, h) {
 
 export function buildGrosserSpiegel(level, spec) {
   const p = v3(spec.pos);
-  const [w, h] = spec.size ?? [6, 4];
+  const [w0, h] = spec.size ?? [6, 4];
+  // Mit Modell: Glas wie im Spukspiegel (2,2 × 3,05, Bogen oben), gleichmäßig auf die Höhe skaliert
+  const useModel = spec.frame !== false && regModel(spec, 'spukspiegel');
+  const ms = h / 3.05;
+  const w = useModel ? 2.2 * ms : w0;
   let dx = 0, dz = 1;
   if (Array.isArray(spec.dir)) { dx = spec.dir[0]; dz = spec.dir[1]; } else if (typeof spec.yaw === 'number') { dx = Math.cos(spec.yaw); dz = -Math.sin(spec.yaw); }
   const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
@@ -112,10 +120,13 @@ export function buildGrosserSpiegel(level, spec) {
   root.name = 'grosser_spiegel';
   root.position.set(p.x, p.y, p.z);
   root.rotation.y = yaw;
-  if (regModel(spec, 'spiegel_rahmen')) {
-    const m = getModel('spiegel_rahmen', { size: [w, h] });
-    m.root.rotation.y = -Math.PI / 2;   // Modell blickt +X → lokal +Z
-    root.add(m.root);
+  let frameModel = null;
+  if (useModel) {
+    frameModel = getModel('spukspiegel');
+    frameModel.root.scale.setScalar(ms);
+    frameModel.root.rotation.y = -Math.PI / 2;   // Modell blickt +X → lokal +Z
+    frameModel.root.position.y = -1.05 * ms;     // Glas-Unterkante (Modell: 0,9 + 0,15) auf pos.y
+    root.add(frameModel.root);
   } else if (spec.frame !== false) {
     const fm = new THREE.Mesh(frameGeo(w, h), stdMat('w8spiegel', { roughness: 0.35, metalness: 0.6 }));
     fm.castShadow = true; fm.receiveShadow = true;
@@ -123,8 +134,16 @@ export function buildGrosserSpiegel(level, spec) {
   }
   const res = spec.res ?? 512;
   const tw = w >= h ? res : Math.round(res * w / h), th = h >= w ? res : Math.round(res * h / w);
-  const refl = new Reflector(new THREE.PlaneGeometry(w, h), { textureWidth: tw, textureHeight: th, color: hex(spec.tint, 0xc8d8e8), multisample: 0, clipBias: 0.003 });
-  refl.position.set(0, h / 2, 0.02);
+  // Spiegelfläche: Rechteck bzw. (Modell) Bogenform des Spukspiegel-Glases, Unterkante bei y = 0
+  let glassGeo;
+  if (useModel) {
+    const sh = new THREE.Shape();
+    sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0); sh.lineTo(w / 2, h - w / 2); sh.absarc(0, h - w / 2, w / 2, 0, Math.PI, false); sh.lineTo(-w / 2, 0);
+    glassGeo = new THREE.ShapeGeometry(sh, 24);
+    glassGeo.translate(0, -h / 2, 0);
+  } else glassGeo = new THREE.PlaneGeometry(w, h);
+  const refl = new Reflector(glassGeo, { textureWidth: tw, textureHeight: th, color: hex(spec.tint, 0xc8d8e8), multisample: 0, clipBias: 0.003 });
+  refl.position.set(0, h / 2, useModel ? 0.04 * ms : 0.02);
   refl.renderOrder = 1;
   root.add(refl);
   // Spiegelkamera sieht zusätzlich die Spiegelwelt (Ebene 5); Zeichenzahl des zweiten Durchgangs zur Bild-Statistik addieren
@@ -157,7 +176,7 @@ export function buildGrosserSpiegel(level, spec) {
     st.renders++;
   };
   // matte Silberfläche, wenn der Spiegel ruht
-  const idle = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ color: 0x9aaab8, roughness: 0.25, metalness: 0.7 }));
+  const idle = new THREE.Mesh(glassGeo, new THREE.MeshStandardMaterial({ color: 0x9aaab8, roughness: 0.25, metalness: 0.7 }));
   idle.position.copy(refl.position);
   root.add(idle);
   // Spiegelwelt-Platten: nur auf Ebene 5 (sieht nur die Spiegelkamera)
@@ -168,7 +187,8 @@ export function buildGrosserSpiegel(level, spec) {
     addObject(level, pm);
   }
   const near = spec.near ?? 30;
-  addObject(level, root, () => {
+  addObject(level, root, (dt) => {
+    frameModel?.update?.(dt, { star: false, glow: 1 });
     if (!st.resolved) resolveStar();
     else st.layerFix?.();
     const cam = view.camera;

@@ -10,7 +10,10 @@
 //     mode: 'takt' | 'signal' (start() füllt, stop() leert; speed 1.5 m/s), current: [x, y, z], walls: false (Rand: Dicke
 //     0,5 m, Höhe h + 0,3), style: 'stein' | 'festung' }
 //   level.named.get(id) = { top (Wasserspiegel y), k (0 unten … 1 oben), state ('unten'|'warn'|'steigt'|'oben'|'sinkt'),
-//     waterId, start(), stop(), info() }; Wasserform waterId `${id}` (Standard 'steigbecken<n>'); w8(level).pools.
+//     waterId, start(), stop(), info() }; Wasserform waterId `${id}#w` (Standard 'steigbecken<n>#w'); w8(level).pools.
+//   Modell: mit walls: true das Registry-Modell 'steigbecken' ({ size: [w, d], height: h + 0,3, wall: 0,5 }, Ursprung Mitte
+//   des Beckenbodens innen; state { level: Anteil des Wasserspiegels an height }) – es zeichnet Rand, Pegel-Latte und Wasser
+//   (das Motor-Wasser bleibt dann unsichtbar); ohne walls bzw. look: 'eigen' Motor-Wasser + eigener Rand und Pegelstriche.
 //   Beispiel: { type: 'steigbecken', id: 'becken', pos: [0, -4, -40], size: [12, 4.5, 10], low: 0.3, wait: 2.5, hold: 3 }
 //
 // wasserkoerper – schwebender Wasserwürfel mitten in der Luft: hinein springen, darin schwimmen (Unterwasser-Steuerung), oben
@@ -18,8 +21,9 @@
 //   { type: 'wasserkoerper', id, pos: [x, y, z] (Mitte der Unterseite), size: [4, 4, 4] | parts: [{ pos, size }],
 //     current: [x, y, z] (Strömung m/s), color (Hex, sonst Thema), wobble: 0.08 (m), look: 'eigen' }
 //   level.named.get(id) = { parts: [{ box, shape }], inside(fig), info() }; Wasserformen tag 'wasserkoerper';
-//   Modell: Registry 'wasserkoerper' ({ size: [w, h, d], color }, Ursprung Mitte der Unterseite; state { t }) – sonst eigener
-//   durchscheinender Würfel mit Schimmer (Shader).
+//   Modell: Registry 'wasserkoerper' ({ size: [w, h, d] }, Ursprung Mitte der Unterseite; state { wobble: 1 beim Hinein-/
+//   Herausspringen, abklingend, 0,25 solange jemand darin ist }) – sonst (bzw. look: 'eigen') eigener durchscheinender Würfel
+//   mit Schimmer (Shader, color).
 //   Beispiel: { type: 'wasserkoerper', id: 'wuerfel1', pos: [0, 2, -70], size: [4, 4, 4] }
 
 import * as THREE from 'three';
@@ -46,7 +50,8 @@ export function buildSteigbecken(level, spec) {
     { name: 'oben', t: T.hold }, { name: 'sinkt', t: T.fall },
   ], spec.phase ?? 0);
   // Wasserform + Darstellung über den Motor-Baustein water (folgt der Oberfläche der Form)
-  WATER.water(level, { pos: [p.x, p.y, p.z], size: [s.x, high - p.y, s.z], id: `${wid}#w`, current: spec.current });
+  const useModel = !!spec.walls && regModel(spec, 'steigbecken');
+  WATER.water(level, { pos: [p.x, p.y, p.z], size: [s.x, high - p.y, s.z], id: `${wid}#w`, current: spec.current, show: useModel ? false : undefined });
   const wkey = `${wid}#w`;
   let shape = null;
   level.world.forEach((q) => { if (q.water && q.waterId === wkey) shape = q; });
@@ -86,20 +91,27 @@ export function buildSteigbecken(level, spec) {
     }
   });
   // Pegel-Markierungen am Rand (zeigen, wie hoch es steigt) und optional ein Steinrand
-  if (level.view) {
+  const H = high - p.y + 0.3, T2 = 0.5;
+  if (spec.walls) {
+    level.world.add({ type: 'box', min: [p.x - s.x / 2 - T2, p.y, p.z - s.z / 2 - T2], max: [p.x + s.x / 2 + T2, p.y + H, p.z - s.z / 2], tag: 'steigbecken-rand' });
+    level.world.add({ type: 'box', min: [p.x - s.x / 2 - T2, p.y, p.z + s.z / 2], max: [p.x + s.x / 2 + T2, p.y + H, p.z + s.z / 2 + T2], tag: 'steigbecken-rand' });
+    level.world.add({ type: 'box', min: [p.x - s.x / 2 - T2, p.y, p.z - s.z / 2], max: [p.x - s.x / 2, p.y + H, p.z + s.z / 2], tag: 'steigbecken-rand' });
+    level.world.add({ type: 'box', min: [p.x + s.x / 2, p.y, p.z - s.z / 2], max: [p.x + s.x / 2 + T2, p.y + H, p.z + s.z / 2], tag: 'steigbecken-rand' });
+  }
+  if (level.view && useModel) {
+    const model = getModel('steigbecken', { size: [s.x, s.z], height: H, wall: T2 });
+    model.root.position.set(p.x, p.y, p.z);
+    const hold = {};
+    addObject(level, model.root, (dt) => model.update?.(visDt(level, hold, dt), { level: clamp((st.top - p.y) / H, 0, 1) }));
+  } else if (level.view) {
     const th = themeOf(level);
     const parts = [];
     if (spec.walls) {
-      const H = high - p.y + 0.3, T2 = 0.5;
       const col = spec.style === 'festung' ? th.stoneDark ?? 0x8a8a9a : th.stone ?? 0xc0c0c8;
       parts.push(box(s.x + T2 * 2, H, T2, p.x, p.y + H / 2, p.z - s.z / 2 - T2 / 2, col, { r: 0.08 }));
       parts.push(box(s.x + T2 * 2, H, T2, p.x, p.y + H / 2, p.z + s.z / 2 + T2 / 2, col, { r: 0.08 }));
       parts.push(box(T2, H, s.z, p.x - s.x / 2 - T2 / 2, p.y + H / 2, p.z, col, { r: 0.08 }));
       parts.push(box(T2, H, s.z, p.x + s.x / 2 + T2 / 2, p.y + H / 2, p.z, col, { r: 0.08 }));
-      level.world.add({ type: 'box', min: [p.x - s.x / 2 - T2, p.y, p.z - s.z / 2 - T2], max: [p.x + s.x / 2 + T2, p.y + H, p.z - s.z / 2], tag: 'steigbecken-rand' });
-      level.world.add({ type: 'box', min: [p.x - s.x / 2 - T2, p.y, p.z + s.z / 2], max: [p.x + s.x / 2 + T2, p.y + H, p.z + s.z / 2 + T2], tag: 'steigbecken-rand' });
-      level.world.add({ type: 'box', min: [p.x - s.x / 2 - T2, p.y, p.z - s.z / 2], max: [p.x - s.x / 2, p.y + H, p.z + s.z / 2], tag: 'steigbecken-rand' });
-      level.world.add({ type: 'box', min: [p.x + s.x / 2, p.y, p.z - s.z / 2], max: [p.x + s.x / 2 + T2, p.y + H, p.z + s.z / 2], tag: 'steigbecken-rand' });
     }
     // Pegelstriche (gelb: hoch, blau: tief) an der Rückwand
     const glow = [];
@@ -167,7 +179,7 @@ export function buildWasserkoerper(level, spec) {
     root.position.set(q.p.x, q.p.y, q.p.z);
     let model = null;
     if (regModel(spec, 'wasserkoerper')) {
-      model = getModel('wasserkoerper', { size: [q.s.x, q.s.y, q.s.z], color });
+      model = getModel('wasserkoerper', { size: [q.s.x, q.s.y, q.s.z] });
       root.add(model.root);
     } else {
       const seg = (l) => Math.max(2, Math.min(10, Math.round(l * 1.5)));
@@ -184,8 +196,18 @@ export function buildWasserkoerper(level, spec) {
       root.add(top);
     }
     const holder = {};
-    let t = 0;
-    addObject(level, root, (dt) => { const d = visDt(level, holder, dt); t += d; model?.update?.(d, { t }); });
+    let t = 0, wob = 0, was = false;
+    // Wabbeln beim Hineinspringen/Herausspringen (1 → abklingend), solange jemand darin schwimmt leicht
+    const inPart = (f) => { const b = q.box, c = f.pos.y + f.half.y; return f.pos.x > b.x0 && f.pos.x < b.x1 && f.pos.z > b.z0 && f.pos.z < b.z1 && c > b.y0 && c < b.y1; };
+    addObject(level, root, (dt) => {
+      const d = visDt(level, holder, dt); t += d;
+      if (!model) return;
+      const now = figures(level).some(inPart);
+      if (now !== was) wob = 1;
+      was = now;
+      wob = Math.max(now ? 0.25 : 0, wob - d * 1.6);
+      model.update?.(d, { wobble: wob });
+    });
   }
   return handle;
 }

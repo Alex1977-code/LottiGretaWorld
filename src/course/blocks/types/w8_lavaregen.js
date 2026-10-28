@@ -12,14 +12,19 @@
 //     flight: 1.8, warn: 1.2 (≤ flight), radius: 1.1, size: 0.6, puddle: 0, aim: 0, phase: 0, seed: 1,
 //     start: 'auto' | 'signal' | { box: [x0, y0, z0, x1, y1, z1] } (startet, sobald eine Figur den Kasten betritt) }
 //   level.named.get(id) = { state ('aus'|'an'), rocks: [{ state, x, y, z, tx, ty, tz, t }], impacts, hits, start(), stop(),
-//     info() → { state, flying, warn (Brocken mit Landemarke), impacts, hits, waves, puddles } }; w8(level).rains. Modell: Registry 'lavabrocken' ({ size }; state { t }) für die Brocken, sonst Feuerkugel mit
-//   Krustenflecken; Landemarke eigene Ringe.
+//     info() → { state, flying, warn (Brocken mit Landemarke), impacts, hits, waves, puddles } }; w8(level).rains.
+//   Modelle (je Brocken aus einem Vorrat, erst bei Bedarf gebaut): 'lavabrocken_regen' ({ size }, Ursprung Brocken-Mitte; im
+//   Flug anim 'fall', Schweif entgegen der Flugrichtung gedreht; beim Einschlag anim 'land' mit progress über 0,8 s),
+//   Warnfeld 'landemarke' ({ size: [2,6·radius, 2,6·radius], shape: 'kreis' }, state { k: 0..1 zum Einschlag hin }), Pfütze
+//   'lavapfuetze' ({ size: 1,6·radius }, anim 'grow' → 'idle' → 'cool' am Ende) – sonst bzw. mit look: 'eigen' Feuerkugeln
+//   mit Krustenflecken, rote Ringe als Landemarke und Glutscheiben (je eine InstancedMesh).
 //   Beispiel: { type: 'lavabrocken_regen', id: 'regen', area: [-8, -120, 8, -100], period: 1.4, warn: 1.1 }
 
 import * as THREE from 'three';
 import { v3, addObject } from '../kit.js';
 import { Rnd } from '../../../three/world/geometry.js';
-import { getModel } from '../../models/index.js';
+import { getModel, hasModel } from '../../models/index.js';
+import { visDt } from '../../entities/gimmick.js';
 import { w8, figures, hurtFigures, sphereTouches, flash, fireBallGeo, glowTexture, regModel, clamp, TAU } from '../w8kit.js';
 
 const MAXR = 12;
@@ -77,7 +82,7 @@ export function buildLavabrockenRegen(level, spec) {
       if (st.t >= T.period) { st.t -= T.period; launch(); }
     }
     for (const r of rocks) {
-      if (r.state !== 'flug') continue;
+      if (r.state !== 'flug') { r.landT = (r.landT ?? 9) + dt; continue; }
       r.t += dt;
       if (r.t < 0) continue;
       const u = clamp(r.t / T.flight, 0, 1);
@@ -90,6 +95,7 @@ export function buildLavabrockenRegen(level, spec) {
       if (u > 0.85) hurtFigures(level, (f) => sphereTouches(f, r.x, r.y + T.size * 0.5, r.z, T.size * 0.8), { pos: { x: r.x, y: r.y, z: r.z } });
       if (u >= 1) {
         r.state = 'weg';
+        r.landT = 0;
         st.impacts++;
         st.hits += hurtFigures(level, (f) => Math.hypot(f.pos.x - r.tx, f.pos.z - r.tz) < T.radius + f.half.x && Math.abs(f.pos.y - r.ty) < 1.6, { pos: { x: r.tx, y: r.ty, z: r.tz } });
         level.sfx('slam');
@@ -100,7 +106,7 @@ export function buildLavabrockenRegen(level, spec) {
         if (T.puddle > 0) {
           let q = puddles.find((o) => o.t <= 0);
           if (!q) { q = {}; puddles.push(q); }
-          Object.assign(q, { x: r.tx, y: r.ty, z: r.tz, t: T.puddle });
+          Object.assign(q, { x: r.tx, y: r.ty, z: r.tz, t: T.puddle, i: puddles.indexOf(q) });
         }
       }
     }
@@ -115,57 +121,106 @@ export function buildLavabrockenRegen(level, spec) {
   // ---------------- Darstellung: Brocken (Instanzen), Glühen, Landemarken, Pfützen
   const root = new THREE.Group();
   root.name = 'lavabrocken_regen';
-  let rockMesh = null, models = null;
-  if (regModel(spec, 'lavabrocken')) {
-    models = Array.from({ length: MAXR }, () => { const m = getModel('lavabrocken', { size: T.size }); m.root.visible = false; root.add(m.root); return m; });
-  } else {
+  const useModel = regModel(spec, 'lavabrocken_regen');
+  // Modell-Vorräte (Platz i = Brocken bzw. Pfütze i), erst bei Bedarf gebaut
+  const pool = (name, opts) => {
+    const list = [];
+    return (i) => {
+      if (!list[i]) { const m = getModel(name, opts); m.root.visible = false; root.add(m.root); list[i] = m; }
+      return list[i];
+    };
+  };
+  const rockModel = useModel ? pool('lavabrocken_regen', { size: T.size }) : null;
+  const markModel = useModel && hasModel('landemarke') ? pool('landemarke', { size: [T.radius * 2.6, T.radius * 2.6], shape: 'kreis' }) : null;
+  const pudModel = useModel && T.puddle > 0 && hasModel('lavapfuetze') ? pool('lavapfuetze', { size: T.radius * 1.6 }) : null;
+  const made = { rocks: 0, marks: 0, puds: 0 };
+  let rockMesh = null, glow = null;
+  if (!rockModel) {
     rockMesh = new THREE.InstancedMesh(fireBallGeo('rot'), new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }), MAXR);
     rockMesh.frustumCulled = false;
     root.add(rockMesh);
+    glow = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: glowTexture(), color: 0xff7a2a, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }), MAXR);
+    glow.frustumCulled = false;
+    root.add(glow);
   }
-  const glow = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: glowTexture(), color: 0xff7a2a, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }), MAXR);
-  glow.frustumCulled = false;
-  root.add(glow);
-  // Landemarken: roter Ring + Fläche (liegend)
+  // Landemarken: roter Ring + Fläche (liegend); Pfützen: Glutscheiben
   const ringG = new THREE.RingGeometry(0.82, 1, 28); ringG.rotateX(-Math.PI / 2);
   const discG = new THREE.CircleGeometry(1, 28); discG.rotateX(-Math.PI / 2);
-  const ring = new THREE.InstancedMesh(ringG, new THREE.MeshBasicMaterial({ color: 0xff3a2a, transparent: true, opacity: 0.85, depthWrite: false }), MAXR);
-  const disc = new THREE.InstancedMesh(discG, new THREE.MeshBasicMaterial({ color: 0xff5a3a, transparent: true, opacity: 0.3, depthWrite: false }), MAXR);
-  const pud = new THREE.InstancedMesh(discG, new THREE.MeshBasicMaterial({ color: 0xff8a2a, toneMapped: false }), MAXR);
-  for (const m of [ring, disc, pud]) { m.frustumCulled = false; m.renderOrder = 3; root.add(m); }
+  const ring = markModel ? null : new THREE.InstancedMesh(ringG, new THREE.MeshBasicMaterial({ color: 0xff3a2a, transparent: true, opacity: 0.85, depthWrite: false }), MAXR);
+  const disc = markModel ? null : new THREE.InstancedMesh(discG, new THREE.MeshBasicMaterial({ color: 0xff5a3a, transparent: true, opacity: 0.3, depthWrite: false }), MAXR);
+  const pud = pudModel ? null : new THREE.InstancedMesh(discG, new THREE.MeshBasicMaterial({ color: 0xff8a2a, toneMapped: false }), MAXR);
+  for (const m of [ring, disc, pud]) if (m) { m.frustumCulled = false; m.renderOrder = 3; root.add(m); }
   const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), S = new THREE.Vector3(), E = new THREE.Euler();
+  const UP = new THREE.Vector3(0, 1, 0), V = new THREE.Vector3();
   let t = 0;
   const cam = level.view.camera;
-  addObject(level, root, (dt) => {
+  const hold = {};
+  addObject(level, root, (dt0) => {
+    const dt = visDt(level, hold, dt0);
     t += dt;
     let nr = 0, nm = 0, np = 0;
     for (const r of rocks) {
       const fly = r.state === 'flug' && r.t >= 0;
-      if (models) { const m = models[r.i]; m.root.visible = fly; if (fly) { m.root.position.set(r.x, r.y, r.z); m.update?.(dt, { t: r.t }); } }
-      if (fly) {
-        const s = T.size;
-        if (rockMesh) { E.set(r.spin + t * 3, t * 2, 0); Q.setFromEuler(E); P.set(r.x, r.y + s * 0.5, r.z); S.setScalar(s * 0.6); M.compose(P, Q, S); rockMesh.setMatrixAt(nr, M); }
+      const s = T.size;
+      if (rockModel) {
+        const landing = !fly && r.state === 'weg' && (r.landT ?? 9) < 0.8;
+        if (fly || landing || made.rocks > r.i) {
+          const m = rockModel(r.i); made.rocks = Math.max(made.rocks, r.i + 1);
+          m.root.visible = fly || landing;
+          if (fly) {
+            // Schweif entgegen der Flugrichtung (Modell: Schweif nach +Y)
+            V.set(r.x - (r.px ?? r.x), r.y - (r.py ?? r.y + 1), r.z - (r.pz ?? r.z));
+            if (V.lengthSq() > 1e-6) m.root.quaternion.setFromUnitVectors(UP, V.normalize().negate());
+            m.root.position.set(r.x, r.y + s * 0.5, r.z);
+            m.update?.(dt, { anim: 'fall' });
+          } else if (landing) {
+            m.root.quaternion.identity();
+            m.root.position.set(r.tx, r.ty + s * 0.5, r.tz);
+            m.update?.(dt, { anim: 'land', progress: clamp(r.landT / 0.8, 0, 1) });
+          }
+        }
+        r.px = r.x; r.py = r.y; r.pz = r.z;
+      }
+      if (fly && rockMesh) {
+        E.set(r.spin + t * 3, t * 2, 0); Q.setFromEuler(E); P.set(r.x, r.y + s * 0.5, r.z); S.setScalar(s * 0.6); M.compose(P, Q, S); rockMesh.setMatrixAt(nr, M);
         P.set(r.x, r.y + s * 0.5, r.z); Q.copy(cam.quaternion); S.setScalar(s * 3.2); M.compose(P, Q, S); glow.setMatrixAt(nr, M);
         nr++;
       }
       const left = T.flight - r.t;
-      if (r.state === 'flug' && left <= T.warn) {
-        const k = 1 - left / Math.max(0.01, T.warn);
+      const warnOn = r.state === 'flug' && left <= T.warn;
+      const k = warnOn ? 1 - left / Math.max(0.01, T.warn) : 0;
+      if (markModel) {
+        if (warnOn || made.marks > r.i) {
+          const m = markModel(r.i); made.marks = Math.max(made.marks, r.i + 1);
+          m.root.visible = warnOn;
+          if (warnOn) { m.root.position.set(r.tx, r.ty, r.tz); m.update?.(dt, { k: 0.35 + 0.65 * k }); }
+        }
+      } else if (warnOn) {
         const rr = T.radius * (1.5 - 0.5 * k) * (1 + 0.06 * Math.sin(t * (10 + 20 * k)));
         P.set(r.tx, r.ty + 0.05, r.tz); Q.identity(); S.set(rr, 1, rr); M.compose(P, Q, S);
         ring.setMatrixAt(nm, M); disc.setMatrixAt(nm, M); nm++;
       }
     }
-    for (const q of puddles) {
-      if (q.t <= 0) continue;
+    puddles.forEach((q, i) => {
+      if (pudModel) {
+        if (q.t <= 0 && made.puds <= i) return;
+        const m = pudModel(i); made.puds = Math.max(made.puds, i + 1);
+        m.root.visible = q.t > 0;
+        if (q.t <= 0) return;
+        const age = T.puddle - q.t, coolDur = Math.min(3, T.puddle * 0.6), growDur = Math.min(0.5, T.puddle * 0.3);
+        m.root.position.set(q.x, q.y, q.z);
+        const st = age < growDur ? { anim: 'grow', progress: age / growDur } : q.t < coolDur ? { anim: 'cool', progress: 1 - q.t / coolDur } : { anim: 'idle' };
+        m.update?.(dt, st);
+        return;
+      }
+      if (q.t <= 0) return;
       const rr = T.radius * 0.8 * Math.min(1, q.t * 2);
       P.set(q.x, q.y + 0.03, q.z); Q.identity(); S.set(rr, 1, rr); M.compose(P, Q, S);
       pud.setMatrixAt(np++, M);
-    }
-    if (rockMesh) { rockMesh.count = nr; rockMesh.instanceMatrix.needsUpdate = true; }
-    glow.count = nr; glow.instanceMatrix.needsUpdate = true;
-    ring.count = nm; disc.count = nm; ring.instanceMatrix.needsUpdate = true; disc.instanceMatrix.needsUpdate = true;
-    pud.count = np; pud.instanceMatrix.needsUpdate = true;
+    });
+    if (rockMesh) { rockMesh.count = nr; rockMesh.instanceMatrix.needsUpdate = true; glow.count = nr; glow.instanceMatrix.needsUpdate = true; }
+    if (ring) { ring.count = nm; disc.count = nm; ring.instanceMatrix.needsUpdate = true; disc.instanceMatrix.needsUpdate = true; }
+    if (pud) { pud.count = np; pud.instanceMatrix.needsUpdate = true; }
   });
   return handle;
 }

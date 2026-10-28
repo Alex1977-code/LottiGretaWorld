@@ -10,11 +10,14 @@
 //   { type: 'super_pow_block', id, pos: [x, y, z] (Mitte der Unterseite), size: 4 (Kantenlänge), hits: 4, cool: 0.6,
 //     radius: 14, height: 4, signal: 'super_pow', onHit, onDone, vanish: true, hidden: false, rise: 2.5 (m Auftauchen),
 //     look: 'eigen' }
-//   level.named.get(id) = { hits (Stöße bisher), left, done, state ('versteckt'|'kommt'|'bereit'|'stoss'|'fertig'),
-//     hit(via) (Stoß von außen, z. B. Boss/Test), reveal(), hide(), info() }; w8(level).pows. Kollision: Quader (tag
+//   Mit jedem Stoß wird der Block niedriger: Oberseite = pos.y + size · (1 − 0,16 · 4 · hits / hits_gesamt) (wie das Modell,
+//   Unterseite bleibt) – wer oben steht (Endgegner), sackt mit ab.
+//   level.named.get(id) = { hits (Stöße bisher), left, done, top (y der Oberseite), state ('versteckt'|'kommt'|'bereit'|'stoss'|
+//     'fertig'), hit(via) (Stoß von außen, z. B. Boss/Test), reveal(), hide(), info() }; w8(level).pows. Kollision: Quader (tag
 //   'super_pow'), Besitzer mit onBump/onPound/onHit.
-//   Modell: Registry 'super_pow_block' ({ size }, Ursprung Mitte der Unterseite; state { anim: 'idle'|'hit'|'leer', hits,
-//   left, squash }) – sonst eigener Block (blau, große Buchstaben „POW“, Zähler-Lämpchen).
+//   Modell: Registry 'super_pow_block' ({ size }, Ursprung Mitte der Unterseite; state { hits: 0..4 (auf 4 umgerechnet),
+//   anim: 'hit' 0,7 s nach jedem Stoß mit progress, sonst 'idle' }) – sonst eigener Block (blau, große Buchstaben „POW“,
+//   Zähler-Lämpchen; wird ebenso niedriger).
 //   Beispiel: { type: 'super_pow_block', id: 'superpow', pos: [0, 3.2, -200], size: 4, onDone: { signal: 'finale' } }
 
 import * as THREE from 'three';
@@ -45,12 +48,14 @@ export function buildSuperPowBlock(level, spec) {
   const N = Math.max(1, spec.hits ?? 4);
   const cool = spec.cool ?? 0.6, radius = spec.radius ?? 14, reachY = spec.height ?? 4;
   const rise = spec.rise ?? 2.5;
-  const st = { hits: 0, cd: 0, state: spec.hidden ? 'versteckt' : 'bereit', t: 0, squash: 0, sv: 0, k: spec.hidden ? 0 : 1, last: null };
+  const st = { hits: 0, cd: 0, state: spec.hidden ? 'versteckt' : 'bereit', t: 0, squash: 0, sv: 0, k: spec.hidden ? 0 : 1, last: null, h: S, hitAge: 9 };
   let sid = null;
   const shape = { type: 'box', min: [p.x - S / 2, p.y, p.z - S / 2], max: [p.x + S / 2, p.y + S, p.z + S / 2], tag: 'super_pow' };
+  // Höhe nach hits Stößen (Modell: size · (1 − 0,16 · hits) für hits 0..4)
+  const heightAt = (hits) => S * (1 - 0.16 * Math.min(4, (hits * 4) / N));
   const place = () => {
     const y = p.y - rise * (1 - st.k);
-    shape.min = [p.x - S / 2, y, p.z - S / 2]; shape.max = [p.x + S / 2, y + S, p.z + S / 2];
+    shape.min = [p.x - S / 2, y, p.z - S / 2]; shape.max = [p.x + S / 2, y + st.h, p.z + S / 2];
     if (sid) level.world.update(sid);
   };
   const solid = (on) => {
@@ -59,12 +64,13 @@ export function buildSuperPowBlock(level, spec) {
   };
   const handle = {
     get hits() { return st.hits; }, get left() { return N - st.hits; }, get done() { return st.hits >= N; }, get state() { return st.state; },
+    get top() { return p.y - rise * (1 - st.k) + st.h; },
     hit(via = 'extern', source = null) {
       if (st.cd > 0 || st.hits >= N || (st.state !== 'bereit' && st.state !== 'stoss')) return false;
       st.cd = cool;
       st.hits++;
       st.last = via;
-      st.state = 'stoss'; st.t = 0;
+      st.state = 'stoss'; st.t = 0; st.hitAge = 0;
       st.sv -= 6;
       const lv = level, cx = p.x, cy = p.y, cz = p.z;
       lv.shake(0.9);
@@ -103,7 +109,7 @@ export function buildSuperPowBlock(level, spec) {
     onSichelHit(s) { handle.hit('sichel', s); },
     reveal() { if (st.state !== 'versteckt') return; st.state = 'kommt'; st.t = 0; solid(true); level.sfx('rumble'); },
     hide() { st.state = 'versteckt'; st.k = 0; solid(false); },
-    info: () => ({ hits: st.hits, of: N, left: N - st.hits, state: st.state, last: st.last, solid: !!sid }),
+    info: () => ({ hits: st.hits, of: N, left: N - st.hits, state: st.state, last: st.last, solid: !!sid, top: +handle.top.toFixed(2) }),
   };
   shape.owner = handle;
   if (st.state !== 'versteckt') solid(true);
@@ -114,6 +120,10 @@ export function buildSuperPowBlock(level, spec) {
     if (st.cd > 0) st.cd -= dt;
     if (st.state === 'kommt') { st.k = clamp(st.t / 1.2, 0, 1); place(); if (st.k >= 1) st.state = 'bereit'; }
     if (st.state === 'stoss' && st.t > 0.4) st.state = 'bereit';
+    st.hitAge += dt;
+    // nach dem Stoß sackt die Oberseite auf die neue Höhe (wer oben steht, sackt mit)
+    const hw = heightAt(st.hits);
+    if (Math.abs(st.h - hw) > 1e-4) { st.h += (hw - st.h) * Math.min(1, dt * 8); if (Math.abs(st.h - hw) < 0.005) st.h = hw; place(); }
     st.sv += (-120 * st.squash - 10 * st.sv) * dt;
     st.squash += st.sv * dt;
   });
@@ -151,11 +161,13 @@ export function buildSuperPowBlock(level, spec) {
     root.visible = !gone && st.state !== 'versteckt';
     root.position.set(p.x, p.y - rise * (1 - st.k), p.z);
     const q = clamp(st.squash, -0.35, 0.35);
-    inner.scale.set(1 - q * 0.5, 1 + q, 1 - q * 0.5);
+    if (model) inner.scale.set(1, 1, 1);
+    else inner.scale.set(1 - q * 0.5, (1 + q) * st.h / S, 1 - q * 0.5);
     if (mat) mat.emissiveIntensity = 0.15 + (st.state === 'stoss' ? 0.6 * (1 - st.t / 0.4) : 0) + (st.state === 'fertig' ? -0.15 : 0);
     if (mat && st.state === 'fertig') mat.color.setHex(0x8a8a9a);
     if (lamps) lamps.forEach((lm, i) => { lm.material.color.setHex(i < N - st.hits ? 0xffd23a : 0x3a3a4a); });
-    model?.update?.(d, { anim: st.state === 'stoss' ? 'hit' : st.state === 'fertig' ? 'leer' : 'idle', hits: st.hits, left: N - st.hits, squash: q });
+    const mh = Math.min(4, Math.round((st.hits * 4) / N));
+    model?.update?.(d, st.hitAge < 0.7 ? { anim: 'hit', progress: st.hitAge / 0.7, hits: mh } : { anim: 'idle', hits: mh });
   });
   return handle;
 }

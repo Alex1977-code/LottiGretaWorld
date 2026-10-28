@@ -405,10 +405,10 @@ console.log('Rummelwerkstatt 0-31');
     star?.model?.root.traverse((o) => { if (o.isMesh && o.layers.mask !== (1 << 5)) layered = false; });
     const renders = m.renders, active = m.active;
     // Spiegel-Stufen: im Raum unsichtbar, aber begehbar
-    t.place([1.6, 1.7, -312.4], { settle: 30 });
+    t.place([0.9, 1.7, -312.4], { settle: 30 });
     const step = p.mode === 'ground' && Math.abs(p.pos.y - 1.4) < 0.06;
     const got0 = !!L.runtime.stars[2];
-    t.place([2.6, 2.62, -315.4], { settle: 30 });
+    t.place([1.5, 2.62, -315.4], { settle: 30 });
     const got = !!L.runtime.stars[2];
     return { layered, renders, active, step, got0, got, inFront: m.inFront(0, -312), mirror: m.mirror(1, 0, -318) };
   });

@@ -11,8 +11,10 @@
 // Aufruf: this.scene.start('Credits', { from: '8-Burg' }) – bzw. im Level die Aktion { credits: true } (nach dem Ergebnis-
 // Bildschirm) / { credits: 'sofort' } oder LEVEL.credits = true (src/course/credits.js); URL ?credits=1 (Test/Vorschau).
 // Überspringen: nach 3 s „Weiter ›“ (Touch/Klick) bzw. Enter/Leertaste.
-// Registry-Modell `abspann_buehne` ({ size }, Ursprung Mitte der Wiese) ersetzt, sobald es es gibt, die eigene Kulisse
-// (Picknick, Lampions, Karussell …); die Wiese (Insel) bleibt.
+// Registry-Modell `abspann_buehne` (Festwiese Ø 12 m mit Picknickdecke, Torte, drei Lampion-Masten und den befreiten Freunden;
+// Ursprung Mitte der Wiese; state { wave: 0,3 → 1 ab dem Feuerwerk, glow: 1 }) ersetzt, wenn es da ist, die eigene Mitte
+// (Picknick, Lampions, Keksstapel); Lotti, Greta, Pflaume und Krümel stehen dann auf root.userData.spots (y = Wölbung der
+// Wiese), die Kamerafahrt richtet sich nach ihnen. Außen bleiben Masten, Wimpel, Ballons, Karussell, Buden und Torbogen.
 //
 // Test-Schnittstelle window.__credits (= diese Szene): setManual(b), advance(s) (Zeitleiste in Schritten von 1/30 s
 // vorrücken, deterministisch), state() → { t, duration, end, music, playing, roll (y der Textrolle), lines, shown (sichtbare
@@ -41,8 +43,8 @@ const ease = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
 const MUSIC = 'course_abspann';
 const HOLD = 3;                 // s „Danke fürs Spielen!“ nach dem Ende der Musik
 
-/** Bühne als Level-Daten (Bausteine): Wiese, Bäume, Picknick, Lampions, Kulisse. */
-function stageData(withDeco) {
+/** Bühne als Level-Daten (Bausteine): Wiese, Bäume, Picknick, Lampions, Kulisse (withStage: Mitte vom Modell abspann_buehne). */
+function stageData(withStage) {
   const segs = [
     { type: 'island', pos: [0, -3, -10], size: [150, 3, 150], under: 0 },
     { type: 'mound', pos: [-14, 0, -14], radius: 6, height: 1.4 },
@@ -65,13 +67,13 @@ function stageData(withDeco) {
       { kind: 'bush', pos: [-20, 0, 12], size: 1.2 }, { kind: 'bush', pos: [22, 0, -14], size: 1.1 },
     ] },
   ];
-  if (withDeco) {
+  {
     // Lampion-Geviert (x ±9, z −8 … 8) um die Picknickdecke; Masten an den Ecken und Seitenmitten
     const M = [[-9, 8], [0, 8.6], [9, 8], [9, -8], [0, -8.6], [-9, -8]];
-    const items = [{ kind: 'picknick', pos: [0, 0, 0], size: 3.4 }];
+    const items = withStage ? [] : [{ kind: 'picknick', pos: [0, 0, 0], size: 3.4 }];
     for (const [x, z] of M) items.push({ kind: 'mast', pos: [x, 0, z], height: 4.4 });
     // Lampions an den Seiten und hinten; vorn offen (dort fährt die Kamera hinein)
-    for (let i = 2; i < M.length; i++) {
+    for (let i = 2; i < M.length && !withStage; i++) {
       const a = M[i], b = M[(i + 1) % M.length];
       items.push({ kind: 'lampions', from: [a[0], 4.3, a[1]], to: [b[0], 4.3, b[1]], sag: 0.8 });
     }
@@ -82,8 +84,8 @@ function stageData(withDeco) {
       { kind: 'karussell', pos: [-14, 0, -12], radius: 2.6, height: 3.2, solid: false },
       { kind: 'bude', pos: [13, 0, -9], width: 3, color: 'rosa', yaw: Math.PI }, { kind: 'bude', pos: [-14, 0, 2], width: 2.6, color: 'blau', yaw: 0 },
       { kind: 'torbogen', pos: [0, 0, 14], width: 6, height: 4.6, yaw: Math.PI / 2, solid: false },
-      { kind: 'keksstapel', pos: [2.6, 0, 1.8], n: 3, radius: 0.45 },
     );
+    if (!withStage) items.push({ kind: 'keksstapel', pos: [2.6, 0, 1.8], n: 3, radius: 0.45 });
     segs.push({ type: 'deco_w8', items });
   }
   return {
@@ -202,24 +204,37 @@ export class CreditsScene extends Phaser.Scene {
 
     // ---- 3D-Bühne
     const withModel = hasModel('abspann_buehne');
-    const data = stageData(!withModel);
+    const data = stageData(withModel);
     this.view = new CourseView(this, data);
     this.level = new Level(this, data, { view: this.view, save: courseSave });
     this.level.muted = true;
     buildLevel(this.level);
     const view = this.view;
+    // Plätze der Hauptfiguren: eigene Mitte bzw. die Plätze der Festwiese (Modell; y = Wölbung der Wiese)
+    let at = { lotti: [-2.3, 0, 1.0], greta: [2.3, 0, 1.0], pflaume: [0.9, 0, -2.4], kruemel: [-1.0, 0, -2.2] };
+    this.center = new THREE.Vector3(0, 0, 0);
+    this.groundY = () => 0;
     if (withModel) {
-      this.stage = getModel('abspann_buehne', { size: [46, 44] });
+      const SZ = 1;
+      this.stage = getModel('abspann_buehne', { size: SZ });
       view.three.add(this.stage.root);
+      this.stage.root.traverse((o) => { if (o.isMesh) o.receiveShadow = true; });
+      this.groundY = (x, z) => Math.max(0, 1 - (Math.hypot(x, z) / (6 * SZ)) ** 2) * 0.35 * SZ;
+      const sp = this.stage.root.userData.spots ?? {};
+      const on = (k, def) => { const q = sp[k]; return q ? [q[0], this.groundY(q[0], q[1]), q[1]] : def; };
+      at = { lotti: on('lotti', at.lotti), greta: on('greta', at.greta), pflaume: on('pflaume', at.pflaume), kruemel: on('kruemel_kapitaen', at.kruemel) };
+      this.center.set(0.3, this.groundY(0.3, 0.6), 0.6);
     }
-    // Darsteller rund um die Picknickdecke
+    // Darsteller rund um die Picknickdecke; Blickrichtung yaw: 0 = +X, −π/2 = zur Kamera (+Z) – Lotti und Greta sehen
+    // einander an (seitlich zur Kamera), Pflaume und Krümel blicken zur Kamera
     this.heroes = [
-      avatarActor(view, 'lotti', [-2.3, 0, 1.0], -0.35, 1.0),
-      avatarActor(view, 'greta', [2.3, 0, 1.0], Math.PI + 0.35, 1.0),
+      avatarActor(view, 'lotti', at.lotti, -0.35, 1.0),
+      avatarActor(view, 'greta', at.greta, Math.PI + 0.35, 1.0),
     ];
-    // Blickrichtung yaw: 0 = +X, −π/2 = zur Kamera (+Z)
-    this.pflaume = avatarActor(view, 'pflaume', [0.9, 0, -2.4], -Math.PI / 2 + 0.3, 1.3);
-    this.kruemel = hasModel('kruemel') ? modelActor(view, 'kruemel', [-1.0, 0, -2.2], 1.35, -Math.PI / 2 - 0.3) : null;
+    this.pflaume = avatarActor(view, 'pflaume', at.pflaume, -Math.PI / 2 + (at.pflaume[0] < 0 ? 0.6 : 0.3), 1.3);
+    this.kruemel = hasModel('kruemel') ? modelActor(view, 'kruemel', at.kruemel, 1.35, -Math.PI / 2 - 0.3) : null;
+    this.at = at;
+    this.ringC = withModel ? [this.center.x, this.center.z] : [0, -0.6];   // Mitte des Reigens
     this.friends = [];
     const FRIENDS = 7;
     for (let i = 0; i < FRIENDS; i++) {
@@ -228,21 +243,25 @@ export class CreditsScene extends Phaser.Scene {
       f.root.traverse((o) => { if (o.isMesh) o.castShadow = false; });   // Schatten-Blob genügt (Zeichenaufrufe)
       view.instanceModel(f.root, 'abspann_freund');                      // gleiche Teile aller Freunde als Instanzen
       f.phase = (i / FRIENDS) * TAU;
-      f.r = 4.3 + (i % 2) * 0.5;
+      f.r = (withModel ? 3.9 : 4.3) + (i % 2) * 0.5;
       this.friends.push(f);
     }
     this.buildConfetti();
     this.buildFireworks();
     // Kamerafahrt (Lage und Blickpunkt als Kurven über die Zeitleiste)
     const V = (a) => new THREE.Vector3(...a);
+    const A = (k, d) => V([at[k][0] + d[0], at[k][1] + d[1], at[k][2] + d[2]]);
+    // Paar Pflaume + Krümel: von der Seite, auf der Pflaume steht
+    const pk = [(at.pflaume[0] + at.kruemel[0]) / 2, (at.pflaume[1] + at.kruemel[1]) / 2, (at.pflaume[2] + at.kruemel[2]) / 2];
+    const pkCam = at.pflaume[0] < at.kruemel[0] - 1 ? [-5.0, 2.3, 3.2] : [5.65, 2.3, 2.7];
     // Überblick → Lotti → Greta → Pflaume und Krümel → Reigen der Freunde (von hinten) → Runde → hinauf ins Feuerwerk
     this.camPath = new THREE.CatmullRomCurve3([
-      V([26, 20, 40]), V([12, 7, 17]), V([-3.6, 2.5, 6.4]), V([3.6, 2.5, 6.4]), V([5.6, 2.3, 0.4]), V([0, 3.1, -6.6]),
-      V([-6.6, 2.9, -2]), V([-5.2, 3.6, 6]), V([0, 7, 14]), V([0, 22, 28]),
+      V([26, 20, 40]), V([12, 7, 17]), A('lotti', [-1.3, 2.5, 5.4]), A('greta', [1.3, 2.5, 5.4]), V([pk[0] + pkCam[0], pk[1] + pkCam[1], pk[2] + pkCam[2]]),
+      V([0, 3.1, -6.6]), V([-6.6, 2.9, -2]), V([-5.2, 3.6, 6]), V([0, 7, 14]), V([0, 22, 28]),
     ], false, 'centripetal');
     this.lookPath = new THREE.CatmullRomCurve3([
-      V([0, 2, 0]), V([0, 1.2, 0]), V([-2.2, 1.0, 1]), V([2.2, 1.0, 1]), V([0.2, 0.6, -2.2]), V([0, 0.8, 0.5]),
-      V([0, 0.9, 0]), V([0, 1, 0]), V([0, 2, -2]), V([0, 9, -22]),
+      V([0, 2, 0]), V([0, 1.2, 0]), A('lotti', [0.1, 1.0, 0]), A('greta', [-0.1, 1.0, 0]), V([pk[0], pk[1] + 0.6, pk[2]]),
+      V([this.center.x, 0.8, this.center.z + 0.5]), V([this.center.x, 0.9, this.center.z]), V([this.center.x, 1, this.center.z]), V([0, 2, -2]), V([0, 9, -22]),
     ], false, 'centripetal');
     this.camPos = new THREE.Vector3();
     this.camLook = new THREE.Vector3();
@@ -416,6 +435,8 @@ export class CreditsScene extends Phaser.Scene {
       p.hull.rotation.y = p.yaw + Math.sin(T * 0.5) * 0.6;
       try { p.av?.animate(dt, this.view.time + dt); } catch (err) { console.error('Abspann-Animation:', err); p.av = null; }
     }
+    // Festwiese: die Freunde sitzen erst und wippen, ab dem Feuerwerk hüpfen und winken sie ausgelassen
+    this.stage?.update?.(dt, { wave: T > this.duration * 0.42 ? 1 : 0.3 + 0.2 * Math.max(0, Math.sin(T * 0.4)), glow: 1 });
     if (this.kruemel) {
       const k = this.kruemel;
       k.root.position.y = k.base.y + Math.abs(Math.sin(T * 4.2)) * 0.18;
@@ -425,10 +446,11 @@ export class CreditsScene extends Phaser.Scene {
     // Freunde: Reigen um die Decke, hoppelnd
     for (const f of this.friends) {
       const a = f.phase + T * 0.32;
-      const x = Math.cos(a) * f.r, z = -Math.sin(a) * f.r * 0.85 - 0.6;
+      const x = this.ringC[0] + Math.cos(a) * f.r, z = this.ringC[1] - Math.sin(a) * f.r * 0.85;
       const hop = Math.abs(Math.sin(T * 5.5 + f.phase * 3)) * 0.28;
-      f.root.position.set(x, hop, z);
-      f.shadowPos.set(x, 0, z);
+      const gy = this.groundY(x, z);
+      f.root.position.set(x, gy + hop, z);
+      f.shadowPos.set(x, gy, z);
       f.root.rotation.y = a + Math.PI / 2;   // Blick (+X des Modells) entlang der Bahn
       f.model.update?.(dt, { anim: 'hop' });
     }
