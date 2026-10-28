@@ -20,7 +20,10 @@
 //                                                   automatisch)
 //   view.groupCull(instancedMesh, name)             Instanz-Gruppe: je Bild nur Exemplare im Bild (view/GroupCuller.js;
 //                                                   EnemyW2 meldet sharedSlot/modelInstances selbst an)
-//   view.instanceRule(name, { farHide, shadowDist, shadow })   Regel für Gruppe/Pool name (sonst LEVEL.instances)
+//   view.instanceRule(name, { farHide, shadowDist, shadow })   Regel für Gruppe/Pool name (sonst LEVEL.instances);
+//                                                   gilt auch für Entitäts-Arten (EntityInstancer, Level.render farHide)
+//   view.instanceModel(root, kind) → Abmelden        Baustein-Modell (direkt in der Szene) wie ein Entitäts-Modell
+//                                                   instanzieren (Kipp-Schaltfelder; Präzisierung „Motor-Feinschliff“)
 //   view.xray(mesh, box, { min })                   Block wird durchscheinend, wenn er die Figur verdeckt (view/Xray.js)
 //   view.setMood(name, { time })                    Stimmung des Themas überblenden (theme.moods; null = Grundstimmung)
 //   view.setUnderwater(on)                          Unterwasser-Stimmung: true/false erzwingt, 'auto' erkennt selbst
@@ -215,6 +218,9 @@ export class CourseView {
 
   /** Instanz-Gruppe (InstancedMesh vieler Exemplare) je Bild auswählen lassen (view/GroupCuller.js). */
   groupCull(im, name) { return this.groups.add(im, name); }
+
+  /** Baustein-Modell wie ein Entitäts-Modell instanzieren (view/EntityInstancer.js addModel) → Abmelde-Funktion. */
+  instanceModel(root, kind) { return this.instancer.addModel(root, kind); }
 
   /** Regel für Instanz-Gruppe/Pool name: { farHide, shadowDist, shadow } (null = keine). */
   instanceRule(name, rule) { if (rule) this.instanceRules[name] = rule; else delete this.instanceRules[name]; }

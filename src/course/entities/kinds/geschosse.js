@@ -48,7 +48,7 @@ class Feuerkugel extends Geschoss {
     this.mode = spec.mode === 'straight' ? 'straight' : 'bounce';
     this.life = spec.life ?? (this.mode === 'straight' ? 2.5 : 3);
     this.bounces = 0;
-    this._ign = (s) => this.ownShape(s);
+    this._ign = (s) => this.ownShape(s) || !!s.ballPass;   // ballPass: Kraftfeld „nur Bälle“ lässt Geschosse durch
     if (level.view) this.setModel(getModel('feuerkugel'));
   }
 

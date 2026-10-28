@@ -57,6 +57,7 @@ import { normalizePower } from '../player/powers.js';
 import { skateContact } from '../player/skating.js';
 
 const DEG = Math.PI / 180;
+const MASK_AIR_HOLD = 0.35;   // s: Pilz-Maske hält in der Luft nach dem letzten „zugewandt“ (Sprung über den Gegner)
 
 export class Level {
   /**
@@ -104,13 +105,30 @@ export class Level {
    * Sieht der Gegner die Figur NICHT, weil sie maskiert ist? true, wenn die Figur (Standard: die nächste zum Gegner) die
    * Pilz-Maske trägt (fig.masked) und dem Gegner zugewandt ist (waagerechter Blickkegel ±angleDeg um die Blickrichtung).
    * enemy: Entität (pos) oder Punkt {x, z} / [x, y, z]. Für Gegner, die die Figur bemerken/verfolgen (Gegner-Agent).
+   * Präzisierung „Motor-Feinschliff nach Welt 6“ – in der Luft robust: über dem Gegner (waagerecht höchstens Halbbreite
+   * des Gegners + Halbbreite der Figur + 0,3 m) gilt die maskierte Figur als zugewandt (die Blickrichtung zur Gegnermitte
+   * kippt dort), und war sie eben noch zugewandt, hält das in der Luft MASK_AIR_HOLD s nach (Sprung über den Gegner).
    */
   isMaskedFrom(enemy, fig = null, angleDeg = 75) {
     const pos = Array.isArray(enemy) ? { x: enemy[0], y: enemy[1], z: enemy[2] } : enemy?.pos ?? enemy;
     if (!pos) return false;
     const f = fig ?? this.nearestPlayer(pos);
     if (!f || !f.masked) return false;
-    return this.isFacing(f, pos, angleDeg);
+    const obj = enemy && typeof enemy === 'object' && !Array.isArray(enemy) ? enemy : null;
+    const air = f.mode === 'air';
+    if (air && !f.dead && f.mode !== 'script') {
+      const r = (obj?.half?.x ?? 0.4) + (f.half?.x ?? 0.3) + 0.3;
+      if (Math.hypot(pos.x - f.pos.x, pos.z - f.pos.z) <= r) return true;
+    }
+    if (this.isFacing(f, pos, angleDeg)) {
+      if (obj) { const m = (this._maskSeen ??= new WeakMap()); m.set(obj, { f, t: this.time }); }
+      return true;
+    }
+    if (air && obj) {
+      const seen = this._maskSeen?.get(obj);
+      if (seen && seen.f === f && this.time - seen.t <= MASK_AIR_HOLD) return true;
+    }
+    return false;
   }
 
   // ------------------------------------------------------------------ Welt 5: Sprünge und Signale

@@ -70,6 +70,18 @@ export class EntityInstancer {
     this.found = [];
     this.stats = { groups: 0, instanced: 0, lod: 0, ruled: 0, shadowLow: 0 };
     this.lods = new WeakMap();   // Entität → { parts: [{ geometry, material, local, cast, recv }], anchor } | null
+    this.extra = [];             // Modelle von Bausteinen (view.instanceModel): { model: { root }, kind, pos }
+  }
+
+  /**
+   * Modell eines Bausteins (kein Entität, z. B. Kipp-Schaltfelder) wie ein Entitäts-Modell instanzieren lassen
+   * (Präzisierung „Motor-Feinschliff nach Welt 6“). root hängt direkt in der Szene (pos = root.position). → Abmelden.
+   */
+  addModel(root, kind) {
+    if (!root) return () => {};
+    const e = { model: { root }, kind, pos: root.position, spec: null };
+    this.extra.push(e);
+    return () => { const i = this.extra.indexOf(e); if (i >= 0) this.extra.splice(i, 1); };
   }
 
   group(geo, mat, cast, recv, kind) {
@@ -135,7 +147,8 @@ export class EntityInstancer {
     const rules = v.instanceRules ?? {};
     const focus = level.players?.[0]?.pos ?? level.player?.pos ?? null;
     let lodN = 0, ruled = 0;
-    for (const e of level.entities) {
+    const list = this.extra.length ? level.entities.concat(this.extra) : level.entities;
+    for (const e of list) {
       const root = e.model?.root;
       if (!root || !root.parent || e.instancing === false || e.spec?.instancing === false) continue;
       let vis = true;
@@ -272,6 +285,7 @@ export class EntityInstancer {
     for (const G of this.groups.values()) for (const im of [G.im, G.ims]) if (im) { im.parent?.remove(im); im.dispose(); }
     this.groups.clear();
     this.lods = new WeakMap();
+    this.extra.length = 0;
   }
 }
 

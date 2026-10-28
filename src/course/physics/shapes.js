@@ -11,7 +11,10 @@
 // Flags (alle optional): solid (Standard true, außer bei water/kill/trigger ohne solid), oneWay,
 // climbable, kill, water, bounce, conveyor {x,z}, ice, hit(callback), breakable, mover, owner,
 // fromBelowOnly (unsichtbarer Block: nur von unten fest), trigger (nicht fest, nur für overlapAABB),
-// boost {x,z,speed}, beanstalk, pipe, camIgnore (Kamera darf hindurch), noWallSlide.
+// boost {x,z,speed}, beanstalk, pipe, camIgnore (Kamera darf hindurch), noWallSlide,
+// ballPass (Präzisierung „Motor-Feinschliff nach Welt 6“: fest für Figuren und Gegner, Wurfbälle und Geschosse – Wurfball,
+// Feuerball, Gegner-Geschosse, Projektilkopf, geworfene Stachelkugel – fliegen hindurch; Kraftfeld „nur Bälle“; als Wand
+// gedacht, nicht als Boden).
 //
 // Intern bekommt jede Form numerische Grenzen x0..z1 (AABB) und – je Typ – Hilfswerte.
 
