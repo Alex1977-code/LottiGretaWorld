@@ -137,6 +137,16 @@ export const LEVEL = {
       { kind: 'fahne', pos: [12.4, T, -9.5], height: 3.2 },
       { kind: 'fackel', pos: [-9, U + 2.6, -12.45], yaw: -PI / 2 }, { kind: 'fackel', pos: [-5.5, U + 2.6, -12.45], yaw: -PI / 2 },
       { kind: 'knochen', pos: [-12.6, G, 12.4], n: 3 },
+      // Brummbär-Banner an Kesselturm und Maschinenblock, Fahnen auf den Dächern, Standfackeln vorn
+      { kind: 'fahne', hang: true, pos: [12.7, 5.7, -8.94], length: 3.2, width: 1.5 },
+      { kind: 'fahne', hang: true, pos: [-6.6, 8.7, -12.44], length: 2.6, width: 1.3, color: 'lila' },
+      { kind: 'fahne', pos: [-4.5, T, -15.1], height: 2.8, color: 'lila' },
+      { kind: 'fackel', mount: 'stand', pos: [13.3, G, 6.7], height: 1.6 }, { kind: 'fackel', mount: 'stand', pos: [-13.3, G, 6.7], height: 1.6 },
+      // Lavafälle aus Rohrstutzen (nur Optik): vorn aus dem Deck, rechts am Kesselturm
+      { kind: 'lavafall', pos: [-11, SEA, -9.75], width: 1.8, height: U - 0.9 - SEA, yaw: 0 },
+      { kind: 'lavafall', pos: [14.3, SEA, -16.2], width: 1.8, height: T - 1.6 - SEA, yaw: PI / 2 },
+      { kind: 'rohr', from: [-11, U - 0.5, -10.6], to: [-11, U - 0.5, -9.4], r: 0.55 },
+      { kind: 'rohr', from: [13.4, T - 1.2, -16.2], to: [14.6, T - 1.2, -16.2], r: 0.55 },
     ] },
   ],
   items: [
