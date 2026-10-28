@@ -195,6 +195,19 @@ Effekte (`sfx(name)`): `jump`, `jump2`, `jump3`, `backflip`, `longjump`, `wallju
 `pipe`, `checkpoint`, `goalpole`, `timewarn`, `claw`, `fireball`, `stomp`, `hurt`, `die`, `switch`,
 `bounce`. Fehlende Namen sind stumm (kein Fehler).
 
+Vertragsnotiz (ergänzte Effekte, `MORE_SFX` = `engine.effects.more`): die bisher stumm aufgerufenen Namen sind eigene
+Effekte – Figur `skid`, `glide`, `wallslide`, `swim`, `fence` (Zaun/Deckengitter), `grab`/`swing` (Trapez), `victory`
+(Siegespose, kleine Fanfare ≈ 0,9 s über der Level-Musik; läuft schon die Musik-Fanfare `course_clear`, z. B. in der
+Arena, spielt `sfx()` nur Jubel-Glitzer – Rezepte bekommen dann `{ overFanfare: true }`); Fahrt/Bausteine `fall`, `boost`,
+`chain`, `alarm`, `flip`, `donut`, `pfiff`, `note0`–`note7` (Tastenstein, C-Dur-Pentatonik); Gegner `hop`, `dash`, `kick`,
+`dizzy`, `boomerang`, `dig`, `throw`, `fuse`, `burn`. Lautheit wie die übrigen Effekte (Median −23 LUFS, Wiederholklänge
+−25), höchstens 26 Knoten. **Drosselung:** derselbe Name klingt erst nach einem Mindestabstand wieder (`SFX_GAP` in
+`src/audio/sfx.js`, z. B. `swim` 0,2 s, `wallslide` 0,35 s, `hop` 0,15 s, `chain` 0,5 s; alle übrigen 0,03 s – gleichzeitige
+Auslösungen im selben Bild klingen einmal). **Neue Namen** zuerst als Effekt anlegen: `node tests/sfx_namen.mjs` (auch in
+`tests/audio.mjs`, Teil `sfx`) sammelt alle Aufrufnamen in `src/**` (`sfx`/`level.sfx`/`w6Sfx`/`hwSfx`, `{ sfx: … }`,
+Ersatz-Tabelle `SFX6`) und meldet jeden ohne Effekt; dynamische Namen (Variablen, Template-Strings) dort in `DYNAMIC` mit
+den möglichen Namen eintragen. Hörprobe `tests/out/sfx_demo_fehlende.wav`.
+
 ## Speicherstand
 
 `lotti-greta-course-v1` im localStorage: `{ hero, lives, coins, world, mapPos, levels: { '1-1':
@@ -2041,6 +2054,8 @@ Kennzahlen mit 1 und 5 Figuren. Bilder `tests/out/w2e_*.png`.
 **Halloween-Welt „Kürbisinsel“** (`src/audio/themes_halloween.js`, `HALLOWEEN_THEMES`, nach der Musik-Richtlinie, Namen aus der Halloween-Level-Liste): `course_pumpkin` (e-Moll/G-Dur, 136 BPM – die Celesta spielt die Hook im Intro in Moll, der Refrain bringt sie in Dur; Kürbis-Klopfen), `course_candyvillage` (F-Dur, 140, Knochen-Xylofon, Pizzicato, Klapper-Hölzer), `course_graveyard` (g-Moll, 132, Theremin, Orgel-Stabs, Friedhofsglocke), `course_witchtower` (a-Moll, 144, Cembalo, Glocken, aufsteigende Hook), `course_brummula` (c-Moll, 148, Kirchenorgel, Chor-Pad, Turmglocke, Pauken), `course_halloween_map` (d-Moll, 126, 16 Takte, Spieluhr-Celesta, Kick auf 1 und 3). Alle 24 Takte (Karte 16), Refrain ab Takt 13 (Karte 9); kein `sync`, keine Energie-Ebene. **Baron-Brummbär-Motiv** (Leitmotiv, aus `course_boss` Lead Takt 5: „C . c Es C G . f Es D“): die Kirchenorgel spielt es im Intro von `course_brummula` in doppelter Notenlänge, die Refrain-Hook des Grafen beginnt mit seinem Kopf. `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–5 und untereinander, dazu Tempo, Loop-Naht und Pegel wie Welt 5 (`AUDIO_WORLD=halloween`); Hörproben `tests/out/hw_<thema>_30s.wav` und `tests/out/hoerprobe_halloween.wav`.
 
 **Welt 6 „Wolkeninseln“** (`src/audio/themes_world6.js`, `WORLD6_THEMES`, nach der Musik-Richtlinie, Namen aus der Welt-6-Liste): `course_clearpipe` (G-Dur, 140 BPM, Glas-Glocken, „Röhrenpost“-Hook mit Sechzehntel-Paaren, Röhren-Plopp), `course_wreck` (e-Moll, 132, Akkordeon, Schiffsglocke im Doppelschlag, Schunkel-Rhythmus 3+1, Humpa-Bass), `course_fareast` (h-Moll, 140, Bambusflöte, Koto, Gong, Holzblock – pentatonische Hook über i–VI–III–VII), `course_jungle` (F-Dur, 136, Marimba, Congas/Bongos, Vogel-Zwitschern), `course_snowwind` (A-Dur, 134, Glöckchen-„Bimmel“-Hook, Schlittenschellen, Wind-Pad, Windböen-Riser), `course_factory` (d-Moll, 144, Stakkato-Hook, Amboss, Metall-Klirren, Förderband-Ostinato), `course_fuzzymine` (c-Moll, 150, Kletter-Zickzack-Hook, Galopp-Bass), `course_bossblob` (g-Moll, 146, Zirkus-Orgel, Wabbel-Terzen-Hook, Pauken), `course_world6_map` (D-Dur, 128, 16 Takte, Kick auf 1 und 3, Glas-Windspiel). Alle 24 Takte (Karte 16), Refrain ab Takt 13 (Karte 9); kein `sync`, keine Energie-Ebene. Arenen (6-A, 6-B) spielen `course_arena`, 6-Haus `course_house`, 6-Panzer `course_tank`. `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–6 und der Halloween-Welt, dazu Tempo, Loop-Naht, Klangfarben und Pegel wie Welt 5 (`AUDIO_WORLD=6`, Pegelvergleich mit `AUDIO_WORLD=5,6`); Hörproben `tests/out/w6_<thema>_30s.wav` und `tests/out/hoerprobe_welt6.wav`.
+
+**Welt 7 „Lava-Festung“** (`src/audio/themes_world7.js`, `WORLD7_THEMES`, nach der Musik-Richtlinie, Namen aus der Welt-7-Liste): `course_fortfire` (d-Moll, 142 BPM, Fanfaren-Hook mit Quartsprung, Fanfaren-Bläser im Intro, Feuer-Whoosh vor jedem Abschnitt, fallende Feuerbälle, Knistern), `course_switchruins` (fis-Moll, 134, „Ruf und Echo“-Hook, Steinglocken, großer Hall, Tropfen, Tempelflöte, klackende Kipp-Schalter), `course_redhot` (E-Dur, 150, Countdown-Hook aus Sechzehntel-Paaren, Countdown-Piepser vor Refrain und Loop, Uhr-Ticken, Renn-Arpeggio), `course_bluebelt` (F-Dur, 138, Stampf-Hook in Vierteln, Bläser-Stabs, Stampf-Trommel), `course_traptower` (h-Moll, 146, Galopp-Treppe eine Oktave hinauf, Turm-Glockenspiel, Kettenrasseln, Lava-Riser alle vier Takte, Alarm-Sirene), `course_rammreef` (Es-Dur, 132, „Blubb-blubb“-Hook, Tiefpass auf Piano/Pad/Stabs, Wasserglocken, Blubbern, dumpfe Rammstöße, trotzdem Four-on-the-floor), `course_volcano` (e-Moll, 140, Ausbruch-Hook mit Sechzehntel-Lauf zum Gipfelton, Vulkan-Hörner, Taiko, Grollen), `course_keep` (c-Moll, 148, die Kirchenorgel spielt im Intro das Baron-Brummbär-Motiv aus `course_boss` Lead Takt 5–8 Note für Note; eigene Hook in 3+3+2-Stößen, Chor-Pad in allen Takten, Chor-Stimme, Pauken, Kettenrasseln des Kampfwagens), `course_world7_map` (g-Moll, 126, 16 Takte, Kick auf 1 und 3, Lava-Blubbern, fernes Grollen). Alle 24 Takte (Karte 16), Refrain ab Takt 13 (Karte 9); kein `sync`, keine Energie-Ebene. Arenen (7-A, 7-B, 7-C) spielen `course_arena`, 7-Kapitän `course_diorama`. `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–7 und der Halloween-Welt, dazu Tempo, Loop-Naht, Klangfarben und Pegel wie Welt 5 (`AUDIO_WORLD=7`, Pegelvergleich mit `AUDIO_WORLD=5,7`); Hörproben `tests/out/w7_<thema>_30s.wav` und `tests/out/hoerprobe_welt7.wav`.
 
 **Neue Effekte** (`sfx(name)`): `clone`, `clone_lost`, `helm_on`, `helm_off`, `cannon`, `propeller`, `light`, `quicksand`, `sand_crumble`, `peck`, `bullet`, `boss_hit`, `boss_spin`, `house_tick`, `room_clear`, `ice_slide`, `snowball`, `ghost`, `splash_big`, `train_whistle`, `beep`, `beep_switch`.
 
@@ -5385,6 +5400,33 @@ großer ?-Block (Stampfen, Explosion), Wurfball (Gegner, Zielscheiben, vorbei = 
 Kennzahlen (inkl. Schattenpass): Stationen höchstens 63 Zeichenaufrufe / 163 k Dreiecke, Themen höchstens 72 / 174 k
 (Grenzen 120 / 300 k).
 
+### Präzisierung (Figuren und Klänge Welt 6): Pose 'hang', eigene Klänge
+
+Additiv. **Pose `'hang'`** (`src/three/avatars/hero.js`: `poseHang`, Tabelle `HANG_POSE`; Lotti und Greta, groß/klein, Kostüme,
+Stern, Riesentrank, Klone, Halloween-Verkleidung): `HeroAvatar.courseStates` (Set aller Kurs-Zustände mit eigener Pose) enthält
+`'hang'` – HeroRig zeigt keinen Ersatz `'trapeze'` mehr. Beide Fäuste per Arm-IK (Gummi-Arme wie am Trapez) im Gitter:
+Gitterebene = Körperhöhe der Hitbox (0,95 / 0,65 m) + `HANG.arm` (0,2 m) über dem Fußpunkt, Faustmitte 1,2 cm darunter (bei
+Änderung von `HANG.arm`/`HITBOX` in `HANG_POSE` nachziehen). Hand über Hand im Takt des tatsächlich zurückgelegten Wegs entlang
+der Blickrichtung (`speed` begrenzt; am Rand steht die Figur trotz Stick → kein Hangeln in der Luft), 1,0 m je Doppelgriff:
+die haltende Hand liegt fest im Gitter, die andere löst sich (bis 15 cm), schwingt vor und greift. Körper als Feder-Pendel um
+die Griffe (Anfahren: Füße zurück, Bremsen: vor, je Griff ein kleiner Schwung, seitlich zur haltenden Hand; im Stillstand sachtes
+Schaukeln), Beine als zweites Pendel mit Nachlauf, Knie leicht angezogen; Zöpfe/Haar/Schweife hängen über die Physik. HeroRig
+gibt zusätzlich `proxy.course.hangGrid` (Gitter-Rechteck des Motors) weiter: am Rand bleiben die Griffe im Gitter bzw. am
+Randstab (seitlich nicht näher als 0,4 Einheiten an der Körperachse). Riesentrank: Gitter in Brusthöhe → Griff vor dem Bauch
+(Kopf ragt durch die Decke wie am Trapez). Loslassen blendet 0,3 s in den Fall. Kennzahlen: Zeichenaufrufe und Dreiecke gleich
+der Stand-Pose (Lotti 9 / 28,6 k, Greta 9 / 24,0 k, Krallen-Anzug 10, mit Verkleidung wie im Stand). `view/Xray.js`: Prüfpunkt
+der kleinen Figur in 0,6 m Höhe (vorher 0,9 m – unter einem Deckengitter lag er in der Decke, die dann deckend blieb).
+Test `tests/posen_w6.mjs` (Port 4365 + `PORT_BASE`; `P6_SHOTS=0`, `P6_HEROES`, `P6_PARTS=hang,extra`, `P6_DEBUG=1`; Bilder
+`tests/out/posen_w6_*.png`, Bögen `posen_w6_sheet_<heldin>.png`).
+
+**Klänge:** eigene Synth-Effekte in `src/audio/sfx.js` (Listen `W6_SFX`, `HW_SFX`, auch `engine.effects.w6/hw`) – Welt 6:
+`gust`, `wind`, `rumble`, `door`, `poof`, `splash`, `bump`, `powerup_appear`, `gong`; Halloween: `klingel`, `tuer`,
+`alle_tueren`, `kessel`, `blase`, `netz`, `laterne`, `laterne_aus`, `suessigkeit`, `muenzregen`, `buh`, `grabstein`,
+`kuerbis_platzt`. `level.sfx(name)` findet sie direkt (auch die bisher stummen direkten Aufrufe `splash`, `bump`, `rumble`,
+`poof`, `powerup_appear` anderer Bausteine/Gegner). Die Ersatz-Tabelle in `w6Sfx` ist leer, die Ersatznamen der `hwSfx`-Aufrufe
+greifen nur noch für neue Namen. Lautheit wie die bestehenden Effekte (Median −22,7 LUFS), ≤ 21 Knoten, ≤ 1,1 s;
+Hörprobe `tests/out/sfx_demo_w6.wav` (`tests/audio.mjs`, `AUDIO_PART=sfx`).
+
 ## Präzisierung (Gegner Welt 6)
 
 Ergänzung des Gegner-Agenten Welt 6 „Wolkeninseln“ (Stand: Wolken-Gegnerzoo `0-24`, Wolken-Bossarenen `0-25`). Nichts oben
@@ -5728,3 +5770,113 @@ Pfeilplattformen, Zylinder, rotierende Stachelwalzen, Pendelstachel, steigende/s
 Giftnebel-Flucht, Klappstampfer; Gegner Knochenflieger, Platschfisch, Lavadrache, Wutkaulquappe, Funkenflämmchen,
 Stachelpanzer (vorhanden prüfen); Varianten heller Lavafelsen-König, blauer Schubser-Prinz; Boss Baron Brummbär im
 Kampfwagen (wirft Kickbomben – zurückkicken –, spuckt Feuer; Wurfsichel macht Zusatzschaden).
+
+## Präzisierung (Level 6-5, 6-6 und 6-Haus)
+
+Additiv zur Welt-6-Liste: Titel und Besonderheiten der Level 6-5, 6-6 und 6-Haus. Dateien `src/course/levels/w6/6-5.js`,
+`6-6.js`, `6-Haus.js`, eigene Hilfen `src/course/levels/w6/_helpers_c.js` (kein `LEVEL`, nur für diese drei Level; nutzt
+die Welt-4-Hilfen `w4/_helpers_d.js` mit), Test `tests/course_w6c.mjs`. Kein Motor-Code geändert; alle Sonderteile sind
+level-lokal (Hilfsdatei, Haken `LEVEL.build`/`LEVEL.setup`, `level.onStep`).
+
+### 6-5 „Pustewind am Eisgipfel“ (parcours · snowwind · course_snowwind · 400 s)
+
+- Verschneite Gipfel über dem Wolkenmeer, ≈ 270 m nach −Z, hinab (y 0 → −10,5) und per Glasröhren wieder hinauf (y 4).
+  Abschnitte: **Schneestart** (Iglu, Skihütte, Holzzaun, Schneemann, Schlittschuh; Treppe ?-Block → versteckter Block →
+  ?-Block; rechts die Rampe zur Stachelplattform) → **Eissee** (16 × 40 m, Eisläufer-Pilzlinge, Schneeufer statt Eiskante,
+  Laternen) → **Pustewolken-Hang** (drei Hangstücke mit Absätzen, Slalomstangen; vier Pustewolken ≈ 1,4 m über dem Weg
+  pusten quer, Schneewälle mit Lücken dort, wohin sie pusten) → **Glasröhre 1** hinab → **zweiter Eissee** (Checkpoint,
+  Schlittschuh, Pustewolke; rechts die Stachelbrücke zur Rätselbox) → **windiger Abgrund** (vier Schneeschollen 5,2 m breit,
+  Lücken 5,5 m; zwei quer blasende Windböen `windfeld` strength 9, period 4,2 / on 1,6 / warn 1,0 mit Windfahnen; über der
+  dritten Lücke ein Aufwind `dir [0, 1, 0]` strength 10; Checkpoint 2 auf der vierten Scholle) → **Glotzfisch-Bucht** (sechs
+  Eisschollen im Wasser, je ein Glotzfisch quer über jeder Lücke, Löcher y = Wasseroberfläche mit Eisring) → **Glasröhre 2**
+  hinauf → **Gipfel** (Zielmast, Wimpel, Kiefern).
+- Pustewolken nur am Hang und am zweiten Eissee, nie über den Windböen-Abgründen (Hinweis „Hinweise für Level-Bauer“).
+- Sterne: 0 hoch über der Start-Treppe – den **versteckten Block** (Unterkante 4,0 m, vom Boden erreichbar) von unten
+  aufdecken, dann ?-Block (Oberkante 4) → versteckter Block (5) → ?-Block (8,2) → Stern (11,4); ohne den versteckten Block
+  reicht der Sprung vom ersten ?-Block nicht · 1 Rätselbox hinter der **Stachelbrücke** (nur mit Schlittschuh unverletzt)
+  → Schlittschuh-Bahn bei x 90: Eisfläche 34 × 34 m, Schneeinsel in der Mitte, **Stachelrahmen** (4 × `stachelboden`)
+  ringsum; Zeitring auf dem Rahmen startet acht blaue Münzen auf einem Kreis r 6,9 m (ganz auf den Stacheln) in 10 s →
+  Stern auf der Insel · 2 im **Aufwind**: während der Böe in die dritte Lücke springen, er trägt ≈ 6 m hoch zum Stern,
+  dann auf die vierte Scholle; in der Ruhe reicht der Sprung nicht. Stempel: **Stachelplattform** am Start (12 × 12 m) –
+  mit Schlittschuh die Rampe hinauf und über die Stacheln (Rampe bündig mit der Stachel-Oberkante 1,25 m).
+- Extraleben: der versteckte Block an der Treppe (1-up). Checkpoints: zweiter Eissee, vierte Scholle. Gegner: Pustewolke 5,
+  Glotzfisch 5, Eisläufer-Pilzling 3; Schlittschuhe 3 (Start, Checkpoint, Bahn; `respawn`).
+- Budget: `eisflaeche` mit `edge: false` (die Eiskante kostet ≈ 110 k Dreiecke je See), niedrige Schneeufer (`bank`)
+  als Rand; Kulisse verschmolzen (`LEVEL.build`): Slalomstangen, Zäune (mit Kollision), Skihütte, Eiszapfen an allen
+  Schollen, Eiskristalle, Eislöcher, Wimpelketten.
+- `rampenKameraFrei(level)`: `CollisionWorld.raycast` prüft Rampen als ganzen Hüllquader – an Hängen rückte die Kamera
+  bis auf 3 m heran (Blick über die Schräge). Der Haken setzt `camIgnore` auf allen Rampen dieses Levels.
+
+### 6-6 „Kanonenturm im Wolkenwerk“ (parcours · factory · course_factory · 500 s)
+
+- Senkrechte Maschinenhalle in den Wolken, Höhen 0 → 14 → 20 → 30 → 34 → 44 → 54 → 59, ≈ 225 m nach −Z. Abschnitte:
+  **Werkstor** (Kessel, Schlot, Rohre, Schaltpult) → **Kletterwand** (`klettergitter` an einem 14 m hohen Maschinenblock,
+  `wall: false`; Projektilkopf-Kanone am Pfeiler daneben) → **Schlot** mit senkrechtem Stufen-Förderband (`foerderband`
+  `mode: 'wand'`, `ledges` 2,2) → **Wolken** (feste und pendelnde `wolkenplattform`) → **Deck C1** mit Gegenband
+  (Pilzlinge reiten mit) und Kanone, **Aufzugsband** (Wand-Förderband mit Stufen) → **Deck C2** mit Querband,
+  verschwindende Wolken → **Warp-Box** (einziger Weg zum Checkpoint-Deck) → **Checkpoint-Deck** mit Rätselbox →
+  **Kanonen-Floß** (`vehicle` `mode: 'once'`, fährt erst, wenn eine Figur darauf steht; drei mitfahrende Kanonen schießen
+  Projektilköpfe nach +Z der Figur entgegen) → **obere Wolken** → **Riesenkanone** (`riesenkanone` `hidden`, schießt
+  Riesenprojektile über die Lücke – draufspringen und mitfahren) → **Förderband-Turm** (Deck mit Krallen-?-Block und
+  Krallen-Automat; drei Bandwände ohne Stufen nur mit **Krallen-Anzug** zu erklimmen, Terrassen 44/54; Kanone auf
+  Terrasse 1) → **Ziel** (y 59, Zielmast).
+- Sterne: 0 oben auf dem Schlot (Stufen-Förderband hinauf, höchster Punkt des ersten Abschnitts) · 1 Rätselbox →
+  Förderband-Raum (x 80): Zeitring, acht blaue Münzen rund um ein **Rundband** (`mode: 'rund'`, Mitnehmer tragen über
+  die Oberseite) in 10 s; Stern versteckt bis zum Erfolg · 2 linkes Stufen-Förderband am Turm (14 m) hinauf, über den
+  roten Steg nach rechts. Stempel: auf dem Ziel-Deck von einem **Ziegel** auf dem Sockel hochspringen (zerstampft man den
+  Ziegel, reicht der Sprung vom Sockel nicht).
+- Extraleben: versteckter Block über dem Aufzugsband (Deck C2). Checkpoints: Checkpoint-Deck (nur per Warp-Box),
+  Turm-Deck. Gegner: Projektilkopf-Kanone 7 (davon 3 auf dem Floß), Riesenkanone 1, Pilzling 4.
+- Hilfen: `startBeimDraufstehen(level, id)` (Fahrzeug `delay` = ∞, bis eine Figur auf seinem `mover` steht; Neustart
+  setzt zurück), `krallenAutomat(level, { pos })` (legt einen Krallen-Anzug aus, wenn die Figur keinen hat und keiner
+  in 3 m liegt – nach Verlust immer Nachschub), `traeger` (Fachwerkträger), `zahnraeder`, `dampf`. Wand-Förderbänder
+  0,12 m vor die Turmfront gesetzt, damit die Kralle die Bandfläche statt der Insel trifft.
+- Kulisse verschmolzen: rote Träger mit Signallampen, Warnstreifen, Nieten, bunte Kisten/Fässer (mit Kollision),
+  Schaltpulte, Turmfassaden mit Fenstern, rot-weiß geringelte Werksschlote im Wolkenmeer, Wimpel, rotes Floß.
+
+### 6-Haus „Haus Volltreffer“ (house · house · course_house · 5 Räume à 10 s, `fail: 'exit'`)
+
+- Prüfungs-Haus mit **Wurfbällen** (14, je mit `roomId`), fünf Räume nach −Z (je 64 m Abstand), jeder mit eigener Tapete
+  (`tapete`: kugeln, theater, sterne, zoo, kirmes), Bildern, Uhren, Möbeln. Räume (Ziel):
+  1. **Kullerbahn** (reach) – vom Balkon den Ball in die Rinne werfen; eine Klappwand fängt zu hohe Würfe, die Rinne
+     (`kullerRinne`: Hangbeschleunigung und Zentrierung des Balls, weil der Wurfball nur am Boden beschleunigt) führt durch
+     den **Mäusetunnel** ins **Mauseloch** (0,56 m hoch – die Figur passt auch geduckt nicht) in die Stube des
+     Mäusehauses auf den Stern; Glas darüber, Bällebad links und rechts.
+  2. **Bühne frei** (reach) – Kraftfeld, Orchestergraben, rote **Hebebühne** trägt den Stern (`sternFolgt`): werfen,
+     wenn sie oben ist; Vorhänge, Scheinwerferkegel.
+  3. **Sprungfeld** (reach) – Trampolin vor dem 12 m hohen Kraftfeld, dahinter ein Ringelturm mit **Druckschalter**
+     oben: im Scheitel des Trampolinsprungs den Ball von oben auf den Schalter werfen → der Stern erscheint über dem
+     Trampolin (`sternVersteckt`), Münzsäule.
+  4. **Pilzling-Gehege** (defeatAll) – sechs Pilzlinge in der Grube hinter dem Kraftfeld, **POW** auf einem gelben
+     Sockel: Ball auf den POW werfen.
+  5. **Schießbude** (reach) – Bühne mit fünf Bällen auf einem Tablett, fünf **Zielscheiben** (`zielscheibe` group
+     `ziele5`, `onAll` → Stern auf der Bühne); alle fünf in 10 s treffen.
+- **Kraftfeld** (`kraftfeld`): Kasten mit `solid: true, trigger: true` (+ `camIgnore`, `noWallSlide`) – die Figur stößt
+  an, der Wurfball ignoriert `trigger`-Formen und fliegt hindurch; flimmernde Wabenfläche und Schild „NUR BÄLLE!“ seitlich.
+- `raumHaken` setzt beim Raumstart Zielscheiben und Druckschalter zurück; Zeitablauf verlässt das Haus mit den
+  bisherigen Sternen.
+
+### Test `tests/course_w6c.mjs`
+
+Port 4660 (+ `PORT_BASE`), Aufruf `node tests/course_w6c.mjs [6-5|6-6|6-Haus]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,shots,haus,haus-extra` (je Lauf < 10 min), `HEROES=lotti,greta`, `ONLY=<Text>`,
+`VERBOSE=1`, `SHOTS=<Name|Name>`, `DETAIL=1`, `RAUM=n`, Fehlersuche `PARTS=probe FROM=… LEGS=… TRACE=1`; Bilder
+`tests/out/w6c_*.png`. Bot mit echter Eingabe; Beine u. a. `fence` (Klettergitter, wartet, bis ein Projektilkopf vorbei
+ist), `lift` (Stufe des Wand-Förderbands abpassen), `ride` (Floß, Köpfen ausweichen), `bullet` (Anlauf, auf das
+Riesenprojektil springen), `climb` (Krallen), `cleat` (Mitnehmer des Rundbands), `circle` (Kreisfahrt auf dem
+Schlittschuh, Radius geregelt), `waitWind` (Böe abwarten bzw. `waitFor: 'boe'`), `fishFree` (kein Glotzfisch lugt oder
+springt in der Nähe), `vmax` (Schlittschuh-Tempo begrenzen), `straight` (Stick stur geradeaus: „naiver“ Sprung); Haus-Bot
+(Ball greifen, ausrichten, werfen; Hebebühne oben abpassen; Trampolin-Scheitel; fünf Scheiben).
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel **ohne Treffer**
+(6-5 ≈ 49 s mit zwei Glasröhren und drei abgewarteten Windlücken; 6-6 ≈ 63 s mit Klettergitter, Aufzugsband, Warp-Box,
+Floß, Riesenprojektil, drei Bandwänden mit Krallen); alle Sterne und Stempel mit Gegenproben (ohne versteckten Block,
+ohne Schlittschuh verletzen die Stacheln, ohne Aufwind, ohne Aufzugsband, Zeitablauf der Rätselbox, ohne Ziegel,
+Bandwand ohne Krallen, Checkpoint-Deck nicht per Weitsprung, Böe verweht den naiven Sprung); Extraleben, Checkpoints;
+6-Haus: alle fünf Räume je < 10 s (Lotti und Greta, ≈ 5,5 / 3,7 / 3,2 / 1,7 / 4,3 s), Ergebnis 5/5 gespeichert,
+Gegenproben (Mauseloch, Kraftfelder halten die Figur auf, Wurf bei unten stehender Bühne verfehlt, Stern 3 versteckt bis
+zum Schalter, Zeitablauf → Haus verlassen mit 2 von 5 Sternen). Gemessen (scale 2, inkl. Schattenpass): 6-5 Messgang
+≤ 54 Zeichenaufrufe / ≤ 148 k Dreiecke · 6-6 ≤ 84 / ≤ 148 k (Bilder an den Stern-Zielen bis 90 / 166 k) · 6-Haus je Raum
+27–44 / ≤ 111 k.
+Wünsche an den Motor: `CollisionWorld.raycast` für Rampen genau (statt Hüllquader; dann entfällt `rampenKameraFrei`),
+günstigere Eiskante für große `eisflaeche`, Wurfball-Hangbeschleunigung auch in kurzen Luftphasen (dann entfällt
+`kullerRinne`).

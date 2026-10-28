@@ -44,7 +44,8 @@
 //   'hang'     hängt unter einem Deckengitter (Hände über dem Kopf am Gitter, 0,2 m über dem Scheitel wie am Trapez) und
 //              hangelt; proxy.course.hangMove = { x, y } (−1..1 Stick: x = rechts, y = vor), speed = Hangeltempo m/s.
 //              Solange der Avatar die Pose nicht anbietet (avatar.courseStates?.has('hang')), zeigt HeroRig ersatzweise
-//              'trapeze' (gleiche Handhöhe, Seilwinkel 0).
+//              'trapeze' (gleiche Handhöhe, Seilwinkel 0). proxy.course.hangGrid = Deckengitter ({ x0, x1, z0, z1, y }, sonst
+//              null) – der HeroAvatar hält die Griffe damit im Gitter (am Rand).
 //   Die Pilz-Maske ist ein Trage-Helm (player.helmet = 'maske'): Modell wie die anderen Helme am Kopf.
 
 import * as THREE from 'three';
@@ -259,6 +260,7 @@ export class HeroRig {
     c.hangMove ??= { x: 0, y: 0 };
     c.hangMove.x = p.hang ? p.hangMove.x : 0;
     c.hangMove.y = p.hang ? p.hangMove.y : 0;
+    c.hangGrid = p.hang?.obj ?? null;   // Figuren Welt 6: Rechteck des Deckengitters (Griffe bleiben im Gitter)
     c.swing = p.state === 'trapeze' ? (p.swingTilt ?? 0) : 0;
     c.swingVel = p.state === 'trapeze' ? (p.swingVel ?? 0) : 0;
     c.power = p.power;
