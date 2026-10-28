@@ -131,6 +131,20 @@ const ROUTES = {
       ['ziel', [0, Y5, -235]],
     ],
   },
+  '6-B': {
+    start: [0, 2, 8.2],
+    meta: { stars: 1, arena: true, time: 100, theme: 'stonecircle', music: 'course_arena', archetype: 'arena' },
+    enemies: { feuer_werfer: 5 },
+    weapons: { feuer: 1, hammer: 2, bumerang: 2 },
+    main: [],
+    shots: [
+      ['start', [0, 2, 8.2]],
+      ['mitte', [0, 2.2, 0]],
+      ['hinten', [0, 2, -3.5]],
+      ['links', [-5, 2, -1]],
+      ['rechts', [5, 2, -1]],
+    ],
+  },
 };
 
 const PORT = 4640;
@@ -423,6 +437,30 @@ function install() {
       };
       requestAnimationFrame(wait);
     }),
+    arch: () => c.state().archetype,
+    save: () => JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}'),
+    /** Gegner e mit echter Eingabe anlaufen und draufspringen (in der Luft auf ihn lenken). → { ok, steps } */
+    jumpOn(e, o = {}) {
+      const p = P();
+      let n = 0;
+      const done = o.until ?? ((x) => x.defeated || x.removed || !x.alive);
+      for (; n < (o.max ?? 2400) && !done(e) && !p.dead; n++) {
+        const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+        let inp;
+        if (p.mode === 'air') {
+          const vx = dx * 4 + (e.vel?.x ?? 0), vz = dz * 4 + (e.vel?.z ?? 0), ex = vx - p.vel.x, ez = vz - p.vel.z, el = Math.hypot(ex, ez);
+          inp = { ...(el > 0.05 ? this.stick(ex, ez, Math.min(1, el / 2.5)) : {}), jump: p.vel.y > 0 };
+        } else {
+          const jump = d < (o.at ?? 2.0) && Math.abs(e.pos.y - p.pos.y) < 1.2;
+          const high = e.pos.y - p.pos.y > 1.2 && d < 2.6;
+          inp = { ...this.stick(dx, dz, 1), run: d > 3, jump: jump || high };
+        }
+        if (o.safe) p.invuln = Math.max(p.invuln, 3);
+        c.setInput(inp); c.step(1);
+      }
+      c.setInput({}); c.step(3);
+      return { ok: done(e), steps: n };
+    },
     rt: () => L.runtime.info(),
     info: () => P().info(),
     kinds: () => { const m = {}; for (const e of L.entities) m[e.kind] = (m[e.kind] ?? 0) + 1; return m; },
@@ -563,6 +601,106 @@ for (const id of LEVELS) {
       check(`${id}: ${t.name} (${hero}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}${t.mechText ? `, ${t.mechText(res)}` : ''})`, ok);
       if (t.shot && hero === HEROES[0]) await shot(`${id}_${t.shot}`);
     }
+  }
+
+  // ------------------------------------------------ Arena: Werfer werfen und springen, Kampf, Tod setzt zurück, Zeitlimit
+  if (R.meta.arena && PARTS.has('arena') && !ONLY) {
+    await load(id);
+    const ws = await sc(() => { const m = {}; for (const e of window.__course.level.entities) if (e.kind === 'feuer_werfer') m[e.weapon] = (m[e.weapon] ?? 0) + 1; return m; });
+    check(`${id}: Werfer-Waffen ${JSON.stringify(ws)}`, Object.entries(R.weapons).every(([k, n]) => ws[k] === n));
+    let r = await sc(() => {
+      const c = window.__course, L = c.level, p = c.player;
+      p.invuln = 1e9;
+      const kinds = new Set();
+      let high = 0;
+      for (let i = 0; i < 1800; i++) {
+        c.step(1);
+        for (const e of L.entities) if (e.alive && e.kind !== 'feuer_werfer' && e.kind !== 'coin' && e.owner?.kind === 'feuer_werfer') kinds.add(e.kind);
+        for (const e of L.entities) if (e.alive && e.kind !== 'feuer_werfer' && /kugel|hammer|bumerang/.test(e.kind)) kinds.add(e.kind);
+        high = Math.max(high, L.entities.filter((e) => e.kind === 'feuer_werfer' && e.tier === 'high').length);
+      }
+      p.invuln = 0;
+      const throws = Object.fromEntries(L.entities.filter((e) => e.kind === 'feuer_werfer').map((e) => [e.spec.id, e.throws]));
+      const jumps = Object.fromEntries(L.entities.filter((e) => e.kind === 'feuer_werfer').map((e) => [e.spec.id, e.jumps]));
+      return { throws, jumps, high, kinds: [...kinds] };
+    });
+    console.log(`  Werfer: ${JSON.stringify(r)}`);
+    check(`${id}: alle fünf Werfer werfen (${Object.values(r.throws).join('/')}) und springen (${Object.values(r.jumps).join('/')}, ${r.high} gleichzeitig oben), Geschosse ${r.kinds.join(', ')}`,
+      Object.values(r.throws).every((n) => n > 0) && Object.values(r.jumps).every((n) => n > 0) && r.high >= 1);
+    await shot(`${id}_kampf`);
+    for (const hero of HEROES) {
+      await load(id);
+      await W('place', R.start, { hero, settle: 2 });
+      r = await sc(() => {
+        const c = window.__course, L = c.level, W = window.__w6, p = c.player;
+        const out = { hits: [] };
+        const start = L.time;
+        for (let n = 0; n < 8 && W.arch().left > 0; n++) {
+          const e = L.entities.filter((x) => x.kind === 'feuer_werfer' && x.alive && !x.removed && !x.defeated).sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0];
+          if (!e) break;
+          const res = W.jumpOn(e, { safe: true, max: 3000 });
+          out.hits.push({ id: e.spec.id, ok: res.ok, steps: res.steps, y: +e.pos.y.toFixed(1), left: W.arch().left });
+        }
+        for (let i = 0; i < 400 && !W.arch().starTouch; i++) c.step(1);
+        const star = L.entities.find((x) => x.kind === 'star' && x.alive);
+        if (star) W.drive([{ to: [star.pos.x, star.pos.z], within: 0.2, run: true, max: 900 }], {});
+        for (let i = 0; i < 900 && !c.finished; i++) c.step(1);
+        out.time = +(L.time - start).toFixed(1);
+        out.finished = !!c.finished;
+        out.got = !!L.runtime.stars[0];
+        out.save = W.save().levels?.['6-B'] ?? null;
+        out.hurts = p.hurtTries ?? 0;
+        return out;
+      });
+      console.log(`  ${hero} Kampf: ${JSON.stringify(r)}`);
+      check(`${id}: ${hero} besiegt alle fünf Werfer draufspringend (${r.hits.map((h) => `${h.id}@${h.y}`).join(', ')})`, r.hits.length === 5 && r.hits.every((h) => h.ok));
+      check(`${id}: ${hero} Stern auf dem Altarstein, Ziel nach ${r.time} s (< 100 s), gespeichert`, r.got && r.finished && r.time < 100 && r.save?.done === true);
+      if (hero === HEROES[0]) { await page.waitForTimeout(500); await page.screenshot({ path: `${OUT}w6a_${id}_ergebnis.png` }); }
+    }
+    // Tod setzt die Arena zurück (alle fünf Werfer neu)
+    await load(id);
+    r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__w6, p = c.player;
+      const ids = ['bumerang1', 'bumerang2'];
+      for (const id of ids) { const e = L.entities.find((x) => x.spec?.id === id); if (e) W.jumpOn(e, { safe: true, max: 3000 }); }
+      const before = W.arch().left;
+      p.invuln = 0;
+      p.die('fall');
+      for (let i = 0; i < 600 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1);
+      c.step(30);
+      return { before, left: W.arch().left, n: L.entities.filter((x) => x.kind === 'feuer_werfer' && x.alive && !x.defeated && !x.removed).length, resets: W.arch().resets };
+    });
+    check(`${id}: Tod setzt die Arena zurück (vorher noch ${r.before}, danach ${r.left}, ${r.n} Werfer)`, r.before === 3 && r.left === 5 && r.n === 5);
+    // Funkenblüte aus dem ?-Block: Feuerbälle besiegen einen Werfer von weitem
+    await load(id);
+    r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__w6, p = c.player;
+      W.place([-2.8, 2, 6.2], {});
+      W.drive([{ hop: 20 }, { chaseKind: 'powerup', max: 600 }], {});
+      const power = p.power;
+      const e = L.entities.find((x) => x.spec?.id === 'bumerang1');
+      let k = 0;
+      for (; k < 900 && e.alive && !e.defeated && !e.removed; k++) {
+        p.invuln = Math.max(p.invuln, 3);
+        const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+        c.setInput({ ...W.stick(dx, dz, d > 4 ? 1 : 0.15), action: k % 20 < 2 });
+        c.step(1);
+      }
+      c.setInput({});
+      return { power, defeated: !e.alive || e.defeated || e.removed, k, left: W.arch().left };
+    });
+    check(`${id}: Funkenblüte aus dem ?-Block, Feuerball besiegt einen Bumerang-Werfer (${r.power}, ${r.k} Schritte, noch ${r.left})`, r.power === 'funken' && r.defeated && r.left === 4);
+    // Zeitlimit 100 s: Zeit um → Tod
+    await load(id);
+    r = await sc(() => {
+      const c = window.__course, L = c.level, p = c.player;
+      const h = p.hurt; p.hurt = () => false;
+      let dead = false, cause = null;
+      for (let i = 0; i < 101 * 120 && !dead; i++) { c.step(1); if (p.dead) { dead = true; cause = p.deathCause; } }
+      p.hurt = h;
+      return { dead, cause, t: +L.time.toFixed(1) };
+    });
+    check(`${id}: nach 100 s ist die Zeit um (${r.cause} bei ${r.t} s)`, r.dead && r.cause === 'time');
   }
 
   // ------------------------------------------------ Bilder je Abschnitt aus der Spielkamera

@@ -345,3 +345,187 @@ export function wolkenkranz(level, cx, cz, rx, rz, y, o = {}) {
   }
   b.flush(level, { castShadow: false });
 }
+
+// =====================================================================================================================
+// 6-B Steinkreis
+// =====================================================================================================================
+
+const hash2 = (x, z) => { const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453; return s - Math.floor(s); };
+/** Weiches Wert-Rauschen 0..1 (bilinear zwischen Gitterpunkten). */
+export function vnoise(x, z) {
+  const xi = Math.floor(x), zi = Math.floor(z), fx = x - xi, fz = z - zi;
+  const u = fx * fx * (3 - 2 * fx), w = fz * fz * (3 - 2 * fz);
+  const a = hash2(xi, zi), b = hash2(xi + 1, zi), c = hash2(xi, zi + 1), d = hash2(xi + 1, zi + 1);
+  return a + (b - a) * u + (c - a) * w + (a - b - c + d) * u * w;
+}
+
+/** Radius der welligen Schwebeinsel in Richtung a. */
+export const inselRadius = (o, a) => o.R * (1 + 0.05 * Math.sin(3 * a + 0.7) + 0.035 * Math.sin(5 * a + 2.1) + 0.03 * Math.sin(2 * a + 1.3));
+
+/**
+ * Runde Schwebeinsel über dem Wolkenmeer (6-B): flache Grasdecke (Flecken, heller Rand), Erdkante, darunter ein nach unten
+ * spitz zulaufender Felskegel mit Wurzeln. Kollision: Kreis-Vereinigung (Mitte + Randzylinder). o: { center [x, z], top, R,
+ * depth 4, N 48, cone 14 (m Felskegel unter der Kante) }.
+ */
+export function wolkeninsel(level, o) {
+  const [cx, cz] = o.center ?? [0, 0];
+  const top = o.top ?? 2, depth = o.depth ?? 4, N = o.N ?? 48;
+  const rad = (a) => inselRadius(o, a);
+  let rMin = Infinity;
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * TAU, r = rad(a), rr = 1.3;
+    rMin = Math.min(rMin, r);
+    level.world.add({ type: 'cyl', x: cx + Math.cos(a) * (r - rr), z: cz + Math.sin(a) * (r - rr), r: rr, y0: top - depth, y1: top, tag: 'insel' });
+  }
+  level.world.add({ type: 'cyl', x: cx, z: cz, r: rMin - 1.0, y0: top - depth, y1: top, tag: 'insel' });
+  if (!level.view) return;
+  const g1 = lin(0x6ad04a), g2 = lin(0x8ae05e), g3 = lin(0x4eb83c), rim = lin(0xb2f07c), out = [0, 0, 0];
+  const topCol = (x, z, e) => {
+    const n = vnoise(x * 0.32 + 3, z * 0.32), m = vnoise(x * 1.1 - 5, z * 1.1 + 2);
+    mixc(g3, g1, smooth(0.2, 0.6, n), out);
+    mixc(out, g2, smooth(0.6, 0.9, m) * 0.7, out);
+    mixc(out, rim, smooth(0.86, 1, e) * 0.6, out);
+    return [out[0], out[1], out[2]];
+  };
+  const RINGS = 7;
+  const pos = [], col = [];
+  const P = (k, i) => { const a = (i / N) * TAU, r = rad(a) * (k / RINGS); return [cx + Math.cos(a) * r, top, cz + Math.sin(a) * r, k / RINGS]; };
+  const push = (q, c) => { pos.push(q[0], q[1], q[2]); const cc = c ?? topCol(q[0], q[2], q[3]); col.push(cc[0], cc[1], cc[2]); };
+  for (let k = 0; k < RINGS; k++) {
+    for (let i = 0; i < N; i++) {
+      const a0 = P(k, i), a1 = P(k, i + 1), b0 = P(k + 1, i), b1 = P(k + 1, i + 1);
+      push(a0); push(b1); push(b0);
+      if (k > 0) { push(a0); push(a1); push(b1); }
+    }
+  }
+  // Grasrand (leicht überstehend), Erdkante, Felskegel
+  const dirt = lin(0xb88a5a), dirtD = lin(0x7a5a3a), rock = lin(0xa29eb8), rockD = lin(0x6a6680), grassS = lin(0x4aa83a);
+  const cone = o.cone ?? 14;
+  const LAY = [[0, 1.0, grassS], [0.45, 1.02, grassS], [0.7, 0.99, dirt], [depth * 0.6, 0.95, dirtD], [depth, 0.86, rock], [depth + cone * 0.45, 0.5, rockD], [depth + cone, 0.06, rockD]];
+  for (let i = 0; i < N; i++) {
+    const a0 = (i / N) * TAU, a1 = ((i + 1) / N) * TAU;
+    const r0 = rad(a0), r1 = rad(a1);
+    for (let l = 0; l < LAY.length - 1; l++) {
+      const [d0, s0, c0] = LAY[l], [d1, s1, c1] = LAY[l + 1];
+      const w0 = l > 3 ? 0.85 + 0.15 * hash2(i % N, l) : 1, w1 = l > 3 ? 0.85 + 0.15 * hash2((i + 1) % N, l) : 1;
+      const v0 = l + 1 > 3 ? 0.85 + 0.15 * hash2(i % N, l + 1) : 1, v1 = l + 1 > 3 ? 0.85 + 0.15 * hash2((i + 1) % N, l + 1) : 1;
+      const A = [cx + Math.cos(a0) * r0 * s0 * w0, top - d0, cz + Math.sin(a0) * r0 * s0 * w0];
+      const B = [cx + Math.cos(a1) * r1 * s0 * w1, top - d0, cz + Math.sin(a1) * r1 * s0 * w1];
+      const C = [cx + Math.cos(a1) * r1 * s1 * v1, top - d1, cz + Math.sin(a1) * r1 * s1 * v1];
+      const D = [cx + Math.cos(a0) * r0 * s1 * v0, top - d1, cz + Math.sin(a0) * r0 * s1 * v0];
+      const lit = 0.82 + 0.25 * Math.max(0, Math.cos(a0 - 2.4));
+      const cA = c0.map((v) => v * lit), cD = c1.map((v) => v * lit);
+      push(A, cA); push(C, cD); push(B, cA);
+      push(A, cA); push(D, cD); push(C, cD);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  addStatic(level, g, { castShadow: true });
+  // Wurzeln und Grashalme, die unter der Kante hängen
+  const b = new Bld();
+  for (let i = 0; i < N; i += 2) {
+    const a = (i / N) * TAU + 0.05, r = rad(a) * 0.97;
+    const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+    const L2 = 0.6 + hash2(i, 9) * 1.4;
+    b.cyl(0.03, 0.05, L2, x, top - 0.5 - L2, z, i % 4 ? 0x6a4a2a : 0x4aa83a, 4);
+  }
+  b.flush(level, { castShadow: false });
+}
+
+/**
+ * Innerer Steinkreis: Menhire (feste Zylinder, Deckung gegen hüpfende Feuerkugeln) und Trilithen (zwei Steine mit
+ * Deckstein = Einweg-Plattform, auf die Werfer springen). o: { center [x, z], y, menhirs: [[winkel, radius, höhe]],
+ * trilithen: [{ pos: [x, z], yaw, top (Oberkante Deckstein), w: 3.6 }] }.
+ */
+export function steinkreis(level, o) {
+  const [cx, cz] = o.center ?? [0, 0], y = o.y;
+  const b = level.view ? new Bld() : null;
+  const stone = (x, z, h, r, yaw = 0, seed = 1) => {
+    level.world.add({ type: 'cyl', x, z, r: r * 0.9, y0: y, y1: y + h, tag: 'menhir' });
+    if (!b) return;
+    const g = new THREE.CylinderGeometry(r * 0.72, r, h, 7, 4);
+    const P = g.attributes.position;
+    for (let k = 0; k < P.count; k++) {
+      const px = P.getX(k), py = P.getY(k), pz = P.getZ(k);
+      const n = 0.88 + 0.24 * hash2(Math.round(px * 7) + seed, Math.round(pz * 7 + py * 3));
+      P.setXYZ(k, px * n, py, pz * n * 0.72);
+    }
+    g.computeVertexNormals();
+    b.add(g, { v: (px, py, pz, nx, ny) => (py < -h / 2 + 0.6 ? 0x5a9a44 : ny > 0.6 ? 0xc8c4d4 : (Math.sin(py * 3 + px * 2) > 0.7 ? 0x8ab060 : 0xa8a4b8)) }, { p: [x, y + h / 2, z], r: [0, yaw, 0] });
+  };
+  (o.menhirs ?? []).forEach(([a, r, h], i) => stone(cx + Math.cos(a) * r, cz + Math.sin(a) * r, h, 0.62, -a, i + 3));
+  for (const t of o.trilithen ?? []) {
+    const [tx, tz] = t.pos, yaw = t.yaw ?? 0, w = t.w ?? 3.6;
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    const hh = t.top - y - 0.6;
+    for (const sd of [-1, 1]) stone(tx + c * sd * (w / 2 - 0.45), tz - s * sd * (w / 2 - 0.45), hh, 0.5, yaw, 7 + sd);
+    // Deckstein (Einweg von unten)
+    const hw = (Math.abs(c) * w + Math.abs(s) * 1.6) / 2, hd = (Math.abs(s) * w + Math.abs(c) * 1.6) / 2;
+    level.world.add({ type: 'box', min: [tx - hw, t.top - 0.6, tz - hd], max: [tx + hw, t.top, tz + hd], oneWay: true, tag: 'deckstein' });
+    if (b) {
+      b.box(w + 0.2, 0.62, 1.7, tx, t.top - 0.62, tz, { v: (px, py, pz, nx, ny) => (ny > 0.5 ? (hash2(Math.round(px * 3), Math.round(pz * 3)) > 0.7 ? 0x7ab858 : 0xccc8d8) : 0x9a96aa) }, { yaw, r: 0.14 });
+      for (let k = 0; k < 4; k++) b.sphere(0.2, tx + c * (k - 1.5) * 0.9, t.top + 0.02, tz - s * (k - 1.5) * 0.9, 0x6ab84a, { s: [1.6, 0.35, 1.2], ws: 6, hs: 4 });
+    }
+  }
+  b?.flush(level);
+}
+
+/** Lager der Werfer-Bande (Welt 6): Hammer-Ständer, Bumerang-Gestell, Fass, Feuerkugel-Korb. list [[x, y, z, yaw]]. */
+export function werferlager(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), glow = new Bld();
+  for (const [x, y, z, yaw = 0] of list) {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    const at = (u, w) => [x + u * c + w * s, z - u * s + w * c];
+    // Hammer-Ständer: Holzgestell mit drei Hämmern
+    let [px, pz] = at(-1.2, 0);
+    b.box(1.6, 0.12, 0.3, px, y + 0.9, pz, 0x8a5a2a, { yaw, r: 0.03 });
+    for (const sd of [-0.7, 0.7]) { const [qx, qz] = at(-1.2 + sd, 0); b.box(0.12, 1.0, 0.3, qx, y, qz, 0x7a4a26, { yaw, r: 0.03 }); }
+    for (let k = 0; k < 3; k++) {
+      const [qx, qz] = at(-1.7 + k * 0.5, 0.05);
+      b.cyl(0.04, 0.04, 0.9, qx, y + 0.12, qz, 0xc08a4a, 6);
+      b.box(0.36, 0.22, 0.22, qx, y + 1.0, qz, litTop(0x8a8ea0), { yaw, r: 0.04 });
+    }
+    // Bumerang-Gestell (Holzbock mit drei Bumerangs)
+    [px, pz] = at(0.9, -0.2);
+    b.box(0.9, 0.1, 0.5, px, y + 0.7, pz, 0x9a6a3a, { yaw, r: 0.03 });
+    b.box(0.1, 0.7, 0.1, px, y, pz, 0x7a4a26, { yaw, r: 0.02 });
+    for (let k = 0; k < 3; k++) {
+      const [qx, qz] = at(0.65 + k * 0.25, -0.2);
+      for (const sd of [-1, 1]) b.box(0.38, 0.04, 0.1, qx + c * sd * 0.14, y + 0.82 + k * 0.05, qz - s * sd * 0.14, [0xffc21a, 0x3d8bff, 0xff4a3d][k], { yaw: yaw + sd * 0.6, r: 0.02 });
+    }
+    // Fass und Feuerkugel-Korb
+    [px, pz] = at(2.0, 0.4);
+    b.cyl(0.34, 0.36, 0.86, px, y, pz, { v: (qx, qy) => (Math.abs(qy) > 0.28 && Math.abs(qy) < 0.36 ? 0x3a3a48 : 0xa8683a) }, 10);
+    [px, pz] = at(2.2, -0.7);
+    b.cyl(0.42, 0.34, 0.44, px, y, pz, { v: (qx, qy, qz) => ((Math.floor(Math.atan2(qz, qx) * 4) & 1) ? 0xc89a50 : 0xa07030) }, 10, { open: true });
+    for (let k = 0; k < 4; k++) glow.sphere(0.15, px + Math.cos(k * 1.6) * 0.18, y + 0.42, pz + Math.sin(k * 1.6) * 0.18, 0xffb030, { ws: 7, hs: 5 });
+  }
+  b.flush(level);
+  glow.flush(level, { material: 'glow', castShadow: false });
+}
+
+/** Flacher Altarstein (Mitte des Steinkreises): Steinscheibe mit eingelegtem Sternmosaik (leuchtend), Moosrand. */
+export function altarstein(level, x, y, z, r) {
+  if (!level.view) return;
+  const b = new Bld(), glow = new Bld();
+  b.cyl(r, r + 0.12, 0.22, x, y, z, litTop(0xc8c4d4), 20);
+  b.cyl(r * 0.78, r * 0.78, 0.02, x, y + 0.22, z, 0xa8a4b8, 20);
+  for (let k = 0; k < 10; k++) { const a = (k / 10) * TAU; b.sphere(0.2, x + Math.cos(a) * (r + 0.05), y + 0.08, z + Math.sin(a) * (r + 0.05), 0x6ab84a, { s: [1.5, 0.5, 1.2], ws: 6, hs: 4 }); }
+  // Sternmosaik: fünf Zacken als flache Keile
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * TAU - Math.PI / 2;
+    const g = new THREE.BufferGeometry();
+    const tip = [x + Math.cos(a) * r * 0.7, y + 0.245, z + Math.sin(a) * r * 0.7];
+    const l = [x + Math.cos(a - 0.6) * r * 0.25, y + 0.245, z + Math.sin(a - 0.6) * r * 0.25];
+    const rr = [x + Math.cos(a + 0.6) * r * 0.25, y + 0.245, z + Math.sin(a + 0.6) * r * 0.25];
+    g.setAttribute('position', new THREE.Float32BufferAttribute([...tip, ...l, ...rr, x, y + 0.245, z, ...rr, ...l], 3));
+    g.computeVertexNormals();
+    glow.add(g, 0xffd84a);
+  }
+  b.flush(level);
+  glow.flush(level, { material: 'glow', castShadow: false });
+}
