@@ -18,7 +18,8 @@
 // schlangenkoenig    Schlangenkönig auf drehendem Zirkus-Sockel (Ø 4,8 m, 1,4 m hoch, Loch in der Mitte): smaragdgrüne
 //   Königsschlange mit goldenen Ringen, cremefarbenem Bauch, Kobra-Haube mit Augenfleck, Goldkrone mit Juwelen,
 //   bernsteinfarbenen Schlitzaugen, gespaltener Zunge. Körper aus opts.segments Kugelsegmenten (je 0,55 m).
-//   opts  { segments: 6–16 (Standard 10) }
+//   opts  { segments: 6–16 (Standard 10), color: Standard smaragdgrün | 'rosa' (Welt 8, 8-B: magenta-rosa Königsschlange mit
+//           Goldringen, zartrosa Bauch, violettem Augenfleck auf der Haube und grünen Schlitzaugen; additiv) }
 //   state { anim: 'idle'|'rise'|'strike'|'summon'|'hit'|'defeated', progress? (0..1; sonst Zeit),
 //           headPos?: [x, y, z] (lokale Kopfposition, z. B. auf einer Säulenspitze; überschreibt die Pose),
 //           turn?: Drehung des Sockels in rad (Standard: dreht langsam von selbst) }
@@ -320,20 +321,24 @@ function snakeSegGeo(colors) {
 }
 const KING_COLORS = { key: 'king', main: SK3.green, dark: SK3.greenDark, belly: SK3.belly, band: SK3.gold };
 const SERVANT_COLORS = { key: 'servant', main: 0xff6a2a, dark: 0xd8401a, belly: 0xfff4dc, band: 0xfff4dc };
+// Welt 8 (8-B): rosa Schlangenkönig (Körper, Kopf, Augen); der Standard bleibt unverändert
+const ROSA_COLORS = { key: 'rosa', main: 0xff4aa8, dark: 0xb8146e, belly: 0xfff0f6, band: SK3.gold };
+const KING_HEAD = { key: '', dark: SK3.greenDark, hi: SK3.greenHi, main: SK3.green, belly: SK3.belly, spot: SK3.red, ring: SK3.gold, ink: SK3.ink };
+const ROSA_HEAD = { key: ':rosa', dark: 0xb8146e, hi: 0xffa8d8, main: 0xff4aa8, belly: 0xfff0f6, spot: 0x7a2ad8, ring: SK3.gold, ink: 0x3a0a2a };
 
-function kingHeadGeo() {
-  return cached('w3:snake:head', () => {
+function kingHeadGeo(H = KING_HEAD) {
+  return cached(`w3:snake:head${H.key}`, () => {
     const b = new Build();
-    const skin = { v: (x, y, z, nx, ny) => (ny < -0.45 ? col3(SK3.belly) : mix(SK3.greenDark, SK3.greenHi, smoothstep(ny * 0.6 + 0.45))) };
+    const skin = { v: (x, y, z, nx, ny) => (ny < -0.45 ? col3(H.belly) : mix(H.dark, H.hi, smoothstep(ny * 0.6 + 0.45))) };
     b.sphere(1, skin, { p: [0.05, 0.02, 0], s: [0.55, 0.38, 0.5] }, 28, 20);
     b.sphere(1, skin, { p: [0.45, -0.05, 0], s: [0.38, 0.24, 0.36] }, 24, 16);
     // Kobra-Haube hinter dem Kopf mit Augenfleck
-    b.sphere(1, { v: (x, y, z, nx) => (nx < -0.5 && Math.hypot(y, z) < 0.35 ? (Math.hypot(y, z) < 0.18 ? col3(SK3.red) : col3(SK3.gold)) : mix(SK3.greenDark, SK3.green, smoothstep(Math.abs(z) * 1.2))) }, { p: [-0.32, -0.25, 0], s: [0.14, 0.62, 0.78] }, 24, 16);
+    b.sphere(1, { v: (x, y, z, nx) => (nx < -0.5 && Math.hypot(y, z) < 0.35 ? (Math.hypot(y, z) < 0.18 ? col3(H.spot) : col3(H.ring)) : mix(H.dark, H.main, smoothstep(Math.abs(z) * 1.2))) }, { p: [-0.32, -0.25, 0], s: [0.14, 0.62, 0.78] }, 24, 16);
     // Nasenlöcher, Brauenwülste, Mundlinie, Fangzähne
     for (const s of [1, -1]) {
-      b.sphere(1, SK3.ink, { p: [0.8, 0.06, s * 0.08], s: [0.02, 0.02, 0.025] }, 8, 6);
-      b.capsule(0.05, 0.22, SK3.greenDark, { p: [0.28, 0.33, s * 0.2], r: [Math.PI / 2 - s * 0.3, -s * 0.35, 0], order: 'YXZ' }, 3, 8);
-      b.tube([[0.8, -0.13, s * 0.06], [0.6, -0.15, s * 0.26], [0.3, -0.12, s * 0.38]], 0.018, SK3.ink, null, 12, 5);
+      b.sphere(1, H.ink, { p: [0.8, 0.06, s * 0.08], s: [0.02, 0.02, 0.025] }, 8, 6);
+      b.capsule(0.05, 0.22, H.dark, { p: [0.28, 0.33, s * 0.2], r: [Math.PI / 2 - s * 0.3, -s * 0.35, 0], order: 'YXZ' }, 3, 8);
+      b.tube([[0.8, -0.13, s * 0.06], [0.6, -0.15, s * 0.26], [0.3, -0.12, s * 0.38]], 0.018, H.ink, null, 12, 5);
       b.cone(0.04, 0.14, SK3.fang, { p: [0.68, -0.22, s * 0.13], r: [Math.PI, 0, 0] }, 8);
     }
     return b.geometry();
@@ -393,20 +398,21 @@ function placeAlong(p0, p1, p2, p3, n, step, out) {
 
 function buildSchlangenkoenig(opts = {}) {
   const n = clamp(Math.round(opts.segments ?? 10), 6, 16);
+  const rosa = opts.color === 'rosa';
   const root = new THREE.Group();
   const drum = joint();
   drum.add(mesh(circusDrumGeo(DRUM_R, DRUM_H, 0.62), vcol(0.4), {}, true));
   drum.children[0].receiveShadow = true;
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.32, emissive: 0x000000 });
   const H = DRUM_H + n * SEG_L + 1.5;
-  const segs = instMesh(snakeSegGeo(KING_COLORS), mat, n, H, H / 2);
+  const segs = instMesh(snakeSegGeo(rosa ? ROSA_COLORS : KING_COLORS), mat, n, H, H / 2);
   segs.castShadow = true;
   const head = joint();
-  const headM = mesh(kingHeadGeo(), mat, {}, true);
+  const headM = mesh(kingHeadGeo(rosa ? ROSA_HEAD : KING_HEAD), mat, {}, true);
   const jaw = joint([0.12, -0.17, 0], mesh(kingJawGeo(), mat, {}, true));
   const tongue = mesh(tongueGeo(), vcol(0.4), { p: [0.6, -0.17, 0] });
   const eye = eyes([{ p: [0.42, 0.2, 0.25], r: 0.12, sy: 1.1, dir: [0.8, 0.2, 0.55] }, { p: [0.42, 0.2, -0.25], r: 0.12, sy: 1.1, dir: [0.8, 0.2, -0.55] }],
-    { key: 'w3:snakeking', iris: 0xffa010, pupil: 0.6, slit: true, depth: 0.5 });
+    rosa ? { key: 'w3:snakeking:rosa', iris: 0x2ad860, pupil: 0.6, slit: true, depth: 0.5 } : { key: 'w3:snakeking', iris: 0xffa010, pupil: 0.6, slit: true, depth: 0.5 });
   const crownMat = metal('w3:crown', { color: 0xffffff, vertexColors: true, metalness: 0.55, roughness: 0.28, emissive: 0x000000 });
   const crownOwn = crownMat.clone();
   const crown = mesh(crownGeo(), crownOwn, { p: [0.0, 0.34, 0], r: [0, 0, 0.1] }, true);
