@@ -1483,6 +1483,91 @@ Gemessen (scale 2, `tests/course_map_hw.mjs`, mit den Halloween-Modellen): stati
 Hexenturm 65 / 194 k, Gruselschloss 68 / 183 k, Anflug 91 / 225 k (Modell-Kacheln fern ausgeblendet). Welt 1 mit der
 Halloween-Röhre höchstens 81 / 265 k (Startstrand vorher ≈ 72 / 240 k).
 
+### Präzisierung (Mehrwelten-Karte): Welt 6 „Wolkeninseln“ (Notiz)
+
+- Dateien: `worlds/w6.js` (Daten, `MAP.world = 6`, `kit: 'sky'`, Musik `course_world6_map`, Rückfall `course_map`), `sky6.js`
+  (Thema `map_sky`: Himmelsverlauf, Sonne, ferne Wolkenberge; Materialien `w6glass`/`w6rainbow`, Geländestile mit Inselflanken
+  und Unterseiten, Wolkenkragen, Ränder, Requisiten, Streudeko, Brücken-Segmente, Wolkenmeer `CloudSea`, Inselchen,
+  Nachbarwelt-Stile `'sky'`/`'lavafort'`, lebendige Kulisse `SkyLife`, Taktuhr `beatNow6`), `decor_w6.js` (Kulissen der
+  zwölf Welt-6-Eingänge, Stellvertreter `STAND_INS_W6`). Additiv angebunden: `MapBuilder.js` (`map.kit === 'sky'`: Gelände,
+  Segmente, Streudeko, Requisiten-Ketten, `SkyLife`; Registry-Requisiten der Karte in Kacheln je 16-m-Feld mit `lod`),
+  `scenery.js` (Wolkenmeer statt Meer/Schaum, tiefe Wolken ohne Schatten, Inselchen in einer Kachel, Nachbarwelt-Stile),
+  `entrances.js` (`decorateW6`), `props.js` (Podestfarben), `CourseMapScene.js` (s. u.), `MapBatcher.js` (`zones`),
+  `travel.js` (`departAlong`), `bake.js` (optionales `dt`). `worlds/w5.js` ist unverändert.
+- Inseln (begehbar, Höhe) und Eingänge (`kind`), alle über einem Wolkenmeer (`sea: 0`), nach Norden ansteigend:
+  A Ankunftsinsel y 10 mit Beerenhaus (−8, 10, 31.4) – `W5` Glasröhre zurück (−16, 10, 45; Röhre nach Südwesten zur
+  Lila-Insel am Horizont), `6-1` `pipehills` Bergland mit Glasröhren-Netz (12, 10, 36; Münzen sausen durch die Röhren,
+  Stachelkugeln, Warp-Box, Wolkenkanone mit Münzhimmel); S Steinkreis-Insel y 10.5 – `6-B` `stonecircle` (−45, 10.5, 24;
+  Menhire mit Runen, Feuerschalen, Gegnergruppe 5 × `feuer_werfer` mit `memberOpts` Feuer/Hammer/Bumerang, Ausgang
+  `exit` (−37.4, 10.5, 32)); B Geisterschiff-Bucht y 11 (Becken y 10.1) – `6-2` `ghostbay` (−6, 11, −4.6; schwankendes
+  Geisterschiff, Kreisgeister, Wrack); C Fernost-Insel y 12.5 – `6-3` `fareast` Fernost-Halle (−56, 12.5, −12, „ab 110 ★“;
+  zweistöckige Fantasie-Halle, Gong im Takt, Laternenbogen); D Dschungel-Insel y 12 um den lila Giftsee (y 11.2) – `6-4`
+  `junglelake` (43, 12, −9.5; Floß, Giftblasen, Klettergitter, Giftblüten); E Festungs-Insel y 12.5 – `6-A` `pipefort`
+  (75, 12.5, −22; Mauern mit Glasröhren, `cage`/`towers`/`gateAt`, Gegnergruppe 1 × `schubser_prinz`, Ausgang (67.4, 12.5,
+  −22)); F Schnee-Wolkenberg y 14 (Gipfel y 17.5; fünf der sieben Windräder) – `6-5` `snowwind` (40, 14, −66; Pustewolke, Eisteich
+  mit Glotzfisch, Iglu); G Himmelsfabrik y 15 mit Glückshaus (−20, 15, −73) – `6-6` `skyfactory` (−9, 15, −74; Zahnräder,
+  Förderband, Dampf, Kessel); H Haus-Insel y 15 – `6-Haus` `throwhouse` Prüfungs-Haus (−51, 15, −76; Wurfmaschine,
+  Zielscheibe); I Minen-Insel y 16 – `6-7` `minetower` (−15, 16, −117; Fördergerüst mit Seilrad und Aufzugkorb, Wuschel-
+  Horde); J Wolkenstraße y 16.5 – `6-Panzer` `tankroad` (36, 16.5, −117; Panzerkolonne, Riesen-?-Block-Türme, Zündköpfe);
+  K Zirkus-Gipfel y 20 (höchste Insel) – `6-C` `skycircus` Zirkuszelt (46, 20, −153, „ab 120 ★“; Würfelblase, Gelee-Brocken,
+  Seilbahn hinab zur Wolkenstraße); L Röhren-Insel y 20 – `W7` Glasröhre (80, 20, −157; nach Nordosten zur Lava-Festung am
+  Horizont). Zwölf Verbindungen (`segments`): Glasröhren (`glasstube`, begehbar wie Stege, Glasmantel mit Ringen und
+  Leuchtstreifen), Wolkenbrücken (`cloudbridge`), rote Bogenbrücke (`redbridge`), Regenbogenbrücke (`rainbowbridge`, J → K);
+  elf Schranken je 4 m.
+- Freischaltung laut „Welt 6 – Level-Liste und Freischaltung“: `6-1` und `6-B` frei, sobald Welt 6 offen ist; `6-2` nach 6-1;
+  `6-3` (≥ 110 ★) und `6-4` nach 6-2; `6-A` und `6-5` nach 6-4; `6-6` nach 6-5; `6-Haus` und `6-7` nach 6-6; `6-Panzer` nach
+  6-7; `6-C` (≥ 120 ★) nach 6-Panzer; `W7` (`{ id: 'W7', world: 7, next: 7 }`) nach 6-C. `starScope: 'all'`, 34 Sterne,
+  Stempel auf 6-1 … 6-7, 6-Panzer, 6-C. Schilder „ab 110 ★“, „ab 120 ★“, „Welt 6 / Wolkeninseln“.
+- Weltdaten zusätzlich (alles optional): Geländestile `meadow` (Standard)|`hill`|`stone`|`rock`|`bay`|`pool`|`poison`|
+  `fareast`|`jungle`|`fort`|`snow`|`snowpeak`|`metal`|`mine`|`cloud`|`circus`, je Block `under: { rect, depth, lite } | false`
+  (Inselunterseite: Felsringe, Tropfsteine, Ranken, Leuchtkristalle), `sideTo` (Flanke bis zum Nachbarblock); Ränder `edges:
+  { hedge: 'cloudhedge', fence: 'skyrail' }`, je Block `'quay'`|`'bamboo'`|`'rocks'`|`'snowbank'`. Requisiten `skytree`|
+  `flowerbed`|`mushroom`|`skylamp`|`bush6`|`barrels`|`blossom`|`stonelantern`|`bamboo`|`jungletree6`|`fern`|`fir`|`snowman`|
+  `icecrystal`|`snowdrift`|`crates6`|`gearpile`|`balloons6`|`drum6`. Lebendige Kulisse: `windmills: [[x, y, z, Höhe, yaw]]`,
+  `airships: [{ c, r, speed, color }]` (ein InstancedMesh), `waterfalls: [{ at: [x, z], w, top, face: 'S'|'E'|'W' }]` (ein
+  Mesh mit laufender Textur, Gischt), `rainbows: [{ c, r, yaw }]`, `cableways` (wie Welt 4), schwebende Felsbrocken
+  (`SkyLife`, 28, Kachel `w6:schwebesteine`), `birdStyle: 'gull'`. **Kacheln:** `batch.zones: [[x0, z0, x1, z1, name]]` –
+  Teile ohne benannte Kachel, deren Mitte in einer Zone liegt, kommen in die Kachel dieser Zone (je Insel ein Mesh je
+  Material/Schattenwurf statt vieler angeschnittener Rasterkacheln); außerhalb gilt das Raster (`tile`/`origin`).
+- **Windräder im Takt:** Die Flügel drehen je Zählzeit der Kartenmusik eine Achtelrunde weiter (`music.beat()`, Bewegung in
+  den ersten 40 % der Zählzeit; Türme statisch, Rotoren als Instanzen); der Gong der Fernost-Halle schlägt bei jedem
+  Taktanfang. Ohne laufende Musik zählt eine Ersatzuhr (Kartenzeit, `source: 'zeit'`) im Tempo von `course_world6_map`
+  (fehlt das Thema: `course_map`). Test-Schnittstelle (additiv): `state().decor` = Vereinigung von `ev.liveInfo()` aller
+  Eingänge und `built.life.liveInfo()` – `windmills { beat, step, moving, angle, source, theme, bpm, n, shown }`,
+  `airships { n }`, `waterfalls { n }`, `floaters { n }`, `ship { roll, ghosts }`, `gong { strikes, bar, beat, source, theme }`,
+  `raft { x, z }`, `pitch { throws }`, `mine { cage, wuschel }`, `w6models` (benutzte Registry-Modelle), `w6heavy` (zu
+  schwere: Name → Dreiecke); `built.life.windInfo(t)`.
+- Registry-Modelle (Obergrenze je Einsatz, `beach5.modelTris`; unbewegte in eine kompakte Kachel je Eingang `w6:<Id>` mit
+  `lod: true`, bewegte als eigene Objekte; fehlt ein Modell, zeichnet `decor_w6.js` eigene Geometrie an gleicher Stelle):
+  Welt 6 – `geisterschiff` (schwankt, Segel im Wind), `geisterschiff_wrack` (Bug, Mast), `gong` (`ring` mit progress aus der
+  Taktuhr), `pilz_maske` (`mode: 'kopf'` am Obergeschoss der Halle), `giftbluete`, `riesenblatt`, `klettergitter`, `zahnrad`
+  (vier, gegenläufig), `foerderband` (Band läuft mit den Kisten), `kessel`, `schacht_geruest` (12 m), `wuschel_horde`,
+  `riesen_frageblock` (`grow: 1`, eingebacken mit `dt`), `pustewolke` (holt Luft/pustet), `glotzfisch` (Eisloch),
+  `wuerfelblase` (hüpft), `createInstanced('gelee_brocken')`, `schubser_prinz` (Gegnergruppe 6-A, `anims: { walk: 'charge' }`),
+  `kirschbaum` (Requisite `blossom`); vorhandene: `warp_box`, `cloud_cannon`, `schlittschuhe`, `iglu`, `kanone_turm`, `lore`,
+  `panzer_fahrzeug`, `zirkuszelt`, `powerup_spiegel`, `feuer_werfer`, `seilbahn_gondel`. Bewusst eigene Geometrie (auf der
+  Karte zu schwer bzw. zu zahlreich): `stachelkugel` (≈ 6,9 k je Kugel × 4), `wurfball` (≈ 6,7 k), `rankenschnapper` (≈ 8,5 k),
+  `zuendkopf` (≈ 11 k), `feuer_schnappblume` (≈ 5,5 k, gleich an der Ankunftsinsel), Glasröhren (`glasroehre_teil` – die
+  begehbaren Röhren-Brücken sind eigene Segmente), Papierlaternen, Fernost-Dächer.
+- Gemeinsame Teile (additiv): `CourseMapScene.roamersOf(id)` (mehrere Gegnergruppen je Welt), Gegnergruppen-Feld
+  `memberOpts: [opts, …]` (Modell-Optionen je Mitglied, reihum), Stellvertreter aus `STAND_INS_W6`; `travel.js` Eingangsfeld
+  `departAlong: true` (Abfahrt in Richtung der ersten 24 m der Röhrenbahn statt geradeaus – Rückweg-Röhre `W5`).
+- Übergänge: Die Welt-5-Röhre `W6` und ein Welt-Warp nach Welt 6 führen ohne Codeänderung nach Welt 6 (Ankunft an `W5`,
+  Kamera `arriveCam`); die Aussage „Welt 6 kommt bald!“ der Welt-5-Notiz ist damit überholt. Zurück durch `W5` landet man an
+  der Röhre `W6` in Welt 5 (entdeckt, Schranke 5-Burg von hinten passierbar). Die Röhre `W7` zeigt „Welt 7 kommt bald!“;
+  ein Welt-Warp nach Welt 7 endet über den vorhandenen Rückfall an dieser Röhre. `tests/course_map_w5.mjs` Abschnitt 9
+  prüft jetzt die Ankunft in Welt 6, `tests/course_map_hw.mjs` die Weltenliste 1–6, 31.
+- Test: `tests/course_map_w6.mjs` (Port 4270, Bilder `tests/out/cmap6_*.png`), Teilläufe `W6_TEIL=1|2|3|4` (Abschnitte
+  2–4, 5–7, 8–10, 11–14, je mit den Node-Prüfungen; gemessen ≈ 3,8 / 3,5 / 2,6 / 4,3 min). Noch nicht in `npm test`.
+
+Gemessen (scale 2, `tests/course_map_w6.mjs`, mit den Welt-6-Modellen): statische Kulisse Welt 6 51 Kachel-Meshes, ≈ 276 k
+Dreiecke, ≈ 310 Kollisionsformen; je Ansicht (Zeichenaufrufe inkl. Schattenpass / Dreiecke) Ankunft durch die Glasröhre
+82–103 / 241–247 k, Start 85 / 213 k, Steinkreis 86 / 239 k, Bucht 92–95 / 241–254 k, Fernost 79 / 197 k, Dschungel
+86 / 229 k, Festung 71 / 188 k, Schnee/Windräder 75–92 / 224–242 k, Fabrik 78 / 230 k, Glückshaus 95 / 222 k, Haus 58 /
+158 k, Mine 62 / 196 k, Wolkenstraße 72 / 236 k, Zirkus 77–83 / 177–183 k, Röhren-Insel 53–63 / 138–141 k, Anflug 109 /
+279 k (Höchstwert; Modell-Kacheln fern ausgeblendet). Welt 5 an der Röhre nach Welt 6 und bei der Rückkehr höchstens
+53 / 116 k.
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
