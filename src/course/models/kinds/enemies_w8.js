@@ -374,7 +374,7 @@ function buildFelsklotz(opts = {}) {
 // =============================================================================================
 // Baron-Sandstatue
 // =============================================================================================
-const SAND = { lo: 0xb08458, mid: 0xe2c08c, hi: 0xfff4d8, dark: 0x8a6440 };
+const SAND = { lo: 0xa88c6c, mid: 0xdcc49e, hi: 0xf8eedc, dark: 0x7a624a };
 /** Statue: Welt-1-Baron (ohne Auto, steht) in Sandtönen; Ursprung = Fußpunkt der Figur. */
 const statueGeo = () => memo('w8:statue:baron', () => {
   const h = harvest('baron_w1_stand', () => B1.baron_brummbaer({ withCar: false }), (m) => m.update(0, { anim: 'idle' }));

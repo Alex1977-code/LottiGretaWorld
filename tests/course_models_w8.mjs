@@ -633,10 +633,10 @@ if (part('views')) {
       ['knochenflieger_gruppe', { count: 4, radius: 1.3 }, 'fly', -4, -6, 0.3, 3.2], ['baron_sandstatue', { size: 0.7 }, 'idle', 7, -7, -2], ['stachelblock_rot', {}, { out: 1 }, 2.5, 1.5, 0],
       ['leuchtsteg', { size: [2, 2] }, { glow: 1 }, -2.5, 2, 0], ['keksrad', { size: 2.5 }, { angle: 0.3 }, 5, 3, 0, 0.3], ['schubfeld', {}, 'idle', -6, 3.5, 0], ['lavabrocken_regen', {}, 'fall', 0.5, 2.5, 0, 2.2],
       ['rummel_bude', {}, 'idle', -9, -9, 0.4], ['brummbaer_ballon', {}, 'idle', 9, -10, -0.5], ['karussell', {}, { angle: 0.4 }, 0, -14, 0]], [0, 0.4, -3], [-1.5, 3.5]],
-    scene_rummel: ['rummel', [], [['baron_turm', {}, 'idle', 0, -26, 0], ['riesenrad_kulisse', {}, { angle: 0.3 }, -12, -16, 0.3], ['karussell', {}, { angle: 0.2 }, 8, -10, -0.4], ['rummel_bude', {}, 'idle', -5, -5, 0.3],
-      ['rummel_bude', { color: 'gruen', seed: 2 }, 'idle', 5, -3, -0.6], ['gluehbirnenkette', { length: 8 }, 'idle', -4, 0, 0, 2.6], ['wimpelkette', { length: 8 }, { wind: 0.4 }, 4, 1, 0, 2.8],
-      ['brummbaer_ballon', { count: 3 }, 'idle', -8, 2, 0.3], ['achterbahn', {}, 'idle', 10, -2, Math.PI / 2], ['autowrack', {}, 'idle', 1, 3, 0.4]], [0, 2, -8]],
-    scene_finale: ['nacht', [], [['super_pow_block', {}, 'idle', 0, -4, 0], ['baron_krallen', {}, 'idle', -1.2, -4.5, Math.PI / 2, 5], ['freunde_glas', {}, { shake: 0.5 }, 1.3, -4.5, Math.PI / 2, 5],
+    scene_rummel: ['rummel', [], [['karussell', {}, { angle: 0.2 }, 5, -8, -0.4], ['rummel_bude', {}, 'idle', -6, -6, 0.5], ['rummel_bude', { color: 'blau', seed: 3 }, 'idle', -7, 1, 0.1],
+      ['gluehbirnenkette', { length: 7 }, 'idle', -4, -2.5, 0, 2.8], ['wimpelkette', { length: 7 }, { wind: 0.4 }, -3, 2.5, 0, 3], ['brummbaer_ballon', { count: 3 }, 'idle', 3, 0, 0.3],
+      ['brummbaer_ballon', { color: 'gelb' }, 'idle', 7, 2, 0], ['achterbahn', { kind: 'wagen' }, 'idle', 1, 3.5, 0.4], ['autowrack', {}, 'idle', 7.5, -2, 2.6]], [0, 1.5, -2], [-1.5, 3.5]],
+    scene_finale: ['nacht', [], [['super_pow_block', {}, 'idle', 0, -4, 0], ['baron_krallen', {}, 'idle', -1.2, -4.2, -Math.PI / 2 + 0.3, 5], ['freunde_glas', {}, { shake: 0.5 }, 1.3, -4.6, -Math.PI / 2, 5],
       ['baron_turm', { part: 'spitze' }, 'idle', 0, -4, 0, -0.01]], [0, 3, -3], [-1.5, 3]],
     scene_regen: ['regen', [], [['regenfestung', {}, 'idle', -6, -8, 0], ['regenfestung', { kind: 'turm' }, 'idle', 7, -10, 0], ['regenfestung', { kind: 'pfuetze' }, { rain: 1 }, 1, 0, 0], ['regenfestung', { kind: 'fahne' }, { wind: 0.7 }, -8, 0, 0],
       ['knochenflieger_gruppe', { count: 5, radius: 1.6 }, 'fly', 0, -4, 0, 3.5], ['stachelblock_rot', { size: [3, 0.6, 1.5] }, { out: 1 }, 4, 1, 0]], [0, 1, -3], [-2, 3]],
@@ -650,7 +650,7 @@ if (part('views')) {
       ['leuchtsteg', { size: [2, 2] }, { glow: 1, flash: 1 }, 3, -4, 0, 1], ['regenfestung', { kind: 'turm' }, 'idle', -8, -10, 0], ['stampfstein', {}, 'idle', 3, -4, 0, 1.3]], [0, 1, -1], [-1, 2.5]],
     scene_inferno: ['lava', [[0, -2, 30, 16, 'rot']], [['kristall_felsklotz', { size: 3 }, 'roll', -2, -1, 0, 0], ['kristall_felsklotz', { size: 2.5, shape: 'wuerfel' }, 'idle', 5, -6, -0.4, 0], ['lavabrocken_regen', {}, 'fall', 2, 1, 0, 3],
       ['lavapfuetze', { size: 2.5 }, 'idle', -6, 3, 0, 0.02], ['schockwelle', { radius: 4 }, { progress: 0.45 }, 6, 3, 0, 0.05], ['lavabrocken_regen', {}, { anim: 'land', progress: 0.3 }, 6, -1, 0, 0.4]], [0, 0.5, -2], [-2.2, -1.2, 3.2]],
-    scene_spuk: ['nacht', [], [['spukspiegel', {}, { star: true }, 0, -6, 0], ['spuk', {}, 'idle', -3, -2, 0.4, 1.2], ['kreisgeist', {}, 'idle', 3, -1, -0.4, 1.4]], [0, 1.5, -3], [-0.8, 0]],
+    scene_spuk: ['nacht', [], [['spukspiegel', {}, { star: true }, 0, -5, -Math.PI / 2], ['spuk', {}, 'idle', -3, -2, 0.4, 1.2], ['kreisgeist', {}, 'idle', 3, -1, -0.4, 1.4]], [0, 1.5, -3], [-0.8, 0]],
     scene_abspann: ['abend', [], [['abspann_buehne', {}, { wave: 1 }, 0, -2, 0]], [0, 0.5, -2]],
   };
   for (const [nm, [mood, pools, list, tgt, heroAt]] of Object.entries(SCENES)) {

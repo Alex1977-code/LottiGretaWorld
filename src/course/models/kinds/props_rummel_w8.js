@@ -188,27 +188,42 @@ function karussellGeo() {
     return b.geometry();
   });
 }
-const horseGeo = () => cached('w8:pferd', () => {
+const horseGeo = () => cached('w8:pferd2', () => {
   const b = new Build();
-  const body = { v: (x, y, z, nx, ny) => mix(0xe8e0f0, 0xffffff, smoothstep(ny * 0.5 + 0.4)) };
-  b.sphere(1, body, { s: [0.65, 0.32, 0.28] }, 12, 8);
-  b.capsule(0.15, 0.4, body, { p: [0.55, 0.35, 0], r: [0, 0, -0.6] }, 2, 6);
-  b.sphere(1, body, { p: [0.85, 0.62, 0], s: [0.28, 0.17, 0.15], r: [0, 0, -0.3] }, 10, 6);
-  for (const z of [1, -1]) b.cone(0.05, 0.14, body, { p: [0.75, 0.82, z * 0.07] }, 6);
-  b.tube([[0.75, 0.75, 0], [0.55, 0.62, 0], [0.4, 0.35, 0]], 0.08, W8.pink, null, 6, 4);
-  b.tube([[-0.6, 0.05, 0], [-0.85, -0.1, 0], [-0.9, -0.4, 0]], 0.07, W8.pink, null, 6, 4);
-  b.box(0.45, 0.08, 0.36, W8.red, { p: [0, 0.32, 0] }, 0.03, 1);
-  b.sphere(1, W8.gold, { p: [0, 0.38, 0], s: [0.1, 0.05, 0.2] }, 8, 5);
-  for (const [x, z] of [[0.4, 0.13], [0.4, -0.13], [-0.4, 0.13], [-0.4, -0.13]]) b.capsule(0.06, 0.35, body, { p: [x, -0.35, z], r: [0, 0, x > 0 ? -0.5 : 0.5] }, 1, 5);
-  for (const z of [1, -1]) b.sphere(0.04, 0x1a1020, { p: [1.02, 0.66, z * 0.08] }, 6, 4);
+  const body = { v: (x, y, z, nx, ny) => mix(0xd8d8ec, 0xffffff, smoothstep(ny * 0.5 + 0.45)) };
+  const mane = { v: (x, y, z, nx, ny) => mix(0xd84a8a, 0xff9ac8, smoothstep(ny * 0.5 + 0.5)) };
+  b.sphere(1, body, { s: [0.55, 0.27, 0.24] }, 12, 8);
+  b.sphere(1, body, { p: [0.33, 0.06, 0], s: [0.26, 0.25, 0.22] }, 10, 7);
+  b.capsule(0.13, 0.28, body, { p: [0.5, 0.34, 0], r: [0, 0, -0.55] }, 1, 7);
+  b.sphere(1, body, { p: [0.72, 0.56, 0], s: [0.25, 0.15, 0.14], r: [0, 0, -0.55] }, 10, 7);
+  b.sphere(1, 0xffd8e8, { p: [0.88, 0.45, 0], s: [0.11, 0.1, 0.11] }, 8, 6);
+  for (const z of [1, -1]) {
+    b.cone(0.045, 0.14, body, { p: [0.62, 0.76, z * 0.07], r: [z * 0.2, 0, 0.3] }, 6);
+    b.sphere(1, 0x1a1020, { p: [0.8, 0.62, z * 0.105], s: [0.03, 0.04, 0.02] }, 6, 4);
+  }
+  for (let i = 0; i < 5; i++) b.sphere(0.075 - i * 0.004, mane, { p: [0.36 + i * 0.07, 0.42 + i * 0.075, 0], s: [0.8, 1, 0.7] }, 7, 5);
+  b.tube([[-0.5, 0.1, 0], [-0.68, 0.02, 0], [-0.78, -0.2, 0], [-0.72, -0.4, 0]], 0.07, mane, null, 8, 5);
+  b.box(0.4, 0.06, 0.5, 0xe8283a, { p: [0.0, 0.27, 0] }, 0.03, 1);
+  b.box(0.42, 0.03, 0.52, W8.gold, { p: [0.0, 0.24, 0] }, 0.01, 1);
+  b.tube([[0.86, 0.5, 0.12], [0.72, 0.5, 0.15], [0.58, 0.38, 0.14]], 0.015, W8.gold, null, 6, 3);
+  // Galopp: Vorderbeine angewinkelt nach vorn, Hinterbeine nach hinten
+  for (const z of [1, -1]) {
+    b.capsule(0.055, 0.22, body, { p: [0.42, -0.2, z * 0.11], r: [0, 0, 1.0] }, 1, 5);
+    b.capsule(0.05, 0.18, body, { p: [0.58, -0.3, z * 0.11], r: [0, 0, -0.4] }, 1, 5);
+    b.sphere(0.06, W8.gold, { p: [0.63, -0.42, z * 0.11] }, 6, 4);
+    b.capsule(0.06, 0.32, body, { p: [-0.42, -0.3, z * 0.11], r: [0, 0, -0.5] }, 1, 5);
+    b.sphere(0.065, W8.gold, { p: [-0.52, -0.5, z * 0.11] }, 6, 4);
+  }
   return b.geometry();
 });
+const HORSE_TINTS = [0xffffff, 0xffd8ec, 0xd8f4ff, 0xe8dcff, 0xdcffe8, 0xfff0c8];
 function buildKarussell() {
   const root = new THREE.Group();
   const rot = joint();
   rot.add(mesh(karussellGeo(), kulMat8(0.55), {}, true));
   const horses = instMesh(horseGeo(), kulMat8(0.55), 6, 5, 2);
   horses.castShadow = true;
+  for (let i = 0; i < 6; i++) horses.setColorAt(i, new THREE.Color(HORSE_TINTS[i]));
   const NB = 16;
   const bulbs = instMesh(bulbGeo(0.1, true), glow8(), NB, 5.5, 5);
   for (let i = 0; i < NB; i++) { const a = (i / NB) * TAU; setInst(bulbs, i, Math.cos(a) * 4.62, 5.12, Math.sin(a) * 4.62); }

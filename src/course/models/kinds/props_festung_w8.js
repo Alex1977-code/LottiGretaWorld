@@ -402,7 +402,7 @@ function buildSpukspiegel() {
 function duneGeo(S, seed) {
   return cached(`w8:duene:${S}:${seed}`, () => {
     const b = new Build();
-    const g = new THREE.SphereGeometry(1, 40, 18, 0, TAU, 0, Math.PI / 2);
+    const g = new THREE.SphereGeometry(1, 56, 22, 0, TAU, 0, Math.PI / 2);
     const P = g.attributes.position;
     for (let i = 0; i < P.count; i++) {
       const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
@@ -411,7 +411,7 @@ function duneGeo(S, seed) {
       P.setXYZ(i, x * 6 * S, y * 3 * S * k * (1 + Math.sin(z * 3 + seed) * 0.08), z * 3.5 * S * (1 + Math.sin(x * 2 + seed) * 0.1));
     }
     g.computeVertexNormals();
-    b.add(g, { v: (x, y, z, nx, ny) => { const rip = Math.sin((x * 0.9 + Math.sin(z * 0.6 + seed) * 0.8) * 4) > 0.55 ? 0.15 : 0; return mix(W8.sandLow, mix(W8.sand, W8.sandHi, smoothstep(ny * 0.5 + nx * 0.2 + 0.1) - rip), smoothstep(ny * 0.6 + 0.4)); } });
+    b.add(g, { v: (x, y, z, nx, ny) => { const rip = Math.sin((x * 0.9 + Math.sin(z * 0.6 + seed) * 0.8) * 4) > 0.5 ? 0.35 : 0; return mix(W8.sandLow, mix(W8.sand, W8.sandHi, smoothstep(ny * 0.5 + nx * 0.2 + 0.1) - rip), smoothstep(ny * 0.6 + 0.4)); } });
     for (let i = 0; i < 8; i++) {
       const a = hash1(seed * 7 + i) * TAU, r = 0.6 + hash1(seed + i * 3) * 0.35;
       const px = Math.cos(a) * r * 6 * S, pz = Math.sin(a) * r * 3.5 * S;

@@ -28,7 +28,7 @@ function meadowGeo() {
     // Insel: Rasenkuppe mit Erdrand
     const top = new THREE.CircleGeometry(6, 48, 0, TAU); top.rotateX(-Math.PI / 2);
     const P = top.attributes.position;
-    for (let i = 0; i < P.count; i++) { const x = P.getX(i), z = P.getZ(i), r = Math.hypot(x, z) / 6; P.setY(i, (1 - r * r) * 0.35 + (noise3(x * 0.5, 0, z * 0.5) - 0.5) * 0.08); }
+    for (let i = 0; i < P.count; i++) { const x = P.getX(i), z = P.getZ(i), r = Math.hypot(x, z) / 6; P.setY(i, (1 - r * r) * 0.35 + 0.03 + (noise3(x * 0.5, 0, z * 0.5) - 0.5) * 0.08 * (1 - r)); }
     top.computeVertexNormals();
     b.add(top, { v: (x, y, z) => mix(MEADOW.grassLow, mix(MEADOW.grass, MEADOW.grassHi, noise3(x * 0.7, 0, z * 0.7)), smoothstep(y / 0.3 + 0.3)) });
     b.cyl(6, 5.4, 1.2, { v: (x, y) => mix(MEADOW.earthLow, MEADOW.earth, smoothstep(y + 0.6)) }, { p: [0, -0.6, 0] }, 48, true);

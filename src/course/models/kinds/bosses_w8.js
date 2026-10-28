@@ -82,14 +82,20 @@ const pastel = mix(W8.suit, W8.cream, 0.62);
 function baronTorsoGeo(dmg = 0) {
   return cached(`w8:baron:torso:${dmg}`, () => {
     const b = new Build();
-    // Overall-Rumpf mit weich abgesetztem Creme-Bauchfleck vorn
-    const torsoC = { v: (x, y, z, nx, ny) => {
-      const ly = (y - BELLY.c[1]) / BELLY.r[1] + 0.12, lz = z / BELLY.r[2] * 1.05;
-      const d = Math.hypot(ly, lz), front = smoothstep((nx - 0.25) / 0.2);
-      const k = smoothstep((0.6 - d) / 0.07) * front;
-      return mix(suitV.v(x, y, z, nx, ny), mix(0xe8d2b8, W8.cream, smoothstep(nx * 0.8)), k);
-    } };
-    b.sphere(1, torsoC, { p: BELLY.c, s: BELLY.r }, 40, 28);
+    // Overall-Rumpf und Creme-Bauchfleck (eigenes, sauber umrandetes Flächenstück auf dem Bauch)
+    b.sphere(1, suitV, { p: BELLY.c, s: BELLY.r }, 32, 22);
+    {
+      const rings = 7, segs = 40, pos = [], idx = [];
+      for (let r = 0; r <= rings; r++) for (let k = 0; k <= segs; k++) {
+        const rr = (r / rings) * 0.62, ph = (k / segs) * TAU;
+        const h = BELLY_SURF(Math.cos(ph) * rr * 1.05, -0.12 + Math.sin(ph) * rr * 0.95);
+        const q = h.p.clone().addScaledVector(h.n, 0.008);
+        pos.push(q.x, q.y, q.z);
+      }
+      for (let r = 0; r < rings; r++) for (let k = 0; k < segs; k++) { const a = r * (segs + 1) + k, c = a + segs + 1; idx.push(a, a + 1, c, a + 1, c + 1, c); }
+      const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); pg.setIndex(idx); pg.computeVertexNormals();
+      b.add(pg, { v: (x, y, z, nx) => mix(0xead6bc, W8.cream, smoothstep(nx * 0.8)) });
+    }
     // Flieder-Ringel quer über den Rücken (Bögen hinten)
     for (const y of [0.18, 0.42, 0.66]) {
       const k = Math.sqrt(Math.max(0, 1 - ((y - BELLY.c[1]) / BELLY.r[1]) ** 2));
