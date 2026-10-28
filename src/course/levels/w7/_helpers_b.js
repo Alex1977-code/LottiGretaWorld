@@ -1,0 +1,447 @@
+// Hilfen für die Welt-7-Level 7-3 „Pfeilflitzer über dem Glutstrom“, 7-4 „Schubser-Rummel im Blauglutkessel“ und 7-B
+// „Blaufeuer-Prinz im Glutzwinger“ (kein Level: exportiert kein LEVEL, die Level-Registry überspringt dieses Modul).
+//
+// Oben reine Daten-Helfer (Inseln, Münzspuren – aus Welt 6 übernommen), darunter level-lokale Kulisse und kleine Mechanik,
+// die es als Baustein nicht gibt. Statische Zier entsteht im Aufbau-Haken `LEVEL.build` (vor dem Verschmelzen: landet in
+// den Abschnitts-Meshes, keine zusätzlichen Zeichenaufrufe), Leuchtendes im Glüh-Material bzw. im gemeinsamen Leuchtfeld
+// (glowPoints, ein Zeichenaufruf).
+//
+// Gemeinsam:  isl, line, ring, arc, column, Bld/litTop/gradY (Welt 5), onRespawn, glowPoints, wimpelkette (Welt 6)
+//             lavaGrund (tödliche Lava-Ebene unter der Kulisse), stuetzen (Basaltpfeiler unter den Wegen bis in die Lava),
+//             pfeile (Boost-Pfeile: Auslöser wie Baustein boost, Platten verschmolzen, Lauflicht-Chevrons als eine
+//             Instanz-Gruppe für alle Pfeile des Levels)
+// 7-3:        startTor (Renn-Startbogen mit Zielflaggen-Muster), zielTor, flaggen (Karo-Fähnchen), lavaRinne (glühende Rinne
+//             in einer Weglücke), rennKulisse (Basaltnadeln, Lavafälle, Glutfunken), geheimHof (Versteck der Pilzlinge)
+// 7-4:        festungBau (Steinbauten über blauer Lava: Mauerkrone, Zinnen, Fenster), blauKristalle, ketten
+// 7-B:        glutZwinger (Käfig über dem Lavasee mit Glasröhren-Mündungen), prinzKampf (aus Welt 6)
+
+import * as THREE from 'three';
+import { colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
+import { visDt } from '../../entities/gimmick.js';
+import { isl, line, ring, arc, column, sign, Bld, litTop, gradY, onRespawn, prinzKampf } from '../w6/_helpers_b.js';
+import { wimpelkette } from '../w6/_helpers_a.js';
+import { glowPoints } from '../w5/_helpers_b.js';
+
+export { isl, line, ring, arc, column, sign, Bld, litTop, gradY, onRespawn, prinzKampf, wimpelkette, glowPoints };
+
+const TAU = Math.PI * 2;
+const HALF_PI = Math.PI / 2;
+const L = (c) => lin(hex(c));
+const ni = (g) => (g.index ? g.toNonIndexed() : g);
+const fill = (g, c) => { const k = Array.isArray(c) ? c : L(c); return colorize(ni(g), (p, n, o) => { o[0] = k[0]; o[1] = k[1]; o[2] = k[2]; }); };
+
+// =====================================================================================================================
+// Gemeinsam
+// =====================================================================================================================
+
+/**
+ * Tödliche Lava-Ebene (Form kill 'lava', folgt lavaTopAt) bei y – unter der Kulissen-Lava des Themas (lavarun: 9 m unter
+ * dem tiefsten Teil des Levels). Unsichtbar, die Kulisse zeigt die Lava.
+ */
+export function lavaGrund(level, y, o = {}) {
+  const [w, d] = o.size ?? [4000, 4000];
+  const c = o.center ?? [0, -300];
+  level.world.add({ type: 'box', min: [c[0] - w / 2, y - 60, c[1] - d / 2], max: [c[0] + w / 2, y - 0.12, c[1] + d / 2], kill: 'lava', lava: true, surface: y, lavaColor: o.color ?? 'rot', solid: false, camIgnore: true, tag: 'lava-grund' });
+}
+
+/**
+ * Basaltpfeiler unter Wegen und Inseln bis hinab in die Lava (nur Optik, ohne Sonnenschatten): sechseckige Säulen mit
+ * hellen Deckflächen, nach unten dunkler, am Fuß glühend. rects: [[x0, x1, zA, zB, yBottom], …]; o: { lava (y der
+ * Lava), every (m Abstand), color, glow }.
+ */
+export function stuetzen(level, rects, o = {}) {
+  if (!level.view) return;
+  const yl = o.lava ?? -9, every = o.every ?? 5.5;
+  const bas = L(o.color ?? 0x3a2c32), basH = L(0x6a5660), hot = L(o.glow ?? 0xff7a2a);
+  const parts = [];
+  const rnd = new Rnd(o.seed ?? 71);
+  for (const [x0, x1, zA, zB, yb] of rects) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+    const w = x1 - x0, d = z0 - z1;
+    const along = d >= w ? 'z' : 'x';
+    const len = along === 'z' ? d : w, cross = along === 'z' ? w : d;
+    const n = Math.max(1, Math.round(len / every));
+    const r = Math.min(cross * 0.42, 1.5);
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n;
+      const cx = along === 'z' ? (x0 + x1) / 2 + rnd.real(-0.15, 0.15) * cross : x0 + w * t;
+      const cz = along === 'z' ? z0 - d * t : (z0 + z1) / 2 + rnd.real(-0.15, 0.15) * cross;
+      const rr = r * rnd.real(0.85, 1.1);
+      const top = yb + 0.05, h = top - yl + 1;
+      const g = new THREE.CylinderGeometry(rr * 0.92, rr * 1.12, h, 6, Math.max(1, Math.round(h / 4)));
+      g.rotateY(rnd.real(0, 1));
+      g.translate(cx, yl - 1 + h / 2, cz);
+      parts.push(colorize(ni(g), (p, nn, out) => {
+        const k = smooth(yl - 1, top, p.y);
+        mixc(bas, basH, smooth(-0.7, 0.9, nn.x * 0.5 + nn.z * 0.4) * (0.4 + 0.6 * k), out);
+        if (Math.abs(((p.y - yl) % 2.6)) < 0.08) mixc(out, bas, 0.7, out);
+        mixc(out, hot, smooth(yl + 3.5, yl - 0.5, p.y) * 0.85, out);
+      }));
+      // kleine Nebensäule
+      if (rnd.real(0, 1) < 0.55) {
+        const r2 = rr * 0.5, h2 = h * rnd.real(0.45, 0.8);
+        const a = rnd.real(0, TAU);
+        const g2 = new THREE.CylinderGeometry(r2 * 0.9, r2, h2, 6);
+        g2.translate(cx + Math.cos(a) * rr * 1.3, yl - 1 + h2 / 2, cz + Math.sin(a) * rr * 1.3);
+        parts.push(colorize(ni(g2), (p, nn, out) => { mixc(bas, basH, smooth(-0.7, 0.9, nn.y * 0.6 + nn.x * 0.3), out); mixc(out, hot, smooth(yl + 3, yl - 0.5, p.y) * 0.85, out); }));
+      }
+    }
+  }
+  if (parts.length) addStatic(level, merge(parts), { castShadow: false });
+}
+
+/** Chevron (Pfeilspitze nach +X), flach auf dem Boden. */
+function chevronGeo(w) {
+  const s = new THREE.Shape();
+  const a = w * 0.42, d = 0.22, t = 0.16;
+  s.moveTo(-d, a); s.lineTo(-d + t, a); s.lineTo(d + t, 0); s.lineTo(-d + t, -a); s.lineTo(-d, -a); s.lineTo(d, 0); s.closePath();
+  const g = new THREE.ShapeGeometry(s);
+  g.rotateX(-HALF_PI);
+  return g;
+}
+
+/**
+ * Boost-Pfeile (Bauplan 7-3 „56 Boost-Pfeile“): jeder Eintrag wie der Baustein `boost` – nicht fester Auslöser mit
+ * Motor-Flag boost { x, z, speed } (beschleunigt die Figur in Pfeilrichtung) –, aber sparsam gezeichnet: Grundplatten
+ * (dunkelblau mit Goldsaum) verschmolzen in die statische Geometrie, alle Chevrons des Levels als **eine** Instanz-Gruppe
+ * mit Lauflicht. list: [{ pos: [x, y, z] (Mitte, y = Boden), dir: [dx, dz] (Standard [0, −1]), size: [w, len] ([1.8, 2.4]),
+ * speed: 16 }]. level.named 'pfeile' = { n, list }.
+ */
+export function pfeile(level, list, o = {}) {
+  const items = [];
+  for (const a of list) {
+    const p = { x: a.pos[0], y: a.pos[1], z: a.pos[2] };
+    let [dx, dz] = a.dir ?? [0, -1];
+    const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+    const [w, len] = a.size ?? o.size ?? [1.8, 2.4];
+    const speed = a.speed ?? o.speed ?? 16;
+    const hx = (Math.abs(dx) * len + Math.abs(dz) * w) / 2, hz = (Math.abs(dz) * len + Math.abs(dx) * w) / 2;
+    level.world.add({ type: 'box', min: [p.x - hx, p.y - 0.05, p.z - hz], max: [p.x + hx, p.y + 0.3, p.z + hz], trigger: true, solid: false, boost: { x: dx, z: dz, speed }, tag: 'boost' });
+    items.push({ p, dx, dz, w, len, yaw: Math.atan2(-dz, dx) });
+  }
+  level.named.set(o.id ?? 'pfeile', { n: items.length, list: items });
+  if (!level.view || !items.length) return;
+  // Grundplatten (statisch)
+  const b = new Bld();
+  for (const it of items) {
+    b.box(it.len, 0.07, it.w, it.p.x, it.p.y - 0.02, it.p.z, litTop(0x24308a, 0.7), { yaw: it.yaw, r: 0.03 });
+    const ox = -Math.sin(it.yaw), oz = -Math.cos(it.yaw);   // quer zur Pfeilrichtung (lokal +Z)
+    for (const s of [-1, 1]) b.box(it.len - 0.12, 0.03, 0.08, it.p.x + ox * s * (it.w / 2 - 0.1), it.p.y + 0.04, it.p.z + oz * s * (it.w / 2 - 0.1), 0xffc21a, { yaw: it.yaw, r: 0 });
+  }
+  b.flush(level, { castShadow: false });
+  // Chevrons: eine Instanz-Gruppe, Lauflicht je Pfeil
+  const per = o.chevrons ?? 3;
+  const geo = chevronGeo(items[0].w);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+  const im = new THREE.InstancedMesh(geo, mat, items.length * per);
+  im.name = 'boostpfeile';
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), v = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const c = new THREE.Color(), lo = new THREE.Color(0xff6a10), hi = new THREE.Color(0xfff6a0);
+  items.forEach((it, k) => {
+    q.setFromAxisAngle(up, it.yaw);
+    s.set(1, 1, it.w / items[0].w);
+    for (let i = 0; i < per; i++) {
+      const u = -it.len / 2 + (i + 0.5) * (it.len / per) - 0.05;
+      v.set(it.p.x + it.dx * u, it.p.y + 0.07, it.p.z + it.dz * u);
+      m.compose(v, q, s);
+      im.setMatrixAt(k * per + i, m);
+      im.setColorAt(k * per + i, lo);
+    }
+  });
+  im.instanceMatrix.needsUpdate = true;
+  im.computeBoundingSphere?.();
+  im.castShadow = false; im.receiveShadow = false;
+  const holder = {};
+  let t = 0;
+  addObject(level, im, (dt) => {
+    t += visDt(level, holder, dt);
+    for (let k = 0; k < items.length; k++) {
+      for (let i = 0; i < per; i++) {
+        const e = Math.pow(Math.max(0, Math.sin(t * 6 - i * 1.25 - k * 0.37)), 3);
+        im.setColorAt(k * per + i, c.copy(lo).lerp(hi, e));
+      }
+    }
+    im.instanceColor.needsUpdate = true;
+  });
+}
+
+/** Karo-Muster (Zielflagge) als Bld-Farbe ({ v }) nach Weltlage: Feldgröße cell, u/w aus (x, y) bzw. (z, y). */
+function karoV(cell, axis = 'xy', a = 0x1a1a22, bcol = 0xffffff) {
+  const A = new THREE.Color(a), B = new THREE.Color(bcol);
+  return { v: (x, y, z) => ((Math.floor((axis === 'zy' ? z : x) / cell + 1000) + Math.floor(y / cell + 1000)) & 1 ? A : B) };
+}
+
+/**
+ * Renn-Torbogen über einem Weg (7-3 Start und Ziel): zwei Basalt-Türme mit Glutfenstern und Kegeldach, darüber ein Balken
+ * mit Karo-Band und Brummbär-roten Wimpeln, Fackelschalen oben. o: { x, y, z, w (lichte Weite), h (lichte Höhe), color }.
+ */
+export function startTor(level, o) {
+  if (!level.view) return;
+  const { x, y, z } = o, W = o.w ?? 6, H = o.h ?? 5;
+  const b = new Bld(), g = new Bld();
+  const stone = 0x4a3c44, dark = 0x2a2026, red = o.color ?? 0xe0302a, gold = 0xffc21a;
+  for (const s of [-1, 1]) {
+    const tx = x + s * (W / 2 + 0.8);
+    b.box(1.6, H + 0.6, 1.6, tx, y, z, litTop(stone, 0.6), { r: 0.12 });
+    b.box(1.9, 0.4, 1.9, tx, y, z, litTop(dark, 0.7), { r: 0.08 });
+    for (let i = 0; i < 4; i++) { const a = (i / 4) * TAU + 0.785; b.box(0.5, 0.5, 0.5, tx + Math.cos(a) * 0.7, y + H + 0.6, z + Math.sin(a) * 0.7, litTop(stone, 0.6), { r: 0.05 }); }
+    b.cone(0.95, 1.8, tx, y + H + 1.1, z, litTop(red, 0.6), 8);
+    b.sphere(0.16, tx, y + H + 3.05, z, gold, { ws: 8, hs: 6 });
+    g.box(0.36, 0.8, 0.1, tx, y + H * 0.45, z + 0.81, 0xffb040, { r: 0.08 });
+    g.box(0.36, 0.8, 0.1, tx, y + H * 0.45, z - 0.81, 0xffb040, { r: 0.08 });
+  }
+  // Balken mit Karo-Band (vorn und hinten)
+  b.box(W + 3.4, 0.9, 0.9, x, y + H, z, litTop(dark, 0.7), { r: 0.1 });
+  for (const s of [-1, 1]) {
+    const band = new THREE.PlaneGeometry(W + 1.6, 0.7, Math.round((W + 1.6) / 0.35), 2);
+    if (s < 0) band.rotateY(Math.PI);
+    band.translate(x, y + H + 0.45, z + s * 0.47);
+    b.add(band, karoV(0.35, 'xy'));
+  }
+  // Wimpel unter dem Balken
+  const cols = [0xe0302a, 0xffc21a, 0xe0302a, 0x1a1a22];
+  const n = Math.round(W / 0.7);
+  for (let i = 0; i < n; i++) {
+    const px = x - W / 2 + (i + 0.5) * (W / n);
+    const tri = new THREE.BufferGeometry();
+    tri.setAttribute('position', new THREE.Float32BufferAttribute([px - 0.3, y + H - 0.45, z, px + 0.3, y + H - 0.45, z, px, y + H - 1.1, z], 3));
+    tri.computeVertexNormals();
+    b.add(tri, cols[i % cols.length]);
+    const tri2 = tri.clone(); tri2.scale(1, 1, 1);
+    const pos = tri2.getAttribute('position');
+    // Rückseite (umgekehrte Reihenfolge)
+    const arr = pos.array; const back = new THREE.BufferGeometry();
+    back.setAttribute('position', new THREE.Float32BufferAttribute([arr[3], arr[4], arr[5], arr[0], arr[1], arr[2], arr[6], arr[7], arr[8]], 3));
+    back.computeVertexNormals();
+    b.add(back, cols[i % cols.length]);
+  }
+  // Feuerschalen auf den Türmen
+  for (const s of [-1, 1]) g.sphere(0.32, x + s * (W / 2 + 0.8), y + H + 0.9 + 1.8 * 0.55, z, 0xffa020, { s: [1, 1.4, 1] });
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+  glowPoints(level, [[x - W / 2 - 0.8, y + H + 2.0, z, 1.6], [x + W / 2 + 0.8, y + H + 2.0, z, 1.6]], { color: 0xff8a2a, size: 2.2, opacity: 0.8, pulse: 1.3 });
+  // Kollision der Türme (der Weg zwischen ihnen bleibt frei)
+  for (const s of [-1, 1]) {
+    const tx = x + s * (W / 2 + 0.8);
+    level.world.add({ type: 'box', min: [tx - 0.8, y, z - 0.8], max: [tx + 0.8, y + H + 0.6, z + 0.8], tag: 'starttor' });
+  }
+  level.world.add({ type: 'box', min: [x - W / 2 - 1.6, y + H - 0.0, z - 0.45], max: [x + W / 2 + 1.6, y + H + 0.9, z + 0.45], camIgnore: true, tag: 'starttor-balken' });
+}
+
+/**
+ * Karo-Fähnchen an Stangen (Rennstrecke): list [[x, y, z, h?, yaw?], …]. Statisch, Fahne flach (leicht gewellt).
+ */
+export function flaggen(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  for (const [x, y, z, h = 2.4, yaw = 0] of list) {
+    b.cyl(0.045, 0.06, h, x, y, z, 0x8a8a9a, 6);
+    b.sphere(0.08, x, y + h + 0.04, z, 0xffc21a, { ws: 6, hs: 4 });
+    // Fahne: 4 × 3 Karo-Felder als dünne Kästchen (beidseitig richtig beleuchtet)
+    const cs = 0.25;
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) {
+      const f = new THREE.BoxGeometry(cs, cs, 0.025);
+      f.translate(0.06 + cs * (i + 0.5), -cs * (j + 0.5) + Math.sin(i * 1.7) * 0.03, Math.sin(i * 1.4) * 0.05);
+      f.rotateY(yaw);
+      f.translate(x, y + h, z);
+      b.add(f, ((i + j) & 1) ? 0x16161e : 0xffffff);
+    }
+  }
+  b.flush(level, { castShadow: false });
+}
+
+/**
+ * Glühende Lavarinne unter einer Weglücke (nur Optik; tödlich ist der Sturz in die Lava darunter): ein flacher Glutstreifen
+ * mit Krustenschollen zwischen den Wegkanten, tief unten, dazu Leuchtflecken. list: [[x0, x1, zA, zB, y], …].
+ */
+export function lavaRinne(level, list) {
+  if (!level.view) return;
+  const glow = [], crust = [];
+  const hot = L(0xffb030), mid = L(0xff5a10), dk = L(0x3a1810);
+  const pts = [];
+  for (const [x0, x1, zA, zB, y] of list) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+    const g = new THREE.PlaneGeometry(x1 - x0, z0 - z1, Math.max(2, Math.round((x1 - x0) / 0.6)), Math.max(2, Math.round((z0 - z1) / 0.6)));
+    g.rotateX(-HALF_PI);
+    g.translate((x0 + x1) / 2, y, (z0 + z1) / 2);
+    glow.push(colorize(ni(g), (p, n, o) => mixc(mid, hot, 0.5 + 0.5 * Math.sin(p.x * 2.1 + p.z * 1.3) * Math.cos(p.z * 1.7 - p.x * 0.8), o)));
+    const rnd = new Rnd(Math.round(x0 * 13 + z0 * 7));
+    for (let i = 0; i < Math.round((x1 - x0) * (z0 - z1) / 3); i++) {
+      const r = rnd.real(0.25, 0.55);
+      const s = new THREE.CylinderGeometry(r, r * 1.1, 0.12, 6);
+      s.translate(rnd.real(x0 + 0.3, x1 - 0.3), y + 0.05, rnd.real(z1 + 0.3, z0 - 0.3));
+      crust.push(fill(s, dk));
+    }
+    pts.push([(x0 + x1) / 2, y + 0.6, (z0 + z1) / 2, Math.min(2.4, (x1 - x0) * 0.5)]);
+  }
+  addStatic(level, merge(glow), { material: 'glow', castShadow: false });
+  if (crust.length) addStatic(level, merge(crust), { castShadow: false });
+  glowPoints(level, pts, { color: 0xff7a20, size: 3.2, opacity: 0.55, pulse: 0.6 });
+}
+
+/**
+ * Felswand mit Lavafall (Kulisse neben der Strecke): grob gestufte Basaltwand (Höhe h) mit glühender Rinne; den Fall
+ * selbst zeichnet deco_w7 'lavafall' (animiert). list: [[x, y, z, w, h, yaw], …] – nur die Wand.
+ */
+export function basaltWand(level, list) {
+  if (!level.view) return;
+  const parts = [];
+  const bas = L(0x2e2228), basH = L(0x5e4a54), hot = L(0xff7a2a);
+  for (const [x, y, z, w, h, yaw = 0] of list) {
+    const rnd = new Rnd(Math.round(x * 31 + z * 17));
+    const n = Math.max(3, Math.round(w / 1.1));
+    for (let i = 0; i < n; i++) {
+      const u = -w / 2 + (i + 0.5) * (w / n);
+      const hh = h * rnd.real(0.75, 1.1), r = rnd.real(0.55, 0.8);
+      const g = new THREE.CylinderGeometry(r, r * 1.05, hh, 6);
+      g.translate(u, y + hh / 2, rnd.real(-0.3, 0.3));
+      g.rotateY(yaw);
+      g.translate(x, 0, z);
+      const top = y + hh;
+      parts.push(colorize(ni(g), (p, nn, out) => {
+        mixc(bas, basH, smooth(-0.7, 1, nn.y * 0.7 + nn.x * 0.2), out);
+        if (nn.y > 0.5) mixc(out, basH, 0.6, out);
+        mixc(out, hot, smooth(y + 2.5, y - 0.5, p.y) * 0.8, out);
+        if (Math.abs(p.y - top) < 0.05 && nn.y < 0.5) mixc(out, hot, 0.3, out);
+      }));
+    }
+  }
+  addStatic(level, merge(parts), { castShadow: false });
+}
+
+/**
+ * Glutfunken, die aus der Lava aufsteigen (eine Punktwolke, frustumCulled aus, ohne Schatten): box [x0, x1, y0, y1, zA, zB].
+ */
+export function glutfunken(level, box, o = {}) {
+  if (!level.view) return;
+  const [x0, x1, y0, y1, zA, zB] = box;
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+  const n = o.n ?? 160;
+  const rnd = new Rnd(o.seed ?? 5);
+  const g = new THREE.BufferGeometry();
+  const pos = new Float32Array(n * 3), base = [];
+  for (let i = 0; i < n; i++) {
+    const b = { x: rnd.real(x0, x1), z: rnd.real(z1, z0), y: rnd.real(y0, y1), v: rnd.real(0.6, 1.6), ph: rnd.real(0, TAU) };
+    base.push(b);
+    pos.set([b.x, b.y, b.z], i * 3);
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({ color: o.color ?? 0xffa040, size: o.size ?? 0.16, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
+  const pts = new THREE.Points(g, mat);
+  pts.frustumCulled = false;
+  const holder = {};
+  addObject(level, pts, (dt) => {
+    const d = visDt(level, holder, dt);
+    for (let i = 0; i < n; i++) {
+      const b = base[i];
+      b.y += b.v * d; b.ph += d * 1.3;
+      if (b.y > y1) b.y = y0;
+      pos[i * 3] = b.x + Math.sin(b.ph) * 0.3; pos[i * 3 + 1] = b.y; pos[i * 3 + 2] = b.z + Math.cos(b.ph * 0.8) * 0.3;
+    }
+    g.attributes.position.needsUpdate = true;
+  });
+}
+
+/**
+ * Mauerkranz/Brüstung (niedrige Mauer mit Zinnen) entlang einer Inselkante – Kollision optional. list: [[x0, x1, zA, zB,
+ * y, h?], …] (Quader-Grundriss der Mauer). o: { solid, color, top, merlon }.
+ */
+export function bruestung(level, list, o = {}) {
+  const b = new Bld();
+  const stone = o.color ?? 0x5a5070, top = o.top ?? 0x8a80a8;
+  for (const [x0, x1, zA, zB, y, h = 0.8] of list) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+    const w = x1 - x0, d = z0 - z1;
+    if (level.view) {
+      b.box(w, h, d, (x0 + x1) / 2, y, (z0 + z1) / 2, litTop(stone, 0.6), { r: 0.06 });
+      const along = w > d ? 'x' : 'z', len = Math.max(w, d), n = Math.floor(len / 1.4);
+      if (o.merlon !== false) for (let i = 0; i < n; i++) {
+        const u = -len / 2 + (i + 0.5) * (len / n);
+        const mx = along === 'x' ? (x0 + x1) / 2 + u : (x0 + x1) / 2, mz = along === 'z' ? (z0 + z1) / 2 + u : (z0 + z1) / 2;
+        b.box(along === 'x' ? 0.7 : Math.min(w, 0.7), 0.4, along === 'z' ? 0.7 : Math.min(d, 0.7), mx, y + h, mz, litTop(top, 0.6), { r: 0.05 });
+      }
+    }
+    if (o.solid !== false) level.world.add({ type: 'box', min: [x0, y, z1], max: [x1, y + h + (o.merlon !== false ? 0.4 : 0), z0], tag: 'bruestung' });
+  }
+  b.flush(level, o.shadow === false ? { castShadow: false } : undefined);
+}
+
+// =====================================================================================================================
+// Donut-Blöcke mit sparsamer Darstellung
+// =====================================================================================================================
+
+/** Donut-Block (1 m, Mitte der Unterseite im Ursprung) mit wenigen Dreiecken (≈ 330): Keks-Sockel, Glasur-Ring, Streusel. */
+function donutLowGeo(glazeHex = 0xffc83a, glazeHi = 0xfff0a8) {
+  const parts = [];
+  const dough = L(0xe8b070), doughD = L(0xa86a34), glaze = L(glazeHex), hi = L(glazeHi);
+  const base = new THREE.BoxGeometry(0.98, 0.62, 0.98, 1, 1, 1);
+  base.translate(0, 0.31, 0);
+  parts.push(colorize(ni(base), (p, n, o) => mixc(doughD, dough, smooth(-0.6, 0.9, n.y + p.y * 0.5), o)));
+  const rim = new THREE.CylinderGeometry(0.5, 0.49, 0.06, 8, 1, true);
+  rim.translate(0, 0.6, 0);
+  parts.push(colorize(ni(rim), (p, n, o) => mixc(glaze, hi, 0.25, o)));
+  const tor = new THREE.TorusGeometry(0.3, 0.16, 6, 12);
+  tor.rotateX(HALF_PI);
+  tor.translate(0, 0.66, 0);
+  parts.push(colorize(ni(tor), (p, n, o) => (n.y > -0.15 ? mixc(glaze, hi, smooth(0.4, 1, n.y) * 0.6, o) : mixc(doughD, dough, 0.6, o))));
+  const SP = [0xffffff, 0x5ad0ff, 0xff5a8a, 0x6aff7a, 0xa86aff].map((c) => L(c));
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * TAU + (i % 3) * 0.3, r = 0.3;
+    const s = new THREE.BoxGeometry(0.11, 0.035, 0.035);
+    s.rotateY(a * 1.7);
+    s.translate(Math.cos(a) * r, 0.81, Math.sin(a) * r);
+    parts.push(fill(s, SP[i % SP.length]));
+  }
+  return merge(parts);
+}
+
+/**
+ * Donut-Blöcke (Bauplan 7-3 „Donut-Blöcke fallen nach kurzem Stehen“): Mechanik unverändert aus dem Baustein `donutblock`
+ * (blocks/types/w5_donut.js: einsinken, zittern, fallen, wiederkommen, Signal { drop }), aber sparsam gezeichnet – je
+ * Eintrag eine Instanz-Gruppe mit eigener Begrenzungskugel (wird außerhalb des Bildes nicht gezeichnet) und einem
+ * Donut aus ≈ 330 statt ≈ 4500 Dreiecken. list: [{ id, blocks | from/to | grid, …Felder des Bausteins }], build = der
+ * Baustein (buildDonutblock). Liefert die Griffe des Bausteins (level.named wie beim Baustein).
+ */
+export function donutBloecke(level, list, build) {
+  const v = level.view;
+  const groups = [];
+  for (const spec of list) {
+    level.view = null;
+    let h = null;
+    try { h = build(level, spec); } finally { level.view = v; }
+    if (h) groups.push({ h, spec });
+  }
+  if (!v) return groups.map((g) => g.h);
+  const geo = donutLowGeo();
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 });
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), pv = new THREE.Vector3();
+  const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
+  for (const { h, spec } of groups) {
+    const blocks = h.blocks, size = spec.size ?? 1, delay = spec.delay ?? 0.5;
+    const im = new THREE.InstancedMesh(geo, mat, blocks.length);
+    im.name = 'donuts';
+    im.castShadow = spec.shadow !== false; im.receiveShadow = true;
+    // Begrenzungskugel: alle Ruhelagen samt Fallweg (12 m)
+    const bb = new THREE.Box3();
+    for (const b of blocks) { bb.expandByPoint(pv.set(b.x, b.y0 + size, b.z)); bb.expandByPoint(pv.set(b.x, b.y0 - 12, b.z)); }
+    bb.expandByScalar(0.8);
+    im.boundingSphere = bb.getBoundingSphere(new THREE.Sphere());
+    const holder = {};
+    let tt = 0;
+    addObject(level, im, (dt) => {
+      const d = visDt(level, holder, dt);
+      tt += d;
+      blocks.forEach((b, i) => {
+        if (b.state === 'gone') { im.setMatrixAt(i, ZERO); return; }
+        if (b.pop > 0) b.pop = Math.max(0, b.pop - d);
+        const k = b.pop > 0 ? 1 - b.pop / 0.35 : 1;
+        const sh = b.state === 'loaded' ? 0.035 * Math.min(1, b.load / Math.max(0.05, delay)) : 0;
+        pv.set(b.x + Math.sin(tt * 47 + i) * sh, b.y, b.z + Math.cos(tt * 41 + i) * sh);
+        const sc = size * (k < 1 ? Math.max(0.05, Math.sin(k * Math.PI * 0.5) + Math.sin(k * Math.PI) * 0.15) : 1);
+        im.setMatrixAt(i, m.compose(pv, q, s.set(sc, sc, sc)));
+      });
+      im.instanceMatrix.needsUpdate = true;
+    });
+  }
+  return groups.map((g) => g.h);
+}
