@@ -537,7 +537,7 @@ if (part('states')) {
     const chunks = [];
     for (let i = 0; i < states.length; i += 9) chunks.push(states.slice(i, i + 9));
     for (let c = 0; c < chunks.length; c++) {
-      const nmc = c ? `${nm}_${c + 1}` : nm;
+      const nmc = c ? `${nm}_teil${c + 1}` : nm;
       await sc(([rows]) => {
         const cm = window.__cm; cm.clear();
         if (!cm.reg.hasModel(rows[0][0])) return;

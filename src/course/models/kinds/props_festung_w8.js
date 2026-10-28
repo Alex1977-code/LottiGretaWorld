@@ -486,7 +486,7 @@ function buildAutowrack() {
   const update = (dt, st) => {
     clk.tick(dt, 'idle');
     emit -= dt;
-    if (st.smoke !== false && emit <= 0) { smoke.burst([1.4, 1.3, 0.1], { count: 1, speed: 0.3, up: 1.4, size: 0.35, life: 1.6, spread: 0.2 }); emit = 0.25; }
+    if (st.smoke !== false && dt > 0 && emit <= 0) { smoke.burst([1.4, 1.3, 0.1], { count: 1, speed: 0.3, up: 1.4, size: 0.35, life: 1.6, spread: 0.2 }); emit = 0.25; }
     smoke.step(dt);
   };
   return makeModel('autowrack', root, update, own, { initial: 'idle' });
