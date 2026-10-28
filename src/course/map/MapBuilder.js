@@ -375,7 +375,9 @@ function buildProps(level, map, grid) {
     if (map.kit === 'halloween') { buildHwProp(level, map, grid, it, i); return; }   // Halloween: halloween.js
     // Modell aus der Registry (gleiche Optik wie in den Leveln), sonst eigene sparsame Geometrie
     const pm = level.view && it.model !== false ? (propModel(it) ?? (map.kit === 'lila' ? lilaPropModel(it) : map.kit === 'sky' ? skyPropModel(it) : null)) : null;
-    const baked = pm ? bakeModel(add, pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
+    // Welt 6: eingebackene Registry-Requisiten in kompakte Kacheln je 16-m-Feld mit Fern-Ausblendung (wie Halloween)
+    const addPm = map.kit === 'sky' ? (g, o) => add(g, { ...o, tile: `w6p:${Math.floor(it.pos[0] / 16)}|${Math.floor(it.pos[2] / 16)}`, lod: true }) : add;
+    const baked = pm ? bakeModel(addPm, pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
     if (baked && it.kind === 'tank') add(place(turretGeo(it.size ?? 1, (it.color ?? 'oliv') === 'oliv'), it.pos[0], it.pos[1] + 1.6 * (it.size ?? 1), it.pos[2], it.yaw ?? 0), { castShadow: true });
     if (it.kind === 'sandstack') {
       // Stapel aus 1-m-Sandblöcken zum Hüpfen (Kollision je Stapel, Optik: Modell 'sandblock')

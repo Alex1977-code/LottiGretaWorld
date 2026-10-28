@@ -1,38 +1,47 @@
-// Kulissen der Welt-6-Eingänge (Kurs-Karte „Wolkeninseln“, eigene Gestaltung), aufgerufen aus EntranceView.decorate():
+// Kulissen der Welt-6-Eingänge (Kurs-Karte „Wolkeninseln“, eigene Gestaltung), aufgerufen aus EntranceView.decorate().
+// In Klammern die Registry-Modelle (models/kinds/*_w6.js und vorhandene), die benutzt werden, sobald es sie gibt – mit
+// Dreiecks-Obergrenze; sonst eigene sparsame Geometrie an gleicher Stelle:
 //   pipehills    6-1        Bergland mit Glasröhren-Netz: Röhren steigen aus dem Boden in die Hügel, Bitcoins sausen
-//                           hindurch; Stachelkugeln auf den Hängen, Warp-Box, Wolkenkanone mit kreisendem Münzhimmel
+//                           hindurch; Stachelkugeln auf den Hängen, Warp-Box ('warp_box'), Wolkenkanone ('cloud_cannon')
+//                           mit kreisendem Münzhimmel, Feuer-Schnappblumen im Topf
 //   stonecircle  6-B        Steinkreis: Menhire mit leuchtenden Runen, zwei Steintore, Feuerschalen, Runenkreis am
 //                           Boden; die Werfer-Brüder tänzeln als Gegnergruppe darin (Weltdaten roamers)
-//   ghostbay     6-2        Geisterschiff-Bucht: schwankendes Geisterschiff mit zerfetzten Segeln, grün leuchtenden
-//                           Bullaugen und Gespenster-Flagge, Kreisgeister kreisen darüber; halb versunkenes Wrack,
+//   ghostbay     6-2        Geisterschiff-Bucht: schwankendes Geisterschiff ('geisterschiff', Segel im Wind), Kreisgeister
+//                           kreisen darüber, grüner Geisterschein; Wrack-Bug und geknickter Mast ('geisterschiff_wrack'),
 //                           treibende Fässer
 //   fareast      6-3        Fernost-Halle (Fantasie): zweistöckige Halle mit roten Säulen, Schiebewänden, jadegrünen
-//                           Dächern mit Goldspitzen, Papierlaternen, Pilz-Maske über der Tür; Gong schlägt jeden Takt
-//                           der Kartenmusik (Schwingen, Lichtring); rotes Tor am Weg
+//                           Dächern mit Goldspitzen, Papierlaternen, Pilz-Maske am Obergeschoss ('pilz_maske'); Gong
+//                           ('gong') schlägt jeden Takt der Kartenmusik; Laternenbogen am Weg
 //   junglelake   6-4        Dschungel mit lila Giftsee: Floß kreist auf dem See, Giftblasen steigen auf, Seerosen,
-//                           Rankenschnapper am Ufer, Klettergitter, Brummer surren über dem Wasser
+//                           Rankenschnapper am Ufer, Giftblüten ('giftbluete'), Riesenblatt-Stauden ('riesenblatt'),
+//                           Klettergitter ('klettergitter'), Brummer surren über dem Wasser
 //   pipefort     6-A        kleine Festung: Mauern mit Zinnen, Ecktürme, 2 × 3 Glasröhren in den Wänden, Tor mit
-//                           Fallgitter; der Schubser-Prinz stapft durch den Hof (Gegnergruppe, eigener Stellvertreter)
-//   snowwind     6-5        Schnee-Wolkenberg: Pustewolke bläst Schneeflocken, zugefrorener Teich mit Schlittschuhen,
-//                           Glotzfisch schaut aus dem Eisloch, Iglu; Windräder drehen sich im Takt (SkyLife, sky6.js)
-//   skyfactory   6-6        Himmelsfabrik: Halle mit Sägezahndach, Schornsteinen mit Dampf, großen Zahnrädern an der
-//                           Front (drehen gegenläufig), Förderband mit Kisten, Kanonenturm
+//                           Fallgitter; der Schubser-Prinz stapft durch den Hof (Gegnergruppe 'schubser_prinz',
+//                           eigener Stellvertreter STAND_INS_W6)
+//   snowwind     6-5        Schnee-Wolkenberg: Pustewolke ('pustewolke') holt Luft und bläst Schneeflocken, zugefrorener
+//                           Teich mit Schlittschuhen ('schlittschuhe'), Glotzfisch ('glotzfisch') schaut aus dem Eisloch,
+//                           Iglu ('iglu'); Windräder drehen sich im Takt (SkyLife, sky6.js)
+//   skyfactory   6-6        Himmelsfabrik: Halle mit Sägezahndach, Schornsteinen mit Dampf, Zahnrädern an der Front
+//                           ('zahnrad', drehen gegenläufig), Förderband ('foerderband') mit Kisten, Kanonenturm
+//                           ('kanone_turm'), Dampfkessel ('kessel') im Hof
 //   throwhouse   6-Haus     Prüfungs-Haus: lila Haus mit goldenem Fragezeichen, Wurfmaschine wirft Bälle auf eine
 //                           Zielscheibe (die wackelt bei Treffer), Ballkorb
-//   minetower    6-7        Minen-Turm: hohes Fördergerüst mit drehendem Seilrad und Aufzugkorb, Schacht, Lore,
-//                           Kristalle; eine Wuschel-Horde hüpft um den Fuß
-//   tankroad     6-Panzer   Wolkenstraße: Panzerkolonne mit Baron-Flagge (Geschützturm schwenkt), Türme aus großen
-//                           ?-Blöcken, Zündköpfe trippeln umher, Fahrbahnmarkierung
-//   skycircus    6-C        Zirkuszelt auf der höchsten Insel: gestreiftes Zelt mit Wimpelketten, Spiegelfrucht auf
-//                           einem Podest, Würfelblase-Geleebrocken hüpfen; Seilbahn (Weltdaten cableways)
-// Registry-Modelle (models/kinds/*_w6.js und vorhandene) werden benutzt, sobald es sie gibt – mit Dreiecks-Obergrenze;
-// sonst eigene sparsame Geometrie (gleiche Lage). Benutzte Modelle meldet state().decor.w6models.
-// Große, unbewegte Teile gehen in die verschmolzene statische Geometrie, bewegte sind eigene Objekte (ev.updaters),
-// gleichartige als Instanzen (ein Zeichenaufruf). Bewegte Objekte stehen schon beim Bau an ihrer Startlage (lod.js).
+//   minetower    6-7        Minen-Turm: hohes Fördergerüst ('schacht_geruest') mit drehendem Seilrad und Aufzugkorb,
+//                           Schacht, Lore ('lore'), Kristalle; eine Wuschel-Horde ('wuschel_horde') wimmelt am Fuß
+//   tankroad     6-Panzer   Wolkenstraße: Panzerkolonne ('panzer_fahrzeug') mit Baron-Flagge (Geschützturm schwenkt),
+//                           Türme aus großen ?-Blöcken ('riesen_frageblock'), Zündköpfe trippeln umher, Fahrbahnmarkierung
+//   skycircus    6-C        Zirkuszelt ('zirkuszelt') auf der höchsten Insel mit Wimpelketten, Spiegelfrucht
+//                           ('powerup_spiegel') auf einem Podest, Würfelblase ('wuerfelblase') und Gelee-Brocken
+//                           (createInstanced('gelee_brocken')) hüpfen; Seilbahn (Weltdaten cableways)
+// Benutzte Modelle meldet state().decor.w6models, zu schwere w6heavy (Name → Dreiecke).
+// Große, unbewegte Teile gehen in die verschmolzene statische Geometrie (Registry-Modelle je Eingang in eine kompakte
+// Kachel mit Fern-Ausblendung), bewegte sind eigene Objekte (ev.updaters), gleichartige als Instanzen (ein Zeichenaufruf).
+// Bewegte Objekte stehen schon beim Bau an ihrer Startlage (lod.js).
 
 import * as THREE from 'three';
 import { mix, TAU, cached, vcol } from '../models/lib/kit.js';
 import { getModel, hasModel } from '../models/index.js';
+import { createInstanced } from '../models/lib/instanced.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 import { bakeModel } from './bake.js';
 import { LowBuild as Build, place, tankGeo, turretGeo } from './desert.js';
@@ -78,10 +87,10 @@ const tooHeavy = (name, opts, max) => { const n = modelTris(name, opts); if (n >
  * Eingangs teilen eine kompakte Kachel mit Fern-Ausblendung (tile 'w6:<Id>', lod: true – wie die Halloween-Welt):
  * im Anflug über die ganze Inselkette fehlen sie jenseits von 90 m, nah am Eingang sind sie da.
  */
-function bake6(ev, name, opts, pos, yaw = FRONT, scale = 1, state = null, cast = true, maxTris = 6000, tile = undefined) {
+function bake6(ev, name, opts, pos, yaw = FRONT, scale = 1, state = null, cast = true, maxTris = 6000, tile = undefined, dt = 0) {
   if (!hasModel(name) || tooHeavy(name, opts, maxTris)) return false;
   const add = (g, o) => ev.addStatic(g, { ...o, ...(cast ? {} : { castShadow: false }), tile: tile ?? `w6:${ev.id}`, lod: true });
-  const ok = !!bakeModel(add, name, opts, pos, yaw, scale, state);
+  const ok = !!bakeModel(add, name, opts, pos, yaw, scale, state, dt);
   if (ok) W6_USED.add(name);
   return ok;
 }
@@ -107,6 +116,7 @@ function footRadius(name, opts = {}) {
 function live6(ev, name, opts, pos, yaw = FRONT, scale = 1, state = 'idle', shadow = true, maxTris = 5000) {
   if (!hasModel(name) || tooHeavy(name, opts, maxTris)) return null;
   const m = getModel(name, opts ?? {});
+  if (m.placeholder) { m.dispose?.(); return null; }
   m.root.position.set(pos[0], pos[1], pos[2]);
   m.root.rotation.y = yaw;
   if (scale !== 1) m.root.scale.setScalar(scale);
@@ -116,6 +126,13 @@ function live6(ev, name, opts, pos, yaw = FRONT, scale = 1, state = 'idle', shad
   ev.updaters.push((dt, t) => m.update(dt, typeof state === 'function' ? state(dt, t) : state));
   W6_USED.add(name);
   return m;
+}
+/** Schattenwurf nur für die n dreiecksreichsten Meshes eines Modells (Rumpf statt vieler Kleinteile im Schattenpass). */
+function shadowLargest(root, n = 1) {
+  const list = [];
+  root.traverse((o) => { if (o.isMesh && o.geometry) list.push([o, (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3]); });
+  list.sort((a, b) => b[1] - a[1]);
+  list.forEach(([o], i) => { if (i >= n) o.castShadow = false; });
 }
 /** Instanz-Fläche (eigenes Material nach Vertexfarben), ohne Frustum-Culling (die Instanzen bewegen sich). */
 function instanced(ev, geo, n, opts = {}) {
@@ -326,17 +343,15 @@ function pipeHills(ev, x, y, z) {
   // Feuer-Schnappblumen im Topf am Hang (eigene sparsame Geometrie: das Registry-Modell 'feuer_schnappblume' hat ≈ 5,5 k
   // Dreiecke bzw. als bewegtes Modell sieben Zeichenaufrufe – gleich an der Ankunftsinsel, im Anflug zu teuer)
   for (const [fx, fy, fz, fyaw] of [[x + 9.2, y + 5.6, z + 8, FRONT + 0.4], [x + 17.6, y + 7.8, z + 16.6, FRONT - 0.3]]) {
-    {
-      addGeo(ev, 'w6m:fireflower', () => {
-        const b = new Build();
-        b.cyl(0.42, 0.32, 0.55, { v: (px, py) => mix(0x2a2228, 0x4a3a3a, py + 0.5) }, { p: [0, 0.27, 0] }, 10);
-        b.cyl(0.06, 0.08, 0.7, 0x3a8a3a, { p: [0, 0.85, 0] }, 5);
-        b.sphere(0.36, (px, py, pz) => (hash3(px * 9, py * 9, pz * 9) > 0.8 ? 0xffe04a : 0xff5a2a), { p: [0, 1.35, 0.05], s: [1, 0.9, 1] }, 10, 7);
-        b.sphere(0.2, 0xffe07a, { p: [0, 1.3, 0.3], s: [1, 0.6, 0.5] }, 7, 4);
-        for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; b.cone(0.1, 0.32, 0xffa02a, { p: [Math.cos(a) * 0.3, 1.62, Math.sin(a) * 0.3], r: [Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5] }, 4); }
-        return b.geometry();
-      }, fx, fy, fz, fyaw + Math.PI / 2);
-    }
+    addGeo(ev, 'w6m:fireflower', () => {
+      const b = new Build();
+      b.cyl(0.42, 0.32, 0.55, { v: (px, py) => mix(0x2a2228, 0x4a3a3a, py + 0.5) }, { p: [0, 0.27, 0] }, 10);
+      b.cyl(0.06, 0.08, 0.7, 0x3a8a3a, { p: [0, 0.85, 0] }, 5);
+      b.sphere(0.36, (px, py, pz) => (hash3(px * 9, py * 9, pz * 9) > 0.8 ? 0xffe04a : 0xff5a2a), { p: [0, 1.35, 0.05], s: [1, 0.9, 1] }, 10, 7);
+      b.sphere(0.2, 0xffe07a, { p: [0, 1.3, 0.3], s: [1, 0.6, 0.5] }, 7, 4);
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; b.cone(0.1, 0.32, 0xffa02a, { p: [Math.cos(a) * 0.3, 1.62, Math.sin(a) * 0.3], r: [Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5] }, 4); }
+      return b.geometry();
+    }, fx, fy, fz, fyaw + Math.PI / 2);
   }
 }
 
@@ -481,29 +496,46 @@ function ghostGeo() {
 }
 
 function ghostBay(ev, x, y, z) {
-  // Geisterschiff (schwankt im Wasser)
-  const ship = mover(ev, ghostShipGeo(), x, y, z, 'geisterschiff', true);
-  const glow = new THREE.Mesh(ghostShipGlowGeo(), glowMat(ev, 0xffffff, { vertexColors: true }));
-  ship.add(glow);
-  const flag = new THREE.Mesh(cached('w6m:ghostflagplane', () => new THREE.PlaneGeometry(1.6, 1.0).translate(0.8, 0, 0)), new THREE.MeshStandardMaterial({ map: ghostFlagTexture(), side: THREE.DoubleSide, roughness: 0.8 }));
-  ev.own.push(flag.material);
-  flag.position.set(0.6, 7.4, 0);
-  ship.add(flag);
+  // Geisterschiff (Registry 'geisterschiff', Deck 1 m über dem Wasser; sonst eigenes mit Flagge) – schwankt im Wasser
+  const st0 = { wind: 0.5 };
+  const model = live6(ev, 'geisterschiff', { part: 'ganz', length: 10, width: 4, height: 2.4 }, [x, y + 1.0, z], 0.15, 1,
+    () => ({ anim: 'idle', lit: true, wind: st0.wind, sway: 0.6 }), true, 10000);
+  let ship, flag = null, baseY;
+  if (model) {
+    ship = model.root;
+    ship.name = 'w6:geisterschiff';
+    shadowLargest(ship, 2);
+    baseY = y + 1.0;
+  } else {
+    ship = mover(ev, ghostShipGeo(), x, y, z, 'geisterschiff', true);
+    const glow = new THREE.Mesh(ghostShipGlowGeo(), glowMat(ev, 0xffffff, { vertexColors: true }));
+    ship.add(glow);
+    flag = new THREE.Mesh(cached('w6m:ghostflagplane', () => new THREE.PlaneGeometry(1.6, 1.0).translate(0.8, 0, 0)), new THREE.MeshStandardMaterial({ map: ghostFlagTexture(), side: THREE.DoubleSide, roughness: 0.8 }));
+    ev.own.push(flag.material);
+    flag.position.set(0.6, 7.4, 0);
+    ship.add(flag);
+    baseY = y - 0.25;
+  }
   const state = { roll: 0 };
   const sway = (dt, t) => {
     state.roll = Math.sin(t * 0.9) * 0.1;
+    st0.wind = 0.45 + 0.35 * Math.sin(t * 0.7);
     ship.rotation.set(state.roll, 0.15, Math.sin(t * 0.6) * 0.045, 'YXZ');
-    ship.position.y = y - 0.25 + Math.sin(t * 1.2) * 0.08;
-    flag.rotation.y = Math.sin(t * 2.2) * 0.25;
+    ship.position.y = baseY + Math.sin(t * 1.2) * 0.08;
+    if (flag) flag.rotation.y = Math.sin(t * 2.2) * 0.25;
   };
   sway(0, 0);
-  ev.updaters.push(sway);
-  // halb versunkenes Wrack (statisch, schief)
-  const wreck = ghostShipGeo().clone();
-  wreck.scale(0.6, 0.6, 0.6);
-  wreck.rotateZ(0.32); wreck.rotateX(-0.25);
+  ev.updaters.unshift(sway);   // vor dem Modell-update (Wind)
+  // halb versunkenes Wrack (Registry 'geisterschiff_wrack': schräger Bug, dazu ein geknickter Mast; sonst eigenes, schief)
   const [wx, wz] = ev.def.wreck ?? [x - 10, z - 10];
-  ev.addStatic(place(wreck, wx, y - 1.0, wz, 0.9), { castShadow: true });
+  if (bake6(ev, 'geisterschiff_wrack', { kind: 'bug', size: 1.1 }, [wx, y, wz], 0.9 + Math.PI, 1, null, true, 3000)) {
+    bake6(ev, 'geisterschiff_wrack', { kind: 'mast', size: 1 }, [x + 6, y, z - 13], 2.2, 1, null, true, 1500);
+  } else {
+    const wreck = ghostShipGeo().clone();
+    wreck.scale(0.6, 0.6, 0.6);
+    wreck.rotateZ(0.32); wreck.rotateX(-0.25);
+    ev.addStatic(place(wreck, wx, y - 1.0, wz, 0.9), { castShadow: true });
+  }
   // Kreisgeister über dem Schiff
   const NG = 7;
   const ghosts = instanced(ev, ghostGeo(), NG, { name: 'kreisgeister', material: vcol(0.6, { emissive: 0x2a2440 }, 'w6ghost') });
@@ -579,17 +611,20 @@ function farEast(ev, x, y, z) {
   }, x, y, z);
   solidBox(ev, x - 6.3, y, z - 3.8, x + 6.3, y + 9, z + 3.8, 'halle');
   solidBox(ev, x - 7.5, y, z - 5.25, x + 7.5, y + 0.6, z + 5.25, 'sockel');
-  // Pilz-Maske über der Tür
-  const mask = mushroomGeo(1.1, 0);
-  mask.rotateX(Math.PI / 2 - 0.25);
-  ev.addStatic(place(mask, x, y + 4.15, z + 3.9), { castShadow: true });
-  addGeo(ev, 'w6m:maskface', () => {
-    const b = new Build();
-    b.sphere(0.55, 0xfff2e0, { s: [1, 0.85, 0.4] }, 10, 6);
-    for (const s of [-1, 1]) b.sphere(0.1, 0x2a1e2a, { p: [s * 0.2, 0.1, 0.2], s: [0.8, 1.2, 0.5] }, 5, 3);
-    b.box(0.3, 0.05, 0.05, 0x2a1e2a, { p: [0, -0.18, 0.22] }, 0);
-    return b.geometry();
-  }, x, y + 3.55, z + 4.1);
+  // Pilz-Maske: Registry 'pilz_maske' (Kopf-Zubehör) groß am Obergeschoss über dem Dach – aus der Kartenansicht sichtbar;
+  // sonst eigene Kappe mit Gesicht über der Tür
+  if (!bake6(ev, 'pilz_maske', { mode: 'kopf', size: 1.6 }, [x, y + 7.35, z + 2.75], FRONT, 1, { anim: 'idle' }, true, 6000)) {
+    const mask = mushroomGeo(1.1, 0);
+    mask.rotateX(Math.PI / 2 - 0.25);
+    ev.addStatic(place(mask, x, y + 4.15, z + 3.9), { castShadow: true });
+    addGeo(ev, 'w6m:maskface', () => {
+      const b = new Build();
+      b.sphere(0.55, 0xfff2e0, { s: [1, 0.85, 0.4] }, 10, 6);
+      for (const s of [-1, 1]) b.sphere(0.1, 0x2a1e2a, { p: [s * 0.2, 0.1, 0.2], s: [0.8, 1.2, 0.5] }, 5, 3);
+      b.box(0.3, 0.05, 0.05, 0x2a1e2a, { p: [0, -0.18, 0.22] }, 0);
+      return b.geometry();
+    }, x, y + 3.55, z + 4.1);
+  }
   // Papierlaternen unter den Dachkanten (leuchtend)
   const lan = [];
   for (const lx of [-5.5, -2.2, 2.2, 5.5]) lan.push([x + lx, y + 3.75, z + 4.4]);
@@ -603,54 +638,78 @@ function farEast(ev, x, y, z) {
       return b.geometry();
     }).clone(), lx, ly, lz));
   }
-  // rotes Tor am Weg (eigene Fantasie-Form) – Pfosten links und rechts des Wegs
+  // Laternenbogen am Weg (eigene Gartenform: zwei rote Pfosten mit Goldkugeln, runder Bogen, drei Laternen darunter)
   const gx = x + 9.5, gz = z + 18.4;
-  addGeo(ev, 'w6m:redgate', () => {
+  addGeo(ev, 'w6m:lanternarch', () => {
     const b = new Build();
-    for (const s of [-1, 1]) { b.cyl(0.24, 0.28, 4.4, RED, { p: [s * 2.4, 2.2, 0] }, 10); b.cyl(0.36, 0.36, 0.3, 0x2a2a2a, { p: [s * 2.4, 0.15, 0] }, 10); }
-    b.box(6.4, 0.34, 0.5, 0x2a2a2a, { p: [0, 4.55, 0] }, 0.05);
-    b.box(7.2, 0.3, 0.6, RED, { p: [0, 4.95, 0] }, 0.05);
-    for (const s of [-1, 1]) b.cone(0.18, 0.7, RED, { p: [s * 3.75, 5.15, 0], r: [0, 0, s * -1.2] }, 6);
-    b.box(5.0, 0.22, 0.32, RED, { p: [0, 3.9, 0] }, 0.03);
-    b.box(0.9, 0.6, 0.1, GOLD, { p: [0, 4.3, 0.2] }, 0.02);
+    for (const s of [-1, 1]) {
+      b.cyl(0.24, 0.28, 3.3, RED, { p: [s * 2.4, 1.65, 0] }, 10);
+      b.cyl(0.36, 0.36, 0.3, 0x2a2a2a, { p: [s * 2.4, 0.15, 0] }, 10);
+      b.sphere(0.32, GOLD, { p: [s * 2.4, 3.3, 0] }, 10, 6);
+    }
+    b.torus(2.4, 0.17, RED, { p: [0, 3.3, 0] }, 6, 28, Math.PI);
+    b.torus(2.4, 0.06, GOLD, { p: [0, 3.3, 0.16] }, 3, 28, Math.PI);
+    for (const a of [Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4]) b.cyl(0.02, 0.02, 0.45, 0x2a1e1a, { p: [Math.cos(a) * 2.25, 3.3 + Math.sin(a) * 2.25 - 0.25, 0] }, 3);
     return b.geometry();
   }, gx, y, gz, 0.4);
-  for (const s of [-1, 1]) solidCyl(ev, gx + Math.cos(0.4) * s * 2.4, gz - Math.sin(0.4) * s * 2.4, 0.32, y, y + 4.4, 'tor');
-  // Gong im Gestell: schwingt bei jedem Taktanfang (alle 4 Zählzeiten), heller Ring breitet sich aus
+  addGeo(ev, 'w6m:archlanterns', () => {
+    const b = new Build();
+    for (const [i, a] of [Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4].entries()) {
+      const lx = Math.cos(a) * 2.25, ly = 3.3 + Math.sin(a) * 2.25 - 0.75;
+      b.sphere(0.26, i === 1 ? 0xffd27a : 0xff6a4a, { p: [lx, ly, 0], s: [1, 1.2, 1] }, 9, 6);
+      b.cyl(0.14, 0.14, 0.06, 0x2a1e1a, { p: [lx, ly + 0.32, 0] }, 6);
+    }
+    return b.geometry();
+  }, gx, y, gz, 0.4, false, 'glow');
+  for (const s of [-1, 1]) solidCyl(ev, gx + Math.cos(0.4) * s * 2.4, gz - Math.sin(0.4) * s * 2.4, 0.32, y, y + 3.6, 'tor');
+  // Gong: schwingt bei jedem Taktanfang (alle 4 Zählzeiten) – Registry 'gong' (schlichtes Holzgestell, Schallringe;
+  // Zustand 'ring' mit progress aus der Taktuhr), sonst eigenes Gestell mit Scheibe und Lichtring
   const gpx = x + 8.6, gpz = z + 2.4;
-  addGeo(ev, 'w6m:gongframe', () => {
-    const b = new Build();
-    for (const s of [-1, 1]) b.box(0.26, 3.2, 0.26, RED, { p: [s * 1.3, 1.6, 0] }, 0.04);
-    b.box(3.2, 0.26, 0.3, RED, { p: [0, 3.2, 0] }, 0.04);
-    for (const s of [-1, 1]) b.cone(0.14, 0.4, GOLD, { p: [s * 1.65, 3.3, 0], r: [0, 0, s * -1.3] }, 5);
-    return b.geometry();
-  }, gpx, y, gpz);
   solidBox(ev, gpx - 1.5, y, gpz - 0.3, gpx + 1.5, y + 3.3, gpz + 0.3, 'gong');
-  const gong = mover(ev, cached('w6m:gong', () => {
-    const b = new Build();
-    b.cyl(0.85, 0.85, 0.1, { v: (px, py, pz, nx, ny, nz) => mix(0xd89a1a, 0xffe07a, Math.abs(nz) * 0.4 + Math.hypot(px, py) * 0.6) }, { r: [Math.PI / 2, 0, 0] }, 24);
-    b.torus(0.3, 0.05, 0xffe9a0, { p: [0, 0, 0.06] }, 3, 16);
-    for (const s of [-1, 1]) b.cyl(0.02, 0.02, 0.5, 0x3a2a1a, { p: [s * 0.5, 0.9, 0] }, 3);
-    return b.geometry();
-  }), gpx, y + 2.05, gpz, 'gong', true, vcol(0.25, { metalness: 0.35, emissive: 0x2a1800 }, 'w6gong'));
-  const ringMat = glowMat(ev, 0xffe9a0, { transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
-  const ring = new THREE.Mesh(cached('w6m:gongring', () => new THREE.RingGeometry(0.9, 1.05, 32)), ringMat);
-  ring.position.set(gpx, y + 2.05, gpz + 0.1);
-  ev.view.add(ring);
-  const st = { strikes: 0, bar: -1, beat: 0, source: 'zeit', theme: null };
-  const putGong = (dt, t) => {
+  const st = { strikes: 0, bar: -1, beat: 0, source: 'zeit', theme: null, ph: 0, spb: 0.5 };
+  const track = (t) => {
     const bt = beatNow6(t);
-    const bar = Math.floor(bt.beat / 4), ph = bt.beat - bar * 4;   // Zählzeiten seit dem Taktanfang
+    const bar = Math.floor(bt.beat / 4);
+    st.ph = bt.beat - bar * 4;   // Zählzeiten seit dem Taktanfang
     if (bar !== st.bar) { if (st.bar >= 0 && bar > st.bar) st.strikes += bar - st.bar; st.bar = bar; }   // verpasste Takte nachzählen
-    st.beat = +bt.beat.toFixed(3); st.source = bt.source; st.theme = bt.theme;
-    const k = Math.exp(-ph * 1.6);
-    gong.rotation.set(Math.sin(ph * 9) * 0.22 * k, 0, 0);
-    gong.scale.setScalar(1 + 0.06 * k);
-    ringMat.opacity = 0.85 * Math.max(0, 1 - ph * 0.7);
-    ring.scale.setScalar(1 + ph * 2.2);
+    st.beat = +bt.beat.toFixed(3); st.source = bt.source; st.theme = bt.theme; st.spb = 60 / (bt.bpm || 120);
   };
-  putGong(0, 0);
-  ev.updaters.push(putGong);
+  const gongModel = live6(ev, 'gong', {}, [gpx, y, gpz], FRONT, 1.2, (dt, t) => {
+    track(t);
+    return { anim: 'ring', progress: Math.min(1, (st.ph * st.spb) / 1.6) };
+  }, true, 6000);
+  if (gongModel) {
+    gongModel.root.name = 'w6:gong';
+    track(0);
+  } else {
+    addGeo(ev, 'w6m:gongframe', () => {
+      const b = new Build();
+      for (const s of [-1, 1]) b.box(0.26, 3.2, 0.26, 0x8a5a36, { p: [s * 1.3, 1.6, 0] }, 0.04);
+      b.box(3.2, 0.26, 0.3, 0x8a5a36, { p: [0, 3.2, 0] }, 0.04);
+      return b.geometry();
+    }, gpx, y, gpz);
+    const gong = mover(ev, cached('w6m:gong', () => {
+      const b = new Build();
+      b.cyl(0.85, 0.85, 0.1, { v: (px, py, pz, nx, ny, nz) => mix(0xd89a1a, 0xffe07a, Math.abs(nz) * 0.4 + Math.hypot(px, py) * 0.6) }, { r: [Math.PI / 2, 0, 0] }, 24);
+      b.torus(0.3, 0.05, 0xffe9a0, { p: [0, 0, 0.06] }, 3, 16);
+      for (const s of [-1, 1]) b.cyl(0.02, 0.02, 0.5, 0x3a2a1a, { p: [s * 0.5, 0.9, 0] }, 3);
+      return b.geometry();
+    }), gpx, y + 2.05, gpz, 'gong', true, vcol(0.25, { metalness: 0.35, emissive: 0x2a1800 }, 'w6gong'));
+    const ringMat = glowMat(ev, 0xffe9a0, { transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+    const ring = new THREE.Mesh(cached('w6m:gongring', () => new THREE.RingGeometry(0.9, 1.05, 32)), ringMat);
+    ring.position.set(gpx, y + 2.05, gpz + 0.1);
+    ev.view.add(ring);
+    const putGong = (dt, t) => {
+      track(t);
+      const ph = st.ph, k = Math.exp(-ph * 1.6);
+      gong.rotation.set(Math.sin(ph * 9) * 0.22 * k, 0, 0);
+      gong.scale.setScalar(1 + 0.06 * k);
+      ringMat.opacity = 0.85 * Math.max(0, 1 - ph * 0.7);
+      ring.scale.setScalar(1 + ph * 2.2);
+    };
+    putGong(0, 0);
+    ev.updaters.push(putGong);
+  }
   addInfo(ev, () => ({ gong: { strikes: st.strikes, bar: st.bar, beat: st.beat, source: st.source, theme: st.theme } }));
 }
 
@@ -711,16 +770,25 @@ function jungleLake(ev, x, y, z) {
     ev.updaters.push((dt, t) => { const k = Math.max(0, Math.sin(t * 1.3) - 0.6) * 2.5; head.rotation.set(-0.2 - k * 0.5, Math.sin(t * 0.7) * 0.4, 0); head.position.y = sp[1] + 2.4 + k * 0.2; });
   }
   solidCyl(ev, sp[0], sp[2], 0.6, sp[1] - 1, sp[1] + 3, 'schnapper');
-  // Klettergitter (Seilnetz zwischen zwei Pfosten) am Nordufer
+  // Klettergitter am Nordufer (Registry 'klettergitter' 2,1 × 2 m doppelt groß: Bambusrahmen mit Ranken; sonst Seilnetz)
   const kx = x + 6.5, kz = z - 12.4;
-  addGeo(ev, 'w6m:climbnet', () => {
-    const b = new Build();
-    for (const s of [-1, 1]) b.cyl(0.14, 0.18, 4.2, 0x8a5a36, { p: [s * 2.1, 2.1, 0] }, 6);
-    b.cyl(0.1, 0.1, 4.6, 0x8a5a36, { p: [0, 4.0, 0], r: [0, 0, Math.PI / 2] }, 6);
-    for (let i = 0; i <= 6; i++) b.box(0.05, 3.6, 0.05, 0xd8b878, { p: [-1.8 + i * 0.6, 2.1, 0] }, 0);
-    for (let k = 0; k <= 6; k++) b.box(3.7, 0.05, 0.05, 0xd8b878, { p: [0, 0.4 + k * 0.58, 0] }, 0);
-    return b.geometry();
-  }, kx, y + 0.8, kz);
+  if (!bake6(ev, 'klettergitter', { size: [2.1, 2] }, [kx, y + 0.8, kz], FRONT, 2, { shake: 0 }, true, 4500)) {
+    addGeo(ev, 'w6m:climbnet', () => {
+      const b = new Build();
+      for (const s of [-1, 1]) b.cyl(0.14, 0.18, 4.2, 0x8a5a36, { p: [s * 2.1, 2.1, 0] }, 6);
+      b.cyl(0.1, 0.1, 4.6, 0x8a5a36, { p: [0, 4.0, 0], r: [0, 0, Math.PI / 2] }, 6);
+      for (let i = 0; i <= 6; i++) b.box(0.05, 3.6, 0.05, 0xd8b878, { p: [-1.8 + i * 0.6, 2.1, 0] }, 0);
+      for (let k = 0; k <= 6; k++) b.box(3.7, 0.05, 0.05, 0xd8b878, { p: [0, 0.4 + k * 0.58, 0] }, 0);
+      return b.geometry();
+    }, kx, y + 0.8, kz);
+  }
+  // Giftblüten neben dem Schnapper, Riesenblatt-Stauden am West- und Südufer (Registry-Kulisse; ohne Modell entfällt sie)
+  for (const [bx, bz, yaw] of [[x - 5.2, z - 9.0, FRONT + 0.3], [x - 1.6, z - 8.9, FRONT - 0.4]]) {
+    if (bake6(ev, 'giftbluete', { size: 1.3 }, [bx, y + 0.8, bz], yaw, 1, { glow: 0.8 }, false, 2500)) solidCyl(ev, bx, bz, 0.35, y, y + 2, 'giftbluete');
+  }
+  for (const [bx, bz, yaw] of [[x - 15.4, z - 9.5, 0.6], [x + 4, z + 20.4, 2.2]]) {
+    if (bake6(ev, 'riesenblatt', { size: 1.8, seed: 3 }, [bx, y + 0.8, bz], yaw, 1, null, true, 1500)) solidCyl(ev, bx, bz, 0.5, y, y + 2, 'riesenblatt');
+  }
   solidBox(ev, kx - 2.3, y, kz - 0.25, kx + 2.3, y + 5, kz + 0.25, 'klettergitter');
   // Brummer surren über dem See
   const NBR = 3;
@@ -819,27 +887,45 @@ function crownFlagTexture() {
 // ------------------------------------------------------------------ 6-5 Schnee-Wolkenberg
 
 function snowWind(ev, x, y, z) {
-  // Pustewolke mit Gesicht (schwebt, bläst Schneeflocken nach Südwesten)
+  // Pustewolke (Registry 'pustewolke' mit Pudelmütze, 2,4-fach: holt Luft und pustet im Wechsel; sonst eigene Wolke mit
+  // Gesicht) – schwebt und bläst Schneeflocken nach Südwesten
   const cx = x + 2, cy = y + 5.2, cz = z - 3;
-  const cloud = mover(ev, cached('w6m:blowcloud', () => {
-    const b = new Build();
-    const col = { v: (px, py, pz, nx, ny) => mix(0xc8d6f2, 0xffffff, ny * 0.5 + 0.55) };
-    for (const [dx, dy, dz, r] of [[0, 0, 0, 1.5], [-1.4, -0.3, 0, 1.1], [1.4, -0.2, -0.1, 1.2], [-0.5, 0.8, -0.2, 1.1], [0.7, 0.75, -0.1, 1.0]]) b.sphere(r, col, { p: [dx, dy, dz] }, 10, 7);
-    for (const s of [-1, 1]) { b.sphere(0.2, 0xffffff, { p: [s * 0.5, 0.25, 1.35] }, 6, 4); b.sphere(0.1, 0x2a2a4a, { p: [s * 0.5, 0.25, 1.52] }, 5, 3); b.sphere(0.28, 0xffc8d8, { p: [s * 0.95, -0.25, 1.15], s: [1, 0.7, 0.5] }, 6, 3); }
-    b.torus(0.22, 0.08, 0x8a8ab0, { p: [0, -0.35, 1.45] }, 4, 10);
-    return b.geometry();
-  }), cx, cy, cz, 'pustewolke', true);
+  const dir = new THREE.Vector3(-0.55, -0.25, 1).normalize();
+  const BLOW = 3.4;   // s je Atemzug: 0,7 s Luft holen, dann pusten
+  const puffSt = (t) => { const p = t % BLOW; return p < 0.7 ? { anim: 'inhale', progress: p / 0.7 } : { anim: 'blow', power: 1 }; };
+  const pm = live6(ev, 'pustewolke', {}, [cx, cy - 1.5, cz], Math.atan2(-dir.z, dir.x), 2.4, (dt, t) => puffSt(t), true, 10500);
+  let cloud, mouthDy, mouthOut;
+  if (pm) {
+    cloud = pm.root;
+    cloud.name = 'w6:pustewolke';
+    // Windfahnen-Sprites machen die Hülle größer als die Fern-Ausblendung erfasst (lod.js MAX_R) → selbst ausblenden
+    cullByView(ev, cloud, cx, cy, cz + 2, 6);
+    mouthDy = 1.25; mouthOut = 1.6;   // Mund ≈ halbe Wolkenhöhe über der Unterkante, vorn
+  } else {
+    cloud = mover(ev, cached('w6m:blowcloud', () => {
+      const b = new Build();
+      const col = { v: (px, py, pz, nx, ny) => mix(0xc8d6f2, 0xffffff, ny * 0.5 + 0.55) };
+      for (const [dx, dy, dz, r] of [[0, 0, 0, 1.5], [-1.4, -0.3, 0, 1.1], [1.4, -0.2, -0.1, 1.2], [-0.5, 0.8, -0.2, 1.1], [0.7, 0.75, -0.1, 1.0]]) b.sphere(r, col, { p: [dx, dy, dz] }, 10, 7);
+      for (const s of [-1, 1]) { b.sphere(0.2, 0xffffff, { p: [s * 0.5, 0.25, 1.35] }, 6, 4); b.sphere(0.1, 0x2a2a4a, { p: [s * 0.5, 0.25, 1.52] }, 5, 3); b.sphere(0.28, 0xffc8d8, { p: [s * 0.95, -0.25, 1.15], s: [1, 0.7, 0.5] }, 6, 3); }
+      b.torus(0.22, 0.08, 0x8a8ab0, { p: [0, -0.35, 1.45] }, 4, 10);
+      return b.geometry();
+    }), cx, cy, cz, 'pustewolke', true);
+    mouthDy = -0.35; mouthOut = 1.5;
+  }
+  const baseY = cloud.position.y;
   const NF = 26;
   const flakes = instanced(ev, cached('w6m:flake', () => new THREE.IcosahedronGeometry(0.12, 0)), NF, { name: 'pusteflocken', material: glowMat(ev, 0xf4faff) });
-  const dir = new THREE.Vector3(-0.55, -0.25, 1).normalize();
   const putF = (t) => {
-    cloud.position.y = cy + Math.sin(t * 0.8) * 0.3;
-    const puff = 1 + Math.max(0, Math.sin(t * 2.2)) * 0.08;
-    cloud.scale.set(puff, 1, puff);
+    cloud.position.y = baseY + Math.sin(t * 0.8) * 0.3;
+    if (!pm) { const puff = 1 + Math.max(0, Math.sin(t * 2.2)) * 0.08; cloud.scale.set(puff, 1, puff); }
+    const blowing = !pm || t % BLOW >= 0.7;
+    const mx = cx + dir.x * mouthOut, mz = cz + dir.z * mouthOut, my = cloud.position.y + mouthDy;
     for (let i = 0; i < NF; i++) {
       const u = (t * 0.5 + i / NF) % 1;
       const d = u * 9;
-      setInst(flakes, i, cx + dir.x * d + Math.sin(i * 2.1 + t * 3) * 0.4 * u, cloud.position.y - 0.35 + dir.y * d + Math.cos(i * 1.7) * 0.4 * u, cz + 1.5 + dir.z * d, t * 2 + i, 1 - u * 0.6);
+      // beim Luftholen keine neuen Flocken (die vorderen fliegen weiter)
+      const sc = blowing || u > 0.25 ? 1 - u * 0.6 : 0.0001;
+      setInst(flakes, i, mx + dir.x * d + Math.sin(i * 2.1 + t * 3) * 0.4 * u, my + dir.y * d + Math.cos(i * 1.7) * 0.4 * u, mz + dir.z * d, t * 2 + i, sc);
     }
     flakes.instanceMatrix.needsUpdate = true;
   };
@@ -862,14 +948,24 @@ function snowWind(ev, x, y, z) {
       return b.geometry();
     }, px - 1.4, y + 0.06, pz + 0.6, 0.6);
   }
-  const fish = mover(ev, cached('w6m:glotzfisch', () => {
-    const b = new Build();
-    b.sphere(0.45, { v: (qx, qy, qz, nx, ny) => mix(0xff8a3a, 0xffd07a, ny * 0.5 + 0.5) }, { s: [1, 1.1, 0.9] }, 10, 7);
-    for (const s of [-1, 1]) { b.sphere(0.2, 0xffffff, { p: [s * 0.2, 0.25, 0.32] }, 7, 5); b.sphere(0.1, 0x1a1a2a, { p: [s * 0.2, 0.25, 0.48] }, 5, 3); }
-    b.sphere(0.12, 0xff5a5a, { p: [0, -0.1, 0.4], s: [1.4, 0.7, 0.6] }, 6, 3);
-    return b.geometry();
-  }), px + 2.2, y - 0.2, pz - 0.8, 'glotzfisch', false);
-  ev.updaters.push((dt, t) => { const k = Math.max(0, Math.sin(t * 0.9)); fish.position.y = y - 0.35 + k * 0.6; fish.rotation.y = Math.sin(t * 2) * 0.3; });
+  // Glotzfisch schaut aus dem Eisloch (Registry 'glotzfisch': reckt sich mit 'jump', ohne Schattenwurf; sonst eigener)
+  const fm = live6(ev, 'glotzfisch', { color: 'blau' }, [px + 2.2, y - 1, pz - 0.8], FRONT, 1.1, (dt, t) => {
+    const ph = ((t * 0.9) % TAU) / Math.PI;   // 0..1 auftauchen, 1..2 unter dem Eis
+    return ph < 1 ? { anim: 'jump', progress: ph } : { anim: 'swim', speed: 0.5 };
+  }, false, 9000);
+  if (fm) {
+    fm.root.name = 'w6:glotzfisch';
+    ev.updaters.push((dt, t) => { const k = Math.max(0, Math.sin(t * 0.9)); fm.root.position.y = y - 1.0 + k * 1.05; fm.root.rotation.y = FRONT + Math.sin(t * 1.3) * 0.25; });
+  } else {
+    const fish = mover(ev, cached('w6m:glotzfisch', () => {
+      const b = new Build();
+      b.sphere(0.45, { v: (qx, qy, qz, nx, ny) => mix(0xff8a3a, 0xffd07a, ny * 0.5 + 0.5) }, { s: [1, 1.1, 0.9] }, 10, 7);
+      for (const s of [-1, 1]) { b.sphere(0.2, 0xffffff, { p: [s * 0.2, 0.25, 0.32] }, 7, 5); b.sphere(0.1, 0x1a1a2a, { p: [s * 0.2, 0.25, 0.48] }, 5, 3); }
+      b.sphere(0.12, 0xff5a5a, { p: [0, -0.1, 0.4], s: [1.4, 0.7, 0.6] }, 6, 3);
+      return b.geometry();
+    }), px + 2.2, y - 0.2, pz - 0.8, 'glotzfisch', false);
+    ev.updaters.push((dt, t) => { const k = Math.max(0, Math.sin(t * 0.9)); fish.position.y = y - 0.35 + k * 0.6; fish.rotation.y = Math.sin(t * 2) * 0.3; });
+  }
   // Iglu (Registry), sonst eigenes
   const ig = [x + 12, y, z + 8];
   if (!bake6(ev, 'iglu', { size: 3.2 }, ig, FRONT, 1, null, true, 6000)) {
@@ -912,16 +1008,27 @@ function skyFactory(ev, x, y, z) {
     for (const s of [-1, 1]) for (let i = 0; i < 2; i++) b.box(1.6, 1.0, 0.06, 0xfff2a0, { p: [s * (4 + i * 2.2), 4.2, 3.78] }, 0);
     return b.geometry();
   }, x, y, z, 0, false, 'glow');
-  // Zahnräder an der Front (drehen gegenläufig, eine Instanz-Fläche)
-  const gears = [[x - 4.8, y + 2.6, z + 3.95, 1.5, 1], [x - 2.3, y + 4.2, z + 4.0, 1.0, -1.5], [x + 4.6, y + 2.2, z + 3.95, 1.3, -1.15], [x + 6.6, y + 3.9, z + 4.0, 0.8, 1.9]];
-  const gm = instanced(ev, cached('w6m:gear', () => gearGeo(1, 0.3, 0xffc83a, 12)), gears.length, { name: 'zahnraeder', shadow: true, material: vcol(0.35, { metalness: 0.3 }, 'w6gear') });
-  const putGears = (t) => {
-    gears.forEach(([gx, gy, gz, r, sp], i) => setInst(gm, i, gx, gy, gz, 0, r, 0, t * sp * 0.6 + i * 0.3));
-    gm.instanceMatrix.needsUpdate = true;
-  };
-  putGears(0);
-  ev.updaters.push((dt, t) => putGears(t));
-  cullByView(ev, gm, x, y + 3, z + 4, 9);
+  // Zahnräder an der Front (drehen gegenläufig): Registry 'zahnrad' (Messing/Kupfer/Stahl, Achse zur Kamera) als Gruppe
+  // 'w6:zahnraeder', sonst eine Instanz-Fläche mit eigenen Zahnrädern
+  const gears = [[x - 4.8, y + 2.6, z + 3.95, 1.5, 1, 'messing'], [x - 2.3, y + 4.2, z + 4.0, 1.0, -1.5, 'kupfer'], [x + 4.6, y + 2.2, z + 3.95, 1.3, -1.15, 'messing'], [x + 6.6, y + 3.9, z + 4.0, 0.8, 1.9, 'stahl']];
+  const gearModels = gears.every(([, , , r, , c]) => hasModel('zahnrad') && modelTris('zahnrad', { radius: r, color: c }) <= 2200)
+    ? gears.map(([gx, gy, gz, r, sp, c], i) => live6(ev, 'zahnrad', { radius: r, color: c }, [gx, gy, gz], FRONT, 1, (dt, t) => ({ angle: t * sp * 0.6 + i * 0.3 }), true, 2200))
+    : null;
+  if (gearModels && gearModels.every(Boolean)) {
+    const grp = new THREE.Group();
+    grp.name = 'w6:zahnraeder';
+    for (const m of gearModels) grp.add(m.root);
+    ev.view.add(grp);
+  } else {
+    const gm = instanced(ev, cached('w6m:gear', () => gearGeo(1, 0.3, 0xffc83a, 12)), gears.length, { name: 'zahnraeder', shadow: true, material: vcol(0.35, { metalness: 0.3 }, 'w6gear') });
+    const putGears = (t) => {
+      gears.forEach(([gx, gy, gz, r, sp], i) => setInst(gm, i, gx, gy, gz, 0, r, 0, t * sp * 0.6 + i * 0.3));
+      gm.instanceMatrix.needsUpdate = true;
+    };
+    putGears(0);
+    ev.updaters.push((dt, t) => putGears(t));
+    cullByView(ev, gm, x, y + 3, z + 4, 9);
+  }
   // Dampf aus den Schornsteinen
   const NP = 12;
   const steam = instanced(ev, cached('w6m:steam', () => new THREE.IcosahedronGeometry(0.5, 1)), NP, { name: 'dampf', material: new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthWrite: false, emissive: 0x8a8aa0, emissiveIntensity: 0.3 }) });
@@ -938,16 +1045,20 @@ function skyFactory(ev, x, y, z) {
   putSteam(0);
   ev.updaters.push((dt, t) => putSteam(t));
   cullByView(ev, steam, x - 3.5, y + 12.5, z - 1.5, 6);
-  // Förderband mit Kisten (rechts vor der Halle)
+  // Förderband mit Kisten (rechts vor der Halle): Registry 'foerderband' (Band läuft mit den Kisten), sonst eigenes
   const bx0 = x + 2.2, bx1 = x + 9.6, bz = z + 6.2;
-  addGeo(ev, `w6m:belt:${ev.id}`, () => {
-    const b = new Build();
-    b.box(bx1 - bx0 + 0.6, 0.3, 1.5, 0x3a3a4a, { p: [(bx1 - bx0) / 2, 0.75, 0] }, 0.08);
-    for (let i = 0; i <= 8; i++) b.cyl(0.18, 0.18, 1.55, 0x9aa6b8, { p: [i * (bx1 - bx0) / 8, 0.6, 0], r: [Math.PI / 2, 0, 0] }, 8);
-    for (const u of [0.1, 0.9]) for (const s of [-1, 1]) b.box(0.18, 0.75, 0.18, 0xffc83a, { p: [u * (bx1 - bx0), 0.37, s * 0.7] }, 0);
-    for (let i = 0; i < 6; i++) b.box(0.6, 0.02, 1.4, i % 2 ? 0xffd23a : 0x2a2a34, { p: [0.5 + i * 1.2, 0.91, 0], r: [0, 0.6, 0] }, 0);
-    return b.geometry();
-  }, bx0, y, bz, 0, true);
+  const belt = live6(ev, 'foerderband', { length: bx1 - bx0 + 0.6, width: 1.5, thick: 0.9 }, [(bx0 + bx1) / 2, y, bz], 0, 1, (dt, t) => ({ offset: t * 0.12 * (bx1 - bx0) }), true, 2600);
+  if (belt) belt.root.name = 'w6:foerderband';
+  else {
+    addGeo(ev, `w6m:belt:${ev.id}`, () => {
+      const b = new Build();
+      b.box(bx1 - bx0 + 0.6, 0.3, 1.5, 0x3a3a4a, { p: [(bx1 - bx0) / 2, 0.75, 0] }, 0.08);
+      for (let i = 0; i <= 8; i++) b.cyl(0.18, 0.18, 1.55, 0x9aa6b8, { p: [i * (bx1 - bx0) / 8, 0.6, 0], r: [Math.PI / 2, 0, 0] }, 8);
+      for (const u of [0.1, 0.9]) for (const s of [-1, 1]) b.box(0.18, 0.75, 0.18, 0xffc83a, { p: [u * (bx1 - bx0), 0.37, s * 0.7] }, 0);
+      for (let i = 0; i < 6; i++) b.box(0.6, 0.02, 1.4, i % 2 ? 0xffd23a : 0x2a2a34, { p: [0.5 + i * 1.2, 0.91, 0], r: [0, 0.6, 0] }, 0);
+      return b.geometry();
+    }, bx0, y, bz, 0, true);
+  }
   solidBox(ev, bx0 - 0.3, y, bz - 0.8, bx1 + 0.3, y + 1.1, bz + 0.8, 'band');
   const NK = 4;
   const crates = instanced(ev, cached('w6m:beltcrate', () => new Build().box(0.7, 0.7, 0.7, { v: (px, py, pz, nx, ny) => mix(0xc8905a, 0xe8b07a, ny * 0.5 + 0.5) }, { p: [0, 0.35, 0] }, 0.05).geometry()), NK, { name: 'bandkisten', shadow: true });
@@ -970,6 +1081,9 @@ function skyFactory(ev, x, y, z) {
     }, kt[0], kt[1], kt[2]);
   }
   solidCyl(ev, kt[0], kt[2], 1.1, y, y + 2.6, 'kanone');
+  // Dampfkessel im Hof an der Westseite (Registry 'kessel', Feuertür zur Kamera; ohne Modell entfällt er) – der Weg zur
+  // Glasröhre nach Süden führt östlich um die Halle
+  if (bake6(ev, 'kessel', { height: 3, radius: 1.1 }, [x - 11, y, z - 4], FRONT, 1, { glow: 1 }, true, 6500)) solidCyl(ev, x - 11, z - 4, 1.3, y, y + 3.2, 'kessel');
 }
 
 // ------------------------------------------------------------------ 6-Haus Prüfungs-Haus
@@ -1040,22 +1154,29 @@ function throwHouse(ev, x, y, z) {
 
 function mineTower(ev, x, y, z) {
   const H = 12;
-  addGeo(ev, 'w6m:headframe', () => {
+  const wood = { v: (px, py, pz, nx, ny) => mix(0x7a4e2a, 0xb8844a, Math.max(0, ny) * 0.3 + 0.5) };
+  // Fördergerüst: Registry 'schacht_geruest' (4,4 m im Geviert, 12 m hoch, Leiter, offene Seite zur Kamera), sonst eigenes
+  if (!bake6(ev, 'schacht_geruest', { width: 4.4, depth: 4.4, height: H, ladder: true }, [x, y, z], FRONT, 1, null, true, 10500)) {
+    addGeo(ev, 'w6m:headframe', () => {
+      const b = new Build();
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) b.box(0.4, H, 0.4, wood, { p: [sx * 2, H / 2, sz * 2], r: [sz * 0.04, 0, -sx * 0.04] }, 0.03);
+      for (let k = 1; k <= 4; k++) {
+        const yy = (k * H) / 4.4;
+        for (const s of [-1, 1]) { b.box(4.2, 0.2, 0.2, wood, { p: [0, yy, s * 2] }, 0); b.box(0.2, 0.2, 4.2, wood, { p: [s * 2, yy, 0] }, 0); }
+        b.box(4.4, 0.16, 0.16, wood, { p: [0, yy - 1.2, 2], r: [0, 0, 0.5] }, 0);
+      }
+      // Leiter
+      for (const s of [-1, 1]) b.box(0.08, H - 0.4, 0.08, 0xd8b878, { p: [s * 0.35, H / 2, 2.25] }, 0);
+      for (let i = 0; i < 20; i++) b.box(0.7, 0.05, 0.06, 0xd8b878, { p: [0, 0.4 + i * 0.58, 2.25] }, 0);
+      return b.geometry();
+    }, x, y, z);
+  }
+  // Plattform mit Dach und Seilrad-Böcken obenauf, Schacht am Boden
+  addGeo(ev, 'w6m:headtop', () => {
     const b = new Build();
-    const wood = { v: (px, py, pz, nx, ny) => mix(0x7a4e2a, 0xb8844a, Math.max(0, ny) * 0.3 + 0.5) };
-    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) b.box(0.4, H, 0.4, wood, { p: [sx * 2, H / 2, sz * 2], r: [sz * 0.04, 0, -sx * 0.04] }, 0.03);
-    for (let k = 1; k <= 4; k++) {
-      const yy = (k * H) / 4.4;
-      for (const s of [-1, 1]) { b.box(4.2, 0.2, 0.2, wood, { p: [0, yy, s * 2] }, 0); b.box(0.2, 0.2, 4.2, wood, { p: [s * 2, yy, 0] }, 0); }
-      b.box(4.4, 0.16, 0.16, wood, { p: [0, yy - 1.2, 2], r: [0, 0, 0.5] }, 0);
-    }
     b.box(5, 0.3, 5, 0x9a6a42, { p: [0, H, 0] }, 0.04);
     for (const s of [-1, 1]) b.box(0.3, 1.8, 0.3, wood, { p: [s * 0.8, H + 1.0, 0.8] }, 0);
     b.cone(3.2, 1.6, 0xd84a3a, { p: [0, H + 2.6, -0.6], r: [0, Math.PI / 4, 0] }, 4);
-    // Leiter
-    for (const s of [-1, 1]) b.box(0.08, H - 0.4, 0.08, 0xd8b878, { p: [s * 0.35, H / 2, 2.25] }, 0);
-    for (let i = 0; i < 20; i++) b.box(0.7, 0.05, 0.06, 0xd8b878, { p: [0, 0.4 + i * 0.58, 2.25] }, 0);
-    // Schacht am Boden
     b.box(3.2, 0.3, 3.2, 0x5a3a22, { p: [0, 0.15, 0] }, 0.03);
     b.box(2.4, 0.04, 2.4, 0x14101a, { p: [0, 0.31, 0] }, 0);
     return b.geometry();
@@ -1115,29 +1236,32 @@ function mineTower(ev, x, y, z) {
     for (let i = 0; i < 7; i++) { const h = 0.6 + (i % 3) * 0.35; b.cone(0.2 + (i % 2) * 0.08, h, i % 3 ? 0xb88ad8 : 0x7ae8ff, { p: [Math.cos(i * 2.2) * 0.5, h / 2, Math.sin(i * 2.2) * 0.4], r: [Math.sin(i) * 0.35, 0, Math.cos(i) * 0.35] }, 5); }
     return b.geometry();
   }, x - 5.2, y, z + 2.4, 0, false, 'glow');
-  // Wuschel-Horde hüpft um den Turmfuß
-  const NW = 7;
-  const fuzzy = cached('w6m:wuschel', () => {
+  // Wuschel-Horde wimmelt vor dem Turmfuß (Registry 'wuschel_horde', ein InstancedMesh), sonst hüpft eine eigene Horde
+  // um den Turmfuß
+  const horde6 = live6(ev, 'wuschel_horde', { count: 10, width: 4.6, depth: 2.2, height: 0.6 }, [x - 1.2, y, z + 4.6], FRONT, 1, { anim: 'idle', speed: 1 }, true, 6000);
+  const NW = horde6 ? 10 : 7;
+  if (horde6) horde6.root.name = 'w6:wuschel-horde';
+  const fuzzy = horde6 ? null : cached('w6m:wuschel', () => {
     const b = new Build();
     b.add(new THREE.IcosahedronGeometry(0.42, 1), (px, py, pz) => (hash3(px * 9, py * 9, pz * 9) > 0.5 ? 0x1a1424 : 0x2e2440), { s: [1, 0.95, 1] });
     for (let i = 0; i < 14; i++) { const a = i * 2.4, e = Math.sin(i * 1.3) * 0.9; b.cone(0.1, 0.32, 0x241a30, { p: [Math.cos(a) * 0.42 * Math.cos(e), Math.sin(e) * 0.42, Math.sin(a) * 0.42 * Math.cos(e)], r: [Math.sin(a) * 1.4, 0, -Math.cos(a) * 1.4 + e] }, 4); }
     for (const s of [-1, 1]) { b.sphere(0.13, 0xffffff, { p: [s * 0.14, 0.1, 0.36] }, 6, 4); b.sphere(0.06, 0x1a1424, { p: [s * 0.14, 0.1, 0.47] }, 5, 3); }
     return b.geometry();
   });
-  const useModel = hasModel('wuschel') && modelTris('wuschel', {}) <= 1500;
-  const horde = instanced(ev, fuzzy, NW, { name: 'wuschel-horde', shadow: true });
-  const putHorde = (t) => {
-    for (let i = 0; i < NW; i++) {
-      const a = (i / NW) * TAU + t * 0.4 * (i % 2 ? 1 : -1);
-      const hop = Math.abs(Math.sin(t * 4 + i * 1.3));
-      setInst(horde, i, x + Math.cos(a) * (3.6 + (i % 3) * 0.5), y + 0.42 + hop * 0.6, z + Math.sin(a) * (3.2 + (i % 2) * 0.5) + 0.8, -a, [1 + (1 - hop) * 0.12, 1 - (1 - hop) * 0.12, 1 + (1 - hop) * 0.12]);
-    }
-    horde.instanceMatrix.needsUpdate = true;
-  };
-  putHorde(0);
-  ev.updaters.push((dt, t) => putHorde(t));
-  cullByView(ev, horde, x, y + 0.8, z + 1, 7);
-  void useModel;
+  if (!horde6) {
+    const horde = instanced(ev, fuzzy, NW, { name: 'wuschel-horde', shadow: true });
+    const putHorde = (t) => {
+      for (let i = 0; i < NW; i++) {
+        const a = (i / NW) * TAU + t * 0.4 * (i % 2 ? 1 : -1);
+        const hop = Math.abs(Math.sin(t * 4 + i * 1.3));
+        setInst(horde, i, x + Math.cos(a) * (3.6 + (i % 3) * 0.5), y + 0.42 + hop * 0.6, z + Math.sin(a) * (3.2 + (i % 2) * 0.5) + 0.8, -a, [1 + (1 - hop) * 0.12, 1 - (1 - hop) * 0.12, 1 + (1 - hop) * 0.12]);
+      }
+      horde.instanceMatrix.needsUpdate = true;
+    };
+    putHorde(0);
+    ev.updaters.push((dt, t) => putHorde(t));
+    cullByView(ev, horde, x, y + 0.8, z + 1, 7);
+  }
   // Laternen am Turm (leuchtend)
   addGeo(ev, 'w6m:minelamps', () => {
     const b = new Build();
@@ -1170,7 +1294,8 @@ function tankRoad(ev, x, y, z) {
   // Baron-Flagge am hinteren Panzer
   addGeo(ev, 'w6m:tankpole', () => new Build().cyl(0.05, 0.05, 3.2, 0xfaf6ff, { p: [0, 1.6, 0] }, 5).geometry(), tanks[0][0] - 1.6, y + 1.4, tanks[0][2]);
   wavingFlag(ev, tanks[0][0] - 1.6, y + 4.2, tanks[0][2], 1.3, 0.8, baronFlagTexture());
-  // Türme aus großen ?-Blöcken (Registry 'question_block' ×2, sonst eigene) am Ostende
+  // Türme aus großen ?-Blöcken am Ostende: Registry 'riesen_frageblock' (ganz gewachsen: Kopfblock auf dem Turm), sonst je
+  // Block 'question_block' ×2 bzw. eigene Blöcke
   const qb = (bx, by, bz) => {
     if (!bake6(ev, 'question_block', {}, [bx, by, bz], 0, 2, null, true, 700)) {
       addGeo(ev, 'w6m:bigq', () => {
@@ -1187,7 +1312,9 @@ function tankRoad(ev, x, y, z) {
   };
   const towers = [[x + 13, z - 1.8, 3], [x + 16, z + 1.5, 2]];
   for (const [bx, bz, n] of towers) {
-    for (let k = 0; k < n; k++) qb(bx, y + k * 2, bz);
+    if (!bake6(ev, 'riesen_frageblock', { size: 2, height: (n - 1) * 2 }, [bx, y, bz], FRONT + 0.15 * n, 1, { grow: 1, anim: 'idle' }, true, 4500, undefined, 5)) {
+      for (let k = 0; k < n; k++) qb(bx, y + k * 2, bz);
+    }
     solidBox(ev, bx - 1, y, bz - 1, bx + 1, y + n * 2, bz + 1, 'fragebloecke');
   }
   // Zündköpfe trippeln umher (Registry 'zuendkopf', sonst eigene Bombe)
@@ -1279,28 +1406,63 @@ function skyCircus(ev, x, y, z) {
     }), sp[0], y + 1.5, sp[2], 'spiegelfrucht', true, vcol(0.2, { metalness: 0.5, emissive: 0x1a1a2a }, 'w6mirror'));
     ev.updaters.push((dt, t) => { f.position.y = y + 1.5 + Math.sin(t * 2) * 0.15; f.rotation.y = t * 1.2; });
   }
-  // Würfelblase-Geleebrocken hüpfen vor dem Zelt (durchscheinend, eine Instanz-Fläche)
-  const NJ = 5;
-  const jellyMat = new THREE.MeshStandardMaterial({ color: 0xd8c8ff, roughness: 0.15, metalness: 0.25, transparent: true, opacity: 0.82, emissive: 0x3a2a6a, emissiveIntensity: 0.4 });
-  ev.own.push(jellyMat);
-  const jelly = instanced(ev, cached('w6m:jelly', () => {
-    const b = new Build();
-    b.box(0.9, 0.9, 0.9, 0xffffff, { p: [0, 0.45, 0] }, 0.25, 2);
-    for (const s of [-1, 1]) b.sphere(0.09, 0x2a1e3a, { p: [s * 0.18, 0.55, 0.46], s: [0.8, 1.2, 0.4] }, 5, 3);
-    return b.geometry();
-  }), NJ, { name: 'geleebrocken', shadow: true, material: jellyMat });
-  const putJ = (t) => {
+  // Gelee-Brocken hüpfen im Kreis neben dem Zelt (Registry-Instanzen createInstanced('gelee_brocken'), sonst eigene
+  // durchscheinende Würfel – je eine Instanz-Fläche), abseits des Wegs zur Röhre W7
+  const NJ = 5, jx = x + 9, jz = z + 3.5;
+  let jellyApi = null;
+  if (hasModel('gelee_brocken') && modelTris('gelee_brocken', { size: 0.8 }) <= 3200) {
+    try { jellyApi = createInstanced('gelee_brocken', NJ, { color: 'lila', size: 0.8 }); } catch { jellyApi = null; }
+  }
+  let jelly;
+  if (jellyApi) {
+    jelly = jellyApi.root;
+    jelly.name = 'w6:geleebrocken';
+    ev.view.add(jelly);
+    ev.own.push(jellyApi);
+    W6_USED.add('gelee_brocken');
+  } else {
+    const jellyMat = new THREE.MeshStandardMaterial({ color: 0xd8c8ff, roughness: 0.15, metalness: 0.25, transparent: true, opacity: 0.82, emissive: 0x3a2a6a, emissiveIntensity: 0.4 });
+    ev.own.push(jellyMat);
+    jelly = instanced(ev, cached('w6m:jelly', () => {
+      const b = new Build();
+      b.box(0.9, 0.9, 0.9, 0xffffff, { p: [0, 0.45, 0] }, 0.25, 2);
+      for (const s of [-1, 1]) b.sphere(0.09, 0x2a1e3a, { p: [s * 0.18, 0.55, 0.46], s: [0.8, 1.2, 0.4] }, 5, 3);
+      return b.geometry();
+    }), NJ, { name: 'geleebrocken', shadow: true, material: jellyMat });
+  }
+  const jp = new THREE.Vector3();
+  let firstJ = true;
+  const putJ = (dt, t) => {
     for (let i = 0; i < NJ; i++) {
       const a = (i / NJ) * TAU + t * 0.25;
+      if (jellyApi) {
+        // die Instanzen hüpfen selbst (Zustand 'hop'); hier nur der Kreis
+        jellyApi.setAt(i, jp.set(jx + Math.cos(a) * 2.6, y, jz + Math.sin(a) * 1.8), -a - Math.PI / 2, 1, 'hop');
+        continue;
+      }
       const hop = Math.abs(Math.sin(t * 3.2 + i * 1.1));
       const sq = 1 - (1 - hop) * 0.25;
-      setInst(jelly, i, x + 8.5 + Math.cos(a) * 2.6, y + hop * 1.1, z + 8.6 + Math.sin(a) * 1.8, -a, [1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq)]);
+      setInst(jelly, i, jx + Math.cos(a) * 2.6, y + hop * 1.1, jz + Math.sin(a) * 1.8, -a, [1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq)]);
     }
-    jelly.instanceMatrix.needsUpdate = true;
+    if (jellyApi && firstJ && jellyApi._slots) jellyApi._slots.forEach((sl, i) => { sl.age = i * 0.13; });   // versetzt hüpfen
+    firstJ = false;
+    if (jellyApi) jellyApi.update(dt); else jelly.instanceMatrix.needsUpdate = true;
   };
-  putJ(0);
-  ev.updaters.push((dt, t) => putJ(t));
-  cullByView(ev, jelly, x + 8.5, y + 0.8, z + 8.6, 5);
+  putJ(0, 0);
+  ev.updaters.push(putJ);
+  cullByView(ev, jelly, jx, y + 0.8, jz, 5);
+  // Würfelblase hüpft vor dem Zelt (Registry 'wuerfelblase' mit lila Melone; ohne Modell entfällt sie)
+  const wb = [x - 7.4, y, z + 3.2];
+  const hopP = (t) => (t / 1.1) % 1;
+  const blob = live6(ev, 'wuerfelblase', { size: 1.2, color: 'rot' }, wb, FRONT + 0.5, 1.2, (dt, t) => ({ anim: 'hop', progress: hopP(t) }), true, 12000);
+  if (blob) {
+    blob.root.name = 'w6:wuerfelblase';
+    ev.updaters.push((dt, t) => {
+      const p = hopP(t);
+      blob.root.position.y = y + (p > 0.22 && p < 0.8 ? Math.sin(((p - 0.22) / 0.58) * Math.PI) * 0.9 : 0);
+    });
+    solidCyl(ev, wb[0], wb[2], 0.9, y, y + 2.6, 'wuerfelblase');
+  }
 }
 
 // ------------------------------------------------------------------ Stellvertreter-Modelle (Gegnergruppen)

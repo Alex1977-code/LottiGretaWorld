@@ -168,7 +168,7 @@ export const MAP = {
     [[40, -58], [30, -62], [26, -70], [22, -76]],
     [[8, -76], [0, -74], [-9, -71.4]],
     [[-2, -74], [-12, -78], [-26, -80]],
-    [[-12, -78], [-12, -96]],
+    [[0, -74], [3.2, -77], [3.5, -89], [-1, -94.5], [-12, -96]],
     [[-12, -70], [-20, -65.5]],
     [[-40, -80], [-46, -76], [-51, -73.4]],
     [[-12, -108], [-14, -112], [-15, -114.4]],
@@ -216,13 +216,14 @@ export const MAP = {
   ],
 
   // Wandernde Gegnergruppen: fünf Werfer-Brüder (1 Feuer-, 2 Hammer-, 2 Bumerang-Werfer) tänzeln im Steinkreis, der
-  // Schubser-Prinz stapft durch den Hof der kleinen Festung (eigener Stellvertreter, solange das Modell fehlt)
+  // Schubser-Prinz stapft durch den Hof der kleinen Festung (Registry 'schubser_prinz', Laufen = 'charge' mit wenig
+  // Tempo; eigener Stellvertreter, falls das Modell fehlt)
   roamers: [
     { level: '6-B', model: 'feuer_werfer', count: 5, circle: [-45, 24, 4.2], y: 10.5, speed: 1.5,
       memberOpts: [{ kind: 'feuer' }, { kind: 'hammer' }, { kind: 'bumerang' }, { kind: 'hammer' }, { kind: 'bumerang' }],
       half: [0.5, 0.8, 0.5], castShadow: false, instance: true, hint: 'Lauf die Werfer-Brüder an!' },
     { level: '6-A', model: 'schubser_prinz', standIn: 'schubser_prinz', count: 1, circle: [75, -22, 4.6], y: 12.5, speed: 1.9,
-      half: [0.8, 0.9, 0.8], castShadow: false, hint: 'Lauf den Schubser-Prinzen an!' },
+      anims: { walk: 'charge' }, half: [0.8, 0.9, 0.8], castShadow: false, hint: 'Lauf den Schubser-Prinzen an!' },
   ],
 
   houses: [
@@ -273,7 +274,7 @@ export const MAP = {
     { kind: 'snowdrift', pos: [45.6, 14, -61.4], size: 1.4 }, { kind: 'snowdrift', pos: [34.2, 14, -64.6], size: 1.1 }, { kind: 'snowdrift', pos: [44, 14, -74.6], size: 1.6 },
     { kind: 'snowdrift', pos: [26.4, 14, -60.4], size: 1.2 }, { kind: 'icecrystal', pos: [46.8, 14, -63.8], size: 0.7 },
     // G Himmelsfabrik: Kisten, Fässer, Zahnräder am Boden
-    { kind: 'crates6', pos: [5.4, 15, -64.6] }, { kind: 'barrels', pos: [-24, 15, -88] }, { kind: 'gearpile', pos: [4.6, 15, -92] },
+    { kind: 'crates6', pos: [5.4, 15, -64.6] }, { kind: 'barrels', pos: [-24, 15, -88] }, { kind: 'gearpile', pos: [-24.6, 15, -94.4] },
     { kind: 'skylamp', pos: [-3.6, 15, -63.4] }, { kind: 'skylamp', pos: [-24, 15, -63.4] },
     // H Haus-Insel: Bälle, Bäume
     { kind: 'skytree', pos: [-60.4, 15, -90], size: 4, tone: 2 }, { kind: 'skytree', pos: [-41.6, 15, -90], size: 3.8 }, { kind: 'flowerbed', pos: [-58, 15, -70], area: [4, 1.4], solid: false, shadow: false },
