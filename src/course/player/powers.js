@@ -42,6 +42,8 @@ const ALIASES = {
   // einem Power-up 'schlittschuh' die Entität `schlittschuh`, Player.collectPowerup zieht ihn direkt an
   gleitblatt: 'gleitblatt', 'gleit-blatt': 'gleitblatt', blatt: 'gleitblatt', leaf: 'gleitblatt',
   schlittschuh: 'schlittschuh', schlittschuhe: 'schlittschuh', skate: 'schlittschuh', skates: 'schlittschuh',
+  // Welt 7 (Präzisierung Motor und Bausteine Welt 7): Wurfsichel (Kostüm, powers/sichel.js; Bumerang)
+  sichel: 'sichel', wurfsichel: 'sichel', 'wurf-sichel': 'sichel', bumerang: 'sichel', boomerang: 'sichel',
 };
 export function normalizePower(name) {
   if (!name) return null;
