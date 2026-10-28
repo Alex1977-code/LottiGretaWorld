@@ -1581,6 +1581,90 @@ Dreiecke, ≈ 310 Kollisionsformen; je Ansicht (Zeichenaufrufe inkl. Schattenpas
 279 k (Höchstwert; Modell-Kacheln fern ausgeblendet). Welt 5 an der Röhre nach Welt 6 und bei der Rückkehr höchstens
 53 / 116 k.
 
+### Präzisierung (Mehrwelten-Karte): Welt 7 „Lava-Festung“ (Notiz)
+
+- Dateien: `worlds/w7.js` (Daten, `MAP.world = 7`, `kit: 'lava'`, Thema `map_lava`, Musik `course_world7_map`, Rückfall
+  `course_map`, `starScope: 'all'`), `lava7.js` (Thema `map_lava`: Abendhimmel violett → orange, warmer Nebel, Vulkan mit
+  Rauchsäule und ferne Vulkankegel am Horizont; Geländestile, Ränder, Requisiten, Streudeko, Brücken-Segmente, Inselchen,
+  Nachbarwelt-Stil `'erzpark'`, lebendige Kulisse `LavaLife`, Taktuhr `beatNow7`/`fountainEnvelope`), `decor_w7.js`
+  (Kulissen der zwölf Welt-7-Eingänge). Additiv angebunden: `MapBuilder.js` (`map.kit === 'lava'`: Gelände, Segmente –
+  zuerst `buildLavaSegment`, sonst `buildSkySegment` für `glasstube` –, Streudeko, Requisiten-Ketten, Ränder, `LavaLife`,
+  Materialien `w6glass`/`w6rainbow` wie Welt 6), `scenery.js` (Inselchen in einer Kachel `w7:inselchen`, Wolken ohne
+  Schattenpass, Nachbarwelt-Stil `'erzpark'`), `entrances.js` (`decorateW7`), `props.js` (Podestfarben). `CourseMapScene.js`,
+  `MapBatcher.js`, `travel.js`, `unlock.js`, `layout.js` und `worlds/w6.js` sind unverändert.
+- Inseln (begehbar, Höhe) und Eingänge (`kind`), eine Vulkaninsel im Abendmeer (`sea: 0`), rote und blaue Lavaflüsse und
+  -seen (`style: 'basin'|'bluebasin'`, Lava-Oberfläche y 0.7) trennen die Bereiche, nach Norden ansteigend: A Ankunftsbucht
+  y 1.5 mit Beerenhaus (−6, 1.5, 38.6) – `W6` Glasröhre zurück (−16, 1.5, 45; `departAlong`, nach Südwesten zu den
+  Wolkeninseln am Horizont), `7-1` `bluefort` Werfer-Festung in der blauen Lava (16, 1.5, 44; Fels mit Mauern, Bergfried,
+  Glasröhren mit H-Röhre, Feuerbälle im Bogen); AA Felsfläche im Lavasee y 1.2 – `7-A` `rockarena` (−48, 1.2, 24;
+  Gegnergruppe heller `lavafelsen_koenig`); B Tempelplatz y 3 vor der Basalt-Steilwand (Lavafälle rot/blau) – `7-2`
+  `templerock` Tempel-Eingang im Fels (0, 3, 2.4; Säulen, Stachelpanzer, Schaltfelder als Lauflicht); C Startplatz der
+  Rennbahn y 4 – `7-3` `lavarace` (43, 4, −2; Rundkurs auf Stelzen über dem Lavafeld, Boost-Pfeile, Donut-Blöcke,
+  Stachelwalze, sausende Kugeln); D Blaue-Lava-Ufer y 3.5 – `7-4` `bluecylinders` (−40, 3.5, −4; drehende Zylinder
+  `zylinder_walze` in blauer Lava, Pfeilplattformen); DB Käfig-Insel y 3.5 – `7-B` `bluecage` (−77, 3.5, −4; blaue Mauern,
+  Glasröhren, Gegnergruppe blauer `schubser_prinz`); E Turm-Ufer y 5 – `7-5` `lavatower` Turm im Lavasee (−41, 5, −40.5;
+  13 m, Giftnebel-Kappe, Funken, Seilbahn `cableways` zur Turmspitze); EK Diorama-Insel y 5 – `7-Kapitän` `machinediorama`
+  (−68, 5, −36; `lava_maschine`, `kruemel`, Stampfsteine); F Riff-Ufer y 3 an der Lagune (`style: 'lagoon'`) mit Glückshaus
+  (3, 3, −47.6) – `7-6` `reeflagoon` Vulkan-Riff (−13, 3, −45; Korallen, Wutkaulquappen, Rammfisch); FC Hallen-Insel y 5 –
+  `7-C` `werferhall` Werfer-Halle (29, 5, −44; Podest, roter Teppich, Feuerschalen, Brummbär-Banner, Gegnergruppe 4 ×
+  `feuer_werfer`); G Kraterrand y 7 – `7-7` `crater` Vulkankrater (−7, 7, −96.5; Hufeisen-Krater mit steigender/sinkender
+  Lava, zwei Fontänen und einem auftauchenden Lavadrachen); H Burghof y 8.5 – `7-Burg` `lavakeep` Lava-Burg (37, 8.5, −108,
+  „ab 150 ★“; Torhaus mit Fallgitter, Bergfried mit flackernden Fenstern, Kampfwagen, Brummbär-Banner); I Röhren-Insel
+  y 8.5 – `W8` Glasröhre (70, 8.5, −110; nach Nordosten zum dunklen Erzpark-Land am Horizont). Zwölf Verbindungen
+  (`segments`): Basaltbrücken (`basaltbridge`), Kettenstege (`chainbridge`), ein Damm aus Basaltsäulen (`causeway`, F → G),
+  die Zugbrücke (`drawbridge`, G → H) und eine Glasröhre (`glasstube`, H → I); zwölf Schranken.
+- Freischaltung laut „Welt 7 – Level-Liste und Freischaltung“: `7-1` frei, sobald Welt 7 offen ist; `7-2` und `7-A` nach
+  7-1; `7-3` und `7-4` nach 7-2; `7-B` und `7-5` nach 7-4; `7-Kapitän` und `7-6` nach 7-5; `7-C` und `7-7` nach 7-6;
+  `7-Burg` nach 7-7 **und ≥ 150 ★** (alle Sterne); `W8` (`{ id: 'W8', after: '7-Burg', world: 8, next: 8 }`) nach 7-Burg;
+  Rückweg `W6` (`{ id: 'W6', world: 6, next: 6 }`) immer frei. 32 Sterne, Stempel auf 7-1 … 7-7, 7-Burg. Schilder
+  „Welt 7 / Lava-Festung“, „Beerenhaus“, „Glückshaus“, „ab 150 ★“.
+- Weltdaten zusätzlich (alles optional): Geländestile `ash` (Standard)|`arena`|`temple`|`track`|`bluerock`|`fort`|`crater`|
+  `castle`|`blacksand`|`rock`|`cliff`|`basin`|`bluebasin`|`lagoon`, je Lava-Block `flow: [dx, dz]` (Fließrichtung der
+  Textur); Ränder `edges: { hedge: 'basaltwall', fence: 'battlement' }` (Basaltmauern, Zinnenmauern an den Lavaufern);
+  Requisiten `basalt7` (Registry `basaltsaeule`)|`vrock7` (`vulkanfels`)|`spire7`|`lavaflower7`|`emberbush7`|`crates7`|
+  `barrels7`|`cannon7`|`tires7`|`gears7`|`shells7`. Lebendige Kulisse (`LavaLife`): `fountains: [[x, y, z, Höhe, 'rot'|'blau']]`,
+  `lavafalls: [{ at: [x, z], w, top, bottom, face: 'N'|'S'|'E'|'W', color }]`, `smoke: [[x, y, z, Stärke]]`,
+  `flags: [[x, y, z, Masthöhe]]` (Brummbär-Fahnen), `torches: [[x, y, z, Farbe]]`, `boneflyers: [{ c, r, n, speed }]`
+  (Knochenflieger), `fishjumps: [[x, y, z, Weite, yaw]]` (Platschfische), Lavablasen auf allen Lavaflächen;
+  Nachbarwelt-Stil `'erzpark'`. Bewegte Teile sind je Art eine Instanz-Fläche und werden fern der Figur (> 45 m zwischen
+  Kamera und Ziel) ausgeblendet; die Lavaflächen sind eine Fläche je Farbe mit laufender Textur.
+- **Fontänen im Takt:** Je Zählzeit der Kartenmusik (`music.beat()`) sprühen abwechselnd die geraden und die ungeraden
+  Fontänen (Hülle steigt in den ersten 14 % der Zählzeit, fällt bis 75 %, danach Ruhe). Ohne laufende Musik zählt eine
+  Ersatzuhr (Kartenzeit, `source: 'zeit'`) im Tempo von `course_world7_map` (fehlt das Thema: `course_map`). Der Lavasee im
+  Krater steigt und sinkt, der Lavadrache taucht alle 9 s auf, die Schaltfelder vor dem Tempel laufen als Lauflicht.
+  Test-Schnittstelle (additiv): `state().decor` = Vereinigung von `ev.liveInfo()` aller Eingänge und
+  `built.life.liveInfo()` – `fountains { beat, step, k, erupting, source, theme, bpm, n, shown }`, `lava { rot, blau }`,
+  `lavafalls { n }`, `bubbles { n }`, `smoke { n }`, `boneflyers { n }`, `flags { n }`, `torches { n }`, `fish { n }`,
+  `switches { lit, n }`, `race { length, orbs, light }`, `cylinders { n, angle, registry }`, `tower { height, fog, sparks }`,
+  `diorama { kruemel, machine }`, `reef { corals, registryCorals, fin }`, `hall { banners }`, `crater { level, dragon }`,
+  `keep { banners }`, `w7models` (benutzte Registry-Modelle), `w7heavy` (zu schwere: Name → Dreiecke);
+  `built.life.fountainInfo(t)`.
+- Registry-Modelle (Obergrenze je Einsatz über `beach5.modelTris`; unbewegte eingebacken, bewegte als eigene Objekte; fehlt
+  ein Modell, zeichnet `decor_w7.js` eigene Geometrie an gleicher Stelle): Welt 7 – `basaltsaeule` (ohne Glutfugen),
+  `festungsturm` (blau/Burg), `gitterboden`, `lava_maschine`, `lavagestein`, `riffkoralle`, `vulkanfels`, `zylinder_walze`;
+  aus Welt 4 wiederverwendet – `brummbaer_banner`, `fallgitter`, `stachelpanzer`, `lavafelsen_koenig`; vorhandene –
+  `stampfstein`, `kruemel`; Gegnergruppen `lavafelsen_koenig` (`variant: 'hell'`), `schubser_prinz` (`color: 'blau'`),
+  `feuer_werfer`. Bewusst eigene
+  Geometrie (auf der Karte zu schwer oder als Instanzen nötig): Knochenflieger (≈ 9,4 k), Platschfisch (≈ 7,6 k), Lavadrache
+  (≈ 9,9 k), Baron-Kampfwagen (≈ 24,5 k), Lavabrocken (≈ 6,9 k), Pilzlingsturm (≈ 16 k), Zugbrücke (≈ 8,7 k), Fontänen,
+  Lavablasen und Pfeilplattformen (bewegt, Instanzen).
+- Übergänge: Die Welt-6-Röhre `W7` und ein Welt-Warp nach Welt 7 führen ohne Codeänderung nach Welt 7 (Ankunft an `W6`,
+  Kamera `arriveCam`); die Aussage „Die Röhre `W7` zeigt „Welt 7 kommt bald!““ der Welt-6-Notiz ist damit überholt. Zurück
+  durch `W6` landet man an der Röhre `W7` in Welt 6 (entdeckt, Schranke 6-C von hinten passierbar). Die Röhre `W8` zeigt
+  „Welt 8 kommt bald!“; ein Welt-Warp nach Welt 8 endet über den vorhandenen Rückfall an dieser Röhre (Schranke 7-Burg
+  von hinten passierbar). `tests/course_map_w6.mjs` (Abschnitte 1, 5, 9) prüft jetzt die Fahrt und den Warp nach Welt 7 und
+  die Rückkehr, `tests/course_map_hw.mjs` die Weltenliste 1–7, 31.
+- Test: `tests/course_map_w7.mjs` (Port 4280, Bilder `tests/out/cmap7_*.png`), Teilläufe `W7_TEIL=1|2|3|4` (Abschnitte
+  2–4, 5–7, 8–10, 11–14, je mit den Node-Prüfungen; gemessen ≈ 4,0 / 5,2 / 4,4 / 7,0 min). Noch nicht in `npm test`.
+
+Gemessen (scale 2, `tests/course_map_w7.mjs`, mit den Welt-7-Modellen): statische Kulisse Welt 7 52 Kachel-Meshes, ≈ 178 k
+Dreiecke, ≈ 255–263 Kollisionsformen; je Ansicht (Zeichenaufrufe inkl. Schattenpass / Dreiecke) Ankunft durch die
+Glasröhre 99–107 / 203–238 k, Start 86 / 197 k, Ankunftsbucht 69 / 188 k, Festung 80 / 191 k, Felsfläche 82–83 /
+218–223 k, Tempel 89 / 243 k, Rennbahn 82 / 209 k, blaue Lava 78 / 249 k (Höchstwert Dreiecke), Käfig 76 / 187 k, Turm
+73 / 200 k, Diorama 71 / 159 k, Riff 75 / 207 k, Werfer-Halle 83–96 / 240–241 k, Damm 89 / 197 k, Krater 55 / 159 k,
+Burg 60–67 / 148–161 k, Röhren-Insel 48–60 / 125–126 k, Warp-8-Ankunft 88 / 228 k, Anflug 103 / 210 k. Welt 6 an der Röhre
+nach Welt 7 und bei der Rückkehr höchstens 66 / 139 k.
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
@@ -6500,3 +6584,236 @@ Ziel), Stachelfalle, Tod im Kampf setzt Baron und König zurück · Teil 4 Bilde
 (38 Entitäten) 0,1–0,34 ms je Schritt. Regressionen `course_enemies`, `course_w1_combat`, `course_w2_enemies`,
 `course_w3_enemies`, `course_w4_enemies` (zoo, boss), `course_w5_enemies` (2), `course_hw_enemies` (1), `course_w6_enemies`
 (1–4), `course_w7_blocks` (ohne Bilder), `course_physics`, `tests/sfx_namen.mjs` bestanden.
+
+## Präzisierung (Motor-Feinschliff nach Welt 6)
+
+Ergänzung des Motor-Agenten nach Welt 6: die Motor-Schwächen, die die Level-Agenten der Welten 5, 6 und der Halloween-Welt
+gefunden und level-lokal umgangen haben, sind jetzt allgemein im Motor behoben. Alles ist additiv; **kein Level wurde
+geändert** – die level-lokalen Umwege bleiben und sind harmlos (Liste unten). Prüfung `tests/course_motor_fixes.mjs`.
+
+### Präzisierung (Motor-Feinschliff nach Welt 6): Dateien
+
+```
+src/course/view/EntityInstancer.js     + Regeln je Art (LEVEL.instances[kind]: shadow, shadowDist), Schatten-Stellvertreter
+                                         (shadowStandIn), addModel (Baustein-Modelle wie Entitäts-Modelle instanzieren)
+src/course/view/lod.js                 + Detailstufe stachelkugel/stachelkugel_wurf, shadowStandIn(geometry)
+src/course/view/Culling.js             + mesh.__noSun (Regel der Art: in diesem Bild kein Schattenpass)
+src/course/view/CourseView.js          + view.instanceModel(root, kind); instanceRule gilt auch für Entitäts-Arten
+src/course/view/CameraRig.js           + Kamerastrahl mit echter Form (raycastCam), kleine frei stehende Hindernisse
+src/course/physics/shapes.js           + segmentShape (Rampe als Keil, Zylinder rund), Formflag ballPass
+src/course/physics/CollisionWorld.js   + raycastCam(a, b, skip)
+src/course/level/Level.js              + farHide je Art (LEVEL.instances[kind].farHide), Pilz-Maske in der Luft robust
+src/course/player/Player.js            + poundCarry (Stampfattacke fährt mit dem Träger)
+src/course/entities/kinds/w6_gimmicks.js   Wurfball: Hangabtrieb in kurzen Luftphasen (slopeAir), ballPass
+src/course/entities/kinds/fireball.js, geschosse.js, projektilkopf.js, stachelwerfer_w6.js   ballPass (je eine Zeile)
+src/course/entities/EnemyW2.js         sharedSlot: eigene Gruppe je opts (z. B. { color })
+src/course/entities/kinds/wuerfelblase_w6.js   Gelee-Brocken ohne Boss in ihrer Farbe
+src/course/entities/kinds/werferturm_w5.js    Reiter-Spec mit kind und spawnedBy
+src/course/archetypes/kinds/arena.js   Neustart: Specs mit spawnedBy überspringen, Reiter (e.rider) mitzählen
+src/course/blocks/types/switchtiles.js Felder über view.instanceModel (eine Instanz-Gruppe)
+src/course/blocks/types/w5_flipper.js  Flipper-Instanzen über view.groupCull (nur Felder im Bild)
+src/course/blocks/types/w3_snow.js     eisflaeche: sparsame Eiskante, Standard an bei Eisseen mit Sockel
+src/course/levels/w0/0-29.js           Testlevel „Motor-Werkbank“ (eine Station je Punkt, marks)
+src/course/levels/w0/0-30.js           Testlevel „Werferturm-Arena“ (Arena ohne level-lokale Hilfe)
+tests/course_motor_fixes.mjs           Port 4700, PARTS=inst,pound,cam,ball,eis,maske,gelee,w5,kraft,arena,level
+```
+
+### Präzisierung (Motor-Feinschliff nach Welt 6): was der Motor jetzt selbst kann
+
+1. **Instanz-Regeln für alle Arten.** `LEVEL.instances[name]` bzw. `view.instanceRule(name, rule)` galten bisher nur für
+   Instanz-Gruppen (EnemyW2 `sharedSlot`, `modelInstances`) und Pools (Münzen). Jetzt auch für Entitäts-Modelle nach Art
+   (`kind`): `shadow: false` – kein Sonnenschatten, `shadowDist: m` – weiter als m (waagerecht) von der Haupt-Figur kein
+   Sonnenschatten (je Exemplar; eine Art mit Regel zeichnet auch als einzelnes Exemplar über die Instanz-Gruppe, nicht
+   instanzierbare Teile überspringen nur den Schattenpass), `farHide: m` – Level.render blendet das Modell aus (vor
+   `LEVEL.farHide`, nach Entität/spec `farHide`). Beispiel (statt `schattenNah` in 6-1):
+   `instances: { stachelkugel: { shadowDist: 11 } }`. Schatten-Regeln wirken mit `view.optimize` (wie die Instanzen).
+   **Stachelkugel** (Registry-Modell ≈ 5,7 k Dreiecke): ab 24 m Kameraabstand zeichnet die sparsame Kugel derselben
+   Bibliothek (≈ 0,7 k, gleiche Farben und Stacheln, `view/lod.js`), im Schattenpass immer (Schatten-Stellvertreter
+   `shadowStandIn`, gilt auch für `stachelkugel_wurf`). Im Testlevel (acht Kugeln): Hauptpass 1 Aufruf / 45,8 k,
+   Schattenpass 1 Aufruf / 5,7 k (vorher wie der Hauptpass, ≈ 46 k); aus der Ferne 1 Aufruf / 5,7 k.
+   **Achtung:** Regeln, die Level schon für Entitäts-Arten eingetragen hatten und die bisher wirkungslos waren, greifen
+   jetzt wie gedacht – 5-1 (`krabbelkaefer`, `panzerkroete`, `rammbock_bulle`, `muenzmarder`: farHide/shadowDist) und 6-3
+   (`pilzling`, `krallen_pilzling`, `stachelwerfer`, `pilz_maske`, `helm_maske`, `schluesselmuenze`: kein Sonnenschatten;
+   die Blob-Schatten bleiben). Routen beider Level geprüft.
+2. **Stampfattacke auf fahrenden Trägern** (`Player.poundCarry`): während der Stampfattacke (Drehung und Fall) übernimmt die
+   Figur waagerecht die Geschwindigkeit der obersten Form mit `mover` unter ihr (bis 40 m tiefer: Plattform `mover`,
+   `vehicle` – Panzer, Zugwaggon, Flachwagen –, Floß/`MovingBox`, Kipp-Schaltfelder auf Plattformen) und landet senkrecht
+   über dem Ziel auf dem Träger (gemessen: Drift < 0,1 m statt ≈ 2 m bei 3 m/s). Über festem Boden unverändert senkrecht.
+   Hat ein Level-Haken die Figur im selben Schritt schon mit dem Träger verschoben (6-Panzer `kolonnenSetup`), zählt diese
+   Verschiebung entlang der Fahrtrichtung mit – nicht doppelt. Drehscheiben (`dyaw`) drehen die stampfende Figur nicht mit.
+3. **Kamerastrahl mit echter Form** (`CollisionWorld.raycastCam`, nur Darstellung – Spiel-Abfragen nutzen weiter `raycast`):
+   Rampen verdecken nur unter ihrer Schräge (nicht mehr als Hüllquader – an Hängen rückt die Kamera nicht mehr bis 3 m
+   heran), Zylinder nur rund. **Kleine, frei stehende Hindernisse** (alle Kanten ≤ 2,2 m, seitlich ohne feste Nachbarn –
+   ein einzelner ?-Block, Ziegel, eine Kiste) bis 5 m vom Kopf der Figur ziehen die Kamera nicht mehr ruckartig heran;
+   Reihen und Mauern aus Blöcken zählen weiter (Kamera rückt heran). `camIgnore` auf Rampen ist nicht mehr nötig.
+4. **Wurfball am Hang:** der Hangabtrieb wirkt auch in kurzen Luftphasen (Hüpfer) – bis `slopeAir` s (Standard 0,35)
+   nach dem letzten Hang-Kontakt, solange die Rampe höchstens 0,6 m unter dem Ball liegt und er nicht steigt
+   (`vel.y < 2`). Datenfeld `{ kind: 'wurfball', slopeAir: 0 }` = altes Verhalten. Gemessen am 31°-Hang (6 m hoch, 10 m
+   lang): unten nach 2,2 s mit 6,5 m/s (mit `slopeAir: 0` nach 3 s noch nicht unten, höchstens 1,9 m/s).
+5. **Eiskante sparsam** (`eisflaeche`): Nachbildung des Modells `eiskante` (Eis-Lippe, Saum, Schneewulst mit Buckeln im
+   Takt des Modells und mit dessen Kugel-Normalen) – ≈ 130 statt ≈ 500 Dreiecke je Meter (ein 16 × 40-m-See ≈ 14 k statt
+   ≈ 56 k je Pass, mit Schattenpass ≈ 29 k statt ≈ 110 k). **Standard:** an bei Eisseen mit Sockel (h > 0,2), aus bei
+   flachen Bahnen ohne Sockel (wie bisher, z. B. der Teich in 3-1, der seinen Schneerand selbst mitbringt); `edge: false`
+   aus, `edge: true` an, `edge: 'fein'` = Registry-Modell wie bisher. Die Level mit Eisseen (6-5, Hilfe `w3/_helpers_a.js`)
+   setzen `edge: false` ausdrücklich und bleiben unverändert; 0-13 (`edge: true`) zeigt jetzt die sparsame Kante.
+6. **Pilz-Maske in der Luft** (`level.isMaskedFrom`): über dem Gegner (waagerecht höchstens Halbbreite des Gegners +
+   Halbbreite der Figur + 0,3 m) gilt die maskierte Figur in der Luft als zugewandt, und war sie eben noch zugewandt, hält
+   das in der Luft 0,35 s nach (Sprung über die Mitte eines Stachelwerfers: er wirft nicht mehr). Am Boden unverändert.
+7. **Gelee-Brocken ohne Boss** übernehmen `color` aus den Daten (eigene Instanz-Gruppe je Farbe über
+   `sharedSlot(level, name, { color })`; vorher alle silbern). 6-C zeigt die fünf Brocken jetzt in ihren Farben.
+8. **Welt 5:** Kipp-Schaltfelder (`switchtiles`) zeichnen als eine Instanz-Gruppe (`view.instanceModel`; Farbfeld 3 × 3:
+   1 Aufruf statt 9). Rot-Blau-Flipper melden ihre Instanz-Meshes bei `view.groupCull` an (Name `flipper`, Regeln über
+   `LEVEL.instances.flipper`): je Bild nur Felder im Bild bzw. mit Schatten ins Bild (vorher immer alle, ≈ 60 k Dreiecke
+   in 5-6). **Werferturm:** die Reiter-Spec hat `kind` und `spawnedBy: 'werferturm'`; der Arena-Neustart überspringt Specs
+   mit `spawnedBy` und zählt den Reiter des neuen Turms (`e.rider`) mit – genau ein Werfer, keine Warnung
+   „unbekannte Entität“.
+9. **Formflag `ballPass`** (Kraftfeld „nur Bälle“): `{ type: 'box', …, ballPass: true }` ist fest für Figuren und Gegner;
+   Wurfball, Feuerball der Figur, Gegner-Feuerkugeln (`geschosse.js`), Projektilkopf und geworfene Stachelkugel fliegen
+   hindurch. Als Wand gedacht, nicht als Boden (rollende Geschosse fielen hindurch). Die Wurfsichel (Welt 7) fliegt ohnehin
+   durch Wände; geworfene Kickbomben/Panzer sind nicht erfasst.
+
+API-Ergänzungen: `view.instanceModel(root, kind) → Abmelden` (Baustein-Modell, das direkt in der Szene hängt, wie ein
+Entitäts-Modell instanzieren), `view.instancer.stats` + `ruled` (Exemplare mit Regel), `shadowLow` (Schatten über den
+Stellvertreter), `world.raycastCam(a, b, skip?)`, `segmentShape(shape, …)`.
+
+### Präzisierung (Motor-Feinschliff nach Welt 6): level-lokale Umwege, die jetzt überflüssig sind (bleiben harmlos)
+
+| Level | Umweg | jetzt im Motor |
+| --- | --- | --- |
+| 6-1 | `schattenNah(level, ['stachelkugel'], 11)` | `instances: { stachelkugel: { shadowDist: 11 } }`; Schatten ohnehin über den sparsamen Stellvertreter |
+| 6-Panzer | `kolonnenSetup`: Figur beim Stampfen mit dem Panzer verschieben | `poundCarry` (der Haken wird erkannt, nichts doppelt) |
+| 6-5 | `rampenKameraFrei` (camIgnore auf allen Rampen) | `raycastCam` (Rampen als Keil) |
+| H-1 | Hilfe `rampe` (Rampe mit camIgnore) | dito |
+| 6-5 | `eisflaeche` mit `edge: false` (Budget) | sparsame Kante (≈ 14 k je 16 × 40-m-See und Pass) – ohne `edge` stünde sie an |
+| 6-Haus | `kullerRinne` (Hangabtrieb je Schritt) | Wurfball-Hangabtrieb in Luftphasen; die Zentrierung in der Rinne bleibt Sache der Hilfe |
+| 6-Haus | `kraftfeld` als `solid` + `trigger` (der Ball übergeht `trigger`) | Formflag `ballPass` |
+| 5-B | `arenaTowerFix` | Reiter-Spec mit `kind`/`spawnedBy`, Arena zählt den Reiter |
+| 5-5 / 5-6 | — (Wünsche: Farbfeld instanzieren, Flipper-Culling) | `view.instanceModel`, `view.groupCull` |
+
+### Präzisierung (Motor-Feinschliff nach Welt 6): Test und Kennzahlen
+
+`tests/course_motor_fixes.mjs` (Port 4700 + `PORT_BASE`, deterministisch über `step`/`setInput`; `PARTS=inst,pound,cam,
+ball,eis,maske,gelee,w5,kraft,arena,level`, alle zusammen ≈ 2 min, `VERBOSE=1`) – 37 Prüfungen, je Punkt mit Gegenprobe:
+Stachelkugeln als eine Gruppe, Schatten über den Stellvertreter, `shadow: false`, `shadowDist` (nur die nahen), `farHide`
+je Art, Detailstufe aus der Ferne · Stampfen auf Plattform und Wagen (Drift < 0,3 m), Umweg wie 6-Panzer nicht doppelt,
+feste Plattform senkrecht · Kamera an der Rampe und hinter einem ?-Block voller Abstand (alter Hüllquader-Strahl war
+verdeckt), Ziegelreihe zieht heran · Wurfball mit/ohne `slopeAir` · Eiskante sparsam ≤ ⅓ des Modells, Standard an/aus ·
+Pilz-Maske über dem Stachelwerfer (alte Blickregel und ohne Maske: er wirft) · Gelee-Farben · Farbfeld 1 Aufruf,
+Flipper außerhalb 0 Aufrufe · Kraftfeld (Figur hält, Ball und Feuerball hindurch, Glaswand hält beide) · Werferturm-Arena
+0-30 und 5-B · echte Level 5-5, 5-6, 6-1.
+
+Kennzahlen (`tests/course_perf.mjs`, scale 2, `?still=1`, inkl. Schattenpass; vorher = master vor dem Feinschliff):
+
+| Level | Aufrufe Ø (max) vorher | nachher | Dreiecke Ø (max) vorher | nachher |
+| --- | --- | --- | --- | --- |
+| 6-1 | 61,2 (93) | 61,2 (93) | 199 k (262 k) | 197 k (262 k) |
+| 5-5 | 73,2 (97) | 72,4 (97) | 170 k (229 k) | 170 k (229 k) |
+| 5-6 | 58,5 (80) | 53 (72) | 187 k (234 k) | 129 k (174 k) |
+| 6-5 | 35 (45) | 35 (45) | 110 k (153 k) | 110 k (153 k) |
+
+Messgang entlang der Route (Lotti, Höchstwerte vorher → nachher): 6-1 98 → 98 Aufrufe / 258 → 249 k, 5-5 99 → 99 /
+208 → 208 k, 5-6 105 → 97 / 249 → 189 k, 6-5 55 → 55 / 148 → 148 k. Einzelne Stellen: 5-5 Farbfeld (Empore) 109 → 101
+Aufrufe (Felder 9 → 1), Bild am Stern 2 91 → 83; 5-6 Checkpoint 98 → 90 Aufrufe / 234 → 174 k (Flipper 8 Aufrufe / 60 k
+→ 0), Start 153 → 99 k; 6-1 ferne Stachelkugeln in der Detailstufe (≈ 0,7 statt 5,7 k); die Glasgang-Kugeln liegen nah (volle Kugel), und
+6-1 sparte den Kugel-Schatten schon selbst (`schattenNah`) – daher dort nur wenig Gewinn; 6-5 unverändert (Kante dort
+ausdrücklich aus, Rampen schon mit `camIgnore`; mit `edge` an kosteten die drei Seen jetzt ≈ 14 + 15 + 17 k je Pass statt
+je ≈ 110 k mit Schattenpass).
+
+Regressionen (nacheinander, je ≤ 10 min) bestanden: `course_physics`, `course`, `course_view`, `course_leistung`,
+`course_w3_blocks` (ohne Bilder), `course_w5_blocks`, `course_w6_blocks` (mech), `course_w6_enemies` (1–4), `course_w5c`
+(5-5 und 5-6 route/sweep/targets/extra, 5-B), `course_w6a` (6-1, 6-2 load/route/targets, 6-1 sweep, 6-B arena),
+`course_w6b` (6-3 load/route/targets/extra), `course_w6c` (6-5, 6-6 load/route/targets, 6-5 sweep, 6-Haus
+haus/haus-extra), `course_w6d` (6-7, 6-Panzer, 6-C load/route/targets), `course_w2d` (2-Panzer), `course_hwa` (H-1, H-2
+load/route, H-1 sweep: höchstens 85 Aufrufe / 284 k), `course_w5a` (5-1
+load/route), nach dem Merge der Welt 7 `course_w7_blocks`, `course_w7_enemies` (1–3).
+
+## Präzisierung (Level 7-1, 7-2 und 7-A)
+
+Additiv zur Welt-7-Liste: Titel und Besonderheiten der Level 7-1, 7-2 und 7-A. Dateien `src/course/levels/w7/7-1.js`, `7-2.js`,
+`7-A.js`, eigene Hilfen `src/course/levels/w7/_helpers_a.js` (kein `LEVEL`, nur für diese drei Level; nutzt `Bld`, `litTop`,
+`gradY`, `blueLavaSea`, `blueFalls`, `sparksUp`, `bats` aus `w5/_helpers_b.js` und die Lava-Insel-Hilfen aus `w4/_helpers_c.js`),
+Test `tests/course_w7a.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`/`LEVEL.setup`). Bausteine nach „Präzisierung (Motor und Bausteine Welt 7)“, Gegner nach „Präzisierung (Gegner
+Welt 7)“.
+
+### 7-1 „Werferburg am Blauglutsee“ (parcours · bluelava · course_fortfire · 400 s)
+
+- Festung aus blaugrauem Ziegelstein im Blauglutsee (Lava y −0,6, Boden y 1), ≈ 250 m nach −Z. Abschnitte: **Startinsel**
+  (Burghof mit Pilzlingsturm, ?-Block mit der **Wurfsichel**; die **H-Röhre** – zwei Glasröhren mit Quersteg – quert den
+  Lavagraben) → **Glasröhren-Netz** (Werfer-Hof, Röhrengabel hoch über der Lava zu zwei Werfer-Inseln, Röhrenstern zurück zur
+  Hubinsel) → **Feuerstab-Plattformen** (zwei `feuerstab`, der zweite mit ?-Block und `lift`; Werferturm-Platz: Feuer-Werfer
+  auf einem Pilzlingsturm (`werferturm`) – besiegt erscheint die Warp-Box über den Glutsee) → **Stampfstein-Passage**
+  (Kontrollpunkt, Gang zwischen Zinnenmauern mit drei Stampfsteinen und drei Marschblock-Kolonnen; der letzte Feuer-Werfer am
+  Torplatz – fällt er (`task`), senkt sich die **Zugbrücke** zur Zielinsel mit Hoppel im Käfig des Barons).
+- Sterne: 0 im **Quersteg der H-Röhre** (an der Kreuzung abbiegen; Glasröhren sammeln sonst nur Münzen – `sternImRohr` holt
+  den Stern beim Durchfahren) · 1 **Kugelsaal** (x ≈ 72): unsichtbare Blöcke direkt nach dem Kontrollpunkt (Kopfstoß, dann
+  Kette) hinauf auf den Turm, grüne Röhre in den Saal, die Kugel über die Kugelbahn (Bordsteine) in die Mulde rollen
+  (`kugelZiel`: nur die Kugel löst aus) · 2 **Sternenring** auf der Hubinsel: acht Sternmünzen in 13 s rund um die erste
+  Feuerstab-Plattform, die letzte oben auf ihrem Steinblock. Stempel: Stampfen auf den ?-Block im zweiten Feuerstab hebt ihn
+  4,2 m an – von dort zum Stempel (ohne Anheben zu hoch).
+- Extraleben: unsichtbarer Block neben dem Starttor, unsichtbarer Block im Kugelsaal. Funkenblüte auf der Hubinsel,
+  Wachstumsbeere am Kontrollpunkt.
+- Gegner: Feuer-Werfer 6 (alle mit `fireColor: 'blau'`; der Werfer auf dem Turm bekommt die Farbe im Setup), Lavablase 22,
+  Pilzlingsturm 4 (3 + `werferturm`), Feuerstab 2, Stampfstein 3, Marschblock 12.
+- Kulisse (`festung71`): Ziegelfassaden an allen sichtbaren Inselseiten mit leuchtendem Saum an der Lava, Zinnenmauern mit
+  Schießscharten, bunte Rundtürme (auch fern auf Basaltsockeln, aus ihren Fenstern stürzen blaue Lavafälle), Steinplatten im
+  Verband mit glimmenden Rissen, Brummbär-Wappen als Bodenmosaik, rote Läufer, Werfer-Lager (Feuerkugel-Körbe, Fässer),
+  Banner, Fackeln, Fledermäuse, Glutfunken.
+
+### 7-2 „Schaltfelder im Finstertempel“ (parcours · darkruins · course_switchruins · 400 s)
+
+- Versunkener Sandstein-Tempel mit türkisen Friesen und leuchtenden Runen über einem finsteren Abgrund (Absturz y −12),
+  ≈ 230 m nach −Z. Zwischen den Hallen gibt es keinen Weg: erst wenn alle Felder einer `schaltfelder`-Gruppe golden sind,
+  ploppen die Wegplatten auf (Umrisse und schwebende Münzen zeigen vorher, wo); Abgründe ≥ 14 m (kein Sprung hinüber).
+  Abschnitte: **Eingangshalle und dunkler Gang** (Funkenblüte im ?-Block, Stachelpanzer, Gruppe 1 mit 2 × 2) → **zweiter Saal**
+  (zwei Stachelpanzer zwischen den vier Feldern von Gruppe 2) → **Rundsaal** (Mosaik, Säulenring, vier Fackelschalen) →
+  **Kontrollpunkt** → Gruppe 3 (3 × 2) unter dem Feuer einer Feuer-Schnappblume, zwei Funkenflämmchen an den Rändern →
+  **Fahrplattform** über den Abgrund zur letzten Halle (vier Stachelpanzer, Gruppe 4 mit 3 × 2) → **Zielröhre** (grüne Röhre
+  hinüber in die Zielhalle mit steinernen Wächter-Häschen und Schatz).
+- Sterne: 0 im Rundsaal: vier **Fackelschalen** mit Feuerbällen der Funkenblüte anzünden (`fackelGruppe`; Anfassen,
+  Anspringen, Tatze zünden nicht) – der Stern erscheint in der Mitte · 1 **versteckter Schatzraum** rechts vom Kontrollpunkt
+  hinter einer **Scheinwand** (`scheinwand`: ohne Kollision, wird beim Nähern durchscheinend; leuchtende Risse als Hinweis;
+  die Mauer daneben ist fest) · 2 hinter der grünen Röhre: ein **unsichtbarer länglicher ?-Block** (`geheimLaengsblock`,
+  Kopfstoß) zeigt eine versteckte Blockkette hinauf über den Abgrund. Stempel: im zweiten Saal ganz rechts auf der Plattform
+  über dem Abgrund (Anlauf und Sprung).
+- Extraleben: unsichtbarer Block im Schatzraum. Gegner: Stachelpanzer 7, Feuer-Schnappblume 1, dazu Funkenflämmchen 2
+  (Hinweis aus „Gegner Welt 7“).
+- Kulisse (`tempel72`): Quaderfassaden der schwebenden Böden mit Runenleiste, Tempelmauern mit Fries, Säulen mit Runenband,
+  Rundsaal-Mosaik, Amphoren, Goldschatz, Leuchtkristalle, Wächter-Häschen (Pflaume aus Stein), Ruinensäulen aus der Tiefe,
+  Goldstaub, Glutfunken aus dem Abgrund, Fledermäuse, viele Fackeln (Laternenlicht).
+
+### 7-A „Glutkönig im Platschkessel“ (arena · lava · course_arena · 200 s, 1 Stern)
+
+- Runde Basaltinsel (R 12,4 m, `rockIsland`) im Lavasee 1,4 m unter der Fläche, Kranz aus Basaltpfeilern mit Brummbär-Bannern
+  (vorn offen), Glutkrone als Bodenmosaik in der Mitte (dort steigt der Stern auf), Kraterwand mit drei Lavafällen,
+  Vulkane, Dampf, Glutfunken. Der **helle Lavafelsen-König** (`variant: 'hell'`,
+  `fish` mit `gate` zur Startseite) ruft endlos Lavabrocken und rollt; Platschfische springen rings um den Kessel. Nur
+  geworfene Lavabrocken treffen (3×). Arena-Zählung, Lebensleiste „Glutkönig“ und Neustart nach Tod (König zurück, Brocken und
+  Fische weg) über `bossKampf` (wie `prinzKampf`, `LEVEL.arena.enemies: []`); der Arena-Stern steigt in der Mitte auf.
+- ?-Block mit Wachstumsbeere, Münzblock, unsichtbarer Block mit Extraleben vorn am Rand.
+
+### Hilfen `_helpers_a.js`
+
+Daten: `isl` (Steinplatten-Insel), `line`, `ring`, `arc`, `column`, `sign`, `blase` · Mechanik: `sternImRohr`, `kugelZiel`,
+`fackelGruppe` (Entität `fackelschale`, level-lokal), `scheinwand`, `geheimLaengsblock`, `bossKampf` · Festung: `BURG`,
+`ziegel`, `mauer`, `turm`, `inselFassaden`, `fliesen`, `wappenMosaik`, `bodenPfeile`, `laeufer`, `werferKram`, `festung71` ·
+Tempel: `TEMPEL`, `tempelWand`, `saeule`, `amphoren`, `kristalle`, `schatz`, `pflaumeStatue`, `mosaik`, `tempel72` · Kessel:
+`kessel7A`.
+
+### Test `tests/course_w7a.mjs`
+
+Port 4710 (+ `PORT_BASE`), Aufruf `node tests/course_w7a.mjs [7-1|7-2|7-A]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,arena,shots` (je Lauf < 10 min: z. B. `load,route,sweep` und `targets,extra` getrennt),
+`HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`, `SHOTS=<Name|…>`, `DETAIL=1`, Bilder `tests/out/w7a_*.png`. Bot mit echter
+Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier); Beine u. a. `pipe` (Glasröhre, Stick an der Kreuzung), `warp`,
+`stompAll`, `clear` (Lücke abwarten), `pound` (Stampfattacke), `roll` (Kugel schieben), `fire` (Feuerbälle auf ein Ziel),
+`ride` (Fahrplattform), `tiles` (Schaltfelder), Arena `bossFight` (Brocken betäuben, aufheben, werfen, ausweichen).
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel (7-1 ≈ 88/76 s mit H-Röhre,
+Röhrengabel, Röhrenstern, Feuerstäben am Rand, Werfer auf dem Turm, Warp-Box, Stampfsteinen, Marschblöcken, Zugbrücke; 7-2
+≈ 73/72 s **ohne einen Treffer-Versuch**, vier Schaltgruppen, Stachelpanzer mit Feuerbällen, Fahrplattform, Zielröhre; 7-A
+Kampf ≈ 27/42 s mit echten Würfen, Platschfische bis zu vier gleichzeitig); alle Sterne und Stempel mit Gegenproben
+(Geradeausfahrt, Mulde ohne Kugel, Stempel ohne Anheben, Fackeln ohne Feuer, Blockkette ohne Kopfstoß, 3 von 4 Feldern); Extras
+(versteckte Warp-Box, geschlossene Zugbrücke, Wurfsichel, feste Mauer neben der Scheinwand, vier Extraleben); 7-A: Feuer und
+Draufspringen schaden dem König nicht, Tod setzt den Kampf zurück, Zeitlimit 200 s. Gemessen (scale 2, inkl. Schattenpass,
+Messgang alle ~7 m der Route und Bilder je Abschnitt): 7-1 30–84 Zeichenaufrufe / ≤ 198 k Dreiecke · 7-2 35–79 / ≤ 127 k ·
+7-A 45–75 / ≤ 135 k.

@@ -124,7 +124,8 @@ class GeleeBrocken extends EnemyW2 {
     this.state = 'rest';
     this.merging = null;
     if (Array.isArray(spec.vel)) { this.vel.set(spec.vel[0], spec.vel[1], spec.vel[2]); this.state = 'air'; this.grounded = false; }
-    this.slot = this.owner?.pools ? this.owner.pools.alloc(this.color) : sharedSlot(level, 'gelee_brocken');
+    // ohne Boss: eigene Instanz-Gruppe je Farbe (Präzisierung „Motor-Feinschliff nach Welt 6“; vorher immer silbern)
+    this.slot = this.owner?.pools ? this.owner.pools.alloc(this.color) : sharedSlot(level, 'gelee_brocken', { color: this.color });
   }
 
   get arena() { return this.owner?.arena ?? null; }

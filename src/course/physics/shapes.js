@@ -11,7 +11,10 @@
 // Flags (alle optional): solid (Standard true, außer bei water/kill/trigger ohne solid), oneWay,
 // climbable, kill, water, bounce, conveyor {x,z}, ice, hit(callback), breakable, mover, owner,
 // fromBelowOnly (unsichtbarer Block: nur von unten fest), trigger (nicht fest, nur für overlapAABB),
-// boost {x,z,speed}, beanstalk, pipe, camIgnore (Kamera darf hindurch), noWallSlide.
+// boost {x,z,speed}, beanstalk, pipe, camIgnore (Kamera darf hindurch), noWallSlide,
+// ballPass (Präzisierung „Motor-Feinschliff nach Welt 6“: fest für Figuren und Gegner, Wurfbälle und Geschosse – Wurfball,
+// Feuerball, Gegner-Geschosse, Projektilkopf, geworfene Stachelkugel – fliegen hindurch; Kraftfeld „nur Bälle“; als Wand
+// gedacht, nicht als Boden).
 //
 // Intern bekommt jede Form numerische Grenzen x0..z1 (AABB) und – je Typ – Hilfswerte.
 
@@ -101,20 +104,62 @@ export function surfaceNormal(s, out = { x: 0, y: 1, z: 0 }) {
 
 /** Schnittpunkt eines Strahls mit der AABB der Form (Slab-Test); liefert t in [0, 1] oder -1. */
 export function segmentAABB(s, ax, ay, az, bx, by, bz) {
+  return segmentRange(s, ax, ay, az, bx, by, bz, _range) ? _range[0] : -1;
+}
+
+const _range = [0, 1];
+
+/**
+ * Wie segmentAABB, aber mit der echten Form (Präzisierung „Motor-Feinschliff nach Welt 6“, Kamera): Rampen als Keil
+ * (nur unter der schrägen Oberseite), Zylinder rund. Liefert t in [0, 1] oder -1.
+ */
+export function segmentShape(s, ax, ay, az, bx, by, bz) {
+  if (!segmentRange(s, ax, ay, az, bx, by, bz, _range)) return -1;
+  let t0 = _range[0], t1 = _range[1];
+  const dx = bx - ax, dy = by - ay, dz = bz - az;
+  if (s.type === 'ramp') {
+    // f(t) = y(t) − Oberseite(t) ≤ 0 (unter der Schräge); Oberseite steigt entlang axis in Richtung dir
+    const k = s.slope, x = s.axis === 'x';
+    const au = x ? ax : az, du = x ? dx : dz, u0 = x ? s.x0 : s.z0, u1 = x ? s.x1 : s.z1;
+    const f0 = ay - s.lowY - k * (s.dir > 0 ? au - u0 : u1 - au);
+    const fd = dy - k * (s.dir > 0 ? du : -du);
+    if (Math.abs(fd) < 1e-12) { if (f0 > 0) return -1; }
+    else if (fd > 0) t1 = Math.min(t1, -f0 / fd);
+    else t0 = Math.max(t0, -f0 / fd);
+    return t0 <= t1 ? t0 : -1;
+  }
+  if (s.type === 'cyl') {
+    // waagerechter Abstand zur Achse ≤ r
+    const ox = ax - s.x, oz = az - s.z;
+    const A = dx * dx + dz * dz, B = 2 * (ox * dx + oz * dz), C = ox * ox + oz * oz - s.r * s.r;
+    if (A < 1e-12) return C <= 0 ? t0 : -1;
+    const D = B * B - 4 * A * C;
+    if (D < 0) return -1;
+    const q = Math.sqrt(D);
+    t0 = Math.max(t0, (-B - q) / (2 * A));
+    t1 = Math.min(t1, (-B + q) / (2 * A));
+    return t0 <= t1 ? t0 : -1;
+  }
+  return t0;
+}
+
+/** Slab-Test gegen die AABB: [t0, t1] nach out, false = kein Schnitt. */
+function segmentRange(s, ax, ay, az, bx, by, bz, out) {
   let t0 = 0, t1 = 1;
   const d = [bx - ax, by - ay, bz - az];
   const o = [ax, ay, az];
   const lo = [s.x0, s.bot, s.z0], hi = [s.x1, s.top, s.z1];
   for (let i = 0; i < 3; i++) {
     if (Math.abs(d[i]) < 1e-9) {
-      if (o[i] < lo[i] || o[i] > hi[i]) return -1;
+      if (o[i] < lo[i] || o[i] > hi[i]) return false;
     } else {
       let ta = (lo[i] - o[i]) / d[i], tb = (hi[i] - o[i]) / d[i];
       if (ta > tb) { const t = ta; ta = tb; tb = t; }
       if (ta > t0) t0 = ta;
       if (tb < t1) t1 = tb;
-      if (t0 > t1) return -1;
+      if (t0 > t1) return false;
     }
   }
-  return t0;
+  out[0] = t0; out[1] = t1;
+  return true;
 }

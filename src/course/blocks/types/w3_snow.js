@@ -6,8 +6,14 @@
 //   Flag `ice`, Modell eisflaeche bis 48 m², sonst glatte Platte), darunter ein Körper (Schnee mit Eiskante bzw. Fels,
 //   feste Form ohne ice) bis pos.y und optional Schneewulst-Kanten. Oberseite pos.y + h.
 //   { type: 'eisflaeche', pos: [x, y, z] (Mitte der Unterseite), size: [w, h, d] ([8, 1, 8]; h ≥ 0,2),
-//     body: 'snow' (Standard) | 'rock' | 'none' (dann eine reine eisbahn der Höhe h), edge: false (Schneewulst-Kanten
-//     'eiskante' ringsum, nur Optik), under: 0 (verjüngter Unterbau, m), model / snow (an die eisbahn weitergereicht) }
+//     body: 'snow' (Standard) | 'rock' | 'none' (dann eine reine eisbahn der Höhe h), edge: (Standard: an bei einer
+//     Eisfläche mit Sockel, aus bei einer flachen Bahn ohne Sockel) true | false | 'fein' (Schneewulst-Kanten ringsum, nur
+//     Optik; 'fein' = Registry-Modell 'eiskante' wie bisher, ≈ 500 Dreiecke/m), under: 0 (verjüngter Unterbau, m),
+//     model / snow (an die eisbahn weitergereicht) }
+//   Präzisierung „Motor-Feinschliff nach Welt 6“: die Kante ist eine sparsame Nachbildung des Modells (Eis-Lippe, Saum,
+//     Schneewulst mit Buckeln im Takt und mit den Kugel-Normalen des Modells, ≈ 130 statt ≈ 500 Dreiecke je Meter; ein
+//     16 × 40-m-See ≈ 14 k statt ≈ 56 k je Pass) und bei Eisseen mit Sockel standardmäßig an. Flache Bahnen ohne Sockel
+//     (h ≤ 0,2, z. B. ein Teich bündig im Schnee) bleiben ohne Kante, solange edge nicht gesetzt ist.
 //   Beispiel: { type: 'eisflaeche', pos: [0, 0, -40], size: [10, 1, 16], edge: true }
 //   Ohne Sockel und Kanten genügt der Motor-Baustein `eisbahn`.
 //
@@ -19,7 +25,8 @@
 //     grid: [nx, ny, nz] ([3, 1, 1]), blocks: [[x, y, z], …] (statt grid), content: 'none' (für alle),
 //     contents: { 'i,j,k': Inhalt }, hits, id }   level.named.get(id) = { blocks, left() }
 
-import { v3, sz3, islandParts, themeOf, addStatic, hex } from '../kit.js';
+import * as THREE from 'three';
+import { v3, sz3, islandParts, themeOf, addStatic, hex, lin, mixc, smooth, merge } from '../kit.js';
 import { bakeModel } from '../w3kit.js';
 import { TYPES as ENGINE } from './w3engine.js';
 
@@ -42,13 +49,104 @@ export function buildEisflaeche(level, spec) {
     });
     for (const g of parts) addStatic(level, g);
   }
-  if (spec.edge) {
+  const edge = spec.edge ?? !plain;
+  if (edge) {
     const y = p.y + h - 0.02;
     const sides = [
       [x0, z1, 0, s.x], [x1, z0, Math.PI, s.x], [x0, z0, -Math.PI / 2, s.z], [x1, z1, Math.PI / 2, s.z],
     ];
-    for (const [x, z, yaw, len] of sides) bakeModel(level, 'eiskante', { length: len }, x, y, z, yaw, 1);
+    if (edge === 'fein') for (const [x, z, yaw, len] of sides) bakeModel(level, 'eiskante', { length: len }, x, y, z, yaw, 1);
+    else {
+      const parts = [];
+      for (const [x, z, yaw, len] of sides) {
+        const g = edgeGeo(len);
+        g.rotateY(yaw);
+        g.translate(x, y, z);
+        parts.push(g);
+      }
+      addStatic(level, merge(parts));
+    }
   }
+}
+
+// ------------------------------------------------------------------ sparsame Eiskante (Nachbildung des Modells 'eiskante')
+
+const ICE_LO = lin(0x4aa0dc), ICE_HI = lin(0xbfeaff), SNOW_LO = lin(0xcfe0f4), SNOW_HI = lin(0xffffff), RIM = lin(0xeafaff);
+const RING = 8;   // Punkte je Querschnitt des Schneewulsts
+
+/**
+ * Kante der Länge L entlang +X (x = 0 … L): Eis-Lippe auf der −Z-Seite (0,5 m breit, 0,22 m hoch), weißer Saum, Schneewulst
+ * auf der +Z-Seite als Schlauch mit elliptischem Querschnitt, Buckel alle ≈ 0,38 m (Radien und Versatz wie im Modell).
+ * Nicht indiziert, mit Normalen und Vertexfarben (verschmilzt mit dem Welt-Material).
+ */
+function edgeGeo(L) {
+  const pos = [], nor = [], col = [];
+  const tri = (a, b, c) => { for (const v of [a, b, c]) { pos.push(v.p[0], v.p[1], v.p[2]); nor.push(v.n[0], v.n[1], v.n[2]); col.push(v.c[0], v.c[1], v.c[2]); } };
+  const quad = (a, b, c, d) => { tri(a, b, c); tri(a, c, d); };
+  const V = (p, n, c) => ({ p, n, c });
+  // Eis-Lippe (Quader ohne Unterseite) und weißer Saum
+  const slab = (x0, x1, y0, y1, z0, z1, top, side) => {
+    const P = (x, y, z) => [x, y, z];
+    quad(V(P(x0, y1, z1), [0, 1, 0], top), V(P(x1, y1, z1), [0, 1, 0], top), V(P(x1, y1, z0), [0, 1, 0], top), V(P(x0, y1, z0), [0, 1, 0], top));
+    quad(V(P(x0, y0, z1), [0, 0, 1], side), V(P(x1, y0, z1), [0, 0, 1], side), V(P(x1, y1, z1), [0, 0, 1], top), V(P(x0, y1, z1), [0, 0, 1], top));
+    quad(V(P(x1, y0, z0), [0, 0, -1], side), V(P(x0, y0, z0), [0, 0, -1], side), V(P(x0, y1, z0), [0, 0, -1], top), V(P(x1, y1, z0), [0, 0, -1], top));
+    quad(V(P(x0, y0, z0), [-1, 0, 0], side), V(P(x0, y0, z1), [-1, 0, 0], side), V(P(x0, y1, z1), [-1, 0, 0], top), V(P(x0, y1, z0), [-1, 0, 0], top));
+    quad(V(P(x1, y0, z1), [1, 0, 0], side), V(P(x1, y0, z0), [1, 0, 0], side), V(P(x1, y1, z0), [1, 0, 0], top), V(P(x1, y1, z1), [1, 0, 0], top));
+  };
+  const iceSide = [], iceTop = [];
+  mixc(ICE_LO, ICE_HI, 0.5, iceSide); mixc(ICE_LO, ICE_HI, 1, iceTop);
+  slab(0, L, 0, 0.22, -0.5, 0, iceTop, iceSide);
+  slab(0, L, 0.13, 0.27, -0.04, 0, RIM, RIM);
+  // Schneewulst: je Buckel (Kugel des Modells: Radius r, Versatz zc) drei Ringe – Tal links, Mitte, Tal rechts – mit den
+  // Normalen der Kugel (Kante zwischen zwei Buckeln wie beim Modell); benachbarte Buckel über ihre Täler verbunden
+  const k = Math.max(3, Math.round(L / 0.38));
+  const step = L / k, hh = step / 2;
+  const ringAt = (x, cx, r, zc) => {
+    const d = x - cx, rho = Math.sqrt(Math.max(0.02, r * r - d * d));
+    const ring = [];
+    for (let a = 0; a < RING; a++) {
+      const t = (a / RING) * Math.PI * 2;
+      const cy = Math.sin(t), cz = Math.cos(t);
+      const n = [d / r, (cy * rho) / (r * 0.85), (cz * rho) / r];
+      const nl = Math.hypot(n[0], n[1], n[2]);
+      n[0] /= nl; n[1] /= nl; n[2] /= nl;
+      const c = [];
+      mixc(SNOW_LO, SNOW_HI, smooth(0, 1, (n[1] + 0.55) / 1.1), c);
+      ring.push(V([x, 0.2 + cy * rho * 0.85, zc + cz * rho], n, c));
+    }
+    return ring;
+  };
+  const strip = (A, B) => { for (let a = 0; a < RING; a++) { const b = (a + 1) % RING; quad(A[a], B[a], B[b], A[b]); } };
+  const rings = [];
+  let prev = null;
+  for (let j = 0; j <= k; j++) {
+    const cx = j * step, r = 0.28 + ((j * 7) % 3) * 0.04, zc = 0.1 + ((j * 5) % 3) * 0.04;
+    const x0 = Math.max(0, cx - hh), x1 = Math.min(L, cx + hh);
+    const A = ringAt(x0, cx, r, zc), M = ringAt(cx, cx, r, zc), B = ringAt(x1, cx, r, zc);
+    if (prev) strip(prev, A);
+    if (x0 < cx) strip(A, M);
+    if (x1 > cx) strip(M, B);
+    prev = x1 > cx ? B : M;
+    if (j === 0) rings.push(x0 < cx ? A : M);
+  }
+  rings.push(prev);
+  // Enden zu (Fächer)
+  for (const [ring, sgn] of [[rings[0], -1], [rings[rings.length - 1], 1]]) {
+    const cx = ring[0].p[0];
+    let cy = 0, cz = 0;
+    for (const v of ring) { cy += v.p[1] / RING; cz += v.p[2] / RING; }
+    const mid = V([cx, cy, cz], [sgn, 0, 0], SNOW_HI);
+    for (let a = 0; a < RING; a++) {
+      const b = (a + 1) % RING;
+      const va = V(ring[a].p, [sgn, 0, 0], ring[a].c), vb = V(ring[b].p, [sgn, 0, 0], ring[b].c);
+      if (sgn > 0) tri(mid, vb, va); else tri(mid, va, vb);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return g;
 }
 
 export function buildIglu(level, spec) {

@@ -41,7 +41,7 @@ class Projektil extends EnemyW2 {
     this.pitch = 0;
     this.burst = false;
     this.yaw = Math.atan2(-this.dir.z, this.dir.x);
-    this._ign = (s) => s.owner === this || (this.owner && s.owner === this.owner) || !!s.oneWay;
+    this._ign = (s) => s.owner === this || (this.owner && s.owner === this.owner) || !!s.oneWay || !!s.ballPass;   // ballPass: Kraftfeld „nur Bälle“
     this.shapeId = null;
     if (this.ride) {
       this.mover = { dx: 0, dy: 0, dz: 0, vx: 0, vy: 0, vz: 0, dyaw: 0, cx: this.pos.x, cz: this.pos.z };

@@ -19,6 +19,7 @@
 //   info() }; level.named.get(id) = { tiles: [{ x, y, z, w, d, color, solid }], info() }.
 // Darstellung: eigene Geometrie in Instanz-Meshes für alle Felder des Levels (je Farbe Rahmen, Platte mit Zeichen ● bzw.
 // ◆, Gitter – zusammen 6 Zeichenaufrufe); ein Registry-Modell ist bewusst nicht angebunden (Instanzen, Umklapp-Animation).
+// Je Bild nur Felder im Bild (view.groupCull, Name 'flipper' – Regeln über LEVEL.instances.flipper).
 
 import * as THREE from 'three';
 import { v3, lin, mixc, colorize, merge, hex, box, addObject } from '../kit.js';
@@ -158,6 +159,9 @@ function buildView(level, sys) {
       rim.castShadow = plate.castShadow = true; rim.receiveShadow = plate.receiveShadow = true;
       grid.castShadow = false; grid.renderOrder = 2;
       for (const m of [rim, plate, grid]) { m.frustumCulled = false; group.add(m); }
+      // je Bild nur Felder im Bild bzw. mit Schatten ins Bild (view/GroupCuller.js, Präzisierung „Motor-Feinschliff nach
+      // Welt 6“ – vorher zeichnete jedes Feld des Levels immer, auch im Schattenpass); Regel-Name 'flipper'
+      for (const m of [rim, plate, grid]) level.view.groupCull?.(m, 'flipper');
       meshes[c] = { rim, plate, grid, list: sys.tiles.filter((t) => t.color === c) };
     }
   };

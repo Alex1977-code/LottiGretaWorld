@@ -22,7 +22,8 @@
 //   { type: 'switchtiles', pos: [0, 1, -20], grid: [3, 2], onAll: { reveal: 'weg1' } }
 //   { type: 'switchtiles', toggle: true, grid: [2, 2], platform: { path: [[0, 4, -60], [8, 4, -60]], size: [5, 0.5, 5] },
 //     onAll: { star: 2 } }
-// Modell 'switch_tile' (state off/on).
+// Modell 'switch_tile' (state off/on); alle Felder zeichnen als Instanzen (view.instanceModel, Präzisierung
+// „Motor-Feinschliff nach Welt 6“: Farbfeld 3 × 3 ein Zeichenaufruf statt neun).
 
 import * as THREE from 'three';
 import { v3, addObject } from '../kit.js';
@@ -56,6 +57,7 @@ export function buildSwitchTiles(level, spec) {
       t.model.root.position.set(t.x, t.y, t.z);
       t.model.root.traverse((o) => { if (o.isMesh) o.castShadow = false; }); // flach: spart den Schattenpass
       addObject(level, t.model.root, (dt) => { t.model.root.position.set(t.x, t.y, t.z); t.model.update(visDt(level, t, dt), { anim: t.on ? 'on' : 'off' }); });
+      level.view.instanceModel?.(t.model.root, 'switch_tile');   // alle Felder des Levels als eine Instanz-Gruppe (Motor-Feinschliff)
     }
   }
   const n = group.tiles.length;
