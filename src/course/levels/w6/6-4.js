@@ -17,6 +17,7 @@
 //   7  Ruinenplateau       z −278 … −304  (per Warp-Box) Ruinen, Steinfrösche, Zielmast
 // Gegner: Brummer 4, Rankenschnapper 6. Extraleben: ?-Block auf dem Aussichtsfelsen, unsichtbarer Block auf der Tor-Insel.
 
+import * as THREE from 'three';
 import { isl, line, ring, arc, sign, seerosen, schilf, moospolster, blauesTor, baumhaus, felsen, ruinen, glimmer, zier } from './_helpers_b.js';
 
 const PI = Math.PI;
@@ -141,6 +142,13 @@ function build(level) {
 function setup(level) {
   glimmer(level, [[-14, 14, 1.4, 5, 10, -96], [-14, 14, 1.4, 5, -114, -204], [-8, 8, -2, 3, -204, -250], [-10, 10, 9.5, 13, -280, -304]], { n: 90, color: 0xd8ff6a, size: 0.2, drift: 0.8 });
   glimmer(level, [[10, 24, 1.5, 12, -55, -82]], { n: 26, color: 0xfff0a0, size: 0.24, seed: 7 });
+  // Wand-Klettergitter werfen keinen Sonnenschatten (Dreiecke im Schattenpass); das Deckengitter über dem Gift behält ihn
+  const wp = new THREE.Vector3();
+  for (const o of level.view?.three.children ?? []) {
+    if (o.name !== 'modell:klettergitter') continue;
+    o.updateMatrixWorld(); wp.setFromMatrixPosition(o.matrixWorld);
+    if (wp.y < 3.5) o.traverse((m) => { if (m.isMesh) m.castShadow = false; });
+  }
 }
 
 export const LEVEL = {
