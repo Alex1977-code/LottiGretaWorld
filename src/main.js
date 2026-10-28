@@ -20,6 +20,7 @@ import { CourseUIScene } from './course/CourseUIScene.js';
 import { CoursePauseScene } from './course/CoursePauseScene.js';
 import { CourseResultScene } from './course/CourseResultScene.js';
 import { CourseMapScene } from './course/map/CourseMapScene.js';
+import { CreditsScene } from './course/CreditsScene.js';
 import { getLevel as getCourseLevel } from './course/levels/index.js';
 
 // Startfluss (Präzisierung Weltkarte):
@@ -35,11 +36,13 @@ const wanted = params.get('level');
 const startLevel = wanted && LEVELS[wanted] ? wanted : null;
 const classicStart = params.has('classic') && params.get('classic') !== '0';
 const mapStart = params.get('map') === '1';
+// Abspann direkt (Präzisierung Motor und Bausteine Welt 8): ?credits=1
+const creditsStart = params.get('credits') === '1';
 // Startseite: Kurs-Weltkarte (Welt 1 komplett). Auf false gestellt, wäre die Klassik-Karte Startseite.
 // Die Klassik-Karte bleibt über ?classic=1 und den Knopf „Klassik“ erreichbar.
 const COURSE_DEFAULT = true;
-const courseBoot = !!startCourse || (!startLevel && !classicStart && (mapStart || (COURSE_DEFAULT && RENDER3D.enabled)));
-const COURSE_SCENES = [CourseScene, CourseUIScene, CoursePauseScene, CourseResultScene, CourseMapScene];
+const courseBoot = !!startCourse || (!startLevel && !classicStart && (mapStart || creditsStart || (COURSE_DEFAULT && RENDER3D.enabled)));
+const COURSE_SCENES = [CourseScene, CourseUIScene, CoursePauseScene, CourseResultScene, CourseMapScene, CreditsScene];
 
 const config = {
   type: Phaser.AUTO,
@@ -81,6 +84,7 @@ game.registry.set('render3d', RENDER3D.enabled);
 game.registry.set('startLevel', startLevel);
 game.registry.set('startCourse', startCourse);
 game.registry.set('courseDefault', COURSE_DEFAULT);
+game.registry.set('startCredits', creditsStart && !startCourse);
 
 setupOrientationHint(game);
 registerServiceWorker();
