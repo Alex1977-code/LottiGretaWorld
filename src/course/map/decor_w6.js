@@ -323,10 +323,10 @@ function pipeHills(ev, x, y, z) {
   ev.updaters.push((dt, t) => putSky(t));
   cullByView(ev, sky, cc[0], cc[1] + 7, cc[2], 5);
   addInfo(ev, () => ({ w6models: [...W6_USED].sort(), w6heavy: Object.fromEntries(W6_HEAVY) }));
-  // Feuer-Schnappblumen im Topf am Hang (Registry 'feuer_schnappblume' eingebacken, sonst eigene Geometrie) – als
-  // bewegtes Modell wären es sieben Zeichenaufrufe gleich an der Ankunftsinsel (im Anflug zu teuer)
+  // Feuer-Schnappblumen im Topf am Hang (eigene sparsame Geometrie: das Registry-Modell 'feuer_schnappblume' hat ≈ 5,5 k
+  // Dreiecke bzw. als bewegtes Modell sieben Zeichenaufrufe – gleich an der Ankunftsinsel, im Anflug zu teuer)
   for (const [fx, fy, fz, fyaw] of [[x + 9.2, y + 5.6, z + 8, FRONT + 0.4], [x + 17.6, y + 7.8, z + 16.6, FRONT - 0.3]]) {
-    if (!bake6(ev, 'feuer_schnappblume', { base: 'pot' }, [fx, fy, fz], fyaw, 0.9, { anim: 'idle' }, true, 6000)) {
+    {
       addGeo(ev, 'w6m:fireflower', () => {
         const b = new Build();
         b.cyl(0.42, 0.32, 0.55, { v: (px, py) => mix(0x2a2228, 0x4a3a3a, py + 0.5) }, { p: [0, 0.27, 0] }, 10);
