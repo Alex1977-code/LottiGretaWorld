@@ -463,7 +463,7 @@ export const WORLD7_THEMES = {
       bass: { volume: 0.18 },
       riser: { volume: 0.08, glide: 0.5, noise: 0.1 },
     },
-    kit: { kick: { volume: 0.56 }, clap: { volume: 0.3 }, tom: { freq: 72, volume: 0.46 }, snare: { volume: 0.24 }, hat: { volume: 0.24, off: 0.15 } },
+    kit: { kick: { volume: 0.56 }, clap: { volume: 0.3 }, tom: { freq: 78, volume: 0.46 }, snare: { volume: 0.24 }, hat: { volume: 0.24, off: 0.15 } },
     fx: { delay: { steps: [3, 4], feedback: 0.32, lowpass: 2400, wet: 0.28, send: { organ: 0.15, lead: 0.14, tom: 0.15, riser: 0.3 } } },
     lead: [...rest(4), ...voVerse, ...voChorus, ...voBridge],
     organ: bySection(voProg, SONG, { intro: (c, i) => voIntro[i], bridge: (c) => chordBar(c, LONG, 'G3') }),
