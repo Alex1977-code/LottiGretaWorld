@@ -256,11 +256,11 @@ await sc(async () => {
       const cv = document.createElement('canvas'); cv.width = cv.height = 128;
       const gx = cv.getContext('2d');
       const blue = color === 'blau';
-      gx.fillStyle = blue ? '#1a3ad8' : '#d8340e'; gx.fillRect(0, 0, 128, 128);
-      for (let i = 0; i < 40; i++) {
+      gx.fillStyle = blue ? '#1a3ad8' : '#e0400e'; gx.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 26; i++) {
         const cx = Math.random() * 128, cy = Math.random() * 128;
-        const gr = gx.createRadialGradient(cx, cy, 0, cx, cy, 10 + Math.random() * 16);
-        gr.addColorStop(0, blue ? 'rgba(160,230,255,0.7)' : 'rgba(255,220,90,0.7)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        const gr = gx.createRadialGradient(cx, cy, 0, cx, cy, 8 + Math.random() * 14);
+        gr.addColorStop(0, blue ? 'rgba(170,236,255,0.55)' : 'rgba(255,190,50,0.55)'); gr.addColorStop(1, blue ? 'rgba(26,58,216,0)' : 'rgba(224,64,14,0)');
         gx.fillStyle = gr; gx.fillRect(0, 0, 128, 128);
       }
       const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(w / 4, d / 4);
@@ -446,7 +446,7 @@ if (part('checks')) {
   if (P.flamme) check('Funkenflämmchen ≈0,45–0,7 m (+ Funken), steht auf dem Boden, hop hebt ab, defeated → weg', P.flamme[0] > 0.45 && P.flamme[0] < 0.95 && P.flamme[1] > -0.05 && P.flamme[2] > 0.25 && P.flamme[3]);
   if (P.kugel) check('Blaue Feuerkugel Ø ≈0,36 m, liegt auf dem Ursprung', P.kugel[0] > 0.3 && P.kugel[0] < 0.6 && P.kugel[1] > -0.1);
   if (P.wagen) check('Kampfwagen ≈4,5–6 m lang, Hut ≈3–4 m, auf dem Boden; hand() und muzzle() vorn, userData.radius', P.wagen[0] > 4.5 && P.wagen[0] < 6.2 && P.wagen[1] > 3 && P.wagen[1] < 4.3 && P.wagen[3] > -0.05 && P.wagen[4][1][0] > 2 && P.wagen[4][0][1] > 1.5 && P.wagen[4][2] > 2);
-  if (P.sichel) check('Wurfsichel-Item schwebt (0,2–1,4 m), ≈0,6–0,9 m breit, collected → weg', P.sichel[0] > 0.15 && P.sichel[1] < 1.45 && P.sichel[3]);
+  if (P.sichel) check('Wurfsichel-Item schwebt (Unterkante ≥ 0,08 m, Oberkante ≤ 1,4 m), collected → weg', P.sichel[0] > 0.08 && P.sichel[1] < 1.45 && P.sichel[3]);
   if (P.geschoss) check('Wurfsichel-Geschoss ≈0,45–0,8 m (Hüllquader des gedrehten Wirbels bis ≈1,1 m), flach', P.geschoss[0] > 0.45 && P.geschoss[0] < 1.1 && P.geschoss[1] < 0.35);
   if (P.kostuem) check('Wurfsichel-Mütze ≈ size breit, sitzt um die Kopfmitte', P.kostuem[0] > 0.45 && P.kostuem[0] < 0.75 && P.kostuem[1] > -0.2);
   if (P.stab) check('Feuerstab: 6 Kugeln bei length 3, äußerste bei r ≈ 3 (dreht mit angle), Block steht auf dem Boden', P.stab[0][0] === 6 && Math.abs(Math.hypot(P.stab[0][1][0], P.stab[0][1][2]) - 3) < 0.2 && Math.abs(P.stab[0][2][0]) < 0.2 && P.stab[2] > -0.05);

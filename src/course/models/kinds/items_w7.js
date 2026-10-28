@@ -13,7 +13,8 @@
 //   opts  { part: 'muetze' (Standard) | 'umhang', size (Kopfbreite in m, 0,5) }
 //     muetze: türkise Schirmmütze mit Goldband, rosa Bommel hinten und goldener Halbmond-Sichel als Kamm vorn oben (+X).
 //             **Ursprung = Kopfmitte**, Breite ≈ 1,1·size, sitzt auf der oberen Kopfhälfte.
-//     umhang: kurzes türkises Cape (innen rosa, Goldsaum) mit Sichel-Schließe. **Ursprung = Halsansatz (vorn oben)**, hängt
+//     umhang: kurzes türkises Cape (innen rosa, Goldsaum), goldene Kordel um den Hals mit Sichel-Schließe vorn.
+//             **Ursprung = Halsmitte oben**, hängt
 //             hinter der Figur (−X) bis ≈ 1,4·size herab.
 //   state { anim: 'idle', wind (0..1: Umhang weht nach hinten), bob? (0..1 Bommel wippt, Standard 1) }
 //   root.userData.parts → { cap, crest } bzw. { cape, clasp } (Meshes zum Übernehmen).
@@ -127,6 +128,13 @@ function capGeo() {
     return b.geometry();
   });
 }
+/** Schließe: goldene Kordel um den Hals von Ecke zu Ecke des Umhangs, vorn eine kleine Sichel. */
+const claspGeo = () => cached('w7:ko:clasp', () => {
+  const b = new Build();
+  b.tube([[-0.07, 0, 0.36], [0.12, -0.03, 0.3], [0.22, -0.07, 0.12], [0.24, -0.08, 0], [0.22, -0.07, -0.12], [0.12, -0.03, -0.3], [-0.07, 0, -0.36]], 0.018, gradV(0xd8900a, KO.bandHi), null, 30, 6);
+  b.add(sichelGeo(0.1).clone(), { v: (x, y, z, nx, ny) => mix(0xd8900a, 0xfff0a0, smoothstep(ny * 0.5 + 0.5)) }, { p: [0.25, -0.12, 0], r: [0, Math.PI / 2, -0.25] });
+  return b.geometry();
+});
 /** Umhang-Grundform (Ursprung Halsansatz, hängt nach −Y hinter der Figur): Bogen um −X, außen türkis, innen rosa, Goldsaum. */
 const CU = 16, CV = 8;
 function capeBase() {
@@ -140,7 +148,7 @@ function capeBase() {
         const r = lerp(0.36, 0.62, Math.pow(v, 0.8)) - side * 0.012;
         for (let i = 0; i <= CU; i++) {
           const u = i / CU;
-          const a = Math.PI + (u - 0.5) * 2.7;
+          const a = Math.PI + (u - 0.5) * 3.0;
           pos.push(Math.cos(a) * r - 0.05, y, Math.sin(a) * r);
           if (v > 0.9) c.set(KO.band); else if (side) c.copy(mix(KO.lining, KO.liningHi, 0.3 + v * 0.4)); else c.copy(mix(KO.capLow, KO.cap, 0.4 + (1 - v) * 0.5 + Math.abs(Math.sin(u * Math.PI * 3)) * 0.1));
           colA.push(c.r, c.g, c.b);
@@ -186,7 +194,7 @@ function buildKostuem(opts = {}) {
     const geo = capeBase().clone();
     own.push(geo);
     const cape = mesh(geo, vcol(0.6, {}, 'w7cape'), {}, true);
-    const clasp = mesh(sichelGeo(0.12), sichelMat(), { p: [0.33, -0.08, 0], r: [0, Math.PI / 2, -0.2] }, true);
+    const clasp = mesh(claspGeo(), sichelMat(), {}, true);
     scaleJ.add(cape, clasp);
     root.userData.parts = { cape, clasp };
     const base = geo.attributes.position.array.slice();
