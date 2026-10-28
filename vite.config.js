@@ -1,8 +1,17 @@
 import { defineConfig } from 'vite';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { resolve, join, relative } from 'node:path';
 
-// Trägt eine Build-Kennung in den Service Worker ein (neuer Cache pro Deployment).
+// Alle Dateien unter dir (relativ, mit '/'), rekursiv.
+function listFiles(dir, root = dir) {
+  return readdirSync(dir).flatMap((f) => {
+    const p = join(dir, f);
+    return statSync(p).isDirectory() ? listFiles(p, root) : [relative(root, p).split('\\').join('/')];
+  });
+}
+
+// Trägt eine Build-Kennung (neuer Cache pro Deployment) und die Liste aller Build-Dateien (Vorab-Speichern für den
+// Offline-Start) in den Service Worker ein.
 function swBuildStamp() {
   return {
     name: 'sw-build-stamp',
@@ -10,7 +19,10 @@ function swBuildStamp() {
       const file = resolve('dist/sw.js');
       if (!existsSync(file)) return;
       const stamp = Date.now().toString(36);
-      writeFileSync(file, readFileSync(file, 'utf8').replace('__BUILD__', stamp));
+      const files = listFiles(resolve('dist')).filter((f) => f !== 'sw.js' && !f.endsWith('.map')).sort();
+      writeFileSync(file, readFileSync(file, 'utf8')
+        .replace('__BUILD__', stamp)
+        .replace('[/*__PRECACHE__*/]', JSON.stringify(files)));
     },
   };
 }
