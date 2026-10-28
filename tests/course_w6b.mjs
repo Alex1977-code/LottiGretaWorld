@@ -22,6 +22,79 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 //   springen) · { hang: [x, z], to: [x, z] } (Deckengitter greifen, hangeln, loslassen) · { climb: [x, z], over: [x, z] }
 //   (Wandgitter hinauf, oben abspringen) · { prop: [x, z], rise } (Propeller-Helm: hochfliegen, langsam hinübergleiten)
 const ROUTES = {
+  '6-4': {
+    start: [0, 1, 6],
+    meta: { stars: 3, stamp: true, time: 400, theme: 'jungle', music: 'course_jungle', archetype: 'parcours' },
+    enemies: { brummer: 4, rankenschnapper: 6 },
+    main: [
+      { name: 'Steg', to: [0, -6.9], within: 0.4, run: false },
+      { name: 'auf Floß 1', board: 'floss1' },
+      { name: 'Floßstrecke I', raft: 'floss1' },
+      { name: 'an Land', to: [-1, -99.4], within: 0.5, run: false },
+      { name: 'Checkpoint', to: [-2, -100.6], within: 0.6, run: false },
+      { to: [0, -113.4], within: 0.4, run: false },
+      { name: 'auf Floß 2', board: 'floss2' },
+      { name: 'Floßstrecke II und Abwärtsströmung', raft: 'floss2' },
+      { name: 'Landeinsel', to: [0, -250.4], within: 0.5, run: false },
+      { name: 'Warp-Box', to: [5, -256], jump: 30, within: 0.3, run: false, stopIf: 'onPlateau' },
+      { wait: 40 },
+      { expect: 'onPlateau' },
+      { name: 'Zielmast', to: [0, -296.4], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'beide Floßstrecken samt Abwärtsströmung gefahren (Floß 2 unten im Becken)', ok: (r) => r.mech.rafts === 2 && r.mech.raft2y < -3 },
+    ],
+    targets: [
+      { name: 'Stern 0: vom Floß ans Lianengitter, hinüber zur Tor-Insel, Glasröhre hinauf zum Baumhaus', star: 0, from: [0, 1, -6.9],
+        legs: [{ board: 'floss1' }, { raft: 'floss1', until: 'underGrid' }, { name: 'Deckengitter', hang: [13.2, -63] }, { expect: 'onSide' },
+          { to: [18.4, -59], within: 0.4, run: false }, { name: 'Glasröhre A', to: [21.2, -59], within: 0.3, run: false, stopIf: 'onTree' }, { wait: 30 }, { expect: 'onTree' }, { star: 0 }],
+        shot: 'stern0', mech: (r) => r.mech.hangs === 1 && r.mech.pipes >= 1 },
+      { name: 'Stern 0 nicht ohne Glasröhre (Sprung am Baumstamm)', star: 0, expectNot: true, from: [19, 1, -70.5], heroes: ['lotti'],
+        legs: [{ to: [20, -72.6], jump: 40, within: 0.4, max: 300, land: false }, { wait: 90 }] },
+      { name: 'Stempel: Kletterranke am blauen Tor hinauf, oben auf den Balken', stamp: true, from: [14.5, 1, -62.5],
+        legs: [{ to: [14.5, -63.6], within: 0.25, run: false }, { climb: [14.5, -65.3], over: [14.6, -66.2] }, { expect: 'onBeam' }, { to: [17, -66], within: 0.3, run: false }, { wait: 20 }],
+        shot: 'stempel', mech: (r) => r.mech.climbs === 1 },
+      { name: 'Stempel nicht ohne Kletterranke (Sprung vom Boden)', stamp: true, expectNot: true, from: [17, 1, -63.5], heroes: ['lotti'],
+        legs: [{ to: [17, -66], jump: 40, within: 0.4, max: 200, land: false }, { wait: 90 }] },
+      { name: 'Stern 1: Sternenring auf der Checkpoint-Insel – acht Sternmünzen, auch auf den Baumstümpfen im Gift', star: 1, from: [-4, 1, -100.5],
+        legs: [{ name: 'durch den Ring', to: [-4, -106.5], within: 0.6 }, { to: [-1, -101], within: 0.5 }, { to: [1, -105], within: 0.5 }, { to: [-1, -109.5], within: 0.5 },
+          { to: [-5.5, -111.6], within: 0.5 }, { to: [-9.4, -111.3], within: 0.4, run: false },
+          { name: 'Stumpf 1', to: [-12.6, -111.2], jump: 24, within: 0.35, run: false }, { name: 'Stumpf 2', to: [-14.6, -107.6], jump: 30, runUp: 2, within: 0.35, run: false },
+          { name: 'Stumpf 3', to: [-14.6, -103.6], jump: 30, runUp: 2, within: 0.35, run: false }, { name: 'Stumpf 4', to: [-12.6, -100], jump: 30, runUp: 2, within: 0.35, run: false },
+          { wait: 60 }, { to: [-9.4, -100.6], jump: 24, within: 0.5, run: false }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stern 2: Felswand neben der End-Warp-Box hinaufklettern', star: 2, from: [-5, -3, -260],
+        legs: [{ to: [-5, -264.8], within: 0.25, run: false }, { climb: [-5, -266], over: [-5, -267.4] }, { expect: 'onCliff' }, { star: 2 }], shot: 'stern2', mech: (r) => r.mech.climbs === 1 },
+      { name: 'Stern 2 nicht ohne Kletterwand (Sprung daneben)', star: 2, expectNot: true, from: [2, -3, -262], heroes: ['lotti'],
+        legs: [{ to: [2, -266.5], jump: 40, within: 0.4, max: 200, land: false }, { wait: 90 }] },
+    ],
+    extra: [
+      { name: 'Extraleben: Lianengitter zum Aussichtsfelsen, ?-Block oben', from: [-12.5, 1, 6.5], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-12.5, 5.2], within: 0.25, run: false }, { climb: [-12.5, 4.1], over: [-12.5, 2.6] }, { expect: 'onLookout' }, { to: [-12.5, 0], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Extraleben: unsichtbarer Block auf der Tor-Insel', from: [19.5, 1, -59], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [19.5, -61], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Floß wartet ohne Figur; nach einem Absturz liegt es wieder am Start', from: [0, 1, -5.5], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ wait: 240 }, { expect: 'raft1Waits' }, { board: 'floss1' }, { raft: 'floss1', until: 'raft1Far' }, { kill: true }, { wait: 300 }, { expect: 'raft1Home' }] },
+      { name: 'Rückweg: Glasröhre von der Checkpoint-Insel hinauf zum Baumhaus', from: [8.5, 1, -104], heroes: ['lotti'],
+        legs: [{ to: [11.6, -104], within: 0.3, run: false, stopIf: 'onTree' }, { wait: 30 }, { expect: 'onTree' }] },
+    ],
+    shots: [
+      ['start', [0, 1, 6]],
+      ['aussicht', [-12.5, 6, 0.5]],
+      ['floss1', [0, 1.2, -9.5], 120, { y: 0.01 }],
+      ['brummer', [-5, 1.2, -36], 0],
+      ['deckengitter', [5, 1.2, -60]],
+      ['torinsel', [16, 1, -60]],
+      ['baumhaus', [20.5, 10, -76.5]],
+      ['checkpoint', [-2, 1, -100]],
+      ['sternring', [-8, 1, -104]],
+      ['floss2', [0, 1.2, -128]],
+      ['ranken', [6, 1.2, -146]],
+      ['schlucht', [0, -1, -222]],
+      ['landeinsel', [0, -3, -251]],
+      ['klippe', [-5, 4, -268.5]],
+      ['ziel', [0, 9, -286]],
+    ],
+  },
   '6-A': {
     start: [0, 2, 13.4],
     meta: { stars: 1, stamp: false, time: 300, theme: 'fortress', music: 'course_arena', archetype: 'arena' },
@@ -91,7 +164,19 @@ function install() {
   };
   wrapHurt();
   const hud = () => L.archetype?.hud?.state?.() ?? {};
+  const raft = (id) => named(id);
   const COND = {
+    // 6-4
+    onPlateau: () => P().pos.y > 8 && P().pos.z < -276,
+    underGrid: () => { const q = raft('floss1').mb.pos; return q.z < -61.4 && q.z > -64; },
+    onSide: () => P().mode === 'ground' && P().pos.x > 12 && P().pos.z < -55 && P().pos.z > -72 && Math.abs(P().pos.y - 1) < 0.2,
+    onTree: () => P().pos.y > 9.5 && Math.hypot(P().pos.x - 21, P().pos.z + 77.5) < 3.6,
+    onBeam: () => P().mode === 'ground' && P().pos.y > 6.6 && Math.abs(P().pos.z + 66) < 0.8,
+    onCliff: () => P().mode === 'ground' && P().pos.y > 3.8 && P().pos.z < -266,
+    onLookout: () => P().mode === 'ground' && P().pos.y > 5.8 && P().pos.x < -9 && P().pos.z < 4,
+    raft1Waits: () => raft('floss1').state === 'wartet' && raft('floss1').s < 0.01,
+    raft1Far: () => raft('floss1').s > 12,
+    raft1Home: () => raft('floss1').state === 'wartet' && raft('floss1').s < 0.01 && Math.abs(raft('floss1').mb.pos.z + 9.5) < 0.05 && !P().dead,
     // 6-A
     fightOn: () => !!named('prinzKampf')?.started && named('prinz')?.state !== 'wait',
     gateLocked: () => !!named('prinzKampf')?.locked,
@@ -162,7 +247,7 @@ function install() {
           let n = 0;
           const kind = p.script?.type ?? p.script?.kind ?? '?';
           while (p.mode === 'script' && n++ < 2400 && !p.dead && L.runtime.status === 'play') { if (hold) p.invuln = Math.max(p.invuln, 5); c.setInput({}); c.step(1); steps++; }
-          if (kind === 'pipe') mech.pipes++;
+          if (kind === 'pipe' || kind === 'ride') mech.pipes++;
           log.push(['fahrt', kind, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
         }
       };
@@ -184,7 +269,7 @@ function install() {
         if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait; i++) { if (p.dead) { c.setInput({}); c.step(1); steps++; } else tick({}); } continue; }
         if (Lg.crouch) { for (let i = 0; i < Lg.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); log.push(['ducken', li, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
         if (Lg.expect) { const ok = COND[Lg.expect](); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect]); continue; }
-        if (Lg.until) { let k = 0; for (; k < (Lg.max ?? 1200) && !COND[Lg.until](); k++) { if (p.dead || L.runtime.status !== 'play') { c.setInput({}); c.step(1); steps++; } else tick({}); } log.push(['bis', Lg.until, k]); if (!COND[Lg.until]()) log.push(['FEHLER: bis', Lg.until]); continue; }
+        if (Lg.until && !Lg.raft) { let k = 0; for (; k < (Lg.max ?? 1200) && !COND[Lg.until](); k++) { if (p.dead || L.runtime.status !== 'play') { c.setInput({}); c.step(1); steps++; } else tick({}); } log.push(['bis', Lg.until, k]); if (!COND[Lg.until]()) log.push(['FEHLER: bis', Lg.until]); continue; }
         if (Lg.kill) { p.invuln = 0; p.die('fall'); log.push(['tot gesetzt']); continue; }
         if (Lg.hop) {
           for (let k = 0; k < Lg.hop; k++) tick({ jump: true });
@@ -241,6 +326,102 @@ function install() {
           mech.trips += r.trips; mech.kicks += r.kicks;
           log.push(['Kampf', JSON.stringify(r)]);
           if (r.kicks < (Lg.kicks ?? 3)) log.push(['FEHLER: Kampf nicht gewonnen']);
+          continue;
+        }
+        // ------------------------------------------------ auf ein Floß springen (bis die Figur darauf steht)
+        if (Lg.board) {
+          const f = named(Lg.board);
+          let k = 0, on = false;
+          for (; k < 600 && !on; k++) {
+            const q = f.mb.pos, dx = q.x - p.pos.x, dz = q.z - p.pos.z, d = Math.hypot(dx, dz);
+            on = p.mode === 'ground' && p.ground?.tag === 'floss' && d < 0.9;
+            if (on) break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(q.x, q.z, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, d))), jump: p.mode === 'ground' ? d < 3.2 && d > 0.9 : p.vel.y > 0, run: false });
+          }
+          log.push(['auf dem Floß', Lg.board, on, k, f.info()]);
+          if (!on) log.push(['FEHLER: nicht auf das Floß', Lg.board]);
+          continue;
+        }
+        // ------------------------------------------------ auf dem Floß mitfahren (Mitte halten) bis zum Ende bzw. Bedingung
+        if (Lg.raft) {
+          const f = named(Lg.raft);
+          let k = 0, lost = false;
+          for (; k < (Lg.max ?? 9000); k++) {
+            if (p.dead) break;
+            if (Lg.until && COND[Lg.until]()) break;
+            if (!Lg.until && f.state === 'ende' && p.mode === 'ground') break;
+            const q = f.mb.pos, dx = q.x - p.pos.x, dz = q.z - p.pos.z, d = Math.hypot(dx, dz);
+            tick(d > 0.35 && p.mode === 'ground' ? { ...this.stick(dx, dz, Math.min(1, d * 1.5)), run: false } : {});
+            if (p.mode === 'ground' && p.ground?.tag !== 'floss') { lost = true; break; }
+          }
+          mech.rafts++;
+          if (Lg.raft === 'floss2') mech.raft2y = +f.mb.pos.y.toFixed(2);
+          log.push(['Floßfahrt', Lg.raft, k, f.info(), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (lost || p.dead || (!Lg.until && f.state !== 'ende')) log.push(['FEHLER: Floßfahrt', Lg.raft, lost, p.ground?.tag]);
+          continue;
+        }
+        // ------------------------------------------------ Deckengitter: hochspringen, greifen, zum Ziel hangeln, loslassen
+        if (Lg.hang) {
+          const [tx, tz] = Lg.hang;
+          let k = 0;
+          for (; k < 160 && !p.hang; k++) tick({ jump: k < 40 });
+          const grabbed = !!p.hang;
+          let j = 0;
+          for (; grabbed && j < 1200 && p.hang; j++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            if (d < 0.25) break;
+            tick({ ...this.stick(dx, dz, Math.min(1, d * 1.5)) });
+          }
+          const at = [+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)];
+          if (grabbed) mech.hangs++;
+          if (Lg.drop !== false) { tick({ crouch: true }); for (let w = 0; w < 240 && p.mode !== 'ground'; w++) tick({}); }
+          log.push(['gehangelt', grabbed, k, j, at, +p.pos.y.toFixed(2), p.ground?.tag]);
+          if (!grabbed) log.push(['FEHLER: Deckengitter nicht gegriffen']);
+          continue;
+        }
+        // ------------------------------------------------ Wandgitter: hineinspringen, hinaufklettern, oben abspringen
+        if (Lg.climb) {
+          const [gx, gz] = Lg.climb;
+          let k = 0;
+          for (; k < 200 && !p.fence; k++) {
+            const dx = gx - p.pos.x, dz = gz - p.pos.z;
+            tick({ ...(p.mode === 'air' ? this.airSteer(gx, gz, 0, 0, 3, 5) : this.stick(dx, dz, 1)), jump: p.mode === 'ground' && Math.hypot(dx, dz) < 1.6 ? true : p.mode === 'air' && p.vel.y > 0, run: false });
+          }
+          const grabbed = !!p.fence;
+          let y0 = p.pos.y, still = 0, j = 0;
+          for (; grabbed && j < 900 && p.fence && still < 12; j++) {
+            tick({ x: 0, y: 1 });
+            if (p.pos.y > y0 + 0.005) { y0 = p.pos.y; still = 0; } else still++;
+          }
+          const top = +p.pos.y.toFixed(2);
+          if (grabbed) mech.climbs++;
+          if (Lg.over) {
+            const [ox, oz] = Lg.over;
+            let a = 0;
+            for (; a < 300; a++) {
+              tick({ ...(p.mode === 'air' ? this.airSteer(ox, oz, 0, 0, 3.5, 6) : this.stick(ox - p.pos.x, oz - p.pos.z, 1)), jump: a < 30 });
+              if (a > 8 && p.mode === 'ground') break;
+            }
+          }
+          log.push(['geklettert', grabbed, k, j, top, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.ground?.tag]);
+          if (!grabbed) log.push(['FEHLER: Wandgitter nicht gegriffen']);
+          continue;
+        }
+        // ------------------------------------------------ Propeller-Helm: hochfliegen, mit gehaltener Aktion hinübergleiten
+        if (Lg.prop) {
+          const [tx, tz] = Lg.prop;
+          if (p.helmet !== 'propeller') log.push(['FEHLER: kein Propeller-Helm']);
+          tick({ action: true });
+          let k = 0, apex = p.pos.y;
+          for (; k < 1500; k++) {
+            apex = Math.max(apex, p.pos.y);
+            const rising = p.vel.y > 0 && k < (Lg.rise ?? 60);
+            const steer = rising && Lg.straight ? {} : this.airSteer(tx, tz, 0, 0, 2.2, Lg.vmax ?? 6);
+            tick({ ...steer, run: true });
+            if (k > 10 && p.mode === 'ground') break;
+          }
+          mech.props++;
+          log.push(['Propeller', k, +apex.toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.ground?.tag]);
           continue;
         }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)

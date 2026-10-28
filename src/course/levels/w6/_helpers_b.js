@@ -303,3 +303,155 @@ export function prinzKampf(level, o) {
   level.named.set('prinzKampf', handle);
   return handle;
 }
+
+// =====================================================================================================================
+// 6-4: Giftsee-Dschungel
+// =====================================================================================================================
+
+/**
+ * Seerosenblätter auf dem Giftsee (flache grüne Scheiben mit Kerbe, ab und zu eine rosa Blüte) – nur Optik, ohne
+ * Schatten. list: [[x, y, z, r], …] (y = Wasseroberfläche).
+ */
+export function seerosen(level, list, o = {}) {
+  if (!level.view) return;
+  const rnd = new Rnd(o.seed ?? 77);
+  const parts = [];
+  const leafA = L(0x3a9a3a), leafB = L(0x7ad85a), vein = L(0x2a6a2a), petal = L(0xff8ac8), petal2 = L(0xffd0ea), core = L(0xffe04a);
+  for (const [x, y, z, r0] of list) {
+    const r = r0 ?? 0.9;
+    const notch = rnd.real(0, TAU);
+    const g = new THREE.CircleGeometry(r, 18, notch + 0.35, TAU - 0.7).toNonIndexed();
+    g.rotateX(-HALF_PI); g.translate(x, y + 0.04, z);
+    parts.push(colorize(g, (p, n, c) => {
+      const d = Math.hypot(p.x - x, p.z - z) / r;
+      mixc(leafA, leafB, 0.35 + 0.65 * d, c);
+      const a = Math.atan2(p.z - z, p.x - x);
+      if (Math.abs(Math.sin(a * 4)) < 0.08 && d > 0.15) mixc(c, vein, 0.5, c);
+    }));
+    if (rnd.frac() < (o.flowers ?? 0.35)) {
+      const fx = x + Math.cos(notch + Math.PI) * r * 0.35, fz = z + Math.sin(notch + Math.PI) * r * 0.35;
+      for (let i = 0; i < 6; i++) {
+        const pg = new THREE.SphereGeometry(0.16, 6, 4).toNonIndexed();
+        pg.scale(1, 0.55, 2.2);
+        pg.translate(0, 0, 0.18);
+        pg.rotateX(-0.5);
+        pg.rotateY((i / 6) * TAU);
+        pg.translate(fx, y + 0.14, fz);
+        parts.push(colorize(pg, (p, n, c) => mixc(petal, petal2, smooth(-0.2, 0.9, n.y), c)));
+      }
+      const cg = new THREE.SphereGeometry(0.1, 6, 4).toNonIndexed(); cg.translate(fx, y + 0.2, fz);
+      parts.push(colorize(cg, (p, n, c) => { c[0] = core[0]; c[1] = core[1]; c[2] = core[2]; }));
+    }
+  }
+  addStatic(level, merge(parts), { castShadow: false });
+}
+
+/**
+ * Blaues Tor (6-4 Stempel): zwei blau lackierte Holzpfeiler, oben ein breiter Querbalken (begehbar) und ein schmaler darunter,
+ * goldene Knäufe, Kletterranken – Fantasie-Tor ohne reale Symbolik. Kollision: Pfeiler und oberer Balken.
+ * o: { x, y, z (Mitte unten), span (Abstand der Pfeiler), h (Oberkante der Pfeiler), w (Pfeilerbreite) }.
+ */
+export function blauesTor(level, o) {
+  const { x, y, z } = o, span = o.span ?? 5, H = o.h ?? 5.2, w = o.w ?? 1.2, bw = span + w + 1.4;
+  const blue = 0x2a6ae8, blueDk = 0x1a3a9a, gold = 0xffc21a, wood = 0x8a5a32;
+  for (const s of [-1, 1]) level.world.add({ type: 'box', min: [x + s * span / 2 - w / 2, y, z - w / 2], max: [x + s * span / 2 + w / 2, y + H, z + w / 2], tag: 'blaues-tor' });
+  level.world.add({ type: 'box', min: [x - bw / 2, y + H, z - 0.7], max: [x + bw / 2, y + H + 0.6, z + 0.7], tag: 'blaues-tor' });
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  for (const s of [-1, 1]) {
+    const px = x + s * span / 2;
+    b.box(w, H, w, px, y, z, litTop(blue, 0.6), { r: 0.08 });
+    b.box(w + 0.4, 0.5, w + 0.4, px, y, z, litTop(blueDk, 0.6), { r: 0.08 });
+    for (let k = 1; k < 5; k++) b.box(w + 0.06, 0.08, w + 0.06, px, y + (H * k) / 5, z, gold, { r: 0.02 });
+  }
+  // oberer Balken (begehbar, geschwungene Enden), unterer Zierbalken mit Namensschild
+  b.box(bw, 0.6, 1.4, x, y + H, z, litTop(blue, 0.65), { r: 0.12 });
+  for (const s of [-1, 1]) b.box(1.1, 0.4, 1.5, x + s * (bw / 2 - 0.35), y + H + 0.45, z, litTop(blueDk, 0.6), { r: 0.12, rz: s * 0.3 });
+  b.box(span - w + 0.6, 0.4, 0.8, x, y + H - 1.2, z, litTop(blue, 0.6), { r: 0.08 });
+  b.box(1.6, 0.9, 0.12, x, y + H - 1.0, z + 0.45, litTop(wood, 0.7), { r: 0.06 });
+  for (const s of [-1, 0, 1]) g.sphere(0.2, x + s * 1.6, y + H + 0.7, z + 0.5, gold, { ws: 10, hs: 7 });
+  // Ranken an den Pfeilern
+  for (const s of [-1, 1]) for (let k = 0; k < 7; k++) b.sphere(0.22, x + s * (span / 2 + w / 2 + 0.05), y + 0.5 + k * 0.62, z + (k % 2 ? 0.35 : -0.3), 0x3aa83a, { ws: 6, hs: 5, s: [0.6, 1, 1] });
+  b.flush(level);
+  g.flush(level, { material: 'glow' });
+}
+
+/**
+ * Baumhaus-Plattform an einem Riesenbaum (6-4 Stern 1): Stamm, runde Holzplattform (begehbar), Geländer mit Lücke,
+ * Blätterdach. o: { x, z, top, r (Plattform), trunk (Radius), tx, tz (Stamm), gaps: [[Winkel, halbe Breite], …] (Geländerlücken;
+ * Winkel 0 = +X, −π/2 = +Z) }.
+ */
+export function baumhaus(level, o) {
+  const { x, z, top } = o, r = o.r ?? 3.6, tr = o.trunk ?? 1.1;
+  const tx = o.tx ?? x, tz = o.tz ?? z;
+  level.world.add({ type: 'cyl', x, z, r, y0: top - 0.5, y1: top, tag: 'baumhaus' });
+  level.world.add({ type: 'cyl', x: tx, z: tz, r: tr, y0: top - 30, y1: top - 0.5, tag: 'baumstamm' });
+  const gaps = o.gaps ?? [[-HALF_PI, 0.9]];
+  const inGap = (a) => gaps.some(([ga, gw]) => Math.abs(Math.atan2(Math.sin(a - ga), Math.cos(a - ga))) < gw);
+  // Geländer (Kollision): kleine Quader an den Pfosten, Abstand kleiner als die Figur
+  for (let i = 0; i < 20; i++) {
+    const a = (i / 20) * TAU;
+    if (inGap(a)) continue;
+    const px = x + Math.cos(a) * (r - 0.2), pz = z - Math.sin(a) * (r - 0.2);
+    level.world.add({ type: 'box', min: [px - 0.26, top, pz - 0.26], max: [px + 0.26, top + 0.95, pz + 0.26], camIgnore: true, tag: 'baumhaus-gelaender' });
+  }
+  if (!level.view) return;
+  const b = new Bld();
+  const bark = { v: (px, py, pz) => new THREE.Color(0x6a4428).lerp(new THREE.Color(0x9a6a3a), 0.5 + 0.5 * Math.sin(Math.atan2(pz - tz, px - tx) * 9)) };
+  b.cyl(tr * 0.9, tr * 1.3, top + 12, tx, -12, tz, bark, 12);
+  for (let k = 0; k < 5; k++) { const a = k * 1.3; b.cyl(0.28, 0.5, 3, tx + Math.cos(a) * tr, -0.6, tz + Math.sin(a) * tr, 0x6a4428, 6, { rz: Math.cos(a) * 0.7, rx: -Math.sin(a) * 0.7 }); }
+  b.cyl(r, r * 0.92, 0.5, x, top - 0.5, z, litTop(0xb8844a, 0.6), 20);
+  for (let i = 0; i < 20; i++) {
+    const a = (i / 20) * TAU;
+    if (inGap(a)) continue;
+    b.cyl(0.07, 0.07, 0.9, x + Math.cos(a) * (r - 0.2), top, z - Math.sin(a) * (r - 0.2), 0x7a5230, 5);
+  }
+  b.torus(r - 0.2, 0.06, x, top + 0.9, z, 0x8a5a32, { rx: HALF_PI, ts: 32, rs: 4 });
+  // Blätterdach über der Plattform
+  for (let k = 0; k < 7; k++) {
+    const a = (k / 7) * TAU;
+    b.sphere(2.2, x + Math.cos(a) * 2.4, top + 6.2 + (k % 2) * 0.6, z + Math.sin(a) * 2.4, litTop(0x3aa83a, 0.55), { ws: 9, hs: 6, s: [1, 0.6, 1] });
+  }
+  b.sphere(2.6, x, top + 7.2, z, litTop(0x4cbc3a, 0.55), { ws: 10, hs: 7, s: [1, 0.6, 1] });
+  b.cyl(0.35, 0.5, 6, x, top, z, 0x6a4428, 8);
+  b.flush(level);
+}
+
+/** Felsbrocken als Uferkante/Schlucht (abgerundete Quader in Felsfarben, leicht gedreht) – rein optisch. list: [[x, y, z, w, h, d, yaw], …]. */
+export function felsen(level, list, o = {}) {
+  if (!level.view) return;
+  const b = new Bld();
+  const col = o.color ?? 0x7a8a6a;
+  for (const [x, y, z, w, h, d, yaw = 0] of list) b.box(w, h, d, x, y, z, litTop(col, 0.55), { r: Math.min(w, h, d) * 0.18, yaw, seg: 2 });
+  b.flush(level, { castShadow: o.shadow ?? true });
+}
+
+/** Ruinen auf dem Zielplateau: moosige Steinsäulen (teils umgefallen), Blöcke, Steinfrosch-Figuren. list: [{ kind, pos, … }]. */
+export function ruinen(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  const stone = 0xb8b4a0, moss = 0x5aa83a;
+  const mossy = { v: (px, py, pz, nx, ny) => (ny > 0.6 ? new THREE.Color(moss) : new THREE.Color(stone).multiplyScalar(0.75 + 0.25 * ny)) };
+  for (const it of list) {
+    const [x, y, z] = it.pos;
+    if (it.kind === 'saeule') {
+      const h = it.h ?? 4;
+      b.cyl(0.55, 0.62, h, x, y, z, mossy, 10);
+      b.box(1.5, 0.35, 1.5, x, y + h, z, mossy, { r: 0.06 });
+      b.box(1.5, 0.3, 1.5, x, y, z, mossy, { r: 0.06 });
+    } else if (it.kind === 'liegend') {
+      b.cyl(0.55, 0.55, it.h ?? 3.4, x, y + 0.55, z, mossy, 10, { rz: HALF_PI, yaw: it.yaw ?? 0 });
+    } else if (it.kind === 'frosch') {
+      const s = it.size ?? 1;
+      b.sphere(0.8 * s, x, y + 0.6 * s, z, mossy, { s: [1.1, 0.75, 1], ws: 12, hs: 8 });
+      for (const e of [-1, 1]) {
+        b.sphere(0.3 * s, x + e * 0.42 * s, y + 1.15 * s, z + 0.25 * s, stone, { ws: 8, hs: 6 });
+        b.sphere(0.13 * s, x + e * 0.42 * s, y + 1.2 * s, z + 0.5 * s, 0x2a2a2a, { ws: 6, hs: 5 });
+      }
+      b.box(0.9 * s, 0.08 * s, 0.1 * s, x, y + 0.75 * s, z + 0.78 * s, 0x3a5a2a, { r: 0.02 });
+    } else if (it.kind === 'block') {
+      b.box(it.w ?? 1.2, it.h ?? 0.8, it.d ?? 1.2, x, y, z, mossy, { r: 0.08, yaw: it.yaw ?? 0 });
+    }
+  }
+  b.flush(level);
+}
