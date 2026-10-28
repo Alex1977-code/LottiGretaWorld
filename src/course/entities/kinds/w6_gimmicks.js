@@ -16,7 +16,8 @@
 //   Werferin), Münzen, Zielscheiben, Gong, alles mit onBallHit(ball). Nach `life` s am Boden verschwindet er und liegt nach
 //   `respawn` s wieder am Start.
 //   { kind: 'wurfball', pos, size: 0.45 (Ø), speed: 15 (m/s Wurf), lift: 3 (m/s nach oben), bounce: 0.5, life: 4 (s nach dem
-//     Wurf), respawn: 1.5 (s; 0 = nie), color: 'weiss' | 'rot' | 'gelb', id, hidden }
+//     Wurf), respawn: 1.5 (s; 0 = nie), color: 'weiss' | 'rot' | 'gelb', slopeAir: 0.35 (s Luftphase nach einem
+//     Hang-Kontakt, in der der Hangabtrieb weiter wirkt; 0 = nur am Boden wie vor dem Motor-Feinschliff), id, hidden }
 //   Laufzeit: thrown, hits (Zahl der Treffer), lastHit (Art), info()
 // zielscheibe – Zielscheibe / Schalterfeld (6-Haus „jedes Schalterfeld treffen“): ein Treffer (Wurfball, auf Wunsch auch
 //   Angriffe) klappt sie um (grün); sind alle einer Gruppe getroffen, läuft onAll.
@@ -310,7 +311,8 @@ class Wurfball extends Gimmick {
     this.hitSet = new Set();
     this.roll = 0;
     this.bounces = 0;
-    this.rampAir = BALL_RAMP_AIR;
+    this.slopeAir = spec.slopeAir ?? BALL_RAMP_AIR;
+    this.rampAir = this.slopeAir;
     this._touch = false;
     if (level.view) { const m = ballModel(this.size, spec.color ?? 'weiss'); this.spin = m.spin ?? null; this.setModel(m); }
   }
@@ -347,11 +349,11 @@ class Wurfball extends Gimmick {
     // (Präzisierung „Motor-Feinschliff nach Welt 6“; vorher nur in Bodenschritten: auf steilen Hängen rollte er kaum an)
     let slope = g?.type === 'ramp' ? g : null;
     if (slope) this.rampAir = 0;
-    else if (!g && this.rampAir < BALL_RAMP_AIR && this.vel.y < 2) {
+    else if (!g && this.rampAir < this.slopeAir && this.vel.y < 2) {
       this.rampAir += dt;
       const hit = this.level.world.raycastDown(this.pos.x, this.pos.y + 0.05, this.pos.z, 0.6, { ignore: BALL_IGNORE });
       if (hit?.shape.type === 'ramp') slope = hit.shape;
-    } else if (g) this.rampAir = BALL_RAMP_AIR;
+    } else if (g) this.rampAir = this.slopeAir;
     if (slope) { const n = surfaceNormal(slope, N); this.vel.x += n.x * 14 * dt; this.vel.z += n.z * 14 * dt; }
     if (g && !this.thrown) { const hv = Math.hypot(this.vel.x, this.vel.z); if (hv > 1e-4) { const nv = Math.max(0, hv - 2.5 * dt); this.vel.x *= nv / hv; this.vel.z *= nv / hv; } }
     const vx0 = this.vel.x, vy0 = this.vel.y, vz0 = this.vel.z;

@@ -116,17 +116,15 @@ export class Level {
     if (!f || !f.masked) return false;
     const obj = enemy && typeof enemy === 'object' && !Array.isArray(enemy) ? enemy : null;
     const air = f.mode === 'air';
-    if (air && !f.dead && f.mode !== 'script') {
+    const seen = () => { if (obj) (this._maskSeen ??= new WeakMap()).set(obj, { f, t: this.time }); return true; };
+    if (air && !f.dead) {
       const r = (obj?.half?.x ?? 0.4) + (f.half?.x ?? 0.3) + 0.3;
-      if (Math.hypot(pos.x - f.pos.x, pos.z - f.pos.z) <= r) return true;
+      if (Math.hypot(pos.x - f.pos.x, pos.z - f.pos.z) <= r) return seen();
     }
-    if (this.isFacing(f, pos, angleDeg)) {
-      if (obj) { const m = (this._maskSeen ??= new WeakMap()); m.set(obj, { f, t: this.time }); }
-      return true;
-    }
+    if (this.isFacing(f, pos, angleDeg)) return seen();
     if (air && obj) {
-      const seen = this._maskSeen?.get(obj);
-      if (seen && seen.f === f && this.time - seen.t <= MASK_AIR_HOLD) return true;
+      const last = this._maskSeen?.get(obj);
+      if (last && last.f === f && this.time - last.t <= MASK_AIR_HOLD) return true;
     }
     return false;
   }
