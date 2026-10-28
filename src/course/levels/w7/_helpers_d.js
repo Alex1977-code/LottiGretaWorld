@@ -415,13 +415,13 @@ export function basaltPflaster(b, g, rects, rnd, o = {}) {
   const avoid = o.avoid ?? [];
   for (const [x0, x1, zA, zB, y] of rects) {
     const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
-    g.box(x1 - x0 - 0.04, 0.012, z0 - z1 - 0.04, (x0 + x1) / 2, y + 0.004, (z0 + z1) / 2, o.seam ?? 0x8a2a0c, { r: 0 });
+    g.box(x1 - x0 - 0.04, 0.012, z0 - z1 - 0.04, (x0 + x1) / 2, y + 0.004, (z0 + z1) / 2, o.seam ?? 0x6a2210, { r: 0 });
     for (let z = z1 + R, j = 0; z < z0 - R * 0.85; z += dz, j++) {
       for (let x = x0 + R * 0.95 + (j % 2 ? dx / 2 : 0); x < x1 - R * 0.9; x += dx) {
         if (avoid.some((a) => Math.hypot(a[0] - x, a[1] - z) < (a[2] ?? 1))) continue;
         const hot = rnd.frac() < (o.hot ?? 0.04);
         col.set(hot ? 0x8a3a26 : pal[rnd.int(0, pal.length - 1)]).multiplyScalar(0.92 + rnd.frac() * 0.16);
-        b.cyl(R * 0.9, R * 0.93, 0.07 + rnd.frac() * 0.03, x, y, z, col.clone(), 6, { yaw: Math.PI / 6 });
+        b.cyl(R * 0.94, R * 0.97, 0.07 + rnd.frac() * 0.03, x, y, z, col.clone(), 6, { yaw: Math.PI / 6 });
       }
     }
   }

@@ -27,6 +27,7 @@ import { Rnd } from '../../blocks/kit.js';
 import {
   isl, line, ring, arc, column, sign, krater77, bimsEnten, pegel, Bld, basaltPflaster, glutlilien, schwefel, drachenNest, forscherZelt, blauePlatte,
 } from './_helpers_d.js';
+import { steamVents } from '../w4/_helpers_c.js';
 
 const Y = 2;            // Inseln, Wege
 const LOW = 0.2;        // Lavasee bei Ebbe
@@ -83,6 +84,8 @@ function setup(level) {
   bimsEnten(level, [[-11, -6, 0.4], [12.5, -22, 2.4], [-12, -40, 1.2], [15.5, -46, 3], [-13.5, -64, 0.2], [16, -82, 2], [-11.5, -92, 1.6], [9.5, 1, 2.6]], 'see');
   pegel(level, -6.8, -12.2, 'see', { LOW, HIGH });
   blauePlatte(level, 'blau', { size: [6, 0.5, 6] });
+  // Dampf aus den Schwefelschloten
+  steamVents(level, [[-4.2, Y + 0.4, 2.4], [3.4, Y + 0.4, -43.6], [9.6, Y + 0.4, -60.6], [-4.4, Y + 0.4, -96], [5.4, Y + 0.4, -119.6], [5.2, TT + 0.4, -163], [-1.2, Y + 0.4, -228.6], [5.4, Y + 0.4, -258.8]], { per: 5, size: 2.0, color: 0xe8dcc8 });
 }
 
 export const LEVEL = {
@@ -97,7 +100,8 @@ export const LEVEL = {
   killY: -10,
   build,
   setup,
-  instances: { knochenflieger: { shadowDist: 14 }, platschfisch: { shadowDist: 12 }, lavadrache: { shadowDist: 14 } },
+  // Budget: Sonnenschatten nur nahe der Heldin; Lavadrachen (tauchen erst ab 14 m auf) weiter als 24 m nicht zeichnen
+  instances: { knochenflieger: { shadowDist: 14 }, platschfisch: { shadowDist: 12, farHide: 40 }, lavadrache: { shadowDist: 14, farHide: 24 } },
   camera: [
     { from: 14, to: -8, pitch: 44, dist: 13, ahead: 2.4 },
     { from: -8, to: -98, pitch: 47, dist: 14, ahead: 2.6 },
