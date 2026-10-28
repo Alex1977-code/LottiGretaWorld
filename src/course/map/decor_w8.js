@@ -226,8 +226,8 @@ function rainFort(ev, x, y, z) {
     return b.geometry();
   }), x, cy, z, 'regenwolke', false, vcol(0.9, { emissive: 0x2a2a3a, emissiveIntensity: 0.5 }, 'w8cloud'));
   const ND = 110;
-  const dropG = cached('w8m:raindrop', () => new THREE.BoxGeometry(0.035, 0.7, 0.035));
-  const dropM = new THREE.MeshBasicMaterial({ color: 0xb8d8ff, transparent: true, opacity: 0.55, depthWrite: false, fog: true });
+  const dropG = cached('w8m:raindrop', () => new THREE.BoxGeometry(0.055, 0.95, 0.055));
+  const dropM = new THREE.MeshBasicMaterial({ color: 0xd0e8ff, transparent: true, opacity: 0.72, depthWrite: false, fog: true });
   ev.own.push(dropM);
   const drops = instanced(ev, dropG, ND, { name: 'regen', material: dropM });
   const seeds = [];
@@ -778,8 +778,8 @@ function goldTent(ev, x, y, z) {
   tent(ev, x, y, z, R, H, 'gold');
   starPennants(ev, x, y, z, R, H, [0xffc83a, 0xffffff, 0xff8a3a]);
   // goldene Würfelblase sitzt vor dem Zelt (Registry, eingebacken; sonst eigener Goldwürfel mit Gesicht)
-  const bp = [x - R - 1.2, y, z + R * 0.5];
-  if (!bake8(ev, 'wuerfelblase', { color: 'gold' }, bp, FRONT + 0.6, 0.55, 'idle', true, 11500)) {
+  const bp = [x - R + 0.2, y, z + R + 0.4];
+  if (!bake8(ev, 'wuerfelblase', { color: 'gold' }, bp, FRONT + 0.5, 0.75, 'idle', true, 11500)) {
     addGeo(ev, 'w8m:goldblob', () => {
       const b = new Build();
       b.box(2.2, 2.0, 2.2, { v: (px, py, pz, nx, ny) => mix(0xd89a1a, 0xffe07a, ny * 0.5 + 0.5) }, { p: [0, 1.0, 0] }, 0.5);
@@ -787,7 +787,7 @@ function goldTent(ev, x, y, z) {
       return b.geometry();
     }, bp[0], bp[1], bp[2], 0.5);
   }
-  solidCyl(ev, bp[0], bp[2], 1.4, y, y + 2.4, 'wuerfelblase');
+  solidCyl(ev, bp[0], bp[2], 1.6, y, y + 3.0, 'wuerfelblase');
   // Goldsterne funkeln über dem Zelt (Instanzen, drehen sich)
   const starG = cached('w8m:goldstar', () => {
     const s = new THREE.Shape();
@@ -869,6 +869,14 @@ function baronTower(ev, x, y, z) {
     top = y + 32.6;
   }
   solidCyl(ev, x, z, 9.4, y - 0.5, y + 48, 'turm');
+  // roter Teppich von der Zugbrücke zum Podest (Goldkanten)
+  if (ev.def.carpet) {
+    const [cx0, cz0, cx1, cz1] = ev.def.carpet;
+    const cb = new Build();
+    cb.box(cx1 - cx0, 0.03, cz1 - cz0, 0xc8303e, { p: [(cx0 + cx1) / 2, y + 0.02, (cz0 + cz1) / 2] }, 0);
+    for (const sx of [cx0, cx1]) cb.box(0.14, 0.035, cz1 - cz0, 0xffc83a, { p: [sx, y + 0.025, (cz0 + cz1) / 2] }, 0);
+    ev.addStatic(cb.geometry(), { castShadow: false });
+  }
   // Glas der Freunde oben auf dem Zinnenkranz (vorn rechts neben der Büste): leise leuchtend; nach dem Spielende offen und leer
   const jp = ev.def.jar ?? [x + 3.9, top, z + 2.4];
   const jarB = new Build(), jarGl = new Build();

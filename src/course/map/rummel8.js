@@ -103,17 +103,17 @@ const PALETTES = {
     tile: (rnd) => (i, j, ax, az) => {
       const o = tone(0xb2a0b6, 0xc2b0c4, rnd.frac() * 0.7);
       const h = hash2(ax + 3, az - 7);
-      if (h > 0.985) mixc(o, lin(INLAY[Math.floor(h * 10000) % 4]), 0.4, o);
+      if (h > 0.985) mixc(o, lin(INLAY[Math.floor(h * 10000) % 4]), 0.26, o);
       else if (h < 0.08) mixc(o, lin(0x8a7a92), 0.35, o);
       return o;
     },
   },
   parkgrass: {
-    bands: PLUM, side: 0x4e5a5a, rim: 0x8ac08e, cell: 2, cellOff: 2, capH: 0.3,
+    bands: PLUM, side: 0x4e5a5a, rim: 0x86b896, cell: 2, cellOff: 2, capH: 0.3,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(0x5aa678, 0x4e9a6c, rnd.frac());
+      const o = tone(0x4a9478, 0x428a70, rnd.frac());
       const h = hash2(ax * 0.7 + 1, az * 0.7 - 2);
-      if (h > 0.93) mixc(o, lin(h > 0.97 ? 0xffd2e8 : 0xfff0a0), 0.5, o);   // Blütentupfer
+      if (h > 0.975) mixc(o, lin(h > 0.99 ? 0xffd2e8 : 0xf0e8a0), 0.22, o);   // Blütentupfer
       return o;
     },
   },
@@ -122,20 +122,21 @@ const PALETTES = {
     tile: (rnd) => () => tone(0x6a7896, 0x5e6c8a, rnd.frac() * 0.8),
   },
   sand: {
-    bands: SANDB, side: 0xc8925a, rim: 0xffe0a8, cell: 2, cellOff: 2,
+    bands: SANDB, side: 0xc8925a, rim: 0xf0c890, cell: 1, cellOff: 2,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(0xf2cc8a, 0xe8c07c, rnd.frac());
-      if (Math.sin(ax * 0.9 + az * 0.35) > 0.86) mixc(o, lin(0xd8a868), 0.4, o);   // Wind-Rippel
+      const o = tone(0xd8a066, 0xd09860, rnd.frac());
+      if (Math.sin(ax * 1.3 + az * 0.5) > 0.8) mixc(o, lin(0xe2b072), 0.3, o);   // Wind-Rippel
       return o;
     },
   },
   cookie: {
     bands: COOKIEB, side: 0xb8783e, rim: 0xf2c88a, cell: 2,
     tile: (rnd) => (i, j, ax, az) => {
+      const o = tone(checker2(ax, az) ? 0xc88c50 : 0xc2864c, 0xcc9456, rnd.frac() * 0.5);
       const h = hash2(Math.floor(ax / 2) - 5, Math.floor(az / 2) + 2);
-      if (h > 0.88) return tone(0xffb8d8, 0xffc8e2, rnd.frac());      // rosa Zuckerguss-Platte
-      if (h < 0.1) return tone(0x8a5430, 0x9a6038, rnd.frac());      // Schokokeks
-      return tone(checker2(ax, az) ? 0xe8b474 : 0xdcaa6a, 0xf0c080, rnd.frac() * 0.3);
+      if (h > 0.92) mixc(o, lin(0xffb8d8), 0.4, o);        // rosa Zuckerguss
+      else if (h < 0.07) mixc(o, lin(0x7a4428), 0.45, o);  // Schokostück
+      return o;
     },
   },
   station: {
@@ -151,9 +152,9 @@ const PALETTES = {
     tile: (rnd) => (i, j, ax, az) => tone(checker2(ax, az) ? 0x56608a : 0x4e5882, 0x5e6894, rnd.frac() * 0.3),
   },
   shore: {
-    bands: SLATEB, side: 0x56607c, rim: 0xb8c0d0, cell: 2, cellOff: 2,
+    bands: SLATEB, side: 0x56607c, rim: 0xc8c4c0, cell: 1, cellOff: 2,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(0xb4bccc, 0xa8b0c2, rnd.frac());
+      const o = tone(0xb8b0aa, 0xaaa4a2, rnd.frac());
       if (hash2(ax * 0.9 + 4, az * 0.9) > 0.9) mixc(o, lin(0xe8ecf4), 0.5, o);
       return o;
     },
@@ -167,8 +168,8 @@ const PALETTES = {
     },
   },
   house: {
-    bands: PLUM, side: 0x6a4a3a, rim: 0xd8a878, cell: 2,
-    tile: (rnd) => (i, j, ax, az) => tone(Math.floor(ax / 2) % 2 ? 0xc8945a : 0xbc8a52, 0xd4a068, rnd.frac() * 0.4),
+    bands: PLUM, side: 0x6a4a3a, rim: 0xb88a62, cell: 1,
+    tile: (rnd) => (i, j, ax, az) => tone(((Math.floor(ax) % 2) + 2) % 2 ? 0x9a6a46 : 0x8e603e, 0xa4744c, rnd.frac() * 0.4),
   },
   circus: {
     bands: PLUM, side: 0x8a3a4a, rim: 0xf0d0a0, cell: 2,
@@ -177,8 +178,18 @@ const PALETTES = {
   tower: {
     bands: PLUM, side: 0x5a3a4e, rim: 0xd8b070, cell: 2,
     tile: (rnd) => (i, j, ax, az) => {
-      const ring = (Math.floor(ax / 2) + Math.floor(az / 2)) & 1;
-      return ring ? tone(0xb84a5a, 0xc45a68, rnd.frac() * 0.4) : tone(0xd8b46a, 0xe2c27a, rnd.frac() * 0.4);
+      const o = tone(checker2(ax, az) ? 0xa88a9e : 0x9e8094, 0xb092a6, rnd.frac() * 0.4);
+      if (((Math.floor(ax / 2) + Math.floor(az / 2)) % 4 + 4) % 4 === 0 && checker2(ax, az)) mixc(o, lin(0xb84a5a), 0.45, o);   // rote Baron-Fliese
+      return o;
+    },
+  },
+  // Sternen-Röhre: dunkelblaue Platten mit goldenen Sternen-Tupfen
+  starplaza: {
+    bands: NAVY, side: 0x3a4266, rim: 0xb8a8e8, cell: 1,
+    tile: (rnd) => (i, j, ax, az) => {
+      const o = tone(0x4a4a86, 0x42427c, rnd.frac());
+      if (hash2(ax + 11, az - 3) > 0.93) mixc(o, lin(0xffd86a), 0.7, o);
+      return o;
     },
   },
   towerbase: {
@@ -440,7 +451,7 @@ function archGeo(w = 6) {
     const b = new Build();
     for (const s of [-1, 1]) {
       b.cyl(0.38, 0.45, 5.2, { v: (px, py) => (Math.floor((py + 2.6) * 1.4) % 2 ? 0xe8303e : 0xf8f0e0) }, { p: [s * (w / 2 + 0.3), 2.6, 0] }, 10);
-      b.sphere(0.5, 0xffc83a, { p: [s * (w / 2 + 0.3), 5.45, 0] }, 10, 7);
+      b.sphere(0.5, 0xffc83a, { p: [s * (w / 2 + 0.3), 5.25, 0] }, 10, 7);
       b.cyl(0.6, 0.7, 0.4, 0x5a4870, { p: [s * (w / 2 + 0.3), 0.2, 0] }, 10);
     }
     b.torus(w / 2 + 0.3, 0.26, { v: (px, py, pz, nx, ny) => mix(0x8a2a6a, 0xd85aa0, ny * 0.5 + 0.5) }, { p: [0, 5.0, 0] }, 6, 24, Math.PI);

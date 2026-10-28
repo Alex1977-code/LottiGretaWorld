@@ -17,18 +17,18 @@
 //
 // Bereiche (begehbar, Höhe):                 Eingänge (kind):
 //   A  Rummel-Eingang           y 1.5          W7         pipe            Glasröhre zurück            (−17, 1.5, 46)
-//                                              8-1        rainfort        Regenfestung im Meer        (12, 1.5, 12)
+//                                              8-1        rainfort        Regenfestung im Meer        (12, 1.5, 9.5)
 //   B  Dünenplatz               y 2.5          8-2        dunes8          Dünen, Baron-Sandstatue     (40, 2.5, −2)
 //   C  Kekshof                  y 3.5          8-3        cookiefactory   Keks-Fabrik                 (44, 3.5, −50)
-//   D  Bahnsteig                y 4.5          8-Zug      baronstation    Bahnhof, Baron-Express      (−6, 4.5, −63)
-//   E  Nacht-Festung            y 5.5          8-4        nightfort       Leuchtstege                 (−62, 5.5, −62)
+//   D  Bahnsteig                y 4.5          8-Zug      baronstation    Bahnhof, Baron-Express      (−6, 4.5, −66)
+//   E  Nacht-Festung            y 5.5          8-4        nightfort       Leuchtstege                 (−62, 5.5, −65.5)
 //   H  Haus-Insel               y 5            8-Haus     clawhouse       Prüfungs-Haus (Krallen)     (−68, 5, −30)
-//   F  Seeufer                  y 5            8-5        lakefort        Unterwasser-Festung im See  (−58, 5, −104)
-//   G  Spukgarten               y 6.5          8-6        darkmansion     Spukhaus                    (−30, 6.5, −102)
+//   F  Seeufer                  y 5            8-5        lakefort        Unterwasser-Festung im See  (−58, 5, −107)
+//   G  Spukgarten               y 6.5          8-6        darkmansion     Spukhaus                    (−31, 6.5, −105)
 //   I  Inferno-Plateau          y 7.5          8-7        inferno         Lava-Inferno, Kristalle     (20, 7.5, −92)
 //   J  Zirkusplatz Nord         y 8            8-A        goldtent        Zelt, goldene Würfelblase   (37, 8, −116)
 //   K  Zirkusplatz Ost          y 8            8-B        snaketent       Zelt, rosa Schlangenkönig   (58, 8, −82)
-//   TP Turmplatz                y 9.5          8-Burg     barontower      Baron-Turm (ab 190 ★)       (0, 9.5, −122)
+//   TP Turmplatz                y 9.5          8-Burg     barontower      Baron-Turm (ab 190 ★)       (0, 9.5, −125)
 //   S  Sternen-Röhre            y 9.5          WS         pipe            Glasröhre zur Welt Stern    (−23, 9.5, −132)
 
 const PI = Math.PI;
@@ -37,8 +37,8 @@ const W = true;
 
 // Leuchtstege der Nacht-Festung: Kacheln am Boden zum Festungstor, dann eine schwebende Treppe auf die Westmauer
 const STEPS8 = [
-  ...Array.from({ length: 10 }, (_, i) => [-60 - i, 5.52, -67]),
-  ...Array.from({ length: 8 }, (_, i) => [-70.2 - i * 1.05, 5.8 + i * 0.42, -67]),
+  ...Array.from({ length: 10 }, (_, i) => [-60 - i, 5.52, -69.4]),
+  ...Array.from({ length: 8 }, (_, i) => [-70.2 - i * 1.05, 5.8 + i * 0.42, -69.4]),
 ];
 // Achterbahn im Westpark: geschlossene Bahn (Oval) mit zwei Hügeln
 const COASTER8 = Array.from({ length: 20 }, (_, i) => {
@@ -105,7 +105,7 @@ export const MAP = {
   fountains: [[18, 6.3, -105.5, 3.2, 'rot'], [28, 6.3, -103, 3.6, 'rot'], [-18, 6.3, -84, 3, 'rot']],
   fishjumps: [[23, 6.3, -104, 3, 0.3]],
   smoke: [[38, 15.1, -66.2, 0.9], [44.5, 15.1, -66.2, 1.0], [50.5, 15.1, -66.2, 0.9], [24, 6.3, -107, 0.7]],
-  boneflyers: [{ c: [19, 12, -5], r: 8, n: 3, speed: 0.3 }, { c: [-66, 14, -66], r: 10, n: 2, speed: -0.28 }],
+  boneflyers: [{ c: [19, 12, -4], r: 8, n: 3, speed: 0.3 }, { c: [-66, 14, -66], r: 10, n: 2, speed: -0.28 }],
   torches: [[-66, 5.5, -64, 'blau'], [-75, 5.5, -64, 'blau'], [-44, 5.5, -57, 'blau'], [-4.2, 9.5, -118.5, 'rot'], [4.2, 9.5, -118.5, 'rot'],
     [-27, 6.5, -104, 'blau'], [-12, 7.5, -95, 'rot']],
 
@@ -164,7 +164,7 @@ export const MAP = {
     // ---- TP Turmplatz, Felssockel des Turms, Sternen-Röhre
     g(-12, -132, 12, -108, 9.5, { walk: W, style: 'tower' }),
     g(-14, -158, 14, -132, 9.5, { style: 'towerbase', noDeco: true }),
-    g(-30, -146, -16, -126, 9.5, { walk: W, style: 'tower' }),
+    g(-30, -146, -16, -126, 9.5, { walk: W, style: 'starplaza' }),
   ],
 
   // Zusätzlich begehbar: Stege und Brücken
@@ -186,22 +186,22 @@ export const MAP = {
   paths: [
     [[2, 49.5], [2, 40], [4, 30], [10, 20], [14, 12], [20, 10]],
     [[2, 46], [-8, 46], [-17, 48.6]],
-    [[10, 20], [12, 14.6]],
+    [[10, 20], [12, 12.1]],
     [[1, 38], [-6, 38], [-8, 37.6]],
     [[28, 10], [36, 6], [40, 0.6]],
     [[36, 6], [46, -6], [46, -14]],
     [[46, -26], [46, -38], [44, -47.4]],
     [[46, -38], [36, -46], [28, -54], [24, -54]],
-    [[14, -54], [2, -57], [-6, -60.4]],
+    [[14, -54], [2, -58], [-6, -63.4]],
     [[2, -57], [8, -61]],
     [[-6, -60], [-20, -61], [-30, -62]],
-    [[-42, -62], [-52, -60], [-62, -59.4]],
+    [[-42, -62], [-52, -61], [-62, -62.9]],
     [[-52, -60], [-56, -66], [-56, -74]],
     [[-56, -60], [-64, -54], [-66, -48]],
     [[-66, -40], [-68, -32], [-68, -27.4]],
-    [[-56, -82], [-58, -92], [-58, -101.4]],
+    [[-56, -82], [-58, -92], [-58, -104.4]],
     [[-58, -96], [-54, -102], [-50, -106]],
-    [[-44, -106], [-36, -104], [-30, -99.4]],
+    [[-44, -106], [-38, -103], [-31, -102.4]],
     [[-30, -100], [-26, -98], [-24, -98]],
     [[-14, -98], [0, -94], [20, -89.4]],
     [[0, -94], [0, -100]],
@@ -209,7 +209,6 @@ export const MAP = {
     [[30, -92], [34, -87], [40, -86]],
     [[36, -110], [37, -113.4]],
     [[48, -86], [56, -84], [58, -79.4]],
-    [[0, -108], [0, -119.4]],
     [[0, -114], [-8, -124], [-12, -130]],
     [[-16, -130], [-23, -129.4]],
   ],
@@ -218,23 +217,23 @@ export const MAP = {
     { id: 'W7', kind: 'pipe', pos: [-17, 1.5, 46], decor: [-17, 1.5, 42.9],
       pipe: [[0, 0, 0], [0, 3.5, 0], [-0.7, 5.8, 0.5], [-5, 7.6, 2.6], [-16, 9, 7], [-40, 12, 15], [-80, 16, 28], [-150, 22, 52]], pipeDetail: 'low',
       arriveCam: { up: 6, ahead: 6, drop: 2.5 }, signPos: [2.6, 0, 0.8], departAlong: true },
-    { id: '8-1', kind: 'rainfort', pos: [12, 1.5, 12], decor: [19, 1.4, -5], bridges: [[14.5, 1.6, 14.5, 5.9, 1.55], [18.5, 1.6, 18.5, 5.9, 1.55]] },
+    { id: '8-1', kind: 'rainfort', pos: [12, 1.5, 9.5], decor: [19, 1.4, -4], bridges: [[14.5, 1.6, 14.5, 5.9, 1.55], [18.5, 1.6, 18.5, 5.9, 1.55]] },
     { id: '8-2', kind: 'dunes8', pos: [40, 2.5, -2], decor: [46, 2.5, -9],
       statues: [[48, 2.5, -9, 0.5, 1]], dunes: [[66, 2.8, -4, 1, 1], [68, 2.8, 8, 0.9, 2], [33, 1.6, -21, 0.7, 3], [72, 2.8, -18, 0.9, 4]], schub: [34, 2.5, -8], fin: [52, 5, 3.6] },
     { id: '8-3', kind: 'cookiefactory', pos: [44, 3.5, -50], decor: [44, 3.5, -64] },
-    { id: '8-Zug', kind: 'baronstation', pos: [-6, 4.5, -63], decor: [-6, 4.3, -74], platformZ: -70.5, range: 7 },
-    { id: '8-4', kind: 'nightfort', pos: [-62, 5.5, -62], decor: [-70, 5.5, -70],
+    { id: '8-Zug', kind: 'baronstation', pos: [-6, 4.5, -66], decor: [-6, 4.3, -74], platformZ: -70.5, range: 7 },
+    { id: '8-4', kind: 'nightfort', pos: [-62, 5.5, -65.5], decor: [-70, 5.5, -70],
       walls: [[-73.5, -73.3, 11, 3.2, 0], [-79.3, -66, 14, 3.2, PI / 2]], towers: [[-79, -73, 6], [-67.5, -73, 6]], steps: STEPS8 },
     { id: '8-Haus', kind: 'clawhouse', pos: [-68, 5, -30], decor: [-75, 5, -36] },
-    { id: '8-5', kind: 'lakefort', pos: [-58, 5, -104], decor: [-60, 1.2, -120],
+    { id: '8-5', kind: 'lakefort', pos: [-58, 5, -107], decor: [-60, 1.2, -120],
       towers: [[-62, -120, 5.5], [-52, -123, 4.5], [-71, -110, 4], [-80, -96, 4.5]], parts: [['saeule', -57, -116, 0.4], ['gitter', -66, -126, 0], ['algen', -50, -117], ['algen', -72, -120, 1, { seed: 2 }], ['saeule', -76, -104, 2, { seed: 3 }]],
       cube: [-63, 4.8, -114.5] },
-    { id: '8-6', kind: 'darkmansion', pos: [-30, 6.5, -102], decor: [-36, 6.5, -114] },
+    { id: '8-6', kind: 'darkmansion', pos: [-31, 6.5, -105], decor: [-36, 6.5, -114] },
     { id: '8-7', kind: 'inferno', pos: [20, 7.5, -92], decor: [23, 6.0, -105], roll: [16.5, 29.5], cube: [29.5, 6.2, -102.4] },
     { id: '8-A', kind: 'goldtent', pos: [37, 8, -116], decor: [37, 8, -125.5] },
     { id: '8-B', kind: 'snaketent', pos: [58, 8, -82], decor: [59, 8, -90.5], puddles: [[52, -90], [66, -80.5]] },
-    { id: '8-Burg', kind: 'barontower', pos: [0, 9.5, -122], decor: [0, 9.5, -142], labelY: 2.8, wreck: [-8, 9.5, -115.5],
-      friends: [[-4.5, 9.5, -127.5], [-1.5, 9.5, -128.5], [1.5, 9.5, -128.5], [4.5, 9.5, -127.5]] },
+    { id: '8-Burg', kind: 'barontower', pos: [0, 9.5, -125], decor: [0, 9.5, -142], labelY: 2.8, wreck: [-8, 9.5, -115.5], carpet: [-1.2, -122.5, 1.2, -108],
+      friends: [[-6.5, 9.5, -126.5], [-3.6, 9.5, -129.6], [3.6, 9.5, -129.6], [6.5, 9.5, -126.5]] },
     { id: 'WS', kind: 'pipe', pos: [-23, 9.5, -132], decor: [-23, 9.5, -135.1], disc: '★',
       pipe: [[0, 0, 0], [0, 4, 0], [-0.6, 7, -0.8], [-3, 13, -3.5], [-8, 24, -9], [-16, 40, -18], [-28, 62, -30], [-44, 90, -46]], pipeDetail: 'low',
       arriveCam: { up: 8, ahead: 4, drop: 4 }, signPos: [2.8, 0, 0.6] },
