@@ -26,7 +26,7 @@
 // Gegner: Stampfstein 3, Knochenflieger 3, Zauberkröte 3, Funkenflämmchen 6.
 
 import {
-  isl, line, ring, arc, column, sign, C, Quads, brickBox, slits, merlons, roundTier, flushQ, ketten, funken, aufzug, nebelLava, carpet,
+  isl, line, ring, arc, column, sign, C, Quads, brickBox, slits, merlons, roundTier, flushQ, ketten, funken, aufzug, nebelLava, carpet, fernModelle,
 } from './_helpers_c.js';
 import { Bld, glimmer } from '../w6/_helpers_b.js';
 
@@ -165,6 +165,8 @@ function setup(level) {
   aufzug(level, 'lift2', { name: 'aufzug2' });
   aufzug(level, 'sinkwolke', { name: 'wolkenfahrt', back: 1.6 });
   nebelLava(level, 'nebel', 'glutsee');
+  // Leistung: Schilder, Warp-Boxen, Zielmast, Sterne und Stempel weiter als 85 m nicht zeichnen (Dunst des Turmschachts)
+  fernModelle(level, 85);
 }
 
 const fackel = (x, y, z, yaw = -PI / 2) => ({ kind: 'fackel', pos: [x, y, z], yaw });
