@@ -9,6 +9,8 @@
 //                       Quetschblock (der Block drückt ein Ende hinab – das andere schnellt hoch), Absturz nach der Fahrt
 //   3) Kolonne 6-Panzer Fahrplan (Bildfenster gleitet an der Kolonne entlang, Haltepunkte), Panzer-Bausteine, Wolken-
 //                       straße, Schwebeinseln, Wolkenburg, Regenbogen, Mitfahr-Regeln (Werfer, Zündköpfe)
+//   4) Zirkus 6-C       Sternenhimmel mit Mond, Zerrspiegel (Spiegelkabinett), Plakat „Glibber-Gala“, Seilbahn-Rückruf,
+//                       Feuerwerk
 // Statische Teile gehen über addStatic in die Abschnitts-Meshes (keine zusätzlichen Zeichenaufrufe), belebte
 // Kleinigkeiten sind je ein Mesh bzw. eine Instanz-Gruppe ohne Sonnenschatten.
 
@@ -949,6 +951,181 @@ export function beiZerstoerung(level, id, action) {
     if (!e || (!e.removed && e.alive !== false)) return;
     done = true;
     runAction(level, action, { pos: [e.pos.x, e.pos.y, e.pos.z], source: e });
+  });
+}
+
+// =====================================================================================================================
+// 4) Wolkenzirkus 6-C
+// =====================================================================================================================
+
+/** Weicher Leuchtpunkt (Canvas-Textur) für Sterne und Glühwürmchen. */
+let DOT = null;
+function dotTex() {
+  if (DOT || typeof document === 'undefined') return DOT;
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.3, 'rgba(255,255,255,0.6)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  DOT = new THREE.CanvasTexture(c);
+  DOT.colorSpace = THREE.SRGBColorSpace;
+  return DOT;
+}
+
+/**
+ * Sternenhimmel über dem Nacht-Zirkus: funkelnde Punkte auf einer Kuppel um center (ohne Nebel, additiv, ein
+ * Zeichenaufruf), dazu ein großer, blasser Mond. cfg = { center: [x, y, z], r: 170, n: 520, seed, moon: [x, y, z] }
+ */
+export function sternenhimmel(level, cfg) {
+  if (!level.view) return;
+  const [cx, cy, cz] = cfg.center ?? [0, 0, 0], R = cfg.r ?? 170, n = cfg.n ?? 520;
+  const rnd = new Rnd(cfg.seed ?? 66);
+  const pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
+  const pal = [0xffffff, 0xfff2c0, 0xc8e0ff, 0xffd0f0];
+  for (let i = 0; i < n; i++) {
+    const a = rnd.real(0, TAU), h = rnd.real(0.08, 1);
+    const r = Math.sqrt(1 - h * h);
+    pos[i * 3] = cx + Math.cos(a) * r * R; pos[i * 3 + 1] = cy + h * R * 0.55; pos[i * 3 + 2] = cz + Math.sin(a) * r * R;
+    const c = new THREE.Color(pal[i % pal.length]).multiplyScalar(rnd.real(0.45, 1));
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const m = new THREE.PointsMaterial({ size: cfg.size ?? 2.6, map: dotTex(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, sizeAttenuation: true });
+  const pts = new THREE.Points(g, m);
+  pts.frustumCulled = false;
+  pts.renderOrder = -5;
+  pts.userData.owned = true;
+  let t = 0;
+  addObject(level, pts, (dt) => { t += Math.min(dt, 0.1); m.opacity = 0.82 + Math.sin(t * 1.7) * 0.12; });
+  if (cfg.moon) {
+    const [mx, my, mz] = cfg.moon;
+    const moon = new THREE.Mesh(new THREE.CircleGeometry(cfg.moonR ?? 9, 40), new THREE.MeshBasicMaterial({ color: 0xfff4d8, fog: false, transparent: true, opacity: 0.95 }));
+    moon.position.set(mx, my, mz);
+    moon.lookAt(cx, cy + 10, cz);
+    const halo = new THREE.Mesh(new THREE.CircleGeometry((cfg.moonR ?? 9) * 1.9, 40), new THREE.MeshBasicMaterial({ color: 0xffe8c0, fog: false, transparent: true, opacity: 0.16, depthWrite: false }));
+    halo.position.copy(moon.position); halo.quaternion.copy(moon.quaternion); halo.translateZ(-0.5);
+    for (const o of [moon, halo]) { o.userData.owned = true; o.renderOrder = -4; }
+    addObject(level, moon);
+    addObject(level, halo);
+  }
+}
+
+/**
+ * Zerrspiegel (Spiegelkabinett der Spiegelbühne): ovale Spiegel mit Goldrahmen auf Ständern, die Fläche schimmert
+ * (Glüh-Material, Farbverlauf mit hellen Streifen). list: [{ pos: [x, y, z] (Fuß), yaw (Fläche zeigt dorthin, 0 = +Z),
+ * w: 1.5, h: 2.4, tint: 0x9ad8ff, wave: 0 (Wellen des Zerrspiegels) }]
+ */
+export function zerrspiegel(level, list) {
+  if (!level.view) return;
+  const frame = [], glass = [];
+  for (const it of list) {
+    const [x, y, z] = it.pos, w = it.w ?? 1.5, h = it.h ?? 2.4, yaw = it.yaw ?? 0, wave = it.wave ?? 0;
+    const lift = 0.5;
+    const place = (g) => { g.rotateY(yaw); g.translate(x, y, z); return g; };
+    // Ständer und Fuß
+    frame.push(place(blk(0.16, lift + 0.3, 0.16, 0, (lift + 0.3) / 2, -0.12, 0x6a3a1a)));
+    frame.push(place(blk(0.9, 0.12, 0.6, 0, 0.06, -0.12, 0x8a4a22)));
+    // Rahmen: Ellipsenring
+    const ring = new THREE.TorusGeometry(1, 0.07, 6, 32);
+    ring.scale(w / 2, h / 2, 1);
+    ring.translate(0, lift + h / 2, 0);
+    frame.push(place(colorize(ni(ring), (p, n, out) => mixc(C(0xb07a10), C(0xffe080), smooth(-0.6, 0.9, n.y + n.z * 0.4), out))));
+    // Spiegelfläche (Wellen: leicht gewölbt)
+    const disc = new THREE.CircleGeometry(1, 28, 0, TAU);
+    disc.scale(w / 2 - 0.04, h / 2 - 0.04, 1);
+    const dp = disc.attributes.position;
+    for (let i = 0; i < dp.count; i++) dp.setZ(i, 0.02 + Math.sin(dp.getY(i) * 3.2) * 0.05 * wave);
+    disc.translate(0, lift + h / 2, 0.01);
+    const tc = C(it.tint ?? 0x9ad8ff), hi = C(0xffffff);
+    glass.push(place(colorize(ni(disc), (p, n, out) => {
+      const s = Math.sin(p.x * 2.6 + p.y * 1.8) * 0.5 + 0.5;
+      mixc(tc.map((v) => v * 0.55), hi, smooth(0.55, 1, s) * 0.7 + smooth(lift + h * 0.7, lift + h, p.y - y) * 0.2, out);
+    })));
+    // Krönchen oben
+    const crown = new THREE.ConeGeometry(0.16, 0.34, 5);
+    crown.translate(0, lift + h + 0.2, 0);
+    frame.push(place(colorize(ni(crown), (p, n, out) => { const c = C(0xffd04a); out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; })));
+  }
+  addStatic(level, merge(frame), { castShadow: false });
+  addStatic(level, merge(glass), { material: 'glow', castShadow: false });
+}
+
+/** Leinwand-Plakat „Glibber-Gala“ (eigene Gestaltung: bunter Gelee-Würfel mit Melonen-Hut, Sterne). */
+function galaTexture() {
+  if (typeof document === 'undefined') return null;
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 320;
+  const g = c.getContext('2d');
+  g.fillStyle = '#2a1050'; g.fillRect(0, 0, 256, 320);
+  g.fillStyle = '#ffc21a'; g.fillRect(8, 8, 240, 304);
+  g.fillStyle = '#5a1a8a'; g.fillRect(16, 16, 224, 288);
+  // Sterne
+  g.fillStyle = '#fff2a0';
+  for (const [x, y, r] of [[40, 40, 6], [210, 52, 8], [34, 150, 5], [222, 168, 6], [128, 34, 5]]) { g.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + (k * Math.PI) / 5, rr = k % 2 ? r * 0.45 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.fill(); }
+  // Gelee-Würfel (bunte Stückchen)
+  const cols = ['#ff4a6a', '#3a8aff', '#5ad85a', '#ffd04a'];
+  for (let i = 0; i < 4; i++) { g.fillStyle = cols[i]; g.fillRect(78 + (i % 2) * 50, 104 + Math.floor(i / 2) * 50, 50, 50); }
+  g.strokeStyle = '#ffffff'; g.lineWidth = 5; g.strokeRect(78, 104, 100, 100);
+  // Augen
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(108, 140, 12, 0, TAU); g.arc(148, 140, 12, 0, TAU); g.fill();
+  g.fillStyle = '#111'; g.beginPath(); g.arc(110, 142, 6, 0, TAU); g.arc(150, 142, 6, 0, TAU); g.fill();
+  // Melonen-Hut
+  g.fillStyle = '#7a3ad8'; g.fillRect(96, 78, 64, 26); g.fillRect(84, 100, 88, 8);
+  g.fillStyle = '#ff9ad0'; g.fillRect(96, 92, 64, 6);
+  g.fillStyle = '#fff6d0'; g.textAlign = 'center';
+  g.font = 'bold 30px "Nunito", Arial, sans-serif'; g.fillText('Glibber-Gala', 128, 250);
+  g.font = 'bold 22px "Nunito", Arial, sans-serif'; g.fillText('heute Nacht!', 128, 282);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/** Plakatwand „Glibber-Gala“ auf zwei Pfosten. cfg = { pos: [x, y, z] (Fuß), yaw } */
+export function galaPlakat(level, cfg) {
+  if (!level.view) return;
+  const [x, y, z] = cfg.pos, yaw = cfg.yaw ?? 0;
+  const posts = [-1.15, 1.15].map((dx) => { const g = blk(0.14, 3.3, 0.14, dx, 1.65, -0.05, 0x5a3a2a); g.rotateY(yaw); g.translate(x, y, z); return g; });
+  addStatic(level, merge(posts));
+  const pl = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.6), new THREE.MeshLambertMaterial({ map: galaTexture(), emissive: 0x302040 }));
+  pl.position.set(x, y + 2.0, z);
+  pl.rotation.y = yaw;
+  pl.position.x += Math.sin(yaw) * 0.04; pl.position.z += Math.cos(yaw) * 0.04;
+  pl.userData.owned = true;
+  addObject(level, pl);
+}
+
+/**
+ * Seilbahn-Rückruf (wie 3-B): wartet die Gondel leer am oberen Ende und steht eine Figur an der Talstation, fährt sie
+ * nach 0,8 s zurück. cfg = { id (Seilbahn), station: { x0, x1, z0, z1, y } }
+ */
+export function gondelRuf(level, cfg) {
+  const g = level.named.get(cfg.id);
+  if (!g) return;
+  const s = cfg.station;
+  let t = 0;
+  level.onStep((dt) => {
+    const p = level.player;
+    if (!p || p.dead) return;
+    const at = p.pos.x > s.x0 && p.pos.x < s.x1 && p.pos.z > s.z0 && p.pos.z < s.z1 && Math.abs(p.pos.y - s.y) < 1.5;
+    t = at && g.state === 'wait' && g.u >= 1 ? t + dt : 0;
+    if (t > 0.8) { g.state = 'move'; g.dir = -1; g.needEmpty = false; t = 0; level.sfx('switch'); }
+  });
+}
+
+/** Feuerwerk (Funkenbälle) über einem Platz, solange near(Figur) gilt. cfg = { x, z, y, near, r: [4, 12] } */
+export function feuerwerk(level, cfg) {
+  let t = 0;
+  level.onStep((dt) => {
+    const p = level.player;
+    if (!level.view || !p || !cfg.near(p)) return;
+    t -= dt;
+    if (t > 0) return;
+    t = 0.5;
+    const a = level.rnd.real(0, TAU), r = level.rnd.real(...(cfg.r ?? [4, 12]));
+    level.effects?.sparks({ x: cfg.x + Math.cos(a) * r, y: cfg.y + level.rnd.real(9, 15), z: cfg.z + Math.sin(a) * r * 0.5 }, 26);
   });
 }
 

@@ -142,6 +142,76 @@ const ROUTES = {
       ['deck', [0, 78, -69], 77],
     ],
   },
+  // ================================================================ 6-C (Boss-Archetyp: Vorplatz, Spiegelbühne, Seilbahn, Manege)
+  '6-C': {
+    start: [0, 0, 13.5],
+    meta: { stars: 2, time: 400, theme: 'circus', music: 'course_bossblob', archetype: 'boss' },
+    enemies: { wuerfelblase: 1, gelee_brocken: 5 },
+    main: [
+      { name: 'Vorplatz', to: [1.6, -2], within: 0.6 },
+      { name: 'Spiegelbühne', to: [1.6, -20], within: 0.6 },
+      { to: [0.4, -35.5], within: 0.5 },
+      { name: 'Prachttreppe', to: [0, -46.2], y: 4.3, within: 0.6 },
+      { name: 'Talstation', to: [0, -52.2], within: 0.3 },
+      { name: 'in die Gondel', to: [0, -54.6], y: 4.4, jump: 30, jumpAt: 1.6, within: 0.6 },
+      { until: 'gondelOben', max: 2400 },
+      { name: 'aufs Zeltplateau', to: [0, -86.4], y: 7.8, jump: 30, jumpAt: 3.2, within: 0.8 },
+      { name: 'Kontrollpunkt Zeltplateau', to: [0, -88.0], within: 0.6 },
+      { name: 'in die Manege', to: [0, -100], within: 0.8 },
+      { name: 'Würfelblase', blase: true },
+      { star: 2 },
+      { name: 'Warp-Box', warp: 'warp_sieg' },
+      { name: 'Zielmast', to: [56, -118], within: 0.4 },
+    ],
+    routeChecks: [
+      { name: 'Würfelblase: 3 Riesen mit Sprüngen und Schockwellen, 3 Hut-Treffer in der Flucht, Stern 3', ok: (r) => r.mech.blase?.hits === 3 && r.mech.blase.giants >= 3 && r.mech.blase.waves >= 9 && r.rt.stars[2] },
+      { name: 'Zelt aufgeschnitten (Blick in die Manege)', ok: (r) => r.mech.zelt },
+    ],
+    targets: [
+      { name: 'Stern 1: Spiegelfrucht holen, mit dem Klon zu zweit aufs Feld', star: 0, from: [0, 0, -5],
+        legs: [{ to: [0, -8.6], within: 0.2, slow: 0.5 }, { wait: 30 }, { hop: 30 }, { wait: 60 }, { to: [0, -6.8], within: 0.3 }, { name: 'auf den ?-Block (Spiegelfrucht)', to: [0, -8.6], y: 3.2, jump: 30, jumpAt: 1.4, within: 0.5 }, { wait: 20 }, { expect: 'zwei' },
+          { to: [-2.6, -27.0], within: 0.25, slow: 0.6 }, { wait: 90 }, { expect: 'stern1Sichtbar' }, { star: 0 }],
+        shot: 'stern1' },
+      { name: 'Stern 1 nicht allein (Feld braucht zwei Figuren)', star: 0, expectNot: true, from: [-2.6, 0, -23.6], heroes: ['lotti'],
+        legs: [{ to: [-2.6, -27.0], within: 0.25 }, { wait: 180 }, { to: [-2.6, -29.8], within: 0.4 }, { hop: 30 }, { wait: 60 }] },
+      { name: 'Stern 2: aus der fahrenden Gondel auf die Sternschaukel, über drei Wolken zum Zelt', star: 1, from: [0, 4.5, -50.0],
+        legs: [{ to: [0, -52.2], within: 0.3 }, { name: 'in die Gondel', to: [0, -54.6], y: 4.4, jump: 30, jumpAt: 1.6, within: 0.6 },
+          { gondelSprung: [-4.6, -67.0], atZ: -66.6, y: 6.0 }, { star: 1, walk: true, jump: false }, { wait: 30 },
+          { name: 'Wolke 1', to: [-5.0, -71.4], y: 6.2, jump: 30, jumpAt: 3.6, edgeJump: true }, { name: 'Wolke 2', to: [-3.8, -75.6], y: 6.8, jump: 30, jumpAt: 2.6, edgeJump: true },
+          { name: 'Wolke 3', to: [-2.6, -80.4], y: 7.4, jump: 30, jumpAt: 2.6, edgeJump: true }, { name: 'Zeltplateau', to: [-1.6, -85.6], y: 7.8, jump: 30, jumpAt: 4.6, within: 0.8, edgeJump: true }],
+        shot: 'stern2', mech: (r) => !r.dead },
+      { name: 'Stempel: Sprungtrommel hinauf aufs Artistenpodest', stamp: true, from: [9.0, 0, 7.6],
+        legs: [{ bounce: [8.6, 0.8], at: [10.6, 4.2], y: 5.6 }, { wait: 30 }], shot: 'stempel' },
+      { name: 'Stempel nicht ohne Sprungtrommel (Sprung vom Boden)', stamp: true, expectNot: true, from: [8.6, 0, 2.6], heroes: ['lotti'],
+        legs: [{ to: [8.6, 2.0], within: 0.3 }, { hop: 40 }, { wait: 40 }] },
+    ],
+    extra: [
+      { name: 'Extraleben: verborgener Block über der blauen Trommel', from: [-6.4, 0, 6.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-6.4, 4.2], y: 0.85, jump: 30, jumpAt: 1.4, within: 0.35 }, { hop: 34 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Extraleben: verborgener Block über der mittleren Wolke', from: [-5.0, 7.2, -71.4], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-3.8, -75.6], y: 6.8, jump: 30, jumpAt: 2.6 }, { hop: 34 }, { wait: 30 }, { chaseKind: 'powerup', max: 600 }] },
+      { name: 'Kontrollpunkt Talstation: Neustart dort, die Gondel kommt zurück', from: [0, 4.5, -50.0], heroes: ['lotti'], invuln: false, expectAlive: true,
+        legs: [{ to: [0, -48.6], within: 0.4 }, { wait: 20 }, { to: [0, -52.2], within: 0.3 }, { name: 'in die Gondel', to: [0, -54.6], y: 4.4, jump: 30, jumpAt: 1.6, within: 0.6 },
+          { until: 'gondelOben', max: 2400 }, { die: true }, { expect: 'anTalstation' }, { until: 'gondelUnten', max: 2400 }] },
+      { name: 'Gelee-Brocken: Draufspringen besiegt ihn (1 Bitcoin)', from: [2.6, 0, -9.6], heroes: ['lotti'], expectCoins: 1,
+        legs: [{ chaseKind: 'gelee_brocken', ids: ['gb1'], max: 900 }, { wait: 30 }] },
+      { name: 'Wer von der Bühne fällt, stürzt in die Wolken', from: [4.6, 0, -16], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ to: [8.6, -16], within: 0.3, max: 300, autoJump: false }, { wait: 300 }], mech: (r) => r.mech.died && r.mech.deathCause === 'fall', mechText: (r) => `Tod ${r.mech.deathCause}` },
+    ],
+    shots: [
+      ['start', [0, 0, 13.5], undefined],
+      ['vorplatz', [6.6, 0, 4.8], undefined],
+      ['spiegelbuehne', [0, 0, -12], undefined],
+      ['feld', [-2.6, 0, -23.6], undefined],
+      ['treppe', [0, 0, -36.6], undefined],
+      ['talstation', [0, 4.5, -49.0], undefined],
+      ['seilbahn', [0, 4.6, -54.6], undefined, 400, {}],
+      ['sternschaukel', [-4.6, 6.2, -67], undefined],
+      ['zeltplateau', [0, 8, -86.4], undefined],
+      ['manege', [0, 8, -97], undefined, 240, {}],
+      ['hof', [52, 8, -98], undefined],
+    ],
+  },
   // ================================================================ 6-Panzer (Kolonne): Konvoi-Koordinaten [c, x]
   // (c = Meter entlang der Kolonne nach vorn, x = Weltlage x; der Bot rechnet je Schritt in die aktuelle Weltlage um)
   '6-Panzer': {
@@ -262,6 +332,12 @@ function install() {
     where: () => JSON.stringify({ pos: [P().pos.x, P().pos.y, P().pos.z].map((v) => +v.toFixed(2)), dead: P().dead, center: L.scroll?.center?.y, rp: L.runtime.respawnPoint?.() }),
     hordeWaits: () => named('horde_galerie')?.state === 'wait',
     hordeRolls: () => { const h = named('horde_galerie'); return h?.state === 'run' && h.info().front < -6; },
+    // 6-C
+    gondelOben: () => { const g = named('gondel'); return !!g && g.u >= 0.999 && g.state === 'wait'; },
+    gondelUnten: () => { const g = named('gondel'); return !!g && g.u <= 0.001 && g.state === 'wait'; },
+    stern1Sichtbar: () => !!named('stern1') && !named('stern1').hidden,
+    zwei: () => (L.players?.length ?? 1) >= 2,
+    anTalstation: () => { const p = P(); return !p.dead && L.runtime.status === 'play' && Math.abs(p.pos.z + 48.6) < 1.2 && Math.abs(p.pos.y - 4.5) < 0.4; },
   };
   const W = {
     place(pos, o = {}) {
@@ -319,6 +395,7 @@ function install() {
         mech.maxY = Math.max(mech.maxY, p.pos.y);
         if (L.scroll?.state === 'done') mech.scrollDone = true;
         if (named('grubentor')?.open) mech.gate = true;
+        if ((L._zirkus?.tent?.k ?? 0) > 0.95) mech.zelt = true;
         if (p.mode === 'ground' && !p.dead) {
           const t = track[track.length - 1];
           if (!t || Math.hypot(p.pos.x - t[0], p.pos.y - t[1], p.pos.z - t[2]) > 7) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), +(L.scroll?.s ?? 0).toFixed(2)]);
@@ -367,7 +444,7 @@ function install() {
           log.push(['hüpfer', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
         }
-        if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
+        if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900, walk: Lg.walk, jump: Lg.jump }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
         if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
         if (Lg.die) { p.invuln = 0; p.die('hit'); let k = 0; for (; k < 2400 && (p.dead || L.runtime.status !== 'play'); k++) tick({}); log.push(['gestorben, Neustart nach', k]); continue; }
         // ------------------------------------------------ Rückwärtssalto: kurz in Blickrichtung tippen, ducken, springen
@@ -487,6 +564,87 @@ function install() {
           if (!okY) { log.push(['FEHLER: Abprung von', Lg.mover]); break; }
           continue;
         }
+        // ------------------------------------------------ 6-C: aus der fahrenden Gondel seitlich abspringen (Sternschaukel)
+        if (Lg.gondelSprung) {
+          const g = named(Lg.gondel ?? 'gondel');
+          const [tx, tz] = Lg.gondelSprung;
+          let k = 0;
+          // in der Gondel an der Seite zum Ziel stehen (0,55 m vor dem Geländer), bis sie auf Höhe atZ ist
+          const side = Math.sign(tx - g.pos.x) || -1;
+          for (; k < 3600 && !(g.state === 'move' && g.pos.z <= Lg.atZ); k++) {
+            const dx = g.pos.x + side * 0.5 - p.pos.x, dz = g.pos.z - p.pos.z;
+            tick(Math.hypot(dx, dz) > 0.15 ? { ...this.stick(dx, dz, Math.min(0.5, Math.hypot(dx, dz) * 2)), run: false } : {});
+          }
+          let a = 0;
+          for (; a < 400; a++) {
+            tick({ ...(p.mode === 'air' && a > 6 ? this.airSteer(tx, tz, 0, 0, 2.8, 8) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: a < 32, run: false });
+            if (a > 10 && p.mode === 'ground') break;
+          }
+          log.push(['Gondel-Absprung', k, a, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (p.pos.y < Lg.y - 0.3) { log.push(['FEHLER: Absprung zu kurz']); break; }
+          continue;
+        }
+        // ------------------------------------------------ 6-C: Würfelblase – ausweichen, über Wellen springen, im Fliehen auf den Hut
+        if (Lg.blase) {
+          const b = named(Lg.blase === true ? 'blase' : Lg.blase);
+          const A = b.arena;
+          const sub = L.archetype;
+          let k = 0;
+          for (; k < 600 && !sub?.started && b.state === 'wait'; k++) tick({ ...this.stick(A.x - p.pos.x, A.z + 4 - p.pos.z, 0.8) });
+          let j0 = -1, stomps = 0, jumps = 0, n = 0;
+          const maxK = Lg.max ?? 120 * 300;
+          for (; n < maxK && b.state !== 'gone' && !p.dead && L.runtime.status === 'play'; n++) {
+            const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            let inp;
+            if (b.vulnerable || (b.state === 'flee' && b.grace > 0)) {
+              // fliehende Würfelblase: hin und auf den Hut springen
+              if (p.mode === 'ground' && j0 < 0 && d < 2.2 && b.vulnerable) { j0 = n; stomps++; }
+              const jump = j0 >= 0 && n - j0 < 20;
+              inp = p.mode === 'air' ? { ...this.airSteer(b.pos.x, b.pos.z, b.vel.x, b.vel.z, 4, 9), jump } : { ...this.stick(dx, dz, 1), run: d > 2.5, jump };
+              if (p.mode === 'ground' && j0 >= 0 && n - j0 > 26) j0 = -1;
+            } else {
+              j0 = -1;
+              // ausweichen: weg vom Riesen, von der Landemarke und von Brocken, sonst im Kreis um die Mitte
+              const rx = p.pos.x - A.x, rz = p.pos.z - A.z, rr = Math.hypot(rx, rz) || 1;
+              let ax = -rz / rr * 0.6, az = rx / rr * 0.6;              // tangential (gegen den Uhrzeigersinn)
+              ax += (6.5 - rr) / rr * rx * 0.35; az += (6.5 - rr) / rr * rz * 0.35;   // Kreis r ≈ 6,5
+              const push = (x, z, R, w = 1) => { const ex = p.pos.x - x, ez = p.pos.z - z, ed = Math.max(0.3, Math.hypot(ex, ez)); if (ed < R) { ax += (ex / ed) * w * (R - ed) / R * 3; az += (ez / ed) * w * (R - ed) / R * 3; } };
+              const giant = /^g/.test(b.state) || b.state === 'form';
+              if (giant) push(b.pos.x, b.pos.z, (b.S ?? 3) / 2 + 3.2, 1.5);
+              if (b.jump && (b.state === 'gcrouch' || b.state === 'gair')) push(b.jump.x1, b.jump.z1, (b.S ?? 3) / 2 + 2.6, 2);
+              for (const e of b.bits ?? []) if (!e.removed && !e.defeated && e.alive) push(e.pos.x, e.pos.z, 1.6, 0.8);
+              inp = { ...this.stick(ax, az, Math.min(1, Math.hypot(ax, az))), run: false };
+              // Schockwelle: kurz vor dem Ring springen
+              for (const w of b.waves ?? []) {
+                const wd = Math.hypot(p.pos.x - w.x, p.pos.z - w.z);
+                if (p.mode === 'ground' && w.r < wd && wd - w.r < 1.3) { inp.jump = true; jumps++; }
+              }
+              if (p.mode === 'air' && p.vel.y > 0) inp.jump = true;
+            }
+            tick(inp);
+          }
+          mech.blase = { started: !!sub?.started, hits: b.hits, hp: b.hp, giants: b.giants, sizes: b.sizes, waves: b.wavesN, bitsDown: b.bitsDown, flees: b.flees, stomps, jumps, steps: n, state: b.state };
+          for (let i = 0; i < 300 && b.state !== 'gone'; i++) tick({});
+          for (let i = 0; i < 90; i++) tick({});
+          mech.blase.won = !!sub?.won;
+          log.push(['Würfelblase', JSON.stringify(mech.blase)]);
+          if (!sub?.won) { log.push(['FEHLER: Würfelblase nicht besiegt']); break; }
+          continue;
+        }
+        // ------------------------------------------------ Warp-Box anspringen (hineinfallen)
+        if (Lg.warp) {
+          const wb = named(Lg.warp);
+          let k = 0;
+          const x0 = p.pos.x, z0 = p.pos.z;
+          for (; k < 900 && Math.hypot(p.pos.x - x0, p.pos.z - z0) < 25; k++) {
+            const dx = wb.pos.x - p.pos.x, dz = wb.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            tick({ ...(p.mode === 'air' ? this.airSteer(wb.pos.x, wb.pos.z, 0, 0, 3, 6) : this.stick(dx, dz, Math.max(0.3, Math.min(1, d)))), jump: p.mode === 'ground' ? d < 1.8 && (k % 40) < 16 : p.vel.y > 0 });
+          }
+          for (let i = 0; i < 60; i++) tick({});
+          log.push(['Warp-Box', !wb.hidden, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (k >= 900) { log.push(['FEHLER: Warp-Box']); break; }
+          continue;
+        }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)
         const max = Lg.max ?? 900;
         const within = Lg.within ?? 0.6;
@@ -515,6 +673,11 @@ function install() {
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
           }
           if (j0 === null && Lg.jumpAt && dist <= Lg.jumpAt) j0 = i;
+          // spätestens an der Kante abspringen (sonst fiele der Bot von Wolke/Bühne, bevor jumpAt erreicht ist)
+          if (j0 === null && Lg.jumpAt && Lg.edgeJump && p.mode === 'ground' && dist > 0.6) {
+            const ux = dx / dist, uz = dz / dist, h = c.world.raycastDown(p.pos.x + ux * 0.45, p.pos.y + 0.6, p.pos.z + uz * 0.45, 1.2);
+            if (!h || h.y < p.pos.y - 0.4) j0 = i;
+          }
           const jump = (holdJ && j0 !== null ? (i - j0 >= 0 && i - j0 < holdJ) : false) || auto > 0;
           if (auto > 0) auto--;
           tick({ ...st, run: Lg.run ?? false, jump });
