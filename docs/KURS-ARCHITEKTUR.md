@@ -5613,3 +5613,113 @@ Zielmast; Tod setzt jeden Kampf zurück · Teil 4 Bilder `tests/out/w6e_*.png` u
 (≤ 169 k, Thema fortress); Simulation im Zoo (≈ 44 Entitäten) 0,09–0,34 ms je Schritt. Regressionen `course_enemies`,
 `course_w5_enemies` (1–3), `course_hw_enemies` (1–3), `course_w2_enemies`, `course_w1_combat`, `course_physics`,
 `course_w6_blocks` (mech) bestanden.
+
+## Präzisierung (Level 6-5, 6-6 und 6-Haus)
+
+Additiv zur Welt-6-Liste: Titel und Besonderheiten der Level 6-5, 6-6 und 6-Haus. Dateien `src/course/levels/w6/6-5.js`,
+`6-6.js`, `6-Haus.js`, eigene Hilfen `src/course/levels/w6/_helpers_c.js` (kein `LEVEL`, nur für diese drei Level; nutzt
+die Welt-4-Hilfen `w4/_helpers_d.js` mit), Test `tests/course_w6c.mjs`. Kein Motor-Code geändert; alle Sonderteile sind
+level-lokal (Hilfsdatei, Haken `LEVEL.build`/`LEVEL.setup`, `level.onStep`).
+
+### 6-5 „Pustewind am Eisgipfel“ (parcours · snowwind · course_snowwind · 400 s)
+
+- Verschneite Gipfel über dem Wolkenmeer, ≈ 270 m nach −Z, hinab (y 0 → −10,5) und per Glasröhren wieder hinauf (y 4).
+  Abschnitte: **Schneestart** (Iglu, Skihütte, Holzzaun, Schneemann, Schlittschuh; Treppe ?-Block → versteckter Block →
+  ?-Block; rechts die Rampe zur Stachelplattform) → **Eissee** (16 × 40 m, Eisläufer-Pilzlinge, Schneeufer statt Eiskante,
+  Laternen) → **Pustewolken-Hang** (drei Hangstücke mit Absätzen, Slalomstangen; vier Pustewolken ≈ 1,4 m über dem Weg
+  pusten quer, Schneewälle mit Lücken dort, wohin sie pusten) → **Glasröhre 1** hinab → **zweiter Eissee** (Checkpoint,
+  Schlittschuh, Pustewolke; rechts die Stachelbrücke zur Rätselbox) → **windiger Abgrund** (vier Schneeschollen 5,2 m breit,
+  Lücken 5,5 m; zwei quer blasende Windböen `windfeld` strength 9, period 4,2 / on 1,6 / warn 1,0 mit Windfahnen; über der
+  dritten Lücke ein Aufwind `dir [0, 1, 0]` strength 10; Checkpoint 2 auf der vierten Scholle) → **Glotzfisch-Bucht** (sechs
+  Eisschollen im Wasser, je ein Glotzfisch quer über jeder Lücke, Löcher y = Wasseroberfläche mit Eisring) → **Glasröhre 2**
+  hinauf → **Gipfel** (Zielmast, Wimpel, Kiefern).
+- Pustewolken nur am Hang und am zweiten Eissee, nie über den Windböen-Abgründen (Hinweis „Hinweise für Level-Bauer“).
+- Sterne: 0 hoch über der Start-Treppe – den **versteckten Block** (Unterkante 4,0 m, vom Boden erreichbar) von unten
+  aufdecken, dann ?-Block (Oberkante 4) → versteckter Block (5) → ?-Block (8,2) → Stern (11,4); ohne den versteckten Block
+  reicht der Sprung vom ersten ?-Block nicht · 1 Rätselbox hinter der **Stachelbrücke** (nur mit Schlittschuh unverletzt)
+  → Schlittschuh-Bahn bei x 90: Eisfläche 34 × 34 m, Schneeinsel in der Mitte, **Stachelrahmen** (4 × `stachelboden`)
+  ringsum; Zeitring auf dem Rahmen startet acht blaue Münzen auf einem Kreis r 6,9 m (ganz auf den Stacheln) in 10 s →
+  Stern auf der Insel · 2 im **Aufwind**: während der Böe in die dritte Lücke springen, er trägt ≈ 6 m hoch zum Stern,
+  dann auf die vierte Scholle; in der Ruhe reicht der Sprung nicht. Stempel: **Stachelplattform** am Start (12 × 12 m) –
+  mit Schlittschuh die Rampe hinauf und über die Stacheln (Rampe bündig mit der Stachel-Oberkante 1,25 m).
+- Extraleben: der versteckte Block an der Treppe (1-up). Checkpoints: zweiter Eissee, vierte Scholle. Gegner: Pustewolke 5,
+  Glotzfisch 5, Eisläufer-Pilzling 3; Schlittschuhe 3 (Start, Checkpoint, Bahn; `respawn`).
+- Budget: `eisflaeche` mit `edge: false` (die Eiskante kostet ≈ 110 k Dreiecke je See), niedrige Schneeufer (`bank`)
+  als Rand; Kulisse verschmolzen (`LEVEL.build`): Slalomstangen, Zäune (mit Kollision), Skihütte, Eiszapfen an allen
+  Schollen, Eiskristalle, Eislöcher, Wimpelketten.
+- `rampenKameraFrei(level)`: `CollisionWorld.raycast` prüft Rampen als ganzen Hüllquader – an Hängen rückte die Kamera
+  bis auf 3 m heran (Blick über die Schräge). Der Haken setzt `camIgnore` auf allen Rampen dieses Levels.
+
+### 6-6 „Kanonenturm im Wolkenwerk“ (parcours · factory · course_factory · 500 s)
+
+- Senkrechte Maschinenhalle in den Wolken, Höhen 0 → 14 → 20 → 30 → 34 → 44 → 54 → 59, ≈ 225 m nach −Z. Abschnitte:
+  **Werkstor** (Kessel, Schlot, Rohre, Schaltpult) → **Kletterwand** (`klettergitter` an einem 14 m hohen Maschinenblock,
+  `wall: false`; Projektilkopf-Kanone am Pfeiler daneben) → **Schlot** mit senkrechtem Stufen-Förderband (`foerderband`
+  `mode: 'wand'`, `ledges` 2,2) → **Wolken** (feste und pendelnde `wolkenplattform`) → **Deck C1** mit Gegenband
+  (Pilzlinge reiten mit) und Kanone, **Aufzugsband** (Wand-Förderband mit Stufen) → **Deck C2** mit Querband,
+  verschwindende Wolken → **Warp-Box** (einziger Weg zum Checkpoint-Deck) → **Checkpoint-Deck** mit Rätselbox →
+  **Kanonen-Floß** (`vehicle` `mode: 'once'`, fährt erst, wenn eine Figur darauf steht; drei mitfahrende Kanonen schießen
+  Projektilköpfe nach +Z der Figur entgegen) → **obere Wolken** → **Riesenkanone** (`riesenkanone` `hidden`, schießt
+  Riesenprojektile über die Lücke – draufspringen und mitfahren) → **Förderband-Turm** (Deck mit Krallen-?-Block und
+  Krallen-Automat; drei Bandwände ohne Stufen nur mit **Krallen-Anzug** zu erklimmen, Terrassen 44/54; Kanone auf
+  Terrasse 1) → **Ziel** (y 59, Zielmast).
+- Sterne: 0 oben auf dem Schlot (Stufen-Förderband hinauf, höchster Punkt des ersten Abschnitts) · 1 Rätselbox →
+  Förderband-Raum (x 80): Zeitring, acht blaue Münzen rund um ein **Rundband** (`mode: 'rund'`, Mitnehmer tragen über
+  die Oberseite) in 10 s; Stern versteckt bis zum Erfolg · 2 linkes Stufen-Förderband am Turm (14 m) hinauf, über den
+  roten Steg nach rechts. Stempel: auf dem Ziel-Deck von einem **Ziegel** auf dem Sockel hochspringen (zerstampft man den
+  Ziegel, reicht der Sprung vom Sockel nicht).
+- Extraleben: versteckter Block über dem Aufzugsband (Deck C2). Checkpoints: Checkpoint-Deck (nur per Warp-Box),
+  Turm-Deck. Gegner: Projektilkopf-Kanone 7 (davon 3 auf dem Floß), Riesenkanone 1, Pilzling 4.
+- Hilfen: `startBeimDraufstehen(level, id)` (Fahrzeug `delay` = ∞, bis eine Figur auf seinem `mover` steht; Neustart
+  setzt zurück), `krallenAutomat(level, { pos })` (legt einen Krallen-Anzug aus, wenn die Figur keinen hat und keiner
+  in 3 m liegt – nach Verlust immer Nachschub), `traeger` (Fachwerkträger), `zahnraeder`, `dampf`. Wand-Förderbänder
+  0,12 m vor die Turmfront gesetzt, damit die Kralle die Bandfläche statt der Insel trifft.
+- Kulisse verschmolzen: rote Träger mit Signallampen, Warnstreifen, Nieten, bunte Kisten/Fässer (mit Kollision),
+  Schaltpulte, Turmfassaden mit Fenstern, rot-weiß geringelte Werksschlote im Wolkenmeer, Wimpel, rotes Floß.
+
+### 6-Haus „Haus Volltreffer“ (house · house · course_house · 5 Räume à 10 s, `fail: 'exit'`)
+
+- Prüfungs-Haus mit **Wurfbällen** (14, je mit `roomId`), fünf Räume nach −Z (je 64 m Abstand), jeder mit eigener Tapete
+  (`tapete`: kugeln, theater, sterne, zoo, kirmes), Bildern, Uhren, Möbeln. Räume (Ziel):
+  1. **Kullerbahn** (reach) – vom Balkon den Ball in die Rinne werfen; eine Klappwand fängt zu hohe Würfe, die Rinne
+     (`kullerRinne`: Hangbeschleunigung und Zentrierung des Balls, weil der Wurfball nur am Boden beschleunigt) führt durch
+     den **Mäusetunnel** ins **Mauseloch** (0,56 m hoch – die Figur passt auch geduckt nicht) in die Stube des
+     Mäusehauses auf den Stern; Glas darüber, Bällebad links und rechts.
+  2. **Bühne frei** (reach) – Kraftfeld, Orchestergraben, rote **Hebebühne** trägt den Stern (`sternFolgt`): werfen,
+     wenn sie oben ist; Vorhänge, Scheinwerferkegel.
+  3. **Sprungfeld** (reach) – Trampolin vor dem Kraftfeld (bis 12 m hoch), dahinter ein Ringelturm mit **Druckschalter**
+     oben: im Scheitel des Trampolinsprungs den Ball von oben auf den Schalter werfen → der Stern erscheint über dem
+     Trampolin (`sternVersteckt`), Münzsäule.
+  4. **Pilzling-Gehege** (defeatAll) – sechs Pilzlinge in der Grube hinter dem Kraftfeld, **POW** auf einem gelben
+     Sockel: Ball auf den POW werfen.
+  5. **Schießbude** (reach) – Bühne mit fünf Bällen auf einem Tablett, fünf **Zielscheiben** (`zielscheibe` group
+     `ziele5`, `onAll` → Stern auf der Bühne); alle fünf in 10 s treffen.
+- **Kraftfeld** (`kraftfeld`): Kasten mit `solid: true, trigger: true` (+ `camIgnore`, `noWallSlide`) – die Figur stößt
+  an, der Wurfball ignoriert `trigger`-Formen und fliegt hindurch; flimmernde Wabenfläche und Schild „NUR BÄLLE!“ seitlich.
+- `raumHaken` setzt beim Raumstart Zielscheiben und Druckschalter zurück; Zeitablauf verlässt das Haus mit den
+  bisherigen Sternen.
+
+### Test `tests/course_w6c.mjs`
+
+Port 4660 (+ `PORT_BASE`), Aufruf `node tests/course_w6c.mjs [6-5|6-6|6-Haus]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,shots,haus,haus-extra` (je Lauf < 10 min), `HEROES=lotti,greta`, `ONLY=<Text>`,
+`VERBOSE=1`, `SHOTS=<Name|Name>`, `DETAIL=1`, `RAUM=n`, Fehlersuche `PARTS=probe FROM=… LEGS=… TRACE=1`; Bilder
+`tests/out/w6c_*.png`. Bot mit echter Eingabe; Beine u. a. `fence` (Klettergitter, wartet, bis ein Projektilkopf vorbei
+ist), `lift` (Stufe des Wand-Förderbands abpassen), `ride` (Floß, Köpfen ausweichen), `bullet` (Anlauf, auf das
+Riesenprojektil springen), `climb` (Krallen), `cleat` (Mitnehmer des Rundbands), `circle` (Kreisfahrt auf dem
+Schlittschuh, Radius geregelt), `waitWind` (Böe abwarten bzw. `waitFor: 'boe'`), `fishFree` (kein Glotzfisch lugt oder
+springt in der Nähe), `vmax` (Schlittschuh-Tempo begrenzen), `straight` (Stick stur geradeaus: „naiver“ Sprung); Haus-Bot
+(Ball greifen, ausrichten, werfen; Hebebühne oben abpassen; Trampolin-Scheitel; fünf Scheiben).
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel **ohne Treffer**
+(6-5 ≈ 49 s mit zwei Glasröhren und drei abgewarteten Windlücken; 6-6 ≈ 63 s mit Klettergitter, Aufzugsband, Warp-Box,
+Floß, Riesenprojektil, drei Bandwänden mit Krallen); alle Sterne und Stempel mit Gegenproben (ohne versteckten Block,
+ohne Schlittschuh verletzen die Stacheln, ohne Aufwind, ohne Aufzugsband, Zeitablauf der Rätselbox, ohne Ziegel,
+Bandwand ohne Krallen, Checkpoint-Deck nicht per Weitsprung, Böe verweht den naiven Sprung); Extraleben, Checkpoints;
+6-Haus: alle fünf Räume je < 10 s (Lotti und Greta, ≈ 5,5 / 3,7 / 3,2 / 1,7 / 4,3 s), Ergebnis 5/5 gespeichert,
+Gegenproben (Mauseloch, Kraftfelder halten die Figur auf, Wurf bei unten stehender Bühne verfehlt, Stern 3 versteckt bis
+zum Schalter, Zeitablauf → Haus verlassen mit 2 von 5 Sternen). Gemessen (scale 2, inkl. Schattenpass): 6-5 Messgang
+≤ 54 Zeichenaufrufe / ≤ 148 k Dreiecke · 6-6 ≤ 84 / ≤ 148 k (Bilder an den Stern-Zielen bis 90 / 166 k) · 6-Haus je Raum
+27–44 / ≤ 111 k.
+Wünsche an den Motor: `CollisionWorld.raycast` für Rampen genau (statt Hüllquader; dann entfällt `rampenKameraFrei`),
+günstigere Eiskante für große `eisflaeche`, Wurfball-Hangbeschleunigung auch in kurzen Luftphasen (dann entfällt
+`kullerRinne`).
