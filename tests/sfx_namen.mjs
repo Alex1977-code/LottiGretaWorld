@@ -186,7 +186,7 @@ export function scanSfxNames({ src = SRC, known = SFX_NAMES } = {}) {
     const code = stripComments(raw);
     const lineOf = (pos) => code.slice(0, pos).split('\n').length;
     // Aufrufe: Bezeichner „sfx“ oder „…Sfx“ direkt vor „(“
-    for (const m of code.matchAll(/([A-Za-z_$][\w$]*)\s*\(/g)) {
+    for (const m of code.matchAll(/([A-Za-z_$][\w$]*)\s*(?:\?\.\s*)?\(/g)) {
       const fn = m[1];
       if (!/(^sfx|Sfx)$/.test(fn) || NOT_PLAYERS.has(fn)) continue;
       const open = m.index + m[0].length - 1;
