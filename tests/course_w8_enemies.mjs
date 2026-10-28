@@ -1028,7 +1028,7 @@ S.schubser = await SHOT('w8e', 'schubser_minis', () => {
 });
 S.riesenrad = await SHOT('w8e', 'riesenrad_schubser', () => {
   const c = window.__course, t = window.__t;
-  t.place([4, 1, -205], { settle: 120 });
+  t.place([-3, 1, -207], { settle: 240 });
   t.face(-8, -219);
 });
 S.massen = await SHOT('w8e', 'massen_44_kreisgeister_24_knochenflieger', () => {

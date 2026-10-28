@@ -47,7 +47,11 @@ export const LEVEL = {
   music: 'course_dunes',
   timeLimit: 999,
   start: { pos: [0, Y, 6], yaw: Math.PI / 2 },
-  camera: [{ from: 14, to: -250, pitch: 45, dist: 13, yaw: 0 }],
+  camera: [
+    { from: 14, to: -203, pitch: 45, dist: 13, yaw: 0 },
+    // Riesenrad: flacher und weiter weg, damit das ganze Rad (10 m) mit den Gondeln im Bild ist
+    { from: -203, to: -250, pitch: 10, dist: 22, yaw: 0, height: 5, ahead: 6 },
+  ],
   segments: [
     { type: 'island', pos: [0, -1, -112], size: [42, Y + 1, 260], top: 'sand', under: 1.5 },
     { type: 'killplane', y: -16 },
