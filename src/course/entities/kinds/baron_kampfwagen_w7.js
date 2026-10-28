@@ -475,8 +475,9 @@ class BaronKampfwagen extends CourseEntity {
     this.drive(dt);
     this.pushFigures();
     this.aimAssist(dt);
+    if (this.state !== 'hit' && this.state !== 'stunned') this.attackCool -= dt;
     switch (this.state) {
-      case 'drive': this.maybeAttack(dt); break;
+      case 'drive': this.maybeAttack(); break;
       case 'throw':
         if (!this.released && this.stateT >= THROW * RELEASE) { this.released = true; this.throwBombs(); }
         if (this.stateT >= THROW) this.setState('drive');
@@ -555,8 +556,7 @@ class BaronKampfwagen extends CourseEntity {
     }
   }
 
-  maybeAttack(dt) {
-    this.attackCool -= dt;
+  maybeAttack() {
     const p = this.level.nearestPlayer(this.pos);
     if (this.attackCool > 0 || !activeFigure(p) || this.jump) return;
     // keine Angriffe kurz vor einem Sprung
@@ -630,26 +630,47 @@ class BaronKampfwagen extends CourseEntity {
     this.level.effects?.sparks(m, 10);
   }
 
-  /** Gekickte Bomben, die grob auf den Wagen zurollen (±53°), lenken zu ihm ein und rollen bis zu ihm. */
+  /**
+   * Zielhilfe: gekickte Bomben, die grob auf den Wagen zurollen (±53°), lenken zu ihm ein (über Mittellücken zur Fahrspur),
+   * rollen bis zu ihm (Lunte hält) und **hüpfen über Lavalücken** (vor einer Lücke mit fester Fahrbahn dahinter).
+   */
   aimAssist(dt) {
     const road = this.road;
     for (const e of this.level.entities) {
       if (e.kind !== 'kickbombe' || !e.kicker || e.state !== 'kicked' || e.removed) continue;
       let tx = clamp(e.pos.x, this.pos.x - 1.1, this.pos.x + 1.1);
-      const mid = road?.midAt(e.pos.z + 0.4, e.pos.z - 0.4) ?? road?.midAt(this.pos.z + HALF_L, this.pos.z - HALF_L);
-      if (mid) tx = road.cx + Math.sign(e.pos.x - road.cx || 1) * Math.max(Math.abs(tx - road.cx), mid.half + 0.35);
+      const mid = road?.midAt(e.pos.z + 0.4, e.pos.z - 4) ?? road?.midAt(this.pos.z + HALF_L, this.pos.z - HALF_L);
+      if (mid) tx = road.cx + Math.sign(e.pos.x - road.cx || 1) * Math.max(Math.abs(tx - road.cx), mid.half + 0.45);
       const tz = this.pos.z + HALF_L;
       const dx = tx - e.pos.x, dz = tz - e.pos.z, d = Math.hypot(dx, dz);
       if (d > 24 || d < 0.3) continue;
       const ux = dx / d, uz = dz / d;
       if (e.dir.x * ux + e.dir.z * uz < 0.6) continue;
       const cross = e.dir.x * uz - e.dir.z * ux;
-      const a = clamp(Math.asin(clamp(cross, -1, 1)), -2.5 * dt, 2.5 * dt);
+      const rate = mid ? 6 : 2.5;
+      const a = clamp(Math.asin(clamp(cross, -1, 1)), -rate * dt, rate * dt);
       const c = Math.cos(a), s = Math.sin(a);
       const nx = e.dir.x * c - e.dir.z * s, nz = e.dir.x * s + e.dir.z * c;
       e.dir.x = nx; e.dir.z = nz;
       e.rollSpeed = Math.max(e.rollSpeed, 7);
       e.fuse = Math.max(e.fuse, 0.6);
+      // Lavalücke voraus, dahinter Fahrbahn: hüpfen (Bogen 0,7 s)
+      if (road && e.grounded) {
+        const ah = e.half.x + 0.35;
+        const ax = e.pos.x + e.dir.x * ah, az = e.pos.z + e.dir.z * ah;
+        if (!road.solidAt(ax, az)) {
+          for (const L of [2.5, 3.5, 4.5]) {
+            if (!road.solidAt(e.pos.x + e.dir.x * L, e.pos.z + e.dir.z * L, 0.3)) continue;
+            const v = Math.max(e.rollSpeed, (L + 0.5) / 0.7);
+            e.vel.set(e.dir.x * v, 14, e.dir.z * v);
+            e.grounded = false;
+            e.setState('air');
+            e.hops = (e.hops ?? 0) + 1;
+            this.level.sfx('hop');
+            break;
+          }
+        }
+      }
     }
   }
 

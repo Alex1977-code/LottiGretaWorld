@@ -487,10 +487,363 @@ const ff = await sc(() => {
   return out;
 });
 console.log(`  Funkenflämmchen: ${JSON.stringify(ff)}`);
-check(`Funkenflämmchen hüpft (${ff.hop.hops} Hüpfer, ${ff.hop.apex} m hoch) und bleibt auf dem Podest (y ≥ ${ff.hop.minY}); geradeaus kehrt es an den Kanten um (x ${ff.hop.gx.join(' … ')})`, ff.hop.hops >= 10 && Math.abs(ff.hop.apex - 0.45) < 0.08 && ff.hop.minY > 1.95 && ff.hop.gx[0] > -16.6 && ff.hop.gx[1] < -6.4 && ff.hop.gx[1] - ff.hop.gx[0] > 6);
+check(`Funkenflämmchen hüpft (${ff.hop.hops} Hüpfer, ${ff.hop.apex} m hoch) und bleibt auf dem Podest (y ≥ ${ff.hop.minY}); geradeaus kehrt es an den Kanten um (x ${ff.hop.gx.join(' … ')})`, ff.hop.hops >= 10 && Math.abs(ff.hop.apex - 0.45) < 0.08 && ff.hop.minY > 1.95 && ff.hop.gx[0] > -16.6 && ff.hop.gx[1] < -6.4 && ff.hop.gx[1] - ff.hop.gx[0] > 5);
 check('Heiß: Berührung und Draufspringen verletzen; Feuer prallt ab; Tatze und Wurfsichel besiegen', ff.touch === true && ff.stomp.hurt && ff.hits.fire === false && ff.hits.claw && ff.sichel);
 check(`Jäger hüpft auf die Figur zu (${ff.chase.before} → ${ff.chase.after} m); Wasser löscht es`, ff.chase.after < ff.chase.before - 2 && ff.water.defeated);
 check('Keine Konsolenfehler (Teil 1)', errors.length === 0);
+if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
+}
+
+// =====================================================================================================================
+// Teil 3: Endgegner (0-28)
+// =====================================================================================================================
+const BOSS_HELPERS = () => {
+  const c = window.__course, t = window.__t, L = c.level;
+  t.arch = () => c.state().archetype;
+  /** Arena betreten: von start in Richtung −z gehen, bis der Kampf mit Endgegner id beginnt. */
+  t.enter = (start, id) => {
+    t.place(start, { settle: 2 });
+    for (let i = 0; i < 1200 && !(c.arch.started && c.arch.boss === t.ent(id)); i++) { c.setInput({ y: 0.6 }); c.step(1); }
+    c.setInput({});
+    return t.arch();
+  };
+  t.banners = [];
+  const hud = c.arch?.hud;
+  if (hud && !hud._w7) { const orig = hud.banner.bind(hud); hud.banner = (text, o) => { t.banners.push(text); orig(text, o); }; hud._w7 = true; }
+  t.untilState = (b, s, n = 3000, pos = null) => t.until(() => b.state === s, n, pos);
+  t.action = (o = {}) => { c.setInput({ action: true, ...o }); c.step(1); c.setInput({}); c.step(1); };
+  /** Lavabrocken des Königs b betäuben und aufheben → Brocken | null. */
+  t.grab = (b) => {
+    const p = c.player;
+    let br = null;
+    p.hurt = () => false;
+    for (let i = 0; i < 1200 && !br; i++) { br = L.entities.find((e) => e.kind === 'lavabrocken' && !e.removed && !e.defeated && e.owner === b && e.grounded) ?? null; if (!br) c.step(1); }
+    if (!br) { delete p.hurt; return null; }
+    const ax = b.arena.x - br.pos.x, az = b.arena.z - br.pos.z, al = Math.hypot(ax, az) || 1;
+    t.place([br.pos.x + (ax / al) * 0.9, br.pos.y, br.pos.z + (az / al) * 0.9], { settle: 2 });
+    p.hurt = () => false;
+    if (br.state !== 'stunned') br.stun();
+    t.face(br.pos.x, br.pos.z);
+    t.action();
+    delete p.hurt;
+    return p.holding === br ? br : null;
+  };
+  /** Gehaltenen Brocken aus dist m auf den König b werfen (wartet auf Zustand wait). */
+  t.throwAt = (b, dist = 4, wait = 'rest') => {
+    const p = c.player, br = p.holding;
+    if (!br) return { thrown: false };
+    p.hurt = () => false;
+    for (let i = 0; i < 3000 && b.state !== wait; i++) { p.vel.set(0, 0, 0); c.step(1); }
+    const ax = b.arena.x - b.pos.x, az = b.arena.z - b.pos.z, al = Math.hypot(ax, az) || 1;
+    const hp0 = b.hp;
+    p.pos.set(b.pos.x + (ax / al) * dist, b.pos.y + 0.05, b.pos.z + (az / al) * dist);
+    p.vel.set(0, 0, 0);
+    t.face(b.pos.x, b.pos.z);
+    c.step(1);
+    t.action();
+    for (let i = 0; i < 120 && !br.removed && br.state === 'thrown'; i++) c.step(1);
+    delete p.hurt;
+    return { hit: b.hp < hp0, hp: b.hp, state: b.state };
+  };
+  /** Baron: Figur läuft im Kampffenster mit (9 m hinter dem Wagen auf fester Fahrbahn, unverwundbar) – ein Schritt. */
+  t.follow = (b) => {
+    const p = c.player, road = t.ent('strasse');
+    let z = Math.min(b.pos.z + 9, b.backZ - 0.2);
+    for (let k = 0; k < 30 && !road.solidAt(b.pos.x, z, 0.5); k++) z += 0.5;
+    p.pos.set(b.pos.x, 2, z); p.vel.set(0, 0, 0);
+    p.hurt = () => false;
+    c.step(1);
+    delete p.hurt;
+  };
+  t.untilB = (b, f, n) => { let i = 0; for (; i < n && !f(); i++) t.follow(b); return i; };
+  /** Baron: gelandete Kickbombe im Fenster zurückkicken (Figur 1 m dahinter, läuft auf sie zu) → { kicked, hit }. */
+  t.kickBack = (b, n = 120 * 20) => {
+    const p = c.player;
+    let bomb = null;
+    for (let i = 0; i < n && !bomb; i++) {
+      bomb = L.entities.find((e) => e.kind === 'kickbombe' && !e.removed && !e.kicker && e.owner === b && e.state === 'lit' && e.grounded && e.pos.z < b.backZ - 1.3) ?? null;
+      if (bomb && !b.vulnerable) bomb = null;
+      if (!bomb) t.follow(b);
+    }
+    p.hurt = () => false;
+    if (!bomb) { delete p.hurt; return { kicked: false, hit: false }; }
+    const h0 = b.hits;
+    p.reset([bomb.pos.x, bomb.pos.y + 0.05, bomb.pos.z + 1.0], Math.PI / 2);
+    c.step(1);
+    for (let k = 0; k < 60 && !bomb.kicker; k++) { c.setInput({ y: 1 }); c.step(1); }
+    c.setInput({});
+    const kicked = !!bomb.kicker;
+    for (let k = 0; k < 300 && !bomb.removed; k++) c.step(1);
+    delete p.hurt;
+    return { kicked, hit: b.hits > h0, short: !!bomb.shortFuse };
+  };
+};
+
+if (want(3)) {
+await load('0-28');
+await sc(BOSS_HELPERS);
+console.log('Teil 3: Endgegner 0-28');
+
+// ---- heller Lavafelsen-König (7-A)
+const kg = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const b = t.ent('koenig7');
+  const out = {};
+  out.before = { state: b.state, model: t.model(b), variant: b.variant, fish: b.fishList.length };
+  const a = t.enter([0, 2, 19], 'koenig7');
+  out.start = { started: a.started, active: a.active, name: a.hud?.boss?.name, lock: a.lock };
+  t.untilState(b, 'summon', 1200, [0, 2, 8]);
+  c.step(2);
+  const fish = b.fishList.map((f) => {
+    const [h0, h1] = f.holes;
+    const mx = (h0.x + h1.x) / 2, mz = (h0.z + h1.z) / 2;
+    return { r0: t.r2(Math.hypot(h0.x, h0.z)), mid: t.r2(Math.hypot(mx, mz)), ang: t.r2(Math.atan2(mz, mx)) };
+  });
+  out.fish1 = { n: b.fishList.length, fish };
+  // ein Platschfisch springt über den Arenarand (Figur am Rand wird getroffen)
+  const f0 = b.fishList[0];
+  let jumpedIn = false;
+  t.until(() => { if (f0.state === 'jump' && Math.hypot(f0.pos.x, f0.pos.z) < 10.4 && f0.pos.y > 2) jumpedIn = true; return jumpedIn; }, 120 * 8, [0, 2, 8]);
+  out.fishJump = jumpedIn;
+  // Treffer nur durch geworfene Lavabrocken (3×), Phase 2 → 3 Fische, Phase 3 → 4 Fische
+  const hits = [];
+  for (let k = 0; k < 3; k++) {
+    const br = t.grab(b);
+    const w = br ? t.throwAt(b, 4, 'rest') : { hit: false };
+    hits.push({ grabbed: !!br, ...w, fish: b.fishList.length });
+    if (b.hp > 0) { t.untilState(b, 'summon', 120 * 8, [0, 2, 8]); c.step(2); hits[hits.length - 1].fishAfter = b.fishList.length; }
+  }
+  out.hits = hits;
+  out.banners = t.banners.slice();
+  t.untilState(b, 'gone', 120 * 8, [0, 2, 8]);
+  c.step(4);
+  out.gone = { state: b.state, won: t.arch().won, warp: t.ent('warp_a').hidden, star: t.count('star'), fish: t.count('platschfisch', (f) => f.owner === b && !f.defeated) };
+  const star = L.entities.find((e) => e.kind === 'star' && !e.removed);
+  if (star) t.place([star.pos.x, star.pos.y, star.pos.z], { settle: 60 });
+  out.starTaken = !L.entities.some((e) => e.kind === 'star' && !e.removed);
+  const w = t.ent('warp_a');
+  t.place([w.pos.x, w.pos.y + 1.6, w.pos.z], { settle: 0 });
+  let arrived = false;
+  for (let i = 0; i < 1600; i++) { c.step(1); if (p.pos.z < -40 && p.mode !== 'script') { arrived = true; break; } }
+  out.warp = { arrived, z: t.r2(p.pos.z) };
+  return out;
+});
+console.log(`  Heller König: ${JSON.stringify(kg)}`);
+check(`Heller Lavafelsen-König: Variante ${kg.before.variant}, Modell ${kg.before.model}; Kampf beginnt beim Betreten (${kg.start.name}, Sperre)`, kg.before.variant === 'hell' && kg.before.model === 'lavafelsen_koenig' && kg.before.fish === 0 && kg.start.started && kg.start.active === 'koenig7' && kg.start.lock);
+check(`Platschfische rings um die Arena (${kg.fish1.n}; Löcher r ${kg.fish1.fish.map((f) => f.r0).join('/')}, Sehnen bis r ${kg.fish1.fish.map((f) => f.mid).join('/')}), Steg frei, springen über den Rand`,
+  kg.fish1.n === 2 && kg.fish1.fish.every((f) => Math.abs(f.r0 - 12) < 0.05 && f.mid < 10.4 && Math.abs(f.ang - Math.PI / 2) > 0.9) && kg.fishJump);
+check(`Nur geworfene Lavabrocken treffen: 3 Treffer (${kg.hits.map((h) => h.hp).join(' → ')}), je Phase mehr Platschfische (${kg.hits.map((h) => h.fishAfter ?? '-').join(', ')})`,
+  kg.hits.every((h) => h.grabbed && h.hit) && kg.hits[2].hp === 0 && kg.hits[0].fishAfter === 3 && kg.hits[1].fishAfter === 4);
+check(`Ansagen wie 4-Burg (${kg.banners.filter((x) => /Lavabrocken|schneller|heiß/.test(x)).join(' | ')})`, kg.banners.includes('Wirf Lavabrocken auf ihn!') && kg.banners.includes('Er rollt schneller!') && kg.banners.includes('Jetzt wird es heiß!'));
+check('Sieg: Platschfische weg, Stern, Warp-Box; Stern einsammeln, Warp-Box → Käfig B', kg.gone.state === 'gone' && kg.gone.won && kg.gone.warp === false && kg.gone.star === 1 && kg.gone.fish === 0 && kg.starTaken && kg.warp.arrived);
+
+// ---- blauer Schubser-Prinz (7-B)
+const pr = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const b = t.ent('prinz7');
+  const ZB = -60;
+  const out = {};
+  out.before = { model: t.model(b), blue: b.blue };
+  const a = t.enter([0, 2, ZB + 14], 'prinz7');
+  out.start = { started: a.started, active: a.active, name: a.hud?.boss?.name };
+  // Spucken: 3 blaue Feuerkugeln nacheinander auf einer Bogenbahn
+  const fig = [5, 2, ZB + 4];
+  t.untilState(b, 'fire', 2400, fig);
+  const balls = [];
+  const seen = new Set();
+  t.until(() => {
+    for (const e of L.entities) if (e.kind === 'feuerkugel' && e.owner === b && !seen.has(e)) { seen.add(e); balls.push({ e, t0: L.time, yaw0: Math.atan2(-e.vel.z, e.vel.x), yaw1: null }); }
+    for (const x of balls) if (!x.e.removed && L.time - x.t0 < 0.8) x.yaw1 = Math.atan2(-x.e.vel.z, x.e.vel.x);
+    return b.state === 'aim' && balls.length > 0;
+  }, 600, fig);
+  c.step(60);
+  out.volley1 = { n: balls.length, color: balls[0]?.e.color, model: t.model(balls[0]?.e), turn: balls.map((x) => t.r2(Math.abs(Math.atan2(Math.sin(x.yaw1 - x.yaw0), Math.cos(x.yaw1 - x.yaw0))))), t: balls.map((x) => t.r2(x.t0 - balls[0].t0)) };
+  // Treffer über die Röhren (wie 6-A): stoßen → steckt → zweiter Stoß → gequetscht heraus → Tritt
+  const kick = (pipeZ, side) => {
+    t.untilState(b, 'aim', 2400, [0, 2, ZB + 6]);
+    const mx = side < 0 ? -6.5 : 6.5;
+    b.pos.set(mx, 2, ZB + pipeZ); b.vel.set(0, 0, 0); b.slide.x = 0; b.slide.z = 0;
+    t.place([mx - side * 3.2, 2, ZB + pipeZ], { settle: 1, yaw: side < 0 ? Math.PI : 0 });
+    for (let i = 0; i < 60 && b.state === 'aim'; i++) { c.setInput({ x: side, run: true }); c.step(1); }
+    c.setInput({});
+    for (let i = 0; i < 300 && b.state !== 'stuck'; i++) c.step(1);
+    const stuck = b.state === 'stuck';
+    t.place([b.pos.x - side * 2.6, 2, b.pos.z], { settle: 1, yaw: side < 0 ? Math.PI : 0 });
+    for (let i = 0; i < 120 && b.state === 'stuck'; i++) { c.setInput({ x: side, run: true }); c.step(1); }
+    c.setInput({});
+    for (let i = 0; i < 900 && b.state !== 'stunned'; i++) c.step(1);
+    const hp0 = b.hp;
+    const st = t.stomp(b, { h: 0.8 });
+    return { stuck, trip: b.tripLog[b.tripLog.length - 1], hit: b.hp < hp0, hp: b.hp, bounced: st.bounced };
+  };
+  out.hit1 = kick(0, -1);
+  const volley = () => {
+    t.untilState(b, 'fire', 2400, [5, 2, ZB + 4]);
+    const s0 = new Set();
+    t.until(() => { for (const e of L.entities) if (e.kind === 'feuerkugel' && e.owner === b) s0.add(e); return b.state === 'aim'; }, 600, [5, 2, ZB + 4]);
+    return s0.size;
+  };
+  out.v2 = volley();
+  out.ph2 = t.banners.slice(-2);
+  out.hit2 = kick(6, 1);
+  out.v3 = volley();
+  out.ph3 = t.banners.slice(-2);
+  out.hit3 = kick(-6, -1);
+  t.untilState(b, 'gone', 900, [5, 2, ZB + 4]);
+  c.step(4);
+  out.gone = { state: b.state, won: t.arch().won, warp: t.ent('warp_b').hidden, star: t.count('star') };
+  const star = L.entities.find((e) => e.kind === 'star' && !e.removed);
+  if (star) t.place([star.pos.x, star.pos.y, star.pos.z], { settle: 60 });
+  const w = t.ent('warp_b');
+  t.place([w.pos.x, w.pos.y + 1.6, w.pos.z], { settle: 0 });
+  let arrived = false;
+  for (let i = 0; i < 1600; i++) { c.step(1); if (p.pos.z < -100 && p.mode !== 'script') { arrived = true; break; } }
+  out.warp = { arrived };
+  return out;
+});
+console.log(`  Blauer Prinz: ${JSON.stringify(pr)}`);
+check(`Blauer Schubser-Prinz (Modell ${pr.before.model}): Kampf beginnt (${pr.start.name})`, pr.before.blue && pr.before.model === 'schubser_prinz' && pr.start.started && pr.start.active === 'prinz7');
+check(`Drei blaue Feuerkugeln (${pr.volley1.color}, ${pr.volley1.model}) nacheinander (${pr.volley1.t.join('/')} s) in einer Kurve (Drehung ${pr.volley1.turn.join('/')} rad)`,
+  pr.volley1.n === 3 && pr.volley1.color === 'blau' && pr.volley1.model === 'feuerkugel_blau' && pr.volley1.turn.every((x) => x > 0.25) && pr.volley1.turn[0] > 0.5 && pr.volley1.t[2] > 0.15);
+check(`Nach jedem Treffer einer mehr: ${pr.volley1.n} → ${pr.v2} → ${pr.v3} (Ansagen ${[...pr.ph2, ...pr.ph3].join(' | ')})`, pr.v2 === 4 && pr.v3 === 5 && pr.ph2.includes('Jetzt spuckt er vier Feuerbälle!') && pr.ph3.includes('Jetzt spuckt er fünf Feuerbälle!'));
+check(`Ablauf wie 6-A: Röhre, zweiter Stoß, gequetscht heraus, Tritt (Treffer ${pr.hit1.hp}/${pr.hit2.hp}/${pr.hit3.hp})`, [pr.hit1, pr.hit2, pr.hit3].every((h) => h.stuck && h.hit && h.bounced) && pr.hit3.hp === 0);
+check('Sieg: Stern, Warp-Box → Boss-Straße', pr.gone.state === 'gone' && pr.gone.won && pr.gone.warp === false && pr.gone.star === 1 && pr.warp.arrived);
+
+// ---- Baron Brummbär im Kampfwagen (7-Burg)
+const bn = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const b = t.ent('baron'), road = t.ent('strasse');
+  const out = {};
+  out.before = { state: b.state, visible: b.visible, model: t.model(b), road: road.info(), traps: t.count('stachelfalle'), roadModels: road.models.length };
+  const a = t.enter([0, 2, -106], 'baron');
+  out.start = { started: a.started, active: a.active, name: a.hud?.boss?.name, hp: a.hud?.boss?.hp, max: a.hud?.boss?.max, state: b.state };
+  // Auftritt, dann Autoscroll: das Fenster wandert, die Grenze schiebt die stehende Figur vorwärts
+  t.untilState(b, 'drive', 600, [0, 2, -113]);
+  const fig0 = p.pos.z, s0 = b.s;
+  p.hurt = () => false;
+  for (let i = 0; i < 120 * 6; i++) { p.vel.set(0, 0, 0); c.step(1); }
+  delete p.hurt;
+  out.scroll = { v: b.v, ds: t.r2(b.s - s0), fig: t.r2(p.pos.z - fig0), behind: t.r2(p.pos.z - b.backZ), pushes: b.pushes > 0, banner: t.banners.includes('Kick die Bomben zurück!') };
+  // Würfe: Bomben landen vor der Figur, nie in einer Lücke; Landemarke
+  const thrown = [];
+  const seenB = new Set();
+  let marker = false;
+  const landed = [];
+  t.untilB(b, () => {
+    for (const e of L.entities) if (e.kind === 'kickbombe' && e.owner === b && !seenB.has(e)) { seenB.add(e); thrown.push(e); }
+    for (const e of thrown) if (e.state === 'lit' && e.grounded && !landed.includes(e)) { landed.push(e); e.landOk = road.solidAt(e.pos.x, e.pos.z, 0.1); }
+    if (b.markers.list.length) marker = true;
+    return landed.length >= 3;
+  }, 120 * 15);
+  out.bombs = { n: landed.length, onRoad: landed.every((e) => e.landOk), marker };
+  // Sprung über die erste Lavalücke (a = 26)
+  t.untilB(b, () => b.jumps >= 1 && !b.jump, 120 * 20);
+  out.jump = { jumps: b.jumps, z: t.r2(b.pos.z), deaths: t.arch().deaths };
+  // 9 Treffer: zurückgekickte Bomben (Phase 2 nach 3, Phase 3 nach 6); dazwischen Wurfsichel-Kratzer
+  const kicks = [];
+  const phases = [];
+  let sichelDone = false, short = 0, fireballs = 0, burst = 0;
+  for (let k = 0; k < 40 && b.hp > 0; k++) {
+    if (b.hp <= 7 && !sichelDone) {
+      // Wurfsichel: zwei Kratzer = ein Treffer (Zusatzschaden)
+      sichelDone = true;
+      t.untilB(b, () => b.vulnerable, 600);
+      const hp0 = b.hp;
+      t.sichel(b);
+      const k1 = { car: b.carHits, hp: b.hp };
+      c.step(60);
+      t.sichel(b);
+      kicks.push({ sichel: true, k1, hp: b.hp, from: hp0, car: b.carHits });
+      t.untilB(b, () => b.vulnerable, 600);
+      continue;
+    }
+    const r = t.kickBack(b);
+    kicks.push({ ...r, hp: b.hp, ph: b.phase });
+    if (r.short) short++;
+    if (!phases.includes(b.phase)) phases.push(b.phase);
+  }
+  out.kicks = kicks;
+  out.phases = phases;
+  out.info = b.info();
+  out.banners = t.banners.slice();
+  // Niederlage → Flucht → gone, Stern, Warp-Box → Zielmast
+  const sDef = b.s;
+  const seq = [b.state];
+  t.untilB(b, () => { if (seq[seq.length - 1] !== b.state) seq.push(b.state); return b.state === 'gone'; }, 120 * 10);
+  c.step(4);
+  out.end = { seq: seq.join('>'), moved: t.r2(b.s - sDef), won: t.arch().won, warp: t.ent('warp_c').hidden, star: t.count('star'), bombs: t.count('kickbombe', (e) => e.owner === b && !e.defeated), traps: road.trapsOn };
+  const w = t.ent('warp_c');
+  t.place([w.pos.x, w.pos.y + 1.6, w.pos.z], { settle: 0 });
+  let arrived = false;
+  for (let i = 0; i < 1600; i++) { c.step(1); if (p.pos.z < -275 && p.mode !== 'script') { arrived = true; break; } }
+  for (let i = 0; i < 2400 && !c.finished && L.runtime.status === 'play'; i++) { c.setInput({ y: 1 }); c.step(1); }
+  c.setInput({});
+  for (let i = 0; i < 3600 && !c.finished; i++) c.step(1);
+  out.finish = { arrived, finished: c.finished };
+  return out;
+});
+console.log(`  Baron im Kampfwagen: ${JSON.stringify(bn)}`);
+check(`Boss-Straße: ${bn.before.road.length} m, ${bn.before.road.gaps} Lavalücken, ${bn.before.road.middle} Mittellücke, ${bn.before.traps} Stachelfallen; Baron wartet unsichtbar (Modell ${bn.before.model})`,
+  bn.before.road.length === 150 && bn.before.road.gaps === 3 && bn.before.road.middle === 1 && bn.before.traps === 11 && bn.before.state === 'wait' && !bn.before.visible && bn.before.model === 'baron_kampfwagen');
+check(`Kampf beginnt am Straßenanfang: Lebensleiste „${bn.start.name}“ ${bn.start.hp}/${bn.start.max}`, bn.start.started && bn.start.active === 'baron' && bn.start.hp === 9 && bn.start.max === 9 && bn.start.state === 'intro');
+check(`Autoscroll: Fenster wandert (${bn.scroll.ds} m in 6 s), die Grenze schiebt die Figur mit (${bn.scroll.fig} m)`, Math.abs(bn.scroll.ds - 14.4) < 0.3 && bn.scroll.fig < -10 && bn.scroll.pushes && bn.scroll.behind <= 0.01 && bn.scroll.banner);
+check(`Kickbomben vor die Figur, nie in eine Lücke, mit Landemarke (${bn.bombs.n})`, bn.bombs.n >= 3 && bn.bombs.onRoad && bn.bombs.marker);
+check(`Der Wagen springt über die Lavalücke (${bn.jump.jumps} Sprung, z ${bn.jump.z})`, bn.jump.jumps >= 1 && bn.jump.z < -112 - 26 && bn.jump.deaths === 0);
+const kk = bn.kicks.filter((k) => !k.sichel);
+const sk = bn.kicks.find((k) => k.sichel);
+check(`Zurückgekickte Kickbomben treffen (${kk.filter((k) => k.hit).length} Treffer aus ${kk.filter((k) => k.kicked).length} Kicks), 9 Treffer in 3 Phasen (${bn.phases.join(',')})`, kk.filter((k) => k.hit).length >= 7 && kk.filter((k) => k.hit).length >= kk.filter((k) => k.kicked).length * 0.75 && bn.info.hp === 0 && bn.phases.join(',') === '1,2,3');
+check(`Wurfsichel: Kratzer (${sk?.k1.car}) und Zusatzschaden – 2 Kratzer = 1 Treffer (${sk?.from} → ${sk?.hp})`, sk && sk.k1.car === 1 && sk.k1.hp === sk.from && sk.hp === sk.from - 1 && sk.car === 0);
+check(`Angriffe: ${bn.info.bombs} Bomben (${bn.info.shortBombs} kurz vor der Explosion), ${bn.info.fires} Feuerangriffe (${bn.info.fireballs} Kugeln)`, bn.info.shortBombs >= 2 && bn.info.fires >= 2 && bn.info.fireballs > bn.info.fires);
+check(`Phasen-Ansagen (${bn.banners.filter((x) => /Bomben|schneller|explodiert|Kratzer/.test(x)).join(' | ')})`, bn.banners.includes('Mehr Bomben – und ein Feuerstoß!') && bn.banners.includes('Er wird schneller – Vorsicht, Stacheln!') && bn.banners.includes('Kratzer!') && bn.banners.some((x) => /Baron Brummbär ist besiegt/.test(x)));
+check(`Besiegt: ${bn.end.seq}; Bomben verpufft, Stachelfallen eingefahren, Stern, Warp-Box → Zielmast`, /defeated>flee>gone/.test(bn.end.seq) && bn.end.won && bn.end.warp === false && bn.end.star === 1 && bn.end.bombs === 0 && !bn.end.traps && bn.finish.arrived && bn.finish.finished);
+
+// ---- Stachelfallen und Tod im Kampf
+await load('0-28');
+await sc(BOSS_HELPERS);
+const rs = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  const die = () => { p.die('hit'); for (let i = 0; i < 2400 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1); c.step(10); };
+  const b = t.ent('baron'), road = t.ent('strasse');
+  L.runtime.setCheckpoint([0, 2, -106], Math.PI / 2);
+  t.enter([0, 2, -106], 'baron');
+  t.untilState(b, 'drive', 600, [0, 2, -113]);
+  // Stachelfalle: Warnung, dann Stacheln – wer darauf steht, wird getroffen
+  const trap = road.traps[1];
+  const seq = [trap.state];
+  t.untilB(b, () => { if (seq[seq.length - 1] !== trap.state) seq.push(trap.state); return trap.state === 'up'; }, 120 * 8);
+  t.fresh();
+  p.pos.set(trap.pos.x, trap.pos.y, trap.pos.z); p.vel.set(0, 0, 0);
+  let hurt = false;
+  for (let i = 0; i < 20 && !hurt; i++) { p.pos.x = trap.pos.x; p.pos.z = Math.min(trap.pos.z, b.backZ); c.step(1); if (t.hurt()) hurt = true; }
+  out.trap = { seq: seq.join('>'), hurt, period: road.trapPeriod };
+  t.fresh();
+  // Mitten im Kampf: 2 Treffer, Bomben unterwegs → Tod → alles zurück
+  for (let k = 0; k < 8 && b.hits < 2; k++) t.kickBack(b);
+  t.untilB(b, () => L.entities.some((e) => e.kind === 'kickbombe' && e.owner === b), 120 * 6);
+  out.before = { hp: b.hp, s: t.r2(b.s), bombs: t.count('kickbombe', (e) => e.owner === b) };
+  die();
+  out.after = { state: b.state, hp: b.hp, s: b.s, z: t.r2(b.pos.z), visible: b.visible, bombs: t.count('kickbombe', (e) => e.owner === b), traps: road.trapsOn, trapUp: road.traps.some((x) => x.upK > 0), started: t.arch().started, deaths: t.arch().deaths, fig: t.r2(p.pos.z) };
+  const again = t.enter([0, 2, -106], 'baron');
+  out.again = again.started && b.state === 'intro' && b.hp === 9;
+  // Prinz und König setzen ebenfalls zurück
+  L.runtime.setCheckpoint([0, 2, 19], Math.PI / 2);
+  die();
+  const k = t.ent('koenig7');
+  t.enter([0, 2, 19], 'koenig7');
+  t.untilState(k, 'summon', 1200, [0, 2, 8]);
+  c.step(2);
+  const kf = k.fishList.length;
+  die();
+  out.koenig = { fishBefore: kf, state: k.state, hp: k.hp, fish: t.count('platschfisch', (f) => f.owner === k), brocken: t.count('lavabrocken', (e) => e.owner === k) };
+  return out;
+});
+console.log(`  Stachelfalle / Tod im Kampf: ${JSON.stringify(rs)}`);
+check(`Stachelfalle: Warnung, dann Stacheln (${rs.trap.seq}, Takt ${rs.trap.period} s) – wer darauf steht, wird getroffen`, /warn>up/.test(rs.trap.seq) && rs.trap.hurt);
+check(`Tod im Kampf (Baron): Neustart, Baron 9/9 am Anfang, Fenster zurück, Bomben weg, Stachelfallen eingefahren (${JSON.stringify(rs.after)})`,
+  rs.before.hp === 7 && rs.before.s > 5 && rs.after.state === 'wait' && rs.after.hp === 9 && rs.after.s === 0 && !rs.after.visible && rs.after.bombs === 0 && !rs.after.traps && !rs.after.trapUp && !rs.after.started && rs.after.deaths === 1 && rs.again);
+check(`Tod im Kampf (heller König): 3/3, Platschfische und Brocken weg (${JSON.stringify(rs.koenig)})`, rs.koenig.fishBefore === 2 && rs.koenig.state === 'wait' && rs.koenig.hp === 3 && rs.koenig.fish === 0 && rs.koenig.brocken === 0);
+check('Keine Konsolenfehler (Teil 3)', errors.length === 0);
 if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
 }
 
