@@ -56,9 +56,8 @@ export const MAP = {
   // Kacheln: je Insel eine Zone (Mesh je Material/Schattenwurf; Brücken bis zur Mitte des Spalts), außerhalb 48-m-Raster
   batch: { tile: 48, origin: [-8, 4], freeTile: 48, freeOrigin: [-8, 4], zones: [
     [-30, 20, 44, 60, 'ankunft'], [-64, 8, -30, 44, 'steinkreis'], [-30, -44, 20, 20, 'bucht'], [-80, -40, -30, 8, 'fernost'],
-    [20, -48, 60, 8, 'dschungel'], [60, -40, 96, 0, 'festung'], [15, -104, 64, -48, 'schnee'], [-33, -104, 15, -56, 'fabrik'],
-    [-70, -100, -33, -60, 'haus'], [-40, -150, 5, -104, 'mine'], [5, -136, 64, -104, 'strasse'], [24, -184, 67, -136, 'zirkus'],
-    [67, -180, 100, -140, 'roehre7'],
+    [20, -48, 60, 8, 'dschungel'], [60, -40, 96, 0, 'festung'], [15, -104, 64, -48, 'schnee'], [-70, -104, 15, -56, 'fabrik_haus'],
+    [-40, -150, 5, -104, 'mine'], [5, -136, 64, -104, 'strasse'], [24, -184, 100, -136, 'zirkus_roehre'],
   ] },
   // Nachbarwelten am Horizont: Welt 5 (Lila Strand-Insel) tief im Südwesten – dorthin führt die Rückweg-Röhre; im
   // Nordosten die ferne Lava-Festung (Welt 7, Ziel der Röhre W7)

@@ -68,13 +68,19 @@ const glowMat = (ev, color, extra = {}) => { const m = new THREE.MeshBasicMateri
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3();
 // Registry-Modelle blicken nach +X, die Kulissen nach +Z (Kamera): yaw −π/2 dreht +X nach +Z
 const FRONT = -Math.PI / 2;
-/** Benutzte Registry-Modelle (für Tests: state().decor.w6models). */
+/** Benutzte Registry-Modelle (für Tests: state().decor.w6models) und vorhandene, aber zu schwere (w6heavy: Name → Dreiecke). */
 export const W6_USED = new Set();
+export const W6_HEAVY = new Map();
+const tooHeavy = (name, opts, max) => { const n = modelTris(name, opts); if (n > max) { W6_HEAVY.set(name, Number.isFinite(n) ? Math.round(n) : -1); return true; } return false; };
 
-/** Registry-Modell als statische Kulisse einbacken (false, solange es fehlt oder zu schwer ist). */
+/**
+ * Registry-Modell als statische Kulisse einbacken (false, solange es fehlt oder zu schwer ist). Die Modelle eines
+ * Eingangs teilen eine kompakte Kachel mit Fern-Ausblendung (tile 'w6:<Id>', lod: true – wie die Halloween-Welt):
+ * im Anflug über die ganze Inselkette fehlen sie jenseits von 90 m, nah am Eingang sind sie da.
+ */
 function bake6(ev, name, opts, pos, yaw = FRONT, scale = 1, state = null, cast = true, maxTris = 6000, tile = undefined) {
-  if (!hasModel(name) || modelTris(name, opts) > maxTris) return false;
-  const add = (g, o) => ev.addStatic(g, { ...o, ...(cast ? {} : { castShadow: false }), ...(tile ? { tile } : {}) });
+  if (!hasModel(name) || tooHeavy(name, opts, maxTris)) return false;
+  const add = (g, o) => ev.addStatic(g, { ...o, ...(cast ? {} : { castShadow: false }), tile: tile ?? `w6:${ev.id}`, lod: true });
   const ok = !!bakeModel(add, name, opts, pos, yaw, scale, state);
   if (ok) W6_USED.add(name);
   return ok;
@@ -99,7 +105,7 @@ function footRadius(name, opts = {}) {
 }
 /** Registry-Modell als bewegtes Objekt; state = Objekt/String oder Funktion (dt, t) → state. null, wenn es fehlt. */
 function live6(ev, name, opts, pos, yaw = FRONT, scale = 1, state = 'idle', shadow = true, maxTris = 5000) {
-  if (!hasModel(name) || modelTris(name, opts) > maxTris) return null;
+  if (!hasModel(name) || tooHeavy(name, opts, maxTris)) return null;
   const m = getModel(name, opts ?? {});
   m.root.position.set(pos[0], pos[1], pos[2]);
   m.root.rotation.y = yaw;
@@ -316,9 +322,22 @@ function pipeHills(ev, x, y, z) {
   putSky(0);
   ev.updaters.push((dt, t) => putSky(t));
   cullByView(ev, sky, cc[0], cc[1] + 7, cc[2], 5);
-  addInfo(ev, () => ({ w6models: [...W6_USED].sort() }));
-  // Feuer-Schnappblume (Registry) am Hang
-  live6(ev, 'feuer_schnappblume', {}, [x + 9.2, y + 5.6, z + 8], FRONT + 0.4, 0.9, (dt, t) => ({ anim: Math.sin(t * 0.8) > 0.6 ? 'aim' : 'idle', aim: -0.3 }), true, 5000);
+  addInfo(ev, () => ({ w6models: [...W6_USED].sort(), w6heavy: Object.fromEntries(W6_HEAVY) }));
+  // Feuer-Schnappblumen im Topf am Hang (Registry 'feuer_schnappblume' eingebacken, sonst eigene Geometrie) – als
+  // bewegtes Modell wären es sieben Zeichenaufrufe gleich an der Ankunftsinsel (im Anflug zu teuer)
+  for (const [fx, fy, fz, fyaw] of [[x + 9.2, y + 5.6, z + 8, FRONT + 0.4], [x + 17.6, y + 7.8, z + 16.6, FRONT - 0.3]]) {
+    if (!bake6(ev, 'feuer_schnappblume', { base: 'pot' }, [fx, fy, fz], fyaw, 0.9, { anim: 'idle' }, true, 6000)) {
+      addGeo(ev, 'w6m:fireflower', () => {
+        const b = new Build();
+        b.cyl(0.42, 0.32, 0.55, { v: (px, py) => mix(0x2a2228, 0x4a3a3a, py + 0.5) }, { p: [0, 0.27, 0] }, 10);
+        b.cyl(0.06, 0.08, 0.7, 0x3a8a3a, { p: [0, 0.85, 0] }, 5);
+        b.sphere(0.36, (px, py, pz) => (hash3(px * 9, py * 9, pz * 9) > 0.8 ? 0xffe04a : 0xff5a2a), { p: [0, 1.35, 0.05], s: [1, 0.9, 1] }, 10, 7);
+        b.sphere(0.2, 0xffe07a, { p: [0, 1.3, 0.3], s: [1, 0.6, 0.5] }, 7, 4);
+        for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; b.cone(0.1, 0.32, 0xffa02a, { p: [Math.cos(a) * 0.3, 1.62, Math.sin(a) * 0.3], r: [Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5] }, 4); }
+        return b.geometry();
+      }, fx, fy, fz, fyaw + Math.PI / 2);
+    }
+  }
 }
 
 // ------------------------------------------------------------------ 6-B Steinkreis
@@ -836,7 +855,7 @@ function snowWind(ev, x, y, z) {
     b.cyl(0.7, 0.7, 0.06, 0x2a7ac8, { p: [2.2, 0.05, -0.8], s: [1, 1, 0.8] }, 12);
     return b.geometry();
   }, px, y, pz, 0, false, 'stone');
-  if (!bake6(ev, 'schlittschuhe', {}, [px - 1.4, y + 0.06, pz + 0.6], FRONT + 0.6, 1, null, true, 3000)) {
+  if (!bake6(ev, 'schlittschuhe', {}, [px - 1.4, y + 0.06, pz + 0.6], FRONT + 0.6, 1, null, true, 3500)) {
     addGeo(ev, 'w6m:skates', () => {
       const b = new Build();
       for (const s of [-1, 1]) { b.box(0.35, 0.3, 0.22, 0xff5a7a, { p: [0, 0.25, s * 0.2] }, 0.06); b.box(0.5, 0.04, 0.04, 0xd8dce8, { p: [0.05, 0.06, s * 0.2] }, 0); }
@@ -853,7 +872,7 @@ function snowWind(ev, x, y, z) {
   ev.updaters.push((dt, t) => { const k = Math.max(0, Math.sin(t * 0.9)); fish.position.y = y - 0.35 + k * 0.6; fish.rotation.y = Math.sin(t * 2) * 0.3; });
   // Iglu (Registry), sonst eigenes
   const ig = [x + 12, y, z + 8];
-  if (!bake6(ev, 'iglu', { size: 3.2 }, ig, FRONT, 1, null, true, 5000)) {
+  if (!bake6(ev, 'iglu', { size: 3.2 }, ig, FRONT, 1, null, true, 6000)) {
     addGeo(ev, 'w6m:igloo', () => {
       const b = new Build();
       b.dome(1.7, (qx, qy, qz) => (Math.floor(qy * 2.4) % 2 ? 0xf4f8ff : 0xe0ecfa), null, Math.PI / 2, 16, 6);
@@ -941,7 +960,7 @@ function skyFactory(ev, x, y, z) {
   cullByView(ev, crates, (bx0 + bx1) / 2, y + 1, bz, 6);
   // Kanonenturm neben der Halle
   const kt = [x - 10.4, y, z + 3.2];
-  if (!bake6(ev, 'kanone_turm', { height: 2.2 }, kt, FRONT + 0.4, 1, null, true, 5000)) {
+  if (!bake6(ev, 'kanone_turm', { height: 2.2 }, kt, FRONT + 0.4, 1, null, true, 6500)) {
     addGeo(ev, 'w6m:cannontower', () => {
       const b = new Build();
       b.cyl(0.9, 1.1, 1.8, 0x8a2a3a, { p: [0, 0.9, 0] }, 12);
@@ -1077,7 +1096,7 @@ function mineTower(ev, x, y, z) {
     for (let i = 0; i < 12; i++) b.box(0.3, 0.08, 1.4, 0x6a4a2e, { p: [i * 0.86, 0.04, 0] }, 0);
     return b.geometry();
   }, x + 3, y, z + 3.4);
-  if (!bake6(ev, 'lore', { load: 'kristall' }, [x + 8.5, y + 0.1, z + 3.4], 0, 1, null, true, 4000)) {
+  if (!bake6(ev, 'lore', { load: 'kristall' }, [x + 8.5, y + 0.1, z + 3.4], 0, 1, null, true, 5200)) {
     addGeo(ev, 'w6m:cart', () => {
       const b = new Build();
       b.box(1.6, 0.9, 1.1, 0x8a8a9a, { p: [0, 0.65, 0] }, 0.06);
@@ -1140,7 +1159,7 @@ function tankRoad(ev, x, y, z) {
   // Panzerkolonne (Registry 'panzer_fahrzeug', sonst eigene Geometrie) – Blick nach Osten (+X)
   const tanks = [[x - 8.5, y, z], [x + 1.5, y, z]];
   for (const [i, [tx, ty, tz]] of tanks.entries()) {
-    if (!bake6(ev, 'panzer_fahrzeug', { length: 6.4, width: 3.4, deck: 1.6, color: i ? 'oliv' : 'rot' }, [tx, ty, tz], 0, 0.8, null, true, 9000)) {
+    if (!bake6(ev, 'panzer_fahrzeug', { length: 6.4, width: 3.4, deck: 1.6, color: i ? 'oliv' : 'rot' }, [tx, ty, tz], 0, 0.8, null, true, 10500)) {
       ev.addStatic(place(tankGeo(0.85), tx, ty, tz, 0), { castShadow: true });
     }
     solidBox(ev, tx - 2.7, ty, tz - 1.45, tx + 2.7, ty + 1.6, tz + 1.45, 'panzer');
