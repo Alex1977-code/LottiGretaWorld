@@ -22,7 +22,7 @@
 // Extraleben: versteckter Block über dem Aufzugsband (Abschnitt C).
 
 import {
-  isl, line, ring, blk, cyl, sph, cone, bakeParts, glowPoints, farHide, levelSetup, cullStatic, heroShadowDiet,
+  isl, line, ring, blk, cyl, sph, cone, bakeParts, glowPoints, wimpel, farHide, levelSetup, cullStatic, heroShadowDiet,
   startBeimDraufstehen, krallenAutomat, traeger, zahnraeder, dampf,
 } from './_helpers_c.js';
 
@@ -52,6 +52,49 @@ function build(level) {
     for (let x = x0 + 0.5; x < x1; x += 1) P.push(sph(0.07, x, y - 0.25, z + 0.04, 0xd8dce6));
   }
   bakeParts(level, P, { castShadow: false });
+
+  // ---------------------------------------------------------------- bunte Werksausstattung (verschmolzen, mit Schatten)
+  const D = [];
+  const KISTE = [0xe8483a, 0x3a8ae8, 0x4ac85a, 0xffc21a, 0xb06ae8];
+  /** Kiste (bunt, helle Kanten, Stern-Aufdruck) mit Kollision. */
+  const kiste = (x, y, z, s, c) => {
+    D.push(blk(s, s, s, x, y, z, c, { top: 0xffffff }));
+    for (const dy of [0.08, s - 0.14]) D.push(blk(s + 0.04, 0.06, s + 0.04, x, y + dy, z, 0x2a2f3a));
+    D.push(blk(s * 0.36, s * 0.36, 0.02, x, y + s * 0.32, z + s / 2 + 0.01, 0xffffff));
+    level.world.add({ type: 'box', min: [x - s / 2, y, z - s / 2], max: [x + s / 2, y + s, z + s / 2], tag: 'kiste' });
+  };
+  /** Fass mit zwei Ringen. */
+  const fass = (x, y, z, c) => {
+    D.push(cyl(0.42, 0.42, 1.0, x, y, z, c, 10, { top: 0xd8dce6 }));
+    for (const dy of [0.2, 0.75]) D.push(cyl(0.44, 0.44, 0.07, x, y + dy, z, 0x2a2f3a, 10));
+    level.world.add({ type: 'cyl', x, z, r: 0.42, y0: y, y1: y + 1.0, tag: 'fass' });
+  };
+  for (const [x, y, z, s, k] of [[5.6, YA, -6.5, 1.0, 0], [5.6, YA + 1.0, -6.5, 0.8, 3], [4.4, YA, -7.0, 0.9, 1], [-6.0, YA, -9.5, 1.0, 2],
+    [4.4, YB, -34.6, 0.9, 4], [-4.6, YB, -44, 0.9, 0], [-4.4, YC2, -79, 0.9, 1], [4.8, YC2, -78.6, 1.0, 2], [4.8, YC2 + 1.0, -78.6, 0.7, 0],
+    [4.8, YD, -97.6, 1.0, 3], [3.6, YD, -97.8, 0.8, 1], [-4.2, YD, -152.2, 0.9, 2], [3.8, YD, -151.5, 1.0, 4], [-7.6, YF, -193.4, 1.0, 1], [-6.4, YF, -193.4, 0.8, 3],
+    [7.6, YH, -222.6, 1.0, 0], [6.5, YH, -222.6, 0.8, 2]]) kiste(x, y, z, s, KISTE[k]);
+  for (const [x, y, z, c] of [[-5.6, YA, -0.6, 0x3a8ae8], [-4.6, YA, -0.2, 0xe8483a], [5, YB, -49, 0x4ac85a], [-4.6, YD, -97.4, 0xe8483a], [-3.6, YD, -97.8, 0xffc21a],
+    [7.8, YF, -200.5, 0x3a8ae8], [-7.6, YH, -222.4, 0x4ac85a]]) fass(x, y, z, c);
+  // Schaltpulte mit bunten Knöpfen
+  for (const [x, y, z] of [[3.6, YA, 6.4], [-4.4, YC2, -54.2], [5.2, YF, -194]]) {
+    D.push(blk(1.4, 1.0, 0.7, x, y, z, 0x3a6ad0, { top: 0x5a8af0 }));
+    for (let i = 0; i < 4; i++) D.push(cyl(0.08, 0.08, 0.08, x - 0.45 + i * 0.3, y + 1.0, z, [0xe8483a, 0xffc21a, 0x4ac85a, 0xffffff][i], 8));
+    level.world.add({ type: 'box', min: [x - 0.7, y, z - 0.35], max: [x + 0.7, y + 1.0, z + 0.35], tag: 'pult' });
+  }
+  // Ferne Werksschlote im Wolkenmeer: rot-weiß geringelt
+  for (const [x, z, h] of [[-22, -20, 34], [24, -60, 40], [-26, -120, 44], [26, -170, 48], [-24, -215, 70], [30, -230, 62]]) {
+    for (let k = 0; k < h / 4; k++) D.push(cyl(1.5, 1.6, 4, x, -14 + k * 4, z, k % 2 ? 0xffffff : 0xe8483a, 12));
+    D.push(cyl(1.8, 1.8, 0.6, x, -14 + h, z, 0x3a3f4a, 12));
+  }
+  bakeParts(level, D);
+  wimpel(level, [
+    { x0: -7, x1: 7, y: YA + 5.6, z: 7.2, n: 14 },
+    { x0: -6, x1: 6, y: YD + 4.4, z: -85.4, n: 12, colors: [0xffc21a, 0x2a2f3a] },
+    { x0: -9, x1: 9, y: YH + 5.2, z: -214.5, n: 18 },
+  ]);
+  // Signallampen (leuchtend) an den Trägern
+  glowPoints(level, [[-7.4, YA + 6.3, 7], [7.4, YA + 6.3, 7], [-6.6, YC2 + 6.3, -79.5], [6.6, YC2 + 6.3, -79.5], [-6.4, YB + 5.3, -33.5], [6.4, YB + 5.3, -33.5],
+    [-6.6, YD + 4.3, -98.6], [6.6, YD + 4.3, -98.6]], 0xffa040, 1.4);
 }
 
 function setup(level) {
@@ -147,7 +190,7 @@ export const LEVEL = {
     { type: 'foerderband', id: 'rundband', mode: 'rund', pos: [RX, YD + 1.6, -95], length: 10, height: 2.4, width: 3, yaw: 0, speed: 2.2, ledges: 2, ledge: 0.5 },
 
     // ---------------- E Kanonen-Floß (fährt, sobald man draufsteht)
-    { type: 'vehicle', id: 'kanonenfloss', style: 'plain', size: [6, 1, 9], path: [[0, YD - 1, -103.5], [0, YD - 1, -140.5]], speed: 2.6, mode: 'once', color: 0x6a7488, accent: 0xffc21a },
+    { type: 'vehicle', id: 'kanonenfloss', style: 'plain', size: [6, 1, 9], path: [[0, YD - 1, -103.5], [0, YD - 1, -140.5]], speed: 2.6, mode: 'once', color: 0xd8483a, accent: 0xffc21a },
 
     // ---------------- F Obere Wolken, Riesenkanone
     plat(-5, 5, -145, -153, YD, 8),
