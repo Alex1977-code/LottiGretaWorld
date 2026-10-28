@@ -26,7 +26,8 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 // { kill } · { arrowUp: Id } (warten, bis die Pfeilplattform oben ist und bleibt) · { onPlat: Id, to } (auf eine
 // fahrende/kippende Fläche springen)
 const VX = 140;
-const Y0 = 2, Y1 = 5, Y2 = 8, YZ = 11;
+const Y0 = 2, Y1 = 5, Y2 = 8, YZ = 11;        // 7-3
+const B4 = 1.5, FX4 = 60, RX4 = 100;          // 7-4
 const ROUTES = {
   '7-3': {
     start: [0, Y0, 7],
@@ -133,6 +134,105 @@ const ROUTES = {
       ['versteck', [VX - 10, Y1, -260]],
     ],
   },
+  '7-4': {
+    start: [0, B4, 6],
+    meta: { stars: 3, time: 400, theme: 'bluelava', music: 'course_bluebelt', archetype: 'parcours' },
+    enemies: { schubser: 6, knochenflieger: 5 },
+    blocks: { walzen: 14, pendulums: 6, zylinder: 4, pfeilplatten: 13 },
+    main: [
+      { name: 'Hofkante', to: [0, -6.3], within: 0.4, run: false },
+      { name: 'Pfeilplattform 1', waitPlat: 'pf1', to: [0, -10], jump: 20, within: 0.8, run: false },
+      { waitPlat: 'pf2', to: [0, -13.75], jump: 20, within: 0.8, run: false },
+      { waitPlat: 'pf3', to: [0, -17.5], jump: 20, within: 0.8, run: false },
+      { name: 'Steinbau A', to: [0, -22], jump: 20, within: 0.8, run: false },
+      { name: 'Pendel 1', waitPend: 'pd1', to: [0, -26], within: 0.5, run: true },
+      { name: 'Pendel 2', waitPend: 'pd2', to: [0.5, -29.6], within: 0.6, run: true }, { to: [0.5, -30.5], within: 0.4, run: false },
+      { waitPlat: 'pf4', to: [0.5, -33.25], jump: 20, within: 0.8, run: false },
+      { waitPlat: 'pf5', to: [0.5, -37.5], jump: 20, within: 0.8, run: false },
+      { name: 'Steinbau B', to: [1, -42.5], jump: 20, within: 0.8, run: false },
+      { name: 'Schubser B in die Lava', push: 'sb_b', dir: [1, 0], center: 1, centerZ: -48.5, room: 3.4, roomZ: 1.4, edges: [-5, 7] },
+      { to: [3, -43], within: 0.6, run: false }, { to: [3, -47.6], within: 0.5, run: false },
+      { to: [-1.5, -49], within: 0.5, run: false }, { to: [-1.5, -55.3], within: 0.4, run: false }, { to: [2, -55.4], within: 0.4, run: false },
+      { waitPlat: 'pf6', to: [2, -58.5], jump: 20, within: 0.8, run: false },
+      { waitPlat: 'pf7', to: [2, -62.5], jump: 20, within: 0.8, run: false },
+      { name: 'Steinbau C', to: [-1.5, -67.5], jump: 20, within: 0.8, run: false },
+      { to: [-1.6, -76.4], within: 0.4, run: false },
+      { name: 'Brücken-Pendel', waitPend: 'pd3', far: 3.2, to: [0, -80.1], within: 0.4, run: true },
+      { waitPend: 'pd4', far: 3.2, to: [0, -84.5], within: 0.5, run: true },
+      { name: 'Checkpoint', to: [0, -86.6], within: 0.5 },
+      { to: [2.5, -88.4], within: 0.4, run: false }, { to: [2.5, -91.6], within: 0.4, run: false }, { to: [0.5, -92.6], within: 0.4, run: false },
+      { name: 'Zylinder 1', to: [0, -96.5], jump: 20, within: 0.9, run: false },
+      { to: [0, -101.5], jumpZ: -97.4, jump: 24, within: 0.9, run: true },
+      { name: 'Steinbau E', to: [3, -102], within: 0.5, run: false }, { to: [3, -105.6], within: 0.4, run: false },
+      { to: [-3, -105.9], within: 0.4, run: false }, { to: [-3, -110.4], within: 0.4, run: false }, { to: [4.4, -111.6], within: 0.4, run: false },
+      { name: 'Mauer-Pfeilplattformen', waitPlat: 'pw1', to: [5, -114.5], jump: 20, within: 0.8, run: false },
+      { waitPlat: 'pw2', to: [5, -118], jump: 20, within: 0.8, run: false },
+      { waitPlat: 'pw3', to: [5, -121.5], jump: 20, within: 0.8, run: false },
+      { name: 'Steinbau F', to: [4, -124], jump: 20, within: 0.8, run: false },
+      { name: 'Schubser F in die Lava', push: 'sb_f', dir: [1, 0], center: 0, centerZ: -127, room: 4, roomZ: 2.6, edges: [-6, 6] },
+      { to: [-3.4, -128.4], within: 0.5, run: false }, { to: [-3.4, -132.6], within: 0.4, run: false },
+      { name: 'Stachel-Zylinder 2', waitZyl: 'zyl2', to: [0, -136.5], jump: 20, within: 0.9, run: false },
+      { to: [0, -141], jumpZ: -137.4, jump: 24, within: 0.9, run: true },
+      { name: 'Pendel G', waitPend: 'pd5', far: 3.2, to: [0, -144], within: 0.4, run: true },
+      { waitPend: 'pd6', far: 3.2, to: [0, -147.6], within: 0.4, run: true },
+      { name: 'Zylinder 3', to: [0, -151.5], jump: 20, within: 0.9, run: false },
+      { to: [0, -156], jumpZ: -152.4, jump: 24, within: 0.9, run: true },
+      { name: 'Steinbau H', to: [3, -156.6], within: 0.4, run: false }, { to: [3, -159.8], within: 0.4, run: false },
+      { to: [-3, -159.9], within: 0.4, run: false }, { to: [-1, -162.6], within: 0.4, run: false },
+      { name: 'Zylinder 4', to: [0, -166.5], jump: 20, within: 0.9, run: false },
+      { to: [0, -171], jumpZ: -167.4, jump: 24, within: 0.9, run: true },
+      { name: 'Steinbau I', to: [3, -171.6], within: 0.4, run: false }, { to: [3, -175], within: 0.4, run: false },
+      { to: [-3, -175.2], within: 0.4, run: false }, { to: [-3, -178.2], within: 0.4, run: false },
+      { name: 'Röhre zum Finale', to: [0, -181], jump: 20, within: 0.3, run: false }, { crouch: 20 },
+      { expect: 'onFinale' },
+      { to: [62.5, -182], within: 0.4, run: false }, { to: [62.5, -184.7], within: 0.4, run: false },
+      { to: [57.5, -184.9], within: 0.4, run: false }, { to: [58.5, -189.3], within: 0.4, run: false },
+      { name: 'Kippplattform: Schubser 1', push: 'sb_k1', dir: [-1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
+      { name: 'Schubser 2', push: 'sb_k2', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
+      { name: 'Schubser 3', push: 'sb_k3', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
+      { until: 'pfeileZiel', max: 600 },
+      { to: [60, -204], within: 0.5, run: false },
+      { to: [60, -208.5], jump: 20, within: 0.8, run: false }, { to: [60, -212.5], jump: 20, within: 0.8, run: false },
+      { to: [60, -216.5], jump: 20, within: 0.8, run: false }, { to: [60, -220.5], jump: 20, within: 0.8, run: false },
+      { name: 'Zielmast', to: [60, -227.5], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'fünf Schubser in die Lava gestoßen (B, F, drei auf der Kippplattform)', ok: (r) => r.mech.pushedOff === 5 },
+      { name: 'ohne einen Treffer-Versuch (Pendel, Walzen, Stacheln abgewartet)', ok: (r) => r.mech.hurts === 0 },
+    ],
+    targets: [],
+    extra: [
+      { name: 'Schubser F (zwischen zwei Walzen) in die Lava', from: [4, B4, -123.6],
+        legs: [{ push: 'sb_f', dir: [1, 0], center: 0, centerZ: -127, room: 4, roomZ: 2.6, edges: [-6, 6] }], mech: (r) => r.mech.pushedOff === 1 },
+      { name: 'Kippplattform: drei Schubser in die Lava → drei Pfeilplattformen zum Ziel', from: [58.5, B4, -189.3], heroes: ['lotti'],
+        legs: [
+          { expect: 'pfeileZielWeg' },
+          { push: 'sb_k1', dir: [-1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
+          { push: 'sb_k2', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
+          { push: 'sb_k3', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
+          { until: 'pfeileZiel', max: 600 }],
+        mech: (r) => r.mech.pushedOff === 3, mechText: (r) => `Schubser in der Lava ${r.mech.pushedOff ?? 0}` },
+    ],
+    shots: [
+      ['start', [0, B4, 6]],
+      ['pfeile1', [0, B4, -5]],
+      ['bauA', [0, B4, -22]],
+      ['bauB', [0, B4, -42]],
+      ['bauC', [0, B4, -67]],
+      ['stempel', [-2, B4, -70]],
+      ['bruecke', [0, B4, -77.5]],
+      ['cp', [0, B4, -87]],
+      ['zyl1', [0, B4, -92]],
+      ['wand', [3, B4, -110]],
+      ['zyl2', [0, B4, -130]],
+      ['zyl3', [0, B4, -145]],
+      ['bauI', [0, B4, -169]],
+      ['finale', [FX4, B4, -180]],
+      ['kipp', [FX4, B4, -188]],
+      ['ziel', [FX4, B4, -219]],
+      ['raetsel', [RX4, B4, -66]],
+    ],
+  },
 };
 
 const PORT = 4720;
@@ -182,6 +282,15 @@ function install() {
     sternring: () => !!ent('sternring')?.active || (named('sternring')?.state ?? '') === 'run',
     stern1Visible: () => L.entities.some((e) => e.kind === 'star' && e.index === 1 && !e.hidden && !e.removed),
     onStampIsland: () => at(-10, -6, 4.5, -278.8, -286.2),
+    // 7-4
+    onFinale: () => at(53, 67, 1, -175, -191),
+    inRaetsel: () => P().pos.x > 85,
+    backFromRaetsel: () => at(-4, 6, 1, -65, -78),
+    pfeileZiel: () => ['pz1', 'pz2', 'pz3'].every((id) => named(id)?.state === 'oben'),
+    pfeileZielWeg: () => ['pz1', 'pz2', 'pz3'].every((id) => named(id)?.state === 'weg'),
+    onLedge: () => P().mode === 'ground' && P().pos.y > 2.8 && P().pos.x > 6,
+    onRound: () => P().mode === 'ground' && Math.hypot(P().pos.x + 7.2, P().pos.z + 69) < 1.4,
+    onKipp: () => P().mode === 'ground' && P().ground?.tag === 'wippe',
     // 6-A-artig (7-B)
     fightOn: () => !!named('prinzKampf')?.started && named('prinz')?.state !== 'wait',
     gateLocked: () => !!named('prinzKampf')?.locked,
@@ -337,6 +446,100 @@ function install() {
           log.push(['besiegt', mech.stomped.length, mech.stomped.join(' ')]);
           continue;
         }
+        // ------------------------------------------------ Schubser in Richtung dir in die Lava stoßen (Anlauf von der Gegenseite,
+        // Sprung auf ihn, Stampfattacke → er rutscht; seinem Rammen springt die Figur aus dem Weg; Mitte cx/cz halten)
+        if (Lg.push) {
+          const e = L.entities.find((x) => x.spec?.id === Lg.push);
+          const dl = Math.hypot(Lg.dir[0], Lg.dir[1]) || 1;
+          let dx = Lg.dir[0] / dl, dz = Lg.dir[1] / dl;
+          const cx = Lg.center ?? 0, cz = Lg.centerZ ?? null, room = Lg.room ?? 2.2;
+          const clampX = (x) => Math.max(cx - room, Math.min(cx + room, x));
+          const clampZ = (z) => (cz === null ? z : Math.max(cz - (Lg.roomZ ?? room), Math.min(cz + (Lg.roomZ ?? room), z)));
+          let tries = 0;
+          const gone = () => !e || !e.alive || e.removed || e.defeated || e.state === 'defeated' || e.state === 'fall' || e.pos.y < (e.home?.y ?? e.spec.pos[1]) - 1.2;
+          const dodge = () => {
+            if (p.mode !== 'ground') return false;
+            // jeder rammende Schubser in der Nähe (auch die anderen Wächter) – rechtzeitig hochspringen
+            const threat = L.entities.some((x) => x.kind === 'schubser' && x.alive && !x.defeated && x.state === 'charge'
+              && Math.hypot(x.pos.x - p.pos.x, x.pos.z - p.pos.z) < 3.2 && ((p.pos.x - x.pos.x) * (x.vel?.x ?? 0) + (p.pos.z - x.pos.z) * (x.vel?.z ?? 0)) > 0);
+            if (!threat) return false;
+            for (let q = 0; q < 30; q++) tick({ jump: true });
+            for (let q = 0; q < 200 && p.mode !== 'ground' && !p.dead; q++) tick({ ...this.airSteer(clampX(p.pos.x), clampZ(p.pos.z), 0, 0, 2, 3) });
+            mech.dodged = (mech.dodged ?? 0) + 1;
+            return true;
+          };
+          for (; tries < 12 && !gone() && !p.dead; tries++) {
+            if (Lg.edges) {
+              // zur näheren Kante (x) stoßen – je Versuch neu gewählt
+              dx = (e.pos.x - Lg.edges[0]) < (Lg.edges[1] - e.pos.x) ? -1 : 1; dz = 0;
+            } else if (Lg.auto !== false) {
+              // zur näheren Kante stoßen (x bzw. z), wenn er schon außer der Mitte steht
+              const ox = e.pos.x - cx, oz = cz === null ? 0 : e.pos.z - cz;
+              if (Math.abs(ox) > 0.5 && Math.abs(ox) >= Math.abs(oz)) { dx = Math.sign(ox); dz = 0; } else if (cz !== null && Math.abs(oz) > 0.5) { dx = 0; dz = Math.sign(oz); }
+            }
+            for (let k = 0; k < 500 && !gone(); k++) {
+              if (dodge()) continue;
+              const ax = clampX(e.pos.x - dx * (Lg.back ?? 2.6)), az = clampZ(e.pos.z - dz * (Lg.back ?? 2.6));
+              const qx = ax - p.pos.x, qz = az - p.pos.z, d = Math.hypot(qx, qz);
+              if (d < 0.6 && p.mode === 'ground' && e.state !== 'warn' && e.state !== 'charge') break;
+              tick({ ...this.stick(qx, qz, Math.min(1, Math.max(0.5, d / 1.0))), run: d > 2 });
+            }
+            const p0 = e.pushes ?? 0;
+            let pounding = false;
+            for (let k = 0; k < 220 && !gone() && (e.pushes ?? 0) === p0 && !p.dead; k++) {
+              const tx = clampX(e.pos.x - dx * 0.3), tz = clampZ(e.pos.z - dz * 0.3);
+              const hd = Math.hypot(tx - p.pos.x, tz - p.pos.z);
+              if (!pounding && k > 6 && hd < 0.45 && p.vel.y < 3 && p.pos.y > e.pos.y + 1.2) pounding = true;
+              if (pounding) { tick({ crouch: true }); continue; }
+              tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, e.vel?.x ?? 0, e.vel?.z ?? 0, 3.4, 7) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: k < 26, run: false });
+            }
+            for (let k = 0; k < 240 && p.mode !== 'ground' && !p.dead; k++) tick({ ...this.airSteer(clampX(p.pos.x), clampZ(p.pos.z), 0, 0, 3, 5) });
+            for (let k = 0; k < 150 && !gone(); k++) {
+              const ox = p.pos.x - cx, oz = cz === null ? 0 : p.pos.z - cz;
+              tick(p.mode === 'ground' && (Math.abs(ox) > 1.2 || Math.abs(oz) > 1.2) ? this.stick(-ox, -oz, 0.6) : {});
+            }
+            if (window.__trace) log.push(['stoß', tries, pounding, e.state, e.pushes ?? 0, +e.pos.x.toFixed(2), +e.pos.z.toFixed(2), +p.pos.x.toFixed(2), +p.pos.z.toFixed(2)]);
+          }
+          for (let k = 0; k < 120 && e?.alive && !e?.removed && !e?.defeated; k++) tick({});
+          if (gone()) mech.pushedOff = (mech.pushedOff ?? 0) + 1;
+          log.push(['schubser', Lg.push, gone(), tries, e?.state, e?.fellBy, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!gone()) { log.push(['FEHLER: Schubser nicht in die Lava gestoßen', Lg.push]); break; }
+          continue;
+        }
+        // ------------------------------------------------ warten: Pfeilplattform oben, Pendel weit weg, Zylinder-Stacheln weg
+        if (Lg.waitPlat) {
+          const h = named(Lg.waitPlat);
+          let k = 0;
+          // erst eine frisch aufgetauchte Plattform nehmen (vorher „oben“ → bis zum nächsten Auftauchen warten)
+          if (!Lg.any) for (; k < 1500 && h.state === 'oben'; k++) tick({});
+          for (; k < 1500 && h.state !== 'oben'; k++) tick({});
+          log.push(['plattform', Lg.waitPlat, k, h.state]);
+        }
+        if (Lg.waitPend) {
+          const h = named(Lg.waitPend);
+          const far = Lg.far ?? 3;
+          let k = 0;
+          // Kugel weit weg und auf dem Weg nach außen (Abstand wächst)
+          let prev = Math.abs(h.ball.x - p.pos.x);
+          for (; k < 900; k++) { tick({}); const d = Math.abs(h.ball.x - p.pos.x); if (d > far && d >= prev) break; prev = d; }
+          log.push(['pendel', Lg.waitPend, k, +h.ball.x.toFixed(2)]);
+        }
+        if (Lg.waitZyl) {
+          const h = named(Lg.waitZyl);
+          const rows = h.info().rows, sp = h.speed, ahead = Lg.ahead ?? 1.8;
+          const danger = () => {
+            for (let i = 0; i < rows; i++) {
+              const s = h.spikeAt(i);
+              let a = Math.atan2(s.u, s.v) * Math.sign(sp || 1);   // 0 = oben, wächst in Drehrichtung
+              if (a > -0.6 - Math.abs(sp) * ahead && a < 0.6) return true;
+            }
+            return false;
+          };
+          let k = 0;
+          for (; k < 1800 && danger(); k++) tick({});
+          log.push(['zylinder', Lg.waitZyl, k]);
+        }
+        if (!Lg.to) continue;
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)
         const max = Lg.max ?? 900;
         const within = Lg.within ?? 0.6;
@@ -432,8 +635,9 @@ function install() {
       const w7 = L.w7 ?? {};
       return {
         pfeile: named('pfeile')?.n ?? 0,
-        walzen: (w7.rollers ?? []).filter((r) => r.kind === 'stachelwalze_rot' || r.spikes === 'ringsum' || /walze/.test(r.spec?.id ?? r.id ?? '')).length,
-        rollers: (w7.rollers ?? []).length, arrows: (w7.arrows ?? []).length, pendulums: (w7.pendulums ?? []).length,
+        walzen: (w7.rollers ?? []).filter((r) => r.kind === 'stachelwalze_rot').length,
+        zylinder: (w7.rollers ?? []).filter((r) => r.kind === 'zylinder').length,
+        pfeilplatten: (w7.arrows ?? []).length, pendulums: (w7.pendulums ?? []).length,
       };
     },
     lives: () => L.runtime.save.lives,

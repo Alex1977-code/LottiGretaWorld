@@ -445,3 +445,111 @@ export function donutBloecke(level, list, build) {
   }
   return groups.map((g) => g.h);
 }
+
+// =====================================================================================================================
+// 7-4: Steinbauten über blauer Lava
+// =====================================================================================================================
+
+/**
+ * Kleine runde Steinplattform (Säule aus der Lava): Kollision als senkrechter Zylinder, Darstellung Steintrommel mit
+ * Goldrand und leuchtendem Runenring. o: { x, z, r, top, bottom, color, glow }.
+ */
+export function rundPlatte(level, o) {
+  const { x, z } = o, r = o.r ?? 1.3, top = o.top, bot = o.bottom ?? top - 4;
+  level.world.add({ type: 'cyl', x, z, r, y0: bot, y1: top, tag: 'rundplatte' });
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  b.cyl(r, r * 1.08, top - bot - 0.25, x, bot, z, litTop(o.color ?? 0x7a80a8, 0.55), 16);
+  b.cyl(r + 0.08, r + 0.08, 0.25, x, top - 0.25, z, litTop(0xb8bce0, 0.7), 18);
+  b.torus(r + 0.06, 0.06, x, top - 0.12, z, 0xffc21a, { rx: HALF_PI, ts: 24, rs: 4 });
+  for (let i = 0; i < 4; i++) { const a = (i / 4) * TAU + 0.4; b.box(0.5, 1.2, 0.3, x + Math.cos(a) * (r + 0.1), top - 2.4, z + Math.sin(a) * (r + 0.1), litTop(0x5a6088, 0.6), { yaw: -a, r: 0.05 }); }
+  g.torus(r * 0.55, 0.05, x, top + 0.012, z, o.glow ?? 0x7ad8ff, { rx: HALF_PI, ts: 20, rs: 3 });
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Kippplattform (Bauplan 7-4 „Kippplattform: 3 Schubser besiegen“): Mechanik des Bausteins `wippe` (blocks/types/w6_ship.js,
+ * kippt um die Querachse nach dem Gewicht der Figuren und Schubser), aber eigene Darstellung als schwere Stein-Metall-
+ * Platte mit Goldkante, Warnstreifen an den Enden und leuchtenden Runen, auf einem Drehlager über einer Basaltsäule.
+ * spec wie wippe (yaw π/2 = Platte entlang Z). build = Baustein-Funktion (TYPES.wippe). Liefert den Griff der Wippe.
+ */
+export function kippPlatte(level, spec, build) {
+  const v = level.view;
+  level.view = null;
+  let h;
+  try { h = build(level, { ...spec, stand: false }); } finally { level.view = v; }
+  const p = { x: spec.pos[0], y: spec.pos[1], z: spec.pos[2] };
+  const Lz = spec.length ?? 8, Wx = spec.width ?? 2.5, th = spec.thick ?? 0.4;
+  // Lagerbock (fest, Kollision wie beim Baustein) und Basaltsäule bis in die Lava
+  level.world.add({ type: 'box', min: [p.x - 0.5, p.y - 3.5, p.z - 0.5], max: [p.x + 0.5, p.y - th - 0.05, p.z + 0.5], tag: 'kipp:lager' });
+  if (!v) return h;
+  const s = new Bld();
+  s.cyl(1.0, 1.5, 3.6, p.x, p.y - th - 3.6, p.z, litTop(0x4a4e72, 0.55), 8);
+  s.box(1.6, 0.5, Wx * 0.5, p.x, p.y - th - 0.55, p.z, litTop(0x6a6e90, 0.6), { r: 0.08 });
+  s.flush(level);
+  const plate = new Bld(), glow = new Bld();
+  const gold = 0xffc21a, stone = 0x8a90b8, dark = 0x3e4266;
+  // lokal: Länge entlang Z, Breite entlang X, Oberseite y = 0
+  plate.box(Wx, th, Lz, 0, -th, 0, { v: (x, y, z, nx, ny) => new THREE.Color(ny > 0.6 ? (((Math.floor(x / 1.25 + 100) + Math.floor(z / 1.25 + 100)) & 1) ? 0x9aa0c8 : 0x868cb4) : dark) }, { r: 0.08 });
+  for (const sx of [-1, 1]) plate.box(0.16, 0.12, Lz - 0.2, sx * (Wx / 2 - 0.08), 0, 0, gold, { r: 0.03 });
+  for (const sz of [-1, 1]) {
+    plate.box(Wx - 0.2, 0.12, 0.16, 0, 0, sz * (Lz / 2 - 0.08), gold, { r: 0.03 });
+    // Warnstreifen (gelb-schwarz) an den Enden
+    const n = Math.round(Wx / 0.8);
+    for (let i = 0; i < n; i++) plate.box(Wx / n * 0.98, 0.03, 0.7, -Wx / 2 + (i + 0.5) * (Wx / n), 0, sz * (Lz / 2 - 0.6), (i & 1) ? 0x1a1a22 : 0xffd23a, { r: 0 });
+  }
+  // Runenkreis in der Mitte (leuchtet blau)
+  glow.torus(1.6, 0.07, 0, 0.015, 0, 0x7ad8ff, { rx: HALF_PI, ts: 32, rs: 3 });
+  glow.torus(2.3, 0.05, 0, 0.015, 0, 0x7ad8ff, { rx: HALF_PI, ts: 36, rs: 3 });
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; glow.box(0.5, 0.02, 0.14, Math.cos(a) * 1.95, 0.016, Math.sin(a) * 1.95, 0x7ad8ff, { yaw: -a, r: 0 }); }
+  const mat = v.mats?.world ?? new THREE.MeshStandardMaterial({ vertexColors: true });
+  const gmat = v.mats?.glow ?? new THREE.MeshBasicMaterial({ vertexColors: true });
+  const root = new THREE.Group();
+  root.name = 'kippplatte';
+  root.position.set(p.x, p.y, p.z);
+  const m1 = new THREE.Mesh(plate.geometry(), mat); m1.castShadow = true; m1.receiveShadow = true;
+  const m2 = new THREE.Mesh(glow.geometry(), gmat);
+  root.add(m1, m2);
+  const alongX = Math.abs(Math.cos(spec.yaw ?? 0)) > 0.5;
+  if (alongX) root.children.forEach((m) => { m.rotation.y = HALF_PI; });
+  addObject(level, root, () => {
+    const a = h.tilter.angle;
+    if (alongX) { root.rotation.z = a; root.rotation.x = 0; } else { root.rotation.x = -a; root.rotation.z = 0; }
+  });
+  return h;
+}
+
+/**
+ * Festungs-Zier auf einer Steininsel: Eckpfeiler mit Goldkappe, Zinnenkranz entlang ausgewählter Kanten (nur Optik, ohne
+ * Kollision – Kanten zum Springen bleiben frei), Wandfenster mit blauem Glühen an der Inselseite.
+ * list: [{ x0, x1, zA, zB, y (Oberseite), edges: 'lrbf' (links, rechts, hinten, vorn), posts: true }].
+ */
+export function festungRand(level, list, o = {}) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  const stone = o.stone ?? 0x7a7ea8, top = o.top ?? 0xa8acd0, glowC = o.glow ?? 0x6ac8ff;
+  for (const it of list) {
+    const z0 = Math.max(it.zA, it.zB), z1 = Math.min(it.zA, it.zB), { x0, x1, y } = it;
+    const e = it.edges ?? '';
+    const run = (ax, az, bx, bz) => {
+      const len = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.floor(len / 1.3));
+      const ux = (bx - ax) / len, uz = (bz - az) / len, yaw = Math.atan2(-uz, ux);
+      b.box(len, 0.45, 0.45, (ax + bx) / 2, y, (az + bz) / 2, litTop(stone, 0.6), { yaw, r: 0.05 });
+      for (let i = 0; i < n; i++) { const t = (i + 0.5) / n; b.box(0.55, 0.4, 0.5, ax + ux * len * t, y + 0.45, az + uz * len * t, litTop(top, 0.6), { yaw, r: 0.05 }); }
+    };
+    const inset = 0.25;
+    if (e.includes('l')) run(x0 + inset, z0 - 0.6, x0 + inset, z1 + 0.6);
+    if (e.includes('r')) run(x1 - inset, z0 - 0.6, x1 - inset, z1 + 0.6);
+    if (e.includes('b')) run(x0 + 0.6, z1 + inset, x1 - 0.6, z1 + inset);
+    if (e.includes('f')) run(x0 + 0.6, z0 - inset, x1 - 0.6, z0 - inset);
+    if (it.posts !== false) for (const [px, pz] of [[x0 + 0.35, z0 - 0.35], [x1 - 0.35, z0 - 0.35], [x0 + 0.35, z1 + 0.35], [x1 - 0.35, z1 + 0.35]]) {
+      b.box(0.7, 1.1, 0.7, px, y, pz, litTop(stone, 0.55), { r: 0.08 });
+      b.cone(0.48, 0.5, px, y + 1.1, pz, 0xffc21a, 4, { yaw: 0.785 });
+    }
+    // glühende Fenster in der Inselwand (vorn, zur Kamera)
+    if (it.windows !== false) for (let x = x0 + 1.6; x < x1 - 1; x += 3.2) g.box(0.5, 0.8, 0.06, x, y - 1.6, z0 + 0.02, glowC, { r: 0.08 });
+  }
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+}
