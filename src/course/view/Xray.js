@@ -29,7 +29,9 @@ export class XrayWalls {
     if (this.list.some((r) => !r.mesh.parent)) this.list = this.list.filter((r) => r.mesh.parent);
     if (!player) return;
     const cam = this.view.camera.position;
-    _head.set(player.pos.x, player.pos.y + 0.9, player.pos.z);
+    // Kopfhöhe der Figur (klein 0,6 m – sonst läge der Prüfpunkt der unter einem Deckengitter hängenden kleinen Figur schon
+    // in der Decke, und die bliebe deckend)
+    _head.set(player.pos.x, player.pos.y + (player.big === false ? 0.6 : 0.9), player.pos.z);
     _ray.origin.copy(cam);
     _ray.direction.copy(_head).sub(cam);
     const len = _ray.direction.length();

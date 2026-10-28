@@ -13,6 +13,9 @@ export const TILE = 32;
 // sparen dort Zeichenaufrufe. add(g, { tile: 'name' }) legt Teile in eine benannte Kachel (z. B. verstreute
 // Kleinteile im Meer eines Sektors), unabhängig von ihrer Lage. add(g, { tile, lod: true }) (Halloween: eingebackene
 // Registry-Modelle eines Eingangs): die Kachel darf von der Fern-Ausblendung (lod.js) erfasst werden (userData.lod).
+// zones (Welt 6, schwebende Inseln): [[x0, z0, x1, z1, name], …] – Teile ohne benannte Kachel, deren Mitte in einer Zone
+// liegt, kommen in die Kachel dieser Zone (je Insel ein Mesh je Material/Schattenwurf statt vieler angeschnittener
+// Rasterkacheln – weniger Zeichenaufrufe im Weitblick); außerhalb aller Zonen gilt das Raster.
 
 export class MapBatcher {
   /** @param {import('../view/CourseView.js').CourseView} view */
@@ -22,6 +25,7 @@ export class MapBatcher {
     this.origin = opts.origin ?? [0, 0];
     this.freeTile = opts.freeTile ?? this.tile;
     this.freeOrigin = opts.freeOrigin ?? this.origin;
+    this.zones = opts.zones ?? null;
     this.buckets = new Map();
     this.meshes = [];
     this.stats = { parts: 0, meshes: 0, triangles: 0 };
@@ -40,7 +44,13 @@ export class MapBatcher {
     const cast = opts.castShadow !== false, recv = opts.receiveShadow !== false;
     const T = cast ? this.tile : this.freeTile, [ox, oz] = cast ? this.origin : this.freeOrigin;
     const tx = Math.floor(((bb.min.x + bb.max.x) / 2 - ox) / T), tz = Math.floor(((bb.min.z + bb.max.z) / 2 - oz) / T);
-    const key = `${mat}|${opts.tile ?? `${tx}|${tz}`}|${cast ? 1 : 0}|${recv ? 1 : 0}`;
+    let tile = opts.tile;
+    if (tile === undefined && this.zones) {
+      const cx = (bb.min.x + bb.max.x) / 2, cz = (bb.min.z + bb.max.z) / 2;
+      const zn = this.zones.find(([x0, z0, x1, z1]) => cx >= x0 && cx < x1 && cz >= z0 && cz < z1);
+      if (zn) tile = `zone:${zn[4]}`;
+    }
+    const key = `${mat}|${tile ?? `${tx}|${tz}`}|${cast ? 1 : 0}|${recv ? 1 : 0}`;
     let b = this.buckets.get(key);
     if (!b) { b = { mat, cast, recv, parts: [], lod: !!opts.lod }; this.buckets.set(key, b); }
     b.parts.push(g);

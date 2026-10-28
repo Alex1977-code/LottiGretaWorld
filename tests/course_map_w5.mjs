@@ -5,7 +5,8 @@
 //   nacheinander (Schranken-Schwenk, Wege); Sternschranken 90/100 mit Hinweis „Benötigt N Sterne (x/N)“; Gegnergruppen
 //   (Rammbock-Bullen, Feuer-Werfer) starten 5-A/5-B; Suchscheinwerfer der Schleich-Festung kreist im Takt der
 //   Kartenmusik (Taktuhr, manuell vorgespult), Alarm im Lichtfleck; Rot-Blau-Flipper wechselt bei jedem Sprung;
-//   Glasröhre W6 „Welt 6 kommt bald!“ (auch Welt-Warp nach Welt 6 über den vorhandenen Rückfall); Beerenhaus,
+//   Glasröhre W6 führt seit der Welt-6-Karte nach Welt 6 (auch der Welt-Warp nach Welt 6; zurück durch die Röhre:
+//   Welt-6-Röhre entdeckt, Schranke versinkt, Schranke 5-Burg von hinten); Beerenhaus,
 //   Glückshaus; gespeicherte Welt bleibt nach Neuladen; Rückweg nach Welt 4; Anflug; Kennzahlen (< 120 Zeichenaufrufe,
 //   < 300 k Dreiecke an jeder Ansicht inkl. Ankunft und Anflug); keine Konsolenfehler.
 // Simulation deterministisch über window.__courseMap.step(n)/setInput; Bilder tests/out/cmap5_*.png zur Sichtprüfung.
@@ -332,8 +333,8 @@ if (part(5)) {
   st = await setLevels(with5(w1234(true), ['5-1', '5-2', '5-4', '5-5', '5-6', '5-7']));
   check('Nach 5-7: Goldzug-Bahnhof (5-Zug) und Ruinen-Tempel (5-Burg, 108 ★ ≥ 100) frei, Welt-6-Röhre noch zu', free(st, '5-Zug') && free(st, '5-Burg') && shut(st, 'W6'));
   st = await setLevels(with5(w1234(true), ['5-1', '5-2', '5-4', '5-5', '5-6', '5-7', '5-Burg']));
-  check('Nach 5-Burg: Weg zur Welt-6-Röhre offen, Röhre „Bald“ (Welt 6 gibt es noch nicht)', st.entrances.W6.pathOpen && !st.entrances.W6.locked
-    && st.entrances.W6.soon && !st.entrances.W6.enterable && st.entrances.W6.title === 'Bald');
+  check('Nach 5-Burg: Weg zur Welt-6-Röhre offen, Röhre frei mit Ziel „Wolkeninseln“ (Welt-6-Karte)', st.entrances.W6.pathOpen && !st.entrances.W6.locked
+    && !st.entrances.W6.soon && st.entrances.W6.enterable && st.entrances.W6.title === 'Wolkeninseln');
   // die Schranken selbst: mit allen geschafften Leveln geladen sind alle offen
   const done = ['5-1', '5-2', '5-4', '5-5', '5-6', '5-7', '5-Burg'];
   await loadWith({ levels: with5(w1234(true), done), mapOpened: [...OPENED_1234, ...opened5(done)] });
@@ -473,7 +474,10 @@ if (part(8)) {
   check('Kippquader-König auf dem Tempel meldet seinen Zustand', !!kq && ['idle', 'warn', 'tip', 'down', 'up'].includes(kq.phase));
 }
 
-// ------------------------------------------------------------------ 9) Glasröhre W6 „bald“, Welt-Warp nach Welt 6 über den Rückfall
+// ------------------------------------------------------------------ 9) Glasröhre W6 nach Welt 6, Welt-Warp nach Welt 6, zurück durch die Röhre
+// Seit es die Welt-6-Karte gibt (worlds/w6.js), führen die Röhre W6 und ein Welt-Warp nach Welt 6 ohne Codeänderung dorthin
+// (Ankunft an der Rückweg-Röhre W5); zurück durch diese Röhre kommt die Figur an der Welt-6-Röhre der Welt 5 an – Röhre
+// entdeckt, Schranke versinkt, Ziel „Wolkeninseln“. (Der Rückfall „Welt n kommt bald!“ prüft tests/course_map_w6.mjs mit Welt 7.)
 if (part(9)) {
   const doneB = ['5-1', '5-2', '5-4', '5-5', '5-6', '5-7', '5-Burg'];
   await loadWith({ levels: with5(w1234(true), doneB), mapOpened: [...OPENED_1234, ...opened5(doneB)], world: 5, worlds: WORLDS5, mapPos: null });
@@ -481,13 +485,10 @@ if (part(9)) {
   await tp(54, 7.3, -154.5, -Math.PI / 2, 20);
   r = await walkTo(54, -158, (s) => s.onPad === 'W6', 400);
   await shot('roehre6', 700);
-  await sc(() => { const m = window.__courseMap; m.hud.toast('', 0.01); m.step(2); m.enter(); m.step(1); });
-  const msg = await toast();
-  st = await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); return m.step(5); });
-  check('Welt-6-Röhre nach 5-Burg: Weg frei, „Bald“, Enter/A zeigt „Welt 6 kommt bald!“ statt einer Fahrt', r.s.onPad === 'W6' && msg === 'Welt 6 kommt bald!' && !st.travel && !st.leaving
-    && st.entrances.W6.soon && !st.entrances.W6.enterable && st.entrances.W6.discovered === false);
-  // Warp nach Welt 6 aus einem Welt-5-Level (5-7 noch offen, Tempel-Schranke zu): Rückfall – Ankunft in Welt 5 durch
-  // die Welt-6-Röhre hinter den gesperrten Schranken
+  st = await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); return m.state(); });
+  check('Welt-6-Röhre nach 5-Burg: Weg frei, Ziel „Wolkeninseln“, A startet die Fahrt nach Welt 6', r.s.onPad === 'W6' && st.travel?.mode === 'depart'
+    && st.entrances.W6.enterable && st.entrances.W6.title === 'Wolkeninseln');
+  // Warp nach Welt 6 aus einem Welt-5-Level (5-7 noch offen, Tempel-Schranke zu): Ankunft in Welt 6
   const done6 = ['5-1', '5-2', '5-4', '5-5', '5-6'];
   await loadWith({ levels: with5(w1234(true), done6), mapOpened: [...OPENED_1234, ...opened5(done6)], world: 5, worlds: WORLDS5, mapPos: null }, '&mapAlias=5-1:0-0');
   await waitMap(5);
@@ -496,18 +497,28 @@ if (part(9)) {
   await sc(() => { const m = window.__courseMap; m.enter(); m.step(1); });
   await waitCourse();
   await sc(() => { window.__courseSave.openWorld(6); window.__course.exitToMap({ warpWorld: 6 }); });
+  await waitMap(6);
+  st = await sc(() => window.__courseMap.state());
+  console.log('  Warp 6:', JSON.stringify(st.travel), st.soonWorld);
+  check('Welt-Warp nach Welt 6 endet in Welt 6: Ankunft durch deren Rückweg-Röhre W5 (keine „bald“-Meldung)', st.world === 6 && st.travel?.mode === 'arrive'
+    && st.travel.entrance === 'W5' && st.soonWorld === null && st.worlds.includes(6));
+  r = await stepUntil((s) => !s.travel, 900);
+  await sc(() => window.__courseMap.step(20));
+  // zurück nach Welt 5: Rückweg-Röhre in Welt 6
+  const W5E = await sc(() => window.__courseMap.map.entrances.find((e) => e.id === 'W5').pos);
+  r = await walkTo(W5E[0], W5E[2], (s) => s.onPad === 'W5', 400);
+  await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); });
+  r = await stepUntil(() => false, 900);
   await waitMap(5);
   st = await sc(() => window.__courseMap.state());
-  console.log('  Warp 6:', JSON.stringify(st.travel), st.soonWorld, JSON.stringify(st.entrances.W6));
-  check('Welt-Warp 6 ohne Welt-6-Karte endet in Welt 5: Ankunft durch die Welt-6-Röhre, Röhre entdeckt, Weg frei, „Bald“',
-    st.world === 5 && st.travel?.mode === 'arrive' && st.travel.entrance === 'W6' && st.soonWorld === 6 && st.worlds.includes(6)
-    && st.entrances.W6.discovered === true && !st.entrances.W6.locked && st.entrances.W6.soon);
+  check('Zurück durch die Röhre: Ankunft in Welt 5 an der Welt-6-Röhre (hinter den gesperrten Schranken)', st.world === 5 && st.travel?.mode === 'arrive' && st.travel.entrance === 'W6');
   r = await stepUntil((s) => s.travel?.t > 1.4, 400);
   await shot('warp6_ankunft', 400);
   r = await stepUntil((s) => !s.travel, 900);
-  const msg6 = await toast();
   st = await sc(() => window.__courseMap.state());
-  check('Nach der Ankunft: „Welt 6 kommt bald!“, Schranke zur Röhren-Insel versinkt (Schwenk)', msg6 === 'Welt 6 kommt bald!' && st.cinematic);
+  console.log('  Schwenk', st.cinematic, st.gates.W6, JSON.stringify(st.entrances.W6));
+  check('Welt-6-Röhre entdeckt (Welt 6 gemerkt), Weg frei, Ziel „Wolkeninseln“, Schranke versinkt (Schwenk)', st.entrances.W6.discovered === true && !st.entrances.W6.locked
+    && st.entrances.W6.enterable && st.entrances.W6.title === 'Wolkeninseln' && st.cinematic);
   r = await stepUntil((s) => !s.cinematic, 1800);
   await sc(() => window.__courseMap.step(20));
   st = await sc(() => window.__courseMap.state());

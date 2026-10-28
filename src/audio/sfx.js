@@ -42,6 +42,22 @@
 //   splash_big             großes Platschen (Sprung ins Wasser, Wasserspiegel)
 //   train_whistle          Dampfpfeife des Zuges
 //   beep / beep_switch     Piep-Block-Warnton / Piep-Blöcke schalten um (klingt wie die Pieps in course_beep)
+//
+// Welt 6 „Wolkeninseln“ (W6_SFX; vorher Ersatzklänge in blocks/w6kit.js):
+//   gust / wind            Windböe (Windfeld bläst) / Wind-Vorwarnung (Windlinien)
+//   rumble                 Grummeln (Quetschblock-Vorwarnung, Tempel)
+//   door                   Papier-Schiebetür gleitet auf/zu
+//   poof                   Wolke verpufft / erscheint wieder (auch Schattenläuferin)
+//   splash                 kleines Platschen (Floß legt ab, Sprung ins Wasser – kleiner als splash_big)
+//   bump                   Anstoßen / prallt ab / geht nicht
+//   powerup_appear         etwas erscheint (Power-up aus dem Block, verstecktes Teil)
+//   gong                   Gong-Schlag
+// Halloween-Welt „Kürbisinsel“ (HW_SFX; vorher Ersatzklänge über hwSfx in blocks/hwkit.js):
+//   klingel / tuer / alle_tueren   Türklingel „Ding-Dong“ / Tür knarrt auf / alle Türen geschafft
+//   kessel / blase / netz          Sprung auf den Hexenkessel / Blase platzt / Spinnennetz-Trampolin
+//   laterne / laterne_aus          Laterne an / aus
+//   suessigkeit / muenzregen       Süßigkeit / Münzregen
+//   buh / grabstein / kuerbis_platzt  „Buh!“ (drollig) / Grabstein-Schalter / Kürbis platzt
 
 import { engine, Voices } from './AudioEngine.js';
 
@@ -86,6 +102,11 @@ function springCurve(from, to, wobble, n = 48) {
   }
   return c;
 }
+
+/** Windböe: Pfeifton schwillt hinauf und sinkt zurück (Hz über die Dauer). */
+const GUST_CURVE = [520, 640, 780, 880, 900, 840, 720, 600];
+/** Knarrende Tür: steigt langsam, wackelt dabei schnell (Hz über die Dauer). */
+const CREAK_CURVE = Array.from({ length: 64 }, (_, i) => { const x = i / 63; return 250 + 170 * x + 38 * Math.sin(x * 38) * (1 - 0.4 * x); });
 
 const SFX = {
   // ---- Klassik-Spiel (unverändert, außer coin/checkpoint) – teils auch im Kurs genutzt ----
@@ -409,12 +430,175 @@ const SFX = {
     e.tone({ type: 'square', freq: 400, freqEnd: 1300, duration: 0.09, volume: 0.1 });
     e.noise({ duration: 0.05, filterType: 'highpass', filterFreq: 3000, volume: 0.2 });
   },
+
+  // ---- Kurs Welt 6 „Wolkeninseln“ (Bausteine blocks/types/w6_*.js über w6Sfx, teils auch direkt level.sfx) ----
+  // Windböe: Luftstoß schwillt an und ab (drei Bandpass-Rauschwellen), ein leiser Pfeifton gleitet hinauf und zurück
+  gust: (e) => {
+    const t = e.now;
+    e.noise({ duration: 0.45, filterType: 'bandpass', filterFreq: 450, filterEnd: 1600, volume: 0.55 });
+    e.noise({ at: t + 0.1, duration: 0.55, filterType: 'bandpass', filterFreq: 900, filterEnd: 2600, volume: 0.8 });
+    e.noise({ at: t + 0.3, duration: 0.5, filterType: 'bandpass', filterFreq: 2200, filterEnd: 600, volume: 0.6 });
+    e.tone({ type: 'sine', freq: 520, curve: GUST_CURVE, slideTime: 0.7, duration: 0.75, volume: 0.14, attack: 0.15, release: 0.3 });
+  },
+  // Wind-Vorwarnung (Windlinien vor der Böe): leises Säuseln – Pfeife mit weitem Vibrato über hauchigem Rauschen
+  wind: (e) => {
+    e.whistle({ freq: hz('E6'), duration: 0.55, volume: 0.16, vibrato: 45, rate: 6.5, slide: 5, attack: 0.15 });
+    e.noise({ duration: 0.5, filterType: 'bandpass', filterFreq: 700, filterEnd: 1500, volume: 0.55 });
+  },
+  // Grummeln (Quetschblock-Vorwarnung, Tempel): tiefes, wackelndes Brummen, Tiefpass-Rauschen und drei dumpfe Schläge
+  rumble: (e) => {
+    const t = e.now;
+    e.noise({ duration: 0.6, filterFreq: 300, filterEnd: 90, volume: 0.5 });
+    e.tone({ type: 'triangle', freq: 72, curve: whirrCurve(72, 58, 9, 0.55), slideTime: 0.55, duration: 0.6, volume: 0.3, attack: 0.04, release: 0.2 });
+    [0, 0.15, 0.31].forEach((d, i) => e.doum({ at: t + d, freq: 74 - i * 6, volume: 0.24 - i * 0.05, decay: 0.2 }));
+  },
+  // Papier-Schiebetür: „Schhh“ (Bandpass-Rauschen gleitet) und am Anschlag ein hölzernes „Tok-tok“
+  door: (e) => {
+    const t = e.now;
+    e.noise({ duration: 0.32, filterType: 'bandpass', filterFreq: 1800, filterEnd: 900, volume: 0.8 });
+    e.tone({ type: 'triangle', freq: 240, freqEnd: 300, duration: 0.28, volume: 0.12, attack: 0.04 });
+    e.tek({ at: t + 0.3, freq: 820, volume: 1.2 });
+    e.tek({ at: t + 0.37, freq: 620, volume: 0.7 });
+  },
+  // Puff (Wolke verpufft / erscheint): weiches „Pfff“ mit fallendem Ton und einem Funkel-Glöckchen
+  poof: (e) => {
+    const t = e.now;
+    e.noise({ duration: 0.3, filterFreq: 2400, filterEnd: 250, volume: 0.36 });
+    e.tone({ type: 'sine', freq: 420, freqEnd: 160, duration: 0.16, volume: 0.22 });
+    e.bell({ at: t + 0.04, freq: hz('A6'), volume: 0.06, decay: 0.18, ratio: 2, partial: 0.3 });
+  },
+  // Platschen (Floß legt ab, Sprung ins Wasser): kleiner als splash_big – Bandpass-Rauschen, Gischt, Plumps, zwei Bläschen
+  splash: (e) => {
+    const t = e.now;
+    e.noise({ duration: 0.38, filterType: 'bandpass', filterFreq: 2600, filterEnd: 700, volume: 0.38 });
+    e.noise({ duration: 0.16, filterFreq: 6000, filterEnd: 2000, volume: 0.1 });
+    e.tone({ type: 'sine', freq: 220, freqEnd: 90, duration: 0.14, volume: 0.2 });
+    [0.12, 0.22].forEach((d, i) => e.pluck({ at: t + d, freq: 520 + i * 140, type: 'sine', volume: 0.09, decay: 0.04, glide: 1.8, glideTime: 0.04 }));
+  },
+  // Anstoßen (Ball prallt ab, geht nicht): weiches „Boink“
+  bump: (e) => {
+    e.tone({ type: 'triangle', freq: 330, freqEnd: 190, duration: 0.1, volume: 0.26 });
+    e.tone({ type: 'sine', freq: 150, freqEnd: 95, duration: 0.09, volume: 0.26 });
+    e.noise({ duration: 0.035, filterFreq: 1400, volume: 0.12 });
+  },
+  // Etwas erscheint (Power-up, verstecktes Teil): Funkel-Lauf hinauf (Pentatonik), Glöckchen, Glitzer-Rauschen
+  powerup_appear: (e) => {
+    const t = e.now;
+    ['G5', 'A5', 'C6', 'D6', 'E6', 'G6'].forEach((n, i) => e.tone({ type: i % 2 ? 'triangle' : 'square', freq: hz(n), duration: 0.07, volume: i % 2 ? 0.3 : 0.13, at: t + i * 0.045 }));
+    e.bell({ at: t + 0.27, freq: hz('C7'), volume: 0.16, decay: 0.3, ratio: 2, partial: 0.3 });
+    e.noise({ duration: 0.3, filterType: 'bandpass', filterFreq: 1500, filterEnd: 5000, volume: 0.1 });
+  },
+  // Gong: tiefer, voller Metallschlag (unharmonische Teiltöne), weicher Schlegel-Anschlag
+  gong: (e) => {
+    e.bell({ freq: 98, volume: 0.34, decay: 0.72, ratio: 2.76, partial: 0.55 });
+    e.bell({ freq: 147, volume: 0.17, decay: 0.6, ratio: 2.4, partial: 0.5 });
+    e.bell({ freq: 392, volume: 0.05, decay: 0.45, ratio: 1.47, partial: 0.4 });
+    e.noise({ duration: 0.12, filterType: 'bandpass', filterFreq: 900, filterEnd: 300, volume: 0.2 });
+    e.kick909({ volume: 0.24, pitchStart: 120, pitchEnd: 60, decay: 0.3, click: 0.2 });
+  },
+
+  // ---- Halloween-Welt „Kürbisinsel“ (Bausteine über hwSfx; gruselig-fröhlich, nie erschreckend) ----
+  // Türklingel: „Ding-Dong“
+  klingel: (e) => {
+    e.bell({ freq: hz('E6'), volume: 0.26, decay: 0.32, ratio: 2.76, partial: 0.35 });
+    e.bell({ at: e.now + 0.26, freq: hz('C6'), volume: 0.26, decay: 0.42, ratio: 2.76, partial: 0.35 });
+  },
+  // Tür geht auf: knarrt (wackelnder Sägezahn), dann ein dumpfes Anschlagen
+  tuer: (e) => {
+    e.tone({ type: 'sawtooth', freq: 260, curve: CREAK_CURVE, slideTime: 0.5, duration: 0.55, volume: 0.11, attack: 0.05, release: 0.12 });
+    e.tone({ type: 'square', freq: 520, curve: CREAK_CURVE.map((f) => f * 2), slideTime: 0.5, duration: 0.5, volume: 0.035, attack: 0.05, release: 0.1 });
+    e.noise({ duration: 0.5, filterType: 'bandpass', filterFreq: 900, filterEnd: 1400, volume: 0.14 });
+    e.doum({ at: e.now + 0.52, freq: 90, volume: 0.45, decay: 0.22 });
+  },
+  // Alle Türen geschafft: Moll-Lauf hinauf, aufgelöst in einen Dur-Akkord mit Glocke und einem kleinen Spuk-Pfiff
+  alle_tueren: (e) => {
+    const t = e.now;
+    ['A5', 'C6', 'E6'].forEach((n, i) => e.tone({ type: 'triangle', freq: hz(n), duration: 0.09, volume: 0.25, at: t + i * 0.08 }));
+    e.stab({ at: t + 0.24, notes: chord('A4', 'C#5', 'E5', 'A5'), duration: 0.3, volume: 0.17 });
+    e.bell({ at: t + 0.24, freq: hz('A6'), volume: 0.18, decay: 0.4, ratio: 2, partial: 0.3 });
+    e.whistle({ at: t + 0.26, freq: hz('E6'), duration: 0.4, volume: 0.06, vibrato: 50, rate: 6, slide: 3 });
+  },
+  // Kessel (Sprung auf den Hexenkessel): federndes „Boing“ mit Blubbern
+  kessel: (e) => {
+    const t = e.now;
+    e.tone({ type: 'triangle', freq: 130, curve: springCurve(130, 480, 60), duration: 0.32, volume: 0.24, release: 0.12 });
+    [0, 0.07, 0.15].forEach((d, i) => e.pluck({ at: t + d, freq: 260 + i * 70, type: 'sine', volume: 0.12, decay: 0.05, glide: 1.9, glideTime: 0.05 }));
+    e.noise({ duration: 0.12, filterFreq: 900, filterEnd: 200, volume: 0.14 });
+  },
+  // Blase platzt: „Plopp“ (Sinus gleitet hinauf), heller Spritzer
+  blase: (e) => {
+    e.pluck({ freq: 380, type: 'sine', volume: 0.48, decay: 0.05, glide: 2.6, glideTime: 0.05 });
+    e.noise({ duration: 0.04, filterType: 'highpass', filterFreq: 2500, volume: 0.24 });
+    e.pluck({ at: e.now + 0.06, freq: 900, type: 'triangle', volume: 0.12, decay: 0.04 });
+  },
+  // Spinnennetz-Trampolin: elastisches „Twäng“
+  netz: (e) => {
+    e.tone({ type: 'sawtooth', freq: 110, curve: springCurve(110, 330, 40), duration: 0.3, volume: 0.085, release: 0.1 });
+    e.tone({ type: 'triangle', freq: 220, curve: springCurve(220, 660, 80), duration: 0.34, volume: 0.27, release: 0.12 });
+    e.noise({ duration: 0.08, filterType: 'bandpass', filterFreq: 1800, volume: 0.12 });
+  },
+  // Laterne an: warmes „Fwump“, Glöckchen und Dur-Lauf über einem weichen Grundton
+  laterne: (e) => {
+    const t = e.now;
+    e.noise({ duration: 0.25, filterType: 'bandpass', filterFreq: 600, filterEnd: 2400, volume: 0.29 });
+    e.bell({ at: t + 0.06, freq: hz('G6'), volume: 0.16, decay: 0.35, ratio: 2, partial: 0.35 });
+    ['C6', 'E6', 'G6'].forEach((n, i) => e.tone({ type: 'triangle', freq: hz(n), duration: 0.1, volume: 0.16, at: t + 0.06 + i * 0.05 }));
+    e.tone({ type: 'sine', freq: hz('C5'), duration: 0.4, volume: 0.1, attack: 0.06, release: 0.25 });
+  },
+  // Laterne aus: „Pfff“ und ein fallender Ton
+  laterne_aus: (e) => {
+    e.noise({ duration: 0.3, filterType: 'bandpass', filterFreq: 2000, filterEnd: 400, volume: 0.42 });
+    e.tone({ type: 'triangle', freq: hz('G5'), freqEnd: hz('C5'), duration: 0.3, volume: 0.26 });
+  },
+  // Süßigkeit: heller Dreiklang hinauf, Glanzton und ein Raschel-Schellen (Bonbonpapier)
+  suessigkeit: (e) => {
+    const t = e.now;
+    ['E6', 'G6', 'C7'].forEach((n, i) => e.tone({ type: 'triangle', freq: hz(n), duration: 0.08, volume: 0.24, at: t + i * 0.05 }));
+    e.tone({ type: 'square', freq: hz('C7'), duration: 0.05, volume: 0.06, at: t + 0.15 });
+    e.jingle({ at: t + 0.1, volume: 0.17, duration: 0.16 });
+  },
+  // Münzregen: prasselnde Münz-Pings, Schellen, Glöckchen am Ende
+  muenzregen: (e) => {
+    const t = e.now;
+    ['C7', 'G6', 'E7', 'C7', 'G7', 'E7'].forEach((n, i) => e.tone({ type: i % 2 ? 'triangle' : 'square', freq: hz(n), duration: 0.06, volume: i % 2 ? 0.28 : 0.12, at: t + i * 0.06 }));
+    e.jingle({ at: t, volume: 0.2, duration: 0.45 });
+    e.bell({ at: t + 0.38, freq: hz('C7'), volume: 0.14, decay: 0.3, ratio: 2, partial: 0.3 });
+  },
+  // „Buh!“ (Gespenst, Kürbling springt heraus): Hauch, dann ein tiefes, wackelndes „Uuh“, das hinabgleitet – eher drollig
+  buh: (e) => {
+    const t = e.now;
+    e.noise({ duration: 0.08, filterType: 'bandpass', filterFreq: 600, volume: 0.28 });
+    e.whistle({ at: t + 0.02, freq: hz('F4'), duration: 0.55, volume: 0.2, vibrato: 50, rate: 5.5, slide: -6, attack: 0.03 });
+    e.whistle({ at: t + 0.04, freq: hz('C5'), duration: 0.5, volume: 0.07, vibrato: 40, rate: 4.7, slide: -6, attack: 0.04 });
+    e.tone({ type: 'triangle', freq: 180, freqEnd: 140, duration: 0.4, volume: 0.1, attack: 0.03 });
+  },
+  // Grabstein-Schalter: Stein schabt und setzt dumpf auf, dazu ein kleiner Spuk-Pfiff
+  grabstein: (e) => {
+    const t = e.now;
+    e.noise({ duration: 0.35, filterFreq: 700, filterEnd: 200, volume: 0.34 });
+    e.tone({ type: 'sine', freq: 110, freqEnd: 70, duration: 0.25, volume: 0.24 });
+    e.whistle({ at: t + 0.12, freq: hz('D5'), duration: 0.45, volume: 0.07, vibrato: 60, rate: 5, slide: 4, attack: 0.1 });
+  },
+  // Kürbis platzt: matschiges „Plopp-Platsch“ (hohe Kick, Bandpass-Rauschen), Kerne hüpfen (fallende Plucks)
+  kuerbis_platzt: (e) => {
+    const t = e.now;
+    e.kick909({ volume: 0.39, pitchStart: 260, pitchEnd: 90, decay: 0.15, click: 0.5 });
+    e.noise({ duration: 0.3, filterType: 'bandpass', filterFreq: 1400, filterEnd: 300, volume: 0.47 });
+    [0.05, 0.1, 0.16, 0.22].forEach((d, i) => e.pluck({ at: t + d, freq: 700 - i * 90, type: 'sine', volume: 0.1, decay: 0.03, glide: 0.6, glideTime: 0.03 }));
+  },
 };
 
 /** Effekt-Namen für Welt 2–4 (Kurs-Vertrag, Abschnitt Audio). */
 export const WORLD_SFX = ['clone', 'clone_lost', 'helm_on', 'helm_off', 'cannon', 'propeller', 'light', 'quicksand',
   'sand_crumble', 'peck', 'bullet', 'boss_hit', 'boss_spin', 'house_tick', 'room_clear', 'ice_slide', 'snowball', 'ghost',
   'splash_big', 'train_whistle', 'beep', 'beep_switch'];
+
+/** Effekt-Namen der Welt 6 „Wolkeninseln“ (Bausteine über w6Sfx in blocks/w6kit.js; einige rufen Level-Bausteine direkt). */
+export const W6_SFX = ['gust', 'wind', 'rumble', 'door', 'poof', 'splash', 'bump', 'powerup_appear', 'gong'];
+
+/** Effekt-Namen der Halloween-Welt „Kürbisinsel“ (Bausteine über hwSfx in blocks/hwkit.js). */
+export const HW_SFX = ['klingel', 'tuer', 'alle_tueren', 'kessel', 'blase', 'netz', 'laterne', 'laterne_aus', 'suessigkeit',
+  'muenzregen', 'buh', 'grabstein', 'kuerbis_platzt'];
 
 /** Effekt-Namen aus dem Kurs-Vertrag (docs/KURS-ARCHITEKTUR.md). */
 export const COURSE_SFX = ['jump', 'jump2', 'jump3', 'backflip', 'longjump', 'walljump', 'groundpound', 'slide', 'land',
