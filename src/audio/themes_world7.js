@@ -22,14 +22,17 @@
 //                   langen Ton (Terz → Quinte → Septime der Kette)
 //   Vulkan-See      Ausbruch: zwei schwere Viertel, ein Sechzehntel-Lauf schießt hinauf zum langen Gipfelton; die
 //                   Antwort rollt hinab wie Lava
-//   Lava-Burg       3+3+2-Stöße auf einem Ton mit Nebennote („G . . g . . as G F Es D“), die Antwort eine Stufe tiefer;
-//                   im Intro spielt die Orgel das Baron-Brummbär-Motiv aus course_boss (Lead Takt 5–8) unverändert
+//   Lava-Burg       3+3+2-Stöße auf einem Ton mit Nebennote („G . . g . . as G F Es D“), die Antwort dieselbe Figur
+//                   eine Quarte tiefer; im Intro spielt die Orgel das Baron-Brummbär-Motiv aus course_boss (Lead Takt 5–8)
+//                   unverändert – die Hook selbst ist eigenständig (gegen course_boss und course_brummula < 50 %)
 //   Karte           Schaukeln: Quarte und Terz hinauf zum langen Ton, um den Grundton mit dem Leitton kreisen, die
 //                   Antwort sinkt und steigt in Sechzehnteln zurück
 // Beim Komponieren aufgefallen und ersetzt: eine Festungs-Hook im Rhythmus 3-1-2-2-4 hatte die Kontur von course_tank
-// (60 %), eine Vulkan-Hook aus langen Tönen die von course_autumn/course_graveyard (75 %), eine Karten-Hook die von
-// course_wreck (60 %), eine Tempel-Hook mit Wechselnote und Terz den Kopf von course_goldtrain (45 %) und eine Turm-Hook
-// im Terzen-Zickzack die Kletter-Hook von course_fuzzymine (55 %).
+// (60 %), eine Schubser-Hook mit fallendem Dreiklang ebenfalls (55 %), eine Vulkan-Hook aus langen Tönen die von
+// course_autumn/course_graveyard (75 %), eine Karten-Hook die von course_wreck (60 %) und eine Turm-Hook im
+// Terzen-Zickzack die Kletter-Hook von course_fuzzymine (55 %). Nach einer Harmonie-Prüfung (lange Melodietöne gegen den
+// Akkord) bekam der Tempel-Refrain in Takt 3 einen E-Dreiklang statt der Quarte, der Fluchtturm-Refrain die Folge h A D A
+// (die Galopp-Treppe passt so zu jedem Akkord) und die Antwort der Burg-Hook die Sequenz auf B.
 //
 // Welt-Farbe nur über Klang: Fanfaren-Bläser (gedämpfte Rechteck-Orgel), Feuer-Whoosh (kurze Riser mit Rauschen),
 // fallende Feuerbälle und Knistern (Werfer-Festung), Steinglocken mit unharmonischem Teilton, großer Hall, Tropfen,
