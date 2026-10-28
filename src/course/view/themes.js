@@ -124,6 +124,14 @@ import { LAVAMACHINE_THEME } from './theme_lavamachine.js'; THEMES.lavamachine ?
 import { REEF_THEME } from './theme_reef.js'; THEMES.reef ??= REEF_THEME;
 import { VOLCANO_THEME } from './theme_volcano.js'; THEMES.volcano ??= VOLCANO_THEME;
 // Welt 8 „Brummbär-Rummelplatz“ (Motor und Bausteine Welt 8) und der Abspann: nur eintragen, wenn das Thema nicht schon anders registriert ist
+import { RAINFORT_THEME } from './theme_rainfort.js'; THEMES.rainfort ??= RAINFORT_THEME;
+import { DUNES_THEME } from './theme_dunes.js'; THEMES.dunes ??= DUNES_THEME;
+import { COOKIE_THEME } from './theme_cookie.js'; THEMES.cookie ??= COOKIE_THEME;
+import { NIGHTFORT_THEME } from './theme_nightfort.js'; THEMES.nightfort ??= NIGHTFORT_THEME;
+import { DUNGEON_THEME } from './theme_dungeon.js'; THEMES.dungeon ??= DUNGEON_THEME;
+import { DARKGHOST_THEME } from './theme_darkghost.js'; THEMES.darkghost ??= DARKGHOST_THEME;
+import { INFERNO_THEME } from './theme_inferno.js'; THEMES.inferno ??= INFERNO_THEME;
+import { BARONPARK_THEME } from './theme_baronpark.js'; THEMES.baronpark ??= BARONPARK_THEME;
 import { ABSPANN_THEME } from './theme_abspann.js'; THEMES.abspann ??= ABSPANN_THEME;
 
 export function getTheme(name) { return THEMES[name] ?? THEMES.grass; }
