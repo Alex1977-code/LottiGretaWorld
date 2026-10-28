@@ -29,6 +29,9 @@ export const ENTRANCE_COLORS = {
   // Welt 6
   pipehills: 0x3ac8e8, stonecircle: 0x8a8aa8, ghostbay: 0x6a5ad8, fareast: 0xe8402a, junglelake: 0x2aa84a, pipefort: 0x4a7ad8,
   snowwind: 0x5ab8f0, skyfactory: 0xd8a02a, throwhouse: 0x9a5ad8, minetower: 0xb07a4a, tankroad: 0x6a8a3a, skycircus: 0xff5a8a,
+  // Welt 7
+  bluefort: 0x3a7ae8, rockarena: 0xff6a2a, templerock: 0xe0883a, lavarace: 0xe8303a, bluecylinders: 0x3aa8ff, bluecage: 0x4a6ad8,
+  lavatower: 0xd8502a, machinediorama: 0x2ab8e8, reeflagoon: 0x1fb8a8, werferhall: 0xf2a020, crater: 0xff4a1a, lavakeep: 0xd8283a,
 };
 export const LOCKED_COLOR = 0x9a9cab;
 
