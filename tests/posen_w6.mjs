@@ -130,11 +130,20 @@ await sc(() => {
     // gleiche Augen in beiden Messungen (Blinzeln tauscht kurz das Augen-Mesh, ±1 Aufruf)
     av0.blinker.phase = 0; av0.blinker.timer = 99; av0.applyEyes(av0.blender.cur.eyes);
     H.cam = { mode: 'side', dist: 3.4, el: 0.06, fov: 40, fixed: true };
-    grab(); const a = grab();
-    hull.visible = false; grab(); const b = grab();
+    // Median aus fünf Paaren sichtbar/unsichtbar: bewegte Kleinteile im Hintergrund (Windlinien, Funken …) ändern sich von
+    // Bild zu Bild und verfälschten eine einzelne Differenz um ±1 Aufruf
+    const dc = [], dt = [];
+    grab();
+    for (let k = 0; k < 5; k++) {
+      hull.visible = true; grab(); const a = grab();
+      hull.visible = false; grab(); const b = grab();
+      dc.push(a.calls - b.calls); dt.push(a.tris - b.tris);
+    }
     hull.visible = true; grab();
     H.cam = cam0;
-    const r = { calls: a.calls - b.calls, tris: a.tris - b.tris };
+    const med = (l) => l.slice().sort((p, q) => p - q)[2];
+    const r = { calls: med(dc), tris: med(dt) };
+    if (H.debug) r.pairs = dc.join('/');
     av0.blinker.timer = 2;
     if (H.debug) {
       // Figur-Bündel (view/ShadowProxy.js): Gruppen „Teile:gebündelt“, Augen/Mund
