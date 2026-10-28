@@ -168,7 +168,19 @@ export function pfeile(level, list, o = {}) {
 /** Karo-Muster (Zielflagge) als Bld-Farbe ({ v }) nach Weltlage: Feldgröße cell, u/w aus (x, y) bzw. (z, y). */
 function karoV(cell, axis = 'xy', a = 0x1a1a22, bcol = 0xffffff) {
   const A = new THREE.Color(a), B = new THREE.Color(bcol);
-  return { v: (x, y, z) => ((Math.floor((axis === 'zy' ? z : x) / cell + 1000) + Math.floor(y / cell + 1000)) & 1 ? A : B) };
+  return { v: (x, y, z) => ((Math.floor((axis === 'zy' ? z : x) / cell + 1000) + Math.floor((axis === 'xz' ? z : y) / cell + 1000)) & 1 ? A : B) };
+}
+
+/** Karierte Start-/Ziellinie quer über den Weg (x0 … x1) bei z, Höhe y (flach, leicht über dem Boden). */
+export function karoLinie(level, x0, x1, z, y, depth = 1.2) {
+  if (!level.view) return;
+  const b = new Bld();
+  const nx = Math.max(1, Math.round((x1 - x0) / 0.4)), nz = Math.max(1, Math.round(depth / 0.4));
+  const cx = (x1 - x0) / nx, cz = depth / nz;
+  for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+    b.box(cx, 0.03, cz, x0 + (i + 0.5) * cx, y + 0.002, z - depth / 2 + (j + 0.5) * cz, ((i + j) & 1) ? 0x16161e : 0xffffff, { r: 0 });
+  }
+  b.flush(level, { castShadow: false });
 }
 
 /**
@@ -184,6 +196,10 @@ export function startTor(level, o) {
     const tx = x + s * (W / 2 + 0.8);
     b.box(1.6, H + 0.6, 1.6, tx, y, z, litTop(stone, 0.6), { r: 0.12 });
     b.box(1.9, 0.4, 1.9, tx, y, z, litTop(dark, 0.7), { r: 0.08 });
+    // Quaderbänder, Goldkranz und rot-weiße Rennstreifen am Turm
+    for (let k = 1; k < 4; k++) b.box(1.68, 0.12, 1.68, tx, y + k * (H / 4), z, litTop(dark, 0.7), { r: 0.03 });
+    b.box(1.74, 0.16, 1.74, tx, y + H + 0.44, z, gold, { r: 0.04 });
+    for (let k = 0; k < 6; k++) b.box(1.64, 0.22, 0.06, tx, y + 0.6 + k * 0.22, z + 0.81, (k & 1) ? 0xffffff : red, { r: 0 });
     for (let i = 0; i < 4; i++) { const a = (i / 4) * TAU + 0.785; b.box(0.5, 0.5, 0.5, tx + Math.cos(a) * 0.7, y + H + 0.6, z + Math.sin(a) * 0.7, litTop(stone, 0.6), { r: 0.05 }); }
     b.cone(0.95, 1.8, tx, y + H + 1.1, z, litTop(red, 0.6), 8);
     b.sphere(0.16, tx, y + H + 3.05, z, gold, { ws: 8, hs: 6 });
@@ -192,11 +208,12 @@ export function startTor(level, o) {
   }
   // Balken mit Karo-Band (vorn und hinten)
   b.box(W + 3.4, 0.9, 0.9, x, y + H, z, litTop(dark, 0.7), { r: 0.1 });
-  for (const s of [-1, 1]) {
-    const band = new THREE.PlaneGeometry(W + 1.6, 0.7, Math.round((W + 1.6) / 0.35), 2);
-    if (s < 0) band.rotateY(Math.PI);
-    band.translate(x, y + H + 0.45, z + s * 0.47);
-    b.add(band, karoV(0.35, 'xy'));
+  {
+    // Karo-Band (Kästchen, vorn und hinten)
+    const n = Math.round((W + 1.6) / 0.35), cw = (W + 1.6) / n;
+    for (let i = 0; i < n; i++) for (let j = 0; j < 2; j++) {
+      b.box(cw, 0.35, 0.96, x - (W + 1.6) / 2 + (i + 0.5) * cw, y + H + 0.1 + j * 0.35, z, ((i + j) & 1) ? 0x16161e : 0xffffff, { r: 0 });
+    }
   }
   // Wimpel unter dem Balken
   const cols = [0xe0302a, 0xffc21a, 0xe0302a, 0x1a1a22];
@@ -226,6 +243,30 @@ export function startTor(level, o) {
     level.world.add({ type: 'box', min: [tx - 0.8, y, z - 0.8], max: [tx + 0.8, y + H + 0.6, z + 0.8], tag: 'starttor' });
   }
   level.world.add({ type: 'box', min: [x - W / 2 - 1.6, y + H - 0.0, z - 0.45], max: [x + W / 2 + 1.6, y + H + 0.9, z + 0.45], camIgnore: true, tag: 'starttor-balken' });
+}
+
+/**
+ * Rennstrecken-Markierung auf schmalen Dämmen (nur Optik, verschmolzen): leuchtende gelbe Mittelstriche, an den Kanten
+ * kleine Leitpfosten mit glühender Kappe, ab und zu ein Bitcoin-Zeichen auf dem Damm. list: [[x0, x1, zA, zB, y], …]
+ * (Dämme entlang Z). o: { dash: 2.2 (Abstand), post: 6 (Abstand der Pfosten), skip: [[zA, zB], …] (ohne Striche, z. B.
+ * unter Boost-Pfeilen) }.
+ */
+export function fahrbahn(level, list, o = {}) {
+  if (!level.view) return;
+  const g = new Bld(), b = new Bld();
+  const skip = o.skip ?? [];
+  const free = (z) => !skip.some(([a, c]) => z <= Math.max(a, c) && z >= Math.min(a, c));
+  for (const [x0, x1, zA, zB, y] of list) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), cx = (x0 + x1) / 2;
+    for (let z = z0 - 1.2; z > z1 + 0.6; z -= o.dash ?? 2.2) if (free(z)) g.box(0.12, 0.02, 0.9, cx, y + 0.005, z, 0xffd84a, { r: 0 });
+    const step = o.post ?? 6;
+    for (let z = z0 - 1; z > z1 + 0.5; z -= step) for (const x of [x0 + 0.14, x1 - 0.14]) {
+      b.box(0.16, 0.42, 0.16, x, y, z, litTop(0x2a2026, 0.7), { r: 0.03 });
+      g.box(0.2, 0.12, 0.2, x, y + 0.42, z, 0xff8a2a, { r: 0.03 });
+    }
+  }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow', castShadow: false });
 }
 
 /**

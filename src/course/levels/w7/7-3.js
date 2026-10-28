@@ -26,7 +26,7 @@
 
 import {
   isl, line, ring, arc, lavaGrund, stuetzen, pfeile, startTor, flaggen, basaltWand, glutfunken, wimpelkette, glowPoints, Bld, litTop,
-  donutBloecke, bruestung,
+  donutBloecke, bruestung, fahrbahn, karoLinie,
 } from './_helpers_b.js';
 import { buildDonutblock } from '../../blocks/types/w5_donut.js';
 
@@ -132,7 +132,11 @@ function build(level) {
   // Pfeiler unter allen Wegen (bis in die Lava)
   stuetzen(level, WEGE.filter((w) => w[0] < 100).map(([x0, x1, zA, zB, top]) => [x0, x1, zA, zB, 0]), { lava: LAVA });
   // Start: Renn-Torbogen, Karo-Fähnchen
-  startTor(level, { x: 0, y: Y0, z: -3.6, w: 4.6, h: 4.4 });
+  startTor(level, { x: 0, y: Y0, z: -5, w: 4.6, h: 4.4 });
+  karoLinie(level, -2.3, 2.3, -3.4, Y0);
+  karoLinie(level, -4.5, 4.5, -469.2, YZ);
+  // Rennstrecken-Markierung auf den schmalen Dämmen (nicht unter den Boost-Pfeilen)
+  fahrbahn(level, WEGE.filter(([x0, x1, zA, zB]) => x1 - x0 <= 3.2 && Math.abs(zA - zB) > 6), { skip: PFEILE.map((a) => [a.pos[2] + 1.4, a.pos[2] - 1.4]) });
   startTor(level, { x: 0, y: YZ, z: -467, w: 9, h: 5 });
   // Trichter vor den Röhren-Öffnungen: niedrige Mauern neben der Öffnung, die Röhre ist der einzige Weg
   bruestung(level, [
@@ -214,7 +218,8 @@ export const LEVEL = {
   instances: { coin: { farHide: 46, shadow: false } },
   // Rennstrecke flach (Ausblick nach vorn), Gabelungen weiter weg (alle drei Wege im Bild), Versteck steil von oben
   camera: [
-    { from: 14, to: -70, pitch: 38, dist: 13, ahead: 3, area: [-60, 60] },
+    { from: 14, to: -4, pitch: 44, dist: 14, ahead: 3, area: [-60, 60] },
+    { from: -4, to: -70, pitch: 38, dist: 13, ahead: 3, area: [-60, 60] },
     { from: -70, to: -112, pitch: 42, dist: 14, ahead: 3, area: [-60, 60] },
     { from: -112, to: -136, pitch: 40, dist: 15, ahead: 3, area: [-60, 60] },
     { from: -136, to: -200, pitch: 44, dist: 17, ahead: 3, x: 0, xLock: 0.35, area: [-60, 60] },
@@ -245,6 +250,8 @@ export const LEVEL = {
     ] },
     { type: 'deco_w7', items: [
       { kind: 'fackel', pos: [-6.6, Y0, 9.5], mount: 'stand' }, { kind: 'fackel', pos: [6.6, Y0, 9.5], mount: 'stand' },
+      { kind: 'fackel', pos: [-4.4, Y0, -3.6], mount: 'stand' }, { kind: 'fackel', pos: [4.4, Y0, -3.6], mount: 'stand' },
+      { kind: 'vulkanfels', pos: [-7.5, Y0, -4.5], size: 1.2 }, { kind: 'vulkanfels', pos: [7.6, Y0, 10.8], size: 1.4 }, { kind: 'knochen', pos: [6.8, Y0, -4.2], n: 3 },
       { kind: 'fahne', pos: [-6.8, Y0, 0.5], height: 4.5 }, { kind: 'fahne', pos: [6.8, Y0, 0.5], height: 4.5 },
       { kind: 'fackel', pos: [-9.2, Y1, -132.5], mount: 'stand' }, { kind: 'fackel', pos: [9.2, Y1, -132.5], mount: 'stand' },
       { kind: 'fackel', pos: [-9.2, Y1, -179], mount: 'stand' }, { kind: 'fackel', pos: [9.2, Y1, -179], mount: 'stand' },
