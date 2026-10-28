@@ -10,15 +10,18 @@
 //   liegen), 'sinken' (versinkt nach `sinkDelay` s langsam in der Lava; erscheint nach `respawn` s am Start wieder) oder
 //   'zurueck' (fährt nach `sinkDelay` s leer zum Start zurück). Neustart am Checkpoint: zurück an den Start (ruhe).
 //   { type: 'kristall_felsklotz', id, pos: [x, y, z] (Mitte der Unterseite am Start; Unterseite steckt etwas in der Lava),
-//     size: [3, 1.4, 3] (variant 'wuerfel': [2.6, 2.6, 2.6]), path: [[x, y, z], …] (Unterseiten-Mitte je Punkt, ab pos),
+//     size: 3 (Ø bzw. Kante; Kollision: kugel [0,62·size, size, 0,62·size] – flache Standfläche oben bei size –, wuerfel
+//     [size, size, size]; auch [w, h, d] für die eigene Geometrie), path: [[x, y, z], …] (Unterseiten-Mitte je Punkt, ab pos),
 //     speed: 2.4, accel: 1.4 (m/s²), boost: 2.5, maxSpeed: 7, boostDecay: 0.9, wait: 0.35, slope: 1.6,
 //     start: 'stand' | 'signal' | 'auto', end: 'halt' | 'sinken' | 'zurueck', sinkDelay: 1.2, respawn: 3,
-//     variant: 'platte' | 'wuerfel', color: 'lila' | 'blau' | 'gruen', bob: 0.06 (m Schaukeln), look: 'eigen' }
+//     variant: 'kugel' (Standard; 'platte' wie kugel) | 'wuerfel', color: 'lila' | 'blau' | 'gruen' (eigene Geometrie),
+//     bob: 0.06 (m Schaukeln), look: 'eigen' }
 //   level.named.get(id) = { state ('ruhe'|'wartet'|'faehrt'|'faellt'|'ende'|'sinkt'|'weg'|'zurueck'), s (m auf dem Pfad), speed,
 //     boosts, falls, mb (MovingBox), carries(fig), start(), stop(), reset(), boostNow(), info() }; w8(level).rocks.
 //   Kollision: MovingBox (mover, tag 'felsklotz') – trägt Figuren und Gegner. Stampfen: Form-Besitzer onPound.
-//   Modell: Registry 'kristall_felsklotz' ({ size: [w, h, d], variant, color }, Ursprung Mitte der Unterseite, Blick +X;
-//   state { anim: 'ruhe'|'faehrt'|'schnell'|'faellt'|'landet', speed, t }) – sonst eigener Klotz mit Kristallen und Gesicht.
+//   Modell: Registry 'kristall_felsklotz' (enemies_w8.js; { size, shape: 'kugel' | 'wuerfel' }, Ursprung Unterkante, Blick und
+//   Rollrichtung +X = Fahrtrichtung; state { anim: 'idle' (ruht) | 'roll' (fährt) | 'fast' (Schub, Absturz), roll (rad: Weg /
+//   Radius bei der Kugel, Würfel kippt je size m um 90°), speed }) – sonst eigener Klotz mit Kristallen und Gesicht.
 //   Beispiel: { type: 'kristall_felsklotz', id: 'klotz1', pos: [0, -0.9, -60], path: [[0, -0.9, -80], [8, -0.9, -96]] }
 //   Würfel: { type: 'kristall_felsklotz', variant: 'wuerfel', pos: [0, -1, -100], path: [[0, -1, -110], [0, -4, -110.2], [0, -4, -124]] }
 
@@ -103,8 +106,9 @@ function rockGeo(s, variant, col) {
 
 export function buildKristallFelsklotz(level, spec) {
   const p0 = v3(spec.pos);
-  const variant = spec.variant === 'wuerfel' ? 'wuerfel' : 'platte';
-  const s = sz3(spec.size, variant === 'wuerfel' ? [2.6, 2.6, 2.6] : [3, 1.4, 3]);
+  const variant = spec.variant === 'wuerfel' ? 'wuerfel' : 'kugel';
+  const S = typeof spec.size === 'number' ? spec.size : Array.isArray(spec.size) ? null : 3;
+  const s = S ? (variant === 'wuerfel' ? { x: S, y: S, z: S } : { x: S * 0.62, y: S, z: S * 0.62 }) : sz3(spec.size, [3, 3, 3]);
   const path = pathOf(spec, p0);
   // Abschnitte: Absturz (senkrecht) oder Fahrt
   const segs = [];
@@ -118,7 +122,7 @@ export function buildKristallFelsklotz(level, spec) {
     wait: spec.wait ?? 0.35, slope: spec.slope ?? 1.6, end: spec.end ?? 'halt', sinkDelay: spec.sinkDelay ?? 1.2, respawn: spec.respawn ?? 3,
     start: spec.start ?? 'stand', bob: spec.bob ?? 0.06,
   };
-  const st = { state: 'ruhe', t: 0, s: 0, v: 0, extra: 0, boosts: 0, falls: 0, vy: 0, fallY: 0, sink: 0, y: p0.y, yaw: 0, land: 0, run: C.start === 'auto' };
+  const st = { state: 'ruhe', t: 0, s: 0, v: 0, extra: 0, boosts: 0, falls: 0, vy: 0, fallY: 0, sink: 0, y: p0.y, yaw: 0, land: 0, run: C.start === 'auto', way: 0 };
   const mb = new MovingBox(level, p0.x, p0.y, p0.z, s.x, s.y, s.z, { tag: 'felsklotz' });
   const at = {};
   const set = (name) => { if (st.state !== name) { st.state = name; st.t = 0; } };
@@ -227,6 +231,8 @@ export function buildKristallFelsklotz(level, spec) {
     const bob = moving ? Math.sin(time * 5.5) * C.bob * 0.4 : Math.sin(time * 2.1 + p0.x) * C.bob;
     y += bob - st.sink;
     if (Math.abs(at.dx) + Math.abs(at.dz) > 0.01) st.yaw = yawOf(at.dx, at.dz);
+    // zurückgelegter Weg (Rollwinkel des Modells): waagerecht entlang der Fahrt
+    st.way += Math.hypot(x - mb.pos.x, z - mb.pos.z) * (st.state === 'zurueck' ? -1 : 1);
     mb.moveTo(x, y, z, dt);
   });
 
@@ -238,10 +244,10 @@ export function buildKristallFelsklotz(level, spec) {
   root.add(tilt);
   let model = null;
   if (regModel(spec, 'kristall_felsklotz')) {
-    model = getModel('kristall_felsklotz', { size: [s.x, s.y, s.z], variant, color: spec.color ?? 'lila' });
+    model = getModel('kristall_felsklotz', { size: s.y, shape: variant });
     tilt.add(model.root);
   } else {
-    const g = rockGeo(s, variant, spec.color ?? 'lila');
+    const g = rockGeo(variant === 'kugel' ? { x: s.y * 0.9, y: s.y, z: s.y * 0.9 } : s, variant, spec.color ?? 'lila');
     const body = new THREE.Mesh(g.body, stdMat('w8rock', { roughness: 0.7 }));
     body.castShadow = true; body.receiveShadow = true;
     tilt.add(body);
@@ -260,11 +266,15 @@ export function buildKristallFelsklotz(level, spec) {
     root.rotation.y = vy;
     root.visible = st.state !== 'weg';
     const sp = st.v + st.extra;
-    // leichtes Schaukeln, beim Fahren nach vorn geneigt, beim Absturz kippelnd
-    tilt.rotation.z = st.state === 'faellt' ? -0.12 : -Math.min(0.08, sp * 0.012) + Math.sin(t * 1.7) * 0.015;
-    tilt.rotation.x = Math.sin(t * 1.3 + 1) * 0.02 + (st.land > 0 ? Math.sin(st.land * 40) * 0.03 : 0);
-    const anim = st.state === 'faellt' ? 'faellt' : st.land > 0 ? 'landet' : st.state === 'faehrt' ? (st.extra > 0.3 ? 'schnell' : 'faehrt') : 'ruhe';
-    model?.update?.(d, { anim, speed: sp, t });
+    // eigene Geometrie: leichtes Schaukeln, beim Fahren nach vorn geneigt, beim Absturz kippelnd (das Modell rollt selbst)
+    if (!model) {
+      tilt.rotation.z = st.state === 'faellt' ? -0.12 : -Math.min(0.08, sp * 0.012) + Math.sin(t * 1.7) * 0.015;
+      tilt.rotation.x = Math.sin(t * 1.3 + 1) * 0.02 + (st.land > 0 ? Math.sin(st.land * 40) * 0.03 : 0);
+    } else tilt.rotation.x = st.land > 0 ? Math.sin(st.land * 40) * 0.03 : 0;
+    const moving = st.state === 'faehrt' || st.state === 'zurueck';
+    const anim = st.state === 'faellt' || (moving && st.extra > 0.3) ? 'fast' : moving ? 'roll' : 'idle';
+    const roll = variant === 'wuerfel' ? (st.way / s.y) * (Math.PI / 2) : st.way / (s.y / 2);
+    model?.update?.(d, { anim, roll, speed: sp });
   });
   return handle;
 }

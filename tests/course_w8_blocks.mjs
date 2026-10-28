@@ -153,7 +153,7 @@ console.log('Rummelwerkstatt 0-31');
     t.tick(360);
     const rest = k.state === 'ruhe' && k.s === 0;
     // aufsteigen: fährt los und nimmt die Figur mit
-    t.place([0, 0.4, -44.2], { settle: 20, invuln: 99 });
+    t.place([0, 0.4, -44.4], { settle: 20, invuln: 99 });
     const on = k.carries(p);
     t.tick(240);
     const moving = k.state === 'faehrt' && k.s > 1.5, z1 = p.pos.z, carried = k.carries(p) && z1 < -45.5;

@@ -71,7 +71,7 @@ export const LEVEL = {
     // ---------------- S2 Kristall-Felsklotz
     sign(-11, 0, -39, 'Kristall-Felsklotz'),
     { type: 'lavaspiegel', mode: 'fest', pos: [0, -2, -52], size: [26, 1.5, 20] },
-    { type: 'kristall_felsklotz', id: 'klotz1', pos: [0, -1.35, -44.2], path: [[0, -1.35, -50], [5, -1.35, -55], [5, -1.35, -59]], end: 'sinken', sinkDelay: 3, respawn: 3 },
+    { type: 'kristall_felsklotz', id: 'klotz1', pos: [0, -2.55, -44.4], size: 2.6, path: [[0, -2.55, -50], [5, -2.55, -55], [5, -2.55, -59]], end: 'sinken', sinkDelay: 3, respawn: 3 },
     plat(-62, -68),
 
     // ---------------- S3 Würfel-Felsklotz mit Abstürzen
@@ -81,7 +81,7 @@ export const LEVEL = {
     { type: 'lavaspiegel', mode: 'fest', pos: [0, -10, -89], size: [26, 1.65, 10] },
     { type: 'island', pos: [0, -12, -77.15], size: [26, 9.6, 0.6], under: 0, top: 'rock' },
     { type: 'island', pos: [0, -12, -84.15], size: [26, 6.6, 0.6], under: 0, top: 'rock' },
-    { type: 'kristall_felsklotz', id: 'wuerfel', variant: 'wuerfel', pos: [0, -2.55, -70.6], color: 'blau',
+    { type: 'kristall_felsklotz', id: 'wuerfel', variant: 'wuerfel', size: 2.6, pos: [0, -2.55, -70.6], color: 'blau',
       path: [[0, -2.55, -78.2], [0, -5.55, -78.4], [0, -5.55, -85.2], [0, -8.55, -85.4], [0, -8.55, -91]], speed: 2.6 },
     plat(-94, -100, -8),
     { type: 'stairs', pos: [0, -8, -100], dir: '-z', steps: 8, rise: 1, run: 1, width: 5, style: 'stone' },
@@ -171,7 +171,7 @@ export const LEVEL = {
   marks: {
     start: [0, 0, -2],
     steg: [0, 0, -10], stegMitte: [0, 0.01, -18], stegFern: [0, 0.01, -23], stampf: [3, 0.01, -27], treppe: [-7, 0.6, -26],
-    klotz: [0, 0, -40], klotzOben: [0, 0.1, -44.2],
+    klotz: [0, 0, -40], klotzOben: [0, 0.1, -44.4],
     wuerfelStart: [0, 0, -66], wuerfelOben: [0, 0.1, -70.6], grube: [0, -8, -96],
     becken: [0, 0, -112], beckenGrund: [0, -3.95, -122], beckenRand: [-8, 0, -122],
     wuerfel: [0, 0, -132], wuerfelInnen: [0, 1.6, -138.5],

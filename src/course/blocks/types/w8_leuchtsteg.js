@@ -16,18 +16,22 @@
 //   level.named.get(id) = { parts: [{ box: { x0, x1, y0, y1, z0, z1 }, shape }], lit (Anteil der Platten, deren Mitte
 //     gerade sichtbar ist), visibleAt(x, y, z) → 0..1 (wie der Shader), flash(x, y, z, r), reveal(), hide(), info() };
 //   w8(level).stegs. Kollision: Quader, tag 'leuchtsteg'.
-//   Modell: Registry 'leuchtsteg' ({ size: [w, h, d], color }; Ursprung Mitte der Unterseite) wird in das Shader-Mesh
-//   gebacken (Form und Farben), sonst eigene Platten (Glasplatte mit Laufsteg-Fugen und Randleisten).
+//   Modell: gibt es das Registry-Modell 'leuchtsteg' (Welt-8-Modelle, gimmicks_w8.js), zeichnen die Stege als leuchtende
+//   1-m-Kacheln der Instanz-Variante createInstanced('leuchtsteg', n) (lib/instanced_w8.js; je Platte ≈ 1 m × 1 m Kacheln,
+//   Dicke über den Maßstab; state { glow (Sichtbarkeit der Kachelmitte – wie visibleAt ohne Aufleuchten), flash (Anteil des
+//   Aufleuchtens) }) – eine InstancedMesh je Level, Kachel für Kachel erscheinend wie im Vorbild. look: 'eigen' (bzw. ohne
+//   Modell): eigenes Shader-Mesh (Glasplatte mit Laufsteg-Fugen und Randleisten, Sichtbarkeit je Pixel); color gilt nur dort.
 //   Beispiel: { type: 'leuchtsteg', id: 'steg1', pos: [0, 0, -20], size: [2, 0.4, 8] };
 //             Treppe: { type: 'leuchtsteg', from: [4, 0.5, -30], to: [4, 3, -36], n: 5, size: [1.6, 0.3, 1.4] }
 
 import * as THREE from 'three';
 import { v3, sz3, lin, hex, box, addObject } from '../kit.js';
-import { modelGeometry } from '../hwkit.js';
+import { createInstanced } from '../../models/lib/instanced.js';
 import { w8, figures, flash, flashAt, watchImpacts, regModel, clamp } from '../w8kit.js';
 import { smooth } from '../../../three/world/geometry.js';
 
 const COLORS = { gold: 0xffd86a, tuerkis: 0x6af0ff, rosa: 0xff8ad8, weiss: 0xf4f0ff };
+const TILE_T = 0.3;   // Dicke der Modell-Kachel (opts.thick)
 const MAX_FIG = 4, MAX_FL = 6;
 
 /** Gemeinsames Shader-Mesh der Leuchtstege eines Levels (wird beim ersten Bild bzw. nach neuen Platten verschmolzen). */
@@ -93,11 +97,30 @@ function stegBatch(level) {
         gl_FragColor = vec4(col, alpha);
       }`,
   });
-  const B = { parts: [], mesh: null, dirty: true, U, mat, built: 0 };
+  const B = { parts: [], mesh: null, dirty: true, U, mat, built: 0, tiles: [], tileApi: null, tilesDirty: false };
   W.stegBatch = B;
   watchImpacts(level);
   if (level.view) {
     level.view.onFrame((dt) => {
+      // Modell-Kacheln (Registry 'leuchtsteg'): Instanzen neu anlegen, wenn Platten dazukamen; je Bild glow/flash je Kachel
+      if (B.tilesDirty) {
+        B.tilesDirty = false;
+        if (B.tileApi) { level.view.remove(B.tileApi.root); B.tileApi.dispose(); B.tileApi = null; }
+        if (B.tiles.length) {
+          B.tileApi = createInstanced('leuchtsteg', B.tiles.length, { thick: TILE_T });
+          B.tiles.forEach((t, i) => { B.tileApi.setAt(i, [t.x, t.y0, t.z], 0, [t.sx, t.sy / TILE_T, t.sz], { glow: 0 }); t.g = -1; t.f = -1; });
+          B.tileApi.root.name = 'leuchtstege:kacheln';
+          addObject(level, B.tileApi.root);
+        }
+      }
+      if (B.tileApi) {
+        for (let i = 0; i < B.tiles.length; i++) {
+          const t = B.tiles[i], v = t.steg.vis(t.x, t.y1, t.z);
+          const g = +v.glow.toFixed(2), f = +v.flash.toFixed(2);
+          if (g !== t.g || f !== t.f) { t.g = g; t.f = f; B.tileApi.setState(i, { glow: Math.max(g, f), flash: f }); }
+        }
+        B.tileApi.update(dt);
+      }
       if (B.dirty) {
         B.dirty = false;
         if (B.mesh) { level.view.remove(B.mesh); B.mesh.geometry.dispose(); B.mesh = null; }
@@ -152,11 +175,7 @@ function partGeometry(level, spec, b, color, opt) {
   const w = b.x1 - b.x0, h = b.y1 - b.y0, d = b.z1 - b.z0;
   const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, cz = (b.z0 + b.z1) / 2;
   let g = null;
-  if (regModel(spec, 'leuchtsteg')) {
-    g = modelGeometry('leuchtsteg', { size: [w, h, d], color: spec.color ?? 'gold' });
-    if (g) g.translate(cx, b.y0, cz);
-  }
-  if (!g) {
+  {
     // eigene Platte: Glasplatte mit Randleisten (die Fugen zeichnet der Shader)
     g = box(w, h, d, cx, cy, cz, color, { r: Math.min(0.06, h * 0.3), seg: 1 });
     if (g.index) g = g.toNonIndexed();
@@ -208,14 +227,25 @@ export function buildLeuchtsteg(level, spec) {
   const color = COLORS[spec.color] ?? hex(spec.color, COLORS.gold);
   const B = stegBatch(level);
   const st = { hidden: !!spec.hidden };
+  const useModel = !!level.view && regModel(spec, 'leuchtsteg');
+  const stegVis = { vis: null };
   const parts = boxesOf(spec).map((b) => {
     const shape = { type: 'box', min: [b.x0, b.y0, b.z0], max: [b.x1, b.y1, b.z1], tag: 'leuchtsteg', oneWay: !!spec.oneWay };
     const part = { box: b, shape, id: st.hidden ? null : level.world.add(shape), geo: null };
-    if (level.view) part.geo = partGeometry(level, spec, b, color, [radius, spec.flash === false ? -soft : soft, st.hidden ? -1 : hint]);
-    B.parts.push(part);
+    if (useModel) {
+      // Kacheln ≈ 1 m (ganzzahlig je Richtung), Dicke über den Maßstab
+      const w = b.x1 - b.x0, d = b.z1 - b.z0, nx = Math.max(1, Math.round(w)), nz = Math.max(1, Math.round(d));
+      for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) {
+        B.tiles.push({ x: b.x0 + (i + 0.5) * (w / nx), z: b.z0 + (k + 0.5) * (d / nz), y0: b.y0, y1: b.y1, sx: w / nx, sy: b.y1 - b.y0, sz: d / nz, steg: stegVis });
+      }
+      B.tilesDirty = true;
+    } else if (level.view) {
+      part.geo = partGeometry(level, spec, b, color, [radius, spec.flash === false ? -soft : soft, st.hidden ? -1 : hint]);
+      B.parts.push(part);
+      B.dirty = true;
+    }
     return part;
   });
-  B.dirty = true;
   const noFlash = spec.flash === false;
   const setOpt = (z) => {
     for (const p of parts) {
@@ -225,17 +255,24 @@ export function buildLeuchtsteg(level, spec) {
     }
     B.dirty = true;
   };
-  /** Sichtbarkeit (0..1) am Punkt – wie im Shader. */
-  const visibleAt = (x, y, z) => {
-    if (st.hidden) return 0;
+  /** Sichtbarkeit am Punkt: glow (Umkreis der Figuren, Grundschimmer) und flash (Aufleuchten) je 0..1. */
+  const visParts = (x, y, z, out = {}) => {
+    out.glow = 0; out.flash = 0;
+    if (st.hidden) return out;
     let v = hint;
     for (const f of figures(level)) {
       const d = Math.hypot(x - f.pos.x, (y - f.pos.y - 0.4) * 0.7, z - f.pos.z);
       v = Math.max(v, 1 - smooth(radius - soft, radius, d));
     }
-    if (!noFlash) for (const f of w8(level).flashes) v = Math.max(v, flashAt(f, x, y, z));
-    return v;
+    let fl = 0;
+    if (!noFlash) for (const f of w8(level).flashes) fl = Math.max(fl, flashAt(f, x, y, z));
+    out.glow = v; out.flash = fl;
+    return out;
   };
+  const _vo = {};
+  stegVis.vis = (x, y, z) => visParts(x, y, z, _vo);
+  /** Sichtbarkeit (0..1) am Punkt – wie im Shader bzw. an den Kacheln. */
+  const visibleAt = (x, y, z) => { const o = visParts(x, y, z, {}); return Math.max(o.glow, o.flash); };
   const handle = {
     parts, visibleAt,
     get lit() {
@@ -257,7 +294,7 @@ export function buildLeuchtsteg(level, spec) {
       for (const p of parts) if (p.id) { level.world.remove(p.id); p.id = null; }
       setOpt(-1);
     },
-    info: () => ({ parts: parts.length, lit: +handle.lit.toFixed(2), hidden: st.hidden, flashes: w8(level).flashes.length, impacts: w8(level).impacts, radius }),
+    info: () => ({ parts: parts.length, lit: +handle.lit.toFixed(2), hidden: st.hidden, flashes: w8(level).flashes.length, impacts: w8(level).impacts, radius, look: useModel ? 'modell' : 'eigen', tiles: B.tiles.length }),
   };
   for (const p of parts) p.shape.owner = handle;
   if (spec.id) level.named.set(spec.id, handle);
