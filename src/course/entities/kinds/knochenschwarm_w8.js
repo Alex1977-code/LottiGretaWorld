@@ -38,7 +38,7 @@ import { EnemyW2, activeFigure, clamp, maskedFrom, sharedSlot } from '../EnemyW2
 import { Track, groundBelow, POWER_HIT } from '../w8help.js';
 
 const TAU = Math.PI * 2;
-const SHAKE = 0.8, GONE = 0.9, BONES_P = 0.5;
+const SHAKE = 0.8, GONE = 0.9, BONES_P = 0.36;   // Knochenhaufen: Pose 'bones' bei progress 0,36 (Teile liegen lose beieinander)
 const FORMS = { ring: 'ring', linie: 'linie', reihe: 'linie', welle: 'welle', keil: 'keil' };
 
 // =====================================================================================================================
@@ -394,7 +394,7 @@ class KnochenGlied extends EnemyW2 {
     const st = this.state;
     if (st === 'bones') {
       const j = this.shaking ? Math.sin(this.level.time * 55 + this.index) * 0.05 : 0;
-      s.set({ x: this.body.x + j, y: this.body.y, z: this.body.z }, this.yaw, 1, { anim: 'bones', progress: this.landed ? BONES_P : Math.min(BONES_P, this.stateT / 0.9) });
+      s.set({ x: this.body.x + j, y: this.body.y, z: this.body.z }, this.yaw + (this.landed ? Math.sin(this.level.time * 40 + this.index) * (this.shaking ? 0.15 : 0) : 0), 1.15, { anim: 'bones', progress: this.landed ? BONES_P : Math.min(BONES_P, this.stateT / 0.9) });
       return;
     }
     if (st === 'rebuild') { s.set(this.body, this.yaw, 1, { anim: 'assemble', progress: Math.min(1, this.stateT / this.group.rebuildT) }); return; }

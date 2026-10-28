@@ -42,7 +42,7 @@ export const LEVEL = {
     { from: -88, to: -128, pitch: 48, dist: 16, x: 0, xLock: 0.3, ahead: 1.2, lead: 0.5 },
     { from: -150, to: -190, pitch: 30, dist: 17, x: 0, xLock: 0.4, ahead: 0.2, lead: 0.3, height: 2.6 },
     { from: -205, to: -245, pitch: 38, dist: 15, x: 0, xLock: 0.4, ahead: 1.2, lead: 0.4, height: 2 },
-    { from: -255, to: -290, pitch: 42, dist: 20, x: 0, xLock: 0.3, ahead: 0.3, lead: 0.3, height: 2.6 },
+    { from: -255, to: -290, pitch: 30, dist: 20, x: 0, xLock: 0.3, ahead: 0.5, lead: 0.3, height: 6.5 },
     { from: -300, to: -330, pitch: 42, dist: 12.5, ahead: 2 },
   ],
   bosses: [

@@ -60,7 +60,7 @@
 // Draufspringen = Abprall ohne Schaden; Feuer, Krallen, Panzer, Stern, Riese prallen ab (Funken); **Wurfsichel**: er zuckt
 //   (Angriff unterbrochen, „Kratzer!“), kein Schaden. Berührung im Kampf verletzt.
 // Zustände: wait | intro | climb | fire | swipe | slidewarn | slide | slideup | eat | clone | guard | thrown | leave | between |
-//   perch | hop | summon | launched | stunned | defeated | flee | gone. Laufzeit: section (Id/Typ), cur (Index), done (geschaffte
+//   perch | hop | summon | launched | stunned | defeated | flyaway | gone. Laufzeit: section (Id/Typ), cur (Index), done (geschaffte
 //   Abschnitte), s (Weg auf der Route), fires, fireballs, swipes, wallsBroken, slides, eaten, clonesMade, powHit, hops, waves,
 //   hits, hitLog, bounces, flinches, info().
 // Sound: 'claw' (Krallenhieb), 'fireball', 'wallslide' (Rutschen), 'brickbreak', 'rumble' (Warnung), 'clone', 'berry', 'slam',
@@ -902,10 +902,12 @@ class BaronKrallen extends CourseEntity {
         if (this.stateT >= STUN) { this.setState('perch'); this.attackCool = 1.0; this.phaseBanner(); }
         break;
       case 'defeated': this.defeatStep(dt); break;
-      case 'flee': this.fleeStep(dt); break;
+      case 'flyaway': this.fleeStep(dt); break;
       default: break;
     }
-    this.home.copy(this.pos);
+    // Kampfkamera: beim Davonfliegen bleibt der Blick auf dem Gipfel (Glas, Freunde) – der Baron fliegt im Hintergrund davon
+    if (this.state === 'flyaway' && this.gipfel) { const q = this.perchPos(); this.home.set(q.x, q.y, q.z); }
+    else this.home.copy(this.pos);
     this.syncArch();
   }
 
@@ -1318,7 +1320,7 @@ class BaronKrallen extends CourseEntity {
   }
 
   applyPowHits(hits) {
-    if (this.state === 'defeated' || this.state === 'flee' || this.state === 'gone' || this.section?.type !== 'gipfel') return;
+    if (this.state === 'defeated' || this.state === 'flyaway' || this.state === 'gone' || this.section?.type !== 'gipfel') return;
     const hp = clamp(this.maxHp - hits, 0, this.maxHp);
     while (this.hp > hp) this.takeHit();
   }
@@ -1383,7 +1385,7 @@ class BaronKrallen extends CourseEntity {
     const s = this.gipfel ?? {};
     const to = s.flyTo ?? [this.pos.x + 26, this.pos.y + 16, this.pos.z - 30];
     this.flee = { x0: this.pos.x, y0: this.pos.y, z0: this.pos.z, x1: to[0], y1: to[1], z1: to[2] };
-    this.setState('flee');
+    this.setState('flyaway');
     this.level.sfx('panic');
     this.banner('„Ojemine – mein Zylinder! Das war noch nicht das letzte Mal!“', { hold: 2.6, size: 12, color: '#ffd0a0' });
   }
@@ -1411,7 +1413,7 @@ class BaronKrallen extends CourseEntity {
   stepGlass(dt) {
     const g = this.glassState;
     if (!this.gipfel) return;
-    if (this.state === 'defeated' || this.state === 'flee' || this.state === 'gone') {
+    if (this.state === 'defeated' || this.state === 'flyaway' || this.state === 'gone') {
       if (!this.glassFall && this.powGone() && g.break < 1) {
         const sec = this.gipfel, c = sec.center ?? sec.powPos;
         this.placeGlass();
@@ -1456,7 +1458,7 @@ class BaronKrallen extends CourseEntity {
 
   onPlayer(player, contact) {
     if (!this.visible || !this.touch || !this.engaged) return 'none';
-    if (['thrown', 'leave', 'defeated', 'flee', 'intro'].includes(this.state)) return 'none';
+    if (['thrown', 'leave', 'defeated', 'flyaway', 'intro'].includes(this.state)) return 'none';
     if (contact.fromAbove || contact.pound) { this.bounces++; this.level.sfx('bounce'); return 'stomp'; }
     return 'hurt';
   }
@@ -1500,7 +1502,7 @@ class BaronKrallen extends CourseEntity {
       case 'launched': return { ...base, anim: this.stateT < 0.6 ? 'hit' : 'fall', progress: Math.min(1, this.stateT / 0.6) };
       case 'stunned': return { ...base, anim: 'stunned' };
       case 'defeated': return { ...base, anim: 'hit', progress: Math.min(1, this.stateT / 0.6) };
-      case 'flee': return { ...base, anim: 'fall' };
+      case 'flyaway': return { ...base, anim: 'fall' };
       default: return { ...base, anim: 'idle' };
     }
   }
@@ -1519,7 +1521,7 @@ class BaronKrallen extends CourseEntity {
     super.render(dt, t);
     this.markers.render(dt);
     // Flucht: den Zylinder in der rechten Tatze schwenken
-    if (this.state === 'flee' && this.hatMesh && this.hatBody && this.model?.hand) {
+    if (this.state === 'flyaway' && this.hatMesh && this.hatBody && this.model?.hand) {
       const w = this.model.hand(new THREE.Vector3(), 'rechts');
       this.hatBody.worldToLocal(w);
       this.hatMesh.position.copy(w).add(new THREE.Vector3(0, 0.25, 0));

@@ -545,6 +545,8 @@ const BOSS_HELPERS = () => {
   t.banners = [];
   const hud = c.arch?.hud;
   if (hud && !hud._w8) { const orig = hud.banner.bind(hud); hud.banner = (text, o) => { t.banners.push(text); orig(text, o); }; hud._w8 = true; }
+  /** Laufenden Kampf abbrechen (Bilder: nächste Arena). */
+  t.leave = () => { const a = c.arch; if (a?.started) a.resetFight(); };
   /** Figur sterben lassen und am Checkpoint neu beginnen (wie der Motor). */
   t.die = () => {
     const p = c.player;
@@ -854,7 +856,7 @@ const bg = await sc(() => {
     }
     const hit = bump();
     const st = [];
-    for (let i = 0; i < 120 * 3; i++) { t.until(() => false, 1, [6, G, ZG + 6]); if (st[st.length - 1] !== b.state) st.push(b.state); if (b.state === 'flee') break; }
+    for (let i = 0; i < 120 * 3; i++) { t.until(() => false, 1, [6, G, ZG + 6]); if (st[st.length - 1] !== b.state) st.push(b.state); if (b.state === 'flyaway') break; }
     log.push({ hit, hp: b.hp, hud: t.arch().hud?.boss?.hp, seq: st.join('>') });
   }
   out.log = log;
@@ -875,7 +877,7 @@ const bg = await sc(() => {
 console.log(`  Baron Gipfel: ${JSON.stringify(bg)}`);
 check(`Gipfel: Super-POW-Block (${bg.begin.block}), Glas der Freunde, Baron obenauf (y ${bg.perch.y} = ${bg.perch.top})`, bg.begin.section === 'gipfel' && !!bg.begin.block && bg.begin.glass && Math.abs(bg.perch.y - bg.perch.top) < 0.05);
 check(`Phase 1: Feuerbälle mit Landemarken (${bg.fire.n})`, bg.fire.n >= 1 && bg.fire.marks >= 1);
-check(`Super-POW-Block 4× angestoßen (${bg.log.map((l) => `${l.hp}`).join(' → ')}): je Stoß hochgeschleudert und taumelnd, Lebensleiste 4 Stufen`, bg.log.length === 4 && bg.log.every((l) => l.hit) && bg.log.map((l) => l.hp).join() === '3,2,1,0' && bg.log.slice(0, 3).every((l) => /launched>stunned/.test(l.seq)) && bg.log[2].hud === 1);
+check(`Super-POW-Block 4× angestoßen (${bg.log.map((l) => `${l.hp}`).join(' → ')}): je Stoß hochgeschleudert und taumelnd, Lebensleiste 4 Stufen`, bg.log.length === 4 && bg.log.every((l) => l.hit) && bg.log.map((l) => l.hp).join() === '3,2,1,0' && bg.log.slice(0, 3).every((l) => /launched>stunned/.test(l.seq)) && /defeated>flyaway/.test(bg.log[3].seq) && bg.log[2].hud === 1);
 check(`Phasen: Sprung-Schockwellen (${JSON.stringify(bg.phases)}) und Doppelgänger`, bg.phases[0]?.waves >= 1 && bg.phases[1]?.clones >= 2);
 check(`Nach dem 4. Stoß fliegt er davon, das Glas zerbricht, die Freunde jubeln, Glasröhre erscheint, Signal finaleWon`, bg.win.state === 'gone' && bg.win.won && bg.win.glass.break === 1 && bg.win.glass.cheer === 1 && bg.win.finale === 1 && bg.win.frei === 1 && bg.win.warpHidden === false);
 check(`Glasröhre führt zum Zielplateau (z ${bg.warp.z})`, bg.warp.z < -300);
@@ -906,6 +908,183 @@ const br = await sc(() => {
 console.log(`  Baron Neustart: ${JSON.stringify(br)}`);
 check(`Tod auf dem Gipfel setzt nur den Gipfel zurück (Baron ${br.after.hp}/4, Block ${br.after.powHits} Stöße)`, br.hit.hp === 3 && br.after.state === 'wait' && br.after.cur === 2 && br.after.hp === 4 && br.after.powHits === 0 && br.after.clones === 0);
 check('Keine Konsolenfehler (Teil 3)', errors.length === 0);
+}
+
+// =====================================================================================================================
+// Teil 4: Bilder tests/out/w8e_*.png und Zeichenaufrufe
+// =====================================================================================================================
+if (want(4)) {
+await load('0-32');
+console.log('Teil 4: Bilder');
+const S = {};
+S.sandflosser = await SHOT('w8e', 'sandflosser_sprung', () => {
+  const c = window.__course, t = window.__t, f = t.ent('sf_stern');
+  const fig = [-11.5, 1, t.Z(1, -1.5)];
+  t.place(fig, { settle: 1 });
+  t.until(() => f.state === 'jump' && f.stateT > f.flightT * 0.42, 120 * 8, fig);
+  t.face(f.pos.x, f.pos.z);
+});
+S.sandMarke = await SHOT('w8e', 'sandflosser_marke', () => {
+  const c = window.__course, t = window.__t, f = t.ent('sf_ziel');
+  const fig = [10, 1, t.Z(1, 0.8)];
+  t.place(fig, { settle: 1 });
+  t.until(() => f.state !== 'warn', 120 * 8, fig);
+  t.until(() => f.state === 'warn' && f.stateT > 0.4, 120 * 8, fig);
+  t.face(f.pos.x, f.pos.z);
+});
+S.ring = await SHOT('w8e', 'knochenflieger_ring_sturzflug', () => {
+  const c = window.__course, t = window.__t, g = t.ent('kg_ring');
+  const fig = [g.mid.x + 1, 1, g.mid.z + 1];
+  t.place(fig, { settle: 1 });
+  t.until(() => g.state === 'dive' && g.members.some((m) => m.state === 'dive' && m.stateT > m.diveT * 0.3), 120 * 8, fig);
+  t.face(g.mid.x, g.mid.z - 2);
+});
+S.haufen = await SHOT('w8e', 'knochenflieger_haufen', () => {
+  const c = window.__course, t = window.__t, g = t.ent('kg_linie');
+  const fig = [11.5, 1, t.Z(2, 2.5)];
+  t.hold(fig, 240);
+  for (const m of g.members.slice(0, 2)) { m.collapse(c.player); }
+  t.hold(fig, 120 * 2);
+  const m2 = g.members[2]; m2.collapse(c.player);
+  t.hold(fig, 120 * 3.9);
+  t.face(11.5, t.Z(2, 7));
+});
+S.welle = await SHOT('w8e', 'knochenflieger_welle_keil', () => {
+  const c = window.__course, t = window.__t;
+  t.place([-11.5, 1, t.Z(3, 2.5)], { settle: 60 });
+  t.face(-11.5, t.Z(3, 8));
+});
+S.figuren = await SHOT('w8e', 'sandfiguren_flatterkaefer', () => {
+  const c = window.__course, t = window.__t;
+  t.place([-11.5, 1, t.Z(4, 0.6)], { settle: 90 });
+  t.face(-11.5, t.Z(4, 7));
+});
+S.geister = await SHOT('w8e', 'kreisgeister', () => {
+  const c = window.__course, t = window.__t;
+  t.place([-11.5, 1, t.Z(5, 0.6)], { settle: 60 });
+  t.face(-11.5, t.Z(5, 7));
+});
+S.jaeger = await SHOT('w8e', 'grossspuk_jaeger', () => {
+  const c = window.__course, t = window.__t, j = t.ent('gs_jaeger');
+  t.place([11.5, 1, t.Z(5, 1)], { settle: 1 });
+  t.hold([11.5, 1, t.Z(5, 1)], 120 * 1.5);
+  t.face(11.5, t.Z(5, -6));
+});
+S.ameisen = await SHOT('w8e', 'ameisen_reihen', () => {
+  const c = window.__course, t = window.__t;
+  t.place([-11.5, 1, t.Z(6, 0.6)], { settle: 120 * 3 });
+  t.face(-11.5, t.Z(6, 7));
+});
+S.schubser = await SHOT('w8e', 'schubser_minis', () => {
+  const c = window.__course, t = window.__t;
+  t.place([-11.5, 1, t.Z(7, 0.6)], { settle: 90 });
+  t.face(-11.5, t.Z(7, 7));
+});
+S.massen = await SHOT('w8e', 'massen_44_kreisgeister_24_knochenflieger', () => {
+  const c = window.__course, t = window.__t;
+  t.place([0, 1, t.Z(9, 8)], { settle: 90 });
+  t.face(0, t.Z(9, 16));
+});
+const zmax = Math.max(...Object.values(S).map((s) => s.calls));
+KPI.zoo = { calls: zmax, massen: S.massen.calls, tris: Math.round(Math.max(...Object.values(S).map((s) => s.triangles)) / 1000) };
+console.log(`  Zeichenaufrufe Gegnerzoo: ${Object.entries(S).map(([k, s]) => `${k} ${s.calls}`).join(', ')}; höchstens ${KPI.zoo.tris} k Dreiecke`);
+check(`Massen-Feld (44 Kreisgeister, 24 Knochenflieger): ${S.massen.calls} Zeichenaufrufe < 120`, S.massen.calls < 120);
+check(`Gegnerzoo: Zeichenaufrufe < 120 (höchstens ${zmax})`, zmax < 120);
+
+await load('0-33');
+await sc(BOSS_HELPERS);
+const B = {};
+B.blase = await SHOT('w8e', 'blase_gold_schockwelle', () => {
+  const c = window.__course, t = window.__t, b = t.ent('blase8');
+  t.enter([0, 2, 9.5], 'blase8');
+  t.until(() => b.state === 'gair', 120 * 20, [5, 2, 5]);
+  const fig = [b.jump.x1 + 5, 2, b.jump.z1 + 3];
+  t.until(() => b.goldWaves.some((w) => !w.removed && w.r > 3), 120 * 4, fig);
+  t.face(b.pos.x, b.pos.z);
+});
+B.koenig = await SHOT('w8e', 'koenig_rosa_lavapfuetzen', () => {
+  const c = window.__course, t = window.__t, b = t.ent('koenig8');
+  t.leave();
+  t.enter([0, 2, -60 + 9.6], 'koenig8');
+  t.until(() => b.puddles.filter((q) => !q.removed && q.state !== 'cool').length >= 2 && b.state === 'throw', 120 * 30, [4, 2, -60 + 7]);
+  t.face(0, -60);
+});
+B.schatten = await SHOT('w8e', 'schattenlaeuferin2_doppelgaenger', () => {
+  const c = window.__course, t = window.__t, b = t.ent('schatten8');
+  t.leave();
+  t.enter([0, 2, -110 + 7], 'schatten8');
+  t.until(() => b.state === 'throw' && b.clones.length >= 3 && b.stateT > 0.5, 120 * 20, [0, 2, -110 + 7.5]);
+  t.face(0, -110);
+});
+B.turm = await SHOT('w8e', 'baron_turm_klettern', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  t.leave();
+  t.enter([0, 2, -160], 'baron');
+  t.until(() => b.state === 'climb' && b.pos.y > 4.5, 120 * 8, [2.2, 8, -171]);
+  t.until(() => b.state === 'fire' && b.stateT > 0.5, 120 * 8, [2.2, 8, -171]);
+  t.face(0, -175);
+});
+B.hieb = await SHOT('w8e', 'baron_krallenhieb_wandstueck', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  t.until(() => b.state === 'swipe' && b.stateT > b.swipeWarn + 0.3, 120 * 25, [-2.2, 11, -171]);
+  t.face(0, -175);
+});
+B.pow = await SHOT('w8e', 'baron_pow_wache', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  t.place([-2.4, 17, -173.6], { settle: 2 });
+  t.until(() => b.state === 'guard' && b.stateT > 0.6, 120 * 15, [-2.4, 17, -173.6]);
+  t.face(b.pos.x, b.pos.z);
+});
+B.geworfen = await SHOT('w8e', 'baron_pow_geschleudert', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  t.ent('pow_turm').fire();
+  t.until(() => b.state === 'thrown' && b.stateT > 0.35, 240, [-2.4, 17, -173.6]);
+  t.face(b.pos.x, b.pos.z);
+});
+B.spiegel = await SHOT('w8e', 'baron_spiegel_doppelgaenger', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  t.place([0, 22, -212.8], { settle: 2 });
+  c.level.runtime.setCheckpoint([0, 22, -212.8], Math.PI / 2);
+  for (let i = 0; i < 300 && b.state === 'between'; i++) { c.setInput({ y: 0.6 }); c.step(1); }
+  c.setInput({});
+  const steps = [[0, 22, -214], [0, 23, -219], [0, 24, -224]];
+  for (let i = 0; i < 120 * 14 && !(b.clones.length >= 2 && b.clones.every((q) => q.state === 'run' && q.stateT > 0.3)); i++) t.until(() => false, 1, steps[Math.min(2, Math.floor(i / 300))]);
+  t.face(0, -228);
+});
+B.gipfel = await SHOT('w8e', 'baron_gipfel_superpow', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  b.finishSection('');
+  t.place([0, 32, -259.2], { settle: 2 });
+  c.level.runtime.setCheckpoint([0, 32, -259.2], Math.PI / 2);
+  for (let i = 0; i < 300 && b.state === 'between'; i++) { c.setInput({ y: 0.6 }); c.step(1); }
+  c.setInput({});
+  t.until(() => b.state === 'fire' && b.stateT > 0.6, 120 * 10, [4, 32, -264]);
+  t.face(0, -271);
+});
+B.stoss = await SHOT('w8e', 'baron_superpow_stoss', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  t.until(() => b.state === 'perch', 120 * 6, [4, 32, -264]);
+  t.ent('superpow').hit('test');
+  t.until(() => b.state === 'launched' && b.stateT > 0.5, 240, [4, 32, -264]);
+  t.face(0, -271);
+});
+B.flucht = await SHOT('w8e', 'baron_flucht_glas', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron'), pw = t.ent('superpow');
+  for (let k = 0; k < 6 && b.hp > 0; k++) { t.until(() => pw.cd <= 0 && (b.state === 'perch' || b.state === 'stunned'), 120 * 6, [4, 32, -264]); pw.hit('test'); t.hold([4, 32, -264], 30); }
+  t.until(() => b.state === 'flyaway' && b.stateT > 0.8, 120 * 8, [4, 32, -264]);
+  t.face(0, -271);
+});
+B.freunde = await SHOT('w8e', 'freunde_frei', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  t.until(() => b.glassState.cheer === 1, 120 * 8, [2, 32, -265]);
+  t.hold([2, 32, -265], 60);
+  t.face(b.glassPos.x, b.glassPos.z);
+});
+const bmax = Math.max(...Object.values(B).map((s) => s.calls));
+KPI.arenen = { calls: bmax, tris: Math.round(Math.max(...Object.values(B).map((s) => s.triangles)) / 1000) };
+console.log(`  Zeichenaufrufe Bossarenen: ${Object.entries(B).map(([k, s]) => `${k} ${s.calls}`).join(', ')}; höchstens ${KPI.arenen.tris} k Dreiecke`);
+check(`Bossarenen: Zeichenaufrufe < 140 (höchstens ${bmax})`, bmax < 140);
+check('Keine Konsolenfehler (Teil 4)', errors.length === 0);
 }
 
 console.log(`Kennzahlen: ${JSON.stringify(KPI)}`);
