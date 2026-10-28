@@ -70,7 +70,7 @@ import {
   smoothstep, lerp, instMesh, setInst, glowSprite, sparkleSprite, placed, roundedBox, SIDE, puffyStarGeo, onEllipsoid,
 } from '../lib/kit.js';
 import {
-  W6, glassMat, spikeBallGeo, spikeMat, hullGeo, hullShape, gitterGeo, beltTexture, cloudGeo, cloudPuffs, puffyGeo, mouthShape, gradV,
+  W6, glassMat, spikeBallGeo, spikeMat, hullGeo, hullShape, gitterGeo, beltTexture, beltFrameGeo, beltRollerGeo, beltTopGeo, cloudGeo, cloudPuffs, puffyGeo, mouthShape, gradV,
   ownMat, Puffs, taperTube, glowV, addMat, hash1, noise3, stick, superCube,
 } from '../lib/w6Geos.js';
 import { questionGeo, blockMat } from '../lib/blockGeos.js';
@@ -512,7 +512,7 @@ function buildGong() {
   root.add(swing);
   const waveMat = new THREE.MeshBasicMaterial({ color: 0xffd860, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   own.push(waveMat);
-  const waves = instMesh(cached('w6:gong:wave', () => { const g = new THREE.TorusGeometry(1, 0.035, 6, 48); g.rotateY(Math.PI / 2); return g; }), waveMat, 3, 4, 1.4);
+  const waves = instMesh(cached('w6:gong:wave', () => { const g = new THREE.TorusGeometry(1, 0.025, 6, 48); g.rotateY(Math.PI / 2); return g; }), waveMat, 3, 4, 1.4);
   waves.frustumCulled = false;
   root.add(waves);
   const clk = new Clock();
@@ -530,10 +530,10 @@ function buildGong() {
     swing.rotation.x = Math.sin(t * 3.3) * 0.04 * amp;
     disc.position.x = Math.sin(t * 60) * 0.012 * amp;
     waves.visible = amp > 0.03;
-    waveMat.opacity = 0.75 * amp;
+    waveMat.opacity = 0.5 * amp;
     for (let i = 0; i < 3; i++) {
       const k = ((t * 0.9) + i / 3) % 1;
-      setInst(waves, i, 0.2 + k * 1.6, 1.39, 0, 0, 0, 0, 0.8 + k * 1.2);
+      setInst(waves, i, 0.15 + k * 1.2, 1.39, 0, 0, 0, 0, 0.62 + k * 0.55);
     }
     waves.instanceMatrix.needsUpdate = true;
   };
@@ -702,26 +702,6 @@ function buildWindboe(opts = {}) {
 // =============================================================================================
 // Förderband
 // =============================================================================================
-export function beltFrameGeo(L, W, T, lo = false) {
-  return cached(`w6:belt:frame:${L}:${W}:${T}:${lo}`, () => {
-    const b = new Build();
-    const steel = gradV(W6.steelLow, W6.steelHi, 0.5, 0.45);
-    for (const s of [1, -1]) {
-      b.box(L, T, 0.14, steel, { p: [0, T / 2, s * (W / 2 + 0.07)] }, 0.04, lo ? 1 : 2);
-      b.box(L - 0.1, 0.06, 0.15, (x) => (Math.floor((x + L) / 0.3) % 2 ? col(W6.hazard) : col(0x1e1e28)), { p: [0, T - 0.03, s * (W / 2 + 0.075)] }, 0.01, 1);
-      if (!lo) for (let x = -L / 2 + 0.3; x < L / 2; x += 0.6) b.sphere(0.03, W6.steelHi, { p: [x, T * 0.4, s * (W / 2 + 0.145)] }, 6, 4);
-    }
-    b.box(L, T * 0.6, W, 0x2a2e3c, { p: [0, T * 0.3, 0] }, 0.02, 1);
-    return b.geometry();
-  });
-}
-export const beltRollerGeo = (W, T) => cached(`w6:belt:roller:${W}:${T}`, () => {
-  const b = new Build();
-  b.cyl(T * 0.42, T * 0.42, W, (x, y, z) => (Math.floor((Math.atan2(y, x) + 4) * 2.5) % 2 ? col(0x3a3e50) : col(0x5a6078)), { r: [Math.PI / 2, 0, 0] }, 14);
-  for (const s of [1, -1]) b.cyl(T * 0.2, T * 0.2, 0.05, W6.hazard, { p: [0, 0, s * (W / 2 + 0.01)], r: [Math.PI / 2, 0, 0] }, 10);
-  return b.geometry();
-});
-export const beltTopGeo = (L, W, T) => cached(`w6:belt:top:${L}:${W}:${T}`, () => { const g = new THREE.PlaneGeometry(L, W); g.rotateX(-Math.PI / 2); g.translate(0, T + 0.002, 0); return g; });
 function buildFoerderband(opts = {}) {
   const L = Math.max(0.5, num(opts.length, 4)), W = Math.max(0.4, num(opts.width, 2)), T = Math.max(0.15, num(opts.thick, 0.5));
   const root = new THREE.Group();

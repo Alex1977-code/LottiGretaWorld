@@ -166,7 +166,7 @@ await sc(async () => {
   // hängende/schwebende Modelle (Ursprung oben oder in der Mitte) anheben
   const LIFT = {
     pustewolke: () => 0.6, glasroehre_teil: (o) => (o.radius ?? 1) + 0.1, glasroehre_kreuzung: (o) => (o.radius ?? 1) + 0.1,
-    geisterschiff: (o) => (o.part === 'ganz' || o.part === 'rumpf' ? 2.6 : o.part === 'deck' ? 0.4 : o.part === 'laterne' ? 2 : 0),
+    geisterschiff: (o) => (o.part === 'ganz' || o.part === 'rumpf' ? 2.6 : o.part === 'deck' ? 0.4 : o.part === 'laterne' ? 2 : o.part === 'segel' ? 3.7 : 0),
     kippsteg: () => 0.6, wippe: () => 1.1, quetschblock: (o) => (o.size?.[1] ?? 2) / 2 + 0.05, pilz_maske: (o) => (o.mode === 'kopf' ? 1 : 0),
     papierlaterne: (o) => (o.mount === 'haengend' ? 2.4 : 0), dschungel_liane: (o) => (o.length ?? 4) + 0.3, zahnrad: (o) => (o.radius ?? 1.5) + 0.1,
     rohrleitung: (o) => (o.radius ?? 0.35) + 0.05, gelee_brocken: () => 0, wolkenplattform: () => 0.5, fernost_dach: () => 0.2,
@@ -403,7 +403,7 @@ if (part('checks')) {
     if (has('klettergitter')) { const k = box('klettergitter', { size: [2, 3] }, 'idle'); out.gitter = [k.z, k.y, k.x, k.minY]; }
     if (has('foerderband')) { const f = box('foerderband', { length: 4, width: 2, thick: 0.5 }, { offset: 0 }); out.band = [f.x, f.z, f.maxY, f.minY]; }
     if (has('quetschblock')) { const q = box('quetschblock', { size: [2, 2, 2], rod: 0 }, 'idle'); out.quetsch = [q.x, q.y, q.z, q.minY]; }
-    if (has('wurfball')) { const w = box('wurfball', {}, 'idle'); out.ball = [w.x, w.minY]; }
+    if (has('wurfball')) { const w = box('wurfball', {}, 'idle'); out.ball = [w.y, w.minY]; }
     if (has('riesen_frageblock')) { const a = box('riesen_frageblock', { size: 2, height: 6 }, { grow: 0 }), b = box('riesen_frageblock', { size: 2, height: 6 }, { grow: 1 }); out.frage = [a.x, a.maxY, b.maxY, with_('riesen_frageblock', { size: 2, height: 6 }, (m) => { for (let k = 0; k < 40; k++) m.update(1 / 30, { grow: 0.5 }); return m.root.userData.top; })]; }
     if (has('wippe')) { const w = box('wippe', { length: 6, width: 2 }, { tilt: 0 }); out.wippe = [w.x, w.maxY, w.minY]; }
     if (has('wolkenplattform')) { const w = box('wolkenplattform', { size: [3, 0.6, 3] }, 'idle'); out.wolke = [w.x, w.z, w.maxY, w.minY, with_('wolkenplattform', { size: [3, 0.6, 3] }, (m) => m.root.userData.top)]; }

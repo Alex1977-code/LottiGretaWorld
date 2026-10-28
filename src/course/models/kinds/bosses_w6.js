@@ -41,7 +41,7 @@ import {
 } from '../lib/kit.js';
 import {
   W6, SB, SB_EYES, SB_BROWS, schubserBodyGeo, schubserFootGeo, browGeo, puffyGeo, mouthShape, gradV, ownMat, Puffs, stick,
-  jellyGeo, jellyMat, jellyColor, bowlerGeo, hash1,
+  jellyGeo, jellyMat, jellyColor, bowlerGeo, hash1, brockenGeo,
 } from '../lib/w6Geos.js';
 import { flameGeo, glowVcol } from '../lib/w5Geos.js';
 
@@ -118,7 +118,7 @@ function capeBase() {
 const addCollar = (b) => {
   const g = new THREE.TorusGeometry(1, 0.3, 10, 28, Math.PI * 1.05);
   g.rotateZ(Math.PI - Math.PI * 0.525);
-  b.add(g, (x, y, z) => (hash1(Math.floor(Math.atan2(y, x) * 7) * 3.1 + Math.floor(z * 8)) > 0.7 ? col(W6.erminePt) : col(W6.ermine)), { p: [-0.04, 0.76, 0], r: [Math.PI / 2, 0, 0], s: [0.37, 0.43, 0.37] });
+  b.add(g, (x, y, z) => (hash1(Math.floor(Math.atan2(y, x) * 9) * 3.1 + Math.floor(z * 6)) > 0.86 ? col(W6.erminePt) : col(W6.ermine)), { p: [-0.04, 0.76, 0], r: [Math.PI / 2, 0, 0], s: [0.37, 0.43, 0.37] });
 };
 function buildSchubserPrinz() {
   const root = new THREE.Group();
@@ -275,20 +275,6 @@ const wbMouthGeo = () => cached('w6:wb:mouth', () => {
   return b.geometry();
 });
 const wbBrowGeo = () => browGeo(0x3a1460, 0.025, 0.13);
-/** Gelee-Brocken mit Knopfaugen (Kante 1, Ursprung Mitte unten). */
-export function brockenGeo(color = 'silber', lo = false) {
-  const c = jellyColor(color);
-  return cached(`w6:brocken:${c}:${lo}`, () => {
-    const b = new Build();
-    b.parts.push(jellyGeo(c, lo).clone());
-    for (const s of [1, -1]) {
-      b.sphere(1, 0x1a0a20, { p: [0.47, 0.58, s * 0.16], s: [0.06, 0.12, 0.075] }, lo ? 7 : 12, lo ? 5 : 8);
-      b.sphere(1, 0xffffff, { p: [0.52, 0.63, s * 0.16 - 0.02], s: [0.015, 0.035, 0.03] }, lo ? 4 : 6, lo ? 3 : 4);
-    }
-    b.add(new THREE.TorusGeometry(0.07, 0.018, lo ? 4 : 5, lo ? 6 : 10, Math.PI), W6.mouth, { p: [0.505, 0.4, 0], r: [0, Math.PI / 2, Math.PI] });
-    return b.geometry();
-  });
-}
 function buildWuerfelblase(opts = {}) {
   const size = Math.max(0.3, Number(opts.size ?? 1.2));
   const color = jellyColor(opts.color ?? 'rot');
@@ -303,7 +289,7 @@ function buildWuerfelblase(opts = {}) {
   const mouthM = mesh(wbMouthGeo(), vcol(0.35));
   const brows = instMesh(wbBrowGeo(), vcol(0.5), 2, 1, 0.8);
   const hatJ = joint([0.0, 0.96, -0.05]);
-  const hatM = mesh(bowlerGeo(), vcol(0.45, {}, 'w6hat'), { s: [0.82, 0.82, 0.82] }, true);
+  const hatM = mesh(bowlerGeo(), vcol(0.45, {}, 'w6hat'), { s: [0.95, 0.95, 0.95] }, true);
   hatJ.add(hatM);
   body.add(bodyM, eye, mouthM, brows, hatJ);
   unit.add(body);
@@ -442,7 +428,7 @@ function buildGeleeRiese(opts = {}) {
   const mouthM = mesh(wbMouthGeo(), vcol(0.35));
   const brows = instMesh(wbBrowGeo(), vcol(0.5), 2, 1, 0.8);
   for (let i = 0; i < 2; i++) { const s = i ? -1 : 1; _e.set(-s * 0.45, 0, 0); brows.setMatrixAt(i, _m.compose(_v.set(0.5, 0.86, s * 0.2), _q.setFromEuler(_e), _s.setScalar(1))); }
-  const hatJ = joint([0, 0.96, -0.05], mesh(bowlerGeo(), vcol(0.45, {}, 'w6hat'), { s: [0.6, 0.6, 0.6] }, true));
+  const hatJ = joint([0, 0.96, -0.05], mesh(bowlerGeo(), vcol(0.45, {}, 'w6hat'), { s: [0.72, 0.72, 0.72] }, true));
   hatJ.rotation.z = 0.12;
   const face = joint();
   face.add(eye, mouthM, brows, hatJ);

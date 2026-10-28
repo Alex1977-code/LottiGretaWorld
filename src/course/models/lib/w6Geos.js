@@ -16,7 +16,9 @@
 //  - gitterGeo         Klettergitter-Kachel (Bambus-Rahmen, geflochtene Ranken)
 //  - wuschelLoGeo      sparsamer Wuschel für die Horde (≈ 260 Dreiecke)
 //  - kieferGeo         Bergkiefer (Einzelmodell und Instanzen)
-//  - hullGeo           Schiffsrumpf (Geisterschiff, Wrack)
+//  - hullGeo/hullShape Schiffsrumpf (Geisterschiff, Wrack)
+//  - brockenGeo        Gelee-Brocken mit Knopfaugen (Einzelmodell, Gelee-Riese, Instanzen)
+//  - beltFrameGeo, beltRollerGeo, beltTopGeo  Förderband-Teile (Einzelmodell und Instanzen)
 
 import {
   THREE, TAU, Build, cached, vcol, basic, std, metal, col, mix, clamp, smoothstep, smoothNormals, placed, canvasTexture,
@@ -84,6 +86,8 @@ function spikeGeo(w, len, rs = 8) {
   g.rotateX(Math.PI / 2);
   return g;
 }
+/** Sparsamer Stachel (Kegel, 6 Seiten, Achse +Z, Fuß bei z = 0). */
+function loSpike(w, len) { const g = new THREE.ConeGeometry(w, len, 6, 1, true); g.rotateX(Math.PI / 2); g.translate(0, 0, len / 2); return g; }
 export const SPIKE_COLORS = {
   eisen: { ball: 0x3c3a5a, ballHi: 0x8a86b8, band: 0xffc21a, spike: 0xfff2d8, tip: 0xffffff },
   lila: { ball: 0x5c2e8e, ballHi: 0xb08ae8, band: 0xff8a3a, spike: 0xfff2d8, tip: 0xffffff },
@@ -95,12 +99,12 @@ export function spikeBallGeo(color = 'eisen', lo = false) {
   return cached(`w6:spikeball:${color}:${lo}`, () => {
     const b = new Build();
     const R = 0.3;
-    b.sphere(R, { v: (x, y, z, nx, ny) => mix(C.ball, C.ballHi, smoothstep(ny * 0.55 + nx * 0.2 + 0.35)) }, {}, lo ? 18 : 30, lo ? 12 : 20);
+    b.sphere(R, { v: (x, y, z, nx, ny) => mix(C.ball, C.ballHi, smoothstep(ny * 0.55 + nx * 0.2 + 0.35)) }, {}, lo ? 16 : 30, lo ? 10 : 20);
     b.torus(R * 0.995, 0.028, C.band, { r: [Math.PI / 2, 0, 0] }, 6, lo ? 24 : 40);
     const dirs = fibDirs(lo ? 18 : 26, 0.4);
     for (const d of dirs) {
       if (Math.abs(d.y) < 0.12) continue; // Band frei
-      b.add(spikeGeo(lo ? 0.075 : 0.08, 0.24, lo ? 6 : 9), { v: (x, y, z) => mix(C.spike, C.tip, smoothstep(z / 0.24)) }, placed(d.clone().multiplyScalar(R * 0.86), d, new THREE.Vector3(1, 1, 1)));
+      b.add(lo ? loSpike(0.075, 0.24) : spikeGeo(0.08, 0.24, 9), { v: (x, y, z) => mix(C.spike, C.tip, smoothstep(z / 0.24)) }, placed(d.clone().multiplyScalar(R * 0.86), d, new THREE.Vector3(1, 1, 1)));
     }
     // Stacheln rund um das Band (schräg, damit es lesbar bleibt)
     for (let i = 0; i < (lo ? 6 : 8); i++) {
@@ -108,7 +112,7 @@ export function spikeBallGeo(color = 'eisen', lo = false) {
       for (const s of [1, -1]) {
         const d = new THREE.Vector3(Math.cos(a), s * 0.28, Math.sin(a)).normalize();
         if (lo && s < 0) continue;
-        b.add(spikeGeo(lo ? 0.07 : 0.075, 0.22, lo ? 6 : 9), { v: (x, y, z) => mix(C.spike, C.tip, smoothstep(z / 0.22)) }, placed(d.clone().multiplyScalar(R * 0.86), d, new THREE.Vector3(1, 1, 1)));
+        b.add(lo ? loSpike(0.07, 0.22) : spikeGeo(0.075, 0.22, 9), { v: (x, y, z) => mix(C.spike, C.tip, smoothstep(z / 0.22)) }, placed(d.clone().multiplyScalar(R * 0.86), d, new THREE.Vector3(1, 1, 1)));
       }
     }
     return b.geometry();
@@ -191,7 +195,7 @@ export const JELLY = {
   lila: [0xa45aff, 0xdab0ff, 0x5a24b8],
   orange: [0xff8a2a, 0xffc890, 0xc8500a],
   rosa: [0xff6ac8, 0xffc0e8, 0xc02a8a],
-  silber: [0xc8d0e0, 0xffffff, 0x7a8498],
+  silber: [0xd0d8ec, 0xffffff, 0x8a92b0],
   gold: [0xffc21a, 0xfff0a0, 0xb8780a],
 };
 export const JELLY_NAMES = Object.keys(JELLY);
@@ -199,7 +203,7 @@ export const jellyColor = (c) => (JELLY[c] ? c : 'rot');
 export const isMetalJelly = (c) => c === 'silber' || c === 'gold';
 /** Gelee-Material: glänzend (Farbe aus den Ecken); silber/gold als Metall mit Spiegelung. */
 export function jellyMat(color) {
-  if (color === 'silber') return metal('w6:jellySilber', { vertexColors: true, metalness: 0.82, roughness: 0.16 }, 1.25);
+  if (color === 'silber') return metal('w6:jellySilber', { vertexColors: true, metalness: 0.62, roughness: 0.2 }, 1.0);
   if (color === 'gold') return metal('w6:jellyGold', { vertexColors: true, metalness: 0.78, roughness: 0.2, emissive: 0x2a1a00 }, 1.15);
   return vcol(0.12, {}, 'w6jelly');
 }
@@ -532,3 +536,41 @@ export function hullGeo(L = 12, W = 5, H = 3, broken = false, lo = false) {
     return b.geometry();
   });
 }
+
+// ------------------------------------------------------------------ Gelee-Brocken (Einzelmodell, Riese, Instanzen)
+/** Gelee-Brocken mit Knopfaugen (Kante 1, Ursprung Mitte unten). */
+export function brockenGeo(color = 'silber', lo = false) {
+  const c = jellyColor(color);
+  return cached(`w6:brocken:${c}:${lo}`, () => {
+    const b = new Build();
+    b.parts.push(jellyGeo(c, lo).clone());
+    for (const s of [1, -1]) {
+      b.sphere(1, 0x1a0a20, { p: [0.47, 0.58, s * 0.16], s: [0.06, 0.12, 0.075] }, lo ? 7 : 12, lo ? 5 : 8);
+      b.sphere(1, 0xffffff, { p: [0.52, 0.63, s * 0.16 - 0.02], s: [0.015, 0.035, 0.03] }, lo ? 4 : 6, lo ? 3 : 4);
+    }
+    b.add(new THREE.TorusGeometry(0.07, 0.018, lo ? 4 : 5, lo ? 6 : 10, Math.PI), W6.mouth, { p: [0.505, 0.4, 0], r: [0, Math.PI / 2, Math.PI] });
+    return b.geometry();
+  });
+}
+
+// ------------------------------------------------------------------ Förderband (Einzelmodell und Instanzen)
+export function beltFrameGeo(L, W, T, lo = false) {
+  return cached(`w6:belt:frame:${L}:${W}:${T}:${lo}`, () => {
+    const b = new Build();
+    const steel = gradV(W6.steelLow, W6.steelHi, 0.5, 0.45);
+    for (const s of [1, -1]) {
+      b.box(L, T, 0.14, steel, { p: [0, T / 2, s * (W / 2 + 0.07)] }, 0.04, lo ? 1 : 2);
+      b.box(L - 0.1, 0.06, 0.15, (x) => (Math.floor((x + L) / 0.3) % 2 ? col(W6.hazard) : col(0x1e1e28)), { p: [0, T - 0.03, s * (W / 2 + 0.075)] }, 0.01, 1);
+      if (!lo) for (let x = -L / 2 + 0.3; x < L / 2; x += 0.6) b.sphere(0.03, W6.steelHi, { p: [x, T * 0.4, s * (W / 2 + 0.145)] }, 6, 4);
+    }
+    b.box(L, T * 0.6, W, 0x2a2e3c, { p: [0, T * 0.3, 0] }, 0.02, 1);
+    return b.geometry();
+  });
+}
+export const beltRollerGeo = (W, T) => cached(`w6:belt:roller:${W}:${T}`, () => {
+  const b = new Build();
+  b.cyl(T * 0.42, T * 0.42, W, (x, y, z) => (Math.floor((Math.atan2(y, x) + 4) * 2.5) % 2 ? col(0x3a3e50) : col(0x5a6078)), { r: [Math.PI / 2, 0, 0] }, 14);
+  for (const s of [1, -1]) b.cyl(T * 0.2, T * 0.2, 0.05, W6.hazard, { p: [0, 0, s * (W / 2 + 0.01)], r: [Math.PI / 2, 0, 0] }, 10);
+  return b.geometry();
+});
+export const beltTopGeo = (L, W, T) => cached(`w6:belt:top:${L}:${W}:${T}`, () => { const g = new THREE.PlaneGeometry(L, W); g.rotateX(-Math.PI / 2); g.translate(0, T + 0.002, 0); return g; });
