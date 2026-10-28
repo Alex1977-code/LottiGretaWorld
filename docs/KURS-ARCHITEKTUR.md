@@ -5385,6 +5385,33 @@ großer ?-Block (Stampfen, Explosion), Wurfball (Gegner, Zielscheiben, vorbei = 
 Kennzahlen (inkl. Schattenpass): Stationen höchstens 63 Zeichenaufrufe / 163 k Dreiecke, Themen höchstens 72 / 174 k
 (Grenzen 120 / 300 k).
 
+### Präzisierung (Figuren und Klänge Welt 6): Pose 'hang', eigene Klänge
+
+Additiv. **Pose `'hang'`** (`src/three/avatars/hero.js`: `poseHang`, Tabelle `HANG_POSE`; Lotti und Greta, groß/klein, Kostüme,
+Stern, Riesentrank, Klone, Halloween-Verkleidung): `HeroAvatar.courseStates` (Set aller Kurs-Zustände mit eigener Pose) enthält
+`'hang'` – HeroRig zeigt keinen Ersatz `'trapeze'` mehr. Beide Fäuste per Arm-IK (Gummi-Arme wie am Trapez) im Gitter:
+Gitterebene = Körperhöhe der Hitbox (0,95 / 0,65 m) + `HANG.arm` (0,2 m) über dem Fußpunkt, Faustmitte 1,2 cm darunter (bei
+Änderung von `HANG.arm`/`HITBOX` in `HANG_POSE` nachziehen). Hand über Hand im Takt des tatsächlich zurückgelegten Wegs entlang
+der Blickrichtung (`speed` begrenzt; am Rand steht die Figur trotz Stick → kein Hangeln in der Luft), 1,0 m je Doppelgriff:
+die haltende Hand liegt fest im Gitter, die andere löst sich (bis 15 cm), schwingt vor und greift. Körper als Feder-Pendel um
+die Griffe (Anfahren: Füße zurück, Bremsen: vor, je Griff ein kleiner Schwung, seitlich zur haltenden Hand; im Stillstand sachtes
+Schaukeln), Beine als zweites Pendel mit Nachlauf, Knie leicht angezogen; Zöpfe/Haar/Schweife hängen über die Physik. HeroRig
+gibt zusätzlich `proxy.course.hangGrid` (Gitter-Rechteck des Motors) weiter: am Rand bleiben die Griffe im Gitter bzw. am
+Randstab (seitlich nicht näher als 0,4 Einheiten an der Körperachse). Riesentrank: Gitter in Brusthöhe → Griff vor dem Bauch
+(Kopf ragt durch die Decke wie am Trapez). Loslassen blendet 0,3 s in den Fall. Kennzahlen: Zeichenaufrufe und Dreiecke gleich
+der Stand-Pose (Lotti 9 / 28,6 k, Greta 9 / 24,0 k, Krallen-Anzug 10, mit Verkleidung wie im Stand). `view/Xray.js`: Prüfpunkt
+der kleinen Figur in 0,6 m Höhe (vorher 0,9 m – unter einem Deckengitter lag er in der Decke, die dann deckend blieb).
+Test `tests/posen_w6.mjs` (Port 4365 + `PORT_BASE`; `P6_SHOTS=0`, `P6_HEROES`, `P6_PARTS=hang,extra`, `P6_DEBUG=1`; Bilder
+`tests/out/posen_w6_*.png`, Bögen `posen_w6_sheet_<heldin>.png`).
+
+**Klänge:** eigene Synth-Effekte in `src/audio/sfx.js` (Listen `W6_SFX`, `HW_SFX`, auch `engine.effects.w6/hw`) – Welt 6:
+`gust`, `wind`, `rumble`, `door`, `poof`, `splash`, `bump`, `powerup_appear`, `gong`; Halloween: `klingel`, `tuer`,
+`alle_tueren`, `kessel`, `blase`, `netz`, `laterne`, `laterne_aus`, `suessigkeit`, `muenzregen`, `buh`, `grabstein`,
+`kuerbis_platzt`. `level.sfx(name)` findet sie direkt (auch die bisher stummen direkten Aufrufe `splash`, `bump`, `rumble`,
+`poof`, `powerup_appear` anderer Bausteine/Gegner). Die Ersatz-Tabelle in `w6Sfx` ist leer, die Ersatznamen der `hwSfx`-Aufrufe
+greifen nur noch für neue Namen. Lautheit wie die bestehenden Effekte (Median −22,7 LUFS), ≤ 21 Knoten, ≤ 1,1 s;
+Hörprobe `tests/out/sfx_demo_w6.wav` (`tests/audio.mjs`, `AUDIO_PART=sfx`).
+
 ## Präzisierung (Gegner Welt 6)
 
 Ergänzung des Gegner-Agenten Welt 6 „Wolkeninseln“ (Stand: Wolken-Gegnerzoo `0-24`, Wolken-Bossarenen `0-25`). Nichts oben
