@@ -213,7 +213,6 @@ const ROUTES = {
       ['podest', 158, [157.0, 1.4], 30],
       ['kommandopanzer', 'done', [189.0, 0], 60],
       ['arena', 'arena', null, 200],
-      ['insel', 'insel', null, 60],
     ],
   },
 };
@@ -882,7 +881,7 @@ function installKonvoi() {
       if (Lg.warp) {
         const wb = named('warp_sieg');
         let k = 0;
-        for (; k < 900 && p.pos.z > PL.gz + 20; k++) {
+        for (; k < 900 && p.pos.x < PL.gx - 20; k++) {
           const dx = wb.pos.x - p.pos.x, dz = wb.pos.z - p.pos.z, d = Math.hypot(dx, dz);
           tick({ ...(p.mode === 'air' ? W.airSteer(wb.pos.x, wb.pos.z, 0, 0, 3, 6) : W.stick(dx, dz, Math.max(0.3, Math.min(1, d)))), jump: p.mode === 'ground' ? d < 1.8 && (k % 40) < 16 : p.vel.y > 0 });
         }
@@ -1010,7 +1009,11 @@ async function konvoiLevel(id, R) {
   for (const hero of ONLY || !PARTS.has('route') ? [] : HEROES) {
     await loadKonvoi(id);
     await K('put', 3, -1.4, { hero, settle: 2 });
-    const res = await K('run', R.main, { lanes });
+    // bis zur Warp-Box (dann ein Bild der Regenbogeninsel), danach zum Zielmast
+    const res = await K('run', R.main.slice(0, -1), { lanes });
+    if (hero === HEROES[0] && PARTS.has('shots') && res.status === 'play') await shot(`${id}_insel`);
+    const res2 = await K('run', R.main.slice(-1), { lanes });
+    res.log.push(...res2.log); res.status = res2.status; res.time += res2.time; res.mech.hurts = res2.mech.hurts;
     const reached = res.status === 'goal' || res.status === 'done';
     console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Treffer ${res.mech.hurts} ${JSON.stringify(res.mech.hurtBy)}, Sprünge ${res.mech.jumps}, Kletter ${res.mech.climbs}, Panzer ${res.mech.tanks.join(',')}, Boss ${JSON.stringify(res.mech.boss)}`);
     if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
@@ -1095,7 +1098,7 @@ async function konvoiLevel(id, R) {
           p.reset([2.5, PL.az ? 6.05 : 6, PL.az + 6.5], Math.PI / 2);
           for (let i = 0; i < n; i++) { c.setInput({ y: i < 40 ? 0.6 : 0 }); c.step(1); }
         } else {
-          p.reset([0, 5.05, PL.gz + 9], Math.PI / 2);
+          p.reset([PL.gx, 5.05, PL.gz + 9], Math.PI / 2);
           c.step(n);
         }
         c.setInput(null);

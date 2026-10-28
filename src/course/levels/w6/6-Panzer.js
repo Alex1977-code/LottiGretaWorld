@@ -27,7 +27,7 @@
 import { panzerSetup } from '../w2/_helpers_d.js';
 import {
   kolonnenFahrplan, panzer6, kP, aufPanzer, wolkenStrasse, schwebeInseln, wolkenBurg, kolonnenSetup, regenbogen,
-  beiZerstoerung, lichterketten, lampenPfosten, heissluftballons,
+  beiZerstoerung, lichterketten, heissluftballons, strassenSchmuck,
 } from './_helpers_d.js';
 
 const VT = 3.2, VW = 6.0, ZP = 20, CW0 = 6;
@@ -60,7 +60,7 @@ const F = { ...PLAN, vt: VT, zp: ZP };
 const ZK = -(T.TK.c + F.ride);
 const AR = 10.5, AY = 6;
 const AZ = Math.round((ZK - T.TK.len / 2 - AR - 5.5) * 10) / 10;
-const GY = 5, GZ = Math.round((AZ - 40) * 10) / 10;
+const GX = 48, GY = 5, GZ = AZ;                     // Regenbogeninsel seitlich der Burg (eigene Kamera-Schiene)
 
 // Große ?-Blöcke auf T3 (links, Treppe A → B → C; Wachstum so, dass jede Stufe 2,6–3 m höher ist)
 const QB = { dx: -2.0, S: 2, steps: [{ id: 'turm_a', dc: -3.6, grow: 1.0 }, { id: 'turm_b', dc: 0.4, grow: 3.6 }, { id: 'turm_c', dc: 4.4, grow: 6.2 }] };
@@ -127,7 +127,7 @@ const BALLONS = [];
   const pal = [[0xff4a6a, 0xffe04a], [0x3a8aff, 0xffffff], [0x5ad85a, 0xffe04a], [0xb07aff, 0xff9ad0], [0xff9a3a, 0x3ad0ff]];
   for (let i = 0, z = -14; z > ZK - 30; i++, z -= 23 + (i % 3) * 5) {
     const s = i % 2 ? 1 : -1;
-    BALLONS.push({ x: s * (12.5 + (i % 3) * 1.6), y: 7 + (i % 4) * 1.3, z, r: 1.7 + (i % 3) * 0.25, colors: pal[i % pal.length] });
+    BALLONS.push({ x: s * (13.5 + (i % 3) * 1.8), y: 10 + (i % 4) * 1.2, z, r: 1.8 + (i % 3) * 0.25, colors: pal[i % pal.length] });
   }
 }
 const WOLKENBERGE = [];
@@ -156,9 +156,9 @@ export const LEVEL = {
     startBanner: 'Kolonne – marsch!', endBanner: 'Endstation Wolkenburg!',
   },
   camera: [
-    { from: 40, to: ZK - 12, pitch: 42, dist: 18, fov: 42 },
-    { from: ZK - 12, to: AZ - 16, pitch: 46, dist: 17, x: 0, xLock: 0.3, ahead: 1.2, lead: 0.5 },
-    { from: AZ - 16, to: GZ - 30, pitch: 36, dist: 13, ahead: 2 },
+    { from: 40, to: ZK - 12, pitch: 42, dist: 18, fov: 42, area: [-30, 30] },
+    { from: ZK - 12, to: AZ - 20, pitch: 46, dist: 17, x: 0, xLock: 0.3, ahead: 1.2, lead: 0.5, area: [-30, 30] },
+    { from: GZ + 20, to: GZ - 20, pitch: 28, dist: 17, ahead: 2, area: [GX - 16, GX + 16] },
   ],
   boss: {
     id: 'wirbel', name: 'Wirbelbrocken', speed: 0,
@@ -176,13 +176,14 @@ export const LEVEL = {
     schwebeInseln(level, INSELN, { seed: 6 });
     heissluftballons(level, BALLONS);
     wolkenBurg(level, { pos: [0, AY, AZ], r: 13 });
-    regenbogen(level, { pos: [0, GY - 1, GZ - 9], r: 11, band: 0.55 });
+    regenbogen(level, { pos: [GX, GY - 1.5, GZ - 12], r: 10, band: 0.55 });
+    strassenSchmuck(level, { z0: 2, z1: ZK - 14, every: 16, x: 8.9, y: 0.5, h: 4.8 });
     lichterketten(level, [
       { a: [-6.2, D + 6.2, 15.5], b: [6.2, D + 6.2, 15.5], sag: 1.2, kind: 'wimpel', every: 0.6 },
       { a: [-6.2, D + 6.0, 4.6], b: [-6.2, D + 6.0, 15.5], sag: 1.0, kind: 'wimpel', every: 0.6 },
       { a: [6.2, D + 6.0, 4.6], b: [6.2, D + 6.0, 15.5], sag: 1.0, kind: 'wimpel', every: 0.6 },
     ]);
-    lampenPfosten(level, [[-5.8, D, 4.4, 1], [5.8, D, 4.4, -1], [-5.8, D, 12.6, 1], [5.8, D, 12.6, -1]]);
+
   },
   // level-lokale Teile der Welt-2-Kolonne (Luke, Holzwand, Wimpel)
   panzer: {
@@ -217,13 +218,13 @@ export const LEVEL = {
     { type: 'pipe', id: 'arena_rohr', pos: [0, AY, AZ + 8.8], height: 0.9, color: 0xc0283a },
     { type: 'torches', h: 2.4, items: [[-9, AY, AZ + 9.8], [9, AY, AZ + 9.8]] },
     // ---------------------------------------------------------------- Regenbogeninsel mit Zielmast (nur über die Warp-Box)
-    { type: 'island', pos: [0, GY - 4, GZ], size: [20, 4, 26], top: 'grass', under: 3 },
+    { type: 'island', pos: [GX, GY - 4, GZ], size: [20, 4, 26], top: 'grass', under: 3 },
     { type: 'deco_w6', items: [
-      { kind: 'bergblumen', pos: [0, GY, GZ + 2], size: [16, 20], n: 24, seed: 9 },
-      { kind: 'bergkiefer', pos: [-7.6, GY, GZ - 9], height: 4.2 }, { kind: 'bergkiefer', pos: [7.4, GY, GZ - 10], height: 3.6 },
-      { kind: 'wolke', pos: [-11, GY - 1, GZ + 4], size: 4 }, { kind: 'wolke', pos: [11.5, GY - 1.2, GZ - 3], size: 3.6 },
+      { kind: 'bergblumen', pos: [GX, GY, GZ + 2], size: [16, 20], n: 24, seed: 9 },
+      { kind: 'bergkiefer', pos: [GX - 7.6, GY, GZ - 9], height: 4.2 }, { kind: 'bergkiefer', pos: [GX + 7.4, GY, GZ - 10], height: 3.6 },
+      { kind: 'wolke', pos: [GX - 11, GY - 1, GZ + 4], size: 4 }, { kind: 'wolke', pos: [GX + 11.5, GY - 1.2, GZ - 3], size: 3.6 },
     ] },
-    { type: 'sign', pos: [-6.5, GY, GZ + 10.5], text: 'Regenbogen-\ninsel', size: [2.6, 1.1], yaw: 0.25 },
+    { type: 'sign', pos: [GX - 6.5, GY, GZ + 10.5], text: 'Regenbogen-\ninsel', size: [2.6, 1.1], yaw: 0.25 },
     // ---------------------------------------------------------------- Panzerkolonne
     ...Object.values(T).map((t) => panzer6(t, F)),
   ],
@@ -285,8 +286,8 @@ export const LEVEL = {
     coins(T.T12, at(T.T12, 1.2, 1.4, D + 0.6), at(T.T12, 4.0, 1.4, D + 0.6), 3),
     { kind: 'coins', attach: 'TK', pos: at(T.TK, -6.0, 0, DK + 0.5), r: 2.0, n: 6 },
     // nach dem Sieg: Warp-Box in der Arena → Regenbogeninsel
-    { kind: 'warpbox', id: 'warp_sieg', pos: [0, AY, AZ - 1], target: [0, GY + 0.3, GZ + 8], hidden: true },
-    { kind: 'coins', pos: [0, GY + 1.2, GZ + 2], r: 2.6, n: 10 },
+    { kind: 'warpbox', id: 'warp_sieg', pos: [0, AY, AZ - 1], target: [GX, GY + 0.3, GZ + 8], hidden: true },
+    { kind: 'coins', pos: [GX, GY + 1.2, GZ + 2], r: 2.6, n: 10 },
   ],
   checkpoint: [{ pos: at(T.T5, -3.6, 1.6), attach: 'T5' }, { pos: [0.85, AY, AZ + 7.3] }],
   stars: [
@@ -295,12 +296,12 @@ export const LEVEL = {
     { pos: at(T.T9, Q9.dc, Q9.dx, TOP_9 + 1.0), attach: 'T9', id: 'stern3' },
   ],
   stamp: { pos: at(T.TK, (KAM.dc0 + KAM.dc1) / 2, 0, DK + 0.7), attach: 'TK' },
-  goal: { pos: [0, GY, GZ - 6], height: 8 },
+  goal: { pos: [GX, GY, GZ - 6], height: 8 },
   marks: {
     start: kP(3, -0.6, D), turm: at(T.T3, 0, 0), stein2: at(T.T8, 3.4, 0), turm9: at(T.T9, Q9.dc, Q9.dx), wand: WALL.pos,
-    luke: at(T.TK, -1.2, 0, DK), arena: [0, AY, AZ], insel: [0, GY, GZ + 8], goal: [0, GY, GZ - 6],
+    luke: at(T.TK, -1.2, 0, DK), arena: [0, AY, AZ], insel: [GX, GY, GZ + 8], goal: [GX, GY, GZ - 6],
   },
   // Konvoi-Daten für Tests (Panzer: Mitte c, Länge, Breite, Spur, Deck) und Fahrplan
   convoy: Object.fromEntries(Object.values(T).map((t) => [t.id, { c: t.c, len: t.len, w: t.w, x: t.x, h: t.h }])),
-  plan: { vt: VT, vw: VW, zp: ZP, cw0: CW0, holds: HOLDS, ride: F.ride, T: F.T, zk: ZK, az: AZ, gz: GZ, qb: QB, q9: Q9, kam: KAM },
+  plan: { vt: VT, vw: VW, zp: ZP, cw0: CW0, holds: HOLDS, ride: F.ride, T: F.T, zk: ZK, az: AZ, gx: GX, gz: GZ, qb: QB, q9: Q9, kam: KAM },
 };

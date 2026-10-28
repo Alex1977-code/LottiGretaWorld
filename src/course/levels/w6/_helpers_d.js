@@ -890,6 +890,39 @@ export function kolonnenSetup(level, panzerSetup) {
 }
 
 /**
+ * Festschmuck an der Wolkenstraße: rot-weiß geringelte Masten mit Goldknauf links und rechts (alle `every` m), dazwischen
+ * Wimpelketten entlang der Straße – sie ziehen an der Kolonne vorbei (Fahrtgefühl). cfg = { z0, z1, every: 16, x: 8.8,
+ * y: 0.4 (Fuß), h: 4.6 }
+ */
+export function strassenSchmuck(level, cfg) {
+  if (!level.view) return;
+  const every = cfg.every ?? 16, X = cfg.x ?? 8.8, y0 = cfg.y ?? 0.4, H = cfg.h ?? 4.6;
+  const z0 = Math.max(cfg.z0, cfg.z1), z1 = Math.min(cfg.z0, cfg.z1);
+  const poles = [], gold = [], ketten = [];
+  const red = C(0xe8304a), white = C(0xfff4f0), blue = C(0x3a7aff);
+  let i = 0;
+  for (let z = z0; z >= z1; z -= every, i++) {
+    for (const s of [-1, 1]) {
+      const x = s * X;
+      const g = new THREE.CylinderGeometry(0.13, 0.16, H, 8, 12);
+      g.translate(x, y0 + H / 2, z);
+      const alt = (i + (s > 0 ? 1 : 0)) % 2 ? blue : red;
+      poles.push(colorize(ni(g), (p, n, out) => {
+        const k = Math.floor((p.y - y0) * 2.2 + Math.atan2(p.z - z, p.x - x) / Math.PI) % 2;
+        const c = k ? white : alt; out[0] = c[0]; out[1] = c[1]; out[2] = c[2];
+      }));
+      const ball = new THREE.SphereGeometry(0.26, 10, 8);
+      ball.translate(x, y0 + H + 0.2, z);
+      gold.push(colorize(ni(ball), (p, n, out) => mixc(C(0xd89a10), C(0xfff0a0), smooth(-0.3, 1, n.y), out)));
+      if (z - every >= z1) ketten.push({ a: [x, y0 + H - 0.25, z], b: [x, y0 + H - 0.25, z - every], sag: 1.2, kind: 'wimpel', every: 0.75 });
+    }
+  }
+  addStatic(level, merge(poles), { castShadow: false });
+  addStatic(level, merge(gold), { castShadow: false, material: 'glow' });
+  lichterketten(level, ketten);
+}
+
+/**
  * Regenbogen (Zierde, ohne Kollision und Schatten): Halbbogen aus sieben Farbbändern. cfg = { pos: [x, y, z] (Mitte am
  * Fuß), r: 8 (Außenradius), band: 0.45, yaw: 0 (Bogen in der XY-Ebene) }
  */
