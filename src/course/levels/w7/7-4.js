@@ -104,8 +104,8 @@ function build(level) {
   // kleine runde Plattform vor der Rätselbox (Stempel)
   rundPlatte(level, { x: -7.2, z: -69, r: 1.3, top: Y, bottom: -2 });
   // Seitensäulen am Start (Sternmünzen)
-  rundPlatte(level, { x: -8.6, z: -1.5, r: 1.0, top: Y + 0.6, bottom: -2 });
-  rundPlatte(level, { x: 8.6, z: -1.5, r: 1.0, top: Y + 0.6, bottom: -2 });
+  rundPlatte(level, { x: -8.2, z: -1.5, r: 1.3, top: Y + 0.6, bottom: -2 });
+  rundPlatte(level, { x: 8.2, z: -1.5, r: 1.3, top: Y + 0.6, bottom: -2 });
   // Sims rechts neben Zylinder 3 (Stern 2)
   rundPlatte(level, { x: 7.4, z: -151.5, r: 1.2, top: Y + 1.4, bottom: -2 });
   // Kippplattform des Finales
@@ -225,8 +225,8 @@ export const LEVEL = {
     ring([RX, Y + 0.5, -70], 4, 8),
     // Sternring am Start (Stern 0): Hof, zwei Seitensäulen, zwei Sprünge
     {
-      kind: 'starring', id: 'sternring', pos: [-3.2, Y, 2.5], star: 0, time: 12,
-      coins: [[-3.6, Y + 0.5, -2], [3.6, Y + 0.5, -2], [-8.6, Y + 1.1, -1.5], [8.6, Y + 1.1, -1.5], [0, Y + 2.4, -1], [-3, Y + 0.5, -5.6], [3, Y + 0.5, -5.6], [0, Y + 2.4, -5]],
+      kind: 'starring', id: 'sternring', pos: [-3.2, Y, 2.5], star: 0, time: 15,
+      coins: [[-3.6, Y + 0.5, -2], [-8.2, Y + 1.1, -1.5], [-3, Y + 0.5, -5], [0, Y + 2.3, -2], [3, Y + 0.5, -5], [8.2, Y + 1.1, -1.5], [3.6, Y + 0.5, -2], [0, Y + 2.3, 1.5]],
     },
     // Rätselbox (Stern 1): Schubser in die Lava stoßen
     { kind: 'warpbox', id: 'rb1', style: 'mystery', pos: [4.2, Y, -75.6], target: 'rb2' },
