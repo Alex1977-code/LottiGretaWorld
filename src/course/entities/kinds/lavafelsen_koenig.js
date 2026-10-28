@@ -24,6 +24,14 @@
 //          roll?: [5, 6, 7], rollTime?: [2.6, 2.8, 3.0], rest?: [1.8, 1.5, 1.2], summon?: [2, 2, 3], max?: [3, 3, 4],
 //          sparks?: [6, 8, 10], spin?: 2.0, burn?: 2.6, star?: { pos, index } | [x, y, z], wakeR?: 9, drop? }
 // Laufzeit: brocken (lebende gerufene), summoned, feuer (Feuerbrocken gesamt), hitLog, info().
+// Welt 7 (additiv, Präzisierung Gegner Welt 7, 7-A): variant?: 'hell' (heller Tuffstein-König mit violettem Umhang, Modell
+//   lavafelsen_koenig { variant: 'hell' }) und fish?: { count: [2, 3, 4], ring: r + 1.6, height: 3.2, every: [3.0, 2.6, 2.2],
+//   flight: 1.15, inside: 0.9, spit: 0, color: 'rot', gate: null, gateHalf: 0.35 } | true (Standard bei variant 'hell') |
+//   false: **Platschfische** springen im Lavasee rings um die Arena in Bögen über den Arenarand (Sehne count je Phase
+//   gleichmäßig verteilt, reicht inside m in die Arena hinein) – ab dem Auftritt, je Phase mehr; Tod im Kampf und Sieg nehmen
+//   sie weg. gate (rad, Richtung des Eingangs: x = cos, z = sin; +Z = π/2) hält den Bereich ±gateHalf frei (Steg).
+//   Laufzeit: fish (lebende).
+//   Wird der Kampf über LEVEL.bosses gesteuert, gilt das wie LEVEL.boss (bossManaged).
 //
 // feuerbrocken – brennender Brocken (vom König verstreut, auch einzeln): fliegt im Bogen, landet, brennt burn s und
 //   verlischt (in Wasser/Lava sofort). Berührung verletzt (die letzten 0,3 s nicht mehr). Kein Gegner.
@@ -35,6 +43,7 @@ import { EnemyW2, figures, activeFigure, clamp } from '../EnemyW2.js';
 import { CourseEntity } from '../CourseEntity.js';
 import { spawnLoot } from '../Enemy.js';
 import { getModel } from '../../models/index.js';
+import { bossManaged } from '../w6help.js';
 import { colorize, merge, lin, mixc, smooth } from '../../../three/world/geometry.js';
 
 const TAU = Math.PI * 2;
@@ -77,14 +86,50 @@ class LavafelsenKoenig extends EnemyW2 {
     this.dropped = false;
     this.starDone = false;
     this.rounds = 0;
-    if (level.view) this.setModel(getModel('lavafelsen_koenig'));
+    this.variant = spec.variant === 'hell' ? 'hell' : 'std';
+    const f = spec.fish ?? (this.variant === 'hell');
+    this.fishCfg = f ? { count: [2, 3, 4], ring: this.arena.r + 1.6, height: 3.2, every: [3.0, 2.6, 2.2], flight: 1.15, inside: 0.9, spit: 0, ...(f === true ? {} : f) } : null;
+    this.fishList = [];
+    this.fishPhase = 0;
+    if (level.view) this.setModel(getModel('lavafelsen_koenig', this.variant === 'hell' ? { variant: 'hell' } : {}));
     this.initShadows(3);
+  }
+
+  /** Platschfische im Lavasee rings um die Arena (Welt 7, 7-A): je Phase count gleichmäßig verteilt. */
+  syncFish() {
+    const F = this.fishCfg;
+    if (!F || this.fishPhase === this.phase || this.hp <= 0) return;
+    this.fishPhase = this.phase;
+    for (const e of this.fishList) if (!e.removed) e.kill();
+    this.fishList = [];
+    const n = pick(F.count, this.phase, [2, 3, 4]);
+    const A = this.arena, R0 = F.ring, inner = Math.max(1, A.r - (F.inside ?? 0.9));
+    const half = Math.acos(clamp(inner / R0, -1, 1));       // halbe Sehnenöffnung: die Sehne reicht bis inner
+    const every = pick(F.every, this.phase, [3.0, 2.6, 2.2]);
+    const gate = Number.isFinite(F.gate) ? F.gate : null, gh = F.gateHalf ?? 0.35;
+    for (let i = 0; i < n; i++) {
+      // Sehnen-Mitte: gleichmäßig verteilt bzw. ohne den Eingangsbereich (gate ± gateHalf)
+      const a = gate === null ? (i / n) * TAU + 0.35 + this.phase * 0.5
+        : gate + gh + half + ((i + 0.5) / n) * (TAU - 2 * (gh + half));
+      const P = (b) => [A.x + Math.cos(b) * R0, A.y - 0.4, A.z + Math.sin(b) * R0];
+      const e = this.level.spawn('platschfisch', {
+        holes: [P(a - half), P(a + half)], height: F.height ?? 3.2, every, flight: F.flight ?? 1.15, phase: i / n,
+        spit: F.spit ?? 0, color: F.color ?? 'rot', owner: this,
+      });
+      if (e) this.fishList.push(e);
+    }
+  }
+
+  clearFish() {
+    for (const e of this.fishList) if (!e.removed) e.kill();
+    this.fishList = [];
+    this.fishPhase = 0;
   }
 
   get phase() { return clamp(this.maxHp - this.hp + 1, 1, 3); }
   /** Lava schadet dem Lavafelsen-König nicht (die Arenagrenze hält ihn ohnehin auf der Insel). */
   checkLava() { return false; }
-  get managed() { return !!this.level.archetype && this.level.data?.boss && (this.level.data.boss.id ?? 'baron') === this.spec.id; }
+  get managed() { return bossManaged(this.level, this.spec.id); }
   val(key, def) { return pick(this.spec[key], this.phase, def); }
 
   setState(s) { this.state = s; this.stateT = 0; }
@@ -102,6 +147,7 @@ class LavafelsenKoenig extends EnemyW2 {
 
   reset() {
     this.clearMinions();
+    this.clearFish();
     this.hp = this.maxHp;
     this.defeated = false;
     this.hits = 0;
@@ -137,6 +183,10 @@ class LavafelsenKoenig extends EnemyW2 {
   update(dt) {
     this.stateT += dt;
     this.brocken = this.brocken.filter((b) => !b.removed && !b.defeated);
+    if (this.fishCfg) {
+      this.fishList = this.fishList.filter((e) => !e.removed);
+      if (this.state !== 'wait' && this.state !== 'intro' && this.state !== 'defeated' && this.state !== 'gone') this.syncFish();
+    }
     this.run(dt);
     this.syncArch();    // nach dem Zustandswechsel, vor dem Boss-Archetyp (afterStep)
   }
@@ -335,6 +385,8 @@ class LavafelsenKoenig extends EnemyW2 {
     this.level.onBossHit?.(this, where);
     if (this.hp <= 0) {
       this.defeated = true;
+      for (const e of this.fishList) if (!e.removed) e.defeat?.(this);
+      this.fishList = [];
       this.level.onBossDefeated?.(this);
     }
   }
@@ -403,7 +455,7 @@ class LavafelsenKoenig extends EnemyW2 {
   info() {
     return {
       state: this.state, hp: this.hp, maxHp: this.maxHp, phase: this.phase, hits: this.hits, rounds: this.rounds, summons: this.summons,
-      brocken: this.brocken.length, summoned: this.summoned, feuer: this.feuer, vulnerable: this.vulnerable,
+      brocken: this.brocken.length, summoned: this.summoned, feuer: this.feuer, vulnerable: this.vulnerable, variant: this.variant, fish: this.fishList.length,
       x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2),
     };
   }
