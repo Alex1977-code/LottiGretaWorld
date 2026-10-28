@@ -261,7 +261,7 @@ export const WORLD7_THEMES = {
   course_switchruins: {
     bpm: 134,
     voice: {
-      lead: { ...SYNTH, cutoff: 4000, volume: 0.15 },
+      lead: { ...SYNTH, cutoff: 4400, volume: 0.17 },
       bell: { type: 'triangle', volume: 0.13, decay: 1.2, ratio: 2.32, partial: 0.45 },
       whistle: { type: 'sine', volume: 0.08, vibrato: 18, rate: 4.5, slide: 2, attack: 0.12, gate: 0.95 },
       echo: { type: 'sine', volume: 0.05, decay: 0.15 },
@@ -300,7 +300,7 @@ export const WORLD7_THEMES = {
   course_redhot: {
     bpm: 150,
     voice: {
-      lead: { ...SYNTH, voices: 3, cutoff: 5200, volume: 0.17 },
+      lead: { ...SYNTH, cutoff: 5200, volume: 0.19 },
       piano: { volume: 0.1 },
       bell: { type: 'square', volume: 0.045, decay: 0.12, ratio: 2, partial: 0.2 },
       arp: { type: 'sawtooth', volume: 0.04, decay: 0.05 },
