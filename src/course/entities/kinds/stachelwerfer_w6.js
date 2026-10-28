@@ -8,8 +8,9 @@
 //   roll m/s weiter, **prallt** an Wänden ab, rollt Hänge hinab, fällt über Kanten und zerfällt nach life s (höchstens max
 //   Kugeln gleichzeitig).
 //   Konter: **von oben** (Draufspringen = platt mit Abprall, Stampfattacke) – außer, er stemmt gerade eine Kugel über den
-//   Kopf (dann sticht sie!); **von hinten** ist er arglos (seitliche Berührung von hinten verletzt nicht, er dreht sich nur
-//   um). Alle Angriffe (Feuer, Tatze, Panzer, Wurf, Rutschen, Schwanzhieb, Kanone, Explosion, Stern, Riese) besiegen ihn.
+//   Kopf (dann sticht sie!); **von hinten** ist er arglos (seitliche Berührung von hinten verletzt nicht; er dreht sich erst
+//   um, wenn er die Figur sieht). Alle Angriffe (Feuer, Tatze, Panzer, Wurf, Rutschen, Schwanzhieb, Kanone, Explosion, Stern,
+//   Riese) besiegen ihn.
 //   Seitliche Berührung von vorn verletzt.
 //   Daten: { kind: 'stachelwerfer', pos, dir|yaw, sight?: 10, interval?: 2.4, first?: 1.0, ball?: 0.55 (Ø), flight?: 0.8,
 //            lead?: 1.0, range?: 8, roll?: 4, life?: 6, max?: 3, aim?: 'player' | 'dir', pace?: 0, axis?: [1, 0],
@@ -21,7 +22,7 @@
 //   prallen ab (sie rollt zurück). Zerfällt nach life s, in Wasser und Lava.
 //   Daten: { kind: 'stachelkugel_wurf', pos (Bodenpunkt), vel?: [vx, vy, vz] (Flug) | dir: [dx, dz] + roll (rollt los),
 //            size?: 0.55, roll?: 4, life?: 6, bounce?: 0.45 (Prallen am Boden nach dem Flug), owner? }
-//   Zustände: fly | roll | break. Laufzeit: bounces (Wand), rolled (m), info().
+//   Zustände: fly | roll | break. Laufzeit: bounces (Wand), landAt (erste Bodenberührung), rolled (m), info().
 // Sound: 'swoop' (Wurf), 'blockhit' (Wand), 'stomp', 'brickbreak' (zerfällt).
 
 import { EnemyW2, STRONG, toWorld, localOffset, clamp, activeFigure } from '../EnemyW2.js';
@@ -82,9 +83,14 @@ class StachelWurf extends CourseEntity {
       if (this.removed) return;
       if (res.hitWall) this.wallBounce(res);
       if (this.grounded && this.stateT > 0.04) {
-        // aufschlagen: kurz hüpfen, dann rollen
-        if (this.vel.y <= 0 && this.lastVy < -4 && this.bounceK > 0) { this.vel.y = -this.lastVy * this.bounceK; this.grounded = false; this.lastVy = 0; }
-        else { this.setState('roll'); this.level.effects?.dust(this.pos, 2, 0.6); }
+        if (!this.landAt) this.landAt = { x: this.pos.x, y: this.pos.y, z: this.pos.z };
+        // aufschlagen: einmal kurz hüpfen (gebremst), dann rollen
+        if (!this.hopped && this.vel.y <= 0 && this.lastVy < -4 && this.bounceK > 0) {
+          this.hopped = true;
+          this.vel.y = -this.lastVy * this.bounceK; this.vel.x *= 0.55; this.vel.z *= 0.55;
+          this.grounded = false; this.lastVy = 0;
+          this.level.sfx('blockhit');
+        } else { this.setState('roll'); this.level.effects?.dust(this.pos, 2, 0.6); }
       }
       this.lastVy = this.vel.y;
     } else {
@@ -289,7 +295,7 @@ class Stachelwerfer extends EnemyW2 {
     }
     if (contact.dive) { this.onHit('claw', player); return 'none'; }
     if (this.slideAttack(player, contact)) return 'none';
-    if (this.behind(player)) { this.facePlayer(1 / 60, 4); return 'none'; }
+    if (this.behind(player)) return 'none';             // von hinten arglos
     return 'hurt';
   }
 

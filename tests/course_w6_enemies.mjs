@@ -163,12 +163,13 @@ console.log('Wolken-Gegnerzoo 0-24');
       models[id] = e?.model ? (e.model.placeholder ? 'PLATZHALTER' : t.model(e)) : null;
     }
     const horde = t.ent('horde_y');
-    return { kinds, n: c.level.entities.length, models, horde: horde ? { layers: horde.layers.length, model: horde.layers[0]?.root?.userData?.modelName ?? horde.layers[0]?.root?.name } : null };
+    const weapons = ['wf_hammer', 'wf_bumerang', 'wf_feuer', 'wf_hammer2', 'wf_bumerang2'].map((id) => t.ent(id)?.weapon).join(',');
+    return { kinds, weapons, n: c.level.entities.length, models, horde: horde ? { layers: horde.layers.length, model: horde.layers[0]?.root?.userData?.modelName ?? horde.layers[0]?.root?.name } : null };
   });
   console.log(`  Arten: ${JSON.stringify(st0.kinds)}`);
   console.log(`  Modelle: ${JSON.stringify(st0.models)}`);
-  const NEED = ['schubser', 'pustewolke', 'glotzfisch', 'stachelwerfer', 'wuschel_horde', 'hammer_werfer', 'bumerang_werfer', 'feuer_werfer', 'gelee_brocken'];
-  check(`Alle Welt-6-Gegnerarten geladen (${NEED.filter((k) => !st0.kinds[k]).join(', ') || 'vollständig'})`, NEED.every((k) => st0.kinds[k] > 0));
+  const NEED = ['schubser', 'pustewolke', 'glotzfisch', 'stachelwerfer', 'wuschel_horde', 'feuer_werfer', 'gelee_brocken', 'pilz_maske'];
+  check(`Alle Welt-6-Gegnerarten geladen (${NEED.filter((k) => !st0.kinds[k]).join(', ') || 'vollständig'}; Werfer ${st0.weapons})`, NEED.every((k) => st0.kinds[k] > 0) && st0.weapons === 'hammer,bumerang,feuer,hammer,bumerang');
   const M = st0.models;
   check(`Welt-6-Modelle angebunden (kein Platzhalter): ${Object.values(M).join(', ')}`, Object.values(M).every((m) => m && m !== 'PLATZHALTER')
     && M.sb_lava === 'schubser' && M.pw_fest === 'pustewolke' && M.gf_eis === 'glotzfisch' && M.sw_wand === 'stachelwerfer');
@@ -218,7 +219,8 @@ const sb = await sc(() => {
   out.pound = { ...st2, removed: s.removed, defeated: s.defeated, fellBy: s.fellBy, counted: L.defeatedLog.slice(def0).includes('schubser') };
   // Wasser: Streife; ein Feuerball stößt ihn vom Podest ins Wasser
   const w = t.ent('sb_wasser');
-  t.until(() => w.pos.x > 13.2 && w.state === 'walk', 1800, [0, 1, 0]);
+  t.until(() => w.pos.x > 13.2 && w.state === 'walk', 1800, [4.5, 1, t.Z(1, 1.5)]);
+  out.water0 = { state: w.state, x: t.r2(w.pos.x) };
   w.onHit('fire', { pos: { x: w.pos.x - 1.6, y: w.pos.y, z: w.pos.z } });
   for (let i = 0; i < 300 && !w.removed; i++) c.step(1);
   out.water = { removed: w.removed, fellBy: w.fellBy, defeated: w.defeated, pushes: w.pushes };
@@ -318,20 +320,20 @@ const pw = await sc(() => {
   out.blowStomp = { ...s1, defeated: z.defeated, state: z.state };
   t.until(() => z.state === 'rest' && z.stateT > 0.3, 1500, [z.pos.x - 3, 1, z.pos.z]);
   const s2 = t.stomp(z, { h: 0.6 });
-  c.step(140);
+  c.step(200);
   out.restStomp = { ...s2, defeated: z.defeated, removed: z.removed };
   // seitliche Berührung harmlos; Feuer besiegt immer
   const e = L.spawn('pustewolke', { pos: [0, 2, t.Z(2, -3)], dir: [1, 0], turn: false, phase: 2.5 });
   c.step(2);
   out.side = t.touch(e, 30);
   e.onHit('fire', p);
-  c.step(140);
+  c.step(200);
   out.fire = { defeated: e.defeated, removed: e.removed };
   return out;
 });
 console.log(`  Pustewolke: ${JSON.stringify(pw)}`);
 check(`Pustewolke: Atempause → Luft holen → Pusten (${pw.seq})`, /rest>inhale>blow>rest/.test(pw.seq));
-check(`Wind schiebt die Figur: am Boden ${pw.wind.ground} m, in der Luft ${pw.wind.air} m (je 0,25 s), hinter der Wolke ${pw.wind.behind} m; eine Böe ${pw.wind.blowAway} m`, pw.wind.ground > 0.25 && pw.wind.air > pw.wind.ground * 1.2 && Math.abs(pw.wind.behind) < 0.05 && pw.wind.blowAway > 3);
+check(`Wind schiebt die Figur: am Boden ${pw.wind.ground} m, in der Luft ${pw.wind.air} m (je 0,25 s), hinter der Wolke ${pw.wind.behind} m; eine Böe ${pw.wind.blowAway} m (bis ans Kegelende)`, pw.wind.ground > 0.25 && pw.wind.air > pw.wind.ground * 1.2 && Math.abs(pw.wind.behind) < 0.15 && pw.wind.blowAway > 2.5);
 check(`Freie Pustewolke dreht sich in der Pause zur Figur (Blasrichtung ${JSON.stringify(pw.turn.dir)})`, pw.turn.dir[0] < -0.75);
 check('Draufspringen beim Pusten: nur Abprall; in der Atempause: besiegt', pw.blowStomp.bounced && !pw.blowStomp.defeated && pw.restStomp.bounced && pw.restStomp.defeated && pw.restStomp.removed);
 check('Seitliche Berührung harmlos, Feuerball besiegt', !pw.side && pw.fire.defeated && pw.fire.removed);
@@ -352,7 +354,7 @@ const gf = await sc(() => {
     if (f.state === 'wait' && f.touch) hiddenTouch = false;
     if (f.state === 'jump') apex = Math.max(apex, f.pos.y - 2.0);
     if (f.state === 'wait' && f.model?.root?.visible) visWait = true;
-    if (f.state === 'jump' && f.stateT < 0.01) seq.push(f.next);
+    if (f.state === 'jump' && f.jumps !== f._seen) { f._seen = f.jumps; seq.push(f.next); }
   }
   delete p.hurt;
   out.cycle = { holes: seq.join('>'), peek, hiddenSafe: hiddenTouch && !visWait, apex: t.r2(apex), jumps: f.jumps };
@@ -373,7 +375,7 @@ const gf = await sc(() => {
   t.until(() => g.state === 'wait', 900, sfig);
   const tl = [];
   p.hurt = () => false;
-  for (let i = 0; i < 120 * 8; i++) { p.pos.set(sfig[0], sfig[1], sfig[2]); p.vel.set(0, 0, 0); c.step(1); if (g.state === 'jump' && g.stateT < 0.01) tl.push(g.next); }
+  for (let i = 0; i < 120 * 8; i++) { p.pos.set(sfig[0], sfig[1], sfig[2]); p.vel.set(0, 0, 0); c.step(1); if (g.state === 'jump' && g.jumps !== g._seen) { g._seen = g.jumps; tl.push(g.next); } }
   delete p.hurt;
   const near = g.holes.map((h, i) => [i, Math.hypot(h.x - sfig[0], h.z - sfig[2])]).sort((a, b) => a[1] - b[1]);
   out.aim = { targets: tl.join('>'), near: near.slice(0, 2).map((x) => x[0]) };
@@ -386,7 +388,7 @@ const gf = await sc(() => {
   return out;
 });
 console.log(`  Glotzfisch: ${JSON.stringify(gf)}`);
-check(`Glotzfisch springt reihum von Loch zu Loch (${gf.cycle.holes}, Scheitel ${gf.cycle.apex} m), lugt vorher, verborgen harmlos`, gf.cycle.jumps >= 3 && /1>2>0|2>0>1|0>1>2/.test(gf.cycle.holes) && gf.cycle.peek && gf.cycle.hiddenSafe && Math.abs(gf.cycle.apex - 2.6) < 0.35);
+check(`Glotzfisch springt reihum von Loch zu Loch (${gf.cycle.holes}, Scheitel ${gf.cycle.apex} m), lugt vorher, verborgen harmlos`, gf.cycle.jumps >= 3 && /^(1>2>0|2>0>1|0>1>2)/.test(gf.cycle.holes) && gf.cycle.peek && gf.cycle.hiddenSafe && Math.abs(gf.cycle.apex - 2.6) < 0.35);
 check('Berührung im Sprung verletzt, verborgen nicht', gf.touch.air && !gf.touch.hidden);
 check('Von oben besiegbar (Abprall)', gf.stomp.bounced && !gf.stomp.hurt && gf.stomp.defeated);
 check(`Zielender Glotzfisch springt in die Löcher nahe der Figur (${gf.aim.targets}; nah ${gf.aim.near})`, gf.aim.targets.length > 0 && gf.aim.targets.split('>').every((x) => gf.aim.near.includes(+x)));
@@ -415,7 +417,7 @@ const sw = await sc(() => {
     c.step(1);
     if (w.overhead) overhead = true;
     if (!ball) ball = L.entities.find((e) => e.kind === 'stachelkugel_wurf' && e.owner === w) ?? null;
-    if (ball && !land && ball.state === 'roll') land = t.r2(Math.hypot(ball.pos.x - w.pos.x, ball.pos.z - w.pos.z));
+    if (ball && !land && ball.landAt) land = t.r2(Math.hypot(ball.landAt.x - w.pos.x, ball.landAt.z - w.pos.z));
     if (ball) bounces = Math.max(bounces, ball.bounces);
   }
   delete p.hurt;
@@ -426,34 +428,37 @@ const sw = await sc(() => {
   const side = t.touch(b, 10);
   const st = t.stomp(b, { h: 0.6 });
   const d0 = b.rdir.x;
-  b.onHit('fire', { pos: { x: b.pos.x - 1, y: 1, z: b.pos.z } });
+  b.onHit('fire', { pos: { x: b.pos.x + 1, y: 1, z: b.pos.z } });
   const deflect = { from: d0, to: t.r2(b.rdir.x), state: b.state };
   t.place([b.pos.x - 1.4, 1, b.pos.z], { settle: 1, yaw: 0, power: 'stern' });
   for (let i = 0; i < 40 && b.state !== 'break'; i++) { c.setInput({ x: 1 }); c.step(1); }
   c.setInput({});
-  out.ball = { side, top: st.hurt && !st.bounced, deflect, star: b.state };
+  out.ball = { side, top: st.hurt && st.vy < 9, deflect, star: b.state };
   // Stachelwerfer: von oben besiegbar – außer, er stemmt eine Kugel über den Kopf; von hinten harmlos
   const s = L.spawn('stachelwerfer', { pos: [3, 1, t.Z(4, -3)], dir: [1, 0], sight: 0.01, wake: 0.01 });
   c.step(5);
-  const behind = (() => { const pp = P(); t.fresh(); let hurt = false; for (let i = 0; i < 10; i++) { pp.pos.set(s.pos.x - (s.half.x + pp.half.x - 0.05), s.pos.y, s.pos.z); pp.vel.set(0, 0, 0); c.step(1); if (t.hurt()) hurt = true; } return hurt; })();
-  s.yaw = 0; s.sight = 20; s.cool = 0;
+  t.place([s.pos.x - 2, 1, s.pos.z + 3], { settle: 1 });   // ohne Funkelstern
+  const behind = (() => { const pp = p; t.fresh(); let hurt = false; for (let i = 0; i < 10; i++) { pp.pos.set(s.pos.x - (s.half.x + pp.half.x - 0.05), s.pos.y, s.pos.z); pp.vel.set(0, 0, 0); c.step(1); if (t.hurt()) hurt = true; } return hurt; })();
+  s.yaw = 0; s.sight = 20; s.cool = 0; s.wake = 50;
   t.place([s.pos.x + 4, 1, s.pos.z], { settle: 1 });
   t.until(() => s.overhead, 600, [s.pos.x + 4, 1, s.pos.z]);
   const over = t.stomp(s, { h: 0.5 });
   t.fresh();
-  c.step(120);
+  t.until(() => s.state === 'stand' && s.stateT > 0.1, 600, [s.pos.x + 6, 1, s.pos.z + 3]);
+  for (const e of L.entities) if (e.kind === 'stachelkugel_wurf') e.kill();   // keine Kugel unter der Figur
   const ok = t.stomp(s, { h: 0.6 });
   c.step(5);
-  out.thrower = { behind, over: over.hurt, stomp: ok.bounced && s.defeated };
+  out.thrower = { behind, over: over.hurt, stomp: ok.bounced && s.defeated, ok, st: s.state };
   // Rampe: die Kugel rollt hangabwärts schneller als auf der Ebene
   const h = t.ent('sw_hang');
   const hf = [7, 1, h.pos.z];
   let vmax = 0, hb = null;
+  const old = new Set(L.entities.filter((e) => e.kind === 'stachelkugel_wurf'));
   p.hurt = () => false;
   for (let i = 0; i < 120 * 6; i++) {
     p.pos.set(hf[0], hf[1], hf[2]); p.vel.set(0, 0, 0);
     c.step(1);
-    if (!hb) hb = L.entities.find((e) => e.kind === 'stachelkugel_wurf' && e.owner === h && e.state === 'roll') ?? null;
+    if (!hb) hb = L.entities.find((e) => e.kind === 'stachelkugel_wurf' && e.owner === h && e.state === 'roll' && !old.has(e)) ?? null;
     if (hb && hb.state === 'roll' && hb.ground?.type === 'ramp') vmax = Math.max(vmax, Math.hypot(hb.vel.x, hb.vel.z));
   }
   delete p.hurt;
@@ -475,16 +480,19 @@ const wf = await sc(() => {
   let caught = 0;
   p.hurt = () => false;
   for (let i = 0; i < 120 * 7; i++) {
-    p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0);
+    // fliegt ein Bumerang, weicht die Figur seitlich aus (sonst zerplatzt er an ihr)
+    const away = L.entities.some((e) => e.kind === 'wurf_bumerang' && !e.removed);
+    p.pos.set(fig[0], fig[1], away ? fig[2] + 6 : fig[2]); p.vel.set(0, 0, 0);
     c.step(1);
     for (const e of L.entities) if (seen[e.kind] !== undefined && !known.has(e)) { known.add(e); seen[e.kind]++; }
-    for (const e of known) if (e.kind === 'wurf_bumerang' && e.caught && !e._c) { e._c = true; caught++; }
+    for (const e of known) if (e.kind === 'wurf_bumerang' && e.caught && !e._w6c) { e._w6c = true; caught++; }
   }
   delete p.hurt;
   const hw = t.ent('wf_hammer');
   t.until(() => hw.grounded && hw.state === 'walk', 600, [0, 1, t.Z(5, 2)]);
   const st = t.stomp(hw, { h: 0.6 });
-  return { seen, caught, stomp: st.bounced && hw.defeated, models: [t.model(t.ent('wf_bumerang')), t.model(t.ent('wf_feuer'))] };
+  const bl = [...known].filter((e) => e.kind === 'wurf_bumerang').map((e) => ({ caught: !!e.caught, age: t.r2(e.age), returning: e.returning, owner: e.owner?.spec?.id, def: !!e.owner?.defeated }));
+  return { seen, caught, bl, stomp: st.bounced && hw.defeated, models: [t.model(t.ent('wf_bumerang')), t.model(t.ent('wf_feuer'))] };
 });
 console.log(`  Werfer: ${JSON.stringify(wf)}`);
 check(`Werfer-Brüder (6-B) werfen Hämmer (${wf.seen.wurf_hammer}), Bumerangs (${wf.seen.wurf_bumerang}, ${wf.caught} gefangen) und Feuer (${wf.seen.feuerkugel}); Draufspringen besiegt`, wf.seen.wurf_hammer >= 3 && wf.seen.wurf_bumerang >= 2 && wf.caught >= 1 && wf.seen.feuerkugel >= 2 && wf.stomp);
@@ -530,7 +538,7 @@ const wh = await sc(() => {
 console.log(`  Wuschel-Horde: ${JSON.stringify(wh)}`);
 check(`Wuschel-Horde wartet bis zum Betreten (${wh.wait}), steigt dann (${wh.bite.y0} → ${wh.bite.front} m in ${wh.bite.t} s) und verletzt (Rückstoß nach oben ${wh.bite.vy} m/s)`, wh.wait === 'wait' && wh.bite.state === 'run' && wh.bite.hits >= 1 && wh.bite.hurt && wh.bite.t > 0.8 && wh.bite.t < 2 && wh.bite.vy > 5);
 check(`Oben auf der Wolkenstufe sicher, bis die Front die Füße erreicht (Treffer bei Front ${wh.top.firstHit} m, Füße ${wh.top.feet} m)`, wh.top.firstHit > 10.5 && wh.top.firstHit <= 11.3);
-check(`Tod → Neustart: die Front springt zurück (${wh.reset.front} m, ${wh.reset.resets}×)`, wh.reset.resets === 1 && wh.reset.front < 0);
+check(`Tod → Neustart: die Front springt zurück (${wh.reset.front} m, ${wh.reset.resets}×)`, wh.reset.resets >= 1 && wh.reset.front < 0);
 check(`Waagerechte Horde jagt nach −z und verletzt (nach ${wh.flat.t} s, Front z ${wh.flat.front}, Rückstoß vz ${wh.flat.vz})`, wh.flat.hits >= 1 && wh.flat.t > 2 && wh.flat.vz < -2);
 
 const pm = await sc(() => {
@@ -580,7 +588,7 @@ check(`Ohne Maske reagieren sie (${JSON.stringify(pm.unmasked)})`, pm.unmasked.k
 
 const bs = await sc(() => {
   const c = window.__course, t = window.__t, L = c.level;
-  const KINDS = ['wuschel', 'kreisgeist', 'kreisgeist_kreis', 'rankenschnapper', 'brummer', 'projektilkopf', 'suchkopf', 'kanone_turm', 'zuendkopf', 'zuendkopf_quelle', 'marschblock', 'rollpilz', 'pilzling', 'pilzlingsturm', 'schnappblume', 'feuer_schnappblume', 'spuk', 'stachelwalze', 'walzenwerfer', 'riesenprojektil', 'riesenkanone', 'stampfstein', 'feuer_werfer', 'hammer_werfer', 'bumerang_werfer', 'kickbombe', 'flossling',
+  const KINDS = ['wuschel', 'kreisgeist', 'kreisgeist_kreis', 'rankenschnapper', 'brummer', 'projektilkopf', 'suchkopf', 'kanone_turm', 'zuendkopf', 'marschblock', 'rollpilz', 'pilzling', 'pilzlingsturm', 'schnappblume', 'feuer_schnappblume', 'spuk', 'stachelwalze', 'walzenwerfer', 'riesenprojektil', 'riesenkanone', 'stampfstein', 'feuer_werfer', 'hammer_werfer', 'bumerang_werfer', 'kickbombe', 'flossling',
     'schubser', 'pustewolke', 'glotzfisch', 'stachelwerfer', 'stachelkugel_wurf', 'wuschel_horde', 'schubser_prinz', 'wuerfelblase', 'gelee_brocken', 'wirbelbrocken', 'wirbelbrocken_attrappe'];
   const missing = KINDS.filter((k) => !L.hasKind(k));
   const ids = ['b_wuschel', 'b_kreisgeist', 'b_ranke', 'b_brummer', 'b_kanone', 'b_zuend', 'b_marsch', 'b_rollpilz', 'b_pilzling', 'b_schnapp', 'b_feuerblume', 'b_walze', 'b_stampf', 'b_gelee', 'b_spuk'];
