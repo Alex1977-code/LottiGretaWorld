@@ -463,7 +463,7 @@ function spikeHoles(x, y, z, faces) {
   return out;
 }
 function spikeBlockGeo(color, x, y, z, faces) {
-  return cached(`w8:spkblock:${color}:${x}:${y}:${z}:${faces}`, () => {
+  return memo(`w8:spkblock:${color}:${x}:${y}:${z}:${faces}`, () => {
     const C = SPK[color];
     const b = new Build(), gl = new Build();
     b.box(x, y, z, gradV(C.low, C.hi, 0.5, 0.45), { p: [0, y / 2, 0] }, Math.min(0.08, x * 0.1, y * 0.1, z * 0.1), 2);
@@ -535,7 +535,7 @@ function schubPlateGeo(X, Z) {
 }
 const chevronGeo = (Z) => cached(`w8:schub:chev:${Z}`, () => {
   const s = new THREE.Shape();
-  const w = Z * 0.32, h = Z * 0.36, th = Z * 0.13;
+  const w = Z * 0.34, h = Z * 0.4, th = Z * 0.15;
   s.moveTo(-w / 2, h); s.lineTo(-w / 2 + th, h); s.lineTo(w / 2, 0); s.lineTo(-w / 2 + th, -h); s.lineTo(-w / 2, -h); s.lineTo(w / 2 - th, 0); s.lineTo(-w / 2, h);
   return new Build().add(puffyGeo(s, 0.03, 0.012, 2, 1), 0xffffff, { r: [-Math.PI / 2, 0, 0] }).geometry();
 });
@@ -560,7 +560,7 @@ function buildSchubfeld(opts = {}) {
     const on = st.on !== false;
     const sp = num(st.speed, 1);
     for (let i = 0; i < NC; i++) {
-      setInst(chev, i, (i - (NC - 1) / 2) * X * 0.28, 0.06, 0);
+      setInst(chev, i, (i - (NC - 1) / 2) * X * 0.28, 0.085, 0);
       const ph = ((clk.t * sp * 2.2 - i * 0.33) % 1 + 1) % 1;
       chev.setColorAt(i, on ? _c.copy(ON).lerp(HOT, Math.pow(Math.max(0, 1 - ph * 3), 2)) : OFF);
     }
@@ -596,7 +596,7 @@ const trailGeo = () => cached('w8:lb:trail', () => {
   const P = g.attributes.position;
   for (let i = 0; i < P.count; i++) { const y = P.getY(i); const w = 1 + Math.sin(y * 6 + Math.atan2(P.getZ(i), P.getX(i)) * 3) * 0.12; P.setX(i, P.getX(i) * w); P.setZ(i, P.getZ(i) * w); }
   g.computeVertexNormals();
-  return new Build().add(g, { v: (x, y) => mix(L.white, 0xff3a0a, smoothstep(y / 2)) }).geometry();
+  return new Build().add(g, { v: (x, y) => (y < 0.9 ? mix(L.white, L.hotter, smoothstep(y / 0.9)) : mix(L.hotter, 0xe8300a, smoothstep((y - 0.9) / 1.2))) }).geometry();
 });
 function buildLavaRegen(opts = {}) {
   const S = clamp(num(opts.size, 0.8), 0.2, 6);
@@ -608,7 +608,7 @@ function buildLavaRegen(opts = {}) {
   const rock = mesh(brockenGeo(), flash, {}, true);
   const cracks = mesh(brockenGlowGeo(), glow8(), {});
   spinJ.add(rock, cracks);
-  const tMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85, depthWrite: false, toneMapped: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+  const tMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
   own.push(tMat);
   const trail = mesh(trailGeo(), tMat, { p: [0, 0.15 * S, 0], s: S });
   const rMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, toneMapped: false });
@@ -716,7 +716,7 @@ function buildSchockwelle(opts = {}) {
   const c = opts.color === 'weiss' ? 'weiss' : 'gold';
   const root = new THREE.Group();
   const own = [];
-  const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, toneMapped: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
   own.push(mat);
   const ring = mesh(waveRingGeo(c), mat, { p: [0, 0.18, 0] });
   const dust = fxPuffs(20, 0xf0e0c0, { opacity: 0.8, radius: R + 2, cy: 0.4 });
