@@ -5980,5 +5980,5 @@ Treffer-Versuch** und ohne Fehler im Protokoll (6-3 ≈ 63/56 s mit Pilz-Maske, 
 und Stempel mit Gegenproben; Extras (Türen per Aktionstaste, Maskennische, Maske gegen Stachelwerfer mit Gegenprobe,
 Münzregen, fünf Schlüsselmünzen → Gong-Garten, Checkpoint, Floß wartet und kehrt nach Absturz zurück, Rückweg-Röhre,
 Tor-Sperre, Abprall ohne Röhre, Tod setzt den Kampf zurück, fünf Extraleben). Gemessen (scale 2, inkl. Schattenpass,
-Messgang alle ~7 m der Route und Bilder je Abschnitt): 6-3 32–106 Zeichenaufrufe (Saal, 1./2. Stock; Figur ≈ 20) /
-≤ 218 k Dreiecke · 6-4 ≤ 84 / ≤ 285 k (Deckengitter samt Schatten ≈ 86 k) · 6-A ≤ 71 / ≤ 237 k.
+Messgang alle ~7 m der Route und Bilder je Abschnitt): 6-3 32–106 Zeichenaufrufe (Saal, 1./2. Stock; je nach Gegnerstand
+einmal 112 gemessen; Figur ≈ 20) / ≤ 218 k Dreiecke · 6-4 ≤ 84 / ≤ 285 k (Deckengitter samt Schatten ≈ 86 k) · 6-A ≤ 71 / ≤ 237 k.
