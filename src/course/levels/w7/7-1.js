@@ -200,7 +200,7 @@ export const LEVEL = {
     werfer('werfer2', -7.5, -66.5, { axis: [0, 1], pace: 1.2 }),
     werfer('werfer3', 7.5, -66.5, { axis: [0, 1], pace: 1.2, first: 2.2 }),
     blase(0, -64, { phase: 0.15 }), blase(0, -68, { phase: 0.65 }), blase(-13.5, -74, { phase: 0.4 }), blase(13.5, -74, { phase: 0.9 }),
-    { kind: 'pilzlingsturm', id: 'turm2', pos: [-4.5, Y, -88.5], count: 4, sight: 7 },
+    { kind: 'pilzlingsturm', id: 'turm2', pos: [-4.5, Y, -88.5], count: 3, sight: 7 },
     // 3 Feuerstab-Plattformen
     blase(-3.2, -108, { phase: 0.2, height: 3.2 }), blase(3.2, -108, { phase: 0.7, height: 3.2 }),
     blase(-3.4, -121.6, { phase: 0.45, height: 3.2 }), blase(3.4, -121.6, { phase: 0.95, height: 3.2 }),
