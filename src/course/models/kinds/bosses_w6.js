@@ -34,6 +34,7 @@
 //   state { anim: 'idle'|'hop'|'split'|'hit', form (0..1: 0 = Brocken verstreut am Boden, 1 = fertiger Riese; Standard 1),
 //           progress? (hop 0,9 s Zyklus; split 0,8 s: platzt zurück in verstreute Brocken; hit 0,6 s) }
 //   root.userData.top → Höhe der Oberseite (ohne Hut), userData.formed → fertig zusammengesetzt?
+//   Kleinerer Riese (6-C: Brocken-Treffer verkleinern den nächsten): neues Modell mit kleinerem opts.size oder root.scale.
 
 import {
   THREE, TAU, Build, cached, vcol, basic, mesh, joint, eyes, makeModel, Clock, Blinker, damp, clamp, mix, col,

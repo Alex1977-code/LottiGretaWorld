@@ -149,7 +149,7 @@ function buildGlasroehre(defKind) {
     tube.renderOrder = 2;
     const rings = mesh(glassRingGeo(kind, kind === 'gerade' ? L : 0, r), vcol(0.25), {}, true);
     root.add(rings, tube);
-    return makeModel(defKind === 'kreuz' && !opts.kind ? 'glasroehre_kreuzung' : 'glasroehre_teil', root, () => {});
+    return makeModel(defKind === 'kreuz' ? 'glasroehre_kreuzung' : 'glasroehre_teil', root, () => {});
   };
 }
 
