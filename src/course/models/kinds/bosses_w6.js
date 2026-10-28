@@ -291,8 +291,8 @@ function buildWuerfelblase(opts = {}) {
   const hatJ = joint([0.0, 0.96, -0.05]);
   const hatM = mesh(bowlerGeo(), vcol(0.45, {}, 'w6hat'), { s: [0.95, 0.95, 0.95] }, true);
   hatJ.add(hatM);
-  body.add(bodyM, eye, mouthM, brows, hatJ);
-  unit.add(body);
+  body.add(bodyM, eye, mouthM, brows);
+  unit.add(body, hatJ);
   // Splitter beim Zerplatzen
   const bits = instMesh(brockenGeo(color, true), jellyMat(color), 8, 3, 0.5);
   bits.castShadow = true; bits.visible = false; bits.frustumCulled = false;
@@ -344,10 +344,13 @@ function buildWuerfelblase(opts = {}) {
     // Hut: eingedellt (Treffer, hp ≤ 1), fällt beim Sieg
     hatDent = damp(hatDent, anim === 'hit' ? 0.45 : hp <= 1 ? 0.8 : 1, 14, dt);
     hatOff = damp(hatOff, anim === 'defeated' ? 1 : 0, 4, dt);
-    const hbx = Math.max(0.3, body.scale.x), hby = Math.max(0.3, body.scale.y), wide = 1 + (1 - hatDent) * 0.3;
-    hatJ.scale.set(wide / hbx, hatDent / hby, wide / hbx);
-    hatJ.position.set(-hatOff * 0.7, 0.96 + (anim === 'hit' ? Math.sin(prog(st, clk, 0.6) * Math.PI) * 0.15 : 0) - hatOff * 0.6, -0.05 + hatOff * 0.3);
-    hatJ.rotation.set(hatOff * 0.5, 0, 0.12 + (anim === 'flee' ? Math.sin(t * 20) * 0.12 : 0) + hatOff * 1.3);
+    // Hut sitzt auf der (gestauchten) Oberseite, wird aber selbst nicht verzerrt
+    const wide = 1 + (1 - hatDent) * 0.3, hk = 1 - gone;
+    const topY = body.position.y + 0.96 * body.scale.y, tz = body.rotation.z;
+    hatJ.scale.set(wide * hk, Math.max(0.001, hatDent * hk), wide * hk);
+    hatJ.visible = hk > 0.01;
+    hatJ.position.set(-Math.sin(tz) * topY * 0.9 - hatOff * 0.7, topY + (anim === 'hit' ? Math.sin(prog(st, clk, 0.6) * Math.PI) * 0.15 : 0) - hatOff * (topY - 0.05), -0.05 * body.scale.z + hatOff * 0.3);
+    hatJ.rotation.set(hatOff * 0.5, 0, tz + 0.12 + (anim === 'flee' ? Math.sin(t * 20) * 0.12 : 0) + hatOff * 1.3);
     // Gesicht
     worry = damp(worry, anim === 'flee' || anim === 'hit' || anim === 'defeated' ? 1 : 0, 10, dt);
     angry = damp(angry, anim === 'hop' ? 0.8 : hp <= 1 ? 0.9 : 0.4, 8, dt);

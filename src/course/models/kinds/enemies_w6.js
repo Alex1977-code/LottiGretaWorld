@@ -243,7 +243,7 @@ function buildPustewolke() {
   own.push(streakMat);
   const streaks = instMesh(pwStreakGeo(), streakMat, 6, 4, 0.5);
   streaks.frustumCulled = false;
-  const snow = new Puffs(8, 0xffffff, { opacity: 0.9, radius: 5, cy: 0.6 });
+  const snow = new Puffs(8, 0xffffff, { opacity: 0.9, radius: 5, cy: 0.6, emissive: 0x3a4258 });
   own.push(snow);
   root.add(pose, streaks, snow.mesh);
   const clk = new Clock(), blink = new Blinker();
