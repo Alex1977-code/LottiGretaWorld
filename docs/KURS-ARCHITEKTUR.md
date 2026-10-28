@@ -6726,3 +6726,94 @@ Regressionen (nacheinander, je ≤ 10 min) bestanden: `course_physics`, `course`
 haus/haus-extra), `course_w6d` (6-7, 6-Panzer, 6-C load/route/targets), `course_w2d` (2-Panzer), `course_hwa` (H-1, H-2
 load/route, H-1 sweep: höchstens 85 Aufrufe / 284 k), `course_w5a` (5-1
 load/route), nach dem Merge der Welt 7 `course_w7_blocks`, `course_w7_enemies` (1–3).
+
+## Präzisierung (Level 7-1, 7-2 und 7-A)
+
+Additiv zur Welt-7-Liste: Titel und Besonderheiten der Level 7-1, 7-2 und 7-A. Dateien `src/course/levels/w7/7-1.js`, `7-2.js`,
+`7-A.js`, eigene Hilfen `src/course/levels/w7/_helpers_a.js` (kein `LEVEL`, nur für diese drei Level; nutzt `Bld`, `litTop`,
+`gradY`, `blueLavaSea`, `blueFalls`, `sparksUp`, `bats` aus `w5/_helpers_b.js` und die Lava-Insel-Hilfen aus `w4/_helpers_c.js`),
+Test `tests/course_w7a.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`/`LEVEL.setup`). Bausteine nach „Präzisierung (Motor und Bausteine Welt 7)“, Gegner nach „Präzisierung (Gegner
+Welt 7)“.
+
+### 7-1 „Werferburg am Blauglutsee“ (parcours · bluelava · course_fortfire · 400 s)
+
+- Festung aus blaugrauem Ziegelstein im Blauglutsee (Lava y −0,6, Boden y 1), ≈ 250 m nach −Z. Abschnitte: **Startinsel**
+  (Burghof mit Pilzlingsturm, ?-Block mit der **Wurfsichel**; die **H-Röhre** – zwei Glasröhren mit Quersteg – quert den
+  Lavagraben) → **Glasröhren-Netz** (Werfer-Hof, Röhrengabel hoch über der Lava zu zwei Werfer-Inseln, Röhrenstern zurück zur
+  Hubinsel) → **Feuerstab-Plattformen** (zwei `feuerstab`, der zweite mit ?-Block und `lift`; Werferturm-Platz: Feuer-Werfer
+  auf einem Pilzlingsturm (`werferturm`) – besiegt erscheint die Warp-Box über den Glutsee) → **Stampfstein-Passage**
+  (Kontrollpunkt, Gang zwischen Zinnenmauern mit drei Stampfsteinen und drei Marschblock-Kolonnen; der letzte Feuer-Werfer am
+  Torplatz – fällt er (`task`), senkt sich die **Zugbrücke** zur Zielinsel mit Hoppel im Käfig des Barons).
+- Sterne: 0 im **Quersteg der H-Röhre** (an der Kreuzung abbiegen; Glasröhren sammeln sonst nur Münzen – `sternImRohr` holt
+  den Stern beim Durchfahren) · 1 **Kugelsaal** (x ≈ 72): unsichtbare Blöcke direkt nach dem Kontrollpunkt (Kopfstoß, dann
+  Kette) hinauf auf den Turm, grüne Röhre in den Saal, die Kugel über die Kugelbahn (Bordsteine) in die Mulde rollen
+  (`kugelZiel`: nur die Kugel löst aus) · 2 **Sternenring** auf der Hubinsel: acht Sternmünzen in 13 s rund um die erste
+  Feuerstab-Plattform, die letzte oben auf ihrem Steinblock. Stempel: Stampfen auf den ?-Block im zweiten Feuerstab hebt ihn
+  4,2 m an – von dort zum Stempel (ohne Anheben zu hoch).
+- Extraleben: unsichtbarer Block neben dem Starttor, unsichtbarer Block im Kugelsaal. Funkenblüte auf der Hubinsel,
+  Wachstumsbeere am Kontrollpunkt.
+- Gegner: Feuer-Werfer 6 (alle mit `fireColor: 'blau'`; der Werfer auf dem Turm bekommt die Farbe im Setup), Lavablase 22,
+  Pilzlingsturm 4 (3 + `werferturm`), Feuerstab 2, Stampfstein 3, Marschblock 12.
+- Kulisse (`festung71`): Ziegelfassaden an allen sichtbaren Inselseiten mit leuchtendem Saum an der Lava, Zinnenmauern mit
+  Schießscharten, bunte Rundtürme (auch fern auf Basaltsockeln, aus ihren Fenstern stürzen blaue Lavafälle), Steinplatten im
+  Verband mit glimmenden Rissen, Brummbär-Wappen als Bodenmosaik, rote Läufer, Werfer-Lager (Feuerkugel-Körbe, Fässer),
+  Banner, Fackeln, Fledermäuse, Glutfunken.
+
+### 7-2 „Schaltfelder im Finstertempel“ (parcours · darkruins · course_switchruins · 400 s)
+
+- Versunkener Sandstein-Tempel mit türkisen Friesen und leuchtenden Runen über einem finsteren Abgrund (Absturz y −12),
+  ≈ 230 m nach −Z. Zwischen den Hallen gibt es keinen Weg: erst wenn alle Felder einer `schaltfelder`-Gruppe golden sind,
+  ploppen die Wegplatten auf (Umrisse und schwebende Münzen zeigen vorher, wo); Abgründe ≥ 14 m (kein Sprung hinüber).
+  Abschnitte: **Eingangshalle und dunkler Gang** (Funkenblüte im ?-Block, Stachelpanzer, Gruppe 1 mit 2 × 2) → **zweiter Saal**
+  (zwei Stachelpanzer zwischen den vier Feldern von Gruppe 2) → **Rundsaal** (Mosaik, Säulenring, vier Fackelschalen) →
+  **Kontrollpunkt** → Gruppe 3 (3 × 2) unter dem Feuer einer Feuer-Schnappblume, zwei Funkenflämmchen an den Rändern →
+  **Fahrplattform** über den Abgrund zur letzten Halle (vier Stachelpanzer, Gruppe 4 mit 3 × 2) → **Zielröhre** (grüne Röhre
+  hinüber in die Zielhalle mit steinernen Wächter-Häschen und Schatz).
+- Sterne: 0 im Rundsaal: vier **Fackelschalen** mit Feuerbällen der Funkenblüte anzünden (`fackelGruppe`; Anfassen,
+  Anspringen, Tatze zünden nicht) – der Stern erscheint in der Mitte · 1 **versteckter Schatzraum** rechts vom Kontrollpunkt
+  hinter einer **Scheinwand** (`scheinwand`: ohne Kollision, wird beim Nähern durchscheinend; leuchtende Risse als Hinweis;
+  die Mauer daneben ist fest) · 2 hinter der grünen Röhre: ein **unsichtbarer länglicher ?-Block** (`geheimLaengsblock`,
+  Kopfstoß) zeigt eine versteckte Blockkette hinauf über den Abgrund. Stempel: im zweiten Saal ganz rechts auf der Plattform
+  über dem Abgrund (Anlauf und Sprung).
+- Extraleben: unsichtbarer Block im Schatzraum. Gegner: Stachelpanzer 7, Feuer-Schnappblume 1, dazu Funkenflämmchen 2
+  (Hinweis aus „Gegner Welt 7“).
+- Kulisse (`tempel72`): Quaderfassaden der schwebenden Böden mit Runenleiste, Tempelmauern mit Fries, Säulen mit Runenband,
+  Rundsaal-Mosaik, Amphoren, Goldschatz, Leuchtkristalle, Wächter-Häschen (Pflaume aus Stein), Ruinensäulen aus der Tiefe,
+  Goldstaub, Glutfunken aus dem Abgrund, Fledermäuse, viele Fackeln (Laternenlicht).
+
+### 7-A „Glutkönig im Platschkessel“ (arena · lava · course_arena · 200 s, 1 Stern)
+
+- Runde Basaltinsel (R 12,4 m, `rockIsland`) im Lavasee 1,4 m unter der Fläche, Kranz aus Basaltpfeilern mit Brummbär-Bannern
+  (vorn offen), Glutkrone als Bodenmosaik in der Mitte (dort steigt der Stern auf), Kraterwand mit drei Lavafällen,
+  Vulkane, Dampf, Glutfunken. Der **helle Lavafelsen-König** (`variant: 'hell'`,
+  `fish` mit `gate` zur Startseite) ruft endlos Lavabrocken und rollt; Platschfische springen rings um den Kessel. Nur
+  geworfene Lavabrocken treffen (3×). Arena-Zählung, Lebensleiste „Glutkönig“ und Neustart nach Tod (König zurück, Brocken und
+  Fische weg) über `bossKampf` (wie `prinzKampf`, `LEVEL.arena.enemies: []`); der Arena-Stern steigt in der Mitte auf.
+- ?-Block mit Wachstumsbeere, Münzblock, unsichtbarer Block mit Extraleben vorn am Rand.
+
+### Hilfen `_helpers_a.js`
+
+Daten: `isl` (Steinplatten-Insel), `line`, `ring`, `arc`, `column`, `sign`, `blase` · Mechanik: `sternImRohr`, `kugelZiel`,
+`fackelGruppe` (Entität `fackelschale`, level-lokal), `scheinwand`, `geheimLaengsblock`, `bossKampf` · Festung: `BURG`,
+`ziegel`, `mauer`, `turm`, `inselFassaden`, `fliesen`, `wappenMosaik`, `bodenPfeile`, `laeufer`, `werferKram`, `festung71` ·
+Tempel: `TEMPEL`, `tempelWand`, `saeule`, `amphoren`, `kristalle`, `schatz`, `pflaumeStatue`, `mosaik`, `tempel72` · Kessel:
+`kessel7A`.
+
+### Test `tests/course_w7a.mjs`
+
+Port 4710 (+ `PORT_BASE`), Aufruf `node tests/course_w7a.mjs [7-1|7-2|7-A]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,arena,shots` (je Lauf < 10 min: z. B. `load,route,sweep` und `targets,extra` getrennt),
+`HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`, `SHOTS=<Name|…>`, `DETAIL=1`, Bilder `tests/out/w7a_*.png`. Bot mit echter
+Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier); Beine u. a. `pipe` (Glasröhre, Stick an der Kreuzung), `warp`,
+`stompAll`, `clear` (Lücke abwarten), `pound` (Stampfattacke), `roll` (Kugel schieben), `fire` (Feuerbälle auf ein Ziel),
+`ride` (Fahrplattform), `tiles` (Schaltfelder), Arena `bossFight` (Brocken betäuben, aufheben, werfen, ausweichen).
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel (7-1 ≈ 88/76 s mit H-Röhre,
+Röhrengabel, Röhrenstern, Feuerstäben am Rand, Werfer auf dem Turm, Warp-Box, Stampfsteinen, Marschblöcken, Zugbrücke; 7-2
+≈ 73/72 s **ohne einen Treffer-Versuch**, vier Schaltgruppen, Stachelpanzer mit Feuerbällen, Fahrplattform, Zielröhre; 7-A
+Kampf ≈ 27/42 s mit echten Würfen, Platschfische bis zu vier gleichzeitig); alle Sterne und Stempel mit Gegenproben
+(Geradeausfahrt, Mulde ohne Kugel, Stempel ohne Anheben, Fackeln ohne Feuer, Blockkette ohne Kopfstoß, 3 von 4 Feldern); Extras
+(versteckte Warp-Box, geschlossene Zugbrücke, Wurfsichel, feste Mauer neben der Scheinwand, vier Extraleben); 7-A: Feuer und
+Draufspringen schaden dem König nicht, Tod setzt den Kampf zurück, Zeitlimit 200 s. Gemessen (scale 2, inkl. Schattenpass,
+Messgang alle ~7 m der Route und Bilder je Abschnitt): 7-1 30–84 Zeichenaufrufe / ≤ 198 k Dreiecke · 7-2 35–79 / ≤ 127 k ·
+7-A 45–75 / ≤ 135 k.
