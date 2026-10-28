@@ -70,12 +70,14 @@ function stageData(withDeco) {
     const M = [[-9, 8], [0, 8.6], [9, 8], [9, -8], [0, -8.6], [-9, -8]];
     const items = [{ kind: 'picknick', pos: [0, 0, 0], size: 3.4 }];
     for (const [x, z] of M) items.push({ kind: 'mast', pos: [x, 0, z], height: 4.4 });
-    for (let i = 0; i < M.length; i++) {
+    // Lampions an den Seiten und hinten; vorn offen (dort fährt die Kamera hinein)
+    for (let i = 2; i < M.length; i++) {
       const a = M[i], b = M[(i + 1) % M.length];
       items.push({ kind: 'lampions', from: [a[0], 4.3, a[1]], to: [b[0], 4.3, b[1]], sag: 0.8 });
     }
     items.push(
-      { kind: 'wimpel', from: [-9, 4.0, 8], to: [9, 4.0, -8], sag: 1.4 }, { kind: 'wimpel', from: [9, 4.0, 8], to: [-9, 4.0, -8], sag: 1.4 },
+      { kind: 'wimpel', from: [-9, 3.6, -8], to: [9, 3.6, -8], sag: 0.6 }, { kind: 'wimpel', from: [-9, 3.6, 8], to: [-9, 3.6, -8], sag: 0.9 },
+      { kind: 'wimpel', from: [9, 3.6, 8], to: [9, 3.6, -8], sag: 0.9 },
       { kind: 'ballons', pos: [-8, 0, 6.5], n: 6, height: 3.4 }, { kind: 'ballons', pos: [8, 0, -6.5], n: 5, height: 3.4 },
       { kind: 'karussell', pos: [-14, 0, -12], radius: 2.6, height: 3.2, solid: false },
       { kind: 'bude', pos: [13, 0, -9], width: 3, color: 'rosa', yaw: Math.PI }, { kind: 'bude', pos: [-14, 0, 2], width: 2.6, color: 'blau', yaw: 0 },
