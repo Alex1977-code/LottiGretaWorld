@@ -124,7 +124,7 @@ export function buildKlettergitter(level, spec) {
       get hidden() { return st.hidden; }, mover: null, shake() {},
     };
     level.hangGrids.push(grid);
-    if (spec.ceiling !== false) solids.push({ type: 'box', min: [grid.x0, p.y + 0.05, grid.z0], max: [grid.x1, p.y + 0.55, grid.z1], tag: 'klettergitter:decke', owner: grid });
+    if (spec.ceiling !== false) solids.push({ type: 'box', min: [grid.x0, p.y + 0.05, grid.z0], max: [grid.x1, p.y + 0.55, grid.z1], tag: 'klettergitter:decke', owner: grid, camIgnore: true });
     handle = {
       mode, grid,
       climbers: () => figures(level).filter((f) => f.hang?.obj === grid),
@@ -140,16 +140,20 @@ export function buildKlettergitter(level, spec) {
         root.add(getModel('klettergitter', { width: w, height: d, cell, style }).root);
         addObject(level, root, () => { root.visible = !st.hidden; });
       } else {
-        const parts = [latticeGeo(w, d, cell, style)];
-        if (spec.ceiling !== false) {
-          const slab = new THREE.BoxGeometry(w + 0.2, d + 0.2, 0.5);
-          slab.translate(0, d / 2, 0.3);   // lokal +Z = Welt +Y (nach rotation.x = −π/2)
-          const c0 = lin(0x5a4a3a), c1 = lin(0x8a7a5a);
-          parts.push(colorize(slab.toNonIndexed(), (q, n, o) => mixc(c0, c1, smooth(-1, 1, n.z), o)));
-        }
-        placeGeo(level, merge(parts), root, st, spec);
+        placeGeo(level, latticeGeo(w, d, cell, style), root, st, spec);
       }
       obj = root;
+      if (spec.ceiling !== false) {
+        // Decke als eigenes Mesh: wird durchscheinend, solange sie die hängende Figur vor der Kamera verdeckt
+        const slab = new THREE.BoxGeometry(w + 0.2, 0.5, d + 0.2);
+        slab.translate(p.x, p.y + 0.3, p.z);
+        const c0 = lin(0x5a4a3a), c1 = lin(0x8a7a5a);
+        const sm = new THREE.Mesh(colorize(slab, (q, n, o) => mixc(c0, c1, smooth(-1, 1, n.y), o)), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }));
+        sm.castShadow = true; sm.receiveShadow = true;
+        sm.visible = !st.hidden;
+        addObject(level, sm, () => { sm.visible = !st.hidden; });
+        level.view.xray?.(sm, new THREE.Box3(new THREE.Vector3(grid.x0 - 0.2, p.y, grid.z0 - 0.2), new THREE.Vector3(grid.x1 + 0.2, p.y + 0.6, grid.z1 + 0.2)), { min: 0.25 });
+      }
     }
   }
   setSolid(!st.hidden);

@@ -26,6 +26,6 @@ export const STONECIRCLE_THEME = {
   lights: [],
   buildBackdrop(sky, bounds, rnd, yBase) {
     cloudFloor(sky, bounds, rnd, Math.min(bounds.min.y, yBase) - 30, { n: 50 });
-    stoneRing(sky, bounds, rnd, yBase, { n: 14 });
+    stoneRing(sky, bounds, rnd, yBase, { pad: 14 });
   },
 };

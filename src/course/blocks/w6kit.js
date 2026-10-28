@@ -7,6 +7,7 @@
 //   shove(level, obj, dx, dy, dz, ignore?)   Figur/Entität kollisionssicher verschieben (Wind, Förderband, Kippschiff) →
 //                                 { x, y, z } tatsächlich bewegt (Quader pos/half wie Player/CourseEntity)
 //   windAt(level, x, y, z, out)   Schub aller Windfelder an diesem Punkt (m/s; {x, y, z}) – auch für Gegner (Pustewolke)
+//   pushFigures(level, inside(x, y, z), vx, vy, vz, dt, ground = 0.7)   Figuren in einem Bereich schieben (Pustewolke)
 //   TiltDeck                      kippende Lauffläche (Kippschiff, Kippsteg, Wippe): Streifen aus Rampen mit Mitnahme
 //   beltTexture(colors)           Streifen-Textur für Förderbänder (CanvasTexture, wiederholt)
 //   rotXZ(lx, lz, yaw)            lokale Lage (Blick +X) → Weltversatz
@@ -52,6 +53,23 @@ export function shove(level, obj, dx, dy, dz, ignore = null) {
   const res = level.world.moveAABB(_c, obj.half, { x: dx, y: dy, z: dz }, { step: 0.3, ignore });
   obj.pos.set(_c.x, _c.y - obj.half.y, _c.z);
   return { x: _c.x - x0, y: _c.y - y0, z: _c.z - z0, res };
+}
+
+/**
+ * Figuren schieben (Gegner-Schnittstelle, z. B. Pustewolke): für jede aktive Figur am Boden/in der Luft/schwimmend, deren
+ * Mitte inside(x, y, z) erfüllt, um (vx, vy, vz)·dt verschieben (am Boden × ground, Standard 0,7). → Zahl der Figuren.
+ */
+export function pushFigures(level, inside, vx, vy, vz, dt, ground = 0.7) {
+  let n = 0;
+  for (const f of figures(level)) {
+    if (f.mode !== 'ground' && f.mode !== 'air' && f.mode !== 'swim') continue;
+    const c = f.center();
+    if (!inside(c.x, c.y, c.z)) continue;
+    const k = f.mode === 'ground' ? ground : 1;
+    shove(level, f, vx * dt * k, vy * dt * k, vz * dt * k);
+    n++;
+  }
+  return n;
 }
 
 /** Schub aller Windfelder an (x, y, z) in m/s (out {x, y, z}); 0 außerhalb. */

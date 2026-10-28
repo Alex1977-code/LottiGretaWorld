@@ -164,7 +164,7 @@ export const LEVEL = {
     dock: [0, 1, -62], schiff: [0, 1, -71.5], schiffRand: [2.6, 1, -71.5], steg: [0, 1, -82], stegEnde: [0, 1, -91],
     halle: [0, 1, -103], tuer: [0, 1, -104.5], tuer2: [-8.5, 1, -114], gong: [8, 1, -117.5], maske: [4, 1, -117],
     floss: [0, 1, -130], flossAuf: [0, 0.9, -134], ufer: [0, 0, -166],
-    decke: [6, 1, -154.5], gitter: [9, 0, -161.4],
+    decke: [6, 0, -154.5], gitter: [9, 0, -161.4],
     wind0: [0, 0, -174], wind1: [0, 0, -183],
     band1: [-6, 0.6, -196], bandwand: [6, 0, -199.2], bandrund: [0, 3, -213],
     quetsch1: [-6, 0, -228], quetsch2: [7, 0, -228], wippe: [-4, 1, -237], wolke1: [6, 2.9, -236],

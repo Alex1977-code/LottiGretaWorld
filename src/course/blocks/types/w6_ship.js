@@ -219,17 +219,23 @@ function shipGeo(L, W, hullD, o, rnd) {
       parts.push(flatColor(box(L * 0.82, 0.1, 0.14, -L * 0.04, 0.72, sz * (W / 2 - 0.08), S.trim, { r: 0.04, seg: 1 }), S.trim));
     }
   }
-  // Masten mit Rahen und (zerrissenen) Segeln
+  // Masten mit Rahen und (zerrissenen) Segeln – Segel als eigenes Mesh (wird durchscheinend, wenn es die Figur verdeckt)
+  const sails = [];
+  const sailBox = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: -W * 0.4, z1: W * 0.4 };
   const masts = o.masts ?? 2;
   for (let m = 0; m < masts; m++) {
-    const x = masts === 1 ? 0 : -L * 0.28 + (m / (masts - 1)) * L * 0.5;
-    const H = W * 1.2 + (m === 0 ? 0 : 1.2);
-    const mast = new THREE.CylinderGeometry(0.14, 0.2, H, 8); mast.translate(x, H / 2, 0);
-    parts.push(flatColor(mast, S.mast));
+    const x = masts === 1 ? 0 : -L * 0.22 + (m / (masts - 1)) * L * 0.5;
+    const H = W * 1.05 + (m === 0 ? 0 : 1.0);
+    // Mast und Rahen gehören zur Takelage (durchscheinend wie die Segel, wenn sie die Figur verdecken)
+    const mast = new THREE.CylinderGeometry(0.14, 0.2, H - 0.8, 8); mast.translate(x, 0.8 + (H - 0.8) / 2, 0);
+    sails.push(flatColor(mast, S.mast));
+    parts.push(flatColor(new THREE.CylinderGeometry(0.22, 0.26, 0.8, 8).translate(x, 0.4, 0), S.mast));
     for (const k of [0.45, 0.8]) {
       const yard = new THREE.CylinderGeometry(0.07, 0.07, W * 0.8 * (1.1 - k * 0.4), 6); yard.rotateX(Math.PI / 2); yard.translate(x, H * k, 0);
-      parts.push(flatColor(yard, S.mast));
+      sails.push(flatColor(yard, S.mast));
     }
+    sailBox.x0 = Math.min(sailBox.x0, x - 0.4); sailBox.x1 = Math.max(sailBox.x1, x + 0.7);
+    sailBox.y0 = Math.min(sailBox.y0, 0.8); sailBox.y1 = Math.max(sailBox.y1, H + 0.3);
     if (o.sails !== false) {
       const sw = W * 0.75, sh = H * 0.38;
       const sail = new THREE.PlaneGeometry(sw, sh, 6, 4);
@@ -240,6 +246,8 @@ function shipGeo(L, W, hullD, o, rnd) {
       }
       sail.computeVertexNormals();
       sail.translate(x + 0.15, H * 0.62, 0);
+      sailBox.x0 = Math.min(sailBox.x0, x - 0.4); sailBox.x1 = Math.max(sailBox.x1, x + 0.7);
+      sailBox.y0 = Math.min(sailBox.y0, H * 0.62 - sh / 2 - 0.3); sailBox.y1 = Math.max(sailBox.y1, H * 0.62 + sh / 2 + 0.3);
       const s1 = C(S.sail), s2 = C(S.sail2);
       const sg = colorize(sail.toNonIndexed(), (p, n, out) => mixc(s2, s1, smooth(-0.5, 0.8, Math.abs(n.x)), out));
       // zerrissene Ecken: Dreiecke unten zufällig entfernen (Geisterschiff)
@@ -255,8 +263,8 @@ function shipGeo(L, W, hullD, o, rnd) {
         g2.setAttribute('position', new THREE.Float32BufferAttribute(keepP, 3));
         g2.setAttribute('color', new THREE.Float32BufferAttribute(keepC, 3));
         g2.computeVertexNormals();
-        parts.push(g2);
-      } else parts.push(sg);
+        sails.push(g2);
+      } else sails.push(sg);
     }
   }
   // Bugspriet
@@ -269,7 +277,7 @@ function shipGeo(L, W, hullD, o, rnd) {
     const lamp = new THREE.OctahedronGeometry(0.22, 0); lamp.scale(1, 1.4, 1); lamp.translate(x, 1.45, z);
     glow.push(flatColor(lamp, o.style === 'geist' ? 0x9affc8 : 0xffd27a));
   }
-  return { body: merge(parts), glow: merge(glow) };
+  return { body: merge(parts), glow: merge(glow), sails: merge(sails), sailBox };
 }
 
 function plankGeo(L, W, thick, style) {
@@ -314,6 +322,16 @@ export function buildKippschiff(level, spec) {
       const g = shipGeo(L, W, spec.hull ?? 2.4, { ...spec, rails: spec.rails }, new Rnd(Math.floor(p.x * 7 + p.z * 13) >>> 0));
       inner.add(meshOf(g.body, { side: THREE.DoubleSide }));
       if (g.glow) { const gm = new THREE.Mesh(g.glow, level.view.mats.glow); gm.castShadow = false; inner.add(gm); }
+      if (g.sails) {
+        const sm = meshOf(g.sails, { side: THREE.DoubleSide });
+        inner.add(sm);
+        // Durchsicht: Segel zwischen Kamera und Figur werden durchscheinend (Kasten in Weltkoordinaten, Neigung grob mit drin)
+        const b = g.sailBox, c = new THREE.Vector3(), q = (lx, lz) => (alongZ ? { x: lz, z: -lx * Math.sign(Math.cos(yaw) || 1) } : { x: lx * Math.sign(Math.sin(yaw) || 1), z: lz });
+        const a1 = q(b.x0, b.z0), a2 = q(b.x1, b.z1);
+        c.set(p.x, p.y, p.z);
+        const box3 = new THREE.Box3(new THREE.Vector3(c.x + Math.min(a1.x, a2.x) - 1, c.y + b.y0 - 1, c.z + Math.min(a1.z, a2.z) - 1), new THREE.Vector3(c.x + Math.max(a1.x, a2.x) + 1, c.y + b.y1 + 1, c.z + Math.max(a1.z, a2.z) + 1));
+        level.view.xray?.(sm, box3, { min: 0.22 });
+      }
     }
     // Bug +X lokal → Weltrichtung: yaw 0 = −Z
     t.attach(root, inner, alongZ ? (Math.cos(yaw) > 0 ? Math.PI / 2 : -Math.PI / 2) : (Math.sin(yaw) > 0 ? 0 : Math.PI));

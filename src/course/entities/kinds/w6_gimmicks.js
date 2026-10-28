@@ -12,7 +12,7 @@
 //     max: 4 (gleichzeitig), life: 14, phase: 0 (s), path, id, hidden }   Laufzeit: spawned, start(), stop()
 // wurfball – Wurfball (Bauplan 6-Haus „alles mit Wurfbällen“): Aktion hebt ihn auf (vor der Brust), Aktion wirft ihn schnell
 //   und flach in Blickrichtung (Ducken + Aktion: absetzen). Er prallt von Boden und Wänden ab, rollt Hänge hinab, treibt im
-//   Wind und trifft: Gegner (onHit('throw')), POW-Block (fire), Druckschalter (pswitch), grüne Sterne (sammelt sie für die
+//   Wind und trifft (im Flug und schnell rollend, ab 2,5 m/s): Gegner (onHit('throw')), POW-Block (fire), Druckschalter (pswitch), grüne Sterne (sammelt sie für die
 //   Werferin), Münzen, Zielscheiben, Gong, alles mit onBallHit(ball). Nach `life` s am Boden verschwindet er und liegt nach
 //   `respawn` s wieder am Start.
 //   { kind: 'wurfball', pos, size: 0.45 (Ø), speed: 15 (m/s Wurf), lift: 3 (m/s nach oben), bounce: 0.5, life: 4 (s nach dem
@@ -355,10 +355,9 @@ class Wurfball extends Gimmick {
     } else { this.grounded = false; this.ground = null; }
     if (res.ceiling && this.vel.y > 0) { this.vel.y = -this.vel.y * 0.4; res.ceilingShape?.owner?.onBump?.(this); }
     const hv = Math.hypot(this.vel.x, this.vel.z);
-    if (this.thrown) {
-      this.flyT += dt;
-      if (hv > 2.5 || this.vel.y > 2) this.hitThings(); else if (this.grounded) this.thrown = false;
-    }
+    // trifft im Flug und beim schnellen Rollen (Hang hinab)
+    if (hv > 2.5 || (this.thrown && this.vel.y > 2)) this.hitThings();
+    if (this.thrown) { this.flyT += dt; if (this.grounded && hv <= 2.5) this.thrown = false; }
     if (this.grounded && hv < 0.3 && this.restT >= 0 && (this.flyT > 0 || this.thrower)) {
       this.restT += dt;
       const life = this.spec.life ?? 4;

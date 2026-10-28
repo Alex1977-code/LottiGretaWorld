@@ -115,14 +115,19 @@ export function cloudPeaks(sky, bounds, rnd, y, o = {}) {
 
 // ------------------------------------------------------------------ Steinkreis (stonecircle)
 
-/** Hohe Menhire im Kreis um den Level-Umriss, Deck-Steine darüber, ferne Schwebeinseln. o: { y, n, r }. */
+/**
+ * Hohe Menhire im Kreis (bzw. in einer Ellipse um langgestreckte Level) um den Level-Umriss, Decksteine darüber, ferne
+ * Schwebeinseln. o: { y, n (Standard nach Umfang, 12–40), pad (m Abstand zum Umriss, 14) }.
+ */
 export function stoneRing(sky, bounds, rnd, yBase, o = {}) {
   const { x0, x1, z0, z1 } = sides(bounds);
   const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-  const R = o.r ?? Math.max(x1 - x0, z1 - z0) / 2 + 16;
+  const pad = o.pad ?? 14;
+  const RX = (x1 - x0) / 2 + pad, RZ = (z1 - z0) / 2 + pad;
   const parts = [];
   const st = lin(0xb8b4c4), stD = lin(0x6a6680), moss = lin(0x6aa84a);
-  const n = o.n ?? 14, gy = yBase + (o.y ?? -1);
+  const per = Math.PI * (3 * (RX + RZ) - Math.sqrt((3 * RX + RZ) * (RX + 3 * RZ)));
+  const n = o.n ?? Math.max(12, Math.min(40, Math.round(per / 12))), gy = yBase + (o.y ?? -1);
   const tops = [];
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 + rnd.real(-0.05, 0.05);
@@ -131,7 +136,7 @@ export function stoneRing(sky, bounds, rnd, yBase, o = {}) {
     const pos = g.attributes.position;
     for (let k = 0; k < pos.count; k++) { const yy = pos.getY(k); const t = (yy + h / 2) / h; pos.setX(k, pos.getX(k) * (1 - t * 0.18)); pos.setZ(k, pos.getZ(k) * (1 - t * 0.18)); }
     g.rotateY(-a + Math.PI / 2);
-    const x = cx + Math.cos(a) * R, z = cz + Math.sin(a) * R;
+    const x = cx + Math.cos(a) * RX, z = cz + Math.sin(a) * RZ;
     g.translate(x, gy + h / 2 - 1, z);
     parts.push(colorize(ni(g), (p, nn, out) => { mixc(stD, st, smooth(-0.6, 0.9, nn.y * 0.5 + Math.sin(p.y * 1.3 + p.x) * 0.3), out); if (p.y < gy + 1.2) mixc(out, moss, 0.6, out); }));
     tops.push({ x, z, h });
