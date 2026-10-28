@@ -17,8 +17,8 @@
 //   Wände), die es fängt. Unterwegs: Gegner → e.onSichelHit?.(sichel) sonst e.onHit('throw', sichel) (sichel.sichel = true,
 //   sichel.owner = Figur); Münzen, blaue/Stern-/Schlüsselmünzen, grüne Sterne, Stempel und Power-ups sammelt es für die
 //   Werferin ein; ?-Blöcke/Ziegel/Kisten: onHit('shell'); POW, Druckschalter, Druckknopf, Gong; alles mit onSichelHit.
-//   { kind: 'wurfsichel', pos (Mitte der Sichel), dir: [dx, dz], owner: player, speed: 14, range: 7.5, curve: 0.9 (m
-//     seitlicher Bogen, + = nach links), life: 3.5, catch: 0.9 (m Fangradius) }
+//   { kind: 'wurfsichel', pos (Unterkante der Sichel; Mitte = y + 0,16), dir: [dx, dz], owner: player, speed: 14, range:
+//     7.5, curve: 0.7 (m seitlicher Bogen, + = nach rechts von der Flugrichtung), life: 3.5, catch: 0.9 (m Fangradius) }
 //   Zustände: hin | zurueck. Laufzeit: hits, collected, caught, info(). Modell 'wurfsichel_geschoss' (state { spin }) –
 //   sonst eigene Sichel (goldene Klinge mit Blütenstern).
 //
@@ -267,13 +267,13 @@ export class Wurfsichel extends CourseEntity {
     this.owner = spec.owner ?? null;
     this.speed = spec.speed ?? 14;
     this.range = spec.range ?? 7.5;
-    this.curve = spec.curve ?? 0.9;
+    this.curve = spec.curve ?? 0.7;
     this.life = spec.life ?? 3.5;
     this.catchR = spec.catch ?? 0.9;
     const d = spec.dir ?? [1, 0];
     const l = Math.hypot(d[0], d[1]) || 1;
     this.dir = { x: d[0] / l, z: d[1] / l };
-    this.side = { x: -this.dir.z, z: this.dir.x };   // links von der Flugrichtung (Blick +X → links = −Z … rechtshändig: +90°)
+    this.side = { x: -this.dir.z, z: this.dir.x };   // rechts von der Flugrichtung (Blick −Z → +X)
     this.origin = this.pos.clone();
     this.dist = 0;
     this.state = 'hin';
@@ -317,7 +317,7 @@ export class Wurfsichel extends CourseEntity {
       } else if (s >= 1) this.turn();
     } else {
       // zurück zur Werferin (Brusthöhe), fliegt durch Wände
-      const tx = o.pos.x, ty = o.pos.y + o.half.y * 1.1 - this.half.y, tz = o.pos.z;
+      const tx = o.pos.x, ty = o.pos.y + o.half.y * 1.5 - this.half.y, tz = o.pos.z;
       const dx = tx - this.pos.x, dy = ty - this.pos.y, dz = tz - this.pos.z;
       const d = Math.hypot(dx, dy, dz);
       const back = this.age - (this.turnAt ?? this.age);
@@ -487,6 +487,9 @@ class KisteWasser extends Gimmick {
   }
 
   onSichelHit() { this.smash('sichel'); }
+
+  /** Schwimmstoß gegen die Kiste (Player.move ruft onPush mit der Geschwindigkeit in die Wand). */
+  onPush(player, dir, speed) { if (player?.mode === 'swim' && speed >= this.dash * 0.8) this.smash('swim'); }
 
   smash(by) {
     if (this.broken) return;

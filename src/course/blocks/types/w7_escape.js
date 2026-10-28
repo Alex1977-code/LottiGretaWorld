@@ -10,7 +10,8 @@
 //     '-z' | '+z' | '-x' | '+x', speed: 1.2 (m/s), speeds: [{ at: s, speed }] (Tempowechsel nach Jagdzeit), plan: [[t, m]]
 //     (Front-Lage m nach Jagdzeit s, statt speed), to: 40 (m bis zum Ende), depth: 0 (m Nebel hinter der Front; 0 = bis
 //     zum Start), delay: 1.2 (s nach dem Start), start: 'signal' | 'auto' | { box: [x0, y0, z0, x1, y1, z1] }, signal: Name
-//     (zusätzlich: level.signal(Name) startet), gap: 4, damage: 'tod' | 'treffer', color: 'lila' | 'gruen', puffs: 18 }
+//     (zusätzlich: level.signal(Name) startet), gap: 4, damage: 'tod' | 'treffer', color: 'lila' | 'gruen', puffs: 18,
+//     mood: Stimmung des Themas beim Start (z. B. 'flucht' im Thema lavatower), visible: false (vor dem Start zeigen) }
 //   level.named.get(id) = { state ('wartet'|'verzoegert'|'jagt'|'ende'), front (m ab Start entlang dir), frontPos → {x,y,z},
 //                           start(), stop(), reset(), inside(fig) → bool, kills, resets, info() }; w7(level).fogs
 //   Modell aus der Registry 'giftnebel_wand' ({ width, height, color }, Ursprung Mitte der Front, Nebel hinter −X, Front
@@ -55,13 +56,13 @@ export function buildGiftnebel(level, spec) {
     return a < st.front - 0.15 && (depth <= 0 || a > st.front - depth);
   };
   const frontPos = () => ({ x: o.x + D[0] * st.front, y: o.y + D[1] * st.front, z: o.z + D[2] * st.front });
-  const go = () => { if (st.state === 'wartet') { st.state = 'verzoegert'; st.waitT = 0; w7Sfx(level, 'nebel'); } };
+  const go = () => { if (st.state === 'wartet') { st.state = 'verzoegert'; st.waitT = 0; w7Sfx(level, 'nebel'); if (spec.mood) level.view?.setMood?.(spec.mood, { time: 1.2 }); } };
   const handle = {
     get state() { return st.state; }, get front() { return st.front; }, get frontPos() { return frontPos(); },
     get kills() { return st.kills; }, get resets() { return st.resets; },
     start: go,
     stop() { if (st.state === 'jagt' || st.state === 'verzoegert') st.state = 'ende'; },
-    reset() { st.state = 'wartet'; st.front = 0; st.clock = 0; },
+    reset() { st.state = 'wartet'; st.front = 0; st.clock = 0; if (spec.mood) level.view?.setMood?.(null, { time: 1 }); },
     inside,
     info: () => ({ state: st.state, front: +st.front.toFixed(2), clock: +st.clock.toFixed(2), kills: st.kills, resets: st.resets, dir: dk }),
   };
@@ -75,6 +76,13 @@ export function buildGiftnebel(level, spec) {
     if (st.state === 'wartet') return;
     const r = level.runtime.respawnPoint();
     const ra = along({ x: r.pos[0], y: r.pos[1] + 0.5, z: r.pos[2] }) - (vert ? 0.5 : 0.3);
+    if (ra - gap <= 0) {
+      // Neustart vor dem Nebel-Bereich: alles zurück, die Jagd beginnt wieder beim Auslösen
+      st.state = 'wartet'; st.front = 0; st.clock = 0;
+      if (spec.mood) level.view?.setMood?.(null, { time: 0.6 });
+      if (spec.start === 'auto') go();
+      return;
+    }
     st.front = clamp(Math.min(st.front, ra - gap), 0, to);
     // Uhr passend zur Lage zurückdrehen (plan/speeds)
     st.clock = 0;

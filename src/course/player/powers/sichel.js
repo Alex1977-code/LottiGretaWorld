@@ -47,7 +47,8 @@ export const POWERS = {
       player.fireCooldown = SICHEL_COOLDOWN;
       player.throwTime = 0.25; player.throwDur = 0.25;
       const f = player.facingVec();
-      const y = player.pos.y + player.half.y * 1.1 - 0.16;
+      // Wurf über Kopfhöhe (Mitte der Sichel ≈ 0,9 m bei großer Figur): trifft Gegner, Münzen und tief hängende Blöcke
+      const y = player.pos.y + player.half.y * 1.9 - 0.16;
       level.spawn('wurfsichel', { pos: [player.pos.x + f.x * 0.5, y, player.pos.z + f.z * 0.5], dir: [f.x, f.z], owner: player });
       player.sichelFlying = flying(player);
       player.sichelReady = false;

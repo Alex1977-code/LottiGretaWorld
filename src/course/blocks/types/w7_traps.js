@@ -21,7 +21,7 @@
 //     Scharnier 0…length) | null, wait: 2.4, warn: 0.9, fall: 0.32, hold: 1.2, up: 1.4, phase: 0 (s), mode: 'takt' | 'nah'
 //     (Figur in der Aufschlagfläche + near m) | 'signal' (start()/fire() = einmal), near: 1.5, hint: true, style: 'stein' |
 //     'metall' | 'holz', face: true, idle: false }
-//   level.named.get(id) = { state ('oben'|'warn'|'faellt'|'liegt'|'hebt'), fold (0 aufrecht … 1 liegend), slams, hits,
+//   level.named.get(id) = { state ('oben'|'warn'|'faellt'|'liegt'|'hebt'), fold (0 aufrecht … 1 liegend), slams, hits, hint,
 //                           start(), stop(), fire(), footprint() → { x0, x1, z0, z1, y }, info() }; w7(level).stompers
 //   Modell aus der Registry 'klappstampfer' ({ width, length, thick, spikes }, Ursprung Scharnier, liegt aufrecht nach +Y,
 //   klappt nach +X; state { fold, warn }) – sonst eigene Platte.
@@ -91,7 +91,7 @@ export function buildPendelstachel(level, spec) {
     }
     const b = new THREE.IcosahedronGeometry(R, 2);
     b.translate(0, -Ln, 0);
-    parts.push(colorize(b.toNonIndexed(), (q, n, o) => mixc(dk, hi, smooth(-0.7, 0.9, n.y * 0.6 + n.z * 0.4), o)));
+    parts.push(colorize(b.index ? b.toNonIndexed() : b, (q, n, o) => mixc(dk, hi, smooth(-0.7, 0.9, n.y * 0.6 + n.z * 0.4), o)));
     const spike = lin(0xf0f0f6), spikeD = lin(0x8a8a98);
     const dirs = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1], [0.7, 0.7, 0], [-0.7, 0.7, 0], [0.7, -0.7, 0], [-0.7, -0.7, 0], [0, 0.7, 0.7], [0, -0.7, 0.7], [0, 0.7, -0.7], [0, -0.7, -0.7], [0.7, 0, 0.7], [-0.7, 0, 0.7], [0.7, 0, -0.7], [-0.7, 0, -0.7]];
     const up = new THREE.Vector3(0, 1, 0);
@@ -179,6 +179,7 @@ export function buildKlappstampfer(level, spec) {
   const under = (f) => f.pos.x + f.half.x > foot.x0 && f.pos.x - f.half.x < foot.x1 && f.pos.z + f.half.z > foot.z0 && f.pos.z - f.half.z < foot.z1 && f.pos.y < p.y + Th + 0.6 && f.pos.y > p.y - 1.5;
   const handle = {
     get state() { return st.state; }, get fold() { return st.fold; }, get slams() { return st.slams; }, get hits() { return st.hits; },
+    get hint() { return !!hint?.shown; },
     start() { if (mode === 'takt') st.running = true; else handle.fire(); }, stop() { st.running = false; },
     fire() { if (st.fireT < 0) st.fireT = 0; },
     footprint: () => ({ ...foot, y: p.y }),
