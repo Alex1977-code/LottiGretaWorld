@@ -6,13 +6,15 @@
 //   Glasröhre); Sternschranke 150 mit Hinweis „Benötigt 150 Sterne (x/150)“; Gegnergruppen (heller Lavafelsen-König,
 //   blauer Schubser-Prinz, Feuer-Werfer) starten 7-A/7-B/7-C; Lava-Fontänen im Takt der Kartenmusik (Taktuhr, manuell
 //   vorgespult) und Ersatzuhr ohne Musik, lebendige Kulisse (Lava fließt, Schaltfelder, Rennkugeln, Zylinder, Kraterlava,
-//   Lavadrache, Rammfisch …); Glasröhre W8 „Welt 8 kommt bald!“ (auch Welt-Warp nach Welt 8 über den vorhandenen
-//   Rückfall, Schranke von hinten); Beerenhaus, Glückshaus; gespeicherte Welt bleibt nach Neuladen; Rückweg nach Welt 6;
+//   Lavadrache, Rammfisch …); Glasröhre W8 nach Welt 8 „Brummbär-Rummelplatz“ (seit es die Welt-8-Karte gibt: Fahrt
+//   dorthin; Welt-Warp nach Welt 8 landet in Welt 8; zurück durch deren Rückweg-Röhre an W8, Schranke 7-Burg von
+//   hinten); Beerenhaus, Glückshaus; gespeicherte Welt bleibt nach Neuladen; Rückweg nach Welt 6;
 //   Anflug; Kennzahlen (< 120 Zeichenaufrufe, < 300 k Dreiecke an jeder Ansicht inkl. Ankunft und Anflug); keine
 //   Konsolenfehler.
 // Simulation deterministisch über window.__courseMap.step(n)/setInput; Bilder tests/out/cmap7_*.png zur Sichtprüfung.
 // Aufruf: npm run build && node tests/course_map_w7.mjs   (Teilläufe: W7_TEIL=1, 2, 3, 4 – s. u.; PORT_BASE verschiebt den Port)
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
+import { MAP as W8 } from '../src/course/map/worlds/w8.js';
 import { MAP as W7 } from '../src/course/map/worlds/w7.js';
 import { MAP as W6 } from '../src/course/map/worlds/w6.js';
 import { MAP as W5 } from '../src/course/map/worlds/w5.js';
@@ -88,11 +90,12 @@ const W7IDS = ['7-1', '7-2', '7-A', '7-3', '7-4', '7-B', '7-5', '7-Kapitän', '7
     peek: (id) => levels[id] ?? null, starsInWorld: (w) => Object.entries(levels).filter(([k]) => k.startsWith(`${w}-`)).reduce((n, [, l]) => n + l.stars.filter(Boolean).length, 0),
     totalStars: () => Object.values(levels).reduce((n, l) => n + l.stars.filter(Boolean).length, 0), worldOpened: (n) => worlds.includes(n),
   });
-  const maps = (n) => ({ 1: W1, 2: W2, 3: W3, 4: W4, 5: W5, 6: W6, 7: W7 }[n] ?? null);
+  const maps = (n) => ({ 1: W1, 2: W2, 3: W3, 4: W4, 5: W5, 6: W6, 7: W7, 8: W8 }[n] ?? null);
   const d3 = { done: true, stars: [true, true, true] };
-  check('worldOpen: Welt 7 zu ohne 6-C, offen mit 6-C oder wenn entdeckt (Welt-Warp); Welt 8 ohne Karte zu',
+  check('worldOpen: Welt 7 zu ohne 6-C, offen mit 6-C oder wenn entdeckt (Welt-Warp); Welt 8 (Karte vorhanden) zu ohne 7-Burg, offen mit 7-Burg oder entdeckt',
     !unlock.worldOpen(maps, fake({ '6-Panzer': d3 }, [1, 2, 3, 4, 5, 6]), 7) && unlock.worldOpen(maps, fake({ '6-C': d3 }, [1, 2, 3, 4, 5, 6]), 7)
-    && unlock.worldOpen(maps, fake({}, [1, 2, 3, 4, 5, 6, 7]), 7) && !unlock.worldOpen(maps, fake({}, [1, 2, 3, 4, 5, 6, 7, 8]), 8));
+    && unlock.worldOpen(maps, fake({}, [1, 2, 3, 4, 5, 6, 7]), 7) && !unlock.worldOpen(maps, fake({ '7-7': d3 }, [1, 2, 3, 4, 5, 6, 7]), 8)
+    && unlock.worldOpen(maps, fake({ '7-Burg': d3 }, [1, 2, 3, 4, 5, 6, 7]), 8) && unlock.worldOpen(maps, fake({}, [1, 2, 3, 4, 5, 6, 7, 8]), 8));
   const many = {}; for (let i = 0; i < 50; i++) many[`5-x${i}`] = d3;
   check('Welt-8-Röhre: Weg frei nach 7-Burg oder sobald Welt 8 entdeckt ist; 7-Burg braucht 150 Sterne (alle Sterne zählen)',
     !unlock.pathOpen(W7, fake({}, [1, 2, 3, 4, 5, 6, 7]), 'W8') && unlock.pathOpen(W7, fake({ '7-Burg': d3 }, [1, 2, 3, 4, 5, 6, 7]), 'W8')
@@ -199,7 +202,7 @@ const P71 = W7.entrances.find((e) => e.id === '7-1').pos;
 
 // Teilläufe (W7_TEIL=1|2|3|4) für langsame Rechner, je unter 10 min; ohne Angabe alle Abschnitte.
 //   1: Abschnitte 2–4 (Röhre W7 → Welt 7, Welt-Warp, Start/Titel, erstes Level), 2: 5–7 (Freischaltung, Brücken,
-//   Sternschranke, Gegnergruppen), 3: 8–10 (Kulisse im Takt, Welt 8 bald, Beeren-/Glückshaus), 4: 11–14 (Bilder,
+//   Sternschranke, Gegnergruppen), 3: 8–10 (Kulisse im Takt, Röhre/Warp nach Welt 8, Beeren-/Glückshaus), 4: 11–14 (Bilder,
 //   Neuladen, Rückweg nach Welt 6, Anflug)
 const TEIL = process.env.W7_TEIL ?? '';
 const PARTS = { 1: [2, 4], 2: [5, 7], 3: [8, 10], 4: [11, 14] };
@@ -373,8 +376,8 @@ if (part(5)) {
     check(`Nach ${done[done.length - 1]}: ${nowFree.join(', ')} frei, ${stillShut.join(', ')} noch zu`, nowFree.every((id) => free(st, id)) && stillShut.every((id) => shut(st, id)));
   }
   st = await setLevels(with7(w1to6(true), ['7-1', '7-2', '7-4', '7-5', '7-6', '7-7', '7-Burg']));
-  check('Nach 7-Burg: Weg zur Welt-8-Röhre offen, Röhre „Bald“ (Welt 8 gibt es noch nicht)', st.entrances.W8.pathOpen && !st.entrances.W8.locked
-    && st.entrances.W8.soon && !st.entrances.W8.enterable && st.entrances.W8.title === 'Bald');
+  check('Nach 7-Burg: Weg zur Welt-8-Röhre offen, Röhre frei mit Ziel „Brummbär-Rummelplatz“ (Welt-8-Karte vorhanden)', st.entrances.W8.pathOpen && !st.entrances.W8.locked
+    && !st.entrances.W8.soon && st.entrances.W8.enterable && st.entrances.W8.title === 'Brummbär-Rummelplatz');
   // mit allen geschafften Leveln geladen sind alle Schranken offen; die Brücken sind begehbar
   const done = W7IDS.filter((id) => !['7-A', '7-B', '7-C', '7-3', '7-Kapitän'].includes(id));
   await loadWith({ levels: with7(w1to6(true), done), mapOpened: [...OPENED_1_6, ...opened7(done)] });
@@ -541,7 +544,9 @@ if (part(8)) {
     ['festungsturm', 'basaltsaeule', 'vulkanfels', 'riffkoralle', 'lavagestein', 'lava_maschine', 'zylinder_walze', 'gitterboden'].every((n) => (r.models ?? []).includes(n)));
 }
 
-// ------------------------------------------------------------------ 9) Glasröhre W8 „bald“, Welt-Warp nach Welt 8 über den Rückfall
+// ------------------------------------------------------------------ 9) Glasröhre W8 nach Welt 8, Welt-Warp nach Welt 8, Rückweg mit Schranke von hinten
+// (Bis zur Welt-8-Karte zeigte die Röhre „Welt 8 kommt bald!“ und ein Warp endete über den Rückfall an W8; seither fährt
+// die Röhre nach Welt 8 und der Warp landet dort – tests/course_map_w8.mjs prüft die Ankunft und das „bald“ an WS.)
 if (part(9)) {
   const all = W7IDS.filter((id) => !['7-A', '7-B', '7-C', '7-3', '7-Kapitän'].includes(id));
   await loadWith({ levels: with7(w1to6(true), all), mapOpened: [...OPENED_1_6, ...opened7(all)], world: 7, worlds: WORLDS7, mapPos: null });
@@ -550,13 +555,16 @@ if (part(9)) {
   await tp(P8[0], P8[1] + 0.3, P8[2] + 3, -Math.PI / 2, 20);
   r = await walkTo(P8[0], P8[2], (s) => s.onPad === 'W8', 400);
   await shot('roehre8', 700);
-  await sc(() => { const m = window.__courseMap; m.hud.toast('', 0.01); m.step(2); m.enter(); m.step(1); });
-  const msg = await toast();
   st = await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); return m.step(5); });
-  check('Welt-8-Röhre nach 7-Burg: Weg frei, „Bald“, Enter/A zeigt „Welt 8 kommt bald!“ statt einer Fahrt', r.s.onPad === 'W8' && msg === 'Welt 8 kommt bald!' && !st.travel && !st.leaving
-    && st.entrances.W8.soon && !st.entrances.W8.enterable && st.entrances.W8.discovered === false);
-  // Warp nach Welt 8 aus einem Welt-7-Level (7-7 noch offen, Burg-Schranke zu): Rückfall – Ankunft in Welt 7 durch die
-  // Welt-8-Röhre hinter den gesperrten Schranken
+  check('Welt-8-Röhre nach 7-Burg: Weg frei, Ziel „Brummbär-Rummelplatz“, A startet die Fahrt nach Welt 8 (kein „Welt 8 kommt bald!“)',
+    r.s.onPad === 'W8' && st.travel?.mode === 'depart' && st.entrances.W8.enterable && !st.entrances.W8.soon && st.entrances.W8.title === 'Brummbär-Rummelplatz'
+    && (await toast()) !== 'Welt 8 kommt bald!');
+  r = await stepUntil(() => false, 900);
+  await waitMap(8);
+  st = await sc(() => window.__courseMap.state());
+  check('Die Fahrt endet in Welt 8 (Ankunft an deren Rückweg-Röhre W7)', st.world === 8 && st.travel?.mode === 'arrive' && st.travel.entrance === 'W7');
+  // Warp nach Welt 8 aus einem Welt-7-Level (7-7 noch offen, Burg-Schranke zu): landet in Welt 8; zurück durch die
+  // Rückweg-Röhre kommt die Figur an W8 hinter den gesperrten Schranken an
   const done6 = ['7-1', '7-2', '7-4', '7-5', '7-6'];
   await loadWith({ levels: with7(w1to6(true), done6), mapOpened: [...OPENED_1_6, ...opened7(done6)], world: 7, worlds: WORLDS7, mapPos: null }, '&mapAlias=7-1:0-0');
   await waitMap(7);
@@ -565,18 +573,27 @@ if (part(9)) {
   await sc(() => { const m = window.__courseMap; m.enter(); m.step(1); });
   await waitCourse();
   await sc(() => { window.__courseSave.openWorld(8); window.__course.exitToMap({ warpWorld: 8 }); });
+  await waitMap(8);
+  st = await sc(() => window.__courseMap.state());
+  console.log('  Warp 8:', JSON.stringify(st.travel), st.soonWorld);
+  check('Welt-Warp nach Welt 8 (Welt-8-Karte vorhanden) landet in Welt 8, keine „bald“-Meldung', st.world === 8 && st.travel?.mode === 'arrive' && st.travel.entrance === 'W7'
+    && st.soonWorld === null && st.worlds.includes(8));
+  r = await stepUntil((s) => !s.travel, 900);
+  const W7E = W8.entrances.find((e) => e.id === 'W7').pos;
+  await tp(W7E[0], W7E[1] + 0.3, W7E[2] + 3, Math.PI / 2, 20);
+  r = await walkTo(W7E[0], W7E[2], (s) => s.onPad === 'W7', 400);
+  await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); });
+  r = await stepUntil(() => false, 900);
   await waitMap(7);
   st = await sc(() => window.__courseMap.state());
-  console.log('  Warp 8:', JSON.stringify(st.travel), st.soonWorld, JSON.stringify(st.entrances.W8));
-  check('Welt-Warp 8 ohne Welt-8-Karte endet in Welt 7: Ankunft durch die Welt-8-Röhre, Röhre entdeckt, Weg frei, „Bald“',
-    st.world === 7 && st.travel?.mode === 'arrive' && st.travel.entrance === 'W8' && st.soonWorld === 8 && st.worlds.includes(8)
-    && st.entrances.W8.discovered === true && !st.entrances.W8.locked && st.entrances.W8.soon);
+  console.log('  Rückkehr aus Welt 8:', JSON.stringify(st.travel), JSON.stringify(st.entrances.W8));
+  check('Zurück aus Welt 8: Ankunft in Welt 7 durch die Welt-8-Röhre (Welt 8 entdeckt, Weg zur Röhre frei)', st.world === 7 && st.travel?.mode === 'arrive'
+    && st.travel.entrance === 'W8' && st.entrances.W8.discovered === true && !st.entrances.W8.locked && st.entrances.W8.enterable);
   r = await stepUntil((s) => s.travel?.t > 1.4, 400);
-  await shot('warp8_ankunft', 400);
+  await shot('w8_rueckkehr', 400);
   r = await stepUntil((s) => !s.travel, 900);
-  const msg8 = await toast();
   st = await sc(() => window.__courseMap.state());
-  check('Nach der Ankunft: „Welt 8 kommt bald!“, Schranke zur Röhren-Insel versinkt (Schwenk)', msg8 === 'Welt 8 kommt bald!' && st.cinematic);
+  check('Nach der Ankunft: Schranke zur Röhren-Insel versinkt (Schwenk)', st.cinematic && (await toast()) !== 'Welt 8 kommt bald!');
   r = await stepUntil((s) => !s.cinematic, 1800);
   await sc(() => window.__courseMap.step(20));
   st = await sc(() => window.__courseMap.state());
