@@ -5701,3 +5701,30 @@ Terrasse, Stern-Schubser nicht durch Draufspringen, Stern 2 nicht ohne Sprung, S
 links, versteckte Warp-Boxen, drei Extraleben); 6-B: Werfen und Springen der Werfer, Kampf beider Figuren (≈ 16 s),
 Tod setzt zurück, Funkenblüte, Zeitlimit 100 s. Gemessen (scale 2, inkl. Schattenpass): 6-1 30–98 Zeichenaufrufe /
 ≤ 279 k Dreiecke (Glasgang) · 6-B 74 / 186 k · 6-2 32–75 / ≤ 202 k.
+
+## Welt 7 – Level-Liste und Freischaltung (Hauptsitzung)
+
+Welt 7 „Lava-Festung“ wird nach Sieg über `6-C` frei (Glasröhre `W7` auf der Welt-6-Karte, bisher „Welt 7 kommt
+bald!“). Sternbedarf zählt **alle** gesammelten Sterne (Welt 1–6: 174, dazu die Halloween-Welt). Die drei Arenen liegen
+als Nebenwege am Rand der Insel.
+
+| Id | Archetyp | Thema | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `7-1` | parcours (Werfer-Festung: blaue Lava, Glasröhren-Netz mit H-Röhre, Feuerstäbe, Pilzlingstürme, Stampfsteine, Marschblöcke) | bluelava | course_fortfire | 3 + Stempel | Welt 7 offen |
+| `7-2` | parcours (dunkler unterirdischer Tempel: Kipp-Schaltfelder machen den Weg sichtbar, Stachelpanzer, Fackeln mit Funkenblüte) | darkruins | course_switchruins | 3 + Stempel | 7-1 |
+| `7-A` | arena (große Felsfläche in Lava, Lavabrocken, heller Lavafelsen-König mit Platschfischen, 200 s) | lava | course_arena | 1 | 7-1 |
+| `7-3` | parcours Sprint (100 s, ≈ 450 m, Boost-Pfeile, Donut-Blöcke, Stachelwalzen, Dreifach-Gabelung) | lavarun | course_redhot | 3 + Stempel | 7-2 |
+| `7-4` | parcours (blaue Lava: auftauchende Pfeilplattformen, Zylinder, rotierende Stachelwalzen, Pendelstacheln, Schubser, Knochenflieger) | bluelava | course_bluebelt | 3 + Stempel | 7-2 |
+| `7-B` | arena (Käfig mit Glasröhren, blauer Schubser-Prinz mit 3 blauen Feuerbällen in einer Kurve) | fortress | course_arena | 1 | 7-4 |
+| `7-5` | parcours vertikal (Turm in Lava: Stampfsteine, Knochenflieger, Seilbahn, Funkenflämmchen, 5 Schlüsselmünzen, Flucht vor Giftnebel und steigender Lava) | lavatower | course_traptower | 3 + Stempel | 7-4 |
+| `7-Kapitän` | diorama (Maschinen-Diorama in Lava: Förderbänder, Stampfsteine als Trittstufen, Projektilköpfe) | lavamachine | course_diorama | 5 | 7-5 |
+| `7-6` | parcours unterwasser (Rammfisch-Riff, zerbrechliche Kisten, Vulkaninsel mit Wutkaulquappen, große rotierende Rammfische) | reef | course_rammreef | 3 + Stempel | 7-5 |
+| `7-C` | arena (Raum mit erhöhtem hinterem Teil, 7 Feuer-Werfer, 100 s) | fortress | course_arena | 1 | 7-6 |
+| `7-7` | parcours (Vulkan-Lavasee mit steigender/sinkender Lava, Fontänenfeld mit Gitterboden, Platschfische, Lavadrachen) | volcano | course_volcano | 3 + Stempel | 7-6 |
+| `7-Burg` | parcours + boss (Lava-Burg: Lavablasen, Bumerang-Werfer mit Wurfsichel, Zugbrücke per Kickbombe/P-Schalter, Klappstampfer; Boss **Baron Brummbär im Kampfwagen** auf einer Straße mit Stachelfallen und Lavalücken, 9 Treffer) | lavacastle | course_keep | 3 + Stempel | 7-7 **und ≥ 150 Sterne** |
+
+Welt 7 hat 32 Sterne. Neu: Power-up **Wurfsichel** (Bumerang, sammelt Münzen ein), Feuerstab, Lavablase, auftauchende
+Pfeilplattformen, Zylinder, rotierende Stachelwalzen, Pendelstachel, steigende/sinkende Lava, Lava-Fontänen, Gitterboden,
+Giftnebel-Flucht, Klappstampfer; Gegner Knochenflieger, Platschfisch, Lavadrache, Wutkaulquappe, Funkenflämmchen,
+Stachelpanzer (vorhanden prüfen); Varianten heller Lavafelsen-König, blauer Schubser-Prinz; Boss Baron Brummbär im
+Kampfwagen (wirft Kickbomben – zurückkicken –, spuckt Feuer; Wurfsichel macht Zusatzschaden).
