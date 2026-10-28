@@ -195,6 +195,18 @@ Effekte (`sfx(name)`): `jump`, `jump2`, `jump3`, `backflip`, `longjump`, `wallju
 `pipe`, `checkpoint`, `goalpole`, `timewarn`, `claw`, `fireball`, `stomp`, `hurt`, `die`, `switch`,
 `bounce`. Fehlende Namen sind stumm (kein Fehler).
 
+Vertragsnotiz (ergänzte Effekte, `MORE_SFX` = `engine.effects.more`): die bisher stumm aufgerufenen Namen sind eigene
+Effekte – Figur `skid`, `glide`, `wallslide`, `swim`, `fence` (Zaun/Deckengitter), `grab`/`swing` (Trapez), `victory`
+(Siegespose, kleine Fanfare ≈ 0,9 s; läuft über der Level-Musik bzw. `course_clear`); Fahrt/Bausteine `fall`, `boost`,
+`chain`, `alarm`, `flip`, `donut`, `pfiff`, `note0`–`note7` (Tastenstein, C-Dur-Pentatonik); Gegner `hop`, `dash`, `kick`,
+`dizzy`, `boomerang`, `dig`, `throw`, `fuse`, `burn`. Lautheit wie die übrigen Effekte (Median −23 LUFS, Wiederholklänge
+−25), höchstens 26 Knoten. **Drosselung:** derselbe Name klingt erst nach einem Mindestabstand wieder (`SFX_GAP` in
+`src/audio/sfx.js`, z. B. `swim` 0,2 s, `wallslide` 0,35 s, `hop` 0,15 s, `chain` 0,5 s; alle übrigen 0,03 s – gleichzeitige
+Auslösungen im selben Bild klingen einmal). **Neue Namen** zuerst als Effekt anlegen: `node tests/sfx_namen.mjs` (auch in
+`tests/audio.mjs`, Teil `sfx`) sammelt alle Aufrufnamen in `src/**` (`sfx`/`level.sfx`/`w6Sfx`/`hwSfx`, `{ sfx: … }`,
+Ersatz-Tabelle `SFX6`) und meldet jeden ohne Effekt; dynamische Namen (Variablen, Template-Strings) dort in `DYNAMIC` mit
+den möglichen Namen eintragen. Hörprobe `tests/out/sfx_demo_fehlende.wav`.
+
 ## Speicherstand
 
 `lotti-greta-course-v1` im localStorage: `{ hero, lives, coins, world, mapPos, levels: { '1-1':
