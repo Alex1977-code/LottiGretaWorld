@@ -6559,7 +6559,8 @@ Welt 7)“.
 ### 7-A „Glutkönig im Platschkessel“ (arena · lava · course_arena · 200 s, 1 Stern)
 
 - Runde Basaltinsel (R 12,4 m, `rockIsland`) im Lavasee 1,4 m unter der Fläche, Kranz aus Basaltpfeilern mit Brummbär-Bannern
-  (vorn offen), Kraterwand mit drei Lavafällen, Vulkane, Dampf, Glutfunken. Der **helle Lavafelsen-König** (`variant: 'hell'`,
+  (vorn offen), Glutkrone als Bodenmosaik in der Mitte (dort steigt der Stern auf), Kraterwand mit drei Lavafällen,
+  Vulkane, Dampf, Glutfunken. Der **helle Lavafelsen-König** (`variant: 'hell'`,
   `fish` mit `gate` zur Startseite) ruft endlos Lavabrocken und rollt; Platschfische springen rings um den Kessel. Nur
   geworfene Lavabrocken treffen (3×). Arena-Zählung, Lebensleiste „Glutkönig“ und Neustart nach Tod (König zurück, Brocken und
   Fische weg) über `bossKampf` (wie `prinzKampf`, `LEVEL.arena.enemies: []`); der Arena-Stern steigt in der Mitte auf.

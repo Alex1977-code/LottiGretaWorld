@@ -834,6 +834,17 @@ export function kessel7A(level, o) {
       g.sphere(0.32, x + nx * 1.0, fy - 1.0, z + nz * 1.0, 0xffc23a, { s: [1, 1, 0.3], ws: 10, hs: 6 });
     }
   }
+  // Glutkrone in der Kesselmitte (hier steigt der Stern auf): Basalt-Ringe mit glühenden Fugen, goldene Zacken
+  const cz = o.center ?? -0.6;
+  mosaik(b, 0, Y + 0.02, cz, [[1.1, 1.6, [0x4a3a3a, 0x5a4644]], [1.8, 2.4, [0x3a2c2c, 0x4e3c3a, 0x46363a]], [2.6, 3.0, [0x5a4644, 0x6a5450]]], rnd);
+  g.torus(1.0, 0.06, 0, Y + 0.06, cz, 0xff8a2a, { rx: Math.PI / 2, ts: 28, rs: 4 });
+  g.torus(1.72, 0.05, 0, Y + 0.06, cz, 0xffb040, { rx: Math.PI / 2, ts: 36, rs: 4 });
+  g.torus(2.52, 0.05, 0, Y + 0.06, cz, 0xff8a2a, { rx: Math.PI / 2, ts: 44, rs: 4 });
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * TAU;
+    b.cone(0.2, 0.28, Math.cos(a) * 0.62, Y + 0.12, cz + Math.sin(a) * 0.62, litTop(0xffc23a, 0.6), 4);
+  }
+  b.cyl(0.66, 0.7, 0.12, 0, Y + 0.02, cz, litTop(0xffc23a, 0.6), 18);
   b.flush(level, { castShadow: false });
   g.flush(level, { material: 'glow', castShadow: false });
 }
