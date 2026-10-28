@@ -405,10 +405,10 @@ console.log('Rummelwerkstatt 0-31');
     star?.model?.root.traverse((o) => { if (o.isMesh && o.layers.mask !== (1 << 5)) layered = false; });
     const renders = m.renders, active = m.active;
     // Spiegel-Stufen: im Raum unsichtbar, aber begehbar
-    t.place([4.5, 1.7, -312], { settle: 30 });
+    t.place([1.6, 1.7, -312.4], { settle: 30 });
     const step = p.mode === 'ground' && Math.abs(p.pos.y - 1.4) < 0.06;
     const got0 = !!L.runtime.stars[2];
-    t.place([6.3, 2.62, -314.6], { settle: 30 });
+    t.place([2.6, 2.62, -315.4], { settle: 30 });
     const got = !!L.runtime.stars[2];
     return { layered, renders, active, step, got0, got, inFront: m.inFront(0, -312), mirror: m.mirror(1, 0, -318) };
   });
@@ -429,11 +429,14 @@ console.log('Rummelwerkstatt 0-31');
     t.place([0, 0, -324], { settle: 30 });
     const quiet = fb.info().blocks;
     t.place([0, 0.3, -327.5], { settle: 4, invuln: 99 });
+    t.until(() => fb.state === 'stuerzt', 120);
     const started = fb.state;
-    t.tick(70);
+    t.tick(60);
     const early = fb.info().blocks;
     let fell = false;
     for (let i = 0; i < 240 && !fell; i++) { t.tick(1); fell = p.pos.y < -3; }
+    // retten (ein Absturz-Neustart setzt die Brücke zurück) und den Rest einstürzen lassen
+    t.place([0, 0, -324], { settle: 2 });
     t.tick(600);
     const fallen = fb.fallen;
     fb.reset();

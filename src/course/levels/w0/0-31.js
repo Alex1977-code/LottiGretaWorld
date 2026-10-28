@@ -135,7 +135,7 @@ export const LEVEL = {
     // ---------------- S11 großer Spiegel
     plat(-300, -326),
     sign(-11, 0, -302, 'Großer Spiegel'),
-    { type: 'grosser_spiegel', id: 'spiegel', pos: [0, 0, -320], size: [8, 5], star: 'spiegelstern', parts: [{ pos: [4.5, 1.1, -312], size: [1.6, 0.3, 1.6] }, { pos: [6.3, 2.3, -314.6], size: [1.6, 0.3, 1.6] }] },
+    { type: 'grosser_spiegel', id: 'spiegel', pos: [0, 0, -320], size: [8, 5], reach: 16, star: 'spiegelstern', parts: [{ pos: [1.6, 1.1, -312.4], size: [1.6, 0.3, 1.6] }, { pos: [2.6, 2.3, -315.4], size: [1.6, 0.3, 1.6] }] },
     { type: 'deco_w8', items: [{ kind: 'kerzenleuchter', pos: [-5, 0, -319] }, { kind: 'kerzenleuchter', pos: [5, 0, -319] }, { kind: 'standuhr', pos: [-9, 0, -318], solid: true }, { kind: 'bilderrahmen', pos: [-12.8, 1.2, -312], yaw: 0 }, { kind: 'spinnennetz', pos: [12.8, 4, -324], yaw: Math.PI }] },
 
     // ---------------- S12 Fallblock-Brücke
@@ -165,7 +165,7 @@ export const LEVEL = {
   stars: [
     [-10, 3.2, -32],
     [0, 7.6, -266],
-    { pos: [6.3, 3.0, -314.6], id: 'spiegelstern' },
+    { pos: [2.6, 3.0, -315.4], id: 'spiegelstern' },
   ],
   goal: [0, 0, -388],
   marks: {
@@ -180,7 +180,7 @@ export const LEVEL = {
     schub: [0, 0, -213], schubFeld: [0, 0, -216.5],
     rad: [0, 0, -240],
     regen: [0, 0, -272], regenMitte: [0, 0, -285],
-    spiegel: [0, 0, -312.5], spiegelStufe: [4.5, 1.45, -312],
+    spiegel: [0, 0, -312.5], spiegelStufe: [1.6, 1.45, -312.4],
     fallbr: [0, 0, -325],
     pow: [0, 0, -358], powUnter: [0, 0, -362],
     goal: [0, 0, -384],

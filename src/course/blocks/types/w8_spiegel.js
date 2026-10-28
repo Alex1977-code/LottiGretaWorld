@@ -10,7 +10,8 @@
 //     dir: [dx, dz] (Blickrichtung der Spiegelfläche; Standard [0, 1] = zur Kamera, +Z) | yaw, frame: true, res: 512 (Pixel
 //     der längeren Seite), tint: 0xc8d8e8, near: 30, star: id (Stern aus LEVEL.stars mit { pos, id }) | { index, pos }
 //     (wird hier erzeugt), parts: [{ pos, size }] (nur im Spiegel sichtbare, begehbare Platten), solid: true (Wand hinter dem
-//     Spiegel 0,3 m tief, Kollision), look: 'eigen' }
+//     Spiegel 0,3 m tief, Kollision), reach: 24 (m – der Spiegel-Durchgang zeichnet nur, was so nah am Spiegel und vor ihm
+//     liegt), look: 'eigen' }
 //   level.named.get(id) = { active (zeichnet gerade), renders (Zahl der Spiegel-Durchgänge), star (Entität | null), parts,
 //     inFront(x, z) (liegt der Punkt vor der Spiegelfläche?), mirror(x, y, z) → Spiegelpunkt, info() }; w8(level).mirrors.
 //   MIRROR_LAYER (5): eigene Spiegelwelt-Objekte (z. B. ein Gegner, der nur im Spiegel zu sehen ist): obj.traverse(o =>
@@ -26,7 +27,7 @@ import { getModel } from '../../models/index.js';
 import { w8, regModel, stdMat } from '../w8kit.js';
 
 export const MIRROR_LAYER = 5;
-const _c = new THREE.Vector3(), _n = new THREE.Vector3();
+const _c = new THREE.Vector3(), _n = new THREE.Vector3(), _s = new THREE.Sphere();
 
 /** Goldrahmen (lokal: Spiegelfläche in der XY-Ebene, Blick +Z, Ursprung Mitte Unterkante). */
 function frameGeo(w, h) {
@@ -51,7 +52,7 @@ function frameGeo(w, h) {
   heart.moveTo(0, -0.25); heart.bezierCurveTo(0.45, 0.05, 0.25, 0.4, 0, 0.18); heart.bezierCurveTo(-0.25, 0.4, -0.45, 0.05, 0, -0.25);
   const hg = new THREE.ExtrudeGeometry(heart, { depth: 0.08, bevelEnabled: false });
   hg.translate(0, h + T + Math.min(1.2, w * 0.22) * 0.4, D / 2 - 0.04);
-  parts.push(colorize(hg.toNonIndexed(), (p, n, o) => mixc(lin(hex(0xc8304a)), lin(hex(0xff7a9a)), smooth(-0.2, 1, n.z), o)));
+  parts.push(colorize(hg.index ? hg.toNonIndexed() : hg, (p, n, o) => mixc(lin(hex(0xc8304a)), lin(hex(0xff7a9a)), smooth(-0.2, 1, n.z), o)));
   // Rückwand
   parts.push(colorize(box(w + T * 2, h + T * 2, 0.08, 0, h / 2, -D / 2, 0x4a2a1a, { r: 0.02, seg: 0 }), (p, n, o) => { const c = lin(hex(0x4a2a1a)); o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
   return merge(parts);
@@ -82,7 +83,7 @@ export function buildGrosserSpiegel(level, spec) {
   const handle = {
     get active() { return st.active; }, get renders() { return st.renders; }, get star() { return st.star; }, parts,
     inFront: (x, z) => (x - p.x) * dx + (z - p.z) * dz > 0, mirror,
-    info: () => ({ active: st.active, renders: st.renders, star: st.star ? { collected: !!st.star.removed || !st.star.alive, layer: MIRROR_LAYER } : null, parts: parts.length }),
+    info: () => ({ active: st.active, renders: st.renders, calls: st.lastCalls ?? 0, star: st.star ? { collected: !!st.star.removed || !st.star.alive, layer: MIRROR_LAYER } : null, parts: parts.length }),
   };
   if (spec.id) level.named.set(spec.id, handle);
   w8(level).mirrors.push(handle);
@@ -129,10 +130,29 @@ export function buildGrosserSpiegel(level, spec) {
   // Spiegelkamera sieht zusätzlich die Spiegelwelt (Ebene 5); Zeichenzahl des zweiten Durchgangs zur Bild-Statistik addieren
   const origCam = refl.getReflectionCamera.bind(refl);
   refl.getReflectionCamera = (cam) => { const rc = origCam(cam); rc.layers.mask = cam.layers.mask; rc.layers.enable(MIRROR_LAYER); return rc; };
+  // Spiegel-Durchgang sparsam: alles, was weiter als reach m vom Spiegel entfernt ist oder ganz hinter der Spiegelebene liegt,
+  // zeichnet die Spiegelkamera nicht (Zeichenaufrufe); Instanz-Gruppen und Figuren-Bündel (Skinning) bleiben
+  const reach = spec.reach ?? 24;
+  const hidden = [];
+  const cullFar = (scene) => {
+    const cx = p.x, cy = p.y + h / 2, cz = p.z;
+    scene.traverse((o) => {
+      if (!o.visible || o === refl || o.isInstancedMesh || o.isSkinnedMesh || !(o.isMesh || o.isPoints || o.isLine)) return;
+      const g = o.geometry;
+      if (!g?.attributes?.position || o.frustumCulled === false) return;
+      if (!g.boundingSphere) g.computeBoundingSphere();
+      _s.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
+      const q = _s.center, d = Math.hypot(q.x - cx, q.y - cy, q.z - cz);
+      const side = (q.x - cx) * dx + (q.z - cz) * dz;
+      if (d - _s.radius > reach || side < -_s.radius - 0.5) { o.visible = false; hidden.push(o); }
+    });
+  };
   const origBefore = refl.onBeforeRender;
   refl.onBeforeRender = function (renderer, scene, camera, ...rest) {
     const info = renderer.info.render, c0 = info.calls, t0 = info.triangles, p0 = info.points, l0 = info.lines;
-    origBefore.call(this, renderer, scene, camera, ...rest);
+    cullFar(scene);
+    try { origBefore.call(this, renderer, scene, camera, ...rest); } finally { for (const o of hidden) o.visible = true; hidden.length = 0; }
+    st.lastCalls = info.calls;
     info.calls += c0; info.triangles += t0; info.points += p0; info.lines += l0;
     st.renders++;
   };
