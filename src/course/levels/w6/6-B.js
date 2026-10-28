@@ -11,7 +11,7 @@
 // ebenso Feuerbälle (Funkenblüte aus dem ?-Block am Start). Alle fünf besiegt → Stern auf dem Altarstein → Ziel.
 // Tod setzt die Arena zurück (alle Werfer neu, Zeit voll).
 
-import { wolkeninsel, steinkreis, werferlager, wolkenkranz, altarstein } from './_helpers_a.js';
+import { wolkeninsel, steinkreis, werferlager, wolkenkranz, altarstein, grasbueschel, murmeltiere, vogelschwarm } from './_helpers_a.js';
 
 const Y = 2;                 // Inselboden
 const YT = Y + 2.8;          // Oberkante der Decksteine
@@ -31,6 +31,12 @@ function build(level) {
   level.world.add({ type: 'cyl', x: 0, z: -0.6, r: 1.5, y0: Y - 1, y1: Y + 0.22, tag: 'altar' });
   altarstein(level, 0, Y, -0.6, 1.5);
   wolkenkranz(level, 0, 0, 11, 11, Y - 3.4, { n: 28, seed: 3, size: 1.3 });
+  grasbueschel(level, [[-8, 8, 8, -7, Y, 70]], { seed: 5, avoid: [[0, -0.6, 2], [0, 8.2, 1.4], [-5.4, 2.6, 1.2], [5.4, 2.6, 1.2], [-2.8, 5.6, 1], [2.8, 5.6, 1], [-7.6, -1.2, 2.2], [7.6, -1.2, 2.2], [0, -6.4, 2.6]] });
+  murmeltiere(level, [[-9.2, Y, 7, 0.9], [9.6, Y, -5.6, -2.2]]);
+}
+
+function setup(level) {
+  vogelschwarm(level, { pos: [0, 14, -2], r: 13, n: 5 });
 }
 
 export const LEVEL = {
@@ -44,6 +50,7 @@ export const LEVEL = {
   starSlots: 1,
   killY: -10,
   build,
+  setup,
   start: { pos: [0, Y, 8.2], yaw: Math.PI / 2 },
   camera: [{ from: 30, to: -30, pitch: 54, dist: 24, x: 0, xLock: 0.45, ahead: 3, lead: 0.3 }],
   arena: { enemies: 'all', star: [0, Y + 0.8, -0.6], starIndex: 0, intro: 'Besiege die fünf Werfer im Steinkreis!', center: [0, Y, -1], camPull: 0.32 },
