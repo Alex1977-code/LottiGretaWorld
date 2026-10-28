@@ -643,6 +643,23 @@ if (part(11)) {
   st = await sc(() => window.__courseMap.state());
   check('Ohne Spielende: Brummbär-Fahnen, kein Feuerwerk, Glas mit den Freunden oben auf dem Turm', st.decor.flags.style === 'baron' && st.decor.fireworks === null && st.decor.tower.jar === 'gefangen'
     && st.decor.tower.friends === 0);
+  // Abspann (Motor: Szene 'Credits') mit dieser Karte: Weltenliste nennt Welt 8 einmal, danach zurück in die befreite Welt 8
+  await sc(() => window.__courseMap.scene.start('Credits', { from: '8-Burg' }));
+  try { await page.waitForFunction(() => window.__credits && window.__game.scene.isActive('Credits'), null, { timeout: 150000 }); } catch { await fail('Abspann startet nicht.'); }
+  r = await sc(() => {
+    const c = window.__credits;
+    c.setManual?.(true);
+    const texts = (c.lines ?? []).map((l) => (Array.isArray(l) ? l[0] : l)).filter((x) => typeof x === 'string');
+    return { w8: texts.filter((x) => x.includes('Brummbär-Rummelplatz')).length, finished: c.state().finished };
+  });
+  console.log('  Abspann:', JSON.stringify(r));
+  await sc(() => window.__credits.finish());
+  await waitMap(8);
+  st = await sc(() => window.__courseMap.state());
+  check('Abspann läuft mit der Welt-8-Karte (Welt 8 genau einmal in der Weltenliste, Spielstand „geschafft“), Rückkehr in die befreite Welt 8 mit Pokal',
+    r.finished && r.w8 === 1 && st.world === 8 && st.decor.finished === true && st.decor.flags.style === 'herz' && (await sc(() => !!window.__courseMap.hud.trophyShown)));
+  await loadWith({ levels: with8(w1to7(true), [...W8IDS]), mapOpened: [...OPENED_1_7, ...opened8([...W8IDS])], world: 8, worlds: WORLDS8, mapPos: null });
+  await waitMap(8);
 }
 
 // ------------------------------------------------------------------ 12) Bilder der Insel (alle Wege offen, alle Level geschafft) und Neuladen
