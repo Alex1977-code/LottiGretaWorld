@@ -5108,8 +5108,8 @@ Halloween-Welt). 6-B ist wie im Bauplan ein Steinkreis gleich am Weltanfang.
 | `6-6` | parcours vertikal (Maschinenhalle: Förderbänder auch an Wänden, Projektilkopf-Kanonen, Riesenprojektil, 500 s) | factory | course_factory | 3 + Stempel | 6-5 |
 | `6-Haus` | house (5 Räume à 10 s, alles mit Wurfbällen) | house | course_house | 5 | 6-6 |
 | `6-7` | autoscroller vertikal (Mine nach oben, Wuschel-Horde jagt von unten, Quetschblöcke, Wippen) | fuzzymine | course_fuzzymine | 3 + Stempel | 6-6 |
-| `6-Panzer` | autoscroller + boss (zweite Panzerkolonne, Zündköpfe, große ?-Blöcke wachsen zu Türmen; Boss Wirbelbrocken mit Attrappen) | tank | course_tank | 3 + Stempel | 6-7 |
-| `6-C` | parcours + boss (Plattform mit Spiegelfrucht, Seilbahn, Zirkuszelt-Arena; Boss **Würfelblase**) | bigtop | course_bossblob | 3 + Stempel | 6-Panzer **und ≥ 120 Sterne** |
+| `6-Panzer` | autoscroller + boss (zweite Panzerkolonne, Zündköpfe, große ?-Blöcke wachsen zu Türmen; Boss Wirbelbrocken mit Attrappen) | skyway (vorhandenes Himmelsthema, Wolkenstraße) | course_tank | 3 + Stempel | 6-7 |
+| `6-C` | parcours + boss (Plattform mit Spiegelfrucht, Seilbahn, Zirkuszelt-Arena; Boss **Würfelblase**) | circus (vorhanden) | course_bossblob | 3 + Stempel | 6-Panzer **und ≥ 120 Sterne** |
 
 Welt 6 hat 34 Sterne. Neu: Glasröhren-Netz mit Abzweigen, Stachelkugeln, Kippschiffe/Kippsteg, Schiebetüren (antippen),
 Gong (Münzregen, Rätselbox), Pilz-Maske, Klettergitter, Pustewolken/Windböen, Förderbänder (Boden und Wand), Quetschblöcke,
