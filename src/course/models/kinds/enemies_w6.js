@@ -196,7 +196,7 @@ function pwHatGeo() {
 function pwBodyGeo() {
   return cached('w6:pw:body', () => {
     const b = new Build();
-    const g = cloudGeo('pw', PW_PUFFS, { ws: 18, hs: 12, lo: 0xb0b4f0, mid: 0xdcdeff, hi: 0xffffff });
+    const g = cloudGeo('pw', PW_PUFFS, { ws: 15, hs: 10, lo: 0xb0b4f0, mid: 0xdcdeff, hi: 0xffffff });
     b.parts.push(g.clone());
     // Mütze (leicht nach hinten gekippt)
     const hat = pwHatGeo().clone();
@@ -240,15 +240,15 @@ function buildPustewolke() {
   pose.add(sway);
   const streakMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, depthWrite: false });
   own.push(streakMat);
-  const streaks = instMesh(pwStreakGeo(), streakMat, 7, 4, 0.5);
+  const streaks = instMesh(pwStreakGeo(), streakMat, 6, 4, 0.5);
   streaks.frustumCulled = false;
-  const snow = new Puffs(12, 0xffffff, { opacity: 0.9, radius: 5, cy: 0.6 });
+  const snow = new Puffs(8, 0xffffff, { opacity: 0.9, radius: 5, cy: 0.6 });
   own.push(snow);
   root.add(pose, streaks, snow.mesh);
   const clk = new Clock(), blink = new Blinker();
   let puff = 0, wind = 0, squash = 0, emit = 0, fade = 0, angry = 0;
   root.userData.wind = 0; root.userData.reach = 0;
-  const lanes = [[0.0, 0.0], [0.18, 0.3], [-0.15, -0.28], [0.08, 0.14], [-0.05, -0.12], [0.25, -0.05], [-0.22, 0.22]];
+  const lanes = [[0.0, 0.0], [0.18, 0.3], [-0.15, -0.28], [0.08, 0.14], [-0.05, -0.12], [0.25, -0.05]];
   const update = (dt, st) => {
     let anim = st.anim ?? 'idle';
     if (!['idle', 'inhale', 'blow', 'hit', 'defeated'].includes(anim)) anim = 'idle';
@@ -272,7 +272,7 @@ function buildPustewolke() {
     // Besiegt: zerfasert
     if (anim === 'defeated') {
       const p = prog(st, clk, 0.9);
-      if (clk.entered) snow.burst([0, 0.6, 0], { count: 12, speed: 2.2, up: 0.8, size: 0.28, life: 0.9, spread: 0.6, force: true });
+      if (clk.entered) snow.burst([0, 0.6, 0], { count: 8, speed: 2.2, up: 0.8, size: 0.28, life: 0.9, spread: 0.6, force: true });
       fade = smoothstep(p * 1.6);
     } else fade = 0;
     pose.scale.setScalar(Math.max(0.001, 1 - fade));
@@ -312,7 +312,7 @@ function buildPustewolke() {
     }
     streaks.instanceMatrix.needsUpdate = true;
     emit -= dt;
-    if (anim === 'blow' && wind > 0.2 && emit <= 0) { snow.burst([0.85, 0.5 + pose.position.y, 0], { count: 2, speed: 2.5 + wind * 3, up: 0.2, size: 0.045, life: 0.8, spread: 0.15 }); emit = 0.06; }
+    if (anim === 'blow' && wind > 0.2 && emit <= 0) { snow.burst([0.85, 0.5 + pose.position.y, 0], { count: 2, speed: 2.5 + wind * 3, up: 0.2, size: 0.028, life: 0.8, spread: 0.15, grow: 0.5 }); emit = 0.06; }
     snow.step(dt);
     // Treffer-Blitz, Augen
     flash.emissive.setScalar(anim === 'hit' ? (Math.sin(clk.age * 40) > 0 ? 0.35 : 0) * (1 - hitP) : 0);
@@ -470,7 +470,7 @@ function igBodyGeo() {
     return b.geometry();
   });
 }
-const igArmGeo = () => cached('w6:ig:arm', () => new Build().capsule(0.055, 0.2, gradV(IG.quill, IG.quillHi), { p: [0, -0.12, 0] }, 3, 10).sphere(0.066, IG.faceLow, { p: [0, -0.26, 0] }, 10, 8).geometry());
+const igArmGeo = () => cached('w6:ig:arm', () => new Build().capsule(0.055, 0.32, gradV(IG.quill, IG.quillHi), { p: [0, -0.18, 0] }, 3, 10).sphere(0.068, IG.faceLow, { p: [0, -0.38, 0] }, 10, 8).geometry());
 const igFootGeo = () => cached('w6:ig:foot', () => new Build().sphere(1, gradV(IG.paw, IG.pawHi), { p: [0.04, 0.055, 0], s: [0.12, 0.065, 0.085] }, 14, 10).geometry());
 function buildStachelwerfer(opts = {}) {
   const ballD = Math.max(0.2, Number(opts.ball ?? 0.55));
@@ -507,15 +507,15 @@ function buildStachelwerfer(opts = {}) {
     if (!['idle', 'throw', 'hit', 'defeated'].includes(anim)) anim = 'idle';
     clk.tick(dt, anim);
     const t = clk.t;
-    let aZ = 2.7, aX = 0.25, bx = 0.05, by = 1.12, ballK = 1, lean = 0;
+    let aZ = 3.0, aX = 0.12, bx = 0.05, by = 1.12, ballK = 1, lean = 0;
     holding = true;
     if (anim === 'idle') {
       const k = Math.sin(t * 3);
-      by = 1.12 + Math.abs(k) * 0.04; aZ = 2.65 + Math.abs(k) * 0.1; lean = Math.sin(t * 1.5) * 0.04;
+      by = 1.12 + Math.abs(k) * 0.04; aZ = 2.98 + Math.abs(k) * 0.06; lean = Math.sin(t * 1.5) * 0.04;
     } else if (anim === 'throw') {
       const p = prog(st, clk, 0.9);
       if (p < 0.4) { ballK = smoothstep(p / 0.4); if (clk.entered) puffs.burst([0.05, 1.12, 0], { count: 5, speed: 0.8, up: 0.3, size: 0.1, life: 0.5, spread: 0.1 }); }
-      else if (p < 0.62) { const k = smoothstep((p - 0.4) / 0.22); aZ = lerp(2.7, 3.3, k); bx = lerp(0.05, -0.25, k); by = lerp(1.12, 1.05, k); lean = 0.25 * k; }
+      else if (p < 0.62) { const k = smoothstep((p - 0.4) / 0.22); aZ = lerp(3.0, 3.4, k); bx = lerp(0.05, -0.25, k); by = lerp(1.12, 1.05, k); lean = 0.25 * k; }
       else { const k = smoothstep((p - 0.62) / 0.3); aZ = lerp(3.3, 1.1, Math.min(1, k * 2)); lean = lerp(0.25, -0.3, Math.min(1, k * 2)) * (1 - Math.max(0, k - 0.6)); holding = false; }
     } else if (anim === 'hit') { holding = false; } else if (anim === 'defeated') { holding = false; }
     curl = damp(curl, anim === 'hit' ? 1 : 0, 14, dt);

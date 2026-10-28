@@ -211,7 +211,7 @@ export function jellyGeo(color = 'rot', lo = false) {
   const C = JELLY[jellyColor(color)];
   return cached(`w6:jelly:${color}:${lo}`, () => {
     const b = new Build();
-    b.add(superCube(lo ? 3.2 : 3.6, lo ? 16 : 30, lo ? 12 : 22), { v: (x, y, z, nx, ny) => {
+    b.add(superCube(lo ? 3.2 : 3.6, lo ? 13 : 30, lo ? 10 : 22), { v: (x, y, z, nx, ny) => {
       const base = mix(C[2], C[0], smoothstep(ny * 0.6 + 0.45 + y * 0.6));
       return mix(base, C[1], smoothstep((ny - 0.55) / 0.45) * 0.6);
     } }, { p: [0, 0.5, 0], s: [1, 0.96, 1] });
@@ -450,15 +450,25 @@ export function kieferGeo(h = 5, lo = false, seed = 1) {
  * Dielen. L Länge, W Breite, H Tiefe. Liefert eine nicht gefärbte Geometrie + Farbfunktion über ghost-Palette.
  * broken: Heck fehlt (Wrack, abgebrochene Kante bei x = −L·0,1).
  */
+/** Rumpfform: Breite, Tiefe und Deckssprung je Anteil t (0 = Heck, 1 = Bug); at(x, a) → Punkt auf der Außenhaut (a: 0 = oben
+ *  Steuerbord +Z … π/2 = Kiel … π = oben Backbord). */
+export function hullShape(L, W, H) {
+  const width = (t) => { const u = (t - 0.5) * 2; return W / 2 * (u > 0 ? Math.sqrt(Math.max(0, 1 - Math.pow(u, 2.4))) : 1 - Math.pow(-u, 4) * 0.25); };
+  const depth = (t) => H * (0.82 + 0.18 * Math.sin(t * Math.PI)) * (t > 0.9 ? 1 - (t - 0.9) * 2 : 1);
+  const sheer = (t) => 0.35 * Math.pow(Math.abs(t - 0.45) * 2, 2) * H * 0.4; // Deckslinie steigt zu Bug und Heck
+  const at = (x, a) => {
+    const t = (x + L / 2) / L, wd = Math.max(0.02, width(t)), dp = depth(t), sh = sheer(t);
+    const yb = -Math.sin(a) * dp * (0.85 + 0.15 * Math.abs(Math.cos(a)));
+    return new THREE.Vector3(x, yb + sh * (1 - Math.sin(a) * 0.3), Math.cos(a) * wd);
+  };
+  return { width, depth, sheer, at };
+}
 export function hullGeo(L = 12, W = 5, H = 3, broken = false, lo = false) {
   return cached(`w6:hull:${L}:${W}:${H}:${broken}:${lo}`, () => {
     const b = new Build();
     const NS = lo ? 14 : 26, NP = lo ? 9 : 14;
     const x0 = broken ? -L * 0.1 : -L / 2, x1 = L / 2;
-    // Breite/Tiefe je Station (Bug spitz, Heck breit-flach)
-    const width = (t) => { const u = (t - 0.5) * 2; return W / 2 * (u > 0 ? Math.sqrt(Math.max(0, 1 - Math.pow(u, 2.4))) : 1 - Math.pow(-u, 4) * 0.25); };
-    const depth = (t) => H * (0.82 + 0.18 * Math.sin(t * Math.PI)) * (t > 0.9 ? 1 - (t - 0.9) * 2 : 1);
-    const sheer = (t) => 0.35 * Math.pow(Math.abs(t - 0.45) * 2, 2) * H * 0.4; // Deckslinie steigt zu Bug und Heck
+    const { width, depth, sheer } = hullShape(L, W, H);
     const tA = (x0 + L / 2) / L;
     const pos = [], idx = [];
     for (let i = 0; i <= NS; i++) {

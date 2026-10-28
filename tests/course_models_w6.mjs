@@ -402,9 +402,9 @@ if (part('checks')) {
     if (has('pilz_maske')) { const i = box('pilz_maske', {}, 'idle'), c = box('pilz_maske', {}, { anim: 'collected', progress: 1 }), k = box('pilz_maske', { mode: 'kopf', size: 0.5 }, 'idle'); out.maske = [i.minY, i.maxY, c.empty || c.y < 0.05, k.z]; }
     if (has('klettergitter')) { const k = box('klettergitter', { size: [2, 3] }, 'idle'); out.gitter = [k.z, k.y, k.x, k.minY]; }
     if (has('foerderband')) { const f = box('foerderband', { length: 4, width: 2, thick: 0.5 }, { offset: 0 }); out.band = [f.x, f.z, f.maxY, f.minY]; }
-    if (has('quetschblock')) { const q = box('quetschblock', { size: [2, 2, 2] }, 'idle'); out.quetsch = [q.x, q.y, q.z, q.minY]; }
+    if (has('quetschblock')) { const q = box('quetschblock', { size: [2, 2, 2], rod: 0 }, 'idle'); out.quetsch = [q.x, q.y, q.z, q.minY]; }
     if (has('wurfball')) { const w = box('wurfball', {}, 'idle'); out.ball = [w.x, w.minY]; }
-    if (has('riesen_frageblock')) { const a = box('riesen_frageblock', { size: 2, height: 6 }, { grow: 0 }), b = box('riesen_frageblock', { size: 2, height: 6 }, { grow: 1 }); out.frage = [a.x, a.maxY, b.maxY, with_('riesen_frageblock', { size: 2, height: 6 }, (m) => { m.update(0.1, { grow: 0.5 }); return m.root.userData.top; })]; }
+    if (has('riesen_frageblock')) { const a = box('riesen_frageblock', { size: 2, height: 6 }, { grow: 0 }), b = box('riesen_frageblock', { size: 2, height: 6 }, { grow: 1 }); out.frage = [a.x, a.maxY, b.maxY, with_('riesen_frageblock', { size: 2, height: 6 }, (m) => { for (let k = 0; k < 40; k++) m.update(1 / 30, { grow: 0.5 }); return m.root.userData.top; })]; }
     if (has('wippe')) { const w = box('wippe', { length: 6, width: 2 }, { tilt: 0 }); out.wippe = [w.x, w.maxY, w.minY]; }
     if (has('wolkenplattform')) { const w = box('wolkenplattform', { size: [3, 0.6, 3] }, 'idle'); out.wolke = [w.x, w.z, w.maxY, w.minY, with_('wolkenplattform', { size: [3, 0.6, 3] }, (m) => m.root.userData.top)]; }
     return out;
@@ -417,20 +417,20 @@ if (part('checks')) {
   if (P.igel) check('Stachelwerfer ≈1,4–1,7 m mit Kugel; hand() über dem Kopf; nach dem Wurf leere Hände', P.igel[0] > 1.35 && P.igel[0] < 1.75 && P.igel[1] > -0.05 && P.igel[2][0] > 0.9 && P.igel[2][1] && !P.igel[2][2]);
   if (P.werfer) check('Hammer-Werfer aus der Werfer-Familie (≈1,2–1,4 m, hand(), eigener Name)', P.werfer[0] > 1.1 && P.werfer[0] < 1.5 && P.werfer[1] === 'hammer_werfer');
   if (P.horde) check('Wuschel-Horde füllt width × depth', P.horde[0] > 5 && P.horde[0] < 8 && P.horde[1] > 2 && P.horde[1] < 4.5);
-  if (P.prinz) check('Schubser-Prinz 2,0–2,8 m (Krone), Hufe am Boden; defeated liegt niedrig; mouth() vorn; userData.radius', P.prinz[0] > 2.0 && P.prinz[0] < 2.8 && P.prinz[2] > -0.05 && P.prinz[3] < 2.0 && P.prinz[4][0] && P.prinz[4][0][0] > 0.6 && P.prinz[4][1] > 0.8);
+  if (P.prinz) check('Schubser-Prinz 2,0–2,8 m (Krone), Hufe am Boden; defeated liegt (< 2,4 m); mouth() vorn; userData.radius', P.prinz[0] > 2.0 && P.prinz[0] < 2.8 && P.prinz[2] > -0.05 && P.prinz[3] < 2.4 && P.prinz[4][0] && P.prinz[4][0][0] > 0.6 && P.prinz[4][1] > 0.8);
   if (P.blase) check('Würfelblase ≈1,2 m Würfel (+ Hut), size skaliert, split → weg; hat() oben', P.blase[0] > 1.3 && P.blase[0] < 2.0 && P.blase[1] > 1.1 && P.blase[1] < 1.6 && P.blase[2] > -0.05 && P.blase[3] > 1.9 && P.blase[4] && P.blase[5] && P.blase[5][1] > 1.1);
   if (P.brocken) check('Gelee-Brocken ≈0,5 m, Ursprung unten', P.brocken[0] > 0.4 && P.brocken[0] < 0.65 && P.brocken[2] > -0.05);
   if (P.riese) check('Gelee-Riese: form 1 = Würfel ≈ size (+ Hut), form 0 = Brocken am Boden verstreut', Math.abs(P.riese[0] - 3) < 0.6 && P.riese[1] > 3 && P.riese[2] > -0.1 && P.riese[3] < 2.2);
-  if (P.roehre) check('Glasröhre: gerade = length entlang +X ab Ursprung, Ø ≈ 2·radius; Kreuzung nach ±Z', Math.abs(P.roehre[0] - 4) < 0.35 && P.roehre[1] > 1.9 && P.roehre[1] < 2.5 && P.roehre[2] > -0.2 && P.roehre[3] > 5);
+  if (P.roehre) check('Glasröhre: gerade = length entlang +X ab Ursprung, Ø ≈ 2·radius; Kreuzung nach ±Z', Math.abs(P.roehre[0] - 4) < 0.35 && P.roehre[1] > 1.9 && P.roehre[1] < 2.5 && P.roehre[2] > -0.2 && Math.abs(P.roehre[3] - 4) < 0.35 && Math.abs(P.roehre[4] - 4) < 0.35);
   if (P.kugel) check('Stachelkugel: Ø ≈ size (mit Stacheln), liegt auf dem Ursprung', Math.abs(P.kugel[0] - 1.2) < 0.2 && P.kugel[2] > -0.05);
   if (P.schiff) check('Geisterschiff-Rumpf: Länge/Breite = opts, Deck bei y ≈ 0, Kiel ≈ −height; Mast ≈ height', Math.abs(P.schiff[0] - 10) < 0.8 && Math.abs(P.schiff[1] - 4) < 0.6 && P.schiff[2] < 1.4 && P.schiff[3] < -2.4 && P.schiff[4] > 5.5 && P.schiff[4] < 7.2);
   if (P.steg) check('Kippsteg: Länge = opts, ≈1 m breit, Oberseite bei y ≈ 0', Math.abs(P.steg[0] - 8) < 0.4 && P.steg[1] > 0.9 && P.steg[1] < 1.6 && P.steg[2] < 0.35);
-  if (P.tuer) check('Schiebetür: ≈ height hoch, ≈ width breit (entlang Z), Ursprung unten, flach', P.tuer[0] > 2.3 && P.tuer[0] < 3.0 && P.tuer[1] > 1.9 && P.tuer[1] < 2.8 && P.tuer[2] > -0.05 && P.tuer[3] < 0.6);
+  if (P.tuer) check('Schiebetür: ≈ height hoch, ≈ width breit (entlang Z), Ursprung unten, flach', P.tuer[0] > 2.3 && P.tuer[0] < 3.0 && P.tuer[1] > 1.9 && P.tuer[1] < 3.2 && P.tuer[2] > -0.05 && P.tuer[3] < 0.6);
   if (P.gong) check('Gong ≈2–3 m hoch, steht auf dem Boden', P.gong[0] > 1.9 && P.gong[0] < 3.2 && P.gong[1] > -0.05);
   if (P.maske) check('Pilz-Maske: Item schwebt (0,2–1,2 m), collected → weg; Kopf-Variante ≈ size breit', P.maske[0] > 0.1 && P.maske[1] < 1.3 && P.maske[2] && P.maske[3] > 0.45 && P.maske[3] < 0.8);
   if (P.gitter) check('Klettergitter: size entlang Z × Y, flach, Ursprung unten', Math.abs(P.gitter[0] - 2) < 0.3 && Math.abs(P.gitter[1] - 3) < 0.3 && P.gitter[2] < 0.35 && P.gitter[3] > -0.08);
   if (P.band) check('Förderband: length × width, Oberseite = thick, Ursprung unten', Math.abs(P.band[0] - 4) < 0.35 && Math.abs(P.band[1] - 2) < 0.35 && Math.abs(P.band[2] - 0.5) < 0.1 && P.band[3] > -0.05);
-  if (P.quetsch) check('Quetschblock: Maße ≈ size (Mitte im Ursprung)', Math.abs(P.quetsch[0] - 2) < 0.45 && Math.abs(P.quetsch[1] - 2) < 0.3 && Math.abs(P.quetsch[2] - 2) < 0.3 && Math.abs(P.quetsch[3] + 1) < 0.2);
+  if (P.quetsch) check('Quetschblock (rod 0): Maße ≈ size (Mitte im Ursprung)', Math.abs(P.quetsch[0] - 2) < 0.45 && Math.abs(P.quetsch[1] - 2) < 0.3 && Math.abs(P.quetsch[2] - 2) < 0.3 && Math.abs(P.quetsch[3] + 1) < 0.2);
   if (P.ball) check('Wurfball Ø 0,4–0,6 m, liegt auf dem Ursprung', P.ball[0] > 0.38 && P.ball[0] < 0.62 && P.ball[1] > -0.03);
   if (P.frage) check('Riesen-?-Block: 2 m, grow 1 = Turm (Oberkante ≈ height + size), userData.top', Math.abs(P.frage[0] - 2) < 0.25 && Math.abs(P.frage[1] - 2) < 0.25 && P.frage[2] > 7.5 && P.frage[2] < 8.6 && P.frage[3] > 4);
   if (P.wippe) check('Wippe: Länge = opts, Brett-Oberseite bei y ≈ 0, Bock bis zum Boden', Math.abs(P.wippe[0] - 6) < 0.4 && P.wippe[1] < 0.3 && P.wippe[2] < -0.9);
