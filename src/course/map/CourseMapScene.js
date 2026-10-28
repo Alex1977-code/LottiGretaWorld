@@ -300,8 +300,11 @@ export class CourseMapScene extends Phaser.Scene {
     if (!rule?.next) return null;
     if (rule.sign) return rule.sign;   // eigene Aufschrift (Halloween-Röhre in Welt 1: „Halloween!“)
     const m = getWorldMap(rule.next);
-    return `${m?.worldLabel ?? `Welt ${rule.next}`}\n${m ? (m.short ?? m.title) : 'bald!'}`;
+    return `${this.worldNameOf(rule)}\n${m ? (m.short ?? m.title) : 'bald!'}`;
   }
+
+  /** Name der Zielwelt einer Glasröhre: MAP.worldLabel der Zielwelt, sonst Regel-Feld worldLabel (Welt 8: „Welt Stern“), sonst „Welt n“. */
+  worldNameOf(rule) { return getWorldMap(rule.next)?.worldLabel ?? rule.worldLabel ?? `Welt ${rule.next}`; }
 
   /** Mit der Glasröhre zur nächsten/vorigen Welt fahren (Eingang id mit Regel next). */
   startTravel(id) {
@@ -341,7 +344,10 @@ export class CourseMapScene extends Phaser.Scene {
     if (this.pendingFresh?.length) this.startGateCinematic(this.pendingFresh);
     this.pendingFresh = null;
     // Welt-Warp in eine Welt, die es noch nicht gibt: freundliche Meldung an der entdeckten Röhre
-    if (this.arriveInfo?.soonWorld) this.hud?.toast(`Welt ${this.arriveInfo.soonWorld} kommt bald!`, 3.2);
+    if (this.arriveInfo?.soonWorld) {
+      const rule = this.map.levels.find((l) => l.next === this.arriveInfo.soonWorld);
+      this.hud?.toast(`${rule ? this.worldNameOf(rule) : `Welt ${this.arriveInfo.soonWorld}`} kommt bald!`, 3.2);
+    }
   }
 
   // ------------------------------------------------------------------ Glückshaus
@@ -621,7 +627,7 @@ export class CourseMapScene extends Phaser.Scene {
     if (this.onPad && !busy && (use.jumpPressed || enter)) {
       const st = this.status(this.onPad.id);
       if (st?.enterable) { this.enterLevel(this.onPad.id); return; }
-      if (enter) { sfx('bump'); this.hud?.toast(st?.reason === 'stars' ? `Benötigt ${st.minStars} Sterne` : st?.soon ? (st.next ? `Welt ${st.next} kommt bald!` : 'Bald!') : 'Noch nicht frei', 1.4); }
+      if (enter) { sfx('bump'); this.hud?.toast(st?.reason === 'stars' ? `Benötigt ${st.minStars} Sterne` : st?.soon ? (st.next ? `${this.worldNameOf(unlock.levelRule(this.map, st.id))} kommt bald!` : 'Bald!') : 'Noch nicht frei', 1.4); }
     }
     this.level.controlYaw = rig.controlYaw(this.player.pos);
     this.level.step(DT, use);

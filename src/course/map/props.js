@@ -32,6 +32,9 @@ export const ENTRANCE_COLORS = {
   // Welt 7
   bluefort: 0x3a7ae8, rockarena: 0xff6a2a, templerock: 0xe0883a, lavarace: 0xe8303a, bluecylinders: 0x3aa8ff, bluecage: 0x4a6ad8,
   lavatower: 0xd8502a, machinediorama: 0x2ab8e8, reeflagoon: 0x1fb8a8, werferhall: 0xf2a020, crater: 0xff4a1a, lavakeep: 0xd8283a,
+  // Welt 8
+  rainfort: 0x4a7ad8, dunes8: 0xe8a830, cookiefactory: 0xd8884a, baronstation: 0xc8303e, nightfort: 0x3a5ad8, lakefort: 0x1fa8c8,
+  clawhouse: 0x9a5ad8, darkmansion: 0x7a4aa8, inferno: 0xff5a1a, goldtent: 0xf2b820, snaketent: 0xff5aa8, barontower: 0xd8283a,
 };
 export const LOCKED_COLOR = 0x9a9cab;
 
