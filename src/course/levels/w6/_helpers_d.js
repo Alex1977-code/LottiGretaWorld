@@ -10,7 +10,7 @@
 //   3) Kolonne 6-Panzer Fahrplan (Bildfenster gleitet an der Kolonne entlang, Haltepunkte), Panzer-Bausteine, Wolken-
 //                       straße, Schwebeinseln, Wolkenburg, Regenbogen, Mitfahr-Regeln (Werfer, Zündköpfe)
 //   4) Zirkus 6-C       Sternenhimmel mit Mond, Zerrspiegel (Spiegelkabinett), Plakat „Glibber-Gala“, Seilbahn-Rückruf,
-//                       Feuerwerk
+//                       Feuerwerk, Riesenrad
 // Statische Teile gehen über addStatic in die Abschnitts-Meshes (keine zusätzlichen Zeichenaufrufe), belebte
 // Kleinigkeiten sind je ein Mesh bzw. eine Instanz-Gruppe ohne Sonnenschatten.
 
@@ -1126,6 +1126,81 @@ export function feuerwerk(level, cfg) {
     t = 0.5;
     const a = level.rnd.real(0, TAU), r = level.rnd.real(...(cfg.r ?? [4, 12]));
     level.effects?.sparks({ x: cfg.x + Math.cos(a) * r, y: cfg.y + level.rnd.real(9, 15), z: cfg.z + Math.sin(a) * r * 0.5 }, 26);
+  });
+}
+
+/**
+ * Riesenrad (Zierde im Hinterhof): Gestell (statisch) und ein sich langsam drehendes Rad mit Speichen, Leuchtkugeln und
+ * bunten Gondeln, die waagerecht hängen bleiben (ein Mesh fürs Rad, ein Instanz-Mesh für die Gondeln). Ohne Kollision.
+ * cfg = { pos: [x, y, z] (Fuß, Mitte), r: 7, yaw: 0 (Rad in der XY-Ebene), n: 10 }
+ */
+export function riesenrad(level, cfg) {
+  if (!level.view) return;
+  const [x, y, z] = cfg.pos, R = cfg.r ?? 7, n = cfg.n ?? 10, yaw = cfg.yaw ?? 0, H = R + 1.6;
+  // Gestell: zwei schräge Stützenpaare
+  const legs = [];
+  for (const sz of [-0.9, 0.9]) for (const sx of [-1, 1]) {
+    const a = new THREE.Vector3(x + sx * R * 0.55, y, z + sz), b = new THREE.Vector3(x, y + H, z + sz);
+    const d = b.clone().sub(a), l = d.length();
+    const g = new THREE.CylinderGeometry(0.16, 0.22, l, 6);
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()));
+    g.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+    legs.push(colorize(ni(g), (p, nn, out) => mixc(C(0x8a8aa6), C(0xd8d8ec), smooth(-0.5, 0.8, nn.y + nn.x * 0.3), out)));
+  }
+  const st = merge(legs);
+  if (yaw) { st.translate(-x, -y, -z); st.rotateY(yaw); st.translate(x, y, z); }
+  addStatic(level, st, { castShadow: false });
+  // Rad (lokal um die Nabe)
+  const wheel = [], glow = [];
+  for (const dz of [-0.6, 0.6]) {
+    const ring = new THREE.TorusGeometry(R, 0.12, 6, 48);
+    ring.translate(0, 0, dz);
+    wheel.push(colorize(ni(ring), (p, nn, out) => { const c = C(0xe8304a); out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+  }
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * TAU;
+    for (const dz of [-0.6, 0.6]) {
+      const sp = new THREE.CylinderGeometry(0.05, 0.05, R, 4);
+      sp.translate(0, R / 2, dz); sp.rotateZ(a - Math.PI / 2);
+      wheel.push(colorize(ni(sp), (p, nn, out) => { const c = C(0xfff2e0); out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+    }
+    for (let k = 0; k < 3; k++) {
+      const b = new THREE.SphereGeometry(0.13, 6, 4);
+      const aa = a + (k / 3) * (TAU / n);
+      b.translate(Math.cos(aa) * (R + 0.18), Math.sin(aa) * (R + 0.18), 0.65);
+      glow.push(colorize(ni(b), (p, nn, out) => { const c = C([0xffe060, 0xff7ad8, 0x7ae0ff][k]); out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+    }
+  }
+  const hub = new THREE.CylinderGeometry(0.5, 0.5, 1.6, 12);
+  hub.rotateX(Math.PI / 2);
+  wheel.push(colorize(ni(hub), (p, nn, out) => { const c = C(0xffc21a); out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+  const group = new THREE.Group();
+  group.position.set(x, y + H, z);
+  group.rotation.y = yaw;
+  const rot = new THREE.Group();
+  const wm = new THREE.Mesh(merge(wheel), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 }));
+  const gm = new THREE.Mesh(merge(glow), new THREE.MeshBasicMaterial({ vertexColors: true }));
+  rot.add(wm, gm);
+  // Gondeln: kleine bunte Körbe (Instanzen), hängen immer senkrecht
+  const cab = merge([blk(1.1, 0.8, 1.0, 0, -0.9, 0, 0xffffff), blk(1.3, 0.12, 1.2, 0, -0.08, 0, 0xffffff)]);
+  const cm = new THREE.InstancedMesh(cab, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }), n);
+  const pal = [0xff4a6a, 0x3a8aff, 0xffd04a, 0x5ad85a, 0xb07aff];
+  for (let i = 0; i < n; i++) cm.setColorAt(i, new THREE.Color(pal[i % pal.length]));
+  cm.frustumCulled = false;
+  group.add(rot, cm);
+  group.traverse((o) => { if (o.isMesh) { o.userData.owned = true; o.castShadow = false; } });
+  const M = new THREE.Matrix4();
+  let t = 0;
+  addObject(level, group, (dt) => {
+    t += Math.min(dt, 0.1);
+    const w = t * 0.18;
+    rot.rotation.z = w;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + w;
+      M.makeTranslation(Math.cos(a) * R, Math.sin(a) * R, 0);
+      cm.setMatrixAt(i, M);
+    }
+    cm.instanceMatrix.needsUpdate = true;
   });
 }
 

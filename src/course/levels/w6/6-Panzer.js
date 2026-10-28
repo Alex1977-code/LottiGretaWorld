@@ -26,7 +26,7 @@
 
 import { panzerSetup } from '../w2/_helpers_d.js';
 import {
-  kolonnenFahrplan, panzer6, kP, aufPanzer, wolkenStrasse, schwebeInseln, wolkenBurg, kolonnenSetup, regenbogen,
+  arc, kolonnenFahrplan, panzer6, kP, aufPanzer, wolkenStrasse, schwebeInseln, wolkenBurg, kolonnenSetup, regenbogen,
   beiZerstoerung, lichterketten, heissluftballons, strassenSchmuck,
 } from './_helpers_d.js';
 
@@ -111,6 +111,8 @@ const werfer = (kind, t, dc, dx, o = {}) => ({
   interval: o.interval ?? 2.4, first: 1.6, jumpEvery: o.jumpEvery ?? 3.8,
 });
 const stein = (t, dc, dx, y, content, id) => ({ kind: 'steinblock', id, attach: t.id, pos: at(t, dc, dx, y), content });
+// Münzbogen über einer Lücke (Bitcoin-Spur, fährt mit dem vorderen Panzer)
+const bogen = (t, c0, c1, x, n = 4, h = 1.4) => arc(kP(c0, x, D + 0.9), kP(c1, x, D + 0.9), n, h).map((c) => ({ ...c, attach: t.id }));
 
 // ---------------------------------------------------------------------- Kulisse
 const STRASSE = { z0: 30, z1: ZK - 26, width: 16 };
@@ -271,7 +273,9 @@ export const LEVEL = {
     coins(T.T1, at(T.T1, -4.5, -1.8, D + 0.6), at(T.T1, 0, -1.8, D + 0.6), 4),
     coins(T.T1, kP(15, 0, D + 1.4), kP(15, 0, D + 1.4), 1),
     coins(T.T2, at(T.T2, -6, 1.4, D + 0.6), at(T.T2, -2, 1.4, D + 0.6), 3),
-    coins(T.T3, kP(31.5, 0.6, D + 1.5), kP(31.5, 0.6, D + 1.5), 1),
+    ...bogen(T.T3, 29.4, 34.2, 0.5),
+    ...bogen(T.T6, 80.4, 85.2, 1.4), ...bogen(T.T8, 105.4, 109.2, 1.4), ...bogen(T.T11, 153.4, 157.2, 1.4),
+    ...bogen(T.TK, 180.4, 185.2, 1.4, 5, 1.6),
     // Hinweis-Münzen über den großen ?-Blöcken: dort enden die Türme
     ...QB.steps.map((q) => coins(T.T3, at(T.T3, q.dc, QB.dx, D + q.grow + QB.S + 0.7), at(T.T3, q.dc, QB.dx, D + q.grow + QB.S + 0.7), 1)),
     coins(T.T4L, at(T.T4L, -4, -0.4, D + 0.6), at(T.T4L, 4, -0.4, D + 0.6), 5),

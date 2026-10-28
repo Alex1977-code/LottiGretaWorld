@@ -10,19 +10,19 @@
 //   4 Seilbahn         z −53 … −84   Gondel über die Wolkenschlucht zum Zeltplateau (8 m); unterwegs links die
 //                                    Sternschaukel (Stern 2: aus der fahrenden Gondel abspringen), zurück über drei Wolken
 //                                    (verborgener 1-up-Block über der mittleren)
-//   5 Zeltplateau      z −84 … −89   Kontrollpunkt, Torbogen mit Vorhängen
+//   5 Zeltplateau      z −84 … −92   Kontrollpunkt, Torbogen mit Vorhängen, Plakat, Ballons
 //   6 Manege           Ø ≈ 25 m      Würfelblase (sammelt Gelee-Brocken zum silbernen Riesen, der springt; danach flieht sie –
 //                                    jetzt auf den Hut springen; 3 Treffer) → Stern 3, Warp-Box → Hinterhof mit Zielmast
 // Sterne: 1) Zwei-Figuren-Feld der Spiegelbühne (Spiegelfrucht), 2) Sternschaukel neben der Seilbahn, 3) Würfelblase.
 // Stempel: Artistenpodest über dem Vorplatz (Sprungtrommel). Gegner: Gelee-Brocken (5), Würfelblase (Boss).
 
 import { cutawayTent, circusArena, circusProps, grandStairs } from '../w3/_helpers_e.js';
-import { line, ring, arc, sternenhimmel, zerrspiegel, galaPlakat, gondelRuf, feuerwerk, lichterketten } from './_helpers_d.js';
+import { line, ring, arc, sternenhimmel, zerrspiegel, galaPlakat, gondelRuf, feuerwerk, lichterketten, riesenrad } from './_helpers_d.js';
 
 const Y0 = 0;                   // Vorplatz und Spiegelbühne
 const SY = 4.5;                 // Talstation der Seilbahn
 const AY = 8;                   // Zeltplateau
-const AZ = -108, AR = 12.3;     // Manege (Mitte, Innenradius der Bande)
+const AZ = -112, AR = 12.3;     // Manege (Mitte, Innenradius der Bande)
 const TR = 19.5, TH = 18;       // Zelt (Optik)
 const GX = 56, GZ = -106;       // Hinterhof mit Zielmast (nur per Warp-Box)
 const G0 = [0, SY + 2.3, -54.6], G1 = [0, AY + 2.3, -83.0];   // Seilbahn (Seilpunkte)
@@ -53,13 +53,13 @@ export const LEVEL = {
   timeLimit: 400,
   killY: -14,
   start: { pos: [0, Y0, 13.5], yaw: Math.PI / 2 },
-  checkpoint: [{ pos: [0, SY, -48.6], yaw: Math.PI / 2 }, { pos: [0, AY, -86.4], yaw: Math.PI / 2 }],
+  checkpoint: [{ pos: [0, SY, -48.6], yaw: Math.PI / 2 }, { pos: [1.4, AY, -89.0], yaw: Math.PI / 2 }],
   camera: [
     { from: 24, to: -36, pitch: 30, dist: 15, ahead: 4, area: [-32, 32] },
     { from: -36, to: -54, pitch: 34, dist: 14, ahead: 3, area: [-32, 32] },
     { from: -54, to: -86, pitch: 26, dist: 13.5, x: 0, xLock: 0.55, ahead: 3.5, area: [-32, 32] },
     { from: -86, to: -140, pitch: 46, dist: 19, x: 0, xLock: 0.35, ahead: 0.6, lead: 0.4, height: 1.6, area: [-32, 32] },
-    { from: -86, to: -126, pitch: 40, dist: 14, ahead: 2, area: [38, 74] },
+    { from: -86, to: -126, pitch: 21, dist: 13, ahead: 4, area: [38, 74] },
   ],
   boss: {
     id: 'blase', name: 'Würfelblase', speed: 0,
@@ -87,7 +87,8 @@ export const LEVEL = {
       { kind: 'wagen', pos: [GX - 8, AY, GZ - 9], yaw: 0.6, color: 0x2a6ae8, trim: 0xffc21a },
     ], { shadow: false });
     galaPlakat(level, { pos: [5.4, Y0, 6.2], yaw: -0.35 });
-    galaPlakat(level, { pos: [-6.2, AY, -86.6], yaw: 0.3 });
+    riesenrad(level, { pos: [GX + 3, AY, GZ - 22], r: 7.5, n: 10 });
+    galaPlakat(level, { pos: [-6.2, AY, -90.4], yaw: 0.3 });
     // Spiegelkabinett: Zerrspiegel an beiden Rändern der Spiegelbühne
     zerrspiegel(level, [
       ...[-10, -16, -22, -34].map((z, i) => ({ pos: [-5.0, Y0, z], yaw: Math.PI / 2, tint: [0x9ad8ff, 0xffb0e0, 0xb0ffd0, 0xffe0a0][i], wave: i % 2 })),
@@ -140,14 +141,15 @@ export const LEVEL = {
       { kind: 'trapeze', pos: [SCH.x, SCH.y + 4.6, SCH.z], size: 3.6 },
       { kind: 'bulbs', from: [SCH.x - 1.2, SCH.y + 4.6, SCH.z], to: [SCH.x + 1.2, SCH.y + 4.6, SCH.z], sag: 0.3, n: 6 },
       // ---------------------------------------------------------------- 5 Zeltplateau: Torbogen
-      { kind: 'pole', pos: [-3.3, AY, -88.2], size: 6, r: 0.25 }, { kind: 'pole', pos: [3.3, AY, -88.2], size: 6, r: 0.25 },
-      { kind: 'bulbs', from: [-3.3, AY + 5.9, -88.2], to: [3.3, AY + 5.9, -88.2], sag: 0.9, n: 14 },
-      { kind: 'curtain', pos: [-4.4, AY, -88.4], size: [2, 6] }, { kind: 'curtain', pos: [4.4, AY, -88.4], size: [2, 6] },
-      { kind: 'balloons', pos: [-9, AY, -86.5], n: 6, size: 2.4 }, { kind: 'balloons', pos: [9.4, AY, -87], n: 5, size: 2.2 },
+      { kind: 'pole', pos: [-3.3, AY, -92.2], size: 6, r: 0.25 }, { kind: 'pole', pos: [3.3, AY, -92.2], size: 6, r: 0.25 },
+      { kind: 'bulbs', from: [-3.3, AY + 5.9, -92.2], to: [3.3, AY + 5.9, -92.2], sag: 0.9, n: 14 },
+      { kind: 'curtain', pos: [-4.4, AY, -92.4], size: [2, 6] }, { kind: 'curtain', pos: [4.4, AY, -92.4], size: [2, 6] },
+      { kind: 'balloons', pos: [-9, AY, -89.5], n: 6, size: 2.4 }, { kind: 'balloons', pos: [9.4, AY, -90], n: 5, size: 2.2 },
+      { kind: 'drum', pos: [6.4, AY, -88.6], size: [1.6, 0.8], color: 'green' }, { kind: 'ball', pos: [-4.4, AY, -88.0], size: 0.6 },
       // im Zelt: Scheinwerfer, Wimpelketten, Lichterketten
-      { kind: 'spotlight', pos: [-13, AY + 14, AZ - 6], target: [-3, AY, AZ + 2], r: 3.2, color: 0xfff2c8 },
-      { kind: 'spotlight', pos: [13, AY + 14, AZ - 6], target: [3, AY, AZ + 2], r: 3.2, color: 0xffd0f0 },
-      { kind: 'spotlight', pos: [0, AY + 15.5, AZ - 14], target: [0, AY, AZ - 1], r: 3.6, color: 0xc8e4ff },
+      { kind: 'spotlight', pos: [-13, AY + 14, AZ - 6], target: [-4.5, AY, AZ + 2], r: 3.0, color: 0xfff2c8, strength: 0.045 },
+      { kind: 'spotlight', pos: [13, AY + 14, AZ - 6], target: [4.5, AY, AZ + 2], r: 3.0, color: 0xffb0e8, strength: 0.045 },
+      { kind: 'spotlight', pos: [0, AY + 15.5, AZ - 14], target: [0, AY, AZ - 4], r: 3.4, color: 0xa8d4ff, strength: 0.045 },
       { kind: 'bunting', from: [0, AY + 16, AZ], to: [-17, AY + 7.5, AZ - 6], sag: 1.6, n: 18 },
       { kind: 'bunting', from: [0, AY + 16, AZ], to: [17, AY + 7.5, AZ - 6], sag: 1.6, n: 18 },
       { kind: 'bunting', from: [0, AY + 16, AZ], to: [0, AY + 7.5, AZ - 18], sag: 1.6, n: 18 },
@@ -204,7 +206,7 @@ export const LEVEL = {
     line([0, SY + 1.1, -57], [0, AY + 1.0, -80.4], 8),
     ...arc([-1.6, SCH.y + 1.2, SCH.z + 0.4], [SCH.x + 0.8, SCH.y + 0.8, SCH.z], 4, 1.4),
     line([-5.0, SCH.y + 1.4, -71.4], [-2.6, AY + 0.8, -80.4], 4),
-    ...arc([-3, AY + 0.6, -90], [3, AY + 0.6, -90], 5, 1.2),
+    ...arc([-3, AY + 0.6, -93.4], [3, AY + 0.6, -93.4], 5, 1.2),
     // nach dem Sieg: Warp-Box in der Manege → Hinterhof
     { kind: 'warpbox', id: 'warp_sieg', pos: [0, AY, AZ], target: [GX - 4, AY + 0.3, GZ + 8], hidden: true },
     ring([GX, AY + 0.8, GZ - 2], 2.6, 10),
@@ -218,7 +220,7 @@ export const LEVEL = {
   goal: { pos: [GX, AY, GZ - 12], height: 8 },
   marks: {
     start: [0, Y0, 13.5], feld: [FELD.x, Y0, FELD.z], podest: [POD.x, POD.y, POD.z], trommel: [10.6, Y0, 4.2],
-    station: [0, SY, -48.6], gondel: [G0[0], SY, G0[2]], schaukel: [SCH.x, SCH.y, SCH.z], plateau: [0, AY, -86.4],
+    station: [0, SY, -48.6], gondel: [G0[0], SY, G0[2]], schaukel: [SCH.x, SCH.y, SCH.z], plateau: [1.4, AY, -89.0],
     center: [0, AY, AZ], hof: [GX - 4, AY, GZ + 8], goal: [GX, AY, GZ - 12],
   },
   plan: { Y0, SY, AY, AZ, AR, GX, GZ, G0, G1, SCH, FELD, POD },
