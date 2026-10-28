@@ -518,7 +518,8 @@ function buildSchiebetuer(opts = {}) {
 function gongFrameGeo() {
   return cached('w6:gong:frame', () => {
     const b = new Build();
-    const lac = { v: (x, y, z, nx, ny) => mix(W6.lacquerLow, W6.lacquer, smoothstep(nx * 0.4 + ny * 0.3 + 0.5)) };
+    // schlichtes Holzgestell (bewusst kein tor-artiger Rahmen mit geschwungenem Doppelbalken – keine religiösen Formen)
+    const lac = { v: (x, y, z, nx, ny) => mix(0x6a3e1e, 0xb07a44, smoothstep(nx * 0.4 + ny * 0.3 + 0.5)) };
     for (const s of [1, -1]) {
       b.box(0.5, 0.25, 0.5, gradV(0x5a5a68, 0x9a9aa8), { p: [0, 0.125, s * 1.05] }, 0.05, 2);
       b.cyl(0.09, 0.11, 2.3, lac, { p: [0, 1.4, s * 1.05] }, 14);
@@ -526,11 +527,9 @@ function gongFrameGeo() {
       b.torus(0.1, 0.03, W6.gold, { p: [0, 2.3, s * 1.05], r: [Math.PI / 2, 0, 0] }, 6, 16);
     }
     b.box(0.3, 0.12, 2.3, W6.ink2, { p: [0, 0.18, 0] }, 0.03, 1);
-    // geschwungener Querbalken mit hochgezogenen Enden und Gold-Kappen
-    const beam = [[0, 2.55, -1.6], [0, 2.47, -1.0], [0, 2.45, 0], [0, 2.47, 1.0], [0, 2.55, 1.6]];
-    b.add(taperTube(beam, (t) => 0.12 - Math.abs(t - 0.5) * 0.06, 24, 10), lac, { s: [1.3, 1, 1] });
-    for (const s of [1, -1]) b.sphere(0.08, W6.gold, { p: [0, 2.6, s * 1.62] }, 10, 8);
-    b.box(0.18, 0.1, 2.3, lac, { p: [0, 2.28, 0] }, 0.02, 1);
+    // gerader, runder Querbalken mit Messingkappen
+    b.cyl(0.1, 0.1, 2.5, lac, { p: [0, 2.5, 0], r: [Math.PI / 2, 0, 0] }, 14);
+    for (const s of [1, -1]) b.sphere(0.12, W6.gold, { p: [0, 2.5, s * 1.26] }, 10, 8);
     // Schlägel am rechten Pfosten
     b.cyl(0.025, 0.025, 0.8, 0x8a5a2a, { p: [0.18, 1.2, -1.0], r: [0.15, 0, 0] }, 6);
     b.sphere(0.1, gradV(0xb8202a, 0xff6a5a), { p: [0.18, 1.62, -0.94] }, 12, 8);

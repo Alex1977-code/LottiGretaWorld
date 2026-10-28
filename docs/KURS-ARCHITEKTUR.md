@@ -5119,3 +5119,183 @@ Wippen (vorhanden prüfen), Wurfbälle (6-Haus). Gegner: Schubser, Pustewolke, G
 Bumerang-Werfer (vorhanden prüfen), Wuschel-Horde; Bosse **Schubser-Prinz** (6-A) und **Würfelblase** (6-C: sammelt
 Gelee-Brocken zu einem silbernen Riesen, springt mehrfach, trennt sich beim letzten Sprung und flieht – dann verwundbar;
 3 Kopftreffer), Wirbelbrocken mit Attrappen (6-Panzer). Freischaltung der Halloween-Welt bleibt unberührt.
+
+## Präzisierung (Motor und Bausteine Welt 6)
+
+Ergänzung des Motor-/Bausteine-Agenten für Welt 6 „Wolkeninseln“ (Stand: Wolkenwerkstatt `0-23`). Nichts oben Festgelegtes
+wird geändert; alles ist additiv. Alle Welt-6-Mechaniken sind parametrierbare Module, Level-Bauer setzen sie nur in Daten
+ein; jede Datei dokumentiert ihre Felder vollständig im Kopfkommentar. Aktionen im bekannten Format (Präzisierung
+Sonder-Bausteine; die Signal-Verben `reveal`/`hide`/`start`/`stop`/`toggle`/`open` rufen die gleichnamigen Methoden der
+benannten Handles). Entitäts-Gimmicks sind auch als `type` in `segments` erlaubt (`w6_misc.js`), die Bausteine
+`kippschiff`, `kippsteg`, `wippe`, `schiebetuer`, `gong`, `klettergitter`, `windfeld`, `foerderband`, `quetschblock`,
+`wolkenplattform`, `floss` auch als `kind` (Hülle wie Welt 5). Richtungen im 90°-Raster; `yaw: −π/2` = Vorderseite zur
+Kamera (+Z); Level verlaufen nach −Z.
+
+### Präzisierung (Motor und Bausteine Welt 6): Dateien
+
+```
+src/course/blocks/w6kit.js               w6(level) Sammelstelle { winds, currents, rafts, tilts, crushers, belts, pipes,
+                                         gongs, grids }, figures, shove (kollisionssicher schieben), pushFigures, windAt,
+                                         TiltDeck (kippende Lauffläche aus Rampen-Streifen), beltTexture, rotXZ, flatColor,
+                                         w6Sfx (Klang mit Ersatz)
+src/course/blocks/types/w6_pipes.js      glasnetz (Glasröhren-Netz mit Kreuzungen, Weichen, Fenstern, Mitnahme)
+src/course/blocks/types/w6_ship.js       kippschiff, kippsteg, wippe
+src/course/blocks/types/w6_hall.js       schiebetuer, gong
+src/course/blocks/types/w6_grid.js       klettergitter (Wand / Decke)
+src/course/blocks/types/w6_wind.js       windfeld
+src/course/blocks/types/w6_conveyor.js   foerderband (Boden / Wand / rund)
+src/course/blocks/types/w6_crusher.js    quetschblock
+src/course/blocks/types/w6_water.js      floss, stroemung
+src/course/blocks/types/w6_cloud.js      wolkenplattform
+src/course/blocks/types/w6_misc.js       Entitäts-Gimmicks als segments-type (auch Listen: balls / targets)
+src/course/blocks/types/deco_w6.js       Kulisse Welt 6 (verschmolzen; Registry-Modelle gebacken)
+src/course/entities/kinds/w6_gimmicks.js stachelkugel, stachelkugel_quelle, wurfball, zielscheibe, pilz_maske (+ helm_maske),
+                                         riesenfrageblock + kind-Hüllen der Bausteine
+src/course/player/hanging.js             Hangeln am Deckengitter (state 'hang')
+src/course/view/theme_clearpipe|stonecircle|wreck|fareast|jungle|snowwind|factory|fuzzymine.js, backdrop_w6.js
+src/course/levels/w0/0-23.js             Wolkenwerkstatt (eine Station je Mechanik, marks für den Test)
+tests/course_w6_blocks.mjs               Port 4600, W6B_PART=mech|themes, Bilder tests/out/w6b_*.png
+```
+
+Additiv geändert (Motor, je wenige Zeilen, mit Kopfkommentar):
+- `player/Player.js`: `hang`/`hangMove` (Deckengitter: Greifen im Sprung, Hangeln im Modus `'wall'`), Getter
+  `player.masked` (= `helmet === 'maske'` und lebt), `info()` mit `hang`, `masked`.
+- `level/Level.js`: `level.hangGrids` (Deckengitter), `level.isMaskedFrom(enemy, fig?, angleDeg = 75)`.
+- `player/HeroRig.js`: neuer Wert `proxy.course.state = 'hang'` mit `proxy.course.hangMove = { x, y }` (Stick −1..1,
+  x = rechts, y = vor) und `speed` (Hangeltempo); Ersatz-Pose `'trapeze'`, solange `avatar.courseStates?.has('hang')`
+  nicht gilt (Figuren-Agent: Pose „hängt an beiden Händen, hangelt“ anbieten und `'hang'` in `courseStates` eintragen).
+- `player/helmets.js`: von außen eingetragene Helme dürfen `def.model` (Registry-Name) und `def.fallbackModel(opts)` haben.
+- `view/themes.js`: 8 Registrierzeilen (`??=`).
+
+### Präzisierung (Motor und Bausteine Welt 6): Liste mit Daten-Beispielen
+
+| Typ / Art | Kern | Wichtige Felder (Standard) | Beispiel |
+| --- | --- | --- | --- |
+| `glasnetz` | Netz aus benannten Knoten und (gebogenen) Röhren; Öffnung = Knoten mit einer Röhre; an Kreuzungen wählt der Stick (kamerabezogen), sonst Weiche bzw. geradeaus; Gegner/Gegenstände reisen mit | `radius` 1, `speed` 12, `exitSpeed` 7, `nodes` { name: [x,y,z] }, `pipes` [{ `from`, `to`, `via` [[x,y,z]…], `style` 'glas' \| 'metall', `color`, `windows` true \| [[s0,s1]…], `oneWay`, `speed`, `coins` }], `ends` { name: { `enter` true, `exitSpeed`, `cannon` { `target`, `arc` 6 } } }, `weichen` { K: { `to`, `toggle` [..], `signal`, `sign` true, `tap` true } }, `carry` true, `solid` true, `hidden`, `id` → `{ nodes, edges, rides, carried, switchOf(k), setSwitch(k,to), toggle(k?), ride(fig,k), info() }` | `{ type: 'glasnetz', id: 'netz', nodes: { A: [0,2.05,-9], K: [0,2.05,-17], B: [-9,2.05,-27], C: [9,2.05,-27] }, pipes: [{ from: 'A', to: 'K' }, { from: 'K', to: 'B', via: [[-4.5,2.05,-20]] }, { from: 'K', to: 'C', via: [[4.5,2.05,-20]], style: 'metall', windows: true }], weichen: { K: { to: 'C', toggle: ['B','C'], signal: 'weiche1' } } }` |
+| `stachelkugel` (kind; auch type) | rollende Stachelkugel: verletzt immer (auch von oben), Bahn oder frei rollend; Stern/Riesentrank/Explosion/Quetschen zerstören sie | `pos` (Auflagepunkt), `size` 1.2, `path`, `speed` 3.5, `mode` 'loop' \| 'pingpong' \| 'once', `wait`, `phase`, `vel` [vx,vz] (frei), `friction` 0.4, `life` 0, `respawn` 0, `color` 'eisen' \| 'lila' \| 'rot', `id`, `hidden` | `{ type: 'stachelkugel', id: 'kugel1', pos: [-8,1,-47], path: [[-8,1,-47],[8,1,-47]], speed: 3, mode: 'pingpong' }` |
+| `stachelkugel_quelle` (kind; auch type) | Röhrenmündung, aus der im Takt Kugeln rollen | `pos`, `dir` [dx,dz], `every` 3, `speed` 4, `size`, `max` 4, `life` 14, `phase`, `path`, `idle` → `{ spawned, start(), stop() }` | `{ type: 'stachelkugel_quelle', pos: [-12,1,-55], dir: [1,0], every: 3, max: 3, life: 7 }` |
+| `kippschiff` | ganzes Schiff rollt um die Längsachse: Gewicht der Figuren (auch Klone) und schwerer Gegner + Welle; hangab rutscht alles; Reling | `pos` (Deckmitte), `length` 16, `width` 7, `yaw` 0 (Bug −Z), `maxTilt` 14, `weight` 2.2 (°/m), `wave` { `amp` 5, `period` 5, `phase` } \| false, `slide` 2.4, `response` 1.6, `back` 0.8, `rails` true, `hull` 2.4, `masts` 2, `sails` true, `lanterns` 2, `style` 'geist' \| 'holz', `thick` 0.6 | `{ type: 'kippschiff', id: 'schiff', pos: [0,1,-71.5], length: 14, width: 7, wave: { amp: 4, period: 5 } }` |
+| `kippsteg` | 1-m-Steg rollt seitlich (Figur am Rand kippt ihn, Welle schaukelt) | `from`, `to` (Oberseite, achsenparallel), `width` 1, `thick` 0.3, `maxTilt` 22, `weight` 40, `wave` { `amp` 7, `period` 3.2 }, `slide` 3, `response` 2.4, `back` 1, `posts` true, `style` | `{ type: 'kippsteg', id: 'steg', from: [0,1,-78.6], to: [0,1,-89] }` |
+| `wippe` | Brett auf Bock, Last am Hebel drückt die Seite hinab | `pos` (Drehpunkt = Mitte Oberseite), `length` 8, `width` 2.5, `yaw` 0 (entlang X; π/2 entlang Z), `maxTilt` 24, `weight` 9, `response` 2.2, `back` 0.6, `slide` 0, `thick` 0.4, `stand` true, `style` | `{ type: 'wippe', id: 'wippe', pos: [-4,1.4,-240], yaw: Math.PI / 2 }` |
+| (Handle aller drei) | | `{ angle (°), target (°), load, deck (TiltDeck), push(deg), info(), tilter }` | |
+| `schiebetuer` | Papier-Schiebetür: Antippen/Aktion in Reichweite (bzw. Nähe/Signal) öffnet; zu = versperrt; `behind: 'wand'` = Scheinwand | `pos` (Mitte Unterkante), `width` 2.4, `height` 3, `yaw` −π/2, `open` 'tap' \| 'near' \| 'signal', `near` 2.5, `slide` 'rechts' \| 'links' \| 'beide', `speed` 2.5, `close` 0, `behind` 'frei' \| 'wand', `onOpen`, `style`, `color`, `frame`, `reach` 3.5, `hint` true, `hidden` → `{ open(), close(), toggle(), state ('zu'\|'oeffnet'\|'auf'\|'schliesst'), k, opens, info() }` | `{ type: 'schiebetuer', id: 'tuer2', pos: [-10.6,1,-114], yaw: 0, behind: 'wand', slide: 'beide', onOpen: { coins: 3 } }` |
+| `gong` | Antippen, Aktion, Stampfen auf die Platte davor, Treffer (Wurfball, Panzer, Feuer, Tatze) → Münzregen, Aktion, Signal | `pos` (Fußpunkt), `yaw` −π/2, `size` 1.8, `coins` 10, `rain` { `r` 5, `height` 9, `time` 1.6 }, `onHit`, `signal` 'gong' (false = keins), `once`, `cooldown` 1.2, `plate` true, `trigger` ['tap','pound','hit'], `reach` 3.5, `hidden` → `{ hits, ring(via), info() }` | `{ type: 'gong', id: 'gong', pos: [8,1,-120], onHit: { reveal: 'maske' } }` |
+| `pilz_maske` (kind; auch type) | Trage-Helm `'maske'`: zugewandte Gegner sehen die Figur nicht; Treffer schlägt sie ab (liegt als `helm_maske` da); Ducken + Aktion setzt ab | `pos`, `respawn` 0, `id`, `hidden` | `{ kind: 'pilz_maske', id: 'maske', pos: [4,1,-117], hidden: true }` |
+| `klettergitter` | Wand: klettern wie am Kettenzaun (state `'fence'`); Decke: im Sprung greifen und hangeln (state `'hang'`; Sprung/Ducken lässt los) | `mode` 'wand' \| 'decke'; Wand: `pos` (Mitte Unterkante), `size` [w,h] (3×4), `yaw` −π/2, `wall` true (feste Wand dahinter); Decke: `pos` (Gitterebene), `size` [w,d] (4×4), `ceiling` true; `cell` 0.5, `style` 'metall' \| 'bambus' \| 'liane' \| 'holz', `hidden` → `{ mode, climbers(), reveal(), hide(), info() }` | `{ type: 'klettergitter', id: 'decke', mode: 'decke', pos: [6,3.8,-154.5], size: [5,4], style: 'liane' }` |
+| `windfeld` | Quader mit gerichtetem Wind: Böen mit Vorwarnung (Windlinien), Dauerwind oder Signal; Figuren (am Boden × `ground`), leichte Entitäten (`windK`) | `pos` (Mitte unten), `size` [8,6,6], `dir` [dx,dz] \| [dx,dy,dz], `strength` 7, `mode` 'boe' \| 'dauer' \| 'signal', `period` 4.5, `on` 1.8, `warn` 1.0, `phase`, `ramp` 0.25, `ground` 0.7, `items` true, `streaks` 36, `source` 'none' \| 'wolke' \| 'ventil', `fahne` [x,y,z] \| true (Windsack), `idle` → `{ state ('ruhe'\|'warn'\|'boe'), k, gusts, pushed, start(), stop(), toggle(), gust(), add(x,y,z,out), info() }` | `{ type: 'windfeld', id: 'wind', pos: [0,-2,-178.5], size: [26,8,7], dir: [1,0], strength: 6, period: 4, on: 1.6, source: 'wolke', fahne: [-8,0,-174.2] }` |
+| `foerderband` | Boden (trägt mit), Wand (senkrechtes Band mit Mitnehmer-Stufen, kletterbar), rund (Band läuft um einen Block, Mitnehmer oben/vorn/unten/hinten) | Boden: `pos` (Mitte unten), `size` [3,0.5,8], `dir` [0,−1], `speed` 3, `style` 'gelb' \| 'grau' \| 'rot'; Wand: `mode` 'wand', `pos` (Unterkante der Bandfläche), `width` 3, `height` 10, `yaw` −π/2, `speed` 2 (+ aufwärts), `depth` 1, `ledges` 2.5, `ledge` 0.7, `climbable` true; rund: `mode` 'rund', `pos` (Block Mitte unten), `length` 8, `height` 3, `width` 3, `yaw` 0 (Oberseite läuft +X), `speed` 2.5, `ledges` 2, `ledge` 0.5; `idle` → `{ mode, speed, running, start(), stop(), toggle(), reverse(), info() }` | `{ type: 'foerderband', id: 'band1', pos: [-6,0,-199], size: [4,0.5,8], dir: [0,-1], speed: 3 }` |
+| `quetschblock` | stößt im Takt (Vorwarnung: zittert, Augen glühen), schiebt Figuren/Gegner; **tödlich nur bei echtem Einklemmen** (`player.die('crush')`, Gegner `onHit('crush', handle)`); oben fährt man mit | `pos` (Mitte unten in Ruhe), `size` [2,2,2], `dir` 'down' \| 'up' \| '+x' \| '-x' \| '+z' \| '-z', `travel` 3, `out` 0.25, `hold` 0.6, `back` 1.1, `wait` 1.4, `warn` 0.7, `phase`, `mode` 'takt' \| 'nah' \| 'signal', `near` 4, `style` 'metall' \| 'stein' \| 'holz', `face`, `spikes`, `idle`, `onSlam` → `{ state ('ruhe'\|'warn'\|'stoss'\|'halt'\|'zurueck'), k, crushes, pushes, cycles, start(), stop(), fire(), box(), info() }` | `{ type: 'quetschblock', id: 'quetsch1', pos: [-6,3.2,-228], dir: 'down', travel: 3.2 }` |
+| `floss` | Floß legt ab, sobald eine Figur draufsteht, fährt den Weg auf der Oberfläche (in einer `stroemung` mit deren Tempo, auch bergab); nach Neustart wieder am Start | `pos` (Start, y = Oberfläche), `path`, `speed` 2.5, `start` 'stand' \| 'auto' \| 'signal', `wait` 0.6, `size` [3,3], `style` 'holz' \| 'bambus', `bob` 0.05, `sink` 0.08, `end` 'halt' \| 'zurueck' \| 'kreis', `reset` true → `{ state ('wartet'\|'faehrt'\|'ende'), s, speedNow, start(), stop(), reset(), info() }` | `{ type: 'floss', id: 'floss', pos: [0,0.4,-134], path: [[0,0.4,-134],[0,0.4,-146],[-6,0.4,-150],[-6,-0.6,-161.5]] }` |
+| `stroemung` | fließende Gift-/Wasserbahn (auch mit Gefälle = Abwärtsströmung); Gift tötet (`kill`), Wasser trägt Schwimmer (`current`) | `from`, `to` (Oberfläche, achsenparallel), `width` 6, `speed` 6, `fluid` 'gift' \| 'wasser', `depth` 1.5, `kill` (gift true), `foam` true, `banks` true → `{ speed, dir, inside(x,z), info() }` | `{ type: 'stroemung', id: 'strom', from: [-6,0.4,-150], to: [-6,-0.6,-164], fluid: 'gift' }` |
+| `wolkenplattform` | Wolke: von unten durchspringbar, federt ein, optional fahrend und/oder verpuffend | `pos` (Mitte unten), `size` [3,0.6,3], `path`, `speed` 2, `mode`, `wait` 0.5, `phase`, `idle`, `sink` 0.2, `vanish` 0, `respawn` 3, `color` 'weiss' \| 'grau' \| 'rosa' \| 'gold', `oneWay` true, `hidden` → `{ state ('da'\|'zittert'\|'weg'), load, start(), stop(), reveal(), hide(), info() }` | `{ type: 'wolkenplattform', id: 'wolke1', pos: [6,2.2,-236], vanish: 1, respawn: 2.5 }` |
+| `wurfball` (kind; auch type, Liste `balls`) | Aktion hebt auf/wirft (Ducken + Aktion: absetzen); trifft im Flug und schnell rollend (≥ 2,5 m/s) Gegner (`onHit('throw', ball)`), POW, Druckschalter, Sterne/Münzen (für die Werferin), Zielscheiben, Gong, alles mit `onBallHit(ball)`; treibt im Wind; reist durch Glasröhren | `pos`, `size` 0.45, `speed` 15, `lift` 3, `bounce` 0.5, `life` 4, `respawn` 1.5, `color` 'weiss' \| 'rot' \| 'gelb', `id`, `hidden` → `{ thrown, hits, lastHit, info() }` | `{ type: 'wurfball', id: 'ball', pos: [4,0,-254] }` |
+| `zielscheibe` (kind; auch type, Liste `targets`) | Treffer klappt sie um; alle der Gruppe → `onAll` (einmal) | `pos` (Scheibenmitte), `yaw` −π/2, `size` 1.2, `group` 'ziele', `onHit`, `onAll`, `by` 'ball' \| 'alles', `stand` 0, `reset` 0, `id`, `hidden`; `level.targets[group] = { n, of, done }` | `{ type: 'zielscheibe', group: 'ziele', onAll: { coins: 5 }, stand: 1, targets: [{ pos: [3,1.6,-264] }, { pos: [7,1.6,-264] }] }` |
+| `riesenfrageblock` (kind; auch type) | großer ?-Block: Stampfen oben drauf oder Explosion lässt ihn zum Turm wachsen (trägt die Figur mit), Inhalt springt heraus | `pos` (Mitte unten), `size` 2, `grow` 6, `speed` 3, `content` 'coins:5' \| Aktion, `onGrow`, `trigger` ['pound','bomb'] (+ 'bump', 'mega'), `attach`, `id`, `hidden` → `{ state ('bereit'\|'waechst'\|'turm'), height, grow(), info() }` | `{ type: 'riesenfrageblock', id: 'riesen', pos: [-6,0,-257], grow: 5, content: 'coins:3' }` |
+| `deco_w6` | Kulisse (verschmolzen) | `items: [{ kind, pos, … }]`, `shadow: false`; Arten: wolke, wolken, bergkiefer(n), fels(en), bergblumen, menhir, mast, fass, kiste, anker, steuerrad, wrackteil, laterne (`hang`), laternenpfahl, bambus, kirschbaum, paravent, dschungelbaum, farn(e), liane, riesenblatt, pilze, schneehaufen, schneekiefer, eiszapfen (from→to), zahnrad, rohr (from→to), schornstein, warnstreifen, minenbalken(_reihe), minenlampe, kristalle, lore, schienen; nur mit Registry-Modell: wolkenberg, wolkenfels, wrack (`part` 'bug' \| 'mast'), geisterschiff, dach, holzbruecke (nur Optik), giftbluete, giftpilz, kessel, schachtgeruest, eiszapfenbuendel | `{ type: 'deco_w6', items: [{ kind: 'laternenpfahl', pos: [-4,1,-110] }, { kind: 'kirschbaum', pos: [11,1,-125] }] }` |
+
+Hinweise für Level-Bauer: Kippschiff/-steg nur achsenparallel (90°-Raster). Glasnetz-Öffnungen ≈ 1 m über dem Boden
+(Mitte; Hineinlaufen genügt), Röhren dürfen sich nicht kreuzen (Kreuzung = Knoten). Deckengitter so hoch legen, dass die
+Figur im Sprung die Hände hinbekommt (Gitter ≤ Boden + ≈ 3,8 m; die Füße hängen 1,15 m unter dem Gitter). Quetschblock-Rillen
+mit `wall`-Blöcken bauen (Einklemmen braucht eine feste Gegenfläche). Den Floß-Weg auf der Oberfläche der Strömung enden
+lassen.
+
+### Präzisierung (Motor und Bausteine Welt 6): Signale, Zustände, Schnittstellen
+
+- **Signale**: Gong → `level.signal(spec.signal ?? 'gong', { pos, source, via })` je Schlag (`via` 'tap' \| 'action' \|
+  'pound' \| 'hit' …), z. B. für eine Rätselbox (`level.onSignal('gong', …)`). Weichen hören auf
+  `level.signal(weichen.K.signal)` (schaltet um) und auf die Aktion `{ toggle: netzId }`. Signal-Verben an benannte Handles:
+  Tür `open`/`toggle`, Windfeld/Förderband/Quetschblock/Floß/Wolke/Quelle `start`/`stop`(/`toggle`), versteckte Teile
+  `reveal`/`hide`.
+- **Neuer Spielfigur-Zustand** `proxy.course.state = 'hang'` (siehe oben; Ersatz `'trapeze'`); das Wandgitter nutzt den
+  vorhandenen Zustand `'fence'`, Glasröhren `'pipe'`; Pilz-Maske = Helm `player.helmet = 'maske'`.
+- **Schnittstellen für den Gegner-Agenten**:
+  - `level.isMaskedFrom(gegner, figur?)` – true = Gegner sieht die Figur nicht (Maske + zugewandt, ±75°); Gegner, die
+    bemerken/verfolgen, prüfen das vor dem Bemerken. `player.masked` ist direkt lesbar.
+  - Wind: `windAt(level, x, y, z, out)` (Summe aller Windfelder, m/s) und `pushFigures(level, inside, vx, vy, vz, dt, ground)`
+    für die Pustewolke (eigener Atem-Wind); Entitäten mit `windK > 0` treiben in Windfeldern.
+  - Glasnetz: Entitäten mit `enemy`, `carryable` oder `pipeable` (nicht `boss`) reisen mit; optional `onPipeEnter(net, knoten)`,
+    `onPipeExit(net, knoten)` (Knotenname der Öffnung); `pipeable: false` schließt aus.
+  - Kippschiff/-steg/Wippe: Entitäten mit `weight` (Gegner Standard 1) neigen sie; `tilter.push(deg)` kippt einmalig (Schubser).
+  - Quetschblock: `onHit('crush', handle)` bei Einklemmen, sonst wird geschoben.
+  - Wurfball: `onHit('throw', ball)`; beliebige Entitäten mit `onBallHit(ball)`.
+  - Riesen-?-Block: `onHit('bomb')` (Zündkopf, Kickbombe über explodeAt / Form `breakable`).
+  - Gong: `w6(level).gongs[i].ring(via)` (z. B. ein Panzer schlägt ihn).
+  - Stachelkugel ist `enemy` + `spiky` (verletzt auch von oben); Bosse können sie per `level.spawn('stachelkugel', …)` erzeugen.
+- **Klänge** über `w6Sfx(level, name)`: eigener Effekt, sobald es ihn in `src/audio` gibt, sonst Ersatz – `gust`→swoop,
+  `wind`→hover, `rumble`→land, `door`→gate, `poof`→vanish, `splash`→splash_big, `bump`→blockhit, `powerup_appear`→powerup.
+  Wunsch an den Audio-Agenten: diese Namen als eigene Effekte.
+
+### Präzisierung (Motor und Bausteine Welt 6): Modelle
+
+Die Bausteine übernehmen die Welt-6-Modelle der Registry (`gimmicks_w6.js`, `props_himmel_w6.js`, `props_halle_w6.js`), sonst
+eigene Ersatz-Geometrie mit gleicher Kollision und Mechanik:
+
+| Modell | genutzt von | Optionen / Zustand aus dem Baustein |
+| --- | --- | --- |
+| `glasroehre_teil` | Kreuzungen des `glasnetz` (waagerecht, rechtwinklig: kind 't' \| 'kreuz') | { kind, radius }; Röhren selbst eigene Geometrie (beliebig gebogen) |
+| `stachelkugel` | `stachelkugel` | { size, color }; state { anim 'roll', roll } |
+| `wurfball` | `wurfball` (auf size/0,5 skaliert) | state { anim 'idle' \| 'carried' \| 'thrown', roll } |
+| `pilz_maske` | Item (`mode: 'item'`), am Kopf (`mode: 'kopf'`, size 0,46) über `HELMETS.maske.fallbackModel` | — |
+| `riesen_frageblock` | `riesenfrageblock` | { size, height: grow }; state { grow, anim 'bump' \| 'idle' } |
+| `schiebetuer` | `schiebetuer` (ohne eigenen Rahmen; 'links' gespiegelt) | { width, height, panels }; state { open, hint, tap } |
+| `gong` | `gong` (× size/1,44) | state { anim 'ring' \| 'idle', ring } |
+| `klettergitter` | `klettergitter` mit style 'bambus' \| 'liane' (Wand gedreht, Decke liegend) | { size: [w,h] }; state { shake } |
+| `windboe_fahne` | `windfeld` mit `fahne` | state { wind, dir, gust } |
+| `foerderband` | `foerderband` Boden | { length, width, thick }; state { offset } |
+| `quetschblock` | `quetschblock` style 'metall' (auf/ab ohne Kolben) | { size, rod }; state { warn, slam } |
+| `kippsteg` | `kippsteg` | { length, width, thick }; state { tilt 0, warn } |
+| `wippe` | `wippe` (Bock bis zur Stütze, height 2,2) | { length, width, thick, height }; state { tilt } |
+| `wolkenplattform` | `wolkenplattform` weiß | { size }; state { anim 'step' \| 'idle' } |
+| Kulisse | `deco_w6` (gebacken) | bergkiefer, tanne_schnee, kirschbaum, papierlaterne, riesenblatt, dschungel_liane, lore, zahnrad, wolkenberg, wolkenfels, geisterschiff_wrack, geisterschiff, fernost_dach, holzbruecke, giftbluete, giftpilz, kessel, schacht_geruest, eiszapfen |
+
+Das **Kippschiff** baut seinen Rumpf selbst: das Registry-`geisterschiff` hat ein erhöhtes Achterdeck und einen geschwungenen
+Deckssprung, die Lauffläche muss aber eben zur Kollision (TiltDeck) passen. Takelage und Segel sind ein eigenes Mesh, das
+durchscheinend wird, wenn es die Figur verdeckt (`view.xray`); ebenso die Decke über einem Deckengitter.
+
+### Präzisierung (Motor und Bausteine Welt 6): Themen
+
+| Thema | Name | Stimmung / Hintergrund |
+| --- | --- | --- |
+| `clearpipe` | Glasröhren-Bergland | heller Himmel, Wolkenmeer, Bergspitzen mit Glasröhren (`cloudpeaks`) |
+| `stonecircle` | Steinkreis | Wolkenboden, Menhir-Ring als Ellipse um die Arena (`stonering`) |
+| `wreck` | Geisterschiffe | Abendlicht über nebligem Meer, schaukelnde ferne Schiffe (`ghostsea`, seaLevel −1); Stimmung `laderaum` (`view.setMood('laderaum')`), Unterwasser automatisch (trübes Grün, Lichtflecken); Laternenlicht grünlich |
+| `fareast` | Fernost-Halle | rosiges Licht, Tal mit Laternen, fallende Kirschblüten (`fareast`); eigene Fantasie-Gestaltung ohne reale religiöse Symbole |
+| `jungle` | Giftsee-Dschungel | dunstiges Grün, lila Giftsee (`junglelake`, seaLevel −0,6) |
+| `snowwind` | Windige Schneegipfel | kalter Himmel, Schneegipfel, Schneetreiben (`snowpeaks`) |
+| `factory` | Himmels-Maschinenhalle | Wolkenfabrik mit drehenden Zahnrädern (`skyfactory`) |
+| `fuzzymine` | Wuschel-Schacht | dunkler Schacht nach oben, warmes Figuren- und Laternenlicht, aufsteigender Staub (`mineshaft`) |
+
+`skyway` (6-Panzer) und `circus` (6-C) sind vorhanden. Jedes Thema lässt sich in `0-23` mit `?theme=<name>` ansehen.
+
+### Präzisierung (Motor und Bausteine Welt 6): Welt 6 – Gimmick → Baustein
+
+| Gimmick (Bauplan) | Baustein |
+| --- | --- |
+| verzweigtes Glasröhren-Netz, Röhren an Wänden (6-1, 6-5, 6-A) | `glasnetz` (Weichen, Fenster, Kanonen-Ende, Mitnahme) |
+| Stachelkugeln (6-1) | `stachelkugel`, `stachelkugel_quelle` |
+| kippende Schiffe, 1 m Kippsteg (6-2) | `kippschiff`, `kippsteg` |
+| gefluteter Laderaum (6-2) | Thema `wreck` (Stimmung `laderaum`, Unterwasser) + `water` |
+| Schiebetüren antippen, Scheinwände (6-3) | `schiebetuer` (`behind: 'wand'`) |
+| Gong: Münzregen / Rätselbox (6-3) | `gong` (`coins`, `onHit`, Signal `gong`) |
+| Pilz-Maske (6-3) | `pilz_maske` + `level.isMaskedFrom` |
+| Floß im Giftsee, Abwärtsströmung (6-4) | `floss`, `stroemung`, `giftwasser` (Welt 4) |
+| Klettergitter, kletterbare Wand (6-4, 6-6) | `klettergitter` (Wand/Decke) |
+| Windböen über Abgründen (6-5) | `windfeld` (+ `fahne`) |
+| Förderbänder Boden und Wand (6-6) | `foerderband` (boden/wand/rund) |
+| Wolken (6-6, 6-7) | `wolkenplattform` |
+| Quetschblöcke (6-7) | `quetschblock` |
+| Wippen (6-7) | `wippe` |
+| Wurfbälle, Schalterfelder (6-Haus) | `wurfball`, `zielscheibe`, `pow`, `pswitch` |
+| große ?-Blöcke wachsen zu Türmen (6-Panzer) | `riesenfrageblock` |
+
+### Präzisierung (Motor und Bausteine Welt 6): Tests und Kennzahlen
+
+`tests/course_w6_blocks.mjs` (Port 4600, `W6B_PART=mech|themes`, `W6B_SHOTS=0` ohne Bilder): je Mechanik mit Gegenprobe –
+Glasnetz (Weiche, Signal, Stick, Ball und Pilzling reisen mit), Stachelkugeln (Treffer auch von oben, Quelle), Kippschiff
+(Welle, Gewicht, Deck folgt, Rutschen, Mitte bleibt waagerecht), Kippsteg, Schiebetür/Scheinwand, Gong (Stampfen, Signal,
+Maske erscheint, Münzregen, Abklingzeit, Antippen), Pilz-Maske (zugewandt/abgewandt, Treffer schlägt ab), Floß/Strömung/Gift,
+Wand-/Deckengitter (greifen, klettern, hangeln, Rand, loslassen), Windböen (Ruhe/Vorwarnung/Böe, Boden/Sprung), Förderbänder
+(Boden, umgekehrt, Wandstufe, rund), Quetschblöcke (Takt, daneben heil, eingeklemmt tot, seitlich geschoben), Wippe/Wolke,
+großer ?-Block (Stampfen, Explosion), Wurfball (Gegner, Zielscheiben, vorbei = nichts, POW), Ziel; keine Konsolenfehler.
+Kennzahlen (inkl. Schattenpass): Stationen höchstens 63 Zeichenaufrufe / 163 k Dreiecke, Themen höchstens 72 / 174 k
+(Grenzen 120 / 300 k).

@@ -23,6 +23,9 @@
 //              `onLight(dt, player)` im Kegel bekommt den Aufruf je Schritt (Geister lösen sich auf – Welt 3;
 //              Teststub `testgeist`). Modell-Zustand { on: true }. HeroRig zeichnet den Kegel.
 //
+// Welt 6 (additiv): weitere Helme trägt ihr Modul in HELMETS ein (HELMETS.maske = Pilz-Maske, entities/kinds/w6_gimmicks.js);
+// def.model (Registry-Name) und def.fallbackModel(opts) liefern deren Optik.
+//
 // Modelle: getModel('helm_kanone' | 'helm_propeller' | 'helm_licht') aus der Registry, sonst die Rückfall-Optik
 // hier (helmetModel). Maßstab Meter, Ursprung = Mitte der Unterseite, Blick nach +X; Helm ≈ 0,5 m breit, sitzt
 // auf dem Kopf (HeroRig hängt ihn an den Kopf des Avatars).
@@ -229,5 +232,9 @@ export function helmetModel(name, opts = {}) {
   const k = normalizeHelmet(name) ?? 'kanone';
   const model = `helm_${k}`;
   if (hasModel(model)) return getModel(model, opts);
+  // Welt 6: von außen eingetragene Helme (z. B. Pilz-Maske) bringen eigenes Modell bzw. eigene Rückfall-Optik mit
+  const def = HELMETS[k];
+  if (def?.model && def.model !== model && hasModel(def.model)) return getModel(def.model, opts);
+  if (typeof def?.fallbackModel === 'function') return def.fallbackModel(opts);
   return fallbackHelmet(k);
 }
