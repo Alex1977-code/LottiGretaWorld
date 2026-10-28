@@ -62,13 +62,13 @@ export const MAP = {
   ] },
   // Nachbarwelten am Horizont: Welt 5 (Lila Strand-Insel) tief im Südwesten – dorthin führt die Rückweg-Röhre; im
   // Nordosten die ferne Lava-Festung (Welt 7, Ziel der Röhre W7)
-  neighbors: [{ world: 5, pos: [-205, 116], size: [80, 54], style: 'lila' }, { world: 7, pos: [300, -340], size: [90, 60], style: 'lavafort' }],
+  neighbors: [{ world: 5, pos: [-205, 116], size: [80, 54], style: 'lila' }, { world: 7, pos: [262, -300], size: [90, 60], style: 'lavafort' }],
   birdStyle: 'gull',
   birds: [{ c: [4, 15, 22], r: 9, n: 3 }, { c: [-52, 17, -16], r: 8, n: 2 }, { c: [42, 19, -62], r: 10, n: 3 }, { c: [-30, 21, -90], r: 8, n: 2 }, { c: [36, 25, -148], r: 9, n: 2 }],
   // Luftschiffchen ziehen ihre Kreise zwischen und unter den Inseln (SkyLife, sky6.js)
   airships: [{ c: [-10, 5, 2], r: 44, speed: 0.06, color: 0xb48ae8 }, { c: [24, 7, -92], r: 48, speed: -0.05, color: 0xff9a6a }, { c: [16, 10, -150], r: 40, speed: 0.055, color: 0x6ac8f0 }],
   // Windräder: [x, y, z, Höhe, yaw] – Flügel drehen je Zählzeit der Kartenmusik eine Achtelrunde weiter
-  windmills: [[27, 17.5, -90.5, 6.5, 0.15], [37, 17.5, -92, 7.5, 0], [52.5, 17.5, -90, 6, -0.2], [24.5, 14, -58, 5, 0.3], [55, 14, -60, 5.2, -0.3], [30, 15.5, 47, 5.5, -0.4], [-58, 15, -70.5, 4.6, 0.3]],
+  windmills: [[27, 17.5, -90.5, 6.5, 0.15], [37, 17.5, -92, 7.5, 0], [52.5, 17.5, -90, 6, -0.2], [27, 14, -80.5, 5, 0.3], [47.5, 14, -81.5, 5.2, -0.3], [30, 15.5, 47, 5.5, -0.4], [-58, 15, -70.5, 4.6, 0.3]],
   // Wasserfälle aus den Inselflanken hinab ins Wolkenmeer: at = [x, z] (Mitte), w Breite, top (Austritt), face S|E|W
   waterfalls: [
     { at: [-6, 50], w: 3.2, top: 9.2, face: 'S' }, { at: [-16, 12], w: 3, top: 10.2, face: 'S' }, { at: [31, 0], w: 2.6, top: 11.2, face: 'S' },
@@ -78,7 +78,7 @@ export const MAP = {
   // Seilbahn vom Zirkus-Gipfel hinab zur Wolkenstraße (Masten, Seil, pendelnde Gondel – decor_w4.buildCableway)
   cableways: [{ from: [31.6, 20, -173], to: [12.6, 16.5, -126.6], hFrom: 7, hTo: 6, sag: 2.2, period: 18 }],
   // Regenbögen: Mitte (Fußpunkt-Ebene), Radius, Drehung
-  rainbows: [{ c: [0, 5, 20.5], r: 14.5, yaw: 0 }, { c: [46, 9, -137], r: 15, yaw: 0 }, { c: [-50, 7, 9], r: 10, yaw: 0.35 }],
+  rainbows: [{ c: [0, 5, 20.5], r: 14.5, yaw: 0 }, { c: [46, 12, -183], r: 20, yaw: 0 }, { c: [-50, 7, 9], r: 10, yaw: 0.35 }],
 
   levels: [
     { id: 'W5', world: 5, next: 5, label: 'Welt 5', stars: 0 },
@@ -153,10 +153,9 @@ export const MAP = {
 
   paths: [
     [[2, 47.5], [2, 40], [0, 36], [0, 28]],
-    [[2, 43.5], [-10, 44.6], [-16, 47.6]],
-    [[0, 36], [-5, 37.4], [-8, 37.4]],
+    [[2, 45.5], [-8, 46.6], [-16, 47.6]],
     [[2, 40], [8, 38.6], [12, 38.6]],
-    [[0, 33], [-12, 32], [-22, 32]],
+    [[0, 32], [-12, 32], [-22, 32]],
     [[-34, 32], [-37.4, 32]],
     [[0, 12], [0, 4], [-6, -2]],
     [[0, 4], [-14, 1], [-26, 0]],
@@ -199,7 +198,7 @@ export const MAP = {
     { id: '6-Panzer', kind: 'tankroad', pos: [36, 16.5, -117], decor: [36, 16.5, -124.5] },
     { id: '6-C', kind: 'skycircus', pos: [46, 20, -153], decor: [46, 20, -165], labelY: 2.8 },
     { id: 'W7', kind: 'pipe', pos: [80, 20, -157], decor: [80, 20, -160.1],
-      pipe: [[0, 0, 0], [0, 3.5, 0], [0.8, 5.8, -0.4], [5, 8.4, -2.4], [16, 11, -8], [40, 14, -22], [80, 16, -46], [140, 15, -80], [205, 12, -118]], pipeDetail: 'low',
+      pipe: [[0, 0, 0], [0, 3.5, 0], [0.8, 5.8, -0.4], [5, 8.4, -2.4], [16, 11, -8], [40, 14, -22], [80, 16, -46], [150, 14, -88]], pipeDetail: 'low',
       arriveCam: { up: 7.5, ahead: 4, drop: 3.5 } },
   ],
 
@@ -247,6 +246,8 @@ export const MAP = {
     { kind: 'flowerbed', pos: [6, 10, 30.4], area: [6, 1.6], solid: false, shadow: false }, { kind: 'flowerbed', pos: [-4, 10, 48.6], area: [5, 1.4], solid: false, shadow: false },
     { kind: 'mushroom', pos: [15.6, 10, 44.4], size: 0.9 }, { kind: 'mushroom', pos: [16.8, 10, 42.6], size: 0.6, tone: 1 },
     { kind: 'skylamp', pos: [-3.2, 10, 28.8] }, { kind: 'skylamp', pos: [3.2, 10, 28.8] },
+    { kind: 'flowerbed', pos: [9, 10, 45.6], area: [4, 1.4], solid: false, shadow: false }, { kind: 'flowerbed', pos: [-5.6, 10, 41.2], area: [3.4, 1.4], solid: false, shadow: false },
+    { kind: 'bush6', pos: [7.6, 10, 33.4], size: 0.7 }, { kind: 'mushroom', pos: [-12.6, 10, 42.4], size: 0.7, tone: 2 },
     { kind: 'bush6', pos: [-21, 10, 39], size: 0.9 }, { kind: 'bush6', pos: [19, 10, 30], size: 0.8 },
     // S Steinkreis-Insel
     { kind: 'skytree', pos: [-54, 10.5, 15.6], size: 4.2, tone: 2 }, { kind: 'flowerbed', pos: [-52, 10.5, 32], area: [4, 1.4], solid: false, shadow: false },
@@ -262,9 +263,16 @@ export const MAP = {
     { kind: 'jungletree6', pos: [28.6, 12, -38], size: 5.2 }, { kind: 'jungletree6', pos: [54, 12, -37.4], size: 4.8 }, { kind: 'jungletree6', pos: [53.6, 12, -2], size: 4.6 },
     { kind: 'jungletree6', pos: [27.6, 12, -24], size: 4.4 }, { kind: 'fern', pos: [34, 12, -2.4] }, { kind: 'fern', pos: [53, 12, -10] }, { kind: 'fern', pos: [28, 12, -12] },
     { kind: 'mushroom', pos: [52.6, 12, -28], size: 0.8, tone: 2 }, { kind: 'mushroom', pos: [28.4, 12, -31.6], size: 0.7, tone: 1 },
+    { kind: 'jungletree6', pos: [51.5, 12, -3.2], size: 4.4 }, { kind: 'mushroom', pos: [36.6, 12, -12], size: 0.75, tone: 2 }, { kind: 'fern', pos: [49, 12, -12.4] },
+    { kind: 'flowerbed', pos: [37.4, 12, -1.6], area: [4, 1.2], solid: false, shadow: false }, { kind: 'bush6', pos: [55, 12, -27], size: 0.8 }, { kind: 'fern', pos: [27.6, 12, -35.6] },
+    { kind: 'bamboo', pos: [54.6, 12, -12.6], size: 0.8 },
     // F Schnee-Wolkenberg: Tannen, Schneemann, Eisblumen
     { kind: 'fir', pos: [24.6, 14, -82.6], size: 3.6, model: false }, { kind: 'fir', pos: [56, 14, -83], size: 3.2, model: false }, { kind: 'fir', pos: [55.4, 14, -56.6], size: 3, model: false },
     { kind: 'snowman', pos: [28, 14, -64], model: false }, { kind: 'icecrystal', pos: [50, 14, -70], size: 1 }, { kind: 'icecrystal', pos: [25.4, 14, -73], size: 0.8 },
+    { kind: 'fir', pos: [23.8, 14, -66.6], size: 3.2, model: false }, { kind: 'fir', pos: [56.4, 14, -73], size: 3.4, model: false }, { kind: 'fir', pos: [46, 14, -84.4], size: 3, model: false },
+    { kind: 'snowman', pos: [53.4, 14, -55.8], model: false }, { kind: 'icecrystal', pos: [34, 14, -84.2], size: 0.9 },
+    { kind: 'snowdrift', pos: [45.6, 14, -61.4], size: 1.4 }, { kind: 'snowdrift', pos: [34.2, 14, -64.6], size: 1.1 }, { kind: 'snowdrift', pos: [44, 14, -74.6], size: 1.6 },
+    { kind: 'snowdrift', pos: [26.4, 14, -60.4], size: 1.2 }, { kind: 'icecrystal', pos: [46.8, 14, -63.8], size: 0.7 },
     // G Himmelsfabrik: Kisten, Fässer, Zahnräder am Boden
     { kind: 'crates6', pos: [5.4, 15, -64.6] }, { kind: 'barrels', pos: [-24, 15, -88] }, { kind: 'gearpile', pos: [4.6, 15, -92] },
     { kind: 'skylamp', pos: [-3.6, 15, -63.4] }, { kind: 'skylamp', pos: [-24, 15, -63.4] },
@@ -277,6 +285,8 @@ export const MAP = {
     { kind: 'drum6', pos: [33, 20, -158], size: 1 }, { kind: 'drum6', pos: [59.2, 20, -170], size: 0.85, tone: 1 },
     // L Röhren-Insel
     { kind: 'skytree', pos: [86, 20, -151.6], size: 4 }, { kind: 'flowerbed', pos: [75, 20, -152], area: [3.6, 1.4], solid: false, shadow: false },
+    { kind: 'mushroom', pos: [86.2, 20, -167.6], size: 0.9, tone: 1 }, { kind: 'bush6', pos: [73.6, 20, -168.4], size: 0.8 }, { kind: 'flowerbed', pos: [84.4, 20, -162.6], area: [3, 1.2], solid: false, shadow: false },
+    { kind: 'skylamp', pos: [76.4, 20, -151.4] },
   ],
 
   segments: [

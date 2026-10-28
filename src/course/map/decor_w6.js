@@ -248,10 +248,12 @@ function spikeBallGeo(r = 0.9) {
 // ------------------------------------------------------------------ 6-1 Bergland mit Glasröhren
 
 function pipeHills(ev, x, y, z) {
-  // Röhren-Netz: aus dem Boden hinter dem Podest hinauf und in die Hügel (Osten, Nordosten), Schleife auf dem Hügel
-  const c1 = glassPipe(ev, [[x, y, z], [x, y + 2.6, z], [x + 0.6, y + 4.4, z - 0.4], [x + 3.4, y + 5.8, z - 0.8], [x + 7, y + 6.2, z - 1.2], [x + 9.6, y + 6.3, z - 1.4]], 0.85, { collarEnd: true });
-  const c2 = glassPipe(ev, [[x + 0.6, y + 4.4, z - 0.4], [x + 0.9, y + 6.4, z - 2.8], [x + 4, y + 8, z - 7], [x + 11, y + 7.6, z - 12.5], [x + 16.5, y + 5.4, z - 15]], 0.75, { collarStart: false, collarEnd: true });
+  // Röhren-Netz: aus dem Boden hinter dem Podest hinauf; ein Ast flach nach Osten in die Bergflanke, einer im Bogen
+  // nach Nordwesten bis an die Glasröhren-Brücke, eine Schleife über den Hügel und ein Verbinder zum zweiten Hügel
+  const c1 = glassPipe(ev, [[x, y, z], [x, y + 2.2, z], [x + 1, y + 3.4, z - 0.2], [x + 4, y + 3.6, z - 0.4], [x + 8.6, y + 3.6, z - 0.6]], 0.85, { collarEnd: true });
+  const c2 = glassPipe(ev, [[x, y + 2.2, z], [x - 0.6, y + 4.6, z - 0.8], [x - 2.4, y + 6.2, z - 2.4], [x - 5.6, y + 6, z - 5.2], [x - 8.4, y + 4.4, z - 8.2], [x - 9.3, y + 3.4, z - 9.5]], 0.75, { collarStart: false, collarEnd: true });
   const c3 = glassPipe(ev, [[x + 11, y + 8.6, z + 13], [x + 14, y + 10.6, z + 9.5], [x + 18, y + 10.2, z + 6], [x + 21, y + 9.2, z + 9.5], [x + 18, y + 8.8, z + 15], [x + 13.5, y + 9.4, z + 16.4]], 0.7, { collarStart: true, collarEnd: true });
+  glassPipe(ev, [[x + 13, y + 7.2, z - 3], [x + 15, y + 8.6, z - 7], [x + 16.5, y + 6.6, z - 11]], 0.65, { collarStart: true, collarEnd: true });
   // Röhrenfuß (weiß-goldener Sockel) und Kreuzung (Glaskugel)
   addGeo(ev, 'w6m:pipefoot', () => {
     const b = new Build();
@@ -259,7 +261,7 @@ function pipeHills(ev, x, y, z) {
     b.torus(1.2, 0.1, 0xffc83a, { p: [0, 0.36, 0], r: [Math.PI / 2, 0, 0] }, 4, 24);
     return b.geometry();
   }, x, y, z);
-  glass(ev, place(new Build().sphere(1.25, 0xc8f0ff, null, 14, 10).geometry(), x + 0.6, y + 4.4, z - 0.4));
+  glass(ev, place(new Build().sphere(1.15, 0xc8f0ff, null, 14, 10).geometry(), x, y + 2.4, z));
   solidCyl(ev, x, z, 1.3, y, y + 4.5, 'roehre');
   // Bitcoins sausen durch die Röhren
   const paths = [[c1, 0.55, 0], [c1, 0.55, 0.5], [c2, 0.42, 0.2], [c2, 0.42, 0.7], [c3, 0.3, 0.1], [c3, 0.3, 0.45], [c3, 0.3, 0.8]];
@@ -276,8 +278,9 @@ function pipeHills(ev, x, y, z) {
   putCoins(0);
   ev.updaters.push((dt, t) => putCoins(t));
   cullByView(ev, coins, x + 8, y + 7, z - 2, 18);
-  // Stachelkugeln auf den Hängen
-  for (const [sx, sy, sz, r] of [[x + 13, y + 6.4, z + 2.6, 0.9], [x + 19.5, y + 8.4, z + 12.6, 0.8], [x + 15, y + 4.6, z - 17.6, 0.75]]) addGeo(ev, `w6m:spikeball:${r}`, () => spikeBallGeo(r).clone(), sx, sy + r, sz, sx);
+  // Stachelkugeln auf den Hängen und eine am Wiesenrand
+  for (const [sx, sy, sz, r] of [[x + 13, y + 6.4, z + 2.6, 0.9], [x + 19.5, y + 8.4, z + 12.6, 0.8], [x + 15, y + 4.6, z - 17.6, 0.75], [x + 5.6, y, z + 9.6, 0.6]]) addGeo(ev, `w6m:spikeball:${r}`, () => spikeBallGeo(r).clone(), sx, sy + r, sz, sx);
+  solidCyl(ev, x + 5.6, z + 9.6, 0.85, y, y + 1.4, 'stachelkugel');
   // Warp-Box (Registry) neben dem Röhrenfuß, sonst eigene Kiste mit Stern
   const wb = [x + 4.6, y, z + 1.6];
   if (!bake6(ev, 'warp_box', {}, wb, FRONT, 1, null, true, 4000)) {

@@ -208,7 +208,13 @@ const PALETTES = {
   },
   snow: {
     side: 0xd8e8fa, rim: 0xffffff, cell: 2,
-    tile: (rnd) => (i, j, ax, az) => tone(checker(ax, az) ? 0xffffff : 0xeef4ff, 0xe4eefc, rnd.frac() * 0.4),
+    tile: (rnd) => (i, j, ax, az) => {
+      const o = tone(checker(ax, az) ? 0xffffff : 0xf2f6ff, 0xeaf2ff, rnd.frac() * 0.5);
+      const h = hash2(Math.floor(ax / 2) + 2, Math.floor(az / 2) - 5);
+      if (h > 0.93) mixc(o, lin(0xc8e4ff), 0.5, o);          // Eisglitzer
+      else if (h < 0.05) mixc(o, lin(0xdcd0f4), 0.35, o);    // lila Schneeschatten
+      return o;
+    },
   },
   snowpeak: {
     side: 0xe0ecfa, rim: 0xffffff, bands: 'snow', cellOff: 4,
@@ -294,8 +300,8 @@ function mound(b, top, rnd, style) {
  */
 function underside(x0, z0, x1, z1, y, depth, pal, rnd, style, lite = false) {
   const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, hw = (x1 - x0) / 2, hd = (z1 - z0) / 2;
-  const N = clampv(Math.round((2 * (x1 - x0 + z1 - z0)) / 3.2), 14, 44);
-  const K = 6;
+  const N = clampv(Math.round((2 * (x1 - x0 + z1 - z0)) / 4.4), 12, 32);
+  const K = 5;
   const ox = rnd.real(-0.18, 0.18) * hw, oz = rnd.real(-0.18, 0.18) * hd;
   const rings = [];
   for (let k = 0; k < K; k++) {
@@ -350,7 +356,7 @@ function underside(x0, z0, x1, z1, y, depth, pal, rnd, style, lite = false) {
     b.cone(rnd.real(0.35, 0.8), L, { v: (px, py) => mix(pal[1], pal[2], 0.5 - py / L) }, { p: [p[0] * 0.85 + (cx + ox) * 0.15, p[1] - L / 2 + 0.2, p[2] * 0.85 + (cz + oz) * 0.15], r: [Math.PI, 0, 0] }, 5);
   }
   if (!lite && style !== 'snow' && style !== 'snowpeak' && style !== 'metal' && style !== 'fort') {
-    const nV = clampv(Math.round((x1 - x0) / 3.5), 2, 10);
+    const nV = clampv(Math.round((x1 - x0) / 5), 2, 7);
     const leaf = style === 'jungle' ? [0x2e8a3a, 0x6ad050] : [0x3e9a3e, 0x8ad86a];
     for (let i = 0; i < nV; i++) {
       // vorne (Kamera-Seite) und an den Flanken
@@ -359,7 +365,7 @@ function underside(x0, z0, x1, z1, y, depth, pal, rnd, style, lite = false) {
       const vz = side < 0.7 ? z1 + 0.05 : rnd.real(z0 + 0.6, z1 - 0.6);
       const L = rnd.real(1.2, 3.6);
       b.cyl(0.05, 0.04, L, leaf[0], { p: [vx, y - L / 2 + 0.1, vz] }, 4, true);
-      for (let q = 0; q < 3; q++) b.sphere(rnd.real(0.14, 0.24), { v: (px, py, pz, nx, ny) => mix(leaf[0], leaf[1], ny * 0.5 + 0.5) }, { p: [vx + rnd.real(-0.12, 0.12), y - L * (0.25 + q * 0.3), vz + 0.08] }, 5, 3);
+      for (let q = 0; q < 2; q++) b.sphere(rnd.real(0.16, 0.26), { v: (px, py, pz, nx, ny) => mix(leaf[0], leaf[1], ny * 0.5 + 0.5) }, { p: [vx + rnd.real(-0.12, 0.12), y - L * (0.3 + q * 0.4), vz + 0.08] }, 5, 3);
     }
   }
   const nC = clampv(Math.round((hw + hd) / 7), 1, 4);
@@ -387,17 +393,17 @@ function cloudSlab(b, yb, rnd) {
   parts.push(slab);
   parts.push(flat(alignedGrid(x0 + 0.3, z0 + 0.3, x1 - 0.3, z1 - 0.3, top + 0.004, 2, (i, j, ax, az) => tone(checker(ax, az) ? 0xffffff : 0xf0f4ff, 0xe8eefc, rnd.frac() * 0.3))));
   const c = new Build();
-  const col = { v: (x, y, z, nx, ny) => mix(0xc8d6f2, 0xffffff, ny * 0.6 + 0.5) };
+  const col = { v: (x, y, z, nx, ny) => mix(0xdde4f8, 0xffffff, ny * 0.6 + 0.55) };
   const edge = (ax, az, bx, bz, nx, nz) => {
-    const len = Math.hypot(bx - ax, bz - az), n = Math.max(2, Math.round(len / 1.7));
+    const len = Math.hypot(bx - ax, bz - az), n = Math.max(2, Math.round(len / 2.3));
     for (let i = 0; i < n; i++) {
-      const t = (i + 0.5) / n, r = rnd.real(0.8, 1.4);
-      c.sphere(r, col, { p: [ax + (bx - ax) * t + nx * r * 0.45, top - 0.55 + rnd.real(-0.2, 0.2), az + (bz - az) * t + nz * r * 0.45], s: [1, 0.7, 1] }, 10, 6);
+      const t = (i + 0.5) / n, r = rnd.real(1.0, 1.6);
+      c.sphere(r, col, { p: [ax + (bx - ax) * t + nx * r * 0.45, top - 0.55 + rnd.real(-0.2, 0.2), az + (bz - az) * t + nz * r * 0.45], s: [1, 0.78, 1] }, 10, 6);
     }
   };
   edge(x0, z1, x1, z1, 0, 1); edge(x0, z0, x1, z0, 0, -1); edge(x0, z0, x0, z1, -1, 0); edge(x1, z0, x1, z1, 1, 0);
   // Wolkenbauch
-  const nb = Math.max(3, Math.round((x1 - x0) * (z1 - z0) / 40));
+  const nb = Math.max(3, Math.round((x1 - x0) * (z1 - z0) / 60));
   for (let i = 0; i < nb; i++) {
     const r = rnd.real(2, 3.6);
     c.sphere(r, { v: (x, y, z, nx, ny) => mix(0xb4c4e8, 0xf4f8ff, ny * 0.5 + 0.5) }, { p: [rnd.real(x0 + 2, x1 - 2), yb - r * 0.2, rnd.real(z0 + 2, z1 - 2)], s: [1.2, 0.6, 1] }, 8, 5);
@@ -461,7 +467,7 @@ function cloudRims(level, map) {
   // Zeichenaufrufe)
   const sectors = new Map();
   const sector = (x, z) => { const k = `${Math.floor(x / 16)}:${Math.floor(z / 16)}`; if (!sectors.has(k)) sectors.set(k, new Build()); return sectors.get(k); };
-  const col = { v: (x, y, z, nx, ny) => mix(0xdce4f8, 0xffffff, ny * 0.5 + 0.6) };
+  const col = { v: (x, y, z, nx, ny) => mix(0xe2e8fa, 0xffffff, ny * 0.5 + 0.62) };
   let n = 0;
   for (const [k, c] of cells) {
     if (c.skip) continue;
@@ -469,12 +475,12 @@ function cloudRims(level, map) {
     for (const [dx, dz] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
       if (cells.has(`${x + dx},${z + dz}`)) continue;
       const h = hash2(x * 3 + dx * 7, z * 5 + dz * 11);
-      if (h > (dz < 0 ? 0.1 : dz > 0 ? 0.3 : 0.22)) continue;   // etwa jede vierte Kante (Nordkanten selten: von der Kamera abgewandt)
+      if (h > (dz < 0 ? 0.06 : dz > 0 ? 0.21 : 0.14)) continue;   // etwa jede fünfte Kante (Nordkanten selten: von der Kamera abgewandt)
       const px = x + 0.5 + dx * 0.5, pz = z + 0.5 + dz * 0.5;
       if (onBridge(px, pz)) continue;
-      const r = 0.9 + h * 2.4;
-      const yy = c.top - 0.9 - h * 2;
-      sector(px, pz).sphere(r, col, { p: [px + dx * r * 0.55, yy, pz + dz * r * 0.55], s: [1.25, 0.72, 1.25] }, 8, 4);
+      const r = 0.9 + h * 3.6;
+      const yy = c.top - 0.9 - h * 2.6;
+      sector(px, pz).sphere(r, col, { p: [px + dx * r * 0.55, yy, pz + dz * r * 0.55], s: [1.25, 0.72, 1.25] }, 10, 6);
       n++;
     }
   }
@@ -592,7 +598,7 @@ export function skyTreeGeo(h = 4.4, toneI = 0, seed = 1) {
   const [lc, dc] = CROWN[toneI % CROWN.length];
   const R = h * 0.26;
   for (const [dx, dy, dz, r] of [[0, 1.05, 0, 1.12], [-0.72, 0.62, 0.22, 0.8], [0.7, 0.7, -0.2, 0.86], [0.1, 0.55, 0.62, 0.7]]) {
-    b.sphere(R * r, { v: (x, y, z, nx, ny) => mix(dc, lc, ny * 0.55 + 0.5) }, { p: [dx * R, tH + dy * R, dz * R] }, 8, 6);
+    b.sphere(R * r, { v: (x, y, z, nx, ny) => mix(dc, lc, ny * 0.55 + 0.5) }, { p: [dx * R, tH + dy * R, dz * R] }, 8, 5);
   }
   if (toneI === 0) for (let i = 0; i < 4; i++) { const a = rnd.real(0, TAU); b.sphere(0.13, i % 2 ? 0xff5a6a : 0xffe04a, { p: [Math.cos(a) * R * 0.95, tH + R * rnd.real(0.7, 1.4), Math.sin(a) * R * 0.95] }, 5, 4); }
   return b.geometry();
@@ -601,12 +607,12 @@ export function skyTreeGeo(h = 4.4, toneI = 0, seed = 1) {
 export function flowerBedGeo(area = [4, 1.4], seed = 1) {
   const b = new Build();
   const rnd = new Rnd(seed);
-  const n = Math.max(4, Math.round(area[0] * area[1] * 2.2));
+  const n = Math.max(4, Math.round(area[0] * area[1] * 1.6));
   const cols = [0xff5a8a, 0xffd23a, 0xffffff, 0xb46aff, 0x4ac8ff, 0xff8a3a];
   for (let i = 0; i < n; i++) {
     const x = rnd.real(-area[0] / 2, area[0] / 2), z = rnd.real(-area[1] / 2, area[1] / 2), h = rnd.real(0.18, 0.36);
     b.cyl(0.02, 0.02, h, 0x3e9a3a, { p: [x, h / 2, z] }, 3);
-    b.sphere(rnd.real(0.08, 0.13), cols[i % cols.length], { p: [x, h, z] }, 5, 3);
+    b.sphere(rnd.real(0.09, 0.14), cols[i % cols.length], { p: [x, h, z] }, 5, 2);
   }
   return b.geometry();
 }
@@ -717,6 +723,13 @@ function iceCrystalGeo(s = 1, seed = 1) {
   }
   return b.geometry();
 }
+/** Schneewehe: flache weiße Hügelchen (nur Optik, ohne Kollision). */
+function snowDriftGeo(s = 1, seed = 1) {
+  const b = new Build();
+  const rnd = new Rnd(seed);
+  for (let i = 0; i < 3; i++) b.sphere(s * rnd.real(0.6, 1), { v: (x, y, z, nx, ny) => mix(0xd4e4fa, 0xffffff, ny * 0.6 + 0.4) }, { p: [rnd.real(-0.6, 0.6) * s, 0, rnd.real(-0.4, 0.4) * s], s: [1.4, 0.32, 1] }, 10, 5);
+  return b.geometry();
+}
 /** Kistenstapel (Fabrik/Mine). */
 function crates6Geo() {
   const b = new Build();
@@ -765,6 +778,7 @@ export function skyPropGeo(it, seed) {
     case 'fir': return firGeo(it.size ?? 3.4);
     case 'snowman': return snowmanGeo();
     case 'icecrystal': return iceCrystalGeo(it.size ?? 1, seed);
+    case 'snowdrift': return snowDriftGeo(it.size ?? 1, seed);
     case 'crates6': return crates6Geo();
     case 'gearpile': return gearPileGeo();
     case 'balloons6': return balloonsGeo(seed);
@@ -870,8 +884,8 @@ export function scatterSky(level, map, grid) {
     };
     switch (style) {
       case 'hill':
-        put(Math.max(2, Math.floor(area / 60)), 3.2, (r) => skyTreeGeo(r.real(3.6, 5), r.int(0, 3), r.int(1, 999)));
-        put(Math.floor(area / 50), 1.8, (r) => bushGeo(r.real(0.6, 0.9), r.int(1, 999)));
+        put(Math.max(2, Math.floor(area / 70)), 3.2, (r) => skyTreeGeo(r.real(3.6, 5), r.int(0, 3), r.int(1, 999)));
+        put(Math.floor(area / 70), 1.8, (r) => bushGeo(r.real(0.6, 0.9), r.int(1, 999)));
         put(Math.floor(area / 70), 1.6, (r) => flowerBedGeo([1.6, 1.2], r.int(1, 999)), flatParts);
         return;
       case 'snowpeak':
@@ -977,11 +991,11 @@ function buildCloudBridge(level, spec) {
   const rnd = new Rnd(Math.round(L * 31 + a[0] * 7 + a[2] * 3));
   const b = new Build();
   b.box(Ld + 0.4, 0.5, w + 0.2, { v: (x, y, z, nx, ny) => mix(0xd4def6, 0xffffff, ny * 0.6 + 0.5) }, { p: [L / 2, dy / 2 - 0.25, 0], r: [0, 0, pitch] }, 0.2, 1);
-  const col = { v: (x, y, z, nx, ny) => mix(0xc4d2f0, 0xffffff, ny * 0.6 + 0.45) };
-  const n = Math.max(3, Math.round(Ld / 1.2));
+  const col = { v: (x, y, z, nx, ny) => mix(0xdce4f8, 0xffffff, ny * 0.6 + 0.55) };
+  const n = Math.max(3, Math.round(Ld / 1.5));
   for (let i = 0; i <= n; i++) {
     const u = (i / n) * Ld;
-    for (const s of [-1, 1]) b.sphere(rnd.real(0.42, 0.6), col, { p: [u * Math.cos(pitch), u * Math.sin(pitch) + 0.3, s * (w / 2 + 0.05)], s: [1.2, 0.85, 1] }, 8, 5);
+    for (const s of [-1, 1]) b.sphere(rnd.real(0.48, 0.66), col, { p: [u * Math.cos(pitch), u * Math.sin(pitch) + 0.3, s * (w / 2 + 0.05)], s: [1.2, 0.85, 1] }, 11, 7);
     if (i % 2 === 0) b.sphere(rnd.real(1.1, 1.5), col, { p: [u * Math.cos(pitch), u * Math.sin(pitch) - 0.8, rnd.real(-1, 1)], s: [1.3, 0.7, 1.2] }, 7, 4);
   }
   level.view.addStatic(placeAlong(b.geometry(), a, c), { castShadow: true });
@@ -1028,7 +1042,7 @@ function buildRainbowBridge(level, spec) {
   RAINBOW.forEach((col, i) => b.box(Ld + 0.1, 0.03, sw, col, { p: [L / 2, dy / 2 + 0.005, -w / 2 + sw * (i + 0.5)], r: [0, 0, pitch] }, 0));
   const col = { v: (x, y, z, nx, ny) => mix(0xc4d2f0, 0xffffff, ny * 0.6 + 0.45) };
   const rnd = new Rnd(7);
-  for (const u of [0.4, Ld - 0.4]) for (let k = 0; k < 5; k++) b.sphere(rnd.real(0.7, 1.1), col, { p: [u * Math.cos(pitch) + rnd.real(-0.6, 0.6), u * Math.sin(pitch) - 0.5, (k - 2) * 1.1], s: [1.2, 0.7, 1] }, 7, 5);
+  for (const u of [0.4, Ld - 0.4]) for (let k = 0; k < 5; k++) b.sphere(rnd.real(0.7, 1.1), col, { p: [u * Math.cos(pitch) + rnd.real(-0.6, 0.6), u * Math.sin(pitch) - 0.5, (k - 2) * 1.1], s: [1.2, 0.7, 1] }, 10, 7);
   for (const s of [-1, 1]) {
     const nP = Math.max(2, Math.round(Ld / 2) + 1);
     for (let i = 0; i < nP; i++) {
@@ -1089,16 +1103,16 @@ export class CloudSea {
     const rnd = new Rnd(0xc10d6);
     const data = [];
     const x0 = bounds.min.x - 90, x1 = bounds.max.x + 90, z0 = bounds.min.z - 90, z1 = bounds.max.z + 70;
-    for (let i = 0; i < 600 && data.length < 120; i++) {
+    for (let i = 0; i < 600 && data.length < 90; i++) {
       const x = rnd.real(x0, x1), z = rnd.real(z0, z1);
       const near = scenery.distToLand(x, z);
       if (near < 2 && rnd.frac() < 0.6) continue;
-      const s = rnd.real(5, 15);
+      const s = rnd.real(6, 16);
       data.push({ x, z, y: sea + rnd.real(-0.6, 0.4), sx: s * rnd.real(1, 1.5), sy: s * rnd.real(0.22, 0.38), sz: s, v: rnd.real(0.25, 0.55), ph: rnd.real(0, TAU), xa: x0, xb: x1 });
     }
-    const top = lin(0xffffff), bot = lin(0xc8d0f0);
-    const dome = colorize(new THREE.SphereGeometry(1, 10, 4, 0, TAU, 0, Math.PI / 2), (p, n, o) => mixc(bot, top, smooth(0, 0.9, n.y), o));
-    this.puffs = new THREE.InstancedMesh(this.track(dome), this.track(new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x6a6e8a, emissiveIntensity: 0.25 })), data.length);
+    const top = lin(0xffffff), bot = lin(0xe0e4f8);
+    const dome = colorize(new THREE.SphereGeometry(1, 11, 4, 0, TAU, 0, Math.PI / 2), (p, n, o) => mixc(bot, top, smooth(0, 0.8, n.y), o));
+    this.puffs = new THREE.InstancedMesh(this.track(dome), this.track(new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x8a8eaa, emissiveIntensity: 0.32 })), data.length);
     this.puffs.receiveShadow = true;
     this.puffs.castShadow = false;
     this.puffs.frustumCulled = false;
@@ -1304,6 +1318,7 @@ export class SkyLife {
     this.buildAirships(map.airships ?? []);
     this.buildWaterfalls(map.waterfalls ?? []);
     this.buildRainbows(map.rainbows ?? []);
+    this.buildFloaters(map);
     this.wind = { beat: 0, step: 0, angle: 0, source: 'zeit', theme: null, bpm: MAP_BPM6(), moving: false };
     this.shown = null;
     this.update(0, 0);
@@ -1416,11 +1431,53 @@ export class SkyLife {
       const rnd = new Rnd(Math.round(x * 3 + z));
       for (const s of [-1, 1]) {
         const fx = x + Math.cos(rb.yaw ?? 0) * s * (r - 3.5 * bw), fz = z - Math.sin(rb.yaw ?? 0) * s * (r - 3.5 * bw);
-        for (let k = 0; k < 4; k++) puffs.sphere(rnd.real(1.2, 2), { v: (px, py, pz, nx, ny) => mix(0xc8d6f2, 0xffffff, ny * 0.6 + 0.45) }, { p: [fx + rnd.real(-1.2, 1.2), y + rnd.real(-0.4, 0.8), fz + rnd.real(-1, 1)], s: [1.2, 0.75, 1] }, 8, 5);
+        for (let k = 0; k < 4; k++) puffs.sphere(rnd.real(1.2, 2), { v: (px, py, pz, nx, ny) => mix(0xdde4f8, 0xffffff, ny * 0.6 + 0.55) }, { p: [fx + rnd.real(-1.2, 1.2), y + rnd.real(-0.4, 0.8), fz + rnd.real(-1, 1)], s: [1.2, 0.75, 1] }, 11, 7);
       }
     }
     this.view.addStatic(merge(parts), { material: 'w6rainbow', castShadow: false, tile: 'w6:regenbogen' });
     this.view.addStatic(puffs.geometry(), { castShadow: false });
+  }
+
+  /**
+   * Schwebesteine: kleine Felsbrocken mit Grasmütze schweben neben den Inseln knapp unter der Kante und wippen langsam
+   * (deterministisch verteilt, nicht auf Brücken; eine Instanz-Fläche ohne Schattenwurf). map.floaters = Anzahl.
+   */
+  buildFloaters(map) {
+    const blocks = (map.ground ?? []).filter((b) => b.top > (map.sea ?? 0) + 2);
+    if (!blocks.length || map.floaters === 0) return;
+    let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+    for (const b of blocks) { x0 = Math.min(x0, b.rect[0]); z0 = Math.min(z0, b.rect[1]); x1 = Math.max(x1, b.rect[2]); z1 = Math.max(z1, b.rect[3]); }
+    const rnd = new Rnd(0xf10a7);
+    const list = [];
+    const N = map.floaters ?? 28;
+    for (let i = 0; i < 800 && list.length < N; i++) {
+      const x = rnd.real(x0 - 12, x1 + 12), z = rnd.real(z0 - 12, z1 + 12);
+      let best = null, bd = Infinity;
+      for (const b of blocks) {
+        const [a0, c0, a1, c1] = b.rect;
+        const d = Math.hypot(Math.max(a0 - x, 0, x - a1), Math.max(c0 - z, 0, z - c1));
+        if (d < bd) { bd = d; best = b; }
+      }
+      if (bd < 2.6 || bd > 10) continue;
+      if ((map.walk ?? []).some((r) => x > r[0] - 3 && x < r[2] + 3 && z > r[1] - 3 && z < r[3] + 3)) continue;
+      if (list.some((f) => Math.hypot(f.x - x, f.z - z) < 6)) continue;
+      list.push({ x, z, y: best.top - rnd.real(1.6, 6.5), s: rnd.real(0.55, 1.35), ph: rnd.real(0, TAU), sp: rnd.real(0.35, 0.7), rot: rnd.real(0, TAU) });
+    }
+    if (!list.length) return;
+    const b = new Build();
+    b.add(new THREE.DodecahedronGeometry(1, 0), { v: (px, py, pz, nx, ny) => mix(0x7a6aa0, 0xc4b8dc, ny * 0.5 + 0.5) }, { s: [1, 0.75, 1] });
+    b.sphere(0.95, { v: (px, py, pz, nx, ny) => mix(0x5cba4c, 0x9ae878, ny) }, { p: [0, 0.42, 0], s: [1, 0.28, 1] }, 9, 4);
+    b.cone(0.3, 0.9, { v: (px, py) => mix(0x7a6aa0, 0x5a4e78, 0.5 - py) }, { p: [0.1, -0.95, 0.05], r: [Math.PI, 0, 0] }, 5);
+    b.sphere(0.12, 0xff7ab4, { p: [0.35, 0.62, 0.2] }, 5, 3);
+    b.sphere(0.1, 0xffe04a, { p: [-0.3, 0.6, -0.15] }, 5, 3);
+    const g = b.geometry();
+    this.floatData = list;
+    this.floaters = new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 }), list.length);
+    this.own.push(g, this.floaters.material);
+    this.floaters.castShadow = false;
+    this.floaters.frustumCulled = false;
+    this.floaters.name = 'w6:schwebesteine';
+    this.add(this.floaters);
   }
 
   /** Windrad-Stellung aus der Taktuhr: Schritt je Zählzeit (eine Achtelrunde, weich in den ersten 40 %). */
@@ -1476,6 +1533,17 @@ export class SkyLife {
       }
       this.props.instanceMatrix.needsUpdate = true;
     }
+    if (this.floaters) {
+      this.floatData.forEach((f, i) => {
+        _e.set(Math.sin(t * 0.4 + f.ph) * 0.06, f.rot + t * 0.05 * (i % 2 ? 1 : -1), Math.cos(t * 0.35 + f.ph) * 0.06, 'YXZ');
+        _q.setFromEuler(_e);
+        _p.set(f.x, f.y + Math.sin(t * f.sp + f.ph) * 0.35, f.z);
+        _s.setScalar(f.s);
+        _m4.compose(_p, _q, _s);
+        this.floaters.setMatrixAt(i, _m4);
+      });
+      this.floaters.instanceMatrix.needsUpdate = true;
+    }
     if (this.fallTex) this.fallTex.offset.y = (t * 0.9) % 1;
     if (this.mist) {
       let i = 0;
@@ -1499,6 +1567,7 @@ export class SkyLife {
       windmills: { ...this.windInfo(), n: this.mills?.length ?? 0, shown: this.shown },
       airships: { n: this.ships?.length ?? 0 },
       waterfalls: { n: this.falls?.length ?? 0 },
+      floaters: { n: this.floatData?.length ?? 0 },
     };
   }
 
