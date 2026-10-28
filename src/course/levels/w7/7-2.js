@@ -18,6 +18,7 @@
 // Gegner (Bauplan): Stachelpanzer 7, Feuer-Schnappblume 1; dazu zwei Funkenflämmchen an der dritten Schaltgruppe.
 
 import { isl, line, ring, arc, sign, fackelGruppe, scheinwand, geheimLaengsblock, tempel72 } from './_helpers_a.js';
+import { sparksUp, bats } from '../w5/_helpers_b.js';
 
 const Y = 1;
 const PI = Math.PI;
@@ -36,9 +37,13 @@ const panzer = (id, path, o = {}) => ({ kind: 'stachelpanzer', id, pos: path[0],
 
 function build(level) {
   tempel72(level, { Y, HX });
+  // schwebender Goldstaub in den Hallen, Glutfunken aus dem Abgrund
+  sparksUp(level, { x0: -9, x1: 9, z0: 8, z1: -228, y: Y - 0.5, n: 90, h: 6, color: 0xffc070, size: 0.13 });
+  sparksUp(level, { x0: -16, x1: 16, z0: 0, z1: -230, y: -12, n: 60, h: 12, color: 0xff8a3a, size: 0.2, seed: 9 });
 }
 
 function setup(level) {
+  bats(level, { spots: [[-3, 7.5, -50, 4], [4, 8, -160, 5]], n: 2 });
   fackelGruppe(level, [{ pos: [-5, Y, -75.4], id: 'fackel1' }, { pos: [5, Y, -75.4], id: 'fackel2' }, { pos: [-5, Y, -84.6], id: 'fackel3' }, { pos: [5, Y, -84.6], id: 'fackel4' }],
     { group: 'rund', onAll: { reveal: 'stern0' } });
   scheinwand(level, { from: [4.6, -90.4], to: [4.6, -95.6], y: Y, h: 3.2, t: 0.8, faces: [-1, 1], seed: 72 });

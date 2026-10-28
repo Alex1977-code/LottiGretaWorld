@@ -17,7 +17,7 @@
 // Stampfstein 3, Marschblock 12.
 
 import { isl, line, ring, arc, sign, blase, sternImRohr, kugelZiel, festung71 } from './_helpers_a.js';
-import { blueLavaSea, sparksUp } from '../w5/_helpers_b.js';
+import { blueLavaSea, sparksUp, blueFalls, bats } from '../w5/_helpers_b.js';
 
 const Y = 1;            // Festungsboden
 const LAVA = -0.6;      // Blauglut
@@ -32,9 +32,15 @@ function build(level) {
   blueLavaSea(level, { x0: -70, x1: 110, z0: 34, z1: -290, y: LAVA, scale: 5.5 });
   festung71(level, { Y, LAVA, RX });
   sparksUp(level, { x0: -26, x1: 26, z0: 14, z1: -250, y: LAVA, n: 140, h: 10 });
+  // Blauglut stürzt aus den Fenstern der fernen Türme in den See
+  blueFalls(level, [
+    { pos: [27, LAVA, -37.4], width: 1.6, height: 9.5, face: '+z' }, { pos: [-27, LAVA, -137.2], width: 1.8, height: 11, face: '+z' },
+    { pos: [30, LAVA, -172.6], width: 1.6, height: 9, face: '+z' }, { pos: [-30, LAVA, -67.6], width: 1.6, height: 9.5, face: '+z' },
+  ]);
 }
 
 function setup(level) {
+  bats(level, { spots: [[-14, 9, -20, 4], [16, 10, -100, 5], [-15, 9.5, -190, 4]], n: 2 });
   // der Werfer auf dem Pilzlingsturm wirft – wie alle Werfer der Burg – blaue Feuerkugeln
   const w4 = level.named.get('werfer4');
   if (w4) w4.fireColor = 'blau';
@@ -74,7 +80,7 @@ export const LEVEL = {
       pipes: [
         { from: 'A', to: 'K1', coins: 2 }, { from: 'K1', to: 'C', coins: 2 },
         { from: 'B', to: 'K2', coins: 2 }, { from: 'K2', to: 'D', coins: 2 },
-        { from: 'K1', to: 'K2' },
+        { from: 'K1', to: 'K2', coins: 2 },
       ],
       weichen: { K1: { to: 'C', toggle: ['C', 'K2'] }, K2: { to: 'D', toggle: ['D', 'K1'] } } },
 
