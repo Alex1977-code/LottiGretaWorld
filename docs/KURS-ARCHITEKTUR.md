@@ -5523,7 +5523,7 @@ Rückstoß nach oben, Wolkenstufe sicher, Neustart, `follow: 'scroll'`, waagerec
 Spuk, Schubser, Stachelwerfer, Pustewolke, Hackbeil-Pilz mit/ohne Maske, zugewandt/abgewandt; über `level.isMaskedFrom`),
 Bestand · Teil 3 Schubser-Prinz vollständig (3 Röhrenfahrten L0→R0, R6→L6, L-6→R-6 über das glasnetz), Würfelblase vollständig
 (Riese 3,2 → 2,71 m nach 4 besiegten Brocken, Sprünge 3/4/5), Wirbelbrocken mit 1 bzw. 2 Attrappen, Sieg → Stern, Warp-Box,
-Zielmast; Tod setzt jeden Kampf zurück · Teil 4 Bilder `tests/out/w6e_*.png` und Zeichenaufrufe – 89 Prüfungen. Gemessen
+Zielmast; Tod setzt jeden Kampf zurück · Teil 4 Bilder `tests/out/w6e_*.png` und Zeichenaufrufe – 90 Prüfungen (25 + 23 + 33 + 9). Gemessen
 (scale 2, inkl. Schattenpass): Gegnerzoo 38–73 Zeichenaufrufe (≤ 250 k Dreiecke, Thema clearpipe), Bossarenen 42–69
 (≤ 169 k, Thema fortress); Simulation im Zoo (≈ 44 Entitäten) 0,09–0,34 ms je Schritt. Regressionen `course_enemies`,
 `course_w5_enemies` (1–3), `course_hw_enemies` (1–3), `course_w2_enemies`, `course_w1_combat`, `course_physics`,
