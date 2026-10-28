@@ -195,6 +195,19 @@ Effekte (`sfx(name)`): `jump`, `jump2`, `jump3`, `backflip`, `longjump`, `wallju
 `pipe`, `checkpoint`, `goalpole`, `timewarn`, `claw`, `fireball`, `stomp`, `hurt`, `die`, `switch`,
 `bounce`. Fehlende Namen sind stumm (kein Fehler).
 
+Vertragsnotiz (ergänzte Effekte, `MORE_SFX` = `engine.effects.more`): die bisher stumm aufgerufenen Namen sind eigene
+Effekte – Figur `skid`, `glide`, `wallslide`, `swim`, `fence` (Zaun/Deckengitter), `grab`/`swing` (Trapez), `victory`
+(Siegespose, kleine Fanfare ≈ 0,9 s über der Level-Musik; läuft schon die Musik-Fanfare `course_clear`, z. B. in der
+Arena, spielt `sfx()` nur Jubel-Glitzer – Rezepte bekommen dann `{ overFanfare: true }`); Fahrt/Bausteine `fall`, `boost`,
+`chain`, `alarm`, `flip`, `donut`, `pfiff`, `note0`–`note7` (Tastenstein, C-Dur-Pentatonik); Gegner `hop`, `dash`, `kick`,
+`dizzy`, `boomerang`, `dig`, `throw`, `fuse`, `burn`. Lautheit wie die übrigen Effekte (Median −23 LUFS, Wiederholklänge
+−25), höchstens 26 Knoten. **Drosselung:** derselbe Name klingt erst nach einem Mindestabstand wieder (`SFX_GAP` in
+`src/audio/sfx.js`, z. B. `swim` 0,2 s, `wallslide` 0,35 s, `hop` 0,15 s, `chain` 0,5 s; alle übrigen 0,03 s – gleichzeitige
+Auslösungen im selben Bild klingen einmal). **Neue Namen** zuerst als Effekt anlegen: `node tests/sfx_namen.mjs` (auch in
+`tests/audio.mjs`, Teil `sfx`) sammelt alle Aufrufnamen in `src/**` (`sfx`/`level.sfx`/`w6Sfx`/`hwSfx`, `{ sfx: … }`,
+Ersatz-Tabelle `SFX6`) und meldet jeden ohne Effekt; dynamische Namen (Variablen, Template-Strings) dort in `DYNAMIC` mit
+den möglichen Namen eintragen. Hörprobe `tests/out/sfx_demo_fehlende.wav`.
+
 ## Speicherstand
 
 `lotti-greta-course-v1` im localStorage: `{ hero, lives, coins, world, mapPos, levels: { '1-1':
@@ -5387,6 +5400,33 @@ großer ?-Block (Stampfen, Explosion), Wurfball (Gegner, Zielscheiben, vorbei = 
 Kennzahlen (inkl. Schattenpass): Stationen höchstens 63 Zeichenaufrufe / 163 k Dreiecke, Themen höchstens 72 / 174 k
 (Grenzen 120 / 300 k).
 
+### Präzisierung (Figuren und Klänge Welt 6): Pose 'hang', eigene Klänge
+
+Additiv. **Pose `'hang'`** (`src/three/avatars/hero.js`: `poseHang`, Tabelle `HANG_POSE`; Lotti und Greta, groß/klein, Kostüme,
+Stern, Riesentrank, Klone, Halloween-Verkleidung): `HeroAvatar.courseStates` (Set aller Kurs-Zustände mit eigener Pose) enthält
+`'hang'` – HeroRig zeigt keinen Ersatz `'trapeze'` mehr. Beide Fäuste per Arm-IK (Gummi-Arme wie am Trapez) im Gitter:
+Gitterebene = Körperhöhe der Hitbox (0,95 / 0,65 m) + `HANG.arm` (0,2 m) über dem Fußpunkt, Faustmitte 1,2 cm darunter (bei
+Änderung von `HANG.arm`/`HITBOX` in `HANG_POSE` nachziehen). Hand über Hand im Takt des tatsächlich zurückgelegten Wegs entlang
+der Blickrichtung (`speed` begrenzt; am Rand steht die Figur trotz Stick → kein Hangeln in der Luft), 1,0 m je Doppelgriff:
+die haltende Hand liegt fest im Gitter, die andere löst sich (bis 15 cm), schwingt vor und greift. Körper als Feder-Pendel um
+die Griffe (Anfahren: Füße zurück, Bremsen: vor, je Griff ein kleiner Schwung, seitlich zur haltenden Hand; im Stillstand sachtes
+Schaukeln), Beine als zweites Pendel mit Nachlauf, Knie leicht angezogen; Zöpfe/Haar/Schweife hängen über die Physik. HeroRig
+gibt zusätzlich `proxy.course.hangGrid` (Gitter-Rechteck des Motors) weiter: am Rand bleiben die Griffe im Gitter bzw. am
+Randstab (seitlich nicht näher als 0,4 Einheiten an der Körperachse). Riesentrank: Gitter in Brusthöhe → Griff vor dem Bauch
+(Kopf ragt durch die Decke wie am Trapez). Loslassen blendet 0,3 s in den Fall. Kennzahlen: Zeichenaufrufe und Dreiecke gleich
+der Stand-Pose (Lotti 9 / 28,6 k, Greta 9 / 24,0 k, Krallen-Anzug 10, mit Verkleidung wie im Stand). `view/Xray.js`: Prüfpunkt
+der kleinen Figur in 0,6 m Höhe (vorher 0,9 m – unter einem Deckengitter lag er in der Decke, die dann deckend blieb).
+Test `tests/posen_w6.mjs` (Port 4365 + `PORT_BASE`; `P6_SHOTS=0`, `P6_HEROES`, `P6_PARTS=hang,extra`, `P6_DEBUG=1`; Bilder
+`tests/out/posen_w6_*.png`, Bögen `posen_w6_sheet_<heldin>.png`).
+
+**Klänge:** eigene Synth-Effekte in `src/audio/sfx.js` (Listen `W6_SFX`, `HW_SFX`, auch `engine.effects.w6/hw`) – Welt 6:
+`gust`, `wind`, `rumble`, `door`, `poof`, `splash`, `bump`, `powerup_appear`, `gong`; Halloween: `klingel`, `tuer`,
+`alle_tueren`, `kessel`, `blase`, `netz`, `laterne`, `laterne_aus`, `suessigkeit`, `muenzregen`, `buh`, `grabstein`,
+`kuerbis_platzt`. `level.sfx(name)` findet sie direkt (auch die bisher stummen direkten Aufrufe `splash`, `bump`, `rumble`,
+`poof`, `powerup_appear` anderer Bausteine/Gegner). Die Ersatz-Tabelle in `w6Sfx` ist leer, die Ersatznamen der `hwSfx`-Aufrufe
+greifen nur noch für neue Namen. Lautheit wie die bestehenden Effekte (Median −22,7 LUFS), ≤ 21 Knoten, ≤ 1,1 s;
+Hörprobe `tests/out/sfx_demo_w6.wav` (`tests/audio.mjs`, `AUDIO_PART=sfx`).
+
 ## Präzisierung (Gegner Welt 6)
 
 Ergänzung des Gegner-Agenten Welt 6 „Wolkeninseln“ (Stand: Wolken-Gegnerzoo `0-24`, Wolken-Bossarenen `0-25`). Nichts oben
@@ -5840,3 +5880,89 @@ zum Schalter, Zeitablauf → Haus verlassen mit 2 von 5 Sternen). Gemessen (scal
 Wünsche an den Motor: `CollisionWorld.raycast` für Rampen genau (statt Hüllquader; dann entfällt `rampenKameraFrei`),
 günstigere Eiskante für große `eisflaeche`, Wurfball-Hangbeschleunigung auch in kurzen Luftphasen (dann entfällt
 `kullerRinne`).
+
+## Präzisierung (Level 6-7, 6-Panzer und 6-C)
+
+Additiv zur Welt-6-Liste: Titel und Besonderheiten der Level 6-7, 6-Panzer und 6-C. Dateien `src/course/levels/w6/6-7.js`,
+`6-Panzer.js`, `6-C.js`, eigene Hilfen `src/course/levels/w6/_helpers_d.js` (kein `LEVEL`, nur für diese drei Level; nutzt
+lesend die Welt-2-Kolonne `w2/_helpers_d.js` – `panzerSetup` – und den Welt-3-Zirkus `w3/_helpers_e.js` – `cutawayTent`,
+`circusArena`, `circusProps`, `grandStairs`), Test `tests/course_w6d.mjs`. Kein Motor-Code geändert; alle Sonderteile sind
+level-lokal (Hilfsdatei, Haken `LEVEL.prebuild`/`LEVEL.build`/`LEVEL.setup`, `level.onStep`, `view.onFrame`).
+
+### 6-7 „Wuschelflucht im Glitzerschacht“ (autoscroller · fuzzymine · course_fuzzymine · 400 s)
+
+- Senkrechter Schacht (x −8 … 8, 78 m hoch) mit Felswänden aus Buckelfels (bunte Kristalladern), Gerüstbrettern (Einweg),
+  unsichtbarer Glaswand vorn; das Bildfenster fährt nach oben (`scroll.path` senkrecht, `frame.backMode: 'kill'`, Tempo-
+  Tabelle: an der Mittelstation und im Quetschgang gemächlich), sobald die Heldin die Sohle verlässt (`trigger`). Die
+  **Wuschel-Horde** folgt dem Bild (`follow: 'scroll'`, `behind` 5,2). Abschnitte: Sohle → erste Bretter (seitlicher
+  Quetschblock) → drei Puffwolken → **Mittelstation** (Kontrollpunkt) → **Quetschgang** (drei Quetschblöcke im Wellentakt)
+  → Sprungfelder und fahrende Goldwolke → Puffwolken → Felssims → Schachtkrone (schwebende Wolke) → **Wippen-Galerie**
+  (horizontal, y 78; Kontrollpunkt, drei Wippen, Galerie-Horde rollt langsam nach) → **Grubentor** (öffnet sich, wenn man
+  davor steht) → Holzdeck mit Zielmast und Himmelsfenster.
+- `wippenStoss`: der Quetschblock über Wippe 3 (Modus `signal`) stößt erst, wenn jemand auf der Wippe steht, und schleudert
+  das nahe Ende hoch (Stern 2). `schachtAbsturz`: nach der Fahrt = Absturz unter der Galerie. `glitzerThema` (hellere
+  Variante von fuzzymine, `LEVEL.prebuild`), Lichterketten und Wimpel, Staubflocken im Schacht.
+- Sterne: 1 unter dem grauen Wolkenbausch auf dem linken Felssporn (gleich nach dem Stempel) · 2 über Wippe 3 (nur vom
+  hochgeschnellten Ende) · 3 in der **Felsrille** hinter der Quetschblock-Wand (unter drei Quetschblöcken hindurch).
+  Stempel: Nische am Start hinter dem Quetschblock. Extraleben: unsichtbarer Block über der Sohle, Kiste in der Felsrille
+  (Stampfattacke). Gegner: Wuschel-Horde 2, Wuschel 4.
+
+### 6-Panzer „Kawumm-Kolonne über den Wolken“ (autoscroller + boss · skyway · course_tank · 400 s)
+
+- Vierzehn Panzer (`vehicle` style 'tank', Modell panzer_fahrzeug) rollen mit 3,2 m/s auf einer Wolkenstraße (nur Optik,
+  `killY` −4); das Bildfenster gleitet mit 6,0 m/s an der Kolonne entlang. `kolonnenFahrplan` (Mathematik wie
+  `ScrollWindow`) plant **Haltepunkte**, an denen das Fenster genau mit der Kolonne fährt: T3 18 s, T8 8 s, T9 7 s; am Ende
+  halten Fenster und Panzer gemeinsam über dem Kommandopanzer (`scroll.speeds`, `vehicle.stop`). Konvoi-Koordinate c wie
+  2-Panzer (`kP`, `aufPanzer`, `LEVEL.convoy`, `LEVEL.plan`).
+- `kolonnenSetup` = Welt-2-Haken `panzerSetup` (Mitfahr-Regeln, Luke, Holzwand, Wimpel; ohne Wüsten-Abendrot) plus:
+  Werfer mit `ride` tänzeln um einen mitfahrenden Platz, Zündköpfe über einem Deck fahren mit, **Stampfattacke über einem
+  fahrenden Panzer fährt mit der Kolonne** (der Motor hält die Figur beim Stampfen waagerecht an), Zündkopf-Tipp beim
+  ersten Aufheben. Kulisse: Wolkenstraße mit Pastell-Flecken und Wolkenwülsten, Festschmuck (geringelte Masten mit
+  Wimpelketten alle 16 m), Heißluftballons, Schwebeinseln, Wolkenberge, Wolkenburg mit vier Türmen um die Arena,
+  Regenbogeninsel.
+- Abschnitte: T1 Abfahrt (Wolkenbahnhof, ?-Block Funkenblüte) → T2 erster Zündkopf-Spender, Steinblöcke → **T3 Turm-
+  Panzer** → T4L/T4R Doppelreihe (Feuer-Werfer) → T5 Kontrollpunkt (?-Block Krallen-Anzug) → T6 Steinblock-Pyramide → T7
+  Hammer-Werfer → **T8 Schatz-Panzer** → **T9 Stampf-Panzer** → T10/T11 Werfer (Podest) → T12 → **Kommandopanzer** (Luke →
+  Arena) → Wolkenburg-Arena (Rundkäfig r 10,5, `wirbelbrocken` mit `decoys: true`) → Warp-Box → Regenbogeninsel (seitlich,
+  eigene Kamera-Schiene `area`).
+- Sterne: 1 T3 drei große ?-Blöcke (`riesenfrageblock`, nur `bomb`) mit Zündköpfen sprengen – sie wachsen zu einer Treppe
+  (Oberkanten 5,0 / 7,6 / 10,2 m), der dritte zeigt den Stern (`onGrow: { reveal }`) · 2 T8 Steinblock auf dem Goldsockel
+  sprengen (`beiZerstoerung` → `reveal`) · 3 T9 großen ?-Block (nur `pound`) stampfen – er trägt die Heldin 7 m hinauf
+  durch eine Münzsäule zum Stern. Stempel: Kammer vor der Luke des Kommandopanzers, Baron-Holzwand sprengen. Extraleben:
+  oberster Steinblock der Pyramide (T6), verborgener Block über T12. Gegner: Marschblock 15, Zündkopf (endlos aus 6
+  Spendern, `behavior: 'walk'`), Feuer-Werfer 2, Hammer-Werfer 2, Wirbelbrocken.
+
+### 6-C „Glibber-Gala im Wolkenzirkus“ (boss · circus · course_bossblob · 400 s, 2 Sterne + Stern der Würfelblase)
+
+- Nacht über den Wolkeninseln (`sternenhimmel` mit Mond, Lichterketten, Scheinwerfer): **Wolkenvorplatz** (roter Teppich,
+  Kassenhäuschen, Zirkuswagen, Plakat „Glibber-Gala“, Kanone, Ballons) → **Spiegelbühne** (schwebende Bühne 11 × 33 m mit
+  Zerrspiegeln, zwei ?-Blöcke mit Spiegelfrucht, Gelee-Brocken) → Prachttreppe → Talstation (Kontrollpunkt) → **Seilbahn**
+  (28 m über der Wolkenschlucht zum Zeltplateau y 8; `gondelRuf` holt die leere Gondel zurück) → Zeltplateau (Kontrollpunkt,
+  Torbogen) → **Manege** (Zelt aufgeschnitten wie 3-B, Bande r 12,3 mit Tor, Publikum jubelt bei Treffern, `wuerfelblase`
+  mit `star: { index: 2 }`) → Warp-Box → Hinterhof mit Riesenrad, Feuerwerk und Zielmast.
+- Sterne: 1 **Zwei-Figuren-Feld** (`pfeld` need 2) – mit dem Spiegelfrucht-Klon zu zweit darauf → Stern auf der Trommel ·
+  2 **Sternschaukel** neben der Seilbahn – aus der fahrenden Gondel seitlich abspringen, zurück über drei Wolken zum
+  Zeltplateau · 3 Würfelblase. Stempel: **Artistenpodest** auf dem Vorplatz (Sprungtrommel `trampoline` strength 19).
+  Extraleben: verborgene Blöcke über der blauen Trommel und über der mittleren Wolke. Gegner: Gelee-Brocken 5 (silbern,
+  ohne Boss), Würfelblase.
+
+### Test `tests/course_w6d.mjs`
+
+Port 4670 (+ `PORT_BASE`), Aufruf `node tests/course_w6d.mjs [6-7|6-Panzer|6-C]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,shots` (je Lauf < 10 min), `HEROES=lotti,greta`, `ONLY=<Text|Text>`, `VERBOSE=1`,
+`SHOTS=<Name|Name>`, `DETAIL=1`, `TRACE=<Bedingung>`; Bilder `tests/out/w6d_*.png`. Bot mit echter Eingabe (Figur auf der
+Route unverwundbar, Trefferversuche werden gezählt). 6-7 und 6-C: Beine wie in den Welt-5-Tests (`to`/`jump`/`jumpAt`,
+`bounce`, `crusher`, `mover`, `wippeStern`, `pound`, `backflip`, `gondelSprung`, `blase` – Würfelblase: ausweichen, über
+Schockwellen springen, im Fliehen auf den Hut, `warp`). 6-Panzer: Konvoi-Bot `window.__k` (Spur über die fahrende
+Kolonne, Lücken springen, `bomb` – Zündkopf holen, ausrichten, werfen –, `hop`, `pound`, `luke`, `boss` – Wirbelbrocken:
+Attrappen und Original ausweichen, im Schwindel auf das Original –, `holds`). Geprüft: Laden ohne Konsolenfehler,
+Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Zielmast; alle Sterne und Stempel mit beiden Heldinnen samt
+Gegenproben (6-7: Stern 1 nicht von der Sohle, Stern 2 nicht ohne Quetschblock; 6-Panzer: Stampfen lässt die
+Explosions-Blöcke kalt, Stampfen bricht den Steinblock nicht, Zündkopf lässt den Stampf-Turm kalt; 6-C: Feld nicht allein,
+Stempel nicht ohne Sprungtrommel); Extraleben, Kontrollpunkte (auch auf dem fahrenden T5), Absturz, Horde, Quetschblock,
+Zündkopf-Explosion, Halte des Bildfensters, Werfer auf dem Panzer, Gondel-Rückruf; Messgang und Bilder.
+Gemessen (scale 2, inkl. Schattenpass): 6-7 Route ≈ 97 s (Lotti/Greta, ohne Treffer), Messgang ≤ 94 Zeichenaufrufe /
+≤ 220 k Dreiecke, Bilder 34–88 / ≤ 220 k · 6-Panzer Route ≈ 144 s (Halte des Fensters 17,6 / 7,6 / 6,6 s), Messgang
+≤ 86 / ≤ 225 k, Bilder 47–110 / ≤ 261 k (am teuersten: oben auf Turm C mit Blick über die Kolonne) · 6-C Route ≈ 89 s,
+Messgang ≤ 75 / ≤ 142 k, Bilder 38–74 / ≤ 151 k. Hinweis: die Trefferversuche im Bosskampf zählen jeden Berührungsschritt
+der unverwundbaren Bot-Figur (Fäuste der Attrappen, Riese), nicht einzelne Treffer.

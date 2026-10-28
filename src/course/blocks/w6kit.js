@@ -173,9 +173,10 @@ export function beltTexture(colors = ['#2d3142', '#ffcf3a', '#596080']) {
 /** Warn-Schwelle 0..1 → Puls (für Vorwarnungen: Glühen, Zittern). */
 export const pulse = (t, k, f = 14) => k * (0.6 + 0.4 * Math.sin(t * f));
 
-// Klänge: Welt-6-Namen auf vorhandene Effekte abbilden (src/audio/sfx.js kennt z. B. 'gust' nicht – unbekannte Namen
-// blieben stumm). Sobald der Audio-Agent einen Namen als eigenen Effekt anlegt, gilt dieser.
-const SFX6 = { gust: 'swoop', wind: 'hover', rumble: 'land', door: 'gate', poof: 'vanish', splash: 'splash_big', bump: 'blockhit', powerup_appear: 'powerup' };
+// Klänge: Welt-6-Namen auf vorhandene Effekte abbilden (unbekannte Namen blieben stumm). Sobald der Audio-Agent einen Namen
+// als eigenen Effekt anlegt, gilt dieser. Inzwischen sind alle Welt-6-Namen eigene Effekte (src/audio/sfx.js W6_SFX: gust,
+// wind, rumble, door, poof, splash, bump, powerup_appear, gong) – die Ersatz-Tabelle ist leer, der Weg bleibt für neue Namen.
+const SFX6 = {};
 let sfxNames = null;
 /** Effekt abspielen: eigener Name, falls vorhanden, sonst Ersatz aus SFX6. */
 export function w6Sfx(level, name) {

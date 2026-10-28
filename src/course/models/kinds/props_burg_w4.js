@@ -7,7 +7,7 @@
 //                   opts { length (5), height (3,5, ohne Zinnen), thickness (1) }  state –
 // lavafall          Lavafall: glühender, fließender Lavavorhang (unbeleuchtet hell, Schlieren laufen nach unten) über einer
 //                   Basaltkante, unten brodelnde Glutblasen und Schein. Ursprung = Aufprallpunkt unten, Vorderseite +X.
-//                   opts { width (3), height (5) }  state –
+//                   opts { width (3), height (5), color: 'rot' (Standard) | 'blau' (Welt 7: blaue Lava) }  state –
 // burg_kette        hängende Eisenkette mit Wandhalter oben und Haken unten. **Ursprung = Aufhängung oben**, hängt nach −Y.
 //                   opts { length (3) }  state { sway (0..1, Standard 0,2) }
 // fallgitter        Fallgitter in Steinrahmen (Basalt mit Goldkante): eisernes Gitter mit Spitzen unten, Goldnieten;
@@ -96,13 +96,17 @@ function lavaSheetGeo(W, H) {
 }
 function buildLavafall(opts = {}) {
   const W = clamp(Math.round((opts.width ?? 3) * 2) / 2, 0.5, 30), H = clamp(Math.round((opts.height ?? 5) * 2) / 2, 1, 40);
+  const blue = opts.color === 'blau';   // Welt 7: blaue Lava (eigene Textur/Farben, gleicher Aufbau)
   const root = new THREE.Group();
-  const sheet = mesh(lavaSheetGeo(W, H), basic('w4:lavaFall', { map: fallTexture('lava', '#ff6a10', 'rgba(255,236,140,0.9)', 'rgba(160,24,0,0.6)'), side: THREE.DoubleSide }));
-  const lip = mesh(cached(`w4:lavafall:lip:${W}`, () => new Build().add(displace(new THREE.BoxGeometry(1.1, 0.7, W + 0.8, 2, 2, 4), 0.12, 2, W + 1, false), { v: (x, y, z, nx, ny) => (ny > 0.6 ? LAVA.hot : mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.5))) }).geometry()),
+  const sheet = mesh(lavaSheetGeo(W, H), blue
+    ? basic('w4:lavaFall:blau', { map: fallTexture('lava_blau', '#2a6cff', 'rgba(200,244,255,0.9)', 'rgba(14,24,140,0.6)'), side: THREE.DoubleSide })
+    : basic('w4:lavaFall', { map: fallTexture('lava', '#ff6a10', 'rgba(255,236,140,0.9)', 'rgba(160,24,0,0.6)'), side: THREE.DoubleSide }));
+  const top = blue ? 0x3a8aff : LAVA.hot;
+  const lip = mesh(cached(`w4:lavafall:lip:${W}${blue ? ':blau' : ''}`, () => new Build().add(displace(new THREE.BoxGeometry(1.1, 0.7, W + 0.8, 2, 2, 4), 0.12, 2, W + 1, false), { v: (x, y, z, nx, ny) => (ny > 0.6 ? top : mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.5))) }).geometry()),
     vcol(0.8, {}, 'w4rock3'), { p: [-0.35, H + 0.05, 0] }, true);
   const nb = Math.max(4, Math.round(W * 3));
-  const blobs = instMesh(cached('w4:lavafall:blob', () => new THREE.IcosahedronGeometry(1, 1)), basic('w4:lavaBlob', { color: 0xffa02a }), nb, W + 2, 0.3);
-  const glow = glowSprite(0xff6a1a, Math.max(W, 2) * 1.6, 0.55);
+  const blobs = instMesh(cached('w4:lavafall:blob', () => new THREE.IcosahedronGeometry(1, 1)), blue ? basic('w4:lavaBlob:blau', { color: 0x7ad8ff }) : basic('w4:lavaBlob', { color: 0xffa02a }), nb, W + 2, 0.3);
+  const glow = glowSprite(blue ? 0x3a8aff : 0xff6a1a, Math.max(W, 2) * 1.6, 0.55);
   glow.position.set(0.5, 0.6, 0);
   root.add(sheet, lip, blobs, glow);
   const seeds = Array.from({ length: nb }, (_, i) => ({ z: ((i + 0.5) / nb - 0.5) * W * 0.95, ph: hash1(i + 7) * TAU, r: 0.16 + hash1(i + 11) * 0.14 }));
