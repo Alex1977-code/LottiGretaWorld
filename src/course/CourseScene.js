@@ -36,6 +36,7 @@ import { createArchetype } from './archetypes/index.js';
 import { installWorldWarps } from './map/warp.js';
 import { installUnderwaterView } from './player/underwater.js';
 import { setOutfit, clearOutfit, outfitForLevel } from '../three/lib/outfit.js';
+import { creditsWanted, startCreditsFrom } from './credits.js';
 
 export const DT = 1 / 120;
 const MAX_STEPS = 8;
@@ -231,6 +232,9 @@ export class CourseScene extends Phaser.Scene {
 
   /** Zur Weltkarte (Pause, Ergebnis, Spielende). */
   exitToMap(data = {}) {
+    // Abspann (Präzisierung Motor und Bausteine Welt 8): nach dem Finale (LEVEL.credits bzw. Aktion { credits: true }) führt
+    // „Weiter“ in den Abspann statt zur Karte
+    if (data.done && creditsWanted(this) && startCreditsFrom(this, this.levelId)) return;
     const target = mapSceneKey(this);
     for (const k of ['CoursePause', 'CourseResult', 'CourseUI']) this.scene.stop(k);
     // Die Klassik-Karte kennt Kurs-Level nicht → ohne Übergabedaten

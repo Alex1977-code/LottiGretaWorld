@@ -85,6 +85,10 @@ export class MapHud {
     this.totalIcon = scene.add.graphics();
     this.totalText = uiText(scene, 4, 5.5, '', { size: 7, originX: 0, color: '#eaffea', thickness: 2, shadow: false });
     this.worldPill.add([this.worldPillBg, this.worldName, this.totalIcon, this.totalText]);
+    // Pokal (Präzisierung Motor und Bausteine Welt 8): Spiel geschafft (courseSave.data.finished) – rechts am Weltschild
+    this.trophy = scene.add.graphics();
+    this.worldPill.add(this.trophy);
+    if (scene.arrive?.credits) this.toastAfterCredits = true;
 
     // ---- oben rechts: Ton, Klassik, Neu
     const btn = (x, label, cb, opts = {}) => {
@@ -161,7 +165,7 @@ export class MapHud {
     const s = this.scene;
     const stars = s.worldStars(), max = s.worldStarsMax();
     const total = s.totalStars();
-    const key = [courseSave.lives, courseSave.coins, stars, max, s.player?.hero, courseSave.carryPower, total].join('|');
+    const key = [courseSave.lives, courseSave.coins, stars, max, s.player?.hero, courseSave.carryPower, total, !!courseSave.data.finished].join('|');
     if (!force && key === this.prev.key) return;
     this.prev.key = key;
     this.livesText.setText(`×${courseSave.lives}`);
@@ -175,6 +179,7 @@ export class MapHud {
     this.totalIcon.clear();
     const tp = starPoints(this.totalText.x - 6, 5.5, 4.2, 1.9);
     this.totalIcon.fillStyle(0x3ee05a, 1); this.totalIcon.fillPoints(tp, true);
+    this.drawTrophy(pw);
     const g = this.icons;
     g.clear();
     drawHeart(g, 19, 15, 6.5);                     // Leben: rotes Herz
@@ -196,6 +201,24 @@ export class MapHud {
       this.carryIcon.lineStyle(1.5, 0xffffff, 0.9); this.carryIcon.strokeCircle(13, 92, 5.5);
     } else this.carryText.setVisible(false);
     this.updateHeroPicker();
+  }
+
+  /** Kleiner goldener Pokal rechts am Weltschild, sobald das Spiel geschafft ist (Abspann gesehen). */
+  drawTrophy(pw) {
+    const g = this.trophy;
+    g.clear();
+    this.trophyShown = !!courseSave.data.finished;
+    if (!this.trophyShown) return;
+    const x = pw / 2 + 11, y = 0;
+    g.fillStyle(0x1a1830, 0.55); g.fillCircle(x, y, 10);
+    g.fillStyle(0x8a5a10, 1); g.fillRect(x - 4.5, y + 5, 9, 2.6);               // Sockel
+    g.fillStyle(0xffc21a, 1);
+    g.fillRect(x - 1.2, y + 1.5, 2.4, 4);                                         // Stiel
+    g.fillTriangle(x - 5.5, y - 6, x + 5.5, y - 6, x, y + 2.5);                   // Kelch
+    g.fillCircle(x, y - 3, 4.2);
+    g.lineStyle(1.4, 0xffc21a, 1);
+    g.strokeCircle(x - 5.6, y - 3, 2.4); g.strokeCircle(x + 5.6, y - 3, 2.4);     // Henkel
+    g.fillStyle(0xfff3b0, 0.9); g.fillCircle(x - 1.6, y - 4.2, 1.2);              // Glanz
   }
 
   updateMute() { this.muteBtn.setText(engine.muted ? '♪ aus' : '♪ an'); growHit(this.muteBtn, 46, 32); }
@@ -273,6 +296,7 @@ export class MapHud {
   update(dt) {
     const s = this.scene;
     this.refresh(false);
+    if (this.toastAfterCredits) { this.toastAfterCredits = false; this.toast('Spiel geschafft – danke fürs Spielen!', 3.6); }
     if (this.titleT > 0) {
       this.titleT -= this.banner.visible ? dt * 4 : dt;   // Hinweis-Leiste hat Vorrang
       this.title.setAlpha(Math.min(1, this.titleT / 0.8));
