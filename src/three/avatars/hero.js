@@ -1093,7 +1093,9 @@ const SICHEL_HAND = new Set(['idle', 'walk', 'run', 'skid', 'jump', 'jump2', 'ju
   'crouch', 'slide', 'groundpound', 'walljump', 'hurt', 'victory', 'throw', 'skate']);
 const SICHEL = {
   R: 0.19,          // Außenradius der Hand-Sichel (Einheiten; ≈ 25 cm Durchmesser bei großer Figur)
-  release: 0.3,     // Wurf: bis zu dieser Phase bleibt die Sichel in der Hand sichtbar (Ausholen), dann fliegt sie
+  // Wurf: Der Motor erzeugt die fliegende Sichel schon mit der Aktion – sie verschwindet deshalb sofort aus der Hand (Vertrag:
+  // sichtbar, solange sichelFlying 0). release > 0 hielte sie bis zu dieser Wurfphase in der Hand (dann wäre sie kurz doppelt).
+  release: 0,
   catchDur: 0.45,   // s: Fang-Geste (Hand schnappt nach vorn, holt die Sichel heran, Augen „◡“, Funkeln)
   popDur: 0.24,     // s: Sichel erscheint in der Hand (Fang bzw. nach dem Verlieren) – wächst mit kurzem Überschwingen
   twirl: 1.6,       // Umdrehungen, die die gefangene Sichel noch in der Hand kreiselt
@@ -1113,13 +1115,13 @@ function sichelHoldQuat() {
 /**
  * Wurf mit der Sichel (Seitarm wie eine Frisbee – passt zur flach kreiselnden Sichel): Schlüssel [phase, Werte]; 0 = Grundpose.
  * Ausholen: nahe Hand seitlich hinten in Schulterhöhe (Sichel liegt flach, von hinten gut sichtbar), Rumpf zurückgedreht, ferne
- * Hand zeigt aufs Ziel; Abwurf: Arm fegt über die Seite nach vorn (Sichel fliegt ab SICHEL.release), Rumpf dreht mit;
- * Ausschwingen quer vor den Körper.
+ * Hand zeigt aufs Ziel; Abwurf: Arm fegt über die Seite nach vorn, Rumpf dreht mit; Ausschwingen quer vor den Körper. Kurzes
+ * Ausholen (die Sichel fliegt schon mit der Aktion), das Fegen nimmt den größten Teil der 0,25 s ein.
  */
 const SICHEL_THROW = [
-  [0.2, { armXn: -0.85, armZn: -1.5, elbowN: 0.35, twistN: 0, armXf: 0.25, armZf: 1.3, elbowF: 0.15, torsoY: -0.55, lean: 0.06 }],
-  [0.29, { armXn: -1.45, armZn: -0.1, elbowN: 0.15, twistN: 0, armXf: 0.35, armZf: 0.6, elbowF: 0.3, torsoY: -0.05, lean: -0.04 }],
-  [0.4, { armXn: -0.4, armZn: 1.45, elbowN: 0.05, twistN: 0, armXf: 0.45, armZf: -0.35, elbowF: 0.5, torsoY: 0.45, lean: -0.14 }],
+  [0.14, { armXn: -0.85, armZn: -1.5, elbowN: 0.35, twistN: 0, armXf: 0.08, armZf: 1.45, elbowF: 0.05, torsoY: -0.65, lean: 0.07 }],
+  [0.23, { armXn: -1.45, armZn: -0.1, elbowN: 0.15, twistN: 0, armXf: 0.3, armZf: 0.6, elbowF: 0.3, torsoY: -0.05, lean: -0.04 }],
+  [0.34, { armXn: -0.4, armZn: 1.45, elbowN: 0.05, twistN: 0, armXf: 0.45, armZf: -0.4, elbowF: 0.5, torsoY: 0.55, lean: -0.15 }],
   [1.0, { armXn: 0.12, armZn: 1.0, elbowN: 0.5, twistN: 0.2, armXf: 0.3, armZf: 0.15, elbowF: 0.35, torsoY: 0.15, lean: -0.04 }],
 ];
 /** Gretas Haar liegt mit Umhang etwas weiter hinten (auf dem Umhang statt darunter). */
@@ -1753,7 +1755,7 @@ export class HeroAvatar extends Avatar3D {
     if (S.catchN === null) S.catchN = n;
     else if (n !== S.catchN) { S.catchN = n; S.catchT = 0; S.popT = 0; S.sparkle = true; }
     else if (S.flying && !fly) S.popT = 0;                   // verloren (nach 3,5 s): taucht wieder in der Hand auf
-    // Wurf mit Sichel: die Sichel flog bei Wurfbeginn los (Motor erzeugt sie mit der Aktion) – bis SICHEL.release noch zeigen
+    // Wurf mit Sichel: die Sichel flog bei Wurfbeginn los (Motor erzeugt sie mit der Aktion) – höchstens bis SICHEL.release zeigen
     if ((c.state ?? 'idle') === 'throw') { if (this.cState !== 'throw') S.throwSichel = fly && !S.flying; } else S.throwSichel = false;
     S.flying = fly;
   }
@@ -1793,7 +1795,7 @@ export class HeroAvatar extends Avatar3D {
     const lean0 = o.lean ?? 0;
     for (const key of Object.keys(B)) o[key] = lerp(A[key], B[key], k);
     o.lean += lean0;
-    const snap = smoothstep((p - 0.22) / 0.12) * (1 - smoothstep((p - 0.5) / 0.3));
+    const snap = smoothstep((p - 0.16) / 0.12) * (1 - smoothstep((p - 0.45) / 0.3));
     Object.assign(o, { headY: (o.headY ?? 0) - 0.7 * o.torsoY, headZ: (o.headZ ?? 0) + 0.04, mouth: 0.55 * snap, eyes: 1 });
     return o;
   }
@@ -2840,9 +2842,16 @@ export class HeroAvatar extends Avatar3D {
         const p = (c.phase ?? 0) > 0 ? phase : clamp(st / 0.32, 0, 1);
         const o = this.poseLoco(speed, upm, dt, t, grounded, vy);
         if (this.sk?.capeOn) {
-          // Welt 7: Wurfsichel – Ausholen hinter den Kopf (Sichel noch in der Hand), Arm schnellt vor, Ausschwingen
+          // Welt 7: Wurfsichel – Seitarm-Wurf (Ausholen seitlich hinten, Arm fegt nach vorn, Ausschwingen); im Stand mit
+          // Wurfstellung (ferner Fuß vor, naher zurück, leicht in die Knie), Füße bleiben am Boden (Bein-IK)
           this.sk.throwP = p;
-          pose = P(this.poseSichelThrow(o, p));
+          this.poseSichelThrow(o, p);
+          if (grounded && speed < 0.5) {
+            const w = smoothstep(p / 0.12) * (1 - smoothstep((p - 0.55) / 0.45));
+            o.bob = (o.bob ?? 0) - 0.03 * w;
+            plant(o, -0.07 * w, 0.09 * w);
+          }
+          pose = P(o);
           dur = 0.05;
           break;
         }

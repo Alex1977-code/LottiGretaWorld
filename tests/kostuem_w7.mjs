@@ -229,17 +229,17 @@ async function mechPart(hero) {
     const catch0 = p.sichelCatch ?? 0;
     c.setInput({ action: true }); H.tick(1); c.setInput({});
     const smp = [];
-    H.tick(6);   // Phase ≈ 0,2: ganz ausgeholt
+    H.tick(4);   // Phase ≈ 0,14: ganz ausgeholt
     smp.push({ n: 3, ...H.parts(), flying: p.sichelFlying, phase: +H.rig.proxy.course.phase.toFixed(3), course: H.rig.proxy.course.state, n_ents: H.sickles().length });
     return { catch0, smp };
   });
   await shot(`${hero}_wurf1_ausholen`, 'side', G);
   await shot(`${hero}_wurf1_ausholen_kurs`, 'course', G);
   await shot(`${hero}_wurf1_ausholen_kursnah`, 'kursnah', G);
-  r.throw2 = await S(() => { const H = window.__kw, p = window.__course.player; H.tick(6); return { ...H.parts(), flying: p.sichelFlying, phase: +H.rig.proxy.course.phase.toFixed(3) }; });
+  r.throw2 = await S(() => { const H = window.__kw, p = window.__course.player; H.tick(5); return { ...H.parts(), flying: p.sichelFlying, phase: +H.rig.proxy.course.phase.toFixed(3) }; });
   await shot(`${hero}_wurf2_abwurf`, 'side', G);
   await shot(`${hero}_wurf2_abwurf_kurs`, 'course', G);
-  r.throw3 = await S(() => { const H = window.__kw, p = window.__course.player; H.tick(9); return { ...H.parts(), flying: p.sichelFlying, phase: +H.rig.proxy.course.phase.toFixed(3) }; });
+  r.throw3 = await S(() => { const H = window.__kw, p = window.__course.player; H.tick(12); return { ...H.parts(), flying: p.sichelFlying, phase: +H.rig.proxy.course.phase.toFixed(3) }; });
   await shot(`${hero}_wurf3_ausschwingen`, 'side', G);
   r.flight = await S(() => {
     const H = window.__kw, p = window.__course.player;
@@ -347,7 +347,8 @@ async function closePart(hero) {
     await shot(`${hero}_${name}`, view, GP);
   }
   // Wurf-Phasen mit fester Phase (Sichel in der Luft ab dem Abwurf)
-  for (const [tag, ph] of [['a', 0.08], ['b', 0.2], ['c', 0.34], ['d', 0.5], ['e', 0.8]]) {
+  r.poses.vorWurf = await S(() => window.__kw.pose({ state: 'idle' }, 20));
+  for (const [tag, ph] of [['a', 0.06], ['b', 0.14], ['c', 0.24], ['d', 0.4], ['e', 0.8]]) {
     r.poses[`wurf_${tag}`] = await S((ph) => {
       const H = window.__kw;
       H.pose({ state: 'idle' }, 20);
@@ -482,8 +483,8 @@ for (const [hero, R] of Object.entries(results)) {
       m.costIdle.cost.calls <= m.costNone.cost.calls + 1);
     check(`${N}: Dreiecke mit Kostüm ≤ 1,3 × ohne`, m.costIdle.cost.tris <= 1.3 * m.costNone.cost.tris);
     const s0 = m.throw.smp[0];
-    check(`${N}: Ausholen – Zustand 'throw', Sichel fliegt schon (Motor), in der Hand noch sichtbar, Arm seitlich hinten (armZn ${s0.armZn})`,
-      s0.course === 'throw' && s0.flying === 1 && s0.hand && s0.armZn < 0);
+    check(`${N}: Ausholen – Zustand 'throw', Sichel fliegt (Motor erzeugt sie mit der Aktion) und ist aus der Hand verschwunden, Arm seitlich hinten (armZn ${s0.armZn})`,
+      s0.course === 'throw' && s0.flying === 1 && !s0.hand && s0.n_ents === 1 && s0.armZn < -1);
     check(`${N}: Abwurf – Arm fegt nach vorn (armZn ${s0.armZn} → ${m.throw2.armZn}), Hand leer (Sichel fliegt)`, !m.throw2.hand && m.throw2.flying === 1 && m.throw2.armZn > s0.armZn + 0.5);
     check(`${N}: Ausschwingen (Arm vorn ${m.throw3.armZn}) und Flug – Hand bleibt leer, solange die Sichel fliegt`, m.throw3.armZn > 0.9 && !m.throw3.hand && !m.flight.hand && m.flight.flying === 1);
     check(`${N}: Zeichenaufrufe im Flug (Hand leer) ${m.flight.cost.calls} ≤ Stand mit Kostüm ${m.costIdle.cost.calls}`, m.flight.cost.calls <= m.costIdle.cost.calls);
@@ -503,8 +504,8 @@ for (const [hero, R] of Object.entries(results)) {
     check(`${N}: Lauf – Umhang weht nach hinten (${p.lauf.capeA} rad), Sichel in der Hand`, p.lauf.capeA > 0.35 && p.lauf.hand);
     check(`${N}: Fallen – Umhang hebt sich (${p.fallen.capeA} rad)`, p.fallen.capeA > 0.3);
     check(`${N}: Hände belegt (Klettern, Wand, Schwimmen, Kanone, Tragen) – Sichel steckt weg`, ['klettern', 'wandrutschen', 'schwimmen', 'kanone', 'tragen'].every((k) => !p[k].hand));
-    check(`${N}: Wurf-Phasen – Sichel bis zum Abwurf in der Hand (a ${p.wurf_a.hand}, b ${p.wurf_b.hand}), danach nicht (c ${p.wurf_c.hand}, d ${p.wurf_d.hand}); Arm ${p.wurf_a.armZn} → ${p.wurf_b.armZn} → ${p.wurf_c.armZn} → ${p.wurf_e.armZn}`,
-      p.wurf_a.hand && p.wurf_b.hand && !p.wurf_c.hand && !p.wurf_d.hand && !p.wurf_e.hand && p.wurf_b.armZn < -1 && p.wurf_c.armZn > p.wurf_b.armZn + 1 && p.wurf_d.armZn > 1.0);
+    check(`${N}: Wurf-Phasen – vorher Sichel in der Hand (${p.vorWurf.hand}), mit dem Wurf (sichelFlying 1) leer (${['a', 'b', 'c', 'd', 'e'].map((k) => p[`wurf_${k}`].hand).join('/')}); Arm ${['a', 'b', 'c', 'd', 'e'].map((k) => p[`wurf_${k}`].armZn).join(' → ')}`,
+      p.vorWurf.hand && ['a', 'b', 'c', 'd', 'e'].every((k) => !p[`wurf_${k}`].hand) && p.wurf_b.armZn < -1 && p.wurf_c.armZn > p.wurf_b.armZn + 1 && p.wurf_d.armZn > 1.0);
     check(`${N}: Fang-Geste (Augen ◡ ${p.fang.eyesClosed}, Arm ${p.fang.armZn}) → Ende (Augen offen, Arm ${p.fangEnde.armZn})`, p.fang.hand && p.fang.eyesClosed && p.fang.armZn > 0.6 && !p.fangEnde.eyesClosed && p.fangEnde.armZn < 0.6);
     const hwOk = hero === 'lotti' ? !c.hw.hat && c.hw.cap : c.hw.cap && c.hw.tail;
     check(`${N}: Halloween – Mütze ersetzt ${hero === 'lotti' ? 'den Hexenhut (Kürbis-Bommel)' : 'die Katzenohren (sitzen an der Mütze), Katzenschwanz bleibt'}`, hwOk && c.hwOff.cap && !c.hwOff.tail);
