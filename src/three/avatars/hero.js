@@ -1098,19 +1098,43 @@ const SICHEL = {
   popDur: 0.24,     // s: Sichel erscheint in der Hand (Fang bzw. nach dem Verlieren) – wächst mit kurzem Überschwingen
   twirl: 1.6,       // Umdrehungen, die die gefangene Sichel noch in der Hand kreiselt
 };
-/** Halt der Hand-Sichel (hand-lokal: Faust = Ursprung, −Y entlang des Unterarms, +X Daumen/vorn, +Z außen bei der nahen Hand). */
-const SICHEL_HOLD = { rz: 0.55, ry: 0.0, x: 0.0, y: -0.01 };
+/**
+ * Halt der Hand-Sichel (hand-lokal: Faust = Ursprung, −Y entlang des Unterarms, +X Daumen/vorn, +Z außen bei der nahen Hand):
+ * Griff (Rücken des Halbmonds) in der Faust, Fläche quer zum Unterarm (Normale = +X) – bei hängendem Arm zeigt sie nach vorn
+ * und hinten (Kurs-Kamera), bei vorgestrecktem bzw. seitlich gestrecktem Arm liegt sie flach wie beim Wurf; Öffnung um beta
+ * aus der Waagerechten nach oben-außen.
+ */
+const SICHEL_HOLD = { beta: 0.9, rz: -0.45, x: 0.0, y: -0.005 };
+function sichelHoldQuat() {
+  const s = Math.sin(SICHEL_HOLD.beta), c = Math.cos(SICHEL_HOLD.beta);
+  const m = new THREE.Matrix4().makeBasis(V(0, s, c), V(0, -c, s), V(1, 0, 0)).premultiply(new THREE.Matrix4().makeRotationZ(SICHEL_HOLD.rz));
+  return new THREE.Quaternion().setFromRotationMatrix(m);
+}
+/**
+ * Wurf mit der Sichel (Seitarm wie eine Frisbee – passt zur flach kreiselnden Sichel): Schlüssel [phase, Werte]; 0 = Grundpose.
+ * Ausholen: nahe Hand seitlich hinten in Schulterhöhe (Sichel liegt flach, von hinten gut sichtbar), Rumpf zurückgedreht, ferne
+ * Hand zeigt aufs Ziel; Abwurf: Arm fegt über die Seite nach vorn (Sichel fliegt ab SICHEL.release), Rumpf dreht mit;
+ * Ausschwingen quer vor den Körper.
+ */
+const SICHEL_THROW = [
+  [0.2, { armXn: -0.85, armZn: -1.5, elbowN: 0.35, twistN: 0, armXf: 0.25, armZf: 1.3, elbowF: 0.15, torsoY: -0.55, lean: 0.06 }],
+  [0.29, { armXn: -1.45, armZn: -0.1, elbowN: 0.15, twistN: 0, armXf: 0.35, armZf: 0.6, elbowF: 0.3, torsoY: -0.05, lean: -0.04 }],
+  [0.4, { armXn: -0.4, armZn: 1.45, elbowN: 0.05, twistN: 0, armXf: 0.45, armZf: -0.35, elbowF: 0.5, torsoY: 0.45, lean: -0.14 }],
+  [1.0, { armXn: 0.12, armZn: 1.0, elbowN: 0.5, twistN: 0.2, armXf: 0.3, armZf: 0.15, elbowF: 0.35, torsoY: 0.15, lean: -0.04 }],
+];
 /** Gretas Haar liegt mit Umhang etwas weiter hinten (auf dem Umhang statt darunter). */
 const MANE_REST_CAPE = V(-0.3, -1, 0).normalize();
 /** Mondsichel-Kamm vorn oben auf der Mütze (kopf-lokal): steht zwischen senkrecht und Flächennormale, Öffnung nach oben,
  *  Fläche nach vorn, unten etwas in die Mütze gesteckt. */
 function crestGeo() {
-  const { az, el, R, tilt } = CAP.crest;
+  const { az, el, R, tilt, roll } = CAP.crest;
   const up = V(0, 1, 0).lerp(HEAD.normal(dirAE(az, el)), tilt).normalize();
   const side = V(0, 0, 1), face = new THREE.Vector3().crossVectors(up, side).normalize();
-  const center = HEAD.point(dirAE(az, el), CAP.lift(az, el)).addScaledVector(up, R - 0.035);
-  const g = sichelBladeGeo(R, { depth: 0.38 });
-  g.applyMatrix4(new THREE.Matrix4().makeBasis(up, side, face).setPosition(center));
+  // Öffnung schräg nach oben zur nahen Seite („☾“ statt „U“), Rücken steckt in der Mütze
+  const open = up.clone().applyAxisAngle(face, roll), open2 = new THREE.Vector3().crossVectors(face, open);
+  const center = HEAD.point(dirAE(az, el), CAP.lift(az, el)).addScaledVector(open, R - 0.03);
+  const g = sichelBladeGeo(R, { depth: 0.38, hub: false, nu: 8, nv: 18 });
+  g.applyMatrix4(new THREE.Matrix4().makeBasis(open, open2, face).setPosition(center));
   return g;
 }
 
@@ -1696,9 +1720,9 @@ export class HeroAvatar extends Avatar3D {
         S.cape = new THREE.Mesh(sichelCapeGeo({}), SURF.cloth()); S.cape.name = 'sichelumhang';
         S.cape.position.copy(CAPE.pivot);
         S.hand = new THREE.Group(); S.hand.name = 'wurfsichel-hand';
-        S.hand.rotation.set(0, SICHEL_HOLD.ry, SICHEL_HOLD.rz);
+        S.hand.quaternion.copy(sichelHoldQuat());
         S.hand.position.set(SICHEL_HOLD.x, SICHEL_HOLD.y, 0);
-        S.handMesh = new THREE.Mesh(geo('hero:sichel:hand', () => sichelBladeGeo(SICHEL.R, { hub: false }).translate(SICHEL_GRIP * SICHEL.R, 0, 0)), SURF.gloss());
+        S.handMesh = new THREE.Mesh(geo('hero:sichel:hand', () => sichelBladeGeo(SICHEL.R, { hub: false, nu: 10, nv: 22 }).translate(SICHEL_GRIP * SICHEL.R, 0, 0)), SURF.gloss());
         S.hand.add(S.handMesh);
       }
       if (S.capKey !== capKey) {
@@ -1708,11 +1732,12 @@ export class HeroAvatar extends Avatar3D {
       }
     }
     let changed = false;
-    if (capOn !== S.capOn) { S.capOn = capOn; this.attachPart(this.head, S.cap, capOn, true); this.attachPart(this.head, S.crest, capOn, false); changed = true; }
+    // Schatten: Umhang ja; Mütze nein (die Haarschale darunter wirft fast dieselbe Silhouette, wie beim Kopf), Kamm/Sichel klein
+    if (capOn !== S.capOn) { S.capOn = capOn; this.attachPart(this.head, S.cap, capOn, false); this.attachPart(this.head, S.crest, capOn, false); changed = true; }
     if (on !== S.capeOn) {
       S.capeOn = on; S.capeA = 0; S.capeV = 0;
       this.attachPart(this.torso, S.cape, on, true);
-      this.attachPart(this.armN.carm.hand, S.hand, on, true);   // an der Faust (hängt am Unterarm-Knochen)
+      this.attachPart(this.armN.carm.hand, S.hand, on, false);   // an der Faust (hängt am Unterarm-Knochen)
       S.catchN = null; S.catchT = 9; S.popT = 9;
       changed = true;
     }
@@ -1741,7 +1766,7 @@ export class HeroAvatar extends Avatar3D {
     const S = this.sk;
     if (!S?.capeOn || !SICHEL_HAND.has(state) || c.holding || state === 'throw') return;
     if ((c.sichelFlying ?? 0) === 0 && (state === 'idle' || state === 'land')) {
-      pose.armZn += 0.18; pose.armXn -= 0.06; pose.elbowN = Math.max(pose.elbowN, 0.75); pose.twistN += 0.35;
+      pose.armZn += 0.18; pose.armXn -= 0.08; pose.elbowN = Math.max(pose.elbowN, 0.7);
     }
     const k = S.catchT;
     if (k >= SICHEL.catchDur) return;
@@ -1754,18 +1779,22 @@ export class HeroAvatar extends Avatar3D {
     if (state === 'idle' || state === 'land') pose.bob += 0.025 * Math.sin(Math.PI * clamp(k / 0.3, 0, 1));
   }
 
-  /** Wurf mit der Sichel (phase p 0..1, Grundpose o aus Stand/Lauf/Luft): Ausholen hinter den Kopf, Arm schnellt vor, Ausschwingen. */
+  /**
+   * Wurf mit der Sichel (phase p 0..1, Grundpose o aus Stand/Lauf/Luft): Schlüssel SICHEL_THROW – Ausholen und Ausschwingen weich,
+   * das Fegen über die Seite gleichmäßig schnell; Kopf bleibt beim Ziel (gegen die Rumpfdrehung), Mund beim Abwurf offen.
+   */
   poseSichelThrow(o, p) {
-    const a = smoothstep(p / 0.2), b = smoothstep((p - 0.18) / 0.2), e = smoothstep((p - 0.42) / 0.58);
-    const mix3 = (base, w, s, f) => lerp(lerp(lerp(base, w, a), s, b), f, e);
-    const tY = mix3(0, -0.5, 0.45, 0.18);
-    Object.assign(o, {
-      armZn: mix3(o.armZn ?? 0.1, 2.75, 1.5, 0.8), armXn: mix3(o.armXn ?? -0.14, -0.55, -0.2, 0.05),
-      elbowN: mix3(o.elbowN ?? 0.2, 1.65, 0.05, 0.35), twistN: mix3(o.twistN ?? 0, -0.3, 0, 0.2),
-      armZf: mix3(o.armZf ?? 0.1, 1.3, -0.3, 0.15), armXf: mix3(o.armXf ?? 0.14, 0.3, 0.45, 0.3), elbowF: mix3(o.elbowF ?? 0.2, 0.15, 0.55, 0.35),
-      torsoY: tY, lean: (o.lean ?? 0) + mix3(0, 0.07, -0.14, -0.05), headY: (o.headY ?? 0) - 0.65 * tY, headZ: (o.headZ ?? 0) + 0.05,
-      mouth: 0.5 * b * (1 - e), eyes: 1,
-    });
+    const base = { armXn: o.armXn ?? -0.14, armZn: o.armZn ?? 0.1, elbowN: o.elbowN ?? 0.2, twistN: o.twistN ?? 0, armXf: o.armXf ?? 0.14, armZf: o.armZf ?? 0.1, elbowF: o.elbowF ?? 0.2, torsoY: o.torsoY ?? 0, lean: 0 };
+    const keys = [[0, base], ...SICHEL_THROW];
+    let i = 0;
+    while (i < keys.length - 2 && p > keys[i + 1][0]) i++;
+    const [t0, A] = keys[i], [t1, B] = keys[i + 1];
+    const u = clamp((p - t0) / (t1 - t0), 0, 1), k = i === 0 || i === keys.length - 2 ? smoothstep(u) : u;
+    const lean0 = o.lean ?? 0;
+    for (const key of Object.keys(B)) o[key] = lerp(A[key], B[key], k);
+    o.lean += lean0;
+    const snap = smoothstep((p - 0.22) / 0.12) * (1 - smoothstep((p - 0.5) / 0.3));
+    Object.assign(o, { headY: (o.headY ?? 0) - 0.7 * o.torsoY, headZ: (o.headZ ?? 0) + 0.04, mouth: 0.55 * snap, eyes: 1 });
     return o;
   }
 
@@ -1775,7 +1804,8 @@ export class HeroAvatar extends Avatar3D {
     if (!S?.capeOn) return;
     const state = this.cState ?? 'idle';
     const fly = (c.sichelFlying ?? 0) > 0;
-    const show = SICHEL_HAND.has(state) && !c.holding && (!fly || (state === 'throw' && S.throwSichel && S.throwP < SICHEL.release));
+    // Fang: sichelFlying zählt die Sichel im Fang-Schritt noch mit (Motor) – der Zählerwechsel zeigt sie sofort wieder
+    const show = SICHEL_HAND.has(state) && !c.holding && (!fly || S.catchT < 0.05 || (state === 'throw' && S.throwSichel && S.throwP < SICHEL.release));
     S.show = show;
     S.hand.visible = show;
     if (show) {
@@ -1811,7 +1841,7 @@ export class HeroAvatar extends Avatar3D {
     const ag = Math.atan2(-_v.x, -_v.y);
     const sp = Math.max(0, c.speed ?? 0), vy = c.vy ?? 0;
     const air = clamp((sp + Math.abs(vy)) / 8, 0, 1);
-    let target = ag + 0.07 * sp + 0.06 * Math.max(0, -vy) - 0.025 * Math.max(0, vy);
+    let target = ag + 0.1 * sp + 0.065 * Math.max(0, -vy) - 0.025 * Math.max(0, vy);
     let flutter = 0.07 * air * Math.sin(t * 13) + 0.04 * air * Math.sin(t * 21 + 1.3);
     let lo = -0.04, hi = 1.3;
     switch (state) {

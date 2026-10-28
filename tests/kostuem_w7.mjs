@@ -54,7 +54,7 @@ await sc(async () => {
   c.level.muted = true;
   try { window.__game.scene.getScene('CourseUI').cameras.main.setVisible(false); } catch (_) { /* egal */ }
   const heroMod = await import('/src/three/avatars/hero.js');
-  const THREE = await import('three');
+  const THREE = (await import('/src/course/models/lib/kit.js')).THREE;
   const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
   const H = window.__kw = { THREE, V, heroMod, t: c.view.time, cam: null, drive: false };
   const rig = c.rig, upd = Object.getPrototypeOf(rig).update;
@@ -92,6 +92,8 @@ await sc(async () => {
     c.view.rig.snap(p);
     for (const e of L().entities) if (e.kind === 'wurfsichel' && !e.removed) e.kill?.();
     H.tick(o.settle ?? 30);
+    // Squash & Stretch der Hülle ausschwingen lassen (ungleichmäßig skaliert zeichnet jedes Teil einzeln)
+    for (let i = 0; i < 400 && (rig.squash !== 0 || rig.squashV !== 0); i++) H.tick(1);
     return p.info();
   };
   H.action = () => { c.setInput({ action: true }); H.tick(1); c.setInput({}); };
@@ -153,8 +155,11 @@ await sc(async () => {
   };
   /** Bank-Pose: Avatar n Bilder mit eigenem course-Objekt (HeroRig steht), danach zurück zum Stellvertreter. */
   H.base = { state: 'idle', speed: 0, vy: 0, grounded: true, phase: 0, power: 'sichel', big: true, holding: false, climbing: false, fenceMove: { x: 0, y: 0 }, fencePunch: 0, skates: false, sichelFlying: 0, sichelReady: true, sichelCatch: 0 };
+  /** Blinzeln aus (Bilder und Augen-Prüfungen der Fang-Geste wiederholbar; die Fang-Geste schließt die Augen selbst). */
+  H.noBlink = () => { const av = H.av(); if (av.__nb) return; av.__nb = true; av.blinker.update = () => 1; };
   H.pose = (cc = {}, n = 30, dt = 1 / 60) => {
     const av = H.av(), keep = rig.proxy.course;
+    H.noBlink();
     for (let i = 0; i < n; i++) {
       H.t += dt;
       av.obj.course = { ...H.base, ...cc };
@@ -177,6 +182,8 @@ const VIEWS = {
   back0: { mode: 'close', rel: Math.PI, el: 0.2, dist: 2.6, fov: 30, h: 0.55 },
   top: { mode: 'close', rel: Math.PI - 0.7, el: 0.75, dist: 2.6, fov: 30, h: 0.55 },
   course: { mode: 'course' },
+  // wie die Kurs-Kamera (hinten oben), aber näher: Lesbarkeit des Kostüms im Spiel
+  kursnah: { mode: 'close', rel: Math.PI, el: 0.62, dist: 5.2, fov: 34, h: 0.45 },
 };
 async function shot(name, view, group, o = {}) {
   if (!SHOTS) return;
@@ -185,7 +192,7 @@ async function shot(name, view, group, o = {}) {
   let clip = { x: 290, y: 50, width: 380, height: 440 };
   if (view === 'course') {
     const p = await S(() => window.__kw.screen(0.5));
-    const w = o.w ?? 340, h = o.h ?? 250;
+    const w = o.w ?? 240, h = o.h ?? 180;
     clip = { x: Math.round(Math.max(0, Math.min(960 - w, p.x - w / 2))), y: Math.round(Math.max(0, Math.min(540 - h, p.y - h / 2))), width: w, height: h };
   }
   if (o.clip) clip = o.clip;
@@ -193,7 +200,7 @@ async function shot(name, view, group, o = {}) {
   try { await page.screenshot({ path, clip, timeout: 120000 }); shotList.push({ name, path, group }); } catch (err) { console.log(`  (Bild ${name} übersprungen: ${err.message.split('\n')[0]})`); }
   await S(() => { window.__kw.cam = null; });
 }
-const setHero = (k) => S((k) => { window.__course.setHero(k); window.__kw.tick(2); }, k);
+const setHero = (k) => S((k) => { window.__course.setHero(k); window.__kw.tick(2); window.__kw.noBlink(); }, k);
 
 // ---------------------------------------------------------------- Motor: Item, Wurf, Fang
 async function mechPart(hero) {
@@ -222,16 +229,17 @@ async function mechPart(hero) {
     const catch0 = p.sichelCatch ?? 0;
     c.setInput({ action: true }); H.tick(1); c.setInput({});
     const smp = [];
-    H.tick(2);
+    H.tick(6);   // Phase ≈ 0,2: ganz ausgeholt
     smp.push({ n: 3, ...H.parts(), flying: p.sichelFlying, phase: +H.rig.proxy.course.phase.toFixed(3), course: H.rig.proxy.course.state, n_ents: H.sickles().length });
     return { catch0, smp };
   });
   await shot(`${hero}_wurf1_ausholen`, 'side', G);
   await shot(`${hero}_wurf1_ausholen_kurs`, 'course', G);
-  r.throw2 = await S(() => { const H = window.__kw, p = window.__course.player; H.tick(7); return { ...H.parts(), flying: p.sichelFlying, phase: +H.rig.proxy.course.phase.toFixed(3) }; });
+  await shot(`${hero}_wurf1_ausholen_kursnah`, 'kursnah', G);
+  r.throw2 = await S(() => { const H = window.__kw, p = window.__course.player; H.tick(6); return { ...H.parts(), flying: p.sichelFlying, phase: +H.rig.proxy.course.phase.toFixed(3) }; });
   await shot(`${hero}_wurf2_abwurf`, 'side', G);
   await shot(`${hero}_wurf2_abwurf_kurs`, 'course', G);
-  r.throw3 = await S(() => { const H = window.__kw, p = window.__course.player; H.tick(12); return { ...H.parts(), flying: p.sichelFlying, phase: +H.rig.proxy.course.phase.toFixed(3) }; });
+  r.throw3 = await S(() => { const H = window.__kw, p = window.__course.player; H.tick(9); return { ...H.parts(), flying: p.sichelFlying, phase: +H.rig.proxy.course.phase.toFixed(3) }; });
   await shot(`${hero}_wurf3_ausschwingen`, 'side', G);
   r.flight = await S(() => {
     const H = window.__kw, p = window.__course.player;
@@ -239,7 +247,7 @@ async function mechPart(hero) {
     const a = { ...H.parts(), flying: p.sichelFlying, cost: H.cost() };
     return a;
   });
-  await shot(`${hero}_wurf4_flug_kurs`, 'course', G, { w: 420, h: 300 });
+  await shot(`${hero}_wurf4_flug_kurs`, 'course', G, { w: 360, h: 260 });
   // zurück und Fang
   r.catch = await S(() => {
     const H = window.__kw, p = window.__course.player;
@@ -263,29 +271,42 @@ async function mechPart(hero) {
     c.setInput({ y: 1, action: true }); H.tick(1); c.setInput({ y: 1 }); H.tick(3);
     return { run, thr: H.parts(), flying: p.sichelFlying, speed: +Math.hypot(p.vel.x, p.vel.z).toFixed(2) };
   });
-  await shot(`${hero}_lauf_wurf_kurs`, 'course', G, { w: 420, h: 300 });
+  await shot(`${hero}_lauf_wurf_kurs`, 'course', G, { w: 360, h: 260 });
   await shot(`${hero}_lauf_wurf_seite`, 'side', G);
   await S(() => { const H = window.__kw, c = window.__course; c.setInput({}); H.tick(200); });
   // Klone (Spiegelfrucht): Kostüm ohne Schattenwurf, jede wirft eine eigene Sichel
   r.clones = await S(() => {
     const H = window.__kw, c = window.__course, p = c.player;
-    H.place(H.marks.sichel, { settle: 20, power: 'sichel' });
+    H.place([0, 0, 3], { settle: 20, power: 'sichel' });
     const figs = [c.level.addClone(p), c.level.addClone(p)].filter(Boolean);
-    H.tick(30);
     const rigs = figs.map((f) => c.squad.rigs.get(f));
-    for (const rg of rigs) rg.update(1 / 60, H.t);
+    // Klon-Hüllen im Takt der Simulation (sonst setzt squad.render beim Messen die Sichtbarkeit zurück)
+    const up = Object.getPrototypeOf(rigs[0]).update;
+    for (const rg of rigs) rg.update = () => {};
+    const cup = () => { for (const rg of rigs) up.call(rg, 1 / 120, H.t); };
+    const settled = () => figs.every((f) => f.state === 'idle') && rigs.every((rg) => rg.squash === 0 && rg.squashV === 0);
+    H.tick(30, cup);
+    for (let i = 0; i < 600 && !settled(); i++) H.tick(1, cup);
     const parts = rigs.map((rg) => H.parts(rg.avatar));
-    const cost = H.cost([H.rig.hull, ...rigs.map((rg) => rg.hull)]);
+    const cost = H.cost(rigs.map((rg) => rg.hull));
+    cost.dbg = rigs.map((rg) => { const b = c.view.proxies.bundles.find((x) => x.root === rg.hull); const sc = rg.hull.scale; return `${b ? b.groups.map((g) => `${g.parts.length}:${g.on.filter(Boolean).length}`).join(' ') : 'kein'} s=${sc.x.toFixed(4)}/${sc.y.toFixed(4)} sq=${rg.squash} st=${rg.player.state} inv=${rg.player.invuln}`; });
     const costMain = H.cost();
-    c.setInput({ action: true }); H.tick(1); c.setInput({});
-    H.tick(4);
-    for (const rg of rigs) rg.update(1 / 60, H.t);
+    // Gegenprobe: Klone ohne Kostüm (gleiche Stelle)
+    for (const f of figs) f.power = 'none';
+    H.tick(20, cup);
+    for (let i = 0; i < 600 && !settled(); i++) H.tick(1, cup);
+    const costNone = H.cost(rigs.map((rg) => rg.hull));
+    costNone.dbg = rigs.map((rg) => { const b = c.view.proxies.bundles.find((x) => x.root === rg.hull); const sc = rg.hull.scale; return `${b ? b.groups.map((g) => `${g.parts.length}:${g.on.filter(Boolean).length}`).join(' ') : 'kein'} s=${sc.x.toFixed(4)}/${sc.y.toFixed(4)} sq=${rg.squash} st=${rg.player.state} inv=${rg.player.invuln}`; });
+    for (const f of figs) f.power = 'sichel';
+    H.tick(20, cup);
+    c.setInput({ action: true }); H.tick(1, cup); c.setInput({});
+    H.tick(16, cup);   // Phase ≈ 0,55: abgeworfen
     const n = H.sickles().length, owners = new Set(H.sickles().map((s) => s.owner)).size;
     const handsAfter = rigs.map((rg) => rg.avatar.sk?.hand?.visible ?? null);
-    return { k: figs.length, parts, n, owners, handsAfter, cost, costMain, powers: figs.map((f) => f.power) };
+    return { k: figs.length, parts, n, owners, handsAfter, cost, costMain, costNone, powers: figs.map((f) => f.power) };
   });
-  await shot(`${hero}_klone_kurs`, 'course', G, { w: 460, h: 300 });
-  await S(() => { const H = window.__kw, c = window.__course; H.tick(300); c.squad?.clear?.(); H.tick(2); });
+  await shot(`${hero}_klone_kurs`, 'course', G, { w: 360, h: 260 });
+  await S(() => { const H = window.__kw, c = window.__course; for (const rg of c.squad.rigs.values()) if (rg !== H.rig) delete rg.update; H.tick(300); c.squad?.clear?.(); H.tick(2); });
   return r;
 }
 
@@ -297,6 +318,7 @@ async function closePart(hero) {
   r.idle = await S(() => window.__kw.pose({ state: 'idle' }, 90));
   for (const v of ['front', 'side', 'side2', 'back', 'back0', 'top', 'face', 'front0']) await shot(`${hero}_${v}`, v, G);
   await shot(`${hero}_kurs`, 'course', G);
+  await shot(`${hero}_kursnah`, 'kursnah', G);
   // ohne Kostüm zum Vergleich
   await S(() => window.__kw.pose({ state: 'idle', power: 'none' }, 30));
   await shot(`${hero}_ohne_front`, 'front', G);
@@ -304,6 +326,7 @@ async function closePart(hero) {
   const list = [
     ['lauf', { state: 'run', speed: 8 }, 50, 'side'],
     ['lauf_hinten', { state: 'run', speed: 8 }, 7, 'back'],
+    ['lauf_kursnah', { state: 'run', speed: 8 }, 9, 'kursnah'],
     ['gehen', { state: 'walk', speed: 3 }, 50, 'front'],
     ['sprung', { state: 'jump', vy: 5, grounded: false }, 14, 'side'],
     ['fallen', { state: 'fall', vy: -9, grounded: false }, 40, 'side'],
@@ -336,6 +359,7 @@ async function closePart(hero) {
     }, ph);
     await shot(`${hero}_wurf_${tag}_seite`, 'side', GP);
     if (tag === 'b' || tag === 'c') await shot(`${hero}_wurf_${tag}_vorn`, 'front', GP);
+    if (tag === 'b' || tag === 'd') await shot(`${hero}_wurf_${tag}_kursnah`, 'kursnah', GP);
   }
   // Fang-Geste: Sichel kommt zurück (sichelCatch wechselt)
   r.poses.fang = await S(() => {
@@ -456,18 +480,19 @@ for (const [hero, R] of Object.entries(results)) {
       m.item.power === 'sichel' && a.costume === 'sichel' && a.cap && a.crest && a.cape && a.hand && !m.item.before.cap && !m.item.before.hand);
     check(`${N}: Zeichenaufrufe Stand mit Kostüm ${m.costIdle.cost.calls} ≤ ohne ${m.costNone.cost.calls} + 1 (Dreiecke ${m.costIdle.cost.tris} / ${m.costNone.cost.tris} = ${(m.costIdle.cost.tris / m.costNone.cost.tris).toFixed(2)}×)`,
       m.costIdle.cost.calls <= m.costNone.cost.calls + 1);
-    check(`${N}: Dreiecke mit Kostüm ≤ 1,35 × ohne`, m.costIdle.cost.tris <= 1.35 * m.costNone.cost.tris);
+    check(`${N}: Dreiecke mit Kostüm ≤ 1,3 × ohne`, m.costIdle.cost.tris <= 1.3 * m.costNone.cost.tris);
     const s0 = m.throw.smp[0];
-    check(`${N}: Ausholen – Zustand 'throw', Sichel fliegt schon (Motor), in der Hand noch sichtbar, Arm hinter dem Kopf (armZn ${s0.armZn})`,
-      s0.course === 'throw' && s0.flying === 1 && s0.hand && s0.armZn > 1.6);
-    check(`${N}: Abwurf – Arm schnellt vor (armZn ${m.throw2.armZn}), Hand leer (Sichel fliegt)`, !m.throw2.hand && m.throw2.flying === 1 && m.throw2.armZn < s0.armZn && m.throw2.armZn > 0.9);
-    check(`${N}: Ausschwingen/Flug – Hand bleibt leer, solange die Sichel fliegt`, !m.throw3.hand && !m.flight.hand && m.flight.flying === 1);
+    check(`${N}: Ausholen – Zustand 'throw', Sichel fliegt schon (Motor), in der Hand noch sichtbar, Arm seitlich hinten (armZn ${s0.armZn})`,
+      s0.course === 'throw' && s0.flying === 1 && s0.hand && s0.armZn < 0);
+    check(`${N}: Abwurf – Arm fegt nach vorn (armZn ${s0.armZn} → ${m.throw2.armZn}), Hand leer (Sichel fliegt)`, !m.throw2.hand && m.throw2.flying === 1 && m.throw2.armZn > s0.armZn + 0.5);
+    check(`${N}: Ausschwingen (Arm vorn ${m.throw3.armZn}) und Flug – Hand bleibt leer, solange die Sichel fliegt`, m.throw3.armZn > 0.9 && !m.throw3.hand && !m.flight.hand && m.flight.flying === 1);
     check(`${N}: Zeichenaufrufe im Flug (Hand leer) ${m.flight.cost.calls} ≤ Stand mit Kostüm ${m.costIdle.cost.calls}`, m.flight.cost.calls <= m.costIdle.cost.calls);
     check(`${N}: Fang (sichelCatch +1 nach ${m.catch.n} Schritten) – Sichel sofort wieder in der Hand, Fang-Geste (Arm vor ${m.catch.mid.armZn}, Augen „◡“ ${m.catch.mid.eyesClosed})`,
       m.catch.n >= 0 && m.catch.at.hand && m.catch.mid.hand && m.catch.mid.armZn > 0.6 && m.catch.mid.eyesClosed && m.catch.flying === 0);
     check(`${N}: nach der Fang-Geste wieder Stand mit Sichel (Augen offen, Sichel in voller Größe ${m.after.handScale})`, m.after.hand && !m.after.eyesClosed && m.after.handScale === 1 && m.after.label === 'idle');
     check(`${N}: Wurf im Lauf – Umhang weht (Winkel ${m.run.run.capeA} rad), Sichel fliegt`, m.run.run.capeA > 0.35 && m.run.flying === 1);
     const cl = m.clones;
+    check(`${N}: Zeichenaufrufe zweier Klone mit Kostüm ${cl.cost.calls} ≤ ohne ${cl.costNone.calls} + 2 (Haupt-Figur ${cl.costMain.calls})`, cl.cost.calls > 0 && cl.cost.calls <= cl.costNone.calls + 2);
     check(`${N}: Klone (lite) tragen das Kostüm ohne Schattenwurf (${cl.k} Klone)`, cl.k === 2 && cl.parts.every((p) => p.costume === 'sichel' && p.cap && p.cape && p.hand && !p.capShadow && !p.capeShadow && !p.handShadow));
     check(`${N}: jede Figur wirft eine eigene Sichel (${cl.n} Sicheln, ${cl.owners} Werferinnen), Klon-Hände danach leer`, cl.n === 3 && cl.owners === 3 && cl.handsAfter.every((h) => h === false));
   }
@@ -479,7 +504,7 @@ for (const [hero, R] of Object.entries(results)) {
     check(`${N}: Fallen – Umhang hebt sich (${p.fallen.capeA} rad)`, p.fallen.capeA > 0.3);
     check(`${N}: Hände belegt (Klettern, Wand, Schwimmen, Kanone, Tragen) – Sichel steckt weg`, ['klettern', 'wandrutschen', 'schwimmen', 'kanone', 'tragen'].every((k) => !p[k].hand));
     check(`${N}: Wurf-Phasen – Sichel bis zum Abwurf in der Hand (a ${p.wurf_a.hand}, b ${p.wurf_b.hand}), danach nicht (c ${p.wurf_c.hand}, d ${p.wurf_d.hand}); Arm ${p.wurf_a.armZn} → ${p.wurf_b.armZn} → ${p.wurf_c.armZn} → ${p.wurf_e.armZn}`,
-      p.wurf_a.hand && p.wurf_b.hand && !p.wurf_c.hand && !p.wurf_d.hand && !p.wurf_e.hand && p.wurf_b.armZn > 2 && p.wurf_c.armZn < p.wurf_b.armZn && p.wurf_e.armZn < 1.4);
+      p.wurf_a.hand && p.wurf_b.hand && !p.wurf_c.hand && !p.wurf_d.hand && !p.wurf_e.hand && p.wurf_b.armZn < -1 && p.wurf_c.armZn > p.wurf_b.armZn + 1 && p.wurf_d.armZn > 1.0);
     check(`${N}: Fang-Geste (Augen ◡ ${p.fang.eyesClosed}, Arm ${p.fang.armZn}) → Ende (Augen offen, Arm ${p.fangEnde.armZn})`, p.fang.hand && p.fang.eyesClosed && p.fang.armZn > 0.6 && !p.fangEnde.eyesClosed && p.fangEnde.armZn < 0.6);
     const hwOk = hero === 'lotti' ? !c.hw.hat && c.hw.cap : c.hw.cap && c.hw.tail;
     check(`${N}: Halloween – Mütze ersetzt ${hero === 'lotti' ? 'den Hexenhut (Kürbis-Bommel)' : 'die Katzenohren (sitzen an der Mütze), Katzenschwanz bleibt'}`, hwOk && c.hwOff.cap && !c.hwOff.tail);

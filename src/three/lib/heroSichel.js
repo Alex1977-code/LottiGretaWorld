@@ -104,7 +104,7 @@ export function sichelBladeGeo(R = 0.2, { depth = 0.42, hub = true, nu = 12, nv 
   }));
   // rote Spitzenkappen
   const tip = cur.tip;
-  for (const s of [1, -1]) gs.push(ellipsoid(V(tip.x - 0.035 * R, s * (tip.y - 0.04 * R), 0), V(0.085 * R, 0, 0), V(0, 0.085 * R, 0), V(0, 0, 0.07 * R), SICHEL_C.rim, 10, 6));
+  for (const s of [1, -1]) gs.push(ellipsoid(V(tip.x - 0.035 * R, s * (tip.y - 0.04 * R), 0), V(0.085 * R, 0, 0), V(0, 0.085 * R, 0), V(0, 0, 0.07 * R), SICHEL_C.rim, 8, 5));
   if (hub) {
     // Blüten-Nabe am Griff, beidseitig: fünf Blütenblätter (weiß, rosa Rand), gelbe Mitte
     const hc = V(-SICHEL_GRIP * R, 0, 0), hd = depth * cur(0.5).hw;
@@ -159,8 +159,9 @@ function mergeAll(gs) {
  */
 export const CAP = {
   rimEl: (az) => 0.31 + 0.21 * Math.cos(az) + 0.035 * Math.cos(2 * az),
-  lift: (az, el) => 0.07 + 0.012 * (0.5 - 0.5 * Math.cos(az)) * (1 - smoothstep((el - 0.6) / 0.9)) + 0.018 * Math.sin(Math.PI * clamp((el - 0.2) / 1.37, 0, 1)),
-  crest: { az: 0, el: 1.0, R: 0.1, tilt: 0.42 },
+  lift: (az, el) => 0.07 + 0.012 * (0.5 - 0.5 * Math.cos(az)) * (1 - smoothstep((el - 0.6) / 0.9)) + 0.018 * Math.sin(Math.PI * clamp((el - 0.2) / 1.37, 0, 1))
+    + 0.04 * smoothstep((el - 0.45) / 0.95),   // Krone etwas höher (weiche Mütze statt Helm)
+  crest: { az: 0, el: 1.08, R: 0.125, tilt: 0.2, roll: -0.55 },
   bobble: { az: Math.PI, el: 1.08 },
 };
 
@@ -171,7 +172,7 @@ export function sichelCapGeo(head, { bow = null, halloween = null } = {}) {
   const gs = [];
   // Kappe: sechs Bahnen (Nähte etwas dunkler, Bahnen leicht gewölbt), oben voller
   gs.push(gridGeo({
-    nu: 48, nv: 12,
+    nu: 36, nv: 9,
     point: (u, v, out) => {
       const az = u * TAU, e0 = CAP.rimEl(az), el = lerp(e0, Math.PI / 2, v);
       const seam = Math.abs(Math.sin(3 * az));
@@ -187,13 +188,13 @@ export function sichelCapGeo(head, { bow = null, halloween = null } = {}) {
   }));
   // Goldband am Rand
   const ring = [];
-  for (let i = 0; i < 64; i++) { const az = (i / 64) * TAU; ring.push(at(az, CAP.rimEl(az), -0.002)); }
-  const bandG = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ring, true), 72, 0.026, 7, true);
+  for (let i = 0; i < 48; i++) { const az = (i / 48) * TAU; ring.push(at(az, CAP.rimEl(az), -0.002)); }
+  const bandG = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ring, true), 44, 0.026, 6, true);
   gs.push(paint(bandG, (p) => goldLow.clone().lerp(goldHi, smoothstep(0.45 + (p.y - head.c.y - 0.1) / 0.14)).lerp(gold, 0.3)));
   // Schirm vorn: flache Linse, außen spitz zulaufend, leicht hängend; oben türkis, unten dunkler, Kante hell
   const A = 1.05, Lmax = 0.15, T = 0.016;
   gs.push(gridGeo({
-    nu: 12, nv: 16, flip: true,
+    nu: 10, nv: 12, flip: true,
     point: (u, v, out) => {
       const az = lerp(-A, A, v), k = Math.cos((Math.PI / 2) * (az / A));
       const L = Lmax * Math.pow(Math.max(0, k), 0.6), th = u * TAU;
@@ -218,7 +219,7 @@ export function sichelCapGeo(head, { bow = null, halloween = null } = {}) {
   if (halloween === 'kuerbis') {
     const or = C(SICHEL_C.pumpkin), dk = C(SICHEL_C.pumpkinDark);
     const pc = bc.clone().addScaledVector(bn, 0.012);
-    const pg = new THREE.SphereGeometry(1, 16, 10);
+    const pg = new THREE.SphereGeometry(1, 14, 8);
     const P = pg.attributes.position;
     for (let i = 0; i < P.count; i++) {
       const x = P.getX(i), y = P.getY(i), z = P.getZ(i), a = Math.atan2(z, x), rib = 1 + 0.08 * Math.cos(8 * a) * Math.sqrt(Math.max(0, 1 - y * y));
@@ -248,18 +249,18 @@ export function sichelCapGeo(head, { bow = null, halloween = null } = {}) {
     ear.dispose();
   } else {
     const pink = C(SICHEL_C.bobble), phi = C(SICHEL_C.bobbleHi);
-    for (let k = 0; k < 8; k++) {
-      const a = (k / 8) * TAU;
+    for (let k = 0; k < 7; k++) {
+      const a = (k / 7) * TAU;
       const T1 = V(0, 0, 1), T2 = new THREE.Vector3().crossVectors(bn, T1).normalize();
       const c = bc.clone().addScaledVector(T1, Math.cos(a) * 0.055).addScaledVector(T2, Math.sin(a) * 0.055).addScaledVector(bn, 0.01 * Math.sin(3 * a));
-      gs.push(ellipsoid(c, V(0.048, 0, 0), V(0, 0.048, 0), V(0, 0, 0.048), (p) => pink.clone().lerp(phi, smoothstep(0.5 + (p.y - bc.y) / 0.08) * 0.6), 10, 7));
+      gs.push(ellipsoid(c, V(0.05, 0, 0), V(0, 0.05, 0), V(0, 0, 0.05), (p) => pink.clone().lerp(phi, smoothstep(0.5 + (p.y - bc.y) / 0.08) * 0.6), 8, 6));
     }
-    gs.push(ellipsoid(bc.clone().addScaledVector(bn, 0.03), V(0.072, 0, 0), V(0, 0.072, 0), V(0, 0, 0.072), (p) => pink.clone().lerp(phi, smoothstep(0.45 + (p.y - bc.y) / 0.09) * 0.75), 14, 10));
+    gs.push(ellipsoid(bc.clone().addScaledVector(bn, 0.03), V(0.072, 0, 0), V(0, 0.072, 0), V(0, 0, 0.072), (p) => pink.clone().lerp(phi, smoothstep(0.45 + (p.y - bc.y) / 0.09) * 0.75), 12, 8));
   }
   // Lotti: ihre Schleife seitlich am Band (nahe Seite, hinten)
   if (bow) {
-    const az = 2.05, el = CAP.rimEl(az) + 0.07;
-    const c = at(az, el, 0.022), n = head.normal(dirAE(az, el));
+    const az = 2.05, el = CAP.rimEl(az) + 0.08;
+    const c = at(az, el, 0.034), n = head.normal(dirAE(az, el));
     const T = new THREE.Vector3().crossVectors(n, V(0, 1, 0)).normalize(), B = new THREE.Vector3().crossVectors(T, n).normalize();
     gs.push(...bowGeos(c, n, T, B, bow, 0.9));
   }
@@ -289,10 +290,10 @@ function bowGeos(c, n, T, B, color, s = 1) {
  * weiter (über dem Rock). Saum als Mondsichel: die Ecken hängen tiefer.
  */
 export const CAPE = {
-  y0: 0.44, L: 0.29,           // Oberkante, Länge in der Mitte (Ecken + corner)
+  y0: 0.44, L: 0.31,           // Oberkante, Länge in der Mitte (Ecken + corner)
   corner: 0.06,
-  r0: 0.128, r1: 0.25,         // Radius um die Körperachse oben/unten
-  a0: 0.95, a1: 0.86,          // halber Öffnungswinkel oben/unten (rad, um −X)
+  r0: 0.13, r1: 0.27,          // Radius um die Körperachse oben/unten
+  a0: 1.0, a1: 0.9,            // halber Öffnungswinkel oben/unten (rad, um −X)
   thick: 0.012,
   pivot: null,                 // Drehpunkt (oben Mitte) – unten gesetzt
 };
@@ -312,7 +313,7 @@ export function sichelCapeGeo({ halloween = false } = {}) {
   const cap = C(SICHEL_C.cap), hi = C(SICHEL_C.capHi), low = C(SICHEL_C.capLow);
   const lin = C(halloween ? SICHEL_C.hwLining : SICHEL_C.lining), linHi = C(halloween ? SICHEL_C.hwLiningHi : SICHEL_C.liningHi);
   const gold = C(SICHEL_C.band), goldHi = C(SICHEL_C.bandHi), goldLow = C(SICHEL_C.bandLow);
-  const h = CAPE.thick / 2, nu = 20, nv = 9;
+  const h = CAPE.thick / 2, nu = 16, nv = 7;
   const gs = [];
   // außen (Normalen nach außen): Falten heller/dunkler, oben heller
   gs.push(gridGeo({
@@ -331,11 +332,11 @@ export function sichelCapeGeo({ halloween = false } = {}) {
   }));
   // Goldpaspel rundum (schließt die Kante zwischen außen und innen)
   const edge = [];
-  for (let i = 0; i <= 10; i++) edge.push(capePoint(-1, i / 10, 0));
-  for (let i = 1; i < 24; i++) edge.push(capePoint(-1 + (2 * i) / 24, 1, 0));
-  for (let i = 10; i >= 0; i--) edge.push(capePoint(1, i / 10, 0));
-  for (let i = 23; i >= 1; i--) edge.push(capePoint(-1 + (2 * i) / 24, 0, 0));
-  const tube = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge, true, 'centripetal'), 96, h + 0.006, 5, true);
+  for (let i = 0; i <= 8; i++) edge.push(capePoint(-1, i / 8, 0));
+  for (let i = 1; i < 16; i++) edge.push(capePoint(-1 + (2 * i) / 16, 1, 0));
+  for (let i = 8; i >= 0; i--) edge.push(capePoint(1, i / 8, 0));
+  for (let i = 15; i >= 1; i--) edge.push(capePoint(-1 + (2 * i) / 16, 0, 0));
+  const tube = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge, true, 'centripetal'), 68, h + 0.006, 4, true);
   gs.push(paint(tube, (p) => goldLow.clone().lerp(goldHi, smoothstep(0.5 + (p.y + 0.15) / 0.35)).lerp(gold, 0.35)));
   // Applikation auf dem Rücken: goldene Mondsichel (Öffnung zur nahen Seite, leicht schräg) und ein Sternchen
   gs.push(...capeMoonGeos(h));
@@ -353,7 +354,7 @@ function capeMoonGeos(h) {
   };
   const R = 0.07, cur = crescent(R, 0.78, 0.45), cx = 0.0, cy = 0.13, rot = 0.5;
   out.push(gridGeo({
-    nu: 10, nv: 22,
+    nu: 8, nv: 16,
     point: (u, v, o) => {
       const { c, n, hw } = cur(v), th = u * TAU;
       // halber Ring: außen gepolstert (Querschnitt halbe Ellipse über der Fläche)
@@ -366,7 +367,7 @@ function capeMoonGeos(h) {
   // Sternchen (fünf Zacken) in der Öffnung der Sichel
   const sx = cx + 0.045, sy = cy - 0.05, sr = 0.026;
   out.push(gridGeo({
-    nu: 30, nv: 3,
+    nu: 20, nv: 2,
     point: (u, v, o) => {
       const th = u * TAU, rr = sr * (0.5 + 0.5 * Math.pow(0.5 + 0.5 * Math.cos(5 * (th - Math.PI / 2)), 1.6)) * v;
       return onCape(sx + rr * Math.cos(th), sy - rr * Math.sin(th), 0.003 + 0.012 * Math.sqrt(Math.max(0, 1 - v * v)), o);
@@ -390,11 +391,11 @@ export function sichelCordGeos() {
       V(0.108, 0.398, s * 0.055),
       V(0.128, 0.382, s * 0.0),
     ];
-    const t = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 14, 0.011, 5, false);
+    const t = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 10, 0.011, 4, false);
     gs.push(paint(t, (p) => goldLow.clone().lerp(goldHi, smoothstep(0.5 + (p.y - 0.41) / 0.05)).lerp(gold, 0.4)));
   }
   // Schließe: kleine Sichel, Öffnung nach oben, Fläche nach vorn
-  const cl = sichelBladeGeo(0.05, { depth: 0.5, hub: false, nu: 8, nv: 16 });
+  const cl = sichelBladeGeo(0.05, { depth: 0.5, hub: false, nu: 6, nv: 12 });
   cl.applyMatrix4(new THREE.Matrix4().makeBasis(V(0, 1, 0), V(0, 0, 1), V(1, 0, 0)).setPosition(0.132, 0.352, 0));
   gs.push(cl);
   return gs;
