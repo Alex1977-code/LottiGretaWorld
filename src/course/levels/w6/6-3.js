@@ -29,7 +29,7 @@
 
 import * as THREE from 'three';
 import {
-  isl, line, ring, arc, sign, doorWall, nische, saalDecke, bruestung, treppe, scheinwand, saalZier, glimmer, Bld, litTop, daecher, laternen,
+  isl, line, ring, arc, sign, doorWall, nische, saalDecke, treppe, scheinwand, saalZier, glimmer, Bld, litTop, daecher, laternen, zier,
 } from './_helpers_b.js';
 
 const PI = Math.PI;
@@ -54,7 +54,7 @@ export const M63 = {
   STERN0: [6, F[2] + 0.9, -53.5],
   GONG: [23.2, F[2], -44.5], RAETSEL: [16.5, F[2], -48.4], AUSSEN: [23.4, F[2], -48.6],
   ANKUNFT: [0, YE + 0.3, -73],
-  STEINE: [-87, -93, -99],
+  STEINE: [[-1.7, -87], [1.7, -93], [-1.7, -99]],          // Stampfsteine über dem Dachfirst (abwechselnd links/rechts)
   HELME: [[-3, YE, -105], [3, YE, -105]],
   LUECKE: [-110, -118],
   STERN1: [0, YE + 7.4, -114],
@@ -103,7 +103,9 @@ function build(level) {
   saalDecke(level, { x0: XL, x1: ST, z0: ZF, z1: ZB, y: F[1], lower: F[0] });
   saalDecke(level, { x0: -ST, x1: XR, z0: ZF, z1: ZB, y: F[2], lower: F[1] });
   // Treppenhaus-Kanten: Geländer an der offenen Deckenkante (damit man nicht aus Versehen hinunterfällt)
-  bruestung(level, b, { x0: ST - 0.15, x1: ST + 0.15, z: -45.4, y: F[1] });
+  level.world.add({ type: 'box', min: [ST - 0.3, F[1], ZF], max: [ST, F[1] + 1.0, -47.2], camIgnore: true, tag: 'bruestung' });
+  for (let z = ZF - 0.1; z >= -47.2; z -= 1.14) b0.box(0.12, 0.98, 0.12, ST - 0.15, F[1], z, litTop(0xd8443a, 0.7), { r: 0 });
+  b0.box(0.16, 0.12, 5.7, ST - 0.15, F[1] + 0.86, (ZF - 47.2) / 2, litTop(0xd8443a, 0.7), { r: 0 });
   treppe(level, b, { x0: M63.TREPPE1.x0, dir: -1, n: 17, run: 0.42, y0: F[0], y1: F[1], z0: M63.TREPPE1.z0, z1: M63.TREPPE1.z1 });
   treppe(level, b, { x0: M63.TREPPE2.x0, dir: 1, n: 17, run: 0.42, y0: F[1], y1: F[2], z0: M63.TREPPE2.z0, z1: M63.TREPPE2.z1 });
   // Nischen hinter den „freien“ Türen
@@ -140,11 +142,14 @@ function build(level) {
   // Dächer (sparsam): über dem Saal, unter den Tempelterrassen, auf dem obersten Dach, im Gong-Garten
   daecher(level, [
     { pos: [0, F[2] + 5.6, -57], width: 56, depth: 10, height: 4.4, color: 'blau' },
-    { pos: [0, YE - 1.4, -75], width: 18, depth: 16, height: 3, color: 'rot' },
-    { pos: [-6, YE - 1.8, -92], width: 8, depth: 20, height: 2.4, color: 'blau' }, { pos: [6, YE - 1.8, -92], width: 8, depth: 20, height: 2.4, color: 'blau' },
-    { pos: [0, YE - 1.4, -123], width: 18, depth: 12, height: 3, color: 'gruen' },
-    { pos: [0, YE + 6.6, -141.5], width: 18, depth: 15, height: 3, color: 'rot' },
-    { pos: [0, YE + 13.6, -144.5], width: 10, depth: 6, height: 3.2, color: 'rot' },
+    // Dachschürzen unter den Terrassen (der First bleibt unter dem Boden, die Traufen ragen ringsum hervor)
+    { pos: [0, YE - 2.6, -75], width: 20, depth: 17, height: 2.2, color: 'rot' },
+    { pos: [-6.6, YE - 2.4, -92], width: 7, depth: 19, height: 2, color: 'blau' }, { pos: [6.6, YE - 2.4, -92], width: 7, depth: 19, height: 2, color: 'blau' },
+    { pos: [0, YE - 2.6, -106], width: 17, depth: 10, height: 2.2, color: 'blau' },
+    { pos: [0, YE - 2.6, -123], width: 19, depth: 12, height: 2.2, color: 'gruen' },
+    { pos: [0, YE + 5.2, -141.5], width: 19, depth: 15, height: 2.2, color: 'rot' },
+    // Pavillon hinter dem Zielmast
+    { pos: [0, YE + 11.8, -146], width: 8.4, depth: 4.6, height: 2.6, color: 'rot' },
     { pos: [RX, 3.6, -128.5], width: 14, depth: 4, height: 2.2, color: 'gruen' },
   ]);
   // Laternen: Hof, Korridor (an den Wänden), Garten, Saal, Tempel, Nebenbereiche
@@ -158,6 +163,46 @@ function build(level) {
     { kind: 'pfahl', pos: [-6.8, YE, -69.5] }, { kind: 'pfahl', pos: [6.2, YE, -69.5] }, { kind: 'stein', pos: [-6.6, YE, -108.6] }, { kind: 'stein', pos: [6.6, YE, -119.2] },
     { kind: 'pfahl', pos: [-7, YE + 7.8, -136] }, { kind: 'pfahl', pos: [6.4, YE + 7.8, -136] },
     { kind: 'stein', pos: [RX - 3, 0, -99.5] }, { kind: 'stein', pos: [RX + 3, 0, -99.5] }, { kind: 'pfahl', pos: [RX - 6.6, F[2], -37.2] }, { kind: 'pfahl', pos: [RX + 6, F[2], -37.2] },
+  ]);  // Pavillon-Säulen hinter dem Zielmast (Kollision + Optik)
+  const pav = new Bld();
+  for (const x of [-3.4, 3.4]) for (const z of [-144.4, -147.6]) {
+    level.world.add({ type: 'box', min: [x - 0.25, YE + 7.8, z - 0.25], max: [x + 0.25, YE + 11.8, z + 0.25], tag: 'pavillon' });
+    pav.cyl(0.22, 0.26, 4, x, YE + 7.8, z, litTop(0xd8443a, 0.7), 10);
+  }
+  pav.box(7.4, 0.3, 0.3, 0, YE + 11.3, -144.4, 0x9a2a24, { r: 0 }); pav.box(7.4, 0.3, 0.3, 0, YE + 11.3, -147.6, 0x9a2a24, { r: 0 });
+  pav.flush(level);
+  // Festschmuck, Teiche, Beete
+  zier(level, [
+    // Hof
+    { kind: 'teich', pos: [-6.5, Y0, 5.5], size: [5.4, 3.4], koi: 5 }, { kind: 'steine', pos: [0, Y0, 10.5], to: [0, Y0, 1], n: 6 },
+    { kind: 'bonsai', pos: [-4.8, Y0, -0.6] }, { kind: 'bonsai', pos: [4.8, Y0, -0.6] },
+    { kind: 'schirm', pos: [7.6, Y0, 6.4], color: 0xd8443a }, { kind: 'bank', pos: [7.6, Y0, 3.8], yaw: Math.PI / 2 },
+    { kind: 'blumen', pos: [-11, Y0, -0.2], size: [1.6, 3.6] }, { kind: 'blumen', pos: [11, Y0, 9], size: [1.6, 3.6] },
+    { kind: 'moos', pos: [-6, Y0, 9], size: [8, 3], n: 7 }, { kind: 'moos', pos: [6, Y0, 0.5], size: [6, 2.5], n: 5 },
+    { kind: 'kette', pos: [-3.9, Y0 + 3.9, -1.4], to: [3.9, Y0 + 3.9, -1.4], n: 7, sag: 0.6 },
+    // Garten vor dem Saal
+    { kind: 'teich', pos: [1.5, F[0], -33.6], size: [7, 3.6], koi: 6 }, { kind: 'steine', pos: [-4, F[0], -30], to: [-4, F[0], -38], n: 6 },
+    { kind: 'bonsai', pos: [-9, F[0], -36.5], size: 1.2 }, { kind: 'blumen', pos: [14, F[0], -37.6], size: [5, 1.2] }, { kind: 'blumen', pos: [-17, F[0], -37.6], size: [5, 1.2] },
+    { kind: 'moos', pos: [-14, F[0], -32], size: [10, 5], n: 10 }, { kind: 'moos', pos: [14, F[0], -31], size: [10, 4], n: 8 },
+    // Ankunftsterrasse
+    { kind: 'trommel', pos: [-5.2, YE, -71.2] }, { kind: 'trommel', pos: [5.2, YE, -71.2] },
+    { kind: 'schirm', pos: [5.8, YE, -79.6], color: 0x2a6ae8 }, { kind: 'kuebel', pos: [-7, YE, -81] }, { kind: 'kuebel', pos: [7, YE, -69] },
+    { kind: 'kette', pos: [-6.6, YE + 2.5, -69.5], to: [6.4, YE + 2.5, -69.5], n: 9, sag: 0.9 },
+    { kind: 'moos', pos: [0, YE, -75], size: [12, 9], n: 6 },
+    // Helm-Station, mittleres Dach
+    { kind: 'fahne', pos: [-6.4, YE, -109.2], color: 0x2a6ae8 }, { kind: 'fahne', pos: [6.4, YE, -102.8], color: 0xffc84a },
+    { kind: 'kuebel', pos: [-6.2, YE, -102.8] }, { kind: 'bank', pos: [5.6, YE, -108.6] },
+    { kind: 'schirm', pos: [6.4, YE, -120], color: 0xffc84a }, { kind: 'bonsai', pos: [-7, YE, -127.2] }, { kind: 'blumen', pos: [3, YE, -127.4], size: [3, 0.9] },
+    // oberstes Dach
+    { kind: 'fahne', pos: [-7.2, YE + 7.8, -135.8], color: 0xd8443a, height: 5.5 }, { kind: 'fahne', pos: [7.2, YE + 7.8, -135.8], color: 0x2a6ae8, height: 5.5 },
+    { kind: 'kuebel', pos: [-6.8, YE + 7.8, -147] }, { kind: 'kuebel', pos: [6.8, YE + 7.8, -147] },
+    { kind: 'kette', pos: [-3.4, YE + 11.2, -144.4], to: [3.4, YE + 11.2, -144.4], n: 6, sag: 0.4 },
+    // Gong-Garten
+    { kind: 'teich', pos: [RX, 0, -111.5], size: [6, 4], koi: 6 }, { kind: 'steine', pos: [RX, 0, -100.5], to: [RX, 0, -108.2], n: 6 },
+    { kind: 'moos', pos: [RX - 7, 0, -104], size: [8, 6], n: 9, flower: 0xffb8d8 }, { kind: 'moos', pos: [RX + 7, 0, -106], size: [8, 8], n: 9, flower: 0xffe08a },
+    { kind: 'blumen', pos: [RX - 10.4, 0, -114], size: [1.4, 6] }, { kind: 'blumen', pos: [RX + 10.4, 0, -114], size: [1.4, 6] },
+    { kind: 'schirm', pos: [RX + 5.5, 0, -101.5], color: 0xff7ac0 }, { kind: 'bonsai', pos: [RX - 5.5, 0, -101.5] },
+    { kind: 'kette', pos: [RX - 8, 3.6, -126.4], to: [RX + 8, 3.6, -126.4], n: 10, sag: 0.7 },
   ]);
 }
 
@@ -244,7 +289,7 @@ export const LEVEL = {
     { type: 'gong', id: 'gong', pos: M63.GONG, yaw: PI, size: 1.8, coins: 10, rain: { r: 2.6, height: 7, time: 1.6 }, onHit: { reveal: 'raetsel1' }, cooldown: 2 },
     // ---------------- 3/4 Tempelaußenseite und oberstes Dach
     isl(-8, 8, -68, -82, YE, 7, { top: 'stone' }),
-    isl(-2, 2, -82, -102, YE, 5, { top: 'stone' }),
+    isl(-3, 3, -82, -102, YE, 5, { top: 'stone' }),
     isl(-7, 7, -102, -110, YE, 6, { top: 'stone' }),
     isl(-8, 8, -118, -128, YE, 7, { top: 'stone' }),
     isl(-4.5, 4.5, -128, -131.5, YE + 2.6, 6, { top: 'stone' }),
@@ -297,7 +342,7 @@ export const LEVEL = {
     // Käfig der Rätselbox
     { kind: 'stachelwerfer', id: 'swk', pos: [RX, F[2], -49], dir: [0, 1], sight: 12, range: 9 },
     // Tempeldach
-    ...M63.STEINE.map((z, i) => ({ kind: 'stampfstein', id: `stein${i + 1}`, pos: [0, YE + 3.6, z], wait: 1.4 })),
+    ...M63.STEINE.map(([x, z], i) => ({ kind: 'stampfstein', id: `stein${i + 1}`, pos: [x, YE + 3.4, z], wait: 1.4 })),
   ],
   items: [
     { kind: 'pilz_maske', id: 'maske1', pos: M63.MASKE_KORRIDOR.map((v, i) => (i === 1 ? v + 0.5 : v)), respawn: 6 },
@@ -312,7 +357,7 @@ export const LEVEL = {
     arc([0, YE + 0.6, -109], [0, YE + 0.6, -119], 7, 2.2),
     line([0, YE + 0.5, -122], [0, YE + 0.5, -126], 3),
     ring([0, YE + 8.4, -141], 1.6, 8),
-    KEY([-6.5, YE, -80.5]), KEY([0, YE, -93]), KEY([6.5, YE, -126.5]), KEY([-3.6, YE + 5.2, -133.6]), KEY([6.5, YE + 7.8, -146.5]),
+    KEY([-6.5, YE, -80.5]), KEY([-1.7, YE, -87]), KEY([6.5, YE, -126.5]), KEY([-3.6, YE + 5.2, -133.6]), KEY([6.5, YE + 7.8, -146.5]),
     { kind: 'helm_propeller', id: 'helm1', pos: M63.HELME[0], respawn: 3 },
     { kind: 'helm_propeller', id: 'helm2', pos: M63.HELME[1], respawn: 3 },
     // Warp-Boxen: Saal → Tempel, Rätselbox (erscheint beim Gong) ↔ Käfig, Dach ↔ Gong-Garten

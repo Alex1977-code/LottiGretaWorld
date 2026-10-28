@@ -788,3 +788,149 @@ export function laternen(level, list) {
   b.flush(level);
   g.flush(level, { material: 'glow', castShadow: false });
 }
+
+/**
+ * Kleine Kulisse (statisch, sparsam) für Hof, Terrassen und Gärten – Fantasie-Festschmuck ohne reale Symbolik:
+ *   trommel  große Festtrommel auf einem Holzbock (yaw)          schirm   roter Papierschirm (color, size)
+ *   kuebel   Holzkübel mit Blumen (size)                        bonsai   Topf mit kleinem Kiefernbäumchen (size)
+ *   teich    Teich mit Steinrand, Wasser, Koi und Seerosen (size [w, d]) – Wasser nur Optik, 0,1 m tief
+ *   kette    Lichterkette mit kleinen Laternen von pos nach to (sag, n)
+ *   moos     Moos-/Blumenflecken auf dem Boden (size [w, d], n) – flach, ohne Schatten
+ *   steine   Trittsteine von pos nach to (n)                    fahne    Fahnenmast mit langem Wimpel (color, height)
+ *   bank     Holzbank (yaw)                                     blumen   Blumenbeet (size [w, d], n, colors)
+ * list: [{ kind, pos: [x, y, z], … }]. Kollision nur für trommel, kuebel, bonsai, bank (niedrige Quader).
+ */
+export function zier(level, list, o = {}) {
+  const rnd = new Rnd(o.seed ?? 31);
+  const b = new Bld(), g = new Bld(), flat = new Bld();
+  const solid = (x0, x1, y0, y1, z0, z1) => level.world.add({ type: 'box', min: [x0, y0, z0], max: [x1, y1, z1], tag: 'zier' });
+  for (const it of list) {
+    const [x, y, z] = it.pos;
+    const yaw = it.yaw ?? 0;
+    switch (it.kind) {
+      case 'trommel': {
+        const s = it.size ?? 1;
+        solid(x - 0.8 * s, x + 0.8 * s, y, y + 1.6 * s, z - 0.8 * s, z + 0.8 * s);
+        for (const sx of [-1, 1]) b.box(0.12 * s, 1.1 * s, 0.12 * s, x + sx * 0.55 * s, y, z, WOOD_DK, { r: 0, rz: sx * 0.35 });
+        b.cyl(0.62 * s, 0.62 * s, 0.9 * s, x, y + 1.1 * s, z, litTop(LACK, 0.6), 14, { rx: HALF_PI, yaw });
+        b.cyl(0.66 * s, 0.66 * s, 0.9 * s - 0.2, x, y + 1.1 * s, z, LACK_DK, 14, { rx: HALF_PI, yaw });
+        for (const sz of [-1, 1]) {
+          const fx = -Math.sin(yaw) * sz * 0.46 * s, fz = Math.cos(yaw) * sz * 0.46 * s;
+          b.cyl(0.6 * s, 0.6 * s, 0.03, x + fx, y + 1.1 * s, z + fz, 0xf6e6c4, 14, { rx: HALF_PI, yaw });
+          g.torus(0.6 * s, 0.035, x + fx, y + 1.1 * s, z + fz, GOLD, { yaw, rs: 4, ts: 16 });
+        }
+        break;
+      }
+      case 'schirm': {
+        const s = it.size ?? 1;
+        b.cyl(0.04, 0.05, 2.4 * s, x, y, z, WOOD_DK, 5);
+        b.cone(1.5 * s, 0.6 * s, x, y + 2.1 * s, z, { v: (px, py, pz) => new THREE.Color(Math.sin(Math.atan2(pz, px) * 8) > 0 ? (it.color ?? LACK) : 0xfff2e0) }, 16);
+        g.sphere(0.07, x, y + 2.75 * s, z, GOLD, { ws: 6, hs: 4 });
+        break;
+      }
+      case 'kuebel': {
+        const s = it.size ?? 1;
+        solid(x - 0.45 * s, x + 0.45 * s, y, y + 0.6 * s, z - 0.45 * s, z + 0.45 * s);
+        b.box(0.9 * s, 0.6 * s, 0.9 * s, x, y, z, litTop(WOOD, 0.6), { r: 0.04 });
+        b.box(0.96 * s, 0.08, 0.96 * s, x, y + 0.5 * s, z, LACK, { r: 0 });
+        b.sphere(0.42 * s, x, y + 0.65 * s, z, 0x3a9a3a, { s: [1, 0.55, 1], ws: 8, hs: 5 });
+        for (let k = 0; k < 7; k++) {
+          const a = k * 2.4, r = 0.25 * s * (k % 3 ? 1 : 0.4);
+          g.sphere(0.08 * s, x + Math.cos(a) * r, y + 0.85 * s, z + Math.sin(a) * r, [0xff7ac0, 0xffffff, 0xffd84a, 0xff5a5a][k % 4], { ws: 5, hs: 4 });
+        }
+        break;
+      }
+      case 'bonsai': {
+        const s = it.size ?? 1;
+        solid(x - 0.4 * s, x + 0.4 * s, y, y + 0.4 * s, z - 0.4 * s, z + 0.4 * s);
+        b.box(0.8 * s, 0.35 * s, 0.6 * s, x, y, z, litTop(0x3a5a8a, 0.6), { r: 0.05 });
+        b.cyl(0.07 * s, 0.1 * s, 0.9 * s, x, y + 0.3 * s, z, 0x6a4428, 5, { rz: 0.35 });
+        for (const [dx, dy, dz, r] of [[0.3, 1.1, 0, 0.32], [-0.15, 0.95, 0.15, 0.26], [0.05, 1.32, -0.05, 0.22]]) b.sphere(r * s, x + dx * s, y + dy * s, z + dz * s, litTop(0x3a8a4a, 0.6), { s: [1.3, 0.55, 1.1], ws: 7, hs: 5 });
+        break;
+      }
+      case 'teich': {
+        const [w, d] = it.size ?? [5, 3];
+        const n = 18;
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * TAU;
+          b.sphere(0.32, x + Math.cos(a) * w / 2, y + 0.05, z + Math.sin(a) * d / 2, litTop(0xa8a090, 0.7), { s: [1.3, 0.55, 1], ws: 6, hs: 4 });
+        }
+        const water = new THREE.CircleGeometry(1, 24).toNonIndexed();
+        water.rotateX(-HALF_PI); water.scale(w / 2, 1, d / 2); water.translate(x, y + 0.08, z);
+        const wa = L(0x4ac0e8), wb = L(0x2a7ab8);
+        addStatic(level, colorize(water, (p, nn, c) => mixc(wb, wa, smooth(0, 1, Math.hypot((p.x - x) / (w / 2), (p.z - z) / (d / 2))), c)), { castShadow: false });
+        for (let k = 0; k < (it.koi ?? 4); k++) {
+          const a = rnd.real(0, TAU), r = rnd.real(0.2, 0.6);
+          const kx = x + Math.cos(a) * r * w / 2, kz = z + Math.sin(a) * r * d / 2;
+          flat.sphere(0.2, kx, y + 0.1, kz, k % 2 ? 0xff7a2a : 0xfff4e8, { s: [1.8, 0.35, 0.8], yaw: rnd.real(0, TAU), ws: 7, hs: 4 });
+        }
+        for (let k = 0; k < 3; k++) flat.cyl(0.35, 0.35, 0.03, x + rnd.real(-w / 3, w / 3), y + 0.1, z + rnd.real(-d / 3, d / 3), 0x5ab84a, 10);
+        break;
+      }
+      case 'kette': {
+        const [tx, ty, tz] = it.to, n = it.n ?? 8, sag = it.sag ?? 0.8;
+        for (let i = 0; i <= n; i++) {
+          const t = i / n, px = x + (tx - x) * t, pz = z + (tz - z) * t, py = y + (ty - y) * t - Math.sin(t * Math.PI) * sag;
+          if (i < n) {
+            const t2 = (i + 1) / n, qx = x + (tx - x) * t2, qz = z + (tz - z) * t2, qy = y + (ty - y) * t2 - Math.sin(t2 * Math.PI) * sag;
+            const L2 = Math.hypot(qx - px, qy - py, qz - pz);
+            const gg = new THREE.CylinderGeometry(0.015, 0.015, L2, 3);
+            gg.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(qx - px, qy - py, qz - pz).normalize()));
+            b.add(gg, 0x3a2a1a, { p: [(px + qx) / 2, (py + qy) / 2, (pz + qz) / 2] });
+          }
+          if (i > 0 && i < n) g.sphere(0.16, px, py - 0.22, pz, [0xff7a5a, 0xffd860, 0xff9ad0][i % 3], { s: [1, 1.2, 1], ws: 7, hs: 5 });
+        }
+        break;
+      }
+      case 'moos': {
+        const [w, d] = it.size ?? [4, 4];
+        for (let k = 0; k < (it.n ?? 8); k++) {
+          const px = x + rnd.real(-w / 2, w / 2), pz = z + rnd.real(-d / 2, d / 2), r = rnd.real(0.3, 0.8);
+          flat.cyl(r, r * 1.05, 0.04, px, y + 0.005, pz, rnd.frac() < 0.5 ? 0x6ab84a : 0x8ac85a, 9);
+          if (rnd.frac() < 0.5) g.sphere(0.07, px + r * 0.4, y + 0.08, pz, it.flower ?? 0xffffff, { ws: 5, hs: 3 });
+        }
+        break;
+      }
+      case 'steine': {
+        const [tx, , tz] = it.to, n = it.n ?? 5;
+        for (let i = 0; i < n; i++) {
+          const t = n === 1 ? 0 : i / (n - 1);
+          flat.cyl(0.42, 0.46, 0.06, x + (tx - x) * t + rnd.real(-0.15, 0.15), y + 0.005, z + (tz - z) * t + rnd.real(-0.15, 0.15), 0xb8b0a0, 9);
+        }
+        break;
+      }
+      case 'fahne': {
+        const h = it.height ?? 5;
+        b.cyl(0.06, 0.08, h, x, y, z, WOOD_DK, 6);
+        g.sphere(0.12, x, y + h + 0.08, z, GOLD, { ws: 6, hs: 4 });
+        b.box(0.05, h * 0.55, 0.7, x, y + h * 0.4, z + 0.42, litTop(it.color ?? LACK, 0.75), { r: 0 });
+        b.box(0.06, 0.08, 0.8, x, y + h * 0.95, z + 0.4, WOOD_DK, { r: 0 });
+        break;
+      }
+      case 'bank': {
+        const c = Math.cos(yaw), s = Math.sin(yaw);
+        const ex = Math.abs(c) * 0.9 + Math.abs(s) * 0.25, ez = Math.abs(s) * 0.9 + Math.abs(c) * 0.25;
+        solid(x - ex, x + ex, y, y + 0.45, z - ez, z + ez);
+        b.box(1.8, 0.1, 0.5, x, y + 0.4, z, litTop(WOOD_LT, 0.7), { r: 0.02, yaw });
+        for (const k of [-0.7, 0.7]) b.box(0.12, 0.4, 0.45, x + c * k, y, z - s * k, WOOD_DK, { r: 0, yaw });
+        break;
+      }
+      case 'blumen': {
+        const [w, d] = it.size ?? [3, 1.5];
+        const cols = it.colors ?? [0xff7ac0, 0xffd84a, 0xffffff, 0xff5a5a, 0xb07aff];
+        flat.box(w, 0.12, d, x, y, z, 0x6a4a2a, { r: 0 });
+        for (let k = 0; k < (it.n ?? 14); k++) {
+          const px = x + rnd.real(-w / 2 + 0.15, w / 2 - 0.15), pz = z + rnd.real(-d / 2 + 0.15, d / 2 - 0.15);
+          flat.cyl(0.02, 0.02, 0.3, px, y + 0.1, pz, 0x3a8a3a, 3);
+          g.sphere(0.1, px, y + 0.42, pz, cols[k % cols.length], { ws: 5, hs: 4 });
+        }
+        break;
+      }
+      default: break;
+    }
+  }
+  if (!level.view) return;
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+  flat.flush(level, { castShadow: false });
+}
