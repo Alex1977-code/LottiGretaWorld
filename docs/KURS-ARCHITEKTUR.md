@@ -7451,6 +7451,286 @@ Kennzahlen der Bilder (Zeichenaufrufe inkl. Schattenpass und Spiegel-Durchgang /
 Der Spiegel-Durchgang zeichnet nur, was näher als `reach` am Spiegel und vor ihm liegt (auch Sprites und Objekte ohne
 Sichtprüfung über ihre Grenzkugel + 3 m), und schaltet sich ab, wenn die Kamera weiter als `near` entfernt ist.
 
+## Präzisierung (Gegner Welt 8)
+
+Ergänzung des Gegner-Agenten Welt 8 „Brummbär-Rummelplatz“ (Stand: Rummel-Gegnerzoo `0-32`, Rummel-Bossarenen `0-33`).
+Nichts oben Festgelegtes wird geändert; alles ist additiv. Level-Bauer schreiben nur Daten; alle Felder sind optional, sofern
+nicht anders vermerkt. Gemeinsame Felder und Konter aus „Präzisierung (Gegner/Power-ups)“ und „(Gegner Welt 2–7, Halloween)“
+gelten weiter (`id, pos, dir|yaw, path, loop, wake, edges, drop`; Ziel = nächste Figur, Lava/Absturz = besiegt, Pilz-Maske über
+`maskedFrom`). Jede Datei dokumentiert ihre Parameter vollständig im Kopfkommentar. Angebunden an die Welt-8-Modelle
+(„Präzisierung (Modelle Welt 8)“) und an die Motor-Bausteine („Präzisierung (Motor und Bausteine Welt 8)“: `super_pow_block`,
+`riesenrad`, `lavabrocken_regen`, Signal `aufschlag`, Abspann `{ credits: true }`) – keine eigenen Ersatzlösungen, wo der
+Motor etwas anbietet (Rückfälle nur, wenn ein Baustein fehlt). Kindgerecht: besiegte Knochenflieger fallen klappernd zu
+Knochenhaufen, Sandfiguren zerbröseln, Doppelgänger platzen in Funken, der Baron fliegt am Ende rudernd mit dem Zylinder in der
+Tatze davon.
+
+### Präzisierung (Gegner Welt 8): Dateien
+
+```
+src/course/entities/w8help.js                     Hilfen (außerhalb kinds/): POWER_HIT, isSichel, sandTop (Dünennetz/Boden),
+                                                  groundBelow, Track (Bahn als Bogenlänge), Markers (Landemarken 'boss_marker'),
+                                                  fallingStar, CarriedStar, archOf, bannerOf, glint, impact (Signal 'aufschlag')
+src/course/entities/kinds/sandflosser_w8.js       sandflosser
+src/course/entities/kinds/knochenschwarm_w8.js    knochenflieger_gruppe (+ Glieder knochenflieger_glied)
+src/course/entities/kinds/sandstatue_w8.js        baron_sandstatue, pilzling_sandskulptur
+src/course/entities/kinds/varianten_w8.js         schockwelle, lavapfuetze, ameisen_reihe
+src/course/entities/kinds/baron_krallen_w8.js     baron_krallen (Endgegner 8-Burg), baron_klon, bruchstueck, baron_superpow (Rückfall)
+src/course/entities/kinds/kaefer.js               + Flatterkäfer mit Stern (star | carries 'star:I')
+src/course/entities/kinds/spuk.js                 + Jäger (hunt, trigger, huntSpeed …), kreisgeist_kreis bis 40 Geister je Ring
+src/course/entities/kinds/schubser_w6.js          + group, fallDefeat, onGroup, fährt auf Gondeln/MovingBoxen mit
+src/course/entities/kinds/wuerfelblase_w6.js      + color 'gold' (8-A: Schockwellen, schneller)
+src/course/entities/kinds/schlangenkoenig.js      + color 'rosa' (8-B: Lavabrocken hinterlassen Lavapfützen)
+src/course/entities/kinds/schattenlaeuferin.js    + round 2 (8-Zug: mehr Doppelgänger, schneller)
+src/course/levels/w0/0-32.js                      Rummel-Gegnerzoo (10 Reihen, Z(r, dz) = −8 − 20(r − 1) − dz, Thema desert)
+src/course/levels/w0/0-33.js                      Rummel-Bossarenen (LEVEL.bosses: goldene Würfelblase, rosa Schlangenkönig,
+                                                  Schattenläuferin 2, Baron im Krallen-Anzug mit Turm/Spiegel/Gipfel)
+tests/course_w8_enemies.mjs                       Port 4790, W8E_PART=1|2|3|4, Bilder tests/out/w8e_*.png
+```
+
+Modelle: `sandflosser` (sonst `glotzfisch` gelb), Instanz-Gruppe `knochenflieger` (lib/instanced_w8.js: 'fly' | 'dive' |
+{ anim: 'bones' | 'assemble', progress }; alle Schwärme eines Levels = 4 Zeichenaufrufe), `baron_sandstatue` ({ break }),
+`sandskulptur_pilzling` ({ height, hole, toys }), `flatterkaefer`, `spuk`, `kreisgeist_kreis` (alive als Liste),
+`schockwelle` ({ radius, color }), `lavapfuetze`, `lavabrocken_regen` (Lavabrocken des Schlangenkönigs), `wuerfelblase`
+({ color: 'gold' }), `schlangenkoenig` ({ color: 'rosa' }), `baron_krallen` ({ clone } für Doppelgänger; anim idle | climb |
+fire | swipe | slide | eat | clone | thrown | launched | stunned | defeated | flee mit Hut in der Tatze), `freunde_glas`
+({ size, friends }; state shake/break/cheer), `boss_marker`, `super_pow_block` (Motor). Unverändert geprüft (nur Daten):
+`pilzling` mit `mini: true` (Mini-Pilzlinge), `hackvogel`, `krallen_pilzling`, `feuer_werfer`, `hammer_werfer`,
+`wutkaulquappe` (Welt 7), `ameisensoldat_horn` (Welt 4), `riesenschnappblume` (Welt 2/5; Wurfsichel = 1 Treffer).
+
+### Präzisierung (Gegner Welt 8): gemeinsame Regeln
+
+- **POWER_HIT** (w8help.js) = claw, fire, sichel, throw, shell, cannon, bomb, mega, star, punch, bite, tail, crush, pow – Angriffe
+  der Figur mit Power-up bzw. Wurfgegenstand; sie besiegen Welt-8-Gegner **endgültig** (Knochenflieger ohne Neu-Zusammensetzen,
+  Doppelgänger platzen, Sandfiguren zerbröseln).
+- **Wurfsichel** (Motor `onSichelHit` bzw. `onHit('throw', sichel)`): Knochenflieger endgültig, Sandflosser im Sprung besiegt,
+  Sandfiguren zerbröseln, Flatterkäfer besiegt (Stern fällt), Doppelgänger platzen, Hörner-Ameisen besiegt, Spuk/Kreisgeist
+  bleiben heil (wie Welt 7), Riesenschnappblume −1 Treffer, Baron zuckt („Kratzer!“, Angriff unterbrochen, kein Schaden).
+- **Pflaume-Ritt** (8-2): Sandflosser kündigen jeden Sprung an (warn s, Sand brodelt, rote Schattenmarke an der Landestelle);
+  Sandfiguren zerbröseln, wenn die reitende Figur sie rammt (Ritt-Level `riding` bzw. Reittier `mode 'mount'`).
+- **Aufschläge** (Motor, Leuchtstege): Schockwellen (je Welle, Radius min(12, radius)), Lavapfützen (6 m), Baron-Landungen und
+  -Würfe (7 m), Doppelgänger-Landungen (5 m) und abstürzende Bruchstücke (6 m) melden `level.signal('aufschlag', { pos, radius, by })`.
+- **Super-POW-Block** (Motor): der Baron hat `superPowImmune = true` (keine Schockwelle), steht auf `top` und sackt mit ab;
+  Doppelgänger und Gegner am Boden bekommen die Schockwelle (`onHit('bump')` → Doppelgänger platzen). Stöße kommen nur von den
+  Figuren.
+- **Bewegte Plattformen** (Riesenrad-Gondeln, Felsklötze, Fallblöcke = MovingBoxen): Gegner fahren mit; der Schubser nimmt
+  seinen Heimplatz mit (er bleibt auf seiner Gondel).
+- **Sound** nur über vorhandene `level.sfx`-Namen: `dig`, `splash`, `stomp`, `sand_crumble`, `hover`, `swoop`, `blockhit`,
+  `step`, `switch`, `poof`, `brickbreak`, `powerup_appear`, `slam`, `burn`, `claw`, `fireball`, `wallslide`, `rumble`, `clone`,
+  `berry`, `boss_hit`, `victory`, `panic`, `hop`, `land`, `bounce`, `gong`, `powerdown` (`tests/sfx_namen.mjs` grün).
+- **Zeichenaufrufe**: Knochenflieger aller Gruppen teilen eine Instanz-Gruppe, Kreisgeist-Ringe sind je ein Instanz-Modell
+  (3 Aufrufe); 44 Kreisgeister + 24 Knochenflieger im Bild ≈ 37 Zeichenaufrufe (gesamte Szene).
+
+| Gegner | Verhalten | besiegt durch | verletzt |
+| --- | --- | --- | --- |
+| sandflosser | schwimmt unter der Düne (Flosse sichtbar, unberührbar), kündigt an (Schattenmarke), springt im Bogen (pendelnd / Bahn / Kreis / zielend auf die Figur) | im Sprung: Draufspringen/Stampfen, alle Angriffe, Wurfsichel; mit `star`: Stern fällt in den Sand | Berührung im Sprung (seitlich) |
+| knochenflieger_gruppe | 3–8 Flieger in Formation (Ring/Linie/Welle/Keil), ziehen ihre Bahn, Ankündigung (klappern), gemeinsamer Sturzflug | Draufspringen/Stampfen/Rutschen → Knochenhaufen, setzt sich nach `respawn` s neu zusammen; endgültig: POWER_HIT, Wurfsichel, Stampfen auf den Haufen, `respawn: false` | seitliche Berührung (Flug, Sturzflug) |
+| baron_sandstatue / pilzling_sandskulptur | Hindernis aus Sand (kein Gegner); trägt, hält seitlich auf | Ritt, Rammen (≥ 6,5 m/s), Stampfattacke, POWER_HIT, Wurfsichel → zerbröseln; star/content/minis | nie |
+| flatterkaefer + star | fliegt seine Bahn, trägt den Stern unberührbar unter sich | wie bisher (von oben, Angriffe, Wurfsichel) – Stern fällt herab | wie bisher |
+| spuk (hunt) | lauert bis zum Auslöser, jagt dann unablässig (angeschaut langsam, holt weit weg auf) | Licht-Helm (Großspuk 2,2 s), Funkelstern, Riese | jede Berührung |
+| kreisgeist_kreis | Ring bis 40 Geister, dreht sich, schaut auf | Licht (je Geist), Funkelstern, Riese | jede Berührung |
+| schubser (group) | wie Welt 6; auf Gondeln/Plattformen, fährt mit | hinunterstoßen (`fallDefeat`), Lava, Wasser, wie bisher | Stoß |
+| ameisen_reihe | Hörner-Ameisen marschieren in Reihen aus einem Loch ins nächste, endlos | Ameisen wie Welt 4 (Horn: nicht von oben; Angriffe, Wurfsichel) | Horn von oben, seitlich |
+| schockwelle | Ring am Boden wächst (0,45 m hoch) | – (drüberspringen) | Berührung am Boden |
+| lavapfuetze | breitet sich aus (harmlos), heiß, kühlt ab | – | darin stehen (heiß) |
+| baron_klon | Spiegelfrucht-Doppelgänger, springt herab (Landemarke), stürmt seine Bahn | Draufspringen/Stampfen, POWER_HIT, Wurfsichel, POW → platzt | seitlich |
+| bruchstueck | Wand-/Wegstück; Vorwarnung (glüht, wackelt), bricht, stürzt (Schattenmarke) | – | stürzend darunter |
+
+### Präzisierung (Gegner Welt 8): Gegner-Daten (exakt, mit Beispiel)
+
+```js
+enemies: [
+  // Sandflosser: pos = Sandoberfläche (y = Düne; im Ritt-Level liest er level.river.sample); Bahn path [[x, y, z], …] + loop |
+  //   center + radius 3 + cw | dir [dx, dz] + dist 6 (hin und her) | ohne: springt abwechselnd um pos (pos ± dir · jump/2);
+  //   start 0..1 (Startstelle), speed 2.5 (m/s unter dem Sand), every 3.2 (s je Sprung), phase 0..1, warn 0.8 (Vorwarnung mit
+  //   Schattenmarke), flight 1.2, height 2.6, jump 5 (m), aim false (springt der Figur in sight 14 m entgegen: Landestelle = ihre
+  //   Lage in lead 0.7 s, 0,6 … 1,6 · jump weit; danach zurück zur Bahn), star true | Index (Stern fällt beim Besiegen), drop
+  { kind: 'sandflosser', pos: [0, 0, -40], dir: [1, 0], dist: 8, every: 3, star: 0 },
+  { kind: 'sandflosser', pos: [6, 0, -70], aim: true, sight: 10, every: 3.4, phase: 0.5 },
+  // Knochenflieger-Gruppe: pos = Mitte der Formation (y = Flughöhe der Körpermitten); count 5 (3–8), formation 'ring' |
+  //   'linie' | 'welle' | 'keil', radius 1.8 (Ring), spacing 1.5, Bahn center + orbit 4 + cw | path + loop | ohne: schwebt;
+  //   speed 2.2, spin 0.7 (rad/s, Ring), sight 7 (0 = stößt nie herab), reach 7, dive 8.5, warn 0.8, cooldown 2.6,
+  //   respawn 4 (s bis zum Neu-Zusammensetzen) | false, rebuild 1.2, bob 0.15, phase 0..1, drop (je Flieger, nur endgültig),
+  //   onAll (Aktion, wenn alle endgültig besiegt sind)
+  { kind: 'knochenflieger_gruppe', id: 'kg1', pos: [0, 5, -60], count: 6, formation: 'ring', center: [0, 5, -60], orbit: 3 },
+  { kind: 'knochenflieger_gruppe', id: 'kg2', count: 4, formation: 'linie', path: [[-6, 5, -80], [6, 5, -80], [6, 5, -90]], loop: true },
+  { kind: 'knochenflieger_gruppe', id: 'kg3', pos: [0, 5.5, -100], count: 5, formation: 'keil', respawn: false, onAll: { star: 1 } },
+  // Flatterkäfer mit Stern (nur der erste einer Kolonne trägt ihn)
+  { kind: 'flatterkaefer', path: [[-4, 3, -50], [4, 3, -50]], loop: true, star: 2 },   // bzw. carries: 'star:2'
+  // Großspuk als Jäger (8-6): lauert, bis eine Figur trigger betritt (ohne trigger: näher als sight), jagt dann; huntSpeed 2.4
+  //   (Großspuk; sonst 2.8), shySpeed 0,35 · huntSpeed (angeschaut), catchUp 10 (weiter weg: 1,6-fach), giveUp ∞
+  { kind: 'spuk', id: 'jaeger', pos: [0, 1.4, -200], size: 2.5, hunt: true, trigger: { min: [-4, 0, -186], max: [4, 4, -182] } },
+  // Kreisgeist-Ring (bis 40 je Ring; 44 Geister = mehrere Ringe)
+  { kind: 'kreisgeist_kreis', pos: [0, 1.2, -40], count: 11, radius: 2.6, speed: 1.4, cw: true },
+  // Schubser auf dem Riesenrad (8-Burg): pos = Gondel-Oberkante zum Startwinkel (+0,3 m); group, fallDefeat (m Fall unter den
+  //   letzten Stand = hinuntergestoßen), onGroup (Aktion, wenn der letzte der Gruppe besiegt ist; an einem Schubser genügt)
+  { kind: 'schubser', id: 'rs1', pos: [-3.7, 4.2, -218], behavior: 'guard', sight: 2.5, group: 'riesenrad', fallDefeat: 1.6, onGroup: { star: 2 } },
+  // Bestand (unverändert): Mini-Pilzlinge, Hackvogel, Krallen-Pilzling, Riesenschnappblume, Werfer, Wutkaulquappe
+  { kind: 'pilzling', mini: true, pos: [2, 1, -30], behavior: 'chase', sight: 6 },
+  { kind: 'hackvogel', pos: [4, 1, -36], dir: [-1, 0], period: 2.0 },
+  { kind: 'riesenschnappblume', pos: [0, 1, -44] },
+],
+items: [
+  // Baron-Sandstatue: pos = Mitte der Sockel-Unterseite, size 1 (≈ 4,1 m), yaw −π/2, star Index | { index, pos }, content
+  //   (Aktion), sparkle false; Kollision Sockel 2,2 × 1,0 × 2,2 (bleibt) + Figur (fällt weg)
+  { kind: 'baron_sandstatue', id: 'statue1', pos: [-6, 0, -120], star: 1 },
+  // Pilzling-Sandskulptur: height 2.6, minis 0 (Mini-Pilzlinge springen heraus), toys false, star, content, sparkle
+  { kind: 'pilzling_sandskulptur', pos: [6, 0, -130], minis: 2 },
+  // Hörner-Ameisen-Reihe (8-3): from/to = Löcher (Mitte am Boden), horn true, lanes 1, gap 1.3, every 2.2, speed 1.5, max 8 (je
+  //   Reihe), prefill true, phase 0..1, holes true (Erdkrater zeichnen; Begehbarkeit bauen die Level-Bauer), ride false
+  { kind: 'ameisen_reihe', id: 'ameisen', from: [-8, 0, -60], to: [8, 0, -68], lanes: 2, gap: 1.4, every: 2.4 },
+  // Wand-/Wegstück: pos = Mitte der Unterseite, size [2, 1, 2], climbable false, look 'stein' | 'holz' | 'rummel', color, warn 1.0
+  { kind: 'bruchstueck', id: 'steg1', pos: [0, 20, -210], size: [1.5, 0.6, 4], look: 'holz' },
+],
+// frei nutzbar (z. B. eigene Fallen): Schockwelle { pos (Mitte am Boden), radius 6, r0 0.5, speed 7, height 0.45, color 'gold' |
+//   'weiss', impact true }, Lavapfütze { pos, size 2.2, grow 0.5, life 4, cool 1.6, impact true } – per level.spawn(kind, spec).
+```
+
+Laufzeit (Tests, Gimmicks): Sandflosser `state` (swim | warn | jump | land | return | defeated), `jumps`, `apex`, `jumpFrom/jumpTo`,
+`marked`, `star`; Gruppe `state` (fly | warn | dive), `dives`, `members`, `aliveCount`, `formed`, `rebuilds`, `allGone`; Glied
+`state` (form | wait | dive | rise | bones | rebuild | gone), `bonesT`, `defeated`; Sandfigur `broken`, `by` ('ritt' | 'rammen' |
+'stampfen' | Angriffsart); Flatterkäfer `carried`, `starDropped`; Spuk `hunting`, `huntTime`; Kreisgeist-Ring `aliveCount`,
+`aliveList`; Schubser `group`, `fellBy`; Ameisen-Reihe `streams`, `aliveCount`, `spawned`, `holes`; Bruchstück `state` (ganz |
+warn | fall | weg), `breaks`, `hurts`, `startWarn(t)`, `restore()`. Alle mit `info()`.
+
+### Präzisierung (Gegner Welt 8): Varianten (8-A, 8-B, 8-Zug)
+
+```js
+// goldene Würfelblase (8-A): Arena und Ablauf wie 6-C, 3 Kopftreffer; schneller (air [1.1, 0.95, 0.85], rest [0.8, 0.65, 0.5],
+//   bitSpeed [1.8, 2.1, 2.4], flee [4.0, 3.6, 3.2], fleeSpeed [3.4, 4.0, 4.6]); jede Riesen-Landung: waves goldene Schockwellen
+//   (Radius shockR 8, shockSpeed 8, waveGap s Abstand), Sprung der Blase selbst: kleine Welle (Radius 4) – alle überspringbar
+{ kind: 'wuerfelblase', id: 'blase', color: 'gold', pos, arena: { center, r }, waves: 2, waveGap: 0.45, star: { pos, index } }
+// rosa Schlangenkönig (8-B): Ablauf wie 3-B; geschleuderte Steine sind Lavabrocken, die auf dem Boden eine Lavapfütze
+//   hinterlassen (nicht auf Tellern/Sockel; höchstens max zugleich, die älteste kühlt ab); Kuppel-Steine bleiben Felsbrocken
+{ kind: 'schlangenkoenig', id: 'koenig', color: 'rosa', pos, arena: { center, r }, plate: 2.8,
+  puddle: { size: 2.2, life: [4, 4.5, 5], max: 5 } | false, star: { pos, index } }
+// Schattenläuferin 2 (8-Zug): zweiter Kampf, mehr Doppelgänger (clones [3, 4, 6]), Würfe throws [2, 3, 3], werfen: Original +
+//   phase + 1 Doppelgänger (throwers [2, 3, 4]), Wurfsterne speed 8.5 / range 10, alle Zeiten × 1/tempo
+{ kind: 'schattenlaeuferin', id: 'schatten', round: 2, tempo: 1.25, pos, arena: { center, r }, ring: 5 }
+```
+
+Ansagen: „Heiße Lavapfützen – nicht hineintreten!“, „Die Schattenläuferin ist zurück!“, „Noch mehr Doppelgänger!“, „Jetzt ist
+sie noch flinker!“. Tod im Kampf/Sieg: Wellen und Pfützen verschwinden bzw. kühlen sofort ab. Laufzeit `gold`, `goldWaves`,
+`waveHits`; `puddles`, `puddlesMade`; `round`, `tempo`. Alle drei hängen am Boss-Archetyp wie ihre Vorbilder (LEVEL.boss /
+LEVEL.bosses, `bossManaged`).
+
+### Präzisierung (Gegner Welt 8): Baron Brummbär im Krallen-Anzug (8-Burg)
+
+Eine Boss-Entität mit **Abschnitts-Steuerung**: der Level-Bauer legt die Abschnitte entlang des Turms an, der Baron spielt sie
+nacheinander (Beginn: eine Figur betritt den `trigger`-Kasten des Abschnitts). Lebensleiste „Baron Brummbär“ mit 4 Stufen
+(`hp: 4`; nur der Gipfel zieht Stufen ab), Fanfare (`victory`) am Ende jedes Abschnitts, Gong und Ansage je Gipfel-Phase.
+Jede Gefahr kündigt sich an (Wandstück glüht/wackelt, Landemarken, Knurren vor dem Rutschen), zwischen zwei Angriffen ist
+immer Pause (`every` s).
+
+```js
+enemies: [{ kind: 'baron_krallen', id: 'baron', pos: [x, y, z] (Wartestelle vor dem ersten Abschnitt), hp: 4, seed, onWin,
+  sections: [
+    // Turm unten: klettert vor der Figur (lead m über ihr; wartet, wenn sie zurückbleibt); route-Punkte [x, y, z, wx, wz]
+    //   (Fußpunkte; [wx, wz] = Richtung zur Wand → dort klettert er, Wand 0,8 m vor ihm; ohne läuft er); Angriffe reihum:
+    //   Feuerball (Bogen mit Landemarke bzw. gerade), Krallenhieb auf ein nahes Wandstück (swipeR m; Vorwarnung warn s),
+    //   Rutschen (steht die Figur unter ihm an seiner Wand: 0,5 s Knurren, slide m herab). Oben wacht er am POW-Block
+    //   (guard, Sperre block solange er wacht) – trifft eine Figur den POW-Block, wird er weggeschleudert (throwTo), die Sperre
+    //   fällt, Signal signal ?? 'baronPow', Abschnitt geschafft. Ohne pow endet der Abschnitt am end-Kasten.
+    { type: 'turm', id: 'unten', trigger: { min, max }, route: [[0, 2, -150, 0, -1], [0, 17, -150, 0, -1], [0, 17, -156]],
+      lead: 3.5, climb: 2.2, walk: 2.6, sight: 22, every: 2.6, fire: { shots: 1, speed: 6.5, arc: true, flight: 1.0 },
+      slide: 4, slideSpeed: 5, walls: ['wand1', 'wand2'], swipeR: 2.6, warn: 1.2, pow: 'pow_turm', guard: [1.6, 17, -156.5],
+      block: { min, max }, throwTo: [9, 28, -166], signal: 'baronPow', end, banner, rain },
+    // Oberer Turm: klettert/läuft voraus (follow 'weg': ahead m vor der Figur entlang der Route | 'hoehe' wie im Turm), frisst
+    //   Spiegelfrüchte (fruits am Weg; 0,4 s fressen + 0,6 s Zauber) → clones[k] leuchtende Doppelgänger (höchstens 4 zugleich)
+    //   springen herab (Landemarke) und stürmen ihre Bahn (lanes [[von, bis], …]; ohne: vor die Figur, dann auf sie zu);
+    //   Wegstücke (breaks), auf denen sie landen/laufen, zerbröckeln nach 0,6 s Wackeln. Ende am end-Kasten (er springt davon).
+    { type: 'spiegel', id: 'oben', trigger, route, follow: 'weg', ahead: 6, every: 3.0, fire, fruits: [[x, y, z], …],
+      clones: [2, 3, 4], lanes: [[[x, y, z], [x, y, z]], …], breaks: ['steg1', …], cloneSpeed: 4.5, end: { min, max }, banner, rain },
+    // Gipfel: Super-POW-Block (Motor), darauf der Baron und das Glas der Freunde. Angriffe von oben je Phase (Phase = 5 − hp):
+    //   fire[Ph] Feuerbälle im Bogen (Landemarken), shock[Ph] Sprung-Schockwellen um den Block (Radius shockR, drüberspringen),
+    //   clones[Ph] Doppelgänger (jagen cloneLife s); Pause every[Ph]. Jeder Stoß gegen den Block (Signal powSignal ??
+    //   'super_pow') schleudert ihn hoch, er taumelt (STUN 1,4 s), hp − 1. Nach dem letzten: er fliegt davon (flyTo), das Glas
+    //   fällt mit dem Block und zerspringt, die Freunde jubeln → Archetyp: Glasröhre (warp), Aktion onWin (Standard
+    //   { credits: true }), Signal finaleWon.
+    { type: 'gipfel', id: 'gipfel', trigger, center: [0, 32, -270], size: [25, 25],
+      pow: 'superpow' | { id: 'superpow', pos: [0, 34.6, -271], size: 4.5, hits: 4 }, powSignal: 'super_pow',
+      perch: [0.18 · size, 0] (Platz auf dem Block, relativ zur Mitte), glass: [−0.24 · size, −0.06 · size], friends,
+      every: [2.8, 2.4, 2.1, 1.8], fire: [1, 2, 3, 3], shock: [0, 1, 1, 2], shockR: 11, clones: [0, 0, 2, 3], cloneLife: 6,
+      flight: 1.1, flyTo: [x + 26, y + 16, z − 30], onWin: { credits: true }, banner, rain },
+  ] }],
+segments: [{ type: 'super_pow_block', id: 'superpow', pos: [0, 34.6, -271], size: 4.5, hits: 4 }],   // empfohlen
+boss: { id: 'baron', name: 'Baron Brummbär', speed: 0, trigger (= trigger des ersten Abschnitts), warp: 'glasroehre',
+        warpPos, warpTo, frame: 0.2, center, warpBanner: 'Ab in die Glasröhre!', musicAfter }   // bzw. Eintrag in LEVEL.bosses
+```
+
+- **Super-POW-Block**: steht er in den Level-Daten (empfohlen, `pow: 'id'`), liest der Baron Lage und Kante aus seiner
+  Kollision (ein versteckter Block mit `hidden: true` braucht `pow: { id, pos, size }`). Fehlt er, legt der Baron ihn als
+  Motor-Baustein an (`level.spawn('super_pow_block', …)`), ohne Motor als Rückfall `baron_superpow` (gleiche Schnittstelle).
+  `onDone` des Blocks bleibt frei (z. B. Münzen); der Sieg läuft über `onWin` des Barons.
+- **Tod im Kampf** (Archetyp `resetFight` → `reset`): nur der aktuelle Abschnitt beginnt von vorn (Wand-/Wegstücke, Früchte,
+  Sperre zurück; Feuerbälle, Doppelgänger, Wellen, Marken weg); geschaffte Abschnitte bleiben geschafft. **Gipfel**: der
+  Motor-Block hat kein `reset()` – die Stöße bleiben, der Baron beginnt mit `hp = 4 − Stöße` (Checkpoint-fair). Betritt eine
+  Figur den Auslöser wieder, beginnt der Abschnitt erneut (Auftritt, dann Angriffe).
+- **Treffer**: Draufspringen = Abprall ohne Schaden (`bounce`); Feuer, Krallen, Panzer, Stern, Riese prallen ab (Funken);
+  Wurfsichel: Zucken + „Kratzer!“. Berührung im Kampf verletzt (außer im Wurf, Abflug, Sieg).
+- **Lavabrocken-Regen** als Boss-Angriff: Abschnittsfeld `rain: 'id' | ['id', …]` – Motor-Bausteine `lavabrocken_regen` mit
+  `targets` und `start: 'signal'` laufen ab dem Auftritt des Barons im Abschnitt (`start()`) und hören mit Abschnittsende, Tod
+  oder Sieg auf (`stop()`).
+- **Zustände**: wait | intro (2 s) | climb | fire | swipe | slidewarn | slide | slideup | eat | clone | guard | thrown | leave |
+  between | perch | hop | summon | launched | stunned | defeated | flyaway | gone. Laufzeit `section`, `cur`, `done`, `phase`,
+  `hp`, `fireballs`, `swipes`, `wallsBroken`, `slides`, `clonesMade`, `clones`, `powHit`, `powHits`, `wavesN`, `hits`, `hitLog`,
+  `bounces`, `flinches`, `glassState` { shake, break, cheer }, `powTop()`, `info()`.
+- Doppelgänger `baron_klon` (nur vom Baron erzeugt): `state` (pop | jump | run | burst), `by`. Rückfall-Block `baron_superpow`:
+  `{ kind: 'baron_superpow', id, pos, size: 4.5, hits: 4, cool: 0.6 }` mit hits, left, done, state, top, hit(via), reset(), info().
+
+### Präzisierung (Gegner Welt 8): Signale
+
+| Signal | Daten | wann |
+| --- | --- | --- |
+| `sandfigurKaputt` | { id, kind, by, pos } | Sandstatue/-skulptur zerbröselt |
+| `knochenGruppe` | { id, count, pos } | letzter Flieger einer Gruppe endgültig besiegt (dazu Aktion `onAll`) |
+| `schubserFall` | { id, group, by ('fall' \| 'lava' \| 'wasser' \| 'besiegt'), pos, left } | je besiegtem Schubser |
+| `schubserGruppe` | { group, count } | letzter Schubser einer Gruppe besiegt (dazu Aktion `onGroup`) |
+| `bruchstueckKaputt` | { id, by, pos } | Wand-/Wegstück bricht |
+| `baronPow` (bzw. `signal`) | { section, pos, pow } | POW-Block am Turm getroffen, Baron weggeschleudert |
+| `baronAbschnitt` | { section, type, index } | Abschnitt geschafft |
+| `freundeFrei` | {} | Glas zerspringt |
+| `finaleWon` | { pos, friends } | Sieg (nach dem Abflug); dazu Aktion `onWin` (Standard `{ credits: true }`) |
+| `aufschlag` (gesendet) | { pos, radius, by } | Landungen/Wellen/Pfützen/Bruchstücke (Leuchtstege) |
+| `super_pow` (empfangen) | { hit, of, left, done, pos, source, via, id } | Stoß gegen den Gipfel-Block |
+
+### Präzisierung (Gegner Welt 8): Hinweise für Level-Bauer
+
+- **8-1 Regenfestung**: Knochenflieger-Gruppen 4–5 m über dem Weg (`pos.y` = Flughöhe), `sight` ≤ 7, `respawn: 4`; eine Kette
+  (`linie`) über einer Brücke wirkt wie eine Welle von Angriffen – zwischen zwei Gruppen ≥ 8 m Platz lassen. Wer sie für
+  immer loswerden soll: Power-up (Feuer-Werfer `feuer_werfer` in der Nähe) oder `respawn: false`. Stern als `onAll: { star: i }`.
+- **8-2 Wüsten-Abfahrt (ride)**: Sandflosser auf das Dünennetz legen (`pos.y` egal, er liest `level.river.sample`); quer zur
+  Fahrtrichtung pendeln lassen (`dir` quer, `dist` ≤ Bahnbreite), `every` ≥ 3, zielende (`aim`) sparsam – die Schattenmarke
+  erscheint `warn` s vorher an der Landestelle. Stern 1: `star: 0` an einem pendelnden Fisch; Sandstatuen/-skulpturen in die
+  Fahrspur (Pflaume zerstört sie im Vorbeireiten), Statue mit `star`, Skulptur mit `minis`; Flatterkäfer mit `star` über der
+  Fahrspur (Höhe ≤ 2,5 m über der Düne, damit ein Sprung ihn erreicht).
+- **8-3 Keksfabrik**: `ameisen_reihe` von Loch zu Loch (Löcher selbst begehbar bauen; `holes: false` ohne Krater), 1–2 Reihen,
+  `every` ≥ 2,2; Riesenschnappblume braucht 3 Treffer (Wurfsichel = 1).
+- **8-Zug**: Hackvogel/Mini-Pilzlinge unverändert (`pilzling` mit `mini: true`); Schattenläuferin 2 mit `round: 2` in einem
+  Rundkäfig wie 3-Zug (r ≈ 9), `LEVEL.boss` wie im ersten Kampf.
+- **8-4 Nachtfestung**: alle Aufschläge der Welt-8-Gegner lassen Leuchtstege aufleuchten (Signal `aufschlag`); Knochenflieger-
+  Sturzflüge über Stegen sind fair, wenn der Steg darunter mindestens 2 m breit ist.
+- **8-6 Spukhaus**: Kreisgeister in Ringen bis 40 (44 = z. B. 4 × 11); Großspuk-Jäger mit `hunt: true` und `trigger` am Beginn
+  der Türreihe, `giveUp` setzen, wenn er nicht durchs ganze Level folgen soll; Licht-Helm besiegt ihn nach 2,2 s Licht.
+- **8-A / 8-B**: goldene Würfelblase wie 6-C (`color: 'gold'`), rosa Schlangenkönig wie 3-B (`color: 'rosa'`; Manege mit Tellern –
+  auf Tellern entstehen keine Pfützen). Für den Lavabrocken-Regen außerhalb der Arena den Motor-Baustein nehmen.
+- **8-Burg**: Riesenrad (Motor) mit 4 Schubsern auf Gondeln (`group: 'riesenrad'`, `fallDefeat: 1.6`, pos = Gondel-Oberkante
+  zum Startwinkel: x = Achse + R·cos a, y = Achse + R·sin a − 1,2 + 0,3; Gondel i bei a = angle + i·2π/n), Stern 2 per
+  `onGroup: { star: 2 }`. Turm: Abschnitte wie `0-33` (Turm unten mit Kletterrinne und Wandstücken, POW-Block oben mit
+  Sperre vor der Kanonen-Glasröhre; oberer Turm mit zwei Spiegelfrüchten, Brücken aus je zwei Wegstücken nebeneinander,
+  Sturm-Bahnen auf je einer Seite; Gipfel ≈ 25 × 25 m, Block 2,6 m über dem Boden – Kopfstoß von unten reicht). Checkpoint am
+  Beginn jedes Abschnitts (Tod setzt nur den Abschnitt zurück). Sieg: `onWin` Standard `{ credits: true }` (bzw. `LEVEL.credits =
+  true`); Glasröhre `{ kind: 'warpbox', id: 'glasroehre', hidden: true }` als `boss.warp`. Gipfel-Kamera: Segment mit
+  `pitch: 30, dist: 20, height: 6.5, xLock` (siehe 0-33), damit Block, Baron und Glas im Bild bleiben.
+
+### Präzisierung (Gegner Welt 8): Tests und Kennzahlen
+
+`tests/course_w8_enemies.mjs` (Port 4790; `W8E_PART=1` Sandflosser, Knochenflieger, Sandfiguren, Flatterkäfer · `2` Geister,
+Ameisen, Schubser (Plattformen und Riesenrad), Bestand, Bruchstück, Schockwelle, Lavapfütze, Wurfsichel bei allen neuen Arten ·
+`3` Varianten und Baron (Turm, Spiegel, Gipfel, Tod/Neustart, Abspann-Anforderung) · `4` Bilder `tests/out/w8e_*.png` und
+Zeichenaufrufe; jeder Teil < 10 min, deterministisch über `window.__course`). Stand: Teil 1 24/24, Teil 2 18/18, Teil 3 34/34,
+Teil 4 10/10. Kennzahlen: Gegnerzoo höchstens ≈ 53 Zeichenaufrufe, Massen-Feld (44 Kreisgeister, 24 Knochenflieger) ≈ 37
+(< 120), Bossarenen höchstens ≈ 75–90 (< 140); Schritt im Gegnerzoo (159 Entitäten) ≈ 0,2–0,4 ms.
+
 ## Bonuswelten – Level-Liste und Freischaltung (Hauptsitzung)
 
 Nach dem Finale (`8-Burg`, Spielstand `finished`) folgen vier Bonuswelten. Sie sind **Sonderwelten mit Buchstaben-Präfix**
