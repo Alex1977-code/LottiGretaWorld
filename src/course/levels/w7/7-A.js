@@ -16,7 +16,7 @@ import {
 } from '../w4/_helpers_c.js';
 
 const Y = 2;           // Oberseite der Insel
-const LAVA = -0.5;     // Lavaspiegel
+const LAVA = 0.6;      // Lavaspiegel (1,4 m unter der Fläche: die Bögen der Platschfische bleiben gut sichtbar)
 const R = 12.4;        // Inselradius
 const ISLAND = { center: [0, 0], top: Y, R, depth: 5, lavaY: LAVA, wobble: [0.05, 0.035, 0.03], phase: [0.6, 2.1, 1.3] };
 const rim = (a, d = 0) => { const r = islandRadius(ISLAND, a) + d; return [Math.cos(a) * r, Math.sin(a) * r]; };
@@ -84,7 +84,8 @@ export const LEVEL = {
     { kind: 'hidden', pos: [0, Y + 2.6, 11.2], content: 'oneup' },
   ],
   enemies: [
-    { kind: 'lavafelsen_koenig', id: 'koenig', pos: [0, Y, -3.6], arena: { center: [0, Y, -0.6], r: 10.8 }, wakeR: 9.5 },
+    { kind: 'lavafelsen_koenig', id: 'koenig', variant: 'hell', pos: [0, Y, -3.6], arena: { center: [0, Y, -0.6], r: 10.8 }, wakeR: 9.5,
+      fish: { count: [2, 3, 4], ring: R + 1.4, height: 3.2, gate: Math.PI / 2, gateHalf: 0.4 } },
   ],
   items: [
     ring([-6.6, Y + 0.5, 1.6], 1.4, 6),

@@ -36,12 +36,14 @@ const ROUTES = {
       ['links', [-6, 2, 0]],
       ['rechts', [6, 2, -2]],
       ['hinten', [0, 2, -7]],
+      ['kampf', [0, 2, 5], 640],
+      ['kampf2', [-3, 2, 4], 1100],
     ],
   },
   '7-2': {
     start: [0, Y, 4.5],
     meta: { stars: 3, time: 400, theme: 'darkruins', music: 'course_switchruins', archetype: 'parcours' },
-    enemies: { stachelpanzer: 7, feuer_schnappblume: 1, fackelschale: 4 },
+    enemies: { stachelpanzer: 7, feuer_schnappblume: 1, funkenflaemmchen: 2, fackelschale: 4 },
     main: [
       { name: 'Funkenblüte aus dem ?-Block', to: [-2, -1.5], within: 0.2, run: false }, { hop: 20 }, { to: [-2, 1], within: 0.3, run: false },
       { to: [-2, -1.5], jump: 40, jumpAt: 2.2, within: 0.4, run: false }, { chaseKind: 'powerup', max: 300 }, { expect: 'funken' },
@@ -785,7 +787,12 @@ function install() {
       const p = P(), b = L.named.get(id), log = [], hits = [];
       let throws = 0;
       const t0 = L.time;
-      const tick = (inp) => { p.invuln = Math.max(p.invuln, 5); c.setInput(inp); c.step(1); };
+      let maxFish = 0, fishJumps = 0;
+      const fishNow = () => L.entities.filter((e) => e.kind === 'platschfisch' && !e.removed && e.alive && !e.isSource);
+      const tick = (inp) => {
+        p.invuln = Math.max(p.invuln, 5); c.setInput(inp); c.step(1);
+        const f = fishNow(); maxFish = Math.max(maxFish, f.length); fishJumps = Math.max(fishJumps, f.reduce((a, e) => a + (e.jumps ?? 0), 0));
+      };
       const dist = (e) => Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z);
       const brocken = () => L.entities.filter((e) => e.kind === 'lavabrocken' && !e.removed && !e.defeated && e.alive && e.owner === b);
       const danger = () => (b.state === 'roll' && dist(b) < 5) || (b.state === 'spin' && dist(b) < 3.2);
@@ -862,7 +869,7 @@ function install() {
         for (let i = 0; i < 900 && !c.finished; i++) c.step(1);
       }
       c.setInput({});
-      return { gone: b.state === 'gone' || b.hp === 0, hits, throws, time: +(L.time - t0).toFixed(1), got: !!L.runtime.stars[0], finished: !!c.finished,
+      return { maxFish, fishJumps, fishAfter: fishNow().length, gone: b.state === 'gone' || b.hp === 0, hits, throws, time: +(L.time - t0).toFixed(1), got: !!L.runtime.stars[0], finished: !!c.finished,
         save: this.save().levels?.[L.id] ?? null, hurts: p.hurtTries ?? 0, log };
     },
     rt: () => L.runtime.info(),
@@ -1016,6 +1023,7 @@ for (const id of LEVELS) {
       console.log(`  ${hero} Kampf: ${JSON.stringify({ ...r, log: undefined })}`);
       if (process.env.VERBOSE) for (const l of r.log) console.log('     ', JSON.stringify(l));
       check(`${id}: ${hero} besiegt den Glutkönig mit drei geworfenen Lavabrocken (${r.throws} Würfe, Treffer ${r.hits.join('/')}, ${r.time} s)`, r.gone && r.hits.length === 3);
+      check(`${id}: ${hero} – Platschfische springen rings um den Kessel (bis zu ${r.maxFish} gleichzeitig, ≥ ${r.fishJumps} Sprünge; nach dem Sieg ${r.fishAfter})`, r.maxFish >= 2 && r.fishAfter === 0);
       check(`${id}: ${hero} Stern in der Mitte, Ziel nach ${r.time} s (< 200 s), gespeichert`, r.got && r.finished && r.time < 200 && r.save?.done === true);
       if (hero === HEROES[0]) { await page.waitForTimeout(500); await page.screenshot({ path: `${OUT}w7a_${id}_ergebnis.png` }); }
     }

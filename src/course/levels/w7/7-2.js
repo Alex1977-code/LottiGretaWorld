@@ -15,7 +15,7 @@
 //      Schaltgruppe 4.
 //   5. Zielröhre (z −184 … −226): die grüne Röhre führt zum Zielmast; dahinter ein unsichtbarer länglicher ?-Block – ein
 //      Kopfstoß zeigt eine versteckte Blockkette hinauf zu Stern 2.
-// Gegner (Bauplan): Stachelpanzer 7, Feuer-Schnappblume 1.
+// Gegner (Bauplan): Stachelpanzer 7, Feuer-Schnappblume 1; dazu zwei Funkenflämmchen an der dritten Schaltgruppe.
 
 import { isl, line, ring, arc, sign, fackelGruppe, scheinwand, geheimLaengsblock, tempel72 } from './_helpers_a.js';
 
@@ -128,6 +128,9 @@ export const LEVEL = {
     panzer('sp1', [[-1.8, Y, -12.6], [1.8, Y, -12.6]], { speed: 1.1 }),
     panzer('sp2', [[-6, Y, -44], [-6, Y, -55.4]]),
     panzer('sp3', [[6, Y, -55.4], [6, Y, -44]]),
+    // zwei Funkenflämmchen hüpfen an den Rändern der dritten Schaltgruppe (heiß: ausweichen; Feuer prallt ab)
+    { kind: 'funkenflaemmchen', id: 'flamme1', pos: [-5, Y, -99.6], path: [[-5, Y, -99.6], [5, Y, -99.6]] },
+    { kind: 'funkenflaemmchen', id: 'flamme2', pos: [2.4, Y, -106.8], path: [[2.4, Y, -106.8], [-5, Y, -106.8]], phase: 0.5 },
     { kind: 'feuer_schnappblume', id: 'feuerblume', pos: [4.5, Y + 1.2, -109.5], base: 'pot', yaw: PI / 2, range: 9.5, pause: 1.6 },
     panzer('sp4', [[-7, Y, -156], [7, Y, -156]], { speed: 1.3 }),
     panzer('sp5', [[7, Y, -167], [-7, Y, -167]], { speed: 1.3 }),

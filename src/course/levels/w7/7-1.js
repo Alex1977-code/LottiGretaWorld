@@ -25,7 +25,7 @@ const P = 1.05;         // Röhrenmitte über dem Boden
 const RX = 72;          // Kugelsaal (abseits)
 const PI = Math.PI;
 
-const werfer = (id, x, z, o = {}) => ({ kind: 'feuer_werfer', id, pos: [x, o.y ?? Y, z], axis: o.axis ?? [1, 0], pace: o.pace ?? 1.4, sight: o.sight ?? 11, interval: o.interval ?? 2.4, ...o });
+const werfer = (id, x, z, o = {}) => ({ kind: 'feuer_werfer', id, pos: [x, o.y ?? Y, z], axis: o.axis ?? [1, 0], pace: o.pace ?? 1.4, sight: o.sight ?? 11, interval: o.interval ?? 2.4, fireColor: 'blau', ...o });
 const stab = (id, z, o = {}) => ({ type: 'feuerstab', id, pos: [0, Y, z], ...o });
 
 function build(level) {
@@ -35,6 +35,9 @@ function build(level) {
 }
 
 function setup(level) {
+  // der Werfer auf dem Pilzlingsturm wirft – wie alle Werfer der Burg – blaue Feuerkugeln
+  const w4 = level.named.get('werfer4');
+  if (w4) w4.fireColor = 'blau';
   sternImRohr(level, 0);
   kugelZiel(level, { id: 'mulde', ball: 'kugel', pos: [RX + 4.5, Y, -171.5], r: 1.15, onDone: { reveal: 'stern1' } });
 }
