@@ -407,28 +407,32 @@ function ghostFlagTexture() {
     ctx.beginPath(); ctx.arc(64, 44, 5, 0, Math.PI); ctx.fill();
   });
 }
-/** Geisterschiff (Blick +X, Länge ≈ 10 m): Rumpf, Achterkastell, zwei Masten mit zerfetzten Segeln, Bullaugen. */
+/** Geisterschiff (Blick +X, Länge ≈ 10 m): Rumpf mit Goldborte, Achterkastell, zwei Masten mit zerfetzten Segeln. */
 function ghostShipGeo() {
   return cached('w6m:ghostship', () => {
     const b = new Build();
-    const wood = { v: (px, py, pz, nx, ny) => (Math.floor((py + 3) * 3.2) % 2 ? mix(0x4a3a5a, 0x5a4a6a, ny * 0.5 + 0.5) : mix(0x3a2e4a, 0x4e3e5e, ny * 0.5 + 0.5)) };
+    const wood = { v: (px, py, pz, nx, ny) => (Math.floor((py + 3) * 3.2) % 2 ? mix(0x5a4278, 0x6e5490, ny * 0.5 + 0.5) : mix(0x4a3666, 0x5e4880, ny * 0.5 + 0.5)) };
     b.box(8.4, 1.9, 3.0, wood, { p: [0, 0.35, 0] }, 0.3, 1);
     b.cone(1.5, 2.6, wood, { p: [5.4, 0.55, 0], r: [0, 0, -Math.PI / 2], s: [1, 1, 0.8] }, 8);
     b.box(2.6, 1.6, 3.0, wood, { p: [-3.2, 1.9, 0] }, 0.2, 1);
-    b.box(8.6, 0.12, 3.1, 0x6a5a7a, { p: [0.2, 1.3, 0] }, 0);
-    for (const s of [-1, 1]) for (let i = 0; i < 9; i++) b.cyl(0.05, 0.05, 0.6, 0x7a6a8a, { p: [-3.6 + i, 1.6, s * 1.45] }, 4);
-    for (const s of [-1, 1]) b.box(8.0, 0.08, 0.08, 0x7a6a8a, { p: [0.4, 1.9, s * 1.45] }, 0);
-    // Masten und zerfetzte Segel
-    for (const [mx, h] of [[0.8, 7.2], [3.4, 5.6]]) {
+    for (const s of [-1, 1]) b.box(8.6, 0.16, 0.08, 0xffc83a, { p: [0.1, 0.95, s * 1.52] }, 0);   // Goldborte
+    for (const s of [-1, 1]) b.box(2.7, 0.14, 0.12, 0xffc83a, { p: [-3.2, 2.72, s * 1.5] }, 0);
+    b.box(8.6, 0.12, 3.1, 0x8a74a8, { p: [0.2, 1.3, 0] }, 0);
+    for (const s of [-1, 1]) for (let i = 0; i < 9; i++) b.cyl(0.05, 0.05, 0.6, 0x9a86b8, { p: [-3.6 + i, 1.6, s * 1.45] }, 4);
+    for (const s of [-1, 1]) b.box(8.0, 0.08, 0.08, 0x9a86b8, { p: [0.4, 1.9, s * 1.45] }, 0);
+    // Masten und zerfetzte Segel (hell, mit Rissen)
+    for (const [mx, h] of [[0.6, 5.6], [3.3, 4.6]]) {
       b.cyl(0.13, 0.17, h, 0x5a4636, { p: [mx, 1.3 + h / 2, 0] }, 6);
-      b.cyl(0.07, 0.07, 3.2, 0x5a4636, { p: [mx, 1.3 + h * 0.86, 0], r: [Math.PI / 2, 0, 0] }, 4);
-      for (let k = 0; k < 3; k++) {
-        const sy = 1.3 + h * (0.42 + k * 0.17);
-        b.box(0.05, h * 0.15, 2.6 - k * 0.5, { v: (px, py, pz) => (Math.sin(pz * 9 + py * 7 + mx) > 0.7 ? 0x4a3a5a : 0xd8d0ec) }, { p: [mx + 0.12, sy, 0], r: [0.05 * (k - 1), 0, 0] }, 0);
+      b.cyl(0.07, 0.07, 3.4, 0x5a4636, { p: [mx, 1.3 + h * 0.9, 0], r: [Math.PI / 2, 0, 0] }, 4);
+      for (let k = 0; k < 2; k++) {
+        const sy = 1.3 + h * (0.5 + k * 0.24);
+        b.box(0.05, h * 0.22, 3.0 - k * 0.6, { v: (px, py, pz) => (Math.sin(pz * 9 + py * 7 + mx) > 0.75 ? 0x6a5a8a : mix(0xd8d0f4, 0xf4f0ff, py + 0.5)) }, { p: [mx + 0.12, sy, 0], r: [0.06 * (k - 0.5), 0, 0] }, 0);
       }
     }
-    // Bugspriet, Laternenhalter
-    b.cyl(0.06, 0.08, 3.2, 0x5a4636, { p: [7.2, 1.6, 0], r: [0, 0, -1.25] }, 5);
+    // Bugspriet mit Galionsfigur (freundliches Gespenst), Laternenhalter
+    b.cyl(0.06, 0.08, 3.0, 0x5a4636, { p: [7.0, 1.5, 0], r: [0, 0, -1.25] }, 5);
+    b.sphere(0.36, 0xf4f0ff, { p: [6.4, 1.15, 0] }, 8, 6);
+    for (const s of [-1, 1]) b.sphere(0.06, 0x2a1e3a, { p: [6.72, 1.22, s * 0.13] }, 5, 3);
     b.cyl(0.04, 0.04, 1.4, 0x3a3a4a, { p: [-4.3, 3.2, 0] }, 4);
     return b.geometry();
   });
@@ -464,7 +468,7 @@ function ghostBay(ev, x, y, z) {
   ship.add(glow);
   const flag = new THREE.Mesh(cached('w6m:ghostflagplane', () => new THREE.PlaneGeometry(1.6, 1.0).translate(0.8, 0, 0)), new THREE.MeshStandardMaterial({ map: ghostFlagTexture(), side: THREE.DoubleSide, roughness: 0.8 }));
   ev.own.push(flag.material);
-  flag.position.set(0.8, 9.0, 0);
+  flag.position.set(0.6, 7.4, 0);
   ship.add(flag);
   const state = { roll: 0 };
   const sway = (dt, t) => {
@@ -487,14 +491,21 @@ function ghostBay(ev, x, y, z) {
   const putGhosts = (t) => {
     for (let i = 0; i < NG; i++) {
       const a = (i / NG) * TAU + t * 0.5;
-      const gx = x + Math.cos(a) * 4.2, gz = z + Math.sin(a) * 2.6;
-      setInst(ghosts, i, gx, y + 6.4 + Math.sin(t * 1.8 + i) * 0.35, gz, -a, 1 + 0.06 * Math.sin(t * 3 + i));
+      const gx = x + Math.cos(a) * 5.2, gz = z + Math.sin(a) * 3.4;
+      setInst(ghosts, i, gx, y + 4.4 + Math.sin(t * 1.8 + i) * 0.35, gz, -a, 1 + 0.06 * Math.sin(t * 3 + i));
     }
     ghosts.instanceMatrix.needsUpdate = true;
   };
   putGhosts(0);
   ev.updaters.push((dt, t) => putGhosts(t));
-  cullByView(ev, ghosts, x, y + 6.4, z, 6);
+  cullByView(ev, ghosts, x, y + 4.4, z, 7);
+  // grüner Geisterschein auf dem Wasser rings um das Schiff (flach, leuchtend, pulsiert)
+  const auraMat = glowMat(ev, 0x8affb4, { transparent: true, opacity: 0.35, depthWrite: false });
+  const aura = new THREE.Mesh(cached('w6m:aura', () => new THREE.RingGeometry(3.2, 6.4, 40, 1).rotateX(-Math.PI / 2).scale(1.35, 1, 0.7)), auraMat);
+  aura.position.set(x, y + 0.04, z);
+  aura.name = 'w6:geisterschein';
+  ev.view.add(aura);
+  ev.updaters.push((dt, t) => { auraMat.opacity = 0.22 + 0.14 * Math.sin(t * 1.6); aura.scale.setScalar(1 + 0.04 * Math.sin(t * 1.1)); });
   // treibende Fässer
   const barrel = cached('w6m:floatbarrel', () => new Build().cyl(0.4, 0.4, 1.0, { v: (px, py) => (Math.abs(py) > 0.36 || Math.abs(py) < 0.05 ? 0x5a5a6a : 0x9a6a42) }, { r: [0, 0, Math.PI / 2] }, 10).geometry());
   const NB = 3;

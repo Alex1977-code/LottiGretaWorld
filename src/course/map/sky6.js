@@ -727,7 +727,7 @@ function iceCrystalGeo(s = 1, seed = 1) {
 function snowDriftGeo(s = 1, seed = 1) {
   const b = new Build();
   const rnd = new Rnd(seed);
-  for (let i = 0; i < 3; i++) b.sphere(s * rnd.real(0.6, 1), { v: (x, y, z, nx, ny) => mix(0xd4e4fa, 0xffffff, ny * 0.6 + 0.4) }, { p: [rnd.real(-0.6, 0.6) * s, 0, rnd.real(-0.4, 0.4) * s], s: [1.4, 0.32, 1] }, 10, 5);
+  for (let i = 0; i < 3; i++) b.sphere(s * rnd.real(0.45, 0.75), { v: (x, y, z, nx, ny) => mix(0xcadcf6, 0xffffff, ny * 0.7 + 0.3) }, { p: [rnd.real(-0.6, 0.6) * s, 0, rnd.real(-0.4, 0.4) * s], s: [1.3, 0.55, 1] }, 10, 6);
   return b.geometry();
 }
 /** Kistenstapel (Fabrik/Mine). */
