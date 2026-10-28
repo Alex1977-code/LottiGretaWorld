@@ -110,7 +110,7 @@ export const LEVEL = {
     // ================================================================ 4 Stampfstein-Passage
     isl(-8, 8, -156, -166, Y, 6),                                   // Kontrollpunkt
     isl(-12.5, -7.5, -159.5, -166, Y + 6.4, 13, { top: 'rock' }),   // Turm mit der grünen Röhre
-    { type: 'hiddenchain', id: 'geheim', blocks: [[-4, Y + 2.4, -163.2], [-5.7, Y + 4.4, -163.6]] },
+    { type: 'hiddenchain', id: 'geheim', blocks: [[-4, Y + 2.2, -163.2], [-6.2, Y + 4.0, -163.4]] },
     { type: 'pipe', id: 'saal_hin', pos: [-10, Y + 6.4, -162.6], height: 1.2, target: 'saal_ein' },
     isl(-4.5, 4.5, -166, -212, Y, 6),                               // Gang
     isl(-7, 7, -212, -220, Y, 6),                                   // Torplatz
@@ -119,7 +119,8 @@ export const LEVEL = {
 
     // ================================================================ Kugelsaal (abseits)
     isl(RX - 8, RX + 8, -150, -162.5, Y, 6),
-    isl(RX - 1.1, RX + 1.1, -162.5, -166.5, Y, 6),                  // schmaler Steg über die Glutrinne
+    isl(RX - 1.6, RX + 1.6, -162.5, -166.5, Y, 6),                  // Kugelbahn über die Glutrinne (Bordsteine halten die Kugel)
+    isl(RX - 1.6, RX - 1.3, -162.5, -166.5, Y + 0.45, 2, { tag: 'bord' }), isl(RX + 1.3, RX + 1.6, -162.5, -166.5, Y + 0.45, 2, { tag: 'bord' }),
     isl(RX - 8, RX + 8, -166.5, -178, Y, 6),
     { type: 'pipe', id: 'saal_ein', pos: [RX - 5.5, Y, -153], height: 1.2 },
     { type: 'pipe', id: 'saal_aus', pos: [RX + 5.5, Y, -153.5], height: 1.2, target: [2.5, Y, -162], color: 0x3a8aff },
@@ -236,7 +237,7 @@ export const LEVEL = {
     line([-6, Y + 0.6, -35], [6, Y + 0.6, -35], 5),
     ring([-7, Y + 0.6, -64.8], 1.2, 5), ring([7, Y + 0.6, -64.8], 1.2, 5),
     line([-1.6, Y + 0.6, -131], [-1.6, Y + 0.6, -137], 3), line([1.6, Y + 0.6, -131], [1.6, Y + 0.6, -137], 3),
-    arc([-4, Y + 3.4, -161], [-6.6, Y + 6.6, -164], 3, 0.6),                       // Hinweis: hier geht es hinauf
+    arc([-4, Y + 3.8, -161.6], [-6.8, Y + 6.8, -163], 3, 0.6),                       // Hinweis: hier geht es hinauf
     line([-2.5, Y + 0.6, -168], [-2.5, Y + 0.6, -172], 3),
     line([2.5, Y + 0.6, -184], [2.5, Y + 0.6, -189], 3), line([-2.5, Y + 0.6, -196], [-2.5, Y + 0.6, -201], 3),
     ring([0, Y + 0.6, -236], 2.2, 10),
