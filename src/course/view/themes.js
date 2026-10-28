@@ -107,5 +107,14 @@ import { CANDYVILLAGE_THEME } from './theme_candyvillage.js'; THEMES.candyvillag
 import { GRAVEYARD_THEME } from './theme_graveyard.js'; THEMES.graveyard ??= GRAVEYARD_THEME;
 import { WITCHTOWER_THEME } from './theme_witchtower.js'; THEMES.witchtower ??= WITCHTOWER_THEME;
 import { CASTLE_NIGHT_THEME } from './theme_castle_night.js'; THEMES.castle_night ??= CASTLE_NIGHT_THEME;
+// Welt 6 „Wolkeninseln“ (Motor und Bausteine Welt 6): nur eintragen, wenn das Thema nicht schon anders registriert ist
+import { CLEARPIPE_THEME } from './theme_clearpipe.js'; THEMES.clearpipe ??= CLEARPIPE_THEME;
+import { STONECIRCLE_THEME } from './theme_stonecircle.js'; THEMES.stonecircle ??= STONECIRCLE_THEME;
+import { WRECK_THEME } from './theme_wreck.js'; THEMES.wreck ??= WRECK_THEME;
+import { FAREAST_THEME } from './theme_fareast.js'; THEMES.fareast ??= FAREAST_THEME;
+import { JUNGLE_THEME } from './theme_jungle.js'; THEMES.jungle ??= JUNGLE_THEME;
+import { SNOWWIND_THEME } from './theme_snowwind.js'; THEMES.snowwind ??= SNOWWIND_THEME;
+import { FACTORY_THEME } from './theme_factory.js'; THEMES.factory ??= FACTORY_THEME;
+import { FUZZYMINE_THEME } from './theme_fuzzymine.js'; THEMES.fuzzymine ??= FUZZYMINE_THEME;
 
 export function getTheme(name) { return THEMES[name] ?? THEMES.grass; }

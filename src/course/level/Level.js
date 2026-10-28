@@ -42,6 +42,11 @@
 //   level.notifyJump(fig, kind)               von der Figur gerufen; level.jumps = Zähler aller Sprünge
 //   level.signal(name, data)                  benanntes Ereignis (Aktion { signal: name }, Suchscheinwerfer 'alarm' …)
 //   level.onSignal(name, fn(data, name)) → Abmelden   ('*' = alle Signale); level.signals[name] = Zähler
+//
+// Ergänzungen (Präzisierung Motor und Bausteine Welt 6):
+//   level.isMaskedFrom(enemy, fig?, angleDeg = 75)   trägt die Figur (Standard: nächste zum Gegner) die Pilz-Maske und blickt
+//                                             sie zum Gegner (±angleDeg)? → der Gegner sieht sie nicht (Gegner-Agent)
+//   level.hangGrids                           Deckengitter (player/hanging.js); level.w6 = Sammelstelle der Welt-6-Bausteine
 
 import { CollisionWorld } from '../physics/CollisionWorld.js';
 import { getEntityKind, hasEntityKind } from '../entities/index.js';
@@ -89,6 +94,23 @@ export class Level {
     this.jumps = 0;
     this.signalFns = new Map();
     this.signals = {};
+    // Welt 6: Deckengitter (Hangeln)
+    this.hangGrids = [];
+  }
+
+  // ------------------------------------------------------------------ Welt 6: Pilz-Maske
+
+  /**
+   * Sieht der Gegner die Figur NICHT, weil sie maskiert ist? true, wenn die Figur (Standard: die nächste zum Gegner) die
+   * Pilz-Maske trägt (fig.masked) und dem Gegner zugewandt ist (waagerechter Blickkegel ±angleDeg um die Blickrichtung).
+   * enemy: Entität (pos) oder Punkt {x, z} / [x, y, z]. Für Gegner, die die Figur bemerken/verfolgen (Gegner-Agent).
+   */
+  isMaskedFrom(enemy, fig = null, angleDeg = 75) {
+    const pos = Array.isArray(enemy) ? { x: enemy[0], y: enemy[1], z: enemy[2] } : enemy?.pos ?? enemy;
+    if (!pos) return false;
+    const f = fig ?? this.nearestPlayer(pos);
+    if (!f || !f.masked) return false;
+    return this.isFacing(f, pos, angleDeg);
   }
 
   // ------------------------------------------------------------------ Welt 5: Sprünge und Signale

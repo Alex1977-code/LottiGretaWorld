@@ -43,6 +43,11 @@
 //  - Jeder Absprung meldet level.notifyJump(fig, kind) (Rot-Blau-Flipper zählen Sprünge aller Figuren).
 //  - Trapez (player/swing.js): in der Luft greifen (tryGrabTrapeze), state 'trapeze', `trapeze`, `swingTilt`, `swingVel`.
 //  - ride(ctl, { solo: true }): gesteuerter Ablauf ohne Haupt-Figur-Wechsel und ohne Mitreisen der Klone.
+//
+// Ergänzungen (Präzisierung Motor und Bausteine Welt 6):
+//  - Deckengitter (player/hanging.js): `hang` ({ obj, t }), mode 'wall', state 'hang', `hangMove` ({ x, y } −1..1).
+//  - Pilz-Maske (Trage-Helm 'maske', entities/kinds/w6_gimmicks.js): `masked` = trägt die Maske (Gegner, denen die Figur
+//    zugewandt ist, sehen sie nicht: level.isMaskedFrom(gegner, figur)).
 
 import * as THREE from 'three';
 import { HERO_VARIANTS } from '../../config.js';
@@ -54,6 +59,7 @@ import { skateGround, skateJump, leaveSkate } from './skating.js';
 import { tryGrabFence, grabFenceAction, fenceCarry, updateFence, fenceAfterMove, fencePunch } from './fencing.js';
 import { updateStatue } from './statue.js';
 import { tryGrabTrapeze } from './swing.js';
+import { tryGrabHang, updateHang, hangAfterMove } from './hanging.js';
 
 /** Treibsand: Werte je Form (quicksand-Flag des Bausteins), Standard hier. */
 export const SAND = { sink: 0.3, slow: 0.5, jump: 0.75, plop: 0.06 };
@@ -155,6 +161,8 @@ export class Player {
     // Welt 5
     if (this.trapeze?.rider === this) this.trapeze.rider = null;
     this.trapeze = null; this.swingTilt = 0; this.swingVel = 0; this.camTrack = 0;
+    // Welt 6
+    this.hang = null; this.hangMove = { x: 0, y: 0 };
     this.updateHalf();
   }
 
@@ -182,6 +190,8 @@ export class Player {
   get invulnerable() { return this.invuln > 0 || !!this.powerDef.invulnerable; }
   get climbing() { return this.state === 'climb' || this.state === 'beanstalk'; }
   get grounded() { return this.mode === 'ground'; }
+  /** Welt 6: trägt die Pilz-Maske (Trage-Helm 'maske'). */
+  get masked() { return this.helmet === 'maske' && !this.dead; }
 
   updateHalf() {
     const base = this.big ? HITBOX.big : HITBOX.small;
@@ -212,6 +222,7 @@ export class Player {
     if (this.attackInfo && this.time > this.attackInfo.until) this.attackInfo = null;
     // Welt 3: Zaun nur im Wand-Modus; Schlittschuh nur am Boden/in der Luft (Röhre, Tod … lassen ihn zurück)
     if (this.fence && this.mode !== 'wall') this.fence = null;
+    if (this.hang && this.mode !== 'wall') this.hang = null;   // Welt 6: Deckengitter nur im Wand-Modus
     if (this.skate && (this.skate.removed || (this.mode !== 'ground' && this.mode !== 'air'))) leaveSkate(this, 'gone');
 
     if (this.mode === 'script') { this.updateScript(dt, input); return; }
@@ -253,9 +264,11 @@ export class Player {
     if (this.mode === 'script') return;
     this.move(dt, input, want);
     if (this.fence && this.mode === 'wall') fenceAfterMove(this);
+    if (this.hang && this.mode === 'wall') hangAfterMove(this);   // Welt 6: Deckengitter (player/hanging.js)
     if (this.mode !== 'script') this.checkTriggers(dt, input, want);
     if (this.mode === 'air' && this.level.fences?.length) tryGrabFence(this, input, want);
     if (this.mode === 'air' && this.level.trapezes?.length) tryGrabTrapeze(this, input);   // Welt 5: Trapez (player/swing.js)
+    if (this.mode === 'air' && this.level.hangGrids?.length) tryGrabHang(this, input, want);   // Welt 6: Deckengitter
     this.updatePhase();
   }
 
@@ -619,6 +632,7 @@ export class Player {
 
   updateWall(dt, input, want) {
     if (this.fence) { updateFence(this, dt, input, want); return; }   // Kettenzaun (player/fencing.js)
+    if (this.hang) { updateHang(this, dt, input, want); return; }     // Welt 6: Deckengitter (player/hanging.js)
     const n = this.wallNormal;
     if (this.buffer > 0) { this.buffer = 0; this.wallJump(); return; }
     if (input.crouchPressed) { this.leaveWall(1.5); return; }
@@ -1112,6 +1126,7 @@ export class Player {
     if (this.mode === 'wall' || this.mode === 'stalk') this.mode = 'air';
     if (this.mode === 'ground') this.mode = 'air';
     this.fence = null;
+    this.hang = null;
     this.vel.set((ax / l) * 5, 6.5, (az / l) * 5);
     this.airMax = 5;
     this.enterAir('hurt', false);
@@ -1193,6 +1208,7 @@ export class Player {
     this.helmet = null; this.helmetFx = null;
     if (this.skate) leaveSkate(this, 'lost');
     this.fence = null;
+    this.hang = null;
     this.gliding = false;
     this.dead = true;
     this.deathCause = cause;
@@ -1511,6 +1527,8 @@ export class Player {
       // Welt 3
       glide: this.gliding, statue: this.statue, skate: !!this.skate, fence: this.fence ? this.fence.side : 0, diving: this.diving,
       tail: this.tailTime > 0,
+      // Welt 6
+      hang: !!this.hang, masked: this.masked,
     };
   }
 }
