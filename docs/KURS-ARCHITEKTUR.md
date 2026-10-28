@@ -7080,3 +7080,41 @@ Stempel mit Gegenproben (Stern 0 der Burg nicht per Dreifachsprung, Vordach-Ster
 Blockwand verschlossen, Bimssteine bei Flut tödlich, Hochsteine bleiben trocken, Zugbrücke ohne Knopf oben, Knopf hebt sie
 wieder); Extraleben aller drei Level. Gemessen (scale 2, inkl. Schattenpass, Messgang alle ~7 m der Route und Bilder je
 Abschnitt): 7-C 74–106 Zeichenaufrufe / ≤ 254 k Dreiecke · 7-7 43–93 / ≤ 183 k · 7-Burg 43–84 / ≤ 187 k.
+
+## Präzisierung (Modelle Welt 8) (Hauptsitzung)
+
+Kurzübersicht der Welt-8-Modelle; die exakten `opts`/`state` stehen in den Kopfkommentaren der Dateien
+`src/course/models/kinds/bosses_w8.js`, `enemies_w8.js`, `gimmicks_w8.js`, `props_rummel_w8.js`, `props_festung_w8.js`,
+`szene_w8.js` sowie `src/course/models/lib/instanced_w8.js` und `w8Geos.js`. Test `tests/course_models_w8.mjs`.
+
+- **Bosse:** `baron_krallen` (≈ 3,4 m, `opts.clone` = leuchtender Spiegelfrucht-Doppelgänger; `state.anim`
+  `idle|walk|climb|slide|swipe|fire|hit|stunned|fall|clone|defeated`, `hp`, `maxHp` 4; `swipe` 0,7 s mit Treffern bei
+  0,42/0,62, `fire` 0,8 s mit Kugel bei 0,45; `model.hand(out, 'rechts'|'links')`, `model.mouth(out)`, `userData.radius`
+  0,75 / `top` 3,2 / `wallX` 0,8), `super_pow_block` („Super-Wumm-Block“, `opts.size` 5, `state.hits` 0..4, `squash`,
+  `anim 'idle'|'hit'`; `model.topAt(hits)` = size·(1 − 0,16·hits)), `freunde_glas` (2,4 m, `opts.friends`
+  `['kruemel','flocke','hoppel','kobold']`, `state.anim 'idle'|'shake'|'cheer'`, `shake`, `break` 0..1, `cheer`;
+  `model.friend(i, out)`).
+- **Varianten:** `wuerfelblase { color: 'gold' }` (vorhanden), `schlangenkoenig { color: 'rosa' }` (neu, additiv in
+  `bosses_w3.js`, Standard unverändert), `schattenlaeuferin` unverändert (mit `clone`).
+- **Gegner:** `sandflosser` (Ursprung Sandoberfläche, `anim 'swim'|'jump'|'defeated'`), `knochenflieger_gruppe`
+  (`opts.count` 2..8, `radius`, `formation 'ring'|'reihe'|'keil'`; `anim 'fly'|'dive'|'scatter'|'assemble'`, `alive[]`;
+  `model.member(i)`), `kristall_felsklotz` (`opts.size` 3, `shape 'kugel'|'wuerfel'`; `anim 'idle'|'roll'|'fast'`, `roll`
+  rad nach +X; `userData.top`/`radius`), `baron_sandstatue` (≈ 4,1 m, `state.break` 0..1).
+- **Gimmicks:** `leuchtsteg` (`opts.size [x,z]`, `thick`; `state.glow`/`flash`, bei glow 0 unsichtbar), `keksrad`
+  (`size`, `thick`, `axis 'y'|'x'|'z'`, `color 'hell'|'schoko'`; `angle|speed`), `keks_zahnrad` (`radius`, `teeth`,
+  `thick`, `axis`), `riesenrad` (Ursprung Nabe, Ebene XY, `radius` 8, `count` 8, `plank`, `depth`; `model.platform(i)`,
+  Plattform i bei (R·cos a, R·sin a − 1,2, 0), a = angle + i·2π/n), `wasserkoerper` (`size [x,y,z]`, `wobble`),
+  `steigbecken` (Ursprung Innenboden, `size [x,z]`, `height`, `wall`; `state.level` 0..1, `userData.water`),
+  `stachelblock_blau`/`_rot` (`size`, `faces 'alle'|'seiten'|'oben'|'vorn'`; `out`, `warn`), `schubfeld` (`size`, Lauflicht
+  nach +X; `on`, `speed`), `lavabrocken_regen` (`size`; `anim 'fall'|'land'|'glow'`, Warnfeld = vorhandene `landemarke`),
+  `lavapfuetze` (`size`; `anim 'idle'|'grow'|'cool'`), `schockwelle` (`radius`, `color 'gold'|'weiss'`; `progress`).
+- **Kulisse (ohne Spielzeug-Look, backbar):** `baron_turm` (`part 'ganz'` ≈ 40 m | `'spitze'` Gipfel Ø 26 m, Ursprung
+  Plattform-Oberseite), `karussell`, `riesenrad_kulisse`, `achterbahn` (`kind 'gerade'|'kurve'|'looping'|'wagen'`),
+  `rummel_bude` (`color`, `seed`), `wimpelkette`/`gluehbirnenkette` (Ursprung linker Aufhängepunkt, `length`, `sag`),
+  `brummbaer_ballon` (`color`, `count` 1..3), `regenfestung` (`kind 'mauer'|'turm'|'pfuetze'|'fahne'`), `keksfabrik`
+  (`kind 'band'|'keksturm'|'zuckerguss'`), `wasserfestung` (`kind 'algen'|'gitter'|'saeule'`), `spukspiegel`
+  (`state.star`, `glow`), `duene`, `autowrack` (Welt-1-Auto verbeult, `state.smoke`).
+- **Abspann:** `abspann_buehne` (Wiese Ø 12 m, Picknick, Torte, Lampions, vier Freunde; `state.wave`, `glow`;
+  `userData.spots` für lotti, greta, pflaume, kruemel_kapitaen).
+- **Instanz-Varianten** (`instanced_w8.js`): `leuchtsteg`, `knochenflieger` (`'fly'|'dive'|{ anim: 'bones'|'assemble',
+  progress }`), `brummbaer_ballon`.
