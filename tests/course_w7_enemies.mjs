@@ -495,6 +495,165 @@ if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
 }
 
 // =====================================================================================================================
+// Teil 2: Bestand Welt 7 (Werfer, Stachelpanzer, Zauberkröte, Pilzlingsturm), Rammfisch-Erweiterungen, Wurfsichel bei allen
+// =====================================================================================================================
+if (want(2)) {
+await load('0-27');
+console.log('Teil 2: Bestand, Werfer, Rammfisch, Wurfsichel');
+
+const wf = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  // Bumerang-Werfer mit Wurfsichel: trägt sie (Modell), wirft Bumerangs, lässt sie beim Besiegen fallen
+  const w = t.ent('w_sichel');
+  const fig = [11.5, 1, t.Z(6, 1.5)];
+  let boom = false;
+  t.until(() => { boom = boom || L.entities.some((e) => e.kind === 'wurf_bumerang' && e.owner === w); return boom; }, 120 * 6, fig);
+  out.carry = { sichel: w.sichel, model: t.model(w), dropped: w.modelState().dropped, boom };
+  const st = t.stomp(w, { h: 0.8 });
+  c.step(30);
+  const item = w.sichelItem;
+  out.drop = { ...st, defeated: w.defeated, dropped: w.sichelDropped, modelDropped: w.modelState().dropped, item: item ? { kind: item.kind, power: item.power ?? null, d: t.r2(Math.hypot(item.pos.x - w.pos.x, item.pos.z - w.pos.z)), y: t.r2(item.pos.y) } : null };
+  // in die Lava gefallen: die Sichel erscheint an seinem Platz (home)
+  const v = L.spawn('bumerang_werfer', { pos: [-11.5, 2.5, t.Z(2, 7)], sichel: true, sight: 0.01 });
+  c.step(20);
+  v.fallOut('lava');
+  c.step(2);
+  out.lava = { item: v.sichelItem ? { x: t.r2(v.sichelItem.pos.x), y: t.r2(v.sichelItem.pos.y), z: t.r2(v.sichelItem.pos.z) } : null };
+  // Feuer-Werfer mit blauen Feuerkugeln
+  const f = t.ent('w_feuer');
+  let blue = null;
+  t.until(() => { const k = L.entities.find((e) => e.kind === 'feuerkugel' && e.owner === f); if (k && !blue) blue = { color: k.color, model: t.model(k) }; return !!blue; }, 120 * 8, [7, 1, t.Z(6, 1.5)]);
+  out.blue = blue;
+  // Hammer-Werfer: Wurfsichel besiegt ihn
+  const h = t.ent('w_hammer');
+  t.sichel(h);
+  c.step(4);
+  out.hammer = h.defeated;
+  // Stachelpanzer: von oben verletzt, Feuer und Wurfsichel besiegen
+  const sp = t.ent('b_stachelpanzer');
+  const s1 = t.stomp(sp, { h: 0.6 });
+  t.fresh();
+  t.sichel(sp);
+  c.step(4);
+  out.stachelpanzer = { stompHurt: s1.hurt, sichel: sp.defeated };
+  // Zauberkröte: erscheint, Wurfsichel besiegt sie (sichtbar)
+  const z = t.ent('b_zauber');
+  t.until(() => z.vulnerable, 120 * 8, [-11, 1, t.Z(6, 1.5)]);
+  t.sichel(z);
+  c.step(4);
+  out.zauber = { vulnerable: true, defeated: z.defeated };
+  // Pilzlingsturm: Wurfsichel trägt eine Stufe ab
+  const pt = t.ent('b_turm');
+  const n0 = pt.count;
+  t.sichel(pt);
+  c.step(30);
+  out.turm = { before: n0, after: pt.count };
+  return out;
+});
+console.log(`  Werfer/Bestand: ${JSON.stringify(wf)}`);
+check(`Bumerang-Werfer trägt die Wurfsichel (Modell ${wf.carry.model}) und wirft Bumerangs`, wf.carry.sichel && wf.carry.model === 'bumerang_werfer' && wf.carry.dropped === false && wf.carry.boom);
+check(`Besiegt lässt er die Wurfsichel fallen (${JSON.stringify(wf.drop.item)}), Modell ohne Sichel`, wf.drop.bounced && wf.drop.defeated && wf.drop.dropped && wf.drop.modelDropped && wf.drop.item && (wf.drop.item.kind === 'wurfsichel_item' || wf.drop.item.power === 'sichel') && wf.drop.item.d < 0.6);
+check(`In die Lava gefallen: Wurfsichel an seinem Platz (${JSON.stringify(wf.lava.item)})`, wf.lava.item && Math.abs(wf.lava.item.x + 11.5) < 0.1 && wf.lava.item.y > 2.4);
+check(`Feuer-Werfer mit blauen Feuerkugeln (${JSON.stringify(wf.blue)}); Wurfsichel besiegt den Hammer-Werfer`, wf.blue?.color === 'blau' && wf.blue.model === 'feuerkugel_blau' && wf.hammer);
+check(`Stachelpanzer: von oben verletzt, Wurfsichel besiegt; Zauberkröte (sichtbar) besiegt; Pilzlingsturm ${wf.turm.before} → ${wf.turm.after} Stufen`, wf.stachelpanzer.stompHurt && wf.stachelpanzer.sichel && wf.zauber.defeated && wf.turm.after === wf.turm.before - 1);
+
+const rf = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const out = {};
+  // großer kreisender Rammfisch: Größe 2, Kreis r 3,4, rammt nicht – auch nicht, wenn die Figur davor schwimmt
+  const g = t.ent('rf_gross');
+  const C = [-11.5, t.Z(7, 7)];
+  let rr = [99, 0];
+  t.place([-11.5, 1.0, t.Z(7, 1.5)], { settle: 30 });
+  p.hurt = () => false;
+  for (let i = 0; i < 120 * 6; i++) { if (p.mode === 'swim') { p.pos.set(-11.5, -0.6, t.Z(7, 2)); p.vel.set(0, 0, 0); } c.step(1); const d = Math.hypot(g.pos.x - C[0], g.pos.z - C[1]); rr = [Math.min(rr[0], d), Math.max(rr[1], d)]; }
+  delete p.hurt;
+  out.big = { size: g.size, half: t.r2(g.half.x), r: rr.map(t.r2), rams: g.rams, state: g.state, swim: p.mode };
+  t.fresh();
+  // auf und ab: Höhe wechselt ≈ 3,3 m
+  const v = t.ent('rf_hoch');
+  let ys = [99, -99];
+  for (let i = 0; i < 120 * 6; i++) { t.hold([0, 1, t.Z(7, 1)], 1); ys = [Math.min(ys[0], v.pos.y), Math.max(ys[1], v.pos.y)]; }
+  out.vertical = ys.map(t.r2);
+  // Stern in der Blase: wandert mit dem Fisch, Berührung sammelt ihn ein; nur starke Treffer besiegen den Fisch
+  const s = t.ent('rf_stern');
+  const star = s.carryStar;
+  let sx = [99, -99];
+  for (let i = 0; i < 480; i++) { t.hold([0, 1, t.Z(7, 1)], 1); sx = [Math.min(sx[0], star.pos.x), Math.max(sx[1], star.pos.x)]; }
+  out.star = { index: star.index, moved: t.r2(sx[1] - sx[0]), above: t.r2(star.pos.y - (s.pos.y + s.half.y * 2)), dx: t.r2(star.pos.x - s.pos.x), bubble: !!s.bubble };
+  t.sichel(s); s.onHit('fire', p); s.onHit('claw', p);
+  out.star.weak = s.defeated;
+  t.place([star.pos.x, star.pos.y - 0.3, star.pos.z], { settle: 0 });
+  p.hurt = () => false;
+  for (let i = 0; i < 30 && !star.removed; i++) { p.pos.set(star.pos.x, star.pos.y - 0.3, star.pos.z); p.vel.set(0, 0, 0); c.step(1); }
+  delete p.hurt;
+  c.step(2);
+  out.star.collected = star.removed && L.runtime.stars[star.index] === true;
+  out.star.bubbleGone = !s.bubble;
+  s.onHit('bomb', p);
+  out.star.strong = s.defeated;
+  return out;
+});
+console.log(`  Rammfisch: ${JSON.stringify(rf)}`);
+check(`Großer Rammfisch (×${rf.big.size}, Hülle ${rf.big.half} m) kreist (r ${rf.big.r.join('…')} m) und rammt nicht`, rf.big.size === 2 && rf.big.half === 1.5 && Math.abs(rf.big.r[0] - 3.4) < 0.25 && Math.abs(rf.big.r[1] - 3.4) < 0.25 && rf.big.rams === 0);
+check(`Auf- und abziehender Rammfisch (y ${rf.vertical.join(' … ')})`, rf.vertical[1] - rf.vertical[0] > 3);
+check(`Rammfisch trägt Stern ${rf.star.index} in der Blase (wandert mit, ${rf.star.moved} m); Wurfsichel/Feuer/Krallen prallen ab, Berührung sammelt den Stern, die Blase platzt; Explosion besiegt ihn`,
+  rf.star.moved > 2 && rf.star.above > 0.2 && Math.abs(rf.star.dx) < 0.01 && rf.star.bubble && rf.star.weak === false && rf.star.collected && rf.star.bubbleGone && rf.star.strong);
+
+// Wurfsichel bei allen Gegnerarten: frisch erzeugt, onHit('sichel') – erwartete Wirkung je Art
+const ws = await sc(() => {
+  const c = window.__course, t = window.__t, p = c.player, L = c.level;
+  const KINDS = {
+    // besiegt (wie ein Feuerball bzw. Tatzenhieb)
+    besiegt: ['pilzling', 'krallen_pilzling', 'panzerkroete', 'schnappblume', 'krabbelkaefer', 'flatterkaefer', 'brummer', 'wuehler', 'hackvogel', 'rollpilz', 'huepfmaus',
+      'huepfmaus_stachel', 'marschblock', 'feuer_werfer', 'hammer_werfer', 'bumerang_werfer', 'projektilkopf', 'suchkopf', 'feuer_schnappblume', 'flossling', 'pilzling_eis', 'pilzling_reifen', 'funkenkaefer',
+      'ameisensoldat', 'ameisensoldat_horn', 'rankenschnapper', 'walzenwerfer', 'stachelpanzer', 'springklotz', 'hackbeil_pilz', 'funkenling', 'kuerbling', 'hexenhut_huepfer', 'klapperknochen',
+      'flatterfledi', 'pustewolke', 'glotzfisch', 'stachelwerfer', 'gelee_brocken', 'knochenflieger', 'platschfisch', 'wutkaulquappe', 'funkenflaemmchen'],
+    // ein Trefferpunkt (zähe Gegner)
+    treffer: ['riesenschnappblume', 'rammbock_bulle', 'grossrollpilz', 'riesenkuerbling', 'muenzmarder'],
+    // unverwundbar bzw. nur starke Treffer: nichts
+    nichts: ['stampfstein', 'wuschel', 'spuk', 'kreisgeist', 'stachelfisch', 'rammfisch', 'funkenlaeufer', 'riesenameise', 'stachelwalze', 'lavafunke', 'glutball', 'feuerring'],
+  };
+  const out = { wrong: [], n: 0, special: {} };
+  let x = -14;
+  const spawnAt = (k) => {
+    x += 2.5;
+    return L.spawn(k, { pos: [x, 1, t.Z(1, -4)], dir: [1, 0], wake: 99, sight: 0.01, phase: 0.5, path: k.endsWith('kaefer') ? [[x, 1, t.Z(1, -4)], [x + 1, 1, t.Z(1, -4)]] : undefined });
+  };
+  for (const [want, list] of Object.entries(KINDS)) {
+    for (const k of list) {
+      const e = spawnAt(k);
+      if (!e) { out.wrong.push(`${k}: fehlt`); continue; }
+      t.hold([0, 1, 6], 30);
+      const hp0 = e.hp;
+      t.sichel(e);
+      c.step(4);
+      const got = e.defeated ? 'besiegt' : hp0 !== undefined && e.hp < hp0 ? 'treffer' : 'nichts';
+      out.n++;
+      if (got !== want) out.wrong.push(`${k}: ${got} statt ${want}`);
+      e.kill?.();
+    }
+  }
+  // Sonderfälle: Panzer wird weggestoßen, Lavabrocken betäubt (Feuer prallt ab), Kickbombe/Zündkopf zünden, Schubser rutscht
+  const sp = (k, f) => { const e = spawnAt(k); t.hold([0, 1, 6], 30); t.sichel(e); c.step(4); const r = f(e); e.kill?.(); return r; };
+  out.special.panzer = sp('panzer', (e) => e.state);
+  out.special.lavabrocken = sp('lavabrocken', (e) => e.state);
+  out.special.kickbombe = sp('kickbombe', (e) => e.lit);
+  out.special.zuendkopf = sp('zuendkopf', (e) => e.lit);
+  out.special.schubser = sp('schubser', (e) => e.state);
+  out.special.pilzlingsturm = sp('pilzlingsturm', (e) => e.count);
+  return out;
+});
+console.log(`  Wurfsichel: ${JSON.stringify(ws)}`);
+check(`Wurfsichel-Treffer bei ${ws.n} Gegnerarten wie erwartet (${ws.wrong.join('; ') || 'alle'})`, ws.wrong.length === 0 && ws.n >= 55);
+check(`Sonderfälle: Panzer gleitet (${ws.special.panzer}), Lavabrocken betäubt (${ws.special.lavabrocken}), Kickbombe/Zündkopf zünden, Schubser wird gestoßen (${ws.special.schubser})`,
+  ws.special.panzer === 'slide' && ws.special.lavabrocken === 'stunned' && ws.special.kickbombe && ws.special.zuendkopf && ws.special.schubser !== 'idle');
+check('Keine Konsolenfehler (Teil 2)', errors.length === 0);
+if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
+}
+
+// =====================================================================================================================
 // Teil 3: Endgegner (0-28)
 // =====================================================================================================================
 const BOSS_HELPERS = () => {

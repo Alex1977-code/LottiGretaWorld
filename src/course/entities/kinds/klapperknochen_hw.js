@@ -21,7 +21,7 @@ import { getModel } from '../../models/index.js';
 
 const COLLAPSE = 0.5, REBUILD = 0.8, DEFEAT = 0.9;
 /** Diese Treffer besiegen ihn immer (auch stehend). */
-const FINAL = new Set(['fire', 'claw', 'shell', 'cannon', 'slide', 'punch', ...STRONG]);
+const FINAL = new Set(['fire', 'claw', 'shell', 'cannon', 'slide', 'punch', 'sichel', ...STRONG]);   // sichel: Wurfsichel (Welt 7)
 const LYING = new Set(['collapse', 'pile', 'shiver']);
 
 class Klapperknochen extends EnemyW2 {
