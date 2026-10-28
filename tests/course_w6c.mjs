@@ -32,6 +32,59 @@ const SAVE = 'lotti-greta-course-v1';
 
 // ====================================================================== Routen (6-5, 6-6)
 const ROUTES = {
+  '6-5': {
+    start: [0, 0, 5],
+    meta: { stars: 3, time: 400, theme: 'snowwind', music: 'course_snowwind', archetype: 'parcours', world: 6, title: 'Pustewind am Eisgipfel' },
+    enemies: { pustewolke: 5, glotzfisch: 5, pilzling_eis: 3 },
+    main: [
+      { name: 'zum Eissee', to: [0, -15], within: 0.8 },
+      { name: 'über den Eissee', to: [5.6, -30], within: 1.2, dodge: true, run: false },
+      { to: [-4.5, -44], within: 1.2, dodge: true, run: false },
+      { to: [0, -52], within: 1.4, run: false, autoJump: false },
+      { to: [0, -57], within: 0.8, autoJump: false },
+      { name: 'Hang 1', to: [0, -67.6], within: 0.5 },
+      { name: 'Hang 2', to: [-1, -82.6], within: 0.6 },
+      { name: 'Hang 3', to: [0, -96], within: 0.6 },
+      { name: 'Glasröhre 1', to: [0, -100.4], within: 0.3, stopIf: 'aufSee2' },
+      { wait: 10 },
+      { expect: 'aufSee2' },
+      { name: 'Checkpoint', to: [-4, -122.5], within: 0.6 },
+      { name: 'Eissee 2', to: [-3, -140], within: 1.0, dodge: true },
+      { to: [-2, -163], within: 0.6, dodge: true },
+      { to: [0, -165.2], within: 0.4, run: false },
+      { name: 'Scholle 2', waitWind: 'boe1', to: [0, -176.8], jump: 30, jumpAt: 8.0, within: 0.7, run: true },
+      { to: [0, -175.4], within: 0.4, run: false },
+      { name: 'Scholle 3', waitWind: 'boe2', to: [0, -187.4], jump: 30, jumpAt: 8.0, within: 0.7, run: true },
+      { to: [0, -185.8], within: 0.4, run: false },
+      { name: 'Scholle 4', waitWind: 'aufwind', to: [0, -198], jump: 30, jumpAt: 8.1, within: 0.7, run: true },
+      { name: 'Checkpoint 2', to: [0, -199.5], within: 0.5 },
+      { to: [0, -204.4], within: 0.4, run: false },
+      { name: 'Scholle F2', fishFree: 7, to: [-2, -209.75], jump: 26, within: 0.6, run: false },
+      { to: [0, -211.4], within: 0.4, run: false },
+      { name: 'Scholle F3', fishFree: 7, to: [2, -216.75], jump: 26, within: 0.6, run: false },
+      { to: [0, -218.4], within: 0.4, run: false },
+      { name: 'Scholle F4', fishFree: 7, to: [-1.5, -223.75], jump: 26, within: 0.6, run: false },
+      { to: [0, -225.4], within: 0.4, run: false },
+      { name: 'Scholle F5', fishFree: 7, to: [1.5, -230.75], jump: 26, within: 0.6, run: false },
+      { to: [1, -232.4], within: 0.4, run: false },
+      { name: 'Scholle F6', fishFree: 7, to: [0, -237.5], jump: 26, within: 0.6, run: false },
+      { name: 'Glasröhre 2', to: [0, -243.4], within: 0.3, stopIf: 'aufGipfel' },
+      { wait: 10 },
+      { expect: 'aufGipfel' },
+      { name: 'Zielmast', to: [0, -265.6], within: 0.25 },
+    ],
+    routeChecks: [
+      { name: 'zwei Glasröhren, drei Windlücken abgewartet', ok: (r) => r.log.filter((l) => l[0] === 'fahrt').length >= 2 && r.log.filter((l) => l[0] === 'Böe abgewartet').length === 3 },
+    ],
+    targets: [],
+    extra: [],
+    shots: [
+      ['start', [0, 0, 5]], ['treppe', [-3, 0, 2]], ['stacheln', [7, 0, -4]], ['see', [0, 0, -20]], ['see_ende', [0, 0, -48]], ['hang', [0, 0, -55]],
+      ['absatz1', [0, -4, -68]], ['absatz2', [0, -8, -84]], ['roehre1', [0, -10.5, -97]], ['see2', [0, -6, -122]], ['bruecke', [6, -6, -130]],
+      ['bahn', [77, -6, -118]], ['abgrund', [0, -6, -166]], ['aufwind', [0, -6, -188]], ['bucht', [0, -6.5, -202]], ['bucht_mitte', [-2, -6.5, -224]],
+      ['roehre2', [0, -6.5, -240]], ['gipfel', [0, 4, -256]],
+    ],
+  },
   '6-6': {
     start: [0, 0, 5],
     meta: { stars: 3, time: 500, theme: 'factory', music: 'course_factory', archetype: 'parcours', world: 6, title: 'Kanonenturm im Wolkenwerk' },
@@ -123,6 +176,8 @@ function installCond() {
     neustartG: () => Math.abs(P().pos.z + 195.5) < 2.5 && Math.abs(P().pos.y - 34) < 0.5 && !P().dead,
     claws: () => P().power === 'krallen',
     inRaum: () => P().pos.x > 60,
+    aufSee2: () => P().pos.z < -117 && P().pos.y > -7 && P().pos.y < -3,
+    aufGipfel: () => P().pos.z < -250 && P().pos.y > 3,
   };
   return true;
 }
@@ -230,6 +285,15 @@ function install() {
             const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, dd = Math.hypot(dx, dz);
             const ahead = (dx * p.vel.x + dz * p.vel.z) / Math.max(0.1, dd * Math.hypot(p.vel.x, p.vel.z));
             if (dd < 1.6 && Math.abs(e.pos.y - p.pos.y) < 1 && (ahead > 0.3 || dd < 0.9)) return { e, t: 0.2 };
+            continue;
+          }
+          if (e.kind === 'pilzling_eis' && !e.removed && !e.defeated) {
+            // Eisläufer: nächste Annäherung mit seiner Geschwindigkeit vorhersagen
+            const rvx = e.vel.x - p.vel.x, rvz = e.vel.z - p.vel.z, rx = e.pos.x - p.pos.x, rz = e.pos.z - p.pos.z;
+            if (Math.abs(e.pos.y - p.pos.y) > 1.2) continue;
+            const vv = rvx * rvx + rvz * rvz;
+            const t = vv > 1e-6 ? Math.max(0, Math.min(horizon + 0.15, -(rx * rvx + rz * rvz) / vv)) : 0;
+            if (Math.hypot(rx + rvx * t, rz + rvz * t) < r + 0.3) return { e, t };
             continue;
           }
           if ((e.kind !== 'projektilkopf' && e.kind !== 'suchkopf') || e.removed || e.state === 'fall' || e.state === 'burst') continue;
@@ -480,6 +544,21 @@ function install() {
           }
           log.push(['Pfad', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
+        }
+        // ------------------------------------------------ vor dem Sprung warten: Windböe vorbei (waitWind) bzw. kein Glotzfisch in der Nähe in der Luft (fishFree)
+        if (Lg.waitWind) {
+          const wf = L().named.get(Lg.waitWind);
+          let k = 0, prev = wf.state;
+          for (; k < 1200; k++) { if (prev === 'boe' && wf.state === 'ruhe') break; prev = wf.state; tick({}); }
+          for (let w = 0; w < (Lg.afterWind ?? 0); w++) tick({});
+          log.push(['Böe abgewartet', Lg.waitWind, k]);
+        }
+        if (Lg.fishFree) {
+          let k = 0;
+          const busy = () => L().entities.some((e) => e.kind === 'glotzfisch' && !e.removed && !e.defeated && (e.state === 'jump' || e.state === 'peek') && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < Lg.fishFree);
+          let free = 0;
+          for (; k < 1500; k++) { if (!busy()) free++; else free = 0; if (free > (Lg.freeFor ?? 6)) break; tick({}); }
+          log.push(['Fische abgewartet', k]);
         }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)
         const max = Lg.max ?? 900;
