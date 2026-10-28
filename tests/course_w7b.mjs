@@ -187,9 +187,9 @@ const ROUTES = {
       { expect: 'onFinale' },
       { to: [62.5, -182], within: 0.4, run: false }, { to: [62.5, -184.7], within: 0.4, run: false },
       { to: [57.5, -184.9], within: 0.4, run: false }, { to: [58.5, -189.3], within: 0.4, run: false },
-      { name: 'Kippplattform: Schubser 1', push: 'sb_k1', dir: [-1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
-      { name: 'Schubser 2', push: 'sb_k2', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
-      { name: 'Schubser 3', push: 'sb_k3', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
+      { name: 'Kippplattform: Schubser 1', push: 'sb_k1', dir: [-1, 0], center: 60, centerZ: -197.5, room: 2.2, roomZ: 5, edges: [56, 64] },
+      { name: 'Schubser 2', push: 'sb_k2', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.2, roomZ: 5, edges: [56, 64] },
+      { name: 'Schubser 3', push: 'sb_k3', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.2, roomZ: 5, edges: [56, 64] },
       { until: 'pfeileZiel', max: 600 },
       { to: [60, -204], within: 0.5, run: false },
       { to: [60, -208.5], jump: 20, within: 0.8, run: false }, { to: [60, -212.5], jump: 20, within: 0.8, run: false },
@@ -204,12 +204,12 @@ const ROUTES = {
     extra: [
       { name: 'Schubser F (zwischen zwei Walzen) in die Lava', from: [4, B4, -123.6],
         legs: [{ push: 'sb_f', dir: [1, 0], center: 0, centerZ: -127, room: 4, roomZ: 2.6, edges: [-6, 6] }], mech: (r) => r.mech.pushedOff === 1 },
-      { name: 'Kippplattform: drei Schubser in die Lava → drei Pfeilplattformen zum Ziel', from: [58.5, B4, -189.3], heroes: ['lotti'],
+      { name: 'Kippplattform: drei Schubser in die Lava → drei Pfeilplattformen zum Ziel', from: [58.5, B4, -189.3],
         legs: [
           { expect: 'pfeileZielWeg' },
-          { push: 'sb_k1', dir: [-1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
-          { push: 'sb_k2', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
-          { push: 'sb_k3', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.4, roomZ: 4 },
+          { push: 'sb_k1', dir: [-1, 0], center: 60, centerZ: -197.5, room: 2.2, roomZ: 5, edges: [56, 64] },
+          { push: 'sb_k2', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.2, roomZ: 5, edges: [56, 64] },
+          { push: 'sb_k3', dir: [1, 0], center: 60, centerZ: -197.5, room: 2.2, roomZ: 5, edges: [56, 64] },
           { until: 'pfeileZiel', max: 600 }],
         mech: (r) => r.mech.pushedOff === 3, mechText: (r) => `Schubser in der Lava ${r.mech.pushedOff ?? 0}` },
     ],
@@ -347,8 +347,24 @@ function install() {
       const track = [];
       let lastHurts = p.hurtTries ?? 0, lastBoost = 0;
       let stickInScript = null;
+      let reflex = 0;
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
+        // Reflex wie ein Kind: stößt ein Knochenflieger herab, hochspringen – er saust unter der Figur durch, im Fallen
+        // landet sie auf ihm (Draufspringen besiegt ihn)
+        if (o.reflex !== false) {
+          if (reflex > 0) { reflex--; inp = { ...(inp ?? {}), jump: true }; }
+          else if (p.mode === 'ground') {
+            for (const e of L.entities) {
+              if (e.kind !== 'knochenflieger' || !e.alive || e.defeated || e.state !== 'dive') continue;
+              // Sprung so, dass die Figur oben ist, wenn er den tiefsten Punkt seines Bogens erreicht
+              const low = e.diveLow, tLow = e.diveT / 2 - e.stateT;
+              const near = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 2.6 && e.pos.y - p.pos.y < 2.2 && e.pos.y - p.pos.y > -0.3;
+              if (!near && (!low || tLow > 0.42 || tLow < 0.05 || Math.hypot(low[0] - p.pos.x, low[2] - p.pos.z) > 1.6)) continue;
+              reflex = 26; mech.reflex = (mech.reflex ?? 0) + 1; inp = { ...(inp ?? {}), jump: true }; break;
+            }
+          }
+        }
         c.setInput(inp); c.step(1); steps++;
         if (p.boostTime > lastBoost + 0.2) mech.boosts++;
         lastBoost = p.boostTime;
@@ -511,7 +527,7 @@ function install() {
           const h = named(Lg.waitPlat);
           let k = 0;
           // erst eine frisch aufgetauchte Plattform nehmen (vorher „oben“ → bis zum nächsten Auftauchen warten)
-          if (!Lg.any) for (; k < 1500 && h.state === 'oben'; k++) tick({});
+          if (Lg.fresh) for (; k < 1500 && h.state === 'oben'; k++) tick({});
           for (; k < 1500 && h.state !== 'oben'; k++) tick({});
           log.push(['plattform', Lg.waitPlat, k, h.state]);
         }

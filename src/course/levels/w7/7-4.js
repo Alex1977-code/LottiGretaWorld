@@ -21,7 +21,7 @@
 //                               Walzen) → Zylinder 4 → Steinbau I (zwei Walzen) mit der Röhre zum Finale.
 //   Finale (abseits bei x ≈ 60): Röhrenausgang (zwei Walzen) → Kippplattform mit drei Schubsern – alle in die Lava stoßen →
 //                               drei Pfeilplattformen tauchen auf → Zielhof mit Zielmast.
-// Knochenflieger kreisen über B, C, E, F und H. Extraleben: unsichtbarer Block über Steinbau B, unsichtbarer Block am
+// Knochenflieger kreisen über C, D, E, H und I. Extraleben: unsichtbarer Block über Steinbau B, unsichtbarer Block am
 // Röhrenausgang des Finales.
 
 import {
@@ -109,7 +109,7 @@ function build(level) {
   // Sims rechts neben Zylinder 3 (Stern 2)
   rundPlatte(level, { x: 7.4, z: -151.5, r: 1.2, top: Y + 1.4, bottom: -2 });
   // Kippplattform des Finales
-  kippPlatte(level, { id: 'kipp', pos: [FX, Y, -197.5], length: 14, width: 10, yaw: Math.PI / 2, maxTilt: 7, weight: 1.0, response: 1.3, back: 0.6, thick: 0.5 }, SHIP.wippe);
+  kippPlatte(level, { id: 'kipp', pos: [FX, Y, -197.5], length: 14, width: 8, yaw: Math.PI / 2, maxTilt: 7, weight: 1.0, response: 1.3, back: 0.6, thick: 0.5 }, SHIP.wippe);
   // blaue Leuchtflecken über der Lava (Brodeln zwischen den Bauten)
   glowPoints(level, [[0, LAVA + 0.4, -14, 2.2], [0.5, LAVA + 0.4, -35, 2], [2, LAVA + 0.4, -60.5, 2], [0, LAVA + 0.4, -96.5, 3], [4, LAVA + 0.4, -118, 2.6],
     [0, LAVA + 0.4, -136.5, 3], [0, LAVA + 0.4, -151.5, 3], [0, LAVA + 0.4, -166.5, 3], [FX, LAVA + 0.4, -212, 3], [FX, LAVA + 0.4, -197, 4]],
@@ -189,15 +189,15 @@ export const LEVEL = {
     { kind: 'schubser', id: 'sb_f', pos: [1.5, Y, -127], behavior: 'guard', sight: 5.5 },
     { kind: 'schubser', id: 'sb_raetsel', pos: [RX, Y, -72], behavior: 'chase', sight: 9 },
     // Kippplattform: drei Wächter mit Abstand (sehen die Figur erst aus 5 m – einer nach dem anderen), sanfter Stoß
-    { kind: 'schubser', id: 'sb_k1', pos: [FX - 3, Y, -193], behavior: 'guard', sight: 5, push: 7, warn: 0.75 },
-    { kind: 'schubser', id: 'sb_k2', pos: [FX + 3, Y, -198.5], behavior: 'guard', sight: 5, push: 7, warn: 0.75 },
-    { kind: 'schubser', id: 'sb_k3', pos: [FX - 2.5, Y, -202.8], behavior: 'guard', sight: 5, push: 7, warn: 0.75 },
+    { kind: 'schubser', id: 'sb_k1', pos: [FX - 2.2, Y, -193], behavior: 'guard', sight: 5, push: 7, warn: 0.75 },
+    { kind: 'schubser', id: 'sb_k2', pos: [FX + 2.2, Y, -198.5], behavior: 'guard', sight: 5, push: 7, warn: 0.75 },
+    { kind: 'schubser', id: 'sb_k3', pos: [FX - 2, Y, -202.6], behavior: 'guard', sight: 5, push: 7, warn: 0.75 },
     // Knochenflieger (5)
-    { kind: 'knochenflieger', id: 'kf1', center: [1, Y + 3.6, -48.5], radius: 3.5 },
-    { kind: 'knochenflieger', id: 'kf2', center: [1, Y + 3.6, -71.5], radius: 3, phase: 0.5 },
-    { kind: 'knochenflieger', id: 'kf3', center: [0, Y + 3.6, -106], radius: 3.5, phase: 0.25 },
-    { kind: 'knochenflieger', id: 'kf4', center: [0, Y + 3.6, -128], radius: 3, phase: 0.75 },
-    { kind: 'knochenflieger', id: 'kf5', center: [0, Y + 3.6, -159], radius: 3.5, phase: 0.4 },
+    { kind: 'knochenflieger', id: 'kf1', center: [0, Y + 3.8, -87.5], radius: 3 },
+    { kind: 'knochenflieger', id: 'kf2', center: [-1, Y + 3.8, -72.5], radius: 3, phase: 0.5 },
+    { kind: 'knochenflieger', id: 'kf3', center: [0, Y + 3.8, -107.5], radius: 3, phase: 0.25 },
+    { kind: 'knochenflieger', id: 'kf4', center: [0, Y + 3.8, -160], radius: 3, phase: 0.75 },
+    { kind: 'knochenflieger', id: 'kf5', center: [0, Y + 3.8, -177.5], radius: 3, phase: 0.4 },
   ],
   items: [
     // Start
