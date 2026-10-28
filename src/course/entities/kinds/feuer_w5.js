@@ -193,7 +193,7 @@ function blockPath(b, cw = false) {
   return cw ? pts.reverse() : pts;
 }
 
-const FUNK_KILL = new Set(['claw', 'cannon', 'bomb', 'mega', 'star']);
+const FUNK_KILL = new Set(['claw', 'cannon', 'bomb', 'mega', 'star', 'sichel']);   // sichel: Wurfsichel (Welt 7)
 const POOF = 0.6;
 
 class Funkenling extends EnemyW2 {
@@ -256,6 +256,7 @@ class Funkenling extends EnemyW2 {
 
   onHit(kind, source) {
     if (this.defeated) return;
+    if (source?.sichel) kind = 'sichel';   // Wurfsichel (Welt 7) trifft mit onHit('throw', sichel)
     if (FUNK_KILL.has(kind)) { this.poof(source); return; }
     if (kind !== 'bump' && kind !== 'pound') this.level.effects?.sparks(this.center(), 4);
   }

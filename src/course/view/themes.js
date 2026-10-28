@@ -116,5 +116,12 @@ import { JUNGLE_THEME } from './theme_jungle.js'; THEMES.jungle ??= JUNGLE_THEME
 import { SNOWWIND_THEME } from './theme_snowwind.js'; THEMES.snowwind ??= SNOWWIND_THEME;
 import { FACTORY_THEME } from './theme_factory.js'; THEMES.factory ??= FACTORY_THEME;
 import { FUZZYMINE_THEME } from './theme_fuzzymine.js'; THEMES.fuzzymine ??= FUZZYMINE_THEME;
+// Welt 7 „Lava-Festung“ (Motor und Bausteine Welt 7): nur eintragen, wenn das Thema nicht schon anders registriert ist
+import { DARKRUINS_THEME } from './theme_darkruins.js'; THEMES.darkruins ??= DARKRUINS_THEME;
+import { LAVARUN_THEME } from './theme_lavarun.js'; THEMES.lavarun ??= LAVARUN_THEME;
+import { LAVATOWER_THEME } from './theme_lavatower.js'; THEMES.lavatower ??= LAVATOWER_THEME;
+import { LAVAMACHINE_THEME } from './theme_lavamachine.js'; THEMES.lavamachine ??= LAVAMACHINE_THEME;
+import { REEF_THEME } from './theme_reef.js'; THEMES.reef ??= REEF_THEME;
+import { VOLCANO_THEME } from './theme_volcano.js'; THEMES.volcano ??= VOLCANO_THEME;
 
 export function getTheme(name) { return THEMES[name] ?? THEMES.grass; }

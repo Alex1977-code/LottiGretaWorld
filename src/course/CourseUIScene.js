@@ -137,7 +137,8 @@ export class CourseUIScene extends Phaser.Scene {
     if (!c?.level) return;
     const rt = c.level.runtime, p = c.player;
     const time = Math.ceil(rt.timeLeft);
-    const key = [rt.lives, rt.coins, time, rt.stars.join(), rt.stamp, p.power, p.hero, Math.ceil(p.powerTime)].join('|');
+    // Welt 7: Power-ups mit eigenem HUD-Zustand (Wurfsichel: blass, solange sie fliegt) – def.hudKey(player)
+    const key = [rt.lives, rt.coins, time, rt.stars.join(), rt.stamp, p.power, p.hero, Math.ceil(p.powerTime), getPower(p.power).hudKey?.(p) ?? ''].join('|');
     if (force || key !== this.prev.key) {
       this.prev.key = key;
       this.livesText.setText(`×${rt.lives}`);
@@ -187,7 +188,8 @@ export class CourseUIScene extends Phaser.Scene {
     // Leben: rotes Herz
     drawHeart(g, 24, 15, 6.5);
     // Power-up
-    if (p.power !== 'none') {
+    if (p.power !== 'none' && def.hudDraw) def.hudDraw(g, 80, 15, p);   // eigenes Symbol (Welt 7: Wurfsichel)
+    else if (p.power !== 'none') {
       g.fillStyle(def.icon ?? 0xffffff, 1); g.fillCircle(80, 15, 5.5);
       g.lineStyle(1.5, 0xffffff, 0.9); g.strokeCircle(80, 15, 5.5);
     }
