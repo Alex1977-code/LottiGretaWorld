@@ -28,7 +28,10 @@
 //   phaseBanners: { 2: 'Er wird wütend!', 3: 'Vorsicht – Feuerspur!' }   Ansagen beim Phasenwechsel (Text oder
 //                                                 { text, hold, size, color }; '' = keine; je Phase überschreibbar)
 // }
-// info(): { started, won, speed, boss: baron.info(), hud, deaths }.
+// LEVEL.bosses = [cfg, …] (Präzisierung Gegner Welt 6, additiv; statt LEVEL.boss): mehrere Kämpfe nacheinander in einem
+//   Level (z. B. Testlevel mit mehreren Arenen). Jeder Eintrag wie LEVEL.boss; der erste ist aktiv, betritt die Figur den
+//   trigger eines anderen, noch nicht gewonnenen Eintrags (außerhalb eines Kampfs), wird dieser der aktive Kampf.
+// info(): { started, won, speed, boss: baron.info(), hud, deaths, active (Id des aktiven Endgegners) }.
 
 import * as THREE from 'three';
 import { ArchHud } from '../hud.js';
@@ -84,11 +87,11 @@ class Boss {
 
   setup() {
     const level = this.level = this.scene.level;
-    const cfg = this.cfg = level.data.boss ?? {};
-    this.boss = level.named.get(cfg.id ?? 'baron') ?? null;
-    if (!this.boss) console.warn('[Boss] Endgegner fehlt:', cfg.id);
+    const list = Array.isArray(level.data.bosses) && level.data.bosses.length ? level.data.bosses : [level.data.boss ?? {}];
+    this.cfgs = list;
+    this.wonCfgs = new Set();
+    this.select(list[0]);
     this.hw = highwayState(level);
-    this.name = cfg.name ?? 'Baron Brummbär';
     const rt = level.runtime;
     const respawn = rt.respawn.bind(rt);
     rt.respawn = () => { if (this.started && !this.won) this.resetFight(); respawn(); };
@@ -96,6 +99,25 @@ class Boss {
     const prevHit = level.onBossHit, prevDef = level.onBossDefeated;
     level.onBossHit = (b, where) => { prevHit?.(b, where); this.onHit(b, where); };
     level.onBossDefeated = (b) => { prevDef?.(b); this.onDefeated(b); };
+  }
+
+  /** Aktiven Kampf wählen (LEVEL.boss bzw. ein Eintrag aus LEVEL.bosses). */
+  select(cfg) {
+    this.cfg = cfg ?? {};
+    this.boss = this.level.named.get(this.cfg.id ?? 'baron') ?? null;
+    if (!this.boss) console.warn('[Boss] Endgegner fehlt:', this.cfg.id);
+    this.name = this.cfg.name ?? 'Baron Brummbär';
+  }
+
+  /** Mehrere Kämpfe (LEVEL.bosses): betritt die Figur den Auslöser eines anderen, offenen Kampfs, wird er aktiv. */
+  switchFight(p) {
+    if (this.cfgs.length < 2 || this.started || p.dead) return;
+    for (const c of this.cfgs) {
+      if (c === this.cfg || this.wonCfgs.has(c) || !c.trigger || !inBox(p.pos, c.trigger)) continue;
+      this.select(c);
+      this.won = false; this.wonT = 0; this.calm = false; this.introSaid = false; this.seenPhase = 1; this.frame = 0;
+      return;
+    }
   }
 
   start() {
@@ -132,7 +154,9 @@ class Boss {
   }
 
   afterStep(dt) {
-    const level = this.level, p = level.player, b = this.boss;
+    const level = this.level, p = level.player;
+    this.switchFight(p);
+    const b = this.boss;
     if (!b) return;
     if (!this.started && !this.won && !p.dead && this.cfg.trigger && inBox(p.pos, this.cfg.trigger)) this.start();
     // Fahrtempo der Illusion
@@ -180,6 +204,7 @@ class Boss {
 
   win() {
     this.won = true;
+    this.wonCfgs.add(this.cfg);
     this.wonT = 0;
     this.started = false;
     if (this.lockId !== null) { this.level.world.remove(this.lockId); this.lockId = null; }
@@ -254,7 +279,7 @@ class Boss {
   render() { this.hud.tick(); }
 
   info() {
-    return { started: this.started, won: this.won, speed: +this.hw.speed.toFixed(2), boss: this.boss?.info?.() ?? null, hud: this.hud.state(), deaths: this.deaths, lock: this.lockId !== null };
+    return { started: this.started, won: this.won, speed: +this.hw.speed.toFixed(2), boss: this.boss?.info?.() ?? null, hud: this.hud.state(), deaths: this.deaths, lock: this.lockId !== null, active: this.cfg?.id ?? null };
   }
 
   dispose() { this.hud.dispose(); }

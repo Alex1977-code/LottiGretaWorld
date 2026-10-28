@@ -21,14 +21,28 @@
 //
 // Daten: { kind: 'wirbelbrocken', id: 'wirbel', pos: [x, y, z] (Startpunkt, Arenamitte als Standard),
 //          arena?: { center: [x, y, z], r: 10 } (runde Kampffläche: Grenze für Lauf und Kugel), hp?: 3,
-//          wakeR?: 9 (nur ohne Boss-Archetyp), drop? }
+//          wakeR?: 9 (nur ohne Boss-Archetyp), drop?,
+//          decoys?: true | [0, 1, 2] (Präzisierung Gegner Welt 6, 6-Panzer: Attrappen je Phase), ring?: 0.55 (· r), seed? }
 // Modell 'wirbelbrocken' (state { anim: idle|run|spin|hide|hit|stunned|defeated, speed, hp, progress }).
+//
+// Mit Attrappen (decoys, Bauplan 6-Panzer „nach Treffer 1 Teleport mit 1 Attrappe, nach Treffer 2 mit 2; 3 Treffer“): statt
+// der Panzerkugel nach einem Treffer **teleportiert** er (hit 0,6 s → teleport 0,5 s: wirbelt und schrumpft → hidden 0,5 s →
+// appear 0,7 s: fällt auf einen Platz eines Rings (ring · r um die Arenamitte); auf den übrigen Plätzen erscheinen gleich viele
+// **Attrappen** (Phase 2: 1, Phase 3: 2; Entität 'wirbelbrocken_attrappe', Modell gleichen Aussehens). Die Attrappen laufen,
+// wirbeln (Fäuste verletzen) und taumeln im selben Takt wie er. **Nur das Original zählt**: Draufspringen/Stampfen auf eine
+// Attrappe lässt sie in lila Rauch verpuffen (Abprall, kein Treffer), ebenso jeder Angriff; ein Treffer am Original lässt alle
+// Attrappen verpuffen. Ansage beim ersten Teleport: „Nur der echte Wirbelbrocken zählt!“. Laufzeit zusätzlich: teleports,
+// decoys (lebende Attrappen), decoysMade, decoysPopped.
+// wirbelbrocken_attrappe – { kind: 'wirbelbrocken_attrappe', pos, owner (Wirbelbrocken) } (nur vom Wirbelbrocken erzeugt).
 
 import { EnemyW2, figures, activeFigure, clamp } from '../EnemyW2.js';
 import { spawnLoot } from '../Enemy.js';
 import { getModel } from '../../models/index.js';
+import { bossManaged, Lcg } from '../w6help.js';
 
 const INTRO = 2.4, HIT = 0.6, DEFEAT = 2.0, FLEE = 1.2, GAP = 0.5;
+const TELE = 0.5, HIDDEN = 0.5, APPEAR = 0.7, POOF = 0.5;
+const TAU = Math.PI * 2;
 const REACH = 1.4;
 const PHASES = [
   null,
@@ -66,13 +80,20 @@ class Wirbelbrocken extends EnemyW2 {
     this.yaw = -Math.PI / 2;          // Blick zur Kamera (+Z)
     this.rollDir = { x: 0, z: 1 };
     this.dropped = false;
-    if (level.view) this.setModel(getModel('wirbelbrocken'));
+    // Attrappen (Welt 6): Anzahl je Phase
+    this.decoyN = spec.decoys === true ? [0, 1, 2] : Array.isArray(spec.decoys) ? spec.decoys : null;
+    this.decoyList = [];
+    this.teleports = 0;
+    this.decoysMade = 0;
+    this.decoysPopped = 0;
+    this.rnd = new Lcg(spec.seed ?? 0x77b0b0);
+    if (level.view) this.setModel(getModel(spec.decoyOf ? 'wirbelbrocken_attrappe' : 'wirbelbrocken'));
   }
 
   get phase() { return clamp(this.maxHp - this.hp + 1, 1, 3); }
   get P() { return PHASES[this.phase]; }
   /** Steuert ein Boss-Archetyp diesen Endgegner? */
-  get managed() { return !!this.level.archetype && this.level.data?.boss && (this.level.data.boss.id ?? 'baron') === this.spec.id; }
+  get managed() { return bossManaged(this.level, this.spec.id); }
 
   setState(s) { this.state = s; this.stateT = 0; }
 
@@ -87,6 +108,8 @@ class Wirbelbrocken extends EnemyW2 {
   }
 
   reset() {
+    this.popDecoys(false);
+    this.teleports = 0;
     this.hp = this.maxHp;
     this.defeated = false;
     this.hits = 0;
@@ -145,8 +168,23 @@ class Wirbelbrocken extends EnemyW2 {
         this.stand(dt);
         if (this.stateT >= HIT) {
           if (this.hp <= 0) this.setState('defeated');
+          else if (this.decoyN) this.startTeleport();
           else this.startHide();
         }
+        return;
+      case 'teleport':
+        this.stand(dt);
+        if (this.stateT >= TELE) { this.visible = false; this.setState('hidden'); }
+        return;
+      case 'hidden':
+        if (this.stateT >= HIDDEN) this.appear();
+        return;
+      case 'appear':
+        this.vel.x = 0; this.vel.z = 0;
+        this.moveWithGravity(dt);
+        this.facePlayer(dt, 6);
+        if (this.grounded && !this.landed) { this.landed = true; this.level.shake(0.25); this.level.effects?.dust(this.pos, 8, 1.4); this.level.sfx('slam'); }
+        if (this.stateT >= APPEAR) { this.landed = false; this.startRun(); }
         return;
       case 'hide':
         this.roll(dt);
@@ -270,6 +308,56 @@ class Wirbelbrocken extends EnemyW2 {
     }
   }
 
+  // ------------------------------------------------------------------ Attrappen (Welt 6)
+
+  /** Nach einem Treffer: verpuffen (statt Panzerkugel), auf einem Ring-Platz mit Attrappen wieder erscheinen. */
+  startTeleport() {
+    this.teleports++;
+    this.half.y = 1.05;
+    this.setState('teleport');
+    this.level.sfx('vanish');
+    this.level.effects?.dust(this.pos, 10, 1.4);
+    this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + 1, z: this.pos.z }, 12);
+    if (this.teleports === 1) {
+      const arch = this.level.archetype;
+      if (arch?.boss === this) arch.hud?.banner?.('Nur der echte Wirbelbrocken zählt!', { hold: 2.0, size: 13, y: 0.36, color: '#d8b0ff' });
+    }
+  }
+
+  appear() {
+    const n = Math.max(0, Math.round(this.decoyN?.[Math.min(this.decoyN.length - 1, this.phase - 1)] ?? 0));
+    const A = this.arena, R = A.r * (this.spec.ring ?? 0.55);
+    const k = n + 1, rot = this.rnd.real(0, TAU), me = this.rnd.int(k);
+    const spots = [];
+    for (let i = 0; i < k; i++) { const a = rot + (i / k) * TAU; spots.push([A.x + Math.cos(a) * R, A.z - Math.sin(a) * R]); }
+    const [mx, mz] = spots[me];
+    this.pos.set(mx, A.y + 3, mz);
+    this.vel.set(0, 0, 0);
+    this.grounded = false;
+    this.visible = true;
+    this.touch = true;
+    this.landed = false;
+    this.facePlayerNow();
+    this.setState('appear');
+    this.level.sfx('boss_spin');
+    for (let i = 0; i < k; i++) {
+      if (i === me) continue;
+      const d = this.level.spawn('wirbelbrocken_attrappe', { pos: [spots[i][0], A.y + 3, spots[i][1]], owner: this, arena: { center: [A.x, A.y, A.z], r: A.r }, hp: this.maxHp });
+      if (!d) continue;
+      d.hp = this.hp;
+      this.decoyList.push(d);
+      this.decoysMade++;
+    }
+  }
+
+  /** Alle Attrappen verpuffen lassen (Treffer am Original, Sieg; Neustart: sofort weg). */
+  popDecoys(anim = true) {
+    for (const d of this.decoyList) if (!d.removed) { if (anim) d.poof(false); else d.kill(); }
+    this.decoyList.length = 0;
+  }
+
+  get decoys() { return this.decoyList.filter((d) => !d.removed && d.state !== 'poof').length; }
+
   // ------------------------------------------------------------------ Treffer
 
   get vulnerable() { return this.state === 'stunned'; }
@@ -278,7 +366,8 @@ class Wirbelbrocken extends EnemyW2 {
     if (this.hp <= 0) return;
     this.hp--;
     this.hits++;
-    this.hitLog.push({ where, t: +this.level.time.toFixed(2), hp: this.hp, state: this.state });
+    this.hitLog.push({ where, t: +this.level.time.toFixed(2), hp: this.hp, state: this.state, decoys: this.decoys });
+    this.popDecoys();
     this.setState('hit');
     this.vel.set(0, 0, 0);
     this.half.y = 1.05;
@@ -295,7 +384,7 @@ class Wirbelbrocken extends EnemyW2 {
   }
 
   onCannon(ball) {
-    if (this.state === 'wait' || this.state === 'intro' || this.state === 'hide' || this.state === 'hit' || this.hp <= 0 || !this.visible) {
+    if (this.state === 'wait' || this.state === 'intro' || this.state === 'hide' || this.state === 'hit' || this.state === 'teleport' || this.state === 'hidden' || this.hp <= 0 || !this.visible) {
       if (this.state === 'hide') { this.level.effects?.sparks(this.center(), 6); this.level.sfx('blockhit'); }
       return;
     }
@@ -310,7 +399,10 @@ class Wirbelbrocken extends EnemyW2 {
   onPlayer(player, contact) {
     if (!this.visible || this.hp <= 0) return 'none';
     switch (this.state) {
-      case 'hit': case 'defeated': case 'flee': case 'gone': return 'none';
+      case 'hit': case 'defeated': case 'flee': case 'gone': case 'teleport': case 'hidden': return 'none';
+      case 'appear':
+        if (contact.fromAbove || contact.pound) { this.level.sfx('bounce'); return 'stomp'; }
+        return 'none';
       case 'stunned':
         if (contact.pound) { this.takeHit('stomp'); return 'none'; }
         if (contact.fromAbove) { this.takeHit('stomp'); return 'stomp'; }
@@ -344,6 +436,7 @@ class Wirbelbrocken extends EnemyW2 {
     if (s === 'hit') return { anim: 'hit', progress: Math.min(1, this.stateT / HIT), hp };
     if (s === 'stunned') return { anim: 'stunned', hp };
     if (s === 'defeated' || s === 'flee') return { anim: 'defeated', hp };
+    if (s === 'teleport') return { anim: 'spin', hp };
     return { anim: 'idle', hp };
   }
 
@@ -351,14 +444,108 @@ class Wirbelbrocken extends EnemyW2 {
     if (!this.model) return;
     super.syncModel();
     this.model.root.visible = this.visible;
+    // Teleport (Welt 6): wirbelnd schrumpfen
+    const k = this.state === 'teleport' ? Math.max(0.001, 1 - this.stateT / TELE) : 1;
+    this.model.root.scale.setScalar(k);
   }
 
   info() {
     return {
       state: this.state, hp: this.hp, maxHp: this.maxHp, phase: this.phase, hits: this.hits, hides: this.hides,
       spins: this.spinsDone, vulnerable: this.vulnerable, x: +this.pos.x.toFixed(2), z: +this.pos.z.toFixed(2),
+      teleports: this.teleports, decoys: this.decoys, decoysMade: this.decoysMade, decoysPopped: this.decoysPopped,
     };
+  }
+
+  dispose() {
+    this.popDecoys(false);
+    super.dispose();
   }
 }
 
-export const KINDS = { wirbelbrocken: (level, spec) => new Wirbelbrocken(level, spec) };
+/**
+ * Attrappe des Wirbelbrockens (Welt 6): sieht gleich aus, läuft/wirbelt/taumelt im Takt des Originals (eigene Lage), verletzt
+ * mit den Fäusten; jede Berührung von oben bzw. jeder Angriff lässt sie verpuffen (zählt nicht als Treffer).
+ */
+class WirbelAttrappe extends Wirbelbrocken {
+  constructor(level, spec) {
+    super(level, { ...spec, decoys: null, decoyOf: true });
+    this.kind = 'wirbelbrocken_attrappe';
+    this.owner = spec.owner ?? null;
+    this.decoy = true;
+    this.boss = false;
+    this.state = 'appear';
+    this.stateT = 0;
+    this.landed = false;
+  }
+
+  get phase() { return this.owner ? this.owner.phase : super.phase; }
+  get managed() { return true; }
+  syncArchPhase() {}
+
+  update(dt) {
+    this.stateT += dt;
+    const o = this.owner;
+    if (this.state === 'poof') { if (this.stateT >= POOF) this.kill(); return; }
+    if (!o || o.removed || !['appear', 'run', 'spin', 'stunned'].includes(o.state)) { this.poof(false); return; }
+    // im Takt des Originals
+    if (o.state !== this.state && o.state !== 'appear') { this.state = o.state; this.stateT = o.stateT; this.spinsLeft = o.spinsLeft; this.spinsDone = o.spinsDone; }
+    switch (this.state) {
+      case 'appear':
+        this.vel.x = 0; this.vel.z = 0;
+        this.moveWithGravity(dt);
+        this.facePlayer(dt, 6);
+        if (this.grounded && !this.landed) { this.landed = true; this.level.effects?.dust(this.pos, 6, 1.2); }
+        return;
+      case 'run': this.chaseStep(dt, this.P.run); return;
+      case 'spin': this.chaseStep(dt, this.P.spinSpeed); this.spinHurt(); return;
+      default: this.stand(dt);
+    }
+  }
+
+  /** Verpuffen (lila Rauch); popped = von der Figur aufgelöst. */
+  poof(popped = true) {
+    if (this.state === 'poof' || this.removed) return;
+    this.setState('poof');
+    this.touch = false;
+    if (popped && this.owner) this.owner.decoysPopped++;
+    this.level.sfx('vanish');
+    this.level.effects?.sparks(this.center(), 8);
+  }
+
+  onCannon() { this.poof(); }
+
+  onHit(kind) { if (kind !== 'bump') this.poof(); }
+
+  onPlayer(player, contact) {
+    if (this.state === 'poof' || !this.visible) return 'none';
+    if (contact.fromAbove || contact.pound) { this.poof(); return contact.pound ? 'none' : 'stomp'; }
+    if (this.state === 'stunned' || this.state === 'appear') return 'none';
+    return 'hurt';
+  }
+
+  modelState() {
+    if (this.state === 'poof') return { anim: 'poof', progress: Math.min(1, this.stateT / POOF) };
+    return super.modelState();
+  }
+
+  syncModel() {
+    if (!this.model) return;
+    this.model.root.position.copy(this.pos);
+    this.model.root.rotation.y = this.yaw;
+    this.model.root.visible = true;
+    this.model.root.scale.setScalar(1);
+  }
+
+  info() { return { state: this.state, decoy: true, x: +this.pos.x.toFixed(2), z: +this.pos.z.toFixed(2) }; }
+
+  dispose() {
+    this.removeShapes();
+    if (this.model) { this.level.view.remove(this.model.root); this.model.dispose?.(); this.model = null; }
+  }
+}
+
+export const KINDS = {
+  wirbelbrocken: (level, spec) => new Wirbelbrocken(level, spec),
+  wirbelbrocken_attrappe: (level, spec) => new WirbelAttrappe(level, spec),
+};

@@ -32,7 +32,7 @@
 //   Modelle 'spuk_halloween' (opts { size, hat: 'kuerbis' (Standard) | 'hexe' | 'kein' } – spec.hat), 'kreisgeist_halloween'
 //   bzw. 'kreisgeist_kreis_halloween'. Verhalten unverändert. Laufzeit: halloween (bool).
 
-import { EnemyW2, figures, activeFigure, looksAt } from '../EnemyW2.js';
+import { EnemyW2, figures, activeFigure, looksAt, maskedFrom } from '../EnemyW2.js';
 import { PathMover } from '../../level/PathMover.js';
 import { getModel, hasModel } from '../../models/index.js';
 
@@ -117,7 +117,8 @@ class Spuk extends EnemyW2 {
       this.drift(dt, p, 0);
       return;
     }
-    if (!act || this.playerDist() > this.sight) {
+    // Pilz-Maske (Welt 6): eine zugewandte Figur mit Maske erkennt er nicht – er schwebt ruhig (idle statt shy/chase)
+    if (!act || this.playerDist() > this.sight || maskedFrom(this.level, this, p)) {
       if (this.state !== 'idle') this.setState('idle');
       this.drift(dt, null, 0);
       return;
