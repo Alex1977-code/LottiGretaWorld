@@ -60,7 +60,7 @@ const ROUTES = {
       { name: 'Wolke F2', to: [2.4, -159.6], jump: 24, within: 0.5, run: false },
       { name: 'Deck F1', to: [0.5, -163], jump: 24, within: 0.6, run: false, jumpAt: 3.2 },
       { name: 'Riesenprojektil', bullet: 'riesenkanone', edge: [0, -167.7], exit: [0, -194], minY: 35 },
-      { name: 'Krallen-Automat', chaseKind: 'powerup', max: 900 },
+      { name: 'Krallen-Automat', chaseKind: 'powerup', power: 'krallen', max: 900 },
       { expect: 'claws' },
       { name: 'Bandwand 1', climb: [0, -206], top: 44 },
       { name: 'Bandwand 2', climb: [0, -207.5], top: 54 },
@@ -79,7 +79,7 @@ const ROUTES = {
         legs: [{ name: 'Rätselbox', to: [3.6, -94], jump: 24, within: 0.3, run: false, stopIf: 'inRaum' }, { wait: 30 }, { expect: 'inRaum' },
           { to: [71.0, -95], within: 0.2, run: false }, { path: [[73.4, -95, false, 0.2]] },
           { cleat: 'rundband', at: [73.5, -95], top: 34, minY: 31.5 },
-          { path: [[77, -95], [80, -95], [83.6, -95], [87.4, -95, 24], [86.6, -95], [82.5, -95, false, 0.5], [78, -95, false, 0.5], [72.6, -92.2]] },
+          { path: [[77, -95], [80, -95], [83.6, -95], [87.4, -95, 24], [86.6, -95], [82.5, -95, false, 0.5], [78, -95, false, 0.5], [75.2, -95, false, 0.5], [72.6, -92.2]] },
           { star: 1 }], shot: 'stern1', mechText: (r) => `Münzen ${r.rt.coins}` },
       { name: 'Rätselbox: Zeit abgelaufen → Münzen weg, kein Stern', star: 1, expectNot: true, from: [71, 30, -95], heroes: ['lotti'],
         legs: [{ path: [[73.9, -95, false, 0.2]] }, { to: [72, -99], within: 0.4 }, { wait: 1400 }] },
@@ -88,11 +88,11 @@ const ROUTES = {
       { name: 'Stempel: vom Ziegel auf dem Sockel hochspringen', stamp: true, from: [1.6, 59, -211],
         legs: [{ to: [3.5, -213], jump: 40, within: 0.3, run: false }, { wait: 30 }, { hop: 40 }, { wait: 30 }], shot: 'stempel' },
       { name: 'Stempel nicht ohne Ziegel (Ziegel zerstampft, Sprung vom Sockel)', stamp: true, expectNot: true, from: [1.6, 59, -211], heroes: ['lotti'],
-        legs: [{ to: [3.5, -213], jump: 40, within: 0.3, run: false }, { wait: 30 }, { pound: [3.5, -213] }, { wait: 40 }, { expect: 'ziegelWeg' }, { hop: 40 }, { wait: 30 }] },
+        legs: [{ to: [3.5, -213], jump: 40, within: 0.3, run: false }, { wait: 30 }, { pound: [3.5, -213], hold: 3, early: 4 }, { wait: 40 }, { expect: 'ziegelWeg' }, { hop: 40 }, { wait: 30 }] },
     ],
     extra: [
       { name: 'Extraleben: versteckter Block über dem Aufzugsband', from: [-3, 20, -54.0], heroes: ['lotti'], expectLives: 1,
-        legs: [{ hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+        legs: [{ hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', power: 'oneup', max: 1200 }] },
       { name: 'Kanonen-Floß wartet, bis man draufsteht', from: [0, 30, -96], heroes: ['lotti'],
         legs: [{ wait: 600 }, { expect: 'flossSteht' }, { ride: 'kanonenfloss', at: [1, 2.6], exit: [1, -147.5] }, { expect: 'flossAmZiel' }] },
       { name: 'Bandwand nicht ohne Krallen-Anzug', from: [0, 34, -203], heroes: ['lotti'], allowFail: true,
@@ -276,7 +276,7 @@ function install() {
           continue;
         }
         if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
-        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
+        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : Lg.power ? (e) => e.power === Lg.power : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
         // ------------------------------------------------ auf einen Punkt springen und dort stampfen
         if (Lg.pound) {
           const [tx, tz] = Lg.pound;
@@ -284,8 +284,8 @@ function install() {
           for (; k < 400; k++) {
             const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
             if (k > 5 && p.mode === 'ground') break;
-            if (!pounding && k > 8 && d < 0.4 && p.vel.y < 3) pounding = true;
-            tick(pounding ? { crouch: true } : { ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, d * 1.2))), jump: k < 34, run: false });
+            if (!pounding && k > (Lg.early ?? 8) && d < 0.4 && p.vel.y < 3) pounding = true;
+            tick(pounding ? { crouch: true } : { ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, d * 1.2))), jump: k < (Lg.hold ?? 34), run: false });
           }
           log.push(['stampfen auf', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, pounding]);
           continue;
@@ -458,6 +458,7 @@ function install() {
               if (j > 6 && p.mode === 'ground') break;
             }
             on = p.mode === 'ground' && p.pos.y > Lg.minY;
+            if (!on) { log.push(['Mitnehmer verfehlt', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2)]); goTo(ax, az, 0.15, 300); }
           }
           log.push(['Mitnehmer', k, on, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.ground?.tag]);
           if (!on) { log.push(['FEHLER: kein Mitnehmer']); break; }
@@ -857,6 +858,7 @@ async function parcours(id) {
     for (const l of res.log) console.log('   ', JSON.stringify(l));
     if (process.env.TRACE) for (const t of await sc(() => window.__trace)) console.log('     ', JSON.stringify(t));
     console.log('   ', JSON.stringify(res.mech), res.status, JSON.stringify(res.rt.stars), res.rt.stamp);
+    console.log('    übrige blaue Münzen:', JSON.stringify(await sc(() => window.__course.level.entities.filter((e) => e.kind === 'bluecoin' && !e.removed).map((e) => [+e.pos.x.toFixed(1), +e.pos.y.toFixed(1), +e.pos.z.toFixed(1)]))));
     return;
   }
 

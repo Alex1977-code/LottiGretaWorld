@@ -201,8 +201,8 @@ export const LEVEL = {
     { kind: 'warpbox', id: 'rb1', style: 'mystery', pos: [3.6, YD, -94], target: 'rb2' },
     { kind: 'warpbox', id: 'rb2', style: 'mystery', pos: [RX - 7, YD, -88], target: 'rb1' },
     { kind: 'timering', id: 'zeitring', pos: [RX - 7.4, YD, -95], yaw: 0, time: 10, star: 1,
-      coins: [[RX - 5.3, YD + 2.2, -95], [RX - 5.3, YD + 3.6, -95], [RX - 2.5, YD + 4.7, -95], [RX + 1, YD + 4.7, -95], [RX + 4.2, YD + 4.7, -95], [RX + 6.4, YD + 2.6, -95],
-        [RX + 2.5, YD + 0.5, -95], [RX - 1.5, YD + 0.5, -95]] },
+      coins: [[RX - 5.2, YD + 3.5, -95], [RX - 3.8, YD + 4.7, -95], [RX - 0.2, YD + 4.7, -95], [RX + 3.4, YD + 4.7, -95], [RX + 6.4, YD + 2.6, -95],
+        [RX + 2.5, YD + 0.5, -95], [RX - 1.5, YD + 0.5, -95], [RX - 4.4, YD + 0.5, -95]] },
     // Bitcoin-Pfade
     line([0, YA + 0.6, 2], [0, YA + 0.6, -9], 5),
     line([0, YB - 0.1 + 1.3, -26.8], [0, YB + 1.3, -31], 3),
@@ -219,7 +219,7 @@ export const LEVEL = {
     { pos: [RX - 7.4, YD + 0.4, -91.6], hidden: true, id: 'stern_rundband' },
     [6.6, YF + 14.2, -205.5],
   ],
-  stamp: [3.5, YH + 7.4, -213],
+  stamp: [3.5, YH + 7.2, -213],
   goal: { pos: [0, YH, -220] },
   marks: {
     start: [0, YA, 5], wand: [0, YA, -12.6], wandOben: [0, YB, -16], schlot: [0.3, YB, -21.5],
