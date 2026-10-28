@@ -8,12 +8,13 @@
 //   { type: 'kippschiff', id, pos: [x, y, z] (Deckmitte, Oberseite bei Neigung 0), length: 16, width: 7,
 //     yaw: 0 (0 = Bug nach −Z; π/2 = Bug nach +X; nur 90°-Raster), maxTilt: 14 (°), weight: 2.2 (° je m Abstand einer
 //     Figur zur Mittellinie), wave: { amp: 5 (°), period: 5 (s), phase: 0 }, slide: 2.4 (m/s hangab bei maxTilt),
-//     response: 1.6 (1/s Nachführen), rails: true (Reling an den Längsseiten, 0,7 m), hull: 2.4 (m Rumpf, Optik),
+//     response: 1.6 (1/s Nachführen), back: 0.8 (1/s Aufrichten ohne Last und Welle), rails: true (Reling an den
+//     Längsseiten, 0,7 m), hull: 2.4 (m Rumpf, Optik),
 //     masts: 2, sails: true, lanterns: 2, style: 'geist' | 'holz', thick: 0.6 }
 // kippsteg – 1 m breiter Steg, rollt um seine Längsachse (seitlich): Figur am Rand neigt ihn, Wellen schaukeln.
 //   { type: 'kippsteg', id, from: [x, y, z], to: [x, y, z] (Mitte der Oberseite an den Enden, achsenparallel),
 //     width: 1, thick: 0.3, maxTilt: 22, weight: 40 (° je m seitlichem Versatz), wave: { amp: 7, period: 3.2 },
-//     slide: 3, response: 2.4, posts: true (Pfähle an den Enden), style: 'holz' | 'geist' }
+//     slide: 3, response: 2.4, back: 1, posts: true (Pfähle an den Enden), style: 'holz' | 'geist' }
 // wippe – Wippe: Brett auf einem Bock, kippt um die Quer­achse in der Mitte; Last am Hebel drückt die Seite hinab.
 //   { type: 'wippe', id, pos: [x, y, z] (Drehpunkt = Mitte der Oberseite), length: 8, width: 2.5, yaw: 0 (0 = Brett
 //     entlang X, π/2 = entlang Z), maxTilt: 24, weight: 9 (° je m Hebel je Figur), response: 2.2, back: 0.6 (1/s zurück
@@ -91,7 +92,7 @@ class Tilter {
       sum += this.deck.offset(e.pos.x, e.pos.z) * w; n++;
     }
     this.load = n;
-    return sum * this.k;
+    return -sum * this.k;   // Last auf der +Seite drückt diese Seite hinab (Winkel < 0)
   }
 
   step(dt) {
@@ -301,7 +302,7 @@ export function buildKippschiff(level, spec) {
     cx: p.x, cz: p.z, y: p.y, axis: alongZ ? 'x' : 'z', lenA: W, lenB: L, thick: spec.thick ?? 0.6,
     strips: Math.max(4, Math.ceil(W / 0.7)), maxTilt: spec.maxTilt ?? 14, weight: spec.weight ?? 2.2,
     wave: spec.wave === false ? null : { amp: 5, period: 5, ...(spec.wave ?? {}) }, slide: spec.slide ?? 2.4,
-    response: spec.response ?? 1.6, rails: spec.rails !== false, railInset: L * 0.12, tag: 'kippschiff',
+    response: spec.response ?? 1.6, back: spec.back ?? 0.8, rails: spec.rails !== false, railInset: L * 0.12, tag: 'kippschiff',
   });
   const h = handleOf(t);
   if (spec.id) level.named.set(spec.id, h);
@@ -329,7 +330,7 @@ export function buildKippsteg(level, spec) {
   const t = new Tilter(level, spec, {
     cx, cz, y, axis: alongZ ? 'x' : 'z', lenA: W, lenB: L, thick, strips: Math.max(2, Math.round(W / 0.5)),
     maxTilt: spec.maxTilt ?? 22, weight: spec.weight ?? 40, wave: spec.wave === false ? null : { amp: 7, period: 3.2, ...(spec.wave ?? {}) },
-    slide: spec.slide ?? 3, response: spec.response ?? 2.4, tag: 'kippsteg',
+    slide: spec.slide ?? 3, response: spec.response ?? 2.4, back: spec.back ?? 1, tag: 'kippsteg',
   });
   const h = handleOf(t);
   if (spec.id) level.named.set(spec.id, h);
