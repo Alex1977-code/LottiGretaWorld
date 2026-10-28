@@ -44,6 +44,11 @@
 // Laufzeit: charges, fireballs, pushes (gestoßen), stucks, trips (Röhrenfahrten), tripLog ([{ from, to }]), hits, hitLog,
 //   bounces (Kopfsprünge ohne Treffer), rams (Rammstöße auf die Figur), pipe (aktuelle Röhre), info().
 // Sound: 'step', 'swoop', 'slam', 'bounce', 'fireball', 'pipe', 'boss_hit', 'stomp', 'powerdown', 'vanish'.
+// Welt 7 (additiv, Präzisierung Gegner Welt 7, 7-B): color?: 'blau' – **blauer Schubser-Prinz** (Modell schubser_prinz
+//   { color: 'blau' }): spuckt fire (Standard [3, 4, 5] – nach jedem Treffer einer mehr) **blaue Feuerkugeln in einer Kurve**:
+//   kurz nacheinander (gap 0,12 s) aus dem Maul, alle auf derselben Bogenbahn (curve rad/s, Standard 1,1; Startrichtung um
+//   curve · 0,5 s neben der Figur, jede zweite Salve zur anderen Seite) – wie eine Feuerschlange, die über die Figur hinwegfegt.
+//   Felder: curve?: 1.1, gap?: 0.12. Ablauf sonst wie 6-A (3 Tritte). Ansagen Phase 2/3: „Jetzt spuckt er vier/fünf Feuerbälle!“.
 
 import * as THREE from 'three';
 import { EnemyW2, figures, activeFigure, clamp, toWorld, localOffset } from '../EnemyW2.js';
@@ -92,8 +97,9 @@ class SchubserPrinz extends EnemyW2 {
     this.chargeDir = { x: 0, z: 1 };
     this.fireList = [];
     this.dizzy = null;
+    this.blue = spec.color === 'blau';
     if (level.view) {
-      this.setModel(getModel('schubser_prinz'));
+      this.setModel(getModel('schubser_prinz', this.blue ? { color: 'blau' } : {}));
       this.dizzy = dizzyStars(0.8, 0.2);
       level.view.add(this.dizzy);
     }
@@ -117,6 +123,7 @@ class SchubserPrinz extends EnemyW2 {
     this.hinted = {};
     this.starDone = false; this.dropped = false;
     this.fired = false;
+    this.volleys = 0;
     this.squash = 1;
     this.rnd = new Lcg(this.spec.seed ?? 0x5b1d07);
   }
@@ -197,6 +204,11 @@ class SchubserPrinz extends EnemyW2 {
       case 'fire':
         this.stand(dt);
         this.faceFigure(dt, 6);
+        if (this.blue) {
+          if (this.stateT >= FIRE * FIRE_AT) this.spitBlue();
+          if (this.stateT >= this.fireDur()) this.startAim();
+          return;
+        }
         if (!this.fired && this.stateT >= FIRE * FIRE_AT) this.spit();
         if (this.stateT >= FIRE) this.startAim();
         return;
@@ -350,6 +362,40 @@ class SchubserPrinz extends EnemyW2 {
       if (f) { this.fireList.push(f); this.fireballs++; }
     }
     this.level.sfx('fireball');
+  }
+
+  /** Blaue Variante: Dauer des Spuckens (alle Kugeln der Salve, gap s Abstand). */
+  fireDur() {
+    const n = this.val('fire', [3, 4, 5]);
+    return Math.max(FIRE, FIRE * FIRE_AT + (n - 1) * (this.spec.gap ?? 0.12) + 0.3);
+  }
+
+  /** Blaue Feuerkugeln nacheinander auf einer Bogenbahn (Kurve) zur Figur. */
+  spitBlue() {
+    const n = this.val('fire', [3, 4, 5]);
+    const gap = this.spec.gap ?? 0.12;
+    if (!this.fired) {
+      this.fired = true;
+      this.shot = 0;
+      this.volleys++;
+      const p = this.player;
+      this.volleyBase = activeFigure(p) ? Math.atan2(-(p.pos.z - this.pos.z), p.pos.x - this.pos.x) : this.yaw;
+      this.volleySide = this.volleys % 2 ? 1 : -1;
+      this.level.sfx('fireball');
+    }
+    const due = Math.min(n, 1 + Math.floor((this.stateT - FIRE * FIRE_AT) / gap + 1e-6));
+    const sp = this.spec.fireSpeed ?? 6.5;
+    const curve = (this.spec.curve ?? 1.1) * this.volleySide;
+    while (this.shot < due) {
+      const m = toWorld(this.pos, this.yaw, this.mouthOff.x, this.mouthOff.y, this.mouthOff.z, {});
+      // Start neben der Figur, die Kurve führt über sie hinweg
+      const a = this.volleyBase - curve * 0.5;
+      const dx = Math.cos(a), dz = -Math.sin(a);
+      const f = this.level.spawn('feuerkugel', { pos: [m.x, m.y - 0.17, m.z], vel: [dx * sp, 1.5, dz * sp], mode: 'bounce', owner: this, life: 3.4, color: 'blau', curve });
+      if (f) { this.fireList.push(f); this.fireballs++; }
+      this.shot++;
+      if (this.shot > 1) this.level.sfx('fireball');
+    }
   }
 
   /** In der Käfig-Innenfläche halten (Rechteck minus Körperradius). true = an der Grenze. */
@@ -576,6 +622,12 @@ class SchubserPrinz extends EnemyW2 {
     const ph = this.phase;
     if (arch.seenPhase !== ph && this.state !== 'hit' && this.hp > 0) {
       arch.seenPhase = ph;
+      if (this.blue) {
+        const W = ['', 'einen', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben'];
+        const n = this.val('fire', [3, 4, 5]);
+        arch.hud?.banner?.(`Jetzt spuckt er ${W[n] ?? n} Feuerbälle!`, { hold: 1.6, size: 14, color: ph >= 3 ? '#7ad8ff' : '#9ae0ff' });
+        return;
+      }
       if (ph === 2) arch.hud?.banner?.('Er wird schneller!', { hold: 1.4, size: 14, color: '#ffb040' });
       if (ph === 3) arch.hud?.banner?.(this.val('fire', [1, 2, 3]) >= 3 ? 'Jetzt spuckt er drei Feuerbälle!' : 'Er wird wütend!', { hold: 1.6, size: 14, color: '#ff7a3a' });
     }
@@ -609,7 +661,7 @@ class SchubserPrinz extends EnemyW2 {
     if (s === 'charge') return { anim: 'charge', hp, speed: this.val('charge', [6, 7, 8]) };
     if (s === 'aim') return { anim: 'charge', hp, speed: 0.8 };
     if (s === 'skid') return { anim: 'skid', hp };
-    if (s === 'fire') return { anim: 'fireball', hp, progress: Math.min(1, this.stateT / FIRE) };
+    if (s === 'fire') return { anim: 'fireball', hp, progress: Math.min(1, this.stateT / (this.blue ? this.fireDur() : FIRE)) };
     if (s === 'pushed') return this.stateT < PUSHED_ANIM ? { anim: 'hit', hp, progress: 0.15 + 0.5 * this.stateT / PUSHED_ANIM } : { anim: 'skid', hp };
     if (s === 'stuck') return { anim: 'stuck', hp };
     if (s === 'pipe') return { anim: 'squeezed', hp, progress: 0.1 };
@@ -643,7 +695,7 @@ class SchubserPrinz extends EnemyW2 {
     return {
       state: this.state, hp: this.hp, maxHp: this.maxHp, phase: this.phase, charges: this.charges, fireballs: this.fireballs,
       pushes: this.pushes, stucks: this.stucks, trips: this.trips, hits: this.hits, bounces: this.bounces, rams: this.rams,
-      pipe: this.pipe?.id ?? null, vulnerable: this.vulnerable, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2),
+      pipe: this.pipe?.id ?? null, vulnerable: this.vulnerable, blue: this.blue, volleys: this.volleys, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2),
     };
   }
 
