@@ -120,8 +120,14 @@ async function load(id) {
       },
       model: (e) => e?.model?.root?.userData?.modelName ?? e?.model?.root?.name ?? null,
       r2: (v) => +(+v).toFixed(2),
-      /** Wurfsichel-Treffer (onHit('sichel') wie vom Geschoss des Power-ups) – Quelle an der Figur. */
-      sichel(e) { const p = P(); e.onHit('sichel', { kind: 'wurfsichel', pos: { x: p.pos.x, y: p.pos.y + 0.6, z: p.pos.z }, owner: p }); },
+      /** Wurfsichel-Treffer wie vom Geschoss des Power-ups (Bausteine Welt 7): onSichelHit(sichel), sonst bei Gegnern
+       *  onHit('throw', sichel) mit sichel.sichel = true, sichel.owner = Figur. */
+      sichel(e) {
+        const p = P();
+        const s = { kind: 'wurfsichel', sichel: true, owner: p, pos: { x: p.pos.x, y: p.pos.y + 0.6, z: p.pos.z }, vel: { x: 0, y: 0, z: -14 } };
+        if (typeof e.onSichelHit === 'function') e.onSichelHit(s);
+        else if (e.enemy && e.touch !== false && !e.defeated) e.onHit('throw', s);
+      },
     };
   });
 }
@@ -262,7 +268,7 @@ const pf = await sc(() => {
   const seq = [f.state];
   let hiddenTouch = null, apex = 0;
   t.until(() => { if (seq[seq.length - 1] !== f.state) seq.push(f.state); if (f.state === 'wait' && hiddenTouch === null) hiddenTouch = f.touch; if (f.state === 'jump') apex = Math.max(apex, f.pos.y); return seq.filter((s) => s === 'jump').length >= 2 && f.state === 'wait'; }, 120 * 12, [podest[0], podest[1], podest[2] + 1.6]);
-  out.cycle = { seq: seq.slice(0, 12).join('>'), hiddenTouch, apex: t.r2(apex - 1.18), jumps: f.jumps, spits: f.spits };
+  out.cycle = { seq: seq.slice(0, 12).join('>'), hiddenTouch, apex: t.r2(apex - 1.3), jumps: f.jumps, spits: f.spits };
   // im Sprung: Berührung verletzt, von oben verletzt (heiß)
   t.until(() => f.state === 'jump' && f.stateT > f.flight * 0.45, 120 * 6, [podest[0], podest[1], podest[2] + 1.6]);
   const st = t.stomp(f, { h: 0.6 });
@@ -507,9 +513,18 @@ const wf = await sc(() => {
   // Bumerang-Werfer mit Wurfsichel: trägt sie (Modell), wirft Bumerangs, lässt sie beim Besiegen fallen
   const w = t.ent('w_sichel');
   const fig = [11.5, 1, t.Z(6, 1.5)];
-  let boom = false;
-  t.until(() => { boom = boom || L.entities.some((e) => e.kind === 'wurf_bumerang' && e.owner === w); return boom; }, 120 * 6, fig);
-  out.carry = { sichel: w.sichel, model: t.model(w), dropped: w.modelState().dropped, boom };
+  const dropped0 = w.modelState().dropped;
+  let boom = null, flyDropped = null, hurt = false;
+  t.place(fig, { settle: 1 });
+  for (let i = 0; i < 120 * 8 && !(boom && boom.removed); i++) {
+    p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0);
+    c.step(1);
+    const s = L.entities.find((e) => e.kind === 'wurfsichel' && e.owner === w && !e.removed);
+    if (s && !boom) { boom = s; flyDropped = w.modelState().dropped; }
+    if (t.hurt()) hurt = true;
+  }
+  out.carry = { sichel: w.sichel, model: t.model(w), dropped: dropped0, flyDropped, boom: !!boom, caught: boom?.caught ?? false, catches: w.sichelCatch ?? 0, hurt, back: w.modelState().dropped };
+  t.fresh();
   const st = t.stomp(w, { h: 0.8 });
   c.step(30);
   const item = w.sichelItem;
@@ -543,6 +558,18 @@ const wf = await sc(() => {
   t.sichel(z);
   c.step(4);
   out.zauber = { vulnerable: true, defeated: z.defeated };
+  // echte Wurfsichel (Power-up der Bausteine Welt 7): Aktion wirft, die Sichel trifft einen Knochenflieger und kehrt zurück
+  const kz = t.Z(1, -6);
+  const k = L.spawn('knochenflieger', { pos: [0, 1.95, kz], sight: 0, bob: 0 });
+  t.place([0, 1, kz + 4.5], { settle: 10, power: 'sichel' });
+  t.face(0, kz);
+  out.real = { power: p.power };
+  c.setInput({ action: true }); c.step(1); c.setInput({}); 
+  let sic = null;
+  for (let i = 0; i < 240 && !(sic && sic.removed); i++) { c.step(1); if (!sic) sic = L.entities.find((e) => e.kind === 'wurfsichel' && e.owner === p) ?? null; }
+  out.real.thrown = !!sic;
+  out.real.hit = k.defeated;
+  out.real.caught = sic?.caught ?? false;
   // Pilzlingsturm: Wurfsichel trägt eine Stufe ab
   const pt = t.ent('b_turm');
   const n0 = pt.count;
@@ -552,10 +579,11 @@ const wf = await sc(() => {
   return out;
 });
 console.log(`  Werfer/Bestand: ${JSON.stringify(wf)}`);
-check(`Bumerang-Werfer trägt die Wurfsichel (Modell ${wf.carry.model}) und wirft Bumerangs`, wf.carry.sichel && wf.carry.model === 'bumerang_werfer' && wf.carry.dropped === false && wf.carry.boom);
-check(`Besiegt lässt er die Wurfsichel fallen (${JSON.stringify(wf.drop.item)}), Modell ohne Sichel`, wf.drop.bounced && wf.drop.defeated && wf.drop.dropped && wf.drop.modelDropped && wf.drop.item && (wf.drop.item.kind === 'wurfsichel_item' || wf.drop.item.power === 'sichel') && wf.drop.item.d < 0.6);
+check(`Bumerang-Werfer trägt die Wurfsichel (Modell ${wf.carry.model}), wirft sie (Gegner-Sichel, trifft die Figur, ${JSON.stringify(wf.carry)}) und fängt sie wieder`, wf.carry.sichel && wf.carry.model === 'bumerang_werfer' && wf.carry.dropped === false && wf.carry.boom && wf.carry.flyDropped === true && wf.carry.hurt && wf.carry.caught && wf.carry.catches >= 1 && wf.carry.back === false);
+check(`Besiegt lässt er die Wurfsichel fallen (${JSON.stringify(wf.drop.item)}), Modell ohne Sichel`, wf.drop.bounced && wf.drop.defeated && wf.drop.dropped && wf.drop.modelDropped && wf.drop.item?.kind === 'powerup' && wf.drop.item.power === 'sichel' && wf.drop.item.d < 0.6);
 check(`In die Lava gefallen: Wurfsichel an seinem Platz (${JSON.stringify(wf.lava.item)})`, wf.lava.item && Math.abs(wf.lava.item.x + 11.5) < 0.1 && wf.lava.item.y > 2.4);
 check(`Feuer-Werfer mit blauen Feuerkugeln (${JSON.stringify(wf.blue)}); Wurfsichel besiegt den Hammer-Werfer`, wf.blue?.color === 'blau' && wf.blue.model === 'feuerkugel_blau' && wf.hammer);
+check(`Echte Wurfsichel (Power-up ${wf.real.power}): Wurf trifft den Knochenflieger, die Sichel kehrt zurück`, wf.real.power === 'sichel' && wf.real.thrown && wf.real.hit && wf.real.caught);
 check(`Stachelpanzer: von oben verletzt, Wurfsichel besiegt; Zauberkröte (sichtbar) besiegt; Pilzlingsturm ${wf.turm.before} → ${wf.turm.after} Stufen`, wf.stachelpanzer.stompHurt && wf.stachelpanzer.sichel && wf.zauber.defeated && wf.turm.after === wf.turm.before - 1);
 
 const rf = await sc(() => {
@@ -609,7 +637,7 @@ const ws = await sc(() => {
     besiegt: ['pilzling', 'krallen_pilzling', 'panzerkroete', 'schnappblume', 'krabbelkaefer', 'flatterkaefer', 'brummer', 'wuehler', 'hackvogel', 'rollpilz', 'huepfmaus',
       'huepfmaus_stachel', 'marschblock', 'feuer_werfer', 'hammer_werfer', 'bumerang_werfer', 'projektilkopf', 'suchkopf', 'feuer_schnappblume', 'flossling', 'pilzling_eis', 'pilzling_reifen', 'funkenkaefer',
       'ameisensoldat', 'ameisensoldat_horn', 'rankenschnapper', 'walzenwerfer', 'stachelpanzer', 'springklotz', 'hackbeil_pilz', 'funkenling', 'kuerbling', 'hexenhut_huepfer', 'klapperknochen',
-      'flatterfledi', 'pustewolke', 'glotzfisch', 'stachelwerfer', 'gelee_brocken', 'knochenflieger', 'platschfisch', 'wutkaulquappe', 'funkenflaemmchen'],
+      'flatterfledi', 'pustewolke', 'glotzfisch', 'stachelwerfer', 'gelee_brocken', 'lavabrocken', 'knochenflieger', 'platschfisch', 'wutkaulquappe', 'funkenflaemmchen'],
     // ein Trefferpunkt (zähe Gegner)
     treffer: ['riesenschnappblume', 'rammbock_bulle', 'grossrollpilz', 'riesenkuerbling', 'muenzmarder'],
     // unverwundbar bzw. nur starke Treffer: nichts
@@ -635,10 +663,9 @@ const ws = await sc(() => {
       e.kill?.();
     }
   }
-  // Sonderfälle: Panzer wird weggestoßen, Lavabrocken betäubt (Feuer prallt ab), Kickbombe/Zündkopf zünden, Schubser rutscht
+  // Sonderfälle: Panzer wird weggestoßen, Kickbombe/Zündkopf zünden, Schubser rutscht, Pilzlingsturm verliert eine Stufe
   const sp = (k, f) => { const e = spawnAt(k); t.hold([0, 1, 6], 30); t.sichel(e); c.step(4); const r = f(e); e.kill?.(); return r; };
   out.special.panzer = sp('panzer', (e) => e.state);
-  out.special.lavabrocken = sp('lavabrocken', (e) => e.state);
   out.special.kickbombe = sp('kickbombe', (e) => e.lit);
   out.special.zuendkopf = sp('zuendkopf', (e) => e.lit);
   out.special.schubser = sp('schubser', (e) => e.state);
@@ -647,8 +674,8 @@ const ws = await sc(() => {
 });
 console.log(`  Wurfsichel: ${JSON.stringify(ws)}`);
 check(`Wurfsichel-Treffer bei ${ws.n} Gegnerarten wie erwartet (${ws.wrong.join('; ') || 'alle'})`, ws.wrong.length === 0 && ws.n >= 55);
-check(`Sonderfälle: Panzer gleitet (${ws.special.panzer}), Lavabrocken betäubt (${ws.special.lavabrocken}), Kickbombe/Zündkopf zünden, Schubser wird gestoßen (${ws.special.schubser})`,
-  ws.special.panzer === 'slide' && ws.special.lavabrocken === 'stunned' && ws.special.kickbombe && ws.special.zuendkopf && ws.special.schubser !== 'idle');
+check(`Sonderfälle: Panzer gleitet (${ws.special.panzer}), Kickbombe/Zündkopf zünden, Schubser wird gestoßen (${ws.special.schubser}), Pilzlingsturm ${ws.special.pilzlingsturm} Stufen`,
+  ws.special.panzer === 'slide' && ws.special.kickbombe && ws.special.zuendkopf && ws.special.schubser !== 'idle' && ws.special.pilzlingsturm === 3);
 check('Keine Konsolenfehler (Teil 2)', errors.length === 0);
 if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
 }
@@ -719,7 +746,7 @@ const BOSS_HELPERS = () => {
   t.kickBack = (b, n = 120 * 20) => {
     const p = c.player;
     let bomb = null;
-    for (let i = 0; i < n && !bomb; i++) {
+    for (let i = 0; i < n && !bomb && b.hp > 0; i++) {
       bomb = L.entities.find((e) => e.kind === 'kickbombe' && !e.removed && !e.kicker && e.owner === b && e.state === 'lit' && e.grounded && e.pos.z < b.backZ - 1.3) ?? null;
       if (bomb && !b.vulnerable) bomb = null;
       if (!bomb) t.follow(b);
@@ -906,13 +933,28 @@ const bn = await sc(() => {
     if (b.hp <= 7 && !sichelDone) {
       // Wurfsichel: zwei Kratzer = ein Treffer (Zusatzschaden)
       sichelDone = true;
-      t.untilB(b, () => b.vulnerable, 600);
+      t.untilB(b, () => b.vulnerable && !b.jump, 600);
       const hp0 = b.hp;
-      t.sichel(b);
-      const k1 = { car: b.carHits, hp: b.hp };
-      c.step(60);
-      t.sichel(b);
+      // echte Wurfsichel: Figur 4 m hinter dem Wagen, Wurf nach vorn
+      const throwSichel = () => {
+        const road = t.ent('strasse');
+        let z = b.pos.z + 2.75 + 4;
+        for (let k = 0; k < 20 && !road.solidAt(b.pos.x, z, 0.5); k++) z += 0.5;
+        t.place([b.pos.x, 2, z], { settle: 2, power: 'sichel' });
+        p.hurt = () => false;
+        t.face(b.pos.x, b.pos.z);
+        c.setInput({ action: true }); c.step(1); c.setInput({});
+        let sic = null;
+        for (let i = 0; i < 300 && !(sic && sic.removed); i++) { p.pos.z = Math.min(p.pos.z, b.backZ); c.step(1); if (!sic) sic = L.entities.find((e) => e.kind === 'wurfsichel' && e.owner === p) ?? null; }
+        delete p.hurt;
+        return !!sic;
+      };
+      const th1 = throwSichel();
+      const k1 = { car: b.carHits, hp: b.hp, thrown: th1 };
+      t.untilB(b, () => b.vulnerable && !b.jump, 600);
+      throwSichel();
       kicks.push({ sichel: true, k1, hp: b.hp, from: hp0, car: b.carHits });
+      p.setPower('none');
       t.untilB(b, () => b.vulnerable, 600);
       continue;
     }
@@ -951,7 +993,7 @@ check(`Der Wagen springt über die Lavalücke (${bn.jump.jumps} Sprung, z ${bn.j
 const kk = bn.kicks.filter((k) => !k.sichel);
 const sk = bn.kicks.find((k) => k.sichel);
 check(`Zurückgekickte Kickbomben treffen (${kk.filter((k) => k.hit).length} Treffer aus ${kk.filter((k) => k.kicked).length} Kicks), 9 Treffer in 3 Phasen (${bn.phases.join(',')})`, kk.filter((k) => k.hit).length >= 7 && kk.filter((k) => k.hit).length >= kk.filter((k) => k.kicked).length * 0.75 && bn.info.hp === 0 && bn.phases.join(',') === '1,2,3');
-check(`Wurfsichel: Kratzer (${sk?.k1.car}) und Zusatzschaden – 2 Kratzer = 1 Treffer (${sk?.from} → ${sk?.hp})`, sk && sk.k1.car === 1 && sk.k1.hp === sk.from && sk.hp === sk.from - 1 && sk.car === 0);
+check(`Echte Wurfsichel trifft den Wagen: Kratzer (${sk?.k1.car}) und Zusatzschaden – 2 Kratzer = 1 Treffer (${sk?.from} → ${sk?.hp})`, sk && sk.k1.thrown && sk.k1.car === 1 && sk.k1.hp === sk.from && sk.hp === sk.from - 1 && sk.car === 0);
 check(`Angriffe: ${bn.info.bombs} Bomben (${bn.info.shortBombs} kurz vor der Explosion), ${bn.info.fires} Feuerangriffe (${bn.info.fireballs} Kugeln)`, bn.info.shortBombs >= 2 && bn.info.fires >= 2 && bn.info.fireballs > bn.info.fires);
 check(`Phasen-Ansagen (${bn.banners.filter((x) => /Bomben|schneller|explodiert|Kratzer/.test(x)).join(' | ')})`, bn.banners.includes('Mehr Bomben – und ein Feuerstoß!') && bn.banners.includes('Er wird schneller – Vorsicht, Stacheln!') && bn.banners.includes('Kratzer!') && bn.banners.some((x) => /Baron Brummbär ist besiegt/.test(x)));
 check(`Besiegt: ${bn.end.seq}; Bomben verpufft, Stachelfallen eingefahren, Stern, Warp-Box → Zielmast`, /defeated>flee>gone/.test(bn.end.seq) && bn.end.won && bn.end.warp === false && bn.end.star === 1 && bn.end.bombs === 0 && !bn.end.traps && bn.finish.arrived && bn.finish.finished);
@@ -962,7 +1004,8 @@ await sc(BOSS_HELPERS);
 const rs = await sc(() => {
   const c = window.__course, t = window.__t, p = c.player, L = c.level;
   const out = {};
-  const die = () => { p.die('hit'); for (let i = 0; i < 2400 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1); c.step(10); };
+  const settle = () => { for (let i = 0; i < 2400 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1); };
+  const die = () => { settle(); delete p.hurt; p.invuln = 0; p.die('hit'); settle(); c.step(10); };
   const b = t.ent('baron'), road = t.ent('strasse');
   L.runtime.setCheckpoint([0, 2, -106], Math.PI / 2);
   t.enter([0, 2, -106], 'baron');
@@ -994,7 +1037,7 @@ const rs = await sc(() => {
   c.step(2);
   const kf = k.fishList.length;
   die();
-  out.koenig = { fishBefore: kf, state: k.state, hp: k.hp, fish: t.count('platschfisch', (f) => f.owner === k), brocken: t.count('lavabrocken', (e) => e.owner === k) };
+  out.koenig = { fishBefore: kf, deaths: t.arch().deaths, state: k.state, hp: k.hp, fish: t.count('platschfisch', (f) => f.owner === k), brocken: t.count('lavabrocken', (e) => e.owner === k) };
   return out;
 });
 console.log(`  Stachelfalle / Tod im Kampf: ${JSON.stringify(rs)}`);
@@ -1004,6 +1047,156 @@ check(`Tod im Kampf (Baron): Neustart, Baron 9/9 am Anfang, Fenster zurück, Bom
 check(`Tod im Kampf (heller König): 3/3, Platschfische und Brocken weg (${JSON.stringify(rs.koenig)})`, rs.koenig.fishBefore === 2 && rs.koenig.state === 'wait' && rs.koenig.hp === 3 && rs.koenig.fish === 0 && rs.koenig.brocken === 0);
 check('Keine Konsolenfehler (Teil 3)', errors.length === 0);
 if (errors.length) for (const x of errors.slice(0, 12)) console.log('   ', x);
+}
+
+// =====================================================================================================================
+// Teil 4: Bilder (Kurs-Kamera) und Zeichenaufrufe
+// =====================================================================================================================
+if (want(4)) {
+await load('0-27');
+console.log('Teil 4: Bilder');
+const S = {};
+S.flieger = await SHOT('w7e', 'knochenflieger_sturzflug', () => {
+  const c = window.__course, t = window.__t, k = t.ent('kf_kreis');
+  const fig = [-11.5, 1, t.Z(1, 8)];
+  t.place(fig, { settle: 1 });
+  t.until(() => k.state === 'dive' && k.stateT > k.diveT * 0.3, 1200, fig);
+  t.face(k.pos.x, k.pos.z);
+});
+S.platsch = await SHOT('w7e', 'platschfisch_sprung', () => {
+  const c = window.__course, t = window.__t, f = t.ent('pf_pendel');
+  const fig = [-11.2, 2.5, t.Z(2, 6.2)];
+  t.place(fig, { settle: 1 });
+  t.until(() => f.state === 'jump' && Math.abs(f.stateT / f.flight - 0.32) < 0.02, 1500, fig);
+  t.face(-17, t.Z(2, 7));
+});
+S.spucken = await SHOT('w7e', 'platschfisch_spuckt', () => {
+  const c = window.__course, t = window.__t, f = t.ent('pf_pendel');
+  const fig = [-11.2, 2.5, t.Z(2, 6.2)];
+  t.until(() => f.state === 'spit' && f.stateT > 0.42, 120 * 12, fig);
+  c.step(8);
+  t.face(f.pos.x, f.pos.z);
+});
+S.strom = await SHOT('w7e', 'platschfisch_endlos', () => {
+  const c = window.__course, t = window.__t, q = t.ent('pf_strom');
+  const fig = [11.5, 2.2, t.Z(2, 11)];
+  t.place(fig, { settle: 1 });
+  t.until(() => q.kids.filter((k) => k.state === 'jump').length >= 2, 120 * 12, fig);
+  t.face(11.5, t.Z(2, 6.5));
+});
+S.drache = await SHOT('w7e', 'lavadrache_speit', () => {
+  const c = window.__course, t = window.__t, d = t.ent('ld_rot');
+  const fig = [-12.5, 2.2, t.Z(3, 2.2)];
+  t.place(fig, { settle: 1 });
+  t.until(() => d.state === 'spit' && d.stateT > 0.62, 120 * 10, fig);
+  t.face(d.base.x, d.base.z);
+});
+S.drache2 = await SHOT('w7e', 'lavadrache_blau', () => {
+  const c = window.__course, t = window.__t, d = t.ent('ld_blau');
+  const fig = [10.5, 2.2, t.Z(3, 2.2)];
+  t.place(fig, { settle: 1 });
+  t.until(() => d.state === 'spit' && d.stateT > 0.3, 120 * 10, fig);
+  t.face(d.base.x, d.base.z);
+});
+S.quappe = await SHOT('w7e', 'wutkaulquappe_aufgeblasen', () => {
+  const c = window.__course, t = window.__t, p = c.player, q = t.ent('wq_platz');
+  t.place([-14, 1.0, t.Z(4, 6)], { settle: 30 });
+  t.until(() => q.state === 'puffed' || q.state === 'shove', 120 * 6, p.mode === 'swim' ? [-14, 1.2, t.Z(4, 6)] : null);
+  c.step(10);
+  t.face(q.pos.x, q.pos.z);
+});
+S.flammchen = await SHOT('w7e', 'funkenflaemmchen', () => {
+  const c = window.__course, t = window.__t, f = t.ent('ff_bahn');
+  const fig = [-11.5, 2, t.Z(5, 1.5)];
+  t.place(fig, { settle: 1 });
+  t.until(() => f.state === 'air' && f.stateT > f.airT * 0.45, 120 * 3, fig);
+  t.face(-11.5, t.Z(5, 6));
+});
+S.werfer = await SHOT('w7e', 'bumerang_werfer_sichel', () => {
+  const c = window.__course, t = window.__t, w = t.ent('w_sichel');
+  const fig = [13, 1, t.Z(6, 2.5)];
+  t.place(fig, { settle: 1 });
+  t.until(() => c.level.entities.some((e) => e.kind === 'wurf_bumerang' && e.owner === w && e.age > 0.3) || w.state === 'jump', 120 * 6, fig);
+  t.face(w.pos.x, w.pos.z);
+});
+S.ramm = await SHOT('w7e', 'rammfisch_stern', () => {
+  const c = window.__course, t = window.__t;
+  t.place([2.5, 1, t.Z(7, 1.5)], { settle: 1 });
+  t.hold([2.5, 1, t.Z(7, 1.5)], 60);
+  t.face(11.5, t.Z(7, 6));
+});
+S.bestand = await SHOT('w7e', 'bestand', () => {
+  const c = window.__course, t = window.__t;
+  t.place([0, 1, t.Z(8, 2)], { settle: 90 });
+  t.face(-11, t.Z(8, 7));
+});
+const zmax = Math.max(...Object.values(S).map((s) => s.calls));
+KPI.zoo = { calls: zmax, tris: Math.round(Math.max(...Object.values(S).map((s) => s.triangles)) / 1000) };
+console.log(`  Zeichenaufrufe Gegnerzoo: ${Object.entries(S).map(([k, s]) => `${k} ${s.calls}`).join(', ')}; höchstens ${KPI.zoo.tris} k Dreiecke`);
+check(`Gegnerzoo: Zeichenaufrufe < 140 (höchstens ${zmax})`, zmax < 140);
+
+await load('0-28');
+await sc(BOSS_HELPERS);
+const B = {};
+B.koenig = await SHOT('w7e', 'koenig_hell_platschfische', () => {
+  const c = window.__course, t = window.__t, b = t.ent('koenig7');
+  t.enter([0, 2, 19], 'koenig7');
+  const fig = [3, 2, 5];
+  t.until(() => b.state === 'roll' && b.fishList.some((f) => f.state === 'jump' && f.stateT > 0.35), 120 * 12, fig);
+  t.face(b.pos.x, b.pos.z);
+});
+B.koenigW = await SHOT('w7e', 'koenig_hell_wirbel', () => {
+  const c = window.__course, t = window.__t, b = t.ent('koenig7');
+  const br = t.grab(b);
+  if (br) t.throwAt(b, 4, 'rest');
+  t.until(() => b.state === 'spin' && b.stateT > 0.5, 600, null);
+  t.face(b.pos.x, b.pos.z);
+});
+await load('0-28');
+await sc(BOSS_HELPERS);
+B.prinz = await SHOT('w7e', 'prinz_blau_feuerkurve', () => {
+  const c = window.__course, t = window.__t, b = t.ent('prinz7');
+  c.player.reset([0, 2.3, -46], Math.PI / 2); c.level.runtime.setCheckpoint([0, 2, -46], Math.PI / 2);
+  t.enter([0, 2, -46], 'prinz7');
+  const fig = [4, 2, -56];
+  t.until(() => b.state === 'aim' && b.fireballs >= 3 && c.level.entities.filter((e) => e.kind === 'feuerkugel' && !e.removed).length >= 3, 120 * 14, fig);
+  t.face(b.pos.x, b.pos.z);
+});
+await load('0-28');
+await sc(BOSS_HELPERS);
+B.auftritt = await SHOT('w7e', 'baron_auftritt', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  c.player.reset([0, 2.3, -106], Math.PI / 2); c.level.runtime.setCheckpoint([0, 2, -106], Math.PI / 2);
+  t.enter([0, 2, -106], 'baron');
+  t.until(() => b.state === 'intro' && b.stateT > 1.6, 600, null);
+});
+B.wurf = await SHOT('w7e', 'baron_kickbomben', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  t.untilB(b, () => b.state === 'throw' && b.stateT > 0.75 && b.bombs.length >= 1, 120 * 12);
+});
+B.sprung = await SHOT('w7e', 'baron_sprung', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  t.untilB(b, () => b.jump && b.jump.t > 0.35, 120 * 20);
+});
+B.mitte = await SHOT('w7e', 'baron_mittelluecke', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron'), road = t.ent('strasse');
+  t.untilB(b, () => road.midAt(b.pos.z + 4, b.pos.z - 2) && b.state === 'throw' && b.stateT > 0.7, 120 * 40);
+});
+B.treffer = await SHOT('w7e', 'baron_treffer', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  for (let k = 0; k < 6 && b.hits < 1; k++) t.kickBack(b);
+  t.untilB(b, () => b.state === 'hit' && b.stateT > 0.15, 120 * 20);
+});
+B.flucht = await SHOT('w7e', 'baron_flucht', () => {
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  for (let k = 0; k < 30 && b.hp > 0; k++) t.kickBack(b);
+  t.untilB(b, () => b.state === 'flee' && b.stateT > 0.9, 120 * 10);
+});
+const bmax = Math.max(...Object.values(B).map((s) => s.calls));
+KPI.arenen = { calls: bmax, tris: Math.round(Math.max(...Object.values(B).map((s) => s.triangles)) / 1000) };
+console.log(`  Zeichenaufrufe Bossarenen: ${Object.entries(B).map(([k, s]) => `${k} ${s.calls}`).join(', ')}; höchstens ${KPI.arenen.tris} k Dreiecke`);
+check(`Bossarenen: Zeichenaufrufe < 140 (höchstens ${bmax})`, bmax < 140);
+check('Keine Konsolenfehler (Teil 4)', errors.length === 0);
 }
 
 console.log(`Kennzahlen: ${JSON.stringify(KPI)}`);

@@ -6,7 +6,7 @@
 // her) bzw. ohne holes zwischen pos und pos + dir · dist. Mit aim springt er dist m auf die Figur zu (nur wenn dort Lava ist;
 // höchstens range m von pos weg, sonst zurück). **Spucken** (spit): jeder n-te Takt taucht er an seiner Stelle auf, bläht die
 // Backen und spuckt eine Feuerkugel geradeaus auf die Figur (spitSpeed m/s, Farbe wie er), dann taucht er ab.
-// Die Lava darf steigen und sinken (7-7): er folgt der Oberfläche (Lava-Form unter der Sprungstelle).
+// Die Lava darf steigen und sinken (7-7, Baustein lavaspiegel): er folgt der Oberfläche (lavaTopAt der Bausteine Welt 7).
 // **Endlos nachkommend** (spawner): ein unsichtbarer Spender an pos lässt alle every s einen neuen Platschfisch heraus, der hops
 // Bögen zu je dist m in Richtung dir springt und danach abtaucht (höchstens max gleichzeitig; nur wenn eine Figur ≤ range m nah ist).
 // Konter: **nicht von oben** – Draufspringen/Stampfen verletzt (heiß!). **Nur Power-ups und Wurfsichel** besiegen ihn (Tatzenhieb,
@@ -17,7 +17,7 @@
 // Daten: { kind: 'platschfisch', pos: [x, y, z] (Lavastelle, y = Lava-Oberfläche), holes?: [[x, y, z], …] (pos = erstes Loch,
 //          falls pos fehlt), dir?: [dx, dz], dist?: 4, height?: 2.6, every?: 2.4, flight?: 1.1, phase?: 0..1, peek?: 0.4,
 //          aim?: false, sight?: 9, range?: 2·dist, spit?: 0 (n: jeder n-te Takt spuckt; true = 2), spitSpeed?: 7,
-//          color?: 'rot' | 'blau', drop?,
+//          color?: 'rot' | 'blau' (Standard: Farbe der Lava an pos, lavaColorAt), drop?,
 //          spawner?: { every: 2.2, max: 4, hops: 3, first: 0, range: 30 } }
 //   Beispiele: { kind: 'platschfisch', pos: [0, 0.6, -40], dir: [1, 0], dist: 5, spit: 2 }
 //              { kind: 'platschfisch', pos: [-8, 0.6, -60], dir: [1, 0], dist: 4, spawner: { every: 2.5, max: 3, hops: 4 } }
@@ -27,7 +27,7 @@
 import * as THREE from 'three';
 import { EnemyW2, activeFigure, clamp, toWorld, localOffset } from '../EnemyW2.js';
 import { getModel } from '../../models/index.js';
-import { HOT_KILL, hurtsFrom, lavaAt } from '../w7help.js';
+import { HOT_KILL, hurtsFrom, lavaSurface, lavaColor } from '../w7help.js';
 
 const DEFEAT = 1.4, SPIT = 0.8, SPIT_AT = 0.5, BASE = -0.55;
 
@@ -38,7 +38,7 @@ class Platschfisch extends EnemyW2 {
     this.shadow = 0.35;
     this.wake = 0;
     this.edges = false;
-    this.color = spec.color === 'blau' ? 'blau' : 'rot';
+    this.color = spec.color === 'blau' || spec.color === 'rot' ? spec.color : lavaColor(level, this.pos.x, this.pos.z);
     let holes = Array.isArray(spec.holes) && spec.holes.length ? spec.holes.map((h) => new THREE.Vector3(h[0], h[1], h[2])) : null;
     const d = this.dir, L = spec.dist ?? 4;
     if (!holes) {
@@ -80,10 +80,10 @@ class Platschfisch extends EnemyW2 {
     this.initShadows(1);
   }
 
-  /** Lava-Oberfläche an h nachführen (steigende/sinkende Lava). */
+  /** Lava-Oberfläche an h nachführen (steigende/sinkende Lava, lavaTopAt). */
   surface(h) {
-    const l = lavaAt(this.level, h.x, h.z, h.y - 6, h.y + 6);
-    if (l) h.y = l.top;
+    const y = lavaSurface(this.level, h.x, h.z, h.y);
+    if (y !== null && y > h.y - 8) h.y = y;
     return h;
   }
 
@@ -91,10 +91,10 @@ class Platschfisch extends EnemyW2 {
 
   /** Offene Lava an t (keine Plattform darüber)? */
   openLava(t) {
-    const l = lavaAt(this.level, t.x, t.z, t.y - 2, t.y + 2);
-    if (!l) return false;
-    const hit = this.level.world.raycastDown(t.x, l.top + 4, t.z, 4);
-    return !hit || !!hit.shape.kill || hit.y <= l.top + 0.05;
+    const y = lavaSurface(this.level, t.x, t.z, t.y);
+    if (y === null || y < t.y - 2.5) return false;
+    const hit = this.level.world.raycastDown(t.x, y + 4, t.z, 4);
+    return !hit || !!hit.shape.kill || hit.y <= y + 0.05;
   }
 
   get hidden() { return this.state === 'wait'; }
@@ -316,7 +316,7 @@ class PlatschQuelle extends EnemyW2 {
     for (let i = 0; i <= this.hops; i++) holes.push([this.pos.x + d.x * L * i, this.pos.y, this.pos.z + d.z * L * i]);
     const flight = sp.flight ?? 1.1;
     const k = this.level.spawn('platschfisch', {
-      holes, once: true, height: sp.height, every: flight + (sp.peek ?? 0.4) + 0.12, flight, phase: 0.999, peek: sp.peek, color: sp.color,
+      holes, once: true, height: sp.height, every: flight + (sp.peek ?? 0.4) + 0.12, flight, phase: 0.999, peek: sp.peek, color: sp.color ?? lavaColor(this.level, this.pos.x, this.pos.z),
       spit: sp.spit, spitSpeed: sp.spitSpeed, sight: sp.sight, owner: this, drop: sp.drop,
     });
     if (k) { this.kids.push(k); this.spawned++; }

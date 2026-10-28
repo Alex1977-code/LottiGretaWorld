@@ -37,8 +37,9 @@
 //   jeder fire-te Angriff; fireShots Kugeln, ab Phase 2 als Fächer = Feuerstoß). Die **Stachelfallen** der Straße fahren im Takt
 //   traps s aus (Phase 3 öfter).
 //   **Treffer: zurückgekickte (oder geworfene) Kickbomben** (onBombHit; Zielhilfe: gekickte Bomben, die grob auf den Wagen zu
-//   rollen, lenken ein und rollen bis zu ihm) → hit (0,6 s, Zylinder fliegt) → stunned (1,1 s) → drive. **Wurfsichel = Zusatz-
-//   schaden**: jeder Sichel-Treffer ist ein Kratzer (Lebensleiste: goldene Punkte = carHits), sichel Kratzer = ein Treffer.
+//   rollen, lenken ein, rollen bis zu ihm und hüpfen über Lavalücken) → hit (0,6 s, Zylinder fliegt) → stunned (1,1 s) → drive.
+//   **Wurfsichel = Zusatzschaden** (onSichelHit): jeder Sichel-Treffer ist ein Kratzer (Lebensleiste: goldene Punkte =
+//   carHits), sichel Kratzer = ein Treffer.
 //   9 Treffer in 3 Phasen (je 3): Phase 2 mehr Bomben (Doppelwurf) und Feuerstoß, Phase 3 schneller und Stachelfallen öfter.
 //   Ansagen: „Kick die Bomben zurück!“ (Archetyp), „Mehr Bomben – und ein Feuerstoß!“, „Er wird schneller – Vorsicht, Stacheln!“,
 //   „Vorsicht – gleich explodiert sie!“ (erste kurze Lunte), „Kratzer!“ (Sichel). Draufspringen = Abprall ohne Schaden; Feuer,
@@ -368,6 +369,7 @@ class BaronKampfwagen extends CourseEntity {
     this.defeated = false;
     this.carHits = 0;
     this.sichelHits = 0;
+    this.sichelSeen = new WeakSet();
     this.attackCool = 1.4;
     this.attacks = 0;
     this.throws = 0; this.bombsThrown = 0; this.shortBombs = 0; this.fires = []; this.firesN = 0; this.fireballs = 0; this.jumps = 0;
@@ -685,6 +687,8 @@ class BaronKampfwagen extends CourseEntity {
   /** Wurfsichel: Kratzer; sichel Kratzer = ein Treffer (Zusatzschaden). */
   sichelHit(source) {
     if (!this.vulnerable || this.sichelGrace > 0) return;
+    // eine geworfene Sichel kratzt nur einmal (Hin- und Rückflug zählen zusammen)
+    if (source?.sichel && typeof source === 'object') { if (this.sichelSeen.has(source)) return; this.sichelSeen.add(source); }
     this.sichelGrace = 0.35;
     this.sichelHits++;
     this.carHits++;
@@ -720,9 +724,12 @@ class BaronKampfwagen extends CourseEntity {
     }
   }
 
+  /** Wurfsichel der Figur (Motor: onSichelHit; ältere Form onHit('sichel' | 'throw' mit sichel)). */
+  onSichelHit(sichel) { if (this.visible && this.hp > 0) this.sichelHit(sichel); }
+
   onHit(kind, source) {
     if (!this.visible || this.hp <= 0) return;
-    if (kind === 'sichel') { this.sichelHit(source); return; }
+    if (kind === 'sichel' || source?.sichel) { this.sichelHit(source); return; }
     if (kind === 'fire' || kind === 'claw' || kind === 'shell') this.level.effects?.sparks(this.center(), 3);
     // Explosionen daneben, Stern, Riese …: zählen nicht (nur onBombHit)
   }

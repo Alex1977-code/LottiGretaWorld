@@ -14,7 +14,7 @@
 // Daten: { kind: 'lavadrache', pos: [x, y, z] (Austrittspunkt, y = Lava-Oberfläche), spots?: [[x, y, z], …] (Auftauchstellen;
 //          pos = erste, falls pos fehlt), aim?: false, sight?: 16, hide?: 2.0, shots?: 2, interval?: 1.1, flight?: 0.95,
 //          lead?: 0, speed?: 0 (m/s waagerecht beim Hüpfen der Kugel; 0 = Flugtempo), hp?: 1, phase?: 0..1 (Vorlauf im
-//          Versteck), color?: 'rot' | 'blau', segments?: 7, drop? }
+//          Versteck), color?: 'rot' | 'blau' (Standard: Farbe der Lava, lavaColorAt), segments?: 7, drop? }
 //   Beispiel: { kind: 'lavadrache', spots: [[-6, 0.5, -80], [6, 0.5, -84]], shots: 2, sight: 14 }
 // Zustände: hidden → rise → idle → spit (× shots) → sink → hidden …; hit (0,5 s, taucht ab); defeated (1,6 s).
 // Laufzeit: rises, fireballs, hits, spot (Index), head() (Weltpunkt der Kopfmitte), rise (0..1), info().
@@ -23,7 +23,7 @@
 import * as THREE from 'three';
 import { EnemyW2, activeFigure, clamp, toWorld, localOffset } from '../EnemyW2.js';
 import { getModel } from '../../models/index.js';
-import { HOT_KILL, hurtsFrom, lavaAt, arcVel } from '../w7help.js';
+import { HOT_KILL, hurtsFrom, lavaSurface, lavaColor, arcVel } from '../w7help.js';
 
 const RISE = 1.0, SINK = 0.8, SPIT = 1.0, SPIT_AT = 0.5, IDLE = 0.35, HIT = 0.5, DEFEAT = 1.6;
 const HEAD_R = 0.45;
@@ -36,7 +36,8 @@ class Lavadrache extends EnemyW2 {
     this.shadow = 0;
     this.wake = 0;
     this.edges = false;
-    this.color = spec.color === 'blau' ? 'blau' : 'rot';
+    const p0 = spec.pos ?? spec.spots?.[0] ?? [0, 0, 0];
+    this.color = spec.color === 'blau' || spec.color === 'rot' ? spec.color : lavaColor(level, p0[0], p0[2]);
     const sp = Array.isArray(spec.spots) && spec.spots.length ? spec.spots.map((h) => new THREE.Vector3(h[0], h[1], h[2])) : [this.pos.clone()];
     this.spots = sp;
     this.spot = 0;
@@ -69,11 +70,11 @@ class Lavadrache extends EnemyW2 {
     this.placeHead();
   }
 
-  /** Lava-Oberfläche an der Auftauchstelle nachführen. */
+  /** Lava-Oberfläche an der Auftauchstelle nachführen (steigende/sinkende Lava, lavaTopAt). */
   surface() {
     const b = this.base;
-    const l = lavaAt(this.level, b.x, b.z, b.y - 6, b.y + 6);
-    if (l) b.y = l.top;
+    const y = lavaSurface(this.level, b.x, b.z, b.y);
+    if (y !== null && y > b.y - 8) b.y = y;
   }
 
   /** Kopfmitte (Welt) aus Auftauch-Stellung riseK. */

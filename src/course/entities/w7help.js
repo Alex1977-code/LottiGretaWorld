@@ -5,14 +5,27 @@
 //                   (claw = Tatzenhieb/Schwanzhieb/Sturzflug, sichel, shell, throw, cannon, bomb, mega, star, punch, bite, crush,
 //                   pow). **Feuer prallt ab**, Draufspringen/Stampfen verletzt (heiß!), Stampfwelle daneben und Rutschen wirken
 //                   nicht.
-//   SICHEL          'sichel' – Treffer-Art der Wurfsichel (Power-up Welt 7). Wo nichts anderes steht, wirkt sie wie ein Feuerball.
+//   SICHEL          'sichel' – eigene Treffer-Art (Altlast/Tests). Die Wurfsichel des Motors trifft Gegner mit onHit('throw', sichel)
+//                   (sichel.sichel === true, sichel.owner = Figur) bzw. onSichelHit(sichel), falls definiert (Präzisierung
+//                   Motor und Bausteine Welt 7); isSichel(kind, source) erkennt beides.
 //   hurtsFrom(contact)  Berührung heißer Gegner: immer Treffer der Figur (auch von oben); Sturzflug (Krallen) ist ein Angriff.
 //   lavaAt(level, x, z, y0, y1)  Lava-Form (kill 'lava') unter (x, z) zwischen y0 und y1 → { shape, top } | null
+//   lavaSurface(level, x, z, near)  sichtbare Lava-Oberfläche an (x, z) bis near + 8 (folgt lavaspiegel; lavaTopAt aus
+//                   blocks/w7kit.js) | null;  lavaColor(level, x, z) → 'rot' | 'blau' (lavaColorAt)
 //   waterTop(level, x, y, z)     Wasserform um den Punkt → { shape, top, bottom } | null (Wasserspiegel folgt steigendem Wasser)
 //   arcVel(a, b, T, g)           Anfangsgeschwindigkeit eines Wurfbogens von a nach b in T s bei Schwerkraft g
 //   phaseOf(level, id, fb)       Phase eines Endgegners (level.named.get(id).phase) oder fb
 
+import { lavaTopAt, lavaColorAt } from '../blocks/w7kit.js';
+
 export const SICHEL = 'sichel';
+/** Treffer der Wurfsichel? (eigene Art 'sichel' oder onHit('throw', sichel) des Motors) */
+export const isSichel = (kind, source) => kind === 'sichel' || !!source?.sichel;
+
+/** Sichtbare Lava-Oberfläche an (x, z) höchstens near + 8 (lavaTopAt) | null. */
+export function lavaSurface(level, x, z, near = 0) { return lavaTopAt(level, x, z, near + 8); }
+/** Farbe der Lava an (x, z): 'rot' | 'blau'. */
+export function lavaColor(level, x, z) { return lavaColorAt(level, x, z); }
 export const HOT_KILL = new Set(['claw', 'sichel', 'shell', 'throw', 'cannon', 'bomb', 'mega', 'star', 'punch', 'bite', 'crush', 'pow']);
 
 /** Heißer Gegner berührt: 'attack' (Krallen-Sturzflug trifft ihn) oder 'hurt'. */

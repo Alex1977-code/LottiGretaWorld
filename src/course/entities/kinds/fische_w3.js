@@ -50,7 +50,8 @@
 //     ram?: true        false = rammt nie (nur Bahn/Kreis; Berührung verletzt trotzdem).
 //     carries?: 'star:I'  trägt Stern I in einer Blase auf dem Rücken (Stern berühren = einsammeln, die Blase platzt; LEVEL.stars
 //                       listet ihn nicht). Besiegt (STRONG) bleibt der Stern an seiner Stelle.
-//     Wurfsichel, Feuer, Krallen, Panzer prallen ab (nur STRONG besiegt ihn).
+//     Wurfsichel, Feuer, Krallen, Panzer prallen ab (nur STRONG besiegt ihn). Rammt er eine Unterwasser-Kiste (kiste_wasser),
+//     zerbricht sie (onHit('ram')).
 
 import * as THREE from 'three';
 import { EnemyW2, STRONG, activeFigure, waterAt, wrapAngle, clamp } from '../EnemyW2.js';
@@ -525,8 +526,12 @@ class Rammfisch extends EnemyW2 {
     const nx = this.pos.x + dx * v * dt, nz = this.pos.z + dz * v * dt;
     const fx = nx + dx * this.half.x, fz = nz + dz * this.half.z, cy = this.pos.y + this.half.y;
     if (!waterIn(this.level, fx, cy, fz)) return false;
-    const solid = this.level.world.overlapAABB({ x: fx, y: cy, z: fz }, { x: 0.1, y: 0.3, z: 0.1 }).some((s) => s.solid && !s.oneWay && !s.water && s.owner !== this);
-    if (solid) return false;
+    const solid = this.level.world.overlapAABB({ x: fx, y: cy, z: fz }, { x: 0.1, y: 0.3, z: 0.1 }).find((s) => s.solid && !s.oneWay && !s.water && s.owner !== this);
+    if (solid) {
+      // Welt 7: rammt er eine Unterwasser-Kiste, zerbricht sie (onHit('ram'), Bausteine Welt 7)
+      if (this.state === 'charge' && solid.owner?.kind === 'kiste_wasser') solid.owner.onHit?.('ram', this);
+      return false;
+    }
     this.pos.x = nx; this.pos.z = nz;
     return true;
   }

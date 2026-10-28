@@ -256,6 +256,7 @@ class Funkenling extends EnemyW2 {
 
   onHit(kind, source) {
     if (this.defeated) return;
+    if (source?.sichel) kind = 'sichel';   // Wurfsichel (Welt 7) trifft mit onHit('throw', sichel)
     if (FUNK_KILL.has(kind)) { this.poof(source); return; }
     if (kind !== 'bump' && kind !== 'pound') this.level.effects?.sparks(this.center(), 4);
   }

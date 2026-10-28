@@ -20,8 +20,10 @@
 //     (dazu eine Einweg-Plattform: { type: 'platform', pos: [0, 2.8, -60], size: [5, 0.8, 2], oneWay: true })
 // Welt 7 (additiv, Präzisierung Gegner Welt 7):
 //   sichel?: true   (nur Bumerang-Werfer, 7-Burg) trägt eine goldene Wurfsichel auf dem Rücken (Modell 'bumerang_werfer'
-//                   { sichel: true }) und lässt sie beim Besiegen fallen: an seiner Stelle erscheint das Item 'wurfsichel_item'
-//                   (ohne diese Art ein Power-up 'sichel'); fällt er in Lava/Abgrund, erscheint es an seinem Platz (home).
+//                   { sichel: true }) und **wirft sie statt des Bumerangs** (Gegner-Sichel: Entität 'wurfsichel' mit owner = er,
+//                   verletzt nur Figuren, kehrt zu ihm zurück; solange sie fliegt, fehlt sie auf dem Rücken). Besiegt lässt
+//                   er sie fallen: an seiner Stelle erscheint das Power-up { kind: 'powerup', power: 'sichel' }; fällt er in
+//                   Lava/Abgrund, erscheint es an seinem Platz (home).
 //   fireColor?: 'blau'  blaue Feuerkugeln (Modell 'feuerkugel_blau', z. B. über blauer Lava in 7-1).
 //   Wurfsichel der Figur (onHit('sichel')) besiegt jeden Werfer wie ein Feuerball.
 // Zustände: idle → walk ⇄ throw | jump; squashed | flipped. Laufzeit: throws (Zahl der Würfe), jumps, shots (lebende
@@ -87,7 +89,11 @@ class Werfer extends EnemyW2 {
     this.stateT += dt;
     if (this.updateDefeat(dt)) return;
     this.shots = this.shots.filter((s) => !s.removed);
-    if (this.boomerang?.removed) this.boomerang = null;
+    if (this.boomerang?.removed) {
+      // Gegner-Sichel gefangen (sichelCatch zählt der Baustein) → bald die nächste
+      if (this.boomerang.kind === 'wurfsichel' && (this.sichelCatch ?? 0) > (this.catches0 ?? 0)) this.onCatch(this.boomerang);
+      this.boomerang = null;
+    }
     if (this.state !== 'idle') {
       if (this.throwCool > 0) this.throwCool -= dt;
       if (this.jumpCool > 0) this.jumpCool -= dt;
@@ -191,6 +197,13 @@ class Werfer extends EnemyW2 {
       if (hv > 7) { vx *= 7 / hv; vz *= 7 / hv; }
       e = this.level.spawn('wurf_hammer', { pos: [h.x, h.y - 0.25, h.z], vel: [vx, (ty + 0.5 * 30 * T * T) / T, vz], owner: this });
       this.level.sfx('swoop');
+    } else if (this.sichel && this.level.hasKind?.('wurfsichel')) {
+      // Welt 7: Wurfsichel statt Bumerang (Gegner-Sichel der Bausteine Welt 7)
+      this.curve = -this.curve;
+      e = this.level.spawn('wurfsichel', { pos: [h.x, h.y - 0.16, h.z], dir: [dx, dz], owner: this, speed: 9, range: clamp(d + 1.5, 4, 9), curve: this.curve * 0.9 });
+      this.boomerang = e;
+      this.catches0 = this.sichelCatch ?? 0;
+      this.level.sfx('boomerang');
     } else {
       this.curve = -this.curve;
       e = this.level.spawn('wurf_bumerang', { pos: [h.x, h.y - 0.1, h.z], dir: [dx, dz], range: clamp(d + 1.5, 4, 9), curve: this.curve, owner: this });
@@ -228,16 +241,14 @@ class Werfer extends EnemyW2 {
     if (hit && !hit.shape.kill) y = hit.y;
     else if (!this.fellOut) y = this.home.y;
     const pos = [at.x, y, at.z];
-    this.sichelItem = this.level.hasKind?.('wurfsichel_item')
-      ? this.level.spawn('wurfsichel_item', { pos })
-      : this.level.spawn('powerup', { pos, power: 'sichel', emerge: false });
+    this.sichelItem = this.level.spawn('powerup', { pos, power: 'sichel', emerge: false });
     this.level.effects?.sparks({ x: at.x, y: y + 0.6, z: at.z }, 10);
     this.level.sfx('powerup_appear');
   }
 
   modelState() {
     const s = this.state;
-    const dropped = this.sichelDropped;
+    const dropped = this.sichelDropped || (this.boomerang?.kind === 'wurfsichel' && !this.boomerang.removed);
     if (s === 'throw') return { anim: 'throw', progress: Math.min(1, this.stateT / THROW), dropped };
     if (s === 'jump') return { anim: 'jump', dropped };
     if (s === 'walk') return { anim: 'walk', speed: this.speed, dropped };

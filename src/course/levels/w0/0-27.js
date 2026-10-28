@@ -34,8 +34,8 @@ const R = (r, h) => pen(4, 19, Z(r, 0), Z(r, 14), h);
 const sign = (x, r, text) => ({ type: 'sign', pos: [x, Y, Z(r, -0.8)], text, size: [2.8, 0.8] });
 const at = (x, r, dz, y = Y) => [x, y, Z(r, dz)];
 
-// Lava in einem Gehege: Fläche auf dem Boden (Oberfläche Y + 0,3; Kollisions-Oberkante Y + 0,18)
-const LAVA = Y + 0.18;
+// Lava in einem Gehege: Fläche auf dem Boden (sichtbare Oberfläche Y + 0,3 = lavaTopAt; Kollisions-Oberkante Y + 0,18)
+const LAVA = Y + 0.3;
 const lavaPen = (cx, r, color) => ({ type: 'lava', pos: [cx, Y, Z(r, 7)], size: [14.4, 0.3, 13.4], ...(color ? { color } : {}) });
 // Tiefe Becken (Reihen 4 und 7): Boden Y − 5, Wasser bis Y + 0,8
 const DEEP = Y - 5, WTOP = Y + 0.8;
