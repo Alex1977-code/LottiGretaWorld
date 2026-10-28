@@ -30,6 +30,22 @@ const ring = (a, r) => [+(C2.x + Math.sin((a * Math.PI) / 180) * r).toFixed(3), 
 // Stelle) · { poundAt: [x, z] } · { climbOnto: [x, z, oberkante] } · { push: Schritte, dir: [dx, dz], jump } (gegen eine
 // Wand drücken, z. B. Klettern) · { star: i } · { stamp: true } · { chaseKind, filter } · { expect: Bedingung } ·
 // { until: Bedingung } · { warp: [x, z] } · { toads: [Ids] } (Zauberkröten anspringen, sobald sie sichtbar sind)
+const FLUCHT = [
+  { name: 'Flucht: Krone → Ring 3', to: ring(73, 3.4), within: 0.5, run: false },
+  { to: ring(73, 5.4), within: 0.6, run: false },
+  { to: ring(45, 5.0), within: 0.6 },
+  { to: ring(20, 5.3), within: 0.6 },
+  { name: 'Ring 3 → Ring 2', to: ring(20, 8.4), within: 0.7, run: false },
+  { to: ring(48, 7.9), within: 0.6 },
+  { to: ring(75, 8.1), within: 0.6 },
+  { name: 'Ring 2 → Ring 1', to: ring(75, 11.2), within: 0.7, run: false },
+  { to: ring(58, 10.8), within: 0.6 },
+  { to: ring(39, 11.3), within: 0.6 },
+  { name: 'Ring 1 → Vorhof', to: ring(39, 14.4), within: 0.7, run: false },
+  { to: [9.4, -93], within: 0.5 },
+  { name: 'Treppe hinab, Glutbrücke', to: [15.2, -93], within: 0.5 },
+  { name: 'Warp-Terrasse', to: [17.4, -93], jump: 14, within: 0.5, run: false },
+];
 const ROUTES = {
   '7-5': {
     start: [0, E0, 10],
@@ -90,20 +106,7 @@ const ROUTES = {
       { name: 'Turmkrone: Schlüssel 5 weckt den Giftnebel', to: [0, -112], within: 0.3, run: false },
       { expect: 'keys5' },
       { expect: 'nebelAn' },
-      { name: 'Flucht: Krone → Ring 3', to: ring(73, 3.4), within: 0.5, run: false },
-      { to: ring(73, 5.4), within: 0.6, run: false },
-      { to: ring(45, 5.0), within: 0.6 },
-      { to: ring(20, 5.3), within: 0.6 },
-      { name: 'Ring 3 → Ring 2', to: ring(20, 8.4), within: 0.7, run: false },
-      { to: ring(48, 7.9), within: 0.6 },
-      { to: ring(75, 8.1), within: 0.6 },
-      { name: 'Ring 2 → Ring 1', to: ring(75, 11.2), within: 0.7, run: false },
-      { to: ring(58, 10.8), within: 0.6 },
-      { to: ring(39, 11.3), within: 0.6 },
-      { name: 'Ring 1 → Vorhof', to: ring(39, 14.4), within: 0.7, run: false },
-      { to: [9.4, -93], within: 0.5 },
-      { name: 'Treppe hinab, Glutbrücke', to: [15.2, -93], within: 0.5 },
-      { name: 'Warp-Terrasse', to: [17.4, -93], jump: 14, within: 0.5, run: false },
+      ...FLUCHT,
       { name: 'Warp-Box zum Ziel', warp: [19.4, -93.4] },
       { expect: 'zielterrasse' },
       { name: 'Zielmast', to: [0, -149.3], within: 0.2 },
@@ -115,9 +118,10 @@ const ROUTES = {
     ],
     targets: [
       { name: 'Stern 0: Krallen-Anzug aus dem ?-Block, Aufzug 2, Kletterpfeiler hinauf', star: 0, from: [6, E2, -27.6],
-        legs: [{ to: [6.6, -25.6], within: 0.2, run: false }, { hop: 20 }, { chaseKind: 'powerup', max: 900 }, { expect: 'krallen' },
+        legs: [{ to: [6.6, -25.6], within: 0.2, run: false }, { hop: 20 }, { to: [6.6, -24.1], within: 0.2, run: false, slow: 0.5 }, { climbOnto: [6.6, -25.6, E2 + 2.6] },
+          { chaseKind: 'powerup', max: 300 }, { expect: 'krallen' },
           { to: [10.5, -30.5], within: 0.4, run: false }, { until: 'lift2Oben', max: 900 }, { wait: 20 },
-          { push: 300, jump: 14, dir: [1, 0] }, { expect: 'aufPfeiler' }, { star: 0 }], shot: 'stern0' },
+          { push: 300, jump: 14, dir: [1, 0], stopIf: 'aufPfeiler' }, { wait: 20 }, { expect: 'aufPfeiler' }, { star: 0 }], shot: 'stern0' },
       { name: 'Stern 0 nicht ohne Krallen-Anzug (Pfeiler zu hoch)', star: 0, expectNot: true, from: [10.5, E2, -30.5], heroes: ['lotti'],
         legs: [{ until: 'lift2Oben', max: 900 }, { wait: 20 }, { push: 200, jump: 30, dir: [1, 0] }, { wait: 30 }] },
       { name: 'Stern 1: alle drei Zauberkröten auf der Turmspitze besiegen', star: 1, from: [0, TOP, -46],
@@ -128,7 +132,7 @@ const ROUTES = {
       { name: 'Stern 2 nicht ohne Stampfen (Ziegel halten Springen aus)', star: 2, expectNot: true, from: [-3.6, R1, -101.4], heroes: ['lotti'],
         legs: [{ to: [-1.9, -100.9], within: 0.25, run: false }, { climbOnto: [0, -100.5, R1 + 3] }, { hop: 24 }, { hop: 24 }, { wait: 30 }] },
       { name: 'Stempel: von der Turmspitze links hinunter auf die Sinkwolke, mit ihr hinab zur Etage 3', stamp: true, from: [1, TOP, -47],
-        legs: [{ to: [-16, -47], jumpAt: 8.6, jump: 30, within: 0.7, run: true }, { expect: 'aufWolke' }, { until: 'wolkeUnten', max: 900 },
+        legs: [{ to: [-16, -47], jumpAt: 8.6, jump: 30, within: 0.7, run: true }, { expect: 'aufWolke' }, { until: 'wolkeUnten', max: 1500 },
           { to: [-6, -39.6], within: 0.5, run: false }, { expect: 'etage3' }], shot: 'stempel' },
       { name: 'Stempel nicht von Etage 3 aus (Wolke zu hoch)', stamp: true, expectNot: true, from: [4, E3, -41.2], heroes: ['lotti'],
         legs: [{ to: [-16, -47], jumpAt: 8.2, jump: 30, within: 0.7, run: true, max: 400 }, { wait: 60 }] },
@@ -139,14 +143,13 @@ const ROUTES = {
       { name: 'Warp-Box versteckt, solange Schlüssel fehlen', from: [17.4, WT, -93], heroes: ['lotti'],
         legs: [{ to: [19.4, -93.4], jump: 30, within: 0.3, run: false, max: 300 }, { wait: 60 }, { expect: 'nichtZiel' }] },
       { name: 'Giftnebel: wer auf der Krone stehen bleibt, stirbt im Nebel', from: [0, R4, -109.4], heroes: ['lotti'], expectAlive: false, invuln: false,
-        legs: [{ to: [0, -112], within: 0.4, run: false }, { wait: 1500 }], mech: (r) => r.dead && r.info.deathCause === 'gift', mechText: (r) => `Tod: ${r.info.deathCause}` },
+        legs: [{ to: [0, -112], within: 0.4, run: false }, { wait: 1500 }], mech: (r) => r.mech.death === 'gift', mechText: (r) => `Tod: ${r.mech.death}` },
       { name: 'Lava steigt: Glutbrücke nach ≈ 30 s geflutet, Warp-Terrasse bleibt trocken (Nebel hält darüber)', from: [0, R4, -109.4], heroes: ['lotti'],
-        legs: [{ to: [0, -112], within: 0.4, run: false }, { to: ring(73, 3.2), within: 0.5 }, { to: ring(73, 5.6), within: 0.6 }, { to: ring(20, 5.3), within: 0.6 },
-          { to: ring(20, 8.4), within: 0.7 }, { to: ring(75, 8.1), within: 0.6 }, { to: ring(75, 11.2), within: 0.7 }, { to: ring(39, 11.3), within: 0.6 },
-          { to: ring(39, 14.4), within: 0.7 }, { to: [9.4, -93], within: 0.5 }, { to: [15.2, -93], within: 0.5 }, { to: [18, -95.6], jump: 14, within: 0.5, run: false },
+        legs: [{ to: [0, -112], within: 0.4, run: false }, ...FLUCHT, { to: [18, -95.6], within: 0.4, run: false },
           { wait: 60 * 120 }, { expect: 'lavaHoch' }, { expect: 'brueckeGeflutet' }], mech: (r) => !r.dead, mechText: (r) => `Lava ${r.mech.lavaTop.toFixed(2)}, Nebel ${r.mech.nebel}` },
-      { name: 'Neustart nach dem Nebel-Tod: Nebel und Lava zurückgesetzt, Checkpoint auf dem Vorhof', from: [0, R4, -109.4], heroes: ['lotti'], expectAlive: true, invuln: false,
-        legs: [{ to: [0, -112], within: 0.4, run: false }, { wait: 1500 }, { until: 'lebt', max: 900 }, { wait: 60 }, { expect: 'nebelWartet' }, { expect: 'lavaUnten' }, { expect: 'amCheckpoint' }] },
+      { name: 'Neustart nach dem Nebel-Tod: Nebel wartet wieder, Lava unten, Checkpoint auf dem Vorhof', pre: [-3.5, G1, -92.2], from: [0, R4, -109.4], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [0, -112], within: 0.4, run: false }, { wait: 1500 }, { until: 'lebt', max: 900 }, { wait: 60 }, { expect: 'nebelWartet' }, { expect: 'lavaUnten' }, { expect: 'amCheckpoint' }],
+        mech: (r) => r.mech.death === 'gift', mechText: (r) => `Tod: ${r.mech.death}` },
     ],
     shots: [
       ['start', [0, E0, 9]],
@@ -208,6 +211,7 @@ function install() {
   const named = (id) => L.named.get(id);
   const at = (x0, x1, y0, z0, z1) => { const q = P().pos; return q.x > x0 && q.x < x1 && q.y > y0 && q.z < z0 && q.z > z1 && !P().dead; };
   const lava = () => named('glutsee');
+  const E3 = 18, G1 = 20, WT = 16.8, R1 = 25;   // Maße 7-5 (in der Seite)
   const COND = {
     // 7-5
     stampf1Liegt: () => ent('stampf1')?.state === 'land',
@@ -231,7 +235,7 @@ function install() {
     zielterrasse: () => at(-8, 8, 29.5, -134, -158),
     nichtZiel: () => !at(-8, 8, 29.5, -134, -158),
     krallen: () => P().power === 'krallen',
-    aufPfeiler: () => P().pos.y > 26.8 && P().pos.x > 12,
+    aufPfeiler: () => P().pos.y > 26.8 && P().pos.x > 12 && P().mode === 'ground',
     sternKroetenVersteckt: () => { const s = L.entities.find((e) => e.kind === 'star' && e.index === 1); return !!s && s.hidden; },
     sternKroeten: () => { const s = L.entities.find((e) => e.kind === 'star' && e.index === 1); return !!s && !s.hidden; },
     aufWuerfel: () => P().pos.y > R1 + 2.9,
@@ -303,7 +307,7 @@ function install() {
         }
         if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.ground?.tag ?? '']); if (hist.length > 30) hist.shift(); }
         if (window.__trace && steps % 10 === 0) log.push(['spur', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.power, p.ground?.tag ?? '']);
-        if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
+        if (p.dead && !deadLogged) { deadLogged = true; mech.death = p.deathCause; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
         if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead && !o.keepScript) {
           let n = 0;
           const kind = p.script?.kind ?? p.script?.type ?? p.scriptKind ?? '?';
@@ -334,7 +338,7 @@ function install() {
         }
         if (Lg.push) {
           const holdJ = Lg.jump ?? 0;
-          for (let k = 0; k < Lg.push; k++) tick({ ...this.stick(Lg.dir[0], Lg.dir[1]), run: false, jump: k < holdJ });
+          for (let k = 0; k < Lg.push; k++) { if (Lg.stopIf && COND[Lg.stopIf]()) break; tick({ ...this.stick(Lg.dir[0], Lg.dir[1]), run: false, jump: k < holdJ }); }
           log.push([Lg.name ?? `drücken${li}`, Lg.push, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
           continue;
         }
@@ -630,8 +634,9 @@ for (const id of LEVELS) {
       await load(id);
       const lives0 = await W('lives');
       const coins0 = (await W('rt')).coins;
+      if (t.pre) await W('place', t.pre, { hero, settle: 30 });   // Checkpoint vorher berühren
       await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
-      const res = await W('drive', t.legs, { invuln: t.invuln, waitDead: t.expectAlive === false || t.waitDead });
+      const res = await W('drive', t.legs, { invuln: t.invuln, waitDead: t.expectAlive === false || t.waitDead || !!t.pre });
       const lives1 = await W('lives');
       let ok = true;
       if (t.expectCoins !== undefined) ok = ok && res.rt.coins - coins0 >= t.expectCoins;

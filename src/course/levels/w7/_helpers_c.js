@@ -454,7 +454,8 @@ export function nebelLava(level, fogId, lavaId) {
     if (!f || !l) return;
     if (f.state === 'verzoegert' || f.state === 'jagt') { st.started = true; st.at = level.time; l.start(); level.sfx('rumble'); }
   });
-  onRespawn(level, () => { st.started = false; st.at = null; });
+  // Neustart (am Checkpoint vor dem Turm): Nebel wartet wieder ganz oben, bis die Krone erneut betreten wird
+  onRespawn(level, () => { st.started = false; st.at = null; level.named.get(fogId)?.reset(); });
   st.info = () => ({ started: st.started, at: st.at });
   return st;
 }

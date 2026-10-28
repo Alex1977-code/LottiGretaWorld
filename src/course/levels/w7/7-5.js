@@ -96,13 +96,19 @@ function build(level) {
   brickBox(level, Q, { x0: -10, x1: 10, z0: -88, z1: -99, top: G1, y0: -3, hot, faces: '+z+x-x', tag: 'vorhof' });
   brickBox(level, Q, { x0: 3, x1: 10.6, z0: -99, z1: -104, top: G1, y0: -3, hot, faces: '+x', tag: 'vorhof', skipTop: false });
   brickBox(level, Q, { x0: 16, x1: 22, z0: -88, z1: -98, top: W, y0: -3, hot, faces: '+z+x-x-z', stone: 'rot', tag: 'warpterrasse' });
-  brickBox(level, Q, { x0: 10, x1: 16, z0: -90.5, z1: -95.5, top: BR, y0: -3, hot, faces: '+z-z', stone: 'basalt', tag: 'glutbruecke', cell: 1.25 });
+  brickBox(level, Q, { x0: 10, x1: 16, z0: -89.5, z1: -96.5, top: BR, y0: -3, hot, faces: '+z-z', stone: 'basalt', tag: 'glutbruecke', cell: 1.25 });
+  merlons(level, Q, [13.6, -89.5], [16, -89.5], BR, { h: 0.7 });
+  merlons(level, Q, [13.6, -96.5], [16, -96.5], BR, { h: 0.7 });
+  merlons(level, Q, [10, -96.5], [10, -99], G1, { h: 0.8 });
   const [r1, r2, r3, r4] = RR;
   roundTier(level, Q, { x: C2.x, z: C2.z, r: r1, top: R1, y0: -3, hot, inner: r2, gaps: [G(-28, -18), G(-6, 6), G(30, 48)], tag: 'ring1' });
   roundTier(level, Q, { x: C2.x, z: C2.z, r: r2, top: R2, y0: R1 - 0.2, inner: r3, gaps: [G(65, 86)], tag: 'ring2' });
   roundTier(level, Q, { x: C2.x, z: C2.z, r: r3, top: R3, y0: R2 - 0.2, inner: r4, gaps: [G(-100, -78), G(8, 32)], tag: 'ring3' });
   roundTier(level, Q, { x: C2.x, z: C2.z, r: r4, top: R4, y0: R3 - 0.2, gaps: [G(-14, 14), G(58, 88)], stone: 'rot', tag: 'krone' });
   merlons(level, Q, [-10, -88], [-10, -99], G1, {});
+  // Kletterpfeiler oben: Brüstung außen (der Stern liegt sicher)
+  merlons(level, Q, [14.6, -29], [14.6, -32], 27, { h: 0.8, step: 1.5 });
+  merlons(level, Q, [12, -29], [14.6, -29], 27, { h: 0.8, step: 1.3 });
   merlons(level, Q, [22, -88], [22, -98], W, {});
   merlons(level, Q, [16, -98], [22, -98], W, {});
   merlons(level, Q, [16, -88], [22, -88], W, { gaps: [[0, 6]], h: 0.7 });
@@ -206,7 +212,7 @@ export const LEVEL = {
     // Fähre über den Schacht in Etage 2
     { type: 'mover', id: 'faehre', path: [[-2.4, E2 - 0.5, -27], [2.4, E2 - 0.5, -27]], size: [3.2, 0.5, 3.4], speed: 1.4, wait: 0.9, color: 'yellow' },
     // Sinkwolke links unter der Turmspitze (Stempel): sinkt mit der Figur zur Etage 3 hinab, fährt leer zurück
-    { type: 'cloud', id: 'sinkwolke', pos: [-16, 21.4, -47], size: [3.4, 0.6, 3.4], path: [[-16, 21.4, -47], [-10.7, E3 - 0.6, -39.6]], speed: 1.3, idle: true },
+    { type: 'cloud', id: 'sinkwolke', pos: [-16, 21.4, -47], size: [3.4, 0.6, 3.4], path: [[-16, 21.4, -47], [-10.7, E3 - 0.6, -39.6]], speed: 1.7, idle: true },
     // Seilbahn hinüber zum Funkenturm
     { type: 'seilbahn', id: 'gondel', from: [0, TOP + 2.2, -55.25], to: [0, G1 + 2.2, -86.85], speed: 3.2, trigger: 'stand', mode: 'pingpong', masts: false },
     sign(-3.2, TOP, -52.6, 'Seilbahn zum\nFunkenturm', { size: [2.2, 0.8] }),
@@ -214,7 +220,7 @@ export const LEVEL = {
     // ================================================================ 3 Funkenturm
     sign(-6.4, G1, -89.6, '5 Schlüssel öffnen\ndie Warp-Box!', { size: [2.6, 0.9] }),
     { type: 'stairs', pos: [-5, G1, -93], dir: '-z', steps: 6, rise: (R1 - G1) / 6, run: 1.25, width: 3, style: 'stone' },
-    { type: 'stairs', pos: [13.6, BR, -93], dir: '-x', steps: 4, rise: (G1 - BR) / 4, run: 0.9, width: 5, style: 'stone' },
+    { type: 'stairs', pos: [13.6, BR, -93], dir: '-x', steps: 4, rise: (G1 - BR) / 4, run: 0.9, width: 7, style: 'stone' },
     { type: 'trampoline', pos: onRing(-45, 11.5, R1), strength: 22, size: 1.7 },
     sign(...onRing(-62, 11.9, R1), 'Feder!', { size: [1.2, 0.6], yaw: -0.9 }),
     { type: 'pfeilplattform', id: 'pfeil', from: 'wand', pos: [C2.x - 8.5, R2 + 2.4, C2.z], size: [3, 0.4, 2.4], dir: [-1, 0], wait: 1.4, up: 4.2, warn: 0.8, style: 'stein' },
@@ -238,7 +244,7 @@ export const LEVEL = {
   blocks: [
     { kind: 'question', pos: [-2.4, E0 + 2.6, 4.6], content: 'coins:3' },
     { kind: 'question', pos: [-8, E2 + 2.4, -26.6], content: 'wachstumsbeere' },
-    { kind: 'question', pos: [6.6, E2 + 2.1, -25.6], content: 'krallen' },
+    { kind: 'question', pos: [6.6, E2 + 1.6, -25.6], content: 'krallen' },
     { kind: 'hidden', pos: [-7.2, E1 + 2.6, -15.2], content: 'oneup' },
     { kind: 'question', pos: [2.6, G1 + 2.2, -91.6], content: 'sichel' },
     { kind: 'question', pos: [-2.6, G1 + 2.2, -91.6], content: 'coins:3' },
