@@ -1,6 +1,6 @@
 // Welt-6-Bausteine Fernost-Halle (Bauplan 6-3 „Schiebetüren antippen“, „Gong im 3. Stock lässt Münzen regnen“, „zwei
 // Scheinwände hinter Schiebetüren“, „Gong lässt Rätselbox erscheinen“). Eigene Fantasie-Gestaltung: Papier-Schiebewände
-// mit Holzgitter, lackierter Gong-Rahmen – keine realen religiösen Symbole.
+// mit Holzgitter, schlichtes Gong-Gestell aus Holz – keine realen religiösen Symbole.
 //
 // schiebetuer – Schiebetür aus Papier und Holz: Antippen (Touch-Strahl) oder Aktion in Reichweite öffnet sie (Flügel gleitet
 //   zur Seite), optional bei Nähe oder nur per Signal. Geschlossen versperrt sie den Durchgang. `behind: 'wand'` = Scheinwand:
@@ -20,15 +20,17 @@
 //     vor dem Gong), trigger: ['tap', 'pound', 'hit'] (Standard alle), reach: 3.5, hidden }
 //   level.named.get(id) = { hits, ring(via), reveal(), hide(), info() }; Entität-Schnittstelle für Würfe: onHit(kind) über
 //   die Kollisionsform (owner) bzw. w6(level).gongs.
-// Modelle aus der Registry, sobald es sie gibt: 'schiebetuer' ({ width, height, style }, Flügel entlang +X, Ursprung Mitte
-//   unten; state { open }), 'gong' ({ size }, Scheibe blickt +X, Ursprung Fußpunkt; state { swing, glow }).
+// Modelle aus der Registry: 'schiebetuer' ({ width, height, panels: 2 bei slide 'beide', sonst 1 – für 'links' gespiegelt },
+//   Fläche Y-Z, Vorderseite +X, Ursprung Mitte unten; state { open, hint (Antipp-Schein, solange zu), tap }) – ohne eigenen
+//   Rahmen; 'gong' (fester Bau, auf size / 1,44 skaliert, Scheibe blickt +X, Ursprung Fußpunkt; state { anim: 'ring'|'idle',
+//   ring }). Ohne Registry: eigene Geometrie (schlichter Holzrahmen).
 
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, hex, box, addObject, Rnd } from '../kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
 import { tapTargets } from '../../entities/tap.js';
 import { hasModel, getModel } from '../../models/index.js';
-import { w6, figures, flatColor } from '../w6kit.js';
+import { w6, figures, flatColor, w6Sfx } from '../w6kit.js';
 
 const HALF_PI = Math.PI / 2;
 const snap90 = (y) => Math.round((y ?? 0) / HALF_PI) * HALF_PI;
@@ -128,12 +130,12 @@ export function buildSchiebetuer(level, spec) {
     open() {
       if (st.hidden || st.want === 1) return;
       st.want = 1; st.openT = 0; st.opens++; st.tapT = 1;
-      level.sfx('door');
+      w6Sfx(level, 'door');
       if (st.first) { st.first = false; runAction(level, spec.onOpen, { pos: [p.x + F.nx, p.y + 1, p.z + F.nz], source: handle }); }
     },
-    close() { if (st.want === 0) return; st.want = 0; level.sfx('door'); },
+    close() { if (st.want === 0) return; st.want = 0; w6Sfx(level, 'door'); },
     toggle() { if (st.want) handle.close(); else handle.open(); },
-    reveal() { if (!st.hidden) return; st.hidden = false; setSolid(true); placeLeaves(); level.sfx('powerup_appear'); },
+    reveal() { if (!st.hidden) return; st.hidden = false; setSolid(true); placeLeaves(); w6Sfx(level, 'powerup_appear'); },
     hide() { st.hidden = true; setSolid(false); },
     info: () => ({ state: st.state, k: +st.k.toFixed(2), opens: st.opens, blocked: st.k < 0.75, behind: spec.behind ?? 'frei' }),
   };
@@ -216,16 +218,14 @@ export function buildSchiebetuer(level, spec) {
 function gongGeo(size) {
   const parts = [], disc = [];
   const R = size / 2, H = size + 1.6;
-  const red = 0xc8302a, gold = 0xffc83a, dark = 0x3a2418;
-  // Rahmen: zwei Pfosten, Querbalken mit geschwungenen Enden, Fußbalken
+  const wood = 0x9a6a3a, gold = 0xffc83a, dark = 0x3a2418;
+  // Rahmen (schlichtes Holzgestell): zwei Pfosten auf Füßen, ein bündiger Querbalken, Messingknäufe
   for (const s of [-1, 1]) {
-    parts.push(box(0.24, H, 0.24, 0, H / 2, s * (R + 0.35), red, { r: 0.05 }));
+    parts.push(box(0.24, H, 0.24, 0, H / 2, s * (R + 0.35), wood, { r: 0.05 }));
     parts.push(box(0.6, 0.22, 0.5, 0, 0.11, s * (R + 0.35), dark, { r: 0.05 }));
-    parts.push(flatColor(box(0.3, 0.12, 0.3, 0, H + 0.06, s * (R + 0.35), gold, { r: 0.04, seg: 1 }), gold));
+    parts.push(flatColor(box(0.28, 0.12, 0.28, 0, H + 0.06, s * (R + 0.35), gold, { r: 0.04, seg: 1 }), gold));
   }
-  parts.push(box(0.3, 0.26, size + 1.4, 0, H - 0.2, 0, red, { r: 0.06 }));
-  const cap = new THREE.CylinderGeometry(0.1, 0.18, size + 1.8, 8); cap.rotateX(HALF_PI); cap.translate(0, H + 0.06, 0);
-  parts.push(flatColor(cap, dark));
+  parts.push(box(0.26, 0.24, 2 * (R + 0.35) + 0.24, 0, H - 0.2, 0, wood, { r: 0.06 }));
   // Scheibe (lokal: blickt +X), Mitte bei y = H − 0.4 − R; Seile
   const cy = H - 0.45 - R;
   const g = new THREE.CylinderGeometry(R, R * 0.96, 0.12, 36, 1);
@@ -263,7 +263,7 @@ export function buildGong(level, spec) {
       if (spec.once && st.hits > 0) return false;
       st.hits++; st.cool = spec.cooldown ?? 1.2;
       st.swingV += 2.4; st.glow = 1;
-      level.sfx('gong'); level.sfx('bump');
+      w6Sfx(level, 'gong'); w6Sfx(level, 'bump');
       level.shake(0.2);
       level.effects?.ring({ x: p.x + fx * 0.3, y: cy, z: p.z + fz * 0.3 }, R + 0.6);
       level.effects?.sparks({ x: p.x + fx * 0.3, y: cy, z: p.z + fz * 0.3 }, 14);
@@ -281,7 +281,7 @@ export function buildGong(level, spec) {
     onHit(kind) { if (trig.has('hit')) handle.ring(kind); },
     onBump() { if (trig.has('hit')) handle.ring('bump'); },
     onPound() { if (trig.has('pound')) handle.ring('pound'); },
-    reveal() { if (!st.hidden) return; st.hidden = false; setSolid(true); level.sfx('powerup_appear'); },
+    reveal() { if (!st.hidden) return; st.hidden = false; setSolid(true); w6Sfx(level, 'powerup_appear'); },
     hide() { st.hidden = true; setSolid(false); },
     info: () => ({ hits: st.hits, cool: +st.cool.toFixed(2), raining: st.rain.length, swing: +st.swing.toFixed(2) }),
     center, pos: p,

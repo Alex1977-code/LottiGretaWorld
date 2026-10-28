@@ -22,7 +22,7 @@ import { MovingBox } from '../w2kit.js';
 import { PathMover } from '../../level/PathMover.js';
 import { visDt } from '../../entities/gimmick.js';
 import { hasModel, getModel } from '../../models/index.js';
-import { w6, figures, flatColor } from '../w6kit.js';
+import { w6, figures, flatColor, w6Sfx } from '../w6kit.js';
 
 // ------------------------------------------------------------------ Floß
 
@@ -58,7 +58,7 @@ export function buildFloss(level, spec) {
   const start = spec.start ?? 'stand';
   const handle = {
     get state() { return st.state; }, get s() { return st.s; }, get speedNow() { return st.speedNow; }, mb,
-    start() { if (st.state === 'wartet') { st.state = 'faehrt'; level.sfx('splash'); } },
+    start() { if (st.state === 'wartet') { st.state = 'faehrt'; w6Sfx(level, 'splash'); } },
     stop() { if (st.state === 'faehrt') st.state = 'wartet'; },
     reset() {
       if (!pm) return;

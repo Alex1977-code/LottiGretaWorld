@@ -23,7 +23,7 @@ import { v3, sz3, box, merge, addObject, lin, mixc, smooth, colorize, hex } from
 import { MovingBox } from '../w2kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
 import { hasModel, getModel } from '../../models/index.js';
-import { w6, figures, shove, flatColor } from '../w6kit.js';
+import { w6, figures, shove, flatColor, w6Sfx } from '../w6kit.js';
 
 const DIRS = { down: [0, -1, 0], up: [0, 1, 0], '+x': [1, 0, 0], '-x': [-1, 0, 0], '+z': [0, 0, 1], '-z': [0, 0, -1] };
 const STYLE = {
@@ -119,8 +119,8 @@ export function buildQuetschblock(level, spec) {
       } else ph = { state: 'ruhe', k: 0 };
     }
     if (ph.state !== st.state) {
-      if (ph.state === 'warn') level.sfx('rumble');
-      if (ph.state === 'halt') { level.sfx('slam'); level.shake(0.35); level.effects?.dust({ x: mb.pos.x + dv[0] * s.x / 2, y: mb.pos.y + (dv[1] < 0 ? 0 : s.y / 2), z: mb.pos.z + dv[2] * s.z / 2 }, 8, 1.3); runAction(level, spec.onSlam, { pos: [mb.pos.x, mb.pos.y + s.y, mb.pos.z], source: handle }); }
+      if (ph.state === 'warn') w6Sfx(level, 'rumble');
+      if (ph.state === 'halt') { w6Sfx(level, 'slam'); level.shake(0.35); level.effects?.dust({ x: mb.pos.x + dv[0] * s.x / 2, y: mb.pos.y + (dv[1] < 0 ? 0 : s.y / 2), z: mb.pos.z + dv[2] * s.z / 2 }, 8, 1.3); runAction(level, spec.onSlam, { pos: [mb.pos.x, mb.pos.y + s.y, mb.pos.z], source: handle }); }
     }
     st.state = ph.state;
     const nk = ph.k;

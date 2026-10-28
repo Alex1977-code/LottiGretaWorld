@@ -328,12 +328,13 @@ export function buildKippschiff(level, spec) {
       if (g.sails) {
         const sm = meshOf(g.sails, { side: THREE.DoubleSide });
         inner.add(sm);
-        // Durchsicht: Segel zwischen Kamera und Figur werden durchscheinend (Kasten in Weltkoordinaten, Neigung grob mit drin)
+        // Durchsicht: Segel zwischen Kamera und Figur werden durchscheinend (Kasten in Weltkoordinaten, Neigung grob mit drin;
+        // Unterkante über Kopfhöhe – steckt der Kopf im Kasten, blendet Xray nicht)
         const b = g.sailBox, c = new THREE.Vector3(), q = (lx, lz) => (alongZ ? { x: lz, z: -lx * Math.sign(Math.cos(yaw) || 1) } : { x: lx * Math.sign(Math.sin(yaw) || 1), z: lz });
         const a1 = q(b.x0, b.z0), a2 = q(b.x1, b.z1);
         c.set(p.x, p.y, p.z);
-        const box3 = new THREE.Box3(new THREE.Vector3(c.x + Math.min(a1.x, a2.x) - 1, c.y + b.y0 - 1, c.z + Math.min(a1.z, a2.z) - 1), new THREE.Vector3(c.x + Math.max(a1.x, a2.x) + 1, c.y + b.y1 + 1, c.z + Math.max(a1.z, a2.z) + 1));
-        level.view.xray?.(sm, box3, { min: 0.22 });
+        const box3 = new THREE.Box3(new THREE.Vector3(c.x + Math.min(a1.x, a2.x) - 1, c.y + Math.max(b.y0, 2.1), c.z + Math.min(a1.z, a2.z) - 1), new THREE.Vector3(c.x + Math.max(a1.x, a2.x) + 1, c.y + b.y1 + 1, c.z + Math.max(a1.z, a2.z) + 1));
+        level.view.xray?.(sm, box3, { min: 0.15 });
       }
     }
     // Bug +X lokal → Weltrichtung: yaw 0 = −Z

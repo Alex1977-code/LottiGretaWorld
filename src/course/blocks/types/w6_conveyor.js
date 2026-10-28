@@ -27,7 +27,7 @@ import { v3, sz3, box, merge, addStatic, addObject, lin, mixc, smooth, colorize 
 import { MovingBox } from '../w2kit.js';
 import { visDt } from '../../entities/gimmick.js';
 import { hasModel, getModel } from '../../models/index.js';
-import { w6, figures, shove, beltTexture, flatColor } from '../w6kit.js';
+import { w6, figures, shove, beltTexture, flatColor, w6Sfx } from '../w6kit.js';
 
 const HALF_PI = Math.PI / 2;
 const STYLE = {
@@ -57,7 +57,7 @@ function buildBoden(level, spec) {
   const handle = {
     mode: 'boden', get speed() { return st.running ? st.speed * st.sign : 0; }, get running() { return st.running; },
     start() { st.running = true; sync(); }, stop() { st.running = false; sync(); }, toggle() { st.running = !st.running; sync(); },
-    reverse() { st.sign *= -1; sync(); level.sfx('switch'); },
+    reverse() { st.sign *= -1; sync(); w6Sfx(level, 'switch'); },
     info: () => ({ mode: 'boden', speed: handle.speed, dir: [dx * st.sign, dz * st.sign] }),
   };
   if (spec.id) level.named.set(spec.id, handle);
@@ -125,7 +125,7 @@ function buildWand(level, spec) {
   }
   const handle = {
     mode: 'wand', get speed() { return v(); }, get running() { return st.running; }, get carried() { return st.carried; }, body,
-    start() { st.running = true; }, stop() { st.running = false; }, toggle() { st.running = !st.running; }, reverse() { st.sign *= -1; level.sfx('switch'); },
+    start() { st.running = true; }, stop() { st.running = false; }, toggle() { st.running = !st.running; }, reverse() { st.sign *= -1; w6Sfx(level, 'switch'); },
     ledgeInfo: () => ledges.map((l) => +(l.mb.pos.y).toFixed(2)),
     info: () => ({ mode: 'wand', speed: v(), carried: +st.carried.toFixed(2), ledges: ledges.length }),
   };
@@ -248,7 +248,7 @@ function buildRund(level, spec) {
   const handle = {
     mode: 'rund', get speed() { return v(); }, get running() { return st.running; }, block, cleats,
     start() { st.running = true; sync(); }, stop() { st.running = false; sync(); }, toggle() { st.running = !st.running; sync(); },
-    reverse() { st.sign *= -1; sync(); level.sfx('switch'); },
+    reverse() { st.sign *= -1; sync(); w6Sfx(level, 'switch'); },
     info: () => ({ mode: 'rund', speed: v(), cleats: cleats.map((c) => c.side) }),
   };
   if (spec.id) level.named.set(spec.id, handle);

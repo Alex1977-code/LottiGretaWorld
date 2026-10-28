@@ -32,7 +32,7 @@ import { v3, lin, mixc, colorize, merge, addStatic, addObject, hex } from '../ki
 import { collectNear, flightCtl, visDt } from '../../entities/gimmick.js';
 import { tapTargets } from '../../entities/tap.js';
 import { hasModel, getModel } from '../../models/index.js';
-import { w6 } from '../w6kit.js';
+import { w6, w6Sfx } from '../w6kit.js';
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _t = new THREE.Vector3();
 
@@ -130,7 +130,7 @@ export function buildGlasnetz(level, spec) {
     if (ws.signal) level.onSignal(ws.signal, () => net.toggle(nm));
   }
   net.switchOf = (nm) => net.switches.get(nm)?.to ?? null;
-  net.setSwitch = (nm, to) => { const sw = net.switches.get(nm); if (sw && byName.has(to)) { sw.to = to; sw.flips++; level.sfx('switch'); } };
+  net.setSwitch = (nm, to) => { const sw = net.switches.get(nm); if (sw && byName.has(to)) { sw.to = to; sw.flips++; w6Sfx(level, 'switch'); } };
   net.toggle = (nm) => {
     const list = nm ? [net.switches.get(nm)].filter(Boolean) : [...net.switches.values()];
     for (const sw of list) {
@@ -140,7 +140,7 @@ export function buildGlasnetz(level, spec) {
       sw.to = opts[(k + 1) % opts.length];
       sw.flips++;
     }
-    if (list.length) { level.sfx('switch'); level.effects?.sparks(list[0].node.pos, 6); }
+    if (list.length) { w6Sfx(level, 'switch'); level.effects?.sparks(list[0].node.pos, 6); }
   };
   if (spec.id) level.named.set(spec.id, net);
 
@@ -200,7 +200,7 @@ export function buildGlasnetz(level, spec) {
             if (n.cfg.cannon && who) {
               const c = n.cfg.cannon;
               fly = flightCtl(level, { x: n.pos.x, y: n.pos.y - p.half.y, z: n.pos.z }, v3(c.target), { arc: c.arc ?? 6 });
-              level.sfx('swoop'); level.shake(0.25);
+              w6Sfx(level, 'swoop'); level.shake(0.25);
               level.effects?.sparks({ x: n.pos.x, y: n.pos.y, z: n.pos.z }, 14);
               return fly.step(p, dt);
             }
@@ -233,7 +233,7 @@ export function buildGlasnetz(level, spec) {
           const hl = Math.hypot(hx, hz); p.vel.x += (hx / hl) * 3.6; p.vel.z += (hz / hl) * 3.6;
         } else if (o.y > -0.6) p.vel.y += 3.5;
         if (Math.hypot(o.x, o.z) > 0.25) p.yaw = Math.atan2(-o.z, o.x);
-        if (who) { net.cool = 0.5; net.block = n.i; level.sfx('pipe'); }
+        if (who) { net.cool = 0.5; net.block = n.i; w6Sfx(level, 'pipe'); }
       },
     };
   }
@@ -245,10 +245,10 @@ export function buildGlasnetz(level, spec) {
     net.lastRide = ctl;
     player.ride(ctl, { state: 'pipe', kind: 'glasnetz' });
     net.rides++;
-    level.sfx('pipe');
+    w6Sfx(level, 'pipe');
     return true;
   };
-  net.reveal = () => { net.hidden = false; if (net.root) net.root.visible = true; setSolid(true); level.sfx('powerup_appear'); };
+  net.reveal = () => { net.hidden = false; if (net.root) net.root.visible = true; setSolid(true); w6Sfx(level, 'powerup_appear'); };
   net.hide = () => { net.hidden = true; if (net.root) net.root.visible = false; setSolid(false); };
   net.info = () => ({
     rides: net.rides, carried: net.carried, inPipe: net.carry.length, last: net.lastRide?.path?.join('>') ?? null,
@@ -322,7 +322,7 @@ export function buildGlasnetz(level, spec) {
         e.onPipeEnter?.(net, n);
         net.carry.push({ e, ctl: rider(n, null), hide: false });
         net.carried++;
-        level.sfx('pipe');
+        w6Sfx(level, 'pipe');
       }
     }
   }

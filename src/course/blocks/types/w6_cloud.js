@@ -19,6 +19,7 @@ import { PathMover } from '../../level/PathMover.js';
 import { visDt } from '../../entities/gimmick.js';
 import { hasModel, getModel } from '../../models/index.js';
 import { cloudGeo } from './cloud.js';
+import { w6Sfx } from '../w6kit.js';
 
 const TINT = { weiss: null, grau: [0x9aa0b4, 0xd8dce6], rosa: [0xffb0d8, 0xfff0f8], gold: [0xffc83a, 0xfff2b0] };
 
@@ -32,7 +33,7 @@ export function buildWolkenplattform(level, spec) {
   const handle = {
     get state() { return st.state; }, get load() { return st.load; }, mb,
     start() { st.running = true; }, stop() { st.running = false; },
-    reveal() { if (!st.hidden) return; st.hidden = false; st.state = 'da'; mb.setSolid(true); level.sfx('powerup_appear'); },
+    reveal() { if (!st.hidden) return; st.hidden = false; st.state = 'da'; mb.setSolid(true); w6Sfx(level, 'powerup_appear'); },
     hide() { st.hidden = true; st.state = 'weg'; mb.setSolid(false); },
     info: () => ({ state: st.state, load: st.load, sink: +st.sink.toFixed(2), y: +mb.pos.y.toFixed(2) }),
   };
@@ -44,8 +45,8 @@ export function buildWolkenplattform(level, spec) {
     // Verpuffen: nach dem Betreten zittern, dann weg, nach respawn s wieder da
     if (vanish > 0 && !st.hidden) {
       if (st.state === 'da' && st.load > 0) { st.state = 'zittert'; st.t = 0; }
-      else if (st.state === 'zittert') { st.t += dt; if (st.t >= vanish) { st.state = 'weg'; st.t = 0; mb.setSolid(false); level.sfx('poof'); level.effects?.dust({ x: mb.pos.x, y: mb.pos.y + s.y, z: mb.pos.z }, 8, 1.2); } }
-      else if (st.state === 'weg') { st.t += dt; if (respawn > 0 && st.t >= respawn) { st.state = 'da'; mb.setSolid(true); level.sfx('poof'); } }
+      else if (st.state === 'zittert') { st.t += dt; if (st.t >= vanish) { st.state = 'weg'; st.t = 0; mb.setSolid(false); w6Sfx(level, 'poof'); level.effects?.dust({ x: mb.pos.x, y: mb.pos.y + s.y, z: mb.pos.z }, 8, 1.2); } }
+      else if (st.state === 'weg') { st.t += dt; if (respawn > 0 && st.t >= respawn) { st.state = 'da'; mb.setSolid(true); w6Sfx(level, 'poof'); } }
     }
     st.sink += ((st.load > 0 ? sinkMax : 0) - st.sink) * Math.min(1, dt * 5);
     mb.moveTo(base.x, base.y - st.sink, base.z, dt);

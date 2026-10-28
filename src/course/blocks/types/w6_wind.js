@@ -19,7 +19,7 @@ import * as THREE from 'three';
 import { v3, sz3, lin, mixc, smooth, colorize, merge, addObject, addStatic, Rnd } from '../kit.js';
 import { visDt } from '../../entities/gimmick.js';
 import { hasModel, getModel } from '../../models/index.js';
-import { w6, figures, shove, flatColor } from '../w6kit.js';
+import { w6, figures, shove, flatColor, w6Sfx } from '../w6kit.js';
 
 const FREE = new Set(['ground', 'air', 'swim']);
 
@@ -74,8 +74,8 @@ export function buildWindfeld(level, spec) {
       ph = phaseOf(((st.t % period) + period) % period);
     } else ph = { state: 'ruhe', k: 0, w: 0 };
     if (ph.state !== st.state) {
-      if (ph.state === 'warn') level.sfx('wind');
-      if (ph.state === 'boe') { st.gusts++; level.sfx('gust'); }
+      if (ph.state === 'warn') w6Sfx(level, 'wind');
+      if (ph.state === 'boe') { st.gusts++; w6Sfx(level, 'gust'); }
     }
     st.state = ph.state; st.k = ph.k; st.warnK = ph.w;
     if (st.k <= 0) return;

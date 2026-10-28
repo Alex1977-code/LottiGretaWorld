@@ -21,7 +21,7 @@
 
 import * as THREE from 'three';
 import { v3, lin, mixc, smooth, colorize, merge, addStatic, addObject, hex } from '../kit.js';
-import { w6, figures } from '../w6kit.js';
+import { w6, figures, w6Sfx } from '../w6kit.js';
 import { hasModel, getModel } from '../../models/index.js';
 
 const HALF_PI = Math.PI / 2;
@@ -100,7 +100,7 @@ export function buildKlettergitter(level, spec) {
     handle = {
       mode, fence,
       climbers: () => figures(level).filter((f) => f.fence?.obj === fence),
-      reveal() { if (!st.hidden) return; st.hidden = false; setSolid(true); if (obj) obj.visible = true; level.sfx('powerup_appear'); },
+      reveal() { if (!st.hidden) return; st.hidden = false; setSolid(true); if (obj) obj.visible = true; w6Sfx(level, 'powerup_appear'); },
       hide() { st.hidden = true; setSolid(false); if (obj) obj.visible = false; },
       info: () => ({ mode, climbers: handle.climbers().length, hidden: st.hidden }),
     };
@@ -140,7 +140,7 @@ export function buildKlettergitter(level, spec) {
     handle = {
       mode, grid,
       climbers: () => figures(level).filter((f) => f.hang?.obj === grid),
-      reveal() { if (!st.hidden) return; st.hidden = false; setSolid(true); if (obj) obj.visible = true; level.sfx('powerup_appear'); },
+      reveal() { if (!st.hidden) return; st.hidden = false; setSolid(true); if (obj) obj.visible = true; w6Sfx(level, 'powerup_appear'); },
       hide() { st.hidden = true; setSolid(false); if (obj) obj.visible = false; },
       info: () => ({ mode, climbers: handle.climbers().length, hidden: st.hidden }),
     };

@@ -46,7 +46,7 @@ import { HELMETS } from '../../player/helmets.js';
 import { PathMover } from '../../level/PathMover.js';
 import { blockTemplate } from '../visuals.js';
 import { lin, mixc, smooth, colorize, merge } from '../../blocks/kit.js';
-import { w6 } from '../../blocks/w6kit.js';
+import { w6, w6Sfx } from '../../blocks/w6kit.js';
 import { buildKippschiff, buildKippsteg, buildWippe } from '../../blocks/types/w6_ship.js';
 import { buildSchiebetuer, buildGong } from '../../blocks/types/w6_hall.js';
 import { buildKlettergitter } from '../../blocks/types/w6_grid.js';
@@ -176,13 +176,13 @@ class Stachelkugel extends Gimmick {
   onHit(kind) {
     if (this.hidden || this.lost) return;
     if (kind === 'star' || kind === 'mega' || kind === 'bomb' || kind === 'crush') {
-      this.level.sfx('brickbreak');
+      w6Sfx(this.level, 'brickbreak');
       this.level.effects?.debris(this.center(), 0x9aa0b0, 8);
       if (this.respawnT > 0 && kind !== 'crush') { this.lost = 1e-3; return; }
       this.kill();
       return;
     }
-    this.level.sfx('bump');
+    w6Sfx(this.level, 'bump');
   }
 
   render(dt, t) {
@@ -247,7 +247,7 @@ class StachelkugelQuelle extends Gimmick {
       pos: [this.pos.x + this.dir.x * 0.8, this.pos.y, this.pos.z + this.dir.z * 0.8], size: this.spec.size ?? 1.2,
       vel: [this.dir.x * sp, this.dir.z * sp], life: this.spec.life ?? 14, path: this.spec.path, mode: this.spec.path ? 'once' : undefined, speed: sp,
     });
-    if (b) { this.balls.push(b); this.spawned++; b.popT = 0.3; this.level.sfx('pipe'); }
+    if (b) { this.balls.push(b); this.spawned++; b.popT = 0.3; w6Sfx(this.level, 'pipe'); }
   }
 }
 
@@ -352,7 +352,7 @@ class Wurfball extends Gimmick {
     const e = this.spec.bounce ?? 0.5;
     if (res.hitWall) {
       const n = res.wallNormal, d = vx0 * n.x + vz0 * n.z;
-      if (d < 0) { this.vel.x = (vx0 - n.x * d * 2) * e; this.vel.z = (vz0 - n.z * d * 2) * e; this.bounces++; this.level.sfx('bump'); }
+      if (d < 0) { this.vel.x = (vx0 - n.x * d * 2) * e; this.vel.z = (vz0 - n.z * d * 2) * e; this.bounces++; w6Sfx(this.level, 'bump'); }
       res.wallShape?.owner?.onBallHit?.(this, res.wallShape);
       res.wallShape?.owner?.onHit?.('throw', this);
     }
@@ -403,7 +403,7 @@ class Wurfball extends Gimmick {
       if (!hit) continue;
       this.hitSet.add(e);
       this.hits++; this.lastHit = e.kind;
-      L.sfx('bump');
+      w6Sfx(L, 'bump');
       L.effects?.sparks(c, 8);
       // abprallen
       this.vel.x *= -0.35; this.vel.z *= -0.35; this.vel.y = Math.max(this.vel.y, 3);
@@ -509,12 +509,12 @@ class Zielscheibe extends Gimmick {
     this.resetT = 0;
     const g = this.level.targets[this.group];
     g.n++;
-    this.level.sfx('switch'); this.level.sfx('coin');
+    w6Sfx(this.level, 'switch'); w6Sfx(this.level, 'coin');
     this.level.effects?.sparks(this.center(), 12);
     runAction(this.level, this.spec.onHit, { pos: [this.pos.x, this.pos.y + this.size + 0.5, this.pos.z], source: this, via });
     if (g.n >= g.of && !g.done) {
       g.done = true;
-      this.level.sfx('powerup_appear');
+      w6Sfx(this.level, 'powerup_appear');
       for (const a of g.actions) runAction(this.level, a, { pos: [this.pos.x, this.pos.y + this.size + 1, this.pos.z], source: this });
     }
   }
@@ -629,7 +629,7 @@ class MaskItem extends Gimmick {
     if (player.helmet || player.helmetCooldown > 0) return 'none';
     if (!player.wearHelmet('maske')) return 'none';
     this.level.effects?.sparks(this.center(), 10);
-    this.level.sfx('powerup');
+    w6Sfx(this.level, 'powerup');
     if (this.respawn > 0 && !this.dropped) {
       const L = this.level, home = [this.home.x, this.home.y, this.home.z], respawn = this.respawn, kind = this.kind;
       let t = 0, done = false;
@@ -699,7 +699,7 @@ class Riesenfrageblock extends Gimmick {
     if (this.state !== 'bereit' || this.hidden) return false;
     this.state = 'waechst';
     this.via = via;
-    this.level.sfx('powerup_appear'); this.level.sfx('blockhit');
+    w6Sfx(this.level, 'powerup_appear'); w6Sfx(this.level, 'blockhit');
     this.level.shake(0.3);
     const a = contentAction(this.spec.content ?? 'coins:5', null);
     runAction(this.level, a, { pos: [this.pos.x, this.pos.y + this.S + 0.6, this.pos.z], source: this });
@@ -724,7 +724,7 @@ class Riesenfrageblock extends Gimmick {
     if (Math.floor(this.height * 2) !== Math.floor((this.height - dh) * 2)) this.level.effects?.dust({ x: this.pos.x, y: this.pos.y, z: this.pos.z }, 4, 1);
     if (this.height >= this.growTo - 1e-6) {
       this.state = 'turm';
-      this.level.sfx('slam');
+      w6Sfx(this.level, 'slam');
       runAction(this.level, this.spec.onGrow, { pos: [this.pos.x, this.pos.y + this.height + this.S + 1, this.pos.z], source: this });
     }
   }

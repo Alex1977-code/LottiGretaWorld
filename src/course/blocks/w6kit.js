@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import { figures } from './w2kit.js';
 import { modelOr } from './w5kit.js';
 import { lin, colorize, mixc, smooth } from './kit.js';
+import { engine } from '../../audio/index.js';
 
 export { figures, modelOr };
 
@@ -171,3 +172,14 @@ export function beltTexture(colors = ['#2d3142', '#ffcf3a', '#596080']) {
 
 /** Warn-Schwelle 0..1 → Puls (für Vorwarnungen: Glühen, Zittern). */
 export const pulse = (t, k, f = 14) => k * (0.6 + 0.4 * Math.sin(t * f));
+
+// Klänge: Welt-6-Namen auf vorhandene Effekte abbilden (src/audio/sfx.js kennt z. B. 'gust' nicht – unbekannte Namen
+// blieben stumm). Sobald der Audio-Agent einen Namen als eigenen Effekt anlegt, gilt dieser.
+const SFX6 = { gust: 'swoop', wind: 'hover', rumble: 'land', door: 'gate', poof: 'vanish', splash: 'splash_big', bump: 'blockhit', powerup_appear: 'powerup' };
+let sfxNames = null;
+/** Effekt abspielen: eigener Name, falls vorhanden, sonst Ersatz aus SFX6. */
+export function w6Sfx(level, name) {
+  if (!level?.sfx) return;
+  if (!sfxNames) sfxNames = new Set(engine.effects?.names ?? []);
+  level.sfx(SFX6[name] && !sfxNames.has(name) ? SFX6[name] : name);
+}
