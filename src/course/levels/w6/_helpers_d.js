@@ -850,7 +850,8 @@ export function wolkenBurg(level, cfg) {
  * mit `ride`, Neues über einem Deck fährt mit, Luke, Holzwand, Wimpel, Staub, Sparmaßnahmen) und ergänzt:
  *   · Werfer-Brüder mit `ride: '<Panzer>'` tänzeln um einen Platz, der mit dem Panzer mitfährt,
  *   · Zündköpfe (auch geworfene) über einem Deck fahren mit diesem Panzer,
- *   · weiße Wolkenfahnen statt Sandstaub, Ansagen (Zündkopf-Tipp, große ?-Blöcke).
+ *   · weiße Wolkenfahnen statt Sandstaub, Ansagen (Zündkopf-Tipp, große ?-Blöcke),
+ *   · Stampfattacke über einem fahrenden Panzer behält das Kolonnentempo (sonst landete die Figur hinter dem Ziel).
  */
 export function kolonnenSetup(level, panzerSetup) {
   level._panzerBuilt = true;                      // kein Wüsten-Abendrot (Welt-2-Haken)
@@ -882,6 +883,14 @@ export function kolonnenSetup(level, panzerSetup) {
       if (e.spec?.attach) { seen.add(e); continue; }
       const v = vehicles.find((q) => !q.removed && Math.abs(e.pos.x - q.pos.x) < q.size.w / 2 + 0.4 && Math.abs(e.pos.z - q.pos.z) < q.size.d / 2 + 0.4 && e.pos.y > q.pos.y - 0.5);
       if (v) { e.spec.attach = v.spec.id; v.scanned = -1; seen.add(e); }
+    }
+    // Stampfattacke über einem fahrenden Panzer: die Figur fährt mit der Kolonne mit (der Motor hält sie beim Stampfen
+    // waagerecht an – über einem fahrenden Deck landete sie sonst hinter dem großen ?-Block). Die Fahrzeuge sind in
+    // diesem Schritt schon gefahren (mover.dx/dz), die Figur rechnet danach.
+    for (const f of level.players ?? [level.player]) {
+      if (!f || f.dead || f.state !== 'groundpound') continue;
+      const v = vehicles.find((q) => !q.removed && Math.abs(f.pos.x - q.pos.x) < q.size.w / 2 + 0.6 && Math.abs(f.pos.z - q.pos.z) < q.size.d / 2 + 0.6 && f.pos.y > q.pos.y);
+      if (v?.mover) { f.pos.x += v.mover.dx ?? 0; f.pos.z += v.mover.dz ?? 0; }
     }
     const p = level.player;
     if (!tipp && p?.holding?.kind === 'zuendkopf') {
