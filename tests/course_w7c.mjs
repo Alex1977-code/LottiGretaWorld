@@ -316,6 +316,34 @@ const ROUTES = {
       { name: 'Kistentunnel durch Schwimmstoß geöffnet (4 Kisten), Warp-Box zur Vulkaninsel', ok: (r) => r.mech.kisten >= 4 && r.mech.warps === 1 },
       { name: 'Treffer-Versuche höchstens 2 (Rammfische und Kaulquappen meist umschwommen)', ok: (r) => r.mech.hurts <= 2 },
     ],
+    targets: [
+      { name: 'Stern 0: Kisten vor der Nische mit dem Schwimmstoß zerbrechen', star: 0, from: [0, 1, 2],
+        legs: [{ swim: [-9.6, -7.2, -8], within: 0.6, withinY: 0.6 }, { name: 'Schwimmstoß in die Kisten', swim: [-14.2, -7.4, -8], within: 0.7, withinY: 0.8, full: true, max: 900 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht mit langsamem Schwimmen (Kisten halten)', star: 0, expectNot: true, from: [0, 1, 2], heroes: ['lotti'],
+        legs: [{ swim: [-10, -7.2, -8], within: 0.6, withinY: 0.6 }, { swim: [-10.2, -7.3, -8], within: 0.4, withinY: 0.25, slow: 0.3 }, { swim: [-14.2, -7.3, -8], within: 0.7, withinY: 0.8, slow: 0.35, noStroke: true, max: 600, soft: true }, { wait: 60 }], mech: (r) => r.mech.kisten === 0, mechText: (r) => `Kisten zerbrochen ${r.mech.kisten}` },
+      { name: 'Stern 1: der Rammfisch trägt ihn in einer Blase – von oben anschwimmen', star: 1, from: [0, -3, -34],
+        legs: [{ swimTo: 'star', index: 1, dy: 0.45, within: 0.5, withinY: 0.6, max: 1500, full: true }, { wait: 20 }], shot: 'stern1' },
+      { name: 'Stern 2: Funkenblüte aus dem ?-Block, Stachelkugel in der Glasröhre verbrennen', star: 2, from: [-14.4, 1, -214.8],
+        legs: [{ to: [-14.4, -216.6], within: 0.2, run: false }, { hop: 20 }, { to: [-14.4, -215.2], within: 0.2, run: false, slow: 0.5 }, { climbOnto: [-14.4, -216.6, 4.0] },
+          { chaseKind: 'powerup', max: 300 }, { expect: 'funken' }, { to: [-13.4, -219], within: 0.2, run: false }, { fire: [1, 0], until2: 'kugelWeg', max: 1200 },
+          { expect: 'kugelWeg' }, { to: [-5, -219], within: 0.4, run: false }], shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne Funkenblüte (Stachelkugel versperrt die Röhre)', star: 2, expectNot: true, from: [-13.4, 1, -219], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [-5, -219], within: 0.4, run: false, max: 600 }, { wait: 60 }], mech: (r) => r.mech.hurts > 0, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Stempel: durchs Fenster (Rammfisch unten) und hinab auf den Felsturm', stamp: true, from: [3.4, -2.5, -173],
+        legs: [{ fishLow: 'rf_v2', below: -5, hold: [3.4, -174], depth: -2 }, { swim: [3.4, -1.6, -182.4], within: 0.7, withinY: 1, full: true }, { swim: [3.4, -2.2, -184], within: 0.5, withinY: 0.5 }, { wait: 30 }], shot: 'stempel' },
+    ],
+    extra: [
+      { name: 'Extraleben: Kiste am Rand von Kammer B', from: [10, -3, -40.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ swim: [12.4, -7.4, -40.6], within: 0.6, withinY: 0.6 }, { swim: [14.6, -7.4, -40.6], within: 0.6, withinY: 0.8, full: true, soft: true, max: 300 }, { wait: 60 }, { swimTo: 'powerup', within: 0.4, withinY: 0.8, max: 900, soft: true }] },
+      { name: 'Extraleben: unsichtbarer Block auf der Vulkaninsel', from: [6, 1.2, -106.4], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [6, -108], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Rammfisch rammt die Figur in seiner Tiefe', from: [-8, -6, -78], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ swim: [8, -6, -78], within: 0.8, withinY: 1, max: 900, soft: true }, { wait: 240 }], mech: (r) => r.mech.hurts > 0, mechText: (r) => `Treffer ${r.mech.hurts} (${r.mech.hurtList[0] ?? ''})` },
+      { name: 'Wutkaulquappe stößt die Figur im Gezeitenbecken', from: [-3, 0.2, -136], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ wait: 600 }], mech: (r) => r.mech.hurts > 0, mechText: (r) => `Treffer ${r.mech.hurts} (${r.mech.hurtList[0] ?? ''})` },
+      { name: 'Checkpoint auf der Vulkaninsel: nach einem Tod im Finale geht es dort weiter', pre: [3.2, 1.2, -104], from: [2, 1.2, -156], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [2, -163], within: 0.8, run: false }, { swim: [0, -3, -170], within: 0.6, withinY: 0.8 }, { die: 'test' }, { wait: 300 }, { until: 'lebt', max: 900 }, { wait: 30 }, { expect: 'amInselCheckpoint' }] },
+    ],
     shots: [
       ['start', [0, 1, 9]],
       ['kammerA', [0, -4, -6]],
@@ -426,6 +454,7 @@ function install() {
     vInsel: () => P().pos.z < -97 && P().pos.z > -112 && P().pos.y > 0.9,
     kugelWeg: () => { const e = L.entities.find((x) => x.spec?.id === 'seeigel'); return !e || !e.alive || e.removed; },
     funken: () => P().power === 'funken',
+    amInselCheckpoint: () => at(-18, 18, 0.9, -95, -112),
     amCheckpoint: () => at(-10, 10, G1 - 0.2, -88, -99),
   };
   const W = {
@@ -502,8 +531,9 @@ function install() {
       const settle = () => { for (let k = 0; k < 300 && p.mode !== 'ground' && p.mode !== 'swim' && !p.dead; k++) tick({}); };
       for (let li = 0; li < legs.length; li++) {
         const Lg = legs[li];
-        if (p.dead || L.runtime.status !== 'play') { if (Lg.until !== 'lebt') break; }
+        if ((p.dead || L.runtime.status !== 'play') && !(Lg.until === 'lebt' || (Lg.wait && o.waitDead))) break;
         if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait && (!p.dead || o.waitDead); i++) tick({}); continue; }
+        if (Lg.die) { p.die(Lg.die); log.push(['tot (Test)', Lg.die]); continue; }
         if (Lg.expect) { const ok = COND[Lg.expect](); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
         if (Lg.until) {
           let k = 0, ok = false;
@@ -596,11 +626,12 @@ function install() {
             const dy = ty - p.pos.y;
             if (d < (Lg.within ?? 0.6) && Math.abs(dy) < (Lg.withinY ?? 0.7)) { ok = true; break; }
             if (Lg.stopIf && COND[Lg.stopIf]()) { ok = true; break; }
-            const st = d > 0.05 ? this.stick(dx, dz, d < 0.8 && !Lg.full ? Math.max(0.3, d / 0.8) : 1) : { x: 0, y: 0 };
+            const st = d > 0.05 ? this.stick(dx, dz, Lg.slow ?? (d < 0.8 && !Lg.full ? Math.max(0.3, d / 0.8) : 1)) : { x: 0, y: 0 };
             if (p.mode !== 'swim') { tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 6) : st), run: false }); continue; }
             const headDepth = (p.water?.top ?? 0) - (p.pos.y + p.half.y * 2);
             let crouch = false, jump = false;
             if (dy < -0.35) crouch = true;
+            else if (Lg.noStroke) jump = false;                            // ohne Schwimmzüge (langsam sinken)
             else if (dy > 0.5) jump = (i % 18) < 3 && headDepth > 0.5;   // Schwimmzug (nicht an der Oberfläche: sonst Aussprung)
             else if (p.diving) jump = dy > -0.1 && headDepth > 0.3;       // schweben: gehalten langsam steigen
             tick({ ...st, crouch, jump, run: false });
