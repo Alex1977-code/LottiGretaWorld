@@ -189,7 +189,8 @@ Die Heldin nutzt den vorhandenen `HeroAvatar` (`src/three/avatars/hero.js`), Pfl
 ## Audio
 
 Themen in `src/audio/themes.js` (Eurodance, eigene Kompositionen): `course_grass`, `course_cave`,
-`course_circus`, `course_river`, `course_boss`, `course_arena`, `course_diorama`, `course_map`.
+`course_circus`, `course_river`, `course_boss`, `course_arena`, `course_diorama`, `course_map`. Die Themen der
+Welten 2–8 und der Halloween-Welt (bis zu Finale und Abspann) stehen in „Präzisierung (Audio Welten 2–4, Taktuhr)“.
 Effekte (`sfx(name)`): `jump`, `jump2`, `jump3`, `backflip`, `longjump`, `walljump`, `groundpound`,
 `slide`, `land`, `coin`, `star`, `stamp`, `powerup`, `powerdown`, `oneup`, `blockhit`, `brickbreak`,
 `pipe`, `checkpoint`, `goalpole`, `timewarn`, `claw`, `fireball`, `stomp`, `hurt`, `die`, `switch`,
@@ -2140,6 +2141,8 @@ Kennzahlen mit 1 und 5 Figuren. Bilder `tests/out/w2e_*.png`.
 **Welt 6 „Wolkeninseln“** (`src/audio/themes_world6.js`, `WORLD6_THEMES`, nach der Musik-Richtlinie, Namen aus der Welt-6-Liste): `course_clearpipe` (G-Dur, 140 BPM, Glas-Glocken, „Röhrenpost“-Hook mit Sechzehntel-Paaren, Röhren-Plopp), `course_wreck` (e-Moll, 132, Akkordeon, Schiffsglocke im Doppelschlag, Schunkel-Rhythmus 3+1, Humpa-Bass), `course_fareast` (h-Moll, 140, Bambusflöte, Koto, Gong, Holzblock – pentatonische Hook über i–VI–III–VII), `course_jungle` (F-Dur, 136, Marimba, Congas/Bongos, Vogel-Zwitschern), `course_snowwind` (A-Dur, 134, Glöckchen-„Bimmel“-Hook, Schlittenschellen, Wind-Pad, Windböen-Riser), `course_factory` (d-Moll, 144, Stakkato-Hook, Amboss, Metall-Klirren, Förderband-Ostinato), `course_fuzzymine` (c-Moll, 150, Kletter-Zickzack-Hook, Galopp-Bass), `course_bossblob` (g-Moll, 146, Zirkus-Orgel, Wabbel-Terzen-Hook, Pauken), `course_world6_map` (D-Dur, 128, 16 Takte, Kick auf 1 und 3, Glas-Windspiel). Alle 24 Takte (Karte 16), Refrain ab Takt 13 (Karte 9); kein `sync`, keine Energie-Ebene. Arenen (6-A, 6-B) spielen `course_arena`, 6-Haus `course_house`, 6-Panzer `course_tank`. `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–6 und der Halloween-Welt, dazu Tempo, Loop-Naht, Klangfarben und Pegel wie Welt 5 (`AUDIO_WORLD=6`, Pegelvergleich mit `AUDIO_WORLD=5,6`); Hörproben `tests/out/w6_<thema>_30s.wav` und `tests/out/hoerprobe_welt6.wav`.
 
 **Welt 7 „Lava-Festung“** (`src/audio/themes_world7.js`, `WORLD7_THEMES`, nach der Musik-Richtlinie, Namen aus der Welt-7-Liste): `course_fortfire` (d-Moll, 142 BPM, Fanfaren-Hook mit Quartsprung, Fanfaren-Bläser im Intro, Feuer-Whoosh vor jedem Abschnitt, fallende Feuerbälle, Knistern), `course_switchruins` (fis-Moll, 134, „Ruf und Echo“-Hook, Steinglocken, großer Hall, Tropfen, Tempelflöte, klackende Kipp-Schalter), `course_redhot` (E-Dur, 150, Countdown-Hook aus Sechzehntel-Paaren, Countdown-Piepser vor Refrain und Loop, Uhr-Ticken, Renn-Arpeggio), `course_bluebelt` (F-Dur, 138, Stampf-Hook in Vierteln, Bläser-Stabs, Stampf-Trommel), `course_traptower` (h-Moll, 146, Galopp-Treppe eine Oktave hinauf, Turm-Glockenspiel, Kettenrasseln, Lava-Riser alle vier Takte, Alarm-Sirene), `course_rammreef` (Es-Dur, 132, „Blubb-blubb“-Hook, Tiefpass auf Piano/Pad/Stabs, Wasserglocken, Blubbern, dumpfe Rammstöße, trotzdem Four-on-the-floor), `course_volcano` (e-Moll, 140, Ausbruch-Hook mit Sechzehntel-Lauf zum Gipfelton, Vulkan-Hörner, Taiko, Grollen), `course_keep` (c-Moll, 148, die Kirchenorgel spielt im Intro das Baron-Brummbär-Motiv aus `course_boss` Lead Takt 5–8 Note für Note; eigene Hook in 3+3+2-Stößen, Chor-Pad in allen Takten, Chor-Stimme, Pauken, Kettenrasseln des Kampfwagens), `course_world7_map` (g-Moll, 126, 16 Takte, Kick auf 1 und 3, Lava-Blubbern, fernes Grollen). Alle 24 Takte (Karte 16), Refrain ab Takt 13 (Karte 9); kein `sync`, keine Energie-Ebene. Arenen (7-A, 7-B, 7-C) spielen `course_arena`, 7-Kapitän `course_diorama`. `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–7 und der Halloween-Welt, dazu Tempo, Loop-Naht, Klangfarben und Pegel wie Welt 5 (`AUDIO_WORLD=7`, Pegelvergleich mit `AUDIO_WORLD=5,7`); Hörproben `tests/out/w7_<thema>_30s.wav` und `tests/out/hoerprobe_welt7.wav`.
+
+**Welt 8 „Brummbär-Rummelplatz“** (`src/audio/themes_world8.js`, `WORLD8_THEMES`, nach der Musik-Richtlinie, Namen aus der Welt-8-Liste): `course_rainfort` (cis-Moll, 140 BPM, „Donner-Ruf“-Hook mit Quintsprung und rieselnden Sechzehnteln, Festungshörner, Regentropfen, Regenrauschen, Donner), `course_dunes` (A-Dur, 144, Dünen-Schwung-Hook, Wüstenflöte, Kanun-Zupfer, Darbuka, Schellenkranz, Energie-Ebene beim Reiten), `course_cookie` (F-Dur, 138, Spieluhr-Hüpfer-Hook, Spieluhr, Glockenspiel, Holzblock-Klappern, Zahnrad-Ticken), `course_baronexpress` (g-Moll, 146, Kolben-Stoß-Hook aus vier Sechzehnteln, Dampfstöße, Schienenstöße, Dampfpfeife, Zugglocke, Räder-Rhythmus 3-3-2), `course_footlight` (e-Moll, 136, Leucht-Stufen-Hook, Glas-Glocken, glitzernde Sechzehntel-Arpeggien, Leucht-Pings, Stampfstein-Schläge), `course_dungeon` (f-Moll, 130, Wellengang-Hook, Tiefpass und viel Hall, Wasserglocken, Blubbern, Sonar-Ping, Energie-Ebene für den Pflaume-Abschnitt), `course_beamdark` (a-Moll, 132, Kicher-Geist-Hook, Celesta, Geisterbahn-Orgel, Theremin-„Huuu“, Standuhr, Klopfen), `course_inferno` (d-Moll, 150, Felsklotz-Rollen-Hook „da-da-DUM“, Kristall-Glocken, Hoover-Riser, Stampfen, Grollen), `course_finale` (c-Moll, 150, **32 Takte** mit zweitem Refrain: die Kirchenorgel spielt im Intro das Baron-Brummbär-Motiv aus `course_boss` Lead Takt 5–8 Note für Note und in beiden Refrains eine Oktave tiefer als Gegenstimme unter der eigenen Heldenhook für Lotti und Greta; Chor-Pad in allen Takten, Chor-Stimme, Pauken, Turmglocke, Glockenspiel), `course_abspann` (G-Dur, 126, **40 Takte, `loop: false`, ≈ 76 s**: Intro mit Spieluhr, Strophe, Refrain mit „Danke“-Hook über I–V–vi–IV, Erinnerung mit Zitaten aus Welt 1 – die Hook von `course_grass` im Glockenspiel und das Riff von `world1` im Lead –, zweiter Refrain, Schluss e C D G mit langem G-Dur-Akkord; die Musik endet von selbst: danach `music.beat().playing === false` und `music.current === null`, Dauer vorab `music.themeInfo('course_abspann').seconds`; wer länger zeigt, spielt danach z. B. `course_world8_map`), `course_world8_map` (Es-Dur, 128, 16 Takte, Drehorgel im Walzer-Schwung mit „Umpa-pa“ über weichem Four-on-the-floor, Karussell-Glöckchen, Schellen). Sonst 24 Takte, Refrain ab Takt 13 (Karte 9); kein `sync`. 8-A spielt `course_bossblob`, 8-B `course_boss`, 8-Haus `course_house`. `tests/audio.mjs` prüft die Hooks gegen alle Themen der Welten 1–8 und der Halloween-Welt, dazu Tempo, Loop-Naht (Abspann: Schluss und Ausklang), Klangfarben und Pegel wie Welt 5 (`AUDIO_WORLD=8`, Pegelvergleich mit `AUDIO_WORLD=5,8`); Hörproben `tests/out/w8_<thema>_30s.wav`, `tests/out/w8_abspann.wav` (ganzes Stück) und `tests/out/hoerprobe_welt8.wav`.
 
 **Neue Effekte** (`sfx(name)`): `clone`, `clone_lost`, `helm_on`, `helm_off`, `cannon`, `propeller`, `light`, `quicksand`, `sand_crumble`, `peck`, `bullet`, `boss_hit`, `boss_spin`, `house_tick`, `room_clear`, `ice_slide`, `snowball`, `ghost`, `splash_big`, `train_whistle`, `beep`, `beep_switch`.
 
@@ -6854,3 +6857,133 @@ Kampf ≈ 27/42 s mit echten Würfen, Platschfische bis zu vier gleichzeitig); a
 Draufspringen schaden dem König nicht, Tod setzt den Kampf zurück, Zeitlimit 200 s. Gemessen (scale 2, inkl. Schattenpass,
 Messgang alle ~7 m der Route und Bilder je Abschnitt): 7-1 30–84 Zeichenaufrufe / ≤ 198 k Dreiecke · 7-2 35–79 / ≤ 127 k ·
 7-A 45–75 / ≤ 135 k.
+
+## Präzisierung (Level 7-3, 7-4 und 7-B)
+
+Additiv zur Welt-7-Liste: Titel und Besonderheiten der Level 7-3, 7-4 und 7-B. Dateien `src/course/levels/w7/7-3.js`, `7-4.js`,
+`7-B.js`, eigene Hilfen `src/course/levels/w7/_helpers_b.js` (kein `LEVEL`, nur für diese drei Level; reicht `isl`, `line`,
+`ring`, `arc`, `column`, `sign`, `prinzKampf` aus `w6/_helpers_b.js`, `wimpelkette` aus `w6/_helpers_a.js` und `Bld`, `litTop`,
+`gradY`, `glowPoints` aus `w5/_helpers_b.js` weiter), Test `tests/course_w7b.mjs`. **Kein Motor-Code geändert**; alle
+Sonderteile sind level-lokal (Hilfsdatei, Haken `LEVEL.build`/`LEVEL.setup`). Bausteine nach „Präzisierung (Motor und Bausteine
+Welt 7)“, Gegner nach „Präzisierung (Gegner Welt 7)“.
+
+### 7-3 „Pfeilflitzer über dem Glutstrom“ (parcours · lavarun · course_redhot · 100 s)
+
+- Rennstrecke aus Basalt-Dämmen hoch über dem Glutstrom (Wege y 2/5/8, Ziel y 11; Kulissen-Lava y −9 mit Tötungsfläche
+  `lavaGrund`), ≈ 480 m nach −Z, **genau 56 Boost-Pfeile** (`pfeile`: Auslöser `boost` + flache Platten + ein InstancedMesh
+  mit Lauflicht-Chevrons; vor Slaloms und Röhreneinfahrten keine bzw. schräge Pfeile, die in die Röhre lenken). Abschnitte:
+  **Start** (Renn-Torbogen mit Karo-Band, Tribünen, Startlinie, ?-Block mit Wurfsichel) → **Rasstrecke 1** (3-m-Damm mit
+  Pfeilen und Lücke → Donut-Brücke → Walzen-Slalom → Glasröhre 1 hinauf → Gabelung aus drei Wegen: links Donut-Blöcke, Mitte
+  Pfeile und Lücke, rechts zwei Walzen → Kontrollpunkt 1) → **Rasstrecke 2** (Sternring auf dem Pfeil-Damm → Grubenplateau →
+  linker Abzweig über eine Lücke zum Stempel → Donut-Brücke → Walzen-Slalom → Glasröhre 2 → Gabelung: links Pfeile und Lücke,
+  Mitte drei Walzen, rechts Donuts → Kontrollpunkt 2) → **Dreifach-Gabelung** (links Donut-Zickzack, Mitte Pfeile und Lücke,
+  rechts Walzen-Slalom; jeder Weg endet in einer Einbahn-Glasröhre aufs Zielplateau mit Zieltor, Tribünen, Karo-Flaggen).
+- Sterne: 0 am Ende des **rechten Wegs** der ersten Gabelung (über zwei Stachelwalzen) · 1 **Sternring** (acht Sternmünzen
+  den Pfeil-Damm entlang, 10 s, die letzten zwei über eine kleine Rampe auf einem Sims; der Stern erscheint über der Grube) ·
+  2 am Ende des **Mittelwegs** der zweiten Gabelung (durch drei Walzen). Stempel: linker Abzweig kurz nach Stern 1 auf einer
+  Insel hinter einer Lücke; zurück mit einem Sprung auf den Hauptweg.
+- Geheimnis: in der **Grube** (wo Stern 1 erscheint) eine grüne Röhre ins **Pilzling-Versteck** (x ≈ 140, ummauerter Glut-Hof
+  mit 24 Pilzlingen, die Münzen fallen lassen; ?-Block mit **Funkelstern**, Münzblock, Münzringe, Röhre zurück aufs
+  Grubenplateau). Extraleben: unsichtbarer Block auf dem ersten Gabelungsplateau, unsichtbarer Block im Versteck.
+- Bausteine: Stachelwalze 13 (`stachelwalze_rot`, liegend auf Eisenböcken), Donut-Blöcke 116 in drei Gruppen, Glasröhren 5,
+  Röhren 4. Gegner: Pilzling 24 (nur im Versteck). Die Donut-Blöcke nutzen die Mechanik von `donutblock`, zeichnen aber ein
+  eigenes Low-Poly-Instancing (`donutBloecke`: Baustein-Ansicht abgehängt) – das Standardmodell hätte 116 × 4,5 k Dreiecke
+  ohne Frustum-Culling gekostet.
+- Kulisse: leuchtende Mittelstreifen und Randpfosten auf den schmalen Dämmen (`fahrbahn`, ohne Kollision), Karo-Linien an
+  Start und Ziel, Wimpelketten, Basaltwände und -säulen, Lavafälle, Glutrisse, Glutfunken, Fackeln, Knochen, Leitwände an den
+  Röhrenmündungen (`bruestung`).
+
+### 7-4 „Schubser-Rummel im Blauglutkessel“ (parcours · bluelava · course_bluebelt · 400 s)
+
+- Festungskessel mit blauem Lavasee (ein `lavaspiegel`, y 0) und kleinen Steinbauten (Oberseite y 1,5) mit Zinnen,
+  Goldkappen und blau glühenden Fenstern (`festungRand`), ≈ 230 m nach −Z. Abschnitte: **Start** (Festungshof, Sternring,
+  ?-Block mit Wurfsichel) → **Pfeilplattformen** (sieben `pfeilplattform` `style: 'blau'` tauchen aus der Lava auf und
+  versinken; Steinbau A mit zwei Pendelstacheln, B mit Schubser und zwei Walzen, C mit zwei Walzen und der Rätselbox,
+  Steinbrücke mit zwei Pendelstacheln, D mit Kontrollpunkt und einer Walze) → **Zylinderzone** (Zylinder 1 → E mit zwei
+  Walzen → drei Pfeilplattformen fahren aus einer hohen Mauer (`from: 'wand'`) → F mit Schubser und einer Walze → Zylinder 2
+  mit zwei Stachelreihen → G mit zwei Pendelstacheln → Zylinder 3 → H mit zwei Walzen → Zylinder 4 → I mit zwei Walzen und
+  der Röhre zum Finale) → **Finale** (x ≈ 60, Kontrollpunkt 2 am Röhrenausgang: zwei Walzen → **Kippplattform** mit drei
+  Schubsern – alle in die Lava gestoßen (`task`, Belohnung `reveal`) tauchen drei Pfeilplattformen `mode: 'signal'` zum
+  Zielhof auf).
+- Sterne: 0 **Sternring am Start** (acht Sternmünzen auf Hof, zwei Seitensäulen und in zwei Sprüngen, 15 s) · 1
+  **Rätselbox** hinter den Walzen von C (`warpbox` in den Raum bei x ≈ 100; den Schubser in die Lava stoßen → Stern; zurück
+  per Warp-Box) · 2 auf einem **Sims** rechts neben Zylinder 3 (vom Zylinder seitlich hinüberspringen). Stempel: kleine runde
+  Plattform (`rundPlatte`) links vor der Rätselbox.
+- Extraleben: unsichtbarer Block über Steinbau B, unsichtbarer Block am Röhrenausgang des Finales; zweiter ?-Block mit
+  Wurfsichel und Münzblock am Kontrollpunkt. Auf C und D je ein Podest unter dem Knochenflieger – von dort springt man über
+  ihn und stampft ihn.
+- Gegner: Schubser 6 (B, F, Rätselbox, drei auf der Kippplattform; `guard`/`chase`), Knochenflieger 5 (`center` + `radius` 3,
+  y + 3,8 über C, D, E, H, I – Kreise abseits der Sprungbögen), Lavablase 8 (blau). Bausteine: Stachelwalze 14, Pendelstachel 6
+  (blau), Zylinder 4 (`style: 'blau'`, einer mit Stacheln), Pfeilplattform 13, Röhren 2 (blau).
+- Kippplattform: `kippPlatte` nutzt die Mechanik der Wippe aus `w6_ship` (`TYPES.wippe`, Ansicht abgehängt) mit eigener
+  Platte (Warnstreifen, Runenring) und Lagerbock; 14 × 8 m, Neigung bis 7°.
+
+### 7-B „Blaufeuer-Prinz im Glutzwinger“ (arena · fortress · course_arena · 300 s, 1 Stern)
+
+- Basalt-Festung hoch über dem Lavasee; in der Mitte der **Glutzwinger** (`glutZwinger`, Innenfläche 20 × 20 m): Basaltplatten
+  mit glühenden Fugen, roter Läufer, blau leuchtendes Flammenkronen-Mosaik, Eisenstäbe mit glühenden Spitzen, vorn nur eine
+  Brüstung mit Fallgitter-Tor (Kamera sieht alles), an beiden Seiten je drei Röhrenmündungen unter Torbögen mit blauen
+  Feuerschalen; die Glasröhren (Netz `roehren`, für die Figur gesperrt) laufen hinter dem Käfig herum. Unsichtbare
+  Käfigkollision samt Decke. Tribünen mit Zuschauern, vier Festungstürme (`look: 'eigen'`), blaue Fackeln, Lavafälle.
+- Ablauf nach `prinzKampf` (wie 6-A): Tor schließt sich, Lebensleiste „Blauer Schubser-Prinz“; `schubser_prinz` mit
+  `color: 'blau'`, `fire: [3, 4, 5]`, `curve: 1.1`. Drei Tritte nach Röhrenfahrten, dann steigt der Stern in der Mitte auf;
+  Tod: Neustart vor dem Tor, Prinz wieder 3/3.
+- ?-Block mit fünf Münzen, Münzblock, unsichtbarer Block mit Extraleben vor dem Tor; Münzringe in den vier Ecken.
+
+### Hilfen `_helpers_b.js`
+
+Lava und Strecke: `lavaGrund`, `stuetzen`, `pfeile`, `karoV`, `karoLinie`, `startTor`, `fahrbahn`, `flaggen`, `lavaRinne`,
+`basaltWand`, `glutfunken`, `bruestung` · Mechanik mit eigener Ansicht: `donutLowGeo`, `donutBloecke`, `kippPlatte`,
+`rundPlatte` · Festung: `festungRand`, `crownShape`, `glutZwinger`.
+
+### Test `tests/course_w7b.mjs`
+
+Port 4720 (+ `PORT_BASE`), Aufruf `node tests/course_w7b.mjs [7-3|7-4|7-B]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,shots` (je Lauf < 10 min; 7-4 am besten `load,route,sweep` und `targets,extra,shots`
+getrennt), `HEROES=lotti,greta`, `ONLY=<Text>`, `VERBOSE=1`, `TRACE=1`, `SHOTS=<Name|…>`, `DETAIL=1`, Bilder
+`tests/out/w7b_*.png`. Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier), auf der Route unverwundbar,
+Treffer-Versuche werden gezählt; Beine u. a. `pipe` (Glasröhre), `crouch` (Röhre), `warp`, `push` (Schubser in die Lava
+stoßen, mit Ausweichen vor weiteren Schubsern), `waitPlat` (Pfeilplattform), `waitPend` (Pendelstachel), `waitZyl`
+(Stachelreihe), `fight` (Prinz mit Röhrenfahrt und Feuerball-Sprüngen), `stompAll`, `stompBoss`, `chaseKind`;
+Knochenflieger-Reflexsprung im Sturzflug-Fenster.
+Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegner- und Bausteinzahlen (56 Pfeile, 13/14 Walzen, 6 Pendel, 4 Zylinder,
+13 Pfeilplattformen, 24 Pilzlinge, 6 Schubser, 5 Knochenflieger); Routen-Bot Lotti und Greta Start → Ziel **ohne einen
+Treffer-Versuch** (7-3 ≈ 38/38 s mit 33 Boosts und drei Röhrenfahrten; 7-4 ≈ 107/146 s mit fünf Schubsern in der Lava; 7-B
+Kampf ≈ 33 s mit drei Röhrenfahrten und drei Tritten); alle Sterne und Stempel mit Gegenproben (Mittelweg statt rechtem Weg,
+über die Grube ohne Sternring, linker statt mittlerer Weg, Stempel nicht vom Hauptweg, Hof ohne Sternring, Rätselbox ohne
+Stoß, Überqueren des Zylinders ohne Seitensprung, Weg über C); Extras (Versteck mit Funkelstern und Pilzlingen, fünf
+Extraleben, Donut-Blöcke fallen in die Lava, Zeitlimit 100 s, Walze und Pendel verletzen, Pfeilplattform versinkt mit der
+Figur, Zylinder dreht zur Kamera, Kippplattform neigt sich, Knochenflieger vom Podest besiegt, Kippplattform-Aufgabe,
+7-B: Tor und Lebensleiste, 3/4/5 blaue Feuerbälle, Abprall ohne Röhre, Tod setzt den Kampf zurück). Gemessen (scale 2, inkl.
+Schattenpass, Messgang alle ~8 m der Route und Bilder je Abschnitt): 7-3 38–73 Zeichenaufrufe / ≤ 186 k Dreiecke · 7-4
+39–94 / ≤ 199 k · 7-B 47–80 / ≤ 254 k.
+
+## Welt 8 – Level-Liste und Freischaltung (Hauptsitzung)
+
+Welt 8 „Brummbär-Rummelplatz“ (Erzfeind-Vergnügungspark, dunkles Baron-Land mit Rummel, Achterbahnen und dem großen Turm)
+wird nach Sieg über `7-Burg` frei (Glasröhre `W8` auf der Welt-7-Karte, bisher „Welt 8 kommt bald!“). Sternbedarf zählt
+**alle** Sterne (Welt 1–7: 206, dazu die Halloween-Welt). Es ist das **Finale**: Baron Brummbär hält die befreiten Freunde
+der Reise (Krümel, Flocke, Hoppel und weitere kleine Tiere) in einem großen Glas auf der Turmspitze gefangen.
+
+| Id | Archetyp | Thema | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `8-1` | parcours (regnerische Außenfestung: Stachelbrücken im Takt, Feuer-Werfer, Knochenflieger-Gruppen, die sich neu zusammensetzen) | rainfort | course_rainfort | 3 + Stempel | Welt 8 offen |
+| `8-2` | ride (Wüsten-Abfahrt auf Pflaume: Schubfelder, Sandflosser, Pilzling-Sandskulpturen, Baron-Sandstatuen) | dunes | course_dunes | 3 + Stempel | 8-1 |
+| `8-3` | parcours (Keks-Fabrik: drehende Kekse und Keks-Zahnräder, Riesenschnappblumen, Zahnradwand, Hörner-Ameisen-Straße) | cookie | course_cookie | 3 + Stempel | 8-2 |
+| `8-Zug` | autoscroller + boss (Baron-Express: Hackvogel-Wagen, Wasserbecken, Mini-Pilzlinge, zweiter Kampf gegen die Schattenläuferin) | train | course_baronexpress | 3 + Stempel | 8-3 |
+| `8-4` | parcours (Nacht-Festung: unsichtbare Stege leuchten nur um die Figur und bei Aufschlägen/Stampfen auf) | nightfort | course_footlight | 3 + Stempel | 8-Zug |
+| `8-5` | parcours unterwasser (Unterwasser-Festung: Steigbecken, schwebende Wasserkörper, Stachelblöcke, kurzer Pflaume-Abschnitt) | dungeon | course_dungeon | 3 + Stempel | 8-4 |
+| `8-Haus` | house (10 Räume à 10 s, alles nur mit Krallen-Anzug kletternd) | house | course_house | 10 | 8-4 |
+| `8-6` | parcours (stockdunkles Spukhaus, Licht-Helm-Pflicht, Aufzugfahrten, großer Spiegel, Großspuk-Jagd) | darkghost | course_beamdark | 3 + Stempel | 8-5 |
+| `8-7` | parcours (Lava-Inferno: Kristall-Felsklötze rollen los, wenn man draufsteht, Stampfen beschleunigt) | inferno | course_inferno | 3 + Stempel | 8-6 |
+| `8-A` | parcours + boss (Anlauf, Seilbahn, Zirkusarena: **goldene Würfelblase**, Landungen mit Schockwellen) | circus | course_bossblob | 3 + Stempel | 8-7 |
+| `8-B` | parcours + boss (wie 3-B: **rosa Schlangenkönig**, geschleuderte Lavabrocken hinterlassen Lavapfützen) | circus | course_boss | 3 + Stempel | 8-7 |
+| `8-Burg` | parcours + boss, Finale (Rummelplatz um den großen Turm: Autowrack, Dächer mit Lavabrocken-Regen, Riesenrad mit 4 Schubsern, Turm hinauf; **Baron Brummbär im Krallen-Anzug** klettert, rutscht, reißt Wände ein, vervielfacht sich mit Spiegelfrüchten; Gipfel: Super-POW-Block 4× anstoßen, Glas der Freunde zerbricht, Abspann) | baronpark | course_finale | 3 + Stempel | 8-A **und** 8-B **und ≥ 190 Sterne** |
+
+Welt 8 hat 43 Sterne. Neu: unsichtbare Leuchtstege (8-4), Kristall-Felsklötze (8-7), Steigbecken/schwebende Wasserkörper
+(8-5), Keksräder und Keks-Zahnräder (8-3), Schubfelder in der Wüste (8-2), Riesenrad, Lavabrocken-Regen, Super-POW-Block,
+Spiegel mit Spiegelbild-Stern (8-6); Gegner Sandflosser, Knochenflieger-Gruppe (setzt sich neu zusammen), Hackvogel
+(vorhanden prüfen); Varianten goldene Würfelblase, rosa Schlangenkönig, Schattenläuferin 2; Endboss **Baron Brummbär im
+Krallen-Anzug** (Feuerbälle, Wandklettern, Krallenhiebe, Spiegelfrucht-Doppelgänger, Super-POW auf der Turmspitze).
+**Abspann:** nach dem Sieg eine eigene, liebevolle Abspann-Szene (befreite Freunde, Lotti und Greta, Pflaume, Krümel,
+Musik `course_abspann`), danach zurück zur Karte; der Spielstand merkt sich „Spiel geschafft“.
