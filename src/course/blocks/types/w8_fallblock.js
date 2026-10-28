@@ -82,7 +82,8 @@ export function buildFallblockBruecke(level, spec) {
       st.state = 'ruhe'; st.t = 0;
       for (const b of blocks) { b.state = 'fest'; b.t = 0; b.due = Infinity; b.vy = 0; b.mb.setSolid(true); b.mb.moveTo(b.x, b.y, b.z, 0); b.mb.still(); }
     },
-    info: () => ({ state: st.state, fallen: st.fallen, blocks: blocks.map((b) => b.state[0]).join('') }),
+    // blocks: je Block ein Zeichen – '#' fest, '~' wackelt, 'v' fällt, '_' weg
+    info: () => ({ state: st.state, fallen: st.fallen, blocks: blocks.map((b) => ({ fest: '#', wackelt: '~', faellt: 'v', weg: '_' })[b.state]).join('') }),
   };
   for (const b of blocks) b.mb.shape.owner = handle;
   if (spec.id) level.named.set(spec.id, handle);

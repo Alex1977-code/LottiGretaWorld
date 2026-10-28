@@ -82,7 +82,7 @@ export const LEVEL = {
     { type: 'island', pos: [0, -12, -77.15], size: [26, 9.6, 0.6], under: 0, top: 'rock' },
     { type: 'island', pos: [0, -12, -84.15], size: [26, 6.6, 0.6], under: 0, top: 'rock' },
     { type: 'kristall_felsklotz', id: 'wuerfel', variant: 'wuerfel', pos: [0, -2.55, -70.6], color: 'blau',
-      path: [[0, -2.55, -75.6], [0, -5.55, -75.8], [0, -5.55, -82.6], [0, -8.55, -82.8], [0, -8.55, -91]], speed: 2.6 },
+      path: [[0, -2.55, -78.2], [0, -5.55, -78.4], [0, -5.55, -85.2], [0, -8.55, -85.4], [0, -8.55, -91]], speed: 2.6 },
     plat(-94, -100, -8),
     { type: 'stairs', pos: [0, -8, -100], dir: '-z', steps: 8, rise: 1, run: 1, width: 5, style: 'stone' },
     plat(-108, -114),

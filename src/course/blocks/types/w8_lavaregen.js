@@ -12,7 +12,7 @@
 //     flight: 1.8, warn: 1.2 (≤ flight), radius: 1.1, size: 0.6, puddle: 0, aim: 0, phase: 0, seed: 1,
 //     start: 'auto' | 'signal' | { box: [x0, y0, z0, x1, y1, z1] } (startet, sobald eine Figur den Kasten betritt) }
 //   level.named.get(id) = { state ('aus'|'an'), rocks: [{ state, x, y, z, tx, ty, tz, t }], impacts, hits, start(), stop(),
-//     info() }; w8(level).rains. Modell: Registry 'lavabrocken' ({ size }; state { t }) für die Brocken, sonst Feuerkugel mit
+//     info() → { state, flying, warn (Brocken mit Landemarke), impacts, hits, waves, puddles } }; w8(level).rains. Modell: Registry 'lavabrocken' ({ size }; state { t }) für die Brocken, sonst Feuerkugel mit
 //   Krustenflecken; Landemarke eigene Ringe.
 //   Beispiel: { type: 'lavabrocken_regen', id: 'regen', area: [-8, -120, 8, -100], period: 1.4, warn: 1.1 }
 
@@ -62,7 +62,8 @@ export function buildLavabrockenRegen(level, spec) {
   const handle = {
     get state() { return st.on ? 'an' : 'aus'; }, rocks, puddles, get impacts() { return st.impacts; }, get hits() { return st.hits; },
     start() { st.on = true; }, stop() { st.on = false; },
-    info: () => ({ state: st.on ? 'an' : 'aus', flying: rocks.filter((r) => r.state === 'flug').length, impacts: st.impacts, hits: st.hits, waves: st.wave, puddles: puddles.filter((q) => q.t > 0).length }),
+    info: () => ({ state: st.on ? 'an' : 'aus', flying: rocks.filter((r) => r.state === 'flug').length, warn: rocks.filter((r) => r.state === 'flug' && r.t >= 0 && T.flight - r.t <= T.warn).length,
+      impacts: st.impacts, hits: st.hits, waves: st.wave, puddles: puddles.filter((q) => q.t > 0).length }),
   };
   if (spec.id) level.named.set(spec.id, handle);
   w8(level).rains.push(handle);
