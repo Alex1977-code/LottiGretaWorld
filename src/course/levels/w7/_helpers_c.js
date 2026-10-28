@@ -492,6 +492,44 @@ export function fernSicht(level, dist = 60) {
 }
 
 /**
+ * Kleinkram in der Ferne nicht zeichnen: Schilder, Wasserkörper, Glasröhren (unbenannte Meshes der Szene) und die Modelle
+ * der Arten kinds (Warp-Box, Checkpoint, Zielmast, Sterne, Stempel …), sobald ihr nächster Punkt weiter als dist m von der
+ * Kamera entfernt ist. Ausgeblendet wird über die Ebene (layers), nicht über visible – die Sichtbarkeit, die eine Entität
+ * selbst setzt (versteckte Warp-Box, eingesammelter Stern), bleibt unberührt. Liefert { hidden }.
+ */
+export function fernModelle(level, dist = 85, kinds = ['warpbox', 'checkpoint', 'goal', 'star', 'stamp', 'stachelkugel']) {
+  const v = level.view;
+  if (!v?.three) return null;
+  const KIND = new Set(kinds), st = { hidden: 0 };
+  let items = null;
+  const tmp = new THREE.Vector3(), c = new THREE.Vector3();
+  const setLayer = (obj, far) => obj.traverse((o) => { if (far) o.layers.set(5); else o.layers.set(0); });
+  v.onFrame(() => {
+    if (!items) {
+      items = [];
+      for (const ch of v.three.children) {
+        if ((ch.name && ch.name !== 'glasgang') || ch.isPoints || ch.isLight || ch.isCamera) continue;
+        const b = new THREE.Box3().setFromObject(ch);
+        if (!b.isEmpty() && b.getSize(tmp).length() < 60) items.push({ obj: ch, box: b, far: false });
+      }
+      for (const e of level.entities) if (KIND.has(e.kind) && e.model?.root) items.push({ obj: e.model.root, e, far: false });
+    }
+    const cam = v.camera.position;
+    let n = 0;
+    for (const it of items) {
+      let d;
+      if (it.box) { it.box.clampPoint(cam, c); d = c.distanceTo(cam); }
+      else { it.obj.getWorldPosition(c); d = Math.hypot(c.x - cam.x, c.z - cam.z); }
+      const far = d > dist;
+      if (far !== it.far) { it.far = far; setLayer(it.obj, far); }
+      if (far) n++;
+    }
+    st.hidden = n;
+  });
+  return st;
+}
+
+/**
  * Unter Wasser endet die Sicht im Nebel – die Kamera zeichnet dann nur bis far m (Zielmast, Sterne, Schilder und Modelle
  * weiter vorn im Level kosten sonst Zeichenaufrufe, obwohl der Nebel sie ganz verdeckt). Über Wasser gilt wieder die
  * ursprüngliche Sichtweite. o = { sea: Wasserhöhe (0), far: 62 }
