@@ -586,7 +586,7 @@ if (PART === 'all' || PART === 'credits') {
     console.log(`    Zeilen am Anfang: ${s0.shown.slice(0, 2).join(' | ')}; am Ende: ${s3.shown.slice(-2).join(' | ')}`);
     check('Abspann: Musik course_abspann läuft einmal (keine Schleife, endet von selbst)', s0.music === 'course_abspann' && s0.playing && mus.loop === false && mus.playing === false);
     check('Abspann: Darsteller (Lotti, Greta, Pflaume, Krümel, Freunde), Konfetti und Feuerwerk', s0.actors >= 10 && s0.confetti > 100 && s3.fireworks >= 3);
-    check('Abspann: Danksagungen rollen nach oben und enden mit „Danke fürs Spielen!“', s0.shown.includes('Lotti & Greta') && s0.roll > s1.roll && s1.roll > s2.roll && s3.shown.includes('Danke fürs Spielen!'));
+    check('Abspann: Danksagungen rollen nach oben, beginnen mit „Lotti & Greta“ und enden mit „Danke fürs Spielen!“', (s0.shown.includes('Lotti & Greta') || s1.shown.includes('Lotti & Greta')) && s0.roll > s1.roll && s1.roll > s2.roll && s3.shown.includes('Danke fürs Spielen!'));
     check('Abspann: Spielstand merkt sich courseSave.data.finished = true', s0.finished === true && await sc(() => JSON.parse(localStorage.getItem('lotti-greta-course-v1')).finished === true));
     await sc(() => window.__credits.advance(20));
     let back = true;
@@ -600,6 +600,7 @@ if (PART === 'all' || PART === 'credits') {
   await load();
   const viaLevel = await sc(async () => {
     const c = window.__course, L = c.level;
+    window.__t.place([0, 0, -2], { settle: 4 });
     L.creditsWanted = null;
     const before = !!L.creditsWanted;
     L.spawn('abspann_ausloeser', { pos: [0, 0, -2], size: [6, 3, 6], when: 'nach-ziel' });

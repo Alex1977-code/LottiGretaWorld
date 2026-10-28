@@ -224,6 +224,7 @@ export class CreditsScene extends Phaser.Scene {
       const s = [1.25, 1.1, 1.4, 1.0, 1.2, 0.95, 1.3][i];
       const f = modelActor(view, 'bunny_small', [0, 0, 0], s);
       f.root.traverse((o) => { if (o.isMesh) o.castShadow = false; });   // Schatten-Blob genügt (Zeichenaufrufe)
+      view.instanceModel(f.root, 'abspann_freund');                      // gleiche Teile aller Freunde als Instanzen
       f.phase = (i / FRIENDS) * TAU;
       f.r = 4.3 + (i % 2) * 0.5;
       this.friends.push(f);
@@ -258,7 +259,8 @@ export class CreditsScene extends Phaser.Scene {
   buildRoll() {
     const W = GAME.width, H = GAME.height;
     this.lines = creditLines();
-    this.roll = this.add.container(W / 2, H + 12).setDepth(20);
+    this.rollStart = H - 30;   // der Titel steht gleich zu Beginn unten im Bild
+    this.roll = this.add.container(W / 2, this.rollStart).setDepth(20);
     let y = 0;
     this.lineY = [];
     for (const [text, style] of this.lines) {
@@ -273,7 +275,7 @@ export class CreditsScene extends Phaser.Scene {
     this.rollH = y;
     // Rollgeschwindigkeit: die letzte Zeile erreicht die Bildmitte, wenn die Musik endet
     this.rollStop = H * 0.48 - this.lineY[this.lineY.length - 1];
-    this.rollSpeed = (H + 12 - this.rollStop) / Math.max(10, this.duration - 4);
+    this.rollSpeed = (this.rollStart - this.rollStop) / Math.max(10, this.duration - 4);
     this.skip = uiButton(this, W - 44, H - 18, 'Weiter ›', { size: 9, dark: true, padX: 8, padY: 4, minWidth: 64 }).setDepth(30).setVisible(false);
     this.skip.on(Phaser.Input.Events.POINTER_DOWN, () => { if (this.t > 3) { sfx('select'); this.finish(); } });
     const kb = this.input.keyboard;
@@ -334,7 +336,7 @@ export class CreditsScene extends Phaser.Scene {
   tick(dt) {
     this.t += dt;
     if (this.roll) {
-      const y = Math.max(this.rollStop, GAME.height + 12 - this.rollSpeed * this.t);
+      const y = Math.max(this.rollStop, this.rollStart - this.rollSpeed * this.t);
       this.roll.y = y;
     }
     if (this.skip) this.skip.setVisible(this.t > 3 && !this.ending);
