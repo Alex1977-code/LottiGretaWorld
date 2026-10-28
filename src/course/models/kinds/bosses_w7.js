@@ -31,7 +31,8 @@
 //                   und glühenden Rissen, Lava tropft herab.  opts { width (Z, 6), depth (X, 1,5) }  **Ursprung = Mitte der
 //                   Kante oben** (y = 0).
 //     luecke:       Lavalücke: zwei Kanten im Abstand width (X, 3) über glühender Lava (1,2 m tiefer), Schein.
-//                   opts { width (X, 3), length (Z, 6) }  **Ursprung = Mitte der Lücke auf Fahrbahnhöhe**.
+//                   opts { width (X, 3), length (Z, 6), depth (Kantentiefe je Seite, 1,5) }  **Ursprung = Mitte der Lücke auf
+//                   Fahrbahnhöhe**.
 //   state { anim: 'idle', up, warn } (nur Stachelfalle)
 
 import {
