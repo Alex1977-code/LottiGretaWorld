@@ -23,6 +23,7 @@ import { isl, line, ring, farHide, levelSetup, cullStatic, heroShadowDiet } from
 
 const Y0 = 0, YH = -10.5, YD = -6, YF = -6.5, YW = -7.6, YG = 4;
 const RX = 90;                          // Schlittschuh-Bahn (Rätselbox)
+const BAHN_R = 6.9;                     // Kreis der blauen Münzen (ganz auf dem Stachelrahmen)
 
 const snow = (x0, x1, zA, zB, top, h = 6, o = {}) => isl(x0, x1, zA, zB, top, h, { top: 'grass', under: 2, ...o });
 const sign = (x, y, z, text, o = {}) => ({ type: 'sign', pos: [x, y, z], text, ...o });
@@ -78,7 +79,7 @@ export const LEVEL = {
     { type: 'schneefeld', pos: [0, Y0 - 2, -3], size: [18, 2, 22], under: 2.5 },
     snow(-8, -5.6, -1.6, -4.4, Y0 + 1.4, 1.4),
     snow(10, 22, 0, -12, Y0 + 1, 4),
-    { type: 'ramp', pos: [8.5, Y0, -6], size: [3, 1, 12], axis: 'x', dir: 1, low: 0 },
+    { type: 'ramp', pos: [8.5, Y0, -6], size: [3, 1.25, 12], axis: 'x', dir: 1, low: 0 },
     { type: 'stachelboden', pos: [16, Y0 + 1, -6], size: [12, 0.25, 12] },
     sign(-6.5, Y0, 5.6, 'Eisgipfel'),
     sign(8, Y0, 2.2, 'Stacheln? Nur mit\nSchlittschuhen!', { size: [2.8, 1.0] }),
@@ -117,25 +118,33 @@ export const LEVEL = {
 
     // ---------------- D Zweiter Eissee mit Checkpoint, Stachelbrücke zur Rätselbox
     { type: 'eisflaeche', pos: [0, YD - 1, -139], size: [16, 1, 42], edge: false },
-    ...bank(-8, 8, -118, -160, YD, [[1, -128.6, -131.8]]),
-    snow(8, 18, -129, -131.4, YD, 3, { color: 0x8a98b4 }),
-    { type: 'stachelboden', pos: [13, YD, -130.2], size: [10, 0.25, 2.4] },
+    ...bank(-8, 8, -118, -160, YD, [[1, -128.4, -131.8]]),
+    snow(8, 18, -128.4, -131.8, YD, 3, { color: 0x8a98b4 }),
+    { type: 'stachelboden', pos: [13, YD, -130.1], size: [10, 0.25, 3.4] },
     snow(18, 24.5, -125.5, -134.5, YD, 5),
     sign(6.4, YD, -127, 'Stachelbrücke'),
 
     // ---------------- Schlittschuh-Bahn (Rätselbox, x 90): Eis-Oval mit Schneeinsel in der Mitte
     { type: 'eisflaeche', pos: [RX, YD - 1, -130], size: [34, 1, 34], edge: false },
-    snow(RX - 6.5, RX + 6.5, -123.5, -136.5, YD + 1.2, 2.2, { color: 0xb4cae8 }),
+    ...bank(RX - 17, RX + 17, -113, -147, YD),
+    isl(RX - 18.2, RX + 18.2, -111.8, -113, YD + 0.5, 2, { top: 'grass', under: 0 }), isl(RX - 18.2, RX + 18.2, -147, -148.2, YD + 0.5, 2, { top: 'grass', under: 0 }),
+    snow(RX - 3.5, RX + 3.5, -126.5, -133.5, YD + 1.2, 2.2, { color: 0xeaf2fb }),
+    // Stachelrahmen (nur mit Schlittschuh befahrbar)
+    { type: 'stachelboden', pos: [RX, YD, -130 + 6.5], size: [19, 0.25, 6] },
+    { type: 'stachelboden', pos: [RX, YD, -130 - 6.5], size: [19, 0.25, 6] },
+    { type: 'stachelboden', pos: [RX - 6.5, YD, -130], size: [6, 0.25, 7] },
+    { type: 'stachelboden', pos: [RX + 6.5, YD, -130], size: [6, 0.25, 7] },
+    sign(RX - 14.5, YD, -118, 'Stachelbahn:\nnur mit Schlittschuh!', { size: [2.8, 1.0] }),
 
     // ---------------- E Windiger Abgrund: Schollen, quer blasende Böen, Aufwind mit Stern
     snow(-9.2, 9.2, -159.4, -163, YD, 5),
-    ...SCHOLLEN.map(([z0, z1]) => snow(-3.5, 3.5, z0, z1, YD, 5)),
-    { type: 'windfeld', id: 'boe1', pos: [0, YD - 4, -171.8], size: [16, 9, 5.4], dir: [1, 0], strength: 6.5, period: 4.2, on: 1.6, warn: 1.0, source: 'wolke', fahne: [-3, YD, -168.4] },
-    { type: 'windfeld', id: 'boe2', pos: [0, YD - 4, -182.2], size: [16, 9, 5.4], dir: [-1, 0], strength: 6.5, period: 4.2, on: 1.6, warn: 1.0, phase: 2.1, source: 'wolke', fahne: [3, YD, -179] },
+    ...SCHOLLEN.map(([z0, z1]) => snow(-2.6, 2.6, z0, z1, YD, 5)),
+    { type: 'windfeld', id: 'boe1', pos: [0, YD - 4, -171.8], size: [16, 9, 5.4], dir: [1, 0], strength: 9, period: 4.2, on: 1.6, warn: 1.0, source: 'wolke', fahne: [-1.9, YD, -168.2] },
+    { type: 'windfeld', id: 'boe2', pos: [0, YD - 4, -182.2], size: [16, 9, 5.4], dir: [-1, 0], strength: 9, period: 4.2, on: 1.6, warn: 1.0, phase: 2.1, source: 'wolke', fahne: [1.9, YD, -179.2] },
     { type: 'windfeld', id: 'aufwind', pos: [0, YD - 6, -193], size: [6, 16, 5.8], dir: [0, 1, 0], strength: 10, period: 3.6, on: 1.8, warn: 0.8, source: 'ventil' },
     { type: 'deco_w6', items: [
       { kind: 'wolke', pos: [-9, YD - 2, -176], size: 3.2 }, { kind: 'wolke', pos: [10, YD - 3, -188], size: 3.6 },
-      { kind: 'schneekiefer', pos: [2.6, YD, -165.4], height: 3.2 }, { kind: 'schneehaufen', pos: [-2.6, YD, -187] },
+      { kind: 'schneekiefer', pos: [5.5, YD, -161.2], height: 3.2 }, { kind: 'schneehaufen', pos: [-1.9, YD, -186.4], size: 0.8 },
     ] },
 
     // ---------------- F Glotzfisch-Bucht: Wasser, Eisschollen, Glasröhre 2 hinauf zum Gipfel
@@ -155,8 +164,8 @@ export const LEVEL = {
   ],
   blocks: [
     { kind: 'question', pos: [-4.4, Y0 + 3.0, -3], content: 'coin' },
-    { kind: 'question', pos: [-1.9, Y0 + 5.8, -3], content: 'coins:3' },
-    { kind: 'hidden', id: 'versteckt', pos: [0.6, Y0 + 8.6, -3], content: 'oneup' },
+    { kind: 'hidden', id: 'versteckt', pos: [-1.9, Y0 + 4.0, -3], content: 'oneup' },
+    { kind: 'question', pos: [0.6, Y0 + 7.2, -3], content: 'coins:3' },
     { kind: 'question', pos: [-3, Y0 + 3.4, -18], content: 'wachstumsbeere' },
     { kind: 'question', pos: [-2, YD + 3.4, -124], content: 'coins:5' },
   ],
@@ -180,8 +189,8 @@ export const LEVEL = {
     { kind: 'warpbox', id: 'rb1', style: 'mystery', pos: [21.5, YD, -130], target: 'rb2' },
     { kind: 'warpbox', id: 'rb2', style: 'mystery', pos: [RX - 13, YD, -116], target: 'rb1' },
     { kind: 'schlittschuh', id: 'schlittschuh_bahn', pos: [RX - 11, YD, -117.5], respawn: 2 },
-    { kind: 'timering', id: 'bahnring', pos: [RX - 10.5, YD, -125], yaw: Math.PI / 2, time: 10, star: 1,
-      coins: Array.from({ length: 8 }, (_, k) => { const a = Math.PI + 0.55 + k * 0.72; return [RX + Math.cos(a) * 10.5, YD + 0.6, -130 - Math.sin(a) * 10.5]; }) },
+    { kind: 'timering', id: 'bahnring', pos: [RX - BAHN_R, YD + 0.25, -130], yaw: Math.PI / 2, time: 10, star: 1,
+      coins: Array.from({ length: 8 }, (_, k) => { const a = Math.PI - 0.39 - k * Math.PI / 4; return [RX + Math.cos(a) * BAHN_R, YD + 0.85, -130 - Math.sin(a) * BAHN_R]; }) },
     // Bitcoin-Pfade
     line([0, Y0 + 0.6, 2], [0, Y0 + 0.6, -10], 5),
     ring([0, Y0 + 0.6, -36], 3, 8),
@@ -193,8 +202,8 @@ export const LEVEL = {
   ],
   checkpoint: [[-4, YD, -122.5], [0, YD, -197.5]],
   stars: [
-    [0.6, Y0 + 13.3, -3],
-    { pos: [RX - 10.5, YD + 0.4, -121], hidden: true, id: 'stern_bahn' },
+    [0.6, Y0 + 11.4, -3],
+    { pos: [RX, YD + 1.7, -130], hidden: true, id: 'stern_bahn' },
     [0, YD + 6.2, -193],
   ],
   stamp: [20.5, Y0 + 1.6, -9.5],

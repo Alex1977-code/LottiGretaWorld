@@ -76,8 +76,53 @@ const ROUTES = {
     routeChecks: [
       { name: 'zwei Glasröhren, drei Windlücken abgewartet', ok: (r) => r.log.filter((l) => l[0] === 'fahrt').length >= 2 && r.log.filter((l) => l[0] === 'Böe abgewartet').length === 3 },
     ],
-    targets: [],
-    extra: [],
+    targets: [
+      { name: 'Stern 0: versteckten Block aufdecken, Treppe ?-Block → versteckter Block → ?-Block hinauf', star: 0, from: [-2, 0, -1.5],
+        legs: [{ to: [-1.9, -3], within: 0.15, run: false }, { wait: 20 }, { hop: 30 }, { wait: 20 }, { expect: 'blockDa' },
+          { to: [-4, -0.6], within: 0.5, run: false }, { to: [-7.2, -0.6], within: 0.4, run: false }, { wait: 10 },
+          { name: 'Stufe', to: [-7.4, -3], jump: 30, within: 0.3, run: false }, { to: [-7.75, -3], within: 0.15, run: false }, { wait: 20 },
+          { name: 'Block A', to: [-4.4, -3], jump: 64, jumpAt: 2.75, within: 0.3, run: false }, { expect: 'aufA' },
+          { name: 'versteckter Block', to: [-1.9, -3], jump: 64, within: 0.3, run: false },
+          { name: 'Block B', to: [0.6, -3], jump: 64, within: 0.3, run: false },
+          { hop: 30 }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne den versteckten Block (vom ?-Block A zu B)', star: 0, expectNot: true, from: [-6.8, 1.4, -3], heroes: ['lotti'],
+        legs: [{ to: [-7.75, -3], within: 0.15, run: false }, { wait: 20 }, { name: 'Block A', to: [-4.4, -3], jump: 64, jumpAt: 2.75, within: 0.3, run: false }, { expect: 'aufA' },
+          { to: [0.6, -3], jump: 64, within: 0.3, run: false, max: 200, land: false }, { hop: 64 }, { wait: 60 }],
+        mech: (r) => r.log.some((l) => l[0] === 'erwartet' && l[1] === 'aufA' && l[2]) },
+      { name: 'Stempel: Schlittschuh an, die Rampe hinauf über die Stachelplattform', stamp: true, from: [2, 0, 3],
+        legs: [{ to: [4.2, 1.8], within: 0.2, run: false, stopIf: 'skates' }, { expect: 'skates' }, { to: [6, -6], within: 0.8, run: false, vmax: 4 },
+          { to: [12, -6], within: 0.8, run: false, vmax: 4 }, { to: [20.5, -9.5], within: 0.4, run: false, vmax: 4 }, { wait: 20 }, { expect: 'skates' }],
+        mech: (r) => !r.mech.hurts, mechText: (r) => `Treffer ${r.mech.hurts}`, invuln: false, shot: 'stempel' },
+      { name: 'Stempel nicht unverletzt ohne Schlittschuh (Stacheln)', stamp: true, from: [6, 0, -6], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [12, -6], within: 0.8, run: false, max: 120, autoJump: false }, { wait: 30 }, { expect: 'verletzt' }],
+        mech: (r) => r.mech.hurts > 0, mechText: (r) => `Treffer ${r.mech.hurts}`, expectNot: true },
+      { name: 'Stern 1: Schlittschuh, Stachelbrücke, Rätselbox, Zeitring – acht blaue Münzen auf dem Stachelrahmen', star: 1, from: [-4, -6, -122.5], invuln: false,
+        legs: [{ to: [4.4, -121.5], within: 0.2, run: false, stopIf: 'skates' }, { expect: 'skates' },
+          { to: [2, -127], within: 0.8, run: false, vmax: 4 }, { to: [5, -130.1], within: 0.6, run: false, vmax: 4 }, { to: [16, -130.1], within: 0.8, run: false, vmax: 6 }, { to: [20, -130], within: 0.6, run: false, vmax: 4 },
+          { name: 'Rätselbox', to: [21.5, -130], jump: 24, within: 0.3, run: false, stopIf: 'aufBahn' }, { wait: 30 }, { expect: 'aufBahn' },
+          { to: [79, -117.5], within: 0.2, run: false, stopIf: 'skates' }, { wait: 30 }, { expect: 'skates' },
+          { to: [83.1, -121.5], within: 0.6, run: false, vmax: 4 }, { to: [83.1, -131.2], within: 0.8, run: false, vmax: 6, stopIf: 'bahnAktiv' }, { expect: 'bahnAktiv' },
+          { name: 'Kreis', circle: [90, -130], r: 7.25, span: 6.05 },
+          { star: 1 }],
+        mech: (r) => !r.mech.hurts, mechText: (r) => `Münzen ${r.rt.coins}, Treffer ${r.mech.hurts}`, shot: 'stern1' },
+      { name: 'Rätselbox: ohne Schlittschuh verletzen die Stacheln (Ring durchlaufen, Kreis zu Fuß)', star: 1, from: [80, -6, -130], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [83.1, -130], within: 0.6, run: false, max: 200, autoJump: false }, { wait: 30 }], mech: (r) => r.mech.hurts > 0, mechText: (r) => `Treffer ${r.mech.hurts}`, expectNot: true },
+      { name: 'Stern 2: im Aufwind über der dritten Lücke hoch hinauf', star: 2, from: [0, -6, -188.6],
+        legs: [{ to: [0, -189.2], within: 0.3, run: false }, { waitWind: 'aufwind', afterWind: 0, waitFor: 'boe', to: [0, -193], jump: 30, within: 0.5, run: false, land: false, max: 140 },
+          { to: [0, -197], within: 0.6, run: false }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne Aufwind (Sprung in der Ruhe)', star: 2, expectNot: true, from: [0, -6, -188.6], heroes: ['lotti'],
+        legs: [{ to: [0, -189.2], within: 0.3, run: false }, { waitWind: 'aufwind', to: [0, -197], jump: 30, within: 0.6, run: false }, { wait: 30 }] },
+    ],
+    extra: [
+      { name: 'Extraleben: versteckter Block an der Start-Treppe', from: [-1.9, 0, -2.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-1.9, -3], within: 0.15, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', power: 'oneup', max: 1200 }] },
+      { name: 'Windböe: Sprung mitten in der Böe verweht über den Schollenrand', from: [0, -6, -165.2], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ waitWind: 'boe1', waitFor: 'boe', to: [0, -176.8], straight: [0, -1], jump: 30, jumpAt: 8.0, within: 0.7, run: true, max: 160, land: false, stopIf: 'verweht' }, { expect: 'verweht' }],
+        mech: (r) => r.log.some((l) => l[0] === 'erwartet' && l[1] === 'verweht' && l[2]), allowFail: true },
+      { name: 'Checkpoint am zweiten Eissee: Absturz am Abgrund → Neustart dort', from: [-3, -6, -120], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ to: [-4, -122.5], within: 0.5, run: false }, { to: [0, -162], within: 0.8, max: 1500 }, { to: [0, -166], within: 0.5, run: false },
+          { to: [9, -166], within: 0.5, max: 200, autoJump: false }, { wait: 500 }, { expect: 'neustartD' }] },
+    ],
     shots: [
       ['start', [0, 0, 5]], ['treppe', [-3, 0, 2]], ['stacheln', [7, 0, -4]], ['see', [0, 0, -20]], ['see_ende', [0, 0, -48]], ['hang', [0, 0, -55]],
       ['absatz1', [0, -4, -68]], ['absatz2', [0, -8, -84]], ['roehre1', [0, -10.5, -97]], ['see2', [0, -6, -122]], ['bruecke', [6, -6, -130]],
@@ -178,6 +223,15 @@ function installCond() {
     inRaum: () => P().pos.x > 60,
     aufSee2: () => P().pos.z < -117 && P().pos.y > -7 && P().pos.y < -3,
     aufGipfel: () => P().pos.z < -250 && P().pos.y > 3,
+    skates: () => !!P().skate,
+    ohneSkates: () => !P().skate,
+    aufBahn: () => P().pos.x > 60 && P().pos.z < -110,
+    bahnAktiv: () => L.named.get('bahnring')?.state === 'active',
+    blockDa: () => L.entities.some((e) => e.spec?.id === 'versteckt' && e.kind !== 'hidden'),
+    verletzt: () => (P().hurtTries ?? 0) > 0,
+    verweht: () => P().dead || P().mode === 'script' || Math.abs(P().pos.x) > 3.4 || P().pos.y < -7,
+    aufA: () => P().pos.y > 3.9 && Math.abs(P().pos.x + 4.4) < 0.7,
+    neustartD: () => Math.abs(P().pos.z + 122.5) < 2.5 && Math.abs(P().pos.y + 6) < 0.6 && !P().dead,
   };
   return true;
 }
@@ -333,6 +387,25 @@ function install() {
         if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
         if (Lg.expect) { const ok = COND[Lg.expect]?.(); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect]); continue; }
         if (Lg.until) { let k = 0; for (; k < (Lg.max ?? 1200) && !COND[Lg.until](); k++) tick({}); log.push(['bis', Lg.until, k]); if (!COND[Lg.until]()) log.push(['FEHLER: bis', Lg.until]); continue; }
+        // ------------------------------------------------ Kreisfahrt (Schlittschuh): Winkel a von pos = (cx + cos a·r, cz − sin a·r), dir −1 = a fällt
+        if (Lg.circle) {
+          const [cx, cz] = Lg.circle, r = Lg.r, dir = Lg.dir ?? -1, la = Lg.la ?? 0.55, vmax = Lg.vmax ?? 7.5;
+          const ang = () => Math.atan2(-(p.pos.z - cz), p.pos.x - cx);
+          let a0 = ang(), prev = a0, done = 0, k = 0;
+          for (; k < (Lg.max ?? 1200) && done < Lg.span; k++) {
+            if (p.dead || L().runtime.status !== 'play') break;
+            const a = ang();
+            let d = a - prev; if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI;
+            done += d * dir; prev = a;
+            const ta = a + dir * la, rc = Math.hypot(p.pos.x - cx, p.pos.z - cz);
+            const rt = Math.max(r - 1.5, Math.min(r + 1.5, r + 1.3 * (r - rc) + r * (1 / Math.cos(la / 2) - 1)));
+            const tx = cx + Math.cos(ta) * rt, tz = cz - Math.sin(ta) * rt;
+            const sp = Math.hypot(p.vel.x, p.vel.z);
+            tick({ ...this.stick(tx - p.pos.x, tz - p.pos.z, sp > vmax ? 0.25 : 1), run: false });
+          }
+          log.push(['Kreis', k, +done.toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), !!p.skate]);
+          continue;
+        }
         if (Lg.hop) {
           for (let k = 0; k < Lg.hop; k++) tick({ jump: true, ...(Lg.dir ? this.stick(Lg.dir[0], Lg.dir[1], 0.3) : {}) });
           for (let k = 0; k < 240 && p.mode !== 'ground'; k++) tick({});
@@ -549,7 +622,8 @@ function install() {
         if (Lg.waitWind) {
           const wf = L().named.get(Lg.waitWind);
           let k = 0, prev = wf.state;
-          for (; k < 1200; k++) { if (prev === 'boe' && wf.state === 'ruhe') break; prev = wf.state; tick({}); }
+          const want = Lg.waitFor ?? 'ruhe';
+          for (; k < 1200; k++) { if (want === 'boe' ? (prev !== 'boe' && wf.state === 'boe') : (prev === 'boe' && wf.state === 'ruhe')) break; prev = wf.state; tick({}); }
           for (let w = 0; w < (Lg.afterWind ?? 0); w++) tick({});
           log.push(['Böe abgewartet', Lg.waitWind, k]);
         }
@@ -578,10 +652,16 @@ function install() {
           if (done && i > 0) break;
           let mag = Lg.slow ?? 1;
           let st;
-          if (p.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, 2.6, 11);
+          if (Lg.straight) st = this.stick(Lg.straight[0], Lg.straight[1], 1);   // „naiv“: Stick stur in eine Richtung
+          else if (p.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, 2.6, 11);
           else {
             if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
+          }
+          if (Lg.vmax && p.mode === 'ground') {
+            const hs = Math.hypot(p.vel.x, p.vel.z), lim = dist < 3 ? Math.min(Lg.vmax, 3.5) : Lg.vmax;
+            if (hs > lim + 1.5) st = this.stick(-p.vel.x, -p.vel.z, 1);
+            else if (hs > lim) st = { x: st.x * 0.2, y: st.y * 0.2 };
           }
           if (Lg.stopIf && COND[Lg.stopIf]?.()) break;
           if (j0 === null && Lg.jumpAt && dist <= Lg.jumpAt) j0 = i;
