@@ -26,6 +26,9 @@ export const ENTRANCE_COLORS = {
   mine: 0xb07a4a, lavarocks: 0xff6a2a, cakeisle: 0xff6ab8, sneakfort: 0x6a5aa8, goldstation: 0xffb81a, kipptemple: 0xd8a84a,
   // Halloween-Welt 31
   pumpkinfield: 0xff8a1a, spookvillage: 0x9a5ad8, pumpkinmaze: 0x3ab86a, foggraveyard: 0x6a8ab8, witchtower: 0x8a3ad8, spookcastle: 0xd8283a,
+  // Welt 6
+  pipehills: 0x3ac8e8, stonecircle: 0x8a8aa8, ghostbay: 0x6a5ad8, fareast: 0xe8402a, junglelake: 0x2aa84a, pipefort: 0x4a7ad8,
+  snowwind: 0x5ab8f0, skyfactory: 0xd8a02a, throwhouse: 0x9a5ad8, minetower: 0xb07a4a, tankroad: 0x6a8a3a, skycircus: 0xff5a8a,
 };
 export const LOCKED_COLOR = 0x9a9cab;
 

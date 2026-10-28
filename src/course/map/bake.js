@@ -18,14 +18,16 @@ const _m = new THREE.Matrix4(), _i = new THREE.Matrix4(), _c = new THREE.Color()
  * @param {number[]} pos Fußpunkt [x, y, z]
  * @param {number} yaw Drehung um +Y (Modelle blicken bei 0 nach +X)
  * @param {number} scale
+ * @param {number} [dt] Zeitschritt für das einmalige update vor dem Einbacken (Welt 6: Modelle, die einem Zustand gedämpft
+ *   folgen, z. B. 'riesen_frageblock' { grow: 1 } – mit dt > 0 stehen sie schon in der Endlage)
  * @returns {{ tris: number } | null}
  */
-export function bakeModel(addStatic, name, opts, pos, yaw = 0, scale = 1, state = null) {
+export function bakeModel(addStatic, name, opts, pos, yaw = 0, scale = 1, state = null, dt = 0) {
   if (!hasModel(name)) return null;
   let model;
   try { model = getModel(name, opts ?? {}); } catch (err) { console.warn(`[Weltkarte] Modell ${name}:`, err); return null; }
   if (!model?.root || model.placeholder) return null;
-  if (state) model.update?.(0, state);
+  if (state) model.update?.(dt, state);
   const root = model.root;
   root.position.set(pos[0], pos[1], pos[2]);
   root.rotation.set(0, yaw, 0);

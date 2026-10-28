@@ -20,6 +20,11 @@
 // Erdbändern, Kürbisfeld, Dorfpflaster, Friedhof, Hexenmoor, Burgplatten …), Ränder ('hwstone', 'hwpicket', 'hwiron',
 // 'hwhedge'), dunkle Holzstege mit Laternen (segments 'hwbridge'), Requisiten (buildHwProp) und die lebendige Kulisse
 // (HwLife: Fledermäuse, Nebelschwaden; Lichter im Material hwglow flackern im Takt der Kartenmusik).
+// Welt 6: map.kit = 'sky' wählt die Wolkeninseln (sky6.js: schwebende Inseln mit bunten Erdschichten und felsiger
+// Unterseite, Wolkenkragen, Becken, Schnee-, Fabrik-, Dschungel-, Zirkus-Böden …), Ränder ('cloudhedge', 'skyrail',
+// 'quay', 'bamboo', 'rocks', 'snowbank'), Brücken (segments 'glasstube', 'cloudbridge', 'redbridge', 'rainbowbridge'),
+// Requisiten (skyPropGeo/skyPropModel) und die lebendige Kulisse (SkyLife: Windräder im Takt, Luftschiffchen,
+// Wasserfälle, Regenbögen).
 // Reihenfolge wichtig: Höhen für Hecken/Platten werden vom Gelände abgefragt, bevor Wände/Schranken entstehen;
 // erst am Ende wird die statische Geometrie verschmolzen (view.finalize).
 
@@ -40,6 +45,7 @@ import { canyonGround, canyonEdgeGeo, scatterCanyon, canyonPropGeo, canyonPropGl
 import { buildCableway } from './decor_w4.js';
 import { lilaGround, lilaEdgeGeo, scatterLila, lilaPropGeo, lilaPropGlow, lilaPropShape, lilaPropModel, buildBoardwalk } from './beach5.js';
 import { hwGround, hwEdgeGeo, scatterHalloween, buildHwProp, buildHwBridge, hwGlow, HwLife } from './halloween.js';
+import { skyGround, skyEdgeGeo, scatterSky, skyPropGeo, skyPropGlow, skyPropShape, skyPropModel, buildSkySegment, skyMats, SkyLife } from './sky6.js';
 
 const DESERT_STYLES = new Set(['desert', 'sandstone', 'dune', 'pink', 'lavarock', 'basin']);
 
@@ -57,6 +63,7 @@ export function buildMap(level, map, host) {
   const sea = map.sea ?? 0;
   const theme = level.view?.theme;
   if (map.kit === 'halloween') hwGlow(level.view);   // Material hwglow (Lichter im Takt) vor dem ersten addStatic
+  if (map.kit === 'sky') skyMats(level.view);        // Welt 6: Materialien w6glass, w6rainbow vor dem ersten addStatic
 
   // 1) Gelände
   map.ground.forEach((b, i) => buildGround(level, b, base, theme, i, map));
@@ -68,6 +75,7 @@ export function buildMap(level, map, host) {
     if (seg.type === 'rockarch') { buildRockArch(level, seg); continue; }       // Welt 4: Felsbogen
     if (seg.type === 'boardwalk') { buildBoardwalk(level, seg); continue; }     // Welt 5: Holzsteg
     if (seg.type === 'hwbridge') { buildHwBridge(level, seg); continue; }       // Halloween: dunkler Steg mit Laternen
+    if (map.kit === 'sky' && buildSkySegment(level, seg)) continue;              // Welt 6: Glasröhre, Wolken-/Regenbogenbrücke …
     const build = getBlockType(seg.type);
     if (!build) { console.warn(`[Weltkarte] unbekannter Baustein: ${seg.type}`); continue; }
     try { build(level, seg); } catch (err) { console.error(`[Weltkarte] Baustein ${seg.type} fehlgeschlagen:`, err); }
@@ -79,6 +87,7 @@ export function buildMap(level, map, host) {
   else if (map.kit === 'canyon') scatterCanyon(level, map, grid);
   else if (map.kit === 'lila') scatterLila(level, map, grid);
   else if (map.kit === 'halloween') scatterHalloween(level, map, grid);
+  else if (map.kit === 'sky') scatterSky(level, map, grid);
   else scatterDeco(level, map, base, grid);
   buildProps(level, map, grid);
   const bounds = level.computeBounds();
@@ -90,7 +99,7 @@ export function buildMap(level, map, host) {
   const edgeParts = { hedge: [], fence: [] };
   for (const w of walls) borderDeco(w, ground, sea, edgeParts, groundBlock, map.edges);
   // Welt 3: niedrige Schneewälle/Zäune ohne Sonnenschatten (spart den Schattenpass auf der dichten Schneeinsel)
-  const edgeShadow = map.kit !== 'snow' && map.kit !== 'canyon' && map.kit !== 'lila' && map.kit !== 'halloween';   // Welt 4, 5, 31 ebenso
+  const edgeShadow = map.kit !== 'snow' && map.kit !== 'canyon' && map.kit !== 'lila' && map.kit !== 'halloween' && map.kit !== 'sky';   // Welt 4, 5, 6, 31 ebenso
   for (const g of edgeParts.hedge) level.view?.addStatic(g, { castShadow: edgeShadow });
   for (const g of edgeParts.fence) level.view?.addStatic(g, { castShadow: edgeShadow });
   out.hedges = edgeParts.hedge.length;
@@ -104,6 +113,14 @@ export function buildMap(level, map, host) {
   // 5a) Halloween: Fledermaus-Schwärme, Nebelschwaden (bewegt, je Bild)
   if (map.kit === 'halloween' && level.view) {
     const life = new HwLife(level, map);
+    out.updaters.push((dt, t) => life.update(dt, t));
+    out.own.push(life);
+    out.life = life;
+  }
+
+  // 5a') Welt 6: Windräder im Takt, Luftschiffchen, Wasserfälle, Regenbögen (bewegt, je Bild; out.life für Tests)
+  if (map.kit === 'sky' && level.view) {
+    const life = new SkyLife(level, map);
     out.updaters.push((dt, t) => life.update(dt, t));
     out.own.push(life);
     out.life = life;
@@ -190,6 +207,14 @@ function buildGround(level, b, base, theme, index, map) {
   const rnd = new Rnd(0x51ab + index * 977);
   level.world.add({ type: 'box', min: [x0, base, z0], max: [x1, top, z1], tag: b.walk ? 'karte' : 'gelaende', mapBlock: b, ice: !!b.ice });
   if (!theme) return;
+  if (map.kit === 'sky') {
+    // Welt 6: schwebende Inseln (Deckschichten ohne Schattenwurf, Wasser glänzend, Kristalle leuchtend)
+    for (const g of skyGround({ ...b, style: b.style ?? 'meadow' }, base, theme, rnd, map)) {
+      const mat = g.userData?.material, ns = g.userData?.noShadow;
+      level.view.addStatic(g, mat || ns ? { material: mat, castShadow: !ns, tile: g.userData.tile } : undefined);
+    }
+    return;
+  }
   if (map.kit === 'halloween') {
     // Halloween: Stile der Kürbisinsel (flache Deckschichten ohne Schattenwurf)
     for (const g of hwGround({ ...b, style: b.style ?? 'hwgrass' }, base, theme, rnd)) {
@@ -349,8 +374,10 @@ function buildProps(level, map, grid) {
   (map.props ?? []).forEach((it, i) => {
     if (map.kit === 'halloween') { buildHwProp(level, map, grid, it, i); return; }   // Halloween: halloween.js
     // Modell aus der Registry (gleiche Optik wie in den Leveln), sonst eigene sparsame Geometrie
-    const pm = level.view && it.model !== false ? (propModel(it) ?? (map.kit === 'lila' ? lilaPropModel(it) : null)) : null;
-    const baked = pm ? bakeModel(add, pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
+    const pm = level.view && it.model !== false ? (propModel(it) ?? (map.kit === 'lila' ? lilaPropModel(it) : map.kit === 'sky' ? skyPropModel(it) : null)) : null;
+    // Welt 6: eingebackene Registry-Requisiten in kompakte Kacheln je 16-m-Feld mit Fern-Ausblendung (wie Halloween)
+    const addPm = map.kit === 'sky' ? (g, o) => add(g, { ...o, tile: `w6p:${Math.floor(it.pos[0] / 16)}|${Math.floor(it.pos[2] / 16)}`, lod: true }) : add;
+    const baked = pm ? bakeModel(addPm, pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
     if (baked && it.kind === 'tank') add(place(turretGeo(it.size ?? 1, (it.color ?? 'oliv') === 'oliv'), it.pos[0], it.pos[1] + 1.6 * (it.size ?? 1), it.pos[2], it.yaw ?? 0), { castShadow: true });
     if (it.kind === 'sandstack') {
       // Stapel aus 1-m-Sandblöcken zum Hüpfen (Kollision je Stapel, Optik: Modell 'sandblock')
@@ -361,15 +388,15 @@ function buildProps(level, map, grid) {
     }
     if (!baked && level.view && it.kind === 'sandblocks') bakeSandblocks(add, it);
     else if (!baked) {
-      const g = level.view ? (propGeo(it, 0x7a11 + i * 37) ?? snowPropGeo(it, 0x7a11 + i * 37) ?? canyonPropGeo(it, 0x7a11 + i * 37) ?? lilaPropGeo(it, 0x7a11 + i * 37)) : null;
+      const g = level.view ? (propGeo(it, 0x7a11 + i * 37) ?? snowPropGeo(it, 0x7a11 + i * 37) ?? canyonPropGeo(it, 0x7a11 + i * 37) ?? lilaPropGeo(it, 0x7a11 + i * 37) ?? skyPropGeo(it, 0x7a11 + i * 37)) : null;
       if (g) level.view.addStatic(place(g, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: it.shadow !== false, material: it.material });
       // Welt 3: Fenster, Laternen, Lichterkugeln (helle Teile ohne Schattenwurf; teilen die Kachel der Wegplatten)
-      const gl = level.view ? (snowPropGlow(it) ?? (map.kit === 'canyon' ? canyonPropGlow(it) : map.kit === 'lila' ? lilaPropGlow(it) : null)) : null;
+      const gl = level.view ? (snowPropGlow(it) ?? (map.kit === 'canyon' ? canyonPropGlow(it) : map.kit === 'lila' ? lilaPropGlow(it) : map.kit === 'sky' ? skyPropGlow(it) : null)) : null;
       if (gl) level.view.addStatic(place(gl, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: false });
     }
     if (it.solid === false) return;
     if (it.solid || grid.isWalk(it.pos[0], it.pos[2])) {
-      const sh = propShape(it) ?? snowPropShape(it) ?? canyonPropShape(it) ?? lilaPropShape(it);
+      const sh = propShape(it) ?? snowPropShape(it) ?? canyonPropShape(it) ?? lilaPropShape(it) ?? skyPropShape(it);
       if (sh) level.world.add(sh);
     }
   });
@@ -455,12 +482,12 @@ function borderDeco(w, ground, sea, out, groundBlock, edges = {}) {
       let g;
       if (c === 'hedge') {
         const seed = Math.floor(mid * 7 + 13) >>> 0;
-        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : snowEdgeGeo(st, L, seed) ?? canyonEdgeGeo(st, L, seed) ?? lilaEdgeGeo(st, L, seed) ?? hwEdgeGeo(st, L, seed) ?? hedgeGeo(L + 0.2, 1.1, 0.9, seed);
+        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : snowEdgeGeo(st, L, seed) ?? canyonEdgeGeo(st, L, seed) ?? lilaEdgeGeo(st, L, seed) ?? hwEdgeGeo(st, L, seed) ?? skyEdgeGeo(st, L, seed) ?? hedgeGeo(L + 0.2, 1.1, 0.9, seed);
         const off = w.side * (st === 'adobe' ? 0.35 : 0.45);
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
       } else {
-        g = st === 'rope' || st === 'chain' ? ropeFenceGeo(L, st === 'chain') : snowEdgeGeo(st, L, 1) ?? lilaEdgeGeo(st, L, 1) ?? hwEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? fenceGeo(L);
+        g = st === 'rope' || st === 'chain' ? ropeFenceGeo(L, st === 'chain') : snowEdgeGeo(st, L, 1) ?? lilaEdgeGeo(st, L, 1) ?? hwEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? skyEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? fenceGeo(L);
         const off = w.side * 0.12;
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
@@ -507,7 +534,7 @@ function buildPaths(level, map, grid, ground, sea) {
     if (hs.some((h) => h === null || Math.abs(h - hit.y) > 0.02)) continue;
     const base = mixc(a, b2, rnd.frac(), [0, 0, 0]);
     const box = new THREE.BoxGeometry(0.9, 0.1, 0.9);
-    if (map.kit === 'snow' || map.kit === 'lila' || map.kit === 'halloween') box.setIndex([...box.index.array.slice(0, 18), ...box.index.array.slice(24)]);   // Welt 3/5: ohne Unterseite
+    if (map.kit === 'snow' || map.kit === 'lila' || map.kit === 'halloween' || map.kit === 'sky') box.setIndex([...box.index.array.slice(0, 18), ...box.index.array.slice(24)]);   // Welt 3/5: ohne Unterseite
     const g = colorize(box, (p, n, o) => { if (n.y > 0.6) { o[0] = base[0]; o[1] = base[1]; o[2] = base[2]; } else mixc(base, edge, 0.7, o); });
     g.translate(cx, hit.y + 0.01, cz);
     parts.push(g);
