@@ -142,6 +142,80 @@ const ROUTES = {
       ['deck', [0, 78, -69], 77],
     ],
   },
+  // ================================================================ 6-Panzer (Kolonne): Konvoi-Koordinaten [c, x]
+  // (c = Meter entlang der Kolonne nach vorn, x = Weltlage x; der Bot rechnet je Schritt in die aktuelle Weltlage um)
+  '6-Panzer': {
+    konvoi: true,
+    meta: { stars: 3, time: 400, theme: 'skyway', music: 'course_tank', archetype: 'autoscroller' },
+    enemies: { wirbelbrocken: 1, feuer_werfer: 4, zuendkopf_quelle: 6, marschblock: 15, riesenfrageblock: 4, vehicle: 14 },
+    // freie Spur über alle Panzer (an Marschblöcken, Werfern, Steinblöcken und großen ?-Blöcken vorbei)
+    // (über den Lücken bleibt x gleich – seitwärts erst nach der Landung)
+    lane: [[0, -1.4], [16.5, -1.4], [20, 0.5], [33.5, 0.5], [36, 1.6], [51, 1.6], [54.5, 1.4], [126.5, 1.4], [129, 2.3], [140, 2.3], [142.5, 1.4], [200, 1.4]],
+    main: [
+      { name: 'Kolonne bis zum Kommandopanzer', konvoi: 'lane', to: 189, done: true },
+      { name: 'Luke in die Wolkenburg', luke: true },
+      { name: 'Wirbelbrocken mit Attrappen', boss: true },
+      { name: 'Warp-Box', warp: true },
+      { name: 'Zielmast', goal: true },
+    ],
+    routeChecks: [
+      { name: 'alle 14 Panzer betreten (Lücken übersprungen), Halt erreicht, Luke → Arena', ok: (r) => r.mech.tankCount >= 12 && r.mech.arena },
+      { name: 'Wirbelbrocken: 3 Treffer am Original, Teleport mit 1 und 2 Attrappen', ok: (r) => r.mech.boss?.hits === 3 && r.mech.boss.teleports >= 2 && r.mech.boss.decoysMade >= 3 },
+    ],
+    targets: [
+      { name: 'Stern 1: drei große ?-Blöcke mit Zündköpfen sprengen, über die Turmtreppe hinauf', star: 0, ride: 40.6,
+        put: [37.6, 1.8], plan: [
+          { bomb: 'turm_a', tank: 'T3', at: [38.4, 1.8] }, { bomb: 'turm_b', tank: 'T3', at: [42.4, 1.8] }, { bomb: 'turm_c', tank: 'T3', at: [46.4, 1.8] },
+          { until: 'stern1', max: 600 },
+          { name: 'auf Turm A', hop: [38.4, -2.0], y: 5.0, jumpAt: 1.6 }, { name: 'auf Turm B', hop: [42.4, -2.0], y: 7.6, jumpAt: 3.3 },
+          { name: 'auf Turm C', hop: [46.4, -2.0], y: 10.2, jumpAt: 3.3 }, { star: 0 }],
+        shot: 'stern1' },
+      { name: 'Stern 1: Stampfen lässt die großen ?-Blöcke auf T3 kalt (nur Explosion)', expect: 'turmABereit', ride: 40.6,
+        put: [36.0, -2.0], heroes: ['lotti'], plan: [{ pound: [38.4, -2.0] }, { wait: 60 }] },
+      { name: 'Stern 2: Steinblock auf dem Goldsockel sprengen', star: 1, ride: 112.2,
+        put: [111.4, 1.8], plan: [{ bomb: 'sternstein', tank: 'T8', at: [115.6, 0] }, { star: 1 }], shot: 'stern2' },
+      { name: 'Stern 2: Stampfen auf den Steinblock bricht ihn nicht', expect: 'sternsteinHeil', ride: 112.2,
+        put: [116.0, 0], heroes: ['lotti'], plan: [{ pound: [118.4, 0] }, { wait: 60 }] },
+      { name: 'Stern 3: großen ?-Block stampfen – er fährt die Heldin hinauf', star: 2, ride: 130.6,
+        put: [129.6, -1.4], plan: [{ pound: [133.5, 0.4] }, { until: 'turm9', max: 600 }, { star: 2 }], shot: 'stern3' },
+      { name: 'Stern 3: ein Zündkopf lässt den Stampf-Turm kalt', expect: 'turm9Bereit', ride: 130.6,
+        put: [128.6, -1.4], heroes: ['lotti'], plan: [{ bomb: 'turm9', tank: 'T9', at: [130.6, -1.4], spawn: true }, { wait: 60 }] },
+      { name: 'Stempel: Baron-Holzwand hinter der Luke sprengen', stamp: true, ride: 'done',
+        put: [190.0, 1.6], plan: [{ bomb: 'stempelwand', tank: 'TK', standby: [189.0, 1.6], via: [[191.2, 1.9], [195.6, 1.9]], at: [197.4, 1.2] }, { stamp: true }], shot: 'stempel' },
+    ],
+    extra: [
+      { name: 'Extraleben: oberster Steinblock der Pyramide (T6)', ride: 87.2, put: [86.4, 1.3], heroes: ['lotti'], expectLives: 1,
+        plan: [{ bomb: 'stein_1up', tank: 'T6', at: [88.0, -0.4] }, { chaseKind: 'powerup' }] },
+      { name: 'Extraleben: verborgener Block über T12', ride: 170.6, put: [173.0, 1.4], heroes: ['lotti'], expectLives: 1,
+        plan: [{ go: [174.4, 1.4], within: 0.2 }, { name: 'Kopfstoß', hop: [174.4, 1.4], y: 2, jumpAt: 0.3, within: 0.5 }, { wait: 20 }, { chaseKind: 'powerup' }] },
+      { name: 'Kontrollpunkt auf T5: Neustart auf dem fahrenden Panzer', ride: 70.0, put: [70.4, 1.4], heroes: ['lotti'], invuln: false, expectAlive: true,
+        plan: [{ go: [71.6, 1.6], within: 0.4 }, { wait: 30 }, { die: true }, { expect: 'aufT5' }] },
+      { name: 'Wer zwischen die Panzer fällt, plumpst durch die Wolken', ride: 26, put: [28.6, 0.5], heroes: ['lotti'], invuln: false, expectAlive: false,
+        plan: [{ go: [32.2, 0.5], within: 0.3, noJump: true, max: 240 }, { wait: 240 }], mech: (r) => r.mech.deaths >= 1 && r.mech.deathCause === 'fall', mechText: (r) => `Tod ${r.mech.deathCause}` },
+      { name: 'Zündkopf: wer ihn nicht wegwirft, den erwischt die Explosion', ride: 40.6, put: [47.6, 1.6], heroes: ['lotti'], invuln: false,
+        plan: [{ wait: 1200 }], mech: (r) => r.mech.hurts >= 1 && r.mech.hurtBy.zuendkopf >= 1, mechText: (r) => `Treffer ${JSON.stringify(r.mech.hurtBy)}` },
+      { name: 'Bildfenster fährt an den Rätsel-Panzern mit der Kolonne (T3 18 s, T8 8 s, T9 7 s)', ride: 0, put: null, heroes: ['lotti'],
+        plan: [{ holds: true }], mech: (r) => r.mech.holds?.length === 3 && r.mech.holds[0] > 17.5 && r.mech.holds[1] > 7.5 && r.mech.holds[2] > 6.5, mechText: (r) => `Halte ${JSON.stringify(r.mech.holds)}` },
+      { name: 'Werfer tänzeln auf dem fahrenden Panzer (Platz fährt mit)', ride: 100.5, put: [104.2, 1.4], heroes: ['lotti'], expectAlive: true,
+        plan: [{ wait: 240 }, { expect: 'werferAufT7' }] },
+    ],
+    // Bilder: [Name, Fenstermitte (fahren bis), Figur [c, x] | null, Schritte, Vorbereitung]
+    shots: [
+      ['start', null, [3, -0.6], 20],
+      ['zuendkopf', 21, [22.4, 0.5], 60],
+      ['tuerme', 40.6, [36.8, 1.8], 30, 'tuerme'],
+      ['doppelreihe', 56, [55.6, -2.2], 30],
+      ['kontrollpunkt', 72, [70.4, 1.4], 30],
+      ['pyramide', 87, [86.0, 1.3], 30],
+      ['hammer', 100, [98.4, 1.4], 30],
+      ['schatz', 113, [111.6, 1.8], 30],
+      ['stampfturm', 131, [129.6, -1.4], 30, 'stampf'],
+      ['podest', 158, [157.0, 1.4], 30],
+      ['kommandopanzer', 'done', [189.0, 0], 60],
+      ['arena', 'arena', null, 200],
+      ['insel', 'insel', null, 60],
+    ],
+  },
 };
 
 const PORT = 4670;
@@ -153,7 +227,7 @@ const sc = (fn, arg) => page.evaluate(fn, arg);
 const only = process.argv[2];
 const LEVELS = only ? [only] : Object.keys(ROUTES);
 const ONLY = process.env.ONLY ?? null;
-const pick = (list) => (ONLY ? list.filter((t) => t.name.includes(ONLY)) : list);
+const pick = (list) => (ONLY ? list.filter((t) => ONLY.split('|').some((o) => t.name.includes(o))) : list);
 const PARTS = new Set((process.env.PARTS ?? 'load,route,sweep,targets,extra,shots').split(','));
 const HEROES = (process.env.HEROES ?? 'lotti,greta').split(',');
 const SHOTS = process.env.SHOTS ? new Set(process.env.SHOTS.split('|')) : null;
@@ -510,6 +584,370 @@ function install() {
   return Object.keys(W);
 }
 
+/**
+ * Hilfen für 6-Panzer (in der Seite, nach install()): Konvoi-Koordinaten, Kolonne fahren lassen (Figur geparkt), Figur auf
+ * einen Panzer setzen, Bot über die fahrende Kolonne (Spur, Lücken springen), Zündköpfe holen und werfen, Stampfen,
+ * Luke, Bosskampf mit echten Eingaben, Warp-Box, Zielmast.
+ */
+function installKonvoi() {
+  const c = window.__course, L = c.level, W = window.__w6;
+  const P = () => c.player;
+  const named = (id) => L.named.get(id);
+  const CV = L.data.convoy, PL = L.data.plan;
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const K = window.__k = {};
+  K.dz = () => named('T1').pos.z + CV.T1.c;
+  K.cOf = (z) => -(z - K.dz());
+  K.wz = (cc) => -cc + K.dz();
+  K.cw = () => K.cOf(L.scroll.center.z);
+  K.vel = () => { const m = named('T1').mover; return [m?.vx ?? 0, m?.vz ?? 0]; };
+  K.park = () => { const p = P(); p.invuln = 1e9; p.mode = 'script'; p.script = { type: 'test', t: 0 }; };
+  /** Kolonne fahren lassen, bis die Fenstermitte bei cc steht ('done': bis zum Halt), Figur geparkt. */
+  K.ride = (cc, max = 120 * 200) => {
+    K.park();
+    let k = 0;
+    while ((cc === 'done' ? L.scroll.state !== 'done' : K.cw() < cc && L.scroll.state !== 'done') && k < max) { c.step(1); k++; }
+    return k;
+  };
+  /** Figur auf Konvoi-Koordinate (cc, x) setzen (Höhe: Deck darunter). */
+  K.put = (cc, x, o = {}) => {
+    const p = P();
+    c.setInput(null);
+    p.setHero(o.hero ?? 'lotti');
+    p.dead = false; p.big = true; p.power = 'none'; p.powerTime = 0;
+    if (p.holding) { const e = p.holding; p.holding = null; e.carrier = null; }
+    const Z = K.wz(cc);
+    const hit = c.world.raycastDown(x, o.from ?? 14, Z, 30);
+    p.mode = 'ground'; p.script = null;
+    p.reset([x, (hit?.y ?? 2) + 0.05, Z], o.yaw ?? Math.PI / 2);
+    p.invuln = o.invuln ?? 0;
+    L.runtime.status = 'play';
+    L.controlYaw = c.view.rig.controlYaw(p.pos);
+    c.step(o.settle ?? 4);
+    c.snapCamera();
+    p.hurtTries = 0;
+    return p.info();
+  };
+  const laneAt = (lane, cc) => {
+    if (cc <= lane[0][0]) return lane[0][1];
+    for (let i = 1; i < lane.length; i++) if (cc <= lane[i][0]) { const [c0, x0] = lane[i - 1], [c1, x1] = lane[i]; return x0 + (x1 - x0) * ((cc - c0) / (c1 - c0)); }
+    return lane[lane.length - 1][1];
+  };
+  const SOLID = (s) => s.solid !== false && !s.oneWay && !s.trigger && !s.quicksand && !s.water && !s.kill;
+  const groundAhead = (p, d, x = p.pos.x) => { const h = c.world.raycastDown(x, p.pos.y + 0.6, p.pos.z - d, 4.5); return !!h && !h.shape.kill && h.y > p.pos.y - 2.5; };
+  const wallAhead = (p, d) => c.world.overlapAABB({ x: p.pos.x, y: p.pos.y + 0.6, z: p.pos.z - d }, { x: 0.22, y: 0.32, z: 0.12 }, { filter: SOLID }).length > 0;
+  const farSide = (p, x2) => { for (let d = 1.0; d < 6.5; d += 0.25) if (groundAhead(p, d) || (x2 !== undefined && groundAhead(p, d, x2))) return d; return Infinity; };
+  const COND = {
+    stern1: () => named('stern1') && !named('stern1').hidden,
+    turm9: () => named('turm9')?.state === 'turm',
+    turmABereit: () => named('turm_a')?.state === 'bereit',
+    sternsteinHeil: () => { const s = named('sternstein'); return !!s && !s.removed && s.alive !== false; },
+    turm9Bereit: () => named('turm9')?.state === 'bereit',
+    aufT5: () => { const p = P(); return !p.dead && p.ground?.mover?.vehicle?.spec?.id === 'T5' && Math.abs(K.cOf(p.pos.z) - 71.4) < 1.5 && Math.abs(p.pos.x - 1.6) < 0.8; },
+    werferAufT7: () => { const e = named('hw7'), v = named('T7'); return !!e && !e.removed && Math.abs(e.pos.z - v.pos.z) < 4.5 && Math.abs(e.pos.y - (v.pos.y + 2)) < 1.6 && Math.abs(e.home.z - v.pos.z + 1.6) < 0.6; },
+  };
+  K.cond = (k) => COND[k]();
+
+  K.run = (plan, o = {}) => {
+    const p = P(), w = L.scroll;
+    const log = [];
+    const mech = { hurts: 0, deaths: 0, jumps: 0, climbs: 0, tanks: [], tankCount: 0, maxC: -1e9, bombs: 0, arena: false, boss: null };
+    const hold = o.invuln !== false;
+    let steps = 0, lastJump = false, deadLogged = false;
+    const hist = [];
+    const tankId = () => p.ground?.mover?.vehicle?.spec?.id ?? null;
+    const hurtBy = {};
+    mech.hurtBy = hurtBy;
+    let hurt0 = p.hurtTries ?? 0;
+    const tick = (inp) => {
+      if (hold) p.invuln = Math.max(p.invuln, 5);
+      lastJump = !!inp?.jump;
+      c.setInput(inp); c.step(1); steps++;
+      if ((p.hurtTries ?? 0) > hurt0) { hurtBy[p.lastHurt] = (hurtBy[p.lastHurt] ?? 0) + (p.hurtTries - hurt0); hurt0 = p.hurtTries; }
+      const id = tankId();
+      if (id && !mech.tanks.includes(id)) mech.tanks.push(id);
+      if (L.scroll.state !== 'done' || p.pos.z > PL.az + 15) mech.maxC = Math.max(mech.maxC, K.cOf(p.pos.z));
+      if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +K.cOf(p.pos.z).toFixed(2), p.mode, id ?? p.ground?.tag ?? '', +K.cw().toFixed(1)]); if (hist.length > 30) hist.shift(); }
+      if (p.dead && !deadLogged) { deadLogged = true; mech.deaths++; mech.deathCause = p.deathCause; log.push(['TOD', p.deathCause, JSON.stringify(hist.slice(-14))]); }
+      if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead) {
+        let n = 0;
+        const kind = p.script?.type ?? p.script?.kind ?? '?';
+        while (p.mode === 'script' && n++ < 2400 && !p.dead && L.runtime.status === 'play') { if (hold) p.invuln = Math.max(p.invuln, 5); c.setInput({}); c.step(1); steps++; }
+        log.push(['fahrt', kind, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+      }
+    };
+    const here = (tag) => [tag, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +K.cOf(p.pos.z).toFixed(2), p.mode, tankId() ?? p.ground?.tag ?? ''];
+    /** zu Konvoi-Punkt gehen (Weltlage je Schritt neu). */
+    const goC = (cc, x, within = 0.3, max = 900, run = false) => {
+      let i = 0;
+      for (; i < max; i++) {
+        if (p.dead) break;
+        const dx = x - p.pos.x, dz = K.wz(cc) - p.pos.z, d = Math.hypot(dx, dz);
+        if (d < within && p.mode === 'ground') break;
+        tick({ ...W.stick(dx, dz, Math.max(0.2, Math.min(1, d / 1.2))), run });
+      }
+      return i < max;
+    };
+    /** zum Weltpunkt eines Objekts drehen (kurz antippen). */
+    const faceTo = (x, z, max = 30) => {
+      for (let i = 0; i < max; i++) {
+        const want = Math.atan2(-(z - p.pos.z), x - p.pos.x);
+        const dy = Math.atan2(Math.sin(want - p.yaw), Math.cos(want - p.yaw));
+        if (Math.abs(dy) < 0.1) break;
+        tick({ ...W.stick(x - p.pos.x, z - p.pos.z, 0.25) });
+      }
+      for (let i = 0; i < 2; i++) tick({});
+    };
+
+    for (let li = 0; li < plan.length; li++) {
+      const Lg = plan[li];
+      if (p.dead || L.runtime.status !== 'play') break;
+      if (lastJump) tick(p.mode === 'air' ? { jump: false } : {});
+      if (Lg.wait) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
+      if (Lg.until) { let k = 0; for (; k < (Lg.max ?? 1200) && !COND[Lg.until](); k++) tick({}); log.push(['bis', Lg.until, k]); if (!COND[Lg.until]()) log.push(['FEHLER: bis', Lg.until]); continue; }
+      if (Lg.expect) { const ok = COND[Lg.expect](); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect]); continue; }
+      if (Lg.die) { p.invuln = 0; p.die('hit'); let k = 0; for (; k < 2400 && (p.dead || L.runtime.status !== 'play'); k++) tick({}); for (let i = 0; i < 30; i++) tick({}); log.push(['gestorben, Neustart nach', k, ...here('')]); continue; }
+      if (Lg.jumpHere) { for (let k = 0; k < Lg.jumpHere; k++) tick({ jump: true }); for (let k = 0; k < 240 && p.mode !== 'ground'; k++) tick({}); log.push(here('hüpfer')); continue; }
+      if (Lg.star !== undefined) { const n = W.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, ...here('')]); continue; }
+      if (Lg.stamp) { const n = W.chase('stamp', { max: 900, walk: true }); log.push(['stempel', n, ...here('')]); continue; }
+      if (Lg.chaseKind) { const n = W.chase(Lg.chaseKind, { max: Lg.max ?? 1200 }); log.push(['jagd', Lg.chaseKind, n, ...here('')]); continue; }
+      // ------------------------------------------------ Halte des Bildfensters messen (Figur geparkt)
+      if (Lg.holds) {
+        K.park();
+        const holds = [];
+        let t0 = null, k = 0;
+        const v = () => L.scroll.speedNow ?? L.scroll.speed;
+        for (; k < 120 * 160 && L.scroll.state !== 'done'; k++) {
+          c.step(1);
+          const slow = Math.abs(v() - PL.vt) < 0.05 && L.scroll.state === 'run';
+          if (slow && t0 === null) t0 = L.time;
+          if (!slow && t0 !== null) { holds.push(+(L.time - t0).toFixed(2)); t0 = null; }
+        }
+        mech.holds = holds.filter((h) => h > 2);
+        log.push(['Halte', JSON.stringify(mech.holds)]);
+        continue;
+      }
+      // ------------------------------------------------ zu Fuß zu einem Konvoi-Punkt
+      if (Lg.go) {
+        const ok = goC(Lg.go[0], Lg.go[1], Lg.within ?? 0.3, Lg.max ?? 900, !!Lg.run);
+        log.push(here(Lg.name ?? 'gehe'));
+        if (!ok && !Lg.noJump) log.push(['FEHLER: nicht erreicht', JSON.stringify(Lg.go)]);
+        continue;
+      }
+      // ------------------------------------------------ Sprung auf einen Konvoi-Punkt (Landung mindestens auf y)
+      if (Lg.hop) {
+        const [cc, x] = Lg.hop;
+        let i = 0, j0 = null, airborne = false, landed = false, tries = 0;
+        for (; i < (Lg.max ?? 900); i++) {
+          if (p.dead) break;
+          const tx = x, tz = K.wz(cc), dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+          const high = p.pos.y > Lg.y - 0.3;
+          if (landed && p.mode === 'ground') {
+            if (high && d < (Lg.within ?? 0.9)) break;
+            if (!high) { landed = false; airborne = false; j0 = null; tries++; }
+            else if (d >= (Lg.within ?? 0.9)) { landed = false; airborne = false; j0 = null; }
+          }
+          // abspringen: im Abstand jumpAt – oder spätestens an der Kante (sonst fiele der Bot hinab)
+          const ux = dx / (d || 1), uz = dz / (d || 1);
+          const hEdge = p.mode === 'ground' ? c.world.raycastDown(p.pos.x + ux * 0.45, p.pos.y + 0.6, p.pos.z + uz * 0.45, 1.2) : null;
+          const atEdge = p.mode === 'ground' && (!hEdge || hEdge.y < p.pos.y - 0.4);
+          if (j0 === null && p.mode === 'ground' && (d <= (Lg.jumpAt ?? 1.8) || atEdge)) { j0 = i; mech.jumps++; }
+          const jump = j0 !== null && i - j0 < (Lg.hold ?? 36);
+          let st;
+          if (p.mode === 'air' && j0 !== null) { const [vx, vz] = K.vel(); st = W.airSteer(tx, tz, vx, vz, 2.8, 7); }
+          else st = W.stick(dx, dz, Math.max(0.25, Math.min(1, d / 1.4)));
+          tick({ ...st, jump, run: false });
+          if (p.mode === 'air') airborne = true; else if (airborne) landed = true;
+        }
+        log.push([...here(Lg.name ?? 'sprung'), i, tries]);
+        if (p.pos.y < Lg.y - 0.3) log.push(['FEHLER: Sprung zu kurz', Lg.name ?? JSON.stringify(Lg.hop)]);
+        continue;
+      }
+      // ------------------------------------------------ Stampfen auf einen Konvoi-Punkt (aufspringen, in der Luft ducken)
+      if (Lg.pound) {
+        const [cc, x] = Lg.pound;
+        goC(cc - 1.6, x, 0.3, 600);
+        let k = 0, pounding = false;
+        const y0 = p.pos.y;
+        for (; k < 400; k++) {
+          const tx = x, tz = K.wz(cc), dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+          if (k > 5 && p.mode === 'ground') break;
+          if (!pounding && k > 8 && d < 0.35 && p.vel.y < 2 && p.pos.y > y0 + 2.2) pounding = true;
+          const [vx, vz] = K.vel();
+          tick(pounding ? { crouch: true } : { ...(p.mode === 'air' ? W.airSteer(tx, tz, vx, vz, 3.2, 6) : W.stick(dx, dz, Math.min(1, d * 1.2))), jump: k < 34, run: false });
+        }
+        for (let i = 0; i < 20; i++) tick({});
+        log.push([...here('stampfen'), pounding, k]);
+        continue;
+      }
+      // ------------------------------------------------ Zündkopf holen (bzw. nehmen, was kommt) und auf ein Ziel werfen
+      if (Lg.bomb) {
+        const target = named(Lg.bomb);
+        const tpos = () => target.pos;
+        let z = null;
+        if (Lg.spawn) { z = L.spawn('zuendkopf', { pos: [p.pos.x, p.pos.y + 0.1, p.pos.z - 0.7], attach: Lg.tank, trigger: 0, speed: 0.001, behavior: 'walk', wake: 999 }); tick({}); }
+        // nur Zündköpfe sicher auf dem Deck (nicht an der Kante – sonst läuft der Bot hinterher ins Leere)
+        const tank = named(Lg.tank), tw = () => tank.size.w / 2 - 0.7, tl = () => tank.size.d / 2 - 0.9;
+        const onDeck = (e) => Math.abs(e.pos.x - tank.pos.x) < tw() && Math.abs(e.pos.z - tank.pos.z) < tl();
+        const free = (e) => e.kind === 'zuendkopf' && !e.removed && e.alive && !e.exploded && !e.defeated && !e.carrier && e.state !== 'thrown' && e.state !== 'explode' && e.spec?.attach === Lg.tank && e.pos.y > 1 && onDeck(e);
+        let k = 0, got = false, tries = 0;
+        for (; k < 1800; k++) {
+          if (p.dead) break;
+          if (p.holding?.kind === 'zuendkopf') { got = true; break; }
+          let best = null, bd = Infinity;
+          for (const e of L.entities) { if (!free(e)) continue; const d = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z); if (d < bd) { bd = d; best = e; } }
+          if (!best) { const [cc, x] = Lg.standby ?? Lg.at; const dx = x - p.pos.x, dz = K.wz(cc) - p.pos.z; tick(Math.hypot(dx, dz) > 0.4 ? W.stick(dx, dz, 0.6) : {}); continue; }
+          z = best;
+          const dx = z.pos.x - p.pos.x, dz = z.pos.z - p.pos.z;
+          if (bd < 0.7) { tries++; faceTo(z.pos.x, z.pos.z, 12); tick({ action: true }); tick({}); continue; }
+          tick({ ...W.stick(dx, dz, Math.max(0.35, Math.min(1, bd / 1.2))), run: false });
+        }
+        if (!got) { log.push(['FEHLER: kein Zündkopf', Lg.bomb, k, ...here('')]); continue; }
+        z = p.holding;
+        mech.bombs++;
+        const [cc, x] = Lg.at;
+        for (const v of Lg.via ?? []) goC(v[0], v[1], 0.4, 300);
+        goC(cc, x, 0.3, 400);
+        faceTo(tpos().x, tpos().z);
+        tick({ action: true }); tick({});
+        const thrown = z.state;
+        let e = 0, ex = null;
+        for (; e < 400 && !z.exploded && !z.removed; e++) tick({});
+        if (z.exploded) ex = [+(z.pos.x - tpos().x).toFixed(2), +(z.pos.y - tpos().y).toFixed(2), +(z.pos.z - tpos().z).toFixed(2)];
+        for (let i = 0; i < 30; i++) tick({});
+        log.push(['Zündkopf', Lg.bomb, k, tries, thrown, z.exploded, ex, target.state ?? target.broken ?? (target.removed ? 'weg' : 'da'), ...here('')]);
+        continue;
+      }
+      // ------------------------------------------------ Luke: hingehen, ducken → Arena
+      if (Lg.luke) {
+        const lk = named('luke');
+        let k = 0;
+        for (; k < 900; k++) {
+          const dx = lk.pos.x - p.pos.x, dz = lk.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+          if (p.mode === 'ground' && p.pos.y > lk.pos.y + lk.H - 0.2 && d < 0.4) break;
+          tick({ ...(p.mode === 'air' ? W.airSteer(lk.pos.x, lk.pos.z, 0, 0, 3, 6) : W.stick(dx, dz, Math.max(0.3, Math.min(1, d)))), jump: p.mode === 'ground' && d < 1.4 && (k % 30) < 14 });
+        }
+        for (let i = 0; i < 200 && p.pos.z > PL.az + 15; i++) tick({ crouch: true });
+        for (let i = 0; i < 60; i++) tick({});
+        mech.arena = p.pos.z < PL.az + 15 && p.pos.y > 5.5;
+        log.push(['Luke', lk.open, k, mech.arena, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+        if (!mech.arena) log.push(['FEHLER: nicht in der Arena']);
+        continue;
+      }
+      // ------------------------------------------------ Bosskampf: ausweichen, im Schwindel auf das Original springen
+      if (Lg.boss) {
+        const b = named('wirbel');
+        const A = { x: 0, z: PL.az, r: 10.1 };
+        const sub = c.arch.sub;
+        let k = 0;
+        for (; k < 600 && !sub.started; k++) tick({ ...W.stick(A.x - p.pos.x, A.z + 3 - p.pos.z, 0.8) });
+        let attack = false, j0 = -1, stomps = 0, k2 = 0;
+        const maxK = 120 * 240;
+        for (; k2 < maxK && b.state !== 'gone' && !b.defeated && !p.dead; k2++) {
+          const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+          if (b.state === 'stunned' && !attack) { attack = true; j0 = -1; }
+          if (attack && b.state !== 'stunned' && p.mode === 'ground') attack = false;
+          let inp;
+          if (attack) {
+            if (p.mode === 'ground' && j0 < 0 && d < 2.3) { j0 = k2; stomps++; }
+            const jump = j0 >= 0 && k2 - j0 < 22;
+            if (p.mode === 'air') inp = { ...W.airSteer(b.pos.x, b.pos.z, 0, 0, 4, 8), jump };
+            else inp = { ...W.stick(dx, dz, 1), run: d > 3, jump };
+            if (p.mode === 'ground' && j0 >= 0 && k2 - j0 > 30) j0 = -1;
+          } else {
+            // ausweichen: weg vom Brocken und von den Attrappen (Abstoßung ~ 1/d²), an der Arenagrenze tangential
+            const rx = p.pos.x - A.x, rz = p.pos.z - A.z, rr = Math.hypot(rx, rz) || 1;
+            let ax = 0, az = 0;
+            for (const e of L.entities) {
+              if (e.removed || !(e === b || (e.kind === 'wirbelbrocken_attrappe' && e.alive))) continue;
+              const ex = p.pos.x - e.pos.x, ez = p.pos.z - e.pos.z, ed = Math.max(0.5, Math.hypot(ex, ez));
+              ax += ex / (ed * ed * ed); az += ez / (ed * ed * ed);
+            }
+            const al = Math.hypot(ax, az) || 1; ax /= al; az /= al;
+            if (rr > 6.8) { const tx = -rz / rr, tz = rx / rr, s = tx * ax + tz * az >= 0 ? 1 : -1; ax = s * tx - rx / rr * 0.35; az = s * tz - rz / rr * 0.35; }
+            const want = d < 6.5 ? 1 : 0.15;
+            inp = { ...W.stick(ax, az, want), run: d < 4 };
+          }
+          tick(inp);
+        }
+        mech.boss = { hits: b.hits ?? (b.maxHp - b.hp), hp: b.hp, teleports: b.teleports ?? 0, decoysMade: b.decoysMade ?? 0, decoysPopped: b.decoysPopped ?? 0, stomps, steps: k2, state: b.state };
+        for (let i = 0; i < 900 && b.state !== 'gone'; i++) tick({});
+        for (let i = 0; i < 60; i++) tick({});
+        mech.boss.won = !!sub.won;
+        log.push(['Boss', JSON.stringify(mech.boss)]);
+        if (!sub.won) log.push(['FEHLER: Boss nicht besiegt']);
+        continue;
+      }
+      // ------------------------------------------------ Warp-Box nach dem Sieg → Regenbogeninsel
+      if (Lg.warp) {
+        const wb = named('warp_sieg');
+        let k = 0;
+        for (; k < 900 && p.pos.z > PL.gz + 20; k++) {
+          const dx = wb.pos.x - p.pos.x, dz = wb.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+          tick({ ...(p.mode === 'air' ? W.airSteer(wb.pos.x, wb.pos.z, 0, 0, 3, 6) : W.stick(dx, dz, Math.max(0.3, Math.min(1, d)))), jump: p.mode === 'ground' ? d < 1.8 && (k % 40) < 16 : p.vel.y > 0 });
+        }
+        for (let i = 0; i < 60; i++) tick({});
+        log.push(['Warp-Box', !wb.hidden, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+        continue;
+      }
+      if (Lg.goal) {
+        const g = L.data.goal.pos;
+        let k = 0;
+        for (; k < 1200 && L.runtime.status === 'play'; k++) tick({ ...W.stick(g[0] - p.pos.x, g[2] - p.pos.z, 1), jump: Math.hypot(g[0] - p.pos.x, g[2] - p.pos.z) < 2.2 && (k % 40) < 20 });
+        for (let i = 0; i < 600 && L.runtime.status !== 'goal' && L.runtime.status !== 'done'; i++) tick({});
+        log.push(['Zielmast', L.runtime.status, k]);
+        continue;
+      }
+      // ------------------------------------------------ über die fahrende Kolonne (Spur, Lücken springen)
+      if (Lg.konvoi) {
+        const lane = o.lanes?.[Lg.konvoi] ?? Lg.konvoi;
+        let jumpHold = 0, prevJump = false, commit = false, longGap = false, i = 0, ok = false;
+        for (; i < (Lg.max ?? 120 * 170); i++) {
+          if (p.dead || L.runtime.status !== 'play') break;
+          const cp = K.cOf(p.pos.z), cw = K.cw();
+          if (p.mode === 'ground' && cp >= Lg.to && (!Lg.done || w.state === 'done')) { ok = true; break; }
+          const lx = laneAt(lane, cp + 0.8);
+          let ix = clamp((lx - p.pos.x) * 1.6, -1, 1), iy = 0, run = false;
+          const ahead = cw + (Lg.lead ?? 1.6);
+          let jump = false;
+          if (p.mode === 'ground') {
+            commit = false;
+            let edge = Infinity;
+            for (let d = 0.5; d < 3.4; d += 0.25) if (!groundAhead(p, d)) { edge = d; break; }
+            let far = Infinity;
+            if (edge < Infinity) { const pz = p.pos.z; p.pos.z -= edge - 0.25; far = farSide(p, laneAt(lane, cp + edge + 2.5)) + edge - 0.25; p.pos.z = pz; }
+            const ready = far < 7.5 && cp + far + 1.4 < cw + 7.2;
+            longGap = edge < Infinity && far - edge > 3.4;
+            run = longGap && ready;
+            if (edge <= 0.75) {
+              if (ready && p.gs > 4.2) { jump = true; iy = 1; commit = true; mech.jumps++; }
+              else iy = -0.6;
+            } else if (wallAhead(p, 0.55) && cp < ahead + 4) { jump = true; iy = 1; commit = true; mech.climbs++; }
+            else if (edge < 1.4) iy = ready ? 1 : 0;
+            else if (edge < 3.4) iy = ready ? 1 : (cp < ahead ? 0.5 : 0);
+            else if (cp < ahead) iy = 1;
+            if (cp >= Lg.to && edge > 0.75) iy = 0;
+          } else if (commit) { iy = 1; run = longGap; }
+          if (jump && !prevJump) jumpHold = 40;
+          const jumpNow = jumpHold > 0;
+          if (jumpHold > 0) jumpHold--;
+          prevJump = jumpNow;
+          const mag = Math.min(1, Math.hypot(ix, iy));
+          tick({ ...(mag > 0.02 ? W.stick(ix, -iy, mag) : { x: 0, y: 0 }), run, jump: jumpNow });
+        }
+        mech.tankCount = mech.tanks.length;
+        log.push([...here(Lg.name ?? 'Kolonne'), i, ok, JSON.stringify(mech.tanks)]);
+        if (!ok) log.push(['FEHLER: Kolonne nicht geschafft', JSON.stringify(hist.slice(-20))]);
+        continue;
+      }
+    }
+    c.setInput({});
+    mech.hurts = p.hurtTries ?? 0;
+    return { log, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, rt: L.runtime.info(), mech };
+  };
+  return Object.keys(K);
+}
+
 const allErrors = [];
 let loaded = null;
 async function load(id) {
@@ -553,6 +991,127 @@ async function shot(name, wait = 600) {
   return s;
 }
 
+// ------------------------------------------------------------------ 6-Panzer: Ablauf (Route, Messgang, Ziele, Extras, Bilder)
+const laneX = (lane, cc) => {
+  if (cc <= lane[0][0]) return lane[0][1];
+  for (let i = 1; i < lane.length; i++) if (cc <= lane[i][0]) { const [c0, x0] = lane[i - 1], [c1, x1] = lane[i]; return x0 + (x1 - x0) * ((cc - c0) / (c1 - c0)); }
+  return lane[lane.length - 1][1];
+};
+const K = (name, ...args) => sc(([n, a]) => window.__k[n](...a), [name, args]);
+async function loadKonvoi(id) {
+  if (!(await load(id))) return false;
+  await sc(installKonvoi);
+  return true;
+}
+async function konvoiLevel(id, R) {
+  const lanes = { lane: R.lane };
+  // ------------------------------------------------ Routen-Bot je Heldin: ganze Fahrt, Luke, Boss, Warp-Box, Zielmast
+  const sweep = [];
+  for (const hero of ONLY || !PARTS.has('route') ? [] : HEROES) {
+    await loadKonvoi(id);
+    await K('put', 3, -1.4, { hero, settle: 2 });
+    const res = await K('run', R.main, { lanes });
+    const reached = res.status === 'goal' || res.status === 'done';
+    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Treffer ${res.mech.hurts} ${JSON.stringify(res.mech.hurtBy)}, Sprünge ${res.mech.jumps}, Kletter ${res.mech.climbs}, Panzer ${res.mech.tanks.join(',')}, Boss ${JSON.stringify(res.mech.boss)}`);
+    if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+    check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
+    check(`${id}: ${hero} Zeit bis zum Ziel < 300 s (${res.time.toFixed(1)} s)`, reached && res.time < 300);
+    for (const m of R.routeChecks ?? []) check(`${id}: ${hero} – ${m.name}`, m.ok(res));
+  }
+
+  // ------------------------------------------------ Messgang: Kolonne fahren, alle ~12 m Kennzahlen aus der Spielkamera
+  if (!ONLY && PARTS.has('sweep')) {
+    await loadKonvoi(id);
+    let worst = { calls: 0, tris: 0, at: null, atT: null };
+    for (let cc = 8; cc <= 200; cc += 12) {
+      const cwNow = await K('cw');
+      const target = cc > 192 ? 'done' : cc;
+      if (target === 'done' || cwNow < cc) await K('ride', target);
+      const pc = Math.min(cc - 1.5, 192);
+      await K('put', pc, laneX(R.lane, pc), { settle: 2, invuln: 99 });
+      const f0 = await sc(() => { window.__course.snapCamera(); return window.__course.view.frame; });
+      await page.waitForFunction((f) => window.__course.view.frame >= f + 6, f0, { timeout: 90000 });
+      const st = await sc(() => window.__course.stats());
+      sweep.push([pc, st.calls, st.triangles]);
+      if (st.calls > worst.calls) { worst.calls = st.calls; worst.at = pc; }
+      if (st.triangles > worst.tris) { worst.tris = st.triangles; worst.atT = pc; }
+      if (target === 'done') break;
+    }
+    if (process.env.VERBOSE) for (const [pc, cl, tr] of sweep) console.log(`      c ${String(pc).padEnd(8)} ${cl} Aufrufe ${Math.round(tr / 1000)} k`);
+    check(`${id}: Messgang über ${sweep.length} Punkte der Kolonne – Zeichenaufrufe < 120 (max ${worst.calls} bei c ${worst.at})`, worst.calls < 120);
+    check(`${id}: Messgang – Dreiecke < 300 k (max ${Math.round(worst.tris / 1000)} k bei c ${worst.atT})`, worst.tris < 300000);
+  }
+
+  // ------------------------------------------------ Sterne, Stempel und Gegenproben
+  for (const t of !PARTS.has('targets') ? [] : pick(R.targets)) {
+    for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
+      await loadKonvoi(id);
+      if (t.ride !== null && t.ride !== undefined) await K('ride', t.ride);
+      if (t.put) await K('put', t.put[0], t.put[1], { hero, settle: 4 });
+      const res = await K('run', t.plan, { invuln: t.invuln, lanes });
+      let ok;
+      if (t.expect) ok = await K('cond', t.expect);
+      else ok = t.star !== undefined ? res.rt.stars[t.star] : res.rt.stamp;
+      if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
+      if (t.mech && !t.mech(res)) ok = false;
+      if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+      check(`${id}: ${t.name} (${hero}, Treffer ${res.mech.hurts})`, !!ok);
+      if (t.shot && hero === HEROES[0]) await shot(`${id}_${t.shot}`);
+    }
+  }
+
+  // ------------------------------------------------ Extras
+  for (const t of !PARTS.has('extra') ? [] : pick(R.extra ?? [])) {
+    for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
+      await loadKonvoi(id);
+      if (t.ride) await K('ride', t.ride);
+      const lives0 = await W('lives');
+      const coins0 = (await W('rt')).coins;
+      if (t.put) await K('put', t.put[0], t.put[1], { hero, settle: 4 });
+      const res = await K('run', t.plan, { invuln: t.invuln, lanes });
+      const lives1 = await W('lives');
+      let ok = true;
+      if (t.expectLives !== undefined) ok = ok && lives1 - lives0 >= t.expectLives;
+      if (t.expectAlive === true) ok = ok && !res.dead;
+      if (t.mech && !t.mech(res)) ok = false;
+      if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
+      if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+      check(`${id}: ${t.name} (${hero}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}${t.mechText ? `, ${t.mechText(res)}` : ''})`, ok);
+    }
+  }
+
+  // ------------------------------------------------ Bilder aus der Spielkamera (eine Fahrt, der Reihe nach)
+  if (ONLY || !PARTS.has('shots')) return;
+  loaded = null;
+  await loadKonvoi(id);
+  for (const [name, cwin, put, steps = 0, prep = null] of R.shots) {
+    if (SHOTS && !SHOTS.has(name)) { if (cwin !== null && typeof cwin === 'number') await K('ride', cwin); continue; }
+    if (cwin === 'arena' || cwin === 'insel') {
+      await sc(([what, n]) => {
+        const c = window.__course, L = c.level, k = window.__k, PL = L.data.plan, p = c.player;
+        if (L.scroll.state !== 'done') k.ride('done');
+        p.mode = 'ground'; p.script = null; p.invuln = 99;
+        if (what === 'arena') {
+          p.reset([2.5, PL.az ? 6.05 : 6, PL.az + 6.5], Math.PI / 2);
+          for (let i = 0; i < n; i++) { c.setInput({ y: i < 40 ? 0.6 : 0 }); c.step(1); }
+        } else {
+          p.reset([0, 5.05, PL.gz + 9], Math.PI / 2);
+          c.step(n);
+        }
+        c.setInput(null);
+        L.controlYaw = c.view.rig.controlYaw(p.pos);
+      }, [cwin, steps]);
+    } else {
+      if (cwin !== null) await K('ride', cwin);
+      if (put) await K('put', put[0], put[1], { settle: 4, invuln: 99 });
+      if (prep === 'tuerme') await sc(() => { const L = window.__course.level; for (const id of ['turm_a', 'turm_b', 'turm_c']) L.named.get(id).grow('bomb'); });
+      if (prep === 'stampf') await sc(() => { window.__course.level.named.get('turm9').grow('pound'); });
+      if (steps) await sc((n) => { const c = window.__course; c.player.invuln = 99; c.step(n); c.player.invuln = 0; }, steps);
+    }
+    await shot(`${id}_${name}`);
+  }
+}
+
 for (const id of LEVELS) {
   const R = ROUTES[id];
   console.log(`\nLevel ${id}`);
@@ -568,6 +1127,7 @@ for (const id of LEVELS) {
       meta.stars === R.meta.stars && kinds.stamp === 1 && meta.timeLimit === R.meta.time && meta.theme === R.meta.theme && meta.music === R.meta.music && meta.archetype === R.meta.archetype);
     for (const [kind, n] of Object.entries(R.enemies ?? {})) if (n) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
   }
+  if (R.konvoi) { await konvoiLevel(id, R); continue; }
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
   let sweepTrack = null;

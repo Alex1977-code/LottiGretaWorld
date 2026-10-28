@@ -7,13 +7,16 @@
 //   1) Daten-Helfer     Münzspuren, Schilder
 //   2) Schacht 6-7      Felswände, Gerüstbretter (Einweg), Glaswand vorn, Nische, Felsrille, Grubentor, Wippe mit
 //                       Quetschblock (der Block drückt ein Ende hinab – das andere schnellt hoch), Absturz nach der Fahrt
+//   3) Kolonne 6-Panzer Fahrplan (Bildfenster gleitet an der Kolonne entlang, Haltepunkte), Panzer-Bausteine, Wolken-
+//                       straße, Schwebeinseln, Wolkenburg, Regenbogen, Mitfahr-Regeln (Werfer, Zündköpfe)
 // Statische Teile gehen über addStatic in die Abschnitts-Meshes (keine zusätzlichen Zeichenaufrufe), belebte
 // Kleinigkeiten sind je ein Mesh bzw. eine Instanz-Gruppe ohne Sonnenschatten.
 
 import * as THREE from 'three';
 import { colorize, merge, lin, mixc, smooth, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
-import { visDt } from '../../entities/gimmick.js';
+import { visDt, runAction } from '../../entities/gimmick.js';
 import { figures } from '../../blocks/w2kit.js';
+import { ScrollWindow } from '../../archetypes/ScrollWindow.js';
 
 const TAU = Math.PI * 2;
 const C = (c) => lin(hex(c));
@@ -577,6 +580,342 @@ export function schachtLeben(level, cfg = {}) {
       P[i * 3] = s.x + Math.sin(t * 0.7 + s.ph) * 0.4; P[i * 3 + 1] = y; P[i * 3 + 2] = s.z;
     }
     g.attributes.position.needsUpdate = true;
+  });
+}
+
+// =====================================================================================================================
+// 3) Panzerkolonne 6-Panzer
+// =====================================================================================================================
+//
+// Konvoi-Koordinate c: Meter entlang der Kolonne nach vorn (−Z) ab dem Heck des ersten Panzers, gemessen beim Fahrtbeginn
+// (Weltlage z = −c). Alle Panzer fahren mit vt, das Bildfenster schneller (vw) und gleitet an der Kolonne entlang nach vorn;
+// an „Haltepunkten“ (holds: { c, T }) fährt es T s lang genau mit der Kolonne (Zeit für die Rätsel mit den Zündköpfen).
+// Am Ende halten Fenster und Panzer gemeinsam (Fenstermitte über dem Kommandopanzer bei cEnd).
+
+/**
+ * Fahrplan der Kolonne mit derselben Mathematik wie das Spiel (ScrollWindow): o = { vt, vw, zp, cw0, cEnd, accel, brake,
+ * holds: [{ c, T }] } → { speeds (LEVEL.scroll.speeds), start, end (Pfadlänge), T (s Fahrt bis zum Halt), ride (m Fahrstrecke
+ * der Panzer bis zum Halt), holdS: [Pfadlänge je Haltepunkt] }.
+ */
+export function kolonnenFahrplan(o) {
+  const { vt, vw, zp, cw0, cEnd } = o;
+  const accel = o.accel ?? 6, brake = o.brake ?? 3;
+  const start = zp + cw0;
+  const speeds = [];
+  const holdS = [];
+  const run = (end, until) => {
+    const w = new ScrollWindow({ path: [[0, 0, zp], [0, 0, -5000]], start, end, speed: vw, speeds: speeds.slice(), accel, delay: 0 });
+    let n = 0;
+    while (w.state !== 'done' && n < 120 * 900) {
+      w.step(1 / 120);
+      n++;
+      if (until && until(w)) return w;
+    }
+    return w;
+  };
+  // Haltepunkte nacheinander einplanen: bei Erreichen von c fährt das Fenster T s lang mit Kolonnentempo
+  for (const h of [...(o.holds ?? [])].sort((a, b) => a.c - b.c)) {
+    const w = run(start + 4000, (ww) => ww.s - zp - vt * ww.clock >= h.c);
+    holdS.push(w.s);
+    speeds.push({ from: w.s, speed: vt }, { from: w.s + vt * h.T, speed: vw });
+  }
+  // Ende so wählen, dass die Fenstermitte beim Halt über cEnd steht
+  let travel = cEnd - cw0 + 60, T = 0;
+  for (let k = 0; k < 12; k++) {
+    const w = run(start + travel);
+    T = w.clock;
+    const cw = start + travel - zp - vt * T;
+    travel += cEnd - cw;
+    if (Math.abs(cEnd - cw) < 1e-4) break;
+  }
+  const ride = vt * T + (vt * vt) / (2 * brake) / 2;
+  return { speeds, start, end: start + travel, T, ride, holdS, brake };
+}
+
+/**
+ * Panzer als Baustein (Kolonne 6-Panzer): t = { id, c (Mitte), len, w, h (Deckhöhe), x (Spur), color, parts: [{ dc, dx, y,
+ * size, color, tag, climbable }] }, f = Fahrplan (kolonnenFahrplan) + { vt, zp }.
+ */
+export function panzer6(t, f) {
+  const parts = (t.parts ?? []).map((q) => ({ pos: [q.dx ?? 0, q.y ?? t.h, -(q.dc ?? 0)], size: q.size, color: q.color, solid: q.solid, climbable: q.climbable, tag: q.tag, oneWay: q.oneWay }));
+  return {
+    type: 'vehicle', id: t.id, style: 'tank', size: [t.w, t.h, t.len], at: f.zp + t.c, speed: f.vt, stop: f.zp + t.c + f.ride, brake: f.brake,
+    offset: [t.x ?? 0, 0], color: t.color ?? 'rot', parts,
+  };
+}
+
+/** Weltpunkt (Fahrtbeginn) zu Konvoi-Koordinate c, seitlich x, Höhe y. */
+export const kP = (c, x = 0, y = 0) => [x, y, -c];
+/** Punkt auf einem Panzer (dc nach vorn, dx seitlich, y Höhe; Standard: Deck). */
+export const aufPanzer = (t, dc, dx, y = t.h) => [(t.x ?? 0) + dx, y, -(t.c + dc)];
+
+/**
+ * Wolkenstraße: weiche, weiße Wolkenbank, auf der die Kolonne rollt (nur Optik – wer zwischen die Panzer fällt, plumpst
+ * hindurch). cfg = { z0, z1 (Strecke), width: 15, y: 0 (Oberfläche), seed }. Dazu Wolkenbäusche an den Rändern.
+ */
+export function wolkenStrasse(level, cfg) {
+  if (!level.view) return;
+  const W = cfg.width ?? 15, y = cfg.y ?? 0;
+  const z0 = Math.max(cfg.z0, cfg.z1), z1 = Math.min(cfg.z0, cfg.z1), L = z0 - z1;
+  const nx = Math.max(4, Math.round(W / 1.2)), nz = Math.max(4, Math.round(L / 1.6));
+  const g = new THREE.PlaneGeometry(W, L, nx, nz);
+  g.rotateX(-Math.PI / 2);
+  g.translate(cfg.x ?? 0, y, (z0 + z1) / 2);
+  const pos = g.attributes.position;
+  const cx = cfg.x ?? 0, sd = cfg.seed ?? 1;
+  for (let i = 0; i < pos.count; i++) {
+    const px = pos.getX(i), pz = pos.getZ(i);
+    const u = Math.abs(px - cx) / (W / 2);                     // 0 Mitte … 1 Rand
+    const puff = Math.sin(pz * 0.9 + sd) * Math.sin(px * 1.3 + pz * 0.21) * 0.22 + Math.sin(pz * 0.37 + px * 0.6) * 0.18;
+    pos.setY(i, y + puff * (1 - u * 0.4) - Math.pow(u, 3) * 1.6);
+  }
+  g.computeVertexNormals();
+  // zarte Pastell-Flecken (rosa, himmelblau) im Weiß
+  const pink = C(0xffe2f0), blau = C(0xdcebff), weiss = C(0xffffff), schatten = C(0xb4cdf0), tmp = [0, 0, 0];
+  const geo = colorize(ni(g), (p, n, out) => {
+    const k = Math.sin(p.x * 0.31 + p.z * 0.13 + sd) * Math.sin(p.z * 0.07 - p.x * 0.11);
+    mixc(weiss, k > 0 ? pink : blau, Math.min(1, Math.abs(k) * 1.6) * 0.75, tmp);
+    mixc(schatten, tmp, smooth(0.2, 0.95, n.y) * 0.8 + smooth(-1.4, y + 0.3, p.y) * 0.2, out);
+  });
+  const parts = [geo];
+  // Wolkenwülste an beiden Rändern: ein bauschiger Schlauch je Seite (weiche Normalen), ab und zu ein großer Bausch
+  for (const s of [-1, 1]) {
+    const nzr = Math.max(8, Math.round(L / 0.7));
+    const tube = new THREE.CylinderGeometry(1, 1, L, 14, nzr, true);
+    tube.rotateX(Math.PI / 2);
+    const tp = tube.attributes.position;
+    for (let i = 0; i < tp.count; i++) {
+      const vx = tp.getX(i), vy = tp.getY(i), vz = tp.getZ(i);
+      const zz = vz + (z0 + z1) / 2;
+      const r = 0.95 + 0.42 * Math.abs(Math.sin(zz * 0.62 + s * 1.3 + sd)) + 0.16 * Math.sin(zz * 1.9 + s);
+      const flat = vy < 0 ? 0.55 : 0.85;
+      tp.setXYZ(i, vx * r * 1.15, vy * r * flat, vz);
+    }
+    tube.computeVertexNormals();
+    tube.translate(cx + s * (W / 2 - 0.1), y - 0.05, (z0 + z1) / 2);
+    parts.push(colorize(ni(tube), (p, n, out) => {
+      const k = Math.sin(p.z * 0.045 + s * 2 + sd);
+      mixc(weiss, k > 0.4 ? pink : blau, smooth(0.4, 1, Math.abs(k)) * 0.6, tmp);
+      mixc(schatten, tmp, smooth(-0.5, 0.7, n.y), out);
+    }));
+  }
+  const rnd = new Rnd(cfg.seed ?? 5);
+  for (let z = z0 - rnd.real(2, 8); z > z1; z -= rnd.real(9, 16)) {
+    const s = rnd.real(0, 1) < 0.5 ? -1 : 1;
+    for (let j = 0; j < 3; j++) {
+      const r = rnd.real(1.0, 1.7) * (j === 1 ? 1.25 : 1);
+      const b = new THREE.SphereGeometry(r, 12, 8);
+      b.scale(1.2, 0.8, 1.1);
+      b.translate(cx + s * (W / 2 + 0.6 + rnd.real(0, 0.8)), y + 0.4 + (j === 1 ? 0.5 : 0), z + (j - 1) * r * 1.2);
+      parts.push(colorize(ni(b), (p, n, out) => mixc(schatten, weiss, smooth(-0.5, 0.7, n.y), out)));
+    }
+  }
+  addStatic(level, merge(parts), { castShadow: false });
+}
+
+/**
+ * Heißluftballons (Zierde über den Wolken, ohne Kollision/Schatten): gestreifte Hülle, Korb, Seile. Schweben sanft auf
+ * und ab (eine gemeinsame Instanz je Ballon wäre teurer – alle Ballons sind ein Mesh, das als Ganzes wippt).
+ * list: [{ x, y, z, r: 2, colors: [a, b] }]
+ */
+export function heissluftballons(level, list) {
+  if (!level.view) return;
+  const parts = [];
+  for (const it of list) {
+    const r = it.r ?? 2, [ca, cb] = (it.colors ?? [0xff4a6a, 0xffe04a]).map(C);
+    const env = new THREE.SphereGeometry(r, 16, 12);
+    const ep = env.attributes.position;
+    for (let i = 0; i < ep.count; i++) {
+      const vx = ep.getX(i), vy = ep.getY(i), vz = ep.getZ(i);
+      const u = vy / r;                                         // −1 unten … 1 oben
+      const k = u < 0 ? 1 - 0.62 * smooth(0, 1, -u) : 1;        // unten zum Hals verjüngt
+      ep.setXYZ(i, vx * k, vy * (u < 0 ? 1.35 : 1.05), vz * k);
+    }
+    env.computeVertexNormals();
+    env.translate(it.x, it.y, it.z);
+    parts.push(colorize(ni(env), (p, n, out) => {
+      const a = Math.atan2(p.z - it.z, p.x - it.x);
+      const stripe = Math.floor(((a + Math.PI) / TAU) * 12) % 2;
+      const c = stripe ? ca : cb;
+      out[0] = c[0] * (0.82 + 0.18 * n.y); out[1] = c[1] * (0.82 + 0.18 * n.y); out[2] = c[2] * (0.82 + 0.18 * n.y);
+    }));
+    const by = it.y - r * 1.35 - r * 0.55;
+    parts.push(blk(r * 0.42, r * 0.3, r * 0.42, it.x, by, it.z, 0x9a6a3a));
+    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const rope = new THREE.CylinderGeometry(0.025, 0.025, r * 0.62, 3);
+      rope.translate(it.x + sx * r * 0.19, by + r * 0.15 + r * 0.31, it.z + sz * r * 0.19);
+      parts.push(colorize(ni(rope), (p, n, out) => { const c = C(0x5a4030); out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+    }
+  }
+  const mesh = new THREE.Mesh(merge(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 }));
+  mesh.castShadow = false; mesh.receiveShadow = false;
+  mesh.userData.owned = true;
+  let t = 0;
+  addObject(level, mesh, (dt) => { t += Math.min(dt, 0.1); mesh.position.y = Math.sin(t * 0.7) * 0.35; });
+}
+
+/**
+ * Schwebende Inselchen links und rechts der Wolkenstraße (fahren an der Kolonne vorbei): Felsunterseite, Grasdecke,
+ * Bäumchen, Blumen, mal ein Fähnchen. list: [{ x, y, z, r, h }]. Statisch, ohne Sonnenschatten.
+ */
+export function schwebeInseln(level, list, o = {}) {
+  if (!level.view) return;
+  const parts = [], rnd = new Rnd(o.seed ?? 9);
+  for (const it of list) {
+    const { x, y, z } = it, r = it.r ?? 4, h = it.h ?? 4;
+    const top = new THREE.CylinderGeometry(r, r * 0.92, 0.7, 12);
+    top.translate(x, y - 0.35, z);
+    parts.push(colorize(ni(top), (p, n, out) => mixc(C(0x58b83a), C(0x8ae25a), smooth(0, 1, n.y), out)));
+    const cone = new THREE.ConeGeometry(r * 0.92, h, 10, 2);
+    cone.rotateX(Math.PI);
+    cone.translate(x, y - 0.7 - h / 2, z);
+    const cp = cone.attributes.position;
+    for (let i = 0; i < cp.count; i++) { const k = 1 + Math.sin(cp.getX(i) * 2.1 + cp.getZ(i) * 1.7) * 0.08; cp.setX(i, x + (cp.getX(i) - x) * k); cp.setZ(i, z + (cp.getZ(i) - z) * k); }
+    cone.computeVertexNormals();
+    parts.push(colorize(ni(cone), (p, n, out) => mixc(C(0x7a5a44), C(0xb48a62), smooth(y - 0.7 - h, y - 0.7, p.y), out)));
+    // Bäumchen (runde Krone) und Blumen
+    const nt = it.trees ?? Math.round(rnd.real(1, 3.2));
+    for (let i = 0; i < nt; i++) {
+      const a = rnd.real(0, TAU), d = rnd.real(0, r * 0.55);
+      const tx = x + Math.cos(a) * d, tz = z + Math.sin(a) * d, th = rnd.real(1.6, 2.6);
+      parts.push(blk(0.28, th, 0.28, tx, y + th / 2, tz, 0x8a5a30));
+      const crown = new THREE.IcosahedronGeometry(rnd.real(0.9, 1.4), 1);
+      crown.translate(tx, y + th + 0.5, tz);
+      const cc = [0x5ad04a, 0x7ae05a, 0xff9ac8, 0xffd04a][Math.floor(rnd.real(0, 4))];
+      parts.push(colorize(ni(crown), (p, n, out) => mixc(C(cc).map((v) => v * 0.7), C(cc), smooth(-0.5, 0.9, n.y), out)));
+    }
+    for (let i = 0; i < 6; i++) {
+      const a = rnd.real(0, TAU), d = rnd.real(r * 0.3, r * 0.85);
+      const f = new THREE.OctahedronGeometry(0.16, 0);
+      f.translate(x + Math.cos(a) * d, y + 0.12, z + Math.sin(a) * d);
+      const fc = [0xff5a7a, 0xffe04a, 0xffffff, 0xb07aff][i % 4];
+      parts.push(colorize(ni(f), (p, n, out) => { const c = C(fc); out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+    }
+  }
+  addStatic(level, merge(parts), { castShadow: false });
+}
+
+/**
+ * Wolkenburg (6-Panzer): schwebender Felsen mit Wolkensockel, darauf der runde Kampfplatz (Bodenplatte, Kollision) und
+ * vier Türme mit Spitzdächern und Wimpeln; Treppenstufen aus Wolken als Zier. cfg = { pos: [x, y, z] (Mitte der
+ * Bodenoberseite), r: 13 (Plattform), towers: true }
+ */
+export function wolkenBurg(level, cfg) {
+  const [x, y, z] = cfg.pos, R = cfg.r ?? 13;
+  level.world.add({ type: 'cyl', x, z, r: R, y0: y - 3, y1: y, tag: 'wolkenburg' });
+  if (!level.view) return;
+  const stone = [], roof = [], cloud = [];
+  const top = new THREE.CylinderGeometry(R, R, 0.6, 32);
+  top.translate(x, y - 0.3, z);
+  stone.push(colorize(ni(top), (p, n, out) => {
+    const r = Math.hypot(p.x - x, p.z - z), ring = Math.floor(r / 1.6) % 2;
+    mixc(C(ring ? 0xe8dcc8 : 0xd8c8b0), C(0xf8f0e0), smooth(0.5, 1, n.y) * 0.4, out);
+  }));
+  const body = new THREE.CylinderGeometry(R * 0.98, R * 0.5, 9, 16, 3);
+  body.translate(x, y - 0.6 - 4.5, z);
+  const bp = body.attributes.position;
+  for (let i = 0; i < bp.count; i++) { const k = 1 + Math.sin(bp.getY(i) * 1.3 + bp.getX(i) * 0.7) * 0.06; bp.setX(i, x + (bp.getX(i) - x) * k); bp.setZ(i, z + (bp.getZ(i) - z) * k); }
+  body.computeVertexNormals();
+  stone.push(colorize(ni(body), (p, n, out) => mixc(C(0x8a7a96), C(0xc8b8d4), smooth(-0.6, 0.6, n.y + Math.sin(p.y * 1.4) * 0.3), out)));
+  if (cfg.towers !== false) {
+    for (let i = 0; i < 4; i++) {
+      const a = Math.PI / 4 + (i * Math.PI) / 2;
+      const tx = x + Math.cos(a) * (R + 1.2), tz = z + Math.sin(a) * (R + 1.2);
+      const t = new THREE.CylinderGeometry(1.6, 1.8, 9, 12);
+      t.translate(tx, y + 4.5 - 1, tz);
+      stone.push(colorize(ni(t), (p, n, out) => mixc(C(0xd8ccc0), C(0xf4ece0), smooth(-1, 1, n.x * 0.5 + n.z * 0.5), out)));
+      const r = new THREE.ConeGeometry(2.2, 3.4, 12);
+      r.translate(tx, y + 8 + 1.7, tz);
+      roof.push(colorize(ni(r), (p, n, out) => mixc(C(i % 2 ? 0x3a6aff : 0xff4a6a), C(i % 2 ? 0x8ab0ff : 0xff9ab0), smooth(-0.3, 0.9, n.y), out)));
+    }
+  }
+  // Wolkenkranz unter der Burg
+  const rnd = new Rnd(31);
+  for (let i = 0; i < 22; i++) {
+    const a = (i / 22) * TAU + rnd.real(-0.1, 0.1), d = R * rnd.real(0.75, 1.05);
+    const b = new THREE.IcosahedronGeometry(rnd.real(1.8, 3.0), 1);
+    b.scale(1.3, 0.75, 1.3);
+    b.translate(x + Math.cos(a) * d, y - 3.6 + rnd.real(-0.8, 0.8), z + Math.sin(a) * d);
+    cloud.push(colorize(ni(b), (p, n, out) => mixc(C(0xc8dcf4), C(0xffffff), smooth(-0.4, 0.8, n.y), out)));
+  }
+  addStatic(level, merge(stone), { material: 'stone' });
+  addStatic(level, merge(roof));
+  addStatic(level, merge(cloud), { castShadow: false });
+}
+
+/**
+ * Level-Haken 6-Panzer (LEVEL.setup): übernimmt die Mitfahr-Regeln der Welt-2-Kolonne (panzerSetup: Marschblock-Kolonnen
+ * mit `ride`, Neues über einem Deck fährt mit, Luke, Holzwand, Wimpel, Staub, Sparmaßnahmen) und ergänzt:
+ *   · Werfer-Brüder mit `ride: '<Panzer>'` tänzeln um einen Platz, der mit dem Panzer mitfährt,
+ *   · Zündköpfe (auch geworfene) über einem Deck fahren mit diesem Panzer,
+ *   · weiße Wolkenfahnen statt Sandstaub, Ansagen (Zündkopf-Tipp, große ?-Blöcke).
+ */
+export function kolonnenSetup(level, panzerSetup) {
+  level._panzerBuilt = true;                      // kein Wüsten-Abendrot (Welt-2-Haken)
+  panzerSetup(level);
+  const st = level._panzer;
+  if (!st) return;
+  const vehicles = st.vehicles;
+  const byId = (id) => level.named.get(id);
+  // Staubfahnen als Wolkenfetzen
+  if (st.dust?.mat) { st.dust.mat.color.set(0xffffff); st.dust.mat.opacity = 0.62; }
+  // Werfer mit ride: Platz (home) fährt mit
+  const riders = [];
+  for (const e of level.entities) {
+    if (!e.spec?.ride || !e.home || e.kind === 'marschblock') continue;
+    const v = byId(e.spec.ride);
+    if (v) riders.push({ e, v, p0: v.pos.clone(), h0: e.home.clone() });
+  }
+  const seen = new WeakSet();
+  const hud = () => level.archetype?.hud;
+  let tipp = false;
+  level.onStep(() => {
+    for (const r of riders) {
+      if (r.e.removed) continue;
+      r.e.home.set(r.h0.x + r.v.pos.x - r.p0.x, r.h0.y + r.v.pos.y - r.p0.y, r.h0.z + r.v.pos.z - r.p0.z);
+    }
+    // Zündköpfe ohne attach über einem Deck: mitnehmen
+    for (const e of level.entities) {
+      if (e.kind !== 'zuendkopf' || e.removed || seen.has(e)) continue;
+      if (e.spec?.attach) { seen.add(e); continue; }
+      const v = vehicles.find((q) => !q.removed && Math.abs(e.pos.x - q.pos.x) < q.size.w / 2 + 0.4 && Math.abs(e.pos.z - q.pos.z) < q.size.d / 2 + 0.4 && e.pos.y > q.pos.y - 0.5);
+      if (v) { e.spec.attach = v.spec.id; v.scanned = -1; seen.add(e); }
+    }
+    const p = level.player;
+    if (!tipp && p?.holding?.kind === 'zuendkopf') {
+      tipp = true;
+      hud()?.banner?.('Wirf den Zündkopf! (Aktion)', { hold: 2.0, size: 13, y: 0.32, color: '#ffe066' });
+    }
+  });
+}
+
+/**
+ * Regenbogen (Zierde, ohne Kollision und Schatten): Halbbogen aus sieben Farbbändern. cfg = { pos: [x, y, z] (Mitte am
+ * Fuß), r: 8 (Außenradius), band: 0.45, yaw: 0 (Bogen in der XY-Ebene) }
+ */
+export function regenbogen(level, cfg) {
+  if (!level.view) return;
+  const [x, y, z] = cfg.pos, R = cfg.r ?? 8, b = cfg.band ?? 0.45;
+  const cols = [0xff4a4a, 0xff9a3a, 0xffe04a, 0x5ad85a, 0x4ab0ff, 0x5a6aff, 0xb07aff];
+  const parts = cols.map((col, i) => {
+    const g = new THREE.TorusGeometry(R - b * (i + 0.5), b * 0.5, 4, 40, Math.PI);
+    g.scale(1, 1, 0.6);
+    if (cfg.yaw) g.rotateY(cfg.yaw);
+    g.translate(x, y, z);
+    return colorize(ni(g), (p, n, out) => { const c = C(col); out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; });
+  });
+  addStatic(level, merge(parts), { castShadow: false, material: 'glow' });
+}
+
+/** Einmal eine Aktion auslösen, sobald die benannte Entität `id` zerstört ist (Steinblock gesprengt → Stern erscheint). */
+export function beiZerstoerung(level, id, action) {
+  let done = false;
+  level.onStep(() => {
+    if (done) return;
+    const e = level.named.get(id);
+    if (!e || (!e.removed && e.alive !== false)) return;
+    done = true;
+    runAction(level, action, { pos: [e.pos.x, e.pos.y, e.pos.z], source: e });
   });
 }
 
