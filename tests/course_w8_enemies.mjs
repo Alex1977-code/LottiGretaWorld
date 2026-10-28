@@ -51,6 +51,14 @@ async function load(id) {
     window.__t = {
       Z: (r, dz) => -8 - 20 * (r - 1) - dz,
       ent: (id) => L.named.get(id),
+      /** Griff des Super-POW-Blocks (Motor-Baustein; als kind gespawnt zunächst die Hülle mit .handle). */
+      pow: (id = 'superpow') => { const n = L.named.get(id); return n && n.handle && typeof n.handle.hit === 'function' ? n.handle : n; },
+      /** Stoß gegen den Super-POW-Block, sobald er wieder bereit ist (Sperre cool) – höchstens n Schritte warten. */
+      powHit(via = 'test', n = 240, at = null) {
+        const h = window.__t.pow();
+        for (let i = 0; i < n; i++) { if (h.hit(via)) return true; if (at) window.__t.until(() => false, 1, at); else c.step(1); }
+        return false;
+      },
       /** Figur setzen (groß, ohne Power-up, nichts in der Hand) und landen lassen. */
       place(pos, o = {}) {
         const p = P();
@@ -815,8 +823,8 @@ const bg = await sc(() => {
   L.runtime.setCheckpoint([0, G, ZG + 10.8], Math.PI / 2);
   for (let i = 0; i < 300 && b.state === 'between'; i++) { c.setInput({ y: 0.6 }); c.step(1); }
   c.setInput({});
-  const blk = t.ent('superpow');
-  out.begin = { state: b.state, section: b.section?.id, block: blk?.kind ?? (blk ? 'motor' : null), glass: !!b.glass, hp: b.hp };
+  const blk = t.pow();
+  out.begin = { state: b.state, section: b.section?.id, block: blk ? (blk.kind ?? (typeof blk.top === 'number' ? 'super_pow_block (Motor)' : 'Griff')) : null, glass: !!b.glass, hp: b.hp };
   t.until(() => b.state === 'perch', 600, [0, G, ZG + 8]);
   out.perch = { y: t.r2(b.pos.y), top: t.r2(b.powTop()) };
   // Angriffe von oben in Phase 1: Feuerbälle mit Landemarken
@@ -898,15 +906,22 @@ const br = await sc(() => {
   c.setInput({});
   out.start = { state: b.state, started: t.arch().started };
   t.until(() => b.state === 'perch', 600, [0, G, ZG + 8]);
-  t.ent('superpow').hit('test');
+  t.powHit('test');
   t.until(() => b.state === 'perch', 120 * 4, [6, G, ZG + 6]);
   out.hit = { hp: b.hp };
   out.die = t.die();
-  out.after = { state: b.state, hp: b.hp, powHits: b.powHits, cur: b.cur, waves: L.entities.filter((e) => e.kind === 'schockwelle' && !e.removed).length, clones: b.clones.length };
+  out.after = { state: b.state, hp: b.hp, powHits: b.powHits, cur: b.cur, waves: L.entities.filter((e) => e.kind === 'schockwelle' && !e.removed).length, clones: b.clones.length, powReset: typeof t.pow().reset === 'function' };
+  // zurück in den Auslöser: der Gipfelkampf beginnt wieder (mit den verbliebenen Stufen)
+  t.place([0, G, ZG + 10.8], { settle: 2 });
+  for (let i = 0; i < 300 && b.state === 'wait'; i++) { c.setInput({ y: 0.6 }); c.step(1); }
+  c.setInput({});
+  t.until(() => b.state === 'perch', 600, [0, G, ZG + 8]);
+  out.again = { state: b.state, hp: b.hp, y: t.r2(b.pos.y), top: t.r2(b.powTop()) };
   return out;
 });
 console.log(`  Baron Neustart: ${JSON.stringify(br)}`);
-check(`Tod auf dem Gipfel setzt nur den Gipfel zurück (Baron ${br.after.hp}/4, Block ${br.after.powHits} Stöße)`, br.hit.hp === 3 && br.after.state === 'wait' && br.after.cur === 2 && br.after.hp === 4 && br.after.powHits === 0 && br.after.clones === 0);
+check(`Tod auf dem Gipfel setzt nur den Gipfel zurück (Baron ${br.after.hp}/4, Block ${br.after.powHits} Stöße ${br.after.powReset ? 'zurückgesetzt' : 'bleiben (Motor-Block ohne reset)'})`, br.hit.hp === 3 && br.after.state === 'wait' && br.after.cur === 2 && br.after.hp === 4 - br.after.powHits && (br.after.powReset ? br.after.powHits === 0 : br.after.powHits === 1) && br.after.clones === 0 && br.after.waves === 0);
+check(`Wieder in den Auslöser: Gipfelkampf beginnt neu (${br.again.state}, ${br.again.hp}/4, Baron auf dem gesunkenen Block y ${br.again.y} = ${br.again.top})`, br.again.state === 'perch' && br.again.hp === br.after.hp && Math.abs(br.again.y - br.again.top) < 0.05);
 check('Keine Konsolenfehler (Teil 3)', errors.length === 0);
 }
 
@@ -1064,13 +1079,13 @@ B.gipfel = await SHOT('w8e', 'baron_gipfel_superpow', () => {
 B.stoss = await SHOT('w8e', 'baron_superpow_stoss', () => {
   const c = window.__course, t = window.__t, b = t.ent('baron');
   t.until(() => b.state === 'perch', 120 * 6, [4, 32, -264]);
-  t.ent('superpow').hit('test');
+  t.powHit('test', 240, [4, 32, -264]);
   t.until(() => b.state === 'launched' && b.stateT > 0.5, 240, [4, 32, -264]);
   t.face(0, -271);
 });
 B.flucht = await SHOT('w8e', 'baron_flucht_glas', () => {
-  const c = window.__course, t = window.__t, b = t.ent('baron'), pw = t.ent('superpow');
-  for (let k = 0; k < 6 && b.hp > 0; k++) { t.until(() => pw.cd <= 0 && (b.state === 'perch' || b.state === 'stunned'), 120 * 6, [4, 32, -264]); pw.hit('test'); t.hold([4, 32, -264], 30); }
+  const c = window.__course, t = window.__t, b = t.ent('baron');
+  for (let k = 0; k < 6 && b.hp > 0; k++) { t.until(() => b.state === 'perch' || b.state === 'stunned', 120 * 6, [4, 32, -264]); t.powHit('test', 240, [4, 32, -264]); t.hold([4, 32, -264], 30); }
   t.until(() => b.state === 'flyaway' && b.stateT > 0.8, 120 * 8, [4, 32, -264]);
   t.face(0, -271);
 });

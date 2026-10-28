@@ -48,6 +48,11 @@
 //       every?: [2.8, 2.4, 2.1, 1.8], fire?: [1, 2, 3, 3], shock?: [0, 1, 1, 2], shockR?: 11, clones?: [0, 0, 2, 3], cloneLife?: 6,
 //       flight?: 1.1, flyTo?: [x, y, z], onWin?: Aktion, banner? }
 //
+// Jeder Abschnitt: rain?: 'id' | ['id', …] – Lavabrocken-Regen (Motor-Baustein lavabrocken_regen mit targets und start: 'signal')
+//   läuft ab dem Auftritt des Barons im Abschnitt (start()) und hört mit Abschnittsende, Tod oder Sieg auf (stop()).
+//   Super-POW-Block des Motors: Stöße kommen nur von den Figuren (Kopfstoß, Stampfen, Sichel, Panzer, Bombe, Riesentrank); der Baron
+//   hat superPowImmune (keine Schockwelle), steht auf top und sackt mit ab. Aufschläge (Landung, Wurf, Bruchstück, Doppelgänger,
+//   Sprung-Schockwellen) melden level.signal('aufschlag', { pos, radius, by }) für die Leuchtstege.
 // Gemeinsam: { kind: 'baron_krallen', id: 'baron', pos: [x, y, z] (Wartestelle vor dem ersten Abschnitt), hp?: 4, sections: […],
 //   seed? }   boss: { id: 'baron', name: 'Baron Brummbär', speed: 0, trigger (= trigger des ersten Abschnitts), warp, warpPos,
 //   warpTo, frame: 0.25, center, warpBanner: 'Ab in die Glasröhre!', musicAfter }  (bzw. ein Eintrag in LEVEL.bosses)
@@ -83,7 +88,7 @@ import { EnemyW2, figures, activeFigure, localOffset, clamp, wrapAngle } from '.
 import { getModel, hasModel } from '../../models/index.js';
 import { ballistic } from './bomb_cannon.js';
 import { bossManaged } from '../w6help.js';
-import { Markers, POWER_HIT, groundBelow } from '../w8help.js';
+import { Markers, POWER_HIT, groundBelow, impact } from '../w8help.js';
 import { runAction } from '../gimmick.js';
 import { box as kitBox } from '../../blocks/kit.js';
 
@@ -292,7 +297,7 @@ class Bruchstueck extends CourseEntity {
     }
     const landed = this.floor !== null && this.pos.y <= this.floor;
     if (landed || this.stateT > 2.5 || this.pos.y < this.level.killY) {
-      if (landed) { this.level.effects?.dust({ x: this.pos.x, y: this.floor, z: this.pos.z }, 10, 1.4); this.level.sfx('slam'); }
+      if (landed) { this.level.effects?.dust({ x: this.pos.x, y: this.floor, z: this.pos.z }, 10, 1.4); this.level.sfx('slam'); impact(this.level, this.pos.x, this.floor, this.pos.z, 6, 'bruchstueck'); }
       this.state = 'weg';
       this.stateT = 0;
       this.markers.clear();
@@ -379,6 +384,7 @@ class BaronKlon extends EnemyW2 {
           this.grounded = false;
           this.level.sfx('land');
           this.level.effects?.sparks(this.pos, 8);
+          impact(this.level, this.pos.x, this.pos.y, this.pos.z, 5, 'baron_klon');
           this.setState('run');
           this.stomped();
         }
@@ -554,6 +560,7 @@ class BaronKrallen extends CourseEntity {
     super(level, spec, 'baron_krallen');
     this.enemy = false;
     this.boss = true;
+    this.superPowImmune = true;   // steht auf dem Super-POW-Block: keine Schockwelle (Motor)
     this.half.set(HALF.x, HALF.y, HALF.z);
     this.shadow = 0.8;
     this.start = this.pos.clone();
@@ -659,7 +666,23 @@ class BaronKrallen extends CourseEntity {
     this.placeGlass();
   }
 
-  get powHandle() { const s = this.gipfel; return s ? this.level.named.get(s.powId) ?? null : null; }
+  /** Griff des Super-POW-Blocks (Motor-Baustein; als kind gespawnt liefert named zunächst die Hülle mit .handle). */
+  get powHandle() {
+    const s = this.gipfel;
+    if (!s) return null;
+    const h = this.level.named.get(s.powId) ?? null;
+    return h && h.handle && typeof h.handle.hit === 'function' ? h.handle : h;
+  }
+
+  /** Lavabrocken-Regen des Abschnitts (Motor-Baustein lavabrocken_regen mit start: 'signal'; Feld rain: id | [ids]) an/aus. */
+  rains(sec, on) {
+    if (!sec || sec.rain == null) return;
+    for (const id of [].concat(sec.rain)) {
+      const n = this.level.named.get(id);
+      const r = n && n.handle && typeof n.handle.start === 'function' ? n.handle : n;
+      if (on) r?.start?.(); else r?.stop?.();
+    }
+  }
   get powHits() { const h = this.powHandle; return h ? (h.hits ?? 0) : 0; }
 
   /** Oberkante des Super-POW-Blocks (sichtbar; je Stoß 16 % niedriger). */
@@ -746,6 +769,7 @@ class BaronKrallen extends CourseEntity {
     if (this.swipeTarget?.state === 'warn') this.swipeTarget.cancelWarn();
     this.swipeTarget = null;
     this.removeBlock();
+    this.rains(this.section, false);
   }
 
   /** Stücke, Früchte, Sperre des Abschnitts zurück. */
@@ -813,6 +837,7 @@ class BaronKrallen extends CourseEntity {
     }
     this.setState('intro');
     this.level.sfx('panic');
+    this.rains(sec, true);
     const text = sec.banner ?? (sec.type === 'turm' ? 'Folge Baron Brummbär den Turm hinauf!' : sec.type === 'spiegel' ? 'Er frisst Spiegelfrüchte – Vorsicht, Doppelgänger!' : 'Stoß den Super-POW-Block an – viermal!');
     this.banner(text, { hold: 2.2, color: '#ffd080' });
   }
@@ -927,7 +952,7 @@ class BaronKrallen extends CourseEntity {
     const kk = clamp(k / 0.55, 0, 1);
     this.pos.set(f.x + (to.x - f.x) * kk, f.y + (to.y - f.y) * kk * kk, f.z + (to.z - f.z) * kk);
     this.facePlayer(dt, 4);
-    if (kk >= 1 && !this.landedIntro) { this.landedIntro = true; this.level.sfx('land'); this.level.shake(0.35); this.level.effects?.dust(this.pos, 10, 1.6); }
+    if (kk >= 1 && !this.landedIntro) { this.landedIntro = true; this.level.sfx('land'); this.level.shake(0.35); this.level.effects?.dust(this.pos, 10, 1.6); impact(this.level, this.pos.x, this.pos.y, this.pos.z, 7, 'baron_krallen'); }
     if (k >= 1) {
       this.landedIntro = false;
       this.touch = true;
@@ -1159,7 +1184,7 @@ class BaronKrallen extends CourseEntity {
     const j = this.thrown, k = clamp(this.stateT / THROWN, 0, 1);
     this.pos.set(j.x0 + (j.x1 - j.x0) * k, j.y0 + (j.y1 - j.y0) * k + 5 * k * (1 - k), j.z0 + (j.z1 - j.z0) * k);
     this.yaw += dt * 9;
-    if (k >= 1) { this.level.effects?.dust(this.pos, 10, 1.6); this.level.sfx('poof'); this.finishSection('Weg frei!'); }
+    if (k >= 1) { this.level.effects?.dust(this.pos, 10, 1.6); this.level.sfx('poof'); impact(this.level, this.pos.x, this.pos.y, this.pos.z, 7, 'baron_krallen'); this.finishSection('Weg frei!'); }
   }
 
   startLeave() {
@@ -1365,6 +1390,7 @@ class BaronKrallen extends CourseEntity {
     for (const w of this.waves) if (!w.removed) w.kill();
     this.waveQueue.length = 0;
     this.markers.clear();
+    this.rains(this.gipfel, false);
     this.level.sfx('powerdown');
     this.level.onBossDefeated?.(this);
     const p = this.perchPos();

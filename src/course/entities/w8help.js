@@ -15,6 +15,8 @@
 //   CarriedStar      Stern, den ein Gegner trägt (unberührbar, folgt ihm); release() lässt ihn fallen
 //   archOf(level, boss)  Boss-Archetyp, wenn er diesen Endgegner gerade steuert (arch.boss === boss) | null
 //   bannerOf(level, text, o)  Ansage über das Archetyp-HUD (falls vorhanden)
+//   impact(level, x, y, z, radius, by)  meldet einen Aufschlag (Signal 'aufschlag' { pos, radius, by } – Leuchtstege des Motors
+//                    leuchten auf; Präzisierung Motor und Bausteine Welt 8)
 
 import * as THREE from 'three';
 import { getModel } from '../models/index.js';
@@ -25,6 +27,11 @@ export { isSichel };
 const TAU = Math.PI * 2;
 
 export const POWER_HIT = new Set(['claw', 'fire', 'sichel', 'throw', 'shell', 'cannon', 'bomb', 'mega', 'star', 'punch', 'bite', 'tail', 'crush', 'pow']);
+
+/** Aufschlag melden (Motor: Leuchtstege leuchten im Umkreis radius auf). */
+export function impact(level, x, y, z, radius = 6, by = 'gegner') {
+  level.signal?.('aufschlag', { pos: [x, y, z], radius, by });
+}
 
 /** Boden unter (x, y, z) (feste Form, keine Kill-Form; bis max m tiefer) → y | null. */
 export function groundBelow(level, x, y, z, max = 30) {

@@ -5,12 +5,14 @@
 //   m/s von r0 bis radius; **wer ihn am Boden berührt (bis height m hoch), wird verletzt – drüberspringen**. Jede Figur höchstens
 //   einmal je Welle. Kein Gegner.
 //   Daten: { kind: 'schockwelle', pos: [x, y, z] (Mitte am Boden), radius?: 6, r0?: 0.5, speed?: 7, height?: 0.45,
-//            color?: 'gold' | 'weiss', owner? }   Laufzeit: r, hits, info().
+//            color?: 'gold' | 'weiss', owner?, impact?: true, by? }   Laufzeit: r, hits, info(). Meldet beim Entstehen
+//   level.signal('aufschlag', { pos, radius: min(12, radius), by }) (Leuchtstege des Motors; impact: false unterdrückt es).
 //
 // lavapfuetze – glühende Pfütze, die ein geschleuderter Lavabrocken hinterlässt (Modell 'lavapfuetze' { size }, sonst eigene
 //   Scheibe): breitet sich grow s aus (Vorwarnung, noch harmlos), ist life s **heiß** (wer darin steht, wird verletzt), kühlt in
 //   cool s zu Stein ab (ab der Hälfte harmlos) und verschwindet.
-//   Daten: { kind: 'lavapfuetze', pos: [x, y, z] (Mitte am Boden), size?: 2.2 (Ø), grow?: 0.5, life?: 4, cool?: 1.6, owner? }
+//   Daten: { kind: 'lavapfuetze', pos: [x, y, z] (Mitte am Boden), size?: 2.2 (Ø), grow?: 0.5, life?: 4, cool?: 1.6, owner?,
+//            impact?: true (Signal 'aufschlag', radius 6) }
 //   Laufzeit: state ('grow' | 'hot' | 'cool'), hurts, hot (bool), info().
 //
 // ameisen_reihe – Hörner-Ameisen (bzw. Ameisensoldaten) marschieren in Reihen aus einem Loch im Boden (from) zu einem zweiten
@@ -26,6 +28,7 @@ import { CourseEntity } from '../CourseEntity.js';
 import { figures, activeFigure } from '../EnemyW2.js';
 import { getModel, hasModel } from '../../models/index.js';
 import { addObject } from '../../blocks/kit.js';
+import { impact } from '../w8help.js';
 
 // =====================================================================================================================
 // Schockwelle
@@ -44,6 +47,8 @@ class Schockwelle extends CourseEntity {
     this.hits = 0;
     this.half.set(this.R, 0.3, this.R);
     this.color = spec.color === 'weiss' ? 'weiss' : 'gold';
+    // Aufschlag melden (Leuchtstege, Motor) – je Welle, außer impact: false
+    if (spec.impact !== false) impact(level, this.pos.x, this.pos.y, this.pos.z, Math.min(12, this.R), spec.by ?? 'schockwelle');
     if (level.view) {
       // Modell doppelt so groß anlegen: der Ring bleibt bis zum Endradius voll sichtbar (Ausblenden erst danach)
       if (hasModel('schockwelle')) this.setModel(getModel('schockwelle', { radius: this.R * 2, color: this.color }));
@@ -112,6 +117,7 @@ class Lavapfuetze extends CourseEntity {
     this.stateT = 0;
     this.hurts = 0;
     this.level.sfx('burn');
+    if (spec.impact !== false) impact(level, this.pos.x, this.pos.y, this.pos.z, 6, spec.by ?? 'lavapfuetze');
     if (level.view) {
       if (hasModel('lavapfuetze')) this.setModel(getModel('lavapfuetze', { size: this.size }));
       else this.setModel(fallbackPuddle(this.size));
