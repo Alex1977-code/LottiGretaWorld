@@ -31,7 +31,7 @@ const PARTS = (process.env.P6_PARTS ?? 'hang,extra').split(',').filter(Boolean);
 const on = (p) => PARTS.includes(p);
 const f3 = (v) => (typeof v === 'number' ? v.toFixed(3) : String(v));
 
-await page.goto(`http://localhost:${port}/?course=0-23&scale=2&adapt=0`, { waitUntil: 'load', timeout: 120000 });
+await page.goto(`http://localhost:${port}/?course=0-23&scale=2&adapt=0${DEBUG ? '&p6debug=1' : ''}`, { waitUntil: 'load', timeout: 120000 });
 try {
   await page.waitForFunction(() => window.__course && window.__course.level && window.__game.scene.isActive('CourseUI'), null, { timeout: 90000 });
 } catch {
@@ -99,36 +99,62 @@ await sc(() => {
   c.view.rig.custom = () => {
     const k = H.cam;
     if (!k || k.mode === 'course') return false;
-    const cam = c.view.camera;
-    const tg = H.center();
+    const cam = c.view.camera, hull = H.hr().hull;
+    // fixed: Ziel an der Hülle statt an der Pose – Kostenvergleich Pose/Stand mit genau gleichem Bildausschnitt (sonst kann
+    // z. B. der Blob-Schatten am Boden in der einen Messung im Bild liegen, in der anderen nicht: ±1 Aufruf)
+    const tg = k.fixed ? V(hull.position.x, hull.position.y + 0.55 * hull.scale.y * 1.5, hull.position.z) : H.center();
     const az = H.hr().hull.rotation.y + Math.PI / 2 + (k.rel ?? -Math.PI / 2);
     const d = (k.dist ?? 3.2) * Math.max(1, H.hr().hull.scale.y * 1.5), el = k.el ?? 0.08;
     cam.position.set(tg.x + d * Math.cos(el) * Math.sin(az), tg.y + d * Math.sin(el), tg.z + d * Math.cos(el) * Math.cos(az));
+    // Augenhöhe knapp unter der Gitterebene: das Gitter erscheint als schmales Band, die Fäuste liegen sichtbar daran
+    if (k.gridEye !== undefined) cam.position.y = H.grid().y + k.gridEye;
     cam.lookAt(tg);
     const fov = k.fov ?? 34;
     if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
     c.view.rig.target.copy(tg);
     return true;
   };
-  /** Bildmitte der Figur (Welt): zwischen Becken und Gitter (Hände im Bild). */
+  /** Bildmitte der Figur (Welt): zwischen Füßen und Händen (Griffe am Gitter im Bild). */
   H.center = () => {
     const av = H.av(); av.root.updateWorldMatrix(true, true);
     const w = V(); av.pelvis.getWorldPosition(w);
-    const h = V(); av.head.getWorldPosition(h);
-    return w.lerp(h, 0.55);
+    const h = V(); av.armN.carm.hand.getWorldPosition(h);
+    const f = V(); av.armF.carm.hand.getWorldPosition(f);
+    return w.lerp(h.lerp(f, 0.5), 0.42);
   };
   H.screen = () => { const v = H.center(); v.project(c.view.camera); return { x: (v.x + 1) / 2 * window.innerWidth, y: (1 - v.y) / 2 * window.innerHeight }; };
   H.frames = (n) => { for (let i = 0; i < n; i++) c.renderFrame(); };
   const grab = () => { c.renderFrame(); const r = c.view.renderer.info.render; return { calls: r.calls, tris: r.triangles }; };
   H.cost = () => {
-    const hull = H.hr().hull, cam0 = H.cam;
-    H.cam = { mode: 'side', dist: 3.4, el: 0.06, fov: 34 };
+    const hull = H.hr().hull, cam0 = H.cam, av0 = H.av();
+    // gleiche Augen in beiden Messungen (Blinzeln tauscht kurz das Augen-Mesh, ±1 Aufruf)
+    av0.blinker.phase = 0; av0.blinker.timer = 99; av0.applyEyes(av0.blender.cur.eyes);
+    H.cam = { mode: 'side', dist: 3.4, el: 0.06, fov: 40, fixed: true };
     grab(); const a = grab();
     hull.visible = false; grab(); const b = grab();
     hull.visible = true; grab();
     H.cam = cam0;
-    return { calls: a.calls - b.calls, tris: a.tris - b.tris };
+    const r = { calls: a.calls - b.calls, tris: a.tris - b.tris };
+    av0.blinker.timer = 2;
+    if (H.debug) {
+      // Figur-Bündel (view/ShadowProxy.js): Gruppen „Teile:gebündelt“, Augen/Mund
+      const bu = c.view.proxies.bundles.find((x) => x.root === hull), av = H.av();
+      r.bundle = bu ? bu.groups.map((g) => `${g.parts.length}:${g.on.filter(Boolean).length}${g.any ? '' : '!'}`).join(' ') : 'keins';
+      r.eyes = `${av.eyes.visible ? 'auf' : 'zu'}${av.eyesClosed.visible ? '+lid' : ''}${av.mouthO.visible ? '+mund' : ''}`;
+      // einzeln gezeichnete sichtbare Teile (nicht im Bündel): Dreiecke, im Bild?
+      const fr = c.view.culling.camFrustum, solo = [];
+      hull.traverse((m) => {
+        if (!m.isMesh) return;
+        for (let q = m; q && q !== hull; q = q.parent) if (!q.visible) return;
+        if (m.__merged === c.view.frame) return;
+        const g = m.geometry, n = (g.index ? g.index.count : g.attributes.position.count) / 3;
+        solo.push(`${m.name || m.type}${m.isSkinnedMesh ? '(skin)' : ''}:${n}${m.frustumCulled && !fr.intersectsObject(m) ? '-aus' : ''}`);
+      });
+      r.solo = solo.join(' ');
+    }
+    return r;
   };
+  H.debug = new URLSearchParams(location.search).has('p6debug');
   /** Vergleich: dieselbe Stelle, Avatar für n Bilder im Zustand 'idle' (Stand-Pose), dann zurück. */
   H.costIdle = (n = 40) => {
     const av = H.av(), keep = av.obj.course;
@@ -175,14 +201,18 @@ const shotList = [];
 async function shots(hero, name, views = ['side', 'course']) {
   if (!SHOTS) return;
   for (const v of views) {
-    if (v === 'side') await sc(() => { window.__p6.cam = { mode: 'side', rel: -Math.PI / 2 + 0.45, dist: 3.6, el: 0.04, fov: 34 }; });
-    else if (v === 'front') await sc(() => { window.__p6.cam = { mode: 'side', rel: -0.35, dist: 3.4, el: 0.05, fov: 34 }; });
+    // seitlich als Teleaufnahme (fast ohne Perspektive), Auge 0,6 m unter der Gitterebene: Die Figur hängt nahe dem fernen
+    // Gitterrand, der Bambusrahmen am nahen Rand liegt dann im Bild über den Griffen statt davor; vorn: von schräg unten
+    if (v === 'side') await sc(() => { window.__p6.cam = { mode: 'side', rel: -Math.PI / 2 + 0.45, dist: 12, el: 0, fov: 10.5, gridEye: -0.6 }; });
+    else if (v === 'front') await sc(() => { window.__p6.cam = { mode: 'side', rel: -0.35, dist: 3.4, el: -0.1, fov: 36 }; });
+    else if (v === 'below') await sc(() => { window.__p6.cam = { mode: 'side', rel: -Math.PI / 2 + 0.6, dist: 3.4, el: -0.25, fov: 38 }; });
     else await sc(() => { window.__p6.cam = { mode: 'course' }; window.__course.view.rig.snap(window.__course.player); });
-    await sc(() => window.__p6.frames(3));
+    // Kurs-Kamera: einige Bilder mehr, damit die Decke über dem Gitter (view.xray) fertig durchscheinend wird
+    await sc((n) => window.__p6.frames(n), v === 'course' ? 14 : 3);
     const p = await sc(() => window.__p6.screen());
     const w = v === 'course' ? 260 : 300, h = v === 'course' ? 200 : 360;
     const clip = { x: Math.round(Math.max(0, Math.min(960 - w, p.x - w / 2))), y: Math.round(Math.max(0, Math.min(540 - h, p.y - h / 2))), width: w, height: h };
-    const tag = v === 'side' ? 'seite' : v === 'front' ? 'vorn' : 'kurs';
+    const tag = v === 'side' ? 'seite' : v === 'front' ? 'vorn' : v === 'below' ? 'unten' : 'kurs';
     const path = `${OUT}posen_w6_${hero}_${name}_${tag}.png`;
     try { await page.screenshot({ path, clip, timeout: 120000 }); shotList.push({ name: `${hero} ${name} ${tag}`, path, group: hero }); } catch (err) { console.log(`  (Bild ${name} übersprungen: ${err.message.split('\n')[0]})`); }
   }
@@ -194,9 +224,9 @@ const info = () => S(() => window.__p6.info());
 // ---------------------------------------------------------------- Hängen und Hangeln
 async function hang(hero) {
   const out = {};
-  // unter das Gitter (Westrand, damit Platz zum Hangeln nach +X bleibt) und hineinspringen
+  // unter das Gitter (Westrand, damit Platz zum Hangeln nach +X bleibt; nahe dem kamerafernen Rand, s. shots) und hineinspringen
   // (Blick schon nach +X: beim Hangeln dreht die Figur nicht erst – so lässt sich prüfen, dass die haltende Hand liegen bleibt)
-  out.grabN = await S(() => { const H = window.__p6, g = H.grid(); return H.grab([g.x0 + 0.5, 0, (g.z0 + g.z1) / 2], { yaw: 0 }); });
+  out.grabN = await S(() => { const H = window.__p6, g = H.grid(); return H.grab([g.x0 + 0.5, 0, g.z0 + 0.75], { yaw: 0 }); });
   out.grab = await info();
   await S(() => window.__p6.tick(4));
   out.grabMid = await info();
@@ -221,16 +251,16 @@ async function hang(hero) {
     return { smp, dx: p.pos.x - x0, info: H.info() };
   });
   out.moveShot = await info();
-  await shots(hero, '3_hangeln');
+  await shots(hero, '3_hangeln', ['side', 'below', 'course']);
   await S(() => window.__p6.tick(9));
   await shots(hero, '4_hangeln2', ['side', 'course']);
   // Anhalten (Stick los): Füße schwingen vor; danach wieder beide Hände am Gitter
   out.stop = await S(() => {
     const H = window.__p6, c = window.__course;
     c.setInput({});
-    const ff = [];
+    const ff = [], f0 = H.body().feetFwd;
     H.tick(60, () => ff.push(H.body().feetFwd));
-    const brake = Math.max(...ff);
+    const brake = Math.max(...ff) - f0;   // Füße schwingen gegenüber dem Hangeln nach vorn
     H.tick(120);
     return { brake, hands: H.hands(), info: H.info() };
   });
@@ -250,6 +280,25 @@ async function hang(hero) {
   await shots(hero, '5_loslassen', ['side']);
   await S(() => window.__p6.tick(120));
   out.after = await info();
+  // Seitlicher Gitterrand: am Rand entlang hangeln (der Motor hält die Figur 0,2 m vom Rand) – die äußere Faust bleibt am
+  // Gitter bzw. greift den Randstab (höchstens 8 cm außerhalb der Gitterfläche), die haltende Hand bleibt am Gitter
+  out.side = await S(() => {
+    const H = window.__p6, c = window.__course, g = H.grid();
+    H.grab([g.x0 + 0.5, 0, g.z0 + 0.1], { yaw: 0 });
+    H.tick(30);
+    c.setInput({ x: 1 });
+    let out = 0, planted = 0;
+    H.tick(90, (i) => {
+      if (i < 20) return;
+      for (const q of H.hands()) out = Math.max(out, g.z0 - q.z, q.z - g.z1, g.x0 - q.x, q.x - g.x1);
+      const h = H.hands(); planted = Math.max(planted, Math.min(Math.abs(h[0].dy), Math.abs(h[1].dy)));
+    });
+    c.setInput({});
+    H.tick(60);
+    const r = { out: +out.toFixed(3), planted: +planted.toFixed(3), z: +c.player.pos.z.toFixed(3), state: c.player.state, hands: H.hands() };
+    H.play([[{ crouch: true }, 2], [{}, 150]]);
+    return r;
+  });
   return out;
 }
 
@@ -258,7 +307,7 @@ async function hangQuick(hero, tag, o) {
   const r = await S(([o]) => {
     const H = window.__p6, c = window.__course, g = H.grid();
     H.outfit = o.outfit ?? null;
-    const n = H.grab([g.x0 + 0.8, 0, (g.z0 + g.z1) / 2], { big: o.big, power: o.power, yaw: 0 });
+    const n = H.grab([g.x0 + 0.8, 0, g.z0 + 0.75], { big: o.big, power: o.power, yaw: 0 });
     H.tick(40);
     c.setInput({ x: 1 });
     let minPlanted = 9;
@@ -292,7 +341,8 @@ for (const hero of HEROES) {
     if (DEBUG) for (const s of h.move.smp.filter((_, i) => i % 5 === 0)) console.log(`    u ${f3(s.u)} m ${f3(s.m)} Hände ${s.h.map((q) => f3(q.dy)).join('/')} x ${s.h.map((q) => f3(q.x)).join('/')} Füße ${f3(s.b.feetFwd)}`);
     console.log(`  Anhalten: Füße vor bis ${f3(h.stop.brake)} m, Hände ${JSON.stringify(h.stop.hands)}; Rand: ${JSON.stringify(h.edge.hands)} ${JSON.stringify(h.edge.info)}`);
     console.log(`  Loslassen: ${JSON.stringify(h.rel1)} → ${JSON.stringify(h.after)}`);
-    console.log(`  Zeichenaufrufe hängen ${h.cost.calls} (Stand-Pose ${h.costIdle.calls}), Dreiecke ${h.cost.tris} (${h.costIdle.tris})`);
+    console.log(`  seitlicher Rand: ${JSON.stringify(h.side)}`);
+    console.log(`  Zeichenaufrufe hängen ${h.cost.calls} (Stand-Pose ${h.costIdle.calls}), Dreiecke ${h.cost.tris} (${h.costIdle.tris})${DEBUG ? ` ${JSON.stringify(h.cost)} ${JSON.stringify(h.costIdle)}` : ''}`);
   }
   if (on('extra')) {
     r.small = await hangQuick(hero, 'klein', { big: false });
@@ -300,7 +350,7 @@ for (const hero of HEROES) {
     r.funken = await hangQuick(hero, 'funken', { power: 'funken' });
     r.halloween = await hangQuick(hero, 'halloween', { outfit: 'halloween' });
     if (hero === 'lotti') r.riese = await hangQuick(hero, 'riese', { power: 'riese' });
-    for (const k of ['small', 'krallen', 'funken', 'halloween', 'riese']) if (r[k]) console.log(`  ${k.padEnd(9)} greift nach ${r[k].n}, Hände ${r[k].hands.map((q) => q.dy).join('/')} (beim Hangeln schlechteste haltende ${r[k].worstMoving}), ${r[k].info.label}, Aufrufe ${r[k].cost.calls} (Stand ${r[k].costIdle.calls})`);
+    for (const k of ['small', 'krallen', 'funken', 'halloween', 'riese']) if (r[k]) console.log(`  ${k.padEnd(9)} greift nach ${r[k].n}, Hände ${r[k].hands.map((q) => q.dy).join('/')} (beim Hangeln schlechteste haltende ${r[k].worstMoving}), ${r[k].info.label}, Aufrufe ${r[k].cost.calls} (Stand ${r[k].costIdle.calls})${DEBUG ? ` ${JSON.stringify(r[k].hands)} ${JSON.stringify(r[k].cost)} ${JSON.stringify(r[k].costIdle)}` : ''}`);
   }
 }
 
@@ -335,16 +385,18 @@ for (const [hero, r] of Object.entries(results)) {
     check(`${N}: haltende Hand liegt fest im Gitter (Verschiebung je Haltephase ${drift.map(f3).join('/')} m ≤ 0,04)`, drift.every((d) => d <= 0.04));
     // Hand über Hand: beide Hände wechseln sich ab (Zahl der Nachgreif-Schwünge je Hand)
     const swings = [0, 1].map((k) => { let n = 0, prev = false; for (const s of run) { const a = Math.abs(s.h[k].dy) > 0.06; if (a && !prev) n++; prev = a; } return n; });
-    const cyc = (h.move.dx / 1.2);
+    const cyc = h.move.dx / 1.0;   // HANG_POSE.stride
     check(`${N}: Hand über Hand im Takt (Schwünge nah/fern ${swings.join('/')} bei ${f3(h.move.dx)} m ≈ ${f3(cyc)} Doppelgriffe)`, swings.every((n) => n >= 1) && Math.abs(swings[0] - swings[1]) <= 1 && h.move.dx > 1.2);
     const startFeet = Math.min(...mv.slice(0, 40).map((s) => s.b.feetFwd));
-    check(`${N}: Beine pendeln nach – Anfahren Füße hinter den Händen (${f3(startFeet)} m), Bremsen davor (${f3(h.stop.brake)} m)`, startFeet < -0.05 && h.stop.brake > 0.05);
+    check(`${N}: Beine pendeln nach – Anfahren Füße hinter den Händen (${f3(startFeet)} m), Bremsen schwingen sie ${f3(h.stop.brake)} m vor`, startFeet < -0.05 && h.stop.brake > 0.05);
     check(`${N}: Knie leicht angezogen (Stillstand ${h.still.info.kneeN}/${h.still.info.kneeF}, hangelnd ${h.move.info.kneeN}/${h.move.info.kneeF})`,
       [h.still.info.kneeN, h.still.info.kneeF, h.move.info.kneeN, h.move.info.kneeF].every((k) => k > 0.2 && k < 1.4));
     check(`${N}: nach dem Anhalten und am Gitterrand beide Fäuste am Gitter (${h.stop.hands.map((q) => q.dy).join('/')}, Rand ${h.edge.hands.map((q) => q.dy).join('/')}), Rand hält (${h.edge.info.state})`,
       atGrid(h.stop.hands) && atGrid(h.edge.hands) && h.edge.info.state === 'hang');
     check(`${N}: Loslassen blendet weich in den Fall (${h.rel1.label} ${h.rel1.blendT} s, danach ${h.after.mode})`, h.rel1.label === 'fall' && h.rel1.blendT < 0.3 && h.after.mode === 'ground');
     check(`${N}: Zeichenaufrufe ${h.cost.calls} ≤ Stand-Pose ${h.costIdle.calls}`, h.cost.calls <= h.costIdle.calls);
+    check(`${N}: am seitlichen Gitterrand bleiben die Griffe am Gitter/Randstab (höchstens ${f3(h.side.out)} m außerhalb ≤ 0,08; haltende Hand ${f3(h.side.planted)} m), danach beide am Gitter`,
+      h.side.out <= 0.08 && h.side.planted <= TOL && h.side.state === 'hang' && h.side.hands.every((q) => Math.abs(q.dy) <= TOL));
   }
   for (const [k, txt] of [['small', 'klein'], ['krallen', 'Krallen-Anzug'], ['funken', 'Funkenblüte'], ['halloween', 'Halloween-Verkleidung'], ['riese', 'Riesentrank']]) {
     const q = r[k];

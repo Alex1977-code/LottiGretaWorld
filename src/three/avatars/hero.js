@@ -813,8 +813,8 @@ const HANG_POSE = {
   arm: 0.2,                           // Hände über dem Scheitel (Motor: HANG.arm) → Gitterebene body + arm über dem Fußpunkt
   grip: 0.012,                        // Faustmitte so weit unter der Gitterebene (umschließt den Stab, ragt kaum in die Decke)
   x0: 0.02,                           // Griffe in Ruhe so weit vor der Körperachse
-  width: 0.5,                         // Einheiten: Fäuste seitlich der Mitte (V um den Kopf)
-  stride: 1.2,                        // Weg je Doppelgriff: jede Hand greift einmal um so viel weiter (Takt = Tempo / stride)
+  width: 0.6,                         // Einheiten: Fäuste seitlich der Mitte (weites V am Kopf vorbei, Gesicht bleibt frei)
+  stride: 1.0,                        // Weg je Doppelgriff: jede Hand greift einmal um so viel weiter (Takt = Tempo / stride)
   dip: 0.15,                          // die nachgreifende Hand löst sich bis so weit unter das Gitter
   L: 0.7,                             // Pendellänge Griff → Schwerpunkt
   drive: 0.2,                         // Anteil der Beschleunigung, der den Körper anschwingt (Motor ändert das Tempo sprunghaft)
@@ -826,7 +826,10 @@ const HANG_POSE = {
   legK: 46, legC: 5.5,                // Beine als Feder-Pendel (baumeln dem Körper nach)
   trail: 0.22,                        // rad: Beine schleifen beim Hangeln etwas nach hinten
   clear: 1.6, hold: 0.45,             // Riesentrank (Einheiten): Gitter in Brusthöhe → Körper hängt dahinter, Griff vor dem Bauch
+  inset: 0.06,                        // m: Griffe so weit innerhalb des Gitterrands (course.hangGrid; der Motor hält die Figur
+  minLat: 0.4,                        //    nur 0,2 m vom Rand) – seitlich aber nicht näher als minLat Einheiten (Arm am Kopf vorbei)
 };
+const _hw = new THREE.Vector3(), _mi = new THREE.Matrix4();
 /** Kurs-Zustände mit eigener Pose (HeroRig zeigt für neue Zustände sonst eine Ersatz-Pose, z. B. 'hang' → 'trapeze'). */
 const COURSE_STATES = new Set(['idle', 'walk', 'run', 'skid', 'jump', 'jump2', 'jump3', 'backflip', 'sideflip', 'longjump', 'fall',
   'land', 'crouch', 'slide', 'groundpound', 'wallslide', 'walljump', 'climb', 'beanstalk', 'swim', 'ride', 'pipe', 'hurt', 'dead',
@@ -2235,10 +2238,11 @@ export class HeroAvatar extends Avatar3D {
       const lim = Math.max(0, c.speed ?? 0) + 0.3;
       const v = Math.abs(d) > 1 ? 0 : clamp(d / dt, -lim, lim);
       const v0 = g.v;
+      // Takt aus dem tatsächlich zurückgelegten Weg (nicht geglättet) – so bleibt die haltende Hand genau liegen
+      g.u = (((g.u + (v * dt) / H.stride) % 1) + 1) % 1;
       g.v = damp(g.v, v, 14, dt);
       g.acc = damp(g.acc, clamp((g.v - v0) / dt, -30, 30), 10, dt);
       g.m = damp(g.m, smoothstep((Math.abs(g.v) - 0.15) / 0.6), 9, dt);
-      g.u = (((g.u + (g.v * dt) / H.stride) % 1) + 1) % 1;
       // Körperpendel um die Griffe (θ > 0: Füße nach vorn): Anfahren schwingt die Füße zurück, Bremsen nach vorn
       const w0 = Math.sqrt(9.81 / H.L);
       g.om += (-w0 * w0 * g.th - 2 * H.zeta * w0 * g.om - (H.drive * g.acc) / H.L) * dt;
@@ -2285,6 +2289,8 @@ export class HeroAvatar extends Avatar3D {
     o.figX = _v.x - _s.x + ex; o.figY = _v.y - _s.y + ey; o.figZo = _v.z - _s.z;
     // Griffe: haltende Hand liegt fest im Gitter (läuft relativ zum Körper von +A nach −A), die andere schwingt nach vorn
     const A = H.stride / 4;
+    const grid = Number.isFinite(c.hangGrid?.x0) && Number.isFinite(c.hangGrid?.z1) ? c.hangGrid : null;
+    if (grid) _mi.copy(me).invert();
     const grip = (ph, s) => {
       ph = ((ph % 1) + 1) % 1;
       let x, dip = 0, inw = 0;
@@ -2294,6 +2300,14 @@ export class HeroAvatar extends Avatar3D {
       // Griffe nicht mit m überblendet (die haltende Hand bliebe sonst nicht liegen): im Stand ruhen beide gestaffelt im
       // Gitter, nur das Lösen der nachgreifenden Hand (dip) setzt mit dem Tempo ein
       _p.set((H.x0 + x) * U, barY - (H.grip + m * dip) * U, s * (H.width - m * inw));
+      if (grid) {
+        // am Gitterrand: Griff ins Gitter ziehen (Welt), seitlich höchstens bis minLat an die Körperachse
+        _hw.copy(_p).applyMatrix4(me);
+        _hw.x = clamp(_hw.x, grid.x0 + H.inset, Math.max(grid.x0 + H.inset, grid.x1 - H.inset));
+        _hw.z = clamp(_hw.z, grid.z0 + H.inset, Math.max(grid.z0 + H.inset, grid.z1 - H.inset));
+        _hw.applyMatrix4(_mi);
+        _p.x = _hw.x; _p.z = s * Math.max(s * _hw.z, H.minLat);
+      }
       _p.x -= ex; _p.y -= ey;
       _p.sub(G).applyQuaternion(_qi).add(G);
       this.reachTo(o, s, _p.x, _p.y, _p.z);
