@@ -5089,3 +5089,31 @@ Klone `lite` (ohne Schattenwurf): mit Verkleidung. Trage-Helm (HeroRig, fremdes 
 Lotti 9 → 9 Zeichenaufrufe, 28,6 k → 32,4 k Dreiecke (× 1,13) · Greta 9 → 10, 24,0 k → 26,0 k (× 1,09) · Pflaume 11 → 11,
 16,4 k → 18,3 k (× 1,12) · Krümel (Modell) 10 → 11, 9,8 k → 10,9 k (× 1,11) · KruemelRig 8 → 8 · Ritt in 1-4 (Heldin + Pflaume)
 17 → 17, 39,9 k → 44,9 k. Wieder ohne Verkleidung jeweils exakt wie vorher.
+
+## Welt 6 – Level-Liste und Freischaltung (Hauptsitzung)
+
+Welt 6 „Wolkeninseln“ (Himmel/Wolken, Wasser) wird nach Sieg über `5-Burg` frei (Glasröhre `W6` auf der
+Welt-5-Karte, bisher „Welt 6 kommt bald!“). Sternbedarf zählt **alle** gesammelten Sterne (Welt 1–5: 140, dazu die
+Halloween-Welt). 6-B ist wie im Bauplan ein Steinkreis gleich am Weltanfang.
+
+| Id | Archetyp | Thema | Musik | Sterne | frei nach |
+| --- | --- | --- | --- | --- | --- |
+| `6-1` | parcours (Bergland, verzweigtes Glasröhren-Netz, Stachelkugeln, 5 Schlüsselmünzen, Wolkenkanone in den Münzhimmel) | clearpipe | course_clearpipe | 3 + Stempel | Welt 6 offen |
+| `6-B` | arena (Steinkreis: 1 Feuer-, 2 Hammer-, 2 Bumerang-Werfer, 100 s) | stonecircle | course_arena | 1 | Welt 6 offen |
+| `6-2` | parcours (Geisterschiffe: kippende Schiffe, 1 m Kippsteg, Schubser, gefluteter Laderaum mit Kreisgeistern) | wreck | course_wreck | 3 + Stempel | 6-1 |
+| `6-3` | parcours (Fernost-Halle: Schiebetüren antippen, Gong, Pilz-Maske – zugewandte Gegner sehen die Figur nicht) | fareast | course_fareast | 3 + Stempel | 6-2 **und ≥ 110 Sterne** |
+| `6-4` | parcours (Dschungel: Floßfahrt im lila Giftsee, Brummer, Rankenschnapper, Klettergitter, Abwärtsströmung) | jungle | course_jungle | 3 + Stempel | 6-2 |
+| `6-A` | arena (kleine Festung, 2 × 3 Glasröhren an den Wänden, Schubser-Prinz: in eine Röhre rammen, 3 Tritte) | fortress | course_arena | 1 | 6-4 |
+| `6-5` | parcours (Schnee: Eisseen, Pustewolken, Windböen über Abgründen, Glotzfische, Schlittschuh) | snowwind | course_snowwind | 3 + Stempel | 6-4 |
+| `6-6` | parcours vertikal (Maschinenhalle: Förderbänder auch an Wänden, Projektilkopf-Kanonen, Riesenprojektil, 500 s) | factory | course_factory | 3 + Stempel | 6-5 |
+| `6-Haus` | house (5 Räume à 10 s, alles mit Wurfbällen) | house | course_house | 5 | 6-6 |
+| `6-7` | autoscroller vertikal (Mine nach oben, Wuschel-Horde jagt von unten, Quetschblöcke, Wippen) | fuzzymine | course_fuzzymine | 3 + Stempel | 6-6 |
+| `6-Panzer` | autoscroller + boss (zweite Panzerkolonne, Zündköpfe, große ?-Blöcke wachsen zu Türmen; Boss Wirbelbrocken mit Attrappen) | tank | course_tank | 3 + Stempel | 6-7 |
+| `6-C` | parcours + boss (Plattform mit Spiegelfrucht, Seilbahn, Zirkuszelt-Arena; Boss **Würfelblase**) | bigtop | course_bossblob | 3 + Stempel | 6-Panzer **und ≥ 120 Sterne** |
+
+Welt 6 hat 34 Sterne. Neu: Glasröhren-Netz mit Abzweigen, Stachelkugeln, Kippschiffe/Kippsteg, Schiebetüren (antippen),
+Gong (Münzregen, Rätselbox), Pilz-Maske, Klettergitter, Pustewolken/Windböen, Förderbänder (Boden und Wand), Quetschblöcke,
+Wippen (vorhanden prüfen), Wurfbälle (6-Haus). Gegner: Schubser, Pustewolke, Glotzfisch, Stachelwerfer, Hammer- und
+Bumerang-Werfer (vorhanden prüfen), Wuschel-Horde; Bosse **Schubser-Prinz** (6-A) und **Würfelblase** (6-C: sammelt
+Gelee-Brocken zu einem silbernen Riesen, springt mehrfach, trennt sich beim letzten Sprung und flieht – dann verwundbar;
+3 Kopftreffer), Wirbelbrocken mit Attrappen (6-Panzer). Freischaltung der Halloween-Welt bleibt unberührt.
