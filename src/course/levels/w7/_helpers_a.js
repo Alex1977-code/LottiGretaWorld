@@ -600,18 +600,20 @@ export function pflaumeStatue(b, g, list) {
     const P = (u, v) => [x + c * u + sn * v, z - sn * u + c * v];
     b.box(1.4 * s, 0.5 * s, 1.4 * s, x, y, z, litTop(TEMPEL.cap, 0.6), { r: 0.04, yaw });
     b.box(1.2 * s, 0.12 * s, 1.2 * s, x, y + 0.5 * s, z, litTop(TEMPEL.gold, 0.6), { r: 0, yaw });
-    const st = litTop(0x9a8c84, 0.65);
+    const st = litTop(0xd4c8bc, 0.62);
     b.sphere(0.5 * s, x, y + 1.05 * s, z, st, { s: [1, 0.95, 0.9], ws: 12, hs: 8 });
     let [hx, hz] = P(0.22 * s, 0);
     b.sphere(0.36 * s, hx, y + 1.62 * s, hz, st, { ws: 12, hs: 8 });
     for (const side of [-1, 1]) {
-      const [ex, ez] = P(0.12 * s, side * 0.22 * s);
-      b.box(0.14 * s, 0.75 * s, 0.24 * s, ex, y + 1.05 * s, ez, st, { yaw, rx: side * c * 0.35, rz: -side * sn * 0.35, r: 0.05 });   // Schlappohren
+      const [ex, ez] = P(0.1 * s, side * 0.36 * s);
+      b.box(0.14 * s, 0.8 * s, 0.26 * s, ex, y + 1.0 * s, ez, st, { yaw, rx: side * c * 0.22, rz: -side * sn * 0.22, r: 0.05 });   // Schlappohren
+      const [ix, iz] = P(0.18 * s, side * 0.37 * s);
+      b.box(0.04 * s, 0.6 * s, 0.16 * s, ix, y + 1.08 * s, iz, 0xf0a0b8, { yaw, rx: side * c * 0.22, rz: -side * sn * 0.22, r: 0 });
       const [ax, az] = P(0.5 * s, side * 0.13 * s);
       g.sphere(0.06 * s, ax, y + 1.7 * s, az, TEMPEL.rune, { ws: 6, hs: 4 });                                                   // leuchtende Augen
     }
-    [hx, hz] = P(0.56 * s, 0);
-    b.sphere(0.07 * s, hx, y + 1.58 * s, hz, 0x5a4a50, { ws: 6, hs: 4 });
+    [hx, hz] = P(0.57 * s, 0);
+    b.sphere(0.07 * s, hx, y + 1.58 * s, hz, 0xff7aa0, { ws: 6, hs: 4 });
     [hx, hz] = P(-0.42 * s, 0);
     b.sphere(0.16 * s, hx, y + 0.8 * s, hz, litTop(0xb8aca4, 0.7), { ws: 8, hs: 6 });                                         // Schwänzchen
   }
@@ -723,6 +725,10 @@ export function tempel72(level, o) {
     b.box(x1 - x0 + 0.1, 0.18, 0.26, (x0 + x1) / 2, top - 0.22, z0 + 0.08, litTop(TEMPEL.cap, 0.6), { r: 0 });
     for (let x = x0 + 0.7; x < x1 - 0.4; x += 1.4) g.box(0.22, 0.22, 0.05, x, top - 1.2, z0 + 0.17, (Math.round(x * 3) % 2) ? TEMPEL.rune : TEMPEL.runeWarm, { r: 0, rz: Math.PI / 4 });
   }
+  // Sandsteinplatten (außer im Rundsaal mit seinem Mosaik), glimmende Runenrisse
+  fliesen(b, rects.filter((r) => r[2] !== -72).map(([x0, x1, zA, zB, dy = 0]) => [x0, x1, zA, zB, Y + dy]), rnd,
+    { pal: [0xc8a878, 0xbc9c6c, 0xd2b484, 0xb08e64, 0xc4a272, 0xd8bc90], row: 1.2, glow: g, cracks: 0.025, crackColor: 0xffb04a });
+  fliesen(b, [[-8, 8, -72, -75.2, Y], [-8, 8, -84.8, -88, Y]], rnd, { pal: [0xc8a878, 0xbc9c6c, 0xd2b484, 0xb08e64], row: 1.2 });
   // ---------------- Mauern
   const W = (from, to, y, h, faces, extra = {}) => tempelWand(level, b, g, { from, to, y, h, faces, ...extra }, rnd);
   W([-5.6, 7.6], [-5.6, -5.6], Y, 3.6, [1]); W([5.6, 7.6], [5.6, -5.6], Y, 3.6, [-1]);                 // Eingangshalle

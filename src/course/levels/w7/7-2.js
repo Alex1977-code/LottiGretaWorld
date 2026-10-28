@@ -98,7 +98,7 @@ export const LEVEL = {
     { type: 'pipe', id: 'zielrohr', pos: [0, Y, -190.6], height: 1.4, target: 'ziel_aus' },
     { type: 'hiddenchain', id: 'kette3', blocks: [[1.8, Y + 4.4, -197.9], [3.8, Y + 6.2, -199.4]] },
     isl(-7, 7, -210, -228, Y, 4, { under: 3 }),
-    { type: 'pipe', id: 'ziel_aus', pos: [0, Y, -212.6], height: 1.2 },
+    { type: 'pipe', id: 'ziel_aus', pos: [-3.6, Y, -213.2], height: 1.2 },
     sign(-3.6, Y, 2.4, 'Schaltfelder\nzeigen den Weg', { size: [2.6, 1.0], yaw: 0.2 }),
     sign(-6.6, Y, -74.8, 'Feuer in die\nSchalen!', { size: [2.2, 0.9], yaw: 0.6 }),
     // Fackeln (Licht) und Kulisse
@@ -122,7 +122,7 @@ export const LEVEL = {
     { kind: 'question', pos: [0, Y + 2.2, -74.6], content: 'funken' },
     { kind: 'question', pos: [-3.4, Y + 2.2, -126.8], content: 'funken' },
     { kind: 'hidden', pos: [HX + 3, Y + 2.6, -97.5], content: 'oneup' },        // Extraleben im Schatzraum
-    { kind: 'question', pos: [-3, Y + 2.4, -214], content: 'coins:5' },
+    { kind: 'question', pos: [3.2, Y + 2.2, -214], content: 'coins:5' },
   ],
   enemies: [
     panzer('sp1', [[-1.8, Y, -12.6], [1.8, Y, -12.6]], { speed: 1.1 }),
