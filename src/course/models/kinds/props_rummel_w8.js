@@ -312,31 +312,28 @@ function trackGeo(key, pts, loop = false) {
     const b = new Build();
     const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)), loop);
     const N = Math.max(24, Math.round(curve.getLength() * 1.6));
-    const frames = curve.computeFrenetFrames(N, loop);
-    const railV = gradV(W8.redLow, W8.redHi, 0.5, 0.5);
-    for (const side of [0.55, -0.55]) {
-      const rp = [];
-      for (let i = 0; i <= N; i++) {
-        const u = i / N, p = curve.getPointAt(u), tng = curve.getTangentAt(u);
-        const sideV = new THREE.Vector3().crossVectors(tng, new THREE.Vector3(0, 1, 0));
-        if (sideV.lengthSq() < 0.01) sideV.copy(frames.binormals[i]);
-        sideV.normalize();
-        rp.push(p.clone().addScaledVector(sideV, side).toArray());
-      }
-      b.add(taperTube(rp, 0.09, N * 2, 6), railV);
+    // Seitenvektor per Paralleltransport (stetig auch durch den Looping)
+    const P = [], T = [], SV = [];
+    for (let i = 0; i <= N; i++) {
+      const u = i / N, tng = curve.getTangentAt(u);
+      let sv;
+      if (i === 0) { sv = new THREE.Vector3().crossVectors(tng, new THREE.Vector3(0, 1, 0)); if (sv.lengthSq() < 0.01) sv.set(0, 0, 1); }
+      else sv = SV[i - 1].clone().addScaledVector(tng, -SV[i - 1].dot(tng));
+      sv.normalize();
+      P.push(curve.getPointAt(u)); T.push(tng); SV.push(sv);
     }
-    for (let i = 0; i <= N; i += 1) {
-      const u = i / N, p = curve.getPointAt(u), tng = curve.getTangentAt(u);
-      const sideV = new THREE.Vector3().crossVectors(tng, new THREE.Vector3(0, 1, 0));
-      if (sideV.lengthSq() < 0.01) sideV.copy(frames.binormals[Math.min(i, N)]);
-      sideV.normalize();
+    const railV = gradV(W8.redLow, W8.redHi, 0.5, 0.5);
+    for (const side of [0.55, -0.55]) b.add(taperTube(P.map((p, i) => p.clone().addScaledVector(SV[i], side).toArray()), 0.09, N * 2, 6), railV);
+    for (let i = 0; i <= N; i++) {
+      const p = P[i], tng = T[i], sideV = SV[i];
       const up = new THREE.Vector3().crossVectors(sideV, tng).normalize();
+      if (up.y < -0.2 && i === 0) up.negate();
       const M = new THREE.Matrix4().makeBasis(tng, up, sideV).setPosition(p.clone().addScaledVector(up, -0.08));
       b.add(new THREE.BoxGeometry(0.2, 0.1, 1.4), i % 2 ? W8.woodHi : W8.wood, M);
-      // Stützen alle paar Meter (nur unter waagrecht-artigen Stücken)
-      if (i % 3 === 0 && up.y > 0.6 && p.y > 0.5) {
+      // Stützen unter flachen Stücken; am Looping zwei Pfeiler an den Seiten
+      if ((i % 3 === 0 && up.y > 0.6 && p.y > 0.5) || (Math.abs(up.y) < 0.15 && i % 4 === 0 && p.y > 1.5)) {
         const h = p.y - 0.1;
-        b.cyl(0.11, 0.16, h, gradV(0x5a6078, 0xc8cce0), { p: [p.x, h / 2, p.z] }, 6);
+        b.cyl(0.11, 0.16, h, gradV(0x5a6078, 0xc8cce0), { p: [p.x, h / 2, p.z + (Math.abs(up.y) < 0.15 ? Math.sign(sideV.z || 1) * 0.9 : 0)] }, 6);
         b.cyl(0.35, 0.4, 0.2, 0x5a6078, { p: [p.x, 0.1, p.z] }, 8);
       }
     }
