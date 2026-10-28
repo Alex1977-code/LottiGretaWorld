@@ -239,10 +239,11 @@ export function lavaMaterial(level, color = 'rot', o = {}) {
       + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
       ${pat}
       float n1 = sin(q.x * 2.3 + sin(q.y * 1.9 + uTime * 0.6) * 1.6) * 0.5 + sin(q.y * 2.6 + sin(q.x * 1.5 - uTime * 0.5) * 1.4) * 0.5;
-      float n2 = sin(q.x * 6.1 + q.y * 4.7 + uTime * 1.3) * 0.5 + 0.5;
+      float n2 = sin(q.x * 5.3 + sin(q.y * 3.1 + uTime * 0.4) * 1.7) * sin(q.y * 4.7 + sin(q.x * 2.9 - uTime * 0.5) * 1.5) * 0.5 + 0.5;
       vec3 c7 = mix(uDeep, uMid, smoothstep(-0.8, 0.3, n1));
       c7 = mix(c7, uHi, smoothstep(0.35, 0.95, n1) * 0.9);
-      c7 = mix(c7, uWhite, smoothstep(0.82, 1.0, n1) * 0.6 + smoothstep(0.92, 1.0, n2) * 0.25);
+      c7 = mix(c7, uWhite, smoothstep(0.86, 1.0, n1) * 0.55);
+      c7 = mix(c7, uDeep * 0.55, smoothstep(0.8, 1.0, n2) * smoothstep(0.2, -0.4, n1) * 0.7);
       diffuseColor.rgb = c7 * uBright;`);
   };
   m.customProgramCacheKey = () => `w7lava:${o.vertical ? 'v' : 'h'}`;

@@ -298,13 +298,19 @@ export function buildLavaFontaene(level, spec) {
     root.add(model.root);
   }
   // Säule (eigene Darstellung): offener Zylinder mit Lava-Muster nach oben, oben eine Krone aus Klecksen
-  let col = null, crown = null;
+  let col = null, crown = null, halo = null;
   if (!model) {
     const cg = new THREE.CylinderGeometry(R * 0.82, R, 1, 14, 1, true);
     cg.translate(0, 0.5, 0);
-    col = new THREE.Mesh(cg, lavaMaterial(level, color, { vertical: true, speed: 6, bright: 1.1 }));
+    col = new THREE.Mesh(cg, lavaMaterial(level, color, { vertical: true, speed: 6, bright: 1.35 }));
     col.castShadow = false;
     root.add(col);
+    // Glüh-Hülle um die Säule (additiv): hebt die Fontäne vom Lavasee ab
+    const hg = new THREE.CylinderGeometry(R * 1.6, R * 1.9, 1, 14, 1, true);
+    hg.translate(0, 0.5, 0);
+    halo = new THREE.Mesh(hg, new THREE.MeshBasicMaterial({ color: pal.hi, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    halo.renderOrder = 2;
+    col.add(halo);
     crown = new THREE.InstancedMesh(fireBallGeo(), fireMaterial(level), 7);
     crown.frustumCulled = false;
     root.add(crown);

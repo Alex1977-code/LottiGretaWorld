@@ -289,15 +289,19 @@ function buildRoller(level, spec, kind) {
   } else {
     const a = lin(S.a), b = lin(S.b), e = lin(S.end), hub = lin(S.hub);
     const parts = [];
-    const body = new THREE.CylinderGeometry(R, R, L, 28, 1, true);
-    body.rotateZ(Math.PI / 2);
-    parts.push(colorize(body.toNonIndexed(), (q, nn, o) => {
-      const ang = Math.atan2(q.z, q.y);
-      const band = Math.floor(((ang + Math.PI) / TAU) * 12) & 1;
-      mixc(b, a, band ? 0.15 : 1, o);
-      const rim = Math.abs(Math.abs(q.x) - L / 2) < 0.25 ? 0.6 : 0;
-      if (rim) mixc(o, e, rim, o);
-    }));
+    // Mantel aus 12 Streifen (abwechselnd hell/dunkel, scharf getrennt – die Drehung ist gut zu sehen), Ränder dunkel
+    const NS = 12, light = mixc(a, [1, 1, 1], 0.12, [0, 0, 0]);
+    for (let k = 0; k < NS; k++) {
+      const st = new THREE.CylinderGeometry(R, R, L, 3, 1, true, (k / NS) * TAU, TAU / NS);
+      st.rotateZ(Math.PI / 2);
+      const col = k % 2 ? b : light;
+      parts.push(colorize(st.toNonIndexed(), (q, nn, o) => { o[0] = col[0]; o[1] = col[1]; o[2] = col[2]; }));
+    }
+    for (const sx of [-1, 1]) {
+      const ring = new THREE.CylinderGeometry(R * 1.015, R * 1.015, 0.3, 28, 1, true);
+      ring.rotateZ(Math.PI / 2); ring.translate(sx * (L / 2 - 0.15), 0, 0);
+      parts.push(colorize(ring.toNonIndexed(), (q, nn, o) => { o[0] = e[0]; o[1] = e[1]; o[2] = e[2]; }));
+    }
     if (spec.ends !== false) {
       for (const sx of [-1, 1]) {
         const cap = new THREE.CylinderGeometry(R * 1.04, R * 1.04, 0.22, 28);

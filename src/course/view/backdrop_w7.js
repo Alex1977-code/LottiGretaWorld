@@ -96,10 +96,11 @@ export function flowLava(sky, bounds, y, o = {}) {
       + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
       vec2 q = (vB7p.xz - uFlow * uTime) * uScale;
       float n1 = sin(q.x * 2.1 + sin(q.y * 1.7 + uTime * 0.25) * 1.8) * 0.5 + sin(q.y * 2.5 + sin(q.x * 1.3 - uTime * 0.2) * 1.5) * 0.5;
-      float n2 = sin(q.x * 5.3 + q.y * 4.1 + uTime * 0.7) * 0.5 + 0.5;
+      float n2 = sin(q.x * 5.3 + sin(q.y * 2.9) * 1.6 + uTime * 0.3) * sin(q.y * 4.1 + sin(q.x * 2.3) * 1.4 - uTime * 0.2) * 0.5 + 0.5;
       vec3 c7 = mix(uDeep, uMid, smoothstep(-0.9, 0.25, n1));
       c7 = mix(c7, uHi, smoothstep(0.3, 0.95, n1) * 0.85);
-      c7 = mix(c7, uWhite, smoothstep(0.85, 1.0, n1) * 0.5 + smoothstep(0.94, 1.0, n2) * 0.2);
+      c7 = mix(c7, uWhite, smoothstep(0.87, 1.0, n1) * 0.45);
+      c7 = mix(c7, uDeep * 0.55, smoothstep(0.8, 1.0, n2) * smoothstep(0.2, -0.4, n1) * 0.7);
       diffuseColor.rgb = c7;`);
   };
   mat.customProgramCacheKey = () => 'w7backlava';

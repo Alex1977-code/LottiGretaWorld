@@ -437,7 +437,7 @@ console.log('Lavawerkstatt 0-26');
   console.log(`  Fontänen: heiß ${f.seen}, getroffen ${f.hit} (in Ruhe/Warnung heil ${f.quiet}, Ausbrüche ${f.er}), daneben ${f.side}; tragend: auf ${f.on} gehoben um ${f.lift} m (tot ${f.dead})`);
   check('Lava-Fontäne (heiß): Vorwarnung, dann trifft die Säule; Gegenprobe in Ruhe und daneben: heil', f.hit && f.quiet && f.er >= 1 && !f.side && f.seen.includes('warn'));
   check('Lava-Fontäne (tragend): Krustenplatte trägt die Figur hinauf', f.on === 'fontaene-platte' && f.lift > 3.5 && !f.dead);
-  await T('place', marks.spiegel, { settle: 4 });
+  await T('place', marks.saeuleHoch, { settle: 30 });
   await sc(() => { const t = window.__t; t.until(() => t.named('fontaene1').state === 'oben', 1500); });
   await shot('lava_fontaenen', 600);
   await T('place', marks.gitter, { settle: 30 });
@@ -647,7 +647,7 @@ if (errors.length) for (const e of errors.slice(0, 10)) console.log('   ', e);
 // ---------------------------------------------------------------- Themen (?theme=) mit Bildern
 if (PART !== 'mech' && SHOTS) {
   console.log('Welt-7-Themen');
-  const VIEWS = { darkruins: ['schalt'], lavarun: ['walze'], lavatower: ['spiegel'], lavamachine: ['zylinder'], reef: ['wasser', 'kisten'], volcano: ['fontaene1'] };
+  const VIEWS = { darkruins: ['schalt'], lavarun: ['walze'], lavatower: ['spiegel'], lavamachine: ['zylinder'], reef: ['wasser', 'kisten'], volcano: ['gitter'] };
   const labels = {};
   const e0all = errors.length;
   for (const th of Object.keys(VIEWS)) {

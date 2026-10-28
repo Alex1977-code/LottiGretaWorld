@@ -55,7 +55,7 @@ export const LEVEL = {
     // ---------------- S1 Wurfsichel-Bahn
     plat(-8, -14),
     sign(-11, 0, -9, 'Wurfsichel'),
-    { type: 'lava', pos: [0, -2, -16], size: [26, 1.5, 4] },
+    { type: 'lavaspiegel', mode: 'fest', pos: [0, -2, -16], size: [26, 1.5, 4] },
     plat(-18, -28),
     { type: 'wall', pos: [-8, 0, -26], size: [5, 3, 1], style: 'stone' },
     { type: 'deco_w7', items: [{ kind: 'knochen', pos: [-9, 0, -24], n: 5 }, { kind: 'glutriss', pos: [-6, 0, -20], length: 3 }, { kind: 'wappen', pos: [-8, 1.6, -25.45], size: 1.6 }] },
@@ -70,7 +70,7 @@ export const LEVEL = {
     // ---------------- S3 Lavablasen
     plat(-48, -51),
     sign(-11, 0, -49, 'Lavablasen'),
-    { type: 'lava', pos: [0, -2, -55], size: [26, 1.5, 8] },
+    { type: 'lavaspiegel', mode: 'fest', pos: [0, -2, -55], size: [26, 1.5, 8] },
     { type: 'island', pos: [0, -4, -55], size: [2.4, 4, 2.4], under: 0 },
     { type: 'lavablase', height: 4, period: 3, list: [{ id: 'blase1', pos: [-4, -0.5, -55], phase: 0 }, { id: 'blase2', pos: [4, -0.5, -55], color: 'blau', phase: 0.5 }] },
     { type: 'lavablase', id: 'blase3', pos: [-9, -0.5, -53], to: [-9, -57], height: 3, period: 2.4 },
@@ -80,7 +80,7 @@ export const LEVEL = {
     // ---------------- S4 Pfeilplattformen
     plat(-62, -65),
     sign(-11, 0, -63, 'Pfeilplattformen'),
-    { type: 'lava', pos: [0, -2, -73], size: [26, 1.5, 16], color: 'blau' },
+    { type: 'lavaspiegel', mode: 'fest', pos: [0, -2, -73], size: [26, 1.5, 16], color: 'blau' },
     { type: 'pfeilplattform', id: 'pfeil1', pos: [0, -0.4, -68], size: [3, 0.4, 3], arrow: [0, -1], phase: 0, wait: 2, up: 3.2 },
     { type: 'pfeilplattform', id: 'pfeil2', pos: [0, -0.4, -72], size: [3, 0.4, 3], arrow: [0, -1], phase: -1.2, wait: 2, up: 3.2 },
     { type: 'pfeilplattform', id: 'pfeil3', pos: [0, -0.4, -76], size: [3, 0.4, 3], arrow: [0, -1], phase: -2.4, wait: 2, up: 3.2 },
@@ -92,7 +92,7 @@ export const LEVEL = {
 
     // ---------------- S5 Zylinder, Stachelwalze, Pendel
     sign(-11, 0, -84, 'Zylinder und Walzen'),
-    { type: 'lava', pos: [0, -2.5, -91], size: [26, 1.5, 10] },
+    { type: 'lavaspiegel', mode: 'fest', pos: [0, -2.5, -91], size: [26, 1.5, 10] },
     { type: 'zylinder', id: 'zylinder', pos: [0, -1.6, -91], radius: 2.5, length: 9, axis: 'x', speed: 0.5 },
     plat(-96, -112),
     { type: 'stachelwalze_rot', id: 'walze', pos: [0, 0.55, -100], radius: 1.1, length: 7, axis: 'x', speed: 1.3 },
@@ -124,7 +124,7 @@ export const LEVEL = {
     // ---------------- S8 Zugbrücke
     plat(-158, -162),
     sign(-11, 0, -159, 'Zugbrücke'),
-    { type: 'lava', pos: [0, -2.5, -166], size: [26, 1.5, 8] },
+    { type: 'lavaspiegel', mode: 'fest', pos: [0, -2.5, -166], size: [26, 1.5, 8] },
     { type: 'zugbruecke', id: 'bruecke', pos: [0, 0, -162], length: 8, width: 3, dir: [0, -1], schalter: { id: 'knopf', pos: [6, 0, -160] } },
     plat(-170, -178),
     { type: 'deco_w7', items: [{ kind: 'burgturm', pos: [-6, 0, -172], height: 6, radius: 1.3 }, { kind: 'burgturm', pos: [6, 0, -172], height: 6, radius: 1.3 }, { kind: 'fahne', pos: [0, 4.2, -174.5], hang: true, length: 2.6 }] },
@@ -132,7 +132,7 @@ export const LEVEL = {
     // ---------------- S9 Schaltfeld-Gruppe
     plat(-178, -184),
     sign(-11, 0, -179, 'Schaltfelder'),
-    { type: 'lava', pos: [0, -2.5, -188], size: [26, 1.5, 8] },
+    { type: 'lavaspiegel', mode: 'fest', pos: [0, -2.5, -188], size: [26, 1.5, 8] },
     { type: 'schaltfelder', id: 'schalt', pos: [0, 0, -181], grid: [2, 2], spacing: 1.8,
       weg: [{ pos: [0, -0.4, -185.5], size: [2.4, 0.4, 2.4] }, { pos: [0, -0.4, -188.3], size: [2.4, 0.4, 2.4] }, { pos: [0, -0.4, -191], size: [2.4, 0.4, 2.4] }] },
     plat(-192, -198),

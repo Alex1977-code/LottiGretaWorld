@@ -57,10 +57,13 @@ export const POWERS = {
     },
     /** HUD-Symbol: goldene Sichel (Bogen) mit rosa Blütenpunkt; blass, solange sie fliegt. */
     hudDraw(g, x, y, player) {
-      const a = player.sichelFlying > 0 ? 0.4 : 1;
-      g.lineStyle(3.2, 0xffc23a, a); g.beginPath(); g.arc(x, y, 5, Math.PI * 0.15, Math.PI * 1.35, false); g.strokePath();
-      g.lineStyle(1, 0xffffff, 0.9 * a); g.beginPath(); g.arc(x, y, 6.6, Math.PI * 0.18, Math.PI * 1.3, false); g.strokePath();
-      g.fillStyle(0xff6ab0, a); g.fillCircle(x, y, 1.8);
+      const a = player.sichelFlying > 0 ? 0.35 : 1;
+      // Sichel-Mond: äußerer Bogen im Uhrzeigersinn, innerer (versetzt) zurück – gefüllt; helle Schneide außen
+      const p0 = Math.PI * 0.2, p1 = Math.PI * 1.45;
+      g.fillStyle(0xffc23a, a);
+      g.beginPath(); g.arc(x, y, 6.4, p0, p1, false); g.arc(x + 1.6, y - 0.9, 4.4, p1 - 0.1, p0 + 0.15, true); g.closePath(); g.fillPath();
+      g.lineStyle(1, 0xffffff, 0.95 * a); g.beginPath(); g.arc(x, y, 6.6, p0 + 0.1, p1 - 0.1, false); g.strokePath();
+      g.fillStyle(0xff6ab0, a); g.fillCircle(x + 1.2, y - 0.6, 1.7);
     },
     hudKey: (player) => (player.sichelFlying > 0 ? 'f' : 'r'),
   },

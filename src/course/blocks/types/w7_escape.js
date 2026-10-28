@@ -10,7 +10,7 @@
 //     '-z' | '+z' | '-x' | '+x', speed: 1.2 (m/s), speeds: [{ at: s, speed }] (Tempowechsel nach Jagdzeit), plan: [[t, m]]
 //     (Front-Lage m nach Jagdzeit s, statt speed), to: 40 (m bis zum Ende), depth: 0 (m Nebel hinter der Front; 0 = bis
 //     zum Start), delay: 1.2 (s nach dem Start), start: 'signal' | 'auto' | { box: [x0, y0, z0, x1, y1, z1] }, signal: Name
-//     (zusätzlich: level.signal(Name) startet), gap: 4, damage: 'tod' | 'treffer', color: 'lila' | 'gruen', puffs: 18,
+//     (zusätzlich: level.signal(Name) startet), gap: 4, damage: 'tod' | 'treffer', color: 'lila' | 'gruen', puffs: 30,
 //     mood: Stimmung des Themas beim Start (z. B. 'flucht' im Thema lavatower), visible: false (vor dem Start zeigen) }
 //   level.named.get(id) = { state ('wartet'|'verzoegert'|'jagt'|'ende'), front (m ab Start entlang dir), frontPos → {x,y,z},
 //                           start(), stop(), reset(), inside(fig) → bool, kills, resets, info() }; w7(level).fogs
@@ -141,7 +141,7 @@ export function buildGiftnebel(level, spec) {
       float n = sin(q.x * 1.7 + uTime * 0.6 + sin(q.y * 1.3 - uTime * 0.4) * 1.5) * 0.5 + sin(q.z * 1.9 - uTime * 0.5 + sin(q.x * 1.1 + uTime * 0.3) * 1.3) * 0.5;
       float m = sin(q.y * 2.3 + q.z * 1.7 + uTime * 0.9) * 0.5 + 0.5;
       diffuseColor.rgb = mix(uFog, uHi, smoothstep(0.2, 1.0, n) * 0.55 + m * 0.12);
-      diffuseColor.a *= 0.62 + 0.3 * smoothstep(-0.8, 0.8, n);`);
+      diffuseColor.a *= (0.55 + 0.3 * smoothstep(-0.8, 0.8, n)) * smoothstep(2.5, 9.0, length(vW7n - cameraPosition));`);
   };
   mat.customProgramCacheKey = () => 'w7giftnebel';
   const body = new THREE.Mesh(g, mat);
@@ -154,16 +154,17 @@ export function buildGiftnebel(level, spec) {
     model = getModel('giftnebel_wand', { width: sa, height: sb, color: spec.color ?? 'lila' });
     frontG.add(model.root);
   }
-  const np = model ? 0 : Math.max(0, spec.puffs ?? 18);
+  const np = model ? 0 : Math.max(0, spec.puffs ?? 30);
   let puffs = null;
   const pd = [];
   if (np) {
-    puffs = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ color: C.puff, emissive: C.fog, emissiveIntensity: 0.45, roughness: 1, transparent: true, opacity: 0.82, depthWrite: false, flatShading: true }), np);
+    // weiche Nebelschwaden: Ebenen zur Kamera mit Wolken-Textur (eine Instanz-Gruppe)
+    puffs = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: puffTexture(), color: C.puff, transparent: true, opacity: 0.85, depthWrite: false }), np);
     puffs.frustumCulled = false;
     puffs.renderOrder = 5;
     let seed = 1234567;
     const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-    for (let i = 0; i < np; i++) pd.push({ a: (rnd() - 0.5) * sa * 0.95, b: (rnd() - 0.5) * sb * 0.95, r: 0.8 + rnd() * 1.4, ph: rnd() * TAU, f: 0.6 + rnd() * 0.8 });
+    for (let i = 0; i < np; i++) pd.push({ a: (rnd() - 0.5) * sa * 0.95, b: (rnd() - 0.5) * sb * 0.95, r: 1.4 + rnd() * 1.6, ph: rnd() * TAU, f: 0.6 + rnd() * 0.8 });
     frontG.add(puffs);
   }
   // lokal (+X = Laufrichtung, y = b-Achse, z = a-Achse) → Welt
@@ -171,7 +172,8 @@ export function buildGiftnebel(level, spec) {
   if (basis.determinant() < 0) basis.makeBasis(new THREE.Vector3(...D), new THREE.Vector3(...axB), new THREE.Vector3(...axA).negate());
   frontG.quaternion.setFromRotationMatrix(basis);
   root.add(frontG);
-  const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _q = new THREE.Quaternion();
+  const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _qc = new THREE.Quaternion(), _w = new THREE.Vector3();
+  const cam = level.view.camera;
   const holder = {};
   let t = 0;
   addObject(level, root, (dt) => {
@@ -180,22 +182,46 @@ export function buildGiftnebel(level, spec) {
     U.uTime.value = t;
     const fp = frontPos();
     frontG.position.set(fp.x, fp.y, fp.z);
+    frontG.updateMatrixWorld();
     const visible = st.state !== 'wartet' || spec.visible === true;
     root.visible = visible;
     model?.update?.(d, { t });
     if (!puffs) return;
+    // Ausrichtung zur Kamera im lokalen Raum der Front
+    frontG.getWorldQuaternion(_qc).invert().multiply(cam.quaternion);
     for (let i = 0; i < pd.length; i++) {
       const q = pd[i];
       const w = Math.sin(t * q.f + q.ph);
       _p.set(-0.3 + w * 0.35, q.b + Math.cos(t * q.f * 0.7 + q.ph) * 0.3, q.a + Math.sin(t * q.f * 0.5 + q.ph * 2) * 0.4);
-      const r = q.r * (1 + w * 0.12);
-      _s.set(r * 0.8, r, r);
-      _m.compose(_p, _q, _s);
+      // nahe der Kamera klein (die Kamera blickt sonst durch große Wolken)
+      _w.set(_p.x, _p.y, _p.z).applyMatrix4(frontG.matrixWorld);
+      const near = Math.min(1, Math.max(0, (_w.distanceTo(cam.position) - 3) / 6));
+      const r = q.r * (1 + w * 0.12) * near;
+      _s.set(r * 1.3, r, 1);
+      _m.compose(_p, _qc, _s);
       puffs.setMatrixAt(i, _m);
     }
     puffs.instanceMatrix.needsUpdate = true;
   });
   return handle;
+}
+
+let PUFF = null;
+/** Wolken-Textur der Nebelschwaden (weiche Kleckse, geteilt). */
+function puffTexture() {
+  if (PUFF) return PUFF;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  for (let i = 0; i < 12; i++) {
+    const x = 64 + Math.sin(i * 2.3) * 26, y = 64 + Math.cos(i * 1.7) * 18, r = 26 + (i % 4) * 7;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, 'rgba(255,255,255,0.55)'); gr.addColorStop(0.6, 'rgba(255,255,255,0.22)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  }
+  PUFF = new THREE.CanvasTexture(c);
+  PUFF.colorSpace = THREE.SRGBColorSpace;
+  return PUFF;
 }
 
 export const TYPES = { giftnebel: buildGiftnebel };
