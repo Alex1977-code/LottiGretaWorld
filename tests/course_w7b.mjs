@@ -271,6 +271,48 @@ const ROUTES = {
       ['raetsel', [RX4, B4, -66]],
     ],
   },
+  '7-B': {
+    start: [0, 2, 13.4],
+    meta: { stars: 1, arena: true, time: 300, theme: 'fortress', music: 'course_arena', archetype: 'arena' },
+    enemies: { schubser_prinz: 1 },
+    main: [
+      { name: 'durch das Fallgitter-Tor', to: [0, 7.5], within: 0.6 },
+      { expect: 'fightOn' },
+      { expect: 'prinzBlau' },
+      { name: 'Kampf', fight: 'prinz' },
+      { until: 'arenaStar', max: 900 },
+      { name: 'Stern', star: 0 },
+      { until: 'arenaDone', max: 900 },
+    ],
+    routeChecks: [
+      { name: 'drei Röhrenfahrten und drei Tritte (echte Mechanik)', ok: (r) => r.mech.trips === 3 && r.mech.kicks === 3 },
+    ],
+    targets: [],
+    extra: [
+      { name: 'Tor schließt sich beim Betreten, der blaue Prinz stampft auf (Lebensleiste 3/3)', from: [0, 2, 14], heroes: ['lotti'],
+        legs: [{ to: [0, 7.5], within: 0.6 }, { wait: 30 }, { expect: 'fightOn' }, { expect: 'gateLocked' }, { expect: 'hud3' }, { to: [0, 12.5], within: 0.5, max: 200, partial: true }, { expect: 'insideCage7B' }] },
+      { name: 'Phase 1: drei blaue Feuerbälle in einer Kurve', from: [0, 2, 14], heroes: ['lotti'],
+        legs: [{ to: [0, 3], within: 0.6 }, { until: 'ersteSalve', max: 3000 }, { wait: 90 }, { expect: 'dreiBlaue' }] },
+      { name: 'nach jedem Tritt ein blauer Feuerball mehr (4, dann 5)', from: [0, 2, 14], heroes: ['lotti'],
+        legs: [{ to: [0, 7.5], within: 0.6 }, { fight: 'prinz', kicks: 1, max: 8000 }, { to: [0, 3], within: 0.6 }, { expect: 'merkeSalve' }, { until: 'naechsteSalve', max: 3000 },
+          { wait: 90 }, { expect: 'vierBlaue' }, { fight: 'prinz', kicks: 1, max: 8000 }, { to: [0, 3], within: 0.6 }, { expect: 'merkeSalve' },
+          { until: 'naechsteSalve', max: 3000 }, { wait: 90 }, { expect: 'fuenfBlaue' }] },
+      { name: 'Draufspringen ohne Röhre ist nur ein Abprall (kein Treffer)', from: [0, 2, 9], heroes: ['lotti'],
+        legs: [{ to: [0, 7.5], within: 0.6 }, { until: 'prinzAim', max: 600 }, { stompBoss: 'prinz' }, { wait: 30 }, { expect: 'prinzFull' }] },
+      { name: 'Extraleben: unsichtbarer Block rechts vor dem Tor', from: [5.8, 2, 13.4], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [5.8, 15.5], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Tod im Kampf: Neustart vor dem Tor, Prinz wieder 3/3, Tor offen', from: [0, 2, 14], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ to: [0, 7.5], within: 0.6 }, { fight: 'prinz', kicks: 1, max: 6000 }, { kill: true }, { wait: 300 }, { expect: 'prinzReset' }] },
+    ],
+    shots: [
+      ['start', [0, 2, 13.4]],
+      ['tor', [0, 2, 11.5]],
+      ['mitte', [0, 2, 3]],
+      ['kampf', [3, 2, 5], 330],
+      ['roehre_links', [-6, 2, 0], 0, null, Math.PI],
+      ['ecke', [6, 2, -6]],
+    ],
+  },
 };
 
 const PORT = 4720;
@@ -341,6 +383,14 @@ function install() {
     prinzAim: () => named('prinz')?.state === 'aim',
     prinzFull: () => named('prinz')?.hp === 3,
     prinzReset: () => { const b = named('prinz'); return b.hp === 3 && b.state === 'wait' && !named('prinzKampf').started && !named('prinzKampf').locked && !P().dead; },
+    insideCage7B: () => P().pos.z < 10,
+    prinzBlau: () => !!named('prinz')?.blue,
+    ersteSalve: () => (named('prinz')?.volleys ?? 0) >= 1,
+    dreiBlaue: () => { const b = named('prinz'); const blaue = L.entities.filter((e) => e.kind === 'feuerkugel' && e.owner === b && e.spec?.color === 'blau').length; window.__blaue = blaue; return b.fireballs === 3 && b.volleys === 1; },
+    merkeSalve: () => { const b = named('prinz'); window.__salve = { f: b.fireballs, v: b.volleys }; return true; },
+    naechsteSalve: () => (named('prinz')?.volleys ?? 0) > window.__salve.v,
+    vierBlaue: () => named('prinz').fireballs - window.__salve.f === 4,
+    fuenfBlaue: () => named('prinz').fireballs - window.__salve.f === 5,
     arenaStar: () => !!L.archetype?.info?.().starTouch,
     arenaDone: () => L.runtime.status === 'done' || L.runtime.status === 'goal',
   };
@@ -565,6 +615,28 @@ function install() {
           if (!gone()) { log.push(['FEHLER: Schubser nicht in die Lava gestoßen', Lg.push]); break; }
           continue;
         }
+        // ------------------------------------------------ Endgegner einmal von oben treffen (ohne Röhre: nur Abprall)
+        if (Lg.stompBoss) {
+          const b = named(Lg.stompBoss);
+          let k = 0, bounced = false;
+          const b0 = b.bounces ?? 0;
+          for (; k < 600 && !bounced; k++) {
+            const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            if (p.mode === 'ground' && d < 2.4) { tick({ ...this.stick(dx, dz, 0.6), jump: true }); continue; }
+            if (p.mode === 'air') { tick({ ...this.airSteer(b.pos.x, b.pos.z, 0, 0, 3.6, 7), jump: p.vel.y > 0 }); if ((b.bounces ?? 0) > b0) bounced = true; continue; }
+            tick({ ...this.stick(dx, dz, 1) });
+          }
+          log.push(['Kopfsprung', bounced, b.hp, b.state, b.bounces]);
+          continue;
+        }
+        // ------------------------------------------------ Schubser-Prinz: in die Röhren stoßen und treten
+        if (Lg.fight) {
+          const r = this.fight(Lg.fight, { tick, max: Lg.max ?? 24000, kicks: Lg.kicks ?? 3 });
+          mech.trips += r.trips; mech.kicks += r.kicks; mech.fireballs = r.fireballs; mech.volleys = r.volleys;
+          log.push(['Kampf', JSON.stringify(r)]);
+          if (r.kicks < (Lg.kicks ?? 3)) log.push(['FEHLER: Kampf nicht gewonnen']);
+          continue;
+        }
         // ------------------------------------------------ warten: Pfeilplattform oben, Pendel weit weg, Zylinder-Stacheln weg
         if (Lg.waitPlat) {
           const h = named(Lg.waitPlat);
@@ -639,6 +711,90 @@ function install() {
       mech.hurts = p.hurtTries ?? 0;
       mech.defeated = foes0.filter((e) => e.defeated || !e.alive || e.removed).length;
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, cause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
+    },
+    /**
+     * Kampf gegen den Schubser-Prinzen mit echten Eingaben (wie course_w6b): eine Röhrenmündung wählen, die vom Prinzen aus
+     * gerade anzulaufen ist, zwischen ihn und die Mündung stellen, im Anlauf seitlich ausweichen (er rammt sich fest), dann in
+     * ihn hineinlaufen (zweiter Stoß), zur Ausgangsmündung rennen und auf den Benommenen springen. Blaue Feuerbälle: hoch-
+     * springen, wenn eine Kugel nahe heranfliegt.
+     */
+    fight(id, o) {
+      const p = P(), b = named(id), tick = o.tick;
+      const mouths = b.pipes;
+      const r = { trips0: b.trips, kicks0: b.hits, steps: 0, dodges: 0, stuckSeen: 0, states: [], hops: 0 };
+      let dodge = null, spot = null, hop = 0;
+      for (let k = 0; k < o.max; k++) {
+        if (b.hits - r.kicks0 >= o.kicks || b.state === 'gone' || p.dead || L.runtime.status !== 'play') break;
+        r.steps++;
+        const s = b.state;
+        if (r.states[r.states.length - 1] !== s) { r.states.push(s); if (r.states.length > 60) r.states.shift(); }
+        const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+        // Feuerkugeln: über eine nahe Kugel hinwegspringen
+        if (hop > 0) hop--;
+        const ball = p.mode === 'ground' && hop <= 0 && L.entities.some((e) => e.kind === 'feuerkugel' && e.alive && !e.removed && e.owner === b
+          && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 1.9 && e.pos.y < p.pos.y + 1.4);
+        if (ball) { hop = 30; r.hops++; }
+        const J = hop > 18;
+        if (s === 'stunned') {
+          dodge = null;
+          if (p.mode === 'ground' && d < 2.3) { tick({ ...this.stick(dx, dz, 0.5), jump: true }); continue; }
+          if (p.mode === 'air') { tick({ ...this.airSteer(b.pos.x, b.pos.z, 0, 0, 3.6, 8), jump: p.vel.y > 0 }); continue; }
+          tick({ ...this.stick(dx, dz, 1), run: true, jump: J });
+          continue;
+        }
+        if (s === 'stuck') {
+          dodge = null;
+          r.stuckSeen++;
+          tick({ ...this.stick(dx, dz, 1), run: true });
+          continue;
+        }
+        if (s === 'pipe' || s === 'squeezed') {
+          dodge = null;
+          const t = b.exit ?? b.trip?.to;
+          if (t) { const tx = t.x + t.dx * 4.2, tz = t.z + t.dz * 4.2; const ex = tx - p.pos.x, ez = tz - p.pos.z; tick(Math.hypot(ex, ez) > 0.4 ? { ...this.stick(ex, ez, 1), run: true, jump: J } : { jump: J }); }
+          else tick({ jump: J });
+          continue;
+        }
+        if (s === 'hit' || s === 'defeated' || s === 'wait') { tick({ jump: J }); continue; }
+        if (s === 'charge' && !dodge && d < 3.4) {
+          const cx = b.chargeDir.x, cz = b.chargeDir.z;
+          let sx = -cz, sz = cx;
+          if (sx * (p.pos.x - b.pos.x) + sz * (p.pos.z - b.pos.z) < 0) { sx = -sx; sz = -sz; }
+          const nx = p.pos.x + sx * 2.5, nz = p.pos.z + sz * 2.5;
+          if (Math.abs(nx) > 9.2 || Math.abs(nz) > 9.2) { sx = -sx; sz = -sz; }
+          dodge = { x: sx, z: sz, t: 0 };
+          r.dodges++;
+        }
+        if (dodge) {
+          dodge.t++;
+          tick({ ...this.stick(dodge.x, dodge.z, 1), run: true, jump: dodge.t < 14 || J });
+          if (dodge.t > 70 && p.mode === 'ground') dodge = null;
+          continue;
+        }
+        let best = null, bs = Infinity;
+        for (const m of mouths) {
+          const rx = b.pos.x - m.x, rz = b.pos.z - m.z, l = Math.hypot(rx, rz);
+          if (l < 5) continue;
+          const cos = (rx * m.dx + rz * m.dz) / l;
+          const score = -cos + Math.hypot(p.pos.x - m.x, p.pos.z - m.z) * 0.01;
+          if (score < bs) { bs = score; best = m; }
+        }
+        if (best) {
+          const rx = b.pos.x - best.x, rz = b.pos.z - best.z, l = Math.hypot(rx, rz) || 1;
+          spot = { x: best.x + (rx / l) * 2.6, z: best.z + (rz / l) * 2.6 };
+        }
+        if (spot) {
+          const ex = spot.x - p.pos.x, ez = spot.z - p.pos.z, el = Math.hypot(ex, ez);
+          tick(el > 0.25 ? { ...this.stick(ex, ez, Math.min(1, el / 1.2)), run: el > 2, jump: J } : { jump: J });
+        } else tick({ jump: J });
+      }
+      r.trips = b.trips - r.trips0;
+      r.kicks = b.hits - r.kicks0;
+      r.states = r.states.slice(-14).join('>');
+      r.hp = b.hp;
+      r.fireballs = b.fireballs; r.volleys = b.volleys;
+      r.log = b.tripLog;
+      return r;
     },
     chase(kind, o = {}) {
       const p = P();

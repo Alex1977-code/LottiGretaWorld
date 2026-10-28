@@ -553,3 +553,139 @@ export function festungRand(level, list, o = {}) {
   b.flush(level);
   g.flush(level, { material: 'glow', castShadow: false });
 }
+
+// =====================================================================================================================
+// 7-B: Glutzwinger des blauen Schubser-Prinzen
+// =====================================================================================================================
+
+/** Flammen-Krone (flach, für Boden-Mosaik und Wappen): Zacken als Shape, Breite w, Höhe h. */
+function crownShape(w, h) {
+  const s = new THREE.Shape();
+  const n = 5, b = h * 0.42;
+  s.moveTo(-w / 2, 0); s.lineTo(w / 2, 0); s.lineTo(w / 2, b);
+  for (let i = n - 1; i >= 0; i--) {
+    const x0 = -w / 2 + (i / n) * w, x1 = -w / 2 + ((i + 1) / n) * w, xm = (x0 + x1) / 2;
+    s.lineTo(x1 - (x1 - x0) * 0.15, b); s.quadraticCurveTo(xm + (x1 - x0) * 0.25, h * 0.75, xm, h * (i % 2 ? 0.86 : 1)); s.quadraticCurveTo(xm - (x1 - x0) * 0.25, h * 0.75, x0 + (x1 - x0) * 0.15, b);
+  }
+  s.lineTo(-w / 2, b); s.closePath();
+  return s;
+}
+
+/**
+ * Glutzwinger (7-B): Festungsplattform aus Basalt hoch über dem Lavasee, darauf ein Käfig (Innenfläche 2·half): Bodenplatten
+ * mit glühenden Fugen, in der Mitte ein blaues Flammenkronen-Mosaik (Glüh-Material), schwarze Eisenstäbe mit rotglühenden
+ * Spitzen auf niedrigen Basaltmauern, an den Röhrenmündungen der Seitenwände Torbögen mit blauen Feuerschalen, vorn nur eine
+ * Brüstung mit Fallgitter-Tor, Festungsleib mit Glutfenstern tief hinab. Die Kollision der Käfigwände baut der Level.
+ * o: { y, half, mouths: [z, …], gate (halbe Torbreite), plat: [x0, x1, z0, z1], depth }
+ */
+export function glutZwinger(level, o) {
+  if (!level.view) return;
+  const Y = o.y, W = o.half, gate = o.gate ?? 2.4;
+  const [px0, px1, pz0, pz1] = o.plat;
+  const bas = 0x4a3c44, basDk = 0x2a2026, basHi = 0x7a6670, iron = 0x2e2e3a, ironHi = 0x5a5a6e, gold = 0xffc21a, blue = 0x3a8aff, red = 0xc8322a;
+  const b = new Bld(), g = new Bld();
+  // ---- Boden: Basaltplatten mit glühenden Fugen (Fugen als schmale Glühstreifen)
+  const tiles = [];
+  const tA = L(0x5a4a54), tB = L(0x4a3c46), tC = L(0x66545e);
+  for (let ix = -W; ix < W; ix += 2) for (let iz = -W; iz < W; iz += 2) {
+    const k = ((ix / 2 + iz / 2) & 1) ? tA : (((ix * 7 + iz * 3) & 3) === 0 ? tC : tB);
+    const t = new THREE.PlaneGeometry(1.9, 1.9).toNonIndexed();
+    t.rotateX(-HALF_PI); t.translate(ix + 1, Y + 0.014, iz + 1);
+    tiles.push(colorize(t, (p, n, c) => { c[0] = k[0]; c[1] = k[1]; c[2] = k[2]; }));
+  }
+  addStatic(level, merge(tiles));
+  const seams = [];
+  for (let v = -W; v <= W; v += 2) {
+    const a = new THREE.PlaneGeometry(2 * W, 0.09); a.rotateX(-HALF_PI); a.translate(0, Y + 0.008, v); seams.push(a);
+    const c = new THREE.PlaneGeometry(0.09, 2 * W); c.rotateX(-HALF_PI); c.translate(v, Y + 0.008, 0); seams.push(c);
+  }
+  const seamC = L(0xff6a1a);
+  addStatic(level, merge(seams.map((s) => colorize(s.toNonIndexed(), (p, n, c) => { c[0] = seamC[0]; c[1] = seamC[1]; c[2] = seamC[2]; }))), { material: 'glow', castShadow: false });
+  // Läufer vom Tor zur Mitte (dunkelrot mit Goldsaum), Flammenkronen-Mosaik in der Mitte (blau leuchtend)
+  const cz0 = 4.2, cz1 = W + 2;
+  b.box(2.8, 0.03, cz1 - cz0, 0, Y + 0.012, (cz0 + cz1) / 2, 0x7a1a22, { r: 0 });
+  for (const s of [-1, 1]) b.box(0.16, 0.035, cz1 - cz0, s * 1.3, Y + 0.014, (cz0 + cz1) / 2, gold, { r: 0 });
+  const ringGeo = (r0, r1, col) => { const rg = new THREE.RingGeometry(r0, r1, 56).toNonIndexed(); rg.rotateX(-HALF_PI); rg.translate(0, Y + 0.024, 0); const c = L(col); return colorize(rg, (p, n, q) => { q[0] = c[0]; q[1] = c[1]; q[2] = c[2]; }); };
+  const glowFloor = [ringGeo(3.6, 3.9, 0x6ac8ff), ringGeo(2.75, 2.95, 0x6ac8ff)];
+  const crown = new THREE.ShapeGeometry(crownShape(3.4, 2.6)).toNonIndexed();
+  crown.rotateX(-HALF_PI); crown.translate(0, Y + 0.03, 1.2);
+  const cb = L(0x9ae0ff), cb2 = L(0x2a7aff);
+  glowFloor.push(colorize(crown, (p, n, q) => mixc(cb2, cb, smooth(-1.2, 1.2, p.z), q)));
+  addStatic(level, merge(glowFloor), { material: 'glow', castShadow: false });
+  addStatic(level, merge([ringGeo(2.95, 3.6, 0x2a1e3a)]));
+  // ---- Käfig: niedrige Basaltmauern, schwarze Eisenstäbe mit glühenden Spitzen (Lücken an Röhrenmündungen und Tor)
+  const H = 4.6, base = 0.9;
+  const mouths = o.mouths ?? [];
+  const barsAlong = (ax, az, bx, bz, holes) => {
+    const len = Math.hypot(bx - ax, bz - az), n = Math.round(len / 0.62);
+    const ux = (bx - ax) / len, uz = (bz - az) / len;
+    for (let i = 0; i <= n; i++) {
+      const s = (i / n) * len, x = ax + ux * s, z = az + uz * s;
+      if (holes.some(([c, r]) => Math.abs(s - c) < r)) continue;
+      b.cyl(0.06, 0.07, H - base, x, Y + base, z, litTop(iron, 0.8), 6);
+      g.cone(0.1, 0.28, x, Y + H, z, 0xff6a2a, 5);
+    }
+    const yaw = Math.atan2(-(bz - az), bx - ax);
+    b.box(len + 0.2, 0.14, 0.14, (ax + bx) / 2, Y + H - 0.25, (az + bz) / 2, litTop(ironHi, 0.6), { r: 0.03, yaw });
+    b.box(len + 0.2, 0.09, 0.09, (ax + bx) / 2, Y + 2.8, (az + bz) / 2, litTop(ironHi, 0.6), { r: 0.02, yaw });
+  };
+  const wallSeg = (x0, x1, z0, z1, h) => b.box(Math.max(0.6, x1 - x0), h, Math.max(0.6, z1 - z0), (x0 + x1) / 2, Y, (z0 + z1) / 2, litTop(bas, 0.6), { r: 0.08 });
+  for (const s of [-1, 1]) {
+    const x = s * (W + 0.3);
+    const holes = mouths.map((z) => [z + W + 0.3, 1.25]);
+    const cuts = [-W - 0.6, ...mouths.flatMap((z) => [z - 1.15, z + 1.15]), W + 0.6];
+    for (let i = 0; i < cuts.length; i += 2) wallSeg(x - 0.3, x + 0.3, cuts[i], cuts[i + 1], base);
+    barsAlong(x, -W - 0.3, x, W + 0.3, holes);
+    for (const z of mouths) {
+      // Torbogen über der Mündung, rechts und links blaue Feuerschalen
+      b.torus(1.2, 0.16, x, Y + 2.25, z, litTop(basHi, 0.6), { arc: Math.PI, yaw: HALF_PI, ts: 14, rs: 6 });
+      for (const dz of [-1.35, 1.35]) {
+        b.cyl(0.12, 0.16, 1.5, x - s * 0.15, Y, z + dz, litTop(iron, 0.7), 6);
+        b.cyl(0.28, 0.14, 0.22, x - s * 0.15, Y + 1.5, z + dz, gold, 8);
+        g.sphere(0.2, x - s * 0.15, Y + 1.82, z + dz, 0x6ac8ff, { s: [1, 1.6, 1], ws: 8, hs: 6 });
+      }
+    }
+  }
+  wallSeg(-W - 0.6, W + 0.6, -W - 0.6, -W, base);
+  barsAlong(-W - 0.3, -W - 0.3, W + 0.3, -W - 0.3, []);
+  // Vorn: Brüstung mit Fallgitter-Tor
+  wallSeg(-W - 0.6, -gate, W, W + 0.6, base);
+  wallSeg(gate, W + 0.6, W, W + 0.6, base);
+  for (const s of [-1, 1]) {
+    b.box(0.8, 4.4, 0.8, s * (gate + 0.4), Y, W + 0.3, litTop(bas, 0.6), { r: 0.08 });
+    b.cone(0.62, 1.1, s * (gate + 0.4), Y + 4.4, W + 0.3, litTop(red, 0.6), 4, { yaw: 0.785 });
+  }
+  b.box(2 * gate + 1.6, 0.6, 0.8, 0, Y + 3.8, W + 0.3, litTop(basDk, 0.7), { r: 0.06 });
+  for (let i = -3; i <= 3; i++) b.box(0.07, 0.5, 0.07, i * (gate / 3.5), Y + 3.3, W + 0.3, litTop(iron, 0.7), { r: 0 });   // hochgezogenes Fallgitter
+  const crownBig = new THREE.ExtrudeGeometry(crownShape(1.5, 1.1), { depth: 0.16, bevelEnabled: false });
+  crownBig.translate(0, 0, -0.08);
+  b.add(crownBig, litTop(gold, 0.7), { p: [0, Y + 4.45, W + 0.3] });
+  // Brummbär-Banner an der Rückwand (außen an den Stäben)
+  for (const x of [-5.5, 0, 5.5]) {
+    b.box(1.5, 2.6, 0.08, x, Y + 1.4, -W - 0.5, litTop(red, 0.7), { r: 0.02 });
+    b.box(1.6, 0.14, 0.12, x, Y + 4.0, -W - 0.5, gold, { r: 0.03 });
+    g.sphere(0.32, x, Y + 2.7, -W - 0.44, 0x6ac8ff, { s: [1, 1.3, 0.3], ws: 8, hs: 6 });
+  }
+  // ---- Festungsplattform: Zinnenrand, Festungsleib bis tief hinab mit Glutfenstern
+  const D = o.depth ?? 18;
+  const rim = (x0, x1, z0, z1) => b.box(x1 - x0, 0.7, z1 - z0, (x0 + x1) / 2, Y - 0.2, (z0 + z1) / 2, litTop(basDk, 0.7), { r: 0.06 });
+  rim(px0, px1, pz0 - 0.5, pz0 + 0.5); rim(px0, px1, pz1 - 0.5, pz1 + 0.5);
+  rim(px0 - 0.5, px0 + 0.5, pz0, pz1); rim(px1 - 0.5, px1 + 0.5, pz0, pz1);
+  for (let x = px0 + 1; x < px1 - 0.5; x += 2.2) for (const z of [pz0, pz1]) b.box(0.9, 0.6, 0.9, x, Y + 0.5, z, litTop(bas, 0.6), { r: 0.06 });
+  for (let z = pz0 + 1; z < pz1 - 0.5; z += 2.2) for (const x of [px0, px1]) b.box(0.9, 0.6, 0.9, x, Y + 0.5, z, litTop(bas, 0.6), { r: 0.06 });
+  const body = new THREE.BoxGeometry(px1 - px0 - 1, D, pz1 - pz0 - 1, 6, 4, 6).toNonIndexed();
+  body.translate((px0 + px1) / 2, Y - 4 - D / 2, (pz0 + pz1) / 2);
+  const bA = L(0x4a3a44), bB = L(0x241a20), hot = L(0xff6a1a);
+  addStatic(level, colorize(body, (p, n, q) => { mixc(bB, bA, smooth(Y - 4 - D, Y - 4, p.y) * (0.7 + 0.3 * Math.abs(n.x + n.z)), q); mixc(q, hot, smooth(Y - 4 - D + 3, Y - 4 - D, p.y) * 0.7, q); }), { castShadow: false });
+  for (let k = 0; k < 3; k++) {
+    const y = Y - 7 - k * 4.5;
+    for (let x = px0 + 4; x < px1 - 3; x += 6) g.box(0.9, 1.5, 0.1, x + (k % 2) * 3, y, pz1 - 0.45, 0xffa040, { r: 0.1 });
+    for (let z = pz0 + 4; z < pz1 - 3; z += 6) for (const x of [px0 + 0.45, px1 - 0.45]) g.box(0.1, 1.5, 0.9, x, y, z + (k % 2) * 3, 0xffa040, { r: 0.1 });
+  }
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+  // Glühen der Feuerschalen und des Mosaiks
+  const pts = [[0, Y + 0.3, 0, 3]];
+  for (const s of [-1, 1]) for (const z of mouths) for (const dz of [-1.35, 1.35]) pts.push([s * (W + 0.15), Y + 1.9, z + dz, 1]);
+  glowPoints(level, pts, { color: 0x4ab0ff, size: 2.4, opacity: 0.6, pulse: 1.1 });
+}
