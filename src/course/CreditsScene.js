@@ -44,7 +44,7 @@ const HOLD = 3;                 // s „Danke fürs Spielen!“ nach dem Ende de
 /** Bühne als Level-Daten (Bausteine): Wiese, Bäume, Picknick, Lampions, Kulisse. */
 function stageData(withDeco) {
   const segs = [
-    { type: 'island', pos: [0, -3, -2], size: [46, 3, 44], under: 0 },
+    { type: 'island', pos: [0, -3, -10], size: [150, 3, 150], under: 0 },
     { type: 'mound', pos: [-14, 0, -14], radius: 6, height: 1.4 },
     { type: 'mound', pos: [15, 0, -12], radius: 5, height: 1 },
     { type: 'deco_w1', items: [
@@ -58,21 +58,31 @@ function stageData(withDeco) {
       { kind: 'tree', pos: [19, 0, 2], size: 4.5 }, { kind: 'tree', pos: [-8, 0, -19], size: 5, color: 'autumn' }, { kind: 'tree', pos: [9, 0, -19], size: 5.5 },
       { kind: 'flowers', pos: [-9, 0, 9], size: [5, 3], n: 12 }, { kind: 'flowers', pos: [10, 0, 10], size: [5, 3], n: 12 },
       { kind: 'bush', pos: [-13, 0, 4], size: 1 }, { kind: 'bush', pos: [13, 0, 6], size: 0.9 },
+      // Baumkranz weiter draußen (füllt die Wiese im Überblick)
+      ...[[-24, -6], [-27, 8], [-22, 20], [-12, 28], [24, -4], [27, 10], [21, 22], [12, 30], [-30, -20], [30, -22], [-16, -30], [4, -32], [18, -30]]
+        .map(([x, z], i) => ({ kind: 'tree', pos: [x, 0, z], size: 5 + (i % 3), color: i % 4 === 1 ? 'autumn' : undefined, solid: false })),
+      { kind: 'flowers', pos: [-18, 0, 14], size: [6, 4], n: 14 }, { kind: 'flowers', pos: [18, 0, 16], size: [6, 4], n: 14 },
+      { kind: 'bush', pos: [-20, 0, 12], size: 1.2 }, { kind: 'bush', pos: [22, 0, -14], size: 1.1 },
     ] },
   ];
   if (withDeco) {
-    segs.push({ type: 'deco_w8', items: [
-      { kind: 'picknick', pos: [0, 0, 0], size: 3.4 },
-      { kind: 'mast', pos: [-7, 0, 5], height: 4 }, { kind: 'mast', pos: [7, 0, 5], height: 4 }, { kind: 'mast', pos: [-7, 0, -7], height: 4 }, { kind: 'mast', pos: [7, 0, -7], height: 4 },
-      { kind: 'lampions', from: [-7, 3.9, 5], to: [7, 3.9, 5], sag: 0.9 }, { kind: 'lampions', from: [-7, 3.9, -7], to: [7, 3.9, -7], sag: 0.9 },
-      { kind: 'lampions', from: [-7, 3.9, 5], to: [-7, 3.9, -7], sag: 0.8 }, { kind: 'lampions', from: [7, 3.9, 5], to: [7, 3.9, -7], sag: 0.8 },
-      { kind: 'wimpel', from: [-7, 3.4, 5], to: [7, 3.4, -7], sag: 1.2 }, { kind: 'wimpel', from: [7, 3.4, 5], to: [-7, 3.4, -7], sag: 1.2 },
-      { kind: 'ballons', pos: [-4.5, 0, 3], n: 6 }, { kind: 'ballons', pos: [4.8, 0, -4], n: 5 },
-      { kind: 'karussell', pos: [-12, 0, -9], radius: 2.6, height: 3.2, solid: false },
-      { kind: 'bude', pos: [12, 0, -6], width: 3, color: 'rosa', yaw: Math.PI }, { kind: 'bude', pos: [-13, 0, 2], width: 2.6, color: 'blau', yaw: 0 },
-      { kind: 'torbogen', pos: [0, 0, 13], width: 6, height: 4.6, yaw: Math.PI / 2, solid: false },
-      { kind: 'keksstapel', pos: [2.6, 0, 1.6], n: 3, radius: 0.45 },
-    ] });
+    // Lampion-Geviert (x ±9, z −8 … 8) um die Picknickdecke; Masten an den Ecken und Seitenmitten
+    const M = [[-9, 8], [0, 8.6], [9, 8], [9, -8], [0, -8.6], [-9, -8]];
+    const items = [{ kind: 'picknick', pos: [0, 0, 0], size: 3.4 }];
+    for (const [x, z] of M) items.push({ kind: 'mast', pos: [x, 0, z], height: 4.4 });
+    for (let i = 0; i < M.length; i++) {
+      const a = M[i], b = M[(i + 1) % M.length];
+      items.push({ kind: 'lampions', from: [a[0], 4.3, a[1]], to: [b[0], 4.3, b[1]], sag: 0.8 });
+    }
+    items.push(
+      { kind: 'wimpel', from: [-9, 4.0, 8], to: [9, 4.0, -8], sag: 1.4 }, { kind: 'wimpel', from: [9, 4.0, 8], to: [-9, 4.0, -8], sag: 1.4 },
+      { kind: 'ballons', pos: [-8, 0, 6.5], n: 6, height: 3.4 }, { kind: 'ballons', pos: [8, 0, -6.5], n: 5, height: 3.4 },
+      { kind: 'karussell', pos: [-14, 0, -12], radius: 2.6, height: 3.2, solid: false },
+      { kind: 'bude', pos: [13, 0, -9], width: 3, color: 'rosa', yaw: Math.PI }, { kind: 'bude', pos: [-14, 0, 2], width: 2.6, color: 'blau', yaw: 0 },
+      { kind: 'torbogen', pos: [0, 0, 14], width: 6, height: 4.6, yaw: Math.PI / 2, solid: false },
+      { kind: 'keksstapel', pos: [2.6, 0, 1.8], n: 3, radius: 0.45 },
+    );
+    segs.push({ type: 'deco_w8', items });
   }
   return {
     id: 'abspann', world: 0, title: 'Abspann', theme: 'abspann', archetype: 'credits', music: MUSIC, timeLimit: 0,
@@ -113,8 +123,7 @@ function creditLines() {
   add('jede Menge Bitcoins, grüne Sterne und Stempel');
   add('', 'gap');
   const stars = courseSave.totalStars();
-  add(`Du hast ${stars} grüne Sterne gefunden!`, 'sub');
-  add('', 'gap');
+  if (stars > 0) { add(`Du hast ${stars} grüne Sterne gefunden!`, 'sub'); add('', 'gap'); }
   add('Ausgedacht und gebaut mit ganz viel Liebe', 'sub');
   add('', 'gap');
   add('', 'gap');
@@ -214,6 +223,7 @@ export class CreditsScene extends Phaser.Scene {
     for (let i = 0; i < FRIENDS; i++) {
       const s = [1.25, 1.1, 1.4, 1.0, 1.2, 0.95, 1.3][i];
       const f = modelActor(view, 'bunny_small', [0, 0, 0], s);
+      f.root.traverse((o) => { if (o.isMesh) o.castShadow = false; });   // Schatten-Blob genügt (Zeichenaufrufe)
       f.phase = (i / FRIENDS) * TAU;
       f.r = 4.3 + (i % 2) * 0.5;
       this.friends.push(f);
@@ -222,11 +232,14 @@ export class CreditsScene extends Phaser.Scene {
     this.buildFireworks();
     // Kamerafahrt (Lage und Blickpunkt als Kurven über die Zeitleiste)
     const V = (a) => new THREE.Vector3(...a);
+    // Überblick → Lotti → Greta → Pflaume und Krümel → Reigen der Freunde (von hinten) → Runde → hinauf ins Feuerwerk
     this.camPath = new THREE.CatmullRomCurve3([
-      V([30, 22, 46]), V([16, 10, 24]), V([-5, 4.4, 10]), V([-11, 4.2, -1]), V([-5, 5, -12]), V([8, 4.2, -9]), V([12, 6, 5]), V([5, 9, 16]), V([0, 24, 30]),
+      V([26, 20, 40]), V([12, 7, 17]), V([-3.6, 2.5, 6.4]), V([3.6, 2.5, 6.4]), V([5.6, 2.3, 0.4]), V([0, 3.1, -6.6]),
+      V([-6.6, 2.9, -2]), V([-5.2, 3.6, 6]), V([0, 7, 14]), V([0, 22, 28]),
     ], false, 'centripetal');
     this.lookPath = new THREE.CatmullRomCurve3([
-      V([0, 2, 0]), V([0, 1.2, 0]), V([-1.6, 1.1, 0.6]), V([-0.5, 1, 0]), V([0.6, 0.9, -1]), V([0.8, 0.8, -1.8]), V([0, 1, 0]), V([0, 2, -2]), V([0, 9, -22]),
+      V([0, 2, 0]), V([0, 1.2, 0]), V([-2.2, 1.0, 1]), V([2.2, 1.0, 1]), V([0.2, 0.6, -2.2]), V([0, 0.8, 0.5]),
+      V([0, 0.9, 0]), V([0, 1, 0]), V([0, 2, -2]), V([0, 9, -22]),
     ], false, 'centripetal');
     this.camPos = new THREE.Vector3();
     this.camLook = new THREE.Vector3();
@@ -261,8 +274,6 @@ export class CreditsScene extends Phaser.Scene {
     // Rollgeschwindigkeit: die letzte Zeile erreicht die Bildmitte, wenn die Musik endet
     this.rollStop = H * 0.48 - this.lineY[this.lineY.length - 1];
     this.rollSpeed = (H + 12 - this.rollStop) / Math.max(10, this.duration - 4);
-    this.vignette = this.add.graphics().setDepth(10);
-    this.vignette.fillStyle(0x10102a, 0.28); this.vignette.fillRect(W / 2 - 150, 0, 300, H);
     this.skip = uiButton(this, W - 44, H - 18, 'Weiter ›', { size: 9, dark: true, padX: 8, padY: 4, minWidth: 64 }).setDepth(30).setVisible(false);
     this.skip.on(Phaser.Input.Events.POINTER_DOWN, () => { if (this.t > 3) { sfx('select'); this.finish(); } });
     const kb = this.input.keyboard;
@@ -465,7 +476,7 @@ export class CreditsScene extends Phaser.Scene {
     const ry = this.roll?.y ?? 0;
     const shown = this.lines ? this.lines.filter((l, i) => l[0] && ry + this.lineY[i] > -10 && ry + this.lineY[i] < H + 10).map((l) => l[0]) : [];
     return {
-      t: +this.t.toFixed(2), duration: +this.duration.toFixed(2), end: +this.end.toFixed(2), music: music.current, playing: !!music.beat?.().playing,
+      t: +this.t.toFixed(2), duration: +this.duration.toFixed(2), end: +this.end.toFixed(2), music: music.current ?? music.beat?.().theme ?? null, playing: !!music.beat?.().playing,
       roll: +ry.toFixed(1), lines: this.lines?.length ?? 0, shown, finished: !!courseSave.data.finished, ending: this.ending,
       actors: (this.heroes?.length ?? 0) + (this.pflaume ? 1 : 0) + (this.kruemel ? 1 : 0) + (this.friends?.length ?? 0),
       confetti: this.confetti?.count ?? 0, fireworks: this.fw?.bursts ?? 0, stage: this.stage ? 'abspann_buehne' : 'eigen',

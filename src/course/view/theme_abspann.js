@@ -12,7 +12,7 @@ export const ABSPANN_THEME = {
   sunDisc: true,
   clouds: true,
   backdrop: 'hills',
-  ground: { color: 0x6aae4a, y: -30 },
+  ground: { color: 0x62b444, y: -0.2 },   // knapp unter der Wiesen-Insel (Abspann): die Wiese reicht bis zum Horizont
   grassTop: 0x6ad04a, grassTop2: 0x5ec442, grassRim: 0x9ae870, grassSide: 0x42a032,
   dirt: 0xc8884a, dirtDeep: 0x8a5a30, rock: 0x8f8a96, rockDeep: 0x5d5866,
   checker: false,

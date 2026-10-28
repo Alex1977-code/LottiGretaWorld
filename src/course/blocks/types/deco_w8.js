@@ -151,7 +151,9 @@ function lampions(level, it, p, rnd, parts, glow) {
     const s = new THREE.SphereGeometry(0.28, 10, 8);
     s.scale(1, 1.15, 1);
     s.translate(q.x, q.y - 0.45, q.z);
-    glow.push(colorize(ni(s), (pp, nn, o) => { const c = C(cols[(i + rnd.int(0, 1)) % cols.length]); const k = 0.75 + 0.25 * Math.abs(Math.sin((pp.y - q.y) * 22)); o[0] = c[0] * k; o[1] = c[1] * k; o[2] = c[2] * k; }));
+    const c = C(cols[(i + rnd.int(0, 5)) % cols.length]);
+    // Papierfalten: Ringe etwas dunkler, unten wärmer (Kerzenschein)
+    glow.push(colorize(ni(s), (pp, nn, o) => { const k = 0.8 + 0.2 * Math.cos((pp.y - q.y + 0.45) * 26); o[0] = c[0] * k; o[1] = c[1] * k; o[2] = c[2] * k; }));
     for (const dy of [-0.13, -0.79]) parts.push(fill(new THREE.CylinderGeometry(0.11, 0.11, 0.06, 8).translate(q.x, q.y + dy, q.z), 0x2a2230));
   }
 }
