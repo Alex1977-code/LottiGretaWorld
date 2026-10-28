@@ -23,8 +23,9 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 // stopIf } · { wait } · { hop } (Sprung auf der Stelle) · { crouch } (Röhre) · { star: i } · { chaseKind, ids } · { expect } ·
 // { until } · { pipe: [x, z], stick } (in eine Glasröhren-Öffnung laufen) · { warp: [x, z] } (Warp-/Rätselbox) ·
 // { push: Id, dir } (Schubser in Richtung dir in die Lava stoßen) · { stompAll } · { fight: Id } (Schubser-Prinz) ·
-// { kill } · { arrowUp: Id } (warten, bis die Pfeilplattform oben ist und bleibt) · { onPlat: Id, to } (auf eine
-// fahrende/kippende Fläche springen)
+// { kill } · { waitPlat: Id, to, fresh } (warten, bis die Pfeilplattform oben ist, dann hinüber) · { waitPend: Id, to }
+// (Pendelstachel auf der fernen Seite abwarten) · { waitZyl: Id, to } (Stachelreihe des Zylinders vorbeilassen) ·
+// { stompBoss } · { chaseKind } · Knochenflieger: Reflex-Sprung im Sturzflug-Fenster (im tick)
 const VX = 140;
 const Y0 = 2, Y1 = 5, Y2 = 8, YZ = 11;        // 7-3
 const B4 = 1.5, FX4 = 60, RX4 = 100;          // 7-4

@@ -13,10 +13,11 @@
 //   Pfeilplattformen (z −7 … −93): drei Pfeilplattformen → Steinbau A (zwei Pendelstacheln) → zwei Pfeilplattformen →
 //                               Steinbau B (Schubser, zwei Stachelwalzen, Knochenflieger) → zwei Pfeilplattformen → Steinbau C
 //                               (zwei Stachelwalzen, dahinter die Rätselbox; links davor die kleine runde Plattform mit dem
-//                               Stempel) → Steinbrücke mit zwei Pendelstacheln → Steinbau D mit Checkpoint.
+//                               Stempel) → Steinbrücke mit zwei Pendelstacheln → Steinbau D mit Checkpoint (eine Walze;
+//                               auf C und D je ein Podest unter dem Knochenflieger – von dort stampft man ihn).
 //   Rätselbox (abseits bei x ≈ 100): Steinplatte im Lavasee mit einem Schubser – in die Lava stoßen → Stern 1.
 //   Zylinderzone (z −93 … −184): Zylinder 1 → Steinbau E (zwei Walzen) → drei Pfeilplattformen fahren aus einer hohen Mauer →
-//                               Steinbau F (zwei Walzen, Schubser) → Zylinder 2 mit Stachelreihen → Steinbau G (zwei
+//                               Steinbau F (eine Walze, Schubser) → Zylinder 2 mit Stachelreihen → Steinbau G (zwei
 //                               Pendelstacheln) → Zylinder 3 (rechts daneben ein Sims mit Stern 2) → Steinbau H (zwei
 //                               Walzen) → Zylinder 4 → Steinbau I (zwei Walzen) mit der Röhre zum Finale.
 //   Finale (abseits bei x ≈ 60): Röhrenausgang (zwei Walzen) → Kippplattform mit drei Schubsern – alle in die Lava stoßen →
