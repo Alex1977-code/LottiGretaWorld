@@ -613,6 +613,39 @@ export function burgBanner(b, g, list) {
   }
 }
 
+/**
+ * Brummbär-Statue (Kulisse): Steinsockel mit Goldkante, darauf der Bär als Büste – runde Ohren, helle Schnauze, Zylinder mit
+ * rotem Band, goldenes Monokel. [x, y, z, yaw, s] (yaw: Blickrichtung, Standard −π/2 = zur Kamera).
+ */
+export function baerStatue(b, g, x, y, z, yaw = -Math.PI / 2, s = 1) {
+  const c = Math.cos(yaw), sn = -Math.sin(yaw);       // Blickrichtung (x, z)
+  const P = (f, u, h) => [x + c * f - sn * u, y + h, z + sn * f + c * u];   // f vorwärts, u seitlich
+  const stone = litTop(0x9a8a8c, 0.62), dark = litTop(0x6a5a5e, 0.6);
+  b.box(1.5 * s, 1.0 * s, 1.5 * s, x, y, z, litTop(0x7a6466, 0.6), { yaw, r: 0.04 });
+  b.box(1.62 * s, 0.14 * s, 1.62 * s, x, y + 1.0 * s, z, FESTE.gold, { yaw, r: 0 });
+  b.sphere(0.62 * s, x, y + 1.62 * s, z, stone, { s: [1, 0.95, 0.9], ws: 14, hs: 10 });
+  b.sphere(0.5 * s, ...P(0.1 * s, 0, 2.5 * s), stone, { ws: 14, hs: 10 });
+  for (const u of [-1, 1]) b.sphere(0.17 * s, ...P(0, u * 0.36 * s, 2.92 * s), dark, { ws: 8, hs: 6 });
+  b.sphere(0.22 * s, ...P(0.44 * s, 0, 2.38 * s), litTop(0xc8b4a8, 0.7), { s: [1, 0.8, 1], ws: 10, hs: 7 });
+  b.sphere(0.08 * s, ...P(0.64 * s, 0, 2.44 * s), 0x2a2024, { ws: 6, hs: 4 });
+  b.cyl(0.36 * s, 0.36 * s, 0.06 * s, ...P(0.06 * s, 0, 2.86 * s), 0x2a2228, 14);
+  b.cyl(0.26 * s, 0.26 * s, 0.5 * s, ...P(0.06 * s, 0, 2.9 * s), 0x2a2228, 14);
+  b.cyl(0.27 * s, 0.27 * s, 0.1 * s, ...P(0.06 * s, 0, 2.96 * s), FESTE.red, 14);
+  g.torus(0.1 * s, 0.025 * s, ...P(0.46 * s, 0.17 * s, 2.6 * s), FESTE.gold, { yaw: yaw + Math.PI / 2, ts: 12, rs: 3 });
+  for (const u of [-1, 1]) b.sphere(0.06 * s, ...P(0.46 * s, u * 0.17 * s, 2.6 * s), 0x2a2024, { ws: 6, hs: 4 });
+}
+
+/** Lava-Brunnen (Kulisse; Kollision legt der Level an): runde Steinschale mit glühender Lava, Bläschen, Mittelsäule mit Feuerschale. */
+export function lavaBrunnen(b, g, x, y, z, r = 1.6) {
+  b.cyl(r, r + 0.15, 0.7, x, y, z, litTop(0x8a7476, 0.6), 18);
+  b.torus(r - 0.08, 0.14, x, y + 0.7, z, litTop(FESTE.cap, 0.6), { rx: Math.PI / 2, ts: 24, rs: 6 });
+  g.cyl(r - 0.2, r - 0.2, 0.04, x, y + 0.6, z, 0xff7a1a, 18);
+  for (let i = 0; i < 6; i++) { const a = i * 1.1; g.sphere(0.1 + (i % 3) * 0.04, x + Math.cos(a) * r * 0.55, y + 0.64, z + Math.sin(a) * r * 0.55, 0xffc23a, { s: [1, 0.5, 1], ws: 8, hs: 4 }); }
+  b.cyl(0.24, 0.32, 1.4, x, y + 0.6, z, litTop(0x8a7476, 0.6), 10);
+  b.cyl(0.5, 0.26, 0.3, x, y + 2.0, z, litTop(FESTE.iron, 0.6), 10);
+  g.cone(0.3, 0.6, x, y + 2.25, z, 0xff8a2a, 7);
+}
+
 /** Bimsstein-Ente (schwimmt auf Lava): Geometrie mit Vertexfarben, Ursprung = Schwimmlinie. */
 function enteGeo() {
   const bl = new Bld();

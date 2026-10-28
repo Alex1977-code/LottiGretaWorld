@@ -28,8 +28,9 @@
 
 import { Rnd } from '../../blocks/kit.js';
 import {
-  isl, line, ring, arc, sign, Bld, litTop, burgMauer, burgFassaden, eisenGitter, burgBanner, basaltPflaster, kacheln, FESTE,
+  isl, line, ring, arc, sign, Bld, litTop, burgMauer, burgFassaden, eisenGitter, burgBanner, basaltPflaster, kacheln, FESTE, baerStatue, lavaBrunnen,
 } from './_helpers_d.js';
+import { wappenMosaik, werferKram } from './_helpers_a.js';
 
 const Y = 2;            // Burghöfe, Wege
 const LAVA = 0;         // Lavasee der Burg
@@ -73,13 +74,13 @@ function build(level) {
     [-9, 9, -73, -92, Y, 'lx'], [-3.6, 3.6, -92, -112, Y, 'lx'], [-8, 8, -112, -124, Y, 'lx'], [-1.1, 1.1, -124, -150, Y, 'lx'], [-8, 8, -150, -164, Y],
     [-12.4, -10.4, 0.6, -5.2, Y + 9.5, 'fxlb'], [-7.8, -7, -1.0, -5.2, Y + 7, 'fl'], [-10.4, -7.8, 0.4, -4.4, Y - 1.4, 'f'],
   ], LAVA, rnd);
-  kacheln(b, -7, 7, 8, -6, Y + 0.005, [0x9a8484, 0x7a6466], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, 8, -6]] });
-  kacheln(b, -9, 9, -12, -28, Y + 0.005, [0x9a8484, 0x7a6466], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -12, -28], [3.6, 6.6, -23, -26]] });
-  kacheln(b, -6, 6, -34, -46, Y + 0.005, [0x9a8484, 0x7a6466], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -34, -46]] });
-  kacheln(b, -10, 10, -50, -60, Y + 0.005, [0x9a8484, 0x7a6466], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -50, -60], [6.6, 10.4, -53.6, -59]] });
-  kacheln(b, -9, 9, -73, -92, Y + 0.005, [0xa08a86, 0x7c6668], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -73, -92]] });
-  kacheln(b, -8, 8, -112, -124, Y + 0.005, [0xa08a86, 0x7c6668], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -112, -124]] });
-  kacheln(b, -8, 8, -150, -164, Y + 0.005, [0xa08a86, 0x7c6668], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -150, -164]] });
+  kacheln(b, -7, 7, 8, -6, Y + 0.005, [0xb49888, 0x7c6264], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, 8, -6]] });
+  kacheln(b, -9, 9, -12, -28, Y + 0.005, [0xb49888, 0x7c6264], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -12, -28], [3.6, 6.6, -23, -26]] });
+  kacheln(b, -6, 6, -34, -46, Y + 0.005, [0xb49888, 0x7c6264], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -34, -46]] });
+  kacheln(b, -10, 10, -50, -60, Y + 0.005, [0xb49888, 0x7c6264], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -50, -60], [6.6, 10.4, -53.6, -59]] });
+  kacheln(b, -9, 9, -73, -92, Y + 0.005, [0xb8a090, 0x806668], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -73, -92]] });
+  kacheln(b, -8, 8, -112, -124, Y + 0.005, [0xb8a090, 0x806668], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -112, -124]] });
+  kacheln(b, -8, 8, -150, -164, Y + 0.005, [0xb8a090, 0x806668], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -150, -164]] });
   // roter Läufer durch die ganze Burg
   for (const [zA, zB] of [[7.6, -6], [-6, -12], [-12, -28], [-34, -46], [-46, -50], [-50, -60], [-73, -92], [-112, -124], [-150, -164]]) {
     const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
@@ -123,8 +124,23 @@ function build(level) {
   }
   burgBanner(b, g, [[0, Y + 4.2, -164.2, -Math.PI / 2]]);
   b.box(8, 4.4, 0.8, 0, Y, -164.4, litTop(FESTE.capDark, 0.7), { r: 0 });
+  // Höfe: niedrige Zinnenmauern an den Seiten, Brummbär-Statuen, Lava-Brunnen, Wappen-Mosaike, Lager der Bande
+  const M = (from, to, faces, h = 1.2) => burgMauer(level, b, g, { from, to, y: Y, h, t: 0.7, faces }, rnd);
+  M([-8.65, -12.4], [-8.65, -27.6], [1]); M([8.65, -12.4], [8.65, -27.6], [-1]);
+  M([-5.65, -34.4], [-5.65, -45.6], [1, -1], 1.0); M([5.65, -34.4], [5.65, -45.6], [1, -1], 1.0);
+  M([-9.65, -50.4], [-9.65, -59.6], [1]);
+  M([-7.65, -112.4], [-7.65, -123.6], [1]); M([7.65, -112.4], [7.65, -123.6], [-1]);
+  M([-7.65, -150.4], [-7.65, -163.6], [1]); M([7.65, -150.4], [7.65, -163.6], [-1]);
+  const statue = (x, z, yaw = -Math.PI / 2, sc = 1) => { baerStatue(b, g, x, Y, z, yaw, sc); W.add({ type: 'box', min: [x - 0.76 * sc, Y, z - 0.76 * sc], max: [x + 0.76 * sc, Y + 3.3 * sc, z + 0.76 * sc], tag: 'statue' }); };
+  statue(-6.4, -14.6); statue(6.4, -14.6);
+  statue(-6.2, -122.4); statue(6.2, -122.4);
+  statue(-5.2, -199.2, -Math.PI / 2, 0.9); statue(5.2, -199.2, -Math.PI / 2, 0.9);
+  const brunnen = (x, z, r) => { lavaBrunnen(b, g, x, Y, z, r); W.add({ type: 'cyl', x, z, r: r + 0.15, y0: Y, y1: Y + 0.85, tag: 'brunnen' }); };
+  brunnen(-6.2, -25.2, 1.4); brunnen(5.6, -76.4, 1.3); brunnen(4.8, -393.8, 1.5);
+  wappenMosaik(b, 0, Y + 0.02, -20, 1.6); wappenMosaik(b, 0, Y + 0.02, -55, 1.5); wappenMosaik(b, 0, Y + 0.02, -118, 1.6); wappenMosaik(b, 0, Y + 0.02, -390, 1.8);
+  werferKram(b, g, [[7.2, Y, -17.6, -0.4], [-7.6, Y, -52.6, 0.5], [-6.4, Y, -114.4, 0.3]], rnd);
   // Bossstraße: Startplatz und Siegerplateau gepflastert
-  basaltPflaster(b, g, [[-7, 7, -198, -210, Y], [-8, 8, -378, -398, Y]], rnd, { R: 0.7, seam: 0x6a1a08, avoid: [[0, -204, 1.2], [0, -393, 1.4], [-4.6, -388, 1.8]] });
+  basaltPflaster(b, g, [[-7, 7, -198, -210, Y], [-8, 8, -378, -398, Y]], rnd, { R: 0.7, seam: 0x6a1a08, avoid: [[0, -204, 1.2], [0, -393, 1.4], [-4.6, -388, 1.8], [4.8, -393.8, 1.8], [-5.2, -199.2, 1.2], [5.2, -199.2, 1.2], [0, -390, 2]] });
   b.flush(level, { castShadow: false });
   g.flush(level, { material: 'glow', castShadow: false });
 }
@@ -174,6 +190,7 @@ export const LEVEL = {
     cast(-7.8, -7, -1.0, -5.2, Y + 7),          // innerer Mauerpfeiler (oben Stern 0)
     cast(-10.4, -7.8, 0.4, -4.4, Y - 1.4),      // Fels unten im Schacht (Absprung für die Wandsprünge)
     sign(3.8, Y, 4.8, 'Glutfeste', { yaw: -0.2 }),
+    sign(-4.6, Y, 2.6, 'Wandsprung?', { size: [2.2, 0.8], yaw: 0.35 }),
     // ================================================================ B Vorhof
     cast(-1.4, 1.4, -6, -12),
     cast(-9, 9, -12, -28),
@@ -204,6 +221,11 @@ export const LEVEL = {
     cast(-7, 7, -198, -210, Y, { top: 'none' }),
     // ================================================================ G Ziel
     cast(-8, 8, -378, -398, Y, { top: 'none' }),
+    { type: 'pennants', items: [
+      { pos: [-7.4, Y, -379], color: 0xff4a3d, h: 4.4 }, { pos: [7.4, Y, -379], color: 0xffc21a, h: 4.4 },
+      { pos: [-7.4, Y, -397], color: 0x3d8bff, h: 5 }, { pos: [7.4, Y, -397], color: 0x4fd04a, h: 5 },
+    ] },
+    { type: 'torches', h: 1.5, items: [[-2.6, Y, -380], [2.6, Y, -380]] },
     // Kulisse
     { type: 'deco_w7', items: [
       { kind: 'burgturm', pos: [-9.6, Y - 1.4, 7.2], height: 7, radius: 1.4 }, { kind: 'burgturm', pos: [9.6, Y - 1.4, 7.2], height: 7, radius: 1.4 },
