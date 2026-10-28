@@ -191,15 +191,15 @@ function karussellGeo() {
 const horseGeo = () => cached('w8:pferd', () => {
   const b = new Build();
   const body = { v: (x, y, z, nx, ny) => mix(0xe8e0f0, 0xffffff, smoothstep(ny * 0.5 + 0.4)) };
-  b.sphere(1, body, { s: [0.65, 0.32, 0.28] }, 16, 10);
-  b.capsule(0.15, 0.4, body, { p: [0.55, 0.35, 0], r: [0, 0, -0.6] }, 3, 8);
-  b.sphere(1, body, { p: [0.85, 0.62, 0], s: [0.28, 0.17, 0.15], r: [0, 0, -0.3] }, 12, 8);
+  b.sphere(1, body, { s: [0.65, 0.32, 0.28] }, 12, 8);
+  b.capsule(0.15, 0.4, body, { p: [0.55, 0.35, 0], r: [0, 0, -0.6] }, 2, 6);
+  b.sphere(1, body, { p: [0.85, 0.62, 0], s: [0.28, 0.17, 0.15], r: [0, 0, -0.3] }, 10, 6);
   for (const z of [1, -1]) b.cone(0.05, 0.14, body, { p: [0.75, 0.82, z * 0.07] }, 6);
-  b.tube([[0.75, 0.75, 0], [0.55, 0.62, 0], [0.4, 0.35, 0]], 0.08, W8.pink, null, 8, 5);
-  b.tube([[-0.6, 0.05, 0], [-0.85, -0.1, 0], [-0.9, -0.4, 0]], 0.07, W8.pink, null, 8, 5);
+  b.tube([[0.75, 0.75, 0], [0.55, 0.62, 0], [0.4, 0.35, 0]], 0.08, W8.pink, null, 6, 4);
+  b.tube([[-0.6, 0.05, 0], [-0.85, -0.1, 0], [-0.9, -0.4, 0]], 0.07, W8.pink, null, 6, 4);
   b.box(0.45, 0.08, 0.36, W8.red, { p: [0, 0.32, 0] }, 0.03, 1);
   b.sphere(1, W8.gold, { p: [0, 0.38, 0], s: [0.1, 0.05, 0.2] }, 8, 5);
-  for (const [x, z] of [[0.4, 0.13], [0.4, -0.13], [-0.4, 0.13], [-0.4, -0.13]]) b.capsule(0.06, 0.35, body, { p: [x, -0.35, z], r: [0, 0, x > 0 ? -0.5 : 0.5] }, 2, 6);
+  for (const [x, z] of [[0.4, 0.13], [0.4, -0.13], [-0.4, 0.13], [-0.4, -0.13]]) b.capsule(0.06, 0.35, body, { p: [x, -0.35, z], r: [0, 0, x > 0 ? -0.5 : 0.5] }, 1, 5);
   for (const z of [1, -1]) b.sphere(0.04, 0x1a1020, { p: [1.02, 0.66, z * 0.08] }, 6, 4);
   return b.geometry();
 });
@@ -209,8 +209,8 @@ function buildKarussell() {
   rot.add(mesh(karussellGeo(), kulMat8(0.55), {}, true));
   const horses = instMesh(horseGeo(), kulMat8(0.55), 6, 5, 2);
   horses.castShadow = true;
-  const NB = 24;
-  const bulbs = instMesh(bulbGeo(0.09, true), glow8(), NB, 5.5, 5);
+  const NB = 16;
+  const bulbs = instMesh(bulbGeo(0.1, true), glow8(), NB, 5.5, 5);
   for (let i = 0; i < NB; i++) { const a = (i / NB) * TAU; setInst(bulbs, i, Math.cos(a) * 4.62, 5.12, Math.sin(a) * 4.62); }
   bulbs.instanceMatrix.needsUpdate = true;
   rot.add(horses, bulbs);
@@ -253,9 +253,9 @@ const CABIN_COLORS = [W8.red, W8.teal, W8.yellow, W8.purple, W8.pink, W8.blue];
 const cabinGeo = () => cached('w8:cabin', () => {
   const b = new Build();
   b.cyl(0.05, 0.05, 1.0, W8.gold, { p: [0, -0.5, 0] }, 6);
-  b.add(new THREE.SphereGeometry(0.85, 14, 8, 0, TAU, 0, Math.PI / 2), W8.white, { p: [0, -1.05, 0], s: [1, 0.55, 1] });
-  b.cyl(0.85, 0.75, 1.1, { v: (x, y, z, nx) => (Math.abs(nx) > 0.6 && y > -1.85 + 1.3 ? col(0x2a3a5a) : col(0xffffff)) }, { p: [0, -1.6, 0] }, 14);
-  b.add(new THREE.SphereGeometry(0.75, 14, 6, 0, TAU, Math.PI / 2, Math.PI / 2), 0xffffff, { p: [0, -2.15, 0], s: [1, 0.4, 1] });
+  b.add(new THREE.SphereGeometry(0.85, 10, 5, 0, TAU, 0, Math.PI / 2), W8.white, { p: [0, -1.05, 0], s: [1, 0.55, 1] });
+  b.cyl(0.85, 0.75, 1.1, { v: (x, y, z, nx) => (Math.abs(nx) > 0.6 && y > -1.85 + 1.3 ? col(0x2a3a5a) : col(0xffffff)) }, { p: [0, -1.6, 0] }, 10);
+  b.add(new THREE.SphereGeometry(0.75, 10, 4, 0, TAU, Math.PI / 2, Math.PI / 2), 0xffffff, { p: [0, -2.15, 0], s: [1, 0.4, 1] });
   return b.geometry();
 });
 function standBigGeo(R) {
@@ -283,8 +283,8 @@ function buildRiesenradKulisse(opts = {}) {
   const root = new THREE.Group();
   const wheelJ = joint([0, H, 0]);
   wheelJ.add(mesh(bigWheelGeo(R, n), kulMat8(0.45), {}, true));
-  const nb = n * 4;
-  const bulbs = instMesh(bulbGeo(0.16, true), glow8(), nb, R + 1, 0);
+  const nb = n * 2;
+  const bulbs = instMesh(bulbGeo(0.18, true), glow8(), nb, R + 1, 0);
   for (let i = 0; i < nb; i++) { const a = (i / nb) * TAU; setInst(bulbs, i, Math.cos(a) * R, Math.sin(a) * R, i % 2 ? 1.35 : -1.35); }
   bulbs.instanceMatrix.needsUpdate = true;
   wheelJ.add(bulbs);

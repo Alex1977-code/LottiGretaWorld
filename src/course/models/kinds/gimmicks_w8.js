@@ -100,6 +100,7 @@ function buildLeuchtsteg(opts = {}) {
   const tile = mesh(stegGeo(w, d, t), mat);
   const N = 6;
   const sparks = instMesh(sparkGeo(), sMat, N, Math.max(w, d), t);
+  sparks.userData.fx = true;
   root.add(tile, sparks);
   const clk = new Clock();
   const update = (dt, st) => {

@@ -56,14 +56,14 @@ function meadowGeo() {
     b.sphere(0.05, 0xffd23a, { p: [1.3, yb + 0.42, -0.1] }, 6, 4);
     for (const [x, z, c] of [[1.0, 0.6, 0xffd23a], [-0.2, 1.4, 0xa87aff], [1.4, 1.3, 0x3ac4a8]]) b.cyl(0.08, 0.07, 0.16, c, { p: [x, yb + 0.08, z] }, 12);
     // Blumen, Kleeblätter, Steinchen
-    for (let i = 0; i < 46; i++) {
+    for (let i = 0; i < 34; i++) {
       const a = hash1(i) * TAU, r = 2.3 + hash1(i + 50) * 3.4;
       const x = Math.cos(a) * r, z = Math.sin(a) * r, y = (1 - (r / 6) ** 2) * 0.35;
       if (Math.abs(x - 0.3) < 1.7 && Math.abs(z - 0.6) < 1.7) continue;
       if (i % 3 === 2) { b.add(lumpyEllipsoid([0.15, 0.08, 0.12], 0.02, 3, i, 7, 5), gradV(0x8a8a9a, 0xd8d8e0), { p: [x, y, z] }); continue; }
       b.cyl(0.015, 0.015, 0.22, 0x3a8a2a, { p: [x, y + 0.11, z] }, 4);
       const pc = [0xffffff, 0xffd23a, 0xff8ac8, 0x8ac8ff, 0xff6a5a][i % 5];
-      for (let k = 0; k < 5; k++) { const pa = (k / 5) * TAU; b.sphere(1, pc, { p: [x + Math.cos(pa) * 0.05, y + 0.23, z + Math.sin(pa) * 0.05], s: [0.045, 0.02, 0.045] }, 6, 4); }
+      for (let k = 0; k < 5; k++) { const pa = (k / 5) * TAU; b.sphere(1, pc, { p: [x + Math.cos(pa) * 0.05, y + 0.23, z + Math.sin(pa) * 0.05], s: [0.045, 0.02, 0.045] }, 5, 3); }
       b.sphere(0.03, i % 5 === 1 ? 0xff9a1a : 0xffd23a, { p: [x, y + 0.24, z] }, 6, 4);
     }
     // Laternenmasten

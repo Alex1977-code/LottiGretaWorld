@@ -227,6 +227,108 @@ export function kfParts() {
   });
 }
 
+/**
+ * Sparsamer Knochenflieger (für Gruppen und Instanzen, ≈1,3 k Dreiecke): dieselbe Gestaltung wie das Welt-7-Modell (runder
+ * Schädel mit Knochenkamm, große Augen in pflaumendunklen Höhlen, langer Schnabel mit goldener Spitze, Rippen-Brustkorb,
+ * Fächer-Schwanz, Beinchen; Flügel aus Fingerknochen), Augen samt Glanzpunkten in der Rumpf-Geometrie.
+ * core = Rumpf + Kopf, wings = [{ geo, at }] für +Z und −Z (Schulter at). Ursprung = Körpermitte, Blick +X.
+ */
+export function kfLoParts() {
+  return memo('w8:kflo', () => {
+    const bone = { v: (x, y, z, nx, ny) => mix(W7.boneLow, W7.boneHi, smoothstep(ny * 0.55 + 0.45)) };
+    const sock = { v: (x, y, z, nx, ny) => mix(W7.socket, W7.socketHi, smoothstep(ny * 0.5 + 0.5)) };
+    const b = new Build();
+    // Brustkorb: dunkler Raum, zwei Rippenbögen, Brustbein, Wirbel
+    b.sphere(1, sock, { s: [0.19, 0.155, 0.145] }, 10, 7);
+    for (const [x, k] of [[0.08, 0.95], [-0.06, 0.85]]) b.torus(1, 0.18, bone, { p: [x, 0, 0], r: [0, Math.PI / 2, 0], s: [0.165 * k, 0.172 * k, 0.172 * k] }, 4, 10);
+    b.capsule(0.035, 0.2, bone, { p: [0.02, -0.145, 0], r: [0, 0, Math.PI / 2] }, 1, 5);
+    for (let i = 0; i < 3; i++) b.sphere(0.042, bone, { p: [0.12 - i * 0.12, 0.165, 0] }, 6, 4);
+    // Schwanzfächer, Beinchen
+    for (const [z, y, x] of [[0, 0.09, -0.56], [0.15, 0.06, -0.5], [-0.15, 0.06, -0.5]]) {
+      const a = new THREE.Vector3(-0.2, 0, z * 0.15), c = new THREE.Vector3(x, y, z), d = c.clone().sub(a);
+      b.capsule(0.025, d.length(), bone, { p: a.clone().add(c).multiplyScalar(0.5).toArray(), r: [0, 0, 0] }, 1, 5);
+      b.parts[b.parts.length - 1].applyMatrix4(new THREE.Matrix4());
+      const last = b.parts.pop();
+      last.translate(...a.clone().add(c).multiplyScalar(-0.5).toArray());
+      last.applyMatrix4(new THREE.Matrix4().compose(a.clone().add(c).multiplyScalar(0.5), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()), new THREE.Vector3(1, 1, 1)));
+      b.parts.push(last);
+      b.sphere(0.04, bone, { p: c.toArray() }, 6, 4);
+    }
+    for (const s of [1, -1]) { b.capsule(0.022, 0.17, bone, { p: [-0.03, -0.22, s * 0.075] }, 1, 5); b.sphere(1, W7.boneLow, { p: [0.01, -0.32, s * 0.08], s: [0.06, 0.025, 0.05] }, 6, 4); }
+    // Kopf: Schädel, Augenhöhlen mit Augen, Brauen, Kamm, Schnabel
+    const HC = [0.3, 0.14, 0], HRd = [0.2, 0.185, 0.19];
+    b.sphere(1, bone, { p: HC, s: HRd }, 14, 10);
+    for (const s of [1, -1]) {
+      const h = onEllipsoid(HC, HRd, s * 0.5, 0.12);
+      const n = h.n.clone(), p0 = h.p.clone();
+      b.add(new THREE.SphereGeometry(1, 10, 6), sock, placed(p0.clone().addScaledVector(n, -0.02), n, new THREE.Vector3(0.1, 0.11, 0.04)));
+      const d = n.clone().lerp(new THREE.Vector3(1, 0, 0), 0.3).normalize();
+      b.add(new THREE.SphereGeometry(1, 10, 6), 0xffffff, placed(p0.clone().addScaledVector(d, 0.0), d, new THREE.Vector3(0.068, 0.078, 0.04)));
+      b.add(new THREE.SphereGeometry(1, 8, 5), 0xff7a1a, placed(p0.clone().addScaledVector(d, 0.022), d, new THREE.Vector3(0.04, 0.045, 0.025)));
+      b.add(new THREE.SphereGeometry(1, 6, 4), 0x15101c, placed(p0.clone().addScaledVector(d, 0.034), d, new THREE.Vector3(0.024, 0.028, 0.015)));
+      b.add(new THREE.SphereGeometry(1, 5, 3), 0xffffff, placed(p0.clone().addScaledVector(d, 0.045).add(new THREE.Vector3(0, 0.012, -s * 0.01)), d, new THREE.Vector3(0.011, 0.013, 0.006)));
+      const br = onEllipsoid(HC, HRd, s * 0.5, 0.52);
+      b.capsule(0.03, 0.12, bone, { p: br.p.toArray(), r: [Math.PI / 2 - s * 0.45, -s * 0.35, 0], order: 'YXZ' }, 1, 5);
+    }
+    for (let i = 0; i < 3; i++) { const h = onEllipsoid(HC, HRd, Math.PI, 1.2 - i * 0.28); b.capsule(0.034 - i * 0.004, 0.09 - i * 0.015, bone, { p: h.p.clone().addScaledVector(h.n, 0.04).toArray(), r: [0, 0, 0.85 - i * 0.32] }, 1, 5); }
+    const beak = [[0, 0], [0.085, 0.0], [0.07, 0.14], [0.045, 0.27], [0.015, 0.35], [0, 0.375]];
+    const bg = new THREE.LatheGeometry(beak.map(([r, y]) => new THREE.Vector2(r, y)), 8); bg.scale(1, 1, 0.8);
+    b.add(bg, { v: (x, y) => mix(0xffe2a0, 0xffb84a, smoothstep((y - 0.2) / 0.17)) }, { p: [0.44, 0.1, 0], r: [0, 0, -Math.PI / 2 - 0.12] });
+    const jg = new THREE.LatheGeometry([[0, 0], [0.06, 0], [0.04, 0.15], [0.01, 0.25], [0, 0.27]].map(([r, y]) => new THREE.Vector2(r, y)), 8); jg.scale(1, 1, 0.75);
+    b.add(jg, { v: (x, y) => mix(W7.boneLow, 0xffe2a0, smoothstep(y / 0.27)) }, { p: [0.43, 0.06, 0], r: [0, 0, -Math.PI / 2 + 0.12] });
+    const core = b.geometry();
+    const wing = (s) => {
+      const w = new Build();
+      const W = new THREE.Vector3(0.02, 0.06, s * 0.28);
+      const seg = (a, c, r, knob) => {
+        const d = c.clone().sub(a), len = d.length();
+        const g = new THREE.CapsuleGeometry(r, Math.max(0.01, len - r * 2), 1, 5);
+        w.add(g, bone, new THREE.Matrix4().compose(a.clone().add(c).multiplyScalar(0.5), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()), new THREE.Vector3(1, 1, 1)));
+        if (knob) w.sphere(r * 1.35, bone, { p: c.toArray() }, 6, 4);
+      };
+      seg(new THREE.Vector3(0, 0, s * 0.02), W, 0.04, true);
+      for (const [x, y, z] of [[0.02, 0.1, 0.72], [-0.13, 0.08, 0.68], [-0.27, 0.05, 0.58], [-0.36, 0.02, 0.43]]) seg(W, new THREE.Vector3(x, y, s * z), 0.032, true);
+      return w.geometry();
+    };
+    return { core, wings: [{ geo: wing(1), at: new THREE.Vector3(0.06, 0.12, 0.15) }, { geo: wing(-1), at: new THREE.Vector3(0.06, 0.12, -0.15) }] };
+  });
+}
+
+/**
+ * Einfache Vereinfachung durch Ecken-Bündelung (Zellgröße cell, Meter): gleiche Zelle → eine Ecke (gemittelte Lage und
+ * Farbe), entartete Dreiecke fallen weg; Normalen neu (weich). Für dichte, geerntete Figuren in Kulissen/Statuen.
+ */
+export function clusterSimplify(g0, cell = 0.05) {
+  const P = g0.attributes.position, C = g0.attributes.color;
+  const key = (i) => `${Math.round(P.getX(i) / cell)},${Math.round(P.getY(i) / cell)},${Math.round(P.getZ(i) / cell)}`;
+  const map = new Map(), acc = [];
+  const idOf = (i) => {
+    const k = key(i);
+    let id = map.get(k);
+    if (id === undefined) { id = acc.length; map.set(k, id); acc.push([0, 0, 0, 0, 0, 0, 0]); }
+    const a = acc[id];
+    a[0] += P.getX(i); a[1] += P.getY(i); a[2] += P.getZ(i);
+    if (C) { a[3] += C.getX(i); a[4] += C.getY(i); a[5] += C.getZ(i); }
+    a[6]++;
+    return id;
+  };
+  const tris = [];
+  for (let i = 0; i < P.count; i += 3) {
+    const a = idOf(i), b = idOf(i + 1), c = idOf(i + 2);
+    if (a !== b && b !== c && a !== c) tris.push(a, b, c);
+  }
+  const pos = new Float32Array(acc.length * 3), colr = new Float32Array(acc.length * 3);
+  acc.forEach((a, i) => { pos[i * 3] = a[0] / a[6]; pos[i * 3 + 1] = a[1] / a[6]; pos[i * 3 + 2] = a[2] / a[6]; colr[i * 3] = a[3] / a[6]; colr[i * 3 + 1] = a[4] / a[6]; colr[i * 3 + 2] = a[5] / a[6]; });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(colr, 3));
+  g.setIndex(tris);
+  g.computeVertexNormals();
+  const out = g.toNonIndexed(); g.dispose();
+  out.computeBoundingSphere(); out.computeBoundingBox();
+  return out;
+}
+
 // ------------------------------------------------------------------ Formen
 /**
  * Kugelschale (Einheitskugel, ws × hs Segmente), nur Dreiecke, deren Schwerpunkt-Richtung keep(dx, dy, dz) erfüllt.

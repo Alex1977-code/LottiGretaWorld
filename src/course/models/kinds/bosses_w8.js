@@ -508,7 +508,7 @@ function powBlockGeo(hits = 0) {
       b.box(e, 1.0, e, goldV, { p: [a * q, 0.5, c * q] }, 0.02, 1);
       b.box(e, e, 1.0, goldV, { p: [a * q, 0.5 + c * q, 0] }, 0.02, 1);
     }
-    for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) b.sphere(0.045, SP.goldHi, { p: [x * q, 0.5 + y * q, z * q] }, 8, 6);
+    for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) b.sphere(0.045, SP.goldHi, { p: [x * q, 0.5 + y * (0.5 - 0.046), z * q] }, 8, 6);
     // Knallsterne auf den vier Seiten (verbraucht: blasser)
     const sides = [[0, 1, Math.PI / 2], [0, -1, -Math.PI / 2], [2, 1, 0], [2, -1, Math.PI]];
     for (const [ax, sg, ry] of sides) {

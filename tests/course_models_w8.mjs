@@ -104,6 +104,7 @@ const ALL = [...BOSSES, ...VARIANTS, ...ENEMIES, ...GIMMICKS, ...KULISSE1, ...KU
 const ENEMY_NAMES = new Set(['sandflosser', 'knochenflieger_gruppe', 'kristall_felsklotz', 'baron_sandstatue']);
 const BOSS_NAMES = new Set(['baron_krallen', 'freunde_glas', 'schlangenkoenig', 'wuerfelblase', 'schattenlaeuferin']);
 const KULISSE_NAMES = new Set([...KULISSE1, ...KULISSE2, ...KULISSE3, ...KULISSE4].map(([n]) => n));
+const SZENE_NAMES = new Set(SZENE.map(([n]) => n));
 const INST_W8 = ['leuchtsteg', 'knochenflieger', 'brummbaer_ballon'];
 const W8_NEW = [...new Set([...BOSSES, ...ENEMIES, ...GIMMICKS, ...KULISSE1, ...KULISSE2, ...KULISSE3, ...KULISSE4, ...SZENE].map(([n]) => n))];
 const REUSED = ['wuerfelblase', 'schlangenkoenig', 'schattenlaeuferin', 'schatten_bumerang', 'knochenflieger', 'riesenschnappblume', 'ameisensoldat_horn', 'hackvogel',
@@ -365,11 +366,13 @@ if (part('checks')) {
   check(`Boss/Boss-Varianten ≤ 25 k Dreiecke (${bossT.map(([n, t]) => `${n.replace(/"/g, '')}=${t}`).join(', ')})`, bossT.length > 0 && bossT.every(([, t]) => t > 3000 && t <= 25000));
   const heavyK = Object.entries(cycle.tris).filter(([n, t]) => KULISSE_NAMES.has(base(n)) && t > 12000);
   check(`Kulisse ≤ 12 k Dreiecke (Kartenqualität)${heavyK.length ? ` (zu viel: ${heavyK.map(([n, c]) => `${n}=${c}`).join(', ')})` : ''}`, heavyK.length === 0);
-  const heavy = Object.entries(cycle.tris).filter(([n, t]) => !KULISSE_NAMES.has(base(n)) && !BOSS_NAMES.has(base(n)) && !ENEMY_NAMES.has(base(n)) && t > 16000);
-  check(`Gimmicks/Szene ≤ 16 k Dreiecke${heavy.length ? ` (zu viel: ${heavy.map(([n, c]) => `${n}=${c}`).join(', ')})` : ''}`, heavy.length === 0);
+  const heavy = Object.entries(cycle.tris).filter(([n, t]) => !KULISSE_NAMES.has(base(n)) && !BOSS_NAMES.has(base(n)) && !ENEMY_NAMES.has(base(n)) && !SZENE_NAMES.has(base(n)) && t > 16000);
+  check(`Gimmicks ≤ 16 k Dreiecke${heavy.length ? ` (zu viel: ${heavy.map(([n, c]) => `${n}=${c}`).join(', ')})` : ''}`, heavy.length === 0);
+  const heavyS = Object.entries(cycle.tris).filter(([n, t]) => SZENE_NAMES.has(base(n)) && t > 30000);
+  check(`Abspann-Bühne (eigene Szene, alle Freunde) ≤ 30 k Dreiecke (${Object.entries(cycle.tris).filter(([n]) => SZENE_NAMES.has(base(n))).map(([n, t]) => `${n}=${t}`).join(', ')})`, heavyS.length === 0);
   const toyBad = Object.entries(cycle.toy).filter(([n, [t]]) => KULISSE_NAMES.has(base(n)) && t > 0);
   check(`Kulisse ohne Spielzeug-Look${toyBad.length ? ` (mit Look: ${toyBad.map(([n]) => n).join(', ')})` : ''}`, toyBad.length === 0);
-  const toyMiss = Object.entries(cycle.toy).filter(([n, [t]]) => !KULISSE_NAMES.has(base(n)) && t === 0 && !['schockwelle', 'leuchtsteg', 'lavapfuetze'].includes(base(n)));
+  const toyMiss = Object.entries(cycle.toy).filter(([n, [t]]) => !KULISSE_NAMES.has(base(n)) && t === 0 && !['schockwelle', 'leuchtsteg'].includes(base(n)));
   check(`Figuren/Gimmicks mit Spielzeug-Look${toyMiss.length ? ` (ohne: ${toyMiss.map(([n]) => n).join(', ')})` : ''}`, toyMiss.length === 0);
 
   // Leck-Prüfung: zweiter Bau/Abbau-Durchlauf mit Rendern darf keine Geometrien/Texturen anhäufen
@@ -450,7 +453,7 @@ if (part('checks')) {
   if (P.baron) check('Baron im Krallen-Anzug ≈2,9–3,5 m (mit Hut), steht auf dem Boden, ≈1,2–2 m breit; Klettern: Tatzen vorn (≈ wallX); defeated sitzt (niedriger); hand()/mouth() vorn; Doppelgänger durchsichtig',
     P.baron[0] > 2.9 && P.baron[0] < 3.6 && P.baron[1] > -0.06 && P.baron[1] < 0.06 && P.baron[2] > 1.0 && P.baron[2] < 2.2 && P.baron[4] > 0.6 && P.baron[5] < P.baron[0] - 0.3
     && P.baron[6][1][0] > 0.6 && P.baron[6][1][1] > 1.6 && P.baron[6][0][0] > 0.2 && P.baron[6][2] > 0.5 && P.baron[6][3] > 2.9 && P.baron[6][4] > 0.6 && P.baron[7] > 0);
-  if (P.pow) check('Super-Wumm-Block: size × size, Ursprung unten, 4 Treffer → niedriger; userData.top/topAt', Math.abs(P.pow[0] - 5) < 0.6 && Math.abs(P.pow[1] - 5) < 0.6 && P.pow[2] > -0.05 && P.pow[3] < 2.6 && Math.abs(P.pow[4][0] - P.pow[4][1] * 0.68) < 0.2 && P.pow[4][1] === 5 && P.pow[4][2] < 2);
+  if (P.pow) check('Super-Wumm-Block: size × size (+ Knallsterne), Ursprung unten, 4 Treffer → niedriger; userData.top/topAt', Math.abs(P.pow[0] - 5) < 0.8 && Math.abs(P.pow[1] - 5) < 0.6 && P.pow[2] > -0.05 && P.pow[3] < 2.6 && Math.abs(P.pow[4][0] - P.pow[4][1] * 0.68) < 0.2 && P.pow[4][1] === 5 && P.pow[4][2] < 2);
   if (P.glas) check('Freunde-Glas ≈2,4 m hoch, Ø ≈2 m, Ursprung unten, 4 Freunde; zerbrochen bleibt nur Kleines (≤ 1 m)', P.glas[0] > 2.2 && P.glas[0] < 2.7 && P.glas[1] > 1.8 && P.glas[1] < 2.4 && P.glas[2] > -0.05 && P.glas[3] < 1.2 && P.glas[4][0] === 4);
   if (P.flosser) check('Sandflosser ≈1,4–2,2 m lang; Sprung über dem Sand; schwimmend nur Flosse über dem Sand; besiegt → weg', P.flosser[0] > 1.3 && P.flosser[0] < 2.3 && P.flosser[2] < 0.7 && P.flosser[3]);
   if (P.gruppe) check('Knochenflieger-Gruppe: Formation ≈ 2·radius + Spannweite; zerstreut → weg', P.gruppe[0] > 3 && P.gruppe[0] < 7 && P.gruppe[3]);

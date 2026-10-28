@@ -10,7 +10,7 @@
 //   'leuchtsteg'        1 × 1-m-Kachel des unsichtbaren Stegs (Oberseite y = thick, pos = Mitte der Unterseite), additiv
 //                       leuchtend; opts { thick (0,3) }; state { glow (0..1), flash (0..1) } – glow 0 = unsichtbar;
 //                       'idle' = voll sichtbar.  1 InstancedMesh (Helligkeit als Instanzfarbe).
-//   'knochenflieger'    Knochenflieger aus den Teilen des Welt-7-Modells (Rumpf+Kopf, Glanzpunkte, zwei Flügel), pos =
+//   'knochenflieger'    sparsamer Knochenflieger (Zwilling des Welt-7-Modells, kfLoParts: Rumpf+Kopf, zwei Flügel), pos =
 //                       Körpermitte, yaw = Blickrichtung; state 'fly' | { anim: 'fly', flap? } (schlägt versetzt) | 'dive'
 //                       (Flügel angelegt, Nase unten) | { anim: 'bones', progress } (fällt auseinander, 0..1 in 0,9 s, danach
 //                       weg) | { anim: 'assemble', progress } (setzt sich zusammen, 1,4 s) | 'hidden'.  4 InstancedMeshes.
@@ -21,7 +21,7 @@
 // Nicht gesetzte Plätze sind unsichtbar; Sichtbarkeitsprüfung aus (Instanzen liegen überall im Level).
 
 import { THREE, TAU, clamp, vcol, basic, Build, cached, smoothstep, lerp } from './kit.js';
-import { kfParts, kulMat8, taperTube, num } from './w8Geos.js';
+import { kfLoParts, kulMat8, taperTube, num } from './w8Geos.js';
 import { stegGeo } from '../kinds/gimmicks_w8.js';
 import { balloonGeo, BALLOON_COLORS } from '../kinds/props_rummel_w8.js';
 
@@ -58,7 +58,7 @@ function base(name, n, parts, write, tick, extra = {}) {
       if (yaw && yaw.isQuaternion) s.quat.copy(yaw); else s.quat.setFromAxisAngle(_p.set(0, 1, 0), Number(yaw) || 0);
       if (Array.isArray(scale)) s.scale.set(scale[0], scale[1], scale[2]); else s.scale.setScalar(Number(scale) || 1);
       s.on = true;
-      if (i + 1 > used) { used = i + 1; for (const p of parts) p.mesh.count = used * p.per; }
+      if (i + 1 > used) { used = i + 1; for (const p of parts) p.mesh.count = Math.ceil(used * p.per); }
       api.setState(i, state);
     },
     setState(i, state) {
@@ -114,12 +114,11 @@ function makeSteg(count, opts = {}) {
 // ------------------------------------------------------------------ Knochenflieger
 function makeFlieger(count) {
   const n = Math.max(1, count | 0);
-  const P = kfParts();
+  const P = kfLoParts();
   const lit = vcol(0.34, {}, 'w8kf');
-  const core = makeMesh(P.core.lit, lit, n, true);
-  const hl = makeMesh(P.core.hl, basic('white', { color: 0xffffff }), n, false, false);
+  const core = makeMesh(P.core, lit, n, true);
   const wings = P.wings.map((w) => makeMesh(w.geo, lit, n, true));
-  const hideAll = (i) => { core.setMatrixAt(i, ZERO); hl.setMatrixAt(i, ZERO); for (const w of wings) w.setMatrixAt(i, ZERO); };
+  const hideAll = (i) => { core.setMatrixAt(i, ZERO); for (const w of wings) w.setMatrixAt(i, ZERO); };
   const write = (i, s) => {
     if (!s.on || s.state === 'hidden') { hideAll(i); return; }
     const t = s.age + s.phase;
@@ -135,7 +134,7 @@ function makeFlieger(count) {
     const sc = bones ? Math.max(0.001, 1 - smoothstep((pr - 0.55) / 0.45)) : asm ? 0.3 + 0.7 * smoothstep(pr * 1.4) : 1;
     _m2.compose(_p, _q2, _s.setScalar(sc));
     compose(s, _m).multiply(_m2);
-    core.setMatrixAt(i, _m); hl.setMatrixAt(i, _m);
+    core.setMatrixAt(i, _m);
     const flapA = lerp(-0.55, 0.85, f) * (1 - dive) + dive * 0.25;
     P.wings.forEach((w, j) => {
       const sg = j ? -1 : 1;
@@ -144,7 +143,7 @@ function makeFlieger(count) {
       wings[j].setMatrixAt(i, _m2.copy(_m).multiply(_w));
     });
   };
-  return base('knochenflieger', n, [{ mesh: core, per: 1 }, { mesh: hl, per: 1 }, ...wings.map((m) => ({ mesh: m, per: 1 }))], write, () => true);
+  return base('knochenflieger', n, [{ mesh: core, per: 1 }, ...wings.map((m) => ({ mesh: m, per: 1 }))], write, () => true);
 }
 
 // ------------------------------------------------------------------ Brummbär-Ballon
@@ -152,21 +151,22 @@ const stringGeo = () => cached('w8:inst:balloon:str', () => new Build().add(tape
 function makeBallon(count, opts = {}) {
   const n = Math.max(1, count | 0);
   const colors = BALLOON_COLORS[opts.color] ? [opts.color] : Object.keys(BALLOON_COLORS);
-  const heads = colors.map((c) => makeMesh(balloonGeo(c, true), kulMat8(0.25), n, true));
+  const k = colors.length, per = Math.ceil(n / k);
+  // Instanz i → Kopf-Mesh i mod k, Platz floor(i / k) (je Farbe ein Mesh)
+  const heads = colors.map((c) => makeMesh(balloonGeo(c, true), kulMat8(0.25), per, true));
   const str = makeMesh(stringGeo(), kulMat8(0.7), n, false, false);
   const H = new THREE.Matrix4().makeTranslation(0, 1.2 + 0.72, 0);
   const write = (i, s) => {
-    const mine = heads[i % heads.length];
-    for (const h of heads) h.setMatrixAt(i, ZERO);
-    if (!s.on || s.state === 'hidden') { str.setMatrixAt(i, ZERO); return; }
+    const mine = heads[i % k], j = Math.floor(i / k);
+    if (!s.on || s.state === 'hidden') { str.setMatrixAt(i, ZERO); mine.setMatrixAt(j, ZERO); return; }
     const t = s.age + s.phase;
     _q2.setFromEuler(_e.set(Math.sin(t * 0.9) * 0.08, Math.sin(t * 0.4) * 0.3, Math.sin(t * 1.1) * 0.1));
     _m2.compose(_p.set(0, Math.sin(t * 0.7) * 0.08, 0), _q2, _s.setScalar(1));
     compose(s, _m).multiply(_m2);
     str.setMatrixAt(i, _m);
-    mine.setMatrixAt(i, _m.multiply(H));
+    mine.setMatrixAt(j, _m.multiply(H));
   };
-  return base('brummbaer_ballon', n, [...heads.map((m) => ({ mesh: m, per: 1 })), { mesh: str, per: 1 }], write, () => true);
+  return base('brummbaer_ballon', n, [...heads.map((m) => ({ mesh: m, per: 1 / k })), { mesh: str, per: 1 }], write, () => true);
 }
 
 export const INSTANCED = {

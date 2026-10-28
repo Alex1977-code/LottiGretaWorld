@@ -16,7 +16,8 @@
 //         an Start und Ende (der Motor bewegt root auf dem Bogen); defeated: dreht sich auf den Rücken, Augen zu,
 //         Schwindelsterne, versinkt im Sand (danach unsichtbar).
 //   model.mouth(out?) → Weltposition vor dem Maul.  root.userData.radius → Trefferradius (0,6 m).
-// knochenflieger_gruppe  Gruppe von count Knochenfliegern (Teile des Welt-7-Modells, Instanzen) in Formation.
+// knochenflieger_gruppe  Gruppe von count Knochenfliegern in Formation (sparsamer Zwilling des Welt-7-Modells, kfLoParts in
+//   lib/w8Geos.js: gleiche Gestaltung, ≈1,3 k Dreiecke je Flieger; Instanzen).
 //   **Ursprung = Mitte der Formation** (Flughöhe setzt der Motor).
 //   opts  { count (2..8, Standard 5), radius (Formationsradius, 1,6), formation: 'ring' (Standard) | 'reihe' | 'keil' }
 //   state { anim: 'fly'|'dive'|'scatter'|'assemble', spin? (rad, Drehung der Formation; Standard dreht langsam),
@@ -48,7 +49,7 @@ import {
 } from '../lib/kit.js';
 import {
   W8, prog, num, ZERO, ownMat, fxPuffs, stick, puffyGeo, gradV, hash1, noise3, lumpyEllipsoid, displace, kfParts, harvest,
-  recolor, toneMap, bearEmblem, ellSurf, taperTube, glow8, memo,
+  recolor, toneMap, bearEmblem, ellSurf, taperTube, glow8, memo, kfLoParts, clusterSimplify,
 } from '../lib/w8Geos.js';
 import { MODELS as B1 } from './bosses_w1.js';
 
@@ -186,18 +187,17 @@ function buildKnochenGruppe(opts = {}) {
   const n = clamp(Math.round(num(opts.count, 5)), 2, 8);
   const R = clamp(num(opts.radius, 1.6), 0.6, 6);
   const form = ['reihe', 'keil'].includes(opts.formation) ? opts.formation : 'ring';
-  const parts = kfParts();
+  const parts = kfLoParts();
   const root = new THREE.Group();
   const own = [];
   const lit = vcol(0.34, {}, 'w8kf');
   const ext = R + 3;
-  const core = instMesh(parts.core.lit, lit, n, ext, 0);
-  const hl = instMesh(parts.core.hl, basic('white', { color: 0xffffff }), n, ext, 0);
+  const core = instMesh(parts.core, lit, n, ext, 0);
   const wings = parts.wings.map((w) => instMesh(w.geo, lit, n, ext, 0));
   core.castShadow = true; for (const w of wings) w.castShadow = true;
   const dust = fxPuffs(16, 0xfff2dc, { opacity: 0.85, radius: ext, cy: 0, detail: 0 });
   own.push(dust);
-  root.add(core, hl, ...wings, dust.mesh);
+  root.add(core, ...wings, dust.mesh);
   root.userData.radius = 0.4;
   const slots = formation(form, n, R);
   const ph = slots.map((_, i) => hash1(i + 3) * TAU);
@@ -219,7 +219,7 @@ function buildKnochenGruppe(opts = {}) {
     _q2.setFromAxisAngle(_v.set(0, 1, 0), spin);
     for (let i = 0; i < n; i++) {
       const on = !alive || (alive[i] ?? 1) > 0;
-      if (!on) { core.setMatrixAt(i, ZERO); hl.setMatrixAt(i, ZERO); for (const w of wings) w.setMatrixAt(i, ZERO); continue; }
+      if (!on) { core.setMatrixAt(i, ZERO); for (const w of wings) w.setMatrixAt(i, ZERO); continue; }
       const sl = slots[i];
       const f = st.flap !== undefined ? clamp(num(st.flap, 0.5), 0, 1) : 0.5 + 0.5 * Math.sin(t * TAU * 2.2 + ph[i]);
       _p.set(sl[0], sl[1] + (1 - sweep) * Math.sin(t * TAU * 2.2 + ph[i] - 0.6) * 0.06, sl[2]).applyQuaternion(_q2);
@@ -239,7 +239,7 @@ function buildKnochenGruppe(opts = {}) {
       _e.set(rollA, yaw, pitch, 'YXZ');
       _q.setFromEuler(_e);
       const M = _m.compose(_p, _q, _s.setScalar(sc));
-      core.setMatrixAt(i, M); hl.setMatrixAt(i, M);
+      core.setMatrixAt(i, M);
       const flapA = lerp(-0.55, 0.85, f) * (1 - sweep) + sweep * 0.25;
       parts.wings.forEach((w, k) => {
         const s = k ? -1 : 1;
@@ -248,10 +248,10 @@ function buildKnochenGruppe(opts = {}) {
       });
     }
     const hide = anim === 'scatter' && p >= 0.999;
-    for (const m of [core, hl, ...wings]) { m.instanceMatrix.needsUpdate = true; m.visible = !hide; }
+    for (const m of [core, ...wings]) { m.instanceMatrix.needsUpdate = true; m.visible = !hide; }
     dust.step(dt);
   };
-  const model = makeModel('knochenflieger_gruppe', root, update, [...own, core, hl, ...wings], { initial: 'fly' });
+  const model = makeModel('knochenflieger_gruppe', root, update, [...own, core, ...wings], { initial: 'fly' });
   model.member = (i, out = new THREE.Vector3()) => { root.updateMatrixWorld(true); return out.copy(memberPos[clamp(i | 0, 0, n - 1)]).applyMatrix4(root.matrixWorld); };
   return model;
 }
@@ -378,7 +378,7 @@ const SAND = { lo: 0xb08458, mid: 0xe2c08c, hi: 0xfff4d8, dark: 0x8a6440 };
 /** Statue: Welt-1-Baron (ohne Auto, steht) in Sandtönen; Ursprung = Fußpunkt der Figur. */
 const statueGeo = () => memo('w8:statue:baron', () => {
   const h = harvest('baron_w1_stand', () => B1.baron_brummbaer({ withCar: false }), (m) => m.update(0, { anim: 'idle' }));
-  const lit = recolor(h.lit, toneMap(SAND.lo, SAND.mid, SAND.hi, 0.05, 0.9));
+  const lit = clusterSimplify(recolor(h.lit, toneMap(SAND.lo, SAND.mid, SAND.hi, 0.05, 0.9)), 0.045);
   // Körnung (leichtes Rauschen je Ecke)
   const P = lit.attributes.position, C = lit.attributes.color;
   for (let i = 0; i < P.count; i++) { const k = 0.9 + noise3(P.getX(i) * 9, P.getY(i) * 9, P.getZ(i) * 9) * 0.2; C.setXYZ(i, C.getX(i) * k, C.getY(i) * k, C.getZ(i) * k); }
@@ -393,10 +393,10 @@ const pedestalGeo = () => cached('w8:statue:pedestal', () => {
   b.box(2.2, 0.12, 2.2, stoneV, { p: [0, 0.95, 0] }, 0.04, 1);
   bearEmblem(b, { p: [1.0, 0.6, 0], r: [0, Math.PI / 2, 0] }, 0.25, SAND.hi, SAND.dark);
   // Sandverwehungen am Fuß
-  for (const [x, z, r] of [[1.2, 0.9, 0.6], [-1.3, -0.6, 0.7], [0.6, -1.3, 0.5], [-0.8, 1.2, 0.55]]) b.add(lumpyEllipsoid([r, r * 0.35, r * 0.8], 0.03, 3, x * 7, 14, 8), { v: (x2, y, z2, nx, ny) => mix(SAND.mid, SAND.hi, smoothstep(ny * 0.5 + 0.4)) }, { p: [x, 0.02, z] });
+  for (const [x, z, r] of [[1.2, 0.9, 0.6], [-1.3, -0.6, 0.7], [0.6, -1.3, 0.5], [-0.8, 1.2, 0.55]]) b.add(lumpyEllipsoid([r, r * 0.35, r * 0.8], 0.03, 3, x * 7, 12, 6), { v: (x2, y, z2, nx, ny) => mix(SAND.mid, SAND.hi, smoothstep(ny * 0.5 + 0.4)) }, { p: [x, r * 0.3, z] });
   return b.geometry();
 });
-const pileGeo = () => cached('w8:statue:pile', () => new Build().add(lumpyEllipsoid([0.75, 0.4, 0.7], 0.06, 3, 4, 18, 10), { v: (x, y, z, nx, ny) => mix(SAND.lo, SAND.hi, smoothstep(ny * 0.6 + 0.3)) }, { p: [0, 0.05, 0] }).geometry());
+const pileGeo = () => cached('w8:statue:pile', () => new Build().add(lumpyEllipsoid([0.75, 0.4, 0.7], 0.06, 3, 4, 14, 8), { v: (x, y, z, nx, ny) => mix(SAND.lo, SAND.hi, smoothstep(ny * 0.6 + 0.3)) }, { p: [0, 0.05, 0] }).geometry());
 const chunkGeo = () => cached('w8:statue:chunk', () => new Build().add(new THREE.DodecahedronGeometry(0.22, 0), { v: (x, y, z, nx, ny) => mix(SAND.lo, SAND.hi, smoothstep(ny * 0.5 + 0.5)) }).geometry());
 function buildSandstatue(opts = {}) {
   const S = clamp(num(opts.size, 1), 0.3, 5);
