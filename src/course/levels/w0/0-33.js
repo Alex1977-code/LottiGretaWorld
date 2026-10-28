@@ -96,6 +96,8 @@ export const LEVEL = {
     { type: 'torches', h: 2, items: [[-3.4, U + 4, ZU - 25], [3.4, U + 4, ZU - 25]] },
     // ---- G: Gipfel 25 × 25 m
     { type: 'island', pos: [0, G - 3, ZG], size: [25, 3, 25], top: 'stone', under: 0 },
+    // Super-POW-Block (Motor-Baustein): der Baron findet Lage und Kante über die Kollision (pow: 'superpow')
+    { type: 'super_pow_block', id: 'superpow', pos: [0, G + 2.6, ZG - 1], size: 4.5, hits: 4 },
     { type: 'pennants', items: [{ pos: [-11.5, G, ZG - 11.5], color: 0xe8322a, h: 6 }, { pos: [11.5, G, ZG - 11.5], color: 0xffcf2a, h: 6 }, { pos: [-11.5, G, ZG + 11.5], color: 0x8a5ae0, h: 6 }, { pos: [11.5, G, ZG + 11.5], color: 0xff5ab0, h: 6 }] },
     // ---- Zielplateau
     { type: 'island', pos: [0, -1, ZE], size: [16, Y + 1, 18], top: 'stone' },
@@ -129,7 +131,7 @@ export const LEVEL = {
         {
           type: 'gipfel', id: 'gipfel',
           trigger: { min: [-12, G - 0.5, ZG - 12], max: [12, G + 9, ZG + 9] },
-          center: [0, G, ZG], size: [25, 25], pow: { id: 'superpow', pos: [0, G + 2.6, ZG - 1], size: 4.5, hits: 4 },
+          center: [0, G, ZG], size: [25, 25], pow: 'superpow',
           every: [2.8, 2.4, 2.1, 1.8], fire: [1, 2, 3, 3], shock: [0, 1, 1, 2], shockR: 11, clones: [0, 0, 2, 3],
           flyTo: [28, G + 18, ZG - 36],
         },

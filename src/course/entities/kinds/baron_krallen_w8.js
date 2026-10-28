@@ -42,8 +42,10 @@
 //     nächste Phase. Nach dem 4. Stoß **fliegt er davon** (lustig, rudernd, den Zylinder in der Tatze, rufend), das Glas zerbricht,
 //     die Freunde jubeln; gone → Boss-Archetyp: Glasröhre/Warp (LEVEL.boss.warp), Aktion onWin (Standard { credits: true } –
 //     Abspann nach dem Zielmast, Motor) und Signal level.signal('finaleWon', { pos, friends }).
-//     { type: 'gipfel', id?, trigger, center: [x, y, z] (Gipfelmitte am Boden), pow: { id: 'superpow', pos: [x, y, z] (Mitte der
-//       Unterseite), size: 4.5, hits: 4 }, powSignal?: 'super_pow', perch?: [dx, dz] (Platz auf dem Block, relativ zur Mitte;
+//     { type: 'gipfel', id?, trigger, center: [x, y, z] (Gipfelmitte am Boden), pow: 'superpow' (Block steht in den Level-Daten:
+//       { type: 'super_pow_block', id: 'superpow', pos, size, hits: 4 } – Lage und Kante liest der Baron aus seiner Kollision; ein
+//       versteckter Block braucht pos/size hier) | { id: 'superpow', pos: [x, y, z] (Mitte der Unterseite), size: 4.5, hits: 4 }
+//       (fehlt der Block, legt der Baron ihn so an), powSignal?: 'super_pow', perch?: [dx, dz] (Platz auf dem Block, relativ zur Mitte;
 //       Standard [0.8, 0]), glass?: [dx, dz] (Glas auf dem Block, Standard [−1.1, −0.3]), friends?: […],
 //       every?: [2.8, 2.4, 2.1, 1.8], fire?: [1, 2, 3, 3], shock?: [0, 1, 1, 2], shockR?: 11, clones?: [0, 0, 2, 3], cloneLife?: 6,
 //       flight?: 1.1, flyTo?: [x, y, z], onWin?: Aktion, banner? }
@@ -654,6 +656,15 @@ class BaronKrallen extends CourseEntity {
     sec.powPos = ps.pos ?? [c[0], c[1] + 2.6, c[2]];
     sec.powSize = ps.size ?? 4.5;
     let h = this.level.named.get(id);
+    if (h && !ps.pos) {
+      // Block aus den Level-Daten (segments): Lage und Kante aus seiner Kollision (Mitte der Unterseite)
+      const hh = h.handle && typeof h.handle.hit === 'function' ? h.handle : h;
+      this.level.world.forEach?.((sh) => {
+        if (sh.owner !== hh || sh.type !== 'box') return;
+        sec.powPos = [(sh.min[0] + sh.max[0]) / 2, sh.min[1], (sh.min[2] + sh.max[2]) / 2];
+        sec.powSize = ps.size ?? sh.max[0] - sh.min[0];
+      });
+    }
     if (!h) {
       const kind = this.level.hasKind('super_pow_block') ? 'super_pow_block' : 'baron_superpow';
       this.level.spawn(kind, { id, pos: sec.powPos, size: sec.powSize, hits: ps.hits ?? this.maxHp, signal: sec.powSignal ?? 'super_pow' });
