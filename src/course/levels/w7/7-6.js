@@ -21,7 +21,7 @@
 //                                  Stachelkugel (Funkenblüte aus dem ?-Block) – Stern 2, Zielmast auf dem Zielriff
 // Gegner: Rammfisch 10 (davon 2 groß, 3 auf und ab, 1 mit Stern), Wutkaulquappe 3.
 
-import { isl, line, ring, arc, column, sign, Quads, flushQ, glimmer, funken, onRespawn, fernSicht } from './_helpers_c.js';
+import { isl, line, ring, arc, column, sign, Quads, flushQ, glimmer, funken, onRespawn, fernSicht, C } from './_helpers_c.js';
 import { glasgang } from '../w6/_helpers_a.js';
 import { gegnerSicht } from '../w3/_helpers_d.js';
 import { Bld } from '../w6/_helpers_b.js';
@@ -33,6 +33,7 @@ export const M76 = { SEA: 0, FLOOR: -8, FLOOR2: -9, BEACH: 1, ISLE: 1.2, POOL: 0
 const { SEA, FLOOR, FLOOR2, BEACH, ISLE } = M76;
 
 const ROCK = { topColor: 0x6a5a62, sideColor: 0x4a3a44 };
+const VULKAN = { topColor: 0x6e5856, sideColor: 0x4a3a3e };
 const rock = (x0, x1, zA, zB, top, bottom, o = {}) => isl(x0, x1, zA, zB, top, top - bottom, { top: 'rock', ...ROCK, ...o });
 const sand = (x0, x1, zA, zB, top, bottom, o = {}) => isl(x0, x1, zA, zB, top, top - bottom, { top: 'sand', ...o });
 const water = (x0, x1, zA, zB, y0, y1, o = {}) => ({ type: 'water', pos: [(x0 + x1) / 2, y0, (zA + zB) / 2], size: [x1 - x0, y1 - y0, Math.abs(zA - zB)], ...o });
@@ -76,6 +77,56 @@ function glutrisse(level, list) {
     }
   }
   addStatic(level, merge(parts), { material: 'glow' });
+}
+
+/** Bodenflecken (Sand, Moos, Asche) als flache, unregelmäßige Scheiben knapp über dem Fels. list [[x, z, r, farbe, sx]] */
+function flecken(level, y, list, seed = 3) {
+  if (!level.view) return;
+  const rnd = new Rnd(seed), parts = [];
+  const FARBE = { sand: 0xd8b888, moos: 0x6aa846, moos2: 0x88c050, asche: 0x3e3238, kies: 0x9a8478 };
+  const BODEN = C(0x6e5856);
+  list.forEach(([x, z, r, farbe, sx = 1], i) => {
+    const g = new THREE.CircleGeometry(r, 20);
+    const pos = g.attributes.position, ph = rnd.real(0, 6);
+    for (let k = 1; k < pos.count; k++) {
+      const a = Math.atan2(pos.getY(k), pos.getX(k));
+      const f = 1 + 0.16 * Math.sin(a * 3 + ph) + 0.09 * Math.sin(a * 5 + ph * 2.3);
+      pos.setX(k, pos.getX(k) * f * sx); pos.setY(k, pos.getY(k) * f);
+    }
+    g.rotateX(-PI / 2); g.translate(x, y + 0.02 + i * 0.002, z);
+    // Mitte hell, zum Rand hin in den Felsboden verlaufend (weiche Kante statt Papier-Ausschnitt)
+    const c = C(FARBE[farbe] ?? farbe), hell = mixc(c, [1, 1, 1], 0.12, [0, 0, 0]), rand = mixc(c, BODEN, 0.55, [0, 0, 0]);
+    parts.push(colorize(g.toNonIndexed(), (p, n, o) => {
+      const t = Math.hypot((p.x - x) / sx, p.z - z) / r;
+      return t < 0.6 ? mixc(hell, c, t / 0.6, o) : mixc(c, rand, smooth(0.6, 1.05, t), o);
+    }));
+  });
+  addStatic(level, merge(parts), { castShadow: false });
+}
+
+/** Inselpflanzen: Farne (grüne Wedel-Büschel) und Hibiskus-Blüten auf Stielen. list [[x, z, art ('farn'|'blume'), farbe]] */
+function pflanzen(level, y, list, seed = 7) {
+  if (!level.view) return;
+  const rnd = new Rnd(seed), B = new Bld();
+  const BLUETE = { rot: 0xff3a4a, rosa: 0xff7ac0, gelb: 0xffd23a, orange: 0xff8a2a, lila: 0xc070ff };
+  for (const [x, z, art, farbe = 'rot'] of list) {
+    if (art === 'farn') {
+      for (let k = 0; k < 6; k++) {
+        const a = k * 1.05 + rnd.real(-0.2, 0.2), h = rnd.real(0.7, 1.1);
+        B.cone(0.16, h, x + Math.cos(a) * 0.18, y, z + Math.sin(a) * 0.18, k % 2 ? 0x5a9a36 : 0x7cc04a, 4, { rx: Math.sin(a) * 0.55, rz: -Math.cos(a) * 0.55, s: [1, 1, 0.35] });
+      }
+    } else {
+      const c = BLUETE[farbe] ?? farbe;
+      for (let k = 0; k < 3; k++) {
+        const a = k * 2.1 + rnd.real(0, 1), h = rnd.real(0.45, 0.8), bx = x + Math.cos(a) * 0.3, bz = z + Math.sin(a) * 0.3;
+        B.cyl(0.03, 0.04, h, bx, y, bz, 0x4a8a2e, 4);
+        B.sphere(0.17, bx, y + h + 0.05, bz, c, { s: [1, 0.55, 1], ws: 7, hs: 4 });
+        B.sphere(0.06, bx, y + h + 0.13, bz, 0xfff0a0, { ws: 5, hs: 3 });
+      }
+      B.cone(0.3, 0.4, x, y, z, 0x5a9a36, 5);
+    }
+  }
+  B.flush(level, { castShadow: false });
 }
 
 /** Feuerberg: Kegel aus Vulkangestein mit glühendem Krater (Kollision: Zylinder-Stufen). */
@@ -124,6 +175,19 @@ function build(level) {
   ]);
   glutrisse(level, [[-6, ISLE, -106, 4, 0.3], [9, ISLE, -110, 3, -0.4], [-11, ISLE, -128, 3.4, 0.9], [4, ISLE, -146, 4, 0.2], [-2, ISLE, -152, 3, -0.6], [12, ISLE, -150, 2.6, 0.5]]);
   feuerberg(level, -10.5, -150, ISLE, 6.4, 8.5);
+  // Vulkaninsel: Sandwege, Moospolster und Asche um den Feuerberg; Farne und Hibiskus am Rand
+  flecken(level, ISLE, [
+    [1.5, -106, 2.6, 'sand', 1.3], [5, -116, 2.2, 'sand'], [3, -127.5, 2.4, 'sand', 1.6], [1, -145, 2.8, 'sand', 1.2], [6, -154, 2.4, 'sand'],
+    [-14.6, -106, 2.4, 'moos'], [14.8, -112.5, 2.2, 'moos2'], [-14.8, -127, 2.3, 'moos'], [15, -129.5, 2.1, 'moos2'],
+    [14.4, -148, 2.6, 'moos'], [9.5, -142, 1.6, 'moos2'], [-6.5, -127, 1.5, 'moos2'], [8.5, -103.5, 1.4, 'moos'],
+    [-3.2, -150, 2.2, 'asche', 1.2], [-12, -141.2, 1.8, 'asche', 1.4], [-15.5, -158, 1.6, 'asche'], [10, -127, 1.3, 'kies'],
+  ]);
+  pflanzen(level, ISLE, [
+    [-15.6, -104.4, 'farn'], [-13.4, -107.4, 'blume', 'rot'], [14.2, -111.2, 'farn'], [15.6, -114, 'blume', 'gelb'],
+    [-15.6, -125.6, 'blume', 'rosa'], [-14, -128.6, 'farn'], [14.4, -130.6, 'farn'], [16, -128, 'blume', 'orange'],
+    [15.4, -146.6, 'farn'], [13.2, -149.4, 'blume', 'rot'], [9, -141.4, 'blume', 'lila'], [-6.2, -126.4, 'farn'],
+    [8.2, -102.6, 'blume', 'rosa'], [16.4, -158, 'farn'], [-16.4, -132, 'farn'],
+  ]);
   // Glasröhre mit Stachelkugel auf dem Zielriff (Eingang links offen, rechts geschlossen)
   glasgang(level, { axis: 'x', z: -219, a: -12.2, b: -4.2, y: BEACH, closed: ['b'] });
   flushQ(level, Q);
@@ -216,13 +280,26 @@ export const LEVEL = {
       { kind: 'seetang', pos: [-6, FLOOR2, -178], height: 4.2 }, { kind: 'seetang', pos: [8, FLOOR2, -192], height: 4.6 },
     ] },
     sign(-3.2, BEACH, 7.6, 'Rammfisch-Riff\nTief Luft holen!', { size: [2.4, 0.9] }),
+    // Startstrand: Palmen auf den Seitenfelsen, Sonnenschirm, Liegestuhl, Muscheln und Seesterne
+    { type: 'deco_w2', items: [
+      { kind: 'palme', pos: [-8.4, 1.6, 4.6], height: 3.8, lean: 0.35, yaw: PI - 0.2 },
+      { kind: 'palme', pos: [-12.6, 1.6, 10.4], height: 4.2, lean: 0.3, yaw: PI + 0.3 },
+      { kind: 'palme', pos: [8.6, 1.6, 5.4], height: 3.6, lean: 0.35, yaw: 0.2 },
+      { kind: 'palme', pos: [12.6, 1.6, 11], height: 4.4, lean: 0.25, yaw: -0.3 },
+    ] },
+    { type: 'deco_w5', items: [
+      { kind: 'sonnenschirm', pos: [4.4, BEACH, 5.2], color: 'gelb' },
+      { kind: 'liegestuhl', pos: [3.8, BEACH, 7.2], yaw: PI / 2 + 0.3, color: 'blau' },
+      { kind: 'muscheln', pos: [0, BEACH, 8.6], size: [10, 9], n: 11, seed: 2, avoid: [[0, 10, 1.2]] },
+      { kind: 'strandball', pos: [-4.2, BEACH, 4.6], size: 0.7 },
+    ] },
     sign(3.4, BEACH, -89.4, 'Warp-Box zur\nVulkaninsel', { size: [2.2, 0.8] }),
 
     // ================================================================ 2 Vulkaninsel
-    rock(-18, 18, -95.5, -113, ISLE, FLOOR - 2, { tag: 'insel' }),
-    rock(-18, -11, -113, -123, ISLE, FLOOR - 2, { tag: 'insel' }), rock(-1, 18, -113, -123, ISLE, FLOOR - 2, { tag: 'insel' }),
-    rock(-18, 18, -123, -132.5, ISLE, FLOOR - 2, { tag: 'insel' }),
-    rock(-18, 18, -139.5, -160, ISLE, FLOOR - 2, { tag: 'insel' }),
+    rock(-18, 18, -95.5, -113, ISLE, FLOOR - 2, { tag: 'insel', ...VULKAN }),
+    rock(-18, -11, -113, -123, ISLE, FLOOR - 2, { tag: 'insel', ...VULKAN }), rock(-1, 18, -113, -123, ISLE, FLOOR - 2, { tag: 'insel', ...VULKAN }),
+    rock(-18, 18, -123, -132.5, ISLE, FLOOR - 2, { tag: 'insel', ...VULKAN }),
+    rock(-18, 18, -139.5, -160, ISLE, FLOOR - 2, { tag: 'insel', ...VULKAN }),
     // Gezeitenbecken 1 (links) und 2 (quer, mit Trittsteinen); Sandgrund 3,4 m unter der Insel
     sand(-11, -1, -113, -123, ISLE - 3.4, FLOOR - 2), sand(-18, 18, -132.5, -139.5, ISLE - 3.4, FLOOR - 2),
     water(-11, -1, -113, -123, ISLE - 3.4, ISLE - 0.5),
@@ -234,6 +311,23 @@ export const LEVEL = {
       { kind: 'vulkanfelsen', pos: [12, ISLE, -122], size: [5, 6], n: 4, solid: true },
       { kind: 'vulkanfels', pos: [-15, ISLE, -102], size: 2 },
       { kind: 'koralle', pos: [-15.5, ISLE, -140], color: 'rosa' },
+    ] },
+    { type: 'deco_w5', items: [
+      { kind: 'muscheln', pos: [3, ISLE, -127.5], size: [6, 3], n: 7, seed: 4 },
+      { kind: 'muscheln', pos: [6, ISLE, -154], size: [4, 4], n: 5, seed: 9 },
+    ] },
+    { type: 'deco_w2', items: [
+      { kind: 'palme', pos: [-16.2, ISLE, -98], height: 5.2, lean: 0.3, yaw: PI },
+      { kind: 'palme', pos: [16.2, ISLE, -99.5], height: 4.8, lean: 0.3, yaw: 0.2 },
+      { kind: 'palme', pos: [-7.8, ISLE, -107.8], height: 3.8, lean: 0.3, yaw: PI + 0.5 },
+      { kind: 'palme', pos: [9.2, ISLE, -112.2], height: 4, lean: 0.3, yaw: -0.4 },
+      { kind: 'palme', pos: [8.4, ISLE, -129], height: 3.4, lean: 0.3, yaw: 0.3 },
+      { kind: 'palme', pos: [-16, ISLE, -116.5], height: 5.6, lean: 0.25, yaw: PI - 0.3 },
+      { kind: 'palme', pos: [16.4, ISLE, -116], height: 5, lean: 0.3, yaw: -0.2 },
+      { kind: 'palme', pos: [-16.4, ISLE, -127.6], height: 4.6, lean: 0.3, yaw: PI + 0.4 },
+      { kind: 'palme', pos: [16.6, ISLE, -126.4], height: 5.4, lean: 0.25, yaw: 0.3 },
+      { kind: 'palme', pos: [16.4, ISLE, -144], height: 5.8, lean: 0.3, yaw: -0.1 },
+      { kind: 'palme', pos: [12.4, ISLE, -157.6], height: 4.6, lean: 0.3, yaw: 0.6 },
     ] },
     sign(-2.8, ISLE, -101.6, 'Vulkaninsel\nVorsicht, Wutkaulquappen!', { size: [2.8, 0.9] }),
 
