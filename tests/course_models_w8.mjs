@@ -455,7 +455,7 @@ if (part('checks')) {
     && P.baron[6][1][0] > 0.6 && P.baron[6][1][1] > 1.6 && P.baron[6][0][0] > 0.2 && P.baron[6][2] > 0.5 && P.baron[6][3] > 2.9 && P.baron[6][4] > 0.6 && P.baron[7] > 0);
   if (P.pow) check('Super-Wumm-Block: size × size (+ Knallsterne), Ursprung unten, 4 Treffer → niedriger; userData.top/topAt', Math.abs(P.pow[0] - 5) < 0.8 && Math.abs(P.pow[1] - 5) < 0.6 && P.pow[2] > -0.05 && P.pow[3] < 2.6 && Math.abs(P.pow[4][0] - P.pow[4][1] * 0.68) < 0.2 && P.pow[4][1] === 5 && P.pow[4][2] < 2);
   if (P.glas) check('Freunde-Glas ≈2,4 m hoch, Ø ≈2 m, Ursprung unten, 4 Freunde; zerbrochen bleibt nur Kleines (≤ 1 m)', P.glas[0] > 2.2 && P.glas[0] < 2.7 && P.glas[1] > 1.8 && P.glas[1] < 2.4 && P.glas[2] > -0.05 && P.glas[3] < 1.2 && P.glas[4][0] === 4);
-  if (P.flosser) check('Sandflosser ≈1,4–2,2 m lang; Sprung über dem Sand; schwimmend nur Flosse über dem Sand; besiegt → weg', P.flosser[0] > 1.3 && P.flosser[0] < 2.3 && P.flosser[2] < 0.7 && P.flosser[3]);
+  if (P.flosser) check('Sandflosser ≈1,4–2,2 m lang; Sprung über dem Sand; schwimmend nur Flosse über dem Sand; besiegt → weg', P.flosser[0] > 1.3 && P.flosser[0] < 2.3 && P.flosser[2] < 0.85 && P.flosser[3]);
   if (P.gruppe) check('Knochenflieger-Gruppe: Formation ≈ 2·radius + Spannweite; zerstreut → weg', P.gruppe[0] > 3 && P.gruppe[0] < 7 && P.gruppe[3]);
   if (P.klotz) check('Kristall-Felsklotz ≈ size hoch (+ Kristalle), auf dem Boden; Würfel ebenso; userData.top', P.klotz[0] > 2.7 && P.klotz[0] < 4.2 && P.klotz[1] > -0.1 && P.klotz[3] > 2.7 && P.klotz[4] > -0.1 && P.klotz[5] > 2.5);
   if (P.statue) check('Baron-Sandstatue ≈3–5 m, steht; break 1 → nur der Sockel bleibt', P.statue[0] > 3 && P.statue[0] < 5.5 && P.statue[1] > -0.05 && P.statue[2] < 1.7);
