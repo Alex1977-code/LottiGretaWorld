@@ -438,27 +438,37 @@ const wreckGeo = () => memo('w8:wrack', () => {
     const car = m.root.children[0];
     car.children[3].visible = false;   // Bär
     car.children[2].visible = false;   // Qualm
+    const wheels = car.children[1];
+    wheels.setMatrixAt(0, new THREE.Matrix4().makeScale(0, 0, 0));   // Rad vorn rechts ist abgesprungen
   });
-  // verrußen und verbeulen: Haube eingedrückt, Front gestaucht
-  const g = recolor(h.lit, (c) => c.clone().multiplyScalar(0.82));
+  // verrußen und verbeulen: Front gestaucht und nach unten geknickt, rechte Vorderecke abgesackt, Dellen
+  const g = recolor(h.lit, (c) => c.clone().multiplyScalar(0.8));
   const P = g.attributes.position, C = g.attributes.color;
   for (let i = 0; i < P.count; i++) {
     let x = P.getX(i), y = P.getY(i);
     const z = P.getZ(i);
-    if (x > 1.0) { const d = x - 1.0; x = 1.0 + d * 0.62; y -= d * 0.22 * smoothstep((y - 0.6) / 0.6); }
-    const n = (noise3(x * 3, y * 3, z * 3) - 0.5) * 0.06;
-    P.setXYZ(i, x + n, y + n * 0.5, z);
-    const soot = noise3(x * 1.5 + 4, y * 1.5, z * 1.5) > 0.62 ? 0.45 : 1;
+    if (x > 0.9) { const d = x - 0.9; x = 0.9 + d * 0.55; y -= d * 0.3 * smoothstep((y - 0.3) / 0.8); }
+    if (x > 0.5 && z > 0.3) y -= (x - 0.5) * 0.18 * (z - 0.3);
+    const n = (noise3(x * 2.5, y * 2.5, z * 2.5) - 0.5) * 0.12;
+    P.setXYZ(i, x + n, y + n * 0.6, z + n * 0.4);
+    const soot = noise3(x * 1.3 + 4, y * 1.3, z * 1.3) > 0.58 ? 0.35 : 1;
     C.setXYZ(i, C.getX(i) * soot, C.getY(i) * soot, C.getZ(i) * soot);
   }
   g.computeVertexNormals();
   const b = new Build();
-  b.parts.push(g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(0, -0.05, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.22, 0.25, -0.08)), new THREE.Vector3(1, 1, 1))));
+  b.parts.push(g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(0, -0.12, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.16, 0.25, -0.12)), new THREE.Vector3(1, 1, 1))));
+  // hochgeklappte Motorhaube (verbogen), Riss-Linien
+  const hood = new THREE.BoxGeometry(1.4, 0.06, 1.3, 6, 1, 4);
+  const HP = hood.attributes.position;
+  for (let i = 0; i < HP.count; i++) { const x = HP.getX(i); HP.setY(i, HP.getY(i) + Math.sin((x + 0.7) * 2.2) * 0.12); }
+  hood.computeVertexNormals();
+  b.add(hood, { v: (x, y, z, nx, ny) => mix(0x8a1018, 0xd8202a, smoothstep(ny * 0.5 + 0.5)) }, { p: [1.25, 1.55, 0.05], r: [0.15, 0.25, 0.75] });
+  b.tube([[0.2, 1.05, 0.96], [0.4, 0.9, 0.98], [0.35, 0.72, 0.99], [0.55, 0.6, 0.98]], 0.025, 0x1a0e0e, null, 10, 4);
   // abgesprungenes Rad, Stoßstange, Radkappe, Schrauben
-  b.cyl(0.46, 0.46, 0.34, 0x1e1e24, { p: [2.6, 0.17, 1.8], r: [0, 0.4, 0] }, 20);
-  b.cyl(0.33, 0.33, 0.36, 0xf4f4f0, { p: [2.6, 0.17, 1.8], r: [0, 0.4, 0] }, 20);
-  b.cyl(0.22, 0.22, 0.38, 0xffd23a, { p: [2.6, 0.17, 1.8], r: [0, 0.4, 0] }, 14);
-  b.box(0.16, 0.14, 2.0, 0xc8ccd8, { p: [3.0, 0.08, -0.6], r: [0, 0.7, 0.1] }, 0.05, 1);
+  b.cyl(0.46, 0.46, 0.34, 0x1e1e24, { p: [2.7, 0.17, 1.9], r: [Math.PI / 2, 0.4, 0] }, 20);
+  b.cyl(0.33, 0.33, 0.36, 0xf4f4f0, { p: [2.7, 0.17, 1.9], r: [Math.PI / 2, 0.4, 0] }, 20);
+  b.cyl(0.22, 0.22, 0.38, 0xffd23a, { p: [2.7, 0.17, 1.9], r: [Math.PI / 2, 0.4, 0] }, 14);
+  b.box(0.16, 0.14, 2.0, 0xc8ccd8, { p: [3.0, 0.08, -0.7], r: [0, 0.7, 0.1] }, 0.05, 1);
   b.cyl(0.22, 0.22, 0.04, 0xffd23a, { p: [-2.4, 0.03, -1.6] }, 14);
   for (let i = 0; i < 6; i++) b.box(0.08, 0.08, 0.12, 0x8a8a9a, { p: [1.8 + hash1(i) * 2, 0.04, -1 + hash1(i + 4) * 3], r: [0, i, 0] }, 0, 1);
   return b.geometry();

@@ -631,10 +631,11 @@ const jarCapGeo = () => cached('w8:jar:cap', () => {
   b.tube([[0.64, 2.02, 0.05], [0.72, 1.9, 0.04], [0.78, 1.76, 0.02], [0.8, 1.66, 0]], 0.018, 0xd8c8a0, null, 12, 5);
   b.sphere(1, { v: (x, y, z, nx) => mix(0x9a0e1a, 0xe02a3a, smoothstep(nx * 0.6 + 0.3)) }, { p: [0.84, 1.52, 0], s: [0.06, 0.17, 0.17] }, 16, 12);
   bearEmblem(b, { p: [0.9, 1.52, 0], r: [0, Math.PI / 2, 0] }, 0.11);
-  // Glanzstreifen links vorn (knapp außerhalb des Glases)
-  for (const [a, y0, y1, w] of [[-0.62, 0.35, 1.45, 0.035], [-0.8, 0.5, 1.15, 0.022]]) {
-    const pts = []; for (let i = 0; i <= 8; i++) { const y = lerp(y0, y1, i / 8); pts.push([Math.cos(a) * 0.985, y, Math.sin(a) * 0.985]); }
-    b.add(taperTube(pts, (t) => w * Math.sin(Math.PI * clamp(t, 0.02, 0.98)) + 0.002, 10, 5), 0xffffff);
+  // Glanzstreifen links vorn: schmale, gebogene Spiegelungen knapp vor der Glaswand
+  for (const [a, w, y0, y1] of [[-2.35, 0.09, 0.4, 1.42], [-2.17, 0.04, 0.55, 1.2]]) {
+    const g = new THREE.CylinderGeometry(0.978, 0.978, y1 - y0, 6, 4, true, a, w);
+    g.translate(0, (y0 + y1) / 2, 0);
+    b.add(g, { v: (x, y) => mix(0xe8f6ff, 0xffffff, Math.sin(clamp((y - y0) / (y1 - y0), 0, 1) * Math.PI)) });
   }
   return b.geometry();
 });

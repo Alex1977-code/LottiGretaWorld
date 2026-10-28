@@ -277,14 +277,14 @@ function crystalCluster(b, M, color, hi, seed, s = 1) {
 function kkRockGeo(shape) {
   return cached(`w8:kk:rock:${shape}`, () => {
     const b = new Build();
-    const rockV = { v: (x, y, z, nx, ny) => mix(KK.rockLow, mix(KK.rock, KK.rockHi, smoothstep(ny * 0.6 + nx * 0.2) * 0.7), smoothstep(ny * 0.5 + 0.6 + (noise3(x * 3, y * 3, z * 3) - 0.5) * 0.4)) };
+    const rockV = { v: (x, y, z, nx, ny) => { const nz = noise3(x * 4, y * 4, z * 4); const c = mix(KK.rockLow, mix(KK.rock, KK.rockHi, smoothstep(ny * 0.6 + nx * 0.2) * 0.7), smoothstep(ny * 0.5 + 0.6 + (nz - 0.5) * 0.9)); return noise3(x * 11 + 3, y * 11, z * 11) > 0.72 ? mix(c, 0xe0d4f0, 0.45) : c; } };
     if (shape === 'wuerfel') {
       const g = new THREE.BoxGeometry(1, 1, 1, 6, 6, 6);
       const P = g.attributes.position;
       for (let i = 0; i < P.count; i++) { const v = new THREE.Vector3().fromBufferAttribute(P, i); const n = v.clone().normalize(); v.lerp(n.multiplyScalar(0.62), 0.22); P.setXYZ(i, v.x, v.y, v.z); }
       g.computeVertexNormals();
       b.add(displace(g, 0.025, 4, 2, true), rockV, { s: 0.98 });
-    } else b.add(lumpyEllipsoid([0.5, 0.5, 0.5], 0.03, 3.2, 1, 34, 24), rockV);
+    } else b.add(lumpyEllipsoid([0.5, 0.5, 0.5], 0.045, 2.6, 1, 34, 24), rockV);
     // Gesicht vorn (+X): Steinbrauen, Schmollmund mit Zunge, Bäckchen
     const fx = shape === 'wuerfel' ? 0.5 : 0.45;
     for (const s of [1, -1]) {
