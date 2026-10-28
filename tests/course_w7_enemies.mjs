@@ -629,7 +629,7 @@ check(`Auf- und abziehender Rammfisch (y ${rf.vertical.join(' … ')})`, rf.vert
 check(`Rammfisch trägt Stern ${rf.star.index} in der Blase (wandert mit, ${rf.star.moved} m); Wurfsichel/Feuer/Krallen prallen ab, Berührung sammelt den Stern, die Blase platzt; Explosion besiegt ihn`,
   rf.star.moved > 2 && rf.star.above > 0.2 && Math.abs(rf.star.dx) < 0.01 && rf.star.bubble && rf.star.weak === false && rf.star.collected && rf.star.bubbleGone && rf.star.strong);
 
-// Wurfsichel bei allen Gegnerarten: frisch erzeugt, onHit('sichel') – erwartete Wirkung je Art
+// Wurfsichel bei allen Gegnerarten: frisch erzeugt, Treffer wie die Wurfsichel des Motors (t.sichel) – erwartete Wirkung je Art
 const ws = await sc(() => {
   const c = window.__course, t = window.__t, p = c.player, L = c.level;
   const KINDS = {

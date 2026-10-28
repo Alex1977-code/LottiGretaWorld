@@ -25,7 +25,7 @@
 //                   er sie fallen: an seiner Stelle erscheint das Power-up { kind: 'powerup', power: 'sichel' }; fällt er in
 //                   Lava/Abgrund, erscheint es an seinem Platz (home).
 //   fireColor?: 'blau'  blaue Feuerkugeln (Modell 'feuerkugel_blau', z. B. über blauer Lava in 7-1).
-//   Wurfsichel der Figur (onHit('sichel')) besiegt jeden Werfer wie ein Feuerball.
+//   Wurfsichel der Figur (Motor: onHit('throw', sichel)) besiegt jeden Werfer wie ein Feuerball.
 // Zustände: idle → walk ⇄ throw | jump; squashed | flipped. Laufzeit: throws (Zahl der Würfe), jumps, shots (lebende
 //   Geschosse), tier ('low'|'high' mit heights), sichelDropped.
 // Modell 'feuer_werfer' (opts { kind }, state { anim: idle|walk|jump|throw|squashed|stunned, speed, progress }).

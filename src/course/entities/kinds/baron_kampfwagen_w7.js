@@ -38,14 +38,15 @@
 //   traps s aus (Phase 3 öfter).
 //   **Treffer: zurückgekickte (oder geworfene) Kickbomben** (onBombHit; Zielhilfe: gekickte Bomben, die grob auf den Wagen zu
 //   rollen, lenken ein, rollen bis zu ihm und hüpfen über Lavalücken) → hit (0,6 s, Zylinder fliegt) → stunned (1,1 s) → drive.
-//   **Wurfsichel = Zusatzschaden** (onSichelHit): jeder Sichel-Treffer ist ein Kratzer (Lebensleiste: goldene Punkte =
-//   carHits), sichel Kratzer = ein Treffer.
+//   **Wurfsichel = Zusatzschaden** (onSichelHit): jede geworfene Sichel kratzt einmal (Hin- und Rückflug zusammen; Lebensleiste:
+//   goldene Punkte = carHits), sichel Kratzer = ein Treffer.
 //   9 Treffer in 3 Phasen (je 3): Phase 2 mehr Bomben (Doppelwurf) und Feuerstoß, Phase 3 schneller und Stachelfallen öfter.
 //   Ansagen: „Kick die Bomben zurück!“ (Archetyp), „Mehr Bomben – und ein Feuerstoß!“, „Er wird schneller – Vorsicht, Stacheln!“,
 //   „Vorsicht – gleich explodiert sie!“ (erste kurze Lunte), „Kratzer!“ (Sichel). Draufspringen = Abprall ohne Schaden; Feuer,
 //   Krallen, Panzer, Stern, Riese, Explosionen daneben zählen nicht. Berührung des Wagens verletzt.
 //   Besiegt → defeated (2,2 s: Wagen bremst, sackt schief ab und qualmt dicht, eigene Bomben verpuffen, Fanfare über den Archetyp)
-//   → flee (3,0 s: der Baron springt aus dem qualmenden Wagen und hüpft schwindelig davon, den Zylinder in der Tatze – lustig) →
+//   → flee (3,0 s: der Baron springt seitlich aus dem qualmenden Wagen und hüpft schwindelig im Zickzack davon, den Zylinder in
+//   der Tatze – lustig) →
 //   gone (Stern star erscheint; Archetyp: Warp-Box). Tod im Kampf (reset): Baron 9/9, Wagen und Fenster zurück zum Anfang,
 //   Bomben/Feuerkugeln weg, Stachelfallen eingefahren, Kampf beim nächsten Betreten von vorn.
 //   Daten: { kind: 'baron_kampfwagen', id: 'baron', road: 'strasse' (Id der Boss-Straße), pos: [x, y, z] (Wagenmitte beim
