@@ -1581,6 +1581,90 @@ Dreiecke, ≈ 310 Kollisionsformen; je Ansicht (Zeichenaufrufe inkl. Schattenpas
 279 k (Höchstwert; Modell-Kacheln fern ausgeblendet). Welt 5 an der Röhre nach Welt 6 und bei der Rückkehr höchstens
 53 / 116 k.
 
+### Präzisierung (Mehrwelten-Karte): Welt 7 „Lava-Festung“ (Notiz)
+
+- Dateien: `worlds/w7.js` (Daten, `MAP.world = 7`, `kit: 'lava'`, Thema `map_lava`, Musik `course_world7_map`, Rückfall
+  `course_map`, `starScope: 'all'`), `lava7.js` (Thema `map_lava`: Abendhimmel violett → orange, warmer Nebel, Vulkan mit
+  Rauchsäule und ferne Vulkankegel am Horizont; Geländestile, Ränder, Requisiten, Streudeko, Brücken-Segmente, Inselchen,
+  Nachbarwelt-Stil `'erzpark'`, lebendige Kulisse `LavaLife`, Taktuhr `beatNow7`/`fountainEnvelope`), `decor_w7.js`
+  (Kulissen der zwölf Welt-7-Eingänge). Additiv angebunden: `MapBuilder.js` (`map.kit === 'lava'`: Gelände, Segmente –
+  zuerst `buildLavaSegment`, sonst `buildSkySegment` für `glasstube` –, Streudeko, Requisiten-Ketten, Ränder, `LavaLife`,
+  Materialien `w6glass`/`w6rainbow` wie Welt 6), `scenery.js` (Inselchen in einer Kachel `w7:inselchen`, Wolken ohne
+  Schattenpass, Nachbarwelt-Stil `'erzpark'`), `entrances.js` (`decorateW7`), `props.js` (Podestfarben). `CourseMapScene.js`,
+  `MapBatcher.js`, `travel.js`, `unlock.js`, `layout.js` und `worlds/w6.js` sind unverändert.
+- Inseln (begehbar, Höhe) und Eingänge (`kind`), eine Vulkaninsel im Abendmeer (`sea: 0`), rote und blaue Lavaflüsse und
+  -seen (`style: 'basin'|'bluebasin'`, Lava-Oberfläche y 0.7) trennen die Bereiche, nach Norden ansteigend: A Ankunftsbucht
+  y 1.5 mit Beerenhaus (−6, 1.5, 38.6) – `W6` Glasröhre zurück (−16, 1.5, 45; `departAlong`, nach Südwesten zu den
+  Wolkeninseln am Horizont), `7-1` `bluefort` Werfer-Festung in der blauen Lava (16, 1.5, 44; Fels mit Mauern, Bergfried,
+  Glasröhren mit H-Röhre, Feuerbälle im Bogen); AA Felsfläche im Lavasee y 1.2 – `7-A` `rockarena` (−48, 1.2, 24;
+  Gegnergruppe heller `lavafelsen_koenig`); B Tempelplatz y 3 vor der Basalt-Steilwand (Lavafälle rot/blau) – `7-2`
+  `templerock` Tempel-Eingang im Fels (0, 3, 2.4; Säulen, Stachelpanzer, Schaltfelder als Lauflicht); C Startplatz der
+  Rennbahn y 4 – `7-3` `lavarace` (43, 4, −2; Rundkurs auf Stelzen über dem Lavafeld, Boost-Pfeile, Donut-Blöcke,
+  Stachelwalze, sausende Kugeln); D Blaue-Lava-Ufer y 3.5 – `7-4` `bluecylinders` (−40, 3.5, −4; drehende Zylinder
+  `zylinder_walze` in blauer Lava, Pfeilplattformen); DB Käfig-Insel y 3.5 – `7-B` `bluecage` (−77, 3.5, −4; blaue Mauern,
+  Glasröhren, Gegnergruppe blauer `schubser_prinz`); E Turm-Ufer y 5 – `7-5` `lavatower` Turm im Lavasee (−41, 5, −40.5;
+  13 m, Giftnebel-Kappe, Funken, Seilbahn `cableways` zur Turmspitze); EK Diorama-Insel y 5 – `7-Kapitän` `machinediorama`
+  (−68, 5, −36; `lava_maschine`, `kruemel`, Stampfsteine); F Riff-Ufer y 3 an der Lagune (`style: 'lagoon'`) mit Glückshaus
+  (3, 3, −47.6) – `7-6` `reeflagoon` Vulkan-Riff (−13, 3, −45; Korallen, Wutkaulquappen, Rammfisch); FC Hallen-Insel y 5 –
+  `7-C` `werferhall` Werfer-Halle (29, 5, −44; Podest, roter Teppich, Feuerschalen, Brummbär-Banner, Gegnergruppe 4 ×
+  `feuer_werfer`); G Kraterrand y 7 – `7-7` `crater` Vulkankrater (−7, 7, −96.5; Hufeisen-Krater mit steigender/sinkender
+  Lava, zwei Fontänen und einem auftauchenden Lavadrachen); H Burghof y 8.5 – `7-Burg` `lavakeep` Lava-Burg (37, 8.5, −108,
+  „ab 150 ★“; Torhaus mit Fallgitter, Bergfried mit flackernden Fenstern, Kampfwagen, Brummbär-Banner); I Röhren-Insel
+  y 8.5 – `W8` Glasröhre (70, 8.5, −110; nach Nordosten zum dunklen Erzpark-Land am Horizont). Zwölf Verbindungen
+  (`segments`): Basaltbrücken (`basaltbridge`), Kettenstege (`chainbridge`), ein Damm aus Basaltsäulen (`causeway`, F → G),
+  die Zugbrücke (`drawbridge`, G → H) und eine Glasröhre (`glasstube`, H → I); zwölf Schranken.
+- Freischaltung laut „Welt 7 – Level-Liste und Freischaltung“: `7-1` frei, sobald Welt 7 offen ist; `7-2` und `7-A` nach
+  7-1; `7-3` und `7-4` nach 7-2; `7-B` und `7-5` nach 7-4; `7-Kapitän` und `7-6` nach 7-5; `7-C` und `7-7` nach 7-6;
+  `7-Burg` nach 7-7 **und ≥ 150 ★** (alle Sterne); `W8` (`{ id: 'W8', after: '7-Burg', world: 8, next: 8 }`) nach 7-Burg;
+  Rückweg `W6` (`{ id: 'W6', world: 6, next: 6 }`) immer frei. 32 Sterne, Stempel auf 7-1 … 7-7, 7-Burg. Schilder
+  „Welt 7 / Lava-Festung“, „Beerenhaus“, „Glückshaus“, „ab 150 ★“.
+- Weltdaten zusätzlich (alles optional): Geländestile `ash` (Standard)|`arena`|`temple`|`track`|`bluerock`|`fort`|`crater`|
+  `castle`|`blacksand`|`rock`|`cliff`|`basin`|`bluebasin`|`lagoon`, je Lava-Block `flow: [dx, dz]` (Fließrichtung der
+  Textur); Ränder `edges: { hedge: 'basaltwall', fence: 'battlement' }` (Basaltmauern, Zinnenmauern an den Lavaufern);
+  Requisiten `basalt7` (Registry `basaltsaeule`)|`vrock7` (`vulkanfels`)|`spire7`|`lavaflower7`|`emberbush7`|`crates7`|
+  `barrels7`|`cannon7`|`tires7`|`gears7`|`shells7`. Lebendige Kulisse (`LavaLife`): `fountains: [[x, y, z, Höhe, 'rot'|'blau']]`,
+  `lavafalls: [{ at: [x, z], w, top, bottom, face: 'N'|'S'|'E'|'W', color }]`, `smoke: [[x, y, z, Stärke]]`,
+  `flags: [[x, y, z, Masthöhe]]` (Brummbär-Fahnen), `torches: [[x, y, z, Farbe]]`, `boneflyers: [{ c, r, n, speed }]`
+  (Knochenflieger), `fishjumps: [[x, y, z, Weite, yaw]]` (Platschfische), Lavablasen auf allen Lavaflächen;
+  Nachbarwelt-Stil `'erzpark'`. Bewegte Teile sind je Art eine Instanz-Fläche und werden fern der Figur (> 45 m zwischen
+  Kamera und Ziel) ausgeblendet; die Lavaflächen sind eine Fläche je Farbe mit laufender Textur.
+- **Fontänen im Takt:** Je Zählzeit der Kartenmusik (`music.beat()`) sprühen abwechselnd die geraden und die ungeraden
+  Fontänen (Hülle steigt in den ersten 14 % der Zählzeit, fällt bis 75 %, danach Ruhe). Ohne laufende Musik zählt eine
+  Ersatzuhr (Kartenzeit, `source: 'zeit'`) im Tempo von `course_world7_map` (fehlt das Thema: `course_map`). Der Lavasee im
+  Krater steigt und sinkt, der Lavadrache taucht alle 9 s auf, die Schaltfelder vor dem Tempel laufen als Lauflicht.
+  Test-Schnittstelle (additiv): `state().decor` = Vereinigung von `ev.liveInfo()` aller Eingänge und
+  `built.life.liveInfo()` – `fountains { beat, step, k, erupting, source, theme, bpm, n, shown }`, `lava { rot, blau }`,
+  `lavafalls { n }`, `bubbles { n }`, `smoke { n }`, `boneflyers { n }`, `flags { n }`, `torches { n }`, `fish { n }`,
+  `switches { lit, n }`, `race { length, orbs, light }`, `cylinders { n, angle, registry }`, `tower { height, fog, sparks }`,
+  `diorama { kruemel, machine }`, `reef { corals, registryCorals, fin }`, `hall { banners }`, `crater { level, dragon }`,
+  `keep { banners }`, `w7models` (benutzte Registry-Modelle), `w7heavy` (zu schwere: Name → Dreiecke);
+  `built.life.fountainInfo(t)`.
+- Registry-Modelle (Obergrenze je Einsatz über `beach5.modelTris`; unbewegte eingebacken, bewegte als eigene Objekte; fehlt
+  ein Modell, zeichnet `decor_w7.js` eigene Geometrie an gleicher Stelle): Welt 7 – `basaltsaeule` (ohne Glutfugen),
+  `festungsturm` (blau/Burg), `gitterboden`, `lava_maschine`, `lavagestein`, `riffkoralle`, `vulkanfels`, `zylinder_walze`;
+  aus Welt 4 wiederverwendet – `brummbaer_banner`, `fallgitter`, `stachelpanzer`, `lavafelsen_koenig`; vorhandene –
+  `stampfstein`, `kruemel`; Gegnergruppen `lavafelsen_koenig` (`variant: 'hell'`), `schubser_prinz` (`color: 'blau'`),
+  `feuer_werfer`. Bewusst eigene
+  Geometrie (auf der Karte zu schwer oder als Instanzen nötig): Knochenflieger (≈ 9,4 k), Platschfisch (≈ 7,6 k), Lavadrache
+  (≈ 9,9 k), Baron-Kampfwagen (≈ 24,5 k), Lavabrocken (≈ 6,9 k), Pilzlingsturm (≈ 16 k), Zugbrücke (≈ 8,7 k), Fontänen,
+  Lavablasen und Pfeilplattformen (bewegt, Instanzen).
+- Übergänge: Die Welt-6-Röhre `W7` und ein Welt-Warp nach Welt 7 führen ohne Codeänderung nach Welt 7 (Ankunft an `W6`,
+  Kamera `arriveCam`); die Aussage „Die Röhre `W7` zeigt „Welt 7 kommt bald!““ der Welt-6-Notiz ist damit überholt. Zurück
+  durch `W6` landet man an der Röhre `W7` in Welt 6 (entdeckt, Schranke 6-C von hinten passierbar). Die Röhre `W8` zeigt
+  „Welt 8 kommt bald!“; ein Welt-Warp nach Welt 8 endet über den vorhandenen Rückfall an dieser Röhre (Schranke 7-Burg
+  von hinten passierbar). `tests/course_map_w6.mjs` (Abschnitte 1, 5, 9) prüft jetzt die Fahrt und den Warp nach Welt 7 und
+  die Rückkehr, `tests/course_map_hw.mjs` die Weltenliste 1–7, 31.
+- Test: `tests/course_map_w7.mjs` (Port 4280, Bilder `tests/out/cmap7_*.png`), Teilläufe `W7_TEIL=1|2|3|4` (Abschnitte
+  2–4, 5–7, 8–10, 11–14, je mit den Node-Prüfungen; gemessen ≈ 4,0 / 5,2 / 4,4 / 7,0 min). Noch nicht in `npm test`.
+
+Gemessen (scale 2, `tests/course_map_w7.mjs`, mit den Welt-7-Modellen): statische Kulisse Welt 7 52 Kachel-Meshes, ≈ 178 k
+Dreiecke, ≈ 255–263 Kollisionsformen; je Ansicht (Zeichenaufrufe inkl. Schattenpass / Dreiecke) Ankunft durch die
+Glasröhre 99–107 / 203–238 k, Start 86 / 197 k, Ankunftsbucht 69 / 188 k, Festung 80 / 191 k, Felsfläche 82–83 /
+218–223 k, Tempel 89 / 243 k, Rennbahn 82 / 209 k, blaue Lava 78 / 249 k (Höchstwert Dreiecke), Käfig 76 / 187 k, Turm
+73 / 200 k, Diorama 71 / 159 k, Riff 75 / 207 k, Werfer-Halle 83–96 / 240–241 k, Damm 89 / 197 k, Krater 55 / 159 k,
+Burg 60–67 / 148–161 k, Röhren-Insel 48–60 / 125–126 k, Warp-8-Ankunft 88 / 228 k, Anflug 103 / 210 k. Welt 6 an der Röhre
+nach Welt 7 und bei der Rückkehr höchstens 66 / 139 k.
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
