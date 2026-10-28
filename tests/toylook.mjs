@@ -105,8 +105,11 @@ async function measure(kind = 'course', timed = true) {
     // fein verschränkt (an, aus, an, aus …), Median je Zustand: Lastspitzen anderer Prozesse treffen beide gleich
     // Reihenfolge abwechselnd an→aus / aus→an (ABBA), damit ein Trend (Wärme, Speicherbereinigung) keinen Zustand bevorzugt
     for (let rep = 0; rep < (toy ? 2 * n : n); rep++) {
-      const on = () => { set(false); one(); A.push(one()); callsOn = r.info.render.calls; };
-      const off = () => { set(true); one(); B.push(one()); callsOff = r.info.render.calls; set(false); };
+      // nach einem Wechsel so lange zeichnen, bis die Aufrufe stehen: Shader-Varianten werden parallel übersetzt, bis dahin
+      // lässt three.js die betroffenen Objekte aus (auf der Karte mit vielen Materialien dauert das mehrere Bilder)
+      const warm = () => { let last = -1; for (let i = 0; i < 12; i++) { one(); const c = r.info.render.calls; if (c === last) break; last = c; } };
+      const on = () => { set(false); warm(); A.push(one()); callsOn = r.info.render.calls; };
+      const off = () => { set(true); warm(); B.push(one()); callsOff = r.info.render.calls; set(false); };
       if (!toy) on(); else if (rep & 1) { off(); on(); } else { on(); off(); }
     }
     draw(); sync();
