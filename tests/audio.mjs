@@ -54,6 +54,13 @@
 // ausgelöst wie alle Effekte, offline mit denselben Maßstäben wie die Kurs-Effekte (Lautheit im Bereich der bestehenden,
 // Spitze < 0,9, Dauer ≤ 1,6 s, ≤ 40 Knoten); Hörprobe tests/out/sfx_demo_w6.wav.
 //
+// Ergänzte Kurs-Effekte für vorher stumme Aufrufe (MORE_SFX, engine.effects.more: victory, fall, boost, skid, glide,
+// wallslide, swim, fence, grab, swing, hop, dash, kick, dizzy, boomerang, dig, throw, fuse, burn, chain, alarm, flip, donut,
+// pfiff, note0–note7): live ausgelöst wie alle Effekte, offline mit denselben Maßstäben (victory ≤ 1,5 s), Hörprobe
+// tests/out/sfx_demo_fehlende.wav; Drosselung live (SFX_GAP: Wiederholung desselben Effekts innerhalb des Mindestabstands
+// bleibt stumm, danach klingt er wieder). Teil „sfx“ prüft außerdem ohne Browser alle Aufrufnamen im Quellcode
+// (tests/sfx_namen.mjs): kein aufgerufener Name ohne eigenen Effekt, alle dynamischen Stellen von Hand geprüft.
+//
 // Welt 7 („Lava-Festung“, Welt-7-Liste im Vertrag): die neun neuen Themen mit denselben Messungen und derselben
 // Melodie-Prüfung, Hook und Kontur eigenständig gegen alle Themen (Welten 1–7 und Halloween); Tempo 128–150 BPM (Sprint
 // 148–152, Lava-Burg 146–150, Karte 126–128), 16–32 Takte, Loop-Naht wie Welt 6 (Daten und gerendert), Pegel wie Welt 5
@@ -73,6 +80,7 @@
 import { writeFileSync } from 'node:fs';
 import { startServer, launchBrowser, loadGame, makeChecker, OUT } from './helpers.mjs';
 import { THEMES } from '../src/audio/themes.js';
+import { scanSfxNames } from './sfx_namen.mjs';
 import { midi } from '../src/audio/Music.js';
 
 const PORT = 4184;
@@ -705,6 +713,8 @@ const W6_SFX = ['gust', 'wind', 'rumble', 'door', 'poof', 'splash', 'bump', 'pow
 const HW_SFX = ['klingel', 'tuer', 'alle_tueren', 'kessel', 'blase', 'netz', 'laterne', 'laterne_aus', 'suessigkeit', 'muenzregen', 'buh',
   'grabstein', 'kuerbis_platzt'];
 const W6HW_SFX = [...W6_SFX, ...HW_SFX];
+const MORE_SFX = ['victory', 'fall', 'boost', 'skid', 'glide', 'wallslide', 'swim', 'fence', 'grab', 'swing', 'hop', 'dash', 'kick',
+  'dizzy', 'boomerang', 'dig', 'throw', 'fuse', 'burn', 'chain', 'alarm', 'flip', 'donut', 'pfiff', ...[0, 1, 2, 3, 4, 5, 6, 7].map((i) => `note${i}`)];
 
 const infos = BROWSER ? await sc((names) => names.map((n) => window.__audio.music.themeInfo(n)), Object.keys(COURSE_THEMES)) : [];
 
@@ -1013,11 +1023,31 @@ if (want('live')) {
       const a = e.stats.nodes;
       try { fx.play(n); unknown[String(n)] = e.stats.nodes - a; } catch (err) { unknown[String(n)] = `Fehler: ${err.message}`; }
     }
-    return { names: fx.names, course: fx.course, world: fx.world, w6: fx.w6 ?? [], hw: fx.hw ?? [], nodes, unknown };
+    // Drosselung: Wiederholung innerhalb des Mindestabstands bleibt stumm, danach klingt der Effekt wieder. Je Auslösung
+    // Knoten und Kontextzeit (unter Last können Wartezeiten länger werden – die Prüfung folgt den tatsächlichen Zeiten).
+    const wait = (s) => new Promise((r) => setTimeout(r, s * 1000));
+    const playN = (n) => { const a = e.stats.nodes, t = e.now; fx.play(n); return { nodes: e.stats.nodes - a, t }; };
+    const gap = { swim: fx.gap?.swim ?? 0, def: fx.gapDefault ?? 0 };
+    await wait(0.6);
+    const throttle = { swim: [playN('swim'), playN('swim')], coin: [playN('coin'), playN('coin')] };
+    await wait(gap.swim * 0.3);
+    throttle.swim.push(playN('swim'));
+    await wait(gap.swim + 0.05);
+    throttle.swim.push(playN('swim'));
+    await wait(gap.def + 0.05);
+    throttle.coin.push(playN('coin'));
+    return { names: fx.names, course: fx.course, world: fx.world, w6: fx.w6 ?? [], hw: fx.hw ?? [], more: fx.more ?? [], nodes, unknown, gap, throttle };
   });
-  check(`Effekt-Liste enthält die ${W6_SFX.length} Welt-6- und ${HW_SFX.length} Halloween-Namen (engine.effects.w6/hw)`,
-    W6HW_SFX.every((n) => liveSfx.names.includes(n)) && W6_SFX.every((n) => liveSfx.w6.includes(n)) && HW_SFX.every((n) => liveSfx.hw.includes(n))
-    && liveSfx.w6.length === W6_SFX.length && liveSfx.hw.length === HW_SFX.length);
+  check(`Effekt-Liste enthält die ${MORE_SFX.length} ergänzten Kurs-Effekte (engine.effects.more)`,
+    MORE_SFX.every((n) => liveSfx.names.includes(n)) && MORE_SFX.every((n) => liveSfx.more.includes(n)) && liveSfx.more.length === MORE_SFX.length);
+  // Erwartung je Auslösung aus den Kontextzeiten: klingt genau dann, wenn seit der letzten hörbaren Auslösung ≥ Abstand vergangen ist
+  const rule = (list, g) => { let last = -Infinity; return list.every((x) => { const ok = x.t - last >= g ? x.nodes > 0 : x.nodes === 0; if (x.nodes > 0) last = x.t; return ok; }); };
+  const th = liveSfx.throttle, fmtTh = (list) => list.map((x) => `${x.nodes}@${fmt(x.t - list[0].t, 2)}s`).join(' / ');
+  console.log(`Drosselung: swim (Abstand ${liveSfx.gap.swim} s) Knoten ${fmtTh(th.swim)}; coin (Abstand ${liveSfx.gap.def} s) Knoten ${fmtTh(th.coin)}`);
+  check(`Drosselung: swim sofort wiederholt stumm, innerhalb von ${liveSfx.gap.swim} s stumm, danach wieder hörbar`,
+    liveSfx.gap.swim >= 0.1 && th.swim[0].nodes > 0 && th.swim[1].nodes === 0 && th.swim[3].nodes > 0 && rule(th.swim, liveSfx.gap.swim));
+  check(`Drosselung: derselbe Effekt im selben Augenblick klingt einmal (coin ${th.coin.map((x) => x.nodes).join(' / ')}), danach wieder`,
+    liveSfx.gap.def > 0 && liveSfx.gap.def <= 0.05 && th.coin[0].nodes > 0 && th.coin[1].nodes === 0 && th.coin[2].nodes > 0 && rule(th.coin, liveSfx.gap.def));
   check(`Effekt-Liste enthält alle ${WORLD_SFX.length} Namen für Welt 2–4`, WORLD_SFX.every((n) => liveSfx.names.includes(n)) && WORLD_SFX.every((n) => liveSfx.world.includes(n)) && liveSfx.world.length === WORLD_SFX.length);
   check('Effekt-Liste enthält alle Vertragsnamen', CONTRACT_SFX.every((n) => liveSfx.names.includes(n)) && CONTRACT_SFX.every((n) => liveSfx.course.includes(n)) && liveSfx.course.length === CONTRACT_SFX.length);
   const heavy = Object.entries(liveSfx.nodes).filter(([, n]) => !(n > 0 && n <= MAX_SFX_NODES));
@@ -1178,7 +1208,7 @@ if (want('sfx')) {
   const lists6 = await sc(() => { const f = window.__audio.engine.effects; return { w6: f.w6 ?? [], hw: f.hw ?? [] }; });
   check(`Welt-6- und Halloween-Klänge sind eigene Effekte (${W6HW_SFX.length} Namen in engine.effects.names/w6/hw)`,
     W6HW_SFX.every((n) => names.includes(n)) && W6_SFX.every((n) => lists6.w6.includes(n)) && HW_SFX.every((n) => lists6.hw.includes(n)));
-  const order =[...CONTRACT_SFX, ...names.filter((n) => !CONTRACT_SFX.includes(n) && !WORLD_SFX.includes(n) && !W6HW_SFX.includes(n))];
+  const order = [...CONTRACT_SFX, ...names.filter((n) => !CONTRACT_SFX.includes(n) && !WORLD_SFX.includes(n) && !W6HW_SFX.includes(n) && !MORE_SFX.includes(n))];
   const demo = await sc(sfxInPage, { order, gap: 0.6 });
   writeWav(`${OUT}sfx_demo.wav`, demo.wav, demo.sampleRate);
   // Bezug: bestehende, unveränderte Klassik-Effekte für Spielereignisse (ohne die bewusst leisen Umgebungs- und
@@ -1238,6 +1268,36 @@ if (want('sfx')) {
     check(`sfx ${n}: Lautheit ${fmt(x.loudness, 1)} LUFS im Bereich, Spitze ${fmt(x.peak, 2)} < 0,9, Dauer ${fmt(x.duration, 2)} s, ${x.nodes} Knoten`,
       x.loudness >= loLim && x.loudness <= hiLim && x.peak < 0.9 && x.duration > 0.04 && x.duration <= 1.6 && x.nodes <= MAX_SFX_NODES);
   }
+
+  // Ergänzte Kurs-Effekte (vorher stumme Aufrufe): eigene Hörprobe, gleiche Maßstäbe; Siegesfanfare höchstens 1,5 s
+  const moreList = await sc(() => window.__audio.engine.effects.more ?? []);
+  check(`Ergänzte Kurs-Effekte sind eigene Effekte (${MORE_SFX.length} Namen in engine.effects.names/more)`,
+    MORE_SFX.every((n) => names.includes(n) && moreList.includes(n)));
+  const demoM = await sc(sfxInPage, { order: MORE_SFX, gap: 0.6 });
+  writeWav(`${OUT}sfx_demo_fehlende.wav`, demoM.wav, demoM.sampleRate);
+  console.log(`\nErgänzte Kurs-Effekte: ${OUT}sfx_demo_fehlende.wav (${fmt(demoM.seconds, 1)} s, je Effekt + 0,6 s Pause), Reihenfolge:`);
+  const byNameM = Object.fromEntries(demoM.stats.map((x) => [x.name, x]));
+  MORE_SFX.forEach((n, i) => {
+    const x = byNameM[n];
+    console.log(`   ${String(i + 1).padStart(2)}. ${fmt(demoM.starts[i], 2).padStart(6)} s  ${n.padEnd(10)} Dauer ${fmt(x.duration, 2)} s  Spitze ${fmt(x.peak, 2)}  Lautheit ${fmt(x.loudness, 1)} LUFS  Knoten ${x.nodes}`);
+  });
+  const lM = MORE_SFX.map((n) => byNameM[n].loudness).sort((p, q) => p - q);
+  const medianM = lM[Math.floor(lM.length / 2)];
+  check(`Ergänzte Kurs-Effekte gleich laut wie die bestehenden (Median ${fmt(medianM, 1)} vs. ${fmt(refMedian, 1)} LUFS, ±2 dB)`, Math.abs(medianM - refMedian) <= 2);
+  for (const n of MORE_SFX) {
+    const x = byNameM[n], maxDur = n === 'victory' ? 1.5 : 1.6;
+    check(`sfx ${n}: Lautheit ${fmt(x.loudness, 1)} LUFS im Bereich, Spitze ${fmt(x.peak, 2)} < 0,9, Dauer ${fmt(x.duration, 2)} s (≤ ${fmt(maxDur, 1)}), ${x.nodes} Knoten`,
+      x.loudness >= loLim && x.loudness <= hiLim && x.peak < 0.9 && x.duration > 0.04 && x.duration <= maxDur && x.nodes <= MAX_SFX_NODES);
+  }
+
+  // Bestandsaufnahme (ohne Browser): jeder im Quellcode aufgerufene Klangname hat einen eigenen Effekt
+  const scan = scanSfxNames({ known: names });
+  const nCalls = [...scan.calls.values()].reduce((sum, w) => sum + w.length, 0);
+  console.log(`\nKlangnamen im Quellcode (tests/sfx_namen.mjs): ${scan.calls.size} Namen an ${nCalls} Stellen, ${scan.dynamic.length} dynamische Stellen`);
+  check(`Jeder aufgerufene Klangname hat einen eigenen Effekt${scan.missing.length ? ` (fehlt: ${scan.missing.map((m) => `${m.name} ${m.where[0]}`).join(', ')})` : ''}`,
+    scan.missing.length === 0 && nCalls >= 150);
+  check(`Dynamische Klangnamen von Hand geprüft${scan.unchecked.length ? ` (ungeprüft: ${scan.unchecked.map((d) => `${d.where} ${d.expr}`).join('; ')})` : ''}, keine unbekannte Abspiel-Funktion`,
+    scan.unchecked.length === 0 && scan.unknownFns.length === 0);
 }
 
 // Sequencer läuft weiter ohne Fehler
