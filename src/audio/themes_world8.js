@@ -330,7 +330,7 @@ export const WORLD8_THEMES = {
     pad: bySection(dnProg, SONG, { intro: (c) => padBar(c), verse: (c) => padBar(c), bridge: (c) => padBar(c) }),
     riser: [...rest(11), '-:8 E3:8', ...rest(10), 'A3:16', 'E3:14 -:2'],
     bass: bySection(dnProg, SONG, { intro: (c) => bassBar(c, B_HALF), verse: (c) => bassBar(c, B_BOUNCE), chorus: (c) => bassBar(c, B_GALLOP), bridge: BREAK_BASS }),
-    energy: dnProg.map((c) => chordBar(c, '..x. .... ..x. ..x.', 'A4')),
+    energy: dnProg.map((c) => chordBar(c, '..x. .... ..x. ....', 'A4')),
     drums: [
       ...groove(4, [K4, CL, H8, DARB], [K4, CL, H8, DARB, dr('.... .... .... t.tt')]),
       ...groove(4, [...DUNE, SHAKE], [K4, CL, H8, SHAKE, dr('.... .... ..tt tttt')]),
