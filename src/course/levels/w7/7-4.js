@@ -25,7 +25,7 @@
 // Röhrenausgang des Finales.
 
 import {
-  isl, line, ring, arc, rundPlatte, kippPlatte, festungRand, bruestung, glowPoints, wimpelkette,
+  isl, line, ring, arc, rundPlatte, kippPlatte, festungRand, bruestung, glowPoints, wimpelkette, Bld,
 } from './_helpers_b.js';
 import { TYPES as SHIP } from '../../blocks/types/w6_ship.js';
 
@@ -60,7 +60,7 @@ const PFEILPLATTEN = [
 ];
 
 // ------------------------------------------------------------------ Stachelwalzen (14) und Pendelstacheln (6)
-const W = (id, x, z, length, speed = 1.3, y = Y) => ({ type: 'stachelwalze_rot', id, pos: [x, y + WH, z], radius: WR, length, axis: 'x', speed, stand: true });
+const W = (id, x, z, length, speed = 1.3, y = Y) => ({ type: 'stachelwalze_rot', id, pos: [x, y + WH, z], radius: WR, length, axis: 'x', speed, stand: true, shadow: false });
 const WALZEN = [
   W('w1', -2, -45, 5), W('w2', 4, -51, 5, -1.3),
   W('w3', 3.25, -69.5, 5.5), W('w4', 3.25, -73.5, 5.5, -1.3),
@@ -101,6 +101,9 @@ function build(level) {
   festungRand(level, [{ x0: RX - 6, x1: RX + 6, zA: -64, zB: -76, y: Y, edges: '', windows: true }]);
   // hohe Mauer neben der Lücke E → F (aus ihr fahren die Pfeilplattformen)
   bruestung(level, [[6.5, 9, -111, -124, -2, Y + 5.5]], { color: 0x5a5e88, top: 0x8a8eb8 });
+  // Podeste unter den Knochenfliegern über D und C: von hier aus springt man über sie und stampft sie (Gegner-Vertrag)
+  rundPlatte(level, { x: 3.4, z: -86, r: 0.8, top: Y + 1.2, bottom: Y - 0.2, color: 0x8a8eb8 });
+  rundPlatte(level, { x: -3.2, z: -75, r: 0.8, top: Y + 1.2, bottom: Y - 0.2, color: 0x8a8eb8 });
   // kleine runde Plattform vor der Rätselbox (Stempel)
   rundPlatte(level, { x: -7.2, z: -69, r: 1.3, top: Y, bottom: -2 });
   // Seitensäulen am Start (Sternmünzen)
@@ -114,6 +117,16 @@ function build(level) {
   glowPoints(level, [[0, LAVA + 0.4, -14, 2.2], [0.5, LAVA + 0.4, -35, 2], [2, LAVA + 0.4, -60.5, 2], [0, LAVA + 0.4, -96.5, 3], [4, LAVA + 0.4, -118, 2.6],
     [0, LAVA + 0.4, -136.5, 3], [0, LAVA + 0.4, -151.5, 3], [0, LAVA + 0.4, -166.5, 3], [FX, LAVA + 0.4, -212, 3], [FX, LAVA + 0.4, -197, 4]],
   { color: 0x4ab8ff, size: 6, opacity: 0.5, pulse: 0.5 });
+  // leuchtende Runenkreise auf dem Zielhof und im Rätselbox-Raum
+  if (level.view) {
+    const g = new Bld();
+    for (const [x, z, r] of [[FX, -225.5, 3.2], [RX, -70, 2.6], [0, 1.5, 2.2]]) {
+      g.torus(r, 0.07, x, Y + 0.015, z, 0x7ad8ff, { rx: Math.PI / 2, ts: 40, rs: 3 });
+      g.torus(r * 0.72, 0.05, x, Y + 0.015, z, 0x7ad8ff, { rx: Math.PI / 2, ts: 32, rs: 3 });
+      for (let i = 0; i < 8; i++) { const t = (i / 8) * Math.PI * 2; g.box(0.4, 0.02, 0.12, x + Math.cos(t) * r * 0.86, Y + 0.016, z + Math.sin(t) * r * 0.86, 0x7ad8ff, { yaw: -t, r: 0 }); }
+    }
+    g.flush(level, { material: 'glow', castShadow: false });
+  }
   for (const [a, b] of [[[-6, Y + 2.6, -7], [6, Y + 2.6, -7]], [[-4, Y + 2.2, -93], [4, Y + 2.2, -93]], [[FX - 6, Y + 2.4, -232], [FX + 6, Y + 2.4, -232]]]) wimpelkette(level, a, b, 12, 0.5);
 }
 
@@ -142,10 +155,8 @@ export const LEVEL = {
     { from: -55, to: -85, pitch: 52, dist: 17, ahead: 1, area: [80, 120], x: RX, xLock: 0.5 },
   ],
   segments: [
-    // blaue Lava (fest) unter allem, Rätselbox-Raum und Finale mit eigener Lava
-    { type: 'lavaspiegel', mode: 'fest', pos: [0, LAVA - 1.5, -90], size: [80, 1.5, 230], color: 'blau', bubbles: true },
-    { type: 'lavaspiegel', mode: 'fest', pos: [RX, LAVA - 1.5, -70], size: [36, 1.5, 32], color: 'blau' },
-    { type: 'lavaspiegel', mode: 'fest', pos: [FX, LAVA - 1.5, -204], size: [36, 1.5, 70], color: 'blau' },
+    // blaue Lava (fest) unter allem – auch unter Rätselbox-Raum und Finale (ein See, wenige Zeichenaufrufe)
+    { type: 'lavaspiegel', mode: 'fest', pos: [40, LAVA - 1.5, -105], size: [170, 1.5, 270], color: 'blau', bubbles: true },
     ...Object.values(BAUTEN).map(([x0, x1, zA, zB]) => S(x0, x1, zA, zB)),
     ...PFEILPLATTEN,
     ...WALZEN,
@@ -153,7 +164,13 @@ export const LEVEL = {
     ...ZYLINDER,
     // Röhre zum Finale und Ausgang
     { type: 'pipe', id: 'finale_ein', pos: [0, Y, -181], height: 1.4, target: 'finale_aus', color: 'blue' },
-    { type: 'pipe', id: 'finale_aus', pos: [FX, Y, -179.2], height: 1.2 },
+    { type: 'pipe', id: 'finale_aus', pos: [FX, Y, -179.2], height: 1.2, color: 'blue' },
+    // blaue Lavablasen springen abseits der Wege aus dem Kessel (Zier, berühren verletzt)
+    { type: 'lavablase', height: 3.6, period: 3.4, color: 'blau', list: [
+      { pos: [-8.5, LAVA, -26], phase: 0 }, { pos: [9.5, LAVA, -62], phase: 0.3 }, { pos: [9.2, LAVA, -90], phase: 0.55 },
+      { pos: [-9.5, LAVA, -106], phase: 0.15 }, { pos: [-9.5, LAVA, -151.5], phase: 0.7 }, { pos: [9.5, LAVA, -128], phase: 0.4 },
+      { pos: [FX - 9, LAVA, -212], phase: 0.2 }, { pos: [FX + 9, LAVA, -200], phase: 0.65 },
+    ] },
     { type: 'deco_w7', items: [
       { kind: 'burgturm', pos: [-9.5, -1, -26], height: 9, radius: 1.6, solid: true }, { kind: 'burgturm', pos: [11, -1, -48], height: 10, radius: 1.8, solid: true },
       { kind: 'burgturm', pos: [-10, -1, -88], height: 9, radius: 1.6, solid: true }, { kind: 'burgturm', pos: [10.5, -1, -143], height: 10, radius: 1.8, solid: true },
@@ -164,6 +181,9 @@ export const LEVEL = {
       { kind: 'fahne', pos: [-5, Y, -42], height: 4.5 }, { kind: 'fahne', pos: [5, Y, -170.5], height: 4.5 },
       { kind: 'kette', pos: [-3, Y + 7, -48], length: 4 }, { kind: 'kette', pos: [5, Y + 7, -127], length: 4 }, { kind: 'kette', pos: [-3, Y + 7, -159], length: 4 },
       { kind: 'knochen', pos: [-3.5, Y, -90], n: 4 }, { kind: 'knochen', pos: [FX + 4, Y, -188], n: 3 },
+      { kind: 'burgturm', pos: [FX - 8.5, -1, -230], height: 9, radius: 1.7, solid: true }, { kind: 'fahne', pos: [FX - 4.5, Y, -230.6], height: 4.5 },
+      { kind: 'fahne', pos: [FX + 4.5, Y, -230.6], height: 4.5 }, { kind: 'fackel', pos: [FX - 5, Y, -220.2], mount: 'stand', color: 'blau' },
+      { kind: 'fackel', pos: [FX + 5, Y, -220.2], mount: 'stand', color: 'blau' }, { kind: 'fahne', pos: [RX - 5.2, Y, -75.2], height: 4 },
     ] },
     { type: 'deco_w7', shadow: false, items: [
       { kind: 'basaltsaeulen', pos: [-16, LAVA, -60], n: 6, height: [3, 9], size: [6, 24], glow: 'blau' },
