@@ -546,6 +546,8 @@ if (part('views')) {
     ['feuerstab', { length: 2.5 }, { angle: 0.8 }, 0.6, 6], ['klappstampfer', {}, { fold: 0.25, warn: true }, 0.9, 9, Math.PI], ['wurfsichel_kostuem', { size: 0.5 }, 'idle', 0.45, 2.2],
     ['zugbruecke', { length: 6 }, { lower: 0.55 }, 2.4, 14, Math.PI * 0.75], ['pfeilplattform', {}, { rise: 1 }, 0.3, 6], ['lava_fontaene', {}, { height: 3 }, 1.6, 8],
     ['baron_kampfwagen', {}, { anim: 'drive', hp: 2 }, 1.8, 10, Math.PI / 2 + 1.0], ['baron_kampfwagen', {}, { anim: 'defeated', hp: 0 }, 1.8, 10, -0.6], ['baron_kampfwagen', {}, { anim: 'hit', progress: 0.3 }, 2.4, 9],
+    ['knochenflieger', {}, { anim: 'fly', flap: 0.3 }, 1.15, 3.2, -0.5], ['platschfisch', {}, { anim: 'spit', progress: 0.55 }, 0.35, 2.6, -0.4], ['lavadrache', {}, { anim: 'spit', progress: 0.5 }, 2.6, 6, -0.3],
+    ['wutkaulquappe', {}, 'swim', 0.6, 2.2, -0.5], ['funkenflaemmchen', { color: 'blau' }, 'idle', 0.3, 1.5, -0.8], ['wurfsichel_geschoss', {}, 'spin', 0.5, 1.6, -0.3],
   ];
   for (let i = 0; i < PORTRAITS.length; i += 3) {
     const nm = `portrait_${i / 3 + 1}`;

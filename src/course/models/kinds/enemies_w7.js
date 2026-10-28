@@ -278,13 +278,14 @@ function pfCrustGeo(key) {
     const rockV = { v: (x, y, z, nx, ny, nz) => mix(W7.rockLow, W7.rockHi, smoothstep(nz * 0.5 + 0.45)) };
     for (const [az, el, r] of plates) {
       const h = onEllipsoid(PF.c, PF.r, az, el);
-      const g = new THREE.CylinderGeometry(1, 0.8, 1, 6); g.rotateX(Math.PI / 2); g.translate(0, 0, 0.5);
-      stick(b, h, rockV, [r, r * 0.92, 0.05], 0.35, g, hash1(az * 3 + el) * 3);
+      // gewölbte Sechseck-Scholle (Kugelkappe mit sechs Seiten), schmiegt sich an den Körper
+      const g = new THREE.SphereGeometry(1, 6, 3, 0, TAU, 0, Math.PI / 2); g.rotateX(Math.PI / 2);
+      stick(b, h, rockV, [r, r * 0.92, 0.06], 0.4, g, hash1(az * 3 + el) * 3);
     }
     // Krustenbrauen (grimmig-frech)
     for (const s of [1, -1]) {
-      const h = onEllipsoid(PF.c, PF.r, s * 0.38, 0.62);
-      b.capsule(0.03, 0.12, crustV, { p: h.p.clone().addScaledVector(h.n, 0.015).toArray(), r: [Math.PI / 2 - s * 0.5, -s * 0.38, 0], order: 'YXZ' }, 3, 10);
+      const h = onEllipsoid(PF.c, PF.r, s * 0.38, 0.6);
+      b.capsule(0.03, 0.12, crustV, { p: h.p.clone().addScaledVector(h.n, -0.005).toArray(), r: [Math.PI / 2 - s * 0.5, -s * 0.38, 0], order: 'YXZ' }, 3, 10);
     }
     // dicke Goldlippen
     b.torus(0.075, 0.034, gradV(0xd8840a, 0xfff0a0), { p: [0.395, 0.25, 0], r: [0, Math.PI / 2, 0], s: [1, 0.72, 1.15] }, 10, 22);
