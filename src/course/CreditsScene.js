@@ -80,8 +80,8 @@ function stageData(withStage) {
     items.push(
       { kind: 'wimpel', from: [-9, 3.6, -8], to: [9, 3.6, -8], sag: 0.6 }, { kind: 'wimpel', from: [-9, 3.6, 8], to: [-9, 3.6, -8], sag: 0.9 },
       { kind: 'wimpel', from: [9, 3.6, 8], to: [9, 3.6, -8], sag: 0.9 },
-      { kind: 'ballons', pos: [-8, 0, 6.5], n: 6, height: 3.4 }, { kind: 'ballons', pos: [8, 0, -6.5], n: 5, height: 3.4 },
-      { kind: 'karussell', pos: [-14, 0, -12], radius: 2.6, height: 3.2, solid: false },
+      { kind: 'ballons', pos: [-8, 0, 6.5], n: 6, height: 3.4, shadow: false }, { kind: 'ballons', pos: [8, 0, -6.5], n: 5, height: 3.4, shadow: false },
+      { kind: 'karussell', pos: [-14, 0, -12], radius: 2.6, height: 3.2, solid: false, shadow: false },
       { kind: 'bude', pos: [13, 0, -9], width: 3, color: 'rosa', yaw: Math.PI }, { kind: 'bude', pos: [-14, 0, 2], width: 2.6, color: 'blau', yaw: 0 },
       { kind: 'torbogen', pos: [0, 0, 14], width: 6, height: 4.6, yaw: Math.PI / 2, solid: false },
     );
@@ -119,7 +119,8 @@ function creditLines() {
     if (!m) continue;
     add(`${m.worldLabel ?? `Welt ${n}`} · ${m.title}`);
   }
-  add('Welt 8 · Brummbär-Rummelplatz');
+  // Welt 8 steht erst auf der Liste, wenn es ihre Weltkarte gibt – sonst hier ergänzen
+  if (!listWorldMaps().some((n) => String(n) === '8' || /Rummel/.test(getWorldMap(n)?.title ?? ''))) add('Welt 8 · Brummbär-Rummelplatz');
   add('', 'gap');
   add('Mit dabei', 'head');
   add('Baron Brummbär – diesmal fast gewonnen');
@@ -218,7 +219,13 @@ export class CreditsScene extends Phaser.Scene {
       const SZ = 1;
       this.stage = getModel('abspann_buehne', { size: SZ });
       view.three.add(this.stage.root);
-      this.stage.root.traverse((o) => { if (o.isMesh) o.receiveShadow = true; });
+      // Wiese: empfängt Schatten, wirft keinen (flach; spart Dreiecke im Schattenpass) – die Figuren darauf schon
+      this.stage.root.traverse((o) => {
+        if (!o.isMesh) return;
+        o.receiveShadow = true;
+        const g = o.geometry, n = g.index ? g.index.count / 3 : g.attributes.position.count / 3;
+        if (n > 5000) o.castShadow = false;
+      });
       this.groundY = (x, z) => Math.max(0, 1 - (Math.hypot(x, z) / (6 * SZ)) ** 2) * 0.35 * SZ;
       const sp = this.stage.root.userData.spots ?? {};
       const on = (k, def) => { const q = sp[k]; return q ? [q[0], this.groundY(q[0], q[1]), q[1]] : def; };
@@ -236,7 +243,7 @@ export class CreditsScene extends Phaser.Scene {
     this.at = at;
     this.ringC = withModel ? [this.center.x, this.center.z] : [0, -0.6];   // Mitte des Reigens
     this.friends = [];
-    const FRIENDS = 7;
+    const FRIENDS = withModel ? 5 : 7;   // mit Festwiese sitzen dort schon vier Freunde
     for (let i = 0; i < FRIENDS; i++) {
       const s = [1.25, 1.1, 1.4, 1.0, 1.2, 0.95, 1.3][i];
       const f = modelActor(view, 'bunny_small', [0, 0, 0], s);
@@ -504,7 +511,7 @@ export class CreditsScene extends Phaser.Scene {
     return {
       t: +this.t.toFixed(2), duration: +this.duration.toFixed(2), end: +this.end.toFixed(2), music: music.current ?? music.beat?.().theme ?? null, playing: !!music.beat?.().playing,
       roll: +ry.toFixed(1), lines: this.lines?.length ?? 0, shown, finished: !!courseSave.data.finished, ending: this.ending,
-      actors: (this.heroes?.length ?? 0) + (this.pflaume ? 1 : 0) + (this.kruemel ? 1 : 0) + (this.friends?.length ?? 0),
+      actors: (this.heroes?.length ?? 0) + (this.pflaume ? 1 : 0) + (this.kruemel ? 1 : 0) + (this.friends?.length ?? 0) + (this.stage?.root.userData.friends?.length ?? 0),
       confetti: this.confetti?.count ?? 0, fireworks: this.fw?.bursts ?? 0, stage: this.stage ? 'abspann_buehne' : 'eigen',
       camera: this.view ? this.view.camera.position.toArray().map((v) => +v.toFixed(2)) : null,
     };

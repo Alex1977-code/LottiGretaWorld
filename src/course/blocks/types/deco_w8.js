@@ -561,8 +561,9 @@ const REG = {
 const SOLID_REG = new Set(['bude', 'mast', 'torbogen', 'regentonne', 'keksstapel', 'ruehrschuessel', 'backofen', 'saeule', 'standuhr']);
 
 /** Bewegtes Registry-Modell (Karussell, Riesenrad-Kulisse, animate: true). */
-function liveModel(level, r, at, yaw, scale) {
+function liveModel(level, r, at, yaw, scale, shadow = true) {
   const m = getModel(r.name, r.opts);
+  if (!shadow) m.root.traverse((o) => { if (o.isMesh) o.castShadow = false; });
   m.root.position.set(at.x, at.y, at.z);
   m.root.rotation.y = yaw;
   m.root.scale.setScalar(scale);
@@ -580,7 +581,7 @@ function placeReg(level, it, p) {
   if (!r || !hasModel(r.name)) return false;
   const at = r.at ?? p, yaw = r.yaw ?? it.yaw ?? -Math.PI / 2, scale = (it.scale ?? 1) * (r.scale ?? 1);
   if (level.view) {
-    if (r.live || it.animate) liveModel(level, r, at, yaw, scale);
+    if (r.live || it.animate) liveModel(level, r, at, yaw, scale, it.shadow !== false);
     else bakeW8(level, r.name, r.opts, at.x, at.y, at.z, yaw, scale, r.state ?? {}, { castShadow: it.shadow !== false });
   }
   if (kind === 'karussell' && it.solid !== false) {

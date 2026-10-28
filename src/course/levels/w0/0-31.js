@@ -56,7 +56,7 @@ export const LEVEL = {
       { kind: 'bude', pos: [-9, 0, -2], width: 3, color: 'rot', yaw: 0, solid: true }, { kind: 'bude', pos: [9, 0, -2], width: 3, color: 'gelb', yaw: Math.PI, solid: true },
       { kind: 'wimpel', from: [-11, 4, -6], to: [11, 4, -6], sag: 1 }, { kind: 'gluehbirnen', from: [-11, 4.5, 2], to: [11, 4.5, 2], sag: 1.1 },
       { kind: 'mast', pos: [-11, 0, -6], height: 4.2 }, { kind: 'mast', pos: [11, 0, -6], height: 4.2 }, { kind: 'mast', pos: [-11, 0, 2], height: 4.6 }, { kind: 'mast', pos: [11, 0, 2], height: 4.6 },
-      { kind: 'ballons', pos: [5, 0, 1.5], n: 5 }, { kind: 'karussell', pos: [-16, -4, -2], radius: 3, height: 3.6, solid: false },
+      { kind: 'ballons', pos: [6.5, 0, -4.6], n: 5 }, { kind: 'karussell', pos: [-16, -4, -2], radius: 3, height: 3.6, solid: false },
     ] },
 
     // ---------------- S1 Leuchtstege

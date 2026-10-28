@@ -7,7 +7,7 @@
 //   { type: 'riesenrad', id, pos: [x, y, z] (Achsmitte), radius: 12, gondolas: 8, axis: 'z' (Rad steht quer: Ebene XY, Blick
 //     von der Kamera aufs Rad) | 'x' (Ebene YZ), speed: 0.12 (rad/s; + = gegen den Uhrzeigersinn, von +Achse gesehen),
 //     angle: 0, size: [3.2, 0.45, 2.6] (Gondel-Plattform w, h, d), hang: 1.4 (m unter dem Aufhängepunkt), stand: true
-//     (Ständer bis ground), ground: y (Standard pos.y − radius − 2), lights: true, idle: false, look: 'eigen' }
+//     (Ständer bis ground), ground: y (Standard pos.y − radius − 2, mit Modell − radius − 2,6), lights: true, idle: false, look: 'eigen' }
 //   level.named.get(id) = { angle, speed, gondolas: [{ mb, x, y, z }], carried() (Figuren auf Gondeln), start(), stop(),
 //     reverse(), info() }; w8(level).wheels. Kollision: Gondeln als MovingBox (mover, tag 'riesenrad-gondel').
 //   Modell: Registry 'riesenrad' (Rad mit Kranz, Glühbirnen, Ständer und den Gondel-Plattformen: { radius, count, plank: [w, d],
@@ -108,7 +108,7 @@ export function buildRiesenrad(level, spec) {
 
   if (!level.view) return handle;
   // ---------------- Darstellung
-  const depth = Math.max(1.2, gs.z * 0.6);
+  const depth = useModel ? Math.max(2.6, gs.z + 0.4) : Math.max(1.2, gs.z * 0.6);
   const root = new THREE.Group();
   root.name = 'riesenrad';
   root.position.set(p.x, p.y, p.z);
@@ -116,8 +116,10 @@ export function buildRiesenrad(level, spec) {
   const spin = new THREE.Group();
   root.add(spin);
   let model = null;
+  // Ständer: der des Modells reicht genau radius + 2,6 m hinab – liegt ground anders, eigene Böcke bis ground
+  const modelStand = useModel && Math.abs(p.y - R - 2.6 - groundY) < 0.5;
   if (useModel) {
-    model = getModel('riesenrad', { radius: R, count: n, plank: [gs.x, gs.z], depth: Math.max(2.6, gs.z + 0.4), stand: spec.stand !== false });
+    model = getModel('riesenrad', { radius: R, count: n, plank: [gs.x, gs.z], depth, stand: spec.stand !== false && modelStand });
     root.add(model.root);
   } else {
     const g = wheelGeo(R, n, depth);
@@ -125,23 +127,21 @@ export function buildRiesenrad(level, spec) {
     body.castShadow = true;
     spin.add(body);
     if (g.star) spin.add(new THREE.Mesh(g.star, level.view.mats.glow));
-    // Ständer (statisch): zwei A-Böcke vor und hinter dem Rad
-    if (spec.stand !== false) {
-      const sp = [];
-      const H = p.y - groundY;
-      for (const z of [-depth / 2 - 0.5, depth / 2 + 0.5]) {
-        for (const sx of [-1, 1]) {
-          const a = [0, 0, z], b = [sx * H * 0.45, -H, z];
-          const g2 = rod(a, b, 0.22, 0x6a4a8a, 7);
-          sp.push(g2);
-        }
-        sp.push(rod([-H * 0.25, -H * 0.55, z], [H * 0.25, -H * 0.55, z], 0.12, 0x6a4a8a));
-      }
-      const sg = merge(sp);
-      if (axis === 'x') sg.rotateY(Math.PI / 2);
-      sg.translate(p.x, p.y, p.z);
-      addStatic(level, sg);
+  }
+  // Ständer (statisch): zwei A-Böcke vor und hinter dem Rad bis ground
+  if (spec.stand !== false && !modelStand) {
+    const sp = [];
+    const H = p.y - groundY;
+    const cA = useModel ? 0x8a90a8 : 0x6a4a8a, cB = useModel ? 0xffc23a : 0x6a4a8a;
+    for (const z of [-depth / 2 - 0.5, depth / 2 + 0.5]) {
+      for (const sx of [-1, 1]) sp.push(rod([0, 0, z], [sx * H * 0.45, -H, z], 0.22, cA, 7));
+      for (const k of [0.35, 0.7]) sp.push(rod([-H * 0.45 * k, -H * k, z], [H * 0.45 * k, -H * k, z], 0.12, cB));
     }
+    if (useModel) sp.push(rod([0, 0, -depth / 2 - 0.6], [0, 0, depth / 2 + 0.6], 0.25, cA, 10));
+    const sg = merge(sp);
+    if (axis === 'x') sg.rotateY(Math.PI / 2);
+    sg.translate(p.x, p.y, p.z);
+    addStatic(level, sg);
   }
   // Glühbirnen am Kranz (eine InstancedMesh, Lauflicht über die Farbe je Instanz)
   let bulbs = null;

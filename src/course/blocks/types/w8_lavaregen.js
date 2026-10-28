@@ -193,7 +193,7 @@ export function buildLavabrockenRegen(level, spec) {
         if (warnOn || made.marks > r.i) {
           const m = markModel(r.i); made.marks = Math.max(made.marks, r.i + 1);
           m.root.visible = warnOn;
-          if (warnOn) { m.root.position.set(r.tx, r.ty, r.tz); m.update?.(dt, { k: 0.35 + 0.65 * k }); }
+          if (warnOn) { m.root.position.set(r.tx, r.ty + 0.03, r.tz); m.update?.(dt, { k: 0.6 + 0.4 * k }); }
         }
       } else if (warnOn) {
         const rr = T.radius * (1.5 - 0.5 * k) * (1 + 0.06 * Math.sin(t * (10 + 20 * k)));
@@ -208,7 +208,7 @@ export function buildLavabrockenRegen(level, spec) {
         m.root.visible = q.t > 0;
         if (q.t <= 0) return;
         const age = T.puddle - q.t, coolDur = Math.min(3, T.puddle * 0.6), growDur = Math.min(0.5, T.puddle * 0.3);
-        m.root.position.set(q.x, q.y, q.z);
+        m.root.position.set(q.x, q.y + 0.04, q.z);
         const st = age < growDur ? { anim: 'grow', progress: age / growDur } : q.t < coolDur ? { anim: 'cool', progress: 1 - q.t / coolDur } : { anim: 'idle' };
         m.update?.(dt, st);
         return;
