@@ -65,7 +65,11 @@ const ni = (g) => (g.index ? g.toNonIndexed() : g);
 
 // ------------------------------------------------------------------ Klänge
 
-/** Halloween-Klang name (falls es ihn gibt), sonst fallback (vorhandener Effekt). */
+/**
+ * Halloween-Klang name (falls es ihn gibt), sonst fallback (vorhandener Effekt). Alle bisher benutzten Namen sind eigene
+ * Effekte (src/audio/sfx.js HW_SFX: klingel, tuer, alle_tueren, kessel, blase, netz, laterne, laterne_aus, suessigkeit,
+ * muenzregen, buh, grabstein, kuerbis_platzt) – die Ersatznamen an den Aufrufstellen greifen nur noch für neue Namen.
+ */
 export function hwSfx(level, name, fallback) {
   level.sfx(SFX_NAMES.includes(name) ? name : (fallback ?? name));
 }

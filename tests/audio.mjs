@@ -48,6 +48,12 @@
 // Themen. Hörproben: tests/out/w6_<thema>_30s.wav (ab der Strophe) und tests/out/hoerprobe_welt6.wav (alle neun je 15 s
 // ab dem Refrain).
 //
+// Klänge Welt 6 und Halloween (vorher Ersatzklänge in blocks/w6kit.js bzw. blocks/hwkit.js): W6_SFX (gust, wind, rumble,
+// door, poof, splash, bump, powerup_appear, gong) und HW_SFX (klingel, tuer, alle_tueren, kessel, blase, netz, laterne,
+// laterne_aus, suessigkeit, muenzregen, buh, grabstein, kuerbis_platzt) – in der Effekt-Liste (engine.effects.w6/hw), live
+// ausgelöst wie alle Effekte, offline mit denselben Maßstäben wie die Kurs-Effekte (Lautheit im Bereich der bestehenden,
+// Spitze < 0,9, Dauer ≤ 1,6 s, ≤ 40 Knoten); Hörprobe tests/out/sfx_demo_w6.wav.
+//
 // Aufteilen (kürzere Läufe): AUDIO_PART=melodie,live,render,sfx (Standard: alles). „melodie“ läuft ohne Browser.
 // AUDIO_THEMES=course_desert,course_space bzw. AUDIO_WORLD=1,2 (1 = Welt-1-Themen, halloween = Halloween-Welt 31, 6 = Welt 6)
 // beschränken die Offline-Messung der Kurs-Themen; die Kurs-Themen werden je zwei gleichzeitig gerendert. Unter hoher
@@ -593,6 +599,10 @@ const CONTRACT_SFX = ['jump', 'jump2', 'jump3', 'backflip', 'longjump', 'walljum
   'hurt', 'die', 'switch', 'bounce'];
 const WORLD_SFX = ['clone', 'clone_lost', 'helm_on', 'helm_off', 'cannon', 'propeller', 'light', 'quicksand', 'sand_crumble', 'peck', 'bullet',
   'boss_hit', 'boss_spin', 'house_tick', 'room_clear', 'ice_slide', 'snowball', 'ghost', 'splash_big', 'train_whistle', 'beep', 'beep_switch'];
+const W6_SFX = ['gust', 'wind', 'rumble', 'door', 'poof', 'splash', 'bump', 'powerup_appear', 'gong'];
+const HW_SFX = ['klingel', 'tuer', 'alle_tueren', 'kessel', 'blase', 'netz', 'laterne', 'laterne_aus', 'suessigkeit', 'muenzregen', 'buh',
+  'grabstein', 'kuerbis_platzt'];
+const W6HW_SFX = [...W6_SFX, ...HW_SFX];
 
 const infos = BROWSER ? await sc((names) => names.map((n) => window.__audio.music.themeInfo(n)), Object.keys(COURSE_THEMES)) : [];
 
@@ -900,8 +910,11 @@ if (want('live')) {
       const a = e.stats.nodes;
       try { fx.play(n); unknown[String(n)] = e.stats.nodes - a; } catch (err) { unknown[String(n)] = `Fehler: ${err.message}`; }
     }
-    return { names: fx.names, course: fx.course, world: fx.world, nodes, unknown };
+    return { names: fx.names, course: fx.course, world: fx.world, w6: fx.w6 ?? [], hw: fx.hw ?? [], nodes, unknown };
   });
+  check(`Effekt-Liste enthält die ${W6_SFX.length} Welt-6- und ${HW_SFX.length} Halloween-Namen (engine.effects.w6/hw)`,
+    W6HW_SFX.every((n) => liveSfx.names.includes(n)) && W6_SFX.every((n) => liveSfx.w6.includes(n)) && HW_SFX.every((n) => liveSfx.hw.includes(n))
+    && liveSfx.w6.length === W6_SFX.length && liveSfx.hw.length === HW_SFX.length);
   check(`Effekt-Liste enthält alle ${WORLD_SFX.length} Namen für Welt 2–4`, WORLD_SFX.every((n) => liveSfx.names.includes(n)) && WORLD_SFX.every((n) => liveSfx.world.includes(n)) && liveSfx.world.length === WORLD_SFX.length);
   check('Effekt-Liste enthält alle Vertragsnamen', CONTRACT_SFX.every((n) => liveSfx.names.includes(n)) && CONTRACT_SFX.every((n) => liveSfx.course.includes(n)) && liveSfx.course.length === CONTRACT_SFX.length);
   const heavy = Object.entries(liveSfx.nodes).filter(([, n]) => !(n > 0 && n <= MAX_SFX_NODES));
@@ -1059,7 +1072,10 @@ if (want('render')) {
 if (want('sfx')) {
   // ---- Offline: Effekte vermessen, Demo schreiben ----
   const names = await sc(() => window.__audio.engine.effects.names);
-  const order = [...CONTRACT_SFX, ...names.filter((n) => !CONTRACT_SFX.includes(n) && !WORLD_SFX.includes(n))];
+  const lists6 = await sc(() => { const f = window.__audio.engine.effects; return { w6: f.w6 ?? [], hw: f.hw ?? [] }; });
+  check(`Welt-6- und Halloween-Klänge sind eigene Effekte (${W6HW_SFX.length} Namen in engine.effects.names/w6/hw)`,
+    W6HW_SFX.every((n) => names.includes(n)) && W6_SFX.every((n) => lists6.w6.includes(n)) && HW_SFX.every((n) => lists6.hw.includes(n)));
+  const order =[...CONTRACT_SFX, ...names.filter((n) => !CONTRACT_SFX.includes(n) && !WORLD_SFX.includes(n) && !W6HW_SFX.includes(n))];
   const demo = await sc(sfxInPage, { order, gap: 0.6 });
   writeWav(`${OUT}sfx_demo.wav`, demo.wav, demo.sampleRate);
   // Bezug: bestehende, unveränderte Klassik-Effekte für Spielereignisse (ohne die bewusst leisen Umgebungs- und
@@ -1098,6 +1114,24 @@ if (want('sfx')) {
   check(`Effekte Welt 2–4 gleich laut wie die bestehenden (Median ${fmt(worldMedian, 1)} vs. ${fmt(refMedian, 1)} LUFS, ±2 dB)`, Math.abs(worldMedian - refMedian) <= 2);
   for (const n of WORLD_SFX) {
     const x = byNameW[n];
+    check(`sfx ${n}: Lautheit ${fmt(x.loudness, 1)} LUFS im Bereich, Spitze ${fmt(x.peak, 2)} < 0,9, Dauer ${fmt(x.duration, 2)} s, ${x.nodes} Knoten`,
+      x.loudness >= loLim && x.loudness <= hiLim && x.peak < 0.9 && x.duration > 0.04 && x.duration <= 1.6 && x.nodes <= MAX_SFX_NODES);
+  }
+
+  // Effekte Welt 6 und Halloween: eigene Hörprobe, gleiche Maßstäbe
+  const demo6 = await sc(sfxInPage, { order: W6HW_SFX, gap: 0.6 });
+  writeWav(`${OUT}sfx_demo_w6.wav`, demo6.wav, demo6.sampleRate);
+  console.log(`\nEffekte Welt 6 und Halloween: ${OUT}sfx_demo_w6.wav (${fmt(demo6.seconds, 1)} s, je Effekt + 0,6 s Pause), Reihenfolge:`);
+  const byName6 = Object.fromEntries(demo6.stats.map((x) => [x.name, x]));
+  W6HW_SFX.forEach((n, i) => {
+    const x = byName6[n];
+    console.log(`   ${String(i + 1).padStart(2)}. ${fmt(demo6.starts[i], 2).padStart(6)} s  ${n.padEnd(15)} Dauer ${fmt(x.duration, 2)} s  Spitze ${fmt(x.peak, 2)}  Lautheit ${fmt(x.loudness, 1)} LUFS  Knoten ${x.nodes}`);
+  });
+  const l6 = W6HW_SFX.map((n) => byName6[n].loudness).sort((p, q) => p - q);
+  const median6 = l6[Math.floor(l6.length / 2)];
+  check(`Effekte Welt 6/Halloween gleich laut wie die bestehenden (Median ${fmt(median6, 1)} vs. ${fmt(refMedian, 1)} LUFS, ±2 dB)`, Math.abs(median6 - refMedian) <= 2);
+  for (const n of W6HW_SFX) {
+    const x = byName6[n];
     check(`sfx ${n}: Lautheit ${fmt(x.loudness, 1)} LUFS im Bereich, Spitze ${fmt(x.peak, 2)} < 0,9, Dauer ${fmt(x.duration, 2)} s, ${x.nodes} Knoten`,
       x.loudness >= loLim && x.loudness <= hiLim && x.peak < 0.9 && x.duration > 0.04 && x.duration <= 1.6 && x.nodes <= MAX_SFX_NODES);
   }
