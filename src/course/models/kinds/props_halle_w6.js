@@ -62,14 +62,14 @@ function riesenblattGeo(S, seed) {
     const n = 5;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * TAU + hash1(seed + i) * 0.5;
-      const len = S * (0.75 + hash1(seed * 3 + i) * 0.35), wid = len * 0.48;
+      const len = S * (0.8 + hash1(seed * 3 + i) * 0.35), wid = len * 0.6;
       const up = 0.8 + hash1(i * 5 + seed) * 0.55;
       // Stiel
       const base = [Math.cos(a) * 0.08, 0, Math.sin(a) * 0.08];
       const tip = [Math.cos(a) * S * 0.25, S * up * 0.5, Math.sin(a) * S * 0.25];
       b.add(taperTube([base, [Math.cos(a) * S * 0.08, S * up * 0.3, Math.sin(a) * S * 0.08], tip], (t) => S * 0.025 * (1 - t * 0.4), 8, 6), gradV(W6.leafLow, W6.leaf), null);
       const lg = leafGeo(len, wid, 0.22 + hash1(i * 9) * 0.12);
-      const m = new THREE.Matrix4().compose(new THREE.Vector3(...tip), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -a, 0.85 - up * 0.25, 'YXZ')), new THREE.Vector3(1, 1, 1));
+      const m = new THREE.Matrix4().compose(new THREE.Vector3(...tip), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -a, 1.15 - up * 0.25, 'YXZ')), new THREE.Vector3(1, 1, 1));
       b.add(lg, { v: (x, y, z) => {
         const t = x / len, rib = Math.abs(z) < wid * 0.04;
         const vein = Math.abs(Math.sin((x - Math.abs(z) * 0.9) / len * 28)) > 0.93;
@@ -143,15 +143,15 @@ function giftGeo(S) {
   return cached(`w6:gift:${S}`, () => {
     const b = new Build();
     const H = S * 0.62;
-    b.add(taperTube([[0, 0, 0], [0.04 * S, H * 0.4, 0], [-0.02 * S, H * 0.8, 0.02 * S], [0, H, 0]], (t) => S * 0.04 * (1 - t * 0.3), 10, 7), gradV(0x2a6a2a, 0x6ab84a), null);
+    b.add(taperTube([[0, 0, 0], [0.04 * S, H * 0.4, 0], [-0.02 * S, H * 0.8, 0.02 * S], [0, H, 0]], (t) => S * 0.05 * (1 - t * 0.3), 10, 7), gradV(0x2a6a2a, 0x6ab84a), null);
     for (const s of [1, -1]) {
       const lg = leafGeo(S * 0.45, S * 0.22, 0.4, 8, 4);
       b.add(lg, { v: (x, y, z) => mix(0x1e5a2a, 0x7ad04a, smoothstep(x / (S * 0.45) * 0.5 + Math.abs(z) / S)) }, new THREE.Matrix4().compose(new THREE.Vector3(0, H * 0.25, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, s > 0 ? 0.4 : Math.PI + 0.4, 0.5, 'YXZ')), new THREE.Vector3(1, 1, 1)));
     }
-    // Blüte: 6 dicke, schalenförmige Blätter
+    // Blüte: 6 dicke, offene Blütenblätter (Sternform, Spitzen leicht hochgebogen)
     const petal = (a) => {
-      const g = new THREE.SphereGeometry(1, 14, 10, 0, TAU, 0, Math.PI * 0.55);
-      const m = new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(a) * S * 0.2, H + S * 0.06, Math.sin(a) * S * 0.2), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -a, -1.0, 'YXZ')), new THREE.Vector3(S * 0.27, S * 0.1, S * 0.17));
+      const g = new THREE.SphereGeometry(1, 14, 10);
+      const m = new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(a) * S * 0.2, H + S * 0.07, Math.sin(a) * S * 0.2), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -a, 0.38, 'YXZ')), new THREE.Vector3(S * 0.22, S * 0.045, S * 0.12));
       b.add(g, { v: (x, y, z, nx, ny) => {
         const spot = noise3(x * 5 + a * 3, y * 5, z * 5) > 0.68;
         return spot ? col(0xb8ff3a) : mix(W6.giftLow, W6.giftHi, smoothstep(x * 0.8 + 0.5));
@@ -173,7 +173,7 @@ function buildGiftbluete(opts = {}) {
   const root = new THREE.Group();
   root.add(mesh(giftGeo(S), kulMat2(), {}, true));
   const core = mesh(giftCoreGeo(S), glowV());
-  const glow = glowSprite(0x8aff3a, S * 0.7, 0.55);
+  const glow = glowSprite(0x6aff2a, S * 0.5, 0.4);
   glow.position.y = S * 0.74;
   root.add(core, glow);
   const clk = new Clock();
@@ -181,7 +181,7 @@ function buildGiftbluete(opts = {}) {
     clk.tick(dt, 'idle');
     const g = st.glow !== undefined ? clamp(num(st.glow, 1), 0, 1) : 0.75 + Math.sin(clk.t * 2.4) * 0.25;
     glow.visible = g > 0.05;
-    glow.scale.setScalar(S * (0.45 + g * 0.4));
+    glow.scale.setScalar(S * (0.3 + g * 0.3));
     core.scale.setScalar(0.9 + g * 0.15);
     core.position.y = -S * 0.72 * (0.9 + g * 0.15 - 1);
   };

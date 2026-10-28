@@ -174,8 +174,8 @@ function lanternPaperGeo(color) {
   const C = LANT[color];
   return cached(`w6:plant:paper:${color}`, () => {
     const b = new Build();
-    const prof = [[0.12, -0.27], [0.2, -0.24], [0.26, -0.15], [0.28, 0], [0.26, 0.15], [0.2, 0.24], [0.12, 0.27]];
-    b.lathe(prof, (x, y, z) => { const a = Math.atan2(z, x); const rib = Math.abs(Math.sin(a * 8)) > 0.92; return rib ? mix(C[0], 0x000000, 0.25) : mix(C[0], C[1], smoothstep(0.55 - Math.abs(y) * 1.6)); }, null, 32, 2);
+    const prof = [[0.15, -0.34], [0.25, -0.3], [0.32, -0.19], [0.35, 0], [0.32, 0.19], [0.25, 0.3], [0.15, 0.34]];
+    b.lathe(prof, { v: (x, y) => mix(C[0], C[1], smoothstep(0.62 - Math.abs(y) * 1.9)) }, null, 32, 3);
     return b.geometry();
   });
 }
@@ -184,12 +184,16 @@ function lanternFrameGeo(mount) {
     const b = new Build();
     const black = gradV(0x141018, 0x4a4050);
     // Kappen, Quaste (Laterne hängt mit Mitte bei y = −0,55 unter der Aufhängung)
-    const cy = -0.55;
-    b.cyl(0.14, 0.15, 0.06, black, { p: [0, cy + 0.29, 0] }, 16);
-    b.cyl(0.15, 0.14, 0.06, black, { p: [0, cy - 0.29, 0] }, 16);
-    b.cyl(0.012, 0.012, 0.22, 0x2a1a10, { p: [0, cy + 0.42, 0] }, 5);
-    b.sphere(0.035, W6.gold, { p: [0, cy - 0.34, 0] }, 8, 6);
-    for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; b.cyl(0.008, 0.004, 0.22, W6.gold, { p: [Math.cos(a) * 0.025, cy - 0.46, Math.sin(a) * 0.025] }, 4); }
+    const cy = -0.62;
+    b.cyl(0.17, 0.19, 0.07, black, { p: [0, cy + 0.36, 0] }, 16);
+    b.cyl(0.19, 0.17, 0.07, black, { p: [0, cy - 0.36, 0] }, 16);
+    b.cyl(0.012, 0.012, 0.22, 0x2a1a10, { p: [0, cy + 0.5, 0] }, 5);
+    // Bambusringe (Rippen) rund um das Papier
+    const prof = [[0.15, -0.34], [0.25, -0.3], [0.32, -0.19], [0.35, 0], [0.32, 0.19], [0.25, 0.3], [0.15, 0.34]];
+    const rAt = (y) => { for (let i = 0; i < prof.length - 1; i++) { const [r0, y0] = prof[i], [r1, y1] = prof[i + 1]; if (y >= y0 && y <= y1) return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return 0.15; };
+    for (const y of [-0.24, -0.12, 0, 0.12, 0.24]) b.torus(rAt(y) + 0.004, 0.008, 0x5a1a10, { p: [0, cy + y, 0], r: [Math.PI / 2, 0, 0] }, 4, 32);
+    b.sphere(0.04, W6.gold, { p: [0, cy - 0.42, 0] }, 8, 6);
+    for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; b.cyl(0.009, 0.004, 0.26, W6.gold, { p: [Math.cos(a) * 0.028, cy - 0.56, Math.sin(a) * 0.028] }, 4); }
     return b.geometry();
   });
 }
@@ -212,10 +216,10 @@ function buildPapierlaterne(opts = {}) {
   const swing = joint(hang ? [0, 0, 0] : [0.58, 2.2, 0]);
   const paperLit = glowV();
   const paperOff = kulMat(0.6);
-  const paper = mesh(lanternPaperGeo(color), paperLit, { p: [0, -0.55, 0] }, true);
+  const paper = mesh(lanternPaperGeo(color), paperLit, { p: [0, -0.62, 0] }, true);
   swing.add(paper, mesh(lanternFrameGeo('x'), kulMat(0.5), {}, true));
   const glow = glowSprite(color === 'weiss' ? 0xfff0c0 : color === 'gelb' ? 0xffd060 : 0xff7a3a, 1.3, 0.55);
-  glow.position.y = -0.55;
+  glow.position.y = -0.62;
   swing.add(glow);
   root.add(swing);
   const clk = new Clock();

@@ -376,7 +376,7 @@ if (part('checks')) {
     if (has('glotzfisch')) { const s = box('glotzfisch', {}, 'swim'); out.fisch = [s.x, s.y, s.minY]; }
     if (has('stachelwerfer')) {
       const i = box('stachelwerfer', {}, 'idle');
-      const h = with_('stachelwerfer', {}, (m) => { for (let k = 0; k < 20; k++) m.update(1 / 30, 'idle'); const a = m.hand().y; const held = m.root.userData.holding; for (let k = 0; k < 20; k++) m.update(1 / 30, { anim: 'throw', progress: 0.8 }); return [+a.toFixed(2), held, m.root.userData.holding]; });
+      const h = with_('stachelwerfer', {}, (m) => { for (let k = 0; k < 20; k++) m.update(1 / 30, 'idle'); const a = m.hand().y; const held = m.root.userData.holding; for (let k = 0; k < 20; k++) m.update(1 / 30, { anim: 'throw', progress: 0.58 }); const up = m.hand().y; for (let k = 0; k < 20; k++) m.update(1 / 30, { anim: 'throw', progress: 0.8 }); return [+a.toFixed(2), held, m.root.userData.holding, +up.toFixed(2)]; });
       out.igel = [i.maxY, i.minY, h];
     }
     if (has('hammer_werfer')) { const w = box('hammer_werfer', {}, 'idle'); out.werfer = [w.y, with_('hammer_werfer', {}, (m) => typeof m.hand === 'function' && m.root.userData.modelName)]; }
@@ -414,7 +414,7 @@ if (part('checks')) {
   if (P.schubser) check('Schubser ≈0,9–1,1 m hoch, Ø ≈0,8–1,1 m, Hufe am Boden; size skaliert; defeated → weg; userData.radius', P.schubser[0] > 0.88 && P.schubser[0] < 1.12 && P.schubser[1] > 0.75 && P.schubser[1] < 1.25 && P.schubser[2] > -0.05 && P.schubser[3] && P.schubser[4] > 1.3 && Math.abs(P.schubser[5] - 0.43) < 0.05);
   if (P.puste) check('Pustewolke ≈1,1–1,6 m breit, schwebt über dem Ursprung; blow → wind ≈1, reach ≈4 m', P.puste[0] > 1.0 && P.puste[0] < 1.7 && P.puste[2] > -0.15 && P.puste[3][0] > 0.9 && P.puste[3][1] > 3.5);
   if (P.fisch) check('Glotzfisch ≈0,9–1,2 m lang (mit Schwanzflosse), Bauch am Ursprung', P.fisch[0] > 0.85 && P.fisch[0] < 1.2 && P.fisch[2] > -0.08);
-  if (P.igel) check('Stachelwerfer ≈1,4–1,7 m mit Kugel; hand() über dem Kopf; nach dem Wurf leere Hände', P.igel[0] > 1.35 && P.igel[0] < 1.75 && P.igel[1] > -0.05 && P.igel[2][0] > 0.9 && P.igel[2][1] && !P.igel[2][2]);
+  if (P.igel) check('Stachelwerfer ≈1,0–1,2 m (Kugel vor dem Bauch); hand() vorn, über dem Kopf beim Ausholen; nach dem Wurf leere Hände', P.igel[0] > 0.95 && P.igel[0] < 1.25 && P.igel[1] > -0.05 && P.igel[2][0] > 0.2 && P.igel[2][0] < 0.6 && P.igel[2][3] > 1.0 && P.igel[2][1] && !P.igel[2][2]);
   if (P.werfer) check('Hammer-Werfer aus der Werfer-Familie (≈1,2–1,4 m, hand(), eigener Name)', P.werfer[0] > 1.1 && P.werfer[0] < 1.5 && P.werfer[1] === 'hammer_werfer');
   if (P.horde) check('Wuschel-Horde füllt width × depth', P.horde[0] > 5 && P.horde[0] < 8 && P.horde[1] > 2 && P.horde[1] < 4.5);
   if (P.prinz) check('Schubser-Prinz 2,0–2,8 m (Krone), Hufe am Boden; defeated liegt (< 2,4 m); mouth() vorn; userData.radius', P.prinz[0] > 2.0 && P.prinz[0] < 2.8 && P.prinz[2] > -0.05 && P.prinz[3] < 2.4 && P.prinz[4][0] && P.prinz[4][0][0] > 0.6 && P.prinz[4][1] > 0.8);
@@ -514,6 +514,9 @@ if (part('views')) {
     ['schubser', {}, 'idle', 0.55, 2.4], ['pustewolke', {}, { anim: 'blow', power: 0.8 }, 1.2, 3.4], ['glotzfisch', {}, 'swim', 0.35, 1.9],
     ['stachelwerfer', {}, 'idle', 0.8, 2.8], ['schubser_prinz', {}, 'idle', 1.2, 5.5], ['wuerfelblase', {}, 'idle', 0.9, 3.4],
     ['gelee_riese', {}, { form: 1 }, 2.0, 9], ['gong', {}, 'idle', 1.4, 4.5], ['quetschblock', {}, { warn: 0.6 }, 1.0, 5],
+    ['pilz_maske', {}, 'idle', 0.6, 1.8], ['wurfball', {}, 'idle', 0.25, 1.3], ['stachelkugel', { size: 1 }, 'idle', 0.5, 2.6],
+    ['papierlaterne', { color: 'rot' }, 'idle', 1.5, 3.2], ['giftbluete', {}, 'idle', 0.7, 2.4], ['windboe_fahne', {}, { wind: 1, dir: 0.5 }, 2.1, 4.2],
+    ['gelee_brocken', { color: 'gruen' }, 'idle', 0.25, 1.6], ['glasroehre_kreuzung', {}, 'idle', 1, 7], ['wolkenplattform', {}, 'step', 0.4, 4.5],
   ];
   for (let i = 0; i < PORTRAITS.length; i += 3) {
     const nm = `portrait_${i / 3 + 1}`;

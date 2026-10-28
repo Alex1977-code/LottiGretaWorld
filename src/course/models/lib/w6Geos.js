@@ -215,7 +215,7 @@ export function jellyGeo(color = 'rot', lo = false) {
   const C = JELLY[jellyColor(color)];
   return cached(`w6:jelly:${color}:${lo}`, () => {
     const b = new Build();
-    b.add(superCube(lo ? 3.2 : 3.6, lo ? 13 : 30, lo ? 10 : 22), { v: (x, y, z, nx, ny) => {
+    b.add(superCube(lo ? 3.8 : 3.6, lo ? 13 : 30, lo ? 10 : 22), { v: (x, y, z, nx, ny) => {
       const base = mix(C[2], C[0], smoothstep(ny * 0.6 + 0.45 + y * 0.6));
       return mix(base, C[1], smoothstep((ny - 0.55) / 0.45) * 0.6);
     } }, { p: [0, 0.5, 0], s: [1, 0.96, 1] });
@@ -510,23 +510,38 @@ export function hullGeo(L = 12, W = 5, H = 3, broken = false, lo = false) {
       return c;
     };
     b.add(hull, plank, null);
-    // Deck (Dielen quer zur Länge sichtbar als Längsfugen)
+    // Deck: Dielen in Längsrichtung (je Diele eine Spalte, Farbe je Diele und versetztem Stoß), dünne dunkle Fugen
     const deck = new THREE.BufferGeometry();
     const dp2 = [], di = [];
+    const NZ = Math.max(2, Math.round(W / 0.4)) * 2; // je Diele zwei Spalten: Fuge (schmal) + Brett
+    const cols = [];
+    for (let k = 0; k <= NZ; k++) { const pk = Math.floor(k / 2); cols.push(k % 2 ? (pk + 0.12) : pk); }
+    const nPl = NZ / 2;
     for (let i = 0; i <= NS; i++) {
       const t = tA + (1 - tA) * (i / NS);
       const x = -L / 2 + t * L, wd = Math.max(0.02, width(t)) * 0.97, sh = sheer(t);
-      dp2.push(x, sh - 0.02, -wd, x, sh - 0.02, wd);
+      for (let k = 0; k <= NZ; k++) dp2.push(x, sh - 0.02, -wd + 2 * wd * Math.min(1, cols[k] / nPl));
     }
-    for (let i = 0; i < NS; i++) { const a = i * 2; di.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    for (let i = 0; i < NS; i++) for (let k = 0; k < NZ; k++) {
+      const a = i * (NZ + 1) + k, c = a + NZ + 1;
+      di.push(a, a + 1, c, a + 1, c + 1, c);
+    }
     deck.setAttribute('position', new THREE.Float32BufferAttribute(dp2, 3));
     deck.setIndex(di); deck.computeVertexNormals();
-    b.add(deck, (x, y, z) => {
-      const k = Math.floor((z + W) / 0.42);
-      const f = (z + W) / 0.42 - k;
-      if (f < 0.07) return col(W6.ghostDark);
-      return mix(0x8a7a68, 0xb8a888, hash1(k * 7.3 + Math.floor((x + L) / 1.7)) * 0.7);
-    }, null);
+    const deckC = deck.toNonIndexed(); deck.dispose();
+    // Farbe je Dreieck: Spalte aus dem Index (Fugen-Spalten dunkel)
+    const PC = deckC.attributes.position.count, colA = new Float32Array(PC * 3), cc = new THREE.Color();
+    for (let tri = 0; tri < PC / 3; tri++) {
+      const cell = Math.floor(tri / 2), k = cell % NZ, i = Math.floor(cell / NZ);
+      const plank = Math.floor(k / 2), seam = k % 2 === 0;
+      const x = deckC.attributes.position.getX(tri * 3);
+      const joint = Math.floor((x + L + plank * 0.9) / 2.1);
+      if (seam) cc.copy(col(W6.ghostDark)); else cc.copy(mix(0x8a7a68, 0xb8a888, hash1(plank * 7.3 + joint * 3.1) * 0.75));
+      for (let v = 0; v < 3; v++) colA.set([cc.r, cc.g, cc.b], (tri * 3 + v) * 3);
+      void i;
+    }
+    deckC.setAttribute('color', new THREE.BufferAttribute(colA, 3));
+    b.parts.push(deckC);
     // Reling-Wulst
     const rail = [];
     for (let i = 0; i <= NS; i++) { const t = tA + (1 - tA) * (i / NS); rail.push([-L / 2 + t * L, sheer(t) + 0.06, width(t) + 0.02]); }

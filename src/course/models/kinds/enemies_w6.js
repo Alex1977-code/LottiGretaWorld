@@ -32,7 +32,8 @@
 //   Kopf herbei und wirft sie.
 //   opts  { ball: Ø der Stachelkugel in m (Standard 0,55 – Geschoss mit 'stachelkugel' { size: 0,55 } erzeugen) }
 //   state { anim: 'idle'|'throw'|'hit'|'defeated', progress? (throw: 0..1 in 0,9 s; hit 0,5 s; defeated 0,8 s) }
-//         throw: Kugel wächst über dem Kopf (0–0,4), ausholen (0,4–0,6), bei progress 0,62 verlässt sie die Hände →
+//         idle: hält die Kugel vorsichtig vor dem Bauch; throw: neue Kugel erscheint vor dem Bauch (0–0,35), wird über den
+//         Kopf gestemmt (0,35–0,6), bei progress 0,62 verlässt sie die Hände →
 //         dann 'stachelkugel' an model.hand() erzeugen; danach Hände leer; hit: rollt sich ein, Stacheln gesträubt,
 //         blinkt; defeated: kippt platt, Augen zu.
 //   model.hand(out?) → Weltposition der gehaltenen Kugel (Mitte).  root.userData.holding → Kugel sichtbar?
@@ -484,7 +485,7 @@ function buildStachelwerfer(opts = {}) {
   const body = mesh(igBodyGeo(), flash, {}, true);
   const eye = eyes(IG_EYES, { key: 'w6:ig', iris: 0x5a2a0a, pupil: 0.62, depth: 0.5 });
   const arms = [1, -1].map((s) => joint([0.1, 0.55, s * 0.3], mesh(igArmGeo(), flash, {}, true)));
-  const ballJ = joint([0.05, 1.12, 0]);
+  const ballJ = joint([0.5, 0.36, 0]);
   const ball = mesh(spikeBallGeo('lila', true), spikeMat(), {}, true);
   ball.scale.setScalar(ballD);
   ballJ.add(ball);
@@ -507,17 +508,19 @@ function buildStachelwerfer(opts = {}) {
     if (!['idle', 'throw', 'hit', 'defeated'].includes(anim)) anim = 'idle';
     clk.tick(dt, anim);
     const t = clk.t;
-    let aZ = 3.0, aX = 0.12, bx = 0.05, by = 1.12, ballK = 1, lean = 0;
+    // Kugel sitzt zwischen den Pfoten: Lage folgt dem Armwinkel (vorn vor dem Bauch … über dem Kopf)
+    let aZ = 1.15, aX = 0.05, ballK = 1, lean = 0;
     holding = true;
     if (anim === 'idle') {
-      const k = Math.sin(t * 3);
-      by = 1.12 + Math.abs(k) * 0.04; aZ = 2.98 + Math.abs(k) * 0.06; lean = Math.sin(t * 1.5) * 0.04;
+      aZ = 1.15 + Math.sin(t * 3) * 0.06; lean = Math.sin(t * 1.5) * 0.04;
     } else if (anim === 'throw') {
       const p = prog(st, clk, 0.9);
-      if (p < 0.4) { ballK = smoothstep(p / 0.4); if (clk.entered) puffs.burst([0.05, 1.12, 0], { count: 5, speed: 0.8, up: 0.3, size: 0.1, life: 0.5, spread: 0.1 }); }
-      else if (p < 0.62) { const k = smoothstep((p - 0.4) / 0.22); aZ = lerp(3.0, 3.4, k); bx = lerp(0.05, -0.25, k); by = lerp(1.12, 1.05, k); lean = 0.25 * k; }
-      else { const k = smoothstep((p - 0.62) / 0.3); aZ = lerp(3.3, 1.1, Math.min(1, k * 2)); lean = lerp(0.25, -0.3, Math.min(1, k * 2)) * (1 - Math.max(0, k - 0.6)); holding = false; }
+      if (p < 0.35) { ballK = smoothstep(p / 0.35); if (clk.entered) puffs.burst([0.5, 0.4, 0], { count: 5, speed: 0.8, up: 0.3, size: 0.1, life: 0.5, spread: 0.1 }); }
+      else if (p < 0.62) { const k = smoothstep((p - 0.35) / 0.27); aZ = lerp(1.15, 3.35, k); lean = 0.28 * k; }
+      else { const k = smoothstep((p - 0.62) / 0.3); aZ = lerp(3.35, 1.5, Math.min(1, k * 2)); lean = lerp(0.28, -0.3, Math.min(1, k * 2)) * (1 - Math.max(0, k - 0.6)); holding = false; }
     } else if (anim === 'hit') { holding = false; } else if (anim === 'defeated') { holding = false; }
+    const reach = 0.42 + 0.25 * clamp((aZ - 1.15) / 2.2, 0, 1) + ballD * 0.1;
+    const bx = 0.1 + reach * Math.sin(aZ), by = 0.55 - reach * Math.cos(aZ);
     curl = damp(curl, anim === 'hit' ? 1 : 0, 14, dt);
     flat = damp(flat, anim === 'defeated' ? 1 : 0, 10, dt);
     tilt.rotation.z = damp(tilt.rotation.z, lean - curl * 0.5 + flat * 1.3, 12, dt);

@@ -203,10 +203,59 @@ function portSpots(L, W, H) {
   }
   return out;
 }
-function portholeGeo(L, W, H) {
-  return cached(`w6:ship:port:${L}:${W}:${H}`, () => {
+function portholeGeo(L, W, H, stern = false) {
+  return cached(`w6:ship:port:${L}:${W}:${H}:${stern}`, () => {
     const b = new Build();
     for (const { p, n } of portSpots(L, W, H)) b.add(new THREE.CircleGeometry(0.16, 16), { v: (xx, y) => mix(0x2affb8, 0xd8fff0, smoothstep(0.6 - Math.hypot(xx, y) / 0.16)) }, placed(p.clone().addScaledVector(n, 0.03), n, new THREE.Vector3(1, 1, 1)));
+    if (stern) {
+      // Fenster der Achterdeck-Kajüte (zeigen nach +X zum Hauptdeck)
+      const x = -L * 0.22 + 0.02;
+      for (const z of [-W * 0.18, W * 0.18]) b.box(0.02, 0.42, 0.36, { v: (xx, y, zz) => mix(0x2affb8, 0xd8fff0, smoothstep(0.7 - Math.hypot(y / 0.21, zz / 0.18) * 0.6)) }, { p: [x + 0.01, 0.62, z] }, 0, 1);
+    }
+    return b.geometry();
+  });
+}
+/** Aufbauten des ganzen Schiffs: Achterdeck mit Kajüte und Geländer, Relingpfosten mit Handlauf, Bugspriet, Heckflagge. */
+function shipExtrasGeo(L, W, H) {
+  return cached(`w6:ship:extras:${L}:${W}:${H}`, () => {
+    const b = new Build();
+    const hs = hullShape(L, W, H);
+    const wood = woodV(W6.woodLow, 0x9a8468), dark = woodV(W6.ghostDark, W6.ghostLow);
+    const x0 = -L / 2 + 0.25, x1 = -L * 0.22, ah = 1.2;
+    const wAt = (x) => hs.width((x + L / 2) / L), yAt = (x) => hs.sheer((x + L / 2) / L);
+    // Achterdeck: Kasten mit Planken, Kajütenwand mit Tür
+    const ww = Math.min(wAt(x0), wAt(x1)) * 1.9;
+    b.box(x1 - x0, ah, ww, { v: (x, y, z, nx, ny) => (ny > 0.7 ? mix(0x8a7a68, 0xb8a888, hash1(Math.floor(z / 0.4 + 20)) * 0.7) : Math.floor((y + 2) / 0.3) % 2 ? col(W6.ghostLow) : col(W6.ghost)) }, { p: [(x0 + x1) / 2, yAt(x1) + ah / 2 - 0.05, 0] }, 0.05, 1);
+    b.box(0.06, 0.9, 0.55, dark, { p: [x1 + 0.03, yAt(x1) + 0.45, 0] }, 0.02, 1);
+    b.sphere(0.04, W6.bronzeHi, { p: [x1 + 0.07, yAt(x1) + 0.45, 0.18] }, 6, 4);
+    for (const z of [-W * 0.18, W * 0.18]) b.box(0.06, 0.5, 0.44, dark, { p: [x1 + 0.0, yAt(x1) + 0.62, z] }, 0.02, 1);
+    // Geländer des Achterdecks
+    const top = yAt(x1) + ah - 0.05;
+    for (const s of [1, -1]) {
+      for (let x = x0 + 0.1; x <= x1 + 0.01; x += 0.45) b.cyl(0.04, 0.05, 0.55, wood, { p: [x, top + 0.27, s * (ww / 2 - 0.06)] }, 6);
+      b.box(x1 - x0, 0.08, 0.1, wood, { p: [(x0 + x1) / 2, top + 0.56, s * (ww / 2 - 0.06)] }, 0.02, 1);
+    }
+    for (let z = -ww / 2 + 0.1; z <= ww / 2 - 0.05; z += 0.45) b.cyl(0.04, 0.05, 0.55, wood, { p: [x1 - 0.06, top + 0.27, z] }, 6);
+    b.box(0.1, 0.08, ww, wood, { p: [x1 - 0.06, top + 0.56, 0] }, 0.02, 1);
+    // Relingpfosten mit Handlauf mittschiffs bis zum Bug
+    for (const s of [1, -1]) {
+      const rail = [];
+      for (let x = x1 + 0.4; x < L * 0.4; x += 0.55) {
+        const z = s * (wAt(x) - 0.06), y = yAt(x);
+        b.cyl(0.035, 0.045, 0.6, wood, { p: [x, y + 0.3, z] }, 6);
+        rail.push([x, y + 0.62, z]);
+      }
+      if (rail.length > 1) b.add(taperTube(rail, 0.045, rail.length * 4, 6), wood, null);
+    }
+    // Bugspriet
+    const bx = L / 2 - 0.2, by = yAt(L / 2) + 0.2;
+    const d = new THREE.Vector3(Math.cos(0.42), Math.sin(0.42), 0);
+    b.add(taperTube([[bx - 0.6, by - 0.15, 0], [bx, by, 0], new THREE.Vector3(bx, by, 0).addScaledVector(d, L * 0.18).toArray()], (t) => 0.11 - t * 0.06, 8, 7), wood, null);
+    // Heckflagge (Fetzen) am Flaggenstock
+    b.cyl(0.04, 0.04, 1.6, dark, { p: [x0 + 0.1, top + 0.8, 0] }, 6);
+    const fs = new THREE.Shape(); fs.moveTo(0, 0); fs.lineTo(0.85, -0.06); fs.lineTo(0.62, -0.22); fs.lineTo(0.9, -0.36); fs.lineTo(0.45, -0.44); fs.lineTo(0, -0.5); fs.closePath();
+    const flag = new THREE.ShapeGeometry(fs); flag.rotateY(Math.PI);
+    b.add(flag, 0x2a2a3a, { p: [x0 + 0.08, top + 1.58, 0] });
     return b.geometry();
   });
 }
@@ -299,7 +348,7 @@ function buildGeisterschiff(opts = {}) {
   if (part === 'ganz' || part === 'rumpf') {
     const hull = mesh(hullGeo(L, W, H), shipMat(), {}, true);
     hull.receiveShadow = true;
-    const ports = mesh(portholeGeo(L, W, H), glowV());
+    const ports = mesh(portholeGeo(L, W, H, part === 'ganz'), glowV());
     const rims = mesh(portRimGeo(L, W, H), vcol(0.4), {}, false);
     glows.push(ports);
     root.add(hull, ports, rims);
@@ -310,8 +359,9 @@ function buildGeisterschiff(opts = {}) {
       sailM = mesh(sailGeo(sail[0], Math.min(sail[1], mh * 0.6)), vcol(0.8, { side: THREE.DoubleSide, toy: { rim: 0.3, spec: 0.2, sat: 1 } }, 'w6sail'), {}, true);
       sailJ.add(sailM);
       root.add(sailJ);
-      addLantern(root, [L * 0.42, 1.9, 0]);
-      root.add(mesh(cached('w6:ship:bowpost', () => new Build().cyl(0.06, 0.08, 1.9, woodV(W6.woodLow, 0x9a8468), { p: [0, 0.95, 0] }, 8).cyl(0.04, 0.04, 0.5, 0x4a3a2a, { p: [-0.2, 1.85, 0], r: [0, 0, Math.PI / 2] }, 6).geometry()), shipMat(), { p: [L * 0.42 + 0.2, 0, 0] }, true));
+      addLantern(root, [L * 0.36 - 0.2, 1.9 + hullShape(L, W, H).sheer(0.86), 0]);
+      root.add(mesh(shipExtrasGeo(L, W, H), shipMat(), {}, true));
+      root.add(mesh(cached('w6:ship:bowpost', () => new Build().cyl(0.06, 0.08, 1.9, woodV(W6.woodLow, 0x9a8468), { p: [0, 0.95, 0] }, 8).cyl(0.04, 0.04, 0.5, 0x4a3a2a, { p: [-0.2, 1.85, 0], r: [0, 0, Math.PI / 2] }, 6).geometry()), shipMat(), { p: [L * 0.36, hullShape(L, W, H).sheer(0.86), 0] }, true));
     }
   } else if (part === 'deck') {
     root.add(mesh(cached(`w6:ship:deck:${L}:${W}`, () => {
