@@ -603,6 +603,7 @@ class BaronKrallen extends CourseEntity {
     return sec;
   }
 
+  get player() { return this.level.nearestPlayer?.(this.pos) ?? this.level.player ?? null; }
   get section() { return this.sections[this.cur] ?? null; }
   get phase() { return clamp(this.maxHp - this.hp + 1, 1, 4); }
   get managed() { return bossManaged(this.level, this.spec.id); }

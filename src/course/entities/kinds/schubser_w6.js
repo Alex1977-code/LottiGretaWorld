@@ -93,6 +93,7 @@ export class Schubser extends EnemyW2 {
     this.skidFrom = 0;
     this.state = 'idle';
     this.group = spec.group ?? null;
+    if (this.group) { const G = (level.schubserGroups ??= {}); G[this.group] = (G[this.group] ?? 0) + 1; }
     this.fallDefeat = spec.fallDefeat ?? 0;
     this.standY = this.pos.y;
     if (level.view) this.setModel(getModel('schubser', { size: this.size }));
@@ -106,7 +107,7 @@ export class Schubser extends EnemyW2 {
     const g = this.group;
     const left = g ? this.level.entities.filter((e) => e.kind === 'schubser' && e !== this && e.group === g && !e.defeated && !e.removed).length : 0;
     this.level.signal?.('schubserFall', { id: this.spec.id ?? null, group: g, by: this.fellBy ?? 'besiegt', pos: [this.pos.x, this.pos.y, this.pos.z], left });
-    if (g && left === 0) this.level.signal?.('schubserGruppe', { group: g, count: this.level.entities.filter((e) => e.kind === 'schubser' && e.group === g).length });
+    if (g && left === 0) this.level.signal?.('schubserGruppe', { group: g, count: this.level.schubserGroups?.[g] ?? 1 });
   }
 
   /** Welt 8: Heimplatz fährt auf bewegten Plattformen mit; tiefer Fall von der Plattform = hinuntergestoßen. */
