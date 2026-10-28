@@ -19,7 +19,7 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
 // ------------------------------------------------------------------ Routen
 // Beine (legs): { to: [x, z], jump: Schritte (Sprungtaste gehalten), jumpAt, within, run, slow, max, land, autoJump,
-// stopIf } · { wait } · { hop } (Sprung auf der Stelle) · { crouch } (Röhre) · { star: i } · { chaseKind, ids } ·
+// stopIf } · { wait } · { hop } (Sprung auf der Stelle) · { crouch } (Röhre) · { star: i } · { chaseKind, ids | near } ·
 // { expect: Bedingung } · { until: Bedingung } · { pipe: [x, z], stick } (in eine Glasröhren-Öffnung laufen) · { warp: [x, z] }
 // (auf eine Warp-Box springen) · { stompAll: Id-Anfang } · { clear: [Ids], at: [x, z], r } (warten, bis die Gegner weg sind) ·
 // { sichel: [x, y, z] } (Wurfsichel aufs Ziel werfen, auch im Sprung) · { lava: 'unten'|'oben', id } (Lavaspiegel abwarten)
@@ -136,7 +136,7 @@ const ROUTES = {
         legs: [{ until: 'seeFlut', max: 1700 }, { to: [0, -11], jump: 20, within: 0.7, run: false }, { wait: 120 }],
         mech: (r) => !r.dead && r.pos[1] > 1.8, mechText: (r) => `y ${r.pos[1].toFixed(2)}` },
       { name: 'Extraleben: unsichtbarer Block auf Insel 3', from: [4.6, 2, -59.6], heroes: ['lotti'], expectLives: 1,
-        legs: [{ to: [4.6, -61.6], within: 0.15, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+        legs: [{ to: [4.6, -61.6], within: 0.15, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200, near: 12 }] },
       { name: 'Extraleben: von der östlichen Krustenplatte auf die Säule', from: [3, 2, -149.4], heroes: ['lotti'], expectLives: 1,
         legs: [{ carry: 'platte2', board: [3, -155], to: [6.4, -155] }, { wait: 30 }] },
     ],
@@ -415,7 +415,7 @@ function install() {
           continue;
         }
         if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
-        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
+        if (Lg.chaseKind) { const x0 = p.pos.x, z0 = p.pos.z; const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : Lg.near ? (e) => Math.hypot(e.pos.x - x0, e.pos.z - z0) < Lg.near : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
         // ------------------------------------------------ warten, bis Stachelkugeln (Ids) nicht mehr nahe am Weg sind
         if (Lg.clear) {
           const [cx, cz] = Lg.at, r = Lg.r ?? 3;
