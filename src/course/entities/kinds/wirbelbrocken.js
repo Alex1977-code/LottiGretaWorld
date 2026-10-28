@@ -31,7 +31,8 @@
 // **Attrappen** (Phase 2: 1, Phase 3: 2; Entität 'wirbelbrocken_attrappe', Modell gleichen Aussehens). Die Attrappen laufen,
 // wirbeln (Fäuste verletzen) und taumeln im selben Takt wie er. **Nur das Original zählt**: Draufspringen/Stampfen auf eine
 // Attrappe lässt sie in lila Rauch verpuffen (Abprall, kein Treffer), ebenso jeder Angriff; ein Treffer am Original lässt alle
-// Attrappen verpuffen. Ansage beim ersten Teleport: „Nur der echte Wirbelbrocken zählt!“. Laufzeit zusätzlich: teleports,
+// Attrappen verpuffen. Alle halten beim Laufen ≥ 2,6 m Abstand voneinander. Ansage beim ersten Teleport: „Nur der echte
+// Wirbelbrocken zählt!“. Laufzeit zusätzlich: teleports,
 // decoys (lebende Attrappen), decoysMade, decoysPopped.
 // wirbelbrocken_attrappe – { kind: 'wirbelbrocken_attrappe', pos, owner (Wirbelbrocken) } (nur vom Wirbelbrocken erzeugt).
 
@@ -258,7 +259,24 @@ class Wirbelbrocken extends EnemyW2 {
     }
     this.vel.x = vx; this.vel.z = vz;
     this.moveWithGravity(dt);
+    this.separate();
     this.keepInside(1.0);
+  }
+
+  /** Mit Attrappen (Welt 6): Original und Attrappen halten Abstand (≥ 2,6 m), sonst liefen alle zur Figur ineinander. */
+  separate() {
+    const boss = this.owner ?? this;
+    const list = boss.decoyList;
+    if (!list?.length) return;
+    const MIN = 2.6;
+    for (const o of [boss, ...list]) {
+      if (o === this || o.removed || o.state === 'poof' || !o.visible) continue;
+      const dx = this.pos.x - o.pos.x, dz = this.pos.z - o.pos.z, d = Math.hypot(dx, dz);
+      if (d >= MIN) continue;
+      const ux = d > 1e-3 ? dx / d : Math.cos(this.yaw + 1.3), uz = d > 1e-3 ? dz / d : -Math.sin(this.yaw + 1.3);
+      const k = (MIN - d) * 0.5;
+      this.pos.x += ux * k; this.pos.z += uz * k;
+    }
   }
 
   /** Grenze der runden Arena (Mitte, r − margin). true = an der Grenze. */

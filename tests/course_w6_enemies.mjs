@@ -709,7 +709,7 @@ const pr = await sc(() => {
   out.phase3 = { phase: b.phase, fire: fb3.size, banners: t.banners.slice(-3) };
   out.hit3 = kick(-6, -1);
   out.def = { state: b.state, defeated: b.defeated, banners: t.banners.slice(-2) };
-  t.untilState(b, 'gone', 900, [0, 2, 6]);
+  t.untilState(b, 'gone', 900, [5, 2, 4]);
   c.step(4);
   out.gone = { state: b.state, visible: b.visible, won: t.arch().won, warp: t.ent('warp_a').hidden, star: t.count('star'), lock: t.arch().lock };
   // Stern einsammeln, Warp-Box → Arena B
@@ -759,7 +759,7 @@ const wb = await sc(() => {
   for (let i = 0; i < 120 * 3 && b.state !== 'gland'; i++) {
     p.pos.set(fig[0], fig[1], fig[2]); p.vel.set(0, 0, 0);
     c.step(1);
-    if (b.state === 'gair' && !target) target = { x: t.r2(b.jump.x1), z: t.r2(b.jump.z1), marker: !!b.marker?.root?.visible };
+    if (b.state === 'gair' && !target) target = { x: t.r2(b.jump.x1), z: t.r2(b.jump.z1), marker: b.markerShown && t.model({ model: b.marker }) === 'boss_marker' };
   }
   out.jump = { target, hurt: t.hurt(), landings: b.landings };
   t.fresh();
@@ -767,14 +767,15 @@ const wb = await sc(() => {
   t.untilState(b, 'grest', 600, [9.5, 2, -60]);
   t.untilState(b, 'gair', 600, [9.5, 2, -60]);
   t.until(() => b.state === 'gland', 600, null);
-  t.place([b.pos.x + b.S / 2 + 2.6, 2, b.pos.z], { settle: 0 });
+  const toC = (k) => { const dx = 0 - b.pos.x, dz = -60 - b.pos.z, d = Math.hypot(dx, dz) || 1; return [b.pos.x + (dx / d) * k, 2, b.pos.z + (dz / d) * k]; };
+  t.place(toC(b.S / 2 + 2.6), { settle: 0 });
   p.mode = 'ground';
   t.fresh();
   for (let i = 0; i < 60; i++) c.step(1);
   out.wave = { hurt: t.hurt(), waves: b.wavesN };
   t.fresh();
-  t.untilState(b, 'gland', 600, [b.pos.x + 9, 2, b.pos.z]);
-  const wx = b.pos.x + b.S / 2 + 2.6, wz = b.pos.z;
+  t.untilState(b, 'gland', 600, [-6, 2, -66]);
+  const [wx, , wz] = toC(b.S / 2 + 2.6);
   t.place([wx, 2, wz], { settle: 0 });
   p.mode = 'ground';
   c.step(1);
@@ -792,7 +793,7 @@ const wb = await sc(() => {
   // letzter Sprung: der Riese platzt, sie trennt sich und flieht – verwundbar
   t.untilState(b, 'flee', 120 * 10, [-8, 2, -60]);
   c.step(110);
-  out.split = { state: b.state, splits: b.splits, vulnerable: b.vulnerable, bits: t.count('gelee_brocken'), hidden: !b.giant?.root?.visible };
+  out.split = { state: b.state, splits: b.splits, vulnerable: b.vulnerable, bits: t.count('gelee_brocken'), hidden: !b.isGiant && b.splitT < 0 };
   // Brocken besiegen verkleinert den nächsten Riesen
   const bits = t.ents('gelee_brocken').filter((x) => !x.defeated).slice(0, 4);
   let down = 0;

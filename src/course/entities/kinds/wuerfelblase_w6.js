@@ -521,9 +521,13 @@ class Wuerfelblase extends EnemyW2 {
   }
 
   onBitDown() {
+    if (this.hp <= 0) return;                             // nach dem Sieg zerplatzen die übrigen nur
     this.bitsDown++;
     this.hint('small', 'Der nächste Riese wird kleiner!', { hold: 1.6 });
   }
+
+  /** Rote Landemarke sichtbar? (Riese holt aus bzw. fliegt) */
+  get markerShown() { return (this.state === 'gcrouch' || this.state === 'gair') && !!this.jump; }
 
   startJump() {
     const p = this.player;
@@ -602,6 +606,7 @@ class Wuerfelblase extends EnemyW2 {
 
   /** Brocken nach dem Platzen: fliegen auseinander und hüpfen herum. */
   scatter(n) {
+    if (this.hp <= 0 || this.state === 'wait') return;   // besiegt bzw. Neustart: keine Brocken mehr
     const colors = this.spec.colors ?? ['rot', 'blau', 'gruen', 'gelb'];
     const sp = this.val('bitSpeed', [1.6, 1.9, 2.2]);
     const S = Math.max(this.S, 1.6);
@@ -787,7 +792,7 @@ class Wuerfelblase extends EnemyW2 {
     }
     const m = this.marker;
     if (m) {
-      const on = (this.state === 'gcrouch' || this.state === 'gair') && !!this.jump;
+      const on = this.markerShown;
       m.root.visible = on;
       if (on) {
         const k = this.state === 'gair' ? clamp(this.stateT / this.jump.T, 0, 1) : 0;
