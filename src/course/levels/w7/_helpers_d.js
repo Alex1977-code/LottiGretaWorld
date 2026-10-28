@@ -318,3 +318,261 @@ export function siebenFeuer(level, list, ids, o = {}) {
   });
   return handle;
 }
+
+// =====================================================================================================================
+// 3) 7-7: Brodelkrater (Vulkan-Lavasee mit Ebbe und Flut)
+// =====================================================================================================================
+
+export const KRATER = {
+  basalt: 0x4a3c40, basaltHi: 0x7a6a6c, ash: 0xc8b8b0, soot: 0x2a2024, pumice: 0xb8a8a0, pumiceDark: 0x8a7a76,
+  glow: 0xff7a2a, glowHi: 0xffc04a, gold: 0xffc23a, warnA: 0xffd23a, warnB: 0x2a2226,
+};
+
+/**
+ * 7-7 Kulisse (verschmolzen): o = { Y, LOW, HIGH,
+ *   flut: [[x0, x1, zA, zB], …] (Inseln im Lavasee: Pegelband – Rußstreifen bis zur Flutmarke, Glutsaum an der Ebbe-Linie),
+ *   ebbe: [[x, z, top, w], …] (Bimsstein-Trittsteine: Poren, heller Rand), hoch: [[x, z, top, w], …] (Hochsteine),
+ *   grube: { x0, x1, z0, z1, hole: [x0, x1], floor } (Stempel-Grube unter dem Gitter: Warnstreifen ums Loch, Glutrisse),
+ *   saeulen: [[x, z, y, h], …] (Basaltsäulen-Zaun), huette: [x, y, z] (Forscherhütte am Ziel) }
+ */
+export function krater77(level, o) {
+  const { Y, LOW, HIGH } = o;
+  const rnd = new Rnd(7707);
+  const b = new Bld(), g = new Bld();
+  // Pegelband an den Inseln im Lavasee: dunkler Rußstreifen von der Ebbe- bis zur Flutmarke, helle Ascheleiste darüber,
+  // Glutsaum an der Ebbe-Linie
+  for (const [x0, x1, zA, zB] of o.flut ?? []) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), w = x1 - x0, d = z0 - z1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    const band = (y0, y1, col, gg = b) => {
+      gg.box(w + 0.06, y1 - y0, 0.06, cx, y0, z0 + 0.03, col, { r: 0 });
+      gg.box(w + 0.06, y1 - y0, 0.06, cx, y0, z1 - 0.03, col, { r: 0 });
+      gg.box(0.06, y1 - y0, d + 0.06, x0 - 0.03, y0, cz, col, { r: 0 });
+      gg.box(0.06, y1 - y0, d + 0.06, x1 + 0.03, y0, cz, col, { r: 0 });
+    };
+    band(LOW, HIGH, KRATER.soot);
+    band(HIGH, HIGH + 0.08, KRATER.ash);
+    band(LOW - 0.04, LOW + 0.1, KRATER.glow, g);
+  }
+  // Bimsstein-Trittsteine (nur bei Ebbe begehbar): Poren auf der Oberseite, hellgrauer Rand
+  for (const [x, z, top, w = 2.4] of o.ebbe ?? []) {
+    for (let i = 0; i < 7; i++) {
+      const px = x + rnd.real(-w / 2 + 0.3, w / 2 - 0.3), pz = z + rnd.real(-w / 2 + 0.3, w / 2 - 0.3);
+      b.cyl(rnd.real(0.06, 0.14), rnd.real(0.06, 0.14), 0.02, px, top + 0.005, pz, KRATER.pumiceDark, 6);
+    }
+    b.box(w + 0.1, 0.1, 0.1, x, top - 0.1, z + w / 2 + 0.02, litTop(KRATER.pumice, 0.7), { r: 0 });
+    g.box(w + 0.14, 0.06, 0.08, x, LOW + 0.02, z + w / 2 + 0.06, KRATER.glow, { r: 0 });
+  }
+  // Hochsteine (immer über der Flut): Glutrand oben
+  for (const [x, z, top, w = 2.6] of o.hoch ?? []) {
+    g.box(w + 0.04, 0.05, 0.08, x, top - 0.06, z + w / 2 + 0.02, KRATER.glowHi, { r: 0 });
+    for (let i = 0; i < 3; i++) g.box(rnd.real(0.4, 0.9), 0.02, 0.05, x + rnd.real(-0.7, 0.7), top + 0.005, z + rnd.real(-0.8, 0.8), KRATER.glow, { yaw: rnd.real(0, 3), r: 0 });
+  }
+  // Stempel-Grube: Warnstreifen ums Loch (gelb/dunkel), Glutrisse auf dem Grubenboden
+  if (o.grube) {
+    const G = o.grube, [h0, h1] = G.hole;
+    for (let z = G.z1 + 0.25, i = 0; z < G.z0 - 0.2; z += 0.6, i++) {
+      b.box(0.24, 0.05, 0.5, h0 - 0.12, Y + 0.005, z, i % 2 ? KRATER.warnA : KRATER.warnB, { r: 0 });
+    }
+    for (let x = h0 + 0.25, i = 0; x < h1 - 0.1; x += 0.6, i++) {
+      b.box(0.5, 0.05, 0.24, x, Y + 0.005, G.z0 + 0.12, i % 2 ? KRATER.warnA : KRATER.warnB, { r: 0 });
+      b.box(0.5, 0.05, 0.24, x, Y + 0.005, G.z1 - 0.12, i % 2 ? KRATER.warnB : KRATER.warnA, { r: 0 });
+    }
+    for (let i = 0; i < 9; i++) {
+      const x = rnd.real(G.x0 + 0.5, G.x1 - 0.5), z = rnd.real(G.z1 + 0.5, G.z0 - 0.5);
+      g.box(rnd.real(0.6, 1.4), 0.02, 0.06, x, G.floor + 0.005, z, KRATER.glow, { yaw: rnd.real(0, 3), r: 0 });
+    }
+  }
+  // Basaltsäulen-Zaun (Optik; Kollision legt der Level an)
+  for (const [x, z, y, h] of o.saeulen ?? []) {
+    b.cyl(0.42, 0.46, h, x, y, z, gradY(0x3a2e32, 0x6a5a5e, y, y + h), 6);
+    b.cyl(0.44, 0.42, 0.12, x, y + h, z, litTop(KRATER.basaltHi, 0.6), 6);
+    if (rnd.frac() < 0.4) g.box(0.05, h * 0.6, 0.05, x + 0.4, y + 0.2, z + 0.1, KRATER.glow, { r: 0 });
+  }
+  // Forscherhütte am Ziel: Holzhütte mit Spitzdach, Thermometer, Fähnchen
+  if (o.huette) {
+    const [x, y, z] = o.huette;
+    b.box(2.4, 1.8, 2.0, x, y, z, litTop(0x9a6a40, 0.7), { r: 0.04 });
+    b.box(0.7, 1.2, 0.06, x, y, z + 1.0, 0x4a2c18, { r: 0 });
+    for (const s of [-1, 1]) b.box(1.6, 0.12, 2.4, x + s * 0.62, y + 1.95, z, 0xd8323a, { r: 0, rz: s * 0.62 });
+    g.box(0.5, 0.4, 0.06, x + 0.75, y + 0.9, z + 1.02, 0xffd27a, { r: 0 });
+    b.cyl(0.05, 0.05, 2.6, x - 1.4, y, z + 0.8, 0x6a5a5e, 5);
+    b.box(0.8, 0.5, 0.04, x - 1.0, y + 2.0, z + 0.8, 0x3d8bff, { r: 0 });
+    b.box(0.36, 1.6, 0.1, x + 1.6, y, z + 1.1, litTop(0xe8e0d8, 0.7), { r: 0.04 });
+    g.box(0.1, 1.2, 0.04, x + 1.6, y + 0.2, z + 1.17, 0xff3a1a, { r: 0 });
+    g.sphere(0.12, x + 1.6, y + 0.22, z + 1.18, 0xff3a1a, { ws: 8, hs: 6 });
+  }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Basalt-Pflaster: Sechseck-Platten in Violettgrau auf Inseloberseiten, darunter eine dunkelrot glimmende Lage (die Fugen und
+ * der Rand glühen). rects [[x0, x1, zA, zB, y], …]; o: { R 0.62, avoid [[x, z, r], …], pal, hot (Anteil heißer Platten) }.
+ */
+export function basaltPflaster(b, g, rects, rnd, o = {}) {
+  const R = o.R ?? 0.62, pal = o.pal ?? [0x5e4c5a, 0x685462, 0x52424e, 0x726070, 0x5a4652, 0x7a6874];
+  const dx = Math.sqrt(3) * R, dz = 1.5 * R, col = new THREE.Color();
+  const avoid = o.avoid ?? [];
+  for (const [x0, x1, zA, zB, y] of rects) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+    g.box(x1 - x0 - 0.04, 0.012, z0 - z1 - 0.04, (x0 + x1) / 2, y + 0.004, (z0 + z1) / 2, o.seam ?? 0x8a2a0c, { r: 0 });
+    for (let z = z1 + R, j = 0; z < z0 - R * 0.85; z += dz, j++) {
+      for (let x = x0 + R * 0.95 + (j % 2 ? dx / 2 : 0); x < x1 - R * 0.9; x += dx) {
+        if (avoid.some((a) => Math.hypot(a[0] - x, a[1] - z) < (a[2] ?? 1))) continue;
+        const hot = rnd.frac() < (o.hot ?? 0.04);
+        col.set(hot ? 0x8a3a26 : pal[rnd.int(0, pal.length - 1)]).multiplyScalar(0.92 + rnd.frac() * 0.16);
+        b.cyl(R * 0.9, R * 0.93, 0.07 + rnd.frac() * 0.03, x, y, z, col.clone(), 6, { yaw: Math.PI / 6 });
+      }
+    }
+  }
+}
+
+/** Glutlilien (kleine leuchtende Feuerblumen) in Büscheln: list [[x, y, z, n], …]. */
+export function glutlilien(b, g, list, rnd) {
+  const cols = [0xff7a1a, 0xffc23a, 0xff4a2a, 0xffe07a];
+  for (const [x, y, z, n = 4] of list) {
+    for (let i = 0; i < n; i++) {
+      const px = x + rnd.real(-0.6, 0.6), pz = z + rnd.real(-0.6, 0.6), h = rnd.real(0.25, 0.55);
+      b.cyl(0.025, 0.03, h, px, y, pz, 0x3a5a2a, 4);
+      b.cone(0.09, 0.12, px - 0.06, y + h * 0.4, pz, 0x4a7a32, 4, { rz: 0.9 });
+      g.cone(0.13, 0.22, px, y + h, pz, cols[rnd.int(0, cols.length - 1)], 5, { rx: Math.PI });
+      g.sphere(0.05, px, y + h + 0.02, pz, 0xfff0a0, { ws: 6, hs: 4 });
+    }
+  }
+}
+
+/** Schwefel-Krusten (gelbe Flecken) und kleine Dampfschlote: list [[x, y, z, r], …]. */
+export function schwefel(b, g, list, rnd) {
+  for (const [x, y, z, r = 0.9] of list) {
+    for (let i = 0; i < 4; i++) b.cyl(r * rnd.real(0.3, 0.6), r * rnd.real(0.35, 0.65), 0.03, x + rnd.real(-r, r) * 0.6, y + 0.07, z + rnd.real(-r, r) * 0.6, i % 2 ? 0xe8d84a : 0xd8c03a, 8);
+    b.cone(0.3, 0.35, x, y + 0.07, z, litTop(0x8a7a5a, 0.6), 7);
+    g.cyl(0.1, 0.1, 0.02, x, y + 0.42, z, 0xffd27a, 6);
+  }
+}
+
+/** Dracheneier im Nest (lustige Kulisse in der Drachenbucht): list [[x, y, z, yaw], …]. */
+export function drachenNest(b, g, list, rnd) {
+  for (const [x, y, z] of list) {
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * TAU;
+      b.cyl(0.08, 0.08, 1.0, x + Math.cos(a) * 0.75, y + 0.18, z + Math.sin(a) * 0.75, 0x6a4a2a, 4, { rx: Math.PI / 2, yaw: -a });
+    }
+    b.cyl(0.85, 0.7, 0.22, x, y, z, litTop(0x5a3a22, 0.7), 10);
+    const eggs = [[0, 0, 0xff8a3a], [0.42, 0.18, 0xffc23a], [-0.34, 0.26, 0xff5a4a]];
+    for (const [ex, ez, c] of eggs) {
+      b.sphere(0.32, x + ex, y + 0.52, z + ez, litTop(c, 0.7), { s: [1, 1.3, 1], ws: 12, hs: 9 });
+      for (let k = 0; k < 4; k++) g.sphere(0.06, x + ex + rnd.real(-0.22, 0.22), y + 0.4 + rnd.real(0, 0.5), z + ez + 0.26, 0xfff0a0, { s: [1, 1, 0.3], ws: 6, hs: 4 });
+    }
+  }
+}
+
+/** Forscherzelt mit Lagerfeuer (Start 7-7): [x, y, z, yaw]. */
+export function forscherZelt(b, g, x, y, z, yaw = 0) {
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  const P = (u, v) => [x + c * u + s * v, z - s * u + c * v];
+  for (const k of [-1, 1]) {
+    const [px, pz] = P(0, k * 0.55);
+    b.box(2.2, 0.08, 1.35, px, y + 0.55, pz, k > 0 ? 0xd8323a : 0xf0e8e0, { yaw, rx: k * 0.95, r: 0 });
+  }
+  const [fx, fz] = P(0, 1.9);
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; b.box(0.5, 0.08, 0.1, fx + Math.cos(a) * 0.18, y + 0.04, fz + Math.sin(a) * 0.18, 0x6a4a2a, { yaw: -a, r: 0 }); }
+  for (let i = 0; i < 7; i++) { const a = (i / 7) * TAU; b.sphere(0.12, fx + Math.cos(a) * 0.42, y + 0.06, fz + Math.sin(a) * 0.42, 0x5a5052, { ws: 6, hs: 4 }); }
+  g.cone(0.22, 0.5, fx, y + 0.1, fz, 0xff8a2a, 6);
+  g.cone(0.12, 0.34, fx + 0.08, y + 0.12, fz - 0.05, 0xffd27a, 5);
+}
+
+/**
+ * Große blaue Quadratplattform: blauer Deckel (Kacheln, weißer Rand, gelbe Pfeile, Nieten, cyan leuchtende Kanten) auf einer
+ * fahrenden Plattform (mover-Id) – nur Darstellung, fährt mit. o: { size: [w, h, d] }.
+ */
+export function blauePlatte(level, id, o = {}) {
+  if (!level.view) return;
+  const m = level.named.get(id);
+  if (!m) return;
+  const [w, h, d] = o.size ?? [6, 0.5, 6];
+  const bl = new Bld();
+  const col = new THREE.Color();
+  const n = 4, cw = (w - 0.5) / n, cd = (d - 0.5) / n;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    col.set((i + j) % 2 ? 0x2a6ae8 : 0x3a8aff).multiplyScalar(0.95 + ((i * 7 + j * 3) % 5) * 0.02);
+    bl.box(cw - 0.06, 0.05, cd - 0.06, -w / 2 + 0.25 + (i + 0.5) * cw, h + 0.005, -d / 2 + 0.25 + (j + 0.5) * cd, col.clone(), { r: 0 });
+  }
+  for (const s of [-1, 1]) {
+    bl.box(w, 0.07, 0.22, 0, h, s * (d / 2 - 0.11), 0xf0f4ff, { r: 0 });
+    bl.box(0.22, 0.07, d, s * (w / 2 - 0.11), h, 0, 0xf0f4ff, { r: 0 });
+    bl.box(w + 0.04, h * 0.9, 0.04, 0, 0.02, s * (d / 2 + 0.01), 0x1a4ac8, { r: 0 });
+    bl.box(0.04, h * 0.9, d + 0.04, s * (w / 2 + 0.01), 0.02, 0, 0x1a4ac8, { r: 0 });
+  }
+  // gelbe Pfeile in Fahrtrichtung (x) und Nieten
+  for (const ax of [-1.3, 0, 1.3]) {
+    bl.box(0.7, 0.03, 0.22, ax - 0.05, h + 0.06, 0, 0xffd23a, { r: 0 });
+    for (const k of [-1, 1]) bl.box(0.42, 0.035, 0.16, ax + 0.2, h + 0.06, k * 0.16, 0xffd23a, { yaw: k * 0.7, r: 0 });
+  }
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) bl.sphere(0.1, sx * (w / 2 - 0.4), h + 0.07, sz * (d / 2 - 0.4), 0xd8e0f0, { ws: 6, hs: 4 });
+  const mesh = new THREE.Mesh(bl.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.1 }));
+  mesh.castShadow = false; mesh.receiveShadow = true;
+  const glow = new THREE.Mesh(new THREE.BoxGeometry(w + 0.12, 0.06, d + 0.12), new THREE.MeshBasicMaterial({ color: 0x6ae0ff, toneMapped: false }));
+  glow.position.y = 0.02;
+  mesh.add(glow);
+  addObject(level, mesh, () => { mesh.position.set(m.pm.pos.x, m.pm.pos.y, m.pm.pos.z); });
+}
+
+/** Bimsstein-Ente (schwimmt auf Lava): Geometrie mit Vertexfarben, Ursprung = Schwimmlinie. */
+function enteGeo() {
+  const bl = new Bld();
+  bl.sphere(0.34, 0, 0.12, 0, litTop(KRATER.pumice, 0.75), { s: [1.25, 0.8, 1], ws: 12, hs: 8 });
+  bl.sphere(0.2, 0.3, 0.42, 0, litTop(KRATER.pumice, 0.75), { ws: 10, hs: 8 });
+  bl.cone(0.08, 0.2, 0.52, 0.38, 0, 0xffa020, 6, { rz: -Math.PI / 2 });
+  bl.sphere(0.04, 0.42, 0.5, 0.09, 0x1a1418, { ws: 6, hs: 4 });
+  bl.sphere(0.04, 0.42, 0.5, -0.09, 0x1a1418, { ws: 6, hs: 4 });
+  bl.cone(0.12, 0.22, -0.4, 0.2, 0, litTop(KRATER.pumiceDark, 0.7), 5, { rz: Math.PI / 2 + 0.5 });
+  return bl.geometry();
+}
+
+/**
+ * Bimsstein-Enten, die auf dem Lavasee schaukeln und mit Ebbe und Flut auf- und absteigen (zeigen den Pegel; nur Optik).
+ * list [[x, z, yaw], …]; lake = Id des lavaspiegel. Eine Instanz-Gruppe, ohne Sonnenschatten.
+ */
+export function bimsEnten(level, list, lake) {
+  if (!level.view) return;
+  const h = level.named.get(lake);
+  const mesh = new THREE.InstancedMesh(enteGeo(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), list.length);
+  mesh.castShadow = false; mesh.frustumCulled = false;
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3();
+  const holder = {};
+  let t = 0;
+  addObject(level, mesh, (dt) => {
+    t += visDt(level, holder, dt);
+    const top = h?.top ?? 0;
+    list.forEach(([x, z, yaw = 0], i) => {
+      const bob = Math.sin(t * 1.7 + i * 2.1) * 0.05;
+      p.set(x + Math.sin(t * 0.3 + i) * 0.4, top + bob, z + Math.cos(t * 0.25 + i * 1.3) * 0.4);
+      e.set(Math.sin(t * 1.3 + i) * 0.1, yaw + Math.sin(t * 0.2 + i) * 0.6, Math.cos(t * 1.1 + i) * 0.08);
+      mesh.setMatrixAt(i, m4.compose(p, q.setFromEuler(e), s));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+}
+
+/**
+ * Pegelmesser im Lavasee: rot-weiß gestreifte Messlatte mit Flut- und Ebbe-Marke, an der ein Bimsstein-Schwimmring mit der
+ * Lava auf- und absteigt; oben ein Wimpel (Latte verschmolzen, Schwimmring bewegt). o: { LOW, HIGH }.
+ */
+export function pegel(level, x, z, lake, o) {
+  const { LOW, HIGH } = o;
+  const b = new Bld(), g = new Bld();
+  const y0 = LOW - 0.6, y1 = HIGH + 2.4;
+  for (let y = y0, i = 0; y < y1 - 0.01; y += 0.4, i++) b.box(0.22, 0.4, 0.22, x, y, z, i % 2 ? 0xe8e0d8 : 0xd8323a, { r: 0 });
+  g.box(0.5, 0.06, 0.06, x, HIGH, z + 0.13, 0xff3a1a, { r: 0 });
+  g.box(0.5, 0.06, 0.06, x, LOW + 0.3, z + 0.13, 0x4ad8ff, { r: 0 });
+  b.cone(0.18, 0.4, x, y1, z, 0xffc23a, 6);
+  b.box(0.7, 0.4, 0.03, x + 0.35, y1 - 0.5, z, 0x3d8bff, { r: 0 });
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow', castShadow: false });
+  if (!level.view) return;
+  const h = level.named.get(lake);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.1, 6, 14), new THREE.MeshStandardMaterial({ color: KRATER.pumice, roughness: 0.9 }));
+  ring.rotation.x = Math.PI / 2;
+  ring.castShadow = false;
+  addObject(level, ring, () => { ring.position.set(x, (h?.top ?? LOW) + 0.06, z); });
+}

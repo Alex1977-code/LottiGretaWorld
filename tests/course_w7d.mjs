@@ -47,6 +47,120 @@ const ROUTES = {
       ['kampf', [0, 2, 6], 700],
     ],
   },
+  '7-7': {
+    start: [0, 2, 5],
+    meta: { stars: 3, time: 400, theme: 'volcano', music: 'course_volcano', archetype: 'parcours' },
+    enemies: { knochenflieger: 7, lavadrache: 8, platschfisch: 7 },
+    main: [
+      { name: 'Start', to: [0, -8.4], within: 0.5 },
+      { name: 'Hochsteine', to: [0, -11], jump: 20, within: 0.7, run: false },
+      { to: [0, -14.6], jump: 20, within: 0.7, run: false },
+      { to: [0, -18.2], jump: 20, within: 0.7, run: false },
+      { expect: 'insel1' },
+      { to: [0.4, -25.4], within: 0.3, run: false },
+      { name: 'Ebbe abwarten (Bimssteine 1)', until: 'seeEbbe', max: 1700 },
+      { to: [0.4, -28.2], jump: 18, within: 0.7, run: false },
+      { to: [-0.6, -31.2], jump: 18, within: 0.7, run: false },
+      { to: [0.5, -34.2], jump: 18, within: 0.7, run: false },
+      { to: [-1, -37.6], jump: 24, within: 0.7, run: false },
+      { expect: 'insel2' },
+      { to: [1.2, -45], within: 0.3, run: false },
+      { name: 'Ebbe abwarten (Bimssteine 2, Platschfische)', until: 'seeEbbe', max: 1700 },
+      { to: [1.2, -47.4], jump: 18, within: 0.7, run: false },
+      { to: [3.6, -50], jump: 18, within: 0.7, run: false },
+      { to: [6, -52.6], jump: 18, within: 0.7, run: false },
+      { to: [6.6, -56], jump: 24, within: 0.7, run: false },
+      { expect: 'insel3' },
+      { name: 'Steinbogen', to: [6.5, -64.6], within: 0.5 },
+      { to: [6.5, -71], within: 0.5 },
+      { expect: 'insel4' },
+      { to: [-0.8, -79.4], within: 0.3, run: false },
+      { name: 'Ebbe abwarten (Bimssteine 3, Platschfische)', until: 'seeEbbe', max: 1700 },
+      { to: [-0.8, -81.6], jump: 18, within: 0.7, run: false },
+      { to: [0.8, -84.6], jump: 18, within: 0.7, run: false },
+      { to: [-0.8, -87.6], jump: 18, within: 0.7, run: false },
+      { to: [0, -90.8], jump: 24, within: 0.7, run: false },
+      { expect: 'insel5' },
+      { name: 'Glasröhre zum Kontrollpunkt', pipe: [0, -96.2] },
+      { expect: 'cp77' },
+      { name: 'Kontrollpunkt', to: [0, -117.4], within: 0.6 },
+      { name: 'Gitter über der Grube', to: [-2, -124], within: 0.6 },
+      { to: [-2, -131], within: 0.6 },
+      { name: 'Gitterboden mit heißen Fontänen', to: [-1.2, -140], within: 0.6 },
+      { to: [-3, -149.4], within: 0.3, run: false },
+      { name: 'tragende Fontäne hinauf zur Terrasse', carry: 'platte1', board: [-3, -155], to: [-3, -158.8] },
+      { expect: 'terrasse' },
+      { to: [-8.6, -163], within: 0.5 },
+      { to: [-8.6, -173.4], within: 0.3, run: false },
+      { name: 'große blaue Plattform', ride: 'blau', board: [-8.6, -178], exit: [8.6, -178], to: [9, -184.6], jumpAt: 4.2 },
+      { expect: 'anleger' },
+      { to: [9.2, -189.4], within: 0.5 },
+      { name: 'Treppe hinab in die Drachenbucht', to: [9.2, -196.4], within: 0.6 },
+      { name: 'Drachenbucht', to: [8.5, -205.6], within: 0.6 },
+      { to: [3.5, -207.4], within: 0.6 },
+      { to: [3.5, -218.6], within: 0.6 },
+      { to: [-1.5, -220.6], within: 0.6 },
+      { to: [-1.5, -231.6], within: 0.6 },
+      { to: [0, -233.6], within: 0.6 },
+      { to: [0, -247], within: 0.6 },
+      { name: 'Zielmast', to: [0, -255.4], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'Glasröhre, Krustenplatte und blaue Plattform genutzt, drei Ebbe-Übergänge lebend', ok: (r) => r.mech.pipes >= 1 && r.mech.carries === 1 && !r.dead },
+    ],
+    targets: [
+      { name: 'Stern 0: Wurfsichel aus dem ?-Block auf Insel 1, im Sprung auf den Stern hoch über der Lava werfen', star: 0, from: [-3, 2, -20.4],
+        legs: [{ to: [-3, -22.6], within: 0.15, run: false }, { hop: 20 }, { to: [-3, -20.4], within: 0.3, run: false }, { chaseKind: 'powerup', max: 900 }, { expect: 'sichel' },
+          { sichelAt: [12, -21.4], from: [4.4, -21.4], feet: 4.6 }, { wait: 60 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Wurfsichel (Anlauf-Sprung vom Inselrand)', star: 0, expectNot: true, from: [-4, 2, -21.4], heroes: ['lotti'],
+        legs: [{ to: [13, -21.4], jump: 40, jumpAt: 8.2, within: 0.3, max: 200, land: false }, { wait: 60 }] },
+      { name: 'Stern 1: Sternenring auf Insel 4 – drei Sternmünzen über den Bimssteinen nur bei Ebbe', star: 1, from: [3.4, 2, -70.6],
+        legs: [{ until: 'seeRing', max: 1700 }, { to: [3.4, -75], within: 0.6 }, { to: [2.4, -78.2], within: 0.5 }, { to: [8.4, -78.2], within: 0.5 }, { to: [8.4, -71.8], within: 0.5 },
+          { to: [-2, -71.8], within: 0.5 }, { to: [-3.6, -75], jump: 24, within: 0.6 }, { to: [-5.4, -73], within: 0.5 },
+          { to: [-8.4, -72.4], jump: 16, within: 0.6, run: false }, { to: [-8.4, -75.4], jump: 16, within: 0.6, run: false }, { to: [-8.4, -78.4], jump: 16, within: 0.6, run: false },
+          { to: [-4.6, -78], jump: 24, within: 0.6, run: false }, { wait: 60 }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stern 2: von der blauen Plattform nach Süden auf den Basaltsockel', star: 2, from: [-8.6, 4.5, -172],
+        legs: [{ ride: 'blau', board: [-8.6, -178], exit: [0, -178], to: [0, -172.6], jumpAt: 3.6 }, { wait: 30 }], shot: 'stern2' },
+      { name: 'Stempel: unter dem Gitter nach dem Kontrollpunkt – nur bei Ebbe in die Grube', stamp: true, from: [0, 2, -117.4],
+        legs: [{ to: [4.7, -120.8], within: 0.3, run: false }, { until: 'grubeEbbe', max: 1700 }, { to: [4.7, -123.4], within: 0.4, run: false },
+          { to: [-3.8, -125.6], within: 0.3, run: false }, { to: [4.7, -123.6], within: 0.4, run: false }, { to: [4.7, -120.2], jump: 30, within: 0.6, run: false }], shot: 'stempel' },
+      { name: 'Stempel nicht bei Flut (die Grube ist voll Lava)', stamp: true, expectNot: true, from: [0, 2, -117.4], heroes: ['lotti'],
+        legs: [{ to: [4.7, -120.8], within: 0.3, run: false }, { until: 'grubeFlut', max: 1700 }, { to: [4.7, -123.4], within: 0.4, run: false }, { to: [-3.8, -125.6], within: 0.3, run: false }],
+        mech: (r) => r.dead, mechText: (r) => (r.dead ? 'in der Lava' : 'lebt') },
+    ],
+    extra: [
+      { name: 'Bimssteine bei Flut: Lava (Tod)', from: [0.4, 2, -25.4], heroes: ['lotti'], expectAlive: false, allowFail: true,
+        legs: [{ until: 'seeFlut', max: 1700 }, { to: [0.4, -28.2], jump: 18, within: 0.7, run: false }, { wait: 60 }],
+        mech: (r) => r.dead, mechText: (r) => (r.dead ? 'in der Lava' : 'lebt') },
+      { name: 'Hochsteine bleiben bei Flut trocken', from: [0, 2, -8.4], heroes: ['lotti'],
+        legs: [{ until: 'seeFlut', max: 1700 }, { to: [0, -11], jump: 20, within: 0.7, run: false }, { wait: 120 }],
+        mech: (r) => !r.dead && r.pos[1] > 1.8, mechText: (r) => `y ${r.pos[1].toFixed(2)}` },
+      { name: 'Extraleben: unsichtbarer Block auf Insel 3', from: [10.6, 2, -60.4], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [10.6, -62.4], within: 0.15, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Extraleben: von der östlichen Krustenplatte auf die Säule', from: [3, 2, -149.4], heroes: ['lotti'], expectLives: 1,
+        legs: [{ carry: 'platte2', board: [3, -155], to: [6.4, -155] }, { wait: 30 }] },
+    ],
+    shots: [
+      ['start', [0, 2, 5]],
+      ['hochsteine', [0, 2, -7]],
+      ['insel1', [0, 2, -20]],
+      ['ebbe', [0, 2, -25], 0],
+      ['insel2', [-2, 2, -40]],
+      ['insel3', [7, 2, -58]],
+      ['insel4', [2, 2, -74]],
+      ['insel5', [0, 2, -92]],
+      ['cp', [0, 2, -117]],
+      ['grube', [4.6, 0, -124]],
+      ['gitter', [0, 2, -137]],
+      ['platten', [0, 2, -149]],
+      ['terrasse', [-4, 4.5, -162]],
+      ['blau', [-8.6, 4.5, -172]],
+      ['anleger', [9, 4.5, -186]],
+      ['bucht', [8.5, 2, -200]],
+      ['bucht2', [-1.5, 2, -224]],
+      ['ziel', [0, 2, -250]],
+    ],
+  },
 };
 
 const PORT = 4750;
@@ -82,33 +196,26 @@ function install() {
   wrapHurt();
   const ent = (id) => L.named.get(id);
   const at = (x0, x1, y0, z0, z1) => { const q = P().pos; return q.x > x0 && q.x < x1 && q.y > y0 && q.z < z0 && q.z > z1 && !P().dead; };
-  const wegDa = (id) => { const h = L.named.get(id); return !!h && h.parts > 0 && h.shown >= h.parts; };
+  // Takt der Lavaspiegel (deterministisch auf der Level-Uhr, Plan wie im Baustein): Sekunde im Zyklus
+  const seeT = () => ((L.time % 12.5) + 12.5) % 12.5;                 // 7-7 Lavasee: unten 0–3, warn 3–4,5, steigt –7, oben –10, sinkt –12,5
+  const grubeT = () => (((L.time + 3) % 12) + 12) % 12;               // 7-7 Grube: unten 0–3,5, warn –5, steigt –7, oben –10, sinkt –12
   const COND = {
-    // 7-2
-    weg1: () => wegDa('s1'), weg2: () => wegDa('s2'), weg3: () => wegDa('s3'), weg4: () => wegDa('s4'),
-    halle: () => at(-9, 9, 0.5, -153, -170),
-    zielhalle: () => at(-7, 7, 0.5, -210, -228),
-    laengs: () => L.named.get('laengsblock')?.shown === true,
-    aufLaengs: () => P().pos.y > 4.3 && P().mode === 'ground',
-    aufKette1: () => P().pos.y > 6.2 && P().mode === 'ground',
-    // 7-1
-    hof: () => at(-9, 9, 0.5, -31.5, -44),
-    insel: () => at(-11, 11, 0.5, -59.5, -70),
-    hub: () => at(-9, 9, 0.5, -79.8, -92),
-    turmplatz: () => at(-8, 8, 0.5, -124, -140),
-    cp: () => at(-8, 8, 0.5, -156, -166),
-    torplatz: () => at(-7, 7, 0.5, -212, -220),
-    zielinsel: () => at(-9, 9, 0.5, -228.4, -248),
-    saal: () => P().pos.x > 60 && P().pos.y > 0.5,
-    warpOffen: () => !L.named.get('warp_cp')?.hidden,
-    torOffen: () => L.named.get('tor')?.state === 'unten',
     sichel: () => P().power === 'sichel',
-    funken: () => P().power === 'funken',
-    aufTurm: () => P().pos.y > 7 && P().pos.x < -7,
-    aufBlock1: () => P().pos.y > 3.9 && P().mode === 'ground',
-    aufBlock2: () => P().pos.y > 5.7 && P().mode === 'ground',
-    gehoben: () => (L.named.get('stab2')?.liftH ?? 0) > 3,
-    mulde: () => L.named.get('mulde')?.done === true,
+    // 7-7
+    insel1: () => at(-5.5, 5.5, 1.5, -16.4, -26.2),
+    insel2: () => at(-7.5, 3.5, 1.5, -36, -46),
+    insel3: () => at(1.5, 12.5, 1.5, -54, -64.2),
+    insel4: () => at(-6.5, 10.5, 1.5, -69.8, -80.2),
+    insel5: () => at(-6.5, 6.5, 1.5, -89, -97.2),
+    cp77: () => at(-7.5, 7.5, 1.5, -112.4, -121.8),
+    terrasse: () => at(-10.6, 8.2, 4, -156.8, -174.6),
+    anleger: () => at(6.2, 12.2, 4, -181.4, -190.2),
+    // Bimssteine (Füße 1,0 m) sind sicher, solange die Lava ≤ 1,12 m steht: Zyklus 11,0 … 6,0 s; losgehen bei 11,0 … 1,2 s
+    seeEbbe: () => { const t = seeT(); return t >= 11.0 || t < 1.2; },
+    seeRing: () => { const t = seeT(); return t >= 9.6 && t < 10.2; },
+    seeFlut: () => { const t = seeT(); return t >= 7.2 && t < 8.5; },
+    grubeEbbe: () => { const t = grubeT(); return t >= 11.2 || t < 0.8; },
+    grubeFlut: () => { const t = grubeT(); return t >= 7.4 && t < 8.6; },
   };
   const W = {
     place(pos, o = {}) {
@@ -170,7 +277,7 @@ function install() {
           let n = 0;
           const kind = p.script?.kind ?? p.script?.type ?? p.scriptKind ?? '?';
           while (p.mode === 'script' && n++ < 2400 && !p.dead && L.runtime.status === 'play') { if (hold) p.invuln = Math.max(p.invuln, 5); c.setInput(stickInScript ?? {}); c.step(1); steps++; }
-          if (kind === 'glasnetz') mech.pipes++;
+          if (kind === 'glasnetz' || kind === 'glasspipe') mech.pipes++;
           mech.rides++;
           log.push(['fahrt', kind, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
         }
@@ -240,6 +347,55 @@ function install() {
           if (rode) mech.warps++;
           log.push(['warp', `${Lg.warp}`, rode, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           if (!rode) { log.push(['FEHLER: Warp-Box/Kanone nicht benutzt', Lg.warp]); break; }
+          continue;
+        }
+        // ------------------------------------------------ tragende Fontäne (Krustenplatte): frisch in Ruhe aufspringen, hochfahren, hinüber
+        if (Lg.carry) {
+          const f = L.named.get(Lg.carry);
+          const [bx, bz] = Lg.board, [tx, tz] = Lg.to;
+          let k = 0, prev = f.state, boarded = false, top = false;
+          for (; k < 2400 && !p.dead; k++) { tick({}); if (prev === 'sinkt' && f.state === 'ruhe') break; prev = f.state; }
+          for (let n = 0; n < 400 && !p.dead; n++, k++) {
+            const dx = bx - p.pos.x, dz = bz - p.pos.z, d = Math.hypot(dx, dz);
+            if (p.mode === 'ground' && p.ground?.tag === 'fontaene-platte') { boarded = true; if (d < 0.5) break; }
+            tick({ ...(p.mode === 'air' ? this.airSteer(bx, bz, 0, 0, 3.4, 11) : this.stick(dx, dz, Math.min(1, Math.max(0.3, d)))), run: !boarded, jump: p.mode === 'ground' && !boarded ? d < (Lg.jumpAt ?? 5.4) : p.vel.y > 0 && !boarded });
+          }
+          for (let n = 0; n < 1600 && !p.dead && f.state !== 'oben'; n++, k++) tick({});
+          for (let n = 0; n < 40 && !p.dead; n++, k++) tick({});
+          top = f.state === 'oben' && p.ground?.tag === 'fontaene-platte';
+          for (let n = 0; n < 400 && !p.dead; n++, k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            if (d < 0.5 && p.mode === 'ground' && n > 20) break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 7) : this.stick(dx, dz, 1)), run: false, jump: n < 22 });
+          }
+          mech.carries = (mech.carries ?? 0) + (boarded && top ? 1 : 0);
+          log.push(['fontäne', Lg.carry, boarded, top, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!boarded || !top) log.push(['FEHLER: Krustenplatte nicht genutzt', Lg.carry]);
+          continue;
+        }
+        // ------------------------------------------------ Wurfsichel im Sprung auf ein Ziel [x, z] werfen (ab Fußhöhe feet)
+        if (Lg.sichelAt) {
+          const [tx, tz] = Lg.sichelAt, [fx, fz] = Lg.from;
+          let k = 0;
+          for (; k < 600 && !p.dead; k++) {
+            const dx = fx - p.pos.x, dz = fz - p.pos.z, d = Math.hypot(dx, dz);
+            if (d < 0.15 && p.mode === 'ground') break;
+            tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.2, d / 1.2))), run: false });
+          }
+          for (let n = 0; n < 240; n++, k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, fv = p.facingVec(), dot = (fv.x * dx + fv.z * dz) / (Math.hypot(dx, dz) || 1);
+            if (dot > 0.995 && p.hSpeed() < 0.05) break;
+            tick(dot > 0.995 ? {} : { ...this.stick(dx, dz, 0.1), run: false });
+          }
+          let thrown = false;
+          for (let n = 0; n < 120 && !p.dead; n++, k++) {
+            const act = !thrown && p.mode === 'air' && p.pos.y >= (Lg.feet ?? 0);
+            if (act) thrown = true;
+            tick({ jump: n < 30, action: act });
+          }
+          for (let n = 0; n < 400 && L.entities.some((e) => e.kind === 'wurfsichel' && !e.removed); n++, k++) tick({});
+          log.push(['wurfsichel', thrown, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!thrown) log.push(['FEHLER: Wurfsichel nicht geworfen']);
           continue;
         }
         // ------------------------------------------------ Schubser in Richtung dir vom Schiff stoßen (Anlauf von der Gegenseite)
@@ -440,10 +596,13 @@ function install() {
           }
           // mitfahren, bis die Plattform am Ausstieg ist
           for (let n = 0; n < 2400 && !p.dead && Math.hypot(cx() - Lg.exit[0], cz() - Lg.exit[1]) > 0.4; n++, k++) tick({ ...this.stick(cx() - p.pos.x, cz() - p.pos.z, Math.min(1, Math.hypot(cx() - p.pos.x, cz() - p.pos.z))), run: false });
-          for (let n = 0; n < 300 && !p.dead; n++, k++) {
+          // absteigen: erst zur Plattformkante laufen (jumpAt m vor dem Ziel), dann springen
+          let j0 = Lg.jumpAt ? null : 0;
+          for (let n = 0; n < 400 && !p.dead; n++, k++) {
             const dx = bx - p.pos.x, dz = bz - p.pos.z, d = Math.hypot(dx, dz);
-            if (d < 0.5 && p.mode === 'ground') break;
-            tick({ ...(p.mode === 'air' ? this.airSteer(bx, bz, 0, 0, 3, 6) : this.stick(dx, dz, 1)), run: false, jump: n < 20 });
+            if (d < 0.5 && p.mode === 'ground' && (j0 === null || n - j0 > 20)) break;
+            if (j0 === null && d <= Lg.jumpAt) j0 = n;
+            tick({ ...(p.mode === 'air' ? this.airSteer(bx, bz, 0, 0, 3.4, 8) : this.stick(dx, dz, 1)), run: false, jump: j0 !== null && n - j0 < 20 });
           }
           log.push(['fahrt', Lg.ride, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
@@ -529,10 +688,8 @@ function install() {
       mech.hurts = p.hurtTries ?? 0;
       mech.keys = L.keys?.tor?.n ?? 0;
       mech.lives = L.runtime.save?.lives;
-      mech.lit = L.entities.filter((e) => e.kind === 'fackelschale' && e.lit).length;
-      mech.weg1 = wegDa('s1');
-      mech.laengs = L.named.get('laengsblock')?.shown === true;
-      mech.mulde = L.named.get('mulde')?.done === true;
+      mech.stars = L.runtime.stars.slice();
+      mech.stamp = !!L.runtime.stamp;
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
