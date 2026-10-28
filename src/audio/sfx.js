@@ -716,10 +716,10 @@ const SFX = {
     e.noise({ at: e.now + 0.03, duration: 0.28, filterType: 'bandpass', filterFreq: 700, filterEnd: 2400, volume: 0.65 });
     e.tone({ type: 'sine', freq: 300, freqEnd: 700, duration: 0.22, volume: 0.18, at: e.now + 0.04 });
   },
-  // Zündschnur (Kanonenturm/Riesenprojektil lädt): Zischen (Hochpass-Rauschen) mit knisternden Funken
+  // Zündschnur (Kanonenturm/Riesenprojektil lädt): Zischen (Bandpass-Rauschen um 5 kHz, sinkt leicht) mit knisternden Funken
   fuse: (e) => {
     const t = e.now;
-    e.noise({ duration: 0.75, filterType: 'highpass', filterFreq: 3500, volume: 0.235 });
+    e.noise({ duration: 0.75, filterType: 'bandpass', filterFreq: 5200, filterEnd: 3800, volume: 0.42 });
     [0.05, 0.17, 0.26, 0.41, 0.55].forEach((d, i) => e.tick({ at: t + d, freq: 3200 - i * 250, volume: 0.075, decay: 0.012 }));
   },
   // Verbrennen/Lava (Gegner fällt in die Lava, Lava speit Brocken): Zischen „Pschhh“, dumpfes „Fwump“, zwei Lava-Blasen
@@ -732,9 +732,9 @@ const SFX = {
   // Kettenrasseln (Schleuse/Lift fährt an, Kronleuchter fällt): Schellen-Rasseln und fünf metallisch klirrende Glieder
   chain: (e) => {
     const t = e.now;
-    e.jingle({ volume: 0.36, duration: 0.28 });
+    e.jingle({ volume: 0.26, duration: 0.28 });
     [[0, 2300], [0.05, 1900], [0.09, 2600], [0.15, 2100], [0.2, 1800]].forEach(([d, f], i) =>
-      e.bell({ at: t + d, freq: f, volume: 0.2 - i * 0.025, decay: 0.06, ratio: 2.76, partial: 0.6 }));
+      e.bell({ at: t + d, freq: f, volume: 0.25 - i * 0.03, decay: 0.06, ratio: 2.76, partial: 0.6 }));
   },
   // Entdeckt! (Schleich-Level, Suchlicht): kindgerechter Alarm – heller Glockenschlag, dann zweimal „dü-da“ (Dreieck, mittlere Lage)
   alarm: (e) => {
