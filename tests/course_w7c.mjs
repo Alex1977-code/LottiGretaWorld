@@ -1,0 +1,671 @@
+// Welt 7, Level 7-5 „Stampfsteinturm und Giftnebel-Flucht“ (Stufenturm mit Stampfstein-Fahrstühlen, Aufzügen, Fähre,
+// Kletterpfeiler, Zauberkröten, Sinkwolke, Seilbahn, runder Funkenturm mit Funkenflämmchen, fünf Schlüsselmünzen, Ziegel-
+// Würfel, Flucht vor dem Giftnebel und steigender Lava), 7-Kapitän „Krümel in der Zahnradschmiede“ (Maschinen-Diorama:
+// Förderbänder, Stampfsteine als Trittstufen, Projektilköpfe, 5 Sterne) und 7-6 „Rammfisch-Riff am Feuerberg“ (Unterwasser:
+// Rammfische, zerbrechliche Kisten, Vulkaninsel mit Wutkaulquappen, große rotierende Rammfische):
+// Laden ohne Konsolenfehler/-warnungen, Daten (Thema, Musik, Zeit, Sterne, Stempel, Gegnerzahlen), Routen-Bot (Lotti und
+// Greta von Start bis Zielmast, deterministisch über __course.setInput/step, echte Eingaben – kein Teleport auf der Route),
+// alle Sterne und der Stempel mit der echten Mechanik samt Gegenproben, Extras, Kennzahlen je Abschnitt (Zeichenaufrufe
+// < 120 inkl. Schattenpass, Dreiecke < 300 k) und Bilder aus der Spielkamera (tests/out/w7c_*.png).
+// Aufruf (nach npm run build): PORT_BASE=0 node tests/course_w7c.mjs [7-5|7-Kapitän|7-6]
+//   PARTS=load,route,sweep,targets,extra,shots (Standard alle; je Lauf ≤ 10 min, empfohlen je Level zwei Läufe:
+//   load,route,sweep und load,targets,extra,shots) · HEROES=lotti,greta · ONLY=<Text> (nur Ziele/Extras mit diesem
+//   Namensteil) · VERBOSE=1 (Protokoll der Beine) · TRACE=1 · SHOTS=<Name|Name> (nur diese Bilder) · DETAIL=1 (Zeichenaufrufe
+//   je Objekt bei den Bildern)
+//
+// Der Bot lenkt je Schritt zum nächsten Wegpunkt (Stick relativ zur Kamera-Gier wie im Spiel). Die Figur ist auf der Route
+// unverwundbar (Abpraller zählen weiter), damit Geometrie und Mechanik geprüft werden; Trefferversuche werden gezählt.
+// Giftnebel, Lava und Absturz töten trotzdem (die Flucht ist echt). Gegenproben laufen verwundbar.
+import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
+
+// ------------------------------------------------------------------ Maße 7-5 (wie src/course/levels/w7/7-5.js)
+const E0 = 0, E1 = 6, E2 = 12, E3 = 18, TOP = 24, G1 = 20, WT = 16.8, R1 = 25, R2 = 30, R3 = 35, R4 = 40, GOAL = 30;
+const C2 = { x: 0, z: -112 };
+/** Punkt auf einem Ring des Funkenturms (Winkel in Grad, 0 = vorn/+Z, 90 = rechts/+X) → [x, z]. */
+const ring = (a, r) => [+(C2.x + Math.sin((a * Math.PI) / 180) * r).toFixed(3), +(C2.z + Math.cos((a * Math.PI) / 180) * r).toFixed(3)];
+
+// ------------------------------------------------------------------ Routen
+// Beine (legs): { to: [x, z], jump: Schritte (Sprungtaste gehalten), jumpAt (Abstand zum Ziel, ab dem gesprungen wird),
+// within, run, slow, max, land, autoJump, hopping (Treppe: immer wieder hüpfen), stopIf } · { wait } · { hop } (Sprung auf der
+// Stelle) · { poundAt: [x, z] } · { climbOnto: [x, z, oberkante] } · { push: Schritte, dir: [dx, dz], jump } (gegen eine
+// Wand drücken, z. B. Klettern) · { star: i } · { stamp: true } · { chaseKind, filter } · { expect: Bedingung } ·
+// { until: Bedingung } · { warp: [x, z] } · { toads: [Ids] } (Zauberkröten anspringen, sobald sie sichtbar sind)
+const ROUTES = {
+  '7-5': {
+    start: [0, E0, 10],
+    meta: { stars: 3, time: 400, theme: 'lavatower', music: 'course_traptower', archetype: 'parcours' },
+    enemies: { stampfstein: 3, knochenflieger: 3, zauberkroete: 3, funkenflaemmchen: 6, schluesselmuenze: 5 },
+    main: [
+      { to: [3.6, -7.6], within: 0.4, run: false },
+      { name: 'Stampfstein 1 herunterlocken', to: [4, -9.5], within: 0.2, run: false, slow: 0.5 },
+      { until: 'stampf1Liegt', max: 400 },
+      { name: 'auf den liegenden Stampfstein', to: [4, -11.1], jump: 18, within: 0.45, run: false },
+      { expect: 'aufStampf1' },
+      { until: 'stampf1Oben', max: 900 },
+      { name: 'Etage 1', to: [4, -14], within: 0.5, run: false },
+      { to: [-6, -19.6], within: 0.5 },
+      { name: 'Aufzug 1', to: [-10.5, -20.5], within: 0.45, run: false },
+      { until: 'lift1Oben', max: 900 },
+      { name: 'Etage 2 links', to: [-8, -25], within: 0.5, run: false },
+      { to: [-4.7, -27], within: 0.25, run: false },
+      { until: 'faehreLinks', max: 1200 },
+      { name: 'Fähre über den Schacht', to: [-2.2, -27], within: 0.4, run: false },
+      { until: 'faehreRechts', max: 1200 },
+      { name: 'Etage 2 rechts', to: [6, -27.6], within: 0.5, run: false },
+      { name: 'Aufzug 2', to: [10.5, -30.5], within: 0.45, run: false },
+      { until: 'lift2Oben', max: 900 },
+      { name: 'Etage 3', to: [8, -35], within: 0.5, run: false },
+      { to: [-3.6, -37.6], within: 0.4, run: false },
+      { name: 'Stampfstein 2 herunterlocken', to: [-4, -39.4], within: 0.2, run: false, slow: 0.5 },
+      { until: 'stampf2Liegt', max: 400 },
+      { to: [-4, -41.1], jump: 18, within: 0.45, run: false },
+      { until: 'stampf2Oben', max: 900 },
+      { name: 'Turmspitze', to: [-4, -44.2], within: 0.5, run: false },
+      { to: [0, -52.6], within: 0.35, run: false },
+      { name: 'in die Gondel', to: [0, -55.25], jump: 16, within: 0.5, run: false },
+      { expect: 'inGondel' },
+      { until: 'gondelDruben', max: 2400 },
+      { name: 'Vorhof (Checkpoint)', to: [0, -89.8], jump: 18, within: 0.5, run: false },
+      { name: 'Schlüssel 1', to: [-8.6, -90.6], within: 0.5 },
+      { to: [-5, -92.4], within: 0.4, run: false },
+      { name: 'Treppe auf Ring 1', to: [-5, -100.4], within: 0.5, run: false, hopping: true },
+      { to: ring(-38, 11.0), within: 0.6 },
+      { to: ring(-58, 10.6), within: 0.6 },
+      { name: 'Schlüssel 2', to: ring(-75, 11.4), within: 0.5 },
+      { to: ring(-58, 11.0), within: 0.5, run: false },
+      { name: 'Sprungfeder', to: ring(-45, 11.5), jump: 10, within: 0.35, run: false, land: false },
+      { name: 'Ring 2', to: ring(-45, 8.2), within: 0.6, run: false },
+      { name: 'Schlüssel 3', to: ring(-64, 8.6), within: 0.5, run: false },
+      { to: [-8.5, -109.3], within: 0.3, run: false },
+      { until: 'pfeilOben', max: 1200 },
+      { name: 'Pfeilplattform', to: [-8.6, -112], jump: 24, within: 0.5, run: false },
+      { name: 'Ring 3', to: [-5.5, -112], jump: 26, within: 0.5, run: false },
+      { to: ring(-62, 5.6), within: 0.5, run: false },
+      { name: 'Schlüssel 4', to: ring(-45, 5.6), within: 0.5, run: false },
+      { to: ring(-22, 5.7), within: 0.5, run: false },
+      { name: 'Stampfstein 3 herunterlocken', to: [-1.7, -106.2], within: 0.2, run: false, slow: 0.5 },
+      { until: 'stampf3Liegt', max: 400 },
+      { to: [0, -106.7], jump: 18, within: 0.45, run: false },
+      { until: 'stampf3Oben', max: 900 },
+      { name: 'Turmkrone: Schlüssel 5 weckt den Giftnebel', to: [0, -112], within: 0.3, run: false },
+      { expect: 'keys5' },
+      { expect: 'nebelAn' },
+      { name: 'Flucht: Krone → Ring 3', to: ring(73, 3.4), within: 0.5, run: false },
+      { to: ring(73, 5.4), within: 0.6, run: false },
+      { to: ring(45, 5.0), within: 0.6 },
+      { to: ring(20, 5.3), within: 0.6 },
+      { name: 'Ring 3 → Ring 2', to: ring(20, 8.4), within: 0.7, run: false },
+      { to: ring(48, 7.9), within: 0.6 },
+      { to: ring(75, 8.1), within: 0.6 },
+      { name: 'Ring 2 → Ring 1', to: ring(75, 11.2), within: 0.7, run: false },
+      { to: ring(58, 10.8), within: 0.6 },
+      { to: ring(39, 11.3), within: 0.6 },
+      { name: 'Ring 1 → Vorhof', to: ring(39, 14.4), within: 0.7, run: false },
+      { to: [9.4, -93], within: 0.5 },
+      { name: 'Treppe hinab, Glutbrücke', to: [15.2, -93], within: 0.5 },
+      { name: 'Warp-Terrasse', to: [17.4, -93], jump: 14, within: 0.5, run: false },
+      { name: 'Warp-Box zum Ziel', warp: [19.4, -93.4] },
+      { expect: 'zielterrasse' },
+      { name: 'Zielmast', to: [0, -149.3], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'drei Stampfstein-Fahrten, zwei Aufzüge, Fähre, Seilbahn, Sprungfeder, Pfeilplattform', ok: (r) => r.mech.stampfFahrten === 3 && r.mech.aufzug >= 2 && r.mech.gondel && r.mech.feder },
+      { name: 'fünf Schlüsselmünzen, Warp-Box erschienen und benutzt', ok: (r) => r.mech.keys === 5 && r.mech.warps === 1 },
+      { name: 'Giftnebel gejagt, Lava gestiegen, Flucht gelungen (nicht im Nebel gestorben)', ok: (r) => r.mech.nebel === 'jagt' || r.mech.nebel === 'ende' ? r.mech.lavaTop > 0 && !r.dead : false },
+    ],
+    targets: [
+      { name: 'Stern 0: Krallen-Anzug aus dem ?-Block, Aufzug 2, Kletterpfeiler hinauf', star: 0, from: [6, E2, -27.6],
+        legs: [{ to: [6.6, -25.6], within: 0.2, run: false }, { hop: 20 }, { chaseKind: 'powerup', max: 900 }, { expect: 'krallen' },
+          { to: [10.5, -30.5], within: 0.4, run: false }, { until: 'lift2Oben', max: 900 }, { wait: 20 },
+          { push: 300, jump: 14, dir: [1, 0] }, { expect: 'aufPfeiler' }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Krallen-Anzug (Pfeiler zu hoch)', star: 0, expectNot: true, from: [10.5, E2, -30.5], heroes: ['lotti'],
+        legs: [{ until: 'lift2Oben', max: 900 }, { wait: 20 }, { push: 200, jump: 30, dir: [1, 0] }, { wait: 30 }] },
+      { name: 'Stern 1: alle drei Zauberkröten auf der Turmspitze besiegen', star: 1, from: [0, TOP, -46],
+        legs: [{ expect: 'sternKroetenVersteckt' }, { toads: ['zk1', 'zk2', 'zk3'], max: 7200 }, { until: 'sternKroeten', max: 300 }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stern 2: auf den Ziegel-Würfel, Stampfattacke, hinein zum Stern', star: 2, from: [-3.6, R1, -101.4],
+        legs: [{ to: [-1.9, -100.9], within: 0.25, run: false }, { climbOnto: [0, -100.5, R1 + 3] }, { expect: 'aufWuerfel' }, { to: [0, -100.5], within: 0.15, run: false, slow: 0.4 },
+          { poundAt: [0, -100.5] }, { wait: 30 }, { hop: 24 }], shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne Stampfen (Ziegel halten Springen aus)', star: 2, expectNot: true, from: [-3.6, R1, -101.4], heroes: ['lotti'],
+        legs: [{ to: [-1.9, -100.9], within: 0.25, run: false }, { climbOnto: [0, -100.5, R1 + 3] }, { hop: 24 }, { hop: 24 }, { wait: 30 }] },
+      { name: 'Stempel: von der Turmspitze links hinunter auf die Sinkwolke, mit ihr hinab zur Etage 3', stamp: true, from: [1, TOP, -47],
+        legs: [{ to: [-16, -47], jumpAt: 8.6, jump: 30, within: 0.7, run: true }, { expect: 'aufWolke' }, { until: 'wolkeUnten', max: 900 },
+          { to: [-6, -39.6], within: 0.5, run: false }, { expect: 'etage3' }], shot: 'stempel' },
+      { name: 'Stempel nicht von Etage 3 aus (Wolke zu hoch)', stamp: true, expectNot: true, from: [4, E3, -41.2], heroes: ['lotti'],
+        legs: [{ to: [-16, -47], jumpAt: 8.2, jump: 30, within: 0.7, run: true, max: 400 }, { wait: 60 }] },
+    ],
+    extra: [
+      { name: 'Extraleben: unsichtbarer Block auf Etage 1', from: [-7.2, E1, -13.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-7.2, -15.2], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Warp-Box versteckt, solange Schlüssel fehlen', from: [17.4, WT, -93], heroes: ['lotti'],
+        legs: [{ to: [19.4, -93.4], jump: 30, within: 0.3, run: false, max: 300 }, { wait: 60 }, { expect: 'nichtZiel' }] },
+      { name: 'Giftnebel: wer auf der Krone stehen bleibt, stirbt im Nebel', from: [0, R4, -109.4], heroes: ['lotti'], expectAlive: false, invuln: false,
+        legs: [{ to: [0, -112], within: 0.4, run: false }, { wait: 1500 }], mech: (r) => r.dead && r.info.deathCause === 'gift', mechText: (r) => `Tod: ${r.info.deathCause}` },
+      { name: 'Lava steigt: Glutbrücke nach ≈ 30 s geflutet, Warp-Terrasse bleibt trocken (Nebel hält darüber)', from: [0, R4, -109.4], heroes: ['lotti'],
+        legs: [{ to: [0, -112], within: 0.4, run: false }, { to: ring(73, 3.2), within: 0.5 }, { to: ring(73, 5.6), within: 0.6 }, { to: ring(20, 5.3), within: 0.6 },
+          { to: ring(20, 8.4), within: 0.7 }, { to: ring(75, 8.1), within: 0.6 }, { to: ring(75, 11.2), within: 0.7 }, { to: ring(39, 11.3), within: 0.6 },
+          { to: ring(39, 14.4), within: 0.7 }, { to: [9.4, -93], within: 0.5 }, { to: [15.2, -93], within: 0.5 }, { to: [18, -95.6], jump: 14, within: 0.5, run: false },
+          { wait: 60 * 120 }, { expect: 'lavaHoch' }, { expect: 'brueckeGeflutet' }], mech: (r) => !r.dead, mechText: (r) => `Lava ${r.mech.lavaTop.toFixed(2)}, Nebel ${r.mech.nebel}` },
+      { name: 'Neustart nach dem Nebel-Tod: Nebel und Lava zurückgesetzt, Checkpoint auf dem Vorhof', from: [0, R4, -109.4], heroes: ['lotti'], expectAlive: true, invuln: false,
+        legs: [{ to: [0, -112], within: 0.4, run: false }, { wait: 1500 }, { until: 'lebt', max: 900 }, { wait: 60 }, { expect: 'nebelWartet' }, { expect: 'lavaUnten' }, { expect: 'amCheckpoint' }] },
+    ],
+    shots: [
+      ['start', [0, E0, 9]],
+      ['stampf1', [2.6, E0, -7.2]],
+      ['etage1', [-2, E1, -15]],
+      ['aufzug1', [-8, E1, -20]],
+      ['etage2', [-7, E2, -26]],
+      ['faehre', [6, E2, -27]],
+      ['pfeiler', [10.5, E2, -28]],
+      ['etage3', [2, E3, -36]],
+      ['spitze', [0, TOP, -47]],
+      ['wolke', [-5, TOP, -47, 0, Math.PI]],
+      ['seilbahn', [0, TOP, -56.2], 360],
+      ['vorhof', [0, G1, -92]],
+      ['ring1', [...[ring(-40, 11.2)].map((p) => [p[0], R1, p[1]])[0]]],
+      ['ring2', [...[ring(-60, 8.6)].map((p) => [p[0], R2, p[1]])[0]]],
+      ['ring3', [...[ring(-40, 5.6)].map((p) => [p[0], R3, p[1]])[0]]],
+      ['krone', [0, R4, -109.8]],
+      ['flucht', [...[ring(45, 8.0)].map((p) => [p[0], R2, p[1]])[0]], 0, null, Math.PI / 2, 'flucht'],
+      ['bruecke', [12, 15.4, -93]],
+      ['warp', [17.6, WT, -91]],
+      ['ziel', [0, GOAL, -141]],
+    ],
+  },
+};
+
+const PORT = 4730;
+const stop = await startServer(PORT);
+const { browser, page, errors } = await launchBrowser();
+const { check, summary } = makeChecker();
+const port = PORT + Number(process.env.PORT_BASE ?? 0);
+const sc = (fn, arg) => page.evaluate(fn, arg);
+const only = process.argv[2];
+const LEVELS = only ? [only] : Object.keys(ROUTES);
+const ONLY = process.env.ONLY ?? null;
+const pick = (list) => (ONLY ? list.filter((t) => t.name.includes(ONLY)) : list);
+const PARTS = new Set((process.env.PARTS ?? 'load,route,sweep,targets,extra,shots').split(','));
+const HEROES = (process.env.HEROES ?? 'lotti,greta').split(',');
+const SHOTS = process.env.SHOTS ? new Set(process.env.SHOTS.split('|')) : null;
+
+/** Hilfen in der Seite: Figur setzen, Bot-Fahrt, Zustand. */
+function install() {
+  const c = window.__course;
+  c.setManual(true);
+  c.level.muted = true;
+  window.__game.scene.getScene('CourseUI')?.touchCtl?.setVisible(false);
+  const P = () => c.player;
+  const L = c.level;
+  const wrapHurt = () => {
+    const p = P();
+    if (p.__hurtWrapped) return;
+    p.__hurtWrapped = true;
+    p.hurtTries = 0;
+    const orig = p.hurt.bind(p);
+    p.hurt = (src) => { p.hurtTries++; p.lastHurt = src?.kind ?? String(src); return orig(src); };
+  };
+  wrapHurt();
+  const ent = (id) => L.named.get(id) ?? L.entities.find((e) => e.spec?.id === id);
+  const named = (id) => L.named.get(id);
+  const at = (x0, x1, y0, z0, z1) => { const q = P().pos; return q.x > x0 && q.x < x1 && q.y > y0 && q.z < z0 && q.z > z1 && !P().dead; };
+  const lava = () => named('glutsee');
+  const COND = {
+    // 7-5
+    stampf1Liegt: () => ent('stampf1')?.state === 'land',
+    stampf2Liegt: () => ent('stampf2')?.state === 'land',
+    stampf3Liegt: () => ent('stampf3')?.state === 'land',
+    aufStampf1: () => P().ground?.owner === ent('stampf1'),
+    stampf1Oben: () => ent('stampf1')?.state === 'wait' && P().pos.y > 5.8,
+    stampf2Oben: () => ent('stampf2')?.state === 'wait' && P().pos.y > 23.8,
+    stampf3Oben: () => ent('stampf3')?.state === 'wait' && P().pos.y > 39.8,
+    lift1Oben: () => named('aufzug1')?.state === 'ende',
+    lift2Oben: () => named('aufzug2')?.state === 'ende',
+    faehreLinks: () => { const h = named('faehre'); return h && h.pm.s < 0.15; },
+    faehreRechts: () => { const h = named('faehre'); return h && h.pm.s > h.pm.length - 0.15; },
+    inGondel: () => P().ground?.tag === 'seilbahn',
+    gondelDruben: () => { const g = named('gondel'); return g && g.u >= 0.999 && g.state === 'wait'; },
+    // Pfeilplattform gerade eben ganz oben (Übergang beobachtet – dann bleibt genug Zeit für zwei Sprünge)
+    pfeilOben: (() => { let prev = null; return () => { const s = named('pfeil')?.state; const ok = s === 'oben' && prev !== null && prev !== 'oben'; prev = s; return ok; }; })(),
+    keys5: () => (L.keys?.tor?.n ?? 0) >= 5,
+    nebelAn: () => ['verzoegert', 'jagt'].includes(named('nebel')?.state),
+    nebelWartet: () => named('nebel')?.state === 'wartet',
+    zielterrasse: () => at(-8, 8, 29.5, -134, -158),
+    nichtZiel: () => !at(-8, 8, 29.5, -134, -158),
+    krallen: () => P().power === 'krallen',
+    aufPfeiler: () => P().pos.y > 26.8 && P().pos.x > 12,
+    sternKroetenVersteckt: () => { const s = L.entities.find((e) => e.kind === 'star' && e.index === 1); return !!s && s.hidden; },
+    sternKroeten: () => { const s = L.entities.find((e) => e.kind === 'star' && e.index === 1); return !!s && !s.hidden; },
+    aufWuerfel: () => P().pos.y > R1 + 2.9,
+    aufWolke: () => P().ground?.tag === 'cloud',
+    wolkeUnten: () => named('wolkenfahrt')?.state === 'ende',
+    etage3: () => at(-9, 12, E3 - 0.2, -32, -42),
+    lavaHoch: () => (lava()?.top ?? -99) > 15.6,
+    lavaUnten: () => (lava()?.top ?? 99) < 0,
+    brueckeGeflutet: () => (lava()?.top ?? -99) > 15.4 + 0.15 && (lava()?.top ?? 99) < WT,
+    lebt: () => !P().dead && L.runtime.status === 'play',
+    amCheckpoint: () => at(-10, 10, G1 - 0.2, -88, -99),
+  };
+  const W = {
+    place(pos, o = {}) {
+      const p = P();
+      c.setInput(null);
+      p.setHero(o.hero ?? 'lotti');
+      p.dead = false;
+      p.big = true;
+      p.power = 'none';
+      p.powerTime = 0;
+      p.reset(pos, o.yaw ?? Math.PI / 2);
+      p.invuln = o.invuln ?? 0;
+      if (o.power) p.setPower(o.power);
+      L.runtime.status = 'play';
+      L.controlYaw = c.view.rig.controlYaw(p.pos);
+      c.step(o.settle ?? 20);
+      c.snapCamera();
+      wrapHurt();
+      p.hurtTries = 0;
+      return p.info();
+    },
+    stick(dx, dz, mag = 1) {
+      const l = Math.hypot(dx, dz) || 1;
+      const wx = dx / l, wz = dz / l;
+      const cy = L.controlYaw ?? 0, co = Math.cos(cy), si = Math.sin(cy);
+      return { x: (co * wx - si * wz) * mag, y: (-si * wx - co * wz) * mag };
+    },
+    /** Lenkung in der Luft: Wunschgeschwindigkeit zum Ziel (tx, tz) plus Mitbewegung (vx, vz). */
+    airSteer(tx, tz, vx = 0, vz = 0, k = 3.2, vmax = 7) {
+      const p = P();
+      let wx = (tx - p.pos.x) * k + vx, wz = (tz - p.pos.z) * k + vz;
+      const wl = Math.hypot(wx, wz); if (wl > vmax) { wx *= vmax / wl; wz *= vmax / wl; }
+      const ex = wx - p.vel.x, ez = wz - p.vel.z, el = Math.hypot(ex, ez);
+      return el > 0.05 ? this.stick(ex, ez, Math.min(1, el / 2.2)) : { x: 0, y: 0 };
+    },
+    drive(legs, o = {}) {
+      const p = P();
+      const log = [];
+      let steps = 0, autoJumps = 0;
+      const hold = o.invuln !== false;
+      const hist = [];
+      let deadLogged = false;
+      const mech = { hurts: 0, keys: 0, warps: 0, rides: 0, stampfFahrten: 0, aufzug: 0, gondel: false, feder: false, hurtList: [], lavaTop: -99, nebel: null };
+      const track = [];
+      let lastHurts = p.hurtTries ?? 0;
+      let lastStampf = null;
+      const tick = (inp) => {
+        if (hold) p.invuln = Math.max(p.invuln, 5);
+        c.setInput(inp); c.step(1); steps++;
+        if ((p.hurtTries ?? 0) > lastHurts) { lastHurts = p.hurtTries; mech.hurtList.push(`${p.lastHurt}@${p.pos.x.toFixed(0)},${p.pos.y.toFixed(0)},${p.pos.z.toFixed(0)}`); }
+        const g = p.ground;
+        if (p.mode === 'ground' && g?.tag === 'stampfstein' && g.owner !== lastStampf && g.owner?.state === 'rise') { lastStampf = g.owner; mech.stampfFahrten++; }
+        if (p.mode === 'ground' && g?.tag === 'seilbahn') mech.gondel = true;
+        if (p.vel.y > 15 && p.pos.y > 24 && p.pos.y < 27) mech.feder = true;
+        if (p.mode === 'ground' && !p.dead) {
+          const t = track[track.length - 1];
+          if (!t || Math.hypot(p.pos.x - t[0], p.pos.z - t[2]) > 7 || Math.abs(p.pos.y - t[1]) > 2.5) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+        }
+        if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.ground?.tag ?? '']); if (hist.length > 30) hist.shift(); }
+        if (window.__trace && steps % 10 === 0) log.push(['spur', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.power, p.ground?.tag ?? '']);
+        if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
+        if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead && !o.keepScript) {
+          let n = 0;
+          const kind = p.script?.kind ?? p.script?.type ?? p.scriptKind ?? '?';
+          while (p.mode === 'script' && n++ < 2400 && !p.dead && L.runtime.status === 'play') { if (hold) p.invuln = Math.max(p.invuln, 5); c.setInput({}); c.step(1); steps++; }
+          mech.rides++;
+          log.push(['fahrt', kind, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+        }
+      };
+      const settle = () => { for (let k = 0; k < 300 && p.mode !== 'ground' && p.mode !== 'swim' && !p.dead; k++) tick({}); };
+      for (let li = 0; li < legs.length; li++) {
+        const Lg = legs[li];
+        if (p.dead || L.runtime.status !== 'play') { if (Lg.until !== 'lebt') break; }
+        if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait && (!p.dead || o.waitDead); i++) tick({}); continue; }
+        if (Lg.expect) { const ok = COND[Lg.expect](); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
+        if (Lg.until) {
+          let k = 0, ok = false;
+          for (; k < (Lg.max ?? 1200); k++) { if (COND[Lg.until]()) { ok = true; break; } tick({}); }
+          log.push(['bis', Lg.until, k]);
+          if (!ok) log.push(['FEHLER: bis', Lg.until]);
+          continue;
+        }
+        if (Lg.hop) {
+          for (let k = 0; k < 90 && (p.mode !== 'ground' || p.hSpeed() > 0.2); k++) tick({});
+          for (let k = 0; k < Lg.hop; k++) tick({ jump: true });
+          for (let k = 0; k < 240 && p.mode !== 'ground' && p.mode !== 'swim'; k++) tick({});
+          log.push(['hüpfer', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        if (Lg.push) {
+          const holdJ = Lg.jump ?? 0;
+          for (let k = 0; k < Lg.push; k++) tick({ ...this.stick(Lg.dir[0], Lg.dir[1]), run: false, jump: k < holdJ });
+          log.push([Lg.name ?? `drücken${li}`, Lg.push, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
+          continue;
+        }
+        if (Lg.climbOnto) {
+          // senkrecht hochspringen, erst über der Oberkante zum Ziel lenken
+          const [cx, cz, top] = Lg.climbOnto;
+          let k = 0, left = false;
+          for (; k < 300; k++) {
+            const above = p.pos.y > top + 0.15;
+            tick({ ...(p.mode === 'air' && above ? this.airSteer(cx, cz, 0, 0, 3.5, 6) : {}), jump: k < 40, run: false });
+            if (p.mode === 'air') left = true;
+            if (left && p.mode === 'ground') break;
+          }
+          log.push(['hinauf', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
+          continue;
+        }
+        if (Lg.poundAt) {
+          const [tx2, tz2] = Lg.poundAt;
+          let k = 0, pounding = false;
+          for (; k < 300; k++) {
+            const dx = tx2 - p.pos.x, dz = tz2 - p.pos.z, d = Math.hypot(dx, dz);
+            if (k > 5 && p.mode === 'ground') break;
+            if (!pounding && k > 8 && d < 0.3 && p.vel.y < 3) pounding = true;
+            tick(pounding ? { crouch: true } : { ...(p.mode === 'air' ? this.airSteer(tx2, tz2, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, d * 1.2))), jump: k < 26, run: false });
+          }
+          log.push(['stampfen auf', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, pounding]);
+          continue;
+        }
+        if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
+        if (Lg.chaseKind) {
+          const filter = Lg.filter ? (e) => e.spec?.power === Lg.filter || e.power === Lg.filter || e.spec?.id === Lg.filter : null;
+          const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter });
+          log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]);
+          continue;
+        }
+        // ------------------------------------------------ Zauberkröten: sichtbare anspringen, sonst zur Mitte und warten
+        if (Lg.toads) {
+          const list = () => Lg.toads.map((id) => L.entities.find((e) => e.spec?.id === id)).filter((e) => e && e.alive && !e.removed && !e.defeated);
+          let k = 0;
+          const home = Lg.home ?? [0, -48];
+          for (; k < (Lg.max ?? 6000) && list().length && !p.dead; k++) {
+            const vis = list().filter((e) => e.touch && (e.state === 'appear' || e.state === 'cast' || e.state === 'linger'));
+            vis.sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z));
+            const e = vis[0];
+            if (!e) {
+              if (p.mode === 'air') { tick({}); continue; }
+              const dx = home[0] - p.pos.x, dz = home[1] - p.pos.z, d = Math.hypot(dx, dz);
+              tick(d > 0.6 ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {});
+              continue;
+            }
+            const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            if (p.mode === 'air') { tick({ ...this.airSteer(e.pos.x, e.pos.z, 0, 0, 4, 8), jump: p.vel.y > 0 }); continue; }
+            tick({ ...this.stick(dx, dz, 1), run: d > 3, jump: d < 2.4 });
+          }
+          log.push(['kröten', k, list().length, +p.pos.x.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (list().length) log.push(['FEHLER: Zauberkröten übrig', list().length]);
+          continue;
+        }
+        // ------------------------------------------------ auf eine Warp-Box springen und mitfahren
+        if (Lg.warp) {
+          const [tx, tz] = Lg.warp;
+          let k = 0, rode = false;
+          const r0 = mech.rides;
+          for (; k < 900 && !p.dead; k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            const jump = p.mode === 'ground' ? d < 2.0 : p.vel.y > 0;
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3.4, 6) : this.stick(dx, dz, Math.min(1, Math.max(0.35, d / 1.5)))), jump, run: false });
+            if (mech.rides > r0) { rode = true; break; }
+          }
+          settle();
+          for (let q = 0; q < 30; q++) tick({});
+          if (rode) mech.warps++;
+          log.push(['warp', `${Lg.warp}`, rode, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!rode) { log.push(['FEHLER: Warp-Box nicht benutzt', Lg.warp]); break; }
+          continue;
+        }
+        // ------------------------------------------------ Wegpunkt (optional mit Sprung)
+        const max = Lg.max ?? 900;
+        const within = Lg.within ?? 0.6;
+        const holdJ = Lg.jump === true ? 40 : (Lg.jump ?? 0);
+        const tx = Lg.to[0] ?? p.pos.x, tz = Lg.to[1];
+        let i = 0, airborne = false, landed = false;
+        let best = Infinity, still = 0, auto = 0, j0 = Lg.jumpAt ? null : 0;
+        if (holdJ) for (let w = 0; w < 240 && p.mode === 'air'; w++) tick({});
+        for (; i < max; i++) {
+          if (p.dead || L.runtime.status !== 'play') break;
+          const dx = tx - p.pos.x, dz = tz - p.pos.z;
+          const dist = Math.hypot(dx, dz);
+          if (dist < best - 0.05) { best = dist; still = 0; } else if (p.mode === 'ground') still++;
+          if (still > 45 && auto <= 0 && Lg.autoJump !== false) { auto = 26; still = 0; autoJumps++; }
+          const done = dist < within && (!holdJ || Lg.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim')));
+          if (done && i > 0) break;
+          let mag = Lg.slow ?? 1;
+          let st;
+          if (p.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, 2.6, 11);
+          else {
+            if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
+            st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
+          }
+          if (Lg.stopIf && COND[Lg.stopIf]()) break;
+          if (j0 === null && Lg.jumpAt && dist <= Lg.jumpAt) j0 = i;
+          let jump = (holdJ && j0 !== null ? (i - j0 < holdJ) : false) || auto > 0;
+          if (Lg.hopping && p.mode === 'ground' && (i % 22) < 8) jump = true;
+          if (auto > 0) auto--;
+          const swimJ = p.mode === 'swim' && (i % 24) < 10;
+          tick({ ...st, run: Lg.run ?? true, jump: jump || swimJ, crouch: !!Lg.dive && p.mode === 'swim' });
+          if (p.mode === 'air') airborne = true;
+          else if (airborne) landed = true;
+        }
+        log.push([Lg.name ?? `leg${li}`, i, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
+        if (i >= max) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, Lg.to]); break; }
+      }
+      c.setInput({});
+      mech.hurts = p.hurtTries ?? 0;
+      mech.keys = L.keys?.tor?.n ?? 0;
+      mech.aufzug = (named('aufzug1')?.trips ?? 0) + (named('aufzug2')?.trips ?? 0);
+      mech.lavaTop = lava()?.top ?? -99;
+      mech.nebel = named('nebel')?.state ?? null;
+      return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
+    },
+    chase(kind, o = {}) {
+      const p = P();
+      let n = 0;
+      const max = o.max ?? 3600;
+      const match = (x) => x.kind === kind && x.alive && !x.removed && !x.defeated && !x.hidden && (!o.filter || o.filter(x));
+      for (; n < max; n++) {
+        if (p.dead || L.runtime.status !== 'play') break;
+        let e = null, best = Infinity;
+        for (const x of L.entities) { if (!match(x)) continue; const d = Math.hypot(x.pos.x - p.pos.x, x.pos.z - p.pos.z); if (d < best) { best = d; e = x; } }
+        if (!e) break;
+        const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, dist = Math.hypot(dx, dz);
+        const dy = e.pos.y - p.pos.y;
+        const jump = (o.jump !== false && (n % 48) < 20 && dist < 1.6) || (dy > 0.8 && (n % 48) < 30);
+        p.invuln = Math.max(p.invuln, 5);
+        c.setInput({ ...this.stick(dx, dz, Math.min(1, 0.3 + dist)), run: !o.walk && (dist > 1.5 || o.run), jump });
+        c.step(1);
+        if (p.mode === 'script') { let k = 0; while (p.mode === 'script' && k++ < 1200) { c.setInput({}); c.step(1); } }
+      }
+      c.setInput({});
+      return n;
+    },
+    /** Aufschlüsselung des nächsten Bildes je Objekt (Name der nächsten benannten Hülle bzw. Entitäts-Art): Aufrufe, Dreiecke. */
+    detail: () => new Promise((res) => {
+      const v = c.view, r = v.renderer;
+      for (const e of L.entities) e.model?.root?.traverse((o) => { o.userData.__perf = `E:${e.kind}`; });
+      const label = (o) => { if (o.userData.__perf) return o.userData.__perf; for (let q = o; q; q = q.parent) if (q.name) return q.name.replace(/:\d+$/, ''); return o.type; };
+      const acc = new Map();
+      const orig = r.renderBufferDirect;
+      r.renderBufferDirect = function (camera, scene, geometry, material, object, group) {
+        const t0 = r.info.render.triangles;
+        orig.call(this, camera, scene, geometry, material, object, group);
+        const key = `${scene ? '' : 'S:'}${label(object)}`;
+        const a = acc.get(key) ?? { calls: 0, tris: 0 };
+        a.calls++; a.tris += r.info.render.triangles - t0;
+        acc.set(key, a);
+      };
+      const f0 = v.frame;
+      const wait = () => {
+        if (v.frame < f0 + 1) { requestAnimationFrame(wait); return; }
+        r.renderBufferDirect = orig;
+        res([...acc.entries()].map(([k, a]) => [k, a.calls, a.tris]).sort((x, y) => y[1] - x[1] || y[2] - x[2]).slice(0, 40));
+      };
+      requestAnimationFrame(wait);
+    }),
+    arch: () => c.state().archetype,
+    save: () => JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}'),
+    rt: () => L.runtime.info(),
+    info: () => P().info(),
+    kinds: () => { const m = {}; for (const e of L.entities) m[e.kind] = (m[e.kind] ?? 0) + 1; return m; },
+    lives: () => L.runtime.save.lives,
+    named: (id) => { const e = L.named.get(id); return e?.info?.() ?? null; },
+    cond: (k) => COND[k](),
+    /** Giftnebel für ein Bild auslösen (Stimmung „flucht“, Front ein Stück herab). */
+    fogShot: (steps = 600) => { const f = named('nebel'); f?.start(); const p = P(); for (let i = 0; i < steps; i++) { p.invuln = 99; c.step(1); } },
+  };
+  window.__w7 = W;
+  return Object.keys(W);
+}
+
+const allErrors = [];
+let loaded = null;
+async function load(id) {
+  allErrors.push(...errors);
+  errors.length = 0;
+  if (loaded === id) {
+    await sc(() => { window.__oldLevel = window.__course.level; window.__course.restartLevel(); });
+    await page.waitForFunction(() => window.__course && window.__course.level && window.__course.level !== window.__oldLevel && window.__game.scene.isActive('CourseUI'), null, { timeout: 90000 });
+  } else {
+    await page.goto(`http://localhost:${port}/?course=${encodeURIComponent(id)}&scale=2&adapt=0`, { waitUntil: 'load', timeout: 120000 });
+    try {
+      await page.waitForFunction(() => window.__course && window.__course.level && window.__game.scene.isActive('CourseUI'), null, { timeout: 90000 });
+    } catch {
+      console.log(`Level ${id} startet nicht. Konsole:`);
+      for (const x of errors) console.log('  ', x);
+      return false;
+    }
+    loaded = id;
+  }
+  await page.waitForTimeout(300);
+  await sc(install);
+  if (process.env.TRACE) await sc(() => { window.__trace = true; });
+  return true;
+}
+
+const W = (name, ...args) => sc(([n, a]) => window.__w7[n](...a), [name, args]);
+const stats = [];
+async function shot(name, wait = 600) {
+  await sc(() => window.__course.snapCamera());
+  const f0 = await sc(() => window.__course.view.frame);
+  await page.waitForFunction((f) => window.__course.view.frame >= f + 10, f0, { timeout: 90000 });
+  await page.waitForTimeout(wait);
+  const s = await sc(() => window.__course.stats());
+  stats.push([name, s.calls, s.triangles]);
+  await page.screenshot({ path: `${OUT}w7c_${name}.png` });
+  if (process.env.DETAIL) {
+    const d = await sc(() => window.__w7.detail());
+    for (const [n, c, t] of d) console.log(`        ${n.slice(0, 40).padEnd(40)} ${String(c).padStart(4)} ${String(Math.round(t / 1000)).padStart(5)}k`);
+  }
+  return s;
+}
+
+for (const id of LEVELS) {
+  const R = ROUTES[id];
+  if (!R) { console.log(`Level ${id}: keine Route`); continue; }
+  console.log(`\nLevel ${id}`);
+  if (!(await load(id))) { check(`${id} lädt`, false); continue; }
+  const loadErrors = errors.slice();
+  if (PARTS.has('load')) {
+    const meta = await sc(() => { const d = window.__course.level.data; return { title: d.title, world: d.world, timeLimit: d.timeLimit, theme: d.theme, music: d.music, archetype: d.archetype, stars: d.stars.length, slots: d.starSlots ?? null }; });
+    const kinds = await W('kinds');
+    console.log(`  „${meta.title}“, Welt ${meta.world}, Thema ${meta.theme}, Musik ${meta.music}, Zeitlimit ${meta.timeLimit} s, Entitäten: ${JSON.stringify(kinds)}`);
+    check(`${id}: lädt ohne Konsolenfehler/-warnungen`, loadErrors.length === 0);
+    for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
+    const starsOk = meta.stars === R.meta.stars && (R.meta.stamp === false ? !kinds.stamp : kinds.stamp === 1);
+    check(`${id}: ${R.meta.stars} Sterne${R.meta.stamp === false ? '' : ', Stempel'}, ${R.meta.time} s, Thema ${R.meta.theme}, Musik ${R.meta.music}, Archetyp ${R.meta.archetype}, Welt 7`,
+      starsOk && meta.world === 7 && meta.timeLimit === R.meta.time && meta.theme === R.meta.theme && meta.music === R.meta.music && meta.archetype === R.meta.archetype);
+    for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
+  }
+
+  // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
+  let sweepTrack = null;
+  for (const hero of ONLY || !PARTS.has('route') || !R.main?.length ? [] : HEROES) {
+    await load(id);
+    await W('place', R.start, { hero, settle: 2 });
+    const res = await W('drive', R.main, {});
+    const reached = res.status === 'goal' || res.status === 'done';
+    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Treffer-Versuche ${res.mech.hurts} ${res.mech.hurtList.slice(0, 8).join(' ')}, Mechanik ${JSON.stringify({ ...res.mech, hurtList: undefined })}`);
+    if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+    check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
+    check(`${id}: ${hero} Zeit bis zum Ziel < 240 s (${res.time.toFixed(1)} s)`, reached && res.time < 240);
+    if (hero === HEROES[0] && PARTS.has('sweep')) sweepTrack = res.track;
+    for (const m of R.routeChecks ?? []) check(`${id}: ${hero} – ${m.name}`, m.ok(res));
+  }
+
+  // ------------------------------------------------ Kennzahlen entlang der ganzen Route (alle ~7 m ein Messpunkt)
+  if (sweepTrack?.length) {
+    await load(id);
+    let worst = { calls: 0, tris: 0, at: null, atT: null };
+    const per = [];
+    for (const pt of sweepTrack) {
+      await W('place', pt, { settle: 6 });
+      const f0 = await sc(() => { window.__course.snapCamera(); return window.__course.view.frame; });
+      await page.waitForFunction((f) => window.__course.view.frame >= f + 6, f0, { timeout: 90000 });
+      const st = await sc(() => window.__course.stats());
+      per.push([pt, st.calls, st.triangles]);
+      if (st.calls > worst.calls) { worst.calls = st.calls; worst.at = pt; }
+      if (st.triangles > worst.tris) { worst.tris = st.triangles; worst.atT = pt; }
+    }
+    if (process.env.VERBOSE) for (const [pt, cl, tr] of per) console.log(`      ${pt.join(', ').padEnd(26)} ${cl} Aufrufe ${Math.round(tr / 1000)} k`);
+    check(`${id}: Messgang über ${per.length} Punkte der Route – Zeichenaufrufe < 120 (max ${worst.calls} bei ${worst.at?.map((v) => v.toFixed(0)).join(', ')})`, worst.calls < 120);
+    check(`${id}: Messgang – Dreiecke < 300 k (max ${Math.round(worst.tris / 1000)} k bei ${worst.atT?.map((v) => v.toFixed(0)).join(', ')})`, worst.tris < 300000);
+  }
+
+  // ------------------------------------------------ Sterne und Stempel
+  for (const t of !PARTS.has('targets') ? [] : pick(R.targets ?? [])) {
+    for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
+      await load(id);
+      await W('place', t.from, { hero, settle: 10 });
+      const res = await W('drive', t.legs, { invuln: t.invuln });
+      const rt = await W('rt');
+      let ok = t.star !== undefined ? rt.stars[t.star] : rt.stamp;
+      if (t.expectNot) ok = !ok;
+      if (!t.expectNot && res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
+      if (t.mech && !t.mech(res)) ok = false;
+      if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+      check(`${id}: ${t.name} (${hero}${t.mechText ? `, ${t.mechText(res)}` : ''})`, !!ok);
+      if (t.shot && hero === HEROES[0]) await shot(`${id}_${t.shot}`);
+    }
+  }
+
+  for (const t of !PARTS.has('extra') ? [] : pick(R.extra ?? [])) {
+    for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
+      await load(id);
+      const lives0 = await W('lives');
+      const coins0 = (await W('rt')).coins;
+      await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
+      const res = await W('drive', t.legs, { invuln: t.invuln, waitDead: t.expectAlive === false || t.waitDead });
+      const lives1 = await W('lives');
+      let ok = true;
+      if (t.expectCoins !== undefined) ok = ok && res.rt.coins - coins0 >= t.expectCoins;
+      if (t.expectLives !== undefined) ok = ok && lives1 - lives0 >= t.expectLives;
+      if (t.expectAlive !== false) ok = ok && !res.dead;
+      if (t.mech && !t.mech(res)) ok = false;
+      if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
+      if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+      check(`${id}: ${t.name} (${hero}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}${t.mechText ? `, ${t.mechText(res)}` : ''})`, ok);
+      if (t.shot && hero === HEROES[0]) await shot(`${id}_${t.shot}`);
+    }
+  }
+
+  // ------------------------------------------------ Bilder je Abschnitt aus der Spielkamera
+  if (ONLY || !PARTS.has('shots')) continue;
+  loaded = null;
+  await load(id);
+  for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2, special = null] of R.shots ?? []) {
+    if (SHOTS && !SHOTS.has(name)) continue;
+    await W('place', pos, { settle: 10, yaw });
+    if (special === 'flucht') await W('fogShot', 900);
+    if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
+    await shot(`${id}_${name}`);
+  }
+}
+
+console.log('\n  Kennzahlen je Bild (Zeichenaufrufe inkl. Schattenpass, Dreiecke):');
+for (const [n, c, t] of stats) console.log(`    ${n.padEnd(28)} ${String(c).padStart(4)} Aufrufe  ${String(Math.round(t / 1000)).padStart(4)} k Dreiecke`);
+const maxCalls = Math.max(0, ...stats.map((s) => s[1])), maxTris = Math.max(0, ...stats.map((s) => s[2]));
+if (stats.length) {
+  check(`Zeichenaufrufe < 120 (max ${maxCalls})`, maxCalls < 120);
+  check(`Dreiecke < 300 k (max ${Math.round(maxTris / 1000)} k)`, maxTris < 300000);
+}
+await browser.close();
+stop();
+allErrors.push(...errors);
+process.exit(summary(allErrors) ? 0 : 1);
