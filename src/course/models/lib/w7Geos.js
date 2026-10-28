@@ -22,13 +22,13 @@ import {
 } from './kit.js';
 import { puffyGeo, gradV, heightV, ownMat, flameGeo, FLAME, mouthShape, roundRectShape } from './w5Geos.js';
 import { LAVA, noise3, hash1, displace, lumpyEllipsoid, lumpyPoint, axisY } from './w4Geos.js';
-import { taperTube, ellSurf } from './hwGeos.js';
+import { taperTube, ellSurf, memo } from './hwGeos.js';
 import { stick, Puffs, alongY } from './kit_w3.js';
 import { fibDirs, spikeBallGeo, spikeMat } from './w6Geos.js';
 
 export {
   puffyGeo, gradV, heightV, ownMat, flameGeo, FLAME, mouthShape, roundRectShape, LAVA, noise3, hash1, displace, lumpyEllipsoid,
-  lumpyPoint, axisY, taperTube, ellSurf, stick, Puffs, alongY, fibDirs, spikeBallGeo, spikeMat,
+  lumpyPoint, axisY, taperTube, ellSurf, memo, stick, Puffs, alongY, fibDirs, spikeBallGeo, spikeMat,
 };
 
 // ------------------------------------------------------------------ Paletten
@@ -189,17 +189,34 @@ export function sichelGeo(R = 0.35, lo = false) {
     const r2 = R * 0.8, d = R * 0.42;
     const tx = (R * R - r2 * r2 + d * d) / (2 * d), ty = Math.sqrt(Math.max(0, R * R - tx * tx));
     for (const s of [1, -1]) b.sphere(R * 0.085, SICHEL.rim, { p: [tx - R * 0.02, s * (ty - R * 0.03), 0], s: [1, 1, 0.9] }, lo ? 8 : 12, lo ? 6 : 8);
-    // Blüten-Nabe auf der dicksten Stelle (−X), beidseitig
-    const hub = [-R * 0.88, 0];
+    // Blüten-Nabe auf der dicksten Stelle (−X), beidseitig auf der Fläche
+    const hub = [-R * 0.69, 0];
     for (const zs of [1, -1]) {
       for (let i = 0; i < 5; i++) {
         const a = (i / 5) * TAU + Math.PI / 2;
-        b.sphere(1, { v: (x, y, z, nx, ny, nz) => mix(SICHEL.rim, W7.petal, smoothstep(Math.abs(nz) * 0.9)) }, { p: [hub[0] + Math.cos(a) * R * 0.11, hub[1] + Math.sin(a) * R * 0.11, zs * R * 0.1], s: [R * 0.085, R * 0.085, R * 0.035] }, lo ? 8 : 12, lo ? 5 : 8);
+        b.sphere(1, { v: (x, y, z, nx, ny, nz) => mix(SICHEL.rim, W7.petal, smoothstep(Math.abs(nz) * 1.2 - 0.1)) }, { p: [hub[0] + Math.cos(a) * R * 0.12, hub[1] + Math.sin(a) * R * 0.12, zs * R * 0.16], s: [R * 0.1, R * 0.1, R * 0.05] }, lo ? 8 : 12, lo ? 5 : 8);
       }
-      b.sphere(1, { v: (x, y, z, nx, ny) => mix(0xffa01a, 0xfff07a, smoothstep(ny * 0.5 + 0.6)) }, { p: [hub[0], hub[1], zs * R * 0.125], s: [R * 0.07, R * 0.07, R * 0.04] }, lo ? 8 : 12, lo ? 5 : 8);
+      b.sphere(1, { v: (x, y, z, nx, ny) => mix(0xffa01a, 0xfff07a, smoothstep(ny * 0.5 + 0.6)) }, { p: [hub[0], hub[1], zs * R * 0.19], s: [R * 0.075, R * 0.075, R * 0.05] }, lo ? 8 : 12, lo ? 5 : 8);
     }
     return b.geometry();
   });
+}
+
+/** Goldenes Wurfsichel-Material (geteilt, Spielzeug-Look). */
+export const sichelMat = () => vcol(0.26, { metalness: 0.25, emissive: 0x2a1600 }, 'w7sichel');
+/**
+ * Wurfsichel auf den Rücken eines Werfers (Modell der feuer_werfer-Familie) hängen: schräg über der Schulter, schwingt und
+ * staucht mit dem Körper (Kind des Posen-Gelenks). Liefert das Mesh (visible = false, wenn sie fallen gelassen wurde).
+ */
+export function attachSichel(model) {
+  const pose = model.root.children[0];
+  const m = new THREE.Mesh(sichelGeo(0.2, true), sichelMat());
+  m.position.set(-0.27, 0.66, 0.04);
+  m.rotation.set(0, Math.PI / 2 - 0.25, 0.55, 'YXZ');
+  m.castShadow = true;
+  m.name = 'wurfsichel';
+  pose.add(m);
+  return m;
 }
 
 // ------------------------------------------------------------------ Brummbär-Wappen

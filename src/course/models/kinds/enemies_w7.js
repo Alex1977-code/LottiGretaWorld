@@ -79,25 +79,25 @@ function kfBodyGeo() {
   return cached('w7:kf:body', () => {
     const b = new Build();
     // dunkler Brustraum, darüber Rippenbögen
-    b.sphere(1, { v: (x, y, z, nx, ny) => mix(KF.socket, W7.socketHi, smoothstep(ny * 0.5 + 0.5)) }, { p: [0, 0, 0], s: [0.19, 0.155, 0.145] }, 22, 14);
-    for (let i = 0; i < 4; i++) {
-      const x = 0.12 - i * 0.075;
+    b.sphere(1, { v: (x, y, z, nx, ny) => mix(KF.socket, W7.socketHi, smoothstep(ny * 0.5 + 0.5)) }, { p: [0, 0, 0], s: [0.19, 0.155, 0.145] }, 18, 12);
+    for (let i = 0; i < 3; i++) {
+      const x = 0.1 - i * 0.09;
       const k = Math.sqrt(Math.max(0.15, 1 - (x / 0.21) ** 2));
-      b.torus(1, 0.16, boneV, { p: [x, 0, 0], r: [0, Math.PI / 2, 0], s: [0.165 * k, 0.172 * k, 0.172 * k] }, 6, 22);
+      b.torus(1, 0.18, boneV, { p: [x, 0, 0], r: [0, Math.PI / 2, 0], s: [0.165 * k, 0.172 * k, 0.172 * k] }, 6, 18);
     }
     // Brustbein vorn unten, Wirbel oben
     b.capsule(0.035, 0.22, boneV, { p: [0.02, -0.145, 0], r: [0, 0, Math.PI / 2] }, 3, 10);
-    for (let i = 0; i < 6; i++) b.sphere(0.038 - i * 0.002, boneV, { p: [0.17 - i * 0.075, 0.165 - Math.abs(i - 1.5) * 0.008, 0], s: [0.9, 0.8, 1.1] }, 12, 8);
+    for (let i = 0; i < 4; i++) b.sphere(0.042 - i * 0.003, boneV, { p: [0.15 - i * 0.1, 0.165 - Math.abs(i - 1) * 0.008, 0], s: [0.9, 0.8, 1.1] }, 10, 6);
     // Hals (zwei Wirbel zum Kopf)
-    b.sphere(0.045, boneV, { p: [0.2, 0.12, 0] }, 12, 8);
-    b.sphere(0.05, boneV, { p: [0.15, 0.08, 0] }, 12, 8);
+    b.sphere(0.045, boneV, { p: [0.2, 0.12, 0] }, 10, 6);
+    b.sphere(0.05, boneV, { p: [0.15, 0.08, 0] }, 10, 6);
     // Becken und Fächer-Schwanz aus Federknochen
     b.sphere(1, boneV, { p: [-0.2, -0.02, 0], s: [0.07, 0.06, 0.09] }, 12, 8);
-    for (const [z, y, x] of [[0, 0.09, -0.58], [0.15, 0.06, -0.52], [-0.15, 0.06, -0.52]]) boneTo(b, [-0.22, 0, z * 0.15], [x, y, z], 0.03, boneV, [0, 0, 1], 1.4, 7);
+    for (const [z, y, x] of [[0, 0.09, -0.58], [0.15, 0.06, -0.52], [-0.15, 0.06, -0.52]]) boneTo(b, [-0.22, 0, z * 0.15], [x, y, z], 0.03, boneV, [0, 0, 1], 1.4, 6);
     // baumelnde Beinchen mit drei Zehen
     for (const s of [1, -1]) {
-      boneTo(b, [-0.04, -0.12, s * 0.07], [-0.02, -0.3, s * 0.08], 0.022, boneV, [1, 0, 0], 1.3, 8);
-      for (const a of [-0.5, 0, 0.5]) b.capsule(0.014, 0.07, KF.low, { p: [0.02, -0.33, s * 0.08 + a * 0.04], r: [a * 0.6, 0, -Math.PI / 2 + 0.5], order: 'YXZ' }, 2, 6);
+      boneTo(b, [-0.04, -0.12, s * 0.07], [-0.02, -0.3, s * 0.08], 0.022, boneV, [1, 0, 0], 1.3, 6);
+      for (const a of [-0.5, 0, 0.5]) b.capsule(0.014, 0.07, KF.low, { p: [0.02, -0.33, s * 0.08 + a * 0.04], r: [a * 0.6, 0, -Math.PI / 2 + 0.5], order: 'YXZ' }, 1, 5);
     }
     return b.geometry();
   });
@@ -106,23 +106,23 @@ const KF_SOCKETS = [1, -1].map((s) => onEllipsoid(KF_HEAD.c, KF_HEAD.r, s * 0.5,
 function kfHeadGeo() {
   return cached('w7:kf:head', () => {
     const b = new Build();
-    b.sphere(1, boneV, { p: KF_HEAD.c, s: KF_HEAD.r }, 28, 20);
+    b.sphere(1, boneV, { p: KF_HEAD.c, s: KF_HEAD.r }, 24, 16);
     // Augenhöhlen (pflaumendunkel, groß)
     for (const h of KF_SOCKETS) stick(b, h, { v: (x, y, z, nx, ny, nz) => mix(KF.socket, W7.socketHi, smoothstep(-ny * 0.4 + 0.3)) }, [0.105, 0.115, 0.03], 0.45);
     // keck schräge Brauenwülste
     for (const s of [1, -1]) {
       const h = onEllipsoid(KF_HEAD.c, KF_HEAD.r, s * 0.5, 0.52);
-      b.capsule(0.032, 0.13, boneV, { p: h.p.toArray(), r: [Math.PI / 2 - s * 0.45, -s * 0.35, 0], order: 'YXZ' }, 3, 10);
+      b.capsule(0.032, 0.13, boneV, { p: h.p.toArray(), r: [Math.PI / 2 - s * 0.45, -s * 0.35, 0], order: 'YXZ' }, 2, 8);
     }
     // Knochenkamm (drei runde Zacken)
     for (let i = 0; i < 3; i++) {
       const a = 0.25 - i * 0.32;
       const h = onEllipsoid(KF_HEAD.c, KF_HEAD.r, Math.PI, 1.2 - i * 0.28);
-      b.capsule(0.035 - i * 0.004, 0.1 - i * 0.015, boneV, { p: h.p.clone().addScaledVector(h.n, 0.04).toArray(), r: [0, 0, 0.6 + a] }, 3, 10);
+      b.capsule(0.035 - i * 0.004, 0.1 - i * 0.015, boneV, { p: h.p.clone().addScaledVector(h.n, 0.04).toArray(), r: [0, 0, 0.6 + a] }, 2, 8);
     }
     // Oberschnabel: lang, leicht gebogen, Spitze golden
     const beak = [[0, 0], [0.085, 0.0], [0.08, 0.08], [0.065, 0.18], [0.045, 0.27], [0.022, 0.34], [0.006, 0.37], [0, 0.375]];
-    const bg = new THREE.LatheGeometry(beak.map(([r, y]) => new THREE.Vector2(r, y)), 16);
+    const bg = new THREE.LatheGeometry(beak.map(([r, y]) => new THREE.Vector2(r, y)), 12);
     bg.scale(1, 1, 0.8);
     const P = bg.attributes.position;
     for (let i = 0; i < P.count; i++) { const y = P.getY(i); P.setX(i, P.getX(i) - (y / 0.375) ** 2 * 0.06); }
@@ -147,10 +147,10 @@ function kfWingGeo(s) {
   return cached(`w7:kf:wing:${s}`, () => {
     const b = new Build();
     const W = [0.02, 0.06, s * 0.28];
-    boneTo(b, [0, 0, s * 0.02], W, 0.042, boneV, [1, 0, 0], 1.35, 9);
+    boneTo(b, [0, 0, s * 0.02], W, 0.042, boneV, [1, 0, 0], 1.35, 8);
     b.sphere(0.058, boneV, { p: W }, 12, 8);
     const tips = [[0.02, 0.1, 0.72], [-0.13, 0.08, 0.68], [-0.27, 0.05, 0.58], [-0.36, 0.02, 0.43]];
-    tips.forEach(([x, y, z], i) => boneTo(b, W, [x, y, s * z], 0.036 - i * 0.003, boneV, [0, 1, 0], 1.4, 7));
+    tips.forEach(([x, y, z], i) => boneTo(b, W, [x, y, s * z], 0.036 - i * 0.003, boneV, [0, 1, 0], 1.4, 6));
     return b.geometry();
   });
 }
@@ -171,7 +171,7 @@ function buildKnochenflieger() {
   headJ.add(headIn);
   const wings = [1, -1].map((s) => joint([0.06, 0.12, s * 0.15], mesh(kfWingGeo(s), flash, {}, true)));
   pose.add(bodyJ, headJ, ...wings);
-  const dust = new Puffs(10, 0xfff2dc, { opacity: 0.85, radius: 3, cy: 0 });
+  const dust = new Puffs(10, 0xfff2dc, { opacity: 0.85, radius: 3, cy: 0, detail: 0 });
   own.push(dust);
   root.add(pose, dust.mesh);
   root.userData.radius = 0.4;

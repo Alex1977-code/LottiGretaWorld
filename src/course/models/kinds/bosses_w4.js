@@ -14,6 +14,7 @@
 //         spin: wirbelt um die Hochachse (≈ 2 U/s) mit ausgestreckten Fäusten und verstreut Funken (Motor: Feuerbrocken);
 //         defeated: kühlt ab (Glut erlischt), sackt nach hinten, Augen zu, die Krone kippt herunter.
 //   root.userData.radius → Körperradius (≈1,15 m, Trefferkugel um y = 1,3).  model.top(out?) → Weltposition der Krone.
+//   opts  { variant: 'std' (Standard, dunkler Basalt) | 'hell' (Welt 7, 7-A: heller, warmer Tuffstein, violetter Umhang) }
 
 import {
   THREE, TAU, Build, cached, vcol, mesh, joint, eyes, makeModel, Clock, Blinker, damp, clamp, mix, smoothstep, instMesh,
@@ -25,26 +26,33 @@ import { LAVA, lumpyEllipsoid, lumpyPoint, addCracks, displace, noise3, axisY } 
 const KB = { rad: [1.15, 1.08, 1.1], amp: 0.07, freq: 1.6, seed: 4.2, c: [0, 0, 0] };
 const CY = 1.3;           // Körpermitte
 const ROLL_Y = 1.12;      // Kugelmitte beim Rollen
+// Stein- und Umhangfarben je Variante ('std' = Welt 4, unverändert; 'hell' = Welt 7)
+const KPAL = {
+  std: { key: '', low: LAVA.rockLow, mid: LAVA.rock, hi: LAVA.rockHi, ash: LAVA.ash, cape: 0xc8142e, capeLow: 0x7a0a1e },
+  hell: { key: ':hell', low: 0x7e5c56, mid: 0xb08a7e, hi: 0xe2c6b4, ash: 0xf4e6da, cape: 0x7a2ac8, capeLow: 0x3a0e6a },
+};
+const kpal = (v) => KPAL[v] ?? KPAL.std;
 const KC = { gold: 0xffc21a, goldHi: 0xfff0a0, goldLow: 0xc88a10, ruby: 0xe8203a, sapphire: 0x2a6aff, emerald: 0x22c86a, velvet: 0xb0102a, cape: 0xc8142e, capeLow: 0x7a0a1e, ermine: 0xfffaf2, spot: 0x1a1a22, tooth: 0xe8dcc8 };
 
-function kingBodyGeo() {
-  return cached('w4:king:body', () => {
+function kingBodyGeo(v = 'std') {
+  const R = kpal(v);
+  return cached(`w4:king:body${R.key}`, () => {
     const b = new Build();
     b.add(lumpyEllipsoid(KB.rad, KB.amp, KB.freq, KB.seed, 36, 26), { v: (x, y, z, nx, ny) => {
       const ash = noise3(x * 2.4 + 9, y * 2.4, z * 2.4) > 0.64;
-      const base = mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.45));
-      return ash ? mix(base, LAVA.ash, 0.55) : base;
+      const base = mix(R.low, R.hi, smoothstep(ny * 0.5 + 0.45));
+      return ash ? mix(base, R.ash, 0.55) : base;
     } });
     const P = (az, el, lift = 0) => lumpyPoint(KB.rad, KB.amp, KB.freq, KB.seed, az, el, lift);
     // wuchtige Steinbrauen (schräg, grimmig)
     for (const s of [1, -1]) {
       const h = P(s * 0.33, 0.42, -0.04);
-      b.add(displace(new THREE.CapsuleGeometry(0.11, 0.38, 4, 10), 0.02, 5, 3 + s, true), { v: (x, y, z, nx, ny) => mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.5)) },
+      b.add(displace(new THREE.CapsuleGeometry(0.11, 0.38, 4, 10), 0.02, 5, 3 + s, true), { v: (x, y, z, nx, ny) => mix(R.low, R.hi, smoothstep(ny * 0.5 + 0.5)) },
         { p: h.p.toArray(), r: [Math.PI / 2 - s * 0.38, -s * 0.42, 0], order: 'YXZ' });
     }
     // Steinnase
     const hn = P(0, 0.08, -0.06);
-    b.add(displace(new THREE.SphereGeometry(0.19, 16, 12), 0.025, 6, 1.5, true), { v: (x, y, z, nx, ny) => mix(LAVA.rock, LAVA.rockHi, smoothstep(ny * 0.5 + 0.6)) }, { p: hn.p.toArray(), s: [1.1, 0.9, 1.05] });
+    b.add(displace(new THREE.SphereGeometry(0.19, 16, 12), 0.025, 6, 1.5, true), { v: (x, y, z, nx, ny) => mix(R.mid, R.hi, smoothstep(ny * 0.5 + 0.6)) }, { p: hn.p.toArray(), s: [1.1, 0.9, 1.05] });
     // zwei Steinhauer aus der Unterlippe nach oben
     for (const s of [1, -1]) {
       const h = P(s * 0.2, -0.36, 0.02);
@@ -138,8 +146,9 @@ function crownGeo() {
     return b.geometry();
   });
 }
-function capeGeo() {
-  return cached('w4:king:cape', () => {
+function capeGeo(v = 'std') {
+  const R = kpal(v);
+  return cached(`w4:king:cape${R.key}`, () => {
     const b = new Build();
     const g = new THREE.CylinderGeometry(1.02, 1.52, 1.95, 28, 6, true, Math.PI + 0.42, Math.PI - 0.84);
     const P = g.attributes.position;
@@ -151,7 +160,7 @@ function capeGeo() {
     }
     g.computeVertexNormals();
     g.translate(0, 1.1, 0);
-    b.add(g, { v: (x, y, z, nx, ny) => mix(KC.capeLow, KC.cape, smoothstep((y - 0.2) / 1.6)) });
+    b.add(g, { v: (x, y, z, nx, ny) => mix(R.capeLow, R.cape, smoothstep((y - 0.2) / 1.6)) });
     // Goldsaum unten, Hermelinkragen oben
     b.torus(1.52, 0.045, KC.gold, { p: [0, 0.14, 0], r: [Math.PI / 2, 0, Math.PI / 2 + 0.42] }, 6, 30, Math.PI - 0.84);
     const col = new THREE.TorusGeometry(1.0, 0.13, 10, 30, Math.PI - 0.6);
@@ -159,20 +168,22 @@ function capeGeo() {
     return b.geometry();
   });
 }
-function fistGeo() {
-  return cached('w4:king:fist', () => {
+function fistGeo(v = 'std') {
+  const R = kpal(v);
+  return cached(`w4:king:fist${R.key}`, () => {
     const b = new Build();
-    b.add(lumpyEllipsoid([0.3, 0.27, 0.27], 0.025, 5, 8.1, 16, 11), { v: (x, y, z, nx, ny) => mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.5)) });
-    for (let i = 0; i < 4; i++) b.sphere(0.075, LAVA.rock, { p: [0.24, 0.1 - i * 0.0, -0.15 + i * 0.1], s: [0.9, 0.8, 0.9] }, 8, 6);
-    b.sphere(0.09, LAVA.rock, { p: [0.12, -0.05, 0.22] }, 8, 6);
+    b.add(lumpyEllipsoid([0.3, 0.27, 0.27], 0.025, 5, 8.1, 16, 11), { v: (x, y, z, nx, ny) => mix(R.low, R.hi, smoothstep(ny * 0.5 + 0.5)) });
+    for (let i = 0; i < 4; i++) b.sphere(0.075, R.mid, { p: [0.24, 0.1 - i * 0.0, -0.15 + i * 0.1], s: [0.9, 0.8, 0.9] }, 8, 6);
+    b.sphere(0.09, R.mid, { p: [0.12, -0.05, 0.22] }, 8, 6);
     return b.geometry();
   });
 }
-function kingFootGeo() {
-  return cached('w4:king:foot', () => {
+function kingFootGeo(v = 'std') {
+  const R = kpal(v);
+  return cached(`w4:king:foot${R.key}`, () => {
     const b = new Build();
-    b.add(lumpyEllipsoid([0.42, 0.2, 0.32], 0.03, 4, 6.3, 16, 10), { v: (x, y, z, nx, ny) => mix(LAVA.rockLow, LAVA.rockHi, smoothstep(ny * 0.5 + 0.5)) }, { p: [0, 0.18, 0] });
-    for (const z of [-0.16, 0, 0.16]) b.sphere(0.1, LAVA.rock, { p: [0.36, 0.1, z] }, 8, 6);
+    b.add(lumpyEllipsoid([0.42, 0.2, 0.32], 0.03, 4, 6.3, 16, 10), { v: (x, y, z, nx, ny) => mix(R.low, R.hi, smoothstep(ny * 0.5 + 0.5)) }, { p: [0, 0.18, 0] });
+    for (const z of [-0.16, 0, 0.16]) b.sphere(0.1, R.mid, { p: [0.36, 0.1, z] }, 8, 6);
     return b.geometry();
   });
 }
@@ -181,7 +192,8 @@ const KING_EYES = [1, -1].map((s) => {
   return { p: h.p.toArray(), r: 0.2, sy: 1.2, dir: h.n.toArray() };
 });
 
-function buildKoenig() {
+function buildKoenig(opts = {}) {
+  const variant = opts.variant === 'hell' ? 'hell' : 'std';
   const root = new THREE.Group();
   const own = [];
   const bodyMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, emissive: 0x000000 });
@@ -190,7 +202,7 @@ function buildKoenig() {
   const pose = joint();
   const ball = joint([0, CY, 0]);
   const spinJ = joint();
-  const body = mesh(kingBodyGeo(), bodyMat, {}, true);
+  const body = mesh(kingBodyGeo(variant), bodyMat, {}, true);
   const glow = mesh(kingGlowGeo(), glowMat);
   const cracks = mesh(kingCrackGeo(3), glowMat);
   const eye = eyes(KING_EYES, { key: 'w4:king', iris: 0xff8a10, pupil: 0.5, depth: 0.5, pupilColor: 0x1a0606 });
@@ -200,9 +212,9 @@ function buildKoenig() {
   const crown = mesh(crownGeo(), vcol(0.22, { metalness: 0.45, emissive: 0x3a2400 }, 'w4crown'), {}, true);
   crownJ.add(crown);
   crownJ.rotation.z = 0.12;
-  const cape = mesh(capeGeo(), vcol(0.65, { side: THREE.DoubleSide }, 'w4cape'), {}, true);
-  const fists = instMesh(fistGeo(), vcol(0.55, {}, 'w4rock'), 2, 3.5, 1.2);
-  const feet = instMesh(kingFootGeo(), vcol(0.55, {}, 'w4rock'), 2, 2.5, 0.2);
+  const cape = mesh(capeGeo(variant), vcol(0.65, { side: THREE.DoubleSide }, 'w4cape'), {}, true);
+  const fists = instMesh(fistGeo(variant), vcol(0.55, {}, 'w4rock'), 2, 3.5, 1.2);
+  const feet = instMesh(kingFootGeo(variant), vcol(0.55, {}, 'w4rock'), 2, 2.5, 0.2);
   fists.castShadow = true; feet.castShadow = true;
   const halo = glowSprite(0xff7a1a, 3.2, 0.0);
   halo.material = halo.material.clone(); own.push(halo.material);

@@ -166,7 +166,7 @@ await sc(async () => {
     knochenflieger: () => 1.1, wutkaulquappe: () => 0.55, wurfsichel_geschoss: () => 0.5, wurfsichel_kostuem: (o) => (o.part === 'umhang' ? 1.3 : 0.35),
     pendelstachel: (o) => (o.length ?? 3) + (o.size ?? 1) + 0.25, zylinder_walze: (o) => (o.radius ?? 1.5) + 0.05, stachelwalze_rot: (o) => (o.stand === false ? (o.radius ?? 0.6) + 0.45 : 0),
     pfeilplattform: (o) => (o.from === 'wand' ? 1.2 : (o.thick ?? 0.5) + 0.05), fackel: (o) => (o.mount === 'wand' ? 1.7 : 0), zugbruecke: (o) => (o.thick ?? 0.3) + 0.02,
-    lava_maschine: () => 0, kampfwagen_strasse: () => 0,
+    lava_maschine: () => 0, kampfwagen_strasse: (o) => (o.kind === 'stachelfalle' ? 0.13 : o.kind === 'kante' ? 0.62 : o.kind === 'luecke' ? 1.3 : (o.thick ?? 0.5) + 0.01),
   };
   const cm = {
     reg, kit, inst, toy, THREE, v, stage, hero, live, labels, ground,
@@ -258,7 +258,8 @@ await sc(async () => {
       const blue = color === 'blau';
       gx.fillStyle = blue ? '#1a3ad8' : '#d8340e'; gx.fillRect(0, 0, 128, 128);
       for (let i = 0; i < 40; i++) {
-        const gr = gx.createRadialGradient(Math.random() * 128, Math.random() * 128, 0, Math.random() * 128, Math.random() * 128, 20 + Math.random() * 20);
+        const cx = Math.random() * 128, cy = Math.random() * 128;
+        const gr = gx.createRadialGradient(cx, cy, 0, cx, cy, 10 + Math.random() * 16);
         gr.addColorStop(0, blue ? 'rgba(160,230,255,0.7)' : 'rgba(255,220,90,0.7)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
         gx.fillStyle = gr; gx.fillRect(0, 0, 128, 128);
       }
@@ -446,22 +447,22 @@ if (part('checks')) {
   if (P.kugel) check('Blaue Feuerkugel Ø ≈0,36 m, liegt auf dem Ursprung', P.kugel[0] > 0.3 && P.kugel[0] < 0.6 && P.kugel[1] > -0.1);
   if (P.wagen) check('Kampfwagen ≈4,5–6 m lang, Hut ≈3–4 m, auf dem Boden; hand() und muzzle() vorn, userData.radius', P.wagen[0] > 4.5 && P.wagen[0] < 6.2 && P.wagen[1] > 3 && P.wagen[1] < 4.3 && P.wagen[3] > -0.05 && P.wagen[4][1][0] > 2 && P.wagen[4][0][1] > 1.5 && P.wagen[4][2] > 2);
   if (P.sichel) check('Wurfsichel-Item schwebt (0,2–1,4 m), ≈0,6–0,9 m breit, collected → weg', P.sichel[0] > 0.15 && P.sichel[1] < 1.45 && P.sichel[3]);
-  if (P.geschoss) check('Wurfsichel-Geschoss ≈0,45–0,8 m, flach', P.geschoss[0] > 0.45 && P.geschoss[0] < 0.85 && P.geschoss[1] < 0.35);
+  if (P.geschoss) check('Wurfsichel-Geschoss ≈0,45–0,8 m (Hüllquader des gedrehten Wirbels bis ≈1,1 m), flach', P.geschoss[0] > 0.45 && P.geschoss[0] < 1.1 && P.geschoss[1] < 0.35);
   if (P.kostuem) check('Wurfsichel-Mütze ≈ size breit, sitzt um die Kopfmitte', P.kostuem[0] > 0.45 && P.kostuem[0] < 0.75 && P.kostuem[1] > -0.2);
   if (P.stab) check('Feuerstab: 6 Kugeln bei length 3, äußerste bei r ≈ 3 (dreht mit angle), Block steht auf dem Boden', P.stab[0][0] === 6 && Math.abs(Math.hypot(P.stab[0][1][0], P.stab[0][1][2]) - 3) < 0.2 && Math.abs(P.stab[0][2][0]) < 0.2 && P.stab[2] > -0.05);
   if (P.pfeil) check('Pfeilplattform: size × size, Oberseite bei rise 1 auf y ≈ 0, bei rise 0 abgesenkt', Math.abs(P.pfeil[0] - 2) < 0.3 && Math.abs(P.pfeil[1] - 2) < 0.3 && Math.abs(P.pfeil[2]) < 0.2 && P.pfeil[3] < -0.4);
   if (P.zylinder) check('Zylinder: length entlang X, Ø ≈ 2·radius', Math.abs(P.zylinder[0] - 5) < 0.6 && Math.abs(P.zylinder[1] - 2.8) < 0.4);
-  if (P.walze) check('Rote Stachelwalze: length entlang X, Stützen bis zum Boden, userData.reach', Math.abs(P.walze[0] - 4) < 0.8 && P.walze[1] > -0.05 && P.walze[3] > 0.8);
-  if (P.pendel) check('Pendelstachel: hängt vom Ursprung nach unten (length + Kugel), ball() folgt dem Winkel', P.pendel[0] < 0.6 && P.pendel[1] < -3.5 && P.pendel[2][1] < -2.5 && Math.abs(P.pendel[2][0]) > 0.8);
+  if (P.walze) check('Rote Stachelwalze: length entlang X (+ Böcke), Stützen bis zum Boden, userData.reach', Math.abs(P.walze[0] - 4) < 1.1 && P.walze[1] > -0.05 && P.walze[3] > 0.8);
+  if (P.pendel) check('Pendelstachel: hängt vom Ursprung nach unten (length + Kugel), ball() folgt dem Winkel', P.pendel[0] < 0.6 && P.pendel[1] < -3.3 && P.pendel[2][1] < -2.5 && Math.abs(P.pendel[2][0]) > 0.8);
   if (P.klapp) check('Klappstampfer: fold 0 liegt bei +X, fold 1 bei −X (Scharnier im Ursprung)', P.klapp[0] > -0.3 && P.klapp[1] > 2.7 && P.klapp[3] < -2.7 && P.klapp[4] < 0.3 && P.klapp[5] < 1.2);
   if (P.fontaene) check('Lava-Fontäne: aus = flach, height 3 → Säule ≈3 m', P.fontaene[0] < 0.8 && P.fontaene[1] > 2.8 && P.fontaene[1] < 3.8 && P.fontaene[2] > -0.1);
   if (P.gitter) check('Gitterboden: size, Oberseite = thick, Ursprung unten', Math.abs(P.gitter[0] - 2) < 0.1 && Math.abs(P.gitter[1] - 3) < 0.1 && Math.abs(P.gitter[2] - 0.15) < 0.05 && P.gitter[3] > -0.02);
   if (P.kiste) check('Zerbrechliche Kiste ≈ size, Ursprung unten, break 1 → weg', Math.abs(P.kiste[0] - 1) < 0.2 && Math.abs(P.kiste[1] - 1) < 0.15 && P.kiste[2] > -0.02 && P.kiste[3]);
-  if (P.bruecke) check('Zugbrücke: lower 1 liegt nach +X (length), Breite = width; lower 0 steht hoch', Math.abs(P.bruecke[0] - 6) < 0.5 && P.bruecke[1] > 2.8 && P.bruecke[2] < 1.5 && P.bruecke[3] > 5.5 && P.bruecke[4] < 1.2);
-  if (P.nebel) check('Giftnebel-Wand: width entlang Z, Front unten bei y ≈ 0, reicht ≈ height hoch', P.nebel[0] > 7 && P.nebel[1] > -1 && P.nebel[2] > 3.4);
+  if (P.bruecke) check('Zugbrücke: lower 1 liegt nach +X (length), Breite ≈ width (+ Sockel); lower 0 steht hoch', Math.abs(P.bruecke[0] - 6) < 0.5 && P.bruecke[1] > 2.8 && P.bruecke[1] < 4.8 && P.bruecke[3] > 5.5 && P.bruecke[4] < 1.2);
+  if (P.nebel) check('Giftnebel-Wand: ≈ width entlang Z, Front unten bei y ≈ 0, reicht ≈ height hoch', P.nebel[0] > 7 && P.nebel[0] < 9.2 && P.nebel[1] > -1 && P.nebel[2] > 3.4 && P.nebel[2] < 4.8);
   if (P.strasse) check('Kampfwagen-Straße: Fahrbahn length × width, Oberseite y ≈ 0; Stachelfalle: up 1 Stacheln oben, up 0 versenkt', Math.abs(P.strasse[0] - 6) < 0.6 && Math.abs(P.strasse[1] - 6) < 0.8 && Math.abs(P.strasse[2]) < 0.25 && P.strasse[3] > 0.4 && P.strasse[4] < 0.2);
   if (P.basalt) check('Basaltsäule ≈ height hoch, steht auf dem Boden', P.basalt[0] > 2.6 && P.basalt[0] < 3.8 && P.basalt[1] > -0.1);
-  if (P.turm) check('Festungsturm ≈ height (+ Dach), Ø ≈ 2·radius', P.turm[0] > 8 && P.turm[0] < 13 && P.turm[1] > 4 && P.turm[1] < 6.5);
+  if (P.turm) check('Festungsturm ≈ height (+ Dach mit Mast), Ø ≈ 2·radius', P.turm[0] > 8 && P.turm[0] < 15 && P.turm[1] > 4 && P.turm[1] < 6.5);
 
   // Instanz-Helfer
   const instInfo = await sc((kinds) => {
@@ -542,8 +543,8 @@ if (part('views')) {
     ['wutkaulquappe', {}, 'charge', 0.55, 1.5], ['wutkaulquappe', {}, { anim: 'puff', progress: 1 }, 0.55, 1.8], ['funkenflaemmchen', {}, 'idle', 0.3, 1.4],
     ['baron_kampfwagen', {}, 'idle', 2.4, 6.5], ['baron_kampfwagen', {}, { anim: 'fire', progress: 0.55 }, 1.6, 8, Math.PI / 2 + 0.5], ['wurfsichel_item', {}, 'idle', 0.6, 1.7],
     ['lavafelsen_koenig', { variant: 'hell' }, 'idle', 1.6, 6.2], ['schubser_prinz', { color: 'blau' }, 'idle', 1.2, 5.5], ['bumerang_werfer', { sichel: true }, 'idle', 0.75, 2.6],
-    ['feuerstab', { length: 2.5 }, { angle: 0.8 }, 0.6, 6], ['klappstampfer', {}, { fold: 0, warn: true }, 0.4, 5.5], ['wurfsichel_kostuem', { size: 0.5 }, 'idle', 0.35, 1.4],
-    ['zugbruecke', { length: 6 }, { lower: 0.55 }, 2, 9], ['pfeilplattform', {}, { rise: 1 }, 0.3, 4.2], ['lava_fontaene', {}, { height: 3 }, 1.4, 6],
+    ['feuerstab', { length: 2.5 }, { angle: 0.8 }, 0.6, 6], ['klappstampfer', {}, { fold: 0.25, warn: true }, 0.9, 9, Math.PI], ['wurfsichel_kostuem', { size: 0.5 }, 'idle', 0.45, 2.2],
+    ['zugbruecke', { length: 6 }, { lower: 0.55 }, 2.4, 14, Math.PI * 0.75], ['pfeilplattform', {}, { rise: 1 }, 0.3, 6], ['lava_fontaene', {}, { height: 3 }, 1.6, 8],
   ];
   for (let i = 0; i < PORTRAITS.length; i += 3) {
     const nm = `portrait_${i / 3 + 1}`;
@@ -646,9 +647,11 @@ if (part('views')) {
     scene_burg: ['lava', [[0, 6, 30, 6, 'rot']], [['festungsturm', { height: 10 }, 'idle', -9, -11, 0, 0], ['festungsturm', { height: 8 }, 'idle', 9, -11, 0, 0], ['zugbruecke', { length: 6 }, { lower: 0.6 }, -2, -5, 0, 0.3], ['klappstampfer', {}, { fold: 0.3 }, 3, -2, 0, 0],
       ['bumerang_werfer', { sichel: true }, 'idle', -5, 0, 0.3, 0], ['wurfsichel_item', {}, 'idle', -3, 2, 0, 0], ['lava_maschine', {}, { speed: 1 }, 7, 4, -Math.PI / 2, 0], ['lavablase', {}, 'idle', 0, 6, 0, 0], ['brummbaer_fahne', {}, { wind: 0.7 }, 5, -7, 0, 0],
       ['fackel', {}, 'idle', -7, -3, 0, 0], ['giftnebel_wand', { width: 10, height: 3, depth: 2, facing: 'vorn' }, 'idle', -10, -1, 0, 0]]],
-    scene_boss: ['lava', [[0, -4, 30, 3, 'rot']], [['kampfwagen_strasse', { kind: 'fahrbahn', length: 14, width: 8 }, 'idle', 0, -11, 0, 0], ['kampfwagen_strasse', { kind: 'luecke', width: 3, length: 8 }, 'idle', 0, -4, Math.PI / 2, 0],
-      ['kampfwagen_strasse', { kind: 'fahrbahn', length: 14, width: 8 }, 'idle', 0, 3, 0, 0], ['baron_kampfwagen', {}, { anim: 'throw', progress: 0.35 }, 0, -10, Math.PI / 2, 0],
-      ['kampfwagen_strasse', { kind: 'stachelfalle', size: [2, 4] }, { up: 1 }, -3, 2, 0, 0], ['kampfwagen_strasse', { kind: 'stachelfalle', size: [2, 4] }, { up: 0, warn: true }, 3, 2, 0, 0], ['kickbombe', {}, 'lit', 1, -1, 0, 0]]],
+    scene_boss: ['lava', [[0, -4, 30, 4, 'rot']], [['kampfwagen_strasse', { kind: 'fahrbahn', length: 12, width: 9, thick: 1.3 }, 'idle', 0, -12, Math.PI / 2, 1.3],
+      ['kampfwagen_strasse', { kind: 'luecke', width: 3, length: 9 }, 'idle', 0, -4.5, Math.PI / 2, 1.3], ['kampfwagen_strasse', { kind: 'fahrbahn', length: 8, width: 9, thick: 1.3 }, 'idle', 0, 2.5, Math.PI / 2, 1.3],
+      ['baron_kampfwagen', {}, { anim: 'throw', progress: 0.35 }, 0, -11, -Math.PI / 2, 1.3], ['kampfwagen_strasse', { kind: 'stachelfalle', size: [2, 3] }, { up: 1 }, -2.5, 2, Math.PI / 2, 1.31],
+      ['kampfwagen_strasse', { kind: 'stachelfalle', size: [2, 3] }, { up: 0, warn: true }, 2.5, 2, Math.PI / 2, 1.31], ['kickbombe', {}, 'lit', 1, -0.5, Math.PI / 2, 1.3], ['basaltsaeule', { height: 4 }, 'idle', -8, -8, 0, 0],
+      ['vulkanfels', { kind: 'spitze', size: 4 }, 'idle', 8, -9, 0, 0]]],
   };
   for (const [nm, [mood, pools, list]] of Object.entries(SCENES)) {
     if (!want(nm) && !want('scenes')) continue;

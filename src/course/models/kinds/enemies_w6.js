@@ -41,6 +41,8 @@
 //   'bumerang'; Geschosse 'wurf_hammer'/'wurf_bumerang').
 //   state { anim: 'idle'|'walk'|'jump'|'throw'|'defeated'|'squashed'|'stunned', speed, progress? }  defeated ≙ squashed.
 //   model.hand(out?) wie feuer_werfer.
+//   bumerang_werfer opts { sichel: true } (Welt 7, 7-Burg): trägt eine goldene Wurfsichel auf dem Rücken – er lässt sie fallen,
+//   wenn er besiegt wird (dann 'wurfsichel_item' erzeugen); state.dropped: true blendet sie aus.
 // wuschel_horde Schwarm aus vielen Wuscheln (EIN InstancedMesh, ≈260 Dreiecke je Wuschel): wimmelt in einem Oval
 //   depth × width (Ursprung = Mitte der Unterkante, Front +X), alle blicken nach +X.
 //   opts  { count (24, höchstens 64), width (Z, 6), depth (X, 2,5), height (Y-Streuung, 1,4) }
@@ -58,6 +60,7 @@ import {
   taperTube, fibDirs, spikeBallGeo, spikeMat, wuschelLoGeo, hash1, cloudGeo,
 } from '../lib/w6Geos.js';
 import { MODELS as W2W } from './enemies_w2_werfer.js';
+import { attachSichel } from '../lib/w7Geos.js';
 import { MODELS as W2B } from './bosses_w2.js';
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
@@ -565,9 +568,11 @@ function werferAlias(kind, name) {
     const m = W2W.feuer_werfer({ ...opts, kind });
     m.root.name = `modell:${name}`;
     m.root.userData.modelName = name;
+    const sichel = kind === 'bumerang' && opts.sichel ? attachSichel(m) : null;
     const up = m.update;
     m.update = (dt, state) => {
       const st = S(state);
+      if (sichel) sichel.visible = !st.dropped;
       up(dt, st.anim === 'defeated' ? { ...st, anim: 'squashed' } : st);
     };
     return m;
