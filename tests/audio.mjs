@@ -1065,6 +1065,24 @@ if (want('live')) {
     await page.waitForTimeout(secs * 1000 + 600);
     check(`${name} spielt und endet von selbst (${fmt(secs, 2)} s)`, running && (await audio()).theme === null);
   }
+  // Abspann (kein Loop, ≈ 76 s) auf der Testuhr: er endet von selbst – beat().playing wird false und die Zählzeit bleibt am
+  // Ende stehen, onBeat meldet jede Zählzeit bis zur letzten und danach keine mehr (daran kann die Abspann-Szene das Ende
+  // der Musik abwarten; Dauer vorab über themeInfo('course_abspann').seconds)
+  const absp = await sc(() => {
+    const m = window.__audio.music, beats = [];
+    m.setManualClock(true);
+    m.play('course_abspann');
+    const off = m.onBeat((ev) => beats.push(ev.beat));
+    const mid = m.advanceClock(40), end = m.advanceClock(40), after = m.advanceClock(5);
+    off();
+    const info = m.themeInfo('course_abspann');
+    m.setManualClock(false);
+    m.play('map');
+    return { mid: mid.playing && mid.theme === 'course_abspann', end: { playing: end.playing, beat: end.beat, loopBeats: end.loopBeats }, after: after.beat, beats, seconds: info.seconds };
+  });
+  check(`course_abspann endet von selbst (Testuhr): nach 40 s läuft er, nach 80 s playing false bei Zählzeit ${absp.end.beat} = Ende (${absp.end.loopBeats}), onBeat ${absp.beats.length}× lückenlos bis ${absp.beats.at(-1)}, danach Stille (${fmt(absp.seconds, 1)} s)`,
+    absp.mid && !absp.end.playing && absp.end.beat === absp.end.loopBeats && absp.after === absp.end.beat && absp.beats.length === absp.end.loopBeats
+    && absp.beats.every((b, i) => b === i) && Math.abs(absp.seconds - absp.end.loopBeats * 60 / THEMES.course_abspann.bpm) < 1e-6);
   await sc(() => window.__audio.music.play('map'));
 
   // ---- Taktuhr mit Ton: Tempo, onBeat im Takt der hörbaren Musik, stumm, angehaltener Kontext, Wechsel, Stopp ----
