@@ -10,15 +10,15 @@
 //   1  Hof und Korridor     z  12 …  −28   drei Schiebetüren quer über den Gang (antippen bzw. Aktionstaste), links eine
 //                                          Tür vor einer bemalten Wand (Münzen), rechts die Maskennische (Pilz-Maske);
 //                                          am Ende die rote Röhre in den Saal
-//   2  Kirschblütensaal     z −29 …  −52   drei Stockwerke im Querschnitt (vorn offen, Decken werden durchsichtig, wenn sie
+//   2  Kirschblütensaal     z −29 …  −54   drei Stockwerke im Querschnitt (vorn offen, Decken werden durchsichtig, wenn sie
 //                                          die Figur verdecken): Erdgeschoss nach rechts (Pilzling, Rollpilz, Krallen-
 //                                          Pilzling), Treppe, 1. Stock nach links (zwei Stachelwerfer, Pilzling), Treppe,
 //                                          2. Stock nach rechts (Türenreihe mit zwei Scheinwänden → Stern 0, Gong: Münzregen
 //                                          und Rätselbox → Stachelwerfer-Käfig → Stern 2), Warp-Box zur Tempelaußenseite
-//   3  Tempelaußenseite     z −58 … −118   Ankunftsterrasse (Checkpoint), Dachfirst mit drei Stampfsteinen, Helm-Station
+//   3  Tempelaußenseite     z −68 … −128   Ankunftsterrasse (Checkpoint), Dachfirst mit drei Stampfsteinen, Helm-Station
 //                                          (Propeller-Helme), 8-m-Lücke (Stern 1 hoch darüber), mittleres Dach mit Wolke
 //                                          (Stempel)
-//   4  Oberstes Dach        z −118 … −138  zwei Dachstufen hinauf zum Zielmast; fünf Schlüsselmünzen auf den Dächern öffnen
+//   4  Oberstes Dach        z −128 … −148  zwei Dachstufen hinauf zum Zielmast; fünf Schlüsselmünzen auf den Dächern öffnen
 //                                          die Warp-Box in den Gong-Garten (Nebenbereich, x ≈ 100: fünf Gongs, goldener Gong
 //                                          → Extraleben)
 // Pilz-Maske: Gegner, denen die Figur zugewandt ist, sehen sie nicht (Stachelwerfer werfen nicht, Krallen-Pilzlinge springen
@@ -91,11 +91,10 @@ function build(level) {
   inv(-3.6, -3.0, -11.95, -9.05, Y0 + 3.0); inv(3.0, 3.6, -18.95, -16.05, Y0 + 3.0);
   inv(3.6, 6.5, -19.3, -15.7, Y0 + 3.4);
   // Maskennische rechts (x 3,6 … 6,2): Boden kommt aus der Insel, Wände hier
-  level.world.add({ type: 'box', min: [3.6, Y0, -16.0], max: [6.5, Y0 + 3.4, -15.7], tag: 'nische' });
-  level.world.add({ type: 'box', min: [3.6, Y0, -19.3], max: [6.5, Y0 + 3.4, -19.0], tag: 'nische' });
-  level.world.add({ type: 'box', min: [6.2, Y0, -19.3], max: [6.5, Y0 + 3.4, -15.7], tag: 'nische' });
-  b0.box(2.9, 3.4, 0.3, 5.05, Y0, -15.85, litTop(0xe8d4b0, 0.8), { r: 0.02 }); b0.box(2.9, 3.4, 0.3, 5.05, Y0, -19.15, litTop(0xe8d4b0, 0.8), { r: 0.02 });
-  b0.box(0.3, 3.4, 3.6, 6.35, Y0, -17.5, litTop(0xe8d4b0, 0.8), { r: 0.02 });
+  doorWall(level, b, { axis: 'x', a0: 3.6, a1: 6.5, c: -15.85, d: 0.3, y0: Y0, y1: Y0 + 3.4, doors: [], face: -1, tag: 'nische', color: 0xf6dcc8 });
+  doorWall(level, b, { axis: 'x', a0: 3.6, a1: 6.5, c: -19.15, d: 0.3, y0: Y0, y1: Y0 + 3.4, doors: [], face: 1, tag: 'nische', color: 0xf6dcc8 });
+  doorWall(level, b, { axis: 'z', a0: -19.3, a1: -15.7, c: 6.35, d: 0.3, y0: Y0, y1: Y0 + 3.4, doors: [], face: -1, tag: 'nische', color: 0xf6dcc8 });
+  b0.box(2.5, 0.05, 3.0, 4.95, Y0, -17.5, litTop(0xc8323a, 0.85), { r: 0 });   // roter Teppich in der Nische
   b0.box(1.1, 0.5, 1.1, M63.MASKE_KORRIDOR[0], Y0, M63.MASKE_KORRIDOR[2], litTop(0x9a2a24, 0.7), { r: 0.06 });
   // ---------------- Saal: Rückwände mit Türen, Seitenwände, Decken (Durchsicht), Brüstungen, Treppen, Nischen
   for (let k = 0; k < 3; k++) rueckwand(level, b, k);
@@ -137,6 +136,9 @@ function build(level) {
       b0.box(0.18, 0.18, 14.8, K.x - 7.3, y, K.z, 0xffc84a, { r: 0.03 }); b0.box(0.18, 0.18, 14.8, K.x + 7.3, y, K.z, 0xffc84a, { r: 0.03 });
     }
     b0.box(14.8, 0.9, 0.5, K.x, K.y, K.z + 7.3, litTop(0x9a2a24, 0.7), { r: 0.05 });
+    // roter Läufer mit Goldkante von der Rätselbox zum Stachelwerfer
+    b0.box(2.4, 0.05, 12.6, K.x, K.y, K.z + 0.4, litTop(0xc8323a, 0.85), { r: 0 });
+    for (const s of [-1, 1]) b0.box(0.14, 0.06, 12.6, K.x + s * 1.2, K.y, K.z + 0.4, 0xffc84a, { r: 0 });
   }
   b0.flush(level, { castShadow: false });   // Innenwände ohne Sonnenschatten (überdachter Saal; spart den Schattenpass)
   // Dächer (sparsam): über dem Saal, unter den Tempelterrassen, auf dem obersten Dach, im Gong-Garten
@@ -198,6 +200,8 @@ function build(level) {
     { kind: 'kuebel', pos: [-6.8, YE + 7.8, -147] }, { kind: 'kuebel', pos: [6.8, YE + 7.8, -147] },
     { kind: 'kette', pos: [-3.4, YE + 11.2, -144.4], to: [3.4, YE + 11.2, -144.4], n: 6, sag: 0.4 },
     // Gong-Garten
+    { kind: 'kuebel', pos: [RX - 6, F[2], -50] }, { kind: 'kuebel', pos: [RX + 6, F[2], -50] },
+    { kind: 'blumen', pos: [RX - 6.3, F[2], -43], size: [0.9, 6] }, { kind: 'blumen', pos: [RX + 6.3, F[2], -43], size: [0.9, 6] },
     { kind: 'teich', pos: [RX, 0, -111.5], size: [6, 4], koi: 6 }, { kind: 'steine', pos: [RX, 0, -100.5], to: [RX, 0, -108.2], n: 6 },
     { kind: 'moos', pos: [RX - 7, 0, -104], size: [8, 6], n: 9, flower: 0xffb8d8 }, { kind: 'moos', pos: [RX + 7, 0, -106], size: [8, 8], n: 9, flower: 0xffe08a },
     { kind: 'blumen', pos: [RX - 10.4, 0, -114], size: [1.4, 6] }, { kind: 'blumen', pos: [RX + 10.4, 0, -114], size: [1.4, 6] },

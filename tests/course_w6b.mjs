@@ -120,7 +120,7 @@ const ROUTES = {
       ['ankunft', [0, 12, -74]],
       ['dachfirst', [0, 12, -90]],
       ['helme', [0, 12, -104]],
-      ['mittleres_dach', [0, 12, -121]],
+      ['mittleres_dach', [-1, 12, -127]],
       ['oberstes_dach', [0, 19.8, -138]],
       ['kaefig', [100, 11, -40]],
       ['gonggarten', [100, 0, -104]],
