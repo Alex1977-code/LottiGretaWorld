@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import { lin, hex, addStatic, addObject, Rnd } from '../../blocks/kit.js';
 import { CourseEntity } from '../../entities/CourseEntity.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
+import { getModel } from '../../models/index.js';
 import { Bld, litTop, gradY } from '../w5/_helpers_b.js';
 
 export { Bld, litTop, gradY };
@@ -165,11 +166,12 @@ class Fackelschale extends CourseEntity {
     const body = new THREE.Mesh(g, mat);
     body.castShadow = true; body.receiveShadow = true;
     root.add(body);
-    // Flamme (drei Kegel, additiv) – unsichtbar bis zum Anzünden
-    const fl = new THREE.Group();
-    const col = spec.color ?? 0xff8a2a;
-    const mk = (r, h, c, o) => { const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 8, 1, true), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })); m.position.y = h / 2; return m; };
-    fl.add(mk(0.42, 1.25, col, 0.75), mk(0.28, 0.95, 0xffd060, 0.85), mk(0.14, 0.6, 0xfff4c0, 0.9));
+    // Flamme (drei Kegel in einem Mesh, additiv) – unsichtbar bis zum Anzünden
+    const fb = new Bld();
+    fb.cone(0.42, 1.25, 0, 0, 0, spec.color ?? 0xd8601a, 8);
+    fb.cone(0.28, 0.95, 0, 0, 0, 0xd8a030, 8);
+    fb.cone(0.14, 0.6, 0, 0, 0, 0xf0e0a0, 8);
+    const fl = new THREE.Mesh(fb.geometry(), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
     fl.position.y = H + 0.3;
     fl.visible = false;
     root.add(fl);
@@ -437,6 +439,262 @@ export function festung71(level, o) {
   // ---------------- Teppiche, Lager
   laeufer(b, [[0, Y, 4.4, -12.5, 2], [0, Y, -86.5, -91.5, 1.8], [0, Y, -157.4, -165.6, 2], [0, Y, -229, -238.6, 2.2]]);
   werferKram(b, g, [[-6.6, Y, -40.8, 0.3], [-7.6, Y, -127.2, -0.2], [6.6, Y, -138.4, Math.PI], [-5.4, Y, -214.2, 0.2]], rnd);
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+// =====================================================================================================================
+// 7-2: Finstertempel
+// =====================================================================================================================
+
+export const TEMPEL = {
+  stone: [0xc8a878, 0xb89868, 0xd4b488, 0xa88a60, 0xc0a070], mortar: 0x3a2a22, cap: 0xe0c898, dark: 0x5a4434,
+  frieze: 0x2ab8b0, friezeHi: 0x6af0e0, gold: 0xffc23a, rune: 0x6af0ff, runeWarm: 0xffb04a,
+};
+
+/** Tempelmauer aus Quadern (Bld b/g) entlang x oder z mit Fries (türkis, leuchtende Runen) und Gesims; Kollision. */
+export function tempelWand(level, b, g, w, rnd) {
+  const [ax, az] = w.from, [bx, bz] = w.to;
+  const alongX = Math.abs(bx - ax) >= Math.abs(bz - az);
+  const H = w.h ?? 3, T = w.t ?? 0.8, y = w.y;
+  const a0 = alongX ? Math.min(ax, bx) : Math.min(az, bz), a1 = alongX ? Math.max(ax, bx) : Math.max(az, bz);
+  const c = alongX ? az : ax, L = a1 - a0, mid = (a0 + a1) / 2;
+  const box = (ww, hh, dd, u, yy, v, col, o) => (alongX ? b.box(ww, hh, dd, u, yy, v, col, o) : b.box(dd, hh, ww, v, yy, u, col, o));
+  const gbox = (ww, hh, dd, u, yy, v, col) => (alongX ? g.box(ww, hh, dd, u, yy, v, col, { r: 0 }) : g.box(dd, hh, ww, v, yy, u, col, { r: 0 }));
+  box(L, H, T - 0.14, mid, y, c, TEMPEL.mortar, { r: 0 });
+  for (const dir of w.faces ?? [1, -1]) {
+    const at = c + dir * (T / 2 - 0.07);
+    ziegel(b, { axis: alongX ? 'x' : 'z', at, a0, a1, y0: y + 0.05, y1: y + H * 0.62, dir, row: 0.7, depth: 0.14, pal: TEMPEL.stone }, rnd);
+    // Fries: türkises Band mit leuchtenden Runen
+    box(L, 0.42, 0.1, mid, y + H * 0.64, at + dir * 0.06, litTop(TEMPEL.frieze, 0.7), { r: 0 });
+    for (let u = a0 + 0.6; u < a1 - 0.3; u += 1.2) gbox(0.26, 0.26, 0.04, u, y + H * 0.64 + 0.08, at + dir * 0.12, (Math.round(u * 7) % 3) ? TEMPEL.rune : TEMPEL.runeWarm);
+    ziegel(b, { axis: alongX ? 'x' : 'z', at, a0, a1, y0: y + H * 0.64 + 0.46, y1: y + H - 0.2, dir, row: 0.6, depth: 0.12, pal: TEMPEL.stone, shift: 1 }, rnd);
+  }
+  box(L + 0.2, 0.24, T + 0.2, mid, y + H - 0.24, c, litTop(TEMPEL.cap, 0.6), { r: 0 });
+  box(L + 0.05, 0.16, T - 0.1, mid, y + H, c, litTop(TEMPEL.gold, 0.6), { r: 0 });
+  if (w.solid !== false) {
+    level.world.add(alongX ? { type: 'box', min: [a0, y, c - T / 2], max: [a1, y + H + 0.16, c + T / 2], tag: 'tempelwand', camIgnore: !!w.camIgnore }
+      : { type: 'box', min: [c - T / 2, y, a0], max: [c + T / 2, y + H + 0.16, a1], tag: 'tempelwand', camIgnore: !!w.camIgnore });
+  }
+}
+
+/** Tempelsäule (Bld b/g): Sockel, kannelierter Schaft, leuchtendes Runenband, Kapitell. solid → Zylinder-Kollision. */
+export function saeule(level, b, g, x, y, z, h = 4, r = 0.45, o = {}) {
+  b.box(r * 2.6, 0.3, r * 2.6, x, y, z, litTop(TEMPEL.cap, 0.6), { r: 0.03 });
+  b.cyl(r * 1.1, r * 1.2, 0.3, x, y + 0.3, z, litTop(TEMPEL.stone[0], 0.6), 12);
+  b.cyl(r, r * 1.06, h - 1.1, x, y + 0.6, z, gradY(0x8a6e50, 0xd8bc8c, y, y + h), 12);
+  g.torus(r * 1.04, 0.05, x, y + h * 0.55, z, o.rune ?? TEMPEL.rune, { rx: Math.PI / 2, ts: 14, rs: 4 });
+  b.cyl(r * 1.3, r * 1.0, 0.3, x, y + h - 0.5, z, litTop(TEMPEL.gold, 0.6), 12);
+  b.box(r * 2.8, 0.22, r * 2.8, x, y + h - 0.22, z, litTop(TEMPEL.cap, 0.6), { r: 0.03 });
+  if (o.solid !== false) level.world.add({ type: 'cyl', x, z, r: r * 1.15, y0: y, y1: y + h, tag: 'saeule' });
+}
+
+/** Amphoren (bunt, Goldrand): list [[x, y, z, Farbe, Größe]]. */
+export function amphoren(b, list) {
+  for (const [x, y, z, col = 0xd8703a, s = 1] of list) {
+    b.cyl(0.18 * s, 0.14 * s, 0.12 * s, x, y, z, litTop(col, 0.6), 10);
+    b.sphere(0.36 * s, x, y + 0.42 * s, z, litTop(col, 0.6), { s: [1, 1.15, 1], ws: 12, hs: 8 });
+    b.cyl(0.14 * s, 0.2 * s, 0.34 * s, x, y + 0.78 * s, z, litTop(col, 0.6), 10);
+    b.torus(0.16 * s, 0.04 * s, x, y + 1.12 * s, z, TEMPEL.gold, { rx: Math.PI / 2, ts: 12, rs: 4 });
+    b.torus(0.37 * s, 0.035 * s, x, y + 0.5 * s, z, TEMPEL.gold, { rx: Math.PI / 2, ts: 16, rs: 4 });
+  }
+}
+
+/** Leuchtkristalle (Glüh-Material): list [[x, y, z, n, Farbe]]. */
+export function kristalle(g, list, rnd) {
+  for (const [x, y, z, n = 5, col] of list) {
+    for (let k = 0; k < n; k++) {
+      const a = rnd.real(0, TAU), rr = rnd.real(0.05, 0.45), hh = rnd.real(0.5, 1.4);
+      g.cone(rnd.real(0.12, 0.22), hh, x + Math.cos(a) * rr, y - 0.05, z + Math.sin(a) * rr, col ?? [0x7ad8ff, 0xc08aff, 0x7affc8][k % 3], 5, { rx: Math.sin(a) * 0.35, rz: Math.cos(a) * 0.35 });
+    }
+  }
+}
+
+/** Goldschatz-Haufen: list [[x, y, z, r]]. */
+export function schatz(b, g, list, rnd) {
+  for (const [x, y, z, r = 0.8] of list) {
+    for (let i = 0; i < 18; i++) {
+      const a = rnd.real(0, TAU), d = rnd.real(0, r), hh = (1 - d / r) * r * 0.55;
+      b.cyl(0.13, 0.13, 0.04, x + Math.cos(a) * d, y + hh * rnd.frac(), z + Math.sin(a) * d, TEMPEL.gold, 10, { rx: rnd.real(-0.5, 0.5), rz: rnd.real(-0.5, 0.5) });
+    }
+    b.sphere(r * 0.55, x, y, z, litTop(0xe8a820, 0.7), { s: [1, 0.55, 1], ws: 10, hs: 6 });
+    g.sphere(0.12, x + 0.2, y + r * 0.35, z + 0.1, 0xff4a8a, { ws: 6, hs: 4 });
+    g.sphere(0.1, x - 0.25, y + r * 0.3, z - 0.1, 0x4affb0, { ws: 6, hs: 4 });
+  }
+}
+
+/** Steinerne Pflaume (Schlappohr-Häschen als Tempelwächter, Kulisse): [x, y, z, yaw, Größe]. */
+export function pflaumeStatue(b, g, list) {
+  for (const [x, y, z, yaw = 0, s = 1] of list) {
+    const c = Math.cos(yaw), sn = Math.sin(yaw);
+    const P = (u, v) => [x + c * u + sn * v, z - sn * u + c * v];
+    b.box(1.4 * s, 0.5 * s, 1.4 * s, x, y, z, litTop(TEMPEL.cap, 0.6), { r: 0.04, yaw });
+    b.box(1.2 * s, 0.12 * s, 1.2 * s, x, y + 0.5 * s, z, litTop(TEMPEL.gold, 0.6), { r: 0, yaw });
+    const st = litTop(0x9a8c84, 0.65);
+    b.sphere(0.5 * s, x, y + 1.05 * s, z, st, { s: [1, 0.95, 0.9], ws: 12, hs: 8 });
+    let [hx, hz] = P(0.22 * s, 0);
+    b.sphere(0.36 * s, hx, y + 1.62 * s, hz, st, { ws: 12, hs: 8 });
+    for (const side of [-1, 1]) {
+      const [ex, ez] = P(0.12 * s, side * 0.22 * s);
+      b.box(0.14 * s, 0.75 * s, 0.24 * s, ex, y + 1.05 * s, ez, st, { yaw, rx: side * c * 0.35, rz: -side * sn * 0.35, r: 0.05 });   // Schlappohren
+      const [ax, az] = P(0.5 * s, side * 0.13 * s);
+      g.sphere(0.06 * s, ax, y + 1.7 * s, az, TEMPEL.rune, { ws: 6, hs: 4 });                                                   // leuchtende Augen
+    }
+    [hx, hz] = P(0.56 * s, 0);
+    b.sphere(0.07 * s, hx, y + 1.58 * s, hz, 0x5a4a50, { ws: 6, hs: 4 });
+    [hx, hz] = P(-0.42 * s, 0);
+    b.sphere(0.16 * s, hx, y + 0.8 * s, hz, litTop(0xb8aca4, 0.7), { ws: 8, hs: 6 });                                         // Schwänzchen
+  }
+}
+
+/**
+ * Scheinwand (Bauplan 7-2 „versteckter Raum rechts nach dem Kontrollpunkt“): sieht aus wie die Tempelmauer daneben, hat aber
+ * keine Kollision; kommt die Figur nah, wird sie durchscheinend (man sieht den Gang dahinter). Eigenes Mesh.
+ * o: { from, to, y, h, t, faces } wie tempelWand. → { fade, near }
+ */
+export function scheinwand(level, o) {
+  const st = { fade: 1, near: false };
+  if (!level.view) return st;
+  const b = new Bld(), g = new Bld();
+  tempelWand(level, b, g, { ...o, solid: false }, new Rnd(o.seed ?? 99));
+  // feine, leuchtende Risse als Hinweis
+  const [ax, az] = o.from, [bx, bz] = o.to;
+  const alongX = Math.abs(bx - ax) >= Math.abs(bz - az);
+  const cx = (ax + bx) / 2, cz = (az + bz) / 2, T = o.t ?? 0.8;
+  for (const face of o.faces ?? [1, -1]) {
+    for (let k = 0; k < 5; k++) {
+      const yy = o.y + 0.4 + k * 0.32, off = (k % 2 ? 0.25 : -0.2) + k * 0.05;
+      if (alongX) g.box(0.5, 0.05, 0.03, cx + off, yy, cz + face * (T / 2 + 0.02), 0x8ae8ff, { r: 0, rz: k % 2 ? 0.6 : -0.6 });
+      else g.box(0.03, 0.05, 0.5, cx + face * (T / 2 + 0.02), yy, cz + off, 0x8ae8ff, { r: 0, rx: k % 2 ? 0.6 : -0.6 });
+    }
+  }
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, transparent: true, opacity: 1 });
+  const gm = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 1 });
+  const grp = new THREE.Group();
+  const m1 = new THREE.Mesh(b.geometry(), mat), m2 = new THREE.Mesh(g.geometry(), gm);
+  m1.receiveShadow = true;
+  grp.add(m1, m2);
+  grp.name = 'scheinwand';
+  const x0 = Math.min(ax, bx) - 1.6, x1 = Math.max(ax, bx) + 1.6, z0 = Math.min(az, bz) - 1.6, z1 = Math.max(az, bz) + 1.6;
+  const holder = {};
+  addObject(level, grp, (dt) => {
+    const d = visDt(level, holder, dt);
+    const p = level.player;
+    st.near = !!p && p.pos.x > x0 && p.pos.x < x1 && p.pos.z > z0 && p.pos.z < z1 && p.pos.y < o.y + (o.h ?? 3);
+    const want = st.near ? 0.22 : 1;
+    st.fade += (want - st.fade) * Math.min(1, d * 6);
+    mat.opacity = st.fade; gm.opacity = st.fade;
+    mat.depthWrite = st.fade > 0.95;
+  });
+  return st;
+}
+
+/**
+ * Unsichtbarer länglicher ?-Block (Bauplan 7-2 Stern 3): nur von unten fest (Kopfstoß); getroffen erscheint er (gestreckter,
+ * benutzter ?-Block), gibt Münzen und zeigt den ersten Block der versteckten Kette chain (hiddenchain-Id).
+ * o: { pos: [x, y, z] (Mitte der Unterseite), size: [3, 1, 1], chain, coins: 3, id }.
+ */
+export function geheimLaengsblock(level, o) {
+  const [px, py, pz] = o.pos, [sx, sy, sz] = o.size ?? [3, 1, 1];
+  const st = { shown: false, bumps: 0 };
+  const shape = { type: 'box', min: [px - sx / 2, py, pz - sz / 2], max: [px + sx / 2, py + sy, pz + sz / 2], fromBelowOnly: true, tag: 'geheimblock' };
+  let model = null;
+  shape.owner = {
+    onBump() {
+      st.bumps++;
+      if (st.shown) return;
+      st.shown = true;
+      shape.fromBelowOnly = false;
+      level.world.update(sid);
+      level.sfx('blockhit');
+      level.effects?.sparks({ x: px, y: py + 0.5, z: pz }, 14);
+      if (o.coins) runAction(level, { coins: o.coins, pos: [px, py + 1.2, pz] });
+      level.named.get(o.chain)?.revealNext?.();
+      if (model) model.root.visible = true;
+    },
+  };
+  const sid = level.world.add(shape);
+  if (o.id) level.named.set(o.id, { get shown() { return st.shown; }, info: () => ({ ...st }) });
+  if (level.view) {
+    model = getModel('question_block');
+    model.root.position.set(px, py, pz);
+    model.root.scale.set(sx, sy, sz);
+    model.root.visible = false;
+    addObject(level, model.root, (dt) => { model.update?.(visDt(level, st, dt), { anim: 'used', n: 1 }); });
+  }
+  return st;
+}
+
+/** Bodenmosaik: Ringe aus bunten Steinchen um (x, y, z): rings [[r0, r1, Farbe], …]. */
+export function mosaik(b, x, y, z, rings, rnd) {
+  for (const [r0, r1, col] of rings) {
+    const n = Math.max(8, Math.round(((r0 + r1) / 2) * TAU / 0.42));
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU, r = (r0 + r1) / 2;
+      const c = new THREE.Color(Array.isArray(col) ? col[i % col.length] : col).multiplyScalar(0.9 + rnd.frac() * 0.2);
+      b.box(Math.min(0.36, r * TAU / n - 0.06), 0.04, r1 - r0 - 0.06, x + Math.cos(a) * r, y, z + Math.sin(a) * r, c, { yaw: -a + Math.PI / 2, r: 0 });
+    }
+  }
+}
+
+/** 7-2: Tempel-Kulisse (Fassaden, Mauern, Säulen, Rundsaal, Schatzraum, Statuen, Abgrund). o: { Y, HX }. */
+export function tempel72(level, o) {
+  const { Y, HX } = o;
+  const rnd = new Rnd(7272);
+  const b = new Bld(), g = new Bld();
+  // ---------------- Fassaden der schwebenden Tempelböden (Quader) + leuchtende Runenleiste
+  const rects = [[-6, 6, 8, -6], [-3, 3, -6, -20], [-4.5, 4.5, -20, -27], [-8, 8, -41, -58], [11, 14, -46, -50.4, 2.2], [-8, 8, -72, -88], [-5, 5, -88, -98],
+    [-6, 6, -98, -112], [-4, 4, -126, -132], [-9, 9, -153, -170], [-6, 6, -184, -197], [-7, 7, -210, -228], [HX - 4.5, HX + 5, -86, -100]];
+  for (const [x0, x1, zA, zB, dy = 0] of rects) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), top = Y + dy;
+    ziegel(b, { axis: 'x', at: z0, a0: x0, a1: x1, y0: top - 2.2, y1: top - 0.06, dir: 1, depth: 0.14, row: 0.7, pal: TEMPEL.stone }, rnd);
+    ziegel(b, { axis: 'z', at: x0, a0: z1, a1: z0, y0: top - 2.2, y1: top - 0.06, dir: -1, depth: 0.14, row: 0.7, pal: TEMPEL.stone, shift: 1 }, rnd);
+    ziegel(b, { axis: 'z', at: x1, a0: z1, a1: z0, y0: top - 2.2, y1: top - 0.06, dir: 1, depth: 0.14, row: 0.7, pal: TEMPEL.stone, shift: 1 }, rnd);
+    b.box(x1 - x0 + 0.1, 0.18, 0.26, (x0 + x1) / 2, top - 0.22, z0 + 0.08, litTop(TEMPEL.cap, 0.6), { r: 0 });
+    for (let x = x0 + 0.7; x < x1 - 0.4; x += 1.4) g.box(0.22, 0.22, 0.05, x, top - 1.2, z0 + 0.17, (Math.round(x * 3) % 2) ? TEMPEL.rune : TEMPEL.runeWarm, { r: 0, rz: Math.PI / 4 });
+  }
+  // ---------------- Mauern
+  const W = (from, to, y, h, faces, extra = {}) => tempelWand(level, b, g, { from, to, y, h, faces, ...extra }, rnd);
+  W([-5.6, 7.6], [-5.6, -5.6], Y, 3.6, [1]); W([5.6, 7.6], [5.6, -5.6], Y, 3.6, [-1]);                 // Eingangshalle
+  W([-2.65, -6.2], [-2.65, -19.6], Y, 3.2, [1], { t: 0.7 }); W([2.65, -6.2], [2.65, -19.6], Y, 3.2, [-1], { t: 0.7 });   // dunkler Gang
+  W([-7.6, -41.4], [-7.6, -57.6], Y, 3.6, [1]);                                                         // zweiter Saal links
+  W([-4.6, -88.4], [-4.6, -97.6], Y, 3.2, [1]);                                                         // Kontrollpunkt links
+  W([4.6, -88.2], [4.6, -90.4], Y, 3.2, [-1, 1]); W([4.6, -95.6], [4.6, -97.8], Y, 3.2, [-1, 1]);       // rechts (dazwischen Scheinwand)
+  W([5.2, -95.4], [HX - 4.5, -95.4], Y, 2.4, [1], { t: 0.6 });                                          // Geheimgang (Rückwand)
+  W([HX - 4.4, -99.6], [HX + 4.9, -99.6], Y, 3.4, [1]); W([HX + 4.6, -86.4], [HX + 4.6, -99.6], Y, 3.4, [-1]);   // Schatzraum
+  W([-5.6, -98.4], [-5.6, -111.6], Y, 3.2, [1]);
+  W([-8.6, -153.4], [-8.6, -169.6], Y, 3.6, [1]);
+  W([-6.6, -227.6], [6.6, -227.6], Y, 4.2, [1], { t: 0.9 });                                            // Zielhalle Rückwand
+  // ---------------- Säulen
+  const S = (x, z, h = 4.2, extra = {}, y = Y) => saeule(level, b, g, x, y, z, h, 0.45, extra);
+  S(-4, -26.4, 3.6); S(4, -26.4, 3.6);
+  S(7.4, -41.8); S(7.4, -57.4); S(-7.2, -71.4, 4.6, { solid: false }); S(7.2, -71.4, 4.6, { solid: false });
+  for (const deg of [0, 30, 150, 180, 210, 330]) { const a = deg * Math.PI / 180; S(Math.cos(a) * 7.1, -80 + Math.sin(a) * 7.1, 4.6, { rune: deg % 60 ? TEMPEL.runeWarm : TEMPEL.rune }); }
+  S(-5.4, -98.6, 3.8); S(5.4, -111.4, 3.8, { solid: false });
+  S(-3.4, -126.6, 3.6); S(3.4, -126.6, 3.6);
+  S(-8.4, -169.4, 4.2); S(8.4, -153.6, 4.2);
+  S(-5.4, -196.4, 3.8); S(-5.4, -184.6, 3.8); S(5.4, -184.6, 3.8);
+  S(-6.4, -227, 5); S(6.4, -227, 5); S(-6.4, -216, 4.4); S(6.4, -216, 4.4);
+  // ---------------- Rundsaal: Mosaik, Mittelstein
+  mosaik(b, 0, Y + 0.02, -80, [[1.2, 1.7, 0xffc23a], [1.9, 2.5, [0x2ab8b0, 0x3ad8c8]], [2.7, 3.2, [0xd8603a, 0xffc23a]], [3.4, 4.1, [0x5a6ad8, 0x8a5ad8]], [4.3, 4.8, 0xe0c898]], rnd);
+  g.cyl(0.9, 0.95, 0.06, 0, Y + 0.02, -80, 0x6af0ff, 18);
+  // ---------------- Schatzraum: Gold, Amphoren, Wächter-Häschen
+  schatz(b, g, [[HX + 3.4, Y, -98, 0.9], [HX - 2.6, Y, -98.4, 0.7], [HX + 3.8, Y, -88, 0.6]], rnd);
+  amphoren(b, [[HX - 3.6, Y, -98.6, 0x2ab8b0, 1.1], [HX - 1.4, Y, -99, 0xd8603a, 0.9], [HX + 1.6, Y, -99, 0x8a5ad8, 1], [HX + 4.2, Y, -95, 0xd8603a, 0.8]]);
+  pflaumeStatue(b, g, [[HX + 3.8, Y, -91.6, Math.PI, 0.9]]);
+  kristalle(g, [[HX - 3.6, Y, -87, 6, 0x7ad8ff], [HX + 4, Y, -86.8, 5, 0xc08aff]], rnd);
+  // ---------------- Halle-Zier: Amphoren, Statuen, Kristalle
+  amphoren(b, [[-4.8, Y, 6.4, 0xd8603a, 1], [4.8, Y, 6.4, 0x2ab8b0, 1], [-6.8, Y, -42.2, 0x8a5ad8, 0.9], [-6.6, Y, -56.8, 0xd8603a, 1.1], [7.6, Y, -88.6, 0x2ab8b0, 0.6],
+    [-5, Y, -132, 0xd8603a, 0.9], [-7.8, Y, -154.2, 0x2ab8b0, 1], [7.8, Y, -168.8, 0x8a5ad8, 1], [-5.6, Y, -209.4, 0xd8603a, 1], [5.6, Y, -209.4, 0x2ab8b0, 1]]);
+  pflaumeStatue(b, g, [[-3.6, Y, -224, -Math.PI / 2 + 0.4, 1.3], [3.6, Y, -224, -Math.PI / 2 - 0.4, 1.3], [-4.4, Y, -2.5, -Math.PI / 2 + 0.6, 1]]);
+  schatz(b, g, [[-4.8, Y, -219.5, 0.8], [4.8, Y, -219.5, 0.8]], rnd);
+  kristalle(g, [[-5.2, Y, -46, 5], [7.2, Y, -50, 4], [-7.2, Y, -86.4, 5], [7.4, Y, -86.6, 4], [-5.2, Y, -110.6, 4], [-8.2, Y, -161, 6], [8.2, Y, -161, 5], [5.2, Y, -188, 4], [-6.2, Y, -224, 5], [6.2, Y, -224, 5]], rnd);
+  // ---------------- Abgrund: Ruinensäulen aus der Tiefe mit Kristallen, ferne Glut
+  for (const [x, z, top] of [[-14, -14, -1.5], [12, -30, -3], [-15, -64, -2], [15, -76, -1], [-13, -118, -2.5], [13, -138, -1.8], [-14, -176, -3], [14, -204, -2], [-15, -236, -2.4], [0, -238, -4]]) {
+    b.cyl(1.1, 1.3, top + 16, x, -16, z, gradY(0x2a2026, 0x8a7458, -14, top), 10);
+    b.cyl(1.4, 1.2, 0.4, x, top, z, litTop(TEMPEL.cap, 0.5), 10);
+    kristalle(g, [[x, top + 0.4, z, 4]], rnd);
+  }
   b.flush(level, { castShadow: false });
   g.flush(level, { material: 'glow', castShadow: false });
 }

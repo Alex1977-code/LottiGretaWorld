@@ -23,7 +23,87 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 // halten – Abzweig an Kreuzungen) · { warp: [x, z] } (auf eine Warp-Box springen) · { stompAll: Id-Anfang } ·
 // { clear: [Ids], at: [x, z], r } (warten, bis die Gegner weg sind)
 const Y = 1, RX = 72;
+const HX = 19;
 const ROUTES = {
+  '7-2': {
+    start: [0, Y, 4.5],
+    meta: { stars: 3, time: 400, theme: 'darkruins', music: 'course_switchruins', archetype: 'parcours' },
+    enemies: { stachelpanzer: 7, feuer_schnappblume: 1, fackelschale: 4 },
+    main: [
+      { name: 'Funkenblüte aus dem ?-Block', to: [-2, -1.5], within: 0.2, run: false }, { hop: 20 }, { to: [-2, 1], within: 0.3, run: false },
+      { to: [-2, -1.5], jump: 40, jumpAt: 2.2, within: 0.4, run: false }, { chaseKind: 'powerup', max: 300 }, { expect: 'funken' },
+      { to: [0, -8], within: 0.6 },
+      { name: 'Stachelpanzer im Gang (Feuerbälle)', fire: 'sp1' },
+      { to: [0, -21], within: 0.6 },
+      { name: 'Schaltgruppe 1', tiles: [[-0.9, -22.6], [0.9, -22.6], [0.9, -24.4], [-0.9, -24.4]], group: 's1' },
+      { until: 'weg1', max: 300 },
+      { name: 'erschienener Weg 1', to: [0, -42], within: 0.6, run: false },
+      { name: 'Stachelpanzer im zweiten Saal', fire: 'sp2' }, { fire: 'sp3' },
+      { name: 'Schaltgruppe 2', tiles: [[-3.6, -45], [3.6, -45], [3.6, -54], [-3.6, -54]], group: 's2' },
+      { until: 'weg2', max: 300 },
+      { to: [0, -57.4], within: 0.4, run: false },
+      { name: 'erschienener Weg 2', to: [0, -72.6], within: 0.6, run: false },
+      { name: 'Rundsaal', to: [0, -88], within: 0.6 },
+      { name: 'Kontrollpunkt', to: [0, -93], within: 0.6 },
+      { name: 'Schaltgruppe 3 (Feuer-Schnappblume)', tiles: [[-2.6, -102.6], [-0.6, -102.6], [1.4, -102.6], [1.4, -104.6], [-0.6, -104.6], [-2.6, -104.6]], group: 's3' },
+      { until: 'weg3', max: 300 },
+      { to: [0, -111], within: 0.4, run: false },
+      { name: 'erschienener Weg 3', to: [0, -127], within: 0.6, run: false },
+      { name: 'Fahrplattform', ride: 'fahrt', board: [0, -134.6], exit: [0, -150.4], to: [0, -154] },
+      { expect: 'halle' },
+      { name: 'Stachelpanzer der letzten Halle', fire: 'sp4' }, { fire: 'sp6' }, { fire: 'sp5' }, { fire: 'sp7' },
+      { name: 'Schaltgruppe 4', tiles: [[-3, -160], [0, -160], [3, -160], [3, -163], [0, -163], [-3, -163]], group: 's4' },
+      { until: 'weg4', max: 300 },
+      { to: [0, -169], within: 0.4, run: false },
+      { name: 'erschienener Weg 4', to: [0, -186], within: 0.6, run: false },
+      { name: 'Zielröhre', to: [0, -190.6], jump: 30, within: 0.25, run: false }, { crouch: 12 }, { until: 'zielhalle', max: 600 },
+      { name: 'Zielmast', to: [0, -221.4], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'vier Schaltgruppen komplett, alle Wege erschienen', ok: (r) => r.log.filter((l) => l[0] === 'felder' && l[2] === true).length === 4 },
+    ],
+    targets: [
+      { name: 'Stern 0: vier Fackelschalen mit Feuerbällen anzünden', star: 0, from: [0, Y, -73.4], place: { power: 'funken' },
+        legs: [{ fire: 'fackel1', dist: 3 }, { fire: 'fackel2', dist: 3 }, { fire: 'fackel4', dist: 3 }, { fire: 'fackel3', dist: 3 }, { wait: 60 }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Feuer (Schalen anfassen und anspringen zündet nicht)', star: 0, expectNot: true, from: [0, Y, -73.4], heroes: ['lotti'],
+        legs: [{ to: [-4.2, -75.4], within: 0.3 }, { hop: 30 }, { to: [4.2, -75.4], within: 0.3 }, { to: [5, -75.4], jump: 30, within: 0.3 }, { wait: 30 }, { to: [0, -80], within: 0.4 }, { wait: 30 }],
+        mech: (r) => r.mech.lit === 0, mechText: (r) => `angezündet ${r.mech.lit}` },
+      { name: 'Stern 1: durch die Scheinwand rechts vom Kontrollpunkt in den Schatzraum', star: 1, from: [0, Y, -93],
+        legs: [{ to: [7, -93], within: 0.5 }, { to: [HX + 1.5, -93], within: 0.3 }], shot: 'stern1' },
+      { name: 'Stern 2: unsichtbarer länglicher ?-Block hinter der Röhre, Blockkette hinauf', star: 2, from: [0, Y, -193],
+        legs: [{ to: [0, -195.2], within: 0.15, run: false }, { hop: 24 }, { expect: 'laengs' }, { to: [-4.2, -195.2], within: 0.3, run: false },
+          { to: [-0.6, -195.2], jump: 40, jumpAt: 2.6, within: 0.4, run: false }, { expect: 'aufLaengs' }, { to: [0.9, -195.4], within: 0.2, run: false, slow: 0.4 },
+          { to: [1.8, -197.9], jump: 40, within: 0.4, run: false }, { expect: 'aufKette1' }, { to: [2.2, -198.2], within: 0.15, run: false, slow: 0.4 },
+          { to: [3.8, -199.4], jump: 40, within: 0.4, run: false }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stempel: im zweiten Saal ganz rechts über den Abgrund auf die Plattform', stamp: true, from: [4, Y, -48.2],
+        legs: [{ to: [7.2, -48.2], within: 0.4 }, { to: [12.5, -48.4], jump: 40, within: 0.4 }], shot: 'stempel' },
+    ],
+    extra: [
+      { name: 'Weg 1 bleibt verborgen, solange ein Feld fehlt (3 von 4)', from: [0, Y, -21], heroes: ['lotti'],
+        legs: [{ tiles: [[-0.9, -22.6], [0.9, -22.6], [0.9, -24.4]], group: 's1' }, { wait: 120 }],
+        mech: (r) => r.mech.weg1 === false, mechText: (r) => `Weg 1 ${r.mech.weg1 ? 'da' : 'weg'}` },
+      { name: 'Extraleben: unsichtbarer Block im Schatzraum', from: [HX + 3, Y, -95.5], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [HX + 3, -97.5], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Wände neben der Scheinwand sind fest', from: [0, Y, -89.2], heroes: ['lotti'],
+        legs: [{ to: [7, -89.2], within: 0.5, max: 240, autoJump: false }],
+        mech: (r) => r.pos[0] < 4.4, mechText: (r) => `x ${r.pos[0].toFixed(2)}`, allowFail: true },
+    ],
+    shots: [
+      ['start', [0, Y, 4.5]],
+      ['gang', [0, Y, -8]],
+      ['s1', [0, Y, -21]],
+      ['saal2', [0, Y, -43]],
+      ['stempelplatz', [7, Y, -48]],
+      ['rund', [0, Y, -73]],
+      ['cp', [0, Y, -91]],
+      ['schatz', [HX - 3, Y, -93]],
+      ['s3', [0, Y, -100]],
+      ['fahrt', [0, Y, -128]],
+      ['halle', [0, Y, -155]],
+      ['rohr', [0, Y, -186]],
+      ['ziel', [0, Y, -213]],
+    ],
+  },
   '7-1': {
     start: [0, Y, 5],
     meta: { stars: 3, time: 400, theme: 'bluelava', music: 'course_fortfire', archetype: 'parcours' },
@@ -168,7 +248,15 @@ function install() {
   wrapHurt();
   const ent = (id) => L.named.get(id);
   const at = (x0, x1, y0, z0, z1) => { const q = P().pos; return q.x > x0 && q.x < x1 && q.y > y0 && q.z < z0 && q.z > z1 && !P().dead; };
+  const wegDa = (id) => { const h = L.named.get(id); return !!h && h.parts > 0 && h.shown >= h.parts; };
   const COND = {
+    // 7-2
+    weg1: () => wegDa('s1'), weg2: () => wegDa('s2'), weg3: () => wegDa('s3'), weg4: () => wegDa('s4'),
+    halle: () => at(-9, 9, 0.5, -153, -170),
+    zielhalle: () => at(-7, 7, 0.5, -210, -228),
+    laengs: () => L.named.get('laengsblock')?.shown === true,
+    aufLaengs: () => P().pos.y > 4.3 && P().mode === 'ground',
+    aufKette1: () => P().pos.y > 6.2 && P().mode === 'ground',
     // 7-1
     hof: () => at(-9, 9, 0.5, -31.5, -44),
     insel: () => at(-11, 11, 0.5, -59.5, -70),
@@ -481,6 +569,64 @@ function install() {
           log.push(['stampfen', `${Lg.pound}`, pounded, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
         }
+        // ------------------------------------------------ Feuerbälle (Funkenblüte) auf ein Ziel (Id), bis es getroffen ist
+        if (Lg.fire) {
+          const e = L.named.get(Lg.fire);
+          const done = () => !e || !e.alive || e.removed || e.defeated || e.lit;
+          let k = 0, shots = 0;
+          for (; k < (Lg.max ?? 1500) && !done() && !p.dead; k++) {
+            const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            const want = Lg.dist ?? 3.5;
+            if (d > want + 0.6 || p.mode !== 'ground') { tick({ ...this.stick(dx, dz, Math.min(1, (d - want) / 1.5 + 0.3)), run: false }); continue; }
+            // zum Ziel drehen (kleiner Schritt), dann werfen
+            const fv = p.facingVec(), dot = (fv.x * dx + fv.z * dz) / (d || 1);
+            if (dot < 0.97) { tick({ ...this.stick(dx, dz, 0.12), run: false }); continue; }
+            const fire = k % 24 === 0;
+            if (fire) shots++;
+            tick({ action: fire });
+          }
+          for (let i = 0; i < 30; i++) tick({});
+          log.push(['feuer', Lg.fire, done(), shots, k]);
+          if (!done()) log.push(['FEHLER: Ziel nicht getroffen', Lg.fire]);
+          continue;
+        }
+        // ------------------------------------------------ Fahrplattform (mover-Id): warten, aufsteigen, mitfahren, absteigen
+        if (Lg.ride) {
+          const m = L.named.get(Lg.ride);
+          const sh = m.shape;
+          const cz = () => (sh.z0 + sh.z1) / 2, cx = () => (sh.x0 + sh.x1) / 2, top = () => sh.y1;
+          const [ax, az] = Lg.board, [bx, bz] = Lg.to;
+          let k = 0;
+          // warten, bis die Plattform am Einstieg steht
+          for (; k < 2400 && Math.hypot(cx() - ax, cz() - az) > 0.4; k++) tick({});
+          for (let n = 0; n < 300 && !p.dead; n++, k++) {
+            const dx = cx() - p.pos.x, dz = cz() - p.pos.z, d = Math.hypot(dx, dz);
+            if (d < 0.35 && p.mode === 'ground' && Math.abs(p.pos.y - top()) < 0.2) break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(cx(), cz(), 0, 0, 4, 6) : this.stick(dx, dz, Math.min(1, d))), run: false, jump: d < 2.2 && p.mode === 'ground' && p.pos.y < top() - 0.3 });
+          }
+          // mitfahren, bis die Plattform am Ausstieg ist
+          for (let n = 0; n < 2400 && !p.dead && Math.hypot(cx() - Lg.exit[0], cz() - Lg.exit[1]) > 0.4; n++, k++) tick({ ...this.stick(cx() - p.pos.x, cz() - p.pos.z, Math.min(1, Math.hypot(cx() - p.pos.x, cz() - p.pos.z))), run: false });
+          for (let n = 0; n < 300 && !p.dead; n++, k++) {
+            const dx = bx - p.pos.x, dz = bz - p.pos.z, d = Math.hypot(dx, dz);
+            if (d < 0.5 && p.mode === 'ground') break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(bx, bz, 0, 0, 3, 6) : this.stick(dx, dz, 1)), run: false, jump: n < 20 });
+          }
+          log.push(['fahrt', Lg.ride, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ alle Felder (Liste [x, z]) betreten
+        if (Lg.tiles) {
+          for (const [tx, tz] of Lg.tiles) {
+            for (let n = 0; n < 400 && !p.dead; n++) {
+              const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+              if (d < 0.3) break;
+              tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.3, d / 1.2))), run: false });
+            }
+            for (let n = 0; n < 6; n++) tick({});
+          }
+          log.push(['felder', Lg.tiles.length, Lg.group ? L.named.get(Lg.group)?.done : null]);
+          continue;
+        }
         // ------------------------------------------------ Schiebekugel über Wegpunkte rollen (Figur stellt sich dahinter)
         if (Lg.roll) {
           const ball = L.named.get(Lg.roll);
@@ -549,6 +695,8 @@ function install() {
       mech.hurts = p.hurtTries ?? 0;
       mech.keys = L.keys?.tor?.n ?? 0;
       mech.lives = L.runtime.save?.lives;
+      mech.lit = L.entities.filter((e) => e.kind === 'fackelschale' && e.lit).length;
+      mech.weg1 = wegDa('s1');
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
@@ -728,7 +876,7 @@ for (const id of LEVELS) {
   for (const t of !PARTS.has('targets') ? [] : pick(R.targets ?? [])) {
     for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
       await load(id);
-      await W('place', t.from, { hero, settle: 10 });
+      await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
       const res = await W('drive', t.legs, { invuln: t.invuln });
       const rt = await W('rt');
       let ok = t.star !== undefined ? rt.stars[t.star] : rt.stamp;
@@ -754,7 +902,7 @@ for (const id of LEVELS) {
       if (t.expectLives !== undefined) ok = ok && lives1 - lives0 >= t.expectLives;
       if (t.expectAlive !== false) ok = ok && !res.dead;
       if (t.mech && !t.mech(res)) ok = false;
-      if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
+      if (!t.allowFail && res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
       check(`${id}: ${t.name} (${hero}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}${t.mechText ? `, ${t.mechText(res)}` : ''})`, ok);
       if (t.shot && hero === HEROES[0]) await shot(`${id}_${t.shot}`);
