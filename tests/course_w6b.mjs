@@ -26,6 +26,7 @@ const ROUTES = {
     start: [0, 1, 7],
     meta: { stars: 3, stamp: true, time: 400, theme: 'fareast', music: 'course_fareast', archetype: 'parcours' },
     enemies: { pilzling: 3, rollpilz: 2, krallen_pilzling: 2, stachelwerfer: 3, stampfstein: 3, pilz_maske: 2, schluesselmuenze: 5 },
+    maxHurts: 0,
     main: [
       { name: 'vor Tür 1', to: [0, -4.6], within: 0.4, run: false },
       { name: 'Tür 1 antippen', tap: 'tuer1', after: 90 },
@@ -37,23 +38,31 @@ const ROUTES = {
       { name: 'rote Röhre', to: [0, -25.5], jump: 24, within: 0.25, run: false },
       { crouch: 4 },
       { expect: 'inHall' },
-      { name: 'Erdgeschoss', to: [-20.5, -44.5], within: 0.5, run: false },
+      { name: 'Pilz-Maske am Saaleingang', to: [-19.5, -43.4], within: 0.3, run: false },
+      { wait: 10 },
+      { expect: 'masked' },
+      { name: 'Erdgeschoss: Pilzling, Rollpilz, Krallen-Pilzling', stompAll: ['p1', 'r1', 'k1'] },
       { to: [22, -44.5], within: 0.6 },
       { to: [24.4, -48.6], within: 0.4, run: false },
       { name: 'Treppe zum 1. Stock', to: [16.5, -48.6], within: 0.5 },
+      { wait: 30 },
       { expect: 'onF2' },
-      { name: '1. Stock', to: [-23, -44.5], within: 0.6 },
+      { name: '1. Stock: Stachelwerfer (mit Maske werfen sie nicht), Pilzling', stompAll: ['sw1', 'p2', 'sw2'], lineUp: 0.85 },
+      { to: [-23, -44.5], within: 0.6 },
       { to: [-24.4, -48.6], within: 0.4, run: false },
       { name: 'Treppe zum 2. Stock', to: [-16.5, -48.6], within: 0.5 },
+      { wait: 30 },
       { expect: 'onF3' },
-      { name: '2. Stock', to: [20.4, -46.9], within: 0.5 },
+      { name: '2. Stock: Krallen-Pilzling, Pilzling, Rollpilz', stompAll: ['k2', 'p3', 'r2'] },
+      { to: [20.4, -46.9], within: 0.5 },
       { name: 'Warp-Box zum Tempel', to: [23.4, -48.6], jump: 30, within: 0.3, run: false, stopIf: 'onExterior' },
       { wait: 40 },
       { expect: 'onExterior' },
       { name: 'Checkpoint', to: [0, -76.8], within: 0.6 },
       { to: [0, -83], within: 0.4, run: false },
       { name: 'Dachfirst (zwischen den Stampfsteinen)', to: [0, -101.5], within: 0.4 },
-      { name: 'Propeller-Helm', to: [3, -104.6], within: 0.35, run: false },
+      { name: 'Propeller-Helm', to: [3, -105], within: 0.25, run: false },
+      { wait: 10 },
       { expect: 'propeller' },
       { to: [0, -109.3], within: 0.3, run: false },
       { name: 'über die Lücke', prop: [0, -120.5], rise: 40 },
@@ -358,7 +367,7 @@ function install() {
       let steps = 0, autoJumps = 0;
       const hold = o.invuln !== false;
       const hist = [];
-      let deadLogged = false;
+      let deadLogged = false, hurtSeen = p.hurtTries ?? 0;
       const mech = { hurts: 0, trips: 0, kicks: 0, taps: 0, pipes: 0, rafts: 0, hangs: 0, climbs: 0, props: 0 };
       const track = [];
       const tick = (inp) => {
@@ -370,6 +379,7 @@ function install() {
         }
         if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.ground?.tag ?? '']); if (hist.length > 40) hist.shift(); }
         if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
+        if (p.hurtTries > hurtSeen) { if (!hurtSeen || o.allHurts) log.push(['Treffer-Versuch', p.lastHurt, steps, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), +(p.yaw ?? 0).toFixed(2), p.masked ?? null]); hurtSeen = p.hurtTries; }
         if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead && !o.keepScript) {
           let n = 0;
           const kind = p.script?.type ?? p.script?.kind ?? '?';
@@ -443,18 +453,46 @@ function install() {
           const done = [];
           let guard = 0;
           for (; guard < 40; guard++) {
-            const list = L.entities.filter((e) => e.enemy && e.alive && !e.removed && !e.defeated && String(e.spec?.id ?? '').startsWith(pre));
+            const want = (e) => (Array.isArray(pre) ? pre.includes(e.spec?.id) : String(e.spec?.id ?? '').startsWith(pre));
+            const list = L.entities.filter((e) => e.enemy && e.alive && !e.removed && !e.defeated && want(e));
+            if (Array.isArray(pre)) list.sort((a, b) => pre.indexOf(a.spec?.id) - pre.indexOf(b.spec?.id));
             if (!list.length) break;
             const e = list[0];
-            let k = 0;
+            let k = 0, jl = false, jumpK = 0;
+            // lineUp (m): erst so weit vor den Gegner (Stachelwerfer: in seiner Blickrichtung, sonst auf der x-Seite der Figur)
+            // gehen, anhalten, senkrecht hochspringen und im Fallen auf seine vordere Hälfte lenken – die Figur bleibt ihm
+            // zugewandt und überquert seine Mitte nicht (Pilz-Maske: er sieht sie nicht und wirft nicht)
+            const lu = !!Lg.lineUp && e.kind === 'stachelwerfer';
+            let lined = !lu;
             for (; k < 1800 && e.alive && !e.defeated && !e.removed; k++) {
               const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
-              if (p.mode === 'ground' && d < 2.2 && !e.overhead) { tick({ ...this.stick(dx, dz, 0.5), jump: true, run: false }); continue; }
+              const f = e.kind === 'stachelwerfer' ? (e.spec.dir ?? [1, 0]) : [Math.sign(p.pos.x - e.pos.x) || 1, 0], fl = Math.hypot(f[0], f[1]) || 1;
+              if (!lined) {
+                const ex = e.pos.x + (f[0] / fl) * (Lg.lineUp === true ? 2.4 : Lg.lineUp) - p.pos.x, ez = e.pos.z + (f[1] / fl) * (Lg.lineUp === true ? 2.4 : Lg.lineUp) - p.pos.z, ed = Math.hypot(ex, ez);
+                if (ed < 0.3 && p.mode === 'ground') lined = true;
+                else { tick(p.mode === 'air' ? {} : { ...this.stick(ex, ez, Math.max(0.25, Math.min(1, ed / 1.2))), run: false }); continue; }
+              }
+              if (p.mode === 'ground' && lu && Math.hypot(p.vel.x, p.vel.z) > 0.15) { jl = false; tick({}); continue; }   // erst stehen
+              if (p.mode === 'ground' && lu && !e.overhead) { jl = !jl; tick({ jump: jl }); continue; }   // senkrecht hoch
+              // Sprungtaste neu drücken (gehalten löst nach der Landung keinen neuen Sprung aus)
+              if (p.mode === 'ground' && d < 2.2 && !e.overhead) { jl = !jl; if (jl) jumpK = k; tick({ ...this.stick(dx, dz, 0.5), jump: jl, run: false }); continue; }
+              jl = false;
+              // Rollpilz: Stampfattacke (Ducken in der Luft) – einfaches Draufspringen legt ihn nur auf den Rücken
+              if (p.mode === 'air' && e.kind === 'rollpilz' && d < 0.55 && p.vel.y < 1.5 && p.pos.y > e.pos.y + 0.9) { tick({ crouch: true }); continue; }
+              // in der Luft: mit lineUp direkt zum Gegner lenken (die Figur dreht sich nie von ihm weg), sonst Wunschgeschwindigkeit
+              // Zielpunkt knapp diesseits der Gegnermitte: die Figur überquert seine Mitte nicht (sonst „sieht“ er ihren Rücken)
+              // (senkrecht hochspringen, erst im Fallen sanft auf die vordere Hälfte des Gegners lenken)
+              if (p.mode === 'air' && lu) {
+                const ax = e.pos.x + (f[0] / fl) * 0.22 - p.pos.x, az = e.pos.z + (f[1] / fl) * 0.22 - p.pos.z, ad = Math.hypot(ax, az);
+                tick({ ...(p.vel.y < 1 && ad > 0.06 ? this.stick(ax, az, Math.min(1, ad / 1.0)) : {}) }); continue;
+              }
+              // andere Gegner bei lineUp: in der Luft direkt zu ihnen lenken (kein Bremsen nach hinten – Blick bleibt vorn)
+              if (p.mode === 'air' && Lg.lineUp) { tick({ ...(d > 0.08 ? this.stick(dx, dz, Math.min(1, d / 1.5)) : {}), jump: p.vel.y > 0 }); continue; }
               if (p.mode === 'air') { tick({ ...this.airSteer(e.pos.x, e.pos.z, 0, 0, 3.6, 7), jump: p.vel.y > 0 }); continue; }
               if (d < 3 && e.overhead) { tick({}); continue; }
               tick({ ...this.stick(dx, dz, Math.min(1, d / 2)), run: false });
             }
-            if (!e.alive || e.defeated || e.removed) done.push(e.spec?.id);
+            if (!e.alive || e.defeated || e.removed) done.push(e.spec?.id + (p.hurtTries ? `(${p.hurtTries})` : ''));
           }
           for (let i = 0; i < 60; i++) tick({});
           log.push(['besiegt', done.join(' ')]);
@@ -612,7 +650,7 @@ function install() {
           if (p.mode === 'air') airborne = true;
           else if (airborne) landed = true;
         }
-        log.push([Lg.name ?? `leg${li}`, i, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
+        log.push([Lg.name ?? `leg${li}`, i, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.hurtTries ?? 0, p.lastHurt ?? null]);
         if (i >= max && !Lg.partial) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, Lg.to]); break; }
       }
       c.setInput({});
@@ -823,6 +861,8 @@ for (const id of LEVELS) {
     if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
     check(`${id}: Routen-Bot ${hero} erreicht ${R.meta.archetype === 'arena' ? 'den Arena-Sieg' : 'den Zielmast'}`, reached);
     check(`${id}: ${hero} Zeit bis zum Ziel < 240 s (${res.time.toFixed(1)} s)`, reached && res.time < 240);
+    check(`${id}: ${hero} – Protokoll ohne Fehler (alle Wegpunkte, Bedingungen, Tipps)`, !res.log.some((l) => String(l[0]).startsWith('FEHLER')));
+    if (R.maxHurts !== undefined) check(`${id}: ${hero} – faire Route: höchstens ${R.maxHurts} Treffer-Versuche (${res.mech.hurts})`, res.mech.hurts <= R.maxHurts);
     if (hero === HEROES[0] && PARTS.has('sweep')) sweepTrack = res.track;
     for (const m of R.routeChecks ?? []) check(`${id}: ${hero} – ${m.name}`, m.ok(res));
   }
