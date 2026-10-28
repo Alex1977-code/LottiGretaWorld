@@ -252,7 +252,7 @@ const ROUTES = {
       { name: 'Krümel springt nicht', from: [10, 0, 10], heroes: ['lotti'],
         legs: [{ hop: 40 }, { expect: 'keinSprung' }] },
       { name: 'Projektilkopf trifft Krümel, der ohne Warten übers Band läuft', from: [0, 0, 6.6], heroes: ['lotti'], invuln: false,
-        legs: [{ until: 'kanone1Feuert', max: 1200 }, { wait: 150 }, { to: [0, -1.4], within: 0.4, max: 600 }], mech: (r) => r.mech.hurts > 0, mechText: (r) => `Treffer ${r.mech.hurts} (${r.mech.hurtList.join(' ')})` },
+        legs: [{ until: 'kanone1Feuert', max: 1200 }, { wait: 380 }, { push: 420, dir: [0, -1] }], mech: (r) => r.mech.hurts > 0, mechText: (r) => `Treffer ${r.mech.hurts} (${r.mech.hurtList[0] ?? ''})` },
       { name: 'Stampfstein trifft Krümel, der darunter stehen bleibt', from: [-3, 0, 10], heroes: ['lotti'], invuln: false,
         legs: [{ to: [-5.0, 10], within: 0.15, slow: 0.4 }, { wait: 240 }], mech: (r) => r.mech.hurts > 0 || r.mech.death, mechText: (r) => `Treffer ${r.mech.hurts}, Tod ${r.mech.death ?? '-'}` },
     ],
