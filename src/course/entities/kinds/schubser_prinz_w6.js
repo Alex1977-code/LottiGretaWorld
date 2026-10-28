@@ -35,7 +35,7 @@
 //          hp?: 3, charge?: [6, 7, 8] (m/s), chargeTime?: [2.2, 2.0, 1.8], turn?: [0.5, 0.7, 0.9] (rad/s), warn?: [0.9, 0.7,
 //          0.55], skid?: [1.0, 0.85, 0.7], fire?: [1, 2, 3], fireSpeed?: 6.5, stuck?: 3.5, stun?: [3.0, 2.6, 2.2],
 //          push?: 12, lift?: 7 (Rammstoß auf die Figur), knock?: 6 (m/s Rutschen bei Draufspringen/Gegenrennen; Angriffe 7),
-//          travel?: 14 (m/s in der Röhre), star?: { pos, index } | [x, y, z], wakeR?: 10, drop?, seed? }
+//          travel?: 18 (m/s in der Röhre, höchstens travelMax 2,2 s), star?: { pos, index } | [x, y, z], wakeR?: 10, drop?, seed? }
 //   boss: { id: 'prinz', name: 'Schubser-Prinz', speed: 0, trigger, lock, warp, warpPos, warpTo, frame: 0.45, center }
 // Laufzeit: charges, fireballs, pushes (gestoßen), stucks, trips (Röhrenfahrten), tripLog ([{ from, to }]), hits, hitLog,
 //   bounces (Kopfsprünge ohne Treffer), rams (Rammstöße auf die Figur), pipe (aktuelle Röhre), info().
@@ -400,7 +400,7 @@ class SchubserPrinz extends EnemyW2 {
     if (!pts) pts = [{ x: m.x, y: m.y + 1, z: m.z }, { x: t.x, y: t.y + 1, z: t.z }];
     let L = 0;
     for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y, pts[i].z - pts[i - 1].z);
-    this.trip = { from: m, to: t, pts, L, T: Math.max(0.6, L / (this.spec.travel ?? 14)), visible };
+    this.trip = { from: m, to: t, pts, L, T: clamp(L / (this.spec.travel ?? 18), 0.6, this.spec.travelMax ?? 2.2), visible };
     this.trips++;
     this.tripLog.push({ from: m.id, to: t.id });
     this.exit = t;

@@ -21,7 +21,7 @@
 // Berührung ein Stoß. Nach jedem Stoß 0,3 s Ruhe für Berührungen (kein Mehrfach-Stoß).
 //
 // Daten: { kind: 'schubser', pos, dir|yaw, behavior?: 'chase' | 'patrol' | 'guard', path?, loop?, speed?: 1.5 (gehen),
-//          charge?: 5.5 (m/s), chargeTime?: 1.8, sight?: 8, warn?: 0.55, cool?: 0.9, push?: 11, lift?: 6.5,
+//          charge?: 5.5 (m/s), chargeTime?: 1.8, sight?: 8, warn?: 0.55, cool?: 0.9, push?: 9, lift?: 5.5,
 //          friction?: 6 (m/s² Rutschen), weight?: 1 (> 1 rutscht kürzer), size?: 1, wake?, edges?, drop? }
 //   Beispiel: { kind: 'schubser', pos: [0, 1, -20], sight: 7 }
 // Zustände: idle | walk | warn | charge | skid | cool | pushed | fall | recover | defeated. Laufzeit: rams (Stöße auf die
@@ -69,8 +69,8 @@ export class Schubser extends EnemyW2 {
     this.sight = spec.sight ?? 8;
     this.warn = spec.warn ?? 0.55;
     this.coolT = spec.cool ?? 0.9;
-    this.push = spec.push ?? 11;
-    this.lift = spec.lift ?? 6.5;
+    this.push = spec.push ?? 9;
+    this.lift = spec.lift ?? 5.5;
     this.friction = spec.friction ?? 6;
     this.weight = Math.max(0.3, spec.weight ?? 1);
     this.home = this.pos.clone();

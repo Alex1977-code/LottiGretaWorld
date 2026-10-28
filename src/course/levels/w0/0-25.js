@@ -58,11 +58,11 @@ export const LEVEL = {
   segments: [
     // ---- A: Festungsplattform mit Käfig und Glasröhren
     { type: 'island', pos: [0, -1, -2], size: [44, Y + 1, 44], top: 'stone', under: 3 },
-    { type: 'wall', pos: [-W - 0.3, Y, 0], size: [0.6, 4.2, 2 * W + 1.2], style: 'stone' },
-    { type: 'wall', pos: [W + 0.3, Y, 0], size: [0.6, 4.2, 2 * W + 1.2], style: 'stone' },
-    { type: 'wall', pos: [0, Y, -W - 0.3], size: [2 * W + 1.2, 4.2, 0.6], style: 'stone' },
-    { type: 'wall', pos: [-(W + 2.4) / 2 - 0.3, Y, W + 0.3], size: [W - 1.8, 1.0, 0.6], style: 'stone', camIgnore: true },
-    { type: 'wall', pos: [(W + 2.4) / 2 + 0.3, Y, W + 0.3], size: [W - 1.8, 1.0, 0.6], style: 'stone', camIgnore: true },
+    { type: 'wall', pos: [-W - 0.3, Y, 0], size: [0.6, 4.2, 2 * W + 1.2], style: 0xd9c9e8 },
+    { type: 'wall', pos: [W + 0.3, Y, 0], size: [0.6, 4.2, 2 * W + 1.2], style: 0xd9c9e8 },
+    { type: 'wall', pos: [0, Y, -W - 0.3], size: [2 * W + 1.2, 4.2, 0.6], style: 0xd9c9e8 },
+    { type: 'wall', pos: [-(W + 2.4) / 2 - 0.3, Y, W + 0.3], size: [W - 1.8, 1.0, 0.6], style: 0xd9c9e8, camIgnore: true },
+    { type: 'wall', pos: [(W + 2.4) / 2 + 0.3, Y, W + 0.3], size: [W - 1.8, 1.0, 0.6], style: 0xd9c9e8, camIgnore: true },
     ...ROUTES.map((path, i) => ({ type: 'glasspipe', id: `roehre_${i}`, path, radius: 1, solid: false, enter: [] })),
     { type: 'torches', h: 2.2, items: [[-W - 1.6, Y, W + 1.6], [W + 1.6, Y, W + 1.6]] },
     { type: 'pennants', items: [{ pos: [-W - 1, Y + 4.2, -W - 1], color: 0x8a5ae0, h: 4 }, { pos: [W + 1, Y + 4.2, -W - 1], color: 0xe8322a, h: 4 }] },
