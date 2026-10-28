@@ -6500,3 +6500,143 @@ Ziel), Stachelfalle, Tod im Kampf setzt Baron und König zurück · Teil 4 Bilde
 (38 Entitäten) 0,1–0,34 ms je Schritt. Regressionen `course_enemies`, `course_w1_combat`, `course_w2_enemies`,
 `course_w3_enemies`, `course_w4_enemies` (zoo, boss), `course_w5_enemies` (2), `course_hw_enemies` (1), `course_w6_enemies`
 (1–4), `course_w7_blocks` (ohne Bilder), `course_physics`, `tests/sfx_namen.mjs` bestanden.
+
+## Präzisierung (Motor-Feinschliff nach Welt 6)
+
+Ergänzung des Motor-Agenten nach Welt 6: die Motor-Schwächen, die die Level-Agenten der Welten 5, 6 und der Halloween-Welt
+gefunden und level-lokal umgangen haben, sind jetzt allgemein im Motor behoben. Alles ist additiv; **kein Level wurde
+geändert** – die level-lokalen Umwege bleiben und sind harmlos (Liste unten). Prüfung `tests/course_motor_fixes.mjs`.
+
+### Präzisierung (Motor-Feinschliff nach Welt 6): Dateien
+
+```
+src/course/view/EntityInstancer.js     + Regeln je Art (LEVEL.instances[kind]: shadow, shadowDist), Schatten-Stellvertreter
+                                         (shadowStandIn), addModel (Baustein-Modelle wie Entitäts-Modelle instanzieren)
+src/course/view/lod.js                 + Detailstufe stachelkugel/stachelkugel_wurf, shadowStandIn(geometry)
+src/course/view/Culling.js             + mesh.__noSun (Regel der Art: in diesem Bild kein Schattenpass)
+src/course/view/CourseView.js          + view.instanceModel(root, kind); instanceRule gilt auch für Entitäts-Arten
+src/course/view/CameraRig.js           + Kamerastrahl mit echter Form (raycastCam), kleine frei stehende Hindernisse
+src/course/physics/shapes.js           + segmentShape (Rampe als Keil, Zylinder rund), Formflag ballPass
+src/course/physics/CollisionWorld.js   + raycastCam(a, b, skip)
+src/course/level/Level.js              + farHide je Art (LEVEL.instances[kind].farHide), Pilz-Maske in der Luft robust
+src/course/player/Player.js            + poundCarry (Stampfattacke fährt mit dem Träger)
+src/course/entities/kinds/w6_gimmicks.js   Wurfball: Hangabtrieb in kurzen Luftphasen (slopeAir), ballPass
+src/course/entities/kinds/fireball.js, geschosse.js, projektilkopf.js, stachelwerfer_w6.js   ballPass (je eine Zeile)
+src/course/entities/EnemyW2.js         sharedSlot: eigene Gruppe je opts (z. B. { color })
+src/course/entities/kinds/wuerfelblase_w6.js   Gelee-Brocken ohne Boss in ihrer Farbe
+src/course/entities/kinds/werferturm_w5.js    Reiter-Spec mit kind und spawnedBy
+src/course/archetypes/kinds/arena.js   Neustart: Specs mit spawnedBy überspringen, Reiter (e.rider) mitzählen
+src/course/blocks/types/switchtiles.js Felder über view.instanceModel (eine Instanz-Gruppe)
+src/course/blocks/types/w5_flipper.js  Flipper-Instanzen über view.groupCull (nur Felder im Bild)
+src/course/blocks/types/w3_snow.js     eisflaeche: sparsame Eiskante, Standard an bei Eisseen mit Sockel
+src/course/levels/w0/0-29.js           Testlevel „Motor-Werkbank“ (eine Station je Punkt, marks)
+src/course/levels/w0/0-30.js           Testlevel „Werferturm-Arena“ (Arena ohne level-lokale Hilfe)
+tests/course_motor_fixes.mjs           Port 4700, PARTS=inst,pound,cam,ball,eis,maske,gelee,w5,kraft,arena,level
+```
+
+### Präzisierung (Motor-Feinschliff nach Welt 6): was der Motor jetzt selbst kann
+
+1. **Instanz-Regeln für alle Arten.** `LEVEL.instances[name]` bzw. `view.instanceRule(name, rule)` galten bisher nur für
+   Instanz-Gruppen (EnemyW2 `sharedSlot`, `modelInstances`) und Pools (Münzen). Jetzt auch für Entitäts-Modelle nach Art
+   (`kind`): `shadow: false` – kein Sonnenschatten, `shadowDist: m` – weiter als m (waagerecht) von der Haupt-Figur kein
+   Sonnenschatten (je Exemplar; eine Art mit Regel zeichnet auch als einzelnes Exemplar über die Instanz-Gruppe, nicht
+   instanzierbare Teile überspringen nur den Schattenpass), `farHide: m` – Level.render blendet das Modell aus (vor
+   `LEVEL.farHide`, nach Entität/spec `farHide`). Beispiel (statt `schattenNah` in 6-1):
+   `instances: { stachelkugel: { shadowDist: 11 } }`. Schatten-Regeln wirken mit `view.optimize` (wie die Instanzen).
+   **Stachelkugel** (Registry-Modell ≈ 5,7 k Dreiecke): ab 24 m Kameraabstand zeichnet die sparsame Kugel derselben
+   Bibliothek (≈ 0,7 k, gleiche Farben und Stacheln, `view/lod.js`), im Schattenpass immer (Schatten-Stellvertreter
+   `shadowStandIn`, gilt auch für `stachelkugel_wurf`). Im Testlevel (acht Kugeln): Hauptpass 1 Aufruf / 45,8 k,
+   Schattenpass 1 Aufruf / 5,7 k (vorher wie der Hauptpass, ≈ 46 k); aus der Ferne 1 Aufruf / 5,7 k.
+   **Achtung:** Regeln, die Level schon für Entitäts-Arten eingetragen hatten und die bisher wirkungslos waren, greifen
+   jetzt wie gedacht – 5-1 (`krabbelkaefer`, `panzerkroete`, `rammbock_bulle`, `muenzmarder`: farHide/shadowDist) und 6-3
+   (`pilzling`, `krallen_pilzling`, `stachelwerfer`, `pilz_maske`, `helm_maske`, `schluesselmuenze`: kein Sonnenschatten;
+   die Blob-Schatten bleiben). Routen beider Level geprüft.
+2. **Stampfattacke auf fahrenden Trägern** (`Player.poundCarry`): während der Stampfattacke (Drehung und Fall) übernimmt die
+   Figur waagerecht die Geschwindigkeit der obersten Form mit `mover` unter ihr (bis 40 m tiefer: Plattform `mover`,
+   `vehicle` – Panzer, Zugwaggon, Flachwagen –, Floß/`MovingBox`, Kipp-Schaltfelder auf Plattformen) und landet senkrecht
+   über dem Ziel auf dem Träger (gemessen: Drift < 0,1 m statt ≈ 2 m bei 3 m/s). Über festem Boden unverändert senkrecht.
+   Hat ein Level-Haken die Figur im selben Schritt schon mit dem Träger verschoben (6-Panzer `kolonnenSetup`), zählt diese
+   Verschiebung entlang der Fahrtrichtung mit – nicht doppelt. Drehscheiben (`dyaw`) drehen die stampfende Figur nicht mit.
+3. **Kamerastrahl mit echter Form** (`CollisionWorld.raycastCam`, nur Darstellung – Spiel-Abfragen nutzen weiter `raycast`):
+   Rampen verdecken nur unter ihrer Schräge (nicht mehr als Hüllquader – an Hängen rückt die Kamera nicht mehr bis 3 m
+   heran), Zylinder nur rund. **Kleine, frei stehende Hindernisse** (alle Kanten ≤ 2,2 m, seitlich ohne feste Nachbarn –
+   ein einzelner ?-Block, Ziegel, eine Kiste) bis 5 m vom Kopf der Figur ziehen die Kamera nicht mehr ruckartig heran;
+   Reihen und Mauern aus Blöcken zählen weiter (Kamera rückt heran). `camIgnore` auf Rampen ist nicht mehr nötig.
+4. **Wurfball am Hang:** der Hangabtrieb wirkt auch in kurzen Luftphasen (Hüpfer) – bis `slopeAir` s (Standard 0,35)
+   nach dem letzten Hang-Kontakt, solange die Rampe höchstens 0,6 m unter dem Ball liegt und er nicht steigt
+   (`vel.y < 2`). Datenfeld `{ kind: 'wurfball', slopeAir: 0 }` = altes Verhalten. Gemessen am 31°-Hang (6 m hoch, 10 m
+   lang): unten nach 2,2 s mit 6,5 m/s (mit `slopeAir: 0` nach 3 s noch nicht unten, höchstens 1,9 m/s).
+5. **Eiskante sparsam** (`eisflaeche`): Nachbildung des Modells `eiskante` (Eis-Lippe, Saum, Schneewulst mit Buckeln im
+   Takt des Modells und mit dessen Kugel-Normalen) – ≈ 130 statt ≈ 500 Dreiecke je Meter (ein 16 × 40-m-See ≈ 14 k statt
+   ≈ 56 k je Pass, mit Schattenpass ≈ 29 k statt ≈ 110 k). **Standard:** an bei Eisseen mit Sockel (h > 0,2), aus bei
+   flachen Bahnen ohne Sockel (wie bisher, z. B. der Teich in 3-1, der seinen Schneerand selbst mitbringt); `edge: false`
+   aus, `edge: true` an, `edge: 'fein'` = Registry-Modell wie bisher. Die Level mit Eisseen (6-5, Hilfe `w3/_helpers_a.js`)
+   setzen `edge: false` ausdrücklich und bleiben unverändert; 0-13 (`edge: true`) zeigt jetzt die sparsame Kante.
+6. **Pilz-Maske in der Luft** (`level.isMaskedFrom`): über dem Gegner (waagerecht höchstens Halbbreite des Gegners +
+   Halbbreite der Figur + 0,3 m) gilt die maskierte Figur in der Luft als zugewandt, und war sie eben noch zugewandt, hält
+   das in der Luft 0,35 s nach (Sprung über die Mitte eines Stachelwerfers: er wirft nicht mehr). Am Boden unverändert.
+7. **Gelee-Brocken ohne Boss** übernehmen `color` aus den Daten (eigene Instanz-Gruppe je Farbe über
+   `sharedSlot(level, name, { color })`; vorher alle silbern). 6-C zeigt die fünf Brocken jetzt in ihren Farben.
+8. **Welt 5:** Kipp-Schaltfelder (`switchtiles`) zeichnen als eine Instanz-Gruppe (`view.instanceModel`; Farbfeld 3 × 3:
+   1 Aufruf statt 9). Rot-Blau-Flipper melden ihre Instanz-Meshes bei `view.groupCull` an (Name `flipper`, Regeln über
+   `LEVEL.instances.flipper`): je Bild nur Felder im Bild bzw. mit Schatten ins Bild (vorher immer alle, ≈ 60 k Dreiecke
+   in 5-6). **Werferturm:** die Reiter-Spec hat `kind` und `spawnedBy: 'werferturm'`; der Arena-Neustart überspringt Specs
+   mit `spawnedBy` und zählt den Reiter des neuen Turms (`e.rider`) mit – genau ein Werfer, keine Warnung
+   „unbekannte Entität“.
+9. **Formflag `ballPass`** (Kraftfeld „nur Bälle“): `{ type: 'box', …, ballPass: true }` ist fest für Figuren und Gegner;
+   Wurfball, Feuerball der Figur, Gegner-Feuerkugeln (`geschosse.js`), Projektilkopf und geworfene Stachelkugel fliegen
+   hindurch. Als Wand gedacht, nicht als Boden (rollende Geschosse fielen hindurch). Die Wurfsichel (Welt 7) fliegt ohnehin
+   durch Wände; geworfene Kickbomben/Panzer sind nicht erfasst.
+
+API-Ergänzungen: `view.instanceModel(root, kind) → Abmelden` (Baustein-Modell, das direkt in der Szene hängt, wie ein
+Entitäts-Modell instanzieren), `view.instancer.stats` + `ruled` (Exemplare mit Regel), `shadowLow` (Schatten über den
+Stellvertreter), `world.raycastCam(a, b, skip?)`, `segmentShape(shape, …)`.
+
+### Präzisierung (Motor-Feinschliff nach Welt 6): level-lokale Umwege, die jetzt überflüssig sind (bleiben harmlos)
+
+| Level | Umweg | jetzt im Motor |
+| --- | --- | --- |
+| 6-1 | `schattenNah(level, ['stachelkugel'], 11)` | `instances: { stachelkugel: { shadowDist: 11 } }`; Schatten ohnehin über den sparsamen Stellvertreter |
+| 6-Panzer | `kolonnenSetup`: Figur beim Stampfen mit dem Panzer verschieben | `poundCarry` (der Haken wird erkannt, nichts doppelt) |
+| 6-5 | `rampenKameraFrei` (camIgnore auf allen Rampen) | `raycastCam` (Rampen als Keil) |
+| H-1 | Hilfe `rampe` (Rampe mit camIgnore) | dito |
+| 6-5 | `eisflaeche` mit `edge: false` (Budget) | sparsame Kante (≈ 14 k je 16 × 40-m-See und Pass) – ohne `edge` stünde sie an |
+| 6-Haus | `kullerRinne` (Hangabtrieb je Schritt) | Wurfball-Hangabtrieb in Luftphasen; die Zentrierung in der Rinne bleibt Sache der Hilfe |
+| 6-Haus | `kraftfeld` als `solid` + `trigger` (der Ball übergeht `trigger`) | Formflag `ballPass` |
+| 5-B | `arenaTowerFix` | Reiter-Spec mit `kind`/`spawnedBy`, Arena zählt den Reiter |
+| 5-5 / 5-6 | — (Wünsche: Farbfeld instanzieren, Flipper-Culling) | `view.instanceModel`, `view.groupCull` |
+
+### Präzisierung (Motor-Feinschliff nach Welt 6): Test und Kennzahlen
+
+`tests/course_motor_fixes.mjs` (Port 4700 + `PORT_BASE`, deterministisch über `step`/`setInput`; `PARTS=inst,pound,cam,
+ball,eis,maske,gelee,w5,kraft,arena,level`, alle zusammen ≈ 2 min, `VERBOSE=1`) – 37 Prüfungen, je Punkt mit Gegenprobe:
+Stachelkugeln als eine Gruppe, Schatten über den Stellvertreter, `shadow: false`, `shadowDist` (nur die nahen), `farHide`
+je Art, Detailstufe aus der Ferne · Stampfen auf Plattform und Wagen (Drift < 0,3 m), Umweg wie 6-Panzer nicht doppelt,
+feste Plattform senkrecht · Kamera an der Rampe und hinter einem ?-Block voller Abstand (alter Hüllquader-Strahl war
+verdeckt), Ziegelreihe zieht heran · Wurfball mit/ohne `slopeAir` · Eiskante sparsam ≤ ⅓ des Modells, Standard an/aus ·
+Pilz-Maske über dem Stachelwerfer (alte Blickregel und ohne Maske: er wirft) · Gelee-Farben · Farbfeld 1 Aufruf,
+Flipper außerhalb 0 Aufrufe · Kraftfeld (Figur hält, Ball und Feuerball hindurch, Glaswand hält beide) · Werferturm-Arena
+0-30 und 5-B · echte Level 5-5, 5-6, 6-1.
+
+Kennzahlen (`tests/course_perf.mjs`, scale 2, `?still=1`, inkl. Schattenpass; vorher = master vor dem Feinschliff):
+
+| Level | Aufrufe Ø (max) vorher | nachher | Dreiecke Ø (max) vorher | nachher |
+| --- | --- | --- | --- | --- |
+| 6-1 | 61,2 (93) | 61,2 (93) | 199 k (262 k) | 197 k (262 k) |
+| 5-5 | 73,2 (97) | 72,4 (97) | 170 k (229 k) | 170 k (229 k) |
+| 5-6 | 58,5 (80) | 53 (72) | 187 k (234 k) | 129 k (174 k) |
+| 6-5 | 35 (45) | 35 (45) | 110 k (153 k) | 110 k (153 k) |
+
+Einzelne Stellen: 5-5 Farbfeld (Empore) 109 → 101 Aufrufe (Felder 9 → 1), Bild am Stern 2 91 → 83; 5-6 Checkpoint 98 → 90
+Aufrufe / 234 → 174 k (Flipper 8 Aufrufe / 60 k → 0), Start 153 → 99 k; 6-1 Messgang (`course_w6a`, Route) höchstens
+258 → 249 k, ferne Stachelkugeln in der Detailstufe (≈ 0,7 statt 5,7 k); die Glasgang-Kugeln liegen nah (volle Kugel), und
+6-1 sparte den Kugel-Schatten schon selbst (`schattenNah`) – daher dort nur wenig Gewinn; 6-5 unverändert (Kante dort
+ausdrücklich aus, Rampen schon mit `camIgnore`; mit `edge` an kosteten die drei Seen jetzt ≈ 14 + 15 + 17 k je Pass statt
+je ≈ 110 k mit Schattenpass).
+
+Regressionen (nacheinander, je ≤ 10 min) bestanden: `course_physics`, `course`, `course_view`, `course_leistung`,
+`course_w3_blocks` (ohne Bilder), `course_w5_blocks`, `course_w6_blocks` (mech), `course_w6_enemies` (1–4), `course_w5c`
+(5-5 und 5-6 route/targets/extra, 5-B), `course_w6a` (6-1, 6-2 load/route/targets, 6-1 sweep, 6-B arena), `course_w6b`
+(6-3 load/route/targets/extra), `course_w6c` (6-5, 6-6 load/route/targets, 6-Haus haus/haus-extra), `course_w6d` (6-7,
+6-Panzer, 6-C load/route/targets), `course_w2d` (2-Panzer), `course_hwa` (H-1, H-2 load/route), `course_w5a` (5-1
+load/route), nach dem Merge der Welt 7 `course_w7_blocks`, `course_w7_enemies` (1–3).
