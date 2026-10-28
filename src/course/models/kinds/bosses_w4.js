@@ -29,7 +29,7 @@ const ROLL_Y = 1.12;      // Kugelmitte beim Rollen
 // Stein- und Umhangfarben je Variante ('std' = Welt 4, unverändert; 'hell' = Welt 7)
 const KPAL = {
   std: { key: '', low: LAVA.rockLow, mid: LAVA.rock, hi: LAVA.rockHi, ash: LAVA.ash, cape: 0xc8142e, capeLow: 0x7a0a1e },
-  hell: { key: ':hell', low: 0x7e5c56, mid: 0xb08a7e, hi: 0xe2c6b4, ash: 0xf4e6da, cape: 0x7a2ac8, capeLow: 0x3a0e6a },
+  hell: { key: ':hell', low: 0x7a5852, mid: 0xb08a7e, hi: 0xe2c6b4, ash: 0xc8a494, cape: 0x7a2ac8, capeLow: 0x3a0e6a },
 };
 const kpal = (v) => KPAL[v] ?? KPAL.std;
 const KC = { gold: 0xffc21a, goldHi: 0xfff0a0, goldLow: 0xc88a10, ruby: 0xe8203a, sapphire: 0x2a6aff, emerald: 0x22c86a, velvet: 0xb0102a, cape: 0xc8142e, capeLow: 0x7a0a1e, ermine: 0xfffaf2, spot: 0x1a1a22, tooth: 0xe8dcc8 };

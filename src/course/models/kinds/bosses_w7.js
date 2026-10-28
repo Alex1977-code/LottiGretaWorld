@@ -16,7 +16,8 @@
 //         bei progress 0,45 (Feuerstoß, Rückstoß, Rauch) – Feuerkugel an model.muzzle() erzeugen; hit: Zylinder fliegt hoch,
 //         Augen zu, Aufblitzen, der Wagen ruckt (0,6 s); stunned: Schwindelsterne, Qualm aus der Haube, wankt; defeated: Wagen
 //         sackt schief ab und qualmt dicht, Räder stehen, der Baron sackt zusammen, Zylinder schief.
-//         hp: ≤ 6 Rußflecken, ein Stachel abgebrochen, leichter Rauch; ≤ 3 verbogene Platten und Schlote, Risse, dunkler Qualm.
+//         hp: ≤ 6 Rußflecken, ein Stachel abgebrochen, leichter Rauch; ≤ 3 Haubenplatte abgerissen (offener, glühender Motor),
+//         verbogener Schlot, Risse, dunkler Qualm.
 //   model.hand(out?) → Weltposition der Kickbombe in der Wurf-Tatze.  model.muzzle(out?) → Weltposition vor der Mündung.
 //   root.userData.radius → Kollisionsradius (≈2,4 m um die Wagenmitte), userData.top → Höhe der Hutspitze (≈3,8 m).
 // kampfwagen_strasse  Teile der Boss-Straße (Basalt-Fahrbahn über Lava). Fahrtrichtung entlang X.
@@ -169,9 +170,16 @@ function carGeo(dmg = 0) {
     }
     // Haube (schräg) mit Panzerplatte und Nieten
     b.box(1.6, 0.42, 1.76, redV, { p: [1.45, 1.42, 0], r: [0, 0, -0.08] }, 0.16, 2);
-    const plateTilt = dmg >= 2 ? 0.12 : 0;
-    b.box(1.2, 0.07, 1.3, ironV, { p: [1.5, 1.66, 0], r: [plateTilt, 0, -0.08 + plateTilt * 0.5] }, 0.03, 1);
-    rivets(b, [[1.0, 1.7, 0.55], [1.0, 1.7, -0.55], [2.02, 1.62, 0.55], [2.02, 1.62, -0.55], [1.5, 1.68, 0.6], [1.5, 1.68, -0.6]]);
+    if (dmg < 2) {
+      b.box(1.2, 0.07, 1.3, ironV, { p: [1.5, 1.66, 0], r: [0, 0, -0.08] }, 0.03, 1);
+      rivets(b, [[1.0, 1.7, 0.55], [1.0, 1.7, -0.55], [2.02, 1.62, 0.55], [2.02, 1.62, -0.55], [1.5, 1.68, 0.6], [1.5, 1.68, -0.6]]);
+    } else {
+      // Panzerplatte abgerissen: offener Motor mit glühenden Zylindern, Platte hängt schief an einer Ecke
+      b.box(0.9, 0.22, 1.0, ironV, { p: [1.5, 1.66, 0] }, 0.05, 1);
+      for (let i = 0; i < 3; i++) b.cyl(0.13, 0.13, 0.22, { v: (x, y) => mix(0xd8320a, 0xffb02a, smoothstep(y / 0.22 + 0.5)) }, { p: [1.2 + i * 0.3, 1.82, 0.22] }, 10);
+      for (let i = 0; i < 3; i++) b.cyl(0.13, 0.13, 0.22, ironV, { p: [1.2 + i * 0.3, 1.82, -0.22] }, 10);
+      b.box(1.2, 0.07, 1.3, ironV, { p: [1.62, 1.42, 1.18], r: [1.25, 0.15, -0.1] }, 0.03, 1);
+    }
     // Ramm-Pflug mit fünf Stacheln
     b.box(0.32, 0.86, 2.06, ironV, { p: [2.32, 0.88, 0], r: [0, 0, 0.12] }, 0.08, 1);
     b.box(0.08, 0.1, 2.1, KW.gold, { p: [2.4, 1.3, 0], r: [0, 0, 0.12] }, 0.03, 1);
@@ -275,7 +283,7 @@ function buildKampfwagen() {
   bodyJ.add(torso, eye, hat, arms, bomb, dizzy);
   bear.add(bodyJ);
   car.add(bear);
-  const smoke = new Puffs(14, 0x8a8490, { opacity: 0.85, radius: 6, cy: 2 });
+  const smoke = new Puffs(14, 0x8a8490, { opacity: 0.62, radius: 6, cy: 2 });
   own.push(smoke);
   root.add(car, smoke.mesh);
   root.userData.radius = 2.4;
@@ -361,8 +369,8 @@ function buildKampfwagen() {
     hat.rotation.set(0.06 + slump * 0.45, hatSpin, -0.12 - slump * 0.35);
     // Aufblitzen
     const hitK = anim === 'hit' ? Math.max(0, 1 - hitP) * (Math.sin(clk.age * 40) > 0 ? 1 : 0.2) : 0;
-    bearMat.emissive.setRGB(hitK, hitK * 0.85, hitK * 0.8);
-    carMat.emissive.setRGB(hitK * 0.6 + charge * 0.08, hitK * 0.4, hitK * 0.35);
+    bearMat.emissive.setRGB(hitK * 0.8, hitK * 0.68, hitK * 0.64);
+    carMat.emissive.setRGB(hitK * 0.32 + charge * 0.08, hitK * 0.2, hitK * 0.18);
     // Rauch: Schlote, Schaden, Niederlage
     emit -= dt;
     if (emit <= 0) {

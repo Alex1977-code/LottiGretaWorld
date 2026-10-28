@@ -544,7 +544,7 @@ function ventGeo(R) {
     b.add(displace(g, 0.06, 3, R * 7, true), { v: (x, y, z, nx, ny) => mix(W7.rockLow, W7.rockHi, smoothstep(ny * 0.5 + 0.5)) }, { p: [0, 0.2, 0] });
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * TAU + 0.3, r = 0.22 + hash1(i) * 0.1;
-      b.add(displace(new THREE.IcosahedronGeometry(r, 1), 0.04, 3, i, true), { v: (x, y, z, nx, ny) => mix(W7.rockLow, W7.rockHi, smoothstep(ny * 0.5 + 0.5)) }, { p: [Math.cos(a) * (R + 0.55), r * 0.75, Math.sin(a) * (R + 0.55)] });
+      b.add(displace(new THREE.IcosahedronGeometry(r, 1), 0.04, 3, i, true), { v: (x, y, z, nx, ny) => mix(W7.rockLow, W7.rockHi, smoothstep(ny * 0.5 + 0.5)) }, { p: [Math.cos(a) * (R + 0.55), r * 0.95, Math.sin(a) * (R + 0.55)] });
     }
     return b.geometry();
   });
@@ -731,7 +731,8 @@ function buildZugbruecke(opts = {}) {
   links.visible = chains;
   root.add(base, deckJ, links);
   const clk = new Clock();
-  const tip = new THREE.Vector3(), anc = new THREE.Vector3(), dir = new THREE.Vector3();
+  const tip = new THREE.Vector3(), anc = new THREE.Vector3(), dir = new THREE.Vector3(), q2 = new THREE.Quaternion();
+  const QY90 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
   const update = (dt, st) => {
     clk.tick(dt, st.anim ?? 'idle');
     const lower = clamp(num(st.lower, 1), 0, 1);
@@ -748,7 +749,7 @@ function buildZugbruecke(opts = {}) {
         for (let i = 0; i < NL; i++) {
           const k = (i + 0.5) / NL;
           _v.copy(tip).addScaledVector(dir, len * k);
-          const q2 = _q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(_v2.set(0, 1, 0), i % 2 ? Math.PI / 2 : 0));
+          q2.copy(_q); if (i % 2) q2.multiply(QY90);
           links.setMatrixAt(c * NL + i, _m.compose(_v, q2, _s.setScalar(Math.min(1.2, len / NL / 0.17))));
         }
       }

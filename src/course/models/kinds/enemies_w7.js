@@ -39,14 +39,15 @@
 //         sinkt weg (danach unsichtbar).
 //   model.mouth(out?) → Weltposition vor dem Maul.  root.userData.rise → aktuelle Auftauch-Stellung (0..1),
 //   root.userData.head(out?) → Weltposition der Kopfmitte (Trefferkugel Radius ≈0,45 m).
-// wutkaulquappe ≈0,85 m lang (aufgeblasen Ø ≈0,8 m)  Wutkaulquappe: kleine korallenrote Kaulquappe mit gelbem Bauch,
+// wutkaulquappe ≈1,05 m lang (aufgeblasen Ø ≈1,0 m, bei size 1,25)  Wutkaulquappe: kleine korallenrote Kaulquappe mit gelbem Bauch,
 //   Sommersprossen, großen grimmigen Augen unter dicken Brauen, Schmollmund und wedelndem Flossenschwanz; bläst sich zur
 //   stacheligen Kugel auf. **Ursprung = Körpermitte** (schwebt im Wasser).
+//   opts  { size (Faktor, Standard 1,25) }
 //   state { anim: 'swim'|'charge'|'puff'|'defeated', puff? (0..1 aufgeblasen, überschreibt), speed, progress? (puff: 0..1
 //           in 0,4 s; defeated: 0..1 in 1,0 s) }
 //         swim: paddelt gemütlich; charge: Kopf voran, Schwanz rast, Brauen tief, Bläschen; puff: bläht sich zur Kugel mit
 //         Stacheln (O-Mund, Backen voll); defeated: dreht sich auf den Bauch nach oben, Schwindelsterne, schrumpft in Bläschen.
-//   root.userData.radius → aktueller Trefferradius (0,22 … 0,4 m).
+//   root.userData.radius → aktueller Trefferradius (0,22 … 0,4 m · size).
 // funkenflaemmchen ≈0,55 m  Funkenflämmchen: kleines, hüpfendes Flämmchen – tropfenförmige Flamme (Kern gelb-weiß,
 //   Spitze orange-rot, eingerollt) mit kleinen Flammenzungen, großen Augen und Lachmund, Glutfunken.
 //   opts  { color: 'rot' (Standard) | 'blau' }
@@ -395,7 +396,7 @@ function buildPlatschfisch(opts = {}) {
 // =============================================================================================
 // Lavadrache
 // =============================================================================================
-const LD = { body: 0x6a2ac0, hi: 0xa878f4, low: 0x2a0e62, belly: 0xffc23a, bellyHi: 0xfff2a0, bellyLow: 0xff7a1a, horn: 0xffc21a, hornHi: 0xfff2b0, frill: 0xff7a1a, frillHi: 0xffd84a, snout: 0x8a4ad8 };
+const LD = { body: 0x6a2ac0, hi: 0xa878f4, low: 0x2a0e62, belly: 0xffb42a, bellyHi: 0xffd860, bellyLow: 0xe85a14, horn: 0xffc21a, hornHi: 0xfff2b0, frill: 0xff7a1a, frillHi: 0xffd84a, snout: 0x8a4ad8 };
 const scaleV = { v: (x, y, z, nx, ny) => mix(LD.low, mix(LD.body, LD.hi, smoothstep(ny * 0.6 + 0.2) * 0.6), smoothstep(ny * 0.5 + 0.6)) };
 /** Halsglied (Radius 1, Achse +Y, Bauch nach +X): Schuppenkugel, glühende Bauchplatte, Flammenkamm hinten. */
 function ldSegGeo() {
@@ -403,11 +404,11 @@ function ldSegGeo() {
     const b = new Build();
     // Schuppenkugel (leicht gestreckt), vorn eine schmale, gerippte Bauchplatte
     b.sphere(1, { v: (x, y, z, nx, ny, nzz) => {
-      const belly = smoothstep((nx - 0.55) / 0.2);
-      const rib = Math.abs(y) < 0.25 ? 1 : 0.86;
+      const belly = smoothstep((nx - 0.6) / 0.18);
+      const rib = Math.abs(y) < 0.3 ? 1 : 0.55;
       const sc = mix(LD.low, LD.body, smoothstep(-nx * 0.35 + ny * 0.3 + 0.6));
       return mix(mix(sc, LD.hi, smoothstep(Math.abs(nzz) * 0.8 - 0.25) * 0.35), mix(LD.bellyLow, LD.bellyHi, rib * smoothstep(ny * 0.4 + 0.6)), belly);
-    } }, { s: [1, 1.08, 1] }, 16, 10);
+    } }, { s: [1, 1.18, 1] }, 16, 10);
     // Flammenkamm (Rücken, −X), nach oben geneigt
     b.add(new THREE.ConeGeometry(0.34, 0.8, 8), { v: (x, y) => mix(LD.frill, LD.frillHi, smoothstep(y / 0.8 + 0.5)) }, { p: [-1.0, 0.2, 0], r: [0, 0, Math.PI / 2 + 0.75], s: [1, 1, 0.42] });
     // Tupfen an den Flanken
@@ -625,8 +626,11 @@ function wkSpikesGeo() {
     return b.geometry();
   });
 }
-function buildWutkaulquappe() {
+function buildWutkaulquappe(opts = {}) {
+  const size = Math.max(0.3, num(opts.size, 1.25));
   const root = new THREE.Group();
+  const sizeJ = joint(); sizeJ.scale.setScalar(size);
+  root.add(sizeJ);
   const own = [];
   const flash = ownMat(vcol(0.28), { emissive: 0x000000 });
   own.push(flash);
@@ -644,10 +648,10 @@ function buildWutkaulquappe() {
   const bubbles = new Puffs(10, 0xe0f8ff, { opacity: 0.7, radius: 2, cy: 0.2 });
   own.push(bubbles);
   const dizzy = dizzyStars(0.24, 0.06);
-  root.add(pose, bubbles.mesh, dizzy);
+  sizeJ.add(pose, bubbles.mesh, dizzy);
   const clk = new Clock(), blink = new Blinker();
   let phase = Math.random() * TAU, puff = 0, flip = 0, lean = 0, angry = 0.6, emit = 0;
-  root.userData.radius = 0.22;
+  root.userData.radius = 0.22 * size;
   const BR = WK_EYES.map((e, i) => ({ p: new THREE.Vector3(e.p[0] - 0.01, e.p[1] + 0.08, e.p[2] * 0.95), s: i ? -1 : 1 }));
   const update = (dt, st) => {
     let anim = st.anim ?? 'swim';
@@ -668,7 +672,7 @@ function buildWutkaulquappe() {
     bodyJ.scale.set(k * (1 - puff * 0.12), k * (1 + puff * 0.12), k * (1 + puff * 0.1));
     spikes.scale.setScalar(Math.max(0.001, smoothstep((puff - 0.3) / 0.7)));
     spikes.visible = puff > 0.3;
-    root.userData.radius = 0.22 + puff * 0.18;
+    root.userData.radius = (0.22 + puff * 0.18) * size;
     pose.rotation.set(flip, 0, lean + (dead ? 0 : Math.sin(phase * 0.5) * 0.04));
     pose.position.y = Math.sin(t * 2) * 0.03 + (dead ? smoothstep(prog(st, clk, 1.0)) * 0.25 : 0);
     // Schwanz (Kette aus drei Flossenstücken)

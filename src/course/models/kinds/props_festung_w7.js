@@ -163,7 +163,7 @@ function buildVulkanfels(opts = {}) {
   root.add(mesh(veinsGeo(S, seed, key, kind), glow7()));
   let update = () => {};
   if (kind === 'vulkan') {
-    const smoke = plainPuffs(12, 0x9a8c94, { opacity: 0.75, radius: S * 2, cy: S * 1.4 });
+    const smoke = plainPuffs(12, 0xa89aa2, { opacity: 0.6, radius: S * 2, cy: S * 1.4 });
     own.push(smoke);
     const halo = glowSprite(LAVA7[key].glow, S * 0.9, 0.55);
     halo.position.y = S * 0.98;
@@ -431,7 +431,7 @@ function buildMaschine(opts = {}) {
   own.push(lampMat);
   const lamp = mesh(cached('w7:masch:lamp', () => new THREE.SphereGeometry(0.14, 12, 8)), lampMat, { p: [-0.6, H + 0.15, -W * 0.38] });
   const ring = mesh(cached(`w7:masch:ring:${W}`, () => new Build().box(2.8, 0.05, W + 0.6, { v: (x, y, z) => mix(LAVA7.rot.white, LAVA7.rot.hot, smoothstep(Math.max(Math.abs(x + 0.3) - 1.0, Math.abs(z) - W / 2 + 0.2) / 0.4 + 0.5)) }, { p: [-0.3, 0.02, 0] }, 0, 1).geometry()), glow7());
-  const smoke = plainPuffs(10, 0xa49ca4, { opacity: 0.75, radius: 6, cy: H + 3 });
+  const smoke = plainPuffs(10, 0xb0a8b0, { opacity: 0.6, radius: 6, cy: H + 3 });
   own.push(smoke);
   root.add(gears, piston, lamp, ring, smoke.mesh);
   const clk = new Clock();
@@ -446,7 +446,7 @@ function buildMaschine(opts = {}) {
     piston.position.y = H + 0.2 + Math.abs(Math.sin(angle * 1.5)) * 0.45;
     lampMat.color.setHex(Math.sin(t * 6) > 0 ? 0xff4a1a : 0x5a140a);
     emit -= dt;
-    if (emit <= 0) { smoke.burst([-0.8, H + 1.8, W * 0.3], { count: 1, speed: 0.3, up: 1.4, size: 0.3, life: 1.6, spread: 0.1, grow: 2 }); emit = 0.5 / Math.max(0.3, Math.abs(sp)); }
+    if (emit <= 0) { smoke.burst([-0.8, H + 1.8, W * 0.3], { count: 1, speed: 0.4, up: 1.8, size: 0.2, life: 1.6, spread: 0.1, grow: 2.2 }); emit = 0.45 / Math.max(0.3, Math.abs(sp)); }
     smoke.step(dt);
   };
   return makeModel('lava_maschine', root, update, own, { initial: 'idle' });
@@ -527,17 +527,22 @@ function buildRiffkoralle(opts = {}) {
 // =============================================================================================
 // Lavagestein (Kissenlava unter Wasser)
 // =============================================================================================
+/** Lavawülste der Kissenlava: [x, y, z, r, a] (deterministisch). */
+function pillowLayout(S, seed) {
+  return Array.from({ length: 6 }, (_, i) => {
+    const a = (i / 6) * TAU + hash1(seed + i) * 0.7, r = i ? S * 0.32 : 0;
+    const rr = S * (i ? 0.24 + hash1(seed * 3 + i) * 0.1 : 0.36);
+    return [Math.cos(a) * r, rr * 0.55 + (i ? 0 : S * 0.1), Math.sin(a) * r, rr, a];
+  });
+}
 function pillowGeo(S, seed) {
   return cached(`w7:pillow:${S}:${seed}`, () => {
     const b = new Build();
-    const n = 6;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * TAU + hash1(seed + i) * 0.7, r = i ? S * 0.32 : 0;
-      const rr = S * (i ? 0.24 + hash1(seed * 3 + i) * 0.1 : 0.36);
+    pillowLayout(S, seed).forEach(([x, y, z, rr, a], i) => {
       const g = new THREE.SphereGeometry(rr, 14, 10);
       g.scale(1.25, 0.8, 1);
-      b.add(displace(g, rr * 0.12, 2.5 / rr, seed + i, true), { v: (x, y, z, nx, ny) => mix(0x1a1620, 0x4a3e54, smoothstep(ny * 0.5 + 0.5)) }, { p: [Math.cos(a) * r, rr * 0.55 + (i ? 0 : S * 0.1), Math.sin(a) * r], r: [0, a, 0] });
-    }
+      b.add(displace(g, rr * 0.12, 2.5 / rr, seed + i, true), { v: (px, py, pz, nx, ny) => mix(0x1a1620, 0x4a3e54, smoothstep(ny * 0.5 + 0.5)) }, { p: [x, y, z], r: [0, a, 0] });
+    });
     return b.geometry();
   });
 }
@@ -545,11 +550,17 @@ function pillowSeamGeo(S, seed, key, vent) {
   const L = LAVA7[key];
   return cached(`w7:pillow:seam:${S}:${seed}:${key}:${vent}`, () => {
     const b = new Build();
-    for (let i = 1; i < 6; i++) {
-      const a = (i / 6) * TAU + hash1(seed + i) * 0.7;
-      const p0 = [Math.cos(a) * S * 0.16, S * 0.12, Math.sin(a) * S * 0.16], p1 = [Math.cos(a + 0.2) * S * 0.3, S * 0.2, Math.sin(a + 0.2) * S * 0.3], p2 = [Math.cos(a + 0.1) * S * 0.45, S * 0.05, Math.sin(a + 0.1) * S * 0.45];
-      b.add(taperTube([p0, p1, p2], (t) => S * 0.03 * (1 - t * 0.5), 8, 4), { v: (x, y) => mix(L.hotter, L.hot, smoothstep(y / (S * 0.2))) });
-    }
+    // glühende Risse quer über die Oberseite jedes Wulstes
+    pillowLayout(S, seed).forEach(([x, y, z, rr, a], i) => {
+      const pts = [];
+      for (let k = 0; k <= 4; k++) {
+        const t = k / 4, az = -0.9 + t * 1.8 + Math.sin(t * 6 + i) * 0.15, el = 0.75 + Math.sin(t * 3.1 + i) * 0.2;
+        const d = new THREE.Vector3(Math.cos(el) * Math.cos(az) * 1.25, Math.sin(el) * 0.8, Math.cos(el) * Math.sin(az)).multiplyScalar(rr * 1.06);
+        d.applyAxisAngle(new THREE.Vector3(0, 1, 0), -a + i);
+        pts.push([x + d.x, y + d.y, z + d.z]);
+      }
+      b.add(taperTube(pts, (t) => rr * 0.07 * (1 - Math.abs(t - 0.5) * 1.2), 10, 4), { v: () => col(L.hotter) });
+    });
     if (vent) {
       b.lathe([[S * 0.16, 0], [S * 0.12, S * 0.35], [S * 0.1, S * 0.62], [S * 0.13, S * 0.68], [S * 0.07, S * 0.66], [0, S * 0.6]], { v: (x, y) => (y > S * 0.63 ? col(L.hotter) : mix(0x1a1620, 0x3a3044, smoothstep(y / S))) }, { p: [S * 0.05, S * 0.3, 0] }, 12);
     }
