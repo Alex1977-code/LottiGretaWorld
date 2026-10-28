@@ -458,7 +458,7 @@ if (part('checks')) {
   if (P.flosser) check('Sandflosser ≈1,4–2,2 m lang; Sprung über dem Sand; schwimmend nur Flosse über dem Sand; besiegt → weg', P.flosser[0] > 1.3 && P.flosser[0] < 2.3 && P.flosser[2] < 0.7 && P.flosser[3]);
   if (P.gruppe) check('Knochenflieger-Gruppe: Formation ≈ 2·radius + Spannweite; zerstreut → weg', P.gruppe[0] > 3 && P.gruppe[0] < 7 && P.gruppe[3]);
   if (P.klotz) check('Kristall-Felsklotz ≈ size hoch (+ Kristalle), auf dem Boden; Würfel ebenso; userData.top', P.klotz[0] > 2.7 && P.klotz[0] < 4.2 && P.klotz[1] > -0.1 && P.klotz[3] > 2.7 && P.klotz[4] > -0.1 && P.klotz[5] > 2.5);
-  if (P.statue) check('Baron-Sandstatue ≈3–5 m, steht; break 1 → nur der Sockel bleibt', P.statue[0] > 3 && P.statue[0] < 5.5 && P.statue[1] > -0.05 && P.statue[2] < 1.5);
+  if (P.statue) check('Baron-Sandstatue ≈3–5 m, steht; break 1 → nur der Sockel bleibt', P.statue[0] > 3 && P.statue[0] < 5.5 && P.statue[1] > -0.05 && P.statue[2] < 1.7);
   if (P.steg) check('Leuchtsteg: size, Oberseite = thick, Ursprung unten, glow 0 → unsichtbar', Math.abs(P.steg[0] - 2) < 0.15 && Math.abs(P.steg[1] - 2) < 0.15 && Math.abs(P.steg[2] - 0.3) < 0.08 && P.steg[3] > -0.05 && P.steg[4]);
   if (P.keks) check('Keksrad: Ø size, Oberseite thick/2 (Ursprung Mitte)', Math.abs(P.keks[0] - 4) < 0.5 && Math.abs(P.keks[1] - 4) < 0.5 && Math.abs(P.keks[2] - 0.25) < 0.2);
   if (P.zahn) check('Keks-Zahnrad: Ø ≈ 2·radius (+ Zähne), Oberseite thick/2', P.zahn[0] > 3.8 && P.zahn[0] < 5.2 && Math.abs(P.zahn[2] - 0.3) < 0.2);

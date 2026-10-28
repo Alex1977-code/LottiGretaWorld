@@ -84,7 +84,7 @@ function meadowGeo() {
 /** Lampion (Mitte im Ursprung, hängt an y = +0,25), Papier mit Rippen, Deckel, Boden. */
 const lampionGeo = () => cached('w8:lampion', () => {
   const b = new Build();
-  b.add(new THREE.SphereGeometry(0.22, 14, 10), { v: (x, y, z) => (Math.abs(Math.sin(y * 28)) < 0.18 ? new THREE.Color(0.7, 0.7, 0.7) : new THREE.Color(1, 1, 1)) }, { s: [1, 1.15, 1] });
+  b.add(new THREE.SphereGeometry(0.22, 10, 8), { v: (x, y, z) => (Math.abs(Math.sin(y * 28)) < 0.18 ? new THREE.Color(0.7, 0.7, 0.7) : new THREE.Color(1, 1, 1)) }, { s: [1, 1.15, 1] });
   b.cyl(0.1, 0.1, 0.06, 0x8a6a3a, { p: [0, 0.25, 0] }, 8);
   b.cyl(0.1, 0.1, 0.05, 0x8a6a3a, { p: [0, -0.25, 0] }, 8);
   return b.geometry();
