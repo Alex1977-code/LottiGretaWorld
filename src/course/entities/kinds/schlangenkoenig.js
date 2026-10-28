@@ -42,12 +42,22 @@
 //   Schwerkraft, verletzt bei Berührung, zerspringt beim Aufprall (verletzt Figuren im Umkreis, zerschlägt Teller).
 // Modelle 'schlangenkoenig' (opts { segments }, state { anim, progress, headPos, turn }, model.head()),
 // 'dienerschlange' (opts { height, cracked }, state { anim: idle|rise|sink|hit, progress }), 'felsbrocken'.
+//
+// Welt 8 – **rosa Schlangenkönig** (8-B, Präzisierung Gegner Welt 8, additiv): color: 'rosa' → Modell { color: 'rosa' }, Ablauf wie
+//   3-B; die **geschleuderten Steine sind Lavabrocken** (felsbrocken mit lava: true, Modell 'lavabrocken_regen'), die beim Aufprall
+//   auf dem Boden eine **Lavapfütze** hinterlassen (Entität 'lavapfuetze': 0,5 s ausbreiten, puddle.life s heiß – wer darin steht,
+//   wird verletzt –, dann abkühlen). Nicht auf Tellern (die zerspringen wie bisher) und nicht auf dem Sockel; höchstens puddle.max
+//   gleichzeitig (die älteste kühlt dann ab). Steine von der Kuppel (Phase 2/3) bleiben Felsbrocken.
+//   Daten zusätzlich: color: 'rosa', puddle?: { size: 2.2, life: [4, 4.5, 5], max: 5 } | false. Laufzeit: puddles (lebende Pfützen),
+//   puddlesMade. Ansage beim ersten Brocken: „Heiße Lavapfützen – nicht hineintreten!“. Tod/Sieg: Pfützen kühlen sofort ab.
+// felsbrocken zusätzlich: lava?: true (glühender Lavabrocken), puddle?: { size, life } (Pfütze beim Bodenaufprall).
 
 import { EnemyW2, figures, activeFigure, clamp, wrapAngle } from '../EnemyW2.js';
 import { CourseEntity } from '../CourseEntity.js';
 import { spawnLoot } from '../Enemy.js';
 import { ballistic, LandingMarkers } from './bomb_cannon.js';
-import { getModel } from '../../models/index.js';
+import { getModel, hasModel } from '../../models/index.js';
+import { bossManaged } from '../w6help.js';
 
 const TAU = Math.PI * 2;
 const DRUM_R = 2.4, DRUM_H = 1.4, BASE_Y = 1.1;
@@ -77,7 +87,11 @@ class Felsbrocken extends CourseEntity {
     this.stateT = 0;
     this.plateHit = null;
     this._ign = (s) => (this.owner && s.owner === this.owner) || s.water;
-    if (level.view) this.setModel(getModel('felsbrocken'));
+    this.lava = !!spec.lava;
+    this.puddle = spec.puddle ?? null;
+    this.puddleMade = null;
+    if (level.view) this.setModel(this.lava && hasModel('lavabrocken_regen') ? getModel('lavabrocken_regen', { size: 0.9 }) : getModel('felsbrocken'));
+    if (this.lava && this.model) this.model.root.position.y += 0.42;
   }
 
   update(dt) {
@@ -99,6 +113,12 @@ class Felsbrocken extends CourseEntity {
     const g = res.ground ?? res.wallShape;
     const o = g?.owner;
     if (o && typeof o.breakPlate === 'function' && g.tag === 'teller') { o.breakPlate('rock'); this.plateHit = o; }
+    // Welt 8: Lavabrocken hinterlässt auf dem Boden eine Lavapfütze (nicht auf Tellern/Sockel)
+    else if (this.lava && this.puddle && res.grounded && g && g.tag !== 'koenig_sockel' && g.tag !== 'teller') {
+      this.puddleMade = this.level.spawn('lavapfuetze', { pos: [this.pos.x, this.pos.y, this.pos.z], size: this.puddle.size ?? 2.2, life: this.puddle.life ?? 4, owner: this.owner });
+      this.owner?.onPuddle?.(this.puddleMade);
+    }
+    if (this.lava) { this.level.effects?.sparks(this.center(), 12); this.level.sfx('burn'); }
     // Splitter verletzen im Umkreis
     for (const p of figures(this.level)) {
       if (!activeFigure(p)) continue;
@@ -112,7 +132,16 @@ class Felsbrocken extends CourseEntity {
 
   onPlayer() { return this.state === 'air' ? 'hurt' : 'none'; }
 
-  modelState() { return { anim: this.state === 'break' ? 'break' : 'fall' }; }
+  modelState() {
+    if (this.lava) return this.state === 'break' ? { anim: 'land', progress: Math.min(1, this.stateT / 0.8) } : { anim: 'fall' };
+    return { anim: this.state === 'break' ? 'break' : 'fall' };
+  }
+
+  syncModel() {
+    if (!this.model) return;
+    super.syncModel();
+    if (this.lava) { this.model.root.position.y += 0.42; this.model.root.rotation.y = 0; }
+  }
 }
 
 // =====================================================================================================================
@@ -302,16 +331,36 @@ class Schlangenkoenig extends EnemyW2 {
     this.touch = false;
     this._hw = { x: 0, y: 0, z: 0 };
     this.markers = new LandingMarkers(level);
+    // Welt 8: rosa Schlangenkönig (Lavabrocken mit Lavapfützen)
+    this.rosa = spec.color === 'rosa';
+    this.puddleCfg = this.rosa && spec.puddle !== false ? { size: 2.2, life: [4, 4.5, 5], max: 5, ...(spec.puddle ?? {}) } : null;
+    this.puddles = [];
+    this.puddlesMade = 0;
     const p = this.home;
     this.drumId = this.addShape({ type: 'cyl', x: p.x, z: p.z, r: DRUM_R, y0: p.y, y1: p.y + DRUM_H, tag: 'koenig_sockel' });
-    if (level.view) this.setModel(getModel('schlangenkoenig', { segments: this.segments }));
+    if (level.view) this.setModel(getModel('schlangenkoenig', this.rosa ? { segments: this.segments, color: 'rosa' } : { segments: this.segments }));
     this.initShadows(3);
     this.placeHead();
   }
 
   get phase() { return clamp(this.maxHp - this.hp + 1, 1, 3); }
   get P() { return PHASES[this.phase]; }
-  get managed() { return !!this.level.archetype && this.level.data?.boss && (this.level.data.boss.id ?? 'baron') === this.spec.id; }
+  get managed() { return bossManaged(this.level, this.spec.id); }
+
+  /** Welt 8: neue Lavapfütze eines eigenen Lavabrockens (höchstens puddle.max, die älteste kühlt ab). */
+  onPuddle(pf) {
+    if (!pf) return;
+    this.puddles = this.puddles.filter((q) => !q.removed);
+    this.puddles.push(pf);
+    this.puddlesMade++;
+    const max = this.puddleCfg?.max ?? 5;
+    while (this.puddles.filter((q) => q.state !== 'cool').length > max) { const q = this.puddles.find((x) => x.state !== 'cool'); if (!q) break; q.extinguish(); }
+  }
+
+  coolPuddles() {
+    for (const q of this.puddles) if (!q.removed) q.extinguish();
+    this.puddles = [];
+  }
 
   /** Weltlage der Kopfmitte. */
   headWorld(out = this._hw) {
@@ -341,6 +390,7 @@ class Schlangenkoenig extends EnemyW2 {
 
   reset() {
     this.clearRound(true);
+    this.coolPuddles();
     this.markers.clear();
     this.hp = this.maxHp;
     this.defeated = false;
@@ -506,7 +556,10 @@ class Schlangenkoenig extends EnemyW2 {
     tx = this.home.x + (dx / d) * rr; tz = this.home.z + (dz / d) * rr;
     const T = 1.0;
     const v = ballistic(from, [tx, ty, tz], T);
-    const r = this.level.spawn('felsbrocken', { pos: [from[0], from[1] - 0.42, from[2]], vel: v, owner: this });
+    const pc = this.puddleCfg;
+    const lava = pc ? { lava: true, puddle: { size: pc.size, life: Array.isArray(pc.life) ? pc.life[Math.min(pc.life.length - 1, this.phase - 1)] : pc.life } } : {};
+    const r = this.level.spawn('felsbrocken', { pos: [from[0], from[1] - 0.42, from[2]], vel: v, owner: this, ...lava });
+    if (pc && !this.puddleHint) { this.puddleHint = true; this.level.archetype?.hud?.banner?.('Heiße Lavapfützen – nicht hineintreten!', { hold: 1.8, size: 13, y: 0.36, color: '#ff9a6a' }); }
     if (r) { this.rocks.push(r); this.markers.add(r, tx, ty, tz, T); }
     this.rocksThrown++;
     this.level.sfx('throw');
@@ -637,6 +690,7 @@ class Schlangenkoenig extends EnemyW2 {
     if (this.hp <= 0) {
       this.defeated = true;
       this.touch = false;
+      this.coolPuddles();
       this.level.onBossDefeated?.(this);
     }
   }
@@ -710,6 +764,7 @@ class Schlangenkoenig extends EnemyW2 {
       state: this.state, hp: this.hp, maxHp: this.maxHp, phase: this.phase, hits: this.hits, rounds: this.rounds, summons: this.summons,
       servants: this.servants.filter((s) => s.state === 'up').length, rocks: this.rocks.length, thrown: this.rocksThrown, fallen: this.rocksFallen,
       vulnerable: this.vulnerable, head: { x: +h.x.toFixed(2), y: +h.y.toFixed(2), z: +h.z.toFixed(2) }, shoves: this.shoves ?? 0,
+      rosa: this.rosa, puddles: this.puddles.filter((q) => !q.removed && q.state !== 'cool').length, puddlesMade: this.puddlesMade,
     };
   }
 }

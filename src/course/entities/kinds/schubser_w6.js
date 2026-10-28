@@ -30,6 +30,13 @@
 // Zustände: idle | walk | warn | charge | skid | cool | pushed | fall | recover | defeated. Laufzeit: rams (Stöße auf die
 //   Figur), pushes (von der Figur gestoßen), slide (Rutschtempo m/s), fellBy ('fall'|'lava'|'wasser'), info().
 // Sound: 'step' (scharren), 'swoop' (Anlauf), 'bounce' (Stoß), 'slam' (Wand), 'splash_big' (Wasser), 'stomp', 'vanish'.
+// Welt 8 (Präzisierung Gegner Welt 8, additiv; 8-Zug, 8-Burg Riesenrad):
+//   group?: Name   Gruppe für Aufgaben (z. B. 'riesenrad'); fallDefeat?: m – fällt er so tief unter seinen letzten Stand (Plattform,
+//                  Gondel), gilt er als hinuntergestoßen (besiegt, zählt) – auch wenn darunter noch Boden ist (Riesenrad über dem Platz).
+//   Steht er auf einer bewegten Plattform (Gondel, mover), fährt sein Heimplatz (guard) mit.
+//   Signale: level.signal('schubserFall', { id, group, by ('fall' | 'lava' | 'wasser' | 'besiegt'), pos, left }) je besiegtem Schubser
+//   (left = übrige seiner Gruppe), level.signal('schubserGruppe', { group, count }) wenn der letzte seiner Gruppe besiegt ist
+//   (8-Burg Stern 2: „alle 4 Schubser vom Riesenrad stoßen“ → Aktion { signal } bzw. Empfänger über level.onSignal).
 
 import { EnemyW2, clamp } from '../EnemyW2.js';
 import { getModel } from '../../models/index.js';
@@ -85,8 +92,35 @@ export class Schubser extends EnemyW2 {
     this.fellBy = null;
     this.skidFrom = 0;
     this.state = 'idle';
+    this.group = spec.group ?? null;
+    this.fallDefeat = spec.fallDefeat ?? 0;
+    this.standY = this.pos.y;
     if (level.view) this.setModel(getModel('schubser', { size: this.size }));
     this.initShadows(1);
+  }
+
+  /** Welt 8: besiegt → Signale (je Schubser, letzter der Gruppe). */
+  markDefeated() {
+    if (this.defeated) return;
+    super.markDefeated();
+    const g = this.group;
+    const left = g ? this.level.entities.filter((e) => e.kind === 'schubser' && e !== this && e.group === g && !e.defeated && !e.removed).length : 0;
+    this.level.signal?.('schubserFall', { id: this.spec.id ?? null, group: g, by: this.fellBy ?? 'besiegt', pos: [this.pos.x, this.pos.y, this.pos.z], left });
+    if (g && left === 0) this.level.signal?.('schubserGruppe', { group: g, count: this.level.entities.filter((e) => e.kind === 'schubser' && e.group === g).length });
+  }
+
+  /** Welt 8: Heimplatz fährt auf bewegten Plattformen mit; tiefer Fall von der Plattform = hinuntergestoßen. */
+  w8Step() {
+    const g = this.ground;
+    if (this.grounded && g?.mover) { this.home.x += g.mover.dx ?? 0; this.home.y += g.mover.dy ?? 0; this.home.z += g.mover.dz ?? 0; }
+    if (!this.fallDefeat || this.defeated || this.removed) return;
+    if (this.grounded) this.standY = this.pos.y;
+    else if (this.pos.y < this.standY - this.fallDefeat) {
+      this.fellBy = 'fall';
+      this.level.effects?.dust(this.pos, 6, 1.1);
+      this.level.sfx('vanish');
+      this.fallOut('fall');
+    }
   }
 
   setState(s) { this.state = s; this.stateT = 0; }
@@ -140,6 +174,9 @@ export class Schubser extends EnemyW2 {
         break;
       default: this.stand(dt);
     }
+    if (this.removed) return;
+    this.w8Step();
+    if (this.removed) return;
     if (this.state !== 'pushed' && this.state !== 'fall') this.inWaterNow();
   }
 
