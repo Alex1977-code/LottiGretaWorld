@@ -177,6 +177,98 @@ const ROUTES = {
       ['ziel', [0, GOAL, -141]],
     ],
   },
+  '7-Kapitän': {
+    start: [10, 0, 12],
+    meta: { stars: 5, stamp: false, time: 400, theme: 'lavamachine', music: 'course_diorama', archetype: 'diorama' },
+    enemies: { stampfstein: 3, kanone_turm: 2 },
+    // alle fünf Sterne in einem Lauf (der fünfte beendet das Level)
+    main: [
+      { name: 'Stern 1: Stampfstein am Lavagraben herunterlocken', to: [-4.65, 10], within: 0.2, slow: 0.6 },
+      { until: 'kStampf1Liegt', max: 600 },
+      { name: 'über den Stein auf die Insel', to: [-11, 10], within: 0.4 },
+      { expect: 'kStern0' },
+      { to: [-7.4, 10], within: 0.2, slow: 0.6 },
+      { until: 'kStampf1Liegt', max: 900 },
+      { name: 'zurück über den Stein', to: [-3.6, 9.4], within: 0.4 },
+      { name: 'Stern 3: an den Rand des Förderbands', to: [0, 6.5], within: 0.3, slow: 0.6 },
+      { until: 'band1Frei', max: 1200 },
+      { name: 'gegen das Band zum Stern', to: [0, -3], within: 0.5, full: true },
+      { expect: 'kStern2' },
+      { name: 'Maschinenboden', to: [0, -7.4], within: 0.4 },
+      { name: 'Stern 4: Stampfstein 2 herunterlocken', to: [4.1, -7.5], within: 0.2, slow: 0.5 },
+      { until: 'kStampf2Liegt', max: 600 },
+      { name: 'auf den Stein, mit hinauf', to: [4.1, -9.1], within: 0.3, slow: 0.6 },
+      { until: 'kStampf2Oben', max: 900 },
+      { expect: 'kStern3' },
+      { name: 'aufs Deck', to: [4.4, -11.8], within: 0.4 },
+      { name: 'Stern 2: Fahrplattform', to: [6.7, -15.9], within: 0.4, slow: 0.7 },
+      { until: 'kFahrtOben', max: 900 },
+      { name: 'Kesselturm-Dach', to: [9.6, -15.4], within: 0.4 },
+      { name: 'ins Loch im Dach', to: [10, -11], within: 0.4 },
+      { name: 'aus der Kesselkammer aufs Deck', to: [7, -11.2], within: 0.4 },
+      { expect: 'kStern1' },
+      { to: [3.4, -12], within: 0.4 },
+      { until: 'kanone2Vorbei', max: 1200 },
+      { name: 'Stern 5: zum Durchgang im Maschinenblock', to: [-2, -12], within: 0.5 },
+      { to: [-10, -12.1], within: 0.4 },
+      { name: 'durch das Loch', to: [-10, -15.2], within: 0.4 },
+      { to: [-7.45, -16.5], within: 0.2, slow: 0.5 },
+      { until: 'kStampf3Liegt', max: 600 },
+      { name: 'auf Stampfstein 3, hinauf aufs Dach', to: [-6, -16.4], within: 0.3, slow: 0.6 },
+      { until: 'kStampf3Oben', max: 900 },
+      { to: [-6.4, -14.2], within: 0.4 },
+      { name: 'in den Schacht fallen', to: [-12.1, -13.8], within: 0.4 },
+      { until: 'fertig', max: 900 },
+    ],
+    routeChecks: [
+      { name: 'fünf Sterne, Schatz gefunden (Level beendet)', ok: (r) => r.rt.stars.filter(Boolean).length === 5 && (r.status === 'done' || r.status === 'goal') },
+      { name: 'zwei Stampfstein-Fahrten und die Fahrplattform', ok: (r) => r.mech.stampfFahrten >= 2 && r.mech.fahrt >= 1 },
+      { name: 'ohne Treffer (Projektilköpfe abgewartet)', ok: (r) => r.mech.hurts === 0 },
+    ],
+    targets: [
+      { name: 'Stern 1: Stampfstein als Brücke über den Lavagraben zur Insel', star: 0, from: [-3, 0, 10.4], heroes: ['lotti'],
+        legs: [{ to: [-4.65, 10], within: 0.2, slow: 0.6 }, { until: 'kStampf1Liegt', max: 600 }, { to: [-11, 10], within: 0.4 }], shot: 'stern1' },
+      { name: 'Stern 1 nicht ohne Stein (Graben = Lava)', star: 0, expectNot: true, from: [-3, 0, 12.6], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [-11, 12.6], within: 0.4, max: 600 }, { wait: 60 }], mech: (r) => r.mech.death === 'lava', mechText: (r) => `Tod: ${r.mech.death}` },
+      { name: 'Stern 3: gegen das Förderband laufen (Projektilkopf abwarten)', star: 2, from: [0, 0, 7], heroes: ['lotti'],
+        legs: [{ to: [0, 6.5], within: 0.3, slow: 0.6 }, { until: 'band1Frei', max: 1200 }, { to: [0, -3], within: 0.5, full: true }], shot: 'stern3' },
+      { name: 'Stern 3: wer auf dem Band stehen bleibt, wird zurück zum Start getragen', star: 2, expectNot: true, from: [0, 0, 3.5], heroes: ['lotti'],
+        legs: [{ wait: 420 }, { expect: 'zurueckAmStart' }] },
+      { name: 'Stern 4: Stampfstein 2 locken, draufgehen, mitfahren', star: 3, from: [1, 0, -7.4], heroes: ['lotti'],
+        legs: [{ to: [4.1, -7.5], within: 0.2, slow: 0.5 }, { until: 'kStampf2Liegt', max: 600 }, { to: [4.1, -9.1], within: 0.3, slow: 0.6 }, { until: 'kStampf2Oben', max: 900 }], shot: 'stern4' },
+      { name: 'Stern 4 nicht ohne Stein (vom Boden aus zu hoch)', star: 3, expectNot: true, from: [4.1, 0, -6.4], heroes: ['lotti'],
+        legs: [{ to: [4.1, -6.6], within: 0.2, slow: 0.5, max: 200 }, { wait: 30 }, { to: [4.1, -5.6], within: 0.3 }, { wait: 600 }] },
+      { name: 'Stern 2: Fahrplattform aufs Kesselturm-Dach, ins Loch fallen', star: 1, from: [5, 4.5, -13.4], heroes: ['lotti'],
+        legs: [{ to: [6.7, -15.9], within: 0.4, slow: 0.7 }, { until: 'kFahrtOben', max: 900 }, { to: [9.6, -15.4], within: 0.4 }, { to: [10, -11], within: 0.4 }, { to: [7, -11.2], within: 0.4 }], shot: 'stern2' },
+      { name: 'Stern 2 nicht durch die Kammertür (Stufe zu hoch für Krümel)', star: 1, expectNot: true, from: [6.6, 4.5, -11], heroes: ['lotti'],
+        legs: [{ to: [10, -11], within: 0.4, max: 360 }, { wait: 30 }] },
+      { name: 'Stern 5: durch das Loch im Maschinenblock, Stampfstein hinauf, in den Schacht fallen', star: 4, from: [-8, 4.5, -11.8], heroes: ['lotti'],
+        legs: [{ to: [-10, -12.1], within: 0.4 }, { to: [-10, -15.2], within: 0.4 }, { to: [-7.45, -16.5], within: 0.2, slow: 0.5 }, { until: 'kStampf3Liegt', max: 600 },
+          { to: [-6, -16.4], within: 0.3, slow: 0.6 }, { until: 'kStampf3Oben', max: 900 }, { to: [-6.4, -14.2], within: 0.4 }, { to: [-12.1, -13.8], within: 0.4 }, { wait: 60 }], shot: 'stern5' },
+      { name: 'Stern 5 nicht durch die Schachttür (Stern hängt zu hoch)', star: 4, expectNot: true, from: [-12.1, 4.5, -11.4], heroes: ['lotti'],
+        legs: [{ to: [-12.1, -14.4], within: 0.4, max: 400 }, { wait: 60 }] },
+    ],
+    extra: [
+      { name: 'Krümel springt nicht', from: [10, 0, 10], heroes: ['lotti'],
+        legs: [{ hop: 40 }, { expect: 'keinSprung' }] },
+      { name: 'Projektilkopf trifft Krümel, der ohne Warten übers Band läuft', from: [0, 0, 6.6], heroes: ['lotti'], invuln: false,
+        legs: [{ until: 'kanone1Feuert', max: 1200 }, { wait: 150 }, { to: [0, -1.4], within: 0.4, max: 600 }], mech: (r) => r.mech.hurts > 0, mechText: (r) => `Treffer ${r.mech.hurts} (${r.mech.hurtList.join(' ')})` },
+      { name: 'Stampfstein trifft Krümel, der darunter stehen bleibt', from: [-3, 0, 10], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [-5.0, 10], within: 0.15, slow: 0.4 }, { wait: 240 }], mech: (r) => r.mech.hurts > 0 || r.mech.death, mechText: (r) => `Treffer ${r.mech.hurts}, Tod ${r.mech.death ?? '-'}` },
+    ],
+    shots: [
+      ['start', [10, 0, 12]],
+      ['graben', [-3.6, 0, 10]],
+      ['band', [0, 0, 5.5]],
+      ['maschinenboden', [1, 0, -7.4]],
+      ['deck', [2, 4.5, -11.5]],
+      ['kesseldach', [9.4, 9, -15.4]],
+      ['durchgang', [-8, 4.5, -11.8]],
+      ['hof', [-8.4, 4.5, -16.6]],
+      ['blockdach', [-7, 9, -14]],
+      ['nah', [-3, 0, 10], 0, null, Math.PI / 2, 'nah'],
+    ],
+  },
 };
 
 const PORT = 4730;
@@ -249,6 +341,21 @@ function install() {
     lavaUnten: () => (lava()?.top ?? 99) < 0,
     brueckeGeflutet: () => (lava()?.top ?? -99) > 15.4 + 0.15 && (lava()?.top ?? 99) < WT,
     lebt: () => !P().dead && L.runtime.status === 'play',
+    // 7-Kapitän
+    kStampf1Liegt: () => ent('stampf1')?.state === 'land',
+    kStampf2Liegt: () => ent('stampf2')?.state === 'land',
+    kStampf3Liegt: () => ent('stampf3')?.state === 'land',
+    kStampf2Oben: () => ent('stampf2')?.state === 'wait' && P().pos.y > 4.4,
+    kStampf3Oben: () => ent('stampf3')?.state === 'wait' && P().pos.y > 8.9,
+    kFahrtOben: () => named('fahrt')?.state === 'ende',
+    kStern0: () => !!L.runtime.stars[0], kStern1: () => !!L.runtime.stars[1], kStern2: () => !!L.runtime.stars[2], kStern3: () => !!L.runtime.stars[3],
+    // Projektilkopf der Kanone 1 gerade über dem Band → dahinter ist bis zum nächsten Schuss Zeit
+    band1Frei: () => L.entities.some((e) => e.kind === 'projektilkopf' && e.alive && !e.removed && e.owner === ent('kanone1') && e.pos.x > -1.8 && e.pos.x < 3),
+    kanone1Feuert: () => L.entities.some((e) => e.kind === 'projektilkopf' && e.alive && !e.removed && e.owner === ent('kanone1') && e.pos.x < -7),
+    kanone2Vorbei: () => L.entities.some((e) => e.kind === 'projektilkopf' && e.alive && !e.removed && e.owner === ent('kanone2') && e.pos.z > -11.2),
+    zurueckAmStart: () => P().pos.z > 6.2 && !P().dead,
+    keinSprung: () => P().pos.y < 0.3,
+    fertig: () => L.runtime.status === 'done' || L.runtime.status === 'goal',
     amCheckpoint: () => at(-10, 10, G1 - 0.2, -88, -99),
   };
   const W = {
@@ -440,7 +547,7 @@ function install() {
           let st;
           if (p.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, 2.6, 11);
           else {
-            if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
+            if (dist < 1.2 && !holdJ && !Lg.full) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
           }
           if (Lg.stopIf && COND[Lg.stopIf]()) break;
@@ -460,6 +567,7 @@ function install() {
       mech.hurts = p.hurtTries ?? 0;
       mech.keys = L.keys?.tor?.n ?? 0;
       mech.aufzug = (named('aufzug1')?.trips ?? 0) + (named('aufzug2')?.trips ?? 0);
+      mech.fahrt = named('fahrt')?.trips ?? 0;
       mech.lavaTop = lava()?.top ?? -99;
       mech.nebel = named('nebel')?.state ?? null;
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };

@@ -56,6 +56,10 @@ export const STONE = {
   dunkel: { s0: 0x5e5060, s1: 0x766878, s2: 0x463a48, mortar: 0x241c26, hot: 0xff6a1a, top0: 0x8a7c8a, top1: 0x766a78, rim: 0xa898a8 },
   basalt: { s0: 0x4a4048, s1: 0x5e5258, s2: 0x342c32, mortar: 0x1e181c, hot: 0xff6a1a, top0: 0x6a5e64, top1: 0x5a4e54, rim: 0x8a7e84 },
   sand: { s0: 0xb89a74, s1: 0xd0b48a, s2: 0x9a7e5e, mortar: 0x5a4632, hot: 0xff9a4a, top0: 0xdcc49a, top1: 0xc8ae86, rim: 0xe8d4ae },
+  // Maschinenpark (7-Kapitän): Stahlplatten mit gelber Warnkante, Messing, rote Ziegel
+  stahl: { s0: 0x7a8494, s1: 0x9aa4b4, s2: 0x5a6272, mortar: 0x2a2e38, hot: 0xff7a2a, top0: 0xa8b0bc, top1: 0x949ca8, rim: 0xffc21a },
+  messing: { s0: 0xc8962a, s1: 0xe0b44a, s2: 0x9a6a1a, mortar: 0x4a3010, hot: 0xff9a3a, top0: 0xe8c66a, top1: 0xd4b058, rim: 0xfff0a0 },
+  ziegel: { s0: 0xb04a32, s1: 0xd0623e, s2: 0x8a3422, mortar: 0x4a2a22, hot: 0xff8a3a, top0: 0xc89a80, top1: 0xb4887a, rim: 0xffc21a },
 };
 const pal = (k) => { const s = typeof k === 'string' ? STONE[k] : k ?? STONE.burg; return { s0: C(s.s0), s1: C(s.s1), s2: C(s.s2), mortar: C(s.mortar), hot: C(s.hot), top0: C(s.top0), top1: C(s.top1), rim: C(s.rim) }; };
 
@@ -132,7 +136,7 @@ export function brickBox(level, Q, b) {
     '+x': { o: [b.x1, yv, zb], u: [0, 0, -1], n: [1, 0, 0], w: zb - za },
     '-x': { o: [b.x0, yv, za], u: [0, 0, 1], n: [-1, 0, 0], w: zb - za },
   };
-  for (const k of ['+z', '-z', '+x', '-x']) if (faces.includes(k)) brickFace(Q, { ...F[k], h, hotY: b.hot, soot: b.soot ?? 0.3, row0: Math.round(top * 2) }, P);
+  for (const k of ['+z', '-z', '+x', '-x']) if (faces.includes(k)) brickFace(Q, { ...F[k], h, hotY: b.hot, soot: b.soot ?? 0.3, row0: Math.round(top * 2), bw: b.bw, bh: b.bh }, P);
   if (!b.skipTop) tiles(Q, b.x0, b.x1, za, zb, top, P, { cell: b.cell ?? 1.0, rim: b.rim ?? true, pattern: b.pattern, patternColor: b.patternColor });
   // Kantensteine oben (heller, leicht vorstehend) auf den gezeigten Seiten
   const lip = 0.12, lh = 0.22;
@@ -267,6 +271,37 @@ export function merlonsRound(level, Q, cx, cz, r, y, o = {}) {
       Q.extra.push(m);
     }
   }
+}
+
+/**
+ * Geländer (Maschinenpark): Pfosten alle step m, Handlauf oben, gelb-schwarz; Kollision als dünne Wand (Krümel fällt nicht
+ * hinunter). o = { h: 0.9, step: 1.2, color: 0xffc21a, solid: true }
+ */
+export function gelaender(level, Q, a, b, y, o = {}) {
+  const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz);
+  if (L < 0.1) return;
+  const ux = dx / L, uz = dz / L, h = o.h ?? 0.9;
+  if (o.solid !== false) {
+    const hx = Math.abs(uz) * 0.12 + 0.02, hz = Math.abs(ux) * 0.12 + 0.02;
+    level.world.add({ type: 'box', min: [Math.min(a[0], b[0]) - hx, y, Math.min(a[1], b[1]) - hz], max: [Math.max(a[0], b[0]) + hx, y + h, Math.max(a[1], b[1]) + hz], camIgnore: true, noWallSlide: true, tag: 'gelaender' });
+  }
+  if (!level.view) return;
+  Q.extra ??= [];
+  const yaw = Math.atan2(-uz, ux);
+  const put = (g) => { g.rotateY(yaw); return g; };
+  const n = Math.max(1, Math.round(L / (o.step ?? 1.2)));
+  for (let i = 0; i <= n; i++) {
+    const s = (i / n) * L;
+    const g = box(0.12, h, 0.12, 0, 0, 0, i % 2 ? 0x2a2a30 : (o.color ?? 0xffc21a), { r: 0, seg: 0 });
+    g.translate(a[0] + ux * s, y + h / 2, a[1] + uz * s);
+    Q.extra.push(g);
+  }
+  const rail = put(box(L, 0.1, 0.14, 0, 0, 0, o.color ?? 0xffc21a, { r: 0, seg: 0 }));
+  rail.translate(a[0] + ux * L / 2, y + h - 0.05, a[1] + uz * L / 2);
+  Q.extra.push(rail);
+  const mid = put(box(L, 0.06, 0.08, 0, 0, 0, 0x3a3a44, { r: 0, seg: 0 }));
+  mid.translate(a[0] + ux * L / 2, y + h * 0.5, a[1] + uz * L / 2);
+  Q.extra.push(mid);
 }
 
 /** Gibt gesammelte Vierecke (und Zusatzteile) als statische Geometrie ab. */
