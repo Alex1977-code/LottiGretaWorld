@@ -21,9 +21,9 @@
 //                                  Stachelkugel (Funkenblüte aus dem ?-Block) – Stern 2, Zielmast auf dem Zielriff
 // Gegner: Rammfisch 10 (davon 2 groß, 3 auf und ab, 1 mit Stern), Wutkaulquappe 3.
 
-import { isl, line, ring, arc, column, sign, Quads, flushQ, glimmer, funken, onRespawn } from './_helpers_c.js';
+import { isl, line, ring, arc, column, sign, Quads, flushQ, glimmer, funken, onRespawn, fernSicht } from './_helpers_c.js';
 import { glasgang } from '../w6/_helpers_a.js';
-import { fernAus, gegnerSicht } from '../w3/_helpers_d.js';
+import { gegnerSicht } from '../w3/_helpers_d.js';
 import { Bld } from '../w6/_helpers_b.js';
 import { colorize, merge, lin, mixc, smooth, hex, addStatic, Rnd } from '../../blocks/kit.js';
 import * as THREE from 'three';
@@ -145,7 +145,7 @@ function setup(level) {
     }
   }
   // Leistung: unter Wasser reicht die Sicht ≈ 58 m – fernere Abschnitte nicht zeichnen; Fische und Kisten ohne Sonnenschatten
-  fernAus(level, 62);
+  fernSicht(level, 62);
   gegnerSicht(level, { rammfisch: { shadow: false, dist: 60 }, wutkaulquappe: { shadow: false, dist: 40 } });
   // Funkenblüte verbrennt die Stachelkugel in der Glasröhre (Seeigel aus Riff-Stacheln)
   const kugel = level.named.get('seeigel') ?? level.entities.find((e) => e.spec?.id === 'seeigel');

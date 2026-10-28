@@ -466,6 +466,31 @@ export function funken(level, boxes, o = {}) {
   return pts;
 }
 
+/**
+ * Statische Abschnitte nur bis dist m (nächster Punkt ihres Quaders zur Kamera) zeichnen – unter Wasser reicht die Sicht
+ * ohnehin nicht weiter. Anders als die Welt-3-Hilfe fernAus werden Abschnitte wieder gezeigt, sobald die Kamera näher kommt.
+ */
+export function fernSicht(level, dist = 60) {
+  const v = level.view;
+  if (!v?.static) return null;
+  const items = new Map();
+  const c = new THREE.Vector3();
+  const st = { hidden: 0 };
+  v.onFrame(() => {
+    const cam = v.camera.position;
+    for (const m of v.static.meshes) {
+      let it = items.get(m);
+      if (!it || it.g !== m.geometry) { m.geometry.computeBoundingBox(); it = { g: m.geometry, b: m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld), cast: m.castShadow, mine: false }; items.set(m, it); }
+      it.b.clampPoint(cam, c);
+      const far = c.distanceTo(cam) > dist;
+      if (far && m.visible) { m.visible = false; it.mine = true; }
+      else if (!far && it.mine) { m.visible = true; it.mine = false; }
+    }
+    st.hidden = [...items.values()].filter((x) => x.mine).length;
+  });
+  return st;
+}
+
 // =====================================================================================================================
 // Mechanik
 // =====================================================================================================================
