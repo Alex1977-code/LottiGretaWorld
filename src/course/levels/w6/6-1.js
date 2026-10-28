@@ -26,6 +26,7 @@ const Y2 = 7;                           // Gegnerstrecke, Checkpoint
 const T2 = 11.5, T3 = 16, T4 = 20.5;    // Terrassen der Röhrensteigung
 const Y4 = 15, Y5 = 24, YH = 42;        // Schnappblumen-Feld, Zielgipfel, Münzhimmel
 const HX = -46;                         // Münzhimmel (x)
+const GX = -9.4;                        // Glasgang (x)
 const P = 1.05;                         // Röhrenmitte über dem Boden (Öffnung)
 
 const sign = (x, y, z, text, yaw = 0) => ({ type: 'sign', pos: [x, y, z], text, yaw });
@@ -56,13 +57,13 @@ function build(level) {
     [-13, 13, 9, -17, Y1, 26], [-12.6, 12.6, -23.5, -45.6, Y1, 22], [-9, 9, -50, -64, Y2, 12], [-6, 6, -64, -80, Y2, 8],
     [-12, 11, -93, -112, Y2, 16], [-12, 11, -112, -125, T2, 12], [-12, 11, -125, -139, T3, 12], [-11, 11, -139, -160, T4, 16],
     [-16, 16, -166, -214, Y4, 40], [-9, 9, -222, -246, Y5, 14],
-  ], { avoid: [[0, -14.4, 1.6], [-8, -36, 1.4], [0, 4, 1.5]] });
+  ], { avoid: [[0, -14.4, 1.6], [0, 4, 1.5]] });
   steinpfad(level, [[0, 6], [0, -2], [0, -12.6]], Y1);
   steinpfad(level, [[6.5, -29.4], [6, -36], [5, -40]], Y1);
   steinpfad(level, [[0, -56.5], [0, -66], [0, -74]], Y2);
 
   // ---------------- Startgipfel
-  glasgang(level, { x0: -12.3, x1: -3.4, y: Y1, z: -36, closed: ['x0'] });
+  glasgang(level, { axis: 'z', x: GX, a: -28, b: -45.2, y: Y1, closed: ['b'] });
   for (const x of [-12.6, 12.6]) trockenmauer(level, [x, -24], [x, -45.6], Y1);
   trockenmauer(level, [-12.6, -45.6], [12.6, -45.6], Y1);
   almhuette(level, -8.6, Y1, -2.5, { yaw: Math.PI / 2 - 0.25 });
@@ -105,11 +106,11 @@ export const LEVEL = {
     isl(-13, 13, -23.5, -46, Y1, 8),
     sign(-3.2, Y1, -11.6, 'Glasröhren\n← Weiche →', 0.25),
     { type: 'glasnetz', id: 'netz1', radius: 1,
-      nodes: { A: [0, Y1 + P, -14.4], K: [0, RIDGE + 2.6, -20.2], L: [-6.5, Y1 + P, -27.6], R: [6.5, Y1 + P, -27.6] },
+      nodes: { A: [0, Y1 + P, -14.4], K: [0, RIDGE + 2.6, -20.2], L: [-4.8, Y1 + P, -27.6], R: [6.5, Y1 + P, -27.6] },
       pipes: [
         { from: 'A', to: 'K', via: [[0, Y1 + P, -15.4], [0, RIDGE + 0.4, -15.9], [0, RIDGE + 2.6, -17.6]], coins: 3 },
         { from: 'K', to: 'R', via: [[3.2, RIDGE + 2.5, -21.6], [6.5, RIDGE + 0.6, -24.8], [6.5, Y1 + P + 0.5, -25.6]], coins: 2 },
-        { from: 'K', to: 'L', via: [[-3.2, RIDGE + 2.5, -21.6], [-6.5, RIDGE + 0.6, -24.8], [-6.5, Y1 + P + 0.5, -25.6]], coins: 3 },
+        { from: 'K', to: 'L', via: [[-2.6, RIDGE + 2.5, -21.6], [-4.8, RIDGE + 0.6, -24.8], [-4.8, Y1 + P + 0.5, -25.6]], coins: 3 },
       ],
       weichen: { K: { to: 'R', toggle: ['L', 'R'] } } },
     { type: 'deco_w6', items: [
@@ -157,12 +158,11 @@ export const LEVEL = {
     { type: 'cloudcannon', id: 'kanone', pos: [-10.4, T2, -122.4], target: [HX, YH + 0.6, -114], arc: 6 },
 
     // ================================================================ Münzhimmel
-    { type: 'wolkenplattform', pos: [HX, YH, -114], size: [6, 0.6, 6] },
-    { type: 'wolkenplattform', pos: [HX, YH, -124], size: [4, 0.6, 14] },
-    { type: 'wolkenplattform', pos: [HX + 3, YH + 1, -137], size: [4, 0.6, 6] },
-    { type: 'wolkenplattform', pos: [HX - 2, YH + 2, -146], size: [4, 0.6, 6] },
-    { type: 'wolkenplattform', pos: [HX, YH + 2, -156], size: [6, 0.6, 8] },
-    { type: 'pipe', id: 'himmelAus', pos: [HX, YH + 2.6, -159], height: 1.4, target: [-6, T4, -148] },
+    { type: 'wolkenplattform', pos: [HX, YH, -121], size: [5, 0.6, 20] },
+    { type: 'wolkenplattform', pos: [HX + 3, YH + 1, -135.6], size: [4, 0.6, 6] },
+    { type: 'wolkenplattform', pos: [HX - 1.5, YH + 2, -143], size: [4, 0.6, 6] },
+    { type: 'wolkenplattform', pos: [HX, YH + 2, -151.5], size: [6, 0.6, 8] },
+    { type: 'pipe', id: 'himmelAus', pos: [HX, YH + 2.6, -154.4], height: 1.4, target: [-6, T4, -148] },
     { type: 'killplane', pos: [HX, YH - 14, -135], size: [46, 70] },
 
     // ================================================================ 4 Schnappblumen-Feld
@@ -182,13 +182,14 @@ export const LEVEL = {
   ],
   blocks: [
     { kind: 'question', pos: [-1.5, Y1 + 2.4, 0], content: 'coins:3' },
-    { kind: 'question', pos: [0.6, Y1 + 2.4, -32.6], content: 'stern' },
+    { kind: 'question', pos: [-5.4, Y1 + 2.4, -33.2], content: 'stern' },
   ],
   enemies: [
     // Startgipfel
     kugel('k0', [-9, Y1, -6], [9, Y1, -6], { speed: 2.4 }),
-    kugel('glas1', [-4.2, Y1, -36], [-7.0, Y1, -36], { size: 1.4, speed: 2.2 }),
-    kugel('glas2', [-9.4, Y1, -36], [-11.6, Y1, -36], { size: 1.4, speed: 1.6, phase: 0.5 }),
+    kugel('glas1', [GX, Y1, -29.0], [GX, Y1, -32.8], { size: 1.4, speed: 2.2 }),
+    kugel('glas2', [GX, Y1, -33.4], [GX, Y1, -37.2], { size: 1.4, speed: 1.8, phase: 0.5 }),
+    kugel('glas3', [GX, Y1, -37.8], [GX, Y1, -41.6], { size: 1.4, speed: 2.6, phase: 0.25 }),
     kugel('k1', [-1.5, Y1, -31.8], [11.4, Y1, -31.8], { speed: 3 }),
     kugel('k2', [-1.5, Y1, -39.4], [11.4, Y1, -39.4], { speed: 3, phase: 0.5 }),
     fsnap(10.6, Y1, -35.5, { yaw: Math.PI }),
@@ -228,7 +229,6 @@ export const LEVEL = {
     kugel('k10', [9.8, Y4, -167.5], [9.8, Y4, -181], { speed: 2.6, phase: 0.5 }),
     kugel('k11', [-14, Y4, -207.6], [14, Y4, -207.6], { speed: 3 }),
     kugel('k12', [-15, Y4, -184.5], [-15, Y4, -196], { speed: 2.4 }),
-    kugel('k15', [-14.4, Y4, -181.2], [-8.6, Y4, -181.2], { speed: 2, phase: 0.3 }),
     wusch({ id: 'wf1', center: [0, Y4, -190], radius: 2.6, count: 2, spacing: 8.2, speed: 2.2 }),
   ],
   items: [
@@ -249,11 +249,11 @@ export const LEVEL = {
   ],
   checkpoint: [0, Y2, -99],
   stars: [
-    [-8.2, Y1 + 0.15, -36],                 // 0: im Glasgang zwischen zwei Stachelkugeln
+    [GX, Y1 + 0.15, -43.6],                 // 0: hinten im Glasgang (hinter den Stachelkugeln)
     [0, Y2 + P + 0.9, -86.6],               // 1: oben auf der Wuschel-Röhre
-    [HX, YH + 2.7, -155.4],                 // 2: Münzhimmel
+    [HX, YH + 2.7, -151.2],                 // 2: Münzhimmel
   ],
-  stamp: [8, 15.8, -111.8],
+  stamp: [8, 15.9, -112.2],
   goal: [0, Y5, -240],
   marks: { start: [0, Y1, 4], netz1: [0, Y1, -12], glasgang: [-2.6, Y1, -36], w1: [5, Y1, -40], w1b: [0, Y2, -56], cp: [0, Y2, -99] },
 };

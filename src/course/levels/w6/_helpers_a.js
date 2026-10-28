@@ -116,33 +116,34 @@ export function trockenmauer(level, a, b, y, o = {}) {
 }
 
 /**
- * Glasgang: liegende Glasröhre zum Durchlaufen (Bauplan 6-1 „Glasröhre zwischen zwei Stachelkugeln“). Entlang X von x0
- * nach x1 auf Boden y bei z; Innenmaß 1,8 m breit, Decke 1,95 m (so hoch, dass niemand über eine Stachelkugel springen
- * kann). Kollision: Seitenwände, Decke und die geschlossenen Enden (closed: ['x0'] | ['x1'] | beide), alles camIgnore.
- * Darstellung: Glasmantel (durchscheinend, wie die Glasröhren), weiße Ringe, Abschluss-Kappen.
+ * Glasgang: liegende Glasröhre zum Durchlaufen (Bauplan 6-1 „Glasröhre zwischen zwei Stachelkugeln“). Entlang X (a, b =
+ * x-Werte bei z) oder Z (axis 'z': a, b = z-Werte bei x) auf Boden y; Innenmaß 1,8 m breit, Decke 1,95 m (so hoch, dass
+ * niemand über eine Stachelkugel springen kann). Kollision: Seitenwände, Decke und die geschlossenen Enden (closed: ['a'] |
+ * ['b'] | beide), alles camIgnore. Darstellung: Glasmantel (durchscheinend, wie die Glasröhren), weiße Ringe, Kappen.
  */
 export function glasgang(level, o) {
-  const { x0, x1, y, z } = o;
+  const zAxis = o.axis === 'z';
+  const { y } = o;
+  const c0 = zAxis ? o.x : o.z;                       // Querlage (Mitte)
   const W = 0.9, H = 1.95, R = 1.22, cy = y + 0.74;
-  const xa = Math.min(x0, x1), xb = Math.max(x0, x1);
-  const add = (min, max) => level.world.add({ type: 'box', min, max, camIgnore: true, noWallSlide: true, tag: 'glasgang' });
-  add([xa, y, z - W - 0.3], [xb, y + H + 0.3, z - W]);
-  add([xa, y, z + W], [xb, y + H + 0.3, z + W + 0.3]);
-  add([xa, y + H, z - W], [xb, y + H + 0.4, z + W]);
-  for (const end of o.closed ?? []) {
-    const x = end === 'x0' ? xa : xb;
-    add([x - 0.15, y, z - W], [x + 0.15, y + H, z + W]);
-  }
+  const lo = Math.min(o.a, o.b), hi = Math.max(o.a, o.b);
+  const closed = (o.closed ?? []).map((e) => (e === 'a' ? o.a : o.b));
+  // Quader in Achs-/Querkoordinaten → Welt
+  const add = (l0, l1, q0, q1, y0, y1) => level.world.add({
+    type: 'box', min: zAxis ? [q0, y0, l0] : [l0, y0, q0], max: zAxis ? [q1, y1, l1] : [l1, y1, q1], camIgnore: true, noWallSlide: true, tag: 'glasgang',
+  });
+  add(lo, hi, c0 - W - 0.3, c0 - W, y, y + H + 0.3);
+  add(lo, hi, c0 + W, c0 + W + 0.3, y, y + H + 0.3);
+  add(lo, hi, c0 - W, c0 + W, y + H, y + H + 0.4);
+  for (const e of closed) add(e - 0.15, e + 0.15, c0 - W, c0 + W, y, y + H);
   if (!level.view) return;
-  const L = xb - xa;
+  const L = hi - lo, mid = (lo + hi) / 2;
   const tube = new THREE.CylinderGeometry(R, R, L, 26, 1, true);
-  tube.rotateZ(Math.PI / 2);
-  tube.translate((xa + xb) / 2, cy, z);
+  if (zAxis) { tube.rotateX(Math.PI / 2); tube.translate(c0, cy, mid); } else { tube.rotateZ(Math.PI / 2); tube.translate(mid, cy, c0); }
   const parts = [tube.toNonIndexed()];
-  for (const end of o.closed ?? []) {
+  for (const e of closed) {
     const cap = new THREE.CircleGeometry(R, 26);
-    cap.rotateY(end === 'x0' ? Math.PI / 2 : -Math.PI / 2);
-    cap.translate(end === 'x0' ? xa : xb, cy, z);
+    if (zAxis) cap.translate(c0, cy, e); else { cap.rotateY(Math.PI / 2); cap.translate(e, cy, c0); }
     parts.push(cap.toNonIndexed());
   }
   const g = merge(parts.map((x) => { for (const k of Object.keys(x.attributes)) if (k !== 'position' && k !== 'normal') x.deleteAttribute(k); return x; }));
@@ -151,13 +152,14 @@ export function glasgang(level, o) {
   mesh.name = 'glasgang';
   addObject(level, mesh);
   const b = new Bld();
-  for (let s = 0; s <= L + 1e-6; s += L / Math.max(1, Math.round(L / 2.2))) b.torus(R + 0.03, 0.06, xa + s, cy, z, 0xf0f8ff, { yaw: Math.PI / 2, rs: 6, ts: 26 });
-  for (const end of [xa, xb]) if (!(o.closed ?? []).includes(end === xa ? 'x0' : 'x1')) b.torus(R + 0.06, 0.12, end, cy, z, 0xffffff, { yaw: Math.PI / 2, rs: 6, ts: 26 });
-  // Glanzstreifen oben
-  b.box(L, 0.05, 0.08, (xa + xb) / 2, cy + R * 0.93, z - 0.35, 0xffffff, { r: 0 });
-  // Sockelleisten (Metall)
-  b.box(L, 0.16, 0.2, (xa + xb) / 2, y - 0.02, z - W - 0.12, litTop(0x8aa0b8), { r: 0.04 });
-  b.box(L, 0.16, 0.2, (xa + xb) / 2, y - 0.02, z + W + 0.12, litTop(0x8aa0b8), { r: 0.04 });
+  const P3 = (l, q, yy) => (zAxis ? [q, yy, l] : [l, yy, q]);
+  const ringYaw = zAxis ? 0 : Math.PI / 2;
+  const nR = Math.max(1, Math.round(L / 2.2));
+  for (let i = 0; i <= nR; i++) { const q = P3(lo + (L * i) / nR, c0, cy); b.torus(R + 0.03, 0.06, q[0], q[1], q[2], 0xf0f8ff, { yaw: ringYaw, rs: 6, ts: 26 }); }
+  for (const e of [lo, hi]) if (!closed.includes(e)) { const q = P3(e, c0, cy); b.torus(R + 0.06, 0.12, q[0], q[1], q[2], 0xffffff, { yaw: ringYaw, rs: 6, ts: 26 }); }
+  // Glanzstreifen oben, Sockelleisten (Metall)
+  let q = P3(mid, c0 - 0.35, cy + R * 0.93); b.box(zAxis ? 0.08 : L, 0.05, zAxis ? L : 0.08, q[0], q[1], q[2], 0xffffff, { r: 0 });
+  for (const sd of [-1, 1]) { q = P3(mid, c0 + sd * (W + 0.12), y - 0.02); b.box(zAxis ? 0.2 : L, 0.16, zAxis ? L : 0.2, q[0], q[1], q[2], litTop(0x8aa0b8), { r: 0.04 }); }
   b.flush(level, { castShadow: false });
 }
 

@@ -22,7 +22,7 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 // { chaseKind, ids } · { expect: Bedingung } · { until: Bedingung } · { pipe: [x, z], stick } (in eine Glasröhren-Öffnung
 // laufen, unterwegs Stick halten – Abzweig an Kreuzungen) · { warp: [x, z] } (auf Warp-Box/Kanone springen und
 // mitfahren) · { stompAll: Id-Anfang } · { clear: [Ids], at: [x, z], r } (warten, bis die Stachelkugeln weg sind)
-const Y1 = 1, Y2 = 7, T2 = 11.5, T3 = 16, T4 = 20.5, Y4 = 15, Y5 = 24, HX = -46, YH = 42;
+const GX = -9.4, Y1 = 1, Y2 = 7, T2 = 11.5, T3 = 16, T4 = 20.5, Y4 = 15, Y5 = 24, HX = -46, YH = 42;
 const ROUTES = {
   '6-1': {
     start: [0, Y1, 4],
@@ -80,24 +80,25 @@ const ROUTES = {
       { name: 'fünf Glasröhren-Fahrten (Weiche, Wuschel-Röhre, Bogen, Weiche, Steigröhre)', ok: (r) => r.mech.pipes >= 5 },
     ],
     targets: [
-      { name: 'Stern 0: Funkelstern aus dem ?-Block, durch den Glasgang zwischen zwei Stachelkugeln', star: 0, from: [2, Y1, -30],
-        legs: [{ to: [0.6, -32.6], within: 0.25, run: false }, { hop: 20 }, { chaseKind: 'powerup', max: 900 }, { expect: 'funkelstern' },
-          { to: [-2.6, -36], within: 0.4 }, { to: [-8.2, -36], within: 0.3, run: true }, { star: 0 }], shot: 'stern0',
+      { name: 'Stern 0: Funkelstern aus dem ?-Block, durch den Glasgang zwischen den Stachelkugeln', star: 0, from: [-4, Y1, -28.4],
+        legs: [{ to: [-5.4, -33.2], within: 0.25, run: false }, { hop: 20 }, { chaseKind: 'powerup', max: 900 }, { expect: 'funkelstern' },
+          { to: [-7.2, -30.4], within: 0.6 }, { to: [-7.2, -25.4], within: 0.5, run: false }, { to: [GX, -24.6], within: 0.2, run: false }, { wait: 20 }, { to: [GX, -27.4], within: 0.2, run: false }, { to: [GX, -43.6], within: 0.3, run: true }, { star: 0 }], shot: 'stern0',
         mech: (r) => r.mech.ballsLeft === 0, mechText: (r) => `Glas-Kugeln übrig ${r.mech.ballsLeft}` },
-      { name: 'Stern 0 nicht ohne Funkelstern (Stachelkugeln versperren den Glasgang)', star: 0, expectNot: true, from: [-2.4, Y1, -36], heroes: ['lotti'], invuln: false,
-        legs: [{ to: [-8.2, -36], within: 0.3, run: false, max: 600 }, { wait: 60 }],
-        mech: (r) => r.mech.hurts > 0, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Stern 0 nicht ohne Funkelstern (Stachelkugeln versperren den Glasgang, auch nicht mit Treffer-Blinken)', star: 0, expectNot: true, from: [GX, Y1, -26.4], heroes: ['lotti', 'greta'], invuln: false,
+        legs: [{ to: [GX, -43.6], within: 0.3, run: true, max: 900 }, { wait: 60 }],
+        mech: (r) => r.mech.hurts > 0, mechText: (r) => `Treffer ${r.mech.hurts}, ${r.dead ? 'tot' : 'lebt'}` },
       { name: 'Stern 1: auf die Wuschel-Röhre klettern, zwischen den kreisenden Wuscheln zum Stern', star: 1, from: [0, Y2, -74],
-        legs: [{ to: [0, -78.6], jump: 24, within: 0.4, run: false }, { expect: 'aufRoehre' }, { to: [0, -86.6], within: 0.4, run: false }, { star: 1 },
+        legs: [{ to: [-2.4, -77.6], within: 0.4, run: false }, { to: [0, -78.6], jump: 24, within: 0.4, run: false }, { expect: 'aufRoehre' }, { to: [0, -86.6], within: 0.4, run: false }, { star: 1 },
           { to: [0, -93.5], within: 0.5, run: false }, { to: [0, -97], within: 0.6 }], shot: 'stern1' },
       { name: 'Stern 1 nicht beim Fahren durch die Röhre', star: 1, expectNot: true, from: [0, Y2, -73.6], heroes: ['lotti'],
         legs: [{ pipe: [0, -75] }, { wait: 30 }] },
       { name: 'Stern 2: versteckte Wolkenkanone in den Münzhimmel, Wolken entlang zum Stern, Röhre zurück', star: 2, from: [-6, T2, -120],
-        legs: [{ warp: [-10.4, -122.4] }, { expect: 'himmel' }, { to: [HX, -129], within: 0.5 }, { to: [HX + 3, -136.6], jump: 24, within: 0.6 },
-          { to: [HX - 2, -145.6], jump: 24, within: 0.6 }, { to: [HX, -152.6], jump: 24, within: 0.6 }, { star: 2 },
-          { to: [HX, -159], within: 0.3, run: false, jump: 20 }, { crouch: 4 }, { expect: 'terrasse4' }], shot: 'stern2' },
+        legs: [{ warp: [-10.4, -122.4] }, { expect: 'himmel' }, { to: [HX + 1, -130.2], within: 0.4, run: false }, { to: [HX + 3, -135.6], jump: 16, within: 0.6, run: false },
+          { to: [HX + 1.6, -138], within: 0.4, run: false }, { to: [HX - 1.5, -142.4], jump: 16, within: 0.6, run: false },
+          { to: [HX - 1.2, -145.6], within: 0.4, run: false }, { to: [HX, -149.4], jump: 14, within: 0.6, run: false }, { star: 2 },
+          { to: [HX, -154.4], within: 0.3, run: false, jump: 20 }, { crouch: 4 }, { expect: 'terrasse4' }], shot: 'stern2' },
       { name: 'Stempel: vom Röhrenbogen aus (Terrasse 2 → Bogen → Sprung)', stamp: true, from: [5.6, T2, -114],
-        legs: [{ to: [8, -112.9], jump: 30, within: 0.4, run: false }, { expect: 'aufBogen' }, { hop: 30 }], shot: 'stempel' },
+        legs: [{ to: [8, -112.4], jump: 30, within: 0.4, run: false }, { expect: 'aufBogen' }, { hop: 30 }], shot: 'stempel' },
       { name: 'Stempel nicht von Terrasse 2 aus (zu hoch)', stamp: true, expectNot: true, from: [8, T2, -112.6], heroes: ['lotti'],
         legs: [{ hop: 40 }, { wait: 30 }] },
     ],
@@ -237,6 +238,7 @@ function install() {
           if (!t || Math.hypot(p.pos.x - t[0], p.pos.z - t[2]) > 7 || Math.abs(p.pos.y - t[1]) > 2) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
         }
         if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.ground?.tag ?? '']); if (hist.length > 30) hist.shift(); }
+        if (window.__trace && steps % 10 === 0) log.push(['spur', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.power, p.ground?.tag ?? '']);
         if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
         if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead && !o.keepScript) {
           let n = 0;
@@ -256,6 +258,7 @@ function install() {
         if (Lg.expect) { const ok = COND[Lg.expect](); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
         if (Lg.until) { let k = 0; for (; k < (Lg.max ?? 1200) && !COND[Lg.until](); k++) tick({}); log.push(['bis', Lg.until, k]); if (!COND[Lg.until]()) log.push(['FEHLER: bis', Lg.until]); continue; }
         if (Lg.hop) {
+          for (let k = 0; k < 90 && (p.mode !== 'ground' || p.hSpeed() > 0.2); k++) tick({});
           for (let k = 0; k < Lg.hop; k++) tick({ jump: true });
           for (let k = 0; k < 240 && p.mode !== 'ground'; k++) tick({});
           log.push(['hüpfer', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
@@ -373,7 +376,7 @@ function install() {
       c.setInput({});
       mech.hurts = p.hurtTries ?? 0;
       mech.keys = L.keys?.tor?.n ?? 0;
-      mech.ballsLeft = ['glas1', 'glas2'].filter((id) => { const e = L.entities.find((x) => x.spec?.id === id); return e && e.alive && !e.removed; }).length;
+      mech.ballsLeft = ['glas1', 'glas2', 'glas3'].filter((id) => { const e = L.entities.find((x) => x.spec?.id === id); return e && e.alive && !e.removed; }).length;
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
@@ -452,6 +455,7 @@ async function load(id) {
   }
   await page.waitForTimeout(300);
   await sc(install);
+  if (process.env.TRACE) await sc(() => { window.__trace = true; });
   return true;
 }
 
