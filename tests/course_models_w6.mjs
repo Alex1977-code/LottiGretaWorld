@@ -517,15 +517,16 @@ if (part('views')) {
     ['pilz_maske', {}, 'idle', 0.6, 1.8], ['wurfball', {}, 'idle', 0.25, 1.3], ['stachelkugel', { size: 1 }, 'idle', 0.5, 2.6],
     ['papierlaterne', { color: 'rot' }, 'idle', 1.5, 3.2], ['giftbluete', {}, 'idle', 0.7, 2.4], ['windboe_fahne', {}, { wind: 1, dir: 0.5 }, 2.1, 4.2],
     ['gelee_brocken', { color: 'gruen' }, 'idle', 0.25, 1.6], ['glasroehre_kreuzung', {}, 'idle', 1, 7], ['wolkenplattform', {}, 'step', 0.4, 4.5],
+    ['schubser_prinz', {}, 'charge', 1.2, 6.5, Math.PI / 2 + 0.6], ['wippe', { length: 4 }, { tilt: 0.25 }, 0.2, 5.5], ['foerderband', { length: 3, width: 2 }, { offset: 0.3 }, 0.4, 4.5],
   ];
   for (let i = 0; i < PORTRAITS.length; i += 3) {
     const nm = `portrait_${i / 3 + 1}`;
     if (!want(nm) && !want('portrait')) continue;
     await sc((list) => {
       const cm = window.__cm; cm.clear();
-      list.forEach(([n, o, s, y, d], k) => {
+      list.forEach(([n, o, s, y, d, yaw], k) => {
         if (!cm.reg.hasModel(n)) return;
-        const m = cm.put(n, o, s, (k - 1) * 40, 0, -Math.PI / 2 + 0.45, 30, null);
+        const m = cm.put(n, o, s, (k - 1) * 40, 0, yaw ?? -Math.PI / 2 + 0.45, 30, null);
         m.portrait = { y, d };
       });
       cm.portraits = cm.live.map((m) => ({ m, y: m.portrait.y, d: m.portrait.d }));

@@ -116,9 +116,9 @@ function capeBase() {
 }
 /** Hermelinkragen (hinten um den Hals, Bogen um −X) in einen Build schreiben. */
 const addCollar = (b) => {
-  const g = new THREE.TorusGeometry(1, 0.3, 10, 28, Math.PI * 1.05);
+  const g = new THREE.TorusGeometry(1, 0.2, 10, 28, Math.PI * 1.05);
   g.rotateZ(Math.PI - Math.PI * 0.525);
-  b.add(g, (x, y, z) => (hash1(Math.floor(Math.atan2(y, x) * 9) * 3.1 + Math.floor(z * 6)) > 0.86 ? col(W6.erminePt) : col(W6.ermine)), { p: [-0.04, 0.76, 0], r: [Math.PI / 2, 0, 0], s: [0.37, 0.43, 0.37] });
+  b.add(g, (x, y, z) => (hash1(Math.floor(Math.atan2(y, x) * 14) * 3.1 + Math.floor(z * 9)) > 0.9 ? col(W6.erminePt) : col(W6.ermine)), { p: [-0.04, 0.76, 0], r: [Math.PI / 2, 0, 0], s: [0.37, 0.43, 0.37] });
 };
 function buildSchubserPrinz() {
   const root = new THREE.Group();
@@ -167,9 +167,9 @@ function buildSchubserPrinz() {
     for (let k = 0; k < P.count; k++) {
       const bx = capeBasePos[k * 3], by = capeBasePos[k * 3 + 1], bz = capeBasePos[k * 3 + 2];
       const v = clamp((0.76 - by) / 0.66, 0, 1), u = (k % (CAPE_U + 1)) / CAPE_U;
-      const w = Math.sin(t * 7 + u * 6 + v * 4) * flutter * v;
+      const w = Math.sin(t * 7 + u * 6 - v * 5) * flutter * v;
       const back = lift * v * v;
-      P.setXYZ(k, bx - back * 0.55 + w * 0.03, by + back * 0.35 - crumple * v * 0.1, bz * (1 - crumple * 0.3) + w * 0.02);
+      P.setXYZ(k, bx - back * 0.42 + w * 0.05, by + back * 0.12 + Math.abs(w) * 0.03 - crumple * v * 0.1, bz * (1 - crumple * 0.3 + back * 0.15) + w * 0.02);
     }
     P.needsUpdate = true;
     capeGeo.computeVertexNormals();
