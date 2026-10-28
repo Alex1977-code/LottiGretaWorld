@@ -18,8 +18,14 @@
 //   Kurzformen: { kind: 'hammer_werfer', … } ≙ weapon 'hammer', { kind: 'bumerang_werfer', … } ≙ weapon 'bumerang'.
 //   Beispiel: { kind: 'feuer_werfer', weapon: 'hammer', pos: [0, 1, -60], heights: [1, 3.6] }
 //     (dazu eine Einweg-Plattform: { type: 'platform', pos: [0, 2.8, -60], size: [5, 0.8, 2], oneWay: true })
+// Welt 7 (additiv, Präzisierung Gegner Welt 7):
+//   sichel?: true   (nur Bumerang-Werfer, 7-Burg) trägt eine goldene Wurfsichel auf dem Rücken (Modell 'bumerang_werfer'
+//                   { sichel: true }) und lässt sie beim Besiegen fallen: an seiner Stelle erscheint das Item 'wurfsichel_item'
+//                   (ohne diese Art ein Power-up 'sichel'); fällt er in Lava/Abgrund, erscheint es an seinem Platz (home).
+//   fireColor?: 'blau'  blaue Feuerkugeln (Modell 'feuerkugel_blau', z. B. über blauer Lava in 7-1).
+//   Wurfsichel der Figur (onHit('sichel')) besiegt jeden Werfer wie ein Feuerball.
 // Zustände: idle → walk ⇄ throw | jump; squashed | flipped. Laufzeit: throws (Zahl der Würfe), jumps, shots (lebende
-//   Geschosse), tier ('low'|'high' mit heights).
+//   Geschosse), tier ('low'|'high' mit heights), sichelDropped.
 // Modell 'feuer_werfer' (opts { kind }, state { anim: idle|walk|jump|throw|squashed|stunned, speed, progress }).
 
 import { EnemyW2, STRONG, toWorld, localOffset, clamp } from '../EnemyW2.js';
@@ -61,8 +67,12 @@ class Werfer extends EnemyW2 {
     this.curve = 1;
     this._own = (s) => s.owner === this;
     this._drop = (s) => s.owner === this || !!s.oneWay;
+    this.sichel = this.weapon === 'bumerang' && !!spec.sichel;
+    this.sichelDropped = false;
+    this.sichelItem = null;
+    this.fireColor = spec.fireColor === 'blau' ? 'blau' : null;
     let model = null;
-    if (level.view) model = this.setModel(getModel('feuer_werfer', { kind: this.weapon }));
+    if (level.view) model = this.setModel(this.sichel ? getModel('bumerang_werfer', { sichel: true }) : getModel('feuer_werfer', { kind: this.weapon }));
     this.hand = localOffset(`werfer:${this.weapon}`, model, { anim: 'throw', progress: 0.5 }, (o) => model.hand(o), { x: 0.3, y: 1.0, z: 0.28 });
     if (model) model.update(0.01, { anim: 'idle' });
     this.initShadows(1);
@@ -171,7 +181,7 @@ class Werfer extends EnemyW2 {
     dx /= d; dz /= d;
     let e = null;
     if (this.weapon === 'feuer') {
-      e = this.level.spawn('feuerkugel', { pos: [h.x, h.y - 0.17, h.z], vel: [dx * 6, 1.5, dz * 6], mode: 'bounce', owner: this });
+      e = this.level.spawn('feuerkugel', { pos: [h.x, h.y - 0.17, h.z], vel: [dx * 6, 1.5, dz * 6], mode: 'bounce', owner: this, ...(this.fireColor ? { color: this.fireColor } : {}) });
       this.level.sfx('fireball');
     } else if (this.weapon === 'hammer') {
       const T = clamp(d / 6, 0.7, 1.25);
@@ -202,14 +212,38 @@ class Werfer extends EnemyW2 {
     super.onHit(kind, source);
   }
 
+  /** Besiegt: mit Wurfsichel auf dem Rücken lässt er sie fallen (Welt 7). */
+  markDefeated() {
+    const was = this.defeated;
+    super.markDefeated();
+    if (!was && this.sichel) this.dropSichel();
+  }
+
+  dropSichel() {
+    if (this.sichelDropped) return;
+    this.sichelDropped = true;
+    const at = this.fellOut ? this.home : this.pos;
+    let y = at.y;
+    const hit = this.level.world.raycastDown(at.x, at.y + 1, at.z, 3);
+    if (hit && !hit.shape.kill) y = hit.y;
+    else if (!this.fellOut) y = this.home.y;
+    const pos = [at.x, y, at.z];
+    this.sichelItem = this.level.hasKind?.('wurfsichel_item')
+      ? this.level.spawn('wurfsichel_item', { pos })
+      : this.level.spawn('powerup', { pos, power: 'sichel', emerge: false });
+    this.level.effects?.sparks({ x: at.x, y: y + 0.6, z: at.z }, 10);
+    this.level.sfx('powerup_appear');
+  }
+
   modelState() {
     const s = this.state;
-    if (s === 'throw') return { anim: 'throw', progress: Math.min(1, this.stateT / THROW) };
-    if (s === 'jump') return { anim: 'jump' };
-    if (s === 'walk') return { anim: 'walk', speed: this.speed };
-    if (s === 'squashed') return { anim: 'squashed' };
-    if (s === 'flipped') return { anim: 'stunned' };
-    return { anim: 'idle' };
+    const dropped = this.sichelDropped;
+    if (s === 'throw') return { anim: 'throw', progress: Math.min(1, this.stateT / THROW), dropped };
+    if (s === 'jump') return { anim: 'jump', dropped };
+    if (s === 'walk') return { anim: 'walk', speed: this.speed, dropped };
+    if (s === 'squashed') return { anim: 'squashed', dropped };
+    if (s === 'flipped') return { anim: 'stunned', dropped };
+    return { anim: 'idle', dropped };
   }
 
   syncModel() {
@@ -218,7 +252,7 @@ class Werfer extends EnemyW2 {
     this.model.root.rotation.z = this.state === 'flipped' ? Math.PI : 0;
   }
 
-  info() { return { state: this.state, weapon: this.weapon, throws: this.throws, jumps: this.jumps, tier: this.tier, y: +this.pos.y.toFixed(2), defeated: this.defeated }; }
+  info() { return { state: this.state, weapon: this.weapon, throws: this.throws, jumps: this.jumps, tier: this.tier, y: +this.pos.y.toFixed(2), defeated: this.defeated, sichel: this.sichel, sichelDropped: this.sichelDropped }; }
 }
 
 export const KINDS = {
