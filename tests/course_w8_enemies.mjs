@@ -444,6 +444,29 @@ const g2 = await sc(() => {
   s2.shoveBy({ pos: { x: s2.pos.x + 1, y: s2.pos.y, z: s2.pos.z } }, 7, 'hit');
   t.hold([0, 1, t.Z(7, 7)], 120 * 2);
   out.schubser = { s1: s1.defeated, s2: s2.defeated, fall: t.sig('schubserFall').map((s) => ({ id: s.data.id, left: s.data.left, by: s.data.by })), gruppe: t.sig('schubserGruppe').map((s) => s.data), first: f1.length };
+  // ---- Riesenrad (Motor-Baustein): 4 Schubser fahren auf den Gondeln mit; alle hinuntergestoßen → schubserGruppe 'riesenrad'
+  {
+    const rad = t.ent('rad');
+    const rs = ['rs1', 'rs2', 'rs3', 'rs4'].map((id) => t.ent(id));
+    const onG = (e) => rad.gondolas.some((g) => { const sh = g.mb.shape; return e.pos.x > sh.min[0] - 0.2 && e.pos.x < sh.max[0] + 0.2 && e.pos.z > sh.min[2] - 0.2 && e.pos.z < sh.max[2] + 0.2 && Math.abs(e.pos.y - sh.max[1]) < 0.12; });
+    const fig = [3, 1, -210];
+    t.hold(fig, 30);
+    const a0 = rad.angle, y0 = rs.map((e) => e.pos.y);
+    const onStart = rs.map(onG);
+    t.hold(fig, 120 * 2);
+    const r = { onStart, turned: +(rad.angle - a0).toFixed(2), onGondel: rs.map(onG), dy: rs.map((e, i) => +(e.pos.y - y0[i]).toFixed(2)) };
+    const g0 = t.sig('schubserGruppe').length, f0 = t.sig('schubserFall').length;
+    for (const e of rs) {
+      t.until(() => e.grounded && e.pos.y > 4.5, 120 * 25, fig);
+      e.shoveBy({ pos: { x: e.pos.x, y: e.pos.y, z: e.pos.z - 1 } }, 8, 'hit');
+      t.hold(fig, 120 * 1.5);
+    }
+    t.hold(fig, 120);
+    r.fall = t.sig('schubserFall').slice(f0).filter((x) => x.data.group === 'riesenrad').map((x) => x.data.left);
+    r.gruppe = t.sig('schubserGruppe').slice(g0).map((x) => x.data);
+    r.defeated = rs.map((e) => e.defeated);
+    out.rad = r;
+  }
   // ---- Bestand: Mini-Pilzlinge (Draufspringen), Krallen-Pilzling, Riesenschnappblume (Wurfsichel = 1 Treffer), Hackvogel
   const mi = t.ent('mini3');
   out.mini = t.stomp(mi, { h: 0.6 });
@@ -526,6 +549,7 @@ check(`Großspuk-Jäger lauert (${g2.lurk.state}) bis zum Auslöser (${g2.trigge
 check(`Licht-Helm besiegt den Großspuk (${g2.light.t} s Licht)`, g2.light.defeated && g2.light.t >= 2.1 && g2.light.t < 2.5);
 check(`Hörner-Ameisen-Reihen: ${g2.ants.spawned} Ameisen aus ${g2.ants.streams} Löchern (${g2.ants.holes} Erdlöcher), Horn verletzt von oben, Wurfsichel besiegt`, g2.ants.spawned >= 4 && g2.ants.streams === 2 && g2.ants.holes === 2 && g2.ants.stompHurt === true && g2.ants.sichel === true);
 check(`Schubser vom Podest gestoßen (fallDefeat) → besiegt, Signale schubserFall (${g2.schubser.fall.map((f) => f.left).join(', ')}) und schubserGruppe`, g2.schubser.s1 && g2.schubser.s2 && g2.schubser.fall.length === 2 && g2.schubser.fall[0].left === 1 && g2.schubser.fall[1].left === 0 && g2.schubser.fall[0].by === 'fall' && g2.schubser.gruppe.length === 1 && g2.schubser.gruppe[0].group === 'rad' && g2.schubser.gruppe[0].count === 2);
+check(`Riesenrad (Motor): 4 Schubser stehen auf Gondeln und fahren mit (${g2.rad.dy.join(' / ')} m), hinuntergestoßen → besiegt (${g2.rad.fall.join(', ')}), schubserGruppe 'riesenrad' (${g2.rad.gruppe[0]?.count})`, g2.rad.onStart.every(Boolean) && g2.rad.onGondel.every(Boolean) && g2.rad.turned > 0.25 && g2.rad.dy.some((d) => Math.abs(d) > 0.3) && g2.rad.defeated.every(Boolean) && g2.rad.fall.join() === '3,2,1,0' && g2.rad.gruppe.length === 1 && g2.rad.gruppe[0].group === 'riesenrad' && g2.rad.gruppe[0].count === 4);
 check(`Bestand: Mini-Pilzling von oben, Riesenschnappblume verliert mit der Wurfsichel einen Treffer (${g2.riesen.hp0} → ${g2.riesen.hp1}), Hackvogel, Krallen-Pilzling`, g2.mini.defeated && g2.riesen.hp1 === g2.riesen.hp0 - 1 && g2.hack.kind === 'hackvogel' && g2.hack.krallen === 'krallen_pilzling');
 check(`Wandstück: Vorwarnung ${g2.stueck.warnT} s, bricht, stürzt und verletzt darunter (${g2.stueck.seq}), lässt sich zurücksetzen`, /ganz>warn>fall>weg/.test(g2.stueck.seq) && Math.abs(g2.stueck.warnT - 1) < 0.05 && g2.stueck.hurtUnder && g2.stueck.restored);
 check('Schockwelle verletzt am Boden, nicht im Sprung darüber', g2.welle.ground === true && g2.welle.jump === false && g2.welle.model);
@@ -994,6 +1018,11 @@ S.schubser = await SHOT('w8e', 'schubser_minis', () => {
   const c = window.__course, t = window.__t;
   t.place([-11.5, 1, t.Z(7, 0.6)], { settle: 90 });
   t.face(-11.5, t.Z(7, 7));
+});
+S.riesenrad = await SHOT('w8e', 'riesenrad_schubser', () => {
+  const c = window.__course, t = window.__t;
+  t.place([4, 1, -205], { settle: 120 });
+  t.face(-8, -219);
 });
 S.massen = await SHOT('w8e', 'massen_44_kreisgeister_24_knochenflieger', () => {
   const c = window.__course, t = window.__t;

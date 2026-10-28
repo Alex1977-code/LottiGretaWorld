@@ -13,7 +13,9 @@
 //   8 (−148 … −162)   Bestand: links Feuer-Werfer, Hammer-Werfer · rechts Wandstücke (bruchstueck) zum Prüfen
 //   9 (−168 … −200)   Massen-Feld (ohne Gehege): vier Kreisgeist-Ringe (44 Kreisgeister) und drei Knochenflieger-Gruppen (24) –
 //                     Kennzahlen (Zeichenaufrufe)
-//   Ziel bei z −210. Hilfe Z(r, dz) = z der Reihe r, dz Meter hinter ihrer Vorderkante (auch in den Tests).
+//   10 (−206 … −230)  Riesenrad (Motor-Baustein 'riesenrad', 6 Gondeln) mit 4 Schubsern auf den Gondeln (Gruppe 'riesenrad',
+//                     fallDefeat – 8-Burg „alle 4 Schubser vom Riesenrad stoßen“); die untere Gondel ist frei zum Einsteigen
+//   Ziel bei z −240. Hilfe Z(r, dz) = z der Reihe r, dz Meter hinter ihrer Vorderkante (auch in den Tests).
 // Thema 'desert', Musik course_dunes.
 
 const Y = 1;
@@ -32,6 +34,9 @@ const L = (r, h) => pen(-19, -4, Z(r, 0), Z(r, 14), h);
 const R = (r, h) => pen(4, 19, Z(r, 0), Z(r, 14), h);
 const sign = (x, r, text) => ({ type: 'sign', pos: [x, Y, Z(r, -0.8)], text, size: [2.8, 0.8] });
 const at = (x, r, dz, y = Y) => [x, y, Z(r, dz)];
+// Riesenrad (Reihe 10): Achsmitte, Gondel-Oberkante zum Startwinkel (Modell: Planke 1,2 m unter dem Aufhängepunkt, 0,45 dick)
+const RAD = [-8, Y + 6.5, -218];
+const gondel = (i) => { const a = -Math.PI / 2 + (i * Math.PI) / 3; return [RAD[0] + 5 * Math.cos(a), RAD[1] + 5 * Math.sin(a) - 1.2 + 0.3, RAD[2]]; };
 
 export const LEVEL = {
   id: '0-32',
@@ -42,9 +47,9 @@ export const LEVEL = {
   music: 'course_dunes',
   timeLimit: 999,
   start: { pos: [0, Y, 6], yaw: Math.PI / 2 },
-  camera: [{ from: 14, to: -220, pitch: 45, dist: 13, yaw: 0 }],
+  camera: [{ from: 14, to: -250, pitch: 45, dist: 13, yaw: 0 }],
   segments: [
-    { type: 'island', pos: [0, -1, -97], size: [42, Y + 1, 230], top: 'sand', under: 1.5 },
+    { type: 'island', pos: [0, -1, -112], size: [42, Y + 1, 260], top: 'sand', under: 1.5 },
     { type: 'killplane', y: -16 },
     ...L(1), ...R(1), ...L(2), ...R(2), ...L(3), ...R(3), ...L(4), ...R(4), ...L(5), ...R(5), ...L(6), ...R(6), ...L(7), ...R(7), ...L(8), ...R(8),
     // 3 links: Podest unter der Welle (von oben besiegbar)
@@ -61,6 +66,9 @@ export const LEVEL = {
     sign(-11.5, 7, 'Schubser\nRiesenrad'), sign(11.5, 7, 'Mini-Pilzlinge'),
     sign(-11.5, 8, 'Werfer'), sign(11.5, 8, 'Wandstücke'),
     sign(0, 9, 'Massen-Feld'),
+    { type: 'sign', pos: [3, Y, -207], text: 'Riesenrad\n4 Schubser', size: [2.8, 0.8] },
+    // ---- 10 Riesenrad (Motor): Gondel i bei Winkel −π/2 + i·π/3 (0 = unten), Oberkante y = pos.y + 5·sin(a) − 1,2
+    { type: 'riesenrad', id: 'rad', pos: [RAD[0], RAD[1], RAD[2]], radius: 5, gondolas: 6, speed: 0.15, angle: -Math.PI / 2 },
   ],
   enemies: [
     // ---- 1 Sandflosser
@@ -101,6 +109,8 @@ export const LEVEL = {
     { kind: 'knochenflieger_gruppe', id: 'm_kf1', pos: at(-10, 9, 22, Y + 5), count: 8, formation: 'ring', radius: 2.4, sight: 0 },
     { kind: 'knochenflieger_gruppe', id: 'm_kf2', pos: at(0, 9, 24, Y + 5.5), count: 8, formation: 'welle', spacing: 1.4, sight: 0 },
     { kind: 'knochenflieger_gruppe', id: 'm_kf3', pos: at(10, 9, 22, Y + 5), count: 8, formation: 'keil', sight: 0 },
+    // ---- 10 Schubser auf den Riesenrad-Gondeln 1, 2, 4, 5 (fahren mit; hinuntergestoßen = besiegt)
+    ...[1, 2, 4, 5].map((i, k) => ({ kind: 'schubser', id: `rs${k + 1}`, pos: gondel(i), behavior: 'guard', sight: 2.5, group: 'riesenrad', fallDefeat: 1.6 })),
   ],
   items: [
     // ---- 4 Sandfiguren
@@ -113,6 +123,6 @@ export const LEVEL = {
     { kind: 'bruchstueck', id: 'bs_steg', pos: at(15, 8, 7, Y + 2), size: [3, 0.6, 3], look: 'holz' },
   ],
   stars: [],
-  goal: [0, Y, -210],
-  marks: { podest: [-11.5, Y + 1.6, Z(3, 7)], rad1: [-15, Y + 2.7, Z(7, 5)], rad2: [-8.5, Y + 2.7, Z(7, 9)] },
+  goal: [0, Y, -240],
+  marks: { podest: [-11.5, Y + 1.6, Z(3, 7)], rad1: [-15, Y + 2.7, Z(7, 5)], rad2: [-8.5, Y + 2.7, Z(7, 9)], rad: RAD },
 };
