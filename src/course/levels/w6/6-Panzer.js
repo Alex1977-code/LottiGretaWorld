@@ -158,7 +158,9 @@ export const LEVEL = {
     startBanner: 'Kolonne – marsch!', endBanner: 'Endstation Wolkenburg!',
   },
   camera: [
-    { from: 40, to: ZK - 12, pitch: 42, dist: 18, fov: 42, area: [-30, 30] },
+    { from: 40, to: ZK + 14, pitch: 42, dist: 18, fov: 42, area: [-30, 30] },
+    // nach dem Halt (die Fahrt-Kamera gilt bis dahin): flacher Blick über den Kommandopanzer zur Wolkenburg
+    { from: ZK + 14, to: ZK - 12, pitch: 30, dist: 16, fov: 44, area: [-30, 30] },
     { from: ZK - 12, to: AZ - 20, pitch: 46, dist: 17, x: 0, xLock: 0.3, ahead: 1.2, lead: 0.5, area: [-30, 30] },
     { from: GZ + 20, to: GZ - 20, pitch: 28, dist: 17, ahead: 2, area: [GX - 16, GX + 16] },
   ],
