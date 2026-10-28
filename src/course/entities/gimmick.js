@@ -20,6 +20,8 @@
 //                              (setLevel), sonst level.setWaterLevel(id, y, speed) des Motors, sonst Rückfall
 //      signal: Name | [Namen]  benanntes Ereignis level.signal(name, ctx) (Welt 5: Suchscheinwerfer 'alarm'; Empfänger
 //                              melden sich mit level.onSignal(name, fn) an, z. B. Suchkopf-Kanonen)
+//      credits: true | 'sofort'  Abspann (Präzisierung Motor und Bausteine Welt 8, src/course/credits.js): true = nach dem
+//                              Ergebnis-Bildschirm („Weiter“) statt zur Weltkarte, 'sofort' = gleich
 //      pos:    [x, y, z]       Ort für star/spawn/power/coins (Standard: Auslöser)
 //      fn(level, ctx)          eigene Funktion (nur aus Code)
 //    }   – auch als Liste mehrerer Aktionen. Kurzformen (Inhalt von Kiste/Truhe/Baum): 'coin', 'coins:5', 'star:1',
@@ -36,6 +38,7 @@ import * as THREE from 'three';
 import { CourseEntity } from './CourseEntity.js';
 import { normalizePower } from '../player/powers.js';
 import { setWaterLevel } from '../blocks/water_level.js';
+import { requestCredits } from '../credits.js';
 
 export const LIST = (v) => (v === undefined || v === null || v === false ? [] : Array.isArray(v) ? v : [v]);
 export const vec = (p, out = new THREE.Vector3()) => (Array.isArray(p) ? out.set(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) : out.set(p?.x ?? 0, p?.y ?? 0, p?.z ?? 0));
@@ -110,6 +113,7 @@ export function runAction(level, action, ctx = {}) {
   if (action.sfx) level.sfx(action.sfx);
   for (const w of LIST(action.water)) setWaterLevel(level, w);
   for (const name of LIST(action.signal)) level.signal?.(name, { pos: [o.x, o.y, o.z], source: ctx.source ?? null });
+  if (action.credits) requestCredits(level, action.credits === 'sofort' ? 'sofort' : 'nach-ziel');   // Welt 8: Abspann
   if (typeof action.fn === 'function') action.fn(level, ctx);
 }
 

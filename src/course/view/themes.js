@@ -123,5 +123,7 @@ import { LAVATOWER_THEME } from './theme_lavatower.js'; THEMES.lavatower ??= LAV
 import { LAVAMACHINE_THEME } from './theme_lavamachine.js'; THEMES.lavamachine ??= LAVAMACHINE_THEME;
 import { REEF_THEME } from './theme_reef.js'; THEMES.reef ??= REEF_THEME;
 import { VOLCANO_THEME } from './theme_volcano.js'; THEMES.volcano ??= VOLCANO_THEME;
+// Welt 8 „Brummbär-Rummelplatz“ (Motor und Bausteine Welt 8) und der Abspann: nur eintragen, wenn das Thema nicht schon anders registriert ist
+import { ABSPANN_THEME } from './theme_abspann.js'; THEMES.abspann ??= ABSPANN_THEME;
 
 export function getTheme(name) { return THEMES[name] ?? THEMES.grass; }

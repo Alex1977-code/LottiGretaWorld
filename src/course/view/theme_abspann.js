@@ -1,0 +1,25 @@
+// Thema `abspann` (Abspann nach dem Finale, src/course/CreditsScene.js): Sommerabend auf einer Wiese – tiefblauer Himmel oben,
+// rosa-goldener Horizont, tiefstehende warme Sonne, zarte Abendwolken, grüne Hügel. Gelände: sattes Abendgras. Auch als
+// ?theme=abspann für Level-Vorschau. Registriert in view/themes.js (eine Zeile).
+export const ABSPANN_THEME = {
+  label: 'Abendwiese',
+  sky: [[1, 0x1a2a6a], [0.5, 0x3a4a9a], [0.22, 0x9a6ab8], [0.08, 0xff9ab0], [0.02, 0xffc88a], [0, 0xffd8a0], [-0.1, 0xe8a888], [-1, 0x8a6a7a]],
+  background: 0xf0b8a0,
+  fog: { color: 0xf0c0a8, near: 60, far: 240 },
+  hemi: { sky: 0xffd8c8, ground: 0x6a8a4a, intensity: 1.2 },
+  sun: { color: 0xffc890, intensity: 2.3, dir: [-0.55, 0.55, 0.6] },
+  shadows: true,
+  sunDisc: true,
+  clouds: true,
+  backdrop: 'hills',
+  ground: { color: 0x6aae4a, y: -30 },
+  grassTop: 0x6ad04a, grassTop2: 0x5ec442, grassRim: 0x9ae870, grassSide: 0x42a032,
+  dirt: 0xc8884a, dirtDeep: 0x8a5a30, rock: 0x8f8a96, rockDeep: 0x5d5866,
+  checker: false,
+  stone: 0xe9ebf2, stoneDark: 0xb7bac6,
+  wood: 0xf6f4ef, woodDark: 0xc9ccd6,
+  climb: 0xf0d9a8, climbDark: 0xc9a46a,
+  water: 0x5ab4e8, waterDeep: 0x2a6ab8,
+  lava: 0xff6a1a,
+  lights: [],
+};
