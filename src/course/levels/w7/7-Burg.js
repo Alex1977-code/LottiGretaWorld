@@ -69,9 +69,9 @@ function build(level) {
   const b = new Bld(), g = new Bld();
   burgFassaden(b, g, [
     [-7, 7, 8, -6, Y], [-1.4, 1.4, -6, -12, Y, 'lx'], [-9, 9, -12, -28, Y], [-2.3, -0.1, -29.1, -31.3, Y], [0.1, 2.3, -31.5, -33.7, Y],
-    [-6, 6, -34, -46, Y, 'lx'], [-1.4, 1.4, -46, -50, Y, 'lx'], [-10, 10, -50, -60, Y], [-4.4, -2.6, -63.4, -65.2, Y - 0.5, 'fxlb'],
+    [-6, 6, -34, -46, Y, 'lx'], [-1.4, 1.4, -46, -50, Y, 'lx'], [-10, 10, -50, -60, Y], [-4.6, -2.4, -63.0, -65.4, Y - 0.5, 'fxlb'],
     [-9, 9, -73, -92, Y, 'lx'], [-3.6, 3.6, -92, -112, Y, 'lx'], [-8, 8, -112, -124, Y, 'lx'], [-1.1, 1.1, -124, -150, Y, 'lx'], [-8, 8, -150, -164, Y],
-    [-12.4, -10.4, 0.2, -5.2, Y + 9.5, 'fxlb'], [-7.8, -7, -0.4, -5.2, Y + 7, 'fl'],
+    [-12.4, -10.4, 0.6, -5.2, Y + 9.5, 'fxlb'], [-7.8, -7, -1.0, -5.2, Y + 7, 'fl'], [-10.4, -7.8, 0.4, -4.4, Y - 1.4, 'f'],
   ], LAVA, rnd);
   kacheln(b, -7, 7, 8, -6, Y + 0.005, [0x9a8484, 0x7a6466], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, 8, -6]] });
   kacheln(b, -9, 9, -12, -28, Y + 0.005, [0x9a8484, 0x7a6466], rnd, { cell: 1.4, avoid: [[-1.1, 1.1, -12, -28], [3.6, 6.6, -23, -26]] });
@@ -170,8 +170,9 @@ export const LEVEL = {
     { type: 'lavaspiegel', id: 'strassensee', mode: 'fest', pos: [0, -4.5, -300], size: [90, RL + 4.5, 232], low: RL },
     // ================================================================ A Start, Wandsprung-Schacht (Stern 0)
     cast(-7, 7, 8, -6),
-    cast(-12.4, -10.4, 0.2, -5.2, Y + 9.5),     // äußerer Mauerpfeiler (hoch)
-    cast(-7.8, -7, -0.4, -5.2, Y + 7),          // innerer Mauerpfeiler (oben Stern 0)
+    cast(-12.4, -10.4, 0.6, -5.2, Y + 9.5),     // äußerer Mauerpfeiler (hoch)
+    cast(-7.8, -7, -1.0, -5.2, Y + 7),          // innerer Mauerpfeiler (oben Stern 0)
+    cast(-10.4, -7.8, 0.4, -4.4, Y - 1.4),      // Fels unten im Schacht (Absprung für die Wandsprünge)
     sign(3.8, Y, 4.8, 'Glutfeste', { yaw: -0.2 }),
     // ================================================================ B Vorhof
     cast(-1.4, 1.4, -6, -12),
@@ -185,7 +186,7 @@ export const LEVEL = {
     cast(6.6, 10.4, -60, -62),                   // Wachturm-Sockel im Graben
     { type: 'megawall', id: 'turmwand', pos: [8.5, Y, -54], size: [2, 3, 1], onBreak: { sfx: 'gate' } },
     sign(4.2, Y, -51, 'Kickbombe an die Wand!', { size: [3, 1], yaw: -0.3 }),
-    cast(-4.4, -2.6, -63.4, -65.2, Y - 0.5),      // Trittstein im Graben (zum Wandsprung-Schacht vor der Brücke)
+    cast(-4.6, -2.4, -63.0, -65.4, Y - 0.5),      // Trittstein im Graben (zum Wandsprung-Schacht vor der Brücke)
     { type: 'zugbruecke', id: 'bruecke', pos: [0, Y, -68], length: 8, width: 3.8, thick: 0.4, dir: [0, 1], state: 'oben', time: 2.5, style: 'holz' },
     cast(-12, 12, -68, -73),
     // ================================================================ D Wachbereich
@@ -291,7 +292,7 @@ export const LEVEL = {
   ],
   checkpoint: [{ pos: [0, Y, -77], yaw: Math.PI / 2 }, { pos: [0, Y, -204], yaw: Math.PI / 2 }],
   stars: [
-    [-7.55, Y + 7, -2.8],                // 0: oben auf dem inneren Mauerpfeiler (Wandsprung über der Lava)
+    [-7.55, Y + 7, -3.1],                // 0: oben auf dem inneren Mauerpfeiler (Wandsprung über der Lava)
     [0, Y + 8.1, -67.8],                 // 1: oben auf der hochgezogenen Zugbrücke
     [16.2, Y + 0.9, -84.5],              // 2: unter dem Gitter-Vordach über der Lava (Wurfsichel)
   ],

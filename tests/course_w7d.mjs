@@ -208,6 +208,40 @@ const ROUTES = {
       { expect: 'siegerplateau' },
       { name: 'Zielmast', to: [0, -392.4], within: 0.2 },
     ],
+    targets: [
+      { name: 'Stern 0: nahe dem Start per Wandsprung zwischen den Mauerpfeilern über der Lava', star: 0, from: [-5, 2, 5],
+        legs: [{ to: [-5.4, 0.1], within: 0.3, run: false }, { wait: 10 }, { to: [-8.9, 0.0], jump: 16, jumpAt: 2.6, within: 0.5, run: false }, { expect: 'schachtfels' }, { to: [-9.1, -3.0], within: 0.3, run: false },
+          { walls: { axis: 'x', a: -10.4, b: -7.8, mid: -3.1, goal: 'b' }, start: [-9.1, -3.1], top: 9, goal: [-7.4, -3.1] }, { wait: 30 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht mit dem Dreifachsprung vom Vorplatz', star: 0, expectNot: true, from: [6, 2, 5], heroes: ['lotti'],
+        legs: [{ to: [0, 3.4], jump: 12, jumpAt: 5.8, within: 0.4, run: true, land: true }, { to: [-3.4, 1.0], jump: 30, within: 0.4, run: true, land: true },
+          { to: [-6.9, -2.8], jump: 40, within: 0.3, run: true, max: 200 }, { wait: 60 }] },
+      { name: 'Stern 1: oben auf der hochgezogenen Zugbrücke – Wandsprung zwischen Grabengitter und Brücke', star: 1, from: [-3.5, 2, -55],
+        legs: [{ to: [-3.5, -64.2], jump: 24, jumpAt: 5.4, within: 0.6, run: false }, { expect: 'trittstein' },
+          { walls: { axis: 'z', a: -67.6, b: -65.0, mid: 0 }, start: [-2.9, -64.9], top: 10, goal: [-4.6, -70.4] }, { wait: 30 }], shot: 'stern1' },
+      { name: 'Stern 2: nach dem Kontrollpunkt unter dem Gitter-Vordach über der Lava – Wurfsichel aus dem ?-Block', star: 2, from: [0, 2, -77],
+        legs: [{ to: [-3.4, -79], within: 0.15, run: false }, { hop: 20 }, { to: [-3.4, -75.8], within: 0.3, run: false }, { wait: 20 },
+          { to: [-3.4, -79], jump: 30, jumpAt: 2.1, within: 0.5, run: false }, { expect: 'sichel' },
+          { sichelAt: [16.2, -84.5], from: [8.5, -84.5], stand: true }, { wait: 60 }], shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne Wurfsichel (Weitsprung unter dem Vordach stößt ans Gitter)', star: 2, expectNot: true, from: [1, 2, -84.5], heroes: ['lotti'],
+        legs: [{ to: [17, -84.5], jump: 40, jumpAt: 8.6, within: 0.3, run: true, max: 220, land: false }, { wait: 60 }] },
+      { name: 'Stempel: im Wachturm per Wandsprung über dem Druckknopf (nach der Kickbombe)', stamp: true, from: [8.5, 2, -50.4],
+        legs: [{ bombe: true, at: [8.5, -51.6], done: 'wandWeg' }, { to: [8.5, -58.4], within: 0.3, run: false },
+          { walls: { axis: 'x', a: 9.6, b: 7.4, mid: -59.0 }, start: [8.5, -58.8], top: 7.6, goal: [8.5, -56.4] }, { wait: 40 }], shot: 'stempel' },
+      { name: 'Stempel-Schacht ist hinter der Blockwand verschlossen', stamp: true, expectNot: true, from: [8.5, 2, -50.6], heroes: ['lotti'],
+        legs: [{ to: [8.5, -58], within: 0.3, max: 300, run: false }, { hop: 40 }, { wait: 30 }],
+        mech: (r) => r.pos[2] > -53.8, mechText: (r) => `z ${r.pos[2].toFixed(2)}` },
+    ],
+    extra: [
+      { name: 'Druckknopf schaltet um: nochmal drücken hebt die Zugbrücke wieder (Stern 1 bleibt erreichbar)', from: [8.5, 2, -50.4], heroes: ['lotti'],
+        legs: [{ bombe: true, at: [8.5, -51.6], done: 'wandWeg' }, { to: [8.5, -58.2], within: 0.4, run: false }, { to: [8.5, -60.2], jump: 20, within: 0.5, run: false },
+          { until: 'brueckeUnten', max: 600 }, { to: [8.5, -57.6], within: 0.3, run: false }, { wait: 200 }, { to: [8.5, -60.2], jump: 20, within: 0.5, run: false }, { until: 'brueckeOben', max: 600 }],
+        mech: (r) => r.mech.bridge === 'oben', mechText: (r) => `Brücke ${r.mech.bridge}` },
+      { name: 'Zugbrücke bleibt oben ohne Druckknopf (Graben 8 m)', from: [0, 2, -55], heroes: ['lotti'], expectAlive: false, allowFail: true,
+        legs: [{ to: [0, -70], jump: 40, jumpAt: 4.4, within: 0.4, run: true, max: 260 }, { wait: 30 }],
+        mech: (r) => r.dead || r.pos[2] > -67.5, mechText: (r) => (r.dead ? 'in der Lava' : `z ${r.pos[2].toFixed(1)}`) },
+      { name: 'Extraleben: unsichtbarer Block auf der Hammer-Bühne', from: [6.4, 2, -160], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [6.4, -162], within: 0.15, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+    ],
     routeChecks: [
       { name: 'Blockwand mit einer Kickbombe der Burgkanone gesprengt, Zugbrücke per Druckknopf gesenkt', ok: (r) => r.mech.wall && r.mech.bridge === 'unten' },
       { name: 'Baron im Kampfwagen besiegt (9 Treffer aus zurückgekickten Bomben und Wurfsichel-Kratzern, über alle Lavalücken)', ok: (r) => r.mech.boss?.state === 'gone' && r.mech.boss.hits >= 9 && r.mech.boss.bombHits + r.mech.boss.sichelTreffer === r.mech.boss.hits && r.mech.boss.gapJumps >= 3 },
@@ -297,6 +331,8 @@ function install() {
     buehne: () => at(-8.5, 8.5, 1.5, -149.8, -164.2),
     bossStart: () => at(-7.5, 7.5, 1.5, -197.5, -212),
     siegerplateau: () => at(-8.5, 8.5, 1.5, -377.5, -398.5),
+    trittstein: () => at(-4.8, -2.2, 1, -62.8, -65.6),
+    schachtfels: () => at(-10.6, -7.6, 0.2, 0.6, -4.6),
   };
   const W = {
     place(pos, o = {}) {
@@ -470,9 +506,10 @@ function install() {
           }
           let thrown = false;
           for (let n = 0; n < 120 && !p.dead; n++, k++) {
-            const act = !thrown && p.mode === 'air' && p.pos.y >= (Lg.feet ?? 0) && p.vel.y <= (Lg.vy ?? 0.8);   // am Scheitel werfen
+            const act = Lg.stand ? !thrown && p.mode === 'ground' && n > 4
+              : !thrown && p.mode === 'air' && p.pos.y >= (Lg.feet ?? 0) && p.vel.y <= (Lg.vy ?? 0.8);   // am Scheitel werfen
             if (act) thrown = true;
-            tick({ jump: n < 30, action: act });
+            tick({ jump: !Lg.stand && n < 30, action: act });
           }
           for (let n = 0; n < 400 && L.entities.some((e) => e.kind === 'wurfsichel' && !e.removed); n++, k++) tick({});
           log.push(['wurfsichel', thrown, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
@@ -504,6 +541,65 @@ function install() {
           mech.boss = r;
           log.push(['baron', r.state, `Treffer ${r.hits} (Bomben ${r.bombHits}, Wurfsichel ${r.sichelTreffer} aus ${r.sichelHits} Kratzern)`, `Lückensprünge ${r.gapJumps}`, `${r.time} s`]);
           if (r.state !== 'gone') { log.push(['FEHLER: Baron nicht besiegt', r.hp]); break; }
+          continue;
+        }
+        // ------------------------------------------------ Wandsprung-Schacht: zwischen zwei parallelen Wänden hinauf
+        // { walls: { axis: 'x'|'z', a, b, mid, lo, hi }, start: [x, z] (Absprung), top (y), goal: [x, z] }
+        // axis 'x': Wandflächen bei x = a und x = b (Schacht entlang z: mid = Schacht-Mitte z); 'z' entsprechend.
+        if (Lg.walls) {
+          const Wl = Lg.walls, ax = Wl.axis === 'x';
+          const u = () => (ax ? p.pos.x : p.pos.z), v = () => (ax ? p.pos.z : p.pos.x);
+          const vec = (du, dv) => (ax ? this.stick(du, dv, 1) : this.stick(dv, du, 1));
+          let k = 0, wj = 0, toward = Math.abs(u() - Wl.a) > Math.abs(u() - Wl.b) ? Wl.a : Wl.b, top = false, held = false;
+          for (; k < (Lg.max ?? 1200) && !p.dead; k++) {
+            if (p.pos.y > Lg.top - 0.4) top = true;
+            if (top) {
+              const [gx, gz] = Lg.goal, dx = gx - p.pos.x, dz = gz - p.pos.z, d = Math.hypot(dx, dz);
+              if (p.mode === 'ground' && d < 0.5) break;
+              if (p.mode === 'wall') {
+                const gW = Wl.goal === 'b' ? Wl.b : Wl.goal === 'a' ? Wl.a : null;
+                const atGoalWall = gW !== null && Math.abs(toward - gW) < 0.01;
+                // an der Gegenwand zu hoch: abrutschen lassen, bis der Bogen zur Zielwand passt
+                if (gW !== null && !atGoalWall && p.pos.y > Lg.top - (Wl.slide ?? 1.4)) { held = false; tick({}); continue; }
+                if (held) { held = false; tick({}); } else { held = true; wj++; toward = Math.abs(toward - Wl.a) < 0.01 ? Wl.b : Wl.a; tick({ jump: true }); }
+                continue;
+              }
+              tick({ ...(p.mode === 'air' ? this.airSteer(gx, gz, 0, 0, 4, 7) : this.stick(dx, dz, Math.min(1, d))), run: false });
+              continue;
+            }
+            if (p.mode === 'ground') {
+              const [sx, sz] = Lg.start, dx = sx - p.pos.x, dz = sz - p.pos.z, d = Math.hypot(dx, dz);
+              if (d > 0.25 && k < 200) { tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.3, d))), run: false }); continue; }
+              // vom Absprung schräg in den Schacht: zur Wand toward
+              const du = toward - u(), dv = Wl.mid - v();
+              tick({ ...vec(du, dv), jump: true, run: false });
+              continue;
+            }
+            const goalW = Wl.goal === 'b' ? Wl.b : Wl.goal === 'a' ? Wl.a : null;
+            if (p.mode === 'wall') {
+              const next = Math.abs(toward - Wl.a) < 0.01 ? Wl.b : Wl.a;
+              // zur Zielwand erst abspringen, wenn der Bogen knapp über ihre Oberkante reicht (sonst etwas abrutschen)
+              if (goalW !== null && Math.abs(next - goalW) < 0.01 && p.pos.y > Lg.top - (Wl.slide ?? 1.4)) { held = false; tick({}); continue; }
+              // Sprungtaste neu drücken (loslassen, dann drücken) → Wandsprung zur anderen Wand
+              if (held) { held = false; tick({}); continue; }
+              wj++; toward = next; held = true; tick({ jump: true }); continue;
+            }
+            if (goalW !== null && Math.abs(toward - goalW) < 0.01 && p.pos.y > Lg.top - 0.9 && (p.lockTime ?? 0) <= 0) {
+              const [gx, gz] = Lg.goal;
+              held = false;
+              tick(this.airSteer(gx, gz, 0, 0, 4, 7));
+              continue;
+            }
+            // Sprungtaste nur halten, solange es noch weit bis oben ist (variable Höhe: nicht übers Ziel hinaus)
+            const hj = p.pos.y < Lg.top - (Lg.release ?? 2.2);
+            held = hj;
+            if ((p.lockTime ?? 0) > 0) { tick({ jump: hj }); continue; }
+            const du = toward - u(), dv = (Wl.mid - v()) * 2;
+            tick({ ...vec(du, dv), jump: hj });
+          }
+          for (let i = 0; i < 40 && !p.dead; i++) tick({});
+          mech.wallJumps = (mech.wallJumps ?? 0) + wj;
+          log.push(['wandsprünge', wj, top, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
           continue;
         }
         // ------------------------------------------------ Schubser in Richtung dir vom Schiff stoßen (Anlauf von der Gegenseite)
