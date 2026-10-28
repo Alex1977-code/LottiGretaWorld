@@ -14,14 +14,15 @@
 //     mood: Stimmung des Themas beim Start (z. B. 'flucht' im Thema lavatower), visible: false (vor dem Start zeigen) }
 //   level.named.get(id) = { state ('wartet'|'verzoegert'|'jagt'|'ende'), front (m ab Start entlang dir), frontPos → {x,y,z},
 //                           start(), stop(), reset(), inside(fig) → bool, kills, resets, info() }; w7(level).fogs
-//   Modell aus der Registry 'giftnebel_wand' ({ width, height, color }, Ursprung Mitte der Front, Nebel hinter −X, Front
-//   blickt +X; state { t }) – sonst eigene Nebelwand (Shader) mit wabernden Wolken an der Front.
+//   Der Nebelkörper (durchscheinender Shader) hinter der Front ist immer eigen; die Front zeigt das Registry-Modell
+//   'giftnebel_wand' (gimmicks_w7.js; facing 'vorn' { width = a, height = b, depth ≤ 2,5 } im Front-Rahmen, bei dir 'down'
+//   facing 'unten' { width = b, depth = a, height ≤ 3 }; state { density }, dünner, wenn die Kamera im Nebel ist) – sonst eigene Wolkenkarten (look: 'eigen').
 
 import * as THREE from 'three';
 import { v3, addObject } from '../kit.js';
 import { visDt } from '../../entities/gimmick.js';
 import { hasModel, getModel } from '../../models/index.js';
-import { w7, figures, w7Sfx, onRespawn, clamp, TAU } from '../w7kit.js';
+import { w7, figures, onRespawn, clamp, TAU } from '../w7kit.js';
 
 const DIRS = { down: [0, -1, 0], up: [0, 1, 0], '-z': [0, 0, -1], '+z': [0, 0, 1], '-x': [-1, 0, 0], '+x': [1, 0, 0] };
 const COLORS = { lila: { fog: 0x8a3ac8, hi: 0xd89aff, puff: 0xa85ae0 }, gruen: { fog: 0x4aa83a, hi: 0xc8ff8a, puff: 0x6ac85a } };
@@ -56,7 +57,7 @@ export function buildGiftnebel(level, spec) {
     return a < st.front - 0.15 && (depth <= 0 || a > st.front - depth);
   };
   const frontPos = () => ({ x: o.x + D[0] * st.front, y: o.y + D[1] * st.front, z: o.z + D[2] * st.front });
-  const go = () => { if (st.state === 'wartet') { st.state = 'verzoegert'; st.waitT = 0; w7Sfx(level, 'nebel'); if (spec.mood) level.view?.setMood?.(spec.mood, { time: 1.2 }); } };
+  const go = () => { if (st.state === 'wartet') { st.state = 'verzoegert'; st.waitT = 0; level.sfx('wind'); if (spec.mood) level.view?.setMood?.(spec.mood, { time: 1.2 }); } };
   const handle = {
     get state() { return st.state; }, get front() { return st.front; }, get frontPos() { return frontPos(); },
     get kills() { return st.kills; }, get resets() { return st.resets; },
@@ -149,10 +150,21 @@ export function buildGiftnebel(level, spec) {
   body.renderOrder = 4;
   const frontG = new THREE.Group();
   frontG.add(body);
-  let model = null;
-  if (hasModel('giftnebel_wand')) {
-    model = getModel('giftnebel_wand', { width: sa, height: sb, color: spec.color ?? 'lila' });
-    frontG.add(model.root);
+  let model = null, modelFree = false;
+  if (hasModel('giftnebel_wand') && spec.look !== 'eigen') {
+    // Modell (gimmicks_w7.js): weiche Nebelkarten mit Wulst und Giftbläschen, Ursprung Mitte der Front (unten).
+    // Von oben ('down'): facing 'unten' frei in der Welt (Breite entlang Z = b-Achse, Tiefe entlang X = a-Achse);
+    // sonst facing 'vorn' im Front-Rahmen (lokal +X = Laufrichtung, y = b-Achse, z = a-Achse)
+    const color = spec.color === 'gruen' ? 'gruen' : 'lila';
+    if (dk === 'down') {
+      model = getModel('giftnebel_wand', { width: sb, height: Math.min(bodyLen, 3), depth: sa, facing: 'unten', color });
+      root.add(model.root);
+      modelFree = true;
+    } else {
+      model = getModel('giftnebel_wand', { width: sa, height: sb, depth: Math.min(bodyLen, 2.5), facing: 'vorn', color });
+      model.root.position.y = -sb / 2;
+      frontG.add(model.root);
+    }
   }
   const np = model ? 0 : Math.max(0, spec.puffs ?? 30);
   let puffs = null;
@@ -185,7 +197,12 @@ export function buildGiftnebel(level, spec) {
     frontG.updateMatrixWorld();
     const visible = st.state !== 'wartet' || spec.visible === true;
     root.visible = visible;
-    model?.update?.(d, { t });
+    if (modelFree) model.root.position.set(fp.x, fp.y, fp.z);
+    if (model) {
+      // Kamera im Nebel dicht hinter der Front: Schwaden ausdünnen (sonst stehen Nebelkarten direkt vor der Kamera)
+      const ac = (cam.position.x - o.x) * D[0] + (cam.position.y - o.y) * D[1] + (cam.position.z - o.z) * D[2] - st.front;
+      model.update?.(d, { density: ac < 0 ? Math.min(1, Math.max(0.25, (-ac - 3.5) / 3)) : 1 });
+    }
     if (!puffs) return;
     // Ausrichtung zur Kamera im lokalen Raum der Front
     frontG.getWorldQuaternion(_qc).invert().multiply(cam.quaternion);

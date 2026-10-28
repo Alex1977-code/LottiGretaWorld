@@ -9,8 +9,9 @@
 //     warn: 0.6 (s Brodeln vorher), to: [x, z] (Bogen; Standard senkrecht), color: 'rot' | 'blau' (Standard: Lava dort),
 //     size: 1 (Faktor), count: 1, spacing: 1.6, dir: [1, 0], stagger: 0.12, follow: true (Lava folgen), id }
 //   Zustände: unten (unsichtbar, harmlos) | warn (brodelt) | oben (fliegt). Laufzeit: jumps, height(), info().
-//   Modell 'lavablase' ({ color }, state { anim: 'rise' | 'fall' | 'idle' | 'defeated', warn }) – sonst 'glutball' (Welt 5)
-//   bzw. eigene Feuerkugel mit Augen.
+//   Modell 'lavablase' ({ color, size }, Ursprung Lava-Oberfläche bzw. Tropfen-Unterkante; state { anim: 'hidden' (unten) |
+//   'swell' (Vorwarnung, grow 0..1) | 'jump' | 'fall' }) – sonst 'glutball' (Welt 5, state { anim: 'rise'|'fall'|'idle'|
+//   'defeated' }) bzw. eigene Feuerkugel mit Augen.
 //
 // wurfsichel – Geschoss des Power-ups Wurfsichel (player/powers/sichel.js; nicht in Level-Daten): fliegt in Blickrichtung
 //   (14 m/s) mit leichtem Bogen bis range m (oder bis zur ersten Wand) und kehrt zur Werferin zurück (fliegt dabei durch
@@ -44,7 +45,7 @@ import { CourseEntity } from '../CourseEntity.js';
 import { EnemyW2 } from '../EnemyW2.js';
 import { Gimmick, runAction, contentAction, visDt, playerOn } from '../gimmick.js';
 import { getModel, hasModel } from '../../models/index.js';
-import { lavaTopAt, lavaColorAt, fireBallGeo, fireMaterial, w7Sfx, TAU } from '../../blocks/w7kit.js';
+import { lavaTopAt, lavaColorAt, fireBallGeo, fireMaterial, TAU } from '../../blocks/w7kit.js';
 import { buildFeuerstab, buildLavaFontaene } from '../../blocks/types/w7_fire.js';
 import { buildLavaspiegel, buildGitterboden } from '../../blocks/types/w7_lava.js';
 import { buildPfeilplattform, buildZylinder, buildStachelwalzeRot } from '../../blocks/types/w7_platforms.js';
@@ -59,8 +60,8 @@ const G = 38;
 // =====================================================================================================================
 
 function blaseModel(color, size) {
-  if (hasModel('lavablase')) return { m: getModel('lavablase', { color }), own: false };
-  if (hasModel('glutball')) return { m: getModel('glutball', { color }), own: false };
+  if (hasModel('lavablase')) return { m: getModel('lavablase', { color, size }), own: false, reg: 'lavablase' };
+  if (hasModel('glutball')) return { m: getModel('glutball', { color }), own: false, reg: 'glutball' };
   // eigene: glühende Kugel mit großen Augen (Kopf = +Y)
   const root = new THREE.Group();
   const inner = new THREE.Group();
@@ -111,8 +112,9 @@ class Lavablase extends EnemyW2 {
     this.warnK = 0;
     this.headDown = false;
     if (level.view) {
-      const { m, own, inner } = blaseModel(this.color, k);
+      const { m, own, inner, reg } = blaseModel(this.color, k);
       this.ownLook = own;
+      this.regName = reg ?? null;
       this.inner = inner ?? null;
       this.setModel(m);
       this.model.root.visible = false;
@@ -145,7 +147,7 @@ class Lavablase extends EnemyW2 {
       if (this.state !== 'oben') {
         this.setState('oben'); this.jumps++;
         this.level.effects?.sparks({ x: A.x, y: this.base.y + 0.2, z: A.z }, 5);
-        if (this.level.player && Math.hypot(this.level.player.pos.x - A.x, this.level.player.pos.z - A.z) < 12) w7Sfx(this.level, 'lava_blub');
+        if (this.level.player && Math.hypot(this.level.player.pos.x - A.x, this.level.player.pos.z - A.z) < 12) this.level.sfx('blase');
       }
       this.pos.set(A.x + (B.x - A.x) * u, this.base.y + Math.max(-0.7, y) - this.half.y, A.z + (B.z - A.z) * u);
       this.vel.y = this.v0 - this.g * ft;
@@ -181,6 +183,13 @@ class Lavablase extends EnemyW2 {
   }
 
   modelState() {
+    if (this.regName === 'lavablase') {
+      // Modell 'lavablase' (Welt 7): versteckt in der Lava, schwillt bei der Vorwarnung an, springt als Tropfen
+      if (this.state === 'flipped') return { anim: 'fall' };
+      if (this.state === 'warn') return { anim: 'swell', grow: this.warnK };
+      if (this.state === 'oben') return { anim: this.vel.y > 0 ? 'jump' : 'fall' };
+      return { anim: 'hidden' };
+    }
     if (this.state === 'flipped') return { anim: 'defeated' };
     return { anim: this.state === 'oben' ? (this.vel.y > 0 ? 'rise' : 'fall') : 'idle', warn: this.warnK };
   }
@@ -189,7 +198,11 @@ class Lavablase extends EnemyW2 {
     if (!this.model) return;
     super.syncModel();
     const up = this.state === 'oben' || this.state === 'flipped';
-    this.model.root.visible = up;
+    if (this.regName === 'lavablase') {
+      // Ursprung = Lava-Oberfläche (Blase) bzw. Unterkante des Tropfens (= Fußpunkt pos)
+      this.model.root.visible = up || this.state === 'warn';
+      if (!up) this.model.root.position.set(this.pos.x, this.base.y, this.pos.z);
+    } else this.model.root.visible = up;
     if (this.ownLook && this.inner) this.inner.rotation.z = this.headDown ? Math.PI : 0;
     if (this.warnMesh) {
       const w = this.state === 'warn' ? this.warnK : 0;
@@ -339,7 +352,7 @@ export class Wurfsichel extends CourseEntity {
   catchBy(o) {
     this.caught = true;
     o.sichelCatch = (o.sichelCatch ?? 0) + 1;
-    w7Sfx(this.level, 'sichel_fang');
+    this.level.sfx('grab');
     this.kill();
   }
 
@@ -375,7 +388,7 @@ export class Wurfsichel extends CourseEntity {
       this.hitSet.add(e);
       this.hits++;
       this.lastHit = e.kind;
-      w7Sfx(L, 'sichel_treffer');
+      L.sfx('bump');
       L.effects?.sparks(c, 8);
     }
     for (const gg of L.w6?.gongs ?? []) {
@@ -430,7 +443,7 @@ class Druckknopf extends Gimmick {
     const s = this.base;
     s.max = [s.x1, this.pos.y + 0.2, s.z1];
     if (this.shapes.length) this.level.world.update(this.shapes[0]);
-    w7Sfx(this.level, 'knopf');
+    this.level.sfx('switch');
     this.level.sfx('slam');
     this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + 0.5, z: this.pos.z }, 12);
     runAction(this.level, this.spec.onPress, { pos: [this.pos.x, this.pos.y + 0.6, this.pos.z], source: this, via });
@@ -477,7 +490,8 @@ class KisteWasser extends Gimmick {
     const p = this.pos;
     this.addSolid({ type: 'box', min: [p.x - s / 2, p.y, p.z - s / 2], max: [p.x + s / 2, p.y + s, p.z + s / 2], breakable: true, tag: 'kiste_wasser' });
     this.breakT = 0;
-    if (level.view) this.setModel(hasModel('zerbrechliche_kiste') ? getModel('zerbrechliche_kiste', { size: s }) : getModel('crate', { size: s }));
+    this.regLook = hasModel('zerbrechliche_kiste');
+    if (level.view) this.setModel(this.regLook ? getModel('zerbrechliche_kiste', { size: s }) : getModel('crate', { size: s }));
   }
 
   onHit(kind, source) {
@@ -498,7 +512,7 @@ class KisteWasser extends Gimmick {
     this.removeShapes();
     this.solids.length = 0;
     const c = { x: this.pos.x, y: this.pos.y + this.size / 2, z: this.pos.z };
-    w7Sfx(this.level, 'kiste');
+    this.level.sfx('brickbreak');
     this.level.effects?.debris(c, 0xb8864a, 10);
     this.level.effects?.splash?.(c, c.y + 0.5);
     runAction(this.level, this.content, { pos: [c.x, c.y + 0.3, c.z], source: this, via: by });
@@ -521,10 +535,10 @@ class KisteWasser extends Gimmick {
 
   render(dt, t) {
     super.render(dt, t);
-    if (this.broken && this.model) { const k = Math.max(0.01, this.breakT / 0.35); this.model.root.scale.set(1 + (1 - k) * 0.4, k, 1 + (1 - k) * 0.4); }
+    if (this.broken && this.model && !this.regLook) { const k = Math.max(0.01, this.breakT / 0.35); this.model.root.scale.set(1 + (1 - k) * 0.4, k, 1 + (1 - k) * 0.4); }
   }
 
-  modelState() { return { break: this.broken ? 1 - this.breakT / 0.35 : 0, anim: this.broken ? 'break' : 'idle' }; }
+  modelState() { return { break: this.broken ? Math.min(1, 1 - this.breakT / 0.35) : 0, anim: 'idle' }; }
 
   info() { return { broken: this.broken, by: this.by ?? null }; }
 }

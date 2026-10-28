@@ -18,8 +18,6 @@
 // Modelle: 'wurfsichel_item' (Item), 'wurfsichel_geschoss' (fliegende Sichel, state { spin }), 'wurfsichel_kostuem'
 // (Kostüm-Teil, übernimmt der Figuren-Agent).
 
-import { w7Sfx } from '../../blocks/w7kit.js';
-
 export const SICHEL_MAX = 1;
 export const SICHEL_COOLDOWN = 0.2;
 
@@ -52,7 +50,7 @@ export const POWERS = {
       level.spawn('wurfsichel', { pos: [player.pos.x + f.x * 0.5, y, player.pos.z + f.z * 0.5], dir: [f.x, f.z], owner: player });
       player.sichelFlying = flying(player);
       player.sichelReady = false;
-      w7Sfx(level, 'sichel_wurf');
+      level.sfx('boomerang');
       return true;
     },
     /** HUD-Symbol: goldene Sichel (Bogen) mit rosa Blütenpunkt; blass, solange sie fliegt. */

@@ -14,7 +14,7 @@
 //   killFigures(level, test, cause) jede aktive Figur mit test(f) → f.die(cause)
 //   rotXZ(lx, lz, yaw), flatColor(g, hex), shadeGeo(g, lo, hi), pulse(t, k), shove(level, obj, dx, dy, dz, ignore)
 //   fireMaterial(level), fireBallGeo()   gemeinsames Feuer-Material (unbeleuchtet, glühend) und Kugel-Geometrie
-//   w7Sfx(level, name)              Klang mit Ersatz (eigener Effekt, sobald es ihn in src/audio gibt)
+//   Klänge: die Bausteine spielen vorhandene Effekte direkt (level.sfx; Liste in der Präzisierung Welt 7)
 //   onRespawn(level, fn)            nach jedem Neustart am Checkpoint fn() (Lava zurück, Nebel zurück …)
 //   ease(u), clamp(v, a, b)
 
@@ -22,7 +22,6 @@ import * as THREE from 'three';
 import { figures } from './w2kit.js';
 import { modelOr } from './w5kit.js';
 import { rotXZ, flatColor, shadeGeo, pulse, shove } from './w6kit.js';
-import { engine } from '../../audio/index.js';
 
 export { figures, modelOr, rotXZ, flatColor, shadeGeo, pulse, shove };
 
@@ -138,23 +137,6 @@ export function fireBallGeo(color = 'rot') {
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   BALL[color] = g;
   return g;
-}
-
-// ------------------------------------------------------------------ Klänge
-
-// Welt-7-Namen auf vorhandene Effekte abbilden (src/audio/sfx.js) – sobald der Audio-Agent einen Namen als eigenen
-// Effekt anlegt, gilt dieser.
-const SFX7 = {
-  sichel_wurf: 'swoop', sichel_fang: 'select', sichel_treffer: 'blockhit', feuer: 'fireball', lava_blub: 'splash_big',
-  lava_steigt: 'hover', fontaene: 'splash_big', fontaene_warn: 'hover', rumble: 'land', klapp: 'slam', bruecke: 'gate',
-  kiste: 'brickbreak', knopf: 'switch', nebel: 'ghost', pfeil: 'blockhit', walze: 'step', pendel: 'swoop',
-};
-let sfxNames = null;
-/** Effekt abspielen: eigener Name, falls vorhanden, sonst Ersatz aus SFX7. */
-export function w7Sfx(level, name) {
-  if (!level?.sfx) return;
-  if (!sfxNames) sfxNames = new Set(engine.effects?.names ?? []);
-  level.sfx(SFX7[name] && !sfxNames.has(name) ? SFX7[name] : name);
 }
 
 // ------------------------------------------------------------------ Zeitpläne

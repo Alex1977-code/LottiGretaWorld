@@ -13,8 +13,10 @@
 //     'star:I' | Aktion), lift: 0 (m), liftSpeed: 2.5 (m/s), onLift: Aktion (oben angekommen), idle: false, hidden }
 //   level.named.get(id) = { angle, hits, lifted, liftH, used, start(), stop(), reveal(), hide(), points() → [{x,y,z}],
 //                           info() }; w7(level).bars
-//   Modell aus der Registry 'feuerstab' ({ length, arms, spacing, radius, block }, Ursprung Fußpunkt des Blocks, Stab
-//   entlang +X bei state.angle 0; state { angle, lift }) – sonst eigene Feuerkugeln (eine Instanz-Gruppe je Stab).
+//   Modell aus der Registry 'feuerstab' (models/kinds/gimmicks_w7.js; { length: (length − 1)·spacing, count: length − 1,
+//   arms, plane: 'h' | 'v', color (Lava dort), block: nur beim Stein-Block }, Ursprung Mitte der Unterseite des 1-m-Blocks;
+//   state { angle }) bei size 1 – den ?-Block zeichnet der Baustein selbst (Instanz-Pool wie die Blöcke); look: 'eigen' bzw.
+//   ohne Modell: eigene Feuerkugeln (eine Instanz-Gruppe je Stab).
 //
 // lava_fontaene – Lava-Fontäne aus der Lava (Bauplan 7-7 „Fontänenfeld“). Im Takt: Ruhe → Vorwarnung (die Lava brodelt,
 //   Glutring, kleine Spritzer) → Ausbruch (Säule schießt auf height m) → Halten → Zusammenfallen. mode 'heiss': die Säule
@@ -26,8 +28,8 @@
 //     'nah' (Figur näher als near m), near: 3, color: 'rot' | 'blau' (Standard Lava dort), idle: false }
 //   level.named.get(id) = { state ('ruhe'|'warn'|'steigt'|'oben'|'sinkt'), height (aktuell, m), top (Säulenspitze y),
 //                           eruptions, hits, start(), stop(), fire(), info() }; w7(level).fountains
-//   Modell aus der Registry 'lava_fontaene' ({ radius, height, color }, Ursprung Austritt; state { height, warn }) –
-//   sonst eigene Säule (Lava-Shader) mit Krone und Glutring.
+//   Modell aus der Registry 'lava_fontaene' ({ radius, color }, Ursprung Kratermitte = Austritt; state { height (m), warn
+//   (bool) }) – look: 'eigen' bzw. ohne Modell: eigene Säule (Lava-Shader) mit Krone, Glüh-Hülle und Glutring.
 
 import * as THREE from 'three';
 import { v3, addObject } from '../kit.js';
@@ -36,7 +38,7 @@ import { runAction, contentAction, visDt } from '../../entities/gimmick.js';
 import { blockTemplate } from '../../entities/visuals.js';
 import { hasModel, getModel } from '../../models/index.js';
 import {
-  w7, figures, sphereTouches, hurtFigures, fireMaterial, fireBallGeo, w7Sfx, lavaTopAt, lavaColorAt, lavaMaterial, LAVA_PAL,
+  w7, figures, sphereTouches, hurtFigures, fireMaterial, fireBallGeo, lavaTopAt, lavaColorAt, lavaMaterial, LAVA_PAL,
   glowTexture, clamp, ease, cycle, TAU,
 } from '../w7kit.js';
 
@@ -82,7 +84,7 @@ export function buildFeuerstab(level, spec) {
     onPound() {
       if (blockKind !== 'frage') return;
       if (!st.used) give('pound');
-      if (lift > 0 && !st.lifted) { st.lifted = true; w7Sfx(level, 'rumble'); level.shake(0.2); }
+      if (lift > 0 && !st.lifted) { st.lifted = true; level.sfx('rumble'); level.shake(0.2); }
     },
   };
   function give(via) {
@@ -137,11 +139,12 @@ export function buildFeuerstab(level, spec) {
   const root = new THREE.Group();
   root.name = 'feuerstab';
   let model = null;
-  if (hasModel('feuerstab')) {
-    model = getModel('feuerstab', { length: n, arms, spacing: sp, radius: R, block: blockKind ?? false });
-    model.root.position.set(p.x, p.y, p.z);
-    if (plane === 'x') model.root.rotation.x = Math.PI / 2;
-    else if (plane === 'z') { model.root.rotation.y = Math.PI / 2; model.root.rotation.x = Math.PI / 2; }
+  if (hasModel('feuerstab') && n > 1 && Math.abs(S - 1) < 1e-3 && spec.look !== 'eigen') {
+    // Modell: Kugeln bei r = length·(k+1)/count (k = 0 … count−1) – entspricht unseren Kugeln 1 … n−1 (die erste sitzt im
+    // Block); Block nur beim Stein-Block (den ?-Block zeichnet der Baustein selbst); 'v' = Rad in der X-Y-Ebene
+    model = getModel('feuerstab', { length: (n - 1) * sp, count: n - 1, arms, plane: plane === 'waagerecht' ? 'h' : 'v', color: lavaColorAt(level, p.x, p.z), block: blockKind === 'stein' });
+    model.root.position.set(p.x, pivotY - 0.5, p.z);
+    if (plane === 'z') model.root.rotation.y = Math.PI / 2;
     root.add(model.root);
   }
   let balls = null, glow = null;
@@ -164,7 +167,7 @@ export function buildFeuerstab(level, spec) {
     idx = pool.alloc();
     poolUsed = level.view.pool('block:used', () => blockTemplate('used'), { castShadow: true, capacity: 32 });
     idxUsed = poolUsed.alloc();
-  } else if (blockKind && !model) {
+  } else if (blockKind && !(model && blockKind === 'stein')) {
     poolUsed = level.view.pool('block:used', () => blockTemplate('used'), { castShadow: true, capacity: 32 });
     idxUsed = poolUsed.alloc();
   }
@@ -193,7 +196,7 @@ export function buildFeuerstab(level, spec) {
       pillarMesh.scale.y = Math.max(0.01, st.liftH);
       pillarMesh.position.set(p.x, p.y + st.liftH / 2, p.z);
     }
-    if (model) { model.update?.(d, { angle: st.angle, lift: st.liftH }); return; }
+    if (model) { model.update?.(d, { angle: st.angle }); return; }
     _q.copy(cam.quaternion);
     for (let i = 0; i < pts.length; i++) {
       const q = pts[i];
@@ -263,8 +266,8 @@ export function buildLavaFontaene(level, spec) {
       } else ph = { name: 'ruhe', u: 0 };
     }
     if (ph.name !== st.state) {
-      if (ph.name === 'warn') w7Sfx(level, 'fontaene_warn');
-      if (ph.name === 'steigt') { st.eruptions++; w7Sfx(level, 'fontaene'); level.effects?.sparks({ x: p0.x, y: st.base + 0.3, z: p0.z }, 10); }
+      if (ph.name === 'warn') level.sfx('blase');
+      if (ph.name === 'steigt') { st.eruptions++; level.sfx('splash_big'); level.effects?.sparks({ x: p0.x, y: st.base + 0.3, z: p0.z }, 10); }
     }
     st.state = ph.name;
     st.warnK = ph.name === 'warn' ? ph.u : 0;
@@ -293,8 +296,8 @@ export function buildLavaFontaene(level, spec) {
   root.name = 'lava_fontaene';
   const pal = LAVA_PAL[color === 'blau' ? 'blau' : 'rot'];
   let model = null;
-  if (hasModel('lava_fontaene')) {
-    model = getModel('lava_fontaene', { radius: R, height: H, color });
+  if (hasModel('lava_fontaene') && spec.look !== 'eigen') {
+    model = getModel('lava_fontaene', { radius: R, color });
     root.add(model.root);
   }
   // Säule (eigene Darstellung): offener Zylinder mit Lava-Muster nach oben, oben eine Krone aus Klecksen
@@ -341,7 +344,7 @@ export function buildLavaFontaene(level, spec) {
     ring.scale.set(rs, rs, 1);
     ring.position.y = 0.06;
     if (plateMesh) plateMesh.position.set(mb.pos.x, mb.pos.y, mb.pos.z);
-    if (model) { model.update?.(d, { height: st.h, warn: st.warnK }); return; }
+    if (model) { model.update?.(d, { height: st.h, warn: st.state === 'warn' }); return; }
     const h = st.h;
     col.visible = h > 0.05;
     col.scale.set(1, Math.max(0.01, h), 1);

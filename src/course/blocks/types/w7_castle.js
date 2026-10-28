@@ -11,8 +11,9 @@
 //     schalter: { pos, id, hidden, color } (Druckknopf `druckknopf`, der die Brücke senkt) }
 //   level.named.get(id) = { state ('oben'|'senkt'|'unten'|'hebt'), k (0 oben … 1 unten), open(), lower(), close(), raise(),
 //                           toggle(), start() (= senken), info() }; w7(level).bridges
-//   Modell aus der Registry 'zugbruecke' ({ length, width, thick }, Ursprung Scharnier, liegt gesenkt entlang +X; state
-//   { lower }) – sonst eigene Bohlen.
+//   Modell aus der Registry 'zugbruecke' (gimmicks_w7.js; { length, width, thick, chains, anchor }, Ursprung Scharnier,
+//   liegt gesenkt entlang +X; state { lower = k }; Ketten des Modells laufen zu den eigenen Torpfosten) – sonst eigene
+//   Bohlen und Ketten (look: 'eigen').
 //
 // schaltfelder – Kipp-Schaltfeld-Gruppe, die den Weg sichtbar macht (Bauplan 7-2 „Kipp-Schaltfelder machen den Weg
 //   sichtbar“): Betreten färbt die Felder um (wie switchtiles); ist die Gruppe komplett, erscheinen die Plattformen des
@@ -30,7 +31,7 @@ import { buildSwitchTiles } from './switchtiles.js';
 import { buildAppear } from './appear.js';
 import { visDt, runAction } from '../../entities/gimmick.js';
 import { hasModel, getModel } from '../../models/index.js';
-import { w7, w7Sfx, ease } from '../w7kit.js';
+import { w7, ease } from '../w7kit.js';
 
 // =====================================================================================================================
 // Zugbrücke
@@ -78,8 +79,8 @@ export function buildZugbruecke(level, spec) {
   place();
   const handle = {
     get state() { return st.state; }, get k() { return st.k; },
-    lower() { if (st.k >= 1 && st.dir >= 0) return; st.dir = 1; st.state = 'senkt'; w7Sfx(level, 'bruecke'); },
-    raise() { if (st.k <= 0 && st.dir <= 0) return; st.dir = -1; st.state = 'hebt'; w7Sfx(level, 'bruecke'); },
+    lower() { if (st.k >= 1 && st.dir >= 0) return; st.dir = 1; st.state = 'senkt'; level.sfx('chain'); },
+    raise() { if (st.k <= 0 && st.dir <= 0) return; st.dir = -1; st.state = 'hebt'; level.sfx('chain'); },
     open() { handle.lower(); }, start() { handle.lower(); }, close() { handle.raise(); },
     toggle() { if (st.dir > 0 || st.k >= 1) handle.raise(); else handle.lower(); },
     info: () => ({ state: st.state, k: +st.k.toFixed(3), shape: shape.type }),
@@ -95,7 +96,7 @@ export function buildZugbruecke(level, spec) {
   level.onStep((dt) => {
     if (!st.dir) return;
     st.k = Math.min(1, Math.max(0, st.k + (st.dir * dt) / T));
-    if (st.k >= 1 && st.dir > 0) { st.dir = 0; st.state = 'unten'; level.shake(0.3); level.effects?.dust({ ...W2(0, Ln), y: p.y }, 10, 1.4); w7Sfx(level, 'klapp'); runAction(level, spec.onDown, { pos: [W2(0, Ln / 2).x, p.y, W2(0, Ln / 2).z], source: handle }); }
+    if (st.k >= 1 && st.dir > 0) { st.dir = 0; st.state = 'unten'; level.shake(0.3); level.effects?.dust({ ...W2(0, Ln), y: p.y }, 10, 1.4); level.sfx('slam'); runAction(level, spec.onDown, { pos: [W2(0, Ln / 2).x, p.y, W2(0, Ln / 2).z], source: handle }); }
     if (st.k <= 0 && st.dir < 0) { st.dir = 0; st.state = 'oben'; }
     // Kollision nur bei merklicher Änderung neu setzen
     if (Math.abs(st.k - last) > 0.004 || !st.dir) { last = st.k; place(); }
@@ -110,9 +111,12 @@ export function buildZugbruecke(level, spec) {
   const hinge = new THREE.Group();
   root.add(hinge);
   let model = null;
-  if (hasModel('zugbruecke')) {
-    model = getModel('zugbruecke', { length: Ln, width: W, thick: Th });
-    hinge.add(model.root);
+  const postH = Math.max(3, Ln * 0.75);
+  if (hasModel('zugbruecke') && spec.look !== 'eigen') {
+    // Modell (gimmicks_w7.js): Ursprung Scharnier an der Oberkante, dreht selbst über state { lower } und legt die Ketten
+    // zu den Umlenkrollen (anchor) – die Rollen sitzen an den eigenen Torpfosten
+    model = getModel('zugbruecke', { length: Ln, width: W, thick: Th, chains: spec.posts !== false, anchor: postH - Th - 0.3 });
+    root.add(model.root);
   } else {
     const wood = spec.style === 'eisen' ? [0x5a5a66, 0x9a9aa8] : [0x8a5a34, 0xc8925a];
     const dk = lin(wood[0]), hi = lin(wood[1]), iron = lin(0x3a3a44), ironHi = lin(0x8a8a98);
@@ -138,10 +142,10 @@ export function buildZugbruecke(level, spec) {
   }
   // Torpfosten und Ketten (Ketten: von der Brückenspitze zum Pfosten, je Bild neu gelegt)
   let chains = null;
-  const postH = Math.max(3, Ln * 0.75);
   if (spec.posts !== false) {
     const pg = [];
-    for (const z of [-W / 2 - 0.45, W / 2 + 0.45]) {
+    const pz = model ? W / 2 + 0.3 : W / 2 + 0.45;
+    for (const z of [-pz, pz]) {
       const g = new THREE.BoxGeometry(0.7, postH, 0.7); g.translate(-0.35, postH / 2 - Th, z);
       pg.push(colorize(g.toNonIndexed(), (q, n, o) => mixc(lin(0x4a4250), lin(0x8a8294), smooth(-0.6, 0.9, n.y * 0.5 + 0.4), o)));
       const cap = new THREE.ConeGeometry(0.6, 0.8, 4); cap.rotateY(Math.PI / 4); cap.translate(-0.35, postH - Th + 0.4, z);
@@ -152,7 +156,7 @@ export function buildZugbruecke(level, spec) {
     root.add(posts);
     const cg = new THREE.CylinderGeometry(0.05, 0.05, 1, 5);
     cg.translate(0, 0.5, 0);
-    chains = [-1, 1].map((s) => {
+    if (!model) chains = [-1, 1].map((s) => {
       const m = new THREE.Mesh(cg, new THREE.MeshStandardMaterial({ color: 0x3a3a44, roughness: 0.4, metalness: 0.6 }));
       m.userData.side = s;
       root.add(m);

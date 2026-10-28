@@ -23,14 +23,15 @@
 //     (Maschenweite), bar: 0.07 (Stabbreite), frame: 0.22 (Randbreite, 0 = ohne), style: 'eisen' | 'rost' | 'blau',
 //     lava: false | true | { depth: 2.2 (m unter der Oberseite), color, …lavaspiegel-Felder (mode, high …) } }
 //   level.named.get(id) = { top, lava (Griff des lavaspiegel oder null), info() }; w7(level).grates
-//   Modell aus der Registry 'gitterboden' ({ size: [w, d], thick }, Ursprung Mitte der Unterseite) – sonst eigene Stäbe.
+//   Modell aus der Registry 'gitterboden' (gimmicks_w7.js; Kacheln { size: [w/nx, d/nz], thick } von etwa tile: 2 m, Ursprung
+//   Mitte der Unterseite, gebacken) – sonst eigene Stäbe (look: 'eigen').
 
 import * as THREE from 'three';
 import { v3, sz3, addObject, addStatic, merge, lin, mixc, smooth, colorize } from '../kit.js';
 import { bakeModel } from '../w2kit.js';
 import { visDt } from '../../entities/gimmick.js';
 import { hasModel } from '../../models/index.js';
-import { w7, w7Sfx, lavaMaterial, LAVA_PAL, glowTexture, onRespawn, ease, cycle, clamp } from '../w7kit.js';
+import { w7, lavaMaterial, LAVA_PAL, glowTexture, onRespawn, ease, cycle, clamp } from '../w7kit.js';
 import { themeOf } from '../kit.js';
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3();
@@ -82,7 +83,7 @@ export function buildLavaspiegel(level, spec) {
   level.onStep((dt, time) => {
     if (mode === 'zyklus') {
       const ph = plan.at(time);
-      if (ph.name !== st.state && ph.name === 'warn') w7Sfx(level, 'lava_steigt');
+      if (ph.name !== st.state && ph.name === 'warn') level.sfx('rumble');
       st.state = ph.name;
       st.warnK = ph.name === 'warn' ? ph.u : 0;
       const y = ph.name === 'steigt' ? low + (high - low) * ease(ph.u) : ph.name === 'oben' ? high : ph.name === 'sinkt' ? high - (high - low) * ease(ph.u) : low;
@@ -189,7 +190,12 @@ export function buildGitterboden(level, spec) {
   w7(level).grates.push(handle);
   if (!level.view) return handle;
   if (hasModel('gitterboden') && spec.look !== 'eigen') {
-    bakeModel(level, 'gitterboden', { size: [W, D], thick: th, width: W, depth: D }, p.x, p.y, p.z, 0, 1, {}, { castShadow: false });
+    // als Kacheln von etwa tile m (Rahmen gliedern die feinen Stäbe, gleiche Geometrie je Kachel)
+    const tile = spec.tile ?? 2;
+    const nx = Math.max(1, Math.round(W / tile)), nz = Math.max(1, Math.round(D / tile)), tw = W / nx, td = D / nz;
+    for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+      bakeModel(level, 'gitterboden', { size: [tw, td], thick: th }, p.x - W / 2 + (i + 0.5) * tw, p.y, p.z - D / 2 + (j + 0.5) * td, 0, 1, {}, { castShadow: false });
+    }
     return handle;
   }
   const S = GRATE[spec.style] ?? GRATE[lava?.shape?.lavaColor === 'blau' ? 'blau' : 'eisen'];

@@ -15,8 +15,9 @@
 //     Pfeilrichtung), hidden: (signal: Standard true), style: 'stein' | 'blau' | 'metall', color }
 //   level.named.get(id) = { state ('weg'|'warn'|'kommt'|'oben'|'blinkt'|'geht'), k (0 weg … 1 oben), carries(fig),
 //                           reveal(), hide(), start(), stop(), info() }; w7(level).arrows
-//   Modell aus der Registry 'pfeilplattform' ({ size: [w, h, d] }, Ursprung Mitte der Unterseite, Pfeil +X; state { rise, warn })
-//   – sonst eigene Platte mit leuchtendem Pfeil.
+//   Modell aus der Registry 'pfeilplattform' (gimmicks_w7.js; { size: [w, d] (lokal, X = Ausfahr-Richtung bei 'wand'), thick,
+//   from, depth (lava: depth, wand: travel), dir (Pfeil, rad lokal), color }, Ursprung Mitte der Oberseite ausgefahren – fährt
+//   selbst um depth ein; state { rise: k, warn: blinkt }) – look: 'eigen' bzw. ohne Modell: eigene Platte mit leuchtendem Pfeil.
 //
 // zylinder – großer liegender Zylinder, der sich dreht; man läuft oben darauf (Bauplan 7-4 „Zylinderzone“). Die Oberfläche
 //   läuft wie ein Förderband (Mitnahme), zu den Seiten wird er steil (Abrutschen). Mit spikes > 0 trägt er Stachelreihen,
@@ -24,20 +25,24 @@
 //   { type: 'zylinder', id, pos: [x, y, z] (Mitte der Achse), radius: 2.5, length: 8, axis: 'x' | 'z' (Achse entlang),
 //     speed: 0.6 (rad/s; + = Oberseite läuft bei axis 'x' zur Kamera (+Z), bei axis 'z' nach +X), slice: 0.3 (m Rampen-
 //     streifen der Kollision), spikes: 0 (Stachelreihen), spikeLen: 0.5, angle: 0 (rad Lage der ersten Reihe; 0 = oben),
-//     style: 'stein' | 'blau' | 'rot' | 'metall', ends: true (Endscheiben mit Nabe), idle: false }
-//   level.named.get(id) = { angle, speed, hits, start(), stop(), reverse(), spikeAt(i) → { u, v }, info() }; w7(level).rollers
-//   Modell aus der Registry 'zylinder_walze' ({ radius, length, spikes }, Ursprung Achsmitte, Achse entlang X; state { angle })
-//   – sonst eigene Walze (gestreift, damit die Drehung sichtbar ist).
-// stachelwalze_rot – rotierende Stachelwalze (Bauplan 7-3/7-4 „Stachelwalzen“, „rotierende Stachelwalzen“): ein zylinder mit
-//   Stachelreihen und kleinerem Radius – gleiche Felder wie zylinder, Standard radius 1.1, length 6, spikes 4,
-//   speed 1.4, style 'rot'. Modell 'stachelwalze_rot' (state { angle }).
+//     style: 'stein' | 'blau' | 'rot' | 'metall', ends: true (Endscheiben mit Nabe), idle: false, look: 'eigen' (ohne Modell) }
+//   level.named.get(id) = { angle, speed, hits, reach, ring, start(), stop(), reverse(), spikeAt(i) → { u, v }, info() };
+//   w7(level).rollers. Modell aus der Registry 'zylinder_walze' (gimmicks_w7.js; { length, radius, color 'stein' | 'blau' },
+//   Ursprung Achsmitte, Achse entlang X; state { angle }) – Stachelreihen zeichnet der Baustein dazu; sonst eigene Walze
+//   (gestreift, damit die Drehung sichtbar ist).
+// stachelwalze_rot – rotierende Stachelwalze (Bauplan 7-3/7-4 „Stachelwalzen“, „rotierende Stachelwalzen“): rote Walze, die
+//   sich an Ort und Stelle dreht. Standard spikes 'ringsum': rundum bestachelt – jede Berührung (auch von oben) verletzt
+//   (reach = radius + spikeLen 0,38); man springt darüber oder weicht aus. Mit einer Zahl (spikes: 4) dagegen Stachelreihen
+//   wie beim zylinder (zwischen den Reihen begehbar). Felder wie zylinder, Standard radius 1.1, length 6, speed 1.4, style
+//   'rot'; stand: false (true = Eisenböcke des Modells, Achshöhe standHeight = radius + 0,55 über dem Boden).
+//   Modell 'stachelwalze_rot' (gimmicks_w7.js; { length, radius, stand, height }; state { angle }) für 'ringsum'.
 
 import * as THREE from 'three';
 import { v3, sz3, addObject, lin, mixc, smooth, colorize, merge } from '../kit.js';
 import { MovingBox } from '../w2kit.js';
 import { visDt, runAction } from '../../entities/gimmick.js';
 import { hasModel, getModel } from '../../models/index.js';
-import { w7, figures, hurtFigures, sphereTouches, w7Sfx, lavaTopAt, lavaColorAt, LAVA_PAL, glowTexture, cycle, ease, clamp, TAU } from '../w7kit.js';
+import { w7, figures, hurtFigures, sphereTouches, lavaTopAt, lavaColorAt, LAVA_PAL, glowTexture, cycle, ease, clamp, TAU } from '../w7kit.js';
 
 // =====================================================================================================================
 // Pfeilplattform
@@ -111,8 +116,8 @@ export function buildPfeilplattform(level, spec) {
       }
     }
     if (name !== st.state) {
-      if (name === 'kommt') { w7Sfx(level, 'pfeil'); level.effects?.sparks({ x: p.x, y: from === 'lava' ? lavaY() + 0.2 : p.y + s.y / 2, z: p.z }, 8); }
-      if (name === 'geht') w7Sfx(level, 'rumble');
+      if (name === 'kommt') { level.sfx('bump'); level.effects?.sparks({ x: p.x, y: from === 'lava' ? lavaY() + 0.2 : p.y + s.y / 2, z: p.z }, 8); }
+      if (name === 'geht') level.sfx('rumble');
       if (name === 'oben' && st.state === 'kommt') runAction(level, spec.onUp, { pos: [p.x, p.y + s.y, p.z], source: handle });
     }
     st.state = name;
@@ -135,10 +140,16 @@ export function buildPfeilplattform(level, spec) {
   const inner = new THREE.Group();
   root.add(inner);
   let model = null, arrowMat = null;
-  if (hasModel('pfeilplattform')) {
-    model = getModel('pfeilplattform', { size: [s.x, s.y, s.z] });
-    model.root.rotation.y = Math.atan2(-arrow.z, arrow.x);
-    inner.add(model.root);
+  const arrowYaw = Math.atan2(-arrow.z, arrow.x);
+  let regYaw = 0;
+  if (hasModel('pfeilplattform') && spec.look !== 'eigen') {
+    // Modell (gimmicks_w7.js): Ursprung = Mitte der Oberseite ausgefahren; fährt selbst um depth ein (lava: −Y, wand: −X lokal)
+    const along = Math.abs(dir.x) > Math.abs(dir.z);
+    regYaw = from === 'wand' ? Math.atan2(-dir.z, dir.x) : 0;
+    const size = from === 'wand' ? (along ? [s.x, s.z] : [s.z, s.x]) : [s.x, s.z];
+    model = getModel('pfeilplattform', { size, thick: s.y, from, depth: from === 'wand' ? travel : depth, dir: arrowYaw - regYaw, color: lavaColorAt(level, p.x, p.z) });
+    model.root.rotation.y = regYaw;
+    root.add(model.root);
   } else {
     const body = lin(S.body), top = lin(S.top), dark = lin(S.dark);
     const g = new THREE.BoxGeometry(s.x, s.y, s.z, 2, 1, 2);
@@ -180,6 +191,10 @@ export function buildPfeilplattform(level, spec) {
     root.position.set(0, 0, 0);
     inner.position.set(mb.pos.x, mb.pos.y, mb.pos.z);
     inner.visible = st.k > 0.01 || st.state === 'warn';
+    if (model) {
+      model.root.position.set(p.x + arrow.x * move * st.moveK, p.y + s.y, p.z + arrow.z * move * st.moveK);
+      model.root.visible = st.k > 0.01;
+    }
     const wk = st.state === 'warn' ? st.warnK : 0;
     warnGlow.material.opacity = wk * (0.55 + 0.45 * Math.sin(t * 20));
     const gs = Math.max(s.x, s.z) * (1.4 + wk * 0.6);
@@ -188,7 +203,7 @@ export function buildPfeilplattform(level, spec) {
     else warnGlow.position.set(p.x - dir.x * (travel - 0.05), p.y + s.y / 2, p.z - dir.z * (travel - 0.05));
     const blink = st.state === 'blinkt' && Math.sin(t * 26) > 0;
     if (arrowMat) arrowMat.color.copy(blink ? red : arrowCol);
-    model?.update?.(d, { rise: st.k, warn: st.state === 'blinkt' ? 1 : wk });
+    model?.update?.(d, { rise: st.k, warn: st.state === 'blinkt' });
   });
   return handle;
 }
@@ -209,8 +224,11 @@ function buildRoller(level, spec, kind) {
   const p = v3(spec.pos);
   const R = spec.radius ?? (isSpiky ? 1.1 : 2.5), L = spec.length ?? (isSpiky ? 6 : 8);
   const axis = spec.axis === 'z' ? 'z' : 'x';
-  const rows = Math.max(0, Math.round(spec.spikes ?? (isSpiky ? 4 : 0)));
-  const sLen = spec.spikeLen ?? 0.5;
+  // Stacheln: Zahl = Reihen (zwischen den Reihen begehbar), 'ringsum' = rundum bestachelt (ganze Walze gefährlich)
+  const ring = isSpiky && (spec.spikes === undefined || spec.spikes === 'ringsum');
+  const rows = ring ? 0 : Math.max(0, Math.round(+spec.spikes || 0));
+  const sLen = spec.spikeLen ?? (ring ? 0.38 : 0.5);
+  const reach = R + sLen;
   const st = { angle: spec.angle ?? 0, speed: spec.speed ?? (isSpiky ? 1.4 : 0.6), running: !spec.idle, hits: 0 };
   // Querachse (senkrecht zur Achse, waagerecht): u; bei axis 'x' ist u = z, bei axis 'z' ist u = x
   // Drehsinn: + = Oberseite läuft nach +u
@@ -219,6 +237,7 @@ function buildRoller(level, spec, kind) {
   const w = (2 * R) / n;
   const slices = [];
   const cu = axis === 'x' ? p.z : p.x;
+  const ca = axis === 'x' ? p.x : p.z;
   for (let i = 0; i < n; i++) {
     const u0 = -R + i * w, u1 = u0 + w;
     const h0 = Math.sqrt(Math.max(0, R * R - u0 * u0)), h1 = Math.sqrt(Math.max(0, R * R - u1 * u1));
@@ -241,23 +260,36 @@ function buildRoller(level, spec, kind) {
   };
   setConv();
   const handle = {
-    get angle() { return st.angle; }, get speed() { return st.speed; }, get hits() { return st.hits; }, kind,
+    get angle() { return st.angle; }, get speed() { return st.speed; }, get hits() { return st.hits; }, kind, reach, ring,
     start() { st.running = true; setConv(); }, stop() { st.running = false; setConv(); }, reverse() { st.speed = -st.speed; setConv(); },
     // Lage der Stachelreihe i im Querschnitt: u (quer, + = Laufrichtung der Oberseite), v (oben)
     spikeAt: (i) => { const a = st.angle + (i * TAU) / Math.max(1, rows); return { u: Math.sin(a), v: Math.cos(a) }; },
-    info: () => ({ angle: +st.angle.toFixed(3), speed: st.speed, rows, hits: st.hits, running: st.running }),
+    info: () => ({ angle: +st.angle.toFixed(3), speed: st.speed, rows, ring, reach: +reach.toFixed(2), hits: st.hits, running: st.running }),
   };
   for (const sl of slices) sl.shape.owner = handle;
   if (spec.id) level.named.set(spec.id, handle);
   w7(level).rollers.push(handle);
 
+  const src = (f) => ({ pos: { x: axis === 'x' ? f.pos.x : p.x, y: p.y, z: axis === 'x' ? p.z : f.pos.z } });
   level.onStep((dt) => {
     if (st.running) st.angle += st.speed * dt;
+    if (ring) {
+      // rundum bestachelt: Abstand Hüllquader ↔ Achse (Querschnitt) unter reach, entlang der Walze überlappend
+      hurtFigures(level, (f) => {
+        const ax = axis === 'x' ? f.pos.x : f.pos.z, ha = axis === 'x' ? f.half.x : f.half.z;
+        if (Math.abs(ax - ca) > L / 2 + ha) return false;
+        const uc = axis === 'x' ? f.pos.z : f.pos.x, hu = axis === 'x' ? f.half.z : f.half.x;
+        const du = Math.max(0, Math.abs(uc - cu) - hu), dy = Math.max(0, Math.abs(f.pos.y + f.half.y - p.y) - f.half.y);
+        if (du * du + dy * dy > reach * reach * 0.85) return false;
+        st.hits++;
+        return true;
+      }, src);
+      return;
+    }
     if (!rows) return;
     // Stachelreihen: drei Kugeln entlang des Stachels (Grund, Mitte, Spitze) gegen den Hüllquader der Figur
     hurtFigures(level, (f) => {
       const ax = axis === 'x' ? f.pos.x : f.pos.z;
-      const ca = axis === 'x' ? p.x : p.z;
       const along = clamp(ax, ca - L / 2 + 0.15, ca + L / 2 - 0.15);
       for (let i = 0; i < rows; i++) {
         const a = st.angle + (i * TAU) / rows;
@@ -269,7 +301,7 @@ function buildRoller(level, spec, kind) {
         }
       }
       return false;
-    }, (f) => ({ pos: { x: axis === 'x' ? f.pos.x : p.x, y: p.y, z: axis === 'x' ? p.z : f.pos.z } }));
+    }, src);
   });
 
   if (!level.view) return handle;
@@ -281,26 +313,53 @@ function buildRoller(level, spec, kind) {
   if (axis === 'z') root.rotation.y = Math.PI / 2;   // lokal: Achse entlang X
   const spin = new THREE.Group();
   root.add(spin);
-  const regName = isSpiky ? 'stachelwalze_rot' : 'zylinder_walze';
   let model = null;
-  if (hasModel(regName)) {
-    model = getModel(regName, { radius: R, length: L, spikes: rows, spikeLen: sLen });
+  const sp = lin(S.spike), spD = mixc(sp, [0.4, 0.4, 0.45], 0.5, [0, 0, 0]);
+  const parts = [];
+  /** Stacheln auf dem Mantel: rows Reihen (je Reihe entlang der Achse) bzw. rundum (Ringe × Kreis). */
+  const addSpikes = () => {
+    if (rows) {
+      const per = Math.max(2, Math.floor((L - 0.4) / 0.62));
+      for (let i = 0; i < rows; i++) for (let j = 0; j < per; j++) {
+        const c = new THREE.ConeGeometry(0.2, sLen, 6);
+        c.translate(0, R + sLen / 2 - 0.02, 0); c.rotateX((i * TAU) / rows); c.translate(-L / 2 + 0.3 + (j + 0.5) * ((L - 0.6) / per), 0, 0);
+        parts.push(colorize(c.toNonIndexed(), (q, nn, o) => mixc(spD, sp, smooth(-0.5, 0.8, nn.y), o)));
+      }
+    } else if (ring) {
+      const rr = Math.max(2, Math.round((L - 0.3) / 0.5)), around = Math.max(6, Math.round(R * 11));
+      for (let i = 0; i < rr; i++) for (let k = 0; k < around; k++) {
+        const c = new THREE.ConeGeometry(0.12, sLen, 5);
+        c.translate(0, R + sLen / 2 - 0.03, 0); c.rotateX((k / around) * TAU + (i % 2) * Math.PI / around); c.translate(-L / 2 + 0.3 + (i + 0.5) * ((L - 0.6) / rr), 0, 0);
+        parts.push(colorize(c.toNonIndexed(), (q, nn, o) => mixc(spD, sp, smooth(-0.5, 0.8, nn.y), o)));
+      }
+    }
+  };
+  const regName = isSpiky ? (ring ? 'stachelwalze_rot' : null) : 'zylinder_walze';
+  if (regName && hasModel(regName) && spec.look !== 'eigen') {
+    // Modelle (gimmicks_w7.js): Achse entlang X, Ursprung Achsmitte (Stachelwalze ohne Böcke; mit stand: true Mitte unten
+    // am Boden, Achshöhe standHeight); state { angle } – Stachelreihen auf dem Zylinder zeichnet der Baustein dazu
+    const stand = isSpiky && !!spec.stand;
+    const H = spec.standHeight ?? R + 0.55;
+    model = isSpiky
+      ? getModel(regName, { length: L, radius: R, stand, height: H })
+      : getModel(regName, { length: L, radius: R, color: S === ZSTYLE.blau ? 'blau' : 'stein' });
+    if (stand) model.root.position.y = -H;
     root.add(model.root);
+    if (rows) addSpikes();
   } else {
     const a = lin(S.a), b = lin(S.b), e = lin(S.end), hub = lin(S.hub);
-    const parts = [];
     // Mantel aus 12 Streifen (abwechselnd hell/dunkel, scharf getrennt – die Drehung ist gut zu sehen), Ränder dunkel
     const NS = 12, light = mixc(a, [1, 1, 1], 0.12, [0, 0, 0]);
     for (let k = 0; k < NS; k++) {
-      const st = new THREE.CylinderGeometry(R, R, L, 3, 1, true, (k / NS) * TAU, TAU / NS);
-      st.rotateZ(Math.PI / 2);
+      const g = new THREE.CylinderGeometry(R, R, L, 3, 1, true, (k / NS) * TAU, TAU / NS);
+      g.rotateZ(Math.PI / 2);
       const col = k % 2 ? b : light;
-      parts.push(colorize(st.toNonIndexed(), (q, nn, o) => { o[0] = col[0]; o[1] = col[1]; o[2] = col[2]; }));
+      parts.push(colorize(g.toNonIndexed(), (q, nn, o) => { o[0] = col[0]; o[1] = col[1]; o[2] = col[2]; }));
     }
     for (const sx of [-1, 1]) {
-      const ring = new THREE.CylinderGeometry(R * 1.015, R * 1.015, 0.3, 28, 1, true);
-      ring.rotateZ(Math.PI / 2); ring.translate(sx * (L / 2 - 0.15), 0, 0);
-      parts.push(colorize(ring.toNonIndexed(), (q, nn, o) => { o[0] = e[0]; o[1] = e[1]; o[2] = e[2]; }));
+      const rg = new THREE.CylinderGeometry(R * 1.015, R * 1.015, 0.3, 28, 1, true);
+      rg.rotateZ(Math.PI / 2); rg.translate(sx * (L / 2 - 0.15), 0, 0);
+      parts.push(colorize(rg.toNonIndexed(), (q, nn, o) => { o[0] = e[0]; o[1] = e[1]; o[2] = e[2]; }));
     }
     if (spec.ends !== false) {
       for (const sx of [-1, 1]) {
@@ -312,27 +371,15 @@ function buildRoller(level, spec, kind) {
         parts.push(colorize(h.toNonIndexed(), (q, nn, o) => { o[0] = hub[0]; o[1] = hub[1]; o[2] = hub[2]; }));
         // Speichen-Muster auf der Endscheibe (zeigt die Drehung von der Seite)
         for (let k = 0; k < 4; k++) {
-          const sp = new THREE.BoxGeometry(0.08, R * 1.7, 0.18);
-          sp.rotateX((k * Math.PI) / 4); sp.translate(sx * (L / 2 + 0.2), 0, 0);
-          parts.push(colorize(sp.toNonIndexed(), (q, nn, o) => { o[0] = hub[0] * 0.8; o[1] = hub[1] * 0.8; o[2] = hub[2] * 0.8; }));
+          const g = new THREE.BoxGeometry(0.08, R * 1.7, 0.18);
+          g.rotateX((k * Math.PI) / 4); g.translate(sx * (L / 2 + 0.2), 0, 0);
+          parts.push(colorize(g.toNonIndexed(), (q, nn, o) => { o[0] = hub[0] * 0.8; o[1] = hub[1] * 0.8; o[2] = hub[2] * 0.8; }));
         }
       }
     }
-    if (rows) {
-      const sp = lin(S.spike), spD = mixc(sp, [0.4, 0.4, 0.45], 0.5, [0, 0, 0]);
-      const per = Math.max(2, Math.floor((L - 0.4) / 0.62));
-      for (let i = 0; i < rows; i++) {
-        const ang = (i * TAU) / rows;
-        for (let j = 0; j < per; j++) {
-          const x = -L / 2 + 0.3 + (j + 0.5) * ((L - 0.6) / per);
-          const c = new THREE.ConeGeometry(0.2, sLen, 6);
-          c.translate(0, R + sLen / 2 - 0.02, 0);
-          c.rotateX(ang);
-          c.translate(x, 0, 0);
-          parts.push(colorize(c.toNonIndexed(), (q, nn, o) => mixc(spD, sp, smooth(-0.5, 0.8, nn.y), o)));
-        }
-      }
-    }
+    addSpikes();
+  }
+  if (parts.length) {
     const mesh = new THREE.Mesh(merge(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.1 }));
     mesh.castShadow = true; mesh.receiveShadow = true;
     spin.add(mesh);
@@ -342,9 +389,8 @@ function buildRoller(level, spec, kind) {
     const d = visDt(level, holder, dt);
     // lokale Achse +X: positive Drehung um +X hebt +Y nach +Z → Oberseite läuft nach lokal +Z (= Welt +Z bei axis 'x',
     // Welt +X bei axis 'z' wegen rotation.y = π/2) – passt in beiden Fällen zur Mitnahme und zu den Stachel-Treffern
-    const a = st.angle;
-    spin.rotation.x = a;
-    model?.update?.(d, { angle: a });
+    spin.rotation.x = st.angle;
+    model?.update?.(d, { angle: st.angle });
   });
   return handle;
 }

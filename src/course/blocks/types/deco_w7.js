@@ -1,8 +1,10 @@
 // Baustein `deco_w7`: Kulisse für Welt 7 „Lava-Festung“ (Burg, Tempel, Vulkan, Maschinen, Riff). Eigene Geometrie wird in
 // die statische Geometrie verschmolzen (keine zusätzlichen Zeichenaufrufe, Abschnitts-Culling), Leuchtendes (Flammen, Glut)
-// ins Glüh-Material. Sobald die Registry ein Modell `deco_w7_<kind>` kennt (Modell-Agent Welt 7, Endung _w7.js), wird
-// dieses gebacken (opts = die Felder des Eintrags; Ursprung Fußpunkt, Vorderseite +X); die Kollision (solid) bleibt gleich.
-// Lavafälle sind animiert (w4_fluids lavafall, eigenes Objekt).
+// ins Glüh-Material. Registry-Modelle werden gebacken (statische Geometrie, keine eigenen Zeichenaufrufe), sobald es sie gibt:
+// `deco_w7_<kind>` (opts = die Felder des Eintrags) oder die Zuordnung REG – burgturm → festungsturm, basaltsaeule(n) →
+// basaltsaeule, vulkanfels(en) → vulkanfels (brocken), fackel → fackel, fahne → brummbaer_fahne (bewegt, Wappen-Textur) bzw.
+// hang → brummbaer_banner, kette → burg_kette, zahnrad → zahnrad, koralle(n) → riffkoralle, seetang → seetang. Die Kollision
+// (solid) bleibt gleich; look: 'eigen' erzwingt die eigene Geometrie. Lavafälle sind animiert (w4_fluids lavafall).
 //
 // Einzeln:  { type: 'deco_w7', kind, pos: [x, y, z], … }   oder Liste: { type: 'deco_w7', items: [{ kind, pos, … }, …] }
 // pos = Fußpunkt; yaw in Radiant; Streuungen (Mehrzahl-Namen) verteilen deterministisch (seed) in size: [w, d] um pos,
@@ -21,9 +23,9 @@
 //               (Streuung n 6) · seetang (Büschel: height 3)
 
 import * as THREE from 'three';
-import { v3, lin, mixc, smooth, colorize, merge, Rnd, addStatic, hex } from '../kit.js';
+import { v3, lin, mixc, smooth, colorize, merge, Rnd, addStatic, addObject, hex } from '../kit.js';
 import { bakeModel } from '../w2kit.js';
-import { hasModel } from '../../models/index.js';
+import { hasModel, getModel } from '../../models/index.js';
 import { gearGeo } from '../../view/backdrop_w6.js';
 import { TYPES as FLUIDS } from './w4_fluids.js';
 
@@ -283,16 +285,54 @@ const SINGLE = { burgturm, zinnen, fahne, wappen, kette, fackel, knochen, rohr, 
 const SOLID = new Set(['burgturm', 'zinnen', 'fahne', 'fackel', 'schlot', 'basaltsaeule', 'vulkanfels', 'koralle']);
 const TURN = new Set(['basaltsaeule', 'vulkanfels', 'koralle', 'seetang', 'knochen']);
 
-/** Registry-Modell deco_w7_<kind> backen (true) – sonst false (eigene Geometrie). */
+/**
+ * Registry-Modelle der Arten (Modell-Agent Welt 7: props_festung_w7.js; wiederverwendet: burg_kette, brummbaer_banner aus
+ * Welt 4, zahnrad aus Welt 6, seetang aus Welt 3). Je Art: name, opts, yaw (Vorderseite +X des Modells → Blickrichtung des
+ * Eintrags), scale, dy; live: true = bewegtes Objekt statt gebacken (Fahnentuch mit Wappen-Textur). null = eigene Geometrie.
+ */
+const CORAL_KIND = { rosa: 'geweih', lila: 'geweih', orange: 'roehre', gelb: 'roehre', tuerkis: 'roehre' };
+const REG = {
+  burgturm: (it) => ({ name: 'festungsturm', opts: { height: it.height ?? 8, radius: it.radius ?? 1.6, roof: it.roof !== false, windows: it.windows !== false, color: it.color === 'blau' ? 'blau' : 'rot' }, yaw: it.yaw ?? -Math.PI / 2 }),
+  basaltsaeule: (it, rnd) => { const k = (it.r ?? 0.6) / 0.42; return { name: 'basaltsaeule', opts: { height: it.height ?? 3, count: 1, seed: it.seed ?? rnd.int(1, 999), glow: it.glow === false ? false : it.glow === 'blau' ? 'blau' : 'rot' }, scale: [k, 1, k] }; },
+  vulkanfels: (it, rnd) => ({ name: 'vulkanfels', opts: { kind: 'brocken', size: (it.size ?? 1.4) * 1.2, seed: it.seed ?? rnd.int(1, 999), color: it.color === 'blau' ? 'blau' : 'rot' } }),
+  fackel: (it) => ({ name: 'fackel', opts: { mount: it.mount === 'stand' ? 'stand' : 'wand', color: it.color === 'blau' ? 'blau' : 'rot' }, yaw: it.yaw ?? -Math.PI / 2 }),
+  fahne: (it) => (it.hang
+    ? { name: 'brummbaer_banner', opts: { height: it.length ?? 3, width: it.width ?? 1.4 }, yaw: it.yaw ?? -Math.PI / 2 }
+    : (it.color === 'lila' ? null : { name: 'brummbaer_fahne', opts: { height: it.height ?? 5, size: [1.8, 1.2] }, yaw: (it.yaw ?? -Math.PI / 2) + Math.PI / 2, live: true })),
+  kette: (it) => ({ name: 'burg_kette', opts: { length: it.length ?? 3 } }),
+  zahnrad: (it) => { const s = it.size ?? 2, ax = it.axis ?? 'z'; return ax === 'y' ? null : { name: 'zahnrad', opts: { radius: s / 2, thick: s * 0.12, color: 'messing' }, yaw: (it.yaw ?? 0) + (ax === 'z' ? Math.PI / 2 : 0), dy: s / 2 }; },
+  koralle: (it, rnd) => ({ name: 'riffkoralle', opts: { kind: CORAL_KIND[it.color] ?? 'geweih', size: (it.size ?? 1.2) / 1.2, seed: it.seed ?? rnd.int(1, 999) } }),
+  seetang: (it) => ({ name: 'seetang', opts: { height: it.height ?? 3, count: it.count ?? 3 } }),
+};
+
+/** Registry-Modell backen (true) – sonst false (eigene Geometrie): zuerst deco_w7_<kind>, dann die Zuordnung REG. */
 function placeReg(level, kind, it, p, rnd) {
-  const name = `deco_w7_${kind}`;
-  if (!hasModel(name)) return false;
-  const yaw = it.yaw ?? (TURN.has(kind) ? rnd.real(0, TAU) : 0);
-  const { pos, kind: _k, type, items, ...opts } = it;
-  if (level.view) bakeModel(level, name, opts, p.x, p.y, p.z, yaw, it.scale ?? 1, {}, { castShadow: it.shadow !== false });
+  if (it.look === 'eigen') return false;
+  let r = null;
+  if (hasModel(`deco_w7_${kind}`)) {
+    const { pos, kind: _k, type, items, ...opts } = it;
+    r = { name: `deco_w7_${kind}`, opts, yaw: it.yaw ?? (TURN.has(kind) ? rnd.real(0, TAU) : 0) };
+  } else if (REG[kind]) {
+    r = REG[kind](it, rnd);
+    if (r && !hasModel(r.name)) r = null;
+    if (r && r.yaw === undefined) r.yaw = TURN.has(kind) ? rnd.real(0, TAU) : 0;
+  }
+  if (!r) return false;
+  const y = p.y + (r.dy ?? 0);
+  if (level.view) {
+    if (r.live) {
+      const m = getModel(r.name, r.opts);
+      m.root.position.set(p.x, y, p.z);
+      m.root.rotation.y = r.yaw;
+      m.root.traverse((o) => { if (o.isMesh) { o.castShadow = it.shadow !== false; o.receiveShadow = true; } });
+      addObject(level, m.root, (dt) => m.update?.(dt, {}));
+    } else {
+      bakeModel(level, r.name, r.opts, p.x, y, p.z, r.yaw, r.scale ?? it.scale ?? 1, {}, { castShadow: it.shadow !== false });
+    }
+  }
   if (kind === 'fackel') {
-    const dx = Math.cos(it.yaw ?? -Math.PI / 2), dz = -Math.sin(it.yaw ?? -Math.PI / 2);
-    level.view?.addLantern?.(p.x + (it.mount === 'stand' ? 0 : dx * 0.38), p.y + (it.mount === 'stand' ? (it.height ?? 1.6) : 0.3) + 0.5, p.z + (it.mount === 'stand' ? 0 : dz * 0.38));
+    const yaw = it.yaw ?? -Math.PI / 2, dx = Math.cos(yaw), dz = -Math.sin(yaw), stand = it.mount === 'stand';
+    level.view?.addLantern?.(p.x + (stand ? 0 : dx * 0.49), p.y + (stand ? 1.58 : 0.46) + 0.5, p.z + (stand ? 0 : dz * 0.49));
   }
   if ((it.solid || kind === 'zinnen') && SOLID.has(kind)) {
     const dump = [], dg = [];
@@ -313,11 +353,16 @@ export function buildDecoW7(level, spec) {
     const P = it.shadow === false ? parts.flat : parts.shadow;
     if (it.kind === 'lavafall') { FLUIDS.lavafall(level, { ...it, kill: it.kill ?? false }); continue; }
     if (placeReg(level, it.kind, it, p, rnd)) continue;
-    const scat = (fn, n, sz, gap, mk) => { for (const [x, z] of scatter(p, it.size ?? sz, it.n ?? n, it.gap ?? gap, it.avoid, rnd)) fn(level, { shadow: it.shadow, ...mk() }, { x, y: p.y, z }, rnd, P, glow); };
+    const scat = (k, n, sz, gap, mk) => {
+      for (const [x, z] of scatter(p, it.size ?? sz, it.n ?? n, it.gap ?? gap, it.avoid, rnd)) {
+        const sub = { shadow: it.shadow, look: it.look, ...mk() }, q = { x, y: p.y, z };
+        if (!placeReg(level, k, sub, q, rnd)) SINGLE[k](level, sub, q, rnd, P, glow);
+      }
+    };
     switch (it.kind) {
-      case 'basaltsaeulen': { const [h0, h1] = range(it.height, [1.5, 5]); scat(basaltsaeule, 7, [4, 4], 1.1, () => ({ height: rnd.real(h0, h1), r: rnd.real(0.45, 0.7), solid: it.solid })); break; }
-      case 'vulkanfelsen': scat(vulkanfels, 6, [10, 10], 1.6, () => ({ size: rnd.real(0.7, it.max ?? 1.8), solid: it.solid })); break;
-      case 'korallen': scat(koralle, 6, [8, 8], 1.4, () => ({ size: rnd.real(0.8, 1.5), color: it.color })); break;
+      case 'basaltsaeulen': { const [h0, h1] = range(it.height, [1.5, 5]); scat('basaltsaeule', 7, [4, 4], 1.1, () => ({ height: rnd.real(h0, h1), r: rnd.real(0.45, 0.7), solid: it.solid })); break; }
+      case 'vulkanfelsen': scat('vulkanfels', 6, [10, 10], 1.6, () => ({ size: rnd.real(0.7, it.max ?? 1.8), solid: it.solid })); break;
+      case 'korallen': scat('koralle', 6, [8, 8], 1.4, () => ({ size: rnd.real(0.8, 1.5), color: it.color })); break;
       default: {
         const fn = SINGLE[it.kind];
         if (fn) fn(level, it, p, rnd, P, glow);

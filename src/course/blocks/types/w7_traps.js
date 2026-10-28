@@ -7,8 +7,8 @@
 //     swing: 60 (° Ausschlag zu jeder Seite), period: 3 (s je Hin und Her), phase: 0 (0..1), plane: 'x' (schwingt entlang
 //     X) | 'z', mount: true (Aufhängung mit Balken), idle: false (steht still senkrecht), color: 'eisen' | 'rot' | 'blau' }
 //   level.named.get(id) = { angle (rad, aktuell), ball → { x, y, z }, hits, start(), stop(), info() }; w7(level).pendulums
-//   Modell aus der Registry 'pendelstachel' ({ length, radius }, Ursprung Aufhängepunkt, hängt nach −Y, schwingt um Z;
-//   state { angle }) – sonst eigene Kette und Kugel.
+//   Modell aus der Registry 'pendelstachel' (gimmicks_w7.js; { length, size = 2 · radius }, Ursprung Drehpunkt mit
+//   Deckenhalter, hängt nach −Y, schwingt um Z; state { angle }) – sonst eigene Kette, Kugel und Balken (look: 'eigen').
 //
 // klappstampfer – schwere Platte (mit Stacheln oder als Stampfplatte), die im Takt um ihre untere Kante nach vorn
 //   herunterklappt und aufschlägt (Bauplan 7-Burg „Wachbereich: Klappstampfer“). Vorwarnung: sie zittert, die Augen glühen,
@@ -23,15 +23,16 @@
 //     'metall' | 'holz', face: true, idle: false }
 //   level.named.get(id) = { state ('oben'|'warn'|'faellt'|'liegt'|'hebt'), fold (0 aufrecht … 1 liegend), slams, hits, hint,
 //                           start(), stop(), fire(), footprint() → { x0, x1, z0, z1, y }, info() }; w7(level).stompers
-//   Modell aus der Registry 'klappstampfer' ({ width, length, thick, spikes }, Ursprung Scharnier, liegt aufrecht nach +Y,
-//   klappt nach +X; state { fold, warn }) – sonst eigene Platte.
+//   Modell aus der Registry 'klappstampfer' (gimmicks_w7.js; { size: [length, width], thick }, Ursprung Scharnier; Modell-
+//   fold = 0,5 · (1 − fold), warn bool) für Platten ohne Loch – Stacheln setzt der Baustein darauf; mit hole (oder look:
+//   'eigen') eigene Platte.
 
 import * as THREE from 'three';
 import { v3, addObject, lin, mixc, smooth, colorize, merge } from '../kit.js';
 import { landingHint } from '../w5kit.js';
 import { visDt, runAction } from '../../entities/gimmick.js';
 import { hasModel, getModel } from '../../models/index.js';
-import { w7, figures, hurtFigures, sphereTouches, w7Sfx, cycle, ease, clamp, TAU } from '../w7kit.js';
+import { w7, figures, hurtFigures, sphereTouches, cycle, ease, clamp, TAU } from '../w7kit.js';
 
 // =====================================================================================================================
 // Pendelstachel
@@ -61,7 +62,7 @@ export function buildPendelstachel(level, spec) {
     ball.z = p.z + (plane === 'z' ? s * Ln : 0);
     ball.y = p.y - c * Ln;
     const side = Math.sign(st.angle);
-    if (side !== prevSide && side !== 0 && prevSide !== 0 && level.player && Math.hypot(level.player.pos.x - p.x, level.player.pos.z - p.z) < 10) w7Sfx(level, 'pendel');
+    if (side !== prevSide && side !== 0 && prevSide !== 0 && level.player && Math.hypot(level.player.pos.x - p.x, level.player.pos.z - p.z) < 10) level.sfx('swoop');
     prevSide = side || prevSide;
     hurtFigures(level, (f) => { if (sphereTouches(f, ball.x, ball.y, ball.z, R * 0.92)) { st.hits++; return true; } return false; }, { pos: ball });
   });
@@ -73,9 +74,10 @@ export function buildPendelstachel(level, spec) {
   const swing = new THREE.Group();
   root.add(swing);
   let model = null;
-  if (hasModel('pendelstachel')) {
-    model = getModel('pendelstachel', { length: Ln, radius: R });
-    swing.add(model.root);
+  if (hasModel('pendelstachel') && spec.look !== 'eigen') {
+    // Modell (gimmicks_w7.js): Ursprung Drehpunkt, mit Deckenhalter; schwingt selbst über state { angle } um Z
+    model = getModel('pendelstachel', { length: Ln, size: 2 * R });
+    root.add(model.root);
   } else {
     const [dk, hi] = (PCOL[spec.color] ?? PCOL.eisen).map((c) => lin(c));
     const parts = [];
@@ -107,7 +109,7 @@ export function buildPendelstachel(level, spec) {
     mesh.castShadow = true;
     swing.add(mesh);
   }
-  if (spec.mount !== false) {
+  if (spec.mount !== false && !model) {
     const g = new THREE.BoxGeometry(1.1, 0.3, 0.5);
     const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x4a3c44, roughness: 0.7 }));
     m.position.y = 0.12;
@@ -191,7 +193,7 @@ export function buildKlappstampfer(level, spec) {
   const hint = spec.hint !== false ? landingHint(level, { color: 0xff2a2a }) : null;
   const slam = () => {
     st.slams++;
-    w7Sfx(level, 'klapp');
+    level.sfx('slam');
     level.shake(0.4);
     level.effects?.dust({ x: (foot.x0 + foot.x1) / 2, y: p.y + 0.1, z: (foot.z0 + foot.z1) / 2 }, 12, 1.6);
     for (const f of figures(level)) {
@@ -225,7 +227,7 @@ export function buildKlappstampfer(level, spec) {
     }
     const prev = st.state;
     if (ph.name !== prev) {
-      if (ph.name === 'warn') w7Sfx(level, 'rumble');
+      if (ph.name === 'warn') level.sfx('rumble');
       if (ph.name === 'faellt') clear();
       if (ph.name === 'liegt') slam();
       if (ph.name === 'hebt') clear();
@@ -248,10 +250,28 @@ export function buildKlappstampfer(level, spec) {
   root.rotation.y = Math.atan2(-ax.z, ax.x);
   const hinge = new THREE.Group();
   root.add(hinge);
-  let model = null, mat = null;
-  if (hasModel('klappstampfer')) {
-    model = getModel('klappstampfer', { width: W, length: Ln, thick: Th, spikes });
+  let model = null, mat = null, flipG = null;
+  if (hasModel('klappstampfer') && !hole && spec.look !== 'eigen') {
+    // Modell (gimmicks_w7.js): Steinplatte mit Gesicht, Ursprung Scharnier, size [w (X), d (Z)] – lokal liegt sie bei fold 0
+    // nach +X (= Klapprichtung), bei 0,5 steht sie. Stacheln: eigene Gruppe, die die Klappdrehung des Modells nachmacht.
+    model = getModel('klappstampfer', { size: [Ln, W], thick: Th });
     root.add(model.root);
+    if (spikes) {
+      const sp = lin(0xf2f2f8), spD = lin(0x8a8a9a), parts = [];
+      const nu = Math.max(2, Math.round(W / 0.55)), nv = Math.max(2, Math.round(Ln / 0.55));
+      for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
+        const c = new THREE.ConeGeometry(0.16, 0.38, 5);
+        c.rotateZ(Math.PI);
+        c.translate((j + 0.5) * (Ln / nv), -Th / 2 - 0.18, -W / 2 + (i + 0.5) * (W / nu));
+        parts.push(colorize(c.toNonIndexed(), (q, n, o) => mixc(spD, sp, smooth(-0.4, 0.9, -n.y * 0.5 + n.x * 0.5), o)));
+      }
+      flipG = new THREE.Group();
+      flipG.position.y = Th / 2;
+      const sm = new THREE.Mesh(merge(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.3 }));
+      sm.castShadow = true;
+      flipG.add(sm);
+      root.add(flipG);
+    }
   } else {
     const S = KSTYLE[spec.style] ?? KSTYLE.stein;
     const body = lin(S.body), hi = lin(S.hi), dark = lin(S.dark), face = lin(S.face);
@@ -314,7 +334,8 @@ export function buildKlappstampfer(level, spec) {
     const sh = st.state === 'warn' ? 0.03 * (0.5 + st.warnK) : 0;
     root.position.set(p.x + Math.sin(t * 61) * sh, p.y, p.z + Math.cos(t * 53) * sh);
     if (mat) mat.emissiveIntensity = st.state === 'warn' ? 0.15 + 0.2 * Math.sin(t * 22) * st.warnK + 0.1 : 0;
-    model?.update?.(d, { fold: st.fold, warn: st.warnK });
+    if (flipG) flipG.rotation.z = 0.5 * (1 - st.fold) * Math.PI;
+    model?.update?.(d, { fold: 0.5 * (1 - st.fold), warn: st.state === 'warn' });
   });
   return handle;
 }

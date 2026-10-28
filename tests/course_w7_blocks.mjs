@@ -383,7 +383,7 @@ console.log('Lavawerkstatt 0-26');
   });
   console.log(`  Zylinder: Boden ${r.g}, Mitnahme ${r.carried} m/s (angehalten ${r.still}), gegenan gelaufen ${r.walk} m; Stachelwalze: davor heil ${!r.safe}, oben getroffen ${r.hit}; Pendel: daneben heil ${!r.pSafe}, darunter getroffen ${r.pHit} (Ausschlag bis ${r.aMax}°)`);
   check('Zylinder: Oberseite trägt mit (wie ein Band, +Z); Gegenprobe angehalten: steht still', r.g === 'zylinder' && r.carried > 0.8 && Math.abs(r.still) < 0.05);
-  check('Rotierende Stachelwalze: die Stachelreihen treffen, wer oben steht; Gegenprobe davor: heil', r.hit && !r.safe && r.whits >= 1);
+  check('Rotierende Stachelwalze (rundum bestachelt): trifft, wer oben steht; Gegenprobe davor: heil', r.hit && !r.safe && r.whits >= 1);
   check('Pendelstachel: pendelt und trifft, wer in der Bahn steht; Gegenprobe daneben: heil', r.pHit && !r.pSafe && r.aMax > 40);
   await T('place', marks.walze, { settle: 30 });
   await shot('walzen', 900);
