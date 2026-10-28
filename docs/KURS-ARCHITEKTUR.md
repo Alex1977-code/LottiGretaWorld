@@ -6627,16 +6627,18 @@ Kennzahlen (`tests/course_perf.mjs`, scale 2, `?still=1`, inkl. Schattenpass; vo
 | 5-6 | 58,5 (80) | 53 (72) | 187 k (234 k) | 129 k (174 k) |
 | 6-5 | 35 (45) | 35 (45) | 110 k (153 k) | 110 k (153 k) |
 
-Einzelne Stellen: 5-5 Farbfeld (Empore) 109 → 101 Aufrufe (Felder 9 → 1), Bild am Stern 2 91 → 83; 5-6 Checkpoint 98 → 90
-Aufrufe / 234 → 174 k (Flipper 8 Aufrufe / 60 k → 0), Start 153 → 99 k; 6-1 Messgang (`course_w6a`, Route) höchstens
-258 → 249 k, ferne Stachelkugeln in der Detailstufe (≈ 0,7 statt 5,7 k); die Glasgang-Kugeln liegen nah (volle Kugel), und
+Messgang entlang der Route (Lotti, Höchstwerte vorher → nachher): 6-1 98 → 98 Aufrufe / 258 → 249 k, 5-5 99 → 99 /
+208 → 208 k, 5-6 105 → 97 / 249 → 189 k, 6-5 55 → 55 / 148 → 148 k. Einzelne Stellen: 5-5 Farbfeld (Empore) 109 → 101
+Aufrufe (Felder 9 → 1), Bild am Stern 2 91 → 83; 5-6 Checkpoint 98 → 90 Aufrufe / 234 → 174 k (Flipper 8 Aufrufe / 60 k
+→ 0), Start 153 → 99 k; 6-1 ferne Stachelkugeln in der Detailstufe (≈ 0,7 statt 5,7 k); die Glasgang-Kugeln liegen nah (volle Kugel), und
 6-1 sparte den Kugel-Schatten schon selbst (`schattenNah`) – daher dort nur wenig Gewinn; 6-5 unverändert (Kante dort
 ausdrücklich aus, Rampen schon mit `camIgnore`; mit `edge` an kosteten die drei Seen jetzt ≈ 14 + 15 + 17 k je Pass statt
 je ≈ 110 k mit Schattenpass).
 
 Regressionen (nacheinander, je ≤ 10 min) bestanden: `course_physics`, `course`, `course_view`, `course_leistung`,
 `course_w3_blocks` (ohne Bilder), `course_w5_blocks`, `course_w6_blocks` (mech), `course_w6_enemies` (1–4), `course_w5c`
-(5-5 und 5-6 route/targets/extra, 5-B), `course_w6a` (6-1, 6-2 load/route/targets, 6-1 sweep, 6-B arena), `course_w6b`
-(6-3 load/route/targets/extra), `course_w6c` (6-5, 6-6 load/route/targets, 6-Haus haus/haus-extra), `course_w6d` (6-7,
-6-Panzer, 6-C load/route/targets), `course_w2d` (2-Panzer), `course_hwa` (H-1, H-2 load/route), `course_w5a` (5-1
+(5-5 und 5-6 route/sweep/targets/extra, 5-B), `course_w6a` (6-1, 6-2 load/route/targets, 6-1 sweep, 6-B arena),
+`course_w6b` (6-3 load/route/targets/extra), `course_w6c` (6-5, 6-6 load/route/targets, 6-5 sweep, 6-Haus
+haus/haus-extra), `course_w6d` (6-7, 6-Panzer, 6-C load/route/targets), `course_w2d` (2-Panzer), `course_hwa` (H-1, H-2
+load/route, H-1 sweep: höchstens 85 Aufrufe / 284 k), `course_w5a` (5-1
 load/route), nach dem Merge der Welt 7 `course_w7_blocks`, `course_w7_enemies` (1–3).
