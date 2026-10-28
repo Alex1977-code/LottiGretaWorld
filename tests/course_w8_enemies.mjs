@@ -1122,7 +1122,7 @@ B.stoss = await SHOT('w8e', 'baron_superpow_stoss', () => {
 B.flucht = await SHOT('w8e', 'baron_flucht_glas', () => {
   const c = window.__course, t = window.__t, b = t.ent('baron');
   for (let k = 0; k < 6 && b.hp > 0; k++) { t.until(() => b.state === 'perch' || b.state === 'stunned', 120 * 6, [4, 32, -264]); t.powHit('test', 240, [4, 32, -264]); t.hold([4, 32, -264], 30); }
-  t.until(() => b.state === 'flyaway' && b.stateT > 0.8, 120 * 8, [4, 32, -264]);
+  t.until(() => b.state === 'flyaway' && b.stateT > 0.5, 120 * 8, [4, 32, -264]);
   t.face(0, -271);
 });
 B.freunde = await SHOT('w8e', 'freunde_frei', () => {

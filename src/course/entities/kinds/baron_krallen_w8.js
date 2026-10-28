@@ -1413,7 +1413,7 @@ class BaronKrallen extends CourseEntity {
 
   defeatStep(dt) {
     const k = clamp(this.stateT / DEFEAT, 0, 1), f = this.defeatFrom;
-    this.pos.set(f.x, f.y + 7 * ease(k), f.z);
+    this.pos.set(f.x, f.y + 2.5 * ease(k), f.z);
     this.yaw += dt * 10;
     if (k >= 1) this.startFlee();
   }
@@ -1429,7 +1429,8 @@ class BaronKrallen extends CourseEntity {
 
   fleeStep(dt) {
     const f = this.flee, k = clamp(this.stateT / FLEE, 0, 1);
-    this.pos.set(f.x0 + (f.x1 - f.x0) * k, f.y0 + (f.y1 - f.y0) * k + Math.sin(k * Math.PI) * 4, f.z0 + (f.z1 - f.z0) * k);
+    // erst seitwärts rudernd (gut im Bild), dann steil hinauf und davon
+    this.pos.set(f.x0 + (f.x1 - f.x0) * k, f.y0 + (f.y1 - f.y0) * k * k + Math.sin(k * Math.PI) * 2, f.z0 + (f.z1 - f.z0) * k * k);
     this.yaw += dt * 6;
     if (Math.floor(this.stateT / 0.5) !== Math.floor((this.stateT - dt) / 0.5)) this.level.sfx('hop');
     if (k >= 1) this.win();
