@@ -29,7 +29,8 @@
 //     [[von, bis], …]; ohne lanes: vor die Figur, dann auf sie zu) – Wegstücke (breaks: 'bruchstueck'), auf denen sie landen oder
 //     laufen, zerbröckeln nach 0,6 s Wackeln. Doppelgänger: Draufspringen/Stampfen, Power-ups, Wurfsichel, POW → platzen in Funken;
 //     seitlich verletzen sie. Ende: eine Figur betritt end → er springt zum Gipfel (Doppelgänger platzen).
-//     { type: 'spiegel', id?, trigger, route, lead?, climb?, every?: 3.0, fire?, fruits: [[x, y, z], …], clones?: [2, 3, 4],
+//     { type: 'spiegel', id?, trigger, route, follow?: 'weg' (Standard: ahead m vor der Figur entlang der Route; 'hoehe' = lead m
+//       über ihr wie im Turm), ahead?: 6, climb?, every?: 3.0, fire?, fruits: [[x, y, z], …], clones?: [2, 3, 4],
 //       lanes?: [[[x, y, z], [x, y, z]], …], breaks?: ['id', …] | [{ … }], cloneSpeed?: 4.5, end: { min, max }, banner? }
 //
 //   type 'gipfel' (Finale, Gipfel ≈ 25 × 25 m): riesiger **Super-POW-Block** (Baustein des Motors, Kind 'super_pow_block'; fehlt er
@@ -140,6 +141,18 @@ class Route {
       if (g.a.y >= y) return g.s0;
     }
     return this.L;
+  }
+
+  /** Weglänge der nächsten Stelle zu (x, y, z). */
+  nearestS(x, y, z) {
+    let best = 0, bd = Infinity;
+    for (const g of this.seg) {
+      const bx = g.b.x - g.a.x, by = g.b.y - g.a.y, bz = g.b.z - g.a.z, l2 = bx * bx + by * by + bz * bz;
+      const t = l2 > 1e-8 ? clamp(((x - g.a.x) * bx + (y - g.a.y) * by + (z - g.a.z) * bz) / l2, 0, 1) : 0;
+      const d = Math.hypot(g.a.x + bx * t - x, (g.a.y + by * t - y) * 0.5, g.a.z + bz * t - z);
+      if (d < bd) { bd = d; best = g.s0 + g.l * t; }
+    }
+    return best;
   }
 
   get end() { return this.pts[this.pts.length - 1]; }
@@ -943,7 +956,11 @@ class BaronKrallen extends CourseEntity {
     let want = this.s;
     if (activeFigure(p)) {
       const d = Math.hypot(p.pos.x - this.pos.x, p.pos.y - this.pos.y, p.pos.z - this.pos.z);
-      if (d < (sec.sight ?? 22)) want = Math.max(this.s, R.sAtHeight(p.pos.y + (sec.lead ?? 3.5)));
+      const mode = sec.follow ?? (sec.type === 'spiegel' ? 'weg' : 'hoehe');
+      if (d < (sec.sight ?? 22)) {
+        want = mode === 'weg' ? R.nearestS(p.pos.x, p.pos.y, p.pos.z) + (sec.ahead ?? 6) : R.sAtHeight(p.pos.y + (sec.lead ?? 3.5));
+        want = Math.max(this.s, want);
+      }
     }
     const seg = R.segAt(this.s);
     const v = seg.climb ? (sec.climb ?? 2.2) : (sec.walk ?? 2.6);

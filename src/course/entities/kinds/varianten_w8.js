@@ -18,7 +18,7 @@
 //   Die Löcher sind dunkle Erdkrater mit Rand (Darstellung; ob ein Loch begehbar ist, bauen die Level-Bauer).
 //   Daten: { kind: 'ameisen_reihe', id?, from: [x, y, z], to: [x, y, z], horn?: true, lanes?: 1, gap?: 1.3, every?: 2.2 (s),
 //            speed?: 1.5, max?: 8 (je Reihe), prefill?: true, phase?: 0..1 (Versatz der Reihen), holes?: true, ride?: false }
-//   Laufzeit: streams (Spender je Reihe), alive (lebende Ameisen), spawned, info().
+//   Laufzeit: streams (Spender je Reihe), aliveCount (lebende Ameisen), spawned, info().
 // Sound: 'slam' (Welle), 'burn' (Pfütze), 'dig' (Ameisen-Loch).
 
 import * as THREE from 'three';
@@ -228,13 +228,13 @@ class AmeisenReihe extends CourseEntity {
     (this.holes ??= []).push(g);
   }
 
-  get alive() { return this.streams.reduce((n, s) => n + (s.aliveCount ?? 0), 0); }
+  get aliveCount() { return this.streams.reduce((n, s) => n + (s.aliveCount ?? 0), 0); }
   get spawned() { return this.streams.reduce((n, s) => n + (s.spawned ?? 0), 0); }
 
   onPlayer() { return 'none'; }
   onHit() {}
 
-  info() { return { streams: this.streams.length, alive: this.alive, spawned: this.spawned }; }
+  info() { return { streams: this.streams.length, alive: this.aliveCount, spawned: this.spawned }; }
 }
 
 export const KINDS = {

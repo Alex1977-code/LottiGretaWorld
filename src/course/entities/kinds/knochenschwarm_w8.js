@@ -28,7 +28,7 @@
 //          sight?: 7, reach?: 7, dive?: 8.5 (m/s), warn?: 0.8 (s), cooldown?: 2.6 (s), respawn?: 4 (s) | false, rebuild?: 1.2 (s),
 //          bob?: 0.15, phase?: 0..1 (Start auf der Bahn), drop? (je Flieger, nur endgültig) }
 //   Beispiel: { kind: 'knochenflieger_gruppe', id: 'kg1', pos: [0, 5, -60], count: 6, formation: 'ring', center: [0, 5, -60], orbit: 3 }
-// Laufzeit: Gruppe state (fly | warn | dive), dives, members, alive (nicht endgültig besiegt), formed (in Formation), rebuilds,
+// Laufzeit: Gruppe state (fly | warn | dive), dives, members, aliveCount (nicht endgültig besiegt), formed (in Formation), rebuilds,
 //   info(); Glied state (form | wait | dive | rise | bones | rebuild | gone), bonesT, rebuilds, defeated (endgültig), info().
 // Sound: 'hover' (Ankündigung), 'swoop' (Sturzflug), 'blockhit' (Knochen fallen), 'step' (Klappern), 'switch' (setzt sich zusammen),
 //   'poof' (Haufen zerstiebt), 'stomp'.
@@ -121,7 +121,7 @@ class KnochenGruppe extends EnemyW2 {
     return Math.atan2(-this.heading.z, this.heading.x);
   }
 
-  get alive() { return this.members.filter((m) => !m.defeated).length; }
+  get aliveCount() { return this.members.filter((m) => !m.defeated).length; }
   get formed() { return this.members.filter((m) => m.state === 'form').length; }
 
   update(dt) {
@@ -204,7 +204,7 @@ class KnochenGruppe extends EnemyW2 {
 
   info() {
     return {
-      state: this.state, dives: this.dives, alive: this.alive, formed: this.formed, rebuilds: this.rebuilds, count: this.count, form: this.form,
+      state: this.state, dives: this.dives, alive: this.aliveCount, formed: this.formed, rebuilds: this.rebuilds, count: this.count, form: this.form,
       x: +this.mid.x.toFixed(2), y: +this.mid.y.toFixed(2), z: +this.mid.z.toFixed(2),
     };
   }
