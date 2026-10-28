@@ -95,6 +95,26 @@ function build(level) {
   for (const [z0, z1] of SCHOLLEN) { zapfen(-2.6, 2.6, z0 + 0.02, YD - 0.3); zapfen(-2.6, 2.6, z1 - 0.02, YD - 0.3); }
   zapfen(-6, 6, -101.02, YH - 2.1, 0.7);
   zapfen(-8, 8, -272.02, YG - 2.1, 0.7);
+  // … auch an den Längsseiten der Schollen
+  const zapfenZ = (x, z0, z1, y, step = 0.6) => { for (let z = z1 + 0.2; z < z0; z += step) { const h = 0.3 + ((Math.sin(z * 5.1 + x) + 1) / 2) * 0.5; P.push(cone(0.08 + h * 0.06, h, x, y - h, z, EIS, 5, { rx: Math.PI })); } };
+  for (const [z0, z1] of SCHOLLEN) for (const sx of [-1, 1]) zapfenZ(sx * 2.62, z0, z1, YD - 0.3);
+  // Eisschollen der Bucht: blaue Eiskante oben, Eiszapfen vorn und hinten; Eislöcher der Glotzfische (Ring + dunkles Wasser)
+  for (const [x0, x1, z0, z1] of FLOES) {
+    const w = x1 - x0, d = z0 - z1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    P.push(blk(w + 0.08, 0.14, 0.16, cx, YF - 0.1, z0, EIS, { top: 0xd8f4ff }), blk(w + 0.08, 0.14, 0.16, cx, YF - 0.1, z1, EIS, { top: 0xd8f4ff }));
+    P.push(blk(0.16, 0.14, d, x0, YF - 0.1, cz, EIS, { top: 0xd8f4ff }), blk(0.16, 0.14, d, x1, YF - 0.1, cz, EIS, { top: 0xd8f4ff }));
+    zapfen(x0, x1, z0 + 0.06, YF - 0.12, 0.7); zapfen(x0, x1, z1 - 0.06, YF - 0.12, 0.7);
+  }
+  for (const holes of FISH_HOLES) for (const [x, y, z] of holes) { P.push(cyl(1.0, 1.1, 0.12, x, y - 0.04, z, 0xeaf6ff, 14, { top: 0xffffff })); P.push(cyl(0.68, 0.68, 0.02, x, y + 0.07, z, 0x1a4a8a, 14, { top: 0x1a4a8a })); }
+  // Stachelplattform des Stempels: rot-weißer Rand (vorn zur Rampe offen)
+  for (const [x0, x1, z0, z1] of [[10, 22, 0.2, -0.2], [10, 22, -11.8, -12.2], [21.8, 22.2, 0, -12]]) {
+    const alongX = x1 - x0 > z0 - z1, len = alongX ? x1 - x0 : z0 - z1, n = Math.round(len / 1);
+    for (let k = 0; k < n; k++) {
+      const t = (k + 0.5) / n, c = k % 2 ? WEISS : ROT;
+      if (alongX) P.push(blk(len / n, 0.32, 0.4, x0 + (x1 - x0) * t, Y0 + 1, (z0 + z1) / 2, c));
+      else P.push(blk(0.4, 0.32, len / n, (x0 + x1) / 2, Y0 + 1, z0 + (z1 - z0) * t, c));
+    }
+  }
   // Eiskristalle (bunte Eis-Spitzen) auf den Ufern und am Gipfel
   const kristall = (x, y, z, s, c) => { P.push(cone(0.22 * s, 1.1 * s, x, y, z, c, 5)); P.push(cone(0.16 * s, 0.8 * s, x + 0.25 * s, y, z + 0.15 * s, c, 5, { rz: -0.35 })); P.push(cone(0.14 * s, 0.7 * s, x - 0.22 * s, y, z - 0.1 * s, c, 5, { rx: 0.35 })); };
   for (const [x, y, z, s, c] of [[-8.6, Y0 + 0.5, -24, 1, 0x9ae6ff], [8.6, Y0 + 0.5, -33, 1.1, 0xc8a8ff], [-8.6, Y0 + 0.5, -46, 0.9, 0xffa8d8], [8.6, YD + 0.5, -146, 1, 0x9ae6ff],
