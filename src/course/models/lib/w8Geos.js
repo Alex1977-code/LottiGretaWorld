@@ -29,6 +29,7 @@ import { taperTube, ellSurf, memo } from './hwGeos.js';
 import { stick, Puffs, alongY } from './kit_w3.js';
 import { fibDirs, superCube } from './w6Geos.js';
 import { MODELS as P1 } from '../kinds/props.js';
+import { MODELS as W7E } from '../kinds/enemies_w7.js';
 
 export {
   W7, LAVA7, lavaKey, glow7, glow7T, add7, plain, fxPuffs, prog, num, ZERO, crestTexture, spikeCone, spikeV, fireballSet, FIRE7,
@@ -205,6 +206,25 @@ export function friendFigure(key, shadow = true) {
   grp.userData.height = g.height;
   grp.name = `freund:${key}`;
   return grp;
+}
+
+// ------------------------------------------------------------------ Knochenflieger-Teile (Gruppe, Instanzen)
+/**
+ * Teile des vorhandenen Knochenfliegers (enemies_w7.js) für Gruppen und Instanzen: core = Rumpf, Kopf, Schnabel, Augen
+ * ({ lit, hl } geerntet, Flügel ausgeblendet), wings = [{ geo, at }] für +Z und −Z (Schulter-Gelenk at, Flügel-Geometrie
+ * geteilt). Ursprung = Körpermitte, Blick +X.
+ */
+export function kfParts() {
+  return memo('w8:kfparts', () => {
+    let wings = [];
+    const core = harvest('knochenflieger:core', () => W7E.knochenflieger(), (m) => {
+      m.update(0, { anim: 'fly', flap: 0.5 });
+      const pose = m.root.children[0];
+      wings = pose.children.slice(2, 4).map((j) => ({ geo: j.children[0].geometry, at: j.position.clone() }));
+      for (const j of pose.children.slice(2, 4)) j.visible = false;
+    });
+    return { core, wings };
+  });
 }
 
 // ------------------------------------------------------------------ Formen
