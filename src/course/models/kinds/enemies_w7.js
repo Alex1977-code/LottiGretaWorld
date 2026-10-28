@@ -3,12 +3,12 @@
 // Maßstab Meter, Ursprung = Fußpunkt (Ausnahmen genannt), Blick nach +X; state darf ein String sein ('fly' ≙ { anim: 'fly' }).
 // Unbekannte anim → Standardzustand. progress (0..1) überschreibt bei Einmal-/Zyklus-Animationen die Zeit seit dem Wechsel.
 // Wiederverwendet (nicht neu gebaut): Stachelpanzer 'stachelpanzer' (Welt 4), Bumerang-Werfer 'bumerang_werfer' (Welt 6, mit
-// opts.sichel: hält eine Wurfsichel), Feuer-Werfer 'feuer_werfer', Stampfstein 'stampfstein', Rammfisch 'rammfisch',
+// opts.sichel: trägt eine Wurfsichel auf dem Rücken), Feuer-Werfer 'feuer_werfer', Stampfstein 'stampfstein', Rammfisch 'rammfisch',
 // Zauberkröte 'zauberkroete', Lavabrocken 'lavabrocken', Funkenling 'funkenling', Glutball 'glutball' (blaue Lava-Funken).
 //
-// knochenflieger ≈1,5 m Spannweite, 1,1 m lang  Knochenflieger: lustiger Knochen-Vogel – runder Schädel mit Knochenkamm,
+// knochenflieger ≈1,8 m Spannweite, 1,2 m lang  Knochenflieger: lustiger Knochen-Vogel – runder Schädel mit Knochenkamm,
 //   großen Augen in pflaumendunklen Höhlen und keck schrägen Brauenwülsten, langer Schnabel (Unterkiefer klappt), Rippen-
-//   Brustkorb mit Wirbeln, Flügel aus fünf Fingerknochen, Fächer-Schwanz, baumelnde Knochenfüßchen.
+//   Brustkorb mit Wirbeln, Flügel aus vier Fingerknochen, Fächer-Schwanz, baumelnde Knochenfüßchen.
 //   **Ursprung = Körpermitte** (Flughöhe setzt der Motor).
 //   state { anim: 'fly'|'dive'|'defeated', flap? (0..1 Flügelstellung, überschreibt die eigene Schlag-Uhr; 1 = oben),
 //           speed (m/s, schneller Schlag), progress? (defeated: 0..1 in 0,9 s) }
@@ -20,8 +20,7 @@
 //   Basaltschollen (Fugen glühen), Flammenkamm aus drei Zungen, Flammen-Brustflossen und -Gabelschwanz, dicke Goldlippen, große Augen, Krustenbrauen.
 //   **Ursprung = Unterkante des Körpers (Bauch)**, Körpermitte y = 0,3.
 //   opts  { color: 'rot' (Standard) | 'blau' (blaue Lava) }
-//   state { anim: 'swim'|'jump'|'spit'|'defeated', speed, progress? (jump: 0..1 über den Sprungbogen; spit: 0..1 in 0,8 s;
-//           defeated 0..1 in 1,2 s) }
+//   state { anim: 'swim'|'jump'|'spit'|'defeated', speed, progress? (jump: 0..1 über den Sprungbogen; spit: 0..1 in 0,8 s) }
 //         swim: Schwanz schlägt, Flossen züngeln, Lavatröpfchen; jump: Nase hoch → runter mit progress, Flossen gespreizt,
 //         Maul auf, Spritzer an Start und Ende (der Motor bewegt root); spit: bläht die Backen (0–0,45), bei progress 0,5
 //         spuckt er (Feuerkugel an model.mouth() erzeugen), Rückstoß; defeated: kühlt zu Stein ab (Glut erlischt), dreht
@@ -570,6 +569,8 @@ function buildLavadrache(opts = {}) {
     const surf = anim === 'hidden' ? 0.6 + Math.sin(t * 4) * 0.2 : rise > 0.02 && rise < 0.98 ? 1 : 0.45;
     ring.scale.setScalar(0.45 + (1 - rise) * 0.15 + Math.sin(t * 3) * 0.04);
     ring.position.y = 0.02;
+    const gone = anim === 'defeated' && rise < 0.01;
+    ring.visible = !gone; halo.visible = !gone;
     ringMat.opacity = 0.9 * surf;
     halo.material.opacity !== undefined && (halo.scale.setScalar(1.8 + surf * 0.8));
     emit -= dt;

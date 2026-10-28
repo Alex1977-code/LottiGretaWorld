@@ -33,7 +33,7 @@
 //   state { angle (rad um X, überschreibt), speed (rad/s, Standard 1,5) }  root.userData.reach → Radius mit Stacheln.
 // pendelstachel    Pendelstachel: Deckenhalter, Kette und stachelige Eisenkugel (Ø size). **Ursprung = Drehpunkt oben**, hängt
 //   nach −Y.  opts { length (Kettenlänge bis zur Kugelmitte, 3), size (1) }
-//   state { angle (rad um Z, 0 = senkrecht, überschreibt), speed? (ohne angle: pendelt ±0,9 rad, Periode 2,4 s) }
+//   state { angle (rad um Z, 0 = senkrecht, überschreibt), speed? (Tempo-Faktor ohne angle: pendelt ±0,9 rad, Periode 2,4 s / speed) }
 //   model.ball(out?) → Weltposition der Kugelmitte; root.userData.ballRadius → Trefferradius.
 // klappstampfer    Klappstampfer: schwere Steinplatte mit grimmigem Gesicht auf beiden Seiten, die über ein Scharnier am Boden
 //   umklappt und auf die andere Seite schlägt. **Ursprung = Scharnier** (Achse entlang Z am Boden).

@@ -5,6 +5,9 @@
 // Banner 'brummbaer_banner', Burgmauer 'burgmauer', Fallgitter 'fallgitter', Zahnrad 'zahnrad', Korallen 'koralle', Seetang
 // 'seetang', Luftblasen 'blasen' (Welten 3–6).
 //
+// Alle Kulissen-Teile sind vertexgefärbt und damit backbar (blocks/w2kit.js bakeModel), außer den bewegten Teilen (Fahnentuch
+// mit Wappen-Textur, Rauch, Funken, Zahnräder, Fangarme).
+//
 // basaltsaeule    Gruppe sechseckiger Basaltsäulen (dunkel, helle Deckflächen, Querbänder), am Fuß glühende Risse.
 //                 opts { height (höchste Säule, 3), radius (Gruppe, 0,9), count (Säulen, 5; 1..9), seed (1),
 //                        glow: 'rot' (Standard) | 'blau' | false }  state –   Viele → createInstanced('basaltsaeule').
@@ -18,7 +21,7 @@
 // fackel          Fackel.  opts { mount: 'stand' (Standard: Eisen-Dreibein mit Feuerschale, ≈1,7 m, Ursprung Fußpunkt) | 'wand'
 //                 (Wandhalter: **Ursprung = Befestigung an der Wand**, die Fackel ragt schräg nach +X oben), color: 'rot' | 'blau' }
 //                 state { lit (bool, Standard true), flare (0..1: Stichflamme, z. B. frisch entzündet) }
-// festungsturm    runder Burgturm der Lava-Festung: Basalt-Ziegel, Kragsteine, Zinnenkranz, rotes Kegeldach mit Brummbär-Fähnchen,
+// festungsturm    runder Burgturm der Lava-Festung: versetzte Basalt-Quader (einzelne glimmen), Kragsteine, Zinnenkranz, rotes Kegeldach mit Brummbär-Fähnchen,
 //                 glühende Bogenfenster, Felssockel.  opts { height (Mauerhöhe ohne Dach, 10), radius (2,2), roof (true),
 //                 windows (true), color: 'rot' | 'blau' (Fensterglut) }  state –
 // lava_maschine   Zahnrad-Maschine in der Lava: genietetes Eisengehäuse (steht im Lavasee, Ursprung = Lava-Oberfläche, reicht
@@ -38,7 +41,6 @@ import {
   W7, LAVA7, lavaKey, kulMat7, kulMetal7, glow7, glow7T, plain, num, hash1, noise3, displace, flameGeo, Puffs, hexColumnGeo,
   crestTexture, taperTube, gradV, axisY, memo,
 } from '../lib/w7Geos.js';
-import { brickTexture } from '../lib/w4Props.js';
 
 const ironK = { v: (x, y, z, nx, ny) => mix(W7.ironLow, W7.ironHi, smoothstep(ny * 0.5 + nx * 0.2 + 0.35)) };
 const rockK = (lo = W7.rockLow, hi = W7.rockHi) => ({ v: (x, y, z, nx, ny) => mix(lo, hi, smoothstep(ny * 0.5 + 0.45 + (noise3(x * 2.3, y * 2.3, z * 2.3) - 0.5) * 0.5)) });
@@ -305,14 +307,26 @@ function buildFackel(opts = {}) {
 // =============================================================================================
 // Festungsturm
 // =============================================================================================
+/** Turmmauer aus Basalt-Quadern (vertexgefärbt, backbar): Reihen à 0,6 m, jede zweite um einen halben Stein versetzt. */
 function towerBodyGeo(H, R) {
   return cached(`w7:turm:body:${H}:${R}`, () => {
-    const g = new THREE.CylinderGeometry(R, R * 1.06, H, 28, 1, true);
-    g.translate(0, H / 2, 0);
-    const uv = g.attributes.uv;
-    const U = (TAU * R) / 2, V = H / 1;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * Math.round(U), uv.getY(i) * Math.round(V));
-    return g;
+    const b = new Build();
+    const rows = Math.max(2, Math.round(H / 0.6)), rh = H / rows;
+    const seg = Math.max(12, Math.round(TAU * R / 0.62));
+    for (let r = 0; r < rows; r++) {
+      const off = (r % 2) * Math.PI / seg;
+      const rr = R * (1.06 - 0.06 * (r + 0.5) / rows) + (r % 2 ? 0.012 : 0);
+      const g = new THREE.CylinderGeometry(rr, rr, rh * 0.97, seg, 1, true, off, TAU);
+      b.add(g, (x, y, z) => {
+        const k = Math.floor(((Math.atan2(x, z) - off + TAU) % TAU) / (TAU / seg));
+        const h = hash1(r * 31.7 + k * 7.3);
+        const base = mix(W7.rockLow, W7.rockHi, 0.25 + h * 0.45);
+        return h > 0.965 ? mix(base, LAVA7.rot.hot, 0.22) : base;
+      }, { p: [0, rh * (r + 0.5), 0] });
+    }
+    // Fugen: dunkler Kern dahinter (sieht man zwischen den Reihen)
+    b.cyl(R * 0.99, R * 1.05, H, W7.ink, { p: [0, H / 2, 0] }, seg, true);
+    return b.geometry();
   });
 }
 function towerTrimGeo(H, R) {
@@ -378,8 +392,7 @@ function towerWindowGeo(H, R, key) {
 function buildTurm(opts = {}) {
   const H = Math.max(2, num(opts.height, 10)), R = Math.max(0.8, num(opts.radius, 2.2));
   const root = new THREE.Group();
-  const brickMat = std('w7turmBrick', { map: brickTexture(), roughness: 0.85, toy: false });
-  root.add(mesh(towerBodyGeo(H, R), brickMat, {}, true));
+  root.add(mesh(towerBodyGeo(H, R), kulMat7(0.82), {}, true));
   root.add(mesh(towerTrimGeo(H, R), kulMat7(0.82), {}, true));
   if (opts.roof !== false) root.add(mesh(towerRoofGeo(H, R), vcol(0.6, { toy: false, side: THREE.DoubleSide }, 'w7kul2'), {}, true));
   if (opts.windows !== false) root.add(mesh(towerWindowGeo(H, R, lavaKey(opts.color)), glow7()));
