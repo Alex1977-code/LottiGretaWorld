@@ -81,6 +81,19 @@ function build(level) {
     for (let i = 0; i < 4; i++) D.push(cyl(0.08, 0.08, 0.08, x - 0.45 + i * 0.3, y + 1.0, z, [0xe8483a, 0xffc21a, 0x4ac85a, 0xffffff][i], 8));
     level.world.add({ type: 'box', min: [x - 0.7, y, z - 0.35], max: [x + 0.7, y + 1.0, z + 0.35], tag: 'pult' });
   }
+  for (const [x, z, s, k] of [[RX + 8, -86, 1.0, 0], [RX + 8, -102.5, 1.0, 2], [RX + 6.9, -102.6, 0.8, 3], [RX - 8, -102.5, 0.9, 1]]) kiste(x, YD, z, s, KISTE[k]);
+  // Turmfassaden: erleuchtete Fenster, bunte Bänder unter den Terrassenkanten, Lüftungsgitter
+  for (const [y0, y1, z] of [[YF, T1, ZT[0]], [T1, T2, ZT[1]], [T2, YH, ZT[2]]]) {
+    const zf = z + 0.03;
+    D.push(blk(18, 0.5, 0.06, 0, y1 - 0.9, zf, 0xe8483a, { top: 0xff7a5a }));
+    for (const x of [-8.2, -4.2, 3.0, 5.4, 7.8]) {
+      for (let y = y0 + 2.2; y < y1 - 2.0; y += 3.2) {
+        D.push(blk(1.3, 1.1, 0.05, x, y - 0.1, zf, 0x2a2f3a));
+        D.push(blk(1.0, 0.8, 0.06, x, y, zf + 0.01, (Math.round(x * 3 + y) % 3) ? 0xffe08a : 0x8fd6ff, { top: 0xffffff }));
+      }
+    }
+    for (const x of [-3.0, 2.6]) for (let k = 0; k < 4; k++) D.push(blk(1.0, 0.08, 0.06, x + (x < 0 ? 0 : 0), y0 + 0.6 + k * 0.22, zf, 0x8a9aa8));
+  }
   // Ferne Werksschlote im Wolkenmeer: rot-weiß geringelt
   for (const [x, z, h] of [[-22, -20, 34], [24, -60, 40], [-26, -120, 44], [26, -170, 48], [-24, -215, 70], [30, -230, 62]]) {
     for (let k = 0; k < h / 4; k++) D.push(cyl(1.5, 1.6, 4, x, -14 + k * 4, z, k % 2 ? 0xffffff : 0xe8483a, 12));
