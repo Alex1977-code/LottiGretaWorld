@@ -56,8 +56,9 @@
 //
 // Ergänzte Kurs-Effekte für vorher stumme Aufrufe (MORE_SFX, engine.effects.more: victory, fall, boost, skid, glide,
 // wallslide, swim, fence, grab, swing, hop, dash, kick, dizzy, boomerang, dig, throw, fuse, burn, chain, alarm, flip, donut,
-// pfiff, note0–note7): live ausgelöst wie alle Effekte, offline mit denselben Maßstäben (victory ≤ 1,5 s), Hörprobe
-// tests/out/sfx_demo_fehlende.wav; Drosselung live (SFX_GAP: Wiederholung desselben Effekts innerhalb des Mindestabstands
+// pfiff, note0–note7): live ausgelöst wie alle Effekte, offline mit denselben Maßstäben (victory ≤ 1,5 s; über der
+// Musik-Fanfare course_clear nur Jubel-Glitzer, live und offline geprüft), Hörprobe tests/out/sfx_demo_fehlende.wav (am
+// Ende die Glitzer-Variante); Drosselung live (SFX_GAP: Wiederholung desselben Effekts innerhalb des Mindestabstands
 // bleibt stumm, danach klingt er wieder). Teil „sfx“ prüft außerdem ohne Browser alle Aufrufnamen im Quellcode
 // (tests/sfx_namen.mjs): kein aufgerufener Name ohne eigenen Effekt, alle dynamischen Stellen von Hand geprüft.
 //
@@ -615,9 +616,9 @@ async function analyzeInPage({ name, seconds, energy, wantWav, beatMult = 1, wav
  * +4 dB ab 1,7 kHz; Maximum über 100-ms-Fenster, in LUFS-ähnlicher Skala), Knotenzahl.
  * Baut daraus die Demo (Effekt, 0,6 s Pause, nächster Effekt …) als 16-Bit-PCM (Base64).
  */
-async function sfxInPage({ order, gap }) {
+async function sfxInPage({ order, gap, opts }) {
   const fx = window.__audio.engine.effects;
-  const rendered = await fx.render(order, { seconds: 1.8 });
+  const rendered = await fx.render(order, { seconds: 1.8, opts: opts ?? {} });
   const sr = rendered[0].sampleRate;
   const biquad = (x, [b0, b1, b2, a0, a1, a2]) => {
     const y = new Float64Array(x.length);
@@ -1036,7 +1037,13 @@ if (want('live')) {
     throttle.swim.push(playN('swim'));
     await wait(gap.def + 0.05);
     throttle.coin.push(playN('coin'));
-    return { names: fx.names, course: fx.course, world: fx.world, w6: fx.w6 ?? [], hw: fx.hw ?? [], more: fx.more ?? [], nodes, unknown, gap, throttle };
+    // Siegespose über der Musik-Fanfare course_clear: nur Jubel-Glitzer (weniger Knoten als die volle Fanfare)
+    const m = window.__audio.music, prev = m.current;
+    await wait((fx.gap?.victory ?? 1) + 0.05);
+    m.play('course_clear');
+    const victoryOverFanfare = { theme: m.current, nodes: playN('victory').nodes };
+    if (prev) m.play(prev); else m.stop();
+    return { names: fx.names, course: fx.course, world: fx.world, w6: fx.w6 ?? [], hw: fx.hw ?? [], more: fx.more ?? [], nodes, unknown, gap, throttle, victoryOverFanfare };
   });
   check(`Effekt-Liste enthält die ${MORE_SFX.length} ergänzten Kurs-Effekte (engine.effects.more)`,
     MORE_SFX.every((n) => liveSfx.names.includes(n)) && MORE_SFX.every((n) => liveSfx.more.includes(n)) && liveSfx.more.length === MORE_SFX.length);
@@ -1048,6 +1055,9 @@ if (want('live')) {
     liveSfx.gap.swim >= 0.1 && th.swim[0].nodes > 0 && th.swim[1].nodes === 0 && th.swim[3].nodes > 0 && rule(th.swim, liveSfx.gap.swim));
   check(`Drosselung: derselbe Effekt im selben Augenblick klingt einmal (coin ${th.coin.map((x) => x.nodes).join(' / ')}), danach wieder`,
     liveSfx.gap.def > 0 && liveSfx.gap.def <= 0.05 && th.coin[0].nodes > 0 && th.coin[1].nodes === 0 && th.coin[2].nodes > 0 && rule(th.coin, liveSfx.gap.def));
+  const vf = liveSfx.victoryOverFanfare;
+  check(`victory über course_clear: nur Jubel-Glitzer (${vf.nodes} statt ${liveSfx.nodes.victory} Knoten, Thema ${vf.theme})`,
+    vf.theme === 'course_clear' && vf.nodes > 0 && vf.nodes < liveSfx.nodes.victory);
   check(`Effekt-Liste enthält alle ${WORLD_SFX.length} Namen für Welt 2–4`, WORLD_SFX.every((n) => liveSfx.names.includes(n)) && WORLD_SFX.every((n) => liveSfx.world.includes(n)) && liveSfx.world.length === WORLD_SFX.length);
   check('Effekt-Liste enthält alle Vertragsnamen', CONTRACT_SFX.every((n) => liveSfx.names.includes(n)) && CONTRACT_SFX.every((n) => liveSfx.course.includes(n)) && liveSfx.course.length === CONTRACT_SFX.length);
   const heavy = Object.entries(liveSfx.nodes).filter(([, n]) => !(n > 0 && n <= MAX_SFX_NODES));
@@ -1274,13 +1284,19 @@ if (want('sfx')) {
   check(`Ergänzte Kurs-Effekte sind eigene Effekte (${MORE_SFX.length} Namen in engine.effects.names/more)`,
     MORE_SFX.every((n) => names.includes(n) && moreList.includes(n)));
   const demoM = await sc(sfxInPage, { order: MORE_SFX, gap: 0.6 });
-  writeWav(`${OUT}sfx_demo_fehlende.wav`, demoM.wav, demoM.sampleRate);
-  console.log(`\nErgänzte Kurs-Effekte: ${OUT}sfx_demo_fehlende.wav (${fmt(demoM.seconds, 1)} s, je Effekt + 0,6 s Pause), Reihenfolge:`);
+  // am Ende der Hörprobe: victory in der Variante über der Musik-Fanfare (course_clear läuft) – nur Jubel-Glitzer
+  const demoV = await sc(sfxInPage, { order: ['victory'], gap: 0.6, opts: { overFanfare: true } });
+  writeWav(`${OUT}sfx_demo_fehlende.wav`, Buffer.concat([Buffer.from(demoM.wav, 'base64'), Buffer.from(demoV.wav, 'base64')]), demoM.sampleRate);
+  console.log(`\nErgänzte Kurs-Effekte: ${OUT}sfx_demo_fehlende.wav (${fmt(demoM.seconds + demoV.seconds, 1)} s, je Effekt + 0,6 s Pause), Reihenfolge:`);
   const byNameM = Object.fromEntries(demoM.stats.map((x) => [x.name, x]));
   MORE_SFX.forEach((n, i) => {
     const x = byNameM[n];
     console.log(`   ${String(i + 1).padStart(2)}. ${fmt(demoM.starts[i], 2).padStart(6)} s  ${n.padEnd(10)} Dauer ${fmt(x.duration, 2)} s  Spitze ${fmt(x.peak, 2)}  Lautheit ${fmt(x.loudness, 1)} LUFS  Knoten ${x.nodes}`);
   });
+  const v2 = demoV.stats[0];
+  console.log(`   ${String(MORE_SFX.length + 1).padStart(2)}. ${fmt(demoM.seconds + demoV.starts[0], 2).padStart(6)} s  victory über course_clear (overFanfare)  Dauer ${fmt(v2.duration, 2)} s  Spitze ${fmt(v2.peak, 2)}  Lautheit ${fmt(v2.loudness, 1)} LUFS  Knoten ${v2.nodes}`);
+  check(`sfx victory über course_clear: Lautheit ${fmt(v2.loudness, 1)} LUFS im Bereich, Spitze ${fmt(v2.peak, 2)} < 0,9, Dauer ${fmt(v2.duration, 2)} s ≤ 1,0, ${v2.nodes} Knoten (weniger als die Fanfare)`,
+    v2.loudness >= loLim && v2.loudness <= hiLim && v2.peak < 0.9 && v2.duration > 0.04 && v2.duration <= 1.0 && v2.nodes < byNameM.victory.nodes);
   const lM = MORE_SFX.map((n) => byNameM[n].loudness).sort((p, q) => p - q);
   const medianM = lM[Math.floor(lM.length / 2)];
   check(`Ergänzte Kurs-Effekte gleich laut wie die bestehenden (Median ${fmt(medianM, 1)} vs. ${fmt(refMedian, 1)} LUFS, ±2 dB)`, Math.abs(medianM - refMedian) <= 2);

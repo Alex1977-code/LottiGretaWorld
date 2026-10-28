@@ -72,6 +72,7 @@
 // wallslide, hop, chain; sonst 0,03 s – gleichzeitige Auslösungen im selben Bild klingen einmal).
 
 import { engine, Voices } from './AudioEngine.js';
+import { music } from './Music.js';
 
 /** Eigene Eigenschaft? (ohne Object.hasOwn – ältere iOS-Safari kennen es nicht) */
 const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
@@ -610,11 +611,19 @@ const SFX = {
   },
 
   // ---- Ergänzte Kurs-Effekte: vorher stumme Aufrufe (Bestandsaufnahme tests/sfx_namen.mjs) ----
-  // Siegespose (Zielmast, Arena, Haus-Raum, Rettung, Weltende): kleine Fanfare „ta-ta-ta-taa“ – drei Rechteck-Töne G–C–E,
-  // dann C-Dur-Stab mit Glanzton, Piano-Akkord, Glocke und Glitzer (≈ 0,9 s; in Arena und letztem Haus-Raum läuft
-  // course_clear dazu, am Zielmast und bei Rettungen die Level-Musik)
-  victory: (e) => {
+  // Siegespose (Zielmast, Rettung, Weltende, Haus-Raum, Arena): kleine Fanfare „ta-ta-ta-taa“ – drei Rechteck-Töne G–C–E,
+  // dann C-Dur-Stab mit Glanzton, Piano-Akkord, Glocke und Glitzer (≈ 0,9 s). Läuft schon die Musik-Fanfare course_clear
+  // (Arena: Stern eingesammelt), spielt sfx() die Variante `overFanfare`: nur Jubel-Glitzer – Schellen, offene Hat und
+  // zwei Glöckchen in D-Dur (Tonart von course_clear), keine zweite Melodie darüber.
+  victory: (e, o = {}) => {
     const t = e.now;
+    if (o.overFanfare) {
+      e.jingle({ volume: 0.3, duration: 0.4 });
+      e.hatOpen({ volume: 0.12, duration: 0.45 });
+      e.bell({ at: t + 0.02, freq: hz('A6'), volume: 0.12, decay: 0.3, ratio: 2, partial: 0.3 });
+      e.bell({ at: t + 0.12, freq: hz('D7'), volume: 0.1, decay: 0.35, ratio: 2, partial: 0.3 });
+      return;
+    }
     ['G5', 'C6', 'E6'].forEach((n, i) => e.tone({ type: 'square', freq: hz(n), duration: 0.075, volume: 0.12, at: t + i * 0.095 }));
     e.stab({ at: t + 0.285, notes: chord('C5', 'E5', 'G5', 'C6'), duration: 0.3, volume: 0.145 });
     e.tone({ type: 'triangle', freq: hz('G6'), duration: 0.5, volume: 0.19, release: 0.32, at: t + 0.285 });
@@ -818,6 +827,9 @@ export const SFX_GAP = {
 export const SFX_GAP_DEFAULT = 0.03;
 const lastPlayed = Object.create(null);
 
+/** Musik-Themen, die selbst eine Sieges-Fanfare sind: läuft eines davon, bekommen die Rezepte { overFanfare: true }. */
+export const FANFARE_THEMES = ['course_clear'];
+
 /** Sicht auf die Stimmen mit fester Startzeit (alle Teile eines Effekts beziehen sich auf dieselbe Zeit). */
 const at = (voices, t) => Object.create(voices, { now: { value: t } });
 
@@ -829,15 +841,17 @@ export function sfx(name) {
   const gap = has(SFX_GAP, name) ? SFX_GAP[name] : SFX_GAP_DEFAULT;
   if (has(lastPlayed, name) && t - lastPlayed[name] < gap && t >= lastPlayed[name]) return;
   lastPlayed[name] = t;
-  try { SFX[name](at(engine.voices, t)); } catch (_) { /* nie das Spiel stören */ }
+  const opts = { overFanfare: FANFARE_THEMES.includes(music.current) };
+  try { SFX[name](at(engine.voices, t), opts); } catch (_) { /* nie das Spiel stören */ }
 }
 
 /**
  * Effekte offline rendern (Test/Messung): je Effekt ein eigener OfflineAudioContext mit Effekt-Bus 0,5
- * wie im Spiel. Liefert je Name die Samples und die Zahl der erzeugten Knoten/Oszillatoren.
+ * wie im Spiel. Liefert je Name die Samples und die Zahl der erzeugten Knoten/Oszillatoren. `opts` geht an die Rezepte
+ * (z. B. { overFanfare: true } für victory über course_clear).
  * @returns {Promise<Array<{ name, samples: Float32Array, sampleRate, nodes, oscillators }>>}
  */
-export async function renderSfx(names = SFX_NAMES, { seconds = 1.6, sampleRate = 44100 } = {}) {
+export async function renderSfx(names = SFX_NAMES, { seconds = 1.6, sampleRate = 44100, opts = {} } = {}) {
   const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const out = [];
   for (const name of names) {
@@ -846,7 +860,7 @@ export async function renderSfx(names = SFX_NAMES, { seconds = 1.6, sampleRate =
     bus.gain.value = 0.5;
     bus.connect(ctx.destination);
     const voices = new Voices(ctx, bus, 3);
-    if (has(SFX, name)) SFX[name](at(voices, 0.01));
+    if (has(SFX, name)) SFX[name](at(voices, 0.01), opts);
     const buffer = await ctx.startRendering();
     out.push({ name, samples: buffer.getChannelData(0), sampleRate, nodes: voices.stats.nodes, oscillators: voices.stats.oscillators });
   }
