@@ -212,7 +212,7 @@ export class MapScenery {
     const rnd = new Rnd(0xc10d);
     const data = [];
     const sky = this.kit === 'sky';   // Welt 6: mehr Wolken, tiefer zwischen den schwebenden Inseln
-    for (let i = 0; i < (sky ? 120 : 60) && data.length < (sky ? 18 : 14); i++) {
+    for (let i = 0; i < (sky ? 120 : 60) && data.length < (sky ? 13 : 14); i++) {
       const x = rnd.real(b.min.x - 50, b.max.x + 50), z = rnd.real(b.min.z - 40, b.max.z + 30);
       if (this.distToLand(x, z) < (sky ? 6 : 10)) continue;
       data.push({ x, y: sky ? rnd.real(2.5, 8) : rnd.real(5, 11), z, s: rnd.real(2.6, 5), v: rnd.real(0.25, 0.6), xa: b.min.x - 70, xb: b.max.x + 70 });
@@ -245,7 +245,7 @@ export class MapScenery {
     const theme = this.view.theme;
     const parts = [];
     let n = 0;
-    for (let i = 0; i < 80 && n < 9; i++) {
+    for (let i = 0; i < 80 && n < (this.kit === 'sky' ? 7 : 9); i++) {
       const x = rnd.real(b.min.x - 55, b.max.x + 55), z = rnd.real(b.min.z - 50, b.max.z + 45);
       const w = rnd.real(4, 9), d = rnd.real(4, 8);
       if (this.distToLand(x, z) < 18 + Math.max(w, d)) continue;

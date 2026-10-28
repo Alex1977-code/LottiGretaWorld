@@ -162,7 +162,7 @@ export function skyGround(b, base, theme, rnd, map) {
     const u = typeof b.under === 'object' ? b.under : {};
     const [ux0, uz0, ux1, uz1] = u.rect ?? b.rect;
     const depth = u.depth ?? Math.min(16, 0.4 * Math.min(ux1 - ux0, uz1 - uz0) + 5);
-    parts.push(...underside(ux0, uz0, ux1, uz1, yb, depth, UNDER[style] ?? UNDER.meadow, rnd, style));
+    parts.push(...underside(ux0, uz0, ux1, uz1, yb, depth, UNDER[style] ?? UNDER.meadow, rnd, style, !!u.lite));
   }
   return parts;
 }
@@ -292,7 +292,7 @@ function mound(b, top, rnd, style) {
  * laufen in eine (versetzte) Spitze aus; flach schattierte Felsflächen (Erde oben, Fels, dunkle Spitze), dazu
  * hängende Steinzapfen, Ranken und ein paar leuchtende Kristalle (Material 'glow').
  */
-function underside(x0, z0, x1, z1, y, depth, pal, rnd, style) {
+function underside(x0, z0, x1, z1, y, depth, pal, rnd, style, lite = false) {
   const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, hw = (x1 - x0) / 2, hd = (z1 - z0) / 2;
   const N = clampv(Math.round((2 * (x1 - x0 + z1 - z0)) / 3.2), 14, 44);
   const K = 6;
@@ -349,7 +349,7 @@ function underside(x0, z0, x1, z1, y, depth, pal, rnd, style) {
     const L = rnd.real(1.4, 3.4) * (depth / 14 + 0.4);
     b.cone(rnd.real(0.35, 0.8), L, { v: (px, py) => mix(pal[1], pal[2], 0.5 - py / L) }, { p: [p[0] * 0.85 + (cx + ox) * 0.15, p[1] - L / 2 + 0.2, p[2] * 0.85 + (cz + oz) * 0.15], r: [Math.PI, 0, 0] }, 5);
   }
-  if (style !== 'snow' && style !== 'snowpeak' && style !== 'metal' && style !== 'fort') {
+  if (!lite && style !== 'snow' && style !== 'snowpeak' && style !== 'metal' && style !== 'fort') {
     const nV = clampv(Math.round((x1 - x0) / 3.5), 2, 10);
     const leaf = style === 'jungle' ? [0x2e8a3a, 0x6ad050] : [0x3e9a3e, 0x8ad86a];
     for (let i = 0; i < nV; i++) {
@@ -457,10 +457,10 @@ function cloudRims(level, map) {
   }
   const bridges = (map.walk ?? []);
   const onBridge = (x, z) => bridges.some((r) => x > r[0] - 1.6 && x < r[2] + 1.6 && z > r[1] - 1.6 && z < r[3] + 1.6);
-  // je 48-m-Feld eine Geometrie, genau auf dem Kachelraster der Karte (batch.freeOrigin [−8, 4]): sie fällt in die
-  // freie Kachel ihres Feldes (Culling je Feld, keine zusätzlichen Zeichenaufrufe)
+  // je 16-m-Feld eine Geometrie: sie fällt in die Zone (Insel) bzw. freie Kachel ihres Feldes (keine eigenen
+  // Zeichenaufrufe)
   const sectors = new Map();
-  const sector = (x, z) => { const k = `${Math.floor((x + 8) / 48)}:${Math.floor((z - 4) / 48)}`; if (!sectors.has(k)) sectors.set(k, new Build()); return sectors.get(k); };
+  const sector = (x, z) => { const k = `${Math.floor(x / 16)}:${Math.floor(z / 16)}`; if (!sectors.has(k)) sectors.set(k, new Build()); return sectors.get(k); };
   const col = { v: (x, y, z, nx, ny) => mix(0xdce4f8, 0xffffff, ny * 0.5 + 0.6) };
   let n = 0;
   for (const [k, c] of cells) {
@@ -469,12 +469,12 @@ function cloudRims(level, map) {
     for (const [dx, dz] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
       if (cells.has(`${x + dx},${z + dz}`)) continue;
       const h = hash2(x * 3 + dx * 7, z * 5 + dz * 11);
-      if (h > (dz < 0 ? 0.12 : dz > 0 ? 0.34 : 0.26)) continue;   // etwa jede vierte Kante (Nordkanten selten: von der Kamera abgewandt)
+      if (h > (dz < 0 ? 0.1 : dz > 0 ? 0.3 : 0.22)) continue;   // etwa jede vierte Kante (Nordkanten selten: von der Kamera abgewandt)
       const px = x + 0.5 + dx * 0.5, pz = z + 0.5 + dz * 0.5;
       if (onBridge(px, pz)) continue;
       const r = 0.9 + h * 2.4;
       const yy = c.top - 0.9 - h * 2;
-      sector(px, pz).sphere(r, col, { p: [px + dx * r * 0.55, yy, pz + dz * r * 0.55], s: [1.25, 0.72, 1.25] }, 8, 5);
+      sector(px, pz).sphere(r, col, { p: [px + dx * r * 0.55, yy, pz + dz * r * 0.55], s: [1.25, 0.72, 1.25] }, 8, 4);
       n++;
     }
   }
@@ -962,7 +962,7 @@ function buildGlassTube(level, spec) {
   // Leuchtkanten am Boden
   const gl = new Build();
   for (const s of [-1, 1]) gl.box(Ld, 0.03, 0.08, 0x8af0ff, { p: [L / 2, dy / 2 + 0.09, s * (w / 2 - 0.26)], r: [0, 0, pitch] }, 0);
-  level.view.addStatic(placeAlong(gl.geometry(), a, c), { material: 'glow', castShadow: false });
+  level.view.addStatic(placeAlong(gl.geometry(), a, c), { material: 'glow', castShadow: false, tile: 'w6:leuchten' });
   // Glasschale (durchscheinend, view.mats.w6glass)
   level.view.addStatic(placeAlong(glassShell(Ld, R, h, pitch, 4, 0xa8e4ff), a, c), { material: 'w6glass', castShadow: false, tile: 'w6:glas' });
 }
@@ -1069,7 +1069,7 @@ export class CloudSea {
     const [c0, c1, c2] = map.seaColors ?? [0xffffff, 0xf0f0ff, 0xd6dcf8];
     const cx = (bounds.min.x + bounds.max.x) / 2, cz = (bounds.min.z + bounds.max.z) / 2;
     const w = bounds.max.x - bounds.min.x + 160, d = bounds.max.z - bounds.min.z + 160;
-    const g0 = new THREE.PlaneGeometry(w, d, Math.ceil(w / 6), Math.ceil(d / 6));
+    const g0 = new THREE.PlaneGeometry(w, d, Math.ceil(w / 8), Math.ceil(d / 8));
     g0.rotateX(-Math.PI / 2);
     g0.translate(cx, sea, cz);
     const a = lin(c0), b = lin(c1), c = lin(c2);
@@ -1138,7 +1138,7 @@ export class CloudSea {
 /** Kleine schwebende Insel (Kulisse über dem Wolkenmeer): Grasdecke, felsige Unterseite, Baum oder Blumen. */
 export function skyIsletParts(x, z, w, d, top, rnd) {
   const y = rnd.real(5, 15);
-  const b = { rect: [x - w / 2, z - d / 2, x + w / 2, z + d / 2], top: y, style: rnd.frac() < 0.75 ? 'meadow' : 'stone', under: { depth: rnd.real(3, 6) } };
+  const b = { rect: [x - w / 2, z - d / 2, x + w / 2, z + d / 2], top: y, style: rnd.frac() < 0.75 ? 'meadow' : 'stone', under: { depth: rnd.real(3, 6), lite: true } };
   const parts = skyGround(b, -3, THEMES.map_sky, rnd, null);
   const k = rnd.frac();
   if (k < 0.55) parts.push(place(skyTreeGeo(rnd.real(2.8, 3.8), rnd.int(0, 3), rnd.int(1, 999)), x + rnd.real(-0.6, 0.6), y, z + rnd.real(-0.5, 0.5), rnd.real(0, 6)));
@@ -1334,18 +1334,15 @@ export class SkyLife {
   buildAirships(list) {
     this.ships = list.map((s, i) => ({ ...s, ph: (i * TAU) / Math.max(1, list.length) }));
     if (!this.ships.length) return;
-    const groups = new Map();
-    for (const s of this.ships) { const k = s.color ?? 0xb48ae8; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); }
-    // Hüllen je Farbe gemeinsam (meist eine je Farbe); Propeller alle zusammen
-    this.hulls = [];
-    for (const [color, ships] of groups) {
-      const g = airshipGeo(color);
-      const m = new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 }), ships.length);
-      this.own.push(g, m.material);
-      m.castShadow = false; m.frustumCulled = false; m.name = 'w6:luftschiff';
-      this.add(m);
-      this.hulls.push({ m, ships });
-    }
+    // alle Hüllen in einer Instanz-Fläche (helle Grundform, Farbe je Luftschiff über instanceColor); Propeller zusammen
+    const g = airshipGeo(0xd8d8e0);
+    const m = new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 }), this.ships.length);
+    this.own.push(g, m.material);
+    m.castShadow = false; m.frustumCulled = false; m.name = 'w6:luftschiff';
+    const tint = new THREE.Color();
+    this.ships.forEach((s, i) => m.setColorAt(i, tint.set(s.color ?? 0xb48ae8).lerp(new THREE.Color(0xffffff), 0.15)));
+    this.add(m);
+    this.hulls = [{ m, ships: this.ships }];
     const pg = propellerGeo();
     this.props = new THREE.InstancedMesh(pg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 }), this.ships.length);
     this.own.push(pg, this.props.material);

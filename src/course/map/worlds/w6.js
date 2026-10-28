@@ -53,12 +53,16 @@ export const MAP = {
   edges: { hedge: 'cloudhedge', fence: 'skyrail' },
   pathColors: [0xfffaf2, 0xf4ecdc, 0xd8b47a],      // helle Wolkenstein-Platten mit goldener Kante
   seaColors: [0xffffff, 0xf0f0ff, 0xd6dcf8],      // Wolkenmeer: weiß an den Inseln, zartes Lavendelblau draußen
-  // Kacheln: 48 m (Ursprung so, dass die Inseln in wenige Kacheln fallen), Teile ohne Schattenwurf ebenso in 48 m
-  // (die vielen flachen Deckschichten, Wege und Wolkenkragen der Wolkeninseln wären in großen Kacheln zu schwer)
-  batch: { tile: 48, origin: [-8, 4], freeTile: 48, freeOrigin: [-8, 4] },
+  // Kacheln: je Insel eine Zone (Mesh je Material/Schattenwurf; Brücken bis zur Mitte des Spalts), außerhalb 48-m-Raster
+  batch: { tile: 48, origin: [-8, 4], freeTile: 48, freeOrigin: [-8, 4], zones: [
+    [-30, 20, 44, 60, 'ankunft'], [-64, 8, -30, 44, 'steinkreis'], [-30, -44, 20, 20, 'bucht'], [-80, -40, -30, 8, 'fernost'],
+    [20, -48, 60, 8, 'dschungel'], [60, -40, 96, 0, 'festung'], [15, -104, 64, -48, 'schnee'], [-33, -104, 15, -56, 'fabrik'],
+    [-70, -100, -33, -60, 'haus'], [-40, -150, 5, -104, 'mine'], [5, -136, 64, -104, 'strasse'], [24, -184, 67, -136, 'zirkus'],
+    [67, -180, 100, -140, 'roehre7'],
+  ] },
   // Nachbarwelten am Horizont: Welt 5 (Lila Strand-Insel) tief im Südwesten – dorthin führt die Rückweg-Röhre; im
   // Nordosten die ferne Lava-Festung (Welt 7, Ziel der Röhre W7)
-  neighbors: [{ world: 5, pos: [-262, 122], size: [80, 54], style: 'lila' }, { world: 7, pos: [300, -340], size: [90, 60], style: 'lavafort' }],
+  neighbors: [{ world: 5, pos: [-205, 116], size: [80, 54], style: 'lila' }, { world: 7, pos: [300, -340], size: [90, 60], style: 'lavafort' }],
   birdStyle: 'gull',
   birds: [{ c: [4, 15, 22], r: 9, n: 3 }, { c: [-52, 17, -16], r: 8, n: 2 }, { c: [42, 19, -62], r: 10, n: 3 }, { c: [-30, 21, -90], r: 8, n: 2 }, { c: [36, 25, -148], r: 9, n: 2 }],
   // Luftschiffchen ziehen ihre Kreise zwischen und unter den Inseln (SkyLife, sky6.js)
@@ -178,8 +182,8 @@ export const MAP = {
 
   entrances: [
     { id: 'W5', kind: 'pipe', pos: [-16, 10, 45], decor: [-16, 10, 41.9],
-      pipe: [[0, 0, 0], [0, 3.5, 0], [-0.7, 5.8, 0.5], [-5, 7, 2.6], [-16, 6.6, 7], [-40, 4.4, 15], [-80, 0, 28], [-140, -4, 46], [-205, -7, 66]], pipeDetail: 'low',
-      arriveCam: { up: 6, ahead: 6, drop: 2.5 }, signPos: [2.6, 0, 0.8] },
+      pipe: [[0, 0, 0], [0, 3.5, 0], [-0.7, 5.8, 0.5], [-5, 7, 2.6], [-16, 6.6, 7], [-40, 4.4, 15], [-80, 0, 28], [-150, -6, 52]], pipeDetail: 'low',
+      arriveCam: { up: 6, ahead: 6, drop: 2.5 }, signPos: [2.6, 0, 0.8], departAlong: true },
     { id: '6-1', kind: 'pipehills', pos: [12, 10, 36], decor: [12, 10, 31] },
     { id: '6-B', kind: 'stonecircle', pos: [-45, 10.5, 24], decor: [-45, 10.5, 24], exit: [-37.4, 10.5, 32], ring: 7.4, gap: 0 },
     { id: '6-2', kind: 'ghostbay', pos: [-6, 11, -4.6], decor: [-5, 10.1, -15.5], wreck: [-16.5, -27] },
