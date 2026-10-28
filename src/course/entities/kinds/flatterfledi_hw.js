@@ -26,7 +26,7 @@
 //   mit flock = { sync(), placeMember(m), memberGone(m) } und kind ein Schwarm-Glied).
 
 import * as THREE from 'three';
-import { EnemyW2, activeFigure, clamp, modelInstances } from '../EnemyW2.js';
+import { EnemyW2, activeFigure, clamp, modelInstances, maskedFrom } from '../EnemyW2.js';
 import { PathMover } from '../../level/PathMover.js';
 import { getModel } from '../../models/index.js';
 
@@ -203,7 +203,7 @@ export class Flatterfledi extends EnemyW2 {
     if (!activeFigure(p)) return false;
     const d = Math.hypot(p.pos.x - this.anchor.x, p.pos.z - this.anchor.z);
     const dy = this.anchor.y - (p.pos.y + p.half.y);
-    return d < this.sight && dy > 0.6 && dy < this.reach;
+    return d < this.sight && dy > 0.6 && dy < this.reach && !maskedFrom(this.level, this, p);   // Pilz-Maske (Welt 6)
   }
 
   startDive() {

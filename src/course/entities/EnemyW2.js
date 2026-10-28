@@ -22,11 +22,11 @@
 // Wie Enemy: state, stateT, defeated, dir; Konter-Standard: draufspringen → platt, seitlich → Treffer.
 
 import * as THREE from 'three';
-import { Enemy, spawnLoot, wrapAngle, clamp } from './Enemy.js';
+import { Enemy, spawnLoot, wrapAngle, clamp, maskedFrom } from './Enemy.js';
 import { createInstanced } from '../models/lib/instanced.js';
 import { getModel } from '../models/index.js';
 
-export { spawnLoot, wrapAngle, clamp };
+export { spawnLoot, wrapAngle, clamp, maskedFrom };
 
 /** Starke Treffer (besiegen auch zähe Gegner bzw. mehrere Trefferpunkte auf einmal). */
 export const STRONG = new Set(['cannon', 'bomb', 'mega', 'star']);
@@ -171,7 +171,8 @@ export class EnemyW2 extends Enemy {
   canSee(range, dy = 2.5) {
     const p = this.player;
     if (!activeFigure(p)) return false;
-    return Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) < range && Math.abs(p.pos.y - this.pos.y) < dy;
+    return Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) < range && Math.abs(p.pos.y - this.pos.y) < dy
+      && !maskedFrom(this.level, this, p);   // Pilz-Maske (Welt 6): zugewandte Figur unsichtbar
   }
 
   toPlayer(out = {}) {
