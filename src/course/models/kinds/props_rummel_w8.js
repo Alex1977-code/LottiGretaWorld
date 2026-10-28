@@ -119,12 +119,12 @@ function turmGeo(H) {
     shaft(b, gl, base + top * 0.55, base + top, 6, 5);
     crenels(b, base + top, 5.2, 18, 1.4);
     const bb = new Build(), bg = new Build();
-    bust(bb, bg, 0.75);
+    bust(bb, bg, 0.9);
     const bgeo = bb.geometry(); bgeo.translate(0, base + top + 0.6, 0); b.parts.push(bgeo);
     const ggeo = bg.geometry(); ggeo.translate(0, base + top + 0.6, 0); gl.parts.push(ggeo);
     // Fahnenmast auf dem Zylinder
-    b.cyl(0.12, 0.12, 4, TW.gold, { p: [0, base + top + 0.6 + 12.5 * 0.75 + 2, 0] }, 8);
-    b.add(puffyGeo(pennantFlag(), 0.05, 0.02, 2, 1), { v: (x, y) => mix(W8.redLow, W8.red, smoothstep(y)) }, { p: [0.1, base + top + 0.6 + 12.5 * 0.75 + 3.2, 0], r: [0, 0, 0] });
+    b.cyl(0.12, 0.12, 4, TW.gold, { p: [0, base + top + 0.6 + 12.5 * 0.9 + 2, 0] }, 8);
+    b.add(puffyGeo(pennantFlag(), 0.05, 0.02, 2, 1), { v: (x, y) => mix(W8.redLow, W8.red, smoothstep(y)) }, { p: [0.1, base + top + 0.6 + 12.5 * 0.9 + 3.2, 0], r: [0, 0, 0] });
     return { body: b.geometry(), glow: gl.geometry() };
   });
 }
@@ -134,7 +134,7 @@ function spitzeGeo() {
     const b = new Build(), gl = new Build();
     const R = 13;
     // Plattform (Oberseite y = 0) mit Fliesen-Ringen, Rand und Zinnen, Schaft darunter
-    b.cyl(R, R, 0.6, (x, y, z, nx, ny) => (ny > 0.5 ? (Math.floor(Math.hypot(x, z) / 1.6) % 2 ? col(0x8a7aa0) : col(0x6a5a80)) : col(TW.brickLow)), { p: [0, -0.3, 0] }, 48);
+    b.cyl(R, R, 0.6, (x, y, z, nx, ny) => (ny > 0.5 ? (Math.floor(Math.hypot(x, z) / 1.6) % 2 ? col(0xb8aac8) : col(0x9a8cb0)) : col(TW.brickLow)), { p: [0, -0.3, 0] }, 48);
     b.cyl(R + 0.6, R - 0.5, 1.6, gradV(TW.brickLow, TW.brick, 0.5, 0.5), { p: [0, -1.4, 0] }, 48);
     b.torus(R + 0.4, 0.25, TW.band, { p: [0, -0.8, 0], r: [Math.PI / 2, 0, 0] }, 5, 48);
     for (let i = 0; i < 28; i++) { const a = (i / 28) * TAU; b.box(1.5, 1.1, 0.7, gradV(TW.brickLow, TW.brickHi, 0.5, 0.5), { p: [Math.cos(a) * (R + 0.1), 0.55, Math.sin(a) * (R + 0.1)], r: [0, -a + Math.PI / 2, 0] }, 0.08, 1); }

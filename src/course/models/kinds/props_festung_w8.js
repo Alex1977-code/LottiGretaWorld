@@ -349,9 +349,14 @@ function frameGeo() {
       b.add(taperTube(pts, (t) => 0.05 * (1 - t * 0.6), 28, 5), goldV);
     }
     // Geisterkopf-Krone (freundlich), Kerzen
-    b.sphere(1, { v: (x, y, z, nx, ny) => mix(0xd8d0f0, 0xffffff, smoothstep(ny * 0.5 + 0.4)) }, { p: [0.15, y0 + H + 0.55, 0], s: [0.4, 0.45, 0.42] }, 18, 12);
-    for (const s of [1, -1]) b.sphere(1, 0x1a1030, { p: [0.5, y0 + H + 0.62, s * 0.13], s: [0.05, 0.1, 0.07] }, 8, 6);
-    b.sphere(1, 0xff8ab0, { p: [0.5, y0 + H + 0.42, 0], s: [0.04, 0.06, 0.08] }, 8, 6);
+    b.sphere(1, { v: (x, y, z, nx, ny) => mix(0xe8e4ff, 0xffffff, smoothstep(ny * 0.5 + nx * 0.3 + 0.3)) }, { p: [0.15, y0 + H + 0.55, 0], s: [0.4, 0.45, 0.42] }, 18, 12);
+    b.cone(0.18, 0.35, 0xf4f0ff, { p: [0.05, y0 + H + 1.0, 0], r: [0, 0, 0.5] }, 8);
+    for (const s of [1, -1]) {
+      b.sphere(1, 0x1a1030, { p: [0.5, y0 + H + 0.62, s * 0.13], s: [0.05, 0.1, 0.07] }, 8, 6);
+      b.sphere(1, 0xffffff, { p: [0.545, y0 + H + 0.66, s * 0.12], s: [0.015, 0.025, 0.02] }, 6, 4);
+      b.sphere(1, 0xff9ac8, { p: [0.47, y0 + H + 0.47, s * 0.22], s: [0.04, 0.035, 0.06] }, 6, 4);
+    }
+    b.torus(0.08, 0.022, 0x3a1a3a, { p: [0.52, y0 + H + 0.45, 0], r: [0, Math.PI / 2, Math.PI] }, 5, 10, Math.PI);
     for (const s of [1, -1]) {
       b.cyl(0.13, 0.15, 0.1, W8.gold, { p: [0.2, y0 + H - 0.5, s * (W / 2 + 0.55)] }, 10);
       b.cyl(0.08, 0.08, 0.45, 0xfff4e0, { p: [0.2, y0 + H - 0.22, s * (W / 2 + 0.55)] }, 10);
