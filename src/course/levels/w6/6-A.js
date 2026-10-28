@@ -70,7 +70,7 @@ export const LEVEL = {
   checkpoint: { pos: [0, Y, 13.4], yaw: Math.PI / 2 },
   // Überblick über den ganzen Zwinger samt Röhren: steil und weit weg, Blick halb auf die Mitte gezogen
   camera: [{ from: 40, to: -40, pitch: 52, dist: 24, fov: 40, x: 0, xLock: 0.4, ahead: 0.4, lead: 0.4, height: 1.8 }],
-  arena: { enemies: [], star: [0, Y + 0.6, 0], starIndex: 0, reveal: 2.8, crowd: 'crowd', intro: 'Stoß den Schubser-Prinzen in eine Glasröhre!', center: [0, Y, -1], camPull: 0.45 },
+  arena: { enemies: [], star: [0, Y + 0.6, 0], starIndex: 0, reveal: 2.8, crowd: 'crowd', intro: 'Stoß den Schubser-Prinzen in eine Glasröhre!', center: [0, Y, -1], camPull: 0.18 },
   segments: [
     { type: 'killplane', y: -16 },
     // Festungsplattform (Kollision, Umriss für Himmel und Kulisse; Mauern, Käfig und Leib baut der Haken)

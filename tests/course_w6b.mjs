@@ -229,6 +229,7 @@ const ROUTES = {
       ['start', [0, 2, 13.4]],
       ['tor', [0, 2, 11.5]],
       ['mitte', [0, 2, 3]],
+      ['kampf', [3, 2, 5], 330],
       ['roehre_links', [-6, 2, 0], 0, null, Math.PI],
       ['ecke', [6, 2, -6]],
     ],
