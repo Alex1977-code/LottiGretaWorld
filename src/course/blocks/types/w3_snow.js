@@ -6,12 +6,14 @@
 //   Flag `ice`, Modell eisflaeche bis 48 m², sonst glatte Platte), darunter ein Körper (Schnee mit Eiskante bzw. Fels,
 //   feste Form ohne ice) bis pos.y und optional Schneewulst-Kanten. Oberseite pos.y + h.
 //   { type: 'eisflaeche', pos: [x, y, z] (Mitte der Unterseite), size: [w, h, d] ([8, 1, 8]; h ≥ 0,2),
-//     body: 'snow' (Standard) | 'rock' | 'none' (dann eine reine eisbahn der Höhe h), edge: true (Schneewulst-Kanten
-//     ringsum, nur Optik; false = ohne, 'fein' = Registry-Modell 'eiskante' wie bisher, ≈ 440 Dreiecke/m), under: 0
-//     (verjüngter Unterbau, m), model / snow (an die eisbahn weitergereicht) }
-//   Präzisierung „Motor-Feinschliff nach Welt 6“: die Kante ist jetzt eine sparsame Nachbildung des Modells (Eis-Lippe,
-//     Schneewulst als gewellter Schlauch mit Buckeln im Takt des Modells, ≈ 110 statt ≈ 440 Dreiecke je Meter; ein
-//     16 × 40-m-See ≈ 12 k statt ≈ 50 k, mit Schattenpass ≈ 25 k statt ≈ 110 k) und standardmäßig an.
+//     body: 'snow' (Standard) | 'rock' | 'none' (dann eine reine eisbahn der Höhe h), edge: (Standard: an bei einer
+//     Eisfläche mit Sockel, aus bei einer flachen Bahn ohne Sockel) true | false | 'fein' (Schneewulst-Kanten ringsum, nur
+//     Optik; 'fein' = Registry-Modell 'eiskante' wie bisher, ≈ 500 Dreiecke/m), under: 0 (verjüngter Unterbau, m),
+//     model / snow (an die eisbahn weitergereicht) }
+//   Präzisierung „Motor-Feinschliff nach Welt 6“: die Kante ist eine sparsame Nachbildung des Modells (Eis-Lippe, Saum,
+//     Schneewulst mit Buckeln im Takt und mit den Kugel-Normalen des Modells, ≈ 130 statt ≈ 500 Dreiecke je Meter; ein
+//     16 × 40-m-See ≈ 14 k statt ≈ 56 k je Pass) und bei Eisseen mit Sockel standardmäßig an. Flache Bahnen ohne Sockel
+//     (h ≤ 0,2, z. B. ein Teich bündig im Schnee) bleiben ohne Kante, solange edge nicht gesetzt ist.
 //   Beispiel: { type: 'eisflaeche', pos: [0, 0, -40], size: [10, 1, 16], edge: true }
 //   Ohne Sockel und Kanten genügt der Motor-Baustein `eisbahn`.
 //
@@ -47,7 +49,7 @@ export function buildEisflaeche(level, spec) {
     });
     for (const g of parts) addStatic(level, g);
   }
-  const edge = spec.edge ?? true;
+  const edge = spec.edge ?? !plain;
   if (edge) {
     const y = p.y + h - 0.02;
     const sides = [

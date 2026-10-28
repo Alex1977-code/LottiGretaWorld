@@ -252,11 +252,12 @@ if (PARTS.has('ball')) {
 // ------------------------------------------------------------------ 5 Eiskante
 if (PARTS.has('eis')) {
   const r = await sc(() => ({ tris: window.__course.level._lakeTris }));
-  const cheap = r.tris.sparsam - r.tris.ohne, fine = r.tris.fein - r.tris.ohne;
+  const cheap = r.tris.sparsam - r.tris.ohne, fine = r.tris.fein - r.tris.ohne, flatEdge = r.tris.flachKante - r.tris.flach;
   const perM = cheap / (2 * (7 + 10)), perMf = fine / (2 * (7 + 10));
-  console.log(`  Eisflächen 7 × 10 m: ohne Kante ${r.tris.ohne}, Kante sparsam +${cheap} (${perM.toFixed(0)}/m), fein (Registry) +${fine} (${perMf.toFixed(0)}/m); 16 × 40-m-See: sparsam ≈ ${k1(perM * 112)}, fein ≈ ${k1(perMf * 112)} (je Pass)`);
-  check('Eiskante standardmäßig an (eisflaeche ohne edge-Angabe hat eine Kante)', cheap > 0);
+  console.log(`  Eisseen 7 × 10 m mit Sockel: ohne Kante ${r.tris.ohne}, Kante sparsam (Standard) +${cheap} (${perM.toFixed(0)}/m), fein (Registry) +${fine} (${perMf.toFixed(0)}/m); 16 × 40-m-See: sparsam ≈ ${k1(perM * 112)}, fein ≈ ${k1(perMf * 112)} (je Pass) · flache Bahn ohne Angabe ${r.tris.flach}, mit edge: true +${flatEdge}`);
+  check('Eiskante bei Eisseen mit Sockel standardmäßig an (ohne edge-Angabe)', cheap > 0);
   check('Eiskante sparsam: höchstens ein Drittel der Dreiecke des Registry-Modells', cheap > 0 && cheap <= fine / 3);
+  check('Gegenprobe: flache Bahn ohne Sockel bleibt ohne Angabe ohne Kante (wie bisher), mit edge: true bekommt sie eine', flatEdge > 0);
 }
 
 // ------------------------------------------------------------------ 6 Pilz-Maske

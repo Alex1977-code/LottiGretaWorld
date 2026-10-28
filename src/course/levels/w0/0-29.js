@@ -20,16 +20,18 @@ const sign = (x, y, z, text) => ({ type: 'sign', pos: [x, y, z], text });
 
 // Eisflächen der Station S5 (Bereiche für die Dreieckszählung in prebuild)
 const LAKES = {
-  sparsam: { x: -8.5, z: -144, size: [7, 0.2, 10] },
-  ohne: { x: 0, z: -144, size: [7, 0.2, 10], edge: false },
-  fein: { x: 8.5, z: -144, size: [7, 0.2, 10], edge: 'fein' },
+  sparsam: { x: -8.5, z: -144, size: [7, 0.6, 10] },          // Eissee mit Sockel: Kante standardmäßig an
+  ohne: { x: 0, z: -144, size: [7, 0.6, 10], edge: false },
+  fein: { x: 8.5, z: -144, size: [7, 0.6, 10], edge: 'fein' },
+  flach: { x: 0, z: -155, size: [7, 0.2, 4] },                 // flache Bahn ohne Sockel: ohne Kante (wie bisher)
+  flachKante: { x: -8.5, z: -155, size: [7, 0.2, 4], edge: true },
 };
 
 /** Dreiecke der statischen Geometrie je Eisfläche zählen (Bereich der Fläche + 0,8 m Rand). */
 function prebuild(level) {
   const view = level.view;
   if (!view) return;
-  const count = level._lakeTris = { sparsam: 0, ohne: 0, fein: 0 };
+  const count = level._lakeTris = Object.fromEntries(Object.keys(LAKES).map((k) => [k, 0]));
   const orig = view.addStatic.bind(view);
   const box = new THREE.Box3();
   view.addStatic = (g, opts) => {
@@ -39,7 +41,7 @@ function prebuild(level) {
       const n = (g.index ? g.index.count : g.attributes.position.count) / 3;
       for (const [k, L] of Object.entries(LAKES)) {
         const hx = L.size[0] / 2 + 0.8, hz = L.size[2] / 2 + 0.8;
-        if (box.min.x >= L.x - hx && box.max.x <= L.x + hx && box.min.z >= L.z - hz && box.max.z <= L.z + hz && box.max.y < 2.2) count[k] += n;
+        if (box.min.x >= L.x - hx && box.max.x <= L.x + hx && box.min.z >= L.z - hz && box.max.z <= L.z + hz && box.max.y < 2.6) count[k] += n;
       }
     }
     return orig(g, opts);
@@ -121,7 +123,7 @@ export const LEVEL = {
     // ---------------- S5 Eisflächen
     plat(-128, -160),
     sign(-12, 1, -129, 'Eiskante'),
-    ...Object.values(LAKES).map((L) => ({ type: 'eisflaeche', pos: [L.x, 1, L.z], size: L.size, ...(L.edge !== undefined ? { edge: L.edge } : {}) })),
+    ...Object.values(LAKES).map((L) => ({ type: 'eisflaeche', pos: [L.x, L.size[1] > 0.21 ? 0.6 : 1, L.z], size: L.size, ...(L.edge !== undefined ? { edge: L.edge } : {}) })),
 
     // ---------------- S6 Pilz-Maske
     plat(-160, -186),
