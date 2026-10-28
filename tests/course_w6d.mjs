@@ -20,7 +20,13 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 //   max, land, need (m Höhe, die das Bildfenster vor dem Absprung frei haben muss) } · { wait } · { hop } (Sprung auf der
 //   Stelle) · { bounce: [x, z] (Landeziel), at: [x, z] (Sprungfeld), y } · { crusher: id } (warten, bis der Quetschblock
 //   gerade hochgefahren ist) · { mover: id, on: [x, z] | null, off: [x, z], y, until: cond } (fahrende Plattform/Wolke) ·
-//   { star: i } · { chaseKind } · { expect: cond } · { until: cond } · { pound: [x, z] } · { wippeStern } (6-7)
+//   { star: i } · { chaseKind } · { expect: cond } · { until: cond } · { pound: [x, z] } · { wippeStern } (6-7) ·
+//   { edgeJump: true } (Sprung spätestens an der Kante) · { gondelSprung: [x, z], atZ, y } (aus der fahrenden Gondel) ·
+//   { blase: true } (Würfelblase: ausweichen, über Wellen springen, im Fliehen auf den Hut) · { warp: id } (6-C)
+// 6-Panzer (Konvoi-Koordinaten [c, x], Bot `window.__k`): { konvoi: Spur, to: c, done } (über die fahrende Kolonne, Lücken
+//   springen) · { go: [c, x] } · { hop: [c, x], y, jumpAt } · { pound: [c, x] } · { bomb: Ziel-Id, tank, at: [c, x], via,
+//   standby, spawn } (Zündkopf holen, ausrichten, werfen) · { luke } · { boss } (Wirbelbrocken mit Attrappen) · { warp } ·
+//   { goal } · { holds } (Halte des Bildfensters messen)
 const ZL = -1;
 const ROUTES = {
   '6-7': {
@@ -1019,16 +1025,19 @@ function installKonvoi() {
           } else {
             // ausweichen: weg vom Brocken und von den Attrappen (Abstoßung ~ 1/d²), an der Arenagrenze tangential
             const rx = p.pos.x - A.x, rz = p.pos.z - A.z, rr = Math.hypot(rx, rz) || 1;
-            let ax = 0, az = 0;
+            let ax = 0, az = 0, dmin = Infinity;
             for (const e of L.entities) {
               if (e.removed || !(e === b || (e.kind === 'wirbelbrocken_attrappe' && e.alive))) continue;
               const ex = p.pos.x - e.pos.x, ez = p.pos.z - e.pos.z, ed = Math.max(0.5, Math.hypot(ex, ez));
+              dmin = Math.min(dmin, ed);
               ax += ex / (ed * ed * ed); az += ez / (ed * ed * ed);
             }
             const al = Math.hypot(ax, az) || 1; ax /= al; az /= al;
-            if (rr > 6.8) { const tx = -rz / rr, tz = rx / rr, s = tx * ax + tz * az >= 0 ? 1 : -1; ax = s * tx - rx / rr * 0.35; az = s * tz - rz / rr * 0.35; }
-            const want = d < 6.5 ? 1 : 0.15;
-            inp = { ...W.stick(ax, az, want), run: d < 4 };
+            // im Kreis laufen (r ≈ 6,5), Seite nach der Abstoßung; dazu weg von den Nächsten
+            const tx = -rz / rr, tz = rx / rr, sg = tx * ax + tz * az >= 0 ? 1 : -1;
+            const kr = (6.5 - rr) * 0.45;
+            const wx = ax * 0.7 + sg * tx * 0.9 + (rx / rr) * kr, wz = az * 0.7 + sg * tz * 0.9 + (rz / rr) * kr;
+            inp = { ...W.stick(wx, wz, dmin < 7 ? 1 : 0.35), run: dmin < 5 };
           }
           tick(inp);
         }
