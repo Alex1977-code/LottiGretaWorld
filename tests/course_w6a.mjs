@@ -432,10 +432,19 @@ function install() {
             // zur näheren Deckkante stoßen
             if (Math.abs(e.pos.x - cx) > 0.4) { dx = Math.sign(e.pos.x - cx); dz = 0; }
             // Anlauf zügig: auf die Gegenseite (≈ 2,6 m vor ihm, nie näher als 1,3 m an die Deckkante), von dort gleich abspringen
+            const dodge = () => {
+              // rammt er heran: hochspringen und über ihn hinweg (er rauscht darunter durch), dann zur Mitte zurück
+              if (e.state !== 'charge' || Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > 3.2 || p.mode !== 'ground') return false;
+              for (let q = 0; q < 30; q++) tick({ jump: true });
+              for (let q = 0; q < 200 && p.mode !== 'ground' && !p.dead; q++) tick({ ...this.airSteer(Math.max(cx - 1.4, Math.min(cx + 1.4, p.pos.x)), p.pos.z, 0, 0, 2, 3) });
+              mech.dodged = (mech.dodged ?? 0) + 1;
+              return true;
+            };
             for (let k = 0; k < 500 && !gone(); k++) {
+              if (dodge()) continue;
               const ax = Math.max(cx - 2.2, Math.min(cx + 2.2, e.pos.x - dx * (Lg.back ?? 2.6))), az = e.pos.z - dz * (Lg.back ?? 2.6);
               const qx = ax - p.pos.x, qz = az - p.pos.z, d = Math.hypot(qx, qz);
-              if (d < 0.6 && p.mode === 'ground') break;
+              if (d < 0.6 && p.mode === 'ground' && e.state !== 'warn' && e.state !== 'charge') break;
               tick({ ...this.stick(qx, qz, Math.min(1, Math.max(0.5, d / 1.0))), run: d > 2 });
             }
             const p0 = e.pushes ?? 0;
@@ -450,7 +459,11 @@ function install() {
             }
             // nach dem Stoß in der Luft zur Deckmitte lenken, dann kurz warten
             for (let k = 0; k < 240 && p.mode !== 'ground' && !p.dead; k++) tick({ ...this.airSteer(Math.max(cx - 1.6, Math.min(cx + 1.6, p.pos.x)), p.pos.z, 0, 0, 3, 5) });
-            for (let k = 0; k < 150 && !gone(); k++) tick({});
+            // warten, dabei nicht an die Deckkante rutschen (zur Mitte zurück)
+            for (let k = 0; k < 150 && !gone(); k++) {
+              const off = p.pos.x - cx;
+              tick(p.mode === 'ground' && Math.abs(off) > 1.2 ? this.stick(-off, 0, 0.6) : {});
+            }
           }
           for (let k = 0; k < 120 && e?.alive && !e?.removed && !e?.defeated; k++) tick({});
           if (gone()) mech.pushedOff = (mech.pushedOff ?? 0) + 1;
