@@ -18,7 +18,7 @@
 //   { x, y, z } (Weltpunkt der Schneidenmitte, gerechnet wie im Modell: Kippdrehpunkt 0,3 m vor dem Fuß),
 //   vulnerable (steckt fest), info(). Modell 'hackbeil_pilz' (state { anim: idle|hop|raise|chop|stuck|squashed, progress }).
 
-import { EnemyW2, STRONG, activeFigure, toWorld, clamp } from '../EnemyW2.js';
+import { EnemyW2, STRONG, activeFigure, toWorld, clamp, maskedFrom } from '../EnemyW2.js';
 import { getModel } from '../../models/index.js';
 
 const HOP = 0.6, REST = 0.14, CHOP = 0.35, PULL = 0.35, HIT_GRACE = 0.12;
@@ -77,6 +77,7 @@ class HackbeilPilz extends EnemyW2 {
     const p = this.player;
     if (!activeFigure(p)) return null;
     if (Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) > range || Math.abs(p.pos.y - this.pos.y) > 2) return null;
+    if (maskedFrom(this.level, this, p)) return null;   // Pilz-Maske (Welt 6)
     return p;
   }
 

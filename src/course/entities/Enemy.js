@@ -22,6 +22,23 @@ const TAU = Math.PI * 2;
 export const wrapAngle = (a) => { a %= TAU; if (a > Math.PI) a -= TAU; else if (a < -Math.PI) a += TAU; return a; };
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
+/**
+ * Pilz-Maske (Präzisierung Gegner Welt 6, Bauplan 6-3): sieht der Gegner `enemy` die Figur `fig` NICHT, weil sie die
+ * Pilz-Maske trägt und ihm zugewandt ist? Fragt level.isMaskedFrom (Motor und Bausteine Welt 6); ohne diese Schnittstelle
+ * Rückfall: fig.masked und Blick der Figur zum Gegner (waagerecht ±75°). Alle „sehenden“ Gegner (canSee, Spuk, …) nutzen das.
+ */
+export function maskedFrom(level, enemy, fig) {
+  if (!fig || !level) return false;
+  if (typeof level.isMaskedFrom === 'function') return !!level.isMaskedFrom(enemy, fig);
+  if (!fig.masked || fig.dead) return false;
+  const pos = enemy?.pos ?? enemy;
+  if (!pos) return false;
+  if (typeof level.isFacing === 'function') return !!level.isFacing(fig, pos, 75);
+  const dx = pos.x - fig.pos.x, dz = pos.z - fig.pos.z, d = Math.hypot(dx, dz);
+  if (d < 1e-4) return true;
+  return (dx * Math.cos(fig.yaw) - dz * Math.sin(fig.yaw)) / d >= Math.cos((75 * Math.PI) / 180);
+}
+
 /** Laufrichtung aus spec.dir ([dx, dz] oder Gier) bzw. spec.yaw; Standard +Z (zur Kamera). */
 export function dirOf(spec, def = [0, 1]) {
   let dx = def[0], dz = def[1];
@@ -89,11 +106,11 @@ export class Enemy extends CourseEntity {
     return Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z);
   }
 
-  /** Figur in Sichtweite (waagerecht < range, Höhenunterschied < dy)? */
+  /** Figur in Sichtweite (waagerecht < range, Höhenunterschied < dy)? Eine zugewandte Figur mit Pilz-Maske sieht er nicht. */
   canSee(range, dy = 2.5) {
     if (!this.playerActive()) return false;
     const p = this.level.nearestPlayer(this.pos);
-    return this.playerDist() < range && Math.abs(p.pos.y - this.pos.y) < dy;
+    return this.playerDist() < range && Math.abs(p.pos.y - this.pos.y) < dy && !maskedFrom(this.level, this, p);
   }
 
   /** Richtung zur Figur (Einheitsvektor in out.x/out.z, out.d = Abstand). */
