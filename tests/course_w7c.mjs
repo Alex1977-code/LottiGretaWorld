@@ -855,17 +855,20 @@ for (const id of LEVELS) {
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
   let sweepTrack = null;
-  for (const hero of ONLY || !PARTS.has('route') || !R.main?.length ? [] : HEROES) {
+  // Diorama: die Figur ist immer Krümel – ein Lauf genügt
+  const dio = R.meta.archetype === 'diorama';
+  const who = (hero) => (dio ? 'Krümel' : hero);
+  for (const hero of ONLY || !PARTS.has('route') || !R.main?.length ? [] : dio ? HEROES.slice(0, 1) : HEROES) {
     await load(id);
     await W('place', R.start, { hero, settle: 2 });
     const res = await W('drive', R.main, {});
     const reached = res.status === 'goal' || res.status === 'done';
-    console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Treffer-Versuche ${res.mech.hurts} ${res.mech.hurtList.slice(0, 8).join(' ')}, Mechanik ${JSON.stringify({ ...res.mech, hurtList: undefined })}`);
+    console.log(`  ${who(hero)}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Treffer-Versuche ${res.mech.hurts} ${res.mech.hurtList.slice(0, 8).join(' ')}, Mechanik ${JSON.stringify({ ...res.mech, hurtList: undefined })}`);
     if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
-    check(`${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
-    check(`${id}: ${hero} Zeit bis zum Ziel < 240 s (${res.time.toFixed(1)} s)`, reached && res.time < 240);
+    check(dio ? `${id}: Routen-Bot (Krümel) holt alle fünf Sterne, Level beendet` : `${id}: Routen-Bot ${hero} erreicht den Zielmast`, reached);
+    check(`${id}: ${who(hero)} Zeit bis zum ${dio ? 'fünften Stern' : 'Ziel'} < 240 s (${res.time.toFixed(1)} s)`, reached && res.time < 240);
     if (hero === HEROES[0] && PARTS.has('sweep')) sweepTrack = res.track;
-    for (const m of R.routeChecks ?? []) check(`${id}: ${hero} – ${m.name}`, m.ok(res));
+    for (const m of R.routeChecks ?? []) check(`${id}: ${who(hero)} – ${m.name}`, m.ok(res));
   }
 
   // ------------------------------------------------ Kennzahlen entlang der ganzen Route (alle ~7 m ein Messpunkt)
@@ -899,7 +902,7 @@ for (const id of LEVELS) {
       if (!t.expectNot && res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (t.mech && !t.mech(res)) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
-      check(`${id}: ${t.name} (${hero}${t.mechText ? `, ${t.mechText(res)}` : ''})`, !!ok);
+      check(`${id}: ${t.name} (${who(hero)}${t.mechText ? `, ${t.mechText(res)}` : ''})`, !!ok);
       if (t.shot && hero === HEROES[0]) await shot(`${id}_${t.shot}`);
     }
   }
@@ -920,7 +923,7 @@ for (const id of LEVELS) {
       if (t.mech && !t.mech(res)) ok = false;
       if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
-      check(`${id}: ${t.name} (${hero}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}${t.mechText ? `, ${t.mechText(res)}` : ''})`, ok);
+      check(`${id}: ${t.name} (${who(hero)}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}${t.mechText ? `, ${t.mechText(res)}` : ''})`, ok);
       if (t.shot && hero === HEROES[0]) await shot(`${id}_${t.shot}`);
     }
   }
