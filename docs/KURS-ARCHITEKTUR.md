@@ -6483,7 +6483,7 @@ HUD: Lebensleiste „Baron Brummbär“ mit 9 kleineren Herzen (`hud.boss` ab 6 
 `tests/course_w7_enemies.mjs` (Port 4690, `?course=0-27|0-28&scale=2&adapt=0`, deterministisch über `step(n)`/`setInput`;
 Hilfen `window.__t`: `Z(r, dz)`, `place`, `stomp`, `touch`, `until`, `hold`, `face`, `sichel(e)` (Treffer wie die Wurfsichel des
 Motors), Boss: `enter`, `untilState`, `grab`, `throwAt`, `follow`, `untilB`, `kickBack`; `W7E_PART=1|2|3|4`, je Teil
-höchstens ≈ ZEITEN, vorher `npm run build`): Laden (alle Arten, Modelle ohne Platzhalter, 10 s ohne Fehler) · Teil 1
+≈ 1 min, Teil 4 mit Bildern ≈ 5,5 min, vorher `npm run build`): Laden (alle Arten, Modelle ohne Platzhalter, 10 s ohne Fehler) · Teil 1
 Knochenflieger (Kreis r 3, Ankündigung → Sturzflug durch die Figur → zurück, Pilz-Maske, Draufspringen, Bahn, Feuer/Sichel,
 seitlich), Platschfisch (verborgen, Bogen 2,6 m, von oben heiß, Spucken, Feuer prallt ab, zielend, endlos ≤ 3 gleichzeitig),
 Lavadrache (verborgen, Zyklus, Feuerbälle landen bei der Figur, Kopf/Hals heiß, blau mit 2 hp), Wutkaulquappe (Platz,
@@ -6496,7 +6496,7 @@ Kurve, 3 Tritte), Baron (Straße, Autoscroll 14,4 m in 6 s und Schieben, Bomben 
 7 Kick-Treffer + echte Wurfsichel 2 Kratzer = 1 Treffer, kurze Lunten, Feuerstoß, Phasen-Ansagen, Flucht, Stern, Warp-Box →
 Ziel), Stachelfalle, Tod im Kampf setzt Baron und König zurück · Teil 4 Bilder `tests/out/w7e_*.png` (20) und Zeichenaufrufe
 – 64 Prüfungen (25 + 12 + 24 + 3, dazu je Lauf 5 für Laden und Konsole). Gemessen (scale 2, inkl. Schattenpass): Gegnerzoo
-38–59 Zeichenaufrufe (≤ 286 k Dreiecke, Thema lava), Bossarenen 50–83 (≤ 242 k, Thema lavacastle); Simulation im Zoo
-(38 Entitäten) 0,1–0,26 ms je Schritt. Regressionen `course_enemies`, `course_w1_combat`, `course_w2_enemies`,
+38–61 Zeichenaufrufe (≤ 286 k Dreiecke, Thema lava), Bossarenen 50–83 (≤ 242 k, Thema lavacastle); Simulation im Zoo
+(38 Entitäten) 0,1–0,34 ms je Schritt. Regressionen `course_enemies`, `course_w1_combat`, `course_w2_enemies`,
 `course_w3_enemies`, `course_w4_enemies` (zoo, boss), `course_w5_enemies` (2), `course_hw_enemies` (1), `course_w6_enemies`
 (1–4), `course_w7_blocks` (ohne Bilder), `course_physics`, `tests/sfx_namen.mjs` bestanden.
