@@ -14,6 +14,9 @@
 // map.birdStyle 'gull' zeichnet die Vögel als weiße Möwen.
 // Halloween (map.kit 'halloween'): Thema 'map_halloween' (halloween.js), dunkle Inselchen mit Spukbaum, Riesenkürbis
 // oder Grabstein; Nachbarwelt-Stil 'halloween' (Kürbisinsel mit Burg und Hexenturm – Ziel der Halloween-Röhre in Welt 1).
+// Welt 6 (map.kit 'sky'): Thema 'map_sky' (sky6.js); statt Meer, Schaum und Glitzern ein Wolkenmeer (CloudSea: helle
+// Fläche + treibende Wolkenkuppen), Wolken ziehen tiefer zwischen den Inseln, kleine schwebende Inselchen;
+// Nachbarwelt-Stile 'sky' (Wolkeninseln) und 'lavafort' (ferne Lava-Festung – Ziel der Welt-7-Röhre).
 
 import * as THREE from 'three';
 import { THEMES } from '../view/themes.js';
@@ -24,6 +27,7 @@ import { snowGround, snowNeighborParts, firLiteGeo, iceFloeGeo } from './snow.js
 import { canyonNeighborParts, canyonIsletParts } from './canyon.js';
 import { lilaNeighborParts, lilaIsletParts } from './beach5.js';
 import { hwNeighborParts, hwIsletParts } from './halloween.js';
+import { CloudSea, skyIsletParts, skyNeighborParts } from './sky6.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 
 // Thema der Wüsteninsel (Welt 2): warmes Sonnenlicht, blasser, sandiger Horizont, Nebel ins Goldene.
@@ -77,13 +81,17 @@ export class MapScenery {
     this.rects = rects;
     this.sea = map.sea ?? 0;
     this.seaColors = map.seaColors ?? null;
-    this.buildSea(bounds);
-    this.buildFoam();
-    this.buildGlints(bounds);
     this.kit = map.kit ?? 'grass';
+    if (this.kit === 'sky') this.cloudSea = new CloudSea(view, map, bounds, this);   // Welt 6: Wolkenmeer statt Meer
+    else {
+      this.buildSea(bounds);
+      this.buildFoam();
+      this.buildGlints(bounds);
+    }
     this.buildClouds(bounds);
     this.buildIslets(bounds);
     if (this.kit === 'desert') this.buildMesas(bounds);
+    if (this.kit === 'sky' && this.clouds) this.clouds.castShadow = false;   // Welt 6: Wolken zwischen den Inseln ohne Schattenpass
     if (this.kit === 'snow') {
       this.buildFloes(bounds);
       this.buildSnowfall(map.snowfall ?? {});
@@ -203,10 +211,11 @@ export class MapScenery {
     g.scale(1, 0.7, 1);
     const rnd = new Rnd(0xc10d);
     const data = [];
-    for (let i = 0; i < 60 && data.length < 14; i++) {
+    const sky = this.kit === 'sky';   // Welt 6: mehr Wolken, tiefer zwischen den schwebenden Inseln
+    for (let i = 0; i < (sky ? 120 : 60) && data.length < (sky ? 18 : 14); i++) {
       const x = rnd.real(b.min.x - 50, b.max.x + 50), z = rnd.real(b.min.z - 40, b.max.z + 30);
-      if (this.distToLand(x, z) < 10) continue;
-      data.push({ x, y: rnd.real(5, 11), z, s: rnd.real(2.6, 5), v: rnd.real(0.25, 0.6), xa: b.min.x - 70, xb: b.max.x + 70 });
+      if (this.distToLand(x, z) < (sky ? 6 : 10)) continue;
+      data.push({ x, y: sky ? rnd.real(2.5, 8) : rnd.real(5, 11), z, s: rnd.real(2.6, 5), v: rnd.real(0.25, 0.6), xa: b.min.x - 70, xb: b.max.x + 70 });
     }
     // hohe Wolken am Horizont (nur beim flachen Anflug zu sehen)
     for (let i = 0; i < 7; i++) {
@@ -250,10 +259,14 @@ export class MapScenery {
         n++;
         continue;
       }
-      if (this.kit === 'canyon' || this.kit === 'lila' || this.kit === 'halloween') {
-        // Canyon-/Lila-/Halloween-Inselchen: ohne Schattenwurf, je Meeressektor ein Mesh (wie Welt 3)
-        const sea = { castShadow: false, tile: this.seaSector(x, z) };
-        for (const g of (this.kit === 'lila' ? lilaIsletParts : this.kit === 'halloween' ? hwIsletParts : canyonIsletParts)(x, z, w, d, top, rnd)) this.view.addStatic(g, sea);
+      if (this.kit === 'canyon' || this.kit === 'lila' || this.kit === 'halloween' || this.kit === 'sky') {
+        // Canyon-/Lila-/Halloween-Inselchen (Welt 6: schwebende Inselchen): ohne Schattenwurf, je Meeressektor ein Mesh
+        const sea = { castShadow: false, tile: this.kit === 'sky' ? 'w6:inselchen' : this.seaSector(x, z) };   // Welt 6: alle in einer Kachel
+        const make = this.kit === 'lila' ? lilaIsletParts : this.kit === 'halloween' ? hwIsletParts : this.kit === 'sky' ? skyIsletParts : canyonIsletParts;
+        for (const g of make(x, z, w, d, top, rnd)) {
+          if (g.userData?.material) this.view.addStatic(g, { ...sea, material: g.userData.material });
+          else this.view.addStatic(g, sea);
+        }
         this.rects.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]);
         n++;
         continue;
@@ -323,7 +336,8 @@ export class MapScenery {
     if (nb.style === 'canyon') parts.push(...canyonNeighborParts(nb, rnd));
     if (nb.style === 'lila') parts.push(...lilaNeighborParts(nb, rnd));
     if (nb.style === 'halloween') parts.push(...hwNeighborParts(nb, rnd));
-    const own = nb.style === 'snow' || nb.style === 'canyon' || nb.style === 'lila' || nb.style === 'halloween';
+    if (nb.style === 'sky' || nb.style === 'lavafort') parts.push(...skyNeighborParts(nb, rnd));
+    const own = nb.style === 'snow' || nb.style === 'canyon' || nb.style === 'lila' || nb.style === 'halloween' || nb.style === 'sky' || nb.style === 'lavafort';
     const blocks = own ? [] : [[-0.5, -0.5, 0.5, 0.5, 2.5], [-0.35, -0.42, 0.1, 0.1, 6], [0.05, -0.3, 0.38, 0.2, 4.5]];
     for (const [a, c, e, f, top] of blocks) {
       const g = islandParts(x + a * w, -3, z + c * d, x + e * w, top, z + f * d, desert ? { ...theme, dirt: 0xd9a060, dirtDeep: 0xa86a3a } : THEMES.grass, { under: 0, rnd, top: desert ? 'sand' : 'grass', cell: 4 });
@@ -461,6 +475,7 @@ export class MapScenery {
     this.time += dt;
     const t = this.time;
     if (this.snow) this.placeSnow(t);
+    this.cloudSea?.update(t);
     if (this.birds) this.placeBirds(t);
     if (this.foamMat) this.foamMat.opacity = 0.42 + 0.18 * Math.sin(t * 1.6);
     if (this.glints) this.placeGlints(t);
@@ -473,6 +488,7 @@ export class MapScenery {
   dispose() {
     this.group.parent?.remove(this.group);
     this.glints?.dispose();
+    this.cloudSea?.dispose();
     this.clouds?.dispose();
     this.birds?.dispose();
     for (const x of this.own) x.dispose?.();
