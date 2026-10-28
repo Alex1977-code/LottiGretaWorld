@@ -48,8 +48,20 @@
 // Themen. Hörproben: tests/out/w6_<thema>_30s.wav (ab der Strophe) und tests/out/hoerprobe_welt6.wav (alle neun je 15 s
 // ab dem Refrain).
 //
+// Welt 7 („Lava-Festung“, Welt-7-Liste im Vertrag): die neun neuen Themen mit denselben Messungen und derselben
+// Melodie-Prüfung, Hook und Kontur eigenständig gegen alle Themen (Welten 1–7 und Halloween); Tempo 128–150 BPM (Sprint
+// 148–152, Lava-Burg 146–150, Karte 126–128), 16–32 Takte, Loop-Naht wie Welt 6 (Daten und gerendert), Pegel wie Welt 5
+// (wenn beide Welten im selben Lauf gerendert werden). Klangfarben aus den Daten: Fanfaren-Bläser, Feuer-Whoosh,
+// Feuerbälle und Knistern (Werfer-Festung), Steinglocken, großer Hall, Tropfen und Kipp-Schalter (Tempel), Countdown-
+// Hook, Countdown-Piepser und Uhr-Ticken (Sprint), Bläser-Stabs und Stampf-Trommel (Schubser), Turm-Glockenspiel,
+// Kettenrasseln, steigende Lava, Alarm-Sirene und Galopp-Treppe (Fluchtturm), gedämpfter Unterwasser-Klang, Blubbern
+// und Rammstöße (Riff), Vulkan-Hörner, Taiko und Grollen (Vulkan-See), Kirchenorgel mit dem Baron-Brummbär-Motiv aus
+// course_boss, Chor-Pad und Chor-Stimme (Lava-Burg); die Arenen und 7-Kapitän nutzen course_arena und course_diorama.
+// Hörproben: tests/out/w7_<thema>_30s.wav (ab der Strophe) und tests/out/hoerprobe_welt7.wav (alle neun je 15 s ab dem
+// Refrain).
+//
 // Aufteilen (kürzere Läufe): AUDIO_PART=melodie,live,render,sfx (Standard: alles). „melodie“ läuft ohne Browser.
-// AUDIO_THEMES=course_desert,course_space bzw. AUDIO_WORLD=1,2 (1 = Welt-1-Themen, halloween = Halloween-Welt 31, 6 = Welt 6)
+// AUDIO_THEMES=course_desert,course_space bzw. AUDIO_WORLD=1,2 (1 = Welt-1-Themen, halloween = Halloween-Welt 31, 6 = Welt 6, 7 = Welt 7)
 // beschränken die Offline-Messung der Kurs-Themen; die Kurs-Themen werden je zwei gleichzeitig gerendert. Unter hoher
 // Rechnerlast z.B. in zwei Läufen: AUDIO_PART=melodie,live,sfx und AUDIO_PART=render.
 import { writeFileSync } from 'node:fs';
@@ -140,6 +152,16 @@ const COURSE_THEMES = {
   course_fuzzymine: { bpm: 150, bars: [24, 24], loop: true, has: ['lead', 'piano', 'arp', 'stabs', 'riser'], drums: 'xt', key: 'Cm', mel: ['lead', 'piano'], hook: 12, preview: 4, world: 6 },
   course_bossblob: { bpm: 146, bars: [24, 24], loop: true, has: ['lead', 'organ', 'echo', 'stabs', 'piano', 'riser'], drums: 't', key: 'Gm', mel: ['lead', 'organ'], hook: 12, preview: 4, world: 6 },
   course_world6_map: { bpm: 128, bars: [16, 16], loop: true, beatMult: 2, has: ['lead', 'piano', 'bell', 'arp'], key: 'D', mel: ['lead', 'piano'], hook: 8, preview: 0, world: 6, map: true },
+  // Welt 7 „Lava-Festung“
+  course_fortfire: { bpm: 142, bars: [24, 24], loop: true, has: ['lead', 'organ', 'echo', 'piano', 'stabs', 'riser'], drums: 'j', fx: 'delay', key: 'Dm', mel: ['lead', 'organ'], hook: 12, preview: 4, world: 7 },
+  course_switchruins: { bpm: 134, bars: [24, 24], loop: true, has: ['lead', 'bell', 'whistle', 'echo', 'arp', 'piano', 'stabs', 'pad'], drums: 'x', fx: 'delay', key: 'F#m', mel: ['lead', 'bell'], hook: 12, preview: 4, world: 7 },
+  course_redhot: { bpm: 150, bars: [24, 24], loop: true, has: ['lead', 'piano', 'bell', 'arp', 'stabs', 'riser'], drums: 'x', key: 'E', mel: ['lead', 'piano'], hook: 12, preview: 4, world: 7 },
+  course_bluebelt: { bpm: 138, bars: [24, 24], loop: true, has: ['lead', 'stabs', 'piano', 'arp', 'pad'], drums: 'd', key: 'F', mel: ['lead', 'stabs'], hook: 12, preview: 4, world: 7 },
+  course_traptower: { bpm: 146, bars: [24, 24], loop: true, has: ['lead', 'bell', 'whistle', 'arp', 'piano', 'stabs', 'riser'], drums: 'j', key: 'Bm', mel: ['lead', 'bell'], hook: 12, preview: 4, world: 7 },
+  course_rammreef: { bpm: 132, bars: [24, 24], loop: true, has: ['lead', 'bell', 'echo', 'arp', 'piano', 'stabs', 'pad'], drums: 'd', fx: 'lowpass', key: 'Eb', mel: ['lead', 'bell'], hook: 12, preview: 4, world: 7 },
+  course_volcano: { bpm: 140, bars: [24, 24], loop: true, has: ['lead', 'organ', 'stabs', 'piano', 'riser'], drums: 't', fx: 'delay', key: 'Em', mel: ['lead', 'organ'], hook: 12, preview: 4, world: 7 },
+  course_keep: { bpm: 148, bars: [24, 24], loop: true, has: ['lead', 'organ', 'whistle', 'pad', 'stabs', 'riser'], drums: 'tj', key: 'Cm', mel: ['lead', 'organ'], hook: 12, preview: 4, world: 7 },
+  course_world7_map: { bpm: 126, bars: [16, 16], loop: true, beatMult: 2, has: ['lead', 'piano', 'echo', 'arp'], key: 'Gm', mel: ['lead', 'piano'], hook: 8, preview: 0, world: 7, map: true },
 };
 // Musiknamen Welt 2–4 (Auftrag/Vertrag) und Karten-Themen je Welt
 const CONTRACT_THEMES_W = ['course_desert', 'course_space', 'course_shadow', 'course_hills', 'course_cherry', 'course_tank', 'course_house',
@@ -155,6 +177,10 @@ const CONTRACT_THEMES_H = ['course_pumpkin', 'course_candyvillage', 'course_grav
 const CONTRACT_THEMES_W6 = ['course_clearpipe', 'course_wreck', 'course_fareast', 'course_jungle', 'course_snowwind', 'course_factory',
   'course_fuzzymine', 'course_bossblob', 'course_world6_map'];
 const REUSED_W6 = ['course_arena', 'course_house', 'course_tank'];
+// Musiknamen Welt 7 (Welt-7-Liste im Vertrag) und die Welt-7-Karte; die Arenen und 7-Kapitän nutzen vorhandene Themen
+const CONTRACT_THEMES_W7 = ['course_fortfire', 'course_switchruins', 'course_redhot', 'course_bluebelt', 'course_traptower', 'course_rammreef',
+  'course_volcano', 'course_keep', 'course_world7_map'];
+const REUSED_W7 = ['course_arena', 'course_diorama'];
 const BEEP_BPM = THEMES.course_beep.bpm;
 
 // ---- Melodie-Prüfung (aus den Themen-Daten, ohne Browser) ----
@@ -251,7 +277,7 @@ if (want('melodie')) {
   };
   console.log(`   Grenzen: Melodie-Takte ≥ ${fmt(lim.barShare * 100, 0)} %, ≤ 4 HT ≥ ${fmt(lim.steps * 100, 0)} %, > 7 HT ≤ ${fmt(lim.leaps * 100, 0)} %, Rhythmus-Wdh. ≥ ${fmt(lim.rhythmRep * 100, 0)} %, Umfang ≤ ${lim.range} HT (Welt 1 bis ${Math.max(...w1.map((r) => r.range))}), leitereigen ≥ 90 %, Hook ≥ 2×`);
   const fresh = Object.entries(COURSE_THEMES).filter(([n, s]) => s.key && THEMES[n]).map(([n, s]) => ({ name: n, spec: s, ...melodyStats(THEMES[n], s) }));
-  console.log('Melodie Welt 2–6 und Halloween:');
+  console.log('Melodie Welt 2–7 und Halloween:');
   for (const r of fresh) console.log(`   ${row(r)}  [${r.spec.key}, ${THEMES[r.name].bpm} BPM]`);
   for (const r of fresh) {
     check(`${r.name}: Melodie in ${fmt(r.barShare * 100, 0)} % der Takte (Welt 1 im Mittel ${fmt(lim.barShare * 100, 0)} %)`, r.barShare >= lim.barShare - 1e-9);
@@ -259,12 +285,12 @@ if (want('melodie')) {
     check(`${r.name}: Refrain-Hook kehrt wieder (${r.hookCount}×), Rhythmus-Wiederholung ${fmt(r.rhythmRep * 100, 0)} %`, r.hookCount >= 2 && r.rhythmRep >= lim.rhythmRep);
     check(`${r.name}: ${fmt(r.diatonic * 100, 0)} % der Melodietöne leitereigen in ${r.spec.key}`, r.diatonic >= 0.9);
   }
-  // Abwechslung: keine zwei Hooks gleichen sich – alle Themen der Welten 1–6 und der Halloween-Welt paarweise, in beide
+  // Abwechslung: keine zwei Hooks gleichen sich – alle Themen der Welten 1–7 und der Halloween-Welt paarweise, in beide
   // Richtungen (Anteil gemeinsamer Einsätze mit gleichem Abstand zum ersten Ton in den zwei Refrain-Takten). Die Hooks
-  // der Welten 5 und 6 und der Halloween-Welt zusätzlich über die Kontur gegen alle Themen: Intervallfolge ohne Rhythmus,
+  // der Welten 5, 6 und 7 und der Halloween-Welt zusätzlich über die Kontur gegen alle Themen: Intervallfolge ohne Rhythmus,
   // Anteil gemeinsamer Vierton-Figuren (drei aufeinanderfolgende Intervalle) – so fällt auch eine umrhythmisierte oder
   // versetzte Melodie auf. (Unter den Themen der Welten 1–4 erreicht die Kontur bis 60 %; diese Themen bleiben
-  // unverändert, geprüft wird sie für Welt 5, Welt 6 und die Halloween-Welt.)
+  // unverändert, geprüft wird sie für Welt 5, Welt 6, Welt 7 und die Halloween-Welt.)
   const every = [...w1.map((r) => ({ ...r, spec: { world: 1 } })), ...fresh];
   const simSig = (p, q) => { const A = new Set(p.hookSig); return q.hookSig.filter((x) => A.has(x)).length / Math.max(A.size, q.hookSig.length); };
   const figures = (ns) => { const iv = ns.slice(1).map((n, i) => n - ns[i]); return iv.slice(2).map((_, i) => iv.slice(i, i + 3).join(',')); };
@@ -279,15 +305,15 @@ if (want('melodie')) {
       if (every[i].spec.world < 5 && every[j].spec.world < 5 && shape > oldShape.sim) oldShape = { sim: shape, a: every[i].name, b: every[j].name };
     }
   }
-  check(`Hooks verschieden (Welt 1–6 und Halloween, ${every.length} Themen): größte Ähnlichkeit zweier Refrain-Hooks ${fmt(worst.sim * 100, 0)} % (${worst.a} / ${worst.b}) < 50 %`, worst.sim < 0.5);
+  check(`Hooks verschieden (Welt 1–7 und Halloween, ${every.length} Themen): größte Ähnlichkeit zweier Refrain-Hooks ${fmt(worst.sim * 100, 0)} % (${worst.a} / ${worst.b}) < 50 %`, worst.sim < 0.5);
   console.log(`   Kontur der Hooks unter den Themen der Welten 1–4: höchstens ${fmt(oldShape.sim * 100, 0)} % (${oldShape.a} / ${oldShape.b})`);
-  for (const r of fresh.filter((x) => x.spec.world === 5 || x.spec.world === 6 || x.spec.world === HW)) {
+  for (const r of fresh.filter((x) => [5, 6, 7, HW].includes(x.spec.world))) {
     const others = every.filter((o) => o.name !== r.name);
     const top = (f) => others.map((o) => ({ o: o.name, v: both(f, r, o) })).sort((p, q) => q.v - p.v)[0];
     const x = top(simSig), y = top(simShape);
     check(`${r.name}: Hook eigenständig gegen alle Themen – Einsatz+Intervall höchstens ${fmt(x.v * 100, 0)} % (${x.o}), Kontur höchstens ${fmt(y.v * 100, 0)} % (${y.o}), je < 50 %`, x.v < 0.5 && y.v < 0.5);
   }
-  for (const w of [2, 3, 4, 5, 6, HW]) {
+  for (const w of [2, 3, 4, 5, 6, 7, HW]) {
     const keys = fresh.filter((r) => r.spec.world === w).map((r) => r.spec.key);
     if (keys.length) check(`${w === HW ? 'Halloween-Welt' : `Welt ${w}`}: jede Melodie in eigener Tonart (${keys.join(', ')})`, new Set(keys).size === keys.length);
   }
@@ -394,6 +420,82 @@ if (want('melodie')) {
     const t = T6.course_world6_map;
     check('course_world6_map: gemütlich – Kick auf 1 und 3, Piano-Melodie in der Strophe, Lead im Refrain, Glas-Windspiel in den Phrasen-Enden', t.drums.every((bar) => layers(bar)[0].startsWith('k.......k'))
       && t.piano.slice(0, 8).every((b) => noteList([b]).length >= 4) && t.lead.slice(8).every((b) => noteList([b]).length >= 4) && noteList(t.bell).length >= 8);
+  }
+
+  // Welt 7 aus den Themen-Daten: Vollständigkeit, Tempo, Länge, Loop-Naht, Klangfarben (Welt-Charakter nur über den Klang)
+  console.log('\nWelt 7 „Lava-Festung“:');
+  check(`Welt 7: alle ${CONTRACT_THEMES_W7.length} Themen der Welt-7-Liste vorhanden (${CONTRACT_THEMES_W7.join(', ')})`, CONTRACT_THEMES_W7.every((n) => THEMES[n] && COURSE_THEMES[n]?.world === 7));
+  check(`Welt 7: Arenen und 7-Kapitän nutzen vorhandene Themen (${REUSED_W7.join(', ')})`, REUSED_W7.every((n) => THEMES[n] && COURSE_THEMES[n]));
+  const w7Bpm = (n) => (n === 'course_world7_map' ? [126, 128] : n === 'course_redhot' ? [148, 152] : n === 'course_keep' ? [146, 150] : [128, 150]);
+  check(`Welt 7: Tempo 128–150 BPM, Sprint 148–152, Lava-Burg 146–150, Karte 126–128 (${CONTRACT_THEMES_W7.map((n) => `${n.replace('course_', '')} ${THEMES[n].bpm}`).join(', ')})`, CONTRACT_THEMES_W7.every((n) => THEMES[n].bpm >= w7Bpm(n)[0] && THEMES[n].bpm <= w7Bpm(n)[1]));
+  check(`Welt 7: 16–32 Takte (${CONTRACT_THEMES_W7.map((n) => barCount(THEMES[n])).join(', ')})`, CONTRACT_THEMES_W7.every((n) => barCount(THEMES[n]) >= 16 && barCount(THEMES[n]) <= 32));
+  for (const n of CONTRACT_THEMES_W7) checkSeam(n);
+  const T7 = Object.fromEntries(CONTRACT_THEMES_W7.map((n) => [n, THEMES[n]]));
+  const tops = (bar) => bar.replace(/[A-G][#b]?\d\+/g, '');   // obere Töne eines Oktav-Riffs („B4+B5:1“ → „B5:1“)
+  const pitches = (bar) => noteList([bar]).map(([, m]) => +m);
+  {
+    const t = T7.course_fortfire, whoosh = noteList(t.riser).length;
+    check(`course_fortfire: Fanfaren-Bläser (gedämpfte Orgel ≤ 3000 Hz) spielen die Hook im Intro und stoßen im Refrain, ${whoosh}× Feuer-Whoosh (Riser mit Rauschen) vor den Abschnitten, Feuerbälle fallen (Gleiten abwärts), Knistern; Ruf und Antwort springen eine Quarte hinauf`,
+      t.voice.organ.cutoff <= 3000 && sameNotes(t.organ[0], t.lead[12]) && sameNotes(t.organ[1], t.lead[13]) && noteList([t.organ[12]]).length === 3 && noteList([t.organ[12]]).every(([, m]) => m.split('+').length === 3)
+      && whoosh >= 5 && t.voice.riser.noise >= 0.08 && t.voice.echo.glide < 1 && noteList(t.echo).length >= 8 && t.drums.some((bar) => layers(bar).some((l) => l.includes('j')))
+      && [12, 13].every((b) => pitches(t.lead[b])[1] - pitches(t.lead[b])[0] === 5));
+  }
+  {
+    const t = T7.course_switchruins, tolls = noteList(t.bell.slice(4)).length;
+    const echoPairs = (bar) => { const ns = noteList([bar]); return ns[0][1] === ns[1][1] && ns[1][0] === 3 && ns[3][1] === ns[4][1] && ns[3][0] === 8 && ns[4][0] === 11; };
+    check(`course_switchruins: Steinglocken (unharmonischer Teilton, Ausklang ≥ 1 s) spielen die Hook im Intro eine Oktave tiefer und läuten ${tolls}× in Strophe und Überleitung, großer Hall (Rückkopplung ≥ 0,45, nass ≥ 0,4), Tropfen, Tempelflöte, Kipp-Schalter; Ruf-und-Echo-Hook (jeder Ruf hallt eine Sechzehntel später auf demselben Ton nach)`,
+      !Number.isInteger(t.voice.bell.ratio) && t.voice.bell.decay >= 1 && [0, 1, 2].every((b) => sameNotes(t.bell[b], t.lead[12 + b], -12)) && tolls >= 4
+      && t.fx.delay.feedback >= 0.45 && t.fx.delay.wet >= 0.4 && noteList(t.echo).length >= 8 && noteList(t.whistle).length >= 4 && t.drums.some((bar) => layers(bar).some((l) => l.includes('x')))
+      && [12, 14, 16].every((b) => echoPairs(t.lead[b])));
+  }
+  {
+    const t = T7.course_redhot, beeps = t.bell.map(pitches);
+    const countdown = (bar) => { const ns = noteList([bar]); return ns.length >= 8 && [0, 2, 4].every((k) => ns[k][1] === ns[k + 1][1] && ns[k + 1][0] - ns[k][0] === 1) && +ns[0][1] > +ns[2][1] && +ns[2][1] > +ns[4][1]; };
+    check('course_redhot: Countdown-Hook (Sechzehntel-Paare stufenweise abwärts) im Refrain, im Intro spielt sie das Piano in Oktaven; Countdown-Piepser vor Refrain und Loop (dreimal derselbe Ton, „LOS“ eine Quarte höher auf der Eins), Uhr-Ticken in der ganzen Strophe, Renn-Arpeggio und Galopp-Bass im Refrain',
+      [12, 14, 16].every((b) => countdown(t.lead[b])) && noteList([t.piano[0]]).every(([, m]) => m.split('+').length === 2) && sameNotes(tops(t.piano[0]), t.lead[12])
+      && [11, 23].every((b) => beeps[b].length === 3 && new Set(beeps[b]).size === 1) && [[0, 23], [12, 11]].every(([go, pre]) => beeps[go].length === 1 && beeps[go][0] - beeps[pre][0] === 5)
+      && t.drums.slice(4, 12).every((bar) => layers(bar).some((l) => l === 'x...x...x...x...')) && noteList([t.arp[12]]).length >= 8 && onsetsOf(t.bass[12]) === '0,2,4,6,8,10,12,14');
+  }
+  {
+    const t = T7.course_bluebelt;
+    check('course_bluebelt: Bläser-Stabs (gedämpfte Sägezahn-Akkorde) spielen die Hook im Intro in Oktaven und stoßen im Refrain, Stampf-Trommel (tief ≤ 90 Hz) in Strophe und Refrain, stampfender Oktav-Bass; Hook stampft in Vierteln (Einsätze 0, 4, 8, 10, 11, 12)',
+      noteList([t.stabs[0]]).every(([, m]) => m.split('+').length === 2) && sameNotes(tops(t.stabs[0]), t.lead[12]) && t.voice.stabs.cutoff <= 4500 && noteList([t.stabs[12]]).length >= 3
+      && t.kit.doum.freq <= 90 && [4, 8, 12, 16].every((b) => layers(t.drums[b]).some((l) => l.includes('d'))) && onsetsOf(t.bass[4]) === '0,4,8,12,14'
+      && [12, 13, 16, 17].every((b) => onsetsOf(t.lead[b]) === '0,4,8,10,11,12'));
+  }
+  {
+    const t = T7.course_traptower, peak = (b) => Math.max(...pitches(t.lead[b])), h = pitches(t.lead[12]);
+    check(`course_traptower: Turm-Glockenspiel spielt die Hook im Intro, Herzklopf-Ostinato und Kettenrasseln in der Strophe, die Lava steigt (${noteList(t.riser).length} Riser), Alarm-Sirene (weites, schnelles Vibrato) in der Überleitung; Galopp-Treppe (Achtel + zwei Sechzehntel) klettert eine Oktave, der Refrain steigt höher und höher`,
+      sameNotes(t.bell[0], t.lead[12]) && sameNotes(t.bell[2], t.lead[14]) && noteList([t.arp[4]]).length >= 8 && t.drums.slice(4, 12).filter((bar) => layers(bar).some((l) => l.includes('j'))).length >= 6
+      && noteList(t.riser).length >= 6 && t.voice.whistle.vibrato >= 30 && t.voice.whistle.rate >= 6 && noteList(t.whistle).length >= 4
+      && [12, 14].every((b) => onsetsOf(t.lead[b]) === '0,2,3,4,6,7,8,10,11,12') && h.at(-1) - h[0] === 12 && h.every((m, i) => i === 0 || m >= h[i - 1]) && peak(14) > peak(12) && peak(18) > peak(14));
+  }
+  {
+    const t = T7.course_rammreef;
+    check('course_rammreef: gedämpft (Tiefpass ≤ 1800 Hz auf Piano, Pad, Stabs und Perlen, Lead weich ≤ 3 kHz, viel Hall), Wasserglocken spielen die Hook im Intro, Blubbern (Sinus gleitet aufwärts) in Strophe und Überleitung, dumpfe Rammstöße – trotzdem tanzbar (Kick auf jedem Viertel in allen Takten); jeder Hook-Takt beginnt mit „Blubb-blubb“ (zwei Sechzehntel auf einem Ton)',
+      ['piano', 'pad', 'stabs', 'arp'].every((k) => t.fx.lowpass[k] <= 1800) && t.voice.lead.cutoff <= 3000 && t.fx.delay.wet >= 0.35 && sameNotes(t.bell[0], t.lead[12])
+      && t.voice.echo.glide > 1 && noteList(t.echo).length >= 40 && t.drums.some((bar) => layers(bar).some((l) => l.includes('d')))
+      && t.drums.every((bar) => layers(bar)[0] === 'k...k...k...k...') && [12, 13, 14, 15].every((b) => { const ns = noteList([t.lead[b]]); return ns[0][1] === ns[1][1] && ns[1][0] === 1; }));
+  }
+  {
+    const t = T7.course_volcano, rumbles = noteList(t.riser).length, a = pitches(t.lead[12]), b = pitches(t.lead[13]);
+    const taikoBars = t.drums.filter((bar) => layers(bar).some((l) => l.slice(0, 8).includes('t'))).length;
+    check(`course_volcano: Vulkan-Hörner (dunkle Orgel ≤ 2000 Hz) spielen die Hook im Intro, Taiko (tiefe Toms ≤ 80 Hz) in ${taikoBars} Takten auch auf der ersten Takthälfte, ${rumbles}× Grollen (Riser abwärts); Ausbruch-Hook: Sechzehntel-Lauf hinauf zum langen Gipfelton, die Antwort rollt hinab`,
+      t.voice.organ.cutoff <= 2000 && sameNotes(t.organ[0], t.lead[12]) && t.kit.tom.freq <= 80 && taikoBars >= 16 && rumbles >= 3 && t.voice.riser.glide < 1
+      && a[6] === Math.max(...a) && a.slice(1, 7).every((m, i) => m >= a[i]) && b.slice(2, 6).every((m, i) => m < b[i + 1]));
+  }
+  {
+    const t = T7.course_keep, baron = noteList(THEMES.course_boss.lead.slice(4, 8)), organ = noteList(t.organ.slice(0, 4));
+    check(`course_keep: Kirchenorgel (≤ 2600 Hz) spielt im Intro das Baron-Brummbär-Motiv aus course_boss (Lead Takt 5–8, ${baron.length} Töne, Note für Note), Orgel-Akkorde im Refrain, Chor-Pad in allen Takten, Chor-Stimme in der Überleitung, Pauken, Kettenrasseln; Hook in 3+3+2-Stößen`,
+      t.voice.organ.cutoff <= 2600 && baron.length >= 20 && organ.length === baron.length && organ.every(([p, m], i) => p === baron[i][0] && m === baron[i][1])
+      && noteList([t.organ[12]]).every(([, m]) => m.split('+').length >= 3) && t.pad.every((bar) => bar !== '-:16') && noteList(t.whistle).length >= 4
+      && t.drums.slice(0, 3).every((bar) => layers(bar).some((l) => l.slice(0, 8).includes('t'))) && t.drums.some((bar) => layers(bar).some((l) => l.includes('j')))
+      && [12, 13, 16, 17].every((bar) => onsetsOf(t.lead[bar]).startsWith('0,3,6,8')));
+  }
+  {
+    const t = T7.course_world7_map;
+    check('course_world7_map: bedrohlich-gemütlich in Moll – Kick auf 1 und 3, Piano-Melodie in der Strophe, Lead im Refrain, Lava-Blubbern (Sinus gleitet aufwärts) in den Phrasen-Pausen, fernes Grollen (tiefe Toms ≤ 90 Hz)', t.drums.every((bar) => layers(bar)[0].startsWith('k.......k'))
+      && t.piano.slice(0, 8).every((b) => noteList([b]).length >= 4) && t.lead.slice(8).every((b) => noteList([b]).length >= 4) && t.voice.echo.glide > 1 && noteList(t.echo).length >= 8 && t.kit.tom.freq <= 90);
   }
 }
 
@@ -729,6 +831,7 @@ if (want('live')) {
   check(`Alle ${CONTRACT_THEMES_W.length} Themen für Welt 2–4 vorhanden`, CONTRACT_THEMES_W.every((n) => infos.some((i) => i && i.name === n)));
   check(`Alle ${CONTRACT_THEMES_H.length} Themen der Halloween-Welt vorhanden (themeInfo)`, CONTRACT_THEMES_H.every((n) => infos.some((i) => i && i.name === n)));
   check(`Alle ${CONTRACT_THEMES_W6.length} Themen der Welt 6 vorhanden (themeInfo)`, CONTRACT_THEMES_W6.every((n) => infos.some((i) => i && i.name === n)));
+  check(`Alle ${CONTRACT_THEMES_W7.length} Themen der Welt 7 vorhanden (themeInfo)`, CONTRACT_THEMES_W7.every((n) => infos.some((i) => i && i.name === n)));
   for (const [name, spec] of Object.entries(COURSE_THEMES)) {
     if (!spec.has && !spec.drums && !spec.fx) continue;
     const i = infos.find((x) => x && x.name === name);
@@ -950,9 +1053,9 @@ if (want('render')) {
   console.log(`\nKurs-Themen offline (RMS-Bereich = bestehende Themen ±3 dB: ${fmt(rmsLo)}–${fmt(rmsHi)})`);
   const courseResults = {}, refrains = {};
   const PREVIEW = 30, REFRAIN = 15;
-  const COLLECT = { 2: (sp) => !sp.map, 5: () => true, 6: () => true, [HW]: () => true }; // Sammel-Hörproben: Welt 2 ohne Karte, Welt 5, Welt 6 und Halloween mit allen Themen
-  // Halloween: tests/out/hw_<thema>_30s.wav, Welt 6: tests/out/w6_<thema>_30s.wav
-  const wavName = (name, spec) => (spec.world === HW ? `hw_${name.replace('course_', '')}` : spec.world === 6 ? `w6_${name.replace('course_', '')}` : name);
+  const COLLECT = { 2: (sp) => !sp.map, 5: () => true, 6: () => true, 7: () => true, [HW]: () => true }; // Sammel-Hörproben: Welt 2 ohne Karte, Welt 5, 6, 7 und Halloween mit allen Themen
+  // Halloween: tests/out/hw_<thema>_30s.wav, Welt 6 und 7: tests/out/w6_<thema>_30s.wav bzw. w7_<thema>_30s.wav
+  const wavName = (name, spec) => (spec.world === HW ? `hw_${name.replace('course_', '')}` : [6, 7].includes(spec.world) ? `w${spec.world}_${name.replace('course_', '')}` : name);
   const jobs = [];
   for (const [name, spec] of Object.entries(COURSE_THEMES)) {
     if (ONLY && !ONLY.includes(name)) continue;
@@ -960,8 +1063,8 @@ if (want('render')) {
     const info = infos.find((i) => i?.name === name);
     const preview = spec.preview !== undefined;
     const barSec = info.seconds / info.bars;
-    // Halloween und Welt 6: 2 s über das Loop-Ende hinaus rendern, damit die Naht (letzter Takt → erster Takt) im Puffer liegt
-    const seam = spec.world === HW || spec.world === 6;
+    // Halloween, Welt 6 und 7: 2 s über das Loop-Ende hinaus rendern, damit die Naht (letzter Takt → erster Takt) im Puffer liegt
+    const seam = [HW, 6, 7].includes(spec.world);
     const seconds = info.loop ? Math.max(8, info.seconds + (seam ? 2 : 0), preview ? PREVIEW : 0) : info.seconds + 0.6;
     const theme = preview ? rotateTheme(THEMES[name], spec.preview) : null;
     const excerpt = preview && COLLECT[spec.world]?.(spec) ? { from: ((spec.hook - spec.preview + info.bars) % info.bars) * barSec, seconds: REFRAIN } : null;
@@ -1005,20 +1108,20 @@ if (want('render')) {
       check(`${label}: Loop-Naht ohne Einbruch und ohne Spitze (RMS je Schlag an der Naht ≥ 50 % des Medians: ${fmt(r.seam.minNear)} / ${fmt(r.seam.median)}, Spitze ${fmt(r.seam.peak)} < 0,98)`, r.seam.minNear >= 0.5 * r.seam.median && r.seam.peak < 0.98);
     }
   }
-  // Pegel der Halloween- und der Welt-6-Themen wie Welt 5 (nur wenn die Welten in diesem Lauf gerendert wurden): Median
+  // Pegel der Halloween-, Welt-6- und Welt-7-Themen wie Welt 5 (nur wenn die Welten in diesem Lauf gerendert wurden): Median
   // von RMS und Spitze je Welt, Abstand höchstens 1,5 dB
   const byWorld = (w) => Object.values(courseResults).filter((r) => r.spec.world === w && !r.spec.map);
   const db = (a, b) => 20 * Math.log10(a / b);
-  for (const [w, label] of [[HW, 'Halloween'], [6, 'Welt 6']]) {
+  for (const [w, label] of [[HW, 'Halloween'], [6, 'Welt 6'], [7, 'Welt 7']]) {
     if (!byWorld(5).length || !byWorld(w).length) continue;
     const lv = (x, k) => median(byWorld(x).map((r) => r[k]));
     console.log(`\nPegel (ohne Karten): Welt 5 RMS-Median ${fmt(lv(5, 'rms'))}, Spitze-Median ${fmt(lv(5, 'peak'))}; ${label} RMS-Median ${fmt(lv(w, 'rms'))}, Spitze-Median ${fmt(lv(w, 'peak'))}`);
     check(`${label}-Pegel wie Welt 5: RMS ${fmt(db(lv(w, 'rms'), lv(5, 'rms')), 1)} dB, Spitze ${fmt(db(lv(w, 'peak'), lv(5, 'peak')), 1)} dB (je höchstens ±1,5 dB)`, Math.abs(db(lv(w, 'rms'), lv(5, 'rms'))) <= 1.5 && Math.abs(db(lv(w, 'peak'), lv(5, 'peak'))) <= 1.5);
   }
 
-  // Sammel-Hörproben: Welt 2 (die sieben Kurs-Themen), Welt 5 (alle zehn Themen), Welt 6 (alle neun) und die
+  // Sammel-Hörproben: Welt 2 (die sieben Kurs-Themen), Welt 5 (alle zehn Themen), Welt 6 und 7 (je alle neun) und die
   // Halloween-Welt (alle sechs) je 15 s ab dem Refrain (0,3 s ausgeblendet), 1 s Pause dazwischen
-  for (const [w, count] of [[2, 7], [5, 10], [6, 9], [HW, 6]]) {
+  for (const [w, count] of [[2, 7], [5, 10], [6, 9], [7, 9], [HW, 6]]) {
     const names = Object.entries(COURSE_THEMES).filter(([, sp]) => sp.world === w && COLLECT[w](sp)).map(([n]) => n);
     if (!names.every((n) => refrains[n])) continue;
     const sr = refrains[names[0]].sr, gap = Buffer.alloc(sr * 2), parts = [gap], order = [];
