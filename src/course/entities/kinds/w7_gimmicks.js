@@ -21,7 +21,9 @@
 //   { kind: 'wurfsichel', pos (Unterkante der Sichel; Mitte = y + 0,16), dir: [dx, dz], owner: player, speed: 14, range:
 //     7.5, curve: 0.7 (m seitlicher Bogen, + = nach rechts von der Flugrichtung), life: 3.5, catch: 0.9 (m Fangradius) }
 //   Zustände: hin | zurueck. Laufzeit: hits, collected, caught, info(). Modell 'wurfsichel_geschoss' (state { spin }) –
-//   sonst eigene Sichel (goldene Klinge mit Blütenstern).
+//   sonst eigene Sichel (goldene Klinge mit Blütenstern). Gegner dürfen sie auch werfen (owner = Gegner mit enemy): dann
+//   verletzt sie nur Spielfiguren (Kugel 0,38 m), sammelt und löst nichts aus und kehrt zum Gegner zurück (weg, wenn er
+//   besiegt ist).
 //
 // druckknopf – großer Knopf auf einem Sockel (statt P-Schalter; Bauplan 7-Burg „P-Schalter senkt die Brücke“):
 //   Draufspringen/Stampfen, Wurfsichel, geworfene Dinge, Panzer, Explosion drücken ihn → onPress (einmal; once: false =
@@ -45,7 +47,7 @@ import { CourseEntity } from '../CourseEntity.js';
 import { EnemyW2 } from '../EnemyW2.js';
 import { Gimmick, runAction, contentAction, visDt, playerOn } from '../gimmick.js';
 import { getModel, hasModel } from '../../models/index.js';
-import { lavaTopAt, lavaColorAt, fireBallGeo, fireMaterial, TAU } from '../../blocks/w7kit.js';
+import { lavaTopAt, lavaColorAt, fireBallGeo, fireMaterial, hurtFigures, sphereTouches, TAU } from '../../blocks/w7kit.js';
 import { buildFeuerstab, buildLavaFontaene } from '../../blocks/types/w7_fire.js';
 import { buildLavaspiegel, buildGitterboden } from '../../blocks/types/w7_lava.js';
 import { buildPfeilplattform, buildZylinder, buildStachelwalzeRot } from '../../blocks/types/w7_platforms.js';
@@ -306,7 +308,7 @@ export class Wurfsichel extends CourseEntity {
     this.age += dt;
     this.spin += dt * 22;
     const o = this.owner;
-    if (this.age > this.life || !o || o.dead || o.removedFigure) { this.poof(); return; }
+    if (this.age > this.life || !o || o.dead || o.removedFigure || o.removed || o.defeated) { this.poof(); return; }
     if (this.state === 'hin') {
       // vorwärts, gegen Ende langsamer; seitlicher Bogen über sin(π·s)
       const s0 = this.dist / this.range;
@@ -321,7 +323,7 @@ export class Wurfsichel extends CourseEntity {
       this.vel.set((tx - this.pos.x) / dt, 0, (tz - this.pos.z) / dt);
       if (res.hitWall) {
         const ow = res.wallShape?.owner;
-        if (ow && !this.hitSet.has(ow) && !ow.enemy) {
+        if (ow && !this.hitSet.has(ow) && !ow.enemy && !o.enemy) {
           if (typeof ow.onSichelHit === 'function') ow.onSichelHit(this);
           else if (typeof ow.onHit === 'function') ow.onHit('shell', this, res.wallShape);
         }
@@ -365,6 +367,11 @@ export class Wurfsichel extends CourseEntity {
   /** Treffer unterwegs (Kopfkommentar). */
   hitThings() {
     const L = this.level, c = this.center(), o = this.owner;
+    if (o?.enemy) {
+      // Gegner-Sichel (Bumerang-Werfer): verletzt nur Spielfiguren, sammelt und löst nichts aus
+      hurtFigures(L, (f) => sphereTouches(f, c.x, c.y, c.z, 0.38), this);
+      return;
+    }
     for (const e of L.entities) {
       if (e === this || e === o || !e.alive || e.removed || e.hidden || e.carrier || this.hitSet.has(e)) continue;
       if (e.kind === 'wurfsichel') continue;

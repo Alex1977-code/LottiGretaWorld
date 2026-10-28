@@ -3,7 +3,7 @@
 // lavaspiegel – Lava mit wechselndem Spiegel (Bauplan 7-7 „Lavasee mit steigender/sinkender Lava“, 7-5 „unten steigt die
 //   Lava“). Die tödliche Form und die glühende Oberfläche folgen dem Spiegel (Figuren sterben, sobald die Füße darunter
 //   sind; Gegner versinken; Lavablasen und Fontänen folgen über lavaTopAt). Vor dem Steigen brodelt und glüht die
-//   Oberfläche (Vorwarnung, Klang 'lava_steigt').
+//   Oberfläche (Vorwarnung, Klang 'rumble').
 //   { type: 'lavaspiegel', id, pos: [x, y, z] (Mitte der Unterseite = Grund), size: [w, h, d] (Ruhe-Spiegel bei y + h),
 //     mode: 'zyklus' | 'plan' | 'signal' | 'fest',
 //     low: y + h (unterer Spiegel, absolut), high: low + 3 (oberer Spiegel, absolut),

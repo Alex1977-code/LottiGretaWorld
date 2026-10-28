@@ -16,7 +16,8 @@
 //                           start(), stop(), reset(), inside(fig) → bool, kills, resets, info() }; w7(level).fogs
 //   Der Nebelkörper (durchscheinender Shader) hinter der Front ist immer eigen; die Front zeigt das Registry-Modell
 //   'giftnebel_wand' (gimmicks_w7.js; facing 'vorn' { width = a, height = b, depth ≤ 2,5 } im Front-Rahmen, bei dir 'down'
-//   facing 'unten' { width = b, depth = a, height ≤ 3 }; state { density }, dünner, wenn die Kamera im Nebel ist) – sonst eigene Wolkenkarten (look: 'eigen').
+//   facing 'unten' { width = b, depth = a, height ≤ 3 }; state { density }, dünner, wenn die Kamera im Nebel ist) – sonst
+//   eigene Wolkenkarten (look: 'eigen').
 
 import * as THREE from 'three';
 import { v3, addObject } from '../kit.js';

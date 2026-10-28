@@ -211,6 +211,27 @@ console.log('Lavawerkstatt 0-26');
   });
   console.log(`  Wurfsichel HUD: „${h.txt}“, in der Luft ${h.flying} (bereit ${h.ready}), danach bereit ${h.readyAfter}`);
   check('Wurfsichel: HUD zeigt „Wurfsichel“, Bereitschaft (sichelReady/sichelFlying) für Figuren und HUD', h.txt === 'Wurfsichel' && h.flying === 1 && !h.ready && h.readyAfter);
+  // Gegner-Sichel (Bumerang-Werfer): owner = Gegner → verletzt die Figur, kehrt zum Gegner zurück; Gegenprobe: Wurf abseits
+  const g = await sc(() => {
+    const t = window.__t, c = window.__course, L = c.level, p = c.player;
+    t.place([0, 0, 2], { settle: 5 });
+    const foe = L.spawn('pilzling', { pos: [0, 0, -4], dir: [1, 0], speed: 0.01 });
+    t.tick(2);
+    const throwAt = (dx) => L.spawn('wurfsichel', { pos: [foe.pos.x, foe.pos.y + 0.5, foe.pos.z], dir: [dx, 1], owner: foe });
+    const s1 = throwAt(0.9);
+    let miss = false;
+    for (let i = 0; i < 400 && !s1.removed; i++) { p.pos.set(0, 0, 2); t.tick(1); miss = miss || t.hurt(); }
+    const back1 = s1.caught;
+    const s2 = throwAt(0);
+    let hit = false;
+    for (let i = 0; i < 400 && !hit; i++) { p.pos.set(0, 0, 2); t.tick(1); hit = t.hurt(); }
+    const coinsFoe = L.runtime.coins;
+    foe.kill();
+    t.tick(30);
+    return { miss, back1, hit, gone: s2.removed, coinsFoe };
+  });
+  console.log(`  Gegner-Sichel: abseits geworfen heil ${!g.miss} (zurück beim Gegner ${g.back1}); auf die Figur getroffen ${g.hit}; Gegner weg → Sichel weg ${g.gone}`);
+  check('Wurfsichel als Gegner-Geschoss (owner = Gegner): trifft die Figur, kehrt zum Gegner zurück; Gegenprobe abseits: heil', g.hit && !g.miss && g.back1 && g.gone);
   await T('place', marks.sichel, { settle: 10, power: 'sichel' });
   await sc(() => { const t = window.__t; t.action(); t.tick(28); });
   await shot('wurfsichel', 900);
