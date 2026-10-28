@@ -5637,6 +5637,8 @@ level-lokal (Hilfsdatei, Haken `LEVEL.build`/`LEVEL.setup`). Gegner nach „Prä
   ?-Block davor – mit Treffer-Blinken kommt man nicht durch) · 1 oben auf der Wuschel-Röhre (hinaufklettern, zwischen den
   kreisenden Wuscheln; beim Durchfahren nicht erreichbar) · 2 Münzhimmel (Wolkenkanone, Wolkenkette). Stempel: über dem
   Röhrenbogen (von Terrasse 2 auf den Bogen, dann Sprung; von der Terrasse aus zu hoch).
+- Wuschel-Kreise und Kugelreihen liegen neben bzw. hinter den Röhrenausgängen (wer aus einer Röhre kommt, hat erst
+  Platz); die Kugelreihe vor der Warp-Box 2 lässt links den Ausgang der Münzhimmel-Röhre frei.
 - Extraleben: versteckter Block vor der Tür der Almhütte. Gegner: Stachelkugel 19, Wuschel 28, Schnappblume 17,
   Feuer-Schnappblume 4; Schlüsselmünzen 5, Warp-Boxen 6 (3 Paare).
 - Budget: Stachelkugeln (≈ 5700 Dreiecke je Stück, im Schattenpass doppelt) werfen nur im Umkreis von 11 m einen
@@ -5691,9 +5693,9 @@ Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier); Beine
 Glasröhren-Öffnung laufen, Stick während der Fahrt – Weiche), `warp` (Warp-Box/Kanone), `clear` (Stachelkugeln abwarten),
 `star` (Funkelstern), `push` (Schubser: anlaufen, seinen Stößen ausweichen, Stampfattacke, zur Schiffsmitte
 zurück), `ringGap` (Lücke im Kreisgeist-Ring vorausberechnen), `stompAll`, `chaseKind`, `hop`, `crouch`. Geprüft: Laden
-ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel (6-1 ≈ 58/51 s mit fünf
-Schlüsselmünzen, drei Warp-Boxen, sechs Röhrenfahrten; 6-2 ≈ 51/42 s, drei Schubser ins Meer, ohne Treffer-Versuch); auf
-der 6-1-Route ist die Figur unverwundbar (Treffer-Versuche durch Wuschel werden gezählt und ausgegeben); alle Sterne und
+ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta Start → Ziel **ohne einen Treffer-Versuch**
+(6-1 ≈ 66/59 s mit fünf Schlüsselmünzen, drei Warp-Boxen, sechs Röhrenfahrten, Lücken in Kugelreihen und im
+Wuschel-Kreis um Schlüssel 3 abgewartet – Bein `gap`; 6-2 ≈ 51/42 s, drei Schubser ins Meer); alle Sterne und
 Stempel mit Gegenproben (Glasgang ohne Funkelstern tödlich, Stern 1 nicht beim Durchfahren, Stempel nicht von der
 Terrasse, Stern-Schubser nicht durch Draufspringen, Stern 2 nicht ohne Sprung, Stempel nicht vom Boden); Extras (Weiche
 links, versteckte Warp-Boxen, drei Extraleben); 6-B: Werfen und Springen der Werfer, Kampf beider Figuren (≈ 16 s),

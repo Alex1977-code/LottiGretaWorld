@@ -259,17 +259,18 @@ export const LEVEL = {
     // Röhrensteigung
     wusch({ id: 'wt1', center: [-4, T2, -120], radius: 2.6, count: 4, spacing: 4.1, speed: 2.2 }),
     wusch({ id: 'wt2', path: [[-10, T2, -116], [6, T2, -116]], count: 3, spacing: 2.2, speed: 2.6 }),
-    wusch({ id: 'wt3', center: [-6, T3, -134], radius: 2.2, count: 3, spacing: 4.6, speed: 2.2, cw: true }),
-    wusch({ id: 'wt4', center: [6, T3, -134], radius: 2.2, count: 4, spacing: 3.4, speed: 2.2 }),
-    wusch({ id: 'wt5', path: [[-9, T4, -150], [9, T4, -150]], count: 3, spacing: 2.4, speed: 2.8 }),
+    // Wuschel-Kreise neben (nicht vor) den Röhrenausgängen – wer herauskommt, hat erst Platz
+    wusch({ id: 'wt3', center: [-9, T3, -133], radius: 1.6, count: 3, spacing: 3.3, speed: 2.2, cw: true }),
+    wusch({ id: 'wt4', center: [8.4, T3, -134], radius: 1.6, count: 4, spacing: 2.5, speed: 2.2 }),
+    wusch({ id: 'wt5', path: [[-9.4, T4, -151], [-1.8, T4, -151]], count: 3, spacing: 2.2, speed: 2.6 }),
     wusch({ id: 'wt6', path: ringZ(-4, T2 - 1.5, -109), loop: true, speed: 2 }),
     wusch({ id: 'wt7', path: ringZ(-4, T2 - 1.5, -109), loop: true, speed: 2, phase: 0.5 }),
-    wusch({ id: 'wt8', center: [0, T4, -148], radius: 3.6, count: 3, spacing: 7.5, speed: 2.4, cw: true }),
+    wusch({ id: 'wt8', center: [5.6, T4, -150.8], radius: 1.9, count: 3, spacing: 4, speed: 2.4, cw: true }),
     kugel('k13', [-3, T2, -123.8], [-11, T2, -123.8], { speed: 2.2 }),
-    kugel('k14', [-10, T4, -153], [10, T4, -153], { speed: 3, phase: 0.5 }),
+    kugel('k14', [-10, T4, -153.6], [10, T4, -153.6], { speed: 3, phase: 0.5 }),
     kugel('k16', [-8, Y2, -63], [8, Y2, -63], { speed: 2.4, phase: 0.5 }),
     snap(-9.5, T3, -128.5), snap(9.2, T3, -137.5),
-    kugel('k7', [-10, T4, -144], [10, T4, -144], { speed: 3.2 }),
+    kugel('k7', [-3, T4, -147.4], [10, T4, -147.4], { speed: 3.2 }),   // links frei: dort endet die Röhre aus dem Münzhimmel
     kugel('k8', [-10, T3, -137.6], [-2, T3, -137.6], { speed: 2.4 }),
     // Münzhimmel
     snap(HX + 1.6, YH, -127),

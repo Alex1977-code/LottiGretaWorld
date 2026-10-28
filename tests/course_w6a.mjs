@@ -12,8 +12,8 @@
 //   DETAIL=1 (Zeichenaufrufe je Objekt bei den Bildern)
 //
 // Der Bot lenkt je Schritt zum nächsten Wegpunkt (Stick relativ zur Kamera-Gier wie im Spiel). Die Figur ist auf der Route
-// unverwundbar (Abpraller zählen weiter), damit Geometrie und Mechanik geprüft werden; Trefferversuche werden gezählt und
-// ausgegeben. Gegenproben laufen verwundbar.
+// unverwundbar (Abpraller zählen weiter), damit Geometrie und Mechanik geprüft werden; Trefferversuche werden gezählt – die
+// Routen kommen ohne einen aus (Lücken in Kugelreihen und Wuschel-Kreisen abgewartet). Gegenproben laufen verwundbar.
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
 // ------------------------------------------------------------------ Routen
@@ -55,7 +55,10 @@ const ROUTES = {
       { to: [0, -132.6], within: 0.4 },
       { name: 'Steigröhre', pipe: [0, -134.6] },
       { expect: 'terrasse4' },
-      { name: 'Warp-Box 2', clear: ['k7'], at: [0, -146], r: 3 },
+      { to: [0, -145.8], within: 0.5 },
+      { name: 'Warp-Box 2', clear: ['k7'], at: [0, -146.2], r: 3 },
+      { to: [0.9, -150.4], within: 0.5 },
+      { clear: ['k14'], at: [0.9, -152.6], r: 3 },
       { warp: [0, -156] },
       { expect: 'feld' },
       { to: [-11, -173], within: 0.5, run: false },
@@ -63,11 +66,15 @@ const ROUTES = {
       { to: [-7, -173.4], within: 0.4 },
       { name: 'Glasröhre über das Feld (Weiche rechts)', pipe: [-6, -172.6] },
       { name: 'Schlüssel 2 am rechten Ausgang', to: [12.5, -203], within: 0.5, run: false },
-      { name: 'Schlüssel 3 in der Feldmitte', to: [0, -190], within: 0.6 },
+      { to: [10.4, -198.2], within: 0.6 }, { to: [6.8, -198.6], within: 0.6 }, { to: [2, -198.8], within: 0.6 },
+      { to: [1.2, -195.4], within: 0.5, run: false },
+      { name: 'Schlüssel 3 in der Feldmitte (Lücke im Wuschel-Kreis)', gap: 'wuschel', near: [0, -190, 4.5], to: [0, -190], within: 0.6 },
+      { gap: 'wuschel', near: [0, -190, 4.5], to: [-3.6, -187.6], within: 0.6 },
       { name: 'Schlüssel 4 links hinten', to: [-12.5, -203], within: 0.5 },
-      { to: [12, -186], within: 0.6 },
+      { to: [-9.6, -198.6], within: 0.6 }, { to: [-2, -199.5], within: 0.6 }, { to: [7.5, -197.8], within: 0.6 },
+      { to: [13.4, -194], within: 0.6 }, { to: [13.4, -186], within: 0.6 },
       { name: 'Schlüssel 5 vorn rechts', to: [13.6, -177], within: 0.5 },
-      { to: [4, -186], within: 0.6 },
+      { to: [13.4, -186], within: 0.6 }, { to: [13.4, -196], within: 0.6 }, { to: [8.8, -198.8], within: 0.6 }, { to: [2, -199.5], within: 0.6 },
       { expect: 'keys5' },
       { expect: 'w3offen' },
       { to: [0, -205], within: 0.6 },
@@ -79,6 +86,7 @@ const ROUTES = {
     routeChecks: [
       { name: 'fünf Schlüsselmünzen gesammelt, drei Warp-Boxen benutzt', ok: (r) => r.mech.keys === 5 && r.mech.warps === 3 },
       { name: 'fünf Glasröhren-Fahrten (Weiche, Wuschel-Röhre, Bogen, Weiche, Steigröhre)', ok: (r) => r.mech.pipes >= 5 },
+      { name: 'ohne einen Treffer-Versuch (Lücken abgewartet)', ok: (r) => r.mech.hurts === 0 },
     ],
     targets: [
       { name: 'Stern 0: Funkelstern aus dem ?-Block, durch den Glasgang zwischen den Stachelkugeln', star: 0, from: [-4, Y1, -28.4],
@@ -184,6 +192,7 @@ const ROUTES = {
     ],
     routeChecks: [
       { name: 'drei Schubser ins Nebelmeer gestoßen, Warp-Boxen in den Laderaum, hinaus und zum Ziel', ok: (r) => r.mech.pushedOff === 3 && r.mech.warps === 3 },
+      { name: 'ohne einen Treffer-Versuch', ok: (r) => r.mech.hurts === 0 },
     ],
     targets: [
       { name: 'Stern 0: großen Schubser vom zweiten Schiff stoßen', star: 0, from: [0, 1, -35.2],
@@ -507,6 +516,43 @@ function install() {
             tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz) : this.stick(qx, qz, 1)), run: true });
           }
           log.push(['ringlücke', Lg.ringGap, k, j, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Lücke zwischen kreisenden Gegnern (Art kind nahe near) abwarten
+        if (Lg.gap) {
+          const [cx, cz, cr] = Lg.near, [tx, tz] = Lg.to;
+          const foes = () => L.entities.filter((x) => x.kind === Lg.gap && x.alive && !x.removed && Math.hypot(x.pos.x - cx, x.pos.z - cz) < cr);
+          // Vorausschau: Gegner auf ihrer Kreisbahn um near (Winkelgeschwindigkeit aus zwei aufeinanderfolgenden Schritten)
+          const prevA = new Map();
+          const safe = () => {
+            const d0 = Math.hypot(tx - p.pos.x, tz - p.pos.z), T = d0 / 6.5 + 0.35;
+            const list = foes().map((m) => {
+              const rx = m.pos.x - cx, rz = m.pos.z - cz, a = Math.atan2(rz, rx);
+              let w = 0;
+              if (prevA.has(m)) { let da = a - prevA.get(m); if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI; w = da * 60; }
+              prevA.set(m, a);
+              return { a, r: Math.hypot(rx, rz), w };
+            });
+            if (!list.length) return true;
+            if (list.some((f) => f.w === 0)) return false;   // erst nach zwei Schritten urteilen
+            for (let t = 0; t <= T + 0.3; t += 0.1) {
+              const k = Math.min(1, t / T), px = p.pos.x + (tx - p.pos.x) * k, pz = p.pos.z + (tz - p.pos.z) * k;
+              for (const f of list) {
+                const a = f.a + f.w * t;
+                if (Math.hypot(cx + Math.cos(a) * f.r - px, cz + Math.sin(a) * f.r - pz) < (Lg.clear ?? 1.5)) return false;
+              }
+            }
+            return true;
+          };
+          let k = 0;
+          for (; k < 1200 && !safe(); k++) tick({});
+          let j = 0;
+          for (; j < 400 && !p.dead; j++) {
+            const qx = tx - p.pos.x, qz = tz - p.pos.z, d = Math.hypot(qx, qz);
+            if (d < (Lg.within ?? 0.4) && p.mode === 'ground') break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz) : this.stick(qx, qz, 1)), run: true });
+          }
+          log.push(['lücke', Lg.gap, k, j, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
         }
         // ------------------------------------------------ Gegner (Id-Anfang) nacheinander von oben besiegen
