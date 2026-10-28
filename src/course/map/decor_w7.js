@@ -47,7 +47,7 @@ import { bakeModel } from './bake.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 import { LowBuild as Build, place } from './desert.js';
 import { modelTris } from './beach5.js';
-import { beatNow7, LAVA_GLOW, basaltGroupGeo } from './lava7.js';
+import { beatNow7, LAVA_GLOW, basaltGroupGeo, W7_USED, W7_HEAVY } from './lava7.js';
 
 /** Kulisse für eine Welt-7-Art bauen; false = unbekannte Art. */
 export function decorateW7(ev, kind, x, y, z) {
@@ -76,9 +76,7 @@ const glowMat = (ev, color, extra = {}) => { const m = new THREE.MeshBasicMateri
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _c = new THREE.Color();
 // Registry-Modelle blicken nach +X, die Kulissen nach +Z (Kamera): yaw −π/2 dreht +X nach +Z
 const FRONT = -Math.PI / 2;
-/** Benutzte Registry-Modelle (für Tests: state().decor.w7models) und vorhandene, aber zu schwere (w7heavy: Name → Dreiecke). */
-export const W7_USED = new Set();
-export const W7_HEAVY = new Map();
+// Benutzte Registry-Modelle (für Tests: state().decor.w7models) und vorhandene, aber zu schwere (w7heavy) – W7_USED/W7_HEAVY aus lava7.js
 const tooHeavy = (name, opts, max) => { const n = modelTris(name, opts); if (n > max) { W7_HEAVY.set(name, Number.isFinite(n) ? Math.round(n) : -1); return true; } return false; };
 
 /**

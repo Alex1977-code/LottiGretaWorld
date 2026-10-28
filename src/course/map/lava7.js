@@ -32,6 +32,11 @@ import { LowBuild as Build, place } from './desert.js';
 import { buildBridge } from '../blocks/types/bridge.js';
 import { baronFlagTexture } from './props.js';
 import { gearGeo } from './sky6.js';
+import { hasModel } from '../models/index.js';
+
+/** Benutzte Registry-Modelle der Welt-7-Karte (state().decor.w7models) und vorhandene, aber zu schwere (w7heavy: Name → Dreiecke). */
+export const W7_USED = new Set();
+export const W7_HEAVY = new Map();
 
 export const LAVA_STYLES = new Set(['ash', 'arena', 'temple', 'track', 'bluerock', 'fort', 'crater', 'castle', 'blacksand', 'rock', 'cliff',
   'basin', 'bluebasin', 'lagoon']);
@@ -562,11 +567,10 @@ export function lavaPropShape(it) {
  * [Name, Optionen, yaw-Korrektur, Maßstab] oder null – fehlt das Modell, zeichnet lavaPropGeo eigene Geometrie.
  */
 export function lavaPropModel(it) {
-  switch (it.kind) {
-    case 'basalt7': return ['basaltsaeule', { height: it.size ?? 2.6, radius: 0.9, count: 5, seed: it.seed ?? 1, glow: false }, 0, 1];   // Glutfugen (320 Dreiecke) spart die Karte
-    case 'vrock7': return ['vulkanfels', { kind: 'brocken', size: 2 * (it.size ?? 1), seed: it.seed ?? 1 }, 0, 1];
-    default: return null;
-  }
+  const pm = it.kind === 'basalt7' ? ['basaltsaeule', { height: it.size ?? 2.6, radius: 0.9, count: 5, seed: it.seed ?? 1, glow: false }, 0, 1]   // Glutfugen (320 Dreiecke) spart die Karte
+    : it.kind === 'vrock7' ? ['vulkanfels', { kind: 'brocken', size: 2 * (it.size ?? 1), seed: it.seed ?? 1 }, 0, 1] : null;
+  if (pm && hasModel(pm[0])) W7_USED.add(pm[0]);
+  return pm;
 }
 
 /**
@@ -916,8 +920,8 @@ function lavaTexture(kind) {
   const blue = kind === 'blau';
   return canvasTexture(`w7:lava:${kind}`, 128, 128, (ctx, w, h) => {
     const C = blue
-      ? { base: '#3a94ff', mid: '#6ac8ff', hot: '#d8fbff', vein: 'rgba(224,252,255,0.85)', crust: '#2a62d8', crust2: '#3472e4' }
-      : { base: '#ff6a18', mid: '#ff9a2a', hot: '#fff0a0', vein: 'rgba(255,236,140,0.9)', crust: '#b8401a', crust2: '#cc5420' };
+      ? { base: '#3a94ff', mid: '#6ac8ff', hot: '#d8fbff', vein: 'rgba(224,252,255,0.5)', crust: '#2a62d8', crust2: '#3472e4' }
+      : { base: '#ff6a18', mid: '#ff9a2a', hot: '#fff0a0', vein: 'rgba(255,230,130,0.5)', crust: '#b8401a', crust2: '#cc5420' };
     ctx.fillStyle = C.base; ctx.fillRect(0, 0, w, h);
     const R = new Rnd(blue ? 77 : 33);
     const wrap = (fn) => { for (const [dx, dy] of [[0, 0], [-w, 0], [w, 0], [0, -h], [0, h]]) fn(dx, dy); };
@@ -932,11 +936,11 @@ function lavaTexture(kind) {
     }
     // Fließadern (geschwungene helle Linien entlang v)
     ctx.lineCap = 'round';
-    for (let i = 0; i < 7; i++) {
-      const x0 = R.real(0, w), amp = R.real(4, 12), ph = R.real(0, 6), lw = R.real(1.5, 3.5);
+    for (let i = 0; i < 5; i++) {
+      const x0 = R.real(0, w), amp = R.real(5, 16), ph = R.real(0, 6), lw = R.real(1.2, 2.4), fq = 1 + (i % 2);
       wrap((dx) => {
         ctx.beginPath();
-        for (let y = -4; y <= h + 4; y += 4) { const x = x0 + Math.sin(y / h * TAU * 2 + ph) * amp; if (y === -4) ctx.moveTo(x + dx, y); else ctx.lineTo(x + dx, y); }
+        for (let y = -4; y <= h + 4; y += 4) { const x = x0 + Math.sin(y / h * TAU * fq + ph) * amp + Math.sin(y / h * TAU * 3 + i) * 2; if (y === -4) ctx.moveTo(x + dx, y); else ctx.lineTo(x + dx, y); }
         ctx.strokeStyle = C.vein; ctx.lineWidth = lw; ctx.stroke();
       });
     }
