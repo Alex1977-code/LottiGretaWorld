@@ -273,7 +273,49 @@ const ROUTES = {
     start: [0, 1, 10],
     meta: { stars: 3, time: 400, theme: 'reef', music: 'course_rammreef', archetype: 'parcours' },
     enemies: { rammfisch: 10, wutkaulquappe: 3, kiste_wasser: 7, stachelkugel: 1 },
-    main: [],
+    main: [
+      { name: 'ins Wasser', to: [0, 1.5], within: 0.6 },
+      { name: 'Kammer A: abtauchen', swim: [1, -6.8, -12], within: 0.8, withinY: 0.8 },
+      { swim: [-0.5, -6.9, -21.6], within: 0.5, withinY: 0.5 },
+      { name: 'Kistentunnel Riffwand 1', swim: [-0.5, -6.9, -27.6], within: 0.8, max: 1500, full: true },
+      { name: 'Kammer B', swim: [0, -3, -38], within: 1.0, withinY: 1 },
+      { swim: [0, -3, -52.6], within: 0.6, withinY: 0.8 },
+      { clearFish: ['rf2', 'rf3'], x: 0, minDx: 5, depth: -3, max: 3600 },
+      { swim: [0, -6.9, -53.6], within: 0.6, withinY: 0.5, full: true },
+      { name: 'Kistentunnel Riffwand 2', swim: [0, -6.9, -59.4], within: 0.8, max: 1500, full: true },
+      { name: 'Kammer C (Zickzack)', swim: [5, -2.6, -61.5], within: 1, withinY: 1, full: true },
+      { swim: [11.5, -2.6, -61.5], within: 1, withinY: 1 },
+      { swim: [11.5, -2.6, -69.5], within: 1, withinY: 1 },
+      { swim: [-11.5, -2.6, -69.5], within: 1, withinY: 1 },
+      { swim: [-11.5, -2.6, -78], within: 1, withinY: 1 },
+      { swim: [11.5, -2.6, -78], within: 1, withinY: 1 },
+      { swim: [11.5, -2.4, -85.4], within: 1, withinY: 1 },
+      { name: 'über die Sandrampe auf die Felsplattform', swim: [1.5, -0.5, -85.2], within: 0.8, withinY: 1.4, soft: true, max: 600 },
+      { to: [1, -89], within: 0.6, run: false },
+      { name: 'Warp-Box zur Vulkaninsel', warp: [0, -90.4] },
+      { expect: 'vInsel' },
+      { name: 'Checkpoint', to: [3.2, -104], within: 0.6 },
+      { to: [4.2, -112], within: 0.6 },
+      { to: [4.2, -126], within: 0.6 },
+      { to: [0, -131.4], within: 0.4, run: false },
+      { name: 'Trittstein', to: [0, -136], jump: 20, within: 0.5, run: false },
+      { name: 'über Becken 2', to: [0, -141], jump: 20, within: 0.6, run: false },
+      { to: [2, -156], within: 0.6 },
+      { name: 'von der Klippe ins Finale', to: [2, -163], within: 0.8, run: false },
+      { swim: [-3.4, -2.6, -174], within: 0.6, withinY: 0.6 },
+      { fishLow: 'rf_v1', below: -5, hold: [-3.4, -174], depth: -2.6 },
+      { name: 'durch das Fenster (Rammfisch unten)', swim: [-3.4, -2.6, -184], within: 0.8, withinY: 1, full: true },
+      { name: 'unter den großen Rammfischen durch', swim: [0, -7.2, -196], within: 1, withinY: 1 },
+      { swim: [0, -7.2, -204], within: 1, withinY: 1, full: true },
+      { name: 'zum Zielriff auftauchen', swim: [0, -1.6, -206.4], within: 0.8, withinY: 1, full: true },
+      { swim: [0, -0.6, -209.6], within: 0.8, withinY: 1.4, soft: true, max: 600 },
+      { name: 'Sandrampe hinauf aufs Zielriff', to: [0, -216], within: 0.6, run: false },
+      { name: 'Zielmast', to: [6, -235.6], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'Kistentunnel durch Schwimmstoß geöffnet (4 Kisten), Warp-Box zur Vulkaninsel', ok: (r) => r.mech.kisten >= 4 && r.mech.warps === 1 },
+      { name: 'Treffer-Versuche höchstens 2 (Rammfische und Kaulquappen meist umschwommen)', ok: (r) => r.mech.hurts <= 2 },
+    ],
     shots: [
       ['start', [0, 1, 9]],
       ['kammerA', [0, -4, -6]],
@@ -380,6 +422,10 @@ function install() {
     zurueckAmStart: () => P().pos.z > 6.2 && !P().dead,
     keinSprung: () => P().pos.y < 0.3,
     fertig: () => L.runtime.status === 'done' || L.runtime.status === 'goal',
+    // 7-6
+    vInsel: () => P().pos.z < -97 && P().pos.z > -112 && P().pos.y > 0.9,
+    kugelWeg: () => { const e = L.entities.find((x) => x.spec?.id === 'seeigel'); return !e || !e.alive || e.removed; },
+    funken: () => P().power === 'funken',
     amCheckpoint: () => at(-10, 10, G1 - 0.2, -88, -99),
   };
   const W = {
@@ -425,6 +471,7 @@ function install() {
       let deadLogged = false;
       const mech = { hurts: 0, keys: 0, warps: 0, rides: 0, stampfFahrten: 0, aufzug: 0, gondel: false, feder: false, hurtList: [], lavaTop: -99, nebel: null, flucht: null };
       let fogT0 = null;
+      const kisten0 = L.entities.filter((e) => e.kind === 'kiste_wasser' && e.alive && !e.removed);
       const track = [];
       let lastHurts = p.hurtTries ?? 0;
       let lastStampf = null;
@@ -533,6 +580,65 @@ function install() {
           if (list().length) log.push(['FEHLER: Zauberkröten übrig', list().length]);
           continue;
         }
+        // ------------------------------------------------ Schwimmen zu [x, y, z] (Ducken taucht ab, Sprung/gehalten steigt)
+        if (Lg.swim || Lg.swimTo) {
+          const target = () => {
+            if (Lg.swim) return Lg.swim;
+            const e = L.entities.find((x) => x.kind === Lg.swimTo && x.alive && !x.removed && !x.hidden && (Lg.index === undefined || x.index === Lg.index));
+            return e ? [e.pos.x, e.pos.y + (Lg.dy ?? 0.2), e.pos.z] : null;
+          };
+          let i = 0, ok = false;
+          for (; i < (Lg.max ?? 1200) && !p.dead && L.runtime.status === 'play'; i++) {
+            const t = target();
+            if (!t) { ok = true; break; }
+            const [tx, ty, tz] = t;
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            const dy = ty - p.pos.y;
+            if (d < (Lg.within ?? 0.6) && Math.abs(dy) < (Lg.withinY ?? 0.7)) { ok = true; break; }
+            if (Lg.stopIf && COND[Lg.stopIf]()) { ok = true; break; }
+            const st = d > 0.05 ? this.stick(dx, dz, d < 0.8 && !Lg.full ? Math.max(0.3, d / 0.8) : 1) : { x: 0, y: 0 };
+            if (p.mode !== 'swim') { tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 6) : st), run: false }); continue; }
+            const headDepth = (p.water?.top ?? 0) - (p.pos.y + p.half.y * 2);
+            let crouch = false, jump = false;
+            if (dy < -0.35) crouch = true;
+            else if (dy > 0.5) jump = (i % 18) < 3 && headDepth > 0.5;   // Schwimmzug (nicht an der Oberfläche: sonst Aussprung)
+            else if (p.diving) jump = dy > -0.1 && headDepth > 0.3;       // schweben: gehalten langsam steigen
+            tick({ ...st, crouch, jump, run: false });
+          }
+          log.push([Lg.name ?? `schwimm${li}`, i, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
+          if (!ok && !Lg.soft) { log.push(['FEHLER: Schwimmziel nicht erreicht', li, JSON.stringify(Lg.swim ?? Lg.swimTo)]); break; }
+          continue;
+        }
+        // ------------------------------------------------ warten, bis die genannten Rammfische seitlich weit genug weg sind (Tiefe halten)
+        if (Lg.clearFish) {
+          const fish = Lg.clearFish.map((id) => L.entities.find((x) => x.spec?.id === id)).filter(Boolean);
+          let k = 0;
+          const far = () => fish.every((e) => !e.alive || e.removed || Math.abs(e.pos.x - (Lg.x ?? 0)) > (Lg.minDx ?? 6));
+          for (; k < (Lg.max ?? 2400) && !far(); k++) tick({ jump: p.diving && p.pos.y < (Lg.depth ?? -3) - 0.2, crouch: p.pos.y > (Lg.depth ?? -3) + 0.4 });
+          log.push(['fische weg', Lg.clearFish.join(','), k]);
+          continue;
+        }
+        // ------------------------------------------------ warten, bis ein auf und ab ziehender Rammfisch unten ist (und abwärts zieht)
+        if (Lg.fishLow) {
+          const e = L.entities.find((x) => x.spec?.id === Lg.fishLow);
+          let k = 0, prev = e?.pos.y ?? 0;
+          for (; k < (Lg.max ?? 1200); k++) {
+            const y = e.pos.y, down = y < prev - 1e-4;
+            prev = y;
+            if (y < (Lg.below ?? -4.5) && down) break;
+            const st = Lg.hold ? this.stick(Lg.hold[0] - p.pos.x, Lg.hold[1] - p.pos.z, Math.min(1, Math.hypot(Lg.hold[0] - p.pos.x, Lg.hold[1] - p.pos.z))) : {};
+            tick({ ...st, jump: p.diving && p.pos.y < (Lg.depth ?? -2) - 0.2, crouch: p.pos.y > (Lg.depth ?? -2) + 0.4 });
+          }
+          log.push(['fisch unten', Lg.fishLow, k, +(e?.pos.y ?? 0).toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Funkenblüte: Feuerbälle in Richtung dir werfen, bis die Bedingung gilt
+        if (Lg.fire) {
+          let k = 0;
+          for (; k < (Lg.max ?? 900) && !(Lg.until2 && COND[Lg.until2]()); k++) tick({ ...this.stick(Lg.fire[0], Lg.fire[1], k < 20 ? 0.2 : 0), action: k % 24 < 2 });
+          log.push(['feuer', k, p.power]);
+          continue;
+        }
         // ------------------------------------------------ auf eine Warp-Box springen und mitfahren
         if (Lg.warp) {
           const [tx, tz] = Lg.warp;
@@ -592,6 +698,7 @@ function install() {
       mech.keys = L.keys?.tor?.n ?? 0;
       mech.aufzug = (named('aufzug1')?.trips ?? 0) + (named('aufzug2')?.trips ?? 0);
       mech.fahrt = named('fahrt')?.trips ?? 0;
+      mech.kisten = kisten0.filter((e) => e.broken || e.removed || !e.alive).length;
       mech.lavaTop = lava()?.top ?? -99;
       mech.nebel = named('nebel')?.state ?? null;
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };

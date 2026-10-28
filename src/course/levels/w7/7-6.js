@@ -195,7 +195,9 @@ export const LEVEL = {
     // Riffwand 2 (z −56) mit engem Kistentunnel (x −1,2 … 1,2)
     rock(-16, -0.6, -55, -57.4, 1.2, FLOOR), rock(0.6, 16, -55, -57.4, 1.2, FLOOR), rock(-0.6, 0.6, -55, -57.4, 1.2, FLOOR + 2.4),
     // Kammer C: Zickzack-Gänge
-    rock(-16, 7, -64, -66, 1.2, FLOOR), rock(-7, 16, -73, -75, 1.2, FLOOR), rock(-16, 7, -82, -84, 1.2, FLOOR),
+    rock(-16, 7, -64, -66, 1.2, FLOOR), rock(-7, 16, -73, -75, 1.2, FLOOR), rock(-16, 7, -81, -83, 1.2, FLOOR),
+    // Sandrampe aus dem Wasser hinauf zur Felsplattform
+    { type: 'ramp', pos: [0, FLOOR, -85.5], size: [6, BEACH - FLOOR, 5], axis: 'z', dir: -1, low: 5.4, top: 'stone' },
     // Felsplattform mit Warp-Box
     rock(-6, 6, -88, -92.5, BEACH, FLOOR), rock(-16, -6, -92, -95.5, 2.4, FLOOR - 2), rock(6, 16, -92, -95.5, 2.4, FLOOR - 2), rock(-6, 6, -92.5, -95.5, 3, FLOOR - 2),
     { type: 'kiste_wasser', kisten: [
@@ -246,8 +248,9 @@ export const LEVEL = {
     rock(-16, -11.4, -197, -209, 1.2, FLOOR2), rock(11.4, 16, -197, -209, 1.2, FLOOR2),
     // Felsen, um die die großen Rammfische kreisen
     rock(-6.6, -4.4, -202, -204.2, -3.6, FLOOR2), rock(4.4, 6.6, -202, -204.2, -3.6, FLOOR2),
-    // Zielriff
+    // Zielriff mit Sandrampe aus dem Wasser
     sand(-16, 16, -214, -246, BEACH, FLOOR2 - 2, { tag: 'zielriff' }),
+    { type: 'ramp', pos: [0, FLOOR2, -211], size: [6, BEACH - FLOOR2, 6], axis: 'z', dir: -1, low: 6.4, top: 'stone' },
     sign(-14, BEACH, -216.4, 'Glasröhre:\nFunkenblüte hilft!', { size: [2.2, 0.8] }),
   ],
   blocks: [
