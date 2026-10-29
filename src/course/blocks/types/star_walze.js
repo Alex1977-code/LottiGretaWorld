@@ -355,9 +355,18 @@ export function buildWalzenraum(level, spec) {
   colorize(ms, (q, nn, o) => { const ang = Math.atan2(q.z, q.x); mixc(B, A, 0.6 + 0.4 * Math.sin(ang * 16), o); });
   if (axis === 'z') ms.rotateX(Math.PI / 2); else ms.rotateZ(Math.PI / 2);
   ms.translate(p.x, p.y, p.z);
-  const shellMesh = new THREE.Mesh(ms, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, side: THREE.DoubleSide, transparent: true, opacity: 0.55, depthWrite: false }));
+  const shellMesh = new THREE.Mesh(ms, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, side: THREE.DoubleSide, transparent: true, opacity: 0.62, depthWrite: false }));
   shellMesh.name = 'walzenraum_mantel';
   addObject(level, shellMesh);
+  // feste Holzreifen an beiden Enden und in der Mitte (lesen sich als Trommel), statisch verschmolzen
+  const hoops = [];
+  for (const a of [-LEN / 2, 0, LEN / 2]) {
+    const tr = new THREE.TorusGeometry(R + thick * 0.55, thick * 0.42, 6, 32);
+    if (axis === 'x') tr.rotateY(Math.PI / 2);
+    tr.translate(p.x + (axis === 'x' ? a : 0), p.y, p.z + (axis === 'z' ? a : 0));
+    hoops.push(colorize(tr, (q, nn, o) => mixc(lin(W.ring), lin(W.end), smooth(-0.5, 0.9, nn.y) * 0.5, o)));
+  }
+  level.view.addStatic(merge(hoops), { material: 'world' });
   const root = new THREE.Group();
   root.name = 'walzenraum';
   root.position.set(p.x, p.y, p.z);

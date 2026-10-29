@@ -27,7 +27,8 @@
 //
 // plattenwand – senkrechte Wand mit Klapp-Platten: die Platten klappen um ihre Unterkante waagerecht heraus und werden zu
 //   Trittstufen (im Takt nacheinander wie eine laufende Treppe, oder einmal als feste Treppe, sobald man nah kommt bzw.
-//   per Signal). Vor dem Zurückklappen blinken sie (Vorwarnung). Die Wand selbst ist fest (Wandsprung).
+//   per Signal). Vor dem Zurückklappen blinken sie (Vorwarnung). Die Wand selbst ist fest (Wandsprung). Plattenhöhe
+//   ph = h / (Reihen + 1): unten bleibt ein Sockelband frei, Reihe r wird zur Stufe auf Höhe (r + 1)·ph (Tiefe ph).
 //   { type: 'plattenwand', id, pos: [x, y, z] (Mitte der Unterkante der Wandfläche), dir: [0, 1] (Wandfläche zeigt nach +Z,
 //     90°-Raster), size: [w, h] (Wandfläche, Standard [6, 8]), thick: 0.6, grid: [Spalten, Reihen] (Standard [3, 4]),
 //     mode: 'takt' | 'treppe' (bleibt draußen) | 'signal' (start = herausklappen, stop = einklappen), order: 'treppe'
@@ -254,7 +255,8 @@ export function buildPlattenwand(level, spec) {
   if (Array.isArray(spec.dir)) { dx = Math.sign(Math.round(spec.dir[0])); dz = Math.sign(Math.round(spec.dir[1])); if (dx && dz) dz = 0; }
   if (!dx && !dz) dz = 1;
   const [cols, rows] = spec.grid ?? [3, 4];
-  const pw = W / cols, ph = H / rows;
+  // Platten-Reihen über einem freien Sockelband: Reihe r klappt an der Höhe (r + 1)·ph heraus (unterste Stufe nicht am Boden)
+  const pw = W / cols, ph = H / (rows + 1);
   const shelf = 0.3;
   // Querachse u (entlang der Wand): bei dir ±Z ist u = x, bei dir ±X ist u = z
   const ux = dz !== 0 ? 1 : 0, uz = dz !== 0 ? 0 : 1;
@@ -271,7 +273,7 @@ export function buildPlattenwand(level, spec) {
   else { order = []; for (let r = 0; r < rows; r++) order.push({ col: r % 2 === 0 ? (Math.floor(r / 2) % cols) : (cols - 1 - (Math.floor(r / 2) % cols)), row: r }); }
   const panels = order.map((o, i) => {
     const u = -W / 2 + (o.col + 0.5) * pw;
-    const cx = p.x + ux * u, cz = p.z + uz * u, y = p.y + o.row * ph;
+    const cx = p.x + ux * u, cz = p.z + uz * u, y = p.y + (o.row + 1) * ph;
     return { i, col: o.col, row: o.row, cx, cz, y, k: 0, state: 'innen', t: 0, solid: false, id: null, phase: (spec.phase ?? 0) + i * stagger, warn: 0 };
   });
   const st = { running: mode === 'takt' && !spec.idle, opened: false, outs: 0 };
@@ -342,8 +344,8 @@ export function buildPlattenwand(level, spec) {
       const outD = Math.cos(a) * r + 0.11, up = Math.sin(a) * r;
       const x = q.cx + dx * outD, z = q.cz + dz * outD, y = q.y + up - (q.k > 0.5 ? 0.11 : 0);
       // Kippen um die Querachse: bei dir ±Z um X, bei dir ±X um Z
-      const tiltA = a * (dz ? -dz : dx);
-      set.set(q.i, { x, y, z, rx: dz ? tiltA : 0, rz: dx ? tiltA : 0, color: c1, glow: q.warn ? 0.5 + 0.5 * Math.sin(t * 24) : 0 });
+      // Oberseite der Platte zeigt eingeklappt nach dir (aus der Wand heraus)
+      set.set(q.i, { x, y, z, rx: dz ? a * dz : 0, rz: dx ? -a * dx : 0, color: c1, glow: q.warn ? 0.5 + 0.5 * Math.sin(t * 24) : 0 });
     }
   });
   void yaw;

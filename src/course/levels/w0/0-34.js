@@ -90,7 +90,7 @@ export const LEVEL = {
     plat(-150, -206),
     sign(-11, 0, -151, 'Fliegender Zielmast'),
     { type: 'scheinziel', id: 'schein', pos: [0, 0, -156], mast: 'flugmast' },
-    { type: 'fliegender_zielmast', id: 'flugmast', pos: [4, 0, -164], path: [[4, 3, -176], [-4, 3, -188], [0, 0, -200]], start: 'signal', speed: 6, near: 9, far: 18 },
+    { type: 'fliegender_zielmast', id: 'flugmast', pos: [4, 0, -164], path: [[4, 3, -176], [-4, 3, -188], [-7, 0, -199]], start: 'signal', speed: 6, near: 9, far: 18 },
 
     // ---------------- S7 Riesen-?-Turm, Felsblock, Laufbombe
     plat(-206, -236),

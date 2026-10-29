@@ -470,7 +470,12 @@ if (want('mech')) {
     console.log(`  Schienenwalze: ${r.s0} → ${r.rolling} (z ${r.z1}); mitgelaufen oben ${r.onTop} (Figur z ${r.zP}, Walze ${r.zW}); stehen geblieben oben ${r.stillOn}; Ende nach ${r.end}, zurück nach ${r.back}`);
     check('Schienenwalze: ruht, bis man draufsteht, rollt dann; wer mitläuft, bleibt oben und fährt mit (Gegenprobe: wer steht, rutscht herunter)', r.s0 === 'ruhe' && r.rolling === 'rollt' && r.z1 < -86.9 && r.onTop && r.zW < -95 && Math.abs(r.zP - r.zW) < 1.5 && !r.stillOn);
     check('Schienenwalze: am Schienenende fällt sie und erscheint nach respawn s wieder am Anfang', r.end > 0 && r.back > 0);
-    await sc(() => { const t = window.__t, w = t.named('walze'); w.reset(); t.place([0, 0.05, -86.8], { settle: 2 }); window.__course.setInput({ y: 0.42 }); t.tick(300); window.__course.setInput({}); });
+    await sc(() => {
+      const t = window.__t, c = window.__course, p = c.player, w = t.named('walze');
+      w.reset(); t.place([0, 0.05, -86.8], { settle: 2, invuln: 99 });
+      for (let i = 0; i < 300; i++) { const rel = p.pos.z - w.pos.z; c.setInput({ y: Math.max(0, Math.min(0.8, 0.22 + rel * 1.2)) }); c.step(1); }
+      c.setInput({});
+    });
     await shot('schienenwalze', 1200);
   }
   // ---------------------------------------------------------------- Walzenraum
