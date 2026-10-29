@@ -75,12 +75,12 @@ function flower(b, M, h, petal, petalHi) {
 function crystals(b, M, h, seed) {
   for (let i = 0; i < 4; i++) {
     const a = i * 1.7 + seed, tilt = i ? 0.45 : 0.05, hh = h * (i ? 0.6 + hash1(seed + i) * 0.3 : 1);
-    const g = new THREE.CylinderGeometry(0, 0.17 * h, hh * 0.35, 6, 1);
-    g.translate(0, hh * 0.825, 0);
-    const g2 = new THREE.CylinderGeometry(0.17 * h, 0.15 * h, hh * 0.65, 6, 1);
-    g2.translate(0, hh * 0.325, 0);
+    const g = new THREE.CylinderGeometry(0, 0.13 * h, hh * 0.3, 6, 1);
+    g.translate(0, hh * 0.85, 0);
+    const g2 = new THREE.CylinderGeometry(0.13 * h, 0.11 * h, hh * 0.7, 6, 1);
+    g2.translate(0, hh * 0.35, 0);
     const R = M.clone().multiply(new THREE.Matrix4().makeRotationY(a)).multiply(new THREE.Matrix4().makeRotationZ(tilt));
-    const cv = { v: (x, y, z, nx) => mix(ST.iceLow, ST.iceHi, smoothstep(y / hh * 0.8 + nx * 0.3)) };
+    const cv = { v: (x, y, z, nx) => mix(0x5ac8ff, 0xf4fdff, smoothstep(y / hh * 0.9 + nx * 0.25 - 0.1)) };
     b.add(g, cv, R); b.add(g2, cv, R);
   }
 }
@@ -176,7 +176,7 @@ function buildSternschnuppe(opts = {}) {
   const own = [];
   const starJ = joint();
   starJ.scale.setScalar(S);
-  const star = mesh(schnuppeStarGeo(), kulSGlow(), {}, false);
+  const star = mesh(schnuppeStarGeo(), kulGold(), {}, false);
   starJ.add(star);
   const tail = mesh(schnuppeGeo(L), glowS(), {});
   tail.scale.set(1, S, S);

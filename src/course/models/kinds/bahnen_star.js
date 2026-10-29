@@ -64,12 +64,12 @@ function walzeGeo(R, L) {
     g.computeVertexNormals();
     b.add(g, (x, y, z) => {
       const a = ((Math.atan2(z, y) / TAU) + 1) % 1, u = a * NS, idx = Math.floor(u), f = u - idx;
-      let groove = 0; for (const gx of grooves) groove = Math.max(groove, 1 - smoothstep(Math.abs(x - gx) / 0.14));
-      const grain = noise3(x * 0.9, idx * 1.7, 0.5);
-      let c = idx % 2 ? mix(ST.wood, ST.woodHi, 0.25 + grain * 0.6) : mix(ST.woodLow, ST.wood, 0.45 + grain * 0.55);
-      if (f < 0.25) c = mix(c, ST.woodDark, 0.45);
-      return mix(c, ST.woodDark, groove * 0.85);
+      const grain = hash1(idx * 3.7 + 1);
+      const c = idx % 2 ? mix(ST.wood, ST.woodHi, 0.25 + grain * 0.5) : mix(ST.woodLow, ST.wood, 0.5 + grain * 0.4);
+      return f < 0.25 ? mix(c, ST.woodDark, 0.4) : c;
     });
+    // dunkle Rillenringe in den Einbuchtungen
+    for (const gx of grooves) b.torus(R * 0.955, 0.075, ST.woodDark, { p: [gx, 0, 0], r: [0, Math.PI / 2, 0] }, 6, NS * 4);
     // Stirnseiten: Jahresringe
     for (const s of [1, -1]) {
       const cap = new THREE.CircleGeometry(R * 0.995, 40);

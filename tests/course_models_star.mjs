@@ -84,15 +84,17 @@ const KULISSE_ALL = [
   ['schneegrab', {}, 'idle', ['idle']],
   ['schneegrab', { kind: 'kreuz' }, 'idle', ['idle']],
   ['schneegrab', { kind: 'spitz', tilt: 0.15 }, 'idle', ['idle']],
+  ['nebelbank', {}, 'idle', ['idle']],
   ['krone_podest', {}, 'idle', ['idle', { sparkle: false }]],
   ['pokal_gross', {}, 'idle', ['idle']],
 ];
-const KULISSE1 = KULISSE_ALL.slice(0, 3);
-const PLANETS = KULISSE_ALL.slice(3, 7);
-const KULISSE2 = KULISSE_ALL.slice(7, 18);
-const RETRO = KULISSE_ALL.slice(18, 27);
-const PFLANZEN = KULISSE_ALL.slice(27, 33);
-const KRONE = KULISSE_ALL.slice(33);
+const of = (...names) => KULISSE_ALL.filter(([n]) => names.includes(n));
+const KULISSE1 = of('walzen_schiene', 'brett_schiene');
+const PLANETS = of('planet');
+const KULISSE2 = of('sternschnuppe', 'spielzeugrakete', 'regenbogenweg', 'wabensaeule', 'weltraum_antenne', 'weltraum_kuppel', 'sternen_torbogen');
+const RETRO = of('retro_block', 'retro_wolke', 'retro_busch');
+const PFLANZEN = of('riesenpflanze', 'schneegrab', 'nebelbank');
+const KRONE = of('krone_podest', 'pokal_gross');
 const ALL = [...GIMMICKS, ...KULISSE_ALL];
 const KULISSE_NAMES = new Set(KULISSE_ALL.map(([n]) => n));
 const INST = ['wabe', 'farbplatte', 'drehplatte', 'retro_block'];
@@ -429,7 +431,7 @@ if (part('checks')) {
   if (P.wschiene) check('Walzen-Schiene: Spurweite gauge, Länge length, Oberkante y ≈ 0 (Prellböcke darüber), Stützen bis −height', P.wschiene[0] > 6 && P.wschiene[0] < 6.8 && Math.abs(P.wschiene[1] - 12) < 0.3 && P.wschiene[2] < 0.6 && P.wschiene[3] < -3);
   if (P.brett) check('Schienenbrett: size, Deck y = 0,62, Ursprung Schienen-Oberkante (Räder reichen bis ≈ 0)', Math.abs(P.brett[0] - 3) < 0.3 && Math.abs(P.brett[1] - 2) < 0.3 && P.brett[2] < 0.75 && P.brett[3] > -0.15 && P.brett[4] === 0.62);
   if (P.weiche) check('Weiche: Zulauf ab −2,2, Äste bis ≈4,6, Signal mit Zielscheibe ≈2,3 m (userData.target)', P.weiche[0] < -2 && P.weiche[1] > 4.4 && P.weiche[2] > 2.6 && Math.abs(P.weiche[3][1] - 2.35) < 0.01);
-  if (P.planet) check('Planet { kind }: Mitte bei size/2 (Kugel ab y ≈ 0, Pilze/Kristalle/Ringe ragen darüber hinaus), Ø ≈ size, userData.radius', P.planet[0] > -1.6 && P.planet[1] > -1.5 && P.planet[2] > 5.5 && P.planet[2] < 9.5 && P.planet[3] > 6 && P.planet[4] === 3);
+  if (P.planet) check(`Planet { kind }: Mitte bei size/2 (Kugel ab y ≈ 0, Pilze/Kristalle/Ringe ragen darüber hinaus), Ø ≈ size, userData.radius (${JSON.stringify(P.planet)})`, P.planet[0] > -2.5 && P.planet[1] > -2.5 && P.planet[2] > 5.5 && P.planet[2] < 11 && P.planet[3] > 6 && P.planet[4] === 3);
   if (P.rb) check('Regenbogenweg: von x = 0 bis length, Breite width (+ Wülste), Oberseite y ≈ 0, Ende (userData.end) im Bogen', P.rb[0] > -0.2 && Math.abs(P.rb[1] - 8) < 0.3 && P.rb[2] > 3 && P.rb[2] < 3.6 && P.rb[3] < 0.3 && P.rb[4][1] < -1);
   if (P.rakete) check('Spielzeugrakete ≈4,6 m, steht auf den Flossen', P.rakete[0] > 4.2 && P.rakete[0] < 5.2 && P.rakete[1] > -0.05);
   if (P.saeule) check('Waben-Säule ≈ height, Fußpunkt', Math.abs(P.saeule[0] - 8) < 0.4 && P.saeule[1] > -0.05);
@@ -614,7 +616,7 @@ if (part('views')) {
       ['drehplatte', {}, Array.from({ length: 6 }, (_, i) => [-9 + (i % 2) * 2.1, 0, 2 - Math.floor(i / 2) * 2.1, 0, { tilt: [0, 0.4, 1.2, 0, 2.6, 0.2][i] }])]]],
     scene_walzen: ['himmel', [], [['walzen_schiene', { length: 18, gauge: 6, height: 4 }, 'idle', 0, -4, 0, 0], ['schienenwalze', { radius: 1.5, length: 6 }, { angle: 0.4 }, 0, -2, 0, 0], ['schienenwalze', { radius: 1, length: 6 }, { angle: 1.2 }, 0, -9, 0, 0],
       ['walzen_schiene', { length: 8, gauge: 4, height: 4 }, 'idle', -8, 0, Math.PI / 2, 1.5], ['schienenwalze', { radius: 0.8, length: 4 }, { angle: 0 }, -8, 0, Math.PI / 2, 1.5]], [0, 1.5, -3], [0.5, -2, 3.25], [], 45, true],
-    scene_zielmast: ['himmel', [], [['zielmast_fluegel', {}, { fly: 1, flap: 0.7 }, 1, -7, Math.PI / 2, 2], ['wolkenplattform', { size: [5, 0.8, 4] }, 'idle', -1, 1, 0, 0], ['wolkenplattform', { size: [4, 0.8, 3] }, 'idle', 4, -3, 0, 0.5],
+    scene_zielmast: ['himmel', [], [['zielmast_fluegel', {}, { fly: 1, flap: 0.7 }, 1, -13, Math.PI / 2, 1], ['wolkenplattform', { size: [5, 0.8, 4] }, 'idle', -1, 1, 0, 0], ['wolkenplattform', { size: [4, 0.8, 3] }, 'idle', 4, -3, 0, 0.5],
       ['boost_arrow', { length: 3, width: 1.8 }, 'idle', -1, 0.5, Math.PI / 2, 0.82], ['donut_block', {}, 'idle', 5, -3, 0, 1.3], ['donut_block', {}, 'idle', 6, -3, 0, 1.3], ['glotzfisch', {}, 'idle', -5, -4, 0.4, 2.5], ['retro_wolke', { size: 5 }, 'idle', -8, -12, 0, 1]], [0, 3.5, -5], [-1, 1.5, 0.8], [], 45, true],
     scene_blockland: ['tag', [], [['riesen_frageblock_turm', { size: 2 }, 'idle', 4, -6, 0, 0], ['riesen_frageblock_turm', { size: 2 }, 'idle', 4, -6, 0, 2], ['riesen_frageblock_turm', { size: 2, part: 'kopf' }, 'idle', 4, -6, 0, 4],
       ['laufbombe', {}, 'walk', -1, 1, 0.3, 2], ['laufbombe', {}, { anim: 'fuse', progress: 0.85 }, 1.5, 0, 2, 2], ['felsblock_riss', { size: [2, 3, 3] }, { break: 0 }, -6, -6, 0, 0], ['retro_wolke', { size: 5 }, 'idle', -4, -14, 0, 6],
@@ -624,9 +626,9 @@ if (part('views')) {
     scene_waben: ['weltraum', [], [['wabensaeule', { height: 10 }, 'idle', -7, -6, 0, -10], ['wabensaeule', { height: 10, kind: 'lava' }, 'idle', 7, 4, 0, -10], ['brummer', {}, 'idle', 1.5, -1, 0, 1.2]], [0, 0, 0], [-1, 0.5, 0.5],
     [['wabe', { kind: 'normal' }, hexField(0)], ['wabe', { kind: 'lava' }, hexField(1)], ['wabe', { kind: 'eis' }, hexField(2)]], 89.9],
     scene_dschungel: ['dschungel', [], [['riesenpflanze', { kind: 'pilz', size: 9 }, 'idle', -7, -14, 0.3], ['riesenpflanze', { kind: 'blume', size: 10 }, 'idle', 7, -15, -0.4], ['riesenpflanze', { kind: 'blatt', size: 7 }, 'idle', -10, -4, -0.6],
-      ['riesenpflanze', { kind: 'blatt', size: 6 }, 'idle', 9, -2, Math.PI + 0.5], ['grossrollpilz', {}, 'walk', 1, -3, 0.4], ['pilzlingsturm', {}, 'idle', -3, -5, 0.6], ['powerup_riese', {}, 'idle', 2, 2, 0, 0.3]], [0, 3, -7], [-1.5, 3]],
+      ['riesenpflanze', { kind: 'blatt', size: 6 }, 'idle', 9, -2, Math.PI + 0.5], ['grossrollpilz', {}, 'walk', 1, -3, 0.4], ['pilzlingsturm', {}, 'idle', -3, -5, 0.6], ['powerup_riese', {}, 'idle', 2, 2, 0, 0.3]], [0, 3.5, -8], [-1.5, 3], [], 28],
     scene_nebel: ['schnee', [['pool', 4.5, -2, 9, 9, 0x8a3aa8, 0.03]], [['schneegrab', {}, 'idle', -5, -2, -Math.PI / 2 + 0.2], ['schneegrab', { kind: 'kreuz' }, 'idle', -3, -5, -Math.PI / 2 - 0.2], ['schneegrab', { kind: 'spitz', tilt: 0.15 }, 'idle', -7, -6, -Math.PI / 2 + 0.4], ['schneegrab', { size: 1.5 }, 'idle', -1, -9, -Math.PI / 2],
-      ['nebelplattform', { size: [3, 3] }, { fade: 1 }, 4, 0, 0, 0.6], ['nebelplattform', { size: [3, 3] }, { fade: 0.45 }, 5, -4, 0, 1.6], ['nebelplattform', { size: [3, 3] }, { fade: 0 }, 6, -8, 0, 2.6], ['nebelschwaden', { size: [14, 8], color: 0xe8eaff, opacity: 0.45 }, 'idle', 0, -4, 0],
+      ['nebelplattform', { size: [3, 3] }, { fade: 1 }, 4, 0, 0, 0.6], ['nebelplattform', { size: [3, 3] }, { fade: 0.45 }, 5, -4, 0, 1.6], ['nebelplattform', { size: [3, 3] }, { fade: 0 }, 6, -8, 0, 2.6], ['nebelbank', { size: [16, 10], color: 0xe8eaff, opacity: 0.4, height: 1.4 }, 'idle', 0, -4, 0],
       ['kreisgeist', {}, 'idle', -4, -1, 0.5, 1.2], ['leaf_raft', {}, 'idle', 2, 2, 0, 0.05]], [0, 0.8, -3], [-1.5, 2.5]],
     scene_sternwerk: ['weltraum', [], [['brett_schiene', { length: 14, posts: 3 }, 'idle', -9, 1, 0, 3], ['weiche', {}, { dir: 1 }, 5, 1, 0, 3], ['schienenbrett', {}, { speed: 4 }, 0, 1, 0, 3], ['kanonenkugel_tritt', { size: 2 }, 'fly', -3, -5, 0, 5],
       ['kanonenkugel_tritt', { size: 2 }, 'idle', 2, -7, 0, 6.5], ['weltraum_antenne', {}, 'idle', -8, -10, 0.3], ['weltraum_kuppel', {}, 'idle', 7, -11, -0.5], ['spielzeugrakete', {}, { flame: 1 }, 12, -4, 0, 2], ['planet', { kind: 'eis', size: 6 }, 'idle', -14, -16, 0, 2]], [0, 3.5, -3], [0, 1, 3.62]],

@@ -90,7 +90,7 @@ export const kulSD = () => vcol(0.7, { toy: false, side: THREE.DoubleSide }, 'st
 /** Kulissen-Metall (Gold, Chrom; ohne Spielzeug-Look). */
 export const kulSMetal = (r = 0.3) => vcol(r, { toy: false, metalness: 0.5 }, 'starkulmetal');
 /** Kulissen-Gold/-Chrom mit Umgebungsspiegelung (vertexgefärbt, ohne Spielzeug-Look; beim Backen bleiben die Farben). */
-export const kulGold = () => metal('starkulgold', { toy: false, vertexColors: true, color: 0xffffff, metalness: 0.62, roughness: 0.26 }, 1.15);
+export const kulGold = () => metal('starkulgold', { toy: false, vertexColors: true, color: 0xffffff, metalness: 0.55, roughness: 0.28 }, 0.85);
 /** Kulisse, leicht selbstleuchtend (Sterne, Schnuppen): vertexgefärbt, warmer Eigenschein. */
 export const kulSGlow = () => vcol(0.3, { toy: false, emissive: 0x4a3200 }, 'starkulE');
 /** Unbeleuchtet, vertexgefärbt (Lichter, Glut, Neon). */

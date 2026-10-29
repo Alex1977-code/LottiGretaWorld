@@ -801,12 +801,15 @@ function felsGeo(x, y, z) {
   return cached(`star:fels:${k2(x)}:${k2(y)}:${k2(z)}`, () => {
     const b = new Build();
     const m = Math.min(x, y, z);
-    const g = displace(roundedBox(x, y, z, m * 0.24, SIDE.ALL, 0, 4), m * 0.065, 1.1, 3, true);
+    const g = displace(displace(roundedBox(x, y, z, m * 0.2, SIDE.ALL, 0, 5), m * 0.06, 1.0, 3, true), m * 0.025, 2.8, 9, true);
     b.add(g, { v: (px, py, pz, nx, ny) => {
       let c = mix(FR.stoneLow, mix(FR.stone, FR.stoneHi, smoothstep(ny * 0.6 + 0.2 + (noise3(px * 1.4, py * 1.4, pz * 1.4) - 0.5) * 0.7)), smoothstep(ny * 0.4 + 0.55 + py / y * 0.3));
       const n2 = noise3(px * 2.6 + 5, py * 2.6, pz * 2.6);
       if (n2 > 0.64) c = mix(c, 0x6e5a58, smoothstep((n2 - 0.64) / 0.12) * 0.6);
       if (ny > 0.75) c = mix(c, 0xe8e0d4, 0.25);
+      // Gesteinsschichten (wellige Bänder)
+      const band = Math.sin((py + noise3(px * 0.8, 0, pz * 0.8) * 0.6) * 5.5);
+      if (Math.abs(ny) < 0.7 && band > 0.82) c = mix(c, 0x7e6862, 0.35);
       return c;
     } }, { p: [0, y / 2, 0] });
     // Kiesel am Fuß

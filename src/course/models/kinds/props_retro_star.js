@@ -16,14 +16,17 @@
 //                  Blütenblättern um eine Samenscheibe, nach +X geneigt), 'pilz' (≈7 m: bauchiger Stiel mit Manschette, rot-orange Kappe
 //                  Ø ≈7 m mit weißen Tupfen und Lamellen), 'blatt' (≈6 m lang: Riesenblatt auf kurzem Stiel, bogig nach +X, Adern).
 //                  opts { kind ('blume'), size (Höhe bzw. Länge; Standard je Art) }  state –
+// nebelbank        flache Nebelbank (S-8): weiche, fast waagrechte Nebelkarten in Lagen bis height, ziehen langsam entlang X (anders
+//                  als 'nebelschwaden' ohne stehende Karten, schneiden den Boden nicht). Durchsichtig – nicht backen.
+//                  **Ursprung = Mitte am Boden.**  opts { size: [w, d] ([10, 6]), count (10), color (0xe8eaff), opacity (0,5), height (1,2) }
 // schneegrab       Grabstein im Schnee (S-8): Grabstein mit Lachgesicht (Halloween-Form), Schneehaube, Schnee auf dem Sockel,
 //                  Schneehügel, Eiszapfen. opts { kind: 'rund'|'kreuz'|'spitz', size (Höhe, 1,2), tilt (rad) }  state –
 
-import { THREE, TAU, Build, cached, mesh, joint, makeModel, clamp, col, mix, smoothstep, lerp, placed, roundedBox, SIDE, onLathe } from '../lib/kit.js';
+import { THREE, TAU, Build, cached, vcol, mesh, joint, makeModel, Clock, clamp, col, mix, smoothstep, lerp, placed, roundedBox, SIDE, onLathe, instMesh, setInst } from '../lib/kit.js';
 import {
   ST, num, gradV, noise3, hash1, taperTube, memo, kulS, kulSD, puffyGeo, stepShape, k2, recolor, lumpyEllipsoid, flatStarGeo,
 } from '../lib/starGeos.js';
-import { graveGeo } from '../lib/hwGeos.js';
+import { graveGeo, fogTexture } from '../lib/hwGeos.js';
 
 // =============================================================================================
 // Retro-Block
@@ -102,7 +105,7 @@ function buildRetroBlock(opts = {}) {
 // =============================================================================================
 const WOLKE_COLS = [[2, 3, 3, 4, 5, 5, 4, 5, 5, 4, 3, 2], [2, 3, 4, 4, 3, 4, 5, 5, 4, 3, 3, 2], [1, 2, 3, 4, 4, 5, 5, 4, 4, 3, 2, 1]];
 const BUSCH_COLS = [[1, 2, 3, 3, 2, 3, 4, 4, 3, 2, 1], [1, 2, 2, 3, 4, 4, 3, 3, 2, 2, 1], [1, 2, 3, 4, 3, 2, 3, 4, 3, 2, 1]];
-function pixelPuffGeo(cols, cell, depth, colors, key) {
+function pixelPuffGeo(cols, cell, depth, colors, key, dots = true) {
   return cached(`star:pixpuff:${key}:${k2(cell)}`, () => {
     const b = new Build();
     const g = puffyGeo(stepShape(cols, cell, cell * 0.35), depth, cell * 0.35, 4, 3);
@@ -110,7 +113,7 @@ function pixelPuffGeo(cols, cell, depth, colors, key) {
     b.add(g, { v: (x, y, z, nx, ny) => mix(colors[0], mix(colors[1], colors[2], smoothstep(y / H * 1.2 - 0.1)), smoothstep(ny * 0.5 + 0.6 + y / H * 0.4)) });
     // Pixel-Tupfen vorn und hinten (Glanzlichter / Blattpunkte)
     const n = cols.length, w = n * cell;
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < (dots ? n : 0); i++) {
       const top = cols[i];
       for (let j = 1; j < top; j++) {
         if (hash1(i * 17 + j * 5 + key.length) < 0.72) continue;
@@ -125,7 +128,7 @@ function buildRetroWolke(opts = {}) {
   const W = clamp(num(opts.size, 4), 0.5, 60);
   const cols = WOLKE_COLS[seed], cell = W / cols.length;
   const root = new THREE.Group();
-  root.add(mesh(pixelPuffGeo(cols, cell, cell * 2.2, [0xb8d8ff, 0xeef6ff, 0xffffff, 0xd4e8ff], `wolke${seed}`), kulS(0.45), {}, true));
+  root.add(mesh(pixelPuffGeo(cols, cell, cell * 2.2, [0xc4e0ff, 0xf2f8ff, 0xffffff, 0xd4e8ff], `wolke${seed}`, false), vcol(0.5, { toy: false, emissive: 0x3a4250 }, 'starkulwolke'), {}, true));
   return makeModel('retro_wolke', root, () => {}, []);
 }
 function buildRetroBusch(opts = {}) {
@@ -276,10 +279,13 @@ function schneegrabGeo(kind) {
     // Schnee auf dem Sockel, Schneehügel, Eiszapfen
     b.sphere(1, snowV, { p: [0, h * 0.105, 0], s: [d * 1.35, 0.045, w * 0.58] }, 16, 6);
     b.dome(1, snowV, { p: [0.12, 0, 0], s: [0.75, 0.16, 0.6] }, Math.PI / 2, 24, 6);
+    // Eiszapfen an den Seitenkanten (nicht vor dem Gesicht)
+    const ys = kind === 'rund' ? h * 1.06 - w / 2 : kind === 'kreuz' ? h * 0.62 : h * 0.66;
+    const zs = kind === 'kreuz' ? w / 2 + 0.03 : w / 2 + d * 0.28;
     for (let i = 0; i < 4; i++) {
-      const z = (i / 3 - 0.5) * w * 0.7;
-      const len = 0.08 + hash1(i + 2) * 0.1;
-      b.add(new THREE.ConeGeometry(0.018, len, 5), { v: (x, y) => mix(ST.iceHi, ST.ice, smoothstep(-y / len + 0.5)) }, { p: [d / 2 + d * 0.32, h * 0.95 - (kind === 'rund' ? Math.pow(Math.abs(z) / (w / 2), 2) * w * 0.4 : 0) - len / 2, z], r: [Math.PI, 0, 0] });
+      const sz = i < 2 ? 1 : -1, x = (i % 2 ? -1 : 1) * d * 0.28;
+      const len = 0.09 + hash1(i + 2) * 0.09;
+      b.add(new THREE.ConeGeometry(0.02, len, 5), { v: (px, y) => mix(ST.iceHi, ST.ice, smoothstep(-y / len + 0.5)) }, { p: [x, ys - len / 2 + 0.02, sz * zs], r: [Math.PI, 0, 0] });
     }
     return b.geometry();
   });
@@ -295,7 +301,45 @@ function buildSchneegrab(opts = {}) {
   return makeModel('schneegrab', root, () => {}, []);
 }
 
+// =============================================================================================
+// Nebelbank (S-8)
+// =============================================================================================
+const nebelCardGeo = () => cached('star:nebelbank:card', () => { const g = new THREE.PlaneGeometry(1, 1); g.rotateX(-Math.PI / 2); return g; });
+function buildNebelbank(opts = {}) {
+  const sz = Array.isArray(opts.size) ? opts.size : [10, 6];
+  const W = clamp(num(sz[0], 10), 1, 200), D = clamp(num(sz[1], 6), 1, 200);
+  const n = clamp(Math.round(num(opts.count, 10)), 1, 48);
+  const H = clamp(num(opts.height, 1.2), 0.2, 10);
+  const root = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({ map: fogTexture(), color: opts.color ?? 0xe8eaff, transparent: true, opacity: clamp(num(opts.opacity, 0.5), 0, 1), depthWrite: false, side: THREE.DoubleSide, fog: true });
+  mat.userData.toy = false;
+  const cards = instMesh(nebelCardGeo(), mat, n, Math.max(W, D) + 2, H / 2);
+  cards.renderOrder = 4;
+  root.add(cards);
+  const it = Array.from({ length: n }, (_, i) => {
+    const s = Math.min(W, D) * (0.55 + hash1(i * 4.1) * 0.5);
+    const tilt = (hash1(i * 7.7) - 0.5) * 0.24;
+    const y = 0.12 + (i / n) * H;
+    return { x: (hash1(i * 1.3) - 0.5) * W * 0.8, z: (hash1(i * 2.7) - 0.5) * D * 0.8, y: Math.max(y, Math.abs(Math.sin(tilt)) * s * 0.5 + 0.05), s, sp: (hash1(i * 5.9) - 0.5) * 0.3, tilt, ph: hash1(i) * TAU };
+  });
+  const clk = new Clock();
+  const update = (dt) => {
+    clk.tick(dt, 'idle');
+    const t = clk.t;
+    for (let i = 0; i < n; i++) {
+      const c = it[i];
+      let x = c.x + t * c.sp;
+      x = ((x + W / 2) % W + W) % W - W / 2;
+      const edge = 0.15 + 0.85 * (1 - smoothstep((Math.abs(x) - W * 0.3) / (W * 0.2)));
+      setInst(cards, i, x, c.y + Math.sin(t * 0.4 + c.ph) * 0.04, c.z, c.tilt, c.ph + t * 0.02, 0, [c.s * 1.5 * edge, 1, c.s * edge]);
+    }
+    cards.instanceMatrix.needsUpdate = true;
+  };
+  return makeModel('nebelbank', root, update, [mat, cards]);
+}
+
 export const MODELS = {
+  nebelbank: buildNebelbank,
   retro_block: buildRetroBlock,
   retro_wolke: buildRetroWolke,
   retro_busch: buildRetroBusch,
