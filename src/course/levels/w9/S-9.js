@@ -16,7 +16,7 @@
 //    Brett unter das Zieldeck – man steigt dabei aufs Deck → Zielmast.
 // Gegner: Kanonentürme 3 (Projektilköpfe), Krakenpilze 3, Tintlinge 3.
 
-import { PI, line, ring, arc, column, sign, isl, Bld, litTop, sternkapsel, kanonenFrageBloecke, glasdecke, deckZier, signalLampen, tunnelZier } from './_helpers_d.js';
+import { PI, line, ring, arc, column, sign, isl, Bld, litTop, sternkapsel, kanonenFrageBloecke, glasdecke, deckZier, signalLampen, tunnelZier, fernSicht, neonBoden, weltraumPflanzen, riffZier, irrlichter, klaresWasser } from './_helpers_d.js';
 
 const Y = -0.62;          // Knotenhöhe für Decks mit Oberseite 0 (Brett-Deck 0,62 m über der Schiene)
 const Y6 = -0.02;         // Knotenhöhe für Decks mit Oberseite 0,6
@@ -82,6 +82,7 @@ function build(level) {
     W(1.8, 2.2, -3, -1, -176.3, -179.7, 0x5a6088); W(-1.2, 2.2, -3, -1, -176, -176.3, 0x5a6088); W(-1.2, 2.2, -3, -1, -179.7, -180, 0x5a6088);
     b.flush(level, { castShadow: false });
   }
+  klaresWasser(level, { pos: [-6, -8.4, -176.7], size: [8, 8.4, 78.6], surface: [[-137.4, -150], [-208, -216]] });
   glasdecke(level, { x0: -10, x1: -2, z0: -150, z1: -208, y: -0.6, thick: 0.35, ribs: 4 });
   tunnelZier(level, { x0: -10, x1: -2, z0: -151, z1: -207, y0: -5, y1: -0.6 });
   signalLampen(level, [
@@ -93,12 +94,45 @@ function build(level) {
     for (let i = 0; i <= 7; i++) { g.box(14, 0.05, 0.08, -3, -6.98, -308 - i * 2, 0x8af4ff, { r: 0 }); g.box(0.08, 0.05, 14, -10 + i * 2, -6.98, -315, 0x8af4ff, { r: 0 }); }
     g.flush(level, { material: 'glow' });
   }
+  // Neon-Bodenzeichen, Weltraum-Pflanzen, Riff im Tunnel, Leuchtquallen
+  neonBoden(level, [
+    { kind: 'ring', pos: [0, 0, -2.6], r: 1.3, color: 'cyan' }, { kind: 'pfeile', pos: [0, 0, -5.4], color: 'gold' }, { kind: 'feld', pos: [-4.4, 0, 2.8], n: 3, cell: 0.9 },
+    { kind: 'feld', pos: [4.6, 0, -2.2], n: 2, cell: 0.9 },
+    { kind: 'pfeile', pos: [-8, 0, -72.6], color: 'gruen' }, { kind: 'feld', pos: [-5, 0, -74.6], n: 2, cell: 0.9 },
+    { kind: 'feld', pos: [5.4, 0, -120.6], n: 3, cell: 1 }, { kind: 'pfeile', pos: [-4, 0, -114.6], dir: [-1, 0], color: 'pink' },
+    { kind: 'pfeile', pos: [-6, YT, -135.4], color: 'cyan' }, { kind: 'ring', pos: [22, YT, -133.5], r: 1.1, color: 'gold' },
+    { kind: 'pfeile', pos: [-6, 0.6, -225.6], color: 'gold' }, { kind: 'feld', pos: [-1.2, 0.6, -218.4], n: 2, cell: 0.9 },
+    { kind: 'ring', pos: [-6, 0.6, -355.4], r: 2.6, color: 'pink' }, { kind: 'pfeile', pos: [-6, 0.6, -349.2], color: 'cyan' }, { kind: 'feld', pos: [0.4, 0.6, -352.4], n: 3, cell: 1 },
+  ]);
+  weltraumPflanzen(level, [
+    { pos: [6, 0, 2.6] }, { pos: [-6.2, 0, 3.4], size: 0.9 }, { pos: [-4.4, 0, -64.4], size: 0.85 }, { pos: [7, 0, -135.2] },
+    { pos: [4.6, YT, -131], size: 0.8 }, { pos: [4.6, YT, -136.4], size: 0.8 }, { pos: [25, YT, -133.6], size: 0.9 },
+    { pos: [1, 0.6, -217.2], size: 0.85 }, { pos: [-13.2, 0.6, -223], size: 0.9 }, { pos: [2.6, 0.6, -349.2] }, { pos: [-14.6, 0.6, -355] },
+  ]);
+  const RIFF = [];
+  const kinds = ['koralle', 'tang', 'roehren', 'seestern', 'faecher', 'muschel', 'koralle', 'tang', 'seestern'];
+  for (let i = 0, z = -151.6; z > -207; z -= 2.1, i++) {
+    RIFF.push({ pos: [-9.2 + (i % 2) * 0.4, -5, z], kind: kinds[i % kinds.length], size: 1.4 + (i % 3) * 0.2 });
+    if (z > -174 || z < -182) RIFF.push({ pos: [-2.8 - (i % 2) * 0.4, -5, z - 1.05], kind: kinds[(i + 4) % kinds.length], size: 1.3 + (i % 2) * 0.25 });
+  }
+  // Sandstreifen am Tunnelrand (unter dem Riff)
+  {
+    const b = new Bld();
+    for (const [xa, xb] of [[-10, -8.2], [-3.8, -2]]) b.box(xb - xa, 0.06, 56, (xa + xb) / 2, -5, -179, 0xf4dcb0, { r: 0 });
+    b.flush(level, { castShadow: false });
+  }
+  RIFF.push({ pos: [-9, -8, -140], kind: 'koralle', size: 1.4 }, { pos: [-3, -8, -146], kind: 'roehren', size: 1.3 }, { pos: [-8.6, -8, -147], kind: 'tang', size: 1.4 },
+    { pos: [-3.2, -6.5, -211], kind: 'faecher', size: 1.2 }, { pos: [-9, -6.5, -213], kind: 'koralle', size: 1.2 });
+  riffZier(level, RIFF);
+  irrlichter(level, [[-8.6, -3.4, -158, 0xff8ad8], [-3.4, -3, -169, 0x8af4ff], [-8.4, -2.8, -186, 0xc8ff6a], [-3.4, -3.6, -197, 0xffb0e8], [-8.6, -3.2, -204, 0x8af4ff],
+    [-4, -6, -142, 0xffe27a]].map(([x, y, z, color]) => ({ pos: [x, y, z], color })), { size: 1.6 });
   // Sternkapsel am Ende des Sternwegs (Stern 2): Kanonenkugel trifft → der Stern fliegt zur Schützin
   sternkapsel(level, { id: 'kapsel', pos: [-2.4, 1.5, -321], star: 2, r: 0.9 });
 }
 
 function setup(level) {
   // ?-Blöcke über dem All lösen auch bei Kanonenkugeln aus; alle drei benutzt → Brücke zum Stempel-Planetoiden
+  fernSicht(level, { dist: 85, models: ['weiche'], modelDist: 60 });
   kanonenFrageBloecke(level, { id: 'stempelbloecke', ids: ['qb1', 'qb2', 'qb3'], onAll: { reveal: 'sternbruecke' }, pos: [18, YT + 1.5, -133.5] });
 }
 
@@ -119,7 +153,7 @@ export const LEVEL = {
   camera: [
     { from: 14, to: -62, pitch: 42, dist: 14, fov: 40, height: 1.2 },
     { from: -62, to: -112, pitch: 44, dist: 14, fov: 40, height: 1.2 },
-    { from: -112, to: -129.5, pitch: 24, dist: 19, fov: 44, height: 3.2, x: -6, xLock: 0.6 },
+    { from: -112, to: -129.5, pitch: 34, dist: 17, fov: 44, height: 3.2, x: -6, xLock: 0.6 },
     { from: -129.5, to: -140, pitch: 48, dist: 14, fov: 42, height: 1.4 },
     { from: -140, to: -214, pitch: 52, dist: 13, fov: 40, height: 0.4, x: -6, xLock: 0.8 },
     { from: -214, to: -364, pitch: 44, dist: 14.5, fov: 40, height: 1.2 },
@@ -151,7 +185,7 @@ export const LEVEL = {
       parts: [7.1, 9.3, 11.5, 13.7, 15.9, 18.1].map((x) => ({ pos: [x, YT - 0.5, -133.5], size: [2.1, 0.5, 2.4] })) },
     isl(18.6, 26, -129.4, -137.6, YT, 1.2, { top: 'stone', under: 1 }),
     // ================================================================ 4 Sternenbecken und Unterwassertunnel
-    { type: 'water', id: 'tunnelwasser', pos: [-6, -8.4, -176.7], size: [8, 8.4, 78.6] },
+    { type: 'water', id: 'tunnelwasser', pos: [-6, -8.4, -176.7], size: [8, 8.4, 78.6], show: false },   // Darstellung: klaresWasser
     isl(-10, -2, -137.4, -150, -8, 1, { top: 'stone', under: 0 }),
     isl(-10, -2, -150, -208, -5, 3.4, { top: 'stone', under: 0 }),
     isl(-10, -2, -208, -216, -6.5, 1.9, { top: 'stone', under: 0 }),

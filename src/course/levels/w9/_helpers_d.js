@@ -1114,6 +1114,41 @@ export function eiszapfen(level, list) {
   b.flush(level, { castShadow: false });
 }
 
+/**
+ * Ferne Kulisse nicht zeichnen (nur Darstellung, im LEVEL.setup anmelden): statische Abschnitts-Meshes, deren Quader
+ * weiter als dist m von der Kamera entfernt ist, und Baustein-Modelle `modell:<name>` (o.models, z. B. ['weiche']) weiter
+ * als o.modelDist m werden je Bild ausgeblendet – flache bzw. hohe Kameras sähen sonst den ganzen Kurs (der Weltraum hat
+ * keinen Nebel, der ihn verdeckt). Quader werden neu vermessen, wenn ein Abschnitt neue Geometrie bekommt.
+ */
+export function fernSicht(level, o = {}) {
+  const v = level.view;
+  if (!v) return;
+  const dist = o.dist ?? 80, mDist = o.modelDist ?? dist * 0.7, names = (o.models ?? []).map((n) => `modell:${n}`);
+  const boxes = new Map(), c = new THREE.Vector3(), w = new THREE.Vector3();
+  let models = [], scanT = 0;
+  const scan = () => {
+    models = [];
+    if (!names.length) return;
+    v.three.traverse((ob) => { if (names.includes(ob.name)) models.push(ob); });
+  };
+  v.onFrame((dt) => {
+    const cam = v.camera.position;
+    for (const m of v.static.meshes) {
+      let it = boxes.get(m);
+      if (!it || it.g !== m.geometry) {
+        if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+        it = { g: m.geometry, b: m.geometry.boundingBox.clone() };
+        boxes.set(m, it);
+      }
+      it.b.clampPoint(cam, c);
+      m.visible = c.distanceToSquared(cam) <= dist * dist;
+    }
+    scanT -= dt ?? 0.016;
+    if (scanT <= 0) { scan(); scanT = 2; }
+    for (const ob of models) { ob.getWorldPosition(w); ob.visible = w.distanceToSquared(cam) <= mDist * mDist; }
+  });
+}
+
 // =====================================================================================================================
 // 4) S-9 Mechanik
 // =====================================================================================================================
@@ -1244,6 +1279,36 @@ export function glasdecke(level, spec) {
   g.flush(level, { material: 'glow' });
 }
 
+/**
+ * Klares Wasser (Darstellung zu einem `water`-Baustein mit show: false): leicht getönter Wasserkörper und eine bewegte
+ * Oberfläche nur über surface-Bereichen (z. B. dem offenen Becken; unter der Glasdecke sieht man durch das Glas auf das
+ * Riff). { pos, size } wie beim water-Baustein, surface: [[zA, zB], …], color, opacity }.
+ */
+export function klaresWasser(level, spec) {
+  if (!level.view) return;
+  const [x, y, z] = spec.pos, [w, h, d] = spec.size;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w - 0.02, h - 0.06, d - 0.02),
+    new THREE.MeshStandardMaterial({ color: spec.color ?? 0x2a8ad8, transparent: true, opacity: spec.opacity ?? 0.2, roughness: 0.2, depthWrite: false }));
+  body.position.set(x, y + (h - 0.06) / 2, z);
+  body.renderOrder = 1;
+  addObject(level, body);
+  for (const [zA, zB] of spec.surface ?? []) {
+    const za = Math.max(zA, zB), zb = Math.min(zA, zB), L = za - zb;
+    const g = new THREE.PlaneGeometry(w - 0.02, L, Math.max(2, Math.round(w)), Math.max(2, Math.round(L)));
+    g.rotateX(-PI / 2);
+    const surf = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x6ad8ff, transparent: true, opacity: 0.5, roughness: 0.12, metalness: 0.1, depthWrite: false, side: THREE.DoubleSide }));
+    surf.position.set(x, y + h - 0.04, (za + zb) / 2);
+    surf.renderOrder = 1;
+    surf.receiveShadow = true;
+    const P = g.attributes.position, base = Float32Array.from(P.array);
+    addObject(level, surf, () => {
+      const t = level.time ?? 0;
+      for (let i = 0; i < P.count; i++) P.array[i * 3 + 1] = base[i * 3 + 1] + Math.sin(base[i * 3] * 1.7 + t * 2.2) * 0.04 + Math.cos(base[i * 3 + 2] * 1.3 + t * 1.7) * 0.04;
+      P.needsUpdate = true;
+    });
+  }
+}
+
 // =====================================================================================================================
 // 5) S-9 Kulisse
 // =====================================================================================================================
@@ -1283,6 +1348,117 @@ export function deckZier(level, list) {
       }
     }
   }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow' });
+}
+
+/**
+ * Neon-Bodenzeichen auf den Decks (Kulisse, ohne Kollision): list [{ kind: 'ring' (Landefeld: zwei Leuchtringe mit
+ * Punkten) | 'pfeile' (drei Leuchtwinkel in Richtung dir) | 'feld' (bunte Bodenplatten n × n), pos: [x, y, z], r: 1.6,
+ * color, dir: [0, -1], n: 3, cell: 1 }].
+ */
+const FELD = [0xff8ad8, 0x8af4ff, 0xffe27a, 0xb89aff, 0x9affb0];
+export function neonBoden(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  list.forEach((s, idx) => {
+    const [x, y, z] = s.pos, col = NEON[s.color ?? 'cyan'] ?? s.color;
+    if (s.kind === 'ring') {
+      const r = s.r ?? 1.6;
+      g.torus(r, 0.06, x, y + 0.03, z, col, { rx: PI / 2, ts: 32, rs: 4 });
+      g.torus(r * 0.62, 0.05, x, y + 0.03, z, 0xffffff, { rx: PI / 2, ts: 24, rs: 4 });
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; g.cyl(0.08, 0.08, 0.03, x + Math.cos(a) * r * 1.18, y, z + Math.sin(a) * r * 1.18, i % 2 ? col : 0xffffff, 6); }
+      b.cyl(r * 0.98, r * 0.98, 0.02, x, y, z, 0x3a3e6a, 24);
+    } else if (s.kind === 'pfeile') {
+      const [dx, dz] = s.dir ?? [0, -1], yaw = Math.atan2(dx, dz), L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L;
+      for (let i = 0; i < 3; i++) {
+        const cx = x + ux * i * 0.9, cz = z + uz * i * 0.9;
+        for (const sd of [-1, 1]) {
+          const ox = Math.cos(yaw) * sd * 0.32, oz = -Math.sin(yaw) * sd * 0.32;
+          g.box(0.16, 0.03, 0.8, cx + ox - ux * 0.2, y, cz + oz - uz * 0.2, i === 1 ? 0xffffff : col, { yaw: yaw + sd * 0.8, r: 0 });
+        }
+      }
+    } else {
+      const n = s.n ?? 3, c = s.cell ?? 1;
+      for (let i = 0; i < n; i++) for (let k = 0; k < n; k++) {
+        const px = x + (i - (n - 1) / 2) * c, pz = z + (k - (n - 1) / 2) * c;
+        b.box(c - 0.1, 0.03, c - 0.1, px, y, pz, FELD[(i * 3 + k * 2 + idx) % FELD.length], { r: 0 });
+      }
+    }
+  });
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow' });
+}
+
+/**
+ * Weltraum-Pflanzen in Pflanzkübeln (Kulisse; Kollision schlanker Zylinder um den Kübel): list [{ pos, size: 1, color }] –
+ * Metallkübel mit Neonrand, gebogene Stiele mit leuchtenden Knospen, runde Blätter.
+ */
+const KNOSPE = [0xff6ad8, 0x6af4ff, 0xc8ff6a, 0xffd23a, 0xb89aff];
+export function weltraumPflanzen(level, list) {
+  const b = new Bld(), g = new Bld();
+  list.forEach((s, idx) => {
+    const [x, y, z] = s.pos, k = s.size ?? 1;
+    level.world.add({ type: 'cyl', x, z, r: 0.5 * k, y0: y, y1: y + 0.7 * k, tag: 'pflanzkuebel' });
+    if (!level.view) return;
+    b.cyl(0.5 * k, 0.4 * k, 0.6 * k, x, y, z, litTop(0x5a6088), 10);
+    g.torus(0.48 * k, 0.04 * k, x, y + 0.6 * k, z, NEON[s.color ?? ['pink', 'cyan', 'gruen', 'gold'][idx % 4]] ?? 0xff4ad8, { rx: PI / 2, ts: 16, rs: 4 });
+    b.cyl(0.44 * k, 0.44 * k, 0.04, x, y + 0.56 * k, z, 0x3a2a4a, 10);
+    const n = 4 + (idx % 2);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + idx, h = (0.9 + ((i * 5 + idx) % 4) * 0.28) * k, lean = 0.28;
+      const tx = x + Math.cos(a) * 0.22 * k, tz = z + Math.sin(a) * 0.22 * k;
+      b.cyl(0.035 * k, 0.05 * k, h, tx, y + 0.56 * k, tz, 0x3ac88a, 5, { rx: Math.sin(a) * lean, rz: -Math.cos(a) * lean });
+      const ex = tx + Math.cos(a) * Math.sin(lean) * h, ez = tz + Math.sin(a) * Math.sin(lean) * h, ey = y + 0.56 * k + Math.cos(lean) * h;
+      g.sphere(0.13 * k, ex, ey, ez, KNOSPE[(i + idx) % KNOSPE.length], { ws: 8, hs: 6 });
+      b.sphere(0.2 * k, tx + Math.cos(a) * 0.12, y + 0.62 * k + h * 0.35, tz + Math.sin(a) * 0.12, 0x2aa87a, { s: [1.2, 0.3, 0.7], yaw: -a, ws: 8, hs: 4 });
+    }
+  });
+  b.flush(level, { castShadow: true });
+  g.flush(level, { material: 'glow' });
+}
+
+/**
+ * Riff im Unterwassertunnel (Kulisse ohne Kollision): list [{ pos: [x, y, z] (Boden), kind: 'koralle' (verzweigt) | 'roehren'
+ * (Röhrenbüschel) | 'faecher' (Fächerkoralle) | 'tang' (Seegras) | 'muschel' | 'seestern' (leuchtend), size: 1, color }].
+ */
+const RIFF = { seestern: [0xff8a3a, 0xffd23a], koralle: [0xff6a8a, 0xff8ad8], roehren: [0xffa83a, 0xffd23a], faecher: [0xb87aff, 0x8a5aff], tang: [0x3ad88a, 0x2ab87a], muschel: [0xffc8e0, 0xfff0f6] };
+export function riffZier(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  list.forEach((s, idx) => {
+    const [x, y, z] = s.pos, k = s.size ?? 1, kind = s.kind ?? 'koralle', [c1, c2] = RIFF[kind] ?? RIFF.koralle, col = s.color ?? c1;
+    if (kind === 'koralle') {
+      b.cyl(0.08 * k, 0.12 * k, 0.5 * k, x, y, z, col, 6);
+      for (let i = 0; i < 5; i++) {
+        const a = i * 1.3 + idx, lean = 0.5 + (i % 2) * 0.2, h = (0.45 + (i % 3) * 0.15) * k;
+        const bx = x + Math.cos(a) * 0.05, bz = z + Math.sin(a) * 0.05;
+        (i % 2 ? g : b).cyl(0.04 * k, 0.07 * k, h, bx, y + 0.4 * k, bz, i % 2 ? col : c2, 5, { rx: Math.sin(a) * lean, rz: -Math.cos(a) * lean });
+        g.sphere(0.06 * k, bx + Math.cos(a) * Math.sin(lean) * h, y + 0.4 * k + Math.cos(lean) * h, bz + Math.sin(a) * Math.sin(lean) * h, 0xffe0f0, { ws: 5, hs: 4 });
+      }
+    } else if (kind === 'roehren') {
+      for (let i = 0; i < 6; i++) {
+        const a = i * 2.4 + idx, rr = 0.16 * k * (i ? 1 : 0), h = (0.4 + ((i * 3) % 4) * 0.16) * k;
+        b.cyl(0.09 * k, 0.1 * k, h, x + Math.cos(a) * rr, y, z + Math.sin(a) * rr, i % 2 ? col : c2, 7, { open: true });
+        g.cyl(0.07 * k, 0.07 * k, 0.02, x + Math.cos(a) * rr, y + h - 0.03, z + Math.sin(a) * rr, 0xfff6a0, 7);
+      }
+    } else if (kind === 'faecher') {
+      b.add(new THREE.CircleGeometry(0.6 * k, 12, 0, PI), col, { p: [x, y, z], r: [0, s.yaw ?? (idx * 0.9), 0] });
+      b.add(new THREE.CircleGeometry(0.45 * k, 10, 0, PI), c2, { p: [x + 0.02, y, z + 0.02], r: [0, (s.yaw ?? (idx * 0.9)) + 0.2, 0] });
+    } else if (kind === 'tang') {
+      for (let i = 0; i < 4; i++) {
+        const ox = (i - 1.5) * 0.14 * k, h = (0.9 + (i % 3) * 0.35) * k;
+        for (let j = 0; j < 3; j++) b.cyl(0.035 * k, 0.05 * k, h / 3, x + ox + Math.sin(j * 1.4 + i) * 0.08, y + (h / 3) * j, z, j % 2 ? c2 : col, 5, { rz: Math.sin(j * 1.4 + i) * 0.3 });
+      }
+    } else if (kind === 'seestern') {
+      g.add(starGeo(0.32 * k, 0.08), col, { p: [x, y + 0.05, z], r: [-PI / 2, 0, idx * 0.7], order: 'XYZ' });
+      g.sphere(0.06 * k, x, y + 0.1, z, 0xffffff, { ws: 5, hs: 3 });
+    } else {
+      b.sphere(0.3 * k, x, y + 0.08, z, col, { s: [1, 0.35, 0.85], ws: 10, hs: 5 });
+      b.sphere(0.28 * k, x, y + 0.2, z - 0.06, c2, { s: [1, 0.3, 0.8], rx: -0.5, ws: 10, hs: 5 });
+      g.sphere(0.08 * k, x, y + 0.16, z + 0.02, 0xffffff, { ws: 6, hs: 4 });
+    }
+  });
   b.flush(level, { castShadow: false });
   g.flush(level, { material: 'glow' });
 }
