@@ -8714,6 +8714,61 @@ inkl. Schattenpass / Dreiecke) in der Werkstatt: Start 52 / 118 k, Drehplatte 47
 Laufbombe, Wabenfeld im Blick), Draufsicht/Waben 33 / 137 k, Nebel 42 / 149 k, Schienenbrett 38 / 119 k, Kanonenkugeln
 48 / 166 k, Drehdiorama 63 / 148 k; Themen ≤ 65 / 177 k; Remixe ≤ 77 / 193 k. Grenzen < 120 / < 300 k.
 
+## Präzisierung (Figuren Bonuswelten): Sternenglanz-Kostüm
+
+Ergänzung des Figuren-Agenten (additiv; Motor, Modelle, Level, Bausteine unverändert). Belohnung für den Abschluss von S-2
+(Baustein `sternenglanz` → `courseSave.data.outfits.stern = { from: 'S-2', at }`). Dateien: Bausteine `src/three/lib/heroStern.js`,
+Avatare `src/three/avatars/hero.js` (HeroAvatar, PflaumeAvatar), Schalter `src/three/lib/outfit.js` (Wunsch-Ebene), Karten-HUD
+`src/course/map/MapHud.js` (Schalter), Test `tests/kostuem_stern.mjs`.
+
+**Schalter und Spielstand:**
+- Verkleidung `'stern'` im Outfit-System (`OUTFITS` = `halloween`, `stern`). Neu ist eine **Wunsch-Ebene** unter der Szene:
+  `setOutfitWish(kind | fn)` / `outfitWish()`; `currentOutfit()` = URL-Schalter, sonst die Verkleidung der Szene, sonst der Wunsch.
+  `WISH_OUTFITS` = `stern` (selbst gewählte Kostüme). Die Halloween-Welt setzt `'halloween'` als Szene → **Halloween hat Vorrang**
+  (H-Level, Testlevel 0-20…0-22, Kürbisinsel-Karte); `?outfit=stern` erzwingt das Kostüm überall (zum Testen), `?outfit=0`
+  schaltet alles ab, auch den Wunsch. `LEVEL.outfit: 'stern'` bzw. `MAP.outfit: 'stern'` wären ebenfalls möglich (nicht genutzt).
+- Wunsch im Spielstand: `courseSave.data.outfit = 'stern' | null` (`undefined` = noch nie gewählt). Gilt nur mit Freischaltung
+  (`courseSave.data.outfits[name]`). `MapHud.js` bindet ihn beim Laden des Spiels als lebende Quelle (`setOutfitWish(() => …)`) –
+  so trägt die Figur das Kostüm in jedem Level, auch nach Neuladen oder bei direktem Start (`?course=…`); nach „Neu“ (Spielstand
+  löschen) ist es aus. Das Freischalten allein zieht das Kostüm **nicht** an (Kennzahlen anderer Tests bleiben unberührt).
+- **Schalter auf der Kurs-Weltkarte** (oben links neben den Porträts, „Glanz“ mit Stern; Taste **K**): erst sichtbar, wenn das
+  Kostüm freigeschaltet ist; beim ersten Kartenbesuch danach Hinweis „Neu: Sternenglanz-Kleid! …“ (einmal, setzt `outfit` auf
+  `null`). Klick/K schaltet den Wunsch um (Meldung, Funkeln, `powerup`); auf der Kürbisinsel nur gemerkt („Sternenglanz gemerkt –
+  hier zählt die Verkleidung der Insel“). Test-Schnittstelle `__courseMap.hud.toggleOutfit()` → true/false.
+- Einzelne Avatare: `avatar.setOutfit('stern' | 'halloween' | null | 'auto')` wie bisher. Krümel (Modell/KruemelRig) kennt nur
+  Halloween – mit Sternenglanz bleibt er wie immer.
+
+**Je Figur** (Figurenstil, Bausteine in `heroStern.js`):
+- **Lotti:** tiefblaues Sternenkleid (zum Saum hin nachtviolett), goldene Pausback-Sterne auf Mieder und Rock, feiner Goldstaub,
+  gerollter Saum als Goldborte, sternweiße Puffärmel, hellgoldener Kragen; Sternen-Haarspange (gepolsterter Goldstern mit Perle)
+  auf dem Knoten ihrer roten Schleife, etwas aufgestellt (von hinten gut zu sehen).
+- **Greta:** pastell-lila Sternenkleid mit rosa Schürze, silberne Sterne (auch auf Schürze und Latz) und Silberstaub, Silberborte;
+  Sternen-Diadem auf dem rosa Haarreif (silberne Zacken, rosa Perlen, großer Silberstern mit rosa Perle, zwei kleine Sterne).
+- **Funkeln:** kleine vierstrahlige Glitzersterne blitzen auf den aufgedruckten Sternen auf (0,3 s) – im Stand alle 1,4–2,6 s, beim
+  Laufen nach Tempo bis ≈ 7 je s, beim Absprung zwei. **Sternenschweif beim Weitsprung:** gepolsterte Sternchen (Lotti gold/silber,
+  Greta silber/rosa) und Glitzer im Wechsel bleiben in Weltlage zurück, wachsen kurz, drehen sich, zeigen zur Kamera, vergehen
+  (0,7 s). Nur im Kurs-Modus, nicht bei Klonen, nicht als Statue, nicht im Feuer-Kleid (ohne Sterne), nicht in der Röhre.
+- **Pflaume:** Sternenhalsband – goldene Sternchen rund um das Halstuch und eine Sternbrosche auf dem Knoten; die Kraftfarbe des
+  Halstuchs bleibt sichtbar.
+- **Power-ups darüber:** Krallen-Anzug in den Kleidfarben (Kapuze, Tatzen, Ringelschweif; ohne Haarschmuck), Funkenblüte ersetzt
+  das Kleid samt Aufdruck (Spange/Diadem bleiben), Gleitblatt (Lotti mit Spange, Greta Blatt-Reif statt Diadem), Wurfsichel (Mütze
+  statt Diadem, Lottis Spange an der Mützen-Schleife, Kordel auf dem Sternenkleid), Funkelstern-Glanz und Stein-Haut erfassen Kleid,
+  Aufdruck und Schmuck, Riesentrank, klein, Ritt, alle Posen. Trage-Helm: Diadem ruht (Lottis Spange bleibt an der Schleife). Klassik-Modus: Kleid,
+  Aufdruck und Haarschmuck (ohne Funkeln/Schweif).
+
+**Zeichenaufrufe:** Kleid per Geometrie-Tausch der Stoff-Meshes; Aufdruck (Mieder, Rock) als eigene Teile in der Stoff-, Haarschmuck
+in der Haar-Oberfläche, beide ohne Schattenwurf; Glitzer in der unbeleuchteten Glanzpunkt-Oberfläche der Augen, Schweif-Sternchen
+in der Glanz-Oberfläche – alles im Figur-Bündel. Pflaumes Sterne im Fell-Mesh des Kopfes.
+**Kennzahlen** (`tests/kostuem_stern.mjs`, Teil mech, Übungsplatz 0-0, inkl. Schattenpass; ohne → mit Kostüm): Lotti 9 → 9 Aufrufe,
+28,6 k → 31,3 k Dreiecke (× 1,09; im Lauf mit Funkeln 9) · Greta 9 → 9, 24,0 k → 27,6 k (× 1,15) · Pflaume 11 → 11, 16,4 k → 18,2 k
+(× 1,11) · zwei Klone 12 → 12. Wieder ohne Kostüm jeweils exakt wie vorher.
+
+**Test** `tests/kostuem_stern.mjs` (Vite-Entwicklungsserver, Port 4385 + PORT_BASE; Teile `KST_PARTS=map | mech | nah | posen |
+kostueme | ride`, je < 10 min, `close` = nah,posen,kostueme; `KST_HEROES`): Freischalten in S-2 über den Baustein, Schalter auf der
+Karte (Klick, Taste K, Hinweis), Kostüm im Level und nach Neuladen, Halloween-Vorrang (H-1, Kürbisinsel), URL-Schalter, Spielstand
+löschen; Kosten, Funkelrate, Sternenschweif, Klone, Pflaume; Nahansichten, Posen, Power-ups, Helm, klein, Ritt. Bilder
+`tests/out/kostuem_stern_*.png`, Bögen `kostuem_stern_sheet_<gruppe>.png`; keine Konsolenfehler.
+
 ## Präzisierung (Gegner Bonuswelten)
 
 Ergänzung des Gegner-Agenten der Bonuswelten Stern, Pilz, Blume und Krone (Stand: Bonus-Gegnerzoo `0-35`,

@@ -6,9 +6,10 @@
 // Reittier, Floß). Einzelne Avatare lassen sich zusätzlich festlegen: avatar.setOutfit('halloween' | null) (Vorrang vor
 // der Szene), avatar.setOutfit('auto') folgt wieder der Szene.
 //
-//   setOutfit(kind, owner)   Verkleidung der Szene setzen ('halloween' | null); owner = setzende Szene (für clearOutfit)
+//   setOutfit(kind, owner)   Verkleidung der Szene setzen ('halloween' | 'stern' | null); owner = setzende Szene (für clearOutfit)
 //   clearOutfit(owner)       beim Beenden der Szene: zurück auf null – nur, wenn owner sie zuletzt gesetzt hat
-//   currentOutfit()          gültige Verkleidung (URL-Schalter ?outfit=halloween | ?outfit=0 hat Vorrang)
+//   currentOutfit()          gültige Verkleidung (URL-Schalter ?outfit=halloween | ?outfit=stern | ?outfit=0 hat Vorrang, dann
+//                            die Szene, dann das Wunsch-Kostüm)
 //   outfitForLevel(id, data) Verkleidung eines Kurs-Levels: data.outfit (auch null), sonst Präfix 'H-', Welt 31,
 //                            LEVEL.halloween: true (wie die Halloween-Optik der Spuke) oder ein Halloween-Testlevel (0-20,
 //                            0-21, 0-22) → 'halloween'
