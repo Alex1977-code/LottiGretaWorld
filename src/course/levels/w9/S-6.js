@@ -18,7 +18,7 @@
 //      Stern 2 darüber – nur mit der Wurfsichel zu holen.
 //   8. Zielturm (z −283 … −301): Waben-Stufen erscheinen beim Hinaufsteigen und vergehen hinter einem – flink hinauf zum Ziel.
 
-import { hexLattice, WabenMaler, line, ring, arc, column, schalterWaben, flinkeTreppe, leuchtring, wabenOhneLoecher, muenzenFlach } from './_helpers_c.js';
+import { hexLattice, WabenMaler, line, ring, arc, column, schalterWaben, flinkeTreppe, leuchtring, wabenOhneLoecher, muenzenFlach, bluemchen } from './_helpers_c.js';
 
 const PI = Math.PI;
 const L = hexLattice({ R: 1.6, gap: 0.06, x0: 0, z0: 4.9, y: 0, height: 0.6 });
@@ -63,6 +63,15 @@ M.rect(-7.2, 7.2, -283.1, -301.5);
 
 const WABEN = M.fields({ rows: 5 });
 
+// Blümchen und Kristalle auf Randwaben (Kulisse ohne Kollision): jede vierte Randwabe, die keine Lava ist – von oben bunte
+// Tupfer zwischen dem Honiggold. Randwabe = weniger als sechs Nachbarn.
+const NACHBARN = (Q, R) => (R % 2 ? [[Q, R - 1], [Q + 1, R - 1], [Q - 1, R], [Q + 1, R], [Q, R + 1], [Q + 1, R + 1]] : [[Q - 1, R - 1], [Q, R - 1], [Q - 1, R], [Q + 1, R], [Q - 1, R + 1], [Q, R + 1]]);
+const BLUMEN = M.list().filter((c) => c.ch === 'n' && NACHBARN(c.Q, c.R).some(([q, r]) => !M.get(q, r)))
+  .sort((a, b) => b.z - a.z || a.x - b.x)
+  .filter((c, i) => i % 4 === 1 && c.z < -4 && !(c.z < -282))
+  .map((c, i) => ({ pos: [+(c.x + Math.sin(i * 2.3) * 0.5).toFixed(2), 0, +(c.z + Math.cos(i * 1.7) * 0.5).toFixed(2)], s: 0.45 + (i % 3) * 0.08,
+    color: [0xff7ac8, 0xffffff, 0xb08aff, 0x7ad8ff, 0xffd23a][i % 5] }));
+
 // rechter Weg (Schalter-Waben): Zellen, die nicht schon zu den festen Feldern gehören, von der Gabelung aus nach −Z
 const MR = new WabenMaler(L);
 MR.lane([[4.3, -12.6], [7.07, -19.5], [8.5, -30], [7.07, -41], [4.3, -49.5], [1.4, -56]], 1.9);
@@ -82,6 +91,7 @@ function build(level) {
   flinkeTreppe(level, { id: 'treppe', steps: STUFEN, life: 3.6, ahead: 2, size: 1.05, height: 0.45 });
   // Zielturm: feste Waben-Säule (Kollision), Optik über deco_star (wabensaeule)
   level.world.add({ type: 'cyl', x: TURM.x, z: TURM.z, r: TURM.r, y0: -8, y1: TURM.top, tag: 'zielturm' });
+  bluemchen(level, BLUMEN);
 }
 
 function setup(level) {

@@ -823,3 +823,30 @@ export function dschungelDeko(level, list) {
   if (parts.length) level.view.addStatic(merge(parts), { material: 'world', castShadow: true });
   if (glow.length) level.view.addStatic(merge(glow), { material: 'glow', castShadow: false });
 }
+
+/**
+ * Sparsame Blümchen (S-6, Kulisse ohne Kollision): kurzer Stiel, fünf flache Blütenblätter, gelbe Mitte – von oben bunte
+ * Tupfer auf den Waben (≈ 70 Dreiecke je Blume, statisch verschmolzen, kein Schatten).
+ *   list [{ pos: [x, y, z], s (Größe, 0,5), color }]
+ */
+export function bluemchen(level, list) {
+  if (!level.view || !list.length) return;
+  const parts = [];
+  const rnd = new Rnd(2024);
+  for (const it of list) {
+    const s = it.s ?? 0.5, p = it.pos, yaw = rnd.real(0, TAU), h = 0.32 * s / 0.5;
+    const st = new THREE.CylinderGeometry(0.03, 0.04, h, 4, 1); st.translate(0, h / 2, 0);
+    parts.push(place(fillC(st, 0x3aa83a), p, yaw));
+    const pc = C3(it.color ?? 0xff8ad0), pw = C3(0xffffff);
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * TAU;
+      const g = new THREE.CircleGeometry(s * 0.42, 7).toNonIndexed(); g.rotateX(-Math.PI / 2); g.scale(1, 1, 0.62);
+      colorize(g, (q, n, o) => mixc(pw, pc, Math.min(1, Math.hypot(q.x, q.z) / (s * 0.42) * 1.4), o));
+      g.translate(s * 0.42, 0, 0); g.rotateY(a); g.translate(0, h + 0.01 * k, 0);
+      parts.push(place(g, p, yaw));
+    }
+    const c = new THREE.CircleGeometry(s * 0.24, 8); c.rotateX(-Math.PI / 2); c.translate(0, h + 0.06, 0);
+    parts.push(place(fillC(c, 0xffc020), p, yaw));
+  }
+  level.view.addStatic(merge(parts), { material: 'world', castShadow: false });
+}
