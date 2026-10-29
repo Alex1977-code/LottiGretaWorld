@@ -86,14 +86,14 @@ const skulptur = (id, ch, z, lat, o = {}) => ({ kind: 'pilzling_sandskulptur', i
 const schub = (id, ch, z, lat, color = 'gold', o = {}) => ({ type: 'schubfeld', id, pos: P(ch, z, lat), size: [3.4, 4], boost: 4.5, color, ...o });
 
 const RAMP_Z = -121.5;
-const KAEFER_Z = -127.6;
+const KAEFER_Z = -129.6;
 const STAR_STATUE_LAT = 7;
 const CP1_Z = -105, CP2_Z = -217;
 const STAR_STATUE_Z = -272;
 // Oase: drei Statuen, unsichtbare Wolken dazwischen, ?-Block mit Stempel
-const WOLKEN = [[-3.6, YB + 2.4, -317], [0, YB + 4.8, -320], [3.6, YB + 7.2, -317], [0, YB + 9.4, -314.6]];
-const QBLOCK = [0, YB + 9.4 + 1.9, -314.6];
-const STAMP = [0, QBLOCK[1] + 1.05, -314.6];
+const WOLKEN = [[-3, YB + 2.2, -317.6], [0, YB + 4.4, -319.6], [3, YB + 6.6, -317.6], [0, YB + 8.8, -315.6]];
+const QBLOCK = [0, YB + 8.8 + 1.65, -315.6];
+const STAMP = [0, QBLOCK[1] + 1.05, -315.6];
 
 export const LEVEL = {
   id: '8-2',
@@ -113,6 +113,13 @@ export const LEVEL = {
     footCamYaw: 0,
   },
   prebuild: (level) => duenenThema(level),
+  // Oase: unsichtbare Leitplanken an den Rändern (zurück in den Sandstrom bzw. über die Kante geht es zu Fuß nicht)
+  build: (level) => {
+    for (const [min, max] of [[[-26, YB - 1, -293.9], [26, YB + 4, -293.5]], [[-26.4, YB - 1, -346], [-26, YB + 4, -293.5]],
+      [[26, YB - 1, -346], [26.4, YB + 4, -293.5]], [[-26, YB - 1, -346.4], [26, YB + 4, -346]]]) {
+      level.world.add({ type: 'box', min, max, camIgnore: true, noWallSlide: true, tag: 'oasenrand' });
+    }
+  },
   setup: (level, scene) => {
     sandAnsicht(level, scene);
     sandStrom(level);
@@ -170,7 +177,7 @@ export const LEVEL = {
     isl(-26, -8.5, -334.5, -346, YB, 6, { top: 'sand' }),
     isl(-26, -19.5, -325.5, -334.5, YB, 6, { top: 'sand' }),
     { type: 'oase', pos: [-14, YB, -330], size: [7, 5], depth: 1.4, rim: 2, base: 1, palms: 3 },
-    ...WOLKEN.map(([x, y, z], i) => ({ type: 'wolkenlift', id: `wolke${i}`, pos: [x, y - 0.55, z], width: 2.4, reveal: 'touch' })),
+    ...WOLKEN.map(([x, y, z], i) => ({ type: 'wolkenlift', id: `wolke${i}`, pos: [x, y - 0.55, z], width: 2.8, reveal: 'touch' })),
     { type: 'deco_w2', items: [
       { kind: 'palmen', pos: [16, YB, -312], size: [12, 22], n: 4, seed: 821 },
       { kind: 'kakteen', pos: [18, YB, -336], size: [10, 12], n: 5, seed: 822 },
@@ -179,7 +186,7 @@ export const LEVEL = {
     ] },
   ],
   blocks: [
-    { kind: 'question', pos: QBLOCK, content: 'coins:3' },
+    { kind: 'question', pos: QBLOCK, content: 'coin' },          // Stoß → Stempel steigt heraus (stempelBlock)
     { kind: 'hidden', pos: [7, YB + 2.6, -333], content: 'oneup' },
   ],
   enemies: [

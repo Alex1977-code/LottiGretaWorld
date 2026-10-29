@@ -158,20 +158,23 @@ const ROUTES = {
       { name: 'Stern 2 nicht auf der Mittellinie', star: 2, expectNot: true, from: 'field', heroes: ['lotti'],
         legs: [{ pflaume: 'main', lat: 0, z: -400, beach: true }] },
       { name: 'Stempel: in der Oase über die unsichtbaren Wolken zwischen den Statuen, ?-Block stoßen, hinauf zum Stempel', stamp: true, from: [0, -8.15, -306],
-        legs: [{ to: [-3.6, -314.4], within: 0.3, run: false }, { to: [-3.6, -317], jump: 24, jumpAt: 9, within: 0.35, run: false },
-          { to: [0, -320], jump: 30, jumpAt: 9, within: 0.35, run: false }, { to: [3.6, -317], jump: 30, jumpAt: 9, within: 0.35, run: false },
-          { to: [0, -314.6], jump: 30, jumpAt: 9, within: 0.3, run: false }, { hop: 20 }, { to: [1.15, -314.6], within: 0.12, run: false },
-          { upOnto: [0, -314.6, -8.15 + 12.3] }], shot: 'stempel' },
+        legs: [{ to: [-3, -315], within: 0.3, run: false }, { to: [-3, -317.6], jump: 24, jumpAt: 9, within: 0.35, run: false },
+          { to: [0, -319.6], jump: 30, jumpAt: 9, within: 0.35, run: false }, { to: [3, -317.6], jump: 30, jumpAt: 9, within: 0.35, run: false },
+          { to: [0, -315.6], jump: 30, jumpAt: 9, within: 0.3, run: false }, { hop: 20 }, { to: [1.0, -315.6], within: 0.1, run: false },
+          { upOnto: [0, -315.6, -8.15 + 11.45] }], shot: 'stempel' },
       { name: 'Stempel erscheint erst nach dem Stoß gegen den ?-Block', stamp: true, expectNot: true, from: [0, -8.15, -306], heroes: ['lotti'],
-        legs: [{ to: [-3.6, -314.4], within: 0.3, run: false }, { to: [-3.6, -317], jump: 24, jumpAt: 9, within: 0.35, run: false },
-          { to: [0, -320], jump: 30, jumpAt: 9, within: 0.35, run: false }, { to: [3.6, -317], jump: 30, jumpAt: 9, within: 0.35, run: false },
-          { to: [0, -314.6], jump: 30, jumpAt: 9, within: 0.3, run: false }, { to: [1.15, -314.6], within: 0.12, run: false }, { wait: 60 }] },
+        legs: [{ to: [-3, -315], within: 0.3, run: false }, { to: [-3, -317.6], jump: 24, jumpAt: 9, within: 0.35, run: false },
+          { to: [0, -319.6], jump: 30, jumpAt: 9, within: 0.35, run: false }, { to: [3, -317.6], jump: 30, jumpAt: 9, within: 0.35, run: false },
+          { to: [0, -315.6], jump: 30, jumpAt: 9, within: 0.3, run: false }, { to: [1.2, -315.6], within: 0.12, run: false }, { wait: 60 }] },
     ],
     extra: [
       { name: 'Extraleben: Felsentor-Arm links (Sandsteinbogen)', from: 'descent2', heroes: ['lotti'], expectLives: 1,
         legs: [{ pflaume: 'main', lat: [[-145, 0], [-156, -3]], z: -160 }, { pflaume: 'arm', lat: 0, z: -205 }] },
       { name: 'Extraleben: unsichtbarer Block in der Oase', from: [7, -8.15, -331], heroes: ['lotti'], expectLives: 1,
-        legs: [{ to: [7, -333], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+        legs: [{ to: [7, -333], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 500 }] },
+      { name: 'Oase: unsichtbare Leitplanke – zu Fuß nicht zurück in den Sandstrom', from: [0, -8.15, -298], heroes: ['lotti'],
+        legs: [{ to: [0, -288], within: 0.3, max: 240 }], allowFail: true,
+        mech: (r) => r.pos[2] < -293 && r.info.mode === 'ground', mechText: (r) => `z ${r.pos[2].toFixed(1)}` },
       { name: 'Pilzling-Sandskulptur im Ritt rammen: zerbröselt, Münzen', from: 'neck', heroes: ['lotti'], expectCoins: 3,
         legs: [{ pflaume: 'main', lat: [[-30, 0], [-37, -2.6], [-42, -2.6]], z: -44 }],
         mech: (r) => r.mech.skulpturen >= 1, mechText: (r) => `Skulpturen ${r.mech.skulpturen}` },
@@ -1101,12 +1104,13 @@ function install() {
         // ------------------------------------------------ senkrecht neben einem Block hochspringen, erst über seiner Oberkante hinüberlenken
         if (Lg.upOnto) {
           const [tx, tz, top] = Lg.upOnto;
+          for (let q = 0; q < 120 && (p.mode !== 'ground' || p.hSpeed() > 0.08); q++) tick({});
           let k = 0, air = false;
           for (; k < 300 && !p.dead; k++) {
             if (air && p.mode === 'ground') break;
             if (p.mode === 'air') air = true;
-            const over = p.pos.y > top + 0.15;
-            tick({ ...(over ? this.airSteer(tx, tz, 0, 0, 3.4, 5) : { x: 0, y: 0 }), jump: k < 40 });
+            const over = p.pos.y > top + 0.15, dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            tick({ ...(over ? this.airSteer(tx, tz, 0, 0, 4, 5) : { x: 0, y: 0 }), jump: k < 40 });
           }
           for (let q = 0; q < 30; q++) tick({});
           log.push(['hinauf', `${Lg.upOnto}`, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
