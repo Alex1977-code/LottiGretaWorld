@@ -17,8 +17,10 @@
 //   starR(th, inner, round)      Umriss eines fünfzackigen Sterns: Anteil des Außenradius je Winkel (Spitze oben bei th = π/2)
 //   STAR_PRINTS                  Lage der aufgedruckten Sterne je Heldin: { bodice: [[s, t, R]], skirt: [[s, t, R]] } (Flächen-
 //                                koordinaten der Kleid-Flächen: s = Bogenlänge quer, vorn 0, +s → +Z; t = Höhe; R = Radius)
-//   starPrintGeos(map, list, o)  aufgedruckte Sterne (gepolstert, Glanz oben, Rand dunkler) und Sternenstaub auf einer Fläche
-//                                map(s, t, lift, out) (wie paramDecalGeo); o = { colors, lift, dust: [[s, t, R]], dustC }
+//   starPrintGeos(at, list, o)   aufgedruckte Sterne (gepolstert, Glanz oben, Rand dunkler) und Sternenstaub auf einer Fläche:
+//                                at(s0, t0) → map(ds, dt, lift, out) bildet Versätze um die Sternmitte (Einheiten, quer/hoch)
+//                                auf die Fläche ab (so bleiben Sterne auch auf schrägen Drehkörpern unverzerrt); o = { colors,
+//                                lift, puff, dust: [[s, t, R]] }; list-Einträge [s, t, R, lift?]
 //   dustSpots(o)                 deterministisch verstreuter Sternenstaub (Flächenkoordinaten) um die Rock-Fläche
 //   puffyStarGeo(o)              gepolsterter Stern (Kissen, beide Seiten; stern-lokal: Fläche XY, Spitze +Y, Dicke ±Z)
 //   starClipGeos(c, n, T, B, o)  Sternen-Haarspange: Stern um c (n nach außen, T quer, B hoch) mit Glanzperle
@@ -65,6 +67,8 @@ export function starR(th, inner = 0.48, round = 1.3) {
   const k = 0.5 + 0.5 * Math.cos(5 * (th - Math.PI / 2));
   return inner + (1 - inner) * Math.pow(k, round);
 }
+/** Winkelversatz, damit ein Umlauf aus nu Punkten (nu Vielfaches von 10) genau die fünf Spitzen und Kerben trifft. */
+const starPhase = (nu) => { const step = TAU / nu; return Math.PI / 2 - Math.round(Math.PI / 2 / step) * step; };
 
 /**
  * Aufgedruckte Sterne (Flächenkoordinaten s/t in Einheiten; R = Außenradius). Mieder: Lotti einer vorn auf dem Blusen-Einsatz-Rand,
@@ -73,24 +77,24 @@ export function starR(th, inner = 0.48, round = 1.3) {
  */
 export const STAR_PRINTS = {
   lotti: {
-    bodice: [[0.0, 0.25, 0.032], [0.15, 0.2, 0.024], [-0.15, 0.2, 0.024], [0.34, 0.28, 0.028], [-0.34, 0.28, 0.028], [0.47, 0.17, 0.022]],
+    bodice: [[0.0, 0.245, 0.042], [0.16, 0.2, 0.03], [-0.16, 0.2, 0.03], [0.34, 0.27, 0.036], [-0.34, 0.27, 0.036], [0.47, 0.16, 0.03]],
     skirt: [
-      [0.0, -0.06, 0.042], [0.27, -0.075, 0.038], [-0.27, -0.075, 0.038], [0.55, -0.06, 0.04], [-0.55, -0.06, 0.04], [0.83, -0.07, 0.038], [-0.83, -0.07, 0.038],
-      [0.14, 0.055, 0.026], [-0.14, 0.055, 0.026], [0.41, 0.05, 0.028], [-0.41, 0.05, 0.028], [0.66, 0.06, 0.026], [-0.66, 0.06, 0.026],
+      [0.0, -0.052, 0.054], [0.27, -0.06, 0.05], [-0.27, -0.06, 0.05], [0.55, -0.052, 0.054], [-0.55, -0.052, 0.054], [0.83, -0.06, 0.05], [-0.83, -0.06, 0.05],
+      [0.14, 0.062, 0.036], [-0.14, 0.062, 0.036], [0.41, 0.058, 0.038], [-0.41, 0.058, 0.038], [0.66, 0.064, 0.036], [-0.66, 0.064, 0.036],
     ],
   },
   greta: {
-    bodice: [[0.0, 0.25, 0.026], [0.2, 0.2, 0.024], [-0.2, 0.2, 0.024], [0.36, 0.28, 0.028], [-0.36, 0.28, 0.028], [0.47, 0.17, 0.022]],
+    bodice: [[0.0, 0.245, 0.034], [0.2, 0.2, 0.03], [-0.2, 0.2, 0.03], [0.36, 0.27, 0.036], [-0.36, 0.27, 0.036], [0.47, 0.16, 0.03]],
     skirt: [
-      [0.3, -0.07, 0.038], [-0.3, -0.07, 0.038], [0.56, -0.06, 0.04], [-0.56, -0.06, 0.04], [0.83, -0.07, 0.038], [-0.83, -0.07, 0.038],
-      [0.3, 0.06, 0.026], [-0.3, 0.06, 0.026], [0.5, 0.055, 0.028], [-0.5, 0.055, 0.028], [0.7, 0.06, 0.026], [-0.7, 0.06, 0.026],
-      [0.07, 0.0, 0.024], [-0.08, -0.07, 0.02],
+      [0.31, -0.06, 0.05], [-0.31, -0.06, 0.05], [0.57, -0.052, 0.054], [-0.57, -0.052, 0.054], [0.84, -0.06, 0.05], [-0.84, -0.06, 0.05],
+      [0.31, 0.065, 0.034], [-0.31, 0.065, 0.034], [0.5, 0.058, 0.038], [-0.5, 0.058, 0.038], [0.7, 0.064, 0.036], [-0.7, 0.064, 0.036],
+      [0.075, 0.01, 0.032], [-0.085, -0.065, 0.026],
     ],
   },
 };
 
 /** Sternenstaub: kleine vierstrahlige Glitzerpunkte, deterministisch verstreut (Flächenkoordinaten). */
-export function dustSpots({ n = 26, s0 = -0.95, s1 = 0.95, t0 = -0.1, t1 = 0.12, avoid = [], R = 0.011, seed = 7 } = {}) {
+export function dustSpots({ n = 26, s0 = -0.95, s1 = 0.95, t0 = -0.1, t1 = 0.12, avoid = [], R = 0.009, seed = 7 } = {}) {
   let x = seed;
   const rnd = () => { x = (x * 16807) % 2147483647; return (x - 1) / 2147483646; };
   const out = [];
@@ -103,28 +107,32 @@ export function dustSpots({ n = 26, s0 = -0.95, s1 = 0.95, t0 = -0.1, t1 = 0.12,
 }
 
 /**
- * Aufgedruckte Sterne und Staub auf einer Fläche (map(s, t, lift, out) wie paramDecalGeo; Umlaufsinn wie die Schürze: flip).
- * colors = { star, starHi, starLow, dust }: Stern gepolstert (Mitte etwas höher), heller Glanz oben links, Rand dunkler.
+ * Aufgedruckte Sterne und Staub auf einer Fläche (at(s0, t0) → map(ds, dt, lift, out); Umlaufsinn wie die Schürze: flip).
+ * colors = { star, starHi, starLow, dust }: Stern gepolstert (Mitte etwas höher), heller Glanz oben, Rand dunkler.
  */
-export function starPrintGeos(map, list, { colors, lift = 0.004, puff = 0.007, dust = [], segs = 30, inner = 0.46, round = 1.25 } = {}) {
+export function starPrintGeos(at, list, { colors, lift = 0.004, puff = 0.007, dust = [], segs = 20, rings = 2, inner = 0.46, round = 1.25 } = {}) {
   const hi = C(colors.starHi), mid = C(colors.star), low = C(colors.starLow), dc = C(colors.dust ?? colors.starHi);
   const out = [];
-  const decal = (s0, t0, R, shape, lf, color, rings, nu) => gridGeo({
-    nu, nv: rings, wrapU: true, flip: true,
-    point: (u, v, o) => { const [ds, dt] = shape(v, u * TAU); return map(s0 + ds * R, t0 + dt * R, lf(v), o); },
-    color: (u, v) => color(v, u * TAU),
-  });
-  for (const [s0, t0, R] of list) {
+  const decal = (s0, t0, R, shape, lf, color, nv, nu, ph = 0) => {
+    const map = at(s0, t0);
+    return gridGeo({
+      nu, nv, wrapU: true, flip: true,
+      point: (u, v, o) => { const [ds, dt] = shape(v, u * TAU + ph); return map(ds * R, dt * R, lf(v), o); },
+      color: (u, v) => color(v, u * TAU + ph),
+    });
+  };
+  for (const [s0, t0, R, l0] of list) {
     const shape = (v, th) => { const r = starR(th, inner, round) * v; return [r * Math.cos(th), r * Math.sin(th)]; };
-    out.push(decal(s0, t0, R, shape, (v) => lift + puff * (R / 0.04) * (1 - v * v), (v, th) => {
+    const base = l0 ?? lift;
+    out.push(decal(s0, t0, R, shape, (v) => base + puff * (R / 0.04) * (1 - v * v), (v, th) => {
       // Glanz zur oberen „Licht“-Seite (−s ist von außen gesehen rechts – gespiegelt unkritisch), Rand dunkler
       const g = mid.clone().lerp(hi, 0.75 * (1 - smoothstep(v / 0.55)) * (0.55 + 0.45 * Math.sin(th)));
       return g.lerp(low, 0.7 * smoothstep((v - 0.72) / 0.28));
-    }, 3, segs));
+    }, rings, segs, starPhase(segs)));
   }
   // Staub: vierstrahlig, flach, hell
   for (const [s0, t0, R] of dust) {
-    const shape = (v, th) => { const r = (0.25 + 0.75 * Math.pow(Math.abs(Math.cos(2 * th)), 6)) * v; return [r * Math.cos(th), r * Math.sin(th)]; };
+    const shape = (v, th) => { const r = (0.42 + 0.58 * Math.pow(Math.abs(Math.cos(2 * th)), 4)) * v; return [r * Math.cos(th), r * Math.sin(th)]; };
     out.push(decal(s0, t0, R, shape, () => lift * 0.8, () => dc, 1, 8));
   }
   return out;
@@ -134,14 +142,15 @@ export function starPrintGeos(map, list, { colors, lift = 0.004, puff = 0.007, d
  * Gepolsterter Stern (beide Seiten): Fläche XY, Spitze nach +Y, Dicke depth·R entlang ±Z (Kissen: Mitte am dicksten, Rand 0).
  * color(p, v, side) → Farbe (v = 0 Mitte … 1 Rand, side ±1); Standard: Gold mit Glanz oben und dunklerem Rand.
  */
-export function puffyStarGeo({ R = 0.05, inner = 0.46, round = 1.25, depth = 0.4, nu = 30, nv = 3, colors = null, color = null } = {}) {
+export function puffyStarGeo({ R = 0.05, inner = 0.46, round = 1.25, depth = 0.4, nu = 20, nv = 2, colors = null, color = null } = {}) {
   const k = colors ?? { star: STERN_C.gold, starHi: STERN_C.goldHi, starLow: STERN_C.goldLow };
   const hi = C(k.starHi), mid = C(k.star), low = C(k.starLow);
   const col = color ?? ((p, v) => mid.clone().lerp(hi, 0.8 * (1 - smoothstep(v / 0.6)) * smoothstep(0.5 + p.y / R)).lerp(low, 0.65 * smoothstep((v - 0.7) / 0.3)));
+  const ph = starPhase(nu);
   const face = (side) => gridGeo({
     nu, nv, wrapU: true, flip: side < 0,
     point: (u, v, o) => {
-      const th = u * TAU, r = R * starR(th, inner, round) * v;
+      const th = u * TAU + ph, r = R * starR(th, inner, round) * v;
       return o.set(r * Math.cos(th), r * Math.sin(th), side * depth * R * Math.sqrt(Math.max(0, 1 - v * v)));
     },
     color: (u, v, p) => col(p, v, side),
@@ -151,10 +160,10 @@ export function puffyStarGeo({ R = 0.05, inner = 0.46, round = 1.25, depth = 0.4
 
 /** Sternen-Haarspange: gepolsterter Goldstern um c (Fläche ⟂ n, Spitze entlang B, leicht gedreht), kleine Glanzperle in der Mitte. */
 export function starClipGeos(c, n, T, B, { R = 0.058, roll = 0.18, colors = null } = {}) {
-  const g = puffyStarGeo({ R, depth: 0.42, nu: 30, nv: 3, colors });
+  const g = puffyStarGeo({ R, depth: 0.42, nu: 30, nv: 2, colors });
   const x = T.clone().applyAxisAngle(n, roll), y = B.clone().applyAxisAngle(n, roll);
   g.applyMatrix4(new THREE.Matrix4().makeBasis(x, y, n).setPosition(c));
-  const pearl = sphereGeo(c.clone().addScaledVector(n, 0.42 * R + 0.004), 0.013, (p) => C('#fffbe8').lerp(C('#ffd76a'), smoothstep((c.y - p.y) / 0.02 + 0.5)));
+  const pearl = sphereGeo(c.clone().addScaledVector(n, 0.42 * R + 0.004), 0.014, (p) => C('#fffbe8').lerp(C('#ffd76a'), smoothstep((c.y - p.y) / 0.02 + 0.5)), 8, 5);
   return [g, pearl];
 }
 
@@ -170,17 +179,17 @@ export function tiaraGeos(band, { span = 0.62, colors = null } = {}) {
   // Bogen: schmales Silberband entlang der Reif-Oberkante
   const pts = [];
   for (let i = 0; i <= 20; i++) { const ph = lerp(-span, span, i / 20), b = band(ph); pts.push(b.p.clone().addScaledVector(b.n, 0.004)); }
-  const arc = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.011, 5, false);
+  const arc = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.011, 4, false);
   gs.push(paint(arc, () => silLow.clone().lerp(silHi, 0.6).lerp(sil, 0.3)));
   // Zacken: gerundete Spitzen nach außen, zur Mitte höher
-  for (const [ph, h] of [[-0.82, 0.03], [-0.55, 0.042], [-0.27, 0.05], [0.27, 0.05], [0.55, 0.042], [0.82, 0.03]]) {
+  for (const [ph, h] of [[-0.82, 0.036], [-0.55, 0.05], [-0.27, 0.062], [0.27, 0.062], [0.55, 0.05], [0.82, 0.036]]) {
     const b = band(ph * span);
     const base = b.p.clone().addScaledVector(b.n, 0.006);
     const side = new THREE.Vector3().crossVectors(b.n, b.t).normalize();
-    gs.push(ellipsoidGeo(base.clone().addScaledVector(b.n, h * 0.5), b.t.clone().multiplyScalar(0.011), b.n.clone().multiplyScalar(h * 0.55), side.multiplyScalar(0.007),
-      (p) => silLow.clone().lerp(silHi, smoothstep(p.clone().sub(base).dot(b.n) / h)), 8, 6));
+    gs.push(ellipsoidGeo(base.clone().addScaledVector(b.n, h * 0.5), b.t.clone().multiplyScalar(0.013), b.n.clone().multiplyScalar(h * 0.55), side.multiplyScalar(0.008),
+      (p) => silLow.clone().lerp(silHi, smoothstep(p.clone().sub(base).dot(b.n) / h)), 6, 5));
     // kleine Kugel auf der Zackenspitze
-    gs.push(sphereGeo(base.clone().addScaledVector(b.n, h + 0.004), 0.009, () => silHi));
+    gs.push(sphereGeo(base.clone().addScaledVector(b.n, h + 0.005), 0.011, () => silHi));
   }
   // rosa Perlen zwischen den Zacken (auf dem Bogen)
   for (const ph of [-0.68, -0.41, 0.41, 0.68]) {
@@ -191,28 +200,28 @@ export function tiaraGeos(band, { span = 0.62, colors = null } = {}) {
   // Mittelstern (Fläche ⟂ Blickrichtung: aufgespannt von Reif-Richtung und Außennormale) und zwei kleine seitlich
   const star = (ph, R, lift) => {
     const b = band(ph * span);
-    const g = puffyStarGeo({ R, depth: 0.38, nu: 30, nv: 3, colors: { star: k.star, starHi: k.starHi, starLow: k.starLow } });
+    const g = puffyStarGeo({ R, depth: 0.38, nu: R > 0.05 ? 30 : 20, nv: 2, colors: { star: k.star, starHi: k.starHi, starLow: k.starLow } });
     const x = b.t.clone(), y = b.n.clone(), z = new THREE.Vector3().crossVectors(x, y).normalize();
     g.applyMatrix4(new THREE.Matrix4().makeBasis(x, y, z).setPosition(b.p.clone().addScaledVector(b.n, lift + 0.86 * R)));
     gs.push(g);
     return b.p.clone().addScaledVector(b.n, lift + 0.86 * R);
   };
-  const mc = star(0, 0.062, 0.02);
-  star(-0.95, 0.03, 0.0); star(0.95, 0.03, 0.0);
+  const mc = star(0, 0.08, 0.022);
+  star(-0.97, 0.036, 0.0); star(0.97, 0.036, 0.0);
   // rosa Herz-Perle im Mittelstern (beidseitig sichtbar)
-  { const b = band(0); const z = new THREE.Vector3().crossVectors(b.t, b.n).normalize(); for (const s of [1, -1]) gs.push(sphereGeo(mc.clone().addScaledVector(z, s * 0.02), 0.011, () => gem)); }
+  { const b = band(0); const z = new THREE.Vector3().crossVectors(b.t, b.n).normalize(); for (const s of [1, -1]) gs.push(sphereGeo(mc.clone().addScaledVector(z, s * 0.026), 0.014, () => gem)); }
   return gs;
 }
 
 /** Glitzer: vierstrahliger Funkelstern aus drei gekreuzten Flächen (beidseitig; unbeleuchtet weiß gedacht), Außenradius R. */
 export function glintGeo(R = 1) {
   const gs = [];
-  const ray = (th) => 0.16 + 0.84 * Math.pow(Math.abs(Math.cos(2 * th)), 7);
+  const ray = (th) => 0.14 + 0.86 * Math.pow(Math.abs(Math.cos(2 * th)), 7);
   const planes = [[V(1, 0, 0), V(0, 1, 0)], [V(0, 0, 1), V(0, 1, 0)], [V(1, 0, 0), V(0, 0, 1)]];
   for (const [a, b] of planes) {
     for (const side of [1, -1]) {
       gs.push(gridGeo({
-        nu: 16, nv: 1, wrapU: true, flip: side < 0,
+        nu: 8, nv: 1, wrapU: true, flip: side < 0,
         point: (u, v, o) => { const th = u * TAU, r = R * ray(th) * v; return o.copy(a).multiplyScalar(r * Math.cos(th)).addScaledVector(b, r * Math.sin(th)); },
         color: () => 0xffffff,
       }));
@@ -226,7 +235,7 @@ export function trailStarGeo(kind = 'gold') {
   const k = kind === 'silber' ? { star: STERN_C.silver, starHi: STERN_C.silverHi, starLow: STERN_C.silverLow }
     : kind === 'rosa' ? { star: STERN_C.pink, starHi: STERN_C.pinkHi, starLow: STERN_C.pinkLow }
       : { star: STERN_C.gold, starHi: STERN_C.goldHi, starLow: STERN_C.goldLow };
-  return puffyStarGeo({ R: 1, inner: 0.44, round: 1.1, depth: 0.42, nu: 20, nv: 2, colors: k });
+  return puffyStarGeo({ R: 1, inner: 0.44, round: 1.1, depth: 0.42, nu: 10, nv: 2, colors: k });
 }
 
 /**
@@ -243,7 +252,7 @@ export function collarGeos({ center, axis, R, tube, knot, n = 9 }) {
     const out = V(Math.cos(a), Math.sin(a), 0).applyQuaternion(q);
     if (out.dot(fwd) > 0.72) continue;   // vorn sitzen Knoten und Zipfel
     const p = center.clone().addScaledVector(out, R + tube * 0.92);
-    const g = puffyStarGeo({ R: 0.036, depth: 0.45, nu: 20, nv: 2 });
+    const g = puffyStarGeo({ R: 0.036, depth: 0.45, nu: 10, nv: 2 });
     const y = ax.clone().addScaledVector(out, -ax.dot(out)).normalize(), x = new THREE.Vector3().crossVectors(y, out).normalize();
     g.applyMatrix4(new THREE.Matrix4().makeBasis(x, y, out).setPosition(p));
     gs.push(g);
@@ -252,10 +261,10 @@ export function collarGeos({ center, axis, R, tube, knot, n = 9 }) {
   const bn = fwd.clone().add(V(0, -0.25, 0)).normalize();
   const by = ax.clone().addScaledVector(bn, -ax.dot(bn)).normalize(), bx = new THREE.Vector3().crossVectors(by, bn).normalize();
   const bc = knot.clone().addScaledVector(bn, 0.055);
-  const g = puffyStarGeo({ R: 0.075, depth: 0.42, nu: 30, nv: 3 });
+  const g = puffyStarGeo({ R: 0.075, depth: 0.42, nu: 20, nv: 2 });
   g.applyMatrix4(new THREE.Matrix4().makeBasis(bx, by, bn).setPosition(bc));
   gs.push(g);
-  gs.push(sphereGeo(bc.clone().addScaledVector(bn, 0.034), 0.014, () => C('#fffbe8')));
+  gs.push(sphereGeo(bc.clone().addScaledVector(bn, 0.034), 0.014, () => C('#fffbe8'), 8, 5));
   return gs;
 }
 
@@ -266,9 +275,9 @@ export const SPARKLE = {
   idleGap: [1.4, 2.6],  // s: Abstand im Stand (zufällig im Bereich)
   runGap: 0.11,         // s: Abstand beim Laufen mit vollem Tempo (langsamer: länger)
   jumpBurst: 2,         // Glitzer beim Absprung
-  trailGap: 0.055,      // s: Sternenschweif – Abstand der Sternchen
+  trailGap: 0.05,       // s: Sternenschweif – Abstand der Sternchen
   trailLife: 0.55,      // s
-  trailSize: 0.075,     // Einheiten
+  trailSize: 0.12,      // Einheiten
 };
 
 // ------------------------------------------------------------------ Hilfen
@@ -278,7 +287,7 @@ function ellipsoidGeo(c, ax, ay, az, color, ws = 12, hs = 8) {
   g.applyMatrix4(new THREE.Matrix4().makeBasis(ax, ay, az).setPosition(c));
   return paint(g, color);
 }
-function sphereGeo(c, r, color, ws = 8, hs = 6) { return ellipsoidGeo(c, V(r, 0, 0), V(0, r, 0), V(0, 0, r), color, ws, hs); }
+function sphereGeo(c, r, color, ws = 6, hs = 4) { return ellipsoidGeo(c, V(r, 0, 0), V(0, r, 0), V(0, 0, r), color, ws, hs); }
 /** Geometrie einfarbig bzw. per Funktion (Position) färben. */
 function paint(g, color) {
   const P = g.attributes.position, arr = new Float32Array(P.count * 3), cc = new THREE.Color(), p = V();

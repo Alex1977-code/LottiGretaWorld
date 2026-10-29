@@ -1165,9 +1165,10 @@ function crestGeo() {
 }
 
 // ================================================================== Bonuswelt Stern: Sternenglanz-Kostüm (Bausteine in ../lib/heroStern.js)
-// Kleid (Mieder und Rock: Farben, aufgedruckte Sterne, Sternenstaub, Saumborte) per Geometrie-Tausch der Stoff-Meshes, Haarschmuck
-// (Lottis Sternen-Haarspange auf dem Schleifen-Knoten, Gretas Sternen-Diadem auf dem Haarreif) im Haar-Mesh: 0 zusätzliche
-// Zeichenaufrufe. Funkeln und Sternenschweif siehe HeroAvatar.updateStern.
+// Kleid (Mieder und Rock: Farben, Saumborte) per Geometrie-Tausch der Stoff-Meshes; aufgedruckte Sterne mit Sternenstaub als eigene
+// Teile auf Mieder und Rock (Stoff-Oberfläche, ohne Schattenwurf), Haarschmuck (Lottis Sternen-Haarspange auf dem Schleifen-
+// Knoten, Gretas Sternen-Diadem auf dem Haarreif) als eigenes Teil am Kopf (Haar-Oberfläche, ohne Schattenwurf) – Figur-Bündel:
+// 0 zusätzliche Zeichenaufrufe, der Schattenpass bleibt wie ohne Kostüm. Funkeln und Sternenschweif siehe HeroAvatar.updateStern.
 /** Rock im Sternenkleid: Glocke wie skirtGeo, zum Saum hin Lotti nachtviolett bzw. Greta rosa-lila, gerollter Saum als Borte. */
 function sternSkirtGeo(st) {
   const c = st.sc, dress = col3(st.dress), low = col3(c.dressLow), lining = dress.clone().multiplyScalar(0.7);
@@ -1185,27 +1186,60 @@ function sternSkirtGeo(st) {
 /** Sternenstaub auf dem Rock (Flächenkoordinaten; nicht auf den Sternen, Greta nicht auf der Schürze). */
 function sternDust(st) {
   const stars = STAR_PRINTS[st.stern].skirt;
-  return dustSpots({ n: 34, t0: -0.1, t1: 0.13, seed: st.stern === 'lotti' ? 11 : 23 })
+  return dustSpots({ n: 46, t0: -0.1, t1: 0.14, seed: st.stern === 'lotti' ? 11 : 23 })
     .map(([f, t, R]) => [f * Math.PI * skirtR(t) * 0.97, t, R])
     .filter(([s, t]) => !stars.some(([ss, tt, rr]) => Math.hypot(s - ss, t - tt) < rr + 0.025) && !(st.apron && Math.abs(s) < 0.24 && t < 0.18));
 }
-/** Mieder im Sternenkleid: Oberkörper im Stern-Stil, aufgedruckte Sterne. */
-function sternTorsoParts(st) {
-  return [...torsoParts(st), ...own(starPrintGeos(onBodice, STAR_PRINTS[st.stern].bodice, { colors: st.sc, lift: 0.009, puff: 0.005 }))];
-}
-/** Rock im Sternenkleid: Glocke, Greta mit rosa Schürze, aufgedruckte Sterne und Staub. */
+/** Aufdruck-Abbildungen um eine Sternmitte (s0 = Bogenlänge quer in Höhe t0): Winkel der Mitte fest, Versätze als Bogenlänge –
+ *  so verziehen sich die Sterne auf den schrägen Drehkörpern (Mieder, Rock) nicht. */
+const bodiceAt = (s0, t0) => {
+  const phi0 = s0 / Math.max(0.05, bodiceR(t0));
+  return (ds, dt, lift, out) => { const t = t0 + dt, r = bodiceR(t), phi = phi0 + ds / Math.max(0.05, r); return out.set(Math.cos(phi) * (r + lift) * BODICE_SX, t, Math.sin(phi) * (r + lift)); };
+};
+const skirtAt = (s0, t0) => {
+  const phi0 = s0 / Math.max(0.1, skirtR(t0));
+  return (ds, dt, lift, out) => {
+    const t = t0 + dt, r = skirtR(t), phi = phi0 + ds / Math.max(0.1, r), R = r * skirtPleat(phi, t) + lift;
+    return out.set(Math.cos(phi) * R, t, Math.sin(phi) * R);
+  };
+};
+/** Rock im Sternenkleid: Glocke, Greta mit rosa Schürze (ohne Aufdruck – der ist ein eigenes Teil). */
 function sternSkirtParts(st) {
   const parts = skirtParts(st);
   parts[0][0].dispose();
   parts[0] = [sternSkirtGeo(st), null, null];
-  const list = STAR_PRINTS[st.stern].skirt.map(([s, t, R, lf]) => [s, t, R, lf ?? (st.apron && Math.abs(s) < 0.22 && t < 0.17 ? 0.013 : 0.006)]);
-  return [...parts, ...own(starPrintGeos(onSkirt, list, { colors: st.sc, lift: 0.006, puff: 0.006, dust: sternDust(st) }))];
+  return parts;
 }
-/** Lottis Sternen-Haarspange auf dem Knoten der Schleife (Lage wie bowGeos). */
-function sternClipGeos(st) {
-  const d = dirAE(2.35, 0.98).normalize(), f = HEAD.frame(2.35, 0.98);
-  const c = onHair(st, d, 0.03), n = f.n, T = f.T.clone().negate(), B = f.B;
-  return starClipGeos(c.addScaledVector(n, 0.044), n, T, B, { R: 0.056 });
+/** Aufgedruckte Sterne (Mieder bzw. Rock mit Sternenstaub) – eine Geometrie je Heldin und Fläche, Koordinaten wie das Teil darunter. */
+function sternPrintGeo(st, where) {
+  return geo(`hero:stern:print:${st.stern}:${where}`, () => {
+    const P = STAR_PRINTS[st.stern];
+    const gs = where === 'bodice'
+      ? starPrintGeos(bodiceAt, P.bodice, { colors: st.sc, lift: 0.009, puff: 0.005 })
+      : starPrintGeos(skirtAt, P.skirt.map(([s, t, R, lf]) => [s, t, R, lf ?? (st.apron && Math.abs(s) < 0.22 && t < 0.17 ? 0.013 : 0.006)]), { colors: st.sc, lift: 0.006, puff: 0.006, dust: sternDust(st) });
+    const m = mergeColored(own(gs));
+    for (const g of gs) g.dispose();
+    return m;
+  });
+}
+/** Lottis Sternen-Haarspange auf dem Knoten der Schleife (Lage wie bowGeos; cap: an der Schleife der Wurfsichel-Mütze). */
+function sternClipGeos(st, cap = false) {
+  let c, n0, T0, out;
+  if (cap) {
+    // wie sichelCapGeo: Schleife seitlich am Mützenband (Größe 0,9)
+    const az = 2.05, el = CAP.rimEl(az) + 0.08, d = dirAE(az, el);
+    c = HEAD.point(d, CAP.lift(az, el) + 0.034).addScaledVector(HEAD.normal(d), 0.045);
+    n0 = HEAD.normal(d); T0 = new THREE.Vector3().crossVectors(n0, UP).normalize(); out = dirAE(az, 0.1);
+  } else {
+    const d = dirAE(2.35, 0.98).normalize(), f = HEAD.frame(2.35, 0.98);
+    c = onHair(st, d, 0.03).addScaledVector(f.n, 0.052);
+    n0 = f.n; T0 = f.T.clone().negate(); out = dirAE(2.35, 0.15);
+  }
+  // etwas aufgestellt (zeigt mehr nach hinten-außen als die Schleife): von hinten (Kurs-Kamera) gut zu sehen
+  const n = n0.clone().lerp(out, 0.4).normalize(), T = T0.clone();
+  T.addScaledVector(n, -T.dot(n)).normalize();
+  const B = new THREE.Vector3().crossVectors(n, T).normalize();
+  return starClipGeos(c, n, T, B, { R: cap ? 0.072 : 0.08, colors: { star: '#ffbf1f', starHi: '#fff2a0', starLow: '#e0780a' } });
 }
 /** Gretas Sternen-Diadem auf dem Haarreif (Lage wie headbandGeos: Reif über den Kopf, um beta nach hinten gekippt). */
 function sternTiaraGeos(st) {
@@ -1219,8 +1253,15 @@ function sternTiaraGeos(st) {
   };
   return tiaraGeos(band, { span: 0.62 });
 }
-/** Haarschmuck des Sternenkleids: Lotti die Spange (an der Schleife), Greta das Diadem (auf dem Reif, nicht unter einem Helm). */
-const sternJewel = (st, helm) => (st.braids ? sternClipGeos(st) : helm ? [] : sternTiaraGeos(st));
+/** Haarschmuck des Sternenkleids (kopf-lokal): Lotti die Spange (an der Schleife bzw. an der Mütze: 'cap'), Greta das Diadem. */
+function sternJewelGeo(st, where = 'hair') {
+  return geo(`hero:stern:jewel:${st.braids ? 'lotti' : 'greta'}:${where}`, () => {
+    const gs = st.braids ? sternClipGeos(st, where === 'cap') : sternTiaraGeos(st);
+    const m = mergeColored(own(gs));
+    for (const g of gs) g.dispose();
+    return m;
+  });
+}
 /** Zustände mit Absprung-Funkeln. */
 const STERN_JUMPS = new Set(['jump', 'jump2', 'jump3', 'backflip', 'sideflip', 'longjump', 'walljump']);
 
@@ -1955,50 +1996,72 @@ export class HeroAvatar extends Avatar3D {
 
   // ================================================================ Bonuswelt Stern: Sternenglanz-Kostüm
   /**
-   * Sternenkleid nach dem Kostüm des Bildes (Power-up) anlegen (aus updateLook): Mieder/Rock mit Sternen, Haarschmuck (Spange bzw.
-   * Diadem). Krallen-Anzug in den Kleidfarben, Feuer-Kleid ersetzt das Kleid (Haarschmuck bleibt), Gleitblatt mit Blatt-Reif statt
-   * Diadem, Wurfsichel mit Mütze (Kordel auf dem Sternenkleid). Ohne Sternenkleid: Klassik-Ansicht tauscht das Kleid zurück.
+   * Sternenkleid nach dem Kostüm des Bildes (Power-up) anlegen (aus updateLook): Mieder/Rock in den Kleidfarben, Aufdruck und
+   * Haarschmuck als eigene Teile (updateSternParts). Krallen-Anzug in den Kleidfarben, Feuer-Kleid ersetzt das Kleid samt Aufdruck
+   * (Haarschmuck bleibt), Gleitblatt mit Blatt-Reif statt Diadem, Wurfsichel mit Mütze (Kordel auf dem Sternenkleid, Lottis Spange
+   * an der Mützen-Schleife). Ohne Sternenkleid: Klassik-Ansicht tauscht das Kleid zurück.
    */
   updateSternLook(kind) {
     const st0 = STYLES[this.variant], key = (k) => `hero:${this.variant}:${k}`;
     if (this.outfit !== 'stern') {
       if (this.lookStern && !this.cGeo) { this.torsoMesh.geometry = this.look0.torso; this.skirtMesh.geometry = this.look0.skirt; }
       this.lookStern = false; this.lookHelm = null;
+      this.updateSternParts(kind);
       return;
     }
-    const ss = this.sternSt ??= sternStyle(st0), helm = this.foreignHeadgear();
-    this.lookStern = true; this.lookHelm = helm;
-    const torso = (s, tag = '', more = []) => geo(key(`torso:stern${tag}`), () => mergeColored([...sternTorsoParts(s), ...more]));
+    const ss = this.sternSt ??= sternStyle(st0);
+    this.lookStern = true; this.lookHelm = this.foreignHeadgear();
+    const torso = (s, tag = '', more = []) => geo(key(`torso:stern${tag}`), () => mergeColored([...torsoParts(s), ...more]));
     const skirt = (tag = '', more = []) => geo(key(`skirt:stern${tag}`), () => mergeColored([...sternSkirtParts(ss), ...more]));
-    const h = helm && !st0.braids ? ':helm' : '';
     switch (kind) {
       case 'krallen':
         this.hairMesh.geometry = geo(key('hood:stern'), () => mergeColored(hoodParts(ss)));
         this.torsoMesh.geometry = torso(ss);
         this.skirtMesh.geometry = skirt(':krallen', tailParts(ss));
         break;
-      case 'funken': {
-        const fs = fireStyle(st0);
-        this.hairMesh.geometry = geo(key(`hair:stern:funken${h}`), () => mergeColored([...hairParts(fs), ...own(sternJewel(fs, helm))]));
-        break;
-      }
-      case 'gleitblatt': {
-        const ls = leafStyle(st0);
-        this.hairMesh.geometry = geo(key('hair:stern:gleitblatt'), () => mergeColored([...hairParts(ls), ...leafEarParts(ls), ...own(ls.braids ? sternClipGeos(ls) : [])]));
+      case 'funken': break;   // Feuer-Kleid bleibt (ohne Aufdruck), Haarschmuck bleibt
+      case 'gleitblatt':
         this.torsoMesh.geometry = torso(leafStyle(ss), ':gleitblatt');
         this.skirtMesh.geometry = skirt();
         break;
-      }
       case 'sichel':
         this.torsoMesh.geometry = torso(ss, ':sichel', own(sichelCordGeos()));
         this.skirtMesh.geometry = skirt();
         break;
       default:
-        this.hairMesh.geometry = geo(key(`hair:stern${h}`), () => mergeColored([...hairParts(st0), ...own(sternJewel(st0, helm))]));
-        this.hairMesh.material = this.look0.hairMat;
         this.torsoMesh.geometry = torso(ss);
         this.skirtMesh.geometry = skirt();
     }
+    this.updateSternParts(kind);
+  }
+
+  /**
+   * Teile des Sternenkleids an-/abhängen: Aufdruck auf Mieder und Rock (Stoff-Oberfläche, Kinder von Oberkörper- und Rock-Mesh),
+   * Haarschmuck am Kopf (Haar-Oberfläche; Lotti: Spange an der Schleife bzw. an der Mützen-Schleife der Wurfsichel, nicht unter der
+   * Kapuze; Greta: Diadem auf dem Reif, nicht unter Kapuze/Blatt-Reif/Mütze/Trage-Helm). Ohne Schattenwurf (der Schattenpass bleibt
+   * wie ohne Kostüm); nur Getragenes hängt im Szenengraphen.
+   */
+  updateSternParts(kind) {
+    const on = this.outfit === 'stern';
+    if (!on && !this.sp) return;
+    const st0 = STYLES[this.variant], ss = this.sternSt ??= sternStyle(st0);
+    const P = this.sp ??= (() => {
+      const cloth = SURF.cloth();
+      const bodice = new THREE.Mesh(sternPrintGeo(ss, 'bodice'), cloth); bodice.name = 'sternaufdruck-mieder';
+      const skirt = new THREE.Mesh(sternPrintGeo(ss, 'skirt'), cloth); skirt.name = 'sternaufdruck-rock';
+      const jewel = new THREE.Mesh(sternJewelGeo(st0), this.look0.hairMat); jewel.name = st0.braids ? 'sternen-haarspange' : 'sternen-diadem';
+      this.headOwn.add(jewel);
+      return { bodice, skirt, jewel, printOn: false, jewelOn: false, where: 'hair' };
+    })();
+    const helm = this.foreignHeadgear();
+    const printOn = on && kind !== 'funken';
+    const where = kind === 'sichel' ? 'cap' : 'hair';
+    const jewelOn = on && (st0.braids ? kind !== 'krallen' && !(kind === 'sichel' && helm) : !helm && kind !== 'krallen' && kind !== 'gleitblatt' && kind !== 'sichel');
+    let changed = false;
+    if (printOn !== P.printOn) { P.printOn = printOn; this.attachPart(this.torsoMesh, P.bodice, printOn, false); this.attachPart(this.skirtMesh, P.skirt, printOn, false); changed = true; }
+    if (jewelOn && where !== P.where) { P.where = where; P.jewel.geometry = sternJewelGeo(st0, where); }
+    if (jewelOn !== P.jewelOn) { P.jewelOn = jewelOn; this.attachPart(this.head, P.jewel, jewelOn, false); changed = true; }
+    if (changed) this.refreshSkins();
   }
 
   /** Funkeln und Sternenschweif: Teile (geteilte Materialien → Figur-Bündel) und Lagen auf den aufgedruckten Sternen. */
@@ -2082,7 +2145,7 @@ export class HeroAvatar extends Avatar3D {
         F.trailT += SPARKLE.trailGap;
         const p = F.trail[F.ring++ % F.trail.length];
         this.pelvis.updateWorldMatrix(true, false);
-        p.pos.set(-0.22, 0.04 + 0.1 * (Math.random() - 0.5), 0.16 * (Math.random() - 0.5)).applyMatrix4(this.pelvis.matrixWorld);
+        p.pos.set(-0.2 - 0.08 * Math.random(), -0.2 + 0.24 * (Math.random() - 0.5), 0.22 * (Math.random() - 0.5)).applyMatrix4(this.pelvis.matrixWorld);
         p.vel.set(-0.7 - 0.4 * Math.random(), -0.25 + 0.5 * Math.random(), 0.5 * (Math.random() - 0.5)).transformDirection(this.model.matrixWorld).multiplyScalar(ws * (0.6 + 0.5 * Math.random()));
         p.t = 0; p.size = SPARKLE.trailSize * (0.7 + 0.6 * Math.random()); p.spin = Math.random() * TAU; p.w = (Math.random() < 0.5 ? -1 : 1) * (3 + 3 * Math.random());
       }
