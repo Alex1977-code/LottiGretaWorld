@@ -1,0 +1,1024 @@
+// Hilfen der Level S-8 „Geisterreigen im Schneenebelmoor“ und S-9 „Kanonenhelm-Express durch die Neonstation“ (Bonuswelt
+// Stern „Sternenzelt“). Kein LEVEL – die Level-Registry überspringt dieses Modul. Nur für diese beiden Level; gemeinsame
+// Dateien werden nicht verändert. Alles hängt sich über die offiziellen Aufbau-Haken an (LEVEL.build / LEVEL.setup,
+// Präzisierung „Leistung und Level-Haken 2“) und über level.onStep / view.onFrame.
+//
+//   1) Daten-Helfer   line/ring/arc/column (Bitcoin-Pfade), sign, isl (Insel über ihre Grundfläche), Bld (Sammler für
+//                     statische Zier), litTop
+//   2) S-8 Mechanik   grablicht (Licht vor dem Grabstein: Stampfattacke → Funkelstern), kruemelAngst (Krümel im
+//                     Geisterring: zittert, jubelt nach der Rettung), unsichtbareWolke (fest, erst beim Betreten sichtbar),
+//                     sternlaterne (Käfig um einen Stern: nur Schneebälle fliegen hindurch), friedhofstor (Gittertor mit fünf
+//                     Schlüssel-Lampen, öffnet auf Signal), schneebaelle (Wurfbälle mit Schneeball-Optik)
+//   3) S-8 Kulisse    eisenzaun, gruft, kapelle, schneemann, baenke, kerzen, steg (Holzsteg auf Pfählen über dem Nebel)
+//   4) S-9 Mechanik   sternkapsel (Glaskapsel mit Stern: Kanonenkugel trifft → Stern gehört der Schützin),
+//                     kanonenFrageBloecke (?-Blöcke lösen auch bei Kanonenkugeln aus; alle benutzt → Aktion),
+//                     glasdecke (durchsichtige feste Decke über dem Unterwassertunnel)
+//   5) S-9 Kulisse    deckZier (Neonkanten, Warnstreifen, Düsen unter den Stationsdecks), tunnelZier, signalLampen
+// Statische Teile gehen über addStatic in die Abschnitts-Meshes (keine zusätzlichen Zeichenaufrufe); belebte
+// Kleinigkeiten sind je ein Mesh ohne Sonnenschatten.
+
+import * as THREE from 'three';
+import { lin, addStatic, addObject } from '../../blocks/kit.js';
+import { Build } from '../../models/lib/kit.js';
+import { CourseEntity } from '../../entities/CourseEntity.js';
+import { runAction, visDt } from '../../entities/gimmick.js';
+import { getModel, hasModel } from '../../models/index.js';
+import { cloudGeo } from '../../blocks/types/cloud.js';
+import { banner } from '../../blocks/w3kit.js';
+
+export const PI = Math.PI;
+const TAU = Math.PI * 2;
+export { banner };
+
+// =====================================================================================================================
+// 1) Daten-Helfer
+// =====================================================================================================================
+
+export const line = (a, b, n, o = {}) => ({ kind: 'coins', from: a, to: b, n, ...o });
+export const ring = (p, r, n, o = {}) => ({ kind: 'coins', pos: p, r, n, ...o });
+/** Münzbogen von a nach b (Scheitel h m über der Verbindungslinie), n Einzel-Münzen. */
+export function arc(a, b, n, h = 1.5, o = {}) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const u = n === 1 ? 0.5 : i / (n - 1);
+    out.push({ kind: 'coin', pos: [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u + Math.sin(u * PI) * h, a[2] + (b[2] - a[2]) * u], ...o });
+  }
+  return out;
+}
+export const column = (x, z, y0, y1, n, o = {}) => line([x, y0, z], [x, y1, z], n, o);
+export const sign = (x, y, z, text, o = {}) => ({ type: 'sign', pos: [x, y, z], text, ...o });
+/** Insel über [x0, x1] × [zA, zB] mit Oberseite top (Körper h m hoch). */
+export function isl(x0, x1, zA, zB, top, h = 4, o = {}) {
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+  return { type: 'island', pos: [(x0 + x1) / 2, top - h, (z0 + z1) / 2], size: [Math.abs(x1 - x0), h, z0 - z1], under: o.under ?? 2, ...o };
+}
+
+/** Entität anmelden (level.entities, level.named) – für die eigenen Arten dieser Datei. */
+function push(level, e) {
+  level.entities.push(e);
+  if (e.spec.id) level.named.set(e.spec.id, e);
+  return e;
+}
+
+/**
+ * Sammler für statische Zier (Weltkoordinaten; Mitte unten): b.box(w, h, d, x, y, z, farbe, { r, yaw, rx, rz }),
+ * b.cyl(rTop, rBot, h, x, y, z, farbe, seg, o), b.sphere(r, x, y, z, farbe, { s }), b.cone(r, h, x, y, z, farbe, seg),
+ * b.torus(R, t, x, y, z, farbe, { rx, yaw }), b.add(g, farbe, o); b.flush(level, { material: 'glow' | 'world', castShadow }).
+ */
+export class Bld {
+  constructor() { this.b = new Build(); this.n = 0; }
+  box(w, h, d, x, y, z, color, o = {}) { this.b.box(w, h, d, color, { p: [x, y + h / 2, z], r: [o.rx ?? 0, o.yaw ?? 0, o.rz ?? 0] }, o.r ?? 0.04, o.seg ?? 1); this.n++; return this; }
+  cyl(rTop, rBot, h, x, y, z, color, seg = 10, o = {}) { this.b.cyl(rTop, rBot, h, color, { p: [x, y + h / 2, z], r: [o.rx ?? 0, o.yaw ?? 0, o.rz ?? 0] }, seg, !!o.open); this.n++; return this; }
+  sphere(r, x, y, z, color, o = {}) { this.b.sphere(r, color, { p: [x, y, z], s: o.s ?? 1, r: [o.rx ?? 0, o.yaw ?? 0, o.rz ?? 0] }, o.ws ?? 10, o.hs ?? 7); this.n++; return this; }
+  cone(r, h, x, y, z, color, seg = 8, o = {}) { this.b.cone(r, h, color, { p: [x, y + h / 2, z], r: [o.rx ?? 0, o.yaw ?? 0, o.rz ?? 0], s: o.s ?? 1 }, seg); this.n++; return this; }
+  torus(R, t, x, y, z, color, o = {}) { this.b.torus(R, t, color, { p: [x, y, z], r: [o.rx ?? 0, o.yaw ?? 0, o.rz ?? 0] }, o.rs ?? 6, o.ts ?? 16, o.arc ?? TAU); this.n++; return this; }
+  add(g, color, o) { this.b.add(g, color, o); this.n++; return this; }
+  geometry() { if (!this.n) return null; this.n = 0; const g = this.b.geometry(); this.b = new Build(); return g; }
+  flush(level, opts) {
+    const g = this.geometry();
+    if (!g) return;
+    if (!level.view) { g.dispose(); return; }
+    addStatic(level, g, opts);
+  }
+  mesh(material) { const g = this.geometry(); return g ? new THREE.Mesh(g, material) : null; }
+}
+
+/** Oben hell, unten dunkler (Licht von oben) – Bld-Farbe je Ecke. */
+export const litTop = (base, k = 0.72) => {
+  const M = new THREE.Color(base), T = M.clone().multiplyScalar(1.14), D = M.clone().multiplyScalar(k), c = new THREE.Color();
+  return { v: (x, y, z, nx, ny) => (ny >= 0 ? c.copy(M).lerp(T, ny) : c.copy(M).lerp(D, -ny)) };
+};
+
+const figuresOf = (level) => (level.players ?? [level.player]).filter((p) => p && !p.dead && !p.hidden);
+
+/** Leinwand-Sprechblase (Sprite). */
+function bubbleSprite(text, color = '#3a2a6a') {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const draw = (t) => {
+    const g = c.getContext('2d');
+    g.clearRect(0, 0, 512, 256);
+    g.fillStyle = '#ffffff'; g.strokeStyle = color; g.lineWidth = 10;
+    const r = 46;
+    g.beginPath();
+    g.moveTo(30 + r, 20); g.lineTo(482 - r, 20); g.quadraticCurveTo(482, 20, 482, 20 + r); g.lineTo(482, 180 - r);
+    g.quadraticCurveTo(482, 180, 482 - r, 180); g.lineTo(290, 180); g.lineTo(240, 238); g.lineTo(236, 180); g.lineTo(30 + r, 180);
+    g.quadraticCurveTo(30, 180, 30, 180 - r); g.lineTo(30, 20 + r); g.quadraticCurveTo(30, 20, 30 + r, 20); g.closePath();
+    g.fill(); g.stroke();
+    g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = 'bold 66px "Nunito", "Arial Rounded MT Bold", Arial, sans-serif';
+    g.fillText(t, 256, 100);
+  };
+  draw(text);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  sp.scale.set(1.6, 0.8, 1);
+  sp.renderOrder = 5;
+  return { sprite: sp, set(t) { draw(t); tex.needsUpdate = true; }, dispose() { tex.dispose(); sp.material.dispose(); } };
+}
+
+/** Weiches, additives Leuchten (Sprite) – Farbe, Größe. */
+function glowSprite(color, size) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(c);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  sp.scale.setScalar(size);
+  return sp;
+}
+
+// =====================================================================================================================
+// 2) S-8 Mechanik
+// =====================================================================================================================
+
+/**
+ * Grablicht (Bauplan S-8 Stern 1 „Stampfen auf ein Licht vor einem Grabstein → Unverwundbarkeit“): ein warm leuchtender
+ * Sternstein im Schnee vor einem Grabstein. Stampfattacke darauf → Funkelstern (10 s unverwundbar; Berührung vertreibt
+ * Kreisgeister). Danach glimmt es nur noch und lädt sich in recharge s wieder auf. Draufspringen allein wirkt nicht.
+ *   { pos: [x, y, z] (Mitte unten), recharge: 14, id }   Laufzeit: uses, cool, info().
+ */
+class Grablicht extends CourseEntity {
+  constructor(level, spec) {
+    super(level, spec, 'grablicht');
+    this.touch = false;
+    this.half.set(0.45, 0.1, 0.45);
+    this.cool = 0;
+    this.uses = 0;
+    this.lands = 0;
+    const p = this.pos;
+    this.addShape({ type: 'box', min: [p.x - 0.5, p.y, p.z - 0.5], max: [p.x + 0.5, p.y + 0.16, p.z + 0.5], tag: 'grablicht' });
+    if (level.view) this.buildModel();
+  }
+
+  buildModel() {
+    const root = new THREE.Group();
+    const b = new Bld();
+    b.cyl(0.56, 0.62, 0.12, 0, 0, 0, 0x8a92b0, 18);
+    b.torus(0.5, 0.06, 0, 0.13, 0, 0xc8d0e8, { rx: PI / 2, ts: 22 });
+    for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; b.sphere(0.07, Math.cos(a) * 0.5, 0.14, Math.sin(a) * 0.5, 0xf0f4ff, { s: [1, 0.6, 1] }); }
+    const base = b.mesh(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }));
+    base.receiveShadow = true;
+    root.add(base);
+    // Sternfläche (leuchtet)
+    const s = new THREE.Shape();
+    for (let i = 0; i < 10; i++) { const a = PI / 2 + (i / 10) * TAU, r = i % 2 ? 0.17 : 0.4; if (i) s.lineTo(Math.cos(a) * r, Math.sin(a) * r); else s.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+    s.closePath();
+    const sg = new THREE.ShapeGeometry(s);
+    sg.rotateX(-PI / 2);
+    this.starMat = new THREE.MeshBasicMaterial({ color: 0xfff0a0 });
+    const star = new THREE.Mesh(sg, this.starMat);
+    star.position.y = 0.135;
+    root.add(star);
+    this.glow = glowSprite(0xffd870, 2.2);
+    this.glow.position.y = 0.6;
+    root.add(this.glow);
+    this.glow2 = glowSprite(0xfff4c8, 0.9);
+    this.glow2.position.y = 0.3;
+    root.add(this.glow2);
+    this.star = star;
+    this.setModel({ root, update: () => {}, dispose: () => { b.b.parts.length = 0; sg.dispose(); this.starMat.dispose(); } });
+  }
+
+  onPound(player) {
+    if (this.cool > 0 || player.dead) return;
+    const L = this.level;
+    this.cool = this.spec.recharge ?? 14;
+    this.uses++;
+    player.collectPowerup('stern');
+    L.sfx('powerup_appear');
+    L.effects?.sparks({ x: this.pos.x, y: this.pos.y + 0.8, z: this.pos.z }, 26);
+    L.effects?.ring?.({ x: this.pos.x, y: this.pos.y + 0.2, z: this.pos.z }, 2.4);
+    L.signal?.('grablicht', { id: this.spec.id ?? null, pos: [this.pos.x, this.pos.y, this.pos.z] });
+    if (this.uses === 1) banner(L, 'Sternenkraft! Schnell zu den Geistern!', { hold: 1.6, size: 13, y: 0.36 });
+  }
+
+  update(dt) { if (this.cool > 0) this.cool = Math.max(0, this.cool - dt); }
+
+  render(dt, t) {
+    if (!this.model) return;
+    this.syncModel();
+    const on = this.cool <= 0;
+    const k = on ? 0.8 + 0.2 * Math.sin(t * 3.2 + this.pos.x) : 0.18 + 0.1 * (1 - this.cool / (this.spec.recharge ?? 14));
+    this.glow.material.opacity = k;
+    this.glow2.material.opacity = Math.min(1, k * 1.2);
+    this.starMat.color.setHex(on ? 0xfff0a0 : 0x8a8270);
+    this.star.rotation.y = t * 0.6;
+  }
+
+  info() { return { uses: this.uses, cool: +this.cool.toFixed(2) }; }
+}
+export function grablicht(level, spec) { return push(level, new Grablicht(level, spec)); }
+
+/**
+ * Krümel im Geisterring (Bauplan S-8 „Geisterring um den Kapitän besiegen“): Krümel (Kapitän-Rolle, mit Stirnlampe)
+ * hockt ängstlich in der Mitte eines Kreisgeist-Rings (Daten-id ring, Glieder ring_0 … ring_{n−1}); Sprechblase „Hilfe!“.
+ * Sind alle Geister vertrieben, jubelt er („Danke!“) und onFree läuft einmal (z. B. { reveal: 'kruemelstern' }).
+ *   { pos, ring: Id, count, yaw, onFree, id }   Laufzeit: free, left, info().
+ */
+class KruemelAngst extends CourseEntity {
+  constructor(level, spec) {
+    super(level, spec, 'kruemel_angst');
+    this.touch = false;
+    this.half.set(0.3, 0.3, 0.3);
+    this.shadow = 0.32;
+    this.free = false;
+    this.freeT = 0;
+    this.left = spec.count ?? 0;
+    this.yaw = spec.yaw ?? -PI / 2;
+    this.addShape({ type: 'cyl', x: this.pos.x, z: this.pos.z, r: 0.35, y0: this.pos.y, y1: this.pos.y + 0.7, tag: 'kruemel' });
+    if (level.view) {
+      const m = getModel(hasModel('kruemel') ? 'kruemel' : 'bunny_small');
+      const root = new THREE.Group();
+      root.add(m.root);
+      // Stirnlampe des Kapitäns (kleines Leuchten am Kopf)
+      this.lamp = glowSprite(0xfff2b0, 0.5);
+      this.lamp.position.set(0.16, 0.5, 0);
+      root.add(this.lamp);
+      this.bubble = bubbleSprite('Hilfe!');
+      this.bubble.sprite.position.set(0, 1.45, 0);
+      root.add(this.bubble.sprite);
+      this.inner = m;
+      this.setModel({ root, update: (dt, st) => m.update?.(dt, st), dispose: () => { m.dispose?.(); this.bubble.dispose(); } });
+      level.view.shadows?.add({ pos: this.pos, radius: 0.32, alive: () => !this.removed, visible: () => true });
+    }
+  }
+
+  members() {
+    const id = this.spec.ring, n = this.spec.count ?? 0;
+    const out = [];
+    for (let i = 0; i < n; i++) { const g = this.level.named.get(`${id}_${i}`); if (g) out.push(g); }
+    return out;
+  }
+
+  update(dt) {
+    if (this.free) { this.freeT += dt; return; }
+    const m = this.members();
+    this.left = m.filter((g) => !g.defeated && !g.removed).length;
+    if (m.length && this.left === 0) {
+      this.free = true;
+      this.freeT = 0;
+      const L = this.level;
+      L.sfx('victory');
+      L.effects?.sparks({ x: this.pos.x, y: this.pos.y + 1, z: this.pos.z }, 30);
+      this.bubble?.set(`Danke, ${L.player?.hero === 'greta' ? 'Greta' : 'Lotti'}!`);
+      runAction(L, this.spec.onFree, { pos: [this.pos.x, this.pos.y + 1.4, this.pos.z], source: this });
+      L.signal?.('kruemelFrei', { id: this.spec.id ?? null });
+    }
+  }
+
+  modelState() { return { anim: this.free ? (this.freeT < 4 ? 'cheer' : 'idle') : 'scared' }; }
+
+  render(dt, t) {
+    if (!this.model) return;
+    const p = this.level.player;
+    // schaut zur Figur
+    if (p) this.yaw = Math.atan2(-(p.pos.z - this.pos.z), p.pos.x - this.pos.x);
+    this.syncModel();
+    this.model.update?.(dt, this.modelState());
+    if (this.bubble) {
+      const near = p && Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) < 11;
+      this.bubble.sprite.visible = near && (!this.free || this.freeT < 6);
+      this.bubble.sprite.position.y = 1.45 + Math.sin(t * 2.4) * 0.05;
+      this.bubble.sprite.rotation.y = -this.yaw;
+    }
+    if (this.lamp) this.lamp.material.opacity = 0.65 + 0.2 * Math.sin(t * 5);
+  }
+
+  info() { return { free: this.free, left: this.left }; }
+}
+export function kruemelAngst(level, spec) { return push(level, new KruemelAngst(level, spec)); }
+
+/**
+ * Unsichtbare Wolke (Bauplan S-8 Schlüsselmünze c „auf einer unsichtbaren Wolke links“): fest von oben (Einweg), aber
+ * unsichtbar – nur ein zarter Schimmer und ein paar funkelnde Schneeflocken verraten sie. Betritt eine Figur sie, wird
+ * sie sichtbar (bleibt sichtbar).
+ *   { pos: [x, y, z] (Mitte unten), size: [3, 0.6, 3], hint: 0.07 (Deckkraft vorher), id }   Laufzeit: shown, info().
+ */
+class UnsichtbareWolke extends CourseEntity {
+  constructor(level, spec) {
+    super(level, spec, 'unsichtbare_wolke');
+    this.touch = false;
+    const s = spec.size ?? [3, 0.6, 3];
+    this.s = s;
+    this.half.set(s[0] / 2, s[1] / 2, s[2] / 2);
+    this.shown = false;
+    this.k = 0;
+    const p = this.pos;
+    this.shape = this.addShape({ type: 'box', min: [p.x - s[0] / 2, p.y, p.z - s[2] / 2], max: [p.x + s[0] / 2, p.y + s[1], p.z + s[2] / 2], oneWay: true, tag: 'unsichtbare_wolke' });
+    if (level.view) {
+      const g = cloudGeo({ x: s[0], y: s[1], z: s[2] }, 7);
+      this.mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, transparent: true, opacity: spec.hint ?? 0.07, depthWrite: false });
+      const mesh = new THREE.Mesh(g, this.mat);
+      const root = new THREE.Group();
+      root.add(mesh);
+      // funkelnde Flocken über der Wolke
+      const n = 9, pos = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) { pos[i * 3] = (Math.sin(i * 12.9) * 0.5) * s[0] * 0.8; pos[i * 3 + 1] = s[1] + 0.15 + (i % 3) * 0.12; pos[i * 3 + 2] = (Math.cos(i * 7.3) * 0.5) * s[2] * 0.8; }
+      const pg = new THREE.BufferGeometry();
+      pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      this.pmat = new THREE.PointsMaterial({ color: 0xe8f4ff, size: 0.16, transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending });
+      const pts = new THREE.Points(pg, this.pmat);
+      root.add(pts);
+      this.setModel({ root, update: () => {}, dispose: () => { g.dispose(); this.mat.dispose(); pg.dispose(); this.pmat.dispose(); } });
+    }
+  }
+
+  update(dt) {
+    if (!this.shown) {
+      for (const f of figuresOf(this.level)) {
+        if (f.mode === 'ground' && f.ground?.owner === this) {
+          this.shown = true;
+          this.level.sfx('powerup_appear');
+          this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + this.s[1] + 0.4, z: this.pos.z }, 18);
+          this.level.signal?.('wolkeSichtbar', { id: this.spec.id ?? null });
+        }
+      }
+    }
+    if (this.shown) this.k = Math.min(1, this.k + dt * 1.6);
+  }
+
+  render(dt, t) {
+    if (!this.model) return;
+    this.syncModel();
+    const hint = this.spec.hint ?? 0.07;
+    this.mat.opacity = hint + (1 - hint) * this.k + (this.k < 1 ? 0.03 * Math.sin(t * 2.2) : 0);
+    this.mat.depthWrite = this.k > 0.9;
+    this.pmat.opacity = (0.35 + 0.35 * Math.sin(t * 3.1 + this.pos.x)) * (1 - this.k * 0.7);
+  }
+
+  info() { return { shown: this.shown, k: +this.k.toFixed(2) }; }
+}
+export function unsichtbareWolke(level, spec) { return push(level, new UnsichtbareWolke(level, spec)); }
+
+/**
+ * Sternlaterne (Bauplan S-8 Stern 3 „neben dem Steg aus der Ferne bewerfen“): ein Laternenkäfig an einem Galgenarm über dem
+ * Nebel; innen schwebt ein grüner Stern. Die Gitterstäbe halten Figuren ab (feste Form), Schneebälle (Wurfball) fliegen
+ * hindurch (ballPass) – ein Treffer sammelt den Stern für die Werferin. Statische Optik + Kollision.
+ *   { pos: [x, y, z] (Mitte unten des Käfigs), size: 1.6 (Kantenlänge), post: [x, z] (Fußpunkt des Pfahls), postY (Fuß-
+ *     höhe), arm: Höhe des Arms über dem Käfig }
+ */
+export function sternlaterne(level, spec) {
+  const [x, y, z] = spec.pos, S = spec.size ?? 1.6, h = S * 1.15;
+  // Käfig: fest für Figuren, Bälle fliegen hindurch
+  level.world.add({ type: 'box', min: [x - S / 2, y, z - S / 2], max: [x + S / 2, y + h + 0.35, z + S / 2], ballPass: true, camIgnore: true, noWallSlide: true, tag: 'sternlaterne' });
+  const [px, pz] = spec.post ?? [x - 2, z];
+  const py = spec.postY ?? y - 4;
+  const top = y + h + (spec.arm ?? 1.2);
+  level.world.add({ type: 'cyl', x: px, z: pz, r: 0.22, y0: py, y1: top + 0.3, tag: 'sternlaterne-pfahl' });
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  const iron = 0x3a3e58, gold = 0xd8a840;
+  // Pfahl mit Arm, Kette
+  b.cyl(0.2, 0.26, top + 0.3 - py, px, py, pz, 0x5a4a5a, 10);
+  b.cyl(0.32, 0.32, 0.18, px, top + 0.3, pz, gold, 10);
+  const dx = x - px, dz = z - pz, L = Math.hypot(dx, dz), yaw = Math.atan2(dx, dz);
+  b.box(0.18, 0.18, L + 0.3, (px + x) / 2, top, (pz + z) / 2, 0x5a4a5a, { yaw });
+  b.cyl(0.04, 0.04, top - (y + h + 0.35), x, y + h + 0.35, z, iron, 6);
+  // Käfig: Boden, Dach (Spitzhaube mit Schnee), Gitterstäbe
+  b.box(S + 0.12, 0.14, S + 0.12, x, y, z, iron, { r: 0.05 });
+  b.cone(S * 0.78, 0.55, x, y + h + 0.05, z, iron, 4, { yaw: PI / 4 });
+  b.cone(S * 0.62, 0.28, x, y + h + 0.3, z, 0xf4f8ff, 4, { yaw: PI / 4 });
+  b.sphere(0.12, x, y + h + 0.62, z, gold);
+  const nb = 4;
+  for (let i = 0; i <= nb; i++) for (const side of [-1, 1]) {
+    const u = -S / 2 + (i / nb) * S;
+    b.cyl(0.035, 0.035, h, x + u, y + 0.1, z + side * S / 2, iron, 5);
+    b.cyl(0.035, 0.035, h, x + side * S / 2, y + 0.1, z + u, iron, 5);
+  }
+  b.box(S + 0.1, 0.08, 0.08, x, y + h, z - S / 2, gold); b.box(S + 0.1, 0.08, 0.08, x, y + h, z + S / 2, gold);
+  b.box(0.08, 0.08, S + 0.1, x - S / 2, y + h, z, gold); b.box(0.08, 0.08, S + 0.1, x + S / 2, y + h, z, gold);
+  b.flush(level, { castShadow: true });
+  // warmes Laternenleuchten am Dach
+  g.sphere(0.16, x + S / 2, y + h - 0.15, z + S / 2, 0xffe8a0);
+  g.flush(level, { material: 'glow' });
+  const glow = glowSprite(0x9affb0, 2.4);
+  glow.position.set(x, y + h / 2 + 0.1, z);
+  addObject(level, glow, (dt) => { glow.material.opacity = 0.35 + 0.12 * Math.sin(level.time * 2.5); });
+}
+
+/**
+ * Friedhofstor (Bauplan S-8 „5 Schlüsselmünzen nötig“): schmiedeeisernes Doppeltor zwischen zwei Steinpfeilern mit Bogen;
+ * auf dem Bogen fünf Schlüssel-Lampen, die mit den gesammelten Schlüsselmünzen der Gruppe (level.keys[group]) aufleuchten.
+ * Geschlossen ist der Durchgang fest; open() (Signal { open: id }) schwingt die Flügel auf.
+ *   { id, pos: [x, y, z] (Mitte der Schwelle), width: 6, height: 3.4, group: 'tor', lamps: 5 }   Laufzeit: open, k, info().
+ * Die Mauer links/rechts baut das Level.
+ */
+class Friedhofstor extends CourseEntity {
+  constructor(level, spec) {
+    super(level, spec, 'friedhofstor');
+    this.touch = false;
+    this.W = spec.width ?? 6;
+    this.H = spec.height ?? 3.4;
+    this.half.set(this.W / 2, this.H / 2, 0.3);
+    this.isOpen = false;
+    this.k = 0;
+    const p = this.pos, W = this.W, H = this.H;
+    // Pfeiler und Gitter; darüber eine unsichtbare Sperre bis 12 m (über das Tor springt man nicht)
+    for (const s of [-1, 1]) this.addShape({ type: 'box', min: [p.x + s * W / 2 - (s > 0 ? 0 : 0.9), p.y, p.z - 0.55], max: [p.x + s * W / 2 + (s > 0 ? 0.9 : 0), p.y + 12, p.z + 0.55], tag: 'tor-pfeiler', camIgnore: true });
+    this.gate = this.addShape({ type: 'box', min: [p.x - W / 2, p.y, p.z - 0.15], max: [p.x + W / 2, p.y + 12, p.z + 0.15], tag: 'tor-gitter', camIgnore: true });
+    if (level.view) this.buildModel();
+  }
+
+  buildModel() {
+    const W = this.W, H = this.H;
+    const root = new THREE.Group();
+    const b = new Bld();
+    const stone = litTop(0xb8c0d8), snow = 0xf4f8ff;
+    for (const s of [-1, 1]) {
+      const x = s * (W / 2 + 0.45);
+      b.box(0.9, H + 1.2, 1.1, x, 0, 0, stone, { r: 0.08 });
+      b.box(1.1, 0.3, 1.3, x, H + 1.2, 0, 0x9aa2c0, { r: 0.08 });
+      b.sphere(0.36, x, H + 1.75, 0, snow, { s: [1.2, 0.7, 1.2] });
+      b.sphere(0.28, x, H + 1.55, 0, 0xa8b0c8);
+    }
+    // Bogen
+    const arch = new THREE.TorusGeometry(W / 2 + 0.2, 0.16, 6, 22, PI);
+    b.add(arch, 0x3a3e58, { p: [0, H + 0.1, 0] });
+    b.add(new THREE.TorusGeometry(W / 2 - 0.1, 0.08, 5, 22, PI), 0xd8a840, { p: [0, H + 0.1, 0] });
+    const base = b.mesh(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 }));
+    base.castShadow = true; base.receiveShadow = true;
+    root.add(base);
+    // Flügel (je eine Gruppe um die Angel)
+    this.wings = [];
+    for (const s of [-1, 1]) {
+      const hinge = new THREE.Group();
+      hinge.position.set(s * W / 2, 0, 0);
+      const w = new Bld();
+      const n = 6, ww = W / 2;
+      for (let i = 0; i < n; i++) {
+        const u = -s * (0.25 + (i / (n - 1)) * (ww - 0.5));
+        const hh = H - 0.2 + Math.cos((i / (n - 1)) * PI) * -0.25 * s * s;
+        w.cyl(0.05, 0.05, hh, u, 0.1, 0, 0x2a2e48, 6);
+        w.cone(0.1, 0.24, u, hh + 0.1, 0, 0xd8a840, 6);
+      }
+      w.box(ww, 0.12, 0.1, -s * ww / 2, 0.5, 0, 0x2a2e48);
+      w.box(ww, 0.12, 0.1, -s * ww / 2, H - 0.7, 0, 0x2a2e48);
+      w.torus(0.32, 0.05, -s * ww / 2, 1.6, 0, 0xd8a840, { ts: 14 });
+      w.torus(0.18, 0.04, -s * ww / 2, 1.6, 0, 0xd8a840, { ts: 12 });
+      const m = w.mesh(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.3 }));
+      m.castShadow = true;
+      hinge.add(m);
+      root.add(hinge);
+      this.wings.push({ hinge, s });
+    }
+    // Schlüssel-Lampen auf dem Bogen
+    this.lamps = [];
+    const nL = this.spec.lamps ?? 5;
+    for (let i = 0; i < nL; i++) {
+      const a = PI * (0.15 + (i / (nL - 1)) * 0.7);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x4a4e68 });
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 7), mat);
+      m.position.set(Math.cos(a) * (W / 2 + 0.2), H + 0.1 + Math.sin(a) * (W / 2 + 0.2), 0.12);
+      root.add(m);
+      const gl = glowSprite(0xffd870, 1.1);
+      gl.position.copy(m.position);
+      gl.visible = false;
+      root.add(gl);
+      this.lamps.push({ m, mat, gl });
+    }
+    this.setModel({ root, update: () => {}, dispose: () => { for (const l of this.lamps) { l.m.geometry.dispose(); l.mat.dispose(); } } });
+  }
+
+  open() {
+    if (this.isOpen) return;
+    this.isOpen = true;
+    const L = this.level;
+    L.sfx('gate');
+    L.effects?.sparks({ x: this.pos.x, y: this.pos.y + this.H, z: this.pos.z }, 24);
+    banner(L, 'Das Tor ist offen!', { hold: 1.4, size: 14, y: 0.36 });
+  }
+
+  update(dt) {
+    if (this.isOpen && this.k < 1) {
+      this.k = Math.min(1, this.k + dt * 0.8);
+      if (this.k > 0.25 && this.gate) { this.level.world.remove(this.gate); this.shapes = this.shapes.filter((s) => s !== this.gate); this.gate = null; }
+    }
+  }
+
+  render(dt, t) {
+    if (!this.model) return;
+    this.syncModel();
+    const e = 1 - Math.pow(1 - this.k, 3);
+    for (const w of this.wings) w.hinge.rotation.y = w.s * e * 1.75;
+    const n = this.level.keys?.[this.spec.group ?? 'tor']?.n ?? 0;
+    this.lamps.forEach((l, i) => {
+      const on = i < n || this.isOpen;
+      l.mat.color.setHex(on ? 0xffe070 : 0x4a4e68);
+      l.gl.visible = on;
+      if (on) l.gl.material.opacity = 0.7 + 0.2 * Math.sin(t * 4 + i);
+    });
+  }
+
+  info() { return { open: this.isOpen, k: +this.k.toFixed(2) }; }
+}
+export function friedhofstor(level, spec) { return push(level, new Friedhofstor(level, spec)); }
+
+/**
+ * Schneebälle (Bauplan S-8 „Schneeball auf POW“, „aus der Ferne bewerfen“): Wurfbälle (Bestand `wurfball`, Welt 6) mit der
+ * Schneeball-Optik (Modell `schneeball`) – Aktion hebt einen auf, Aktion wirft ihn flach in Blickrichtung. Sie lösen
+ * POW-Blöcke aus, treffen Zielscheiben und sammeln Sterne. In LEVEL.setup: die Wurfbälle mit den genannten Ids umkleiden.
+ */
+export function schneebaelle(level, ids) {
+  if (!level.view || !hasModel('schneeball')) return;
+  for (const id of ids) {
+    const e = level.entities.find((x) => x.kind === 'wurfball' && x.spec?.id === id);
+    if (!e) continue;
+    const m = getModel('schneeball', { size: e.size * 1.1 });
+    e.spin = null;
+    e.setModel({ root: m.root, update: (dt, st) => m.update?.(dt, { anim: st?.anim === 'thrown' ? 'roll' : 'idle', roll: st?.roll ?? 0 }), dispose: () => m.dispose?.() });
+  }
+}
+
+// =====================================================================================================================
+// 3) S-8 Kulisse
+// =====================================================================================================================
+
+/**
+ * Schmiedeeisenzaun mit Steinpfosten (Schneehauben): list [{ from: [x, z], to: [x, z], y: 0, h: 1.2, gap: 2.4, solid: true }]
+ * – achsenparallel; Kollision als dünner Quader (springbar).
+ */
+export function eisenzaun(level, list) {
+  const b = new Bld();
+  for (const f of list) {
+    const [x0, z0] = f.from, [x1, z1] = f.to, y = f.y ?? 0, h = f.h ?? 1.2;
+    if (f.solid !== false) level.world.add({ type: 'box', min: [Math.min(x0, x1) - 0.1, y, Math.min(z0, z1) - 0.1], max: [Math.max(x0, x1) + 0.1, y + h, Math.max(z0, z1) + 0.1], tag: 'zaun', noWallSlide: true });
+    if (!level.view) continue;
+    const L = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(L / (f.gap ?? 2.4)));
+    const ux = (x1 - x0) / L, uz = (z1 - z0) / L;
+    for (let i = 0; i <= n; i++) {
+      const px = x0 + (x1 - x0) * (i / n), pz = z0 + (z1 - z0) * (i / n);
+      b.box(0.36, h + 0.25, 0.36, px, y, pz, litTop(0xa8b0c8), { r: 0.05 });
+      b.sphere(0.24, px, y + h + 0.3, pz, 0xf6f9ff, { s: [1.15, 0.55, 1.15] });
+      if (i === n) continue;
+      const seg = L / n, m = Math.max(2, Math.round(seg / 0.32));
+      for (let k = 1; k < m; k++) {
+        const qx = px + ux * seg * (k / m), qz = pz + uz * seg * (k / m);
+        b.cyl(0.03, 0.03, h - 0.1, qx, y, qz, 0x2a2e48, 5);
+        b.cone(0.06, 0.16, qx, y + h - 0.1, qz, 0x3a3e58, 5);
+      }
+      const cx = px + ux * seg / 2, cz = pz + uz * seg / 2, yaw = Math.atan2(ux, uz);
+      b.box(0.06, 0.06, seg, cx, y + 0.25, cz, 0x2a2e48, { yaw });
+      b.box(0.06, 0.06, seg, cx, y + h - 0.35, cz, 0x2a2e48, { yaw });
+    }
+  }
+  b.flush(level, { castShadow: true });
+}
+
+/**
+ * Gruft (Mausoleum) aus hellem Stein mit Säulen, Dreiecksgiebel und Schneedach: { pos: [x, y, z] (Mitte unten), size:
+ * [w, h, d], face: '+z' | '-z' | '+x' | '-x' (Vorderseite), door: false | 'offen' (dunkle Öffnung) | 'zu', roof: 'giebel' |
+ * 'kuppel', color }. Kollision: Körper (Vorderseite 0,3 m hinter pos-Kante bleibt frei für eine Tür-Entität davor).
+ * Mit opening: { w, h } bleibt in der Vorderseite eine Öffnung (Kollision ausgespart) – z. B. für eine Ziegelwand.
+ */
+export function gruft(level, spec) {
+  const [x, y, z] = spec.pos, [w, h, d] = spec.size ?? [5, 3.2, 4];
+  const face = spec.face ?? '+z';
+  const fx = face === '+x' ? 1 : face === '-x' ? -1 : 0, fz = face === '+z' ? 1 : face === '-z' ? -1 : 0;
+  // Breite entlang der Vorderseite (W) und Tiefe (D) in Weltachsen
+  const alongX = fx === 0;
+  const W = alongX ? w : d, D = alongX ? d : w;
+  const op = spec.opening;
+  const add = (ax0, ax1, ay0, ay1, an0, an1) => {
+    // lokale Koordinaten (a = entlang der Vorderseite, n = Tiefe nach vorn) → Welt
+    const p = alongX
+      ? { min: [x + ax0, y + ay0, z + fz * an0], max: [x + ax1, y + ay1, z + fz * an1] }
+      : { min: [x + fx * an0, y + ay0, z + ax0], max: [x + fx * an1, y + ay1, z + ax1] };
+    const mn = [Math.min(p.min[0], p.max[0]), p.min[1], Math.min(p.min[2], p.max[2])], mx = [Math.max(p.min[0], p.max[0]), p.max[1], Math.max(p.min[2], p.max[2])];
+    level.world.add({ type: 'box', min: mn, max: mx, tag: 'gruft' });
+  };
+  if (op) {
+    const ow = op.w ?? 2, oh = op.h ?? 2.2, back = op.depth ?? 1.6;
+    add(-W / 2, -ow / 2, 0, h, -D / 2, D / 2);
+    add(ow / 2, W / 2, 0, h, -D / 2, D / 2);
+    add(-ow / 2, ow / 2, oh, h, -D / 2, D / 2);
+    add(-ow / 2, ow / 2, 0, h, -D / 2, D / 2 - back);
+  } else add(-W / 2, W / 2, 0, h, -D / 2, D / 2);
+  const roofH = spec.roof === 'kuppel' ? 0 : 1.2;
+  // Dach begehbar (Giebel als flache Stufe, damit man oben landen kann)
+  if (roofH) add(-W / 2 - 0.2, W / 2 + 0.2, h, h + 0.35, -D / 2 - 0.2, D / 2 + 0.2);
+  if (!level.view) return;
+  const b = new Bld();
+  const yaw = alongX ? (fz > 0 ? 0 : PI) : (fx > 0 ? PI / 2 : -PI / 2);
+  const P = (a, n) => (alongX ? [x + a * (fz || 1), z + fz * n] : [x + fx * n, z - a * fx]);
+  const stone = litTop(spec.color ?? 0xc8cee2), dark = 0x8a92b0, snow = 0xf6f9ff;
+  // Körper
+  {
+    const [cx, cz] = P(0, 0);
+    if (op) {
+      const ow = op.w ?? 2, oh = op.h ?? 2.2;
+      const side = (W - ow) / 2;
+      let [qx, qz] = P(-(ow / 2 + side / 2), 0); b.box(alongX ? side : D, h, alongX ? D : side, qx, y, qz, stone, { r: 0.06 });
+      [qx, qz] = P(ow / 2 + side / 2, 0); b.box(alongX ? side : D, h, alongX ? D : side, qx, y, qz, stone, { r: 0.06 });
+      [qx, qz] = P(0, 0); b.box(alongX ? ow : D, h - oh, alongX ? D : ow, qx, y + oh, qz, stone, { r: 0.06 });
+      const back = op.depth ?? 1.6;
+      [qx, qz] = P(0, -back / 2); b.box(alongX ? ow : D - back, oh, alongX ? D - back : ow, qx, y, qz, 0x4a4e68, { r: 0.04 });
+    } else b.box(alongX ? W : D, h, alongX ? D : W, cx, y, cz, stone, { r: 0.08 });
+    // Sockel und Gesims
+    b.box(alongX ? W + 0.5 : D + 0.5, 0.35, alongX ? D + 0.5 : W + 0.5, cx, y, cz, dark, { r: 0.06 });
+    b.box(alongX ? W + 0.4 : D + 0.4, 0.3, alongX ? D + 0.4 : W + 0.4, cx, y + h - 0.05, cz, 0xa8b0c8, { r: 0.06 });
+  }
+  // Säulen an der Vorderseite
+  for (const a of [-W / 2 + 0.35, W / 2 - 0.35]) {
+    const [qx, qz] = P(a, D / 2 + 0.25);
+    b.cyl(0.22, 0.26, h - 0.2, qx, y + 0.2, qz, 0xe0e6f4, 10);
+    b.box(0.6, 0.18, 0.6, qx, y + 0.1, qz, dark);
+  }
+  // Dach
+  if (spec.roof === 'kuppel') {
+    const [cx, cz] = P(0, 0);
+    b.sphere(Math.min(W, D) * 0.45, cx, y + h + 0.2, cz, 0x9aa8c8, { s: [1, 0.75, 1] });
+    b.sphere(Math.min(W, D) * 0.4, cx, y + h + 0.55, cz, snow, { s: [1, 0.55, 1] });
+    b.cone(0.12, 0.7, cx, y + h + 1.2, cz, 0xd8a840, 6);
+  } else {
+    const [cx, cz] = P(0, 0);
+    const tri = new THREE.Shape();
+    tri.moveTo(-W / 2 - 0.3, 0); tri.lineTo(W / 2 + 0.3, 0); tri.lineTo(0, roofH); tri.closePath();
+    b.add(new THREE.ExtrudeGeometry(tri, { depth: D + 0.5, bevelEnabled: false }), 0x8a90b0, { p: [cx, y + h + 0.25, cz], r: [0, yaw, 0], s: [1, 1, 1] });
+    const tri2 = new THREE.Shape();
+    tri2.moveTo(-W / 2 - 0.15, 0.08); tri2.lineTo(W / 2 + 0.15, 0.08); tri2.lineTo(0, roofH + 0.12); tri2.closePath();
+    b.add(new THREE.ExtrudeGeometry(tri2, { depth: D + 0.3, bevelEnabled: false }), snow, { p: [cx, y + h + 0.32, cz], r: [0, yaw, 0] });
+  }
+  // Tür (Bild) bzw. dunkle Öffnung
+  if (spec.door) {
+    const [qx, qz] = P(0, D / 2 + 0.02);
+    const dw = spec.doorW ?? 1.6, dh = spec.doorH ?? 2.3;
+    b.box(alongX ? dw : 0.06, dh, alongX ? 0.06 : dw, qx, y + 0.3, qz, spec.door === 'zu' ? 0x6a4a3a : 0x2a2a40);
+  }
+  // Inschrift-Tafel / Stern über dem Eingang
+  {
+    const [qx, qz] = P(0, D / 2 + 0.05);
+    b.box(alongX ? 1.2 : 0.08, 0.4, alongX ? 0.08 : 1.2, qx, y + h - 0.65, qz, 0x6a7090);
+  }
+  b.flush(level, { castShadow: true });
+  const g = new Bld();
+  const [lx, lz] = P(0, D / 2 + 0.12);
+  g.sphere(0.12, lx, y + h - 0.45, lz, 0xffe090);
+  g.flush(level, { material: 'glow' });
+}
+
+/**
+ * Kapelle mit Glockentürmchen und leuchtenden Fenstern: { pos (Mitte unten), size: [w, h, d], face: '+z', bell: true }.
+ * Kollision: Körper (Vorderseite bündig mit pos + d/2); eine Tür-Entität davor setzt das Level.
+ */
+export function kapelle(level, spec) {
+  const [x, y, z] = spec.pos, [w, h, d] = spec.size ?? [6, 4, 7];
+  level.world.add({ type: 'box', min: [x - w / 2, y, z - d / 2], max: [x + w / 2, y + h, z + d / 2 - 0.3], tag: 'kapelle' });
+  level.world.add({ type: 'box', min: [x - w / 2 - 0.3, y + h, z - d / 2 - 0.2], max: [x + w / 2 + 0.3, y + h + 0.4, z + d / 2 - 0.1], tag: 'kapelle-dach' });
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  b.box(w, h, d - 0.3, x, y, z - 0.15, litTop(0xd8d2e8), { r: 0.08 });
+  b.box(w + 0.4, 0.35, d + 0.1, x, y, z - 0.15, 0x8a92b0);
+  const tri = new THREE.Shape();
+  tri.moveTo(-w / 2 - 0.45, 0); tri.lineTo(w / 2 + 0.45, 0); tri.lineTo(0, 2.4); tri.closePath();
+  b.add(new THREE.ExtrudeGeometry(tri, { depth: d + 0.4, bevelEnabled: false }), 0x6a5a8a, { p: [x, y + h, z - d / 2 - 0.25] });
+  const tri2 = new THREE.Shape();
+  tri2.moveTo(-w / 2 - 0.3, 0.12); tri2.lineTo(w / 2 + 0.3, 0.12); tri2.lineTo(0, 2.5); tri2.closePath();
+  b.add(new THREE.ExtrudeGeometry(tri2, { depth: d + 0.2, bevelEnabled: false }), 0xf6f9ff, { p: [x, y + h + 0.06, z - d / 2 - 0.15] });
+  // Glockentürmchen
+  if (spec.bell !== false) {
+    const tz = z + d / 2 - 1.2;
+    b.box(1.5, 1.6, 1.5, x, y + h + 1.6, tz, litTop(0xd8d2e8));
+    b.cone(1.15, 1.8, x, y + h + 3.2, tz, 0x6a5a8a, 4, { yaw: PI / 4 });
+    b.cone(0.75, 0.9, x, y + h + 3.35, tz, 0xf6f9ff, 4, { yaw: PI / 4 });
+    b.cyl(0.05, 0.05, 0.8, x, y + h + 5, tz, 0xd8a840, 5);
+    b.sphere(0.3, x, y + h + 2.15, tz, 0xd8a840);
+  }
+  // Fenster (leuchten warm)
+  for (const s of [-1, 1]) for (const k of [0.3, -0.25]) {
+    g.box(0.08, 1.2, 0.8, x + s * (w / 2 + 0.02), y + 1.4, z + k * d, 0xffd890, { r: 0.02 });
+    b.box(0.12, 0.12, 0.9, x + s * (w / 2 + 0.04), y + 2.0, z + k * d, 0x6a5a8a);
+  }
+  g.add(new THREE.CircleGeometry(0.55, 14), 0xffc870, { p: [x, y + h - 0.9, z + d / 2 - 0.27] });
+  b.torus(0.58, 0.07, x, y + h - 0.9, z + d / 2 - 0.26, 0x6a5a8a, { ts: 16 });
+  b.flush(level, { castShadow: true });
+  g.flush(level, { material: 'glow' });
+}
+
+/** Schneemänner (Kulisse, Kollision Zylinder): list [{ pos, yaw, size: 1, lamp: true, hat: 'zylinder' | 'muetze', scarf: 0xff5a72 }] */
+export function schneemann(level, list) {
+  const b = new Bld(), g = new Bld();
+  for (const s of list) {
+    const [x, y, z] = s.pos, k = s.size ?? 1, yaw = s.yaw ?? 0;
+    level.world.add({ type: 'cyl', x, z, r: 0.62 * k, y0: y, y1: y + 2 * k, tag: 'schneemann' });
+    if (!level.view) continue;
+    const fx = Math.cos(yaw), fz = -Math.sin(yaw);       // Blickrichtung
+    const rx = Math.sin(yaw), rz = Math.cos(yaw);        // rechts davon (lokal +Z)
+    b.sphere(0.7 * k, x, y + 0.6 * k, z, 0xf8faff, { s: [1, 0.92, 1], ws: 14, hs: 10 });
+    b.sphere(0.5 * k, x, y + 1.45 * k, z, 0xf8faff, { ws: 14, hs: 10 });
+    b.sphere(0.36 * k, x, y + 2.05 * k, z, 0xffffff, { ws: 14, hs: 10 });
+    // Augen, Knöpfe, Karottennase
+    for (const sd of [-1, 1]) b.sphere(0.055 * k, x + fx * 0.31 * k + rx * sd * 0.13 * k, y + 2.13 * k, z + fz * 0.31 * k + rz * sd * 0.13 * k, 0x1a1a2a);
+    for (let i = 0; i < 3; i++) b.sphere(0.06 * k, x + fx * 0.47 * k, y + (1.62 - i * 0.2) * k, z + fz * 0.47 * k, 0x2a2a3a);
+    b.cone(0.07 * k, 0.4 * k, x + fx * 0.48 * k, y + 2.03 * k, z + fz * 0.48 * k, 0xff8a2a, 6, { rx: 0, rz: -PI / 2, yaw });
+    // Schal
+    b.torus(0.37 * k, 0.09 * k, x, y + 1.8 * k, z, s.scarf ?? 0xff5a72, { rx: PI / 2, ts: 14 });
+    b.box(0.18 * k, 0.5 * k, 0.08 * k, x + fx * 0.3 * k + rx * 0.22 * k, y + 1.3 * k, z + fz * 0.3 * k + rz * 0.22 * k, s.scarf ?? 0xff5a72, { yaw });
+    // Hut
+    if ((s.hat ?? 'zylinder') === 'zylinder') {
+      b.cyl(0.36 * k, 0.36 * k, 0.05 * k, x, y + 2.3 * k, z, 0x2a2a3a, 12);
+      b.cyl(0.24 * k, 0.24 * k, 0.42 * k, x, y + 2.33 * k, z, 0x2a2a3a, 12);
+      b.cyl(0.245 * k, 0.245 * k, 0.08 * k, x, y + 2.4 * k, z, 0xd84a6a, 12);
+    } else {
+      b.cone(0.3 * k, 0.6 * k, x, y + 2.28 * k, z, s.scarf ?? 0xff5a72, 10);
+      b.sphere(0.1 * k, x, y + 2.9 * k, z, 0xffffff);
+    }
+    // Stockarme
+    for (const sd of [-1, 1]) b.cyl(0.03 * k, 0.04 * k, 0.8 * k, x + rx * sd * 0.6 * k, y + 1.35 * k, z + rz * sd * 0.6 * k, 0x6a4a3a, 5, { rx: rz * sd * 0.9, rz: -rx * sd * 0.9 });
+    if (s.lamp) {
+      const lx = x + rx * 0.98 * k + fx * 0.15, lz = z + rz * 0.98 * k + fz * 0.15;
+      b.box(0.24, 0.32, 0.24, lx, y + 1.05 * k, lz, 0x3a3e58, { r: 0.04 });
+      g.sphere(0.1, lx, y + 1.2 * k, lz, 0xffd870);
+      level.view.addLantern?.(lx, y + 1.3 * k, lz);
+    }
+  }
+  b.flush(level, { castShadow: true });
+  g.flush(level, { material: 'glow' });
+}
+
+/** Bänke mit Schneehaube: list [{ pos, yaw, length: 1.8 }] (Kollision niedriger Quader). */
+export function baenke(level, list) {
+  const b = new Bld();
+  for (const s of list) {
+    const [x, y, z] = s.pos, L = s.length ?? 1.8, yaw = s.yaw ?? 0;
+    const ax = Math.abs(Math.cos(yaw)) > 0.5;
+    level.world.add({ type: 'box', min: [x - (ax ? L / 2 : 0.35), y, z - (ax ? 0.35 : L / 2)], max: [x + (ax ? L / 2 : 0.35), y + 0.5, z + (ax ? 0.35 : L / 2)], tag: 'bank' });
+    if (!level.view) continue;
+    b.box(L, 0.1, 0.6, x, y + 0.42, z, 0x8a5a4a, { yaw: ax ? 0 : PI / 2 });
+    b.box(L, 0.08, 0.55, x, y + 0.53, z, 0xf8faff, { yaw: ax ? 0 : PI / 2, r: 0.04 });
+    b.box(L, 0.5, 0.08, x - (ax ? 0 : 0.3), y + 0.5, z - (ax ? 0.3 : 0), 0x8a5a4a, { yaw: ax ? 0 : PI / 2 });
+    for (const sd of [-1, 1]) {
+      const px = x + (ax ? sd * (L / 2 - 0.15) : 0), pz = z + (ax ? 0 : sd * (L / 2 - 0.15));
+      b.box(0.1, 0.42, 0.5, px, y, pz, 0x3a3e58, { yaw: ax ? 0 : PI / 2 });
+    }
+  }
+  b.flush(level, { castShadow: true });
+}
+
+/** Kerzengruppen (leuchten): list [{ pos, n: 3, r: 0.25 }] – für Gräber und die Kerzenkammer. */
+export function kerzen(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  for (const s of list) {
+    const [x, y, z] = s.pos, n = s.n ?? 3, r = s.r ?? 0.25;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + x, h = 0.22 + ((i * 7) % 3) * 0.1;
+      const px = x + Math.cos(a) * r * (i ? 1 : 0), pz = z + Math.sin(a) * r * (i ? 1 : 0);
+      b.cyl(0.06, 0.07, h, px, y, pz, 0xfff4e0, 8);
+      g.cone(0.045, 0.14, px, y + h + 0.02, pz, 0xffc850, 6);
+    }
+  }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow' });
+}
+
+/**
+ * Holzsteg auf Pfählen über dem Nebel: list [{ x0, x1, z0, z1, top, post: Fußhöhe der Pfähle }] – Planken quer zur
+ * Längsrichtung, Pfähle an den Ecken, Kollision als Quader (0,3 m dick).
+ */
+export function steg(level, list) {
+  const b = new Bld();
+  for (const s of list) {
+    const x0 = Math.min(s.x0, s.x1), x1 = Math.max(s.x0, s.x1), z0 = Math.max(s.z0, s.z1), z1 = Math.min(s.z0, s.z1), top = s.top;
+    level.world.add({ type: 'box', min: [x0, top - 0.3, z1], max: [x1, top, z0], tag: 'steg' });
+    if (!level.view) continue;
+    const alongZ = z0 - z1 >= x1 - x0;
+    const L = alongZ ? z0 - z1 : x1 - x0, W = alongZ ? x1 - x0 : z0 - z1;
+    const n = Math.max(1, Math.round(L / 0.42));
+    for (let i = 0; i < n; i++) {
+      const u = (i + 0.5) / n;
+      const shade = i % 3 === 0 ? 0x9a6a4a : i % 3 === 1 ? 0x8a5a3e : 0xa8785a;
+      if (alongZ) b.box(W, 0.12, L / n - 0.05, (x0 + x1) / 2, top - 0.12, z0 - u * L, shade, { r: 0.03 });
+      else b.box(L / n - 0.05, 0.12, W, x0 + u * L, top - 0.12, (z0 + z1) / 2, shade, { r: 0.03 });
+    }
+    // Längsbalken und Pfähle
+    if (alongZ) for (const px of [x0 + 0.12, x1 - 0.12]) b.box(0.18, 0.2, L, px, top - 0.32, (z0 + z1) / 2, 0x6a4a3a);
+    else for (const pz of [z1 + 0.12, z0 - 0.12]) b.box(L, 0.2, 0.18, (x0 + x1) / 2, top - 0.32, pz, 0x6a4a3a);
+    const py = s.post ?? top - 4;
+    const np = Math.max(1, Math.round(L / 3.2));
+    for (let i = 0; i <= np; i++) {
+      const u = i / np;
+      for (const sd of [0, 1]) {
+        const px = alongZ ? (sd ? x1 - 0.1 : x0 + 0.1) : x0 + u * L, pz = alongZ ? z0 - u * L : (sd ? z1 + 0.1 : z0 - 0.1);
+        b.cyl(0.11, 0.13, top - 0.3 - py, px, py, pz, 0x5a4034, 6);
+        b.sphere(0.14, px, top + 0.02, pz, 0xf4f8ff, { s: [1, 0.5, 1] });
+      }
+    }
+  }
+  b.flush(level, { castShadow: true });
+}
+
+// =====================================================================================================================
+// 4) S-9 Mechanik
+// =====================================================================================================================
+
+/**
+ * Sternkapsel (Bauplan S-9 Stern 3 „Weiche umschießen und Stern abschießen, bevor das Brett fällt“): eine schwebende
+ * Glaskapsel mit grünem Stern (LEVEL.stars-Eintrag mit hidden: true und id). Trifft eine Kanonenkugel die Kapsel, platzt
+ * sie, und der Stern fliegt zur Schützin (eingesammelt). Andere Angriffe prallen ab.
+ *   { pos: [x, y, z] (Mitte), star: Index, starId, r: 0.7, id }   Laufzeit: broken, info().
+ */
+class Sternkapsel extends CourseEntity {
+  constructor(level, spec) {
+    super(level, spec, 'sternkapsel');
+    this.touch = false;
+    const r = spec.r ?? 0.7;
+    this.r = r;
+    this.pos.y -= r;          // pos = Mitte → Fußpunkt
+    this.half.set(r, r, r);
+    this.broken = false;
+    this.flyT = -1;
+    if (level.view) {
+      const root = new THREE.Group();
+      this.glassMat = new THREE.MeshStandardMaterial({ color: 0xb8f0ff, transparent: true, opacity: 0.35, roughness: 0.1, metalness: 0.2, depthWrite: false });
+      const glass = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 14), this.glassMat);
+      glass.position.y = r;
+      const ringM = new THREE.MeshStandardMaterial({ color: 0xff4ad8, emissive: 0x6a0a50, roughness: 0.3, metalness: 0.5 });
+      const ring2 = new THREE.Mesh(new THREE.TorusGeometry(r * 1.05, 0.07, 6, 24), ringM);
+      ring2.position.y = r; ring2.rotation.x = PI / 2;
+      root.add(glass, ring2);
+      this.glow = glowSprite(0x7affc0, r * 3.2);
+      this.glow.position.y = r;
+      root.add(this.glow);
+      this.parts = { glass, ring2, ringM };
+      this.setModel({ root, update: () => {}, dispose: () => { glass.geometry.dispose(); this.glassMat.dispose(); ring2.geometry.dispose(); ringM.dispose(); } });
+    }
+  }
+
+  starEnt() { return this.level.entities.find((e) => e.kind === 'star' && e.index === this.spec.star && !e.removed); }
+
+  onCannon(ball) {
+    if (this.broken) return;
+    this.broken = true;
+    const L = this.level;
+    L.sfx('brickbreak');
+    L.effects?.sparks(this.center(), 26);
+    L.effects?.debris?.(this.center(), 0xb8f0ff, 10);
+    const s = this.starEnt();
+    if (s?.hidden) s.reveal?.([this.pos.x, this.pos.y + this.r - 0.4, this.pos.z]);
+    this.shooter = ball?.owner ?? L.player;
+    this.flyT = 0;
+    L.signal?.('sternkapsel', { id: this.spec.id ?? null });
+  }
+
+  update(dt) {
+    if (this.flyT < 0) return;
+    this.flyT += dt;
+    // der Stern fliegt zur Schützin und wird eingesammelt
+    const s = this.starEnt(), p = this.shooter;
+    if (!s || !p || s.removed || !s.alive) { this.kill(); return; }
+    const tx = p.pos.x, ty = p.pos.y + 0.6, tz = p.pos.z;
+    const k = Math.min(1, dt * (4 + this.flyT * 10));
+    s.pos.x += (tx - s.pos.x) * k; s.pos.y += (ty - s.pos.y) * k; s.pos.z += (tz - s.pos.z) * k;
+    if (Math.hypot(tx - s.pos.x, ty - s.pos.y, tz - s.pos.z) < 0.6 || this.flyT > 1.2) { s.onPlayer?.(p, {}); }
+  }
+
+  render(dt, t) {
+    if (!this.model) return;
+    this.syncModel();
+    this.model.root.visible = !this.broken;
+    this.parts.ring2.rotation.z = t * 1.2;
+    this.glow.material.opacity = 0.45 + 0.15 * Math.sin(t * 3);
+  }
+
+  info() { return { broken: this.broken }; }
+}
+export function sternkapsel(level, spec) { return push(level, new Sternkapsel(level, spec)); }
+
+/**
+ * ?-Blöcke für den Kanonen-Helm (Bauplan S-9 Stempel „?-Blöcke beschießen → Brücke erscheint“): die genannten Blöcke
+ * (LEVEL.blocks mit id) lösen auch bei einem Kanonenkugel-Treffer aus (wie ein Panzer von der Seite); sind alle benutzt,
+ * läuft onAll einmal. In LEVEL.setup aufrufen. → { done, used, of, info() } unter id.
+ */
+export function kanonenFrageBloecke(level, o) {
+  const st = { done: false, used: 0, of: o.ids.length };
+  const blocks = o.ids.map((id) => level.entities.find((e) => e.spec?.id === id)).filter(Boolean);
+  for (const b of blocks) {
+    const orig = b.onHit.bind(b);
+    b.onHit = (kind, src, form) => orig(kind === 'cannon' ? 'shell' : kind, src, form);
+  }
+  level.onStep(() => {
+    if (st.done) return;
+    st.used = blocks.filter((b) => b.kind === 'used' || b.used || b.look === 'used').length;
+    if (st.used >= st.of) {
+      st.done = true;
+      level.sfx('key');
+      runAction(level, o.onAll, { pos: o.pos ?? [blocks[0].pos.x, blocks[0].pos.y + 1, blocks[0].pos.z] });
+    }
+  });
+  const h = { get done() { return st.done; }, get used() { return st.used; }, of: st.of, info: () => ({ ...st }) };
+  if (o.id) level.named.set(o.id, h);
+  return h;
+}
+
+/**
+ * Glasdecke (Unterwassertunnel S-9): feste, durchsichtige Decke (Kamera sieht hindurch) mit Metallrahmen und Neonstreben.
+ *   { x0, x1, z0, z1, y (Unterkante), thick: 0.35, ribs: 4 (m Abstand der Streben) }
+ */
+export function glasdecke(level, spec) {
+  const x0 = Math.min(spec.x0, spec.x1), x1 = Math.max(spec.x0, spec.x1), z0 = Math.max(spec.z0, spec.z1), z1 = Math.min(spec.z0, spec.z1);
+  const y = spec.y, t = spec.thick ?? 0.35;
+  level.world.add({ type: 'box', min: [x0, y, z1], max: [x1, y + t, z0], camIgnore: true, noWallSlide: true, tag: 'glasdecke' });
+  if (!level.view) return;
+  const mat = new THREE.MeshStandardMaterial({ color: 0xa8f0ff, transparent: true, opacity: 0.22, roughness: 0.05, metalness: 0.1, depthWrite: false });
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, t * 0.5, z0 - z1), mat);
+  glass.position.set((x0 + x1) / 2, y + t * 0.6, (z0 + z1) / 2);
+  glass.renderOrder = 2;
+  addObject(level, glass);
+  const b = new Bld(), g = new Bld();
+  const rib = spec.ribs ?? 4;
+  const n = Math.max(1, Math.round((z0 - z1) / rib));
+  for (let i = 0; i <= n; i++) {
+    const z = z0 - (i / n) * (z0 - z1);
+    b.box(x1 - x0 + 0.2, t, 0.22, (x0 + x1) / 2, y, z, 0xd8e0f4, { r: 0.04 });
+    g.box(x1 - x0, 0.06, 0.06, (x0 + x1) / 2, y + t + 0.01, z, i % 2 ? 0x4ae8ff : 0xff4ad8);
+  }
+  for (const x of [x0, x1]) b.box(0.3, t + 0.1, z0 - z1, x, y - 0.05, (z0 + z1) / 2, 0xb8c0d8);
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow' });
+}
+
+// =====================================================================================================================
+// 5) S-9 Kulisse
+// =====================================================================================================================
+
+/**
+ * Neon-Zier für Stationsdecks (die Decks selbst sind island-Bausteine): list [{ x0, x1, z0, z1, top, edge: 'cyan' |
+ * 'pink' | 'gruen', stripes: true (Warnstreifen an den Kanten), jets: true (Düsen unten), lights: true }].
+ */
+const NEON = { cyan: 0x4ae8ff, pink: 0xff4ad8, gruen: 0x6aff9a, gold: 0xffd23a };
+export function deckZier(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  for (const s of list) {
+    const x0 = Math.min(s.x0, s.x1), x1 = Math.max(s.x0, s.x1), z0 = Math.max(s.z0, s.z1), z1 = Math.min(s.z0, s.z1), top = s.top;
+    const col = NEON[s.edge ?? 'cyan'] ?? s.edge;
+    const W = x1 - x0, D = z0 - z1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    // Neonkante knapp unter der Oberkante
+    g.box(W + 0.06, 0.1, 0.08, cx, top - 0.28, z0 + 0.02, col); g.box(W + 0.06, 0.1, 0.08, cx, top - 0.28, z1 - 0.02, col);
+    g.box(0.08, 0.1, D + 0.06, x0 - 0.02, top - 0.28, cz, col); g.box(0.08, 0.1, D + 0.06, x1 + 0.02, top - 0.28, cz, col);
+    // Warnstreifen an der Vorderkante (gelb-dunkel)
+    if (s.stripes !== false) {
+      const n = Math.max(2, Math.round(W / 0.8));
+      for (let i = 0; i < n; i++) b.box(W / n * 0.5, 0.03, 0.4, x0 + (i + 0.5) * (W / n), top, z1 + 0.3, 0xffd23a, { r: 0.01 });
+      for (let i = 0; i < n; i++) b.box(W / n * 0.5, 0.03, 0.4, x0 + (i + 0.5) * (W / n), top, z0 - 0.3, 0xffd23a, { r: 0.01 });
+    }
+    // Lichtpunkte im Boden
+    if (s.lights !== false) {
+      const nx = Math.max(1, Math.floor(W / 3)), nz = Math.max(1, Math.floor(D / 3));
+      for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) if ((i + k) % 2 === 0) g.cyl(0.12, 0.12, 0.03, x0 + (i + 0.5) * (W / nx), top, z1 + (k + 0.5) * (D / nz), (i + k) % 4 ? col : 0xffffff, 8);
+    }
+    // Düsen unter dem Deck
+    if (s.jets !== false) {
+      const under = s.under ?? 1.4;
+      for (const [jx, jz] of [[x0 + 0.9, z0 - 0.9], [x1 - 0.9, z0 - 0.9], [x0 + 0.9, z1 + 0.9], [x1 - 0.9, z1 + 0.9]]) {
+        b.cyl(0.42, 0.3, 0.7, jx, top - under - 0.9, jz, 0x5a6080, 10);
+        g.cone(0.3, 0.9, jx, top - under - 1.9, jz, 0x8af4ff, 8, { rx: PI });
+      }
+    }
+  }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow' });
+}
+
+/** Signal-Lampen (Ampeln) an Masten neben den Gleisen: list [{ pos, yaw, color }] – Kulisse. */
+export function signalLampen(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  for (const s of list) {
+    const [x, y, z] = s.pos;
+    b.cyl(0.08, 0.1, 2.6, x, y, z, 0xd8e0f4, 8);
+    b.box(0.42, 0.9, 0.3, x, y + 2.4, z, 0x2a2c48, { r: 0.06 });
+    g.sphere(0.13, x, y + 3.0, z + 0.16, 0xff4a6a);
+    g.sphere(0.13, x, y + 2.7, z + 0.16, NEON[s.color ?? 'gruen'] ?? 0x6aff9a);
+  }
+  b.flush(level, { castShadow: true });
+  g.flush(level, { material: 'glow' });
+}
+
+/**
+ * Tunnel-Zier (Unterwassertunnel S-9): Leuchtstreifen an den Wänden, Bodenlichter, Bullaugen. spec { x0, x1, z0, z1, y0
+ * (Boden), y1 (Decke) }.
+ */
+export function tunnelZier(level, spec) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  const x0 = Math.min(spec.x0, spec.x1), x1 = Math.max(spec.x0, spec.x1), z0 = Math.max(spec.z0, spec.z1), z1 = Math.min(spec.z0, spec.z1);
+  const y0 = spec.y0, y1 = spec.y1;
+  const n = Math.max(2, Math.round((z0 - z1) / 3));
+  for (let i = 0; i <= n; i++) {
+    const z = z0 - (i / n) * (z0 - z1);
+    for (const x of [x0 + 0.06, x1 - 0.06]) {
+      g.box(0.06, (y1 - y0) * 0.5, 0.12, x, y0 + (y1 - y0) * 0.22, z, i % 2 ? 0x4ae8ff : 0xff4ad8);
+      b.torus(0.32, 0.06, x, y0 + (y1 - y0) * 0.75, z + 1.5, 0xd8e0f4, { yaw: PI / 2, ts: 14 });
+      g.add(new THREE.CircleGeometry(0.28, 12), 0x8af4ff, { p: [x + (x === x0 + 0.06 ? 0.02 : -0.02), y0 + (y1 - y0) * 0.75, z + 1.5], r: [0, x === x0 + 0.06 ? PI / 2 : -PI / 2, 0] });
+    }
+    g.cyl(0.14, 0.14, 0.04, (x0 + x1) / 2, y0, z, 0xffffff, 8);
+  }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow' });
+}
