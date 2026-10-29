@@ -12,11 +12,11 @@
 //
 // Hook-Profile (tests/audio.mjs vergleicht sie mit allen Themen der Welten 1–8, der Halloween-Welt, der Welt Stern und
 // untereinander – Einsatz + Intervall und Kontur ohne Rhythmus):
-//   Pilz-Remix      Stotter-Hook: „Pi-Pi-Pilz“ – dreimal derselbe Ton (zwei Sechzehntel und ein Achtel), Sprung hinauf,
-//                   zwei Schritte zurück, Luft holen, dann in Achteln wieder hinauf
+//   Pilz-Remix      Stotter-Hook: „(-)Pi-Pi-Pilz“ – nach einer Sechzehntel Pause dreimal derselbe Ton in Sechzehnteln (wie
+//                   ein hängender Plattenspieler), Sprung hinauf, zwei Schritte zurück, Luft holen, in Achteln wieder hinauf
 //   Blumen-Remix    (siehe unten)
-//   Kronen-Gipfel   Krönungs-Dreiklang: der Dreiklang steigt in Achteln zum langen Gipfelton, oben ein Doppelschlag in
-//                   Sechzehnteln (Krone aufsetzen), dann eine Terz hinab
+//   Kronen-Gipfel   Krönungs-Dreiklang: der Dreiklang steigt in Achteln zum langen Gipfelton, oben ein Doppelschlag von
+//                   unten in Sechzehnteln (die Krone wird aufgesetzt), dann eine Terz hinab
 //   Boss-Marathon   Blitz-Zickzack: die Melodie zuckt in Achteln wie ein Blitz hinab (Terz runter, Sekunde rauf …),
 //                   dann ein Seufzer auf den Grundton
 //   Champion        Siegerruf: Quinte hinauf in einen langen Ton, dann Stufe für Stufe bis zur Oktave; die Antwort fällt
@@ -49,9 +49,9 @@ const AAH = { type: 'triangle', volume: 0.07, vibrato: 10, rate: 5, slide: 0, at
 const pzProg = ['G', 'D', 'Em', 'C', 'G', 'D', 'C', 'D', 'Em', 'C', 'G', 'D', 'Em', 'C', 'D', 'G'];
 const pzPiano = ['D5:2 B4:2 G4:2 B4:2 D5:3 E5:1 D5:4', 'A4:2 F#4:2 D4:2 F#4:2 A4:3 B4:1 A4:4', 'B4:2 G4:2 E4:2 G4:2 B4:3 C5:1 B4:4', 'C5:2 E5:2 G5:2 E5:2 C5:3 D5:1 E5:4',
   'D5:2 B4:2 G4:2 B4:2 D5:3 E5:1 D5:4', 'A4:2 F#4:2 D4:2 F#4:2 A4:3 B4:1 A4:4', 'C5:2 A4:2 C5:2 E5:2 G5:3 F#5:1 E5:4', 'F#5:2 E5:2 D5:2 A4:2 D5:3 E5:1 F#5:4'];
-const pzHook = ['B5:1 B5:1 B5:2 E6:2 D6:1 B5:1 -:2 G5:2 A5:2 B5:2', 'C6:1 C6:1 C6:2 E6:2 D6:1 C6:1 -:2 G5:2 A5:2 B5:2',
-  'D6:1 D6:1 D6:2 B5:2 A5:1 G5:1 -:2 D5:2 E5:2 G5:2', 'F#5:1 F#5:1 F#5:2 A5:2 G5:1 F#5:1 -:2 D5:2 E5:2 F#5:2'];
-const pzLead = chorusOf(pzHook, 'A5:1 A5:1 A5:2 D6:2 C6:1 A5:1 -:2 F#5:2 G5:2 A5:2', 'B5:2 A5:2 G5:2 D5:2 G5:8');
+const pzHook = ['-:1 B5:1 B5:1 B5:1 E6:2 D6:1 B5:1 -:2 G5:2 B5:2 G5:2', '-:1 G5:1 G5:1 G5:1 C6:2 B5:1 G5:1 -:2 E5:2 G5:2 C6:2',
+  '-:1 D6:1 D6:1 D6:1 B5:2 A5:1 G5:1 -:2 B5:2 G5:2 A5:2', '-:1 F#5:1 F#5:1 F#5:1 A5:2 G5:1 F#5:1 -:2 D5:2 F#5:2 A5:2'];
+const pzLead = chorusOf(pzHook, '-:1 A5:1 A5:1 A5:1 D6:2 C6:1 A5:1 -:2 F#5:2 A5:2 F#5:2', 'G5:2 A5:2 B5:2 A5:2 G5:8');
 const STUTTER = '.... ..x. ..xx xx..';                                   // Stotter-Stabs („ta-ta-ta-ta“)
 const pop = (c) => pat(tones(c, 'G5'), '.... .... ..2. 1.0.');            // Glockenspiel-Tupfer am Phrasen-Ende
 const PZMAP = [K4, CL, dr('..h. ..h. ..h. ..o.')];
@@ -63,9 +63,9 @@ const PZMAP = [K4, CL, dr('..h. ..h. ..h. ..o.')];
 const bmProg = ['A', 'E', 'F#m', 'D', 'A', 'E', 'D', 'E', 'D', 'E', 'C#m', 'F#m', 'D', 'E', 'A', 'A'];
 const bmFlute = ['C#5:2 D5:2 E5:2 A5:2 G#5:4 E5:4', 'B4:2 C#5:2 E5:2 G#5:2 F#5:4 E5:4', 'C#5:2 E5:2 F#5:2 A5:2 G#5:4 F#5:4', 'D5:2 E5:2 F#5:2 A5:2 F#5:4 D5:4',
   'C#5:2 D5:2 E5:2 A5:2 G#5:4 E5:4', 'B4:2 C#5:2 E5:2 G#5:2 F#5:4 E5:4', 'A4:2 B4:2 D5:2 F#5:2 E5:4 D5:4', 'E5:2 F#5:2 G#5:2 B5:2 A5:4 G#5:4'];
-const bmHook = ['-:2 A5:1 B5:1 A5:2 F#5:2 D5:2 F#5:1 A5:1 B5:4', '-:2 B5:1 C#6:1 B5:2 G#5:2 E5:2 G#5:1 B5:1 C#6:4',
-  '-:2 G#5:1 A5:1 G#5:2 E5:2 C#5:2 E5:1 G#5:1 A5:4', '-:2 A5:1 B5:1 A5:2 F#5:2 C#5:2 E5:1 F#5:1 A5:4'];
-const bmLead = chorusOf(bmHook, '-:2 C#6:1 D6:1 C#6:2 A5:2 E5:2 A5:1 C#6:1 E6:4', 'C#6:4 B5:2 A5:2 A5:8');
+const bmHook = ['A5:1 G#5:1 A5:1 B5:1 C#6:2 E6:2 D6:2 C#6:2 A5:4', 'G#5:1 F#5:1 G#5:1 A5:1 B5:2 E6:2 C#6:2 B5:2 G#5:4',
+  'E5:1 D#5:1 E5:1 F#5:1 G#5:2 C#6:2 B5:2 A5:2 G#5:4', 'A5:2 C#6:2 B5:2 A5:2 F#5:4 E5:4'];
+const bmLead = chorusOf(bmHook, 'A5:1 G#5:1 A5:1 B5:1 C#6:2 E6:2 D6:2 C#6:2 B5:4', 'A5:4 G#5:2 F#5:2 E5:8');
 const petals = (c) => pat(tones(c, 'A5'), '.... ..0. .... 1.2.');           // Glockenspiel-Tupfer (Blütenblätter)
 const BMMAP = [KH, CL, H8O, dr('..j. ..j. ..j. ..j.')];
 
@@ -76,9 +76,9 @@ const BMMAP = [KH, CL, H8O, dr('..j. ..j. ..j. ..j.')];
 const kgProg = ['Bb', 'F', 'Gm', 'Eb', 'Bb', 'F', 'Eb', 'F', 'Eb', 'F', 'Dm', 'Gm', 'Eb', 'F', 'Bb', 'Bb'];
 const kgFanfare = ['F4:3 F4:1 Bb4:4 D5:3 C5:1 Bb4:4', 'A4:3 A4:1 C5:4 F5:3 Eb5:1 C5:4', 'Bb4:3 Bb4:1 D5:4 G5:3 F5:1 D5:4', 'G4:3 G4:1 Bb4:4 Eb5:3 D5:1 Bb4:4',
   'F4:3 F4:1 Bb4:4 D5:3 C5:1 Bb4:4', 'A4:3 A4:1 C5:4 F5:3 Eb5:1 C5:4', 'G4:3 G4:1 Bb4:4 Eb5:3 F5:1 G5:4', 'A5:3 G5:1 F5:4 C5:4 Eb5:4'];
-const kgHook = ['Eb5:2 G5:2 Bb5:6 C6:1 Bb5:1 A5:1 Bb5:1 G5:2', 'F5:2 A5:2 C6:6 D6:1 C6:1 Bb5:1 C6:1 A5:2',
-  'D5:2 F5:2 A5:6 Bb5:1 A5:1 G5:1 A5:1 F5:2', 'G5:4 F5:2 D5:2 Bb4:4 D5:4'];
-const kgLead = chorusOf(kgHook, 'D5:2 F5:2 Bb5:6 C6:1 Bb5:1 A5:1 Bb5:1 F5:2', 'D5:4 Eb5:2 C5:2 Bb4:8');
+const kgHook = ['Eb5:2 G5:2 Bb5:6 A5:1 Bb5:1 C6:1 Bb5:1 C6:2', 'C6:2 A5:2 F5:6 E5:1 F5:1 G5:1 F5:1 E5:2',
+  'D5:2 F5:2 A5:6 G5:1 A5:1 Bb5:1 A5:1 F5:2', 'G5:4 F5:2 D5:2 Bb4:4 D5:4'];
+const kgLead = chorusOf(kgHook, 'D5:2 F5:2 Bb5:6 A5:1 Bb5:1 C6:1 Bb5:1 F5:2', 'D5:4 Eb5:2 C5:2 Bb4:8');
 const PAUKE = dr('t... .... t.t. ....');
 const KGMAP = [KH, CL, H8O, PAUKE];
 
@@ -88,13 +88,13 @@ const KGMAP = [KH, CL, H8O, PAUKE];
 // i–VI–iv–V, Blitz-Hook, Hörner-Stöße, Piano auf der „und“, treibender Bass) | Überleitung Des Es f C (lange Töne,
 // Sternschnuppe, Pauken-Wirbel). Weltraum-Hall, Blitz-Einschläge (Crash und tiefer Schlag), Sternenglitzern.
 const bbProg = ['Fm', 'Db', 'Eb', 'C', 'Fm', 'Fm', 'Db', 'Eb', 'Fm', 'Fm', 'Bbm', 'C', 'Fm', 'Db', 'Ab', 'Eb', 'Fm', 'Db', 'Bbm', 'C', 'Db', 'Eb', 'Fm', 'C'];
-const bbHook = ['C6:2 Ab5:2 Bb5:2 G5:2 Ab5:3 G5:1 F5:4', 'Db6:2 Bb5:2 C6:2 Ab5:2 Bb5:3 Ab5:1 F5:4',
+const bbHook = ['C6:2 Ab5:2 Bb5:2 G5:2 Ab5:3 Bb5:1 C6:4', 'Db6:2 Bb5:2 C6:2 Ab5:2 Bb5:3 C6:1 Db6:4',
   'Eb6:2 C6:2 Db6:2 Bb5:2 C6:3 Bb5:1 Ab5:4', 'G5:2 Eb5:2 F5:2 G5:2 Bb5:4 G5:4'];
 const bbChorus = chorusOf(bbHook, 'Db6:2 Bb5:2 C6:2 Ab5:2 Bb5:3 Ab5:1 F5:4', 'E5:2 G5:2 Bb5:2 G5:2 C6:4 -:4');
 const bbIntro = [bbHook[0], bbHook[1], bbHook[3], 'E5:2 G5:2 Bb5:2 G5:2 E5:4 C5:4'];
-const bbV = ['F4:2 Ab4:2 C5:2 Ab4:2 Bb4:2 C5:2 Ab4:4', 'F4:2 Ab4:2 C5:2 Db5:2 C5:2 Bb4:2 Ab4:4', 'F4:2 Ab4:2 Db5:2 Ab4:2 Bb4:2 C5:2 Db5:4', 'Eb5:2 Db5:2 C5:2 Bb4:2 G4:2 Bb4:2 Eb5:4'];
-const bbVerse = [...bbV, bbV[0], bbV[1], 'F4:2 Bb4:2 Db5:2 Bb4:2 C5:2 Db5:2 F5:4', 'E5:2 C5:2 G4:2 C5:2 Bb4:2 G4:2 E4:4'];
-const bbBridge = ['F5:8 Ab5:8', 'G5:8 Bb5:8', 'Ab5:8 C6:8', 'G5:8 E5:8'];
+const bbV = ['F4:2 Ab4:2 C5:2 Ab4:2 Bb4:2 C5:2 Ab4:4', 'F4:2 Ab4:2 C5:2 Db5:2 C5:2 Bb4:2 Ab4:4', 'F4:2 Ab4:2 Db5:2 Ab4:2 Bb4:2 C5:2 Db5:4', 'Eb5:2 Db5:2 C5:2 Bb4:2 G4:2 Bb4:2 G4:4'];
+const bbVerse = [...bbV, bbV[0], bbV[1], 'F4:2 Bb4:2 Db5:2 Bb4:2 C5:2 Db5:2 F5:4', 'C5:2 E5:2 G5:2 E5:2 G5:2 Bb5:2 G5:4'];
+const bbBridge = ['F5:8 Ab5:8', 'G5:8 Bb5:8', 'Ab5:8 C6:8', 'G5:8 Bb5:8'];
 const bbArp = (c) => pat([...tones(c, 'F4'), tones(c, 'F5')[0]], '0123 2101 2321 0123');   // Arpeggiator
 const STRIKE = dr('d... .... .... ....');                                                    // Blitz-Einschlag (tief)
 const BOSS = [K4, CL, H8];
@@ -106,12 +106,13 @@ const BOSS = [K4, CL, H8];
 // Riser) | zweiter Refrain: das Glockenspiel singt die Hook eine Oktave höher mit, Pauken. Chor-Pad in allen Takten.
 const chProg = ['D', 'A', 'Bm', 'G', 'Bm', 'G', 'D', 'A', 'Bm', 'G', 'Em', 'A', 'D', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A',
   'G', 'A', 'Bm', 'A', 'D', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A'];
-const chHook = ['D5:2 A5:6 B5:2 C#6:2 D6:4', 'C#6:3 B5:1 A5:2 F#5:2 E5:4 A5:4', 'B4:2 F#5:6 G5:2 A5:2 B5:4', 'D6:3 C#6:1 B5:2 G5:2 D5:4 G5:4'];
-const chChorus = chorusOf(chHook, 'B4:2 G5:6 A5:2 B5:2 D6:4', 'E6:3 D6:1 C#6:2 A5:2 E5:4 A4:4');
-const chIntro = [chHook[0], chHook[1], chHook[2], 'D6:3 C#6:1 B5:2 G5:2 D5:4 F#5:4'];
-const chV = ['F#5:2 E5:1 D5:1 F#5:2 B5:2 A5:2 F#5:2 D5:4', 'G5:2 F#5:1 E5:1 D5:2 B4:2 D5:2 E5:2 G5:4', 'F#5:2 E5:1 D5:1 F#5:2 A5:2 B5:2 A5:2 F#5:4', 'E5:2 D5:1 C#5:1 E5:2 A5:2 G5:2 E5:2 C#5:4'];
-const chVerse = [...chV, chV[0], chV[1], 'G5:2 F#5:1 E5:1 B4:2 E5:2 G5:2 F#5:2 E5:4', 'E5:2 F#5:1 G5:1 A5:2 E5:2 C#5:2 E5:2 A4:4'];
-const chBridge = ['D5:8 G5:8', 'E5:8 A5:8', 'F#5:8 B5:8', 'A5:8 C#6:8'];
+const chHook = ['D5:2 F#5:1 F#5:1 A5:2 A5:2 D6:6 C#6:2', 'C#6:2 B5:1 B5:1 A5:2 A5:2 E5:6 F#5:2',
+  'B4:2 D5:1 D5:1 F#5:2 F#5:2 B5:6 A5:2', 'G5:2 F#5:1 F#5:1 D5:2 D5:2 B4:6 D5:2'];
+const chChorus = chorusOf(chHook, 'B4:2 D5:1 D5:1 G5:2 G5:2 B5:6 A5:2', 'C#6:2 B5:1 B5:1 A5:2 A5:2 E5:4 C#5:4');
+const chIntro = [chHook[0], chHook[1], chHook[2], 'G5:2 F#5:1 F#5:1 D5:2 D5:2 B4:4 C#5:4'];
+const chV = ['D5:2 C#5:1 B4:1 C#5:2 D5:2 F#5:2 E5:2 D5:4', 'B4:2 A4:1 G4:1 A4:2 B4:2 D5:2 E5:2 D5:4', 'F#5:2 E5:1 D5:1 E5:2 F#5:2 A5:2 G5:2 F#5:4', 'E5:2 D5:1 C#5:1 D5:2 E5:2 G5:2 F#5:2 E5:4'];
+const chVerse = [...chV, chV[0], chV[1], 'G5:2 F#5:1 E5:1 F#5:2 G5:2 B5:2 A5:2 G5:4', 'E5:2 F#5:1 G5:1 A5:2 G5:2 F#5:2 E5:2 C#5:4'];
+const chBridge = ['D5:8 G5:8', 'E5:8 A5:8', 'F#5:8 B5:8', 'A5:8 E5:8'];
 const chChoir = ['B5:16', 'C#6:16', 'D6:16', 'C#6:8 E6:8'];
 const PAUKE8 = dr('t... .... t.t. ....');
 

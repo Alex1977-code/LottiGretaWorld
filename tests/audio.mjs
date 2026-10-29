@@ -118,7 +118,8 @@ const want = (p) => PARTS.includes(p);
 const ONLY = process.env.AUDIO_THEMES ? process.env.AUDIO_THEMES.split(',').map((s) => s.trim()) : null;
 const HW = 31; // Halloween-Sonderwelt „Kürbisinsel“ (interne Weltnummer, Level H-1 …)
 const ST = 9; // Bonuswelt Stern „Sternenzelt“ (Weltnummer 9, Level S-1 …)
-const WORLDS = process.env.AUDIO_WORLD ? process.env.AUDIO_WORLD.split(',').map((w) => (/^(h|hw|halloween)$/i.test(w.trim()) ? HW : /^(s|stern|star)$/i.test(w.trim()) ? ST : Number(w))) : null; // Welt-1-Themen = 1
+const BO = 10; // übrige Bonuswelt-Themen: Karten Pilz (10), Blume (11), Krone (12), Boss-Marathon B-12, Champion K-1 (Gruppe „bonus“)
+const WORLDS = process.env.AUDIO_WORLD ? process.env.AUDIO_WORLD.split(',').map((w) => (/^(h|hw|halloween)$/i.test(w.trim()) ? HW : /^(s|stern|star)$/i.test(w.trim()) ? ST : /^(b|bonus)$/i.test(w.trim()) ? BO : Number(w))) : null; // Welt-1-Themen = 1
 const { check, summary } = makeChecker();
 const fmt = (v, d = 3) => (typeof v === 'number' ? v.toFixed(d) : String(v));
 
@@ -229,6 +230,12 @@ const COURSE_THEMES = {
   course_fogbog: { bpm: 134, bars: [24, 24], loop: true, has: ['lead', 'bell', 'whistle', 'piano', 'stabs', 'pad', 'riser'], drums: 'j', fx: 'delay', key: 'Bm', mel: ['lead', 'bell'], hook: 12, preview: 4, world: ST },
   course_cosmic: { bpm: 146, bars: [24, 24], loop: true, has: ['lead', 'bell', 'arp', 'echo', 'piano', 'stabs', 'pad', 'riser'], drums: 'dt', fx: 'delay', key: 'Em', mel: ['lead', 'bell'], hook: 12, preview: 4, world: ST },
   course_worldstar_map: { bpm: 126, bars: [16, 16], loop: true, beatMult: 2, has: ['lead', 'piano', 'bell', 'whistle', 'pad'], fx: 'delay', key: 'Db', mel: ['lead', 'piano'], hook: 8, preview: 0, world: ST, map: true },
+  // Bonuswelten Pilz, Blume, Krone: Karten, Boss-Marathon (B-12) und Champion-Kurs (K-1)
+  course_worldpilz_map: { bpm: 128, bars: [16, 16], loop: true, has: ['lead', 'piano', 'stabs', 'bell', 'echo', 'riser', 'pad'], drums: 't', fx: 'delay', key: 'G', mel: ['lead', 'piano'], hook: 8, preview: 0, world: BO, map: true },
+  course_worldblume_map: { bpm: 126, bars: [16, 16], loop: true, beatMult: 2, has: ['lead', 'whistle', 'bell', 'piano', 'pad'], drums: 'jt', fx: 'delay', key: 'A', mel: ['lead', 'whistle'], hook: 8, preview: 0, world: BO, map: true },
+  course_worldkrone_map: { bpm: 128, bars: [16, 16], loop: true, beatMult: 2, has: ['lead', 'organ', 'whistle', 'piano', 'pad'], drums: 't', fx: 'delay', key: 'Bb', mel: ['lead', 'organ'], hook: 8, preview: 0, world: BO, map: true },
+  course_bossblitz: { bpm: 148, bars: [24, 24], loop: true, has: ['lead', 'organ', 'arp', 'bell', 'piano', 'stabs', 'pad', 'riser'], drums: 'dt', fx: 'delay', key: 'Fm', mel: ['lead', 'organ'], hook: 12, preview: 4, world: BO },
+  course_champion: { bpm: 150, bars: [32, 32], loop: true, has: ['lead', 'organ', 'whistle', 'arp', 'bell', 'piano', 'stabs', 'pad', 'riser'], drums: 't', fx: 'delay', key: 'D', mel: ['lead', 'organ'], hook: 12, preview: 4, world: BO },
 };
 // Musiknamen Welt 2–4 (Auftrag/Vertrag) und Karten-Themen je Welt
 const CONTRACT_THEMES_W = ['course_desert', 'course_space', 'course_shadow', 'course_hills', 'course_cherry', 'course_tank', 'course_house',
@@ -380,17 +387,17 @@ if (want('melodie')) {
       if (every[i].spec.world < 5 && every[j].spec.world < 5 && shape > oldShape.sim) oldShape = { sim: shape, a: every[i].name, b: every[j].name };
     }
   }
-  check(`Hooks verschieden (Welt 1–8, Halloween und Stern, ${every.length} Themen): größte Ähnlichkeit zweier Refrain-Hooks ${fmt(worst.sim * 100, 0)} % (${worst.a} / ${worst.b}) < 50 %`, worst.sim < 0.5);
+  check(`Hooks verschieden (Welt 1–8, Halloween, Stern und die übrigen Bonuswelten, ${every.length} Themen): größte Ähnlichkeit zweier Refrain-Hooks ${fmt(worst.sim * 100, 0)} % (${worst.a} / ${worst.b}) < 50 %`, worst.sim < 0.5);
   console.log(`   Kontur der Hooks unter den Themen der Welten 1–4: höchstens ${fmt(oldShape.sim * 100, 0)} % (${oldShape.a} / ${oldShape.b})`);
-  for (const r of fresh.filter((x) => [5, 6, 7, 8, HW, ST].includes(x.spec.world))) {
+  for (const r of fresh.filter((x) => [5, 6, 7, 8, HW, ST, BO].includes(x.spec.world))) {
     const others = every.filter((o) => o.name !== r.name);
     const top = (f) => others.map((o) => ({ o: o.name, v: both(f, r, o) })).sort((p, q) => q.v - p.v)[0];
     const x = top(simSig), y = top(simShape);
     check(`${r.name}: Hook eigenständig gegen alle Themen – Einsatz+Intervall höchstens ${fmt(x.v * 100, 0)} % (${x.o}), Kontur höchstens ${fmt(y.v * 100, 0)} % (${y.o}), je < 50 %`, x.v < 0.5 && y.v < 0.5);
   }
-  for (const w of [2, 3, 4, 5, 6, 7, 8, HW, ST]) {
+  for (const w of [2, 3, 4, 5, 6, 7, 8, HW, ST, BO]) {
     const keys = fresh.filter((r) => r.spec.world === w).map((r) => r.spec.key);
-    if (keys.length) check(`${w === HW ? 'Halloween-Welt' : w === ST ? 'Welt Stern' : `Welt ${w}`}: jede Melodie in eigener Tonart (${keys.join(', ')})`, new Set(keys).size === keys.length);
+    if (keys.length) check(`${w === HW ? 'Halloween-Welt' : w === ST ? 'Welt Stern' : w === BO ? 'Bonuswelten Pilz/Blume/Krone' : `Welt ${w}`}: jede Melodie in eigener Tonart (${keys.join(', ')})`, new Set(keys).size === keys.length);
   }
 
   // Welt 5 aus den Themen-Daten: Tempo, Dreier-Gefühl des Trapezes, gedämpfte Schleich-Festung
