@@ -82,6 +82,8 @@ export class Bld {
     this.n++; return this;
   }
   add(g, color, o) { this.b.add(g, color, o); this.n++; return this; }
+  /** fertig gefärbte, nicht-indizierte Geometrie (position, normal, color) übernehmen */
+  raw(g) { for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'color') g.deleteAttribute(k); this.b.parts.push(g); this.n++; return this; }
   geometry() { if (!this.n) return null; this.n = 0; return this.b.geometry(); }
   flush(level, opts) {
     const g = this.geometry();
@@ -817,6 +819,58 @@ export function planetchen(level, list) {
     if (q.ring !== false) b.torus(r * 1.55, r * 0.09, x, y, z, litTop(q.ringColor ?? 0xffe08a), { rx: Math.PI / 2 + (q.tilt ?? 0.35), rz: q.tiltZ ?? 0.2, ts: 32 });
   }
   b.flush(level, { castShadow: false });
+}
+
+/**
+ * Zahnrad-Geometrie in einen Bld (Achse z = Blick nach +Z bzw. axis 'y' liegend): Radkranz mit Zähnen, Speichen, Nabe.
+ *   b, { x, y, z (Mitte), r, teeth (≈ 5·r), thick 0.3, color, hub, axis: 'z' | 'x' | 'y' }
+ */
+export function zahnradGeo(b, o) {
+  const { x, y, z } = o, r = o.r ?? 1;
+  const g = new Bld();
+  const col = litTop(o.color ?? 0xffc84a, 0.75), hub = litTop(o.hub ?? 0xfff0c0, 0.75);
+  const n = o.teeth ?? Math.max(8, Math.round(r * 5)), th = o.thick ?? 0.3;
+  g.torus(r * 0.82, Math.max(0.08, r * 0.13), 0, 0, 0, col, { rs: 6, ts: Math.max(12, n * 2) });
+  for (let i = 0; i < n; i++) { const a = (i / n) * TAU; g.box(r * 0.28, r * 0.3, th, Math.cos(a) * r, Math.sin(a) * r - r * 0.15, 0, col, { rz: a - Math.PI / 2, r: 0.03 }); }
+  for (let i = 0; i < 3; i++) g.box(r * 1.55, r * 0.12, th * 0.6, 0, -r * 0.06, 0, col, { rz: (i / 3) * Math.PI, r: 0.02 });
+  g.cyl(r * 0.24, r * 0.24, th * 1.5, 0, -th * 0.75, 0, hub, 12, { rx: Math.PI / 2 });
+  const geo = g.geometry();
+  const m = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(o.axis === 'y' ? -Math.PI / 2 : 0, o.axis === 'x' ? Math.PI / 2 : 0, o.angle ?? 0, 'YXZ'));
+  geo.applyMatrix4(m);
+  geo.translate(x, y, z);
+  b.raw(geo);
+}
+
+/**
+ * Drehende Zahnräder (Kulisse, je Zahnrad ein Mesh ohne Sonnenschatten): list [{ pos, r, axis 'z'|'x'|'y', speed (rad/s),
+ * color, teeth }] – gegenläufig gekoppelte Räder bekommen speed mit umgekehrtem Vorzeichen. → Liste der Meshes.
+ */
+export function zahnraeder(level, list) {
+  if (!level.view) return [];
+  const out = [];
+  for (const q of list) {
+    const r = q.r ?? 1;
+    const g = new Bld();
+    const col = litTop(q.color ?? 0xffc84a, 0.75), hub = litTop(q.hub ?? 0xfff0c0, 0.75);
+    const n = q.teeth ?? Math.max(8, Math.round(r * 5)), th = q.thick ?? 0.3;
+    g.torus(r * 0.82, Math.max(0.08, r * 0.13), 0, 0, 0, col, { rs: 6, ts: Math.max(12, n * 2) });
+    for (let i = 0; i < n; i++) { const a = (i / n) * TAU; g.box(r * 0.28, r * 0.3, th, Math.cos(a) * r, Math.sin(a) * r - r * 0.15, 0, col, { rz: a - Math.PI / 2, r: 0.03 }); }
+    for (let i = 0; i < 3; i++) g.box(r * 1.55, r * 0.12, th * 0.6, 0, -r * 0.06, 0, col, { rz: (i / 3) * Math.PI, r: 0.02 });
+    g.cyl(r * 0.24, r * 0.24, th * 1.5, 0, -th * 0.75, 0, hub, 12, { rx: Math.PI / 2 });
+    const mesh = g.mesh(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0.45 }));
+    const [x, y, z] = q.pos;
+    const holder = new THREE.Group();
+    holder.position.set(x, y, z);
+    if (q.axis === 'x') holder.rotation.y = Math.PI / 2;
+    else if (q.axis === 'y') holder.rotation.x = -Math.PI / 2;
+    holder.add(mesh);
+    mesh.receiveShadow = true;
+    const hd = {};
+    const sp = q.speed ?? 0.6;
+    addObject(level, holder, (dt) => { mesh.rotation.z += sp * visDt(level, hd, dt); });
+    out.push(mesh);
+  }
+  return out;
 }
 
 /** Glitzer-Funkeln (eine Instanz-Gruppe, additiv, blinkt): Punkte in einem Quader um center ± size. */

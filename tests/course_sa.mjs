@@ -131,6 +131,69 @@ const ROUTES = {
       ['ziel', [0, 3, -337]],
     ],
   },
+  'S-Kapitän': {
+    start: [6, -0.05, 17],
+    heroes: ['lotti'],
+    meta: { stars: 5, time: 400, theme: 'starspace', music: 'course_diorama', archetype: 'diorama', world: 9, stamp: false },
+    enemies: { funkenflaemmchen: 9, trittschalter: 2 },
+    main: [
+      { name: 'zur Treppe', to: [0.4, 17.4], within: 0.4, run: false },
+      { name: 'Treppe auf den Südturm', to: [0, 11.6], within: 0.4, run: false },
+      { name: 'auf die Hochbrücke', to: [0, 5.4], within: 0.4, run: false },
+      { name: 'Kurbel: Drehung 1 (offenes Ende nach Osten)', to: [0, 0], within: 0.25, run: false }, { until: 'dreh1', max: 600 },
+      { to: [5.8, 0], within: 0.4, run: false }, { name: 'Stern 1 im Ostturm', to: [10.6, 0.4], within: 0.3, run: false }, { expect: 'stern1' },
+      { to: [5.6, 0], within: 0.4, run: false }, { name: 'Kurbel: Drehung 2 (Norden)', to: [0, 0], within: 0.25, run: false }, { until: 'dreh2', max: 600 },
+      { to: [0, -6.0], within: 0.4, run: false }, { name: 'Nordturm, Treppe zur Glockenstube', to: [0, -7.6], within: 0.4, run: false }, { to: [0, -12.7], within: 0.4, run: false },
+      { name: 'Stern 5 in der Glockenstube', to: [-1.6, -14.2], within: 0.3, run: false }, { expect: 'stern5' },
+      { to: [0, -12.5], within: 0.4, run: false }, { to: [0, -7.2], within: 0.4, run: false }, { to: [0, -3], within: 0.4, run: false },
+      { name: 'Kurbel: Drehung 3 (Westen)', to: [0, 0], within: 0.25, run: false }, { until: 'dreh3', max: 600 },
+      { to: [-5.8, 0], within: 0.4, run: false }, { name: 'Stern 2 im Westturm', to: [-10.6, 0.4], within: 0.3, run: false }, { expect: 'stern2' },
+      { to: [-5.6, 0], within: 0.4, run: false }, { name: 'Kurbel: Drehung 4 (zurück nach Süden)', to: [0, 0], within: 0.25, run: false }, { until: 'dreh0', max: 600 },
+      { to: [0, 5.8], within: 0.4, run: false }, { to: [0, 9.2], within: 0.4, run: false }, { name: 'Treppe hinab', to: [0, 17.0], within: 0.4, run: false },
+      { name: 'Trittschalter der Drehtür', to: [-5.6, 14.4], within: 0.25, run: false }, { until: 'tuerAuf', max: 600 },
+      { to: [-7.0, 11.8], within: 0.3, run: false }, { to: [-9.4, 11.8], within: 0.3, run: false }, { name: 'Stern 3 in der Spieluhr-Dose', to: [-10.6, 11], within: 0.3, run: false }, { expect: 'stern3' },
+      { to: [-9.4, 11.8], within: 0.3, run: false }, { to: [-6.2, 11.8], within: 0.3, run: false }, { to: [-6.2, 6.0], within: 0.4, run: false },
+      { to: [-14.2, 5.4], within: 0.4, run: false }, { name: 'am Rand entlang in den Uhrwerk-Hof', to: [-14.2, -16.8], within: 0.4, run: false },
+      { name: 'Kamera drehen, bis der Hof-Stern zu sehen ist', cam: 1, until: 'hofSichtbar', max: 600 },
+      { name: 'Stern 4 im Uhrwerk-Hof', to: [0, -17.4], within: 0.3, run: false },
+      { until: '=L.runtime.status !== \'play\'', max: 900 },
+    ],
+    routeChecks: [
+      { name: 'ohne einen Treffer-Versuch (Funkenflämmchen umgangen), vier Karussell-Drehungen, Drehtür benutzt', ok: (r) => r.mech.hurts === 0 && r.mech.turns === 4 && r.mech.doorTurns >= 1 },
+      { name: 'alle fünf Sterne gespeichert, Schatz-Ergebnis', ok: (r) => r.mech.saved === 5 },
+    ],
+    targets: [
+      { name: 'Stern 2 nicht nach einer Drehung (Sternentor versperrt das Westende)', star: 1, expectNot: true, from: [0, 3, 1.2],
+        legs: [{ to: [0, 0], within: 0.25, run: false }, { until: 'dreh1', max: 600 }, { to: [-10.6, 0.4], within: 0.3, run: false, max: 600, autoJump: false }, { wait: 60 }],
+        mech: (r) => r.pos[0] > -6.5, mechText: (r) => `x ${r.pos[0].toFixed(1)}` },
+      { name: 'Ostturm nicht ohne Drehung erreichbar (vom Südturm aus kein Weg)', star: 0, expectNot: true, from: [2, 3, 8.6],
+        legs: [{ to: [10.6, 0.4], within: 0.3, run: false, max: 900, autoJump: false }, { wait: 60 }],
+        mech: (r) => r.pos[1] < 1 || r.pos[0] < 6.8, mechText: (r) => `bei ${r.pos.map((v) => v.toFixed(1)).join(', ')}` },
+      { name: 'Stern 4 nicht mit der Grundkamera (unsichtbar und nicht zu fassen)', star: 3, expectNot: true, from: [-6, -0.05, -16.8],
+        legs: [{ to: [0, -17.4], within: 0.3, run: false }, { wait: 60 }] },
+      { name: 'Stern 3 nicht ohne Trittschalter (Drehtür versperrt die Dose)', star: 2, expectNot: true, from: [-6.4, -0.05, 11.2],
+        legs: [{ to: [-10.6, 11], within: 0.3, run: false, max: 600, autoJump: false }, { wait: 30 }] },
+    ],
+    extra: [
+      { name: 'Krümel springt nicht (Sprungtaste wirkt nicht)', from: [6, -0.05, 15], legs: [{ hop: 40 }], mech: (r) => r.mech.maxY < 0.3, mechText: (r) => `höchstens y ${r.mech.maxY.toFixed(2)}` },
+      { name: 'Funkenflämmchen verletzt Krümel bei Berührung', from: [10.4, 3, -0.6], invuln: false, allowFail: true,
+        legs: [{ chaseKind: 'funkenflaemmchen', ids: ['ff_ost'], max: 600, walk: true }, { wait: 30 }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Krümel bleibt auf der Kurbel stehen, während die Brücke sich dreht', from: [0, 3, 1.2],
+        legs: [{ to: [0, 0], within: 0.25, run: false }, { until: 'dreh1', max: 600 }], mech: (r) => Math.hypot(r.pos[0], r.pos[2]) < 0.7 && r.pos[1] > 2.9, mechText: (r) => `bei ${r.pos.map((v) => v.toFixed(1)).join(', ')}` },
+      { name: 'Schatzstelle: Krümel buddelt Bitcoins aus', from: [10.5, -0.05, 15.5], expectCoins: 3, legs: [{ wait: 200 }] },
+    ],
+    shots: [
+      ['start', 'start'],
+      ['bruecke', [0, 3, 4]],
+      ['mitte', 'mitte'],
+      ['ost', 'ost'],
+      ['glocke', 'glocke'],
+      ['west', 'west'],
+      ['dose', 'dose'],
+      ['hof', 'hof'],
+      ['hof_gedreht', 'hof', 190, { cam: 1 }],
+    ],
+  },
 };
 function SIMS_TOP() { return 9.8; }
 
@@ -186,6 +249,14 @@ function install() {
     stern0da: () => starDa(0),
     stern1da: () => starDa(1),
     stern2da: () => starDa(2),
+    // S-Kapitän
+    dreh1: () => ent('karussell')?.turn === 1 && !ent('karussell').turning,
+    dreh2: () => ent('karussell')?.turn === 2 && !ent('karussell').turning,
+    dreh3: () => ent('karussell')?.turn === 3 && !ent('karussell').turning,
+    dreh0: () => ent('karussell')?.turn === 0 && !ent('karussell').turning && ent('karussell').turns > 0,
+    tuerAuf: () => ent('drehtuer')?.turn === 1 && !ent('drehtuer').turning,
+    hofSichtbar: () => !!ent('karussell')?.visible('stern_hof') && starDa(3),
+    stern1: () => !!L.runtime.stars[0], stern2: () => !!L.runtime.stars[1], stern3: () => !!L.runtime.stars[2], stern5: () => !!L.runtime.stars[4],
   };
   /** Bedingung: Name aus COND oder Ausdruck '=…' (Variablen P, L, ent, at). */
   const cond = (k) => (typeof k === 'string' && k.startsWith('=') ? new Function('P', 'L', 'ent', 'at', 'Y', `return (${k.slice(1)});`)(P, L, ent, at, 0) : COND[k]());
@@ -239,7 +310,10 @@ function install() {
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
         c.setInput(inp); c.step(1); steps++;
+        // Diorama: Orbit-Kamera wie in einem gezeichneten Bild nachführen (die Blick-Sterne prüfen die echte Kameralage)
+        if (L.archetype?.orbit) L.archetype.orbit.update(1 / 120, p);
         if (p.riding) mech.ride++;
+        mech.maxY = Math.max(mech.maxY ?? -99, p.pos.y);
         if ((p.hurtTries ?? 0) > lastHurts) { lastHurts = p.hurtTries; mech.hurtList.push(`${p.lastHurt}@${p.pos.x.toFixed(0)},${p.pos.y.toFixed(0)},${p.pos.z.toFixed(0)}`); }
         if (p.mode === 'ground' && !p.dead && !p.riding) {
           const t = track[track.length - 1];
@@ -273,6 +347,8 @@ function install() {
         if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
         if (Lg.crouch) { for (let i = 0; i < Lg.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); settle(); log.push(['röhre', li, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
         if (Lg.expect) { const ok = cond(Lg.expect); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
+        // ------------------------------------------------ Kamera drehen (Diorama: Q/E gehalten), bis die Bedingung gilt
+        if (Lg.cam) { let k = 0; for (; k < (Lg.max ?? 600) && !(Lg.until && cond(Lg.until)); k++) tick({ cam: Lg.cam }); tick({}); log.push(['kamera', Lg.cam, k, JSON.stringify(c.state().archetype?.orbit ?? null)]); if (Lg.until && !cond(Lg.until)) log.push(['FEHLER: bis', Lg.until]); continue; }
         if (Lg.until) { let k = 0; for (; k < (Lg.max ?? 1200) && !cond(Lg.until); k++) tick({}); log.push(['bis', Lg.until, k]); if (!cond(Lg.until)) log.push(['FEHLER: bis', Lg.until]); continue; }
         if (Lg.power) { p.setPower(Lg.power); log.push(['power gesetzt', Lg.power]); continue; }
         if (Lg.hop) {
@@ -597,6 +673,9 @@ function install() {
       mech.lives = L.runtime.save?.lives;
       mech.mausSprung = L.entities.filter((e) => e.kind === 'huepfmaus').reduce((a, e) => a + (e.jumps ?? 0), 0) - mice0;
       mech.regen = L.named.get('regen')?.landed ?? 0;
+      mech.turns = L.named.get('karussell')?.turns ?? 0;
+      mech.doorTurns = L.named.get('drehtuer')?.turns ?? 0;
+      mech.saved = (JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}').levels?.[L.id]?.stars ?? []).filter(Boolean).length;
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
@@ -716,7 +795,7 @@ for (const id of LEVELS) {
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Ziel)
   let sweepTrack = null;
-  for (const hero of ONLY || !PARTS.has('route') || !R.main?.length ? [] : HEROES) {
+  for (const hero of ONLY || !PARTS.has('route') || !R.main?.length ? [] : HEROES.filter((h) => !R.heroes || R.heroes.includes(h))) {
     await load(id);
     await W('place', R.start, { hero, settle: 2 });
     const res = await W('drive', R.main, {});
@@ -750,7 +829,7 @@ for (const id of LEVELS) {
 
   // ------------------------------------------------ Sterne und Stempel
   for (const t of !PARTS.has('targets') ? [] : pick(R.targets ?? [])) {
-    for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
+    for (const hero of (t.heroes ?? R.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
       await load(id);
       await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
       const res = await W('drive', t.legs, { invuln: t.invuln });
@@ -767,7 +846,7 @@ for (const id of LEVELS) {
   }
 
   for (const t of !PARTS.has('extra') ? [] : pick(R.extra ?? [])) {
-    for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
+    for (const hero of (t.heroes ?? R.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
       await load(id);
       const lives0 = await W('lives');
       const coins0 = (await W('rt')).coins;
