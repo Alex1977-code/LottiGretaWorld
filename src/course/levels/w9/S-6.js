@@ -70,7 +70,11 @@ const RECHTS = MR.list().filter((c) => !M.get(c.Q, c.R)).sort((a, b) => b.z - a.
 
 // ---------------------------------------------------------------------------------------------- Zielturm
 const TURM = { x: 0, z: -298, r: 3.1, top: 9.6 };
-const STUFEN = [[-2.4, 1.2], [2.4, 2.4], [-2.4, 3.6], [2.4, 4.8], [-2.4, 6.0], [2.4, 7.2], [-1.2, 8.4]].map(([x, y]) => [x, y, -293.3]);
+// Stufen im Bogen vor dem Turm (von links nach rechts, je 1,2 m höher; keine Stufe liegt über einer anderen)
+const STUFEN = Array.from({ length: 7 }, (_, i) => {
+  const a = (-105 + i * 35) * PI / 180;
+  return [+(TURM.x + Math.sin(a) * 4.5).toFixed(3), +(1.2 * (i + 1)).toFixed(2), +(TURM.z + Math.cos(a) * 4.5).toFixed(3)];
+});
 
 function build(level) {
   wabenOhneLoecher(level, 1.5);
@@ -194,7 +198,7 @@ export const LEVEL = {
     line([0, 0.5, -199], [0, 0.5, -219], 7),
     ring([6.4, 0.4, -238], 1.2, 5),
     line([-8, 0.5, -230], [-2, 0.5, -244], 5), line([4, 0.5, -258], [9, 0.5, -270], 4),
-    column(0, -293.3, 1.8, 8.8, 6),
+    column(0, -292.4, 2.4, 9.4, 6),
   ],
   checkpoint: [{ pos: [0, 0, -120.5], yaw: PI / 2 }, { pos: [0, 0, -223.8], yaw: PI / 2 }],
   stars: [
