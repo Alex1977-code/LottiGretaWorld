@@ -206,7 +206,7 @@ export function tiaraGeos(band, { span = 0.62, colors = null } = {}) {
     gs.push(g);
     return b.p.clone().addScaledVector(b.n, lift + 0.86 * R);
   };
-  const mc = star(0, 0.08, 0.022);
+  const mc = star(0, 0.092, 0.022);
   star(-0.97, 0.036, 0.0); star(0.97, 0.036, 0.0);
   // rosa Herz-Perle im Mittelstern (beidseitig sichtbar)
   { const b = band(0); const z = new THREE.Vector3().crossVectors(b.t, b.n).normalize(); for (const s of [1, -1]) gs.push(sphereGeo(mc.clone().addScaledVector(z, s * 0.026), 0.014, () => gem)); }
@@ -275,9 +275,10 @@ export const SPARKLE = {
   idleGap: [1.4, 2.6],  // s: Abstand im Stand (zufällig im Bereich)
   runGap: 0.11,         // s: Abstand beim Laufen mit vollem Tempo (langsamer: länger)
   jumpBurst: 2,         // Glitzer beim Absprung
-  trailGap: 0.05,       // s: Sternenschweif – Abstand der Sternchen
-  trailLife: 0.55,      // s
-  trailSize: 0.12,      // Einheiten
+  trailGap: 0.034,      // s: Sternenschweif – Abstand der Sternchen
+  trailLife: 0.7,       // s
+  trailSize: 0.17,      // Einheiten
+  trailN: 16,           // Teile (Sternchen und Glitzer im Wechsel)
 };
 
 // ------------------------------------------------------------------ Hilfen

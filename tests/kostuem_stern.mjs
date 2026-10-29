@@ -164,6 +164,8 @@ async function setupBench({ drive = false } = {}) {
       return {
         outfit: av.outfit, costume: av.costume ?? null, stern: !!av.lookStern,
         hair: av.hairMesh.geometry.uuid.slice(0, 6), torso: av.torsoMesh.geometry.uuid.slice(0, 6), skirt: av.skirtMesh.geometry.uuid.slice(0, 6),
+        prints: !!av.sp?.bodice.parent && !!av.sp?.skirt.parent, jewel: !!av.sp?.jewel.parent, jewelAt: av.sp?.where ?? null,
+        partShadow: !!(av.sp && [av.sp.bodice, av.sp.skirt, av.sp.jewel].some((m) => m.parent && m.castShadow)),
         fx: !!F?.on, glints: F ? F.glints.filter((g) => g.mesh.parent && vis(g.mesh)).length : 0,
         trail: F ? F.trail.filter((p) => p.mesh.parent && vis(p.mesh)).length : 0,
         fxShadow: F ? [...F.glints.map((g) => g.mesh), ...F.trail.map((p) => p.mesh)].some((m) => m.castShadow) : false,
@@ -671,7 +673,9 @@ if (on('nah') || on('posen') || on('kostueme')) {
     const N = hero === 'lotti' ? 'Lotti' : 'Greta';
     const P = c.poses;
     console.log(`  Stand ${JSON.stringify(c.idle)}; ohne ${JSON.stringify(c.none)}`);
-    check(`${N}: Stand mit Sternenkleid (Kleid, Haarschmuck, Funkeln an)`, c.idle.outfit === 'stern' && c.idle.stern && c.idle.fx && c.idle.hair !== c.none.hair && c.idle.torso !== c.none.torso && c.idle.skirt !== c.none.skirt);
+    check(`${N}: Stand mit Sternenkleid (Kleid, Aufdruck, ${hero === 'lotti' ? 'Spange' : 'Diadem'}, Funkeln an; Teile ohne Schatten), ohne Kostüm nichts davon`,
+      c.idle.outfit === 'stern' && c.idle.stern && c.idle.fx && c.idle.prints && c.idle.jewel && !c.idle.partShadow && c.idle.torso !== c.none.torso && c.idle.skirt !== c.none.skirt
+      && !c.none.prints && !c.none.jewel && !c.none.fx);
     if (P) {
       console.log(`  Weitsprung ${JSON.stringify(P.weitsprung)}; Statue ${JSON.stringify(P.statue)}`);
       check(`${N}: alle Posen tragen das Kostüm`, Object.values(P).every((p) => p.outfit === 'stern' && p.stern));
@@ -682,10 +686,12 @@ if (on('nah') || on('posen') || on('kostueme')) {
     if (K) {
     console.log(`  Kostüme ${JSON.stringify(Object.fromEntries(Object.entries(K).map(([k, v]) => [k, [v.costume, v.stern, v.hair, v.torso, v.cap]])))}`);
     console.log(`  Helm ${JSON.stringify(c.helm)} → ${JSON.stringify(c.helmOff)}`);
-    check(`${N}: Power-up-Kostüme sitzen darüber (Krallen-Kapuze, Feuer-Kleid, Gleitblatt, Wurfsichel-Mütze, Stern-Glanz, Riese)`,
-      K.krallen.costume === 'krallen' && K.krallen.stern && K.funken.costume === 'funken' && K.funken.torso !== c.idle.torso && K.gleitblatt.costume === 'gleitblatt' && K.sichel.cap && K.sichel.costume === 'sichel'
-      && K.stern.stern && K.riese.stern && K.wieder.hair === c.idle.hair && K.wieder.torso === c.idle.torso);
-    const helmOk = hero === 'greta' ? c.helm.helm && c.helm.hair !== c.idle.hair && c.helmOff.hair === c.idle.hair : c.helm.helm && c.helm.stern && c.helmOff.hair === c.idle.hair;
+    check(`${N}: Power-up-Kostüme sitzen darüber (Krallen-Kapuze ohne Haarschmuck, Feuer-Kleid ohne Aufdruck, Gleitblatt, Wurfsichel-Mütze, Stern-Glanz, Riese)`,
+      K.krallen.costume === 'krallen' && K.krallen.stern && K.krallen.prints && !K.krallen.jewel && K.funken.costume === 'funken' && K.funken.torso !== c.idle.torso && !K.funken.prints && K.funken.jewel
+      && K.gleitblatt.costume === 'gleitblatt' && K.gleitblatt.prints && K.gleitblatt.jewel === (hero === 'lotti') && K.sichel.cap && K.sichel.costume === 'sichel' && K.sichel.prints
+      && K.sichel.jewel === (hero === 'lotti') && (hero !== 'lotti' || K.sichel.jewelAt === 'cap')
+      && K.stern.stern && K.riese.stern && K.wieder.hair === c.idle.hair && K.wieder.torso === c.idle.torso && K.wieder.jewel && K.wieder.prints);
+    const helmOk = hero === 'greta' ? c.helm.helm && !c.helm.jewel && c.helmOff.jewel : c.helm.helm && c.helm.jewel && c.helmOff.jewel;
     check(`${N}: Trage-Helm – ${hero === 'greta' ? 'Diadem ruht' : 'Spange bleibt an der Schleife'}, danach wie vorher`, helmOk);
     check(`${N}: klein – Kostüm vollständig`, c.small.stern && c.small.fx);
     }

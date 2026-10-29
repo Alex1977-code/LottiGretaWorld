@@ -2079,12 +2079,13 @@ export class HeroAvatar extends Avatar3D {
       m.name = 'sternglitzer'; m.visible = false;
       return { mesh: m, where, t: 9, dur: SPARKLE.life, size: SPARKLE.size, spin: 0 };
     };
-    const kinds = st.stern === 'lotti' ? ['gold', 'gold', 'silber'] : ['silber', 'rosa'];
-    const trail = Array.from({ length: 8 }, (_, i) => {
-      const k = kinds[i % kinds.length];
-      const m = new THREE.Mesh(geo(`hero:stern:trail:${k}`, () => trailStarGeo(k)), gloss);
-      m.name = 'sternschweif'; m.visible = false; m.rotation.order = 'YXZ';
-      return { mesh: m, t: 9, pos: new THREE.Vector3(), vel: new THREE.Vector3(), size: SPARKLE.trailSize, spin: 0, w: 0 };
+    // Schweif: gepolsterte Sternchen (Glanz) im Wechsel mit weißen Glitzern (wie die Augen-Glanzpunkte); jedes vierte ein Glitzer
+    const kinds = st.stern === 'lotti' ? ['gold', 'gold', 'silber', 'glitzer'] : ['silber', 'rosa', 'silber', 'glitzer'];
+    const trail = Array.from({ length: SPARKLE.trailN }, (_, i) => {
+      const k = kinds[i % kinds.length], g = k === 'glitzer';
+      const m = new THREE.Mesh(g ? geo('hero:stern:glint', () => glintGeo(1)) : geo(`hero:stern:trail:${k}`, () => trailStarGeo(k)), g ? glintMat : gloss);
+      m.name = 'sternschweif'; m.visible = false;
+      return { mesh: m, glint: g, t: 9, pos: new THREE.Vector3(), vel: new THREE.Vector3(), size: SPARKLE.trailSize, spin: 0, w: 0 };
     });
     return { on: false, glints: [glint('skirt'), glint('skirt'), glint('torso')], trail, spots, next: 0.8, wasJump: false, trailT: 0, ring: 0, k: 0 };
   }
@@ -2145,24 +2146,29 @@ export class HeroAvatar extends Avatar3D {
         F.trailT += SPARKLE.trailGap;
         const p = F.trail[F.ring++ % F.trail.length];
         this.pelvis.updateWorldMatrix(true, false);
-        p.pos.set(-0.2 - 0.08 * Math.random(), -0.2 + 0.24 * (Math.random() - 0.5), 0.22 * (Math.random() - 0.5)).applyMatrix4(this.pelvis.matrixWorld);
-        p.vel.set(-0.7 - 0.4 * Math.random(), -0.25 + 0.5 * Math.random(), 0.5 * (Math.random() - 0.5)).transformDirection(this.model.matrixWorld).multiplyScalar(ws * (0.6 + 0.5 * Math.random()));
-        p.t = 0; p.size = SPARKLE.trailSize * (0.7 + 0.6 * Math.random()); p.spin = Math.random() * TAU; p.w = (Math.random() < 0.5 ? -1 : 1) * (3 + 3 * Math.random());
+        p.pos.set(-0.16 - 0.1 * Math.random(), -0.16 + 0.34 * (Math.random() - 0.5), 0.36 * (Math.random() - 0.5)).applyMatrix4(this.pelvis.matrixWorld);
+        p.vel.set(-0.3 * Math.random(), 0.5 * (Math.random() - 0.5), 0.7 * (Math.random() - 0.5)).transformDirection(this.model.matrixWorld).multiplyScalar(ws * (0.4 + 0.6 * Math.random()));
+        p.t = 0; p.size = SPARKLE.trailSize * (0.7 + 0.6 * Math.random()) * (p.glint ? 1.1 : 1); p.spin = Math.random() * TAU; p.w = (Math.random() < 0.5 ? -1 : 1) * (2 + 3 * Math.random());
       }
     } else F.trailT = 0;
     _mi.copy(this.model.matrixWorld).invert();
+    // Sternchen zeigen zur Kamera (die Kurs-Ansicht kennt sie; sonst blicken sie nach hinten, −X)
+    const cam = this.view?.camera;
+    this.model.getWorldQuaternion(_qi).invert();
+    if (cam?.isCamera) _qt.copy(_qi).multiply(cam.quaternion); else _qt.setFromAxisAngle(UP, -Math.PI / 2);
     for (const p of F.trail) {
-      if (p.t >= SPARKLE.trailLife) { p.mesh.visible = false; continue; }
+      const life = p.glint ? SPARKLE.trailLife * 0.6 : SPARKLE.trailLife;
+      if (p.t >= life) { p.mesh.visible = false; continue; }
       p.t += dt;
-      const k = clamp(p.t / SPARKLE.trailLife, 0, 1);
-      p.vel.multiplyScalar(Math.exp(-2.2 * dt));
+      const k = clamp(p.t / life, 0, 1);
+      p.vel.multiplyScalar(Math.exp(-2.5 * dt));
       p.pos.addScaledVector(p.vel, dt);
-      p.pos.y -= 0.35 * ws * dt;
-      const pop = smoothstep(k / 0.12) * (1 - smoothstep((k - 0.3) / 0.7));
+      p.pos.y -= 0.3 * ws * dt * k;
+      const pop = p.glint ? Math.pow(Math.sin(Math.PI * k), 1.3) : smoothstep(k / 0.1) * (1 - smoothstep((k - 0.35) / 0.65));
       p.mesh.visible = k < 1 && pop > 0.02;
       p.mesh.position.copy(p.pos).applyMatrix4(_mi);
       p.mesh.scale.setScalar(Math.max(1e-3, p.size * pop));
-      p.mesh.rotation.set(0, Math.PI / 2, p.spin + p.w * p.t);
+      p.mesh.quaternion.copy(_qt).multiply(_q.setFromAxisAngle(_v.set(0, 0, 1), p.spin + p.w * p.t));
     }
   }
 
