@@ -344,7 +344,7 @@ ROUTES['P-4'] = {
     { name: 'erste Bohlen freischießen (Pilzling, Krallen-Pilzling, Schnappblume)', until: dead4(['g_p1', 'g_k1', 'g_s1']), max: 1200 },
     { to: [9.4, Z4] },
     { name: 'Schattenplatte A', to: [12.3, Z4], jump: 40 },
-    { name: 'Wuschel unten abwarten', until: '=ent(\'wu_a\').pos.y < 2.2', max: 900 },
+    { name: 'Wuschel oben, dann im Abstieg unten abwarten', until: '=ent(\'wu_a\').pos.y > 6.6', max: 900 }, { until: '=ent(\'wu_a\').pos.y < 2.4', max: 900 },
     { name: 'Schattenplatte B', to: [15.9, Z4], jump: 40 },
     { name: 'Schattenplatte C', to: [19.5, Z4], jump: 40 },
     { face: [1, 0], exact: true },
@@ -360,14 +360,15 @@ ROUTES['P-4'] = {
     { name: 'Krallen-Pilzling am Bühnenende', until: dead4(['g_k2']), max: 900 },
     { expect: dead4(P4_ALL) },
     { name: 'Bühnenboden 4', to: [47.4, Z4] },
-    { to: [53.4, Z4] },
-    { name: 'Schattenstufe H', to: [55.6, Z4], jump: 40 },
+    { to: [53.2, Z4], within: 0.25, run: false },
+    { name: 'Wuschel oben, dann im Abstieg unten abwarten', until: '=ent(\'wu_b\').pos.y > 7.0', max: 900 }, { until: '=ent(\'wu_b\').pos.y < 4.4', max: 900 },
+    { name: 'Schattenstufe H', to: [55.3, Z4], jump: 40, within: 0.3 },
     { name: 'Schattenstufe I', to: [58.2, Z4], jump: 40 },
     { name: 'Podest', to: [59.85, Z4], jump: 40, within: 0.3 },
     { until: '=!ent(\'warp_ziel\').hidden', max: 240 },
     { name: 'Ziel-Warp-Box', warp: [65.2, Z4] },
     { expect: '=P().pos.x > 74' },
-    { name: 'Zielmast', to: [92, -88], within: 0.2 },
+    { name: 'Zielmast', to: [91, -88], within: 0.2 },
   ],
   routeChecks: [
     { name: 'alle 11 Gegner der Bühne besiegt (Kampfraum frei), Turm mit dem Kanonen-Helm umgeworfen, Warp-Box benutzt, < 100 s', ok: (r) => r.mech.raum?.state === 'done' && r.mech.raum?.total === 11 && r.mech.towerDown && r.mech.warps === 1 && r.time < 100 },
@@ -376,7 +377,7 @@ ROUTES['P-4'] = {
     { name: 'Stern 0: Wurfsichel aus dem ?-Block holen, Kanonen-Helm absetzen, vom unsichtbaren Sims durch den Schlitz der unsichtbaren Loge über der Tür werfen', star: 0, from: [46.6, 2.5, Z4], place: { helmet: 'kanone' },
       legs: [{ face: [1, 0], exact: true }, { until: dead4(['g_s2', 'g_k2']), max: 1200 }, { to: [50.6, Z4], within: 0.2, run: false }, { hop: 30 }, { to: [49.2, Z4], within: 0.2, run: false },
         { name: 'auf den ?-Block (Wurfsichel)', to: [50.6, Z4], jump: 60, airMax: 1.6, within: 0.3 }, { chaseKind: 'powerup', max: 600 }, { expect: 'sichel' },
-        { to: [53.4, Z4] }, { to: [55.6, Z4], jump: 40 }, { to: [58.2, Z4], jump: 40 }, { to: [59.85, Z4], jump: 40, within: 0.3 },
+        { to: [53.4, Z4] }, { to: [55.3, Z4], jump: 40, within: 0.3 }, { until: '=ent(\'wu_b\').pos.y > 7.0', max: 900 }, { until: '=ent(\'wu_b\').pos.y < 3.2', max: 900 }, { to: [58.2, Z4], jump: 40 }, { to: [59.85, Z4], jump: 40, within: 0.3 },
         { name: 'Sims links der Loge', to: [61.0, Z4], jump: 40, within: 0.25 }, { expect: '=P().pos.y > 9.7' },
         { dropHelmet: true }, { expect: '=!P().helmet' }, { throwAt: [70, Z4], wait: 200 }], shot: 'stern0' },
     { name: 'Stern 0 nicht ohne Wurfsichel (die Loge ist zu, der Schlitz zu eng – Sprünge vom Sims und vom Dach)', star: 0, expectNot: true, from: [61.0, 9.85, Z4], heroes: ['lotti'],
@@ -398,6 +399,8 @@ ROUTES['P-4'] = {
     { name: 'Ziel-Warp-Box bleibt verborgen, solange ein Gegner übrig ist (Turm steht), erscheint nach dem letzten', from: [19.5, 3.6, Z4], heroes: ['lotti'], probe: 'p4raum' },
     { name: 'Großer Turm: Stampfen/Draufspringen geht nicht (18,8 m hoch), Panzer/Feuer nehmen je eine Stufe, die Kanonenkugel wirft ihn ganz um', from: [19.5, 3.6, Z4], heroes: ['lotti'], probe: 'p4turm' },
     { name: 'Kanonen-Helm im Gang liegt nach dem Aufheben wieder da', from: [0, 2.5, -74.4], heroes: ['lotti'], probe: 'p4helm' },
+    { name: 'Route auch verwundbar gefahren: kein Treffer (Helm bleibt auf), alle besiegt, Ziel in < 100 s', from: [0, 2.5, -74.4], legsFrom: 'main', invuln: false,
+      mech: (r) => r.status === 'goal' && r.mech.hurts === 0 && r.mech.raum?.state === 'done' && r.time < 100, mechText: (r) => `${r.time.toFixed(1)} s, Treffer ${r.mech.hurts}` },
   ],
   shots: [
     ['start', [0, 2.5, -74.4]],
@@ -1294,7 +1297,7 @@ const PROBES = {
   p4raum: async () => {
     const r = await sc(() => {
       const c = window.__course, L = c.level, W = window.__pa, p = c.player;
-      W.place([19.5, 3.6, -87.5], { settle: 4, helmet: 'kanone', invuln: 99, yaw: 0 });
+      W.place([19.5, 3.6, -87.5], { settle: 4, invuln: 99, yaw: 0 });
       const raum = L.entities.find((e) => e.kind === 'kampfraum');
       const box = L.named.get('warp_ziel');
       c.step(5);
@@ -1304,6 +1307,7 @@ const PROBES = {
       for (let i = 0; i < 120; i++) { c.setInput({}); c.step(1); }
       const s1 = raum.info(), h1 = box.hidden;
       // jetzt den Turm mit dem Kanonen-Helm umschießen (die Figur schaut nach rechts, der Helm feuert von selbst)
+      p.wearHelmet('kanone');
       let k = 0;
       for (; k < 1500 && raum.state !== 'done'; k++) { p.invuln = 99; c.setInput({}); c.step(1); }
       for (let i = 0; i < 30; i++) c.step(1);

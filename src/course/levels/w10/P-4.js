@@ -1,18 +1,22 @@
 // P-4 „Schattenspuk-Gerangel“ – Remix von 2-3 „Scherenschnittkeller“ (Bauplan Welt Pilz, Detail P-4: nur der Schatten-Abschnitt,
 // 100 s; dicht mit Gegnern, Kanonen-Helme, Pilzlingsturm aus 30 Pilzlingen; erst wenn alle Gegner besiegt sind, erscheint
 // rechts die Ziel-Warp-Box; Bauplan-Tabelle: „mehr und schwerere Schatten-Rätsel“). Basis als Daten (remixOf, levels/w2/2-3.js
-// bleibt unverändert). Musik der Basis (course_shadow) mit Klang-Variante 'schnell', kein Stempel.
+// bleibt unverändert). Musik der Basis (course_shadow) mit Klang-Variante 'schnell', Thema der Basis, kein Stempel.
 //
-// Ablauf: Seitenbühne (Gang, Kanonen-Helm) → Schattenbühne (Leinwand 70 × 9 m, frontal gespielt): Holzbohlen, unsichtbare
-//   Schattenwege über den Lücken, Wuschel auf ihren Bahnen (unbesiegbar, zählen nicht), viele Gegner und der **große Turm** –
-//   ein Pilzlingsturm aus 30 Pilzlingen (18,8 m, ragt bis in den Schnürboden). Er versperrt die Bohlen zwischen den beiden
-//   Lücken; ein Kanonen-Helm-Treffer wirft ihn ganz um (sonst nimmt jeder Treffer nur eine Stufe). Ein Kampfraum zählt alle
-//   Gegner der Bühne; sind alle besiegt, erscheint rechts auf dem Podest die Ziel-Warp-Box → Applaus-Bühne mit dem Zielmast.
+// Ablauf: Seitenbühne (Gang, Kanonen-Helm) → Schattenbühne (Leinwand 70 × 9 m, frontal wie aus dem Zuschauerraum gespielt):
+//   Holzbohlen, unsichtbare Schattenwege über den Lücken, zwei Wuschel auf senkrechten Bahnen (unbesiegbar, zählen nicht), elf
+//   Gegner in der Bühnenmitte und der **große Turm** – ein Pilzlingsturm aus 30 Pilzlingen (18,8 m, ragt bis in den
+//   Schnürboden). Er versperrt die Bohlen zwischen den beiden Lücken; ein Kanonen-Helm-Treffer wirft ihn ganz um (Panzer, Feuer
+//   usw. nehmen je nur eine Stufe). Der Kampfraum zählt die elf Gegner (Liste GEGNER); sind alle besiegt, erscheint rechts auf
+//   dem Podest die Ziel-Warp-Box → Applaus-Bühne mit dem Zielmast. Kanonen-Helme: im Gang, links auf der Bühne und hinter der
+//   Falltür (liegen nach dem Aufheben wieder da).
 // Sterne (Index): 0 über der Tür – Schattenstern in einer unsichtbaren Loge (nur ihr Schatten verrät sie: links ein schmaler
-//   Schlitz, zu eng für die Figur). Nur die Wurfsichel aus dem ?-Block vor dem Podest fliegt hindurch: vom unsichtbaren Sims
-//   links der Loge geworfen (vorher den Kanonen-Helm absetzen – Ducken + Aktion). 1 links vom großen Turm (Schattenstern auf
-//   einer unsichtbaren Stufe über der Lücke), 2 auf dem Sims rechts vom Turm (vom ersten Schattenweg über der
-//   Riesenschnappblume hinüberspringen). Stern 0 und 1 macht der Aufbau-Haken der Basis zu Schattensternen (shadowStars).
+//   Schlitz, zu eng für die Figur). Nur die Wurfsichel aus dem ?-Block vor dem Podest fliegt hindurch – vom unsichtbaren Sims
+//   links der Loge geworfen (vorher den Kanonen-Helm absetzen: Ducken + Aktion, sonst feuert die Aktion die Kanone). 1 links vom
+//   großen Turm (Schattenstern auf einer unsichtbaren Stufe über dem linken Ende der Turm-Bohlen; erst den Turm umwerfen), 2 auf
+//   dem Sims rechts vom Turm (von der ersten Schattenplatte über der Riesenschnappblume hinüberspringen). Stern 0 und 1 macht
+//   der Aufbau-Haken der Basis zu Schattensternen (shadowStars: unsichtbar, nur ihr Schatten).
+// Weggefallen: Foyer, Fahrplattformen, Checkpoint, Kulissen, Rätselbox, Stempel, Feuer-Schnappblume, Extraleben-Block.
 
 import { remixOf } from '../../level/remix.js';
 import { curtain, valance, footlights, carpet, deco, decoW1 } from '../w2/_helpers_b.js';
@@ -63,17 +67,19 @@ export const LEVEL = remixOf('2-3', {
   ],
   start: { pos: [0, YC, -74.4], yaw: Math.PI / 2 },
   camera: [
-    { from: -71, to: -84, pitch: 44, dist: 12.5, fov: 40, area: [-12, 12] },
-    // Schattenbühne frontal, etwas weiter weg als in der Basis (der große Turm ragt hoch hinauf, die Loge hängt bei 10–12 m)
-    { from: -84, to: -92, pitch: 12, dist: 18, height: 3.4, ahead: 0, fov: 42, area: [-12, 72] },
-    { from: -80, to: -96, pitch: 20, dist: 14, height: 2.4, ahead: 0, fov: 40, area: [74, 104] },
+    // Gang (die Schiene endet früh genug, dass sie auf der Bühne nicht mehr mitblendet – keine Kante bei x 12)
+    { from: -71, to: -79.5, pitch: 44, dist: 12.5, fov: 40, area: [-12, 72] },
+    // Schattenbühne frontal wie aus dem Zuschauerraum: flacher und weiter weg als in der Basis – so verdeckt der Lambrequin
+    // (Unterkante 12,2 m) die Loge über der Tür nicht, und der große Turm ragt sichtbar hoch hinauf
+    { from: -83, to: -92, pitch: 6, dist: 19, height: 1.8, ahead: 0, fov: 42, area: [-12, 72] },
+    { from: -80, to: -96, pitch: 16, dist: 14, height: 2.2, ahead: 0, fov: 40, x: GX, xLock: 0.6, area: [74, 104] },
   ],
   stars: [
     [63.4, 10.75, ZS],                      // 0: über der Tür in der unsichtbaren Loge (Schattenstern, nur mit der Wurfsichel)
     [23.1, 7.3, ZS],                        // 1: links vom großen Turm (Schattenstern auf einer unsichtbaren Stufe)
     [30.4, 9.0, ZS],                        // 2: Sims rechts vom Turm
   ],
-  goal: { pos: [GX + 4, YC, -88], height: 9 },
+  goal: { pos: [GX + 3, YC, -88], height: 9 },
   add: {
     segments: [
       // Schatten-Rätsel 1: Stufe links vom Turm (Stern 1)
