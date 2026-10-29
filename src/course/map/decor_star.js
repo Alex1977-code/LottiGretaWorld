@@ -67,12 +67,12 @@ const hash = (x) => { const h = Math.sin(x * 12.9898) * 43758.5453; return h - M
  * Registry-Modell als statische Kulisse einbacken (false, solange es fehlt oder zu schwer ist); Kachel 'w9:<Id>' mit
  * Fern-Ausblendung; Leuchtteile in die gemeinsame Leucht-Kachel, Teile ohne Schatten in die Zonen-Kachel.
  */
-function bake9(ev, name, opts, pos, yaw = FRONT, scale = 1, state = null, cast = true, maxTris = 6000) {
+function bake9(ev, name, opts, pos, yaw = FRONT, scale = 1, state = null, cast = true, maxTris = 6000, dt = 0) {
   if (!hasModel(name) || tooHeavy9(name, opts, maxTris)) return false;
   const add = (g, o) => (o?.material === 'glow' ? ev.addStatic(g, { ...o, castShadow: false, tile: GLOW_TILE9 })
     : cast && o?.castShadow !== false ? ev.addStatic(g, { ...o, tile: `w9:${ev.id}`, lod: true })
       : ev.addStatic(g, { ...o, castShadow: false }));
-  const ok = !!bakeModel(add, name, opts, pos, yaw, scale, state);
+  const ok = !!bakeModel(add, name, opts, pos, yaw, scale, state, dt);
   if (ok) W9_USED.add(name);
   return ok;
 }
@@ -262,14 +262,15 @@ function plateField(ev, x, y, z) {
   const [wx, wy, wz] = d.steps ?? [x + 8, y, z + 4];
   addGeo(ev, 'w9m:platewall', () => {
     const b = new Build();
-    b.box(1.2, 5.4, 8.4, { v: (px, py, pz, nx, ny) => (Math.abs(nx) > 0.6 ? mix(0x3a3aa0, 0x6a6ad8, py / 5.4 + 0.5) : 0x2e2c78) }, { p: [0.6, 2.7, 0] }, 0.08);
-    for (const [py, pz] of [[1.2, 2.6], [2.6, -0.2], [4, -2.8]]) b.extrude(new THREE.Shape().moveTo(0, 0.5).lineTo(0.15, 0.15).lineTo(0.5, 0).lineTo(0.15, -0.15).lineTo(0, -0.5).lineTo(-0.15, -0.15).lineTo(-0.5, 0).lineTo(-0.15, 0.15).lineTo(0, 0.5), 0.05, 0xffe27a, { p: [-0.03, py + 0.6, pz], r: [0, -PI / 2, 0] }, 0, 1);
+    b.box(1.2, 4.6, 8.4, { v: (px, py, pz, nx, ny) => (ny > 0.6 ? 0xd8d0ff : Math.abs(nx) > 0.6 ? mix(0x5a5ac8, 0x9a9af0, py / 4.6 + 0.5) : 0x4a48a8) }, { p: [0.6, 2.3, 0] }, 0.08);
+    b.box(1.3, 0.16, 8.5, 0xffc83a, { p: [0.6, 4.62, 0] }, 0.04);
+    for (const [py, pz] of [[0.2, 3.2], [1.6, 0.6], [3.0, -1.6], [0.4, -3.4]]) b.extrude(new THREE.Shape().moveTo(0, 0.5).lineTo(0.15, 0.15).lineTo(0.5, 0).lineTo(0.15, -0.15).lineTo(0, -0.5).lineTo(-0.15, -0.15).lineTo(-0.5, 0).lineTo(-0.15, 0.15).lineTo(0, 0.5), 0.05, 0xffe27a, { p: [-0.03, py + 0.6, pz], r: [0, -PI / 2, 0] }, 0, 1);
     return b.geometry();
   }, wx, wy, wz - 6.2, 0, true);
-  solidBox(ev, wx, wy, wz - 10.4, wx + 1.2, wy + 5.4, wz - 2, 'plattenwand');
+  solidBox(ev, wx, wy, wz - 10.4, wx + 1.2, wy + 4.6, wz - 2, 'plattenwand');
   const stepsAt = [[wy + 0.6, wz - 3.4, 'blau'], [wy + 1.8, wz - 5.6, 'rot'], [wy + 3.0, wz - 7.8, 'gelb']];
   for (const [py, pz, color] of stepsAt) {
-    if (!bake9(ev, 'plattenwand', { size: [2, 0.6], depth: 1.6, color }, [wx, py, pz], PI, 1, { out: 1 }, true, 2200)) {
+    if (!bake9(ev, 'plattenwand', { size: [2, 0.6], depth: 1.6, color }, [wx, py, pz], PI, 1, { out: 1 }, true, 2200, 5)) {
       addGeo(ev, `w9m:platestep:${color}`, () => new Build().box(1.6, 0.6, 2, { blau: 0x3a6ae8, rot: 0xe8485a, gelb: 0xffc81a }[color], { p: [-0.8, 0.3, 0] }, 0.06).geometry(), wx, py, pz);
     }
     solidBox(ev, wx - 1.6, py, pz - 1, wx, py + 0.6, pz + 1, 'plattenstufe');
@@ -403,7 +404,8 @@ function rollerIsle(ev, x, y, z) {
 function goalCloud(ev, x, y, z) {
   const [cx, cy, cz, r] = ev.def.fly ?? [x, y + 7, z, 6];
   let fa = 0, fy = cy;
-  const pole = live9(ev, 'zielmast_fluegel', { height: 7 }, [cx + r, cy, cz], 0, 1, () => ({ fly: 1 }), true, 8000, 70, true);
+  const PS = 0.62;   // auf der Karte kleiner (der ganze Mast soll ins Bild passen)
+  const pole = live9(ev, 'zielmast_fluegel', { height: 7 }, [cx + r, cy, cz], 0, PS, () => ({ fly: 1 }), true, 8000, 70, true);
   let poleOwn = null;
   if (!pole) {
     poleOwn = mover(ev, cached('w9m:polefb', () => {
@@ -414,6 +416,7 @@ function goalCloud(ev, x, y, z) {
       b.extrude(new THREE.Shape().moveTo(0, 0.5).lineTo(0.47, 0.15).lineTo(0.29, -0.4).lineTo(-0.29, -0.4).lineTo(-0.47, 0.15).lineTo(0, 0.5), 0.15, 0xffd23a, { p: [0, 7.3, 0] }, 0, 1);
       return b.geometry();
     }), cx + r, cy, cz, 'zielmast');
+    poleOwn.scale.setScalar(PS);
   }
   const obj = pole?.root ?? poleOwn;
   ev.updaters.push((dt, t) => {
@@ -596,9 +599,13 @@ function giantJungle(ev, x, y, z) {
     const b = new Build();
     b.tube([[-8, 8.6, -3], [-4, 6.2, -2], [0, 5.6, -1.5], [4, 6.4, -1], [8, 6.6, -1]], 0.09, 0x3e8a3a, null, 24, 5);
     for (let i = 0; i < 5; i++) b.sphere(0.32, { v: (px, py, pz, nx, ny) => mix(0x2e8a3a, 0x8ad86a, ny * 0.5 + 0.5) }, { p: [-6 + i * 3, 6.4 - (i % 2) * 0.6, -2 + i * 0.25], s: [1.4, 0.5, 0.9] }, 6, 4);
-    for (let i = 0; i < 14; i++) {
-      const gx = -10 + hash(i * 3.1) * 20, gz = -6 + hash(i * 7.7) * 4, h = 2 + hash(i * 1.3) * 2.6;
-      b.cone(0.35, h, { v: (px, py) => mix(0x2e7a34, 0x8ae06a, py / h + 0.5) }, { p: [gx, h / 2, gz], r: [hash(i) * 0.4 - 0.2, 0, hash(i * 2) * 0.4 - 0.2], s: [1, 1, 0.4] }, 4);
+    // Riesengras: weiche, gebogene Halme (gestreckte Ellipsoide) in Büscheln
+    for (let i = 0; i < 9; i++) {
+      const gx = -10 + hash(i * 3.1) * 20, gz = -6 + hash(i * 7.7) * 4;
+      for (let k = 0; k < 3; k++) {
+        const h = 1.6 + hash(i * 1.3 + k) * 1.6, a = k * 2.1 + i;
+        b.sphere(1, { v: (px, py, pz, nx, ny) => mix(0x2e8a3a, 0x9ae870, py + 0.6) }, { p: [gx + Math.cos(a) * 0.3, h * 0.9, gz + Math.sin(a) * 0.3], r: [Math.sin(a) * 0.35, a, Math.cos(a) * 0.35], s: [0.22, h, 0.08] }, 6, 5);
+      }
     }
     return b.geometry();
   }, x, y, z, 0, true);
@@ -647,7 +654,7 @@ function fogYard(ev, x, y, z) {
   // Nebelplattformen steigen und sinken vor der Insel über dem All und blenden aus und ein
   const plats = [];
   let fade = 1;
-  for (const [px, pz, ph] of [[x - 3, z + 20.5, 0], [x + 3.6, z + 21.4, PI]]) {
+  for (const [px, pz, ph] of [[x - 4, z - 10.5, 0], [x + 2.6, z - 11.4, PI]]) {
     const m = live9(ev, 'nebelplattform', { size: [3, 3], thick: 0.5 }, [px, y - 3, pz], 0, 1, (dt, t) => {
       fade = 0.35 + 0.65 * (0.5 + 0.5 * Math.cos(t * 0.5 + ph));
       return { fade };

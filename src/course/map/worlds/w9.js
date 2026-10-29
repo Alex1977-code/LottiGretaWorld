@@ -162,7 +162,7 @@ export const MAP = {
     { id: 'S-2', kind: 'platefield', pos: [28, 12, 4], decor: [31, 12, -2.5], flips: [[10, -7.6], [14, -7.6]], steps: [39.5, 12, 2.4], planet: [5, 14.5, 3.5] },
     { id: 'S-Kapitän', kind: 'spindiorama', pos: [63, 12.5, 7.5], decor: [64, 12.5, -0.5], disc: 'S-K' },
     { id: 'S-3', kind: 'rollerisle', pos: [21, 13.5, -30], decor: [21, 13.5, -39], side: [32, 13.5, -33] },
-    { id: 'S-4', kind: 'goalcloud', pos: [-14, 14.5, -27], decor: [-25, 14.5, -31], fly: [-24, 15, -35, 5.5] },
+    { id: 'S-4', kind: 'goalcloud', pos: [-14, 14.5, -27], decor: [-25, 14.5, -31], fly: [-21, 14.7, -33, 4.6] },
     { id: 'S-5', kind: 'blockland', pos: [-26, 16, -66], decor: [-26, 16, -75], tower: [-15, 16, -80] },
     { id: 'S-6', kind: 'honeycomb', pos: [16, 17, -70], decor: [16, 17, -79] },
     { id: 'S-7', kind: 'giantjungle', pos: [59, 18, -86], decor: [60, 18, -94], roll: [68.5, -83, 4] },
@@ -206,6 +206,7 @@ export const MAP = {
     { kind: 'lamp9', pos: [-24, 10, 52] }, { kind: 'lamp9', pos: [2, 10, 46] }, { kind: 'lamp9', pos: [-24, 10, 32] }, { kind: 'lamp9', pos: [2, 10, 32] },
     { kind: 'rocket9', pos: [-17, 10, 35], color: 'gruen', size: 4 },
     { kind: 'star9', pos: [-1, 10, 34.5], size: 1.2 },
+    { kind: 'scope9', pos: [-23, 10, 50.5], yaw: 0.8 }, { kind: 'pad9', pos: [-17, 10, 35], shadow: false },
     { kind: 'crystal9', pos: [-24, 10, 40], size: 0.9, tone: 0 }, { kind: 'crystal9', pos: [-14.5, 10, 31.6], size: 0.7, tone: 1 },
     // A2 Regenbogeninsel
     { kind: 'lamp9', pos: [34, 10.5, 46.4] }, { kind: 'crystal9', pos: [34, 10.5, 27.6], size: 0.8, tone: 2 },
@@ -231,6 +232,7 @@ export const MAP = {
     // H Nebelfriedhof: Schneetannen, Schneegräber
     { kind: 'fir9', pos: [19.6, 19.5, -117.6], size: 4.2 }, { kind: 'fir9', pos: [50.4, 19.5, -138.4], size: 5 }, { kind: 'fir9', pos: [50.4, 19.5, -117.8], size: 3.6 },
     { kind: 'grave9', pos: [44, 19.5, -126], grave: 'kreuz', tilt: 0.1 }, { kind: 'grave9', pos: [46.5, 19.5, -124], grave: 'rund' },
+    { kind: 'lamp9', pos: [19.6, 19.5, -138.4] }, { kind: 'lamp9', pos: [44.4, 19.5, -117.6] },
     // I Kanonen-Station: Antenne, Neonlampen
     { kind: 'antenna9', pos: [-30, 21, -156] }, { kind: 'neon9', pos: [0, 21, -129.6] }, { kind: 'neon9', pos: [-30.4, 21, -129.6] },
     // J Röhren-Insel: Riesenpilze (Vorgeschmack auf die Welt Pilz), Laternen

@@ -211,15 +211,16 @@ const PALETTES = {
       const h = hash2(Math.floor(ax / 4) + 2, Math.floor(az / 4) - 5);
       if (h > 0.62) mixc(o, lin(0x2a7034), 0.4, o);   // Riesenblatt-Schatten
       else if (h < 0.12) mixc(o, lin(0x8ad070), 0.35, o);   // Sonnenfleck
-      if (hash2(ax * 1.3 - 4, az * 1.1 + 2) > 0.965) mixc(o, lin(hash2(ax, az) > 0.5 ? 0xff8ac8 : 0xfff07a), 0.55, o);   // Blüte
       return o;
     },
   },
   snowfog: {
     side: 0xb8c4ec, rim: 0xffffff, cell: 1, cellOff: 2,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(0xf2f4ff, 0xe6eafc, rnd.frac());
-      if (hash2(Math.floor(ax / 2) + 4, Math.floor(az / 2) + 1) > 0.9) mixc(o, lin(0xb8b4d8), 0.5, o);   // Steinplatte
+      const o = tone(0xf2f4ff, 0xe2e8fc, rnd.frac());
+      const h = hash2(Math.floor(ax / 3) + 4, Math.floor(az / 3) + 1);
+      if (h > 0.86) mixc(o, lin(0xb0acd4), 0.5, o);          // Steinplatte
+      else if (h < 0.22) mixc(o, lin(0xc4d4f4), 0.45, o);    // bläulicher Schneeschatten
       return o;
     },
   },
@@ -647,14 +648,36 @@ function cratesGeo() {
     return b.geometry();
   });
 }
-/** Farn (Dschungel): Fächer aus Wedeln. */
+/** Farn (Dschungel): Fächer aus weich gebogenen Wedeln (flache Ellipsoide). */
 function fernGeo() {
   return cached('w9m:fern', () => {
     const b = new Build();
-    for (let i = 0; i < 7; i++) {
-      const a = (i / 7) * TAU;
-      b.add(new THREE.ConeGeometry(0.35, 2.4, 4), { v: (x, y) => mix(0x2e8a3a, 0x8ad86a, y / 2.4 + 0.5) }, { p: [Math.cos(a) * 0.9, 0.6, Math.sin(a) * 0.9], r: [Math.sin(a) * 1.1, 0, -Math.cos(a) * 1.1], s: [1, 1, 0.25] });
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU + 0.2;
+      b.sphere(1, { v: (x, y, z, nx, ny) => mix(0x2e8a3a, 0xa0f070, ny * 0.5 + 0.5) }, { p: [Math.cos(a) * 1.0, 0.75, Math.sin(a) * 1.0], r: [0, -a, 0.55], s: [1.25, 0.1, 0.34] }, 8, 5);
     }
+    b.sphere(0.35, 0x3e9a3e, { p: [0, 0.3, 0] }, 7, 5);
+    return b.geometry();
+  });
+}
+/** Sternwarte: Fernrohr auf einem Dreibein mit Goldringen (Sternenhafen). */
+function scopeGeo() {
+  return cached('w9m:scope', () => {
+    const b = new Build();
+    for (let i = 0; i < 3; i++) { const a = (i / 3) * TAU; b.cyl(0.05, 0.06, 1.7, 0x6a5a3a, { p: [Math.cos(a) * 0.38, 0.8, Math.sin(a) * 0.38], r: [Math.sin(a) * 0.24, 0, -Math.cos(a) * 0.24] }, 5); }
+    b.sphere(0.14, 0xffc83a, { p: [0, 1.62, 0] }, 6, 4);
+    b.cyl(0.13, 0.2, 1.9, { v: (px, py) => mix(0x3a3a9a, 0x6a6ad8, py / 1.9 + 0.5) }, { p: [0.1, 1.95, 0], r: [0, 0, -1.05] }, 10);
+    for (const u of [-0.6, 0.15, 0.82]) b.torus(0.2 - u * 0.03, 0.035, 0xffc83a, { p: [0.1 + u * 0.87, 1.95 + u * 0.5, 0], r: [0, PI / 2, 1.05] }, 4, 12);
+    return b.geometry();
+  });
+}
+/** Raketen-Startplatz: flache Scheibe mit Goldring und Zielkreuz (ohne Schatten). */
+function padGeo() {
+  return cached('w9m:pad', () => {
+    const b = new Build();
+    b.cyl(2.4, 2.4, 0.06, 0x3a3478, { p: [0, 0.03, 0] }, 24);
+    b.torus(2.1, 0.08, 0xffc83a, { p: [0, 0.07, 0], r: [PI / 2, 0, 0] }, 4, 28);
+    for (const r of [0, PI / 2]) b.box(3.4, 0.02, 0.14, 0xfff0a0, { p: [0, 0.07, 0], r: [0, r, 0] }, 0);
     return b.geometry();
   });
 }
@@ -709,6 +732,8 @@ export function starPropGeo(it, seed) {
     case 'fern9': return fernGeo().clone();
     case 'fir9': return firGeo(s ?? 4).clone();
     case 'neon9': return neonGeo().clone();
+    case 'scope9': return scopeGeo().clone();
+    case 'pad9': return padGeo().clone();
     case 'rocket9': return rocketFallbackGeo(it.color, s ?? 4).clone();
     case 'planet9': return planetFallbackGeo(it.planet, s ?? 6).clone();
     case 'rock9': return crystalBaseGeo((s ?? 1) * 1.6).clone();
@@ -735,6 +760,8 @@ export function starPropShape(it) {
     case 'rocket9': return { type: 'cyl', x, z, r: 0.28 * (s ?? 4), y0: y, y1: y + (s ?? 4), tag: 'rakete' };
     case 'fir9': return { type: 'cyl', x, z, r: 0.5, y0: y, y1: y + (s ?? 4), tag: 'tanne' };
     case 'neon9': return { type: 'cyl', x, z, r: 0.3, y0: y, y1: y + 3.8, tag: 'neon' };
+    case 'scope9': return { type: 'cyl', x, z, r: 0.5, y0: y, y1: y + 2.4, tag: 'fernrohr' };
+    case 'pad9': return null;
     case 'antenna9': return { type: 'cyl', x, z, r: 1.0, y0: y, y1: y + 7.5, tag: 'antenne' };
     case 'boost9': return null;
     case 'donut9': return { type: 'box', min: [x - 0.5, y, z - 0.5], max: [x + 0.5, y + 1, z + 0.5], tag: 'donut' };
@@ -1264,10 +1291,7 @@ export class StarLife {
     // Blick über die ganze Insel (Anflug, Ankunft): bewegte Kleinteile ausblenden (spart Zeichenaufrufe)
     const cam = this.view.camera?.position, tg = this.view.rig?.target;
     const far = !!(cam && tg && cam.distanceTo(tg) > 45);
-    if (far !== this.far) {
-      this.far = far;
-      for (const rk of this.rockets) rk.pivot.visible = !far;
-    }
+    this.far = far;
     if (this.twMesh) {
       const ts = this.twinkleState(t);
       this.twInfo = ts;
@@ -1292,10 +1316,9 @@ export class StarLife {
       if (camO) p.root.visible = !this.far ? _fr.intersectsSphere(_fs.set(_v1.set(...p.spec.pos), p.size)) && camO.position.distanceTo(_v1) < 170 : true;
     }
     for (const rk of this.rockets) {
-      if (this.far) continue;
       this.placeRocket(rk, t);
-      if (rk.model) rk.model.update(dt, { flame: 1 });
-      if (camO) rk.pivot.visible = _fr.intersectsSphere(_fs.set(rk.pivot.position, 3));
+      rk.pivot.visible = !this.far && (!camO || _fr.intersectsSphere(_fs.set(rk.pivot.position, 3)));
+      if (rk.pivot.visible && rk.model) rk.model.update(dt, { flame: 1 });
     }
     if (this.shooting.length) {
       this.stepShooting(t);
