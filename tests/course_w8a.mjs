@@ -129,6 +129,68 @@ const ROUTES = {
       ['raum', [RX3, Y, -126]],
     ],
   },
+  '8-2': {
+    start: 'start',
+    meta: { stars: 3, time: 400, theme: 'dunes', music: 'course_dunes', archetype: 'ride' },
+    enemies: { sandflosser: 10, flatterkaefer: 1, baron_sandstatue: 12, pilzling_sandskulptur: 6 },
+    main: [
+      { name: 'Aufsteigen am Steg', mount: true },
+      { name: 'Startmulde und erste Abfahrt', pflaume: 'main', lat: 0, z: -105 },
+      { name: 'Käferschlucht (Rampe in der Mitte)', pflaume: 'main', lat: 0, z: -142 },
+      { name: 'zweite Abfahrt', pflaume: 'main', lat: 0, z: -226 },
+      { name: 'Statuenfeld bis zum Strand', pflaume: 'main', lat: [[-226, 0], [-244, -1.5], [-252, -1.5], [-262, 0]], z: -400, beach: true },
+      { name: 'Zielmast', to: [0, -337.6], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'Sandfiguren im Ritt gerammt, Schubfelder beschleunigen Pflaume', ok: (r) => r.mech.statues >= 1 && r.mech.schub >= 4 },
+    ],
+    targets: [
+      { name: 'Stern 0: Stern-Sandflosser in der Startmulde – kurz vor dem Auftauchen hüpfen, beim Herausspringen draufspringen', star: 0, from: 'start',
+        legs: [{ mount: true }, { flosser: 'sf_stern' }, { rideStar: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Hüpfer (geradeaus durch die Mulde)', star: 0, expectNot: true, from: 'start', heroes: ['lotti'],
+        legs: [{ mount: true }, { pflaume: 'main', lat: 0, z: -32 }] },
+      { name: 'Stern 1: Rampe links nehmen, auf der Rampe springen, in der Luft auf den Flatterkäfer lenken', star: 1, from: 'cp1',
+        legs: [{ kaefer: 'kaefer_stern', lat: -1.0, at: -122.4 }, { rideStar: 1 }], shot: 'stern1' },
+      { name: 'Stern 1 nicht mit dem geraden Rampensprung', star: 1, expectNot: true, from: 'cp1', heroes: ['lotti'],
+        legs: [{ kaefer: 'kaefer_stern', lat: 0, at: -122.4, steer: false }, { pflaume: 'main', lat: 0, z: -140 }] },
+      { name: 'Stern 2: im Statuenfeld nach rechts zur großen Statue, sie zerbröselt, Stern im Sandstrom einholen', star: 2, from: 'field',
+        legs: [{ pflaume: 'main', lat: [[-229, 0], [-258, 5.5], [-266, 7], [-280, 7]], z: -273 }, { rideStar: 2 }], shot: 'stern2' },
+      { name: 'Stern 2 nicht auf der Mittellinie', star: 2, expectNot: true, from: 'field', heroes: ['lotti'],
+        legs: [{ pflaume: 'main', lat: 0, z: -400, beach: true }] },
+      { name: 'Stempel: in der Oase über die unsichtbaren Wolken zwischen den Statuen, ?-Block stoßen, hinauf zum Stempel', stamp: true, from: [0, -8.15, -306],
+        legs: [{ to: [-3.6, -314.4], within: 0.3, run: false }, { to: [-3.6, -317], jump: 24, jumpAt: 9, within: 0.35, run: false },
+          { to: [0, -320], jump: 30, jumpAt: 9, within: 0.35, run: false }, { to: [3.6, -317], jump: 30, jumpAt: 9, within: 0.35, run: false },
+          { to: [0, -314.6], jump: 30, jumpAt: 9, within: 0.3, run: false }, { hop: 20 }, { to: [1.15, -314.6], within: 0.12, run: false },
+          { upOnto: [0, -314.6, -8.15 + 12.3] }], shot: 'stempel' },
+      { name: 'Stempel erscheint erst nach dem Stoß gegen den ?-Block', stamp: true, expectNot: true, from: [0, -8.15, -306], heroes: ['lotti'],
+        legs: [{ to: [-3.6, -314.4], within: 0.3, run: false }, { to: [-3.6, -317], jump: 24, jumpAt: 9, within: 0.35, run: false },
+          { to: [0, -320], jump: 30, jumpAt: 9, within: 0.35, run: false }, { to: [3.6, -317], jump: 30, jumpAt: 9, within: 0.35, run: false },
+          { to: [0, -314.6], jump: 30, jumpAt: 9, within: 0.3, run: false }, { to: [1.15, -314.6], within: 0.12, run: false }, { wait: 60 }] },
+    ],
+    extra: [
+      { name: 'Extraleben: Felsentor-Arm links (Sandsteinbogen)', from: 'descent2', heroes: ['lotti'], expectLives: 1,
+        legs: [{ pflaume: 'main', lat: [[-145, 0], [-156, -3]], z: -160 }, { pflaume: 'arm', lat: 0, z: -205 }] },
+      { name: 'Extraleben: unsichtbarer Block in der Oase', from: [7, -8.15, -331], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [7, -333], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Pilzling-Sandskulptur im Ritt rammen: zerbröselt, Münzen', from: 'neck', heroes: ['lotti'], expectCoins: 3,
+        legs: [{ pflaume: 'main', lat: [[-30, 0], [-37, -2.6], [-42, -2.6]], z: -44 }],
+        mech: (r) => r.mech.skulpturen >= 1, mechText: (r) => `Skulpturen ${r.mech.skulpturen}` },
+      { name: 'Kontrollpunkt im Ritt: nach einem Sturz geht es auf Pflaume im Strom weiter', from: 'cp1', heroes: ['lotti'],
+        legs: [{ pflaume: 'main', lat: 0, z: -114 }, { die: 'hit' }, { expect: '=P().pos.z < -95 && P().pos.z > -112 && P().riding' }] },
+    ],
+    shots: [
+      ['start', 'start'],
+      ['mulde', 'basin', 30],
+      ['abfahrt1', 'neck', 160],
+      ['rampe', 'ramp', 120],
+      ['schlucht', 'gorge', 60],
+      ['abfahrt2', 'descent2', 120],
+      ['arm', 'arm', 100],
+      ['statuenfeld', 'field', 120],
+      ['sternstatue', 'starStatue', 0],
+      ['oase', 'beach'],
+    ],
+  },
   '8-1': {
     start: [0, Y, 6],
     meta: { stars: 3, time: 400, theme: 'rainfort', music: 'course_rainfort', archetype: 'parcours' },
@@ -287,6 +349,7 @@ function install() {
   const W = {
     place(pos, o = {}) {
       const p = P();
+      if (typeof pos === 'string') pos = L.data.marks[pos];
       c.setInput(null);
       p.setHero(o.hero ?? 'lotti');
       p.dead = false;
@@ -309,6 +372,14 @@ function install() {
       const wx = dx / l, wz = dz / l;
       const cy = L.controlYaw ?? 0, co = Math.cos(cy), si = Math.sin(cy);
       return { x: (co * wx - si * wz) * mag, y: (-si * wx - co * wz) * mag };
+    },
+    /** Ritt (8-2): Wunsch längs der Strömung f (−1 bremsen … +1 schieben) und quer (−1 links … +1 rechts) → Stick. */
+    rideStick(f, along, lat) {
+      const wx = f.dx * along - f.dz * lat, wz = f.dz * along + f.dx * lat;
+      const cy = L.controlYaw ?? 0, co = Math.cos(cy), si = Math.sin(cy);
+      const x = co * wx - si * wz, y = -si * wx - co * wz;
+      const m = Math.max(1, Math.abs(x), Math.abs(y));
+      return { x: x / m, y: y / m };
     },
     /** Lenkung in der Luft: Wunschgeschwindigkeit zum Ziel (tx, tz) plus Mitbewegung (vx, vz). */
     airSteer(tx, tz, vx = 0, vz = 0, k = 3.2, vmax = 7) {
@@ -907,6 +978,141 @@ function install() {
           if (!top) log.push(['FEHLER: Wand nicht erklommen', Lg.climb]);
           continue;
         }
+        // ------------------------------------------------ Sturz (Ursache die): Neustart abwarten (gleiches Level, Kontrollpunkt)
+        if (Lg.die) {
+          p.die(Lg.die);
+          let k = 0;
+          for (; k < 2400 && (p.dead || L.runtime.status !== 'play'); k++) { c.setInput({}); c.step(1); steps++; }
+          for (let q = 0; q < 30; q++) tick({});
+          log.push(['neustart', k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), !!p.riding]);
+          continue;
+        }
+        // ------------------------------------------------ 8-2 Pflaume: am Steg zum wartenden Blatt laufen (Aufsteigen)
+        if (Lg.mount) {
+          let k = 0;
+          for (; k < 1500 && !p.riding && !p.dead; k++) {
+            const r = p.raftPos, dx = r.x - p.pos.x, dz = r.z - p.pos.z;
+            tick({ ...this.stick(dx, dz, 1), run: false });
+          }
+          for (let q = 0; q < 10; q++) tick({});
+          log.push(['aufgestiegen', !!p.riding, k, +p.pos.z.toFixed(2)]);
+          if (!p.riding) { log.push(['FEHLER: nicht aufgestiegen']); break; }
+          continue;
+        }
+        // ------------------------------------------------ 8-2 Pflaume: Autopilot im Sandstrom (Seitenlage lat bzw. [[z, lat], …]) bis z
+        if (Lg.pflaume) {
+          const ch = L.river.channel(Lg.pflaume);
+          const latAt = (z) => {
+            const t = Lg.lat;
+            if (!Array.isArray(t)) return t ?? 0;
+            for (let i = 0; i < t.length - 1; i++) { const a = t[i], b = t[i + 1]; if (z <= a[0] && z >= b[0]) return a[1] + (b[1] - a[1]) * ((a[0] - z) / (a[0] - b[0])); }
+            return z > t[0][0] ? t[0][1] : t[t.length - 1][1];
+          };
+          let k = 0;
+          for (; k < (Lg.max ?? 20000) && p.riding && !p.dead && p.pos.z > Lg.z; k++) {
+            const q = ch.nearest(p.pos.x, p.pos.z, {});
+            const f = L.river.sample(p.pos.x, p.pos.z, {});
+            tick({ ...this.rideStick(f, Lg.along ?? 0, Math.max(-1, Math.min(1, (latAt(p.pos.z) - q.lat) * 0.8))), jump: !!Lg.hold });
+          }
+          // Strand: absteigen abwarten
+          if (Lg.beach) for (let q = 0; q < 600 && (p.riding || p.mode !== 'ground') && !p.dead; q++, k++) {
+            const f = L.river.sample(p.pos.x, p.pos.z, {});
+            tick(p.riding ? this.rideStick(f, 0.5, 0) : {});
+          }
+          log.push(['ritt', Lg.pflaume, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), !!p.riding, p.mode]);
+          if (p.dead) log.push(['FEHLER: im Ritt gestorben', p.deathCause]);
+          continue;
+        }
+        // ------------------------------------------------ 8-2 Stern-Sandflosser: zur nächsten Auftauchstelle, kurz davor hüpfen, beim Auftauchen draufspringen
+        if (Lg.flosser) {
+          const e = L.entities.find((x) => x.spec?.id === Lg.flosser);
+          const LAND = 0.25, lead = Lg.lead ?? 0.5, lag = Lg.lag ?? 0.07;
+          let k = 0, hold = 0, hops = 0;
+          const plan = (f) => {
+            let px, pz, t;
+            if (e.state === 'warn') { px = e.pos.x; pz = e.pos.z; t = e.warnT - e.stateT; }
+            else if (e.state === 'swim') { px = e.pos.x; pz = e.pos.z; t = Math.max(0, e.swimTime - e.clock) + e.warnT; }
+            else if (e.state === 'land') { px = e.pos.x; pz = e.pos.z; t = (LAND - e.stateT) + e.swimTime + e.warnT; }
+            else if (e.state === 'jump') { px = e.jump.bx; pz = e.jump.bz; t = (e.jump.T - e.stateT) + LAND + e.swimTime + e.warnT; }
+            else return null;
+            for (let n = 0; n < 6; n++) {
+              const odd = n % 2 === 1;
+              const x = odd ? 2 * e.home.x - px : px, z = odd ? 2 * e.home.z - pz : pz, tt = t + n * e.every;
+              const dA = (x - p.pos.x) * f.dx + (z - p.pos.z) * f.dz;
+              const v = dA / (tt + lag);
+              if (v >= f.speed * 0.72 && v <= f.speed * 1.3) return { x, z, t: tt, dA, v, n };
+            }
+            return { x: px, z: pz, t, dA: 0, v: f.speed * 0.65, n: -1 };
+          };
+          for (; k < (Lg.max ?? 4000) && p.riding && !p.dead && !e.defeated; k++) {
+            const f = L.river.sample(p.pos.x, p.pos.z, {});
+            const pl = plan(f);
+            if (!pl) { tick({}); continue; }
+            const rx = -f.dz, rz = f.dx;
+            const latErr = (pl.x - p.pos.x) * rx + (pl.z - p.pos.z) * rz;
+            const va = p.vel.x * f.dx + p.vel.z * f.dz;
+            const along = pl.n < 0 ? -1 : Math.max(-1, Math.min(1, (pl.v / f.speed - 1) / 0.35 + (pl.v - va) * 0.6));
+            if (hold > 0) hold--;
+            if (pl.n === 0 && p.mode === 'ground' && pl.t <= lead && pl.t > lead - 0.06 && Math.abs(pl.dA) < 3) { hold = 40; hops++; }
+            tick({ ...this.rideStick(f, along, Math.max(-1, Math.min(1, latErr * 0.9))), jump: hold > 0 });
+          }
+          log.push(['flosser', Lg.flosser, e.defeated, hops, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!e.defeated) log.push(['FEHLER: Sandflosser nicht besiegt', Lg.flosser]);
+          continue;
+        }
+        // ------------------------------------------------ 8-2 Flatterkäfer: Rampe auf Seitenlage lat, auf der Rampe springen, in der Luft zum Käfer lenken
+        if (Lg.kaefer) {
+          const e = L.entities.find((x) => x.spec?.id === Lg.kaefer);
+          const ch = L.river.channel(Lg.ch ?? 'main');
+          let k = 0, air = false, steer = Lg.steer !== false;
+          for (; k < (Lg.max ?? 1500) && p.riding && !p.dead && e.alive && !e.defeated && e.state === 'move'; k++) {
+            const f = L.river.sample(p.pos.x, p.pos.z, {});
+            if (!air && p.mode === 'ground') {
+              const q = ch.nearest(p.pos.x, p.pos.z, {});
+              tick({ ...this.rideStick(f, Lg.along ?? 0, Math.max(-1, Math.min(1, ((Lg.lat ?? -1) - q.lat) * 0.9))), jump: !!p.onRamp && p.pos.z < (Lg.at ?? 0) });
+              continue;
+            }
+            air = true;
+            if (p.mode === 'ground') break;
+            const rx = -f.dz, rz = f.dx;
+            const dL = (e.pos.x - p.pos.x) * rx + (e.pos.z - p.pos.z) * rz;
+            tick({ ...this.rideStick(f, 0, steer ? Math.max(-1, Math.min(1, dL * 1.6)) : 0), jump: true });
+          }
+          for (let q = 0; q < 240 && p.mode !== 'ground' && !p.dead; q++) tick({});
+          log.push(['käfer', Lg.kaefer, !!e.defeated || e.state !== 'move', k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ 8-2 treibenden Stern im Sandstrom einholen (bremsen/beschleunigen, quer lenken)
+        if (Lg.rideStar !== undefined) {
+          const idx = Lg.rideStar;
+          const got = () => !!L.runtime.stars[idx];
+          let k = 0;
+          for (; k < (Lg.max ?? 2400) && !got() && p.riding && !p.dead; k++) {
+            const f = L.river.sample(p.pos.x, p.pos.z, {});
+            const s = L.entities.find((x) => x.kind === 'star' && x.index === idx && x.alive && !x.removed && !x.hidden && x.touch !== false);
+            if (!s) { tick(this.rideStick(f, Lg.along ?? 0, 0)); continue; }
+            const rx = -f.dz, rz = f.dx;
+            const dA = (s.pos.x - p.pos.x) * f.dx + (s.pos.z - p.pos.z) * f.dz, dL = (s.pos.x - p.pos.x) * rx + (s.pos.z - p.pos.z) * rz;
+            tick({ ...this.rideStick(f, Math.max(-1, Math.min(1, dA * 0.8)), Math.max(-1, Math.min(1, dL * 0.9))), jump: s.pos.y - p.pos.y > 1.1 && Math.hypot(dA, dL) < 1.6 && p.mode === 'ground' });
+          }
+          log.push(['stern-ritt', idx, got(), k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ senkrecht neben einem Block hochspringen, erst über seiner Oberkante hinüberlenken
+        if (Lg.upOnto) {
+          const [tx, tz, top] = Lg.upOnto;
+          let k = 0, air = false;
+          for (; k < 300 && !p.dead; k++) {
+            if (air && p.mode === 'ground') break;
+            if (p.mode === 'air') air = true;
+            const over = p.pos.y > top + 0.15;
+            tick({ ...(over ? this.airSteer(tx, tz, 0, 0, 3.4, 5) : { x: 0, y: 0 }), jump: k < 40 });
+          }
+          for (let q = 0; q < 30; q++) tick({});
+          log.push(['hinauf', `${Lg.upOnto}`, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (p.pos.y < top - 0.2) log.push(['FEHLER: nicht oben', Lg.upOnto]);
+          continue;
+        }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)
         const max = Lg.max ?? 900;
         const within = Lg.within ?? 0.6;
@@ -950,6 +1156,10 @@ function install() {
       mech.weg1 = wegDa('s1');
       mech.laengs = L.named.get('laengsblock')?.shown === true;
       mech.mulde = L.named.get('mulde')?.done === true;
+      // 8-2: im Ritt gerammte Sandfiguren, Schubfeld-Treffer
+      mech.statues = L.entities.filter((e) => e.kind === 'baron_sandstatue' && e.broken && e.by === 'ritt').length;
+      mech.skulpturen = L.entities.filter((e) => e.kind === 'pilzling_sandskulptur' && e.broken).length;
+      mech.schub = [1, 2, 3, 4, 5].reduce((a, i) => a + (L.named.get(`schub${i}`)?.hits ?? 0), 0);
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {

@@ -233,3 +233,105 @@ export function regenfestung81(level, o) {
   b.flush(level, { castShadow: false });
   g.flush(level, { material: 'glow', castShadow: false });
 }
+
+// =====================================================================================================================
+// 4) 8-2 „Pflaumes Dünenrutsche“: das Ritt-Netz (Archetyp ride, Baustein river Form A) als Sandstrom
+// =====================================================================================================================
+
+/** Farben des Ritt-Netzes als Düne (ersetzt theme.jungle nur in diesem Level): Sandstrom, Dünenkämme, Sandstein. */
+export const SAND8 = {
+  water: 0xf4c77e, waterDeep: 0xe9b066, waterEdge: 0xfde0a8, foam: 0xfff6e0,
+  bankRock: 0xe7a95e, bankRockDark: 0xc98a4a, moss: 0xf2c074, lip: 0xffe4ae, floor: 0xf6cc86, floor2: 0xeab872,
+  skirt: 0xdc9a54, skirtDark: 0xb4733c, lowland: 0xebb56e,
+  palmTrunk: 0xb0844e, palmTrunkDark: 0x7d5a32, frond: 0x5cb83a, frondLight: 0x9ae05a, frondDark: 0x2d7e2a,
+  canopy: [[0x9ac85a, 0x6a9a3a, 0x48702a], [0xb4d468, 0x7aa842, 0x527a2e]],
+  blooms: [0xff4f7a, 0xff9a2e, 0xffd23a, 0xff6ad5],
+};
+
+/** LEVEL.prebuild: Ritt-Netz in Sandfarben (die Fluss-Bausteine lesen themeOf(level).jungle beim Aufbau). */
+export function duenenThema(level) {
+  const v = level.view;
+  if (!v?.theme) return;
+  v.theme = { ...v.theme, jungle: SAND8 };
+}
+
+/**
+ * LEVEL.setup: Sand statt Wasser – Strom-Fläche matt (statt glänzend), die wandernden Schaumstreifen werden helle
+ * Sandschlieren, Spritzer werden Sandfontänen, das Kielwasser eine helle Sandspur. Nur Materialien dieses Levels.
+ */
+export function sandAnsicht(level, scene) {
+  const v = level.view;
+  if (!v) return;
+  v.three.traverse((o) => {
+    if (!o.isMesh || typeof o.name !== 'string') return;
+    if (o.name.startsWith('wasser:')) { o.material.roughness = 0.95; o.material.metalness = 0; o.material.needsUpdate = true; }
+    else if (o.name.startsWith('schaum:')) { o.material.opacity = 0.42; o.material.color.set(0xfff0cc); }
+  });
+  for (const fx of new Set([level.effects, v.effects])) {
+    const m = fx?.splashPool?.mesh?.material;
+    if (m) { m.color.set(0xf2cf92); m.roughness = 0.9; m.opacity = 0.95; }
+  }
+  const w = scene?.rig?.wake?.material;
+  if (w) w.color.set(0xfff3d6);
+}
+
+/**
+ * Sterne im Sandstrom (8-2): Ein Stern, der in den Sand fällt (Sandflosser, Sandstatue, Flatterkäfer), treibt mit dem
+ * Strom weiter – wie Pflaume selbst. Wer ihn verpasst hat, holt ihn so mit Bremsen/Lenken noch ein. Der vom Flatterkäfer
+ * losgelassene Stern fällt (über dem Sandstrom gibt es keinen festen Boden) bis auf die Sandoberfläche.
+ */
+export function sandStrom(level) {
+  const net = level.river;
+  if (!net) return;
+  const f = {}, rc = {};
+  const carriers = level.entities.filter((e) => e.carry);
+  level.onStep((dt) => {
+    for (const k of carriers) { const s = k.carry?.star; if (k.starDropped && s && !s.__sand) s.__sand = true; }
+    for (const e of level.entities) {
+      if (e.kind !== 'star' || !e.alive || e.removed || e.hidden || e.touch === false) continue;
+      if (!(e.falling || e.landed || e.__sand)) continue;
+      net.sample(e.pos.x, e.pos.z, f);
+      if (!f.ok || !f.inside) continue;
+      e.pos.x += f.dx * f.speed * dt;
+      e.pos.z += f.dz * f.speed * dt;
+      net.constrain(e.pos, 0.6, rc);
+      const top = f.y + 0.15;
+      if (e.__sand || e.landed) {
+        if (e.pos.y > top + 0.01) { e.__vy = (e.__vy ?? 0) - 22 * dt; e.pos.y = Math.max(top, e.pos.y + e.__vy * dt); }
+        else { e.__vy = 0; e.pos.y = top; }
+      } else if (e.pos.y < top) e.pos.y = top;
+      e.drift = (e.drift ?? 0) + dt;
+    }
+  });
+}
+
+/**
+ * Stempel im ?-Block (8-2): Der Stempel (LEVEL.stamp, über dem Block) ist verborgen, bis der ?-Block an pos gestoßen
+ * wurde; dann steigt er funkelnd aus dem Block auf und bleibt auf ihm stehen.
+ */
+export function stempelBlock(level, pos) {
+  const st = level.entities.find((e) => e.kind === 'stamp');
+  const blk = level.entities.find((e) => e.kind === 'question' && Math.abs(e.pos.x - pos[0]) < 0.3 && Math.abs(e.pos.y - pos[1]) < 0.3 && Math.abs(e.pos.z - pos[2]) < 0.3);
+  if (!st || !blk) return null;
+  const home = st.pos.clone();
+  const h = { shown: false, t: 0 };
+  st.touch = false;
+  st.pos.y = home.y - 40;
+  level.onStep((dt) => {
+    if (!st.alive) return;
+    if (!h.shown) {
+      if (blk.kind !== 'used') { st.touch = false; st.pos.y = home.y - 40; return; }
+      h.shown = true;
+      level.sfx('powerup_appear');
+      level.effects?.sparks({ x: home.x, y: home.y + 0.4, z: home.z }, 22);
+    }
+    if (h.t < 0.6) {
+      h.t += dt;
+      const k = Math.min(1, h.t / 0.6);
+      st.pos.y = home.y - 0.9 * (1 - k) * (1 - k);
+      if (k >= 1) st.touch = true;
+    }
+  });
+  if (!level.named.has('stempelblock')) level.named.set('stempelblock', h);
+  return h;
+}
