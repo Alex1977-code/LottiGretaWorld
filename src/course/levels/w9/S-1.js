@@ -25,7 +25,7 @@
 import { RiverChannel } from '../../archetypes/RiverNet.js';
 import {
   line, arc, ring, column, sign, regenbogenPlatten, regenbogenBogen, sternenbachThema, sternfackeln, wolkenkanoneSpaeter,
-  flussbloecke, kugeltore, muenzregen, sternmauern, leuchtsterne, planetchen, funkeln, Bld, litTop, gradY,
+  flussbloecke, kugeltore, muenzregen, sternmauern, leuchtsterne, planetchen, funkeln, Bld, litTop, gradY, RAINBOW,
 } from './_helpers_a.js';
 
 const Y = 0;          // Plattformen
@@ -166,6 +166,20 @@ function build(level) {
       const z = KUGEL.z0 - 2 - k * 3.4, c = [0xfff2a0, 0xffb8e8, 0xb8f0ff][k % 3];
       g.star(0.3, 0.13, 0.05, KUGEL.x0 + 0.06, Y + 3.2 + (k % 2) * 0.6, z, c, { yaw: Math.PI / 2 });
       g.star(0.3, 0.13, 0.05, KUGEL.x1 - 0.06, Y + 3.2 + ((k + 1) % 2) * 0.6, z, c, { yaw: -Math.PI / 2 });
+    }
+    // Farbfeld-Raum: Regenbogen-Saum um das Feld, Sternchen an den Wänden
+    {
+      const cx = (FARB.x0 + FARB.x1) / 2 + 0.8, cz = (FARB.z0 + FARB.z1) / 2 - 0.6, half = 4.6;
+      RAINBOW.forEach((col, i) => {
+        const r = half + 0.25 + i * 0.2;
+        if (i % 2) return;
+        for (const [w, d, x, z] of [[2 * r, 0.18, cx, cz - r], [2 * r, 0.18, cx, cz + r], [0.18, 2 * r, cx - r, cz], [0.18, 2 * r, cx + r, cz]]) b.box(w, 0.02, d, x, FY + 0.002, z, litTop(col, 0.9), { r: 0.005 });
+      });
+      for (let k = 0; k < 4; k++) {
+        const z = FARB.z0 - 2.5 - k * 3.6, c = [0xfff2a0, 0xffb8e8, 0xb8f0ff][k % 3];
+        g.star(0.3, 0.13, 0.05, FARB.x0 + 0.06, FY + 3.2 + (k % 2) * 0.6, z, c, { yaw: Math.PI / 2 });
+        g.star(0.3, 0.13, 0.05, FARB.x1 - 0.06, FY + 3.2 + ((k + 1) % 2) * 0.6, z, c, { yaw: -Math.PI / 2 });
+      }
     }
     b.flush(level);
     g.flush(level, { material: 'glow', castShadow: false });
