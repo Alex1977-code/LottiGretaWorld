@@ -208,6 +208,89 @@ export function kamin(b, x, y, z, h = 1.6, w = 0.9, col = 0xa85a4a) {
   b.box(w - 0.3, 0.05, w - 0.3, x, y + h + 0.2, z, 0x1a1418, { r: 0 });
 }
 
+/**
+ * Dachkram (fest, mit Kollision): Dachluke (warm erleuchtet), Lüftungsrohr mit Hut, Wassertank auf Stelzen, Kistenstapel,
+ * Antenne (ohne Kollision). list: [{ k: 'luke'|'rohr'|'tank'|'kisten'|'antenne', x, y (Dachoberseite), z, yaw, col }, …]
+ */
+export function dachKram(level, b, g, list) {
+  const W = level.world;
+  for (const it of list) {
+    const { k, x, y, z } = it, yaw = it.yaw ?? 0;
+    if (k === 'luke') {
+      const w = it.w ?? 1.3, d = it.d ?? 1.0;
+      b.box(w, 0.34, d, x, y, z, 0xfff0f4, { r: 0.04, yaw });
+      g.box(w - 0.3, 0.06, d - 0.3, x, y + 0.32, z, 0xffd77a, { r: 0, yaw });
+      b.box(0.06, 0.05, d - 0.3, x, y + 0.36, z, 0x6a4a5a, { r: 0, yaw });
+      W?.add({ type: 'box', min: [x - w / 2, y, z - d / 2], max: [x + w / 2, y + 0.38, z + d / 2], tag: 'dachkram' });
+    } else if (k === 'rohr') {
+      b.cyl(0.2, 0.22, 0.9, x, y, z, 0xb8bccc, 8);
+      b.cone(0.42, 0.32, x, y + 0.92, z, it.col ?? 0xe8423a, 8);
+      b.cyl(0.1, 0.1, 0.12, x, y + 0.82, z, 0x3a3448, 6);
+      W?.add({ type: 'cyl', x, z, r: 0.3, y0: y, y1: y + 1.2, tag: 'dachkram' });
+    } else if (k === 'tank') {
+      const r = it.r ?? 0.8, col = it.col ?? 0x5ab8d8;
+      for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) b.box(0.12, 1.3, 0.12, x + dx * r * 0.6, y, z + dz * r * 0.6, 0x5a4a5a, { r: 0 });
+      b.cyl(r, r, 1.5, x, y + 1.3, z, col, 12);
+      b.cyl(r + 0.03, r + 0.03, 0.26, x, y + 1.9, z, 0xfff4ec, 12);
+      b.cone(r + 0.12, 0.7, x, y + 2.8, z, 0xe8423a, 12);
+      g.sphere(0.12, x, y + 3.55, z, 0xfff0a0, { ws: 6, hs: 4 });
+      W?.add({ type: 'cyl', x, z, r: r + 0.05, y0: y, y1: y + 3.4, tag: 'dachkram' });
+    } else if (k === 'kisten') {
+      const s = it.s ?? 0.8;
+      const kiste = (cx, cy, cz, rot) => {
+        b.box(s, s, s, cx, cy, cz, 0xc8884a, { r: 0.03, yaw: rot });
+        b.box(s + 0.04, 0.1, s + 0.04, cx, cy + s * 0.45, cz, 0x7a4a2a, { r: 0, yaw: rot });
+      };
+      kiste(x, y, z, yaw); kiste(x + Math.cos(yaw) * (s + 0.05), y, z - Math.sin(yaw) * (s + 0.05), yaw + 0.2); kiste(x + Math.cos(yaw) * s * 0.5, y + s, z - Math.sin(yaw) * s * 0.5, yaw - 0.15);
+      const ex = Math.abs(Math.cos(yaw)) * (s + 0.05) + s, ez = Math.abs(Math.sin(yaw)) * (s + 0.05) + s;
+      const cx = x + Math.cos(yaw) * (s + 0.05) / 2, cz = z - Math.sin(yaw) * (s + 0.05) / 2;
+      W?.add({ type: 'box', min: [cx - ex / 2, y, cz - ez / 2], max: [cx + ex / 2, y + s, cz + ez / 2], tag: 'dachkram' });
+      W?.add({ type: 'box', min: [x + Math.cos(yaw) * s * 0.5 - s / 2, y + s, z - Math.sin(yaw) * s * 0.5 - s / 2], max: [x + Math.cos(yaw) * s * 0.5 + s / 2, y + 2 * s, z - Math.sin(yaw) * s * 0.5 + s / 2], tag: 'dachkram' });
+    } else if (k === 'antenne') {
+      b.cyl(0.05, 0.06, 2.6, x, y, z, 0x8a8aa0, 5);
+      for (const [h, w] of [[1.6, 1.2], [2.0, 0.9], [2.35, 0.6]]) b.box(w, 0.05, 0.05, x, y + h, z, 0x8a8aa0, { r: 0, yaw });
+      g.sphere(0.1, x, y + 2.68, z, 0xff4a4a, { ws: 6, hs: 4 });
+    }
+  }
+}
+
+/** Manege-Muster auf einer runden Fläche: n Keile im Wechsel zweier Farben zwischen r0 und r1, Goldringe an beiden Rändern. */
+export function manege(b, x, y, z, r0, r1, n = 16, cols = [0xe0566a, 0xfff0dc]) {
+  for (let i = 0; i < n; i++) {
+    const ring = new THREE.RingGeometry(r0, r1, 3, 1, (i / n) * TAU, TAU / n);
+    b.add(ring, cols[i % cols.length], { p: [x, y, z], r: [-Math.PI / 2, 0, 0] });
+  }
+  b.torus(r0, 0.1, x, y, z, TURM.gold, { rx: Math.PI / 2, rs: 3, ts: 28 });
+  b.torus(r1, 0.12, x, y, z, TURM.gold, { rx: Math.PI / 2, rs: 3, ts: 48 });
+}
+
+/** Roter Läufer (flach auf dem Boden, Goldsaum, gelbe Sternchen) von z0 nach z1 bei x, Breite w, Bodenhöhe y. */
+export function teppich(b, x, y, z0, z1, w = 2.4) {
+  const L = Math.abs(z1 - z0), cz = (z0 + z1) / 2;
+  b.box(w, 0.03, L, x, y + 0.005, cz, 0xc8344a, { r: 0 });
+  for (const sx of [-1, 1]) b.box(0.16, 0.035, L, x + sx * (w / 2 - 0.1), y + 0.006, cz, TURM.gold, { r: 0 });
+  const n = Math.max(1, Math.floor(L / 3.2));
+  for (let i = 0; i < n; i++) stern(b, x, y + 0.04, Math.max(z0, z1) - (i + 0.5) * (L / n), 0.42, 0xffd84a);
+}
+/** Flaches Sternchen auf dem Boden (Mitte x, y, z, Radius r). */
+export function stern(b, x, y, z, r = 0.5, col = 0xffd84a) {
+  const s = new THREE.Shape();
+  for (let i = 0; i <= 10; i++) { const a = Math.PI / 2 + (i / 10) * TAU, rr = i % 2 ? r * 0.45 : r; i ? s.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : s.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+  b.add(new THREE.ShapeGeometry(s), col, { p: [x, y, z], r: [-Math.PI / 2, 0, 0] });
+}
+
+/** Lange Turmfahne (Banner) an einer Wand: Stange oben, Tuch mit Goldsaum und Spitze unten; Mitte oben x, y, z, Ausrichtung yaw. */
+export function banner(b, g, x, y, z, yaw, w = 2.0, h = 7, col = TURM.red) {
+  const s = new THREE.Shape();
+  s.moveTo(-w / 2, 0); s.lineTo(w / 2, 0); s.lineTo(w / 2, -h); s.lineTo(0, -h - w * 0.45); s.lineTo(-w / 2, -h); s.lineTo(-w / 2, 0);
+  b.add(new THREE.ShapeGeometry(s), { v: (px, py) => mixHex(col, 0x3a1a3a, Math.min(0.5, -py / (h * 2.4))) }, { p: [x, y, z], r: [0, yaw, 0] });
+  const s2 = new THREE.Shape();
+  s2.moveTo(-w * 0.22, -h * 0.22); s2.lineTo(0, -h * 0.22 + w * 0.3); s2.lineTo(w * 0.22, -h * 0.22); s2.lineTo(0, -h * 0.22 - w * 0.3); s2.lineTo(-w * 0.22, -h * 0.22);
+  b.add(new THREE.ShapeGeometry(s2), TURM.gold, { p: [x + Math.sin(yaw) * 0.03, y, z + Math.cos(yaw) * 0.03], r: [0, yaw, 0] });
+  b.cyl(0.08, 0.08, w + 0.5, x, y - 0.04, z, TURM.gold, 6, { rz: Math.PI / 2, yaw });
+  for (const sx of [-1, 1]) g.sphere(0.14, x + Math.cos(yaw) * sx * (w / 2 + 0.3), y, z - Math.sin(yaw) * sx * (w / 2 + 0.3), 0xfff0a0, { ws: 5, hs: 4 });
+}
+
 /** Vulkan in der Kulisse: Kegelstumpf (dunkel, oben rotbraun), glühender Krater, Lavaströme. */
 export function vulkan(level, b, g, x, z, base, h, r) {
   b.cyl(r * 0.16, r, h, x, base, z, { v: (px, py, pz, nx, ny) => mixHex(0x1a1220, 0x6a3030, Math.max(0, (py + h / 2) / h) ** 1.6).multiplyScalar(0.8 + 0.25 * Math.max(0, ny + nx * 0.3)) }, 28);
@@ -285,6 +368,15 @@ export function tuermchen(level, b, g, x, z, r, y0, top, o = {}) {
   b.cyl(r, r + 0.3, H, x, y0, z, brickPaint(H, 0.4), 28, { open: true });
   b.torus(r + 0.02, 0.22, x, top - 0.9, z, o.band ?? TURM.red, { rx: Math.PI / 2, rs: 5, ts: 28 });
   rundDeckel(b, x, top, z, r, o.tiles);
+  if (o.birnen !== false) {
+    const list = [], n = Math.round(TAU * r / 0.9);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU, px = x + Math.cos(a) * (r + 0.3), pz = z + Math.sin(a) * (r + 0.3);
+      g.sphere(0.12, px, top - 0.45, pz, BIRNEN[i % BIRNEN.length], { ws: 4, hs: 3 });
+      if (i % 2 === 0) list.push([px, top - 0.45, pz, 1]);
+    }
+    glowPoints(level, list, { color: 0xffe0a0, size: 1.1, opacity: 0.5, pulse: 0.8 });
+  }
   for (let k = 0; k < 4; k++) {
     const a = (k / 4) * TAU + Math.PI / 4 + (o.phase ?? 0);
     const px = x + Math.cos(a) * (r + 0.1), pz = z + Math.sin(a) * (r + 0.1);

@@ -31,6 +31,7 @@
 import {
   FY, dach, line, ring, arc, column, sign, Bld, HAUS, TURM, haus, kamin, vulkan, trommel, tuermchen, kletterfront, schaft, kelchturm,
   birnenKette, schilder, glockenbaum, bodenRummel, seilPortal, kanonenTor, rundDeckel, parkKulisse, freundeFest, feuerwerk, glockenKlang, glowPoints,
+  dachKram, manege, banner, teppich, stern,
 } from './_helpers_e.js';
 import { runAction } from '../../entities/gimmick.js';
 
@@ -60,22 +61,9 @@ const SCHUB = (id, i, extra = {}) => {
 // ---------------------------------------------------------------- Aufbau (Kulisse, Kollision; vor dem Verschmelzen)
 function prebuild(level) {
   parkKulisse(level);
-  // DEBUG-TRIS (vorübergehend)
-  if (typeof location !== 'undefined' && location.search.includes('w8edebug') && level.view) {
-    const v = level.view, orig = v.addStatic.bind(v);
-    const acc = window.__w8tris = { phase: 'seg' };
-    v.addStatic = (gg, o) => {
-      const key = `${acc.phase}${o?.material === 'glow' ? ':glow' : ''}${o?.castShadow === false ? '' : ':S'}`;
-      const n = gg?.index ? gg.index.count / 3 : (gg?.attributes?.position?.count ?? 0) / 3;
-      acc[key] = (acc[key] ?? 0) + Math.round(n);
-      (acc.seq ??= []).push([acc.phase, Math.round(n), o?.material ?? 'w', o?.castShadow === false ? 0 : 1, Math.round(gg?.boundingSphere?.center?.z ?? (gg.computeBoundingSphere(), gg.boundingSphere.center.z))]);
-      return orig(gg, o);
-    };
-  }
 }
 
 function build(level) {
-  if (typeof window !== 'undefined' && window.__w8tris) window.__w8tris.phase = 'build';
   const W = level.world;
   // ---- Kollision des Turms
   // Kletterfront (kletterbar mit dem Krallen-Anzug): links, rechts, Rinne in der Mitte
@@ -144,6 +132,15 @@ function build(level) {
   // Kamine auf den Dächern (einer mit Geheimnis)
   kamin(bs, -3.4, 8.6, -93.6, 2.0, 1.2, 0xc86a4a);
   kamin(bs, 3.6, 8, -46.2, 1.4, 0.8); kamin(bs, -3.6, 6.6, -78.6, 1.6, 0.9, 0x8a5a9a); kamin(bs, 3.8, 8, -108.8, 1.2, 0.8, 0x5a6aa8);
+  for (const [kx, ky, kz, kh, kw] of [[3.6, 8, -46.2, 1.4, 0.8], [-3.6, 6.6, -78.6, 1.6, 0.9], [3.8, 8, -108.8, 1.2, 0.8]]) W.add({ type: 'box', min: [kx - kw / 2, ky, kz - kw / 2], max: [kx + kw / 2, ky + kh + 0.2, kz + kw / 2], tag: 'kamin' });
+  // Dachkram an den Rändern (fest; der Weg in der Mitte bleibt frei)
+  dachKram(level, bs, g, [
+    { k: 'kisten', x: -4.2, y: 8, z: -41.8, s: 0.7 }, { k: 'antenne', x: -4.4, y: 8, z: -47.4, yaw: 0.4 },
+    { k: 'luke', x: 3.7, y: 8, z: -51.9, w: 1.1, d: 1.0 }, { k: 'rohr', x: -3.9, y: 8, z: -63.3 }, { k: 'rohr', x: 3.9, y: 8, z: -63.4, col: 0x3a7ae8 },
+    { k: 'tank', x: -4.0, y: 6.6, z: -70.2, r: 0.75 }, { k: 'kisten', x: 3.5, y: 6.6, z: -79.2, s: 0.65 },
+    { k: 'luke', x: 3.6, y: 8.6, z: -94.1, w: 1.2, d: 1.0 }, { k: 'antenne', x: 4.0, y: 8.6, z: -84.2, yaw: -0.3 },
+    { k: 'tank', x: -4.1, y: 8, z: -109.0, r: 0.7, col: 0xe86a9a }, { k: 'rohr', x: 4.2, y: 8, z: -103.0, col: 0xffc83a },
+  ]);
   // Vulkan (Quelle des Lavabrocken-Regens) links hinten
   vulkan(level, b, g, -62, -150, FY, 58, 34);
   // Der große Turm: Turmplatz-Haus darunter, Trommel, Kletterfront, Türmchen, Gipfelschaft, Kanonenhaus
@@ -182,6 +179,25 @@ function build(level) {
   birnenKette(level, g, [-4.3, 11.6, -94.8], [-4.6, 11, -99.7], 6, 0.7);
   birnenKette(level, g, [4.3, 11.6, -94.8], [4.6, 11, -99.7], 6, 0.7);
   for (const sx of [-1, 1]) birnenKette(level, g, [sx * 4.6, ST + 3.2, -146.3], [sx * 9, T0 + 4.2, -168.6], 18, 1.4);
+  // Riesenrad-Platz: roter Läufer zum Einstieg, Sternchen auf dem Pflaster; Turmplatz: Läufer zur Kletterfront
+  teppich(b, 0, PZ, -110.8, -130.4, 2.4);
+  for (const [sx, sz, sr, sc] of [[-6.4, -114.8, 0.7, 0xffd84a], [6.8, -121.6, 0.6, 0x9af0ff], [-4.6, -123.8, 0.5, 0xff8ac8], [5.2, -113.6, 0.5, 0xff8ac8], [-7.6, -118.8, 0.45, 0x9af0ff], [7.4, -128.2, 0.7, 0xffd84a]]) stern(b, sx, PZ + 0.03, sz, sr, sc);
+  teppich(b, 0, T0, -168.6, -183.6, 2.4);
+  // Turmfahnen an der Trommel neben der Kletterfront
+  for (const a of [Math.PI / 2 - 0.62, Math.PI / 2 + 0.62, Math.PI / 2 - 1.2, Math.PI / 2 + 1.2]) {
+    const R = DRUM.r + 0.12;
+    banner(b, g, Math.cos(a) * R, TT - 1.4, DRUM.z + Math.sin(a) * R, Math.PI / 2 - a, 2.2, 8.5, Math.abs(a - Math.PI / 2) < 1 ? TURM.red : 0x8a4ae0);
+  }
+  // Lichterketten von den Türmchen hinab zur Turmterrasse (seitlich, nie über dem Weg)
+  for (const [x, y, z, x2, z2] of [[-4.4, UA - 0.8, ZA, -17.2, -201.8], [4.4, UA - 0.8, ZA, 16, -200], [-4.2, UB - 0.8, ZB, -18.5, -219.6], [4.2, UB - 0.8, ZB, 18.5, -204.4], [-4.4, UC - 0.8, ZC, -16, -224], [4.4, UC - 0.8, ZC, 17.5, -221.7]]) {
+    birnenKette(level, g, [x, y, z], [x2, TT + 1.3, z2], 14, 1.6);
+  }
+  // Gipfel: Manege-Muster, Lichterketten zwischen den Fahnenmasten (nicht vorn, wo die Kamera schaut)
+  manege(b, 0, G + 0.03, ZG, 3.2, 10.2, 20);
+  for (const [i, j] of [[1, 2], [2, 3], [3, 0]]) {
+    const p = (k) => { const a = (k / 4) * Math.PI * 2 + Math.PI / 4; return [Math.cos(a) * 11.8, G + 6.9, ZG + Math.sin(a) * 11.8]; };
+    birnenKette(level, g, p(i), p(j), 18, 2.0);
+  }
   // Gipfel: Funkeln um den Super-POW-Block
   glowPoints(level, [[0, G + 7.5, ZG - 1, 3.5]], { color: 0x7ab8ff, size: 4, opacity: 0.35, pulse: 0.4 });
   b.flush(level, { castShadow: false });
@@ -264,7 +280,7 @@ export const LEVEL = {
   build,
   setup,
   camera: [
-    { from: 14, to: -12, pitch: 40, dist: 13.5, ahead: 2.2 },
+    { from: 14, to: -12, pitch: 35, dist: 14.5, ahead: 2.4 },
     { from: -12, to: -35, pitch: 38, dist: 14, ahead: 2 },
     { from: -35, to: -111, pitch: 44, dist: 14, ahead: 2.6 },
     { from: -111, to: -131, pitch: 36, dist: 16, ahead: 2 },
@@ -334,8 +350,10 @@ export const LEVEL = {
       { kind: 'bude', pos: [10.6, PZ, -124.4], width: 3.2, color: 'rot', yaw: Math.PI, solid: true, seed: 9 },
       { kind: 'karussell', pos: [-8.2, PZ, -128], radius: 2.8, height: 3.6, speed: 0.7 },
       { kind: 'ballons', pos: [7.6, PZ, -130.6], n: 6, color: 'rot' }, { kind: 'ballons', pos: [-11.4, PZ, -113.2], n: 4, color: 'gelb' },
-      { kind: 'lampions', from: [-12.4, PZ + 4.6, -112.6], to: [12.4, PZ + 4.6, -112.6], sag: 1.0 },
+      { kind: 'lampions', from: [-12.4, PZ + 4.6, -112.6], to: [-12.4, PZ + 4.6, -126.4], sag: 1.0 },
+      { kind: 'lampions', from: [12.4, PZ + 4.6, -112.6], to: [12.4, PZ + 4.6, -128.4], sag: 1.0 },
       { kind: 'mast', pos: [-12.4, PZ, -112.6], height: 4.8 }, { kind: 'mast', pos: [12.4, PZ, -112.6], height: 4.8 },
+      { kind: 'mast', pos: [-12.4, PZ, -126.4], height: 4.8 }, { kind: 'mast', pos: [12.4, PZ, -128.4], height: 4.8 },
       { kind: 'gluehbirnen', from: [-12.6, PZ + 4.2, -133.2], to: [-4.2, PZ + 4.2, -133.2], sag: 0.8 },
       { kind: 'gluehbirnen', from: [4.2, PZ + 4.2, -133.2], to: [12.6, PZ + 4.2, -133.2], sag: 0.8 },
       { kind: 'mast', pos: [-12.6, PZ, -133.2], height: 4.4 }, { kind: 'mast', pos: [-4.2, PZ, -133.2], height: 4.4 },
@@ -376,8 +394,9 @@ export const LEVEL = {
       { kind: 'picknick', pos: [5.2, ZIEL.y, -291.6], size: 2.6 },
       { kind: 'mast', pos: [-7.4, ZIEL.y, -284], height: 4.6 }, { kind: 'mast', pos: [7.4, ZIEL.y, -284], height: 4.6 },
       { kind: 'mast', pos: [-7.4, ZIEL.y, -294], height: 4.6 }, { kind: 'mast', pos: [7.4, ZIEL.y, -294], height: 4.6 },
-      { kind: 'lampions', from: [-7.4, ZIEL.y + 4.4, -284], to: [7.4, ZIEL.y + 4.4, -284], sag: 0.9 },
-      { kind: 'lampions', from: [-7.4, ZIEL.y + 4.4, -294], to: [7.4, ZIEL.y + 4.4, -294], sag: 0.9 },
+      { kind: 'lampions', from: [-7.4, ZIEL.y + 4.4, -284], to: [-7.4, ZIEL.y + 4.4, -294], sag: 0.9 },
+      { kind: 'lampions', from: [7.4, ZIEL.y + 4.4, -284], to: [7.4, ZIEL.y + 4.4, -294], sag: 0.9 },
+      { kind: 'lampions', from: [-7.4, ZIEL.y + 4.4, -294], to: [7.4, ZIEL.y + 4.4, -294], sag: 1.1 },
       { kind: 'ballons', pos: [6.6, ZIEL.y, -296.2], n: 6, color: 'gelb' }, { kind: 'ballons', pos: [-7.2, ZIEL.y, -289], n: 4, color: 'rot' },
     ] },
 
