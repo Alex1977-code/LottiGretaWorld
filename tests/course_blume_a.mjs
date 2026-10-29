@@ -255,7 +255,7 @@ const ROUTES = {
       { name: 'Stern 0: Krallen-Anzug aus dem ?-Block am Sprungfeld, in der Kletterkammer den Felspfeiler hinauf', star: 0, from: [0.5, 0, -1],
         legs: [{ to: [2.6, 0.9], within: 0.3 }, { to: [6.4, 0.7], within: 0.3 }, { grab: [6.4, -0.2], back: [6.4, -2.4], hold: 80 }, { expect: 'krallen' }, { expect: 'scrollWaits' },
           { to: [9.0, 0.6], within: 0.3 }, { to: [9.0, -1.7], within: 0.3 }, { climb: [10.7, -1.7], top: 7.8, jumpAt: 1.8, then: [10.7, -1.7] }, { wait: 30 }, { expect: 'scrollWaits' }],
-        shot: 'stern0' },
+        shot: 'stern0', mech: (r) => r.mech.climbs > 20, mechText: (r) => `Kletterschritte ${r.mech.climbs}` },
       { name: 'Stern 0 nicht ohne Krallen (Pfeiler zu hoch, Trennwand ohne Wandsprung)', star: 0, expectNot: true, from: [9.0, 0, 0.4],
         legs: [{ to: [9.0, -1.7], within: 0.3 }, { climb: [10.7, -1.7], top: 7.8, jumpAt: 1.8, allowFail: true }, { to: [9.0, 0.6], within: 0.3 }, { acts: [{ wallclimb: { dir: 1, until: 7.6, z: -1.6 } }, { wait: 60 }] }, { wait: 60 }],
         mechText: (r) => `höchster Punkt y ${r.mech.maxY.toFixed(2)}` },
@@ -284,14 +284,14 @@ const ROUTES = {
         legs: [{ to: [4.6, -17], within: 0.3, max: 900, autoJump: false, swimJump: false }, { wait: 600 }], mech: (r) => r.mech.died && r.mech.deathCause === 'fall', mechText: (r) => `Tod ${r.mech.deathCause}` },
       { name: 'Fahrt wartet auf der Sohle, auf dem ?-Block und auf dem ersten Brett; erst der Sprung darüber startet sie', from: [0.5, 0, -1], heroes: ['lotti'],
         legs: [{ wait: 600 }, { expect: 'scrollWaits' }, { to: [2.6, 0.9], within: 0.3 }, { to: [6.4, 0.7], within: 0.3 }, { grab: [6.4, -0.2], back: [6.4, -2.4], hold: 80 },
-          { to: [6.4, -0.2], jump: 30, jumpAt: 3, within: 0.4, y: 3 }, { hop: 40 }, { wait: 60 }, { expect: 'scrollWaits' }, { to: [6.4, -2.4], within: 0.3 },
+          { to: [6.4, -0.2], jump: 80, jumpAt: 3, within: 0.4, y: 3.4 }, { wait: 240 }, { expect: 'scrollWaits' }, { to: [6.4, -2.4], within: 0.3 },
           { bounce: [5.6, -1], at: [4.4, -1], y: 4.4 }, { wait: 240 }, { expect: 'scrollWaits' }, { to: [0, -1], y: 7, jump: 30, jumpAt: 2.8 }, { wait: 60 }, { expect: 'scrollRuns' }] },
       { name: 'Kontrollpunkt Galerie: nach einem Absturz wartet die zweite Horde wieder', from: [0, 78, -51.0], place: { scroll: 77 }, heroes: ['lotti'], invuln: false, allowFail: true,
         legs: [{ until: 'hordeRolls', max: 240 }, { wait: 240 }, { die: 'fall' }, { expect: 'hordeWaits' }, { expect: '=Math.abs(ent(\'horde_galerie\').info().front + 40) < 0.1' }],
         mech: (r) => r.log.filter((l) => l[0] === 'erwartet' && l[2]).length === 2 },
-      { name: 'Krallen-Anzug: Trennwand zum Schacht nicht kletterbar (nur der Felspfeiler)', from: [8.0, 0, 0.4], heroes: ['lotti'], place: { power: 'krallen' }, allowFail: true,
-        legs: [{ to: [8.9, 0.4], within: 0.3 }, { climb: [7.0, 0.4], top: 9.0, jumpAt: 1.4, allowFail: true }, { wait: 60 }],
-        mech: (r) => r.mech.maxY < 5.5 && r.mech.climbs === 0, mechText: (r) => `höchster Punkt y ${r.mech.maxY.toFixed(2)}, Kletterschritte ${r.mech.climbs}` },
+      { name: 'Krallen-Anzug: an der Trennwand zum Schacht kein Halt (kein Klettern, kein Wandrutschen) – nur der Felspfeiler', from: [9.1, 4.4, -1.7], heroes: ['lotti', 'greta'], place: { power: 'krallen', settle: 1 }, allowFail: true,
+        legs: [{ to: [7.6, -1.7], max: 160, autoJump: false }],
+        mech: (r) => r.mech.walls === 0 && r.mech.climbs === 0, mechText: (r) => `Wand-Schritte ${r.mech.walls}, Kletterschritte ${r.mech.climbs}, Ende y ${r.pos[1].toFixed(2)}` },
     ],
     rules: [
       { name: 'Wippen der Galerie ersetzt: fünf schwebende Wasserwürfel wippen sanft (±0,35 m), Gegenprobe Basis mit drei Wippen',
@@ -490,7 +490,7 @@ function install() {
       const hold = o.invuln !== false;
       const hist = [];
       let deadLogged = false;
-      const mech = { hurts: 0, pipes: 0, warps: 0, rides: 0, bounces: 0, waits: 0, stomped: [], hurtList: [], scrollDone: false, maxY: -99, hammers: 0, swims: 0, gate: false, hordeStart: null, hordeGap: 99, climbs: 0 };
+      const mech = { hurts: 0, pipes: 0, warps: 0, rides: 0, bounces: 0, waits: 0, stomped: [], hurtList: [], scrollDone: false, maxY: -99, hammers: 0, swims: 0, gate: false, hordeStart: null, hordeGap: 99, climbs: 0, walls: 0 };
       const RUN = o.run ?? true, VMAX = o.vmax ?? 11;
       const waters = new Set();
       const horde = L.data.id === 'B-2' ? L.named.get('horde_galerie') : null;
@@ -509,7 +509,7 @@ function install() {
         if ((p.hurtTries ?? 0) > lastHurts) { lastHurts = p.hurtTries; mech.hurtList.push(`${p.lastHurt}@${p.pos.x.toFixed(0)},${p.pos.y.toFixed(0)},${p.pos.z.toFixed(0)}`); }
         if (steps % 10 === 0) for (const e of L.entities) if (e.kind === 'wurf_hammer') hammerSeen.add(e);
         if (p.mode === 'swim') { mech.swims++; if (p.water) waters.add(p.water.waterId ?? p.water.tag ?? '?'); }
-        if (p.mode === 'wall' && p.state === 'climb') mech.climbs++;
+        if (p.mode === 'wall') { mech.walls++; if (p.state === 'climb') mech.climbs++; }
         if (L.named.get('grubentor')?.open) mech.gate = true;
         if (horde) {
           if (hordeSt === 'wait' && horde.state !== 'wait') mech.hordeStart = p.pos.z;
