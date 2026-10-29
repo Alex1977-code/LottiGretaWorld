@@ -84,6 +84,9 @@ function build(level) {
   }
   klaresWasser(level, { pos: [-6, -8.4, -176.7], size: [8, 8.4, 78.6], surface: [[-137.4, -150], [-208, -216]] });
   glasdecke(level, { x0: -10, x1: -2, z0: -150, z1: -208, y: -0.6, thick: 0.35, ribs: 4 });
+  // unsichtbare Sperre über der Glasdecke: der Tunnel wird durchtaucht, nicht oben überlaufen (die Decke liegt knapp unter
+  // dem Wasserspiegel des offenen Beckens)
+  level.world.add({ type: 'box', min: [-10, -0.25, -208], max: [-2, 25, -150], camIgnore: true, noWallSlide: true, tag: 'sperre' });
   tunnelZier(level, { x0: -10, x1: -2, z0: -151, z1: -207, y0: -5, y1: -0.6 });
   signalLampen(level, [
     { pos: [-9.6, 0, -88], color: 'gruen' }, { pos: [-7.6, 0.6, -242], color: 'pink' }, { pos: [-0.8, 0.6, -266], color: 'cyan' }, { pos: [-7.6, 0.6, -290], color: 'gold' },
