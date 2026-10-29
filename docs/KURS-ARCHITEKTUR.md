@@ -1772,6 +1772,104 @@ Turm-Schranke 73–75 / 173–175 k, Turmplatz 67–73 / 162–178 k, Riesenrad 
 64 / 147 k, Warp-9-Ankunft 85 / 191 k, befreiter Turm 85 / 199 k, befreiter Rummel 76 / 256 k, Anflug 91 / 239 k
 (Höchstwert Zeichenaufrufe). Welt 7 an der Röhre nach Welt 8 und bei der Rückkehr höchstens 88 / 228 k.
 
+### Präzisierung (Mehrwelten-Karte): Welt Stern „Sternenzelt“ (Notiz)
+
+- Dateien: `worlds/w9.js` (Daten, `MAP.world = 9`, `prefix: 'S'`, `worldLabel: 'Welt Stern'`, `title`/`short: 'Sternenzelt'` →
+  Weltname „Welt Stern · Sternenzelt“, `travelToast: 'Auf ins Sternenzelt!'`, `kit: 'star'`, Thema `map_star`, Musik
+  `course_worldstar_map`, Rückfall `course_map`, `starScope: 'all'`), `sterne9.js` (Thema `map_star`: Kuppel wie das
+  Stern-Grundthema `starspace` des Motors über `backdrop_star.js` `spaceSky`/`animateStar` – Sterne rundum, Pastell-Nebel, ferne
+  Ringplaneten, Sternschnuppen-Streifen –; Geländestile, Ränder, Sternengeländer `starRims`, Requisiten, Streudeko,
+  Brücken-Segmente, Sternenmeer `StarSea`, Inselchen, Nachbarwelt-Stil `'rummelfern'`, lebendige Kulisse `StarLife`, Taktuhr
+  `beatNow9`/`beatPulse9`), `decor_star.js` (Kulissen der zehn Sternenzelt-Eingänge). Additiv angebunden: `MapBuilder.js`
+  (`map.kit === 'star'`: Gelände, Segmente `buildStarSegment`, Streudeko, Requisiten-Ketten, Requisiten-Kacheln `w9p:<x>|<z>` je
+  24-m-Feld mit Fern-Ausblendung, Ränder, `StarLife`), `scenery.js` (Sternenmeer statt Meer/Schaum/Glitzern, keine Wolken,
+  Inselchen in einer Kachel `w9:inselchen`, Nachbarwelt-Stil `'rummelfern'`), `entrances.js` (`decorateStar`), `props.js`
+  (Podestfarben). `CourseMapScene.js`, `MapBatcher.js`, `travel.js`, `unlock.js`, `layout.js`, `lod.js`, `MapHud.js`,
+  `worlds/index.js` und `worlds/w8.js` sind unverändert (Präfix 'S' über die vorhandene Präfix-Tabelle, Weltname über `worldLabel`).
+- Inseln (begehbar, Höhe) und Eingänge (`kind`), alle schwebend im All über dem Sternenmeer (`sea: 0`, Inseln ab y 10), im Zickzack
+  nach Norden ansteigend: A Sternenhafen y 10 mit Beerenhaus (−8, 10, 33.5), Sternwarte, Raketen-Startplatz – `W8` Glasröhre zurück
+  (−20, 10, 47; `departAlong`, nach Südwesten hinab zum Rummelplatz tief unten am Horizont); A2 Regenbogeninsel y 10.5 – `S-1`
+  `rainbowisle` (18, 10.5, 34; Sternen-Torbogen, großer leuchtender Regenbogen auf Wolken, Hüpfmaus, Sternring); B
+  Planetoiden-Plattenfeld y 12 – `S-2` `platefield` (28, 12, 4; Farbplatten-Schachbrett, schwebende Drehplatten, Plattentreppe an
+  einer Sternenwand, kleiner Eisplanet); K Diorama-Insel y 12.5 – `S-Kapitän` `spindiorama` Krümels Drehdiorama (63, 12.5, 7.5;
+  Drehscheibe, Krümel fährt mit, zwei Funkenflämmchen; Scheibe „S-K“); C Holz-Walzen-Insel y 13.5 – `S-3` `rollerisle`
+  (21, 13.5, −30; Schienenwalze rollt auf dem Schienenpaar, Holz-Athletik mit drei drehenden Walzen); D Wolkeninsel y 14.5 –
+  `S-4` `goalcloud` (−14, 14.5, −27; der Zielmast mit Flügeln fliegt Kreise, Landewolke, Donut-Blöcke, Boost-Pfeile); E
+  Retro-Blockland y 16 mit Glückshaus (−38, 16, −79.4) – `S-5` `blockland` (−26, 16, −66; ?-Block-Reihe, Grasblock-Treppe,
+  Pixel-Hügel, Retro-Wolken und -Büsche, wachsender Riesen-?-Turm, kleine Laufbombe); F Wabeninsel y 17 – `S-6` `honeycomb`
+  (16, 17, −70; Wabenboden aus Sechsecken, Wabenfeld, Lavawaben, Wabensäulen, Brummer, Wurfsichel); G Riesen-Dschungel y 18 –
+  `S-7` `giantjungle` (59, 18, −86; Riesenblume, Riesenpilz, Riesenblätter, Lianen, Riesengras, Farne, Großrollpilz); H
+  verschneiter Nebelfriedhof y 19.5 – `S-8` `fogyard` (34, 19.5, −124; Schneegräber mit Lachgesicht, Eisenzaun, Nebelbänke,
+  zwei steigende/sinkende Nebelplattformen, Kreisgeist, Schneefall, Schneetannen); I Kanonen-Station y 21 – `S-9`
+  `cannonstation` (−14, 21, −138, „ab 280 ★“; Glaskuppel, Antenne, Rohrschiene mit Weiche und fahrendem Schienenbrett,
+  Sternkanone mit fliegender Kanonenkugel, Kanonen-Helm, Neonbogen, Neonfugen, Triebwerksringe unter der Insel); J Röhren-Insel
+  y 19.5 – `WP` Glasröhre zur Welt Pilz (38, 19.5, −157; Riesenpilze, Röhre nach Nordosten zum großen Pilz-Planeten). Elf
+  Verbindungen (`segments`): Regenbogenwege (`rainbowway`: sieben Farbbahnen, weiße Wülste, leuchtende Goldsterne) und
+  Sternenbrücken (`starbridge`: nachtblauer Steg mit goldenen Sternplatten, Sternenpfosten, Goldkordel, hängende Kristalle),
+  Kollision wie `bridge`; zehn Schranken je 4 m.
+- Freischaltung laut „Bonuswelten – Level-Liste und Freischaltung“ (Welt Stern): `S-1` frei, sobald die Welt offen ist; `S-2`
+  nach S-1; `S-Kapitän` und `S-3` nach S-2 (Abzweig zur Diorama-Insel); `S-4` … `S-8` nacheinander; `S-9` nach S-8 **und
+  ≥ 280 ★** (alle Sterne; Hinweis „Benötigt 280 Sterne (x/280)“); `WP` (`{ id: 'WP', after: 'S-8', world: 10, next: 10,
+  worldLabel: 'Welt Pilz' }`) nach S-8, ohne Karte der Welt Pilz „Welt Pilz kommt bald!“ (Schild „Welt Pilz / bald!“; ein
+  Welt-Warp nach Welt 10 endet über den vorhandenen Rückfall an dieser Röhre); Rückweg `W8` (`{ id: 'W8', world: 8, next: 8 }`)
+  immer frei. 32 Sterne, Stempel auf S-1 … S-9. Welt 9 ist offen, sobald die Welt-8-Röhre `WS` frei ist (nach 8-Burg) oder
+  Welt 9 entdeckt wurde. Schilder „Welt Stern / Sternenzelt“, „Beerenhaus“, „Glückshaus“, „ab 280 ★“.
+- Weltdaten zusätzlich (alles optional): Geländestile `starplaza` (Standard, lavendelblaue Platten mit Goldsternchen)|`rainbow`|
+  `galaxy` (rot-blaue Platten, weiße Fugen, Sterne)|`diorama`|`wood`|`cloud` (Wolkenplatte ohne Fels)|`retro` (Pixelgras,
+  Blockfugen vorn)|`honey` (Sechseck-Waben)|`jungle`|`snowfog` (Eiszapfen unten)|`tech` (Neonfugen, Warnstreifen)|`asteroid`, je
+  Block `under: false | { depth }` (felsige Unterseite mit leuchtenden Kristallen); Ränder `edges: { hedge: 'starhedge', fence:
+  'starrail' }`, an Inselrändern zum All setzt `starRims` ein niedriges Sternengeländer mit leuchtenden Sternen (Brückenränder
+  ausgenommen); Requisiten `lamp9`|`crystal9`|`star9`|`rocket9` (Registry `spielzeugrakete`)|`planet9` (`planet` mit kind)|
+  `crates9`|`boost9` (`boost_arrow`)|`donut9` (`donut_block`)|`rbush9` (`retro_busch`)|`rblock9` (`retro_block`)|`hexpillar9`
+  (`wabensaeule`)|`plant9` (`riesenpflanze`)|`fern9`|`fir9`|`grave9` (`schneegrab`)|`antenna9` (`weltraum_antenne`)|`neon9`|
+  `scope9`|`pad9`|`cloud9`. Lebendige Kulisse (`StarLife`): `planets: [{ kind, pos (Mitte), size, speed }]` (Registry `planet` mit
+  `kind`, drehen sich), `rockets: [{ c, r, h, speed, color }]` (Spielzeugraketen mit Flamme kreisen), `shooting: { n, period }`
+  (Sternschnuppen `sternschnuppe` sausen in Abständen schräg durchs Bild – relativ zum Blickpunkt der Kamera), `twinkle:
+  { perIsland, seed }` (funkelnde Sterne rings um alle begehbaren Inseln, eine Instanz-Fläche). `StarSea`: zwei Sternschichten
+  tief unter den Inseln (Parallaxe) und weiche Nebel (ein Mesh). Kacheln `batch.zones` je Insel (zwölf Zonen).
+- **Funkelnde Sterne im Takt:** Die Sterne rings um die Inseln bilden drei Gruppen; je Zählzeit der Kartenmusik (`music.beat()`)
+  leuchtet die nächste Gruppe hell auf (Puls `beatPulse9`: hell am Schlag, klingt ab); die Farbplatten des Plattenfelds wechseln je
+  Zählzeit die Farbe (Schachbrett, Aufleuchten am Schlag), die Drehplatten kippen je Takt, die Waben leuchten Ring für Ring, der
+  Riesen-?-Turm wächst über zwei Takte und schrumpft wieder (Kopf hüpft je Takt). Ohne laufende Musik zählt die Ersatzuhr
+  (Kartenzeit, `source: 'zeit'`) im Tempo von `course_worldstar_map` (126 BPM; fehlt das Thema: `course_map`).
+- Test-Schnittstelle (additiv): `state().decor` = Vereinigung von `ev.liveInfo()` aller Eingänge und `built.life.liveInfo()` –
+  `twinkle { beat, step, k, source, theme, bpm, n, shown }`, `planets { n, registry, kinds, angle }`, `rockets { n, registry, a }`,
+  `shooting { n, registry, active }`, `rainbow { mouse, hop, ring, ringA }`, `plates { tiles, flips, step, flash, tilt, registry }`,
+  `diorama { angle, registry, kruemel }`, `roller { z, angle, registry, logs }`, `goalpole { angle, y, registry }`, `blockland
+  { tower, grow, bumps, bomb }`, `honeycomb { cells, lit, flash, registry, lava, brummer, sickle }`, `jungle { roll, roller }`,
+  `fogyard { graves, banks, platforms, fade, ghost, ga, snow }`, `station { brett, registry, ball, helm }`, `w9models` (benutzte
+  Registry-Modelle), `w9heavy` (zu schwere: Name → Dreiecke); `built.life.twinkleState(t)`.
+- Registry-Modelle (Obergrenze je Einsatz über `beach5.modelTris`; unbewegte eingebacken in die Kachel `w9:<Id>` mit
+  Fern-Ausblendung, bewegte als eigene Objekte mit Sichtprüfung; fehlt ein Modell, zeichnen `decor_star.js`/`sterne9.js` eigene
+  Geometrie an gleicher Stelle): Bonuswelten – `planet` (kind ring/pilz/blume/eis), `sternschnuppe`, `spielzeugrakete`,
+  `sternen_torbogen`, `farbplatte`/`drehplatte`/`wabe` (Instanzen über `createInstanced`), `plattenwand`, `diorama_drehscheibe`,
+  `walzen_schiene`, `schienenwalze`, `zielmast_fluegel`, `retro_block`, `retro_wolke`, `retro_busch`, `riesen_frageblock_turm`,
+  `wabensaeule`, `riesenpflanze`, `schneegrab`, `nebelbank`, `nebelplattform`, `weltraum_kuppel`, `weltraum_antenne`,
+  `brett_schiene`, `schienenbrett`, `weiche`, `kanonenkugel_tritt`; vorhandene – `kruemel`, `huepfmaus`, `star_ring`,
+  `boost_arrow`, `donut_block`, `brummer`, `wurfsichel_item`, `grossrollpilz`, `kreisgeist`, `helm_kanone`; zu schwer: keines.
+  Bewusst eigene Geometrie: Laufbombe (Registry ≈ 11 k Dreiecke, 10 Meshes), Funkenflämmchen (Instanzen), Sternkanone,
+  Holz-Athletik, Pixel-Hügel, Lianen, Eisenzaun, Sternwarte, der große Regenbogen.
+- Übergänge: Die Welt-8-Röhre `WS` und ein Welt-Warp nach Welt 9 führen ohne Codeänderung ins Sternenzelt (Ankunft an `W8`,
+  Kamera `arriveCam`); die Aussage „solange es keine Welt-9-Karte gibt mit „Welt Stern kommt bald!““ der Welt-8-Notiz ist damit
+  überholt (Schild jetzt „Welt Stern / Sternenzelt“). Zurück durch `W8` landet man an der Röhre `WS` in Welt 8 (entdeckt,
+  Schranke 8-Burg von hinten passierbar). Die Röhre `WP` zeigt „Welt Pilz kommt bald!“; **Welt Pilz nachrüsten:** nur
+  `worlds/w10.js` mit `MAP.world = 10` anlegen samt Rückweg-Röhre `{ id: 'WS', world: 9, next: 9 }`; dann führen die Röhre `WP`
+  und ein Welt-Warp nach Welt 10 ohne Codeänderung dorthin. Der Abspann (`?credits=1`) nennt in „Die Reise“ jetzt auch
+  „Welt Stern · Sternenzelt“ (genau einmal, nach Welt 8) und kehrt unverändert in die befreite Welt 8 zurück.
+  `tests/course_map_w8.mjs` (Abschnitte 1, 9) prüft jetzt Fahrt, Warp und Rückkehr ins Sternenzelt, `tests/course_map_hw.mjs`
+  die Weltenliste 1–9, 31.
+- Test: `tests/course_map_star.mjs` (Port 4915, Bilder `tests/out/cmapS_*.png`), Teilläufe `ST_TEIL=1|2|3` (Abschnitte 2–5, 6–9,
+  10–13, je mit den Node-Prüfungen; gemessen ≈ 3,4 / 1,9 / 5,6 min). Noch nicht in `npm test`.
+
+Gemessen (scale 2, `tests/course_map_star.mjs`, mit den Bonuswelt-Modellen): statische Kulisse Welt 9 52 Kachel-Meshes, ≈ 229 k
+Dreiecke, ≈ 211–221 Kollisionsformen; je Ansicht (Zeichenaufrufe inkl. Schattenpass / Dreiecke) Ankunft durch die Glasröhre
+42–84 / 71–160 k, Start 68 / 134 k, Hafen 63–68 / 144–150 k, Regenbogeninsel 64–70 / 135–143 k, Plattenfeld 67–69 / 146–168 k,
+Diorama 68 / 125 k, Sternenbrücke 66 / 127 k, Holz-Walzen 59–63 / 152–169 k, Wolkeninsel 67–68 / 175–191 k (Höchstwert
+Dreiecke), Blockland 67–72 / 181–186 k, Glückshaus 66 / 146 k, Waben 65 / 175 k, Dschungel 63–67 / 180–181 k, Nebelfriedhof
+75–78 / 166–170 k, Kanonen-Station 52–68 / 127–134 k, Sternschranke 82 / 144 k (Höchstwert Zeichenaufrufe), Pilz-Röhre
+48–58 / 100–118 k, Warp-10-Ankunft 80 / 135 k, Anflug 69 / 163 k. Welt 8 an der Röhre ins Sternenzelt und bei der Rückkehr
+höchstens 67 / 159 k (Rückkehr mit Schwenk 85 / 191 k).
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
