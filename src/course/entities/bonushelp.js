@@ -100,4 +100,3 @@ export function inCircle(fig, c, r, dy = 3) {
 /** Lage aus [x, y, z] | {x, y, z} → {x, y, z}. */
 export const P3 = (a, d = [0, 0, 0]) => (Array.isArray(a) ? { x: a[0] ?? d[0], y: a[1] ?? d[1], z: a[2] ?? d[2] } : a ? { x: a.x ?? d[0], y: a.y ?? d[1], z: a.z ?? d[2] } : { x: d[0], y: d[1], z: d[2] });
 
-export { clamp as clampB };

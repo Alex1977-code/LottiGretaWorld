@@ -6,14 +6,15 @@
 //   3   Stachelkugler: links Pendel · rechts Bahn (Runde)
 //   4   Tintling: links Becken mit zwei Tintlingen · rechts Becken mit Strömung
 //   5   Riesenhase (B-5): links Riesenhase mit Stern und Items · rechts kleiner und großer Hase (unverändert)
-//   6   links Laufbomben (Kickbombe look 'laufbombe') vor einer lila Ziegelwand · rechts Pilzlingsturm aus 30 Pilzlingen (P-4)
+//   6   links Laufbomben (Motor-Art 'laufbombe', zünden bei Nähe) vor einem Felsblock (Motor) · rechts Pilzlingsturm aus 30
+//       Pilzlingen (P-4)
 //   7   links Pilzlingsturm mit Feuer-Werfer obenauf (B-9) · rechts Topfpflanze und Wuschel (K-1 „frisst Wuschel“)
 //   8–12 Kampfräume (P-Haus, je Gehege ein 'kampfraum' → Signal 'kampfraumFrei'): 8 Rammbock-Bullen | Schneesäulen,
 //        9 Flieger (Flatterkäfer, Brummer) | Bumerang-Werfer, 10 Münzmarder | Pilzlingstürme, 11 Funkenflämmchen | Zauberkröten,
 //        12 Rankenschnapper | Hammer-Werfer
 //   13  Bestand geprüft: links Glotzfisch (Becken mit Löchern) und Kreisgeist-Ring · rechts Großrollpilz, Hackbeil-Pilz, Wuschel
 //   Ziel bei z −272. Hilfe Z(r, dz) = z der Reihe r, dz Meter hinter ihrer Vorderkante (auch in den Tests).
-// Thema 'space' (Bonuswelt-Stimmung), Musik course_galaxy (Rückfall des Musiksystems, falls es das Thema noch nicht gibt).
+// Thema 'starspace' (Welt Stern), Musik course_galaxy.
 
 const Y = 1;
 export const Z = (r, dz) => -8 - 20 * (r - 1) - dz;
@@ -52,7 +53,7 @@ export const LEVEL = {
   world: 0,
   title: 'Bonus-Gegnerzoo',
   archetype: 'parcours',
-  theme: 'space',
+  theme: 'starspace',
   music: 'course_galaxy',
   timeLimit: 999,
   start: { pos: [0, Y, 6], yaw: Math.PI / 2 },
@@ -82,7 +83,7 @@ export const LEVEL = {
     sign(-11.5, 3, 'Stachelkugler\nPendel'), sign(11.5, 3, 'Stachelkugler\nBahn'),
     sign(-11.5, 4, 'Tintlinge'), sign(11.5, 4, 'Tintling\nStrömung'),
     sign(-11.5, 5, 'Riesenhase'), sign(11.5, 5, 'Hasen'),
-    sign(-11.5, 6, 'Laufbomben'), sign(11.5, 6, 'Pilzlingsturm 30'),
+    sign(-11.5, 6, 'Laufbomben\nFelsblock'), sign(11.5, 6, 'Pilzlingsturm 30'),
     sign(-11.5, 7, 'Turm mit\nFeuer-Werfer'), sign(11.5, 7, 'Topfpflanze\nfrisst Wuschel'),
     sign(-11.5, 8, 'Kampfraum\nRammbock-Bullen'), sign(11.5, 8, 'Kampfraum\nSchneesäulen'),
     sign(-11.5, 9, 'Kampfraum\nFlieger'), sign(11.5, 9, 'Kampfraum\nBumerang-Werfer'),
@@ -111,8 +112,8 @@ export const LEVEL = {
     // ---- 6 rechts: 30er-Turm
     { kind: 'pilzlingsturm', id: 'turm30', pos: at(11.5, 6, 9), count: 30, behavior: 'walk', speed: 0.6, dir: [1, 0], topple: ['bomb', 'mega', 'star', 'bump', 'cannon'] },
     // ---- 6 links: Laufbomben
-    { kind: 'kickbombe', look: 'laufbombe', id: 'lb1', pos: at(-14, 6, 5), dir: [1, 0], speed: 1.1 },
-    { kind: 'kickbombe', look: 'laufbombe', id: 'lb2', pos: at(-8, 6, 5), dir: [-1, 0], speed: 1.1, trigger: 0 },
+    { kind: 'laufbombe', id: 'lb1', pos: at(-14, 6, 5), dir: [1, 0], speed: 1.1 },
+    { kind: 'laufbombe', id: 'lb2', pos: at(-8, 6, 5), dir: [-1, 0], speed: 1.1, trigger: 0 },
     // ---- 7
     { kind: 'pilzlingsturm', id: 'turm_werfer', pos: at(-11.5, 7, 7), count: 3, behavior: 'walk', speed: 0.5, dir: [1, 0], rider: { kind: 'feuer_werfer', id: 'werfer_turm', sight: 12, interval: 2.4 } },
     { kind: 'wuschel', id: 'wu_topf', center: at(11.5, 7, 7, Y + 0.1), radius: 2.2, speed: 1.6 },
@@ -141,8 +142,8 @@ export const LEVEL = {
     { kind: 'bunny', id: 'riesenhase', size: 'giant', pos: at(-11.5, 5, 7), area: { min: [-18.5, Z(5, 13.5)], max: [-4.5, Z(5, 0.5)] }, star: 0, items: ['wachstumsbeere', 'funken', 'krallen', 'coins:5'] },
     { kind: 'bunny', id: 'hase_klein', pos: at(8, 5, 7), area: { min: [4.5, Z(5, 13.5)], max: [11, Z(5, 0.5)] } },
     { kind: 'bunny', id: 'hase_gross', size: 'big', pos: at(15, 5, 7), area: { min: [11.5, Z(5, 13.5)], max: [18.5, Z(5, 0.5)] } },
-    // 6 lila Ziegelwand vor den Laufbomben
-    { kind: 'lila_ziegelwand', id: 'ziegel', pos: at(-11.5, 6, 12), size: [6, 2, 1] },
+    // 6 Felsblock (Motor) hinter den Laufbomben – sprengbar
+    { kind: 'felsblock', id: 'fels', pos: at(-11.5, 6, 11), size: [3, 2.2, 2], content: 'coins:3' },
     // 7 Topfpflanze (frisst Wuschel)
     { kind: 'topfpflanze', id: 'topf', pos: at(11.5, 7, 7) },
     // Kampfräume

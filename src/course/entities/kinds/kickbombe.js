@@ -19,16 +19,16 @@
 // Hooks: level.onExplosion?.(center, radius, bomb) nach jeder Explosion. Feld exploded, fuse (s übrig).
 // Modell 'kickbombe' (state { anim: walk|idle|lit|kicked, speed, fuse 0..1 }).
 //
-// Laufbombe (additiv, Präzisierung Gegner Bonuswelten, S-5 „Laufbomben, Felsblock sprengen“): { kind: 'laufbombe', … } (Motor-Alias
-//   der Kickbombe) bzw. { kind: 'kickbombe', look: 'laufbombe', … } – gleiches Verhalten, dazu: Registry-Modell 'laufbombe'
-//   (state idle | walk | fuse | carried | thrown), **zündet bei Nähe** (trigger m, Standard 2,2; 0 = nie – dann wie die
-//   Kickbombe nur durch Berührung/Treffer), läuft brennend auf die Figur zu, tragbar/werfbar wie die Kickbombe; die Explosion
-//   sprengt Felsblöcke (Motor-Entität 'felsblock', Modell 'felsblock_riss': onHit('bomb') über breakable/mega-Formen) und meldet
-//   Signal 'laufbombe' { id, pos, radius, hits } (hits = getroffene Entitäten/Formen). Daten zusätzlich: look?, trigger?.
+// Laufbombe (additiv, Präzisierung Gegner Bonuswelten, S-5 „Laufbomben, Felsblock sprengen“): die Motor-Art { kind: 'laufbombe', … }
+//   (entities/kinds/star_gimmicks.js: Kickbombe mit Modell 'laufbombe') **zündet zusätzlich bei Nähe**: kommt eine Figur näher als
+//   trigger m (Standard 2,2; 0 = nie, dann wie die Kickbombe nur durch Berührung/Treffer), brennt die Lunte und sie läuft auf die
+//   Figur zu; tragbar/werfbar wie die Kickbombe. Ihre Explosion sprengt Felsblöcke (Motor-Entität 'felsblock' über onHit('bomb'),
+//   Signal 'felsblock') und meldet Signal 'laufbombe' { id, pos, radius, hits } (hits = getroffene Entitäten/Formen).
+//   Erkannt an spec.kind 'laufbombe', spec.look 'laufbombe' oder am Modell 'laufbombe'. Daten zusätzlich: trigger?.
 
 import * as THREE from 'three';
 import { Enemy } from '../Enemy.js';
-import { getModel, hasModel } from '../../models/index.js';
+import { getModel } from '../../models/index.js';
 
 /** Abstand Punkt → Hüllquader einer Kollisionsform. */
 function shapeDist(s, c) {
@@ -86,10 +86,17 @@ class Kickbombe extends Enemy {
       this.state = 'air';
       this.light();
     }
-    // Laufbombe (Bonuswelten): eigenes Modell, Zünden bei Nähe
-    this.lauf = spec.kind === 'laufbombe' || spec.look === 'laufbombe';
-    this.trigger = spec.trigger ?? (this.lauf ? 2.2 : 0);
-    if (level.view) this.setModel(getModel(this.lauf && hasModel('laufbombe') ? 'laufbombe' : 'kickbombe'));
+    if (level.view) this.setModel(getModel('kickbombe'));
+    // Laufbombe (Bonuswelten): Zünden bei Nähe – erkannt beim ersten Schritt (das Motor-Modell setzt star_gimmicks.js danach)
+    this.lauf = null;
+    this.trigger = 0;
+  }
+
+  /** Laufbombe? (spec.kind/look oder Registry-Modell 'laufbombe') – einmal beim ersten Schritt. */
+  checkLauf() {
+    const sp = this.spec;
+    this.lauf = sp.kind === 'laufbombe' || sp.look === 'laufbombe' || this.model?.root?.userData?.modelName === 'laufbombe';
+    this.trigger = sp.trigger ?? (this.lauf ? 2.2 : 0);
   }
 
   /** Lunte anzünden (bzw. verkürzen: t = höchstens noch so viele s). */
@@ -111,6 +118,7 @@ class Kickbombe extends Enemy {
       this.fuse -= dt;
       if (this.fuse <= 0) { this.explode(); return; }
     }
+    if (this.lauf === null) this.checkLauf();
     if (this.trigger > 0 && !this.lit && this.state === 'walk' && this.playerActive()) {
       const p = this.player;
       if (Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) < this.trigger && Math.abs(p.pos.y - this.pos.y) < 2) this.light();
@@ -307,14 +315,6 @@ class Kickbombe extends Enemy {
   modelState() {
     const s = this.state;
     const fuse = this.lit ? Math.max(0, Math.min(1, 1 - this.fuse / this.fuseTotal)) : 0;
-    if (this.lauf) {
-      // Laufbomben-Modell: idle | walk | fuse | carried | thrown
-      if (s === 'carried') return { anim: 'carried', progress: fuse };
-      if (s === 'kicked' || s === 'air') return { anim: 'thrown', speed: Math.max(this.rollSpeed, Math.hypot(this.vel.x, this.vel.z)) };
-      if (s === 'walk') return { anim: 'walk', speed: this.speed };
-      if (s === 'flipped') return { anim: 'idle' };
-      return { anim: 'fuse', progress: fuse, speed: Math.hypot(this.vel.x, this.vel.z) };
-    }
     if (s === 'kicked' || s === 'air') return { anim: 'kicked', speed: Math.max(this.rollSpeed, Math.hypot(this.vel.x, this.vel.z)), fuse };
     if (s === 'walk') return { anim: 'walk', speed: this.speed };
     if (s === 'flipped') return { anim: 'idle' };

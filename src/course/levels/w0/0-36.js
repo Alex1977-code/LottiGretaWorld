@@ -1,6 +1,6 @@
 // Boss-Marathon-Probe (0-36): Testlevel für B-12 „Boss Blitz“ (tests/course_bonus_enemies.mjs, Teil 3) – so, wie der Level-Agent
 // B-12 nur mit Daten baut (Präzisierung Gegner Bonuswelten, „Hinweise für Level-Bauer“). Archetyp 'boss' mit sechs Kämpfen
-// (LEVEL.bosses), Nacht-Weltraum (Thema 'space'; B-12 nimmt 'bossblitz'), 500 s für alles (die Zeit läuft im Hub weiter).
+// (LEVEL.bosses), Nacht-Weltraum (Thema 'bossblitz'), 500 s für alles (die Zeit läuft im Hub weiter).
 //   Hub (Mitte, 20 × 20 m, 'weltraum_arena' eckig) mit 6 Warp-Boxen (Entität 'bossblitz_hub' legt sie an): unten links
 //     Kippquader-König, oben links Schattenläuferin, oben rechts Lavafelsen-König, unten rechts Wirbelbrocken, Mitte beide
 //     Schlangenkönige (grün + rosa, 'boss_gruppe'), hinten die verschlossene Box der Würfelblase (mehr, schnellere Schockwellen).
@@ -31,7 +31,7 @@ export const LEVEL = {
   world: 0,
   title: 'Boss-Marathon-Probe',
   archetype: 'boss',
-  theme: 'space',
+  theme: 'bossblitz',
   music: 'course_bossblitz',
   timeLimit: 500,
   start: { pos: [0, Y, 8.5], yaw: Math.PI / 2 },
