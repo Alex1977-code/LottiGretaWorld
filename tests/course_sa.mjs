@@ -35,11 +35,16 @@ const ROUTES = {
     enemies: { huepfmaus: 15 },
     main: [
       { name: 'Startplatz', to: [0, -5], within: 0.6 },
-      { name: 'unter dem Ziegelpaar hindurch', to: [0, -17], within: 0.6 },
+      { name: 'unter dem Ziegelpaar hindurch', to: [0, -14.6], within: 0.5 },
+      { name: 'Hüpfmäuse: rechte Gasse am Wegrand', to: [2.6, -16.6], within: 0.4, run: false },
+      { to: [2.6, -23.6], within: 0.4, run: false },
       { to: [0, -25.6], within: 0.25, run: false },
       { name: 'Trapez 1', trapeze: 't1' },
       { swing: 't1', land: true },
-      { name: 'Plattform 2', to: [0, -45.6], within: 0.25, run: false },
+      { name: 'Plattform 2', to: [0.8, -40.4], within: 0.4, run: false },
+      { name: 'Hüpfmaus läuft nach links weg', until: 'p2Frei', max: 600 },
+      { to: [0.8, -44.4], within: 0.4, run: false },
+      { to: [0, -45.6], within: 0.25, run: false },
       { name: 'Trapez-Kette', trapeze: 't2a' },
       { swing: 't2a', next: 't2b' },
       { swing: 't2b', next: 't2c' },
@@ -309,6 +314,7 @@ function install() {
   const starDa = (i) => L.entities.some((e) => e.kind === 'star' && e.index === i && !e.hidden && e.alive);
   const COND = {
     // S-1
+    p2Frei: () => { const e = L.entities.find((q) => q.spec?.id === 'hm5'); if (!e?.alive) return true; const px = e.__px ?? e.pos.x; e.__px = e.pos.x; return e.pos.x < -1.0 && e.pos.x < px - 1e-4; },
     krallen: () => P().power === 'krallen',
     fire: () => P().power === 'funken',
     giant: () => P().power === 'riese',
