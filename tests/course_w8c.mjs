@@ -65,6 +65,7 @@ const ROUTES = {
       { name: 'Licht-Helm getragen, POW-Block verscheucht Geister, zwei Aufzugfahrten, Schnell-Aufzug', ok: (r) => r.mech.lifts === 3 && r.mech.schreck >= 3 && r.mech.lit >= 1 },
       { name: 'roter Ring auf der Fahrt: alle acht roten Münzen (Extraleben)', ok: (r) => r.mech.rotring === 'done' },
       { name: 'ohne Treffer-Versuch (Licht auf Geister, Lücken der Kreisgeister abgewartet)', ok: (r) => r.mech.hurts === 0 },
+      { name: 'Großspuk 2 erwacht hinter der letzten Tür und jagt zur Ausgangstür', ok: (r) => r.mech.jagd === true },
     ],
     targets: [
       { name: 'Stern 0: Spiegelbild – über die unsichtbaren Spiegelstufen zum Stern', star: 0, from: [0, 1, -77.6], place: { invuln: 99 },
@@ -78,7 +79,7 @@ const ROUTES = {
       { name: 'Stern 1 nicht ohne Licht (Spuke nur anschauen)', star: 1, expectNot: true, from: [68, 1, -140], heroes: ['lotti'], place: { invuln: 99 },
         legs: [{ to: [64, -142], within: 0.5, run: false }, { wait: 240 }, { to: [72, -142], within: 0.5, run: false }, { wait: 240 }], mech: (r) => r.mech.rbLeft === 6, mechText: (r) => `${r.mech.rbLeft} Spuke` },
       { name: 'Stern 2: Ende des letzten Gangs – der Jäger-Großspuk erwacht, Stern holen, Großspuk mit Licht bannen', star: 2, from: [0, 15, -180.6], place: { helmet: 'licht' },
-        legs: [{ to: [0, -196.6], within: 0.4 }, { expect: 'jagd' }, { star: 2 }, { light: 'grossspuk2' }, { to: [1.6, -190], within: 0.4, run: false }, { to: [5.2, -190], within: 0.5, run: false }, { expect: 'balkon' }],
+        legs: [{ to: [0, -196.6], within: 0.4 }, { expect: 'jagd' }, { star: 2 }, { light: 'grossspuk2', stay: true, max: 4200 }, { to: [1.6, -190], within: 0.4, run: false }, { to: [5.2, -190], within: 0.5, run: false }, { expect: 'balkon' }],
         mech: (r) => r.mech.hurts === 0, mechText: (r) => `Treffer ${r.mech.hurts}`, shot: 'stern2' },
       { name: 'Großspuk 2 jagt erst nach der letzten Tür (lauert vorher)', star: 2, expectNot: true, from: [0, 15, -175], heroes: ['lotti'], place: { invuln: 99 },
         legs: [{ wait: 240 }], mech: (r) => r.mech.jagd === false, mechText: (r) => `jagt ${r.mech.jagd}` },
@@ -420,10 +421,10 @@ function install() {
           for (const id of list) {
             const e = L.entities.find((x) => x.spec?.id === id && !x.removed);
             let k = 0;
-            for (; k < 1500 && e && e.alive && !e.removed && !e.defeated && !p.dead; k++) {
+            for (; k < (Lg.max ?? 1500) && e && e.alive && !e.removed && !e.defeated && !p.dead; k++) {
               const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
               // heran bis in den Lichtkegel (7 m), dann stehen bleiben und ihn anschauen (angeschaut ist er langsam)
-              if (d > (Lg.dist ?? 5.5)) tick({ ...this.stick(dx, dz, Math.min(1, (d - 3) / 1.5 + 0.3)), run: false });
+              if (d > (Lg.dist ?? 5.5) && !Lg.stay) tick({ ...this.stick(dx, dz, Math.min(1, (d - 3) / 1.5 + 0.3)), run: false });
               else tick(this.stick(dx, dz, 0.07));
             }
             log.push(['licht', id, e ? e.vanishedBy ?? e.state : null, k]);
