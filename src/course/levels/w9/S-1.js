@@ -36,8 +36,8 @@ const TH = 6.2;       // Trapez-Aufhängung über der Plattform
 
 // ---------------------------------------------------------------- Maße (auch für den Test)
 export const MS1 = {
-  START: { x0: -7, x1: 7, z0: 10, z1: -9 },
-  WEG: { x0: -3, x1: 3, z0: -9, z1: -26 },
+  START: { x0: -7, x1: 7, z0: 10, z1: -12.2 },
+  WEG: { x0: -3, x1: 3, z0: -12.2, z1: -26 },
   TURM: { x0: -6.8, x1: -3.0, z0: -12.2, z1: -15.8, top: 9.8 },
   SIMS: { x0: -6.8, x1: 1.8, z0: -12.2, z1: -15.8, top: 9.8, under: 9.0 },
   P2: { x0: -3.5, x1: 3.5, z0: -32, z1: -46 },
@@ -55,6 +55,8 @@ export const MS1 = {
 const { START, WEG, TURM, SIMS, P2, P3, STEG, KUGEL, FACKEL, RIESE, FINALE, TOP, NISCHE, KAEFIG, FARB } = MS1;
 export const TRAPEZE = { t1: WEG.z1 - 1.5, t2: [P2.z1 - 1.5, P2.z1 - 6, P2.z1 - 10.5], t3: P3.z1 - 1.5 };
 export const WALLS = [-258, -270, -284];
+/** Wolkenpfad im Wolkenhimmel (Mitte je Wolke 4 × 4 m). */
+export const WOLKEN = [[13, -252], [11, -256.5], [8.8, -261], [6.8, -265.5], [5.2, -270], [4, -274.5], [3, -279]];
 
 // ---------------------------------------------------------------- Sternenbach [x, y (Oberfläche), z, Breite, Strömung]
 export const BACH = [
@@ -93,7 +95,7 @@ const PLATTEN = [
   { ...TOP, h: 5.4, axis: 'x' },
   // Wolkenhimmel: kleine Regenbogen-Inseln zwischen den Wolken
   { x0: 11, x1: 17, z0: -243, z1: -249, top: HY, h: 0.8, under: false },
-  { x0: 0, x1: 5, z0: -283, z1: -290, top: HY, h: 0.8, under: false },
+  { x0: 0, x1: 5, z0: -282, z1: -289, top: HY, h: 0.8, under: false },
 ];
 
 /** Aufbau vor den Bausteinen: Sternenbach-Farben, Regenbogen-Plattformen, Kristallturm mit Röhrensims. */
@@ -103,8 +105,22 @@ function prebuild(level) {
   // Kristallturm (Krallen-Anzug: kletterbar) und Sims darüber (über dem ersten Ziegelpaar)
   level.world.add({ type: 'box', min: [TURM.x0, Y - 1.2, TURM.z1], max: [TURM.x1, TURM.top, TURM.z0], climbable: true, tag: 'kristallturm' });
   level.world.add({ type: 'box', min: [TURM.x1, SIMS.under, SIMS.z1], max: [SIMS.x1, SIMS.top, SIMS.z0], tag: 'roehrensims' });
+  // Dächer über der Röhren-Nische und dem Extraleben-Käfig: hinein nur durch die Sternblock-Mauer (Riesentrank)
+  for (const n of [NISCHE, KAEFIG]) {
+    level.world.add({ type: 'box', min: [n.x0, FY + 3, n.z1], max: [n.x1, FY + 3.8, n.z0], tag: 'nischendach' });
+    level.world.add({ type: 'box', min: [n.x1, FY, n.z1], max: [n.x1 + 0.3, FY + 3, n.z0], tag: 'nischenwand' });
+    level.world.add({ type: 'box', min: [n.x0 + 1, FY, n.z0 - 0.3], max: [n.x1, FY + 3, n.z0], tag: 'nischenwand' });
+    level.world.add({ type: 'box', min: [n.x0 + 1, FY, n.z1], max: [n.x1, FY + 3, n.z1 + 0.3], tag: 'nischenwand' });
+  }
   if (level.view) {
     const b = new Bld(), g = new Bld();
+    for (const n of [NISCHE, KAEFIG]) {
+      const nw = n.x1 - n.x0, nd = n.z0 - n.z1;
+      b.box(nw + 0.3, 0.8, nd + 0.3, (n.x0 + n.x1) / 2 + 0.15, FY + 3, (n.z0 + n.z1) / 2, gradY(0x8a70e0, 0xf4ecff, FY + 3, FY + 3.8), { r: 0.2, seg: 2 });
+      b.box(0.6, 3, nd + 0.3, n.x1 + 0.15, FY, (n.z0 + n.z1) / 2, gradY(0x7a60d0, 0xd8c8ff, FY, FY + 3), { r: 0.12 });
+      for (const zz of [n.z0 + 0.15, n.z1 - 0.15]) b.box(nw - 0.6, 3, 0.3, (n.x0 + n.x1) / 2 + 0.2, FY, zz, gradY(0x7a60d0, 0xd8c8ff, FY, FY + 3), { r: 0.1 });
+      g.star(0.45, 0.2, 0.1, (n.x0 + n.x1) / 2 + 0.2, FY + 3.4, n.z0 + 0.22, 0xffe070);
+    }
     const w = TURM.x1 - TURM.x0, d = TURM.z0 - TURM.z1, cx = (TURM.x0 + TURM.x1) / 2, cz = (TURM.z0 + TURM.z1) / 2;
     // Turm: Kristallsäule mit Krallen-Kratzspuren-Streifen (hellblau/lila)
     b.box(w, TURM.top - 0.8 - Y, d, cx, Y, cz, gradY(0x7a6ad8, 0xb8e8ff, Y, TURM.top), { r: 0.18, seg: 2 });
@@ -232,7 +248,7 @@ export const LEVEL = {
     { type: 'megawall', id: 'mauer2', pos: [1, FY, WALLS[1]], size: [12, 3, 1] },
     { type: 'megawall', id: 'mauer3', pos: [1, FY, WALLS[2]], size: [12, 3, 1] },
     // Wolkenhimmel: Wolkenpfad vom Landeplatz zur kleinen Regenbogeninsel über der Strecke
-    ...[[13, -253], [10.5, -258.5], [8, -264], [6, -269.5], [4.5, -275], [3, -280]].map(([x, z]) => ({ type: 'cloud', pos: [x, HY - 0.6, z], size: [3, 0.6, 3] })),
+    ...WOLKEN.map(([x, z]) => ({ type: 'cloud', pos: [x, HY - 0.6, z], size: [4, 0.6, 4] })),
     { type: 'megawall', id: 'mauer_nische', pos: [7.5, FY, (NISCHE.z0 + NISCHE.z1) / 2], size: [1, 3, 12] },
     { type: 'megawall', id: 'mauer_kaefig', pos: [7.5, FY, (KAEFIG.z0 + KAEFIG.z1) / 2], size: [1, 3, 8] },
     { type: 'pipe', id: 'p_riese', pos: [9.6, FY, -277], height: 1.1, target: 'p_farb' },
@@ -252,17 +268,17 @@ export const LEVEL = {
   ],
   blocks: [
     // Start: Krallen-Anzug (Kristallturm), Münzen
-    { kind: 'question', pos: [-1, Y + 2.4, 1.6], content: 'krallen' },
-    { kind: 'question', pos: [1, Y + 2.4, 1.6], content: 'coins:3' },
+    { kind: 'question', pos: [-1, Y + 1.9, 1.6], content: 'krallen' },
+    { kind: 'question', pos: [1, Y + 1.9, 1.6], content: 'coins:3' },
     { kind: 'hidden', pos: [4.6, Y + 3.2, 4.6], content: 'oneup' },
     // erstes Ziegelpaar (unter dem Röhrensims)
     { kind: 'brick', pos: [-0.5, Y + 2.4, -14], content: 'coins:2' },
     { kind: 'brick', pos: [0.5, Y + 2.4, -14] },
     // Fackelplatz: Funkenblüte (für die Fackeln)
-    { kind: 'question', pos: [0, FY + 2.4, -214], content: 'funken' },
-    { kind: 'question', pos: [-2, FY + 2.4, -214], content: 'coins:5' },
+    { kind: 'question', pos: [0, FY + 1.9, -214], content: 'funken' },
+    { kind: 'question', pos: [-2, FY + 1.9, -214], content: 'coins:5' },
     // Riesentrank-Strecke
-    { kind: 'question', pos: [0, FY + 2.4, -244], content: 'riese' },
+    { kind: 'question', pos: [0, FY + 1.9, -244], content: 'riese' },
     { kind: 'hidden', pos: [3.5, FY + 3.2, -265], content: 'riese' },
     { kind: 'brick', pos: [-1, FY + 2.4, -293], content: 'coins:3' }, { kind: 'brick', pos: [0, FY + 2.4, -293] }, { kind: 'brick', pos: [1, FY + 2.4, -293], content: 'coins:3' },
   ],
@@ -310,12 +326,12 @@ export const LEVEL = {
     ring([0, FY + 0.8, -221], 2.2, 8),
     // Wolkenhimmel: Sternring und Wolkenpfad
     { kind: 'starring', id: 'sternring', pos: [14, HY, -248], star: 2, yaw: Math.PI / 2, time: 12,
-      coins: [[13, HY + 0.6, -257], [11, HY + 0.6, -261], [8, HY + 0.6, -264], [6, HY + 0.6, -268], [4.5, HY + 0.6, -272], [3.5, HY + 0.6, -276], [2.5, HY + 0.6, -280], [2.5, HY + 1.4, -286]] },
-    { kind: 'powerup', pos: [3.5, HY, -288.5], power: 'oneup' },
+      coins: [...WOLKEN.map(([x, z]) => [x, HY + 0.7, z]), [1.4, HY + 0.7, -285.6]] },
+    { kind: 'powerup', pos: [3.6, HY, -287.6], power: 'oneup', speed: 0 },
     // Riesentrank-Strecke
     line([-5.4, FY + 0.6, -246], [-5.4, FY + 0.6, -296], 10),
     ring([4, FY + 1.2, -297], 1.4, 6),
-    { kind: 'powerup', pos: [9, FY, (KAEFIG.z0 + KAEFIG.z1) / 2], power: 'oneup' },
+    { kind: 'powerup', pos: [9.4, FY, (KAEFIG.z0 + KAEFIG.z1) / 2], power: 'oneup', speed: 0 },
     line([9.6, FY + 0.6, -273], [9.6, FY + 0.6, -275], 2),
     // Finale
     line([0, FY + 0.6, -303], [0, FY + 0.6, -306], 3),
@@ -324,7 +340,7 @@ export const LEVEL = {
   stars: [
     { pos: [(KUGEL.x0 + KUGEL.x1) / 2, Y + 1.4, KUGEL.z1 + 6], hidden: true, id: 'stern_kugeln' },   // 0 Kugelraum
     { pos: [(FARB.x0 + FARB.x1) / 2 + 0.8, FY + 1.6, (FARB.z0 + FARB.z1) / 2 - 0.6], hidden: true, id: 'stern_farbfeld' },  // 1 Farbfeld-Raum
-    { pos: [2.5, HY + 0.4, -284.5], hidden: true, id: 'stern_ring' },                                   // 2 Sternring
+    { pos: [2.6, HY + 0.4, -283.8], hidden: true, id: 'stern_ring' },                                   // 2 Sternring
   ],
   stamp: STAMP,
   goal: { pos: [0, TOP.top, -343], height: 9 },
