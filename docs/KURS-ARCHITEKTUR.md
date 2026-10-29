@@ -1870,6 +1870,147 @@ Dreiecke), Blockland 67–72 / 181–186 k, Glückshaus 66 / 146 k, Waben 65 / 1
 48–58 / 100–118 k, Warp-10-Ankunft 80 / 135 k, Anflug 69 / 163 k. Welt 8 an der Röhre ins Sternenzelt und bei der Rückkehr
 höchstens 67 / 159 k (Rückkehr mit Schwenk 85 / 191 k).
 
+### Präzisierung (Mehrwelten-Karte): Welt Pilz „Pilz-Remix“ (Notiz)
+
+- Dateien: `worlds/w10.js` (Daten, `MAP.world = 10`, `prefix: 'P'`, `worldLabel: 'Welt Pilz'`, `title`/`short: 'Pilz-Remix'` →
+  Weltname „Welt Pilz · Pilz-Remix“, `travelToast: 'Auf in den Pilz-Remix!'`, `kit: 'pilz'`, Thema `map_pilz`, Musik
+  `course_worldpilz_map`, Rückfall `course_map`, `starScope: 'all'`), `pilz10.js` (Thema `map_pilz`: Abendhimmel mit fernen
+  Riesenpilzen und Abendsternen; Pilzhut-Gelände, Ränder, Brücken-Segmente, Requisiten, Streudeko, Inselchen, Nachbarwelt-Stil
+  `'pilzfern'`, lebendige Kulisse `PilzLife`, Taktuhr `BEAT10`), `decor_pilz.js` (Kulissen der acht Pilz-Eingänge), gemeinsam mit
+  Blume/Krone `bonuskit.js` (Kit-Tabelle `BONUS_KITS`, Taktuhr `beatClock`, Puls-Material `bglow`, Insel-Hüllen, Registry-Modelle
+  mit Obergrenze `modelKit`, Sichtprüfung) und `bonus_kits.js` (lädt die drei Kits). Ein Kit meldet sich mit
+  `registerKit(map.kit, { ground, segment, scatter, edgeGeo, propGeo, propGlow, propShape, propModel, Life, isletParts,
+  neighborParts, decorate, glowTile, sea: 'meer' | 'wolken', foam, mats })` an. Additiv angebunden (je eine Zeile über
+  `bonusKit(map)`): `MapBuilder.js` (Gelände, Segmente, Streudeko, Requisiten-Kacheln `w10p:<x>|<z>`, Ränder, Leben), `scenery.js`
+  (Meer ohne Schaum, Inselchen-Kachel `w10:inselchen`, Nachbarwelt-Stile), `entrances.js` (`decorateBonus` vor den übrigen
+  Kulissen), `props.js` (Podestfarben). `worlds/w9.js`, `travel.js`, `layout.js`, `lod.js` sind unverändert.
+- Inseln = große Pilzhüte auf dicken Stielen im violett-blauen Abendmeer (Hut-Rand mit Lamellen, Tupfen, Stiel mit Manschette),
+  verbunden durch Ranken- (`vinebridge`) und Stiel-Brücken (`stembridge`), Kollision wie `bridge`; acht Schranken je 4 m. Jeder Hut
+  trägt eine verkleinerte, geremixte Erinnerung an das Basislevel: A Pilzhafen y 5 (`redcap`) mit Beerenhaus (−8, 5, 33.5) – `WS`
+  Glasröhre zurück ins Sternenzelt (−20, 5, 47; Scheibe „★“, steigt nach Südwesten); N Nachthügel y 5.5 – `P-1` `nighthills`
+  (20, 5.5, 34; Rollhügel bei Nacht: Hügelwalze rollt je Zählzeit, Mond mit Gesicht, Zeit-Uhren, Stachel-Hüpfmaus, Stachelkugler); R
+  Abendranken y 7 – `P-2` `spikybean` (28, 7, 5; Bohnenranken mit Stachelringen im Sonnenuntergang, Glockenbäume schwingen im
+  Takt, Schlüssel-Münzen); D dunkler Dschungel y 8.5 – `P-3` `darkjungle` (24, 8.5, −27; Teich mit Floß und Kreisgeist, vier
+  Helm-Lichter, deren Lichtkegel je Zählzeit neu zielen); G Schattenspiel-Gasse y 9.5 – `P-4` `shadowalley` (−15, 9.5, −27;
+  Schattenwand mit Figuren, 30er-Pilzlingsturm schwankt im Takt, Gassenhäuschen, Laterne); H Haus-Hut y 9.5 – `P-Haus`
+  `brawlhouse` Prüfungs-Haus (−57, 9.5, −29; zehn Fenster der Kampf-Räume leuchten reihum, Boxring, Handschuh-Schild); F
+  Fernost-Hut y 11 mit Glückshaus (−40, 11, −79.4) – `P-5` `dayhall` (−24, 11, −66; Fernost-Halle bei Tag mit Pilzmaske,
+  Papierlaternen, Gong schlägt je Takt, Sonne, Zielmast mit Flügeln pendelt, Hammer-Werfer); W Wrack-Hut y 12 – `P-6`
+  `giantwreck` (10, 12, −68; Riesen-Schiffswrack, Geisterschiff im Meer, Schubser, Pustewolke, Krakenpilz, fünf Warp-Boxen); L
+  Blaulava-Hut y 13 (Hut nicht begehbar, Rand `lavarim10`, begehbar der Ring um das Becken) – `P-7` `brokenbelt` (52, 13, −87;
+  fließende blaue Lava, Bruchplatten sinken je Takt, blaue Walze, rote Stachelwalze, Gleitblatt; Schild „ab 310 ★“); J Röhren-Hut
+  y 12 (`flowercap`) – `WB` Glasröhre zur Welt Blume (19, 12, −116; Scheibe „Blume“, steigt nach Nordosten).
+- Freischaltung laut „Bonuswelten – Level-Liste und Freischaltung“ (Welt Pilz): `P-1` frei, sobald die Welt offen ist (nach S-8
+  bzw. entdeckt); `P-2` … `P-6` nacheinander; `P-Haus` nach P-4 (Abzweig); `P-7` nach P-6 **und ≥ 310 ★** (alle Sterne; Hinweis
+  „Benötigt 310 Sterne (x/310)“); `WB` (`{ id: 'WB', after: 'P-6', world: 11, next: 11, worldLabel: 'Welt Blume' }`) nach P-6;
+  Rückweg `WS` (`{ id: 'WS', world: 9, next: 9 }`) immer frei. 31 Sterne (je 3, P-Haus 10), keine Stempel.
+- Lebendige Kulisse (`PilzLife`, `state().decor`): `glow { beat, step, k, source, theme, bpm, shown, material }` – leuchtende
+  Pilztupfen, Laternen, Leuchtpilze und der Lava-Schein teilen das Puls-Material `bglow` (Helligkeit je Zählzeit, kein eigener
+  Zeichenaufruf je Leuchte); `fireflies { n, visible }` (Glühwürmchen, eine Instanz-Fläche); je Eingang `nighthills`,
+  `beanstalk`, `darkjungle`, `shadowalley`, `dayhall`, `giantwreck`, `brokenbelt`, `brawlhouse`; `w10models`/`w10heavy`;
+  `built.life.glowState(t)`. Ohne laufende Musik zählt die Ersatzuhr (`source: 'zeit'`) im Tempo von `course_worldpilz_map`
+  (128 BPM).
+- Registry-Modelle (Obergrenze je Einsatz, unbewegte eingebacken in `w10:<Id>`, bewegte mit Sichtprüfung, sonst eigene Geometrie
+  an gleicher Stelle): `mond_gesicht`, `huepfmaus_stachel`, `stachelkugler`, `beanstalk`, `helm_licht`, `kreisgeist`, `leaf_raft`,
+  `riesenblatt`, `fernost_dach`, `pilz_maske`, `papierlaterne`, `gong`, `zielmast_fluegel`, `hammer_werfer`,
+  `geisterschiff_wrack`, `geisterschiff`, `schubser`, `pustewolke`, `krakenpilz`, `warp_box`, `zylinder_walze`,
+  `stachelwalze_rot`, `walzenwerfer`, `powerup_gleitblatt`, `helm_kanone`; zu schwer: keines.
+- Übergänge: Die Sternenzelt-Röhre `WP` und ein Welt-Warp nach Welt 10 führen ohne Codeänderung in den Pilz-Remix (Ankunft an
+  `WS`); „Welt Pilz kommt bald!“ der Sternenzelt-Notiz ist damit überholt (Schild jetzt „Welt Pilz / Pilz-Remix“). Zurück durch
+  `WS` landet man an der Röhre `WP` im Sternenzelt. Rückkehr aus einem P-Level zeigt Welt 10 (Präfix 'P').
+
+### Präzisierung (Mehrwelten-Karte): Welt Blume „Blumen-Remix“ (Notiz)
+
+- Dateien: `worlds/w11.js` (`MAP.world = 11`, `prefix: 'B'`, `worldLabel: 'Welt Blume'`, `title`/`short: 'Blumen-Remix'`,
+  `travelToast: 'Auf in den Blumen-Remix!'`, `kit: 'blume'`, Thema `map_blume`, Musik `course_worldblume_map`, Rückfall
+  `course_map`, `starScope: 'all'`), `blume11.js` (Thema mit Hügeln und Riesenblumen am Horizont; Blütenblatt-Gelände, Ränder,
+  Brücken, Requisiten, Riesenblumen `map.blooms`, Seerosen-Inselchen, Nachbarwelt-Stil `'blumenfern'`, `BlumeLife`, Taktuhr
+  `BEAT11`), `decor_blume.js` (Kulissen der zwölf Blumen-Eingänge); Anbindung wie Welt Pilz über `BONUS_KITS`.
+- Inseln = Blütenblätter riesiger Blumen (gewellter Rand mit Spitze `tip: 'N'|'E'|'S'|'W'`, Adern, Kelchblätter, Stängel mit Blatt)
+  über einem Seerosenteich, verbunden durch Gießkannen- (`canbridge`: Zinkrinne, Kanne im Teich, Brause mit Tropfen) und
+  Stängel-Brücken (`stembridge11`); zwölf Schranken je 4 m: A Gartentor y 3 (`petal_rose`) mit Beerenhaus (−8, 3, 33.5) – `WP`
+  Glasröhre zurück in den Pilz-Remix (−20, 3, 47; Scheibe „Pilz“); B1 y 3.5 – `B-1` `sparkcircus` (20, 3.5, 34; Zirkuszelt,
+  3 × 3 Schaltfelder schalten je Zählzeit, Funkenflämmchen hüpft, Hammer-Werfer, Trampolin); B5 y 4.5 – `B-5` `bunnysavanna`
+  (60, 4.5, 22; Savanne am Morgen: Morgensonne, Akazien, Riesenhasen, neun Hasen hüpfen im Takt, Wolkenlift); B2 y 5 – `B-2`
+  `cubemine` (28, 5, 5; Fördergerüst, Wasserwürfel wippen, Wuschel-Horden); B3 y 6.5 – `B-3` `torchcreek` (24, 6.5, −27; Fackeln bei
+  Nacht leuchten reihum, Mond, Giftwasser, Rankenschnapper); B4 y 7.5 – `B-4` `clockfort` (−15, 7.5, −27; blaue Werferburg mit
+  großer Uhr, Zeiger tickt je Zählzeit, Feuer-Werfer); B6 y 9 mit Glückshaus (−40, 9, −79.4) – `B-6` `graymansion` (−24, 9, −66;
+  Spukhaus in Schwarz-Weiß, graue Spuk-Modelle, großer Buh-Geist); B7 y 9.5 – `B-7` `cannonlagoon` (10, 9.5, −68; Lagune, Kanonen-Helm
+  dreht sich, Rammfisch springt je zwei Takte, Riss-Felsen); B8 y 10.5 – `B-8` `beepskyway` (52, 10.5, −87; zwei Piep-Block-Sätze
+  wechseln je Zählzeit, Lautsprecher, blauer Stachelblock, Gleitblatt); B9 y 11.5 – `B-9` `sunsetbeach` (50, 11.5, −130;
+  Abendsonne, Strandkorb, Sonnenschirm, Palmen, Pilzlingsturm mit Feuer-Werfer, Brandung und Wasserball im Takt); B10 y 12.5 –
+  `B-10` `dayhive` (14, 12.5, −140; 19 Waben leuchten Ring für Ring, Wabensäulen, Sonne, Wolken); B11 y 13.5 – `B-11` `spotbridge`
+  (−30, 13.5, −140; Stachelbrücke, Suchscheinwerfer, Stacheln fahren aus, wenn der Lichtfleck trifft); B12 y 15 – `B-12` `bossdome`
+  (−22, 15, −178; Sternenkuppel mit sechs Warp-Boxen und Boss-Blitz-Kisten je Boss, kreisende Schlüssel, Würfelblase); K y 15 –
+  `WK` Glasröhre zur Welt Krone (14, 15, −192; Scheibe „Krone“, Schild „ab 330 ★“).
+- Freischaltung (Welt Blume): `B-1` frei; `B-2` und `B-5` nach B-1; `B-3`, `B-4`, `B-6` … `B-12` nacheinander (B-3 nach B-2);
+  `WK` (`{ id: 'WK', after: 'B-12', minStars: 330, world: 12, next: 12, worldLabel: 'Welt Krone' }`) nach B-12 **und ≥ 330 ★**
+  (Hinweis „Benötigt 330 Sterne (x/330)“, Meldung „Benötigt 330 Sterne“; ist Welt 12 schon entdeckt, ist die Röhre frei); Rückweg
+  `WP` (`{ id: 'WP', world: 10, next: 10 }`) immer frei. 36 Sterne, keine Stempel.
+- Lebendige Kulisse (`BlumeLife`): `bloom { beat, step, k, frac, source, theme, bpm, shown, material }` (Blütenmitten, Laternen,
+  Sterne im Puls-Material), `butterflies { n, open, visible }` (je begehbarem Blatt drei, Körper + zwei Flügel-Instanzflächen, je
+  Zählzeit ein kräftiger Flügelschlag, eine von drei Gruppen steigt auf), `petals { n }` (segelnde Blütenblätter um den
+  Blickpunkt), `drops { roses, n }` (Tropfen aus den Gießkannen-Brausen); je Eingang `sparkcircus`, `cubemine`, `savanna`,
+  `torches`, `clockfort`, `graymansion`, `lagoon`, `beep`, `beach`, `dayhive`, `spotbridge`, `bossdome`; `w11models`/`w11heavy`;
+  `built.life.bloomState(t)`; Ersatzuhr im Tempo von `course_worldblume_map` (126 BPM).
+- Registry-Modelle: `zirkuszelt`, `funkenflaemmchen`, `hammer_werfer`, `wasserkoerper`, `wuschel_horde`, `akazie`, `bunny_small`,
+  `wolkenlift`, `mond_gesicht`, `giftwasser`, `rankenschnapper`, `festungsturm`, `feuer_werfer`, `spuk`, `zielmast_spuk`,
+  `helm_kanone`, `rammfisch`, `felsblock_riss`, `lautsprecher`, `stachelblock_blau`, `powerup_gleitblatt`, `strandkorb`,
+  `sonnenschirm`, `palme`, `pilzlingsturm`, `wabensaeule`, `suchscheinwerfer`, `warp_box`, `bossblitz_box_deko`,
+  `bossblitz_schluessel`, `wuerfelblase`; zu schwer: `schacht_geruest` (≈ 6,0 k > 6 k Obergrenze – eigenes Fördergerüst).
+- Übergänge: Die Röhre `WB` im Pilz-Remix führt ohne Codeänderung hierher (Ankunft an `WP`), zurück landet man an `WB`; Rückkehr
+  aus einem B-Level zeigt Welt 11 (Präfix 'B').
+
+### Präzisierung (Mehrwelten-Karte): Welt Krone „Kronen-Gipfel“ (Notiz)
+
+- Dateien: `worlds/w12.js` (`MAP.world = 12`, `prefix: 'K'`, `worldLabel: 'Welt Krone'`, `title`/`short: 'Kronen-Gipfel'`,
+  `travelToast: 'Auf zum Kronen-Gipfel!'`, `kit: 'krone'`, Thema `map_krone`, Musik `course_worldkrone_map`, Rückfall
+  `course_map`, Wolkenmeer wie Welt 6 über `kit.sea: 'wolken'`), `krone12.js` (goldener Gipfel über den Wolken: Marmor-/Goldstein-
+  Terrassen mit Goldkanten und Felsbändern, Balustraden `kronerail`, Goldtreppen mit rotem Teppich `goldstairs`, ferne Gipfel mit
+  Goldspitzen `map.peaks`, Wimpelketten `map.bunting [[x0, y0, z0, x1, y1, z1]]`, Fahnen `map.flags [[x, y, z, Masthöhe, Farbe]]`,
+  Konfetti-Kanonen `map.confetti [{ pos, dir }]`, `KroneLife`, Taktuhr `BEAT12`), `decor_krone.js` (Kulissen der drei Eingänge).
+- Bereiche und Eingänge, keine Schranken: A Ankunfts-Terrasse y 10 (`marble`) – `WB` Glasröhre zurück in den Blumen-Remix
+  (−10, 10, 46; taucht nach Südwesten in die Wolken); W West-Terrasse y 12.5 – `K-Kapitän` `lavadiorama` (−36, 12.5, 43;
+  Lavaturm-Diorama auf Marmorsockel: Becken mit fließender Lava, die je zwei Takte steigt und sinkt, Felsturm, rote Plattform,
+  Propellerplattformen, Donut-Brücke, Krümel jubelt oben; Scheibe „K-K“); E Ost-Terrasse y 12.5 – `K-Haus` `marathonhouse` (36, 12.5,
+  43; Marathon-Haus der 30 Räume mit Goldkuppel, 28 Fenster leuchten reihum je Zählzeit, Schild „30“); S Siegerplatz y 16
+  (`summit`) – `K-1` `championarch` (0, 16, −15; Startbogen `start_bogen` der Champion-Strecke mit goldener Bahn in den Himmel,
+  Goldkette mit Schloss solange die Sammlung fehlt, Fortschritts-Tafel, Siegerpodest mit Krone `krone_podest` (8.5, 16, −6),
+  großer Pokal `pokal_gross` (13.5, 16, −14), Tribüne (−10.5, 16, −6) mit allen Freunden – Krümel, Flocke, Hoppel,
+  Fernglas-Kobold, Pflaume –, die im Takt hüpfen). Goldtreppen A → W, A → E und die große Treppe A → S (Fels darunter nicht
+  begehbar); zehn Fahnen, acht Wimpelketten, vier Konfetti-Kanonen.
+- Freischaltung (Welt Krone): Welt 12 offen nach B-12 und 330 ★ (Röhre WK) bzw. entdeckt; `K-Kapitän` (5 ★, Stempel) und
+  `K-Haus` (30 ★) sofort frei; `K-1` (3 ★, Stempel) mit **Sammel-Schranke** `{ id: 'K-1', collection: true }`: frei erst mit der
+  vollständigen Sammlung – alle Sterne und Stempel aller anderen Welten laut deren Weltdaten (je Level höchstens `rule.stars`
+  Sterne, Stempel nur bei `rule.stamp`, ohne Glasröhren, ohne Welt 0 und Welt 12; derzeit 366 Sterne und 76 Stempel in 120
+  Leveln). Hinweis-Leiste und Meldung „Alle Sterne und Stempel nötig (★ x/366 · Stempel y/76)“. 38 Sterne.
+- Schnittstelle (additiv): `unlock.js` – `reason(world, save, id, maps?)` liefert zusätzlich `'collection'`;
+  `collection(maps, save, exclude) → { stars, starsMax, stamps, stampsMax, levels, levelsMax, complete, missing }` (missing ≤ 12
+  Level-Ids in Weltreihenfolge); `setMapSource(fn)`/`mapSource()` (die Karten meldet `worlds/index.js` an; Node-Tests geben sie als
+  Argument). `CourseMapScene.js` – `status(id).collection` (Stand der Sammlung bei Regeln mit `collection`), `collectionHint(st)`;
+  `MapHud.js` – Hinweis bei `reason === 'collection'` und Sammlungsstand im Schlüssel der Hinweis-Leiste (zwei Zeilen, sonst nichts umgebaut).
+- Lebendige Kulisse (`KroneLife`): `fest { beat, step, k, frac, whole, cannon, source, theme, bpm, shown, material }` (Goldlaternen,
+  Kronen-Funkeln und Gipfelspitzen im Puls-Material; je Zählzeit schießt die nächste Kanone), `confetti { cannons, n, bursts,
+  visible }` (56 Schnipsel je Kanone, eine Instanz-Fläche), `flags { n }`; je Eingang `lavadiorama { lava, propellers, donuts,
+  kruemel }`, `marathonhouse { windows, room }`, `champion { open, stars, starsMax, stamps, stampsMax, arch, podest, friends, hop }`;
+  `w12models`/`w12heavy`; `built.life.festState(t)`; Ersatzuhr im Tempo von `course_worldkrone_map` (128 BPM).
+- Registry-Modelle: `start_bogen`, `krone_podest`, `pokal_gross`, `kruemel`, `propellerplattform`, `donut_block`, `bunny_small`;
+  Freunde der Tribüne aus `w8Geos.friendGeo`; zu schwer: keines.
+- Übergänge: Die Röhre `WK` im Blumen-Remix führt hierher (Ankunft an `WB` aus dem Wolkenmeer), zurück landet man an `WK`.
+  Rückkehr aus einem K-Level zeigt Welt 12 (Präfix 'K'). Der Abspann (`?credits=1`) nennt in „Die Reise“ „Welt Pilz ·
+  Pilz-Remix“, „Welt Blume · Blumen-Remix“ und „Welt Krone · Kronen-Gipfel“ je genau einmal nach Welt Stern (aus den Weltdaten,
+  `CreditsScene.js` unverändert). `tests/course_map_star.mjs` (Abschnitt 7) prüft jetzt Fahrt und Welt-Warp in den Pilz-Remix,
+  `tests/course_map_hw.mjs` die Weltenliste 1–12, 31.
+- Test: `tests/course_map_bonus.mjs` (Port 4975, Bilder `tests/out/cmapB_*.png`), Teilläufe `MB_TEIL=pilz|blume|krone|wege` (je
+  mit den Node-Prüfungen; gemessen ≈ 4,5 / 3,5–5 / 3 / 2,2 min), `MB_TEIL=daten` nur Node. Noch nicht in `npm test`.
+
+Gemessen (scale 2, `tests/course_map_bonus.mjs`, Zeichenaufrufe inkl. Schattenpass / Dreiecke je Ansicht): Welt Pilz statisch 36
+Kachel-Meshes, ≈ 248 k Dreiecke, 182 Kollisionsformen; Ansichten 39–73 / 106–225 k (Ankunft 73 / 179 k, Wrack 60 / 225 k). Welt Blume
+statisch 55 Kachel-Meshes, ≈ 338 k Dreiecke (über Kacheln und Fern-Ausblendung verteilt), 223 Kollisionsformen; Ansichten 45–73 /
+133–217 k (Ankunft 73 / 203 k, Zirkus 56 / 217 k). Welt Krone statisch 23 Kachel-Meshes, ≈ 148 k Dreiecke, 73 Kollisionsformen;
+Ansichten 40–75 / 127–231 k (Ankunft 72 / 231 k, Diorama 75 / 189 k). Hohe Übersichten (Kamera 60–90 m über der Karte, nur
+Sichtprüfung) höchstens 96 / 279 k.
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
