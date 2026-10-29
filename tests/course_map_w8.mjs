@@ -6,7 +6,8 @@
 //   Glasröhre) inkl. Doppelbedingung 8-A **und** 8-B für 8-Burg; Sternschranke 190 mit Hinweis „Benötigt 190 Sterne
 //   (x/190)“; Glühbirnen im Takt der Kartenmusik (Taktuhr, manuell vorgespult) und Ersatzuhr ohne Musik, Stachelbrücken im
 //   Takt, lebendige Kulisse (Riesenrad, Karussell, Achterbahn, Ballons, Regen, Baron-Express, Leuchtstege, Felsklotz …);
-//   Glasröhre WS „Welt Stern kommt bald!“ (auch Welt-Warp nach Welt 9 über den Rückfall); Beerenhaus, Glückshaus;
+//   Glasröhre WS zur Welt Stern (Fahrt und Welt-Warp nach Welt 9 landen im Sternenzelt, zurück an WS; ohne Welt-9-Karte
+//   „Welt Stern kommt bald!“ und Rückfall); Beerenhaus, Glückshaus;
 //   „befreiter“ Turm nach dem Spielende (courseSave.data.finished: Herz-Fahnen, Freunde vor dem Turm, Feuerwerk, Glas offen);
 //   gespeicherte Welt bleibt nach Neuladen; Rückweg nach Welt 7; Anflug; Kennzahlen (< 120 Zeichenaufrufe, < 300 k Dreiecke an
 //   jeder Ansicht inkl. Ankunft und Anflug); keine Konsolenfehler.
@@ -14,6 +15,7 @@
 // Aufruf: npm run build && node tests/course_map_w8.mjs   (Teilläufe: W8_TEIL=1, 2, 3, 4 – s. u.; PORT_BASE verschiebt den Port)
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 import { MAP as W8 } from '../src/course/map/worlds/w8.js';
+import { MAP as W9 } from '../src/course/map/worlds/w9.js';
 import { MAP as W7 } from '../src/course/map/worlds/w7.js';
 import { MAP as W6 } from '../src/course/map/worlds/w6.js';
 import { MAP as W5 } from '../src/course/map/worlds/w5.js';
@@ -91,12 +93,13 @@ const W8IDS = ['8-1', '8-2', '8-3', '8-Zug', '8-4', '8-5', '8-Haus', '8-6', '8-7
     peek: (id) => levels[id] ?? null, starsInWorld: (w) => Object.entries(levels).filter(([k]) => k.startsWith(`${w}-`)).reduce((n, [, l]) => n + l.stars.filter(Boolean).length, 0),
     totalStars: () => Object.values(levels).reduce((n, l) => n + l.stars.filter(Boolean).length, 0), worldOpened: (n) => worlds.includes(n),
   });
-  const maps = (n) => ({ 1: W1, 2: W2, 3: W3, 4: W4, 5: W5, 6: W6, 7: W7, 8: W8 }[n] ?? null);
+  const maps = (n) => ({ 1: W1, 2: W2, 3: W3, 4: W4, 5: W5, 6: W6, 7: W7, 8: W8, 9: W9 }[n] ?? null);
   const d3 = { done: true, stars: [true, true, true] }, d0 = { done: true, stars: [false, false, false] };
   const W17 = [1, 2, 3, 4, 5, 6, 7];
-  check('worldOpen: Welt 8 zu ohne 7-Burg, offen mit 7-Burg oder wenn entdeckt (Welt-Warp); Welt 9 ohne Karte zu',
+  check('worldOpen: Welt 8 zu ohne 7-Burg, offen mit 7-Burg oder wenn entdeckt (Welt-Warp); Welt 9 (Sternenzelt) zu ohne 8-Burg, offen mit 8-Burg',
     !unlock.worldOpen(maps, fake({ '7-7': d3 }, W17), 8) && unlock.worldOpen(maps, fake({ '7-Burg': d3 }, W17), 8)
-    && unlock.worldOpen(maps, fake({}, [...W17, 8]), 8) && !unlock.worldOpen(maps, fake({}, [...W17, 8, 9]), 9));
+    && unlock.worldOpen(maps, fake({}, [...W17, 8]), 8) && !unlock.worldOpen(maps, fake({ '8-A': d3, '8-B': d3 }, [...W17, 8]), 9)
+    && unlock.worldOpen(maps, fake({ '8-Burg': d3 }, [...W17, 8]), 9) && unlock.worldOpen(maps, fake({}, [...W17, 8, 9]), 9));
   const many = {}; for (let i = 0; i < 64; i++) many[`5-x${i}`] = d3;   // 192 Sterne
   const few = {}; for (let i = 0; i < 63; i++) few[`5-x${i}`] = d3; few['5-y'] = { done: true, stars: [true, false, false] };   // 190 Sterne … dann 189
   const few189 = { ...few, '5-y': { done: true, stars: [false, false, false] }, '5-z': { done: true, stars: [true, false, false] } };
@@ -213,7 +216,7 @@ const P81 = W8.entrances.find((e) => e.id === '8-1').pos;
 
 // Teilläufe (W8_TEIL=1|2|3|4) für langsame Rechner, je unter 10 min; ohne Angabe alle Abschnitte.
 //   1: Abschnitte 2–4 (Röhre W8 → Welt 8, Welt-Warp, Start/Titel, erstes Level), 2: 5–7 (Freischaltung, Brücken,
-//   Sternschranke, Doppelbedingung), 3: 8–10 (Kulisse im Takt, Welt Stern bald, Beeren-/Glückshaus), 4: 11–14 (befreiter
+//   Sternschranke, Doppelbedingung), 3: 8–10 (Kulisse im Takt, Röhre zur Welt Stern, Beeren-/Glückshaus), 4: 11–14 (befreiter
 //   Turm, Bilder, Neuladen, Rückweg nach Welt 7, Anflug)
 const TEIL = process.env.W8_TEIL ?? '';
 const PARTS = { 1: [2, 4], 2: [5, 7], 3: [8, 10], 4: [11, 14] };
@@ -539,7 +542,7 @@ if (part(8)) {
       'spukspiegel', 'kristall_felsklotz', 'baron_sandstatue', 'autowrack'].every((n) => (r.models ?? []).includes(n)));
 }
 
-// ------------------------------------------------------------------ 9) Glasröhre WS „Welt Stern kommt bald“, Welt-Warp nach Welt 9 über den Rückfall
+// ------------------------------------------------------------------ 9) Glasröhre WS zur Welt Stern (Fahrt, Welt-Warp, Rückkehr); ohne Welt-9-Karte „bald“
 if (part(9)) {
   await loadWith({ levels: with8(w1to7(true), [...W8IDS]), mapOpened: [...OPENED_1_7, ...opened8([...W8IDS])], world: 8, worlds: WORLDS8, mapPos: null });
   await waitMap(8);
@@ -587,9 +590,58 @@ if (part(9)) {
     console.log('  vom Turmplatz zurück:', r.s.player.x.toFixed(2), r.s.player.y.toFixed(2), r.s.player.z.toFixed(2), r.s.gates['8-Burg']);
     check('Vom Turmplatz zurück: Turm-Schranke an der Zugbrücke lässt die Figur von hinten durch', r.s.player.z > -99 && r.s.gates['8-Burg'] === 'closed' && Math.abs(r.s.player.y - 7.5) < 0.1);
   } else {
-    await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); });
+    // Welt Stern gibt es (worlds/w9.js): A startet die Fahrt ins Sternenzelt, Ankunft an dessen Rückweg-Röhre W8
+    st = await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); return m.step(5); });
+    const sign = await sc(() => window.__courseMap.signOf('WS'));
+    check('Sternen-Röhre nach 8-Burg: Ziel „Sternenzelt“ (Schild „Welt Stern / Sternenzelt“), A startet die Fahrt (kein „Welt Stern kommt bald!“)',
+      r.s.onPad === 'WS' && st.travel?.mode === 'depart' && st.entrances.WS.enterable && !st.entrances.WS.soon && st.entrances.WS.title === 'Sternenzelt'
+      && sign === 'Welt Stern\nSternenzelt' && (await toast()) !== 'Welt Stern kommt bald!');
+    r = await stepUntil(() => false, 900);
+    await waitMap(9);
     st = await sc(() => window.__courseMap.state());
-    check('Sternen-Röhre nach 8-Burg: Karte der Welt Stern vorhanden – A startet die Fahrt', st.travel?.mode === 'depart');
+    check('Die Fahrt endet im Sternenzelt (Welt 9, Ankunft an der Rückweg-Röhre W8)', st.world === 9 && st.travel?.mode === 'arrive' && st.travel.entrance === 'W8');
+    r = await stepUntil((s) => s.travel?.t > 1.4, 400);
+    await shot('w9_ankunft', 400);
+    // Warp nach Welt 9 aus einem Welt-8-Level (8-7 noch offen, Turm-Schranke zu): landet im Sternenzelt; zurück durch dessen
+    // Rückweg-Röhre kommt die Figur an WS hinter den gesperrten Schranken an
+    const done6 = ['8-1', '8-2', '8-3', '8-Zug', '8-4', '8-5', '8-6'];
+    await loadWith({ levels: with8(w1to7(true), done6), mapOpened: [...OPENED_1_7, ...opened8(done6)], world: 8, worlds: WORLDS8, mapPos: null }, '&mapAlias=8-1:0-0');
+    await waitMap(8);
+    await tp(P81[0], 1.8, P81[2] + 3, Math.PI / 2, 20);
+    r = await walkTo(P81[0], P81[2], (s) => s.onPad === '8-1', 900);
+    await sc(() => { const m = window.__courseMap; m.enter(); m.step(1); });
+    await waitCourse();
+    await sc(() => { window.__courseSave.openWorld(9); window.__course.exitToMap({ warpWorld: 9 }); });
+    await waitMap(9);
+    st = await sc(() => window.__courseMap.state());
+    console.log('  Warp 9:', JSON.stringify(st.travel), st.soonWorld);
+    check('Welt-Warp nach Welt 9 (Karte vorhanden) landet im Sternenzelt, keine „bald“-Meldung', st.world === 9 && st.travel?.mode === 'arrive' && st.travel.entrance === 'W8'
+      && st.soonWorld === null && st.worlds.includes(9));
+    r = await stepUntil((s) => !s.travel, 900);
+    const W8E = W9.entrances.find((e) => e.id === 'W8').pos;
+    await tp(W8E[0], W8E[1] + 0.3, W8E[2] + 3, Math.PI / 2, 20);
+    r = await walkTo(W8E[0], W8E[2], (s) => s.onPad === 'W8', 400);
+    await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); });
+    r = await stepUntil(() => false, 900);
+    await waitMap(8);
+    st = await sc(() => window.__courseMap.state());
+    console.log('  Rückkehr aus Welt 9:', JSON.stringify(st.travel), JSON.stringify(st.entrances.WS));
+    check('Zurück aus dem Sternenzelt: Ankunft in Welt 8 durch die Sternen-Röhre (Welt 9 entdeckt, Weg zur Röhre frei)', st.world === 8 && st.travel?.mode === 'arrive'
+      && st.travel.entrance === 'WS' && st.entrances.WS.discovered === true && !st.entrances.WS.locked && st.entrances.WS.enterable);
+    r = await stepUntil((s) => s.travel?.t > 1.4, 400);
+    await shot('w9_rueckkehr', 400);
+    r = await stepUntil((s) => !s.travel, 900);
+    st = await sc(() => window.__courseMap.state());
+    check('Nach der Ankunft: Schranke zur Sternen-Röhre versinkt (Schwenk)', st.cinematic && (await toast()) !== 'Welt Stern kommt bald!');
+    r = await stepUntil((s) => !s.cinematic, 1800);
+    await sc(() => window.__courseMap.step(20));
+    st = await sc(() => window.__courseMap.state());
+    const exitS = exitPoint(W8.entrances.find((e) => e.id === 'WS'));
+    check('Figur steht vor der Sternen-Röhre, Schranke offen', Math.hypot(st.player.x - exitS[0], st.player.z - exitS[2]) < 0.8 && st.gates.WS === 'open' && !st.cinematic);
+    await tp(0, 9.8, -113, Math.PI / 2, 20);
+    r = await walkTo(0, -98, (s) => s.player.z > -99, 900);
+    console.log('  vom Turmplatz zurück:', r.s.player.x.toFixed(2), r.s.player.y.toFixed(2), r.s.player.z.toFixed(2), r.s.gates['8-Burg']);
+    check('Vom Turmplatz zurück: Turm-Schranke an der Zugbrücke lässt die Figur von hinten durch', r.s.player.z > -99 && r.s.gates['8-Burg'] === 'closed' && Math.abs(r.s.player.y - 7.5) < 0.1);
   }
 }
 

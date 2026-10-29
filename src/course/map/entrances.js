@@ -1,7 +1,8 @@
 // Eingänge der Kurs-Weltkarte: rundes Podest mit Nummernscheibe (frei = farbig mit Leuchtring, gesperrt = grau mit
 // schwebendem Schloss, geschafft = Fahne), dazu je Art eine Kulisse (Wiesentor, Höhlenmaul, Arena-Gitter, Bohnenranke,
 // Diorama-Vitrine, Blatt-Floß und Wasserfall, Zirkuszelt, Festung mit Baron-Flagge, Glasröhre; Welt 2: decor_w2.js,
-// Welt 3: decor_w3.js, Welt 4: decor_w4.js, Welt 5: decor_w5.js, Welt 6: decor_w6.js, Welt 7: decor_w7.js, Welt 8: decor_w8.js, Halloween-Welt 31: decor_hw.js; Glasröhren mit
+// Welt 3: decor_w3.js, Welt 4: decor_w4.js, Welt 5: decor_w5.js, Welt 6: decor_w6.js, Welt 7: decor_w7.js, Welt 8: decor_w8.js, Welt Stern (9):
+// decor_star.js, Halloween-Welt 31: decor_hw.js; Glasröhren mit
 // def.dress = 'halloween' bekommen Halloween-Schmuck, def.ownSign ersetzt das Holzschild).
 // Große, unbewegte Teile gehen in die verschmolzene statische Geometrie (view.addStatic), bewegte sind eigene Objekte.
 //
@@ -28,6 +29,7 @@ import { decorateW5 } from './decor_w5.js';
 import { decorateW6 } from './decor_w6.js';
 import { decorateW7 } from './decor_w7.js';
 import { decorateW8 } from './decor_w8.js';
+import { decorateStar } from './decor_star.js';
 import { decorateHW, dressPipeHW } from './decor_hw.js';
 
 
@@ -228,7 +230,8 @@ export class EntranceView {
       case 'castle': this.decorateCastle(x, y, z); break;
       case 'pipe': this.decoratePipe(x, y, z); dressPipeHW(this, x, y, z); break;
       default: if (!decorateW2(this, this.kind, x, y, z) && !decorateW3(this, this.kind, x, y, z) && !decorateW4(this, this.kind, x, y, z) && !decorateW5(this, this.kind, x, y, z)
-        && !decorateW6(this, this.kind, x, y, z) && !decorateW7(this, this.kind, x, y, z) && !decorateW8(this, this.kind, x, y, z)) decorateHW(this, this.kind, x, y, z); break;
+        && !decorateW6(this, this.kind, x, y, z) && !decorateW7(this, this.kind, x, y, z) && !decorateW8(this, this.kind, x, y, z)
+        && !decorateStar(this, this.kind, x, y, z)) decorateHW(this, this.kind, x, y, z); break;
     }
   }
 
