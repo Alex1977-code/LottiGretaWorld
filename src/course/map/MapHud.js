@@ -8,6 +8,9 @@
 //   unten Mitte  Hinweis zum nächsten Eingang (Titel, Sterne, Status) bzw. zum Spielautomaten im Glückshaus und – auf
 //                freiem Eingang oder der Automaten-Matte mit Touch – „Los!“
 //   Touch-Steuerung (Stick, A/B/Y, Kamera) wie im Level (CourseTouch).
+//   neben den Porträts  Sternenglanz-Kostüm an/aus (Präzisierung Figuren Bonuswelten), sobald freigeschaltet (S-2, Spielstand
+//                courseSave.data.outfits.stern); Taste K. Der Wunsch steht in courseSave.data.outfit ('stern' | null) und gilt
+//                überall, wo die Szene keine Verkleidung setzt (Halloween-Welt hat Vorrang) – auch im Level.
 // Alle Knöpfe haben große Treffflächen (mind. 34 × 30 Logik-Pixel) und halten den Stick-Finger fern.
 
 import Phaser from 'phaser';
@@ -18,7 +21,14 @@ import { uiText, uiPanel, uiButton, drawHeart } from '../../ui.js';
 import { CourseTouch } from '../input/CourseTouch.js';
 import { getPower } from '../player/powers.js';
 import { courseSave } from '../level/CourseSave.js';
-import { engine } from '../../audio/index.js';
+import { engine, sfx } from '../../audio/index.js';
+import { setOutfitWish, currentOutfit } from '../../three/lib/outfit.js';
+
+// Wunsch-Kostüm der Figuren aus dem Spielstand (lebende Quelle: gilt ab dem Start des Spiels, auch für direkt gestartete Level und
+// nach dem Löschen des Spielstands): courseSave.data.outfit, nur ein freigeschaltetes Kostüm (courseSave.data.outfits).
+setOutfitWish(() => { const d = courseSave.data; return d.outfit && d.outfits?.[d.outfit] ? d.outfit : null; });
+/** Sternenglanz-Schalter: Kostüm-Name im Spielstand. */
+const STERN_OUTFIT = 'stern';
 
 const HERO_HAIR = { lotti: 0xc8963c, greta: 0xf3d97a };
 const _v = new THREE.Vector3();
@@ -127,6 +137,10 @@ export class MapHud {
       this.heroPicker[key] = { c, ring };
     });
     this.traitText = uiText(scene, 41, 76, '', { size: 6, color: '#ffe9a8', stroke: '#2a2550', thickness: 2, shadow: false }).setDepth(44);
+    // ---- Sternenglanz-Kostüm an/aus (neben den Porträts, nur freigeschaltet; Taste K)
+    this.outfitBtn = this.buildOutfitBtn(98, 46);
+    this.outfitHintT = courseSave.data.outfits?.[STERN_OUTFIT] && courseSave.data.outfit === undefined ? 2.6 : 0;   // neu: Hinweis
+    scene.input.keyboard?.on('keydown-K', this.onOutfitKey, this);
 
     // ---- mitgenommenes Power-up
     this.carryBg = uiPanel(scene, 0, 0, 10, 10, { color: 0x1a1830, alpha: 0, radius: 8, shadow: false, border: 0 }).setDepth(40);
@@ -166,7 +180,73 @@ export class MapHud {
 
     this.updateMute();
     this.updateHeroPicker();
+    this.updateOutfitBtn();
     this.refresh(true);
+  }
+
+  // ------------------------------------------------------------------ Sternenglanz-Kostüm (Schalter)
+
+  buildOutfitBtn(x, y) {
+    const s = this.scene;
+    const c = s.add.container(x, y).setDepth(44);
+    const ring = s.add.circle(0, 0, 13, 0xffffff, 0.55).setStrokeStyle(1.5, 0x9a9ab0);
+    const star = s.add.graphics();
+    const label = uiText(s, 0, 18, 'Glanz', { size: 7, color: '#ffffff', stroke: '#2a2550', thickness: 2, shadow: false });
+    c.add([ring, star, label]);
+    c.setSize(34, 40);
+    c.setInteractive({ hitArea: new Phaser.Geom.Circle(17, 20, 20), hitAreaCallback: Phaser.Geom.Circle.Contains, useHandCursor: true });
+    c.on(Phaser.Input.Events.POINTER_DOWN, (p, lx, ly, ev) => { ev?.stopPropagation?.(); if (!this.confirm) this.toggleOutfit(); });
+    c.setVisible(false);
+    return { c, ring, star, label, key: null };
+  }
+
+  /** Sternenglanz freigeschaltet bzw. gewünscht (Spielstand). */
+  outfitState() {
+    const d = courseSave.data;
+    return { unlocked: !!d.outfits?.[STERN_OUTFIT], wearing: d.outfit === STERN_OUTFIT && !!d.outfits?.[STERN_OUTFIT], worn: currentOutfit() === STERN_OUTFIT };
+  }
+
+  updateOutfitBtn() {
+    const B = this.outfitBtn, o = this.outfitState();
+    const key = `${o.unlocked}|${o.wearing}`;
+    if (key === B.key) return;
+    B.key = key;
+    B.c.setVisible(o.unlocked);
+    if (!o.unlocked) return;
+    const g = B.star;
+    g.clear();
+    const pts = starPoints(0, 0.6, 8.6, 3.7);
+    if (o.wearing) {
+      g.fillStyle(0xffd23a, 1); g.fillPoints(pts, true); g.lineStyle(1.3, 0xfff6c0, 1); g.strokePoints(pts, true);
+      g.fillStyle(0xffffff, 0.95); g.fillCircle(-2.4, -1.6, 1.3);                                   // Glanz
+      for (const [sx, sy, r] of [[9.5, -8, 2.2], [-9.5, 7.5, 1.7]]) {                               // Funkeln
+        g.fillStyle(0xffffff, 1); g.fillTriangle(sx - r, sy, sx + r, sy, sx, sy - r * 2.2); g.fillTriangle(sx - r, sy, sx + r, sy, sx, sy + r * 2.2);
+      }
+    } else {
+      g.fillStyle(0x1a1830, 0.25); g.fillPoints(pts, true); g.lineStyle(1.3, 0x6a6a88, 1); g.strokePoints(pts, true);
+    }
+    B.ring.setStrokeStyle(o.wearing ? 3 : 1.5, o.wearing ? 0xffc21a : 0x9a9ab0);
+    B.ring.setFillStyle(o.wearing ? 0x2a3cb0 : 0xffffff, o.wearing ? 0.92 : 0.55);
+    B.c.setAlpha(o.wearing ? 1 : 0.85);
+  }
+
+  onOutfitKey(ev) { if (!ev?.repeat && !this.confirm && !this.scene.inputLocked) this.toggleOutfit(); }
+
+  /** Sternenglanz an/aus (Wunsch im Spielstand); false, wenn (noch) nicht freigeschaltet. */
+  toggleOutfit() {
+    const s = this.scene, d = courseSave.data;
+    if (!d.outfits?.[STERN_OUTFIT] || s.leaving) return false;
+    d.outfit = d.outfit === STERN_OUTFIT ? null : STERN_OUTFIT;
+    courseSave.save();
+    const o = this.outfitState();
+    this.outfitHintT = 0;
+    if (o.wearing && !o.worn) this.toast('Sternenglanz gemerkt – hier zählt die Verkleidung der Insel', 2.4);
+    else this.toast(o.wearing ? 'Sternenglanz an!' : 'Sternenglanz aus', 1.6);
+    sfx(o.wearing ? 'powerup' : 'select');
+    if (o.worn) { const p = s.player?.pos; if (p) s.level?.effects?.sparks({ x: p.x, y: p.y + 0.9, z: p.z }, 16); }
+    this.updateOutfitBtn();
+    s.tweens.add({ targets: this.outfitBtn.c, scaleX: 1.2, scaleY: 1.2, duration: 110, yoyo: true });
+    return o.wearing;
   }
 
   // ------------------------------------------------------------------ oben
@@ -306,6 +386,13 @@ export class MapHud {
   update(dt) {
     const s = this.scene;
     this.refresh(false);
+    this.updateOutfitBtn();
+    if (this.outfitHintT > 0 && (this.outfitHintT -= dt) <= 0) {
+      this.toast('Neu: Sternenglanz-Kleid! Oben links an- und ausziehen', 3.2);
+      courseSave.data.outfit ??= null;   // Hinweis nur einmal (null = gesehen, nicht angezogen)
+      courseSave.save();
+      s.tweens.add({ targets: this.outfitBtn.c, scaleX: 1.25, scaleY: 1.25, duration: 160, yoyo: true, repeat: 3 });
+    }
     if (this.toastAfterCredits) { this.toastAfterCredits = false; this.toast('Spiel geschafft – danke fürs Spielen!', 3.6); }
     if (this.titleT > 0) {
       this.titleT -= this.banner.visible ? dt * 4 : dt;   // Hinweis-Leiste hat Vorrang
@@ -447,5 +534,8 @@ export class MapHud {
     this.banner.setVisible(true);
   }
 
-  destroy() { this.touchCtl?.destroy(); }
+  destroy() {
+    this.scene.input?.keyboard?.off('keydown-K', this.onOutfitKey, this);
+    this.touchCtl?.destroy();
+  }
 }
