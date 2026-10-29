@@ -29,7 +29,7 @@
 
 import {
   isl, line, ring, arc, stege, burgZinnen, laternen, mond, gluehwuermchen, glowPoints, Bld, NACHT, teppich, feuerschalen,
-  himmelslaternen,
+  himmelslaternen, sternenAbgrund,
 } from './_helpers_b.js';
 
 const RX = 80;                 // Stampfstein-Kammer (Rätselbox-Raum), x
@@ -91,6 +91,9 @@ function build(level) {
     avoid: [[-5, 8, 9, -60], [-7, 4, -58, -112], [-2, 5, -110, -200], [-3, 7, -200, -238], [-7, 7, -258, -286]],
   });
   mond(level, [-70, 70, -330], 11);
+  // Sterne im Abgrund unter den Stegen: die Festung schwebt im Nachthimmel
+  sternenAbgrund(level, [-34, 34, -55, -3, 16, -295], 420);
+  sternenAbgrund(level, [RX - 22, RX + 24, -45, -3, -170, -228], 70, { seed: 5 });
   gluehwuermchen(level, [[-6, 6, 0.6, 3.5, 8, -3, 10], [-5, 5, 0.6, 3, -98, -110, 8], [-7, 7, 0.6, 3.5, -260, -286, 14], [RX - 4, RX + 9, 0.6, 3, -184, -212, 8]]);
   // Burgbalkon: Baron-Wappen und Fahnenstangen hinten
   const b = new Bld();

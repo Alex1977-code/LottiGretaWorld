@@ -1466,3 +1466,23 @@ export function nahGruppe(level, z0, r) {
   };
   return { group, put };
 }
+
+/**
+ * Sternenabgrund (8-4): funkelnde Sterne unter und neben den Stegen, als schwebe die Festung im Nachthimmel – im gemeinsamen
+ * Leuchtfeld (0 zusätzliche Zeichenaufrufe). box = [x0, x1, y0, y1, zA, zB], n Sterne; avoid = [[x0, x1, zA, zB], …]
+ * (dort keine Sterne über y −6, damit nichts auf Wegen funkelt).
+ */
+export function sternenAbgrund(level, box, n = 240, o = {}) {
+  const [x0, x1, y0, y1, zA, zB] = box;
+  let q = o.seed ?? 21;
+  const rnd = () => { q = (q * 16807) % 2147483647; return q / 2147483647; };
+  const groups = [[], [], []];
+  for (let i = 0; i < n; i++) {
+    const x = x0 + rnd() * (x1 - x0), y = y0 + Math.pow(rnd(), 0.7) * (y1 - y0), z = zB + rnd() * (zA - zB);
+    if (y > -6 && (o.avoid ?? []).some(([a0, a1, za, zb]) => x > a0 && x < a1 && z < Math.max(za, zb) && z > Math.min(za, zb))) continue;
+    groups[i % 3].push([x, y, z, 0.8 + rnd() * 1.1]);
+  }
+  glowPoints(level, groups[0], { color: 0xffffff, opacity: 0.9, size: 1, pulse: 0.35 });
+  glowPoints(level, groups[1], { color: 0x9ad8ff, opacity: 0.85, size: 1, pulse: 0.5 });
+  glowPoints(level, groups[2], { color: 0xd8b8ff, opacity: 0.8, size: 1, pulse: 0.25 });
+}

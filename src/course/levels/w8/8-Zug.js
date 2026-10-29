@@ -149,7 +149,8 @@ export const LEVEL = {
     schattenlaeuferin: { farHide: 120 }, goal: { farHide: 120 }, warpbox: { farHide: 120 },
     coin: { farHide: 34, shadow: false }, hackvogel: { farHide: 28, shadowDist: 14 }, schubser: { farHide: 28, shadowDist: 14 },
     wutkaulquappe: { farHide: 24, shadow: false }, pilzling: { farHide: 24, shadowDist: 12 }, feuer_werfer: { farHide: 26, shadowDist: 14 },
-    star: { farHide: 40 }, starring: { farHide: 30 }, checkpoint: { farHide: 30 },
+    star: { farHide: 40, shadowDist: 18 }, starring: { farHide: 30, shadow: false }, checkpoint: { farHide: 26, shadow: false },
+    stamp: { farHide: 30, shadowDist: 14 }, 'block:question': { farHide: 40, shadowDist: 18 },
   },
   sky: { clouds: false },
   scroll: {
