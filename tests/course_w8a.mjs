@@ -29,7 +29,7 @@ const ROUTES = {
   '8-3': {
     start: [0, Y, 6],
     meta: { stars: 3, time: 400, theme: 'cookie', music: 'course_cookie', archetype: 'parcours' },
-    enemies: { riesenschnappblume: 2 },
+    enemies: { riesenschnappblume: 2, ameisen_reihe: 4, bunny: 1 },
     main: [
       { name: 'Startplatz', to: [0, -4.4], within: 0.5 },
       { name: 'Drehkeks 1', to: [0, -10.4], jump: 20, jumpAt: 9, within: 0.8 },
@@ -53,10 +53,21 @@ const ROUTES = {
       { name: 'Zahnradwand 1 (Paternoster)', gear: 'wand1', board: [-0.2, -90.4], off: Y + 5.6, to: [-1.8, -91], max: 2.2, reach: 1.8, hold: 6 },
       { to: [-2.9, -90.6], within: 0.3, run: false },
       { name: 'Zahnrad-Stufe 1', cog: 'stufe1', to: [-6, -90.2] },
-      { name: 'Zahnrad-Stufe 2', cog: 'stufe2', to: [-1.2, -90.2] },
-      { name: 'Zahnrad-Stufe 3', cog: 'stufe3', to: [3.6, -90.2] },
-      { name: 'auf die Wand', cog: null, to: [3.6, -94.5], top: 16 },
+      { name: 'Zahnrad-Stufe 2', cog: 'stufe2', to: [-1.5, -90.2] },
+      { name: 'Zahnrad-Stufe 3', cog: 'stufe3', to: [3, -90.2] },
+      { name: 'Zahnrad-Stufe 4', cog: 'stufe4', to: [7.5, -90.2] },
+      { name: 'auf die Wand', cog: null, to: [7.5, -94.5], top: 16 },
       { expect: '=P().pos.y > 15.5' },
+      { name: 'Kontrollpunkt oben', to: [0, -104], within: 0.6 },
+      { to: [0, -115.4], within: 0.4 },
+      { name: 'Ameisen-Reihe 1', ants: 'reihe1', at: [0, -115.6], to: [0, -120.6] },
+      { name: 'Ameisen-Reihe 2 (zwei Spuren)', ants: 'reihe2', at: [0, -133.4], to: [0, -138.8] },
+      { name: 'Ameisen-Reihe 3', ants: 'reihe3', at: [0, -151.6], to: [0, -156.6] },
+      { name: 'Ameisen-Reihe 4 (zwei Spuren)', ants: 'reihe4', at: [0, -169.4], to: [0, -174.8] },
+      { to: [0, -186], within: 0.5 },
+      { name: 'Kanonen-Glasröhre zur Zielplattform', pipe: [0, -188.6] },
+      { expect: '=at(-8, 8, Y + 7.5, -222, -238)' },
+      { name: 'Zielmast', to: [0, -231.4], within: 0.2 },
     ],
     targets: [
       { name: 'WANDTEST', from: [0, Y, -84], star: 0, legs: [
@@ -64,9 +75,10 @@ const ROUTES = {
         { name: 'Zahnradwand 1 (Paternoster)', gear: 'wand1', board: [-0.2, -90.4], off: Y + 5.6, to: [-1.8, -91], max: 2.2, reach: 1.8, hold: 6 },
         { to: [-2.9, -90.6], within: 0.3, run: false },
         { name: 'Zahnrad-Stufe 1', cog: 'stufe1', to: [-6, -90.2] },
-        { name: 'Zahnrad-Stufe 2', cog: 'stufe2', to: [-1.2, -90.2] },
-        { name: 'Zahnrad-Stufe 3', cog: 'stufe3', to: [3.6, -90.2] },
-        { name: 'auf die Wand', cog: null, to: [3.6, -94.5], top: 16 },
+        { name: 'Zahnrad-Stufe 2', cog: 'stufe2', to: [-1.5, -90.2] },
+        { name: 'Zahnrad-Stufe 3', cog: 'stufe3', to: [3, -90.2] },
+        { name: 'Zahnrad-Stufe 4', cog: 'stufe4', to: [7.5, -90.2] },
+        { name: 'auf die Wand', cog: null, to: [7.5, -94.5], top: 16 },
       ] },
     ],
     extra: [],
@@ -80,9 +92,14 @@ const ROUTES = {
       ['wand', [0, Y, -82]],
       ['wand2', [-5, Y + 5.6, -91]],
       ['oben', [0, T3, -100]],
-      ['ameisen', [0, T3, -120]],
+      ['ameisen', [0, T3, -112]],
+      ['reihe2', [0, T3, -131]],
+      ['fach1', [8, T3 - 4.6, -116]],
+      ['fach2', [-8, T3 - 4.6, -152]],
+      ['ende', [0, T3, -184]],
       ['ziel', [0, Y + 8, -224]],
-      ['kuchen', [0, Y - 4, -258]],
+      ['kuchen', [0, Y - 4, -250]],
+      ['raum', [RX3, Y, -126]],
     ],
   },
   '8-1': {
@@ -239,7 +256,7 @@ function install() {
     sichel: () => P().power === 'sichel',
   };
   /** Bedingung: Name aus COND oder Ausdruck '=…' (Variablen P, L, ent, at). */
-  const cond = (k) => (typeof k === 'string' && k.startsWith('=') ? new Function('P', 'L', 'ent', 'at', `return (${k.slice(1)});`)(P, L, ent, at) : COND[k]());
+  const cond = (k) => (typeof k === 'string' && k.startsWith('=') ? new Function('P', 'L', 'ent', 'at', 'Y', `return (${k.slice(1)});`)(P, L, ent, at, 1) : COND[k]());
   const W = {
     place(pos, o = {}) {
       const p = P();
@@ -300,7 +317,7 @@ function install() {
           let n = 0;
           const kind = p.script?.kind ?? p.script?.type ?? p.scriptKind ?? '?';
           while (p.mode === 'script' && n++ < 2400 && !p.dead && L.runtime.status === 'play') { if (hold) p.invuln = Math.max(p.invuln, 5); c.setInput(stickInScript ?? {}); c.step(1); steps++; }
-          if (kind === 'glasnetz') mech.pipes++;
+          if (kind === 'glasnetz' || kind === 'glasspipe' || kind === 'pipe') mech.pipes++;
           mech.rides++;
           log.push(['fahrt', kind, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
         }
@@ -670,6 +687,24 @@ function install() {
           log.push(['stachelblock', Lg.block, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
         }
+        // ------------------------------------------------ Ameisen-Reihe (Id der ameisen_reihe) queren: Lücke abwarten, dann hinüber
+        if (Lg.ants) {
+          const row = L.named.get(Lg.ants);
+          const [ax, az] = Lg.at, [bx, bz] = Lg.to;
+          const dirx = Math.sign(row.to.x - row.from.x) || 1;
+          const rz = row.from.z;
+          for (let n = 0; n < 400 && !p.dead; n++) { const dx = ax - p.pos.x, dz = az - p.pos.z, d = Math.hypot(dx, dz); if (d < 0.3 && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.25, d / 1.2))), run: false }); }
+          const ants = () => L.entities.filter((e) => (e.kind === 'ameisensoldat_horn' || e.kind === 'ameisensoldat') && e.alive && !e.removed && Math.abs(e.pos.z - rz) < 2.2);
+          // sicher: die nächste herankommende Ameise ist noch ≥ near m entfernt, die eben vorbeigelaufene ≥ 0,9 m weiter
+          const near = Lg.near ?? 2.0;
+          const safe = () => ants().every((e) => { const dx = e.pos.x - p.pos.x; const appr = dx * dirx < 0; return Math.abs(dx) > (appr ? near : 0.9); });
+          let k = 0, ok = 0;
+          for (; k < 1500; k++) { if (safe()) { if (++ok > 2) break; } else ok = 0; tick({}); }
+          let j = 0;
+          for (; j < 400 && !p.dead; j++) { const dx = bx - p.pos.x, dz = bz - p.pos.z, d = Math.hypot(dx, dz); if (d < 0.4 && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, 1), run: true }); }
+          log.push(['ameisen', Lg.ants, k, j, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
         // ------------------------------------------------ Knochenflieger einer Gruppe im Sturzflug von oben treffen (Reflexsprung), optional stampfen
         if (Lg.diveStomp) {
           const g = L.named.get(Lg.diveStomp);
@@ -719,10 +754,12 @@ function install() {
           const [tx, tz] = Lg.to;
           const top0 = p.pos.y;
           let k = 0, landed = false;
+          const ru = Lg.runup ?? 8;
+          // kurzer Anlauf Richtung Ziel (Schwung vom vorigen Bein und vom Drehteller abbauen), dann Sprung
           for (; k < 300 && !p.dead; k++) {
             const dx = tx - p.pos.x, dz = tz - p.pos.z;
-            if (k > 12 && p.mode === 'ground') { landed = p.pos.y > top0 + 0.8; break; }
-            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 4, 7) : this.stick(dx, dz, 1)), run: false, jump: k < 40 });
+            if (k > ru + 12 && p.mode === 'ground') { landed = p.pos.y > top0 + 0.8; break; }
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 4, 7) : this.stick(dx, dz, 1)), run: false, jump: k >= ru && k < ru + 40 });
           }
           // auf dem Drehteller zur Mitte (Drehung nimmt mit)
           for (let n = 0; n < 120 && !p.dead && h; n++, k++) { const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz); if (d < 0.4) break; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.3, d))), run: false }); }
