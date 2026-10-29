@@ -239,7 +239,7 @@ export const LEVEL = {
     { kind: 'warpbox', id: 'warp_unten', pos: [-6.2, YB, -205.6], target: 'warp_hoch' },
     { kind: 'warpbox', id: 'warp_hoch', pos: [-8, YU, -213.6], target: 'warp_unten' },
   ],
-  checkpoint: { pos: [3, YC, -173.6], yaw: Math.PI / 2 },
+  checkpoint: [{ pos: [-3.2, YZ, -87.2], yaw: Math.PI / 2 }, { pos: [3, YC, -173.6], yaw: Math.PI / 2 }],   // Zwischeninsel (vor der Boost-Strecke), Kontrollpunkt-Insel
   stars: [
     { pos: [5.2, Y + 0.6, -14.3], hidden: true, id: 'stern_ziegel' },                 // 0 Sternziegel (Reihe 3, rechts)
     { pos: [-2.6, VERSTECK.top + 0.3, -11.7], id: 'stern_versteck' },                 // 1 unter Spalte 1, Reihe 2

@@ -9027,8 +9027,8 @@ Wolkenhimmels, Käfig hinter der letzten Mauer (nur als Riese). Gegner: 15 Hüpf
 
 ≈ 300 m nach −Z, eigene Gestaltung (Planetoiden-Hommage). **Kippfeld** (Drehplatten 3 × 4, Abstand 2,6, kippen nach 0,45 s)
 mit Krakenpilzen auf gleitenden Blöcken → **Münzinsel** → **rote Farb-Plattenbahn** (24 Platten in S-Kurve, rot → golden;
-alle golden: 10 Münzen und ein 1-up am Bahnende, per `spawn`-Aktion) → Zwischeninsel → **Boost-Strecke** (24 Drehplatten
-mit Pfeil, Verzögerung 0,25 s – wer trödelt, stürzt ab) → Warp-Box → **Kontrollpunkt** → **Plattentreppe** (drei
+alle golden: 10 Münzen und ein 1-up am Bahnende, per `spawn`-Aktion) → Zwischeninsel (erster Kontrollpunkt) → **Boost-Strecke** (24 Drehplatten
+mit Pfeil, Verzögerung 0,25 s – wer trödelt, stürzt ab) → Warp-Box → **zweiter Kontrollpunkt** → **Plattentreppe** (drei
 Plattenwände `mode: 'treppe'`, je 6 Stufen im Zickzack, ≈ 13 m hinauf) → **Schachbrett** 4 × 5 (rosa/blau → alle golden
 öffnen die Zieltreppe, Signal `schach_fertig`) mit **Gabelung**: oben das Ziel, unten über die letzte Warp-Box die blauen
 Platten. Sterne: **0** Sternziegel über dem Sternstein-Sockel neben Reihe 3 rechts (vom Sockel aus anstoßen oder von oben
@@ -9081,7 +9081,7 @@ Schiebekugeln → `onAll`), `muenzregen` (Signal → Münzen fallen auf eine Fl�
 Gegnerzahlen, Routen-Bot Lotti und Greta Start → Ziel (S-Kapitän: Krümel), alle Sterne und Stempel mit echter Mechanik samt
 Gegenproben (ohne Krallen-Anzug kein Kugelraum, ohne Riesentrank keine Farbfeld-Nische, Fackeln nur mit Feuer, Stempel
 nicht auf dem Hauptarm bzw. nicht vom Boden, kein Versteck unter anderen Kippplatten, Stern 4 nicht mit der Grundkamera,
-Westturm nicht nach einer Drehung …), Extras (Extraleben, Münzregen, Kontrollpunkt im Bach, Mitsprung der Hüpfmaus,
+Westturm nicht nach einer Drehung …), Extras (Extraleben, Münzregen, Kontrollpunkte im Bach und auf der Zwischeninsel, Mitsprung der Hüpfmaus,
 Krakenpilz spuckt und wird besiegt, Boost-Absturz, Schatzstelle, Krümel springt nicht), Messgang entlang der Route und
 Bilder `tests/out/sa_*.png`. Routen: S-1 ≈ 76 s, S-2 ≈ 75 s, S-Kapitän ≈ 63 s; Treffer-Versuche (Route unverwundbar): S-1 und S-Kapitän keine, S-2 höchstens
 1 (ein Krakenpilz-Steinchen; die Route besiegt die Krakenpilze auf der Münzinsel und am Kontrollpunkt von oben). Kennzahlen

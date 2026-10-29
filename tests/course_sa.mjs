@@ -186,6 +186,9 @@ const ROUTES = {
     extra: [
       { name: 'Boost-Strecke: wer trödelt, stürzt ab', from: [0, 2, -96.2], heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
         legs: [{ to: [0, -120], within: 0.6, run: false, slow: 0.35, max: 900 }], mech: (r) => r.dead || r.pos[1] < 0, mechText: (r) => (r.dead ? 'abgestürzt' : `y ${r.pos[1].toFixed(1)}`) },
+      { name: 'Kontrollpunkt Zwischeninsel: nach einem Absturz geht es vor der Boost-Strecke weiter', from: [0, 2, -85.6], heroes: ['lotti'],
+        legs: [{ to: [-3.2, -88.2], within: 0.5, run: false }, { to: [0, -92.2], within: 0.4, run: false }, { die: 'fall' }],
+        mech: (r) => r.pos[2] > -97 && r.pos[2] < -84, mechText: (r) => `Neustart bei ${r.pos.map((v) => v.toFixed(1)).join(', ')}` },
       { name: 'Krakenpilz spuckt Steinchen im Bogen (Kontrollpunkt)', from: [-1, 4, -175.6], heroes: ['lotti'],
         legs: [{ wait: 600 }], mech: (r) => r.mech.spits >= 1, mechText: (r) => `Spuckzüge ${r.mech.spits}` },
       { name: 'Krakenpilz von oben besiegen (Münzinsel)', from: [0, 0.6, -21], heroes: ['lotti'],
