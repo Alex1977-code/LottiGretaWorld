@@ -485,6 +485,55 @@ export function zuckerwerk83(level, o) {
   if (o.torte) torte(b, g, o.torte, rnd);
   b.flush(level, { castShadow: true });
   g.flush(level, { material: 'glow', castShadow: false });
+  if (o.see) schokoSee(level, o.see);
+}
+
+/** Schokoladensee tief unter der Fabrik (nur Optik, knapp über der Absturz-Ebene): glänzend braun mit Milch-Schlieren. */
+function schokoSee(level, o) {
+  if (!level.view) return;
+  const parts = [];
+  const D = new THREE.Color(0x4a2410), M = new THREE.Color(0x7a4220), L = new THREE.Color(0xc89a6a), c = new THREE.Color();
+  for (const [x0, x1, zA, zB] of o.rects) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+    const nx = Math.max(2, Math.round((x1 - x0) / 2.5)), nz = Math.max(2, Math.round((z0 - z1) / 2.5));
+    const g = new THREE.PlaneGeometry(x1 - x0, z0 - z1, nx, nz);
+    g.rotateX(-Math.PI / 2);
+    g.translate((x0 + x1) / 2, o.y, (z0 + z1) / 2);
+    const P = g.attributes.position, col = new Float32Array(P.count * 3);
+    for (let i = 0; i < P.count; i++) {
+      const x = P.getX(i), z = P.getZ(i);
+      const w = Math.sin(x * 0.35 + Math.sin(z * 0.12) * 2.2) * 0.5 + 0.5, s = Math.pow(Math.max(0, Math.sin(z * 0.21 + x * 0.08 + Math.sin(x * 0.3) * 1.5)), 6);
+      c.copy(D).lerp(M, w).lerp(L, s * 0.55);
+      col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    parts.push(g);
+  }
+  const geo = parts.length === 1 ? parts[0] : mergeGeos(parts);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.22, metalness: 0.05 }));
+  mesh.name = 'schokoladensee';
+  mesh.receiveShadow = true;
+  addObject(level, mesh);
+}
+
+function mergeGeos(list) {
+  let n = 0, m = 0;
+  for (const g of list) { n += g.attributes.position.count; m += g.index.count; }
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), idx = new Uint32Array(m);
+  let o = 0, k = 0;
+  for (const g of list) {
+    pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); col.set(g.attributes.color.array, o * 3);
+    const I = g.index.array;
+    for (let i = 0; i < I.length; i++) idx[k + i] = I[i] + o;
+    o += g.attributes.position.count; k += I.length;
+    g.dispose();
+  }
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  out.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  out.setIndex(new THREE.BufferAttribute(idx, 1));
+  return out;
 }
 
 /** Zuckerguss an einer Kante – entlang x: { x0, x1, z, y, out ±1 } bzw. entlang z: { z0, z1, x, y, out ±1 } (out = Richtung nach

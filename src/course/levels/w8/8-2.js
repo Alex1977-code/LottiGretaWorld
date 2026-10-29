@@ -332,7 +332,7 @@ export const LEVEL = {
   marks: {
     start: [0, Y0 + 0.62, 23], raft: [0, Y0, 5.4], basin: P(main, 2, 0), neck: P(main, -26, 0), cp1: P(main, CP1_Z, 0),
     ramp: P(main, RAMP_Z + 7, 0), gorge: P(main, -112, 0), descent2: P(main, -145, 0), fork: P(main, -156, 0), arm: P(arm, -164, 0),
-    cp2: P(main, CP2_Z, 0), field: P(main, -229, 0), starStatue: P(main, STAR_STATUE_Z, STAR_STATUE_LAT), kaefer: P(main, KAEFER_Z, -2.6), beach: [0, YB, -300], goal: [0, YB, -338],
+    cp2: P(main, CP2_Z, 0), field: P(main, -229, 0), starStatue: P(main, STAR_STATUE_Z, STAR_STATUE_LAT), vorStatue: P(main, STAR_STATUE_Z + 13, STAR_STATUE_LAT - 1.5), kaefer: P(main, KAEFER_Z, -2.6), beach: [0, YB, -300], goal: [0, YB, -338],
     wolken: WOLKEN, qblock: QBLOCK, stamp: STAMP, yB: YB,
   },
 };

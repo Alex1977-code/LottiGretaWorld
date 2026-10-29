@@ -190,7 +190,7 @@ const ROUTES = {
       ['abfahrt2', 'descent2', 120],
       ['arm', 'arm', 100],
       ['statuenfeld', 'field', 120],
-      ['sternstatue', 'starStatue', 0],
+      ['sternstatue', 'vorStatue', 0],
       ['oase', 'beach'],
     ],
   },

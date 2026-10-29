@@ -44,6 +44,8 @@ const SUESS = {
   ],
   wand: { x0: -12, x1: 12, z: -92, y0: Y, y1: T },
   torte: { x0: -6, x1: 6, zA: -248, zB: -262, y: Y - 4, h: 5 },
+  // Schokoladensee tief unten (knapp über der Absturz-Ebene y −8): unter der Fabrik, der Torte und dem Keks-Raum
+  see: { y: -7.6, rects: [[-46, 46, 30, -280], [RX - 22, RX + 22, -108, -166]] },
 };
 
 export const LEVEL = {
