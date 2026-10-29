@@ -9196,3 +9196,76 @@ Wurfsichel, Abrutschen und Hürde, Hackvogel, Zeit-Uhren, Glotzfisch, wartender 
 Gleitblatt mit Gegenprobe, Riesen-?-Turm, Pilzlingsturm abtragen, Laufbombe sprengt Ziegel, Ziel-Box erst nach fünf Schlüsseln). Gemessen (scale 2,
 inkl. Schattenpass): S-3 Messgang (60 Punkte) ≤ 76 Zeichenaufrufe / ≤ 213 k Dreiecke, Bilder 39–75 / ≤ 208 k; S-4 Messgang
 (34) ≤ 59 / ≤ 147 k, Bilder 30–65 / ≤ 147 k; S-5 Messgang (49) ≤ 69 / ≤ 169 k, Bilder 27–60 / ≤ 173 k; Grenzen < 120 / < 300 k.
+
+## Präzisierung (Level S-6 und S-7)
+
+Additiv zur Liste „Bonuswelten – Level-Liste und Freischaltung“, Welt Stern (9): Titel und Besonderheiten von S-6 und S-7.
+Dateien `src/course/levels/w9/S-6.js`, `S-7.js`, eigene Hilfen `src/course/levels/w9/_helpers_c.js` (kein `LEVEL`, nur für
+diese zwei Level), Test `tests/course_sc.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei,
+Haken `LEVEL.build`/`LEVEL.setup`, `level.onStep`, `view.onFrame`). Beide: Archetyp `parcours`, `world: 9`, 3 Sterne + Stempel.
+
+### S-6 „Honigwaben im Sternenmeer“ (parcours, Draufsicht · honeycomb · course_honeycomb · 400 s)
+
+- Alle Wege sind Honigwaben (Baustein `waben`) auf **einem gemeinsamen Gitter** (`hexLattice`, Zellen Q/R, Zeilen nach −Z);
+  der `WabenMaler` malt Flächen/Wege/Lava-/Eismuster und gibt sie als waben-Felder zu je ≤ 5 Zeilen aus (jedes Stück zeichnet
+  nur im Bild). Kamera: `draufsicht` über fast das ganze Level (Höhe 15,5, fov 44, ahead 3), nur am Zielturm neigt sie sich.
+- Abschnitte (Oberseite y 0, All unter y −12): **Startwabe** (?-Block mit Wurfsichel, Schwebeblock links) → **erste Gabelung**:
+  links fester Weg mit Krabbelkäfern, rechts **Schalter-Waben** (`schalterWaben`: erscheinen Zelle für Zelle nach dem
+  Druckknopf, vorher leuchtende Umrisse) → **Stachelwalzen** (drei `stachelwalze_rot` quer, daneben Lava-/Eiswaben) →
+  **Glasröhre** über den Lavasee zur **Spiegelfrucht-Insel** (Kontrollpunkt, Klon) → **Käferfeld** (Krabbelkäfer-Kolonnen,
+  sechs Flatterkäfer im Mittelteil) → **Splitterwege** (drei schmale Wege, fliegende Blöcke mit Feuer-Schnappblumen) →
+  **große Wabenfläche** (Kontrollpunkt, Lavaring, Eisspuren, Lavafeld links, vier Brummer) → **Zielturm** (Wabensäule 9,6 m;
+  `flinkeTreppe`: sieben Waben-Stufen im Bogen erscheinen beim Hinaufsteigen und vergehen 3,6 s danach – flink hinauf).
+- Sterne: 0 Ende des **rechten Wegs** (Druckknopf) · 1 **alle sechs Flatterkäfer** (`kampfraum` mit ids → `{ reveal }`) ·
+  2 über dem **Lavafeld links** nahe dem Ende (nur mit der **Wurfsichel**; ?-Block am Kontrollpunkt 2). Stempel: **links im All
+  schwebend** neben der Gabelung (Wurfsichel; Münzspur zeigt hinaus). Extraleben: verborgener Block links hinten am Start
+  (rosa Kristalle), verborgener Block über der hohen Wabe im Käferfeld. Gegner: Krabbelkäfer 12, Flatterkäfer 6,
+  Feuer-Schnappblumen 4, Brummer 4, Pilzlinge 2.
+- Lesbarkeit von oben (nur Darstellung, level-lokal): **Leuchtring** (weiß-türkis) unter jeder Figur, in der Luft auf dem Boden
+  darunter (Landepunkt); **Münzen liegen flach** (`muenzenFlach`: Pool `coin` kippt in draufsicht-Bereichen um 90° – man
+  sieht das ₿); Kulisse nur tief unten (Planeten, Raketen, Kometen) und sparsame **Blümchen** auf Randwaben.
+- Waben-Kollision: der Baustein gibt jeder Zelle einen Zylinder mit dem Innenradius; an den Ecken dreier Waben blieb ein
+  ≈ 0,2-m-Loch, in dem eine stehende Figur durchfiel. `wabenOhneLoecher` vergrößert in diesem Level die Zylinder normaler und
+  Eis-Waben auf r 1,5 (Lava bleibt) – Hinweis für den Motor-Agenten: dasselbe gehört eigentlich in den Baustein.
+- B-10 (Remix, Taghimmel) findet die Bauplan-Orte vor: Schwebeblock nahe dem Start (x −10, z −4), Glasröhre über dem ersten
+  Lavabereich (z −88 … −112), Lavafeld links nahe dem Ende (Mitte −6,4 / −262,5).
+
+### S-7 „Riesenpilz-Dschungel am Tintenteich“ (parcours · grotto · course_grotto · 400 s)
+
+- Alles übergroß: Riesenpilze als Plattformen (`riesenpilzPlattform`), Riesenbäume, Riesengras, Kleeblätter, Marienkäfer,
+  Schneckenhäuser, Beeren, Eicheln, Felsen (`dschungelDeko`, verschmolzen), Großblöcke (`grossbloecke`, 2 m: Riesenziegel –
+  Stampfen von oben, Riesentrank, Bombe – bzw. `look: 'stein'` – nur Riesentrank/Bombe).
+- Abschnitte (Absturz unter y −26): **Dschungelstart** (y 0, zwei Pilzlingstürme, Schnappblume, Stempel-Käfig) →
+  **Rutschhang** (`rutschhang`, Schlucht bis y −10) → **Riesen-Pilzlingstürme** (7 und 9 Stufen patrouillieren zwischen zwei
+  Riesenpilzen) → **Riesentrank-Feld** (`riesentrankQuelle`: ?-Block, der sich wieder füllt, sobald niemand riesig ist; vier
+  Großrollpilze; Stein-Großblöcke als Wände A/B und eine **Schatzkammer** mit Extraleben – nur als Riese) → **versteckter
+  Gleitblatt-Block** → **Blockwächter-Wand** (6 m, fünf `lauerblock` im Takt als Stufen: Reihe 1 zuerst, Reihe 2 0,54 s später,
+  je 2,3 s draußen) → Plateau (Kontrollpunkt) → **Tintenteich** (`lagune` 100 m, Oberfläche y −6: vier Riesenstämme auf dem
+  Wasser – darunter durchtauchen –, Strömungen nach rechts/links/gegen einen, sechs Tintlinge, Wurzelsäulen, Seetang, Seerosen-
+  blätter am Rand) → Trampolin-Platz (y −5, Kontrollpunkt) → **Röhre zum Ziel** (Zielplatz y 0, 15 m entfernt).
+- Sterne: 0 **hinter der Blockwächter-Wand**: Blätterinsel 14 m links vom Plateau – nur im **Gleitflug** (Gleitblatt) · 1 **zwei
+  Großblock-Lagen**: als Riese auf das Pilz-Trampolin, durch Lage 1, auf das zweite Trampolin oben auf Lage 1, durch Lage 2 –
+  oben der Stern · 2 **Bonusbereich über der Röhre** (Pilz-Trampolin hinauf): Riesentrank-Quelle, Druckschalter (`pswitch`,
+  12 s), acht blaue Münzen in Steinkäfigen (`steinblock`) – nur als Riese. Stempel: **am Anfang in Großblöcken
+  eingeschlossen** (Ring aus acht Riesenziegeln mit Deckel: Stampfattacke auf den Deckel). Extraleben: verborgener Block über
+  dem Münzkreis am Start, Schatzkammer. Gegner: Pilzlingstürme 4, Großrollpilze 5, Tintlinge 6, Lauerblöcke 5, Pilzlinge 2,
+  Schnappblume 1. Röhre auf der Blätterinsel zurück aufs Plateau.
+
+### Hilfen `_helpers_c.js`
+
+`line/ring/arc/column` (Münzen), `hexLattice`, `WabenMaler` (`rect`, `disc`, `ring`, `lane`, `pick`, `fields`), `schalterWaben`,
+`flinkeTreppe`, `wabenOhneLoecher`, `muenzenFlach`, `leuchtring`, `bluemchen` (S-6); `grossbloecke`, `riesentrankQuelle`,
+`riesenpilzPlattform`, `riesenstaemme`, `riesenbaeume`, `wurzelsaeulen`, `dschungelDeko`, `seerosen` (S-7).
+
+### Test `tests/course_sc.mjs`
+
+Port 4955, `PARTS=load,route,sweep,targets,extra,shots`, `HEROES`, `ONLY`, `SHOTS`, `DETAIL`, `TRACE`; Bilder `tests/out/sc_*.png`.
+Prüft je Level Laden ohne Konsolenfehler, Daten und Gegnerzahlen, Routen-Bot Lotti und Greta bis zum Zielmast (echte Eingaben;
+S-6 mit Glasröhre/Klon und flinker Treppe, S-7 mit Rutschhang, Lauerblock-Stufen, Tauchstrecke und Röhre), Messgang über die
+Route, alle Sterne und den Stempel mit Gegenproben (ohne Druckknopf, ohne Wurfsichel, ohne Gleitblatt, ohne Riesentrank, ohne
+Stampfen) und Extras (Extraleben, Lava-Wabe, Stachelwalze, vergehende Stufen, Riesentrank-Quelle füllt sich, Schatzkammer,
+Steinwand, Tintling, Strömung, Pixelbild). Routen (Bot, rennend): S-6 ≈ 40 s (Lotti) / 38 s (Greta), S-7 ≈ 57 s / 54 s.
+Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang über die Route Ø und Höchstwert, Bilder Höchstwert):
+S-6 Ø 61 / 186 k, max 74 / 266 k (Käferfeld), Bilder ≤ 91 / 261 k; S-7 Ø 58 / 169 k, max 90 / 217 k, Bilder ≤ 92 / 231 k
+(Großblock-Lagen). Sparmaßnahmen: Waben-Felder je ≤ 5 Zeilen, Stachelwalzen ohne Sonnenschatten, Großblöcke als je eine
+Instanz-Gruppe mit Bild-Atlas, Blümchen statt Riesenblumen-Modellen; Grenzen < 120 / < 300 k.
