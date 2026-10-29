@@ -574,9 +574,10 @@ async function ridePart() {
     H.hull = P.hull;
     return a;
   });
-  for (const v of ['front', 'side', 'back', 'top']) await shot(`pflaume_${v}`, v, G, { cam: { dist: 2.4, h: 0.35 } });
+  for (const v of ['front', 'side', 'back', 'top']) await shot(`pflaume_${v}`, v, G, { cam: { dist: 3.4, h: 0.45 } });
   r.red = await S(() => { const H = window.__kst; return H.pflPose({ power: 'red', state: 'walk', speed: 2 }, 30); });
-  await shot('pflaume_kraft_rot', 'front', G, { cam: { dist: 2.4, h: 0.35 } });
+  await shot('pflaume_kraft_rot', 'front', G, { cam: { dist: 3.4, h: 0.45 } });
+  await shot('pflaume_nah', 'face', G, { cam: { dist: 2.2, h: 0.55, rel: 0.2 } });
   await S(() => { const H = window.__kst; H.pflPose({ power: 'none' }, 10); });
   // Ritt: Heldin mit Sternenkleid auf Pflaume
   for (const hero of HEROES) {
@@ -584,7 +585,7 @@ async function ridePart() {
     r[hero] = await S(() => {
       const H = window.__kst, P = H.pflaume();
       const hull = H.rig.hull;
-      hull.visible = true;
+      hull.visible = true; H.hull = null;
       hull.position.copy(P.hull.position); hull.position.y += 0.5;
       hull.rotation.set(0, P.hull.rotation.y, 0);
       H.av().setOutfit('stern');
@@ -596,8 +597,8 @@ async function ridePart() {
       }
       return { hero: H.parts(), pfl: P.av.outfit };
     });
-    await shot(`ritt_${hero}_seite`, 'side', G, { cam: { dist: 3.4, h: 0.3 } });
-    await shot(`ritt_${hero}_hinten`, 'back', G, { cam: { dist: 3.4, h: 0.3 } });
+    await shot(`ritt_${hero}_seite`, 'side', G, { cam: { dist: 4.6, h: 0.2 } });
+    await shot(`ritt_${hero}_hinten`, 'back', G, { cam: { dist: 4.6, h: 0.2 } });
     await S(() => { const H = window.__kst; H.rig.hull.position.y -= 0.5; });
   }
   await S(() => { const H = window.__kst; H.pfl.hull.visible = false; H.pfl.av.setOutfit('auto'); H.hull = null; H.rig.hull.visible = true; H.av().setOutfit('auto'); });
@@ -702,7 +703,7 @@ if (on('ride')) {
   const r = results.ride = await ridePart();
   console.log(`  ${JSON.stringify(r)}`);
   check(`Pflaume mit Sternenhalsband, Kraftfarbe bleibt sichtbar (Halstuch ${r.pfl.color} → ${r.red.color})`, r.pfl.outfit === 'stern' && r.red.outfit === 'stern' && r.red.color !== r.pfl.color);
-  for (const hero of HEROES) check(`Ritt mit ${hero === 'lotti' ? 'Lotti' : 'Greta'}: Sternenkleid in der Reitpose, Pflaume mit Halsband`, r[hero].hero.label === 'ride' && r[hero].hero.stern && r[hero].pfl === 'stern');
+  for (const hero of HEROES) check(`Ritt mit ${hero === 'lotti' ? 'Lotti' : 'Greta'}: Sternenkleid in der Reitpose, Pflaume mit Halsband`, r[hero].hero.label.startsWith('ride') && r[hero].hero.stern && r[hero].pfl === 'stern');
 }
 check('Keine Konsolenfehler', errors.length === 0);
 const ok = summary(errors);

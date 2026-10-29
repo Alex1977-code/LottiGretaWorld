@@ -244,6 +244,8 @@ export function trailStarGeo(kind = 'gold') {
  */
 export function collarGeos({ center, axis, R, tube, knot, n = 9 }) {
   const gs = [];
+  // auf dem matten Fell-Material etwas heller und wärmer als das Gold der Kleider (liest sich sonst oliv)
+  const colors = { star: '#ffd84a', starHi: '#fffbd8', starLow: '#f29a18' };
   const q = new THREE.Quaternion().setFromUnitVectors(V(0, 0, 1), axis.clone().normalize());
   const ax = axis.clone().normalize();
   const fwd = knot.clone().sub(center).normalize();
@@ -252,7 +254,7 @@ export function collarGeos({ center, axis, R, tube, knot, n = 9 }) {
     const out = V(Math.cos(a), Math.sin(a), 0).applyQuaternion(q);
     if (out.dot(fwd) > 0.72) continue;   // vorn sitzen Knoten und Zipfel
     const p = center.clone().addScaledVector(out, R + tube * 0.92);
-    const g = puffyStarGeo({ R: 0.036, depth: 0.45, nu: 10, nv: 2 });
+    const g = puffyStarGeo({ R: 0.046, depth: 0.45, nu: 10, nv: 2, colors });
     const y = ax.clone().addScaledVector(out, -ax.dot(out)).normalize(), x = new THREE.Vector3().crossVectors(y, out).normalize();
     g.applyMatrix4(new THREE.Matrix4().makeBasis(x, y, out).setPosition(p));
     gs.push(g);
@@ -260,11 +262,11 @@ export function collarGeos({ center, axis, R, tube, knot, n = 9 }) {
   // Brosche auf dem Knoten (blickt nach vorn-unten), mit Glanzperle
   const bn = fwd.clone().add(V(0, -0.25, 0)).normalize();
   const by = ax.clone().addScaledVector(bn, -ax.dot(bn)).normalize(), bx = new THREE.Vector3().crossVectors(by, bn).normalize();
-  const bc = knot.clone().addScaledVector(bn, 0.055);
-  const g = puffyStarGeo({ R: 0.075, depth: 0.42, nu: 20, nv: 2 });
+  const bc = knot.clone().addScaledVector(bn, 0.06);
+  const g = puffyStarGeo({ R: 0.092, depth: 0.42, nu: 20, nv: 2, colors });
   g.applyMatrix4(new THREE.Matrix4().makeBasis(bx, by, bn).setPosition(bc));
   gs.push(g);
-  gs.push(sphereGeo(bc.clone().addScaledVector(bn, 0.034), 0.014, () => C('#fffbe8'), 8, 5));
+  gs.push(sphereGeo(bc.clone().addScaledVector(bn, 0.04), 0.016, () => C('#fffbe8'), 8, 5));
   return gs;
 }
 
