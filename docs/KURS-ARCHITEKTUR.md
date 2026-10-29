@@ -7520,7 +7520,7 @@ fire | swipe | slide | eat | clone | thrown | launched | stunned | defeated | fl
   `step`, `switch`, `poof`, `brickbreak`, `powerup_appear`, `slam`, `burn`, `claw`, `fireball`, `wallslide`, `rumble`, `clone`,
   `berry`, `boss_hit`, `victory`, `panic`, `hop`, `land`, `bounce`, `gong`, `powerdown` (`tests/sfx_namen.mjs` grün).
 - **Zeichenaufrufe**: Knochenflieger aller Gruppen teilen eine Instanz-Gruppe, Kreisgeist-Ringe sind je ein Instanz-Modell
-  (3 Aufrufe); 44 Kreisgeister + 24 Knochenflieger im Bild ≈ 37 Zeichenaufrufe (gesamte Szene).
+  (3 Aufrufe); 44 Kreisgeister + 24 Knochenflieger im Bild ≈ 39 Zeichenaufrufe (gesamte Szene).
 
 | Gegner | Verhalten | besiegt durch | verletzt |
 | --- | --- | --- | --- |
@@ -7730,8 +7730,8 @@ boss: { id: 'baron', name: 'Baron Brummbär', speed: 0, trigger (= trigger des e
 Ameisen, Schubser (Plattformen und Riesenrad), Bestand, Bruchstück, Schockwelle, Lavapfütze, Wurfsichel bei allen neuen Arten ·
 `3` Varianten und Baron (Turm, Spiegel, Gipfel, Tod/Neustart, Abspann-Anforderung) · `4` Bilder `tests/out/w8e_*.png` und
 Zeichenaufrufe; jeder Teil < 10 min, deterministisch über `window.__course`). Stand: Teil 1 24/24, Teil 2 18/18, Teil 3 34/34,
-Teil 4 10/10. Kennzahlen: Gegnerzoo höchstens ≈ 53 Zeichenaufrufe, Massen-Feld (44 Kreisgeister, 24 Knochenflieger) ≈ 37
-(< 120), Bossarenen höchstens ≈ 75–90 (< 140); Schritt im Gegnerzoo (159 Entitäten) ≈ 0,2–0,4 ms.
+Teil 4 10/10. Kennzahlen: Gegnerzoo höchstens ≈ 60 Zeichenaufrufe, Massen-Feld (44 Kreisgeister, 24 Knochenflieger) ≈ 39
+(< 120), Bossarenen höchstens ≈ 91 (< 140), höchstens ≈ 265 k Dreiecke; Schritt im Gegnerzoo (159 Entitäten) ≈ 0,2–0,4 ms.
 
 ## Bonuswelten – Level-Liste und Freischaltung (Hauptsitzung)
 
