@@ -15,7 +15,7 @@
 // Sterne (neu): 0 Kletterkammer rechts der Sohle: Krallen-Anzug aus dem ?-Block am Sprungfeld, in der Kammer den Felspfeiler
 //   mit den Kletterranken hinauf (ohne Krallen zu hoch; die Trennwand zum Schacht lässt kein Wandrutschen zu) · 1 Mittelstation:
 //   Stampfattacke auf die Riesenziegel vor der Nische → auf der Wolke dahinter · 2 Sternring am Torplatz: acht grüne Sternmünzen
-//   rund ums Deck in 12 s, der Stern erscheint links hinten auf dem Deck.
+//   rund ums Deck (an den Rändern, fern vom Zielmast) in 14 s, der Stern erscheint vorn links auf dem Deck.
 import { remixOf } from '../../level/remix.js';
 import { LEVEL as BASIS, M67 } from '../w6/6-7.js';
 import { felsGeo } from '../w6/_helpers_d.js';
@@ -24,7 +24,7 @@ import { hohlraum, kletterpfeiler, schwebewuerfel, line, ring } from './_helpers
 import { Bld, litTop } from '../w5/_helpers_b.js';
 
 const PI = Math.PI;
-const { X1, ZB, ZF, ZL, YT, YK } = M67;
+const { X0, X1, ZB, ZF, ZL, YT, YK } = M67;
 // Kletterkammer rechts der Sohle (Innenraum) und Felspfeiler darin
 const KAMMER = { x0: X1, x1: 11.6, y1: 9.6, z0: -3.0 };
 const PFEILER = { min: [9.8, 0, -3.0], max: [11.6, 7.8, -0.5] };
@@ -59,7 +59,15 @@ export const LEVEL = remixOf('6-7', {
   change: [
     // zweite Wuschel-Horde: erst auf dem letzten Felspfeiler, dann schnell bis vor den Torplatz
     { match: { id: 'horde_galerie' }, set: { pos: [0, YT - 5, -40], speed: 2.4, delay: 0.3, end: -60.4, trigger: { min: [-3, YT - 2, -53.3], max: [3, YT + 8, -49.0] } } },
+    // die beiden Wuschel kreisen über dem Würfelpaar (knapp über den Köpfen der Schwimmer – beim Aussprung aufpassen)
+    { match: { id: 'w_wippe2' }, set: { center: [0, YT + 3.8, -29.2] } },
+    // Absturz-Ebene der Galerie erst ab der Galerie (z ≤ −7) – die Nische hinter der Mittelstation reicht bis z −6,5
+    { match: { type: 'killplane' }, set: { pos: [0, M67.YT - 14, -46.5], size: [30, 79] } },
+    // Schild am Galerie-Eingang
+    { match: { type: 'sign', where: (s) => /Wippen/.test(s.text ?? '') }, set: { text: 'Wasser-\nwürfel!' } },
   ],
+  // Fahrt beginnt erst über dem ersten Brett (Basis: auf ihm) – Kletterkammer, ?-Block und Sprungfeld in Ruhe
+  scroll: { ...BASIS.scroll, trigger: { min: [X0, 6.9, -4], max: [X1, 30, 3] } },
   schacht: {
     ...BASIS.schacht,
     rocks,
@@ -73,13 +81,13 @@ export const LEVEL = remixOf('6-7', {
   },
   stars: [
     [(PFEILER.min[0] + PFEILER.max[0]) / 2, PFEILER.max[1] + 0.05, -1.7],     // 0: oben auf dem Kletterpfeiler in der Kammer
-    [(NISCHE.x0 + NISCHE.x1) / 2, YK + 0.45, (NISCHE.z0 + NISCHE.z1) / 2],      // 1: auf der Wolke hinter den Riesenziegeln
-    { pos: [-4.8, YT + 0.4, -77.4], hidden: true, id: 'b2_ringstern' },       // 2: Sternring (erscheint auf dem Deck)
+    [(NISCHE.x0 + NISCHE.x1) / 2, YK + 0.05, (NISCHE.z0 + NISCHE.z1) / 2],      // 1: auf der Wolke hinter den Riesenziegeln
+    { pos: [-5.0, YT + 0.3, -66.2], hidden: true, id: 'b2_ringstern' },       // 2: Sternring (erscheint vorn links auf dem Deck)
   ],
   add: {
     segments: [
       // Wolke in der Nische hinter den Riesenziegeln
-      { type: 'wolkenplattform', id: 'b2_wolke', pos: [(NISCHE.x0 + NISCHE.x1) / 2, YK - 0.2, (NISCHE.z0 + NISCHE.z1) / 2], size: [3.6, 0.6, 1.8], color: 'rosa', sink: 0.1 },
+      { type: 'wolkenplattform', id: 'b2_wolke', pos: [(NISCHE.x0 + NISCHE.x1) / 2, YK - 0.6, (NISCHE.z0 + NISCHE.z1) / 2], size: [3.6, 0.6, 1.8], color: 'rosa', sink: 0.1 },
       { type: 'sign', pos: [6.9, 0, 0.6], text: 'Kletter-\nkammer', size: [1.8, 0.9], yaw: -0.5 },
       { type: 'deco_w6', items: [
         { kind: 'minenlampe', pos: [10.6, 6.2, 0.6] }, { kind: 'minenlampe', pos: [4.0, YK + 3.0, -4.0] },
@@ -88,7 +96,7 @@ export const LEVEL = remixOf('6-7', {
     ],
     blocks: [
       // Krallen-Anzug für die Kletterkammer (am Sprungfeld der Sohle)
-      { kind: 'question', pos: [6.4, 2.7, -0.2], content: 'krallenAnzug' },
+      { kind: 'question', pos: [6.4, 2.5, -0.2], content: 'krallenAnzug' },
     ],
     items: [
       // Bitcoins in der leeren Nische hinter dem Quetschblock (früher Stempel)
@@ -97,9 +105,10 @@ export const LEVEL = remixOf('6-7', {
       line([9.4, 2.0, -1.7], [9.4, 6.4, -1.7], 4),
       ...[3, 5].map((x) => ({ kind: 'coin', pos: [x, YK + 2.6, -2.6] })),
       // Sternring am Torplatz: acht grüne Sternmünzen rund ums Deck
-      { kind: 'sternring', id: 'b2_ring', pos: [0, YT, -62.6], yaw: PI / 2, time: 12, star: 2, coins: [
-        [-5.0, YT + 0.6, -67.2], [-5.4, YT + 0.6, -72.0], [-5.0, YT + 0.6, -78.6], [-2.4, YT + 2.4, -77.8],
-        [2.4, YT + 2.4, -77.8], [5.6, YT + 2.2, -79.0], [5.4, YT + 0.6, -72.0], [5.0, YT + 0.6, -67.2],
+      // (Weg an den Rändern des Decks – weit weg vom Zielmast in der Mitte)
+      { kind: 'sternring', id: 'b2_ring', pos: [0, YT, -62.6], yaw: PI / 2, time: 14, star: 2, coins: [
+        [-4.4, YT + 0.6, -66.8], [-5.4, YT + 0.6, -70.4], [-5.4, YT + 1.8, -74.4], [-4.0, YT + 0.6, -78.6],
+        [4.0, YT + 0.6, -78.6], [5.4, YT + 1.8, -74.4], [5.4, YT + 0.6, -70.4], [4.4, YT + 0.6, -66.8],
       ] },
       ring([0, YT + 1.2, -29.2], 1.2, 5),
     ],
@@ -107,9 +116,15 @@ export const LEVEL = remixOf('6-7', {
   build(level) {
     // Trennwand der Kletterkammer: fest, aber ohne Wandrutschen/Wandsprung (nur der Pfeiler ist kletterbar)
     level.world.add({ type: 'box', min: [X1, 2.8, KAMMER.z0], max: [8.6, KAMMER.y1, ZF], noWallSlide: true, tag: 'kammerwand' });
-    kletterpfeiler(level, { min: PFEILER.min, max: PFEILER.max, face: '-x' }, felsGeo);
+    kletterpfeiler(level, { min: PFEILER.min, max: PFEILER.max, face: ['-x', '+z'] }, felsGeo);
     schwebewuerfel(level, { id: 'b2_wuerfel', list: WUERFEL });
     grossbloecke(level, { id: 'b2_ziegel', blocks: ZIEGEL.map(([x, y, z]) => [x, y, z]), size: 2 });
+    // Neustart (Kontrollpunkt Galerie): die zweite Horde wartet wieder auf dem letzten Felspfeiler (statt dort zu lauern)
+    const h = level.named.get('horde_galerie'), rt = level.runtime;
+    if (h && rt?.respawn) {
+      const orig = rt.respawn.bind(rt);
+      rt.respawn = () => { orig(); h.state = 'wait'; h.waitT = 0; h.clock = 0; h.front = h.start; h.place(); };
+    }
     // Holzrahmen um die Nische (Optik)
     if (level.view) {
       const b = new Bld();

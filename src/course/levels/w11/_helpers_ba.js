@@ -357,12 +357,12 @@ export function kletterpfeiler(level, spec, felsGeo) {
   if (!level.view) return;
   addStatic(level, felsGeo(min[0], min[1], min[2], max[0], max[1], max[2], { seed: 17, cell: 1.0, vein: 0x7affc8 }));
   const b = new Bld();
-  const face = spec.face ?? '-x';
+  const green = litTop(0x3aa83a), leaf = litTop(0x6ad84a);
+  for (const face of [].concat(spec.face ?? '-x')) {
   const ax = face[1] === 'x';
   const fv = face[0] === '+' ? (ax ? max[0] : max[2]) : (ax ? min[0] : min[2]);
   const out = face[0] === '+' ? 1 : -1;
   const a0 = ax ? min[2] : min[0], a1 = ax ? max[2] : max[0];
-  const green = litTop(0x3aa83a), leaf = litTop(0x6ad84a);
   const n = Math.max(2, Math.round((a1 - a0) / 0.55));
   for (let i = 0; i < n; i++) {
     const u = a0 + ((a1 - a0) * (i + 0.5)) / n;
@@ -375,6 +375,7 @@ export function kletterpfeiler(level, spec, felsGeo) {
       b.sphere(0.13, px + ox, yy, pz + oz, leaf, { s: [1, 0.5, 1] });
       if ((k + i) % 3 === 0) b.sphere(0.07, px + ox * 1.6, yy + 0.08, pz + oz * 1.6, (k + i) % 2 ? 0xff7ac0 : 0xffd23a);
     }
+  }
   }
   addStatic(level, b.geometry(), { castShadow: false });
 }

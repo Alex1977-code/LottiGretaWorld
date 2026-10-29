@@ -183,6 +183,172 @@ const ROUTES = {
       ['wurfbude', [7.6, 10, -188.4]],
     ],
   },
+  // ================================================================================================ B-2 (Basis 6-7)
+  'B-2': {
+    base: '6-7',
+    start: [0.5, 0, -1],
+    drive: { run: false, vmax: 8 },
+    sweepScroll: true,
+    meta: { stars: 3, time: 400, theme: 'fuzzymine', music: 'course_fuzzymine', variant: null, archetype: 'autoscroller', title: 'Wasserwürfel im Glitzerschacht' },
+    enemies: { wuschel_horde: 2, wuschel: 4 },
+    baseEnemies: { wuschel_horde: 2, wuschel: 4, stamp: 1 },
+    main: [
+      // ---- senkrechte Fahrt wie die Basis (Route wie course_w6d); die Fahrt beginnt erst über dem ersten Brett
+      { name: 'Sprungfeld auf der Sohle', bounce: [5.6, -1], at: [4.4, -1], y: 4.4 },
+      { expect: 'scrollWaits' },
+      { name: 'Bretter L2', to: [0, -1], y: 7, jump: 30, jumpAt: 2.8 },
+      { expect: 'scrollRuns' },
+      { name: 'Wolke c3', to: [3.2, -1], y: 9.6, jump: 30, jumpAt: 2.2 },
+      { name: 'Bretter R4', to: [4.3, -1], y: 12.2, jump: 30, jumpAt: 3 },
+      { name: 'Bretter L5', to: [-0.6, -1], y: 14.8, jump: 30, jumpAt: 4.4 },
+      { name: 'Puffwolke 1', to: [-5.6, -1], y: 17.4, jump: 30, jumpAt: 2.4 },
+      { name: 'Puffwolke 2', to: [-2.2, -1], y: 20.0, jump: 30, jumpAt: 3.0, win: 22.8 },
+      { name: 'Puffwolke 3', to: [1.6, -1], y: 22.6, jump: 30, jumpAt: 3.4 },
+      { name: 'Mittelstation', to: [2.6, -1], y: 25.2, jump: 30 },
+      { name: 'Kontrollpunkt 1', to: [-5.4, -2.0], within: 0.5 },
+      { to: [4.8, -1], within: 0.4 },
+      { name: 'Sprungfeld Mittelstation → R6', bounce: [5.4, -1], at: [6.2, -1], y: 30.8 },
+      { name: 'Sprungfeld R6 → L8', bounce: [3.6, -1], at: [6.6, -1], y: 35.2 },
+      { name: 'Wolke c9', to: [-1.6, -1], y: 37.8, jump: 30, jumpAt: 3.4 },
+      { name: 'Bretter R10', to: [2.6, -1], y: 40.4, jump: 30, jumpAt: 3.2 },
+      { name: 'Sprungfeld R10 → L11', bounce: [3.4, -1], at: [4.2, -1], y: 44.8 },
+      { name: 'Goldwolke', cloud: 'goldwolke', on: 'right', stand: [3.2, -1], off: [-5.6, -1], y: 50.0, rideUntil: 'goldLeft' },
+      { name: 'Puffwolke c13', to: [-1.4, -1], y: 52.6, jump: 30, jumpAt: 3.0 },
+      { name: 'Puffwolke c14', to: [0.6, -1], y: 55.2, jump: 30, jumpAt: 3.0, win: 58 },
+      { name: 'Felssims', to: [3.8, -1], y: 57.8, jump: 36, jumpAt: 4 },
+      { crusher: 'q6' },
+      { name: 'Sprungfeld am Felssims → R16', bounce: [5.6, -1], at: [7.3, -1], y: 63.6, keepX: 6.9 },
+      { name: 'Wolke c17', to: [0.6, -1], y: 66.2, jump: 30, jumpAt: 2.9 },
+      { name: 'Bretter L18', to: [-3.4, -1], y: 68.8, jump: 30, jumpAt: 3.4 },
+      { name: 'schwebende Wolke', cloud: 'c_fahrt', on: 'low', stand: [-3.0, -1], at: [0.2, -1], off: [3.6, -1], y: 75.2, rideUntil: 'cloudHigh' },
+      { name: 'Schachtkrone', to: [2.2, -1], y: 77.8, jump: 30 },
+      { until: 'scrollDone', max: 2400 },
+      // ---- Galerie: Wasserwürfel statt Wippen
+      { name: 'Kontrollpunkt 2', to: [0, -9.4], within: 0.5 },
+      { expect: 'hordeWaits' },
+      { to: [0, -12.1], within: 0.3 },
+      { name: 'in Würfel 1', to: [0, -15.6], jump: 24, jumpAt: 4, within: 1.2, land: false },
+      { name: 'Würfel 1 → Fels 1', leap: [0, -23.0] },
+      { to: [0, -24.1], within: 0.3, y: 77.8 },
+      { name: 'in Würfel 2', to: [0, -27.0], jump: 24, jumpAt: 4, within: 1.0, land: false },
+      { name: 'Würfel 2 → Würfel 3', leap: [0, -31.2] },
+      { name: 'Würfel 3 → Fels 2', leap: [0, -34.2] },
+      { expect: 'hordeWaits' },
+      { crusher: 'q7' },
+      { to: [0, -38.2], within: 0.4 },
+      { name: 'in Würfel 4', to: [0, -41.6], jump: 24, jumpAt: 4, within: 1.0, land: false },
+      { name: 'Würfel 4 → Würfel 5', leap: [1.4, -46.4] },
+      { name: 'Würfel 5 → Fels 3', leap: [0, -50.8] },
+      { name: 'zweite Horde rollt los', until: 'hordeRolls', max: 240 },
+      { name: 'Wolkenbrücke', to: [0, -55], within: 0.6, run: true },
+      { to: [0, -61], within: 0.6, run: true },
+      { name: 'Grubentor', to: [0, -66.5], within: 0.6 },
+      { name: 'Zielmast', to: [0, -74], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'Fahrt beendet, Horde folgte dem Bild (keine Absturz-Tode), Grubentor offen', ok: (r) => r.mech.scrollDone && !r.mech.died && r.mech.gate },
+      { name: 'Galerie: fünf Wasserwürfel durchschwommen', ok: (r) => r.mech.waters.length === 5, text: (r) => `${r.mech.waters.length} Wasserkörper ${r.mech.waters.join(' ')}` },
+      { name: 'zweite Horde startete erst auf dem letzten Felspfeiler und blieb hinter der Heldin', ok: (r) => r.mech.hordeStart !== null && r.mech.hordeStart < -49 && r.mech.hordeGap > 0.5,
+        text: (r) => `Start bei z ${r.mech.hordeStart?.toFixed(1)}, kleinster Abstand ${r.mech.hordeGap?.toFixed(1)} m` },
+    ],
+    targets: [
+      { name: 'Stern 0: Krallen-Anzug aus dem ?-Block am Sprungfeld, in der Kletterkammer den Felspfeiler hinauf', star: 0, from: [0.5, 0, -1],
+        legs: [{ to: [2.6, 0.9], within: 0.3 }, { to: [6.4, 0.7], within: 0.3 }, { grab: [6.4, -0.2], back: [6.4, -2.4], hold: 80 }, { expect: 'krallen' }, { expect: 'scrollWaits' },
+          { to: [9.0, 0.6], within: 0.3 }, { to: [9.0, -1.7], within: 0.3 }, { climb: [10.7, -1.7], top: 7.8, jumpAt: 1.8, then: [10.7, -1.7] }, { wait: 30 }, { expect: 'scrollWaits' }],
+        shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Krallen (Pfeiler zu hoch, Trennwand ohne Wandsprung)', star: 0, expectNot: true, from: [9.0, 0, 0.4],
+        legs: [{ to: [9.0, -1.7], within: 0.3 }, { climb: [10.7, -1.7], top: 7.8, jumpAt: 1.8, allowFail: true }, { to: [9.0, 0.6], within: 0.3 }, { acts: [{ wallclimb: { dir: 1, until: 7.6, z: -1.6 } }, { wait: 60 }] }, { wait: 60 }],
+        mechText: (r) => `höchster Punkt y ${r.mech.maxY.toFixed(2)}` },
+      { name: 'Stern 1: Stampfattacke auf einen Riesenziegel an der Mittelstation, dahinter auf der Wolke', star: 1, from: [3.0, 25.4, -1.2], place: { scroll: 22.4 },
+        legs: [{ to: [3.0, -2.9], y: 27.3, jump: 30, jumpAt: 2.4, within: 0.3 }, { wait: 20 }, { pound: [3.0, -2.9] }, { expect: 'ziegelKaputt' }, { to: [3.0, -5.3], within: 0.3 }, { star: 1 }, { wait: 20 }],
+        shot: 'stern1', mech: (r) => r.mech.ziegel >= 1 && !r.dead, mechText: (r) => `Ziegel zerbrochen ${r.mech.ziegel}` },
+      { name: 'Stern 1 nicht ohne Stampfen (Anlauf gegen die Ziegel, Sprung darauf und dagegen)', star: 1, expectNot: true, from: [4.0, 25.4, -1.2], place: { scroll: 22.4 },
+        legs: [{ to: [4.0, -5.5], within: 0.3, max: 200, autoJump: false }, { hop: 30 }, { to: [3.0, -3.4], jump: 30, jumpAt: 2, within: 0.3, max: 240 }, { wait: 20 }, { to: [3.0, -5.5], within: 0.3, max: 200, autoJump: false }, { wait: 30 }],
+        mech: (r) => r.mech.ziegel === 0, mechText: (r) => `Ziegel zerbrochen ${r.mech.ziegel}` },
+      { name: 'Stern 2: Sternring am Torplatz – acht grüne Sternmünzen rund ums Deck in 14 s', star: 2, from: [0, 78, -60.6], place: { scroll: 77 },
+        legs: [{ to: [0, -64.0], within: 0.5, run: true }, { expect: 'ringAn2' },
+          { to: [-4.4, -66.8], within: 0.5, run: true }, { to: [-5.4, -70.4], within: 0.5, run: true }, { to: [-5.4, -74.4], jump: 20, jumpAt: 1.8, within: 0.7, run: true },
+          { to: [-4.0, -78.6], within: 0.5, run: true }, { to: [4.0, -78.6], within: 0.5, run: true }, { to: [5.4, -74.4], jump: 20, jumpAt: 1.8, within: 0.7, run: true },
+          { to: [5.4, -70.4], within: 0.5, run: true }, { to: [4.4, -66.8], within: 0.5, run: true }, { until: 'stern2da', max: 240 }, { star: 2 }],
+        mech: (r) => r.status === 'play',
+        shot: 'stern2', mechText: (r) => `Sternmünzen ${r.mech.ring}${r.mech.ringLeft?.length ? ` (übrig ${JSON.stringify(r.mech.ringLeft)})` : ''}` },
+      { name: 'Stern 2 nicht ohne den Sternring (hinter dem Tor direkt zur Stelle des Sterns)', star: 2, expectNot: true, from: [-3.6, 78, -66.4], place: { scroll: 77 }, heroes: ['lotti'],
+        legs: [{ to: [-5.0, -66.2], within: 0.3 }, { wait: 120 }] },
+      { name: 'Stern 2 nicht, wenn die Zeit des Sternrings abläuft (gemächlich gegangen)', star: 2, expectNot: true, from: [0, 78, -60.6], place: { scroll: 77 }, heroes: ['lotti'],
+        legs: [{ to: [0, -64.0], within: 0.5 }, { expect: 'ringAn2' }, { wait: 120 * 15 }, { to: [-4.4, -66.8], within: 0.5 }, { to: [-5.0, -66.2], within: 0.3 }, { wait: 60 }] },
+    ],
+    extra: [
+      { name: 'Wer unten aus einem Wasserwürfel taucht, fällt in den Abgrund', from: [0, 77.4, -17], place: { scroll: 77 }, heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
+        legs: [{ acts: [{ input: { crouch: true }, n: 900 }] }], mech: (r) => r.mech.died && r.mech.deathCause === 'fall' && r.mech.waters.length >= 1, mechText: (r) => `Tod ${r.mech.deathCause}, Wasser ${r.mech.waters.length}` },
+      { name: 'Wer seitlich aus einem Wasserwürfel schwimmt, fällt', from: [0, 78.4, -17], place: { scroll: 77 }, heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
+        legs: [{ to: [4.6, -17], within: 0.3, max: 900, autoJump: false, swimJump: false }, { wait: 600 }], mech: (r) => r.mech.died && r.mech.deathCause === 'fall', mechText: (r) => `Tod ${r.mech.deathCause}` },
+      { name: 'Fahrt wartet auf der Sohle, auf dem ?-Block und auf dem ersten Brett; erst der Sprung darüber startet sie', from: [0.5, 0, -1], heroes: ['lotti'],
+        legs: [{ wait: 600 }, { expect: 'scrollWaits' }, { to: [2.6, 0.9], within: 0.3 }, { to: [6.4, 0.7], within: 0.3 }, { grab: [6.4, -0.2], back: [6.4, -2.4], hold: 80 },
+          { to: [6.4, -0.2], jump: 30, jumpAt: 3, within: 0.4, y: 3 }, { hop: 40 }, { wait: 60 }, { expect: 'scrollWaits' }, { to: [6.4, -2.4], within: 0.3 },
+          { bounce: [5.6, -1], at: [4.4, -1], y: 4.4 }, { wait: 240 }, { expect: 'scrollWaits' }, { to: [0, -1], y: 7, jump: 30, jumpAt: 2.8 }, { wait: 60 }, { expect: 'scrollRuns' }] },
+      { name: 'Kontrollpunkt Galerie: nach einem Absturz wartet die zweite Horde wieder', from: [0, 78, -51.0], place: { scroll: 77 }, heroes: ['lotti'], invuln: false, allowFail: true,
+        legs: [{ until: 'hordeRolls', max: 240 }, { wait: 240 }, { die: 'fall' }, { expect: 'hordeWaits' }, { expect: '=Math.abs(ent(\'horde_galerie\').info().front + 40) < 0.1' }],
+        mech: (r) => r.log.filter((l) => l[0] === 'erwartet' && l[2]).length === 2 },
+      { name: 'Krallen-Anzug: Trennwand zum Schacht nicht kletterbar (nur der Felspfeiler)', from: [8.0, 0, 0.4], heroes: ['lotti'], place: { power: 'krallen' }, allowFail: true,
+        legs: [{ to: [8.9, 0.4], within: 0.3 }, { climb: [7.0, 0.4], top: 9.0, jumpAt: 1.4, allowFail: true }, { wait: 60 }],
+        mech: (r) => r.mech.maxY < 5.5 && r.mech.climbs === 0, mechText: (r) => `höchster Punkt y ${r.mech.maxY.toFixed(2)}, Kletterschritte ${r.mech.climbs}` },
+    ],
+    rules: [
+      { name: 'Wippen der Galerie ersetzt: fünf schwebende Wasserwürfel wippen sanft (±0,35 m), Gegenprobe Basis mit drei Wippen',
+        fn: () => {
+          const c = window.__course, L = c.level, W = window.__ba, CL = window.__courseLevels;
+          W.place([0, 78, -9.4], { settle: 2, scroll: 77 });
+          const h = L.named.get('b2_wuerfel'), lo = h.cubes.map(() => 99), hi = h.cubes.map(() => -99);
+          for (let i = 0; i < 120 * 5; i++) { c.step(1); h.cubes.forEach((q, k) => { lo[k] = Math.min(lo[k], q.box.y0); hi[k] = Math.max(hi[k], q.box.y0); }); }
+          const base = CL.raw('6-7');
+          return { wippen: L.data.segments.filter((s) => s.type === 'wippe').length, baseWippen: base.segments.filter((s) => s.type === 'wippe').length,
+            cubes: h.cubes.length, amp: h.cubes.map((q, k) => +((hi[k] - lo[k]) / 2).toFixed(2)), water: [...c.world.shapes.values()].filter((s) => s.water && s.tag === 'wasserkoerper').length };
+        },
+        ok: (r) => r.wippen === 0 && r.baseWippen === 3 && r.cubes === 5 && r.water === 5 && r.amp.every((a) => a > 0.25 && a < 0.4), text: (r) => `Wippen ${r.wippen} (Basis ${r.baseWippen}), Würfel ${r.cubes}, Hub ${r.amp.join('/')} m` },
+      { name: 'Zweite Wuschel-Horde kurz vor dem Ende: wartet bis zum letzten Felspfeiler, rollt dann schnell, hält vor dem Torplatz; Gegenprobe Basis (rollt ab Kontrollpunkt langsam)',
+        fn: () => {
+          const c = window.__course, L = c.level, W = window.__ba, CL = window.__courseLevels;
+          const h = L.named.get('horde_galerie');
+          W.place([0, 78, -38.2], { settle: 2, scroll: 77 });
+          for (let i = 0; i < 600; i++) { c.player.invuln = 9; c.step(1); }
+          const s1 = h.state;
+          W.place([0, 78, -51.2], { settle: 2, scroll: 77 });
+          for (let i = 0; i < 120; i++) { c.player.invuln = 9; c.step(1); }
+          const f0 = h.info().front;
+          for (let i = 0; i < 240; i++) { c.player.invuln = 9; c.step(1); }
+          const f1 = h.info().front, s2 = h.state;
+          W.place([0, 78, -63.2], { settle: 2, scroll: 77 });
+          for (let i = 0; i < 120 * 12; i++) { c.player.invuln = 9; c.step(1); }
+          const b = CL.raw('6-7').enemies.find((e) => e.id === 'horde_galerie');
+          return { s1, s2, v: +((f0 - f1) / 2).toFixed(2), end: h.info().front, s3: h.state, base: { z: b.pos[2], speed: b.speed } };
+        },
+        ok: (r) => r.s1 === 'wait' && r.s2 === 'run' && Math.abs(r.v - 2.4) < 0.1 && Math.abs(r.end + 60.4) < 0.05 && r.base.speed === 1.1 && r.base.z === -2,
+        text: (r) => `vor Pfeiler 3 ${r.s1}, dann ${r.s2} mit ${r.v} m/s, Ende z ${r.end} (${r.s3}); Basis z ${r.base.z}, ${r.base.speed} m/s` },
+      { name: 'Daten-Regeln: Kletterkammer (Pfeiler kletterbar, Trennwand ohne Wandrutschen), Riesenziegel vor der Nische, Fahrt-Auslöser über dem ersten Brett, Galerie-Schild; Gegenprobe Basis',
+        fn: () => {
+          const c = window.__course, L = c.level, CL = window.__courseLevels, base = CL.raw('6-7');
+          const sh = [...c.world.shapes.values()];
+          return { climb: sh.filter((s) => s.climbable).length, wand: sh.filter((s) => s.tag === 'kammerwand' && s.noWallSlide).length, ziegel: L.named.get('b2_ziegel')?.blocks.length,
+            trig: L.data.scroll.trigger.min[1], baseTrig: base.scroll.trigger.min[1], sign: L.data.segments.some((s) => s.type === 'sign' && /Wasser/.test(s.text)), baseSign: base.segments.some((s) => s.type === 'sign' && /Wippen/.test(s.text)),
+            q8: !!L.named.get('q8'), krallen: L.data.blocks.some((b) => b.content === 'krallenAnzug') };
+        },
+        ok: (r) => r.climb >= 1 && r.wand === 1 && r.ziegel === 2 && r.trig === 6.9 && r.baseTrig === 4.2 && r.sign && r.baseSign && !r.q8 && r.krallen,
+        text: (r) => JSON.stringify(r) },
+    ],
+    shots: [
+      ['start', [0.5, 0, -1]],
+      ['kammer', [9.2, 0, 0.4]],
+      ['pfeiler', [10.7, 7.8, -1.7]],
+      ['ziegel', [3.4, 25.4, -1.2], 0, null, PI / 2, 22.4],
+      ['galerie', [0, 78, -9.4], 0, null, PI / 2, 77],
+      ['wuerfel1', [0, 78, -12.2], 0, null, PI / 2, 77],
+      ['wuerfelpaar', [0, 78, -24.0], 0, null, PI / 2, 77],
+      ['wuerfel45', [0, 78, -38.2], 0, null, PI / 2, 77],
+      ['pfeiler3', [0, 78, -51.2], 0, null, PI / 2, 77],
+      ['tor', [0, 78, -61], 0, null, PI / 2, 77],
+      ['deck', [0, 78, -69], 0, null, PI / 2, 77],
+    ],
+  },
 };
 
 const PORT = 5005;
@@ -244,6 +410,18 @@ function install() {
     sichel: () => P().power === 'sichel',
     krallen: () => P().power === 'krallen',
     funken: () => P().power === 'funken',
+    // B-2 (Autoscroller wie 6-7)
+    scrollRuns: () => !!L.scroll && L.scroll.state !== 'wait',
+    scrollWaits: () => L.scroll?.state === 'wait',
+    scrollDone: () => L.scroll?.state === 'done',
+    goldLeft: () => { const m = L.named.get('goldwolke'); return !!m && m.mb.pos.x < -2.6; },
+    cloudHigh: () => { const w = L.named.get('c_fahrt'); return !!w && w.mb.pos.y > 71.9; },
+    gateOpen: () => !!L.named.get('grubentor')?.open,
+    hordeWaits: () => L.named.get('horde_galerie')?.state === 'wait',
+    hordeRolls: () => ['run', 'done'].includes(L.named.get('horde_galerie')?.state),
+    ziegelKaputt: () => (L.named.get('b2_ziegel')?.broken ?? 0) >= 1,
+    ringAn2: () => ent('b2_ring')?.state === 'active',
+    stern2da: () => starVisible(2),
   };
   /** Bedingung: Name aus COND oder Ausdruck '=…' (Variablen P, L, ent, at, starVisible). */
   const cond = (k) => (typeof k === 'string' && k.startsWith('=') ? new Function('P', 'L', 'ent', 'at', 'starVisible', 'Y', `return (${k.slice(1)});`)(P, L, ent, at, starVisible, 1) : COND[k]());
@@ -312,7 +490,11 @@ function install() {
       const hold = o.invuln !== false;
       const hist = [];
       let deadLogged = false;
-      const mech = { hurts: 0, pipes: 0, warps: 0, rides: 0, bounces: 0, waits: 0, stomped: [], hurtList: [], scrollDone: false, maxY: -99, hammers: 0, swims: 0 };
+      const mech = { hurts: 0, pipes: 0, warps: 0, rides: 0, bounces: 0, waits: 0, stomped: [], hurtList: [], scrollDone: false, maxY: -99, hammers: 0, swims: 0, gate: false, hordeStart: null, hordeGap: 99, climbs: 0 };
+      const RUN = o.run ?? true, VMAX = o.vmax ?? 11;
+      const waters = new Set();
+      const horde = L.data.id === 'B-2' ? L.named.get('horde_galerie') : null;
+      let hordeSt = horde?.state;
       const track = [];
       let lastJump = false;
       const hammerSeen = new Set();
@@ -326,7 +508,14 @@ function install() {
         if (L.scroll?.state === 'done') mech.scrollDone = true;
         if ((p.hurtTries ?? 0) > lastHurts) { lastHurts = p.hurtTries; mech.hurtList.push(`${p.lastHurt}@${p.pos.x.toFixed(0)},${p.pos.y.toFixed(0)},${p.pos.z.toFixed(0)}`); }
         if (steps % 10 === 0) for (const e of L.entities) if (e.kind === 'wurf_hammer') hammerSeen.add(e);
-        if (p.mode === 'swim') mech.swims++;
+        if (p.mode === 'swim') { mech.swims++; if (p.water) waters.add(p.water.waterId ?? p.water.tag ?? '?'); }
+        if (p.mode === 'wall' && p.state === 'climb') mech.climbs++;
+        if (L.named.get('grubentor')?.open) mech.gate = true;
+        if (horde) {
+          if (hordeSt === 'wait' && horde.state !== 'wait') mech.hordeStart = p.pos.z;
+          hordeSt = horde.state;
+          if (horde.state === 'run' && !p.dead) mech.hordeGap = Math.min(mech.hordeGap, horde.info().front - p.pos.z);
+        }
         if (p.mode === 'ground' && !p.dead) {
           const t = track[track.length - 1];
           if (!t || Math.hypot(p.pos.x - t[0], p.pos.y - t[1], p.pos.z - t[2]) > 7) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), +(L.scroll?.s ?? 0).toFixed(2)]);
@@ -654,7 +843,7 @@ function install() {
             for (let k = 0; k < 240 && !p.dead; k++) {
               const dx = bx - p.pos.x, dz = bz - p.pos.z;
               if (k > 10 && p.mode === 'ground') break;
-              tick({ ...(p.mode === 'air' ? this.airSteer(bx, bz, 0, 0, 3, 4) : this.stick(dx, dz, 0.5)), jump: k < 40, run: false });
+              tick({ ...(p.mode === 'air' ? this.airSteer(bx, bz, 0, 0, 3, 4) : this.stick(dx, dz, 0.5)), jump: k < (Lg.hold ?? 40), run: false });
             }
             for (let k = 0; k < 30; k++) tick({});
             if (p.power === pw0) { const n = this.chase('powerup', { max: 300 }); void n; }
@@ -677,6 +866,69 @@ function install() {
           if (Lg.then) for (let n = 0; n < 300 && !p.dead; n++, k++) { const dx = Lg.then[0] - p.pos.x, dz = Lg.then[1] - p.pos.z, d = Math.hypot(dx, dz); if (d < 0.3 && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.3, d))), run: false }); }
           log.push(['klettern', `${Lg.climb}`, top, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           if (!top && !Lg.allowFail) log.push(['FEHLER: Wand nicht erklommen', Lg.climb]);
+          continue;
+        }
+        // ------------------------------------------------ fahrende Wolke im Autoscroller (wie course_w6d): abwarten, aufspringen, mitfahren, abspringen
+        if (Lg.cloud) {
+          const m = L.named.get(Lg.cloud);
+          const mpos = () => (m.pm ? m.pm.pos : m.mb.pos);
+          const ready = () => {
+            if (Lg.on === 'right') return m.mb.pos.x > 3.1 && Math.abs(p.pos.x - Lg.stand[0]) < 0.4;
+            if (Lg.on === 'low') return m.mb.pos.y < 70.8 && Math.abs(p.pos.x - Lg.stand[0]) < 0.4;
+            return true;
+          };
+          let k = 0;
+          for (; k < 2400 && !ready(); k++) {
+            const sp = Lg.stand ?? null;
+            if (sp) { const dx = sp[0] - p.pos.x, dz = sp[1] - p.pos.z; tick(Math.hypot(dx, dz) > 0.3 ? { ...this.stick(dx, dz, 0.5), run: false } : {}); } else tick({});
+          }
+          let j = 0, on = false;
+          for (; j < 300; j++) {
+            const q = mpos();
+            const tx = q.x, tz = Lg.at?.[1] ?? q.z;
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, (m.pm ? m.mover : m.mb.mover)?.vx ?? 0, 0, 3.2, 8) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: j < 26, run: false });
+            if (j > 8 && p.mode === 'ground') { on = p.pos.y > (Lg.onY ?? (m.pm ? q.y + 0.2 : q.y + 0.3)); break; }
+          }
+          if (!on) { log.push(['FEHLER: nicht auf', Lg.cloud, j, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2)]); break; }
+          const winOk = () => { const w = L.scroll, fr = L.archetype?.frame, y = Lg.win ?? Lg.y; return y === undefined || !w || w.state === 'done' || !fr || y + 0.5 <= w.center.y + fr.front; };
+          let r = 0;
+          for (; r < 3600 && !(cond(Lg.rideUntil) && winOk()); r++) { const q = mpos(); const dx = q.x - p.pos.x; tick(Math.abs(dx) > 0.3 ? { ...this.stick(dx, 0, 0.5), run: false } : {}); }
+          const [tx, tz] = Lg.off;
+          let a = 0;
+          for (; a < 400; a++) {
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 2.8, 8) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: a < 30, run: false });
+            if (a > 10 && p.mode === 'ground') break;
+          }
+          const okY = Lg.y === undefined || p.pos.y > Lg.y - 0.3;
+          log.push(['gefahren', Lg.cloud, k, j, r, a, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!okY) { log.push(['FEHLER: Absprung von', Lg.cloud]); break; }
+          continue;
+        }
+        // ------------------------------------------------ aus dem Wasser springen (wie course_w8b): an die Oberfläche und an den Rand zur
+        // Zielseite schwimmen, dann mit Schwung zum Ziel (auch hinüber in den nächsten Wasserkörper)
+        if (Lg.leap) {
+          const [tx, tz] = Lg.leap;
+          let k = 0;
+          for (let q = 0; q < 240 && p.mode === 'air' && !p.dead; q++) tick({});
+          const wb = !Lg.from && p.water && p.water.x1 !== undefined ? p.water : null;
+          const x0 = Lg.from ? Lg.from[0] : wb ? Math.max(wb.x0 + 0.7, Math.min(wb.x1 - 0.7, tx)) : p.pos.x;
+          const z0 = Lg.from ? Lg.from[1] : wb ? Math.max(wb.z0 + 0.7, Math.min(wb.z1 - 0.7, tz)) : p.pos.z;
+          const wasSwim = p.mode === 'swim';
+          for (; k < 900 && p.mode === 'swim' && !p.dead; k++) {
+            const dx = x0 - p.pos.x, dz = z0 - p.pos.z, d = Math.hypot(dx, dz);
+            const top = p.water ? p.water.top - (p.pos.y + p.half.y) < 0.45 : false;
+            const go = d < (Lg.from ? 0.5 : 1.3) && top && k > 10;
+            const st = Lg.from ? this.stick(dx, dz, Math.min(1, d)) : go ? this.stick(tx - p.pos.x, tz - p.pos.z, 1) : this.stick(dx, dz, Math.min(1, Math.max(0.3, d)));
+            tick({ ...st, jump: go && k % 12 < 4 });
+          }
+          let j = 0;
+          for (; j < 400 && (p.mode === 'air' || p.mode === 'wall') && !p.dead; j++) {
+            const up = Lg.over !== undefined && p.pos.y < Lg.over && p.vel.y > 0;
+            tick({ ...(up ? this.airSteer(x0, z0, 0, 0, 3.2, 2) : this.airSteer(tx, tz, 0, 0, 3.2, 6.5)), jump: p.vel.y > 0 });
+          }
+          settle();
+          log.push(['aussprung', `${Lg.leap}`, wasSwim, k, j, p.mode, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!wasSwim) { log.push(['FEHLER: nicht im Wasser vor dem Aussprung', Lg.leap]); break; }
           continue;
         }
         // ------------------------------------------------ Weitsprung: Anlauf Richtung Ziel, ducken, springen; in der Luft zum Ziel lenken
@@ -716,7 +968,7 @@ function install() {
           if (holdJ && landed && p.mode === 'ground' && !highEnough && i > 20) { landed = false; airborne = false; j0 = i + 1; gate(Lg.win ?? Lg.y); }
           let mag = Lg.slow ?? 1;
           let st;
-          if (p.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, 2.6, Lg.vmax ?? 11);
+          if (p.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, 2.6, Lg.vmax ?? VMAX);
           else {
             if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
@@ -730,7 +982,7 @@ function install() {
           const jump = (holdJ && j0 !== null ? (i - j0 >= 0 && i - j0 < holdJ) : false) || auto > 0;
           if (auto > 0) auto--;
           const swimJ = p.mode === 'swim' && Lg.swimJump !== false && (i % 24) < 10;
-          tick({ ...st, run: Lg.run ?? true, jump: jump || swimJ });
+          tick({ ...st, run: Lg.run ?? RUN, jump: jump || swimJ });
           if (p.mode === 'air') airborne = true;
           else if (airborne) landed = true;
         }
@@ -743,6 +995,8 @@ function install() {
       mech.lives = L.runtime.save?.lives;
       mech.wand = L.named.get('b1_wand')?.info?.().on ?? '';
       mech.ring = L.entities.find((e) => e.kind === 'sternring')?.got ?? 0;
+      mech.waters = [...waters];
+      mech.ziegel = L.named.get('b2_ziegel')?.broken ?? 0;
       mech.ringLeft = L.entities.filter((e) => e.kind === 'sternmuenze' && e.alive && !e.removed).map((e) => [+e.pos.x.toFixed(1), +e.pos.y.toFixed(1), +e.pos.z.toFixed(1)]);
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, deathCause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
@@ -918,7 +1172,7 @@ for (const id of LEVELS) {
   for (const hero of ONLY || !PARTS.has('route') || !R.main?.length ? [] : HEROES) {
     await load(id);
     await W('place', R.start, { hero, settle: 2, ...(R.place ?? {}) });
-    const res = await W('drive', R.main, {});
+    const res = await W('drive', R.main, { ...(R.drive ?? {}) });
     const reached = res.status === 'goal' || res.status === 'done';
     console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Treffer-Versuche ${res.mech.hurts} ${res.mech.hurtList.slice(0, 8).join(' ')}, Restzeit ${res.rt.time} s`);
     if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
@@ -952,7 +1206,7 @@ for (const id of LEVELS) {
     for (const hero of (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))) {
       await load(id);
       await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
-      const res = await W('drive', t.legs, { invuln: t.invuln });
+      const res = await W('drive', t.legs, { ...(R.drive ?? {}), invuln: t.invuln });
       const rt = await W('rt');
       let ok = t.star !== undefined ? rt.stars[t.star] : rt.stamp;
       if (t.expectNot) ok = !ok;
@@ -971,7 +1225,7 @@ for (const id of LEVELS) {
       const lives0 = await W('lives');
       const coins0 = (await W('rt')).coins;
       await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
-      const res = await W('drive', t.legs, { invuln: t.invuln });
+      const res = await W('drive', t.legs, { ...(R.drive ?? {}), invuln: t.invuln });
       const lives1 = await W('lives');
       let ok = true;
       if (t.expectCoins !== undefined) ok = ok && res.rt.coins - coins0 >= t.expectCoins;
