@@ -165,7 +165,7 @@ export const LEVEL = {
   timeLimit: 400,
   killY: -18,
   farHide: 60,
-  instances: { coin: { farHide: 46, shadow: false } },
+  instances: { coin: { farHide: 46, shadow: false }, tintling: { farHide: 24, shadow: false } },   // Tintlinge nur im Tunnel sichtbar
   build,
   setup,
   start: { pos: [0, 0, 6], yaw: PI / 2 },
