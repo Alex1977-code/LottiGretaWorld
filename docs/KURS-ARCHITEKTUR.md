@@ -7923,3 +7923,98 @@ Welt Krone hat 38 Sterne; das ganze Spiel hat damit 404 Sterne.
 - Musik: Remix-Level spielen die Musik des Basislevels mit einer **Klang-Variante** des Musiksystems
   (`nacht`, `abend`, `morgen`, `tag`, `dunkel`, `schnell`, `schwarzweiss`): andere Klangfarbe/Filter/Hall bzw. leicht
   schnelleres Tempo, dieselbe Komposition. Ohne Variante klingt sie wie im Basislevel.
+
+## Präzisierung (Level 8-Haus, 8-6 und 8-7)
+
+Additiv zur Welt-8-Liste: Titel und Besonderheiten der Level 8-Haus, 8-6 und 8-7. Dateien `src/course/levels/w8/8-Haus.js`,
+`8-6.js`, `8-7.js`, eigene Hilfen `src/course/levels/w8/_helpers_c.js` (kein `LEVEL`, nur für diese drei Level; reicht
+`isl`, `line`, `ring`, `blk`, `cyl`, `sph`, `cone`, `bakeParts`, `glowPoints`, `hausRaum`, `hausFertig`, `raumHaken`, `wimpel`,
+`levelSetup`, `cullStatic`, `farHide`, `heroShadowDiet`, `lavaFaelle`, `funkenFlug`, `glutSaum` aus `w4/_helpers_d.js` weiter),
+Test `tests/course_w8c.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei, Haken
+`LEVEL.build`/`LEVEL.setup`). Bausteine nach „Präzisierung (Motor und Bausteine Welt 8)“, Gegner nach „Präzisierung (Gegner
+Welt 8)“.
+
+### 8-Haus „Haus Krallenkraxel“ (house · house · course_house · 10 Räume à 10 s, 10 Sterne)
+
+- Zehn Räume (Raster 64 m nach −Z, Boden y 1), jeder mit eigener Tapete und Holzfarbe (Bauklötze, Pilze, Kirmes, Maschine,
+  Sternenhimmel, Dachboden, Schaukel, Kanone, Zirkus, Kugeln), Wimpelketten, Bilderrahmen und Raumtitel. `fail: 'exit'`: wer
+  die 10 s überzieht, verlässt das Haus, die Sterne bis dahin bleiben gespeichert. Die Figur trägt in jedem Raum den
+  **Krallen-Anzug** (`krallenHaus`: beim Einblenden jedes Raums, nach Verlust nach 1,2 s neu). Kletterwände aus `kraxelBlock`
+  (bunte Griffe auf farbigen Bauklotz-, Fels-, Turm- oder Holzflächen); **glatte Flächen** (`look: 'glatt'`, `noWallSlide`,
+  Glanzstreifen) halten nicht – so ist der Weg jeder Wand lesbar.
+- Räume: **1 Bauklotzturm** – Turm mitten im Raum hinauf und hinüber, der Stern liegt **unten** in der Grube hinter dem Turm
+  (Schild „Stern unten ↓“); oben auf dem Turm ein **Druckschalter** (draufspringen → Münzring aus 8 Münzen, 6 s) ·
+  **2 Kristallhöhle** – zwei Felsstufen (y +6, +12) · **3 Piep-Wand** – rote Piep-Blöcke unten, blaue oben; nur die gerade
+  festen sind kletterbar (rot hinauf, auf den Takt warten, blau weiter) · **4 Glutwand** – Lavagraben vor der Wand, drei
+  **Lavarinnen** laufen die Wand hinab, in den Gassen dazwischen klettern · **5 Leuchtturm** – zwei Turmstufen (y +7, +14),
+  Stern oben · **6 Ziegelsperre** – 30 Ziegel (5 × 6) vor der Wand, Seiten glatt; mit dem **Tatzenhieb** (Aktion) eine Gasse
+  schlagen, dann klettern · **7 Doppelwand** – Wand A hinauf, über den glatten Sockel hinüber, Wand B (y +15) hinauf ·
+  **8 Lavaquerung** – zwei Basaltsäulen (y +4,5 / +9) im Lavasee, dann die Zielplattform (Kamera steil, 52°) ·
+  **9 POW-Wand** – die Kletterspalte ist mit 45 Ziegeln (5 × 9) zu; der **POW-Block** (2 Stöße, Radius 9, Höhe 10) zerschlägt
+  sie, drei Pilzlinge laufen herum · **10 Bröckelturm** – 8 **Bröckel-Bauklötze** (`bruchstueck`, 2 Spalten × 4 Reihen,
+  kletterbar, Warnzeit 0,75 s) bröckeln los, sobald man daran hängt; oben eine feste Kante mit dem Stern.
+- Gegner: Pilzling 3. Leistung: `heroShadowDiet`, Gegner/Sterne/Ziegel über 48 m aus (`farHide`).
+
+### 8-6 „Finsterfahrt im Spiegelspukhaus“ (parcours · darkghost · course_beamdark · 400 s)
+
+- ≈ 200 m nach −Z, Erdgeschoss y 1, Obergeschoss y 15, **stockdunkel** (Licht nur aus Licht-Helm, Kerzen, Kronleuchtern,
+  Laternen). **Helmhalle** (Start, Regal mit 4 **Licht-Helmen**, `respawn` 3 s) → **runde Aufzugplattform 1** (`mover`
+  `shape: 'cyl'`, r 2,4; fährt erst, wenn eine Figur daraufsteht; ≈ 52 m durchs Dunkel über Kerzen-Inseln): drei
+  Kreisgeist-Ringe (je 8), Spuke, Knochenflieger; der **POW-Block** fährt mit (`mitfahren`) und lässt alle kleinen Geister
+  im Umkreis 9 m verschwinden (`geisterSchreck`) → **Spiegelsaal**: **Großspuk 1** hält die Saaltür (`spuk_tuer`
+  `key: 'grossspuk1'`) – mit Licht besiegen; **großer Spiegel** (`grosser_spiegel`, 3,6 × 5 m) → **Aufzugplattform 2**
+  (≈ 52 m) mit **rotem Ring** (8 rote Münzen in 12 s → Extraleben) und zwei Ringen à 6 → **Checkpoint-Raum** mit
+  Statuenschacht: **Schnell-Aufzug** `steig` (y 0,75 → 14,5, 5 m/s, Pendel mit 1,4 s Pause) zwischen Baron-Statuen →
+  Obergeschoss-**Türreihe** (vier Spuktüren, dazwischen je ein kreisender Geist – Lücke abwarten) → hinter der letzten Tür
+  erwacht **Großspuk 2** als Jäger (`hunt`, `trigger`, `huntSpeed` 2,4, `giveUp` 30) und jagt zur Ausgangstür → Balkon,
+  **Sprung auf den Zielturm** mit Zielmast.
+- Sterne: 0 **Spiegelbild-Stern** – im Saal unsichtbar (nur auf der Spiegel-Ebene), der Spiegel zeigt ihn über zwei
+  unsichtbaren Stufen (`parts`); im Spiegel nachsehen, die Stufen hinauf, hochspringen · 1 **Rätselbox** (versteckte
+  Warp-Box oben am Schnell-Aufzug, nur im Sprung von der fahrenden Plattform) → Spukzimmer mit **6 Spuken**: alle mit Licht
+  besiegen (`task`) · 2 **am Ende des letzten Gangs** vor dem Jäger-Großspuk (holen, Großspuk mit Licht bannen oder
+  weglaufen). Stempel: **Figurenschalter für Greta** in der Helmhalle → rosa Leuchttreppe (`leuchtsteg`) zur Empore.
+  Geheimnisse: unsichtbarer Block mit Extraleben im Spukzimmer, ?-Block mit 5 Münzen im Checkpoint-Raum, roter Ring.
+- Gegner: Spuk 10 (+ 2 Großspuke), Kreisgeist 44 (5 Ringe mit 36 Gliedern, 8 einzelne), Knochenflieger 10 (Schatten nur bis
+  10 m, über 30 m aus).
+
+### 8-7 „Kullerklotz-Ritt durchs Glutinferno“ (parcours · inferno · course_inferno · 400 s)
+
+- ≈ 360 m nach −Z über vier Lavastufen (y −0,7 / −3,7 / −6,7 / −14,7). **Rastplatz** (Start, ?-Block mit Wachstumsbeere) →
+  **Felsklotz 1** (`kristall_felsklotz`, 3,6 m; Schlangenlinie, Stampfen gibt Schub) → Plateau → **Würfel-Felsklotz**
+  (3,2 m) mit **zwei 3-m-Abstürzen** → **Festland** (z −128 … −182, y −6) mit Checkpoint, drei **Hammer-Werfern** (einer
+  auf einer Basaltsäule), Sechseck-Basaltpflaster mit Glutfugen, Glutlilien, Schwefelschloten → **Felsklotz 3** den
+  **Lavahang** hinab (schräge Lavafläche mit Stufen-Todeszonen und Böschungen, `lavaHang`) → Plateau 3 mit Checkpoint und
+  Sternenring → **Felsklotz 4** (3,8 m) auf der **langen Kurvenroute** (S-Kurven unter Kristallbögen) → Zielinsel.
+- Sterne: 0 auf einer **Kristall-Insel in der Lava** während der Würfelfahrt (abspringen; der kleine **Stern-Klotz**
+  bringt zurück zum Festland) · 1 **Sternenring** auf Plateau 3 (8 Sternmünzen auf Kristallsäulen; versteckter Stern) ·
+  2 auf der letzten Fahrt unter dem **Kristallbogen hochspringen**. Stempel: nach dem Checkpoint über einen Absatz auf die
+  **Basaltsäule des Hammer-Werfers**, ihn besiegen, von oben zum Stempel springen (vom Boden zu hoch). Geheimnisse:
+  unsichtbare Blöcke mit Extraleben am Rastplatz und am Festland-Ende.
+- Gegner: Hammer-Werfer 3 (`feuer_werfer`-Art), Lavablase 10, Knochenflieger 2. Zier: Kristalle (lila, blau, rosa, gold),
+  Basalt-Säulengruppen, Lavafälle, Glutsaum, Funkenflug, Dampf, Bims-Enten; Fahrkameras flach (Neigung 34–40°).
+
+### Hilfen `_helpers_c.js`
+
+Allgemein: `TAU`, `clamp`, `arc` (Münzbogen), `coinsAt`, `sign` · 8-7: `kristalle`, `basalt`, `lavaHang`, `kristallBogen` ·
+8-6: `aufzugStart` (Mover fährt los, wenn eine Figur daraufsteht; Neustart setzt zurück), `mitfahren` (Gegner/Block folgt
+einem Mover), `geisterSchreck` (POW-`onUse`), `aufzugSchmuck`, `kerzenInseln`, `helmRegal` · 8-Haus: `kraxelBlock`
+(kletterbarer Quader mit bunten Griffen oder glatt), `krallenHaus` (Krallen-Anzug je Raum), `lavaRinnen`, `broeckelWand`
+(Griffe an `bruchstueck`-Modellen; bröckeln nur beim Klettern).
+
+### Test `tests/course_w8c.mjs`
+
+Port 4870 (+ `PORT_BASE`), Aufruf `node tests/course_w8c.mjs [8-Haus|8-6|8-7]`, Teilläufe
+`PARTS=load,route,sweep,targets,extra,shots,haus,haus-extra` (je Lauf < 10 min; Parcours je `load,route,sweep`,
+`load,targets,extra` und `shots`, Haus `load,haus`, `haus-extra`, `shots`), `HEROES`, `ONLY`, `VERBOSE`, `SHOTS`, Bilder
+`tests/out/w8c_*.png`. Bot mit echter Eingabe; Beine u. a. `lift` (Aufzugfahrt mit Licht/POW), `steig`, `light`/`lightAll`
+(Licht-Helm auf Geister richten), `gap` (Lücke kreisender Geister), `klotz` (Felsklotz-Fahrt mit Stampfen, Absprung,
+Hochsprung), `warp`, `swipe`, `pound`. Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und
+Greta Start → Ziel (8-6 ≈ 79/69 s ohne Treffer-Versuch, mit rotem Ring und Jagd; 8-7 ≈ 115/113 s, vier Felsklotz-Fahrten,
+zwei Abstürze); 8-Haus alle 10 Räume mit beiden Figuren je 3,3–6 s ohne Treffer, Ergebnis 10/10 gespeichert; alle Sterne und
+Stempel mit Gegenproben (Spiegelstern nur auf der Spiegel-Ebene, Spuke nur anschauen, Großspuk lauert vor der letzten Tür,
+Stempel nicht mit Lotti, Würfel ohne Sprung, Säulen ohne Ring, Bogen ohne Sprung, Stempel vom Boden; Haus: ohne Krallen-Anzug
+in Raum 2 und 5, rote Piep-Blöcke aus, Lavarinne tödlich, Ziegel ohne Tatzenhieb, Spalte ohne POW, Bröckeln, Zeitablauf →
+Haus verlassen mit 2 von 10 Sternen); Extras (Aufzug ruht, Saaltür zu, Felsklotz ruht, drei Extraleben). Gemessen (scale 2,
+inkl. Schattenpass): 8-Haus 37–82 Zeichenaufrufe (Raum 10 mit den Bröckel-Klötzen am meisten) / ≤ 153 k Dreiecke (Piep-Wand);
+8-6 Messgang Ø 39, ≤ 70 Aufrufe / ≤ 101 k, Bilder 25–106 (der Spiegel zeichnet die Szene ein zweites Mal) / ≤ 135 k; 8-7
+Messgang Ø 71, ≤ 94 / ≤ 113 k, Bilder 57–91 / ≤ 113 k.
