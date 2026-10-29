@@ -305,6 +305,7 @@ export const LEVEL = {
     // Käferschlucht: Bogen über die Rampe
     ...coinLine(main, -110, -116, 0, 0, 3),
     ...coinArc(main, RAMP_Z - 2.6, RAMP_Z - 9, 0, 1.8, 5, 1.6),
+    ...coinLine(main, RAMP_Z - 3, KAEFER_Z + 2.2, -1, -2.2, 3, 3.6),          // Hinweis: hoch und nach links zum Käfer
     // zweite Abfahrt
     ...coinLine(main, -148, -156, -1.5, -1.5, 4), ...coinLine(main, -170, -176, 2, 2, 3), ...coinLine(main, -194, -199, -1, -1, 3),
     // Felsentor-Arm: Münzen und Extraleben unter dem Bogen
@@ -312,6 +313,7 @@ export const LEVEL = {
     { kind: 'powerup', power: 'oneup', pos: P(arm, -186.5, 0, 0.4), speed: 0 },
     // Statuenfeld
     ...coinLine(main, -230, -236, 0, 0, 3), ...coinLine(main, -258, -268, 0, 0, 4),
+    ...coinLine(main, -259, -267, 2.5, STAR_STATUE_LAT - 0.5, 4),         // Hinweis: zur großen Statue rechts
     // Oase: je eine Münze über den unsichtbaren Wolken (Hinweis), Münzring am Teich
     ...WOLKEN.map(([x, y, z]) => ({ kind: 'coin', pos: [x, y + 1.2, z] })),
     { kind: 'coins', pos: [-4, YB + 0.6, -306], r: 1.6, n: 6 },
