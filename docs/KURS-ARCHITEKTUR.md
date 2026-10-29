@@ -8018,3 +8018,68 @@ Haus verlassen mit 2 von 10 Sternen); Extras (Aufzug ruht, Saaltür zu, Felsklot
 inkl. Schattenpass): 8-Haus 37–82 Zeichenaufrufe (Raum 10 mit den Bröckel-Klötzen am meisten) / ≤ 153 k Dreiecke (Piep-Wand);
 8-6 Messgang Ø 39, ≤ 70 Aufrufe / ≤ 101 k, Bilder 25–106 (der Spiegel zeichnet die Szene ein zweites Mal) / ≤ 135 k; 8-7
 Messgang Ø 71, ≤ 94 / ≤ 113 k, Bilder 57–91 / ≤ 113 k.
+
+## Präzisierung (Level 8-Burg)
+
+Additiv zur Welt-8-Liste: Titel und Besonderheiten des Finales 8-Burg. Dateien `src/course/levels/w8/8-Burg.js`, eigene
+Hilfen `src/course/levels/w8/_helpers_e.js` (kein `LEVEL`, nur für 8-Burg; reicht `Bld`, `glowField`, `glowPoints`,
+`onRespawn` aus `w5/_helpers_b.js` weiter), Test `tests/course_w8e.mjs`. **Kein Motor-Code geändert**; alles Besondere ist
+level-lokal (Haken `LEVEL.prebuild`/`build`/`setup`, `level.onStep`/`onSignal`). Bausteine nach „Präzisierung (Motor und
+Bausteine Welt 8)“, Endgegner nach „Präzisierung (Gegner Welt 8)“.
+
+### 8-Burg „Gipfelsturm am Brummbär-Turm“ (boss · baronpark · course_finale · 500 s · Abspann)
+
+- ≈ 300 m nach −Z und ≈ 80 m hinauf (Start y 2, Gipfel y 82, Siegerturm y 76); alle Kollision liegt über y 0 (der
+  Rummelboden der Kulisse ist 22 m tiefer), `killY` −8. Abschnitte:
+  **A Unfallstelle** – Autowrack mit Rauch (fest), Buden, Leitkegel, ?-Block mit Krallen-Anzug; **Seilbahn 1** (fährt los,
+  wenn man daraufsteht) aufs erste Dach · **B Dächer** – fünf Rummelhäuser (y 6,6–10,6) mit 3–5 m Lücken (Glühbirnenketten und
+  Münzbögen zeigen jeden Sprung), 3 Stachelfallen, 3 Krallen-Pilzlinge, 2 Feuer-Werfer, Dachkram mit Kollision an den
+  Rändern; der **Lavabrocken-Regen** aus dem Vulkan links hinten fällt nur über Dach 2–5 (Start-Box) · **C Riesenrad-Platz**
+  (Kontrollpunkt) – Karussell, Buden, roter Läufer zum Einstieg; **Riesenrad** (r 13, 8 Gondeln, ≈ 30 m hoch) mit vier
+  Schubsern auf den Gondeln 0/2/4/6 (Gruppe `riesenrad`), oben die **Bergstation** (y 34), **Seilbahn 2** hinab zum
+  Turmplatz (y 30); wer unter dem Rad in die Grube fällt, kommt über eine Rampe zurück · **D Turm unten** (Kontrollpunkt
+  Turmplatz, Boss-Auslöser) – Abschnitt `turm`: der Baron klettert die Kletterrinne voraus, wirft Feuerbälle, rutscht und
+  reißt fünf Wandstücke unter den sechs Simsen heraus; oben wacht er am **Kanonenhaus** – erst dann erscheint der
+  **POW-Block** (versteckt, `reveal` beim Wachen), ein Stoß wirft ihn hinauf, das **Kanonentor** (`kanonenTor`) geht erst mit
+  dem Abschnittsende auf (wer davonläuft, kommt nicht an ihm vorbei) → **Kanonen-Glasröhre 1** · **E Oberer Turm**
+  (Kontrollpunkt Türmchen A) – Abschnitt `spiegel`: drei Türmchen (y 62/64/66), zwei Brücken aus je zwei Wegstücken; der
+  Baron beginnt am hinteren Rand von A (nicht auf der Kanonen-Landestelle), frisst eine Spiegelfrucht am Rand von A
+  (2 Doppelgänger) und eine in der Mitte von B (3 Doppelgänger), die Doppelgänger zerstören die Wegstücke; Kanonentor 2 →
+  **Kanonen-Glasröhre 2** · **F Gipfel** (Kontrollpunkt; Plattform Ø 26 m mit Manege-Muster) – Abschnitt `gipfel`:
+  **Super-POW-Block** viermal anstoßen, Phasen 1–4 (Feuerbälle, Schockwellen, Doppelgänger), das Glas mit den Freunden steht
+  auf dem Block; nach dem Sieg zerbricht es, der Baron fliegt davon und die **Glasröhre zum Siegerturm** (`glasnetz`,
+  versteckt, `LEVEL.boss.warp`) erscheint · **G Siegerturm** – die Freunde (Krümel, Flocke, Hoppel, Fernglas-Kobold)
+  erscheinen und hüpfen (`freundeFest`), Ansage „Ihr habt uns befreit – danke!“, Feuerwerk (30 Raketen über dem Ziel),
+  Glockenbaum, Zielmast. `credits: true`: nach „Weiter“ startet der Abspann (Szene `Credits`), Spielstand `finished`.
+- Sterne: 0 **auf dem Uhrturm** des ersten Hauses (nach Seilbahn 1 rechts über das blaue Dach hinauf) · 1 **alle vier
+  Schubser vom Riesenrad stoßen** (`onGroup` → Stern erscheint am Einstieg) · 2 **Sternenring** in der ersten Gipfelphase
+  (erscheint mit dem Gipfelkampf; 8 Sternmünzen um den Super-POW-Block, 16 s; mit dem Sieg wieder weg). Stempel: am Zielmast
+  den **Glockenbaum** hinaufklettern und oben abspringen (vom Boden auch mit Dreifachsprung zu hoch).
+- Geheimnisse: unsichtbare Blöcke mit Extraleben über dem Autowrack und über dem Kamin auf Dach 4 (der Kamin ist die
+  Stufe); Krallen-Abkürzung: mit dem Krallen-Anzug (?-Block am Start und am Turmplatz) die Kletterrinne hinauf bis zur
+  Terrasse; Bitcoin-Pfade (Bögen über den Lücken, Säule im Riesenrad, Ringe auf den Türmchen und am Siegerturm).
+- Neustart: Tod in einem Kampfabschnitt setzt nur diesen zurück (Turm: Wandstücke ganz, Kampf beginnt beim Betreten neu;
+  Gipfel: die Stöße bleiben). Kameraschienen je Abschnitt (Turm: Neigung 26°, Abstand 18, `xLock`; Gipfel: 30°, 20, Höhe 6,5).
+
+### Hilfen `_helpers_e.js`
+
+Daten: `dach` (Dach-/Platzplatte), `line`/`ring`/`arc`/`column` (Münzen), `sign` · Kulisse: `haus` (Rummelhaus vom
+Rummelboden bis zum Dach), `bodenRummel`, `seilPortal`, `kamin`, `dachKram` (Luke, Rohr, Tank, Kisten, Geschenk, Antenne;
+mit Kollision), `manege`, `teppich`, `stern`, `banner`, `vulkan`, `trommel`/`kletterfront`/`tuermchen`/`schaft`/`rundDeckel`
+(der große Turm), `kelchturm`, `birnenKette`, `schilder` (ein Schild-Atlas), `glockenbaum` (Stamm mit `beanstalk`) ·
+Ablauf: `kanonenTor`, `parkKulisse` (Thema baronpark ohne zweiten Turm in der Kulisse), `freundeFest`, `feuerwerk`
+(auf der Level-Uhr), `glockenKlang`.
+
+### Test `tests/course_w8e.mjs`
+
+Port 4890 (+ `PORT_BASE`), Teilläufe `PARTS=load,route,sweep,targets,extra,boss,credits,action,shots` (je Lauf < 10 min,
+z. B. `load,route` · `targets,extra` · `boss,credits` · `action` · `sweep,shots`), `HEROES`, `ONLY`, `VERBOSE`, `SHOTS`,
+`DETAIL`, Bilder `tests/out/w8e_8-Burg_*.png`. Bot mit echter Eingabe (Beine u. a. `wheel`, `schubser`, `pow`, `bump`,
+`bridge`, `pipeIn`, `up`, `climb`, `tree`, `triple`, `stompAll`). Geprüft: Laden ohne Konsolenfehler, Metadaten,
+Gegnerzahlen; Routen-Bot Lotti und Greta Start → Zielmast (≈ 148/137 s; Baron in allen drei Abschnitten besiegt, POW-Block,
+2 Spiegelfrüchte, Super-POW 4×, Phasen 1 → 4, 3 Glasröhren); alle Sterne und der Stempel mit beiden Figuren und Gegenproben
+(drei Schubser reichen nicht, Ring vorher unsichtbar, Stempel nicht per Dreifachsprung); Extras (zwei Extraleben,
+Krallen-Anzug, Krallen-Abkürzung, Regen schweigt vor Dach 2 und trifft danach, Stachelfallen, Sperre am Kanonenhaus,
+Siegerröhre erst nach dem Sieg); Kampf-Neustart Turm und Gipfel; Sieg mit Befreiung, Feuerwerk, Speichern und Abspann.
+Gemessen (inkl. Schattenpass): Messgang 54 Punkte 51–99 Zeichenaufrufe (oben auf der Riesenrad-Fahrt am meisten) /
+≤ 276 k Dreiecke; Bilder 40–87 / ≤ 274 k; im Gipfelkampf mit Doppelgängern bis 106 Aufrufe.
