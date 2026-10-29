@@ -111,7 +111,9 @@ export class CourseScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.RENDER, this.renderFrame, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanup, this);
     this.scene.launch('CourseUI', { course: this });
-    music.play(data.music ?? 'course_grass');
+    // Remix-Level (level/remix.js): Klang-Variante des Musiksystems (music.play(thema, { variant }); ohne Varianten-
+    // Unterstützung wird das zweite Argument ignoriert und die Basismusik spielt unverändert)
+    music.play(data.music ?? 'course_grass', data.musicVariant ? { variant: data.musicVariant } : undefined);
     window.__course = this;
   }
 

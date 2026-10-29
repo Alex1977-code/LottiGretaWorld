@@ -26,7 +26,7 @@ export const POWERS = {
         done = true;
         player.speedMult = player.variant.speedMult;
         const back = level.data.music ?? 'course_grass';
-        music.play(back);
+        music.play(back, level.data.musicVariant ? { variant: level.data.musicVariant } : undefined);   // Remix: Klang-Variante
         level.musicNow = back;
         player._starWatch = null;
         // Abmelden erst nach dem laufenden Schritt (die onStep-Liste wird gerade durchlaufen)
