@@ -135,7 +135,7 @@ export const LEVEL = {
     funken(level, { x: GX, z: GZ - 8, y: AY, near: (p) => p.pos.x > 38 });
     // goldenes Konfetti rieselt um die Kamera (Zugabe!)
     particles(level, { follow: () => { const t = level.view.rig.target; return { x: t.x, y: t.y - 3, z: t.z - 5 }; }, size: [36, 32], n: 90, h: 16, dir: -1, speed: [0.7, 1.4], dot: 0.2, sway: 1.1, colors: [0xffd04a, 0xfff2a0, 0xff7ac0, 0xb07aff, 0xffffff], additive: false, opacity: 0.9, name: 'konfetti' });
-    plakat(level, { pos: [GX + 9.2, AY, GZ + 5], yaw: -0.7, kind: 'freunde' });
+    plakat(level, { pos: [GX + 4.8, AY, GZ - 9.4], yaw: -0.35, kind: 'freunde' });
   },
   segments: [
     { type: 'killplane', y: -14 },

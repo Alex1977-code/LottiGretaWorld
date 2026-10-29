@@ -95,7 +95,7 @@ export const LEVEL = {
     ]);
     kletterturm(level, { pos: [TURM.x, Y0, TURM.z], size: [3, TURM.h, 3], seed: 21 });
     schiffschaukel(level, { id: 'schaukel', pos: [SCH.x, SCH.y, SCH.z], length: SCH.L, dir: [1, 0], amp: 70, grow: 11, decay: 6, color: 0xd8205a });
-    zuckerwatte(level, [{ pos: [7.4, Y0, -26.6], yaw: 0.5 }, { pos: [-6.8, Y0, 8.6], yaw: -0.4, color: 0xffc0e8 }]);
+    zuckerwatte(level, [{ pos: [7.4, Y0, -26.6], yaw: 0.5 }, { pos: [-14.6, Y0, 8.0], yaw: -0.4, color: 0xffc0e8 }]);
     plakat(level, { pos: [5.0, Y0, 9.4], yaw: -0.3, kind: 'koenig' });
     plakat(level, { pos: [-6.2, AY, -80.2], yaw: 0.3, kind: 'koenig' });
     circusProps(level, [
@@ -146,7 +146,7 @@ export const LEVEL = {
     funken(level, { x: GX, z: GZ - 8, y: AY, near: (p) => p.pos.x > 38 });
     // Glutfunken steigen um die Kamera auf (Lava-Inferno nebenan)
     particles(level, { follow: () => { const t = level.view.rig.target; return { x: t.x, y: t.y - 6, z: t.z - 6 }; }, size: [40, 36], n: 80, h: 18, dir: 1, speed: [1.0, 2.2], dot: 0.24, sway: 0.9, colors: [0xffa030, 0xff6010, 0xffd060], opacity: 0.85, name: 'glutfunken' });
-    plakat(level, { pos: [GX + 9.2, AY, GZ + 5], yaw: -0.7, kind: 'freunde' });
+    plakat(level, { pos: [GX + 4.8, AY, GZ - 9.4], yaw: -0.35, kind: 'freunde' });
   },
   segments: [
     { type: 'killplane', y: -12 },
@@ -234,10 +234,10 @@ export const LEVEL = {
     { kind: 'hidden', pos: [0, Y0 + 0.3 + 3.3, (GRABEN.z0 + GRABEN.z1) / 2], content: 'oneup' },
   ],
   enemies: [
-    { kind: 'funkenflaemmchen', id: 'flamme1', pos: [-8.6, Y0, -14.6], path: [[-11.6, Y0, -14.6], [-6.4, Y0, -14.6]], hop: 0.8 },
-    { kind: 'funkenflaemmchen', id: 'flamme2', pos: [8.6, Y0, -22.6], path: [[6.2, Y0, -22.6], [11.4, Y0, -22.6]], hop: 0.8, phase: 0.5 },
-    { kind: 'lavablase', id: 'blase1', pos: [-4.2, Y0 - 1.2, -18.0], height: 4.2, period: 3.2, phase: 0 },
-    { kind: 'lavablase', id: 'blase2', pos: [4.2, Y0 - 1.2, -18.0], height: 4.2, period: 3.2, phase: 0.5 },
+    { kind: 'funkenflaemmchen', id: 'flamme1', pos: [-8.6, Y0, -14.6], path: [[-11.6, Y0, -14.6], [-6.4, Y0, -14.6]], hop: 0.8, farHide: 24 },
+    { kind: 'funkenflaemmchen', id: 'flamme2', pos: [8.6, Y0, -22.6], path: [[6.2, Y0, -22.6], [11.4, Y0, -22.6]], hop: 0.8, phase: 0.5, farHide: 24 },
+    { kind: 'lavablase', id: 'blase1', pos: [-4.2, Y0 - 1.2, -18.0], height: 4.2, period: 3.2, phase: 0, farHide: 26 },
+    { kind: 'lavablase', id: 'blase2', pos: [4.2, Y0 - 1.2, -18.0], height: 4.2, period: 3.2, phase: 0.5, farHide: 26 },
     { kind: 'lavablase', id: 'blase3', pos: [-9.0, -6.0, -58.0], height: 6, period: 3.6, phase: 0.2 },
     { kind: 'lavablase', id: 'blase4', pos: [8.0, -6.0, -63.0], height: 6, period: 3.6, phase: 0.7 },
     { kind: 'schlangenkoenig', id: 'koenig', color: 'rosa', pos: [0, AY, AZ], arena: { center: [0, AY, AZ], r: AR - 1.1 }, plate: 2.8, star: { pos: [0, AY + 0.4, AZ + 6.5], index: 2 } },
