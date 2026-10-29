@@ -101,8 +101,8 @@ function prebuild(level) {
   sternenbachThema(level);
   regenbogenPlatten(level, PLATTEN);
   // Kristallturm (Krallen-Anzug: kletterbar) und Sims darüber (über dem ersten Ziegelpaar)
-  level.world.add({ type: 'box', min: [TURM.x0, Y - 1.2, TURM.z1], max: [TURM.x1, TURM.top - 0.8, TURM.z0], climbable: true, tag: 'kristallturm' });
-  level.world.add({ type: 'box', min: [SIMS.x0, SIMS.under, SIMS.z1], max: [SIMS.x1, SIMS.top, SIMS.z0], tag: 'roehrensims' });
+  level.world.add({ type: 'box', min: [TURM.x0, Y - 1.2, TURM.z1], max: [TURM.x1, TURM.top, TURM.z0], climbable: true, tag: 'kristallturm' });
+  level.world.add({ type: 'box', min: [TURM.x1, SIMS.under, SIMS.z1], max: [SIMS.x1, SIMS.top, SIMS.z0], tag: 'roehrensims' });
   if (level.view) {
     const b = new Bld(), g = new Bld();
     const w = TURM.x1 - TURM.x0, d = TURM.z0 - TURM.z1, cx = (TURM.x0 + TURM.x1) / 2, cz = (TURM.z0 + TURM.z1) / 2;
