@@ -8190,6 +8190,82 @@ Siegerröhre erst nach dem Sieg); Kampf-Neustart Turm und Gipfel; Sieg mit Befre
 Gemessen (inkl. Schattenpass): Messgang 54 Punkte 51–99 Zeichenaufrufe (oben auf der Riesenrad-Fahrt am meisten) /
 ≤ 276 k Dreiecke; Bilder 40–87 / ≤ 274 k; im Gipfelkampf mit Doppelgängern bis 106 Aufrufe.
 
+## Präzisierung (Level 8-A und 8-B)
+
+Additiv zur Welt-8-Liste: Titel und Besonderheiten der beiden Zirkus-Bosslevel 8-A und 8-B. Dateien
+`src/course/levels/w8/8-A.js`, `8-B.js`, eigene Hilfen `src/course/levels/w8/_helpers_d.js` (kein `LEVEL`, nur für diese
+zwei Level; liest die Zirkus-Hilfen aus 3-B – `circusArena`, `circusProps`, `grandStairs`, `RisingPipe`, `particles` – und
+6-C – `gondelRuf`, `lichterketten`, Münzhilfen – unverändert mit), Test `tests/course_w8d.mjs`. **Kein Motor-Code geändert**;
+alle Sonderteile sind level-lokal (Hilfsdatei, Haken `LEVEL.prebuild`/`LEVEL.build`/`LEVEL.setup`, `level.onStep`,
+`view.onFrame`). Beide Level: Archetyp `boss`, Thema `circus` in einer **lokalen Abend-Variante** (`rummelAbend` im
+`prebuild`: violett-oranger Abendhimmel, Kulisse `baronPark` aus `backdrop_w8.js` mit dem Turm des Barons, Riesenrad,
+Achterbahn; in 8-B zusätzlich der Lavasee `crystalInferno` – das gemeinsame Thema bleibt unverändert), `starSlots: 3` (zwei
+Sterne im Level + der Stern des Endgegners), Stempel, Gegner nach „Präzisierung (Gegner Welt 8): Varianten (8-A, 8-B, 8-Zug)“.
+
+### 8-A „Goldglibber-Zugabe im Brummbär-Zirkus“ (boss · circus · course_bossblob · 400 s, 2 Sterne + Stern der Würfelblase)
+
+- **Rummelplatz** (Anlauf ≈ 28 m, Pflaster mit rotem Teppich): Torbogen, Buden, Karussell, Zuckerwatte-Stände, Plakat
+  „Goldglibber – die Zugabe!“, Brummbär-Ballons, goldene Gelee-Brocken; links **Hau den Lukas** (`HauDenLukas`: nur die
+  **Stampfattacke** auf die Schlagplatte schlägt den Schlitten bis zur Glocke – Klingeln, „Volltreffer!“, Stern 1 erscheint;
+  ein normaler Sprung bringt ihn nur halb hinauf: „Fester – mit der Stampfattacke!“), rechts die **Losbude** mit dem
+  Glücksrad-Block (`rouletteblock`: Münzen, 1-Up, Wachstumsbeere, Krallen-Anzug im Wechsel) und die **goldene Zirkuskanone**
+  (`roehrenkanone`) → **Ballonloge** hoch über der Treppe (Stempel), Bitcoin-Bogen entlang des Flugs → **Prachttreppe** (18
+  Stufen) → **Talstation** (Kontrollpunkt, **Sternenring**) → **Seilbahn** (≈ 27 m) hoch über dem abendlichen Rummel
+  (`rummelUnten`: Zelte, Buden, Laternen, Wege – nur Zier) → **Zeltplateau** (Kontrollpunkt, Bühnenschürze an der Kante) →
+  **Manege** (gold-lila Zelt `farbZelt`, aufgeschnitten wie 3-B, Publikum jubelt): **goldene Würfelblase** (`color: 'gold'`,
+  `waves: 2`, `waveGap: 0.45`) – jede Riesen-Landung schickt zwei goldene Schockwellen über die Manege → Stern 3, Warp-Box →
+  **Hinterhof** (Riesenrad-Kulisse, Karussell, Feuerwerk, Plakat „Haltet durch, liebe Freunde!“, Zielmast).
+- Sterne: 1 **Hau den Lukas** (Stampfattacke) · 2 **Sternenring** an der Talstation: acht Sternmünzen entlang der Seilbahn
+  (16 s; tiefe in Gondelhöhe, hohe 2,5 m über dem Gondelboden, links und rechts – in der fahrenden Gondel hin und her laufen
+  und springen; der Stern erscheint am Zeltplateau) · 3 goldene Würfelblase. Stempel: **Ballonloge** (nur mit der Kanone).
+  Extraleben: verborgener Block über der Zuckerwatte-Wolke an der Ballonloge, Glücksrad-Block (1-Up im richtigen Takt).
+  Gegner: goldene Gelee-Brocken 4, goldene Würfelblase. Konfetti rieselt um die Kamera.
+
+### 8-B „Heiße Manege für den rosa Schlangenkönig“ (boss · circus · course_boss · 500 s, 2 Sterne + Stern des Königs)
+
+- Wie 3-B, aber am Rand des Lava-Infernos: **Vorplatz** (Torbogen, Feuerschalen, Kasse, Zirkuswagen, Plakat „Schlangenkönig –
+  heiß wie Lava!“, ?-Block mit **Krallen-Anzug** 2 m hoch); links der **Kletterturm** (`kletterturm`: bunte Kisten mit Griffen,
+  alle Seiten kletterbar, 7,5 m), rechts das **Riesenrad** (Motor-Baustein `riesenrad`, r 6,4, 6 Gondeln, Einstiegssteg) →
+  **Glutgasse** (Lavagraben mit Holzbrücke und Lavablasen, Buden, Funkenflämmchen; **Lavabrocken-Regen** aus dem Vulkan mit
+  Landemarken und kurzen Glutpfützen, jeder dritte Brocken zielt auf die Figur – läuft nur, solange eine Figur in der Gasse
+  ist), links die **Schiffschaukel** (`Schiffschaukel`: Schiff an zwei Stangen, bleibt waagerecht, schaukelt sich mit Last auf
+  bis 70°, leer schwingt es aus) mit dem **Ausguck** (7 m) → **Prachttreppe** → **Talstation** (Kontrollpunkt) → **Seilbahn**
+  über die glühende Lavaschlucht (Felsnadeln mit Kristallen, Lavablasen) → **Zeltplateau** (Kontrollpunkt) → **Manege**
+  (rosa-rotes Zelt): **rosa Schlangenkönig** (`color: 'rosa'`, Lavabrocken hinterlassen Lavapfützen, Diener-Schlangen mit
+  Tellern – vom Teller aufs Haupt, 3 Treffer) → Stern 3, rosa Röhre → **Hinterhof** (Plakat der Freunde, Zielmast).
+- Sterne: 1 **Kletterturm** – Krallen-Anzug aus dem ?-Block holen, hinaufklettern · 2 **Riesenrad** – einsteigen, oben aus der
+  Gondel zum Stern über dem Rad springen · 3 rosa Schlangenkönig. Stempel: **Schiffschaukel** – aufschaukeln lassen, am
+  höchsten Punkt auf den Ausguck springen. Extraleben: verborgener Block über dem Kletterturm (nur mit Krallen), verborgener
+  Block über der Holzbrücke. Gegner: Funkenflämmchen 2 (Krallenhieb besiegt sie), Lavablasen 4, rosa Schlangenkönig.
+  Glutfunken steigen um die Kamera auf; ferne Gegner werden nicht gezeichnet (`farHide`).
+
+### Hilfen `_helpers_d.js`
+
+`rummelAbend` (lokale Themen-Variante, `prebuild`), `farbZelt` (Zirkuszelt aufgeschnitten, Bahnen umgefärbt), `manege`
+(`circusArena` mit Publikum nur nahe am Zelt), `HauDenLukas`/`hauDenLukas` (Kraftmesser, Stampfen über `onPound`),
+`Schiffschaukel`/`schiffschaukel` (MovingBox mit Bordwänden), `kletterturm`, `rummelPflaster` (Teppich, Stern-Mosaik),
+`buehnenSchuerze` (Streifen, Goldleiste, Glühbirnen an Inselkanten), `rummelUnten` (Rummel tief unten, gebacken),
+`felsNadeln` (Felsen mit Kristallen im Lavasee), `plakat` (Leinwand: Würfelblase, Schlangenkönig, Freunde), `zuckerwatte`,
+`glutRand`, `funken`.
+
+### Test `tests/course_w8d.mjs`
+
+Port 4880 (+ `PORT_BASE`), Aufruf `node tests/course_w8d.mjs [8-A|8-B]`, Teilläufe `PARTS=load,route,sweep,targets,extra,shots`
+(je Lauf < 10 min, z. B. `load,route,sweep` · `targets,extra` · `shots`), `HEROES=lotti,greta`, `ONLY=<Text|Text>`,
+`VERBOSE=1`, `SHOTS=<Name|Name>`, `DETAIL=1`, `TRACE=<Bedingung>`; Bilder `tests/out/w8d_*.png`. Bot mit echter Eingabe (auf
+der Route unverwundbar, Trefferversuche gezählt), auch in beiden Bosskämpfen (Würfelblase: ausweichen, über die goldenen
+Wellen springen, im Fliehen auf den Hut; Schlangenkönig: Landemarken und Pfützen meiden, auf den Teller unter dem Kopf, vom
+Teller aufs Haupt). Beine u. a. `pound`, `kanone`, `gondel` (mit Sternmünzen), `roulette`, `climb`, `rad`, `schaukel`,
+`attack`, `pipe`, `blase`, `koenig`, `welle`. Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti
+und Greta Start → Zielmast; alle Sterne und Stempel mit beiden Heldinnen samt Gegenproben (Lukas nicht ohne Stampfen,
+Sternenring nicht ohne Springen, Stempel nicht ohne Kanone; Kletterturm nicht ohne Krallen, Riesenrad-Stern nicht vom Steg,
+Ausguck nicht vom Boden); Extraleben, Kontrollpunkte (Gondel kommt zurück), goldene Schockwelle trifft, Lavabrocken trifft,
+Krallenhieb gegen Funkenflämmchen, Lavagraben, Absturz, Lavapfützen im Kampf, Kampf-Neustart (beide Endgegner); Messgang und
+Bilder. Stand: 8-A 17 + 18 + 2 Prüfungen, 8-B 18 + 18 + 2 (load/route/sweep ≈ 4 min, targets/extra ≈ 3 min, shots ≈ 5–7 min).
+Gemessen (scale 2, inkl. Schattenpass): 8-A Route ≈ 81 s (Lotti) / 83 s (Greta), Messgang 30 Punkte ≤ 82 Zeichenaufrufe /
+≤ 262 k Dreiecke, Bilder 56–82 / ≤ 256 k · 8-B Route ≈ 64 s / 58 s, Messgang 28 Punkte ≤ 99 / ≤ 271 k, Bilder 65–107 / ≤ 266 k
+(am meisten oben im Riesenrad mit Blick über den ganzen Glut-Rummel).
+
 ## Präzisierung (Level 8-Zug, 8-4 und 8-5)
 
 Additiv zur Welt-8-Liste: Titel und Besonderheiten der Level 8-Zug, 8-4 und 8-5. Dateien `src/course/levels/w8/8-Zug.js`,
