@@ -209,8 +209,8 @@ export function kamin(b, x, y, z, h = 1.6, w = 0.9, col = 0xa85a4a) {
 }
 
 /**
- * Dachkram (fest, mit Kollision): Dachluke (warm erleuchtet), Lüftungsrohr mit Hut, Wassertank auf Stelzen, Kistenstapel,
- * Antenne (ohne Kollision). list: [{ k: 'luke'|'rohr'|'tank'|'kisten'|'antenne', x, y (Dachoberseite), z, yaw, col }, …]
+ * Dachkram (fest, mit Kollision): Dachluke (warm erleuchtet), Lüftungsrohr mit Blechhut, Wassertank auf Stelzen, Kistenstapel,
+ * Geschenkpaket, Antenne (ohne Kollision). list: [{ k: 'luke'|'rohr'|'tank'|'kisten'|'geschenk'|'antenne', x, y (Oberseite), z, yaw, col }, …]
  */
 export function dachKram(level, b, g, list) {
   const W = level.world;
@@ -223,9 +223,10 @@ export function dachKram(level, b, g, list) {
       b.box(0.06, 0.05, d - 0.3, x, y + 0.36, z, 0x6a4a5a, { r: 0, yaw });
       W?.add({ type: 'box', min: [x - w / 2, y, z - d / 2], max: [x + w / 2, y + 0.38, z + d / 2], tag: 'dachkram' });
     } else if (k === 'rohr') {
-      b.cyl(0.2, 0.22, 0.9, x, y, z, 0xb8bccc, 8);
-      b.cone(0.42, 0.32, x, y + 0.92, z, it.col ?? 0xe8423a, 8);
-      b.cyl(0.1, 0.1, 0.12, x, y + 0.82, z, 0x3a3448, 6);
+      b.cyl(0.2, 0.22, 1.0, x, y, z, 0xb8bccc, 8);
+      b.cyl(0.235, 0.235, 0.16, x, y + 0.5, z, it.col ?? 0xe8423a, 8);
+      for (const [dx, dz] of [[0.14, 0], [-0.14, 0], [0, 0.14], [0, -0.14]]) b.box(0.04, 0.22, 0.04, x + dx, y + 1.0, z + dz, 0x8a8ea0, { r: 0 });
+      b.cyl(0.3, 0.34, 0.07, x, y + 1.2, z, 0x9aa0b4, 8);
       W?.add({ type: 'cyl', x, z, r: 0.3, y0: y, y1: y + 1.2, tag: 'dachkram' });
     } else if (k === 'tank') {
       const r = it.r ?? 0.8, col = it.col ?? 0x5ab8d8;
@@ -246,6 +247,13 @@ export function dachKram(level, b, g, list) {
       const cx = x + Math.cos(yaw) * (s + 0.05) / 2, cz = z - Math.sin(yaw) * (s + 0.05) / 2;
       W?.add({ type: 'box', min: [cx - ex / 2, y, cz - ez / 2], max: [cx + ex / 2, y + s, cz + ez / 2], tag: 'dachkram' });
       W?.add({ type: 'box', min: [x + Math.cos(yaw) * s * 0.5 - s / 2, y + s, z - Math.sin(yaw) * s * 0.5 - s / 2], max: [x + Math.cos(yaw) * s * 0.5 + s / 2, y + 2 * s, z - Math.sin(yaw) * s * 0.5 + s / 2], tag: 'dachkram' });
+    } else if (k === 'geschenk') {
+      const s = it.s ?? 0.7, col = it.col ?? 0xe8423a, band = it.band ?? 0xffd84a;
+      b.box(s, s * 0.8, s, x, y, z, col, { r: 0.03, yaw });
+      b.box(s + 0.02, s * 0.8 + 0.02, 0.12, x, y, z, band, { r: 0, yaw });
+      b.box(0.12, s * 0.8 + 0.02, s + 0.02, x, y, z, band, { r: 0, yaw });
+      for (const sx of [-1, 1]) b.sphere(0.13, x + Math.cos(yaw) * sx * 0.12, y + s * 0.8 + 0.08, z - Math.sin(yaw) * sx * 0.12, band, { s: [1.3, 0.8, 0.7], ws: 6, hs: 4, yaw });
+      W?.add({ type: 'box', min: [x - s * 0.55, y, z - s * 0.55], max: [x + s * 0.55, y + s * 0.8, z + s * 0.55], tag: 'dachkram' });
     } else if (k === 'antenne') {
       b.cyl(0.05, 0.06, 2.6, x, y, z, 0x8a8aa0, 5);
       for (const [h, w] of [[1.6, 1.2], [2.0, 0.9], [2.35, 0.6]]) b.box(w, 0.05, 0.05, x, y + h, z, 0x8a8aa0, { r: 0, yaw });

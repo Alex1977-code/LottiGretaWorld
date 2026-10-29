@@ -192,6 +192,15 @@ function build(level) {
   for (const [x, y, z, x2, z2] of [[-4.4, UA - 0.8, ZA, -17.2, -201.8], [4.4, UA - 0.8, ZA, 16, -200], [-4.2, UB - 0.8, ZB, -18.5, -219.6], [4.2, UB - 0.8, ZB, 18.5, -204.4], [-4.4, UC - 0.8, ZC, -16, -224], [4.4, UC - 0.8, ZC, 17.5, -221.7]]) {
     birnenKette(level, g, [x, y, z], [x2, TT + 1.3, z2], 14, 1.6);
   }
+  // Gipfelschaft: Fahnen zur Seite der Türmchen hin
+  for (const a of [Math.PI / 2 - 0.5, Math.PI / 2 + 0.5]) banner(b, g, Math.cos(a) * 12.2, G - 2.7, ZG + Math.sin(a) * 12.2, Math.PI / 2 - a, 2.4, 7.5, a < Math.PI / 2 ? 0x8a4ae0 : TURM.red);
+  // Siegerturm: Läufer zum Zielmast, Sternchen, Geschenke für die Freunde
+  teppich(b, 0, ZIEL.y, -281.4, -294.2, 2.2);
+  for (const [sx, sz, sr, sc] of [[-3.6, -282.6, 0.5, 0xff8ac8], [5.8, -284.6, 0.6, 0xffd84a], [-6.0, -287.0, 0.45, 0x9af0ff], [3.2, -296.6, 0.5, 0x9af0ff], [-2.6, -297.4, 0.6, 0xffd84a]]) stern(b, sx, ZIEL.y + 0.03, sz, sr, sc);
+  dachKram(level, bs, g, [
+    { k: 'geschenk', x: 6.4, y: ZIEL.y, z: -288.6, s: 0.8, col: 0x3a7ae8 }, { k: 'geschenk', x: 7.0, y: ZIEL.y, z: -289.6, s: 0.55, col: 0xff8ac8, band: 0xffffff, yaw: 0.5 },
+    { k: 'geschenk', x: -6.2, y: ZIEL.y, z: -293.4, s: 0.7, col: 0x4ac85a, yaw: -0.3 }, { k: 'geschenk', x: -5.6, y: ZIEL.y, z: -295.2, s: 0.5, col: 0xffc83a, band: 0xe8423a },
+  ]);
   // Gipfel: Manege-Muster, Lichterketten zwischen den Fahnenmasten (nicht vorn, wo die Kamera schaut)
   manege(b, 0, G + 0.03, ZG, 3.2, 10.2, 20);
   for (const [i, j] of [[1, 2], [2, 3], [3, 0]]) {
