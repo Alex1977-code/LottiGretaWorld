@@ -9168,7 +9168,8 @@ Stern liegt darin (Stampfen allein reicht nicht) · **2** Großblock-Stufen hina
 anschlagen – er wächst zum Turm; im Schacht zwischen Turm und Riesensäule mit **Wandsprüngen** hinauf. **Stempel**: im
 Großblock – stampfen, er wächst und der Stempel springt obendrauf (Inhalt `[stempelHeraus]`; Draufspringen genügt nicht).
 Geheimnisse: Riesentrank-Block, zwei unsichtbare Extraleben-Blöcke (Bitcoin-Insel, Pilzling-Nische), Gleitflug, Bitcoins aus
-den Riesen-?-Türmen. Gegner: Pilzling 7 (zwei jagen in der Nische), Laufbombe 3.
+den Riesen-?-Türmen. Gegner: Pilzling 7 (zwei jagen in der Nische), Pilzlingsturm 1 (drei Stufen, spaziert rechts auf der
+Startinsel, hinterlässt 5 Bitcoins), Laufbombe 3.
 
 ### Präzisierung (Level S-3, S-4 und S-5): Hilfen `_helpers_b.js`
 
@@ -9192,6 +9193,6 @@ samt Gegenproben (u. a. S-3 Stern 0 nicht ohne Drehen, Stern 1 nicht ohne Kurbel
 Stempel nicht mit Lotti; S-4 Sterne nicht vom Hauptweg, Weitsprung-Gegenprobe; S-5 Wand ohne Knopf glatt, Felsblock nicht
 durch Stampfen, Stern 2 nicht ohne Turm, Stempel nicht durch Draufspringen); Extras (versteckte Bitcoins, Extraleben,
 Wurfsichel, Abrutschen und Hürde, Hackvogel, Zeit-Uhren, Glotzfisch, wartender Mast, 100 s ohne Zeitboni, Riesentrank,
-Gleitblatt mit Gegenprobe, Riesen-?-Turm, Laufbombe sprengt Ziegel, Ziel-Box erst nach fünf Schlüsseln). Gemessen (scale 2,
+Gleitblatt mit Gegenprobe, Riesen-?-Turm, Pilzlingsturm abtragen, Laufbombe sprengt Ziegel, Ziel-Box erst nach fünf Schlüsseln). Gemessen (scale 2,
 inkl. Schattenpass): S-3 Messgang (60 Punkte) ≤ 76 Zeichenaufrufe / ≤ 213 k Dreiecke, Bilder 39–75 / ≤ 208 k; S-4 Messgang
 (34) ≤ 59 / ≤ 147 k, Bilder 30–65 / ≤ 147 k; S-5 Messgang (49) ≤ 69 / ≤ 169 k, Bilder 27–59 / ≤ 173 k; Grenzen < 120 / < 300 k.

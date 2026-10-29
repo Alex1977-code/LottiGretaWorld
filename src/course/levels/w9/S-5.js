@@ -18,7 +18,7 @@
 //   Ziel-Warp-Box; sie führt zur Zielinsel.
 // Zehn-Sekunden-Raum (Rätselbox, x ≈ −70): Knopf drücken – zehn Sekunden fahren Blöcke aus der Wand, die Treppe hinauf zu
 //   Stern 0.
-// Gegner: Pilzlinge 7, Laufbomben 3.
+// Gegner: Pilzlinge 7, Pilzlingsturm 1 (drei Stufen, Startinsel), Laufbomben 3.
 
 import { PI, line, ring, arc, column, sign, riesenblock, wiesenDeko, banner } from './_helpers_b.js';
 import { countdown } from '../../entities/gimmick.js';
@@ -193,6 +193,8 @@ export const LEVEL = {
     { kind: 'hidden', pos: [X2 - 5.5, 2.6, -257.6], content: 'oneup' },       // Extraleben in der Pilzling-Nische
   ],
   enemies: [
+    // Pilzlingsturm (drei Stufen) spaziert rechts auf der Startinsel: von oben Stufe für Stufe abtragen – er hinterlässt Bitcoins
+    { kind: 'pilzlingsturm', id: 'pt1', pos: [4.8, 0, -4], count: 3, behavior: 'walk', path: [[4.8, 0, -1], [4.8, 0, -11]], speed: 0.8, carries: 'coins:5' },
     pilz('p1', 0, 0, -26, 4), pilz('p2', 2, 0, -31, 2.5),
     pilz('p3', 2, 7.2, -46, 3),
     pilz('p4', -3, 0, -110, 2.5), pilz('p5', 3, 0, -126, 2.5),

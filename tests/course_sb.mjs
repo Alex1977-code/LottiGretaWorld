@@ -254,7 +254,7 @@ const X2 = 70, X3 = -70;
 ROUTES['S-5'] = {
   start: [0, 0, 6],
   meta: { stars: 3, time: 400, theme: 'blockland', music: 'course_blockland', archetype: 'parcours', world: 9 },
-  enemies: { pilzling: 7, kickbombe: 3, riesen_frageturm: 6, felsblock: 1, schluesselmuenze: 5 },
+  enemies: { pilzling: 7, pilzlingsturm: 1, kickbombe: 3, riesen_frageturm: 6, felsblock: 1, schluesselmuenze: 5 },
   main: [
     { name: 'Startinsel', to: [0, -14.6], within: 0.5 },
     { name: 'Sprung zur zweiten Insel', to: [0, -22.4], jump: 24, jumpAt: 7.4, within: 0.6 },
@@ -343,6 +343,8 @@ ROUTES['S-5'] = {
       mech: (r) => r.dead, mechText: (r) => (r.dead ? 'abgestürzt' : 'drüben?') },
     { name: 'Extraleben: unsichtbarer Block in der Pilzling-Nische', from: [X2 - 5.5, 0, -256], heroes: ['lotti'], expectLives: 1,
       legs: [{ stompAll: 'p6' }, { stompAll: 'p7' }, { to: [X2 - 5.5, -257.6], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+    { name: 'Pilzlingsturm auf der Startinsel: drei Stufen von oben abtragen, Bitcoins', from: [3, 0, 2], heroes: ['lotti'], expectCoins: 5,
+      legs: [{ stompAll: 'pt1' }, { chaseKind: 'coin', max: 300 }], mech: (r) => r.mech.stomped.includes('pt1'), mechText: (r) => `besiegt ${r.mech.stomped.join(' ')}` },
     { name: 'Riesen-?-Block über der Wiese von unten anschlagen: Turm wächst, Bitcoins', from: [-3.4, 0, -112.6], heroes: ['lotti'], expectCoins: 5,
       legs: [{ to: [-3.4, -114.6], within: 0.25, run: false }, { hop: 30 }, { until: '=ent(\'turm_a\').state === \'turm\'', max: 300 }, { wait: 60 }] },
     { name: 'Laufbombe zündet bei Nähe; in die Ziegelmauer gekickt, sprengt sie Ziegel', from: [5, 7.2, -48], heroes: ['lotti'],
