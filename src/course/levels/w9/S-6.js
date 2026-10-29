@@ -189,6 +189,8 @@ export const LEVEL = {
   ],
   items: [
     { kind: 'druckknopf', id: 'schalter', pos: [4.25, 0, -9.8], color: 'blau', once: true, onPress: { reveal: 'rechts' } },
+    // Waldkobolde mit Fernglas schauen der Heldin nach (Deko)
+    { kind: 'spotter', pos: [5.66, 0, 4.9], yaw: -2.2 }, { kind: 'spotter', pos: [-5.66, 0, -112.6], yaw: -1.0 }, { kind: 'spotter', pos: [5.66, 0, -285.6], yaw: -2.4 },
     { kind: 'powerup', id: 'spiegel', pos: [0, 0, -116.4], power: 'spiegel' },
     { kind: 'kampfraum', id: 'kaeferrunde', ids: ['fk_a', 'fk_a_1', 'fk_a_2', 'fk_b', 'fk_b_1', 'fk_b_2'], area: { min: [-11, -2, -158], max: [11, 8, -136] },
       onClear: { reveal: 'kaeferstern' }, banner: 'Alle Flatterkäfer besiegt!' },

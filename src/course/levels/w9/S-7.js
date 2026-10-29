@@ -67,7 +67,7 @@ const KLEIN = [
   { kind: 'klee', pos: [-2, Y1 + 0.02, -97], s: 1.1 }, { kind: 'beeren', pos: [10.5, Y1, -97], s: 1.2 }, { kind: 'schnecke', pos: [-10.6, Y1, -68.5], s: 1.2, yaw: 1 },
   { kind: 'fels', pos: [-8.8, Y1, -140], s: 1.1, solid: true }, { kind: 'beeren', pos: [-8.6, Y1, -101.5], s: 1 }, { kind: 'klee', pos: [-5, Y1 + 0.02, -121], s: 1.2 },
   { kind: 'eichel', pos: [8.6, Y1, -104], s: 1.1, solid: true }, { kind: 'kaefer', pos: [-8.3, Y1, -147], s: 1.1, yaw: 0.9 },
-  { kind: 'schnecke', pos: [10.5, Y1, -160], s: 1.3, yaw: 3.6 }, { kind: 'klee', pos: [2, Y1 + 0.02, -153], s: 1.3 }, { kind: 'fels', pos: [-10, Y1, -168], s: 1.2 },
+  { kind: 'schnecke', pos: [10.5, Y1, -160], s: 1.3, yaw: 3.6 }, { kind: 'klee', pos: [2, Y1 + 0.02, -153], s: 1.3 }, { kind: 'fels', pos: [-10.8, Y1, -162], s: 1.1 },
   { kind: 'beeren', pos: [10.6, YW, -177], s: 1.1, color: 0xe8284a }, { kind: 'klee', pos: [8, YW + 0.02, -186], s: 1.1 }, { kind: 'eichel', pos: [-23.6, YW, -186], s: 0.9 },
   { kind: 'gras', pos: [-24.4, YW, -190.5], s: 0.8 }, { kind: 'gras', pos: [-20.4, YW, -185.4], s: 0.8 },
   { kind: 'kaefer', pos: [8.5, YG, -328], s: 1.3, yaw: -0.4 }, { kind: 'fels', pos: [-8.8, YG, -306], s: 1.1, solid: true }, { kind: 'beeren', pos: [8.6, YG, -300], s: 1 },
@@ -249,6 +249,10 @@ export const LEVEL = {
     ring([0, WS - 4, -238], 2, 8), line([0, WS - 4, -248], [0, WS - 3, -276], 8), line([0, WS - 2, -284], [0, WS - 1, -289], 3),
     line([-6, YG + 0.5, -296], [-6, YG + 0.5, -330], 7),
     { kind: 'pswitch', id: 'blauschalter', pos: [3, YB, -318.5], time: 12, star: 2, coins: BLAU },
+    // Waldkobolde mit Fernglas (auf dem roten Riesenpilz, am Plateau, am Ziel) und ein Pixelbild an der Blockwächter-Wand:
+    // wer 4 s still davor steht, sieht die Heldin als Pixel-Relief (10 Münzen)
+    { kind: 'spotter', pos: [-7.5, Y1 + 4.6, -80], yaw: -0.6 }, { kind: 'spotter', pos: [10.5, YW, -189], yaw: -2.4 }, { kind: 'spotter', pos: [-5.5, 0, -358], yaw: -1.2 },
+    { kind: 'pixelegg', id: 'pixelbild', pos: [-9, Y1 + 2.2, -171.95], trigger: { pos: [-9, Y1, -169], r: 1.6 }, wait: 4 },
     ring([0, 0.4, -352], 2.2, 8),
   ],
   checkpoint: [{ pos: [4, YW, -182], yaw: PI / 2 }, { pos: [0, YG, -294], yaw: PI / 2 }],

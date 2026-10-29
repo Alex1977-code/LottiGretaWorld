@@ -183,6 +183,8 @@ const ROUTES = {
         legs: [{ to: [0, -117], within: 0.6 }, { expect: '=L.named.get(\'wandA\').broken > 0' }] },
       { name: 'Tintling: schwimmt in Stößen heran, Berührung verletzt', from: [-3, -10.6, -208], heroes: ['lotti'], invuln: false, allowFail: true,
         legs: [{ swimTo: 'tl1', dy: 0.3, within: 0.05, withinY: 0.05, soft: true, max: 600, stopIf: '=P().hurtTries > 0' }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Pixelbild: 4 s still vor dem linken Wandstück → Pixel-Relief der Heldin und 10 Münzen', from: [-9, -10, -169], heroes: ['lotti'], expectCoins: 10,
+        legs: [{ wait: 600 }, { expect: '=L.entities.some((e) => e.kind === \'pixelegg\' && e.shown)' }], shot: 'pixelbild' },
       { name: 'Strömung versetzt die Schwimmerin (nach rechts)', from: [0, -10, -219], heroes: ['lotti'], allowFail: true,
         legs: [{ wait: 120 }], mech: (r) => r.pos[0] > 1.5, mechText: (r) => `x ${r.pos[0].toFixed(1)}` },
     ],
