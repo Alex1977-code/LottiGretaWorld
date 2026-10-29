@@ -80,12 +80,12 @@ export const LEVEL = remixOf('6-2', {
       isl(6.6, 11.4, 3.4, -7.2, Y, 4, { top: 'sand' }),
       // ---------------- Wrack 2 (abseits bei x −110): Anleger, Riesenschiff, Hebebühne, hohes Vorderdeck, zwei Stege
       isl(WX - 4, WX + 4, 6, -3.2, Y, 5, { top: 'rock' }),
-      { type: 'kippschiff', id: 'wrack2', pos: [WX, Y, -19], length: 30, width: 12, style: 'holz', masts: 3, rails: false, maxTilt: 6, weight: 1.0, slide: 1.2, wave: { amp: 3, period: 6.5 } },
+      { type: 'kippschiff', id: 'wrack2', pos: [WX, Y, -19], length: 30, width: 12, style: 'holz', masts: 3, rails: false, maxTilt: 6, weight: 1.0, slide: 0.5, wave: { amp: 3, period: 6.5 } },
       { type: 'mover', id: 'hebebuehne', path: [[WX, Y - 0.5, -36.4], [WX, BUG - 0.5, -36.4]], size: [4, 0.5, 4], speed: 1.4, wait: 1.4, color: 'brown' },
       isl(WX - 5, WX + 5, -38.6, -46, BUG, 6, { top: 'rock' }),
       isl(WX + 5, WX + 15, -42.2, -42.8, BUG, 0.4, { top: 'none' }),                // schmaler Steg rechts der Warp-Box (Stern 1)
       isl(WX - 18.2, WX - 6.2, -14.6, -17.4, Y, 0.5, { top: 'none' }),             // langer Steg links (Stern 2)
-      isl(WX - 22, WX - 18.2, -13.4, -18.6, Y, 4, { top: 'rock' }),
+      isl(WX - 22, WX - 18.2, -14, -18, Y, 4, { top: 'rock' }),
       { type: 'sign', pos: [WX - 7.2, Y, -13.2], text: 'Nur für Riesen!', size: [2.4, 0.8], yaw: 0 },
       // ---------------- kippende Trümmer: Pustewolke mit Gegenwind über Kippbrücke 2
       // ---------------- Wrack 4 (abseits): Anleger, Riesen-Kippschiff mit acht Schubsern, Bugfelsen
@@ -107,16 +107,16 @@ export const LEVEL = remixOf('6-2', {
       { kind: 'question', pos: [WX - 2.6, Y + 2.6, -10.5], content: 'riesentrank' },
       { kind: 'hidden', pos: [WX, BUG + 2.6, -45.2], content: 'oneup' },                     // unsichtbar vorn an Wrack 2
       { kind: 'hidden', pos: [WX, Y + 2.6, -123.6], content: 'riesentrank' },          // unsichtbar auf Wrack 4
-      { kind: 'blockwand', pos: [WX - 18.8, Y, -16], size: [1, 3, 5] },                       // Steinblock-Wand vor dem Stern 2
+      { kind: 'blockwand', pos: [WX - 18.8, Y, -16], size: [1, 6, 5] },                       // Steinblock-Wand vor dem Stern 2 (höher als jeder Sprung)
     ],
     enemies: [
       // Wrack 1
       { kind: 'krakenpilz', id: 'kp1', pos: [10.2, Y, 1.6], sight: 6, interval: 3.2 },                  // bewacht das Wrackheck auf der Sandbank
       { kind: 'pustewolke', id: 'pw1', pos: [0, Y + 1.6, -38.6], dir: [0, 1], reach: 6, strength: 4.5, sight: 9 },
       // Wrack 2
-      { kind: 'schubser', id: 's2a', pos: [WX + 3, Y, -16], behavior: 'guard', sight: 5.5, warn: 0.8, push: 6.5, lift: 4.5, wake: 300 },
-      { kind: 'schubser', id: 's2b', pos: [WX - 3, Y, -26], behavior: 'guard', sight: 5.5, warn: 0.8, push: 6.5, lift: 4.5, wake: 300 },
-      { kind: 'krakenpilz', id: 'kp2', pos: [WX - 3.4, BUG, -42.2], sight: 6, interval: 3.2 },
+      { kind: 'schubser', id: 's2a', pos: [WX + 4.2, Y, -15], behavior: 'guard', sight: 3.4, warn: 0.9, push: 6.5, lift: 4.5, wake: 300 },
+      { kind: 'schubser', id: 's2b', pos: [WX - 4.2, Y, -25], behavior: 'guard', sight: 3.4, warn: 0.9, push: 6.5, lift: 4.5, wake: 300 },
+      { kind: 'krakenpilz', id: 'kp2', pos: [WX - 3.6, BUG, -43.4], sight: 6, interval: 3.2 },
       { kind: 'pustewolke', id: 'pw2', pos: [WX, Y + 1.6, -28.5], dir: [0, 1], reach: 6, strength: 4, sight: 9 },
       // kippende Trümmer
       { kind: 'krakenpilz', id: 'kp3', pos: [-4.2, Y, -83.6], sight: 6, interval: 3.2 },
@@ -149,7 +149,7 @@ export const LEVEL = remixOf('6-2', {
     holzsteg(level, WX - 3.6, WX + 3.6, -111.4, -120, Y, { bottom: -3, seed: 23 });
     holzsteg(level, WX + 5, WX + 15, -42.2, -42.8, BUG, { bottom: Y, seed: 25 });
     holzsteg(level, WX - 18.2, WX - 6.2, -14.6, -17.4, Y, { bottom: -3, seed: 27 });
-    brandung(level, [...saum(6.6, 11.4, 3.4, -7.2), ...saum(WX - 4, WX + 4, 6, -3.2), ...saum(WX - 22, WX - 18.2, -13.4, -18.6), ...saum(WX - 4, WX + 4, -111, -120.4), ...saum(WX - 4, WX + 4, -151.6, -158.6)]);
+    brandung(level, [...saum(6.6, 11.4, 3.4, -7.2), ...saum(WX - 4, WX + 4, 6, -3.2), ...saum(WX - 22, WX - 18.2, -14, -18), ...saum(WX - 4, WX + 4, -111, -120.4), ...saum(WX - 4, WX + 4, -151.6, -158.6)]);
   },
   marks: {
     start: [0, Y, 6], heck: [9, Y, -4.4], wrack2: [WX, Y, 1], bug2: [WX, BUG, -42], steg2: [WX - 12, Y, -16], laderaum: [100, 4, -12],
