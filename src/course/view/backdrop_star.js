@@ -189,7 +189,8 @@ export function planetoids(sky, bounds, rnd, yBase, o = {}) {
       parts.push(fill(ring, rnd.pick([0xfff0a0, 0xffc8e8, 0xc8e8ff])));
     }
   }
-  return addMesh(sky, merge(parts), world(sky, { roughness: 0.7, emissive: 0x161028 }));
+  // unbeleuchtet (Schattierung steckt in den Vertexfarben): leuchtend bunt vor dem dunklen All
+  return addMesh(sky, merge(parts), basic(sky));
 }
 
 /** Treibende Holzteile im All (Balken, Kisten, kleine Walzen) – Holz-Athletik. */

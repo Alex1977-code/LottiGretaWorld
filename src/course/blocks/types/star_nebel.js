@@ -17,7 +17,7 @@
 //   Dunst-Boden, der alles Tiefere verbirgt) mit Absturz darunter (kill 'fall' bzw. 'gift'); optional Bodenstücke, die im
 //   Nebel erscheinen und verschwinden (Teile wie nebelplattform 'blinken').
 //   { type: 'nebelboden', id, pos: [x, y, z] (Mitte, y = Nebeloberfläche), size: [w, d], depth: 1.5 (Absturzebene so weit
-//     darunter), kill: 'fall' | 'gift' | false, density: 0.8, color: 0xdfe6f8, layers: 3, height: 1.2,
+//     darunter), kill: 'fall' | 'gift' | false, density: 0.6, color: 0xdfe6f8, layers: 3, height: 1.2,
 //     parts: [{ pos, size, up, down, phase }] (erscheinende Bodenstücke, Oberseite = pos.y), warn: 0.7 }
 //   level.named.get(id) = { surface, parts (Griff der Bodenstücke), info() }; Form-Tag 'nebelboden' (kill); star(level).fogs.
 
@@ -164,12 +164,12 @@ export function buildNebelboden(level, spec) {
   const g = new THREE.PlaneGeometry(w, d, 1, 1);
   g.rotateX(-Math.PI / 2);
   g.translate(p.x, p.y - 0.25, p.z);
-  const mat = new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(0.92), transparent: true, opacity: 0.9, depthWrite: false, fog: true });
+  const mat = new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(0.88), transparent: true, opacity: 0.86, depthWrite: false, fog: true });
   const sheet = new THREE.Mesh(g, mat);
   sheet.name = 'nebelboden';
   sheet.renderOrder = 3;
   addObject(level, sheet);
-  buildNebel(level, { pos: [p.x, p.y - 0.3, p.z], size: [w, d], height: spec.height ?? 1.2, layers: spec.layers ?? 3, density: spec.density ?? 0.8, color: spec.color ?? 0xdfe6f8, edge: spec.edge ?? 3, drift: spec.drift ?? [0.3, 0.1] });
+  buildNebel(level, { pos: [p.x, p.y - 0.3, p.z], size: [w, d], height: spec.height ?? 1.2, layers: spec.layers ?? 3, density: spec.density ?? 0.6, color: spec.color ?? 0xdfe6f8, edge: spec.edge ?? 3, drift: spec.drift ?? [0.3, 0.1] });
   void figures;
   return handle;
 }

@@ -306,6 +306,8 @@ if (want('mech')) {
     check('Sternenwerkstatt geladen, alle Stern-Bausteine benannt (level.named), Entitäten fliegender_zielmast/scheinziel/felsblock/riesen_frageturm/kickbombe', miss.length === 0
       && ['fliegender_zielmast', 'scheinziel', 'felsblock', 'riesen_frageturm', 'kickbombe', 'druckknopf'].every((k) => st.kinds.includes(k)));
     if (miss.length) console.log('   fehlen:', miss.join(', '));
+    const deco = await sc(() => { const n = {}; window.__course.level.world.forEach((s) => { if (String(s.tag).startsWith('deco_star:')) n[s.tag] = (n[s.tag] ?? 0) + 1; }); return n; });
+    check('Kulisse deco_star: alle Arten gebaut, solid-Arten mit Kollision (Rakete, Holzkiste, Riesenpilz, Riesenblock, Röhre)', ['rakete', 'holzkiste', 'riesenpilz', 'riesenblock', 'roehre_deko'].every((k) => deco[`deco_star:${k}`] === 1));
     check('Keine Konsolenfehler beim Laden', errors.length === e0);
     if (errors.length > e0) for (const e of errors.slice(e0, e0 + 8)) console.log('   ', e);
   }
@@ -649,13 +651,13 @@ if (want('mech')) {
       const dead = p.dead, cause = p.deathCause;
       t.until(() => !p.dead && c.level.runtime.status === 'play', 900);
       // Gegenprobe: eine oben stehende Platte ist fest
-      t.place([0, 0, -278], { settle: 2 });
+      t.place([0, 0, -274], { settle: 2 });
       const any = t.until(() => nb.parts.some((x) => x.state === 'oben' && x.solid), 600);
       // erscheinende Bodenstücke im Nebel: mal fest, mal weg
       const parts = boden.parts;
       const seen = new Set();
       for (let i = 0; i < 700; i++) { c.step(1); seen.add(parts.parts[0].solid ? 'fest' : 'weg'); }
-      t.place([0, 0, -278], { settle: 2 });
+      t.place([0, 0, -274], { settle: 2 });
       return { y0, sink, yMid, carried, dead, cause, any, seen: [...seen].sort().join('/') };
     });
     console.log(`  Nebelplattform: oben y ${r.y0}, sinkt (nach ${r.sink}) → y ${r.yMid} (trägt ${r.carried}); bleibt man drauf: tot ${r.dead} (${r.cause}); Bodenstücke ${r.seen}`);
@@ -836,6 +838,15 @@ if (want('themes') && SHOTS) {
       await T('place', m[w], { settle: 30 });
       if (th === 'honeycomb') await T('place', [0, 0, -252], { settle: 30 });
       await shot(k ? `thema_${th}_${w}` : `thema_${th}`, 1700);
+    }
+    // Rundblick: flache Kamera hinter der Figur (Kulisse und Himmel), danach wieder die Schiene
+    if (th !== 'honeycomb') {
+      await sc(() => { const c = window.__course, cam = c.view.camera, p = c.player.pos; c.view.rig.custom = () => { cam.position.set(p.x, p.y + 4, p.z + 12); cam.lookAt(p.x, p.y + 6, p.z - 40); return true; }; });
+      await page.waitForTimeout(1500); await freshFrames(3);
+      const s2 = await sc(() => window.__course.stats());
+      stats.push([`thema_${th}_rundblick`, s2.calls, s2.triangles]);
+      try { await page.screenshot({ path: `${OUT}sb_thema_${th}_rundblick.png` }); } catch { /* weiter */ }
+      await sc(() => { window.__course.view.rig.custom = null; });
     }
     console.log(`  ${th}: ${labels[th].label} (Kulisse ${labels[th].backdrop}, ${labels[th].kids} Teile${labels[th].pl ? ', Figurenlicht' : ''}${labels[th].uw ? ', Unterwasser' : ''}, Himmelslicht ${labels[th].hemi})${errors.length > e1 ? ' – Fehler!' : ''}`);
   }
