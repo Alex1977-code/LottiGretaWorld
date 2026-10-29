@@ -3,13 +3,14 @@
 // werden nicht verändert; alles Level-Lokale hängt sich über die offiziellen Level-Haken `LEVEL.build`/`LEVEL.setup`
 // (Präzisierung „Level-Haken“, „Leistung und Level-Haken 2“) sowie `level.onStep` / `view.onFrame` an.
 //
-//   1) Grundlagen     Geometrie-Kleinteile (aus den Welt-4-Hilfen), Leinwand-Texturen, Leuchtpunkte
+//   1) Grundlagen     Geometrie-Kleinteile (aus den Welt-4-Hilfen weitergereicht), TAU, clamp, arc (Münzbogen),
+//                     coinsAt, sign
 //   2) Lava-Inferno   kristalle (leuchtende Kristallgruppen), basalt (Säulen-Gruppen), lavaHang (schräger Lavastrom mit
-//      (8-7)          Absturzform), kristallBogen (Torbogen über der Fahrt), glutRand (glühende Ränder), felsklotzSchild
-//   3) Spukhaus       spukRaum (Boden, Wände, Täfelung im Dunkeln), aufzug (runde Aufzugplattform startet beim
-//      (8-6)          Draufstehen), statuen, tuerReihe (Türen der Großspuk-Jagd)
-//   4) Krallen-Haus   kletterwand (Kletterwand mit Griffmulden), krallenRaum (Anzug je Raum), piepWand (Wandblöcke im
-//      (8-Haus)       Takt), lavaRinnen (Lavaströme an der Wand), broeckelWand (zerfallende Großblöcke), tapete8 (Tapeten)
+//      (8-7)          Stufen-Todeszonen und Böschungen), kristallBogen (Torbogen über der Fahrt)
+//   3) Spukhaus       aufzugStart (Mover fährt los, wenn eine Figur daraufsteht), mitfahren (Entität folgt einem Mover),
+//      (8-6)          geisterSchreck (POW-onUse: kleine Geister verschwinden), aufzugSchmuck, kerzenInseln, helmRegal
+//   4) Krallen-Haus   kraxelBlock (Kletterquader mit bunten Griffen oder glatt), krallenHaus (Krallen-Anzug je Raum),
+//      (8-Haus)       lavaRinnen (Lavaströme an der Wand), broeckelWand (Griffe an Bruchstücken, Bröckeln beim Klettern)
 //
 // Alles, was hier gezeichnet wird, ist entweder statisch verschmolzen (bakeParts → Abschnitts-Meshes) oder ein einzelnes
 // Objekt mit eigenem Haken (wenige Zeichenaufrufe je Abschnitt).
