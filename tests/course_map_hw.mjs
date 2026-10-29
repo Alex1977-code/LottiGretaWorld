@@ -271,7 +271,7 @@ if (part(4)) {
     r.w.join() === '31,31,31,3,12,' && r.w[5] === null);
   check('Sternzählung: starsInWorld(31) zählt H-Ids (3), Welt 1/3 unberührt', r.s31 === 3 && r.s1 === 3 && r.s3 === 0 && r.total === 9);
   check('Freischaltung im Speicherstand (unlocked mit Präfix): H-Burg braucht H-4, minStars zählt Sterne der Welt 31', !r.unl && r.unl2 && !r.unl3);
-  check('Weltenliste numerisch sortiert (1–7, dann 31)', r.list.join() === '1,2,3,4,5,6,7,31');
+  check('Weltenliste numerisch sortiert (1–8, dann 31)', r.list.join() === '1,2,3,4,5,6,7,8,31');
   // gespeicherte Welt 31 ohne Eintrag in worlds → immer offen
   await loadWith({ version: 1, hero: 'lotti', lives: 5, coins: 0, world: 31, worlds: [1], levels: {}, mapPos: null }, '', true);
   await waitMap();

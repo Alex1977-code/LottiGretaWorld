@@ -1666,6 +1666,111 @@ Glasröhre 99–107 / 203–238 k, Start 86 / 197 k, Ankunftsbucht 69 / 188 k, F
 Burg 60–67 / 148–161 k, Röhren-Insel 48–60 / 125–126 k, Warp-8-Ankunft 88 / 228 k, Anflug 103 / 210 k. Welt 6 an der Röhre
 nach Welt 7 und bei der Rückkehr höchstens 66 / 139 k.
 
+### Präzisierung (Mehrwelten-Karte): Welt 8 „Brummbär-Rummelplatz“ (Notiz)
+
+- Dateien: `worlds/w8.js` (Daten, `MAP.world = 8`, `kit: 'rummel'`, Thema `map_rummel`, Musik `course_world8_map`, Rückfall
+  `course_map`, `starScope: 'all'`), `rummel8.js` (Thema `map_rummel`: Abendhimmel violett → orange, rosa Dunst, violette
+  Hügel mit kleinen Türmen und Mond am Horizont; Geländestile, Ränder, Requisiten, Streudeko, Rummelsteg-Segment,
+  Inselchen, Nachbarwelt-Stil `'vulkan'`, lebendige Kulisse `RummelLife`, Taktuhr `beatNow8`/`beatPulse`, Fahnen-Texturen,
+  `gameFinished()`), `decor_w8.js` (Kulissen der zwölf Welt-8-Level-Eingänge). Additiv angebunden: `MapBuilder.js`
+  (`map.kit === 'rummel'`: Gelände, Segmente – zuerst `buildRummelSegment`, dann `buildLavaSegment`, sonst
+  `buildSkySegment` –, Streudeko, Requisiten-Ketten mit Rückfall auf die Welt-7-Requisiten, Kacheln `w8p:<x>|<z>` je
+  24-m-Feld mit Fern-Ausblendung, Ränder, `RummelLife`, Materialien wie Welt 6/7), `scenery.js` (Inselchen in einer
+  Kachel `w8:inselchen`, Wolken ohne Schattenpass, Nachbarwelt-Stil `'vulkan'`), `entrances.js` (`decorateW8`),
+  `props.js` (Podestfarben), `MapBatcher.js` (Option `alias`: benannte Kacheln wiederverwendeter Bausteine umleiten, hier
+  `w7:leuchten`/`w6:leuchten` → `w8:leuchten`; Kachel-Schlüssel in `mesh.userData.tile`), `CourseMapScene.js`
+  (`worldNameOf(rule)`: Name der Zielwelt = `worldLabel` ihrer Karte, sonst `rule.worldLabel`, sonst „Welt n“ – für
+  Schild, Ankunfts- und „kommt bald!“-Meldung). `travel.js`, `unlock.js`, `layout.js`, `lod.js` und `MapHud.js` sind
+  unverändert.
+- Inseln (begehbar, Höhe) und Eingänge (`kind`), ein Vergnügungspark im dunklen Baron-Land, Inseln im Abendmeer
+  (`sea: 0`), gegen den Uhrzeigersinn zum Turm in der Mitte des Nordens: A Rummel-Eingang y 1.5 (Tor mit Wimpeln, Buden,
+  Karussell, Beerenhaus (−8, 1.5, 33)) – `W7` Glasröhre zurück (−17, 1.5, 46; `departAlong`, nach Südwesten zur
+  Lava-Festung am Horizont), `8-1` `rainfort` Regenfestung (Podest am Ufer (12, 1.5, 9.5), Festung auf dem nassen Fels im Meer; Mauern, Turm,
+  Pfützen, eigene Regenwolke mit Regenschleier, zwei Stachelbrücken im Takt); Park y 1.0 mit Riesenrad (−8, 1, −8) und
+  Westpark y 0.8 mit Achterbahn (Oval um (−46, 5)); B Dünenplatz y 2.5 – `8-2` `dunes8` (40, 2.5, −2; Baron-Sandstatue,
+  Dünen, Schubfeld, Sandflosser); C Kekshof y 3.5 – `8-3` `cookiefactory` Keks-Fabrik (44, 3.5, −50; Halle mit drei
+  Schornsteinen, Keksturm, Zuckerguss, Förderband, Keksrad, Zahnrad); D Bahnsteig y 4.5 mit Glückshaus (8, 4.5, −68.6) –
+  `8-Zug` `baronstation` (−6, 4.5, −66; Bahnsteigdach mit Uhr, Baron-Express pendelt auf dem Gleis, Dampfwölkchen);
+  E Nacht-Festung y 5.5 – `8-4` `nightfort` (−62, 5.5, −65.5; dunkle Mauern und Rundtürme, blau glimmende Leuchtstege
+  bis auf die Westmauer); H Haus-Insel y 5 – `8-Haus` `clawhouse` Prüfungs-Haus (−68, 5, −30; Krallen-Anzug dreht sich);
+  F Seeufer y 5 – `8-5` `lakefort` Unterwasser-Festung im See y 1.2 (−58, 5, −107; Türme, Luftblasen, Wasserwürfel);
+  G Spukgarten y 6.5 – `8-6` `darkmansion` Spukhaus (−31, 6.5, −105; flackernde Fenster, Spukspiegel, Geister);
+  I Inferno-Plateau y 7.5 mit Lavabecken – `8-7` `inferno` (20, 7.5, −92; Kristall-Felsklotz rollt hin und her,
+  Fontänen, Rauch); J Zirkusplatz y 8 – `8-A` `goldtent` (37, 8, −116; Zirkuszelt, goldene Würfelblase, Goldsterne);
+  K Zirkusplatz Ost y 8 – `8-B` `snaketent` (58, 8, −82; Zelt, rosa Schlangenkönig steigt aus dem Korb, Lavapfützen);
+  TP Turmplatz y 9.5 – `8-Burg` `barontower` Baron-Turm (0, 9.5, −125, „ab 190 ★“; Turm 40 m mit Brummbär-Büste,
+  oben das leuchtende Glas der Freunde, roter Teppich, Autowrack, zwei Turm-Banner, Fackeln); S Sternen-Platz y 9.5 –
+  `WS` Glasröhre zur Welt Stern (−23, 9.5, −132; Scheibe „★“, Röhre steigt nach Nordwesten in den Himmel). Verbindungen
+  (`segments`): Rummelstege (`rummelbridge`, A → B, B → C, C → D, E → H, I → J, I → K), Kettenstege (`chainbridge`,
+  D → E, E → F, F → G), Basaltbrücke (G → I), Zugbrücke (`drawbridge`, I → TP), Glasröhre (`glasstube`, TP → S); zwölf
+  Schranken.
+- Freischaltung laut „Welt 8 – Level-Liste und Freischaltung“: `8-1` frei, sobald Welt 8 offen ist; dann der Reihe nach
+  `8-2`, `8-3`, `8-Zug`, `8-4`, `8-5`, `8-6`, `8-7`; `8-Haus` nach 8-4 (10 Sterne, kein Stempel); `8-A` und `8-B` nach
+  8-7; `8-Burg` nach 8-A **und** 8-B (`after: ['8-A', '8-B']`, Liste = alle) **und ≥ 190 ★** (alle Sterne; Hinweis
+  „Benötigt 190 Sterne (x/190)“); `WS` (`{ id: 'WS', after: '8-Burg', world: 9, next: 9, worldLabel: 'Welt Stern' }`)
+  nach 8-Burg, solange es keine Welt-9-Karte gibt mit „Welt Stern kommt bald!“ (Schild „Welt Stern / bald!“, ein
+  Welt-Warp nach Welt 9 endet über den vorhandenen Rückfall an dieser Röhre); Rückweg `W7` (`{ id: 'W7', world: 7,
+  next: 7 }`) immer frei. 43 Sterne. Schilder „Welt 8 / Brummbär-Rummelplatz“, „Beerenhaus“, „Glückshaus“, „ab 190 ★“.
+- Weltdaten zusätzlich (alles optional): Geländestile `plaza` (Standard)|`parkgrass`|`rainrock`|`sand`|`cookie`|`station`|
+  `rails`|`nightstone`|`shore`|`spook`|`house`|`circus`|`tower`|`starplaza`|`towerbase`|`lake` (Seewasser)|`inferno`
+  (Kraterboden) und die Lava-Stile aus Welt 7; Ränder `edges: { hedge: 'parkwall', fence: 'parkrail' }`; Requisiten
+  `bush8`|`lamp8`|`crystal8`|`balloons8`|`arch8`|`booth8`|`dune8`|`statue8`|`pilzstatue8`|`cookietower8`|`icing8`|`algae8`|
+  `pillar8`|`grate8`|`wreck8`|`track8`|`curve8`|`looping8`|`tent8`|`rainwall8`|`raintower8`|`puddle8` (sonst die
+  Welt-7-Arten `…7`); Segment `rummelbridge`. Lebendige Kulisse (`RummelLife`): `lights: [{ a, b, h?, hb?, sag?, posts?,
+  solid? }]` (Glühbirnenketten zwischen Masten), `wheel: { pos, radius, speed }`, `carousel: { pos, speed, r }`,
+  `coaster: { pts, base, cars, speed }` (geschlossene Bahn), `balloons: [{ at, n, h }]` (steigende Brummbär-Ballons),
+  `flags: [[x, y, z, Masthöhe]]`, `banners: [{ pos, yaw, w, h }]` (Turm-Banner), `fireworks: [[x, y, z]]` (nur nach dem
+  Spielende); dazu aus Welt 7 `fountains`, `smoke`, `boneflyers`, `torches`, `fishjumps`, Lavablasen. Je Eingang
+  zusätzliche Felder in `entrances[]` (z. B. `bridges`, `statues`, `dunes`, `walls`, `towers`, `steps`, `cube`, `roll`,
+  `puddles`, `carpet`, `friends`, `wreck`, `jar`). Bewegte Teile sind je Art eine Instanz-Fläche; Ballons werden nur im
+  Bild gezeichnet, die Lava-Effekte haben feste Hüllkugeln, Fahnen/Achterbahn-Wagen/Ballons fern der Figur aus.
+- **Glühbirnen im Takt:** Die Birnen der Ketten bilden drei Gruppen; je Zählzeit der Kartenmusik (`music.beat()`) leuchtet
+  die nächste Gruppe hell auf (Puls `beatPulse`: hell am Schlag, klingt ab), die Stachelbrücken der Regenfestung fahren
+  abwechselnd je Zählzeit aus, die Leuchtstege der Nacht-Festung glimmen als Welle. Ohne laufende Musik zählt die
+  Ersatzuhr im Tempo von `course_world8_map` (128 BPM; fehlt das Thema: `course_map`). Riesenrad und Karussell drehen,
+  die Achterbahn-Wagen fahren, Ballons steigen, der Baron-Express pendelt, es regnet über der Regenfestung.
+- **Nach dem Spielende** (`courseSave.data.finished === true`, Abspann des Motors): Der Turm ist befreit – bunte Herz-/
+  Stern-Fahnen statt der Brummbär-Fahnen (gleiche Fläche, andere Textur), fröhliche Turm-Banner, das Glas oben offen und
+  leer, die Freunde (`friendGeo` aus `w8Geos.js`) hüpfen und winken vor dem Turm, Feuerwerk über dem Rummel (eine
+  Instanz-Fläche); ohne Spielende bleibt alles wie vorher. Der Abspann zählt Welt 8 in seiner Weltenliste aus dieser Karte
+  („Welt 8 · Brummbär-Rummelplatz“, genau einmal) und kehrt mit `{ from, credits: true }` in die befreite Welt 8 zurück
+  (Pokal im HUD).
+- Test-Schnittstelle (additiv): `state().decor` = Vereinigung von `ev.liveInfo()` aller Eingänge und
+  `built.life.liveInfo()` – `bulbs { beat, step, k, source, theme, bpm, n, shown }`, `flags { n, banners, style:
+  'baron'|'herz' }`, `wheel { registry, angle }`, `carousel { registry, angle }`, `coaster { cars, u, length, registry }`,
+  `balloons { n, shown }`, `fireworks { n, sparks, open }|null`, `finished`, `w8models`, `w8heavy`, die Welt-7-Felder
+  (`fountains`, `smoke`, `boneflyers`, `torches`, `fish`, …) sowie je Eingang `spikebridges { n, spikes, step, up }`,
+  `rain { drops, cloud, walls }`, `dunes { fin, statues }`, `cookie { angle, wheel, gear, band }`, `train { x, wagons }`,
+  `nightfort { steps, registry, wave }`, `lakefort { towers, registryParts, cube }`, `clawhouse { spin, registry }`,
+  `mansion { flicker, mirror, ghosts, peek }`, `inferno { rock, registry }`, `goldtent { stars, spin }`,
+  `snaketent { sway }`, `tower { height, jar: 'gefangen'|'offen', glow, friends, hop }`; `built.life.bulbState(t)`,
+  `fireworkInfo(t)`.
+- Registry-Modelle (Obergrenze je Einsatz über `beach5.modelTris`; unbewegte eingebacken, bewegte als eigene Objekte; fehlt
+  ein Modell, zeichnet `decor_w8.js`/`rummel8.js` eigene Geometrie an gleicher Stelle): Welt 8 – `baron_turm`,
+  `riesenrad_kulisse`, `karussell`, `achterbahn` (Wagen), `rummel_bude`, `brummbaer_ballon`, `zirkuszelt`, `wuerfelblase`
+  (gold), `regenfestung`, `baron_sandstatue`, `duene`, `keksfabrik`, `keksrad`, `keks_zahnrad`, `leuchtsteg`,
+  `wasserfestung`, `wasserkoerper`, `spukspiegel`, `helm_licht`, `kristall_felsklotz`, `lavapfuetze`, `autowrack`,
+  `powerup_krallen`, `schubfeld`; zu schwer: keines. Bewusst eigene Geometrie: Baron-Express (eine Fläche), Fabrikhalle,
+  Bahnsteigdach, Nacht-Festungsmauern, Spukhaus, rosa Schlangenkönig, Achterbahn-Bahn, Glühbirnenketten, Regenwolke,
+  Stachelbrücken, Freunde-Glas, Feuerwerk.
+- Übergänge: Die Welt-7-Röhre `W8` und ein Welt-Warp nach Welt 8 führen ohne Codeänderung nach Welt 8 (Ankunft an `W7`,
+  Kamera `arriveCam`); die Aussage „Die Röhre `W8` zeigt „Welt 8 kommt bald!““ der Welt-7-Notiz ist damit überholt.
+  Zurück durch `W7` landet man an der Röhre `W8` in Welt 7 (entdeckt, Schranke 7-Burg von hinten passierbar).
+  `tests/course_map_w7.mjs` (Abschnitte 1, 5, 9) prüft jetzt Fahrt, Warp und Rückkehr, `tests/course_map_hw.mjs` die
+  Weltenliste 1–8, 31.
+- Test: `tests/course_map_w8.mjs` (Port 4290, Bilder `tests/out/cmap8_*.png`), Teilläufe `W8_TEIL=1|2|3|4` (Abschnitte
+  2–4, 5–7, 8–10, 11–14, je mit den Node-Prüfungen; gemessen ≈ 3,6–4,4 / 2,5–3,2 / 2,1–2,3 / 3,8–4,8 min). Noch nicht in
+  `npm test`.
+
+Gemessen (scale 2, `tests/course_map_w8.mjs`, mit den Welt-8-Modellen): statische Kulisse Welt 8 59 Kachel-Meshes, ≈ 275 k
+Dreiecke, ≈ 280–291 Kollisionsformen; je Ansicht (Zeichenaufrufe inkl. Schattenpass / Dreiecke) Ankunft durch die
+Glasröhre 82–90 / 232–249 k, Start 68 / 183 k, Eingang 65 / 222 k, Karussell 69 / 225 k, Regenfestung 73–82 / 250–258 k,
+Dünen 63–80 / 249–275 k (Höchstwert Dreiecke), Keks-Fabrik 77 / 205 k, Bahnhof 77 / 174 k, Nacht-Festung 73 / 200 k,
+Haus 75 / 162 k, Seeufer 55 / 134 k, Spukhaus 74 / 185 k, Inferno 65 / 171 k, Zelte 54–56 / 147–154 k, Zugbrücke und
+Turm-Schranke 73–75 / 173–175 k, Turmplatz 67–73 / 162–178 k, Riesenrad 60 / 251 k, Glühbirnen 68 / 225 k, Sternen-Röhre
+64 / 147 k, Warp-9-Ankunft 85 / 191 k, befreiter Turm 85 / 199 k, befreiter Rummel 76 / 256 k, Anflug 91 / 239 k
+(Höchstwert Zeichenaufrufe). Welt 7 an der Röhre nach Welt 8 und bei der Rückkehr höchstens 88 / 228 k.
+
 ---
 
 ## Präzisierung (Bausteine Welt 2)
