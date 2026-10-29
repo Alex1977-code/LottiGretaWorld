@@ -39,17 +39,18 @@ const PZ = {
 };
 
 /** Stielkörper mit Gesicht (Brauen, Mund) – Ursprung Fußpunkt. */
-function pilzStemGeo(kind) {
-  return cached(`pilz:stem:${kind}`, () => {
+// lite (additiv, Bonuswelten): sparsamere Fassung für hohe Pilzlingstürme (bis 30 Stufen) – halb so viele Dreiecke
+function pilzStemGeo(kind, lite = false) {
+  return cached(`pilz:stem:${kind}${lite ? ':lite' : ''}`, () => {
     const b = new Build();
     b.lathe([[0, 0.08], [0.17, 0.085], [0.245, 0.14], [0.275, 0.25], [0.268, 0.36], [0.24, 0.45], [0.19, 0.52], [0.1, 0.56], [0, 0.565]],
-      { v: (x, y) => (y < 0.2 ? col(PZ.stemLow).clone().lerp(col(PZ.stem), (y - 0.08) / 0.12) : PZ.stem) }, null, 28);
+      { v: (x, y) => (y < 0.2 ? col(PZ.stemLow).clone().lerp(col(PZ.stem), (y - 0.08) / 0.12) : PZ.stem) }, null, lite ? 14 : 28);
     // grimmige Brauen (innen tief), Mund als Bogen mit einem Zähnchen
     const brow = kind === 'krallen' ? 0.4 : 0.5;
     for (const s of [1, -1]) {
       b.capsule(0.03, 0.1, PZ.ink, { p: [0.248, 0.47, s * 0.085], r: [Math.PI / 2 - s * brow, -0.35 * s, 0], order: 'YXZ' });
     }
-    b.torus(0.05, 0.014, PZ.ink, { p: [0.262, 0.265, 0], r: [0, Math.PI / 2, 0] }, 6, 12, Math.PI);
+    b.torus(0.05, 0.014, PZ.ink, { p: [0.262, 0.265, 0], r: [0, Math.PI / 2, 0] }, lite ? 4 : 6, lite ? 8 : 12, Math.PI);
     b.cone(0.018, 0.04, PZ.tooth, { p: [0.272, 0.27, 0.025], r: [0, 0, -0.2] }, 6);
     return b.geometry();
   });
@@ -57,13 +58,13 @@ function pilzStemGeo(kind) {
 
 const CAP_PTS = [[0, 0.02], [0.2, 0.0], [0.34, 0.03], [0.415, 0.08], [0.435, 0.13], [0.425, 0.19], [0.38, 0.26], [0.3, 0.32], [0.18, 0.365], [0, 0.38]];
 /** Dicker Pilzhut (orange mit Cremepunkten als Aufkleber, helle Lamellen unten), Ursprung = Hutunterseite Mitte. */
-function pilzCapGeo() {
-  return cached('pilz:cap', () => {
+function pilzCapGeo(lite = false) {
+  return cached(lite ? 'pilz:cap:lite' : 'pilz:cap', () => {
     const b = new Build();
-    b.lathe(CAP_PTS, (x, y, z, nx, ny) => (ny < -0.4 ? PZ.gill : PZ.cap), null, 32, 2);
-    const hits = [[0, Math.PI / 2, 0.085], [0, 0.62, 0.08], [1.25, 0.55, 0.08], [-1.25, 0.55, 0.08], [2.5, 0.6, 0.08], [-2.5, 0.6, 0.08],
-      [0.62, 0.08, 0.065], [-0.62, 0.08, 0.065], [1.9, 0.1, 0.065], [-1.9, 0.1, 0.065], [Math.PI, 0.12, 0.065]]
-      .map(([az, el, r]) => ({ ...onLathe(CAP_PTS, 0.08, az, el), r }));
+    b.lathe(CAP_PTS, (x, y, z, nx, ny) => (ny < -0.4 ? PZ.gill : PZ.cap), null, lite ? 18 : 32, lite ? 1 : 2);
+    const all = [[0, Math.PI / 2, 0.085], [0, 0.62, 0.08], [1.25, 0.55, 0.08], [-1.25, 0.55, 0.08], [2.5, 0.6, 0.08], [-2.5, 0.6, 0.08],
+      [0.62, 0.08, 0.065], [-0.62, 0.08, 0.065], [1.9, 0.1, 0.065], [-1.9, 0.1, 0.065], [Math.PI, 0.12, 0.065]];
+    const hits = (lite ? all.slice(0, 6) : all).map(([az, el, r]) => ({ ...onLathe(CAP_PTS, 0.08, az, el), r }));
     decals(b, hits, 0.08, PZ.spot, 0.22);
     return b.geometry();
   });
@@ -209,13 +210,14 @@ function buildPilzling(kind, name) {
 const TOWER_STEP = 0.62;
 
 /** Ganzer Pilzling als ein Mesh (Stiel, Hut, Füße, Augenweiß) + Glanzpunkt-Geometrie. */
-function pilzSolidGeos(withFeet) {
-  const key = `pilz:solid:${withFeet}`;
+function pilzSolidGeos(withFeet, lite = false) {
+  const key = `pilz:solid:${withFeet}${lite ? ':lite' : ''}`;
   return {
     body: cached(`${key}:body`, () => {
       const P = pilzParts('plain');
       const e = eyes(P.eyeList, P.eyeOpts);
-      const parts = [P.stem.clone(), P.cap.clone().applyMatrix4(xf({ p: [-0.02, P.capY, 0], r: [0, 0, P.capTilt] })),
+      const stem = lite ? pilzStemGeo('plain', true) : P.stem, cap = lite ? pilzCapGeo(true) : P.cap;
+      const parts = [stem.clone(), cap.clone().applyMatrix4(xf({ p: [-0.02, P.capY, 0], r: [0, 0, P.capTilt] })),
         e.userData.eyes.geometry.clone().translate(0, e.position.y, 0)];
       if (withFeet) for (const s of [1, -1]) parts.push(P.foot.clone().translate(0.02, 0.07, s * 0.12));
       const g = mergeGeometries(parts, false);
@@ -234,7 +236,7 @@ function buildTower(opts = {}) {
   // opts.tall (Bonuswelten, additiv): bis 30 Stufen (P-4), sanfteres Wackeln der oberen Stufen
   const n = clamp(Math.round(opts.count ?? 4), 3, opts.tall ? 30 : 5);
   const calm = n > 5 ? 5 / n : 1;
-  const solid = pilzSolidGeos(false), footGeo = pilzFootGeo('plain');
+  const solid = pilzSolidGeos(false, n > 8), footGeo = pilzFootGeo('plain');   // ab 9 Stufen sparsamere Körper
   const mat = vcol(0.42);
   const root = new THREE.Group();
   const H = (n - 1) * TOWER_STEP + 0.9;

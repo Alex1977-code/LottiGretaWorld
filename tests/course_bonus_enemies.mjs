@@ -124,8 +124,17 @@ async function load(id) {
   });
 }
 
-const SHOT = async (prefix, name, setup, frames = 2) => {
-  await sc(() => { const p = window.__course.player; p.hurt = () => false; });
+/** Bild: setup() im Browser, Kamera einrasten, Aufnahme. o.cam = Kamera-Schiene nur für dieses Bild ({ pitch, dist, height, ahead }). */
+const SHOT = async (prefix, name, setup, o = {}) => {
+  const frames = o.frames ?? 2;
+  await sc((cam) => {
+    const c = window.__course, p = c.player;
+    p.hurt = () => false;
+    if (c.arch) c.arch.frame = 0;   // Boss-Kamera: Blickziel zum Kampf ruht (sonst klingt es nur mit echten Bildern ab)
+    const rig = c.view.rig;
+    rig.__saved = cam ? rig.sections.map((s) => ({ ...s })) : null;
+    if (cam) for (const s of rig.sections) Object.assign(s, cam);
+  }, o.cam ?? null);
   await sc(setup);
   const f0 = await sc(() => {
     const c = window.__course;
@@ -138,7 +147,11 @@ const SHOT = async (prefix, name, setup, frames = 2) => {
   try { await page.screenshot({ path: `${OUT}${prefix}_${name}.png`, timeout: 60000 }); }
   catch { await page.screenshot({ path: `${OUT}${prefix}_${name}.png`, timeout: 120000 }); }
   const st = await sc(() => window.__course.stats());
-  await sc(() => { delete window.__course.player.hurt; });
+  await sc(() => {
+    const c = window.__course, rig = c.view.rig;
+    delete c.player.hurt;
+    if (rig.__saved) { rig.sections.forEach((s, i) => Object.assign(s, rig.__saved[i])); rig.__saved = null; c.snapCamera(); }
+  });
   return st;
 };
 
@@ -611,11 +624,24 @@ const bs = await sc(() => {
   w.onHit('star', p);
   c.step(5);
   out.defeats = { gross: gr.defeated, hackbeil: hb.defeated, wuschel: w.defeated };
+  // Suchkopf: lenkt zur Figur, Draufspringen wirft ihn ab
+  const fig = [0, 1, t.Z(13, 2)];
+  t.place(fig, { settle: 10 });
+  const sk = L.spawn('suchkopf', { pos: [0, 1.3, t.Z(13, 10)], dir: [1, 0] });
+  const d0 = Math.hypot(sk.pos.x - fig[0], sk.pos.z - fig[2]);
+  t.until(() => false, 150, fig);
+  out.suchkopf = { kind: sk.kind, state: sk.state, toward: t.r2(sk.dir.z), d0: t.r2(d0), d1: t.r2(Math.hypot(sk.pos.x - fig[0], sk.pos.z - fig[2])) };
+  t.fresh();
+  out.suchkopfStomp = t.stomp(sk, { h: 0.9 });
+  c.step(30);
+  out.suchkopf.after = sk.removed ? 'weg' : sk.state;
   return out;
 });
 console.log(`  Bestand: ${JSON.stringify(bs)}`);
 check(`Bestand: Glotzfisch springt (${bs.glotz.jumps}), Kreisgeist-Ring (${bs.kreis.alive}), Großrollpilz (Riese), Hackbeil-Pilz (Stern), Wuschel (Stern; Draufspringen verletzt)`,
   bs.glotz.jumps >= 1 && bs.kreis.alive === 8 && bs.defeats.gross && bs.defeats.hackbeil && bs.defeats.wuschel && bs.wuschelStomp.hurt);
+check(`Bestand: Suchkopf lenkt zur Figur (${bs.suchkopf.d0} → ${bs.suchkopf.d1} m, Richtung z ${bs.suchkopf.toward}), Draufspringen: Abprall, er stürzt ab (${bs.suchkopf.after})`,
+  bs.suchkopf.kind === 'suchkopf' && bs.suchkopf.toward > 0.3 && bs.suchkopf.d1 < bs.suchkopf.d0 && bs.suchkopfStomp.bounced && !bs.suchkopfStomp.hurt && ['fall', 'burst', 'weg'].includes(bs.suchkopf.after));
 
 // ---- Modelle: alle Zustände, dispose()
 const md = await sc(() => {
@@ -674,9 +700,9 @@ S.stachel = await SHOT('be', 'stachelkugler_hang', () => {
   const s = L.spawn('stachelkugler', { id: 'sk_bild', pos: [11.5, 4, t.Z(2, 12.4)], dir: [0, 1], wake: 40 });
   const fig = [8, 1, t.Z(2, 1.5)];
   t.place(fig, { settle: 1 });
-  t.until(() => s.downhill && s.speedNow > 5, 120 * 4, fig);
+  t.until(() => s.pos.z > t.Z(2, 6) && s.speedNow > 4, 120 * 4, fig);
   t.face(11.5, t.Z(2, 8));
-});
+}, { cam: { pitch: 40, dist: 14 } });
 S.tintling = await SHOT('be', 'tintling_zickzack', () => {
   const c = window.__course, t = window.__t, a = t.ent('tl1');
   const fig = [-8.5, -1.3, t.Z(4, 5)];
@@ -686,11 +712,11 @@ S.tintling = await SHOT('be', 'tintling_zickzack', () => {
 });
 S.hase = await SHOT('be', 'riesenhase', () => {
   const c = window.__course, t = window.__t, h = t.ent('riesenhase');
-  const fig = [0, 1, -278];
+  const fig = [-4, 1, -282.5];
   t.place(fig, { settle: 1 });
-  t.until(() => h.state === 'flee' && h.flightT > 0.6, 120 * 4, fig);
+  t.until(() => h.state === 'flee' && h.flightT > 0.25, 120 * 4, fig);
   t.face(h.pos.x, h.pos.z);
-});
+}, { cam: { pitch: 38, dist: 16, ahead: 3.5 } });
 S.lauf = await SHOT('be', 'laufbomben_felsblock', () => {
   const c = window.__course, t = window.__t, a = t.ent('lb1');
   const fig = [-11.5, 1, t.Z(6, 1)];
@@ -701,10 +727,11 @@ S.lauf = await SHOT('be', 'laufbomben_felsblock', () => {
 });
 S.turm = await SHOT('be', 'pilzlingsturm_30', () => {
   const c = window.__course, t = window.__t;
-  const fig = [11.5, 1, t.Z(6, -9)];
-  t.place(fig, { settle: 60 });
-  t.face(11.5, t.Z(6, 9));
-});
+  const T = t.ent('turm30');
+  const fig = [T.pos.x - 7, 1, T.pos.z + 1];
+  t.place(fig, { settle: 30 });
+  t.face(T.pos.x, T.pos.z);
+}, { cam: { yaw: -90, pitch: 14, dist: 28, height: 9, ahead: 0 } });   // von der Seite (quer über den Zoo): ganzer Turm im Bild
 S.werfer = await SHOT('be', 'turm_mit_feuer_werfer', () => {
   const c = window.__course, t = window.__t, W = t.ent('turm_werfer');
   const fig = [-11.5, 1, t.Z(7, 1)];
@@ -713,10 +740,17 @@ S.werfer = await SHOT('be', 'turm_mit_feuer_werfer', () => {
 });
 S.topf = await SHOT('be', 'topfpflanze_wuschel', () => {
   const c = window.__course, t = window.__t;
-  const fig = [11.5, 1, t.Z(7, 2.5)];
-  t.place(fig, { settle: 60 });
-  t.face(11.5, t.Z(7, 7));
-});
+  // Figur trägt die Topfpflanze in den Wuschel-Kreis; Bild beim Zuschnappen
+  const T = t.ent('topf'), w = t.ent('wu_topf'), p = c.player;
+  t.place([T.pos.x + 0.6, 1, T.pos.z + 0.8], { settle: 10 });
+  p.pickUp(T);
+  for (let i = 0; i < 120 * 6 && !(T.snapT > 0.08); i++) {
+    const a = Math.atan2(w.pos.z - t.Z(7, 7), w.pos.x - 11.5);
+    p.pos.set(11.5 + Math.cos(a) * 0.6, 1, t.Z(7, 7) + Math.sin(a) * 0.6); p.vel.set(0, 0, 0);
+    t.face(w.pos.x, w.pos.z);
+    c.step(1);
+  }
+}, { cam: { pitch: 40, dist: 9 } });
 S.raeume = await SHOT('be', 'kampfraeume', () => {
   const c = window.__course, t = window.__t;
   const fig = [0, 1, t.Z(8, 1)];
@@ -1069,29 +1103,31 @@ B.koenige = await SHOT('be', 'blitz_schlangenkoenige', () => {
   c.arch.resetFight?.();
   t.viaBox(t.ent('hub_koenige'));
   t.engage('koenige');
-  t.wait(() => A.state === 'lean' || Bk.state === 'lean', 120 * 25, [0, 2, -100]);
+  t.wait(() => (A.state === 'lean' && A.stateT > 1.2) || (Bk.state === 'lean' && Bk.stateT > 1.2), 120 * 25, [0, 2, -100]);
+  t.place([0, 2, -98.5], { settle: 1 });
   t.face(0, -111);
+}, { cam: { pitch: 40, dist: 21, height: 2.2 } });
+B.erledigt = await SHOT('be', 'blitz_hub_erledigt', () => {
+  const c = window.__course, t = window.__t, H = t.hub();
+  c.arch.resetFight?.();
+  // Probe: alle fünf Schlüssel gutschreiben → fünf Boxen erledigt, die letzte öffnet sich im Hub
+  for (const f of H.fights) if (!f.final) { f.won = true; f.keyGot = true; f.done = true; f.box.markDone(); }
+  H.keys = 5;
+  H.hudHidden = true;
+  t.place([0, 2, 8.5], { settle: 120 });
 });
 B.blase = await SHOT('be', 'blitz_wuerfelblase_wellen', () => {
   const c = window.__course, t = window.__t, b = t.ent('blase'), L = c.level, H = t.hub();
   c.arch.resetFight?.();
-  // Probe: Schlüssel gutschreiben, letzte Box öffnen
-  for (const f of H.fights) if (!f.final) { f.won = true; f.keyGot = true; f.done = true; f.box.markDone(); }
-  H.keys = 5;
   t.place([0, 2, 8.5], { settle: 10 });
-  c.step(5);
   t.viaBox(t.ent('hub_blase'));
   t.engage('blase');
   t.wait(() => b.state === 'grest' && b.goldWaves.some((w) => !w.removed && w.r > 3), 120 * 25, [6, 2, 117]);
   t.face(b.pos.x, b.pos.z);
 });
-B.erledigt = await SHOT('be', 'blitz_hub_erledigt', () => {
-  const c = window.__course, t = window.__t;
-  c.arch.resetFight?.();
-  t.place([0, 2, 8.5], { settle: 120 });
-});
 B.schluessel = await SHOT('be', 'blitz_schluessel', () => {
   const c = window.__course, t = window.__t, L = c.level;
+  c.arch.resetFight?.();
   const k = L.spawn('bossblitz_schluessel', { pos: [0, 2, 2] });
   t.place([0, 2, 6.5], { settle: 120 });
   t.face(0, 2);

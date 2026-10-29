@@ -410,7 +410,23 @@ class BlitzHub extends CourseEntity {
       }
     }
     if (!this.open && this.need > 0 && this.keys >= this.need && this.inHub()) this.openFinal();
+    this.syncHud();
     void dt;
+  }
+
+  /**
+   * „Schlüssel n/N“ und die Boss-Lebensleiste stehen beide rechts unter der Uhr: solange die Leiste zu sehen ist, ruht
+   * die Schlüssel-Anzeige (danach erscheint sie wieder mit dem aktuellen Stand).
+   */
+  syncHud() {
+    const L = this.level;
+    if (!L.view || this.need <= 0) return;
+    const fight = !!L.archetype?.hud?.want?.boss;
+    if (fight === !!this.hudHidden) return;
+    this.hudHidden = fight;
+    const kh = keyHud(L);
+    if (fight) kh.want = null;
+    else kh.set('bossblitz', this.keys, this.need, this.keys >= this.need);
   }
 
   makeAuras() {
@@ -449,7 +465,7 @@ class BlitzHub extends CourseEntity {
     f.keyGot = true;
     this.keys++;
     const L = this.level;
-    if (L.view) keyHud(L).set('bossblitz', this.keys, this.need, this.keys >= this.need);
+    if (L.view) { keyHud(L).set('bossblitz', this.keys, this.need, this.keys >= this.need); this.hudHidden = false; }
     L.signal('bossSchluessel', { boss: f.boss, n: this.keys, of: this.need, pos: f.key ? [f.key.pos.x, f.key.pos.y, f.key.pos.z] : null });
     runAction(L, this.spec.onKey, { pos: f.ret ?? f.to, source: this });
     if (this.spec.banners !== false) bannerOf(L, this.keys >= this.need ? 'Alle Schlüssel! Zurück in den Hub!' : `Schlüssel ${this.keys}/${this.need}!`, { color: '#ffd84a', hold: 2 });

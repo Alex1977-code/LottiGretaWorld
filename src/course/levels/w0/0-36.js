@@ -36,7 +36,7 @@ export const LEVEL = {
   timeLimit: 500,
   start: { pos: [0, Y, 8.5], yaw: Math.PI / 2 },
   camera: [
-    { from: 14, to: -14, pitch: 52, dist: 17, x: 0, xLock: 0.5, area: [-14, 14] },
+    { from: 14, to: -14, pitch: 56, dist: 20, x: 0, xLock: 0.5, area: [-14, 14] },
     { from: 58, to: 24, pitch: 50, dist: 18, x: -80, xLock: 0.4, area: [-100, -60] },
     { from: -36, to: -64, pitch: 50, dist: 17, x: -80, xLock: 0.4, area: [-100, -60] },
     { from: -36, to: -64, pitch: 50, dist: 17, x: 80, xLock: 0.4, area: [60, 100] },
