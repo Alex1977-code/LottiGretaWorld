@@ -3,9 +3,12 @@
 // andere Welt-8-Level haben eigene Hilfsdateien. Gemeinsame Dateien werden nicht verändert; alles Level-Lokale hängt sich über
 // die offiziellen Aufbau-Haken an (LEVEL.prebuild / LEVEL.build / LEVEL.setup) und über level.onStep / view.onFrame.
 //
-//   1) Daten-Helfer   isl, line, ring, arc, column, sign (aus den Welt-7-Hilfen), falle (Stachelfalle im Takt), punkt
-//   2) Mechanik       (je Level weiter unten)
-//   3) Kulisse        (je Level weiter unten)
+//   1) Daten-Helfer   isl, line, ring, arc, column, sign (aus den Welt-7-Hilfen), falle (Stachelfalle im Takt)
+//   2) Mechanik 8-1   fallblockRuhig (Fallblock ohne Wackel-Schwung beim Absprung)
+//   3) Kulisse 8-1    RF, ziegel8, fassaden8, platten8, bruestung8, turm8, stegRand8, laeufer8, frosch8, wappen8, graben8,
+//                     regenfestung81
+//   4) 8-2 Sandstrom  SAND8, duenenThema (prebuild), sandAnsicht, sandStrom (treibende Sterne), stempelBlock, sandDunst
+//   5) Kulisse 8-3    zuckerwerk83 (Streusel, Zuckerguss, Süßigkeiten, Schoko-Wand, Torte, Schokoladensee)
 // Statische Teile gehen über addStatic in die Abschnitts-Meshes (keine zusätzlichen Zeichenaufrufe), belebte Kleinigkeiten
 // sind je ein Mesh bzw. eine Instanz-Gruppe ohne Sonnenschatten.
 
