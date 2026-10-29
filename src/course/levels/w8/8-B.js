@@ -145,7 +145,7 @@ export const LEVEL = {
     { type: 'riesenrad', id: 'rad', pos: [RAD.x, RAD.y, RAD.z], radius: RAD.r, gondolas: 6, axis: 'z', speed: 0.16, angle: -Math.PI / 2 },
     // ---------------------------------------------------------------- Lavabrocken-Regen über der Glutgasse (Landemarken)
     { type: 'lavabrocken_regen', id: 'regen', targets: [[-1.2, Y0, -11.6], [1.4, Y0, -13.8], [-0.8, Y0, -22.6], [1.6, Y0, -25.4], [0.2, Y0, -28.6], [-1.6, Y0, -27.0], [1.2, Y0, -9.8], [-0.4, Y0, -24.2]],
-      period: 1.5, flight: 1.7, warn: 1.25, radius: 1.0, size: 0.6, puddle: 1.6, seed: 4, from: [26, 34, -64], start: 'signal' },
+      period: 1.5, flight: 1.7, warn: 1.25, radius: 1.0, size: 0.6, puddle: 1.6, aim: 3, seed: 4, from: [26, 34, -64], start: 'signal' },
     { type: 'deco_w8', items: [
       { kind: 'torbogen', pos: [0, Y0, 8.6], width: 6.2, height: 5.2, yaw: Math.PI / 2 },
       { kind: 'bude', pos: [-16.2, Y0, 3.6], color: 'rot', yaw: 0, solid: true, seed: 13 },

@@ -162,7 +162,7 @@ const ROUTES = {
       { name: 'Extraleben: verborgener Block über der Holzbrücke', from: [0, 0.3, -14.2], heroes: ['lotti'], expectLives: 1,
         legs: [{ to: [0, -18.0], within: 0.2, slow: 0.5 }, { hop: 34 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
       { name: 'Lavabrocken trifft, wer auf der Landemarke stehen bleibt', from: [0, 0, -9.6], heroes: ['lotti'], invuln: false,
-        legs: [{ to: [0, -12.6], within: 0.4 }, { until: 'regenTrifft', max: 120 * 20 }], mech: (r) => r.mech.regen?.hits >= 1, mechText: (r) => `Regen ${JSON.stringify(r.mech.regen)}`, expectAlive: true },
+        legs: [{ to: [0, -12.6], within: 0.4 }, { until: 'regenTrifft', max: 120 * 20 }], mech: (r) => r.mech.hurts >= 1 && r.mech.regen?.impacts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}, Regen ${JSON.stringify(r.mech.regen)}`, expectAlive: true },
       { name: 'Krallen-Anzug: Krallenhieb besiegt das Funkenflämmchen', from: [-9.0, 0, -12.6], heroes: ['lotti'], place: { power: 'krallen' },
         legs: [{ attack: 'flamme1' }], mech: (r) => r.mech.attack?.defeated, mechText: (r) => `Flämmchen ${JSON.stringify(r.mech.attack)}` },
       { name: 'Wer in den Lavagraben fällt, verbrennt', from: [6, 0, -14.6], heroes: ['lotti'], invuln: false, expectAlive: false,
@@ -238,7 +238,7 @@ function install() {
     // 8-B
     krallen: () => P().power === 'krallen',
     anTalstationB: () => { const p = P(); return !p.dead && L.runtime.status === 'play' && Math.abs(p.pos.z + 41.8) < 1.2 && Math.abs(p.pos.y - 4.5) < 0.4; },
-    regenTrifft: () => (named('regen')?.hits ?? 0) > 0,
+    regenTrifft: () => (P().hurtTries ?? 0) > 0 && (named('regen')?.impacts ?? 0) > 0,
     pfuetze: () => (named('koenig')?.puddlesMade ?? 0) > 0 && L.entities.some((e) => e.kind === 'lavapfuetze' && !e.removed),
     kampfZurueck: () => { const b = named('koenig'); return !!b && b.state === 'wait' && b.hp === 3 && !L.archetype?.started && !P().dead && P().pos.z > -80; },
   };
