@@ -69,7 +69,7 @@ export function buildZeituhren(level, spec) {
   const S = spec.size ?? 1;
   const st = { got: 0, sec, items: list.map((p) => ({ x: p.x, y: p.y, z: p.z, taken: false, pop: 0 })) };
   const handle = {
-    get got() { return st.got; }, items: st.items, sec,
+    kind: 'zeituhren', get got() { return st.got; }, items: st.items, sec,
     info: () => ({ got: st.got, left: st.items.filter((i) => !i.taken).length, sec }),
   };
   if (spec.id) level.named.set(spec.id, handle);

@@ -9,7 +9,7 @@
 //   Tatze stellt sie um (auch per Signal toggle an die Weiche, Name `${id}:${Knoten}` bzw. weichen[k].id).
 //   { type: 'schienenbrett', id, nodes: { A: [x, y, z], … } (Schienen-Oberkante), rails: [['A', 'B'], …], start: 'A',
 //     next: 'B' (erste Fahrtrichtung), weichen: { B: { to: ['C', 'D'], state: 0, pos: [x, y, z] (Zielscheibe; Standard
-//     2 m neben dem Knoten, 1,6 m hoch), id } }, speed: 5, size: [2.6, 0.35, 2.6], go: 'stand' | 'auto' | 'signal',
+//     2 m neben dem Knoten, 1,6 m hoch), id, cool: 0.9 (s Sperre nach dem Umstellen) } }, speed: 5, size: [2.6, 0.35, 2.6], go: 'stand' | 'auto' | 'signal',
 //     wait: 0.3, end: 'fallen' | 'halt', respawn: 3, color: 'cyan' | 'orange' }
 //   level.named.get(id) = { state ('ruhe'|'wartet'|'faehrt'|'ende'|'faellt'|'weg'), from, to, u (0..1), route (besuchte
 //     Knoten), weichen { Knoten: { state, to, hits, toggle() } }, mb, start(), stop(), reset(), info() };
@@ -27,7 +27,7 @@
 import * as THREE from 'three';
 import { v3, addObject, box, lin, mixc, smooth, colorize, merge } from '../kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
-import { star, MovingBox, figures, onRespawn, figureInside, clamp, TAU } from '../starkit.js';
+import { defineHandle, star, MovingBox, figures, onRespawn, figureInside, clamp, TAU } from '../starkit.js';
 
 const BOARD = { cyan: [0x3ad8ff, 0xe8fbff, 0x1a6a9a], orange: [0xff9a2e, 0xffe8c8, 0xa8500a] };
 
@@ -57,17 +57,17 @@ export function buildSchienenbrett(level, spec) {
     const to = (w.to ?? adj[k] ?? []).filter((x) => nodes[x]);
     const wp = w.pos ? v3(w.pos) : { x: n.x + 2.2, y: n.y + 1.6, z: n.z };
     const wh = {
-      node: k, to, state: (w.state ?? 0) % Math.max(1, to.length), hits: 0, pos: wp, flash: 0,
-      toggle() { wh.state = (wh.state + 1) % Math.max(1, wh.to.length); wh.hits++; wh.flash = 1; level.sfx('switch'); level.effects?.sparks({ x: wp.x, y: wp.y, z: wp.z }, 8); level.signal?.('weiche', { id: spec.id ?? null, node: k, state: wh.state }); },
+      node: k, to, state: (w.state ?? 0) % Math.max(1, to.length), hits: 0, pos: wp, flash: 0, last: -9,
+      toggle() { if (level.time - wh.last < (w.cool ?? 0.9)) return; wh.last = level.time; wh.state = (wh.state + 1) % Math.max(1, wh.to.length); wh.hits++; wh.flash = 1; level.sfx('switch'); level.effects?.sparks({ x: wp.x, y: wp.y, z: wp.z }, 8); level.signal?.('weiche', { id: spec.id ?? null, node: k, state: wh.state }); },
       start() { wh.toggle(); },
       onHit(kind) { if (['cannon', 'throw', 'shell', 'fire', 'claw', 'pound', 'bomb'].includes(kind)) wh.toggle(); },
       onSichelHit() { wh.toggle(); },
       onPound() { wh.toggle(); },
       info: () => ({ node: k, state: wh.state, to: wh.to[wh.state] ?? null, hits: wh.hits }),
     };
-    level.world.add({ type: 'box', min: [wp.x - 0.45, wp.y - 0.45, wp.z - 0.2], max: [wp.x + 0.45, wp.y + 0.45, wp.z + 0.2], owner: wh, tag: 'weiche' });
+    level.world.add({ type: 'box', min: [wp.x - 0.55, wp.y - 0.6, wp.z - 0.2], max: [wp.x + 0.55, wp.y + 0.6, wp.z + 0.2], owner: wh, tag: 'weiche' });
     // Pfosten der Zielscheibe (fest, dünn)
-    level.world.add({ type: 'box', min: [wp.x - 0.08, n.y, wp.z - 0.08], max: [wp.x + 0.08, wp.y - 0.45, wp.z + 0.08], tag: 'weiche-pfosten' });
+    level.world.add({ type: 'box', min: [wp.x - 0.08, n.y, wp.z - 0.08], max: [wp.x + 0.08, wp.y - 0.6, wp.z + 0.08], tag: 'weiche-pfosten' });
     weichen[k] = wh;
     level.named.set(w.id ?? `${spec.id ?? 'brett'}:${k}`, wh);
   }
@@ -81,7 +81,7 @@ export function buildSchienenbrett(level, spec) {
     if (w && w.to.length) return w.to[w.state];
     return (adj[node] ?? []).find((x) => x !== came) ?? null;
   };
-  Object.assign(handle, {
+  defineHandle(handle, {
     get state() { return st.state; }, get from() { return st.from; }, get to() { return st.to; }, get u() { return st.u; }, get route() { return st.route; },
     weichen, carried, reset,
     start() { if (st.state === 'ruhe' || st.state === 'wartet') st.state = 'faehrt'; },
@@ -167,7 +167,7 @@ export function buildSchienenbrett(level, spec) {
   }
   for (const w of Object.values(weichen)) {
     const n = nodes[w.node];
-    parts.push(box(0.16, Math.max(0.1, w.pos.y - 0.45 - n.y), 0.16, w.pos.x, n.y + (w.pos.y - 0.45 - n.y) / 2, w.pos.z, 0xc8d0e0, { r: 0.04, seg: 1 }));
+    parts.push(box(0.16, Math.max(0.1, w.pos.y - 0.6 - n.y), 0.16, w.pos.x, n.y + (w.pos.y - 0.6 - n.y) / 2, w.pos.z, 0xc8d0e0, { r: 0.04, seg: 1 }));
   }
   if (parts.length) level.view.addStatic(merge(parts), { material: 'world' });
   const C = BOARD[spec.color] ?? BOARD.cyan;
@@ -183,7 +183,7 @@ export function buildSchienenbrett(level, spec) {
     grp.position.set(w.pos.x, w.pos.y, w.pos.z);
     const rings = [];
     for (let i = 0; i < 4; i++) {
-      const r = new THREE.CircleGeometry(0.5 - i * 0.12, 20);
+      const r = new THREE.CircleGeometry(0.62 - i * 0.14, 20);
       r.translate(0, 0, 0.21 + i * 0.002);
       const c = lin(i % 2 ? 0xffffff : 0xff3a4a);
       rings.push(colorize(r.toNonIndexed(), (p, nn, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
@@ -249,6 +249,7 @@ export function buildKanonenkugelWand(level, spec) {
     for (const c of cannons) {
       if (level.time < c.next) continue;
       c.next += period;
+      if (c.next <= level.time) c.next = level.time + period;   // nach langer Pause (Test, Signal) nicht nachholen
       const b = balls.find((q) => !q.on && q.c === c);
       if (!b) continue;
       const bx = c.x + dx * muzzle, bz = c.z + dz * muzzle;

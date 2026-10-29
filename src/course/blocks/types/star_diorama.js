@@ -22,7 +22,7 @@
 import * as THREE from 'three';
 import { v3, addObject, box, merge, lin, mixc, colorize } from '../kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
-import { star, figures, ease, camYawAt, yawIn, TAU } from '../starkit.js';
+import { defineHandle, star, figures, ease, camYawAt, yawIn, TAU } from '../starkit.js';
 
 export function buildDrehdiorama(level, spec) {
   const P = v3(spec.pos);
@@ -32,7 +32,20 @@ export function buildDrehdiorama(level, spec) {
   const handle = { kind: 'drehdiorama' };
   const mover = { dx: 0, dy: 0, dz: 0, vx: 0, vy: 0, vz: 0, dyaw: 0, cx: P.x, cz: P.z };
   // Teile in lokalen Koordinaten (relativ zum Drehpunkt)
-  const parts = (spec.parts ?? []).map((q, i) => ({ i, p: v3(q.pos ?? [0, 0, 0]), s: q.size ?? [2, 1, 2], color: q.color, top: q.top, climbable: !!q.climbable, id: null, sh: null }));
+  // Lange Teile werden für die Kollision in kurze Stücke zerlegt: während der Drehung ist jede Form die Hülle eines gedrehten
+  // Stücks – kurze Stücke halten diese Hülle eng an der echten Grundfläche (bei 90°-Stellungen ohnehin exakt)
+  const parts = [];
+  (spec.parts ?? []).forEach((q, i) => {
+    const p = v3(q.pos ?? [0, 0, 0]), s = q.size ?? [2, 1, 2];
+    const along = s[0] >= s[2] ? 0 : 2, len = s[along], wid = s[2 - along];
+    const k = Math.max(1, Math.ceil(len / Math.max(1.2, wid)));
+    for (let j = 0; j < k; j++) {
+      const off = -len / 2 + (j + 0.5) * (len / k);
+      const pp = { x: p.x + (along === 0 ? off : 0), y: p.y, z: p.z + (along === 2 ? off : 0) };
+      const ss = along === 0 ? [len / k, s[1], s[2]] : [s[0], s[1], len / k];
+      parts.push({ i, j, p: pp, s: ss, whole: j === 0 ? { p, s } : null, color: q.color, top: q.top, climbable: !!q.climbable, id: null, sh: null });
+    }
+  });
   if (spec.disc) {
     const r = spec.disc.radius ?? 5, h = spec.disc.height ?? 0.6;
     parts.unshift({ i: -1, disc: true, r, h, p: { x: 0, y: -h, z: 0 }, s: [2 * r, h, 2 * r], color: spec.disc.color, id: null, sh: null });
@@ -98,7 +111,7 @@ export function buildDrehdiorama(level, spec) {
     level.sfx('rumble'); level.sfx('chain');
     return true;
   };
-  Object.assign(handle, {
+  defineHandle(handle, {
     get turn() { return st.turn; }, get turning() { return st.turning; }, get turns() { return st.turns; }, get angle() { return st.angle; },
     toggle: turnOnce, start: turnOnce,
     visible: (ref) => { const s = sicht.find((q) => q.star === ref); return s ? s.vis : true; },
@@ -172,8 +185,10 @@ export function buildDrehdiorama(level, spec) {
       }
       continue;
     }
+    if (!q.whole) continue;   // Darstellung je Teil im Ganzen
     const col = typeof q.color === 'number' ? q.color : 0x8ab0ff;
-    geos.push(box(q.s[0], q.s[1], q.s[2], q.p.x, q.p.y + q.s[1] / 2, q.p.z, col, { r: 0.1, topColor: q.top ?? undefined }));
+    const W = q.whole;
+    geos.push(box(W.s[0], W.s[1], W.s[2], W.p.x, W.p.y + W.s[1] / 2, W.p.z, col, { r: 0.1, topColor: q.top ?? undefined }));
   }
   if (geos.length) {
     const mesh = new THREE.Mesh(merge(geos), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.08 }));

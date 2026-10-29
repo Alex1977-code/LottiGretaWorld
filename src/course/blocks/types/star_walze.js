@@ -32,7 +32,7 @@
 import * as THREE from 'three';
 import { v3, addObject, lin, mixc, smooth, colorize, merge, box } from '../kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
-import { star, figures, onRespawn, ease, clamp, TAU, figureInside } from '../starkit.js';
+import { defineHandle, star, figures, onRespawn, ease, clamp, TAU, figureInside } from '../starkit.js';
 
 const WOOD = {
   holz: { a: 0xc8884a, b: 0x9a5e2a, end: 0xe8c08a, ring: 0x7a4a1e },
@@ -102,7 +102,7 @@ export function buildSchienenwalze(level, spec) {
     st.state = spec.start === 'auto' ? 'rollt' : 'ruhe'; st.s = 0; st.t = 0; st.vy = 0; st.drop = 0;
     at(0, st.pos); place(st.pos); solid(true); setConv(st.state === 'rollt');
   };
-  Object.assign(handle, {
+  defineHandle(handle, {
     get state() { return st.state; }, get s() { return st.s; }, get pos() { return st.pos; }, get rolls() { return st.rolls; }, length: L,
     carried, reset,
     start() { if (st.state === 'ruhe' || st.state === 'wartet' || st.state === 'ende') { st.state = 'rollt'; st.rolls++; setConv(true); } },
@@ -300,7 +300,7 @@ export function buildWalzenraum(level, spec) {
     level.sfx('rumble');
     return true;
   };
-  Object.assign(handle, {
+  defineHandle(handle, {
     get turn() { return st.turn; }, get turning() { return st.turning; }, get turns() { return st.turns; },
     toggle: turnOnce, start: turnOnce,
     info: () => ({ turn: st.turn, turning: st.turning, turns: st.turns, held: st.held.length }),

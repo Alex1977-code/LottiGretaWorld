@@ -288,6 +288,526 @@ if (want('remix')) {
   if (errors.length > e0) for (const e of errors.slice(e0, e0 + 10)) console.log('   ', e);
 }
 
+// =====================================================================================================================
+// Mechaniken der Welt Stern (Sternenwerkstatt 0-34)
+// =====================================================================================================================
+if (want('mech')) {
+  console.log('Sternenwerkstatt 0-34');
+  const e0 = errors.length, s0 = stats.length;
+  // frischer Spielstand ohne Kostüme (Sternenglanz-Gegenprobe)
+  await page.goto(`http://localhost:${port}/?course=0-34&scale=2&adapt=0`, { waitUntil: 'load', timeout: 120000 });
+  await sc(() => { try { const k = 'lotti-greta-course-v1'; const d = JSON.parse(localStorage.getItem(k) ?? 'null'); if (d) { delete d.outfits; localStorage.setItem(k, JSON.stringify(d)); } } catch { /* leer */ } });
+  await load('0-34');
+  const marks = await sc(() => window.__t.marks);
+  {
+    const st = await sc(() => ({ kinds: Object.keys(window.__t.kinds()).sort(), named: [...window.__course.level.named.keys()] }));
+    const ids = ['uhren', 'glanz_signal', 'dreh', 'boostbahn', 'farb', 'wand', 'treppe', 'walze', 'raum', 'schein', 'flugmast', 'turm', 'turm2', 'fels', 'felswand', 'oben', 'waben', 'nebelboden', 'nebel', 'brett', 'brett:B', 'kugeln', 'diorama', 'glanz'];
+    const miss = ids.filter((id) => !st.named.includes(id));
+    check('Sternenwerkstatt geladen, alle Stern-Bausteine benannt (level.named), Entitäten fliegender_zielmast/scheinziel/felsblock/riesen_frageturm/kickbombe', miss.length === 0
+      && ['fliegender_zielmast', 'scheinziel', 'felsblock', 'riesen_frageturm', 'kickbombe', 'druckknopf'].every((k) => st.kinds.includes(k)));
+    if (miss.length) console.log('   fehlen:', miss.join(', '));
+    check('Keine Konsolenfehler beim Laden', errors.length === e0);
+    if (errors.length > e0) for (const e of errors.slice(e0, e0 + 8)) console.log('   ', e);
+  }
+  // ---------------------------------------------------------------- Zeit-Uhren, Sternenglanz, Hüllen als kind
+  {
+    const r = await sc(async () => {
+      const t = window.__t, c = window.__course, L = c.level;
+      t.place([0, 0, 2], { settle: 2 });
+      const tl0 = L.runtime.timeLeft;
+      t.place([4, 0.7, -2], { settle: 3 });
+      const gain = L.runtime.timeLeft - tl0;
+      const g = t.named('glanz_signal');
+      const before = !!JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}').outfits?.stern_probe;
+      L.signal('sternenglanz');
+      const after = !!JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}').outfits?.stern_probe;
+      const kinds = ['drehplatte', 'farbplatten', 'plattenwand', 'schienenwalze', 'walzenraum', 'waben', 'nebelplattform', 'schienenbrett', 'kanonenkugel_wand', 'drehdiorama', 'zeituhren'];
+      const spawned = kinds.map((k, i) => {
+        const spec = { id: `huelle_${k}`, pos: [40 + i * 8, 0, -20] };
+        if (k === 'schienenwalze') spec.path = [[40 + i * 8, 0, -20], [40 + i * 8, 0, -30]];
+        if (k === 'schienenbrett') { spec.nodes = { A: [40 + i * 8, 0, -20], B: [40 + i * 8, 0, -30] }; spec.rails = [['A', 'B']]; }
+        if (k === 'zeituhren') spec.list = [[40 + i * 8, 1, -20]];
+        return L.spawn(k, spec);
+      });
+      await new Promise((res) => setTimeout(res, 0));
+      t.tick(2);
+      const ok = kinds.filter((k) => { const h = L.named.get(`huelle_${k}`); return h && typeof h.info === 'function' && h.kind !== undefined; });
+      return { gain: +gain.toFixed(1), before, after, fired: g.fired, kinds: spawned.map((e) => e?.kind), ok };
+    });
+    console.log(`  Zeit-Uhr +${r.gain} s; Sternenglanz (Signal): vorher ${r.before}, nachher ${r.after}; Hüllen ${r.ok.length}/${r.kinds.length}`);
+    check('Zeit-Uhren (zeituhren): +10 s', r.gain > 9);
+    check('Sternenglanz: Signal schaltet das Kostüm im Spielstand frei (courseSave.data.outfits, Gegenprobe vorher nicht)', !r.before && r.after && r.fired);
+    check('Hüllen: alle Stern-Bausteine auch als kind (named liefert den Griff des Bausteins)', r.ok.length === r.kinds.length);
+  }
+  await T('place', marks.start, { settle: 30 });
+  await shot('start', 1200);
+
+  // ---------------------------------------------------------------- Drehplatten
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, p = c.player, d = t.named('dreh');
+      t.place([0, 0.05, -15.3], { settle: 2 });
+      const plate = d.plates.find((q) => Math.abs(q.x) < 0.1 && Math.abs(q.z + 15.3) < 0.1);
+      const other = d.plates.find((q) => q.x > 2 && Math.abs(q.z + 15.3) < 0.1);
+      const s0 = plate.state;
+      t.tick(30);
+      const warn = plate.state, yWarn = +p.pos.y.toFixed(2);
+      t.tick(60);
+      const tilted = plate.state, k = +plate.k.toFixed(2);
+      t.tick(60);
+      const fell = p.pos.y < -1.5, otherState = other.state;
+      t.place(window.__t.marks.dreh, { settle: 2 });
+      t.tick(200);
+      return { s0, warn, yWarn, tilted, k, fell, otherState, back: plate.state, solid: plate.id !== null, tilts: d.tilts };
+    });
+    console.log(`  Drehplatte: ${r.s0} → ${r.warn} (y ${r.yWarn}) → ${r.tilted} (k ${r.k}), Figur fällt ${r.fell}; Nachbarplatte ${r.otherState}; später ${r.back} (fest ${r.solid})`);
+    check('Drehplatte: Betreten → Vorwarnung, dann kippt sie und die Figur fällt; Gegenprobe Nachbarplatte ohne Figur bleibt ruhig; danach dreht sie zurück und ist wieder fest', r.s0 === 'warn' || r.s0 === 'ruhe'
+      ? r.warn === 'warn' && r.yWarn > -0.1 && (r.tilted === 'kippt' || r.tilted === 'haengt') && r.fell && r.otherState === 'ruhe' && r.back === 'ruhe' && r.solid : false);
+    await T('place', marks.dreh, { settle: 30 });
+    await sc(() => { const t = window.__t; t.named('dreh').plates[1].state = 'warn'; t.named('dreh').plates[1].t = 0.3; t.tick(24); });
+    await shot('drehplatte', 1200);
+  }
+  // ---------------------------------------------------------------- Boost-Strecke auf Drehplatten
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, p = c.player;
+      t.place([0, 0, -20.6], { settle: 20, yaw: Math.PI / 2 });
+      c.setInput({ y: 1, run: true });
+      t.tick(190);
+      c.setInput({});
+      t.tick(20);
+      const fast = { z: +p.pos.z.toFixed(2), y: +p.pos.y.toFixed(2), dead: p.dead };
+      // Gegenprobe: hinter dem Boost-Pfeil langsam gehen → die Platten kippen unter der Figur
+      t.named('boostbahn').reset();
+      t.place([0, 0.05, -27.8], { settle: 2, yaw: Math.PI / 2 });
+      c.setInput({ y: 0.35 });
+      t.tick(160);
+      c.setInput({});
+      const slow = { z: +p.pos.z.toFixed(2), y: +p.pos.y.toFixed(2) };
+      return { fast, slow, tilts: t.named('boostbahn').tilts };
+    });
+    console.log(`  Boost-Strecke: mit Boost bis z ${r.fast.z} (y ${r.fast.y}); langsam: z ${r.slow.z}, y ${r.slow.y}; gekippt ${r.tilts}`);
+    check('Boost-Strecke: mit Boost-Pfeil und Rennen über sechs Drehplatten ans andere Ende; Gegenprobe zu langsam → Absturz', r.fast.z < -39 && Math.abs(r.fast.y) < 0.1 && !r.fast.dead && r.slow.y < -1.5);
+  }
+  // ---------------------------------------------------------------- Farbplatten
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, L = c.level, g = t.named('farb');
+      const st = L.entities.find((e) => e.kind === 'star' && e.index === 0);
+      const hidden0 = st.hidden;
+      const counts = [];
+      g.plates.forEach((q, i) => {
+        t.place([q.x, q.y + 0.05, q.z], { settle: 8 });
+        if (i === 0) { t.place([q.x, q.y + 0.05, q.z], { settle: 8 }); }
+        counts.push(g.count);
+      });
+      return { hidden0, counts, done: g.done, star: !st.hidden, info: g.info() };
+    });
+    console.log(`  Farbplatten: ${r.counts.join(' ')}; fertig ${r.done}; Stern ${r.hidden0 ? 'versteckt' : 'sichtbar'} → ${r.star ? 'sichtbar' : 'versteckt'}`);
+    check('Farbplatten: jedes Betreten färbt eine Platte um (zweimal dieselbe zählt nicht doppelt), alle 9 → Ereignis (Stern 0 erscheint; Gegenprobe vorher versteckt)', r.counts.join() === '1,2,3,4,5,6,7,8,9' && r.done && r.hidden0 && r.star);
+    await T('place', [0, 0, -46], { settle: 20 });
+    await shot('farbplatten', 1200);
+  }
+  // ---------------------------------------------------------------- Plattenwand (Takt) und Plattentreppe
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, p = c.player, w = t.named('wand'), tr = t.named('treppe');
+      t.place([-3, 0, -73], { settle: 2 });
+      // eine herausgeklappte Platte suchen, Figur daraufstellen, bis sie einklappt
+      // eine eben herausgeklappte Platte der zweiten Reihe suchen, Figur daraufstellen, bis sie einklappt
+      t.until(() => w.panels.every((x) => x.row !== 1 || x.state !== 'aussen'), 1500);
+      const n = t.until(() => w.panels.some((q) => q.solid && q.row === 1 && q.state === 'aussen'), 1500);
+      const q = w.panels.find((x) => x.solid && x.row === 1);
+      let stood = false, fell = false, yOn = null;
+      if (q) {
+        t.place([q.cx, q.y + 0.05, q.cz + 1], { settle: 12, invuln: 99 });
+        stood = p.mode === 'ground' && Math.abs(p.pos.y - q.y) < 0.1;
+        yOn = +p.pos.y.toFixed(2);
+        const m = t.until(() => !q.solid, 900);
+        t.tick(60);
+        fell = m >= 0 && p.pos.y < q.y - 0.5;
+      }
+      const innenOhneForm = w.panels.filter((x) => x.k < 0.01).every((x) => x.id === null);
+      // Treppe: klappt erst aus, wenn man nah kommt, und bleibt draußen
+      const before = tr.info().out;
+      t.place([7, 0, -75], { settle: 2 });
+      t.tick(600);
+      const after = tr.info();
+      t.place([0, 0, -64], { settle: 30 });
+      return { n, stood, yOn, fell, innenOhneForm, before, after };
+    });
+    console.log(`  Plattenwand: Stufe nach ${r.n} Schritten, Figur steht ${r.stood} (y ${r.yOn}), fällt beim Einklappen ${r.fell}; Treppe ${r.before} → ${r.after.out} (${r.after.solid} fest)`);
+    check('Plattenwand: Platten klappen im Takt heraus (Stufe trägt), vor dem Einklappen Vorwarnung, dann fällt die Figur; eingeklappt ohne Form', r.n >= 0 && r.stood && r.fell && r.innenOhneForm);
+    check('Plattentreppe: klappt erst aus, wenn die Figur nah ist (Gegenprobe vorher alle innen), dann bleiben alle Stufen draußen', /^\.+$/.test(r.before) && /^#+$/.test(r.after.out) && r.after.solid === r.after.out.length);
+    await T('place', marks.wand, { settle: 30 });
+    await shot('plattenwand', 1400);
+  }
+  // ---------------------------------------------------------------- Schienenwalze
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, p = c.player, w = t.named('walze');
+      w.reset();
+      const s0 = w.state;
+      t.place([0, 0.05, -86.8], { settle: 2, invuln: 99 });
+      t.tick(60);
+      const rolling = w.state, z1 = +w.pos.z.toFixed(2);
+      // mitlaufen (je Schritt nachregeln: wer hinter der Walzenmitte ist, geht vor): bleibt oben
+      for (let i = 0; i < 480; i++) { const rel = p.pos.z - w.pos.z; c.setInput({ y: Math.max(0, Math.min(0.8, 0.22 + rel * 1.2)) }); c.step(1); }
+      c.setInput({});
+      const onTop = p.mode === 'ground' && p.ground?.owner === w, zP = +p.pos.z.toFixed(2), zW = +w.pos.z.toFixed(2);
+      // Gegenprobe: stehen bleiben → rutscht hinten herunter
+      w.reset();
+      t.place([0, 0.05, -86.8], { settle: 2, invuln: 99 });
+      t.tick(60 + 480);
+      const stillOn = p.mode === 'ground' && p.ground?.owner === w;
+      // Ende: fällt und kommt wieder
+      w.reset(); w.start();
+      t.place([0, 0, -84], { settle: 2 });
+      const end = t.until(() => w.state === 'faellt', 2400);
+      const back = t.until(() => w.state === 'ruhe', 1200);
+      return { s0, rolling, z1, onTop, zP, zW, stillOn, end, back, rolls: w.rolls };
+    });
+    console.log(`  Schienenwalze: ${r.s0} → ${r.rolling} (z ${r.z1}); mitgelaufen oben ${r.onTop} (Figur z ${r.zP}, Walze ${r.zW}); stehen geblieben oben ${r.stillOn}; Ende nach ${r.end}, zurück nach ${r.back}`);
+    check('Schienenwalze: ruht, bis man draufsteht, rollt dann; wer mitläuft, bleibt oben und fährt mit (Gegenprobe: wer steht, rutscht herunter)', r.s0 === 'ruhe' && r.rolling === 'rollt' && r.z1 < -86.9 && r.onTop && r.zW < -95 && Math.abs(r.zP - r.zW) < 1.5 && !r.stillOn);
+    check('Schienenwalze: am Schienenende fällt sie und erscheint nach respawn s wieder am Anfang', r.end > 0 && r.back > 0);
+    await sc(() => { const t = window.__t, w = t.named('walze'); w.reset(); t.place([0, 0.05, -86.8], { settle: 2 }); window.__course.setInput({ y: 0.42 }); t.tick(300); window.__course.setInput({}); });
+    await shot('schienenwalze', 1200);
+  }
+  // ---------------------------------------------------------------- Walzenraum
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, L = c.level, p = c.player, raum = t.named('raum');
+      t.place([0, 0.2, -139], { settle: 30 });
+      const floor = +p.pos.y.toFixed(2);
+      const box = () => { const out = []; L.world.forEach((s) => { if (s.tag === 'walzenraum') out.push([+((s.x0 + s.x1) / 2).toFixed(2), +((s.bot + s.top) / 2).toFixed(2), +(s.x1 - s.x0).toFixed(2), +(s.top - s.bot).toFixed(2)]); }); return out; };
+      const b0 = box();
+      const coin = L.entities.find((e) => e.kind === 'coin' && Math.abs(e.pos.z + 139) < 0.01);
+      const c0 = coin ? [+coin.pos.x.toFixed(2), +coin.pos.y.toFixed(2)] : null;
+      // Druckknopf drücken (auf den Knopf springen) → eine Vierteldrehung
+      const knopf = t.named('raumknopf');
+      t.place([6, 2.5, -131], { settle: 1 });
+      t.tick(60);
+      const pressed = knopf.presses;
+      t.until(() => !raum.turning, 300);
+      const b1 = box(), turn1 = raum.turn;
+      const c1 = coin ? [+coin.pos.x.toFixed(2), +coin.pos.y.toFixed(2)] : null;
+      // Figur im Raum (in der Luft) während der nächsten Drehung: schwebt an ihrem Platz, landet danach
+      t.place([0, 1.5, -139], { settle: 1 });
+      const yAt = p.pos.y;
+      raum.toggle();
+      t.tick(30);
+      const heldY = +(p.pos.y - yAt).toFixed(3), turning = raum.turning;
+      t.tick(150);
+      return { floor, b0, b1, c0, c1, pressed, turn: turn1, turns: raum.turns, heldY, turning, landed: p.mode === 'ground' };
+    });
+    console.log(`  Walzenraum: Boden y ${r.floor}; Einbauten ${JSON.stringify(r.b0)} → ${JSON.stringify(r.b1)}; Münze ${r.c0} → ${r.c1}; Knopf ${r.pressed}, Stellung ${r.turn} (${r.turns} Drehungen), Figur während der Drehung Δy ${r.heldY}`);
+    const find = (list, x, y) => list.some((b) => Math.abs(b[0] - x) < 0.05 && Math.abs(b[1] - y) < 0.05);
+    check('Walzenraum: innen begehbar; Druckknopf dreht ihn um 90° (Einbau (2,4 | −1,6) → (1,6 | 2,4), Maße getauscht), Münze dreht mit, Figur schwebt während der Drehung und landet danach', r.floor > -0.1 && r.floor < 0.4
+      && find(r.b0, 2.4, 2.4) && find(r.b1, 1.6, 6.4) && r.b1.some((b) => Math.abs(b[2] - 0.4) < 0.05 && Math.abs(b[3] - 2.4) < 0.05) && r.c1 && Math.abs(r.c1[0] - 0.9) < 0.05 && Math.abs(r.c1[1] - 6.4) < 0.05
+      && r.pressed >= 1 && r.turn === 1 && r.turns >= 2 && r.turning && Math.abs(r.heldY) < 0.02 && r.landed);
+    await T('place', [0, 0, -129], { settle: 30 });
+    await shot('walzenraum', 1400);
+  }
+  // ---------------------------------------------------------------- Scheinziel und fliegender Zielmast (Fang am Schluss)
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, m = t.named('flugmast'), s = t.named('schein');
+      const w0 = m.state;
+      t.place([0, 0, -152], { settle: 10 });
+      const w1 = m.state;
+      t.place([0, 0.05, -155.4], { settle: 6 });
+      const touched = s.touched, startState = m.state, goalStatus = c.level.runtime.status;
+      t.tick(240);
+      const s1 = m.s;
+      // weit zurück → er wartet
+      t.place([0, 0, -152], { settle: 2 });
+      t.tick(300);
+      const s2 = m.s; t.tick(120);
+      const s3 = m.s, waiting = m.state;
+      // nachlaufen → er fliegt weiter bis zur Landung
+      let landed = -1;
+      for (let i = 0; i < 40 && landed < 0; i++) { const q = m.pos; t.place([q.x, 0, q.z + 6], { settle: 1 }); t.tick(30); if (m.state === 'gelandet') landed = i; }
+      return { w0, w1, touched, startState, goalStatus, s1: +s1.toFixed(2), s2: +s2.toFixed(2), s3: +s3.toFixed(2), waiting, landed, L: m.L, state: m.state, schein: s.alive };
+    });
+    console.log(`  Scheinziel berührt ${r.touched} (Ziel-Status ${r.goalStatus}); Mast ${r.w0}/${r.w1} → ${r.startState}; Weg ${r.s1} → ${r.s2} → ${r.s3} (${r.waiting}); gelandet nach ${r.landed} Runden (${r.state})`);
+    check('Scheinziel: Berühren ist kein Ziel (Status bleibt play), es fliegt davon und startet den Mast (Gegenprobe vorher wartet er)', r.w0 === 'wartet' && r.w1 === 'wartet' && r.touched && r.goalStatus === 'play' && r.startState === 'fliegt');
+    check('Fliegender Zielmast: fliegt davon, solange man nah ist; fällt man zurück, schwebt er und wartet (Weg wächst nicht); holt man auf, fliegt er bis zur Landung', r.s1 > 3 && r.s3 - r.s2 < 0.05 && r.waiting === 'schwebt' && r.landed >= 0 && r.state === 'gelandet');
+    await T('place', [3, 0, -196], { settle: 10 });
+    await shot('flugmast', 1400);
+  }
+  // ---------------------------------------------------------------- Riesen-?-Turm
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, L = c.level, p = c.player, tw = t.named('turm'), tw2 = t.named('turm2');
+      const s0 = tw.state, coins0 = L.runtime.coins;
+      t.place([-5, 0, -214], { settle: 6 });
+      c.setInput({ jump: true }); t.tick(40); c.setInput({});
+      t.tick(200);
+      const s1 = tw.state, top = tw.top, grown = tw.grown, coins1 = L.runtime.coins;
+      // Stampfen auf turm2: wächst, die Figur fährt oben mit
+      t.place([5, 3.2, -211], { settle: 0, invuln: 99 });
+      c.setInput({ crouch: true }); t.tick(2); c.setInput({});
+      t.until(() => p.mode === 'ground', 300);
+      t.tick(120);
+      return { s0, s1, top: +top.toFixed(2), grown, dc: coins1 - coins0, s2: tw2.state, y2: +p.pos.y.toFixed(2), top2: +tw2.top.toFixed(2) };
+    });
+    console.log(`  Riesen-?-Turm: ${r.s0} → ${r.s1} (${r.grown} Blöcke, Oberseite ${r.top}, Münzen +${r.dc}); Stampfen: ${r.s2}, Figur y ${r.y2} (Turm ${r.top2})`);
+    check('Riesen-?-Turm: Kopfstoß von unten lässt ihn nach oben zu einem Turm aus 4 Riesen-?-Blöcken wachsen (Münzen); Stampfen auf einen zweiten: er wächst und die Figur fährt oben mit', r.s0 === 'bereit' && r.s1 === 'turm' && r.grown === 4 && Math.abs(r.top - 12.6) < 0.05 && r.dc >= 8 && r.s2 === 'turm' && Math.abs(r.y2 - r.top2) < 0.1 && r.top2 > 7.9);
+    await T('place', [0, 0, -206.5], { settle: 30 });
+    await shot('frageturm', 1400);
+  }
+  // ---------------------------------------------------------------- Felsblock, Laufbombe, Kanonen-Helm
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, L = c.level, p = c.player;
+      const fels = t.ent('fels'), wand = t.ent('felswand'), bomb = t.ent('bombe');
+      const coins0 = L.runtime.coins;
+      // Gegenprobe: Stampfen bricht ihn nicht
+      t.place([5, 3.6, -224], { settle: 0, invuln: 99 });
+      c.setInput({ crouch: true }); t.tick(2); c.setInput({});
+      t.until(() => p.mode === 'ground', 300);
+      t.tick(30);
+      const afterPound = fels.broken;
+      // Laufbombe neben dem Felsblock zünden
+      t.place([0, 0, -206.5], { settle: 2 });
+      bomb.pos.set(5, 0, -222.2); bomb.vel.set(0, 0, 0);
+      bomb.lit = true; bomb.fuse = 0.3;
+      t.tick(120);
+      const byBomb = fels.broken && fels.by === 'bomb';
+      t.tick(60);
+      const coins1 = L.runtime.coins;
+      // Felswand mit dem Kanonen-Helm sprengen → Stern 1
+      const st1 = L.entities.find((e) => e.kind === 'star' && e.index === 1);
+      const hidden1 = st1.hidden;
+      t.place([-5, 0, -224], { settle: 4, yaw: Math.PI / 2 });
+      p.wearHelmet('kanone');
+      c.setInput({ action: true }); t.tick(3); c.setInput({});
+      t.tick(120);
+      const byCannon = wand.broken && wand.by === 'cannon';
+      p.helmet = null; p.helmetFx = null;
+      return { afterPound, byBomb, dc: coins1 - coins0, byCannon, hidden1, star1: !st1.hidden };
+    });
+    console.log(`  Felsblock: nach Stampfen heil ${!r.afterPound}; Laufbombe sprengt ${r.byBomb} (+${r.dc} Münzen); Felswand per Kanonenkugel ${r.byCannon}, Stern 1 ${r.hidden1 ? 'versteckt' : '?'} → ${r.star1 ? 'sichtbar' : 'versteckt'}`);
+    check('Felsblock: Stampfen prallt ab (Gegenprobe), die Laufbombe (Kickbombe) sprengt ihn → Inhalt', !r.afterPound && r.byBomb && r.dc >= 3);
+    check('Rissige Felswand: Kanonenkugel des Kanonen-Helms sprengt sie, dahinter erscheint Stern 1', r.byCannon && r.hidden1 && r.star1);
+  }
+  // ---------------------------------------------------------------- Draufsicht und Waben
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, L = c.level, p = c.player, rig = c.view.rig, wb = t.named('waben');
+      const out = rig.railAt(0, -220, {}).pitch, inn = rig.railAt(0, -255, {}).pitch, edge = rig.railAt(0, -239, {}).pitch;
+      const yawIn = rig.controlYaw({ x: 0, y: 0, z: -255 });
+      // Steuerung: Stick nach oben läuft nach −Z
+      const n = wb.cells.find((q) => q.type === 'normal' && q.r === 4 && q.q === 2);
+      t.place([n.x, 0.05, n.z], { settle: 10 });
+      const x0 = p.pos.x, z0 = p.pos.z;
+      c.setInput({ y: 1 }); t.tick(40); c.setInput({});
+      const move = { dx: +(p.pos.x - x0).toFixed(2), dz: +(p.pos.z - z0).toFixed(2) };
+      // normale Wabe trägt, Eis-Wabe glatt, hohe Wabe 1 m höher
+      t.place([n.x, 0.05, n.z], { settle: 20 });
+      const normal = p.mode === 'ground' && Math.abs(p.pos.y) < 0.05;
+      const ice = wb.cells.find((q) => q.type === 'eis');
+      t.place([ice.x, 0.05, ice.z], { settle: 20 });
+      const onIce = !!p.ground?.ice;
+      const hi = wb.cells.find((q) => q.type === 'hoch');
+      t.place([hi.x, 1.1, hi.z], { settle: 20 });
+      const high = +p.pos.y.toFixed(2);
+      // Lava-Wabe: Treffer und Hochspringen
+      const lava = wb.cells.find((q) => q.type === 'lava');
+      t.place([lava.x, 0.3, lava.z], { settle: 0 });
+      t.until(() => p.vel.y > 2, 90);
+      const burned = !p.big || p.invuln > 0.05, up = p.vel.y > 2;
+      t.tick(120);
+      return { out: +out.toFixed(1), inn: +inn.toFixed(1), edge: +edge.toFixed(1), yawIn: +yawIn.toFixed(3), move, normal, onIce, high, burned, up, hits: wb.hits, info: wb.info() };
+    });
+    console.log(`  Draufsicht: Neigung außen ${r.out}°, innen ${r.inn}°, am Rand ${r.edge}°; Steuer-Gier ${r.yawIn}; Stick oben → dx ${r.move.dx}, dz ${r.move.dz}`);
+    console.log(`  Waben: ${JSON.stringify(r.info)}; normal trägt ${r.normal}, Eis glatt ${r.onIce}, hoch y ${r.high}, Lava: Treffer ${r.burned}, hoch ${r.up}`);
+    check('Draufsicht: im Bereich Kamera senkrecht von oben (89,5°), außerhalb die Schiene (Gegenprobe), am Rand überblendet; Steuerung intuitiv (Stick nach oben → −Z)', r.inn > 89 && r.out < 60 && r.edge > r.out && r.edge < r.inn && Math.abs(r.yawIn) < 1e-6 && r.move.dz < -1 && Math.abs(r.move.dx) < 0.2);
+    check('Waben-Platten: normal trägt, Eis-Wabe glatt (ice), hohe Wabe 1 m höher, Lava-Wabe gibt einen Treffer und schleudert hoch', r.normal && r.onIce && Math.abs(r.high - 1) < 0.05 && r.burned && r.up && r.hits >= 1);
+    await T('place', [0, 0, -252], { settle: 30 });
+    await page.waitForTimeout(800);
+    await shot('draufsicht_waben', 1600);
+  }
+  // ---------------------------------------------------------------- Nebelplattformen und Nebelboden
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, p = c.player, nb = t.named('nebel'), boden = t.named('nebelboden');
+      const q = nb.parts[0];
+      // warten, bis die erste oben ist, daraufstellen, mitsinken
+      t.until(() => q.state === 'oben', 1200);
+      t.place([q.x, q.top + 0.05, q.z], { settle: 2, invuln: 99 });
+      const y0 = +p.pos.y.toFixed(2);
+      const sink = t.until(() => q.state === 'sinkt', 900);
+      t.tick(60);
+      const yMid = +p.pos.y.toFixed(2), carried = p.mode === 'ground' && p.ground === q.mb.shape;
+      t.until(() => p.dead, 600);
+      const dead = p.dead, cause = p.deathCause;
+      t.until(() => !p.dead && c.level.runtime.status === 'play', 900);
+      // Gegenprobe: eine oben stehende Platte ist fest
+      t.place([0, 0, -278], { settle: 2 });
+      const any = t.until(() => nb.parts.some((x) => x.state === 'oben' && x.solid), 600);
+      // erscheinende Bodenstücke im Nebel: mal fest, mal weg
+      const parts = boden.parts;
+      const seen = new Set();
+      for (let i = 0; i < 700; i++) { c.step(1); seen.add(parts.parts[0].solid ? 'fest' : 'weg'); }
+      t.place([0, 0, -278], { settle: 2 });
+      return { y0, sink, yMid, carried, dead, cause, any, seen: [...seen].sort().join('/') };
+    });
+    console.log(`  Nebelplattform: oben y ${r.y0}, sinkt (nach ${r.sink}) → y ${r.yMid} (trägt ${r.carried}); bleibt man drauf: tot ${r.dead} (${r.cause}); Bodenstücke ${r.seen}`);
+    check('Nebelplattform: steigt und sinkt im Takt, trägt die Figur mit hinab in den Nebel (dort Absturz); Gegenprobe oben fest', r.y0 > -0.1 && r.sink >= 0 && r.yMid < r.y0 - 0.3 && r.carried && r.dead && r.cause === 'fall' && r.any >= 0);
+    check('Nebelboden: Bodenstücke erscheinen und verschwinden (mal fest, mal weg)', r.seen === 'fest/weg');
+    await T('place', marks.nebel, { settle: 30 });
+    await shot('nebel', 1500);
+  }
+  // ---------------------------------------------------------------- Schienenbrett mit Weiche
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, p = c.player, b = t.named('brett'), w = b.weichen.B;
+      b.reset();
+      t.place([0, 0.75, -316], { settle: 4, invuln: 99 });
+      t.until(() => b.state === 'faehrt', 200);
+      t.until(() => b.state === 'weg', 1200);
+      const route1 = b.route.join(''), fell = p.pos.y < -1.5;
+      t.until(() => !p.dead && c.level.runtime.status === 'play', 900);
+      // Weiche mit dem Kanonen-Helm umschießen: auf dem Brett stehend nach vorn feuern, bevor es die Weiche erreicht
+      b.reset();
+      const s0 = w.state;
+      t.place([0, 0.75, -316], { settle: 4, yaw: Math.PI / 2, invuln: 99 });
+      p.wearHelmet('kanone');
+      c.setInput({ action: true }); t.tick(2); c.setInput({});
+      t.until(() => w.hits > 0, 240);
+      p.helmet = null; p.helmetFx = null;
+      const s1 = w.state, hits = w.hits;
+      t.until(() => b.state === 'faellt' || b.state === 'weg', 1800);
+      const route2 = b.route.join('');
+      return { route1, fell, s0, s1, hits, route2 };
+    });
+    console.log(`  Schienenbrett: Weiche ${r.s0}: Route ${r.route1} (Figur fällt ${r.fell}); Kanonenkugel → Weiche ${r.s1} (${r.hits} Treffer): Route ${r.route2}`);
+    check('Schienenbrett: Betreten startet die Fahrt, an der Weiche der eingestellte Abzweig, am Ende stürzt es ab', r.route1 === 'ABC' && r.fell);
+    check('Weiche: Kanonenkugel (Kanonen-Helm) stellt sie um → das Brett nimmt den anderen Weg (Gegenprobe vorher ABC)', r.s0 === 0 && r.s1 === 1 && r.hits >= 1 && r.route2 === 'ABDE');
+    await sc(() => { const t = window.__t; t.named('brett').reset(); t.place([0, 0.75, -316], { settle: 4 }); t.tick(150); });
+    await shot('schienenbrett', 1400);
+  }
+  // ---------------------------------------------------------------- Kanonenkugel-Wand
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, p = c.player, k = t.named('kugeln');
+      t.place([0, 0, -358], { settle: 2 });
+      t.tick(500);
+      const flying = k.balls, shots = k.shots;
+      // auf eine Kugel der untersten Reihe stellen → fährt mit nach +X
+      const L = c.level;
+      let ball = null;
+      t.until(() => { L.world.forEach((s) => { if (s.tag === 'kanonenkugel' && s.bot < 1 && (s.x0 + s.x1) / 2 < -5) ball = s; }); return !!ball; }, 600);
+      if (!ball) return { flying, shots, rode: false };
+      const bx = (ball.x0 + ball.x1) / 2;
+      t.place([bx, ball.top + 0.05, (ball.z0 + ball.z1) / 2], { settle: 2, invuln: 99 });
+      const x0 = p.pos.x;
+      t.tick(120);
+      const rode = p.mode === 'ground' && p.ground?.tag === 'kanonenkugel' && p.pos.x - x0 > 2.5;
+      t.tick(600);
+      const gone = p.ground?.tag !== 'kanonenkugel';
+      return { flying, shots, rode, dx: +(p.pos.x - x0).toFixed(2), gone };
+    });
+    console.log(`  Kanonenkugel-Wand: ${r.flying} Kugeln unterwegs (${r.shots} Schüsse); Figur fährt auf einer Kugel ${r.rode}, verliert sie am Ende ${r.gone}`);
+    check('Kanonenkugel-Wand: Kanonen schießen im Takt Kugeln, die als Trittstufen tragen und mitnehmen; nach der Flugweite sind sie weg', r.flying >= 3 && r.shots >= 5 && r.rode && r.gone);
+    await sc(() => window.__t.place([0, 0, -357], { settle: 2 }));
+    await sc(() => window.__t.tick(240));
+    await shot('kanonenkugeln', 1400);
+  }
+  // ---------------------------------------------------------------- Drehdiorama
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, L = c.level, p = c.player, d = t.named('diorama');
+      // Formen je Teil (lange Teile sind in Stücke zerlegt): Hülle aller Stücke gleicher Höhe
+      const shapes = () => {
+        const g = new Map();
+        L.world.forEach((s) => { if (s.tag !== 'drehdiorama' || s.type !== 'box') return; const k = s.top.toFixed(2); const b = g.get(k) ?? { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity }; b.x0 = Math.min(b.x0, s.x0); b.x1 = Math.max(b.x1, s.x1); b.z0 = Math.min(b.z0, s.z0); b.z1 = Math.max(b.z1, s.z1); g.set(k, b); });
+        return [...g.values()].map((b) => [+((b.x0 + b.x1) / 2).toFixed(2), +((b.z0 + b.z1) / 2).toFixed(2), +(b.x1 - b.x0).toFixed(2), +(b.z1 - b.z0).toFixed(2)]);
+      };
+      const a0 = shapes();
+      const star = L.entities.find((e) => e.kind === 'star' && e.spec?.id === 'blickstern');
+      t.place([3, 0.05, -388], { settle: 10 });
+      const hidden0 = star.hidden;
+      // Druckknopf (Draufspringen)
+      const knopf = t.named('drehknopf');
+      t.place([8, 2.5, -377], { settle: 1 });
+      t.tick(60);
+      const pressed = knopf.presses;
+      t.until(() => !d.turning, 300);
+      const a1 = shapes(), turn = d.turn;
+      // Figur auf der Scheibe dreht mit (nächste Vierteldrehung)
+      t.place([0, 0.05, -385], { settle: 4 });
+      d.toggle();
+      t.tick(200);
+      const pos = [+p.pos.x.toFixed(2), +p.pos.z.toFixed(2)];
+      return { a0, a1, hidden0, pressed, pos, turn, collect0: L.runtime.stars[2] };
+    });
+    console.log(`  Drehdiorama: Teile ${JSON.stringify(r.a0)} → ${JSON.stringify(r.a1)}; Knopf ${r.pressed}, Stellung ${r.turn}; Figur auf der Scheibe → (${r.pos})`);
+    // Blick-Stern: Kamera von hinten → sichtbar und einsammelbar
+    await sc(() => {
+      const c = window.__course, cam = c.view.camera;
+      c.view.rig.custom = () => { cam.position.set(14, 8, -394); cam.lookAt(0, 0, -388); return true; };
+      c.view.rig.custom();
+    });
+    await page.waitForTimeout(400);
+    await freshFrames(3);
+    const vis = await sc(() => {
+      const t = window.__t, c = window.__course, L = c.level, star = L.entities.find((e) => e.kind === 'star' && e.spec?.id === 'blickstern');
+      t.tick(2);
+      const visible = !star.hidden;
+      // Gegenprobe zurück: Kamera wieder normal → versteckt
+      return { visible, pos: [star.pos.x, star.pos.y, star.pos.z] };
+    });
+    await shot('drehdiorama_hinten', 1000);
+    const col = await sc((sp) => {
+      const t = window.__t, c = window.__course, L = c.level;
+      c.view.rig.custom?.();   // die Bildaufnahme hat die Kamera zurückgesetzt (snapCamera)
+      t.place([sp[0], 0.05, sp[2]], { settle: 0 });
+      c.view.rig.custom?.();
+      t.tick(6);
+      const got = L.runtime.stars[2];
+      c.view.rig.custom = null;
+      return { got };
+    }, vis.pos);
+    await page.waitForTimeout(300);
+    await freshFrames(3);
+    const hid = await sc(() => { window.__t.tick(2); const s = window.__course.level.named.get('diorama'); return s.info(); });
+    const find = (list, x, z, w, d) => list.some((b) => Math.abs(b[0] - x) < 0.06 && Math.abs(b[1] - z) < 0.06 && Math.abs(b[2] - w) < 0.06 && Math.abs(b[3] - d) < 0.06);
+    console.log(`  Blick-Stern: vorher versteckt ${r.hidden0}, Kamera hinten sichtbar ${vis.visible}, eingesammelt ${col.got} (vorher ${r.collect0})`);
+    check('Drehdiorama: Druckknopf dreht es um 90° (Steg (0 | −391) quer → (−3 | −388) längs), die Figur auf der Scheibe dreht mit', r.pressed >= 1 && r.turn === 1 && find(r.a0, 0, -391, 8, 1.4) && find(r.a1, -3, -388, 1.4, 8)
+      && Math.abs(r.pos[0] - 3) < 0.15 && Math.abs(r.pos[1] + 388) < 0.15);
+    check('Blick-Stern: aus der Standardansicht unsichtbar (Gegenprobe), mit gedrehter Kamera sichtbar und einsammelbar', r.hidden0 && vis.visible && col.got === true && !r.collect0);
+    void hid;
+    await T('place', marks.diorama, { settle: 30 });
+    await shot('drehdiorama', 1400);
+  }
+  // ---------------------------------------------------------------- Fang des fliegenden Zielmasts = Ziel, Sternenglanz beim Abschluss
+  await load('0-34');
+  {
+    const r = await sc(() => {
+      const t = window.__t, c = window.__course, L = c.level, m = t.named('flugmast');
+      const before = !!JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}').outfits?.stern;
+      m.start();
+      t.place([4, 0, -160], { settle: 2 });
+      t.tick(60);
+      const q = m.pos;
+      t.place([q.x - 0.5, q.y + 1.5, q.z], { settle: 1 });
+      t.tick(2);
+      const caught = m.state, status = L.runtime.status;
+      t.until(() => L.runtime.status === 'done', 1200);
+      const after = !!JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}').outfits?.stern;
+      return { before, caught, status, done: L.runtime.status, after, pole: L.runtime.pole };
+    });
+    console.log(`  Fang: Mast ${r.caught}, Status ${r.status} → ${r.done} (Greifhöhe ${r.pole?.toFixed?.(2)}); Sternenglanz-Kostüm vorher ${r.before}, nach dem Abschluss ${r.after}`);
+    check('Fliegender Zielmast: Fangen = Ziel (Zielmast-Ablauf bis zum Ergebnis)', r.caught === 'gefangen' && r.status === 'goal' && r.done === 'done');
+    check('Sternenglanz (when ziel): erst beim Levelabschluss schaltet das Kostüm stern frei (Gegenprobe vorher nicht)', !r.before && r.after);
+  }
+  budget(s0, 'Werkstatt-Bilder');
+  check('Werkstatt: keine Konsolenfehler', errors.length === e0);
+  if (errors.length > e0) for (const e of errors.slice(e0, e0 + 10)) console.log('   ', e);
+}
+
 const ok = summary(errors);
 await browser.close();
 stop();

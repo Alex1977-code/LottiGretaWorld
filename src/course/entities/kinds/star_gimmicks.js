@@ -309,7 +309,7 @@ function rockGeo(look, w, h, d) {
     pos.setXYZ(i, x * k * w / 2, (y * k + 1) * h / 2, z * k * d / 2);
   }
   g.computeVertexNormals();
-  return colorize(g.toNonIndexed(), (p, n, o) => {
+  return colorize(g.index ? g.toNonIndexed() : g, (p, n, o) => {
     mixc(b, a, smooth(-0.5, 0.9, n.y * 0.6 + n.z * 0.3), o);
     const crack = Math.abs(Math.sin(p.x * 4 + p.y * 3)) < 0.05;
     if (crack) mixc(o, hi, 0.6, o);

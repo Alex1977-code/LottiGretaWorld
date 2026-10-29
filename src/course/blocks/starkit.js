@@ -12,6 +12,8 @@
 //   plateGeos(w, h, d, frame)       Platten-Geometrie: Kern (weiß, je Instanz getönt) + weißer Rahmen
 //   PlateSet                        Instanz-Platten (Kern + Rahmen = 2 Zeichenaufrufe für alle Platten eines Bausteins)
 //   standerOn(level, owner)         Figur, die auf einer Form dieses Besitzers steht (oder null)
+//   figureInside(level, box)        Figur, die im Quader steckt (vor dem Wieder-fest-Werden einer Form)
+//   defineHandle(handle, props)     Felder samt Gettern in einen Griff übernehmen
 //   + aus w8kit/w7kit/w2kit: figures, MovingBox, regModel, stdMat, pathOf, pathAt, canvasTexture, bakeW8, hurtFigures,
 //     killFigures, sphereTouches, boxTouches, cycle, onRespawn, ease, clamp, TAU, modelOr, glowTexture, spikeGeo
 //   + Geometrie: lin, mixc, smooth, colorize, merge, roundedBox, SIDE
@@ -31,6 +33,9 @@ export {
   MovingBox, figures, regModel, stdMat, pathOf, pathAt, canvasTexture, bakeW8, hurtFigures, killFigures, sphereTouches, boxTouches,
   cycle, onRespawn, ease, clamp, TAU, modelOr, glowTexture, spikeGeo, lin, mixc, smooth, colorize, merge, roundedBox, SIDE,
 };
+
+/** Felder (auch Getter/Setter) in einen Griff übernehmen – anders als Object.assign bleiben Getter lebendig. */
+export function defineHandle(handle, props) { return Object.defineProperties(handle, Object.getOwnPropertyDescriptors(props)); }
 
 /** Sammelstelle der Stern-Bausteine je Level. */
 export function star(level) {
