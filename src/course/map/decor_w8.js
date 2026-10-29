@@ -33,6 +33,7 @@
 // (ev.updaters), gleichartige als Instanzen. Bewegte Objekte stehen schon beim Bau an ihrer Startlage (lod.js).
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { mix, TAU, cached, vcol, glowTexture } from '../models/lib/kit.js';
 import { getModel, hasModel } from '../models/index.js';
 import { createInstanced } from '../models/lib/instanced.js';
@@ -71,17 +72,25 @@ const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Eul
 const FRONT = -Math.PI / 2;
 const tooHeavy = (name, opts, max) => { const n = modelTris(name, opts); if (n > max) { W8_HEAVY.set(name, Number.isFinite(n) ? Math.round(n) : -1); return true; } return false; };
 
-/** Registry-Modell als statische Kulisse einbacken (false, solange es fehlt oder zu schwer ist); Kachel 'w8:<Id>' (lod). */
-function bake8(ev, name, opts, pos, yaw = FRONT, scale = 1, state = null, cast = true, maxTris = 6000, tile = null) {
+/**
+ * Registry-Modell als statische Kulisse einbacken (false, solange es fehlt oder zu schwer ist); Kachel 'w8:<Id>' (lod),
+ * tile = Name (feste Kachel ohne Fern-Ausblendung) oder { name, lod: true } (eigene Kachel mit Fern-Ausblendung).
+ */
+function bake8(ev, name, opts, pos, yaw = FRONT, scale = 1, state = null, cast = true, maxTris = 6000, tileOpt = null) {
   if (!hasModel(name) || tooHeavy(name, opts, maxTris)) return false;
-  const lod = tile === null;
-  const add = (g, o) => ev.addStatic(g, { ...o, ...(cast ? {} : { castShadow: false }), tile: tile ?? `w8:${ev.id}`, lod });
+  const tile = tileOpt && typeof tileOpt === 'object' ? tileOpt.name : tileOpt;
+  const lod = tileOpt === null || !!tileOpt?.lod;
+  // Leuchtteile in die gemeinsame Leucht-Kachel, Teile ohne Schatten (Decals, Pfützen …) in die schattenlose
+  // Zonen-Kachel – keine eigenen kleinen Kacheln (Zeichenaufrufe) je Eingang
+  const add = (g, o) => (o?.material === 'glow' ? ev.addStatic(g, { ...o, castShadow: false, tile: 'w8:leuchten' })
+    : cast && o?.castShadow !== false ? ev.addStatic(g, { ...o, tile: tile ?? `w8:${ev.id}`, lod })
+      : ev.addStatic(g, { ...o, castShadow: false, ...(tile ? { tile } : {}) }));
   const ok = !!bakeModel(add, name, opts, pos, yaw, scale, state);
   if (ok) W8_USED.add(name);
   return ok;
 }
 /** Registry-Modell als bewegtes Objekt; state = Objekt/String oder Funktion (dt, t) → state. null, wenn es fehlt. */
-function live8(ev, name, opts, pos, yaw = FRONT, scale = 1, state = 'idle', shadow = true, maxTris = 6000, far = 85) {
+function live8(ev, name, opts, pos, yaw = FRONT, scale = 1, state = 'idle', shadow = true, maxTris = 6000, far = 45) {
   if (!hasModel(name) || tooHeavy(name, opts, maxTris)) return null;
   const m = getModel(name, opts ?? {});
   if (m.placeholder) { m.dispose?.(); return null; }
@@ -202,19 +211,23 @@ function rainFort(ev, x, y, z) {
   if (bridges.length) {
     ev.addStatic(deck.geometry(), { castShadow: true });
     const sm = instanced(ev, spikeGeo(), spikes.length, { name: 'stacheln', rough: 0.35 });
-    let up = 0, step = 0;
-    const putS = (t) => {
+    let up = 0, step = 0, lastT = 0;
+    // Stellung aus der Taktuhr: je Zählzeit eine Brücke, Stacheln schnell hoch, halten, sinken vor der nächsten Zählzeit
+    const spikeAt = (t) => {
       const bt = beatNow8(t);
       const whole = Math.floor(bt.beat), frac = bt.beat - whole;
-      step = ((whole % 2) + 2) % 2;
-      up = frac < 0.12 ? frac / 0.12 : frac < 0.6 ? 1 : Math.max(0, 1 - (frac - 0.6) / 0.2);
+      return { step: ((whole % 2) + 2) % 2, up: frac < 0.12 ? frac / 0.12 : frac < 0.6 ? 1 : Math.max(0, 1 - (frac - 0.6) / 0.2) };
+    };
+    const putS = (t) => {
+      lastT = t;
+      ({ step, up } = spikeAt(t));
       spikes.forEach((sp, i) => { const h = sp.k === step ? up : 0; setInst(sm, i, sp.x, sp.y - 0.62 + h * 0.62, sp.z, 0, h > 0.02 ? 1 : 0.001); });
       sm.instanceMatrix.needsUpdate = true;
     };
     putS(0);
     ev.updaters.push((dt, t) => putS(t));
     cullByView(ev, sm, x - 8, y + 1, z, 14);
-    addInfo(ev, () => ({ spikebridges: { n: bridges.length, spikes: spikes.length, step, up: +up.toFixed(3) } }));
+    addInfo(ev, () => { const c = spikeAt(lastT); return { spikebridges: { n: bridges.length, spikes: spikes.length, step: c.step, up: +c.up.toFixed(3), shown: { step, up: +up.toFixed(3) } } }; });
   }
   // eigene kleine Regenwolke: dunkle Wolkenkuppen (wiegen sich) und Regenschleier (Instanzen)
   const cy = y + 14;
@@ -270,7 +283,8 @@ function dunes(ev, x, y, z) {
     }
     solidCyl(ev, sx, sz, 1.5 * (s ?? 1), sy, sy + 4.2 * (s ?? 1), 'statue');
   }
-  for (const [px, py, pz, s, seed] of d.dunes ?? []) bake8(ev, 'duene', { size: s ?? 1, seed: seed ?? 1 }, [px, py, pz], FRONT + (seed ?? 0) * 0.4, 1, null, true, 3500);
+  // Dünen weit verteilt: eigene Kachel (Fern-Ausblendung greift getrennt von Statue und Podest)
+  for (const [px, py, pz, s, seed] of d.dunes ?? []) bake8(ev, 'duene', { size: s ?? 1, seed: seed ?? 1 }, [px, py, pz], FRONT + (seed ?? 0) * 0.4, 1, null, true, 3500, { name: `w8:${ev.id}:duenen`, lod: true });
   if (d.pilz) bake8(ev, 'sandskulptur_pilzling', {}, d.pilz, FRONT + 0.4, 1.2, null, true, 6000);
   if (d.schub) bake8(ev, 'schubfeld', { size: [3, 2] }, d.schub, -0.3, 1, { on: true }, false, 2800);
   // Segelflosse eines Sandflossers kreist im Sand (eigene, sparsame Form), Sandspritzer hinterher
@@ -430,9 +444,12 @@ function baronStation(ev, x, y, z) {
     for (const xx of [-1.5, 1.5]) for (const s of [-1, 1]) b.cyl(0.42, 0.42, 0.18, 0x2a2a34, { p: [xx, 0.45, s * 1.0], r: [Math.PI / 2, 0, 0] }, 10);
     return b.geometry();
   });
+  // Lok und beide Wagen in einer Fläche (ein Zeichenaufruf statt drei, auch im Schattenpass)
+  const zugG = cached('w8m:zug', () => mergeGeometries([loco.geometry, wagonG.clone().translate(-5.4, 0, 0), wagonG.clone().translate(-10.4, 0, 0)].map((g) => (g.index ? g.toNonIndexed() : g)), false) ?? false);
+  if (zugG) loco.geometry = zugG;
+  else for (let i = 0; i < 2; i++) { const w = new THREE.Mesh(wagonG, loco.material); w.position.x = -5.4 - i * 5.0; w.castShadow = true; train.add(w); }
   loco.castShadow = true;
   train.add(loco);
-  for (let i = 0; i < 2; i++) { const w = new THREE.Mesh(wagonG, vcol(0.5, {}, 'w8train')); w.position.x = -5.4 - i * 5.0; w.castShadow = true; train.add(w); }
   train.position.set(x, y + 0.3, z);
   ev.view.add(train);
   // Dampfwölkchen aus dem Schornstein
@@ -456,8 +473,8 @@ function baronStation(ev, x, y, z) {
   };
   putT(0);
   ev.updaters.push((dt, t) => putT(t));
-  cullByView(ev, train, x, y + 2, z, range + 9);
-  cullByView(ev, puffs, x, y + 5, z, range + 6);
+  cullByView(ev, train, x, y + 2, z, range + 9, 60);
+  cullByView(ev, puffs, x, y + 5, z, range + 6, 60);
   addInfo(ev, () => ({ train: { x: +tx.toFixed(3), wagons: 2 } }));
   modelsInfo(ev);
 }

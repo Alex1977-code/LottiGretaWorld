@@ -16,6 +16,8 @@ export const TILE = 32;
 // zones (Welt 6, schwebende Inseln): [[x0, z0, x1, z1, name], …] – Teile ohne benannte Kachel, deren Mitte in einer Zone
 // liegt, kommen in die Kachel dieser Zone (je Insel ein Mesh je Material/Schattenwurf statt vieler angeschnittener
 // Rasterkacheln – weniger Zeichenaufrufe im Weitblick); außerhalb aller Zonen gilt das Raster.
+// alias (Welt 8): { 'w7:leuchten': 'w8:leuchten', … } – benannte Kacheln wiederverwendeter Bausteine anderer Welten in
+// eine Kachel dieser Karte umleiten (ein Leucht-Mesh statt je eines je Herkunft).
 
 export class MapBatcher {
   /** @param {import('../view/CourseView.js').CourseView} view */
@@ -26,6 +28,7 @@ export class MapBatcher {
     this.freeTile = opts.freeTile ?? this.tile;
     this.freeOrigin = opts.freeOrigin ?? this.origin;
     this.zones = opts.zones ?? null;
+    this.alias = opts.alias ?? null;
     this.buckets = new Map();
     this.meshes = [];
     this.stats = { parts: 0, meshes: 0, triangles: 0 };
@@ -45,6 +48,7 @@ export class MapBatcher {
     const T = cast ? this.tile : this.freeTile, [ox, oz] = cast ? this.origin : this.freeOrigin;
     const tx = Math.floor(((bb.min.x + bb.max.x) / 2 - ox) / T), tz = Math.floor(((bb.min.z + bb.max.z) / 2 - oz) / T);
     let tile = opts.tile;
+    if (tile !== undefined && this.alias?.[tile]) tile = this.alias[tile];
     if (tile === undefined && this.zones) {
       const cx = (bb.min.x + bb.max.x) / 2, cz = (bb.min.z + bb.max.z) / 2;
       const zn = this.zones.find(([x0, z0, x1, z1]) => cx >= x0 && cx < x1 && cz >= z0 && cz < z1);
@@ -52,7 +56,7 @@ export class MapBatcher {
     }
     const key = `${mat}|${tile ?? `${tx}|${tz}`}|${cast ? 1 : 0}|${recv ? 1 : 0}`;
     let b = this.buckets.get(key);
-    if (!b) { b = { mat, cast, recv, parts: [], lod: !!opts.lod }; this.buckets.set(key, b); }
+    if (!b) { b = { key, mat, cast, recv, parts: [], lod: !!opts.lod }; this.buckets.set(key, b); }
     b.parts.push(g);
     this.stats.parts++;
   }
@@ -70,6 +74,7 @@ export class MapBatcher {
       mesh.updateMatrix();
       mesh.name = `karte:statisch:${b.mat}`;
       if (b.lod) mesh.userData.lod = true;   // kompakte benannte Kachel: Fern-Ausblendung erlaubt
+      mesh.userData.tile = b.key;             // Kachel-Schlüssel (Material|Kachel|Schatten|Empfang) zur Fehlersuche
       this.view.three.add(mesh);
       this.meshes.push(mesh);
       this.stats.meshes++;

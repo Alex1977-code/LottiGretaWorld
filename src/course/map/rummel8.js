@@ -187,8 +187,10 @@ const PALETTES = {
   starplaza: {
     bands: NAVY, side: 0x3a4266, rim: 0xb8a8e8, cell: 1,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(0x4a4a86, 0x42427c, rnd.frac());
-      if (hash2(ax + 11, az - 3) > 0.93) mixc(o, lin(0xffd86a), 0.7, o);
+      // dunkelblaue Platten, goldene Tupfen in einem ruhigen schrägen Raster (Sternenhimmel unter den Füßen)
+      const o = tone(checker2(ax, az) ? 0x4a4a86 : 0x45457f, 0x4e4e8a, rnd.frac() * 0.5);
+      const fx = Math.floor(ax), fz = Math.floor(az);
+      if ((((fx * 2 + fz * 3) % 7) + 7) % 7 === 0) mixc(o, lin(0xffd86a), 0.5, o);
       return o;
     },
   },
@@ -849,6 +851,7 @@ export function bannerTexture(happy) {
 
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _c = new THREE.Color();
 const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _mb = new THREE.Matrix4();
+const _fr = new THREE.Frustum(), _fm = new THREE.Matrix4(), _fs = new THREE.Sphere();
 function setI(m, i, x, y, z, ry = 0, s = 1, rx = 0, rz = 0) {
   _e.set(rx, ry, rz, 'YXZ');
   _q.setFromEuler(_e);
@@ -882,6 +885,7 @@ export class RummelLife {
     this.finished = gameFinished();
     // Lava, Rauch, Knochenflieger, Fackeln (Fahnen baut RummelLife selbst – umschaltbar nach dem Spielende)
     this.lava = new LavaLife(level, { ...map, flags: [] });
+    this.cullLavaEffects();
     this.buildLights(map.lights ?? []);
     this.buildFlags(map.flags ?? [], map.banners ?? []);
     this.buildWheel(map.wheel);
@@ -897,12 +901,39 @@ export class RummelLife {
 
   add(obj) { this.view.add(obj); this.own.push(obj); return obj; }
 
+  /**
+   * Die Lava-Effekte (Bausteine aus Welt 7) zeichnen ihre Instanz-Flächen ohne Frustum-Culling – auf der großen
+   * Rummel-Karte bekommt jede eine feste Hüllkugel aus ihren Ankerpunkten (+ Spielraum für die Bewegung), damit sie nur
+   * im Bild Zeichenaufrufe kosten.
+   */
+  cullLavaEffects() {
+    const L = this.lava;
+    const P = (p) => (Array.isArray(p) ? p : [p.x, p.y ?? 0, p.z]);
+    const fit = (mesh, pts, margin) => {
+      if (!mesh?.isInstancedMesh || !pts.length) return;
+      const box = new THREE.Box3();
+      for (const p of pts) box.expandByPoint(new THREE.Vector3(...P(p)));
+      const sph = box.getBoundingSphere(new THREE.Sphere());
+      sph.radius += margin;
+      mesh.boundingSphere = sph;
+      mesh.frustumCulled = true;
+    };
+    fit(L.fCol, L.fountains ?? [], 7);
+    fit(L.drops, L.fountains ?? [], 10);
+    fit(L.bub, (L.bubbles ?? []).map((b) => b.p), 2.5);
+    fit(L.smoke, L.smokeSrc ?? [], 14);
+    fit(L.flames, L.torches ?? [], 3);
+    fit(L.fishMesh, L.fish ?? [], 3 + Math.max(0, ...(L.fish ?? []).map((f) => f.dist ?? 4)) + 4);
+  }
+
   /** Glühbirnenketten: Masten und Kabel statisch (Kacheln), Birnen als eine Instanz-Fläche (unbeleuchtet, Farbe je Birne). */
   buildLights(list) {
     this.bulbs = [];
     if (!list.length) return;
-    const posts = new Build(), wires = new Build();
     for (const L of list) {
+      // je Kette eigene Teile: Sie landen in der Zonen-Kachel ihrer Insel (eine Fläche über die ganze Karte hielte die
+      // Zonen-Kachel, in die ihre Mitte fällt, überall im Bild)
+      const posts = new Build(), wires = new Build();
       const h = L.h ?? 4.2, sag = L.sag ?? 0.9;
       const A = [L.a[0], L.a[1] + h, L.a[2]], B = [L.b[0], L.b[1] + (L.hb ?? h), L.b[2]];
       for (const [P, show] of [[L.a, L.posts !== false && L.postA !== false], [L.b, L.posts !== false && L.postB !== false]]) {
@@ -921,9 +952,9 @@ export class RummelLife {
         const u = i / n;
         this.bulbs.push({ x: A[0] + (B[0] - A[0]) * u, y: A[1] + (B[1] - A[1]) * u - Math.sin(u * Math.PI) * sag - 0.16, z: A[2] + (B[2] - A[2]) * u, c: BULB_COLS[(i + this.bulbs.length) % BULB_COLS.length] });
       }
+      if (posts.parts?.length !== 0) this.view.addStatic(posts.geometry(), { castShadow: true });
+      this.view.addStatic(wires.geometry(), { castShadow: false });
     }
-    this.view.addStatic(posts.geometry(), { castShadow: true });
-    this.view.addStatic(wires.geometry(), { castShadow: false });
     const g = new THREE.IcosahedronGeometry(0.16, 0);
     const mat = new THREE.MeshBasicMaterial({ fog: true, toneMapped: false });
     this.bulbMesh = new THREE.InstancedMesh(g, mat, this.bulbs.length);
@@ -1252,9 +1283,10 @@ export class RummelLife {
     if (this.carMesh) {
       const L = this.coasterLen;
       // Tempo: bergab schneller, bergauf langsamer (Höhe der Bahn)
-      this.coasterU = ((t * this.coasterSpeed) / L) % 1;
+      const frac = (v) => (Number.isFinite(v) ? ((v % 1) + 1) % 1 : 0);   // auch bei negativer Zeit (Szenenwechsel) in [0, 1)
+      this.coasterU = frac((t * this.coasterSpeed) / L);
       for (let i = 0; i < this.cars; i++) {
-        const u = (this.coasterU - (i * 2.5) / L + 1) % 1;
+        const u = frac(this.coasterU - (i * 2.5) / L);
         this.coasterCurve.getPointAt(u, _v1);
         this.coasterCurve.getTangentAt(u, _v2);
         const yaw = Math.atan2(-_v2.z, Math.hypot(_v2.x, 0) * Math.sign(_v2.x || 1));
@@ -1268,14 +1300,26 @@ export class RummelLife {
       this.carMesh.instanceMatrix.needsUpdate = true;
     }
     if (this.balloonMesh) {
+      // nur Ballons im Bild zeichnen (vorn in der Instanz-Liste, count = Anzahl): die Ballon-Figur ist fein, Ballons
+      // über fernen Inseln kosten sonst Dreiecke
+      const camO = this.view.camera;
+      if (camO) { camO.updateMatrixWorld(); _fr.setFromProjectionMatrix(_fm.multiplyMatrices(camO.projectionMatrix, camO.matrixWorldInverse)); }
+      let k = 0;
       this.balloons.forEach((bl, i) => {
         const u = ((t / bl.per) + bl.ph) % 1;
         const y = bl.at[1] + 1.5 + u * bl.h;
         const sway = Math.sin(t * 0.9 + i) * 0.5 * u;
         const sc = u > 0.85 ? Math.max(0.001, 1 - (u - 0.85) / 0.15) : Math.min(1, u * 8);
-        setI(this.balloonMesh, i, bl.at[0] + bl.dx * u + sway, y, bl.at[2] + bl.dz * u, -Math.PI / 2 + Math.sin(t * 0.7 + i) * 0.3, sc * 1.1, 0, Math.sin(t * 1.1 + i) * 0.08);
+        const x = bl.at[0] + bl.dx * u + sway, z = bl.at[2] + bl.dz * u;
+        if (camO && !_fr.intersectsSphere(_fs.set(_v3.set(x, y + 0.6, z), 3))) return;
+        setI(this.balloonMesh, k, x, y, z, -Math.PI / 2 + Math.sin(t * 0.7 + i) * 0.3, sc * 1.1, 0, Math.sin(t * 1.1 + i) * 0.08);
+        this.balloonMesh.setColorAt(k, _c.set(bl.c));
+        k++;
       });
+      this.balloonMesh.count = k;
+      this.balloonsShown = k;
       this.balloonMesh.instanceMatrix.needsUpdate = true;
+      if (this.balloonMesh.instanceColor) this.balloonMesh.instanceColor.needsUpdate = true;
     }
     if (this.fw) {
       const S = this.sparkN + 1;
@@ -1307,7 +1351,7 @@ export class RummelLife {
       wheel: { registry: !!this.wheel, angle: +(this.wheelSpec?.angle ?? 0).toFixed(3) },
       carousel: { registry: !!this.carousel, angle: +(this.carouselAngle ?? 0).toFixed(3) },
       coaster: { cars: this.cars ?? 0, u: +(this.coasterU ?? 0).toFixed(4), length: +(this.coasterLen ?? 0).toFixed(1), registry: !!this.coasterReg },
-      balloons: { n: this.balloons?.length ?? 0 },
+      balloons: { n: this.balloons?.length ?? 0, shown: this.balloonsShown ?? 0 },
       fireworks: this.fireworkInfo(),
       finished: this.finished,
       w8models: [...W8_USED].sort(),

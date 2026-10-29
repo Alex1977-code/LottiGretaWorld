@@ -470,19 +470,22 @@ if (part(8)) {
     const b0 = B();
     mu.advanceClock((1 - (b0.beat % 1)) * spb + 0.05 * spb);  // nächste Zählzeit: Gruppe wechselt, Puls hell
     const b1 = B(), s1 = S();
-    mu.advanceClock(0.6 * spb);                               // dieselbe Zählzeit, Puls klingt ab
+    mu.advanceClock(0.25 * spb);                              // Mitte der Zählzeit: Stacheln ganz oben
+    const s1b = S();
+    mu.advanceClock(0.35 * spb);                              // dieselbe Zählzeit, Puls klingt ab, Stacheln sinken
     const b2 = B(), s2 = S();
     mu.advanceClock(0.4 * spb);                               // nächste Zählzeit: nächste Gruppe
     const b3 = B(), s3 = S();
-    return { theme, bpm, b0, b1, b2, b3, s1, s2, s3 };
+    return { theme, bpm, b0, b1, b2, b3, s1, s1b, s2, s3 };
   });
   console.log('  Glühbirnen:', JSON.stringify({ b0: [r.b0.step, r.b0.k], b1: [r.b1.step, r.b1.k], b2: [r.b2.step, r.b2.k], b3: [r.b3.step, r.b3.k], src: r.b1.source, theme: r.b1.theme, bpm: r.bpm, n: r.b0.n }),
-    'Stacheln:', JSON.stringify([r.s1, r.s2, r.s3]));
+    'Stacheln:', JSON.stringify([r.s1, r.s1b, r.s2, r.s3]));
   check(`Glühbirnen folgen der Taktuhr der Kartenmusik (${r.theme}, ${r.bpm} BPM)`, r.b1.theme === r.theme && r.b1.source !== 'zeit' && r.b1.bpm === r.bpm && r.b0.n >= 100);
   check('Je Zählzeit leuchtet eine der drei Gruppen hell auf (Lauflicht): Wechsel am Taktschlag, hell am Anfang der Zählzeit, dann schwächer, nächste Zählzeit die nächste Gruppe',
     r.b1.step === (Math.floor(r.b0.beat) + 1) % 3 && r.b1.k > 0.9 && r.b2.step === r.b1.step && r.b2.k < 0.6 && r.b3.step === (r.b1.step + 1) % 3 && r.b3.k > 0.9);
-  check('Stachelbrücken der Regenfestung im Takt: je Zählzeit fahren die Stacheln der anderen Brücke aus',
-    r.s1.step === (Math.floor(r.b0.beat) + 1) % 2 && r.s2.step === r.s1.step && r.s2.up > 0.9 && r.s3.step !== r.s1.step);
+  check('Stachelbrücken der Regenfestung im Takt: je Zählzeit fahren die Stacheln der anderen Brücke aus (am Schlag hoch, Mitte oben, vor dem nächsten Schlag wieder unten)',
+    r.s1.n === 2 && r.s1.step === (Math.floor(r.b0.beat) + 1) % 2 && r.s1.up > 0 && r.s1.up < 1 && r.s1b.step === r.s1.step && r.s1b.up > 0.99
+    && r.s2.step === r.s1.step && r.s2.up < r.s1b.up && r.s3.step !== r.s1.step);
   await frames(3);
   const shown = await sc(() => window.__courseMap.state().decor.bulbs);
   check('Darstellung folgt: gezeigte Glühbirnen-Gruppe und -Puls = Stellung der Taktuhr', shown.shown?.step === shown.step && Math.abs(shown.shown.k - shown.k) < 1e-3);
@@ -579,8 +582,9 @@ if (part(9)) {
     st = await sc(() => window.__courseMap.state());
     const exitS = exitPoint(W8.entrances.find((e) => e.id === 'WS'));
     check('Figur steht vor der Sternen-Röhre, Schranke offen', Math.hypot(st.player.x - exitS[0], st.player.z - exitS[2]) < 0.8 && st.gates.WS === 'open' && !st.cinematic);
-    await tp(-4, 9.8, -112, Math.PI / 2, 20);
+    await tp(0, 9.8, -113, Math.PI / 2, 20);
     r = await walkTo(0, -98, (s) => s.player.z > -99, 900);
+    console.log('  vom Turmplatz zurück:', r.s.player.x.toFixed(2), r.s.player.y.toFixed(2), r.s.player.z.toFixed(2), r.s.gates['8-Burg']);
     check('Vom Turmplatz zurück: Turm-Schranke an der Zugbrücke lässt die Figur von hinten durch', r.s.player.z > -99 && r.s.gates['8-Burg'] === 'closed' && Math.abs(r.s.player.y - 7.5) < 0.1);
   } else {
     await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); });

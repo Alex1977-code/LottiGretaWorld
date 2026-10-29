@@ -428,7 +428,9 @@ function buildProps(level, map, grid) {
     const addPm = map.kit === 'sky' ? (g, o) => add(g, { ...o, tile: `w6p:${Math.floor(it.pos[0] / 16)}|${Math.floor(it.pos[2] / 16)}`, lod: true })
       : map.kit === 'lava' ? (g, o) => add(g, o.material === 'glow' ? { ...o, tile: 'w7:leuchten' } : o)
         // Welt 8: Registry-Requisiten (Buden, Dünen, Statuen …) in kompakte Kacheln je 24-m-Feld mit Fern-Ausblendung
-        : map.kit === 'rummel' ? (g, o) => add(g, { ...o, tile: `w8p:${Math.floor(it.pos[0] / 24)}|${Math.floor(it.pos[2] / 24)}:${o.material ?? 'world'}`, lod: true }) : add;
+        // (schattenlose Kleinteile in die schattenlose Zonen-Kachel)
+        : map.kit === 'rummel' ? (g, o) => add(g, o?.material === 'glow' ? { ...o, castShadow: false, tile: 'w8:leuchten' } : o?.castShadow === false ? o
+          : { ...o, tile: `w8p:${Math.floor(it.pos[0] / 24)}|${Math.floor(it.pos[2] / 24)}:${o.material ?? 'world'}`, lod: true }) : add;
     const baked = pm ? bakeModel(addPm, pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
     if (baked && it.kind === 'tank') add(place(turretGeo(it.size ?? 1, (it.color ?? 'oliv') === 'oliv'), it.pos[0], it.pos[1] + 1.6 * (it.size ?? 1), it.pos[2], it.yaw ?? 0), { castShadow: true });
     if (it.kind === 'sandstack') {

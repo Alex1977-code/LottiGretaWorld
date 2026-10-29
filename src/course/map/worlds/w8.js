@@ -69,9 +69,9 @@ export const MAP = {
   batch: { tile: 48, origin: [-8, 4], freeTile: 96, freeOrigin: [-56, -56], zones: [
     [-30, 4, 24, 58, 'ankunft'], [10, -16, 27, 3, 'regenfels'], [25, -28, 88, 16, 'duenen'], [22, -72, 66, -26, 'keks'],
     [-36, -78, 20, -48, 'bahnhof'], [-96, -80, -40, -46, 'nacht'], [-84, -42, -56, -16, 'haus'], [-98, -134, -45, -76, 'see'],
-    [-46, -124, -22, -94, 'spuk'], [-24, -111, 46, -74, 'inferno'], [24, -134, 50, -111, 'zelt_a'], [46, -98, 72, -74, 'zelt_b'],
-    [-16, -160, 16, -111, 'turm'], [-32, -148, -16, -124, 'sternroehre'], [-64, -50, 14, 26, 'park'],
-  ] },
+    [-46, -124, -22, -94, 'spuk'], [-24, -111, 46, -74, 'inferno'], [24, -134, 50, -111, 'inferno'], [46, -98, 72, -74, 'inferno'],
+    [-16, -160, 16, -111, 'turm'], [-32, -148, -16, -124, 'turm'], [-64, -50, 14, 26, 'park'],
+  ], alias: { 'w7:leuchten': 'w8:leuchten', 'w6:leuchten': 'w8:leuchten' } },
   // Nachbarwelt am Horizont: Welt 7 (Lava-Festung) im Südwesten – dorthin führt die Rückweg-Röhre
   neighbors: [{ world: 7, pos: [-250, 150], size: [90, 60], style: 'vulkan' }],
   birds: [],
@@ -236,7 +236,7 @@ export const MAP = {
       friends: [[-6.5, 9.5, -126.5], [-3.6, 9.5, -129.6], [3.6, 9.5, -129.6], [6.5, 9.5, -126.5]] },
     { id: 'WS', kind: 'pipe', pos: [-23, 9.5, -132], decor: [-23, 9.5, -135.1], disc: '★',
       pipe: [[0, 0, 0], [0, 4, 0], [-0.6, 7, -0.8], [-3, 13, -3.5], [-8, 24, -9], [-16, 40, -18], [-28, 62, -30], [-44, 90, -46]], pipeDetail: 'low',
-      arriveCam: { up: 8, ahead: 4, drop: 4 }, signPos: [2.8, 0, 0.6] },
+      arriveCam: { up: 12, ahead: 2, drop: 9 }, signPos: [2.8, 0, 0.6] },
   ],
 
   gates: [
