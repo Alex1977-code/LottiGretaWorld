@@ -86,7 +86,7 @@ const skulptur = (id, ch, z, lat, o = {}) => ({ kind: 'pilzling_sandskulptur', i
 const schub = (id, ch, z, lat, color = 'gold', o = {}) => ({ type: 'schubfeld', id, pos: P(ch, z, lat), size: [3.4, 4], boost: 4.5, color, ...o });
 
 const RAMP_Z = -121.5;
-const KAEFER_Z = -129.6;
+const KAEFER_Z = -130.1;
 const STAR_STATUE_LAT = 7;
 const CP1_Z = -105, CP2_Z = -217;
 const STAR_STATUE_Z = -272;
