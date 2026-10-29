@@ -9195,4 +9195,4 @@ durch Stampfen, Stern 2 nicht ohne Turm, Stempel nicht durch Draufspringen); Ext
 Wurfsichel, Abrutschen und Hürde, Hackvogel, Zeit-Uhren, Glotzfisch, wartender Mast, 100 s ohne Zeitboni, Riesentrank,
 Gleitblatt mit Gegenprobe, Riesen-?-Turm, Pilzlingsturm abtragen, Laufbombe sprengt Ziegel, Ziel-Box erst nach fünf Schlüsseln). Gemessen (scale 2,
 inkl. Schattenpass): S-3 Messgang (60 Punkte) ≤ 76 Zeichenaufrufe / ≤ 213 k Dreiecke, Bilder 39–75 / ≤ 208 k; S-4 Messgang
-(34) ≤ 59 / ≤ 147 k, Bilder 30–65 / ≤ 147 k; S-5 Messgang (49) ≤ 69 / ≤ 169 k, Bilder 27–59 / ≤ 173 k; Grenzen < 120 / < 300 k.
+(34) ≤ 59 / ≤ 147 k, Bilder 30–65 / ≤ 147 k; S-5 Messgang (49) ≤ 69 / ≤ 169 k, Bilder 27–60 / ≤ 173 k; Grenzen < 120 / < 300 k.
