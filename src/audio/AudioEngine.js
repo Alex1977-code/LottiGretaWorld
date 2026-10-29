@@ -9,6 +9,9 @@
 //
 // Die Bausteine stecken in der Klasse `Voices`, die an einen beliebigen Kontext gebunden wird:
 // im Spiel an den Live-AudioContext, im Test an einen OfflineAudioContext (messbarer Mix).
+//
+// Klang-Varianten der Musik (Remix-Welten): `MUSIC_VARIANTS` und `createVariantChain` – eine Klangkette (Filter, Hall per
+// Faltung, Brummen, Knistern, Mono, Vogel-Zwitschern) zwischen den Stimmen eines Themas und dem Musik-Kompressor.
 
 const MUTE_KEY = 'lotti-greta-muted';
 
@@ -631,16 +634,17 @@ export class Voices {
  *    Rückkopplung über einen Tiefpass im Rückweg (jedes Echo dunkler) → Nass-Pegel → Musik-Eingang.
  * Spuren sind die tonalen Spuren (lead, piano, arp, echo …) oder Schlagzeug-Teile (kick, clap, snare,
  * hat, tom, crash). Ohne `fx` liefert die Funktion keine Busse – alle Stimmen gehen direkt auf `dest`.
+ * `destOf(spur)` (optional, Klang-Varianten) wählt das Ziel je Spur-Bus; ohne gehen alle auf `dest`.
  * @returns {{ buses: Object<string, AudioNode>, nodes: AudioNode[], tail: number }}
  */
-export function createThemeBus(ctx, fx, stepDur, dest) {
+export function createThemeBus(ctx, fx, stepDur, dest, destOf = null) {
   const buses = {}, nodes = [];
   let tail = 0;
   if (!fx) return { buses, nodes, tail };
   const track = (name) => {
     if (!buses[name]) {
       const g = ctx.createGain();
-      g.connect(dest);
+      g.connect(destOf ? destOf(name) : dest); // destOf: Ziel je Spur (Klang-Variante, z.B. Melodie-Weg)
       nodes.push(g);
       buses[name] = g;
     }
@@ -705,6 +709,225 @@ export function createThemeBus(ctx, fx, stepDur, dest) {
 export function releaseThemeBus(bus) {
   if (!bus || !bus.nodes.length) return;
   setTimeout(() => { for (const n of bus.nodes) { try { n.disconnect(); } catch (_) { /* egal */ } } }, (Math.min(bus.tail, 6) + 0.5) * 1000);
+}
+
+// ---------------------------------------------------------------- Klang-Varianten ----
+
+/**
+ * Klang-Varianten des Musiksystems (Remix-Welten Pilz und Blume): dieselbe Komposition, nur Klangbearbeitung bzw. Tempo.
+ * `music.play(thema, { variant })` – ohne Variante entsteht kein einziger zusätzlicher Knoten (Klang wie bisher).
+ *   tempo   Faktor auf das Tempo (die Taktuhr läuft mit)
+ *   fx      Faktoren auf das Echo/den Hall des Themas ({ wet, feedback } für fx.delay)
+ *   tracks  Pegel je Spur bzw. Schlagzeug-Teil (vor dem Effekt-Bus des Themas, z.B. { bell: 0.55, hat: 0.6 })
+ *   filters Filterkette auf die Summe: [Typ, Hz, Q, dB] (Biquad: lowpass, highpass, lowshelf, highshelf, peaking)
+ *   melody  eigener, milderer Weg für die Melodie-Spuren { tracks, lowpass, gain } – die Hook bleibt hörbar
+ *   reverb  Hall (Faltung mit erzeugter Impulsantwort): { seconds (Nachhallzeit), damp (Hz), wet, dry }
+ *   rumble  tiefes Brummen (gefiltertes Rauschen, langsam schwellend): { freq, level }
+ *   crackle leises Knistern (Pegel), drive Sättigung (altes Radio), mono Monosumme
+ *   birds   Vogel-Zwitschern (Tupfer im Takt der Musik), gain Ausgleichspegel (Lautheit wie ohne Variante)
+ */
+export const MUSIC_VARIANTS = {
+  // Nacht: Tiefpass, mehr Hall, weicheres Schlagzeug (Hats, Becken, Clap leiser), Glitzer-Glöckchen leiser
+  nacht: {
+    filters: [['lowpass', 2300, 0.6]],
+    melody: { tracks: ['lead', 'whistle', 'organ'], lowpass: 4000, gain: 1 },
+    tracks: { bell: 0.55, echo: 0.6, jingle: 0.6, hat: 0.55, crash: 0.6, clap: 0.8, snare: 0.8, tek: 0.8 },
+    reverb: { seconds: 2.6, damp: 2600, wet: 0.45, dry: 0.95 },
+    gain: 1.1,
+  },
+  // Abend: warm (Tiefen leicht angehoben), gedämpfte Höhen, sanfter Hall
+  abend: {
+    filters: [['lowshelf', 220, 0.7, 2.5], ['highshelf', 3200, 0.7, -6], ['lowpass', 7500, 0.6]],
+    tracks: { hat: 0.85, crash: 0.8 },
+    reverb: { seconds: 1.8, damp: 3200, wet: 0.3, dry: 1 },
+    gain: 0.9,
+  },
+  // Morgen: hell und luftig (Höhen angehoben, Tiefen etwas leichter), kurzer heller Hall, Glöckchen vorn, Vogel-Zwitschern
+  morgen: {
+    filters: [['lowshelf', 140, 0.7, -2], ['highshelf', 5000, 0.7, 5]],
+    tracks: { bell: 1.3, echo: 1.25, arp: 1.12 },
+    reverb: { seconds: 1.3, damp: 7000, wet: 0.24, dry: 1 },
+    birds: 0.04,
+    gain: 1.1,
+  },
+  // Tag: hell und trocken (Höhen leicht angehoben, Echo/Hall des Themas zurückgenommen)
+  tag: {
+    filters: [['highshelf', 6000, 0.7, 3]],
+    fx: { wet: 0.4, feedback: 0.7 },
+    gain: 1,
+  },
+  // Dunkel: starker Tiefpass, tiefes Brummen, sehr viel Hall – die Melodie nimmt einen milderen Weg und bleibt hörbar
+  dunkel: {
+    filters: [['lowpass', 950, 0.7], ['lowpass', 950, 0.7], ['lowshelf', 120, 0.7, 4]],
+    melody: { tracks: ['lead', 'whistle', 'bell', 'organ'], lowpass: 2000, gain: 1.3 },
+    tracks: { hat: 0.5, crash: 0.5, jingle: 0.5, arp: 0.75, stabs: 0.75, pad: 0.8, echo: 0.7 },
+    reverb: { seconds: 3.4, damp: 1400, wet: 0.95, dry: 0.85 },
+    rumble: { freq: 110, level: 0.06 },
+    gain: 0.85,
+  },
+  // Schnell: Tempo +8 %, sonst unverändert (Taktuhr entsprechend schneller)
+  schnell: { tempo: 1.08 },
+  // Schwarz-Weiß: altes Radio – Bandpass (300 Hz – 3 kHz, nasal), leichte Sättigung, leises Knistern, Mono
+  schwarzweiss: {
+    filters: [['highpass', 320, 0.7], ['highpass', 320, 0.7], ['peaking', 1400, 1, 4], ['lowpass', 3000, 0.7], ['lowpass', 3000, 0.7]],
+    drive: 1.8,
+    crackle: 0.05,
+    mono: true,
+    gain: 1.05,
+  },
+};
+export const VARIANT_NAMES = Object.keys(MUSIC_VARIANTS);
+
+/** Braucht die Variante eine Klangkette (sonst nur Tempo/Themen-Daten)? */
+export function variantHasChain(name) {
+  const v = MUSIC_VARIANTS[name];
+  return !!v && !!(v.filters || v.melody || v.tracks || v.reverb || v.rumble || v.crackle || v.drive || v.mono || v.birds || (v.gain && v.gain !== 1));
+}
+
+const IR_CACHE = new WeakMap(); // Kontext → Impulsantworten (Live-Kontext: einmal je Variante erzeugen)
+
+/**
+ * Impulsantwort für den Hall: zwei unkorrelierte Rausch-Kanäle (Breite), exponentiell auf −60 dB nach `seconds`, mit der
+ * Zeit dunkler (Tiefpass fällt von 2·damp auf 0,4·damp), 12 ms Vorverzögerung, kurzes Einblenden. Normiert auf Verstärkung
+ * ≈ 1 im Durchlassbereich (Energie π·1,2·damp/sr je Kanal): `wet` ist dann der Hall-Anteil eines gehaltenen Tons.
+ */
+function reverbImpulse(ctx, { seconds, damp }, seed) {
+  let cache = IR_CACHE.get(ctx);
+  if (!cache) { cache = new Map(); IR_CACHE.set(ctx, cache); }
+  const key = `${seconds}:${damp}:${seed}`;
+  if (cache.has(key)) return cache.get(key);
+  const sr = ctx.sampleRate, len = Math.ceil((seconds + 0.05) * sr), pre = Math.round(0.012 * sr), fade = Math.round(0.004 * sr);
+  const buf = ctx.createBuffer(2, len, sr);
+  let energy = 0;
+  for (let ch = 0; ch < 2; ch++) {
+    const rand = mulberry32(seed * 977 + ch * 7919 + 1), d = buf.getChannelData(ch);
+    let lp = 0;
+    for (let i = pre; i < len; i++) {
+      const t = (i - pre) / sr;
+      const fc = damp * (0.4 + 1.6 * Math.exp(-3 * t / seconds));
+      lp += (1 - Math.exp(-2 * Math.PI * fc / sr)) * ((rand() * 2 - 1) - lp);
+      d[i] = lp * Math.exp(-6.9 * t / seconds) * Math.min(1, (i - pre) / fade);
+      energy += d[i] * d[i];
+    }
+  }
+  const k = Math.sqrt(Math.min(1, Math.PI * 1.2 * damp / sr) / (energy / 2 || 1));
+  for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] *= k; }
+  cache.set(key, buf);
+  return buf;
+}
+
+/** Tiefes Brummen: braunes Rauschen (2 s, im Loop), Spitze 1. */
+function rumbleBuffer(ctx, seed) {
+  const sr = ctx.sampleRate, len = 2 * sr, b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0), rand = mulberry32(seed);
+  let y = 0;
+  for (let i = 0; i < len; i++) { y = 0.985 * y + 0.12 * (rand() * 2 - 1); d[i] = y; }
+  // Loop-Naht glätten: die ersten und letzten 50 ms überblenden
+  const x = Math.round(0.05 * sr);
+  for (let i = 0; i < x; i++) { const w = i / x; d[i] = d[i] * w + d[len - x + i] * (1 - w); }
+  normalize(d);
+  return b;
+}
+
+/** Knistern alter Radios/Platten: leises Rauschen plus unregelmäßige kurze Knackser (3 s, im Loop), Spitze 1. */
+function crackleBuffer(ctx, seed) {
+  const sr = ctx.sampleRate, len = 3 * sr, b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0), rand = mulberry32(seed);
+  for (let i = 0; i < len; i++) d[i] = (rand() * 2 - 1) * 0.05;
+  const clicks = 66, w = Math.max(8, Math.round(0.0006 * sr));
+  for (let c = 0; c < clicks; c++) {
+    const p = Math.floor(rand() * (len - w)), a = (0.2 + 0.8 * rand() ** 3) * (rand() < 0.5 ? -1 : 1);
+    for (let j = 0; j < w; j++) d[p + j] += a * Math.exp(-j / (w / 4)) * (j % 2 ? -0.7 : 1);
+  }
+  normalize(d);
+  return b;
+}
+
+/** Weiche Sättigung (tanh): leise Signale unverändert (Steigung 1), laute Spitzen werden rund abgeflacht. */
+function softClip(drive) {
+  const n = 2048, c = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; c[i] = Math.tanh(drive * x) / drive; }
+  return c;
+}
+
+// Vogel-Zwitschern (Variante `morgen`): Schritt im 8-Takt-Zyklus → [Hz, Gleiten]; kurze Sinus-Tupfer, die hinauf (oder
+// hinab) gleiten – leise, zwischen den Zählzeiten
+const BIRDS = { 6: [3400, 1.35], 7: [4100, 1.3], 38: [3700, 0.8], 70: [3200, 1.4], 71: [3900, 1.35], 72: [4400, 1.25], 102: [3600, 0.8], 118: [3100, 1.4], 119: [3800, 1.3] };
+
+/**
+ * Klangkette einer Variante zwischen den Stimmen eines Themas und `dest` (Musik-Eingang vor dem Kompressor):
+ *   input ─ Filterkette ─┐                     ┌─ trocken ─┐
+ *   melodyIn ─ Tiefpass ─┴─ pre ───────────────┤           ├─ post ─ (Sättigung) ─ Pegel (mono) ─ dest
+ *                                              └─ Hall ────┘   ↑ Brummen, Knistern
+ * `wire(themeBuses)` legt die Spur-Pegel vor die Effekt-Busse des Themas und liefert die Bus-Tabelle für den Sequencer;
+ * `destOf(spur)` ist das Ziel der Spur-Busse (Melodie-Weg oder input); `extra(step, t, voices)` spielt Zusätze im Takt
+ * (Vogel-Zwitschern). Alle Knoten stehen in `nodes` (lösen mit releaseVariantChain), Dauerquellen in `sources`.
+ */
+export function createVariantChain(ctx, name, dest, seed = 11) {
+  const v = MUSIC_VARIANTS[name];
+  const nodes = [], sources = [], t0 = ctx.currentTime;
+  const keep = (n) => { nodes.push(n); return n; };
+  const gainOf = (value) => { const g = keep(ctx.createGain()); g.gain.value = value; return g; };
+  const biquad = ([type, freq, q = 0.7, db = 0]) => { const f = keep(ctx.createBiquadFilter()); f.type = type; f.frequency.value = freq; f.Q.value = q; f.gain.value = db; return f; };
+  const series = (from, specs) => specs.reduce((prev, s) => { const f = biquad(s); prev.connect(f); return f; }, from);
+  const loopSource = (buffer) => { const s = keep(ctx.createBufferSource()); s.buffer = buffer; s.loop = true; s.start(t0); sources.push(s); return s; };
+
+  const input = gainOf(1), pre = gainOf(1), post = gainOf(1);
+  series(input, v.filters ?? []).connect(pre);
+  let melodyIn = null;
+  if (v.melody) { melodyIn = gainOf(v.melody.gain ?? 1); series(melodyIn, [['lowpass', v.melody.lowpass, 0.7]]).connect(pre); }
+  let tail = 0.2;
+  if (v.reverb) {
+    const dry = gainOf(v.reverb.dry ?? 1), wet = gainOf(v.reverb.wet), send = biquad(['highpass', 220, 0.7]); // Kick/Bass bleiben trocken
+    const conv = keep(ctx.createConvolver());
+    conv.normalize = false;
+    conv.buffer = reverbImpulse(ctx, v.reverb, seed);
+    pre.connect(dry); dry.connect(post);
+    pre.connect(send); send.connect(conv); conv.connect(wet); wet.connect(post);
+    tail = v.reverb.seconds + 0.1;
+  } else pre.connect(post);
+  if (v.rumble) {
+    const lp = biquad(['lowpass', v.rumble.freq, 0.7]), g = gainOf(v.rumble.level);
+    loopSource(rumbleBuffer(ctx, seed + 3)).connect(lp); lp.connect(g); g.connect(post);
+    const lfo = keep(ctx.createOscillator()), depth = gainOf(v.rumble.level * 0.6);
+    lfo.frequency.value = 0.11; lfo.connect(depth); depth.connect(g.gain); lfo.start(t0); sources.push(lfo);
+  }
+  if (v.crackle) {
+    const hp = biquad(['highpass', 900, 0.7]), g = gainOf(v.crackle);
+    loopSource(crackleBuffer(ctx, seed + 5)).connect(hp); hp.connect(g); g.connect(post);
+  }
+  let last = post;
+  if (v.drive) { const ws = keep(ctx.createWaveShaper()); ws.curve = softClip(v.drive); post.connect(ws); last = ws; }
+  const out = gainOf(v.gain ?? 1);
+  if (v.mono) { out.channelCount = 1; out.channelCountMode = 'explicit'; out.channelInterpretation = 'speakers'; }
+  last.connect(out);
+  out.connect(dest);
+
+  const melodic = new Set(v.melody?.tracks ?? []);
+  const destOf = (track) => (melodyIn && melodic.has(track) ? melodyIn : input);
+  const wire = (themeBuses = {}) => {
+    const buses = { ...themeBuses };
+    for (const k of new Set([...Object.keys(v.tracks ?? {}), ...melodic])) {
+      const target = themeBuses[k] ?? destOf(k);
+      if (v.tracks?.[k] === undefined) { buses[k] = target; continue; }
+      const g = gainOf(v.tracks[k]);
+      g.connect(target);
+      buses[k] = g;
+    }
+    return buses;
+  };
+  const extra = v.birds ? (step, t, voices) => {
+    const b = BIRDS[step % 128];
+    return b ? voices.pluck({ at: t, bus: input, freq: b[0], type: 'sine', volume: v.birds, decay: 0.03, duration: 0.07, glide: b[1], glideTime: 0.045 }) : 0;
+  } : null;
+  return { name, input, melodyIn, out, nodes, sources, tail, destOf, wire, extra, mono: !!v.mono };
+}
+
+/** Klangkette nach dem Ausklingen lösen (`after`: Nachklang davor liegender Busse, z.B. das Echo des Themas). */
+export function releaseVariantChain(chain, after = 0) {
+  if (!chain) return;
+  const wait = Math.min(8, chain.tail + after) + 0.5;
+  const ctx = chain.input.context;
+  for (const s of chain.sources) { try { s.stop(ctx.currentTime + wait); } catch (_) { /* egal */ } }
+  setTimeout(() => { for (const n of chain.nodes) { try { n.disconnect(); } catch (_) { /* egal */ } } }, wait * 1000 + 100);
 }
 
 export class AudioEngine {

@@ -28,8 +28,17 @@
 //
 // Der Sequencer ist in Kontext und Zeitbasis parametrisierbar: im Spiel läuft er auf dem
 // Live-Kontext, `renderTheme()` schreibt ein Thema über einen OfflineAudioContext in einen Puffer.
+//
+// Klang-Varianten (Remix-Welten): `music.play(name, { variant })` bzw. `music.play({ theme, variant })` mit `variant` aus
+// VARIANT_NAMES (nacht, abend, morgen, tag, dunkel, schnell, schwarzweiss; MUSIC_VARIANTS in AudioEngine.js) – dieselbe
+// Komposition mit anderer Klangbearbeitung bzw. Tempo (`schnell` +8 %, die Taktuhr läuft mit). Ohne (oder mit unbekannter)
+// Variante entsteht genau der bisherige Klang ohne zusätzliche Knoten. `music.variant` = Variante des laufenden bzw.
+// vorgemerkten Themas (sonst null); ein Wechsel nur der Variante startet das Thema neu (Zählzeit beginnt bei 0).
 
-import { engine, Voices, createMusicChain, createThemeBus, releaseThemeBus, MUSIC_LEVEL } from './AudioEngine.js';
+import {
+  engine, Voices, createMusicChain, createThemeBus, releaseThemeBus, MUSIC_LEVEL,
+  MUSIC_VARIANTS, VARIANT_NAMES, variantHasChain, createVariantChain, releaseVariantChain,
+} from './AudioEngine.js';
 import { THEMES } from './themes.js';
 
 const NOTE_INDEX = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -45,6 +54,12 @@ const BEAT_GRACE = 0.012;  // s: wer sich so kurz nach einer Zählzeit anmeldet,
 const perfSeconds = () => ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) / 1000;
 /** Gibt es das Thema? (eigene Eigenschaft – "toString" & Co. sind keine Themen; ohne Object.hasOwn für ältere Safari) */
 const isTheme = (name) => typeof name === 'string' && Object.prototype.hasOwnProperty.call(THEMES, name);
+/** Klang-Variante normalisieren: bekannter Name (auch „Schwarz-Weiß“) → Name, sonst null (= ohne Variante). */
+export function variantOf(v) {
+  if (typeof v !== 'string') return null;
+  const k = v.trim().toLowerCase().replace(/ß/g, 'ss').replace(/[-_\s]/g, '');
+  return Object.prototype.hasOwnProperty.call(MUSIC_VARIANTS, k) ? k : null;
+}
 /** Schlagzeug-Teil → Bus-Name (offene und geschlossene Hats teilen sich einen Bus). */
 const DRUM_BUS = { k: 'kick', c: 'clap', s: 'snare', h: 'hat', o: 'hat', r: 'crash', t: 'tom', d: 'doum', p: 'tek', x: 'tick', j: 'jingle' };
 
@@ -158,11 +173,43 @@ export function compileTheme(name, theme, report = (msg) => console.error(`[Musi
 }
 
 /**
+ * Kompiliertes Thema mit Klang-Variante: Tempo-Faktor (Schrittdauer, Echo-Längen und Taktuhr folgen), Echo/Hall des
+ * Themas skaliert (fx-Faktoren), `variant` gesetzt. Unbekannte Variante → unverändert.
+ */
+export function applyVariant(theme, name) {
+  const v = MUSIC_VARIANTS[name];
+  if (!v) return theme;
+  const bpm = theme.bpm * (v.tempo ?? 1);
+  let fx = theme.fx;
+  if (v.fx && fx?.delay) fx = { ...fx, delay: { ...fx.delay, wet: (fx.delay.wet ?? 0.5) * (v.fx.wet ?? 1), feedback: (fx.delay.feedback ?? 0.4) * (v.fx.feedback ?? 1) } };
+  return { ...theme, bpm, baseBpm: theme.bpm, stepDur: 60 / bpm / 4, fx, variant: name };
+}
+
+/**
+ * Knoten zwischen Stimmen und `dest` für ein Thema: Effekt-Busse des Themas, mit Variante davor deren Klangkette.
+ * Ohne Variante (oder Variante nur mit Tempo) genau wie bisher: createThemeBus direkt auf `dest`, `energyGain` (falls
+ * übergeben) vorher an `dest`.
+ * @returns {{ fx, chain, buses, input, extra, nodes: number }} input = Ziel der Stimmen (Sequencer-dest)
+ */
+export function themeGraph(ctx, theme, dest, energyGain = null) {
+  if (!theme.variant || !variantHasChain(theme.variant)) {
+    if (energyGain) energyGain.connect(dest);
+    const fx = createThemeBus(ctx, theme.fx, theme.stepDur, dest);
+    return { fx, chain: null, buses: fx.buses, input: dest, extra: null, nodes: fx.nodes.length };
+  }
+  const chain = createVariantChain(ctx, theme.variant, dest);
+  if (energyGain) energyGain.connect(chain.input);
+  const fx = createThemeBus(ctx, theme.fx, theme.stepDur, chain.input, chain.destOf);
+  const buses = chain.wire(fx.buses);
+  return { fx, chain, buses, input: chain.input, extra: chain.extra, nodes: fx.nodes.length + chain.nodes.length };
+}
+
+/**
  * Spielt ein kompiliertes Thema Schritt für Schritt über die übergebenen Stimmen.
  * Zeitbasis und Kontext kommen von außen (Live oder Offline).
  */
 export class Sequencer {
-  constructor({ voices, dest, energyGain, theme, startTime, energy = false, buses = {}, step = 0 }) {
+  constructor({ voices, dest, energyGain, theme, startTime, energy = false, buses = {}, step = 0, extra = null }) {
     this.voices = voices;
     this.dest = dest;
     this.energyGain = energyGain;
@@ -171,6 +218,7 @@ export class Sequencer {
     this.time = startTime;
     this.energy = energy;
     this.buses = buses; // Spur → Effekt-Bus (createThemeBus); fehlende Spuren gehen direkt auf dest
+    this.extra = extra; // Zusätze je Schritt (Klang-Variante, z.B. Vogel-Zwitschern): extra(step, t, voices) → Oszillatoren
   }
 
   /** Plant alle Schritte bis zur Kontextzeit `until`. Liefert false, wenn das Stück zu Ende ist (kein Loop). */
@@ -240,6 +288,7 @@ export class Sequencer {
         else oscs += v.hoover({ at: t, bus: this.energyGain, freq: freqs[0], duration: ev.dur * sd * 0.95, voices: 3, volume: 0.07 });
       }
     }
+    if (this.extra) oscs += this.extra(step, t, v) || 0;
     return oscs;
   }
 }
@@ -253,7 +302,11 @@ class Music {
     this.drums = false;       // Energie-Ebene an (Reiten) – Name aus Kompatibilität
     this.energyGain = null;
     this.fx = null;           // Effekt-Busse des laufenden Themas (createThemeBus)
+    this.chain = null;        // Klangkette der Variante des laufenden Themas (createVariantChain) oder null
+    this.curVariant = null;   // Variante des laufenden Themas
     this.pending = null;
+    this.pendingVariant = null; // Variante des vorgemerkten Themas (vor der Freischaltung)
+    this.energyDest = null;   // Ziel der Energie-Ebene (Musik-Eingang bzw. Eingang der Klangkette)
     this.lookahead = 0.12;    // Sekunden
     this.interval = 30;       // ms
     // Taktuhr (beat(), onBeat()): Zählzeit = b0 + (Zeit − t0) · bpm/60 auf der Zeitbasis `src`
@@ -267,23 +320,31 @@ class Music {
     this.lastHeard = null;    // letzte Ablesung der hörbaren Uhr { perf (s), beat } – Anschluss für die Ersatzuhr
   }
 
-  /** Thema starten (Neustart nur bei Wechsel). Vor der Freischaltung läuft die Taktuhr als Ersatzuhr an. */
-  play(name) {
+  /**
+   * Thema starten (Neustart nur bei Wechsel von Thema oder Variante). Vor der Freischaltung läuft die Taktuhr als Ersatzuhr an.
+   * @param {string|{theme: string, variant?: string}} name Thema (oder { theme, variant }, z.B. LEVEL.music eines Remix-Levels)
+   * @param {{variant?: string}} [opts] Klang-Variante (VARIANT_NAMES); ohne bzw. unbekannt: Klang wie bisher
+   */
+  play(name, opts = null) {
+    if (name && typeof name === 'object') { opts = { ...name, ...(opts ?? {}) }; name = name.theme ?? name.name; }
+    const variant = variantOf(opts?.variant);
     if (!engine.ready) {
       this.pending = name;
+      this.pendingVariant = variant;
       const c = this.clock;
       if (!isTheme(name)) this._stopClock();
-      else if (!c || c.theme !== name || c.stopped) this._startClock(compileTheme(name, THEMES[name], () => {}), 'ersatz', this._now(), 0, true);
+      else if (!c || c.theme !== name || c.variant !== variant || c.stopped) this._startClock(this._compile(name, variant, () => {}), 'ersatz', this._now(), 0, true);
       return;
     }
     this.pending = null;
-    if (this.current === name && this.timer) return;
+    this.pendingVariant = null;
+    if (this.current === name && this.curVariant === variant && this.timer) return;
     const c = this.clock;
-    const waitingSame = !!c && c.theme === name && !c.stopped && c.waiting;
+    const waitingSame = !!c && c.theme === name && c.variant === variant && !c.stopped && c.waiting;
     const join = waitingSame && this.manualTime === null; // Ersatzuhr lief schon: im Takt einsteigen
     this._halt();
     if (!isTheme(name)) { this._stopClock(); return; }
-    const theme = compileTheme(name, THEMES[name]);
+    const theme = this._compile(name, variant);
     let startTime = engine.now + 0.05, beat0 = 0;
     if (join) {
       const p = this._joinPoint();
@@ -292,22 +353,28 @@ class Music {
     }
     this.theme = theme;
     this.current = name;
+    this.curVariant = theme.variant ?? null;
     if (!this.energyGain) {
       this.energyGain = engine.ctx.createGain();
       this.energyGain.gain.value = this.drums ? 1 : 0;
       this.energyGain.connect(engine.musicIn);
+      this.energyDest = engine.musicIn;
     }
-    this.fx = createThemeBus(engine.ctx, theme.fx, theme.stepDur, engine.musicIn);
-    engine.voices.stats.nodes += this.fx.nodes.length;
+    const g = themeGraph(engine.ctx, theme, engine.musicIn);   // ohne Variante: nur die Effekt-Busse wie bisher
+    this.fx = g.fx;
+    this.chain = g.chain;
+    engine.voices.stats.nodes += g.nodes;
+    if (this.energyDest !== g.input) { this.energyGain.disconnect(); this.energyGain.connect(g.input); this.energyDest = g.input; }
     this.seq = new Sequencer({
       voices: engine.voices,
-      dest: engine.musicIn,
+      dest: g.input,
       energyGain: this.energyGain,
       theme,
       startTime,
       energy: this.drums,
-      buses: this.fx.buses,
+      buses: g.buses,
       step: (beat0 * 4) % theme.length,
+      extra: g.extra,
     });
     if (join) Object.assign(this.clock, { src: 'audio', t0: startTime, b0: beat0, waiting: false });
     else if (this.manualTime !== null) { if (!waitingSame) this._startClock(theme, 'ersatz', this.manualTime, 0); }
@@ -328,23 +395,46 @@ class Music {
     this.timer = null;
     this.seq = null;
     this.current = null;
+    this.curVariant = null;
+    releaseVariantChain(this.chain, this.fx ? Math.min(this.fx.tail, 6) : 0); // Hall der Variante klingt nach dem Echo aus
+    this.chain = null;
     releaseThemeBus(this.fx); // Hall/Echo klingt noch aus, dann werden die Busse gelöst
     this.fx = null;
+  }
+
+  /** Thema kompilieren, mit Variante (Tempo, Echo-Faktoren). */
+  _compile(name, variant, report) {
+    const th = compileTheme(name, THEMES[name], report);
+    return variant ? applyVariant(th, variant) : th;
   }
 
   /** Namen aller Themen. */
   listThemes() { return Object.keys(THEMES); }
 
-  /** Eckdaten eines Themas (Test/Debug): Tempo, Takte, Loop, Länge in Sekunden, Spuren, Effekte, Spiel-Takt. */
-  themeInfo(name) {
+  /** Namen der Klang-Varianten (für `play(name, { variant })`). */
+  listVariants() { return [...VARIANT_NAMES]; }
+
+  /**
+   * Klang-Variante des laufenden Themas (gehört zu `current`); läuft keins (vor der Freischaltung), die des vorgemerkten
+   * Themas (`pending`/`pendingVariant`), sonst null.
+   */
+  get variant() { return this.current ? this.curVariant : (this.pending ? this.pendingVariant : null); }
+
+  /**
+   * Eckdaten eines Themas (Test/Debug): Tempo, Takte, Loop, Länge in Sekunden, Spuren, Effekte, Spiel-Takt; mit
+   * `{ variant }` Tempo und Länge der Variante (baseBpm = Tempo ohne Variante).
+   */
+  themeInfo(name, { variant = null } = {}) {
     if (!isTheme(name)) return null;
-    const th = compileTheme(name, THEMES[name], () => {});
+    const v = variantOf(variant);
+    const th = this._compile(name, v, () => {});
     return {
       name, bpm: th.bpm, bars: th.bars, loop: th.loop, seconds: th.length * th.stepDur,
       tracks: Object.entries(th.tracks).filter(([, t]) => t.events.length).map(([k]) => k),
       drumKinds: [...new Set(th.tracks.drums.events.map((d) => d.kind))].sort().join(''),
       fx: th.fx ? Object.keys(th.fx) : [], energy: th.tracks.energy.events.length > 0 || th.energyDouble > 0,
       sync: th.sync ? { ...th.sync } : null,
+      ...(v ? { variant: v, baseBpm: th.baseBpm } : null),
     };
   }
 
@@ -357,7 +447,7 @@ class Music {
 
   /** Falls das Thema vor der Audio-Freischaltung angefordert wurde. */
   resumePending() {
-    if (this.pending && engine.ready) { const p = this.pending; this.pending = null; this.play(p); }
+    if (this.pending && engine.ready) { const p = this.pending, variant = this.pendingVariant; this.pending = null; this.play(p, { variant }); }
   }
 
   schedule() {
@@ -366,7 +456,7 @@ class Music {
     if (this.pending) { this.resumePending(); return; }  // während der Pause angefordertes Thema nachholen
     const c = this.clock;
     // Kontext läuft wieder (oder Testuhr aus): Musik springt an die Stelle der Uhr
-    if (c && c.src === 'ersatz' && !c.stopped && this.manualTime === null && c.theme === this.current) this._resync();
+    if (c && c.src === 'ersatz' && !c.stopped && this.manualTime === null && c.theme === this.current && c.variant === this.curVariant) this._resync();
     if (this.seq && !this.seq.advance(engine.now + this.lookahead)) this._halt();
     if (this.clock && this.clock.src === 'audio') this._raw(); // Ablesung merken (Anschluss beim Anhalten)
     this._pumpBeats(false);
@@ -381,15 +471,16 @@ class Music {
    *   beat = fortlaufende Zählzeit (Viertel) seit Themenstart als Kommazahl, nie fallend; bar = ganze Takte (4/4);
    *   phase = 0..1 innerhalb der Zählzeit; playing = ein Thema läuft (hörbar oder über die Ersatzuhr);
    *   inBar = Zählzeit im Takt (0–3); loopBeats = Länge des Loops in Zählzeiten. Ohne Thema: bpm 0, playing false.
+   *   variant = Klang-Variante (bpm ist das Tempo mit Variante, z.B. `schnell` +8 %).
    */
   beat() {
     const c = this.clock;
-    if (!c) return { bpm: 0, beat: 0, bar: 0, phase: 0, playing: false, inBar: 0, theme: null, loopBeats: 0, source: 'none' };
+    if (!c) return { bpm: 0, beat: 0, bar: 0, phase: 0, playing: false, inBar: 0, theme: null, loopBeats: 0, source: 'none', variant: null };
     this._checkSource();
     let b = this._shown(), playing = !c.stopped;
     if (!c.loop && b >= c.beats) { b = c.beats; playing = false; }
     const whole = Math.floor(b);
-    return { bpm: c.bpm, beat: b, bar: Math.floor(b / BEATS_PER_BAR), phase: b - whole, playing, inBar: whole % BEATS_PER_BAR, theme: c.theme, loopBeats: c.beats, source: c.src };
+    return { bpm: c.bpm, beat: b, bar: Math.floor(b / BEATS_PER_BAR), phase: b - whole, playing, inBar: whole % BEATS_PER_BAR, theme: c.theme, loopBeats: c.beats, source: c.src, variant: c.variant };
   }
 
   /**
@@ -449,7 +540,7 @@ class Music {
   _now() { return this.manualTime ?? perfSeconds(); }
 
   _startClock(theme, src, t0, b0 = 0, waiting = false) {
-    this.clock = { theme: theme.name, bpm: theme.bpm, loop: theme.loop, beats: theme.length / 4, src, t0, b0, waiting, stopped: false, frozen: 0 };
+    this.clock = { theme: theme.name, variant: theme.variant ?? null, bpm: theme.bpm, loop: theme.loop, beats: theme.length / 4, src, t0, b0, waiting, stopped: false, frozen: 0 };
     this.shownBeat = b0;
     this.firedBeat = Math.ceil(b0) - 1;
     this._kickTicker();
@@ -557,29 +648,34 @@ class Music {
   /**
    * Thema offline rendern (Test/Messung): Sequencer auf einem OfflineAudioContext, Musik-Kette mit
    * Pegel `level` (Standard 1 = der Mix hinter dem Kompressor; im Spiel skaliert MUSIC_LEVEL ihn).
-   * `theme` (optional) rendert statt des benannten ein übergebenes Themen-Objekt (Experimente, Tests).
+   * `theme` (optional) rendert statt des benannten ein übergebenes Themen-Objekt (Experimente, Tests);
+   * `variant` mit Klang-Variante (bpm = Tempo der Variante), `channels` 1 (Standard) oder 2 (Stereo, z.B. Hall-Breite).
    * @returns {Promise<{buffer: AudioBuffer, sampleRate, seconds, bpm, level, inGameLevel, stats, nodesPerSecond}>}
    */
-  async renderTheme(name, seconds = 8, { energy = false, sampleRate = 44100, level = 1, theme: custom = null } = {}) {
+  async renderTheme(name, seconds = 8, { energy = false, sampleRate = 44100, level = 1, theme: custom = null, variant = null, channels = 1 } = {}) {
     if (!custom && !isTheme(name)) throw new Error(`Unbekanntes Thema: ${name}`);
-    const theme = compileTheme(name, custom ?? THEMES[name]);
+    const v = variantOf(variant);
+    let theme = compileTheme(name, custom ?? THEMES[name]);
+    if (v) theme = applyVariant(theme, v);
     const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    const ctx = new Ctx(1, Math.ceil(seconds * sampleRate), sampleRate);
+    const ctx = new Ctx(channels, Math.ceil(seconds * sampleRate), sampleRate);
     const chain = createMusicChain(ctx, ctx.destination, level);
     const voices = new Voices(ctx, chain.input, 7);
     const energyGain = ctx.createGain();
     energyGain.gain.value = 1;
-    energyGain.connect(chain.input);
-    const fx = createThemeBus(ctx, theme.fx, theme.stepDur, chain.input);
-    voices.stats.nodes += fx.nodes.length;
-    const seq = new Sequencer({ voices, dest: chain.input, energyGain, theme, startTime: 0.02, energy, buses: fx.buses });
+    const g = themeGraph(ctx, theme, chain.input, energyGain);   // ohne Variante: Energie-Ebene und Effekt-Busse wie bisher
+    voices.stats.nodes += g.nodes;
+    const seq = new Sequencer({ voices, dest: g.input, energyGain, theme, startTime: 0.02, energy, buses: g.buses, extra: g.extra });
     seq.advance(seconds);
     const buffer = await ctx.startRendering();
     return {
       buffer, sampleRate, seconds, bpm: theme.bpm, bars: theme.bars, loop: theme.loop, loopSeconds: theme.length * theme.stepDur, level, inGameLevel: MUSIC_LEVEL,
+      variant: v, baseBpm: theme.baseBpm ?? theme.bpm,
       stats: { ...voices.stats }, nodesPerSecond: voices.stats.nodes / seconds, oscillatorsPerSecond: voices.stats.oscillators / seconds,
     };
   }
 }
 
 export const music = new Music();
+// Test-/Debug-Zugriff auf die Bausteine (tests/audio.mjs baut damit die Kette ohne Variante nach – Gegenprobe)
+music.parts = { compileTheme, applyVariant, themeGraph, Sequencer, Voices, createMusicChain, createThemeBus, THEMES, MUSIC_VARIANTS };
