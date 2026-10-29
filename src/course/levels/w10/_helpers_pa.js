@@ -180,7 +180,7 @@ export function stachelringe(level, list) {
  * Glockenbaum (Bauplan P-2 „Gipfelbrücke ersetzt durch 3 Glockenbäume (Krallen-Anzug)“): Kletterstamm (climbable – nur mit dem
  * Krallen-Anzug hinauf, sonst Wandrutschen), oben eine Krone als Plattform (von unten durchlässig, damit der Kletterer
  * hinaufkommt) mit einer goldenen Glocke, die beim Landen läutet und im Wind schwingt.
- *   glockenbaeume(level, [{ id, pos: [x, y0, z] (Fuß des Stamms), top (Oberkante der Krone), w: 1.3 (Stamm), crown: 3.2 }])
+ *   glockenbaeume(level, [{ id, pos: [x, y0, z] (Fuß des Stamms), top (Oberkante der Krone), w: 1.3 (Stamm), crown: 3.2, side: ±1 (Glockengestell) }])
  * Griff: level.named.get(id) = { rung (Zahl der Läut-Landungen), top, x, z, info() }.
  */
 export function glockenbaeume(level, list) {
@@ -216,19 +216,25 @@ export function glockenbaeume(level, list) {
       const c = [0xd8782a, 0xe8a83a, 0x9ab84a][i % 3];
       parts.push(colorizeFlat(g, c));
     }
-    bells.push({ h, x, y: top - 0.55, z: z + cr / 2 + 0.1 });
+    // Glockengestell am Kronenrand (Seite side, weg vom nächsten Baum): zwei Pfosten, Querbalken, die Glocke hängt darunter
+    const side = q.side ?? 1;
+    const gx = x + side * (cr / 2 - 0.3);
+    for (const dz of [-0.85, 0.85]) parts.push(box(0.2, 2.2, 0.2, gx, top + 1.1, z + dz, 0x6a3e22, { r: 0.06 }));
+    parts.push(box(0.24, 0.22, 2.1, gx, top + 2.25, z, 0x5a3218, { r: 0.08 }));
+    bells.push({ h, x: gx, y: top + 2.12, z });
   }
   if (parts.length) addStatic(level, merge(parts));
   // Glocken (bewegt): eine Gruppe, je Glocke ein Pendel
   if (level.view && bells.length) {
     const group = new THREE.Group();
     const bellGeo = bellGeometry();
-    const mat = new THREE.MeshStandardMaterial({ color: 0xffc83a, roughness: 0.25, metalness: 0.6, emissive: 0x3a2400 });
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffe066, roughness: 0.35, metalness: 0.15, emissive: 0x806000 });
     for (const b of bells) {
       const piv = new THREE.Group();
       piv.position.set(b.x, b.y, b.z);
       const m = new THREE.Mesh(bellGeo, mat);
-      m.position.y = -0.55;
+      m.position.y = -0.95;
+      m.scale.setScalar(1.7);
       m.castShadow = true;
       piv.add(m);
       group.add(piv);
@@ -241,6 +247,7 @@ export function glockenbaeume(level, list) {
         if (b.h.ringT > 0) b.h.ringT = Math.max(0, b.h.ringT - dt);
         const amp = 0.12 + b.h.ringT * 0.5;
         b.piv.rotation.x = Math.sin(t * (2.2 + b.h.ringT * 6) + b.x) * amp;
+        b.piv.rotation.z = Math.sin(t * 1.7 + b.z) * 0.05;
       }
     });
   }

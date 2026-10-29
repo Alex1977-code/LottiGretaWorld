@@ -72,7 +72,7 @@ export const LEVEL = remixOf(KLOETZCHENBERG, {
     // ?-Block vor dem Glockenhain: Krallen-Anzug statt Funkenblüte, tiefer (der Anzug bleibt oben liegen)
     { match: { kind: 'question', box: [-0.5, 33, -174.5, 0.5, 34, -173] }, set: { content: 'krallenAnzug', pos: [-4, YP + 2.2, -173.6] } },
     // Rückweg aus dem P-Schalter-Raum aufs Rankenplateau
-    { match: { id: 'pRaumZiel' }, set: { pos: [-4.4, YP, -179.2] } },
+    { match: { id: 'pRaumZiel' }, set: { pos: [-5, YP, -176.8] } },
   ],
   stars: [
     [2.5, 38.2, -172.1],                                     // 0: hinter der Spitze der dritten Ranke
@@ -144,9 +144,9 @@ export const LEVEL = remixOf(KLOETZCHENBERG, {
   },
   build(level) {
     glockenbaeume(level, [
-      { id: 'baum1', pos: [-3.5, YW, -184.2], top: YP + 4.5 },
-      { id: 'baum2', pos: [1.5, YW, -189.2], top: YP + 8.5 },
-      { id: 'baum3', pos: [-2.5, YW, -194.6], top: YP + 12.5 },
+      { id: 'baum1', pos: [-3.5, YW, -184.2], top: YP + 4.5, side: -1 },
+      { id: 'baum2', pos: [1.5, YW, -189.2], top: YP + 8.5, side: 1 },
+      { id: 'baum3', pos: [-2.5, YW, -194.6], top: YP + 12.5, side: 1 },
     ]);
   },
   setup(level) {
