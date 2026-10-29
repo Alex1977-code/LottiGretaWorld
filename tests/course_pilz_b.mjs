@@ -35,10 +35,10 @@ const ROUTES = {
     base: '7-4',
     start: [0, Y7, 6],
     meta: { title: 'Sinkschollen über dem Blauglutsee', stars: 3, time: 400, theme: 'bluelava@nacht', music: 'course_bluebelt', variant: 'nacht', archetype: 'parcours', light: 'nacht' },
-    enemies: { schubser: 0, knochenflieger: 5 },
+    enemies: { schubser: 0, knochenflieger: 0 },
     baseEnemies: { schubser: 6, knochenflieger: 5 },
     remixChecks: [
-      { name: 'keine Schubser, Pfeilplattformen aus der Lava durch 14 Sinkschollen ersetzt (die drei aus der Mauer bleiben), Gleitblatt statt Wurfsichel in den ?-Blöcken, Rätselbox ohne Aufgabe',
+      { name: 'keine Schubser und keine Knochenflieger, Pfeilplattformen aus der Lava durch 14 Sinkschollen ersetzt (die drei aus der Mauer bleiben), Gleitblatt statt Wurfsichel in den ?-Blöcken, Rätselbox ohne Aufgabe',
         ok: (r) => r.kinds.schubser === undefined && r.schollen === 14 && r.pfeil === 3 && r.qGleit === 3 && r.qSichel === 0 && !r.rbTask },
     ],
     main: [
@@ -107,16 +107,16 @@ const ROUTES = {
       { name: 'Stern 0 nicht ohne die Schollen (Sprung von der Seitensäule)', star: 0, expectNot: true, from: [-8.2, Y7 + 0.6, -1.5], heroes: ['lotti'], invuln: false,
         legs: [{ to: [-15.2, -7.6], jump: 40, within: 0.5, max: 300, land: false, partial: true }, { wait: 200 }] },
       { name: 'Stern 1: Seitenweg G → Scholle → Walzeninsel, im Sprung über die Stachelwalze, Scholle → Steinbau H', star: 1, from: [0, Y7, -145],
-        legs: [{ to: [-4.3, -145.5], within: 0.4, run: false }, { to: [-8.6, -144.5], jump: 24, within: 0.8, run: false },
+        legs: [{ to: [-4.3, -145.5], within: 0.4, run: false }, { to: [-8.1, -144.5], jump: 24, within: 0.8, run: false },
           { to: [-9.75, -148.6], jump: 24, within: 0.6, run: false }, { to: [-9.75, -155], jumpZ: -149.9, jump: 34, within: 0.6, run: true },
-          { to: [-8.6, -159], jump: 24, within: 0.8, run: false }, { to: [-3.6, -159], jump: 24, within: 0.6, run: false }, { expect: 'onH7' }], shot: 'stern1',
+          { to: [-8.1, -159], jump: 24, within: 0.8, run: false }, { to: [-3.6, -159], jump: 28, within: 0.6, run: true }, { expect: 'onH7' }], shot: 'stern1',
         mech: (r) => r.mech.hurts === 0, mechText: (r) => `Treffer-Versuche ${r.mech.hurts}` },
       { name: 'Stern 1 nicht auf dem Hauptweg über Zylinder 3', star: 1, expectNot: true, from: [0, Y7, -147.6], heroes: ['lotti'],
         legs: [{ to: [0, -151.4], jump: 20, within: 0.9, run: false }, { to: [0, -156], jumpZ: -152.4, jump: 24, within: 0.9, run: true }] },
       { name: 'Stern 2: Gleitblatt aus dem ?-Block auf Steinbau I, vom Röhrendach hinter die Röhre gleiten – die unsichtbare Plattform erscheint, Warp-Box zurück', star: 2, from: [3.5, Y7, -170.8],
         legs: [{ to: [3.5, -171.6], within: 0.2, run: false }, { hop: 30 }, { wait: 20 }, { chaseKind: 'powerup', max: 900 }, { expect: 'gleitblatt' },
           { to: [1.4, -178.6], within: 0.4, run: false }, { to: [0, -181], jump: 20, within: 0.3, run: false }, { expect: 'onPipe7' },
-          { glide: [0, -202.2], runUp: 0 }, { expect: 'geheimSichtbar' }, { star: 2 }, { until: 'zurueckDa', max: 120 }, { warp: [1.7, -203.6] }, { expect: 'onI7' }], shot: 'stern2' },
+          { glide: [0, -202.2], runUp: 0 }, { wait: 12 }, { expect: 'geheimSichtbar' }, { star: 2 }, { until: 'zurueckDa', max: 120 }, { warp: [1.7, -203.6] }, { expect: 'onI7' }], shot: 'stern2' },
       { name: 'Stern 2 nicht ohne Gleitblatt (Sprung vom Röhrendach fällt in die Lava)', star: 2, expectNot: true, from: [0, Y7 + 1.4, -181], heroes: ['lotti'], invuln: false,
         legs: [{ glide: [0, -202.2], hold: false }, { wait: 240 }] },
     ],
@@ -162,7 +162,7 @@ const sc = (fn, arg) => page.evaluate(fn, arg);
 const only = process.argv[2];
 const LEVELS = only ? [only] : Object.keys(ROUTES);
 const ONLY = process.env.ONLY ?? null;
-const pick = (list) => (ONLY ? list.filter((t) => t.name.includes(ONLY)) : list);
+const pick = (list) => (ONLY ? list.filter((t) => ONLY.split("|").some((o) => t.name.includes(o))) : list);
 const PARTS = new Set((process.env.PARTS ?? 'load,base,route,sweep,targets,extra,shots,haus,haus-extra').split(','));
 const HEROES = (process.env.HEROES ?? 'lotti,greta').split(',');
 const SHOTS = process.env.SHOTS ? new Set(process.env.SHOTS.split('|')) : null;
@@ -183,6 +183,7 @@ await page.addInitScript(() => {
 
 /** Hilfen in der Seite: Figur setzen, Bot-Fahrt, Zustand. */
 function install() {
+  const PI = Math.PI;
   const c = window.__course;
   c.setManual(true);
   c.level.muted = true;
@@ -267,25 +268,11 @@ function install() {
       const track = [];
       let lastHurts = p.hurtTries ?? 0;
       let stickInScript = null;
-      let reflex = 0;
       const schollenSeen = new Set();
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
-        // Reflex wie ein Kind: stößt ein Knochenflieger herab, hochspringen (wie course_w7b)
-        if (o.reflex !== false) {
-          if (reflex > 0) { reflex--; inp = { ...(inp ?? {}), jump: true }; }
-          else if (p.mode === 'ground') {
-            for (const e of L.entities) {
-              if (e.kind !== 'knochenflieger' || !e.alive || e.defeated || e.state !== 'dive') continue;
-              const low = e.diveLow, tLow = e.diveT / 2 - e.stateT;
-              const near = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 2.6 && e.pos.y - p.pos.y < 2.2 && e.pos.y - p.pos.y > -0.3;
-              if (!near && (!low || tLow > 0.42 || tLow < 0.05 || Math.hypot(low[0] - p.pos.x, low[2] - p.pos.z) > 1.6)) continue;
-              reflex = 26; mech.reflex = (mech.reflex ?? 0) + 1; inp = { ...(inp ?? {}), jump: true }; break;
-            }
-          }
-        }
         c.setInput(inp); c.step(1); steps++;
-        if ((p.hurtTries ?? 0) > lastHurts) { lastHurts = p.hurtTries; mech.hurtList.push(`${p.lastHurt}@${p.pos.x.toFixed(0)},${p.pos.y.toFixed(0)},${p.pos.z.toFixed(0)}`); }
+        if ((p.hurtTries ?? 0) > lastHurts) { lastHurts = p.hurtTries; mech.hurtList.push(`${p.lastHurt}@${p.pos.x.toFixed(0)},${p.pos.y.toFixed(0)},${p.pos.z.toFixed(0)}`); if (window.__trace) log.push(['TREFFER', p.lastHurt, steps, JSON.stringify(hist.slice(-12))]); }
         if (p.mode === 'ground' && p.ground?.tag === 'sinkscholle' && !schollenSeen.has(p.ground)) { schollenSeen.add(p.ground); mech.schollen++; }
         if (p.mode === 'ground' && !p.dead) {
           const t = track[track.length - 1];
@@ -315,6 +302,17 @@ function install() {
         if (Lg.expect) { const ok = COND[Lg.expect](); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.ground?.tag ?? '']); continue; }
         if (Lg.until) { let k = 0; for (; k < (Lg.max ?? 1200) && !COND[Lg.until](); k++) { if (p.dead || L.runtime.status !== 'play') { c.setInput({}); c.step(1); steps++; } else tick({}); } log.push(['bis', Lg.until, k]); if (!COND[Lg.until]()) log.push(['FEHLER: bis', Lg.until]); continue; }
         if (Lg.kill) { p.invuln = 0; p.die('fall'); log.push(['tot gesetzt']); continue; }
+        // ------------------------------------------------ Knochenflieger abwarten: stehen bleiben, beim Sturzflug hochspringen (Reflex) – er landet unter der Figur
+        if (Lg.waitFlier) {
+          const e = ent(Lg.waitFlier);
+          let k = 0;
+          for (; k < (Lg.max ?? 900) && e && e.alive && !e.defeated && !e.removed && !p.dead; k++) tick(p.mode === 'air' ? this.airSteer(Lg.hold?.[0] ?? p.pos.x, Lg.hold?.[1] ?? p.pos.z, 0, 0, 3, 4) : {});
+          const ok = !e || !e.alive || e.defeated || e.removed;
+          if (ok) mech.stomped.push(Lg.waitFlier);
+          log.push(['flieger', Lg.waitFlier, ok, k]);
+          for (let q = 0; q < 200 && p.mode !== 'ground' && !p.dead; q++) tick(this.airSteer(Lg.hold?.[0] ?? p.pos.x, Lg.hold?.[1] ?? p.pos.z, 0, 0, 3, 4));
+          continue;
+        }
         if (Lg.power) { p.setPower(Lg.power); log.push(['power', Lg.power]); continue; }
         if (Lg.hop) {
           for (let k = 0; k < 90 && (p.mode !== 'ground' || p.hSpeed() > 0.2); k++) tick({});
@@ -438,6 +436,8 @@ function install() {
             let k = 0, jl = false;
             for (; k < (Lg.max ?? 1200) && e.alive && !e.defeated && !e.removed; k++) {
               const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              // Flieger (Knochenflieger vom Podest, wie course_w7b): Sprung gehalten, sobald er nah ist
+              if (Lg.fly && p.mode === 'ground') { tick(d < 2.0 ? { ...this.stick(dx, dz, 0.5), jump: true, run: false } : { ...this.stick(Lg.hold ? Lg.hold[0] - p.pos.x : 0, Lg.hold ? Lg.hold[1] - p.pos.z : 0, Lg.hold ? 0.6 : 0), run: false }); continue; }
               if (p.mode === 'ground' && d < 2.2 && !e.overhead) { jl = !jl; tick({ ...this.stick(dx, dz, 0.5), jump: jl, run: false }); continue; }
               jl = false;
               if (p.mode === 'air') { const ev = e.vel ?? { x: 0, z: 0 }; tick({ ...this.airSteer(e.pos.x + ev.x * 0.2, e.pos.z + ev.z * 0.2, ev.x, ev.z, 3.6, 7), jump: p.vel.y > 0 }); continue; }
@@ -558,6 +558,7 @@ function install() {
           let st;
           if (p.mode === 'air' && holdJ && j0 !== null && Lg.steer !== false) st = this.airSteer(tx, tz, 0, 0, 2.6, 11);
           else if (p.mode === 'air' && Lg.steer === false) st = {};
+          else if (p.mode === 'air') st = this.airSteer(tx, tz, 0, 0, 2.6, Lg.run === false ? 6.5 : 10);   // Reflex-/Nachsprung: nicht übers Ziel hinaus
           else {
             if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
@@ -592,8 +593,11 @@ function install() {
         if (e.touch === false && kind === 'star') { p.invuln = Math.max(p.invuln, 5); c.setInput({}); c.step(1); continue; }
         const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, dist = Math.hypot(dx, dz);
         const dy = e.pos.y - p.pos.y;
-        const jump = (o.jump !== false && (n % 48) < 20 && dist < 1.6) || (dy > 0.8 && (n % 48) < 30);
         p.invuln = Math.max(p.invuln, 5);
+        // hoch oben (z. B. Power-up auf dem ?-Block): erst seitlich wegtreten, dann von der Seite anspringen
+        if (dy > 1.6 && p.mode === 'ground' && dist < 1.25) { c.setInput({ ...this.stick(dist > 0.05 ? -dx : 1, dist > 0.05 ? -dz : 0, 0.6) }); c.step(1); continue; }
+        if (dy > 1.6 && p.mode === 'air') { c.setInput({ ...this.airSteer(e.pos.x, e.pos.z, 0, 0, 3, 4), jump: p.vel.y > 0 }); c.step(1); continue; }
+        const jump = (o.jump !== false && (n % 48) < 20 && dist < 1.6) || (dy > 0.8 && (n % 48) < 30);
         c.setInput({ ...this.stick(dx, dz, Math.min(1, 0.3 + dist)), run: !o.walk && (dist > 1.5 || o.run), jump });
         c.step(1);
         if (p.mode === 'script') { let k = 0; while (p.mode === 'script' && k++ < 1200 && L.runtime.status === 'play' && p.script?.type !== 'house') { c.setInput({}); c.step(1); } }

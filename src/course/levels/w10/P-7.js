@@ -6,8 +6,8 @@
 // Übernimmt 7-4 als Daten (remixOf) – Steinbauten, Pendelstacheln, Zylinder, Stachelwalzen, Röhre zum Finale und die
 // Kippplattform bleiben, wie sie sind; Änderungen an 7-4 wirken hier mit. Regeln:
 //   - Nacht im Kessel (Thema bluelava@nacht, Musik course_bluebelt mit Klang-Variante 'nacht'), kein Stempel, 400 s.
-//   - Keine Schubser (alle sechs entfernt, samt Kippplattform-Aufgabe und Sternring); die Rätselbox führt nur noch in einen
-//     Münzraum (ohne Aufgabe).
+//   - Keine Schubser (alle sechs entfernt, samt Kippplattform-Aufgabe und Sternring) und keine Knochenflieger – nachts zählen
+//     nur Schollen, Walzen, Pendel und Zylinder; die Rätselbox führt nur noch in einen Münzraum (ohne Aufgabe).
 //   - Statt der Pfeilplattformen aus der Lava liegen zerbrochene **Sinkschollen** im Zickzack (_helpers_pb.js
 //     sinkschollen): wer darauf stehen bleibt, versinkt mit ihr in der Lava. Die drei Mauer-Pfeilplattformen bleiben.
 //   - Beide ?-Blöcke mit Wurfsichel geben jetzt das **Gleitblatt**, ein dritter steht auf Steinbau I vor der Röhre.
@@ -32,7 +32,7 @@ export const SCHOLLEN = [
   { id: 's6', pos: [3, PT, -58.6] }, { id: 's7', pos: [1, PT, -62.6] },
   { id: 'z1', pos: [FX - 1, PT, -207.6] }, { id: 'z2', pos: [FX + 1, PT, -211.6] }, { id: 'z3', pos: [FX - 1, PT, -215.6] },
   { id: 'sa', pos: [-11.8, PT, -3.6] }, { id: 'sb', pos: [-15.2, PT, -7.6] },
-  { id: 'sw1', pos: [-8.6, PT, -144.5] }, { id: 'sw2', pos: [-8.6, PT, -159] },
+  { id: 'sw1', pos: [-8.1, PT, -144.5] }, { id: 'sw2', pos: [-8.1, PT, -159] },
 ];
 export const M7 = {
   Y, PT, FX, WH,
@@ -53,7 +53,7 @@ export const LEVEL = remixOf('7-4', {
   timeLimit: 400,
   stamp: false,
   remove: [
-    { kind: 'schubser' },
+    { kind: ['schubser', 'knochenflieger'] },
     { id: ['kipp_aufgabe', 'sternring'] },
     { type: 'pfeilplattform', id: ['pf1', 'pf2', 'pf3', 'pf4', 'pf5', 'pf6', 'pf7', 'pz1', 'pz2', 'pz3'] },
   ],
@@ -86,8 +86,8 @@ export const LEVEL = remixOf('7-4', {
       // Sternkette am Start, Walzen-Seitenweg, Gleitspur hinter der Röhre
       ...arc([-8.2, Y + 1.2, -1.5], [-11.8, PT + 0.6, -3.6], 3, 1),
       ...arc([-11.8, PT + 0.6, -3.6], [-15.2, PT + 0.6, -7.6], 3, 1.2),
-      ...arc([-5, Y + 0.6, -146], [-8.6, PT + 0.6, -144.5], 3, 1),
-      line([-8.6, PT + 0.6, -157.6], [-8.6, PT + 0.6, -160.4], 2),
+      ...arc([-5, Y + 0.6, -146], [-8.1, PT + 0.6, -144.5], 3, 1),
+      line([-8.1, PT + 0.6, -157.6], [-8.1, PT + 0.6, -160.4], 2),
       line([0, Y + 3.4, -186], [0, Y + 1.8, -197], 6),
       // unsichtbare Plattform: Warp-Box zurück auf Steinbau I (erscheint mit der Plattform)
       { kind: 'warpbox', id: 'geheim_zurueck', pos: [1.7, Y, -203.6], target: M7.ZURUECK, hidden: true },
