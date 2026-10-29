@@ -12,7 +12,8 @@
 //   shoveAABB(level, obj, dx, dy, dz, ignore?)   Objekt (pos = Fußpunkt, half) kollisionssicher verschieben
 //   waterIn(level, e)              Wasserform, in die e (Hüllquader) eingetaucht ist (pos.y unter der Oberfläche) | null
 //   Lcg                            kleiner deterministischer Zufall (seed) – Bosse würfeln damit reproduzierbar
-//   bossManaged(level, id)         steuert ein Boss-Archetyp diesen Endgegner? (LEVEL.boss.id bzw. ein Eintrag in LEVEL.bosses)
+//   bossManaged(level, id)         steuert ein Boss-Archetyp diesen Endgegner? (LEVEL.boss.id bzw. ein Eintrag in LEVEL.bosses;
+//                                  Bonuswelten: auch Mitglieder einer Boss-Gruppe, level.bossMembers)
 
 import * as THREE from 'three';
 import { figures } from './EnemyW2.js';
@@ -101,6 +102,9 @@ export class Lcg {
 /** Steuert ein Boss-Archetyp den Endgegner mit dieser Id? (LEVEL.boss bzw. LEVEL.bosses, Präzisierung Gegner Welt 6) */
 export function bossManaged(level, id) {
   if (!level?.archetype) return false;
+  // Präzisierung Gegner Bonuswelten: Mitglieder einer Boss-Gruppe (boss_gruppe, z. B. beide Schlangenkönige in B-12) steuert
+  // die Gruppe – sie warten auf begin() wie ein Endgegner aus LEVEL.bosses
+  if (id !== undefined && level.bossMembers?.has?.(id)) return true;
   const d = level.data ?? {};
   if (Array.isArray(d.bosses)) return d.bosses.some((b) => (b.id ?? 'baron') === id);
   return !!d.boss && (d.boss.id ?? 'baron') === id;

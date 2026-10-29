@@ -18,6 +18,13 @@
 // Zustände: walk → lit → kicked | air | carried → (Explosion); flipped (entschärft).
 // Hooks: level.onExplosion?.(center, radius, bomb) nach jeder Explosion. Feld exploded, fuse (s übrig).
 // Modell 'kickbombe' (state { anim: walk|idle|lit|kicked, speed, fuse 0..1 }).
+//
+// Laufbombe (additiv, Präzisierung Gegner Bonuswelten, S-5 „Laufbomben, Felsblock sprengen“): die Motor-Art { kind: 'laufbombe', … }
+//   (entities/kinds/star_gimmicks.js: Kickbombe mit Modell 'laufbombe') **zündet zusätzlich bei Nähe**: kommt eine Figur näher als
+//   trigger m (Standard 2,2; 0 = nie, dann wie die Kickbombe nur durch Berührung/Treffer), brennt die Lunte und sie läuft auf die
+//   Figur zu; tragbar/werfbar wie die Kickbombe. Ihre Explosion sprengt Felsblöcke (Motor-Entität 'felsblock' über onHit('bomb'),
+//   Signal 'felsblock') und meldet Signal 'laufbombe' { id, pos, radius, hits } (hits = getroffene Entitäten/Formen).
+//   Erkannt an spec.kind 'laufbombe', spec.look 'laufbombe' oder am Modell 'laufbombe'. Daten zusätzlich: trigger?.
 
 import * as THREE from 'three';
 import { Enemy } from '../Enemy.js';
@@ -80,6 +87,16 @@ class Kickbombe extends Enemy {
       this.light();
     }
     if (level.view) this.setModel(getModel('kickbombe'));
+    // Laufbombe (Bonuswelten): Zünden bei Nähe – erkannt beim ersten Schritt (das Motor-Modell setzt star_gimmicks.js danach)
+    this.lauf = null;
+    this.trigger = 0;
+  }
+
+  /** Laufbombe? (spec.kind/look oder Registry-Modell 'laufbombe') – einmal beim ersten Schritt. */
+  checkLauf() {
+    const sp = this.spec;
+    this.lauf = sp.kind === 'laufbombe' || sp.look === 'laufbombe' || this.model?.root?.userData?.modelName === 'laufbombe';
+    this.trigger = sp.trigger ?? (this.lauf ? 2.2 : 0);
   }
 
   /** Lunte anzünden (bzw. verkürzen: t = höchstens noch so viele s). */
@@ -100,6 +117,11 @@ class Kickbombe extends Enemy {
     if (this.lit) {
       this.fuse -= dt;
       if (this.fuse <= 0) { this.explode(); return; }
+    }
+    if (this.lauf === null) this.checkLauf();
+    if (this.trigger > 0 && !this.lit && this.state === 'walk' && this.playerActive()) {
+      const p = this.player;
+      if (Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) < this.trigger && Math.abs(p.pos.y - this.pos.y) < 2) this.light();
     }
     switch (this.state) {
       case 'carried': this.followCarrier(); break;
@@ -264,11 +286,13 @@ class Kickbombe extends Enemy {
     fx?.debris(c, 0x2c3274, 6);
     flash(lv, c, R);
     const done = new Set([this]);
+    let hits = 0;
     for (const e of lv.entities.slice()) {
       if (done.has(e) || !e.alive || e.removed) continue;
       if (e.distanceTo(c.x, c.y, c.z) > R) continue;
       done.add(e);
       e.onHit?.('bomb', this);
+      hits++;
     }
     for (const s of lv.world.overlapAABB(c, { x: R, y: R, z: R })) {
       const o = s.owner;
@@ -276,6 +300,7 @@ class Kickbombe extends Enemy {
       if (shapeDist(s, c) > R) continue;
       done.add(o);
       o.onHit?.('bomb', this, s);
+      hits++;
     }
     const p = lv.nearestPlayer(this.pos);
     if (p && !p.dead) {
@@ -284,6 +309,7 @@ class Kickbombe extends Enemy {
       if (Math.hypot(dx, dy, dz) < R * 0.9) p.hurt(this);
     }
     lv.onExplosion?.(c, R, this);
+    if (this.lauf) lv.signal?.('laufbombe', { id: this.spec.id ?? null, pos: [c.x, c.y, c.z], radius: R, hits });
   }
 
   modelState() {

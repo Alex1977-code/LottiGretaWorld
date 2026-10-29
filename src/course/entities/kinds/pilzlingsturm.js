@@ -12,6 +12,15 @@
 //
 // Laufzeit: count (übrige Stufen), height (m). Zustände: idle → walk | chase → (Stufen weg …) → defeated/flipped.
 // Modell 'pilzlingsturm' (opts { count }, state { anim: walk|idle|alert|stunned, speed, count }).
+//
+// Bonuswelten (additiv, Präzisierung Gegner Bonuswelten):
+//   count bis 30 (P-4 „Pilzlingsturm aus 30 Pilzlingen“; über 5 Stufen: Modell { count, tall: true }, sanfteres Wackeln). Jeder
+//     Treffer nimmt eine Stufe wie bisher; topple?: ['bomb', 'mega', 'star', 'bump'] (Treffer, die den ganzen Turm umwerfen –
+//     z. B. 'cannon' ergänzen).
+//   rider?: { kind: 'feuer_werfer', … } (B-9 „Pilzlingstürme mit je einem Feuer-Werfer“): ein Gegner reitet oben auf dem Turm –
+//     er steht auf einer Plattform (Kollisionsform mit mover), die mit der Turmspitze fährt und mit jeder Stufe sinkt; sein Platz
+//     (home) wandert mit (Werfer tänzeln dort mit kleinem pace, Standard 0,25). Fällt der Turm, fällt der Reiter herab und kämpft
+//     als normaler Gegner weiter. Laufzeit: rider (Entität).
 
 import { Enemy, spawnLoot } from '../Enemy.js';
 import { getModel } from '../../models/index.js';
@@ -30,7 +39,8 @@ function parseCarry(c) {
 class Pilzlingsturm extends Enemy {
   constructor(level, spec) {
     super(level, spec, 'pilzlingsturm');
-    this.max = Math.max(1, Math.min(5, Math.round(spec.count ?? 4)));
+    this.max = Math.max(1, Math.min(30, Math.round(spec.count ?? 4)));
+    this.topple = new Set(spec.topple ?? ['bomb', 'mega', 'star', 'bump']);
     this.count = this.max;
     this.speed = spec.speed ?? 1.1;
     this.behavior = spec.behavior ?? 'chase';
@@ -44,7 +54,44 @@ class Pilzlingsturm extends Enemy {
       this.riding = level.spawn('star', { pos: [this.pos.x, this.pos.y + heightOf(this.count) + 0.1, this.pos.z], index: this.carry.star });
       if (this.riding) this.riding.touch = false;
     }
-    if (level.view) this.setModel(getModel('pilzlingsturm', { count: Math.max(3, this.max) }));
+    if (level.view) this.setModel(getModel('pilzlingsturm', this.max > 5 ? { count: this.max, tall: true } : { count: Math.max(3, this.max) }));
+    // Bonuswelten: Reiter oben auf dem Turm
+    this.rider = null;
+    this.topSid = null;
+    if (spec.rider?.kind) this.mountRider(spec.rider);
+  }
+
+  /** Reiter auf eine mitfahrende Plattform an der Turmspitze setzen. */
+  mountRider(rs) {
+    const top = this.pos.y + this.height;
+    this.topMover = { dx: 0, dy: 0, dz: 0, vx: 0, vy: 0, vz: 0, dyaw: 0, cx: this.pos.x, cz: this.pos.z };
+    this.topSid = this.addShape({ type: 'box', min: [this.pos.x - 0.5, top - 0.12, this.pos.z - 0.5], max: [this.pos.x + 0.5, top, this.pos.z + 0.5], mover: this.topMover, tag: 'pilzturm-top' });
+    this.topAt = { x: this.pos.x, y: top, z: this.pos.z };
+    this.rider = this.level.spawn(rs.kind, { pace: 0.25, ...rs, pos: [this.pos.x, top + 0.02, this.pos.z] });
+  }
+
+  /** Plattform des Reiters an die Turmspitze führen (Verschiebung als mover → Reiter fährt mit). */
+  carryRider(dt) {
+    if (this.topSid === null) return;
+    const x = this.pos.x, y = this.pos.y + this.height, z = this.pos.z;
+    const m = this.topMover, a = this.topAt;
+    m.dx = x - a.x; m.dy = y - a.y; m.dz = z - a.z;
+    m.vx = m.dx / (dt || 1); m.vy = m.dy / (dt || 1); m.vz = m.dz / (dt || 1); m.cx = x; m.cz = z;
+    a.x = x; a.y = y; a.z = z;
+    const s = this.level.world.get(this.topSid);
+    if (s) { s.min = [x - 0.5, y - 0.12, z - 0.5]; s.max = [x + 0.5, y, z + 0.5]; this.level.world.update(this.topSid); }
+    const r = this.rider;
+    if (r && !r.removed && r.home && !r.defeated) { r.home.x += m.dx; r.home.z += m.dz; r.home.y = y; }
+  }
+
+  /** Turm weg: Plattform weg, der Reiter fällt herab. */
+  dropRider() {
+    if (this.topSid === null) return;
+    this.level.world.remove(this.topSid);
+    this.shapes = this.shapes.filter((id) => id !== this.topSid);
+    this.topSid = null;
+    const r = this.rider;
+    if (r && !r.removed && r.home) r.home.y = this.pos.y;
   }
 
   get height() { return heightOf(this.count); }
@@ -71,6 +118,8 @@ class Pilzlingsturm extends Enemy {
     }
     // Getragener Stern reitet oben mit
     if (this.riding && !this.defeated) this.riding.pos.set(this.pos.x, this.pos.y + this.height + 0.1, this.pos.z);
+    // Reiter (Bonuswelten) fährt oben mit
+    if (this.topSid !== null) { if (this.defeated || this.removed) this.dropRider(); else this.carryRider(dt); }
   }
 
   /** Oberste Stufe abnehmen: der Pilzling fliegt seitlich vom Stapel (Rückmeldung), der Turm wird niedriger. */
@@ -98,6 +147,7 @@ class Pilzlingsturm extends Enemy {
   /** Letzte Stufe gefallen: Gegner besiegt, Getragenes freigeben. */
   fall() {
     this.touch = false;
+    this.dropRider();
     this.markDefeated();
     this.releaseCarry();
     this.kill();
@@ -126,8 +176,9 @@ class Pilzlingsturm extends Enemy {
 
   onHit(kind, source) {
     if (this.defeated) return;
-    if (kind === 'bomb' || kind === 'mega' || kind === 'star' || kind === 'bump') {
+    if (this.topple.has(kind)) {
       this.releaseCarry();
+      this.dropRider();
       this.flip(source);
       return;
     }
