@@ -24,7 +24,65 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 // einer Wand hinauf) · { trap: Id } (warten, bis die Stachelfalle eingefahren bleibt, dann darüber)
 const Y = 1;
 const BX = 90;
+const T3 = 16, RX3 = 70;
 const ROUTES = {
+  '8-3': {
+    start: [0, Y, 6],
+    meta: { stars: 3, time: 400, theme: 'cookie', music: 'course_cookie', archetype: 'parcours' },
+    enemies: { riesenschnappblume: 2 },
+    main: [
+      { name: 'Startplatz', to: [0, -4.4], within: 0.5 },
+      { name: 'Drehkeks 1', to: [0, -10.4], jump: 20, jumpAt: 9, within: 0.8 },
+      { to: [0, -12.6], within: 0.4, run: false },
+      { name: 'Drehkeks 2', to: [0, -18.6], jump: 24, jumpAt: 9, within: 0.8 },
+      { to: [0, -20.8], within: 0.4, run: false },
+      { name: 'Platz 1', to: [-1.5, -26], jump: 24, jumpAt: 9, within: 0.8 },
+      { name: 'an Riesenschnappblume 1 vorbei', to: [-2.5, -33.4], within: 0.5 },
+      { name: 'Keks-Zahnrad A', to: [0, -39.4], jump: 24, jumpAt: 9, within: 0.8 },
+      { to: [0, -41.4], within: 0.4, run: false },
+      { name: 'Keks-Zahnrad B', to: [0, -44.7], jump: 16, jumpAt: 9, within: 0.8 },
+      { to: [0, -46.8], within: 0.4, run: false },
+      { name: 'Platz 2', to: [2.5, -52], jump: 24, jumpAt: 9, within: 0.8 },
+      { name: 'an Riesenschnappblume 2 vorbei', to: [2.5, -61.4], within: 0.5 },
+      { name: 'Laufkeks 1', to: [2.5, -66], jump: 20, jumpAt: 9, within: 0.8 },
+      { to: [2.5, -67.4], within: 0.4 },
+      { name: 'Laufkeks 2', to: [2.5, -73.6], jump: 24, jumpAt: 9, within: 0.8 },
+      { to: [2.5, -75], within: 0.4 },
+      { name: 'Platz 3', to: [2.5, -80], jump: 24, jumpAt: 9, within: 0.6 },
+      { to: [-0.2, -90.4], within: 0.4 },
+      { name: 'Zahnradwand 1 (Paternoster)', gear: 'wand1', board: [-0.2, -90.4], off: Y + 5.6, to: [-1.8, -91], max: 2.2, reach: 1.8 },
+      { to: [-7.8, -91], within: 0.3, run: false },
+      { name: 'Zahnradwand 2', gear: 'wand2', board: [-7.8, -91], off: Y + 13.4, to: [0.4, -91], min: 0.9, max: 2.4 },
+      { to: [3, -91], within: 0.3, run: false },
+      { name: 'Zahnradwand 3', gear: 'wand3', board: [3, -91], off: Y + 15.4, to: [5, -95], min: 0.9, max: 2.4 },
+      { expect: '=P().pos.y > 15.5' },
+    ],
+    targets: [
+      { name: 'WANDTEST', from: [0, Y, -84], star: 0, legs: [
+        { to: [-0.2, -90.4], within: 0.4 },
+        { name: 'Zahnradwand 1 (Paternoster)', gear: 'wand1', board: [-0.2, -90.4], off: Y + 5.6, to: [-1.8, -91], max: 2.2, reach: 1.8 },
+        { to: [-7.8, -91], within: 0.3, run: false },
+        { name: 'Zahnradwand 2', gear: 'wand2', board: [-7.8, -91], off: Y + 13.4, to: [0.4, -91], min: 0.9, max: 2.4 },
+        { to: [3, -91], within: 0.3, run: false },
+        { name: 'Zahnradwand 3', gear: 'wand3', board: [3, -91], off: Y + 15.4, to: [5, -95], min: 0.9, max: 2.4 },
+      ] },
+    ],
+    extra: [],
+    shots: [
+      ['start', [0, Y, 6]],
+      ['keks', [0, Y, -5]],
+      ['platz1', [0, Y, -25]],
+      ['zahn', [0, Y, -33.5]],
+      ['platz2', [0, Y, -51]],
+      ['sternluecke', [-9.6, Y, -64.4]],
+      ['wand', [0, Y, -82]],
+      ['wand2', [-5, Y + 5.6, -91]],
+      ['oben', [0, T3, -100]],
+      ['ameisen', [0, T3, -120]],
+      ['ziel', [0, Y + 8, -224]],
+      ['kuchen', [0, Y - 4, -258]],
+    ],
+  },
   '8-1': {
     start: [0, Y, 6],
     meta: { stars: 3, time: 400, theme: 'rainfort', music: 'course_rainfort', archetype: 'parcours' },
@@ -602,6 +660,44 @@ function install() {
             tick(d > 0.15 && p.mode === 'ground' ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {});
           }
           log.push(['stachelblock', Lg.block, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ stehendes Keks-Zahnrad (Paternoster): auf einen steigenden Zahn springen, mitfahren, oben abspringen
+        if (Lg.gear) {
+          const h = L.named.get(Lg.gear);
+          const [bx, bz] = Lg.board, [tx, tz] = Lg.to;
+          const tops = () => h.teeth.map((t, i) => ({ i, x: t.x, y: t.y + 0.45, z: t.z }));
+          let prev = tops();
+          let k = 0, tooth = null;
+          // zum Einstieg
+          for (let n = 0; n < 400 && !p.dead; n++, k++) { const dx = bx - p.pos.x, dz = bz - p.pos.z, d = Math.hypot(dx, dz); if (d < 0.25 && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.25, d / 1.2))), run: false }); prev = tops(); }
+          // warten auf einen steigenden Zahn knapp über der Standhöhe nahe am Einstieg
+          for (; k < 3000 && !tooth && !p.dead; k++) {
+            const cur = tops();
+            const c = cur.find((t, i) => t.y > prev[i].y && t.y > p.pos.y + (Lg.min ?? 0.6) && t.y < p.pos.y + (Lg.max ?? 1.4) && Math.abs(t.x - p.pos.x) < (Lg.reach ?? 1.6));
+            prev = cur;
+            if (c) { tooth = c.i; log.push(['zahnwahl', c.i, +c.x.toFixed(2), +c.y.toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), p.state]); } else tick({});
+          }
+          // aufspringen und mitfahren (Zahnmitte halten)
+          let on = false;
+          for (let n = 0; n < 2400 && tooth !== null && !p.dead; n++, k++) {
+            const t = tops()[tooth];
+            const dx = t.x - p.pos.x, dz = t.z - p.pos.z, d = Math.hypot(dx, dz);
+            if (!on && p.mode === 'ground' && Math.abs(p.pos.y - t.y) < 0.15 && d < 0.7) on = true;
+            if (on && t.y >= (Lg.off ?? 99)) break;
+            if (!on) tick({ ...(p.mode === 'air' ? this.airSteer(t.x, t.z, 0, 0, 4, 6) : this.stick(dx, dz, 1)), run: false, jump: n < 40 });
+            else tick(d > 0.12 ? { ...this.stick(dx, dz, Math.min(1, d * 1.5)), run: false } : {});
+          }
+          // abspringen zum Ziel: erst auf dem Zahn Anlauf nehmen (Richtung Ziel), dann springen
+          let j = 0;
+          const run0 = Lg.runup ?? 9;
+          for (; j < 400 && !p.dead; j++, k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            if (j > run0 + 10 && p.mode === 'ground') break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 4, 8) : this.stick(dx, dz, 1)), run: false, jump: j >= run0 && j < run0 + 30 });
+          }
+          log.push(['zahnrad', Lg.gear, tooth, on, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!on) log.push(['FEHLER: Zahn nicht erreicht', Lg.gear]);
           continue;
         }
         // ------------------------------------------------ Power-up aus einem ?-Block holen: darunter hüpfen, zurücktreten, auf den Block springen
