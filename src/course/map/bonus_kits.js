@@ -3,5 +3,9 @@
 // entrances.js fragen nur die Tabelle (bonuskit.bonusKit(map), bonusEdgeGeo, decorateBonus, bonusNeighborParts).
 import './pilz10.js';
 import './decor_pilz.js';
+import './blume11.js';
+import './decor_blume.js';
+import './krone12.js';
+import './decor_krone.js';
 
 export { BONUS_KITS, bonusKit, bonusEdgeGeo, decorateBonus, bonusNeighborParts } from './bonuskit.js';
