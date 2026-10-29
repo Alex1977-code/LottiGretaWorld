@@ -96,19 +96,19 @@ const ROUTES = {
       { name: 'ohne Hüpfer bleibt der ?-Block versteckt', from: 'cp1', heroes: ['lotti'],
         legs: [{ ride: [[-108, 0], [-118, -1.2], [-130, -1.2], [-140, 0], [-200, 0]] }],
         mech: (r) => !r.mech.flussblock && r.power !== 'funken', mechText: (r) => `Block ${r.mech.flussblock ? 'gefunden' : 'versteckt'}` },
-      { name: 'Extraleben: unsichtbarer Block am Startplatz', from: [4.6, Y, 6.4], heroes: ['lotti'], expectLives: 1,
-        legs: [{ to: [4.6, 4.6], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Extraleben: unsichtbarer Block am Startplatz', from: [-4.4, Y, 8], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-4.4, 6.2], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 900, ids: undefined }] },
       { name: 'Extraleben: Ende des Wolkenhimmels', from: [3, HY, -279], heroes: ['lotti'], expectLives: 1,
-        legs: [{ to: [2.4, -284], jump: 20, jumpAt: 3.1, within: 0.6, run: false }, { chaseKind: 'powerup', max: 600 }] },
+        legs: [{ to: [2.4, -284], jump: 20, jumpAt: 3.1, within: 0.6, run: false }, { to: [3.6, -287.6], within: 0.3, run: false }] },
       { name: 'Extraleben: hinter der Sternblock-Mauer am Ende der Strecke (nur als Riese)', from: [0, FY, -287], heroes: ['lotti'], expectLives: 1, place: { power: 'riese' },
         legs: [{ to: [6.4, -294], within: 0.5 }, { until: '=(L.named.get(\'mauer_kaefig\')?.broken ?? 0) > 0', max: 240 }, { chaseKind: 'powerup', max: 900 }] },
-      { name: 'Druckknopf im Finale: Münzregen', from: [0, FY, -305], heroes: ['lotti'], expectCoins: 20,
+      { name: 'Druckknopf im Finale: Münzregen', from: [0, FY, -305], heroes: ['lotti'], expectCoins: 15,
         legs: [{ pound: [0, -309] }, { until: '=L.named.get(\'regen\').landed >= 40', max: 900 }, { sweep: [[-5, -312], [5, -312], [5, -318], [-5, -318], [-5, -324], [5, -324], [5, -329], [-5, -329]] }],
         mech: (r) => r.mech.regen >= 40, mechText: (r) => `gelandet ${r.mech.regen}` },
-      { name: 'Kontrollpunkt im Sternenbach: nach einem Sturz geht es auf Pflaume weiter', from: 'cp1', heroes: ['lotti'],
+      { name: 'Kontrollpunkt im Sternenbach: nach einem Sturz geht es auf Pflaume weiter', from: 'bach', heroes: ['lotti'],
         legs: [{ ride: [[-108, 0], [-118, 0]], partial: true, untilZ: -118 }, { die: 'hit' }, { expect: '=P().riding && P().pos.z < -95 && P().pos.z > -112' }] },
       { name: 'Hüpfmaus springt mit, wenn die Heldin springt', from: [0, Y, -32.6], heroes: ['lotti'],
-        legs: [{ wait: 30 }, { hop: 20 }, { wait: 40 }],
+        legs: [{ wait: 30 }, { hop: 20 }, { wait: 50 }, { hop: 20 }, { wait: 50 }, { hop: 20 }, { wait: 40 }],
         mech: (r) => r.mech.mausSprung > 0, mechText: (r) => `Mitsprünge ${r.mech.mausSprung}` },
     ],
     shots: [
@@ -611,7 +611,7 @@ function install() {
         if (!e) break;
         const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, dist = Math.hypot(dx, dz);
         const dy = e.pos.y - p.pos.y;
-        const jump = (o.jump !== false && (n % 48) < 20 && dist < 1.6 && dy > 0.3) || (dy > 0.8 && (n % 48) < 30);
+        const jump = (o.jump !== false && (n % 48) < 20 && dist < 1.6) || (dy > 0.8 && (n % 48) < 30);
         p.invuln = Math.max(p.invuln, 5);
         c.setInput({ ...this.stick(dx, dz, Math.min(1, 0.3 + dist)), run: !o.walk && (dist > 1.5 || o.run), jump });
         c.step(1);

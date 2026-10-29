@@ -270,7 +270,7 @@ export const LEVEL = {
     // Start: Krallen-Anzug (Kristallturm), Münzen
     { kind: 'question', pos: [-1, Y + 1.9, 1.6], content: 'krallen' },
     { kind: 'question', pos: [1, Y + 1.9, 1.6], content: 'coins:3' },
-    { kind: 'hidden', pos: [4.6, Y + 3.2, 4.6], content: 'oneup' },
+    { kind: 'hidden', pos: [-4.4, Y + 3.2, 6.2], content: 'oneup' },
     // erstes Ziegelpaar (unter dem Röhrensims)
     { kind: 'brick', pos: [-0.5, Y + 2.4, -14], content: 'coins:2' },
     { kind: 'brick', pos: [0.5, Y + 2.4, -14] },
@@ -346,7 +346,7 @@ export const LEVEL = {
   goal: { pos: [0, TOP.top, -343], height: 9 },
   marks: {
     start: [0, Y, 6], ziegel: [0, Y, -12], turm: [-4.6, Y, -11.6], sims: [-0.6, SIMS.top, -14], kugel: [KUGEL.x0 + 8, Y, KUGEL.z0 - 4],
-    p2: [0, Y, -33], p3: [0, Y, -62], steg: [0, Y, -82], raft: [0, WY, -90.5], cp1: [0, -1.1, -108],
+    p2: [0, Y, -33], p3: [0, Y, -62], steg: [0, Y, -82], raft: [0, WY, -90.5], bach: [0.4, -1.05, -100], cp1: [0, -1.1, -108],
     fackel: [0, FY, -210], riese: [0, FY, -242], farb: [FARB.x0 + 4, FY, FARB.z0 - 4], himmel: [14, HY, -246], finale: [0, FY, -304],
     stamp: STAMP, flussblock: FLUSSBLOCK,
   },
