@@ -113,6 +113,8 @@ const items = [
   // Salon: Münzring um den Kronleuchter, Münzen auf dem Klavier
   ring([0, 2.9, M.salon.z1 + 4.0], 1.1, 6),
   line([0, D + 0.6, M.salon.z0 - 13.6], [0, D + 0.6, M.salon.z0 - 16.8], 3),
+  // Hinweis: zwei Münzen über dem Hebeblock zeigen zur Deckenluke hinauf
+  line([0, 4.85, HZ], [0, 5.45, HZ], 2),
   // Kistentreppe → Gepäckwagen-Dach, Spur zur goldenen Luke
   line([-0.9, D + 1.6, M.f5.z0 - 1.8], [-0.9, D + 2.6, M.f5.z0 - 3.4], 2),
   line([-0.8, G + 0.6, M.gepaeck.z0 - 0.3], [-0.8, G + 0.6, LZ + 0.6], 2),
