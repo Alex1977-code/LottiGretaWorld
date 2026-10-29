@@ -33,8 +33,8 @@ function build(level) {
     { x0: -13, x1: -3, z0: -63.3, z1: -76, top: 0 },
     { x0: -1.6, x1: 2.4, z0: -91.4, z1: -98.6, top: 0, edge: 'pink', stripes: false },
     { x0: -16, x1: 8, z0: -113.3, z1: -136.6, top: 0, edge: 'gold' },
-    { x0: -15, x1: 4, z0: -130.1, z1: -137.6, top: YT, edge: 'pink', jets: true, under: 1 },
-    { x0: 18, x1: 26, z0: -129.4, z1: -137.6, top: YT, edge: 'gruen', stripes: false },
+    { x0: -15, x1: 6, z0: -130.1, z1: -137.6, top: YT, edge: 'pink', jets: true, under: 1 },
+    { x0: 18.6, x1: 26, z0: -129.4, z1: -137.6, top: YT, edge: 'gruen', stripes: false },
     { x0: -14, x1: 2, z0: -216, z1: -230, top: 0.6 },
     { x0: 0, x1: 6, z0: -281, z1: -289, top: 0.6, edge: 'pink', stripes: false },
     { x0: -18, x1: -12.6, z0: -305, z1: -313, top: 0.6, edge: 'gruen', stripes: false },
@@ -99,7 +99,7 @@ function build(level) {
 
 function setup(level) {
   // ?-Blöcke über dem All lösen auch bei Kanonenkugeln aus; alle drei benutzt → Brücke zum Stempel-Planetoiden
-  kanonenFrageBloecke(level, { id: 'stempelbloecke', ids: ['qb1', 'qb2', 'qb3'], onAll: { reveal: 'sternbruecke' }, pos: [19.5, YT + 1.5, -133.5] });
+  kanonenFrageBloecke(level, { id: 'stempelbloecke', ids: ['qb1', 'qb2', 'qb3'], onAll: { reveal: 'sternbruecke' }, pos: [18, YT + 1.5, -133.5] });
 }
 
 export const LEVEL = {
@@ -120,7 +120,7 @@ export const LEVEL = {
     { from: 14, to: -62, pitch: 42, dist: 14, fov: 40, height: 1.2 },
     { from: -62, to: -112, pitch: 44, dist: 14, fov: 40, height: 1.2 },
     { from: -112, to: -129.5, pitch: 24, dist: 19, fov: 44, height: 3.2, x: -6, xLock: 0.6 },
-    { from: -129.5, to: -140, pitch: 36, dist: 15, fov: 42, height: 1.6 },
+    { from: -129.5, to: -140, pitch: 48, dist: 14, fov: 42, height: 1.4 },
     { from: -140, to: -214, pitch: 52, dist: 13, fov: 40, height: 0.4, x: -6, xLock: 0.8 },
     { from: -214, to: -364, pitch: 44, dist: 14.5, fov: 40, height: 1.2 },
   ],
@@ -144,12 +144,12 @@ export const LEVEL = {
     // ================================================================ 3 Kugelwand-Platz, Kugelwand, Gipfel, Stempel
     deck(-16, 8, -113.3, -136.6, 0, { h: 1.6 }),
     sign(4.6, 0, -116, 'Auf die Kugeln!', { yaw: -0.3 }),
-    { type: 'kanonenkugel_wand', id: 'kugeln', pos: [-14, 0.6, -117.5], dir: [1, 0], rows: 9, rise: 2.2, step: [0, 0, -1.4], range: 14, speed: 3, period: 3.2, stagger: 0.55 },
-    isl(-15, 4, -130.1, -137.6, YT, 1.2, { top: 'stone', under: 1 }),
+    { type: 'kanonenkugel_wand', id: 'kugeln', pos: [-14, 0.6, -117.5], dir: [1, 0], rows: 9, rise: 2.2, step: [0, 0, -1.4], range: 14, speed: 3, period: 3.2, stagger: 0.55, shadow: false },
+    isl(-15, 6, -130.1, -137.6, YT, 1.2, { top: 'stone', under: 1 }),
     sign(-12.6, YT, -134.6, 'Kopfsprung\nins Becken!', { size: [2.6, 1.05], yaw: 0.2 }),
     { type: 'appear', id: 'sternbruecke', style: 'block', color: 'cyan', delay: 0.14,
-      parts: [5, 7.2, 9.4, 11.6, 13.8, 16].map((x) => ({ pos: [x, YT - 0.5, -133.5], size: [2.1, 0.5, 2.4] })) },
-    isl(18, 26, -129.4, -137.6, YT, 1.2, { top: 'stone', under: 1 }),
+      parts: [7.1, 9.3, 11.5, 13.7, 15.9, 18.1].map((x) => ({ pos: [x, YT - 0.5, -133.5], size: [2.1, 0.5, 2.4] })) },
+    isl(18.6, 26, -129.4, -137.6, YT, 1.2, { top: 'stone', under: 1 }),
     // ================================================================ 4 Sternenbecken und Unterwassertunnel
     { type: 'water', id: 'tunnelwasser', pos: [-6, -8.4, -176.7], size: [8, 8.4, 78.6] },
     isl(-10, -2, -137.4, -150, -8, 1, { top: 'stone', under: 0 }),
@@ -194,10 +194,10 @@ export const LEVEL = {
     { type: 'deco_star', kind: 'modell', pos: [4.2, 0, -132], name: 'weltraum_kuppel', opts: { size: 5 } },
   ],
   blocks: [
-    { kind: 'question', id: 'qb1', pos: [19.5, YT + 0.5, -131], content: 'coins:3' },
-    { kind: 'question', id: 'qb2', pos: [19.5, YT + 0.5, -133.5], content: 'coins:3' },
-    { kind: 'question', id: 'qb3', pos: [19.5, YT + 0.5, -136], content: 'coins:3' },
-    { kind: 'blockwand', pos: [-1.6, -3, -178], size: [1, 2, 3], block: 'brick' },       // Ziegel im Tunnel (Stern 1)
+    { kind: 'question', id: 'qb1', pos: [18, YT + 0.5, -129.6], content: 'coin' },
+    { kind: 'question', id: 'qb2', pos: [18, YT + 0.5, -131.4], content: 'coin' },
+    { kind: 'question', id: 'qb3', pos: [18, YT + 0.5, -136.2], content: 'coin' },
+    { kind: 'blockwand', pos: [-1.05, -3, -178], size: [1, 2, 3], block: 'brick' },      // Ziegel im Tunnel (Stern 1), 0,45 m eingelassen
     { kind: 'hidden', pos: [3.4, 2.4, 1], content: 'oneup' },                            // Extraleben auf dem Startdeck
     { kind: 'hidden', pos: [-8, 2.4, -122.6], content: 'oneup' },                        // Extraleben unter der Kugelwand
     { kind: 'question', pos: [-2.6, 2.4, -224], content: 'coins:5' },
@@ -230,7 +230,7 @@ export const LEVEL = {
     line([0, 0.6, 4], [0, 0.6, -6], 5), line([0, 1.4, -12], [0, 1.4, -20], 4), line([0, 1.4, -25], [0, 1.4, -36], 5), line([-1.4, 1.4, -40], [-6.6, 1.4, -48], 4),
     line([-8, 1.4, -52], [-8, 1.4, -60], 4), ring([1, 1, -69.5], 1.6, 6), line([-8, 1.4, -80], [-8, 1.4, -88], 4), line([-5, 1.4, -98], [-4.4, 1.4, -110], 6),
     ...arc([-12.6, 2.8, -117.5], [1, 2.8, -117.5], 6, 0.6), ring([-6, YT + 0.6, -134], 2, 8),
-    line([5, YT + 0.6, -133.5], [16, YT + 0.6, -133.5], 6), ring([22, YT + 0.6, -133.5], 2, 6),
+    line([7, YT + 0.6, -133.5], [17, YT + 0.6, -133.5], 6), ring([22, YT + 0.6, -133.5], 2, 6),
     line([-6, -1.6, -152], [-6, -1.6, -172], 7), line([-6, -1.6, -182], [-6, -1.6, -204], 8), column(-6, -146, -6, -2, 4),
     line([-6, 1.8, -234], [-6, 1.8, -242], 3), line([-2.4, 1.8, -256], [-2.4, 1.8, -266], 4), line([-6, 1.8, -280], [-6, 1.8, -290], 4),
     line([-9.6, 1.8, -304], [-9.6, 1.8, -316], 4), line([-8.4, 1.8, -332], [-6, 1.8, -344], 4), line([-2.4, 1.8, -304], [-2.4, 1.8, -312], 3),
@@ -246,7 +246,7 @@ export const LEVEL = {
   goal: [-6, 0.6, -355.4],
   marks: {
     start: [0, 0, 6], brett1: [0, 0, -8], m1: [-8, 0, -66], riss: [-5.4, 0, -69.5], brett2: [-8, 0, -75.8], platz: [-4, 0, -116], kugeln: [-10, 0, -118],
-    gipfel: [-6, YT, -133.4], bloecke: [3.4, YT, -133.5], sprung: [-6, YT, -138.4], becken: [-6, -2, -143], tunnel: [-6, -1.6, -170], ziegel: [-3, -2.4, -178],
+    gipfel: [-6, YT, -133.4], bloecke: [5.6, YT, -133.5], sprung: [-6, YT, -138.4], becken: [-6, -2, -143], tunnel: [-6, -1.6, -170], ziegel: [-3, -2.4, -178],
     cp: [-6, 0.6, -222], netz: [-6, 0.6, -229.4], sternweg: [-2.4, 0.6, -306], rettung: [-3, -7, -311], ziel: [-6, 0.6, -351],
   },
 };
