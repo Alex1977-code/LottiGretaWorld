@@ -54,9 +54,9 @@ export const LEVEL = {
     // hinter der Blume: zwei kleine Kekse, die Stern-Lücke (6,2 m), Landekeks, Zuckerguss-Steg zurück zu Platz 3
     { type: 'keksrad', id: 'kleinA', pos: [-9.6, Y - 0.6, -64.4], radius: 1.4, speed: 0.3, icing: 'gruen', postDown: 8 },
     { type: 'keksrad', id: 'kleinB', pos: [-13.4, Y - 0.6, -66.4], radius: 1.4, speed: -0.3, icing: 'schoko', postDown: 8 },
-    { type: 'keksrad', id: 'kleinC', pos: [-22.4, Y - 0.6, -69.6], radius: 1.7, speed: 0.25, icing: 'weiss', postDown: 8 },
-    isl(-23.2, -21.6, -71.2, -85, Y, 1.4, { top: 'grass' }),
-    isl(-21.6, -6, -83.4, -85, Y, 1.4, { top: 'grass' }),
+    { type: 'keksrad', id: 'kleinC', pos: [-21, Y - 0.6, -69.1], radius: 1.7, speed: 0.25, icing: 'weiss', postDown: 8 },
+    isl(-22.4, -20.8, -70.8, -85, Y, 1.4, { top: 'grass' }),
+    isl(-20.8, -6, -83.4, -85, Y, 1.4, { top: 'grass' }),
     // stehende Laufkekse (Oberseite läuft wie ein Band nach +Z – gegenan laufen)
     { type: 'keksrad', id: 'lauf1', axis: 'x', pos: [2, Y - 2.4, -66], radius: 2.4, thick: 4, speed: 0.35, icing: 'rosa' },
     { type: 'keksrad', id: 'lauf2', axis: 'x', pos: [2, Y - 2.4, -73.6], radius: 2.4, thick: 4, speed: 0.35, icing: 'schoko' },
@@ -99,17 +99,24 @@ export const LEVEL = {
     // ================================================================ 4 Ziel und Kuchenplattform
     isl(-8, 8, -222, -238, Y + 8, 7, { top: 'grass' }),
     isl(-6, 6, -248, -262, Y - 4, 5, { top: 'grass' }),                                    // Kuchenplattform (tief unten)
-    { type: 'pipe', id: 'kuchen_aus', pos: [4.4, Y - 4, -250], height: 1.4, target: [5, Y + 8, -224.4] },
+    // Sahnerand ringsum (hält Hase und Heldin auf dem Kuchen)
+    { type: 'wall', pos: [0, Y - 4, -248.3], size: [12, 0.7, 0.6], style: 0xfff6fa },
+    { type: 'wall', pos: [0, Y - 4, -261.7], size: [12, 0.7, 0.6], style: 0xfff6fa },
+    { type: 'wall', pos: [-5.7, Y - 4, -255], size: [0.6, 0.7, 12.8], style: 0xfff6fa },
+    { type: 'wall', pos: [5.7, Y - 4, -255], size: [0.6, 0.7, 12.8], style: 0xfff6fa },
+    { type: 'pipe', id: 'kuchen_aus', pos: [3.4, Y - 4, -251.6], height: 1.4, target: [5, Y + 8, -224.4] },
 
     // ================================================================ Rätselbox-Raum (abseits): großer Drehkeks über dem Schokoladensee
     isl(RX - 10, RX + 10, -124, -132, Y, 6, { top: 'grass' }),
-    { type: 'keksrad', id: 'raum_klein', pos: [RX, Y - 0.6, -134.3], radius: 1.2, speed: 0.4, icing: 'gruen', postDown: 8 },
+    { type: 'keksrad', id: 'raum_klein', pos: [RX, Y - 0.6, -134.4], radius: 1.5, speed: 0.4, icing: 'gruen', postDown: 8 },
     { type: 'keksrad', id: 'raum_gross', pos: [RX, Y - 0.6, -141], radius: 4.4, speed: -0.35, icing: 'rosa', postDown: 8 },
   ],
   blocks: [
     { kind: 'question', pos: [-2.5, Y + 1.9, -1], content: 'sichel' },
     { kind: 'coinblock', pos: [2.5, Y + 2.4, -1], count: 6 },
     { kind: 'question', pos: [0, T + 2.4, -102], content: 'wachstumsbeere' },
+    { kind: 'hidden', pos: [11.2, T - 4.6 + 2.2, -122.4], content: 'oneup' },        // Extraleben im Stempel-Fach
+    { kind: 'hidden', pos: [RX + 6.5, Y + 2.6, -127], content: 'oneup' },             // Extraleben im Keks-Raum
   ],
   enemies: [
     { kind: 'riesenschnappblume', id: 'blume1', pos: [8, Y, -29.2], yaw: PI },

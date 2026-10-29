@@ -70,16 +70,25 @@ const ROUTES = {
       { name: 'Zielmast', to: [0, -231.4], within: 0.2 },
     ],
     targets: [
-      { name: 'WANDTEST', from: [0, Y, -84], star: 0, legs: [
-        { to: [-0.2, -90.4], within: 0.4 },
-        { name: 'Zahnradwand 1 (Paternoster)', gear: 'wand1', board: [-0.2, -90.4], off: Y + 5.6, to: [-1.8, -91], max: 2.2, reach: 1.8, hold: 6 },
-        { to: [-2.9, -90.6], within: 0.3, run: false },
-        { name: 'Zahnrad-Stufe 1', cog: 'stufe1', to: [-6, -90.2] },
-        { name: 'Zahnrad-Stufe 2', cog: 'stufe2', to: [-1.5, -90.2] },
-        { name: 'Zahnrad-Stufe 3', cog: 'stufe3', to: [3, -90.2] },
-        { name: 'Zahnrad-Stufe 4', cog: 'stufe4', to: [7.5, -90.2] },
-        { name: 'auf die Wand', cog: null, to: [7.5, -94.5], top: 16 },
-      ] },
+      { name: 'Stern 0: hinter Riesenschnappblume 2 über zwei Kekse, Weitsprung durch den Stern', star: 0, from: [2, Y, -53],
+        legs: [{ to: [-5.2, -61.2], within: 0.4 }, { to: [-9.6, -64.4], jump: 20, jumpAt: 9, within: 0.6 }, { to: [-10.7, -65], within: 0.25, run: false },
+          { to: [-13.4, -66.4], jump: 16, jumpAt: 9, within: 0.6 }, { to: [-12.5, -66.1], within: 0.2, run: false }, { long: [-21, -69.1], runup: 15 }], shot: 'stern0', mech: (r) => !r.dead, mechText: (r) => (r.dead ? 'abgestürzt' : 'auf dem Landekeks') },
+      { name: 'Stern 0 mit der Wurfsichel vom zweiten Keks aus', star: 0, from: [2, Y, -53], place: { power: 'sichel' },
+        legs: [{ to: [-5.2, -61.2], within: 0.4 }, { to: [-9.6, -64.4], jump: 20, jumpAt: 9, within: 0.6 }, { to: [-10.7, -65], within: 0.25, run: false },
+          { to: [-13.4, -66.4], jump: 16, jumpAt: 9, within: 0.6 }, { throwAt: [-17.9, -68] }] },
+      { name: 'Stern 0 nicht mit einem normalen Sprung (vom Keks aus zu kurz)', star: 0, expectNot: true, from: [2, Y, -53], heroes: ['lotti'],
+        legs: [{ to: [-5.2, -61.2], within: 0.4 }, { to: [-9.6, -64.4], jump: 20, jumpAt: 9, within: 0.6 }, { to: [-10.7, -65], within: 0.25, run: false },
+          { to: [-13.4, -66.4], jump: 16, jumpAt: 9, within: 0.6 }, { to: [-12.6, -66.1], within: 0.25, run: false }, { to: [-21, -69.1], jump: 40, jumpAt: 12, within: 0.6, max: 240 }] },
+      { name: 'Stern 1: Loch der dritten Ameisen-Reihe, Rätselbox im Fach, im Keks-Raum auf den großen Drehkeks', star: 1, from: [-2, T3, -148.6],
+        legs: [{ ants: 'reihe3', at: [-4.8, -152.6], to: [-7.2, -154.2] }, { until: '=P().pos.y < 13 && P().mode === \'ground\'', max: 300 }, { warp: [-10.6, -155.6] },
+          { until: '=P().pos.x > 50', max: 600 }, { to: [RX3, -131.3], within: 0.3 }, { wait: 30 }, { to: [RX3, -134.4], jump: 20, jumpAt: 9, within: 0.6 },
+          { to: [RX3, -135.4], within: 0.25, run: false }, { to: [RX3, -141], jump: 24, jumpAt: 9, within: 0.8 }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stempel: ins Loch der ersten Ameisen-Reihe – Fach mit dem Stempel', stamp: true, from: [4, T3, -112.6],
+        legs: [{ ants: 'reihe1', at: [7.2, -115.6], to: [7.2, -118.2] }, { until: '=P().pos.y < 13 && P().mode === \'ground\'', max: 300 }, { to: [10.4, -120.4], within: 0.3 }], shot: 'stempel' },
+      { name: 'Stern 2: hinter dem Zielmast hinab auf die Kuchenplattform, Hasen fangen, Röhre zurück', star: 2, from: [-5, Y + 8, -224],
+        legs: [{ to: [-5, -228], within: 0.4 }, { to: [-3, -252], jump: 30, jumpAt: 14.8, within: 0.8 }, { expect: '=at(-6, 6, Y - 4.5, -248, -262)' },
+          { chaseKind: 'bunny', max: 2400, jump: false }, { until: '=L.runtime.stars[2] || L.entities.some((e) => e.kind === \'star\' && e.index === 2 && !e.hidden && e.alive)', max: 600 }, { star: 2 },
+          { to: [3.4, -249.4], within: 0.3, run: false }, { to: [3.4, -251.6], jump: 24, jumpAt: 9, within: 0.3, run: false }, { wait: 20 }, { crouch: 20 }, { expect: '=at(-8, 8, Y + 7.5, -222, -238)' }], shot: 'stern2' },
     ],
     extra: [],
     shots: [
@@ -338,7 +347,7 @@ function install() {
           continue;
         }
         if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
-        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
+        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, jump: Lg.jump, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
         // ------------------------------------------------ warten, bis Stachelkugeln (Ids) nicht mehr nahe am Weg sind
         if (Lg.clear) {
           const [cx, cz] = Lg.at, r = Lg.r ?? 3;
@@ -685,6 +694,37 @@ function install() {
             tick(d > 0.15 && p.mode === 'ground' ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {});
           }
           log.push(['stachelblock', Lg.block, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Weitsprung: Anlauf Richtung Ziel, ducken (Rutschen), springen; in der Luft zum Ziel lenken
+        if (Lg.long) {
+          const [tx, tz] = Lg.long;
+          let k = 0, longed = false;
+          const ru = Lg.runup ?? 10;
+          for (; k < 400 && !p.dead; k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z;
+            if (k > ru + 20 && p.mode === 'ground') break;
+            if (p.state === 'longjump') longed = true;
+            if (p.mode === 'air') { tick({ ...this.airSteer(tx, tz, 0, 0, 2.5, 14) }); continue; }
+            const crouch = k >= ru && k < ru + 3, jump = k >= ru + 2 && k < ru + 6;
+            tick({ ...this.stick(dx, dz, 1), run: true, crouch, jump });
+          }
+          log.push(['weitsprung', `${Lg.long}`, longed, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Wurfsichel auf einen Punkt werfen (zum Ziel drehen, Aktion), Rückkehr abwarten
+        if (Lg.throwAt) {
+          const [tx, tz] = Lg.throwAt;
+          let k = 0;
+          for (; k < 200 && !p.dead; k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            const fv = p.facingVec(), dot = (fv.x * dx + fv.z * dz) / (d || 1);
+            if (dot > 0.995) break;
+            tick({ ...this.stick(dx, dz, 0.12), run: false });
+          }
+          tick({ action: true }); tick({});
+          for (let n = 0; n < (Lg.wait ?? 240); n++) tick({});
+          log.push(['sichel', `${Lg.throwAt}`, k, p.power]);
           continue;
         }
         // ------------------------------------------------ Ameisen-Reihe (Id der ameisen_reihe) queren: Lücke abwarten, dann hinüber
