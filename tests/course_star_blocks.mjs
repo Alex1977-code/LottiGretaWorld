@@ -416,8 +416,7 @@ if (want('mech')) {
     const r = await sc(() => {
       const t = window.__t, c = window.__course, p = c.player, w = t.named('wand'), tr = t.named('treppe');
       t.place([-3, 0, -73], { settle: 2 });
-      // eine herausgeklappte Platte suchen, Figur daraufstellen, bis sie einklappt
-      // eine eben herausgeklappte Platte der zweiten Reihe suchen, Figur daraufstellen, bis sie einklappt
+      // eine eben ausgefahrene Platte der zweiten Reihe suchen, Figur daraufstellen, bis sie einfährt
       t.until(() => w.panels.every((x) => x.row !== 1 || x.state !== 'aussen'), 1500);
       const n = t.until(() => w.panels.some((q) => q.solid && q.row === 1 && q.state === 'aussen'), 1500);
       const q = w.panels.find((x) => x.solid && x.row === 1);
@@ -430,8 +429,9 @@ if (want('mech')) {
         t.tick(60);
         fell = m >= 0 && p.pos.y < q.y - 0.5;
       }
-      const innenOhneForm = w.panels.filter((x) => x.k < 0.01).every((x) => x.id === null);
-      // Treppe: klappt erst aus, wenn man nah kommt, und bleibt draußen
+      // eingefahrene Platten liegen ganz in der Wand (Wandfläche bei z = −78, Wand zeigt nach +Z)
+      const innenOhneForm = w.panels.filter((x) => x.k < 0.01).every((x) => x.mb.shape.max[2] <= -78 + 0.01);
+      // Treppe: fährt erst aus, wenn man nah kommt, und bleibt draußen
       const before = tr.info().out;
       t.place([7, 0, -75], { settle: 2 });
       t.tick(600);
@@ -439,9 +439,9 @@ if (want('mech')) {
       t.place([0, 0, -64], { settle: 30 });
       return { n, stood, yOn, fell, innenOhneForm, before, after };
     });
-    console.log(`  Plattenwand: Stufe nach ${r.n} Schritten, Figur steht ${r.stood} (y ${r.yOn}), fällt beim Einklappen ${r.fell}; Treppe ${r.before} → ${r.after.out} (${r.after.solid} fest)`);
-    check('Plattenwand: Platten klappen im Takt heraus (Stufe trägt), vor dem Einklappen Vorwarnung, dann fällt die Figur; eingeklappt ohne Form', r.n >= 0 && r.stood && r.fell && r.innenOhneForm);
-    check('Plattentreppe: klappt erst aus, wenn die Figur nah ist (Gegenprobe vorher alle innen), dann bleiben alle Stufen draußen', /^\.+$/.test(r.before) && /^#+$/.test(r.after.out) && r.after.solid === r.after.out.length);
+    console.log(`  Plattenwand: Stufe nach ${r.n} Schritten, Figur steht ${r.stood} (y ${r.yOn}), fällt beim Einfahren ${r.fell}; Treppe ${r.before} → ${r.after.out} (${r.after.solid} fest)`);
+    check('Plattenwand: Schubplatten fahren im Takt heraus (Stufe trägt), vor dem Einfahren Vorwarnung, dann fällt die Figur; eingefahren ganz in der Wand', r.n >= 0 && r.stood && r.fell && r.innenOhneForm);
+    check('Plattentreppe: fährt erst aus, wenn die Figur nah ist (Gegenprobe vorher alle innen), dann bleiben alle Stufen draußen', /^\.+$/.test(r.before) && /^#+$/.test(r.after.out) && r.after.solid === r.after.out.length);
     await T('place', marks.wand, { settle: 30 });
     await shot('plattenwand', 1400);
   }

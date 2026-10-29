@@ -28,6 +28,8 @@ import {
 import { roundedBox, colorize, merge, lin, mixc, smooth, SIDE } from '../../three/world/geometry.js';
 import { addObject } from './kit.js';
 import { visDt } from '../entities/gimmick.js';
+import { hasModel, getModel } from '../models/index.js';
+import { createInstanced } from '../models/lib/instanced.js';
 
 export {
   MovingBox, figures, regModel, stdMat, pathOf, pathAt, canvasTexture, bakeW8, hurtFigures, killFigures, sphereTouches, boxTouches,
@@ -193,6 +195,119 @@ export function cullSphere(mesh, center = null, radius = 0, pad = 0) {
   if (center) mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(center.x, center.y, center.z), radius + pad);
   else { mesh.computeBoundingSphere(); if (mesh.boundingSphere) mesh.boundingSphere.radius += pad; }
   mesh.frustumCulled = true;
+}
+
+// ------------------------------------------------------------------ Registry-Modelle (Modelle Bonuswelten)
+
+/** Registry-Modell verwenden? (vorhanden und nicht spec.look === 'eigen') */
+export const useModel = (spec, name) => spec?.look !== 'eigen' && hasModel(name);
+
+/** Plattenfarbe für die Stern-Modelle: benannte Modellfarbe (PANEL) oder Hex. */
+const PANEL_NAMES = new Set(['blau', 'rot', 'gelb', 'gruen', 'lila', 'weiss', 'gold', 'tuerkis']);
+export const modelColor = (c, d) => (typeof c === 'string' && PANEL_NAMES.has(c) ? c : plateColor(c, d));
+
+/** Hüllkugel (Weltkoordinaten) über Punkte [{ x, y, z }] + pad → { center, radius } */
+export function sphereOf(pts, pad = 0) {
+  if (!pts.length) return { center: { x: 0, y: 0, z: 0 }, radius: pad };
+  const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y), zs = pts.map((p) => p.z);
+  const c = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2, z: (Math.min(...zs) + Math.max(...zs)) / 2 };
+  let r = 0;
+  for (const p of pts) r = Math.max(r, Math.hypot(p.x - c.x, p.y - c.y, p.z - c.z));
+  return { center: c, radius: r + pad };
+}
+
+/**
+ * Instanz-Variante eines Stern-Modells (createInstanced aus models/lib/instanced_star.js: drehplatte, farbplatte, wabe,
+ * retro_block) ins Level setzen. Das Modell schaltet die Sichtprüfung ab; hier bekommt jede Gruppe eine feste Hüllkugel
+ * (sphere = { center, radius }), damit sie nur im Bild zeichnet. update läuft je Bild mit der Darstellungs-Zeit.
+ */
+export function instancedModel(level, name, n, opts, sphere = null) {
+  const api = createInstanced(name, Math.max(1, n), opts);
+  const holder = {};
+  addObject(level, api.root, (dt) => api.update(visDt(level, holder, dt)));
+  if (sphere) for (const m of api.meshes) cullSphere(m, sphere.center, sphere.radius);
+  return api;
+}
+
+const _mq = new THREE.Quaternion(), _mq2 = new THREE.Quaternion(), _mv = new THREE.Vector3(), _mv2 = new THREE.Vector3(), _ms = new THREE.Vector3(), _ms2 = new THREE.Vector3();
+const _mm = new THREE.Matrix4(), _mm2 = new THREE.Matrix4(), _mzero = new THREE.Matrix4().makeScale(0, 0, 0), _myaw = new THREE.Vector3(0, 1, 0);
+
+/**
+ * Instanz-Gruppe aus einem Registry-Modell (für Modelle ohne eigene Instanz-Variante): jedes Mesh des Modells wird ein
+ * InstancedMesh (gleiche Geometrie, gleiches Material) – n Exemplare kosten so viele Zeichenaufrufe wie ein Modell. Lagen
+ * der Teile werden je Schlüssel-Zustand (keys, z. B. [{ out: 0 }, { out: 1 }]) einmal gemessen; set(i, …, k) mischt
+ * zwischen den Schlüsseln (k = 0 … keys.length − 1, Bruchteile erlaubt). Eigene Animationen des Modells (Blinken, Rauch,
+ * Funken – innere Instanz-Meshes, Sprites) entfallen. o.skip(mesh) lässt Teile weg; o.shadow false wirft keinen Schatten.
+ */
+export class ModelSet {
+  constructor(level, name, opts, n, keys = ['idle'], o = {}) {
+    this.level = level;
+    this.n = Math.max(1, n);
+    this.meshes = [];
+    this.parts = [];
+    if (!level.view || !hasModel(name)) return;
+    const m = getModel(name, opts ?? {});
+    this.model = m;
+    const list = [];
+    m.root.traverse((ob) => { if (ob.isMesh && !ob.isInstancedMesh && !(o.skip && o.skip(ob))) list.push(ob); });
+    this.keys = keys.map((s) => {
+      m.update?.(0, s ?? 'idle'); m.update?.(0.5, s ?? 'idle');
+      m.root.updateMatrixWorld(true);
+      const inv = m.root.matrixWorld.clone().invert();
+      return list.map((ob) => {
+        const rel = inv.clone().multiply(ob.matrixWorld);
+        const p = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+        rel.decompose(p, q, sc);
+        let vis = ob.visible;
+        for (let a = ob.parent; a && a !== m.root; a = a.parent) vis = vis && a.visible;
+        return { p, q, s: sc, vis };
+      });
+    });
+    for (const ob of list) {
+      const im = new THREE.InstancedMesh(ob.geometry, ob.material, this.n);
+      im.name = `${name}:${ob.name || 'teil'}`;
+      im.castShadow = o.shadow === false ? false : ob.castShadow;
+      im.receiveShadow = ob.receiveShadow;
+      im.renderOrder = ob.renderOrder;
+      im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      for (let i = 0; i < this.n; i++) im.setMatrixAt(i, _mzero);
+      im.frustumCulled = false;
+      addObject(level, im);
+      this.meshes.push(im);
+    }
+  }
+
+  /** Exemplar i: Ursprung (x, y, z) wie das Modell, Gier yaw, Schlüssel k (Mischung), scale (Zahl oder [sx, sy, sz]). */
+  set(i, x, y, z, yaw = 0, k = 0, scale = 1, o = null) {
+    if (!this.meshes.length) return;
+    const nk = this.keys.length - 1;
+    k = clamp(k, 0, nk);
+    const k0 = Math.floor(k), k1 = Math.min(nk, k0 + 1), f = k - k0;
+    _mq.setFromAxisAngle(_myaw, yaw);
+    if (o?.quat) _mq.multiply(o.quat);
+    if (Array.isArray(scale)) _ms.set(scale[0], scale[1], scale[2]); else _ms.setScalar(scale);
+    _mm.compose(_mv.set(x, y, z), _mq, _ms);
+    const A = this.keys[k0], B = this.keys[k1];
+    for (let j = 0; j < this.meshes.length; j++) {
+      const a = A[j], b = B[j];
+      const vis = f < 0.5 ? a.vis : b.vis;
+      if (!vis) { this.meshes[j].setMatrixAt(i, _mzero); continue; }
+      _mv2.copy(a.p).lerp(b.p, f);
+      _mq2.copy(a.q).slerp(b.q, f);
+      _ms2.copy(a.s).lerp(b.s, f);
+      _mm2.compose(_mv2, _mq2, _ms2);
+      this.meshes[j].setMatrixAt(i, _mm2.premultiply(_mm));
+    }
+  }
+
+  hide(i) { for (const im of this.meshes) im.setMatrixAt(i, _mzero); }
+
+  commit() { for (const im of this.meshes) im.instanceMatrix.needsUpdate = true; }
+
+  /** Feste Hüllkugel (Weltkoordinaten) für alle Teile – sonst zeichnet die Gruppe immer. */
+  cull(center, radius) { for (const im of this.meshes) cullSphere(im, center, radius); }
+
+  get ok() { return this.meshes.length > 0; }
 }
 
 /** Steht eine Figur (am Boden) auf einer Form mit diesem owner? → Figur | null */

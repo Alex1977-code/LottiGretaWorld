@@ -8,7 +8,9 @@
 //     parts: [{ pos, size, phase }] | from, to, n (Reihe), mode: 'heben' | 'blinken', depth: 3 (m Weg nach unten),
 //     up: 2.6 (s oben bzw. sichtbar), down: 2 (s unten bzw. weg), move: 1.1 (s Fahrt; blinken: Ein-/Ausblenden 0,3 s),
 //     warn: 0.7 (s Vorwarnung: zittert/flackert), phase, stagger: 1.1 (s je Teil), fog: pos.y − 0.8 (Höhe der Nebeldecke),
-//     color: 'lila' | 'mint' | 'stein', idle: false (true: wartet auf start()) }
+//     color: 'lila' | 'mint' | 'stein' (nur eigene Optik), idle: false (true: wartet auf start()), look: 'eigen' }
+//   Optik: Registry-Modell 'nebelplattform' (Wolkenstein mit Nebelschleier) als Instanz-Gruppe (ModelSet; blinken =
+//   schrumpfen/flackern, ganz unter der Nebeldecke unsichtbar), sonst eigene Grabplatten mit Rune.
 //   level.named.get(id) = { parts: [{ state ('oben'|'warn'|'sinkt'|'unten'|'steigt' bzw. 'da'|'flackert'|'weg'|'kommt'), k
 //     (0 unten/weg … 1 oben/da), solid, mb }], start(), stop(), info() }; MovingBox-Tag 'nebelplattform'; star(level).fogs.
 //   Beispiel: { type: 'nebelplattform', id: 'nebel1', from: [0, 0, -40], to: [0, 0, -52], n: 4, depth: 3 }
@@ -25,7 +27,7 @@ import * as THREE from 'three';
 import { v3, addObject, box, lin, mixc, smooth, colorize, merge } from '../kit.js';
 import { visDt } from '../../entities/gimmick.js';
 import { buildNebel } from './hw_glibber.js';
-import { star, MovingBox, figureInside, cycle, ease, figures, cullSphere } from '../starkit.js';
+import { star, MovingBox, figureInside, cycle, ease, figures, cullSphere, useModel, ModelSet, sphereOf } from '../starkit.js';
 
 const STONE = {
   lila: [0xb8a8e8, 0xe8e0ff, 0x6a5aa8, 0xd0c0ff],
@@ -106,6 +108,33 @@ export function buildNebelplattform(level, spec) {
     }
   });
   if (!level.view) return handle;
+  if (useModel(spec, 'nebelplattform')) {
+    // Registry-Modell (Wolkenstein-Platte mit Nebelschleier; Ursprung = Mitte der Unterseite) als Instanz-Gruppe: alle
+    // Platten eines Bausteins = so viele Zeichenaufrufe wie ein Modell; blinken = schrumpfen/flackern, heben = sinken
+    const set = new ModelSet(level, 'nebelplattform', { size: [size[0], size[2]], thick: size[1] }, parts.length, [{ fade: 1 }]);
+    if (set.ok) {
+      const sp = sphereOf(parts.map((q) => ({ x: q.x, y: q.top - depth / 2, z: q.z })), depth / 2 + Math.max(...size) + 0.5);
+      set.cull(sp.center, sp.radius);
+      const holder = {};
+      let t = 0;
+      const draw = () => {
+        for (const q of parts) {
+          const bottom = mode === 'heben' ? q.mb.pos.y : q.top - q.s[1];
+          const shake = q.state === 'warn' || q.state === 'flackert' ? Math.sin(t * 45 + q.i) * 0.04 : 0;
+          let k = 1;
+          if (mode === 'blinken') k = q.state === 'flackert' ? (Math.sin(t * 30) > 0 ? 1 : 0.35) : q.k;
+          const g = mode === 'blinken' ? (k < 0.05 ? 0 : 0.6 + 0.4 * k) : 1;
+          // unter der Nebeldecke ganz verschwunden → nicht zeichnen
+          if (g <= 0 || (mode === 'heben' && bottom + q.s[1] < fogY - q.s[1] - 0.6)) { set.hide(q.i); continue; }
+          set.set(q.i, q.x + shake, bottom + q.s[1] * (1 - g) / 2, q.z, 0, 0, [g * q.s[0] / size[0], g * q.s[1] / size[1], g * q.s[2] / size[2]]);
+        }
+        set.commit();
+      };
+      draw();
+      level.view.onFrame((dt) => { t += visDt(level, holder, dt); draw(); });
+      return handle;
+    }
+  }
   const C = STONE[spec.color] ?? STONE.lila;
   const geo = slabGeo(size[0], size[1], size[2], C);
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, emissive: new THREE.Color(C[3]).multiplyScalar(0.08) });

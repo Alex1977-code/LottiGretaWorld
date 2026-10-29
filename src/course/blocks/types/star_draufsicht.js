@@ -14,7 +14,10 @@
 //   Kollision je Wabe ein senkrechter Zylinder (Innenradius), Lava-Waben mit Hitze-Prüfung. 3 Zeichenaufrufe je Feld.
 //   { type: 'waben', id, pos: [x, y, z] (Oberseite der Wabe Zeile 0 / Spalte 0), size: 1.6 (Eckradius), height: 0.6 (Dicke),
 //     map: ['nnl', ' iin', …] (Zeilen nach −Z, Spalten nach +X; n normal, l Lava, i Eis, h hoch (+1 m), ' '/'.' leer),
-//     gap: 0.06, rise: 1 (m für 'h'), damage: 'treffer' | 'tod', color: 'honig' | 'weiss' | 'lila' }
+//     gap: 0.06, rise: 1 (m für 'h'), damage: 'treffer' | 'tod', color: 'honig' | 'weiss' | 'lila' (nur eigene Optik),
+//     look: 'eigen' }
+//   Optik: Registry-Modell 'wabe' als Instanz-Variante je Art (normal/lava/eis; ≤ 3 Gruppen, feste Hüllkugel), Waben unter
+//   stehenden Figuren drücken sich ein (state press); ohne Modell bzw. look 'eigen' eigene Prismen.
 //   level.named.get(id) = { cells: [{ q, r, type, x, y, z }], at(x, z) → Zelle | null, hits, info() }; Form-Tags 'wabe',
 //   'wabe-lava', 'wabe-eis'; star(level).combs.
 //   Beispiel: { type: 'waben', id: 'feld', pos: [-6, 0, -40], map: ['nnnn', 'nlin', 'nnnn'] }
@@ -22,7 +25,9 @@
 import * as THREE from 'three';
 import { v3, addObject } from '../kit.js';
 import { visDt } from '../../entities/gimmick.js';
-import { star, figures, lin, mixc, smooth, colorize, clamp } from '../starkit.js';
+import { star, figures, lin, mixc, smooth, colorize, clamp, useModel, instancedModel, sphereOf } from '../starkit.js';
+
+const groupsOf = (cells, type) => cells.filter((c) => c.type === type);
 
 // ===================================================================== Draufsicht
 
@@ -130,6 +135,37 @@ export function buildWaben(level, spec) {
     });
   }
   if (!level.view || !cells.length) return handle;
+  if (useModel(spec, 'wabe')) {
+    // Registry-Modell (Instanz-Variante je Art: lila Körper mit Honig-Deckfläche, Lava-Kruste mit Glut, Eis mit Raureif;
+    // Ecke nach +X → um 90° gedreht wie hier Ecke nach ±Z); 'hoch' = gestreckte normale Wabe; stehende Figuren drücken ein
+    const sp = sphereOf(cells, R + rise + 0.5);
+    const kinds = { normal: cells.filter((c) => c.type === 'normal' || c.type === 'hoch'), lava: groupsOf(cells, 'lava'), eis: groupsOf(cells, 'eis') };
+    const apis = [];
+    for (const [kind, list] of Object.entries(kinds)) {
+      if (!list.length) continue;
+      const api = instancedModel(level, 'wabe', list.length, { kind, size: R - gap * 0.5, thick: H }, sp);
+      list.forEach((c, i) => {
+        c.api = api; c.slot = i; c.press = 0;
+        if (c.type === 'hoch') api.setAt(i, [c.x, c.y - H - rise, c.z], Math.PI / 2, [1, (H + rise) / H, 1]);
+        else api.setAt(i, [c.x, c.y - H, c.z], Math.PI / 2, 1);
+      });
+      apis.push(api);
+    }
+    const holder = {};
+    level.view.onFrame((dt) => {
+      const dd = visDt(level, holder, dt);
+      const on = new Set();
+      for (const f of figures(level)) if (f.mode === 'ground' && f.ground?.owner && cells.includes(f.ground.owner)) on.add(f.ground.owner);
+      for (const c of cells) {
+        const target = on.has(c) ? 1 : 0;
+        if (c.press === target && target === 0) continue;
+        c.press += (target - c.press) * Math.min(1, dd * 14);
+        if (Math.abs(c.press - target) < 0.01) c.press = target;
+        c.api.setState(c.slot, { press: c.press });
+      }
+    });
+    return handle;
+  }
   const C = COMB[spec.color] ?? COMB.honig;
   const groups = { normal: [], hoch: [], lava: [], eis: [] };
   for (const c of cells) groups[c.type].push(c);

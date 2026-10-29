@@ -1,7 +1,9 @@
 // Bausteine Platten der Bonuswelt Stern (Präzisierung „Motor und Bausteine Bonuswelten“; Bauplan S-2 „Planetoiden-Hommage:
 // kippende Drehplatten, rote Plattenbahn, Boost-Strecke auf Drehplatten (zu langsam = Absturz), Plattentreppe mit senkrechter
 // Plattenwand, Schachbrett aus Platten“, S-1 „Bonusraum mit Farbfeldern“). Alle Platten eines Bausteins zeichnen als Instanzen
-// (Kern + weißer Rahmen = 2 Zeichenaufrufe), Takte auf der Level-Uhr.
+// (Registry-Modelle der Bonuswelten: Instanz-Varianten 'drehplatte'/'farbplatte' aus models/lib/instanced_star.js, Modell
+// 'plattenwand' als ModelSet; mit look: 'eigen' bzw. ohne Modell eigene Platten: Kern + weißer Rahmen), je Baustein 1–2
+// Zeichenaufrufe mit fester Hüllkugel; Takte auf der Level-Uhr.
 //
 // drehplatte – schwebende Platte(n), die kippen, wenn man darauf steht: Betreten → Vorwarnung (wackelt, blinkt hell) →
 //   kippt um ihre Achse (ab 30° nicht mehr fest: wer noch drauf ist, fällt) → hängt senkrecht → dreht zurück. Wer schnell
@@ -25,23 +27,29 @@
 //   level.named.get(id) = { plates: [{ on }], count, done, reset(), info() }; star(level).colors.
 //   Beispiel: { type: 'farbplatten', id: 'schach', pos: [0, 0, -100], grid: [4, 4], toggle: true, star: 2 }
 //
-// plattenwand – senkrechte Wand mit Klapp-Platten: die Platten klappen um ihre Unterkante waagerecht heraus und werden zu
-//   Trittstufen (im Takt nacheinander wie eine laufende Treppe, oder einmal als feste Treppe, sobald man nah kommt bzw.
-//   per Signal). Vor dem Zurückklappen blinken sie (Vorwarnung). Die Wand selbst ist fest (Wandsprung). Plattenhöhe
-//   ph = h / (Reihen + 1): unten bleibt ein Sockelband frei, Reihe r wird zur Stufe auf Höhe (r + 1)·ph (Tiefe ph).
+// plattenwand – senkrechte Wand mit Schubplatten: die Platten fahren waagerecht aus der Wand heraus und werden Trittstufen
+//   (im Takt nacheinander wie eine laufende Treppe, oder einmal als feste Treppe, sobald man nah kommt bzw. per Signal).
+//   Vor dem Einfahren zittern/blinken sie (Vorwarnung); wer draufsteht, fährt mit zur Wand und fällt dann. Die Wand selbst
+//   ist fest (Wandsprung) und mindestens depth + 0,1 m tief (eingefahrene Platten liegen ganz in ihr). Stufenabstand
+//   ph = h / (Reihen + 1): unten bleibt ein Sockelband frei, Reihe r hat ihre Oberkante bei (r + 1)·ph.
 //   { type: 'plattenwand', id, pos: [x, y, z] (Mitte der Unterkante der Wandfläche), dir: [0, 1] (Wandfläche zeigt nach +Z,
-//     90°-Raster), size: [w, h] (Wandfläche, Standard [6, 8]), thick: 0.6, grid: [Spalten, Reihen] (Standard [3, 4]),
-//     mode: 'takt' | 'treppe' (bleibt draußen) | 'signal' (start = herausklappen, stop = einklappen), order: 'treppe'
-//     (diagonal von unten) | 'reihe' (Reihe für Reihe) | [[Spalte, Reihe] …], period: 5 (s Takt), out: 2.4 (s draußen),
-//     stagger: 0.45 (s je Platte), phase, near: 6 (m, treppe: Auslöse-Abstand), warn: 0.6, color: 'rot', wall: 'weiss' }
-//   level.named.get(id) = { panels: [{ col, row, k (0..1 heraus), solid, state }], start(), stop(), info() }; Formen
-//   'plattenwand' (Wand) und 'plattenwand-stufe'; star(level).walls.
+//     90°-Raster), size: [w, h] (Wandfläche, Standard [6, 8]), grid: [Spalten, Reihen] (Standard [3, 4]), depth: 1.6
+//     (Ausfahrlänge = Stufentiefe), plate: 0.6 (Plattendicke, höchstens 0,6·ph), gap: 0.3 (Fuge zwischen Spalten), thick: 0.6
+//     (Wandtiefe, mindestens depth + 0,1), mode: 'takt' | 'treppe' (bleibt draußen) | 'signal' (start = ausfahren, stop =
+//     einfahren), order: 'treppe' (diagonal von unten) | 'reihe' (Reihe für Reihe) | [[Spalte, Reihe] …], period: 5 (s Takt),
+//     out: 2.4 (s draußen), move: 0.35 (s Fahrt), stagger: 0.45 (s je Platte), phase, near: 6 (m, treppe: Auslöse-Abstand),
+//     warn: 0.6, color: 'rot', wall: 'weiss' | 'grau', look: 'eigen' }
+//   Optik: Registry-Modell 'plattenwand' (Platte mit Silberrahmen der Öffnung) als Instanz-Gruppe (ModelSet), sonst eigene
+//   Schubplatten.
+//   level.named.get(id) = { panels: [{ col, row, k (0..1 draußen), solid (k > 0,5), state ('innen'|'faehrt'|'aussen'|'warn'|
+//     'zu'), mb (MovingBox) }], start(), stop(), info() → { out ('#'/'~'/'.' je Platte), solid, running, opened } };
+//   Formen 'plattenwand' (Wand) und 'plattenwand-stufe' (MovingBox); star(level).walls.
 //   Beispiel: { type: 'plattenwand', id: 'wand', pos: [0, 0, -120], size: [6, 9], grid: [3, 5], mode: 'takt' }
 
 import * as THREE from 'three';
 import { v3, addObject, box } from '../kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
-import { star, PlateSet, plateColor, standerOn, figureInside, cycle, ease, clamp, figures, cullSphere } from '../starkit.js';
+import { star, PlateSet, plateColor, standerOn, figureInside, cycle, ease, clamp, figures, cullSphere, MovingBox, ModelSet, useModel, instancedModel, modelColor, sphereOf } from '../starkit.js';
 
 const DEG = Math.PI / 180;
 
@@ -131,6 +139,22 @@ export function buildDrehplatte(level, spec) {
     }
   });
   if (!level.view) return handle;
+  if (arrow) addArrows(level, plates, size, arrow, () => plates.map((p) => p.k));
+  if (useModel(spec, 'drehplatte')) {
+    // Registry-Modell (Instanz-Variante): Ursprung = Mitte der Unterseite, Drehachse durch die Plattenmitte; Modell-Achse
+    // 'x' kippt wie hier (positiv hebt das −Z-Ende), 'z' hebt das +X-Ende
+    const api = instancedModel(level, 'drehplatte', plates.length, { size: [w, d], thick: h, axis, color: modelColor(spec.color, 0x3a8aff), back: modelColor(spec.color2, 0xffd23a) }, sphereOf(plates, Math.max(w, d) + 0.5));
+    plates.forEach((p) => api.setAt(p.i, [p.x, p.y - h, p.z], 0, 1, { tilt: 0 }));
+    const holder = {};
+    level.view.onFrame((dt) => {
+      visDt(level, holder, dt);
+      for (const p of plates) {
+        const shake = p.state === 'warn' ? clamp(p.t / Math.max(0.01, warn), 0.3, 1) : 0;
+        api.setState(p.i, { tilt: p.k * Math.PI / 2, shake });
+      }
+    });
+    return handle;
+  }
   const set = new PlateSet(level, plates.length, size, { name: 'drehplatten', frame: spec.frame === false ? 0 : 0.16 });
   let t = 0;
   set.render((dd) => {
@@ -142,7 +166,6 @@ export function buildDrehplatte(level, spec) {
       set.set(p.i, { x: p.x, y: p.y - h / 2, z: p.z, rx: axis === 'x' ? ang : 0, rz: axis === 'z' ? ang : 0, color: under ? c2 : c1, glow: p.state === 'warn' ? 0.5 + 0.5 * Math.sin(t * 30) : 0 });
     }
   });
-  if (arrow) addArrows(level, plates, size, arrow, () => plates.map((p) => p.k));
   return handle;
 }
 
@@ -232,6 +255,23 @@ export function buildFarbplatten(level, spec) {
     }
   });
   if (!level.view) return group;
+  if (useModel(spec, 'farbplatte')) {
+    // Registry-Modell (Instanz-Variante): Rahmen mit Goldsternen, Platte färbt von colors[0] nach colors[1], flash = Aufleuchten
+    const api = instancedModel(level, 'farbplatte', n, { size: [w, d], thick: h, colors: [modelColor(spec.from, 0x3a8aff), modelColor(spec.to, 0xffd23a)] }, sphereOf(plates, Math.max(w, d)));
+    const holder = {};
+    let t = 0;
+    for (const p of plates) { p.c = 0; api.setAt(p.i, [p.x, p.y - h, p.z], 0, 1, { color: 0 }); }
+    level.view.onFrame((dt) => {
+      const dd = visDt(level, holder, dt);
+      t += dd;
+      for (const p of plates) {
+        p.pop = Math.max(0, p.pop - dd * 2.5);
+        p.c += ((p.on ? 1 : 0) - p.c) * Math.min(1, dd * 12);
+        api.setAt(p.i, [p.x, p.y - h - p.pop * 0.05, p.z], 0, 1, { color: p.c, flash: group.done ? 0.3 + 0.3 * Math.sin(t * 4 + p.i) : p.pop });
+      }
+    });
+    return group;
+  }
   const set = new PlateSet(level, n, size, { name: 'farbplatten', frame: spec.frame === false ? 0 : 0.16, shadow: false });
   const ca = new THREE.Color(cA), cb = new THREE.Color(cB), tmp = new THREE.Color();
   let t = 0;
@@ -251,49 +291,39 @@ export function buildFarbplatten(level, spec) {
 export function buildPlattenwand(level, spec) {
   const p = v3(spec.pos);
   const [W, H] = spec.size ?? [6, 8];
-  const thick = spec.thick ?? 0.6;
   let dx = 0, dz = 1;
   if (Array.isArray(spec.dir)) { dx = Math.sign(Math.round(spec.dir[0])); dz = Math.sign(Math.round(spec.dir[1])); if (dx && dz) dz = 0; }
   if (!dx && !dz) dz = 1;
   const [cols, rows] = spec.grid ?? [3, 4];
-  // Platten-Reihen über einem freien Sockelband: Reihe r klappt an der Höhe (r + 1)·ph heraus (unterste Stufe nicht am Boden)
-  const pw = W / cols, ph = H / (rows + 1);
-  const shelf = 0.3;
+  // Stufen-Reihen über einem freien Sockelband: Reihe r hat ihre Oberkante bei (r + 1)·ph (unterste Stufe nicht am Boden)
+  const cw = W / cols, ph = H / (rows + 1);
+  const pw = Math.max(0.6, cw - (spec.gap ?? 0.3));
+  const depth = spec.depth ?? 1.6, pt = Math.min(spec.plate ?? 0.6, ph * 0.6);
+  // Die Wand ist mindestens so tief wie der Schub (eingefahrene Platten liegen ganz in ihr)
+  const thick = Math.max(spec.thick ?? 0.6, depth + 0.1);
   // Querachse u (entlang der Wand): bei dir ±Z ist u = x, bei dir ±X ist u = z
   const ux = dz !== 0 ? 1 : 0, uz = dz !== 0 ? 0 : 1;
   // Wandkörper liegt hinter der Fläche (gegen dir)
-  const wx0 = p.x - ux * W / 2 - (dx ? (dx > 0 ? thick : 0) : 0), wx1 = p.x + ux * W / 2 + (dx ? (dx < 0 ? thick : 0) : 0);
-  const wz0 = p.z - uz * W / 2 - (dz ? (dz > 0 ? thick : 0) : 0), wz1 = p.z + uz * W / 2 + (dz ? (dz < 0 ? thick : 0) : 0);
-  level.world.add({ type: 'box', min: [Math.min(wx0, wx1), p.y, Math.min(wz0, wz1)], max: [Math.max(wx0, wx1), p.y + H, Math.max(wz0, wz1)], tag: 'plattenwand' });
+  const bx0 = p.x - ux * W / 2 - (dx > 0 ? thick : 0), bx1 = p.x + ux * W / 2 + (dx < 0 ? thick : 0);
+  const bz0 = p.z - uz * W / 2 - (dz > 0 ? thick : 0), bz1 = p.z + uz * W / 2 + (dz < 0 ? thick : 0);
+  level.world.add({ type: 'box', min: [bx0, p.y, bz0], max: [bx1, p.y + H, bz1], tag: 'plattenwand' });
   const mode = spec.mode ?? 'takt';
-  const period = spec.period ?? 5, outT = spec.out ?? 2.4, stagger = spec.stagger ?? 0.45, warnT = spec.warn ?? 0.6, fold = 0.35;
+  const period = spec.period ?? 5, outT = spec.out ?? 2.4, stagger = spec.stagger ?? 0.45, warnT = spec.warn ?? 0.6, move = spec.move ?? 0.35;
   // Reihenfolge der Platten
   let order;
   if (Array.isArray(spec.order)) order = spec.order.map(([c, r]) => ({ col: c, row: r }));
   else if (spec.order === 'reihe') { order = []; for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) order.push({ col: c, row: r }); }
   else { order = []; for (let r = 0; r < rows; r++) order.push({ col: r % 2 === 0 ? (Math.floor(r / 2) % cols) : (cols - 1 - (Math.floor(r / 2) % cols)), row: r }); }
+  const sx = dz ? pw : depth, sz = dz ? depth : pw;
   const panels = order.map((o, i) => {
-    const u = -W / 2 + (o.col + 0.5) * pw;
+    const u = -W / 2 + (o.col + 0.5) * cw;
     const cx = p.x + ux * u, cz = p.z + uz * u, y = p.y + (o.row + 1) * ph;
-    return { i, col: o.col, row: o.row, cx, cz, y, k: 0, state: 'innen', t: 0, solid: false, id: null, phase: (spec.phase ?? 0) + i * stagger, warn: 0 };
+    const pn = { i, col: o.col, row: o.row, cx, cz, y, k: 0, state: 'innen', t: 0, solid: false, phase: (spec.phase ?? 0) + i * stagger, warn: 0, mb: null };
+    // Schubplatte: fester Quader (Tiefe depth), fährt entlang dir aus der Wand; eingefahren liegt er ganz in der Wand
+    pn.mb = new MovingBox(level, cx - dx * depth / 2, y - pt, cz - dz * depth / 2, sx, pt, sz, { owner: pn, tag: 'plattenwand-stufe' });
+    return pn;
   });
   const st = { running: mode === 'takt' && !spec.idle, opened: false, outs: 0 };
-  const stepBox = (pn) => {
-    // Stufe: an der Unterkante der Platte, ragt ph (Plattenhöhe) aus der Wand (nach dir), Dicke shelf
-    const ax0 = pn.cx - ux * (pw / 2 - 0.04), ax1 = pn.cx + ux * (pw / 2 - 0.04);
-    const az0 = pn.cz - uz * (pw / 2 - 0.04), az1 = pn.cz + uz * (pw / 2 - 0.04);
-    const ox0 = dx ? (dx > 0 ? pn.cx : pn.cx - ph) : ax0, ox1 = dx ? (dx > 0 ? pn.cx + ph : pn.cx) : ax1;
-    const oz0 = dz ? (dz > 0 ? pn.cz : pn.cz - ph) : az0, oz1 = dz ? (dz > 0 ? pn.cz + ph : pn.cz) : az1;
-    return { x0: Math.min(ox0, ox1), x1: Math.max(ox0, ox1), y0: pn.y - shelf, y1: pn.y, z0: Math.min(oz0, oz1), z1: Math.max(oz0, oz1) };
-  };
-  const setSolid = (pn, on) => {
-    if (on && pn.id === null) {
-      const b = stepBox(pn);
-      if (figureInside(level, b)) return;
-      pn.id = level.world.add({ type: 'box', min: [b.x0, b.y0, b.z0], max: [b.x1, b.y1, b.z1], owner: pn, tag: 'plattenwand-stufe' });
-    } else if (!on && pn.id !== null) { level.world.remove(pn.id); pn.id = null; }
-    pn.solid = pn.id !== null;
-  };
   const handle = {
     panels, kind: 'plattenwand',
     start() { if (mode === 'takt') st.running = true; else open(); },
@@ -304,7 +334,7 @@ export function buildPlattenwand(level, spec) {
   const close = () => { st.opened = false; panels.forEach((q) => { if (q.state !== 'innen') { q.state = 'warn'; q.t = 0; } }); };
   if (spec.id) level.named.set(spec.id, handle);
   star(level).walls.push(handle);
-  const cyc = cycle([{ name: 'innen', t: Math.max(0.1, period - outT - fold * 2 - warnT) }, { name: 'klappt', t: fold }, { name: 'aussen', t: outT }, { name: 'warn', t: warnT }, { name: 'zu', t: fold }]);
+  const cyc = cycle([{ name: 'innen', t: Math.max(0.1, period - outT - move * 2 - warnT) }, { name: 'faehrt', t: move }, { name: 'aussen', t: outT }, { name: 'warn', t: warnT }, { name: 'zu', t: move }]);
   const near = spec.near ?? 6;
   level.onStep((dt) => {
     if (mode === 'treppe' && !st.opened) {
@@ -312,44 +342,59 @@ export function buildPlattenwand(level, spec) {
     }
     for (const q of panels) {
       if (mode === 'takt') {
-        if (!st.running && q.state === 'innen') continue;
+        if (!st.running && q.state === 'innen') { q.mb.still(); continue; }
         const a = cyc.at(level.time + q.phase);
-        if (a.name !== q.state) { if (a.name === 'klappt') { level.sfx('flip'); st.outs++; } q.state = a.name; }
-        q.k = a.name === 'klappt' ? ease(a.u) : a.name === 'aussen' || a.name === 'warn' ? 1 : a.name === 'zu' ? 1 - ease(a.u) : 0;
+        if (a.name !== q.state) { if (a.name === 'faehrt') { level.sfx('flip'); st.outs++; } q.state = a.name; }
+        q.k = a.name === 'faehrt' ? ease(a.u) : a.name === 'aussen' || a.name === 'warn' ? 1 : a.name === 'zu' ? 1 - ease(a.u) : 0;
         q.warn = a.name === 'warn' ? 1 : 0;
       } else {
         q.t += dt;
-        if (q.state === 'warte' && q.t >= 0) { q.state = 'klappt'; q.t = 0; level.sfx('flip'); st.outs++; }
-        else if (q.state === 'klappt') { q.k = ease(q.t / fold); if (q.t >= fold) { q.state = 'aussen'; q.k = 1; } }
+        if (q.state === 'warte' && q.t >= 0) { q.state = 'faehrt'; q.t = 0; level.sfx('flip'); st.outs++; }
+        else if (q.state === 'faehrt') { q.k = ease(q.t / move); if (q.t >= move) { q.state = 'aussen'; q.k = 1; } }
         else if (q.state === 'warn') { q.warn = 1; if (q.t >= warnT) { q.state = 'zu'; q.t = 0; q.warn = 0; } }
-        else if (q.state === 'zu') { q.k = 1 - ease(q.t / fold); if (q.t >= fold) { q.state = 'innen'; q.k = 0; } }
+        else if (q.state === 'zu') { q.k = 1 - ease(q.t / move); if (q.t >= move) { q.state = 'innen'; q.k = 0; } }
       }
-      setSolid(q, q.k > 0.7 && q.state !== 'zu');
+      const out = q.k * depth - depth / 2;
+      q.mb.moveTo(q.cx + dx * out, q.y - pt, q.cz + dz * out, dt);
+      q.solid = q.k > 0.5;
     }
   });
   if (!level.view) return handle;
-  // Wand (statisch, weiß mit Fugen) und Platten (Instanzen, klappen um die Unterkante)
+  // Wand (statisch, weiß; Fläche 3 cm hinter der Ebene, damit eingefahrene Platten bündig davor sitzen)
   const wallCol = spec.wall === 'grau' ? 0xb8bccc : 0xf2f0fa;
-  const yaw = Math.atan2(-dz, dx);   // Normale der Fläche
-  const g = box(dz ? W : thick, H, dz ? thick : W, (wx0 + wx1) / 2, p.y + H / 2, (wz0 + wz1) / 2, wallCol, { r: 0.12 });
+  const back = 0.03;
+  const g = box(dz ? W : thick - back, H, dz ? thick - back : W, (bx0 + bx1) / 2 - dx * back / 2, p.y + H / 2, (bz0 + bz1) / 2 - dz * back / 2, wallCol, { r: 0.12 });
   level.view.addStatic(g, { material: 'world' });
-  const c1 = plateColor(spec.color, 0xff4a5a);
-  const set = new PlateSet(level, panels.length, [pw - 0.12, 0.22, ph - 0.12], { name: 'plattenwand', frame: 0.12 });
+  const yaw = Math.atan2(-dz, dx);   // Modell: Platte fährt nach +X → dir
+  const holder = {};
   let t = 0;
-  // lokale Lage: Platte liegt (k = 0) flach in der Wandfläche, Unterkante bei y; klappt um die Unterkante nach dir heraus
-  set.render((dd) => {
+  const jitter = (q) => (q.warn ? Math.sin(t * 46 + q.i) * 0.035 : 0);
+  if (useModel(spec, 'plattenwand')) {
+    // Registry-Modell (eine Platte mit Silberrahmen der Öffnung; Ursprung = Mitte der Unterkante der Öffnung an der
+    // Wandfläche) als Instanz-Gruppe: alle Platten einer Wand = 2 Zeichenaufrufe
+    const set = new ModelSet(level, 'plattenwand', { size: [pw, pt], depth, color: modelColor(spec.color, 0xff4a5a) }, panels.length, [{ out: 0 }, { out: 1 }]);
+    if (set.ok) {
+      const sp = sphereOf([{ x: bx0, y: p.y, z: bz0 }, { x: bx1, y: p.y + H, z: bz1 }, { x: p.x + dx * depth, y: p.y + H / 2, z: p.z + dz * depth }], 0.5);
+      set.cull(sp.center, sp.radius);
+      const draw = () => {
+        for (const q of panels) { const j = jitter(q); set.set(q.i, q.cx + ux * j, q.y - pt, q.cz + uz * j, yaw, q.k); }
+        set.commit();
+      };
+      draw();
+      level.view.onFrame((dt) => { t += visDt(level, holder, dt); draw(); });
+      return handle;
+    }
+  }
+  // eigene Optik: Schubplatten (Instanzen, farbiger Kern mit weißem Rahmen oben)
+  const c1 = plateColor(spec.color, 0xff4a5a);
+  const plates = new PlateSet(level, panels.length, [pw - 0.06, pt, depth], { name: 'plattenwand', frame: 0.12 });
+  plates.render((dd) => {
     t += dd;
     for (const q of panels) {
-      const a = (1 - q.k) * Math.PI / 2;   // 90° = senkrecht in der Wand, 0 = waagerecht heraus
-      const r = (ph - 0.12) / 2;
-      const outD = Math.cos(a) * r + 0.11, up = Math.sin(a) * r;
-      const x = q.cx + dx * outD, z = q.cz + dz * outD, y = q.y + up - (q.k > 0.5 ? 0.11 : 0);
-      // Kippen um die Querachse: bei dir ±Z um X, bei dir ±X um Z
-      // Oberseite der Platte zeigt eingeklappt nach dir (aus der Wand heraus)
-      set.set(q.i, { x, y, z, rx: dz ? a * dz : 0, rz: dx ? -a * dx : 0, color: c1, glow: q.warn ? 0.5 + 0.5 * Math.sin(t * 24) : 0 });
+      const j = jitter(q), out = q.k * depth - depth / 2 + 0.01;
+      plates.set(q.i, { x: q.cx + dx * out + ux * j, y: q.y - pt / 2, z: q.cz + dz * out + uz * j, ry: dx ? Math.PI / 2 : 0, color: c1, glow: q.warn ? 0.5 + 0.5 * Math.sin(t * 24) : 0 });
     }
   });
-  void yaw;
   return handle;
 }
 
