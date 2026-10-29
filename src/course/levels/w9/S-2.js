@@ -183,6 +183,24 @@ export const LEVEL = {
     { type: 'deco_star', shadow: false, items: [
       { kind: 'rakete', pos: [-3.4, YG, -231.4], height: 4, color: 'weiss', solid: true }, { kind: 'stern', pos: [3.4, YG, -224], pole: 2.2, size: 1.1 },
       { kind: 'planet', pos: [-9, YC + 3, -180], radius: 1.6, color: 'mint' }, { kind: 'kristall', pos: [5.6, YC, -172], n: 5, color: 'gold' },
+      // Start-Planet: Kristalle, Sternlaterne, Neonring über dem Start
+      { kind: 'kristall', pos: [5, Y, 8.6], n: 4, color: 'rosa' }, { kind: 'kristall', pos: [-5.2, Y, -6.4], n: 3, color: 'mint', size: 0.8 },
+      { kind: 'stern', pos: [-5.4, Y, 4.6], pole: 1.8, size: 0.8 }, { kind: 'kristall', pos: [5.2, Y, 1.6], n: 3, color: 'gold', size: 0.7 },
+      { kind: 'neonring', pos: [0, Y + 5.4, 3], radius: 1.6, color: 'pink', yaw: 0 },
+      // Münzinsel
+      { kind: 'kristall', pos: [-4.3, YM, -20.4], n: 4, color: 'blau', size: 0.8 }, { kind: 'stern', pos: [4.3, YM, -28.3], pole: 1.4, size: 0.7 },
+      // Zwischeninsel: Antenne funkt zur Boost-Strecke
+      { kind: 'antenne', pos: [4, YZ, -86.2], height: 2.6 }, { kind: 'kristall', pos: [-4.2, YZ, -85.4], n: 4, color: 'lila', size: 0.8 },
+      { kind: 'neonring', pos: [0, YZ + 3.4, -97.6], radius: 1.8, color: 'cyan', yaw: 0 },
+      // Boost-Ende und Kontrollpunkt
+      { kind: 'stern', pos: [-2.4, YZ, -163.8], pole: 1.2, size: 0.6 }, { kind: 'stern', pos: [2.4, YZ, -163.8], pole: 1.2, size: 0.6 },
+      { kind: 'leuchtsaeule', pos: [-7.2, YC, -170.8], height: 4.5 }, { kind: 'leuchtsaeule', pos: [7.2, YC, -170.8], height: 4.5 },
+      // Absätze
+      { kind: 'kristall', pos: [-6.4, YC + 4.4, -186.4], n: 3, color: 'rosa', size: 0.7 }, { kind: 'kristall', pos: [6.4, YC + 8.8, -195.4], n: 3, color: 'mint', size: 0.7 },
+      // unten (Gabelung) und Ziel
+      { kind: 'kristall', pos: [-15.2, YU, -214.2], n: 4, color: 'gold', size: 0.8 }, { kind: 'stern', pos: [-15.2, YU, -204.8], pole: 1.4, size: 0.7 },
+      { kind: 'regenbogen', pos: [0, YG, -232.4], width: 7, height: 4.2, yaw: 0 },
+      { kind: 'kristall', pos: [3.6, YG, -231.8], n: 4, color: 'lila' }, { kind: 'stern', pos: [-3.8, YG, -222.4], pole: 1.6, size: 0.7 },
     ] },
   ],
   blocks: [
