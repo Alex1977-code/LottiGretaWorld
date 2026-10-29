@@ -24,9 +24,12 @@
 // Sterne: 0 Walzenraum drehen · 1 Kurbelwalze am Kontrollpunkt → Sternbühne unter der letzten Walze · 2 oben auf der Endwand
 // (Doppel-Lift oder Krallen-Anzug). Stempel: über dem Figurenschalter am Seitenweg (Greta). Gegner: 4 Hackvögel.
 
-import { PI, deck, line, ring, arc, column, sign, huerden, versteckteMuenzen, beiZustand, banner } from './_helpers_b.js';
+import { PI, line, ring, arc, column, sign, huerden, versteckteMuenzen, beiZustand, banner, holzdecks, wimpel, turnzeug } from './_helpers_b.js';
 
 const RX = 90;              // Walzenraum (abseits)
+// Holz-Athletik-Decks (feste Form + Planken-Optik, LEVEL.build): deck() sammelt sie, in segments steht nichts
+const DECKS = [];
+const deck = (x0, x1, zA, zB, top, h = 1.6, o = {}) => { DECKS.push([x0, x1, zA, zB, top, { h, ...o }]); return null; };
 const Y8 = 8;               // Laufhöhe nach dem Walzenaufstieg
 
 // Walzen: Achsmitte (Pfad), Radius, Länge – Oberkante = Achse + Radius
@@ -36,6 +39,7 @@ const W2 = { R: 1.6, LEN: 6 };
 const WG = { R: 2.2, LEN: 9 };
 
 function build(level) {
+  holzdecks(level, DECKS);
   huerden(level, [
     // erste Walze (Oberkante y 0, Schienen bei y −3,4): halbe Hürden zum Ausweichen, eine ganze, ein Tor mit Lücke
     { x0: -3.6, x1: 0.2, z: -32, y0: 0.32, y1: 0.82, posts: [-4.05], bottom: -3.4 },
@@ -47,6 +51,54 @@ function build(level) {
     { x0: -4.6, x1: -0.4, z: -332, y0: Y8 + 0.32, y1: Y8 + 0.82, posts: [-5.05], bottom: 3.4 },
     { x0: -4.6, x1: 4.6, z: -352, y0: Y8 + 0.3, y1: Y8 + 0.72, posts: [-5.05, 5.05], bottom: 3.4 },
     { x0: 0.4, x1: 4.6, z: -372, y0: Y8 + 0.32, y1: Y8 + 0.82, posts: [5.05], bottom: 3.4 },
+  ]);
+  // Turnhalle im All: Matten, Hütchen, Medizinbälle, Sprungkästen, Sternlampen, Fahnen, Turnreifen
+  turnzeug(level, [
+    // Startdeck
+    { kind: 'matte', pos: [-3.4, 0, 4.6], size: [2.6, 1.8] }, { kind: 'matte', pos: [3.6, 0, -8.4], size: [2.2, 1.6], color: 0xe8403a },
+    { kind: 'pylon', pos: [-5.2, 0, -11] }, { kind: 'pylon', pos: [5.2, 0, -11] }, { kind: 'pylon', pos: [-1.6, 0, -11.2] }, { kind: 'pylon', pos: [1.6, 0, -11.2] },
+    { kind: 'ball', pos: [4.4, 0, 0.6], r: 0.42, color: 0xe8403a }, { kind: 'ball', pos: [3.4, 0, -0.4], r: 0.3, color: 0x4ccf5a },
+    { kind: 'kasten', pos: [-4.6, 0, -3.6], size: [1.4, 1.2, 1], solid: true },
+    { kind: 'fahne', pos: [-5.6, 0, 8.4], height: 3.4, color: 'rot', yaw: 0.3 }, { kind: 'fahne', pos: [5.6, 0, 8.4], height: 3.4, color: 'blau', yaw: 2.8 },
+    { kind: 'lampe', pos: [-5.6, 0, -11.4], height: 2.4 }, { kind: 'lampe', pos: [5.6, 0, -11.4], height: 2.4, color: 0xff9ad8 },
+    { kind: 'lampe', pos: [21, 0, -2.4], height: 2 }, { kind: 'reifen', pos: [20.6, 0, -5.4], r: 0.6, color: 'rosa', yaw: 0.6 },
+    // vor dem Walzentrio, Trio-Decks, Rätselbox-Deck
+    { kind: 'pylon', pos: [-5.2, 0, -99.4] }, { kind: 'pylon', pos: [5.2, 0, -99.4] }, { kind: 'fahne', pos: [5.4, 0, -93], height: 3, color: 'gelb', yaw: 2.6 },
+    { kind: 'ball', pos: [-3.2, 0, -93.2], r: 0.4, color: 0x4ccf5a },
+    { kind: 'lampe', pos: [-3.4, 0, -118.6], height: 2 }, { kind: 'lampe', pos: [3.4, 0, -121.2], height: 2, color: 0x8ad8ff },
+    { kind: 'lampe', pos: [3.4, 0, -140.6], height: 2, color: 0xff9ad8 }, { kind: 'lampe', pos: [-3.4, 0, -143.2], height: 2 },
+    { kind: 'matte', pos: [-2.6, 0, -166.4], size: [2.4, 1.8], color: 0x4ccf5a }, { kind: 'pylon', pos: [-5.2, 0, -171.2] }, { kind: 'pylon', pos: [5.2, 0, -171.2] },
+    { kind: 'fahne', pos: [-5.4, 0, -162.8], height: 3, color: 'lila', yaw: 0.4 },
+    // Hackvogel-Konsolen
+    { kind: 'lampe', pos: [-5.8, 0, -187.2], height: 1.8 }, { kind: 'lampe', pos: [5.8, 0, -200.2], height: 1.8 }, { kind: 'lampe', pos: [-5.8, 0, -213.2], height: 1.8 },
+    // Kontrollpunkt
+    { kind: 'matte', pos: [3.8, 0, -238.4], size: [2.6, 1.8] }, { kind: 'matte', pos: [-3.2, 0, -251.6], size: [2.4, 1.8], color: 0xe8403a },
+    { kind: 'kasten', pos: [5.2, 0, -248.6], size: [1.4, 0.9, 1], solid: true }, { kind: 'ball', pos: [4.6, 0, -253.8], r: 0.4 }, { kind: 'ball', pos: [5.4, 0, -253.2], r: 0.3, color: 0x3a8aff },
+    { kind: 'reifen', pos: [-5.6, 0, -244], r: 0.75, color: 'tuerkis', yaw: 1.4 },
+    { kind: 'fahne', pos: [-6.6, 0, -234.6], height: 3.4, color: 'gruen', yaw: 0.3 }, { kind: 'fahne', pos: [6.6, 0, -234.6], height: 3.4, color: 'orange', yaw: 2.8 },
+    { kind: 'pylon', pos: [-1.8, 0, -255.4] }, { kind: 'pylon', pos: [1.8, 0, -255.4] },
+    // Walzenaufstieg, große Walze, Seitenweg
+    { kind: 'lampe', pos: [-2.6, 2.6, -270.2], height: 1.8 }, { kind: 'lampe', pos: [2.6, 5.2, -284.8], height: 1.8, color: 0x8ad8ff },
+    { kind: 'pylon', pos: [-5.2, Y8, -302.2] }, { kind: 'pylon', pos: [5.2, Y8, -302.2] }, { kind: 'fahne', pos: [5.4, Y8, -297.6], height: 3, color: 'rot', yaw: 2.6 },
+    { kind: 'matte', pos: [-3, Y8, -299.2], size: [2.2, 1.6], color: 0xa865ff },
+    { kind: 'lampe', pos: [11.2, Y8, -318.6], height: 2 }, { kind: 'lampe', pos: [12.6, Y8, -337.2], height: 2, color: 0xff9ad8 },
+    { kind: 'ball', pos: [8.6, Y8, -348.4], r: 0.36, color: 0xffc81a }, { kind: 'lampe', pos: [8.4, Y8, -357], height: 2.2, color: 0x8ad8ff },
+    { kind: 'lampe', pos: [12.6, Y8, -366.6], height: 2 }, { kind: 'lampe', pos: [8.8, Y8, -386], height: 2, color: 0xff9ad8 },
+    // Endwand-Deck
+    { kind: 'matte', pos: [-1.6, Y8, -416.6], size: [4.4, 2.2] }, { kind: 'matte', pos: [-7.6, Y8, -408.4], size: [2.4, 1.8], color: 0xe8403a },
+    { kind: 'kasten', pos: [-10.2, Y8, -411], size: [1.4, 1.2, 1], solid: true }, { kind: 'ball', pos: [3.2, Y8, -404.4], r: 0.42, color: 0x4ccf5a },
+    { kind: 'reifen', pos: [-11, Y8, -419.6], r: 0.8, color: 'gelb', yaw: 1.2 }, { kind: 'reifen', pos: [-11.2, Y8, -417.8], r: 0.6, color: 'rot', yaw: 1.4 },
+    { kind: 'fahne', pos: [-11.4, Y8, -401.6], height: 3.6, color: 'blau', yaw: 0.3 }, { kind: 'fahne', pos: [11.4, Y8, -401.6], height: 3.6, color: 'rosa', yaw: 2.8 },
+    { kind: 'lampe', pos: [-4.4, Y8 + 10, -422.6], height: 1.6 }, { kind: 'lampe', pos: [7.6, Y8 + 10, -422.6], height: 1.6, color: 0xff9ad8 },
+    // Walzenraum-Vorraum
+    { kind: 'matte', pos: [RX + 3.6, 0.5, -143.8], size: [2.2, 1.6] }, { kind: 'pylon', pos: [RX - 6.2, 0.5, -146.4] }, { kind: 'pylon', pos: [RX + 6.2, 0.5, -146.4] },
+    { kind: 'lampe', pos: [RX - 6.2, 0.5, -135.2], height: 2.2 }, { kind: 'lampe', pos: [RX + 6.2, 0.5, -135.2], height: 2.2, color: 0x8ad8ff },
+  ]);
+  wimpel(level, [
+    { from: [-5.6, 3.1, 8.2], to: [-5.6, 3.1, -11.2], n: 16, sag: 0.5, poles: true, y0: 0 }, { from: [5.6, 3.1, 8.2], to: [5.6, 3.1, -11.2], n: 16, sag: 0.5, poles: true, y0: 0 },
+    { from: [-6.6, 3.3, -234.6], to: [-6.6, 3.3, -255.4], n: 16, sag: 0.6, poles: true, y0: 0 }, { from: [6.6, 3.3, -234.6], to: [6.6, 3.3, -255.4], n: 16, sag: 0.6, poles: true, y0: 0 },
+    { from: [-4, Y8 + 12.4, -419.2], to: [8, Y8 + 12.4, -419.2], n: 14, sag: 0.7, poles: true, y0: Y8 + 10 },
+    { from: [-11.4, Y8 + 3.4, -401.6], to: [-11.4, Y8 + 3.4, -423.4], n: 16, sag: 0.6, poles: true, y0: Y8 },
   ]);
 }
 
@@ -109,9 +161,9 @@ export const LEVEL = {
 
     // ================================================================ 4 zweite Walze an Hackvögeln vorbei
     { type: 'schienenwalze', id: 'walze2', path: [[0, -W2.R, -174.4], [0, -W2.R, -232]], radius: W2.R, length: W2.LEN, speed: 3, roll: 1.1, respawn: 3 },
-    deck(-6.4, -3.05, -186.6, -191.4, 0, 1.2),      // Konsole links (Hackvogel 1)
-    deck(3.05, 6.4, -199.6, -204.4, 0, 1.2),        // Konsole rechts (Hackvogel 2)
-    deck(-6.4, -3.05, -212.6, -217.4, 0, 1.2),      // Konsole links (Hackvogel 3)
+    deck(-6.4, -3.05, -186.6, -191.4, 0, 1.2, { leg: 3 }),      // Konsole links (Hackvogel 1)
+    deck(3.05, 6.4, -199.6, -204.4, 0, 1.2, { leg: 3 }),        // Konsole rechts (Hackvogel 2)
+    deck(-6.4, -3.05, -212.6, -217.4, 0, 1.2, { leg: 3 }),      // Konsole links (Hackvogel 3)
 
     // ================================================================ 5 Kontrollpunkt mit Kurbelwalze
     deck(-7, 7, -234, -256, 0, 2),
@@ -150,7 +202,7 @@ export const LEVEL = {
     // ================================================================ 8 Endwand mit Doppel-Lift
     deck(-12, 12, -401, -424, Y8, 2.2),
     { type: 'wall', id: 'endwand', pos: [2, Y8, -421], size: [12, 10, 4], climbable: true },
-    deck(8.55, 10.8, -413.4, -423, Y8 + 10, 10, { under: 0 }),   // Holzturm rechts: in die Ecke laufen sammelt beide Figuren auf dem Lift
+    deck(8.55, 10.8, -413.4, -423, Y8 + 10, 10, { legs: false, lack: 'gelb', planks: 'z' }),   // Holzturm rechts: in die Ecke laufen sammelt beide Figuren auf dem Lift
     { type: 'multilift', id: 'doppellift', pos: [7, Y8, -416.9], rise: 9.6, need: 2, speed: 2.4, wait: 1.2, color: 'purple' },
     sign(6.4, Y8, -410.6, 'Doppel-Lift\nnur zu zweit!', { size: [2.6, 1.1], yaw: -0.25 }),
 
@@ -171,6 +223,14 @@ export const LEVEL = {
       { kind: 'rakete', pos: [-14, -4, -6], height: 4.4, color: 'rot' }, { kind: 'planet', pos: [-24, 6, -40], radius: 4, color: 'mint' },
       { kind: 'planet', pos: [26, 2, -120], radius: 5, color: 'rosa', variant: 'ring' }, { kind: 'planet', pos: [-28, 10, -210], radius: 3, color: 'gold', variant: 'pilz' },
       { kind: 'planet', pos: [30, 16, -300], radius: 6, color: 'blau', variant: 'eis' }, { kind: 'planet', pos: [-30, 22, -380], radius: 4.4, color: 'lila', variant: 'blume' },
+      // unter und neben der Bahn (im Blick der schrägen Kamera): Planeten, Sternenfelder, Raketen
+      { kind: 'planet', pos: [-30, -22, -70], radius: 7, color: 'rosa', variant: 'ring' }, { kind: 'planet', pos: [34, -26, -160], radius: 9, color: 'blau', variant: 'eis' },
+      { kind: 'planet', pos: [-34, -18, -250], radius: 6, color: 'gold', variant: 'blume' }, { kind: 'planet', pos: [30, -12, -340], radius: 7, color: 'mint', variant: 'pilz' },
+      { kind: 'sterne', pos: [0, -10, -40], size: [44, 60], n: 18, height: 6 }, { kind: 'sterne', pos: [0, -12, -130], size: [44, 70], n: 18, height: 6 },
+      { kind: 'sterne', pos: [0, -8, -230], size: [44, 70], n: 18, height: 6 }, { kind: 'sterne', pos: [0, 0, -330], size: [44, 90], n: 20, height: 8 },
+      { kind: 'rakete', pos: [16, -6, -100], height: 3.6, color: 'blau' }, { kind: 'rakete', pos: [-15, -2, -300], height: 4, color: 'weiss' },
+      { kind: 'komet', pos: [-16, -4, -150], size: 1.2, dir: [1, 0.2, 0.3] }, { kind: 'komet', pos: [18, 2, -390], size: 1.3, dir: [-1, -0.1, 0.2] },
+      { kind: 'kristall', pos: [-10.6, 0, -251.6], n: 4, color: 'lila' }, { kind: 'kristall', pos: [10.6, Y8, -406], n: 5, color: 'mint' },
       { kind: 'komet', pos: [18, 10, -70], size: 1.4, dir: [-1, -0.3, 0.2] }, { kind: 'komet', pos: [-20, 18, -260], size: 1.2, dir: [1, -0.2, 0.3] },
       { kind: 'sterne', pos: [0, 4, -60], size: [40, 70], n: 16, height: 8 }, { kind: 'sterne', pos: [0, 8, -200], size: [44, 90], n: 18, height: 10 },
       { kind: 'sterne', pos: [0, 14, -360], size: [44, 90], n: 18, height: 12 },
@@ -185,7 +245,7 @@ export const LEVEL = {
       { kind: 'holzkiste', pos: [RX + 5.4, 0.5, -136.6], solid: true }, { kind: 'walzenstapel', pos: [RX - 5.6, 0.5, -144], yaw: 0.4 },
       { kind: 'planet', pos: [RX + 18, 10, -150], radius: 4, color: 'gold' }, { kind: 'sterne', pos: [RX, 6, -150], size: [40, 40], n: 12, height: 8 },
     ] },
-  ],
+  ].filter(Boolean),
   blocks: [
     { kind: 'question', pos: [-1.6, 2.4, -3], content: 'coins:5' },
     { kind: 'coinblock', pos: [1.6, 2.4, -3], count: 6 },

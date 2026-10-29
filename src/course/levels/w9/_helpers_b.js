@@ -11,6 +11,9 @@
 //   wolkenInseln(level, list)           S-4: Wattewolken-Inseln (fest von oben und von der Seite), Bäusche rundum
 //   wolkenteiche(level, list)           S-4: Wolkenteiche (Rand + Wasserfläche) für die Glotzfisch-Löcher
 //   donutBloecke(level, list)           S-4: Donut-Blöcke (Mechanik des Bausteins donutblock) mit sparsamer Instanz-Optik
+//   holzdecks(level, list)              S-3: Holz-Athletik-Decks (Planken, bunte Lackkante, Stelzen mit Sternanker) + Form
+//   wimpel(level, list)                 Wimpelketten (bunte Dreiecksfähnchen an einer durchhängenden Schnur)
+//   turnzeug(level, list)               S-3: Turnmatten, Pylonen, Medizinbälle, Sternlampen, Fahnenmasten (Kulisse)
 
 import * as THREE from 'three';
 import { box, merge, addStatic, addObject, lin, mixc, smooth, colorize } from '../../blocks/kit.js';
@@ -303,4 +306,162 @@ export function donutBloecke(level, list) {
     });
   }
   return out;
+}
+
+// ===================================================================================================================== S-3 Holz-Athletik
+
+const LACK = { rot: 0xe8403a, blau: 0x3a8aff, gelb: 0xffc81a, gruen: 0x4ccf5a, lila: 0xa865ff, orange: 0xff8a2a, tuerkis: 0x2ad0c8, rosa: 0xff7ac0 };
+const LACKS = ['rot', 'blau', 'gelb', 'gruen', 'lila', 'orange'];
+const solidCol = (hexc) => { const c = lin(hexc); return (p, n, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }; };
+
+/**
+ * Holz-Athletik-Decks: je [x0, x1, zA, zB, top, o?] ein festes Deck (Quader top − h … top) mit Planken quer zur Laufrichtung,
+ * bunter Lackkante (o.lack oder reihum), weißer Zierlinie, dunklerem Holzkörper und Stelzen mit leuchtendem Sternanker
+ * (o.legs: false lässt sie weg, o.leg Länge). Alles statisch verschmolzen; Leuchtendes ins Glüh-Material.
+ */
+export function holzdecks(level, list) {
+  const parts = [], glow = [];
+  let li = 0;
+  for (const [x0, x1, zA, zB, top, o = {}] of list) {
+    const xa = Math.min(x0, x1), xb = Math.max(x0, x1), za = Math.min(zA, zB), zb = Math.max(zA, zB);
+    const h = o.h ?? 1.2, w = xb - xa, d = zb - za, cx = (xa + xb) / 2, cz = (za + zb) / 2;
+    level.world.add({ type: 'box', min: [xa, top - h, za], max: [xb, top, zb], tag: o.tag ?? 'holzdeck' });
+    const lack = LACK[o.lack] ?? LACK[LACKS[li % LACKS.length]];
+    li++;
+    if (!level.view) continue;
+    // Körper (dunkles Holz) und Lackband mit weißer Zierlinie
+    parts.push(box(w, h - 0.14, d, cx, top - 0.14 - (h - 0.14) / 2, cz, 0x9a6232, { r: 0.08, seg: 1, bottomShade: 0.6 }));
+    parts.push(box(w + 0.06, 0.26, d + 0.06, cx, top - 0.3, cz, lack, { r: 0.06, seg: 1 }));
+    parts.push(box(w + 0.08, 0.05, d + 0.08, cx, top - 0.16, cz, 0xffffff, { r: 0.02, seg: 1 }));
+    // Planken (je ≈ 0,62 m, schmale Fugen)
+    const along = o.planks ?? (d >= w * 0.6 ? 'x' : 'z');
+    const L = along === 'x' ? d : w, n = Math.max(2, Math.round(L / 0.62)), step = L / n;
+    for (let i = 0; i < n; i++) {
+      const tone = [0xf0c088, 0xe2ac6e, 0xeab87e, 0xd9a062][(i * 7 + li) % 4];
+      if (along === 'x') parts.push(box(w - 0.04, 0.13, step - 0.06, cx, top - 0.065, za + (i + 0.5) * step, tone, { r: 0.03, seg: 1, sideShade: 0.15 }));
+      else parts.push(box(step - 0.06, 0.13, d - 0.04, xa + (i + 0.5) * step, top - 0.065, cz, tone, { r: 0.03, seg: 1, sideShade: 0.15 }));
+    }
+    // Stelzen mit Sternanker und Kreuzstreben
+    if (o.legs !== false) {
+      const leg = o.leg ?? Math.min(6, 2.4 + (w + d) * 0.1);
+      const lx = Math.max(0.5, w / 2 - 0.7), lz = Math.max(0.5, d / 2 - 0.7);
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        const x = cx + sx * lx, z = cz + sz * lz, y1 = top - h, y0 = y1 - leg;
+        parts.push(box(0.3, leg, 0.3, x, (y0 + y1) / 2, z, 0x7a4a22, { r: 0.05, seg: 1 }));
+        const g = new THREE.OctahedronGeometry(0.34, 0);
+        g.scale(1, 1.25, 1); g.translate(x, y0 - 0.28, z);
+        glow.push(colorize(g, solidCol(0xffd84a)));
+      }
+      for (const sz of [-1, 1]) parts.push(box(2 * lx, 0.18, 0.16, cx, top - h - leg * 0.45, cz + sz * lz, 0x8a5a2a, { r: 0.03, seg: 1 }));
+    }
+  }
+  if (parts.length) addStatic(level, merge(parts));
+  if (glow.length) addStatic(level, merge(glow), { material: 'glow', castShadow: false });
+}
+
+/** Dreieck (beidseitig) als nicht indizierte Geometrie, einfarbig. */
+function tri(a, b, c, col) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([...a, ...b, ...c, ...b, ...a, ...c]), 3));
+  g.computeVertexNormals();
+  return colorize(g, solidCol(col));
+}
+
+/**
+ * Wimpelketten: je { from: [x, y, z], to: [x, y, z], n: 12, sag: 0.6, colors, size, poles, y0 } bunte Dreiecksfähnchen an einer
+ * Schnur (beidseitig, ohne Schatten); poles: true → weiße Masten mit goldenem Knauf bis y0.
+ */
+export function wimpel(level, list) {
+  if (!level.view) return;
+  const parts = [];
+  const COLS = [0xe8403a, 0xffc81a, 0x3a8aff, 0x4ccf5a, 0xff7ac0, 0xa865ff, 0xff8a2a];
+  for (const w of list) {
+    const [ax, ay, az] = w.from, [bx, by, bz] = w.to, n = w.n ?? 12, sag = w.sag ?? 0.6, cols = w.colors ?? COLS;
+    const P = (t) => [ax + (bx - ax) * t, ay + (by - ay) * t - Math.sin(t * PI) * sag, az + (bz - az) * t];
+    const len = Math.hypot(bx - ax, bz - az) || 1, ux = (bx - ax) / len, uz = (bz - az) / len;
+    const up = new THREE.Vector3(0, 1, 0);
+    for (let i = 0; i < 16; i++) {
+      const p0 = P(i / 16), p1 = P((i + 1) / 16);
+      const dv = new THREE.Vector3(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]);
+      const g = new THREE.CylinderGeometry(0.025, 0.025, dv.length(), 3, 1);
+      g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(up, dv.normalize()));
+      g.translate((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, (p0[2] + p1[2]) / 2);
+      parts.push(colorize(g, solidCol(0xf4f0e8)));
+    }
+    for (let i = 0; i < n; i++) {
+      const [x, y, z] = P((i + 0.5) / n), s = w.size ?? 0.42;
+      parts.push(tri([x - ux * s / 2, y, z - uz * s / 2], [x + ux * s / 2, y, z + uz * s / 2], [x, y - s * 1.1, z], cols[i % cols.length]));
+    }
+    if (w.poles) for (const [px, py, pz] of [w.from, w.to]) {
+      const y0 = w.y0 ?? 0;
+      parts.push(box(0.16, py - y0 + 0.3, 0.16, px, (py + y0 + 0.3) / 2, pz, 0xf4f0e8, { r: 0.04, seg: 1 }));
+      parts.push(box(0.3, 0.3, 0.3, px, py + 0.4, pz, 0xffc81a, { r: 0.12, seg: 2 }));
+    }
+  }
+  addStatic(level, merge(parts), { castShadow: false });
+}
+
+/**
+ * Turnhallen-Kulisse im All (S-3), statisch: je { kind, pos, … }: matte (Turnmatte: size [w, d], color), pylon (Hütchen),
+ * ball (Medizinball: r, color; solid), kasten (Sprungkasten: size [w, h, d]; solid), lampe (Sternlampe auf Stange: height,
+ * color; leuchtet), fahne (Fahnenmast mit Fahne und Leuchtstern: height, color, yaw), reifen (stehender Turnreifen: r, color, yaw).
+ */
+export function turnzeug(level, list) {
+  const parts = [], glow = [];
+  for (const it of list) {
+    const [x, y, z] = it.pos;
+    if (it.kind === 'ball' && it.solid) level.world.add({ type: 'cyl', x, z, r: (it.r ?? 0.45) * 0.9, y0: y, y1: y + 2 * (it.r ?? 0.45), tag: 'ball' });
+    if (it.kind === 'kasten' && it.solid) { const [w, h, d] = it.size ?? [1.6, 1.2, 1]; level.world.add({ type: 'box', min: [x - w / 2, y, z - d / 2], max: [x + w / 2, y + h, z + d / 2], tag: 'kasten' }); }
+    if (!level.view) continue;
+    if (it.kind === 'matte') {
+      const [w, d] = it.size ?? [3, 2];
+      parts.push(box(w, 0.16, d, x, y + 0.08, z, it.color ?? 0x3a7aff, { r: 0.07, seg: 2 }));
+      parts.push(box(w + 0.02, 0.04, 0.08, x, y + 0.15, z - d / 2 + 0.1, 0xffffff, { r: 0.02, seg: 1 }), box(w + 0.02, 0.04, 0.08, x, y + 0.15, z + d / 2 - 0.1, 0xffffff, { r: 0.02, seg: 1 }));
+    } else if (it.kind === 'pylon') {
+      const g = new THREE.ConeGeometry(0.28, 0.7, 10, 3);
+      g.translate(x, y + 0.43, z);
+      parts.push(colorize(g, (p, n, o) => mixc(lin(0xff5a1a), lin(0xffffff), Math.floor((p.y - y) / 0.2) % 2 ? 1 : 0, o)));
+      parts.push(box(0.62, 0.08, 0.62, x, y + 0.04, z, 0xff5a1a, { r: 0.03, seg: 1 }));
+    } else if (it.kind === 'ball') {
+      const r = it.r ?? 0.45;
+      const g = new THREE.SphereGeometry(r, 12, 8);
+      g.translate(x, y + r, z);
+      const c = lin(it.color ?? 0xe8403a), w = lin(0xffffff);
+      parts.push(colorize(g, (p, n, o) => mixc(c, w, Math.abs(n.y) < 0.12 ? 0.9 : 0, o)));
+    } else if (it.kind === 'kasten') {
+      const [w, h, d] = it.size ?? [1.6, 1.2, 1];
+      const n = Math.max(2, Math.round(h / 0.3));
+      for (let i = 0; i < n; i++) parts.push(box(w * (1 - i * 0.03), h / n - 0.02, d * (1 - i * 0.03), x, y + (i + 0.5) * (h / n), z, i === n - 1 ? 0xf4ecd8 : 0xc8884a, { r: 0.05, seg: 1 }));
+    } else if (it.kind === 'lampe' || it.kind === 'fahne') {
+      const hgt = it.height ?? 2.6;
+      parts.push(box(0.12, hgt, 0.12, x, y + hgt / 2, z, 0xf4f0e8, { r: 0.03, seg: 1 }));
+      parts.push(box(0.4, 0.14, 0.4, x, y + 0.07, z, 0x8a5a2a, { r: 0.04, seg: 1 }));
+      if (it.kind === 'lampe') {
+        const g = new THREE.OctahedronGeometry(0.36, 0);
+        g.scale(1, 1.2, 0.55); g.translate(x, y + hgt + 0.3, z);
+        glow.push(colorize(g, solidCol(it.color ?? 0xffe04a)));
+      } else {
+        const yaw = it.yaw ?? 0, col = LACK[it.color] ?? it.color ?? LACK.rot, fw = 1.2, fh = 0.75;
+        const c = Math.cos(yaw), sn = Math.sin(yaw), top = y + hgt;
+        const P = (u, v) => [x + c * u, top - v, z - sn * u];
+        const wav = (u) => Math.sin(u * 2.6) * 0.08;
+        for (let i = 0; i < 3; i++) {
+          const u0 = 0.06 + (i / 3) * fw, u1 = 0.06 + ((i + 1) / 3) * fw;
+          const a = P(u0, 0), b = P(u1, 0), cc = P(u1, fh), dd = P(u0, fh);
+          for (const q of [a, b, cc, dd]) { const k = q === a || q === dd ? wav(u0) : wav(u1); q[0] += sn * k; q[2] += c * k; }
+          parts.push(tri(a, b, cc, col), tri(a, cc, dd, col));
+        }
+        const st = new THREE.OctahedronGeometry(0.17, 0);
+        st.translate(x + c * 0.66, top - fh / 2, z - sn * 0.66);
+        glow.push(colorize(st, solidCol(0xfff0a0)));
+      }
+    } else if (it.kind === 'reifen') {
+      const r = it.r ?? 0.8;
+      const g = new THREE.TorusGeometry(r, 0.07, 6, 24);
+      g.rotateY(it.yaw ?? 0); g.translate(x, y + r + 0.05, z);
+      parts.push(colorize(g, solidCol(LACK[it.color] ?? it.color ?? LACK.gelb)));
+    }
+  }
+  if (parts.length) addStatic(level, merge(parts));
+  if (glow.length) addStatic(level, merge(glow), { material: 'glow', castShadow: false });
 }
