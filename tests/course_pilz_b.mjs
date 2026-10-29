@@ -115,8 +115,43 @@ const ROUTES = {
       { name: 'drei Schiebetüren, Röhre in den Saal, alle fünf Schlüsselmünzen, Schattenblock-Wand per Gong, Propeller-Flug, Zielmast im Flug gefangen', ok: (r) => r.mech.taps >= 9 && r.mech.props === 1 && r.mech.stomped.length >= 8 && r.rt.pole !== null && r.rt.pole !== undefined },
       { name: 'ohne einen Treffer-Versuch (Pilz-Maske: zugewandte Werfer werfen nicht)', ok: (r) => r.mech.hurts === 0 },
     ],
-    targets: [],
-    extra: [],
+    targets: [
+      { name: 'Stern 0: Wurfball im 2. Stock auf die Stachelkugel werfen – sie platzt aus der Glasröhre, durch die Röhre auf den Sternbalkon, Warp-Box zurück', star: 0, from: [-8.2, 11, -42.8], place: { helmet: 'maske' },
+        legs: [{ expect: 'pfropfenDa' }, { grab: 'ball_2' }, { to: [-10.6, -42.7], within: 0.3, run: false }, { throwAt: [-16, -42.7], after: 60 }, { expect: 'pfropfenWeg' },
+          { pipe: [-15.6, -42.7] }, { expect: 'onBalkon' }, { star: 0 }, { warp: [-32.8, -42.9] }, { expect: 'onF3back' }], shot: 'stern0' },
+      { name: 'Stern 0 auch mit der Funkenblüte (Feuerball sprengt die Stachelkugel)', star: 0, from: [-11, 11, -42.7], place: { power: 'funken', helmet: 'maske' }, heroes: ['greta'],
+        legs: [{ fire: [-16, -42.7], after: 90 }, { expect: 'pfropfenWeg' }, { pipe: [-15.6, -42.7] }, { expect: 'onBalkon' }, { star: 0 }] },
+      { name: 'Stern 0 nicht ohne Ball oder Feuer (die Stachelkugel verstopft die Röhre)', star: 0, expectNot: true, from: [-12, 11, -42.7], heroes: ['lotti'], place: { helmet: 'maske' },
+        legs: [{ pipe: [-16, -42.7], max: 300, partial: true }, { wait: 60 }, { expect: 'pfropfenDa' }] },
+      { name: 'Stern 1: Sternring auf der Ankunftsterrasse – acht grüne Münzen in 12 s (zwei hoch über dem Weg)', star: 1, from: [0, 12, -75.5],
+        legs: [{ expect: 'stern1Versteckt' }, { to: [-3.2, -72.6], within: 0.4, run: false }, { until: 'ringLaeuft', max: 120 },
+          { to: [-4.2, -70.4], within: 0.5 }, { to: [-6, -75.6], within: 0.5 }, { to: [-1, -80.2], within: 0.5 }, { to: [0, -78], jumpAt: 0.9, jump: 30, within: 0.5 },
+          { to: [3, -77.8], within: 0.5 }, { to: [6, -75.4], within: 0.5 }, { to: [3.8, -70.4], within: 0.5 }, { to: [0, -73.6], jumpAt: 0.9, jump: 30, within: 0.5 },
+          { chaseKind: 'starcoin', max: 600, run: true },
+          { until: 'stern1Sichtbar', max: 240 }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stern 1 nicht ohne Sternring', star: 1, expectNot: true, from: [0, 12, -73.5], heroes: ['lotti'],
+        legs: [{ to: [0, -74.6], within: 0.3, run: false }, { hop: 30 }, { wait: 30 }] },
+      { name: 'Stern 2: Gong nach dem Checkpoint → Warp-Box in den Münzraum, goldener Gong zeigt den Stern', star: 2, from: [2.4, 12, -79.2],
+        legs: [{ expect: 'muenzwarpZu' }, { tap: 'terrassengong', after: 80 }, { expect: 'muenzwarpOffen' }, { warp: [-3.4, -80.6] }, { expect: 'inGarden' },
+          { to: [100, -119.6], within: 0.4 }, { tap: 'goldgong', after: 80 }, { until: 'stern2Sichtbar', max: 200 }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne den Gong (Warp-Box verborgen)', star: 2, expectNot: true, from: [-1.2, 12, -80.6], heroes: ['lotti'],
+        legs: [{ to: [-3.4, -80.6], jump: 30, within: 0.3, run: false, max: 240, partial: true }, { wait: 60 }, { expect: 'onExterior' }] },
+    ],
+    extra: [
+      { name: 'Warp-Box hinaus erst mit fünf Schlüsselmünzen (ohne bleibt sie verborgen)', from: [20.4, 11, -46.9], heroes: ['lotti'], place: { helmet: 'maske' },
+        legs: [{ expect: 'aussenZu' }, { to: [23.4, -48.6], jump: 30, within: 0.3, run: false, max: 240, partial: true }, { wait: 60 }, { expect: 'onF3' }] },
+      { name: 'Schattenblock-Wand: Schlüssel 5 erst nach dem Gongschlag', from: [-6, 11, -46.4], heroes: ['lotti'], place: { helmet: 'maske' },
+        legs: [{ tap: 't2a', after: 120 }, { to: [-6, -52.1], within: 0.3, run: false, max: 240, partial: true }, { expect: 'vorSchatten' }, { to: [19.2, -44.5], within: 0.4 }, { tap: 'gong', after: 90 },
+          { to: [-6, -46.4], within: 0.4 }, { to: [-6, -52.1], within: 0.3, run: false }, { expect: 'schluessel5' }] },
+      { name: 'Pilz-Maske: zugewandter Hammer-Werfer wirft nicht – ohne Maske schon', from: [8.5, 6, -44.5], heroes: ['lotti'], place: { yaw: Math.PI, helmet: 'maske' },
+        legs: [{ expect: 'merkeWuerfe' }, { wait: 420 }, { expect: 'hammerStill' }, { unmask: true }, { expect: 'merkeWuerfe' }, { wait: 480 }, { expect: 'hammerWirft' }] },
+      { name: 'Werfer zielen nur auf ihr Stockwerk (unter dem Hammer-Werfer im Erdgeschoss: kein Wurf)', from: [3, 1, -44.5], heroes: ['lotti'],
+        legs: [{ expect: 'merkeWuerfe' }, { wait: 600 }, { expect: 'hammerStill' }] },
+      { name: 'Flug-Zielmast: vom obersten Dach aus nicht zu fangen – nur über die Wolken', from: [-5, 19.8, -139.4], heroes: ['lotti'],
+        legs: [{ catchPole: 'flugmast', hold: [-5, -139.4], reach: 3, max: 1400 }, { expect: 'playing' }] },
+      { name: 'Münzraum voller Bitcoins', from: [100, 0, -100.5], heroes: ['lotti'], expectCoins: 30,
+        legs: [{ chaseKind: 'coin', max: 4000, run: true }] },
+    ],
     shots: [
       ['start', [0, 1, 7]],
       ['saal_eg', [-14, 1, -44.5]],
@@ -314,6 +349,9 @@ function install() {
     onE3: () => P().mode === 'ground' && Math.abs(P().pos.y - 12) < 0.3 && P().pos.z < -117.8 && P().pos.z > -128.2,
     masked: () => P().helmet === 'maske' && !!P().masked,
     funken: () => P().power === 'funken',
+    stern1Versteckt: () => L.entities.some((e) => e.kind === 'star' && e.index === 1 && e.hidden && !e.removed),
+    vorSchatten: () => P().pos.z > -51.2 && (L.keys?.saal?.n ?? 0) === 0,
+    schluessel5: () => (L.keys?.saal?.n ?? 0) === 1,
     schattenDa: () => !!named('schattenwand') && named('schattenwand').want !== false,
     schattenWeg: () => named('schattenwand')?.want === false,
     keys5: () => (L.keys?.saal?.n ?? 0) >= 5,
@@ -445,6 +483,7 @@ function install() {
           continue;
         }
         if (Lg.power) { p.setPower(Lg.power); log.push(['power', Lg.power]); continue; }
+        if (Lg.unmask) { p.dropHelmet?.('gone'); log.push(['Maske ab', p.helmet ?? null]); continue; }
         if (Lg.hop) {
           for (let k = 0; k < 90 && (p.mode !== 'ground' || p.hSpeed() > 0.2); k++) tick({});
           for (let k = 0; k < Lg.hop; k++) tick({ jump: true });

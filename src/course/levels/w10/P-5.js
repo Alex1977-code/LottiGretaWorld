@@ -52,7 +52,7 @@ export const M5 = {
 const SCHATTEN_TEILE = [{ pos: [M5.SCHATTEN.x, M5.SCHATTEN.y, M5.SCHATTEN.z], size: [2.5, 3.1, 0.5], color: 0x33245a }];
 
 // Sternring am Checkpoint: acht grüne Münzen auf der Ankunftsterrasse (zwei hoch über dem Weg)
-const RING = [[-6.6, YE + 0.5, -70.0], [-6.6, YE + 0.5, -75.5], [-1.0, YE + 0.5, -81.4], [2.6, YE + 0.5, -78.2], [6.6, YE + 0.5, -75.5], [5.4, YE + 0.5, -70.2], [0, YE + 3.1, -74.0], [0, YE + 3.1, -78.6]];
+const RING = [[-4.2, YE + 0.5, -70.4], [-6.0, YE + 0.5, -75.6], [-1.0, YE + 0.5, -80.2], [3.0, YE + 0.5, -77.8], [6.0, YE + 0.5, -75.4], [3.8, YE + 0.5, -70.4], [0, YE + 3.1, -73.6], [0, YE + 3.1, -78.0]];
 
 export const LEVEL = remixOf('6-3', {
   id: 'P-5',
@@ -128,7 +128,7 @@ export const LEVEL = remixOf('6-3', {
     sternBalkon(level, { ...M5.BALKON, y: F[2], sides: ['l', 'f', 'b'], boxes: [[-33.2, -47.1]] });
   },
   setup(level) {
-    pfropfen(level, 'pfropfen', { block: { min: [-15.25, F[2], -43.75], max: [-14.75, F[2] + 2.1, -41.65] } });
+    pfropfen(level, 'pfropfen', { block: { min: [-14.4, F[2], -43.8], max: [-13.4, F[2] + 2.1, -41.6] } });
     werferStockwerk(level, WERFER, F);
     schattenDiaet(level, [...WERFER, 'wurfball', 'stachelkugel', 'schluesselmuenze'], 0);
     // Zeichenaufrufe im dreistöckigen Saal: Fernes (Tempeldach, Münzraum) zeichnet erst in der Nähe, kleine Teile der Heldin

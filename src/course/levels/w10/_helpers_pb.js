@@ -28,33 +28,42 @@ const TAU = Math.PI * 2;
 
 /**
  * Verstopfte Glasröhre (P-5 Geheimnis „Glasröhre im 3. Stock durch Stachelkugel verstopft (Ball oder Funkenblüte)“): die
- * Stachelkugel mit Daten-Id `id` steckt in der Röhrenmündung; ein Riegel (unsichtbarer Quader `block`) verschließt die
- * Öffnung. Wurfball ('throw') oder Feuerball ('fire') – auch Funkelstern, Riesentrank, Explosion – sprengen sie heraus: sie
- * zerplatzt, der Riegel verschwindet, Signal 'pfropfen' { id, by }. Andere Angriffe prallen wie gewohnt ab.
- * o: { block: { min, max }, by: [...], name } → level.named.get(name ?? `${id}:pfropfen`) = { popped, by, info() }.
+ * Stachelkugel mit Daten-Id `id` steckt in der Röhrenmündung; ein Riegel (unsichtbarer Quader `block` vor der Öffnung)
+ * hält die Figur fern. Wurfball ('throw') oder Feuerball ('fire') – an der Kugel oder am Riegel –, auch Funkelstern,
+ * Riesentrank, Explosion sprengen sie heraus: sie zerplatzt, der Riegel verschwindet, Signal 'pfropfen' { id, by }. Andere
+ * Angriffe prallen wie gewohnt ab. o: { block: { min, max }, by: [...], name } → level.named.get(name ?? `${id}:pfropfen`) =
+ * { popped, by, info() }.
  */
 export function pfropfen(level, id, o = {}) {
-  const st = { popped: false, by: null };
-  st.info = () => ({ popped: st.popped, by: st.by });
-  level.named.set(o.name ?? `${id}:pfropfen`, st);
-  const e = level.entities.find((x) => x.spec?.id === id && !x.removed);
-  if (!e) return st;
-  const bid = o.block ? level.world.add({ type: 'box', min: o.block.min, max: o.block.max, camIgnore: true, noWallSlide: true, tag: 'pfropfen' }) : null;
   const by = new Set(o.by ?? ['throw', 'fire', 'star', 'mega', 'bomb']);
-  const orig = e.onHit.bind(e);
-  e.onHit = (kind, src) => {
+  let e = null, bid = null;
+  const st = { popped: false, by: null };
+  const pop = (kind) => {
     if (st.popped) return;
-    if (!by.has(kind)) { orig(kind, src); return; }
     st.popped = true; st.by = kind;
     if (bid !== null && bid >= 0) level.world.remove(bid);
-    const c = e.center();
+    const c = e?.center?.() ?? { x: o.block.min[0], y: o.block.min[1] + 1, z: (o.block.min[2] + o.block.max[2]) / 2 };
     level.sfx('brickbreak');
     level.sfx('pipe');
     level.effects?.debris(c, 0x9aa0b0, 12);
     level.effects?.sparks(c, 16);
-    e.kill();
+    if (e && !e.removed) e.kill();
     level.signal?.('pfropfen', { id, by: kind });
   };
+  // Riegel: Würfe/Feuer, die ihn treffen, sprengen die Kugel ebenfalls (Wurfball und Feuerball melden Wandtreffer an owner.onHit)
+  const owner = { onHit: (kind) => { if (by.has(kind)) pop(kind); } };
+  if (o.block) bid = level.world.add({ type: 'box', min: o.block.min, max: o.block.max, camIgnore: true, noWallSlide: true, owner, tag: 'pfropfen' });
+  const hook = () => {
+    if (e || st.popped) return;
+    e = level.entities.find((x) => x.spec?.id === id && !x.removed) ?? null;
+    if (!e) return;
+    const orig = e.onHit.bind(e);
+    e.onHit = (kind, src) => { if (st.popped) return; if (by.has(kind)) pop(kind); else orig(kind, src); };
+  };
+  hook();
+  level.onStep(hook);
+  st.info = () => ({ popped: st.popped, by: st.by, found: !!e });
+  level.named.set(o.name ?? `${id}:pfropfen`, st);
   return st;
 }
 
