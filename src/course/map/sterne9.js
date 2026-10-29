@@ -18,7 +18,8 @@
 // leuchtet eine von drei Gruppen hell auf; ohne laufende Musik Ersatzuhr im Tempo von course_worldstar_map –, Planeten drehen
 // sich (Registry 'planet' mit kind), Spielzeugraketen ('spielzeugrakete') kreisen mit Flamme, Sternschnuppen ('sternschnuppe')
 // sausen in Abständen schräg durchs Bild. StarSea ersetzt Meer, Schaum und Glitzern: tiefe Sternenschichten unter den Inseln
-// (Parallaxe) und farbige Nebel. Thema 'map_star' (Weltraumkuppel mit Sternen rundum, Nebeln und fernen Planeten).
+// (Parallaxe) und farbige Nebel. Thema 'map_star' (Weltraumkuppel wie das Stern-Grundthema `starspace` des Motors: Sterne
+// rundum, Pastell-Nebel, ferne Ringplaneten, Sternschnuppen-Streifen – view/backdrop_star.js spaceSky).
 //
 // Alle statischen Geometrien in Weltkoordinaten bzw. mit Fußpunkt im Ursprung (Vorderseite +Z, zur Kamera) und Vertexfarben
 // (position/normal/color) für view.addStatic (Karten-Kacheln, MapBatcher). Flache Deckschichten tragen userData.noShadow,
@@ -34,7 +35,7 @@ import { LowBuild as Build, place } from './desert.js';
 import { buildBridge } from '../blocks/types/bridge.js';
 import { getModel, hasModel } from '../models/index.js';
 import { modelTris } from './beach5.js';
-import { nebulae, farPlanets } from '../view/backdrop_w2.js';
+import { spaceSky, animateStar } from '../view/backdrop_star.js';
 
 /** Benutzte Registry-Modelle der Sternenzelt-Karte (state().decor.w9models) und vorhandene, aber zu schwere (w9heavy). */
 export const W9_USED = new Set();
@@ -52,8 +53,8 @@ if (!THEMES.map_star) {
   THEMES.map_star = {
     ...THEMES.grass,
     label: 'Weltkarte Sternenzelt',
-    // Kuppel: oben tiefes Nachtblau, am Horizont Violett, unten wieder Nachtblau (die Inseln schweben im All)
-    sky: [[1, 0x0c0a2e], [0.5, 0x1a1452], [0.18, 0x2e2072], [0.04, 0x4a2c8e], [0, 0x553296], [-0.12, 0x34226e], [-0.5, 0x1a1450], [-1, 0x0e0a32]],
+    // Kuppel wie `starspace` (Motor): oben tiefes Nachtblau, am Horizont Violett, unten wieder Nachtblau (die Inseln schweben im All)
+    sky: [[1, 0x080628], [0.5, 0x120e44], [0.15, 0x2a2468], [0.02, 0x4a3a8a], [0, 0x5a4898], [-0.25, 0x2a2062], [-1, 0x0c0a2a]],
     background: 0x16123e,
     fog: { color: 0x241c5c, near: 120, far: 440 },
     hemi: { sky: 0xe4e2ff, ground: 0x8a6ac8, intensity: 1.5 },
@@ -68,47 +69,34 @@ if (!THEMES.map_star) {
     wood: 0xfff4e8, woodDark: 0xc8a070,
     water: 0x5ad8ff, waterDeep: 0x2a7ad8,
     buildBackdrop(sky, bounds, rnd) { starBackdrop(sky, bounds, rnd); },
-    updateBackdrop(sky, dt) {
-      if (!sky.starPoints9) return;
-      sky._tw9 = (sky._tw9 ?? 0) + dt;
-      sky.starPoints9.material.size = 2.2 + Math.sin(sky._tw9 * 1.7) * 0.3;
-    },
+    updateBackdrop(sky, dt, camera) { animateStar(sky.star9, dt, camera); },
   };
 }
 
-/** Sterne rundum (auch unter dem Horizont – die Kamera blickt schräg nach unten ins All), Nebel und ferne Planeten in der Kuppel. */
+/**
+ * Kuppel wie das Stern-Grundthema `starspace` des Motors (view/backdrop_star.js spaceSky – gleiche Sterne, Pastell-Nebel,
+ * Ringplaneten, Sternschnuppen-Streifen): Sterne rundum (auch unter dem Horizont – die Kamera blickt schräg nach unten ins
+ * All), zusätzlich Nebel unter dem Horizont.
+ */
 function starBackdrop(sky, bounds, rnd) {
-  const n = 1500;
-  const pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
-  const tints = [0xffffff, 0xcfe0ff, 0xfff0c8, 0xe6d0ff, 0xc8fff0].map((c) => new THREE.Color(c));
-  for (let i = 0; i < n; i++) {
-    const u = rnd.real(-1, 1), a = rnd.real(0, TAU), r = Math.sqrt(1 - u * u);
-    pos[i * 3] = Math.cos(a) * r * 300; pos[i * 3 + 1] = u * 300; pos[i * 3 + 2] = Math.sin(a) * r * 300;
-    const c = tints[i % tints.length], k = rnd.real(0.45, 1);
-    col[i * 3] = c.r * k; col[i * 3 + 1] = c.g * k; col[i * 3 + 2] = c.b * k;
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const mat = sky.track(new THREE.PointsMaterial({ size: 2.2, sizeAttenuation: false, vertexColors: true, fog: false, depthWrite: false, transparent: true }));
-  const pts = new THREE.Points(sky.track(g), mat);
-  pts.frustumCulled = false;
-  pts.renderOrder = -9;
-  pts.name = 'w9:kuppelsterne';
-  sky.domeGroup.add(pts);
-  sky.starPoints9 = pts;
-  nebulae(sky, [
-    { dir: [-0.6, 0.3, -1], size: 240, color: 0x8a3ad8 },
-    { dir: [0.7, 0.15, -1], size: 200, color: 0x2a8ad8, aspect: 0.5 },
-    { dir: [0.2, -0.55, -1], size: 260, color: 0xd83aa0, aspect: 0.55 },
-    { dir: [-0.5, -0.7, 0.2], size: 240, color: 0x3a6ae8, aspect: 0.6 },
-    { dir: [0.6, -0.6, 0.6], size: 220, color: 0x7a3ad8, aspect: 0.5 },
-  ]);
-  farPlanets(sky, [
-    { dir: [-0.6, 0.3, -1], r: 30, colors: [0xff9a6a, 0xffd0a0, 0xfff0d0], ring: true, tilt: 0.35 },
-    { dir: [0.8, 0.12, -1], r: 16, colors: [0x5ad8a0, 0xb0f0c8, 0xf0fff0], ring: false, tilt: -0.2 },
-    { dir: [0.35, -0.35, -1], r: 20, colors: [0x6a8aff, 0xb0c8ff, 0xe8f0ff], ring: true, tilt: 0.5 },
-  ]);
+  const f = spaceSky(sky, rnd, {
+    stars: 1500, shooting: 4,
+    nebulae: [
+      { dir: [-0.7, 0.3, -1], size: 240, color: 0xff9ad0, aspect: 0.55 },
+      { dir: [0.6, 0.22, -1], size: 210, color: 0x7af0c8, aspect: 0.5 },
+      { dir: [0.05, 0.5, -1], size: 180, color: 0xffc08a, aspect: 0.4 },
+      { dir: [-0.2, -0.3, -1], size: 220, color: 0xb89aff, aspect: 0.6 },
+      { dir: [0.5, -0.65, -0.6], size: 230, color: 0xd87ad8, aspect: 0.55 },
+      { dir: [-0.6, -0.7, 0.3], size: 220, color: 0x5a8aff, aspect: 0.6 },
+    ],
+    planets: [
+      { dir: [-0.6, 0.3, -1], r: 30, colors: [0xffb0d8, 0xffe0f0, 0xfff6c8], ring: true, tilt: 0.35 },
+      { dir: [0.75, 0.14, -1], r: 16, colors: [0x8ad8ff, 0xd0f4ff, 0xffffff], ring: false, tilt: -0.2 },
+      { dir: [0.35, -0.35, -1], r: 20, colors: [0xffe07a, 0xfff4c0, 0xffd8f0], ring: true, tilt: 0.5 },
+    ],
+  });
+  if (f.stars?.pts) f.stars.pts.name = 'w9:kuppelsterne';
+  sky.star9 = f;
   void bounds;
 }
 
@@ -660,6 +648,16 @@ function fernGeo() {
     return b.geometry();
   });
 }
+/** Schwebendes Wattewölkchen (Wolkeninsel), Mitte im Ursprung. */
+function cloudGeo(s = 1) {
+  return cached(`w9m:cloud:${s}`, () => {
+    const b = new Build();
+    for (const [px, py, pz, r] of [[0, 0, 0, 1.3], [-1.3, -0.2, 0.2, 1.0], [1.4, -0.15, -0.1, 1.05], [0.3, 0.55, -0.3, 0.9]]) {
+      b.sphere(r * s, { v: (qx, qy, qz, nx, ny) => mix(0xc8c4f4, 0xffffff, ny * 0.55 + 0.5) }, { p: [px * s, py * s, pz * s], s: [1, 0.72, 1] }, 10, 7);
+    }
+    return b.geometry();
+  });
+}
 /** Sternwarte: Fernrohr auf einem Dreibein mit Goldringen (Sternenhafen). */
 function scopeGeo() {
   return cached('w9m:scope', () => {
@@ -733,6 +731,7 @@ export function starPropGeo(it, seed) {
     case 'fir9': return firGeo(s ?? 4).clone();
     case 'neon9': return neonGeo().clone();
     case 'scope9': return scopeGeo().clone();
+    case 'cloud9': return cloudGeo(s ?? 1).clone();
     case 'pad9': return padGeo().clone();
     case 'rocket9': return rocketFallbackGeo(it.color, s ?? 4).clone();
     case 'planet9': return planetFallbackGeo(it.planet, s ?? 6).clone();
@@ -765,6 +764,7 @@ export function starPropShape(it) {
     case 'antenna9': return { type: 'cyl', x, z, r: 1.0, y0: y, y1: y + 7.5, tag: 'antenne' };
     case 'boost9': return null;
     case 'donut9': return { type: 'box', min: [x - 0.5, y, z - 0.5], max: [x + 0.5, y + 1, z + 0.5], tag: 'donut' };
+    case 'cloud9': return null;
     case 'rbush9': return null;
     case 'rblock9': { const h = it.blockSize ?? 2; return { type: 'box', min: [x - h / 2, y, z - h / 2], max: [x + h / 2, y + h, z + h / 2], tag: 'retroblock' }; }
     case 'hexpillar9': return { type: 'cyl', x, z, r: 1.1, y0: y, y1: y + (it.h ?? 5), tag: 'wabensaeule' };

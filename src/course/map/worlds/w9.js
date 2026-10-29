@@ -162,7 +162,7 @@ export const MAP = {
     { id: 'S-2', kind: 'platefield', pos: [28, 12, 4], decor: [31, 12, -2.5], flips: [[10, -7.6], [14, -7.6]], steps: [39.5, 12, 2.4], planet: [5, 14.5, 3.5] },
     { id: 'S-Kapitän', kind: 'spindiorama', pos: [63, 12.5, 7.5], decor: [64, 12.5, -0.5], disc: 'S-K' },
     { id: 'S-3', kind: 'rollerisle', pos: [21, 13.5, -30], decor: [21, 13.5, -39], side: [32, 13.5, -33] },
-    { id: 'S-4', kind: 'goalcloud', pos: [-14, 14.5, -27], decor: [-25, 14.5, -31], fly: [-21, 14.7, -33, 4.6] },
+    { id: 'S-4', kind: 'goalcloud', pos: [-14, 14.5, -27], decor: [-25, 14.5, -31], fly: [-20, 14.7, -31.5, 4.2] },
     { id: 'S-5', kind: 'blockland', pos: [-26, 16, -66], decor: [-26, 16, -75], tower: [-15, 16, -80] },
     { id: 'S-6', kind: 'honeycomb', pos: [16, 17, -70], decor: [16, 17, -79] },
     { id: 'S-7', kind: 'giantjungle', pos: [59, 18, -86], decor: [60, 18, -94], roll: [68.5, -83, 4] },
@@ -218,7 +218,8 @@ export const MAP = {
     { kind: 'crates9', pos: [7, 13.5, -24.4] }, { kind: 'lamp9', pos: [36.4, 13.5, -23.6] }, { kind: 'crates9', pos: [35.6, 13.5, -44] },
     // D Wolkeninsel: Boost-Pfeile, Donut-Blöcke
     { kind: 'boost9', pos: [-15, 14.5, -33], yaw: PI / 2 }, { kind: 'boost9', pos: [-15, 14.5, -37], yaw: PI / 2 },
-    { kind: 'donut9', pos: [-31.5, 14.5, -24.5] }, { kind: 'donut9', pos: [-29, 14.5, -24.5] },
+    { kind: 'donut9', pos: [-31.5, 14.5, -24.5] }, { kind: 'donut9', pos: [-29, 14.5, -24.5] }, { kind: 'donut9', pos: [-31.5, 15.5, -24.5] },
+    { kind: 'lamp9', pos: [-11, 14.5, -42.5] }, { kind: 'lamp9', pos: [-33, 14.5, -42.5] }, { kind: 'cloud9', pos: [-30, 18.5, -38] }, { kind: 'cloud9', pos: [-13, 19, -40], size: 0.8 },
     // E Retro-Blockland: Retro-Büsche, Blockstapel
     { kind: 'rbush9', pos: [-41.5, 16, -61], size: 3 }, { kind: 'rbush9', pos: [-15, 16, -60.5], size: 2.6, seed: 1 },
     { kind: 'rblock9', pos: [-42, 16, -83], n: 2, block: 'hart' }, { kind: 'rblock9', pos: [-14, 16, -83], n: 1, block: 'ziegel' },
