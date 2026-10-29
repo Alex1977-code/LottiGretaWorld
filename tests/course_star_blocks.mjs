@@ -135,17 +135,19 @@ if (want('remix')) {
         pilz: k.pilzling ?? 0, maus: k.huepfmaus ?? 0, pz, bunny: k.bunny ?? 0, tree: k.itemtree ?? 0, stamp: k.stamp ?? 0, spKind,
         q: q?.content, qb: qb?.content, stars: st, music: L.data.music, variant: L.data.musicVariant,
         call: calls.filter((x) => x[0] === 'course_grass').slice(-1)[0] ?? null,
+        // Musiksystem selbst: aktuelle (bzw. vorgemerkte) Variante und Taktuhr
+        mVariant: window.__audio.music.variant ?? null, beatVariant: window.__audio.music.beat?.()?.variant ?? null,
         baseTheme: base.theme, baseBunny: base.items.filter((i) => i.kind === 'bunny').length, baseStamp: !!base.stamp, baseRemix: base.remix ?? null,
         baseVariant: base.musicVariant ?? null, baseTitle: base.title, title: L.data.title, timeLimit: L.runtime.timeLimit,
       };
     });
     if (DEBUG) console.log(JSON.stringify(r));
-    console.log(`  0-R1: Thema ${r.theme} (${r.light}, Himmelslicht ${r.hemi}, Figurenlicht ${r.pl}, Sterne ${r.starsSky}, Mond ${r.moon}); Pilzlinge ${r.pilz} → Hüpfmäuse ${r.maus} (Basis ${r.pz}); Laufzeit-spawn pilzling → ${r.spKind}; Musik ${JSON.stringify(r.call)}`);
+    console.log(`  0-R1: Thema ${r.theme} (${r.light}, Himmelslicht ${r.hemi}, Figurenlicht ${r.pl}, Sterne ${r.starsSky}, Mond ${r.moon}); Pilzlinge ${r.pilz} → Hüpfmäuse ${r.maus} (Basis ${r.pz}); Laufzeit-spawn pilzling → ${r.spKind}; Musik ${JSON.stringify(r.call)} → music.variant ${r.mVariant}, Taktuhr ${r.beatVariant}`);
     check('Remix-Platzhalter: remixOf liefert { id, world, title, remix } ohne Daten; die Registry löst ihn auf (Basis 1-1)', r.stub && r.remix?.base === '1-1' && r.title === 'Kraxelwiese bei Mondschein');
     check('Remix: Nacht-Beleuchtung (Thema grass@nacht: dunkles Himmelslicht, Mond, Sterne, Figurenlicht)', r.theme === 'grass@nacht' && r.light === 'nacht' && r.hemi < 0.8 && r.pl && r.starsSky && r.moon);
     check('Remix: replaceKind pilzling → huepfmaus (alle Pilzlinge der Basis, auch Laufzeit-spawns)', r.pilz === 0 && r.maus === r.pz + 0 && r.pz >= 5 && r.spKind === 'huepfmaus');
     check('Remix: remove (Hasen, Item-Baum), change (?-Block gibt Funkenblüte), Sterne neu (3), Stempel aus', r.bunny === 0 && r.tree === 0 && r.q === 'funkenbluete' && r.stars.length === 3 && r.stars.some((s) => s[1] > 13) && r.stamp === 0);
-    check('Remix: Musik des Basislevels mit Klang-Variante → music.play(\'course_grass\', { variant: \'nacht\' })', r.music === 'course_grass' && r.variant === 'nacht' && r.call?.[1]?.variant === 'nacht');
+    check('Remix: Musik des Basislevels mit Klang-Variante → music.play(\'course_grass\', { variant: \'nacht\' })', r.music === 'course_grass' && r.variant === 'nacht' && r.call?.[1]?.variant === 'nacht' && r.mVariant === 'nacht');
     check('Gegenprobe Basis 1-1 unverändert (Thema grass, Hasen, Stempel, Krallen-?-Block, ohne Variante/Remix-Feld)', r.baseTheme === 'grass' && r.baseBunny >= 2 && r.baseStamp && r.qb === 'krallenAnzug' && r.baseVariant === null && r.baseRemix === null && r.baseTitle === 'Kraxelwiese');
     // Änderung der Basis wirkt im Remix mit (Daten-Ebene), die Regeln gelten auch für das Neue
     const prop = await sc(() => {

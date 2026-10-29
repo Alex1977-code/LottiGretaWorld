@@ -39,7 +39,9 @@
 //   theme: Name                      anderes Thema (vor light)
 //   music: { theme?, variant? } | 'variante'   Musik: Thema (Standard: das der Basis) und Klang-Variante (nacht, abend,
 //                                    morgen, tag, dunkel, schnell, schwarzweiss) → LEVEL.music (Name) + LEVEL.musicVariant;
-//                                    CourseScene ruft music.play(thema, { variant }) (Rückfall ohne Varianten: Basisklang)
+//                                    CourseScene und Funkelstern rufen music.play(thema, { variant }) (Klang-Varianten des
+//                                    Musiksystems, MUSIC_VARIANTS in audio/AudioEngine.js; unbekannte Variante = ohne).
+//                                    Ohne Regel bleibt die Musik der Basis (auch deren Variante bei { theme, variant }).
 //   beepSpeed: 4, beepWarn: false    Piep-Blöcke (piep_block/_treppe/_rutsche): Wechsel alle every/beepSpeed Zählzeiten
 //                                    (Standard every 8 → 2), ohne Vorwarnung (warn 0)
 //   add: { segments, blocks, enemies, items }   neue Objekte (nach allen anderen Regeln)
@@ -351,12 +353,13 @@ function buildRemix(base, rules) {
 
   // ---- 10 Musik, Thema, Licht, Filter
   const baseMusic = typeof L.music === 'string' ? L.music : L.music?.theme ?? 'course_grass';
+  const baseVariant = typeof L.music === 'object' ? L.music?.variant ?? null : L.musicVariant ?? null;
   if (rules.music !== undefined) {
     const m = typeof rules.music === 'string' ? { variant: rules.music } : rules.music ?? {};
     L.music = m.theme ?? baseMusic;
     L.musicVariant = m.variant ?? null;
-    info.variant = L.musicVariant;
-  } else L.music = baseMusic;
+  } else { L.music = baseMusic; L.musicVariant = baseVariant; }
+  info.variant = L.musicVariant;
   if (rules.light || rules.filter) L.theme = remixTheme(L.theme ?? 'grass', { light: rules.light, filter: rules.filter });
   if (rules.filter) L.filter = rules.filter;
 
