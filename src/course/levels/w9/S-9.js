@@ -16,7 +16,7 @@
 //    Brett unter das Zieldeck – man steigt dabei aufs Deck → Zielmast.
 // Gegner: Kanonentürme 3 (Projektilköpfe), Krakenpilze 3, Tintlinge 3.
 
-import { PI, line, ring, arc, column, sign, isl, Bld, litTop, sternkapsel, kanonenFrageBloecke, glasdecke, deckZier, signalLampen, tunnelZier, fernSicht, neonBoden, weltraumPflanzen, riffZier, irrlichter, klaresWasser, asteroiden, bojen } from './_helpers_d.js';
+import { PI, line, ring, arc, column, sign, isl, Bld, litTop, sternkapsel, kanonenFrageBloecke, glasdecke, deckZier, signalLampen, tunnelZier, fernSicht, neonBoden, weltraumPflanzen, riffZier, irrlichter, klaresWasser, asteroiden, bojen, glaswaende } from './_helpers_d.js';
 
 const Y = -0.62;          // Knotenhöhe für Decks mit Oberseite 0 (Brett-Deck 0,62 m über der Schiene)
 const Y6 = -0.02;         // Knotenhöhe für Decks mit Oberseite 0,6
@@ -86,7 +86,12 @@ function build(level) {
   glasdecke(level, { x0: -10, x1: -2, z0: -150, z1: -208, y: -0.6, thick: 0.35, ribs: 4 });
   // unsichtbare Sperre über der Glasdecke: der Tunnel wird durchtaucht, nicht oben überlaufen (die Decke liegt knapp unter
   // dem Wasserspiegel des offenen Beckens)
-  level.world.add({ type: 'box', min: [-10, -0.25, -208], max: [-2, 25, -150], camIgnore: true, noWallSlide: true, tag: 'sperre' });
+  level.world.add({ type: 'box', min: [-10.8, -0.25, -208], max: [-1.2, 25, -150], camIgnore: true, noWallSlide: true, tag: 'sperre' });
+  // Sternenbecken nur von oben (Kopfsprung vom Gipfel): Glaswände auf dem Beckenrand, unsichtbar bis unter den Gipfel
+  glaswaende(level, [
+    { x0: -10.8, x1: -1.2, z0: -136.6, z1: -137.4, y0: 1, y1: 3.4, top: 18.6, color: 'pink' },
+    { x0: -10.8, x1: -10, z0: -137.4, z1: -150, y0: 1, y1: 2.6, top: 18.6 }, { x0: -2, x1: -1.2, z0: -137.4, z1: -150, y0: 1, y1: 2.6, top: 18.6 },
+  ]);
   tunnelZier(level, { x0: -10, x1: -2, z0: -151, z1: -207, y0: -5, y1: -0.6 });
   signalLampen(level, [
     { pos: [-9.6, 0, -88], color: 'gruen' }, { pos: [-7.6, 0.6, -242], color: 'pink' }, { pos: [-0.8, 0.6, -266], color: 'cyan' }, { pos: [-7.6, 0.6, -290], color: 'gold' },

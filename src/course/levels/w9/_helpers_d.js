@@ -1327,6 +1327,35 @@ export function kanonenFrageBloecke(level, o) {
  * Glasdecke (Unterwassertunnel S-9): feste, durchsichtige Decke (Kamera sieht hindurch) mit Metallrahmen und Neonstreben.
  *   { x0, x1, z0, z1, y (Unterkante), thick: 0.35, ribs: 4 (m Abstand der Streben) }
  */
+/**
+ * Glaswände (durchsichtige Scheiben mit Neonrahmen) samt unsichtbarer Sperre darüber: list [{ x0, x1, z0, z1, y0, y1
+ * (sichtbare Oberkante), top (Sperre bis), color }] – achsenparallele, dünne Wände; Kollision von y0 bis top (camIgnore).
+ */
+export function glaswaende(level, list) {
+  const g = new Bld(), panes = [];
+  for (const s of list) {
+    const x0 = Math.min(s.x0, s.x1), x1 = Math.max(s.x0, s.x1), z0 = Math.min(s.z0, s.z1), z1 = Math.max(s.z0, s.z1);
+    level.world.add({ type: 'box', min: [x0, s.y0, z0], max: [x1, s.top ?? s.y1, z1], camIgnore: true, noWallSlide: true, tag: 'glaswand' });
+    if (!level.view) continue;
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, w = x1 - x0, d = z1 - z0, h = s.y1 - s.y0;
+    panes.push([w, h, d, cx, s.y0, cz]);
+    const col = NEON[s.color ?? 'cyan'] ?? s.color;
+    g.box(w + 0.08, 0.1, d + 0.08, cx, s.y1 - 0.05, cz, col, { r: 0 });
+    const long = w > d, L = long ? w : d, n = Math.max(1, Math.round(L / 3));
+    for (let i = 0; i <= n; i++) {
+      const u = -L / 2 + (i / n) * L;
+      g.box(0.08, h, 0.08, cx + (long ? u : 0), s.y0, cz + (long ? 0 : u), i % 2 ? 0xffffff : col, { r: 0 });
+    }
+  }
+  g.flush(level, { material: 'glow' });
+  if (!level.view || !panes.length) return;
+  const b = new Bld();
+  for (const [w, h, d, cx, y0, cz] of panes) b.box(Math.max(0.06, w - 0.04), h, Math.max(0.06, d - 0.04), cx, y0, cz, 0xffffff, { r: 0 });
+  const mesh = b.mesh(new THREE.MeshStandardMaterial({ color: 0xa8f0ff, transparent: true, opacity: 0.2, roughness: 0.05, metalness: 0.1, depthWrite: false }));
+  mesh.renderOrder = 2;
+  addObject(level, mesh);
+}
+
 export function glasdecke(level, spec) {
   const x0 = Math.min(spec.x0, spec.x1), x1 = Math.max(spec.x0, spec.x1), z0 = Math.max(spec.z0, spec.z1), z1 = Math.min(spec.z0, spec.z1);
   const y = spec.y, t = spec.thick ?? 0.35;
