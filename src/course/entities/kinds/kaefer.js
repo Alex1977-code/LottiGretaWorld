@@ -11,10 +11,15 @@
 //          der Bahn), color?: 'blue'|'red'|'green'|'yellow'|'pink' (Standard blau bzw. rosa), pos?, dir?, wake?, drop? }
 // Zustände: move | squashed | flipped. Modelle 'krabbelkaefer' / 'flatterkaefer' (opts { color },
 // state { anim: walk|fly|idle|squashed, speed }).
+// Welt 8 (Präzisierung Gegner Welt 8, additiv): Flatterkäfer mit Stern – star?: Index (bzw. carries: 'star:I'): er trägt den grünen
+// Stern unter sich (unberührbar, folgt ihm; nur der erste Käfer einer Kolonne); besiegt (Draufspringen, Angriffe, Wurfsichel …)
+// lässt er ihn los – der Stern fällt zu Boden und kann eingesammelt werden (8-2 Stern 2). Laufzeit: carried (Stern-Index | null),
+// starDropped.
 
 import { Enemy } from '../Enemy.js';
 import { PathMover } from '../../level/PathMover.js';
 import { getModel } from '../../models/index.js';
+import { CarriedStar } from '../w8help.js';
 
 class Kaefer extends Enemy {
   constructor(level, spec, flying) {
@@ -34,6 +39,19 @@ class Kaefer extends Enemy {
       this.home = this.pos.clone();
     }
     if (level.view) this.setModel(getModel(this.kind, { color: spec.color ?? (flying ? 'pink' : 'blue') }));
+    // Welt 8: trägt einen Stern (nur Flatterkäfer)
+    const cm = typeof spec.carries === 'string' ? /^star(?::(\d+))?$/.exec(spec.carries) : null;
+    const idx = Number.isFinite(spec.star) ? spec.star : cm ? +(cm[1] ?? 0) : null;
+    this.carry = flying && idx !== null ? new CarriedStar(level, idx, this, -0.62) : null;
+    this.starDropped = false;
+  }
+
+  get carried() { return this.carry && !this.starDropped ? this.carry.index : null; }
+
+  /** Besiegt: getragenen Stern fallen lassen. */
+  markDefeated() {
+    if (this.carry && !this.starDropped) { this.starDropped = true; this.carry.release(); }
+    super.markDefeated();
   }
 
   placeOnPath(dt) {
@@ -55,6 +73,7 @@ class Kaefer extends Enemy {
 
   update(dt) {
     this.stateT += dt;
+    if (this.carry && !this.starDropped) this.carry.follow();
     if (this.state === 'squashed' && this.flying) {
       // Flatterkäfer fällt herunter und verschwindet nach der Landung
       this.vel.x = 0; this.vel.z = 0;
@@ -97,7 +116,7 @@ function make(flying) {
       const L = first.mover.length || 1;
       const spacing = spec.spacing ?? 1.4;
       for (let i = 1; i < n; i++) {
-        level.spawn(first.kind, { ...spec, id: spec.id ? `${spec.id}_${i}` : undefined, count: 1, phase: (spec.phase ?? 0) - (i * spacing) / L });
+        level.spawn(first.kind, { ...spec, id: spec.id ? `${spec.id}_${i}` : undefined, count: 1, phase: (spec.phase ?? 0) - (i * spacing) / L, star: undefined, carries: undefined });
       }
     }
     return first;
