@@ -729,23 +729,23 @@ export const MUSIC_VARIANTS = {
     filters: [['lowpass', 2300, 0.6]],
     melody: { tracks: ['lead', 'whistle', 'organ'], lowpass: 4000, gain: 1 },
     tracks: { bell: 0.55, echo: 0.6, jingle: 0.6, hat: 0.55, crash: 0.6, clap: 0.8, snare: 0.8, tek: 0.8 },
-    reverb: { seconds: 2.6, damp: 2600, wet: 0.36, dry: 0.95 },
-    gain: 1.12,
+    reverb: { seconds: 2.6, damp: 2600, wet: 0.45, dry: 0.95 },
+    gain: 1.1,
   },
   // Abend: warm (Tiefen leicht angehoben), gedämpfte Höhen, sanfter Hall
   abend: {
     filters: [['lowshelf', 220, 0.7, 2.5], ['highshelf', 3200, 0.7, -6], ['lowpass', 7500, 0.6]],
     tracks: { hat: 0.85, crash: 0.8 },
-    reverb: { seconds: 1.8, damp: 3200, wet: 0.22, dry: 1 },
-    gain: 1.04,
+    reverb: { seconds: 1.8, damp: 3200, wet: 0.3, dry: 1 },
+    gain: 0.9,
   },
   // Morgen: hell und luftig (Höhen angehoben, Tiefen etwas leichter), kurzer heller Hall, Glöckchen vorn, Vogel-Zwitschern
   morgen: {
     filters: [['lowshelf', 140, 0.7, -2], ['highshelf', 5000, 0.7, 5]],
     tracks: { bell: 1.3, echo: 1.25, arp: 1.12 },
-    reverb: { seconds: 1.3, damp: 7000, wet: 0.17, dry: 1 },
-    birds: 0.035,
-    gain: 1,
+    reverb: { seconds: 1.3, damp: 7000, wet: 0.24, dry: 1 },
+    birds: 0.04,
+    gain: 1.1,
   },
   // Tag: hell und trocken (Höhen leicht angehoben, Echo/Hall des Themas zurückgenommen)
   tag: {
@@ -758,9 +758,9 @@ export const MUSIC_VARIANTS = {
     filters: [['lowpass', 950, 0.7], ['lowpass', 950, 0.7], ['lowshelf', 120, 0.7, 4]],
     melody: { tracks: ['lead', 'whistle', 'bell', 'organ'], lowpass: 2000, gain: 1.3 },
     tracks: { hat: 0.5, crash: 0.5, jingle: 0.5, arp: 0.75, stabs: 0.75, pad: 0.8, echo: 0.7 },
-    reverb: { seconds: 3.4, damp: 1400, wet: 0.5, dry: 0.9 },
-    rumble: { freq: 70, level: 0.06 },
-    gain: 1.2,
+    reverb: { seconds: 3.4, damp: 1400, wet: 0.95, dry: 0.85 },
+    rumble: { freq: 110, level: 0.06 },
+    gain: 0.85,
   },
   // Schnell: Tempo +8 %, sonst unverändert (Taktuhr entsprechend schneller)
   schnell: { tempo: 1.08 },
@@ -770,7 +770,7 @@ export const MUSIC_VARIANTS = {
     drive: 1.8,
     crackle: 0.05,
     mono: true,
-    gain: 2.2,
+    gain: 1.05,
   },
 };
 export const VARIANT_NAMES = Object.keys(MUSIC_VARIANTS);
@@ -785,7 +785,8 @@ const IR_CACHE = new WeakMap(); // Kontext → Impulsantworten (Live-Kontext: ei
 
 /**
  * Impulsantwort für den Hall: zwei unkorrelierte Rausch-Kanäle (Breite), exponentiell auf −60 dB nach `seconds`, mit der
- * Zeit dunkler (Tiefpass fällt von 2·damp auf 0,4·damp), 12 ms Vorverzögerung, kurzes Einblenden; Energie auf 1 normiert.
+ * Zeit dunkler (Tiefpass fällt von 2·damp auf 0,4·damp), 12 ms Vorverzögerung, kurzes Einblenden. Normiert auf Verstärkung
+ * ≈ 1 im Durchlassbereich (Energie π·1,2·damp/sr je Kanal): `wet` ist dann der Hall-Anteil eines gehaltenen Tons.
  */
 function reverbImpulse(ctx, { seconds, damp }, seed) {
   let cache = IR_CACHE.get(ctx);
@@ -806,7 +807,7 @@ function reverbImpulse(ctx, { seconds, damp }, seed) {
       energy += d[i] * d[i];
     }
   }
-  const k = 1 / Math.sqrt(energy / 2 || 1);
+  const k = Math.sqrt(Math.min(1, Math.PI * 1.2 * damp / sr) / (energy / 2 || 1));
   for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] *= k; }
   cache.set(key, buf);
   return buf;
@@ -837,10 +838,10 @@ function crackleBuffer(ctx, seed) {
   return b;
 }
 
-/** Weiche Sättigung (tanh), Spitze bleibt 1. */
+/** Weiche Sättigung (tanh): leise Signale unverändert (Steigung 1), laute Spitzen werden rund abgeflacht. */
 function softClip(drive) {
-  const n = 2048, c = new Float32Array(n), norm = Math.tanh(drive);
-  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; c[i] = Math.tanh(drive * x) / norm; }
+  const n = 2048, c = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; c[i] = Math.tanh(drive * x) / drive; }
   return c;
 }
 
@@ -872,12 +873,12 @@ export function createVariantChain(ctx, name, dest, seed = 11) {
   if (v.melody) { melodyIn = gainOf(v.melody.gain ?? 1); series(melodyIn, [['lowpass', v.melody.lowpass, 0.7]]).connect(pre); }
   let tail = 0.2;
   if (v.reverb) {
-    const dry = gainOf(v.reverb.dry ?? 1), wet = gainOf(v.reverb.wet);
+    const dry = gainOf(v.reverb.dry ?? 1), wet = gainOf(v.reverb.wet), send = biquad(['highpass', 220, 0.7]); // Kick/Bass bleiben trocken
     const conv = keep(ctx.createConvolver());
     conv.normalize = false;
     conv.buffer = reverbImpulse(ctx, v.reverb, seed);
     pre.connect(dry); dry.connect(post);
-    pre.connect(conv); conv.connect(wet); wet.connect(post);
+    pre.connect(send); send.connect(conv); conv.connect(wet); wet.connect(post);
     tail = v.reverb.seconds + 0.1;
   } else pre.connect(post);
   if (v.rumble) {
