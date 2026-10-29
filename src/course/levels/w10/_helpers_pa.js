@@ -8,7 +8,7 @@
 //   (weitere Hilfen der Level P-2 … P-4 folgen unten)
 
 import * as THREE from 'three';
-import { lin, addStatic, addObject } from '../../blocks/kit.js';
+import { lin, addStatic, addObject, box, merge } from '../../blocks/kit.js';
 import { CourseEntity } from '../../entities/CourseEntity.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
 
@@ -49,6 +49,32 @@ export function uhrenZurueck(level, id) {
     h.resets++;
     return orig();
   };
+}
+
+// =====================================================================================================================
+// Holzbretter (P-1 oberer Weg im Mühlenkeller): fester Quader mit Brettern wie die Kellerdielen
+// =====================================================================================================================
+
+const DIELEN = [0x8a5a34, 0x7a4c2a, 0x966438, 0x6e4426, 0x845530];
+
+/**
+ * Holzbretter: list [[x, top, z, w = 2.2, d = 2.2, h = 0.4] …] – Kollisionsquader (Oberkante top) und Optik aus längs gelegten
+ * Dielen (Farben der Mühlenkeller-Dielen von 2-4), dunkler Unterbau, Querleisten. In LEVEL.build aufrufen (verschmolzen).
+ */
+export function holzbretter(level, list, o = {}) {
+  const parts = [];
+  for (const [x, top, z, w = 2.2, d = 2.2, h = 0.4] of list) {
+    level.world.add({ type: 'box', min: [x - w / 2, top - h, z - d / 2], max: [x + w / 2, top, z + d / 2], tag: o.tag ?? 'holzbrett' });
+    if (!level.view) continue;
+    parts.push(box(w - 0.08, h - 0.08, d - 0.08, x, top - h / 2 - 0.04, z, 0x4a2e1a, { r: 0.04, seg: 1 }));
+    const n = Math.max(2, Math.round(w / 0.62)), bw = w / n;
+    for (let i = 0; i < n; i++) {
+      const c = DIELEN[(((i * 3 + Math.round(x * 7 + z * 3)) % DIELEN.length) + DIELEN.length) % DIELEN.length];
+      parts.push(box(bw - 0.05, 0.1, d, x - w / 2 + bw * (i + 0.5), top - 0.05, z, c, { r: 0, seg: 0, topColor: c }));
+    }
+    for (const s of [-1, 1]) parts.push(box(w + 0.04, 0.14, 0.22, x, top - h + 0.12, z + s * (d / 2 - 0.3), 0x3a2414, { r: 0.03, seg: 1 }));
+  }
+  if (parts.length) addStatic(level, merge(parts));
 }
 
 export { THREE, lin, addStatic, addObject, CourseEntity, runAction, visDt };

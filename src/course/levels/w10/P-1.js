@@ -14,7 +14,7 @@
 //   Grashügel hinab, im Keller), Rollpilze und Pilzlinge der Basis.
 
 import { remixOf } from '../../level/remix.js';
-import { uhrenZurueck, plank, line } from './_helpers_pa.js';
+import { uhrenZurueck, holzbretter, line } from './_helpers_pa.js';
 
 const YU = 6;      // Rollhügel
 const YD = -14;    // Mühlenkeller
@@ -39,6 +39,8 @@ export const LEVEL = remixOf('2-4', {
     { kind: 'roter_ring' },                                // Stufenhügel: statt des roten Rings der Sternring
   ],
   replaceKind: { huepfmaus: 'huepfmaus_stachel' },
+  // Rasenmuster im Mondlicht (das helle Wiesengrün der Basis leuchtete nachts zu sehr)
+  change: [{ match: { type: 'deco_w1', kind: 'checker' }, set: { color: 0x4f8a62 } }],
   start: { pos: [0, YU, -26.5], yaw: Math.PI / 2 },
   // Zeit-Uhren = Ideallinie (über die Walzenkämme, an der Mühle, durch den Keller und über die Räder)
   clocks: {
@@ -54,11 +56,16 @@ export const LEVEL = remixOf('2-4', {
   ],
   add: {
     segments: [
-      // oberer Weg im Mühlenkeller: Kiste, Sims und Bretter an der rechten Wand über dem Zahnrad-Schacht
-      { type: 'platform', style: 'wood', pos: [6.4, YD, -247.6], size: [2.2, 1.4, 2.2] },
-      plank(6.5, YD + 2.9, -251.2, 2.6, 2.6, 0.5),
-      plank(6.5, YD + 3.3, -255.6), plank(6.5, YD + 3.7, -260), plank(6.5, YD + 4.1, -264.4), plank(6.5, YD + 4.5, -268.8, 2.6, 2.6),
       { type: 'sign', pos: [3.6, YD, -244.6], text: 'Oben lang?', size: [1.8, 0.7] },
+      // Nacht auf dem Rollhügel: Glühwürmchen und Leuchtpilze, im Keller Glühwürmchen über dem oberen Weg
+      { type: 'deco_w1', items: [
+        { kind: 'fireflies', pos: [0, YU + 1.5, -60], size: [22, 4, 70], n: 30, colors: [0xd8ff7a, 0xfff27a, 0x9ff2ff] },
+        { kind: 'mushrooms', pos: [-10.4, YU, -47], size: 0.9, color: 'cyan', glow: true },
+        { kind: 'mushrooms', pos: [10.6, YU, -58.5], size: 0.8, color: 'violet', glow: true },
+        { kind: 'mushrooms', pos: [-10.6, YU, -77], size: 1, color: 'gold', glow: true },
+        { kind: 'mushrooms', pos: [3.4, YU, -99], size: 0.8, color: 'cyan', glow: true },
+        { kind: 'fireflies', pos: [6.5, YD + 4, -258], size: [3, 3, 22], n: 10, colors: [0xfff27a, 0x9ff2ff] },
+      ] },
     ],
     enemies: [
       kugler('sk_walze', 5, YU, -55.5, { mode: 'pendel', dir: [1, 0], dist: 3, speed: 2 }),
@@ -77,6 +84,13 @@ export const LEVEL = remixOf('2-4', {
       ] },
       line([6.5, YD + 3.6, -255.6], [6.5, YD + 4.4, -264.4], 3),
     ],
+  },
+  // oberer Weg im Mühlenkeller: Kiste, Sims und Bretter an der rechten Wand über dem Zahnrad-Schacht (Dielen-Optik)
+  build(level) {
+    holzbretter(level, [
+      [6.4, YD + 1.4, -247.6, 2.2, 2.2, 1.4], [6.5, YD + 2.9, -251.2, 2.6, 2.6, 0.5],
+      [6.5, YD + 3.3, -255.6], [6.5, YD + 3.7, -260], [6.5, YD + 4.1, -264.4], [6.5, YD + 4.5, -268.8, 2.6, 2.6],
+    ]);
   },
   setup(level) { uhrenZurueck(level, 'uhren'); },
   marks: {
