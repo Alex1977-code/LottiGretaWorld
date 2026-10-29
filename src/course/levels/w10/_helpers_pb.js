@@ -122,6 +122,45 @@ export function sternBalkon(level, o) {
 }
 
 // =====================================================================================================================
+// P-6: Riesenwracks (gehobenes Wrackheck mit Münzen darunter)
+// =====================================================================================================================
+
+/**
+ * Gehobenes Ende eines Wracks (P-6 Geheimnis „Münzen unter dem gehobenen Ende von Wrack 1“): ein schräg aus der Sandbank
+ * ragendes Heckdeck (x0..x1, von zLow mit Höhe yLow bis zHigh mit Höhe yHigh) auf Spanten. Kollision: dünne, ansteigende
+ * Deckstreifen (begehbar wie eine flache Treppe) – unter dem hohen Ende bleibt Platz (dort liegen die Münzen der Daten).
+ * o: { x0, x1, zLow, zHigh, yLow, yHigh, n: 8 }.
+ */
+export function wrackheck(level, o) {
+  const { x0, x1, zLow, zHigh, yLow, yHigh } = o;
+  const n = o.n ?? 8, th = 0.28;
+  for (let i = 0; i < n; i++) {
+    const za = zLow + ((zHigh - zLow) * i) / n, zb = zLow + ((zHigh - zLow) * (i + 1)) / n;
+    const top = yLow + ((yHigh - yLow) * (i + 0.5)) / n;
+    level.world.add({ type: 'box', min: [x0, top - th, Math.min(za, zb)], max: [x1, top, Math.max(za, zb)], tag: 'wrackheck' });
+  }
+  if (!level.view) return;
+  const b = new Bld();
+  const len = Math.abs(zHigh - zLow), rise = yHigh - yLow, ang = Math.atan2(rise, len);
+  const dirZ = Math.sign(zHigh - zLow);
+  const cz = (zLow + zHigh) / 2, cy = (yLow + yHigh) / 2;
+  const planks = Math.max(3, Math.round((x1 - x0) / 0.45));
+  for (let k = 0; k < planks; k++) {
+    const x = x0 + ((x1 - x0) * (k + 0.5)) / planks;
+    const c = k % 3 === 0 ? 0x6a5640 : k % 3 === 1 ? 0x7c6448 : 0x5e4c38;
+    b.box((x1 - x0) / planks - 0.04, th, Math.hypot(len, rise), x, cy - th, cz, litTop(c, 0.6), { rx: -dirZ * ang, r: 0.02 });
+  }
+  // Spanten (Rippen) unter dem hohen Ende und ein zerbrochener Heckspiegel
+  for (let k = 0; k < 4; k++) {
+    const t = 0.45 + k * 0.17, z = zLow + (zHigh - zLow) * t, y = yLow + rise * t;
+    for (const x of [x0 + 0.15, x1 - 0.15]) b.box(0.22, y - yLow + 0.4, 0.22, x, yLow - 0.4, z, litTop(0x4a3a2a, 0.6), { r: 0.03 });
+  }
+  b.box(x1 - x0 + 0.3, 1.1, 0.25, (x0 + x1) / 2, yHigh - 0.2, zHigh + dirZ * 0.1, litTop(0x5a4632, 0.6), { r: 0.05 });
+  b.box(0.18, 1.6, 0.18, x0 + 0.3, yHigh + 0.3, zHigh + dirZ * 0.15, 0x3a2a1e, { r: 0.03 });
+  b.flush(level);
+}
+
+// =====================================================================================================================
 // P-7: sinkende Schollen über der blauen Lava
 // =====================================================================================================================
 
