@@ -137,10 +137,10 @@ export const LEVEL = {
   timeLimit: 400,
   killY: -60,
   // Leistung: ferne Gegner/Sandfiguren nicht zeichnen, Münzen ohne Schatten (Präzisierung Leistung und Level-Haken 2)
-  farHide: 55,
+  farHide: 48,
   instances: {
-    baron_sandstatue: { farHide: 46, shadowDist: 10 }, pilzling_sandskulptur: { farHide: 54, shadowDist: 24 },
-    sandflosser: { farHide: 52, shadowDist: 24 }, coin: { farHide: 46, shadow: false },
+    baron_sandstatue: { farHide: 46, shadowDist: 10 }, pilzling_sandskulptur: { farHide: 46, shadowDist: 20 },
+    sandflosser: { farHide: 46, shadowDist: 20 }, coin: { farHide: 46, shadow: false },
   },
   start: { pos: [0, Y0 + 0.62, 23], yaw: Math.PI / 2 },
   ride: {
@@ -160,7 +160,7 @@ export const LEVEL = {
   },
   setup: (level, scene) => {
     sandAnsicht(level, scene);
-    sandDunst(level, { dist: 112, near: 42, far: 165 });
+    sandDunst(level, { dist: 106, near: 40, far: 160 });
     sandStrom(level);
     stempelBlock(level, QBLOCK);
   },
