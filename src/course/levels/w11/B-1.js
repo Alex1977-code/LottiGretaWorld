@@ -15,9 +15,10 @@
 //   • Der Krallen-?-Block an der Landebühne gibt die Wurfsichel; die Sternkiste im Kistenraum ein Extraleben.
 // Sterne (neu): 0 Rätselbox hinter dem Start → Wandschalter-Kammer (x ≈ −60): vier Schaltfelder an den Innenwänden eines
 //   Wandsprung-Schachts berühren (Wandsprung-Kette), der Stern erscheint oben im Schacht · 1 Sternring auf der Checkpoint-Trommel:
-//   acht Sternmünzen über den Pilz-Trampolinen und auf den Hochbühnen der Hammer-Werfer in 16 s, der Stern erscheint auf Bühne C
-//   · 2 Wurfbude rechts neben dem Sims an der Zielbühne: der Stern liegt hinter einem schmalen Fenster (zu niedrig für die
-//   Figur) – nur der Wurfball vom Sims oder die Wurfsichel holen ihn.
+//   acht Sternmünzen über den Pilz-Trampolinen und auf den Hochbühnen der Hammer-Werfer in 20 s, der Stern erscheint auf Bühne C
+//   · 2 Wurfbude rechts neben dem Sims an der Zielbühne (über dem Abgrund): der Stern liegt als Hauptgewinn in der verglasten
+//   Bude; trifft der Wurfball vom Sims oder die Wurfsichel die Zielscheibe vorn, fliegt er hinüber auf den Sims (Anspringen,
+//   Berühren und Stampfen auf dem Dach zählen nicht).
 import { remixOf } from '../../level/remix.js';
 import { LEVEL as BASIS } from '../w1/1-5.js';
 import { stage, ring, arc, wandSchalter, kanonenSperre, wurfbude } from './_helpers_ba.js';
@@ -25,7 +26,7 @@ import { stage, ring, arc, wandSchalter, kanonenSperre, wurfbude } from './_help
 const PI = Math.PI;
 const RX = -60, RZ = -6.6;        // Wandschalter-Kammer: Mitte des Wandsprung-Schachts
 const SIMS = { x0: 5, x1: 9, z: -189, top: 10 };
-const BUDE = { x: 13.6, y: 10, z: -189, win: [10.6, 11.22] };
+const BUDE = { x: 13.6, y: 10, z: -189 };
 
 // Wand-Schaltfelder an den Innenseiten der beiden Schachtwände (links x −61,25 Normale +X, rechts x −58,75 Normale −X)
 const WAND = [
@@ -54,7 +55,7 @@ export const LEVEL = remixOf('1-5', {
   stars: [
     { pos: [RX, 10.9, RZ], hidden: true, id: 'b1_wandstern' },     // 0: oben im Wandsprung-Schacht
     { pos: [-4.4, 4.4, -88.6], hidden: true, id: 'b1_ringstern' },  // 1: Sternring (erscheint auf Bühne C)
-    [BUDE.x + 0.1, BUDE.y + 0.25, BUDE.z],                           // 2: in der Wurfbude hinter dem Fenster
+    [BUDE.x, BUDE.y + 0.2, BUDE.z],                                   // 2: Hauptgewinn in der Wurfbude (fliegt auf den Sims)
   ],
   // Kameraschienen der Basis plus Wandschalter-Kammer und Sims/Wurfbude (abseits, über area)
   camera: [
@@ -84,10 +85,10 @@ export const LEVEL = remixOf('1-5', {
       { type: 'pilztrampolin', id: 'b1_pilz1', pos: [-5.6, 3, -74.4], strength: 19 },
       { type: 'pilztrampolin', id: 'b1_pilz2', pos: [4.6, 3.5, -81.2], strength: 19 },
       { type: 'deco_w1b', items: [
-        stage(-10.5, 10, -78, 4, 4, { color: 0x8a2ad0, inlay: false }),
-        stage(8.6, 10.5, -84.2, 4, 4, { color: 0x2a9a5a, inlay: false }),
-        { kind: 'pennant', pos: [-12, 10, -79.6], size: 1.8, color: 'yellow' },
-        { kind: 'pennant', pos: [10.1, 10.5, -85.8], size: 1.8 },
+        stage(-10.5, 8.5, -78, 4, 4, { color: 0x8a2ad0, inlay: false }),
+        stage(8.6, 9, -84.2, 4, 4, { color: 0x2a9a5a, inlay: false }),
+        { kind: 'pennant', pos: [-12, 8.5, -79.6], size: 1.8, color: 'yellow' },
+        { kind: 'pennant', pos: [10.1, 9, -85.8], size: 1.8 },
       ] },
       // ------------------------------------------------ Landebühne: Hinweis zur verschlossenen Kanone
       { type: 'sign', pos: [6.6, 4, -159.4], text: 'Kanone zu!\nErst alle\nWechselfelder', size: [2.4, 1.2], yaw: -0.3 },
@@ -96,13 +97,13 @@ export const LEVEL = remixOf('1-5', {
         stage((SIMS.x0 + SIMS.x1) / 2, SIMS.top, SIMS.z, SIMS.x1 - SIMS.x0, 3, { color: 0xd0302a, inlay: false }),
         { kind: 'pennant', pos: [SIMS.x1 - 0.5, SIMS.top, SIMS.z + 1.2], size: 1.6, color: 'blue' },
       ] },
-      { type: 'sign', pos: [SIMS.x1 - 1.2, SIMS.top, SIMS.z - 1.1], text: 'Wurfbude', size: [1.8, 0.7], yaw: 0.6 },
+      { type: 'sign', pos: [SIMS.x1 - 1.2, SIMS.top, SIMS.z - 1.1], text: 'Wurfbude:\ntriff die Scheibe!', size: [2.0, 0.9], yaw: 0.6 },
       // Scheinwerfer der Abendvorstellung auf die neuen Stellen
       { type: 'deco_w1b', items: [
         { kind: 'spotlight', pos: [RX - 12, 18, 6], target: [RX, 6, RZ], r: 3.2, color: 0xffe0b0 },
         { kind: 'spotlight', pos: [26, 22, -176], target: [BUDE.x, BUDE.y + 1, BUDE.z], r: 2.6, color: 0xffd0f0 },
-        { kind: 'spotlight', pos: [-24, 22, -66], target: [-10.5, 10, -78], r: 2.4, color: 0xc8e4ff },
-        { kind: 'spotlight', pos: [24, 22, -70], target: [8.6, 10.5, -84.2], r: 2.4, color: 0xc8ffd8 },
+        { kind: 'spotlight', pos: [-24, 22, -66], target: [-10.5, 8.5, -78], r: 2.4, color: 0xc8e4ff },
+        { kind: 'spotlight', pos: [24, 22, -70], target: [8.6, 9, -84.2], r: 2.4, color: 0xc8ffd8 },
       ] },
     ],
     enemies: [
@@ -113,8 +114,8 @@ export const LEVEL = remixOf('1-5', {
       flamme('b1_funke4', [[-2.5, 1.5, -52.4], [0, 1.5, -54.4], [2.5, 1.5, -52.4]]),
       { kind: 'funkenflaemmchen', id: 'b1_funke5', pos: [-2.2, 4, -132.2], dir: [1, 0], hop: 0.7, height: 0.4, wake: 26, color: 'blau' },
       // Hammer-Werfer auf den Hochbühnen
-      { kind: 'hammer_werfer', id: 'b1_hammer1', pos: [-10.5, 10, -78], axis: [0, 1], pace: 0.6, sight: 13, interval: 3.2, volley: 2, jumpEvery: 4.2 },
-      { kind: 'hammer_werfer', id: 'b1_hammer2', pos: [8.6, 10.5, -84.2], axis: [0, 1], pace: 0.6, sight: 13, interval: 3.4, volley: 2, jumpEvery: 4.6, first: 1.8 },
+      { kind: 'hammer_werfer', id: 'b1_hammer1', pos: [-10.5, 8.5, -78], axis: [0, 1], pace: 0.6, sight: 13, interval: 3.2, volley: 2, jumpEvery: 4.2 },
+      { kind: 'hammer_werfer', id: 'b1_hammer2', pos: [8.6, 9, -84.2], axis: [0, 1], pace: 0.6, sight: 13, interval: 3.4, volley: 2, jumpEvery: 4.6, first: 1.8 },
     ],
     items: [
       // Rätselbox hinter dem Start ↔ Wandschalter-Kammer
@@ -122,23 +123,23 @@ export const LEVEL = remixOf('1-5', {
       { kind: 'warpbox', id: 'b1_kammerAus', style: 'mystery', pos: [RX + 5, 0, 2.4], target: [2.6, 0, 3.4] },
       ring([RX, 0.8, 0.6], 1.8, 8),
       // Sternring auf der Checkpoint-Trommel: acht Sternmünzen über den Pilz-Trampolinen und auf den Hochbühnen
-      { kind: 'sternring', id: 'b1_ring', pos: [2.4, 2.5, -65.4], yaw: PI / 2, time: 16, star: 1, coins: [
-        [-6.6, 8.2, -75.8], [-9.8, 10.7, -77.0], [-11.2, 10.7, -78.8],
-        [1.6, 4.3, -79.2], [5.6, 8.8, -82.2], [7.8, 11.2, -83.4], [9.4, 11.2, -85.0], [-2.2, 4.8, -87.4],
+      { kind: 'sternring', id: 'b1_ring', pos: [2.4, 2.5, -65.4], yaw: PI / 2, time: 20, star: 1, coins: [
+        [-5.8, 5.9, -74.6], [-9.8, 9.2, -77.0], [-11.2, 9.2, -78.8],
+        [1.6, 4.3, -79.2], [4.8, 6.4, -81.4], [7.8, 9.7, -83.4], [9.4, 9.7, -85.0], [-2.2, 4.8, -87.4],
       ] },
-      ...arc([-5.6, 4.6, -74.4], [-10.5, 10.6, -78], 4, 2.2),
+      ...arc([-5.6, 4.6, -74.4], [-10.5, 9.1, -78], 4, 2.2),
       // Wurfball auf dem Sims (für die Wurfbude)
       { kind: 'wurfball', id: 'b1_ball', pos: [SIMS.x1 - 1.4, SIMS.top, SIMS.z + 0.6], color: 'rot', respawn: 1.5 },
     ],
   },
   build(level) {
     wandSchalter(level, { id: 'b1_wand', tiles: WAND, onAll: { star: 0 }, at: [RX, 10.9, RZ] });
-    kanonenSperre(level, { id: 'b1_sperre', pos: [3.5, 4, -162.25], width: 2.5, height: 2.3, axis: 'x', face: 1 });
-    wurfbude(level, { id: 'b1_bude', pos: [BUDE.x, BUDE.y, BUDE.z], face: -1, size: [2.2, 2.6, 3], window: BUDE.win, pole: -14 });
+    kanonenSperre(level, { id: 'b1_sperre', pos: [3.5, 4, -160.9], width: 2.6, height: 2.4, depth: 1.75, dir: [0, -1] });
+    wurfbude(level, { id: 'b1_bude', pos: [BUDE.x, BUDE.y, BUDE.z], face: -1, size: [2.2, 2.6, 3], target: { y: BUDE.y + 0.95, size: 1.4 }, prize: 2, prizeTo: [SIMS.x0 + 2.4, SIMS.top + 0.25, SIMS.z], pole: -14 });
   },
   marks: {
     raetsel: [3.2, 0, 6.4], kammer: [RX, 0, 0], schacht: [RX, 0, RZ + 1.6],
-    pilz1: [-5.6, 3, -74.4], pilz2: [4.6, 3.5, -81.2], hoch1: [-10.5, 10, -78], hoch2: [8.6, 10.5, -84.2],
+    pilz1: [-5.6, 3, -74.4], pilz2: [4.6, 3.5, -81.2], hoch1: [-10.5, 8.5, -78], hoch2: [8.6, 9, -84.2],
     ring: [2.4, 2.5, -65.4], sims: [SIMS.x1 - 0.8, SIMS.top, SIMS.z], bude: [BUDE.x, BUDE.y, BUDE.z], sperre: [3.5, 4, -161],
   },
 });

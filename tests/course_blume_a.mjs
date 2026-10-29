@@ -84,24 +84,25 @@ const ROUTES = {
       { name: 'Stern 0 nicht ohne die Wandfelder (Rückwärtssalto im Schacht: nur unten)', star: 0, expectNot: true, from: [-60, 0, -6.6], heroes: ['lotti'],
         legs: [{ backflip: [0, 1] }, { wait: 40 }], mech: (r) => r.mech.wand !== '1111', mechText: (r) => `Wandfelder ${r.mech.wand}` },
       { name: 'Stern 1: Sternring auf der Trommel, Pilz-Trampoline zu den Hochbühnen der Hammer-Werfer, acht Sternmünzen', star: 1, from: [2.4, 2.5, -62.6],
-        legs: [{ to: [2.4, -67.2], within: 0.4, run: true }, { expect: 'ringAn' },
-          { to: [-2.6, -72.6], jump: 24, within: 0.5, run: false },
-          { bounce: [-10.2, -77.2], at: [-5.6, -74.4], y: 10 }, { to: [-11.2, -78.8], within: 0.4, run: false },
-          { to: [-3.4, -73.4], jump: 30, within: 0.6, run: false }, { to: [1.6, -79.2], jump: 24, within: 0.5, run: false },
-          { bounce: [8.2, -83.6], at: [4.6, -81.2], y: 10.5 }, { to: [9.4, -85.0], within: 0.4, run: false },
-          { to: [-2.2, -87.4], jump: 40, within: 0.6, run: true }, { until: 'stern1da', max: 240 }, { star: 1 }],
-        shot: 'stern1', mech: (r) => r.mech.bounces >= 2, mechText: (r) => `Pilz-Trampoline ${r.mech.bounces}×, Sternmünzen ${r.mech.ring}` },
-      { name: 'Stern 2: Wurfball vom Sims durch das Fenster der Wurfbude', star: 2, from: [7.4, 10, -188.4],
-        legs: [{ ball: 'b1_ball', throwTo: [13.7, -189] }, { wait: 120 }], shot: 'stern2' },
+        legs: [{ to: [2.4, -66.4], within: 0.4, run: false }, { expect: 'ringAn' },
+          { to: [-1.8, -66.6], within: 0.4, run: false }, { to: [-2.6, -72.6], jump: 24, within: 0.5, run: false },
+          { bounce: [-10.2, -77.2], at: [-5.6, -74.4], y: 8.5 }, { to: [-11.2, -78.8], within: 0.4, run: false },
+          { to: [-9.0, -77.0], within: 0.3, run: false }, { to: [-3.4, -72.8], jump: 30, within: 0.6, run: true }, { to: [-1.6, -75.1], within: 0.3, run: false }, { to: [1.6, -79.2], jump: 24, within: 0.5, run: false },
+          { bounce: [8.2, -83.6], at: [4.6, -81.2], y: 9 }, { to: [9.4, -85.0], within: 0.4, run: false },
+          { to: [10.0, -84.8], within: 0.3, run: false }, { to: [-2.2, -87.4], jump: 40, jumpAt: 9.6, edgeJump: true, within: 0.6, run: true }, { until: 'stern1da', max: 240 }, { star: 1 }],
+        shot: 'stern1', mech: (r) => r.mech.bounces >= 2, mechText: (r) => `Pilz-Trampoline ${r.mech.bounces}×, Sternmünzen ${r.mech.ring}${r.mech.ringLeft?.length ? ` (übrig ${JSON.stringify(r.mech.ringLeft)})` : ''}` },
+      { name: 'Stern 2: Wurfball vom Sims trifft die Zielscheibe der Wurfbude – der Stern fliegt auf den Sims', star: 2, from: [7.4, 10, -188.4],
+        legs: [{ ball: 'b1_ball', throwTo: [13.7, -189] }, { until: '=ent(\'b1_bude\').won && !ent(\'b1_bude\').flying', max: 300 }, { star: 2 }], shot: 'stern2' },
       { name: 'Stern 2 mit der Wurfsichel vom Sims', star: 2, from: [8.4, 10, -189], place: { power: 'sichel' },
-        legs: [{ throwAt: [13.7, -189] }] },
-      { name: 'Stern 2 nicht mit einem Sprung zur Wurfbude (Fenster zu niedrig, Wand davor)', star: 2, expectNot: true, from: [6, 10, -189], heroes: ['lotti', 'greta'],
+        legs: [{ throwAt: [13.7, -189] }, { until: '=ent(\'b1_bude\').won && !ent(\'b1_bude\').flying', max: 300 }, { star: 2 }] },
+      { name: 'Stern 2 nicht mit einem Sprung zur Wurfbude (geschlossen; auf dem Dach nichts zu holen, Scheibe zählt nur Würfe)', star: 2, expectNot: true, from: [6, 10, -189], heroes: ['lotti', 'greta'],
         legs: [{ to: [13.7, -189], jump: 40, jumpAt: 4.2, within: 0.3, run: true, max: 300, autoJump: false }, { wait: 120 }] },
     ],
     extra: [
-      { name: 'Kanone ohne alle Wechselfelder verschlossen (Gitter vor der Öffnung)', from: [3.5, 4, -159.6], heroes: ['lotti'],
-        legs: [{ to: [3.5, -164], within: 0.3, run: false, max: 240 }, { wait: 30 }, { expect: 'sperreZu' }],
-        mech: (r) => r.mech.pipes === 0 && r.pos[2] > -162.6, mechText: (r) => `Röhrenfahrten ${r.mech.pipes}, z ${r.pos[2].toFixed(2)}` },
+      { name: 'Kanone ohne alle Wechselfelder verschlossen (Gitterkäfig vor der Öffnung, auch von der Seite und von oben)', from: [3.5, 4, -159.4], heroes: ['lotti'], allowFail: true,
+        legs: [{ to: [3.5, -164], within: 0.3, run: false, max: 240 }, { wait: 30 }, { to: [6.2, -161.8], within: 0.3, run: false, max: 300 }, { to: [3.5, -162.2], within: 0.3, run: false, max: 240 },
+          { to: [3.5, -159.6], within: 0.3, run: false, max: 300 }, { to: [3.5, -162.2], jump: 40, within: 0.3, run: false, max: 240 }, { wait: 30 }, { expect: 'sperreZu' }],
+        mech: (r) => r.mech.pipes === 0 && r.pos[2] > -162.6 && r.pos[1] < 10, mechText: (r) => `Röhrenfahrten ${r.mech.pipes}, Ende ${r.pos.map((v) => v.toFixed(1)).join('/')}` },
       { name: 'Funkenflämmchen auf Feld 1 verletzt bei Berührung', from: [-5, 0, 2], heroes: ['lotti'], invuln: false, allowFail: true,
         legs: [{ until: '=Math.hypot(ent(\'b1_funke1\').pos.x - P().pos.x, ent(\'b1_funke1\').pos.z - P().pos.z) < 2.2', max: 3000 },
           { chaseKind: 'funkenflaemmchen', ids: ['b1_funke1'], max: 240, jump: false }, { wait: 60 }],
@@ -109,12 +110,61 @@ const ROUTES = {
       { name: 'Hammer-Werfer auf der Hochbühne wirft Hämmer auf den Weg darunter', from: [-2.6, 3, -72.6], heroes: ['lotti'], invuln: false, allowFail: true,
         legs: [{ wait: 120 * 8 }], mech: (r) => r.mech.hammers >= 2, mechText: (r) => `Hämmer ${r.mech.hammers}, Treffer ${r.mech.hurts}` },
       { name: 'Pilz-Trampolin federt auf die Hochbühne, Hammer-Werfer von oben besiegt', from: [-3.2, 3, -73.2], heroes: ['lotti'],
-        legs: [{ bounce: [-10.5, -78], at: [-5.6, -74.4], y: 10 }, { stompAll: 'b1_hammer1' }],
+        legs: [{ bounce: [-10.5, -78], at: [-5.6, -74.4], y: 8.5 }, { stompAll: 'b1_hammer1' }],
         mech: (r) => r.mech.stomped.includes('b1_hammer1'), mechText: (r) => `besiegt ${r.mech.stomped.join(' ')}` },
       { name: 'Wurfsichel aus dem ?-Block an der Landebühne', from: [-2, 4, -161.8], heroes: ['lotti'],
         legs: [{ grab: [-2, -164] }, { expect: 'sichel' }] },
       { name: 'Extraleben: Sternkiste im Kistenraum (Stampfattacke)', from: [53.2, 0, -90.4], heroes: ['lotti'], expectLives: 1,
-        legs: [{ pound: [53.2, -92.8] }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+        legs: [{ acts: [{ jump: [53.2, -91.6], run: false }, { go: [53.2, -92.8], tol: 0.15, max: 200 }, { wait: 20 }, { input: { jump: true }, n: 16 }, { input: { crouch: true }, n: 4 }, { wait: 90 }] },
+          { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Hochbühne ohne Pilz-Trampolin nicht erreichbar (Sprung von Bühne A)', from: [-6.4, 3, -73.2], heroes: ['lotti', 'greta'], allowFail: true,
+        legs: [{ to: [-10.5, -78], jump: 40, within: 0.4, run: true, max: 260, autoJump: false }, { wait: 60 }],
+        mech: (r) => r.pos[1] < 8 && r.mech.bounces === 0, mechText: (r) => `Ende y ${r.pos[1].toFixed(1)}${r.dead ? ' (abgestürzt)' : ''}` },
+    ],
+    rules: [
+      { name: 'Licht: Abendvorstellung im Zelt (Thema circus@nacht mit Mond und Figurenlicht), Basis-Thema circus',
+        fn: () => { const c = window.__course, th = c.view.theme; return { theme: c.level.data.theme, light: th.light, pl: !!th.playerLight, moon: !!c.view.sky.lightMoon, hemi: th.hemi?.intensity }; },
+        ok: (r) => r.theme === 'circus@nacht' && r.light === 'nacht' && r.pl, text: (r) => `${r.theme}, Himmelslicht ${r.hemi}, Figurenlicht ${r.pl}` },
+      { name: 'Funkenflämmchen wandern über die Schaltfelder (in 40 s besucht jedes der sechs Felder von Feld 1 ein Flämmchen, Feld 2 und die grüne Bühne ebenso)',
+        fn: () => {
+          const c = window.__course, L = c.level, W = window.__ba;
+          W.place([0, 0, 4], { settle: 2 });
+          const groups = { feld1: ['b1_funke1', 'b1_funke2'], feld2: ['b1_funke3', 'b1_funke4'] };
+          const out = {};
+          for (const [g, ids] of Object.entries(groups)) {
+            const tiles = L.named.get(g).tiles;
+            const best = tiles.map(() => 99);
+            const fl = ids.map((id) => L.named.get(id));
+            W.place(g === 'feld1' ? [0, 0, 4] : [0, 0, -34], { settle: 2 });
+            for (let i = 0; i < 120 * 40; i++) {
+              c.player.invuln = 9;
+              c.step(1);
+              if (i % 6) continue;
+              tiles.forEach((t, k) => { for (const f of fl) best[k] = Math.min(best[k], Math.hypot(f.pos.x - t.x, f.pos.z - t.z) + Math.abs(f.pos.y - t.y) * 0.3); });
+            }
+            out[g] = best.map((v) => +v.toFixed(2));
+          }
+          return out;
+        },
+        ok: (r) => r.feld1.every((d) => d < 0.6) && r.feld2.every((d) => d < 0.6), text: (r) => `Abstände Feld 1 ${r.feld1.join('/')} · Feld 2 ${r.feld2.join('/')}` },
+      { name: 'Hammer-Werfer stehen bei den Pilz-Trampolinen (je einer ≤ 6,5 m neben jedem Trampolin, auf der Hochbühne darüber)',
+        fn: () => {
+          const L = window.__course.level;
+          const pilze = L.data.segments.filter((s) => s.type === 'pilztrampolin').map((s) => s.pos);
+          const werfer = L.entities.filter((e) => e.kind === 'feuer_werfer' && e.weapon === 'hammer').map((e) => [e.pos.x, e.pos.y, e.pos.z]);
+          return { pilze: pilze.length, werfer: werfer.length, d: pilze.map((p) => +Math.min(...werfer.map((w) => Math.hypot(w[0] - p[0], w[2] - p[2]))).toFixed(1)), up: pilze.map((p) => +Math.min(...werfer.map((w) => w[1] - p[1])).toFixed(1)) };
+        },
+        ok: (r) => r.pilze === 2 && r.werfer === 2 && r.d.every((d) => d <= 6.5) && r.up.every((u) => u > 4), text: (r) => `${r.pilze} Pilz-Trampoline, ${r.werfer} Hammer-Werfer, Abstand ${r.d.join('/')} m, ${r.up.join('/')} m höher` },
+      { name: 'Daten-Regeln: Fähren-Felder öffnen die Kanone (statt Stern), ?-Block → Wurfsichel, Sternkiste → Extraleben; Gegenprobe Basis 1-5 (Stern 2 der Fähre, Krallen, Stern in der Kiste)',
+        fn: () => {
+          const L = window.__course.level, CL = window.__courseLevels, base = CL.raw('1-5');
+          const f = (d) => d.segments.find((s) => s.id === 'wechsel')?.onAll;
+          const q = (d) => d.blocks.find((b) => b.kind === 'question' && b.pos[2] === -164)?.content;
+          const k = (d) => d.items.find((i) => i.id === 'sternkiste')?.content;
+          return { r: [JSON.stringify(f(L.data)), q(L.data), k(L.data)], b: [JSON.stringify(f(base)), q(base), k(base)], open: L.named.get('b1_sperre')?.opened };
+        },
+        ok: (r) => r.r[0].includes('b1_sperre') && !r.r[0].includes('star') && r.r[1] === 'sichel' && r.r[2] === 'oneup' && r.b[0].includes('"star":2') && r.b[1] === 'krallenAnzug' && r.b[2] === 'star:1' && r.open === false,
+        text: (r) => `Remix ${r.r.join(' | ')} · Basis ${r.b.join(' | ')}` },
     ],
     shots: [
       ['start', [0, 0, 5]],
@@ -125,8 +175,8 @@ const ROUTES = {
       ['feld2', [0, 0, -28]],
       ['trommel', [0, 2.5, -61]],
       ['pilze', [-2.6, 3, -71]],
-      ['hochbuehne', [-10.5, 10, -77]],
-      ['hochbuehne2', [8.6, 10.5, -83]],
+      ['hochbuehne', [-10.5, 8.5, -77]],
+      ['hochbuehne2', [8.6, 9, -83]],
       ['faehre', [0, 4, -124]],
       ['sperre', [3, 4, -159.4]],
       ['zielbuehne', [0, 10, -186.5]],
@@ -582,6 +632,7 @@ function install() {
           }
           tick({ action: true }); tick({});
           mech.thrown = got && p.holding !== b;
+          if (Lg.trace) for (let n = 0; n < 90; n++) { tick({}); if (n % 3 === 0) log.push(['ball', n, +b.pos.x.toFixed(2), +b.pos.y.toFixed(2), +b.pos.z.toFixed(2), +b.vel.x.toFixed(1), +b.vel.y.toFixed(1)]); }
           log.push(['wurfball', Lg.ball, got, mech.thrown, k, +b.pos.x.toFixed(2), +b.pos.y.toFixed(2), +b.pos.z.toFixed(2)]);
           if (!got) log.push(['FEHLER: Ball nicht aufgehoben', Lg.ball]);
           continue;
@@ -692,6 +743,7 @@ function install() {
       mech.lives = L.runtime.save?.lives;
       mech.wand = L.named.get('b1_wand')?.info?.().on ?? '';
       mech.ring = L.entities.find((e) => e.kind === 'sternring')?.got ?? 0;
+      mech.ringLeft = L.entities.filter((e) => e.kind === 'sternmuenze' && e.alive && !e.removed).map((e) => [+e.pos.x.toFixed(1), +e.pos.y.toFixed(1), +e.pos.z.toFixed(1)]);
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, deathCause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {

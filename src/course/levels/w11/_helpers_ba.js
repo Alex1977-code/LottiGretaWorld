@@ -5,9 +5,9 @@
 // eigenen Haken der Remix-Regeln an (build/setup, level.onStep, view.add).
 //
 //   B-1  wandSchalter (Schaltfelder an zwei Wänden eines Wandsprung-Schachts: Berühren im Sprung/Wandrutschen färbt um,
-//        alle an → Aktion), kanonenSperre (goldenes Gitter vor einer Glasrohr-Öffnung, öffnet auf das Signal open),
-//        wurfbude (Zirkus-Wurfbude über dem Abgrund: der Stern liegt hinter einem schmalen Fenster – nur Wurfball oder
-//        Wurfsichel passen hindurch)
+//        alle an → Aktion), kanonenSperre (goldener Gitterkäfig vor einer Glasrohr-Öffnung, öffnet auf das Signal open),
+//        wurfbude (Zirkus-Wurfbude über dem Abgrund: der Stern liegt als Hauptgewinn drinnen; trifft der Wurfball oder die
+//        Wurfsichel die Zielscheibe vorn, fliegt er hinüber auf den Sims)
 //   B-2  hohlraum (Felsquader der Schachtdaten um Hohlräume beschneiden), kletterpfeiler (Felspfeiler mit Kletterranken:
 //        nur mit dem Krallen-Anzug hinauf), schwebewuerfel (schwebende Wasserwürfel, die sanft auf und ab wippen)
 //   B-3  moorfackeln (Fackeln in Gruppen: nur Feuerbälle der Funkenblüte zünden sie; alle einer Gruppe an → Aktion; alle
@@ -119,24 +119,37 @@ export function wandSchalter(level, spec) {
 // =====================================================================================================================
 
 /**
- * Goldenes Gitter mit rotem Vorhängeschloss vor einer Glasrohr-Öffnung (Bauplan B-1 „bewegte Schaltfelder öffnen eine
- * Glasrohr-Kanone“): fest, bis das Signal open (bzw. hide) kommt – dann springt das Schloss auf, die Stäbe fahren nach oben
- * weg (0,7 s) und die Öffnung ist frei.
- *   spec { id, pos: [x, y, z] (Mitte unten vor der Öffnung), width: 2.4, height: 2.3, axis: 'x' (Gitter quer zu X) | 'z',
- *          thick: 0.3 }
- *   level.named.get(id) = { open (bool), open(), hide(), info() }  (Signal-Verben open/hide)
+ * Goldener Gitterkäfig mit rotem Vorhängeschloss vor einer Glasrohr-Öffnung (Bauplan B-1 „bewegte Schaltfelder öffnen eine
+ * Glasrohr-Kanone“): Vordergitter, zwei Seitengitter und Dach umschließen den Einstiegsbereich der Röhre (er reicht 1 m vor die
+ * Öffnung), fest, bis das Signal open (bzw. hide) kommt – dann springt das Schloss auf, der Käfig fährt nach oben weg (0,7 s)
+ * und die Öffnung ist frei.
+ *   spec { id, pos: [x, y, z] (Mitte unten der Vorderseite), width: 2.6, height: 2.4, depth: 1.6 (Tiefe zur Öffnung hin, entlang
+ *          dir), dir: [0, -1] (von der Vorderseite zur Öffnung; nur Achsen), thick: 0.2 }
+ *   level.named.get(id) = { opened, open(), hide(), info() }  (Signal-Verben open/hide)
  */
 export function kanonenSperre(level, spec) {
-  const [x, y, z] = spec.pos, W = spec.width ?? 2.4, H = spec.height ?? 2.3, T = spec.thick ?? 0.3;
-  const alongX = (spec.axis ?? 'x') === 'x';
-  const min = alongX ? [x - W / 2, y, z - T / 2] : [x - T / 2, y, z - W / 2];
-  const max = alongX ? [x + W / 2, y + H, z + T / 2] : [x + T / 2, y + H, z + W / 2];
+  const [x, y, z] = spec.pos, W = spec.width ?? 2.6, H = spec.height ?? 2.4, Dp = spec.depth ?? 1.6, T = spec.thick ?? 0.2;
+  const dir = spec.dir ?? [0, -1];
+  const alongZ = Math.abs(dir[1]) > 0.5;
+  const sg = alongZ ? Math.sign(dir[1]) : Math.sign(dir[0]);
+  // lokale Achsen: u quer (Breite), v entlang dir (Tiefe, von der Vorderseite zur Öffnung)
+  const box = (u0, u1, v0, v1, y0, y1) => {
+    const va = Math.min(v0 * sg, v1 * sg), vb = Math.max(v0 * sg, v1 * sg);
+    return alongZ ? { min: [x + u0, y + y0, z + va], max: [x + u1, y + y1, z + vb] } : { min: [x + va, y + y0, z + u0], max: [x + vb, y + y1, z + u1] };
+  };
+  const parts = [
+    box(-W / 2, W / 2, 0, T, 0, H),                 // Vordergitter
+    box(-W / 2, -W / 2 + T, 0, Dp, 0, H),           // Seite
+    box(W / 2 - T, W / 2, 0, Dp, 0, H),             // Seite
+    box(-W / 2, W / 2, 0, Dp, H - T, H),            // Dach
+  ];
   const st = { opened: false, k: 0 };
-  let sid = level.world.add({ type: 'box', min, max, tag: 'kanonensperre', noWallSlide: true });
+  let ids = parts.map((q) => level.world.add({ type: 'box', min: q.min, max: q.max, tag: 'kanonensperre', noWallSlide: true }));
   const open = () => {
     if (st.opened) return;
     st.opened = true;
-    if (sid !== null) { level.world.remove(sid); sid = null; }
+    for (const id of ids) level.world.remove(id);
+    ids = [];
     level.sfx('gate');
     level.sfx('key');
     level.effects?.sparks({ x, y: y + H * 0.6, z }, 22);
@@ -145,39 +158,48 @@ export function kanonenSperre(level, spec) {
   const handle = { open, hide: open, get opened() { return st.opened; }, info: () => ({ open: st.opened, k: +st.k.toFixed(2) }) };
   if (spec.id) level.named.set(spec.id, handle);
   if (!level.view) return handle;
+  // Gitter in lokalen Koordinaten (u = X, Tiefe v = −Z), danach auf dir gedreht
   const b = new Bld();
   const gold = litTop(0xffc21a), dark = litTop(0xb07a10);
-  const n = Math.max(4, Math.round(W / 0.34));
-  for (let i = 0; i < n; i++) {
-    const u = -W / 2 + (W * (i + 0.5)) / n;
-    b.cyl(0.055, 0.055, H, alongX ? u : 0, 0, alongX ? 0 : u, gold, 8);
-    b.sphere(0.09, alongX ? u : 0, H, alongX ? 0 : u, gold);
+  const bars = (u0, u1, v0, v1, n) => {
+    for (let i = 0; i < n; i++) {
+      const k = (i + 0.5) / n, u = u0 + (u1 - u0) * k, v = v0 + (v1 - v0) * k;
+      b.cyl(0.05, 0.05, H, u, 0, -v, gold, 7);
+      b.sphere(0.08, u, H, -v, gold);
+    }
+  };
+  bars(-W / 2 + 0.1, W / 2 - 0.1, 0.1, 0.1, Math.max(5, Math.round(W / 0.32)));
+  bars(-W / 2 + 0.1, -W / 2 + 0.1, 0.25, Dp - 0.05, 4);
+  bars(W / 2 - 0.1, W / 2 - 0.1, 0.25, Dp - 0.05, 4);
+  for (const yy of [0.1, H * 0.5, H - 0.1]) {
+    b.box(W, 0.1, 0.1, 0, yy - 0.05, -0.1, dark, { r: 0.02 });
+    for (const s of [-1, 1]) b.box(0.1, 0.1, Dp, s * (W / 2 - 0.1), yy - 0.05, -Dp / 2, dark, { r: 0.02 });
   }
-  for (const yy of [0.12, H * 0.5, H - 0.14]) b.box(alongX ? W : 0.12, 0.12, alongX ? 0.12 : W, 0, yy - 0.06, 0, dark, { r: 0.03 });
-  const bars = new THREE.Mesh(b.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0.55 }));
+  for (let i = 0; i < 4; i++) b.box(W, 0.06, 0.08, 0, H - 0.06, -0.2 - (i * (Dp - 0.3)) / 3, dark, { r: 0.02 });
+  const cage = new THREE.Mesh(b.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0.55 }));
+  cage.castShadow = true;
   // Vorhängeschloss (rot mit goldenem Bügel) vorn in der Mitte
   const lk = new Bld();
   lk.box(0.5, 0.42, 0.18, 0, -0.21, 0, litTop(0xe8283a), { r: 0.06 });
   lk.torus(0.17, 0.045, 0, 0.02, 0, 0xffd23a, { rx: 0, ts: 14, arc: Math.PI });
   lk.sphere(0.05, 0, -0.12, 0.1, 0x2a1a10);
   const lock = new THREE.Mesh(lk.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.3 }));
-  // Schloss auf der Seite, von der die Figur kommt (face: +1 = +Z bzw. +X, −1 = −Z bzw. −X)
-  const fo = (spec.face ?? 1) * (T / 2 + 0.12);
-  lock.position.set(alongX ? 0 : fo, H * 0.55, alongX ? fo : 0);
-  if (!alongX) lock.rotation.y = Math.PI / 2;
+  lock.position.set(0, H * 0.55, 0.12);
   const root = new THREE.Group();
+  const inner = new THREE.Group();
+  inner.add(cage, lock);
+  // lokale −Z-Achse auf dir drehen
+  inner.rotation.y = Math.atan2(-dir[0], -dir[1]);
   root.position.set(x, y, z);
-  root.add(bars, lock);
-  bars.castShadow = true;
+  root.add(inner);
   addObject(level, root, (dt, t) => {
     const d = visDt(level, st, dt);
     if (st.opened) st.k = Math.min(1, st.k + d / 0.7);
-    bars.position.y = st.k * st.k * (H + 0.4);
+    cage.position.y = st.k * st.k * (H + 0.6);
     lock.position.y = H * 0.55 - st.k * 3;
-    lock.rotation.z = st.k * 2.5;
+    lock.rotation.z = st.opened ? st.k * 2.5 : Math.sin(t * 2.2) * 0.06;
     lock.visible = st.k < 0.98;
-    bars.visible = st.k < 0.999;
-    if (!st.opened) lock.rotation.z = Math.sin(t * 2.2) * 0.06;
+    cage.visible = st.k < 0.999;
   });
   return handle;
 }
@@ -188,18 +210,19 @@ export function kanonenSperre(level, spec) {
 
 /**
  * Zirkus-Wurfbude über dem Abgrund (Bauplan B-1 Stern 3 „rechts neben dem Sims am Ende per Ball oder Wurfsichel“): ein
- * Holzhäuschen mit gestreiftem Dach auf einem Mast, vorn (zur Figur) ein schmales Fenster – zu niedrig für eine Figur,
- * aber Wurfball und Wurfsichel fliegen hindurch und holen den Stern dahinter. Die Seite zur Kamera ist verglast (fest).
- *   spec { pos: [x, y, z] (Mitte der Bodenplatte innen, y = Oberseite der Bodenplatte), face: -1 (Fenster zeigt nach −X) | 1,
- *          size: [d (entlang X), h, w (entlang Z)] = [2.2, 2.6, 3], window: [y0, y1] (Fenster, absolute Höhen), pole: y (Fuß des
- *          Masts), id }
- *   Kollision: Boden, Dach, Rückwand, Seitenwände (Kamera-Seite Glas), Front unter und über dem Fenster.
+ * geschlossenes Holzhäuschen mit gestreiftem Dach auf einem Mast; der grüne Stern liegt als Hauptgewinn drinnen (durch die
+ * gläserne Seitenwand zur Kamera zu sehen, nicht erreichbar). Vorn (zur Figur) hängt eine große Zielscheibe (Entität
+ * zielscheibe, by 'alles': Wurfball, Wurfsichel, Feuer – Berühren, Anspringen und Stampfen auf dem Dach zählen nicht).
+ * Getroffen klappt die Scheibe um, die Klappe springt auf und der Stern fliegt im Bogen hinüber zu prizeTo (auf den Sims).
+ *   spec { pos: [x, y, z] (Mitte der Bodenplatte innen, y = Oberseite der Bodenplatte), face: -1 (Front zeigt nach −X) | 1,
+ *          size: [d (entlang X), h, w (entlang Z)] = [2.2, 2.6, 3], target: { y, size: 1.4 } (Mitte der Scheibe), prize: Index des
+ *          Sterns (LEVEL.stars), prizeTo: [x, y, z] (Landeplatz), pole: y (Fuß des Masts), id }
+ *   level.named.get(id) = { won, flying, info() }
  */
 export function wurfbude(level, spec) {
   const [cx, y0, cz] = spec.pos;
   const [D, Hh, Wd] = spec.size ?? [2.2, 2.6, 3];
   const f = spec.face ?? -1;
-  const [w0, w1] = spec.window;
   const fx = cx + f * D / 2;            // Frontebene
   const bx = cx - f * D / 2;            // Rückebene
   const xa = Math.min(fx, bx), xb = Math.max(fx, bx);
@@ -209,34 +232,55 @@ export function wurfbude(level, spec) {
   const add = (mn, mx, o = {}) => W.add({ type: 'box', min: mn, max: mx, tag: 'wurfbude', ...o });
   add([xa - T, y0 - 0.3, z0 - T], [xb + T, y0, z1 + T]);                                   // Boden
   add([xa - T, top, z0 - T], [xb + T, top + 0.3, z1 + T]);                                 // Dach
-  const back = f < 0 ? [xb, xb + T] : [xa - T, xa];
-  add([back[0], y0, z0 - T], [back[1], top, z1 + T]);                                      // Rückwand
-  add([xa - T, y0, z0 - T], [xb + T, top, z0]);                                            // Seite −Z
-  add([xa - T, y0, z1], [xb + T, top, z1 + T], { camIgnore: true });                       // Seite +Z (Glas)
-  const front = f < 0 ? [fx - T, fx] : [fx, fx + T];
-  add([front[0], y0, z0], [front[1], w0, z1]);                                             // Front unten
-  add([front[0], w1, z0], [front[1], top, z1]);                                            // Front oben
-  if (spec.id) level.named.set(spec.id, { window: [w0, w1], front: fx, info: () => ({ window: [w0, w1], front: fx }) });
-  if (!level.view) return;
+  add([xa - T, y0, z0 - T], [xa, top, z1 + T]);                                            // Wand −X
+  add([xb, y0, z0 - T], [xb + T, top, z1 + T]);                                            // Wand +X
+  add([xa, y0, z0 - T], [xb, top, z0]);                                                    // Seite −Z
+  add([xa, y0, z1], [xb, top, z1 + T], { camIgnore: true });                               // Seite +Z (Glas)
+  const st = { won: false, flying: false, t: 0, from: null, to: spec.prizeTo, star: null, via: null };
+  const handle = { get won() { return st.won; }, get flying() { return st.flying; }, info: () => ({ won: st.won, flying: st.flying, via: st.via }) };
+  if (spec.id) level.named.set(spec.id, handle);
+  // Zielscheibe vorn an der Bude (Mitte der Scheibe, blickt zur Figur)
+  const tg = spec.target ?? {};
+  const tSize = tg.size ?? 1.4;
+  const win = (lv, ctx) => {
+    if (st.won) return;
+    st.won = true;
+    st.via = ctx?.via ?? null;
+    const s = lv.entities.find((e) => e.kind === 'star' && e.index === (spec.prize ?? 2) && e.alive && !e.removed);
+    if (!s || !st.to) return;
+    st.star = s; st.flying = true; st.t = 0;
+    st.from = [s.pos.x, s.pos.y, s.pos.z];
+    s.touch = false;
+    lv.sfx('powerup_appear');
+    lv.effects?.sparks({ x: s.pos.x, y: s.pos.y + 0.6, z: s.pos.z }, 20);
+  };
+  level.spawn('zielscheibe', { id: spec.id ? `${spec.id}_scheibe` : undefined, pos: [fx + f * (T + 0.16), tg.y ?? y0 + 0.95, cz], yaw: f < 0 ? Math.PI : 0, size: tSize, group: spec.id ?? 'wurfbude', by: 'alles', onAll: { fn: win } });
+  level.onStep((dt) => {
+    if (!st.flying) return;
+    st.t = Math.min(1, st.t + dt / 0.9);
+    const k = st.t, a = st.from, b = st.to;
+    const h = 2.2 * 4 * k * (1 - k);
+    st.star.pos.set(a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k + h, a[2] + (b[2] - a[2]) * k);
+    if (st.t >= 1) {
+      st.flying = false;
+      st.star.touch = true;
+      level.effects?.sparks({ x: b[0], y: b[1] + 0.6, z: b[2] }, 16);
+      level.sfx('land');
+    }
+  });
+  if (!level.view) return handle;
   const b = new Bld();
   const wood = litTop(0xf4ead8), red = litTop(0xd0302a), gold = litTop(0xffc21a), blue = litTop(0x2a4fd0);
-  const X = (v) => v, cxm = (xa + xb) / 2;
-  // Bodenplatte, Rückwand, Seite −Z, Frontteile (Holz mit roter Kante)
+  const cxm = (xa + xb) / 2;
+  // Bodenplatte, Wände (Holz, Rückwand blau), Front mit goldenem Rahmen
   b.box(xb - xa + 2 * T, 0.3, Wd + 2 * T, cxm, y0 - 0.3, cz, red, { r: 0.05 });
-  b.box(T, Hh, Wd + 2 * T, (back[0] + back[1]) / 2, y0, cz, blue, { r: 0.04 });
-  b.box(xb - xa + 2 * T, Hh, T, cxm, y0, z0 - T / 2, wood, { r: 0.04 });
-  b.box(T, w0 - y0, Wd, (front[0] + front[1]) / 2, y0, cz, wood, { r: 0.04 });
-  b.box(T, top - w1, Wd, (front[0] + front[1]) / 2, w1, cz, wood, { r: 0.04 });
-  // Fensterrahmen (gold) und Zielscheiben-Ringe neben dem Fenster
-  b.box(T + 0.06, 0.08, Wd, (front[0] + front[1]) / 2, w0 - 0.08, cz, gold, { r: 0.02 });
-  b.box(T + 0.06, 0.08, Wd, (front[0] + front[1]) / 2, w1, cz, gold, { r: 0.02 });
-  for (const s of [-1, 1]) {
-    const zz = cz + s * (Wd / 2 - 0.45), xx = fx + f * (T + 0.02);
-    b.cyl(0.34, 0.34, 0.04, xx, (w1 + top) / 2 + 0.1, zz, red, 18, { rz: Math.PI / 2 });
-    b.cyl(0.22, 0.22, 0.05, xx, (w1 + top) / 2 + 0.1, zz, wood, 18, { rz: Math.PI / 2 });
-    b.cyl(0.1, 0.1, 0.06, xx, (w1 + top) / 2 + 0.1, zz, red, 14, { rz: Math.PI / 2 });
-  }
-  // gestreiftes Spitzdach (vier Keilstreifen) mit Goldknauf
+  b.box(T, Hh, Wd + 2 * T, f < 0 ? xb + T / 2 : xa - T / 2, y0, cz, blue, { r: 0.04 });
+  b.box(T, Hh, Wd + 2 * T, f < 0 ? xa - T / 2 : xb + T / 2, y0, cz, wood, { r: 0.04 });
+  b.box(xb - xa, Hh, T, cxm, y0, z0 - T / 2, wood, { r: 0.04 });
+  for (const yy of [y0 + 0.02, top - 0.1]) b.box(T + 0.08, 0.1, Wd + 2 * T, fx + f * T * 0.5, yy, cz, gold, { r: 0.02 });
+  // Prunkkissen für den Hauptgewinn
+  b.box(1.0, 0.18, 1.0, cxm, y0, cz, litTop(0x8a2ad0), { r: 0.08 });
+  // gestreiftes Dach mit Goldknauf, Wimpel
   const rn = 8;
   for (let i = 0; i < rn; i++) {
     const zz = z0 - T + ((Wd + 2 * T) * (i + 0.5)) / rn;
@@ -253,10 +297,11 @@ export function wurfbude(level, spec) {
   }
   addStatic(level, b.geometry(), { castShadow: true });
   // Glasscheibe zur Kamera (durchsichtig, eigenes Objekt)
-  const glass = new THREE.Mesh(new THREE.BoxGeometry(xb - xa + 2 * T, Hh, 0.06), new THREE.MeshStandardMaterial({ color: 0xd8f4ff, transparent: true, opacity: 0.22, roughness: 0.05, metalness: 0.1, depthWrite: false }));
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(xb - xa, Hh - 0.1, 0.06), new THREE.MeshStandardMaterial({ color: 0xd8f4ff, transparent: true, opacity: 0.2, roughness: 0.05, metalness: 0.1, depthWrite: false }));
   glass.position.set(cxm, y0 + Hh / 2, z1 + T / 2);
   glass.renderOrder = 2;
   addObject(level, glass);
+  return handle;
 }
 
 // =====================================================================================================================
