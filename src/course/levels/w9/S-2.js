@@ -10,8 +10,9 @@
 // Sterne: 0 Sternziegel neben der rechten blauen Platte (Reihe 3 des Kippfelds) – vom Sternstein-Sockel aus anstoßen ·
 //         1 unter der Drehplatte Spalte 1, Reihe 2 (von vorn gezählt): wer auf ihr stehen bleibt, kippt hinab auf das
 //         Versteck mit dem Stern (Röhre zurück zur Münzinsel) · 2 blaue Platten unter der letzten Warp-Box (alle umfärben).
-// Stempel: oben auf der senkrechten Takt-Plattenwand nach dem Kontrollpunkt. Extraleben: unsichtbarer Block auf der
-// Münzinsel, Ende der Farb-Plattenbahn (alle Platten golden), Absatz der Plattentreppe.
+// Stempel: oben auf der Takt-Plattenwand nach dem Kontrollpunkt (zwei Spalten im Zickzack; die Welle der Platten läuft
+// nach oben, je zwei sind draußen – im Takt mitklettern). Extraleben: unsichtbarer Block auf der Münzinsel, Ende der
+// Farb-Plattenbahn (erscheint, wenn alle Platten golden sind), rechter Winkel des zweiten Treppenabsatzes.
 // Gegner: Krakenpilz 6 (zwei auf gleitenden Blöcken am Kippfeld, einer auf der Münzinsel, einer gleitet neben der
 // Plattenbahn, einer patrouilliert auf der Zwischeninsel, einer am Kontrollpunkt), Hüpfmaus 2 (Absätze der Treppe).
 
