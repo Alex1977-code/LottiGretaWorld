@@ -27,12 +27,15 @@
 //                  opts { size (4) }  state { sway (0..1) }
 // planet           Weltraum-Kulisse: gestreifter Planet mit schrägem Ring, dreht sich langsam. Mitte bei y = radius.
 //                  opts { radius (3), color: 'orange'|'blue'|'violet'|'green', ring (true) }
+//                  Additiv (Welt Stern): opts.kind 'ring'|'pilz'|'blume'|'eis' → Sternenzelt-Planetoid aus props_weltraum_star.js
+//                  (opts { kind, size (Ø, 6), tilt }, Mitte bei y = size/2); ohne kind unverändert.
 
 import {
   THREE, TAU, Build, cached, vcol, std, basic, mesh, joint, makeModel, Clock, damp, clamp, col, mix, smoothstep, lerp,
   instMesh, setInst, canvasTexture, onEllipsoid, decals, glowSprite,
 } from '../lib/kit.js';
 import { sandblockGeo, sandCrumbGeo, sandMat, kaktusGeo, kaktusMat, KAKTUS_VARIANTS } from '../lib/w2Geos.js';
+import { buildPlanetStar } from './props_weltraum_star.js';
 
 const hash = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 
@@ -428,6 +431,7 @@ const PL = {
   green: [0x3fc87a, 0xa0f0b0, 0x24985a, 0xf0fff0],
 };
 function buildPlanet(opts = {}) {
+  if (opts.kind !== undefined) return buildPlanetStar(opts, 'planet');   // Welt Stern (additiv)
   const R = Number(opts.radius ?? 3), key = PL[opts.color] ? opts.color : 'orange', ring = opts.ring !== false;
   const C = PL[key];
   const root = new THREE.Group();
